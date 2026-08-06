@@ -81,6 +81,30 @@ class TestNopMetaIndexBuilder {
         assertEquals(1, results.get(0).getFailed());
     }
 
+    /**
+     * AR-23③（R8.2）：refreshBlocking 失败必须写入 IndexResult（failed + errors 含 refresh 信息），
+     * indexed 如实反映已 addDocs 数——索引 rebuild 不再静默报"成功"（修复前仅 LOG.warn）。
+     */
+    @Test
+    void testBuildFullIndex_refreshFailureReportedInResult() {
+        mockNonEmptyDaos();
+        doThrow(new RuntimeException("index refresh down"))
+                .when(searchEngine).refreshBlocking(NopMetaSearchProcessor.TOPIC);
+
+        List<IndexResult> results = builder.buildFullIndex(null);
+        assertEquals(6, results.size(), "each entity type keeps its own result row");
+        for (IndexResult r : results) {
+            assertEquals(1, r.getIndexed(),
+                    "docs already added must still be counted as indexed (refresh failure is not addDocs failure)");
+            assertEquals(1, r.getFailed(),
+                    "refresh failure must be recorded as failed (was silent LOG.warn before AR-23③)");
+            assertNotNull(r.getErrors(), "refresh failure must carry errors list");
+            assertTrue(r.getErrors().stream().anyMatch(e -> e.contains("refresh")),
+                    "errors must mention index refresh, got: " + r.getErrors());
+        }
+        verify(searchEngine, times(6)).addDocs(eq(NopMetaSearchProcessor.TOPIC), anyList());
+    }
+
     @Test
     void testBuildFullIndex_entityConversionFailure() {
         IEntityDao<NopMetaClassification> dao = mock(IEntityDao.class);

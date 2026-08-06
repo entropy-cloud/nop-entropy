@@ -10,8 +10,9 @@ public class ExternalColumnInfo {
     private String columnName;
     /** JDBC TYPE_NAME（数据库原生类型名，如 VARCHAR / BIGINT / TIMESTAMP） */
     private String dataType;
-    private int precision;
-    private int scale;
+    /** AR-23⑤（R8.2）：int → Integer——JDBC COLUMN_SIZE/DECIMAL_DIGITS 为 NULL 时保留 null（不伪造 0）。 */
+    private Integer precision;
+    private Integer scale;
     private boolean nullable;
     private String remark;
     private int ordinal;
@@ -33,19 +34,19 @@ public class ExternalColumnInfo {
         this.dataType = dataType;
     }
 
-    public int getPrecision() {
+    public Integer getPrecision() {
         return precision;
     }
 
-    public void setPrecision(int precision) {
+    public void setPrecision(Integer precision) {
         this.precision = precision;
     }
 
-    public int getScale() {
+    public Integer getScale() {
         return scale;
     }
 
-    public void setScale(int scale) {
+    public void setScale(Integer scale) {
         this.scale = scale;
     }
 

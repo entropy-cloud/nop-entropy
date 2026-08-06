@@ -63,64 +63,64 @@
 
 ### Phase 1 - AR-16 质量规则 SQL 日志脱敏
 
-Status: planned
+Status: completed
 Targets: `MetaQualityRuleExecutor.java` + 相关测试
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] AR-16 Decision：裁定方案 (a) sqlHash——`queryLong`/`queryTimestamp` 新增 `sqlHashOf(sql)` 计算（对齐 :286-287 既有实现），`judgeCustomSql` 复用既有 sqlHash；三处 `LOG.info` 只输出 sqlHash（完整 SQL 降 DEBUG 或移除）；记录裁定理由（方案 (b) 纯降 DEBUG 丢失可追溯性，不可选）
-- [ ] AR-16 修复：三处 LOG 调用点改造；确认 details 仍含 sqlHash（custom_sql 路径保持 :287）
-- [ ] 判别性测试：执行含敏感字面量的 custom_sql 规则 → 日志（ListAppender 捕获）不含 SQL 原文 + 含 sqlHash；沿 `TestNopMetaSearchProcessor` 既有 ListAppender 断言先例
-- [ ] 回归：`TestMetaQualityRuleExecutorCustomSqlSandbox` / 质量规则既有测试全绿
+- [x] AR-16 Decision：裁定方案 (a) sqlHash——`queryLong`/`queryTimestamp` 新增 `sqlHashOf(sql)` 计算（对齐 :286-287 既有实现），`judgeCustomSql` 复用既有 sqlHash；三处 `LOG.info` 只输出 sqlHash（完整 SQL 降 DEBUG 或移除）；记录裁定理由（方案 (b) 纯降 DEBUG 丢失可追溯性，不可选）
+- [x] AR-16 修复：三处 LOG 调用点改造；确认 details 仍含 sqlHash（custom_sql 路径保持 :287）
+- [x] 判别性测试：执行含敏感字面量的 custom_sql 规则 → 日志（ListAppender 捕获）不含 SQL 原文 + 含 sqlHash；沿 `TestNopMetaSearchProcessor` 既有 ListAppender 断言先例
+- [x] 回归：`TestMetaQualityRuleExecutorCustomSqlSandbox` / 质量规则既有测试全绿
 
 Exit Criteria:
 
-- [ ] 三处 LOG 调用点不再输出完整 SQL/custom_sql 字面量（代码审查 + 判别性测试断言双证据）
-- [ ] sqlHash 可追溯性保持（details 或日志含 sqlHash；queryLong/queryTimestamp 路径新增计算实证）
-- [ ] **无静默跳过**：脱敏不吞掉异常/结果，只改日志内容（Minimum Rules #24）
-- [ ] 本 Phase 改日志行为但模块文档无日志格式契约 → `No owner-doc update required` 显式记录
-- [ ] `ai-dev/logs/2026/08-06.md` 已更新
+- [x] 三处 LOG 调用点不再输出完整 SQL/custom_sql 字面量（代码审查 + 判别性测试断言双证据）
+- [x] sqlHash 可追溯性保持（details 或日志含 sqlHash；queryLong/queryTimestamp 路径新增计算实证）
+- [x] **无静默跳过**：脱敏不吞掉异常/结果，只改日志内容（Minimum Rules #24）
+- [x] 本 Phase 改日志行为但模块文档无日志格式契约 → `No owner-doc update required` 显式记录
+- [x] `ai-dev/logs/2026/08-06.md` 已更新
 
 ### Phase 2 - AR-23⑤ 外部表结构读取错误归类 + NULL 精度
 
-Status: planned
+Status: completed
 Targets: `ExternalTableStructureReader.java` + `ExternalColumnInfo.java` + `NopMetaDataSourceBizModel.java` + `NopMetadataErrors.java` + 相关测试
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] AR-23⑤ Decision：`ExternalColumnInfo.precision/scale int → Integer`（service 模块 DTO 形状变更，plan-first 声明——非 api 模块公共面）；评估 `serializeColumns`（:553-554）输出 null 的兼容性（structure JSON 消费方 = `MetaTableFieldResolver` buildSql 解析——已核实不读 precision/scale；`NopMetaTable.buildSql` JSON 文本消费面核对无类型化读取），记录评估结论
-- [ ] AR-23⑤ 错误归类：`getTables` 扫描 SQLException（:81-84）改抛新错误码（如 `ERR_EXTERNAL_TABLE_SCAN_FAILED`，NopMetadataErrors）+ 真实异常消息/productName（不再 "unknown"）；`:118 getDatabaseProductName` 失败同理；方言门禁路径（:134-140，实际抛 `ERR_DATASOURCE_TYPE_NOT_SUPPORTED`）保持不动（不误伤）
-- [ ] AR-23⑤ NULL 精度：`safeInt` 改返回 Integer（wasNull → null）或新增 Integer overload——`:100/:101 setPrecision/setScale` 传 null（Integer 字段），`:104 setOrdinal` 保持 int（null 合并或保底 0，ORDINAL_POSITION 无 NULL 语义）；NULL 精度不再归 0
-- [ ] 判别性测试：在既有 `TestExternalTableStructureReader`（4 测）扩展——mock getTables 抛 SQLException → 错误码为扫描错误非方言错误 + 异常消息保留；mock DECIMAL_DIGITS NULL → scale 为 null 非 0；方言不支持 → 仍方言错误码（不误伤）；`serializeColumns` null 输出 JSON 合法性断言；修复前 red 实测
-- [ ] 回归：`TestNopMetaDataSourceBizModel` / syncExternalTables 既有测试全绿
+- [x] AR-23⑤ Decision：`ExternalColumnInfo.precision/scale int → Integer`（service 模块 DTO 形状变更，plan-first 声明——非 api 模块公共面）；评估 `serializeColumns`（:553-554）输出 null 的兼容性（structure JSON 消费方 = `MetaTableFieldResolver` buildSql 解析——已核实不读 precision/scale；`NopMetaTable.buildSql` JSON 文本消费面核对无类型化读取），记录评估结论
+- [x] AR-23⑤ 错误归类：`getTables` 扫描 SQLException（:81-84）改抛新错误码（如 `ERR_EXTERNAL_TABLE_SCAN_FAILED`，NopMetadataErrors）+ 真实异常消息/productName（不再 "unknown"）；`:118 getDatabaseProductName` 失败同理；方言门禁路径（:134-140，实际抛 `ERR_DATASOURCE_TYPE_NOT_SUPPORTED`）保持不动（不误伤）
+- [x] AR-23⑤ NULL 精度：`safeInt` 改返回 Integer（wasNull → null）或新增 Integer overload——`:100/:101 setPrecision/setScale` 传 null（Integer 字段），`:104 setOrdinal` 保持 int（null 合并或保底 0，ORDINAL_POSITION 无 NULL 语义）；NULL 精度不再归 0
+- [x] 判别性测试：在既有 `TestExternalTableStructureReader`（4 测）扩展——mock getTables 抛 SQLException → 错误码为扫描错误非方言错误 + 异常消息保留；mock DECIMAL_DIGITS NULL → scale 为 null 非 0；方言不支持 → 仍方言错误码（不误伤）；`serializeColumns` null 输出 JSON 合法性断言；修复前 red 实测
+- [x] 回归：`TestNopMetaDataSourceBizModel` / syncExternalTables 既有测试全绿
 
 Exit Criteria:
 
-- [ ] 扫描故障与方言不支持区分实测（错误码 + 参数判别）；NULL 精度不再归 0（Integer null 实证）
-- [ ] service 模块 DTO 形状变更已声明 plan-first + 消费者影响评估记录（serializeColumns JSON 输出 null 兼容实证）
-- [ ] **无静默跳过**：NULL 精度保留 null 是显式语义（不伪造值），非静默吞异常（Minimum Rules #24）
-- [ ] 新错误码同步至 arm-index / 错误码清单（若模块文档含错误码清单）
-- [ ] `ai-dev/logs/2026/08-06.md` 已更新
+- [x] 扫描故障与方言不支持区分实测（错误码 + 参数判别）；NULL 精度不再归 0（Integer null 实证）
+- [x] service 模块 DTO 形状变更已声明 plan-first + 消费者影响评估记录（serializeColumns JSON 输出 null 兼容实证）
+- [x] **无静默跳过**：NULL 精度保留 null 是显式语义（不伪造值），非静默吞异常（Minimum Rules #24）
+- [x] 新错误码同步至 arm-index / 错误码清单（若模块文档含错误码清单）
+- [x] `ai-dev/logs/2026/08-06.md` 已更新
 
 ### Phase 3 - AR-23③ 索引 refresh 失败入 IndexResult + AR-23④ 搜索 limit 负数显式拒绝
 
-Status: planned
+Status: completed
 Targets: `NopMetaIndexBuilder.java` + `NopMetaSearchBizModel.java` + 相关测试
 
 - Item Types: `Fix | Proof`
 
-- [ ] AR-23③：`refreshBlocking` 失败（:109-111）→ `result.setFailed(result.getFailed() + 1)` + `result.setErrors(...)`（含 refresh 信息），`result.setIndexed(docs.size())` 保持（文档已 addDocs 成功）；与 addDocs 失败路径（:96-105）的计数语义区分
-- [ ] AR-23④：`searchMetadata` limit < 0 → 显式错误码（如 `ERR_SEARCH_LIMIT_INVALID`，NopMetadataErrors，沿 AR-09 `ERR_PAGINATION_LIMIT_INVALID` 先例），在设置 request 之前拒绝；null 默认 20 / >100 封顶 100 语义保持
-- [ ] 判别性测试：AR-23③ —— mock searchEngine.refreshBlocking 抛错 → IndexResult.failed>0 + errors 含 refresh 信息 + indexed==docs.size()（修复前静默）；AR-23④ —— limit=-1 → 显式错误码异常（不直通引擎），limit=null/50/200 语义回归；修复前 red 实测
-- [ ] 回归：`TestNopMetaIndexBuilder` / `TestNopMetaSearchProcessor` / `TestNopMetadataSearchIntegration` 全绿
+- [x] AR-23③：`refreshBlocking` 失败（:109-111）→ `result.setFailed(result.getFailed() + 1)` + `result.setErrors(...)`（含 refresh 信息），`result.setIndexed(docs.size())` 保持（文档已 addDocs 成功）；与 addDocs 失败路径（:96-105）的计数语义区分
+- [x] AR-23④：`searchMetadata` limit < 0 → 显式错误码（如 `ERR_SEARCH_LIMIT_INVALID`，NopMetadataErrors，沿 AR-09 `ERR_PAGINATION_LIMIT_INVALID` 先例），在设置 request 之前拒绝；null 默认 20 / >100 封顶 100 语义保持
+- [x] 判别性测试：AR-23③ —— mock searchEngine.refreshBlocking 抛错 → IndexResult.failed>0 + errors 含 refresh 信息 + indexed==docs.size()（修复前静默）；AR-23④ —— limit=-1 → 显式错误码异常（不直通引擎），limit=null/50/200 语义回归；修复前 red 实测
+- [x] 回归：`TestNopMetaIndexBuilder` / `TestNopMetaSearchProcessor` / `TestNopMetadataSearchIntegration` 全绿
 
 Exit Criteria:
 
-- [ ] refresh 失败可观测（IndexResult 断言实证：failed>0 + indexed 如实）；搜索 limit 负数显式拒绝（错误码断言实证）
-- [ ] **接线验证**：refresh 失败路径从 buildFullIndex 到 IndexResult 的运行时连通性已实测（mock 抛错 → 断言）（Minimum Rules #23）
-- [ ] **无静默跳过**：refresh 失败不再仅 LOG.warn；limit 负数不再直通引擎（Minimum Rules #24）
-- [ ] 新错误码同步至 arm-index / 错误码清单
-- [ ] `ai-dev/logs/2026/08-06.md` 已更新
+- [x] refresh 失败可观测（IndexResult 断言实证：failed>0 + indexed 如实）；搜索 limit 负数显式拒绝（错误码断言实证）
+- [x] **接线验证**：refresh 失败路径从 buildFullIndex 到 IndexResult 的运行时连通性已实测（mock 抛错 → 断言）（Minimum Rules #23）
+- [x] **无静默跳过**：refresh 失败不再仅 LOG.warn；limit 负数不再直通引擎（Minimum Rules #24）
+- [x] 新错误码同步至 arm-index / 错误码清单
+- [x] `ai-dev/logs/2026/08-06.md` 已更新
 
 ### Phase 4 - 收口
 

@@ -639,7 +639,10 @@ public class MetaQualityRuleExecutor {
     }
 
     private static long queryLong(Connection conn, String sql) {
-        LOG.info("qualityRule SQL: {}", sql);
+        // AR-16（R8.2）：完整 SQL 降 DEBUG 级；INFO 级只记 sqlHash（SQL 可内嵌敏感字面量——
+        // sql 子查询引用 sourceSql / 比较值参数化前，日志面脱敏保持可追溯性）
+        LOG.info("qualityRule SQL executed: sqlHash={}", sqlHashOf(sql));
+        LOG.debug("qualityRule SQL: {}", sql);
         try (PreparedStatement st = conn.prepareStatement(sql); ResultSet rs = st.executeQuery()) {
             if (!rs.next()) {
                 // AR-13（R8.1）：静态调用链无 ruleKey 上下文——ErrorCode 声明已改为 {sqlHash}；
@@ -658,7 +661,9 @@ public class MetaQualityRuleExecutor {
     }
 
     private static Timestamp queryTimestamp(Connection conn, String sql) {
-        LOG.info("qualityRule SQL: {}", sql);
+        // AR-16（R8.2）：完整 SQL 降 DEBUG 级；INFO 级只记 sqlHash（同 queryLong 脱敏语义）
+        LOG.info("qualityRule SQL executed: sqlHash={}", sqlHashOf(sql));
+        LOG.debug("qualityRule SQL: {}", sql);
         try (PreparedStatement st = conn.prepareStatement(sql); ResultSet rs = st.executeQuery()) {
             if (!rs.next()) {
                 return null;
@@ -680,7 +685,10 @@ public class MetaQualityRuleExecutor {
      * 因此调用方 {@link #judgeCustomSql} 在调用前已做 SQL 内容白名单校验（拒绝分号/UNION/INTO OUTFILE 等）。
      */
     private static Double querySingleValue(Connection conn, String sql) throws SQLException {
-        LOG.info("qualityRule custom_sql: {}", sql);
+        // AR-16（R8.2）：custom_sql 文本可内嵌敏感字面量（姓名/卡号等）——完整 SQL 降 DEBUG 级，
+        // INFO 级只记 sqlHash（judgeCustomSql :295 已写入 details 的同一摘要，保持可追溯性）
+        LOG.info("qualityRule custom_sql executed: sqlHash={}", sqlHashOf(sql));
+        LOG.debug("qualityRule custom_sql: {}", sql);
         try (PreparedStatement st = conn.prepareStatement(sql); ResultSet rs = st.executeQuery()) {
             if (!rs.next()) {
                 return null;

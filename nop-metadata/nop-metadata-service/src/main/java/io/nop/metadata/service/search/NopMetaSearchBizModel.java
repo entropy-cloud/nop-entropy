@@ -65,6 +65,11 @@ public class NopMetaSearchBizModel {
                                           IServiceContext context) {
         if (limit == null) {
             limit = 20;
+        } else if (limit < 0) {
+            // AR-23④（R8.2）：负 limit 显式拒绝（沿 AR-09 ERR_PAGINATION_LIMIT_INVALID 先例——
+            // 不做静默钳制、不直通引擎），在设置 request 之前拒绝
+            throw new NopMetadataException(NopMetadataErrors.ERR_SEARCH_LIMIT_INVALID)
+                    .param(NopMetadataErrors.ARG_LIMIT, limit);
         } else if (limit > 100) {
             limit = 100;
         }

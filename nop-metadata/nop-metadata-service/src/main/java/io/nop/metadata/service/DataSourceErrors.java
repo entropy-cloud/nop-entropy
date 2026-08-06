@@ -21,6 +21,10 @@ interface DataSourceErrors extends NopMetadataArgs {
             ErrorCode.define("nop.err.metadata.datasource-connect-failed",
                     "DataSource connection failed for datasourceType={datasourceType}: {error}",
                     ARG_DATASOURCE_TYPE, ARG_ERROR);
+    ErrorCode ERR_EXTERNAL_TABLE_SCAN_FAILED =
+            ErrorCode.define("nop.err.metadata.external-table-scan-failed",
+                    "Failed to scan external database table structure: {databaseProductName} -- {error}",
+                    ARG_DATABASE_PRODUCT_NAME, ARG_ERROR);
     ErrorCode ERR_DATASOURCE_JDBC_URL_BLOCKED =
             ErrorCode.define("nop.err.metadata.datasource-jdbc-url-blocked",
                     "JDBC URL is blocked by security policy (protocol/host not allowed or dangerous parameter present): "

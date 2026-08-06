@@ -5,6 +5,7 @@ import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.core.context.IServiceContext;
 import io.nop.dao.api.IEntityDao;
+import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.metadata.api.dto.IndexResult;
@@ -136,6 +137,43 @@ class TestNopMetadataSearchIntegration {
         searchBiz.searchEngine = null;
         assertThrows(NopException.class,
                 () -> searchBiz.searchMetadata("test", null, null, null));
+    }
+
+    /**
+     * AR-23④（R8.2）：limit < 0 → 显式错误码拒绝（不直通引擎、不做静默钳制——沿 AR-09
+     * ERR_PAGINATION_LIMIT_INVALID 先例）。
+     */
+    @Test
+    void testSearchMetadata_limitNegativeRejected() {
+        NopMetadataException ex = assertThrows(NopMetadataException.class,
+                () -> searchBiz.searchMetadata("q", null, -1, null));
+        assertEquals(NopMetadataErrors.ERR_SEARCH_LIMIT_INVALID.getErrorCode(), ex.getErrorCode(),
+                "negative search limit must be explicitly rejected (was passed through before AR-23④)");
+        assertEquals(-1, ex.getParam(NopMetadataErrors.ARG_LIMIT),
+                "rejected limit value must be carried as param");
+        verify(searchEngine, never()).search(any(SearchRequest.class));
+    }
+
+    /** limit 归一化语义回归：null→20 默认（既有），50 保持，200 封顶 100（既有钳制保持）。 */
+    @Test
+    void testSearchLimitNormalizationSemantics() {
+        SearchResponse response = new SearchResponse();
+        response.setQuery("q");
+        response.setLimit(0);
+        response.setTotal(0);
+        response.setItems(Collections.emptyList());
+        response.setProcessTime(1);
+        when(searchEngine.search(any(SearchRequest.class))).thenReturn(response);
+
+        searchBiz.searchMetadata("q", null, 50, null);
+        searchBiz.searchMetadata("q", null, 200, null);
+        searchBiz.searchMetadata("q", null, null, null);
+
+        verify(searchEngine, times(3)).search(requestCaptor.capture());
+        List<SearchRequest> requests = requestCaptor.getAllValues();
+        assertEquals(50, requests.get(0).getLimit(), "limit=50 must be kept as-is");
+        assertEquals(100, requests.get(1).getLimit(), "limit=200 must be capped at 100");
+        assertEquals(20, requests.get(2).getLimit(), "null limit must default to 20");
     }
 
     @Test

@@ -79,8 +79,10 @@ public class ExternalTableStructureReader {
                 tables.add(info);
             }
         } catch (SQLException e) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_DIALECT_NOT_SUPPORTED, e)
-                    .param(NopMetadataErrors.ARG_DATABASE_PRODUCT_NAME, "unknown")
+            // AR-23⑤（R8.2）：扫描级故障（连接中断/权限/元数据异常）与"方言不支持"区分——
+            // 真实故障携带真实 productName + 原始异常消息，不再误报 ERR_DIALECT_NOT_SUPPORTED + "unknown"
+            throw new NopMetadataException(NopMetadataErrors.ERR_EXTERNAL_TABLE_SCAN_FAILED, e)
+                    .param(NopMetadataErrors.ARG_DATABASE_PRODUCT_NAME, productName)
                     .param(NopMetadataErrors.ARG_ERROR, e.getMessage());
         } finally {
             IoHelper.safeCloseObject(rs);
@@ -101,7 +103,7 @@ public class ExternalTableStructureReader {
                 col.setScale(safeInt(colRs, "DECIMAL_DIGITS"));
                 col.setNullable(colRs.getInt("NULLABLE") == DatabaseMetaData.columnNullable);
                 col.setRemark(colRs.getString("REMARKS"));
-                col.setOrdinal(safeInt(colRs, "ORDINAL_POSITION"));
+                col.setOrdinal(safeOrdinal(colRs, "ORDINAL_POSITION"));
                 col.setDefaultValue(colRs.getString("COLUMN_DEF"));
                 info.getColumns().add(col);
             }
@@ -115,7 +117,9 @@ public class ExternalTableStructureReader {
         try {
             productName = metaData.getDatabaseProductName();
         } catch (SQLException e) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_DIALECT_NOT_SUPPORTED, e)
+            // AR-23⑤（R8.2）：getDatabaseProductName 失败是元数据访问故障（非"方言不支持"）——
+            // productName 此时确实不可得，如实记 "unknown"，但错误码归类为扫描故障
+            throw new NopMetadataException(NopMetadataErrors.ERR_EXTERNAL_TABLE_SCAN_FAILED, e)
                     .param(NopMetadataErrors.ARG_DATABASE_PRODUCT_NAME, "unknown")
                     .param(NopMetadataErrors.ARG_ERROR, e.getMessage());
         }
@@ -152,9 +156,16 @@ public class ExternalTableStructureReader {
         return schemaPattern.trim();
     }
 
-    private static int safeInt(ResultSet rs, String columnLabel) throws SQLException {
+    /** AR-23⑤（R8.2）：NULL → null（保留 JDBC 原始语义，不伪造 0）；非 NULL → Integer。 */
+    private static Integer safeInt(ResultSet rs, String columnLabel) throws SQLException {
         int value = rs.getInt(columnLabel);
-        return rs.wasNull() ? 0 : value;
+        return rs.wasNull() ? null : value;
+    }
+
+    /** ORDINAL_POSITION 无 NULL 语义：NULL/缺省保底 0（保持 int 契约）。 */
+    private static int safeOrdinal(ResultSet rs, String columnLabel) throws SQLException {
+        Integer value = safeInt(rs, columnLabel);
+        return value != null ? value : 0;
     }
 
 }

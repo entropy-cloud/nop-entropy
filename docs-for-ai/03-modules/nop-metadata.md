@@ -155,7 +155,7 @@ mutation {
 - **失败**（任一阶段）：内层事务回滚 DB + 已写索引文档反向清理（removeDocs 对账）+ 事件不写入——三态一致回滚，不存在"报失败但数据已提交"的静默分裂；批量路径 per-path 隔离（单路径失败不中断其余路径，结果按路径 success/error 返回）。
 - **级联删除索引清理**：`NopMetaModule` / `NopMetaEntity` 删除前收集被级联删除子实体 id，删除后 removeFromIndex（模块：MetaEntity/MetaEntityField/MetaTable；实体：MetaEntity + 其 MetaEntityField），搜索不再返回已删实体。
 
-**例外（Pseudo-BizModel）**：`NopMetaSearchBizModel`（`@BizModel("NopMetaSearch")`，位于 `nop-metadata-service/.../search/`）无对应 `INopMetaSearchBiz` 接口——其搜索索引跨 NopMetaTable / NopMetaEntity / NopMetaEntityField / NopMetaGlossaryTerm 等多实体，无单一对应实体；当前无跨模块调用方（接口 deferred），`rebuildSearchIndex` / `searchMetadata` 两方法仅经 GraphQL 访问。
+**例外（Pseudo-BizModel）**：`NopMetaSearchBizModel`（`@BizModel("NopMetaSearch")`，位于 `nop-metadata-service/.../search/`）无对应 `INopMetaSearchBiz` 接口——其搜索索引跨 NopMetaTable / NopMetaEntity / NopMetaEntityField / NopMetaGlossaryTerm 等多实体，无单一对应实体；当前无跨模块调用方（接口 deferred），`rebuildSearchIndex` / `searchMetadata` 两方法仅经 GraphQL 访问。`searchMetadata` 的 `limit` 语义（AR-23④，R8.2）：缺省 null → 20；`limit > 100` → 封顶 100（既有语义保持）；**`limit < 0` → 显式拒绝**（`nop.err.metadata.search-limit-invalid`，不做静默钳制、不直通引擎——沿 AR-09 分页契约先例）。`rebuildSearchIndex` 的 `IndexResult` 中 `refreshBlocking` 失败计入 `failed`（`errors` 含 refresh 信息，`indexed` 如实反映已 addDocs 数，AR-23③）——索引重建失败可观测，不再静默报"成功"。
 
 **items 返回类型合理例外（P2-24）**：`queryTableData` / `queryAggregation` / `queryJoinData` 的返回 `items` 为 `List<Map<String,Object>>`（原始行 Map 列表）而非强类型 DTO——这是经裁定的合理例外：行结构由任意外部源 schema / 用户选择 Measure-Dimension 动态决定，无法预先声明固定 DTO 字段；API 契约仍以 `items` 语义（列名 → 值）对外稳定。
 
@@ -212,6 +212,7 @@ mutation {
 nop-metadata 严格遵循"无静默跳过"原则（plan 2026-07-19-1250-3 Phase 2 维度09-07）：
 
 - 表不存在 / 数据源不存在 / DISABLED / 非 jdbc 类型 / 不支持的方言 / SQL 解析失败 / 字段引用非法 → **显式抛 `NopException` + ErrorCode**，不静默空集、不伪造值
+- **外部表结构扫描故障分类（AR-23⑤，R8.2）**：`syncExternalTables` 扫描外部库时的真实故障（连接中断/权限/元数据访问失败——含 `getDatabaseProductName` / `getTables` 抛 `SQLException`）显式抛 `nop.err.metadata.external-table-scan-failed`（携带**真实** `databaseProductName` + 原始异常消息），与方言不支持（`datasource-type-not-supported`，方言白名单门禁）区分——真实扫描故障不再误报为"方言不支持"；`COLUMN_SIZE` / `DECIMAL_DIGITS` 为 NULL 时 `precision`/`scale` 保留 **JSON null**（不伪造 0，structure JSON 消费方不读这两个字段）
 - 批量操作（syncExternalTables / collectCatalog / executeCheckpoint）per-row try/catch 隔离失败 + 收集到 errors 列表，不中断整批
 - ErrorCode 已集中到 `NopMetadataErrors.java`，命名前缀 `nop.err.metadata.*`（plan Phase 2 渐进迁移）
 

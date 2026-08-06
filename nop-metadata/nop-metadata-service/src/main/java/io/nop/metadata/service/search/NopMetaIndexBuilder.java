@@ -108,7 +108,11 @@ public class NopMetaIndexBuilder {
                 try {
                     searchEngine.refreshBlocking(topic);
                 } catch (Exception e) {
+                    // AR-23③（R8.2）：refresh 失败不再仅 LOG.warn 静默——写入 IndexResult（failed += 1，
+                    // 非 docs.size()：文档已 addDocs 成功），indexed 如实反映已 addDocs 数；搜索不再报"成功"却读陈旧索引
                     LOG.warn("Failed to refresh index for type={}", entityType, e);
+                    result.setFailed(result.getFailed() + 1);
+                    result.setErrors(List.of("Index refresh failed for type: " + entityType));
                 }
             }
 

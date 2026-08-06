@@ -7,15 +7,21 @@ import io.nop.api.core.beans.graphql.GraphQLRequestBean;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
+import io.nop.metadata.service.entity.NopMetaDataSourceBizModel;
+import io.nop.metadata.service.sync.ExternalColumnInfo;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Method;
 import java.sql.Timestamp;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -92,6 +98,62 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
                 "mutation { NopMetaDataSource__testConnection(dataSourceId: \"ds-bad-cfg\") { connected databaseProductName error } }");
         assertTrue(response.hasError(),
                 "missing required jdbc field (jdbcUrl) must fast-fail: " + response);
+    }
+
+    /**
+     * AR-23⑤（R8.2）消费者兼容实证：ExternalColumnInfo.precision/scale 为 null 时
+     * serializeColumns 输出合法 JSON（precision/scale 为 JSON null），非数值被伪造为 0。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testSerializeColumnsNullPrecisionScaleOutputsJsonNull() throws Exception {
+        ExternalColumnInfo col = new ExternalColumnInfo();
+        col.setColumnName("C1");
+        col.setDataType("VARCHAR");
+        col.setPrecision(null);
+        col.setScale(null);
+        col.setNullable(true);
+        col.setOrdinal(1);
+        col.setRemark("col");
+
+        String json = serializeColumnsReflectively(List.of(col));
+        assertTrue(json.contains("\"precision\":null"),
+                "null precision must serialize as JSON null (was 0 before AR-23⑤): " + json);
+        assertTrue(json.contains("\"scale\":null"),
+                "null scale must serialize as JSON null (was 0 before AR-23⑤): " + json);
+        // JSON 合法性：可完整回解析且语义保持
+        List<Map<String, Object>> parsed = (List<Map<String, Object>>) JsonTool.parse(json);
+        assertEquals(1, parsed.size());
+        assertNull(parsed.get(0).get("precision"));
+        assertNull(parsed.get(0).get("scale"));
+        assertEquals(1, parsed.get(0).get("ordinal"));
+    }
+
+    /** 非 NULL 精度不受影响（既有数值语义保持）。 */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testSerializeColumnsNonNullPrecisionScaleKept() throws Exception {
+        ExternalColumnInfo col = new ExternalColumnInfo();
+        col.setColumnName("C2");
+        col.setDataType("DECIMAL");
+        col.setPrecision(10);
+        col.setScale(2);
+        col.setNullable(false);
+        col.setOrdinal(2);
+
+        String json = serializeColumnsReflectively(List.of(col));
+        assertTrue(json.contains("\"precision\":10"), "non-null precision must be kept: " + json);
+        assertTrue(json.contains("\"scale\":2"), "non-null scale must be kept: " + json);
+        List<Map<String, Object>> parsed = (List<Map<String, Object>>) JsonTool.parse(json);
+        assertEquals(10, ((Number) parsed.get(0).get("precision")).intValue());
+        assertEquals(2, ((Number) parsed.get(0).get("scale")).intValue());
+    }
+
+    private static String serializeColumnsReflectively(List<ExternalColumnInfo> columns) throws Exception {
+        // serializeColumns 为 private（沿 TestMetaQualityRuleExecutorCustomSqlSandbox 反射先例）
+        Method m = NopMetaDataSourceBizModel.class.getDeclaredMethod("serializeColumns", List.class);
+        m.setAccessible(true);
+        return (String) m.invoke(new NopMetaDataSourceBizModel(), columns);
     }
 
     private GraphQLResponseBean execute(String query) {

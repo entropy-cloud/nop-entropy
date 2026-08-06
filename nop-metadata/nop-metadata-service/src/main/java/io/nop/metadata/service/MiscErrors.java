@@ -156,11 +156,7 @@ interface MiscErrors extends NopMetadataArgs {
             ErrorCode.define("nop.err.metadata.search-index-remove-failed",
                     "Failed to remove document from search index: entityType={entityType} entityId={entityId}",
                     ARG_ENTITY_TYPE, ARG_ENTITY_ID);
-
-    // ===== Dialect =====
-
-    ErrorCode ERR_DIALECT_NOT_SUPPORTED =
-            ErrorCode.define("nop.err.metadata.dialect-not-supported",
-                    "Dialect not supported: {databaseProductName} -- {error}",
-                    ARG_DATABASE_PRODUCT_NAME, ARG_ERROR);
+    ErrorCode ERR_SEARCH_LIMIT_INVALID =
+            ErrorCode.define("nop.err.metadata.search-limit-invalid",
+                    "Search limit must be null or a positive integer: {limit}", ARG_LIMIT);
 }
