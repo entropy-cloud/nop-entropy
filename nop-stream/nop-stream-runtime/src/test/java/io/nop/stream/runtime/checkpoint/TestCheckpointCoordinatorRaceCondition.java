@@ -81,6 +81,12 @@ class TestCheckpointCoordinatorRaceCondition {
         assertTrue(doneLatch.await(10, TimeUnit.SECONDS), "All tasks should complete within timeout");
         executor.shutdown();
 
+        // Persist runs on the dedicated async persist executor, so wait for it to finish
+        // before asserting exactly-once semantics.
+        long deadline = System.currentTimeMillis() + 5000;
+        while (storeCount.get() == 0 && System.currentTimeMillis() < deadline) {
+            Thread.sleep(10);
+        }
         assertEquals(1, storeCount.get(), "Checkpoint should be stored exactly once");
         coordinator.shutdown();
     }
