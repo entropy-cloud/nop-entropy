@@ -29,7 +29,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 13. Control plane、HA 与 fencing 审计: `done`
 - 14. Data plane 与真实多 JVM recovery 审计: `done`
 - 15. Batch/message connector capability 审计: `done`
-- 16. JDBC/file/CDC connector external-effect 审计: `planned`
+- 16. JDBC/file/CDC connector external-effect 审计: `done`
 - 17. 测试有效性与审计工具治理: `planned`
 - 18. 当前 production finding disposition: `todo`
 - 19. 历史 P0/P1 checkpoint/state/window finding disposition: `todo`
