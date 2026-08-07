@@ -1,6 +1,6 @@
 # nop-stream 独立深度审计路线图
 
-> Last updated: 2026-08-07
+> Last updated: 2026-08-08
 > Sources: `ai-dev/analysis/2026-08/2026-08-06-nop-stream-audit-baseline-and-roadmap-analysis.md` (primary), `ai-dev/backlog/nop-stream-production-roadmap.md` (implementation ownership), `ai-dev/audits/nop-stream-production/2026-08-02-2107-*.md` (current confirmed findings)
 
 ## Purpose
@@ -18,7 +18,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 2. Checkpoint、state backend 与 CEP 状态缺陷收口: `done`
 - 3. 契约、IoC 配置与测试完整性缺陷收口: `done`
 - 4. 审计 evidence schema、source-manifest 与 finding corpus: `done`
-- 5. 审计环境资格与 gated-evidence 契约: `todo`
+- 5. 审计环境资格与 gated-evidence 契约: `done`
 - 6. Java API、graph 和 LOCAL execution 审计: `todo`
 - 7. XDSL StreamModel 入口审计: `todo`
 - 8. Delta StreamModel 入口审计: `todo`

@@ -1,21 +1,23 @@
 #!/usr/bin/env node
 // check-nop-stream-audit-manifest.mjs
 //
-// Validator for the nop-stream independent audit "度量衡" (Stage 4):
-//   - manifest : execute every manifest selection command and compare to expected denominator
-//   - corpus   : check finding IDs unique, shard totals consistent, severity/domain vocabulary legal
-//   - evidence : check evidence-row fields complete + disposition vocabulary legal
-//   - self-test: positive control — proves each checker REJECTS known-bad input (no silent skip)
+// Validator for the nop-stream independent audit "度量衡" (Stage 4 + Stage 5):
+//   - manifest     : execute every manifest selection command and compare to expected denominator
+//   - corpus       : check finding IDs unique, shard totals consistent, severity/domain vocabulary legal
+//   - evidence     : check evidence-row fields complete + disposition vocabulary legal
+//   - qualification: check @@LANE lane-registry blocks (Stage 5): frozen_strength/status vocabulary, blocked-reason/positive-result rules
+//   - self-test    : positive control — proves each checker REJECTS known-bad input (no silent skip)
 //
 // Rule #24 (No Silent No-Op): a missing/unknown field or an out-of-vocabulary value is a hard error
 // that exits non-zero; the validator never silently fixes or ignores.
 //
 // Usage:
-//   node ai-dev/tools/check-nop-stream-audit-manifest.mjs manifest [--strict]
-//   node ai-dev/tools/check-nop-stream-audit-manifest.mjs corpus   [--strict]
-//   node ai-dev/tools/check-nop-stream-audit-manifest.mjs evidence [--strict]
+//   node ai-dev/tools/check-nop-stream-audit-manifest.mjs manifest       [--strict]
+//   node ai-dev/tools/check-nop-stream-audit-manifest.mjs corpus         [--strict]
+//   node ai-dev/tools/check-nop-stream-audit-manifest.mjs evidence       [--strict]
+//   node ai-dev/tools/check-nop-stream-audit-manifest.mjs qualification  [--strict]
 //   node ai-dev/tools/check-nop-stream-audit-manifest.mjs self-test
-//   node ai-dev/tools/check-nop-stream-audit-manifest.mjs           (default: runs manifest+corpus+evidence)
+//   node ai-dev/tools/check-nop-stream-audit-manifest.mjs                (default: runs manifest+corpus+evidence+qualification)
 
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -28,6 +30,7 @@ const AUDIT_DIR = join(PROJECT_ROOT, 'ai-dev', 'audits', 'nop-stream-independent
 const MANIFEST_FILE = join(AUDIT_DIR, 'source-manifest.md');
 const CORPUS_FILE = join(AUDIT_DIR, 'finding-corpus.md');
 const SCHEMA_FILE = join(AUDIT_DIR, 'evidence-schema.md');
+const QUAL_FILE = join(AUDIT_DIR, 'environment-qualification.md');
 
 const SEVERITY_VOCAB = new Set(['P0', 'P1', 'P2', 'AR']);
 const DOMAIN_VOCAB = new Set([
@@ -38,6 +41,21 @@ const DISPOSITION_VOCAB = new Set([
 ]);
 const LANE_VOCAB = new Set(['unit', 'in-process', 'multi-jvm', 'none']);
 const LANE_STRENGTH = { none: 0, unit: 1, 'in-process': 2, 'multi-jvm': 3 };
+
+// Stage 5 — lane qualification (frozen_strength excludes 'none'; a lane always provides real evidence strength)
+const LANE_STRENGTH_VOCAB = new Set(['unit', 'in-process', 'multi-jvm']);
+const LANE_STATUS_VOCAB = new Set(['qualified', 'blocked']);
+const LANE_REQUIRED = [
+  'lane_id', 'frozen_strength', 'invoke_command', 'preconditions', 'credential_isolation',
+  'cleanup', 'timeout', 'artifact_retention', 'owner', 'status',
+];
+const LANE_ALLOWED = new Set([
+  ...LANE_REQUIRED,
+  'expected_positive_result', // REQUIRED when status=qualified
+  'blocked_reason',           // REQUIRED when status=blocked
+  'rerun_condition',          // REQUIRED when status=blocked
+  'note',                     // OPTIONAL
+]);
 
 // ---------------------------------------------------------------------------
 // Parsing helpers (shared block format: @@ENTRY / @@EVIDENCE ... @@END)
@@ -292,6 +310,71 @@ function collectEvidenceRows() {
 }
 
 // ---------------------------------------------------------------------------
+// QUALIFICATION (Stage 5 — lane registry)
+// ---------------------------------------------------------------------------
+
+function parseLanes(text) {
+  return parseBlocks(text, '@@LANE');
+}
+
+function checkLane(lane) {
+  const errors = [];
+  // required fields
+  for (const f of LANE_REQUIRED) {
+    if (lane[f] === undefined || lane[f] === '') errors.push(`missing required field: ${f}`);
+  }
+  // unknown fields
+  for (const k of Object.keys(lane)) {
+    if (!LANE_ALLOWED.has(k)) errors.push(`unknown field: ${k}`);
+  }
+  // frozen_strength vocabulary
+  if (lane.frozen_strength !== undefined && !LANE_STRENGTH_VOCAB.has(lane.frozen_strength)) {
+    errors.push(`frozen_strength out of vocabulary: "${lane.frozen_strength}" (allowed: unit | in-process | multi-jvm)`);
+  }
+  // status vocabulary
+  if (lane.status !== undefined && !LANE_STATUS_VOCAB.has(lane.status)) {
+    errors.push(`status out of vocabulary: "${lane.status}" (allowed: qualified | blocked)`);
+  }
+  // conditional requirements
+  if (lane.status === 'blocked') {
+    if (lane.blocked_reason === undefined || lane.blocked_reason === '') {
+      errors.push('status=blocked requires blocked_reason');
+    }
+    if (lane.rerun_condition === undefined || lane.rerun_condition === '') {
+      errors.push('status=blocked requires rerun_condition');
+    }
+  }
+  if (lane.status === 'qualified') {
+    if (lane.expected_positive_result === undefined || lane.expected_positive_result === '') {
+      errors.push('status=qualified requires expected_positive_result');
+    }
+  }
+  // a qualified row must NOT carry blocked_reason/rerun_condition (would be contradictory)
+  if (lane.status === 'qualified' && lane.blocked_reason !== undefined) {
+    errors.push('status=qualified must not carry blocked_reason');
+  }
+  // invoke_command must be non-empty (blocked-no-test placeholder "none (...)" is a legal non-empty value)
+  if (lane.invoke_command !== undefined && lane.invoke_command === '') {
+    errors.push('invoke_command must not be empty');
+  }
+  return errors;
+}
+
+function checkLanes(lanes) {
+  const errors = [];
+  const seen = new Set();
+  for (const l of lanes) {
+    const lErrs = checkLane(l);
+    for (const err of lErrs) errors.push(`${l.lane_id || '<no-id>'}: ${err}`);
+    if (l.lane_id) {
+      if (seen.has(l.lane_id)) errors.push(`${l.lane_id}: duplicate lane_id`);
+      seen.add(l.lane_id);
+    }
+  }
+  return errors;
+}
+
+// ---------------------------------------------------------------------------
 // SELF-TEST (positive control)
 // ---------------------------------------------------------------------------
 
@@ -365,6 +448,46 @@ function runSelfTest() {
   const lErrs = checkEvidenceRow(laneRow);
   if (lErrs.length === 0) failures.push('evidence positive control: e2e-proved with insufficient lane was NOT rejected');
 
+  // --- Qualification positive control: known-bad @@LANE blocks must be rejected.
+  const badLanes = [
+    // 1. missing required field (no owner)
+    { lane_id: 'BAD-L1', frozen_strength: 'unit', invoke_command: 'echo', preconditions: 'p',
+      credential_isolation: 'none', cleanup: 'c', timeout: '1s', artifact_retention: 'a', status: 'qualified',
+      expected_positive_result: 'x' },
+    // 2. frozen_strength out of vocabulary
+    { lane_id: 'BAD-L2', frozen_strength: 'none', invoke_command: 'echo', preconditions: 'p',
+      credential_isolation: 'none', cleanup: 'c', timeout: '1s', artifact_retention: 'a', owner: 'o',
+      status: 'qualified', expected_positive_result: 'x' },
+    // 3. status out of vocabulary
+    { lane_id: 'BAD-L3', frozen_strength: 'unit', invoke_command: 'echo', preconditions: 'p',
+      credential_isolation: 'none', cleanup: 'c', timeout: '1s', artifact_retention: 'a', owner: 'o',
+      status: 'maybe' },
+    // 4. blocked missing blocked_reason + rerun_condition
+    { lane_id: 'BAD-L4', frozen_strength: 'unit', invoke_command: 'none (no gated test in repo)',
+      preconditions: 'p', credential_isolation: 'none', cleanup: 'c', timeout: '1s', artifact_retention: 'a',
+      owner: 'o', status: 'blocked' },
+    // 5. qualified missing expected_positive_result
+    { lane_id: 'BAD-L5', frozen_strength: 'unit', invoke_command: 'echo', preconditions: 'p',
+      credential_isolation: 'none', cleanup: 'c', timeout: '1s', artifact_retention: 'a', owner: 'o',
+      status: 'qualified' },
+    // 6. unknown field
+    { lane_id: 'BAD-L6', frozen_strength: 'unit', invoke_command: 'echo', preconditions: 'p',
+      credential_isolation: 'none', cleanup: 'c', timeout: '1s', artifact_retention: 'a', owner: 'o',
+      status: 'qualified', expected_positive_result: 'x', bogus: 'no' },
+  ];
+  for (const bl of badLanes) {
+    const errs = checkLane(bl);
+    if (errs.length === 0) failures.push(`qualification positive control: known-bad lane ${bl.lane_id} was NOT rejected`);
+  }
+  // And a GOOD lane must pass (ensures the checker is not blindly rejecting everything).
+  const goodLane = {
+    lane_id: 'GOOD-L', frozen_strength: 'in-process', invoke_command: 'echo', preconditions: 'p',
+    credential_isolation: 'none', cleanup: 'c', timeout: '1s', artifact_retention: 'a', owner: 'o',
+    status: 'qualified', expected_positive_result: 'surefire PASS', note: 'honest classification',
+  };
+  const goodErrs = checkLane(goodLane);
+  if (goodErrs.length !== 0) failures.push(`qualification positive control: good lane was wrongly rejected: ${goodErrs.join('; ')}`);
+
   return failures;
 }
 
@@ -437,15 +560,31 @@ function cmdEvidence({ strict } = {}) {
 function cmdSelfTest() {
   const failures = runSelfTest();
   if (failures.length === 0) {
-    console.log('[PASS] self-test (positive control) — all 3 checkers reject their known-bad input');
-    console.log('  - manifest: rejects bad/missing/unknown fields + denominator mismatch');
-    console.log('  - corpus  : rejects duplicate IDs, shard total mismatch, out-of-vocab sev/domain');
-    console.log('  - evidence: rejects missing/unknown fields, out-of-vocab disposition, insufficient lane');
+    console.log('[PASS] self-test (positive control) — all 4 checkers reject their known-bad input');
+    console.log('  - manifest    : rejects bad/missing/unknown fields + denominator mismatch');
+    console.log('  - corpus      : rejects duplicate IDs, shard total mismatch, out-of-vocab sev/domain');
+    console.log('  - evidence    : rejects missing/unknown fields, out-of-vocab disposition, insufficient lane');
+    console.log('  - qualification: rejects missing/unknown fields, out-of-vocab frozen_strength/status, blocked-missing-reason, qualified-missing-positive-result');
     return true;
   }
   console.error('[FAIL] self-test (positive control) — validator failed to reject known-bad input:');
   for (const f of failures) console.error(`  - ${f}`);
   return false;
+}
+
+function cmdQualification({ strict } = {}) {
+  const errors = [];
+  if (!existsSync(QUAL_FILE)) {
+    errors.push(`qualification file not found: ${QUAL_FILE}`);
+    return printResult('qualification', errors, { strict });
+  }
+  const lanes = parseLanes(readFileSync(QUAL_FILE, 'utf-8'));
+  // Stage 5 freezes exactly 6 lane targets (T1–T6).
+  if (lanes.length !== 6) {
+    errors.push(`expected exactly 6 @@LANE records (T1–T6), found ${lanes.length}`);
+  }
+  errors.push(...checkLanes(lanes));
+  return printResult('qualification', errors, { strict });
 }
 
 function main() {
@@ -463,13 +602,16 @@ function main() {
     ok = cmdEvidence({ strict }) && ok;
   } else if (sub === 'self-test') {
     ok = cmdSelfTest() && ok;
+  } else if (sub === 'qualification') {
+    ok = cmdQualification({ strict }) && ok;
   } else if (sub === 'all') {
     ok = cmdManifest({ strict }) && ok;
     ok = cmdCorpus({ strict }) && ok;
     ok = cmdEvidence({ strict }) && ok;
+    ok = cmdQualification({ strict }) && ok;
   } else {
     console.error(`Unknown subcommand: ${sub}`);
-    console.error('Usage: check-nop-stream-audit-manifest.mjs [manifest|corpus|evidence|self-test|all] [--strict]');
+    console.error('Usage: check-nop-stream-audit-manifest.mjs [manifest|corpus|evidence|qualification|self-test|all] [--strict]');
     process.exit(2);
   }
   process.exit(ok ? 0 : 1);
@@ -483,5 +625,7 @@ if (process.argv[1] === __filename || process.argv[1]?.endsWith('check-nop-strea
 export {
   parseManifest, runManifestChecks, parseCorpus, checkCorpus,
   parseEvidence, checkEvidenceRow, checkEvidenceRows, runSelfTest,
+  parseLanes, checkLane, checkLanes,
   SEVERITY_VOCAB, DOMAIN_VOCAB, DISPOSITION_VOCAB,
+  LANE_STRENGTH_VOCAB, LANE_STATUS_VOCAB,
 };

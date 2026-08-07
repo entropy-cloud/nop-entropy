@@ -136,10 +136,10 @@ Tests are classified into three lanes. Each lane gets its own bounded denominato
 domain_id: test-java-files-all
 scope: All Java test sources across the 10 stream modules src/test (the full test corpus — classified into lanes below by separate commands)
 command: find nop-stream -path '*/src/test/*' -name '*.java' | wc -l
-expected_denominator: 448
+expected_denominator: 453
 include: every *.java under any */src/test/* path across all 10 modules
 exclude: target/ output; main sources
-notes: total test corpus; lane breakdowns below are subsets of this total
+notes: total test corpus; lane breakdowns below are subsets of this total. Denominator refreshed 2026-08-08 (Stage 5 execution): was 448 at Stage-4 freeze (HEAD 2026-08-07); +5 legitimate hand-authored test files added by recent remediation (checkpoint/state/contract test integrity, e.g. TestCheckpointCoordinatorRaceCondition, TestTaskManagerDaemon, TestStreamModuleDiscovery). Format/vocabulary unchanged; measured-count refresh only.
 @@END
 
 @@ENTRY

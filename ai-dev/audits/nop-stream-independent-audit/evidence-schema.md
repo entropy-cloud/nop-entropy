@@ -77,3 +77,33 @@ disposition: e2e-proved
 ```
 
 This is illustrative; real evidence rows are produced by Stages 6–22. The validator's `evidence` subcommand validates any such file (or reports "no evidence rows yet" if none exist, which is the current state at Stage 4).
+
+## Stage 5 Supplement — Gated-Evidence, Required-Lane/Blocked-Gate, and Lane-Mapping Rules
+
+> Status: frozen supplement (Stage 5). This section is an **additive** rules block: it changes **neither** the 11 evidence-row fields (Field Specification table) **nor** the 7-value Disposition Vocabulary above. It binds how a later domain audit may consume a gated test's result and how a `blocked` row propagates. Authoritative text lives here; `environment-qualification.md` holds the per-lane qualification registry the rules refer to.
+
+### Rule S5-1 — Gated-Evidence Rule (a gated test is evidence only when actually executed in its qualified lane)
+
+A gated test (one guarded by `@EnabledIfSystemProperty` or any equivalent skip-by-default mechanism) is **not** evidence by default. Its result may be cited as `positive_proof` / `rejection_proof` by a later domain audit (Stages 6–22) **only when all three** hold:
+
+1. The lane it requires is `qualified` in `environment-qualification.md` (a `@@LANE` block with `status: qualified` whose `frozen_strength` is ≥ the row's `required_lane`).
+2. The test was **actually executed** in that lane during the audit window — producing a real surefire report / run log / assertion trace, not a default skip.
+3. The citation references that concrete run artifact.
+
+A default skip (the gated test was not enabled and therefore reported `Skipped`) is **never** evidence: it cannot justify `e2e-proved`, nor `positive_proof`, nor `rejection_proof`. A skipped gated test that a capability claim depends on forces the row's `disposition` to `blocked` (if its lane is unqualified) or `unverified`/`component-only` (if only weaker-lane evidence exists).
+
+### Rule S5-2 — Required-Lane / Blocked-Gate Rule (a required-lane blocked row blocks readiness)
+
+- A row's `required_lane` is **derived** from the declared capability/guarantee in the Stage-4 `source-manifest.md` (what lane strength the claim needs to be credible), never invented ad hoc.
+- A domain audit (Stages 9–16) **may** close with `blocked` rows, but **only** when those rows set `disposition: blocked` (a `blocked` row MUST NOT be classified `e2e-proved`). A `blocked` row MUST name, in its `positive_proof`/`rejection_proof` or an adjacent note, the lane that is unqualified (cross-referencing a `@@LANE` block with `status: blocked`).
+- **Readiness gate**: any evidence row whose `required_lane` corresponds to a lane that is `blocked` in `environment-qualification.md` blocks the Stage 23 `ready` verdict and blocks the production-readiness milestone. Stage 23 may only return `ready only for enumerated e2e-proved capability/environment pairs`; a `ready` verdict is **forbidden** while any required-lane row remains `blocked`.
+
+### Rule S5-3 — Lane-Mapping Rule (environment_class cannot exceed a qualified lane's frozen_strength)
+
+A domain audit's evidence row sets `environment_class` to the strongest lane actually exercised for that row. That value:
+
+- MUST be one of the frozen vocabulary values `unit | in-process | multi-jvm | none`.
+- MUST be ≤ the `frozen_strength` declared by some `qualified` `@@LANE` block in `environment-qualification.md` — i.e. a row may claim at most the strength of a lane that is actually qualified, or a weaker strength. A row may **not** silently upgrade its `environment_class` beyond what any qualified lane provides.
+- Consequently, if a row needs `required_lane: multi-jvm` but no `multi-jvm` lane is `qualified`, the row cannot be `e2e-proved` (consistent with the Lane Semantics invariant already in this schema); it must be `blocked` or weaker.
+
+These three rules are enforced structurally: the `qualification` validator subcommand guards the lane registry, and the `evidence` subcommand already enforces the `environment_class ≥ required_lane` invariant for `e2e-proved`.
