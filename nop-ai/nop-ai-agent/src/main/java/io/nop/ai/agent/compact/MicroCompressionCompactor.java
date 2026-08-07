@@ -64,7 +64,7 @@ public class MicroCompressionCompactor implements IContextCompactor, ICompressio
 
             if (msg instanceof ChatToolResponseMessage) {
                 ChatToolResponseMessage toolResp = (ChatToolResponseMessage) msg;
-                String toolCallId = toolResp.getToolCallId();
+                String toolCallId = toolResp.getCallId();
 
                 if (recentToolCallIds.contains(toolCallId)) {
                     compactedMessages.add(msg);
@@ -99,7 +99,7 @@ public class MicroCompressionCompactor implements IContextCompactor, ICompressio
             ChatMessage msg = messages.get(i);
             if (msg instanceof ChatToolResponseMessage) {
                 ChatToolResponseMessage toolResp = (ChatToolResponseMessage) msg;
-                String toolCallId = toolResp.getToolCallId();
+                String toolCallId = toolResp.getCallId();
                 if (toolCallId != null) {
                     recentIds.add(toolCallId);
                 }
@@ -112,7 +112,7 @@ public class MicroCompressionCompactor implements IContextCompactor, ICompressio
         String originalContent = original.getContent();
         int originalLength = originalContent != null ? originalContent.length() : 0;
         String placeholder = "[COMPRESSED " + original.getName()
-                + " result, toolCallId=" + original.getToolCallId()
+                + " result, toolCallId=" + original.getCallId()
                 + ", originalLength=" + originalLength + " chars]";
 
         ChatToolResponseMessage compressed = original.copy();

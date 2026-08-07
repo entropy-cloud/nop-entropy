@@ -198,7 +198,7 @@ public class TestPipelineCompactor {
             io.nop.ai.api.chat.messages.ChatToolCall call = new io.nop.ai.api.chat.messages.ChatToolCall();
             call.setId("tc-" + i);
             call.setName("bash");
-            messages.add(ChatResponseFixtures.foldedAssistantWithToolCalls(null, call));
+            messages.addAll(ChatResponseFixtures.foldedAssistantWithToolCalls(null, call));
             io.nop.ai.api.chat.messages.ChatToolResponseMessage resp =
                     new io.nop.ai.api.chat.messages.ChatToolResponseMessage("tc-" + i, "bash", "X".repeat(5000));
             messages.add(resp);

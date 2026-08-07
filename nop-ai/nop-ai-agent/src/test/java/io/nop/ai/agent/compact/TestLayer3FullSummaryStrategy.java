@@ -10,6 +10,7 @@ import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
+import io.nop.ai.api.chat.messages.ChatToolCallMessage;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatSystemMessage;
 import io.nop.ai.api.chat.messages.ChatToolCall;
@@ -58,7 +59,7 @@ public class TestLayer3FullSummaryStrategy {
             calls[i].setId(ids[i]);
             calls[i].setName("bash");
         }
-        messages.add(ChatResponseFixtures.foldedAssistantWithToolCalls(null, calls));
+        messages.addAll(ChatResponseFixtures.foldedAssistantWithToolCalls(null, calls));
     }
 
     private ChatToolResponseMessage toolResponse(String toolCallId, String content) {
@@ -271,16 +272,12 @@ public class TestLayer3FullSummaryStrategy {
         Set<String> calledIds = new java.util.HashSet<>();
         Set<String> respondedIds = new java.util.HashSet<>();
         for (ChatMessage msg : out) {
-            if (msg instanceof ChatAssistantMessage) {
-                ChatAssistantMessage asm = (ChatAssistantMessage) msg;
-                if (asm.getToolCalls() != null) {
-                    for (ChatToolCall tc : asm.getToolCalls()) {
-                        if (tc.getId() != null) calledIds.add(tc.getId());
-                    }
-                }
+            if (msg instanceof ChatToolCallMessage) {
+                String id = ((ChatToolCallMessage) msg).getCallId();
+                if (id != null) calledIds.add(id);
             }
             if (msg instanceof ChatToolResponseMessage) {
-                respondedIds.add(((ChatToolResponseMessage) msg).getToolCallId());
+                respondedIds.add(((ChatToolResponseMessage) msg).getCallId());
             }
         }
         assertEquals(calledIds, respondedIds, "tool_call/tool_response pairing must stay intact after summarization");

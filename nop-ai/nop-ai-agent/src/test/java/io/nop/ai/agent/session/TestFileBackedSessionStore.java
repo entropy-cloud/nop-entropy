@@ -92,11 +92,12 @@ public class TestFileBackedSessionStore {
         assertTrue(msgs.get(0) instanceof ChatSystemMessage);
         assertTrue(msgs.get(1) instanceof ChatUserMessage);
         assertTrue(msgs.get(2) instanceof ChatAssistantMessage);
-        assertTrue(msgs.get(3) instanceof ChatToolResponseMessage);
+        assertTrue(msgs.get(3) instanceof io.nop.ai.api.chat.messages.ChatToolCallMessage);
+        assertTrue(msgs.get(4) instanceof ChatToolResponseMessage);
         assertEquals("you are an agent", msgs.get(0).getContent());
         assertEquals("hello", msgs.get(1).getContent());
         assertEquals("calling tool", msgs.get(2).getContent());
-        assertEquals("result", msgs.get(3).getContent());
+        assertEquals("result", msgs.get(4).getContent());
     }
 
     // ========================================================================
@@ -660,9 +661,12 @@ public class TestFileBackedSessionStore {
         call.setId("call_1");
         call.setName("echo");
         call.setArguments(Map.of("x", "y"));
-        ChatAssistantMessage assistant = ChatResponseFixtures.foldedAssistantWithToolCalls("calling tool", call);
+        ChatAssistantMessage assistant = new ChatAssistantMessage("calling tool");
         assistant.setMessageId("m2");
         msgs.add(assistant);
+        ChatToolCallMessage toolCallMsg = ChatToolCallMessage.fromChatToolCall(call);
+        toolCallMsg.setMessageId("m2b");
+        msgs.add(toolCallMsg);
 
         ChatToolResponseMessage toolResp = ChatToolResponseMessage.fromToolCall(call, "result");
         toolResp.setMessageId("m3");

@@ -6,6 +6,7 @@ import io.nop.ai.agent.session.CompactionResult;
 import io.nop.ai.agent.session.CompactConfig;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.api.chat.messages.ChatMessage;
+import io.nop.ai.api.chat.messages.ChatToolCallMessage;
 import io.nop.ai.api.chat.messages.ChatToolResponseMessage;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
 import org.slf4j.Logger;
@@ -103,15 +104,17 @@ public class Layer2TurnPruningStrategy implements ICompressionStrategy {
 
     /**
      * Group messages so that an assistant message with tool_calls stays together
-     * with its immediately-following tool-response messages. A standalone
-     * message (system, user, assistant without tool_calls) forms its own group.
-     * This guarantees boundary integrity by construction.
+     * with its tool-call requests ({@link ChatToolCallMessage}) and tool-response
+     * messages. A standalone message (system, user, assistant without tool_calls)
+     * forms its own group. This guarantees boundary integrity by construction.
+     * <p>Plan 329：工具调用请求以独立 {@link ChatToolCallMessage} 承载，需与其所属
+     * assistant turn 同组，避免拆散 tool_call ↔ tool_response 配对。
      */
     static List<List<ChatMessage>> groupIntoTurns(List<ChatMessage> messages) {
         List<List<ChatMessage>> groups = new ArrayList<>();
         List<ChatMessage> current = null;
         for (ChatMessage msg : messages) {
-            if (msg instanceof ChatToolResponseMessage) {
+            if (msg instanceof ChatToolResponseMessage || msg instanceof ChatToolCallMessage) {
                 if (current == null) {
                     current = new ArrayList<>();
                     groups.add(current);
@@ -176,12 +179,7 @@ public class Layer2TurnPruningStrategy implements ICompressionStrategy {
      * in the pruned result. Throws if boundary integrity was violated (this would
      * indicate a bug in the grouping logic).
      *
-     * <p>Plan 327: collects tool-call IDs from BOTH the canonical
-     * {@code ChatToolCallMessage} items (new form) and the legacy folded
-     * {@code ChatAssistantMessage.toolCalls} field (transition form). This
-     * dual-read ensures boundary integrity is verified regardless of which
-     * history format the session currently carries. The legacy read will be
-     * removed in plan 329 when the folded field is deleted.
+     * <p>Plan 329：单一拆分模型——工具调用 ID 只从 ChatToolCallMessage 收集。
      */
     static void assertBoundaryIntegrity(List<ChatMessage> messages) {
         Set<String> calledIds = new HashSet<>();
@@ -192,21 +190,12 @@ public class Layer2TurnPruningStrategy implements ICompressionStrategy {
                 if (tcm.getCallId() != null) {
                     calledIds.add(tcm.getCallId());
                 }
-            } else if (msg instanceof ChatAssistantMessage) {
-                ChatAssistantMessage asm = (ChatAssistantMessage) msg;
-                if (asm.getToolCalls() != null) {
-                    for (io.nop.ai.api.chat.messages.ChatToolCall tc : asm.getToolCalls()) {
-                        if (tc.getId() != null) {
-                            calledIds.add(tc.getId());
-                        }
-                    }
-                }
             }
         }
         Set<String> respondedIds = new HashSet<>();
         for (ChatMessage msg : messages) {
             if (msg instanceof ChatToolResponseMessage) {
-                respondedIds.add(((ChatToolResponseMessage) msg).getToolCallId());
+                respondedIds.add(((ChatToolResponseMessage) msg).getCallId());
             }
         }
         if (!calledIds.equals(respondedIds)) {

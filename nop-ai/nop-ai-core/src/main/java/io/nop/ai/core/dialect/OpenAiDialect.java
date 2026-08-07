@@ -8,6 +8,7 @@ import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatReasoningMessage;
 import io.nop.ai.api.chat.messages.ChatSystemMessage;
 import io.nop.ai.api.chat.messages.ChatToolCall;
+import io.nop.ai.api.chat.messages.ChatToolCallMessage;
 import io.nop.ai.api.chat.messages.ChatToolDefinition;
 import io.nop.ai.api.chat.messages.ChatToolResponseMessage;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
@@ -71,9 +72,9 @@ public class OpenAiDialect extends AbstractLlmDialect implements ILlmDialect {
                     messages.add(new ChatSystemMessage(content));
                 } else if ("assistant".equals(role)) {
                     ChatAssistantMessage msg = new ChatAssistantMessage(content);
+                    messages.add(msg);
                     List<Map<String, Object>> tcs = (List<Map<String, Object>>) raw.get("tool_calls");
                     if (tcs != null) {
-                        List<ChatToolCall> toolCalls = new ArrayList<>();
                         for (Map<String, Object> tc : tcs) {
                             ChatToolCall c = new ChatToolCall();
                             c.setId((String) tc.get("id"));
@@ -82,11 +83,9 @@ public class OpenAiDialect extends AbstractLlmDialect implements ILlmDialect {
                                 Map<String, Object> func = (Map<String, Object>) funcObj;
                                 c.setName((String) func.get("name"));
                             }
-                            toolCalls.add(c);
+                            messages.add(ChatToolCallMessage.fromChatToolCall(c));
                         }
-                        msg.setToolCalls(toolCalls);
                     }
-                    messages.add(msg);
                 } else if ("tool".equals(role)) {
                     messages.add(new ChatToolResponseMessage(
                             (String) raw.get("tool_call_id"), (String) raw.get("name"), content));
@@ -193,11 +192,9 @@ public class OpenAiDialect extends AbstractLlmDialect implements ILlmDialect {
 
         ChatAssistantMessage message = new ChatAssistantMessage();
         message.setContent(content);
-        message.setThink(thinking);
-        response.setMessage(message);
 
-        // Plan 326 双轨：旧 message 保留，同时按语义顺序产出 messages 序列（reasoning → assistant text）。
-        // OpenAi parseResponse 当前不解析 tool_calls（保持现状），故 messages 仅含 reasoning + assistant。
+        // Plan 329：单一拆分模型产出。reasoning → ChatReasoningMessage，assistant 文本 → ChatAssistantMessage。
+        // OpenAi parseResponse 当前不解析 tool_calls（保持现状）。
         List<ChatMessage> messages = new ArrayList<>();
         if (thinking != null) {
             messages.add(new ChatReasoningMessage(thinking));
@@ -341,19 +338,23 @@ public class OpenAiDialect extends AbstractLlmDialect implements ILlmDialect {
         msgMap.put("role", getRole(message));
         msgMap.put("content", message.getContent());
 
-        if (message instanceof ChatAssistantMessage) {
-            ChatAssistantMessage assistantMsg = (ChatAssistantMessage) message;
-            if (assistantMsg.getThink() != null) {
-                msgMap.put("thinking", assistantMsg.getThink());
-            }
-            if (assistantMsg.getToolCalls() != null && !assistantMsg.getToolCalls().isEmpty()) {
-                msgMap.put("tool_calls", convertToolCalls(assistantMsg.getToolCalls()));
-            }
+        if (message instanceof ChatReasoningMessage) {
+            // 独立推理消息序列化为 thinking 字段（与推理模型回放语义一致）
+            msgMap.put("thinking", message.getContent());
+        }
+
+        if (message instanceof ChatToolCallMessage) {
+            ChatToolCallMessage toolCallMsg = (ChatToolCallMessage) message;
+            ChatToolCall tc = new ChatToolCall();
+            tc.setId(toolCallMsg.getCallId());
+            tc.setName(toolCallMsg.getName());
+            tc.setArguments(toolCallMsg.getArguments());
+            msgMap.put("tool_calls", convertToolCalls(java.util.Collections.singletonList(tc)));
         }
 
         if (message instanceof ChatToolResponseMessage) {
             ChatToolResponseMessage toolMsg = (ChatToolResponseMessage) message;
-            msgMap.put("tool_call_id", toolMsg.getToolCallId());
+            msgMap.put("tool_call_id", toolMsg.getCallId());
             msgMap.put("name", toolMsg.getName());
         }
 

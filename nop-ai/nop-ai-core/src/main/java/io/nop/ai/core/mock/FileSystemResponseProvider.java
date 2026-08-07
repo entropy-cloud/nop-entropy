@@ -127,7 +127,7 @@ public class FileSystemResponseProvider implements IResponseProvider, IRequestSt
 
         ChatAssistantMessage message = new ChatAssistantMessage();
         message.setContent(content);
-        response.setMessage(message);
+        response.addMessage(message);
 
         ChatOptions options = request.getOptions();
         if (options != null) {

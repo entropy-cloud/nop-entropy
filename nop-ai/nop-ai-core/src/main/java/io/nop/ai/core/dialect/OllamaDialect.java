@@ -124,7 +124,6 @@ public class OllamaDialect extends AbstractLlmDialect implements ILlmDialect {
 
         ChatAssistantMessage message = new ChatAssistantMessage();
         message.setContent(content);
-        message.setThink(thinking);
 
         // 解析工具调用（Ollama 使用 OpenAI 风格）。tool_calls 嵌套在 message 下，需按路径取值
         // （与 content 的 message.content 路径一致；历史 message.tool_calls 字面 key 取值取不到嵌套结构）。
@@ -164,15 +163,11 @@ public class OllamaDialect extends AbstractLlmDialect implements ILlmDialect {
                     toolCalls.add(toolCall);
                 }
             }
-            if (!toolCalls.isEmpty()) {
-                message.setToolCalls(toolCalls);
-            }
         }
 
-        response.setMessage(message);
 
-        // Plan 326 双轨：旧 message（含 think/toolCalls 寄居字段）保留，同时按语义顺序产出 messages 序列
-        // （reasoning → assistant text → tool_calls）。每个 tool_call 拆为独立的 ChatToolCallMessage。
+        // Plan 329：单一拆分模型产出。reasoning → ChatReasoningMessage、assistant 文本 → ChatAssistantMessage、
+        // 每个 tool_call → 独立 ChatToolCallMessage。
         List<ChatMessage> messages = new ArrayList<>();
         if (thinking != null) {
             messages.add(new ChatReasoningMessage(thinking));
@@ -267,19 +262,22 @@ public class OllamaDialect extends AbstractLlmDialect implements ILlmDialect {
         msgMap.put("role", getRole(message));
         msgMap.put("content", message.getContent());
 
-        if (message instanceof ChatAssistantMessage) {
-            ChatAssistantMessage assistantMsg = (ChatAssistantMessage) message;
-            if (assistantMsg.getThink() != null) {
-                msgMap.put("thinking", assistantMsg.getThink());
-            }
-            if (assistantMsg.getToolCalls() != null && !assistantMsg.getToolCalls().isEmpty()) {
-                msgMap.put("tool_calls", convertToolCalls(assistantMsg.getToolCalls()));
-            }
+        if (message instanceof ChatReasoningMessage) {
+            msgMap.put("thinking", message.getContent());
+        }
+
+        if (message instanceof ChatToolCallMessage) {
+            ChatToolCallMessage toolCallMsg = (ChatToolCallMessage) message;
+            ChatToolCall tc = new ChatToolCall();
+            tc.setId(toolCallMsg.getCallId());
+            tc.setName(toolCallMsg.getName());
+            tc.setArguments(toolCallMsg.getArguments());
+            msgMap.put("tool_calls", convertToolCalls(java.util.Collections.singletonList(tc)));
         }
 
         if (message instanceof ChatToolResponseMessage) {
             ChatToolResponseMessage toolMsg = (ChatToolResponseMessage) message;
-            msgMap.put("tool_call_id", toolMsg.getToolCallId());
+            msgMap.put("tool_call_id", toolMsg.getCallId());
             if (toolMsg.getName() != null) {
                 msgMap.put("name", toolMsg.getName());
             }

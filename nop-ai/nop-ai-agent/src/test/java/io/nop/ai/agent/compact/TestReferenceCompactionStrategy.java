@@ -77,7 +77,7 @@ public class TestReferenceCompactionStrategy {
             calls[i].setId(toolCallIds[i]);
             calls[i].setName("read-file");
         }
-        messages.add(ChatResponseFixtures.foldedAssistantWithToolCalls(null, calls));
+        messages.addAll(ChatResponseFixtures.foldedAssistantWithToolCalls(null, calls));
     }
 
     private ChatToolResponseMessage fileToolResponse(String toolCallId, String content) {
@@ -118,8 +118,12 @@ public class TestReferenceCompactionStrategy {
         assertTrue(result.getTokensAfter() < result.getTokensBefore(),
                 "tokens must decrease after replacing long content with a short pointer");
 
-        // The tool response content is now a shortRef pointer
-        ChatToolResponseMessage archived = (ChatToolResponseMessage) result.getCompactedMessages().get(3);
+        // The tool response content is now a shortRef pointer (Plan 329：按类型查找，避免 ChatToolCallMessage 偏移下标)
+        ChatToolResponseMessage archived = result.getCompactedMessages().stream()
+                .filter(m -> m instanceof ChatToolResponseMessage)
+                .map(m -> (ChatToolResponseMessage) m)
+                .findFirst().orElse(null);
+        assertNotNull(archived);
         String newContent = archived.getContent();
         assertTrue(newContent.contains(ShortRef.MARKER),
                 "content should be replaced with a shortRef pointer: " + newContent);

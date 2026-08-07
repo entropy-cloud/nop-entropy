@@ -7,15 +7,11 @@
  */
 package io.nop.ai.api.chat.messages;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
- * 助手消息，用于表示AI助手返回的消息
+ * 助手消息，仅承载 assistant 输出文本。推理过程由 {@link ChatReasoningMessage}、
+ * 工具调用由 {@link ChatToolCallMessage} 承载（plan 329 删除了寄居字段 think/toolCalls）。
  */
 @DataBean
 public class ChatAssistantMessage extends ChatMessage {
@@ -24,21 +20,6 @@ public class ChatAssistantMessage extends ChatMessage {
      * 消息内容
      */
     private String content;
-
-    /**
-     * 思考过程（用于支持推理模型）
-     */
-    private String think;
-
-    /**
-     * Anthropic extended thinking 签名（用于多轮对话时回传 thinking block）
-     */
-    private String thinkSignature;
-
-    /**
-     * 工具调用列表
-     */
-    private List<ChatToolCall> toolCalls;
 
     public ChatAssistantMessage() {
     }
@@ -62,83 +43,12 @@ public class ChatAssistantMessage extends ChatMessage {
         this.content = content;
     }
 
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    public String getThink() {
-        return think;
-    }
-
-    public void setThink(String think) {
-        this.think = think;
-    }
-
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    public String getThinkSignature() {
-        return thinkSignature;
-    }
-
-    public void setThinkSignature(String thinkSignature) {
-        this.thinkSignature = thinkSignature;
-    }
-
-    @JsonInclude(JsonInclude.Include.NON_EMPTY)
-    public List<ChatToolCall> getToolCalls() {
-        return toolCalls;
-    }
-
-    public void setToolCalls(List<ChatToolCall> toolCalls) {
-        this.toolCalls = toolCalls;
-    }
-
-    /**
-     * 检查是否包含工具调用
-     */
-    @JsonIgnore
-    public boolean hasToolCalls() {
-        return toolCalls != null && !toolCalls.isEmpty();
-    }
-
-    @JsonIgnore
-    public String getFullContent() {
-        String think = getThink();
-        if (think == null)
-            return getContent();
-
-        StringBuilder sb = new StringBuilder();
-        sb.append("<think>\n");
-        sb.append(think);
-        sb.append("\n</think>\n");
-
-        String content = getContent();
-        if (content != null)
-            sb.append(content);
-        return sb.toString();
-    }
-
-    /**
-     * 获取第一个工具调用（通常只有一个）
-     */
-    @JsonIgnore
-    public ChatToolCall getFirstToolCall() {
-        if (hasToolCalls()) {
-            return toolCalls.get(0);
-        }
-        return null;
-    }
-
     @Override
     public ChatAssistantMessage copy() {
         ChatAssistantMessage copy = new ChatAssistantMessage();
         copy.setMessageId(this.getMessageId());
         copy.setProviderHints(this.providerHints);
         copy.content = this.content;
-        copy.think = this.think;
-        copy.thinkSignature = this.thinkSignature;
-        if (this.toolCalls != null) {
-            copy.toolCalls = new ArrayList<>();
-            for (ChatToolCall toolCall : this.toolCalls) {
-                copy.toolCalls.add(toolCall.copy());
-            }
-        }
         return copy;
     }
 }

@@ -256,7 +256,7 @@ public interface ILlmDialect {
         List<Map<String, Object>> choices = new ArrayList<>();
         Map<String, Object> message = new HashMap<>();
         message.put("role", "assistant");
-        message.put("content", response.getMessage() != null ? response.getMessage().getContent() : "");
+        message.put("content", response.outputText() != null ? response.outputText() : "");
         Map<String, Object> choice = new HashMap<>();
         choice.put("index", 0);
         choice.put("message", message);

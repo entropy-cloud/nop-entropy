@@ -13,19 +13,20 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Plan 326 Phase 1 — 验证 {@link ChatResponse} 的 messages 序列、{@link ChatResponse#getMessage()}
- * 弃用委托、{@link ChatResponse#success(List)} 工厂与 {@link ChatResponse#copy()} 同步。
+ * Plan 329 — 验证 {@link ChatResponse} 的单一拆分模型：内容统一由 {@code messages}
+ * 序列承载，聚合访问器 {@link ChatResponse#outputText()} / {@link ChatResponse#outputToolCalls()}
+ * 与 {@link ChatResponse#getFullContent()} 基于 messages 工作。
  */
 public class TestChatResponse {
 
     @Test
-    public void getMessage_delegatesToFirstAssistantInMessages() {
+    public void outputText_concatenatesAssistantTextMessages() {
         ChatReasoningMessage reasoning = new ChatReasoningMessage("thinking...");
         ChatAssistantMessage assistant = new ChatAssistantMessage("Hello!");
         ChatToolCallMessage toolCall = new ChatToolCallMessage("call_1", "get_weather", null);
@@ -37,32 +38,49 @@ public class TestChatResponse {
         messages.add(toolCall);
         response.setMessages(messages);
 
-        ChatAssistantMessage delegated = response.getMessage();
-        assertNotNull(delegated, "getMessage() must return the first ChatAssistantMessage in messages");
-        assertEquals("Hello!", delegated.getContent(),
-                "delegation must skip preceding reasoning and return the assistant text message");
-        assertSame(assistant, delegated, "must return the same instance stored in messages");
+        // outputText 跳过 reasoning / tool_call，仅聚合 assistant 文本
+        assertEquals("Hello!", response.outputText(),
+                "outputText must return the assistant text, skipping reasoning and tool_call");
     }
 
     @Test
-    public void getMessage_fallsBackToLegacyFieldWhenMessagesEmpty() {
-        ChatAssistantMessage legacy = new ChatAssistantMessage("legacy");
+    public void outputText_nullWhenNoAssistantMessage() {
         ChatResponse response = new ChatResponse();
-        response.setMessage(legacy);
-
-        assertSame(legacy, response.getMessage(),
-                "when messages is null, getMessage() must return the legacy message field (behavior unchanged)");
-    }
-
-    @Test
-    public void getMessage_returnsNullWhenNothingSet() {
-        ChatResponse response = new ChatResponse();
-        assertNull(response.getMessage());
+        assertNull(response.outputText());
         assertNull(response.getMessages());
+
+        ChatResponse onlyReasoning = new ChatResponse();
+        onlyReasoning.addMessage(new ChatReasoningMessage("hmm"));
+        assertNull(onlyReasoning.outputText(), "no assistant message → outputText null");
     }
 
     @Test
-    public void successFactory_populatesMessagesAndLegacyField() {
+    public void outputToolCalls_collectsChatToolCallMessageItems() {
+        Map<String, Object> args = new LinkedHashMap<>();
+        args.put("city", "Beijing");
+        ChatToolCallMessage toolCall = new ChatToolCallMessage("call_1", "get_weather", args);
+        ChatAssistantMessage assistant = new ChatAssistantMessage("answer");
+
+        ChatResponse response = new ChatResponse();
+        response.addMessage(assistant);
+        response.addMessage(toolCall);
+
+        List<ChatToolCall> calls = response.outputToolCalls();
+        assertEquals(1, calls.size());
+        assertEquals("call_1", calls.get(0).getId());
+        assertEquals("get_weather", calls.get(0).getName());
+        assertEquals("Beijing", calls.get(0).getArguments().get("city"));
+    }
+
+    @Test
+    public void outputToolCalls_emptyWhenNone() {
+        ChatResponse response = new ChatResponse();
+        response.addMessage(new ChatAssistantMessage("hi"));
+        assertTrue(response.outputToolCalls().isEmpty());
+    }
+
+    @Test
+    public void successFactory_populatesMessages() {
         ChatReasoningMessage reasoning = new ChatReasoningMessage("hmm");
         ChatAssistantMessage assistant = new ChatAssistantMessage("answer");
 
@@ -74,8 +92,8 @@ public class TestChatResponse {
 
         assertNotNull(response.getMessages());
         assertEquals(2, response.getMessages().size());
-        assertSame(assistant, response.getMessage(),
-                "success(List) must also seed the legacy message field with the first assistant message");
+        assertEquals("answer", response.outputText(),
+                "success(List) must populate messages and expose assistant text via outputText");
     }
 
     @Test
@@ -83,14 +101,22 @@ public class TestChatResponse {
         ChatAssistantMessage assistant = new ChatAssistantMessage("hi");
         ChatResponse response = ChatResponse.success(assistant);
 
-        assertEquals("hi", response.getMessage().getContent());
+        assertEquals("hi", response.outputText());
+    }
+
+    @Test
+    public void getFullContent_delegatesToOutputText() {
+        ChatAssistantMessage assistant = new ChatAssistantMessage("text");
+        ChatResponse response = ChatResponse.success(assistant);
+
+        assertEquals("text", response.getFullContent(),
+                "getFullContent must aggregate assistant text from messages");
     }
 
     @Test
     public void copy_syncsMessages() {
         ChatReasoningMessage reasoning = new ChatReasoningMessage("think");
         ChatAssistantMessage assistant = new ChatAssistantMessage("text");
-        assistant.setToolCalls(List.of(new ChatToolCall()));
 
         ChatResponse response = new ChatResponse();
         List<ChatMessage> messages = new ArrayList<>();
@@ -104,8 +130,10 @@ public class TestChatResponse {
         assertEquals(2, copy.getMessages().size());
         assertTrue(copy.getMessages().get(0) instanceof ChatReasoningMessage);
         assertEquals("think", copy.getMessages().get(0).getContent());
-        assertEquals("text", copy.getMessage().getContent(),
-                "copied response getMessage() delegation must still work");
+        assertEquals("text", copy.outputText(),
+                "copied response must aggregate assistant text from copied messages");
+        // deep copy: mutating original must not affect copy
+        assertFalse(copy.getMessages().get(1) == assistant);
     }
 
     @Test
@@ -115,17 +143,6 @@ public class TestChatResponse {
         response.addMessage(new ChatReasoningMessage("b"));
 
         assertEquals(2, response.getMessages().size());
-    }
-
-    @Test
-    public void dualTrack_getMessageConsistentWithLegacyField() {
-        ChatAssistantMessage assistant = new ChatAssistantMessage("answer");
-        ChatResponse response = new ChatResponse();
-        response.setMessage(assistant);
-        response.addMessage(assistant);
-
-        assertSame(assistant, response.getMessage(),
-                "when both message field and messages hold the same assistant instance, getMessage() is consistent");
     }
 
     @Test

@@ -83,7 +83,7 @@ public class TestCompactionSnapshotArchive {
         ChatToolCall call = new ChatToolCall();
         call.setId(id);
         call.setName(name);
-        messages.add(ChatResponseFixtures.foldedAssistantWithToolCalls(null, call));
+        messages.addAll(ChatResponseFixtures.foldedAssistantWithToolCalls(null, call));
     }
 
     /** Build messages with large tool results so MicroCompressionCompactor actually reduces. */

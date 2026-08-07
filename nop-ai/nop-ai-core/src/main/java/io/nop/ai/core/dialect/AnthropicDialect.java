@@ -183,14 +183,9 @@ public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect 
 
         ChatAssistantMessage message = new ChatAssistantMessage();
         message.setContent(contentBuilder.length() > 0 ? contentBuilder.toString() : null);
-        message.setThink(thinkingBuilder.length() > 0 ? thinkingBuilder.toString() : null);
-        if (!toolCalls.isEmpty()) {
-            message.setToolCalls(toolCalls);
-        }
-        response.setMessage(message);
 
-        // Plan 326 双轨：旧 message（含 think/toolCalls 寄居字段）保留，同时按语义顺序产出 messages 序列
-        // （reasoning → assistant text → tool_calls）。每个 tool_use block 拆为独立的 ChatToolCallMessage。
+        // Plan 329：单一拆分模型产出。reasoning → ChatReasoningMessage、assistant 文本 → ChatAssistantMessage、
+        // 每个 tool_use block → 独立 ChatToolCallMessage。
         List<ChatMessage> messages = new ArrayList<>();
         if (thinkingBuilder.length() > 0) {
             messages.add(new ChatReasoningMessage(thinkingBuilder.toString()));
@@ -423,33 +418,28 @@ public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect 
             contentBlocks.add(textBlock);
         }
 
-        if (message instanceof ChatAssistantMessage) {
-            ChatAssistantMessage assistantMsg = (ChatAssistantMessage) message;
-            
-            if (assistantMsg.getThink() != null) {
-                Map<String, Object> thinkingBlock = new LinkedHashMap<>();
-                thinkingBlock.put("type", "thinking");
-                thinkingBlock.put("thinking", assistantMsg.getThink());
-                contentBlocks.add(thinkingBlock);
-            }
-            
-            if (assistantMsg.getToolCalls() != null && !assistantMsg.getToolCalls().isEmpty()) {
-                for (ChatToolCall toolCall : assistantMsg.getToolCalls()) {
-                    Map<String, Object> toolBlock = new LinkedHashMap<>();
-                    toolBlock.put("type", "tool_use");
-                    toolBlock.put("id", toolCall.getId());
-                    toolBlock.put("name", toolCall.getName());
-                    toolBlock.put("input", toolCall.getArguments());
-                    contentBlocks.add(toolBlock);
-                }
-            }
+        if (message instanceof ChatReasoningMessage) {
+            Map<String, Object> thinkingBlock = new LinkedHashMap<>();
+            thinkingBlock.put("type", "thinking");
+            thinkingBlock.put("thinking", message.getContent());
+            contentBlocks.add(thinkingBlock);
+        }
+
+        if (message instanceof ChatToolCallMessage) {
+            ChatToolCallMessage toolCallMsg = (ChatToolCallMessage) message;
+            Map<String, Object> toolBlock = new LinkedHashMap<>();
+            toolBlock.put("type", "tool_use");
+            toolBlock.put("id", toolCallMsg.getCallId());
+            toolBlock.put("name", toolCallMsg.getName());
+            toolBlock.put("input", toolCallMsg.getArguments());
+            contentBlocks.add(toolBlock);
         }
 
         if (message instanceof ChatToolResponseMessage) {
             ChatToolResponseMessage toolMsg = (ChatToolResponseMessage) message;
             Map<String, Object> toolResultBlock = new LinkedHashMap<>();
             toolResultBlock.put("type", "tool_result");
-            toolResultBlock.put("tool_use_id", toolMsg.getToolCallId());
+            toolResultBlock.put("tool_use_id", toolMsg.getCallId());
             toolResultBlock.put("content", toolMsg.getContent());
             contentBlocks.add(toolResultBlock);
         }

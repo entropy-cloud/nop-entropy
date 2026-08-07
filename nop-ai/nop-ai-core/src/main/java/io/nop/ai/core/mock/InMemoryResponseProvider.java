@@ -75,7 +75,7 @@ public class InMemoryResponseProvider implements IResponseProvider {
         ChatResponse response = new ChatResponse();
         ChatAssistantMessage message = new ChatAssistantMessage();
         message.setContent(content);
-        response.setMessage(message);
+        response.addMessage(message);
         response.setFinishReason(finishReason);
         response.setResponseTime(CoreMetrics.currentTimeMillis());
         mockResponse(requestId, response);

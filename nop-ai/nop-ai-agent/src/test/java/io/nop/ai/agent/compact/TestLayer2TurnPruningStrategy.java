@@ -6,6 +6,7 @@ import io.nop.ai.agent.session.CompactionResult;
 import io.nop.ai.agent.session.CompactConfig;
 import io.nop.ai.agent.support.ChatResponseFixtures;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
+import io.nop.ai.api.chat.messages.ChatToolCallMessage;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatSystemMessage;
 import io.nop.ai.api.chat.messages.ChatToolCall;
@@ -48,7 +49,7 @@ public class TestLayer2TurnPruningStrategy {
             calls[i].setId(ids[i]);
             calls[i].setName("bash");
         }
-        messages.add(ChatResponseFixtures.foldedAssistantWithToolCalls(null, calls));
+        messages.addAll(ChatResponseFixtures.foldedAssistantWithToolCalls(null, calls));
     }
 
     private ChatToolResponseMessage toolResponse(String toolCallId, String content) {
@@ -70,13 +71,9 @@ public class TestLayer2TurnPruningStrategy {
     private Set<String> calledIds(List<ChatMessage> messages) {
         Set<String> ids = new HashSet<>();
         for (ChatMessage msg : messages) {
-            if (msg instanceof ChatAssistantMessage) {
-                ChatAssistantMessage asm = (ChatAssistantMessage) msg;
-                if (asm.getToolCalls() != null) {
-                    for (ChatToolCall tc : asm.getToolCalls()) {
-                        if (tc.getId() != null) ids.add(tc.getId());
-                    }
-                }
+            if (msg instanceof ChatToolCallMessage) {
+                String id = ((ChatToolCallMessage) msg).getCallId();
+                if (id != null) ids.add(id);
             }
         }
         return ids;
@@ -86,7 +83,7 @@ public class TestLayer2TurnPruningStrategy {
         Set<String> ids = new HashSet<>();
         for (ChatMessage msg : messages) {
             if (msg instanceof ChatToolResponseMessage) {
-                ids.add(((ChatToolResponseMessage) msg).getToolCallId());
+                ids.add(((ChatToolResponseMessage) msg).getCallId());
             }
         }
         return ids;

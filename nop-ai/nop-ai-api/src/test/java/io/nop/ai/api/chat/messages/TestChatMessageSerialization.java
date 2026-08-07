@@ -32,7 +32,7 @@ public class TestChatMessageSerialization {
         msg.setMessageId("u1");
 
         String json = mapper.writeValueAsString(msg);
-        assertTrue(json.contains("\"role\":\"user\""), json);
+        assertTrue(json.contains("\"type\":\"user\""), json);
 
         ChatUserMessage back = (ChatUserMessage) mapper.readValue(json, ChatMessage.class);
         assertEquals("user", back.getRole());
@@ -44,15 +44,13 @@ public class TestChatMessageSerialization {
     void assistantMessageRoundTrip() throws Exception {
         ChatAssistantMessage msg = new ChatAssistantMessage("hi");
         msg.setMessageId("a1");
-        msg.setThink("thinking");
 
         String json = mapper.writeValueAsString(msg);
-        assertTrue(json.contains("\"role\":\"assistant\""), json);
+        assertTrue(json.contains("\"type\":\"assistant\""), json);
 
         ChatAssistantMessage back = (ChatAssistantMessage) mapper.readValue(json, ChatMessage.class);
         assertEquals("assistant", back.getRole());
         assertEquals("hi", back.getContent());
-        assertEquals("thinking", back.getThink());
         assertEquals("a1", back.getMessageId());
     }
 
@@ -62,7 +60,7 @@ public class TestChatMessageSerialization {
         msg.setName("sys");
 
         String json = mapper.writeValueAsString(msg);
-        assertTrue(json.contains("\"role\":\"system\""), json);
+        assertTrue(json.contains("\"type\":\"system\""), json);
 
         ChatSystemMessage back = (ChatSystemMessage) mapper.readValue(json, ChatMessage.class);
         assertEquals("system", back.getRole());
@@ -80,7 +78,7 @@ public class TestChatMessageSerialization {
         msg.setMessageId("tc1");
 
         String json = mapper.writeValueAsString(msg);
-        assertTrue(json.contains("\"role\":\"tool_call\""), json);
+        assertTrue(json.contains("\"type\":\"tool_call\""), json);
         assertTrue(json.contains("\"callId\":\"call_1\""), json);
         assertTrue(json.contains("\"name\":\"get_weather\""), json);
 
@@ -113,7 +111,7 @@ public class TestChatMessageSerialization {
         msg.setResultType("text");
 
         String json = mapper.writeValueAsString(msg);
-        assertTrue(json.contains("\"role\":\"tool_output\""), json);
+        assertTrue(json.contains("\"type\":\"tool_output\""), json);
         assertTrue(json.contains("\"callId\":\"call_1\""), json);
         assertTrue(json.contains("\"name\":\"get_weather\""), json);
         assertTrue(json.contains("\"content\":\"sunny\""), json);
@@ -134,7 +132,6 @@ public class TestChatMessageSerialization {
 
         ChatToolResponseMessage msg = ChatToolResponseMessage.fromToolCall(toolCall, "ok");
         assertEquals("call_z", msg.getCallId());
-        assertEquals("call_z", msg.getToolCallId());
         assertEquals("ok", msg.getContent());
     }
 
@@ -144,7 +141,7 @@ public class TestChatMessageSerialization {
         msg.setMessageId("r1");
 
         String json = mapper.writeValueAsString(msg);
-        assertTrue(json.contains("\"role\":\"reasoning\""), json);
+        assertTrue(json.contains("\"type\":\"reasoning\""), json);
         assertTrue(json.contains("\"summary\":\"summary text\""), json);
         assertTrue(json.contains("\"detail\":\"detail text\""), json);
 
@@ -216,7 +213,7 @@ public class TestChatMessageSerialization {
 
     @Test
     void customTypeNoLongerRegistered() {
-        String json = "{\"role\":\"custom\",\"content\":\"x\"}";
+        String json = "{\"type\":\"custom\",\"content\":\"x\"}";
         assertThrows(Exception.class, () -> mapper.readValue(json, ChatMessage.class),
                 "ChatCustomMessage 已从 @JsonSubTypes 移除，\"custom\" discriminator 应不可反序列化");
     }

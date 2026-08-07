@@ -678,6 +678,10 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 // replacing the legacy assistantMsg.getToolCalls() folded field.
                 List<ChatToolCall> responseToolCalls = extractToolCalls(llmResult.response);
                 ctx.addMessage(assistantMsg);
+                // Plan 329: 工具调用请求以独立 ChatToolCallMessage 承载（寄居字段已删除）。
+                // 将其追加到上下文，使会话历史完整携带 assistant 的工具调用（供下一轮请求构建
+                // 与 tool_call_id 配对校验），与设计 §3.2「上下文.append(response.messages)」一致。
+                appendToolCallMessages(ctx, llmResult.response);
 
                 if (llmResult.response.getUsage() != null) {
                     int promptTokens = llmResult.response.getPromptTokens() != null
@@ -1108,13 +1112,8 @@ public class ReActAgentExecutor implements IAgentExecutor {
     }
 
     /**
-     * Plan 327: find the first {@link ChatAssistantMessage} in a response's
-     * canonical message sequence. This replaces the legacy
-     * {@link ChatResponse#getMessage()} accessor (now {@code @Deprecated}),
-     * reading directly from the canonical {@code response.getMessages()}
-     * carrier. Falls back to {@link ChatResponse#getMessage()} when the
-     * canonical sequence is absent (defensive for pre-327 response
-     * construction paths).
+     * Plan 329：从响应的规范消息序列中取首个 {@link ChatAssistantMessage}。
+     * 单一拆分模型下这是唯一的 assistant 文本来源（旧 {@code getMessage()} 已删除）。
      */
     private static ChatAssistantMessage extractAssistantMessage(io.nop.ai.api.chat.ChatResponse response) {
         List<ChatMessage> messages = response.getMessages();
@@ -1125,7 +1124,24 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 }
             }
         }
-        return response.getMessage();
+        return null;
+    }
+
+    /**
+     * Plan 329：将响应中的 {@link ChatToolCallMessage} 项追加到上下文（寄居字段已删除，
+     * 工具调用请求必须以独立消息进入会话历史）。
+     */
+    private static void appendToolCallMessages(AgentExecutionContext ctx,
+                                               io.nop.ai.api.chat.ChatResponse response) {
+        List<ChatMessage> messages = response.getMessages();
+        if (messages == null) {
+            return;
+        }
+        for (ChatMessage msg : messages) {
+            if (msg instanceof ChatToolCallMessage) {
+                ctx.addMessage(msg);
+            }
+        }
     }
 
     private void handleCancellation(AgentExecutionContext ctx, String sessionId, String agentName) {

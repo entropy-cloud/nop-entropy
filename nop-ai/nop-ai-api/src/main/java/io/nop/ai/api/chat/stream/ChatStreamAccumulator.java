@@ -163,7 +163,8 @@ public class ChatStreamAccumulator {
     }
 
     /**
-     * 组装成完整的助手消息
+     * 组装成完整的助手消息（plan 329：assistant 文本消息仅承载 content；推理/工具调用
+     * 不再寄居于此，分别由 {@link #getAccumulatedThinking()} / {@link #getAccumulatedToolCalls()} 暴露）。
      *
      * @return ChatAssistantMessage
      */
@@ -171,13 +172,6 @@ public class ChatStreamAccumulator {
         ChatAssistantMessage message = new ChatAssistantMessage();
         message.setMessageId(id);
         message.setContent(getAccumulatedContent());
-        message.setThink(getAccumulatedThinking());
-
-        List<ChatToolCall> toolCalls = getAccumulatedToolCalls();
-        if (toolCalls != null) {
-            message.setToolCalls(toolCalls);
-        }
-
         return message;
     }
 

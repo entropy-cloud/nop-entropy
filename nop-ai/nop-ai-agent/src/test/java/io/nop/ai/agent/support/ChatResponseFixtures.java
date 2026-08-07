@@ -12,19 +12,12 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Test fixture factories for building {@link ChatResponse} instances that
- * simulate LLM outputs in the post-plan-327 message-sequence form.
+ * Test fixture factories for building {@link ChatResponse} instances and
+ * session-history message lists in the post-plan-329 single split model.
  *
- * <p><b>Dual-track production</b> (plan 327 Phase 1 risk-mitigation): every
- * factory that involves tool calls populates BOTH the legacy
- * {@code ChatAssistantMessage.toolCalls} field AND the canonical
- * {@code ChatResponse.messages} sequence with discrete
- * {@link ChatToolCallMessage} items. This keeps any not-yet-migrated call
- * site compiling/running during the transition window; plan 329 will
- * collapse the legacy field and leave a single canonical form.
- *
- * <p>The produced {@code messages} list follows the dialect (plan 326)
- * ordering convention: {@code [reasoning?] → assistant text → tool_call*}.
+ * <p>Plan 329：寄居字段 {@code ChatAssistantMessage.toolCalls} 已删除，工具调用一律
+ * 以独立 {@link ChatToolCallMessage} 承载。所有工厂产出的 {@code messages} 列表遵循
+ * dialect 排序约定：{@code [reasoning?] → assistant text → tool_call*}。
  */
 public final class ChatResponseFixtures {
 
@@ -57,13 +50,8 @@ public final class ChatResponseFixtures {
     /**
      * Build a response carrying an assistant message that requests tool calls.
      *
-     * <p>Dual-track: the returned {@link ChatAssistantMessage} (reachable via
-     * {@link ChatResponse#getMessage()}) has its {@code toolCalls} field
-     * populated with the given calls, AND the canonical
-     * {@link ChatResponse#getMessages()} sequence contains discrete
-     * {@link ChatToolCallMessage} items (one per call, in order). Both views
-     * describe the same tool-call set so consumers reading either path
-     * observe identical semantics.
+     * <p>Plan 329：工具调用以独立 {@link ChatToolCallMessage} 承载（messages 序列含
+     * assistant text → tool_call*），与 dialect parseResponse 产出同构。
      *
      * @param text  the assistant text content (may be empty when the LLM only
      *              emitted tool calls)
@@ -75,7 +63,6 @@ public final class ChatResponseFixtures {
                 : new ArrayList<>();
 
         ChatAssistantMessage assistant = new ChatAssistantMessage(text);
-        assistant.setToolCalls(toolCalls);
 
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(assistant);
@@ -88,8 +75,6 @@ public final class ChatResponseFixtures {
     /**
      * Build a response carrying an assistant message that requests tool calls,
      * accepting a {@link List} (convenience overload for batch test migration).
-     *
-     * @see #assistantWithToolCalls(String, ChatToolCall...)
      */
     public static ChatResponse assistantWithToolCalls(String text, List<ChatToolCall> toolCalls) {
         if (toolCalls == null || toolCalls.isEmpty()) {
@@ -109,7 +94,6 @@ public final class ChatResponseFixtures {
                 : new ArrayList<>();
 
         ChatAssistantMessage assistant = new ChatAssistantMessage(text);
-        assistant.setToolCalls(toolCalls);
 
         List<ChatMessage> messages = new ArrayList<>();
         if (reasoning != null && !reasoning.isEmpty()) {
@@ -130,27 +114,25 @@ public final class ChatResponseFixtures {
     }
 
     /**
-     * Build a folded {@link ChatAssistantMessage} with embedded tool calls.
-     * <p>
-     * For tests that construct <b>session history</b> (message lists for
-     * compaction, session-store, checkpoint tests, etc.) — these simulate what
-     * the engine actually writes into {@code ctx.getMessages()} (the folded
-     * assistant message with embedded {@code toolCalls}). Using this factory
-     * keeps the test's session-history format aligned with the engine's actual
-     * output while avoiding direct {@code setToolCalls} calls in test code
-     * (plan 327 grep target).
+     * Build a session-history message list representing one assistant tool-call
+     * turn in the canonical split form: {@code [ChatAssistantMessage(text),
+     * ChatToolCallMessage...]}. Use this to construct {@code ctx.getMessages()}
+     * / session history for compaction, session-store, and checkpoint tests.
      *
      * @param text  the assistant content (may be empty)
-     * @param calls the tool calls to embed in the folded assistant message
-     * @return the folded assistant message (NOT wrapped in a ChatResponse)
+     * @param calls the tool calls the assistant requested
+     * @return the canonical message list for this turn (NOT wrapped in a ChatResponse)
      */
-    public static ChatAssistantMessage foldedAssistantWithToolCalls(
+    public static List<ChatMessage> foldedAssistantWithToolCalls(
             String text, ChatToolCall... calls) {
-        ChatAssistantMessage assistant = new ChatAssistantMessage(text);
+        List<ChatMessage> turn = new ArrayList<>();
+        turn.add(new ChatAssistantMessage(text));
         List<ChatToolCall> toolCalls = calls != null && calls.length > 0
                 ? Arrays.asList(calls)
                 : new ArrayList<>();
-        assistant.setToolCalls(toolCalls);
-        return assistant;
+        for (ChatToolCall call : toolCalls) {
+            turn.add(ChatToolCallMessage.fromChatToolCall(call));
+        }
+        return turn;
     }
 }

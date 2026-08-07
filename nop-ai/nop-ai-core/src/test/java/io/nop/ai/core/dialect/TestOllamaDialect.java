@@ -64,8 +64,7 @@ public class TestOllamaDialect extends JunitBaseTestCase {
 
         ChatResponse response = dialect.parseResponse(responseJson, newConfig());
 
-        assertNotNull(response.getMessage());
-        assertEquals("Hello", response.getMessage().getContent());
+        assertEquals("Hello", response.outputText());
         assertEquals("stop", response.getFinishReason());
         assertEquals("llama2", response.getModel());
         assertNotNull(response.getUsage());
@@ -80,10 +79,9 @@ public class TestOllamaDialect extends JunitBaseTestCase {
 
         ChatResponse response = dialect.parseResponse(responseJson, newConfig());
 
-        assertEquals("answer", response.getMessage().getContent());
-        assertEquals("hmm", response.getMessage().getThink());
+        assertEquals("answer", response.outputText());
 
-        // Plan 326 双轨：thinking 产出 ChatReasoningMessage → assistant text。
+        // Plan 329：thinking 产出独立 ChatReasoningMessage → assistant text。
         assertNotNull(response.getMessages());
         assertEquals(2, response.getMessages().size());
         assertTrue(response.getMessages().get(0) instanceof ChatReasoningMessage);
@@ -103,11 +101,12 @@ public class TestOllamaDialect extends JunitBaseTestCase {
 
         ChatResponse response = dialect.parseResponse(responseJson, newConfig());
 
-        // 旧行为：旧 message 携带 toolCalls
-        assertNotNull(response.getMessage().getToolCalls());
-        assertEquals("call_42", response.getMessage().getToolCalls().get(0).getId());
+        // Plan 329：工具调用由独立 ChatToolCallMessage 承载
+        List<io.nop.ai.api.chat.messages.ChatToolCall> toolCalls = response.outputToolCalls();
+        assertEquals(1, toolCalls.size());
+        assertEquals("call_42", toolCalls.get(0).getId());
 
-        // Plan 326 双轨 + Anti-Hollow：messages 含 ChatToolCallMessage 且 callId 与旧 toolCalls 的 id 一致。
+        // Anti-Hollow：messages 含 ChatToolCallMessage 且 callId 正确。
         assertNotNull(response.getMessages());
         ChatToolCallMessage msgToolCall = response.getMessages().stream()
                 .filter(m -> m instanceof ChatToolCallMessage)
@@ -115,7 +114,7 @@ public class TestOllamaDialect extends JunitBaseTestCase {
                 .findFirst().orElse(null);
         assertNotNull(msgToolCall, "messages must contain a ChatToolCallMessage for each tool_call");
         assertEquals("call_42", msgToolCall.getCallId(),
-                "ChatToolCallMessage.callId must match the legacy toolCalls id (consistency risk #1)");
+                "ChatToolCallMessage.callId must match the tool_call id");
         assertEquals("get_weather", msgToolCall.getName());
         assertEquals("beijing", msgToolCall.getArguments().get("location"));
     }

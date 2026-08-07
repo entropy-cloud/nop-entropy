@@ -4,7 +4,10 @@ import io.nop.ai.agent.budget.BudgetSnapshot;
 import io.nop.ai.agent.engine.AgentExecutionContext;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.api.chat.ChatOptions;
+import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.api.chat.messages.ChatMessage;
+import io.nop.ai.api.chat.messages.ChatSystemMessage;
+import io.nop.ai.api.chat.messages.ChatUserMessage;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -161,6 +164,14 @@ public final class SmartModelRouter implements IModelRouter {
         boolean hasStructured = false;
         if (messages != null) {
             for (ChatMessage msg : messages) {
+                // Plan 329：仅按会话文本（user/assistant/system）评估复杂度，跳过
+                // ChatToolCallMessage（其 content 为派生 JSON 参数）与 tool result，
+                // 避免工具调用元数据把会话误判为 structured/medium。
+                if (!(msg instanceof ChatUserMessage)
+                        && !(msg instanceof ChatAssistantMessage)
+                        && !(msg instanceof ChatSystemMessage)) {
+                    continue;
+                }
                 String content = msg.getContent();
                 if (content == null || content.isEmpty()) {
                     continue;

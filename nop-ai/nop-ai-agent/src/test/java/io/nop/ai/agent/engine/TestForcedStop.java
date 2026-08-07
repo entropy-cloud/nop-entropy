@@ -155,7 +155,7 @@ public class TestForcedStop {
             ChatToolCall call = new ChatToolCall();
             call.setId("tc-" + i);
             call.setName("test-tool");
-            messages.add(ChatResponseFixtures.foldedAssistantWithToolCalls(null, call));
+            messages.addAll(ChatResponseFixtures.foldedAssistantWithToolCalls(null, call));
             messages.add(new ChatToolResponseMessage("tc-" + i, "test-tool", "result-" + i));
         }
         return messages;
@@ -359,16 +359,12 @@ public class TestForcedStop {
         Set<String> calledIds = new HashSet<>();
         Set<String> respondedIds = new HashSet<>();
         for (ChatMessage m : out) {
-            if (m instanceof ChatAssistantMessage) {
-                ChatAssistantMessage a = (ChatAssistantMessage) m;
-                if (a.getToolCalls() != null) {
-                    for (ChatToolCall tc : a.getToolCalls()) {
-                        if (tc.getId() != null) calledIds.add(tc.getId());
-                    }
-                }
+            if (m instanceof ChatToolCallMessage) {
+                String id = ((ChatToolCallMessage) m).getCallId();
+                if (id != null) calledIds.add(id);
             }
             if (m instanceof ChatToolResponseMessage) {
-                respondedIds.add(((ChatToolResponseMessage) m).getToolCallId());
+                respondedIds.add(((ChatToolResponseMessage) m).getCallId());
             }
         }
         assertEquals(calledIds, respondedIds,

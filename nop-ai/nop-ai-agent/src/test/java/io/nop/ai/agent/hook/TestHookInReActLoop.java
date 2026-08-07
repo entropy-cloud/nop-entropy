@@ -11,6 +11,7 @@ import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
+import io.nop.ai.api.chat.messages.ChatToolCallMessage;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatToolCall;
 import io.nop.ai.api.chat.messages.ChatToolResponseMessage;
@@ -671,16 +672,11 @@ public class TestHookInReActLoop {
         AgentExecutionResult result = executor.execute(buildContext()).toCompletableFuture().join();
         assertEquals(AgentExecStatus.completed, result.getStatus());
 
-        // Collect all tool_call_ids from the assistant message(s)
+        // Collect all tool_call_ids from the ChatToolCallMessage items
         Set<String> assistantToolCallIds = new HashSet<>();
         for (ChatMessage m : result.getMessages()) {
-            if (m instanceof ChatAssistantMessage) {
-                ChatAssistantMessage am = (ChatAssistantMessage) m;
-                if (am.getToolCalls() != null) {
-                    for (ChatToolCall tc : am.getToolCalls()) {
-                        assistantToolCallIds.add(tc.getId());
-                    }
-                }
+            if (m instanceof ChatToolCallMessage) {
+                assistantToolCallIds.add(((ChatToolCallMessage) m).getCallId());
             }
         }
 
@@ -688,7 +684,7 @@ public class TestHookInReActLoop {
         List<String> toolResponseIds = new ArrayList<>();
         for (ChatMessage m : result.getMessages()) {
             if (m instanceof ChatToolResponseMessage) {
-                toolResponseIds.add(((ChatToolResponseMessage) m).getToolCallId());
+                toolResponseIds.add(((ChatToolResponseMessage) m).getCallId());
             }
         }
 
@@ -707,7 +703,7 @@ public class TestHookInReActLoop {
         boolean hasReenterMessage = result.getMessages().stream()
                 .filter(m -> m instanceof ChatToolResponseMessage)
                 .map(m -> (ChatToolResponseMessage) m)
-                .anyMatch(m -> "call_1".equals(m.getToolCallId())
+                .anyMatch(m -> "call_1".equals(m.getCallId())
                         && "inject-retry-1".equals(m.getContent()));
         assertTrue(hasReenterMessage, "Re-enter synthetic message for call_1 should be in ctx");
     }

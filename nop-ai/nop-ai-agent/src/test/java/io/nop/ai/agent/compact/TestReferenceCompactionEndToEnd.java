@@ -83,7 +83,7 @@ public class TestReferenceCompactionEndToEnd {
         ChatToolCall call = new ChatToolCall();
         call.setId(toolCallId);
         call.setName(toolName);
-        messages.add(ChatResponseFixtures.foldedAssistantWithToolCalls(null, call));
+        messages.addAll(ChatResponseFixtures.foldedAssistantWithToolCalls(null, call));
     }
 
     private String longContent(int chars) {

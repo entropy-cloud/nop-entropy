@@ -143,16 +143,15 @@ public class Layer3FullSummaryStrategy implements ICompressionStrategy {
 
         ChatResponse response = chatService.call(request, null);
 
-        if (response == null || !response.isSuccess() || response.getMessage() == null
-                || response.getMessage().getContent() == null
-                || response.getMessage().getContent().trim().isEmpty()) {
+        if (response == null || !response.isSuccess() || response.outputText() == null
+                || response.outputText().trim().isEmpty()) {
             String err = response != null ? response.getError() : "null response";
             LOG.warn("Layer 3 LLM returned unsuccessful/empty response ({}), degrading to Layer 2 effect. session={}",
                     err, ctx.getSessionId());
             return fallbackPruner.compact(ctx);
         }
 
-        String summaryContent = response.getMessage().getContent().trim();
+        String summaryContent = response.outputText().trim();
         ChatUserMessage summaryMessage = new ChatUserMessage(SUMMARY_MARKER + "\n" + summaryContent);
 
         List<ChatMessage> result = new ArrayList<>();

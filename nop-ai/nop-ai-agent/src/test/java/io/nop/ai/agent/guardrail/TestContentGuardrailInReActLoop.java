@@ -257,7 +257,7 @@ public class TestContentGuardrailInReActLoop {
         boolean hasOrphanToolMsg = ctx.getMessages().stream()
                 .filter(m -> m instanceof ChatToolResponseMessage)
                 .map(m -> (ChatToolResponseMessage) m)
-                .anyMatch(m -> "guardrail-block-input".equals(m.getToolCallId()));
+                .anyMatch(m -> "guardrail-block-input".equals(m.getCallId()));
         assertFalse(hasOrphanToolMsg, "No orphan guardrail-block-input tool message should exist");
     }
 
@@ -335,13 +335,13 @@ public class TestContentGuardrailInReActLoop {
         boolean hasOrphanToolMsg = ctx.getMessages().stream()
                 .filter(m -> m instanceof ChatToolResponseMessage)
                 .map(m -> (ChatToolResponseMessage) m)
-                .anyMatch(m -> "guardrail-block-output".equals(m.getToolCallId()));
+                .anyMatch(m -> "guardrail-block-output".equals(m.getCallId()));
         assertFalse(hasOrphanToolMsg, "No orphan guardrail-block-output tool message should exist");
 
         boolean hasPairedBlockResponse = ctx.getMessages().stream()
                 .filter(m -> m instanceof ChatToolResponseMessage)
                 .map(m -> (ChatToolResponseMessage) m)
-                .anyMatch(m -> "call_1".equals(m.getToolCallId())
+                .anyMatch(m -> "call_1".equals(m.getCallId())
                         && m.getContent() != null
                         && m.getContent().contains("Output blocked by content guardrail"));
         assertTrue(hasPairedBlockResponse,

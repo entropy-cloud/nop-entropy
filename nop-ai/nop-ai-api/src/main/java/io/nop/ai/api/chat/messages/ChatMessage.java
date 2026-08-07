@@ -7,6 +7,7 @@
  */
 package io.nop.ai.api.chat.messages;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -15,9 +16,13 @@ import io.nop.api.core.annotations.data.DataBean;
 import java.util.Map;
 
 /**
- * 聊天消息基类，支持角色区分
+ * 聊天消息基类。Plan 329：序列化判别字段从 {@code role} 改为 {@code type}
+ * （最终单一形态）。{@link #getType()} 恒定输出判别字段 {@code type}（确保 List
+ * 运行时类型序列化时判别字段仍存在，同时兼容 Nop JsonTool 按 getter 名写出），
+ * {@link JsonTypeInfo} 在反序列化时按 {@code type} 分派子类型。
+ * {@link #getRole()} 保留为语义访问器，标记 {@link JsonIgnore} 不重复输出。
  */
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "role")
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
         @JsonSubTypes.Type(value = ChatUserMessage.class, name = "user"),
         @JsonSubTypes.Type(value = ChatAssistantMessage.class, name = "assistant"),
@@ -37,9 +42,18 @@ public abstract class ChatMessage {
     protected Map<String, Object> providerHints;
 
     /**
-     * 消息角色（user/assistant/system）
+     * 消息角色（user/assistant/system/tool_call/tool_output/reasoning），语义访问器。
      */
+    @JsonIgnore
     public abstract String getRole();
+
+    /**
+     * 序列化判别字段 {@code type}（值同 {@link #getRole()}）。作为普通 getter 恒定输出，
+     * 保证 List 运行时类型序列化时判别字段存在（{@link JsonTypeInfo} 对运行时类型可能不写出）。
+     */
+    public final String getType() {
+        return getRole();
+    }
 
     /**
      * 消息内容

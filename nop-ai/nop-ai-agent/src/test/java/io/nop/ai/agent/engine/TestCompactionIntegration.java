@@ -131,7 +131,7 @@ public class TestCompactionIntegration {
             ChatToolCall toolCall = new ChatToolCall();
             toolCall.setId(id);
             toolCall.setName("bash");
-            ctx.addMessage(ChatResponseFixtures.foldedAssistantWithToolCalls(null, toolCall));
+            ChatResponseFixtures.foldedAssistantWithToolCalls(null, toolCall).forEach(ctx::addMessage);
             ctx.addMessage(new ChatToolResponseMessage(id, "bash", "X".repeat(5000)));
         }
 
@@ -190,7 +190,7 @@ public class TestCompactionIntegration {
             ChatToolCall toolCall = new ChatToolCall();
             toolCall.setId(id);
             toolCall.setName("bash");
-            ctx.addMessage(ChatResponseFixtures.foldedAssistantWithToolCalls(null, toolCall));
+            ChatResponseFixtures.foldedAssistantWithToolCalls(null, toolCall).forEach(ctx::addMessage);
             ctx.addMessage(new ChatToolResponseMessage(id, "bash", "X".repeat(5000)));
         }
 
@@ -236,7 +236,7 @@ public class TestCompactionIntegration {
             ChatToolCall toolCall = new ChatToolCall();
             toolCall.setId(id);
             toolCall.setName("bash");
-            ctx.addMessage(ChatResponseFixtures.foldedAssistantWithToolCalls(null, toolCall));
+            ChatResponseFixtures.foldedAssistantWithToolCalls(null, toolCall).forEach(ctx::addMessage);
             ctx.addMessage(new ChatToolResponseMessage(id, "bash", "content-" + i));
         }
 
@@ -278,7 +278,7 @@ public class TestCompactionIntegration {
             ChatToolCall toolCall = new ChatToolCall();
             toolCall.setId(id);
             toolCall.setName("bash");
-            ctx.addMessage(ChatResponseFixtures.foldedAssistantWithToolCalls(null, toolCall));
+            ChatResponseFixtures.foldedAssistantWithToolCalls(null, toolCall).forEach(ctx::addMessage);
             ctx.addMessage(new ChatToolResponseMessage(id, "bash", "X".repeat(5000)));
         }
 

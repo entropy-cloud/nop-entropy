@@ -11,6 +11,8 @@ import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
+import io.nop.ai.api.chat.messages.ChatMessage;
+import io.nop.ai.api.chat.messages.ChatReasoningMessage;
 import io.nop.ai.api.chat.stream.ChatStreamChunk;
 import io.nop.ai.api.chat.stream.StreamItemPhase;
 import io.nop.ai.api.chat.stream.StreamItemType;
@@ -21,6 +23,7 @@ import jakarta.inject.Inject;
 
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Flow;
+import java.util.List;
 import java.util.concurrent.SubmissionPublisher;
 
 import static io.nop.ai.core.mock.MockChatConfigs.CFG_AI_MOCK_ENABLE_STREAM;
@@ -63,7 +66,8 @@ public class MockChatService implements IChatService {
                 return;
             }
 
-            if (!enableStream || response.getMessage() == null) {
+            String assistantContent = response.outputText();
+            if (!enableStream || assistantContent == null) {
                 // 非流式模式，直接发送完整响应
                 ChatStreamChunk chunk = createChunk(response, true);
                 publisher.submit(chunk);
@@ -72,7 +76,7 @@ public class MockChatService implements IChatService {
             }
 
             // 流式模式，逐字符发送
-            String content = response.getMessage().getContent();
+            String content = assistantContent;
             if (content == null || content.isEmpty()) {
                 ChatStreamChunk chunk = createChunk(response, true);
                 publisher.submit(chunk);
@@ -126,20 +130,32 @@ public class MockChatService implements IChatService {
     protected ChatStreamChunk createChunk(ChatResponse response, boolean isLast) {
         ChatStreamChunk chunk = new ChatStreamChunk();
 
-        if (response.getMessage() != null) {
-            if (response.getMessage().getThink() != null) {
-                // 推理 item
-                chunk.setItemType(StreamItemType.reasoning);
-                chunk.setItemIndex(0);
-                chunk.setPhase(StreamItemPhase.DELTA);
-                chunk.setDelta(response.getMessage().getThink());
-            } else {
-                // 文本 item
-                chunk.setItemType(StreamItemType.text);
-                chunk.setItemIndex(0);
-                chunk.setPhase(StreamItemPhase.DELTA);
-                chunk.setDelta(response.getMessage().getContent());
+        // Plan 329：从规范消息序列读取推理与 assistant 文本（单一拆分模型）。
+        String reasoning = null;
+        String text = null;
+        List<ChatMessage> messages = response.getMessages();
+        if (messages != null) {
+            for (ChatMessage msg : messages) {
+                if (msg instanceof ChatReasoningMessage && reasoning == null) {
+                    reasoning = msg.getContent();
+                } else if (msg instanceof ChatAssistantMessage && text == null) {
+                    text = msg.getContent();
+                }
             }
+        }
+
+        if (reasoning != null) {
+            // 推理 item
+            chunk.setItemType(StreamItemType.reasoning);
+            chunk.setItemIndex(0);
+            chunk.setPhase(StreamItemPhase.DELTA);
+            chunk.setDelta(reasoning);
+        } else if (text != null) {
+            // 文本 item
+            chunk.setItemType(StreamItemType.text);
+            chunk.setItemIndex(0);
+            chunk.setPhase(StreamItemPhase.DELTA);
+            chunk.setDelta(text);
         }
 
         if (isLast) {

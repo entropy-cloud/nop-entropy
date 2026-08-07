@@ -110,7 +110,7 @@ public class TestOpenAiDialect extends JunitBaseTestCase {
 
         assertEquals("chatcmpl-123", response.getId());
         assertEquals("gpt-4", response.getModel());
-        assertEquals("Hello! How can I help you?", response.getMessage().getContent());
+        assertEquals("Hello! How can I help you?", response.outputText());
         assertEquals("stop", response.getFinishReason());
 
         assertNotNull(response.getUsage());
@@ -118,7 +118,7 @@ public class TestOpenAiDialect extends JunitBaseTestCase {
         assertEquals(20, response.getUsage().getCompletionTokens().intValue());
         assertEquals(30, response.getUsage().getTotalTokens().intValue());
 
-        // Plan 326 双轨：messages 序列就绪（无 reasoning 时仅含 assistant 文本）。
+        // Plan 329：单一拆分模型——messages 序列就绪（无 reasoning 时仅含 assistant 文本）。
         assertNotNull(response.getMessages(), "parseResponse must populate messages");
         assertEquals(1, response.getMessages().size());
         assertTrue(response.getMessages().get(0) instanceof ChatAssistantMessage,
@@ -139,11 +139,17 @@ public class TestOpenAiDialect extends JunitBaseTestCase {
 
         ChatResponse response = dialect.parseResponse(responseJson, config);
 
-        // 旧行为不变
-        assertEquals("answer", response.getMessage().getContent());
-        assertEquals("let me think", response.getMessage().getThink());
+        // Plan 329：assistant 文本与推理由独立消息承载
+        assertEquals("answer", response.outputText());
 
-        // 新 messages 双轨：reasoning → assistant text
+        ChatReasoningMessage reasoningMsg = response.getMessages().stream()
+                .filter(m -> m instanceof ChatReasoningMessage)
+                .map(m -> (ChatReasoningMessage) m)
+                .findFirst().orElse(null);
+        assertNotNull(reasoningMsg, "reasoning_content must produce a ChatReasoningMessage");
+        assertEquals("let me think", reasoningMsg.getSummary());
+
+        // 新 messages：reasoning → assistant text
         assertNotNull(response.getMessages());
         assertEquals(2, response.getMessages().size());
         assertTrue(response.getMessages().get(0) instanceof ChatReasoningMessage);
@@ -272,7 +278,7 @@ public class TestOpenAiDialect extends JunitBaseTestCase {
         String responseJson = "{\"error\":{\"message\":\"Invalid API key\",\"code\":\"invalid_api_key\"}}";
         ChatResponse response = dialect.parseResponse(responseJson, config);
 
-        assertNotNull(response.getMessage());
-        assertNull(response.getMessage().getContent(), "error responses should not contain assistant content");
+        // Plan 329：错误响应无 assistant 文本（outputText 为 null）
+        assertNull(response.outputText(), "error responses should not contain assistant content");
     }
 }

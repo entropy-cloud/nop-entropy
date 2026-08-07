@@ -140,7 +140,7 @@ public class TestChatLogHelper extends JunitBaseTestCase {
 
         ChatRequest request = ChatRequest.userPrompt("hello");
         request.setOptions(new ChatOptions());
-        ChatResponse response = new ChatResponse(new ChatAssistantMessage("token: " + SECRET));
+        ChatResponse response = ChatResponse.success(new ChatAssistantMessage("token: " + SECRET));
 
         logger.logResponse(request, response);
 

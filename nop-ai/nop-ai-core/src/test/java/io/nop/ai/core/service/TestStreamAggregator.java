@@ -48,14 +48,14 @@ public class TestStreamAggregator extends JunitBaseTestCase {
 
         assertEquals("test-123", response.getId());
         assertEquals("test-model", response.getModel());
-        assertEquals("Hello world", response.getMessage().getContent());
+        assertEquals("Hello world", response.outputText());
         assertEquals("stop", response.getFinishReason());
         assertNotNull(response.getUsage());
         assertEquals(10, response.getUsage().getPromptTokens().intValue());
         assertEquals(5, response.getUsage().getCompletionTokens().intValue());
         assertEquals(15, response.getUsage().getTotalTokens().intValue());
 
-        // Plan 328 双轨：messages 序列同构（text only → 仅 assistant）
+        // Plan 329：单一拆分模型——messages 序列同构（text only → 仅 assistant）
         assertNotNull(response.getMessages());
         assertEquals(1, response.getMessages().size());
         assertEquals("Hello world", response.getMessages().get(0).getContent());
@@ -70,7 +70,7 @@ public class TestStreamAggregator extends JunitBaseTestCase {
 
         ChatResponse response = aggregator.toResponse();
 
-        assertEquals("Hello", response.getMessage().getContent());
+        assertEquals("Hello", response.outputText());
         assertEquals("stop", response.getFinishReason());
     }
 
@@ -91,9 +91,12 @@ public class TestStreamAggregator extends JunitBaseTestCase {
 
         ChatResponse response = aggregator.toResponse();
 
-        // 旧 message 双轨
-        assertEquals("Final answer", response.getMessage().getContent());
-        assertEquals("Let me think", response.getMessage().getThink());
+        // Plan 329：assistant 文本与推理由独立消息承载
+        assertEquals("Final answer", response.outputText());
+        assertEquals("Let me think", response.getMessages().stream()
+                .filter(m -> m instanceof ChatReasoningMessage)
+                .map(m -> ((ChatReasoningMessage) m).getSummary())
+                .findFirst().orElse(null));
 
         // messages 序列：reasoning → assistant text
         assertNotNull(response.getMessages());
@@ -138,11 +141,12 @@ public class TestStreamAggregator extends JunitBaseTestCase {
 
         ChatResponse response = aggregator.toResponse();
 
-        // 旧 message 双轨：toolCalls 寄居字段
-        assertNotNull(response.getMessage().getToolCalls());
-        assertEquals("call_42", response.getMessage().getToolCalls().get(0).getId());
-        assertEquals("get_weather", response.getMessage().getToolCalls().get(0).getName());
-        assertEquals("beijing", response.getMessage().getToolCalls().get(0).getArguments().get("location"),
+        // Plan 329：工具调用由独立 ChatToolCallMessage 承载
+        java.util.List<io.nop.ai.api.chat.messages.ChatToolCall> toolCalls = response.outputToolCalls();
+        assertEquals(1, toolCalls.size());
+        assertEquals("call_42", toolCalls.get(0).getId());
+        assertEquals("get_weather", toolCalls.get(0).getName());
+        assertEquals("beijing", toolCalls.get(0).getArguments().get("location"),
                 "arguments fragments must be assembled into a complete object");
 
         // messages 序列含 ChatToolCallMessage
@@ -201,10 +205,11 @@ public class TestStreamAggregator extends JunitBaseTestCase {
 
         ChatResponse response = aggregator.toResponse();
 
-        assertEquals(2, response.getMessage().getToolCalls().size());
-        assertEquals("call_1", response.getMessage().getToolCalls().get(0).getId());
-        assertEquals("bj", response.getMessage().getToolCalls().get(0).getArguments().get("city"));
-        assertEquals("call_2", response.getMessage().getToolCalls().get(1).getId());
-        assertEquals("utc", response.getMessage().getToolCalls().get(1).getArguments().get("zone"));
+        java.util.List<io.nop.ai.api.chat.messages.ChatToolCall> toolCalls = response.outputToolCalls();
+        assertEquals(2, toolCalls.size());
+        assertEquals("call_1", toolCalls.get(0).getId());
+        assertEquals("bj", toolCalls.get(0).getArguments().get("city"));
+        assertEquals("call_2", toolCalls.get(1).getId());
+        assertEquals("utc", toolCalls.get(1).getArguments().get("zone"));
     }
 }

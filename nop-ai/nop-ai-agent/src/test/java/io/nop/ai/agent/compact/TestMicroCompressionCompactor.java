@@ -4,6 +4,7 @@ import io.nop.ai.agent.session.CompactionResult;
 import io.nop.ai.agent.session.CompactConfig;
 import io.nop.ai.agent.support.ChatResponseFixtures;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
+import io.nop.ai.api.chat.messages.ChatToolCallMessage;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatSystemMessage;
 import io.nop.ai.api.chat.messages.ChatToolCall;
@@ -48,7 +49,7 @@ public class TestMicroCompressionCompactor {
             calls[i].setId(toolCallIds[i]);
             calls[i].setName("bash");
         }
-        messages.add(ChatResponseFixtures.foldedAssistantWithToolCalls(null, calls));
+        messages.addAll(ChatResponseFixtures.foldedAssistantWithToolCalls(null, calls));
     }
 
     @Test
@@ -123,13 +124,16 @@ public class TestMicroCompressionCompactor {
         List<ChatMessage> compacted = result.getCompactedMessages();
         assertNotNull(compacted);
 
-        ChatMessage lastToolResp = compacted.get(compacted.size() - 1);
-        assertTrue(lastToolResp instanceof ChatToolResponseMessage);
-        assertEquals("content-9", lastToolResp.getContent(), "Last tool result should be preserved");
-
-        ChatMessage secondLast = compacted.get(compacted.size() - 3);
-        assertTrue(secondLast instanceof ChatToolResponseMessage);
-        assertEquals("content-8", secondLast.getContent(), "Second to last tool result should be preserved");
+        // Plan 329：工具调用以独立 ChatToolCallMessage 承载，按类型筛选 tool response
+        java.util.List<ChatToolResponseMessage> toolResps = compacted.stream()
+                .filter(m -> m instanceof ChatToolResponseMessage)
+                .map(m -> (ChatToolResponseMessage) m)
+                .collect(java.util.stream.Collectors.toList());
+        assertFalse(toolResps.isEmpty());
+        assertEquals("content-9", toolResps.get(toolResps.size() - 1).getContent(),
+                "Last tool result should be preserved");
+        assertEquals("content-8", toolResps.get(toolResps.size() - 2).getContent(),
+                "Second to last tool result should be preserved");
     }
 
     @Test
@@ -145,12 +149,21 @@ public class TestMicroCompressionCompactor {
         CompactionResult result = compactor.compact(makeContext(messages, 0));
 
         assertNotNull(result.getCompactedMessages());
-        ChatMessage bashMsg = result.getCompactedMessages().get(3);
-        assertTrue(bashMsg instanceof ChatToolResponseMessage);
+        // Plan 329：按工具名查找 tool response（避免固定下标受 ChatToolCallMessage 影响）
+        ChatToolResponseMessage bashMsg = result.getCompactedMessages().stream()
+                .filter(m -> m instanceof ChatToolResponseMessage)
+                .map(m -> (ChatToolResponseMessage) m)
+                .filter(m -> "bash".equals(m.getName()))
+                .findFirst().orElse(null);
+        assertNotNull(bashMsg);
         assertTrue(bashMsg.getContent().contains("COMPRESSED"), "bash tool result should be compressed");
 
-        ChatMessage oracleMsg = result.getCompactedMessages().get(5);
-        assertTrue(oracleMsg instanceof ChatToolResponseMessage);
+        ChatToolResponseMessage oracleMsg = result.getCompactedMessages().stream()
+                .filter(m -> m instanceof ChatToolResponseMessage)
+                .map(m -> (ChatToolResponseMessage) m)
+                .filter(m -> "ask-oracle".equals(m.getName()))
+                .findFirst().orElse(null);
+        assertNotNull(oracleMsg);
         assertEquals("B".repeat(5000), oracleMsg.getContent(),
                 "Non-compressible tool results should be preserved");
     }
@@ -228,20 +241,15 @@ public class TestMicroCompressionCompactor {
 
         Set<String> assistantToolCallIds = new HashSet<>();
         for (ChatMessage msg : compacted) {
-            if (msg instanceof ChatAssistantMessage) {
-                ChatAssistantMessage asm = (ChatAssistantMessage) msg;
-                if (asm.getToolCalls() != null) {
-                    for (ChatToolCall tc : asm.getToolCalls()) {
-                        assistantToolCallIds.add(tc.getId());
-                    }
-                }
+            if (msg instanceof ChatToolCallMessage) {
+                assistantToolCallIds.add(((ChatToolCallMessage) msg).getCallId());
             }
         }
 
         Set<String> responseToolCallIds = new HashSet<>();
         for (ChatMessage msg : compacted) {
             if (msg instanceof ChatToolResponseMessage) {
-                responseToolCallIds.add(((ChatToolResponseMessage) msg).getToolCallId());
+                responseToolCallIds.add(((ChatToolResponseMessage) msg).getCallId());
             }
         }
 
@@ -265,7 +273,11 @@ public class TestMicroCompressionCompactor {
         messages.add(toolResponse("tc-1", "bash", "A".repeat(5000)));
 
         CompactionResult result = compactor.compact(makeContext(messages, 0));
-        ChatMessage toolMsg = result.getCompactedMessages().get(3);
+        ChatToolResponseMessage toolMsg = result.getCompactedMessages().stream()
+                .filter(m -> m instanceof ChatToolResponseMessage)
+                .map(m -> (ChatToolResponseMessage) m)
+                .findFirst().orElse(null);
+        assertNotNull(toolMsg);
 
         String content = toolMsg.getContent();
         assertTrue(content.contains("COMPRESSED"), "Should contain COMPRESSED marker");

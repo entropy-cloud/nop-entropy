@@ -20,24 +20,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 public class TestChatOptionsAndUserMessageParts {
 
     // ==================== ResponseFormat / ChatOptions ====================
-
-    @Test
-    public void responseFormatStringViewSetAndGetString() {
-        ChatOptions options = new ChatOptions();
-        options.setResponseFormat("json");
-
-        assertEquals("json", options.getResponseFormat(),
-                "legacy String round-trip must be preserved (WfAiHelper backward compat)");
-    }
-
-    @Test
-    public void responseFormatStringViewFromObject() {
-        ChatOptions options = new ChatOptions();
-        options.setResponseFormatConfig(ResponseFormat.jsonObject());
-
-        assertEquals("json_object", options.getResponseFormat(),
-                "json_object object -> getResponseFormat() returns 'json_object'");
-    }
+    // Plan 329：plan 326 的 String responseFormat 委托已删除，统一使用对象载体
+    // getResponseFormatConfig()/setResponseFormatConfig()。
 
     @Test
     public void responseFormatObjectCarrierWithSchema() {
@@ -56,8 +40,7 @@ public class TestChatOptionsAndUserMessageParts {
     @Test
     public void responseFormatNullRoundTrip() {
         ChatOptions options = new ChatOptions();
-        assertNull(options.getResponseFormat(), "null -> null");
-        assertNull(options.getResponseFormatConfig());
+        assertNull(options.getResponseFormatConfig(), "null -> null");
     }
 
     @Test
@@ -82,10 +65,10 @@ public class TestChatOptionsAndUserMessageParts {
         base.setResponseFormatConfig(ResponseFormat.jsonObject());
 
         ChatOptions override = new ChatOptions();
-        override.setResponseFormat("json");
+        override.setResponseFormatConfig(new ResponseFormat("json"));
 
         ChatOptions merged = base.merge(override);
-        assertEquals("json", merged.getResponseFormat(),
+        assertEquals("json", merged.getResponseFormatConfig().getType(),
                 "merge() must let other's responseFormat override");
     }
 

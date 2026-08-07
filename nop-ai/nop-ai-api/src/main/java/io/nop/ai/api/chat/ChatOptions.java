@@ -260,31 +260,8 @@ public class ChatOptions {
     }
 
     /**
-     * 旧的 String 视图（plan 326 起废弃）。返回 {@link #responseFormat} 的 {@code type}：
-     * {@code json_object}→"json_object"、{@code json_schema}→"json_schema"、{@code null}→{@code null}，
-     * 其余 type（如历史用法 {@code "json"}）原样透传，保持向后兼容。
-     *
-     * @deprecated 使用 {@link #getResponseFormatConfig()} 获取对象载体。
+     * 响应格式对象载体（规范访问，plan 326）。Plan 329：String 视图委托已删除。
      */
-    @Deprecated
-    @JsonIgnore
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    public String getResponseFormat() {
-        return responseFormat == null ? null : responseFormat.getType();
-    }
-
-    /**
-     * @deprecated 使用 {@link #setResponseFormatConfig(ResponseFormat)}。
-     */
-    @Deprecated
-    public void setResponseFormat(String type) {
-        this.responseFormat = type == null ? null : new ResponseFormat(type);
-    }
-
-    /**
-     * 响应格式对象载体（规范访问，plan 326）。
-     */
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     public ResponseFormat getResponseFormatConfig() {
         return responseFormat;
     }
@@ -561,15 +538,6 @@ public class ChatOptions {
 
         public Builder enableThinking(Boolean enableThinking) {
             options.setEnableThinking(enableThinking);
-            return this;
-        }
-
-        /**
-         * @deprecated 使用 {@link #responseFormatConfig(ResponseFormat)}。
-         */
-        @Deprecated
-        public Builder responseFormat(String responseFormat) {
-            options.setResponseFormat(responseFormat);
             return this;
         }
 

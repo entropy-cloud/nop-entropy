@@ -76,11 +76,17 @@ public class TestAnthropicDialect extends JunitBaseTestCase {
         
         assertEquals("msg_123", response.getId());
         assertEquals("claude-3-5-sonnet-20241022", response.getModel());
-        assertEquals("Hello! How can I help you?", response.getMessage().getContent());
-        assertEquals("Let me analyze this question...", response.getMessage().getThink());
+        assertEquals("Hello! How can I help you?", response.outputText());
+        // Plan 329：推理由独立的 ChatReasoningMessage 承载
+        ChatReasoningMessage reasoningMsg = response.getMessages().stream()
+                .filter(m -> m instanceof ChatReasoningMessage)
+                .map(m -> (ChatReasoningMessage) m)
+                .findFirst().orElse(null);
+        assertNotNull(reasoningMsg, "thinking block must produce a ChatReasoningMessage");
+        assertEquals("Let me analyze this question...", reasoningMsg.getSummary());
         assertEquals("stop", response.getFinishReason());
 
-        // Plan 326 双轨：messages 按语义顺序 reasoning → assistant text。
+        // Plan 329：单一拆分模型——messages 按语义顺序 reasoning → assistant text。
         assertNotNull(response.getMessages());
         assertEquals(2, response.getMessages().size());
         assertTrue(response.getMessages().get(0) instanceof ChatReasoningMessage,
@@ -212,14 +218,14 @@ public class TestAnthropicDialect extends JunitBaseTestCase {
 
         ChatResponse response = dialect.parseResponse(responseJson, config);
 
-        List<ChatToolCall> toolCalls = response.getMessage().getToolCalls();
+        List<ChatToolCall> toolCalls = response.outputToolCalls();
         assertEquals(1, toolCalls.size());
         ChatToolCall toolCall = toolCalls.get(0);
         assertEquals("toolu_1", toolCall.getId());
         assertEquals("get_weather", toolCall.getName());
         assertEquals("beijing", toolCall.getArguments().get("location"));
 
-        // Plan 326 双轨 + Anti-Hollow：messages 含 ChatToolCallMessage 且 callId 与旧 toolCalls 的 id 一致。
+        // Plan 329 + Anti-Hollow：messages 含 ChatToolCallMessage 且 callId 正确。
         assertNotNull(response.getMessages());
         ChatToolCallMessage msgToolCall = response.getMessages().stream()
                 .filter(m -> m instanceof ChatToolCallMessage)
@@ -227,7 +233,7 @@ public class TestAnthropicDialect extends JunitBaseTestCase {
                 .findFirst().orElse(null);
         assertNotNull(msgToolCall, "messages must contain a ChatToolCallMessage for tool_use block");
         assertEquals("toolu_1", msgToolCall.getCallId(),
-                "ChatToolCallMessage.callId must match the legacy toolCalls id (consistency risk #1)");
+                "ChatToolCallMessage.callId must match the tool_use id");
         assertEquals("get_weather", msgToolCall.getName());
         assertEquals("beijing", msgToolCall.getArguments().get("location"));
     }
@@ -246,7 +252,7 @@ public class TestAnthropicDialect extends JunitBaseTestCase {
 
         ChatResponse response = dialect.parseResponse(responseJson, config);
 
-        ChatToolCall toolCall = response.getMessage().getToolCalls().get(0);
+        ChatToolCall toolCall = response.outputToolCalls().get(0);
         assertEquals("get_weather", toolCall.getName());
         assertEquals("beijing", toolCall.getArguments().get("location"));
     }

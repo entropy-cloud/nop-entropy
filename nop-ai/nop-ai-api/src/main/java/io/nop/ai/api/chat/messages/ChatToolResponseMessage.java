@@ -82,24 +82,6 @@ public class ChatToolResponseMessage extends ChatMessage {
         this.callId = callId;
     }
 
-    /**
-     * @deprecated plan 325 起关联字段已改名为 {@link #getCallId()}；保留此委托方法以兼容既有调用点。
-     */
-    @Deprecated
-    @JsonIgnore
-    public String getToolCallId() {
-        return getCallId();
-    }
-
-    /**
-     * @deprecated plan 325 起关联字段已改名为 {@link #setCallId(String)}；保留此委托方法以兼容既有调用点。
-     */
-    @Deprecated
-    @JsonIgnore
-    public void setToolCallId(String toolCallId) {
-        setCallId(toolCallId);
-    }
-
     public String getName() {
         return name;
     }

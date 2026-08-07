@@ -58,12 +58,15 @@ public class TestGeminiDialect extends JunitBaseTestCase {
 
         ChatResponse response = dialect.parseResponse(responseJson, newConfig());
 
-        assertNotNull(response.getMessage());
-        assertEquals("Final answer", response.getMessage().getContent());
-        assertEquals("Let me think", response.getMessage().getThink());
+        assertEquals("Final answer", response.outputText());
         assertEquals("gemini-1.5-pro", response.getModel());
 
-        // Plan 326 双轨：thought:true parts 产出 ChatReasoningMessage，其余 text parts 产出 assistant 文本。
+        // Plan 329：推理由独立 ChatReasoningMessage 承载
+        assertNotNull(response.getMessages().stream()
+                .filter(m -> m instanceof ChatReasoningMessage)
+                .findFirst().orElse(null));
+
+        // Plan 329：thought:true parts 产出 ChatReasoningMessage，其余 text parts 产出 assistant 文本。
         assertNotNull(response.getMessages());
         assertEquals(2, response.getMessages().size());
         assertTrue(response.getMessages().get(0) instanceof ChatReasoningMessage,
@@ -80,8 +83,7 @@ public class TestGeminiDialect extends JunitBaseTestCase {
 
         ChatResponse response = dialect.parseResponse(responseJson, newConfig());
 
-        assertNotNull(response.getMessage());
-        assertNull(response.getMessage().getContent());
+        assertNull(response.outputText());
     }
 
     @Test

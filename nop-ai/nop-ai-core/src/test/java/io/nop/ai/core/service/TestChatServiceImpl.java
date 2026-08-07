@@ -49,13 +49,12 @@ public class TestChatServiceImpl extends JunitBaseTestCase {
         ChatResponse response = chatService.call(request, null);
 
         assertNotNull(response, "Response should not be null");
-        assertNotNull(response.getMessage(), "Message should not be null");
-        assertNotNull(response.getMessage().getContent(), "Content should not be null");
-        assertFalse(response.getMessage().getContent().isBlank(), "Content should not be blank");
+        assertNotNull(response.outputText(), "Message should not be null");
+        assertFalse(response.outputText().isBlank(), "Content should not be blank");
         assertNotNull(response.getRequestId(), "RequestId should not be null");
         assertTrue(response.getResponseTime() > 0, "ResponseTime should be positive");
 
-        System.out.println("Content: " + response.getMessage().getContent());
+        System.out.println("Content: " + response.outputText());
         if (response.getUsage() != null) {
             System.out.println("Usage: promptTokens=" + response.getUsage().getPromptTokens()
                     + ", completionTokens=" + response.getUsage().getCompletionTokens());
@@ -76,11 +75,10 @@ public class TestChatServiceImpl extends JunitBaseTestCase {
         ChatResponse response = chatService.call(request, null);
 
         assertNotNull(response, "Response should not be null");
-        assertNotNull(response.getMessage(), "Message should not be null");
-        assertNotNull(response.getMessage().getContent(), "Content should not be null");
-        assertFalse(response.getMessage().getContent().isBlank(), "Content should not be blank");
+        assertNotNull(response.outputText(), "Message should not be null");
+        assertFalse(response.outputText().isBlank(), "Content should not be blank");
 
-        System.out.println("Content: " + response.getMessage().getContent());
+        System.out.println("Content: " + response.outputText());
         if (response.getUsage() != null) {
             System.out.println("Usage: promptTokens=" + response.getUsage().getPromptTokens()
                     + ", completionTokens=" + response.getUsage().getCompletionTokens());

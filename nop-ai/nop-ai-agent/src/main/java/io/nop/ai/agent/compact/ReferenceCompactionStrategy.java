@@ -153,7 +153,7 @@ public class ReferenceCompactionStrategy implements ICompressionStrategy {
             return null;
         }
         ChatToolResponseMessage toolResp = (ChatToolResponseMessage) msg;
-        String toolCallId = toolResp.getToolCallId();
+        String toolCallId = toolResp.getCallId();
         if (toolCallId != null && recentToolCallIds.contains(toolCallId)) {
             return null;
         }
@@ -216,7 +216,7 @@ public class ReferenceCompactionStrategy implements ICompressionStrategy {
         for (int i = messages.size() - 1; i >= 0 && recentIds.size() < maxRecent; i--) {
             ChatMessage msg = messages.get(i);
             if (msg instanceof ChatToolResponseMessage) {
-                String id = ((ChatToolResponseMessage) msg).getToolCallId();
+                String id = ((ChatToolResponseMessage) msg).getCallId();
                 if (id != null) {
                     recentIds.add(id);
                 }

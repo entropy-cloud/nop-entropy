@@ -92,14 +92,14 @@ public final class LlmCompletionJudge implements ICompletionJudge {
             return config.getFallbackDecision();
         }
 
-        if (response == null || !response.isSuccess() || response.getMessage() == null) {
+        if (response == null || !response.isSuccess() || response.outputText() == null) {
             recordFallbackMetadata(ctx, FALLBACK_VERDICT_LABEL);
             return config.getFallbackDecision();
         }
 
         accumulateTokens(ctx, response);
 
-        String verdictContent = response.getMessage().getContent();
+        String verdictContent = response.outputText();
         if (verdictContent == null || verdictContent.trim().isEmpty()) {
             recordFallbackMetadata(ctx, FALLBACK_VERDICT_LABEL);
             return config.getFallbackDecision();

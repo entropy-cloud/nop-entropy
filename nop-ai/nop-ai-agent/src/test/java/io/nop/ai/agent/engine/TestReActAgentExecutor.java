@@ -6,6 +6,7 @@ import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
+import io.nop.ai.api.chat.messages.ChatToolCallMessage;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatToolCall;
 import io.nop.ai.api.chat.messages.ChatToolResponseMessage;
@@ -387,7 +388,7 @@ public class TestReActAgentExecutor {
                 .findFirst()
                 .orElse(null);
         assertNotNull(toolResponse);
-        assertEquals("call_err_1", toolResponse.getToolCallId());
+        assertEquals("call_err_1", toolResponse.getCallId());
         assertTrue(toolResponse.getContent().contains("tool crashed"));
 
         assertEquals(2, callCount.get());
@@ -463,16 +464,11 @@ public class TestReActAgentExecutor {
             // tool_call_id in a preceding assistant message.
             Set<String> announcedIds = new HashSet<>();
             for (ChatMessage msg : request.getMessages()) {
-                if (msg instanceof ChatAssistantMessage) {
-                    ChatAssistantMessage am = (ChatAssistantMessage) msg;
-                    if (am.getToolCalls() != null) {
-                        for (ChatToolCall tc : am.getToolCalls()) {
-                            announcedIds.add(tc.getId());
-                        }
-                    }
+                if (msg instanceof ChatToolCallMessage) {
+                    announcedIds.add(((ChatToolCallMessage) msg).getCallId());
                 }
                 if (msg instanceof ChatToolResponseMessage) {
-                    String respId = ((ChatToolResponseMessage) msg).getToolCallId();
+                    String respId = ((ChatToolResponseMessage) msg).getCallId();
                     if (!announcedIds.contains(respId)) {
                         return CompletableFuture.completedFuture(
                                 ChatResponse.error("ERROR",
@@ -532,7 +528,7 @@ public class TestReActAgentExecutor {
         List<String> toolResponseIds = new ArrayList<>();
         for (ChatMessage m : result.getMessages()) {
             if (m instanceof ChatToolResponseMessage) {
-                toolResponseIds.add(((ChatToolResponseMessage) m).getToolCallId());
+                toolResponseIds.add(((ChatToolResponseMessage) m).getCallId());
             }
         }
         assertTrue(toolResponseIds.contains("call_a"), "tool_a response must be present");

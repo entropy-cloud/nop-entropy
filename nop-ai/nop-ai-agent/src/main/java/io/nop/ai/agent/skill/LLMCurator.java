@@ -110,12 +110,7 @@ public final class LLMCurator implements ISkillCurator {
             return SkillCurationResult.failed("llm",
                     "unsuccessful response: " + response.getErrorCode() + " " + response.getError());
         }
-        if (response.getMessage() == null) {
-            LOG.warn("LLMCurator: null message in response");
-            return SkillCurationResult.failed("llm", "null message in response");
-        }
-
-        String content = response.getMessage().getContent();
+        String content = response.outputText();
         if (content == null || content.trim().isEmpty()) {
             LOG.warn("LLMCurator: empty response content");
             return SkillCurationResult.failed("llm", "empty response content");

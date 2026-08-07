@@ -6,9 +6,11 @@ import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
+import io.nop.ai.api.chat.messages.ChatMessage;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -48,7 +50,7 @@ public class SingleTurnExecutor implements IAgentExecutor {
                 return CompletableFuture.completedFuture(AgentExecutionResult.fromContext(ctx));
             }
 
-            ChatAssistantMessage assistantMsg = response.getMessage();
+            ChatAssistantMessage assistantMsg = extractAssistantMessage(response);
             ctx.addMessage(assistantMsg);
 
             if (response.getUsage() != null) {
@@ -87,5 +89,17 @@ public class SingleTurnExecutor implements IAgentExecutor {
         if (eventPublisher != null) {
             eventPublisher.publish(AgentEvent.createError(type, sessionId, agentName, error));
         }
+    }
+
+    private static ChatAssistantMessage extractAssistantMessage(ChatResponse response) {
+        List<ChatMessage> messages = response.getMessages();
+        if (messages != null) {
+            for (ChatMessage msg : messages) {
+                if (msg instanceof ChatAssistantMessage) {
+                    return (ChatAssistantMessage) msg;
+                }
+            }
+        }
+        return null;
     }
 }

@@ -17,10 +17,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Plan 327 Phase 1 proof: verify {@link ChatResponseFixtures} produces
- * dual-track responses where BOTH the legacy {@code assistant.toolCalls}
- * field and the canonical {@code response.messages} sequence (with discrete
- * {@link ChatToolCallMessage} items) describe the same tool-call set.
+ * Plan 329 proof: verify {@link ChatResponseFixtures} produces the single
+ * split-model form where tool calls are carried exclusively as discrete
+ * {@link ChatToolCallMessage} items in {@code response.getMessages()}
+ * (the legacy {@code assistant.toolCalls} folded field has been removed).
  */
 public class TestChatResponseFixtures {
 
@@ -32,37 +32,34 @@ public class TestChatResponseFixtures {
     }
 
     @Test
-    void assistantWithToolCallsPopulatesBothLegacyAndCanonicalTracks() {
+    void assistantWithToolCallsPopulatesCanonicalTrack() {
         ChatToolCall a = toolCall("call_1", "search");
         ChatToolCall b = toolCall("call_2", "calc");
 
         ChatResponse response = ChatResponseFixtures.assistantWithToolCalls("thinking", a, b);
 
-        // --- Legacy track: getMessage().getToolCalls() non-empty ---
-        ChatAssistantMessage assistantMsg = response.getMessage();
-        assertNotNull(assistantMsg, "getMessage() should return the assistant message");
-        assertTrue(assistantMsg.hasToolCalls(), "legacy track: assistant.toolCalls must be non-empty");
-        List<ChatToolCall> legacyCalls = assistantMsg.getToolCalls();
-        assertEquals(2, legacyCalls.size(), "legacy track: should carry 2 tool calls");
+        // Plan 329：单一拆分模型——工具调用由 outputToolCalls() 聚合访问器暴露
+        List<ChatToolCall> aggregatedCalls = response.outputToolCalls();
+        assertNotNull(aggregatedCalls, "outputToolCalls() should return the tool calls");
+        assertEquals(2, aggregatedCalls.size(), "should carry 2 tool calls");
 
         // --- Canonical track: response.getMessages() contains ChatToolCallMessage items ---
         List<ChatMessage> messages = response.getMessages();
         assertNotNull(messages, "canonical track: response.messages must be populated");
         assertTrue(messages.size() >= 3, "canonical track: should contain assistant + 2 tool_call messages");
 
-        // Collect ChatToolCallMessage items and verify callId set matches legacy track
         Set<String> canonicalCallIds = new HashSet<>();
         for (ChatMessage msg : messages) {
             if (msg instanceof ChatToolCallMessage) {
                 canonicalCallIds.add(((ChatToolCallMessage) msg).getCallId());
             }
         }
-        Set<String> legacyCallIds = new HashSet<>();
-        for (ChatToolCall tc : legacyCalls) {
-            legacyCallIds.add(tc.getId());
+        Set<String> aggregatedCallIds = new HashSet<>();
+        for (ChatToolCall tc : aggregatedCalls) {
+            aggregatedCallIds.add(tc.getId());
         }
-        assertEquals(legacyCallIds, canonicalCallIds,
-                "legacy track callId set must equal canonical track callId set");
+        assertEquals(aggregatedCallIds, canonicalCallIds,
+                "outputToolCalls() id set must equal canonical track callId set");
     }
 
     @Test
@@ -80,13 +77,11 @@ public class TestChatResponseFixtures {
     }
 
     @Test
-    void assistantTextProducesNoToolCallsOnEitherTrack() {
+    void assistantTextProducesNoToolCalls() {
         ChatResponse response = ChatResponseFixtures.assistantText("hello");
 
-        ChatAssistantMessage assistantMsg = response.getMessage();
-        assertNotNull(assistantMsg);
-        assertTrue(assistantMsg.getToolCalls() == null || assistantMsg.getToolCalls().isEmpty(),
-                "no tool calls: legacy track must be empty");
+        assertTrue(response.outputToolCalls().isEmpty(),
+                "no tool calls: outputToolCalls() must be empty");
 
         boolean hasToolCallMsg = false;
         for (ChatMessage msg : response.getMessages()) {

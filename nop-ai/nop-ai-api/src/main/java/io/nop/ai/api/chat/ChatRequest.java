@@ -13,6 +13,7 @@ import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatSystemMessage;
 import io.nop.ai.api.chat.messages.ChatToolCall;
+import io.nop.ai.api.chat.messages.ChatToolCallMessage;
 import io.nop.ai.api.chat.messages.ChatToolDefinition;
 import io.nop.ai.api.chat.messages.ChatToolResponseMessage;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
@@ -200,24 +201,38 @@ public class ChatRequest {
     }
 
     /**
-     * 获取最后一条助手消息中的工具调用列表
+     * 收集消息序列中所有 {@link ChatToolCallMessage} 并还原为 {@link ChatToolCall} 列表
+     * （plan 329：工具调用以独立消息承载，不再寄生于 ChatAssistantMessage）。
      */
     @JsonIgnore
     public List<ChatToolCall> getToolCalls() {
-        ChatAssistantMessage assistantMsg = getLastAssistantMessage();
-        if (assistantMsg != null) {
-            return assistantMsg.getToolCalls();
+        if (messages == null) return null;
+        List<ChatToolCall> result = new ArrayList<>();
+        for (ChatMessage msg : messages) {
+            if (msg instanceof ChatToolCallMessage) {
+                ChatToolCallMessage tcm = (ChatToolCallMessage) msg;
+                ChatToolCall tc = new ChatToolCall();
+                tc.setId(tcm.getCallId());
+                tc.setName(tcm.getName());
+                tc.setArguments(tcm.getArguments());
+                result.add(tc);
+            }
         }
-        return null;
+        return result.isEmpty() ? null : result;
     }
 
     /**
-     * 检查最后一条助手消息是否包含工具调用
+     * 检查消息序列是否包含工具调用（{@link ChatToolCallMessage}）。
      */
     @JsonIgnore
     public boolean hasToolCalls() {
-        List<ChatToolCall> toolCalls = getToolCalls();
-        return toolCalls != null && !toolCalls.isEmpty();
+        if (messages == null) return false;
+        for (ChatMessage msg : messages) {
+            if (msg instanceof ChatToolCallMessage) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

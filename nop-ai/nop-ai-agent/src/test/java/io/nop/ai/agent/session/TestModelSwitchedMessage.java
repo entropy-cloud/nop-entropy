@@ -425,9 +425,9 @@ public class TestModelSwitchedMessage {
         }
 
         // ctx.getMessages() should have exactly the normal exchange:
-        // [assistant(tool-call), tool-response, assistant(final)] = 3 messages
+        // [assistant(tool-call), ChatToolCallMessage, tool-response, assistant(final)] = 4 messages
         // (no system/user prompt added in this direct-executor test path)
-        assertEquals(3, ctx.getMessages().size(),
+        assertEquals(4, ctx.getMessages().size(),
                 "ctx.getMessages() must contain only the normal LLM exchange, no audit message");
     }
 

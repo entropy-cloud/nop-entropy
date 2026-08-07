@@ -199,7 +199,7 @@ public class TestTokenCountingIntegration {
             ChatToolCall call = new ChatToolCall();
             call.setId(id);
             call.setName("bash");
-            messages.add(ChatResponseFixtures.foldedAssistantWithToolCalls(null, call));
+            messages.addAll(ChatResponseFixtures.foldedAssistantWithToolCalls(null, call));
             messages.add(new ChatToolResponseMessage(id, "bash", "X".repeat(4000)));
         }
 
@@ -229,19 +229,14 @@ public class TestTokenCountingIntegration {
 
         Set<String> assistantToolCallIds = new HashSet<>();
         for (ChatMessage msg : result.getCompactedMessages()) {
-            if (msg instanceof ChatAssistantMessage) {
-                ChatAssistantMessage asm = (ChatAssistantMessage) msg;
-                if (asm.getToolCalls() != null) {
-                    for (ChatToolCall tc : asm.getToolCalls()) {
-                        assistantToolCallIds.add(tc.getId());
-                    }
-                }
+            if (msg instanceof ChatToolCallMessage) {
+                assistantToolCallIds.add(((ChatToolCallMessage) msg).getCallId());
             }
         }
         Set<String> responseToolCallIds = new HashSet<>();
         for (ChatMessage msg : result.getCompactedMessages()) {
             if (msg instanceof ChatToolResponseMessage) {
-                responseToolCallIds.add(((ChatToolResponseMessage) msg).getToolCallId());
+                responseToolCallIds.add(((ChatToolResponseMessage) msg).getCallId());
             }
         }
         assertEquals(assistantToolCallIds, responseToolCallIds,

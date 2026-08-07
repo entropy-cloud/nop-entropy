@@ -487,15 +487,8 @@ public class ChatServiceImpl implements IChatService {
             io.nop.ai.api.chat.messages.ChatAssistantMessage message =
                     new io.nop.ai.api.chat.messages.ChatAssistantMessage();
             message.setContent(text.isEmpty() ? null : text);
-            if (!reasoning.isEmpty()) {
-                message.setThink(reasoning);
-            }
-            if (!toolCalls.isEmpty()) {
-                message.setToolCalls(toolCalls);
-            }
-            response.setMessage(message);
 
-            // Plan 326 双轨：messages 按语义顺序 reasoning → assistant text → tool_calls，
+            // Plan 329：单一拆分模型产出。messages 按语义顺序 reasoning → assistant text → tool_calls，
             // 与非流式 dialect 产出的 messages 序列同构。
             List<io.nop.ai.api.chat.messages.ChatMessage> messages = new ArrayList<>();
             if (!reasoning.isEmpty()) {

@@ -350,7 +350,7 @@ public class TestProviderFailoverChain {
         ChatResponse r = new ChatResponse();
         io.nop.ai.api.chat.messages.ChatAssistantMessage msg = new io.nop.ai.api.chat.messages.ChatAssistantMessage();
         msg.setContent("ok");
-        r.setMessage(msg);
+        r.addMessage(msg);
         return r;
     }
 

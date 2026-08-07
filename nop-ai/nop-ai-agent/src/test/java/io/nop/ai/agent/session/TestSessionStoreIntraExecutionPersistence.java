@@ -252,8 +252,8 @@ public class TestSessionStoreIntraExecutionPersistence {
         AgentSession session = store.get("session-dup");
         // Expected messages: [system, user, assistant(tool_call), tool_response, assistant(final)]
         // test-react-agent has a <prompt> → system message is prepended.
-        assertEquals(5, session.getMessageCount(),
-                "Session must have exactly 5 messages (system + user + assistant_tool + tool_response + assistant_final). "
+        assertEquals(6, session.getMessageCount(),
+                "Session must have exactly 6 messages (system + user + assistant_tool + tool_call + tool_response + assistant_final). "
                         + "Got: " + session.getMessageCount());
 
         // Cross-instance reload: same count (no duplicates persisted)

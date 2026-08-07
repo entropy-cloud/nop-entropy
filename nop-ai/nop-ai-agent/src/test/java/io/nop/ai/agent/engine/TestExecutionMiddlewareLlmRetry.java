@@ -102,7 +102,7 @@ public class TestExecutionMiddlewareLlmRetry {
         ChatResponse r = new ChatResponse();
         ChatAssistantMessage msg = new ChatAssistantMessage();
         msg.setContent("ok");
-        r.setMessage(msg);
+        r.addMessage(msg);
         return r;
     }
 

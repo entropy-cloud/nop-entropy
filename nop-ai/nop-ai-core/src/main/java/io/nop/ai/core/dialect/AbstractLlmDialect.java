@@ -5,7 +5,9 @@ import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.ErrorClassification;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.api.chat.messages.ChatMessage;
+import io.nop.ai.api.chat.messages.ChatReasoningMessage;
 import io.nop.ai.api.chat.messages.ChatSystemMessage;
+import io.nop.ai.api.chat.messages.ChatToolCallMessage;
 import io.nop.ai.api.chat.messages.ChatToolResponseMessage;
 import io.nop.ai.api.chat.messages.ChatUsage;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
@@ -275,6 +277,9 @@ public abstract class AbstractLlmDialect {
             return "system";
         } else if (message instanceof ChatToolResponseMessage) {
             return "tool";
+        } else if (message instanceof ChatReasoningMessage || message instanceof ChatToolCallMessage) {
+            // 推理与工具调用均为 assistant 侧产物，按 assistant 角色序列化
+            return "assistant";
         }
         return "user";
     }

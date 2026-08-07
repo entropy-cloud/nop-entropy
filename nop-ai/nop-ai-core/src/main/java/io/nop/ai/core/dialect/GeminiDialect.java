@@ -7,6 +7,7 @@ import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatReasoningMessage;
 import io.nop.ai.api.chat.messages.ChatToolCall;
+import io.nop.ai.api.chat.messages.ChatToolCallMessage;
 import io.nop.ai.api.chat.messages.ChatToolDefinition;
 import io.nop.ai.api.chat.messages.ChatToolResponseMessage;
 import io.nop.ai.api.chat.messages.ChatUsage;
@@ -197,11 +198,8 @@ public class GeminiDialect extends AbstractLlmDialect implements ILlmDialect {
 
         ChatAssistantMessage message = new ChatAssistantMessage();
         message.setContent(contentBuilder.length() > 0 ? contentBuilder.toString() : null);
-        message.setThink(thinkingBuilder.length() > 0 ? thinkingBuilder.toString() : null);
-        response.setMessage(message);
 
-        // Plan 326 双轨：旧 message 保留，同时按语义顺序产出 messages 序列（reasoning → assistant text）。
-        // thought:true parts 产出 ChatReasoningMessage，其余 text parts 累积为 assistant 文本（functionCall 当前不解析，保持现状）。
+        // Plan 329：单一拆分模型产出。thought:true parts → ChatReasoningMessage，其余 text parts → assistant 文本。
         List<ChatMessage> messages = new ArrayList<>();
         if (thinkingBuilder.length() > 0) {
             messages.add(new ChatReasoningMessage(thinkingBuilder.toString()));
@@ -322,26 +320,21 @@ public class GeminiDialect extends AbstractLlmDialect implements ILlmDialect {
             parts.add(textPart);
         }
 
-        if (message instanceof ChatAssistantMessage) {
-            ChatAssistantMessage assistantMsg = (ChatAssistantMessage) message;
-            
-            if (assistantMsg.getThink() != null) {
-                Map<String, Object> thinkingPart = new LinkedHashMap<>();
-                thinkingPart.put("text", "<thinking>" + assistantMsg.getThink() + "</thinking>");
-                parts.add(thinkingPart);
-            }
-            
-            if (assistantMsg.getToolCalls() != null && !assistantMsg.getToolCalls().isEmpty()) {
-                for (ChatToolCall toolCall : assistantMsg.getToolCalls()) {
-                    Map<String, Object> functionCall = new LinkedHashMap<>();
-                    functionCall.put("name", toolCall.getName());
-                    functionCall.put("args", toolCall.getArguments());
-                    
-                    Map<String, Object> toolPart = new LinkedHashMap<>();
-                    toolPart.put("functionCall", functionCall);
-                    parts.add(toolPart);
-                }
-            }
+        if (message instanceof ChatReasoningMessage) {
+            Map<String, Object> thinkingPart = new LinkedHashMap<>();
+            thinkingPart.put("text", "<thinking>" + message.getContent() + "</thinking>");
+            parts.add(thinkingPart);
+        }
+
+        if (message instanceof ChatToolCallMessage) {
+            ChatToolCallMessage toolCallMsg = (ChatToolCallMessage) message;
+            Map<String, Object> functionCall = new LinkedHashMap<>();
+            functionCall.put("name", toolCallMsg.getName());
+            functionCall.put("args", toolCallMsg.getArguments());
+
+            Map<String, Object> toolPart = new LinkedHashMap<>();
+            toolPart.put("functionCall", functionCall);
+            parts.add(toolPart);
         }
 
         if (message instanceof ChatToolResponseMessage) {
