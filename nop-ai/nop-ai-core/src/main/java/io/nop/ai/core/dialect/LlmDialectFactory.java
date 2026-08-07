@@ -22,6 +22,7 @@ public class LlmDialectFactory {
         register(ApiStyle.anthropic, new AnthropicDialect());
         register(ApiStyle.gemini, new GeminiDialect());
         register(ApiStyle.ollama, new OllamaDialect());
+        register(ApiStyle.responses, new ResponsesDialect());
     }
 
     /**

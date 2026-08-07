@@ -52,12 +52,12 @@ public enum ApiStyle {
     other,
 
     /**
-     * OpenAI Responses API 风格（plan 325 起新增）。
+     * OpenAI Responses API 风格（plan 325 起新增，plan 330 落地 dialect）。
      * <p>
      * 与 {@link #openai}（Chat Completions）对应，但使用 {@code /responses} 端点与
-     * input/output items 结构。其 dialect（{@code ResponsesDialect}）在 plan 330 落地；
-     * 当前仅注册枚举值，{@code LlmDialectFactory} 未为它注册 dialect，未注册时回退到
-     * OpenAI Chat Completions 方言。
+     * input/output items 结构。其 dialect（{@code ResponsesDialect}）已在 plan 330 注册到
+     * {@code LlmDialectFactory}，配置 {@code dialect=responses} + {@code chatUrl=/v1/responses}
+     * 即可经 Responses wire 与 OpenAI（及 Ollama v0.13.3+ 等原生支持方）双向交互。
      */
     responses
 }

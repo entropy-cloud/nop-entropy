@@ -1,0 +1,15 @@
+<llm x:schema="/nop/schema/ai/llm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     apiStyle="responses" supportToolCalls="true">
+
+    <!--
+    测试用 provider：ResponsesDialect 端到端集成测试（plan 330 Phase 3）。
+    apiStyle=responses 路由到 ResponsesDialect，chatUrl 指向 /v1/responses 端点。
+    ResponsesDialect 硬编码 Responses wire 路径，故 response/request 路径配置非必需。
+    -->
+    <chatUrl>/v1/responses</chatUrl>
+
+    <response contentPath="output.0.content.0.text"
+              errorPath="error"
+    />
+
+</llm>
