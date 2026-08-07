@@ -47,7 +47,7 @@
 - **已有**：`io.nop.ai.agent.skill.ISkillProvider`（`getSkills() → Collection<SkillModel>`）+ `FileSystemSkillProvider`（shipped，filesystem 加载）+ `NoOpSkillProvider`（pass-through）。`SkillModel` 含 name/goal/intentSignature/topPattern/dependencies/tags/resourceScope——**无 trust/safety 字段**。
 - **已有**：`ISkillCurator` + `LLMCurator`（LLM 评估 skill **质量**：是否 well-written/useful）+ `NoOpSkillCurator`。**质量 ≠ 安全**——curator 不检测注入/恶意。
 - **缺失**：skill 包加载时无安全扫描。一个含 `"<instruction>ignore previous rules</instruction>"` 的 SKILL.md 会被无标记加载。
-- **ArbiterOS 参考**：`instruction_parsing/helpers/skill_trust.py`（490 行）调 `cisco-ai-skill-scanner` CLI → `max_severity → trustworthiness`（CRITICAL/HIGH→LOW, MEDIUM→UNKNOWN, LOW/INFO/SAFE→HIGH），按 SKILL.md SHA-256 缓存。**nop 是 Java，不能直接用 Python CLI**——需 Java-native 启发式扫描。
+- **ArbiterOS 参考**：ArbiterOS 项目的 `skill_trust.py`（490 行，外部仓库，不在本仓库）调 `cisco-ai-skill-scanner` CLI → `max_severity → trustworthiness`（CRITICAL/HIGH→LOW, MEDIUM→UNKNOWN, LOW/INFO/SAFE→HIGH），按 SKILL.md SHA-256 缓存。**nop 是 Java，不能直接用 Python CLI**——需 Java-native 启发式扫描。
 
 ## Goals
 

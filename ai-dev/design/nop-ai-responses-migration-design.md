@@ -2,7 +2,7 @@
 
 **日期**：2026-08-01
 **范围**：`nop-ai-api`（消息模型重构）、`nop-ai-core`（dialect 层）、`nop-ai-agent`（引擎适配）、`nop-ai-gateway`（远期挂点）
-**状态**：草案
+**状态**：最终（迁移完成 2026-08-07，plan 325-330 全部落地）
 
 ---
 
@@ -159,4 +159,4 @@ Responses wire → 消息体系：
   - Phase 1：dialect 层改造（4 个既有方言基于新消息体系，既有测试全绿）。
   - Phase 2：agent 引擎切换（`ReActAgentExecutor` 提取 `ChatToolCallMessage`，工具循环回归）。（✅ plan 327 已落地：引擎从 `response.getMessages()` 提取 `ChatToolCallMessage` → `List<ChatToolCall>` 喂既有 fan-out；5 个辅助生产引用点迁移；85 个 mock-LLM 测试迁移到 `ChatResponseFixtures` 双轨产出；3404 测试全绿。）
   - Phase 3：流式 `ChatStreamChunk` item 增量重构 + UI 文本消费适配。（✅ plan 328 已落地：`ChatStreamChunk` 改为 item 增量模型（itemType/itemIndex/callId/delta/phase:ADDED|DELTA|DONE），删 `ChatToolCallChunk`；4 dialect `parseStreamChunk` 产出 item 增量 + 补齐 OpenAI 流式 tool_calls 缺口；StreamAggregator/ChatStreamAccumulator 按 itemType 状态机汇聚产出与非流式 326 同构的 `response.messages`。旧 `message`/think/toolCalls 寄居字段双轨保留待 329 删。）
-  - Phase 4：`ResponsesDialect` + 流式/非流式集成测试（mock Responses wire fixture）。
+  - Phase 4：`ResponsesDialect` + 流式/非流式集成测试（mock Responses wire fixture）。（✅ plan 330 已落地：`ResponsesDialect` 实现 buildBody/parseResponse/parseStreamChunk/convertMessage，注册到 `LlmDialectFactory`（`ApiStyle.responses`）；请求方向 messages → instructions + input[] typed items、响应方向 output[] typed items → response.messages、流式具名事件 → item 增量；hosted tools 剥离、store=false 无状态；端到端集成测试（TestResponsesDialectIntegration）覆盖非流式 + 流式 + 工具调用循环，212 测试全绿。）
