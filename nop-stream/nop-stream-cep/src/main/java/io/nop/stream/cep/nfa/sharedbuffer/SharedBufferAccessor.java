@@ -272,6 +272,11 @@ public class SharedBufferAccessor<V> implements AutoCloseable {
             Lockable<SharedBufferNode> curBufferNode = sharedBuffer.getEntry(curNode);
 
             if (curBufferNode == null) {
+                // Maintain the "pop 1 node + 1 version per iteration" stack lockstep
+                // invariant. Without this pop, every subsequent iteration pairs the wrong
+                // DeweyNumber with the wrong NodeId, corrupting refcounts / leaking edges,
+                // and eventually versionsToExamine.pop() below can throw EmptyStackException.
+                versionsToExamine.pop();
                 continue;
             }
 

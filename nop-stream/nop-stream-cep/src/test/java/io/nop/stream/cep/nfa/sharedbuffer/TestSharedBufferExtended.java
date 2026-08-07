@@ -289,4 +289,58 @@ public class TestSharedBufferExtended {
         assertTrue(buffer.getEventsBufferCacheSize() == 0);
         assertFalse(buffer.isEmpty());
     }
+
+    /**
+     * Phase 4 regression: {@code releaseNode} must pop the version stack on the
+     * {@code curBufferNode == null} branch to keep the "1 node + 1 version per
+     * iteration" lockstep invariant.
+     *
+     * <p>Scenario: build a node {@code X} whose two predecessor edges point to a
+     * <b>live</b> node {@code L} and an <b>already-removed</b> node {@code R}.
+     * Releasing {@code X} pushes both onto the stacks; {@code R} is popped first
+     * and hits the null branch. Without the fix the version paired with {@code R}
+     * is not consumed, so {@code L} is subsequently processed with {@code R}'s
+     * (wrong) Dewey version. That wrong version is incompatible with {@code L}'s
+     * predecessor edge, so {@code P} is never released — a refcount/disk leak and
+     * (in deeper graphs) an over-release crash.
+     */
+    @Test
+    void testReleaseNodePopsVersionOnNullEntry() throws Exception {
+        SharedBuffer<Event> buffer = createBuffer();
+        final long timestamp = 1L;
+
+        try (SharedBufferAccessor<Event> accessor = buffer.getAccessor()) {
+            EventId ev1 = accessor.registerEvent(new Event(1, "p"), timestamp);
+            EventId ev2 = accessor.registerEvent(new Event(2, "l"), timestamp);
+            EventId ev3 = accessor.registerEvent(new Event(3, "r"), timestamp);
+            EventId ev4 = accessor.registerEvent(new Event(4, "x"), timestamp);
+
+            // P -> null (edge version "1"); L -> P (edge version "1.5");
+            // R -> null (edge version "1.2")
+            NodeId p = accessor.put("p", ev1, null, DeweyNumber.fromString("1"));
+            NodeId l = accessor.put("l", ev2, p, DeweyNumber.fromString("1.5"));
+            NodeId r = accessor.put("r", ev3, null, DeweyNumber.fromString("1.2"));
+
+            // X shares predecessors L (edge "1.5") and R (edge "1.2"); edge order
+            // is [L, R] so R ends up on top of the stack and is popped first.
+            NodeId x = accessor.put("x", ev4, l, DeweyNumber.fromString("1.5"));
+            accessor.put("x", ev4, r, DeweyNumber.fromString("1.2"));
+
+            // First release R so that X's edge to R later observes a null entry.
+            accessor.releaseNode(r, DeweyNumber.fromString("1.2"));
+            assertNull(buffer.getEntry(r), "R should be removed by its own release");
+
+            // Release X with version "1.5" (compatible with both edges). This is the
+            // call that hits the null branch when following X -> R.
+            accessor.releaseNode(x, DeweyNumber.fromString("1.5"));
+
+            assertNull(buffer.getEntry(x), "X must be released");
+            assertNull(buffer.getEntry(l), "L must be released");
+            // The critical assertion: P is only released if the null branch consumed
+            // its version, leaving L to be processed with the correct version "1.5".
+            // Without the fix, L is processed with R's stale "1.2" which is not
+            // compatible with P's edge "1.5", so P leaks.
+            assertNull(buffer.getEntry(p), "P must be released (lockstep invariant holds)");
+        }
+    }
 }

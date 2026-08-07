@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestNFAExtended {
@@ -622,6 +623,71 @@ public class TestNFAExtended {
                 List.of(new Event(1, "a1"), new Event(2, "a2"), new Event(3, "end")));
 
         assertEquals(2, matches.size());
+        nfa.close();
+    }
+
+    /**
+     * Phase 4 E2E: a {@code followedByAny} branching pattern combined with
+     * {@code SKIP_PAST_LAST_EVENT} produces overlapping partial matches that share
+     * a subgraph in the SharedBuffer. Completing and pruning those matches drives
+     * {@code releaseNode} across the overlapping subgraph — exactly the shape that
+     * the null-branch stack-lockstep fix targets.
+     *
+     * <p>Assertions: (1) the run completes without over-release crash / stack
+     * desync, (2) the expected matches are produced, (3) the SharedBuffer does not
+     * grow unbounded (released nodes are removed).
+     */
+    @Test
+    void testFollowedByAnyBranchingWithSkipPastLastEvent() throws Exception {
+        Pattern<Event, ?> pattern = Pattern.<Event>begin("start")
+                .where(SimpleCondition.of(value -> value.getName().equals("a")))
+                .followedByAny("middle")
+                .where(SimpleCondition.of(value -> value.getName().equals("b")))
+                .followedBy("end")
+                .where(SimpleCondition.of(value -> value.getName().equals("c")));
+
+        NFA<Event> nfa = compileNFA(pattern);
+        SharedBuffer<Event> buffer = createBuffer();
+        NFAState state = nfa.createInitialNFAState();
+        AfterMatchSkipStrategy skip = AfterMatchSkipStrategy.skipPastLastEvent();
+
+        // "a" starts a match; multiple "b" events branch via followedByAny;
+        // "c" completes every outstanding branch.
+        List<Event> events = List.of(
+                new Event(1, "a"),
+                new Event(2, "b"),
+                new Event(3, "b"),
+                new Event(4, "b"),
+                new Event(5, "c"));
+
+        List<Map<String, List<Event>>> allMatches = new ArrayList<>();
+        for (int i = 0; i < events.size(); i++) {
+            long ts = i + 1;
+            try (SharedBufferAccessor<Event> accessor = buffer.getAccessor()) {
+                Tuple2<Collection<Map<String, List<Event>>>, Collection<Tuple2<Map<String, List<Event>>, Long>>>
+                        pending = nfa.advanceTime(accessor, state, ts, skip);
+                Collection<Map<String, List<Event>>> matches =
+                        nfa.process(accessor, state, events.get(i), ts, skip, null);
+                matches.addAll(pending.f0);
+                allMatches.addAll(matches);
+            }
+            if (state.isStateChanged()) {
+                state.resetStateChanged();
+                state.resetNewStartPartialMatch();
+            }
+        }
+
+        assertFalse(allMatches.isEmpty(), "branching followedByAny must produce matches");
+        for (Map<String, List<Event>> m : allMatches) {
+            assertTrue(m.containsKey("start"), "each match must contain the start state");
+            assertTrue(m.containsKey("end"), "each match must contain the end state");
+        }
+
+        // Bounded-growth sanity: completed/pruned matches release their SharedBuffer
+        // nodes, so the live node count stays bounded by the partial matches only.
+        assertTrue(buffer.getSharedBufferNodeSize() <= events.size(),
+                "SharedBuffer must not grow unbounded after pruning: "
+                        + buffer.getSharedBufferNodeSize());
         nfa.close();
     }
 }
