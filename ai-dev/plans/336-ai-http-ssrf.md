@@ -1,7 +1,7 @@
 # 336 AI HTTP SSRF Egress Enforcement
 
 > Plan Status: draft
-> Last Reviewed: 2026-08-07
+> Last Reviewed: 2026-08-08
 > Review Hold: Blocked on User-Authorization Gate (DR-4a) — requires explicit user disposition of the enforcement-layer decision before implementation can begin. Cannot be resolved at review time; correctly held at draft.
 > Source: `ai-dev/analysis/2026-08/2026-08-04-security-hardening-baseline.md` (DR-4a, DR-3b)
 > Related: `ai-dev/plans/328-security-hardening-remediation-planning.md`
@@ -71,6 +71,24 @@ See Plan 328 analysis DR-4a/DR-3b for verified source anchors. Summary:
 - Authentication/JWT (Plan 333), AES (Plan 334), Bash (Plan 335).
 - Generated (`_`-prefixed) files.
 
+## Scope Coverage Note (sibling executor)
+
+The source analysis (DR-4a) scopes M-4 to `HttpRequestExecutor`. However
+`GraphqlQueryExecutor.java` shares the identical validator-to-transport gap
+(`GraphqlQueryExecutor.validateUrl` pre-flight at `:31`/`:93`, then
+`httpClient.fetchAsync` at `:116`). Whether the sibling executor is covered
+depends entirely on the DR-4a enforcement-layer choice:
+
+- If DR-4a selects a **transport/resolver-level** layer (e.g. a validating
+  `IDnsResolver` + connection pinning wired via `HttpClientConfig`), both
+  executors are covered automatically because they share `IHttpClient`.
+- If DR-4a selects a **validator-local** fix inside `HttpRequestExecutor` only,
+  `GraphqlQueryExecutor` remains vulnerable and MUST be tracked as a successor
+  scope item.
+
+Phase 1 MUST record which case applies before this plan can close, so the
+closure audit can confirm no in-scope sibling gap is silently left open.
+
 ## Public-API Migration Consideration
 
 A DNS-resolver injection point already exists in `nop-http-api`:
@@ -110,6 +128,11 @@ Exit Criteria:
 - [ ] **No silent no-op (Rule #24)**: unresolved / policy-ambiguous targets throw or return
       an explicit error and no transport call is made (asserted via the injectable
       `IHttpClient` seam).
+- [ ] Sibling-executor coverage recorded per the Scope Coverage Note (transport-level
+      covers `GraphqlQueryExecutor`, or validator-local leaves a tracked successor).
+- [ ] Owner-doc update: `ai-dev/design/` records the DR-4a enforcement-layer decision
+      and rationale; `docs-for-ai/` updated if AI-tool network-egress behavior is
+      user-visible (or explicitly `No owner-doc update required` with reason).
 - [ ] `ai-dev/logs/` entry for the execution day.
 
 ### Phase 2 - Redirect-Hop, DNS-Rebinding, And Encoded-Address Enforcement
@@ -140,6 +163,8 @@ Exit Criteria:
       verdict.
 - [ ] `./mvnw test -pl nop-ai/nop-ai-toolkit -am -T 1C` green (and the relevant
       `nop-http-api` / client module if its contract changed).
+- [ ] Owner-doc update: enforcement behavior documented in `ai-dev/design/` and
+      `docs-for-ai/` where user-visible (or `No owner-doc update required` with reason).
 - [ ] `ai-dev/logs/` entry for the execution day.
 
 ## Closure Gates
