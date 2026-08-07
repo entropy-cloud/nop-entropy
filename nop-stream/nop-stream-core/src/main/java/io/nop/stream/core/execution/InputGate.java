@@ -9,11 +9,10 @@ package io.nop.stream.core.execution;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 import java.util.Optional;
@@ -86,8 +85,18 @@ public class InputGate {
      * overlapping barrier ids no longer throw and an aborted epoch's straggling
      * barrier is discarded instead of corrupting the next epoch's alignment
      * (design §2.8.1 D1).
+     *
+     * <p>P1 hardening: this map is a {@link ConcurrentHashMap} so the checkpoint
+     * abort handler thread (which calls {@link #abortBarrierAlignment(long)} from
+     * the checkpoint timeout / ACK path) can remove an entry while the owning task
+     * thread iterates the in-flight alignments (e.g. {@link #markFinishedChannel})
+     * without throwing {@link java.util.ConcurrentModificationException}.
+     * Iteration is weakly-consistent and never throws CME. {@link #oldestAligning()}
+     * selects the minimum checkpoint id (barrier ids are monotonically increasing)
+     * rather than relying on insertion order, since {@link ConcurrentHashMap} does
+     * not preserve it.
      */
-    private final LinkedHashMap<Long, BarrierAlignment> inFlightAlignments = new LinkedHashMap<>();
+    private final ConcurrentHashMap<Long, BarrierAlignment> inFlightAlignments = new ConcurrentHashMap<>();
 
     /**
      * Stage 45: checkpoint ids whose alignment has been aborted. A barrier element
@@ -95,16 +104,24 @@ public class InputGate {
      * signaled via the control channel; a late in-data-flow barrier must not
      * corrupt subsequent epochs). Bounded growth: cleared opportunistically when
      * an alignment completes at or above the aborted id.
+     *
+     * <p>P1 hardening: concurrent set so the abort handler thread ({@code add}) and
+     * the task thread ({@code contains} / {@code removeIf}) do not throw CME.
      */
-    private final Set<Long> abortedBarriers = new HashSet<>();
+    private final Set<Long> abortedBarriers = ConcurrentHashMap.newKeySet();
 
     /**
      * Channels currently blocked during aligned barrier alignment (union across all
      * in-flight alignments). Maintained in lockstep with each
      * {@link BarrierAlignment#blockedChannels} so {@link #resumeConsumptionAll()}
      * and {@link #blockConsumption(int)} keep working for external callers.
+     *
+     * <p>P1 hardening: concurrent set so the abort handler thread
+     * ({@link #abortBarrierAlignment} / {@link #resumeConsumptionAll()} from the
+     * cancel branch) and the task thread ({@code add}/{@code remove}/{@code contains})
+     * do not throw CME.
      */
-    private final Set<Integer> blockedChannels = new HashSet<>();
+    private final Set<Integer> blockedChannels = ConcurrentHashMap.newKeySet();
 
     private final long barrierAlignmentTimeout;
 
@@ -660,15 +677,23 @@ public class InputGate {
     }
 
     /**
-     * Stage 45: returns the oldest in-flight alignment (insertion order), or null.
-     * This is the barrier currently aligning (aligned serialization guarantees only
-     * one is actively aligning at a time).
+     * Stage 45: returns the oldest in-flight alignment (lowest checkpoint id), or
+     * null. This is the barrier currently aligning (aligned serialization via
+     * channel blocking guarantees at most one is actively aligning at a time).
+     *
+     * <p>P1 hardening: {@link #inFlightAlignments} is a {@link ConcurrentHashMap}
+     * (no insertion order), so the oldest is selected by minimum checkpoint id.
+     * Barrier ids are monotonically increasing from the coordinator, so min id ==
+     * oldest in-flight barrier.
      */
     private BarrierAlignment oldestAligning() {
+        BarrierAlignment oldest = null;
         for (BarrierAlignment a : inFlightAlignments.values()) {
-            return a;
+            if (oldest == null || a.checkpointId < oldest.checkpointId) {
+                oldest = a;
+            }
         }
-        return null;
+        return oldest;
     }
 
     /**
@@ -688,8 +713,20 @@ public class InputGate {
      * Resumes channels this barrier had blocked and records the id so a straggling
      * in-data-flow barrier for the same epoch is discarded instead of starting a
      * new alignment. Other in-flight epochs are undisturbed.
+     *
+     * <p>P1 hardening (ordering): the aborted id is recorded in {@link #abortedBarriers}
+     * BEFORE the in-flight alignment is removed. This closes a re-creation window:
+     * with remove-first, a racing {@code handleBarrierNonRecursive} (task thread)
+     * could observe the removed alignment, miss the not-yet-added aborted id, and
+     * re-create a fresh alignment that never completes (leaked in-flight state).
+     * With add-first, any alignment that exists at remove-time is reaped by the
+     * subsequent {@code remove}, and any barrier observed after the add is
+     * discarded by the {@code abortedBarriers.contains} check. The collections are
+     * concurrent-safe, so these cross-thread ops do not throw
+     * {@link java.util.ConcurrentModificationException}.
      */
     public void abortBarrierAlignment(long checkpointId) {
+        abortedBarriers.add(checkpointId);
         BarrierAlignment removed = inFlightAlignments.remove(checkpointId);
         if (removed != null) {
             for (int c : removed.blockedChannels) {
@@ -698,7 +735,6 @@ public class InputGate {
             LOG.debug("Aborted alignment for checkpoint {} (resumed {} blocked channel(s))",
                     checkpointId, removed.blockedChannels.size());
         }
-        abortedBarriers.add(checkpointId);
     }
 
     /**
@@ -740,12 +776,19 @@ public class InputGate {
      * Stage 45: per-barrier alignment state. Each in-flight checkpoint owns an
      * independent record of which channels have delivered its barrier, which
      * channels it has blocked, and when alignment started (for timeout/unaligned).
+     *
+     * <p>P1 hardening: {@code receivedChannels} / {@code blockedChannels} are
+     * concurrent sets. The checkpoint abort handler thread may remove the owning
+     * alignment from {@link #inFlightAlignments} and then read
+     * {@code blockedChannels} (to resume those channels) while the task thread is
+     * mid-iteration; concurrent sets prevent a {@link java.util.ConcurrentModificationException}
+     * on those inner collections.
      */
     private static final class BarrierAlignment {
         final long checkpointId;
         final CheckpointBarrier firstBarrier;
-        final Set<Integer> receivedChannels = new HashSet<>();
-        final Set<Integer> blockedChannels = new HashSet<>();
+        final Set<Integer> receivedChannels = ConcurrentHashMap.newKeySet();
+        final Set<Integer> blockedChannels = ConcurrentHashMap.newKeySet();
         final long startTime;
         boolean emitted; // AT_LEAST_ONCE: first-emit tracking
 

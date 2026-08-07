@@ -20,6 +20,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -226,6 +227,26 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
     /** G56: max global restarts before the job is marked FAILED (default 3). */
     private volatile int maxRestarts = 3;
 
+    /**
+     * P1 hardening: mutual-exclusion monitor for the recovery critical section.
+     * Two concurrent sources reach {@link #globalRecovery()}: the single-threaded
+     * {@code failureDetector} (via {@link #detectFailures()}) and the RPC server
+     * thread pool (via {@link #reportTaskStatus} on a FAILED report with
+     * {@code autoRecoverOnFailedReport=true}). This lock serializes them so the
+     * rotate-epoch → register-coordinator → update-fencing-token → clear working
+     * set → materialize-assignment sequence executes atomically.
+     *
+     * <p>The RPC fan-out ({@code deployTask}/{@code receiveAssignment}) is executed
+     * OUTSIDE the lock: the assignment list is materialized into {@link #taskAssignmentMap}
+     * under the lock, the lock is released, and only then are the per-subtask RPCs
+     * issued. This avoids holding the lock across N×TaskManager blocking IO (an RPC
+     * error mid-fan-out is a transient P2 inconsistency cleaned by the next recovery).
+     *
+     * <p>Reentrant so {@link #assignTasks()} (which also acquires the lock for the
+     * standalone-assignment path) can be reused safely.
+     */
+    private final ReentrantLock recoveryLock = new ReentrantLock();
+
     /** G56: cause captured by {@link #failJob(Throwable)}; null until FAILED. */
     private volatile Throwable jobFailureCause;
 
@@ -238,7 +259,8 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      * {@link IStreamTaskRpcService#receiveAssignment} and the embedding executor
      * installs the invokable via a direct {@code TaskManager.installInvokable}
      * Java call. The recovery path inherits the same mode —
-     * {@link #rotateFencingEpochAndRestore} → {@link #assignTasks()}.
+     * {@code globalRecovery()} → {@link #rotateFencingEpochCoreLocked} →
+     * {@link #prepareAssignmentsLocked()} → {@link #executeAssignmentFanOut}.
      */
     private volatile boolean remoteDeployMode = false;
 
@@ -482,6 +504,34 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                             + coordinatorId + ". Call setJobGraph(...) before assignTasks().");
         }
 
+        // P1 hardening: the in-memory materialization (cluster registry update +
+        // taskAssignmentMap put) is performed under the recovery lock so it cannot
+        // interleave with a concurrent recovery driver. The RPC fan-out is executed
+        // AFTER the lock is released (no blocking IO under the lock).
+        List<AssignmentDispatch> dispatches;
+        recoveryLock.lock();
+        try {
+            dispatches = prepareAssignmentsLocked();
+        } finally {
+            recoveryLock.unlock();
+        }
+        executeAssignmentFanOut(dispatches);
+    }
+
+    /**
+     * P1 hardening: materializes the full assignment into the in-memory working set
+     * ({@link ClusterRegistry#assignTask}, {@link #taskAssignmentMap},
+     * {@link #allTaskLocations}, {@link CheckpointCoordinator#setTasksToAcknowledge})
+     * and returns the list of RPC dispatches to execute. MUST be called while holding
+     * {@link #recoveryLock} so the clear → register → assign sequence is atomic with
+     * respect to concurrent recovery drivers.
+     *
+     * <p>The returned {@link AssignmentDispatch} list captures, per subtask, the RPC
+     * target, the {@link TaskAssignment} (in-process path) or {@link TaskDeploymentDescriptor}
+     * (remote-deploy path), and the fencing epoch the assignment was materialized under.
+     * The caller issues the RPCs after releasing the lock.
+     */
+    private List<AssignmentDispatch> prepareAssignmentsLocked() {
         long epoch = fencingEpoch.get();
 
         DeploymentAssignment assignment = deploymentPlan != null ? deploymentPlan.getAssignment() : null;
@@ -490,13 +540,14 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         List<NodeInfo> activeNodes = useMaterialized ? null : clusterRegistry.getActiveNodes();
         if (!useMaterialized && activeNodes.isEmpty()) {
             LOG.warn("No active nodes available for task assignment");
-            return;
+            return Collections.emptyList();
         }
 
         int activeNodeCount = useMaterialized ? -1 : activeNodes.size();
         int runtimeNodeIndex = 0;
 
         List<TaskLocation> locations = new ArrayList<>();
+        List<AssignmentDispatch> dispatches = new ArrayList<>();
 
         if (deploymentPlan != null && deploymentPlan.getPartitionedPlan() != null) {
             for (Map.Entry<String, io.nop.stream.core.execution.plan.PartitionedPlan.VertexPlan> entry :
@@ -544,18 +595,19 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                                         + ". All control plane operations require IStreamTaskRpcService.");
                     }
 
+                    TaskDeploymentDescriptor descriptor = null;
                     if (remoteDeployMode) {
                         // Stage 42 Phase 0: send a self-contained deployment
                         // descriptor; the TaskManager rebuilds its own invokable
                         // locally. receiveAssignment is NOT called separately.
-                        TaskDeploymentDescriptor descriptor = new TaskDeploymentDescriptor(
+                        // The descriptor is captured here and dispatched after the
+                        // lock is released (no blocking IO under the recovery lock).
+                        descriptor = new TaskDeploymentDescriptor(
                                 jobId, vertexId, subtaskIndex, targetNodeId,
                                 attemptId, attemptNumber, epoch,
                                 jobGraph, deploymentPlan, checkpointStoragePath);
-                        rpc.deployTask(descriptor, epoch);
-                    } else {
-                        rpc.receiveAssignment(taskAssignment);
                     }
+                    dispatches.add(new AssignmentDispatch(epoch, rpc, taskAssignment, descriptor));
 
                     vertexAssignments.add(taskAssignment);
                     locations.add(new TaskLocation(jobId, "pipeline-0", vertexId, subtaskIndex));
@@ -573,6 +625,45 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                 useMaterialized ? "materialized" : "runtime-round-robin",
                 remoteDeployMode ? "remote" : "in-process",
                 useMaterialized ? "DeploymentPlan.assignment" : "ClusterRegistry");
+
+        return dispatches;
+    }
+
+    /**
+     * P1 hardening: issues the per-subtask assignment RPCs. Executed OUTSIDE
+     * {@link #recoveryLock} so a slow/unreachable TaskManager cannot block a
+     * concurrent recovery driver. Each dispatch carries the exact fencing epoch it
+     * was materialized under, so a stale fan-out (the epoch was rotated by a later
+     * recovery between unlock and dispatch) is rejected at the data plane.
+     */
+    private void executeAssignmentFanOut(List<AssignmentDispatch> dispatches) {
+        for (AssignmentDispatch d : dispatches) {
+            if (d.descriptor != null) {
+                d.rpc.deployTask(d.descriptor, d.epoch);
+            } else {
+                d.rpc.receiveAssignment(d.taskAssignment);
+            }
+        }
+    }
+
+    /**
+     * P1 hardening: captures a single subtask's assignment RPC so the fan-out can
+     * run outside the recovery lock. Built under the lock; executed after release.
+     */
+    private static final class AssignmentDispatch {
+        final long epoch;
+        final IStreamTaskRpcService rpc;
+        final TaskAssignment taskAssignment;
+        /** Non-null in remote-deploy mode; null in the in-process receiveAssignment path. */
+        final TaskDeploymentDescriptor descriptor;
+
+        AssignmentDispatch(long epoch, IStreamTaskRpcService rpc,
+                           TaskAssignment taskAssignment, TaskDeploymentDescriptor descriptor) {
+            this.epoch = epoch;
+            this.rpc = rpc;
+            this.taskAssignment = taskAssignment;
+            this.descriptor = descriptor;
+        }
     }
 
     /**
@@ -887,46 +978,86 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      * sequence for observability and for Stage 27 targeted failover.
      */
     public void globalRecovery() {
-        // G56: global restart strategy. The counter is incremented only here
-        // (Stage 27 scoped restart will need its own per-region counter, since
-        // scoped restart does not flow through globalRecovery).
-        int newCount = restartCount.incrementAndGet();
-        if (newCount > maxRestarts) {
-            LOG.error("Global restart cap exceeded for job {}: count={} maxRestarts={}",
-                    jobId, newCount, maxRestarts);
-            failJob(new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
-                    "Global restart cap exceeded: count=" + newCount + " maxRestarts=" + maxRestarts));
-            return;
+        // P1 hardening: snapshot the fencing epoch BEFORE acquiring the lock. Two
+        // concurrent sources reach this method — the failure-detector thread (via
+        // detectFailures) and the RPC server thread pool (via reportTaskStatus on a
+        // FAILED report). The lock serializes them; the snapshot lets the loser
+        // detect that a recovery already completed while it was waiting and
+        // short-circuit instead of re-clearing/re-assigning (no duplicate attemptIds,
+        // no double epoch rotation, no phantom restartCount bump).
+        long epochAtEntry = fencingEpoch.get();
+
+        List<AssignmentDispatch> dispatches = Collections.emptyList();
+        recoveryLock.lock();
+        try {
+            // LATE-ARRIVAL / REDUNDANT-RECOVERY GUARD: if the fencing epoch advanced
+            // since this caller decided to recover, another recovery driver already
+            // completed the full rotate → register → clear → assign sequence under
+            // the lock. The redundant caller short-circuits with an observable WARN
+            // (No-Silent-No-Op) — it does NOT bump restartCount/recoveryGen and does
+            // NOT re-clear the working set.
+            if (fencingEpoch.get() != epochAtEntry) {
+                LOG.warn("Short-circuiting redundant globalRecovery for job {}: another recovery "
+                        + "driver already rotated the fencing epoch (entry={}, now={}); not "
+                        + "re-clearing/re-assigning", jobId, epochAtEntry, fencingEpoch.get());
+                return;
+            }
+
+            // G56: global restart strategy. The counter is incremented only here
+            // (Stage 27 scoped restart will need its own per-region counter, since
+            // scoped restart does not flow through globalRecovery). Guard-then-
+            // increment: the increment happens only after the late-arrival guard
+            // passes, so a redundant caller never bumps the counter.
+            int newCount = restartCount.incrementAndGet();
+            if (newCount > maxRestarts) {
+                LOG.error("Global restart cap exceeded for job {}: count={} maxRestarts={}",
+                        jobId, newCount, maxRestarts);
+                failJob(new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
+                        "Global restart cap exceeded: count=" + newCount + " maxRestarts=" + maxRestarts));
+                return;
+            }
+            LOG.info("Starting global recovery #{} for job {} (cap={})", newCount, jobId, maxRestarts);
+
+            // G24/G25 / Stage 39 fencing (Decision 1): a single monotonic long epoch
+            // encodes both leadership switch and same-leader recovery.
+            //  - HA mode: rotate the recoveryGen low-order component, keep the leaderEpoch
+            //    component unchanged (same leader). The full long epoch still rotates and
+            //    is pushed to all TaskManagers so stale same-leader tasks are fenced. The
+            //    leaderEpoch component only rotates on leadership switch.
+            //  - Non-HA mode: leaderEpoch component is 0, so fencing epoch == recoveryGen
+            //    (Decision 3, zero regression).
+            LeaderEpoch leadership = this.currentLeadership;
+            long leaderEpochValue = leadership != null ? leadership.getEpoch() : 0L;
+            long newGen = recoveryGen.incrementAndGet();
+            long newEpoch = deriveHaFencingEpoch(leaderEpochValue, newGen);
+
+            // G32: same-leader recovery does NOT rebuild from storage — the in-memory
+            // latestCompletedCheckpoint survives within the same JVM. Only the
+            // leadership-grant path (activateAsLeader) rebuilds from storage.
+            rotateFencingEpochCoreLocked(newEpoch, false);
+
+            // Materialize the assignment under the lock; fan-out after release.
+            dispatches = prepareAssignmentsLocked();
+        } finally {
+            recoveryLock.unlock();
         }
-        LOG.info("Starting global recovery #{} for job {} (cap={})", newCount, jobId, maxRestarts);
 
-        // G24/G25 / Stage 39 fencing (Decision 1): a single monotonic long epoch
-        // encodes both leadership switch and same-leader recovery.
-        //  - HA mode: rotate the recoveryGen low-order component, keep the leaderEpoch
-        //    component unchanged (same leader). The full long epoch still rotates and
-        //    is pushed to all TaskManagers so stale same-leader tasks are fenced. The
-        //    leaderEpoch component only rotates on leadership switch.
-        //  - Non-HA mode: leaderEpoch component is 0, so fencing epoch == recoveryGen
-        //    (Decision 3, zero regression).
-        long newEpoch;
-        LeaderEpoch leadership = this.currentLeadership;
-        long leaderEpochValue = leadership != null ? leadership.getEpoch() : 0L;
-        long newGen = recoveryGen.incrementAndGet();
-        newEpoch = deriveHaFencingEpoch(leaderEpochValue, newGen);
-
-        // G32: same-leader recovery does NOT rebuild from storage — the in-memory
-        // latestCompletedCheckpoint survives within the same JVM. Only the
-        // leadership-grant path (activateAsLeader) rebuilds from storage.
-        rotateFencingEpochAndRestore(newEpoch, false);
+        executeAssignmentFanOut(dispatches);
     }
 
     /**
-     * G24/G25 / Stage 39: shared fencing-epoch rotation + control-plane rebuild used
-     * by both {@link #globalRecovery()} (same-leader recovery) and
+     * G24/G25 / Stage 39 / P1 hardening: shared fencing-epoch rotation + control-plane
+     * rebuild used by both {@link #globalRecovery()} (same-leader recovery) and
      * {@link #activateAsLeader(LeaderEpoch)} (leadership grant). Rotates the fencing
      * epoch, re-registers the coordinator, pushes the new epoch to all TaskManagers,
-     * optionally rebuilds the latest-completed-checkpoint view from durable storage,
-     * and reassigns tasks with the new epoch.
+     * and optionally rebuilds the latest-completed-checkpoint view from durable storage.
+     *
+     * <p><strong>Must be called while holding {@link #recoveryLock}.</strong> This method
+     * performs the in-memory critical section (epoch rotation + working-set clear +
+     * fencing-token push). It does NOT reassign tasks — the caller materializes the
+     * assignment via {@link #prepareAssignmentsLocked()} (still under the lock) and then
+     * performs the RPC fan-out via {@link #executeAssignmentFanOut(List)} after releasing
+     * the lock, so blocking IO never occurs inside the recovery critical section.
      *
      * <p><strong>G32 (Stage 46) failover-safe rebuild</strong>: when {@code restoreFromStorage}
      * is {@code true} (the {@link #activateAsLeader} path) AND the in-memory
@@ -942,20 +1073,12 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      * an extra DB round-trip per recovery is unnecessary (the field survives same-leader
      * restarts within one JVM).
      *
-     * <p><strong>restore vs assignTasks boundary</strong>: the restored
-     * {@code latestCompletedCheckpoint} only fills the {@link CheckpointCoordinator}
-     * in-memory field so the next checkpoint trigger resumes at the correct epoch id
-     * (via {@link CheckpointCoordinator#restoreFromCheckpoint()} advancing the id counter).
-     * {@link #assignTasks()} does NOT consume {@code latestCompletedCheckpoint}; per-task
-     * operator state is restored independently by the barrier mechanism (each task reads
-     * its own {@code TaskEpochSnapshot} from storage at deploy time).
-     *
      * @param newEpoch           the rotated fencing epoch
      * @param restoreFromStorage {@code true} on leadership grant (rebuild from storage
      *                           when in-memory view is empty); {@code false} on
      *                           same-leader recovery
      */
-    private void rotateFencingEpochAndRestore(long newEpoch, boolean restoreFromStorage) {
+    private void rotateFencingEpochCoreLocked(long newEpoch, boolean restoreFromStorage) {
         fencingEpoch.set(newEpoch);
 
         clusterRegistry.registerCoordinator(jobId, coordinatorId, newEpoch);
@@ -1013,11 +1136,6 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                         inMemory.getCheckpointId(), jobId);
             }
         }
-
-        // Reassign tasks with the new fencing epoch (assignTasks bumps
-        // attemptNumber per subtask so the ClusterRegistry history appends a new
-        // entry).
-        assignTasks();
 
         LOG.info("Fencing epoch rotated for job {} (epoch={}, restoreFromStorage={})",
                 jobId, newEpoch, restoreFromStorage);
@@ -1089,15 +1207,28 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
 
         this.currentLeadership = epoch;
         this.recoveryGen.set(0);
-        // Mark active BEFORE rebuilding so the internal assignTasks() call passes
-        // the active gate.
+        // Mark active BEFORE rebuilding so the internal assignment materialization
+        // (prepareAssignmentsLocked) observes the active state.
         this.active = true;
 
         long token = deriveHaFencingEpoch(epoch.getEpoch(), 0);
-        // G32: on leadership grant, rebuild the latestCompletedCheckpoint view
-        // from durable storage (failover-safe). A new coordinator JVM has a null
-        // in-memory view; restoreFromCheckpoint() reloads the latest durable epoch.
-        rotateFencingEpochAndRestore(token, true);
+
+        // P1 hardening: leadership-grant rebuild runs under the same recovery lock as
+        // globalRecovery, so a concurrent same-leader recovery cannot interleave with
+        // the epoch rotation / working-set clear. The RPC fan-out executes after the
+        // lock is released (no blocking IO under the lock).
+        List<AssignmentDispatch> dispatches;
+        recoveryLock.lock();
+        try {
+            // G32: on leadership grant, rebuild the latestCompletedCheckpoint view
+            // from durable storage (failover-safe). A new coordinator JVM has a null
+            // in-memory view; restoreFromCheckpoint() reloads the latest durable epoch.
+            rotateFencingEpochCoreLocked(token, true);
+            dispatches = prepareAssignmentsLocked();
+        } finally {
+            recoveryLock.unlock();
+        }
+        executeAssignmentFanOut(dispatches);
     }
 
     /**
@@ -1469,7 +1600,8 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      * and the embedding executor installs the invokable via a direct Java call.
      *
      * <p>Recovery inherits the same mode: {@link #globalRecovery()} →
-     * {@link #rotateFencingEpochAndRestore} → {@link #assignTasks()}.
+     * {@link #rotateFencingEpochCoreLocked} → {@link #prepareAssignmentsLocked()} →
+     * {@link #executeAssignmentFanOut}.
      */
     public void setRemoteDeployMode(boolean remoteDeployMode) {
         this.remoteDeployMode = remoteDeployMode;

@@ -377,6 +377,30 @@ public interface NopStreamErrors {
                     "Region restart budget exhausted for region={regionId}: attempts exceeded maxRestarts={maxRestarts}. Falling back to global recovery.",
                     ARG_REGION_ID, ARG_MAX_RESTARTS);
 
+    String ARG_TASK_KEY = "taskKey";
+
+    /**
+     * P1 hardening (Phase 4): a task did not reach a terminal state within the
+     * cooperative-cancel budget during a region-scoped restart. The previous
+     * behavior silently fell through after a WARN and rebuilt/resubmitted a
+     * second task instance, producing a zombie (two producers writing the same
+     * {@code ResultPartition}, racing on {@code currentMaterializationEpoch},
+     * breaking exactly-once). This error fails loud so the caller surfaces the
+     * failure for recovery (local/embedded path via {@code env.execute()};
+     * distributed path via FAILED report + {@code autoRecoverOnFailedReport})
+     * instead of silently creating a zombie.
+     *
+     * <p>Distinct from {@link #ERR_STREAM_SUPERVISION_RESTART_EXHAUSTED} (which is
+     * the region-restart budget exhaustion at {@code SupervisionLoop:255}) so the
+     * two conditions remain distinguishable on an ops dashboard.
+     */
+    ErrorCode ERR_STREAM_SUPERVISION_ZOMBIE_TASK_TIMEOUT =
+            define("nop.err.stream.supervision-zombie-task-timeout",
+                    "Task {taskKey} did not reach a terminal state within the cancel budget "
+                            + "during region restart (vertex={vertexId} taskIndex={taskIndex} region={regionId}). "
+                            + "Refusing to rebuild a second task instance (would create a zombie). Failing loud for recovery.",
+                    ARG_TASK_KEY, ARG_VERTEX_ID, ARG_TASK_INDEX, ARG_REGION_ID);
+
     /**
      * Stage 44 successor 3 (supervision loop): a region-scoped restart was
      * attempted but the region contains producer vertices that cannot be safely

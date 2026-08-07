@@ -842,9 +842,17 @@ public class GraphModelCheckpointExecutor {
                 if (tracker != null) {
                     tracker.notifyCheckpointAborted(abortedCheckpointId);
                 }
-                // Stage 45: release THIS epoch's InputGate alignment only (not
-                // resumeConsumptionAll), so channels blocked by the aborted barrier
-                // are freed while other epochs' alignment state is preserved.
+                // Stage 45 / P1 hardening: release THIS epoch's InputGate alignment only (not
+                // resumeConsumptionAll), so channels blocked by the aborted barrier are freed
+                // while other epochs' alignment state is preserved. The InputGate's alignment
+                // collections (inFlightAlignments / abortedBarriers / blockedChannels, plus the
+                // per-BarrierAlignment channel sets) are concurrent-safe structures, so this
+                // cross-thread call does NOT throw ConcurrentModificationException and does not
+                // corrupt the task thread's in-progress barrier iteration. (Approach (a) —
+                // mailbox delivery of the abort — was evaluated and rejected: InputGate.read()
+                // blocks inside barrier alignment and only drains the mailbox at the caller's
+                // (processInputGate) loop top, so a mailbox-delivered abort could not unblock
+                // the read and would deadlock the epoch-precise abort until alignment timeout.)
                 InputGate inputGate = invokable.getInputGate();
                 if (inputGate != null) {
                     inputGate.abortBarrierAlignment(abortedCheckpointId);

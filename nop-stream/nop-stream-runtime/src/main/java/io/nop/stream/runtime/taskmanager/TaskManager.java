@@ -414,6 +414,15 @@ public class TaskManager implements IStreamTaskRpcService {
 
         // Recovery may redeploy to the same slot before the old task is GC'd.
         // Fence the old slot out and reclaim its permit into this deployment.
+        //
+        // P1 hardening (permit conservation): the new deployment's permit was
+        // acquired above (tryAcquire at the method entry). Releasing the old
+        // slot's permit below balances the old task — net permit change for a
+        // redeploy is therefore 0 (one task leaves, one task enters). The
+        // legacy code re-acquired a permit here (acquireUninterruptibly), which
+        // produced a net -1 per redeploy and wedged the node after `capacity`
+        // recoveries. That extra acquire is removed; the entry acquire + this
+        // release are the only permit touches for the redeploy path.
         RunningTask existing = runningTasks.get(taskKey);
         if (existing != null) {
             LOG.warn("Slot {} already occupied (attempt={}); fencing old before redeploy",
@@ -423,9 +432,6 @@ public class TaskManager implements IStreamTaskRpcService {
             if (existing.semaphoreReleased.compareAndSet(false, true)) {
                 capacitySemaphore.release();
             }
-            // Re-acquire for the new deployment (we already acquired above; the
-            // release just balanced the old slot's permit).
-            capacitySemaphore.acquireUninterruptibly();
         }
 
         RunningTask runningTask = new RunningTask(

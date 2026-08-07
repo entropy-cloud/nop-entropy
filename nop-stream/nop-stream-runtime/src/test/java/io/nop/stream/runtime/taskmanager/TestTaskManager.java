@@ -10,9 +10,11 @@ package io.nop.stream.runtime.taskmanager;
 import io.nop.api.core.message.*;
 import io.nop.stream.core.checkpoint.*;
 import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.jobgraph.JobGraph;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
 import io.nop.stream.runtime.cluster.TaskAssignment;
 import io.nop.stream.runtime.rpc.IStreamCoordinatorRpcService;
+import io.nop.stream.runtime.rpc.TaskDeploymentDescriptor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -297,6 +299,66 @@ class TestTaskManager {
 
         assertTrue(permitsAfterDuplicate <= 2,
                 "availablePermits (" + permitsAfterDuplicate + ") should not exceed capacity (2)");
+
+        smallTm.stop();
+    }
+
+    /**
+     * P1 hardening (Phase 3): the {@code deployTask} redeploy-to-occupied-slot
+     * path must conserve semaphore permits. The new deployment's permit is
+     * acquired at method entry; releasing the old slot's permit balances it
+     * (net 0 for a redeploy). The legacy code re-acquired a permit after the
+     * balance, leaking one permit per redeploy and wedging the node after
+     * {@code capacity} recoveries.
+     *
+     * <p>The test occupies a slot via {@code receiveAssignment}, then redeploys to
+     * the SAME slot via {@code deployTask} with a descriptor whose JobGraph has no
+     * matching vertex (so {@code buildSubtaskInvokable} fails and the catch block
+     * releases the new task's permit). After the failed redeploy the slot is empty
+     * and ALL permits must be returned. Before the fix the extra
+     * {@code acquireUninterruptibly} left permits at {@code capacity-1}.
+     */
+    @Test
+    void testRedeployToOccupiedSlotDoesNotLeakPermit() throws Exception {
+        TaskManager smallTm = new TaskManager("node", "ep", 2,
+                messageService, clusterRegistry, CONTROL_TOPIC);
+        smallTm.start();
+        long token = 1L;
+        smallTm.updateFencingToken(token);
+
+        // 1. Occupy the slot via the in-process receiveAssignment path.
+        TaskAssignment assignment = new TaskAssignment(
+                "job-1", "vertex-1", 0,
+                "node", "attempt-1", token,
+                System.currentTimeMillis());
+        smallTm.receiveAssignment(assignment);
+        assertEquals(1, smallTm.getRunningTaskCount());
+        assertEquals(1, smallTm.availablePermits(),
+                "one slot occupied -> capacity-1 permits");
+
+        // 2. Redeploy to the SAME occupied slot via deployTask. The descriptor's
+        //    JobGraph has no matching vertex, so buildSubtaskInvokable fails; the
+        //    catch block releases the new task's permit and throws. This exercises
+        //    the fence-old-slot + balance-permit block (the buggy extra acquire
+        //    was right after it).
+        JobGraph emptyGraph = new JobGraph("job-1");
+        TaskDeploymentDescriptor descriptor = new TaskDeploymentDescriptor(
+                "job-1", "vertex-1", 0, null,
+                "attempt-2", 2, token,
+                emptyGraph, null, null);
+        assertThrows(StreamException.class, () -> smallTm.deployTask(descriptor, token),
+                "buildSubtaskInvokable must fail on the empty graph (vertex not found)");
+
+        // Let the fenced old task + failed new task settle their finally blocks.
+        Thread.sleep(300);
+
+        // 3. The redeploy FAILED -> the slot is empty and ALL permits must be
+        //    returned (capacity). Before the fix this was capacity-1 (leaked).
+        assertEquals(0, smallTm.getRunningTaskCount(),
+                "slot must be empty after the failed redeploy (old fenced, new failed to build)");
+        assertEquals(2, smallTm.availablePermits(),
+                "Failed redeploy to an occupied slot must return ALL permits (no leak). "
+                        + "Before the fix this was 1 (one permit leaked per redeploy).");
 
         smallTm.stop();
     }

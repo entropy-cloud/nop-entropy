@@ -43,10 +43,12 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_MAX_RESTARTS;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_REGION_ID;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_TASK_INDEX;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_TASK_KEY;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_VERTEX_ID;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_REGION_RESTART_UNSUPPORTED;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_SUPERVISION_RESTART_EXHAUSTED;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_SUPERVISION_TASK_FAILED;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_SUPERVISION_ZOMBIE_TASK_TIMEOUT;
 
 import io.nop.stream.core.execution.flow.EdgeConfig;
 import io.nop.stream.core.jobgraph.JobEdge;
@@ -142,6 +144,15 @@ public class SupervisionLoop {
      * is successor plan 5's scope; here we use an in-memory counter.
      */
     static final int DEFAULT_MAX_RESTARTS_PER_REGION = 3;
+
+    /**
+     * P1 hardening (Phase 4): cooperative-cancel budget for
+     * {@link #waitForTerminal}. A task that does not reach a terminal state
+     * within this window after cancel is treated as a zombie risk (its thread
+     * may be stuck in a non-interruptible section) and the restart fails loud
+     * instead of silently rebuilding a second task instance.
+     */
+    static final long DEFAULT_TERMINAL_WAIT_BUDGET_MS = 10_000L;
 
     /**
      * Runs the supervision loop: submits all tasks, polls for mid-execution
@@ -423,7 +434,7 @@ public class SupervisionLoop {
         for (String taskKey : taskKeysToRestart) {
             SubtaskTask oldTask = tasks.get(taskKey);
             if (oldTask != null) {
-                waitForTerminal(oldTask, taskKey);
+                waitForTerminal(oldTask, taskKey, DEFAULT_TERMINAL_WAIT_BUDGET_MS);
             }
         }
 
@@ -459,9 +470,27 @@ public class SupervisionLoop {
      * Waits for a task to reach a terminal state. Uses bounded polling to avoid
      * indefinite blocking. The cancel signal has already been delivered; this
      * just waits for the task thread to observe it and exit.
+     *
+     * <p>P1 hardening (Phase 4): if the task does not reach a terminal state
+     * within {@code budgetMs}, this method <strong>fails loud</strong> by throwing
+     * {@link StreamException}({@code ERR_STREAM_SUPERVISION_ZOMBIE_TASK_TIMEOUT})
+     * rather than silently falling through. The previous behavior LOG.warn'd and
+     * returned, after which {@link #restartRegion} rebuilt and resubmitted a
+     * second task instance — a zombie (two producers writing the same
+     * {@code ResultPartition}, racing on {@code currentMaterializationEpoch},
+     * breaking exactly-once). Failing loud surfaces the failure for recovery
+     * (local/embedded path via {@code env.execute()}; distributed path via a
+     * FAILED report + {@code autoRecoverOnFailedReport}) instead of silently
+     * creating a zombie.
+     *
+     * <p>Package-private + budget parameter so a focused regression test can drive
+     * the timeout branch quickly without waiting the full production budget.
+     *
+     * @param taskKey  the "{vertexId}-{taskIndex}" key, for diagnostics
+     * @param budgetMs the cooperative-cancel wait budget
      */
-    private static void waitForTerminal(SubtaskTask task, String taskKey) {
-        long deadline = System.currentTimeMillis() + 10_000L; // 10s budget
+    static void waitForTerminal(SubtaskTask task, String taskKey, long budgetMs) {
+        long deadline = System.currentTimeMillis() + budgetMs;
         while (!task.isFinished() && System.currentTimeMillis() < deadline) {
             try {
                 Thread.sleep(10L);
@@ -471,8 +500,11 @@ public class SupervisionLoop {
             }
         }
         if (!task.isFinished()) {
-            LOG.warn("Task {} did not reach terminal state within 10s after cancel; state={}",
-                    taskKey, task.getState());
+            throw new StreamException(ERR_STREAM_SUPERVISION_ZOMBIE_TASK_TIMEOUT)
+                    .param(ARG_TASK_KEY, taskKey)
+                    .param(ARG_VERTEX_ID, task.getSubtask().getVertexId())
+                    .param(ARG_TASK_INDEX, task.getSubtask().getTaskIndex())
+                    .param(ARG_REGION_ID, task.getRegionId() != null ? task.getRegionId().getId() : "null");
         }
     }
 
