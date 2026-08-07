@@ -4,6 +4,7 @@ import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;
+import io.nop.ai.api.chat.ResponseFormat;
 import io.nop.api.core.ioc.BeanContainer;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.wf.core.IWorkflowStep;
@@ -74,7 +75,7 @@ public final class WfAiHelper {
         IChatService chatService = BeanContainer.getBeanByType(IChatService.class);
         ChatRequest request = ChatRequest.userPrompt(prompt);
         ChatOptions options = new ChatOptions();
-        options.setResponseFormat("json");
+        options.setResponseFormatConfig(ResponseFormat.jsonObject());
         request.setOptions(options);
         ChatResponse response = chatService.call(request, null);
         return JsonTool.parseMap(response.getFullContent());

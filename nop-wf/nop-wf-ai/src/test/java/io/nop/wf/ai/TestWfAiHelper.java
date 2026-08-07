@@ -58,7 +58,7 @@ public class TestWfAiHelper extends BaseTestCase {
         assertEquals("agree", stepRecord.getAppState());
         assertEquals("low", fixture.globalVars.getVar("riskLevel"));
         assertEquals(1, chatService.callCount.get());
-        assertEquals("json", chatService.lastRequest.get().getOptions().getResponseFormat());
+        assertEquals("json_object", chatService.lastRequest.get().getOptions().getResponseFormatConfig().getType());
     }
 
     @Test

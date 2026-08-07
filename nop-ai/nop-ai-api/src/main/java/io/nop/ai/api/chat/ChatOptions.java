@@ -99,8 +99,6 @@ public class ChatOptions {
     /**
      * 响应格式（对象载体，plan 326）。规范取值见 {@link ResponseFormat}。
      * 升级自纯 String 字段，以承载结构化 {@code json_schema}（ResponsesDialect 前置）。
-     * 旧的 String 视图经 {@link #getResponseFormat()} / {@link #setResponseFormat(String)} 透传，
-     * 向后兼容（如 {@code WfAiHelper} 的 {@code "json"} 用法）。
      */
     private ResponseFormat responseFormat;
 
