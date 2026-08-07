@@ -1,6 +1,6 @@
 # nop-stream 独立深度审计路线图
 
-> Last updated: 2026-08-08 (items 8/12/14 → planned)
+> Last updated: 2026-08-08 (items 8 → done)
 > Sources: `ai-dev/analysis/2026-08/2026-08-06-nop-stream-audit-baseline-and-roadmap-analysis.md` (primary), `ai-dev/backlog/nop-stream-production-roadmap.md` (implementation ownership), `ai-dev/audits/nop-stream-production/2026-08-02-2107-*.md` (current confirmed findings)
 
 ## Purpose
@@ -21,7 +21,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 5. 审计环境资格与 gated-evidence 契约: `done`
 - 6. Java API、graph 和 LOCAL execution 审计: `done`
 - 7. XDSL StreamModel 入口审计: `done`
-- 8. Delta StreamModel 入口审计: `planned`
+- 8. Delta StreamModel 入口审计: `done`
 - 9. Checkpoint、barrier 与恢复语义审计: `done`
 - 10. State backend、savepoint 与 rescale 审计: `done`
 - 11. Window、watermark 与 timer 审计: `done`
