@@ -12,6 +12,8 @@ import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.api.chat.stream.ChatStreamChunk;
+import io.nop.ai.api.chat.stream.StreamItemPhase;
+import io.nop.ai.api.chat.stream.StreamItemType;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
@@ -94,8 +96,10 @@ public class MockChatService implements IChatService {
                         msg.setContent(built.toString());
 
                         ChatStreamChunk chunk = new ChatStreamChunk();
-                        chunk.setContent(String.valueOf(content.charAt(i)));
-                        chunk.setRole("assistant");
+                        chunk.setItemType(StreamItemType.text);
+                        chunk.setItemIndex(0);
+                        chunk.setPhase(StreamItemPhase.DELTA);
+                        chunk.setDelta(String.valueOf(content.charAt(i)));
 
                         boolean isLast = (i == content.length() - 1);
                         if (isLast) {
@@ -121,11 +125,21 @@ public class MockChatService implements IChatService {
 
     protected ChatStreamChunk createChunk(ChatResponse response, boolean isLast) {
         ChatStreamChunk chunk = new ChatStreamChunk();
-        chunk.setRole("assistant");
 
         if (response.getMessage() != null) {
-            chunk.setContent(response.getMessage().getContent());
-            chunk.setThinking(response.getMessage().getThink());
+            if (response.getMessage().getThink() != null) {
+                // 推理 item
+                chunk.setItemType(StreamItemType.reasoning);
+                chunk.setItemIndex(0);
+                chunk.setPhase(StreamItemPhase.DELTA);
+                chunk.setDelta(response.getMessage().getThink());
+            } else {
+                // 文本 item
+                chunk.setItemType(StreamItemType.text);
+                chunk.setItemIndex(0);
+                chunk.setPhase(StreamItemPhase.DELTA);
+                chunk.setDelta(response.getMessage().getContent());
+            }
         }
 
         if (isLast) {

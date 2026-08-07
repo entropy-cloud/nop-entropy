@@ -8,6 +8,8 @@ import io.nop.ai.api.chat.messages.ChatReasoningMessage;
 import io.nop.ai.api.chat.messages.ChatToolCallMessage;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
 import io.nop.ai.api.chat.stream.ChatStreamChunk;
+import io.nop.ai.api.chat.stream.StreamItemPhase;
+import io.nop.ai.api.chat.stream.StreamItemType;
 import io.nop.ai.core.model.ApiStyle;
 import io.nop.ai.core.model.LlmModel;
 import io.nop.api.core.exceptions.NopException;
@@ -140,8 +142,22 @@ public class TestOllamaDialect extends JunitBaseTestCase {
         ChatStreamChunk chunk = dialect.parseStreamChunk(data);
 
         assertNotNull(chunk);
-        assertEquals("Hi", chunk.getContent());
+        assertEquals(StreamItemType.text, chunk.getItemType());
+        assertEquals(StreamItemPhase.DELTA, chunk.getPhase());
+        assertEquals("Hi", chunk.getDelta());
         assertEquals("llama2", chunk.getModel());
+    }
+
+    @Test
+    public void testParseStreamChunkThinking() {
+        OllamaDialect dialect = new OllamaDialect();
+        String data = "{\"model\":\"llama2\",\"message\":{\"thinking\":\"hmm\"}}";
+
+        ChatStreamChunk chunk = dialect.parseStreamChunk(data);
+
+        assertNotNull(chunk);
+        assertEquals(StreamItemType.reasoning, chunk.getItemType());
+        assertEquals("hmm", chunk.getDelta());
     }
 
     @Test

@@ -20,13 +20,14 @@ import java.util.Map;
 /**
  * 流式响应累积器
  * <p>
- * 自动累积流式响应的增量数据，最终组装成完整的 ChatAssistantMessage。
+ * 自动累积 item 增量 chunk，最终组装成完整的 ChatAssistantMessage。
  * <p>
+ * Plan 328 Phase 3：改造为按 itemType 累积（text/reasoning/tool_call）。
  * 支持：
- * 1. 累积文本内容（content）
- * 2. 累积思考过程（thinking）
- * 3. 累积工具调用（tool_calls），包括 arguments 的逐步组装
- * 4. 支持多工具调用的并行累积
+ * 1. 累积文本内容（text item delta）
+ * 2. 累积思考过程（reasoning item delta）
+ * 3. 累积工具调用（tool_call item，按 itemIndex/callId 区分多调用），
+ *    包括 arguments 的逐步组装
  */
 public class ChatStreamAccumulator {
 
@@ -40,7 +41,7 @@ public class ChatStreamAccumulator {
     // 累积的思考过程
     private final StringBuilder thinkingBuilder = new StringBuilder();
 
-    // 工具调用累积器（key = toolCallIndex）
+    // 工具调用累积器（key = itemIndex）
     private final Map<Integer, ToolCallAccumulator> toolCallAccumulators = new LinkedHashMap<>();
 
     // 结束原因
@@ -50,7 +51,7 @@ public class ChatStreamAccumulator {
     private ChatUsage usage;
 
     /**
-     * 累积一个新的数据块
+     * 累积一个新的 item 增量数据块
      *
      * @param chunk 流式数据块
      */
@@ -59,26 +60,8 @@ public class ChatStreamAccumulator {
         if (this.id == null && chunk.getId() != null) {
             this.id = chunk.getId();
         }
-        if (chunk.getRole() != null) {
-            this.role = chunk.getRole();
-        }
         if (this.model == null && chunk.getModel() != null) {
             this.model = chunk.getModel();
-        }
-
-        // 累积内容
-        if (chunk.hasContent()) {
-            contentBuilder.append(chunk.getContent());
-        }
-
-        // 累积思考过程
-        if (chunk.hasThinking()) {
-            thinkingBuilder.append(chunk.getThinking());
-        }
-
-        // 累积工具调用
-        if (chunk.hasToolCall()) {
-            accumulateToolCall(chunk.getToolCall());
         }
 
         // 累积结束信息
@@ -88,16 +71,39 @@ public class ChatStreamAccumulator {
         if (chunk.getUsage() != null) {
             this.usage = chunk.getUsage();
         }
+
+        StreamItemType type = chunk.getItemType();
+        if (type == null) {
+            return;
+        }
+
+        switch (type) {
+            case text:
+                if (chunk.getDelta() != null) {
+                    contentBuilder.append(chunk.getDelta());
+                }
+                break;
+            case reasoning:
+                if (chunk.getDelta() != null) {
+                    thinkingBuilder.append(chunk.getDelta());
+                }
+                break;
+            case tool_call:
+                accumulateToolCall(chunk);
+                break;
+            default:
+                break;
+        }
     }
 
     /**
-     * 累积工具调用增量
+     * 累积工具调用 item 增量
      */
-    private void accumulateToolCall(ChatToolCallChunk toolCallChunk) {
-        Integer index = toolCallChunk.getIndex() != null ? toolCallChunk.getIndex() : 0;
+    private void accumulateToolCall(ChatStreamChunk chunk) {
+        Integer index = chunk.getItemIndex() != null ? chunk.getItemIndex() : 0;
 
         ToolCallAccumulator acc = toolCallAccumulators.computeIfAbsent(index, k -> new ToolCallAccumulator());
-        acc.accumulate(toolCallChunk);
+        acc.apply(chunk);
     }
 
     /**
@@ -188,6 +194,8 @@ public class ChatStreamAccumulator {
 
     /**
      * 内部类：单个工具调用累积器
+     * <p>
+     * ADDED 阶段 delta = 函数名，callId = 调用 id；DELTA 阶段 delta = arguments 片段。
      */
     private static class ToolCallAccumulator {
         private String id;
@@ -195,24 +203,22 @@ public class ChatStreamAccumulator {
         private String name;
         private final StringBuilder argumentsBuilder = new StringBuilder();
 
-        public void accumulate(ChatToolCallChunk chunk) {
-            if (chunk.getId() != null) {
-                this.id = chunk.getId();
+        public void apply(ChatStreamChunk chunk) {
+            if (chunk.getCallId() != null) {
+                this.id = chunk.getCallId();
             }
-            if (chunk.getType() != null) {
-                this.type = chunk.getType();
+            if (chunk.getDelta() == null) {
+                return;
             }
-            if (chunk.getName() != null) {
-                // 名字可能是增量的，累积
-                this.name = chunk.getName();
-            }
-            if (chunk.getArguments() != null) {
-                argumentsBuilder.append(chunk.getArguments());
+            if (chunk.getPhase() == StreamItemPhase.ADDED) {
+                this.name = chunk.getDelta();
+            } else {
+                argumentsBuilder.append(chunk.getDelta());
             }
         }
 
         public ChatToolCall toChatToolCall() {
-            if (id == null && name == null) {
+            if (id == null && name == null && argumentsBuilder.length() == 0) {
                 return null;
             }
 

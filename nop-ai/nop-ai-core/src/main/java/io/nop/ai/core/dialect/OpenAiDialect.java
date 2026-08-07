@@ -16,6 +16,8 @@ import io.nop.ai.core.model.LlmModel;
 import io.nop.ai.core.model.LlmModelModel;
 import io.nop.ai.core.model.LlmResponseModel;
 import io.nop.ai.api.chat.stream.ChatStreamChunk;
+import io.nop.ai.api.chat.stream.StreamItemPhase;
+import io.nop.ai.api.chat.stream.StreamItemType;
 import io.nop.api.core.json.JSON;
 import io.nop.commons.util.StringHelper;
 import io.nop.http.api.client.HttpRequest;
@@ -231,22 +233,104 @@ public class OpenAiDialect extends AbstractLlmDialect implements ILlmDialect {
         ChatStreamChunk chunk = new ChatStreamChunk();
 
         chunk.setId(getString(dataMap, "id"));
-        chunk.setRole(getString(dataMap, "choices.0.delta.role"));
-        chunk.setContent(getString(dataMap, "choices.0.delta.content"));
 
-        // 处理思考/推理内容（支持多种字段名）
-        String thinking = getString(dataMap, "choices.0.delta.thinking");
-        if (thinking == null) {
-            thinking = getString(dataMap, "choices.0.delta.reasoning_content");
-        }
-        if (thinking == null) {
-            thinking = getString(dataMap, "choices.0.delta.reasoning");
-        }
-        chunk.setThinking(thinking);
+        // choices[0].delta
+        Object deltaObj = getByPath(dataMap, "choices.0.delta");
+        Map<String, Object> deltaMap = deltaObj instanceof Map ? (Map<String, Object>) deltaObj : null;
 
-        chunk.setFinishReason(normalizeFinishReason(getString(dataMap, "choices.0.finish_reason")));
+        if (deltaMap != null) {
+            // 文本内容增量（空串不是有效增量，OpenAI 常与 reasoning_content 同发空 content）
+            String content = (String) deltaMap.get("content");
+            boolean hasContent = content != null && !content.isEmpty();
+
+            if (hasContent) {
+                chunk.setItemType(StreamItemType.text);
+                chunk.setItemIndex(0);
+                chunk.setPhase(StreamItemPhase.DELTA);
+                chunk.setDelta(content);
+            }
+
+            // 思考/推理内容增量（支持多种字段名）
+            if (!hasContent) {
+                String thinking = (String) deltaMap.get("thinking");
+                if (thinking == null || thinking.isEmpty()) thinking = (String) deltaMap.get("reasoning_content");
+                if (thinking == null || thinking.isEmpty()) thinking = (String) deltaMap.get("reasoning");
+                if (thinking != null && !thinking.isEmpty()) {
+                    chunk.setItemType(StreamItemType.reasoning);
+                    chunk.setItemIndex(0);
+                    chunk.setPhase(StreamItemPhase.DELTA);
+                    chunk.setDelta(thinking);
+                }
+            }
+
+            // 流式 tool_calls 增量（补缺口：原实现永不填充）
+            if (!hasContent) {
+                Object toolCallsObj = deltaMap.get("tool_calls");
+                if (toolCallsObj instanceof List && !((List<?>) toolCallsObj).isEmpty()) {
+                    parseToolCallDelta(chunk, (List<?>) toolCallsObj);
+                }
+            }
+        }
+
+        // finish 信号 → DONE
+        String finishReason = normalizeFinishReason(getString(dataMap, "choices.0.finish_reason"));
+        if (finishReason != null) {
+            chunk.setPhase(StreamItemPhase.DONE);
+            chunk.setFinishReason(finishReason);
+        }
 
         return chunk;
+    }
+
+    /**
+     * 解析流式 {@code delta.tool_calls[]} 增量。OpenAI SSE 结构：
+     * <ul>
+     *   <li>首个 delta（per index）：{@code {index, id, type, function:{name, arguments:""}}}
+     *       → chunk(ADDED, callId=id, delta=name)</li>
+     *   <li>后续 delta（per index）：{@code {index, function:{arguments:fragment}}}
+     *       → chunk(DELTA, delta=arguments 片段)</li>
+     * </ul>
+     * 多 tool_call 靠 {@code index} 区分。单次返回一个 chunk（与非流式单 toolCall 字段
+     * 等价边界；同一 SSE 事件内多 index 增量取首个）。
+     */
+    @SuppressWarnings("unchecked")
+    private void parseToolCallDelta(ChatStreamChunk chunk, List<?> toolCalls) {
+        for (Object tc : toolCalls) {
+            if (!(tc instanceof Map)) continue;
+            Map<String, Object> tcMap = (Map<String, Object>) tc;
+
+            Integer index = toInt(tcMap.get("index"));
+            String id = (String) tcMap.get("id");
+
+            Map<String, Object> func = (Map<String, Object>) tcMap.get("function");
+            String name = func != null ? (String) func.get("name") : null;
+            String args = func != null ? (String) func.get("arguments") : null;
+
+            // id 或 name 存在 → 首见声明（ADDED）；否则为 arguments 增量（DELTA）
+            boolean isAdded = id != null || name != null;
+            if (isAdded) {
+                chunk.setItemType(StreamItemType.tool_call);
+                chunk.setItemIndex(index);
+                chunk.setCallId(id);
+                chunk.setPhase(StreamItemPhase.ADDED);
+                chunk.setDelta(name);
+            } else {
+                chunk.setItemType(StreamItemType.tool_call);
+                chunk.setItemIndex(index);
+                chunk.setPhase(StreamItemPhase.DELTA);
+                chunk.setDelta(args);
+            }
+            return; // 单 chunk 返回，取首个 entry
+        }
+    }
+
+    private Object getByPath(Map<String, Object> map, String path) {
+        return io.nop.core.reflect.bean.BeanTool.getComplexProperty(map, path);
+    }
+
+    private Integer toInt(Object value) {
+        if (value instanceof Number) return ((Number) value).intValue();
+        return null;
     }
 
     @Override

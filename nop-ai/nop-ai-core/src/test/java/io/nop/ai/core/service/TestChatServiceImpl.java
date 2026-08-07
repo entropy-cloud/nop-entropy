@@ -112,9 +112,9 @@ public class TestChatServiceImpl extends JunitBaseTestCase {
 
             @Override
             public void onNext(ChatStreamChunk chunk) {
-                if (chunk.hasContent()) {
-                    fullContent.append(chunk.getContent());
-                    System.out.print(chunk.getContent());
+                if (chunk.isTextItem() && chunk.hasDelta()) {
+                    fullContent.append(chunk.getDelta());
+                    System.out.print(chunk.getDelta());
                 }
                 if (chunk.getUsage() != null) {
                     lastUsage[0] = chunk.getUsage();

@@ -12,61 +12,72 @@ import io.nop.ai.api.chat.messages.ChatUsage;
 import io.nop.api.core.annotations.data.DataBean;
 
 /**
- * 流式响应数据块
- * 
- * 表示AI流式响应中的一个增量片段，可能是：
- * 1. 文本内容增量（content）
- * 2. 工具调用增量（toolCall）
- * 3. 思考过程增量（thinking）
- * 4. 结束标记（finishReason）
+ * 流式响应 item 增量数据块。
+ *
+ * <p>表示 AI 流式响应中的一个 item 增量片段。每个 chunk 携带一个 item 的维度信息：
+ * <ul>
+ *   <li>{@link #itemType} — item 类型（text / reasoning / tool_call）</li>
+ *   <li>{@link #itemIndex} — item 序号（多 tool_call 时靠它区分并行调用）</li>
+ *   <li>{@link #callId} — 仅 tool_call 有效，工具调用 id</li>
+ *   <li>{@link #delta} — 增量载荷：text/reasoning 为内容片段；
+ *       tool_call 在 {@link StreamItemPhase#ADDED} 时为函数名、
+ *       {@link StreamItemPhase#DELTA} 时为 arguments JSON 片段</li>
+ *   <li>{@link #phase} — 生命周期阶段（ADDED / DELTA / DONE）</li>
+ * </ul>
+ *
+ * <p>重构自旧的「折叠 delta」模型（content/thinking/toolCall 三字段粘在一个 chunk），
+ * 使流式 chunk 与非流式 {@code ChatResponse.messages} 同构（item 边界在 canonical 层保留），
+ * 为 Responses 具名事件流提供统一解析模型。
+ *
+ * <p>设计来源：{@code ai-dev/design/nop-ai-responses-migration-design.md} §3.3。
  */
 @DataBean
 public class ChatStreamChunk {
 
     /**
-     * 流ID
+     * 流 ID
      */
     private String id;
-
-    /**
-     * 块序号（可选，用于排序）
-     */
-    private Integer index;
-
-    /**
-     * 角色（通常是 assistant）
-     */
-    private String role;
-
-    /**
-     * 消息内容增量（delta）
-     */
-    private String content;
-
-    /**
-     * 思考过程增量（用于推理模型）
-     */
-    private String thinking;
-
-    /**
-     * 工具调用增量
-     */
-    private ChatToolCallChunk toolCall;
-
-    /**
-     * 结束原因（最后一个块会有）
-     */
-    private String finishReason;
-
-    /**
-     * Token使用统计（最后一个块可能有）
-     */
-    private ChatUsage usage;
 
     /**
      * 模型名称
      */
     private String model;
+
+    /**
+     * item 类型
+     */
+    private StreamItemType itemType;
+
+    /**
+     * item 序号（多 tool_call 区分）
+     */
+    private Integer itemIndex;
+
+    /**
+     * 工具调用 id（仅 tool_call 有效）
+     */
+    private String callId;
+
+    /**
+     * 增量载荷
+     */
+    private String delta;
+
+    /**
+     * 生命周期阶段
+     */
+    private StreamItemPhase phase;
+
+    /**
+     * 结束原因（DONE 阶段或终止 chunk 会有）
+     */
+    private String finishReason;
+
+    /**
+     * Token 使用统计（终止 chunk 可能有）
+     */
+    private ChatUsage usage;
 
     public ChatStreamChunk() {
     }
@@ -80,48 +91,57 @@ public class ChatStreamChunk {
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    public Integer getIndex() {
-        return index;
+    public String getModel() {
+        return model;
     }
 
-    public void setIndex(Integer index) {
-        this.index = index;
-    }
-
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    public String getRole() {
-        return role;
-    }
-
-    public void setRole(String role) {
-        this.role = role;
+    public void setModel(String model) {
+        this.model = model;
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    public String getContent() {
-        return content;
+    public StreamItemType getItemType() {
+        return itemType;
     }
 
-    public void setContent(String content) {
-        this.content = content;
-    }
-
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    public String getThinking() {
-        return thinking;
-    }
-
-    public void setThinking(String thinking) {
-        this.thinking = thinking;
+    public void setItemType(StreamItemType itemType) {
+        this.itemType = itemType;
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    public ChatToolCallChunk getToolCall() {
-        return toolCall;
+    public Integer getItemIndex() {
+        return itemIndex;
     }
 
-    public void setToolCall(ChatToolCallChunk toolCall) {
-        this.toolCall = toolCall;
+    public void setItemIndex(Integer itemIndex) {
+        this.itemIndex = itemIndex;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public String getCallId() {
+        return callId;
+    }
+
+    public void setCallId(String callId) {
+        this.callId = callId;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public String getDelta() {
+        return delta;
+    }
+
+    public void setDelta(String delta) {
+        this.delta = delta;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public StreamItemPhase getPhase() {
+        return phase;
+    }
+
+    public void setPhase(StreamItemPhase phase) {
+        this.phase = phase;
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -142,52 +162,73 @@ public class ChatStreamChunk {
         this.usage = usage;
     }
 
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    public String getModel() {
-        return model;
-    }
-
-    public void setModel(String model) {
-        this.model = model;
-    }
-
     /**
-     * 检查是否为结束块
+     * 检查是否为终止 chunk（携带 finishReason）
      */
     public boolean isLastChunk() {
         return finishReason != null;
     }
 
     /**
-     * 检查是否有内容增量
+     * 检查是否有增量载荷
      */
-    public boolean hasContent() {
-        return content != null && !content.isEmpty();
+    public boolean hasDelta() {
+        return delta != null && !delta.isEmpty();
     }
 
     /**
-     * 检查是否有思考过程增量
+     * item 类型判定：文本
      */
-    public boolean hasThinking() {
-        return thinking != null && !thinking.isEmpty();
+    public boolean isTextItem() {
+        return itemType == StreamItemType.text;
     }
 
     /**
-     * 检查是否有工具调用增量
+     * item 类型判定：推理
      */
-    public boolean hasToolCall() {
-        return toolCall != null;
+    public boolean isReasoningItem() {
+        return itemType == StreamItemType.reasoning;
+    }
+
+    /**
+     * item 类型判定：工具调用
+     */
+    public boolean isToolCallItem() {
+        return itemType == StreamItemType.tool_call;
+    }
+
+    /**
+     * 阶段判定：item 首次声明
+     */
+    public boolean isAdded() {
+        return phase == StreamItemPhase.ADDED;
+    }
+
+    /**
+     * 阶段判定：增量累加
+     */
+    public boolean isDelta() {
+        return phase == StreamItemPhase.DELTA;
+    }
+
+    /**
+     * 阶段判定：结束
+     */
+    public boolean isDone() {
+        return phase == StreamItemPhase.DONE;
     }
 
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("ChatStreamChunk{");
-        if (id != null) sb.append("id='").append(id).append("\'");
-        if (content != null) sb.append(", content='").append(content).append("\'");
-        if (thinking != null) sb.append(", thinking='").append(thinking).append("\'");
-        if (toolCall != null) sb.append(", toolCall=").append(toolCall);
-        if (finishReason != null) sb.append(", finishReason='").append(finishReason).append("\'");
+        if (id != null) sb.append("id='").append(id).append('\'');
+        if (itemType != null) sb.append(", itemType=").append(itemType);
+        if (itemIndex != null) sb.append(", itemIndex=").append(itemIndex);
+        if (callId != null) sb.append(", callId='").append(callId).append('\'');
+        if (phase != null) sb.append(", phase=").append(phase);
+        if (delta != null) sb.append(", delta='").append(delta).append('\'');
+        if (finishReason != null) sb.append(", finishReason='").append(finishReason).append('\'');
         sb.append('}');
         return sb.toString();
     }

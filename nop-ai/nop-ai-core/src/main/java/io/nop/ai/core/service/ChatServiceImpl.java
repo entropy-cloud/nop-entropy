@@ -12,6 +12,8 @@ import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatLogger;
 import io.nop.ai.api.chat.IChatService;
 import io.nop.ai.api.chat.stream.ChatStreamChunk;
+import io.nop.ai.api.chat.stream.StreamItemPhase;
+import io.nop.ai.api.chat.stream.StreamItemType;
 import io.nop.ai.core.dialect.ILlmDialect;
 import io.nop.ai.core.model.LlmModel;
 import io.nop.ai.core.model.LlmModelModel;
@@ -405,11 +407,20 @@ public class ChatServiceImpl implements IChatService {
 
     /**
      * 流式响应汇聚器
-     * 将多个 ChatStreamChunk 聚合成一个 ChatResponse
+     * <p>
+     * Plan 328 Phase 3：按 item 类型维度汇聚 item 增量 chunk，产出与非流式 dialect
+     * （plan 326）{@code response.messages} 同构的消息序列：
+     * <ul>
+     *   <li>{@link StreamItemType#text} 增量 → 累积为 {@code ChatAssistantMessage}（content）</li>
+     *   <li>{@link StreamItemType#reasoning} 增量 → 累积为 {@code ChatReasoningMessage}</li>
+     *   <li>{@link StreamItemType#tool_call} 增量（按 itemIndex 区分多调用）
+     *       → 每个 item 收敛为 {@code ChatToolCallMessage}</li>
+     * </ul>
+     * 旧 {@code message} 字段保留填充（双轨过渡，content/think/toolCalls 寄居）。
      */
     static class StreamAggregator {
-        private final StringBuilder contentBuilder = new StringBuilder();
-        private final StringBuilder thinkingBuilder = new StringBuilder();
+        private final StringBuilder textBuilder = new StringBuilder();
+        private final StringBuilder reasoningBuilder = new StringBuilder();
         private final Map<Integer, ToolCallAccumulator> toolCallAccumulators = new LinkedHashMap<>();
         private String id;
         private String model;
@@ -423,35 +434,35 @@ public class ChatServiceImpl implements IChatService {
             if (chunk.getModel() != null) {
                 this.model = chunk.getModel();
             }
-            if (chunk.getContent() != null) {
-                contentBuilder.append(chunk.getContent());
-            }
-            if (chunk.getThinking() != null) {
-                thinkingBuilder.append(chunk.getThinking());
-            }
             if (chunk.getFinishReason() != null) {
                 this.finishReason = chunk.getFinishReason();
-            }
-            if (chunk.getToolCall() != null) {
-                addToolCallChunk(chunk.getToolCall());
             }
             if (chunk.getUsage() != null) {
                 this.usage = chunk.getUsage();
             }
-        }
 
-        private void addToolCallChunk(io.nop.ai.api.chat.stream.ChatToolCallChunk toolCallChunk) {
-            Integer index = toolCallChunk.getIndex() != null ? toolCallChunk.getIndex() : 0;
-            ToolCallAccumulator acc = toolCallAccumulators.computeIfAbsent(index, k -> new ToolCallAccumulator());
-            
-            if (toolCallChunk.getId() != null) {
-                acc.id = toolCallChunk.getId();
+            StreamItemType type = chunk.getItemType();
+            if (type == null) {
+                return;
             }
-            if (toolCallChunk.getName() != null) {
-                acc.name = toolCallChunk.getName();
-            }
-            if (toolCallChunk.getArguments() != null) {
-                acc.argumentsBuilder.append(toolCallChunk.getArguments());
+            switch (type) {
+                case text:
+                    if (chunk.getDelta() != null) {
+                        textBuilder.append(chunk.getDelta());
+                    }
+                    break;
+                case reasoning:
+                    if (chunk.getDelta() != null) {
+                        reasoningBuilder.append(chunk.getDelta());
+                    }
+                    break;
+                case tool_call:
+                    Integer index = chunk.getItemIndex() != null ? chunk.getItemIndex() : 0;
+                    ToolCallAccumulator acc = toolCallAccumulators.computeIfAbsent(index, k -> new ToolCallAccumulator());
+                    acc.apply(chunk);
+                    break;
+                default:
+                    break;
             }
         }
 
@@ -462,50 +473,78 @@ public class ChatServiceImpl implements IChatService {
             response.setFinishReason(finishReason);
             response.setUsage(usage);
 
+            String text = textBuilder.toString();
+            String reasoning = reasoningBuilder.toString();
+
+            List<io.nop.ai.api.chat.messages.ChatToolCall> toolCalls = new ArrayList<>();
+            for (ToolCallAccumulator acc : toolCallAccumulators.values()) {
+                io.nop.ai.api.chat.messages.ChatToolCall toolCall = acc.toToolCall();
+                if (toolCall != null) {
+                    toolCalls.add(toolCall);
+                }
+            }
+
             io.nop.ai.api.chat.messages.ChatAssistantMessage message =
                     new io.nop.ai.api.chat.messages.ChatAssistantMessage();
-            message.setContent(contentBuilder.toString());
-
-            String thinking = thinkingBuilder.toString();
-            if (!thinking.isEmpty()) {
-                message.setThink(thinking);
+            message.setContent(text.isEmpty() ? null : text);
+            if (!reasoning.isEmpty()) {
+                message.setThink(reasoning);
             }
-
-            if (!toolCallAccumulators.isEmpty()) {
-                List<io.nop.ai.api.chat.messages.ChatToolCall> toolCalls = new ArrayList<>();
-                for (ToolCallAccumulator acc : toolCallAccumulators.values()) {
-                    io.nop.ai.api.chat.messages.ChatToolCall toolCall = acc.toToolCall();
-                    if (toolCall != null) {
-                        toolCalls.add(toolCall);
-                    }
-                }
-                if (!toolCalls.isEmpty()) {
-                    message.setToolCalls(toolCalls);
-                }
+            if (!toolCalls.isEmpty()) {
+                message.setToolCalls(toolCalls);
             }
-
             response.setMessage(message);
+
+            // Plan 326 双轨：messages 按语义顺序 reasoning → assistant text → tool_calls，
+            // 与非流式 dialect 产出的 messages 序列同构。
+            List<io.nop.ai.api.chat.messages.ChatMessage> messages = new ArrayList<>();
+            if (!reasoning.isEmpty()) {
+                messages.add(new io.nop.ai.api.chat.messages.ChatReasoningMessage(reasoning));
+            }
+            messages.add(message);
+            for (io.nop.ai.api.chat.messages.ChatToolCall toolCall : toolCalls) {
+                messages.add(io.nop.ai.api.chat.messages.ChatToolCallMessage.fromChatToolCall(toolCall));
+            }
+            response.setMessages(messages);
+
             return response;
         }
     }
 
     /**
-     * 工具调用累积器
+     * 工具调用增量累积器（按 itemIndex 维护，支持多 tool_call 并行）。
+     * <p>
+     * ADDED 阶段的 {@code delta} 承载函数名，{@code callId} 为调用 id；
+     * DELTA 阶段的 {@code delta} 承载 arguments JSON 片段，逐步拼接。
      */
     private static class ToolCallAccumulator {
-        String id;
+        String callId;
         String name;
         final StringBuilder argumentsBuilder = new StringBuilder();
 
+        void apply(ChatStreamChunk chunk) {
+            if (chunk.getCallId() != null) {
+                this.callId = chunk.getCallId();
+            }
+            if (chunk.getDelta() == null) {
+                return;
+            }
+            if (chunk.getPhase() == StreamItemPhase.ADDED) {
+                this.name = chunk.getDelta();
+            } else {
+                argumentsBuilder.append(chunk.getDelta());
+            }
+        }
+
         io.nop.ai.api.chat.messages.ChatToolCall toToolCall() {
-            if (id == null || name == null) {
+            if (callId == null && name == null && argumentsBuilder.length() == 0) {
                 return null;
             }
-            io.nop.ai.api.chat.messages.ChatToolCall toolCall = 
-                new io.nop.ai.api.chat.messages.ChatToolCall();
-            toolCall.setId(id);
+            io.nop.ai.api.chat.messages.ChatToolCall toolCall =
+                    new io.nop.ai.api.chat.messages.ChatToolCall();
+            toolCall.setId(callId);
             toolCall.setName(name);
-            
+
             String argsStr = argumentsBuilder.toString();
             if (!argsStr.isEmpty()) {
                 try {

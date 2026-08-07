@@ -8,6 +8,8 @@ import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatReasoningMessage;
 import io.nop.ai.api.chat.messages.ChatSystemMessage;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
+import io.nop.ai.api.chat.stream.StreamItemPhase;
+import io.nop.ai.api.chat.stream.StreamItemType;
 import io.nop.ai.core.model.ApiStyle;
 import io.nop.ai.core.model.LlmModel;
 import io.nop.autotest.junit.JunitBaseTestCase;
@@ -161,7 +163,8 @@ public class TestOpenAiDialect extends JunitBaseTestCase {
 
         assertNotNull(chunk);
         assertEquals("chatcmpl-123", chunk.getId());
-        assertEquals("Hello", chunk.getContent());
+        assertEquals(StreamItemType.text, chunk.getItemType());
+        assertEquals("Hello", chunk.getDelta());
         assertNull(chunk.getFinishReason());
     }
 
@@ -176,7 +179,48 @@ public class TestOpenAiDialect extends JunitBaseTestCase {
         var chunk = dialect.parseStreamChunk(chunkJson);
 
         assertNotNull(chunk);
-        assertEquals("Let me think about this...", chunk.getThinking());
+        assertEquals(StreamItemType.reasoning, chunk.getItemType());
+        assertEquals("Let me think about this...", chunk.getDelta());
+    }
+
+    @Test
+    public void testParseStreamChunkToolCallsAdded() {
+        // Plan 328 Phase 2：补齐 OpenAI 流式 tool_calls 解析缺口。
+        // 首个 delta（per index）：index + id + function.name → ADDED
+        OpenAiDialect dialect = new OpenAiDialect();
+
+        String chunkJson = "{\"id\":\"chatcmpl-1\",\"choices\":[{\"delta\":{" +
+                "\"tool_calls\":[{\"index\":0,\"id\":\"call_abc\",\"type\":\"function\"," +
+                "\"function\":{\"name\":\"get_weather\",\"arguments\":\"\"}}]}," +
+                "\"finish_reason\":null}]}";
+
+        var chunk = dialect.parseStreamChunk(chunkJson);
+
+        assertNotNull(chunk);
+        assertEquals(StreamItemType.tool_call, chunk.getItemType());
+        assertEquals(0, chunk.getItemIndex());
+        assertEquals("call_abc", chunk.getCallId());
+        assertEquals(StreamItemPhase.ADDED, chunk.getPhase());
+        assertEquals("get_weather", chunk.getDelta(), "ADDED delta carries the function name");
+    }
+
+    @Test
+    public void testParseStreamChunkToolCallsDelta() {
+        // 后续 delta（per index）：仅 arguments 片段 → DELTA
+        OpenAiDialect dialect = new OpenAiDialect();
+
+        String chunkJson = "{\"id\":\"chatcmpl-1\",\"choices\":[{\"delta\":{" +
+                "\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":\"{\\\"loc\"}}]}," +
+                "\"finish_reason\":null}]}";
+
+        var chunk = dialect.parseStreamChunk(chunkJson);
+
+        assertNotNull(chunk);
+        assertEquals(StreamItemType.tool_call, chunk.getItemType());
+        assertEquals(0, chunk.getItemIndex());
+        assertEquals(StreamItemPhase.DELTA, chunk.getPhase());
+        assertEquals("{\"loc", chunk.getDelta(), "DELTA delta carries the arguments fragment");
+        assertNull(chunk.getCallId(), "subsequent deltas carry no id");
     }
 
     @Test

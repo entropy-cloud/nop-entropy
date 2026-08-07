@@ -8,6 +8,8 @@ import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatReasoningMessage;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
 import io.nop.ai.api.chat.stream.ChatStreamChunk;
+import io.nop.ai.api.chat.stream.StreamItemPhase;
+import io.nop.ai.api.chat.stream.StreamItemType;
 import io.nop.ai.core.model.ApiStyle;
 import io.nop.ai.core.model.LlmModel;
 import io.nop.api.core.exceptions.NopException;
@@ -104,7 +106,21 @@ public class TestGeminiDialect extends JunitBaseTestCase {
         ChatStreamChunk chunk = dialect.parseStreamChunk(data);
 
         assertNotNull(chunk);
-        assertEquals("Hi", chunk.getContent());
+        assertEquals(StreamItemType.text, chunk.getItemType());
+        assertEquals(StreamItemPhase.DELTA, chunk.getPhase());
+        assertEquals("Hi", chunk.getDelta());
+    }
+
+    @Test
+    public void testParseStreamChunkThought() {
+        GeminiDialect dialect = new GeminiDialect();
+        String data = "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"hmm\",\"thought\":true}]}}]}";
+
+        ChatStreamChunk chunk = dialect.parseStreamChunk(data);
+
+        assertNotNull(chunk);
+        assertEquals(StreamItemType.reasoning, chunk.getItemType());
+        assertEquals("hmm", chunk.getDelta());
     }
 
     @Test

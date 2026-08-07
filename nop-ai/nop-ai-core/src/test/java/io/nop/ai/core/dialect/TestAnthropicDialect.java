@@ -12,6 +12,8 @@ import io.nop.ai.api.chat.messages.ChatToolCallMessage;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
 import io.nop.ai.api.chat.messages.ChatUsage;
 import io.nop.ai.api.chat.stream.ChatStreamChunk;
+import io.nop.ai.api.chat.stream.StreamItemPhase;
+import io.nop.ai.api.chat.stream.StreamItemType;
 import io.nop.ai.core.model.ApiStyle;
 import io.nop.ai.core.model.LlmModel;
 import io.nop.api.core.exceptions.NopException;
@@ -121,7 +123,58 @@ public class TestAnthropicDialect extends JunitBaseTestCase {
         
         ChatStreamChunk deltaChunk = dialect.parseStreamChunk(thinkingDeltaJson);
         assertNotNull(deltaChunk);
-        assertEquals("Let me think...", deltaChunk.getThinking());
+        assertEquals(StreamItemType.reasoning, deltaChunk.getItemType());
+        assertEquals(0, deltaChunk.getItemIndex());
+        assertEquals(StreamItemPhase.DELTA, deltaChunk.getPhase());
+        assertEquals("Let me think...", deltaChunk.getDelta());
+    }
+
+    @Test
+    public void testParseStreamChunkTextDelta() {
+        AnthropicDialect dialect = new AnthropicDialect();
+
+        String textDeltaJson = "{\"type\":\"content_block_delta\",\"index\":1," +
+                "\"delta\":{\"type\":\"text_delta\",\"text\":\"Hello\"}}";
+
+        ChatStreamChunk chunk = dialect.parseStreamChunk(textDeltaJson);
+        assertNotNull(chunk);
+        assertEquals(StreamItemType.text, chunk.getItemType());
+        assertEquals(1, chunk.getItemIndex());
+        assertEquals(StreamItemPhase.DELTA, chunk.getPhase());
+        assertEquals("Hello", chunk.getDelta());
+    }
+
+    @Test
+    public void testParseStreamChunkToolUseAdded() {
+        // content_block_start tool_use → ADDED（callId + name）
+        AnthropicDialect dialect = new AnthropicDialect();
+
+        String json = "{\"type\":\"content_block_start\",\"index\":2," +
+                "\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"get_weather\"}}";
+
+        ChatStreamChunk chunk = dialect.parseStreamChunk(json);
+        assertNotNull(chunk);
+        assertEquals(StreamItemType.tool_call, chunk.getItemType());
+        assertEquals(2, chunk.getItemIndex());
+        assertEquals("toolu_1", chunk.getCallId());
+        assertEquals(StreamItemPhase.ADDED, chunk.getPhase());
+        assertEquals("get_weather", chunk.getDelta());
+    }
+
+    @Test
+    public void testParseStreamChunkToolUseDelta() {
+        // input_json_delta → DELTA（arguments 片段）
+        AnthropicDialect dialect = new AnthropicDialect();
+
+        String json = "{\"type\":\"content_block_delta\",\"index\":2," +
+                "\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"loc\"}}";
+
+        ChatStreamChunk chunk = dialect.parseStreamChunk(json);
+        assertNotNull(chunk);
+        assertEquals(StreamItemType.tool_call, chunk.getItemType());
+        assertEquals(2, chunk.getItemIndex());
+        assertEquals(StreamItemPhase.DELTA, chunk.getPhase());
+        assertEquals("{\"loc", chunk.getDelta());
     }
 
     @Test
@@ -136,6 +189,7 @@ public class TestAnthropicDialect extends JunitBaseTestCase {
         ChatStreamChunk chunk = dialect.parseStreamChunk(messageDeltaJson);
         
         assertNotNull(chunk);
+        assertEquals(StreamItemPhase.DONE, chunk.getPhase());
         assertEquals("stop", chunk.getFinishReason());
         
         assertNotNull(chunk.getUsage());

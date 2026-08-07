@@ -13,6 +13,8 @@ import io.nop.ai.core.model.LlmModel;
 import io.nop.ai.core.model.LlmModelModel;
 import io.nop.ai.core.model.LlmResponseModel;
 import io.nop.ai.api.chat.stream.ChatStreamChunk;
+import io.nop.ai.api.chat.stream.StreamItemPhase;
+import io.nop.ai.api.chat.stream.StreamItemType;
 import io.nop.api.core.json.JSON;
 import io.nop.commons.util.StringHelper;
 import io.nop.http.api.client.HttpRequest;
@@ -209,12 +211,52 @@ public class OllamaDialect extends AbstractLlmDialect implements ILlmDialect {
         ChatStreamChunk chunk = new ChatStreamChunk();
 
         chunk.setModel(getString(dataMap, "model"));
-        chunk.setContent(getString(dataMap, "message.content"));
-        // Ollama 某些模型支持 thinking 字段（如 DeepSeek R1）
-        chunk.setThinking(getString(dataMap, "message.thinking"));
-        chunk.setFinishReason(normalizeFinishReason(getString(dataMap, "done_reason")));
+
+        // 文本内容增量
+        String content = getString(dataMap, "message.content");
+        // 思考内容增量（某些模型支持 thinking 字段，如 DeepSeek R1）
+        String thinking = getString(dataMap, "message.thinking");
+
+        if (content != null) {
+            chunk.setItemType(StreamItemType.text);
+            chunk.setItemIndex(0);
+            chunk.setPhase(StreamItemPhase.DELTA);
+            chunk.setDelta(content);
+        } else if (thinking != null) {
+            chunk.setItemType(StreamItemType.reasoning);
+            chunk.setItemIndex(0);
+            chunk.setPhase(StreamItemPhase.DELTA);
+            chunk.setDelta(thinking);
+        } else {
+            // 工具调用（Ollama 使用 OpenAI 风格，流式下通常完整出现于终止帧）
+            Object toolCallsObj = getByPath(dataMap, "message.tool_calls");
+            if (toolCallsObj instanceof List && !((List<?>) toolCallsObj).isEmpty()) {
+                Object first = ((List<?>) toolCallsObj).get(0);
+                if (first instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> tcMap = (Map<String, Object>) first;
+                    Map<String, Object> func = (Map<String, Object>) tcMap.get("function");
+                    chunk.setItemType(StreamItemType.tool_call);
+                    chunk.setItemIndex(0);
+                    chunk.setCallId((String) tcMap.get("id"));
+                    chunk.setPhase(StreamItemPhase.ADDED);
+                    chunk.setDelta(func != null ? (String) func.get("name") : null);
+                }
+            }
+        }
+
+        // 结束信号
+        String finishReason = normalizeFinishReason(getString(dataMap, "done_reason"));
+        if (finishReason != null) {
+            chunk.setPhase(StreamItemPhase.DONE);
+            chunk.setFinishReason(finishReason);
+        }
 
         return chunk;
+    }
+
+    private Object getByPath(Map<String, Object> map, String path) {
+        return io.nop.core.reflect.bean.BeanTool.getComplexProperty(map, path);
     }
 
     @Override

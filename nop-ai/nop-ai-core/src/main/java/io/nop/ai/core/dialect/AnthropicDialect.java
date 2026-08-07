@@ -15,7 +15,8 @@ import io.nop.ai.core.model.LlmModel;
 import io.nop.ai.core.model.LlmModelModel;
 import io.nop.ai.core.model.LlmResponseModel;
 import io.nop.ai.api.chat.stream.ChatStreamChunk;
-import io.nop.ai.api.chat.stream.ChatToolCallChunk;
+import io.nop.ai.api.chat.stream.StreamItemPhase;
+import io.nop.ai.api.chat.stream.StreamItemType;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.json.JSON;
 import io.nop.commons.util.StringHelper;
@@ -282,56 +283,66 @@ public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect 
                 break;
 
             case "content_block_start":
-                // 内容块开始（thinking/text/tool_use）
+                // 内容块声明（ADDED）：thinking/text/tool_use
                 Object contentBlock = dataMap.get("content_block");
+                Integer blockIndex = toInt(dataMap.get("index"));
                 if (contentBlock instanceof Map) {
                     @SuppressWarnings("unchecked")
                     Map<String, Object> blockMap = (Map<String, Object>) contentBlock;
                     String blockType = (String) blockMap.get("type");
                     if ("thinking".equals(blockType)) {
-                        // 思考块开始
-                        chunk.setThinking((String) blockMap.get("thinking"));
+                        chunk.setItemType(StreamItemType.reasoning);
+                        chunk.setItemIndex(blockIndex);
+                        chunk.setPhase(StreamItemPhase.ADDED);
+                        chunk.setDelta((String) blockMap.get("thinking"));
                     } else if ("text".equals(blockType)) {
-                        chunk.setContent((String) blockMap.get("text"));
+                        chunk.setItemType(StreamItemType.text);
+                        chunk.setItemIndex(blockIndex);
+                        chunk.setPhase(StreamItemPhase.ADDED);
+                        chunk.setDelta((String) blockMap.get("text"));
                     } else if ("tool_use".equals(blockType)) {
-                        // 工具调用开始，创建 toolCall chunk
-                        ChatToolCallChunk toolCallChunk = new ChatToolCallChunk();
-                        toolCallChunk.setId((String) blockMap.get("id"));
-                        toolCallChunk.setName((String) blockMap.get("name"));
-                        toolCallChunk.setType("function");
-                        chunk.setToolCall(toolCallChunk);
+                        chunk.setItemType(StreamItemType.tool_call);
+                        chunk.setItemIndex(blockIndex);
+                        chunk.setCallId((String) blockMap.get("id"));
+                        chunk.setPhase(StreamItemPhase.ADDED);
+                        chunk.setDelta((String) blockMap.get("name"));
                     }
                 }
                 break;
 
             case "content_block_delta":
-                // 内容增量
+                // 内容增量（DELTA）
                 Object delta = dataMap.get("delta");
-                Integer index = (Integer) dataMap.get("index");
+                Integer deltaIndex = toInt(dataMap.get("index"));
                 if (delta instanceof Map) {
                     @SuppressWarnings("unchecked")
                     Map<String, Object> deltaMap = (Map<String, Object>) delta;
                     String deltaType = (String) deltaMap.get("type");
                     if ("text_delta".equals(deltaType)) {
-                        chunk.setContent((String) deltaMap.get("text"));
+                        chunk.setItemType(StreamItemType.text);
+                        chunk.setItemIndex(deltaIndex);
+                        chunk.setPhase(StreamItemPhase.DELTA);
+                        chunk.setDelta((String) deltaMap.get("text"));
                     } else if ("thinking_delta".equals(deltaType)) {
-                        chunk.setThinking((String) deltaMap.get("thinking"));
+                        chunk.setItemType(StreamItemType.reasoning);
+                        chunk.setItemIndex(deltaIndex);
+                        chunk.setPhase(StreamItemPhase.DELTA);
+                        chunk.setDelta((String) deltaMap.get("thinking"));
                     } else if ("input_json_delta".equals(deltaType)) {
                         // 工具调用参数增量（partial_json）
                         String partialJson = (String) deltaMap.get("partial_json");
                         if (partialJson != null) {
-                            ChatToolCallChunk toolCallChunk = new ChatToolCallChunk();
-                            toolCallChunk.setIndex(index);
-                            toolCallChunk.setArguments(partialJson);
-                            chunk.setToolCall(toolCallChunk);
+                            chunk.setItemType(StreamItemType.tool_call);
+                            chunk.setItemIndex(deltaIndex);
+                            chunk.setPhase(StreamItemPhase.DELTA);
+                            chunk.setDelta(partialJson);
                         }
                     }
                 }
                 break;
 
             case "content_block_stop":
-                // 内容块结束
-                // 可以用于标记思考块或工具调用块的结束
+                // 内容块结束：无 payload，跳过（item 收尾由 message_stop 的 DONE 标记）
                 break;
 
             case "message_delta":
@@ -343,7 +354,6 @@ public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect 
                     ChatUsage chunkUsage = new ChatUsage();
                     chunkUsage.setPromptTokens(getIntByPath(usageMap, "input_tokens"));
                     chunkUsage.setCompletionTokens(getIntByPath(usageMap, "output_tokens"));
-                    // Prompt Caching 统计
                     chunkUsage.setCacheHitTokens(getIntByPath(usageMap, "cache_read_input_tokens"));
                     chunkUsage.setCacheCreationTokens(getIntByPath(usageMap, "cache_creation_input_tokens"));
                     chunk.setUsage(chunkUsage);
@@ -354,6 +364,7 @@ public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect 
                     Map<String, Object> deltaMap = (Map<String, Object>) deltaObj;
                     String stopReason = (String) deltaMap.get("stop_reason");
                     if (stopReason != null) {
+                        chunk.setPhase(StreamItemPhase.DONE);
                         chunk.setFinishReason(normalizeFinishReason(stopReason));
                     }
                 }
@@ -361,6 +372,7 @@ public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect 
 
             case "message_stop":
                 // 消息结束
+                chunk.setPhase(StreamItemPhase.DONE);
                 chunk.setFinishReason("stop");
                 break;
 
@@ -369,7 +381,7 @@ public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect 
                 return null;
 
             case "error":
-                // 错误消息
+                // 错误消息：作为 text item 的错误文本（快速暴露，不静默）
                 Object error = dataMap.get("error");
                 if (error instanceof Map) {
                     @SuppressWarnings("unchecked")
@@ -378,13 +390,20 @@ public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect 
                     if (errorMsg == null) {
                         errorMsg = errorMap.toString();
                     }
-                    // 返回一个带有错误的 chunk
-                    chunk.setContent("[ERROR] " + errorMsg);
+                    chunk.setItemType(StreamItemType.text);
+                    chunk.setItemIndex(0);
+                    chunk.setPhase(StreamItemPhase.DELTA);
+                    chunk.setDelta("[ERROR] " + errorMsg);
                 }
                 break;
         }
 
         return chunk;
+    }
+
+    private Integer toInt(Object value) {
+        if (value instanceof Number) return ((Number) value).intValue();
+        return null;
     }
 
     @Override

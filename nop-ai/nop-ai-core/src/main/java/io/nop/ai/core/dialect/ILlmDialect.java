@@ -6,6 +6,8 @@ import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatToolDefinition;
 import io.nop.ai.api.chat.stream.ChatStreamChunk;
+import io.nop.ai.api.chat.stream.StreamItemPhase;
+import io.nop.ai.api.chat.stream.StreamItemType;
 import io.nop.ai.core.model.LlmModel;
 import io.nop.ai.core.model.LlmModelModel;
 import io.nop.http.api.client.HttpRequest;
@@ -273,27 +275,47 @@ public interface ILlmDialect {
 
     /**
      * Build provider-specific stream chunk Map from standard ChatStreamChunk (reverse of parseStreamChunk).
-     * Default implementation produces OpenAI delta format.
+     * Default implementation produces OpenAI delta format, driven by the item increment model
+     * ({@link StreamItemType} / {@link StreamItemPhase}).
      */
     default Map<String, Object> buildStreamChunk(ChatStreamChunk chunk) {
         Map<String, Object> result = new HashMap<>();
         result.put("id", chunk.getId() != null ? chunk.getId() : "");
         result.put("object", "chat.completion.chunk");
+
         Map<String, Object> delta = new HashMap<>();
-        delta.put("role", "assistant");
-        if (chunk.getContent() != null) delta.put("content", chunk.getContent());
-        if (chunk.getToolCall() != null) {
+        StreamItemType type = chunk.getItemType();
+        if (type == StreamItemType.tool_call) {
             Map<String, Object> tc = new HashMap<>();
-            if (chunk.getToolCall().getId() != null) tc.put("id", chunk.getToolCall().getId());
-            Map<String, Object> func = new HashMap<>();
-            if (chunk.getToolCall().getName() != null) func.put("name", chunk.getToolCall().getName());
-            if (chunk.getToolCall().getArguments() != null) func.put("arguments", chunk.getToolCall().getArguments());
-            tc.put("function", func);
+            tc.put("index", chunk.getItemIndex() != null ? chunk.getItemIndex() : 0);
+            if (chunk.getPhase() == StreamItemPhase.ADDED) {
+                if (chunk.getCallId() != null) tc.put("id", chunk.getCallId());
+                tc.put("type", "function");
+                Map<String, Object> func = new HashMap<>();
+                if (chunk.getDelta() != null) func.put("name", chunk.getDelta());
+                func.put("arguments", "");
+                tc.put("function", func);
+            } else {
+                Map<String, Object> func = new HashMap<>();
+                if (chunk.getDelta() != null) func.put("arguments", chunk.getDelta());
+                tc.put("function", func);
+            }
             delta.put("tool_calls", List.of(tc));
+        } else if (type == StreamItemType.reasoning) {
+            if (chunk.getDelta() != null) delta.put("reasoning_content", chunk.getDelta());
+        } else if (chunk.getPhase() == StreamItemPhase.ADDED) {
+            // 首个 text item 声明角色
+            delta.put("role", "assistant");
+            if (chunk.getDelta() != null) delta.put("content", chunk.getDelta());
+        } else {
+            if (chunk.getDelta() != null) delta.put("content", chunk.getDelta());
         }
+
         Map<String, Object> choice = new HashMap<>();
-        choice.put("index", chunk.getIndex() != null ? chunk.getIndex() : 0);
-        choice.put("delta", delta);
+        choice.put("index", 0);
+        if (!delta.isEmpty()) {
+            choice.put("delta", delta);
+        }
         choice.put("finish_reason", chunk.getFinishReason());
         result.put("choices", List.of(choice));
         return result;

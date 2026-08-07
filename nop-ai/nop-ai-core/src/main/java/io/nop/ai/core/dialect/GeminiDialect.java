@@ -14,6 +14,8 @@ import io.nop.ai.core.model.LlmModel;
 import io.nop.ai.core.model.LlmModelModel;
 import io.nop.ai.core.model.LlmResponseModel;
 import io.nop.ai.api.chat.stream.ChatStreamChunk;
+import io.nop.ai.api.chat.stream.StreamItemPhase;
+import io.nop.ai.api.chat.stream.StreamItemType;
 import io.nop.api.core.json.JSON;
 import io.nop.commons.util.StringHelper;
 import io.nop.http.api.client.HttpRequest;
@@ -239,9 +241,13 @@ public class GeminiDialect extends AbstractLlmDialect implements ILlmDialect {
         }
 
         // 解析结束原因
-        chunk.setFinishReason(normalizeFinishReason(getString(dataMap, "candidates.0.finishReason")));
+        String finishReason = normalizeFinishReason(getString(dataMap, "candidates.0.finishReason"));
+        if (finishReason != null) {
+            chunk.setPhase(StreamItemPhase.DONE);
+            chunk.setFinishReason(finishReason);
+        }
 
-        // 解析内容 - 处理 thought 标记
+        // 解析内容 - 处理 thought 标记 / functionCall（itemIndex 按出现序）
         Object candidatesObj = dataMap.get("candidates");
         if (candidatesObj instanceof List) {
             List<?> candidates = (List<?>) candidatesObj;
@@ -254,21 +260,42 @@ public class GeminiDialect extends AbstractLlmDialect implements ILlmDialect {
                     Map<String, Object> contentMap = (Map<String, Object>) contentObj;
                     Object partsObj = contentMap.get("parts");
                     if (partsObj instanceof List) {
+                        int order = 0;
                         for (Object part : (List<?>) partsObj) {
                             if (part instanceof Map) {
                                 @SuppressWarnings("unchecked")
                                 Map<String, Object> partMap = (Map<String, Object>) part;
                                 Boolean thought = (Boolean) partMap.get("thought");
                                 String text = (String) partMap.get("text");
+                                Object functionCall = partMap.get("functionCall");
 
                                 if (text != null) {
                                     if (Boolean.TRUE.equals(thought)) {
-                                        chunk.setThinking(text);
+                                        chunk.setItemType(StreamItemType.reasoning);
+                                        chunk.setItemIndex(order);
+                                        chunk.setPhase(StreamItemPhase.DELTA);
+                                        chunk.setDelta(text);
                                     } else {
-                                        chunk.setContent(text);
+                                        chunk.setItemType(StreamItemType.text);
+                                        chunk.setItemIndex(order);
+                                        chunk.setPhase(StreamItemPhase.DELTA);
+                                        chunk.setDelta(text);
                                     }
-                                    break; // 每个chunk通常只有一个内容
+                                    return chunk; // 每个 chunk 通常只有一个内容
                                 }
+                                if (functionCall instanceof Map) {
+                                    @SuppressWarnings("unchecked")
+                                    Map<String, Object> fc = (Map<String, Object>) functionCall;
+                                    chunk.setItemType(StreamItemType.tool_call);
+                                    chunk.setItemIndex(order);
+                                    chunk.setPhase(StreamItemPhase.ADDED);
+                                    chunk.setDelta((String) fc.get("name"));
+                                    // Gemini 的 args 是结构化对象，作为 tool_call 增量。
+                                    // 单 chunk 边界：args 完整时无法与 name 同载，按 name 优先
+                                    // （与 OpenAI/Anthropic 流式 tool_call 先声明 name 的语义一致）。
+                                    return chunk;
+                                }
+                                order++;
                             }
                         }
                     }
