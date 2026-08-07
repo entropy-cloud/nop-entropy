@@ -2,7 +2,7 @@
 
 > Plan Status: draft
 > Review Hold: Cannot promote to `active`. Plan modifies `nop-auth` (AGENTS.md `ask-first` protected area) and requires the user to record a disposition for each of DR-1a..DR-1e (security policy decisions: JWT migration window, servicePublic decision table, cookie/redirect attributes, password baseline, admin-skip default). Reviewer must not guess these. Plan structure/anchors audited clean at review time.
-> Last Reviewed: 2026-08-07
+> Last Reviewed: 2026-08-08
 > Source: `ai-dev/analysis/2026-08/2026-08-04-security-hardening-baseline.md` (DR-1a, DR-1b, DR-1c, DR-1d, DR-1e)
 > Related: `ai-dev/plans/328-security-hardening-remediation-planning.md`
 > Predecessor: Plan 328 Phase 1 froze the decision records this plan consumes.

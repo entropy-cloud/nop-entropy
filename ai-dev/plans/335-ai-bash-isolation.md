@@ -1,8 +1,8 @@
 # 335 AI Bash Isolation Hardening
 
 > Plan Status: draft
-> Review Hold: blocked on user authorization of DR-3a (isolation backend selection, host-execution mode). Cannot be resolved at review time — held as `draft` until the user records an approved disposition. Review otherwise passed (source anchors verified; template gaps fixed).
-> Last Reviewed: 2026-08-07
+> Review Hold: blocked on user authorization of DR-3a (isolation backend selection, host-execution mode). Cannot be resolved at review time — held as `draft` until the user records an approved disposition. Review passed (source anchors verified against live BashExecutor.java; format compliant; exit criteria testable; scope clear).
+> Last Reviewed: 2026-08-08
 > Source: `ai-dev/analysis/2026-08/2026-08-04-security-hardening-baseline.md` (DR-3a, DR-3b)
 > Related: `ai-dev/plans/328-security-hardening-remediation-planning.md`
 > Predecessor: Plan 328 Phase 1 froze the decision records this plan consumes.
