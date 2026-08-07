@@ -17,7 +17,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 1. Coordinator、运行时并发与恢复缺陷收口: `planned`
 - 2. Checkpoint、state backend 与 CEP 状态缺陷收口: `planned`
 - 3. 契约、IoC 配置与测试完整性缺陷收口: `planned`
-- 4. 审计 evidence schema、source-manifest 与 finding corpus: `todo`
+- 4. 审计 evidence schema、source-manifest 与 finding corpus: `done`
 - 5. 审计环境资格与 gated-evidence 契约: `todo`
 - 6. Java API、graph 和 LOCAL execution 审计: `todo`
 - 7. XDSL StreamModel 入口审计: `todo`
