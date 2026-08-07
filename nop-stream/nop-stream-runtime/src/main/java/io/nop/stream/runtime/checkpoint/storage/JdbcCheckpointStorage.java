@@ -8,6 +8,7 @@
 package io.nop.stream.runtime.checkpoint.storage;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -79,44 +80,34 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
             byte[] stateData = serializeCheckpoint(checkpoint);
             long sid = nextSid();
 
-            SQL sql = SQL.begin().name("storeCheckpoint").querySpace(querySpace)
-                    .sql("INSERT INTO " + TABLE_NAME +
-                            " (sid, job_id, pipeline_id, checkpoint_id, checkpoint_type, trigger_timestamp, " +
-                            "completed_timestamp, state_data) VALUES (?,?,?,?,?,?,?,?)",
-                            sid,
-                            checkpoint.getJobId(),
-                            checkpoint.getPipelineId(),
-                            checkpoint.getCheckpointId(),
-                            checkpoint.getCheckpointType().name(),
-                            checkpoint.getTriggerTimestamp(),
-                            checkpoint.getCompletedTimestamp(),
-                            stateData)
-                    .end();
+            String[] columns = {"sid", "job_id", "pipeline_id", "checkpoint_id", "checkpoint_type",
+                    "trigger_timestamp", "completed_timestamp", "state_data"};
+            String[] conflictColumns = {"job_id", "pipeline_id", "checkpoint_id"};
+            String[] updateColumns = {"checkpoint_type", "trigger_timestamp", "completed_timestamp", "state_data"};
+            Object[] values = {sid, checkpoint.getJobId(), checkpoint.getPipelineId(), checkpoint.getCheckpointId(),
+                    checkpoint.getCheckpointType().name(), checkpoint.getTriggerTimestamp(),
+                    checkpoint.getCompletedTimestamp(), stateData};
 
-            jdbcTemplate.txn().runInTransaction(querySpace, TransactionPropagation.REQUIRED, txn -> {
-                try {
-                    jdbcTemplate.executeUpdate(sql);
-                } catch (Exception e) {
-                    if (!isDuplicateKeyException(e)) {
-                        throw e;
-                    }
-                    LOG.debug("INSERT failed (duplicate key), attempting UPDATE for checkpoint {}/{}", checkpoint.getJobId(), checkpoint.getCheckpointId(), e);
-                    SQL updateSql = SQL.begin().name("updateCheckpoint").querySpace(querySpace)
-                            .sql("UPDATE " + TABLE_NAME +
-                                    " SET checkpoint_type = ?, trigger_timestamp = ?, completed_timestamp = ?, state_data = ?" +
-                                    " WHERE job_id = ? AND pipeline_id = ? AND checkpoint_id = ?",
-                                    checkpoint.getCheckpointType().name(),
-                                    checkpoint.getTriggerTimestamp(),
-                                    checkpoint.getCompletedTimestamp(),
-                                    stateData,
-                                    checkpoint.getJobId(),
-                                    checkpoint.getPipelineId(),
-                                    checkpoint.getCheckpointId())
-                            .end();
-                    jdbcTemplate.executeUpdate(updateSql);
-                }
-                return null;
-            });
+            UpsertDialect dialect = resolveUpsertDialect();
+            if (dialect == UpsertDialect.GENERIC) {
+                SQL insert = SQL.begin().name("storeCheckpoint").querySpace(querySpace)
+                        .sql("INSERT INTO " + TABLE_NAME +
+                                " (sid, job_id, pipeline_id, checkpoint_id, checkpoint_type, trigger_timestamp, " +
+                                "completed_timestamp, state_data) VALUES (?,?,?,?,?,?,?,?)", values).end();
+                SQL update = SQL.begin().name("updateCheckpoint").querySpace(querySpace)
+                        .sql("UPDATE " + TABLE_NAME +
+                                " SET checkpoint_type = ?, trigger_timestamp = ?, completed_timestamp = ?, state_data = ?" +
+                                " WHERE job_id = ? AND pipeline_id = ? AND checkpoint_id = ?",
+                                checkpoint.getCheckpointType().name(), checkpoint.getTriggerTimestamp(),
+                                checkpoint.getCompletedTimestamp(), stateData,
+                                checkpoint.getJobId(), checkpoint.getPipelineId(), checkpoint.getCheckpointId())
+                        .end();
+                runInsertOrUpdateSeparateTxns(insert, update, "storeCheckpoint");
+            } else {
+                SQL upsert = buildNativeUpsert(dialect, "storeCheckpoint", TABLE_NAME,
+                        columns, conflictColumns, updateColumns, values);
+                runNativeUpsert(upsert);
+            }
 
             return checkpoint.getJobId() + "_" + checkpoint.getCheckpointId();
         } catch (NopException e) {
@@ -306,46 +297,36 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
             byte[] stateData = serializeCheckpoint(checkpoint);
             long sid = nextSid();
 
-            SQL sql = SQL.begin().name("storeSavepoint").querySpace(querySpace)
-                    .sql("INSERT INTO " + TABLE_NAME +
-                            " (sid, job_id, pipeline_id, checkpoint_id, checkpoint_type, trigger_timestamp, " +
-                            "completed_timestamp, state_data, savepoint_path) VALUES (?,?,?,?,?,?,?,?,?)",
-                            sid,
-                            checkpoint.getJobId(),
-                            checkpoint.getPipelineId(),
-                            checkpoint.getCheckpointId(),
-                            checkpoint.getCheckpointType().name(),
-                            checkpoint.getTriggerTimestamp(),
-                            checkpoint.getCompletedTimestamp(),
-                            stateData,
-                            targetPath)
-                    .end();
+            String[] columns = {"sid", "job_id", "pipeline_id", "checkpoint_id", "checkpoint_type",
+                    "trigger_timestamp", "completed_timestamp", "state_data", "savepoint_path"};
+            String[] conflictColumns = {"job_id", "pipeline_id", "checkpoint_id"};
+            String[] updateColumns = {"checkpoint_type", "trigger_timestamp", "completed_timestamp",
+                    "state_data", "savepoint_path"};
+            Object[] values = {sid, checkpoint.getJobId(), checkpoint.getPipelineId(), checkpoint.getCheckpointId(),
+                    checkpoint.getCheckpointType().name(), checkpoint.getTriggerTimestamp(),
+                    checkpoint.getCompletedTimestamp(), stateData, targetPath};
 
-            jdbcTemplate.txn().runInTransaction(querySpace, TransactionPropagation.REQUIRED, txn -> {
-                try {
-                    jdbcTemplate.executeUpdate(sql);
-                } catch (Exception e) {
-                    if (!isDuplicateKeyException(e)) {
-                        throw e;
-                    }
-                    LOG.debug("INSERT failed (duplicate key), attempting UPDATE for savepoint {}/{}", checkpoint.getJobId(), checkpoint.getCheckpointId(), e);
-                    SQL updateSql = SQL.begin().name("updateSavepoint").querySpace(querySpace)
-                            .sql("UPDATE " + TABLE_NAME +
-                                    " SET checkpoint_type = ?, trigger_timestamp = ?, completed_timestamp = ?, state_data = ?, savepoint_path = ?" +
-                                    " WHERE job_id = ? AND pipeline_id = ? AND checkpoint_id = ?",
-                                    checkpoint.getCheckpointType().name(),
-                                    checkpoint.getTriggerTimestamp(),
-                                    checkpoint.getCompletedTimestamp(),
-                                    stateData,
-                                    targetPath,
-                                    checkpoint.getJobId(),
-                                    checkpoint.getPipelineId(),
-                                    checkpoint.getCheckpointId())
-                            .end();
-                    jdbcTemplate.executeUpdate(updateSql);
-                }
-                return null;
-            });
+            UpsertDialect dialect = resolveUpsertDialect();
+            if (dialect == UpsertDialect.GENERIC) {
+                SQL insert = SQL.begin().name("storeSavepoint").querySpace(querySpace)
+                        .sql("INSERT INTO " + TABLE_NAME +
+                                " (sid, job_id, pipeline_id, checkpoint_id, checkpoint_type, trigger_timestamp, " +
+                                "completed_timestamp, state_data, savepoint_path) VALUES (?,?,?,?,?,?,?,?,?)", values)
+                        .end();
+                SQL update = SQL.begin().name("updateSavepoint").querySpace(querySpace)
+                        .sql("UPDATE " + TABLE_NAME +
+                                " SET checkpoint_type = ?, trigger_timestamp = ?, completed_timestamp = ?, state_data = ?, savepoint_path = ?" +
+                                " WHERE job_id = ? AND pipeline_id = ? AND checkpoint_id = ?",
+                                checkpoint.getCheckpointType().name(), checkpoint.getTriggerTimestamp(),
+                                checkpoint.getCompletedTimestamp(), stateData, targetPath,
+                                checkpoint.getJobId(), checkpoint.getPipelineId(), checkpoint.getCheckpointId())
+                        .end();
+                runInsertOrUpdateSeparateTxns(insert, update, "storeSavepoint");
+            } else {
+                SQL upsert = buildNativeUpsert(dialect, "storeSavepoint", TABLE_NAME,
+                        columns, conflictColumns, updateColumns, values);
+                runNativeUpsert(upsert);
+            }
 
             return targetPath;
         } catch (NopException e) {
@@ -496,45 +477,35 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
             ensureEpochTable();
             byte[] stateData = serializeEpochManifest(manifest);
             long sid = nextSid();
+            String checkpointType = manifest.getCheckpointType() != null ? manifest.getCheckpointType().name() : "CHECKPOINT";
+            String state = manifest.getState() != null ? manifest.getState().name() : "COMMITTED";
 
-            SQL sql = SQL.begin().name("storeEpochManifest").querySpace(querySpace)
-                    .sql("INSERT INTO " + EPOCH_TABLE_NAME +
-                            " (sid, job_id, pipeline_id, epoch_id, checkpoint_type, state, timestamp, state_data) " +
-                            "VALUES (?,?,?,?,?,?,?,?)",
-                            sid,
-                            manifest.getJobId(),
-                            manifest.getPipelineId(),
-                            manifest.getEpochId(),
-                            manifest.getCheckpointType() != null ? manifest.getCheckpointType().name() : "CHECKPOINT",
-                            manifest.getState() != null ? manifest.getState().name() : "COMMITTED",
-                            manifest.getTimestamp(),
-                            stateData)
-                    .end();
+            String[] columns = {"sid", "job_id", "pipeline_id", "epoch_id", "checkpoint_type", "state",
+                    "timestamp", "state_data"};
+            String[] conflictColumns = {"job_id", "pipeline_id", "epoch_id"};
+            String[] updateColumns = {"checkpoint_type", "state", "timestamp", "state_data"};
+            Object[] values = {sid, manifest.getJobId(), manifest.getPipelineId(), manifest.getEpochId(),
+                    checkpointType, state, manifest.getTimestamp(), stateData};
 
-            jdbcTemplate.txn().runInTransaction(querySpace, TransactionPropagation.REQUIRED, txn -> {
-                try {
-                    jdbcTemplate.executeUpdate(sql);
-                } catch (Exception e) {
-                    if (!isDuplicateKeyException(e)) {
-                        throw e;
-                    }
-                    LOG.debug("INSERT failed (duplicate key), attempting UPDATE for epoch manifest {}/{}/{}", jobId, pipelineId, manifest.getEpochId(), e);
-                    SQL updateSql = SQL.begin().name("updateEpochManifest").querySpace(querySpace)
-                            .sql("UPDATE " + EPOCH_TABLE_NAME +
-                                    " SET checkpoint_type = ?, state = ?, timestamp = ?, state_data = ?" +
-                                    " WHERE job_id = ? AND pipeline_id = ? AND epoch_id = ?",
-                                    manifest.getCheckpointType() != null ? manifest.getCheckpointType().name() : "CHECKPOINT",
-                                    manifest.getState() != null ? manifest.getState().name() : "COMMITTED",
-                                    manifest.getTimestamp(),
-                                    stateData,
-                                    manifest.getJobId(),
-                                    manifest.getPipelineId(),
-                                    manifest.getEpochId())
-                            .end();
-                    jdbcTemplate.executeUpdate(updateSql);
-                }
-                return null;
-            });
+            UpsertDialect dialect = resolveUpsertDialect();
+            if (dialect == UpsertDialect.GENERIC) {
+                SQL insert = SQL.begin().name("storeEpochManifest").querySpace(querySpace)
+                        .sql("INSERT INTO " + EPOCH_TABLE_NAME +
+                                " (sid, job_id, pipeline_id, epoch_id, checkpoint_type, state, timestamp, state_data) " +
+                                "VALUES (?,?,?,?,?,?,?,?)", values).end();
+                SQL update = SQL.begin().name("updateEpochManifest").querySpace(querySpace)
+                        .sql("UPDATE " + EPOCH_TABLE_NAME +
+                                " SET checkpoint_type = ?, state = ?, timestamp = ?, state_data = ?" +
+                                " WHERE job_id = ? AND pipeline_id = ? AND epoch_id = ?",
+                                checkpointType, state, manifest.getTimestamp(), stateData,
+                                manifest.getJobId(), manifest.getPipelineId(), manifest.getEpochId())
+                        .end();
+                runInsertOrUpdateSeparateTxns(insert, update, "storeEpochManifest");
+            } else {
+                SQL upsert = buildNativeUpsert(dialect, "storeEpochManifest", EPOCH_TABLE_NAME,
+                        columns, conflictColumns, updateColumns, values);
+                runNativeUpsert(upsert);
+            }
 
             LOG.debug("Stored epoch manifest {} for job {}/{}", manifest.getEpochId(), jobId, pipelineId);
         } catch (NopException e) {
@@ -672,7 +643,7 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
      * statement when the dialect provides one; only the generic fallback splits
      * into two separate transactions.
      */
-    private enum UpsertDialect {
+    enum UpsertDialect {
         /** PostgreSQL: INSERT ... ON CONFLICT (cols) DO UPDATE SET col = EXCLUDED.col. */
         POSTGRESQL,
         /** MySQL / MariaDB: INSERT ... ON DUPLICATE KEY UPDATE col = VALUES(col). */
@@ -682,7 +653,6 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
         /** Any other DB: INSERT in one txn; on duplicate key, UPDATE in a fresh txn. */
         GENERIC
     }
-
     private UpsertDialect resolveUpsertDialect() {
         try {
             String name = jdbcTemplate.getDialectForQuerySpace(querySpace).getName().toLowerCase();
@@ -707,6 +677,58 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
             jdbcTemplate.executeUpdate(sql);
             return null;
         });
+    }
+
+    /**
+     * Build a native-upsert {@link SQL} object for the given dialect. The values
+     * array must align positionally with {@code columns} (one value per column).
+     * Returns {@code null} for {@link UpsertDialect#GENERIC} — the caller must
+     * fall back to {@link #runInsertOrUpdateSeparateTxns(SQL, SQL, String)}.
+     */
+    private SQL buildNativeUpsert(
+            UpsertDialect dialect, String sqlName, String tableName,
+            String[] columns, String[] conflictColumns, String[] updateColumns,
+            Object[] values) {
+        String text = buildNativeUpsertSqlText(dialect, tableName, columns, conflictColumns, updateColumns);
+        if (text == null) {
+            return null;
+        }
+        return SQL.begin().name(sqlName).querySpace(querySpace).sql(text, values).end();
+    }
+
+    /**
+     * Produce the dialect-specific native-upsert SQL text. Each branch yields a
+     * single atomic statement, eliminating the unsafe "INSERT throws duplicate-key,
+     * then UPDATE in the same (now-aborted) transaction" pattern that breaks on
+     * PostgreSQL. Returns {@code null} for the generic fallback.
+     */
+    static String buildNativeUpsertSqlText(
+            UpsertDialect dialect, String tableName,
+            String[] columns, String[] conflictColumns, String[] updateColumns) {
+        String columnList = String.join(", ", columns);
+        String conflictList = String.join(", ", conflictColumns);
+        String placeholders = String.join(", ", Collections.nCopies(columns.length, "?"));
+
+        switch (dialect) {
+            case POSTGRESQL: {
+                String setClause = String.join(", ",
+                        Arrays.stream(updateColumns).map(c -> c + " = EXCLUDED." + c).toArray(String[]::new));
+                return "INSERT INTO " + tableName + " (" + columnList + ") VALUES (" + placeholders + ") "
+                        + "ON CONFLICT (" + conflictList + ") DO UPDATE SET " + setClause;
+            }
+            case MYSQL: {
+                String setClause = String.join(", ",
+                        Arrays.stream(updateColumns).map(c -> c + " = VALUES(" + c + ")").toArray(String[]::new));
+                return "INSERT INTO " + tableName + " (" + columnList + ") VALUES (" + placeholders + ") "
+                        + "ON DUPLICATE KEY UPDATE " + setClause;
+            }
+            case H2: {
+                return "MERGE INTO " + tableName + " (" + columnList + ") KEY (" + conflictList + ") VALUES ("
+                        + placeholders + ")";
+            }
+            default:
+                return null;
+        }
     }
 
     /**
