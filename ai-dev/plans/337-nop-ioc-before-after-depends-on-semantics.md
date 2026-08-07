@@ -44,16 +44,16 @@
 
 ### In Scope
 
-- `impl/BeanContainerImpl.java`：移除构造函数中据 `ioc:after` 设置 `nextBeans` 的循环（约 100-109 行）；移除 `getBean0` 中遍历 `nextBeans` 的循环（约 411-415 行）。
-- `impl/BeanDefinition.java`：移除 `nextBeans` 字段（`:121`）及 `getNextBeans`/`addNextBean` 方法（约 197-206 行）。
-- `impl/BeanTopologySorter.java`：排序产出最终顺序后新增 before/after 顺序校验（见设计 §3.3），无条件执行（不受 `allow-cycle` 影响）。
+- `nop-core-framework/nop-ioc/src/main/java/io/nop/ioc/impl/BeanContainerImpl.java`：移除构造函数中据 `ioc:after` 设置 `nextBeans` 的循环（约 100-109 行）；移除 `getBean0` 中遍历 `nextBeans` 的循环（约 411-415 行）。
+- `nop-core-framework/nop-ioc/src/main/java/io/nop/ioc/impl/BeanDefinition.java`：移除 `nextBeans` 字段（`:121`）及 `getNextBeans`/`addNextBean` 方法（约 197-206 行）。
+- `nop-core-framework/nop-ioc/src/main/java/io/nop/ioc/impl/BeanTopologySorter.java`：排序产出最终顺序后新增 before/after 顺序校验（见设计 §3.3），无条件执行（不受 `allow-cycle` 影响）。
 - `IocErrors.java`：删除 `ERR_IOC_UNKNOWN_IOC_BEFORE`/`ERR_IOC_UNKNOWN_IOC_AFTER` 与 `ARG_BEFORE`/`ARG_AFTER`；新增顺序校验错误码（如 `ERR_IOC_BEAN_BEFORE_AFTER_ORDER_VIOLATION`，含 bean 与目标参数）。
 - `beans.xdef`：更新 `ioc:before`/`ioc:after` 语义注释（统一为"前置依赖"描述，移除"创建之后立刻创建"旧语义），并重新生成 `_gen/` 对应文件。
 - `src/test`：新增 before/after 与 depends-on 的对比回归测试。
 
 ### Out Of Scope
 
-- 修改 `_gen/` 生成文件（只改 `beans.xdef` 源并通过生成流程刷新，禁止手改 `_gen/_BeanValue.java`）。
+- 修改 `_gen` 生成文件（只改 `beans.xdef` 源并通过生成流程刷新，禁止手改生成产物 `BeanValue.java`）。
 - 变更 `nop.ioc.bean-depends-graph.allow-cycle` 默认值或语义。
 - 为 `depends-on` 增加顺序校验（其契约是强制创建而非顺序；before/after 顺序校验覆盖"顺序必须保证"需求）。
 - `docs-for-ai/` 无 ioc:before/after 相关内容（已核查）。
@@ -63,7 +63,7 @@
 ### Phase 1 - 移除 nextBeans 机制
 
 Status: planned
-Targets: `impl/BeanContainerImpl.java`, `impl/BeanDefinition.java`, `src/test/`
+Targets: `nop-core-framework/nop-ioc/src/main/java/io/nop/ioc/impl/BeanContainerImpl.java`, `nop-core-framework/nop-ioc/src/main/java/io/nop/ioc/impl/BeanDefinition.java`, `src/test/`
 
 - Item Types: `Fix | Proof`
 
@@ -90,7 +90,7 @@ Exit Criteria:
 ### Phase 2 - 顺序校验与错误码
 
 Status: planned
-Targets: `impl/BeanTopologySorter.java`, `IocErrors.java`, `src/test/`
+Targets: `nop-core-framework/nop-ioc/src/main/java/io/nop/ioc/impl/BeanTopologySorter.java`, `IocErrors.java`, `src/test/`
 
 - Item Types: `Fix | Proof`
 

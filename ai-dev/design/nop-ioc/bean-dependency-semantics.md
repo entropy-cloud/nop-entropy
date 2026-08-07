@@ -131,4 +131,4 @@
 | dependsOn 强制创建循环（保留） | `nop-core-framework/nop-ioc/src/main/java/io/nop/ioc/impl/BeanDefinition.java`（newObject，init-method 前） |
 | ref 强制创建 | `nop-core-framework/nop-ioc/src/main/java/io/nop/ioc/impl/resolvers/InjectRefValueResolver.java` |
 | 未用错误码（待删除）/ 新错误码（待添加） | `nop-core-framework/nop-ioc/src/main/java/io/nop/ioc/IocErrors.java` |
-| ioc:before/ioc:after 语义注释（待更新） | `beans.xdef`（生成 `_gen/_BeanValue.java` 的来源） |
+| ioc:before/ioc:after 语义注释（待更新） | `beans.xdef`（代码生成产物 `BeanValue.java` 的来源） |
