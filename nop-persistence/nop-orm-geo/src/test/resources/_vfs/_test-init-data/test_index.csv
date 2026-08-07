@@ -1,0 +1,3 @@
+SID,NAME,PARENT_ID,UNIT,VALUE
+idx-01,Index A,,cnt,10
+idx-02,Index B,idx-01,cnt,20

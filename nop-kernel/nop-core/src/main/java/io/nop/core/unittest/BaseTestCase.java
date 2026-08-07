@@ -102,6 +102,11 @@ public class BaseTestCase {
         setTestConfig(var.getName(), value);
     }
 
+    public static void clearTestConfig(String name) {
+        g_testConfigs.remove(name);
+        AppConfig.getConfigProvider().assignConfigValue(name, null);
+    }
+
     public static void addLazyAction(Runnable action) {
         g_lazyActions.add(action);
     }
