@@ -11,6 +11,7 @@ import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.operators.StreamOperator;
 import io.nop.stream.core.operators.StreamOperatorFactory;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -19,7 +20,13 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Comprehensive unit tests for OneInputTransformation class.
+ *
+ * <p>Tagged {@code low-value}: every test only constructs a data-holder and asserts its
+ * getters return the constructor args (no business logic to exercise). Retained as a
+ * construction smoke-guard but excluded from the high-value suite marker (consistent with
+ * the project's {@code @Tag("low-value")} convention).
  */
+@Tag("low-value")
 public class TestOneInputTransformation {
 
     // ========== Construction Tests (Without KeySelector) ==========
