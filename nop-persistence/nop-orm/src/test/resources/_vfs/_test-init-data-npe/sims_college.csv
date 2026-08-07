@@ -1,0 +1,2 @@
+COLLEGE_ID,COLLEGE_NAME,SHORT_NAME,INTRO
+npe-col-01,Patched Session College,np-01,loaded before ormTemplate fully wired
