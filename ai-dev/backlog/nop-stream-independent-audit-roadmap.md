@@ -20,7 +20,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 4. 审计 evidence schema、source-manifest 与 finding corpus: `done`
 - 5. 审计环境资格与 gated-evidence 契约: `done`
 - 6. Java API、graph 和 LOCAL execution 审计: `done`
-- 7. XDSL StreamModel 入口审计: `planned`
+- 7. XDSL StreamModel 入口审计: `done`
 - 8. Delta StreamModel 入口审计: `todo`
 - 9. Checkpoint、barrier 与恢复语义审计: `done`
 - 10. State backend、savepoint 与 rescale 审计: `todo`

@@ -1,6 +1,6 @@
 # 5 XDSL StreamModel Entry Audit (nop-stream Independent Audit)
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-08
 > Draft Review: round 1 independent sub-agent review — Consensus YES with 2 Major recommendations (Major 1: Phase 2 topology/stable-identity 行高估可用测试证据，TestDagTopologyConsistency 为 build-only 非 execute() 需禁止 e2e-proved; Major 2: demo dangling transforms 应为 build-time fail-fast 而非"执行时不生效"). Round 2 fixes: Phase 2 三 item 均显式写出传递性论证 + 强制 component-only/manual-trace + 禁止 e2e-proved; Phase 4 demo item 改述为 build-time fail-fast (latent) + residual-risk disposition. Round-2 re-review verdict: **Consensus YES** (both Majors RESOLVED, no new issues).
 > Source: `ai-dev/backlog/nop-stream-independent-audit-roadmap.md` (Stage 7); frozen Stage-4 outputs (`source-manifest.md`, `evidence-schema.md`, `finding-corpus.md`, `ai-dev/tools/check-nop-stream-audit-manifest.mjs`); frozen Stage-6 outputs (`stage-6-java-api-graph-local.evidence.md`); live repo baseline of `nop-stream-flow` XDSL/builder surfaces + `nop-stream-core` graph surfaces.
@@ -73,99 +73,99 @@
 
 ### Phase 1 - Supported XDSL Transform Node Inventory & Source-to-Sink Evidence
 
-Status: planned
+Status: completed
 Targets: `ai-dev/audits/nop-stream-independent-audit/stage-7-xdsl-streammodel-entry.evidence.md`
 
 - Item Types: `Proof`
 
-- [ ] 枚举 supported XDSL transform 节点并各产一条 evidence row（`source_anchor` 指向 `stream.xdef` 对应节点 line + `StreamModelDslBuilder.buildTransform():266` 或 `AdvancedTransforms.build():69` 的对应 dispatch 分支；`implementation_anchor` 指向对应的 `buildSource():313`/`buildMap():329`/`buildFilter():344`/`buildFlatMap():359`/`buildKeyBy():374`/`buildSink():384` 或 AdvancedTransforms 内的对应 build 方法）。覆盖：source、map、filter、flatMap、keyBy、window、aggregate、reduce、process、cep、custom、timestampsAndWatermarks、sink。
-- [ ] 每条 source-to-sink evidence row 的 `positive_proof` 来自一条 **in-process lane 实跑**（`.stream.xml` → `DslModelParser` → `StreamModelDslBuilder.of(model).build()` → `env.execute()` → sink 输出断言）；`environment_class >= in-process`。
-- [ ] 每条 row 标注 `required_lane`（连通/wiring 类构造最低 `in-process`；纯 parse 元数据可 `unit`）与 `finding_id`（交叉 corpus，如 M7-2-P2-2 flow/model duplicate tree）。
+- [x] 枚举 supported XDSL transform 节点并各产一条 evidence row（`source_anchor` 指向 `stream.xdef` 对应节点 line + `StreamModelDslBuilder.buildTransform():266` 或 `AdvancedTransforms.build():69` 的对应 dispatch 分支；`implementation_anchor` 指向对应的 `buildSource():313`/`buildMap():329`/`buildFilter():344`/`buildFlatMap():359`/`buildKeyBy():374`/`buildSink():384` 或 AdvancedTransforms 内的对应 build 方法）。覆盖：source、map、filter、flatMap、keyBy、window、aggregate、reduce、process、cep、custom、timestampsAndWatermarks、sink。
+- [x] 每条 source-to-sink evidence row 的 `positive_proof` 来自一条 **in-process lane 实跑**（`.stream.xml` → `DslModelParser` → `StreamModelDslBuilder.of(model).build()` → `env.execute()` → sink 输出断言）；`environment_class >= in-process`。
+- [x] 每条 row 标注 `required_lane`（连通/wiring 类构造最低 `in-process`；纯 parse 元数据可 `unit`）与 `finding_id`（交叉 corpus，如 M7-2-P2-2 flow/model duplicate tree）。
 
 Exit Criteria:
 
-- [ ] evidence 文件存在，含 ≥10 条 supported-transform evidence row（覆盖 source/map/filter/flatMap/keyBy/window/aggregate/reduce/process/cep/custom/timestampsAndWatermarks/sink 的 supported 子集），格式经 `check-nop-stream-audit-manifest.mjs evidence --strict` 校验 exit 0
-- [ ] **端到端验证（Rule #22）**：**每条** supported-transform evidence row 的 `positive_proof` 是从 `.stream.xml` parse 到 `env.execute()` 到 sink 输出的 in-process 实跑测试名（`ClassName#method`），或该 row `disposition` 非 `e2e-proved`（`unverified`/`component-only`）并注明缺覆盖——不得"仅 1 条真 e2e + 其余用 component/unit 充数"
-- [ ] **接线验证（Rule #23）**：row 的 `runtime_wiring` 据 in-process 实跑裁定（`DslModelParser → StreamModelDslBuilder → StreamExecutionEnvironment` 确实连通），不得仅凭类存在标 `wired`
-- [ ] **无静默跳过**：任一构造无法在 in-process 实跑的，row `disposition` 标 `unverified`/`component-only`（Rule #24）
-- [ ] `No owner-doc update required`（证据文件是审计产出；不改 `docs-for-ai/`）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] evidence 文件存在，含 ≥10 条 supported-transform evidence row（覆盖 source/map/filter/flatMap/keyBy/window/aggregate/reduce/process/cep/custom/timestampsAndWatermarks/sink 的 supported 子集），格式经 `check-nop-stream-audit-manifest.mjs evidence --strict` 校验 exit 0
+- [x] **端到端验证（Rule #22）**：**每条** supported-transform evidence row 的 `positive_proof` 是从 `.stream.xml` parse 到 `env.execute()` 到 sink 输出的 in-process 实跑测试名（`ClassName#method`），或该 row `disposition` 非 `e2e-proved`（`unverified`/`component-only`）并注明缺覆盖——不得"仅 1 条真 e2e + 其余用 component/unit 充数"
+- [x] **接线验证（Rule #23）**：row 的 `runtime_wiring` 据 in-process 实跑裁定（`DslModelParser → StreamModelDslBuilder → StreamExecutionEnvironment` 确实连通），不得仅凭类存在标 `wired`
+- [x] **无静默跳过**：任一构造无法在 in-process 实跑的，row `disposition` 标 `unverified`/`component-only`（Rule #24）
+- [x] `No owner-doc update required`（证据文件是审计产出；不改 `docs-for-ai/`）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - XDSL → Java/Graph Trace & Topology/Stable-Identity Equivalence Evidence
 
-Status: planned
+Status: completed
 Targets: `ai-dev/audits/nop-stream-independent-audit/stage-7-xdsl-streammodel-entry.evidence.md`
 
 - Item Types: `Proof`
 
-- [ ] 产出 XDSL → Java/graph trace evidence row：`source_anchor` 指向 `StreamModelDslBuilder.build():106-118` + `buildTransforms():195-264`（topological sort）+ `StreamGraphGenerator.generate():110`（`:217-231` instanceof dispatch + `populateStreamModel():126`）。**等价性传递性论证**：topology 等价靠两段传递成立——(a) `TestDagTopologyConsistency`（**build-only，不调 `execute()`**）证明 XDSL `<transforms>`/`<edges>` 与 Java 入口产出的 `Transformation` DAG 在 Transformation 层一一对应；(b) Stage 6 frozen 判据已证 Java `Transformation` → `StreamGraph` → `JobGraph` 经 `execute()` 等价。故 XDSL ≡ graph 传递成立。**但 repo 无直接 XDSL → `execute()` → graph topology 断言测试**，故本 row `disposition` 须标 `component-only` + `positive_proof: manual-trace:<anchor>`（引用传递性论证），**不得**标 `e2e-proved`（因 `TestDagTopologyConsistency` 不调 `execute()` 且只比较 Transformation 层非 StreamGraph/JobGraph 节点/边）。
-- [ ] 产出 stable-identity 等价性 evidence row：`source_anchor` 指向 `StreamTransformModel.id`（`stream.xdef:104` 字段定义，`:108` 为 `<transforms>` 的 `xdef:key-attr="id"`）→ `StreamModelDslBuilder.buildTransform():266` → `Transformation` → `StreamNode`/`JobVertex` id 传播路径。**repo 无测试把 XDSL transform id 追溯到 StreamNode/JobVertex**，故 `disposition` 须标 `component-only` + `positive_proof: manual-trace:<anchor>`，引用 Stage 6 stable-identity 判据做传递性论证，**不得**标 `e2e-proved`。
-- [ ] 产出 checkpoint config 应用 evidence row：`source_anchor` 指向 `StreamModelDslBuilder.applyCheckpointConfig():124` + `CheckpointConfigModel` 字段。**repo 无测试断言 XDSL `<checkpoint>` 字段经 `applyCheckpointConfig()` 应用到 `env`**，故 `disposition` 须标 `component-only` 或 `unverified` + `positive_proof: manual-trace:<anchor>`（代码追踪 `applyCheckpointConfig` 读取哪些字段并调 `env.setCheckpointConfig(...)`），**不得**标 `e2e-proved`。supported 字段（enabled/interval/processingGuarantee/timeout/maxConcurrentCheckpoints/minPause/maxRetainedCheckpoints/jobTerminationMode）据代码追踪裁定；unused 字段在 Phase 4 裁定。
+- [x] 产出 XDSL → Java/graph trace evidence row：`source_anchor` 指向 `StreamModelDslBuilder.build():106-118` + `buildTransforms():195-264`（topological sort）+ `StreamGraphGenerator.generate():110`（`:217-231` instanceof dispatch + `populateStreamModel():126`）。**等价性传递性论证**：topology 等价靠两段传递成立——(a) `TestDagTopologyConsistency`（**build-only，不调 `execute()`**）证明 XDSL `<transforms>`/`<edges>` 与 Java 入口产出的 `Transformation` DAG 在 Transformation 层一一对应；(b) Stage 6 frozen 判据已证 Java `Transformation` → `StreamGraph` → `JobGraph` 经 `execute()` 等价。故 XDSL ≡ graph 传递成立。**但 repo 无直接 XDSL → `execute()` → graph topology 断言测试**，故本 row `disposition` 须标 `component-only` + `positive_proof: manual-trace:<anchor>`（引用传递性论证），**不得**标 `e2e-proved`（因 `TestDagTopologyConsistency` 不调 `execute()` 且只比较 Transformation 层非 StreamGraph/JobGraph 节点/边）。
+- [x] 产出 stable-identity 等价性 evidence row：`source_anchor` 指向 `StreamTransformModel.id`（`stream.xdef:104` 字段定义，`:108` 为 `<transforms>` 的 `xdef:key-attr="id"`）→ `StreamModelDslBuilder.buildTransform():266` → `Transformation` → `StreamNode`/`JobVertex` id 传播路径。**repo 无测试把 XDSL transform id 追溯到 StreamNode/JobVertex**，故 `disposition` 须标 `component-only` + `positive_proof: manual-trace:<anchor>`，引用 Stage 6 stable-identity 判据做传递性论证，**不得**标 `e2e-proved`。
+- [x] 产出 checkpoint config 应用 evidence row：`source_anchor` 指向 `StreamModelDslBuilder.applyCheckpointConfig():124` + `CheckpointConfigModel` 字段。**repo 无测试断言 XDSL `<checkpoint>` 字段经 `applyCheckpointConfig()` 应用到 `env`**，故 `disposition` 须标 `component-only` 或 `unverified` + `positive_proof: manual-trace:<anchor>`（代码追踪 `applyCheckpointConfig` 读取哪些字段并调 `env.setCheckpointConfig(...)`），**不得**标 `e2e-proved`。supported 字段（enabled/interval/processingGuarantee/timeout/maxConcurrentCheckpoints/minPause/maxRetainedCheckpoints/jobTerminationMode）据代码追踪裁定；unused 字段在 Phase 4 裁定。
 
 Exit Criteria:
 
-- [ ] ≥3 条 trace/equivalence evidence row，格式校验 exit 0
-- [ ] **接线验证（Rule #23）**：trace row 的 `runtime_wiring` 经实跑/manual-trace 证明 `DslModelParser → StreamModelDslBuilder → StreamExecutionEnvironment → StreamGraphGenerator` 路径确实连通（非仅类存在）
-- [ ] **端到端验证**：topology 等价 row 的 `positive_proof` 引用一条 in-process 实跑测试（XDSL → execute → graph topology 断言），或 `disposition` 非 `e2e-proved` 并注明
-- [ ] **无静默跳过**：checkpoint config 的 unused 字段不得被静默当作 applied——须有独立 evidence row 裁定（Phase 4 覆盖）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] ≥3 条 trace/equivalence evidence row，格式校验 exit 0
+- [x] **接线验证（Rule #23）**：trace row 的 `runtime_wiring` 经实跑/manual-trace 证明 `DslModelParser → StreamModelDslBuilder → StreamExecutionEnvironment → StreamGraphGenerator` 路径确实连通（非仅类存在）
+- [x] **端到端验证**：topology 等价 row 的 `positive_proof` 引用一条 in-process 实跑测试（XDSL → execute → graph topology 断言），或 `disposition` 非 `e2e-proved` 并注明
+- [x] **无静默跳过**：checkpoint config 的 unused 字段不得被静默当作 applied——须有独立 evidence row 裁定（Phase 4 覆盖）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - Unsupported XDSL Node Fail-Fast Coverage Matrix
 
-Status: planned
+Status: completed
 Targets: `ai-dev/audits/nop-stream-independent-audit/stage-7-xdsl-streammodel-entry.evidence.md`
 
 - Item Types: `Decision | Proof`
 
-- [ ] 为每个 unsupported XDSL 节点各产一条 evidence row：`disposition` 为 `fail-fast`（有 `rejection_proof` 验证抛 `UnsupportedOperationException`）或 `non-goal`（注明 out-of-scope for current supported baseline）。覆盖：union（`AdvancedTransforms.buildUnion():244-250`）、sideOutput（`AdvancedTransforms.buildSideOutput():322-329`）、streams（`StreamModelDslBuilder.failFastOnUnsupportedRegistries():157`）、sideInputs（`:161`）、environments（`:165`）、requirements（`:169`）、checkpointParticipants（`:173`）、onStart/onEnd/onError（`:177`）、schemas（`:181`）、coders（`:185`）、unknown transform type（`AdvancedTransforms.build():100-101`）。
-- [ ] `rejection_proof` 引用 `TestStreamModelDslBuilderFailFast#<method>` 或 inline XML 测试（若有）；若某节点无 rejection 测试，`disposition` 标 `unverified` 而非 `fail-fast`。
-- [ ] 冻结**支持/拒绝 XDSL 节点矩阵**文本（写入证据文件头部）：supported transforms（source/map/filter/flatMap/keyBy/window/aggregate/reduce/process/cep/custom/timestampsAndWatermarks/sink）、fail-fast transforms（union/sideOutput/unknown）、fail-fast registries（streams/sideInputs/environments/requirements/checkpointParticipants/onStart/onEnd/onError/schemas/coders）。
+- [x] 为每个 unsupported XDSL 节点各产一条 evidence row：`disposition` 为 `fail-fast`（有 `rejection_proof` 验证抛 `UnsupportedOperationException`）或 `non-goal`（注明 out-of-scope for current supported baseline）。覆盖：union（`AdvancedTransforms.buildUnion():244-250`）、sideOutput（`AdvancedTransforms.buildSideOutput():322-329`）、streams（`StreamModelDslBuilder.failFastOnUnsupportedRegistries():157`）、sideInputs（`:161`）、environments（`:165`）、requirements（`:169`）、checkpointParticipants（`:173`）、onStart/onEnd/onError（`:177`）、schemas（`:181`）、coders（`:185`）、unknown transform type（`AdvancedTransforms.build():100-101`）。
+- [x] `rejection_proof` 引用 `TestStreamModelDslBuilderFailFast#<method>` 或 inline XML 测试（若有）；若某节点无 rejection 测试，`disposition` 标 `unverified` 而非 `fail-fast`。
+- [x] 冻结**支持/拒绝 XDSL 节点矩阵**文本（写入证据文件头部）：supported transforms（source/map/filter/flatMap/keyBy/window/aggregate/reduce/process/cep/custom/timestampsAndWatermarks/sink）、fail-fast transforms（union/sideOutput/unknown）、fail-fast registries（streams/sideInputs/environments/requirements/checkpointParticipants/onStart/onEnd/onError/schemas/coders）。
 
 Exit Criteria:
 
-- [ ] ≥11 条 unsupported-node evidence row（union/sideOutput/streams/sideInputs/environments/requirements/checkpointParticipants/onStart/onEnd/onError/schemas/coders/unknown），`disposition` 为 `fail-fast` 或 `non-goal` 或 `unverified`，格式校验 exit 0
-- [ ] 支持/拒绝节点矩阵在证据文件头部有显式文本
-- [ ] **无静默跳过（Rule #24）**：unsupported 节点不得被静默当作 supported；每个要么 `fail-fast`（有 rejection_proof 验证抛异常）要么 `non-goal`（注明 out-of-scope）要么 `unverified`（注明缺 rejection 测试）
-- [ ] `node ai-dev/tools/check-nop-stream-audit-manifest.mjs evidence --strict` exit 0，且校验器实际解析到本 stage 证据行（非空过）
-- [ ] `No owner-doc update required`
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] ≥11 条 unsupported-node evidence row（union/sideOutput/streams/sideInputs/environments/requirements/checkpointParticipants/onStart/onEnd/onError/schemas/coders/unknown），`disposition` 为 `fail-fast` 或 `non-goal` 或 `unverified`，格式校验 exit 0
+- [x] 支持/拒绝节点矩阵在证据文件头部有显式文本
+- [x] **无静默跳过（Rule #24）**：unsupported 节点不得被静默当作 supported；每个要么 `fail-fast`（有 rejection_proof 验证抛异常）要么 `non-goal`（注明 out-of-scope）要么 `unverified`（注明缺 rejection 测试）
+- [x] `node ai-dev/tools/check-nop-stream-audit-manifest.mjs evidence --strict` exit 0，且校验器实际解析到本 stage 证据行（非空过）
+- [x] `No owner-doc update required`
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - Production-Wiring Gap, Demo Dangling Transforms & Checkpoint Config Unused Fields Disposition
 
-Status: planned
+Status: completed
 Targets: `ai-dev/audits/nop-stream-independent-audit/stage-7-xdsl-streammodel-entry.evidence.md`
 
 - Item Types: `Decision | Proof`
 
-- [ ] 产出 **XDSL 入口无生产接线** evidence row：`source_anchor` 指向 `StreamModelDslBuilder.of():94` + grep evidence（`nop-stream/**/src/main/**/*.java` 对 `DslModelParser`/`StreamModelDslBuilder.of` 零命中）；`disposition: residual-risk`；`runtime_wiring: partial`（test wired, production unwired）；`required_lane: in-process`；`positive_proof: none`（无生产实跑）；`rejection_proof: none`；在 `declared_guarantee` 中注明"XDSL 入口路径当前仅 test-only invocation；无 runtime loader/dispatcher/bean 在 `main/` 代码中加载 `.stream.xml`；demo `fraud-detection.stream.xml` 无 Java driver class"。
-- [ ] 产出 **demo dangling transforms** evidence row：`source_anchor` 指向 `fraud-detection.stream.xml` 中 split-map/sum-reduce transforms（无 edge 连接）；`disposition: residual-risk`（latent build failure）；注明"demo 含 zero-upstream transforms (split-map/sum-reduce)，`buildTransforms()` 在 build 时对它们调 `requireSingleInput(upstreamIds)` 发现 `found 0` 会抛 `IllegalArgumentException`——demo 当前无 Java driver class 故从未触发此 build failure，但若被加载执行则会 fail-fast"。
-- [ ] 产出 **checkpoint config unused 字段** evidence row：`source_anchor` 指向 `CheckpointConfigModel` 中 storageConfig/storageType/barrierAlignmentTimeout/maxConsecutiveCheckpointFailures/jobId/pipelineId + `StreamModelDslBuilder.applyCheckpointConfig():124`（只应用部分字段）；`disposition: residual-risk`（parsed but not applied to env）；注明 unused 字段清单。
-- [ ] 全 evidence 文件回归校验 + corpus 交叉标注核对。
+- [x] 产出 **XDSL 入口无生产接线** evidence row：`source_anchor` 指向 `StreamModelDslBuilder.of():94` + grep evidence（`nop-stream/**/src/main/**/*.java` 对 `DslModelParser`/`StreamModelDslBuilder.of` 零命中）；`disposition: residual-risk`；`runtime_wiring: partial`（test wired, production unwired）；`required_lane: in-process`；`positive_proof: none`（无生产实跑）；`rejection_proof: none`；在 `declared_guarantee` 中注明"XDSL 入口路径当前仅 test-only invocation；无 runtime loader/dispatcher/bean 在 `main/` 代码中加载 `.stream.xml`；demo `fraud-detection.stream.xml` 无 Java driver class"。
+- [x] 产出 **demo dangling transforms** evidence row：`source_anchor` 指向 `fraud-detection.stream.xml` 中 split-map/sum-reduce transforms（无 edge 连接）；`disposition: residual-risk`（latent build failure）；注明"demo 含 zero-upstream transforms (split-map/sum-reduce)，`buildTransforms()` 在 build 时对它们调 `requireSingleInput(upstreamIds)` 发现 `found 0` 会抛 `IllegalArgumentException`——demo 当前无 Java driver class 故从未触发此 build failure，但若被加载执行则会 fail-fast"。
+- [x] 产出 **checkpoint config unused 字段** evidence row：`source_anchor` 指向 `CheckpointConfigModel` 中 storageConfig/storageType/barrierAlignmentTimeout/maxConsecutiveCheckpointFailures/jobId/pipelineId + `StreamModelDslBuilder.applyCheckpointConfig():124`（只应用部分字段）；`disposition: residual-risk`（parsed but not applied to env）；注明 unused 字段清单。
+- [x] 全 evidence 文件回归校验 + corpus 交叉标注核对。
 
 Exit Criteria:
 
-- [ ] ≥3 条 disposition evidence row（production-wiring gap + demo dangling + checkpoint unused fields），格式校验 exit 0
-- [ ] **无静默跳过（Rule #24）**：production-wiring gap 不得被静默当作 `wired`——须显式标 `partial`/`unwired` 并注明"test-only invocation"
-- [ ] `node ai-dev/tools/check-nop-stream-audit-manifest.mjs evidence --strict` exit 0，且校验器实际解析到行（非空过）；finding_id 交叉标注合法（ID 在 frozen corpus 内或 `none`）
-- [ ] `No owner-doc update required`
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] ≥3 条 disposition evidence row（production-wiring gap + demo dangling + checkpoint unused fields），格式校验 exit 0
+- [x] **无静默跳过（Rule #24）**：production-wiring gap 不得被静默当作 `wired`——须显式标 `partial`/`unwired` 并注明"test-only invocation"
+- [x] `node ai-dev/tools/check-nop-stream-audit-manifest.mjs evidence --strict` exit 0，且校验器实际解析到行（非空过）；finding_id 交叉标注合法（ID 在 frozen corpus 内或 `none`）
+- [x] `No owner-doc update required`
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > **审计计划（无生产代码变更）**：本计划产出为 evidence rows + 矩阵文本，不改 nop-stream 生产代码。`./mvnw test`/`compile` 不强制；改为以 evidence 校验器退出码 + in-process 实跑证据引用为 closure 依据。但若审计中发现 confirmed live defect，按 roadmap 规则指派 remediation plan。
 
-- [ ] supported XDSL transform 节点各有 source-to-sink evidence row（in-process lane 实跑或如实标注缺覆盖）
-- [ ] XDSL → Java/graph trace + topology/stable-identity 等价性已验证（runtime_wiring 经实跑/manual-trace 裁定）
-- [ ] unsupported XDSL 节点各有 `fail-fast`/`non-goal`/`unverified` 裁定（无静默放行）
-- [ ] production-wiring gap（test-only invocation）显式裁定为 `residual-risk`
-- [ ] demo dangling transforms + checkpoint config unused fields 有显式 disposition
-- [ ] 支持/拒绝节点矩阵显式成文
-- [ ] 所有 evidence row 经 `check-nop-stream-audit-manifest.mjs evidence --strict` exit 0，且**非空过**
-- [ ] 不存在被静默降级到 deferred 的 in-scope 审计项
-- [ ] 审计发现的任何 confirmed live defect 已指派 active/successor remediation plan
-- [ ] `No owner-doc update required`（不改 `docs-for-ai/`）
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 验证（a）source-to-sink row 的 `positive_proof` 确为 in-process 实跑测试名（非组件 unit 充数），（b）`disposition: e2e-proved` 的 row 其 `positive_proof` 均为真实 `ClassName#method`，（c）`runtime_wiring=wired` 确经接线验证，（d）unsupported 节点无静默放行，（e）production-wiring gap 如实标 `partial`
+- [x] supported XDSL transform 节点各有 source-to-sink evidence row（in-process lane 实跑或如实标注缺覆盖）
+- [x] XDSL → Java/graph trace + topology/stable-identity 等价性已验证（runtime_wiring 经实跑/manual-trace 裁定）
+- [x] unsupported XDSL 节点各有 `fail-fast`/`non-goal`/`unverified` 裁定（无静默放行）
+- [x] production-wiring gap（test-only invocation）显式裁定为 `residual-risk`
+- [x] demo dangling transforms + checkpoint config unused fields 有显式 disposition
+- [x] 支持/拒绝节点矩阵显式成文
+- [x] 所有 evidence row 经 `check-nop-stream-audit-manifest.mjs evidence --strict` exit 0，且**非空过**
+- [x] 不存在被静默降级到 deferred 的 in-scope 审计项
+- [x] 审计发现的任何 confirmed live defect 已指派 active/successor remediation plan
+- [x] `No owner-doc update required`（不改 `docs-for-ai/`）
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 验证（a）source-to-sink row 的 `positive_proof` 确为 in-process 实跑测试名（非组件 unit 充数），（b）`disposition: e2e-proved` 的 row 其 `positive_proof` 均为真实 `ClassName#method`，（c）`runtime_wiring=wired` 确经接线验证，（d）unsupported 节点无静默放行，（e）production-wiring gap 如实标 `partial`
 
 ## Deferred But Adjudicated
 
@@ -179,12 +179,23 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写>>
-Completed: <<YYYY-MM-DD>>
+Status Note: All 4 Phases and 13 Closure Gates verified PASS by independent closure audit. 30 evidence rows (EVID-S7-001..030) produced covering 13 supported transforms, 3 trace/equivalence rows, 11 unsupported-node rows, and 3 residual-risk dispositions. Anti-Hollow check confirmed: all 6 e2e-proved positive_proofs are real in-process tests (parse → build → execute → sink assertion); 3 unverified fail-fast rows honestly lack rejection tests; production-wiring gap honestly classified partial (zero main/ hits for DslModelParser/parseFromResource/.stream.xml); demo dangling transforms (split-map, sum-reduce) confirmed zero-edge with latent requireSingleInput fail-fast; checkpoint unused fields (storageConfig/storageType/barrierAlignmentTimeout/maxConsecutiveCheckpointFailures/jobId/pipelineId) confirmed parsed-but-not-applied. Manifest validator exit 0. No silent no-ops or disposition inflation found.
+Completed: 2026-08-08
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Audit Session: <<session ID>>
-- Evidence: <<每条 Exit Criterion 和 Closure Gate 的验证结果>>
-- Follow-up: <<只记录 non-blocking follow-up>>
+- Reviewer / Agent: independent closure-audit sub-agent (fresh read-only audit; not the implementer)
+- Audit Session: closure-audit of plan 2026-08-08-0010-2 (ses_022b1ebb2ffe3sNt3vYFLDeVVt)
+- Evidence:
+  - Phase 1 (13 rows): 6 e2e-proved (source/map/filter/keyBy/reduce/sink — real in-process tests verified at TestStreamModelDslBuilderE2E:69, TestStreamModelDeltaExtends:104, TestAdvancedPipelineE2E:79), 7 component-only (flatMap/window/aggregate/process/cep/custom/timestampsAndWatermarks — honest gap, TestAdvancedTransforms methods verified real). PASS.
+  - Phase 2 (3 rows): topology component-only (TestDagTopologyConsistency confirmed build-only, no execute()); stable-identity component-only (no XDSL-id→StreamNode trace test; XDSL id is streamRegistry key only, Transformation.getId() is unrelated AtomicInteger); checkpoint-applied component-only. PASS.
+  - Phase 3 (11 rows): 7 fail-fast with real rejection_proof tests (union/sideOutput/streams/sideInputs/environments/schemas/coders); 3 unverified (requirements/checkpointParticipants/onStart-onEnd-onError — no rejection test exists in TestStreamModelDslBuilderFailFast, honest); 1 fail-fast manual-trace (unknown type, unreachable via valid XDSL parse). PASS.
+  - Phase 4 (3 rows): production-wiring partial (grep nop-stream/**/src/main/**/*.java = 0 hits for DslModelParser/parseFromResource/.stream.xml); demo dangling transforms (split-map/sum-reduce zero-edge, requireSingleInput :292-306 would throw IllegalArgumentException "found 0"); checkpoint unused fields (6 fields in _CheckpointConfigModel, 0 references in StreamModelDslBuilder.applyCheckpointConfig). PASS.
+  - `node ai-dev/tools/check-nop-stream-audit-manifest.mjs evidence --strict` exit 0 (parsed 30 EVID-S7 rows, non-empty).
+  - `node ai-dev/tools/check-plan-checklist.mjs <plan> --strict` exit 0 after Closure section filled.
+  - `./mvnw test -pl nop-stream/nop-stream-flow -am -T 1C` → BUILD SUCCESS, 51 tests 0 failures (all cited test classes green).
+- Follow-up:
+  - (1) add rejection tests for requirements/checkpointParticipants/onStart-onEnd/onError to close EVID-S7-024/025/026 unverified gap (test-effectiveness remediation, Stage 17 lane)
+  - (2) add `<flatMap>` in-process e2e fixture to close EVID-S7-004 component-only gap (test-effectiveness remediation)
+  - (3) production-wiring upgrade (runtime loader/bean in main/) if XDSL entry becomes production-supported — independent remediation plan
+  - (4) Delta overlay behavior (`x:extends` / `_delta/default/`) — Stage 8
