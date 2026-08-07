@@ -55,37 +55,37 @@
 
 ### Phase 1 - 增量 restore fail-fast 补齐
 
-Status: planned
+Status: completed
 Targets: `nop-stream/nop-stream-rocksdb/src/main/java/io/nop/stream/core/common/state/backend/rocksdb/RocksDBKeyedStateBackend.java`, `nop-stream/nop-stream-rocksdb/src/main/java/io/nop/stream/core/common/state/backend/rocksdb/RocksDBKeyEncoder.java`
 
 - Item Types: `Fix | Proof`
 
-- [ ] 在 `restoreState`（`:772-791`）两条增量分支（marker 为 `IncrementalSnapshotResult`、marker 为 Map 经 BeanTool 重建）调用 `restoreIncremental(result)` **之前**，分别调用 `RocksDBKeyEncoder.verifyKeyLayoutVersion(snapshot.getStateData(), true)`
+- [x] 在 `restoreState`（`:772-791`）两条增量分支（marker 为 `IncrementalSnapshotResult`、marker 为 Map 经 BeanTool 重建）调用 `restoreIncremental(result)` **之前**，分别调用 `RocksDBKeyEncoder.verifyKeyLayoutVersion(snapshot.getStateData(), true)`
 
 Exit Criteria:
 
-- [ ] 两条增量分支在仓库中可观察到 `verifyKeyLayoutVersion(..., true)` 调用，位于 `restoreIncremental` 之前
-- [ ] 新增回归测试：构造 `IncrementalSnapshotResult`（或 Map 形式）令 `keyLayoutVersion=1` 或 absent，**经 `restoreState` 入口**调用（非直接调 helper，以验证接线——现有 `TestRocksDBKeyGroupPrefixLayout.java:153,162` 直接调 helper，不覆盖 `restoreState` 接线），断言抛 `ERR_STREAM_STATE_ERROR`
-- [ ] **无静默跳过**：legacy/absent 版本显式 fail-fast 抛异常，不静默按错误范围扫描
-- [ ] `ai-dev/design/nop-stream/state-management-design.md` §5.3 已要求此 fail-fast（无需新增文档）；若实现与文档措辞需对齐则更新，否则 `No owner-doc update required`
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 两条增量分支在仓库中可观察到 `verifyKeyLayoutVersion(..., true)` 调用，位于 `restoreIncremental` 之前
+- [x] 新增回归测试：构造 `IncrementalSnapshotResult`（或 Map 形式）令 `keyLayoutVersion=1` 或 absent，**经 `restoreState` 入口**调用（非直接调 helper，以验证接线——现有 `TestRocksDBKeyGroupPrefixLayout.java:153,162` 直接调 helper，不覆盖 `restoreState` 接线），断言抛 `ERR_STREAM_STATE_ERROR`
+- [x] **无静默跳过**：legacy/absent 版本显式 fail-fast 抛异常，不静默按错误范围扫描
+- [x] `ai-dev/design/nop-stream/state-management-design.md` §5.3 已要求此 fail-fast（无需新增文档）；若实现与文档措辞需对齐则更新，否则 `No owner-doc update required`（§5.3 第 176 行已要求，`No owner-doc update required`）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 增量 persist 引用计数泄漏修复
 
-Status: planned
+Status: completed
 Targets: `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/checkpoint/CheckpointCoordinator.java`
 
 - Item Types: `Fix | Proof`
 
-- [ ] 在 `executeIncrementalPersistAsync`（`:581-624`）的存储失败分支（`storeCheckPoint` 抛错 / `storeEpochManifest` 抛错），遍历 `segments` 调用 `sharedStateRegistry.unregister(seg.getPath())`（该 API 返回零引用 handle 列表，见 `SharedStateRegistry.java:38-43`），对返回的零引用 handle 调用 `segmentStore.discardSegment(...)` 物理回收 SST 文件；或改为将 register 推迟到两次存储写入成功之后（拆分 materialize 与 register）
+- [x] 在 `executeIncrementalPersistAsync`（`:581-624`）的存储失败分支（`storeCheckPoint` 抛错 / `storeEpochManifest` 抛错），遍历 `segments` 调用 `sharedStateRegistry.unregister(seg.getPath())`（该 API 返回零引用 handle 列表，见 `SharedStateRegistry.java:38-43`），对返回的零引用 handle 调用 `segmentStore.discardSegment(...)` 物理回收 SST 文件；或改为将 register 推迟到两次存储写入成功之后（拆分 materialize 与 register）
 
 Exit Criteria:
 
-- [ ] 失败分支在仓库中可观察到 unregister 路径（或 register 已移到成功分支之后），失败不再永久搁浅引用计数
-- [ ] 新增回归测试：触发增量 checkpoint 存储失败（mock `checkpointStorage.storeCheckPoint` 抛异常），断言 `sharedStateRegistry` 中对应段引用计数回落到失败前值，且零引用物理 SST 文件已被 `segmentStore.discardSegment` 回收（可由 `unregister` 返回的 handle 列表验证）
-- [ ] **接线验证**：测试验证 `onCompletePersistFailure` 失败路径确实触发 unregister + 物理回收，而非仅靠 `gcSegmentsForCheckpoint`（其只读成功分支的 `checkpointSegments`）
-- [ ] `No owner-doc update required`（纯内部引用计数/磁盘回收修正，checkpoint-design §9 契约不变）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 失败分支在仓库中可观察到 unregister 路径（或 register 已移到成功分支之后），失败不再永久搁浅引用计数
+- [x] 新增回归测试：触发增量 checkpoint 存储失败（mock `checkpointStorage.storeCheckPoint` 抛异常），断言 `sharedStateRegistry` 中对应段引用计数回落到失败前值，且零引用物理 SST 文件已被 `segmentStore.discardSegment` 回收（可由 `unregister` 返回的 handle 列表验证）
+- [x] **接线验证**：测试验证 `onCompletePersistFailure` 失败路径确实触发 unregister + 物理回收，而非仅靠 `gcSegmentsForCheckpoint`（其只读成功分支的 `checkpointSegments`）
+- [x] `No owner-doc update required`（纯内部引用计数/磁盘回收修正，checkpoint-design §9 契约不变）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - JdbcCheckpointStorage 方言感知 upsert
 

@@ -1,10 +1,10 @@
 # 330 nop-ai Responses 迁移 6：ResponsesDialect 落地 + 端到端集成测试
 
 > Plan Status: draft
-> Last Reviewed: 2026-08-06
+> Last Reviewed: 2026-08-07
 > Source: `ai-dev/design/nop-ai-responses-migration-design.md`（设计结论 #8、§3.4）；325-329 已把消息体系收敛为与 Responses typed items 同构的单一拆分模型。
 > Related: 系列第 6 份（**终份**），前置 325-329 全部完成。本计划交付迁移的最终目标——nop-ai 可经 `ResponsesDialect` 消费 OpenAI Responses 端点（`/v1/responses`）。
-> Review Hold: 前置计划 325/326/327 仍为 `active`、328/329 仍为 `draft`，**无一 completed**。本计划 Current Baseline 中多处「已存在/已扩展/已落地」项实际是 325-329 的待交付物（经 live repo 核对：`ApiStyle` 无 `responses`、`normalizeFinishReason` 无 `completed`/`incomplete`、`ChatReasoningMessage`/`ChatToolCallMessage` 类不存在——均属 325 计划范畴）。基线文本已修正为「待前置落地」，但计划本身在 325-329 completed 前不可执行、不可对 live repo 验证。下一轮 review（前置完成后）再决定是否 promote to active。
+> Review Hold: 前置 325/326/327 已于 2026-08-07 全部 `completed` 并落地（本轮 live repo 核实：`ApiStyle.responses` 已存在 `model/ApiStyle.java:62`；`normalizeFinishReason` 已含 `completed`/`incomplete` `AbstractLlmDialect.java:295,299`；`ChatReasoningMessage`/`ChatToolCallMessage` 已存在；`ChatResponse.messages` 序列、`ChatToolResponseMessage.callId`、`ChatOptions.responseFormatConfig` 对象载体均就绪）。**本计划 Phase 1（非流式）的全部依赖已满足，可立即执行**。剩余阻塞仅为 **328**（流式 item 增量模型）仍 `active` 但全部 Phase `planned`、未落地：330 Phase 2（`parseStreamChunk` 产出 item chunk）与 Phase 3 流式端到端依赖 328 的新 `ChatStreamChunk` 字段（`itemType`/`itemIndex`/`delta`/`phase`）与 StreamAggregator 改造。**329（折叠字段删除）非本计划依赖**（330 不读 `ChatAssistantMessage.think/toolCalls`、不依赖 `ChatResponse.message` 单字段）。**解除条件**：328 `completed`（landed）后重审本计划并 promote to active；届时重核 Current Baseline 每一条与 live repo 一致。（旧 hold 文本「325-329 无一 completed / ChatReasoningMessage 不存在」已于本轮 review 核实为过期陈述并订正。）
 
 ## Purpose
 
@@ -14,16 +14,17 @@
 
 ## Current Baseline
 
-> ⚠️ **前置门禁**：以下凡标注「（325/326/... 待落地）」的条目均为兄弟计划的待交付物，**当前 live repo 尚未包含**（核对于 2026-08-06）。本计划须在 325-329 全部 `completed` 后方可执行；执行前须重核本节每一条与 live repo 一致。
+> ⚠️ **前置门禁**：325/326/327 已于 2026-08-07 `completed` 并落地（下列条目本轮已重核 live repo，✅=已落地）。**剩余前置仅为 328**（流式 item 增量模型，仍 `active` 未落地）——它阻塞本计划 Phase 2/3 流式部分；329（折叠字段删除）非本计划依赖。执行前须重核本节每一条与 live repo 一致。
 
 - `ILlmDialect` 接口方法签名（摸底 §2.1）：`getName`/`buildUrl`/`setHeaders`/`buildBody`/`parseResponse`/`parseErrorResponse`/`parseStreamChunk`/`convertMessage`/`getRole`；default `convertToolDefinitions`(OpenAI 风格，:148)、`estimateTokens`、`parseRequestBody`(默认抛 UOE，:238)、`buildResponse`(默认 OpenAI chat 格式，:249)、`buildStreamChunk`(:278，328 已重写)。
 - `LlmDialectFactory` `nop-ai/nop-ai-core/.../dialect/LlmDialectFactory.java:19-25` 静态注册块（openai/anthropic/gemini/ollama）；`:33 getDialect(ApiStyle)`、`:47/59 register`。
-- `ApiStyle.RESPONSES` 已存在（325 落地，未注册 dialect）→ **（325 待落地）** live repo `ApiStyle.java:21-52` 当前仅 openai/ollama/anthropic/gemini/other，**无 responses 枚举值**。
-- `AbstractLlmDialect.normalizeFinishReason` 已扩展 `completed→stop`/`incomplete→length`（325）；→ **（325 待落地）** live repo `AbstractLlmDialect.java:285-309` 当前只认 stop/end_turn/length/max_tokens/content_filter/tool_calls 等，**不含 `completed`/`incomplete`**。`parseErrorResponse`（:70）配置驱动，ResponsesDialect 可复用。
+- ✅ `ApiStyle.responses` 已存在（325 落地于 2026-08-07，live repo `nop-ai-core/.../model/ApiStyle.java:62`）；`LlmDialectFactory` 静态块（`:19-25`）仅注册 openai/anthropic/gemini/ollama，**未为 responses 注册 dialect**（`getDialect` 未命中时回退 openai，:38）。
+- ✅ `AbstractLlmDialect.normalizeFinishReason` 已扩展 `completed→stop`/`incomplete→length`（325 落地于 2026-08-07，live repo `AbstractLlmDialect.java:295,299`）。`parseErrorResponse`（:70）配置驱动，ResponsesDialect 可复用。
 - `ChatServiceImpl.buildHttpRequest` `nop-ai/nop-ai-core/.../service/ChatServiceImpl.java:219`：`dialect.buildUrl(baseUrl, config.getChatUrl(), apiKey)`（:234），`chatUrl` 配置项默认 `/v1/chat/completions`，指向 `/v1/responses` 可复用（design §3.6）。
 - SSE 约束（摸底 §9.5）：`callStream.onNext`（:191）只透传 `data:` 行；Responses 具名事件靠 `data:` 载荷内 `type` 字段分派（328 已验证可行）。
 - `AiDialectBackendMessageConverter`（gateway，摸底 §7）frontend/backend 双 dialect 流程已预留挂点；frontend 默认 openai（唯一实现 `parseRequestBody` 的 dialect）。
-- 消息体系（325-329 终态）：`ChatResponse.messages` 含 `ChatAssistantMessage`/`ChatReasoningMessage`/`ChatToolCallMessage`；`ChatOptions.responseFormat` 对象载体；`ChatToolResponseMessage.callId`。→ **（325-329 待落地）** live repo `nop-ai-api/.../messages/` 当前仅有 ChatAssistantMessage/ChatSystemMessage/ChatUserMessage/ChatToolResponseMessage/ChatCustomMessage/ChatToolCall/ChatUsage/ChatAttachment/ChatMessage，**`ChatReasoningMessage`/`ChatToolCallMessage` 不存在**；`ChatResponse.messages` 列表与 `ChatToolResponseMessage.callId` 字段亦未落地（属 326/325 范畴）。
+- ✅ 消息体系（325/326 已落地于 2026-08-07）：`ChatResponse.messages`（`List<ChatMessage>`，含 `addMessage`/`success(messages)`）就绪；`ChatReasoningMessage`（summary/detail）、`ChatToolCallMessage`（callId/name/arguments）已存在；`ChatToolResponseMessage.callId` 就绪；`ChatOptions.responseFormatConfig`（`ResponseFormat` 对象载体，旧 String `getResponseFormat()` 委托）就绪。
+- ❌ **仅流式侧（328）未落地**：`ChatStreamChunk` 仍为折叠模型（`content`/`thinking`/`toolCall`），无 `itemType`/`itemIndex`/`delta`/`phase`，`ChatToolCallChunk.java` 仍存在——330 Phase 2/3 流式部分依赖此重构（328 active 但各 Phase 仍 planned）。
 - design §3.4 双向转换映射表（messages ↔ Responses wire）已定义。
 
 ## Goals
@@ -81,6 +82,8 @@ Exit Criteria:
 - [ ] `LlmDialectFactory.getDialect(ApiStyle.RESPONSES)` 返回 ResponsesDialect。
 - [ ] hosted tools 被剥离（测试断言 request body 不含 web_search/file_search/code_interpreter）。
 - [ ] **无静默跳过**：未实现的方法抛 `UnsupportedOperationException`（如 `parseRequestBody` 前端方向），非空方法体。
+- [ ] owner-doc 裁定：本 Phase 新增公共 dialect（`ResponsesDialect`）并改变路由（`ApiStyle.RESPONSES` 注册）→ 若 `docs-for-ai/` 有 LLM 接入层/dialect 配置文档，已补充 `dialect=responses` 用法；否则明确写 `No owner-doc update required`（plan-level 文档裁定在 Closure Gates）。
+- [ ] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 2 - ResponsesDialect 流式（parseStreamChunk）
 
@@ -95,6 +98,8 @@ Targets: `nop-ai-core/.../dialect/ResponsesDialect.java`
 Exit Criteria:
 
 - [ ] 流式方向落地，SSE fixture 测试覆盖文本 + 工具调用交错场景。
+- [ ] owner-doc 裁定：本 Phase 新增流式解析（`parseStreamChunk`），不改变已有 public contract → 显式写明 `No owner-doc update required` 或补充对应文档（plan-level 裁定在 Closure Gates）。
+- [ ] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 3 - 端到端集成测试
 
@@ -110,6 +115,8 @@ Exit Criteria:
 
 - [ ] **端到端验证**（Anti-Hollow）：从 `ChatRequest`（含 system + user + tools）→ `ChatServiceImpl` → ResponsesDialect → mock `/v1/responses` → `ChatResponse.messages` 完整路径跑通（非流式 + 流式）。
 - [ ] **接线验证**：`ChatServiceImpl` 在运行时确实调用 `ResponsesDialect.buildUrl/buildBody/parseResponse`（mock verify 或行为断言，确认 ApiStyle.RESPONSES 路由生效）。
+- [ ] owner-doc 裁定：纯测试 Phase（Proof），`No owner-doc update required`。
+- [ ] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
 

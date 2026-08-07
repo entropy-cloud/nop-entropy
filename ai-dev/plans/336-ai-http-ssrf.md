@@ -2,6 +2,7 @@
 
 > Plan Status: draft
 > Last Reviewed: 2026-08-07
+> Review Hold: Blocked on User-Authorization Gate (DR-4a) — requires explicit user disposition of the enforcement-layer decision before implementation can begin. Cannot be resolved at review time; correctly held at draft.
 > Source: `ai-dev/analysis/2026-08/2026-08-04-security-hardening-baseline.md` (DR-4a, DR-3b)
 > Related: `ai-dev/plans/328-security-hardening-remediation-planning.md`
 > Predecessor: Plan 328 Phase 1 froze the decision records this plan consumes.

@@ -1,24 +1,24 @@
 # 329 nop-ai Responses 迁移 5：删除折叠过渡字段，收敛到单一拆分模型
 
 > Plan Status: draft
-> Review Hold: 前置 325/326/327 均为 `active` 但**尚未落地**，328 亦处 `draft`（Review Hold）。live repo（commit `271f6a2d7`）核实：`ChatReasoningMessage`/`ChatToolCallMessage` 全仓不存在；`ChatResponse` 仍为单条 `private ChatAssistantMessage message`（无 `messages` 列表）；`ChatMessage.java:20` 仍为 `@JsonTypeInfo(property="role")`（未改 `type`）；`ChatAssistantMessage.think/thinkSignature/toolCalls` **无任何 `@Deprecated` 标注**。本计划所有 Phase（删除寄居字段 / 删 `message` 单字段 / 改序列化标识）均硬依赖拆分模型先落地，否则会大面积破坏 dialect/agent/流式编译。**解除条件**：325（消息类型）+ 326（`response.messages` + dialect 双轨）+ 327（agent 切换）landed 后重审；本计划与 328 同属「待前置落地」队列。
-> Last Reviewed: 2026-08-06
-> Source: `ai-dev/design/nop-ai-responses-migration-design.md`（设计结论 #3/#4、§四「拒绝了什么」#3 双核心并存）。原稿"327/328 已把消费方切到拆分模型"为前瞻性表述，review 时经 live repo（`271f6a2d7`）核实尚未落地，已订正；详见 Review Hold。
+> Review Hold: 前置 325/326/327 已于 2026-08-07 全部 `completed` 并落地（live repo commit `58d118934` 核实：`ChatReasoningMessage`/`ChatToolCallMessage` 已存在，`ChatResponse.messages` 序列就绪，4 dialect `parseResponse` 双轨产出 `setThink`/`setToolCalls` + `setMessages`，agent 引擎已切 `response.getMessages()`）。**剩余阻塞为 328**：328 处 `active` 但全部 Phase 仍 `planned`、未落地——live 核实 `ChatStreamChunk` 仍为折叠模型（`content`/`thinking`/`toolCall`，无 `itemType`/`itemIndex`/`delta`/`phase`），`ChatToolCallChunk.java` 仍存在，`ChatServiceImpl:471/483/487` 仍 `setThink`/`setToolCalls`/`setMessage`，`ChatStreamAccumulator:168` 仍 `setThink`。本计划删除 `ChatAssistantMessage.think/thinkSignature/toolCalls` 与 `ChatResponse.message` 会直接破坏上述流式编译路径。**解除条件**：328 `completed`（landed）后重审；325/326/327 阻塞已解除，不再列为本计划前置。
+> Last Reviewed: 2026-08-07
+> Source: `ai-dev/design/nop-ai-responses-migration-design.md`（设计结论 #3/#4、§四「拒绝了什么」#3 双核心并存）。前置 325/326/327 已 landed（见 Review Hold live 核实）；328 为当前唯一未落地前置。
 > Related: 系列第 5 份，前置 325-328，后续 330（ResponsesDialect 落地在最终单一模型上）。本计划是迁移的**收敛点**：删除所有过渡 `@Deprecated` 字段，达到设计文档定义的最终单一拆分模型。
 
 ## Purpose
 
 删除 `ChatAssistantMessage.think/thinkSignature/toolCalls` 寄居字段、`ChatResponse.message` 单字段、`ChatRequest` 旧便捷方法、`ChatMessage` 序列化标识从 `role`→`type`，并清理 legacy `AiChatExchange.think`（若裁定 in scope）。完成后 nop-ai 消息体系为**单一拆分模型**（与 Responses typed items 同构），无双轨/无 `@Deprecated` 过渡残留，序列化格式为最终形态。
 
-**前置依赖硬约束**：327（agent 不再读 toolCalls）、328（StreamAggregator 不再产 think/toolCall 折叠）必须先完成；否则本计划的删除会破坏它们。退出时整体编译 + 全测试通过，且 grep 无 `@Deprecated` 过渡字段残留。
+**前置依赖硬约束**：327（agent 不再读 toolCalls，已于 2026-08-07 landed）、328（StreamAggregator/ChatStreamAccumulator 不再产 think/toolCall 折叠，**当前 `active` 未落地**）必须先完成；否则本计划的删除会破坏流式编译路径（`ChatServiceImpl:471/483/487`、`ChatStreamAccumulator:168` 仍 setThink/setToolCalls/setMessage）。退出时整体编译 + 全测试通过，且 grep 无 `@Deprecated` 过渡字段残留。
 
 ## Current Baseline
 
 > 经过 325-328 后，消费方已切换，但旧字段仍保留（双轨填充）。本计划删除它们。
 
 - `ChatAssistantMessage` 寄居字段（325 保留）：`:31 think`、`:36 thinkSignature`、`:41 toolCalls`、衍生 `getFullContent()`(:101)/`getFirstToolCall()`(:121)/`hasToolCalls()`(:96)。**`thinkSignature` 零外部引用**（摸底 §8.1），删除零风险。
-- `ChatAssistantMessage.think` 残留引用（327/328 后剩余）：dialect 双轨填充点（326/328 填充，本计划移除填充）、`ChatResponse.getFullContent():234`、`DefaultChatLogger:63`、legacy `DefaultAiChatService:600,606,622`、`AiChatExchange:125,250,254`、`MockChatService:128`、`ChatStreamAccumulator:168`（328 已改）。
-- `ChatAssistantMessage.toolCalls` 残留引用（327 后剩余）：`ChatRequest.java:209 getToolCalls`/`:191 getLastAssistantMessage`/`:230 addToolResponse`（寄居便捷方法）、`ChatServiceImpl:483`（328 StreamAggregator 已改，确认无残留）、4 dialect 双轨填充点、legacy `DefaultAiChatService:373,532`、`AiCommand:393,400`、dialect 测试 `TestAnthropicDialect:150,172`。
+- `ChatAssistantMessage.think` 残留引用：dialect 双轨填充点（326 填充 `setThink` + `setMessages`，本计划移除 `setThink` 旧路径）、`ChatResponse.getFullContent():283`、`DefaultChatLogger:63`、legacy `DefaultAiChatService:600,606,622`、`AiChatExchange:125,250,254`、`MockChatService:128`、`ChatStreamAccumulator:168`（**328 待改，尚未落地**——本计划删除 `think` 前须先由 328 完成流式累加器迁移）。
+- `ChatAssistantMessage.toolCalls` 残留引用：`ChatRequest.java:209 getToolCalls`/`:191 getLastAssistantMessage`/`:230 addToolResponse`（寄居便捷方法）、`ChatServiceImpl:483`（**328 StreamAggregator 待改，尚未落地**——live 仍 `message.setToolCalls(toolCalls)`，328 迁移后此处无残留，本计划方可删字段）、4 dialect 双轨填充点（326 `setToolCalls` + `ChatToolCallMessage`）、legacy `DefaultAiChatService:373,532`、`AiCommand:393,400`、dialect 测试 `TestAnthropicDialect:150,172`。
 - `ChatResponse.message` 单字段（326 保留为 `@Deprecated` 委托）：生产 setMessage（4 dialect + ChatServiceImpl + MockChatService + FileSystemResponseProvider:130 + InMemoryResponseProvider:78）、getMessage（ReActAgent:674 已在327改、SingleTurnExecutor:51、LlmCompletionJudge:95,102、LLMCurator:113,118、Layer3FullSummaryStrategy:146-155、MockChatService、`ILlmDialect:257` default buildResponse）、测试（TestChatServiceImpl、TestStreamAggregator、4 dialect 测试）。
 - `ChatMessage.java:20` `@JsonTypeInfo(property="role")`——本计划改为 `property="type"`，@JsonSubTypes 注册 key 已在 325 改为 type 语义值（user/assistant/system/tool_call/tool_output/reasoning）。
 - legacy `AiChatExchange`（`nop-ai-core/.../api/messages/AiChatExchange.java:125,250,254`）独立维护 think 字段（deprecated pipeline）。
@@ -72,6 +72,8 @@ Exit Criteria:
 
 - [ ] `ChatAssistantMessage` 仅剩 `content`（+ messageId/providerHints 继承字段）；grep 全仓 `getThink()|setThink|getToolCalls()|setToolCalls|hasToolCalls|thinkSignature` 无生产残留（legacy 裁定项除外）。
 - [ ] 4 dialect 既有测试断言路径迁移完成、全绿。
+- [ ] owner-doc 裁定：本 Phase 改变 public contract（`ChatAssistantMessage` API）→ 相关 `ai-dev/design/nop-ai-responses-migration-design.md` 章节已核对（plan-level 最终状态确认在 Closure Gates）。
+- [ ] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 2 - ChatResponse.message 单字段删除 + 聚合访问器
 
@@ -88,8 +90,10 @@ Targets: `nop-ai-api/.../chat/ChatResponse.java`、消费方、`ILlmDialect.java
 Exit Criteria:
 
 - [ ] `ChatResponse.message` 字段与 `getMessage()` 已删；grep 无残留。
-- [ ] 聚合访问器 `outputText()`/`outputToolCalls()` 就绪且有测试。
+- [ ] 聚合访问器 `outputText()`/`outputToolCalls()` 就绪且有测试（新增公共 API，依 Minimum Rules #25 必须有 focused test）。
 - [ ] 消费方全部迁移，编译通过。
+- [ ] owner-doc 裁定：本 Phase 引入新公共 API（`outputText`/`outputToolCalls`）并删除 `message` 字段 → 相关 `ai-dev/design/nop-ai-responses-migration-design.md` §3.6 已核对（plan-level 最终状态确认在 Closure Gates）。
+- [ ] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 3 - ChatRequest 便捷方法 + ChatMessage 序列化标识 + legacy 裁定
 
@@ -108,6 +112,8 @@ Exit Criteria:
 - [ ] 序列化 golden test 反映最终 `type` 字段形态，round-trip 通过。
 - [ ] legacy 裁定已记录（landed 或 Deferred But Adjudicated）。
 - [ ] **无 `@Deprecated` 过渡残留**：grep 全仓本系列引入的 `@Deprecated`（325/326 的 callId/responseFormat/message 委托）已全部移除。
+- [ ] owner-doc 裁定：本 Phase 改变持久化 JSON 形态（`role`→`type`）并裁定 legacy pipeline → 相关 `ai-dev/design/nop-ai-responses-migration-design.md` 最终状态已核对。
+- [ ] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
 
@@ -118,7 +124,7 @@ Exit Criteria:
 - [ ] `./mvnw test -pl nop-ai -am` 全绿。
 - [ ] **Anti-Hollow Check**：删除字段后非流式 + 流式端到端（ChatRequest → ChatResponse.messages / SSE → messages）仍完整连通；`scan-hollow-implementations.mjs --module nop-ai` 退出码 0。
 - [ ] owner-doc：`ai-dev/design/nop-ai-responses-migration-design.md` 确认为最终设计状态（无 Proposed vs Current 残留，符合 Minimum Rules #14）。
-- [ ] `ai-dev/logs/2026/08-02.md` 追加进度。
+- [ ] `ai-dev/logs/2026/{对应月份}/{DD}.md` 追加进度（执行时按实际收口日期填写）。
 - [ ] 独立子 agent closure-audit 已记录证据。
 
 ## Risks And Rollback

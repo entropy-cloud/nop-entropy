@@ -1,6 +1,7 @@
 # 335 AI Bash Isolation Hardening
 
 > Plan Status: draft
+> Review Hold: blocked on user authorization of DR-3a (isolation backend selection, host-execution mode). Cannot be resolved at review time — held as `draft` until the user records an approved disposition. Review otherwise passed (source anchors verified; template gaps fixed).
 > Last Reviewed: 2026-08-07
 > Source: `ai-dev/analysis/2026-08/2026-08-04-security-hardening-baseline.md` (DR-3a, DR-3b)
 > Related: `ai-dev/plans/328-security-hardening-remediation-planning.md`
@@ -94,6 +95,13 @@ Exit Criteria:
 - [ ] **No silent no-op (Rule #24)**: the unavailable-backend path throws or returns an
   explicit error, asserted by a focused test (e.g. backend injected as `null`/unavailable →
   no host process is spawned).
+- [ ] **Wiring verification (Rule #23)**: `BashExecutor` routes command execution through
+  the new backend seam at runtime — asserted by a test verifying the seam is invoked and
+  that the legacy `ProcessBuilder("sh","-c",...)` path is no longer the default route when a
+  backend is configured (not just that the seam interface exists).
+- [ ] Owner-doc adjudication: if this Phase changes live baseline/owner behavior, relevant
+  `ai-dev/design/` / `docs-for-ai/` updated; otherwise explicit `No owner-doc update
+  required` recorded.
 - [ ] `ai-dev/logs/` entry for the execution day.
 
 ### Phase 2 - Resource Limits And Real-Backend Isolation Proof
@@ -117,6 +125,9 @@ Exit Criteria:
 - [ ] Timeout and memory limits are enforced and asserted.
 - [ ] The destructive-command regex may remain as defense-in-depth but must NOT be the
   primary control (assert it is not the only gate).
+- [ ] Owner-doc adjudication: if this Phase changes live baseline/owner behavior, relevant
+  `ai-dev/design/` / `docs-for-ai/` updated; otherwise explicit `No owner-doc update
+  required` recorded.
 - [ ] `./mvnw test -pl nop-ai/nop-ai-toolkit -am -T 1C` green.
 - [ ] `ai-dev/logs/` entry for the execution day.
 
@@ -125,6 +136,10 @@ Exit Criteria:
 - [ ] H-4 resolved: host-shell execution is replaced by the selected backend; unrestricted
   host execution is either gone or an explicit opt-in per DR-3a.
 - [ ] Fail-closed behavior proven: unavailable backend never falls back to host shell.
+- [ ] **Anti-Hollow Check**: closure audit verifies (a) `BashExecutor` calls the backend
+  seam at runtime (not just that the interface exists), (b) the fail-closed path is a real
+  error, not a silent no-op, and (c) no empty method body / silent skip stands in for the
+  isolation implementation.
 - [ ] Real-backend isolation evidence recorded (not command-string tests).
 - [ ] `./mvnw clean install -pl nop-ai/nop-ai-toolkit -am -T 1C -DskipTests` builds.
 - [ ] `./mvnw test -pl nop-ai/nop-ai-toolkit -am -T 1C` green.

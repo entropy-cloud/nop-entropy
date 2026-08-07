@@ -1,6 +1,7 @@
 # 334 Encrypted-Value Format Hardening
 
 > Plan Status: draft
+> Review Hold: Draft review ran (2026-08-07). Format/scope/closure sections are sound; one Major reference defect fixed (`ConfigStarter.newVmValueEnhancer` -> actual `newValueEnhancer`). NOT promoted to active: implementation is gated on user authorization of upstream decision records DR-2a (versioned per-message-IV contract) and DR-2b (global vs scoped compatibility boundary) — these change persisted ciphertext semantics and cannot be guessed at review time. Re-promote to active once the user records `approved` for both DRs.
 > Last Reviewed: 2026-08-07
 > Source: `ai-dev/analysis/2026-08/2026-08-04-security-hardening-baseline.md` (DR-2a, DR-2b)
 > Related: `ai-dev/plans/328-security-hardening-remediation-planning.md`
@@ -33,7 +34,7 @@ See Plan 328 analysis DR-2a/DR-2b for verified source anchors. Summary:
 
 - `AESTextCipher` default ctor pins a static `DEFAULT_GCM_IV` (12-byte) reused across every
   encryption; `generateIv()` exists but is never called by the default ctor,
-  `DefaultOrmColumnBinderEnhancer`, or `ConfigStarter.newVmValueEnhancer`.
+  `DefaultOrmColumnBinderEnhancer`, or `ConfigStarter.newValueEnhancer`.
 - `concatIv` prepends the (still static) IV; there is no version marker in the output.
 - `buildSecretKey` uses single-pass `md5(encKey + saltKey)` — not PBKDF2/Argon2/scrypt.
 - `decrypt` already fails closed (wraps exceptions in `NopException`) for tampered /
@@ -60,7 +61,7 @@ See Plan 328 analysis DR-2a/DR-2b for verified source anchors. Summary:
 ### In Scope
 
 - `AESTextCipher` (defaults, ctor, `encrypt`/`decrypt`, `generateIv`, `concatIv`).
-- `DefaultOrmColumnBinderEnhancer` wiring; `ConfigStarter.newVmValueEnhancer` wiring.
+- `DefaultOrmColumnBinderEnhancer` wiring; `ConfigStarter.newValueEnhancer` wiring.
 - Legacy ciphertext detection, read, and migration.
 - The compatibility-boundary decision (global vs scoped).
 
@@ -124,7 +125,7 @@ Exit Criteria:
 ### Phase 3 - ORM And Config Enhancer Wiring (entry-to-sink)
 
 Status: blocked (pending Phase 2)
-Targets: `DefaultOrmColumnBinderEnhancer.java`, `ConfigStarter.newVmValueEnhancer`
+Targets: `DefaultOrmColumnBinderEnhancer.java`, `ConfigStarter.newValueEnhancer`
 
 - Item Types: `Fix | Proof`
 

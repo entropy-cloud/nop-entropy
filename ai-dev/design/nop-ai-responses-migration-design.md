@@ -158,5 +158,5 @@ Responses wire → 消息体系：
   - Phase 0：消息类型体系改造（新增 `ChatToolCallMessage`/`ChatReasoningMessage`，删除寄居字段与 `ChatCustomMessage`）+ 序列化 golden test。（✅ plan 325 已落地：新增 `ChatToolCallMessage`(`tool_call`)/`ChatReasoningMessage`(`reasoning`)，`ChatToolResponseMessage` 改名 `callId` + type `tool_output`，删 `ChatCustomMessage`，`ApiStyle.RESPONSES` 枚举 + `normalizeFinishReason` 扩展，golden test 全绿。寄居字段 `think`/`toolCalls` 保留待 Phase 4/plan 329 删除）
   - Phase 1：dialect 层改造（4 个既有方言基于新消息体系，既有测试全绿）。
   - Phase 2：agent 引擎切换（`ReActAgentExecutor` 提取 `ChatToolCallMessage`，工具循环回归）。（✅ plan 327 已落地：引擎从 `response.getMessages()` 提取 `ChatToolCallMessage` → `List<ChatToolCall>` 喂既有 fan-out；5 个辅助生产引用点迁移；85 个 mock-LLM 测试迁移到 `ChatResponseFixtures` 双轨产出；3404 测试全绿。）
-  - Phase 3：流式 `ChatStreamChunk` item 增量重构 + UI 文本消费适配。
+  - Phase 3：流式 `ChatStreamChunk` item 增量重构 + UI 文本消费适配。（✅ plan 328 已落地：`ChatStreamChunk` 改为 item 增量模型（itemType/itemIndex/callId/delta/phase:ADDED|DELTA|DONE），删 `ChatToolCallChunk`；4 dialect `parseStreamChunk` 产出 item 增量 + 补齐 OpenAI 流式 tool_calls 缺口；StreamAggregator/ChatStreamAccumulator 按 itemType 状态机汇聚产出与非流式 326 同构的 `response.messages`。旧 `message`/think/toolCalls 寄居字段双轨保留待 329 删。）
   - Phase 4：`ResponsesDialect` + 流式/非流式集成测试（mock Responses wire fixture）。
