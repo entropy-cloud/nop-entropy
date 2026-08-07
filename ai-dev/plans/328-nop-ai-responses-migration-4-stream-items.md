@@ -1,9 +1,11 @@
 # 328 nop-ai Responses 迁移 4：流式 ChatStreamChunk item 增量重构
 
 > Plan Status: draft
+> Review Hold: 前置 325/326/327 均为 `active` 但**尚未落地**。live repo（commit `271f6a2d7`）grep 确认 `ChatReasoningMessage`/`ChatToolCallMessage` 全仓不存在，`ChatResponse` 仍为单条 `private ChatAssistantMessage message`（无 `messages` 列表）。Phase 3 硬依赖这些拆分类型才能编译与验证；且 P1/P2/P3 强耦合（`ChatStreamChunk` 字段变更会破坏 `StreamAggregator`/`Accumulator`/`buildStreamChunk` 编译，须同批落地），故整计划当前不可执行。**解除条件**：325（消息类型）+ 326（`response.messages` + dialect 双轨）landed 后重审。
 > Last Reviewed: 2026-08-02
-> Source: `ai-dev/design/nop-ai-responses-migration-design.md`（设计结论 #6、§3.3）；327 已把 agent 非流式路径切到拆分消息。
-> Related: 系列第 4 份，前置 327，后续 329（删字段收敛）。本计划为 330 ResponsesDialect 的具名事件流解析铺路。
+> Source: `ai-dev/design/nop-ai-responses-migration-design.md`（设计结论 #6、§3.3）。设计路径为 325→326→327→328；本计划须待前置 325/326/327 landed 后方可执行（原稿"327 已把…切到拆分消息"为前瞻性表述，review 时经 live repo 核实尚未落地，已订正）。
+> Related: 系列第 4 份，前置 325/326/327，后续 329（删字段收敛）。本计划为 330 ResponsesDialect 的具名事件流解析铺路。
+> Dependency: Phase 3 硬依赖前置 325 落地 `ChatReasoningMessage`/`ChatToolCallMessage`、326 落地 `ChatResponse.messages` 列表。Phase 1/2 不直接依赖拆分类型，但与 Phase 3 编译耦合（见 Risks 风险 1），故整计划受 325/326 阻塞。
 
 ## Purpose
 

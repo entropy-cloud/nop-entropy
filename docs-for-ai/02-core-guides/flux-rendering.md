@@ -405,6 +405,41 @@ Flux `PageSchema` **完全支持** aside 相关属性（与 AMIS 命名差异：
 - 页面级属性（`title`/`className`/`asideMinWidth` 等）经 `FluxPageDefaultAttrs` 透传，与 crud/simple/tabs 页面一致。
 - 实现于 `flux-web/page_complex.xpl`。
 
+### embed 页面（嵌入外部页面 + `<override>` delta 合并）
+
+`embed` 是引用型页面类型：它不自己描述结构，而是按 `path` 加载一个**外部** view.xml 的 page/grid 或一个 page.yaml，将其渲染结果作为本页面的输出，并可选地经 `<override>` 做 delta 合并。典型用途是把独立维护的页面（gantt/kanban/calendar 等专有页面、复用的子页面）嵌入到当前 view 的 `<pages>` 中。
+
+```xml
+<pages>
+    <embed name="main" path="my-target.view.xml" page="crudPage">
+        <override>
+            <title>覆盖标题</title>
+            <asideMinWidth>320</asideMinWidth>
+        </override>
+    </embed>
+</pages>
+```
+
+分派规则（实现于 `flux-web/page_embed.xpl`，由 `impl_GenPage.xpl` 的 `pageModel.type == 'embed'` 分支命中）：
+
+- `path` 指向 `*.view.xml`：按 `page` / `grid` 选择，分别经 `thisLib:GenPage` / `thisLib:GenTable` 渲染（宿主 view 不重复 objMeta/controlLib，由外部 view 自载）。
+- `path` 指向 `*.page.yaml`（或其他）：经 `WebPageHelper.internalLoadPage` 加载；flux 模式下若同目录存在同名 `*.flux.yaml` 则优先回退到它（与 `LoadPage` 一致）。
+- `path` 缺省或 `path` 指向 view.xml 但未配 `page`/`grid`：显式抛 `nop.err.web.embed-page-path-required` / `nop.err.web.embed-page-ref-required`，不静默 noop。
+- 得到 base JSON 后统一经 `WebPageHelper.applyViewOverride(base, pageModel.override)` 输出。
+
+> `<embed>` 在 `xview.xdef` 中同时作为 `UiContainerModel` 的第七种子类型存在（可置于 complex/tabs/wizard/group 的槽位内），但本节仅描述**页面级** embed 的 flux 渲染。容器槽位内嵌 embed 的渲染分派属 follow-up（与 complex 先例一致，AMIS/web.xlib 侧不接页面级 embed，落入 `GenPageDefault` throw）。
+
+### `<override>` delta 合并语义（embed 页面 + cell `<view>`）
+
+`<override>` 节点声明对所加载基础 JSON 的 delta 合并内容，经 `WebPageHelper.applyViewOverride` → `io.nop.core.lang.json.delta.JsonMerger`（schema-free merge）：
+
+- **map** 按 key 合并；key 以 `!` 前缀表示强制覆盖（如 `"!title": x` 把 `title` 覆盖为 `x`）。
+- **list** 中元素若含唯一键（`id`/`name`）则按键合并，否则整段替换。
+- 支持 `x:override="replace"` / `x:override="remove"`。
+- override 为 `null` 或空 map/list 时原样返回 base，保证既有渲染输出不变。
+
+除页面级 `<embed>` 外，cell 级 `<view>`（`disp.xdef` 的 `UiRefViewModel`）同样支持 `<override>`：两端 `GenDispView`（`flux-web.xlib` + `web.xlib`）在取得 base 页面/grid JSON 后统一经 `applyViewOverride(base, refView.override)` 返回，使单元格里引用的子页面/子表格也可做 delta 定制。`applyViewOverride` 内部对 override 先 `CloneHelper.deepClone` 转可写副本（override 来自已冻结的组件模型，为只读 JObject，而 `JsonMerger.mergeMap` 会就地 remove 标记键）。
+
 ### 不支持的类型
 
 - 页面级 `picker`：Flux 无页面级 picker schema（`PickerSchema` 仅为表单字段类型），`page_picker.xpl` 为 AMIS 遗留，暂不处理。
@@ -413,8 +448,9 @@ Flux `PageSchema` **完全支持** aside 相关属性（与 AMIS 命名差异：
 
 - `nop-frontend-support/nop-web/src/main/resources/_vfs/nop/web/xlib/flux-web.xlib` — Flux 页面生成库（28 个标签，含共享容器分派 `GenContainerModel`）
 - `nop-frontend-support/nop-web/src/main/resources/_vfs/nop/web/xlib/flux-control.xlib` — Flux 控件映射库（75 个标签）
-- `nop-frontend-support/nop-web/src/main/resources/_vfs/nop/web/xlib/flux-web/page_tabs.xpl` / `page_wizard.xpl` / `page_group.xpl` — 页面级容器模板（包 `page` 外壳）
+- `nop-frontend-support/nop-web/src/main/resources/_vfs/nop/web/xlib/flux-web/page_tabs.xpl` / `page_wizard.xpl` / `page_group.xpl` / `page_complex.xpl` / `page_embed.xpl` — 页面级容器/引用模板（包 `page` 外壳或直接输出嵌入页）
 - `nop-frontend-support/nop-web/src/main/resources/_vfs/nop/web/xlib/flux-web/container_tabs.xpl` / `container_wizard.xpl` / `container_group.xpl` / `container_crud.xpl` / `container_simple.xpl` — 容器级模板（不包外壳，页面级与 body 级共用）
+- `nop-frontend-support/nop-web/src/main/java/io/nop/web/page/WebPageHelper.java`（`applyViewOverride` / `internalLoadPage` / `toFluxPagePath`） — embed 加载 + override 合并入口
 
 ## 相关文档
 

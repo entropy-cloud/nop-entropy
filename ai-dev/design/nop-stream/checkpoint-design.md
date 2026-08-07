@@ -256,6 +256,8 @@ Stage 45 把 task 层从「单 in-flight」推进到「多 in-flight」。下列
 - `CheckpointBarrierTracker` 维护 per-epoch ACK 状态；`notifyCheckpointAborted(N)` **只**移除 epoch N 的追踪条目（非全局 reset），不影响其它在途 epoch。
 - local abort handler（`GraphModelCheckpointExecutor.registerLocalAbortHandler`）改为 epoch 感知：对每个 task 调 `tracker.notifyCheckpointAborted(N)` 并释放 N 的对齐；**仅当该 task 无其它在途 epoch 时**才 cancel task 线程；否则只释放该 epoch 的对齐，让其它 epoch 继续 ACK 完成。
 - abort N 不误杀在途的 N±1。
+- **abort 路径线程安全（P1 hardening）**：local abort handler 运行在 checkpoint timeout / ACK 线程，与持有 `InputGate` 的 task 线程跨线程。`InputGate.abortBarrierAlignment(N)` 保持为**直接调用**（它是解除 barrier 对齐阻塞的机制——`read()` 在对齐期间阻塞，必须由 abort 直接释放 `blockedChannels` 才能解阻塞）。`InputGate` 的三个对齐集合（`inFlightAlignments`/`abortedBarriers`/`blockedChannels`）及 `BarrierAlignment` 内部 channel 集合均改为并发安全结构（`ConcurrentHashMap` / `ConcurrentHashMap.newKeySet()`），`oldestAligning()` 按 min checkpointId 选取（`ConcurrentHashMap` 不保插入序），使 abort 线程的 `remove`/`add` 与 task 线程的 `markFinishedChannel`/`handleBarrierNonRecursive` 迭代不再抛 `ConcurrentModificationException`、不丢 barrier、不永久阻塞 channel。
+  - **拒绝 mailbox 投递（方案 a）**：`InputGate.read()` 在 barrier 对齐期间阻塞，仅在调用方 `processInputGate` 的循环顶部排空 mailbox，故经 mailbox 投递的 abort 无法解除被 abort 的对齐的阻塞——会使 epoch-precise abort 死锁至 `barrierAlignmentTimeout`（30s）后抛异常（回归）。方案 (a) 的"可行性"前提（signalCancel 已用 mailbox）混淆了 signalCancel 与 `task.cancel()` 中断：cancel 分支靠**中断**解阻塞，非 mailbox 排空；epoch-precise 分支无中断。故选并发安全集合（方案 b），零回归。
 
 **拒绝的替代**：
 - option (A) 扩展 `cancelTask` RPC 携带 epoch 参数。拒绝原因：`IStreamTaskRpcService` 是跨模块公共 API（AGENTS.md Protected Area `plan-first`），且 distributed abort 当前驱动 full recovery，RPC 边界 sweep-all 在 recovery 语义下可接受；精准化的核心收益在 task/tracker 层，option (C) 已覆盖。distributed epoch-precise RPC 留作 successor（需独立 plan-first 升级）。

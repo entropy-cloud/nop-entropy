@@ -1,9 +1,10 @@
 # 330 nop-ai Responses 迁移 6：ResponsesDialect 落地 + 端到端集成测试
 
 > Plan Status: draft
-> Last Reviewed: 2026-08-02
+> Last Reviewed: 2026-08-06
 > Source: `ai-dev/design/nop-ai-responses-migration-design.md`（设计结论 #8、§3.4）；325-329 已把消息体系收敛为与 Responses typed items 同构的单一拆分模型。
 > Related: 系列第 6 份（**终份**），前置 325-329 全部完成。本计划交付迁移的最终目标——nop-ai 可经 `ResponsesDialect` 消费 OpenAI Responses 端点（`/v1/responses`）。
+> Review Hold: 前置计划 325/326/327 仍为 `active`、328/329 仍为 `draft`，**无一 completed**。本计划 Current Baseline 中多处「已存在/已扩展/已落地」项实际是 325-329 的待交付物（经 live repo 核对：`ApiStyle` 无 `responses`、`normalizeFinishReason` 无 `completed`/`incomplete`、`ChatReasoningMessage`/`ChatToolCallMessage` 类不存在——均属 325 计划范畴）。基线文本已修正为「待前置落地」，但计划本身在 325-329 completed 前不可执行、不可对 live repo 验证。下一轮 review（前置完成后）再决定是否 promote to active。
 
 ## Purpose
 
@@ -13,14 +14,16 @@
 
 ## Current Baseline
 
+> ⚠️ **前置门禁**：以下凡标注「（325/326/... 待落地）」的条目均为兄弟计划的待交付物，**当前 live repo 尚未包含**（核对于 2026-08-06）。本计划须在 325-329 全部 `completed` 后方可执行；执行前须重核本节每一条与 live repo 一致。
+
 - `ILlmDialect` 接口方法签名（摸底 §2.1）：`getName`/`buildUrl`/`setHeaders`/`buildBody`/`parseResponse`/`parseErrorResponse`/`parseStreamChunk`/`convertMessage`/`getRole`；default `convertToolDefinitions`(OpenAI 风格，:148)、`estimateTokens`、`parseRequestBody`(默认抛 UOE，:238)、`buildResponse`(默认 OpenAI chat 格式，:249)、`buildStreamChunk`(:278，328 已重写)。
 - `LlmDialectFactory` `nop-ai/nop-ai-core/.../dialect/LlmDialectFactory.java:19-25` 静态注册块（openai/anthropic/gemini/ollama）；`:33 getDialect(ApiStyle)`、`:47/59 register`。
-- `ApiStyle.RESPONSES` 已存在（325 落地，未注册 dialect）。
-- `AbstractLlmDialect.normalizeFinishReason` 已扩展 `completed→stop`/`incomplete→length`（325）；`parseErrorResponse`（:70）配置驱动，ResponsesDialect 可复用。
+- `ApiStyle.RESPONSES` 已存在（325 落地，未注册 dialect）→ **（325 待落地）** live repo `ApiStyle.java:21-52` 当前仅 openai/ollama/anthropic/gemini/other，**无 responses 枚举值**。
+- `AbstractLlmDialect.normalizeFinishReason` 已扩展 `completed→stop`/`incomplete→length`（325）；→ **（325 待落地）** live repo `AbstractLlmDialect.java:285-309` 当前只认 stop/end_turn/length/max_tokens/content_filter/tool_calls 等，**不含 `completed`/`incomplete`**。`parseErrorResponse`（:70）配置驱动，ResponsesDialect 可复用。
 - `ChatServiceImpl.buildHttpRequest` `nop-ai/nop-ai-core/.../service/ChatServiceImpl.java:219`：`dialect.buildUrl(baseUrl, config.getChatUrl(), apiKey)`（:234），`chatUrl` 配置项默认 `/v1/chat/completions`，指向 `/v1/responses` 可复用（design §3.6）。
 - SSE 约束（摸底 §9.5）：`callStream.onNext`（:191）只透传 `data:` 行；Responses 具名事件靠 `data:` 载荷内 `type` 字段分派（328 已验证可行）。
 - `AiDialectBackendMessageConverter`（gateway，摸底 §7）frontend/backend 双 dialect 流程已预留挂点；frontend 默认 openai（唯一实现 `parseRequestBody` 的 dialect）。
-- 消息体系（325-329 终态）：`ChatResponse.messages` 含 `ChatAssistantMessage`/`ChatReasoningMessage`/`ChatToolCallMessage`；`ChatOptions.responseFormat` 对象载体；`ChatToolResponseMessage.callId`。
+- 消息体系（325-329 终态）：`ChatResponse.messages` 含 `ChatAssistantMessage`/`ChatReasoningMessage`/`ChatToolCallMessage`；`ChatOptions.responseFormat` 对象载体；`ChatToolResponseMessage.callId`。→ **（325-329 待落地）** live repo `nop-ai-api/.../messages/` 当前仅有 ChatAssistantMessage/ChatSystemMessage/ChatUserMessage/ChatToolResponseMessage/ChatCustomMessage/ChatToolCall/ChatUsage/ChatAttachment/ChatMessage，**`ChatReasoningMessage`/`ChatToolCallMessage` 不存在**；`ChatResponse.messages` 列表与 `ChatToolResponseMessage.callId` 字段亦未落地（属 326/325 范畴）。
 - design §3.4 双向转换映射表（messages ↔ Responses wire）已定义。
 
 ## Goals

@@ -1,8 +1,9 @@
 # 329 nop-ai Responses 迁移 5：删除折叠过渡字段，收敛到单一拆分模型
 
 > Plan Status: draft
-> Last Reviewed: 2026-08-02
-> Source: `ai-dev/design/nop-ai-responses-migration-design.md`（设计结论 #3/#4、§四「拒绝了什么」#3 双核心并存）；327/328 已把消费方切到拆分模型。
+> Review Hold: 前置 325/326/327 均为 `active` 但**尚未落地**，328 亦处 `draft`（Review Hold）。live repo（commit `271f6a2d7`）核实：`ChatReasoningMessage`/`ChatToolCallMessage` 全仓不存在；`ChatResponse` 仍为单条 `private ChatAssistantMessage message`（无 `messages` 列表）；`ChatMessage.java:20` 仍为 `@JsonTypeInfo(property="role")`（未改 `type`）；`ChatAssistantMessage.think/thinkSignature/toolCalls` **无任何 `@Deprecated` 标注**。本计划所有 Phase（删除寄居字段 / 删 `message` 单字段 / 改序列化标识）均硬依赖拆分模型先落地，否则会大面积破坏 dialect/agent/流式编译。**解除条件**：325（消息类型）+ 326（`response.messages` + dialect 双轨）+ 327（agent 切换）landed 后重审；本计划与 328 同属「待前置落地」队列。
+> Last Reviewed: 2026-08-06
+> Source: `ai-dev/design/nop-ai-responses-migration-design.md`（设计结论 #3/#4、§四「拒绝了什么」#3 双核心并存）。原稿"327/328 已把消费方切到拆分模型"为前瞻性表述，review 时经 live repo（`271f6a2d7`）核实尚未落地，已订正；详见 Review Hold。
 > Related: 系列第 5 份，前置 325-328，后续 330（ResponsesDialect 落地在最终单一模型上）。本计划是迁移的**收敛点**：删除所有过渡 `@Deprecated` 字段，达到设计文档定义的最终单一拆分模型。
 
 ## Purpose

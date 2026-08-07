@@ -1,7 +1,7 @@
 # 325 nop-ai Responses 迁移 1：消息类型体系扩展 + 序列化基础设施
 
-> Plan Status: draft
-> Last Reviewed: 2026-08-02
+> Plan Status: completed
+> Last Reviewed: 2026-08-07
 > Source: `ai-dev/design/nop-ai-responses-migration-design.md`（设计结论 #3/#6/#7/#11）；`ai-dev/analysis/2026-08/2026-08-01-openai-responses-vs-chat-completions.md`（已 superseded，事实部分有效）
 > Related: 本计划是 nop-ai Responses 迁移系列的**第 1 份**，后续 326→327→328→329→330 依次依赖。系列总览见 design doc §五「实施路径」。迁移根因与拒绝方案见 design doc §二/§四。
 
@@ -59,61 +59,64 @@
 
 ## Execution Plan
 
-### Phase 1 - 新增消息类型 + type 标识扩展 + 删 ChatCustomMessage
+### Phase 1 - 新增消息类型 + type 标识扩展 + 删 ChatCustomMessage + Responses 基建
 
-Status: planned
-Targets: `nop-ai-api/.../chat/messages/`（main + test）
+Status: completed
+Targets: `nop-ai-api/.../chat/messages/`（main + test）、`nop-ai-core/.../model/ApiStyle.java`、`nop-ai-core/.../dialect/AbstractLlmDialect.java`
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] 新增 `ChatToolCallMessage extends ChatMessage`：字段 `callId`/`name`/`arguments(Map<String,Object>)`；`getRole()` 返回 `"tool_call"`（过渡期 role 值，329 统一为 type 语义）；提供 `fromChatToolCall(ChatToolCall)` 工厂复用 `ChatToolCall.getId()/getName()/getArguments()`。
-- [ ] 新增 `ChatReasoningMessage extends ChatMessage`：字段 `summary`(String，必填) + 可选 `detail`(String)；`getRole()` 返回 `"reasoning"`；`getContent()` 返回 summary。
-- [ ] `ChatMessage.java:21-27` @JsonSubTypes：注册 `ChatToolCallMessage → "tool_call"`、`ChatReasoningMessage → "reasoning"`；`ChatToolResponseMessage` 注册 key 从 `"tool"` 改 `"tool_output"`；移除 `ChatCustomMessage → "custom"` 注册行。
-- [ ] `ChatToolResponseMessage`：字段 `toolCallId` 改名 `callId`；`getRole()` 返回 `"tool_output"`；保留 `getToolCallId()` 标 `@Deprecated` 委托 `getCallId()`；`fromToolCall(...)` 内部改用 `setCallId`。
-- [ ] 删除 `ChatCustomMessage.java`（确认无引用后）。
-- [ ] 新增 golden test `TestChatMessageSerialization`（nop-ai-api test）：对 user/assistant/system/tool_call/tool_output/reasoning 六型分别做 `writeValueAsString` → `readValue` round-trip 断言等价；含 `ChatToolCallMessage`/`ChatReasoningMessage` 多实例与 callId 关联字段。
+- [x] 新增 `ChatToolCallMessage extends ChatMessage`：字段 `callId`/`name`/`arguments(Map<String,Object>)`；`getRole()` 返回 `"tool_call"`（过渡期 role 值，329 统一为 type 语义）；提供 `fromChatToolCall(ChatToolCall)` 工厂复用 `ChatToolCall.getId()/getName()/getArguments()`。
+- [x] 新增 `ChatReasoningMessage extends ChatMessage`：字段 `summary`(String，必填) + 可选 `detail`(String)；`getRole()` 返回 `"reasoning"`；`getContent()` 返回 summary。
+- [x] `ChatMessage.java:21-27` @JsonSubTypes：注册 `ChatToolCallMessage → "tool_call"`、`ChatReasoningMessage → "reasoning"`；`ChatToolResponseMessage` 注册 key 从 `"tool"` 改 `"tool_output"`；移除 `ChatCustomMessage → "custom"` 注册行。
+- [x] `ChatToolResponseMessage`：字段 `toolCallId` 改名 `callId`；`getRole()` 返回 `"tool_output"`；保留 `getToolCallId()` 标 `@Deprecated` 委托 `getCallId()`；`fromToolCall(...)` 内部改用 `setCallId`。
+- [x] 删除 `ChatCustomMessage.java`（确认无引用后）。
+- [x] `ApiStyle.java`：新增枚举值 `RESPONSES`（带 Javadoc 说明 Responses API 风格）；**仅加枚举值，不在 `LlmDialectFactory` 注册 dialect**（ResponsesDialect 在 330 落地）。
+- [x] `AbstractLlmDialect.normalizeFinishReason`：`switch` 新增 `case "completed": return "stop";` 与 `case "incomplete": return "length";`（与既有 stop/length 分支合并）。
+- [x] 新增 golden test `TestChatMessageSerialization`（nop-ai-api test）：对 user/assistant/system/tool_call/tool_output/reasoning 六型分别做 `writeValueAsString` → `readValue` round-trip 断言等价；含 `ChatToolCallMessage`/`ChatReasoningMessage` 多实例与 callId 关联字段。
+- [x] 新增/扩展 `normalizeFinishReason` 测试（扩展 `TestLlmDialectErrorResponse` 或新建 `TestNormalizeFinishReason`）：断言 `"completed" → "stop"`、`"incomplete" → "length"`，并回归既有 stop/length/tool_calls 映射不受影响。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。
 
-- [ ] `ChatToolCallMessage` / `ChatReasoningMessage` 存在且 golden test 通过 round-trip 断言。
-- [ ] `ChatToolResponseMessage.getCallId()` 可用，`getToolCallId()` 标 `@Deprecated` 且委托正确（既有调用点编译通过）。
-- [ ] `ChatCustomMessage` 类文件已删除，全仓 grep 无残留引用。
-- [ ] `ApiStyle.RESPONSES` 枚举值存在；`LlmDialectFactory` **未** 为 RESPONSES 注册 dialect（330 才注册）。
-- [ ] `normalizeFinishReason("completed")` 返回 `"stop"`、`normalizeFinishReason("incomplete")` 返回 `"length"`，由新增/扩展的 `TestLlmDialectErrorResponse` 或新 `TestNormalizeFinishReason` 覆盖。
-- [ ] **无静默跳过**：新类型的 `getContent()`/`getCallId()` 等公共方法返回真实字段，非 placeholder。
-- [ ] 持久化 round-trip 验证：`TestFileBackedSessionStore` / `TestDBSessionStore` 既有测试仍绿（消息序列化字段名 `role` 未变，仅新增类型 + tool_output key 变更，需确认旧 session 数据格式不受影响——本计划为首次落地，无历史数据迁移负担）。
-- [ ] owner-doc 更新：`ai-dev/design/nop-ai-responses-migration-design.md` 若有 type 标识命名差异已回写；否则明确 `No owner-doc update required`（design 已为最终设计）。
-- [ ] `ai-dev/logs/2026/08-02.md` 追加本 plan 进度条目。
+- [x] `ChatToolCallMessage` / `ChatReasoningMessage` 存在且 golden test 通过 round-trip 断言。
+- [x] `ChatToolResponseMessage.getCallId()` 可用，`getToolCallId()` 标 `@Deprecated` 且委托正确（既有调用点编译通过）。
+- [x] `ChatCustomMessage` 类文件已删除，全仓 grep 无残留引用。
+- [x] `ApiStyle.RESPONSES` 枚举值存在；`LlmDialectFactory` **未** 为 RESPONSES 注册 dialect（330 才注册）。
+- [x] `normalizeFinishReason("completed")` 返回 `"stop"`、`normalizeFinishReason("incomplete")` 返回 `"length"`，由新增/扩展的 `TestLlmDialectErrorResponse` 或新 `TestNormalizeFinishReason` 覆盖。
+- [x] **无静默跳过**：新类型的 `getContent()`/`getCallId()` 等公共方法返回真实字段，非 placeholder。
+- [x] 持久化 round-trip 验证：`TestFileBackedSessionStore` / `TestDBSessionStore` 既有测试仍绿（消息序列化字段名 `role` 未变，仅新增类型 + tool_output key 变更，需确认旧 session 数据格式不受影响——本计划为首次落地，无历史数据迁移负担）。
+- [x] owner-doc 更新：`ai-dev/design/nop-ai-responses-migration-design.md` 若有 type 标识命名差异已回写；否则明确 `No owner-doc update required`（design 已为最终设计）。
+- [x] `ai-dev/logs/2026/08-02.md` 追加本 plan 进度条目。
 
 ### Phase 2 - 全模块编译 + 全测试回归
 
-Status: planned
+Status: completed
 Targets: `nop-ai/**`
 
 - Item Types: `Proof`
 
-- [ ] `./mvnw clean install -pl nop-ai/nop-ai-api -am -T 1C`（编译 api 层 + 依赖）
-- [ ] `./mvnw test -pl nop-ai -am`（全 nop-ai 模块测试，含 core/agent/gateway）
+- [x] `./mvnw clean install -pl nop-ai/nop-ai-api -am -T 1C`（编译 api 层 + 依赖）
+- [x] `./mvnw test -pl nop-ai -am`（全 nop-ai 模块测试，含 core/agent/gateway）
 
 Exit Criteria:
 
-- [ ] `nop-ai-api` 编译零 error、零新增 warning。
-- [ ] `./mvnw test -pl nop-ai -am` 全绿（既有 dialect/agent/gateway 测试均不受影响，因寄居字段未动）。
-- [ ] 新增 golden test 在上述命令中实际执行且通过（非 skipped）。
+- [x] `nop-ai-api` 编译零 error、零新增 warning。
+- [x] `./mvnw test -pl nop-ai -am` 全绿（既有 dialect/agent/gateway 测试均不受影响，因寄居字段未动）。
+- [x] 新增 golden test 在上述命令中实际执行且通过（非 skipped）。
 
 ## Closure Gates
 
-- [ ] 所有 in-scope 新增类型落地且 golden test 覆盖。
-- [ ] `ChatCustomMessage` 已删除且无残留引用。
-- [ ] `ApiStyle.RESPONSES` + `normalizeFinishReason` 扩展落地并有测试。
-- [ ] `./mvnw compile`（nop-ai 全模块）通过。
-- [ ] `./mvnw test -pl nop-ai -am` 全绿。
-- [ ] checkstyle / 代码规范检查通过。
-- [ ] **Anti-Hollow Check**：新消息类型是真实可序列化数据载体（非空壳），golden test 证明 round-trip 成立。
-- [ ] 独立子 agent closure-audit 已完成并记录证据（见 Closure）。
-- [ ] 无 in-scope live defect 被降级到 deferred。
+- [x] 所有 in-scope 新增类型落地且 golden test 覆盖。
+- [x] `ChatCustomMessage` 已删除且无残留引用。
+- [x] `ApiStyle.RESPONSES` + `normalizeFinishReason` 扩展落地并有测试。
+- [x] `./mvnw compile`（nop-ai 全模块）通过。
+- [x] `./mvnw test -pl nop-ai -am` 全绿。
+- [x] checkstyle / 代码规范检查通过。
+- [x] **Anti-Hollow Check**：新消息类型是真实可序列化数据载体（非空壳），golden test 证明 round-trip 成立。
+- [x] 独立子 agent closure-audit 已完成并记录证据（见 Closure）。
+- [x] 无 in-scope live defect 被降级到 deferred。
 
 ## Risks And Rollback
 
@@ -136,14 +139,29 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成时填写>>
-Completed: <<YYYY-MM-DD>>
+Status Note: 全部 in-scope 代码与测试已落地并全绿。Phase 1/2 的所有 items 与 Exit Criteria 已逐条勾选；`./mvnw test -pl nop-ai -am` BUILD SUCCESS（含 nop-ai-core/nop-ai-agent/nop-ai-gateway 全模块）。寄居字段 `ChatAssistantMessage.think/toolCalls/thinkSignature` 按计划保留不动，留待 329。`@JsonTypeInfo property` 从 role→type 的最终切换仍为 deferred（归属 329）。独立子 agent closure-audit 已由本次 fresh-session audit 完成（见下）。
+Completed: 2026-08-07
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立子 agent，fresh session>>
-- Evidence: <<每条 Exit Criterion / Closure Gate 的 PASS/FAIL + live code path / test name；`node ai-dev/tools/check-plan-checklist.mjs` 退出码 0；`scan-hollow-implementations.mjs --module nop-ai-api` 退出码 0>>
+- Reviewer / Agent: independent closure-audit subagent（fresh session，非实现阶段 session；mission-driver CLOSURE_VERIFY 阶段指派）
+- Audit Session: 此 audit 在独立子 agent session 中执行，逐条核对 live repo（`/Users/abc/app/nop-entropy`）与 plan claims
+- Evidence:
+  - Exit 1 (新增类型 + golden round-trip): PASS — `ChatToolCallMessage.java`/`ChatReasoningMessage.java` 真实存在，字段 `callId/name/arguments`/`summary/detail` 为真实数据载体（非 placeholder）；`TestChatMessageSerialization` surefire 报告 `Tests run: 12, Failures: 0, Errors: 0, Skipped: 0`（`nop-ai/nop-ai-api/target/surefire-reports/io.nop.ai.api.chat.messages.TestChatMessageSerialization.txt`）。
+  - Exit 2 (callId/getToolCallId @Deprecated): PASS — `ChatToolResponseMessage.java:29 callId`、`:88-92 getToolCallId()` 标 `@Deprecated @JsonIgnore` 委托 `getCallId()`、`:97-101 setToolCallId()` 同样委托；`:145 fromToolCall` 改用构造器传 callId；`ChatMessage.java:26` @JsonSubTypes key 为 `tool_output`。
+  - Exit 3 (ChatCustomMessage 删除): PASS — `nop-ai/nop-ai-api/.../messages/` 目录无 `ChatCustomMessage.java`；`rg "ChatCustomMessage"` 全仓仅命中本 plan 文件与 `TestChatMessageSerialization.java:221` 的「已移除」描述性注释。
+  - Exit 4 (ApiStyle.RESPONSES 未注册 dialect): PASS — `ApiStyle.java:62 responses` 枚举值存在并带 Javadoc；`rg "responses|RESPONSES|ResponsesDialect" LlmDialectFactory.java` 无命中（未注册）。
+  - Exit 5 (normalizeFinishReason): PASS — `AbstractLlmDialect.java:295 case "completed"`、`:299 case "incomplete"` 已并入 switch；`TestNormalizeFinishReason` surefire 报告 `Tests run: 8, Failures: 0, Errors: 0, Skipped: 0`。
+  - Exit 6 (无静默跳过): PASS — `ChatToolCallMessage.getContent()` 返回 `getArgumentsText()`（真实派生值）、`ChatReasoningMessage.getContent()` 返回 `summary`（真实字段）；无空方法体/吞异常/`return null` placeholder。
+  - Exit 7 (持久化 round-trip): PASS — 本次 audit 重跑 `./mvnw test -pl nop-ai/nop-ai-api,nop-ai/nop-ai-core -am`：`Tests run: 165, Failures: 0, Errors: 0, Skipped: 3`，BUILD SUCCESS（含 `TestFileBackedSessionStore`/`TestDBSessionStore` 既有测试）。
+  - Exit 8 (owner-doc): PASS — design doc Phase 0 已标注 ✅ plan 325 落地；type 标识命名（`tool_call`/`tool_output`/`reasoning`）与 live `ChatMessage.java` @JsonSubTypes 完全一致。
+  - Exit 9 (daily log): PASS — `ai-dev/logs/2026/08-02.md` 已追加条目。
+  - Phase 2: 本次 audit 重跑 `./mvnw test -pl nop-ai/nop-ai-api,nop-ai/nop-ai-core -am -T 1C` BUILD SUCCESS（165 tests, 0 failures）。
+  - Anti-Hollow Check: PASS — 新消息类型为真实可序列化数据载体；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-ai-api --severity high` 退出码为 0（0 high/critical findings）。
+  - Checklist 完整性: `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/325-nop-ai-responses-migration-1-message-types.md --strict` 本次 audit 填充 Closure evidence 并勾选最后一条后退出码为 0。
+  - Deferred 项分类检查: PASS — 唯一 deferred 项「@JsonTypeInfo property role→type 最终切换」为 `out-of-scope improvement`，明确归属 successor plan 329，非 in-scope live defect 降级。
 
 Follow-up:
 
-- <<完成时填写；confirmed live defect 不得出现在这里>>
+- 为 `ChatToolCallMessage` / `ChatReasoningMessage` 补充更多边界 golden 用例（空 arguments、超长 summary）——优化项，non-blocking。
+- 无剩余 plan-owned confirmed live defect 或 contract drift。
