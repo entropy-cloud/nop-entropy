@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef">
+    <!-- depends-on 环同样必须被顺序校验捕获（allow-cycle 默认 true 时）。 -->
+    <bean id="dependsC" class="test.io.entropy.beans.MyDependsBeanC" depends-on="dependsD"/>
+    <bean id="dependsD" class="test.io.entropy.beans.MyDependsBeanD" depends-on="dependsC"/>
+</beans>

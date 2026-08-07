@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef"
+       xmlns:ioc="ioc">
+    <!-- Proof 1&2: ioc:after 归并为前置依赖；无 forward 联动 -->
+    <bean id="afterA" class="test.io.entropy.beans.MyDependsBeanA" lazy-init="true" ioc:after="afterB"/>
+    <bean id="afterB" class="test.io.entropy.beans.MyDependsBeanB" lazy-init="true"/>
+
+    <!-- Proof 3: ioc:before 逆向往后创建者 -->
+    <bean id="beforeZ" class="test.io.entropy.beans.MyDependsBeanZ" lazy-init="true" ioc:before="beforeA"/>
+    <bean id="beforeA" class="test.io.entropy.beans.MyDependsBeanA" lazy-init="true"/>
+
+    <!-- Proof 4: ref 拓扑过滤，pos(ref)<pos(container) -->
+    <bean id="refX" class="test.io.entropy.beans.MyDependsBeanX" lazy-init="true">
+        <property name="y" ref="refY"/>
+    </bean>
+    <bean id="refY" class="test.io.entropy.beans.MyDependsBeanY" lazy-init="true"/>
+
+    <!-- Proof 5: depends-on 强制创建保持不变 -->
+    <bean id="dependsC" class="test.io.entropy.beans.MyDependsBeanC" lazy-init="true" depends-on="dependsD"/>
+    <bean id="dependsD" class="test.io.entropy.beans.MyDependsBeanD" lazy-init="true"/>
+</beans>

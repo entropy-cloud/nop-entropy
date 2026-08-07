@@ -116,9 +116,11 @@ public class BeanDefinition implements IBeanDefinition {
     private boolean intercepted;
     private boolean removed;
 
-    private List<String> dependBeanIds;
-
-    private Set<String> nextBeans = Collections.emptySet();
+    /**
+     * 解析后的前置依赖集合：= 声明的 dependsOn ∪ before/after 推导 ∪ 拓扑序在前的 ref 目标。
+     * 排序阶段填充，运行时强制创建与异步启动共用。
+     */
+    private Set<String> resolvedDepends = Collections.emptySet();
 
     /**
      * 如果当前bean为config对象，这里记录所有依赖本配置对象的所有bean的id
@@ -172,12 +174,15 @@ public class BeanDefinition implements IBeanDefinition {
         this.constructorAutowired = constructorAutowired;
     }
 
-    public List<String> getDependBeanIds() {
-        return dependBeanIds;
+    public Set<String> getResolvedDepends() {
+        return resolvedDepends;
     }
 
-    public void setDependBeanIds(List<String> dependBeanIds) {
-        this.dependBeanIds = dependBeanIds;
+    public void setResolvedDepends(Set<String> resolvedDepends) {
+        if (resolvedDepends == null) {
+            resolvedDepends = Collections.emptySet();
+        }
+        this.resolvedDepends = resolvedDepends;
     }
 
     public boolean isRemoved() {
@@ -192,17 +197,6 @@ public class BeanDefinition implements IBeanDefinition {
         if (beanModel instanceof BeanModel)
             return ((BeanModel) beanModel).isIocDefault();
         return false;
-    }
-
-    public Set<String> getNextBeans() {
-        return nextBeans;
-    }
-
-    public void addNextBean(String nextBean) {
-        if (nextBeans.isEmpty()) {
-            nextBeans = new LinkedHashSet<>();
-        }
-        nextBeans.add(nextBean);
     }
 
     public boolean containsTag(String tag) {
@@ -529,11 +523,12 @@ public class BeanDefinition implements IBeanDefinition {
                 prop.assignToObject(bean, entry.getKey(), container, scope);
             }
 
-            if (getBeanModel().getDependsOn() != null) {
-                // 执行init方法之前，确保依赖的bean已经被创建。
+            if (getResolvedDepends() != null) {
+                // 执行init方法之前，确保依赖的bean已经被完整创建（包括init）。
+                // includeCreating=false: 通过synchronized路径阻塞等待依赖完成创建后再继续。
                 // 当全部lazy启动的时候，即使是拓扑排序靠前的bean也不会被初始化，所以需要手工指定依赖关系
-                for (String depend : getBeanModel().getDependsOn()) {
-                    container.getBean(depend, true);
+                for (String depend : getResolvedDepends()) {
+                    container.getBean(depend, false);
                 }
             }
 

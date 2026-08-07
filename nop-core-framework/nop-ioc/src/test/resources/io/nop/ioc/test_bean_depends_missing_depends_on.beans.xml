@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef">
+    <!-- depends-on 缺失目标：强声明，加载期报 ERR_IOC_UNKNOWN_DEPEND_REF。 -->
+    <bean id="beanC" class="test.io.entropy.beans.MyDependsBeanC" lazy-init="true" depends-on="nonExistentBean"/>
+</beans>

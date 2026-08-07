@@ -347,9 +347,6 @@ public class BeanContainerBuilder implements IBeanContainerBuilder {
             LOG.info(CFG_IOC_AOP_ENABLED.getName() + "=false");
         }
 
-        // 6. 根据ioc:before设置初始化depends-on属性
-        new BeanDependsBuilder().buildAll(enabledBeans);
-
         BeanContainerImpl container = new BeanContainerImpl(containerId,
                 enabledBeans, optionalBeans, aliases, parentContainer);
         if (startMode != null)

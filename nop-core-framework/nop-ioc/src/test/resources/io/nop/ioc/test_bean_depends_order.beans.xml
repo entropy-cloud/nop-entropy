@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef"
+       xmlns:ioc="ioc">
+    <!-- Phase2 Proof 1: 正常顺序用例不误报。
+         字母序 beanA < beanZ，但 beanZ ioc:before="beanA" 要求 beanZ 先于 beanA 创建。 -->
+    <bean id="beanZ" class="test.io.entropy.beans.MyDependsBeanZ" ioc:before="beanA"/>
+    <bean id="beanA" class="test.io.entropy.beans.MyDependsBeanA"/>
+</beans>

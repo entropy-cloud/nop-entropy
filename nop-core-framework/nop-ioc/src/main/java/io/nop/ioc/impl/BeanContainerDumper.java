@@ -87,6 +87,10 @@ public class BeanContainerDumper {
         node.setTagName("bean");
         node.setAttr("id", bean.getId());
 
+        if (!bean.getResolvedDepends().isEmpty()) {
+            node.setAttr("ext:resolved-depends", String.join(",", bean.getResolvedDepends()));
+        }
+
         if (bean.getBeanMethod() != null) {
             node.setAttr("ioc:bean-method", bean.getBeanMethod().getName());
         }

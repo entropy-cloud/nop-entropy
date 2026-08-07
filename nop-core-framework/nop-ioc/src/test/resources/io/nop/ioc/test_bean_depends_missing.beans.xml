@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef"
+       xmlns:ioc="ioc">
+    <!-- Phase2 Proof 3: 缺失目标不报错（可能被条件禁用/父容器/可选模块提供）。 -->
+    <bean id="beanM" class="test.io.entropy.beans.MyDependsBeanA" lazy-init="true" ioc:before="nonExistentBean"/>
+</beans>

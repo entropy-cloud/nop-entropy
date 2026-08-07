@@ -96,17 +96,6 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
         this.orderedBeans = BeanTopologySorter.INSTANCE.sort(enabledBeans);
         this.parentContainer = parentContainer;
         this.optionalBeans = optionalBeans == null ? Collections.emptyList() : optionalBeans;
-
-        for (BeanDefinition bean : this.orderedBeans) {
-            if (bean.getBeanModel().getIocAfter() != null) {
-                for (String afterId : bean.getBeanModel().getIocAfter()) {
-                    BeanDefinition afterBean = enabledBeans.get(afterId);
-                    if (afterBean != null) {
-                        afterBean.addNextBean(bean.getId());
-                    }
-                }
-            }
-        }
     }
 
     BeanContainerImpl(String id, Map<String, BeanDefinition> enabledBeans,
@@ -372,26 +361,19 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
             Object bean = beanScope.get(beanDef.getId());
             if (bean != null) {
                 Object createdBean = beanDef.getBeanInstance(bean, onlyProducer);
-                if (createdBean == null) {
-                    // 如果是并行启动，则允许等待一段时间
-                    if (concurrentStart && !started)
-                        createdBean = ((ProducedBeanInstance) bean).awaitGetBean(10000);
-                    if (createdBean == null)
-                        throw new NopException(ERR_IOC_PRODUCER_BEAN_NOT_INITED).param(ARG_BEAN, beanDef)
-                                .param(ARG_BEAN_NAME, beanDef.getId());
-                }
+                // 生产者bean尚未执行完init/beanMethod，说明依赖关系未满足，不允许返回
+                if (createdBean == null)
+                    throw new NopException(ERR_IOC_PRODUCER_BEAN_NOT_INITED).param(ARG_BEAN, beanDef)
+                            .param(ARG_BEAN_NAME, beanDef.getId());
 
                 return createdBean;
             }
         }
 
-        boolean isNew = false;
-
         Object bean;
         if (beanScope == null) {
             bean = beanDef.newObject(null, this);
             bean = beanDef.getBeanInstance(bean, onlyProducer);
-            isNew = true;
         } else {
             synchronized (beanDef) { //NOSONAR
                 bean = beanScope.get(beanDef.getId());
@@ -402,17 +384,11 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
                     if (isStarted() && beanDef.hasDelayMethod()) {
                         beanDef.runDelayMethod(bean, beanScope, this);
                     }
-                    isNew = true;
                 }
                 bean = beanDef.getBeanInstance(bean, onlyProducer);
             }
         }
 
-        if (isNew) {
-            for (String nextId : beanDef.getNextBeans()) {
-                getBean(nextId, true);
-            }
-        }
         return bean;
     }
 
@@ -573,7 +549,7 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
                         // beanCreations.add(new BeanCreation(Thread.currentThread().getName(), bean.getId(), graph.getDepends(bean.getId()), true));
                         return null;
                     },
-                    bean.getDependBeanIds());
+                    bean.getResolvedDepends());
         }
         graph.analyze();
         this.cancellable = new Cancellable();

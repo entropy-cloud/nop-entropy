@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef"
+       xmlns:ioc="ioc">
+    <!-- Phase2 Proof 2: before 环。allow-cycle 默认 true，但顺序校验必须独立于环检测报错。 -->
+    <bean id="beanA" class="test.io.entropy.beans.MyDependsBeanA" ioc:before="beanB"/>
+    <bean id="beanB" class="test.io.entropy.beans.MyDependsBeanB" ioc:before="beanA"/>
+</beans>

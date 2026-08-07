@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef"
+       xmlns:ioc="ioc">
+    <!-- ioc:default bean 的 id 会被自动加 $DEFAULT$ 前缀，原始 id 作为别名。
+         initializer 通过别名声明 ioc:before，验证反向匹配按 normalize 后的 id 建边，
+         使 initializer 排在 $DEFAULT$nopMySessionFactory 之前。
+         字母序上 $DEFAULT$... 排在前，若 before 边未建立则顺序反了。 -->
+    <bean id="myInitializer" class="test.io.entropy.beans.MyDependsBeanA" ioc:before="nopMySessionFactory"/>
+    <bean id="nopMySessionFactory" class="test.io.entropy.beans.MyDependsBeanB" ioc:default="true"/>
+</beans>
