@@ -598,6 +598,10 @@ public class CheckpointCoordinator {
         try {
             checkpointStorage.storeCheckPoint(completed);
         } catch (Exception e) {
+            // Storage failed after segments were registered + materialized:
+            // roll back the ref-counts and discard zero-ref SST files so they
+            // are not stranded (the success-branch GC map was never populated).
+            releaseIncrementalSegments(segments);
             synchronized (this) {
                 onCompletePersistFailure(completed, pending, "Failed to store checkpoint", e);
             }
@@ -609,6 +613,10 @@ public class CheckpointCoordinator {
             LOG.debug("Stored incremental EpochManifest for epoch {} ({} segments)",
                     checkpointId, segments.size());
         } catch (Exception e) {
+            // Same rollback as the storeCheckPoint failure: the checkpoint row
+            // may have landed but the manifest did not, so this checkpoint is
+            // aborted and its newly-registered segments must be released.
+            releaseIncrementalSegments(segments);
             synchronized (this) {
                 onCompletePersistFailure(completed, pending,
                         "Failed to store EpochManifest for checkpoint " + checkpointId, e);
@@ -671,10 +679,40 @@ public class CheckpointCoordinator {
     }
 
     /**
-     * Extract an {@link IncrementalSnapshotResult} from a keyed-state value, accepting both
-     * the live typed object (embedded execution, single JVM) and a plain {@code StateSnapshot}
-     * wrapping it. Returns {@code null} when the value is not an incremental snapshot.
+     * Roll back the in-memory reference counts and physical SST materialization
+     * performed by {@link #buildAndMaterializeSegments} when the subsequent
+     * storage persists fail. The success path records the segments in
+     * {@link #checkpointSegments} so {@link #gcSegmentsForCheckpoint} reclaims
+     * them later; the failure path never reaches that put, so without this
+     * rollback the registered ref-counts would be stranded and the
+     * content-addressed SST files would never be discarded (disk growth until
+     * coordinator restart rebuilds the registry).
+     *
+     * <p>Only physically discards segments whose ref-count actually drops to
+     * zero (content-addressed de-duplication: a segment shared with another
+     * live checkpoint must not be deleted). Failures to discard a file are
+     * logged and do not abort the rollback — the in-memory leak is already
+     * undone, and a stranded file is strictly better than a stranded ref-count.
      */
+    private void releaseIncrementalSegments(List<StateSegmentDescriptor> segments) {
+        if (sharedStateRegistry == null || segmentStore == null) {
+            return;
+        }
+        if (segments == null || segments.isEmpty()) {
+            return;
+        }
+        for (StateSegmentDescriptor seg : segments) {
+            List<SharedStateHandle> zeroRef = sharedStateRegistry.unregister(seg.getPath());
+            for (SharedStateHandle handle : zeroRef) {
+                try {
+                    segmentStore.discardSegment(handle.getStateObjectId());
+                } catch (Exception dex) {
+                    LOG.warn("Failed to discard segment {} after failed persist for job {}",
+                            handle.getStateObjectId(), jobId, dex);
+                }
+            }
+        }
+    }
     @SuppressWarnings("unchecked")
     private IncrementalSnapshotResult extractIncrementalResult(Object value) {
         if (value instanceof IncrementalSnapshotResult) {

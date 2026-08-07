@@ -662,6 +662,78 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
         return ++sidSequence;
     }
 
+    /**
+     * Database upsert style supported by the resolved dialect. The checkpoint
+     * tables use a composite unique key (job_id, pipeline_id, checkpoint_id or
+     * epoch_id), and the older INSERT-then-UPDATE-in-one-transaction pattern is
+     * unsafe on PostgreSQL (any statement error aborts the whole transaction,
+     * so the UPDATE after a caught duplicate-key INSERT fails with "current
+     * transaction is aborted"). Each branch below uses a single atomic upsert
+     * statement when the dialect provides one; only the generic fallback splits
+     * into two separate transactions.
+     */
+    private enum UpsertDialect {
+        /** PostgreSQL: INSERT ... ON CONFLICT (cols) DO UPDATE SET col = EXCLUDED.col. */
+        POSTGRESQL,
+        /** MySQL / MariaDB: INSERT ... ON DUPLICATE KEY UPDATE col = VALUES(col). */
+        MYSQL,
+        /** H2: MERGE INTO ... KEY (cols) VALUES (...). */
+        H2,
+        /** Any other DB: INSERT in one txn; on duplicate key, UPDATE in a fresh txn. */
+        GENERIC
+    }
+
+    private UpsertDialect resolveUpsertDialect() {
+        try {
+            String name = jdbcTemplate.getDialectForQuerySpace(querySpace).getName().toLowerCase();
+            if (name.startsWith("postgresql")) {
+                return UpsertDialect.POSTGRESQL;
+            }
+            if (name.startsWith("mysql") || name.startsWith("mariadb")) {
+                return UpsertDialect.MYSQL;
+            }
+            if (name.startsWith("h2")) {
+                return UpsertDialect.H2;
+            }
+        } catch (Exception e) {
+            LOG.debug("Failed to resolve dialect for upsert strategy, using generic fallback", e);
+        }
+        return UpsertDialect.GENERIC;
+    }
+
+    /** Execute a single atomic native-upsert statement inside one transaction. */
+    private void runNativeUpsert(SQL sql) {
+        jdbcTemplate.txn().runInTransaction(querySpace, TransactionPropagation.REQUIRED, txn -> {
+            jdbcTemplate.executeUpdate(sql);
+            return null;
+        });
+    }
+
+    /**
+     * Generic fallback: try INSERT in its own transaction; if a duplicate key is
+     * detected, run UPDATE in a SEPARATE transaction. Splitting the transactions
+     * is essential for engines that abort the whole transaction on a failed
+     * statement (e.g. PostgreSQL): the INSERT failure only rolls back the first
+     * transaction, leaving the second (UPDATE) transaction in a clean state.
+     */
+    private void runInsertOrUpdateSeparateTxns(SQL insert, SQL update, String operation) {
+        try {
+            jdbcTemplate.txn().runInTransaction(querySpace, TransactionPropagation.REQUIRED, txn -> {
+                jdbcTemplate.executeUpdate(insert);
+                return null;
+            });
+        } catch (Exception e) {
+            if (!isDuplicateKeyException(e)) {
+                throw e instanceof RuntimeException ? (RuntimeException) e : new RuntimeException(e);
+            }
+            LOG.debug("{} INSERT failed (duplicate key), running UPDATE in a fresh transaction", operation, e);
+            jdbcTemplate.txn().runInTransaction(querySpace, TransactionPropagation.REQUIRED, txn -> {
+                jdbcTemplate.executeUpdate(update);
+                return null;
+            });
+        }
+    }
+
     private static boolean isDuplicateKeyException(Exception e) {
         Throwable cause = e;
         while (cause != null) {

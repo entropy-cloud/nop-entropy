@@ -773,6 +773,10 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
         if (snapshot != null && !snapshot.isEmpty()) {
             Object marker = snapshot.getStateData().get(IncrementalSnapshotResult.MARKER_KEY);
             if (marker instanceof IncrementalSnapshotResult) {
+                // Incremental SST bytes carry the binary key layout, so fail-fast
+                // on legacy/absent keyLayoutVersion before restoreIncremental scans
+                // SST files with the wrong byte-range assumption (silent data loss).
+                RocksDBKeyEncoder.verifyKeyLayoutVersion(snapshot.getStateData(), true);
                 restoreIncremental((IncrementalSnapshotResult) marker);
                 return;
             }
@@ -782,6 +786,9 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
                 IncrementalSnapshotResult result = io.nop.core.reflect.bean.BeanTool
                         .buildBean(marker, IncrementalSnapshotResult.class);
                 if (result != null) {
+                    // Same strict key-layout fail-fast as the typed-marker branch:
+                    // the reconstructed result still consumes layout-sensitive SSTs.
+                    RocksDBKeyEncoder.verifyKeyLayoutVersion(snapshot.getStateData(), true);
                     restoreIncremental(result);
                     return;
                 }
