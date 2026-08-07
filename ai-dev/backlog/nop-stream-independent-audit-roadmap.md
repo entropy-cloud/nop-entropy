@@ -23,7 +23,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 7. XDSL StreamModel 入口审计: `done`
 - 8. Delta StreamModel 入口审计: `todo`
 - 9. Checkpoint、barrier 与恢复语义审计: `done`
-- 10. State backend、savepoint 与 rescale 审计: `planned`
+- 10. State backend、savepoint 与 rescale 审计: `done`
 - 11. Window、watermark 与 timer 审计: `planned`
 - 12. CEP/NFA/SharedBuffer 审计: `todo`
 - 13. Control plane、HA 与 fencing 审计: `done`
