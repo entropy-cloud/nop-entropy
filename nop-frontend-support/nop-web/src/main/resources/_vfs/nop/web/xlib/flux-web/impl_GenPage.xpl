@@ -37,6 +37,9 @@
         <when test="${pageModel.type == 'complex'}">
             <c:include src="page_complex.xpl"/>
         </when>
+        <when test="${pageModel.type == 'embed'}">
+            <c:include src="page_embed.xpl"/>
+        </when>
         <otherwise>
             <thisLib:GenPageDefault />
         </otherwise>

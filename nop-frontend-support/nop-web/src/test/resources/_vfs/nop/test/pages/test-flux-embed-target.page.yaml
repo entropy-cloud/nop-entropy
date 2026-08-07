@@ -1,0 +1,5 @@
+type: page
+title: __EMBED_TARGET_TITLE__
+body:
+  type: text
+  text: __EMBED_TARGET_BODY__

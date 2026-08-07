@@ -9,6 +9,7 @@ package io.nop.web.page;
 
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.CloneHelper;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
 import io.nop.web.WebConfigs;
@@ -66,11 +67,14 @@ public class WebPageHelper {
      * 将 view/embed 配置中声明的 override 内容以 delta 合并语义（Io.nop.core.lang.json.delta.JsonMerger）
      * 应用到已加载的页面 JSON 上：map 按 key 合并（! 前缀强制覆盖）、list 按唯一键(id/name)合并、无唯一键整段替换。
      * override 为 null 或空 map 时原样返回 base，保证既有渲染输出不变。
+     * override 来自已冻结的组件模型（view/disp），可能为只读 JObject，而 JsonMerger.mergeMap 会就地
+     * remove x:virtual/x:inherit 标记键，故先经 CloneHelper.deepClone 转为可写副本，避免 map-is-readonly。
      */
     public static Map<String, Object> applyViewOverride(Map<String, Object> base, Object override) {
         if (override == null || isEmptyMapOrList(override))
             return base;
-        Object merged = JsonMerger.instance().merge(base, override);
+        Object mutableOverride = CloneHelper.deepClone(override);
+        Object merged = JsonMerger.instance().merge(base, mutableOverride);
         return merged instanceof Map ? (Map<String, Object>) merged : base;
     }
 

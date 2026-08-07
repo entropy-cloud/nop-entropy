@@ -67,6 +67,15 @@ public abstract class _UiRefViewModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: override
+     * 嵌入页面/网格的 delta 合并内容：经 WebPageHelper.applyViewOverride（JsonMerger 语义）
+     * 应用到 refView 加载后的基础 JSON 上。map 按 key 合并（! 前缀强制覆盖）、list 按唯一键
+     * (id/name) 合并、无唯一键整段替换。为 null/空时基础输出不变。
+     */
+    private java.lang.Object _override ;
+    
+    /**
+     *  
      * xml name: page
      * 
      */
@@ -238,6 +247,27 @@ public abstract class _UiRefViewModel extends io.nop.core.resource.component.Abs
     
     /**
      * 
+     * xml name: override
+     *  嵌入页面/网格的 delta 合并内容：经 WebPageHelper.applyViewOverride（JsonMerger 语义）
+     * 应用到 refView 加载后的基础 JSON 上。map 按 key 合并（! 前缀强制覆盖）、list 按唯一键
+     * (id/name) 合并、无唯一键整段替换。为 null/空时基础输出不变。
+     */
+    
+    public java.lang.Object getOverride(){
+      return _override;
+    }
+
+    
+    public void setOverride(java.lang.Object value){
+        checkAllowChange();
+        
+        this._override = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: page
      *  
      */
@@ -338,6 +368,7 @@ public abstract class _UiRefViewModel extends io.nop.core.resource.component.Abs
         out.putNotNull("editable",this.getEditable());
         out.putNotNull("form",this.getForm());
         out.putNotNull("grid",this.getGrid());
+        out.putNotNull("override",this.getOverride());
         out.putNotNull("page",this.getPage());
         out.putNotNull("path",this.getPath());
         out.putNotNull("removable",this.getRemovable());
@@ -360,6 +391,7 @@ public abstract class _UiRefViewModel extends io.nop.core.resource.component.Abs
         instance.setEditable(this.getEditable());
         instance.setForm(this.getForm());
         instance.setGrid(this.getGrid());
+        instance.setOverride(this.getOverride());
         instance.setPage(this.getPage());
         instance.setPath(this.getPath());
         instance.setRemovable(this.getRemovable());

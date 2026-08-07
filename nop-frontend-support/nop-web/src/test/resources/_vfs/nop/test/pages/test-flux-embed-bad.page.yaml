@@ -1,0 +1,3 @@
+x:gen-extends: |
+  <flux-web:GenPage view="test-flux-embed.view.xml" page="badNoref"
+                    xpl:lib="/nop/web/xlib/flux-web.xlib" />

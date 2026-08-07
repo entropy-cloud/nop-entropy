@@ -417,6 +417,70 @@ public class TestFluxWebGen extends JunitBaseTestCase {
                 "footer form name must come from the referenced form id");
     }
 
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testEmbedPageLoadsExternalViewAndMergesOverride() {
+        String path = "/nop/test/pages/test-flux-embed.page.yaml";
+        Map<String, Object> page = pageProvider.getPage(path, "");
+        String json = JSON.serialize(page, true);
+        System.out.println("Flux embed JSON:\n" + json);
+
+        // embed 加载外部 view.xml 的 crud 页面：type=page（来自外部 crud 页面外壳）
+        assertEquals("page", page.get("type"),
+                "embed page must load external view's page shell");
+        // override 新增 key（外部 crud 页未配 title，merge 后出现）
+        assertEquals("__EMBED_OVERRIDE_TITLE__", page.get("title"),
+                "embed override must add title via JsonMerger delta merge");
+        // override 覆盖既有 key（asideClassName 由 my-aside 改写，证明非空 override 走 merge 而非原样返回）
+        assertEquals("__OVERRIDE_ASIDE__", page.get("asideClassName"),
+                "embed override must override existing asideClassName via delta merge");
+    }
+
+    @Test
+    public void testEmbedPageLoadsPageYamlDirectly() {
+        String path = "/nop/test/pages/test-flux-embed-yaml.page.yaml";
+        Map<String, Object> page = pageProvider.getPage(path, "");
+        String json = JSON.serialize(page, true);
+        System.out.println("Flux embed yaml JSON:\n" + json);
+
+        // embed 直接加载外部 page.yaml：type=page（来自 page.yaml），override 覆盖 title
+        assertEquals("page", page.get("type"),
+                "embed page.yaml must load the external page shell");
+        assertEquals("__EMBED_YAML_OVERRIDE_TITLE__", page.get("title"),
+                "embed override must override page.yaml title via delta merge");
+        // body 来自 page.yaml，override 未触及，合并后保留
+        Object body = page.get("body");
+        assertNotNull(body, "page.yaml body must be preserved when override does not touch it");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testCellViewOverrideMerges() {
+        String path = "/nop/test/pages/test-flux-cell-override.page.yaml";
+        Map<String, Object> page = pageProvider.getPage(path, "");
+        String json = JSON.serialize(page, true);
+        System.out.println("Flux cell override JSON:\n" + json);
+
+        // cell 级 view override：经 GenDispView → GenInputTable 渲染外部 grid 为 array-editor，
+        // 再由 applyViewOverride 合并 override。断言合并后的 title 出现在 items 单元格上。
+        Map<String, Object> editorControl = findNodeByType(page.get("body"), "array-editor");
+        assertNotNull(editorControl,
+                "cell with view+grid must render an array-editor (GenInputTable) via GenDispView");
+        Map<String, Object> itemsCell = findNodeByNameDeep(page.get("body"), "items");
+        assertNotNull(itemsCell, "items cell should exist in form output");
+        assertEquals("__CELL_OVERRIDE_TITLE__", itemsCell.get("title"),
+                "cell view override must merge title onto the items cell via delta merge");
+    }
+
+    @Test
+    public void testEmbedPageWithoutRefThrows() {
+        String path = "/nop/test/pages/test-flux-embed-bad.page.yaml";
+        // embed 指向 view.xml 但未配置 page/grid 引用 → 显式抛错（不静默 noop，对应 Minimum Rule #24）
+        NopException ex = assertThrows(NopException.class, () -> pageProvider.getPage(path, ""));
+        assertEquals("nop.err.web.embed-page-ref-required", ex.getErrorCode(),
+                "embed with view.xml path but no page/grid must throw explicitly");
+    }
+
     /**
      * 深度优先查找指定 type 的节点（不依赖 body 是 List 还是折叠对象）。
      */
@@ -426,6 +490,24 @@ public class TestFluxWebGen extends JunitBaseTestCase {
             if (type.equals(node.get("type"))) return node;
             Map<String, Object> found = findNodeByType(node.get("body"), type);
             if (found != null) return found;
+        }
+        return null;
+    }
+
+    /**
+     * 深度优先查找指定 name 的节点（遍历 body 与 columns 等常见子结构）。
+     */
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> findNodeByNameDeep(Object parentBody, String name) {
+        for (Map<String, Object> node : toBodyList(parentBody)) {
+            if (name.equals(node.get("name"))) return node;
+            Map<String, Object> found = findNodeByNameDeep(node.get("body"), name);
+            if (found != null) return found;
+            Object columns = node.get("columns");
+            if (columns instanceof List) {
+                found = findNodeByNameDeep(columns, name);
+                if (found != null) return found;
+            }
         }
         return null;
     }

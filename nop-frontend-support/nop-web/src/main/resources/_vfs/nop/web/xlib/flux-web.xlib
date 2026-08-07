@@ -553,7 +553,7 @@
                                     <thisLib:GenPage view="${refView.path}" page="${refView.page}"/>
                                 </c:collect>
                                 <c:script>
-                                    return genPage;
+                                    return WebPageHelper.applyViewOverride(genPage, refView.override);
                                 </c:script>
                             </when>
                             <when test="${refView.grid}">
@@ -577,7 +577,7 @@
                                 </c:choose>
 
                                 <c:script>
-                                    return genPage;
+                                    return WebPageHelper.applyViewOverride(genPage, refView.override);
                                 </c:script>
                             </when>
                             <when test="${refView.form}">
@@ -590,7 +590,8 @@
                     </when>
                     <otherwise>
                         <c:script>
-                            return WebPageHelper.internalLoadPage(refView.path);
+                            let basePage = WebPageHelper.internalLoadPage(refView.path);
+                            return WebPageHelper.applyViewOverride(basePage, refView.override);
                         </c:script>
                     </otherwise>
                 </c:choose>

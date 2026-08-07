@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <props>
+        <prop name="id" displayName="ID" type="String" mandatory="true"/>
+        <prop name="name" displayName="Name" type="String"/>
+        <prop name="items" displayName="Items" type="List">
+            <schema/>
+        </prop>
+    </props>
+</meta>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<view bizObjName="TestFluxEmbed" x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <objMeta>test-flux-embed.xmeta</objMeta>
+    <controlLib>/nop/web/xlib/flux-control.xlib</controlLib>
+
+    <pages>
+        <!--
+        (a) embed 外部 view.xml 的 crud 页面 + override delta 合并：
+            map key 覆盖（asideClassName 由 my-aside 改为 __OVERRIDE_ASIDE__）、
+            新增 key（title）、嵌套结构合并。override 经 JsonMerger 语义合并。
+        -->
+        <embed name="main" path="test-flux-crud.view.xml" page="main">
+            <override>
+                <title>__EMBED_OVERRIDE_TITLE__</title>
+                <asideClassName>__OVERRIDE_ASIDE__</asideClassName>
+            </override>
+        </embed>
+
+        <!--
+        (b) embed 外部 page.yaml 直接 + override：
+            path 指向 page.yaml，internalLoadPage 加载后经 override 合并 title。
+        -->
+        <embed name="yamlPage" path="test-flux-embed-target.page.yaml">
+            <override>
+                <title>__EMBED_YAML_OVERRIDE_TITLE__</title>
+            </override>
+        </embed>
+
+        <!--
+        (d) embed 指向 view.xml 但未配置 page/grid 引用 → 显式抛错（不静默 noop）。
+        -->
+        <embed name="badNoref" path="test-flux-crud.view.xml"/>
+    </pages>
+</view>

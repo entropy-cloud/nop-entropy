@@ -40,6 +40,12 @@
           xdef:name="UiRefViewModel" addable="boolean" removable="boolean" editable="boolean"
           title="string">
         <data>xjson</data>
+        <!--
+        嵌入页面/网格的 delta 合并内容：经 WebPageHelper.applyViewOverride（JsonMerger 语义）
+        应用到 refView 加载后的基础 JSON 上。map 按 key 合并（! 前缀强制覆盖）、list 按唯一键
+        (id/name) 合并、无唯一键整段替换。为 null/空时基础输出不变。
+        -->
+        <override>xjson</override>
         <actions xdef:ref="actions.xdef"/>
     </view>
 

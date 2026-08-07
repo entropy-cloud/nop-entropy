@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<view bizObjName="TestFluxCellOverride" x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <objMeta>test-flux-cell-override.xmeta</objMeta>
+    <controlLib>/nop/web/xlib/flux-control.xlib</controlLib>
+
+    <forms>
+        <form id="edit" editMode="edit">
+            <layout>
+                name
+                items
+            </layout>
+            <cells>
+                <!--
+                cell 级 view override：cell id 与实体属性 items 对齐（form 校验要求 layout 单元格为已定义属性），
+                经 GenDispView → GenInputTable 渲染外部 grid，再由 WebPageHelper.applyViewOverride 合并 override。
+                -->
+                <cell id="items" custom="true">
+                    <view path="test-flux-crud.view.xml" grid="list">
+                        <override>
+                            <title>__CELL_OVERRIDE_TITLE__</title>
+                        </override>
+                    </view>
+                </cell>
+            </cells>
+        </form>
+    </forms>
+
+    <pages>
+        <simple name="main" form="edit"/>
+    </pages>
+</view>
