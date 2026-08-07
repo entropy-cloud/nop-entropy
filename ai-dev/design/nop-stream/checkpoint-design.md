@@ -1239,6 +1239,19 @@ Retention 必须以解析后的 `checkpointNamespace` 为范围，不能跨 name
 
 **拒绝了什么**：引入 `CompletedCheckpointStore` 接口 + `JdbcCompletedCheckpointStore`/`HeapCompletedCheckpointStore` 实现。这些只是把 `ICheckpointStorage` 的已有方法重新包一层，不增加语义，徒增间接层与维护面。
 
+#### 9.3.2 JdbcCheckpointStorage Upsert 方言约定
+
+`JdbcCheckpointStorage` 的三张复合唯一键表（`stream_checkpoint`、`stream_epoch_manifest`）的 `storeCheckPoint`/`storeSavepoint`/`storeEpochManifest` 必须使用**方言感知的单语句 upsert**，绝不在同一事务内出现「INSERT 抛 duplicate-key 后在同事务 UPDATE」模式（该模式在 PostgreSQL 上使事务进入 aborted 状态，后续 UPDATE 必失败）。方言分支依据 `IJdbcTemplate.getDialectForQuerySpace(querySpace).getName()` 选择：
+
+| 数据库（dialect name） | Upsert SQL 形式 |
+|---|---|
+| PostgreSQL（`postgresql`） | `INSERT INTO t (cols) VALUES (...) ON CONFLICT (job_id, pipeline_id, checkpoint_id) DO UPDATE SET col = EXCLUDED.col` |
+| MySQL / MariaDB（`mysql`/`mariadb`） | `INSERT INTO t (cols) VALUES (...) ON DUPLICATE KEY UPDATE col = VALUES(col)` |
+| H2（`h2`） | `MERGE INTO t (cols) KEY (job_id, pipeline_id, checkpoint_id) VALUES (...)` |
+| 其他（GENERIC 兜底） | INSERT 在独立事务；捕获 duplicate-key 后在**独立的新事务**执行 UPDATE（`runInsertOrUpdateSeparateTxns`） |
+
+设计裁定：**不扩展 `nop-dao` 的 `IUpsertHandler` SPI**——其 API（`buildUpsert(tableName, columnNames)`）过薄、无 conflict-target/SET 列/WHERE，且仅有 `MysqlUpsertHandler` 实现，不满足三张复合键 checkpoint 表需求。方言分支 SQL 内联在 `JdbcCheckpointStorage`，避免跨模块变更。
+
 ### 9.4 CheckpointConfig
 
 | 参数 | 默认值 | 含义 |

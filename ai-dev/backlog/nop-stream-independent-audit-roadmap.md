@@ -1,6 +1,6 @@
 # nop-stream 独立深度审计路线图
 
-> Last updated: 2026-08-06
+> Last updated: 2026-08-07
 > Sources: `ai-dev/analysis/2026-08/2026-08-06-nop-stream-audit-baseline-and-roadmap-analysis.md` (primary), `ai-dev/backlog/nop-stream-production-roadmap.md` (implementation ownership), `ai-dev/audits/nop-stream-production/2026-08-02-2107-*.md` (current confirmed findings)
 
 ## Purpose
@@ -15,7 +15,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 > Work items 1-3 reference existing remediation plans. Their roadmap item becomes `done` only after the referenced plan has independent closure-audit evidence.
 
 - 1. Coordinator、运行时并发与恢复缺陷收口: `planned`
-- 2. Checkpoint、state backend 与 CEP 状态缺陷收口: `planned`
+- 2. Checkpoint、state backend 与 CEP 状态缺陷收口: `done`
 - 3. 契约、IoC 配置与测试完整性缺陷收口: `planned`
 - 4. 审计 evidence schema、source-manifest 与 finding corpus: `done`
 - 5. 审计环境资格与 gated-evidence 契约: `todo`
