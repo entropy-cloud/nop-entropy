@@ -49,5 +49,15 @@ public enum ApiStyle {
      * 其他/自定义格式
      * - 通过 XPL 函数 buildHttpRequest/parseHttpResponse 处理
      */
-    other
+    other,
+
+    /**
+     * OpenAI Responses API 风格（plan 325 起新增）。
+     * <p>
+     * 与 {@link #openai}（Chat Completions）对应，但使用 {@code /responses} 端点与
+     * input/output items 结构。其 dialect（{@code ResponsesDialect}）在 plan 330 落地；
+     * 当前仅注册枚举值，{@code LlmDialectFactory} 未为它注册 dialect，未注册时回退到
+     * OpenAI Chat Completions 方言。
+     */
+    responses
 }

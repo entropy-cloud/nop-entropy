@@ -2,11 +2,12 @@
  * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
  * Author: canonical_entropy@163.com
  * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
+ * Gitee:  https://gitee.com/canonical-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
 package io.nop.ai.api.chat.messages;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
 
@@ -15,14 +16,17 @@ import io.nop.api.core.annotations.data.DataBean;
  * 
  * 在OpenAI等API中，当Assistant返回tool_calls后，
  * 需要执行工具并将结果以tool角色的消息发送回去
+ * 
+ * 序列化 type 标识为 {@code "tool_output"}（plan 325 起从 {@code "tool"} 改名，
+ * 与 {@link ChatToolCallMessage} 的 {@code "tool_call"} 配对）。
  */
 @DataBean
 public class ChatToolResponseMessage extends ChatMessage {
 
     /**
-     * 工具调用ID（对应ChatToolCall的id）
+     * 工具调用ID（对应 {@link ChatToolCall#getId()} / {@link ChatToolCallMessage#getCallId()}）
      */
-    private String toolCallId;
+    private String callId;
 
     /**
      * 工具名称
@@ -49,15 +53,15 @@ public class ChatToolResponseMessage extends ChatMessage {
     public ChatToolResponseMessage() {
     }
 
-    public ChatToolResponseMessage(String toolCallId, String name, String content) {
-        this.toolCallId = toolCallId;
+    public ChatToolResponseMessage(String callId, String name, String content) {
+        this.callId = callId;
         this.name = name;
         this.content = content;
     }
 
     @Override
     public String getRole() {
-        return "tool";
+        return "tool_output";
     }
 
     @Override
@@ -70,12 +74,30 @@ public class ChatToolResponseMessage extends ChatMessage {
         this.content = content;
     }
 
-    public String getToolCallId() {
-        return toolCallId;
+    public String getCallId() {
+        return callId;
     }
 
+    public void setCallId(String callId) {
+        this.callId = callId;
+    }
+
+    /**
+     * @deprecated plan 325 起关联字段已改名为 {@link #getCallId()}；保留此委托方法以兼容既有调用点。
+     */
+    @Deprecated
+    @JsonIgnore
+    public String getToolCallId() {
+        return getCallId();
+    }
+
+    /**
+     * @deprecated plan 325 起关联字段已改名为 {@link #setCallId(String)}；保留此委托方法以兼容既有调用点。
+     */
+    @Deprecated
+    @JsonIgnore
     public void setToolCallId(String toolCallId) {
-        this.toolCallId = toolCallId;
+        setCallId(toolCallId);
     }
 
     public String getName() {
@@ -109,7 +131,7 @@ public class ChatToolResponseMessage extends ChatMessage {
         ChatToolResponseMessage copy = new ChatToolResponseMessage();
         copy.setMessageId(this.getMessageId());
         copy.setProviderHints(this.providerHints);
-        copy.toolCallId = this.toolCallId;
+        copy.callId = this.callId;
         copy.name = this.name;
         copy.content = this.content;
         copy.result = this.result;
@@ -127,13 +149,13 @@ public class ChatToolResponseMessage extends ChatMessage {
     /**
      * 创建错误响应
      */
-    public static ChatToolResponseMessage error(String toolCallId, String name, String errorMessage) {
-        return new ChatToolResponseMessage(toolCallId, name, "Error: " + errorMessage);
+    public static ChatToolResponseMessage error(String callId, String name, String errorMessage) {
+        return new ChatToolResponseMessage(callId, name, "Error: " + errorMessage);
     }
 
-    public static ChatToolResponseMessage structured(String toolCallId, String name,
-                                                      String content, Object result) {
-        ChatToolResponseMessage msg = new ChatToolResponseMessage(toolCallId, name, content);
+    public static ChatToolResponseMessage structured(String callId, String name,
+                                                       String content, Object result) {
+        ChatToolResponseMessage msg = new ChatToolResponseMessage(callId, name, content);
         msg.setResult(result);
         msg.setResultType("json");
         return msg;

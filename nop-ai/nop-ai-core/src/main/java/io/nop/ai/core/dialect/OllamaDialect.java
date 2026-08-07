@@ -5,7 +5,9 @@ import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.api.chat.messages.ChatMessage;
+import io.nop.ai.api.chat.messages.ChatReasoningMessage;
 import io.nop.ai.api.chat.messages.ChatToolCall;
+import io.nop.ai.api.chat.messages.ChatToolCallMessage;
 import io.nop.ai.api.chat.messages.ChatToolResponseMessage;
 import io.nop.ai.core.model.LlmModel;
 import io.nop.ai.core.model.LlmModelModel;
@@ -122,10 +124,16 @@ public class OllamaDialect extends AbstractLlmDialect implements ILlmDialect {
         message.setContent(content);
         message.setThink(thinking);
 
-        // 解析工具调用（Ollama 使用 OpenAI 风格）
-        Object toolCallsObj = responseMap.get("message.tool_calls");
+        // 解析工具调用（Ollama 使用 OpenAI 风格）。tool_calls 嵌套在 message 下，需按路径取值
+        // （与 content 的 message.content 路径一致；历史 message.tool_calls 字面 key 取值取不到嵌套结构）。
+        Object messageNode = responseMap.get("message");
+        Object toolCallsObj = null;
+        if (messageNode instanceof Map) {
+            toolCallsObj = ((Map<?, ?>) messageNode).get("tool_calls");
+        }
+        List<ChatToolCall> toolCalls = null;
         if (toolCallsObj instanceof List) {
-            List<ChatToolCall> toolCalls = new ArrayList<>();
+            toolCalls = new ArrayList<>();
             for (Object tc : (List<?>) toolCallsObj) {
                 if (tc instanceof Map) {
                     @SuppressWarnings("unchecked")
@@ -147,6 +155,7 @@ public class OllamaDialect extends AbstractLlmDialect implements ILlmDialect {
                                 Map<String, Object> argsMap = (Map<String, Object>) JSON.parse((String) argsObj);
                                 toolCall.setArguments(argsMap);
                             } catch (Exception ignored) {
+                                // Tolerate malformed arguments JSON from the model: leave arguments unset
                             }
                         }
                     }
@@ -159,6 +168,20 @@ public class OllamaDialect extends AbstractLlmDialect implements ILlmDialect {
         }
 
         response.setMessage(message);
+
+        // Plan 326 双轨：旧 message（含 think/toolCalls 寄居字段）保留，同时按语义顺序产出 messages 序列
+        // （reasoning → assistant text → tool_calls）。每个 tool_call 拆为独立的 ChatToolCallMessage。
+        List<ChatMessage> messages = new ArrayList<>();
+        if (thinking != null) {
+            messages.add(new ChatReasoningMessage(thinking));
+        }
+        messages.add(message);
+        if (toolCalls != null) {
+            for (ChatToolCall toolCall : toolCalls) {
+                messages.add(ChatToolCallMessage.fromChatToolCall(toolCall));
+            }
+        }
+        response.setMessages(messages);
 
         // 模型名称
         response.setModel(getStringByPath(responseMap, "model"));

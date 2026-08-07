@@ -5,6 +5,7 @@ import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.api.chat.messages.ChatMessage;
+import io.nop.ai.api.chat.messages.ChatReasoningMessage;
 import io.nop.ai.api.chat.messages.ChatSystemMessage;
 import io.nop.ai.api.chat.messages.ChatToolCall;
 import io.nop.ai.api.chat.messages.ChatToolDefinition;
@@ -192,6 +193,15 @@ public class OpenAiDialect extends AbstractLlmDialect implements ILlmDialect {
         message.setContent(content);
         message.setThink(thinking);
         response.setMessage(message);
+
+        // Plan 326 双轨：旧 message 保留，同时按语义顺序产出 messages 序列（reasoning → assistant text）。
+        // OpenAi parseResponse 当前不解析 tool_calls（保持现状），故 messages 仅含 reasoning + assistant。
+        List<ChatMessage> messages = new ArrayList<>();
+        if (thinking != null) {
+            messages.add(new ChatReasoningMessage(thinking));
+        }
+        messages.add(message);
+        response.setMessages(messages);
 
         // 解析元数据
         response.setId(getStringByPath(responseMap, "id"));

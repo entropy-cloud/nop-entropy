@@ -3,6 +3,9 @@ package io.nop.ai.core.dialect;
 import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
+import io.nop.ai.api.chat.messages.ChatAssistantMessage;
+import io.nop.ai.api.chat.messages.ChatReasoningMessage;
+import io.nop.ai.api.chat.messages.ChatToolCallMessage;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
 import io.nop.ai.api.chat.stream.ChatStreamChunk;
 import io.nop.ai.core.model.ApiStyle;
@@ -19,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestOllamaDialect extends JunitBaseTestCase {
 
@@ -76,6 +80,42 @@ public class TestOllamaDialect extends JunitBaseTestCase {
 
         assertEquals("answer", response.getMessage().getContent());
         assertEquals("hmm", response.getMessage().getThink());
+
+        // Plan 326 双轨：thinking 产出 ChatReasoningMessage → assistant text。
+        assertNotNull(response.getMessages());
+        assertEquals(2, response.getMessages().size());
+        assertTrue(response.getMessages().get(0) instanceof ChatReasoningMessage);
+        assertEquals("hmm", response.getMessages().get(0).getContent());
+        assertTrue(response.getMessages().get(1) instanceof ChatAssistantMessage);
+        assertEquals("answer", response.getMessages().get(1).getContent());
+    }
+
+    @Test
+    public void testParseResponseToolCallsProducesMessages() {
+        OllamaDialect dialect = new OllamaDialect();
+        String responseJson = "{\"model\":\"qwen3\"," +
+                "\"message\":{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[" +
+                "{\"id\":\"call_42\",\"type\":\"function\",\"function\":{" +
+                "\"name\":\"get_weather\",\"arguments\":{\"location\":\"beijing\"}}}]}," +
+                "\"done_reason\":\"stop\"}";
+
+        ChatResponse response = dialect.parseResponse(responseJson, newConfig());
+
+        // 旧行为：旧 message 携带 toolCalls
+        assertNotNull(response.getMessage().getToolCalls());
+        assertEquals("call_42", response.getMessage().getToolCalls().get(0).getId());
+
+        // Plan 326 双轨 + Anti-Hollow：messages 含 ChatToolCallMessage 且 callId 与旧 toolCalls 的 id 一致。
+        assertNotNull(response.getMessages());
+        ChatToolCallMessage msgToolCall = response.getMessages().stream()
+                .filter(m -> m instanceof ChatToolCallMessage)
+                .map(m -> (ChatToolCallMessage) m)
+                .findFirst().orElse(null);
+        assertNotNull(msgToolCall, "messages must contain a ChatToolCallMessage for each tool_call");
+        assertEquals("call_42", msgToolCall.getCallId(),
+                "ChatToolCallMessage.callId must match the legacy toolCalls id (consistency risk #1)");
+        assertEquals("get_weather", msgToolCall.getName());
+        assertEquals("beijing", msgToolCall.getArguments().get("location"));
     }
 
     @Test

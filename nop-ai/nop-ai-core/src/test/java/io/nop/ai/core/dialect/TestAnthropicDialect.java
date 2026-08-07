@@ -3,9 +3,12 @@ package io.nop.ai.core.dialect;
 import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
+import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.api.chat.messages.ChatMessage;
+import io.nop.ai.api.chat.messages.ChatReasoningMessage;
 import io.nop.ai.api.chat.messages.ChatSystemMessage;
 import io.nop.ai.api.chat.messages.ChatToolCall;
+import io.nop.ai.api.chat.messages.ChatToolCallMessage;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
 import io.nop.ai.api.chat.messages.ChatUsage;
 import io.nop.ai.api.chat.stream.ChatStreamChunk;
@@ -74,6 +77,14 @@ public class TestAnthropicDialect extends JunitBaseTestCase {
         assertEquals("Hello! How can I help you?", response.getMessage().getContent());
         assertEquals("Let me analyze this question...", response.getMessage().getThink());
         assertEquals("stop", response.getFinishReason());
+
+        // Plan 326 双轨：messages 按语义顺序 reasoning → assistant text。
+        assertNotNull(response.getMessages());
+        assertEquals(2, response.getMessages().size());
+        assertTrue(response.getMessages().get(0) instanceof ChatReasoningMessage,
+                "thinking block must produce ChatReasoningMessage first");
+        assertEquals("Let me analyze this question...", response.getMessages().get(0).getContent());
+        assertTrue(response.getMessages().get(1) instanceof ChatAssistantMessage);
     }
 
     @Test
@@ -153,6 +164,18 @@ public class TestAnthropicDialect extends JunitBaseTestCase {
         assertEquals("toolu_1", toolCall.getId());
         assertEquals("get_weather", toolCall.getName());
         assertEquals("beijing", toolCall.getArguments().get("location"));
+
+        // Plan 326 双轨 + Anti-Hollow：messages 含 ChatToolCallMessage 且 callId 与旧 toolCalls 的 id 一致。
+        assertNotNull(response.getMessages());
+        ChatToolCallMessage msgToolCall = response.getMessages().stream()
+                .filter(m -> m instanceof ChatToolCallMessage)
+                .map(m -> (ChatToolCallMessage) m)
+                .findFirst().orElse(null);
+        assertNotNull(msgToolCall, "messages must contain a ChatToolCallMessage for tool_use block");
+        assertEquals("toolu_1", msgToolCall.getCallId(),
+                "ChatToolCallMessage.callId must match the legacy toolCalls id (consistency risk #1)");
+        assertEquals("get_weather", msgToolCall.getName());
+        assertEquals("beijing", msgToolCall.getArguments().get("location"));
     }
 
     @Test

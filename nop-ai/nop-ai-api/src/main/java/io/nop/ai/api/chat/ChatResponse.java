@@ -10,8 +10,12 @@ package io.nop.ai.api.chat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
+import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatUsage;
 import io.nop.api.core.annotations.data.DataBean;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 聊天响应，AI大模型返回的结果
@@ -20,9 +24,17 @@ import io.nop.api.core.annotations.data.DataBean;
 public class ChatResponse {
 
     /**
-     * 响应消息
+     * 响应消息（旧的单条 assistant 文本载体，plan 326 起由 {@link #messages} 序列承担规范语义）。
+     * 保留以兼容 {@link #getMessage()}/{@link #setMessage(ChatAssistantMessage)} 既有路径；
+     * 双轨过渡期内由各 dialect parseResponse 同时填充本字段与 {@link #messages}。
      */
     private ChatAssistantMessage message;
+
+    /**
+     * 响应消息序列（plan 326）。规范语义载体：assistant 文本、reasoning、tool_call 等按语义顺序排列。
+     * 双轨过渡期内 dialect 同时填充旧 {@link #message} 与本序列；327 起 agent 引擎将切换为读本序列。
+     */
+    private List<ChatMessage> messages;
 
     /**
      * Token使用信息
@@ -95,13 +107,51 @@ public class ChatResponse {
         this.message = message;
     }
 
+    /**
+     * 返回旧的单条 assistant 消息。已废弃，新的规范访问为 {@link #getMessages()}。
+     * <p>
+     * 委托规则（双轨过渡期）：
+     * <ol>
+     *   <li>若 {@link #messages} 非空，返回其中首个 {@link ChatAssistantMessage}（按类型筛选，
+     *       跳过前置的 reasoning/tool_call，保证返回的是 assistant 文本而非推理）。</li>
+     *   <li>否则返回 {@link #message} 字段（兼容仅调用 {@link #setMessage(ChatAssistantMessage)}
+     *       而未填充 {@link #messages} 的既有代码，行为不变）。</li>
+     * </ol>
+     */
+    @Deprecated
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public ChatAssistantMessage getMessage() {
+        if (messages != null) {
+            for (ChatMessage msg : messages) {
+                if (msg instanceof ChatAssistantMessage) {
+                    return (ChatAssistantMessage) msg;
+                }
+            }
+        }
         return message;
     }
 
     public void setMessage(ChatAssistantMessage message) {
         this.message = message;
+    }
+
+    /**
+     * 返回响应消息序列（规范语义载体，plan 326）。
+     */
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    public List<ChatMessage> getMessages() {
+        return messages;
+    }
+
+    public void setMessages(List<ChatMessage> messages) {
+        this.messages = messages;
+    }
+
+    public void addMessage(ChatMessage message) {
+        if (this.messages == null) {
+            this.messages = new ArrayList<>();
+        }
+        this.messages.add(message);
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -231,7 +281,8 @@ public class ChatResponse {
 
     @JsonIgnore
     public String getFullContent() {
-        return message == null ? null : message.getFullContent();
+        ChatAssistantMessage msg = getMessage();
+        return msg == null ? null : msg.getFullContent();
     }
 
     /**
@@ -240,6 +291,24 @@ public class ChatResponse {
     public static ChatResponse success(ChatAssistantMessage message) {
         ChatResponse response = new ChatResponse();
         response.setMessage(message);
+        return response;
+    }
+
+    /**
+     * 创建成功的响应（plan 326），以消息序列为载体。同时把序列中首个 {@link ChatAssistantMessage}
+     * 写入旧 {@link #message} 字段，保证 {@link #getMessage()} 既有路径可用（双轨过渡）。
+     */
+    public static ChatResponse success(List<ChatMessage> messages) {
+        ChatResponse response = new ChatResponse();
+        if (messages != null) {
+            response.setMessages(new ArrayList<>(messages));
+            for (ChatMessage msg : messages) {
+                if (msg instanceof ChatAssistantMessage) {
+                    response.setMessage((ChatAssistantMessage) msg);
+                    break;
+                }
+            }
+        }
         return response;
     }
 
@@ -282,6 +351,12 @@ public class ChatResponse {
         ChatResponse copy = new ChatResponse();
         if (this.message != null) {
             copy.message = this.message.copy();
+        }
+        if (this.messages != null) {
+            copy.messages = new ArrayList<>();
+            for (ChatMessage msg : this.messages) {
+                copy.messages.add(msg.copy());
+            }
         }
         if (this.usage != null) {
             copy.usage = this.usage.copy();

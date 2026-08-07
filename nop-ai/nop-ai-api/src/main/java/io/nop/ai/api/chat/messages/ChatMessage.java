@@ -22,8 +22,9 @@ import java.util.Map;
         @JsonSubTypes.Type(value = ChatUserMessage.class, name = "user"),
         @JsonSubTypes.Type(value = ChatAssistantMessage.class, name = "assistant"),
         @JsonSubTypes.Type(value = ChatSystemMessage.class, name = "system"),
-        @JsonSubTypes.Type(value = ChatToolResponseMessage.class, name = "tool"),
-        @JsonSubTypes.Type(value = ChatCustomMessage.class, name = "custom"),
+        @JsonSubTypes.Type(value = ChatToolCallMessage.class, name = "tool_call"),
+        @JsonSubTypes.Type(value = ChatToolResponseMessage.class, name = "tool_output"),
+        @JsonSubTypes.Type(value = ChatReasoningMessage.class, name = "reasoning"),
 })
 @DataBean
 public abstract class ChatMessage {

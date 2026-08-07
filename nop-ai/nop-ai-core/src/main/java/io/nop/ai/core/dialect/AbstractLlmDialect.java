@@ -292,9 +292,11 @@ public abstract class AbstractLlmDialect {
             case "stop":
             case "end_turn":
             case "stop_sequence":
+            case "completed":
                 return "stop";
             case "length":
             case "max_tokens":
+            case "incomplete":
                 return "length";
             case "content_filter":
             case "safety":

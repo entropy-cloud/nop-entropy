@@ -5,6 +5,7 @@ import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.api.chat.messages.ChatMessage;
+import io.nop.ai.api.chat.messages.ChatReasoningMessage;
 import io.nop.ai.api.chat.messages.ChatToolCall;
 import io.nop.ai.api.chat.messages.ChatToolDefinition;
 import io.nop.ai.api.chat.messages.ChatToolResponseMessage;
@@ -196,6 +197,15 @@ public class GeminiDialect extends AbstractLlmDialect implements ILlmDialect {
         message.setContent(contentBuilder.length() > 0 ? contentBuilder.toString() : null);
         message.setThink(thinkingBuilder.length() > 0 ? thinkingBuilder.toString() : null);
         response.setMessage(message);
+
+        // Plan 326 双轨：旧 message 保留，同时按语义顺序产出 messages 序列（reasoning → assistant text）。
+        // thought:true parts 产出 ChatReasoningMessage，其余 text parts 累积为 assistant 文本（functionCall 当前不解析，保持现状）。
+        List<ChatMessage> messages = new ArrayList<>();
+        if (thinkingBuilder.length() > 0) {
+            messages.add(new ChatReasoningMessage(thinkingBuilder.toString()));
+        }
+        messages.add(message);
+        response.setMessages(messages);
 
         // 解析元数据
         response.setModel(getStringByPath(responseMap, "model"));

@@ -97,9 +97,12 @@ public class ChatOptions {
     private Boolean enableThinking;
 
     /**
-     * 响应格式（如json、text等）
+     * 响应格式（对象载体，plan 326）。规范取值见 {@link ResponseFormat}。
+     * 升级自纯 String 字段，以承载结构化 {@code json_schema}（ResponsesDialect 前置）。
+     * 旧的 String 视图经 {@link #getResponseFormat()} / {@link #setResponseFormat(String)} 透传，
+     * 向后兼容（如 {@code WfAiHelper} 的 {@code "json"} 用法）。
      */
-    private String responseFormat;
+    private ResponseFormat responseFormat;
 
     /**
      * 可用工具定义列表
@@ -256,12 +259,37 @@ public class ChatOptions {
         this.enableThinking = enableThinking;
     }
 
+    /**
+     * 旧的 String 视图（plan 326 起废弃）。返回 {@link #responseFormat} 的 {@code type}：
+     * {@code json_object}→"json_object"、{@code json_schema}→"json_schema"、{@code null}→{@code null}，
+     * 其余 type（如历史用法 {@code "json"}）原样透传，保持向后兼容。
+     *
+     * @deprecated 使用 {@link #getResponseFormatConfig()} 获取对象载体。
+     */
+    @Deprecated
+    @JsonIgnore
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public String getResponseFormat() {
+        return responseFormat == null ? null : responseFormat.getType();
+    }
+
+    /**
+     * @deprecated 使用 {@link #setResponseFormatConfig(ResponseFormat)}。
+     */
+    @Deprecated
+    public void setResponseFormat(String type) {
+        this.responseFormat = type == null ? null : new ResponseFormat(type);
+    }
+
+    /**
+     * 响应格式对象载体（规范访问，plan 326）。
+     */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public ResponseFormat getResponseFormatConfig() {
         return responseFormat;
     }
 
-    public void setResponseFormat(String responseFormat) {
+    public void setResponseFormatConfig(ResponseFormat responseFormat) {
         this.responseFormat = responseFormat;
     }
 
@@ -376,7 +404,7 @@ public class ChatOptions {
         copy.requestTimeout = this.requestTimeout;
         copy.stream = this.stream;
         copy.enableThinking = this.enableThinking;
-        copy.responseFormat = this.responseFormat;
+        copy.responseFormat = this.responseFormat != null ? this.responseFormat.copy() : null;
 
         // 深拷贝 stop 列表
         if (this.stop != null) {
@@ -433,7 +461,7 @@ public class ChatOptions {
         if (other.requestTimeout != null) merged.requestTimeout = other.requestTimeout;
         if (other.stream != null) merged.stream = other.stream;
         if (other.enableThinking != null) merged.enableThinking = other.enableThinking;
-        if (other.responseFormat != null) merged.responseFormat = other.responseFormat;
+        if (other.responseFormat != null) merged.responseFormat = other.responseFormat.copy();
         if (other.tools != null) {
             if (merged.tools == null) {
                 merged.tools = new ArrayList<>();
@@ -536,8 +564,17 @@ public class ChatOptions {
             return this;
         }
 
+        /**
+         * @deprecated 使用 {@link #responseFormatConfig(ResponseFormat)}。
+         */
+        @Deprecated
         public Builder responseFormat(String responseFormat) {
             options.setResponseFormat(responseFormat);
+            return this;
+        }
+
+        public Builder responseFormatConfig(ResponseFormat responseFormat) {
+            options.setResponseFormatConfig(responseFormat);
             return this;
         }
 

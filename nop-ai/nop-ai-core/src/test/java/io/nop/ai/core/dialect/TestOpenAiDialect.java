@@ -3,7 +3,9 @@ package io.nop.ai.core.dialect;
 import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
+import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.api.chat.messages.ChatMessage;
+import io.nop.ai.api.chat.messages.ChatReasoningMessage;
 import io.nop.ai.api.chat.messages.ChatSystemMessage;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
 import io.nop.ai.core.model.ApiStyle;
@@ -23,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * OpenAI 方言测试
@@ -112,6 +115,39 @@ public class TestOpenAiDialect extends JunitBaseTestCase {
         assertEquals(10, response.getUsage().getPromptTokens().intValue());
         assertEquals(20, response.getUsage().getCompletionTokens().intValue());
         assertEquals(30, response.getUsage().getTotalTokens().intValue());
+
+        // Plan 326 双轨：messages 序列就绪（无 reasoning 时仅含 assistant 文本）。
+        assertNotNull(response.getMessages(), "parseResponse must populate messages");
+        assertEquals(1, response.getMessages().size());
+        assertTrue(response.getMessages().get(0) instanceof ChatAssistantMessage,
+                "messages must contain the assistant text message");
+        assertEquals("Hello! How can I help you?", response.getMessages().get(0).getContent());
+    }
+
+    @Test
+    public void testParseResponseProducesMessagesWithReasoning() {
+        OpenAiDialect dialect = new OpenAiDialect();
+
+        String responseJson = "{\"id\":\"chatcmpl-1\",\"model\":\"deepseek-r1\"," +
+                "\"choices\":[{\"message\":{\"content\":\"answer\",\"reasoning_content\":\"let me think\"}," +
+                "\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":1,\"completion_tokens\":2}}";
+
+        LlmModel config = new LlmModel();
+        config.setApiStyle(ApiStyle.openai);
+
+        ChatResponse response = dialect.parseResponse(responseJson, config);
+
+        // 旧行为不变
+        assertEquals("answer", response.getMessage().getContent());
+        assertEquals("let me think", response.getMessage().getThink());
+
+        // 新 messages 双轨：reasoning → assistant text
+        assertNotNull(response.getMessages());
+        assertEquals(2, response.getMessages().size());
+        assertTrue(response.getMessages().get(0) instanceof ChatReasoningMessage);
+        assertEquals("let me think", response.getMessages().get(0).getContent());
+        assertTrue(response.getMessages().get(1) instanceof ChatAssistantMessage);
+        assertEquals("answer", response.getMessages().get(1).getContent());
     }
 
     @Test

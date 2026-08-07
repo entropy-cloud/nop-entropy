@@ -5,7 +5,9 @@ import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.api.chat.messages.ChatMessage;
+import io.nop.ai.api.chat.messages.ChatReasoningMessage;
 import io.nop.ai.api.chat.messages.ChatToolCall;
+import io.nop.ai.api.chat.messages.ChatToolCallMessage;
 import io.nop.ai.api.chat.messages.ChatToolResponseMessage;
 import io.nop.ai.api.chat.messages.ChatToolDefinition;
 import io.nop.ai.api.chat.messages.ChatUsage;
@@ -185,6 +187,18 @@ public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect 
             message.setToolCalls(toolCalls);
         }
         response.setMessage(message);
+
+        // Plan 326 双轨：旧 message（含 think/toolCalls 寄居字段）保留，同时按语义顺序产出 messages 序列
+        // （reasoning → assistant text → tool_calls）。每个 tool_use block 拆为独立的 ChatToolCallMessage。
+        List<ChatMessage> messages = new ArrayList<>();
+        if (thinkingBuilder.length() > 0) {
+            messages.add(new ChatReasoningMessage(thinkingBuilder.toString()));
+        }
+        messages.add(message);
+        for (ChatToolCall toolCall : toolCalls) {
+            messages.add(ChatToolCallMessage.fromChatToolCall(toolCall));
+        }
+        response.setMessages(messages);
 
         // 解析元数据
         response.setId(getStringByPath(responseMap, "id"));

@@ -3,6 +3,9 @@ package io.nop.ai.core.dialect;
 import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
+import io.nop.ai.api.chat.messages.ChatAssistantMessage;
+import io.nop.ai.api.chat.messages.ChatMessage;
+import io.nop.ai.api.chat.messages.ChatReasoningMessage;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
 import io.nop.ai.api.chat.stream.ChatStreamChunk;
 import io.nop.ai.core.model.ApiStyle;
@@ -18,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestGeminiDialect extends JunitBaseTestCase {
 
@@ -56,6 +60,15 @@ public class TestGeminiDialect extends JunitBaseTestCase {
         assertEquals("Final answer", response.getMessage().getContent());
         assertEquals("Let me think", response.getMessage().getThink());
         assertEquals("gemini-1.5-pro", response.getModel());
+
+        // Plan 326 双轨：thought:true parts 产出 ChatReasoningMessage，其余 text parts 产出 assistant 文本。
+        assertNotNull(response.getMessages());
+        assertEquals(2, response.getMessages().size());
+        assertTrue(response.getMessages().get(0) instanceof ChatReasoningMessage,
+                "thought:true parts must produce ChatReasoningMessage first");
+        assertEquals("Let me think", response.getMessages().get(0).getContent());
+        assertTrue(response.getMessages().get(1) instanceof ChatAssistantMessage);
+        assertEquals("Final answer", response.getMessages().get(1).getContent());
     }
 
     @Test
