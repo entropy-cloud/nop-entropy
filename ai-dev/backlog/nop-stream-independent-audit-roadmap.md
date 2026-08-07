@@ -23,10 +23,10 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 7. XDSL StreamModel 入口审计: `done`
 - 8. Delta StreamModel 入口审计: `todo`
 - 9. Checkpoint、barrier 与恢复语义审计: `done`
-- 10. State backend、savepoint 与 rescale 审计: `todo`
-- 11. Window、watermark 与 timer 审计: `todo`
+- 10. State backend、savepoint 与 rescale 审计: `planned`
+- 11. Window、watermark 与 timer 审计: `planned`
 - 12. CEP/NFA/SharedBuffer 审计: `todo`
-- 13. Control plane、HA 与 fencing 审计: `todo`
+- 13. Control plane、HA 与 fencing 审计: `done`
 - 14. Data plane 与真实多 JVM recovery 审计: `todo`
 - 15. Batch/message connector capability 审计: `todo`
 - 16. JDBC/file/CDC connector external-effect 审计: `todo`
@@ -86,10 +86,10 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 | 7 | XDSL StreamModel entry audit | successor audit plan | 4, 6 | No | flow model and DSL fixtures |
 | 8 | Delta StreamModel entry audit | successor audit plan | 4, 7 | No | Nop Delta fixtures |
 | 9 | Checkpoint, barrier and recovery audit | successor audit plan | 4, 5, 6 | **Yes** | checkpoint fixtures |
-| 10 | State backend, savepoint and rescale audit | successor audit plan | 4, 5, 9 | **Yes** | memory/RocksDB/key-group fixtures |
-| 11 | Window, watermark and timer audit | successor audit plan | 4, 6, 9 | No | window/time fixtures |
+| 10 | State backend, savepoint and rescale audit | `2026-08-08-1835-2-state-backend-savepoint-rescale-audit.md` | 4, 5, 9 | **Yes** | memory/RocksDB/key-group fixtures |
+| 11 | Window, watermark and timer audit | `2026-08-08-1835-3-window-watermark-timer-audit.md` | 4, 6, 9 | No | window/time fixtures |
 | 12 | CEP/NFA/SharedBuffer audit | successor audit plan | 4, 6, 9 | No | CEP fixtures and fraud example |
-| 13 | Control plane, HA and fencing audit | successor audit plan | 4, 5, 9 | **Yes** | RPC/leader-election fixtures |
+| 13 | Control plane, HA and fencing audit | `2026-08-08-1835-1-control-plane-ha-fencing-audit.md` | 4, 5, 9 | **Yes** | RPC/leader-election fixtures |
 | 14 | Data plane and multi-JVM recovery audit | successor audit plan | 4, 5, 9, 13 | **Yes** | MiniStreamCluster and IMessageService |
 | 15 | Batch/message connector capability audit | successor audit plan | 4, 5, 6, 14 | No | batch and message connector fixtures |
 | 16 | JDBC/file/CDC external-effect audit | successor audit plan | 4, 5, 9, 14 | No | JDBC/file/Debezium fixtures |
