@@ -1,7 +1,7 @@
 # Contract Drift Reconciliation, Config Convention & Test Integrity
 
-> Plan Status: active
-> Last Reviewed: 2026-08-04
+> Plan Status: completed
+> Last Reviewed: 2026-08-07
 > Draft Review: independent sub-agent review passed (no Blockers; 2 Majors test-mock/container-strategy + Minors addressed; verdict YES). Session ses_036114ff9ffeJB69tHEx8arZB2.
 > Source: `ai-dev/audits/nop-stream-production/2026-08-02-2107-multi-audit-nop-stream-production.md` (P0 TestTaskManagerDaemon vacuous; P1 IOperatorStateStore/KeyedStateStore/StateDescriptor SPI drift; P1 Operator State doc drift; P1 missing `_module` marker; P1 TestTaskExecutorDaemonThreads / TestSinkTransformation hollow tests)
 > Related: Execution order `{3}` of 3 — 最低风险，可与 {1}/{2} 并行推进；不阻塞其他 plan。
@@ -97,39 +97,39 @@ Exit Criteria:
 
 ### Phase 3 - 空心测试恢复或删除
 
-Status: planned
+Status: completed
 Targets: `TestTaskManagerDaemon.java`, `TestTaskExecutorDaemonThreads.java`, `TestSinkTransformation.java`, `TestOneInputTransformation.java`
 
 - Item Types: `Fix`
 
-- [ ] **TestTaskManagerDaemon**：改为先提供非 null 最小 mock（`IClusterRegistry`/`IMessageService`）使 `tm.start()` 不 NPE，再 `submit` 至少一个 dummy task 使 `tm-task-*` 线程生成，扫描线程后 `assertTrue(foundDaemonTaskThread.get(), ...)`；`testHeartbeatThreadIsDaemon` 仅需 `start()` + 非 null `ClusterRegistry`（heartbeat 线程由 `start()` 直接创建）。若提供 mock 成本过高，**删除并记录原因**（P0 项优先修复，删除为兜底）
-- [ ] **TestTaskExecutorDaemonThreads**：改为实例化生产 `TaskManager`/`TaskExecutor` 并验证**其**线程为 daemon；或删除（零 bug-catching value）
-- [ ] **TestSinkTransformation**（及同型 `TestOneInputTransformation`）：删除 或 `@Tag("low-value")` 打标排除（项目已自标 18 个此类文件）
+- [x] **TestTaskManagerDaemon**：改为先提供非 null 最小 mock（`IClusterRegistry`/`IMessageService`）使 `tm.start()` 不 NPE，再 `submit` 至少一个 dummy task 使 `tm-task-*` 线程生成，扫描线程后 `assertTrue(foundDaemonTaskThread.get(), ...)`；`testHeartbeatThreadIsDaemon` 仅需 `start()` + 非 null `ClusterRegistry`（heartbeat 线程由 `start()` 直接创建）。若提供 mock 成本过高，**删除并记录原因**（P0 项优先修复，删除为兜底）
+- [x] **TestTaskExecutorDaemonThreads**：改为实例化生产 `TaskManager`/`TaskExecutor` 并验证**其**线程为 daemon；或删除（零 bug-catching value）
+- [x] **TestSinkTransformation**（及同型 `TestOneInputTransformation`）：删除 或 `@Tag("low-value")` 打标排除（项目已自标 18 个此类文件）
 
 Exit Criteria:
 
-- [ ] TestTaskManagerDaemon 修复版在仓库中可观察到 `tm.start()` + 任务提交 + `foundDaemonTaskThread` 断言，且测试在 green 时确实能捕获"移除 daemon 标记"的回归（或已删除并记录原因）
-- [ ] TestTaskExecutorDaemonThreads 修复版指向生产 ThreadFactory（或已删除并记录原因）
-- [ ] TestSinkTransformation/TestOneInputTransformation 已删除或打标排除
-- [ ] **无静默跳过**：保留的测试有真实断言，删除的有记录原因
-- [ ] `No new test required: <test rewrite/deletion, no production behavior change>`（本 phase 不新增生产功能）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] TestTaskManagerDaemon 修复版在仓库中可观察到 `tm.start()` + 任务提交 + `foundDaemonTaskThread` 断言，且测试在 green 时确实能捕获"移除 daemon 标记"的回归（或已删除并记录原因）
+- [x] TestTaskExecutorDaemonThreads 修复版指向生产 ThreadFactory（或已删除并记录原因）
+- [x] TestSinkTransformation/TestOneInputTransformation 已删除或打标排除
+- [x] **无静默跳过**：保留的测试有真实断言，删除的有记录原因
+- [x] `No new test required: <test rewrite/deletion, no production behavior change>`（本 phase 不新增生产功能）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。
 > **纯文档/测试计划**：本 plan 不涉及核心生产算法变更，但包含 SPI 可能的代码侧修改与 `_module` 配置。`./mvnw test` 仍须通过（测试改写 + 发现测试）。
 
-- [ ] 四处 SPI/文档 drift 均已裁定并落地收敛
-- [ ] `_module` 标记补齐且全局 IoC 发现测试通过
-- [ ] 三个空心测试已恢复真实保护力或删除/打标
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope drift/约定缺口
-- [ ] 受影响的 owner docs（design docs）已同步到 live baseline
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 验证修复后测试确有 bug-catching power（指向生产类），`_module` 发现路径运行时连通
-- [ ] `./mvnw compile -pl nop-stream -am -T 1C`
-- [ ] `./mvnw test -pl nop-stream -am -T 1C`
-- [ ] checkstyle / 代码规范检查通过
+- [x] 四处 SPI/文档 drift 均已裁定并落地收敛
+- [x] `_module` 标记补齐且全局 IoC 发现测试通过
+- [x] 三个空心测试已恢复真实保护力或删除/打标
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope drift/约定缺口
+- [x] 受影响的 owner docs（design docs）已同步到 live baseline
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 验证修复后测试确有 bug-catching power（指向生产类），`_module` 发现路径运行时连通
+- [x] `./mvnw compile -pl nop-stream -am -T 1C`
+- [x] `./mvnw test -pl nop-stream -am -T 1C`
+- [x] checkstyle / 代码规范检查通过
 
 ## Deferred But Adjudicated
 
@@ -141,14 +141,27 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （关闭时填写）
-Completed: YYYY-MM-DD
+Status Note: 三处空心测试已恢复真实保护力或删除/打标，`_module` IoC 发现标记补齐且发现测试通过，四处 SPI/文档 drift 已收敛（Phase 1 文档对齐代码）。本 plan 不涉及核心生产算法变更，仅文档/配置/测试收口。Phase 3 的代码工作在 commit `eeef4e13d` 中落地，本次执行完成 bookkeeping（勾选 + closure audit + roadmap 收口）。
+Completed: 2026-08-07
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （关闭时填写）
-- Evidence: （关闭时填写，含每条 Exit Criterion / Closure Gate 验证结果、check-plan-checklist 与 scan-hollow 退出码）
+- Reviewer / Agent: 独立子 agent closure audit（fresh session，非实现 session 复用）
+- Audit Session: ses_023b54eb7ffehrrD9PTvILHCRH
+- Evidence:
+  - **Phase 1 (SPI/doc drift)**：已完成（前序执行），四处 drift 均裁定为文档对齐代码，design 文档已修订。Exit Criteria 全 `[x]`。
+  - **Phase 2 (`_module` 发现标记)**：已完成（前序执行）。`_vfs/nop/stream/_module` 文件存在；`TestStreamModuleDiscovery`（2 tests）通过 `_module` 驱动 scoped 容器遍历断言 `streamMessageService`/`streamDataPlaneWireCodec` 物化——`Tests run: 2, Failures: 0, Errors: 0`。
+  - **Phase 3 (空心测试)** — 独立审计逐项核对 live code：
+    - `TestTaskManagerDaemon`：PASS。重写版提供非 null `noopClusterRegistry()`/`noopMessageService()`，调 `tm.start()`（heartbeat 线程生成）+ `tm.receiveAssignment(...)`（`tm-task-*` 线程懒创建），真实断言 `assertTrue(t.isDaemon(), ...)`（TestTaskManagerDaemon.java:164/:193）。生产 `TaskManager.java:129/:134` 两处 `setDaemon(true)`——移除任一即测试 FAIL（regression power 成立）。`Tests run: 2, Failures: 0, Errors: 0`。
+    - `TestTaskExecutorDaemonThreads`：PASS（已删除）。原版自定义 `ThreadFactory` 测 Java 语言恒真式，零生产耦合；在 commit `eeef4e13d` 删除，commit message 记录原因。
+    - `TestSinkTransformation`/`TestOneInputTransformation`：PASS（打标）。类级 `@Tag("low-value")` + Javadoc 说明（仅构造 data-holder 后断言 getter，无业务逻辑可测）。项目共 20 文件用此约定。`Tests run: 17/18, Failures: 0, Errors: 0`。
+  - **无静默跳过**：保留的测试有真实断言；删除的有记录原因。
+  - `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（无未勾选项 + Closure Evidence 已写入）。
+  - **Anti-Hollow 检查**：保留/重写的测试指向生产类（`TaskManager` 线程工厂、`SinkTransformation`/`OneInputTransformation`），`_module` 发现路径运行时连通（`TestStreamModuleDiscovery` 实证）。`scan-hollow-implementations.mjs --module nop-stream --severity high` 退出码 1，但 14 条 high findings 全在 `src/main` 且与本 plan 改动零重叠（git show eeef4e13d 实证）——均为既有的 rule-#24-compliant `UnsupportedOperationException` 守卫（抛清晰异常非静默跳过）、demo 模块守卫、与 comment-match 误报，属 roadmap Follow-up Backlog 的 P2 邻接项（本 plan Non-Goals 已声明 out-of-scope），不阻塞 closure。
+  - `./mvnw compile -pl nop-stream -am -T 1C` BUILD SUCCESS；`./mvnw test -pl nop-stream -am -T 1C` BUILD SUCCESS（全部模块绿）。
+  - Deferred 项分类检查：本 plan 无 deferred 项；P2 邻接项（IStateBackend javadoc、README 五层/六阶段、二层错误处理、低价值测试尾部）已在 Non-Blocking Follow-ups 声明，非 in-scope live defect。
 
 Follow-up:
 
-- （关闭时填写；confirmed live defect 不得出现在这里）
+- no remaining plan-owned work（三处空心测试已收口，`_module` 已补齐，drift 已收敛）
+- P2 邻接项（scan-hollow 14 条既存 src/main findings、IStateBackend javadoc、README、二层错误处理、低价值测试尾部）归 roadmap Follow-up Backlog，不阻塞 closure
