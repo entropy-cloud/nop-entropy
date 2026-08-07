@@ -87,7 +87,7 @@
 > 方向速记：`A ioc:before B` ⇒ A 先于 B ⇒ A 进入 B 的 resolvedDepends；`A ioc:after B` ⇒ B 先于 A ⇒ B 进入 A 的 resolvedDepends。即"谁被声明先创建"，谁进入后创建者的 resolvedDepends。
 
 - 校验先于填充执行：声明的 before/after 恶意环（如 `A ioc:before B` + `B ioc:before A`）在步骤 1 被捕获，环中必有一条约束被违反，不会进入步骤 2。
-- 缺失目标（被条件禁用/父容器/可选模块）不校验、不报错，也不进 resolvedDepends。
+- **存在性校验不对称**：`depends-on` 是**强声明**——目标缺失在加载期直接报错（`ERR_IOC_UNKNOWN_DEPEND_REF`，`BeanDefinitionBuilder.checkDependRef`），因为 `resolvedDepends` 的强制创建循环在运行时必然依赖它，早报错优于运行时失败。`ioc:before`/`ioc:after` 是**弱声明**——目标缺失静默跳过（被条件禁用/父容器/可选模块提供时不报错）。但无论强弱，只要目标存在，其顺序约束都必须成立（步骤 1 校验覆盖三种声明）。
 - ref 目标的拓扑序过滤使循环 ref（并发下无初始化保证的既存行为）不被误提升为"必须完整初始化"。
 
 ### 3.4 生产用法影响评估
@@ -97,14 +97,14 @@
 - **排序保证**：eager 模式下 `container.start()` 按拓扑序创建，顺序约束由排序满足；新增校验为显式保障，行为不变。
 - **强制创建**：`resolvedDepends` 在 eager 模式下与旧 `dependsOn` 强制创建结果一致（ref/拓扑过滤在同层全量创建下同样被满足）。
 - 唯一行为变化在 lazy 模式：`nextBeans` 前向联动消失（创建 B 不再连带创建 A）。这些 bean 均非 lazy，无生产可观测变化。
-- 现有 8 处用法均为单向约束、无环，新增校验不会误报。
+- 现有 8 处用法均为单向约束、无环，新增校验不会误报——**但校验落地时在 `nop-orm-geo` 暴露了一个既有缺陷并已修复**：`H2GisInitializer ioc:before="nopOrmSessionFactory"` 指向的是 `ioc:default` bean（实际 id 带 `$DEFAULT$` 前缀，声明用别名）。旧代码在 `BeanTopologySorter` 建边与 `resolvedDepends` 填充时用**原始字符串** `other.getIocBefore().contains(bean.getId())` 反向匹配，别名与归一化 id 不相等导致 before 边**从未建立**，`H2GisInitializer` 实际顺序错位（字母序上 `$DEFAULT$` 排在前）。已改为对声明值逐个 `normalizeBeanId` 后与 `bean.getId()` 比较（`BeanTopologySorter` 三处：校验、`fillResolvedDepends`、`sortBeans`）。`ioc:after`/`depends-on` 走 `deps.addAll` + 后续 `normalizeBeanId` 路径，本不受影响。
 
 ### 3.5 约束与边界
 
 - **强制创建的声明性来源是 `resolvedDepends` 与 ref 属性赋值**；二者是唯一强制创建路径。
 - **`ioc:before`/`ioc:after` 不修改 model 的 `dependsOn` 声明**——只在排序读取与 `resolvedDepends` 填充中生效，避免改写用户声明的副作用。
-- **缺失的顺序约束目标不报错**，与 `ioc:condition`、父容器、可选模块的宽松语义一致。
-- **顺序约束必须保证**：存在且顺序不满足即报错，不受 `allow-cycle` 配置影响。
+- **缺失目标的处理不对称**：`depends-on` 缺失必须报错（强声明，运行时强制创建必然失败）；`ioc:before`/`ioc:after` 缺失不报错（弱声明，与 `ioc:condition`、父容器、可选模块的宽松语义一致）。存在性校验发生在加载期（`BeanDefinitionBuilder`），顺序校验发生在排序后（`BeanTopologySorter`）。
+- **顺序约束必须保证**：目标存在且顺序不满足即报错（三种声明一致），不受 `allow-cycle` 配置影响。
 - **`depends-on` 的强制创建环节必须保留**——lazy 模式下无字段数据依赖得以实例化的唯一机制。
 
 ## 四、拒绝了什么
@@ -138,7 +138,7 @@
 
 | 职责 | 位置 |
 |------|------|
-| before/after 读取与 resolvedDepends 填充（重构 BeanDependsBuilder，不再写 model/nextBeans） | `nop-core-framework/nop-ioc/src/main/java/io/nop/ioc/loader/BeanDependsBuilder.java` |
+| before/after 读取与 resolvedDepends 填充（替代原 BeanDependsBuilder：不再写 model/nextBeans） | `nop-core-framework/nop-ioc/src/main/java/io/nop/ioc/impl/BeanTopologySorter.java` |
 | nextBeans 设置循环（待移除） | `nop-core-framework/nop-ioc/src/main/java/io/nop/ioc/impl/BeanContainerImpl.java`（构造函数，约 100-109 行） |
 | nextBeans 前向强制创建（待移除） | `nop-core-framework/nop-ioc/src/main/java/io/nop/ioc/impl/BeanContainerImpl.java`（getBean0，约 411-415 行） |
 | nextBeans 字段与方法 + dependBeanIds 字段（待移除） | `nop-core-framework/nop-ioc/src/main/java/io/nop/ioc/impl/BeanDefinition.java`（121/197-206 行；119/175-181 行） |
