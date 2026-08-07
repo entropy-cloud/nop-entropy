@@ -1,6 +1,6 @@
 # 17 Test Effectiveness & Audit-Tool Governance (nop-stream Independent Audit)
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-08
 > Source: `ai-dev/backlog/nop-stream-independent-audit-roadmap.md` (Stage 17); frozen Stage-4 outputs (`source-manifest.md` domain `g` test lane (453 test java files / 13 fixtures / 4 multi-jvm fixtures) + `finding-corpus.md` test-quality findings across shards 18-22, `evidence-schema.md`); frozen Stage-5 outputs (`environment-qualification.md` T1-T6 lane policy); frozen Stage 6-16 evidence (critical-test references); `ai-dev/tools/check-nop-stream-audit-manifest.mjs` + `ai-dev/tools/scan-hollow-implementations.mjs`; Stage 6-16 Non-Blocking Follow-ups deferring test-effectiveness items to Stage 17.
 > Mission: nop-stream-independent-audit
@@ -71,85 +71,85 @@
 
 ### Phase 1 - Critical-Test Registry & Disabled/Gated Test Disposition
 
-Status: planned
+Status: completed
 Targets: `ai-dev/audits/nop-stream-independent-audit/stage-17-test-effectiveness-and-tool-governance.md`
 
 - Item Types: `Proof | Decision`
 
-- [ ] 提取并登记 **critical-test registry**：从执行时已存在的 `stage-*.evidence.md` 文件（当前为 stage-6..14；stage-15/16 若已完成则纳入）的所有 `@@EVIDENCE` 行 `positive_proof`/`rejection_proof` 字段提取测试方法名（`ClassName#method`），去重，逐条标注所属 domain stage + 验证能力 + 在测试树中是否真实存在（live 验证 file 存在）。**successor 机制**：后续 stage 15/16/18-22 完成时，由其 owner plan 回填本 registry（或本 plan 注明 registry 为 live 快照，由 Stage 23 汇总）。
-- [ ] 为 `TestDebeziumCdcSourceCompletion`（`@Disabled`）产出 disposition：记录 disabled reason（"Genuinely broken: run() loops until cancel()"）、anchor、successor（remediation plan 或 Stage 17 follow-up）、是否阻塞任何 evidence row（核对无 Stage 6-16 evidence 引用其为 `positive_proof`——若有则 flag 违规）。
-- [ ] 为 5 个 gated 测试逐个产出 disposition：`TestMiniStreamClusterProcessSpawn` / `TestMultiJvmExactlyOnceRecovery` / `TestMultiJvmCoordinatorFailover`（T2 lane，gate `nop.stream.test.multi-jvm.enabled`）/ `TestDataPlaneKafkaBackendE2E`（T3）/ `TestDataPlanePulsarBackendE2E`（T4）——逐个标注 gate property、lane、`qualified`/`blocked`、audit window 是否实跑过、是否被某 evidence row 引用（引用 skipped gated test 为 `positive_proof` = Rule S5-1 违规）。
-- [ ] 产出 **multi-jvm lane (T2) deeper-defect test disposition**：`TestMultiJvmExactlyOnceRecovery`（log-label mismatch defect）+ `TestMultiJvmCoordinatorFailover`（HA-fencing takeover defect）——记录其为 known defect（Stage 14 已标 `blocked`），test-effectiveness 视角标注 successor remediation。
+- [x] 提取并登记 **critical-test registry**：从执行时已存在的 `stage-*.evidence.md` 文件（当前为 stage-6..14；stage-15/16 若已完成则纳入）的所有 `@@EVIDENCE` 行 `positive_proof`/`rejection_proof` 字段提取测试方法名（`ClassName#method`），去重，逐条标注所属 domain stage + 验证能力 + 在测试树中是否真实存在（live 验证 file 存在）。**successor 机制**：后续 stage 15/16/18-22 完成时，由其 owner plan 回填本 registry（或本 plan 注明 registry 为 live 快照，由 Stage 23 汇总）。
+- [x] 为 `TestDebeziumCdcSourceCompletion`（`@Disabled`）产出 disposition：记录 disabled reason（"Genuinely broken: run() loops until cancel()"）、anchor、successor（remediation plan 或 Stage 17 follow-up）、是否阻塞任何 evidence row（核对无 Stage 6-16 evidence 引用其为 `positive_proof`——若有则 flag 违规）。
+- [x] 为 5 个 gated 测试逐个产出 disposition：`TestMiniStreamClusterProcessSpawn` / `TestMultiJvmExactlyOnceRecovery` / `TestMultiJvmCoordinatorFailover`（T2 lane，gate `nop.stream.test.multi-jvm.enabled`）/ `TestDataPlaneKafkaBackendE2E`（T3）/ `TestDataPlanePulsarBackendE2E`（T4）——逐个标注 gate property、lane、`qualified`/`blocked`、audit window 是否实跑过、是否被某 evidence row 引用（引用 skipped gated test 为 `positive_proof` = Rule S5-1 违规）。
+- [x] 产出 **multi-jvm lane (T2) deeper-defect test disposition**：`TestMultiJvmExactlyOnceRecovery`（log-label mismatch defect）+ `TestMultiJvmCoordinatorFailover`（HA-fencing takeover defect）——记录其为 known defect（Stage 14 已标 `blocked`），test-effectiveness 视角标注 successor remediation。
 
 Exit Criteria:
 
-- [ ] critical-test registry 成文，每条经 live 验证测试方法真实存在于测试树（非凭空），registry 覆盖执行时已存在的全部 evidence 文件的 `positive_proof`/`rejection_proof` 引用（并注明 successor 回填机制）
-- [ ] 1 disabled + 5 gated 测试各有 disposition（reason/lane/successor/Rules-S5-1 合规）
-- [ ] **无静默跳过（Rule #24）**：任一 disabled/gated 测试不得默默跳过——须有 disposition；若某 evidence row 引用 skipped gated test 为 `positive_proof`，须 flag 为 Rule S5-1 违规（不得静默当 evidence）
-- [ ] `No owner-doc update required`
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] critical-test registry 成文，每条经 live 验证测试方法真实存在于测试树（非凭空），registry 覆盖执行时已存在的全部 evidence 文件的 `positive_proof`/`rejection_proof` 引用（并注明 successor 回填机制）
+- [x] 1 disabled + 5 gated 测试各有 disposition（reason/lane/successor/Rules-S5-1 合规）
+- [x] **无静默跳过（Rule #24）**：任一 disabled/gated 测试不得默默跳过——须有 disposition；若某 evidence row 引用 skipped gated test 为 `positive_proof`，须 flag 为 Rule S5-1 违规（不得静默当 evidence）
+- [x] `No owner-doc update required`
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - Negative/Mutation Controls For Critical Behaviors & Test-Quality Finding Registry
 
-Status: planned
+Status: completed
 Targets: `ai-dev/audits/nop-stream-independent-audit/stage-17-test-effectiveness-and-tool-governance.md`
 
 - Item Types: `Proof | Decision`
 
-- [ ] 为 **4 个 ZERO-test 关键行为**（M7-2-P0-5 Serializer Fingerprint recovery-compat、M7-2-P0-6 fencing-token rejection、M7-2-P0-7 Savepoint differential、M7-2-P0-8 stateShardCount rescale）裁定 negative-control 状态：核对 live repo 是否已补 rejection/fault-injection 测试（active remediation plan 可能已补）；有则标 `has-negative-control` + 测试名；无则标 `missing-negative-control` + successor（Stage 18-22 disposition 或 remediation plan）。
-- [ ] 对 registry 中**其余 critical behavior**（被 ≥1 evidence row 依赖、且非 ZERO-test 类的测试方法）裁定 negative-control 状态。**"critical behavior" 定义裁定**（roadmap "each registered critical behavior" 的落地）：mandatory 集合 = 4 个 ZERO-test 关键行为（关键正确性无任何测试，必须逐个裁定）；其余 registry 项按"是否被 evidence row 引用为唯一 `positive_proof`"判定 criticality——被引用为唯一证据的，裁定其是否 non-vacuous（借鉴 corpus P-2/P-3/P-4 分类：metadata-only/assertNotNull-only/getter-round-trip 视为 vacuous 标 `vacuous` + successor）；未被引用或非唯一的标 `watch-only`。逐条记录判定理由，使 closure audit 可机械复核。
-- [ ] 登记 **test-quality findings 集中表**（misleading/vacuous/coupling/happy-path-only 类，跨 shards 18-22）：逐条标注 finding_id、anchor、live 状态（`closed`(FIXED) / `live-residual` / `successor-plan-owned`）、successor。至少覆盖：M8-2-P2-20/22/23、O8-2-AR-4、M7-2-P1-13/14、M7-2-P2-9/10/11/12/13/14/15/16/17/18、M7-2-P1-12/15、M8-2-P2-21。
-- [ ] 吸收 Stage 6-14 deferred test-effectiveness follow-ups：逐条核对 CEP Stage-12 deferred 的 5 项 + 其他 audit deferred 项是否已在本 registry 登记，未登记的补登。
+- [x] 为 **4 个 ZERO-test 关键行为**（M7-2-P0-5 Serializer Fingerprint recovery-compat、M7-2-P0-6 fencing-token rejection、M7-2-P0-7 Savepoint differential、M7-2-P0-8 stateShardCount rescale）裁定 negative-control 状态：核对 live repo 是否已补 rejection/fault-injection 测试（active remediation plan 可能已补）；有则标 `has-negative-control` + 测试名；无则标 `missing-negative-control` + successor（Stage 18-22 disposition 或 remediation plan）。
+- [x] 对 registry 中**其余 critical behavior**（被 ≥1 evidence row 依赖、且非 ZERO-test 类的测试方法）裁定 negative-control 状态。**"critical behavior" 定义裁定**（roadmap "each registered critical behavior" 的落地）：mandatory 集合 = 4 个 ZERO-test 关键行为（关键正确性无任何测试，必须逐个裁定）；其余 registry 项按"是否被 evidence row 引用为唯一 `positive_proof`"判定 criticality——被引用为唯一证据的，裁定其是否 non-vacuous（借鉴 corpus P-2/P-3/P-4 分类：metadata-only/assertNotNull-only/getter-round-trip 视为 vacuous 标 `vacuous` + successor）；未被引用或非唯一的标 `watch-only`。逐条记录判定理由，使 closure audit 可机械复核。
+- [x] 登记 **test-quality findings 集中表**（misleading/vacuous/coupling/happy-path-only 类，跨 shards 18-22）：逐条标注 finding_id、anchor、live 状态（`closed`(FIXED) / `live-residual` / `successor-plan-owned`）、successor。至少覆盖：M8-2-P2-20/22/23、O8-2-AR-4、M7-2-P1-13/14、M7-2-P2-9/10/11/12/13/14/15/16/17/18、M7-2-P1-12/15、M8-2-P2-21。
+- [x] 吸收 Stage 6-14 deferred test-effectiveness follow-ups：逐条核对 CEP Stage-12 deferred 的 5 项 + 其他 audit deferred 项是否已在本 registry 登记，未登记的补登。
 
 Exit Criteria:
 
-- [ ] ≥4 个 ZERO-test 关键行为有 negative-control 状态裁定（`has-negative-control` 或 `missing-negative-control` + successor）
-- [ ] 其余 registry critical behavior 有 non-vacuous 判定（mandatory 逐个 + 其余按唯一-positive_proof criticality 裁定），"critical behavior" 定义显式成文
-- [ ] test-quality findings 集中表成文，每条有 live 状态 + successor；confirmed still-live 不得静默降级为 non-blocking
-- [ ] **无静默跳过（Rule #24）**：vacuous 测试须标 `vacuous` + successor（不得默默当有效）；missing-negative-control 须标 successor（不得默默当已覆盖）
-- [ ] Stage 6-14 deferred test-effectiveness follow-ups 全部被吸收（登记或显式 cross-ref）
-- [ ] `No owner-doc update required`
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] ≥4 个 ZERO-test 关键行为有 negative-control 状态裁定（`has-negative-control` 或 `missing-negative-control` + successor）
+- [x] 其余 registry critical behavior 有 non-vacuous 判定（mandatory 逐个 + 其余按唯一-positive_proof criticality 裁定），"critical behavior" 定义显式成文
+- [x] test-quality findings 集中表成文，每条有 live 状态 + successor；confirmed still-live 不得静默降级为 non-blocking
+- [x] **无静默跳过（Rule #24）**：vacuous 测试须标 `vacuous` + successor（不得默默当有效）；missing-negative-control 须标 successor（不得默默当已覆盖）
+- [x] Stage 6-14 deferred test-effectiveness follow-ups 全部被吸收（登记或显式 cross-ref）
+- [x] `No owner-doc update required`
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - Audit-Tool Positive Controls & Evidence-Policy Compliance
 
-Status: planned
+Status: completed
 Targets: `ai-dev/audits/nop-stream-independent-audit/stage-17-test-effectiveness-and-tool-governance.md`
 
 - Item Types: `Proof | Decision`
 
-- [ ] 为 `check-nop-stream-audit-manifest.mjs` 的 4 个 checker（manifest/corpus/evidence/qualification）产出 positive control：**运行既有 `self-test` subcommand**（`node ai-dev/tools/check-nop-stream-audit-manifest.mjs self-test`，`cmdSelfTest :560-575`——对 4 个 checker 各注入已知违规并验证拒绝，含 good-entry 反向校验）；freeze 命令 + 期望输出（`[PASS] self-test (positive control)`，exit 0）为 control 记录；**核对 `self-test` 覆盖的违规类别是否充分**（逐个 checker 列出其注入的 known-bad 输入类型）——如发现检测盲区（某类违规未被 self-test 覆盖）→ 标 tool-defect + successor plan（不在本计划改工具）。
-- [ ] 为 `scan-hollow-implementations.mjs` 产出 positive control（唯一无内置 self-test 的工具）：**新建一个已知空壳 fixture**（放 `_tmp/` 或 audit dir 下 `_control_hollow_fixture`，含空方法体/吞异常/`continue` 跳过等已知模式）；运行 `node ai-dev/tools/scan-hollow-implementations.mjs <fixture> --severity high`，证明报 high/critical 且非零退出；freeze fixture 路径 + 命令 + 期望输出为 control 记录。
-- [ ] 产出 **evidence-policy 合规核对**：扫描 Stage 6-N（执行时已存在的 evidence 文件，当前为 6-14；15/16 若已完成则纳入）evidence 文件，核对是否有 `positive_proof` 引用 skipped gated test（Rule S5-1 违规）或引用不存在/已 `@Disabled` 的测试方法；flag 任何违规。
-- [ ] 全 governance 文件回归。**注**：governance 产出文件名为 `stage-17-*.md`（非 `*.evidence.md`），`check-nop-stream-audit-manifest.mjs evidence` 只扫 `*.evidence.md`（`:304`）——故 control 证据以 governance 文本记录为准，不放入 `@@EVIDENCE` 行（若需 evidence-row 形式须另建 `*.evidence.md` 文件）。
+- [x] 为 `check-nop-stream-audit-manifest.mjs` 的 4 个 checker（manifest/corpus/evidence/qualification）产出 positive control：**运行既有 `self-test` subcommand**（`node ai-dev/tools/check-nop-stream-audit-manifest.mjs self-test`，`cmdSelfTest :560-575`——对 4 个 checker 各注入已知违规并验证拒绝，含 good-entry 反向校验）；freeze 命令 + 期望输出（`[PASS] self-test (positive control)`，exit 0）为 control 记录；**核对 `self-test` 覆盖的违规类别是否充分**（逐个 checker 列出其注入的 known-bad 输入类型）——如发现检测盲区（某类违规未被 self-test 覆盖）→ 标 tool-defect + successor plan（不在本计划改工具）。
+- [x] 为 `scan-hollow-implementations.mjs` 产出 positive control（唯一无内置 self-test 的工具）：**新建一个已知空壳 fixture**（放 `_tmp/` 或 audit dir 下 `_control_hollow_fixture`，含空方法体/吞异常/`continue` 跳过等已知模式）；运行 `node ai-dev/tools/scan-hollow-implementations.mjs <fixture> --severity high`，证明报 high/critical 且非零退出；freeze fixture 路径 + 命令 + 期望输出为 control 记录。
+- [x] 产出 **evidence-policy 合规核对**：扫描 Stage 6-N（执行时已存在的 evidence 文件，当前为 6-14；15/16 若已完成则纳入）evidence 文件，核对是否有 `positive_proof` 引用 skipped gated test（Rule S5-1 违规）或引用不存在/已 `@Disabled` 的测试方法；flag 任何违规。
+- [x] 全 governance 文件回归。**注**：governance 产出文件名为 `stage-17-*.md`（非 `*.evidence.md`），`check-nop-stream-audit-manifest.mjs evidence` 只扫 `*.evidence.md`（`:304`）——故 control 证据以 governance 文本记录为准，不放入 `@@EVIDENCE` 行（若需 evidence-row 形式须另建 `*.evidence.md` 文件）。
 
 Exit Criteria:
 
-- [ ] 4 个 manifest checker 经 `self-test` 验证（run + freeze 命令/期望输出，exit 0），覆盖的违规类别逐个列明；任何检测盲区标 tool-defect + successor
-- [ ] `scan-hollow-implementations.mjs` 有新建 positive control fixture（注入已知空壳 → `--severity high` 报 high/critical，非零退出）
-- [ ] **无静默跳过（Rule #24）**：positive control 必须证明工具真能报错（`self-test` 退出 0 证明 4 checker 拒绝 known-bad；scan-hollow fixture 证明非零退出）——不得"工具退出 0 就当可信"而无注入违规证据；evidence-policy 违规必须 flag（不得默默放过）
-- [ ] evidence-policy 合规核对覆盖执行时已存在的全部 evidence 文件；任何 Rule S5-1 违规 / 引用不存在测试 / 引用 `@Disabled` 测试 均被 flag
-- [ ] `No owner-doc update required`
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 4 个 manifest checker 经 `self-test` 验证（run + freeze 命令/期望输出，exit 0），覆盖的违规类别逐个列明；任何检测盲区标 tool-defect + successor
+- [x] `scan-hollow-implementations.mjs` 有新建 positive control fixture（注入已知空壳 → `--severity high` 报 high/critical，非零退出）
+- [x] **无静默跳过（Rule #24）**：positive control 必须证明工具真能报错（`self-test` 退出 0 证明 4 checker 拒绝 known-bad；scan-hollow fixture 证明非零退出）——不得"工具退出 0 就当可信"而无注入违规证据；evidence-policy 违规必须 flag（不得默默放过）
+- [x] evidence-policy 合规核对覆盖执行时已存在的全部 evidence 文件；任何 Rule S5-1 违规 / 引用不存在测试 / 引用 `@Disabled` 测试 均被 flag
+- [x] `No owner-doc update required`
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > **治理/审计计划（无生产代码变更）**：本计划产出为 registry + dispositions + controls + policy 核对文本，不改 nop-stream 生产代码与审计工具校验逻辑。`./mvnw test`/`compile` 不强制；改为以 governance 产出完整性 + 审计工具 positive control 退出码为 closure 依据。但若审计中发现审计工具缺陷，按 roadmap 规则指派 successor（不在本计划改工具）。
 
-- [ ] critical-test registry 成文，覆盖执行时已存在的全部 evidence 文件的 `positive_proof`/`rejection_proof` 引用（当前 6-14；15/16 若已完成则纳入），每条 live 验证真实存在（并注明 successor 回填机制）
-- [ ] 1 disabled + 5 gated 测试各有 disposition（含 Rule S5-1 合规）
-- [ ] ZERO-test 关键行为（M7-2-P0-5/6/7/8）有 negative-control 状态裁定
-- [ ] 其余 registry critical behavior 有 non-vacuous 判定（"critical behavior" 定义显式成文）
-- [ ] test-quality findings 集中表成文，confirmed still-live 不静默降级
-- [ ] `check-nop-stream-audit-manifest.mjs` 4 个 checker 经 `self-test` 验证（run + freeze，exit 0）；`scan-hollow-implementations.mjs` 有新建 positive control fixture（非零退出）
-- [ ] evidence-policy 合规核对覆盖执行时已存在的全部 evidence 文件，违规均 flag
-- [ ] Stage 6-14 deferred test-effectiveness follow-ups 全部吸收
-- [ ] 不存在被静默降级到 deferred 的 in-scope 审计项（vacuous/missing-control/gated-defect/tool-defect 标 successor；均为合法终态）
-- [ ] 审计工具缺陷（若有 self-test 盲区）已指派 successor
-- [ ] `No owner-doc update required`（不改 `docs-for-ai/`）
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 验证（a）registry 中测试方法确为 live 存在（非凭空），（b）`self-test` 退出 0 确证 4 checker 拒绝 known-bad + scan-hollow fixture 非零退出（非"退出 0 即可信"），（c）evidence-policy 违规无静默放过，（d）vacuous/missing-control 标 successor 无静默降级
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` exit 0（Minimum Rule #26）
+- [x] critical-test registry 成文，覆盖执行时已存在的全部 evidence 文件的 `positive_proof`/`rejection_proof` 引用（当前 6-14；15/16 若已完成则纳入），每条 live 验证真实存在（并注明 successor 回填机制）
+- [x] 1 disabled + 5 gated 测试各有 disposition（含 Rule S5-1 合规）
+- [x] ZERO-test 关键行为（M7-2-P0-5/6/7/8）有 negative-control 状态裁定
+- [x] 其余 registry critical behavior 有 non-vacuous 判定（"critical behavior" 定义显式成文）
+- [x] test-quality findings 集中表成文，confirmed still-live 不静默降级
+- [x] `check-nop-stream-audit-manifest.mjs` 4 个 checker 经 `self-test` 验证（run + freeze，exit 0）；`scan-hollow-implementations.mjs` 有新建 positive control fixture（非零退出）
+- [x] evidence-policy 合规核对覆盖执行时已存在的全部 evidence 文件，违规均 flag
+- [x] Stage 6-14 deferred test-effectiveness follow-ups 全部吸收
+- [x] 不存在被静默降级到 deferred 的 in-scope 审计项（vacuous/missing-control/gated-defect/tool-defect 标 successor；均为合法终态）
+- [x] 审计工具缺陷（若有 self-test 盲区）已指派 successor
+- [x] `No owner-doc update required`（不改 `docs-for-ai/`）
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 验证（a）registry 中测试方法确为 live 存在（非凭空），（b）`self-test` 退出 0 确证 4 checker 拒绝 known-bad + scan-hollow fixture 非零退出（非"退出 0 即可信"），（c）evidence-policy 违规无静默放过，（d）vacuous/missing-control 标 successor 无静默降级
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` exit 0（Minimum Rule #26）
 
 ## Deferred But Adjudicated
 
@@ -164,15 +164,18 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写>>
-Completed: <<YYYY-MM-DD>>
+Status Note: All 3 Phases executed in a single run on 2026-08-08. Produced `ai-dev/audits/nop-stream-independent-audit/stage-17-test-effectiveness-and-tool-governance.md` (critical-test registry of 118 unique test classes / 249 method refs across stages 6-16, 100% live-verified; dispositions for 1 `@Disabled` + 5 gated tests; negative-control verdicts for 4 ZERO-test mandatory behaviors — all `has-negative-control` with live `assertThrows` evidence; test-quality registry of 22 findings with named successors; audit-tool positive controls — `self-test` exit 0 freezing 4 checker coverage, new `scan-hollow` fixture exit 1 with 3 high findings; Rule S5-1 evidence-policy scan of all Stage 6-16 rows with 0 violations; Stage 6-14 deferred follow-ups absorbed). No production code changed (audit-only plan, per scope); `check-nop-stream-audit-manifest.mjs evidence --strict` exit 0; `check-doc-links.mjs --strict` exit 0; `./mvnw test -pl nop-stream -am` BUILD SUCCESS (0 failures, 0 errors). Closure basis per the plan's own Closure Gates override: governance completeness + audit-tool positive-control exit codes (both green). Every still-live test-quality finding and ZERO-test successor item carries explicit successor ownership — none silently downgraded.
+Completed: 2026-08-08
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Evidence: <<task id / daily log link / findings 摘要>>
+- Reviewer / Agent: independent closure-audit subagent (mission-driver nop-stream-independent-audit, separate task_id from execution)
+- Evidence: `ai-dev/audits/nop-stream-independent-audit/stage-17-test-effectiveness-and-tool-governance.md` (§A-H); frozen `self-test` output (exit 0); frozen `scan-hollow` fixture output (exit 1, 3 high findings); `ai-dev/logs/2026-08/2026-08-08.md` entry; Anti-Hollow self-check §H.4 (registry live-verified, controls non-vacuous, no silent pass/downgrade)
 
 Follow-up:
 
-- <<只记录 non-blocking follow-up；confirmed live defect 不得出现在这里>>
-- <<或者明确写 no remaining plan-owned work>>
+- ZERO-test deeper coverage (CEP branching dangling size>1, savepoint operatorId-level differential) → active remediation plans / future feature plans
+- `TestDebeziumCdcSourceCompletion` `@Disabled` rewrite → connector remediation successor
+- `scan-hollow` positive-control fixture retained long-term under `_control_fixtures/` (audit dir, no migration needed)
+- Vacuous/misleading test governance → per-domain test-quality remediation successors (§D)
+- no remaining plan-owned work (all in-scope items dispositioned + successor-assigned)

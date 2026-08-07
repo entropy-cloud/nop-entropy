@@ -1,6 +1,6 @@
 # nop-stream 独立深度审计路线图
 
-> Last updated: 2026-08-08 (item 15 → done; items 16/17 → planned)
+> Last updated: 2026-08-08 (item 15 → done; items 16/17 → done)
 > Sources: `ai-dev/analysis/2026-08/2026-08-06-nop-stream-audit-baseline-and-roadmap-analysis.md` (primary), `ai-dev/backlog/nop-stream-production-roadmap.md` (implementation ownership), `ai-dev/audits/nop-stream-production/2026-08-02-2107-*.md` (current confirmed findings)
 
 ## Purpose
@@ -30,7 +30,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 14. Data plane 与真实多 JVM recovery 审计: `done`
 - 15. Batch/message connector capability 审计: `done`
 - 16. JDBC/file/CDC connector external-effect 审计: `done`
-- 17. 测试有效性与审计工具治理: `planned`
+- 17. 测试有效性与审计工具治理: `done`
 - 18. 当前 production finding disposition: `todo`
 - 19. 历史 P0/P1 checkpoint/state/window finding disposition: `todo`
 - 20. 历史 P0/P1 CEP/connector/runtime finding disposition: `todo`
