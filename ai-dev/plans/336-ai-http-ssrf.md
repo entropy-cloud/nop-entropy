@@ -2,7 +2,7 @@
 
 > Plan Status: draft
 > Last Reviewed: 2026-08-08
-> Review Hold: Blocked on User-Authorization Gate (DR-4a) — requires explicit user disposition of the enforcement-layer decision before implementation can begin. Cannot be resolved at review time; correctly held at draft.
+> Review Hold: Blocked on User-Authorization Gate (DR-4a) — requires explicit user disposition of the enforcement-layer decision before implementation can begin. Cannot be resolved at review time; correctly held at draft. (2026-08-08 review pass: format/completeness/scope/closure all PASS; all source anchors in Current Baseline and Public-API Migration Consideration verified against live repo — `HttpRequestExecutor` :41/:78/:133, `GraphqlQueryExecutor` :31/:93/:116, `HttpClientConfig.dnsResolver` :66, `IDnsResolver` :38-49. Plan is ready to activate once DR-4a is authorized.)
 > Source: `ai-dev/analysis/2026-08/2026-08-04-security-hardening-baseline.md` (DR-4a, DR-3b)
 > Related: `ai-dev/plans/328-security-hardening-remediation-planning.md`
 > Predecessor: Plan 328 Phase 1 froze the decision records this plan consumes.

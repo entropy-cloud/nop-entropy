@@ -1,6 +1,6 @@
 # nop-stream 独立深度审计路线图
 
-> Last updated: 2026-08-08
+> Last updated: 2026-08-08 (items 8/12/14 → planned)
 > Sources: `ai-dev/analysis/2026-08/2026-08-06-nop-stream-audit-baseline-and-roadmap-analysis.md` (primary), `ai-dev/backlog/nop-stream-production-roadmap.md` (implementation ownership), `ai-dev/audits/nop-stream-production/2026-08-02-2107-*.md` (current confirmed findings)
 
 ## Purpose
@@ -21,13 +21,13 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 5. 审计环境资格与 gated-evidence 契约: `done`
 - 6. Java API、graph 和 LOCAL execution 审计: `done`
 - 7. XDSL StreamModel 入口审计: `done`
-- 8. Delta StreamModel 入口审计: `todo`
+- 8. Delta StreamModel 入口审计: `planned`
 - 9. Checkpoint、barrier 与恢复语义审计: `done`
 - 10. State backend、savepoint 与 rescale 审计: `done`
 - 11. Window、watermark 与 timer 审计: `done`
-- 12. CEP/NFA/SharedBuffer 审计: `todo`
+- 12. CEP/NFA/SharedBuffer 审计: `planned`
 - 13. Control plane、HA 与 fencing 审计: `done`
-- 14. Data plane 与真实多 JVM recovery 审计: `todo`
+- 14. Data plane 与真实多 JVM recovery 审计: `done`
 - 15. Batch/message connector capability 审计: `todo`
 - 16. JDBC/file/CDC connector external-effect 审计: `todo`
 - 17. 测试有效性与审计工具治理: `todo`
@@ -84,13 +84,13 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 | 5 | Environment qualification and gated evidence | successor audit plan | 4 | **Yes** | existing multi-JVM and connector fixtures |
 | 6 | Java API, graph and LOCAL execution audit | successor audit plan | 4 | **Yes** | core execution E2E fixtures |
 | 7 | XDSL StreamModel entry audit | successor audit plan | 4, 6 | No | flow model and DSL fixtures |
-| 8 | Delta StreamModel entry audit | successor audit plan | 4, 7 | No | Nop Delta fixtures |
+| 8 | Delta StreamModel entry audit | `2026-08-08-0514-3-delta-streammodel-entry-audit.md` | 4, 7 | No | Nop Delta fixtures |
 | 9 | Checkpoint, barrier and recovery audit | successor audit plan | 4, 5, 6 | **Yes** | checkpoint fixtures |
 | 10 | State backend, savepoint and rescale audit | `2026-08-08-1835-2-state-backend-savepoint-rescale-audit.md` | 4, 5, 9 | **Yes** | memory/RocksDB/key-group fixtures |
 | 11 | Window, watermark and timer audit | `2026-08-08-1835-3-window-watermark-timer-audit.md` | 4, 6, 9 | No | window/time fixtures |
-| 12 | CEP/NFA/SharedBuffer audit | successor audit plan | 4, 6, 9 | No | CEP fixtures and fraud example |
+| 12 | CEP/NFA/SharedBuffer audit | `2026-08-08-0514-2-cep-nfa-sharedbuffer-audit.md` | 4, 6, 9 | No | CEP fixtures and fraud example |
 | 13 | Control plane, HA and fencing audit | `2026-08-08-1835-1-control-plane-ha-fencing-audit.md` | 4, 5, 9 | **Yes** | RPC/leader-election fixtures |
-| 14 | Data plane and multi-JVM recovery audit | successor audit plan | 4, 5, 9, 13 | **Yes** | MiniStreamCluster and IMessageService |
+| 14 | Data plane and multi-JVM recovery audit | `2026-08-08-0514-1-data-plane-multi-jvm-recovery-audit.md` | 4, 5, 9, 13 | **Yes** | MiniStreamCluster and IMessageService |
 | 15 | Batch/message connector capability audit | successor audit plan | 4, 5, 6, 14 | No | batch and message connector fixtures |
 | 16 | JDBC/file/CDC external-effect audit | successor audit plan | 4, 5, 9, 14 | No | JDBC/file/Debezium fixtures |
 | 17 | Test effectiveness and audit-tool governance | successor audit plan | 4, 5 | No | audit tools and test inventory |
