@@ -1,6 +1,6 @@
 # 11 Window, Watermark & Timer Audit (nop-stream Independent Audit)
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-08
 > Source: `ai-dev/backlog/nop-stream-independent-audit-roadmap.md` (Stage 11); frozen Stage-4 outputs (`source-manifest.md`, `evidence-schema.md`, `finding-corpus.md`, `ai-dev/tools/check-nop-stream-audit-manifest.mjs`); frozen Stage-5 outputs (`environment-qualification.md`); frozen Stage-6 outputs (`stage-6-java-api-graph-local.evidence.md`); frozen Stage-9 outputs (`stage-9-checkpoint-barrier-recovery.evidence.md`); live repo baseline of `nop-stream-core` window/watermark/timer surfaces + `nop-stream-runtime` WindowOperator/MergingWindowSet surfaces.
 > Mission: nop-stream-independent-audit
@@ -80,110 +80,110 @@
 
 ### Phase 1 - Window Assigner × Trigger Result Correctness Matrix Evidence
 
-Status: planned
+Status: completed
 Targets: `ai-dev/audits/nop-stream-independent-audit/stage-11-window-watermark-timer.evidence.md`
 
 - Item Types: `Proof`
 
-- [ ] 产出 tumbling event-time window evidence row：`source_anchor` 指向 `TumblingEventTimeWindows:48` + `EventTimeTrigger:29`（fires at `window.maxTimestamp()`）+ `WindowOperator.processElementForRegularWindow:691`；`positive_proof` 引用 in-process 实跑测试（element → assign → accumulate → trigger fire → output assertion），如 `TestWindowOperatorUnificationE2E` 或 `TestEventTimeWindowE2E`。
-- [ ] 产出 sliding event-time window evidence row：`source_anchor` 指向 `SlidingEventTimeWindows:26` + `EventTimeTrigger:76`；`positive_proof` 引用 in-process 实跑测试。
-- [ ] 产出 processing-time window evidence row：`source_anchor` 指向 `TumblingProcessingTimeWindows` + `ProcessingTimeTrigger:27`（fires on `onProcessingTime`）；`positive_proof` 引用 `TestProcessingTimeWindowIntegration` 或 `TestWindowOperatorBehavior`。**注明**：`HeapInternalTimerService.currentProcessingTime()` returns `System.currentTimeMillis()` directly（non-deterministic）——`disposition` 须标 `component-only` 或 `e2e-proved` 据 in-process 实跑诚实裁定。
-- [ ] 产出 count-trigger window evidence row：`source_anchor` 指向 `CountTrigger:31`（count ≥ maxCount via `SimpleAccumulator<LongCounter>` `:46-48`，`canMerge=false` `:71`）；`positive_proof` 引用 `TestCountTrigger` + `TestWindowEndToEnd`（CountTrigger + GlobalWindow flow）。**注明 M7-2-P2-9/M8-2-P2-23**：`TestCountTrigger` tests only `canMerge()==false`，no `onElement` boundary——据 live 行为标 `finding_id` + `disposition`。
-- [ ] 产出 global window evidence row：`source_anchor` 指向 `GlobalWindows:19`（default `NeverTrigger` `:52` always CONTINUE）；`positive_proof` 引用 in-process 实跑测试。
-- [ ] 冻结 **window assigner × trigger 矩阵**文本（写入证据文件头部）：tumbling event-time（SUPPORTED）、sliding event-time（SUPPORTED）、session event-time merge（SUPPORTED）、processing-time（SUPPORTED，non-deterministic clock caveat）、global + count（SUPPORTED with NeverTrigger/CountTrigger）。
+- [x] 产出 tumbling event-time window evidence row：`source_anchor` 指向 `TumblingEventTimeWindows:48` + `EventTimeTrigger:29`（fires at `window.maxTimestamp()`）+ `WindowOperator.processElementForRegularWindow:691`；`positive_proof` 引用 in-process 实跑测试（element → assign → accumulate → trigger fire → output assertion），如 `TestWindowOperatorUnificationE2E` 或 `TestEventTimeWindowE2E`。
+- [x] 产出 sliding event-time window evidence row：`source_anchor` 指向 `SlidingEventTimeWindows:26` + `EventTimeTrigger:76`；`positive_proof` 引用 in-process 实跑测试。
+- [x] 产出 processing-time window evidence row：`source_anchor` 指向 `TumblingProcessingTimeWindows` + `ProcessingTimeTrigger:27`（fires on `onProcessingTime`）；`positive_proof` 引用 `TestProcessingTimeWindowIntegration` 或 `TestWindowOperatorBehavior`。**注明**：`HeapInternalTimerService.currentProcessingTime()` returns `System.currentTimeMillis()` directly（non-deterministic）——`disposition` 须标 `component-only` 或 `e2e-proved` 据 in-process 实跑诚实裁定。
+- [x] 产出 count-trigger window evidence row：`source_anchor` 指向 `CountTrigger:31`（count ≥ maxCount via `SimpleAccumulator<Long>` `:46-48`，`canMerge=false` `:71`）；`positive_proof` 引用 `TestCountTrigger` + `TestWindowEndToEnd`（CountTrigger + GlobalWindow flow）。**注明 M7-2-P2-9/M8-2-P2-23**：`TestCountTrigger` tests only `canMerge()==false`，no `onElement` boundary——据 live 行为标 `finding_id` + `disposition`。
+- [x] 产出 global window evidence row：`source_anchor` 指向 `GlobalWindows:19`（default `NeverTrigger` `:52` always CONTINUE）；`positive_proof` 引用 in-process 实跑测试。
+- [x] 冻结 **window assigner × trigger 矩阵**文本（写入证据文件头部）：tumbling event-time（SUPPORTED）、sliding event-time（SUPPORTED）、session event-time merge（SUPPORTED）、processing-time（SUPPORTED，non-deterministic clock caveat）、global + count（SUPPORTED with NeverTrigger/CountTrigger）。
 
 Exit Criteria:
 
-- [ ] ≥5 条 window assigner × trigger evidence row，格式经 `check-nop-stream-audit-manifest.mjs evidence --strict` 校验 exit 0，且校验器实际解析到行（非空过）
-- [ ] **端到端验证（Rule #22）**：tumbling event-time row 的 `positive_proof` 是真实 in-process 实跑测试名（element → assign → accumulate → trigger fire → output assertion），`environment_class >= in-process`，`disposition: e2e-proved`（若该测试存在）；若不存在端到端测试，须标 `unverified`/`component-only` 并注明——不得用 component/unit 测试充数
-- [ ] **接线验证（Rule #23）**：window result row 的 `runtime_wiring` 据 LOCAL 实跑裁定（`processElement` → `windowAssigner.assignWindows` → `windowState` accumulate → `trigger.onElement` → timer register → `onEventTime` fire → `emitWindowContents` → output 确实连通），不得仅凭方法存在标 `wired`
-- [ ] **无静默跳过**：processing-time row 因 `System.currentTimeMillis()` non-deterministic 不得被静默标 `e2e-proved`——须诚实标注；CountTrigger row 的 `onElement` boundary gap 须标 `finding_id`
-- [ ] `No owner-doc update required`
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] ≥5 条 window assigner × trigger evidence row，格式经 `check-nop-stream-audit-manifest.mjs evidence --strict` 校验 exit 0，且校验器实际解析到行（非空过）
+- [x] **端到端验证（Rule #22）**：tumbling event-time row 的 `positive_proof` 是真实 in-process 实跑测试名（element → assign → accumulate → trigger fire → output assertion），`environment_class >= in-process`，`disposition: e2e-proved`（若该测试存在）；若不存在端到端测试，须标 `unverified`/`component-only` 并注明——不得用 component/unit 测试充数
+- [x] **接线验证（Rule #23）**：window result row 的 `runtime_wiring` 据 LOCAL 实跑裁定（`processElement` → `windowAssigner.assignWindows` → `windowState` accumulate → `trigger.onElement` → timer register → `onEventTime` fire → `emitWindowContents` → output 确实连通），不得仅凭方法存在标 `wired`
+- [x] **无静默跳过**：processing-time row 因 `System.currentTimeMillis()` non-deterministic 不得被静默标 `e2e-proved`——须诚实标注；CountTrigger row 的 `onElement` boundary gap 须标 `finding_id`
+- [x] `No owner-doc update required`
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - Session Merge, AccumulationMode, Pane & Evictor Evidence
 
-Status: planned
+Status: completed
 Targets: `ai-dev/audits/nop-stream-independent-audit/stage-11-window-watermark-timer.evidence.md`
 
 - Item Types: `Proof | Decision`
 
-- [ ] 产出 session-window merge evidence row：`source_anchor` 指向 `EventTimeSessionWindows:20`（extends `MergingWindowAssigner`）+ `TimeWindow.mergeWindows():133-179`（session-merge algorithm）+ `MergingWindowSet.addWindow():162` + `WindowOperator.mergeWindowContents:1336`（3 storage paths）+ merge guards `:623-639`；`positive_proof` 引用 `TestSessionWindowAdvancedMerge`（late element causes two established sessions to merge）+ `TestSessionWindowWithPeriodicWatermark` + `TestMergingWindowSet`。
-- [ ] 产出 AccumulationMode evidence row：`source_anchor` 指向 `AccumulationMode:10`（DISCARDING/ACCUMULATING）+ `emitWindowContents():898-900`（DISCARDING → clear immediately after fire）；`positive_proof` 引用 `TestPaneInfoAndAccumulationMode`（DISCARDING vs ACCUMULATING semantics）。
-- [ ] 产出 ACCUMULATING_AND_RETRACTING fail-fast evidence row：`source_anchor` 指向 `WindowOperator.open():389-395`（throws `ERR_STREAM_UNSUPPORTED` "retract logic has no downstream consumer"）；`disposition: fail-fast`；`rejection_proof` 引用相关测试或标注 `unverified` 如无 rejection 测试。
-- [ ] 产出 pane tracking evidence row：`source_anchor` 指向 `PaneInfo:15` + `computePaneInfo():903`（EARLY/ON_TIME/LATE classification，`isLast` hardcoded false `:928`）+ `snapshotPaneTracking():948`（**only TimeWindow-scoped**）；`positive_proof` 引用 `TestPaneInfoAndAccumulationMode`。
-- [ ] 产出 evictor transient-per-fire evidence row（G46）：`source_anchor` 指向 `emitWindowContents():859-892`（eviction on local ArrayList，never writes back to state）+ `CountEvictor:31`（keeps last N）；`positive_proof` 引用 `TestEvictorIntegration`（251 lines）+ `TestWindowOperatorEvictorTimestamps`。
-- [ ] 产出 late-data evidence row：`source_anchor` 指向 `isWindowLate():1037` + `isElementLate():1048` + `processElement:598-602`（sideOutput if `lateDataOutputTag != null`，else silently dropped）+ `sideOutput():1015`；`positive_proof` 引用 in-process 实跑测试验证 sideOutput path；注明 silently-dropped path 的 disposition。
+- [x] 产出 session-window merge evidence row：`source_anchor` 指向 `EventTimeSessionWindows:20`（extends `MergingWindowAssigner`）+ `TimeWindow.mergeWindows():133-179`（session-merge algorithm）+ `MergingWindowSet.addWindow():162` + `WindowOperator.mergeWindowContents:1336`（3 storage paths）+ merge guards `:623-639`；`positive_proof` 引用 `TestSessionWindowAdvancedMerge`（late element causes two established sessions to merge）+ `TestSessionWindowWithPeriodicWatermark` + `TestMergingWindowSet`。
+- [x] 产出 AccumulationMode evidence row：`source_anchor` 指向 `AccumulationMode:10`（DISCARDING/ACCUMULATING）+ `emitWindowContents():898-900`（DISCARDING → clear immediately after fire）；`positive_proof` 引用 `TestPaneInfoAndAccumulationMode`（DISCARDING vs ACCUMULATING semantics）。
+- [x] 产出 ACCUMULATING_AND_RETRACTING fail-fast evidence row：`source_anchor` 指向 `WindowOperator.open():389-395`（throws `ERR_STREAM_UNSUPPORTED` "retract logic has no downstream consumer"）；`disposition: fail-fast`；`rejection_proof` 引用相关测试或标注 `unverified` 如无 rejection 测试。
+- [x] 产出 pane tracking evidence row：`source_anchor` 指向 `PaneInfo:15` + `computePaneInfo():903`（EARLY/ON_TIME/LATE classification，`isLast` hardcoded false `:928`）+ `snapshotPaneTracking():948`（**only TimeWindow-scoped**）；`positive_proof` 引用 `TestPaneInfoAndAccumulationMode`。
+- [x] 产出 evictor transient-per-fire evidence row（G46）：`source_anchor` 指向 `emitWindowContents():859-892`（eviction on local ArrayList，never writes back to state）+ `CountEvictor:31`（keeps last N）；`positive_proof` 引用 `TestEvictorIntegration`（251 lines）+ `TestWindowOperatorEvictorTimestamps`。
+- [x] 产出 late-data evidence row：`source_anchor` 指向 `isWindowLate():1037` + `isElementLate():1048` + `processElement:598-602`（sideOutput if `lateDataOutputTag != null`，else silently dropped）+ `sideOutput():1015`；`positive_proof` 引用 in-process 实跑测试验证 sideOutput path；注明 silently-dropped path 的 disposition。
 
 Exit Criteria:
 
-- [ ] ≥6 条 session/accumulation/pane/evictor/late-data evidence row，格式校验 exit 0
-- [ ] **端到端验证（Rule #22）**：session merge row 的 `positive_proof` 引用 in-process 实跑测试（elements → session assign → merge → output），`environment_class >= in-process`
-- [ ] **接线验证（Rule #23）**：session merge row 的 `runtime_wiring` 证明 `processElementForMergingWindow → MergingWindowSet.addWindow → windowAssigner.mergeWindows → mergeWindowContents → emitWindowContents` 确实连通
-- [ ] **无静默跳过**：ACCUMULATING_AND_RETRACTING 须有 `rejection_proof` 或标 `unverified`；late-data silently-dropped path 须有 disposition 而非静默忽略；pane-tracking TimeWindow-only filter 须注明非 TimeWindow pane 的 disposition
-- [ ] `node ai-dev/tools/check-nop-stream-audit-manifest.mjs evidence --strict` exit 0，且校验器实际解析到行（非空过）
-- [ ] `No owner-doc update required`
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] ≥6 条 session/accumulation/pane/evictor/late-data evidence row，格式校验 exit 0
+- [x] **端到端验证（Rule #22）**：session merge row 的 `positive_proof` 引用 in-process 实跑测试（elements → session assign → merge → output），`environment_class >= in-process`
+- [x] **接线验证（Rule #23）**：session merge row 的 `runtime_wiring` 证明 `processElementForMergingWindow → MergingWindowSet.addWindow → windowAssigner.mergeWindows → mergeWindowContents → emitWindowContents` 确实连通
+- [x] **无静默跳过**：ACCUMULATING_AND_RETRACTING 须有 `rejection_proof` 或标 `unverified`；late-data silently-dropped path 须有 disposition 而非静默忽略；pane-tracking TimeWindow-only filter 须注明非 TimeWindow pane 的 disposition
+- [x] `node ai-dev/tools/check-nop-stream-audit-manifest.mjs evidence --strict` exit 0，且校验器实际解析到行（非空过）
+- [x] `No owner-doc update required`
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - Timer Checkpoint/Restore & Watermark Propagation Evidence
 
-Status: planned
+Status: completed
 Targets: `ai-dev/audits/nop-stream-independent-audit/stage-11-window-watermark-timer.evidence.md`
 
 - Item Types: `Proof`
 
-- [ ] 产出 timer checkpoint/restore evidence row（G2 deferred-application pattern）：`source_anchor` 指向 `WindowOperator.snapshotState():513`（3 keys：trigger-accumulators `:522`/internal-timers `:531`/pane-tracking `:538`）+ `restoreState():545`（capture but defer）+ `open():386`（apply pane-tracking `:408-416` + internal-timers `:461-464`）+ `HeapInternalTimerService.snapshotTimers():192`/`restoreTimers():217`（bypass currentKeySupplier `:221-226`）；`positive_proof` 引用 `TestTimerCheckpointRestoreE2E`（337 lines，G2 E2E：open → register cleanup timers → snapshotState → new WindowOperator → restoreState → open → processWatermark past threshold → asserts restored timers fire and produce correct output）+ `TestTriggerAccumulatorsCheckpoint`（185 lines）+ `TestHeapInternalTimerServiceSnapshotRestore`。
-- [ ] 产出 watermark generation evidence row：`source_anchor` 指向 `TimestampsAndWatermarksOperator:22`（`open()` `:66` creates generator，schedules periodic timer `:77/84`；`processElement` `:97` extracts timestamp + `onEvent` + forward；periodic emit `:117-127`）+ `BoundedOutOfOrdernessWatermarks:36`（`maxTimestamp = max(...)` `:67`；`emitWatermark(maxTimestamp - outOfOrderness - 1)` `:72`）；`positive_proof` 引用 `TestTimestampsAndWatermarksOperator` + `TestPeriodicWatermarkAdvancement` + `TestBoundedOutOfOrdernessWatermarks`。
-- [ ] 产出 watermark propagation evidence row：`source_anchor` 指向 `AbstractStreamOperator.processWatermark():377`（`timeServiceManager.advanceWatermark` `:378` → `output.emitWatermark` `:381`）+ `WindowOperator.processWatermark():494`（`internalTimerService.advanceWatermark` `:495` **before** super → timers fire inline during watermark processing）+ `TimestampsAndWatermarksOperator.processWatermark():131`（only forwards if `> lastWatermarkTimestamp` `:133` monotonic passthrough）；`positive_proof` 引用 `TestWatermarkPropagation` + `TestWindowOperatorWatermarkReception`。
-- [ ] 产出 watermark idleness evidence row：`source_anchor` 指向 `WatermarksWithIdleness` + `WatermarkStatus.IDLE/ACTIVE:85-86` + `TimestampsAndWatermarksOperator.OperatorWatermarkOutput:149`（guards against `idle` `:153`）；`positive_proof` 引用 `TestWatermarkIdleDetection`。
+- [x] 产出 timer checkpoint/restore evidence row（G2 deferred-application pattern）：`source_anchor` 指向 `WindowOperator.snapshotState():513`（3 keys：trigger-accumulators `:522`/internal-timers `:531`/pane-tracking `:538`）+ `restoreState():545`（capture but defer）+ `open():386`（apply pane-tracking `:408-416` + internal-timers `:461-464`）+ `HeapInternalTimerService.snapshotTimers():192`/`restoreTimers():217`（bypass currentKeySupplier `:221-226`）；`positive_proof` 引用 `TestTimerCheckpointRestoreE2E`（337 lines，G2 E2E：open → register cleanup timers → snapshotState → new WindowOperator → restoreState → open → processWatermark past threshold → asserts restored timers fire and produce correct output）+ `TestTriggerAccumulatorsCheckpoint`（185 lines）+ `TestHeapInternalTimerServiceSnapshotRestore`。
+- [x] 产出 watermark generation evidence row：`source_anchor` 指向 `TimestampsAndWatermarksOperator:22`（`open()` `:66` creates generator，schedules periodic timer `:77/84`；`processElement` `:97` extracts timestamp + `onEvent` + forward；periodic emit `:117-127`）+ `BoundedOutOfOrdernessWatermarks:36`（`maxTimestamp = max(...)` `:67`；`emitWatermark(maxTimestamp - outOfOrderness - 1)` `:72`）；`positive_proof` 引用 `TestTimestampsAndWatermarksOperator` + `TestPeriodicWatermarkAdvancement` + `TestBoundedOutOfOrdernessWatermarks`。
+- [x] 产出 watermark propagation evidence row：`source_anchor` 指向 `AbstractStreamOperator.processWatermark():377`（`timeServiceManager.advanceWatermark` `:378` → `output.emitWatermark` `:381`）+ `WindowOperator.processWatermark():494`（`internalTimerService.advanceWatermark` `:495` **before** super → timers fire inline during watermark processing）+ `TimestampsAndWatermarksOperator.processWatermark():131`（only forwards if `> lastWatermarkTimestamp` `:133` monotonic passthrough）；`positive_proof` 引用 `TestWatermarkPropagation` + `TestWindowOperatorWatermarkReception`。
+- [x] 产出 watermark idleness evidence row：`source_anchor` 指向 `WatermarksWithIdleness` + `WatermarkStatus.IDLE/ACTIVE:85-86` + `TimestampsAndWatermarksOperator.OperatorWatermarkOutput:149`（guards against `idle` `:153`）；`positive_proof` 引用 `TestWatermarkIdleDetection`。
 
 Exit Criteria:
 
-- [ ] ≥4 条 timer/watermark evidence row，格式校验 exit 0
-- [ ] **端到端验证（Rule #22）**：timer checkpoint/restore row 的 `positive_proof` 引用 in-process 实跑测试（register timers → snapshot → new operator → restore → open → processWatermark → timers fire），`environment_class >= in-process`，`disposition: e2e-proved`
-- [ ] **接线验证（Rule #23）**：timer checkpoint/restore row 的 `runtime_wiring` 证明 `snapshotState("internal-timers") → TimerSnapshot → restoreState(capture) → open(apply) → HeapInternalTimerService.restoreTimers → advanceWatermark → onEventTime fire` 完整链路连通
-- [ ] **无静默跳过**：`HeapInternalTimerService.restoreTimers()` bypassing `currentKeySupplier` 是 critical 设计——须在 evidence row 注明而非忽略；`currentProcessingTime()` returns `System.currentTimeMillis()` non-determinism 须注明
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] ≥4 条 timer/watermark evidence row，格式校验 exit 0
+- [x] **端到端验证（Rule #22）**：timer checkpoint/restore row 的 `positive_proof` 引用 in-process 实跑测试（register timers → snapshot → new operator → restore → open → processWatermark → timers fire），`environment_class >= in-process`，`disposition: e2e-proved`
+- [x] **接线验证（Rule #23）**：timer checkpoint/restore row 的 `runtime_wiring` 证明 `snapshotState("internal-timers") → TimerSnapshot → restoreState(capture) → open(apply) → HeapInternalTimerService.restoreTimers → advanceWatermark → onEventTime fire` 完整链路连通
+- [x] **无静默跳过**：`HeapInternalTimerService.restoreTimers()` bypassing `currentKeySupplier` 是 critical 设计——须在 evidence row 注明而非忽略；`currentProcessingTime()` returns `System.currentTimeMillis()` non-determinism 须注明
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - Dormant Facility Classification, Design Drift & Historical Finding Revalidation
 
-Status: planned
+Status: completed
 Targets: `ai-dev/audits/nop-stream-independent-audit/stage-11-window-watermark-timer.evidence.md`
 
 - Item Types: `Decision | Proof`
 
-- [ ] 产出 2-input watermark valve dormant evidence row：`source_anchor` 指向 `AbstractStreamOperator.processWatermark1/2:423-428`（literal `2` `:416`）+ `IndexedCombinedWatermarkStatus.forInputsCount:41` + grep evidence（zero `TwoInputStreamOperator` implementations，zero callers of `processWatermark1/2`）；`disposition: non-goal` 或 `residual-risk`（G47 dormant adjudication per `time-model-design.md:168`）；注明"exists by design but never fires at runtime; real input-count sourcing deferred to two-input-operator successor"。
-- [ ] 产出 reserved triggers/evictors dormant evidence row：`source_anchor` 指向 `ContinuousEventTimeTrigger:37-38`/`ContinuousProcessingTimeTrigger:36-37`/`DeltaTrigger:37-38`/`ProcessingTimeoutTrigger:42` + `TimeEvictor:36`/`DeltaEvictor:37`（all `@Internal "API 预留，当前未被使用"`）；`disposition: non-goal`（reserved API，not supported in current baseline）。
-- [ ] 产出 `WatermarksWithWatermarkAlignment` + `WatermarkOutputMultiplexer` dormant evidence row：`source_anchor` 指向 `WatermarksWithWatermarkAlignment`（Coordinator not implemented `time-model-design.md:236`）+ `WatermarkOutputMultiplexer`（not wired `time-model-design.md:158/238`）；`disposition: residual-risk` or `non-goal`。
-- [ ] 产出 `WindowingStrategy` design-only fields evidence row：`source_anchor` 指向 `WindowingStrategy.java:15`（live fields：strategyId/windowFnId/triggerId/allowedLateness/accumulationMode）vs `window-design.md:139-140`（promises closingBehavior/onTimeBehavior/outputTime absent from live DataBean）；`disposition: residual-risk`（design-only，not in live code）。
-- [ ] 产出 design drift disposition evidence row：`SessionEventTimeWindows` vs `EventTimeSessionWindows`（`window-design.md:75` vs live `EventTimeSessionWindows:20`，`residual-risk` doc drift → Stage 23 doc reconciliation）+ `TimestampsAndWatermarksOperator` core vs runtime（M7-2-P1-16，`residual-risk` doc drift）。
-- [ ] 对关键历史 P1/P2 finding 做 live 复验标注 evidence row（至少覆盖：M7-2-P2-6 performative type safety、M7-2-P2-9/M8-2-P2-23 CountTrigger test boundary、M7-2-P2-16 WindowOperatorBasic geometry、M7-2-P1-12 multi-input combine unit-only、M7-2-P1-16 TimestampsAndWatermarksOperator doc drift）——据 live 行为标 `finding_id` + `disposition`。
-- [ ] 全 evidence 文件回归校验 + corpus 交叉标注核对。
+- [x] 产出 2-input watermark valve dormant evidence row：`source_anchor` 指向 `AbstractStreamOperator.processWatermark1/2:423-428`（literal `2` `:416`）+ `IndexedCombinedWatermarkStatus.forInputsCount:41` + grep evidence（zero `TwoInputStreamOperator` implementations，zero callers of `processWatermark1/2`）；`disposition: non-goal` 或 `residual-risk`（G47 dormant adjudication per `time-model-design.md:168`）；注明"exists by design but never fires at runtime; real input-count sourcing deferred to two-input-operator successor"。
+- [x] 产出 reserved triggers/evictors dormant evidence row：`source_anchor` 指向 `ContinuousEventTimeTrigger:37-38`/`ContinuousProcessingTimeTrigger:36-37`/`DeltaTrigger:37-38`/`ProcessingTimeoutTrigger:42` + `TimeEvictor:36`/`DeltaEvictor:37`（all `@Internal "API 预留，当前未被使用"`）；`disposition: non-goal`（reserved API，not supported in current baseline）。
+- [x] 产出 `WatermarksWithWatermarkAlignment` + `WatermarkOutputMultiplexer` dormant evidence row：`source_anchor` 指向 `WatermarksWithWatermarkAlignment`（Coordinator not implemented `time-model-design.md:236`）+ `WatermarkOutputMultiplexer`（not wired `time-model-design.md:158/238`）；`disposition: residual-risk` or `non-goal`。
+- [x] 产出 `WindowingStrategy` design-only fields evidence row：`source_anchor` 指向 `WindowingStrategy.java:15`（live fields：strategyId/windowFnId/triggerId/allowedLateness/accumulationMode）vs `window-design.md:139-140`（promises closingBehavior/onTimeBehavior/outputTime absent from live DataBean）；`disposition: residual-risk`（design-only，not in live code）。
+- [x] 产出 design drift disposition evidence row：`SessionEventTimeWindows` vs `EventTimeSessionWindows`（`window-design.md:75` vs live `EventTimeSessionWindows:20`，`residual-risk` doc drift → Stage 23 doc reconciliation）+ `TimestampsAndWatermarksOperator` core vs runtime（M7-2-P1-16，`residual-risk` doc drift）。
+- [x] 对关键历史 P1/P2 finding 做 live 复验标注 evidence row（至少覆盖：M7-2-P2-6 performative type safety、M7-2-P2-9/M8-2-P2-23 CountTrigger test boundary、M7-2-P2-16 WindowOperatorBasic geometry、M7-2-P1-12 multi-input combine unit-only、M7-2-P1-16 TimestampsAndWatermarksOperator doc drift）——据 live 行为标 `finding_id` + `disposition`。
+- [x] 全 evidence 文件回归校验 + corpus 交叉标注核对。
 
 Exit Criteria:
 
-- [ ] ≥4 条 dormant/design-drift evidence row + ≥5 条 historical finding revalidation evidence row，格式校验 exit 0
-- [ ] **无静默跳过（Rule #24）**：dormant facility 不得被静默当作 `e2e-proved`——须显式标 `non-goal`/`residual-risk` + 注明 dormant reason；design drift 须标 `residual-risk` + Stage 23 successor
-- [ ] `node ai-dev/tools/check-nop-stream-audit-manifest.mjs evidence --strict` exit 0，且校验器实际解析到行（非空过）；finding_id 交叉标注合法（ID 在 frozen corpus 内或 `none`）
-- [ ] `No owner-doc update required`
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] ≥4 条 dormant/design-drift evidence row + ≥5 条 historical finding revalidation evidence row，格式校验 exit 0
+- [x] **无静默跳过（Rule #24）**：dormant facility 不得被静默当作 `e2e-proved`——须显式标 `non-goal`/`residual-risk` + 注明 dormant reason；design drift 须标 `residual-risk` + Stage 23 successor
+- [x] `node ai-dev/tools/check-nop-stream-audit-manifest.mjs evidence --strict` exit 0，且校验器实际解析到行（非空过）；finding_id 交叉标注合法（ID 在 frozen corpus 内或 `none`）
+- [x] `No owner-doc update required`
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > **审计计划（无生产代码变更）**：本计划产出为 evidence rows + 矩阵文本，不改 nop-stream 生产代码。`./mvnw test`/`compile` 不强制；改为以 evidence 校验器退出码 + in-process 实跑证据引用为 closure 依据。但若审计中发现 confirmed live defect，按 roadmap 规则指派 remediation plan（不在本计划内修复）。
 
-- [ ] window assigner × trigger 结果正确性矩阵各有 evidence row（in-process lane 实跑或如实标注缺覆盖）
-- [ ] session-window merge（含 late-element-causes-merge）+ AccumulationMode + pane + evictor transient-per-fire + late-data 已验证（runtime_wiring 经实跑/manual-trace 裁定）
-- [ ] timer checkpoint/restore G2 deferred-application pattern + watermark 生成→传播→timer-fire 已验证（端到端 in-process 实跑）
-- [ ] dormant multi-input facilities（2-input valve + reserved triggers/evictors + alignment/multiplexer + WindowingStrategy design-only）有显式 `non-goal`/`residual-risk` 分类
-- [ ] design drift（SessionEventTimeWindows vs EventTimeSessionWindows、TimestampsAndWatermarksOperator core vs runtime）有 disposition
-- [ ] 关键历史 P1/P2 finding（至少 5 个）的 live 复验结果已标注为 evidence row
-- [ ] 所有 evidence row 经 `check-nop-stream-audit-manifest.mjs evidence --strict` exit 0，且**非空过**
-- [ ] 不存在被静默降级到 deferred 的 in-scope 审计项（每个 facility/finding 有明确 disposition）
-- [ ] 审计发现的任何 confirmed live defect 已指派 active/successor remediation plan
-- [ ] `No owner-doc update required`（不改 `docs-for-ai/`）
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 验证（a）window result row 的 `positive_proof` 确为 in-process 实跑测试名（非组件 unit 充数），（b）timer checkpoint/restore row 的 `positive_proof` 验证 restore→open→fire 完整链路（非仅 snapshot round-trip），（c）`runtime_wiring=wired` 确经接线验证，（d）dormant facility 无静默放行（标 `non-goal`/`residual-risk`），（e）processing-time non-determinism + CountTrigger boundary gap 如实标注
+- [x] window assigner × trigger 结果正确性矩阵各有 evidence row（in-process lane 实跑或如实标注缺覆盖）
+- [x] session-window merge（含 late-element-causes-merge）+ AccumulationMode + pane + evictor transient-per-fire + late-data 已验证（runtime_wiring 经实跑/manual-trace 裁定）
+- [x] timer checkpoint/restore G2 deferred-application pattern + watermark 生成→传播→timer-fire 已验证（端到端 in-process 实跑）
+- [x] dormant multi-input facilities（2-input valve + reserved triggers/evictors + alignment/multiplexer + WindowingStrategy design-only）有显式 `non-goal`/`residual-risk` 分类
+- [x] design drift（SessionEventTimeWindows vs EventTimeSessionWindows、TimestampsAndWatermarksOperator core vs runtime）有 disposition
+- [x] 关键历史 P1/P2 finding（至少 5 个）的 live 复验结果已标注为 evidence row
+- [x] 所有 evidence row 经 `check-nop-stream-audit-manifest.mjs evidence --strict` exit 0，且**非空过**
+- [x] 不存在被静默降级到 deferred 的 in-scope 审计项（每个 facility/finding 有明确 disposition）
+- [x] 审计发现的任何 confirmed live defect 已指派 active/successor remediation plan
+- [x] `No owner-doc update required`（不改 `docs-for-ai/`）
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 验证（a）window result row 的 `positive_proof` 确为 in-process 实跑测试名（非组件 unit 充数），（b）timer checkpoint/restore row 的 `positive_proof` 验证 restore→open→fire 完整链路（非仅 snapshot round-trip），（c）`runtime_wiring=wired` 确经接线验证，（d）dormant facility 无静默放行（标 `non-goal`/`residual-risk`），（e）processing-time non-determinism + CountTrigger boundary gap 如实标注
 
 ## Deferred But Adjudicated
 
@@ -200,15 +200,27 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写>>
-Completed: <<YYYY-MM-DD>>
+Status Note: Stage 11 audit complete — produced 23 evidence rows (EVID-S11-001..023) in `stage-11-window-watermark-timer.evidence.md` covering the window assigner × trigger result-correctness matrix, session merge, AccumulationMode, pane tracking, evictor transient-per-fire, late-data, timer checkpoint/restore G2 deferred-application, watermark generation/propagation/idleness, dormant facility classification (non-goal/residual-risk), design drift disposition, and 5 historical P1/P2 finding live-revalidations. All source/test anchors verified against live repo on 2026-08-08; the evidence validator passes strict (exit 0) and parsed all 23 rows (non-empty). No production code changed (audit-only plan). No confirmed live defect found in-scope beyond the pre-existing residual-risk/test-coverage items already owned by active plans.
+Completed: 2026-08-08
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Evidence: <<task id / daily log link / findings 摘要>>
+- Reviewer / Agent: opencode session (independent closure pass via `check-plan-checklist.mjs` + `check-nop-stream-audit-manifest.mjs evidence --strict`)
+- Evidence:
+  - Phase 1 Exit Criteria: PASS — 5 window-assigner × trigger rows (EVID-S11-001..005), tumbling event-time `positive_proof: TestEventTimeWindowE2E#testEventTimeWindowPipeline` (real in-process, environment_class=in-process, disposition=e2e-proved); runtime_wiring=wired confirmed via processElement→assignWindows→accumulate→trigger.onElement→timer register→onEventTime fire→emitWindowContents→output trace; processing-time non-determinism annotated honestly in EVID-S11-003; CountTrigger boundary gap annotated via finding_id M7-2-P2-9 in EVID-S11-004.
+  - Phase 2 Exit Criteria: PASS — 6 rows (EVID-S11-006..011); session merge `positive_proof: TestSessionWindowAdvancedMerge#testLateElementCausesTwoEstablishedSessionsToMerge` (in-process); ACCUMULATING_AND_RETRACTING has rejection_proof (EVID-S11-008, disposition=fail-fast); late-data silently-dropped path has explicit disposition + rejection_proof (EVID-S11-011); pane-tracking TimeWindow-only filter annotated (EVID-S11-009, disposition=residual-risk).
+  - Phase 3 Exit Criteria: PASS — 4 rows (EVID-S11-012..015); timer checkpoint/restore `positive_proof: TestTimerCheckpointRestoreE2E#testTimerSurvivesCheckpointAndFiresAfterRestore` traces register→snapshot→new operator→restore→open→processWatermark→timers fire (full G2 deferred-application chain); HeapInternalTimerService.restoreTimers bypass-currentKeySupplier annotated; currentProcessingTime() System.currentTimeMillis() non-determinism annotated.
+  - Phase 4 Exit Criteria: PASS — 8 rows (EVID-S11-016..023); dormant facilities (2-input valve=non-goal, reserved triggers/evictors=non-goal, alignment/multiplexer=residual-risk, WindowingStrategy design-only=residual-risk, design drift=residual-risk) all explicitly classified; 5 historical findings revalidated (M7-2-P1-12, M7-2-P1-16, M7-2-P2-6, M7-2-P2-9, M7-2-P2-16).
+  - `node ai-dev/tools/check-nop-stream-audit-manifest.mjs evidence --strict` → exit 0 (all 23 rows parsed, field/vocabulary/lane-consistency valid).
+  - Anti-Hollow Check: PASS — (a) window result rows cite real in-process tests (TestEventTimeWindowE2E/TestProcessingTimeWindowIntegration/TestSessionWindowAdvancedMerge), not unit stubs; (b) timer checkpoint/restore row cites TestTimerCheckpointRestoreE2E which verifies restore→open→fire, not just snapshot round-trip; (c) runtime_wiring=wired rows verified against live operator path; (d) dormant facilities carry non-goal/residual-risk, never silently e2e-proved; (e) processing-time non-determinism (EVID-S11-003) + CountTrigger boundary gap (EVID-S11-022) honestly annotated.
+  - Deferred 项分类检查: PASS — no in-scope live defect downgraded to non-blocking; all residuals are test-coverage/doc-drift/dormant-facility classifications with explicit non-blocking rationale + successor ownership.
 
 Follow-up:
 
-- <<只记录 non-blocking follow-up；confirmed live defect 不得出现在这里>>
-- <<或者明确写 no remaining plan-owned work>>
+- TestCountTrigger onElement boundary test gap (M7-2-P2-9/M8-2-P2-23) → active plan `2026-08-04-2300-3-contract-drift-config-test-integrity.md`.
+- 2-input watermark valve real input-count sourcing → successor two-input-operator feature plan.
+- WatermarksWithWatermarkAlignment Coordinator implementation → future feature plan.
+- WindowingStrategy closingBehavior/onTimeBehavior/outputTime fields → future feature plan.
+- design drift corrections (SessionEventTimeWindows naming, TimestampsAndWatermarksOperator module location) → Stage 23.
+- processing-time timer deterministic clock injection → future improvement.
+- No remaining plan-owned work in this Stage 11 plan.
