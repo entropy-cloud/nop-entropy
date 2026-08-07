@@ -1,10 +1,10 @@
 # 330 nop-ai Responses 迁移 6：ResponsesDialect 落地 + 端到端集成测试
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-08-07
 > Source: `ai-dev/design/nop-ai-responses-migration-design.md`（设计结论 #8、§3.4）；325-329 已把消息体系收敛为与 Responses typed items 同构的单一拆分模型。
 > Related: 系列第 6 份（**终份**），前置 325-329 全部完成。本计划交付迁移的最终目标——nop-ai 可经 `ResponsesDialect` 消费 OpenAI Responses 端点（`/v1/responses`）。
-> Review Hold: 前置 325/326/327 已于 2026-08-07 全部 `completed` 并落地（本轮 live repo 核实：`ApiStyle.responses` 已存在 `model/ApiStyle.java:62`；`normalizeFinishReason` 已含 `completed`/`incomplete` `AbstractLlmDialect.java:295,299`；`ChatReasoningMessage`/`ChatToolCallMessage` 已存在；`ChatResponse.messages` 序列、`ChatToolResponseMessage.callId`、`ChatOptions.responseFormatConfig` 对象载体均就绪）。**本计划 Phase 1（非流式）的全部依赖已满足，可立即执行**。剩余阻塞仅为 **328**（流式 item 增量模型）仍 `active` 但全部 Phase `planned`、未落地：330 Phase 2（`parseStreamChunk` 产出 item chunk）与 Phase 3 流式端到端依赖 328 的新 `ChatStreamChunk` 字段（`itemType`/`itemIndex`/`delta`/`phase`）与 StreamAggregator 改造。**329（折叠字段删除）非本计划依赖**（330 不读 `ChatAssistantMessage.think/toolCalls`、不依赖 `ChatResponse.message` 单字段）。**解除条件**：328 `completed`（landed）后重审本计划并 promote to active；届时重核 Current Baseline 每一条与 live repo 一致。（旧 hold 文本「325-329 无一 completed / ChatReasoningMessage 不存在」已于本轮 review 核实为过期陈述并订正。）
+> Dependency: 前置 325/326/327/328 已于 2026-08-07 全部 `completed` 并落地，本计划 Phase 1/2/3 的全部依赖均已满足。本轮 review 重核 live repo：`ApiStyle.responses` 已存在（`model/ApiStyle.java:62`）；`normalizeFinishReason` 已含 `completed`/`incomplete`（`AbstractLlmDialect.java:295,299`）；`ChatReasoningMessage`/`ChatToolCallMessage`/`ChatToolResponseMessage.callId`/`ChatResponse.messages` 序列/`ChatOptions.responseFormatConfig` 对象载体均就绪；流式侧 328 亦已落地——`ChatStreamChunk` 已重构为 item 增量模型（`itemType`/`itemIndex`/`callId`/`delta`/`phase`），`ChatToolCallChunk.java` 已删除，4 dialect `parseStreamChunk` 产出 item 增量，`StreamAggregator`/`ChatStreamAccumulator` 已改为 item 状态机汇聚。**329（折叠字段删除）仍 `active` 但非本计划依赖**（330 不读 `ChatAssistantMessage.think/toolCalls`、不依赖 `ChatResponse.message` 单字段）。（上一轮 Review Hold 误判 328「未落地」为过期陈述，本轮 review 订正并 promote to active。）
 
 ## Purpose
 
@@ -14,7 +14,7 @@
 
 ## Current Baseline
 
-> ⚠️ **前置门禁**：325/326/327 已于 2026-08-07 `completed` 并落地（下列条目本轮已重核 live repo，✅=已落地）。**剩余前置仅为 328**（流式 item 增量模型，仍 `active` 未落地）——它阻塞本计划 Phase 2/3 流式部分；329（折叠字段删除）非本计划依赖。执行前须重核本节每一条与 live repo 一致。
+> ⚠️ **前置门禁**：325/326/327/328 已于 2026-08-07 全部 `completed` 并落地（下列条目本轮已重核 live repo，✅=已落地）；329 仍 `active` 但非本计划依赖（330 不读 `ChatAssistantMessage.think/toolCalls`、不依赖 `ChatResponse.message` 单字段）。本计划 Phase 1/2/3 的全部依赖均已满足。
 
 - `ILlmDialect` 接口方法签名（摸底 §2.1）：`getName`/`buildUrl`/`setHeaders`/`buildBody`/`parseResponse`/`parseErrorResponse`/`parseStreamChunk`/`convertMessage`/`getRole`；default `convertToolDefinitions`(OpenAI 风格，:148)、`estimateTokens`、`parseRequestBody`(默认抛 UOE，:238)、`buildResponse`(默认 OpenAI chat 格式，:249)、`buildStreamChunk`(:278，328 已重写)。
 - `LlmDialectFactory` `nop-ai/nop-ai-core/.../dialect/LlmDialectFactory.java:19-25` 静态注册块（openai/anthropic/gemini/ollama）；`:33 getDialect(ApiStyle)`、`:47/59 register`。
@@ -24,7 +24,7 @@
 - SSE 约束（摸底 §9.5）：`callStream.onNext`（:191）只透传 `data:` 行；Responses 具名事件靠 `data:` 载荷内 `type` 字段分派（328 已验证可行）。
 - `AiDialectBackendMessageConverter`（gateway，摸底 §7）frontend/backend 双 dialect 流程已预留挂点；frontend 默认 openai（唯一实现 `parseRequestBody` 的 dialect）。
 - ✅ 消息体系（325/326 已落地于 2026-08-07）：`ChatResponse.messages`（`List<ChatMessage>`，含 `addMessage`/`success(messages)`）就绪；`ChatReasoningMessage`（summary/detail）、`ChatToolCallMessage`（callId/name/arguments）已存在；`ChatToolResponseMessage.callId` 就绪；`ChatOptions.responseFormatConfig`（`ResponseFormat` 对象载体，旧 String `getResponseFormat()` 委托）就绪。
-- ❌ **仅流式侧（328）未落地**：`ChatStreamChunk` 仍为折叠模型（`content`/`thinking`/`toolCall`），无 `itemType`/`itemIndex`/`delta`/`phase`，`ChatToolCallChunk.java` 仍存在——330 Phase 2/3 流式部分依赖此重构（328 active 但各 Phase 仍 planned）。
+- ✅ 流式侧（328）已落地（328 于 2026-08-07 `completed`）：`ChatStreamChunk` 已重构为 item 增量模型（`itemType`/`itemIndex`/`callId`/`delta`/`phase`），`ChatToolCallChunk.java` 已删除，4 dialect `parseStreamChunk` 产出 item 增量，`StreamAggregator`/`ChatStreamAccumulator` 已改为 item 状态机汇聚（live repo `nop-ai-api/.../chat/stream/ChatStreamChunk.java`）——330 Phase 2/3 流式依赖已满足。
 - design §3.4 双向转换映射表（messages ↔ Responses wire）已定义。
 
 ## Goals

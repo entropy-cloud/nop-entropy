@@ -60,40 +60,40 @@
 
 ### Phase 1 - SPI / 文档 drift 收敛
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/nop-stream/state-management-design.md`, `ai-dev/design/nop-stream/core-design.md`, `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/common/state/IOperatorStateStore.java`, `.../KeyedStateStore.java`, `.../StateDescriptor.java`
 
 - Item Types: `Decision | Fix`
 
-- [ ] **裁定 Operator State "尚未实现" drift**（推荐：文档对齐代码）：更新 `state-management-design.md` §10.4/§11.9 与 `core-design.md` §7.3 **及 §7.4**（`:421-427` "实现要求" 暗示 3-method SPI，需同步收敛）反映 live 状态（`IOperatorStateBackend` 4 方法含 4-mode redistribution + `IOperatorStateStore.getListState` + `DefaultOperatorStateStore` + `MemoryOperatorStateBackend`，以 E2E 测试为证）；移除/标记 "Phase 0.3" backlog 引用
-- [ ] **裁定 IOperatorStateStore 1-vs-3 方法 drift**（推荐：文档对齐代码）：更新 design §10.1/§10.2 描述实际 SPI（mode 在 restore 时由 backend 设定，用户侧 store 仅有 `getListState`）；或裁定向代码侧收敛（新增 `getUnionListState`/`getBroadcastState` + per-descriptor mode 标记，须记录 API 变更风险）
-- [ ] **裁定 KeyedStateStore 5-vs-2 方法 drift**（推荐：文档对齐代码，因广泛生产使用）：更新 design §2.1/§5.1 反映实际 5 accessor 面貌；或裁定向代码侧收敛（窄化 SPI 到 2 方法，须评估迁移影响）
-- [ ] **裁定 StateDescriptor 携带 TypeSerializer drift**（推荐：更新文档记录可选 escape hatch）：更新 §6.1 文档化可选 serializer 字段 + `IStreamSerializer` SPI 作为显式 opt-in（注：design §2.2 `:45` 已将 `serializer | TypeSerializer<T>` 列为 StateDescriptor 属性——与代码一致，是正确锚点；§6.1 不变量是需修正的矛盾项）；或裁定移除 `serializer` 字段与 `MemoryStateSerDe` 的 `instanceof IStreamSerializer` 分支以强制不变量（须评估依赖面）
+- [x] **裁定 Operator State "尚未实现" drift**（裁定：文档对齐代码）：更新 `state-management-design.md` §10.4/§11.9 与 `core-design.md` §7.3/§7.4 反映 live 状态（`IOperatorStateBackend` 4 方法含 4-mode redistribution + `IOperatorStateStore.getListState` + `DefaultOperatorStateStore` + `MemoryOperatorStateBackend`，以 E2E 测试 `TestE2EOperatorStateCheckpoint`/`TestE2EOperatorStateRedistribution` 为证）；`comparison.md` 两处 Operator State 行同步收敛；移除 "Phase 0.3" backlog 引用
+- [x] **裁定 IOperatorStateStore 1-vs-3 方法 drift**（裁定：文档对齐代码）：更新 design §10.1/§10.2 描述实际 SPI（`IOperatorStateStore` 仅 `getListState`；4 种 `RedistributionMode` 在 restore 时由 backend 外部设定，用户侧 store 无注册时选择）
+- [x] **裁定 KeyedStateStore 5-vs-2 方法 drift**（裁定：文档对齐代码，因广泛生产使用）：更新 design §2.1/§5.1 反映实际 5 accessor 面貌（getState/getListState/getReducingState/getAggregatingState/getMapState）
+- [x] **裁定 StateDescriptor 携带 TypeSerializer drift**（裁定：更新文档记录可选 escape hatch）：更新 §6.1 文档化 `StateDescriptor` 持有 `TypeSerializer<T>` 字段（默认 `JsonToolSerializer`）+ `IStreamSerializer` SPI 作为显式 opt-in（`MemoryStateSerDe` 按 `instanceof IStreamSerializer` 分支调用）；§2.2 是正确锚点
 
 Exit Criteria:
 
-- [ ] 四处 drift 每处在仓库中可观察到收敛落地（文档修订 或 代码修订），且裁定方向有显式记录（plan Decision 段或 design doc 备注）
-- [ ] 收敛后 design 文档与生产代码不再矛盾（抽查：design 中描述的 SPI 方法集合 == 生产接口方法集合）
-- [ ] 若裁定代码侧修改：新增/保持的测试覆盖变更面；若纯文档：新增 `No new test required: <doc reconciliation>`
-- [ ] `ai-dev/design/nop-stream/` 下文档为最终状态（无 "Proposed vs Current" 残留，符合 plan guide #14）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 四处 drift 每处在仓库中可观察到收敛落地（文档修订），且裁定方向有显式记录（plan Decision 标注 + design doc 备注）
+- [x] 收敛后 design 文档与生产代码不再矛盾（抽查：design §10.1 `IOperatorStateStore` 方法集合 == 生产接口 `getListState` 单方法；§2.1/§5.1 KeyedStateStore 5 accessor == 生产接口 5 方法；§6.1 serializer 字段 == `StateDescriptor.serializer`）
+- [x] 纯文档收敛：`No new test required: <doc reconciliation, 4 drifts all converged docs→code>`
+- [x] `ai-dev/design/nop-stream/` 下文档为最终状态（无 "Proposed vs Current" 残留，符合 plan guide #14）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - `_module` IoC 发现标记补齐
 
-Status: planned
+Status: completed
 Targets: `nop-stream/nop-stream-runtime/src/main/resources/_vfs/nop/stream/_module`
 
 - Item Types: `Fix | Proof`
 
-- [ ] 新增空文件 `_vfs/nop/stream/_module`（镜像 `nop-auth` 约定）
-- [ ] 新增测试：用 **scoped `BeanContainerBuilder`** 从 `_vfs/<root>/` 遍历（经 `_module` 自动发现 `_vfs/nop/stream/beans/*.beans.xml`，**不**经 `CoreInitialization.initializeTo(INITIALIZER_PRIORITY_IOC)` 以免触发 nop-dao datasource 配置依赖——见 `TestStreamControlRpcBootstrap.java:47-52` 刻意早停的原因），断言 `container.containsBean("streamMessageService")`（`IdentityWireCodec` 同理）
+- [x] 新增空文件 `_vfs/nop/stream/_module`（镜像 `nop-auth` 约定）
+- [x] 新增测试 `TestStreamModuleDiscovery`：用 **scoped `BeanContainerBuilder`** 从 `_vfs/<root>/` 遍历（经 `_module` 自动发现 `_vfs/nop/stream/beans/*.beans.xml`，**不**经 `CoreInitialization.initializeTo(INITIALIZER_PRIORITY_IOC)` 以免触发 nop-dao datasource 配置依赖——见 `TestStreamControlRpcBootstrap.java:47-52` 刻意早停的原因），断言 `container.containsBean("streamMessageService")`（`IdentityWireCodec` 同理）
 
 Exit Criteria:
 
-- [ ] `_vfs/nop/stream/_module` 文件存在于仓库
-- [ ] 新增发现测试：未显式 `addResource`（仅靠 `_module` 标记驱动 scoped 容器遍历）的情况下 `containsBean("streamMessageService")` 为 true
-- [ ] **接线验证**：测试证明 `_module` 标记确实使 scoped `BeanContainerBuilder` 遍历进入 `_vfs/nop/stream/beans/`（而非仅文件存在）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `_vfs/nop/stream/_module` 文件存在于仓库
+- [x] 新增发现测试：未显式 `addResource`（仅靠 `_module` 标记驱动 scoped 容器遍历）的情况下 `containsBean("streamMessageService")` 为 true
+- [x] **接线验证**：`moduleMarkerEnablesDiscovery` 断言 `ModuleManager.getEnabledModuleMap` 含 `nop-stream`（`_module` 驱动 `discover()`），`scopedContainerMaterializesDefaultBeansViaModuleMarker` 经 `findModuleResourcesInModules` 遍历发现的 module 的 `beans/` 目录并断言 `streamMessageService`/`streamDataPlaneWireCodec` 物化——移除 `_module` 则 module 不可发现，测试 FAIL
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 空心测试恢复或删除
 

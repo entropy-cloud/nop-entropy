@@ -24,7 +24,7 @@ State (clear)
     └── InternalAppendingState<K,N,IN,ACC,OUT>  (+setCurrentNamespace, getAccumulator, setAccumulator)
 ```
 
-`ListState` 不通过 `KeyedStateStore` 暴露给用户，只作为 `InternalListState<K,N,T>` 存在于 `IInternalStateBackend` 中，由 WindowOperator 用于合并窗口元数据存储。
+`KeyedStateStore` 暴露 5 个用户侧 accessor：`getState`（ValueState）、`getListState`（ListState）、`getReducingState`（ReducingState）、`getAggregatingState`（AggregatingState）、`getMapState`（MapState）。其中 keyed `ListState` 经 `KeyedStateStore` 暴露给用户；同时 `InternalListState<K,N,T>` 存在于 `IInternalStateBackend` 中，由 WindowOperator 用于合并窗口元数据存储。
 
 `InternalAppendingState` 和 `InternalListState` 支持泛型 namespace（如 Window 对象），用于按 namespace 分区状态的场景。
 
@@ -157,7 +157,7 @@ IInternalStateBackend.getInternalAppendingState 有两个重载：
       → InternalAppendingState<K, N, IN, ACC, OUT>    // AggregateFunction 累积模式，支持 ACC≠OUT
 ```
 
-`KeyedStateStore`（`IKeyedStateBackend` 的父接口）只暴露 `getState()` 和 `getMapState()`。`ListState` 只能通过 `IInternalStateBackend.getInternalListState()` 访问。
+`KeyedStateStore`（`IKeyedStateBackend` 的父接口）暴露 5 个用户侧 accessor：`getState`（ValueState）、`getListState`（ListState）、`getReducingState`（ReducingState）、`getAggregatingState`（AggregatingState）、`getMapState`（MapState）。`IInternalStateBackend` 额外提供 `getInternalAppendingState`（2 重载）与 `getInternalListState`，用于 WindowOperator 等 namespace 分区场景。
 
 ### 5.2 MemoryStateBackend
 
@@ -224,7 +224,9 @@ nop-stream 的序列化设计遵循一个铁律：**Store 接口只存取对象�
 
 1. **内存 Store 零序列化**：`MemoryKeyedStateBackend` 直接存储对象引用（`HashMap`），checkpoint 快照也是对象引用传递。从算子到 store 到快照，**没有任何序列化/反序列化开销**。只有当 checkpoint 需要持久化到外部（文件、数据库）时，才在 storage 实现内部使用 `JsonTool`。
 
-2. **不暴露序列化接口**：`StateDescriptor` **不携带** serializer 引用。`IStreamSerializer` / `TypeSerializer` 接口**不向上暴露**。算子代码只调用 `getState()` / `putState()`，不接触任何序列化 API。
+2. **默认零序列化接口暴露**：算子代码只调用 `getState()` / `putState()`，默认不接触任何序列化 API。`StateDescriptor` 默认持有 `JsonToolSerializer`（`TypeSerializer<T>` 类型字段，见 §2.2），算子无感知。
+
+   **可选 escape hatch（显式 opt-in）**：`StateDescriptor` 提供 `getSerializer()` / `setSerializer(TypeSerializer<T>)`。当用户注入一个实现了 `IStreamSerializer`（`TypeSerializer` 的子接口，提供 `serialize(T)→byte[]` / `deserialize(byte[], Class)→T`）的 serializer 时，`MemoryStateSerDe` 持久化路径会按 `instanceof IStreamSerializer` 分支调用其 `serialize`/`deserialize`，绕过默认 JSON 路径。这是一个**显式 opt-in 的性能 escape hatch**（如用户自带二进制 serializer），不影响默认 JSON 路径、不污染算子代码。普通的 `TypeSerializer`（非 `IStreamSerializer`）实例不会被 SerDe 路径识别。`schemaChecksum` 不读 serializer 实例，故替换 serializer 不破坏 checkpoint 兼容性。
 
 3. **不采用 Flink Type-based 二进制序列化**：Flink 根据 `TypeInformation` 为每种类型生成专用 `TypeSerializer`，导致大量业务代码被序列化逻辑污染（每个 `StateDescriptor` 必须绑定 serializer、每种数据结构需要配套的 serializer 工厂、schema 演进需要 `TypeSerializerSnapshot` 全套机制）。nop-stream 明确拒绝此路径：
    - JSON 序列化通过类型反射工作，**对象上不需要任何特殊支持**（无 `@Serializable`、无 serializer 工厂、无 `TypeInfo` 注解）
@@ -370,20 +372,25 @@ interface CheckpointedFunction {
     void initializeState(FunctionInitializationContext context) throws Exception;
 }
 
-interface OperatorStateStore {
-    <T> ListState<T> getListState(ListStateDescriptor<T> descriptor) throws Exception;
-    <T> ListState<T> getUnionListState(ListStateDescriptor<T> descriptor) throws Exception;
-    <T> ListState<T> getBroadcastState(ListStateDescriptor<T> descriptor) throws Exception;
+interface IOperatorStateStore {
+    <T> ListState<T> getListState(ListStateDescriptor<T> descriptor);
 }
 ```
 
+`IOperatorStateStore` 用户侧 SPI 仅暴露 `getListState`。重分布模式（`RedistributionMode`）**不**通过 store 接口的方法重载选择（区别于 Flink 的 `getListState`/`getUnionListState`/`getBroadcastState` 三方法），而由执行图在 restore 时通过 `IOperatorStateBackend.restoreState(oldSnapshots, oldParallelism, mode, taskIndex, newParallelism)` 外部注入。用户侧无注册时选择模式的能力；模式由部署/恢复逻辑决定，对算子透明。
+
 ### 10.2 重分布模式
 
-| 模式 | 方法 | 并行度变化时的语义 |
-|------|------|-------------------|
-| `SPLIT_DISTRIBUTE` | `getListState()` | round-robin 分配给新旧 subtask 列表 |
-| `UNION` | `getUnionListState()` | 所有 subtask 获取完整状态列表，自行过滤 |
-| `BROADCAST` | `getBroadcastState()` | 所有 subtask 获得完全相同的一份状态 |
+`IOperatorStateBackend`（实现：`MemoryOperatorStateBackend`）支持 4 种重分布模式，在 restore 时由 backend 按外部传入的 `RedistributionMode` 执行：
+
+| 模式 | 枚举值 | 并行度变化时的语义 |
+|------|--------|-------------------|
+| 默认（无重分布） | `NONE` | 取首个旧 subtask 快照恢复，不做跨 subtask 重分配 |
+| `SPLIT_DISTRIBUTE` | `SPLIT_DISTRIBUTE` | round-robin 分配给新旧 subtask 列表 |
+| `UNION` | `UNION` | 所有 subtask 获取完整状态列表的合并，自行过滤 |
+| `BROADCAST` | `BROADCAST` | 所有 subtask 获得完全相同的一份状态 |
+
+`getRawState`/`putRawState` 提供绕过 `ListState` 抽象的原始 KV 访问（operator state 量小场景）。
 
 ### 10.3 典型用途
 
@@ -404,7 +411,7 @@ interface OperatorStateStore {
 | 状态大小 | 大（O(key count × state per key)） | 小（O(splits × offset size)） |
 | 实现 | `IKeyedStateBackend` → `IInternalStateBackend` | `OperatorStateStore` → `MemoryOperatorStateBackend` |
 
-**当前缺口**：Operator State 尚未实现。实现计划见 `ai-dev/backlog/completion-roadmap.md` Phase 0.3。
+**实现状态**：Operator State 已落地。`IOperatorStateBackend`（`MemoryOperatorStateBackend`）支持 4 种重分布模式（`NONE`/`UNION`/`BROADCAST`/`SPLIT_DISTRIBUTE`），由 backend 在 restore 时按 `RedistributionMode` 外部选定。用户侧 SPI `IOperatorStateStore` 仅暴露 `getListState(ListStateDescriptor)`（见 §10.1）；重分布模式不通过 store 接口选择，而由执行图在 restore 时注入。E2E 验证见 `TestE2EOperatorStateCheckpoint`（snapshot/restore round-trip）与 `TestE2EOperatorStateRedistribution`（4-mode 重分布）。vision §七 G36 已确认 `BROADCAST` 重分布覆盖配置/规则分发用例，专用 BroadcastState 类型永久排除。
 
 ## 11. 已知限制
 
@@ -416,7 +423,7 @@ interface OperatorStateStore {
 6. ~~**无状态恢复路径**~~ — `AbstractStreamOperator.snapshotState()` 是活跃路径，在 `processBarrier` 触发时调用 `keyedStateBackend.snapshotState()` 产出 `StateSnapshot`（参见 `AbstractStreamOperator.java:261-295`）。此路径对 Memory 和 RocksDB 后端均生效
 7. **无状态重分布** — 不支持并行度变更后重新分配状态
 8. ~~**仅 Memory 后端**~~ — `IStateBackend` 接口已有两个实现：`MemoryStateBackend`（堆内存）和 `RocksDBStateBackend`（off-heap，Stage 30）
-9. **无 Operator State 实现** — `OperatorStateStore` 接口未实现，source offset checkpoint 缺口。见 `ai-dev/backlog/completion-roadmap.md` Phase 0.3
+9. ~~**无 Operator State 实现**~~ — Operator State 已落地：`IOperatorStateBackend`（`MemoryOperatorStateBackend`）支持 4 种重分布模式，E2E 测试覆盖 snapshot/restore 与 4-mode 重分布（见 §10.4）。专用 `BroadcastState` 类型经 G36 裁定永久排除（`BROADCAST` 重分布已覆盖其典型用例）
 
 ## 12. State TTL（Stage 32）
 

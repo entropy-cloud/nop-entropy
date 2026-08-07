@@ -319,7 +319,7 @@ nop-stream 规划的 XDSL 声明式入口应类似：
 | `ReducingState<T>` | ✅ | 无 | ✅ Memory（通过 `InternalAppendingState`） |
 | `AggregatingState<IN, ACC, OUT>` | ✅ | 无 | ✅ Memory（`InternalAppendingState` + `AggregatingStateDescriptor`） |
 | `BroadcastState<K, V>` | ✅ | 无 | ❌ 不实现 |
-| Operator State | ✅ `OperatorStateStore` | ✅ `SourceReader.snapshotState()` 返回 `List<SplitT>` | ❌ 缺口（Phase 0.3 规划） |
+| Operator State | ✅ `OperatorStateStore` | ✅ `SourceReader.snapshotState()` 返回 `List<SplitT>` | ✅ `IOperatorStateStore` + `MemoryOperatorStateBackend`（4-mode 重分布） |
 
 ### 6.2 状态后端对比
 
@@ -677,7 +677,7 @@ nop-stream 的分布式模式采用**三面分离**架构，与 Flink 和 SeaTun
 | Unaligned Checkpoint | ✅ | ❌ | ❌ 规划 Phase 4 |
 | Side Output | ✅ | ❌ | ❌ 用 flatMap 替代 |
 | Broadcast State | ✅ | ❌ | ❌ 不实现 |
-| Operator State | ✅ | ✅ Source 状态 | ⚠️ 规划 Phase 0.3 |
+| Operator State | ✅ | ✅ Source 状态 | ✅ `IOperatorStateStore` + 4-mode 重分布（Stage 已实现） |
 | State TTL | ✅ | ❌ | ⚠️ 规划 Phase 1 |
 | RocksDB 状态后端 | ✅ | ❌ | ⚠️ 规划 Phase 1 |
 | Key-Group 重分布 | ✅ | ❌ | ⚠️ 规划 Phase 2 |

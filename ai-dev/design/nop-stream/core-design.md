@@ -416,13 +416,13 @@ Operator State 的恢复需要指定重分布模式，以适应并行度变化�
 | 快照 | operatorStateBackend.snapshot() | operatorStateBackend.snapshot() |
 | 恢复 | operatorStateBackend.restore() | operatorStateBackend.restore() |
 
-**当前缺口**：Operator State 尚未实现（见 `ai-dev/backlog/completion-roadmap.md` Phase 0.3）。
+**实现状态**：Operator State 已落地。`IOperatorStateBackend`（`MemoryOperatorStateBackend`）支持 4 种重分布模式（`NONE`/`UNION`/`BROADCAST`/`SPLIT_DISTRIBUTE`）。E2E 验证见 `TestE2EOperatorStateCheckpoint` 与 `TestE2EOperatorStateRedistribution`。
 
-### 7.4 实现要求
+### 7.4 实现契约
 
-1. `OperatorStateStore` 提供 `getOperatorState(ListStateDescriptor)` → `ListState<T>` 三种重分布模式
-2. Operator State 参与 `TaskEpochSnapshot`，进入 checkpoint 持久化
-3. 恢复时按重分布模式重新分配状态到各 subtask
+1. `IOperatorStateStore` 用户侧 SPI 仅 `getListState(ListStateDescriptor)`（重分布模式不通过 store 接口选择，由执行图在 restore 时通过 `IOperatorStateBackend.restoreState(..., mode, ...)` 外部注入）
+2. Operator State 参与 `TaskEpochSnapshot`，进入 checkpoint 持久化（`OperatorSnapshotResult`）
+3. 恢复时按 `RedistributionMode` 重新分配状态到各 subtask（见 `state-management-design.md` §10.2）
 4. `StreamComponents.checkpointParticipants` 记录使用 Operator State 的 operator
 5. source offset checkpoint 必须通过 Operator State 实现（不可使用 keyed state 的 fake key 替代）
 
