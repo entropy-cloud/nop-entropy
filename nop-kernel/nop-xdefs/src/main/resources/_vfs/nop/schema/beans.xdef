@@ -108,8 +108,8 @@
            当前的beanInstance要求是InvocationHandler类型。
       @ioc:type 指定返回bean的类型，按类型autowire时将使用这里的类型设置。如果不指定，则根据factory-method和class等属性推导
       @ioc:aop 指定了ioc:aop=true的bean才会成为AOP pointcut的目标。
-      @ioc:before 在创建这些bean之前需要先创建当前的bean。类似于depends-on设置，只是它在被依赖方设置
-      @ioc:after 在这些bean创建之后立刻创建当前的bean
+      @ioc:before 在这些bean之前创建当前bean。当前bean是所指定bean的前置依赖，创建任一指定bean时都会强制先创建当前bean。类似于depends-on，只是它在被依赖方（前置方）声明
+      @ioc:after 在这些bean之后创建当前bean。所指定的bean是当前bean的前置依赖，创建当前bean时会强制先创建它们。语义与depends-on等价，仅在声明位置不同
       @ioc:force-init 在START_LAZY启动模式下即使设置了lazy-init=false，缺省也不会自动启动。但是如果设置了ioc:force-init，则强制新建。
       @ioc:force-lazy-property 强制所有注入这个bean的属性都延迟设置，也就是在init-method执行之后再初始化这些属性。这些属性也自然被排除到依赖集合之外
      -->

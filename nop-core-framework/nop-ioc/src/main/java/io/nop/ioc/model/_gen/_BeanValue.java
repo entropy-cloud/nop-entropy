@@ -83,7 +83,7 @@ public abstract class _BeanValue extends io.nop.core.resource.component.Abstract
     /**
      *  
      * xml name: ioc:after
-     * 在这些bean创建之后立刻创建当前的bean
+     * 在这些bean之后创建当前bean。所指定的bean是当前bean的前置依赖，创建当前bean时会强制先创建它们。语义与depends-on等价，仅在声明位置不同
      */
     private java.util.Set<java.lang.String> _iocAfter ;
     
@@ -111,7 +111,7 @@ public abstract class _BeanValue extends io.nop.core.resource.component.Abstract
     /**
      *  
      * xml name: ioc:before
-     * 在创建这些bean之前需要先创建当前的bean。类似于depends-on设置，只是它在被依赖方设置
+     * 在这些bean之前创建当前bean。当前bean是所指定bean的前置依赖，创建任一指定bean时都会强制先创建当前bean。类似于depends-on，只是它在被依赖方（前置方）声明
      */
     private java.util.Set<java.lang.String> _iocBefore ;
     
@@ -478,7 +478,7 @@ public abstract class _BeanValue extends io.nop.core.resource.component.Abstract
     /**
      * 
      * xml name: ioc:after
-     *  在这些bean创建之后立刻创建当前的bean
+     *  在这些bean之后创建当前bean。所指定的bean是当前bean的前置依赖，创建当前bean时会强制先创建它们。语义与depends-on等价，仅在声明位置不同
      */
     
     public java.util.Set<java.lang.String> getIocAfter(){
@@ -554,7 +554,7 @@ public abstract class _BeanValue extends io.nop.core.resource.component.Abstract
     /**
      * 
      * xml name: ioc:before
-     *  在创建这些bean之前需要先创建当前的bean。类似于depends-on设置，只是它在被依赖方设置
+     *  在这些bean之前创建当前bean。当前bean是所指定bean的前置依赖，创建任一指定bean时都会强制先创建当前bean。类似于depends-on，只是它在被依赖方（前置方）声明
      */
     
     public java.util.Set<java.lang.String> getIocBefore(){
