@@ -26,6 +26,25 @@
         </property>
     </bean>
 
+    <!-- Channel session store (W1): default DB-backed IChannelSessionStore.
+         Injected into connectors via @Inject (NopIoC). Depends on IDaoProvider
+         + IOrmTemplate (from nop-dao, already on classpath via nop-ai-dao). -->
+    <bean id="channelSessionStore"
+          class="io.nop.ai.gateway.channel.ChannelSessionStoreImpl"
+          ioc:type="io.nop.ai.gateway.channel.IChannelSessionStore"/>
+
+    <!-- Feishu channel connector (W5-3): bridges FeishuClient Stream messages
+         to IAgentEngine.execute(). Auto-collected by channelConnectorManager
+         above (by-type IChannelConnector). FeishuClient + FeishuCredentials
+         beans come from nop-integration-feishu's feishu-defaults.beans.xml;
+         IChannelSessionStore is the channelSessionStore bean above. The
+         @Inject fields are protected (NopIoC constraint: no private injection).
+         A deployment that excludes nop-integration-feishu from the classpath
+         will not have this bean (the class is absent) and the collect-beans
+         gracefully returns an empty connector set. -->
+    <bean id="feishuConnector"
+          class="io.nop.ai.gateway.channel.feishu.FeishuConnector"/>
+
     <!-- Business message layer (W2): the usage-layer facade that routes
          identity-anchored OutboundChannelMessage (nop-integration-api) to the
          transport-layer IChannelConnector via the resolver + manager. The

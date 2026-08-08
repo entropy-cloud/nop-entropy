@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns:ioc="ioc">
+
+    <!-- Import the actual feishu beans (FeishuCredentials + FeishuClient +
+         FeishuBindProvider) — the production beans.xml under test -->
+    <import resource="/nop/integration/feishu/beans/feishu-defaults.beans.xml"/>
+
+    <!-- In-memory IChannelSessionStore stub (avoids needing IDaoProvider /
+         IOrmTemplate for the wiring test; the production ChannelSessionStoreImpl
+         is verified separately in TestChannelSessionStore). -->
+    <bean id="testSessionStore"
+          class="io.nop.ai.gateway.channel.feishu.TestFeishuConnectorIoC$InMemorySessionStore"
+          ioc:type="io.nop.ai.gateway.channel.IChannelSessionStore"/>
+
+    <!-- The FeishuConnector bean under test — @Inject fields feishuClient +
+         sessionStore must be resolved by the container. -->
+    <bean id="feishuConnector"
+          class="io.nop.ai.gateway.channel.feishu.FeishuConnector"/>
+
+    <!-- Manager that auto-collects all IChannelConnector beans by type -->
+    <bean id="testChannelConnectorManager"
+          class="io.nop.ai.gateway.channel.ChannelConnectorManager">
+        <property name="connectors">
+            <ioc:collect-beans by-type="io.nop.ai.gateway.channel.IChannelConnector"
+                               ioc:ignore-depends="true" only-concrete-classes="true"/>
+        </property>
+    </bean>
+
+    <!-- Simple collector for IChannelBindProvider beans — proves the
+         collect-beans wiring for FeishuBindProvider without needing the full
+         ChannelLoginApiBizModel transitive deps (IAuthTokenProvider etc.). -->
+    <bean id="testBindProviderCollector"
+          class="io.nop.ai.gateway.channel.feishu.TestFeishuConnectorIoC$BindProviderCollector">
+        <property name="providers">
+            <ioc:collect-beans by-type="io.nop.integration.api.bind.IChannelBindProvider"
+                               ioc:ignore-depends="true" only-concrete-classes="true"/>
+        </property>
+    </bean>
+</beans>
