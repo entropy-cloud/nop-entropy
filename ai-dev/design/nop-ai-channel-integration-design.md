@@ -235,7 +235,7 @@ sequenceDiagram
 | 业务消息门面 | `IChannelMessageService` | 接口：`nop-integration-api`；实现：`nop-ai-gateway` | 见下方分析 |
 | 扫码回调端点 + accessCode 编排 | （装配代码） | `nop-ai-gateway` | 见下方"装配点"分析 |
 | 登录兑换 | `ILoginSpi.getLoginResultAsync` | `nop-service-framework/nop-biz-auth-core` | 已有，零改动 |
-| 传输适配器 | `IChannelConnector` | `nop-ai-agent`（设计中） | 见 channel-connector 文档 |
+| 传输适配器 | `IChannelConnector` | `nop-ai-gateway` | 见 channel-connector 文档（`ChannelConnectorContext` 持 `IAgentEngine`/`IAgentEventPublisher`，这些类型在 `nop-ai-agent`；`nop-ai-gateway` 经核不依赖、也不被 `nop-ai-agent` 依赖，新增 `nop-ai-agent` 依赖无环） |
 
 **`IChannelMessageService` 接口为何放 `nop-integration-api`？** 发一条飞书消息是平台通知能力，不应要求调用方依赖 AI 模块。接口放 `nop-integration-api`（只依赖 `nop-api-core`），任何业务模块都能发信道消息。
 
@@ -254,7 +254,7 @@ nop-integration-api  无变化
 nop-biz-auth-core     无变化（不引入集成依赖）
 ```
 
-`nop-integration-feishu`（新模块）依赖 `nop-integration-api`，提供 `FeishuConnector` 与 `FeishuBindProvider` 的飞书 SDK 实现。
+`nop-integration-feishu`（新模块）依赖 `nop-integration-api`，提供 `FeishuBindProvider` 的飞书 SDK 实现（飞书协议层 `FeishuClient`/`FeishuPbCodec`/`FeishuCredentials` 亦在此模块）。`FeishuConnector`（`IChannelConnector` 实现）落 `nop-ai-gateway`（依赖 `IAgentEngine`/`IChannelSessionStore`，不能下沉到不依赖 AI 的厂商模块）。
 
 ## 四、拒绝了什么
 
@@ -284,6 +284,6 @@ nop-biz-auth-core     无变化（不引入集成依赖）
 
 - [ ] `IChannelMessageService` 出站多绑定用户的信道选择策略默认值（最近活跃 vs 优先级表）——倾向"最近活跃 + 调用方可指定 channelType 覆盖"。
 - [ ] 入站消息在多消费者部署下经 `IMessageService` 骨干时，`InboundChannelMessage` 的 topic 命名约定（`channel.inbound.{channelType}` vs 按业务域分）。
-- [ ] 飞书扫码绑定的 `qrPayload` 是用飞书"扫码登录"二维码还是自建券 + 飞书机器人推送——影响 `FeishuBindProvider` 实现选型。
+- [x] 飞书扫码绑定的 `qrPayload` 是用飞书"扫码登录"二维码还是自建券 + 飞书机器人推送——影响 `FeishuBindProvider` 实现选型。**W5-2 已收口**：选定**飞书扫码登录二维码（Option A — OAuth authorize URL）**。`qrPayload` = 飞书 OAuth 授权 URL（含 `app_id` + `state=ticketId`），无需 bot 推送，绑定流程与消息传输完全解耦。拒绝 Option B（自建券 + 机器人推送）：绑定流程不应依赖 Stream 长连接/bot 推送，引入不必要的运行时依赖。
 - [x] `auth/login-type` 字典当前为整数码（`1`=密码、`10`=单点）。需为 feishu/dingtalk/wecom 分配新整数码（建议 `20`+，避开已有）及对应中文 label。**W0 已收口**：`20`=飞书、`21`=钉钉、`22`=企微、`23`=Webhook，权威源 `nop-service-framework/nop-biz-auth-core/src/main/resources/_vfs/dict/auth/login-type.dict.yaml` 已扩展。
-- [ ] 附件/多媒体：`OutboundChannelMessage.attachments` 如何与传输层 `ChannelCapabilities`（supportsFileUpload 等，见 channel-connector 文档 §8）协商——目标信道不支持时的降级策略（转链接？拒绝？）。
+- [x] 附件/多媒体：`OutboundChannelMessage.attachments` 如何与传输层 `ChannelCapabilities`（supportsFileUpload 等，见 channel-connector 文档 §8）协商——目标信道不支持时的降级策略（转链接？拒绝？）。**W5-3 已收口**：`supportsFileUpload=false` 时降级为文本链接/提示（附件名 + URL 或"暂不支持文件上传"），不静默丢弃。飞书 v1 `supportsFileUpload=false`，真实文件上传 deferred（设计 §11）。

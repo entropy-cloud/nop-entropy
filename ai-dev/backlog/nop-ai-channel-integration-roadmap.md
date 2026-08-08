@@ -60,9 +60,9 @@
 - [x] W5-1a 飞书连接/重连生命周期（`FeishuClient`：Stream SDK 长连接建立、断线重连、心跳），`nop-integration-feishu`。**已落地**：`FeishuClient`（start/stop/isConnected/sendMessage + 指数退避重连 + CONTROL 心跳调度）经 JDK WebSocket（`JdkStreamTransport`）+ JDK HttpClient（`JdkFeishuHttpApi`）；`tenant_access_token` 缓存刷新；测试经 `IStreamTransport`/`IFeishuHttpApi` seam 注入 fake（10 tests：生命周期状态转换 + DATA 帧投递 handler + token 缓存复用 + null/double-start 显式行为）。Plan 6 Phase 2 完成。
 - [x] W5-1b `FeishuPbCodec`：Pbbp2 Protobuf 二进制协议（method=0 CONTROL / method=1 DATA / method=2 ACK 解编码），`nop-integration-feishu`。独立可测。**已落地**：`FeishuPbCodec`（encode/decode 手写 protobuf wire format，proto3 default 语义）+ `FeishuStreamFrame`/`FeishuFrameType`；8 tests（CONTROL/DATA/ACK round-trip + 二进制 payload 逐字节 + 畸形输入显式抛 `NopFeishuException` + null 显式失败）。Plan 6 Phase 1 完成。
 - [x] W5-1c 飞书凭证管理：appId/appSecret/verificationToken/encryptKey，经 `nop-config-encrypt` 加密保护，`nop-integration-feishu`。**已落地**：`FeishuCredentials`（DataBean，4 字段经 `@InjectValue("@cfg:nop.integration.feishu.*|")` 注入，`@sec:` 前缀配置值经 `DefaultConfigValueEnhancer`+`AESTextCipher` 解密）。Plan 6 Phase 2 完成。
-- [ ] W5-2 `FeishuBindProvider`（`IChannelBindProvider` 实现，`nop-integration-feishu`）：生成扫码 QR payload（Open Question：飞书扫码登录二维码 vs 自建券 + 机器人推送，W5-2 选型）、处理飞书扫码回调、返回 open_id 作为 extId。
-- [ ] W5-3 `FeishuConnector`（`IChannelConnector` 实现，落 `nop-ai-gateway`，依赖 W5-1）：Stream 收 `im.message.receive_v1` → 解密验签 → 提取文本/chat_id/sender → 查建 `ChannelSession` → `IAgentEngine.sendMessage(AgentMessageRequest)`（metadata 带 channelType/channelId/senderId/channelKind=dm|group）；订阅 `IAgentEventPublisher` 的 `AgentResult`/`AgentError` → 飞书消息 API 回复；TextChunk 按 `ChannelCapabilities` 累积合并（delta 合并，防速率限制 50msg/s）。附件/多媒体与能力协商降级（转链接/拒绝）在此收口。
-- [ ] W5-4 IoC 装配：`feishu-connector.beans.xml`（凭证 `@InjectValue` 占位 + 加密）、`ChannelConnectorManager` 注册 `FeishuConnector`、`IChannelBindProvider` SPI 注册 `FeishuBindProvider`。
+- [x] W5-2 `FeishuBindProvider`（`IChannelBindProvider` 实现，`nop-integration-feishu`）：生成扫码 QR payload（Open Question：飞书扫码登录二维码 vs 自建券 + 机器人推送，W5-2 选型）、处理飞书扫码回调、返回 open_id 作为 extId。**已落地（裁定 Option A — 飞书 OAuth authorize URL）**：`qrPayload` = OAuth URL（含 `app_id` + `state=ticketId`），无需 bot 推送；`onChannelScanCallback` 从 rawPayload 提取 `open_id` + ticketId 回查 platformUserId → `BINDING_COMPLETED`。7 tests（PENDING/BINDING_COMPLETED/未知 ticket/缺字段/过期/错 channelType/单次消费）。设计 §六 Open Question 已收口。Plan 7 Phase 1 完成。
+- [x] W5-3 `FeishuConnector`（`IChannelConnector` 实现，落 `nop-ai-gateway`，依赖 W5-1）：Stream 收 `im.message.receive_v1` → 解密验签 → 提取文本/chat_id/sender → 查建 `ChannelSession` → `IAgentEngine.execute(AgentMessageRequest)`（metadata 带 channelType/channelId/senderId/channelKind=dm|group）→ `CompletableFuture<AgentExecutionResult>` future callback → 从 messages 提取 assistant 文本 → 飞书 API 回复；附件与能力协商降级（转链接/提示）在此收口。**Phase 0 裁定**：经代码核实事件 payload 无响应文本（`ReActAgentExecutor.java:1015-1027`），connector 经 `execute()` future callback 取响应（非事件订阅）。**已落地**：12 tests（端到端 round-trip / execute 触发 + session 映射 / future 异常→错误回复 / status=failed→错误回复 / 群聊无 @bot→跳过 / 私聊→处理 / 附件降级 / stop→sendOutbound 显式失败 / handler 注册 / session 复用）。设计 §7.2/§7.3 + §六 附件降级已收口。Plan 7 Phase 0+2 完成。
+- [x] W5-4 IoC 装配：`feishu-defaults.beans.xml`（FeishuCredentials + FeishuClient + FeishuBindProvider，凭证 `@InjectValue` + `@sec:` 加密）、`ai-gateway-defaults.beans.xml` 注册 FeishuConnector + ChannelSessionStoreImpl、`ChannelConnectorManager` 自动收集 FeishuConnector、`IChannelBindProvider` SPI 自动收集 FeishuBindProvider。**已落地**：4 IoC wiring tests（真实容器启动 `AppBeanContainerLoader`，collect-beans 验证 + @Inject 字段非 null）。Plan 7 Phase 3 完成。
 
 ### W6. 端到端集成与验证
 
@@ -73,7 +73,7 @@
 
 ### W7. Owner-doc 同步
 
-- [ ] W7-1 设计 §3.5 表 `IChannelConnector` 行由 `nop-ai-agent` 改为 `nop-ai-gateway`（与本 roadmap 模块裁定一致）；设计/roadmap 中 `AgentEventPublisher` 统一为 `IAgentEventPublisher`（实际类型名，含传输设计文档 `ai-dev/design/nop-ai-agent/nop-ai-agent-channel-connector.md` 全部出现处）。实现完成后关键结论同步到 `docs-for-ai/`（若有对外使用契约）。
+- [x] W7-1 设计 §3.5 表 `IChannelConnector` 行由 `nop-ai-agent` 改为 `nop-ai-gateway`（与本 roadmap 模块裁定一致）；设计/roadmap 中 `AgentEventPublisher` 统一为 `IAgentEventPublisher`（实际类型名，含传输设计文档 `ai-dev/design/nop-ai-agent/nop-ai-agent-channel-connector.md` 全部出现处）。实现完成后关键结论同步到 `docs-for-ai/`（若有对外使用契约）。**已落地**：§3.5 表 IChannelConnector → `nop-ai-gateway`（`nop-ai-channel-integration-design.md:238`）；散文 FeishuConnector 归属 → `nop-ai-gateway`（`:257`）；`AgentEventPublisher` → `IAgentEventPublisher`（channel-connector 设计文档全部出现处经 grep 验证 0 残留）；§7.2 execute() 出站路径裁定 + §7.3 delta-merge 标注 SSE/WebSocket 专用。Plan 7 Phase 0+3 完成。
 
 ## 完成定义
 
@@ -93,6 +93,6 @@
 
 - 出站多绑定信道选择默认值（最近活跃 vs 优先级表）→ W2-3 收口（已倾向最近活跃=lastLoginTime）
 - 入站骨干 topic 命名约定 → W6-4 收口
-- 飞书扫码 qrPayload 选型（飞书扫码登录二维码 vs 自建券 + 机器人推送）→ W5-2 收口
-- 附件/多媒体与 `ChannelCapabilities` 协商降级（转链接/拒绝）→ W5-3 收口
+- 飞书扫码 qrPayload 选型（飞书扫码登录二维码 vs 自建券 + 机器人推送）→ **W5-2 已收口（裁定 Option A — OAuth URL）**
+- 附件/多媒体与 `ChannelCapabilities` 协商降级（转链接/拒绝）→ **W5-3 已收口（supportsFileUpload=false → 降级为文本链接/提示）**
 - 飞书 Stream SDK 选型（官方 vs 独立实现，外部依赖后果）→ W5-0 收口

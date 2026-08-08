@@ -4,7 +4,7 @@
 
 定义 nop-ai-agent 与外部消息信道（飞书、钉钉、企微、Telegram、Webhook、API 等）之间的通用连接抽象。
 
-本篇讨论的是 **Gateway 层**的信道适配器设计，不是引擎层。适配器将外部信道协议转换为引擎层的 `IAgentEngine.sendMessage()` 调用和 `AgentEventPublisher` 事件订阅，引擎层零改动即可接入新信道。
+本篇讨论的是 **Gateway 层**的信道适配器设计，不是引擎层。适配器将外部信道协议转换为引擎层的 `IAgentEngine.sendMessage()` 调用和 `IAgentEventPublisher` 事件订阅，引擎层零改动即可接入新信道。
 
 ## 2. 核心问题
 
@@ -48,13 +48,13 @@
 └───────────────────────────┬──────────────────────────────────┘
                             │
                             │  IAgentEngine.sendMessage()
-                            │  AgentEventPublisher.subscribe()
+                            │  IAgentEventPublisher.subscribe()
                             │
 ┌───────────────────────────┴──────────────────────────────────┐
 │                    Agent 引擎层（已有）                         │
 │                                                              │
 │  IAgentEngine · AgentActor · IMessageService                 │
-│  AgentEventPublisher · IPermissionMatrix (channelKind)       │
+│  IAgentEventPublisher · IPermissionMatrix (channelKind)       │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -92,7 +92,7 @@ public interface IChannelConnector {
 ```java
 public class ChannelConnectorContext {
     IAgentEngine agentEngine;
-    AgentEventPublisher eventPublisher;
+    IAgentEventPublisher eventPublisher;
     ChannelConfig config;
 }
 ```
@@ -141,55 +141,70 @@ public class ChannelConnectorContext {
 飞书用户发消息
   │
   ▼
-FeishuConnector（收到飞书 Event callback）
-  │  1. 解密/验签
-  │  2. 提取消息文本、发送者信息、chat_id
-  │  3. 查找或创建 ChannelSession 映射
+FeishuConnector（IMessageHandler.onMessage 回调，由 FeishuClient 投递）
+  │  1. 提取消息文本、发送者信息、chat_id（receiveId）
+  │  2. 群聊 @bot 过滤（群聊未 @bot → 不处理）
+  │  3. IChannelSessionStore.findByChannel 查映射 → 命中复用 sessionId / 未命中新建
   ▼
-agentEngine.sendMessage(AgentMessageRequest{
-    sessionId = mappedSessionId,     // 复用或新建
+agentEngine.execute(AgentMessageRequest{
+    sessionId = mappedSessionId,     // 复用或 null（新建）
     agentName = config.agentName,
     userMessage = extractedText,
     metadata = {
         "channelType": "feishu",
         "channelId": "oc_xxx",
-        "senderId": "user_id",
-        "channelKind": "dm"          // 供 IPermissionMatrix 使用
-    }
+        "senderId": "user_id"
+    },
+    channelKind = DM | GROUP          // 供 IPermissionMatrix 使用
 })
   │
   ▼
-AgentMessageAck{ sessionId, status="accepted" }
+CompletableFuture<AgentExecutionResult>   // 出站路径经此 future 回调，见 §7.2
 ```
+
+> **为何用 `execute()` 而非 `sendMessage()`**：`sendMessage()` 是 fire-and-forget（立即返回 `AgentMessageAck`，不返回执行结果），无法获取响应文本。`execute()` 返回 `CompletableFuture<AgentExecutionResult>`，connector 经 future callback 取响应文本回复用户。
 
 ### 7.2 输出路径（Agent → 用户）
 
+> **关键裁定（W5-3 Phase 0）**：经代码核实，Agent 事件 payload **不含响应文本**。`EXECUTION_COMPLETED` 事件 payload 只含 metrics（`totalIterations`/`totalTokensUsed`/`durationMs`/`guardrailBlocked`，见 `ReActAgentExecutor.java:1015-1027`）；`LLM_RESPONSE_RECEIVED` payload 只含 `iteration`/`hasToolCalls`（`:754-757`）。响应文本在 `AgentExecutionResult.getMessages()` 最后一条 assistant 消息中。因此 connector **不能**经事件订阅获取响应文本，必须经 `IAgentEngine.execute()` 的 `CompletableFuture<AgentExecutionResult>` 获取。
+>
+> **拒绝方案：事件订阅**（原设计假设）。事件 payload 无文本，connector 无法经事件获取响应。事件仍可用于状态追踪（如记录 `EXECUTION_STARTED`），但**不用于获取响应文本**。
+>
+> **优势**：`execute()` 的 future callback 闭包直接捕获 `chatId`，无需内存反向映射（sessionId→chatId）；无需事件订阅/取消订阅的生命周期管理；无需 TextChunk delta 合并（`execute` 返回完整结果，飞书不支持流式）。
+>
+> **约束**：单体部署假定（`execute` 的 future 在同 JVM 完成）。多实例部署需 future 的跨进程传递（后续部署演进）。
+
 ```
-适配器在 start() 时订阅 eventPublisher：
-eventPublisher.subscribe("agent.{sessionId}.events", event -> {
-    if (event instanceof AgentResult) {
-        // 提取文本响应
-        String text = ((AgentResult) event).getText();
-        // 调用飞书 API 发送消息
-        feishuClient.sendMessage(channelId, text);
-    } else if (event instanceof AgentError) {
-        feishuClient.sendMessage(channelId, "执行出错: " + error.getMessage());
+// 入站处理 lambda 内（chatId 已在闭包中捕获）：
+CompletableFuture<AgentExecutionResult> future = agentEngine.execute(request);
+future.whenComplete((result, error) -> {
+    if (error != null || result.getStatus() == failed) {
+        feishuClient.sendMessage(chatId, "执行出错: " + describeError(error, result));
+    } else {
+        String text = extractLastAssistantText(result.getMessages());
+        if (text != null && !text.isEmpty()) {
+            feishuClient.sendMessage(chatId, text);
+        }
+        // 新 session 保存映射
+        if (isNewSession && result.getSessionId() != null) {
+            sessionStore.saveMapping("feishu", chatId, result.getSessionId(), agentName);
+        }
     }
-    // TextChunk/ThinkingChunk 等中间事件 — 根据信道能力决定是否转发
 });
 ```
 
 ### 7.3 中间事件处理策略
 
-Agent 执行过程中会产生中间事件（TextChunk, ThinkingChunk, ToolCallStart, ToolCallComplete）。适配器根据信道能力决定如何处理：
+> **裁定（W5-3 Phase 0）**：飞书信道改用 `execute()` + future callback（§7.2）后，中间事件 delta 合并/文本增量策略**不再适用于飞书**——`execute()` 返回完整结果后一次性回复，无中间增量。下表的"文本增量"策略仅适用于 SSE/WebSocket 等流式信道（需经 `IAgentEventPublisher` 订阅中间事件实现）。
+
+Agent 执行过程中会产生中间事件（TextChunk, ThinkingChunk, ToolCallStart, ToolCallComplete）。**流式信道**（WebSocket, SSE）的适配器根据信道能力决定如何处理：
 
 | 策略 | 适用信道 | 行为 |
 |------|---------|------|
-| **全部等待** | Webhook, API | 只发送 `AgentResult`，中间事件全部忽略 |
-| **文本增量** | 飞书, 钉钉, 企微 | 累积 TextChunk，在 ThinkingChunk 或 AgentResult 时合并发送 |
-| **实时流式** | WebSocket, SSE | 逐事件转发，客户端自行渲染 |
+| **全部等待** | Webhook, API, 飞书, 钉钉, 企微 | 经 `execute()` future 一次性取完整结果，中间事件全部忽略 |
+| **实时流式** | WebSocket, SSE | 经 `IAgentEventPublisher` 订阅，逐事件转发，客户端自行渲染 |
 
-参考 Nanobot 的 `_coalesce_stream_deltas` delta 合并优化：当 LLM 产出速度超过信道发送速率时，合并同一会话的连续文本增量，避免触发速率限制。
+参考 Nanobot 的 `_coalesce_stream_deltas` delta 合并优化：当 LLM 产出速度超过信道发送速率时，合并同一会话的连续文本增量，避免触发速率限制。**此优化仅对流式信道有效**；飞书等非流式信道经 `execute()` 取完整结果，无需 delta 合并。
 
 ## 8. 信道能力声明
 
@@ -223,8 +238,9 @@ public class ChannelCapabilities {
 │                   Gateway 层                      │
 │                                                  │
 │  IChannelConnector                                 │
-│    │ 输入: agentEngine.sendMessage()              │
-│    │ 输出: eventPublisher.subscribe()              │
+│    │ 输入: agentEngine.execute()                  │
+│    │ 输出: execute() future callback              │
+│    │   (流式信道经 IAgentEventPublisher 订阅)      │
 │    │                                              │
 │    │    ↕ 同一 JVM 内的方法调用，不是消息传递        │
 │    │                                              │
@@ -243,13 +259,13 @@ public class ChannelCapabilities {
 
 | 层级 | 通信机制 | 用途 |
 |------|---------|------|
-| **Gateway → Agent** | `IAgentEngine.sendMessage()` 方法调用 | 外部用户消息投递到 Agent |
-| **Agent → Gateway** | `AgentEventPublisher` 事件订阅 | Agent 执行结果/事件推送到外部 |
+| **Gateway → Agent** | `IAgentEngine.execute()` 方法调用（返回 `CompletableFuture`） | 外部用户消息投递到 Agent + 取回执行结果 |
+| **Agent → Gateway** | `execute()` future callback（非流式）/ `IAgentEventPublisher` 事件订阅（流式信道） | Agent 执行结果/事件推送到外部 |
 | **Agent ↔ Agent** | `IMessageService` 消息传递 | Actor 间内部通信（call-agent / send-message） |
 
-**IMessageService 是引擎内部通信**，信道适配器不使用它。适配器直接调用 `IAgentEngine` 和订阅 `AgentEventPublisher`，是同一 JVM 内的方法调用/事件观察，不是消息传递。
+**IMessageService 是引擎内部通信**，信道适配器不使用它。适配器直接调用 `IAgentEngine.execute()` 经 future callback 取响应文本（非流式信道），或订阅 `IAgentEventPublisher` 取中间增量（流式信道），是同一 JVM 内的方法调用/事件观察，不是消息传递。
 
-**多实例部署时**：Gateway 和 Agent 可能不在同一 JVM。此时 Gateway 通过 REST/GraphQL 调用 Agent 服务，`IChannelConnector` 的实现改为远程调用。但接口不变——适配器内部封装远程调用细节。
+**多实例部署时**：Gateway 和 Agent 可能不在同一 JVM。此时 `execute()` 的 `CompletableFuture` 需跨进程传递（或改用远程回调），Gateway 通过 REST/GraphQL 调用 Agent 服务。但接口不变——适配器内部封装远程调用细节。
 
 ## 10. 凭证管理
 
@@ -299,7 +315,7 @@ public class ChannelCapabilities {
 | `ChannelSession` 映射表 | Gateway 层 | 使用引擎持久化接口，但逻辑在 Gateway |
 | `channelKind` 元数据 | 引擎 Layer 1 | `IPermissionMatrix` 按 channelKind 分级（已有设计） |
 
-信道适配器是**应用层集成代码**，不是引擎核心。它的存在不改变引擎层的任何设计——引擎通过 `IAgentEngine` 和 `AgentEventPublisher` 与外部交互，不关心消息来自飞书还是 API。
+信道适配器是**应用层集成代码**，不是引擎核心。它的存在不改变引擎层的任何设计——引擎通过 `IAgentEngine` 和 `IAgentEventPublisher` 与外部交互，不关心消息来自飞书还是 API。
 
 ## 13. 参考来源
 
