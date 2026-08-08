@@ -91,6 +91,54 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- W6-2 E2E: bring ChannelLoginApiBizModel (nop-ai-gateway) and
+             FeishuBindProvider (nop-integration-feishu) classes onto the test
+             classpath so the scan-bind + scan-login full chain can run in a
+             single JVM with the real auth-service beans. Test-scope only:
+             no runtime dependency edge (gateway depends on nop-auth-api, not
+             nop-auth-service, so there is no cycle). The modules'
+             *-defaults.beans.xml are NOT auto-discovered by the container
+             (only app*.beans.xml / autoconfig are); the E2E test loads the
+             needed beans via a controlled test beans.xml (testBeansFile). -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-ai-gateway</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+            <!-- Only ChannelLoginApiBizModel + ScanLoginResult are used. They
+                 reference solely nop-auth-api / nop-biz-auth-core /
+                 nop-integration-api / nop-api-core / nop-core types, so the
+                 AI internals below are excluded: their *-defaults.beans.xml
+                 are auto-loaded via /nop/autoconfig/ and require beans
+                 (IHttpClient, agent engine, ai_dao schema) not present in the
+                 auth-service test context. Excluding them keeps the test
+                 classpath minimal and avoids dragging the AI context in. -->
+            <exclusions>
+                <exclusion>
+                    <groupId>io.github.entropy-cloud</groupId>
+                    <artifactId>nop-gateway</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>io.github.entropy-cloud</groupId>
+                    <artifactId>nop-ai-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>io.github.entropy-cloud</groupId>
+                    <artifactId>nop-ai-agent</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>io.github.entropy-cloud</groupId>
+                    <artifactId>nop-ai-dao</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-integration-feishu</artifactId>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
     <build>
