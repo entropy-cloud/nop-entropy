@@ -35,12 +35,12 @@
 - [x] W1-3 `ChannelConnectorManager`（注册/按 channelType 查找/统一 start/stop 生命周期）+ Nop IoC `beans.xml` 装配。连接器自洽管理凭证、重连、速率限制。**已落地**：`ChannelConnectorManager`（`<ioc:collect-beans by-type>` 自动收集 + 程序化注册；lookup 未命中抛异常不静默）注册于 `ai-gateway-defaults.beans.xml`，并新增 `_vfs/nop/ai/gateway/_module` 标记使 beans 可发现。Phase 3 完成。
 - [x] W1-4 beans.xml 装配验证：`ChannelConnectorManager` 在运行时实际注入到消费方（Anti-Hollow exit criterion：容器启动 + `getBean` 解析成功）。**已落地**：`TestChannelConnectorManager` stub 连接器证明 `startAll`/`stopAll` 真实调用连接器（计数 > 0）+ 经 context 持有 `IAgentEngine`/`IAgentEventPublisher`；`TestChannelSessionStore` H2 持久化证明 miss→null / saveMapping→hit / updateLastActive→刷新。Gateway 21 tests green + 全 `nop-ai` reactor install 成功。
 
-### W2. 业务消息层 IChannelMessageService（业务设计 §3.2 落地）
+### W2. 业务消息层 IChannelMessageService（业务设计 §3.2 落地）✅
 
-- [ ] W2-1 `ChannelMessage` 模型（`OutboundChannelMessage`: text/markdown/attachments/businessRef；`InboundChannelMessage`: userId/channelType/channelAddress/text/rawAttachments/receivedAt）+ `SendResult` 枚举（`SENT`/`NO_BINDING`/`UNSUPPORTED`）。落 `nop-integration-api`（依赖 `nop-api-core`，无 AI）。
-- [ ] W2-2 `IChannelMessageService` 接口（`sendToUser(userId, OutboundChannelMessage)→SendResult`、`subscribeInbound(listener)`）+ `UserChannelResolver` 接口（`resolve(userId)→List<ChannelBinding>`、`resolve(userId, channelType)→ChannelBinding`）。落 `nop-integration-api`。**只以 userId 为锚，禁止暴露信道协议字段**（设计拒绝 sendToChannel）。
-- [ ] W2-3 `UserChannelResolver` 实现：读 `NopAuthExtLogin`（`loginType`↔channelType，`extId`↔信道地址），多绑定默认"最近活跃"（复用既有 `LAST_LOGIN_TIME` 列 `lastLoginTime` 作为活跃度判据），调用方可指定 channelType 覆盖。落 `nop-auth-service`（**新增依赖 `nop-integration-api`，无环**——后者只依赖 `nop-api-core`）。含 beans.xml 注册 + 运行时注入验证。
-- [ ] W2-4 `IChannelMessageService` 实现 `ChannelMessageServiceImpl`：出站经 `UserChannelResolver` 解析 → 选连接器 → 调原生发送；入站由连接器回调 `dispatchInbound(InboundChannelMessage)` → 通知监听器。落 `nop-ai-gateway`。**未绑定返回 `NO_BINDING` 不抛异常；跨信道降级（飞书失败→短信）v1 non-goal，由调用方凭 SendResult 自决**。含 beans.xml 注册 + 运行时注入验证（Anti-Hollow：容器解析 `ChannelMessageServiceImpl` bean 成功）。
+- [x] W2-1 `ChannelMessage` 模型（`OutboundChannelMessage`: text/markdown/attachments/businessRef；`InboundChannelMessage`: userId/channelType/channelAddress/text/rawAttachments/receivedAt）+ `SendResult` 枚举（`SENT`/`NO_BINDING`/`UNSUPPORTED`）。落 `nop-integration-api`（依赖 `nop-api-core`，无 AI）。
+- [x] W2-2 `IChannelMessageService` 接口（`sendToUser(userId, OutboundChannelMessage)→SendResult`、`subscribeInbound(listener)`）+ `UserChannelResolver` 接口（`resolve(userId)→List<ChannelBinding>`、`resolve(userId, channelType)→ChannelBinding`）。落 `nop-integration-api`。**只以 userId 为锚，禁止暴露信道协议字段**（设计拒绝 sendToChannel）。
+- [x] W2-3 `UserChannelResolver` 实现：读 `NopAuthExtLogin`（`loginType`↔channelType，`extId`↔信道地址），多绑定默认"最近活跃"（复用既有 `LAST_LOGIN_TIME` 列 `lastLoginTime` 作为活跃度判据），调用方可指定 channelType 覆盖。落 `nop-auth-service`（**新增依赖 `nop-integration-api`，无环**——后者只依赖 `nop-api-core`）。含 beans.xml 注册 + 运行时注入验证。
+- [x] W2-4 `IChannelMessageService` 实现 `ChannelMessageServiceImpl`：出站经 `UserChannelResolver` 解析 → 选连接器 → 调原生发送；入站由连接器回调 `dispatchInbound(InboundChannelMessage)` → 通知监听器。落 `nop-ai-gateway`。**未绑定返回 `NO_BINDING` 不抛异常；跨信道降级（飞书失败→短信）v1 non-goal，由调用方凭 SendResult 自决**。含 beans.xml 注册 + 运行时注入验证（Anti-Hollow：容器解析 `ChannelMessageServiceImpl` bean 成功）。
 
 ### W3. 扫码绑定（业务设计 §3.4 ② 落地）
 
