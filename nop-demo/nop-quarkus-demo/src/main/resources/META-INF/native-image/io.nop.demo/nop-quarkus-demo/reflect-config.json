@@ -18,6 +18,18 @@
     "fields": [],
     "methods": [
       {
+        "name": "maybeDecrypt",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "maybeEncrypt",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "readExchange",
         "parameterTypes": [
           "io.nop.commons.text.tokenizer.TextScanner"
@@ -69,6 +81,30 @@
       }
     ],
     "name": "io.nop.ai.core.prompt.PromptTemplateManager"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "aggregateStreamToResponse",
+        "parameterTypes": [
+          "io.nop.ai.api.chat.ChatRequest",
+          "io.nop.api.core.util.ICancelToken"
+        ]
+      },
+      {
+        "name": "createRateLimiter",
+        "parameterTypes": [
+          "double"
+        ]
+      }
+    ],
+    "name": "io.nop.ai.core.service.ChatServiceImpl"
   },
   {
     "allDeclaredConstructors": true,

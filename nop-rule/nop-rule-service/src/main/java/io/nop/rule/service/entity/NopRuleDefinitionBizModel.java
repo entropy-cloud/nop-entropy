@@ -12,6 +12,7 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.biz.RequestBean;
 import io.nop.api.core.annotations.core.Name;
+import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.beans.DictOptionBean;
 import io.nop.api.core.beans.WebContentBean;
@@ -52,7 +53,10 @@ public class NopRuleDefinitionBizModel extends CrudBizModel<NopRuleDefinition> i
 
     @BizQuery
     public ConditionFieldsResponse getConditionFields(
-            @Name(NopRuleConstants.RULE_ID_NAME) String ruleId, IServiceContext context) {
+            @Name(NopRuleConstants.RULE_ID_NAME) @Optional String ruleId, IServiceContext context) {
+        if (StringHelper.isEmpty(ruleId))
+            return null;
+
         NopRuleDefinition rule = get(ruleId, false, context);
         RuleModel ruleModel = ruleModelLoader.buildRuleModel(rule);
         List<Map<String, Object>> fields = ConditionSchemaHelper.schemaToFields(null, ruleModel.getInputSchema());
@@ -63,7 +67,10 @@ public class NopRuleDefinitionBizModel extends CrudBizModel<NopRuleDefinition> i
     }
 
     @BizQuery
-    public DictBean getOutputFields(@Name(NopRuleConstants.RULE_ID_NAME) String ruleId, IServiceContext context) {
+    public DictBean getOutputFields(@Name(NopRuleConstants.RULE_ID_NAME) @Optional String ruleId, IServiceContext context) {
+        if (StringHelper.isEmpty(ruleId))
+            return null;
+
         NopRuleDefinition rule = get(ruleId, false, context);
         List<Map<String, Object>> outputs = rule.getRuleOutputs();
         DictBean dict = new DictBean();
