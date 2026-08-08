@@ -1,5 +1,6 @@
 entity:
   label:
+    NopAiChannelSession: 信道会话映射
     NopAiChatRequest: 对话请求
     NopAiChatResponse: 响应结果
     NopAiEvent: Agent事件
@@ -23,6 +24,18 @@ entity:
     NopAiTodo: Agent待办
 prop:
   label:
+    NopAiChannelSession:
+      agentName: Agent名称
+      channelId: 信道会话ID
+      channelType: 信道类型
+      createTime: 创建时间
+      createdBy: 创建人
+      id: 主键
+      lastActiveAt: 最近活跃时间
+      sessionId: 引擎会话ID
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
     NopAiChatRequest:
       createTime: 创建时间
       createdBy: 创建人

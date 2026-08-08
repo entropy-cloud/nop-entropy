@@ -1402,5 +1402,65 @@
                 </to-one>
             </relations>
         </entity>
+
+        <!-- =====================================================
+             NopAiChannelSession: 信道会话映射
+             Gateway 层维护的外部信道会话标识(channelType:channelId)与
+             引擎 sessionId 之间的映射。sessionId 来自引擎 ack，store 不自行生成。
+             唯一键 (channelType, channelId) 保证一条外部信道会话唯一映射到一个引擎会话。
+             ===================================================== -->
+        <entity className="io.nop.ai.dao.entity.NopAiChannelSession" displayName="信道会话映射" i18n-en:displayName="Channel Session"
+                name="io.nop.ai.dao.entity.NopAiChannelSession" registerShortName="true"
+                tableName="nop_ai_channel_session" ext:icon="radio" versionProp="version"
+                createTimeProp="createTime" createrProp="createdBy" updateTimeProp="updateTime" updaterProp="updatedBy">
+            <columns>
+                <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"
+                        i18n-en:displayName="Id"/>
+                <column code="channel_type" comment="信道类型标识(feishu/dingtalk/wecom/webhook/api)" displayName="信道类型"
+                        mandatory="true" name="channelType" precision="50" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Channel Type"/>
+                <column code="channel_id" comment="外部信道会话标识(如飞书chat_id)" displayName="信道会话ID"
+                        mandatory="true" name="channelId" precision="100" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Channel Id"/>
+                <column code="session_id" comment="引擎Agent会话ID(来自AgentMessageAck.sessionId)" displayName="引擎会话ID"
+                        mandatory="true" name="sessionId" precision="36" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Session Id"/>
+                <column code="agent_name" comment="路由目标Agent名称" displayName="Agent名称" mandatory="true"
+                        name="agentName" precision="100" propId="5" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Agent Name"/>
+                <column code="version" displayName="数据版本" domain="version" mandatory="true" name="version"
+                        propId="6" stdDataType="int" stdSqlType="INTEGER"
+                        i18n-en:displayName="Version"/>
+                <column code="created_by" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        propId="7" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="create_time" displayName="创建时间" domain="createTime" mandatory="true"
+                        name="createTime" propId="8" stdDataType="timestamp" stdSqlType="TIMESTAMP"
+                        i18n-en:displayName="Create Time"/>
+                <column code="updated_by" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        propId="9" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="update_time" displayName="修改时间" domain="updateTime" mandatory="true"
+                        name="updateTime" propId="10" stdDataType="timestamp" stdSqlType="TIMESTAMP"
+                        i18n-en:displayName="Update Time"/>
+                <column code="last_active_at" comment="信道最近活跃时间(收到消息时刷新)" displayName="最近活跃时间"
+                        name="lastActiveAt" propId="11" stdDataType="timestamp" stdSqlType="TIMESTAMP"
+                        i18n-en:displayName="Last Active At"/>
+            </columns>
+            <comment>外部信道会话与引擎会话的映射(Gateway层维护)</comment>
+            <indexes>
+                <index name="uk_nop_ai_channel_session_channel" unique="true">
+                    <column name="channelType"/>
+                    <column name="channelId"/>
+                </index>
+                <index name="ix_nop_ai_channel_session_engine" unique="false">
+                    <column name="sessionId"/>
+                </index>
+            </indexes>
+        </entity>
     </entities>
 </orm>

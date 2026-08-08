@@ -7,6 +7,8 @@ alter table nop_ai_model add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_ai_prompt_template add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
+alter table nop_ai_channel_session add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
 alter table nop_ai_project_config add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_ai_requirement add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
@@ -52,6 +54,9 @@ alter table nop_ai_model add primary key (NOP_TENANT_ID, id);
 
 alter table nop_ai_prompt_template drop primary key;
 alter table nop_ai_prompt_template add primary key (NOP_TENANT_ID, id);
+
+alter table nop_ai_channel_session drop primary key;
+alter table nop_ai_channel_session add primary key (NOP_TENANT_ID, id);
 
 alter table nop_ai_project_config drop primary key;
 alter table nop_ai_project_config add primary key (NOP_TENANT_ID, id);

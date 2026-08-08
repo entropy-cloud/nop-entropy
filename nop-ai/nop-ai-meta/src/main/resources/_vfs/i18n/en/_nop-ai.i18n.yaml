@@ -1,5 +1,6 @@
 entity:
   label:
+    NopAiChannelSession: Channel Session
     NopAiChatRequest: Chat Request
     NopAiChatResponse: Response Result
     NopAiEvent: Agent Event
@@ -23,6 +24,18 @@ entity:
     NopAiTodo: Agent Todo
 prop:
   label:
+    NopAiChannelSession:
+      id: Id
+      channelType: Channel Type
+      channelId: Channel Id
+      sessionId: Session Id
+      agentName: Agent Name
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      lastActiveAt: Last Active At
     NopAiChatRequest:
       id: null
       templateId: null

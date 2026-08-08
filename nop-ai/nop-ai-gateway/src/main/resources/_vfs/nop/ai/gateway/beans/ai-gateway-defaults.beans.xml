@@ -13,4 +13,17 @@
         <property name="backendLlm" value="openai"/>
     </bean>
 
+    <!-- Channel transport layer (W1): unified registry + lifecycle for all
+         IChannelConnector beans. Concrete connectors (FeishuConnector etc.)
+         arrive in W5 and are auto-collected here by type. With no connectors
+         registered yet the collected list is empty and startAll/stopAll are
+         legitimate no-ops over an empty set (not a silent skip of work). -->
+    <bean id="channelConnectorManager"
+          class="io.nop.ai.gateway.channel.ChannelConnectorManager">
+        <property name="connectors">
+            <ioc:collect-beans by-type="io.nop.ai.gateway.channel.IChannelConnector"
+                               ioc:ignore-depends="true" only-concrete-classes="true"/>
+        </property>
+    </bean>
+
 </beans>

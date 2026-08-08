@@ -62,6 +62,21 @@ CREATE TABLE nop_ai_prompt_template(
   constraint PK_nop_ai_prompt_template primary key (ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+CREATE TABLE nop_ai_channel_session(
+  ID VARCHAR(36) NOT NULL    COMMENT '主键',
+  CHANNEL_TYPE VARCHAR(50) NOT NULL    COMMENT '信道类型',
+  CHANNEL_ID VARCHAR(100) NOT NULL    COMMENT '信道会话ID',
+  SESSION_ID VARCHAR(36) NOT NULL    COMMENT '引擎会话ID',
+  AGENT_NAME VARCHAR(100) NOT NULL    COMMENT 'Agent名称',
+  VERSION INTEGER NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
+  LAST_ACTIVE_AT DATETIME(3) NULL    COMMENT '最近活跃时间',
+  constraint PK_nop_ai_channel_session primary key (ID)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
 CREATE TABLE nop_ai_project_config(
   ID VARCHAR(36) NOT NULL    COMMENT '主键',
   PROJECT_ID VARCHAR(36) NOT NULL    COMMENT '项目ID',
@@ -350,6 +365,8 @@ CREATE TABLE nop_ai_test_result(
    ALTER TABLE nop_ai_model COMMENT 'AI模型';
                 
    ALTER TABLE nop_ai_prompt_template COMMENT '提示词模板';
+                
+   ALTER TABLE nop_ai_channel_session COMMENT '信道会话映射';
                 
    ALTER TABLE nop_ai_project_config COMMENT '项目配置';
                 

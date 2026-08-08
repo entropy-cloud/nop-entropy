@@ -34,6 +34,14 @@
         <property name="bizObjName" value="NopAiPromptTemplate"/>
     </bean>
 
+    <bean id="io.nop.ai.service.entity.NopAiChannelSessionBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopAiChannelSession" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.ai.biz.INopAiChannelSessionBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopAiChannelSession"/>
+    </bean>
+
     <bean id="io.nop.ai.service.entity.NopAiProjectConfigBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="biz_NopAiProjectConfig" class="io.nop.biz.proxy.BizProxyFactoryBean"

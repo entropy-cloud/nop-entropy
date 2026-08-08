@@ -24,11 +24,61 @@
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-ai-core</artifactId>
         </dependency>
+        <!-- IChannelConnector context carries IAgentEngine + IAgentEventPublisher
+             (transport-layer adapters call into the agent engine). No reverse
+             dependency edge exists: nop-ai-agent does not depend on nop-ai-gateway. -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-ai-agent</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-ai-dao</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- nop-ai-core's ai-defaults.beans.xml wires ChatServiceImpl with an
+             IHttpClient by type; tests that trigger CoreInitialization (e.g.
+             AiDialectBackendMessageConverterTest) need an IHttpClient bean on
+             the test classpath. nop-http-client-jdk is optional in nop-ai-core,
+             so it must be re-declared here in test scope (mirrors nop-ai-tools). -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-http-client-jdk</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- Adding nop-ai-dao (required by ChannelSessionStore) puts
+                         nop-dao's dao-defaults.beans.xml on the test classpath, so
+                         tests that call CoreInitialization.initialize() (e.g.
+                         AiDialectBackendMessageConverterTest) now wire the datasource
+                         beans. Plain CoreInitialization does not read application.yaml,
+                         so the datasource config is supplied here as system properties
+                         (an always-on config source). -->
+                    <systemPropertyVariables>
+                        <nop.datasource.driver-class-name>org.h2.Driver</nop.datasource.driver-class-name>
+                        <nop.datasource.jdbc-url>jdbc:h2:mem:gateway-test</nop.datasource.jdbc-url>
+                        <nop.datasource.username>sa</nop.datasource.username>
+                        <nop.datasource.password></nop.datasource.password>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>

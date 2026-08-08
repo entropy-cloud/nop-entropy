@@ -62,6 +62,21 @@ CREATE TABLE nop_ai_prompt_template(
   constraint PK_nop_ai_prompt_template primary key (ID)
 );
 
+CREATE TABLE nop_ai_channel_session(
+  ID VARCHAR2(36) NOT NULL ,
+  CHANNEL_TYPE VARCHAR2(50) NOT NULL ,
+  CHANNEL_ID VARCHAR2(100) NOT NULL ,
+  SESSION_ID VARCHAR2(36) NOT NULL ,
+  AGENT_NAME VARCHAR2(100) NOT NULL ,
+  VERSION INTEGER NOT NULL ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  LAST_ACTIVE_AT TIMESTAMP  ,
+  constraint PK_nop_ai_channel_session primary key (ID)
+);
+
 CREATE TABLE nop_ai_project_config(
   ID VARCHAR2(36) NOT NULL ,
   PROJECT_ID VARCHAR2(36) NOT NULL ,
@@ -444,6 +459,30 @@ CREATE TABLE nop_ai_test_result(
       COMMENT ON COLUMN nop_ai_prompt_template.UPDATED_BY IS '修改人';
                     
       COMMENT ON COLUMN nop_ai_prompt_template.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON TABLE nop_ai_channel_session IS '信道会话映射';
+                
+      COMMENT ON COLUMN nop_ai_channel_session.ID IS '主键';
+                    
+      COMMENT ON COLUMN nop_ai_channel_session.CHANNEL_TYPE IS '信道类型';
+                    
+      COMMENT ON COLUMN nop_ai_channel_session.CHANNEL_ID IS '信道会话ID';
+                    
+      COMMENT ON COLUMN nop_ai_channel_session.SESSION_ID IS '引擎会话ID';
+                    
+      COMMENT ON COLUMN nop_ai_channel_session.AGENT_NAME IS 'Agent名称';
+                    
+      COMMENT ON COLUMN nop_ai_channel_session.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_ai_channel_session.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_ai_channel_session.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_ai_channel_session.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_ai_channel_session.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_ai_channel_session.LAST_ACTIVE_AT IS '最近活跃时间';
                     
       COMMENT ON TABLE nop_ai_project_config IS '项目配置';
                 

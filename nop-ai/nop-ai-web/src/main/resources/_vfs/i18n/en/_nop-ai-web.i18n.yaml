@@ -1,5 +1,9 @@
 site:
   resource:
+    FNPT:NopAiChannelSession:mutation:
+      displayName: Modify Channel Session
+    FNPT:NopAiChannelSession:query:
+      displayName: Query Channel Session
     FNPT:NopAiChatRequest:mutation:
       displayName: Modify Chat Request
     FNPT:NopAiChatRequest:query:
@@ -84,6 +88,8 @@ site:
       displayName: Modify Agent Todo
     FNPT:NopAiTodo:query:
       displayName: Query Agent Todo
+    NopAiChannelSession-main:
+      displayName: Channel Session
     NopAiChatRequest-main:
       displayName: Chat Request
     NopAiChatResponse-main:

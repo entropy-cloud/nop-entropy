@@ -3,6 +3,7 @@ drop table  if exists  nop_ai_project;
 drop table  if exists  nop_ai_knowledge;
 drop table  if exists  nop_ai_model;
 drop table  if exists  nop_ai_prompt_template;
+drop table  if exists  nop_ai_channel_session;
 drop table  if exists  nop_ai_project_config;
 drop table  if exists  nop_ai_requirement;
 drop table  if exists  nop_ai_session;
