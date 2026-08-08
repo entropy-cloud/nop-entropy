@@ -1308,6 +1308,10 @@ public abstract class CrudBizModel<T extends IOrmEntity>
         List<T> entities = dao().batchGetEntitiesByIds(ids);
         Set<String> ret = new LinkedHashSet<>();
         for (T entity : entities) {
+            if(entity == null) {
+                ret.add(null);
+                continue;
+            }
             if (entity.orm_state().isMissing()) {
                 ret.add(entity.orm_idString());
             } else {
