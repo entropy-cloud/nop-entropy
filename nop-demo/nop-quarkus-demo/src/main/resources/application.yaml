@@ -63,6 +63,8 @@ nop:
       enabled: true
   web:
     page-validation-thread-count: 4
+    render-mode: flux
+    validate-page-model: true
 
 # 开发模式配置
 

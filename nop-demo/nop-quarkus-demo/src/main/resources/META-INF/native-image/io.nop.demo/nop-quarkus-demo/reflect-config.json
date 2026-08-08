@@ -1878,6 +1878,10 @@
         ]
       },
       {
+        "name": "authCookieName",
+        "parameterTypes": []
+      },
+      {
         "name": "buildLoginUrlWithState",
         "parameterTypes": [
           "io.nop.http.api.server.IHttpServerContext",
@@ -2008,6 +2012,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [
+      {
+        "name": "ensureKeys",
+        "parameterTypes": []
+      },
+      {
+        "name": "getKey",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
       {
         "name": "getSignKey",
         "parameterTypes": []
