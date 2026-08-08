@@ -43,6 +43,14 @@
             <artifactId>nop-graphql-orm</artifactId>
         </dependency>
 
+        <!-- UserChannelResolver implementation reads NopAuthExtLogin and maps
+             loginType to channelType via ChannelTypeCodes. nop-integration-api
+             depends only on nop-api-core, so this edge introduces no cycle. -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-integration-api</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-config</artifactId>

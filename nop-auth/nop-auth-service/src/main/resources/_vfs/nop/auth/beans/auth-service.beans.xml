@@ -36,6 +36,15 @@
 
     <bean id="nopAuditService" class="io.nop.auth.service.audit.AuditServiceImpl"/>
 
+    <!-- UserChannelResolver (W2): resolves a platform userId to its bound
+         external channels by reading NopAuthExtLogin. Used by the business
+         message layer (IChannelMessageService in nop-ai-gateway) to route
+         outbound messages. ioc:default=true so app deployments can override. -->
+    <bean id="userChannelResolver"
+          class="io.nop.auth.service.channel.UserChannelResolverImpl"
+          ioc:type="io.nop.integration.api.channel.UserChannelResolver"
+          ioc:default="true"/>
+
     <bean id="nopUserIdGenerator" class="io.nop.auth.dao.generator.DefaultUserIdGenerator"
           ioc:default="true"/>
 
