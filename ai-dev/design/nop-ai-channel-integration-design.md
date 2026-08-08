@@ -163,6 +163,23 @@ IChannelBindProvider(对应信道) 收到信道回调
 
 **约束实现方式裁定（W0 已收口）**：采用**普通唯一约束 + 应用层兜底**（即原"方案 B"），而非条件唯一索引。理由：① MySQL 无原生 partial unique index，条件索引在 MySQL 上需变通（生成列/触发器），三种数据库（MySQL/PostgreSQL/Oracle）无法用统一 DDL 表达；② 本仓库既有 `NopAuthUser.userName` 已确立"普通唯一键 + `useLogicalDelete`"模式（软删行同样受唯一约束约束），本约束与之保持一致，DB 无关；③ 有效绑定条件 `verified=1 AND delFlag=0` 的过滤校验在 `IChannelBindService.completeBinding`（W3）应用层完成，**重绑定时先物理清理或复用旧软删行**（unbind 同一 extId 后重绑，应用层将旧 `delFlag=1` 行物理删除或原地置 `delFlag=0` 复用），避免软删行阻塞重绑定。这条裁定收口了原 Open Question 中的二选一。
 
+**重绑定三情况裁定（W3 已收口）**：`IChannelBindService.completeBinding`（实现在 `ChannelBindServiceImpl`，`nop-auth-service`）显式处理三种 `(loginType, extId)` 已存在的情况，因唯一约束 `UK_NOP_AUTH_EXT_LOGIN_TYPE_EXTID` 不含条件（软删行仍占位）：
+
+| 情况 | 既有行状态 | 裁定 |
+|---|---|---|
+| (a) 同用户重扫 | 有效行（`verified=1 AND delFlag=0`），`userId`=本次请求用户 | **幂等**：返回既有绑定，不写新行 |
+| (b) 同用户 unbind 后重绑 | 软删行（`delFlag=1`），`userId`=本次请求用户 | **物理删除软删行 + 新建**（不复用旧行，保留 createdBy/createTime 审计语义） |
+| (c) 跨用户重绑（A unbind 后 B 绑定同 extId） | 软删行（`delFlag=1`），`userId`≠本次请求用户 | **物理删除 A 的软删行 + 为 B 新建**（绝不复用另一用户的行） |
+
+实现要点：查询软删行用 `example.orm_disableLogicalDelete(true)`（`findAllByExample` 对 `useLogicalDelete=true` 实体默认过滤 `delFlag!=0`），物理删除用 `IEntityDao.deleteEntityDirectly`（绕过 session 的逻辑删除处理）。三种情况均有 mock-proxy 单元测试覆盖（`TestChannelBindServiceImpl`），真实 DB 行为留待 W6-2 E2E 验证。
+
+**两步分离式绑定流程（W3 已收口）**：设计文档原描述的单步 `completeBinding(ticketId, channelUserId, channelUserInfo)` 在实现时落为**两步分离**，与传输层/扫码回调端点解耦更彻底：
+
+1. **provider 协议层**（`nop-integration-api`）：`IChannelBindProvider.onChannelScanCallback(ChannelScanCallback) → ChannelBindResult` —— provider 解析厂商回调体，返回 `extId`（信道侧用户标识）+ `platformUserId`（从 ticket 回填）+ `status`（`BINDING_COMPLETED`/`ALREADY_BOUND`/`PENDING_CONFIRM`）。本层只解析协议，不落库。
+2. **service 门面层**（`nop-auth-api`/`nop-auth-service`）：`IChannelBindService.completeBinding(channelType, platformUserId, extId) → ChannelBindingInfo` —— 由扫码回调端点（W4-1，落 `nop-ai-gateway`）从上一步的 `ChannelBindResult` 取出 extId/platformUserId 后调用，写 `NopAuthExtLogin`。
+
+这样 `nop-auth-api` 的方法签名**不引用任何 `nop-integration-api` 类型**（接口纯净度：仅依赖 `nop-api-core`），实现 `ChannelBindServiceImpl` 负责两层类型翻译（`BindTicket`→`BindStartResult` 等）。
+
 **扫码登录（③）**——复用既有登录主流程的一次性 `accessCode` 机制（`ILoginService.parseAccessCode` / `ILoginSpi.getLoginResultAsync(AccessCodeRequest)` 已存在）：
 
 ```mermaid
