@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd" xmlns:ioc="ioc">
+
+    <!-- Feishu protocol layer beans (W5-1c / W5-2). These are feishu-internal
+         beans with no dependency on any nop-ai-* module. The FeishuConnector
+         (which depends on IAgentEngine) is registered in nop-ai-gateway's
+         ai-gateway-defaults.beans.xml and auto-collects these via ref.
+
+         FeishuCredentials: DataBean with @InjectValue("@cfg:nop.integration.feishu.*|")
+         setters — secret values (appSecret, encryptKey) may use the @sec: prefix
+         for transparent decryption by DefaultConfigValueEnhancer. -->
+
+    <bean id="feishuCredentials"
+          class="io.nop.integration.feishu.client.FeishuCredentials"/>
+
+    <!-- FeishuClient: Stream long-connection + Open API client. Credentials
+         and IMessageHandler are passed at start() time by the connector, not
+         at construction. -->
+    <bean id="feishuClient"
+          class="io.nop.integration.feishu.client.FeishuClient"/>
+
+    <!-- FeishuBindProvider: IChannelBindProvider impl. Auto-collected by
+         ChannelLoginApiBizModel's collect-beans in nop-ai-gateway.
+         No ioc:type attribute: the concrete class FeishuBindProvider
+         implements IChannelBindProvider, so collect-beans by-type finds it
+         via the actual class. -->
+    <bean id="feishuBindProvider"
+          class="io.nop.integration.feishu.bind.FeishuBindProvider">
+        <property name="credentials" ref="feishuCredentials"/>
+    </bean>
+
+</beans>
