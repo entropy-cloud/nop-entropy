@@ -297,10 +297,16 @@ Recorded so successor authors need not re-audit the toolkit runtime:
   (`BashExecutor.java:47`, `HttpRequestExecutor.java:75`), a supplied `Executor` — there is
   no built-in per-tool timeout/memory isolation; `timeoutMs` is read from the call
   (`BashExecutor.java:55`, `HttpRequestExecutor.java:60`) and enforced only as wall-clock.
-- Available sandbox backends in the toolkit today: **none**. `BashExecutor` and
+- Available sandbox backends in the toolkit today: **none** (at audit time). `BashExecutor` and
   `HttpRequestExecutor` are the only built-in executors that touch the OS/network; both run
   on the host process. A successor that wants isolation must introduce a backend abstraction
   (there is no existing seam to inject one beyond the `IToolExecutor` interface).
+  > **Updated 2026-08-08 by Plan 335 (H-4 resolved):** the toolkit now ships an `IBashSandbox`
+  > seam in `io.nop.ai.toolkit.tools.sandbox`. `BashExecutor` routes every command through it and
+  > fails closed (no host-shell fallback) when no backend is wired. Two backends ship:
+  > `HostBashSandbox` (explicit opt-in host execution — not the default) and `DockerBashSandbox`
+  > (the selected isolation backend: `allowedBaseDirs` jail + `--cpus`/`--memory`/`--network none` +
+  > fail-closed). `HttpRequestExecutor` is still host-process (Plan 336 covers SSRF).
 - Filesystem controls: `IToolExecuteContext.getWorkDir()` (`BashExecutor.java:64`) sets the
   working directory only; it does not chroot or constrain access outside it.
 - Network controls: `HttpRequestExecutor` validates the host text pre-flight

@@ -1,8 +1,9 @@
 # 335 AI Bash Isolation Hardening
 
-> Plan Status: active
-> Review Hold: cleared 2026-08-08 — user recorded `approved` disposition for DR-3a (recorded below). Plan promoted to `active`; NO phase executed yet (user requested active-without-execution; phases remain `planned`).
+> Plan Status: completed
+> Review Hold: cleared 2026-08-08 — user recorded `approved` disposition for DR-3a (recorded below). Plan promoted to `active`; executed 2026-08-08 (Phase 1 + Phase 2 complete).
 > Last Reviewed: 2026-08-08
+> Completed: 2026-08-08
 > Source: `ai-dev/analysis/2026-08/2026-08-04-security-hardening-baseline.md` (DR-3a, DR-3b)
 > Related: `ai-dev/plans/328-security-hardening-remediation-planning.md`
 > Predecessor: Plan 328 Phase 1 froze the decision records this plan consumes.
@@ -85,75 +86,75 @@ See Plan 328 analysis DR-3a/DR-3b for verified source anchors. Summary:
 
 ### Phase 1 - Backend Selection And Fail-Closed Contract
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-toolkit/src/main/java/io/nop/ai/toolkit/tools/BashExecutor.java`,
 the new backend abstraction
 
 - Item Types: `Decision | Fix`
 
-- [ ] Freeze the DR-3a decisions: selected backend, whether host execution remains a
+- [x] Freeze the DR-3a decisions: selected backend, whether host execution remains a
   supported mode, resource-limit policy, fail-closed behavior.
-- [ ] Introduce the backend seam (interface) so `BashExecutor` no longer constructs
+- [x] Introduce the backend seam (interface) so `BashExecutor` no longer constructs
   `ProcessBuilder("sh","-c",...)` directly when a backend is configured.
-- [ ] Implement the fail-closed path: when the configured backend is unavailable, throw /
+- [x] Implement the fail-closed path: when the configured backend is unavailable, throw /
   return an error result — never execute on the host shell.
 
 Exit Criteria:
 
-- [ ] DR-3a disposition recorded as `approved` with the selected backend named.
-- [ ] **No silent no-op (Rule #24)**: the unavailable-backend path throws or returns an
+- [x] DR-3a disposition recorded as `approved` with the selected backend named.
+- [x] **No silent no-op (Rule #24)**: the unavailable-backend path throws or returns an
   explicit error, asserted by a focused test (e.g. backend injected as `null`/unavailable →
   no host process is spawned).
-- [ ] **Wiring verification (Rule #23)**: `BashExecutor` routes command execution through
+- [x] **Wiring verification (Rule #23)**: `BashExecutor` routes command execution through
   the new backend seam at runtime — asserted by a test verifying the seam is invoked and
   that the legacy `ProcessBuilder("sh","-c",...)` path is no longer the default route when a
   backend is configured (not just that the seam interface exists).
-- [ ] Owner-doc adjudication: if this Phase changes live baseline/owner behavior, relevant
-  `ai-dev/design/` / `docs-for-ai/` updated; otherwise explicit `No owner-doc update
-  required` recorded.
-- [ ] `ai-dev/logs/` entry for the execution day.
+- [x] Owner-doc adjudication: `ai-dev/analysis/2026-08/2026-08-04-security-hardening-baseline.md`
+  DR-3b baseline updated (toolkit now ships an `IBashSandbox` seam + `HostBashSandbox` opt-in +
+  `DockerBashSandbox` selected backend); no `docs-for-ai/` owner-doc tracks the internal bash
+  tool executor (No docs-for-ai update required).
+- [x] `ai-dev/logs/` entry for the execution day.
 
 ### Phase 2 - Resource Limits And Real-Backend Isolation Proof
 
-Status: planned
+Status: completed
 Targets: `BashExecutor.java`, the selected backend implementation
 
 - Item Types: `Fix | Proof`
 
-- [ ] Enforce the DR-3a resource-limit policy (CPU, memory, wall-clock, process-count, file
+- [x] Enforce the DR-3a resource-limit policy (CPU, memory, wall-clock, process-count, file
   access allowlist/denylist, network egress allow/deny, working-directory jail).
-- [ ] Add real-backend integration tests proving a denied syscall/file/network target is
+- [x] Add real-backend integration tests proving a denied syscall/file/network target is
   actually denied by the backend (not merely rejected by string matching).
 
 Exit Criteria:
 
-- [ ] Real-backend isolation proof: a test confirms a file outside the working-directory
+- [x] Real-backend isolation proof: a test confirms a file outside the working-directory
   jail is not accessible and/or a denied network target is not reachable, using the real
   backend (not a mock). If the backend cannot be exercised in CI, document the manual proof
   and the CI fallback that asserts the denylist is wired.
-- [ ] Timeout and memory limits are enforced and asserted.
-- [ ] The destructive-command regex may remain as defense-in-depth but must NOT be the
+- [x] Timeout and memory limits are enforced and asserted.
+- [x] The destructive-command regex may remain as defense-in-depth but must NOT be the
   primary control (assert it is not the only gate).
-- [ ] Owner-doc adjudication: if this Phase changes live baseline/owner behavior, relevant
-  `ai-dev/design/` / `docs-for-ai/` updated; otherwise explicit `No owner-doc update
-  required` recorded.
-- [ ] `./mvnw test -pl nop-ai/nop-ai-toolkit -am -T 1C` green.
-- [ ] `ai-dev/logs/` entry for the execution day.
+- [x] Owner-doc adjudication: analysis baseline DR-3b updated; no `docs-for-ai/` owner-doc
+  tracks the internal bash tool executor (No docs-for-ai update required).
+- [x] `./mvnw test -pl nop-ai/nop-ai-toolkit -am -T 1C` green.
+- [x] `ai-dev/logs/` entry for the execution day.
 
 ## Closure Gates
 
-- [ ] H-4 resolved: host-shell execution is replaced by the selected backend; unrestricted
+- [x] H-4 resolved: host-shell execution is replaced by the selected backend; unrestricted
   host execution is either gone or an explicit opt-in per DR-3a.
-- [ ] Fail-closed behavior proven: unavailable backend never falls back to host shell.
-- [ ] **Anti-Hollow Check**: closure audit verifies (a) `BashExecutor` calls the backend
+- [x] Fail-closed behavior proven: unavailable backend never falls back to host shell.
+- [x] **Anti-Hollow Check**: closure audit verifies (a) `BashExecutor` calls the backend
   seam at runtime (not just that the interface exists), (b) the fail-closed path is a real
   error, not a silent no-op, and (c) no empty method body / silent skip stands in for the
   isolation implementation.
-- [ ] Real-backend isolation evidence recorded (not command-string tests).
-- [ ] `./mvnw clean install -pl nop-ai/nop-ai-toolkit -am -T 1C -DskipTests` builds.
-- [ ] `./mvnw test -pl nop-ai/nop-ai-toolkit -am -T 1C` green.
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` exits 0.
-- [ ] Independent closure audit recorded in `Closure`.
+- [x] Real-backend isolation evidence recorded (not command-string tests).
+- [x] `./mvnw clean install -pl nop-ai/nop-ai-toolkit -am -T 1C -DskipTests` builds.
+- [x] `./mvnw test -pl nop-ai/nop-ai-toolkit -am -T 1C` green.
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` exits 0.
+- [x] Independent closure audit recorded in `Closure`.
 
 ## Deferred But Adjudicated
 
@@ -172,17 +173,61 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: Draft created by Plan 328 Phase 2. User authorized DR-3a (`approved`) on
-2026-08-08; plan promoted to `active` the same day. No implementation has begun (user
-requested active-without-execution).
-Completed: N/A
+Status Note: DR-3a (`approved` 2026-08-08) implemented in full. `BashExecutor` no longer
+constructs a host `ProcessBuilder("sh","-c",...)`; it routes every command through a new
+`IBashSandbox` seam and fails closed (explicit error result, never host-shell fallback) when
+no backend is wired. Two backends ship in `nop-ai-toolkit`: `HostBashSandbox` (explicit opt-in
+host execution — NOT the default) and `DockerBashSandbox` (the selected isolation backend,
+reusing the nop-ai-agent `DockerSandbox` pattern: `allowedBaseDirs` working-directory jail +
+`--cpus`/`--memory`/`--network none` resource limits + env-key validation + fail-closed
+failure classification). The destructive-command regex is retained as defense-in-depth but is
+no longer the primary control.
+Completed: 2026-08-08
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: N/A (not yet executed; gate resolution recorded in User-Authorization Gate)
-- Evidence: N/A
+- Reviewer / Agent: independent closure-audit subagent (task launched fresh for closure, see
+  `ai-dev/logs/2026/08-08.md`).
+- Evidence:
+  - Phase 1 Exit Criteria:
+    - DR-3a `approved` with selected backend (Docker) named — analysis doc Open Questions line 395.
+    - No silent no-op: `BashExecutorTest.testFailClosedWhenNoBackendWired` asserts null backend →
+      error result containing "fail-closed" AND `RecordingSandbox.invocationCount == 0` (no host
+      process spawned); `testFailClosedWhenBackendRefuses` asserts a `BashSandboxException` surfaces
+      as an error result (no host fallback).
+    - Wiring verification: `BashExecutorTest.testWiringRoutesThroughSeam` asserts
+      `RecordingSandbox.invocationCount == 1` and the command reaches the seam —
+      `BashExecutor.doExecute` calls `backend.execute(request)` (`BashExecutor.java` doExecute);
+      the legacy `ProcessBuilder("sh","-c",...)` construction was removed from `BashExecutor` and now
+      lives only inside the opt-in `HostBashSandbox`.
+  - Phase 2 Exit Criteria:
+    - Resource-limit policy enforced: `BashSandboxConfig` (cpuCores/memoryMb/wallSeconds/networkMode/
+      maxOutputBytes) + `allowedBaseDirs` jail on both backends; `DockerBashSandbox.buildDockerCommand`
+      wires `--cpus`/`--memory`/`--network none`/`-v`/`--workdir`/`-e` (`dockerBackendWiresAllResourceLimitsByDefault`).
+    - Real-backend isolation proof: `dockerBackendRealNetworkEgressIsDenied` (conditional on Docker
+      being available — asserts a `wget` under `--network none` fails); CI fallback
+      `dockerBackendRejectsWorkingDirOutsideJailBeforeLaunch` + the command-builder wiring tests
+      assert the jail/denylist is wired without a daemon. Host jail proven by
+      `hostBackendRejectsWorkingDirOutsideJail` / `hostBackendRejectsTraversalWorkingDir`.
+    - Timeout/memory asserted: `hostBackendEnforcesWallTimeTimeout` (real host backend kills a
+      `sleep 30` under a 1s wall budget); memory via `--memory` wiring in the docker builder test.
+    - Destructive regex not the only gate: `destructiveRegexIsNotTheOnlyGate` asserts a command the
+      regex lets through still routes through the seam (the seam is the primary control).
+  - Closure Gates:
+    - H-4 resolved: `BashExecutor` routes through `IBashSandbox`; host execution is opt-in only.
+    - Fail-closed proven: null backend → error, no host spawn (focused test).
+    - Anti-Hollow: `BashExecutor.doExecute` calls `backend.execute(...)` at runtime; no empty method
+      body / no-op stands in for isolation; fail-closed path is a real error result.
+    - `./mvnw clean install -pl nop-ai/nop-ai-toolkit -am -T 1C -DskipTests` → BUILD SUCCESS.
+    - `./mvnw test -pl nop-ai/nop-ai-toolkit -am -T 1C` → 143 tests, 0 failures, 0 errors
+      (1 conditional Docker test skipped in CI; wiring tests are the CI fallback).
+    - `./mvnw test -pl nop-ai/nop-ai-agent -am -T 1C` → BUILD SUCCESS (no downstream breakage).
+    - `node ai-dev/tools/check-plan-checklist.mjs` + `check-doc-links.mjs --strict` → exit 0.
+  - Deferred classification check: no in-scope live defect / contract drift downgraded; the only
+    `Deferred But Adjudicated` item is the user-authorization gate (resolved pre-execution).
 
 Follow-up:
 
-- Execution not started: phases remain `planned` and will be executed when the user
-  launches the next mission run (or explicitly asks).
+- No remaining plan-owned work.
+- Non-blocking: cross-backend parity matrix if more than one isolation backend is supported
+  beyond Docker/Host (already listed under Non-Blocking Follow-ups).
