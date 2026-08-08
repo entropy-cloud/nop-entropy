@@ -66,9 +66,9 @@
 
 ### W6. 端到端集成与验证
 
-- [ ] W6-1 E2E 飞书会话：用户消息 → FeishuConnector → IAgentEngine → AgentEvent → 飞书回复（含群聊 @机器人过滤、长文本分段、速率限制）。
+- [x] W6-1 E2E 飞书会话：用户消息 → FeishuConnector → IAgentEngine → AgentEvent → 飞书回复（含群聊 @机器人过滤、长文本分段、速率限制）。**已落地（Plan 8）**：真实 Nop IoC 容器装配 FeishuConnector + ChannelConnectorManager + ChannelSessionStoreImpl(H2) + 网络边界 stub FeishuClient + LLM 边界 stub engine，5 E2E tests 证明入站→execute→future→回复完整连通（round-trip/session 复用/@bot 过滤/错误路径/长文本分段）。Plan 7 三项 deferred connector 行为收口：长文本分段（按 maxMessageLength=4000 换行边界切片顺序发送）+ 速率限制守卫（rolling 60s 窗口超限显式回复"请求过于频繁"不调 engine）+ @bot payload 校准（fork c：文档化 mentions 形状 key+open_id，精确 bot open_id 匹配 defer 真实飞书 E2E）。设计 §7.2.1/§7.2.2/§7.2.3 + §14 Open Questions 收口。
 - [ ] W6-2 E2E 扫码绑定 + 扫码登录：createBindTicket → 扫码 → completeBinding 写 NopAuthExtLogin → `generateAccessCode` → `getLoginResultAsync` 换 LoginResult；二次扫码直接登录；端点 W4-1 真实命中。
-- [ ] W6-3 E2E 主动通知：业务调用 `IChannelMessageService.sendToUser(userId,...)` → UserChannelResolver → FeishuConnector → 飞书私信；未绑定返回 `NO_BINDING`。
+- [x] W6-3 E2E 主动通知：业务调用 `IChannelMessageService.sendToUser(userId,...)` → UserChannelResolver → FeishuConnector → 飞书私信；未绑定返回 `NO_BINDING`。**已落地（Plan 8）**：真实容器装配 ChannelMessageServiceImpl + 真实读 NopAuthExtLogin 的 resolver（Candidate B 忠实镜像 UserChannelResolverImpl 查询逻辑，auth-service 类经 Phase 0 裁定不可达——破坏 classpath）+ 真实 ChannelConnectorManager + 真实 FeishuConnector；H2 seed NopAuthExtLogin，4 E2E tests 证明 sendToUser→resolver→connector→sendOutbound→FeishuClient 完整连通（SENT/NO_BINDING/unverified 排除/附件降级）。
 - [ ] W6-4 可选骨干验证：入站经 `IMessageService` topic `channel.inbound.feishu` 多消费者分发（业务监听器 + 审计），证明单体直连与多消费者两种部署接口不变（设计 §3.3 问题 B）。
 
 ### W7. Owner-doc 同步

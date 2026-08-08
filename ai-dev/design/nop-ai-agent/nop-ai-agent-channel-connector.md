@@ -193,6 +193,36 @@ future.whenComplete((result, error) -> {
 });
 ```
 
+#### 7.2.1 长文本分段（W6-1 裁定）
+
+> **裁定（W6-1 Phase 0）**：飞书消息长度上限 4000 字符（`ChannelCapabilities.maxMessageLength`）。当 `sendReply`/`sendOutbound` 待发文本长度 > `maxMessageLength` 时，按以下策略切片**顺序**经 `feishuClient.sendMessage` 发送多段：
+>
+> 1. 优先在换行符 `\n` 边界切（避免割断语义单元）；
+> 2. 无换行符或换行符间距 > `maxMessageLength` 时，按 `maxMessageLength` 硬切；
+> 3. 切片**不丢字符**——所有分段拼接后等同原文。
+>
+> **不静默截断**：超长响应不丢尾部、不静默丢弃，必须分段发完整。此行为在 `sendReply`（agent 回复）与 `sendOutbound`（主动通知）出站路径统一生效。
+
+#### 7.2.2 入站速率限制守卫（W6-1 裁定）
+
+> **裁定（W6-1 Phase 0）**：connector 维护 rolling 60s 滑动窗口的入站消息计数；窗口内计数超 `ChannelCapabilities.rateLimitPerMinute`（飞书=3000）时，`onMessage` **显式回复**"请求过于频繁，请稍后再试"并**不转发到 `IAgentEngine.execute`**（防刷引擎），不静默丢消息。窗口内未超限则正常转发。
+>
+> **拒绝方案：静默丢弃**。超速场景必须有可观察的显式回复，而非 `return`/`continue` 静默吞掉（Minimum Rules #24）。速率限制是单 connector 实例内的近似计量，多实例共享配额属 optimization candidate（Non-Blocking Follow-up）。
+
+#### 7.2.3 群聊 @bot payload 形状（W6-1 裁定）
+
+> **裁定（W6-1 Phase 0 fork (c)）**：飞书 `im.message.receive_v1` event 中 `mentions` 数组形状（基于飞书开放平台文档）：
+> ```json
+> "mentions": [
+>   {"key":"@_user_1","id":{"open_id":"ou_xxx","union_id":"on_xxx","name":"..."}}
+> ]
+> ```
+> 要精确判定"mentions 含 bot 自己"需知 bot 的 `open_id`，而当前 `FeishuCredentials`（appId/appSecret/verificationToken/encryptKey）与 `FeishuClient.start` 均不提供 bot 身份。
+>
+> **Fork 裁定**：选 (c) — 仅文档化 payload 形状 + 保留启发式判据（解析 `mentions` 数组、按文档化形状识别 `key`/`id.open_id` 字段是否存在），精确 bot `open_id` 匹配 defer 到真实飞书 E2E（watch-only residual）。**拒绝 (a)/(b)**（给 `FeishuCredentials`/`ChannelConfig` 加 bot-id 字段或 `FeishuClient.start` 调飞书 API 取 bot 身份）：触及 `nop-integration-feishu`，而本信道集成保持飞书协议层不依赖 AI 的边界（roadmap 完成定义）；bot 身份在真实部署期配置即可，当前 E2E 用文档化形状驱动解析器 focused test。
+>
+> **解析语义**：`mentions` 缺失/空/字段缺失 → 按"未 @"处理（正确语义：群聊未 @bot 不回复）；`mentions` 非空且含文档化形状 → 按"已 @"处理（触发 execute）。缺字段按"未 @"而非静默跳过应处理逻辑。
+
 ### 7.3 中间事件处理策略
 
 > **裁定（W5-3 Phase 0）**：飞书信道改用 `execute()` + future callback（§7.2）后，中间事件 delta 合并/文本增量策略**不再适用于飞书**——`execute()` 返回完整结果后一次性回复，无中间增量。下表的"文本增量"策略仅适用于 SSE/WebSocket 等流式信道（需经 `IAgentEventPublisher` 订阅中间事件实现）。
@@ -339,7 +369,9 @@ public class ChannelCapabilities {
   - **外部依赖后果：无**。`nop-integration-feishu` 模块的 pom 维持单一依赖 `nop-integration-api`。WebSocket 传输 = `java.net.http.WebSocket`（JDK stdlib）；Open API 调用 = `java.net.http.HttpClient`（JDK stdlib）；帧编解码 = 手写 protobuf wire format（无 `protobuf-java`）。
   - **拒绝的替代（选项 A）理由**：(a) 依赖足迹失称（全平台 SDK + shaded protobuf）；(b) 边缘化 roadmap 要求的独立可测 `FeishuPbCodec`；(c) protobuf 版本冲突风险（SDK 自身 shading 即证据）；(d) 飞书 SDK 版本锁定与升级风险。
   - **wire-format 来源**：protobuf 编码规则为发布标准；Frame 消息结构（method/headers/payload 字段）由官方飞书/Lark SDK 包结构（`com.lark.oapi.core.ws`）及跨语言一致性（Go/Java/Node SDK）佐证。字段号级 wire 兼容性于 W6 E2E 对真实飞书 Stream 服务器验证（归入 plan 的 Deferred But Adjudicated，非静默跳过）。
-- [ ] 群聊场景下 @机器人 的消息过滤策略——是否只处理 @当前机器人 的消息？
-- [ ] 长文本响应的分段发送策略——飞书消息有长度限制，超长响应如何分段？
+- [x] 群聊场景下 @机器人 的消息过滤策略——是否只处理 @当前机器人 的消息？
+  - **裁定（W6-1 / 2026-08-09）：fork (c) — 文档化 payload 形状 + 启发式判据，精确 bot open_id 匹配 defer 到真实飞书 E2E**。详见 §7.2.3。`mentions` 数组按飞书开放平台文档形状（`{"key":"@_user_1","id":{"open_id":"ou_xxx",...}}`）解析；缺字段按"未 @"处理（正确语义）。拒绝给 `FeishuCredentials` 加 bot-id 字段（fork a）/ `FeishuClient.start` 调 API 取身份（fork b）：保持飞书协议层不依赖 AI 的边界。
+- [x] 长文本响应的分段发送策略——飞书消息有长度限制，超长响应如何分段？
+  - **裁定（W6-1 / 2026-08-09）**：按 `maxMessageLength`（4000）切片，换行边界优先，硬切兜底，顺序多段发送，不丢字符。详见 §7.2.1。
 - [ ] 多媒体消息（图片、文件）的支持范围——是否通过工具（file-upload / file-download）实现？
 - [ ] 适配器的 Nop IoC 注册方式——`beans.xml` + `@Inject`，还是 `@Configuration`？
