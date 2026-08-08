@@ -1,6 +1,6 @@
 # nop-stream 独立深度审计路线图
 
-> Last updated: 2026-08-08 (item 21 → done; plan `2026-08-08-2100-1` completed with independent closure-audit PASS)
+> Last updated: 2026-08-08 (item 22 → done; plan `2026-08-08-2100-2` completed with validator+test evidence)
 > Sources: `ai-dev/analysis/2026-08/2026-08-06-nop-stream-audit-baseline-and-roadmap-analysis.md` (primary), `ai-dev/backlog/nop-stream-production-roadmap.md` (implementation ownership), `ai-dev/audits/nop-stream-production/2026-08-02-2107-*.md` (current confirmed findings)
 
 ## Purpose
@@ -35,7 +35,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 19. 历史 P0/P1 checkpoint/state/window finding disposition: `done`
 - 20. 历史 P0/P1 CEP/connector/runtime finding disposition: `done`
 - 21. 历史 P2 core/state/window finding disposition: `done`
-- 22. 历史 P2 CEP/connector/runtime finding disposition: `planned`
+- 22. 历史 P2 CEP/connector/runtime finding disposition: `done`
 - 23. 文档契约与 production-readiness 判定: `todo`
 - ★ 独立 production-readiness 判定（4-23 均完成且无未归属 P0/P1 或 required lane blocked）: not yet reached
 

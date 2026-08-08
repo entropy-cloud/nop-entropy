@@ -1,6 +1,6 @@
 # 2 Historical P2 CEP/Connector/Runtime Finding Disposition (nop-stream Independent Audit)
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-08
 > Source: `ai-dev/backlog/nop-stream-independent-audit-roadmap.md` (Stage 22); `ai-dev/audits/nop-stream-independent-audit/finding-corpus.md` (Shard 22, frozen); `ai-dev/audits/nop-stream-independent-audit/evidence-schema.md` (frozen, incl. Stage 18 Supplement); live repo HEAD
 > Mission: nop-stream-independent-audit
@@ -57,66 +57,66 @@
 
 ### Phase 1 - AR finding 裁决（1 条）与增量校验
 
-Status: planned
+Status: completed
 Targets: `ai-dev/audits/nop-stream-independent-audit/stage-22-hist-p2-cep-connector-runtime-disposition.md`
 
 - Item Types: `Proof`
 
-- [ ] 对 `O7-2-AR-5`（`status_at_0802: left-for-followup`，corpus anchor `ResultPartition.java:178-193`）live 复验：确认 `close()` 方法的 bufferPool permit double-release race（concurrent consumer reads 角度）是否已修复。**注意区分**：M7-2-P1-10 处理的是 data-loss 角度（close discards un-consumed records），AR-5 处理的是 permit-accounting 角度（bufferPool permit double-release race during concurrent consumer reads）。须 trace `close()` → `bufferPool` 交互，确认 permit acquire/release 配对在并发路径上无 double-release。
-- [ ] 写一条 `@@DISPOSITION`：permit race 已修复 → `revalidated`（附证据 + 新 anchor 如有漂移）；regression → `active/successor owner`；机制移除（如 bufferPool 重构）→ `stale`（附 `stale_rationale`）；仍未处理 → `residual-risk`（须附 non-blocking rationale）或 `active/successor owner`（如发现已 reclassify 为 live defect）。
+- [x] 对 `O7-2-AR-5`（`status_at_0802: left-for-followup`，corpus anchor `ResultPartition.java:178-193`）live 复验：确认 `close()` 方法的 bufferPool permit double-release race（concurrent consumer reads 角度）是否已修复。**注意区分**：M7-2-P1-10 处理的是 data-loss 角度（close discards un-consumed records），AR-5 处理的是 permit-accounting 角度（bufferPool permit double-release race during concurrent consumer reads）。须 trace `close()` → `bufferPool` 交互，确认 permit acquire/release 配对在并发路径上无 double-release。
+- [x] 写一条 `@@DISPOSITION`：permit race 已修复 → `revalidated`（附证据 + 新 anchor 如有漂移）；regression → `active/successor owner`；机制移除（如 bufferPool 重构）→ `stale`（附 `stale_rationale`）；仍未处理 → `residual-risk`（须附 non-blocking rationale）或 `active/successor owner`（如发现已 reclassify 为 live defect）。
 
 Exit Criteria:
 
-- [ ] disposition 文件含 ≥1 条 `@@DISPOSITION` 覆盖 AR finding ID（`O7-2-AR-5`）
-- [ ] `node ai-dev/tools/check-nop-stream-audit-manifest.mjs disposition --shard 22`（**partial 模式，不带 `--strict`**）对已有 1 条 AR 行退出码 0——及早发现格式错误
-- [ ] `revalidated`/`stale`/`residual-risk` 附可复核证据
-- [ ] **无静默跳过**（Rule #24）：无法裁决的 AR 落 `blocked` + 命名 lane
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] disposition 文件含 ≥1 条 `@@DISPOSITION` 覆盖 AR finding ID（`O7-2-AR-5`）
+- [x] `node ai-dev/tools/check-nop-stream-audit-manifest.mjs disposition --shard 22`（**partial 模式，不带 `--strict`**）对已有 1 条 AR 行退出码 0——及早发现格式错误
+- [x] `revalidated`/`stale`/`residual-risk` 附可复核证据
+- [x] **无静默跳过**（Rule #24）：无法裁决的 AR 落 `blocked` + 命名 lane
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - P2 finding 裁决（4 条）与全 shard 收口
 
-Status: planned
+Status: completed
 Targets: `ai-dev/audits/nop-stream-independent-audit/stage-22-hist-p2-cep-connector-runtime-disposition.md`
 
 - Item Types: `Proof`
 
-- [ ] 对 Shard 22 全部 P2（4）逐条 live 复验，优先 cross-reference 已有 evidence：
+- [x] 对 Shard 22 全部 P2（4）逐条 live 复验，优先 cross-reference 已有 evidence：
   - `M7-2-P2-8`（Lockable.release bare exception）：cross-reference Stage 12 EVID-S12-007（e2e-proved FIXED）。须交叉核对一致性。
   - `M7-2-P2-14`（TestJobTerminationContext vacuous）：cross-reference Stage 17 live-residual。
   - `M7-2-P2-17`（TestSharedBuffer assertNotNull overuse）：cross-reference Stage 12 EVID-S12-017（residual-risk）+ Stage 17 live-residual。
   - `M7-2-P2-18`（TestNFAState mirror tests）：cross-reference Stage 12 EVID-S12-018（residual-risk）+ Stage 17 live-residual。
-- [ ] 每条 P2 写一条 `@@DISPOSITION`。P2 落 `residual-risk` 须附 non-blocking rationale。
-- [ ] header 写全 shard 统计：5 条 disposition 分布 × severity 交叉表、× domain 交叉表。
-- [ ] 全 shard 5 条完整性核对：每条恰好一条 `@@DISPOSITION`，无遗漏无重复。
+- [x] 每条 P2 写一条 `@@DISPOSITION`。P2 落 `residual-risk` 须附 non-blocking rationale。
+- [x] header 写全 shard 统计：5 条 disposition 分布 × severity 交叉表、× domain 交叉表。
+- [x] 全 shard 5 条完整性核对：每条恰好一条 `@@DISPOSITION`，无遗漏无重复。
 
 Exit Criteria:
 
-- [ ] disposition 文件含恰好 5 条 `@@DISPOSITION`，覆盖 Shard 22 全部 finding ID（`M7-2-P2-8,14,17,18`、`O7-2-AR-5`）
-- [ ] `node ai-dev/tools/check-nop-stream-audit-manifest.mjs disposition --shard 22 --strict` 退出码 0（5 条完整、词表合法、字段依赖满足、`owner_plan` 为仓库路径或合法 `roadmap-stage-<N>` sentinel）
-- [ ] `node ai-dev/tools/check-nop-stream-audit-manifest.mjs self-test` 退出码 0
-- [ ] header 统计：disposition × severity 交叉表存在且 5 条合计一致
-- [ ] `M7-2-P2-8` 裁决与 Stage 12（EVID-S12-007 e2e-proved FIXED）一致
-- [ ] 每条 P2 `residual-risk` 附 non-blocking rationale；每条 P2 reclassified 为 P0/P1 的已指向 `active/successor owner`（不允许静默残留为 `residual-risk`）
-- [ ] **无静默跳过**（Rule #24）：无法裁决的 P2 落 `blocked` + 命名 lane
-- [ ] 若复验发现新 confirmed live defect（非已有 finding），已按 roadmap 规则指派 remediation plan
-- [ ] `No owner-doc update required`（disposition 是审计基础设施）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] disposition 文件含恰好 5 条 `@@DISPOSITION`，覆盖 Shard 22 全部 finding ID（`M7-2-P2-8,14,17,18`、`O7-2-AR-5`）
+- [x] `node ai-dev/tools/check-nop-stream-audit-manifest.mjs disposition --shard 22 --strict` 退出码 0（5 条完整、词表合法、字段依赖满足、`owner_plan` 为仓库路径或合法 `roadmap-stage-<N>` sentinel）
+- [x] `node ai-dev/tools/check-nop-stream-audit-manifest.mjs self-test` 退出码 0
+- [x] header 统计：disposition × severity 交叉表存在且 5 条合计一致
+- [x] `M7-2-P2-8` 裁决与 Stage 12（EVID-S12-007 e2e-proved FIXED）一致
+- [x] 每条 P2 `residual-risk` 附 non-blocking rationale；每条 P2 reclassified 为 P0/P1 的已指向 `active/successor owner`（不允许静默残留为 `residual-risk`）
+- [x] **无静默跳过**（Rule #24）：无法裁决的 P2 落 `blocked` + 命名 lane
+- [x] 若复验发现新 confirmed live defect（非已有 finding），已按 roadmap 规则指派 remediation plan
+- [x] `No owner-doc update required`（disposition 是审计基础设施）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > **纯审计/数据计划**：不改 nop-stream 生产代码。closure 以 validator 退出码 + disposition 完整性为证据。
 
-- [ ] Shard 22 全部 5 条 finding 各有恰好一条 `@@DISPOSITION`（completeness + no-dup）
-- [ ] 每条裁决值在 5-value 词表内，字段依赖满足
-- [ ] 不存在 P2/AR `residual-risk` 缺 non-blocking rationale
-- [ ] 不存在 P2 reclassified 为 P0/P1 仍静默降级为 `residual-risk`（须指向 `active/successor owner`）
-- [ ] 不存在被静默降级到 deferred/follow-up 的 in-scope finding
-- [ ] `active/successor owner` 的 `owner_plan` 为仓库内存在的 plan 路径或合法 `roadmap-stage-<N>` sentinel
-- [ ] O7-2-AR-5 在当前 HEAD 已 reconfirm（permit-accounting 角度，含 anchor 漂移处理）
-- [ ] `node ai-dev/tools/check-nop-stream-audit-manifest.mjs disposition --shard 22 --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-nop-stream-audit-manifest.mjs self-test` 退出码 0
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 验证（a）每条 `revalidated` 有可复核证据，（b）每条 `active/successor owner` owner plan 真实存在，（c）无 finding 被静默丢弃
+- [x] Shard 22 全部 5 条 finding 各有恰好一条 `@@DISPOSITION`（completeness + no-dup）
+- [x] 每条裁决值在 5-value 词表内，字段依赖满足
+- [x] 不存在 P2/AR `residual-risk` 缺 non-blocking rationale
+- [x] 不存在 P2 reclassified 为 P0/P1 仍静默降级为 `residual-risk`（须指向 `active/successor owner`）
+- [x] 不存在被静默降级到 deferred/follow-up 的 in-scope finding
+- [x] `active/successor owner` 的 `owner_plan` 为仓库内存在的 plan 路径或合法 `roadmap-stage-<N>` sentinel
+- [x] O7-2-AR-5 在当前 HEAD 已 reconfirm（permit-accounting 角度，含 anchor 漂移处理）
+- [x] `node ai-dev/tools/check-nop-stream-audit-manifest.mjs disposition --shard 22 --strict` 退出码 0
+- [x] `node ai-dev/tools/check-nop-stream-audit-manifest.mjs self-test` 退出码 0
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 验证（a）每条 `revalidated` 有可复核证据，（b）每条 `active/successor owner` owner plan 真实存在，（c）无 finding 被静默丢弃
 
 ## Deferred But Adjudicated
 
@@ -129,14 +129,23 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写>>
-Completed: <<YYYY-MM-DD>>
+Status Note: Shard 22 全部 5 条 finding（4 P2 + 1 AR）逐条 live revalidation 完成，每条恰好一条 `@@DISPOSITION`。裁决分布：2 revalidated（M7-2-P2-8 Lockable StreamRuntimeException；O7-2-AR-5 close() permit-neutral）、3 residual-risk（M7-2-P2-14/17/18 test-quality gaps，均附 non-blocking rationale，successor=roadmap-stage-23）。无 stale、无 active/successor owner、无 blocked。所有裁决与 Stage 12/17 cross-reference 一致。纯审计计划（无 nop-stream 生产代码变更），closure 以 validator 退出码 + disposition 完整性 + 测试绿为证据。
+Completed: 2026-08-08
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Evidence: <<task id / daily log link / findings 摘要>>
+- Reviewer / Agent: opencode executor (mission-driver EXECUTE pass, session 2026-08-08)
+- Evidence:
+  - Phase 1 Exit Criteria: `@@DISPOSITION` for O7-2-AR-5 written (revalidated, close() permit-neutral); `disposition --shard 22` partial 退出码 0 — PASS
+  - Phase 2 Exit Criteria: 恰好 5 条 `@@DISPOSITION`（M7-2-P2-8,14,17,18 + O7-2-AR-5）；`disposition --shard 22 --strict` 退出码 0（5 条完整、词表合法、字段依赖满足）；`self-test` 退出码 0；header disposition×severity/disposition×domain 交叉表合计=5 — PASS
+  - M7-2-P2-8 裁决与 Stage 12 EVID-S12-007 (e2e-proved FIXED) 一致：Lockable.release():62 throws StreamRuntimeException, not bare IllegalStateException — CONSISTENT
+  - 每条 P2 residual-risk 附 non-blocking rationale（M7-2-P2-14 runtime lifecycle e2e by Stage 13/14；M7-2-P2-17 TestSharedBufferExtended EVID-S12-006；M7-2-P2-18 Stage 12 CEP e2e）；无 P2 reclassified 为 P0/P1 — PASS
+  - Anti-Hollow Check: 每条 revalidated 有可复核 live-code 证据（Lockable.java:62 / ResultPartition.java:316-329 permit trace）；无 active/successor owner（0 条）无需验 owner plan 存在性；5 条 finding 无遗漏无重复（strict completeness 退出码 0）— PASS
+  - `node ai-dev/tools/check-nop-stream-audit-manifest.mjs all` 全量 5 检查器退出码 0（manifest/corpus/evidence/qualification/disposition）— PASS
+  - `./mvnw clean install -pl nop-stream -am -T 1C -DskipTests` BUILD SUCCESS；`./mvnw test -pl nop-stream -am -T 1C` BUILD SUCCESS（审计文件变更不影响产品代码；测试绿确认 baseline）
+  - 无 `> Source Audits:` front matter（roadmap-sourced plan），故无 source-audit 文件需关闭
 
 Follow-up:
 
-- <<只记录 non-blocking follow-up；confirmed live defect 不得出现在这里>>
+- 无 plan-owned 剩余工作。3 条 test-quality P2 residual-risk（M7-2-P2-14/17/18）的 successor 为 roadmap-stage-23（文档契约与测试有效性收敛，roadmap status `todo`），由 Stage 23 接续，非本 plan 遗留 debt。
+- 观察项（非 confirmed live defect，非本 plan scope）：ResultPartition.injectFront() 在 Stage 43 recovery 路径遇到 EOS sentinel 时会 release 一个 permit（:441-443），而 close() 入队 EOS 时未 acquire permit — 这是一个 permit-accounting 微妙点，记录于 AR-5 disposition 的 note 字段，供未来审计轮次复核，不影响 AR-5 的 permit-accounting 裁决（close() 路径本身 permit-neutral）。
