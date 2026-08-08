@@ -427,6 +427,10 @@ public void testMultiStep() {
 4. 明明是进程内服务测试，却先去搭 HTTP E2E。
 5. **首次录制以为 RECORDING 模式会自动初始化 schema** — 不会。需显式加 `initDatabaseSchema = OptionalBoolean.TRUE`。
 6. **把 `saveEntity(entity, actionName, context)` 的 `actionName` 当成 `boolean` 传** — `actionName` 是 `String`，传 `null` 使用默认值即可。
+7. **冻结时钟（`ThreadLocalFrozenClock` 等扩展）只冻结日期，不冻结时间** — `CoreMetrics.today()` 返回冻结日期，但 `CoreMetrics.currentTimestamp()` 仍返回真实系统毫秒。业务字段（如 clockOut 写入、单据时间）落库的是“现在”+冻结日期组合，**绝对时间断言不可行**。替代方案：
+   - **镜像公式断言**：断言 `output == 与实现公式逐字对齐的计算值`（如 `Duration.between(clockIn, clockOut).toMinutes()/60`），不依赖具体时刻。
+   - **seed 相对时间**：显式 seed `clockIn=now-4h` / `clockOut=now+3h`，制造确定性差值；跨天日期用 `REFERENCE_DATE.minusDays(1)` 等显式构造，不硬编码。
+8. **测试方法改名后 `_cases/` 旧目录成孤儿** — 快照回放按方法名定位，改名/删除用例后必须删除旧 `_cases/.../{OldMethod}/` 目录。判定期：目录内存在 0 字节 `autotest.yaml` 为合法空快照占位（无输出快照的用例），不是孤儿；孤儿指方法已不存在但目录仍在。
 
 ## 快照不匹配诊断与修复
 

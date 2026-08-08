@@ -1,8 +1,8 @@
 # 336 AI HTTP SSRF Egress Enforcement
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-08-08
-> Review Hold: Blocked on User-Authorization Gate (DR-4a) — requires explicit user disposition of the enforcement-layer decision before implementation can begin. Cannot be resolved at review time; correctly held at draft. (2026-08-08 review pass: format/completeness/scope/closure all PASS; all source anchors in Current Baseline and Public-API Migration Consideration verified against live repo — `HttpRequestExecutor` :41/:78/:133, `GraphqlQueryExecutor` :31/:93/:116, `HttpClientConfig.dnsResolver` :66, `IDnsResolver` :38-49. Plan is ready to activate once DR-4a is authorized.)
+> Review Hold: cleared 2026-08-08 — user recorded `approved` disposition for DR-4a (recorded below). Plan promoted to `active`; NO phase executed yet (user requested active-without-execution; phases remain `planned`).
 > Source: `ai-dev/analysis/2026-08/2026-08-04-security-hardening-baseline.md` (DR-4a, DR-3b)
 > Related: `ai-dev/plans/328-security-hardening-remediation-planning.md`
 > Predecessor: Plan 328 Phase 1 froze the decision records this plan consumes.
@@ -15,15 +15,30 @@ This plan is **blocked at draft until the user approves the SSRF enforcement con
 (DR-4a), including the enforcement layer and whether the public `IHttpClient` contract must
 change.
 
-## User-Authorization Gate (BLOCKER)
+## User-Authorization Gate (RESOLVED 2026-08-08)
 
 This plan changes AI tool network-egress behavior and may require a public `nop-http-api`
-contract change. It MUST remain `Plan Status: draft` with a blocked implementation slice
-until the user records an explicit disposition for:
+contract change. The user recorded an explicit `approved` disposition for DR-4a on
+2026-08-08:
 
 - DR-4a (enforcement layer, redirect ownership, multi-address/DNS-rebinding policy,
   IPv4/IPv6 encoded-address policy, proxy policy, connection-address pinning, fail-closed
-  behavior, public HTTP API migration gate).
+  behavior, public HTTP API migration gate): **approved — single resolver+pinning global
+  layer: a validating `IDnsResolver` implementation (rejects internal/cloud-metadata
+  addresses, returns a single pinned `InetAddress`) injected via the existing
+  `HttpClientConfig.dnsResolver` seam; the connection is pinned to the validated address
+  (no re-resolution between validate and connect); every redirect hop re-validated before
+  data is sent; encoded IPv4/IPv6 representations normalized to the same verdict as the
+  literal form; outbound-proxy targets still validated; unresolved / policy-ambiguous
+  targets fail closed (no request sent); NO public `IHttpClient` contract change (migration
+  gate answered NO — resolver injection via the existing `IDnsResolver` seam; Phase 1 must
+  still confirm the chosen client consults `IDnsResolver` on every connection including
+  after redirects). Transport-level coverage automatically includes the sibling
+  `GraphqlQueryExecutor`; no successor scope item needed for it.**
+
+Disposition is recorded in `ai-dev/analysis/2026-08/2026-08-04-security-hardening-baseline.md`
+Open Questions. Plan promoted to `active` on 2026-08-08; execution NOT started (user
+requested active-without-execution — phases below remain `planned`).
 
 ## Current Baseline
 
@@ -105,11 +120,11 @@ public-contract migration and needs its own user-approval sub-gate within DR-4a.
 
 ## Execution Plan
 
-> All Phases are `blocked` until the User-Authorization Gate is satisfied.
+> User-Authorization Gate satisfied 2026-08-08 (DR-4a `approved`). Phases remain `planned` until execution starts.
 
 ### Phase 1 - Enforcement Layer And Resolver/Pinning Contract
 
-Status: blocked (pending DR-4a user approval)
+Status: planned
 Targets: `nop-ai/nop-ai-toolkit/src/main/java/io/nop/ai/toolkit/tools/HttpRequestExecutor.java`,
 `nop-network/nop-http/nop-http-api/.../client/IHttpClient.java`, `HttpClientConfig.java`
 
@@ -137,7 +152,7 @@ Exit Criteria:
 
 ### Phase 2 - Redirect-Hop, DNS-Rebinding, And Encoded-Address Enforcement
 
-Status: blocked (pending Phase 1)
+Status: planned
 Targets: the enforcement layer, `HttpRequestExecutor`
 
 - Item Types: `Fix | Proof`
@@ -185,10 +200,12 @@ Exit Criteria:
 
 ### User Authorization Of DR-4 Decision Records
 
-- Classification: `blocked (not a residual — a hard prerequisite)`
-- Why Not Blocking Closure Of Plan 328: this is a successor plan; Plan 328 closed on
-  having created this draft.
-- Successor Required: this plan IS the successor; it activates only after user `approved`.
+- Classification: `resolved` (user `approved` DR-4a on 2026-08-08; disposition recorded in
+  the User-Authorization Gate section above and in
+  `ai-dev/analysis/2026-08/2026-08-04-security-hardening-baseline.md` Open Questions)
+- Why Not Blocking Closure: gate cleared; plan promoted to `active` 2026-08-08.
+  Execution not started (user requested active-without-execution).
+- Successor Required: no.
 
 ## Non-Blocking Follow-ups
 
@@ -196,16 +213,17 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: Draft created by Plan 328 Phase 2. Blocked at draft pending user authorization
-of DR-4a. No implementation has begun.
+Status Note: Draft created by Plan 328 Phase 2. User authorized DR-4a (`approved`) on
+2026-08-08; plan promoted to `active` the same day. No implementation has begun (user
+requested active-without-execution).
 Completed: N/A
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: N/A (draft, not yet completed)
+- Reviewer / Agent: N/A (not yet executed; gate resolution recorded in User-Authorization Gate)
 - Evidence: N/A
 
 Follow-up:
 
-- User must record `approved`/`rejected`/`deferred` for DR-4a before this plan can be
-  promoted to `active`.
+- Execution not started: phases remain `planned` and will be executed when the user
+  launches the next mission run (or explicitly asks).

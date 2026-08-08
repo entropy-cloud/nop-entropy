@@ -48,6 +48,7 @@ Each subsystem directory contains architecture decisions and usage contracts for
 | `crud/crud-api-codegen-design.md` | CRUD API 代码生成 | — | 草案 — ICrudApi 泛型接口 + codegen 模板 + Input/Output 决策 |
 | `word-editor/` | Online Word Editor Model | *(not yet created)* | active |
 | `render-mode-switch-design.md` | 前端渲染模式全局切换（AMIS↔Flux） | — | 草案 — 通过 `web.xlib` 入口代理 + `x:post-extends` 实现 `nop.web.render-mode` 全局开关 |
+| `nop-ai-channel-integration-design.md` | 外部信道业务集成抽象（飞书/钉钉等） | — | active — 三层信道模型（传输 `IChannelConnector` / 业务消息 `IChannelMessageService`）；`IMessageService` 复用决策；扫码绑定 `IChannelBindProvider`+`IChannelBindService` / 扫码登录经 `ILoginSpi`；模块归属 |
 
 ## Precedence Model
 

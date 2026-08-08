@@ -1,0 +1,26 @@
+{
+  "name": "nop-ai-channel-integration",
+  "description": "彻底实现 nop-ai 外部信道集成设计（ai-dev/design/nop-ai-channel-integration-design.md + nop-ai-agent/nop-ai-agent-channel-connector.md）。三层信道模型全栈落地——传输层 IChannelConnector（连接飞书/钉钉/企微/Webhook，转 IAgentEngine.sendMessage + 订阅 AgentEventPublisher）→ 业务消息层 IChannelMessageService（纯 userId 锚定，屏蔽信道细节）→ 扫码绑定 IChannelBindProvider/IChannelBindService + 扫码登录（经既有 ILoginSpi.getLoginResultAsync(AccessCodeRequest) 零改登录主流程）。立场：业务接口放 nop-integration-api（不依赖 AI），实现与传输胶水放 nop-ai-gateway（装配点），飞书 SDK 协议放新模块 nop-integration-feishu（不依赖 AI），绑定记录复用 NopAuthExtLogin（加 (loginType,extId) 唯一索引）。飞书为首个落地信道，抽象保证新增信道零改引擎与登录主流程。",
+  "roadmapPath": "ai-dev/backlog/nop-ai-channel-integration-roadmap.md",
+  "plansDir": "ai-dev/plans",
+  "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
+  "auditsDir": "ai-dev/audits",
+  "sourceDir": ".",
+  "commands": {
+    "test": "./mvnw test -pl nop-integration,nop-auth,nop-ai -am -T 1C",
+    "build": "./mvnw clean install -DskipTests -pl nop-integration,nop-auth,nop-ai -am -T 1C",
+    "lint": "./mvnw checkstyle:check -pl nop-integration,nop-auth,nop-ai -am -q 2>/dev/null || echo 'lint not configured'",
+    "typecheck": "./mvnw compile -pl nop-integration,nop-auth,nop-ai -am -q 2>/dev/null || echo 'typecheck not configured'"
+  },
+  "prompts": {
+    "designDoc": "ai-dev/design/nop-ai-channel-integration-design.md",
+    "transportDesignDoc": "ai-dev/design/nop-ai-agent/nop-ai-agent-channel-connector.md",
+    "multiAuditPrompt": "ai-dev/skills/deep-audit-prompts.md",
+    "openAuditPrompt": "ai-dev/skills/open-ended-adversarial-review-prompt.md",
+    "planReviewer": "ai-dev/skills/plan-reviewer-prompt.md",
+    "closureAudit": "ai-dev/skills/plan-closure-audit-prompt.md",
+    "ormModelAudit": "ai-dev/skills/orm-model-audit-prompt.md",
+    "crossModuleDependencyAudit": "ai-dev/skills/cross-module-dependency-audit-prompt.md"
+  },
+  "commitFormat": "feat(channel): <description>"
+}

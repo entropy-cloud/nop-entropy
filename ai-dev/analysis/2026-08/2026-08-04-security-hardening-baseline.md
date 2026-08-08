@@ -387,9 +387,17 @@ These questions are the user-approval gates for the four successor plans. Each i
 owned by a decision record above; the successor plan cannot activate until the user
 records a disposition.
 
-- [ ] Which `servicePublic` tenant behavior is supported by product contract? — owned by DR-1b (Plan 333).
-- [ ] Does the selected SSRF enforcement layer require a public HTTP API migration? — owned by DR-4a (Plan 336).
-- [ ] Which Bash sandbox backend is supported in all target deployment modes? — owned by DR-3a (Plan 335).
-- [ ] Is encrypted-value compatibility global to `AESTextCipher` or scoped to ORM/config consumers? — owned by DR-2b (Plan 334).
-- [ ] Which default wins for `nop.auth.skip-check-for-admin` (`true` vs `false`)? — owned by DR-1e (Plan 333).
-- [ ] What is the supported password-policy baseline (M-6)? — owned by DR-1d (Plan 333).
+**All dispositions recorded 2026-08-08 (user approved each; successors 333-336 promoted
+from `draft` to `active`, execution not started):**
+
+- [x] Which `servicePublic` tenant behavior is supported by product contract? — DR-1b (Plan 333): **approved — 收紧：SYS synthesis restricted to explicitly `@Auth(publicAccess=true)` actions, SYS reduced to an anonymous-role principal (cannot satisfy admin-gated permissions), `HEADER_TENANT` no longer trusted on public/servicePublic paths (only `X-Forwarded-Tenant` from a trusted proxy), default stays `false`.**
+- [x] Does the selected SSRF enforcement layer require a public HTTP API migration? — DR-4a (Plan 336): **approved — resolver+pinning global layer via `IDnsResolver` injection; no public `IHttpClient` contract change (migration gate answered NO).**
+- [x] Which Bash sandbox backend is supported in all target deployment modes? — DR-3a (Plan 335): **approved — backend abstraction + Docker container sandbox (reuse nop-ai-agent DockerSandbox pattern) + fail-closed default (unavailable backend refuses the call, never falls back to host `sh -c`); host execution only as explicit opt-in.**
+- [x] Is encrypted-value compatibility global to `AESTextCipher` or scoped to ORM/config consumers? — DR-2b (Plan 334): **approved — global `AESTextCipher` change (all consumers get versioned per-message IV automatically).**
+- [x] Which default wins for `nop.auth.skip-check-for-admin` (`true` vs `false`)? — DR-1e (Plan 333): **approved — `false` (admins go through permission checks) + remove the `@InjectValue` fallback so the `IConfigReference` default is the single source of truth.**
+- [x] What is the supported password-policy baseline (M-6)? — DR-1d (Plan 333): **approved — `minLength=12` + upper/lower/digit/special all required, with config override and a documented migration path for existing seeded users.**
+
+Additional Plan 333 dispositions (same authorization session):
+
+- [x] DR-1a (JWT matrix + migration window): **approved — split signing keys per token kind (access/refresh/code, per-KID `keyLocator` path) + short configurable migration window (legacy tokens accepted during grace period, forced re-login after).**
+- [x] DR-1c (browser redirect + cookie attributes): **approved — strict relative-path definition (reject `//`, `/\`, `/\\`, control chars), absolute redirects only via `allowedRedirectPrefixes`; cookie `Secure=true` default (dev opt-out) + `__Host-` prefix + SameSite=Lax.**

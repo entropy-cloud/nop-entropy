@@ -94,6 +94,8 @@ Nop 平台的认证和权限控制分为三层：HTTP 路径认证、操作权�
 
 `servicePublic=true` 时，未登录访问服务路径会自动创建 `sys` 用户上下文，不返回 401。
 
+> **安全契约（DR-1b）**：`sys` 是**匿名主体**——不分配任何角色，无法满足管理员/权限受限操作（配合 `nop.auth.skip-check-for-admin=false`）。`servicePublic` 路径**不再信任客户端 `nop-tenant` 头**，避免租户注入；默认 `tenantId=null`。仅当显式启用 `nop.auth.trust-forwarded-tenant=true` 时，才从可信反向代理的 `X-Forwarded-Tenant` 头采纳租户。
+
 ### 完全移除认证
 
 从 pom.xml 移除 `nop-auth-web` 和 `nop-auth-service` 依赖，完全去掉认证过滤器。但同时失去用户管理和登录页。
@@ -169,6 +171,22 @@ Nop 平台的认证和权限控制分为三层：HTTP 路径认证、操作权�
 
 > 运行时并非按模块扫描所有 `*.action-auth.xml`，而是只加载 `nop.auth.site-map.static-config-path` 指向的**单一文件**（默认 `/nop/main/auth/app.action-auth.xml`，各 app 在自己 `application.yaml` 中改写为 `/{moduleId}/auth/app.action-auth.xml`）。多模块的菜单聚合，是靠这一个聚合文件通过 `x:extends` 链合并各模块手写文件达成的，而非框架自动扫描。
 
+#### `roles` 属性匹配的是 roleId，不是角色名称
+
+`<resource roles="...">` / `<auth roles="...">` 中的角色值**匹配角色 ID（roleId）**，不是角色显示名——菜单过滤由 `SiteMapProvider.containsRole` 按 roleId 判断。若 seed 数据/权限配置中的 roleId 字面与角色名不同，以 roleId 为准（配置与 seed 之间以哪一方为唯一权威，需在应用层核对并保持一致，否则守卫形同虚设）。
+
+Java 侧判断角色守卫时同样使用 roleId：
+
+```java
+IUserContext ctx = IUserContext.get();
+Set<String> roleIds = ctx.getRoles();          // 返回 roleId 集，不是角色名称
+if (!ctx.isUserInRole(HR_ROLE_ID)) {           // 参数是 roleId
+    throw new NopException(ERR_ROLE_REQUIRED);
+}
+```
+
+> `IUserContext.getRoles()` 的返回类型是 `Set<String>`（roleId 集）；`isUserInRole(String roleId)` 按 roleId 判断。不要在 Java 代码里拿角色显示名与返回值比较。
+
 ### 菜单资源生成链路
 
 ORM 模型通过 codegen 自动生成菜单资源：
@@ -211,14 +229,14 @@ codegen 生成的 `_*.action-auth.xml` 会带一个测试用的 TOPM 根（id �
 2. 读取字段定义上的 `ActionAuthMeta`（包含 `publicAccess`、`roles`、`permissions`）
 3. 如果需要权限检查，调用 `DefaultActionAuthChecker.isPermitted(permission, context)`
 4. 检查逻辑：`permissionToRoles` 映射表 → 当前用户是否拥有对应角色
-5. `admin` 和 `nop-admin` 角色默认跳过所有操作权限检查（`nop.auth.skip-check-for-admin=true`）
+5. `admin` 和 `nop-admin` 角色仅在 `nop.auth.skip-check-for-admin=true` 时跳过操作权限检查；**默认 `false`**（管理员同样接受权限检查）
 
 ### 关键配置项
 
 | 配置项 | 默认值 | 说明 |
 |--------|--------|------|
 | `nop.auth.enable-action-auth` | `false` | 启用后菜单和操作权限检查生效 |
-| `nop.auth.skip-check-for-admin` | `true` | admin/nop-admin 角色跳过操作权限检查 |
+| `nop.auth.skip-check-for-admin` | `false` | admin/nop-admin 角色跳过操作权限检查。默认关闭（DR-1e），管理员同样接受权限检查。该默认值由 `IConfigReference` 单一来源决定 |
 | `nop.auth.site-map.static-config-path` | `/nop/main/auth/app.action-auth.xml` | site-map 加载的唯一 action-auth 文件。**改了菜单没生效，头号排查点**：确认改的是这个配置指向的文件。各 app 在 `application.yaml` 改写为 `/{moduleId}/auth/app.action-auth.xml`。 |
 | `nop.auth.site-map.cache-timeout` | `10m` | site-map 合并结果缓存时长。调试时可调小（如 `1s`）以便频繁看到变更。 |
 | `nop.auth.site-map.support-debug` | `false` | 仅写入返回给前端的 `SiteMapBean.supportDebug` 字段，控制前端调试行为。**与 `_dump` 输出无关**——dump 只看 `nop.debug=true`。 |
@@ -337,9 +355,10 @@ curl -s "http://localhost:8080/r/NopAuthUser__findList" \
    - `Authorization` header（忽略大小写，`Bearer ` 前缀自动去除）
    - `X-Access-Token` header
    - `nop-token` cookie
-3. **验签与解析**：`JwtAuthTokenProvider.parseAuthToken(token)` → `JwtHelper.parseToken(signKey, token)`
-   - 使用 HMAC-SHA256（HS256）验证签名
+3. **验签与解析**：`JwtAuthTokenProvider.parseAuthToken(token)` → `JwtHelper.parseToken(token, keyLocator, iss, aud, typ, ...)`
+   - 按 JWT 头的 KID 选择对应用途的 HMAC-SHA256（HS256）密钥验签（access/refresh/code 各自独立密钥）
    - 检查是否过期（`exp` 时间戳）
+   - 校验 `iss`/`aud`/`typ` 声明，**拒绝跨用途令牌**（refresh 令牌不能用作 access，反之亦然），校验失败抛出带明确错误码的 `NopException`（不会返回 null 或静默放行）
    - 提取 claims 构建 `AuthToken` 对象（含 sessionId、userName、expireAt）
 4. **加载用户上下文**：`loginService.getUserContextAsync(authToken, headers)` → 从 session 缓存中加载 `IUserContext`
 5. **处理用户上下文**：`handleUserContext(userContext, ...)` → 设置到当前线程的 `IContext`
@@ -350,12 +369,20 @@ curl -s "http://localhost:8080/r/NopAuthUser__findList" \
 
 | Claim | 值 | 说明 |
 |-------|-----|------|
-| `iss` | `"nop"` | 签发者 |
-| `sub` | `"a"`（access）/ `"r"`（refresh）/ `"c"`（code） | 令牌类型 |
+| `iss` | `"nop"`（可配置 `nop.auth.jwt.issuer`） | 签发者，验签时校验 |
+| `aud` | `"nop"`（可配置 `nop.auth.jwt.audience`） | 受众，验签时校验 |
+| `sub` | `"a"`（access）/ `"r"`（refresh）/ `"c"`（code） | 历史用途标记 |
+| `typ` | `access` / `refresh` / `code` | **令牌用途**（payload claim），验签时按消费者期望校验，防止令牌混用 |
 | `exp` | Unix 时间戳（秒） | 过期时间 |
 | `iat` | Unix 时间戳（秒） | 签发时间 |
 | `jti` | UUID | JWT ID = sessionId |
 | `preferred_username` | 用户名 | 登录名 |
+
+JWT 头中的 `kid`（`access`/`refresh`/`code`）标识令牌用途对应的签名密钥。
+
+> **用途隔离（DR-1a/H-1）**：access/refresh/code 三类令牌使用各自独立的签名密钥（按 KID 区分）+ 独立的 `typ` 声明。各消费者（`parseAuthToken`/`parseRefreshToken`/`parseAccessCode`）只接受匹配用途的令牌，令牌混用会被拒绝。旧版令牌（无 KID、单一密钥）可通过 `nop.auth.jwt.legacy-token-grace-seconds`（默认 `0`=不接受）配置迁移宽限期：宽限期内按令牌签发时间接受旧令牌，过期后强制重新登录。
+
+> **浏览器边界（DR-1c）**：相对重定向采用严格定义，拒绝 `//host`、`/\host`、`/\\host`、控制字符；绝对重定向仅允许 `allowedRedirectPrefixes`。认证 cookie 默认 `Secure=true`、`HttpOnly`、`Path=/`、`SameSite=Lax`，并在启用 Secure 时自动加 `__Host-` 前缀（开发 HTTP 可设 `nop.auth.use-secure-cookie=false` 关闭）。
 
 ### Token 自动刷新
 
@@ -377,6 +404,20 @@ curl -s "http://localhost:8080/r/NopAuthUser__findList" \
 ### 密码编码
 
 默认使用 SHA256 加盐哈希（`IPasswordEncoder`），可扩展。
+
+### 密码策略基线
+
+`DefaultPasswordPolicy` 默认基线（DR-1d）：最少 **12** 位，且必须同时包含**大写/小写/数字/特殊字符**各至少 1 个。可通过配置项覆盖：
+
+| 配置项 | 默认值 | 说明 |
+|--------|--------|------|
+| `nop.auth.password.min-length` | `12` | 最小密码长度 |
+| `nop.auth.password.need-upper-case` | `1` | 最少大写字母数 |
+| `nop.auth.password.need-lower-case` | `1` | 最少小写字母数 |
+| `nop.auth.password.need-digits` | `1` | 最少数字数 |
+| `nop.auth.password.need-special-char` | `1` | 最少特殊字符数 |
+
+> **迁移**：旧版本种子用户若不满足新基线，部署时可临时将上述配置放宽（如设为 `0`/降低 `min-length`），或升级后重置这些用户密码。默认种子用户（`nop`/`123`）经 `encodePassword` 直接落库，不经过策略校验，因此不会被锁定。
 
 ### curl 测试速查
 

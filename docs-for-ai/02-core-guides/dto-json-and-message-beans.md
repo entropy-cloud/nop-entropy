@@ -115,6 +115,7 @@ String pretty = JsonTool.serialize(result, true);
 2. 新写一套与周边模块不一致的 `@PropMeta` 编号风格。
 3. 已知类型的数据仍然先 `parseMap` 再手动转 Bean。
 4. 在普通开发里默认引入另一套 JSON 工具，而不是先看 `JsonTool`。
+5. **参数用 `Map<Long, X>`（数字键类型）** — BeanCopier/JSON 转换对 map 键的类型转换不完整：Java 直接传 `Long` 键可能 `ClassCastException`；JSON 路径下键恒为 `String`，与 `Long` 查键不匹配会**静默失效**（查不到值不报错）。跨 Java 直调与 JSON 两个路径都稳定，统一用 `Map<String, X>`（键显式 `String.valueOf(longId)`）。
 
 ## 相关文档
 

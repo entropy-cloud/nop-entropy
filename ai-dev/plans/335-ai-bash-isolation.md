@@ -1,7 +1,7 @@
 # 335 AI Bash Isolation Hardening
 
-> Plan Status: draft
-> Review Hold: blocked on user authorization of DR-3a (isolation backend selection, host-execution mode). Cannot be resolved at review time — held as `draft` until the user records an approved disposition. Review passed (source anchors verified against live BashExecutor.java; format compliant; exit criteria testable; scope clear).
+> Plan Status: active
+> Review Hold: cleared 2026-08-08 — user recorded `approved` disposition for DR-3a (recorded below). Plan promoted to `active`; NO phase executed yet (user requested active-without-execution; phases remain `planned`).
 > Last Reviewed: 2026-08-08
 > Source: `ai-dev/analysis/2026-08/2026-08-04-security-hardening-baseline.md` (DR-3a, DR-3b)
 > Related: `ai-dev/plans/328-security-hardening-remediation-planning.md`
@@ -15,17 +15,26 @@ behavior when the backend is unavailable. This plan is **blocked at draft until 
 approves the Bash isolation contract** (DR-3a), including which backend is supported in all
 target deployment modes.
 
-## User-Authorization Gate (BLOCKER)
+## User-Authorization Gate (RESOLVED 2026-08-08)
 
-This plan changes AI tool runtime behavior. It MUST remain `Plan Status: draft` with a
-blocked implementation slice until the user records an explicit disposition for:
+This plan changes AI tool runtime behavior. The user recorded an explicit `approved`
+disposition for DR-3a on 2026-08-08:
 
 - DR-3a (selected runtime backend, fail-closed behavior, resource-limit policy, proof
-  method; explicitly: is unrestricted host execution still a supported mode?).
+  method; explicitly: is unrestricted host execution still a supported mode?): **approved —
+  backend abstraction (new `IBashSandbox`-style seam) with fail-closed default (configured
+  backend unavailable → throw/refuse, NEVER fall back to host `sh -c`); selected backend:
+  Docker container sandbox reusing the nop-ai-agent `DockerSandbox` pattern
+  (`allowedBaseDirs` whitelist + resource limits + network egress deny); unrestricted host
+  execution is NOT a supported default mode — only an explicit opt-in configuration;
+  isolation proof via real-backend integration tests (denied syscall/file/network target
+  actually denied), not command-string assertions.**
 
-The toolkit currently bundles **no** sandbox backend (see DR-3b runtime facts), so a
-backend must be selected and its availability across deployment modes confirmed before
-implementation.
+Disposition is recorded in `ai-dev/analysis/2026-08/2026-08-04-security-hardening-baseline.md`
+Open Questions. Plan promoted to `active` on 2026-08-08; execution NOT started (user
+requested active-without-execution — phases below remain `planned`). The toolkit bundles
+no sandbox backend today, so Phase 1 must first introduce the backend seam and confirm
+backend availability across deployment modes.
 
 ## Current Baseline
 
@@ -72,11 +81,11 @@ See Plan 328 analysis DR-3a/DR-3b for verified source anchors. Summary:
 
 ## Execution Plan
 
-> All Phases are `blocked` until the User-Authorization Gate is satisfied.
+> User-Authorization Gate satisfied 2026-08-08 (DR-3a `approved`). Phases remain `planned` until execution starts.
 
 ### Phase 1 - Backend Selection And Fail-Closed Contract
 
-Status: blocked (pending DR-3a user approval)
+Status: planned
 Targets: `nop-ai/nop-ai-toolkit/src/main/java/io/nop/ai/toolkit/tools/BashExecutor.java`,
 the new backend abstraction
 
@@ -106,7 +115,7 @@ Exit Criteria:
 
 ### Phase 2 - Resource Limits And Real-Backend Isolation Proof
 
-Status: blocked (pending Phase 1)
+Status: planned
 Targets: `BashExecutor.java`, the selected backend implementation
 
 - Item Types: `Fix | Proof`
@@ -150,10 +159,12 @@ Exit Criteria:
 
 ### User Authorization Of DR-3 Decision Records
 
-- Classification: `blocked (not a residual — a hard prerequisite)`
-- Why Not Blocking Closure Of Plan 328: this is a successor plan; Plan 328 closed on
-  having created this draft.
-- Successor Required: this plan IS the successor; it activates only after user `approved`.
+- Classification: `resolved` (user `approved` DR-3a on 2026-08-08; disposition recorded in
+  the User-Authorization Gate section above and in
+  `ai-dev/analysis/2026-08/2026-08-04-security-hardening-baseline.md` Open Questions)
+- Why Not Blocking Closure: gate cleared; plan promoted to `active` 2026-08-08.
+  Execution not started (user requested active-without-execution).
+- Successor Required: no.
 
 ## Non-Blocking Follow-ups
 
@@ -161,16 +172,17 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: Draft created by Plan 328 Phase 2. Blocked at draft pending user authorization
-of DR-3a. No implementation has begun.
+Status Note: Draft created by Plan 328 Phase 2. User authorized DR-3a (`approved`) on
+2026-08-08; plan promoted to `active` the same day. No implementation has begun (user
+requested active-without-execution).
 Completed: N/A
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: N/A (draft, not yet completed)
+- Reviewer / Agent: N/A (not yet executed; gate resolution recorded in User-Authorization Gate)
 - Evidence: N/A
 
 Follow-up:
 
-- User must record `approved`/`rejected`/`deferred` for DR-3a before this plan can be
-  promoted to `active`.
+- Execution not started: phases remain `planned` and will be executed when the user
+  launches the next mission run (or explicitly asks).

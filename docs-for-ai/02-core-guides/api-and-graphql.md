@@ -305,6 +305,18 @@ BizModel 方法的返回值是 `ApiResponse.data`，即**成功场景下的业�
 
 这会确保 UI 视图分析器将此字段包含在 GraphQL selection 中。
 
+#### 5. 时间戳序列化精度（秒级 vs 毫秒级）
+
+GraphQL 返回的 `Timestamp`/`LocalDateTime` 默认**只到秒级精度**——`nop.graphql.ignore-millis-in-timestamp` 默认 `true`（忽略毫秒）。需要毫秒时显式设置：
+
+```yaml
+nop:
+  graphql:
+    ignore-millis-in-timestamp: false
+```
+
+**测试陷阱**：同一秒内连续两次调用返回的时间戳值相同（毫秒被吞掉）。E2E/集成测试若断言「后值 > 前值」，可能因两次调用落在同一秒而 flaky（后值 == 前值）——需要跨秒边界的确定性等待（如 Playwright `page.waitForTimeout(1100)`），或在响应中额外断言业务可区分字段。
+
 ### 实现架构
 
 ```

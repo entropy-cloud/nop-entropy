@@ -222,6 +222,14 @@ Nop 平台回避 Controller / Service 这类命名。这些词在 Spring 中有�
 
 > 以上方法中 `actionName` 是 `String` 类型（业务动作标识，用于权限检查 / afterEntityChange）。传 `null` 使用默认值即可，**不要传 `boolean`**。
 
+### `afterEntityChange` 重载陷阱：必须覆写 2-arg 版本
+
+`CrudBizModel` 提供两个 `afterEntityChange` 重载：3-arg（entity, actionName, context）与 2-arg（entity, context）——**save/update 路径经由 3-arg → 委托 2-arg；delete 路径直接调用 2-arg**。所以：
+
+- 只覆写 3-arg → **delete 路径不会触发你的钩子**（依赖 2-arg 派生汇总（如父表 Σ 重算）停止在删除场景工作，且无警告）。
+- 需要覆盖全部增/改/删的钩子逻辑时，**覆写 2-arg 版本**（它同时覆盖 save/update + delete 三条路径）。
+- 在 2-arg 钩子中重查父表派生字段前先 `orm().flushSession()`，保证刚 save/delete 的行对查询可见（否则读到旧值，派生汇总 stale）。
+
 ## BizModel 必须对应真实聚合根
 
 **每个 `@BizModel` 必须对应一个有 xmeta 的实体（聚合根）。** 不允许创建无 ORM 实体、无 xmeta 的"伪 BizModel"。
