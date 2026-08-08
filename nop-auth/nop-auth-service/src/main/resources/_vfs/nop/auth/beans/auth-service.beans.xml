@@ -45,6 +45,25 @@
           ioc:type="io.nop.integration.api.channel.UserChannelResolver"
           ioc:default="true"/>
 
+    <!-- ChannelBindService (W3): business facade for scan-to-bind. Writes
+         effective bindings (verified=true, delFlag=0) into NopAuthExtLogin,
+         adjudicates the three rebind cases (idempotent / same-user after
+         unbind / cross-user after unbind), and exposes findBinding for the
+         W4 scan-login reverse lookup. Concrete IChannelBindProvider
+         implementations (FeishuBindProvider etc.) arrive in W5-2 and are
+         auto-collected here by type; with no providers deployed the
+         collected list is empty and startBinding throws explicitly
+         (no silent null). ioc:default=true so app deployments can override. -->
+    <bean id="channelBindService"
+          class="io.nop.auth.service.channel.ChannelBindServiceImpl"
+          ioc:type="io.nop.auth.api.bind.IChannelBindService"
+          ioc:default="true">
+        <property name="channelBindProviders">
+            <ioc:collect-beans by-type="io.nop.integration.api.bind.IChannelBindProvider"
+                               ioc:ignore-depends="true" only-concrete-classes="true"/>
+        </property>
+    </bean>
+
     <bean id="nopUserIdGenerator" class="io.nop.auth.dao.generator.DefaultUserIdGenerator"
           ioc:default="true"/>
 

@@ -18,6 +18,14 @@
             <groupId>io.github.entropy-cloud</groupId>
         </dependency>
 
+        <!-- ChannelBindServiceImpl implements IChannelBindService and returns
+             BindStartResult / ChannelBindingInfo. nop-auth-api depends only
+             on nop-api-core, so this edge introduces no cycle. -->
+        <dependency>
+            <artifactId>nop-auth-api</artifactId>
+            <groupId>io.github.entropy-cloud</groupId>
+        </dependency>
+
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-biz-auth-core</artifactId>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+  Minimal IoC test harness for ChannelBindServiceImpl (W3 Phase 3 wiring
+  verification, Minimum Rules #23). Declares the same bean that
+  auth-service.beans.xml declares for channelBindService, against a stub
+  IDaoProvider that lets the bean construct without a real DB. Verifies
+  that:
+    * the bean declaration parses and constructs
+    * <ioc:collect-beans by-type="...IChannelBindProvider"> tolerates an
+      empty collection (no provider deployed in this test classpath)
+    * the bean is reachable by id and as the IChannelBindService facade type
+
+  We do NOT import the full auth-service.beans.xml here because that drags
+  in beans (nopAuditService etc.) whose own dependencies (IDaoProvider
+  backed by a real DataSource) are out of scope for wiring verification
+  of this single bean. The full app-context integration is exercised in
+  W6-2 end-to-end.
+-->
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns:ioc="ioc">
+
+    <!-- Stub IDaoProvider: constructed via a static factory on the test
+         helper; the ChannelBindServiceImpl only touches it at method-call
+         time, never at construction. -->
+    <bean id="daoProvider" class="io.nop.auth.service.channel.IocTestFactories"
+          factory-method="stubDaoProvider"/>
+
+    <!-- Same declaration as auth-service.beans.xml#channelBindService -->
+    <bean id="channelBindService"
+          class="io.nop.auth.service.channel.ChannelBindServiceImpl"
+          ioc:type="io.nop.auth.api.bind.IChannelBindService"
+          ioc:default="true">
+        <property name="channelBindProviders">
+            <ioc:collect-beans by-type="io.nop.integration.api.bind.IChannelBindProvider"
+                               ioc:ignore-depends="true" only-concrete-classes="true"/>
+        </property>
+    </bean>
+
+</beans>
