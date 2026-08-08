@@ -32,7 +32,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 16. JDBC/file/CDC connector external-effect 审计: `done`
 - 17. 测试有效性与审计工具治理: `done`
 - 18. 当前 production finding disposition: `done`
-- 19. 历史 P0/P1 checkpoint/state/window finding disposition: `planned`
+- 19. 历史 P0/P1 checkpoint/state/window finding disposition: `done`
 - 20. 历史 P0/P1 CEP/connector/runtime finding disposition: `planned`
 - 21. 历史 P2 core/state/window finding disposition: `todo`
 - 22. 历史 P2 CEP/connector/runtime finding disposition: `todo`
