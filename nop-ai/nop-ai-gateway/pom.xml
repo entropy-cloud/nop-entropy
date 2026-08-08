@@ -44,6 +44,21 @@
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-integration-api</artifactId>
         </dependency>
+        <!-- Scan-login orchestration (W4): IAuthTokenProvider / IUserContextCache
+             / ISessionBootstrap come from nop-biz-auth-core (depends only on
+             nop-api-core/nop-core/nop-biz-auth-api, never on nop-ai-gateway);
+             IChannelBindService comes from nop-auth-api (depends only on
+             nop-api-core). Both edges are acyclic and let the gateway assemble
+             the QR-scan-login callback endpoint without depending on the
+             heavy nop-auth-service. -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-biz-auth-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-auth-api</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>

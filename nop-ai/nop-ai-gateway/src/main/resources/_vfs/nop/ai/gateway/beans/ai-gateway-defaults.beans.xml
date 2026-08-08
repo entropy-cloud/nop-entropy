@@ -46,4 +46,23 @@
         </property>
     </bean>
 
+    <!-- Scan-login orchestration (W4): the QR-scan-login callback endpoint
+         (@BizModel "ChannelLoginApi", exposed as GraphQL ChannelLoginApi__loginByScan
+         or REST /r/ChannelLoginApi__loginByScan). Registered with the FQCN id
+         + ioc:type="@bean:id" pattern used by LoginApiBizModel. The @Inject
+         fields (IAuthTokenProvider required; ISessionBootstrap and
+         IChannelBindService optional/@Nullable) are auto-wired by type by the
+         container — the two auth-service beans are optional so a channel-less
+         gateway deployment that excludes nop-auth-service still starts, and
+         loginByScan fails explicitly on first call instead. Concrete
+         IChannelBindProvider beans arrive in W5-2 and are auto-collected here
+         by type; with no provider deployed yet the collection is empty and
+         loginByScan fails explicitly on first call (no silent null). -->
+    <bean id="io.nop.ai.gateway.login.ChannelLoginApiBizModel" ioc:type="@bean:id">
+        <property name="channelBindProviders">
+            <ioc:collect-beans by-type="io.nop.integration.api.bind.IChannelBindProvider"
+                               ioc:ignore-depends="true" only-concrete-classes="true"/>
+        </property>
+    </bean>
+
 </beans>

@@ -27,6 +27,7 @@ import io.nop.auth.api.messages.RoleInfo;
 import io.nop.auth.core.login.AbstractLoginService;
 import io.nop.auth.core.login.AuthToken;
 import io.nop.auth.core.login.IAuthTokenProvider;
+import io.nop.auth.core.login.ISessionBootstrap;
 import io.nop.auth.core.login.SessionInfo;
 import io.nop.auth.core.login.UserContextImpl;
 import io.nop.auth.core.password.IPasswordEncoder;
@@ -77,7 +78,7 @@ import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_USER_NOT_ALLOW_LOGIN;
 import static io.nop.commons.util.StringHelper.isYes;
 import static io.nop.dao.DaoConfigs.CFG_ORM_ENABLE_TENANT_BY_DEFAULT;
 
-public class LoginServiceImpl extends AbstractLoginService {
+public class LoginServiceImpl extends AbstractLoginService implements ISessionBootstrap {
     static final Logger LOG = LoggerFactory.getLogger(LoginServiceImpl.class);
 
     @Inject
@@ -241,6 +242,40 @@ public class LoginServiceImpl extends AbstractLoginService {
                 return userContextCache.saveUserContextAsync(userContext).thenApply(v -> userContext);
             });
         }
+    }
+
+    /**
+     * {@link ISessionBootstrap} 实现：为已通过外部信道认证（扫码/SSO）的用户
+     * 引导一个完整 session，复用 {@link #buildUserContext} + {@link #saveSession}
+     * + {@link IUserContextCache#saveUserContextAsync}，产生与凭证登录完全一致
+     * 形状的 UserContext（含 roles/tenant/dept/sessionId/tokens）。供扫码登录
+     * 编排（{@code nop-ai-gateway}）在解析出 platformUserId 后调用，使签发的
+     * accessCode 能被既有 {@link #getUserContextAsync} 消费链命中缓存。
+     *
+     * <p>用户不存在或不可登录时快速失败（抛异常），绝不返回 null context。
+     */
+    @Override
+    public CompletionStage<IUserContext> createSessionForUserAsync(String userId) {
+        Guard.notEmpty(userId, "userId");
+        NopAuthUser user = getUserByUserId(userId);
+        if (user == null) {
+            LOG.info("nop.auth.session-bootstrap-unknown-user:userId={}", userId);
+            throw new NopException(ERR_AUTH_LOGIN_WITH_UNKNOWN_USER).param(ARG_PRINCIPAL_ID, userId);
+        }
+        if (!isAllowLogin(user)) {
+            throw new NopException(ERR_AUTH_USER_NOT_ALLOW_LOGIN).param(ARG_PRINCIPAL_ID, user.getUserName());
+        }
+        return ContextProvider.runWithTenant(user.getTenantId(), () -> {
+            LoginRequest request = new LoginRequest();
+            request.setLoginType(AuthApiConstants.LOGIN_TYPE_SSO);
+            request.setLocale(AppConfig.appLocale());
+            request.setTimeZone(AppConfig.appTimezone());
+            UserContextImpl userContext = buildUserContext(user, request);
+            autoLogout(userContext);
+            saveSession(userContext, request, new HashMap<>());
+            LOG.info("nop.auth.session-bootstrap-ok:userName={}", userContext.getUserName());
+            return userContextCache.saveUserContextAsync(userContext).thenApply(v -> userContext);
+        });
     }
 
     private boolean isAllowLogin(NopAuthUser user) {
