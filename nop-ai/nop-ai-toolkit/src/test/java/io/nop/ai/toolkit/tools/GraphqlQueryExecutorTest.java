@@ -85,6 +85,41 @@ public class GraphqlQueryExecutorTest {
         assertEquals("http://api.example.com:9090/graphql", mockHttpClient.getLastRequest().getUrl());
     }
 
+    // ---- SSRF enforcement: denied targets never reach IHttpClient.fetchAsync ----
+
+    @Test
+    public void testSsrfInternalIpBlocked() {
+        AiToolCall call = createCall("{ __typename }", "http://127.0.0.1/graphql");
+        AiToolCallResult result = executor.executeAsync(call, new MockContext()).toCompletableFuture().join();
+        assertEquals("failure", result.getStatus());
+        assertTrue(result.getError().getBody().contains("blocked"));
+        assertNull(mockHttpClient.getLastRequest(), "internal IP must not reach transport");
+    }
+
+    @Test
+    public void testSsrfCloudMetadataBlocked() {
+        AiToolCall call = createCall("{ __typename }", "http://169.254.169.254/graphql");
+        AiToolCallResult result = executor.executeAsync(call, new MockContext()).toCompletableFuture().join();
+        assertEquals("failure", result.getStatus());
+        assertNull(mockHttpClient.getLastRequest(), "metadata endpoint must not reach transport");
+    }
+
+    @Test
+    public void testSsrfEncodedDecimalIpBlocked() {
+        AiToolCall call = createCall("{ __typename }", "http://2130706433/graphql");
+        AiToolCallResult result = executor.executeAsync(call, new MockContext()).toCompletableFuture().join();
+        assertEquals("failure", result.getStatus());
+        assertNull(mockHttpClient.getLastRequest(), "encoded 127.0.0.1 must not reach transport");
+    }
+
+    @Test
+    public void testSsrfLocalhostBlocked() {
+        AiToolCall call = createCall("{ __typename }", "http://localhost/graphql");
+        AiToolCallResult result = executor.executeAsync(call, new MockContext()).toCompletableFuture().join();
+        assertEquals("failure", result.getStatus());
+        assertNull(mockHttpClient.getLastRequest(), "localhost must not reach transport");
+    }
+
     private AiToolCall createCall(String query) {
         return createCall(query, "http://api.example.com/graphql");
     }

@@ -149,6 +149,86 @@ public class HttpRequestExecutorTest extends JunitBaseTestCase {
         assertTrue(result.getError().getBody().contains("Connection refused"));
     }
 
+    // ---- SSRF enforcement: denied targets never reach IHttpClient.fetch ----
+
+    @Test
+    public void testSsrfInternalIpBlocked() {
+        AiToolCall call = createCall("http://127.0.0.1/api");
+        AiToolCallResult result = executor.executeAsync(call, new MockContext()).toCompletableFuture().join();
+        assertEquals("failure", result.getStatus());
+        assertTrue(result.getError().getBody().contains("blocked"));
+        assertNull(mockHttpClient.getLastRequest(), "no request should reach the transport for internal IP");
+    }
+
+    @Test
+    public void testSsrfPrivateIpBlocked() {
+        for (String host : new String[]{"10.0.0.1", "192.168.1.1", "172.16.0.1"}) {
+            mockHttpClient.clearLastRequest();
+            AiToolCall call = createCall("http://" + host + "/api");
+            AiToolCallResult result = executor.executeAsync(call, new MockContext()).toCompletableFuture().join();
+            assertEquals("failure", result.getStatus(), "expected block for " + host);
+            assertNull(mockHttpClient.getLastRequest(), "no request for " + host);
+        }
+    }
+
+    @Test
+    public void testSsrfCloudMetadataBlocked() {
+        AiToolCall call = createCall("http://169.254.169.254/latest/meta-data/");
+        AiToolCallResult result = executor.executeAsync(call, new MockContext()).toCompletableFuture().join();
+        assertEquals("failure", result.getStatus());
+        assertNull(mockHttpClient.getLastRequest(), "cloud-metadata target must not reach transport");
+    }
+
+    @Test
+    public void testSsrfEncodedDecimalIpBlocked() {
+        AiToolCall call = createCall("http://2130706433/api");
+        AiToolCallResult result = executor.executeAsync(call, new MockContext()).toCompletableFuture().join();
+        assertEquals("failure", result.getStatus());
+        assertTrue(result.getError().getBody().contains("blocked"));
+        assertNull(mockHttpClient.getLastRequest(), "encoded 127.0.0.1 must not reach transport");
+    }
+
+    @Test
+    public void testSsrfEncodedHexIpBlocked() {
+        AiToolCall call = createCall("http://0x7f000001/api");
+        AiToolCallResult result = executor.executeAsync(call, new MockContext()).toCompletableFuture().join();
+        assertEquals("failure", result.getStatus());
+        assertNull(mockHttpClient.getLastRequest(), "hex-encoded 127.0.0.1 must not reach transport");
+    }
+
+    @Test
+    public void testSsrfIpv6LoopbackBlocked() {
+        AiToolCall call = createCall("http://[::1]/api");
+        AiToolCallResult result = executor.executeAsync(call, new MockContext()).toCompletableFuture().join();
+        assertEquals("failure", result.getStatus());
+        assertNull(mockHttpClient.getLastRequest(), "IPv6 loopback must not reach transport");
+    }
+
+    @Test
+    public void testSsrfIpv6MappedIpv4Blocked() {
+        AiToolCall call = createCall("http://[::ffff:127.0.0.1]/api");
+        AiToolCallResult result = executor.executeAsync(call, new MockContext()).toCompletableFuture().join();
+        assertEquals("failure", result.getStatus());
+        assertNull(mockHttpClient.getLastRequest(), "IPv6-mapped 127.0.0.1 must not reach transport");
+    }
+
+    @Test
+    public void testSsrfLocalhostBlocked() {
+        AiToolCall call = createCall("http://localhost/api");
+        AiToolCallResult result = executor.executeAsync(call, new MockContext()).toCompletableFuture().join();
+        assertEquals("failure", result.getStatus());
+        assertNull(mockHttpClient.getLastRequest(), "localhost must not reach transport");
+    }
+
+    @Test
+    public void testSsrfPublicHostReachesTransport() {
+        mockHttpClient.setResponse(200, "OK");
+        AiToolCall call = createCall("http://example.com/api");
+        AiToolCallResult result = executor.executeAsync(call, new MockContext()).toCompletableFuture().join();
+        assertEquals("success", result.getStatus());
+        assertNotNull(mockHttpClient.getLastRequest(), "public host must reach transport");
+    }
+
     private AiToolCall createCall(String url) {
         XNode node = XNode.make("http-request");
         node.setAttr("id", "1");
@@ -185,6 +265,8 @@ public class HttpRequestExecutorTest extends JunitBaseTestCase {
         }
 
         HttpRequest getLastRequest() { return lastRequest; }
+
+        void clearLastRequest() { this.lastRequest = null; }
 
         @Override
         public CompletionStage<IHttpResponse> fetchAsync(HttpRequest request, ICancelToken cancelToken) {

@@ -4,6 +4,7 @@ import io.nop.ai.toolkit.api.IToolExecuteContext;
 import io.nop.ai.toolkit.api.IToolExecutor;
 import io.nop.ai.toolkit.model.AiToolCall;
 import io.nop.ai.toolkit.model.AiToolCallResult;
+import io.nop.ai.toolkit.tools.ssrf.SsrfAddressGuard;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.http.api.client.HttpRequest;
@@ -13,9 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
-import java.util.Set;
 import java.util.concurrent.CompletionStage;
-import java.util.regex.Pattern;
 
 public class GraphqlQueryExecutor implements IToolExecutor {
     static final Logger LOG = LoggerFactory.getLogger(GraphqlQueryExecutor.class);
@@ -39,38 +38,17 @@ public class GraphqlQueryExecutor implements IToolExecutor {
             if (scheme == null || (!scheme.equals("http") && !scheme.equals("https"))) {
                 return "Only http and https schemes are allowed";
             }
-            String lowerHost = host.toLowerCase();
-            String strippedHost = lowerHost.replaceAll("\\[|\\]", "");
-            if (BLOCKED_HOSTS.contains(strippedHost)) {
-                return "Blocked host: " + host;
-            }
-            if (strippedHost.equals("localhost") || isPrivateIp(strippedHost)) {
-                return "Internal/private IP addresses are not allowed: " + host;
-            }
-            return null;
+            return SsrfAddressGuard.validateHost(host);
         } catch (Exception e) {
             LOG.warn("Invalid URL: {}", url, e);
-            return "Invalid URL: " + e.toString();
+            return "Invalid URL: " + e;
         }
-    }
-
-    private boolean isPrivateIp(String host) {
-        if (host == null) return false;
-        return host.matches("^(127\\..*|10\\..*|172\\.(1[6-9]|2\\d|3[01])\\..*|192\\.168\\..*|0\\.0\\.0\\.0|::1|fc00:.*|fe80:.*|169\\.254\\..*)$");
     }
 
     @Override
     public String getToolName() {
         return TOOL_NAME;
     }
-
-    private static final Pattern URL_PATTERN = Pattern.compile(
-            "^https?://[a-zA-Z0-9.-]+(:\\d+)?(/.*)?$");
-
-    private static final Set<String> BLOCKED_HOSTS = Set.of(
-            "169.254.169.254", "169.254.170.2", "fd00:ec2::23", "100.100.100.200",
-            "metadata.google.internal", "169.254.169.253"
-    );
 
     @Override
     public CompletionStage<AiToolCallResult> executeAsync(AiToolCall call, IToolExecuteContext context) {
