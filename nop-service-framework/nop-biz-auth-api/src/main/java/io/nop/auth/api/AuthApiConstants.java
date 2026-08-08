@@ -69,6 +69,12 @@ public interface AuthApiConstants {
     String JWT_CLAIMS_USERNAME = "preferred_username";
     String JWT_CLAIMS_SID = "sid";
 
+    /**
+     * 令牌用途标记，写入JWT payload，取值为 access/refresh/code。
+     * 与JOSE header的typ不同，这是payload中的自定义claim，用于区分令牌用途，防止令牌混用。
+     */
+    String JWT_CLAIMS_TYPE = "typ";
+
     String JWT_CLAIMS_REALM_ACCESS = "realm_access";
 
     String JWT_CLAIMS_ROLES = "roles";

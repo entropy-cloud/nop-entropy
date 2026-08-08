@@ -20,4 +20,19 @@ public interface IAuthTokenProvider {
     String generateRefreshToken(IUserContext userContext, long expireSeconds);
 
     AuthToken parseAuthToken(String accessToken);
+
+    /**
+     * 解析refresh令牌并校验其用途为refresh。默认实现回退到 {@link #parseAuthToken}，
+     * 供不区分令牌用途的兼容实现（如外部SSO令牌）使用。
+     */
+    default AuthToken parseRefreshToken(String refreshToken) {
+        return parseAuthToken(refreshToken);
+    }
+
+    /**
+     * 解析一次性accessCode并校验其用途为code。默认实现回退到 {@link #parseAuthToken}。
+     */
+    default AuthToken parseAccessCode(String accessCode) {
+        return parseAuthToken(accessCode);
+    }
 }

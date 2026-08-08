@@ -7,16 +7,24 @@
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd" xmlns:ioc="ioc">
 
     <bean id="nopAuthTokenProvider" class="io.nop.auth.core.jwt.JwtAuthTokenProvider"
-          ioc:default="true">
+           ioc:default="true">
         <property name="encKey" value="@cfg:nop.auth.jwt.enc-key|"/>
+        <property name="issuer" value="@cfg:nop.auth.jwt.issuer|nop"/>
+        <property name="audience" value="@cfg:nop.auth.jwt.audience|nop"/>
+        <property name="legacyTokenGraceSeconds" value="@cfg:nop.auth.jwt.legacy-token-grace-seconds|0"/>
     </bean>
 
     <bean id="nopPasswordPolicy" class="io.nop.auth.core.password.DefaultPasswordPolicy" ioc:default="true">
-        <property name="upperCaseCount" value="@cfg:nop.auth.password.need-upper-case|0"/>
-        <property name="lowerCaseCount" value="@cfg:nop.auth.password.need-lower-case|0"/>
-        <property name="digitCount" value="@cfg:nop.auth.password.need-digits|0"/>
+        <!--
+            DR-1d 密码策略基线：最少12位，且必须同时包含大写/小写/数字/特殊字符。
+            旧版本种子用户若不满足该基线，部署时可通过同名配置项临时放宽（例如设为0/降 minLength），
+            或在升级后强制重置这些用户密码。默认用户种子（nop/123）走 encodePassword 直接落库，不经过策略校验，因此不会被锁定。
+        -->
+        <property name="upperCaseCount" value="@cfg:nop.auth.password.need-upper-case|1"/>
+        <property name="lowerCaseCount" value="@cfg:nop.auth.password.need-lower-case|1"/>
+        <property name="digitCount" value="@cfg:nop.auth.password.need-digits|1"/>
         <property name="specialCharCount" value="@cfg:nop.auth.password.need-special-char|1"/>
-        <property name="minLength" value="@cfg:nop.auth.password.min-length|8"/>
+        <property name="minLength" value="@cfg:nop.auth.password.min-length|12"/>
     </bean>
 
 

@@ -59,6 +59,20 @@ public interface ILoginService extends IUserContextExtractor {
 
     AuthToken parseAuthToken(String accessToken);
 
+    /**
+     * 解析refresh令牌（用途=refresh）。默认回退到 {@link #parseAuthToken}，供使用外部SSO令牌的实现复用。
+     */
+    default AuthToken parseRefreshToken(String refreshToken) {
+        return parseAuthToken(refreshToken);
+    }
+
+    /**
+     * 解析一次性accessCode（用途=code）。默认回退到 {@link #parseAuthToken}。
+     */
+    default AuthToken parseAccessCode(String accessCode) {
+        return parseAuthToken(accessCode);
+    }
+
     String refreshToken(IUserContext userContext, AuthToken authToken);
 
     /**

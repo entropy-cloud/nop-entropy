@@ -32,6 +32,15 @@ public interface AuthCoreErrors {
     ErrorCode ERR_JWT_INVALID_TOKEN = define(API_STATUS_UNAUTHORIZED, "nop.err.auth.jwt.invalid-token",
             "JWT Token解析失败");
 
+    ErrorCode ERR_JWT_INVALID_ISSUER = define(API_STATUS_UNAUTHORIZED, "nop.err.auth.jwt.invalid-issuer",
+            "JWT签发者(issuer)不合法");
+
+    ErrorCode ERR_JWT_INVALID_AUDIENCE = define(API_STATUS_UNAUTHORIZED, "nop.err.auth.jwt.invalid-audience",
+            "JWT受众(audience)不合法");
+
+    ErrorCode ERR_JWT_WRONG_TOKEN_TYPE = define(API_STATUS_UNAUTHORIZED, "nop.err.auth.jwt.wrong-token-type",
+            "JWT令牌类型不匹配");
+
     ErrorCode ERR_JWT_TOKEN_EXPIRED = define(API_STATUS_UNAUTHORIZED, "nop.err.auth.jwt.token-expired", "访问令牌已失效");
 
     ErrorCode ERR_AUTH_USER_NOT_LOGIN =

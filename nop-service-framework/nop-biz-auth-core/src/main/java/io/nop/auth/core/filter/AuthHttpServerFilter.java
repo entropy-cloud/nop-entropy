@@ -87,6 +87,26 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
         this.stateCookieHelper = stateCookieHelper;
     }
 
+    /**
+     * DR-1c: 当启用 Secure 时为 cookie 名称自动加上 {@code __Host-} 前缀，获得浏览器的
+     * Host 前缀保护（强制 Secure、Path=/、无 Domain）。开发逃生通道（Secure=false）下退回原始名称，
+     * 保证 set/read/remove 始终使用同一个名称。
+     */
+    public static String hostPrefixedCookieName(String name, boolean secure) {
+        if (name == null)
+            return null;
+        if (secure && !name.startsWith("__Host-"))
+            return "__Host-" + name;
+        return name;
+    }
+
+    /**
+     * 当前认证 cookie 的有效名称（按 Secure 配置自动加 {@code __Host-} 前缀）。
+     */
+    protected String authCookieName() {
+        return hostPrefixedCookieName(config.getAuthCookie(), AuthCoreConfigs.CFG_AUTH_USE_SECURE_COOKIE.get());
+    }
+
     // 如果没有注入，提供默认实例
     @PostConstruct
     public void init() {
@@ -210,21 +230,51 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
     }
 
     /**
-     * 检查是否为相对路径
+     * 严格判定相对路径（DR-1c）。
+     * <p>
+     * 拒绝协议相对路径（{@code //host}）、反斜杠相对路径（{@code /\host}、{@code /\\host}）、
+     * 控制字符，以及任何包含 {@code ://} 或反斜杠的形式，避免开放重定向。
+     * 绝对URL只能通过 {@link AuthFilterConfig#isAllowedRedirectUri(String)} 的 allowedRedirectPrefixes 放行。
      */
     private boolean isRelativePath(String uri) {
-        // 相对路径特征：以/开头，且不包含://
-        return uri.startsWith("/") && !uri.contains("://");
+        if (uri == null || !uri.startsWith("/"))
+            return false;
+
+        // 第二个字符为 / 或 \ 时构成协议相对/反斜杠相对路径，必须拒绝
+        if (uri.length() >= 2 && (uri.charAt(1) == '/' || uri.charAt(1) == '\\'))
+            return false;
+
+        // 含 scheme 分隔符或反斜杠的一律不按相对路径放行
+        if (uri.contains("://") || uri.indexOf('\\') >= 0)
+            return false;
+
+        // 拒绝控制字符（含 CR/LF，防 header 注入）
+        for (int i = 0; i < uri.length(); i++) {
+            char c = uri.charAt(i);
+            if (c < 0x20 || c == 0x7f)
+                return false;
+        }
+        return true;
     }
 
     protected IUserContext newSysUserContext(IHttpServerContext context) {
         UserContextImpl userContext = new UserContextImpl();
         userContext.setUserId(AuthCoreConstants.USER_ID_SYS);
         userContext.setUserName(AuthCoreConstants.USER_ID_SYS);
-        String tenantId = context.getRequestStringHeader(ApiConstants.HEADER_TENANT);
+
+        // DR-1b: servicePublic 路径不再信任客户端 HEADER_TENANT，避免租户注入。
+        // 仅在显式启用可信代理转发时读取 X-Forwarded-Tenant。
+        String tenantId = null;
+        if (AuthCoreConfigs.CFG_AUTH_TRUST_FORWARDED_TENANT.get()) {
+            tenantId = context.getRequestStringHeader(AuthCoreConstants.HEADER_X_FORWARDED_TENANT);
+        }
         userContext.setTenantId(tenantId);
+
         userContext.setTimeZone(context.getRequestStringHeader(ApiConstants.HEADER_TIMEZONE));
         userContext.setLocale(context.getRequestStringHeader(ApiConstants.HEADER_LOCALE));
+
+        // 匿名主体：不分配任何角色，无法满足管理员/权限受限操作（配合 Phase 2 关闭 admin-skip）
+        userContext.setRoles(Collections.emptySet());
         return userContext;
     }
 
@@ -248,7 +298,7 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
             if (routeContext.getRequestPath().startsWith(config.getLogoutUrl())) {
                 if (config.getAuthCookie() != null) {
                     // 内部实现是通过setMaxAge(0)等机制
-                    routeContext.removeCookie(config.getAuthCookie());
+                    routeContext.removeCookie(authCookieName());
                 }
                 return true;
             }
@@ -300,13 +350,13 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
                     if (accessToken != null) {
                         routeContext.setResponseHeader(IHttpServerContext.HEADER_X_ACCESS_TOKEN, accessToken);
                         if (config.getAuthCookie() != null) {
-                            addCookie(config.getAuthCookie(), accessToken, routeContext);
+                            addCookie(authCookieName(), accessToken, routeContext);
                         }
                     }
                 } else if (config.getAuthCookie() != null && authToken != null) {
                     // 如果cookie不一致，则增加cookie
                     if (!authToken.getToken().equals(getAuthTokenFromCookie(routeContext)))
-                        addCookie(config.getAuthCookie(), authToken.getToken(), routeContext);
+                        addCookie(authCookieName(), authToken.getToken(), routeContext);
                 }
 
 
@@ -402,7 +452,7 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
 
     protected String getAuthTokenFromCookie(IHttpServerContext context) {
         if (config.getAuthCookie() != null) {
-            String cookie = context.getCookie(config.getAuthCookie());
+            String cookie = context.getCookie(authCookieName());
             if (!StringHelper.isEmpty(cookie))
                 return cookie;
         }

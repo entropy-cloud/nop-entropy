@@ -19,7 +19,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class StateCookieHelper {
     private static final Logger LOG = LoggerFactory.getLogger(StateCookieHelper.class);
 
-    private static final String DEFAULT_STATE_COOKIE_NAME = "OAuth_Token_Request_State";
+    static final String DEFAULT_STATE_COOKIE_NAME = "OAuth_Token_Request_State";
     private static final AtomicLong counter = new AtomicLong();
 
     private final String cookieName;
@@ -38,6 +38,14 @@ public class StateCookieHelper {
     }
 
     /**
+     * DR-1c: 当启用 Secure 时为 cookie 名称自动加上 {@code __Host-} 前缀，
+     * 与 {@link AuthHttpServerFilter#hostPrefixedCookieName} 保持一致。
+     */
+    public String getCookieName() {
+        return AuthHttpServerFilter.hostPrefixedCookieName(cookieName, secureCookie);
+    }
+
+    /**
      * 生成带时间戳的state code
      */
     public String generateStateCode() {
@@ -52,14 +60,14 @@ public class StateCookieHelper {
         Guard.notNull(state, "state");
         Guard.notNull(context, "context");
 
-        HttpCookie cookie = new HttpCookie(cookieName, state);
+        HttpCookie cookie = new HttpCookie(getCookieName(), state);
         cookie.setPath("/");
         cookie.setHttpOnly(true);
         cookie.setSecure(secureCookie);
         cookie.setMaxAge((int) (stateTimeoutMs / 1000)); // 转换为秒
 
         context.addCookie("Strict", cookie);
-        LOG.debug("nop.auth.oauth-state-cookie-set:name={}", cookieName);
+        LOG.debug("nop.auth.oauth-state-cookie-set:name={}", getCookieName());
     }
 
     /**
@@ -71,7 +79,7 @@ public class StateCookieHelper {
             return false;
         }
 
-        String storedState = context.getCookie(cookieName);
+        String storedState = context.getCookie(getCookieName());
         if (StringHelper.isEmpty(storedState)) {
             LOG.warn("nop.auth.oauth-missing-stored-state");
             return false;
@@ -102,13 +110,13 @@ public class StateCookieHelper {
      * 清除state cookie
      */
     public void clearStateCookie(IHttpServerContext context) {
-        HttpCookie cookie = new HttpCookie(cookieName, "");
+        HttpCookie cookie = new HttpCookie(getCookieName(), "");
         cookie.setPath("/");
         cookie.setHttpOnly(true);
         cookie.setSecure(secureCookie);
         cookie.setMaxAge(0); // 立即过期
         context.addCookie("Strict", cookie);
-        LOG.debug("nop.auth.oauth-state-cookie-cleared:name={}", cookieName);
+        LOG.debug("nop.auth.oauth-state-cookie-cleared:name={}", getCookieName());
     }
 
     /**
@@ -140,12 +148,5 @@ public class StateCookieHelper {
             return "***";
         }
         return state.substring(0, 4) + "***" + state.substring(state.length() - 4);
-    }
-
-    /**
-     * 获取cookie名称（用于配置等）
-     */
-    public String getCookieName() {
-        return cookieName;
     }
 }

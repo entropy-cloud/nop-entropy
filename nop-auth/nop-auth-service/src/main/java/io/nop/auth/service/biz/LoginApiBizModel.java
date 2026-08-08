@@ -60,7 +60,7 @@ public class LoginApiBizModel implements ILoginSpi {
     @Override
     public CompletionStage<LoginResult> getLoginResultAsync(@RequestBean AccessCodeRequest request,
                                                             IServiceContext context) {
-        AuthToken authToken = loginService.parseAuthToken(request.getAccessCode());
+        AuthToken authToken = loginService.parseAccessCode(request.getAccessCode());
         return loginService.getUserContextAsync(authToken, context.getRequestHeaders()).thenApply(this::buildLoginResult);
     }
 
@@ -78,7 +78,7 @@ public class LoginApiBizModel implements ILoginSpi {
     @Override
     public CompletionStage<LoginResult> refreshTokenAsync(@RequestBean RefreshTokenRequest request,
                                                           IServiceContext context) {
-        AuthToken token = loginService.parseAuthToken(request.getRefreshToken());
+        AuthToken token = loginService.parseRefreshToken(request.getRefreshToken());
         return loginService.getUserContextAsync(token, context.getRequestHeaders()).thenApply(this::buildLoginResult);
     }
 

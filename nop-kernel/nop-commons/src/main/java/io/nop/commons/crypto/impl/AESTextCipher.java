@@ -29,13 +29,17 @@ import io.nop.commons.util.StringHelper;
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
 import javax.crypto.CipherOutputStream;
+import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.spec.AlgorithmParameterSpec;
+import java.util.Arrays;
 import java.util.Base64;
 
 import static io.nop.commons.CommonConfigs.CFG_CRYPT_DEFAULT_ENC_KEY;
@@ -46,6 +50,22 @@ public class AESTextCipher implements ITextCipher, IStreamCipher {
     public static final int GCM_IV_LENGTH = 12; // 其他模式的IV长度都是16
 
     public static final int AES_IV_LENGTH = 16;
+
+    /**
+     * 自描述版本化密文格式的版本标记。明文输出形如 {@code v1:<base64(iv||ciphertext+tag>}。
+     * 选用 {@code v1:} 前缀是因为 legacy 输出（base64 或 hex）的字母表都不包含冒号，
+     * 因此 legacy 密文永远不可能以该标记开头，检测规则无歧义。
+     */
+    public static final String V1_MARKER = "v1:";
+
+    /**
+     * v1 格式使用 PBKDF2WithHmacSHA256 派生密钥。salt 取自 {@code saltKey}（为空时使用固定盐）。
+     */
+    public static final int V1_KDF_ITERATIONS = 65536;
+    public static final int V1_KEY_BITS = 256;
+
+    static final byte[] DEFAULT_V1_SALT = HashHelper.sha256(
+            "nop-entropy-aes-v1-default-salt".getBytes(StandardCharsets.UTF_8), new byte[0]);
     static final byte[] DEFAULT_IV = StringHelper
             .hexToBytes(hashWithDefault(CFG_CRYPT_DEFAULT_IV.get(), "*(<K:00a9mf8ia7Nn3^y34%FER{3/"));
 
@@ -67,6 +87,19 @@ public class AESTextCipher implements ITextCipher, IStreamCipher {
 
     private SecretKeySpec secretKey;
     private byte[] iv;
+
+    /**
+     * 是否启用自描述版本化密文格式（默认 true）。v1 格式：每次加密使用随机 IV，
+     * PBKDF2 派生密钥，输出带 {@link #V1_MARKER} 前缀。设置为 false 时回退到 legacy
+     * 行为（静态 IV + MD5 派生密钥），仅用于显式 opt-out 场景。
+     */
+    private boolean versionedFormat = true;
+
+    /**
+     * v1 格式 PBKDF2 派生密钥的缓存。{@link SecretKeySpec} 本身不可变，volatile 保证
+     * 多线程可见性；重新计算是幂等的，因此并发首派生的竞态不会破坏正确性。
+     */
+    private volatile SecretKeySpec v1SecretKey;
 
     public AESTextCipher() {
         this("AES/GCM/NoPadding");
@@ -120,11 +153,27 @@ public class AESTextCipher implements ITextCipher, IStreamCipher {
 
     public void setSaltKey(String saltKey) {
         this.saltKey = saltKey;
+        this.secretKey = null;
+        this.v1SecretKey = null;
     }
 
     public void setEncKey(String encKey) {
         this.encKey = encKey;
         this.secretKey = null;
+        this.v1SecretKey = null;
+    }
+
+    public boolean isVersionedFormat() {
+        return versionedFormat;
+    }
+
+    public void setVersionedFormat(boolean versionedFormat) {
+        this.versionedFormat = versionedFormat;
+    }
+
+    public AESTextCipher versionedFormat(boolean versionedFormat) {
+        this.versionedFormat = versionedFormat;
+        return this;
     }
 
     public String getCipherName() {
@@ -165,6 +214,43 @@ public class AESTextCipher implements ITextCipher, IStreamCipher {
         } catch (Exception e) {
             throw NopException.adapt(e);
         }
+    }
+
+    /**
+     * v1 格式使用 PBKDF2WithHmacSHA256 从 {@code encKey}/{@code saltKey} 派生 AES 密钥。
+     * KDF 按版本标记分派：legacy 走 {@link #buildSecretKey()}（MD5），v1 走本方法。
+     */
+    SecretKeySpec buildV1SecretKey() {
+        SecretKeySpec cached = this.v1SecretKey;
+        if (cached != null) {
+            return cached;
+        }
+        try {
+            byte[] salt = (saltKey == null || saltKey.isEmpty()) ? DEFAULT_V1_SALT
+                    : saltKey.getBytes(StringHelper.CHARSET_UTF8);
+            SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
+            PBEKeySpec spec = new PBEKeySpec(encKey.toCharArray(), salt, V1_KDF_ITERATIONS, V1_KEY_BITS);
+            try {
+                SecretKey tmp = factory.generateSecret(spec);
+                SecretKeySpec key = new SecretKeySpec(tmp.getEncoded(), "AES");
+                this.v1SecretKey = key;
+                return key;
+            } finally {
+                spec.clearPassword();
+            }
+        } catch (Exception e) {
+            throw NopException.adapt(e);
+        }
+    }
+
+    /**
+     * 生成一次性的随机 IV（局部变量，不写入实例字段），保证 v1 加密路径线程安全、
+     * 每条密文使用独立 IV。
+     */
+    byte[] newRandomIv() {
+        byte[] iv = new byte[isGCM() ? GCM_IV_LENGTH : AES_IV_LENGTH];
+        MathHelper.secureRandom().nextBytes(iv);
+        return iv;
     }
 
     AlgorithmParameterSpec getParams(byte[] iv) {
@@ -252,6 +338,35 @@ public class AESTextCipher implements ITextCipher, IStreamCipher {
 
     @Override
     public String encrypt(String text) {
+        if (versionedFormat) {
+            return encryptVersioned(text);
+        }
+        return encryptLegacy(text);
+    }
+
+    /**
+     * v1 自描述格式加密：每次生成新的随机 IV，PBKDF2 派生密钥，输出
+     * {@code v1:} + base64/hex({@code iv || ciphertext+tag})。
+     */
+    String encryptVersioned(String text) {
+        try {
+            byte[] iv = newRandomIv();
+            SecretKeySpec key = buildV1SecretKey();
+            Cipher cipher = Cipher.getInstance(cipherName);
+            cipher.init(Cipher.ENCRYPT_MODE, key, getParams(iv));
+            byte[] cipherBytes = cipher.doFinal(text.getBytes(StringHelper.CHARSET_UTF8));
+            byte[] all = Bytes.concat(iv, cipherBytes);
+            return V1_MARKER + bytesToString(all);
+        } catch (Exception e) {
+            throw NopException.adapt(e);
+        }
+    }
+
+    /**
+     * legacy 加密路径：静态 IV + MD5 派生密钥，仅在显式 opt-out（{@code versionedFormat=false}）
+     * 时使用。保留以兼容不希望引入新格式的调用方。
+     */
+    String encryptLegacy(String text) {
         try {
             Cipher cipher = this.newEncryptCipher();
 
@@ -271,6 +386,44 @@ public class AESTextCipher implements ITextCipher, IStreamCipher {
 
     @Override
     public String decrypt(String text) {
+        if (text != null && text.startsWith(V1_MARKER)) {
+            return decryptVersioned(text);
+        }
+        return decryptLegacy(text);
+    }
+
+    /**
+     * v1 解密：校验 {@code v1:} 前缀，从 payload 中切出 IV 与密文，PBKDF2 派生密钥后解密。
+     * 任何篡改（GCM tag 失败）、截断或格式异常均抛出异常（fail-closed）。
+     */
+    String decryptVersioned(String text) {
+        try {
+            String payload = text.substring(V1_MARKER.length());
+            byte[] data = stringToBytes(payload);
+
+            int ivLen = isGCM() ? GCM_IV_LENGTH : AES_IV_LENGTH;
+            if (data.length < ivLen) {
+                throw new IllegalArgumentException("truncated v1 ciphertext: missing IV");
+            }
+            byte[] iv = Bytes.head(data, ivLen);
+            byte[] cipherBytes = Arrays.copyOfRange(data, ivLen, data.length);
+
+            SecretKeySpec key = buildV1SecretKey();
+            Cipher cipher = Cipher.getInstance(cipherName);
+            cipher.init(Cipher.DECRYPT_MODE, key, getParams(iv));
+            byte[] bytes = cipher.doFinal(cipherBytes);
+
+            return new String(bytes, StringHelper.CHARSET_UTF8);
+        } catch (Exception e) {
+            throw NopException.adapt(e);
+        }
+    }
+
+    /**
+     * legacy 解密路径：读取无 {@code v1:} 前缀的密文，兼容静态 IV（{@code concatIv=false}）
+     * 与前置 IV（{@code concatIv=true}）两种 legacy 形态，使用 MD5 派生密钥。
+     */
+    String decryptLegacy(String text) {
         try {
             byte[] byteContent = stringToBytes(text);
 

@@ -36,6 +36,11 @@ public interface AuthCoreConstants {
 
     String USER_ID_SYS = "sys";
 
+    /**
+     * 来自可信反向代理的租户头；只有显式启用 nop.auth.trust-forwarded-tenant 时才被读取。
+     */
+    String HEADER_X_FORWARDED_TENANT = "X-Forwarded-Tenant";
+
     String NS_BIZ = "auth-when";
 
     String LIB_PATH_BIZ_WHEN = "/nop/core/xlib/biz!when.xlib";

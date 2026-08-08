@@ -20,9 +20,14 @@ public interface AuthCoreConfigs {
     IConfigReference<Boolean> CFG_AUTH_SITE_MAP_SUPPORT_DEBUG = varRef(s_loc, "nop.auth.site-map.support-debug", Boolean.class,
             false);
 
-    @Description("是否设置cookie的secure属性为true")
+    @Description("是否设置cookie的secure属性为true。默认true；本地HTTP开发可通过配置设为false关闭（开发逃生通道）")
     IConfigReference<Boolean> CFG_AUTH_USE_SECURE_COOKIE =
-            varRef(s_loc, "nop.auth.use-secure-cookie", Boolean.class, false);
+            varRef(s_loc, "nop.auth.use-secure-cookie", Boolean.class, true);
+
+    @Description("是否信任来自可信反向代理的 X-Forwarded-Tenant 头。" +
+            "默认false：servicePublic 路径不信任任何客户端提供的租户头，避免租户注入")
+    IConfigReference<Boolean> CFG_AUTH_TRUST_FORWARDED_TENANT =
+            varRef(s_loc, "nop.auth.trust-forwarded-tenant", Boolean.class, false);
 
 
     @Description("是否使用用户ID作为创建人、修改人等审计字段，缺省为false，使用userName")
