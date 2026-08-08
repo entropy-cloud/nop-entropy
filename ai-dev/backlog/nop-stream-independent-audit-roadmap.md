@@ -1,6 +1,6 @@
 # nop-stream 独立深度审计路线图
 
-> Last updated: 2026-08-08 (items 18/19/20 → planned; owner plans linked)
+> Last updated: 2026-08-08 (item 20 → done; owner plan `nop-stream-independent-audit/2026-08-08-2000-3-historical-p0p1-cep-connector-runtime-disposition.md` completed)
 > Sources: `ai-dev/analysis/2026-08/2026-08-06-nop-stream-audit-baseline-and-roadmap-analysis.md` (primary), `ai-dev/backlog/nop-stream-production-roadmap.md` (implementation ownership), `ai-dev/audits/nop-stream-production/2026-08-02-2107-*.md` (current confirmed findings)
 
 ## Purpose
@@ -33,7 +33,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 17. 测试有效性与审计工具治理: `done`
 - 18. 当前 production finding disposition: `done`
 - 19. 历史 P0/P1 checkpoint/state/window finding disposition: `done`
-- 20. 历史 P0/P1 CEP/connector/runtime finding disposition: `planned`
+- 20. 历史 P0/P1 CEP/connector/runtime finding disposition: `done`
 - 21. 历史 P2 core/state/window finding disposition: `todo`
 - 22. 历史 P2 CEP/connector/runtime finding disposition: `todo`
 - 23. 文档契约与 production-readiness 判定: `todo`

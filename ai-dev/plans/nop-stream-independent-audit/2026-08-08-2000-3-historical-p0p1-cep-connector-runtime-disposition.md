@@ -1,6 +1,6 @@
 # 3 Historical P0/P1 CEP/Connector/Runtime Finding Disposition (nop-stream Independent Audit)
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-08
 > Source: `ai-dev/backlog/nop-stream-independent-audit-roadmap.md` (Stage 20); `ai-dev/audits/nop-stream-independent-audit/finding-corpus.md` (Shard 20, frozen); `ai-dev/audits/nop-stream-independent-audit/evidence-schema.md` (frozen, incl. Stage 18 Supplement); live repo HEAD
 > Mission: nop-stream-independent-audit
@@ -61,82 +61,82 @@
 
 ### Phase 1 - P0 finding 裁决（3 条）
 
-Status: planned
+Status: completed
 Targets: `ai-dev/audits/nop-stream-independent-audit/stage-20-hist-p0p1-cep-connector-runtime-disposition.md`
 
 - Item Types: `Proof`
 
-- [ ] 对 Shard 20 全部 P0（3）逐条 live 复验：(a) 核对 anchor `file:line` 在 HEAD 是否存在（**注意**：历史锚点是 07-25 冻结的，代码可能已移动/重构——若行号不匹配，搜索当前 HEAD 中对应方法确认修复是否存在，附新 anchor）；(b) cross-reference Stage 6/12/13 已有 evidence（`M7-2-P0-1`→EVID-S12-002 FIXED、`M7-2-P0-4`→EVID-S12-014 FIXED、`M7-2-P0-6`→EVID-S13-007/EVID-S13-020 RESOLVED）；(c) 三条 P0 均须与对应 stage 结论交叉核对一致性。
-- [ ] 每条 P0 写一条 `@@DISPOSITION`。still-live P0 须落 `active/successor owner`（`owner_plan` 为仓库 plan 路径或 `roadmap-stage-<N>` sentinel）。
+- [x] 对 Shard 20 全部 P0（3）逐条 live 复验：(a) 核对 anchor `file:line` 在 HEAD 是否存在（**注意**：历史锚点是 07-25 冻结的，代码可能已移动/重构——若行号不匹配，搜索当前 HEAD 中对应方法确认修复是否存在，附新 anchor）；(b) cross-reference Stage 6/12/13 已有 evidence（`M7-2-P0-1`→EVID-S12-002 FIXED、`M7-2-P0-4`→EVID-S12-014 FIXED、`M7-2-P0-6`→EVID-S13-007/EVID-S13-020 RESOLVED）；(c) 三条 P0 均须与对应 stage 结论交叉核对一致性。
+- [x] 每条 P0 写一条 `@@DISPOSITION`。still-live P0 须落 `active/successor owner`（`owner_plan` 为仓库 plan 路径或 `roadmap-stage-<N>` sentinel）。
 
 Exit Criteria:
 
-- [ ] disposition 文件含 ≥3 条 `@@DISPOSITION` 覆盖全部 P0 finding ID
-- [ ] `node ai-dev/tools/check-nop-stream-audit-manifest.mjs disposition --shard 20`（**partial 模式，不带 `--strict`**）对已有 3 条 P0 行退出码 0——及早发现格式错误
-- [ ] 每条 still-live P0 落 `active/successor owner`；不存在 P0 still-live 静默降级为 `residual-risk`
-- [ ] `M7-2-P0-1` 裁决与 Stage 6/12（EVID-S12-002 FIXED）一致；`M7-2-P0-4` 裁决与 Stage 12（EVID-S12-014 FIXED）一致；`M7-2-P0-6` 裁决与 Stage 13（EVID-S13-007/020 RESOLVED）一致
-- [ ] 每条 `revalidated`/`stale` 附可复核证据
-- [ ] **无静默跳过**（Rule #24）：无法裁决的 P0 落 `blocked` + 命名 lane
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] disposition 文件含 ≥3 条 `@@DISPOSITION` 覆盖全部 P0 finding ID
+- [x] `node ai-dev/tools/check-nop-stream-audit-manifest.mjs disposition --shard 20`（**partial 模式，不带 `--strict`**）对已有 3 条 P0 行退出码 0——及早发现格式错误
+- [x] 每条 still-live P0 落 `active/successor owner`；不存在 P0 still-live 静默降级为 `residual-risk`
+- [x] `M7-2-P0-1` 裁决与 Stage 6/12（EVID-S12-002 FIXED）一致；`M7-2-P0-4` 裁决与 Stage 12（EVID-S12-014 FIXED）一致；`M7-2-P0-6` 裁决与 Stage 13（EVID-S13-007/020 RESOLVED）一致
+- [x] 每条 `revalidated`/`stale` 附可复核证据
+- [x] **无静默跳过**（Rule #24）：无法裁决的 P0 落 `blocked` + 命名 lane
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - P1 finding 裁决（8 条）
 
-Status: planned
+Status: completed
 Targets: `ai-dev/audits/nop-stream-independent-audit/stage-20-hist-p0p1-cep-connector-runtime-disposition.md`
 
 - Item Types: `Proof`
 
-- [ ] 对 Shard 20 全部 P1（8）逐条 live 复验，优先 cross-reference Stages 6/12/15 evidence row。`M7-2-P1-5`（Stage 6 标 RESOLVED，EVID-S6-011）、`M7-2-P1-9`（Stage 15 标 FIXED，EVID-S15-008）、`M7-2-P1-15`（Stage 15 标 residual-risk）、`M7-2-P1-13/14`（Stage 12 标 residual-risk + Stage 17 successor）须交叉核对一致性。**`M7-2-P1-8`/`M7-2-P1-10`/`M7-2-P1-12` 无先验 evidence**，须从零 live 复验（读代码/跑测试/trace 调用链）。
-- [ ] 每条 P1 写一条 `@@DISPOSITION`。still-live P1 须落 `active/successor owner`（`owner_plan` 为仓库 plan 路径或 `roadmap-stage-<N>` sentinel）。
+- [x] 对 Shard 20 全部 P1（8）逐条 live 复验，优先 cross-reference Stages 6/12/15 evidence row。`M7-2-P1-5`（Stage 6 标 RESOLVED，EVID-S6-011）、`M7-2-P1-9`（Stage 15 标 FIXED，EVID-S15-008）、`M7-2-P1-15`（Stage 15 标 residual-risk）、`M7-2-P1-13/14`（Stage 12 标 residual-risk + Stage 17 successor）须交叉核对一致性。**`M7-2-P1-8`/`M7-2-P1-10`/`M7-2-P1-12` 无先验 evidence**，须从零 live 复验（读代码/跑测试/trace 调用链）。
+- [x] 每条 P1 写一条 `@@DISPOSITION`。still-live P1 须落 `active/successor owner`（`owner_plan` 为仓库 plan 路径或 `roadmap-stage-<N>` sentinel）。
 
 Exit Criteria:
 
-- [ ] disposition 文件含恰好 11 条 `@@DISPOSITION`（3 P0 + 8 P1）覆盖全部 P0/P1 finding ID（≥11 可能掩盖重复 ID，须精确 11）
-- [ ] `node ai-dev/tools/check-nop-stream-audit-manifest.mjs disposition --shard 20`（partial 模式）对已有 11 条退出码 0
-- [ ] 每条 still-live P1 落 `active/successor owner`
-- [ ] `M7-2-P1-5` 裁决与 Stage 6（EVID-S6-011 RESOLVED）一致；`M7-2-P1-9` 裁决与 Stage 15 EVID-S15-008（FIXED）一致；`M7-2-P1-13/14` 裁决与 Stage 12 residual-risk + Stage 17 successor 一致
-- [ ] `M7-2-P1-8`/`M7-2-P1-10`/`M7-2-P1-12` 有从零复验的 live 证据（非空泛"已检查"）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] disposition 文件含恰好 11 条 `@@DISPOSITION`（3 P0 + 8 P1）覆盖全部 P0/P1 finding ID（≥11 可能掩盖重复 ID，须精确 11）
+- [x] `node ai-dev/tools/check-nop-stream-audit-manifest.mjs disposition --shard 20`（partial 模式）对已有 11 条退出码 0
+- [x] 每条 still-live P1 落 `active/successor owner`
+- [x] `M7-2-P1-5` 裁决与 Stage 6（EVID-S6-011 RESOLVED）一致；`M7-2-P1-9` 裁决与 Stage 15 EVID-S15-008（FIXED）一致；`M7-2-P1-13/14` 裁决与 Stage 12 residual-risk + Stage 17 successor 一致
+- [x] `M7-2-P1-8`/`M7-2-P1-10`/`M7-2-P1-12` 有从零复验的 live 证据（非空泛"已检查"）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - AR finding 裁决（4 条 verified-fixed 确认）与全 shard 收口
 
-Status: planned
+Status: completed
 Targets: `ai-dev/audits/nop-stream-independent-audit/stage-20-hist-p0p1-cep-connector-runtime-disposition.md`
 
 - Item Types: `Proof`
 
-- [ ] 对 4 条 `O7-2-AR-1..4`（`status_at_0802: verified-fixed`）在当前 HEAD 确认仍 fixed。**anchor 漂移处理**（corpus anchor 是 07-25 冻结的，代码已重构）：若 corpus anchor 不再匹配，搜索当前 HEAD 中对应的重命名/迁移方法（预记录：O7-2-AR-1 → `OperatorChain.deepCopy()` 约 line 244；O7-2-AR-2 → `nop-stream-connector-batch/StreamConnectors.java`），确认修复逻辑存在后判 `revalidated`，附新 anchor 作为 revalidation evidence。
-- [ ] 每条 AR 写一条 `@@DISPOSITION`：仍 fixed → `revalidated`（附 revalidation 证据 + 新 anchor）；若 regression → `active/successor owner`；若整个机制被架构变更移除使 finding 不再适用 → `stale`（附 `stale_rationale` 说明移除点）。
-- [ ] header 写全 shard 统计：15 条 disposition 分布 × severity 交叉表、× domain 交叉表。
-- [ ] 全 shard 15 条完整性核对。
+- [x] 对 4 条 `O7-2-AR-1..4`（`status_at_0802: verified-fixed`）在当前 HEAD 确认仍 fixed。**anchor 漂移处理**（corpus anchor 是 07-25 冻结的，代码已重构）：若 corpus anchor 不再匹配，搜索当前 HEAD 中对应的重命名/迁移方法（预记录：O7-2-AR-1 → `OperatorChain.deepCopy()` 约 line 244；O7-2-AR-2 → `nop-stream-connector-batch/StreamConnectors.java`），确认修复逻辑存在后判 `revalidated`，附新 anchor 作为 revalidation evidence。
+- [x] 每条 AR 写一条 `@@DISPOSITION`：仍 fixed → `revalidated`（附 revalidation 证据 + 新 anchor）；若 regression → `active/successor owner`；若整个机制被架构变更移除使 finding 不再适用 → `stale`（附 `stale_rationale` 说明移除点）。
+- [x] header 写全 shard 统计：15 条 disposition 分布 × severity 交叉表、× domain 交叉表。
+- [x] 全 shard 15 条完整性核对。
 
 Exit Criteria:
 
-- [ ] disposition 文件含恰好 15 条 `@@DISPOSITION`，覆盖 Shard 20 全部 finding ID（`M7-2-P0-1,4,6`、`M7-2-P1-5,8,9,10,12,13,14,15`、`O7-2-AR-1,2,3,4`）
-- [ ] `node ai-dev/tools/check-nop-stream-audit-manifest.mjs disposition --shard 20 --strict` 退出码 0（15 条完整、词表合法、字段依赖满足、`owner_plan` 为仓库路径或合法 `roadmap-stage-<N>` sentinel）
-- [ ] `node ai-dev/tools/check-nop-stream-audit-manifest.mjs self-test` 退出码 0
-- [ ] header 统计：disposition × severity 交叉表存在且 15 条合计一致
-- [ ] O7-2-AR-1..4 每条有当前 HEAD 的 fixed-confirmation（仍 fixed → `revalidated` + 证据 + 新 anchor；regression → `active/successor owner`；机制移除 → `stale` + rationale）
-- [ ] 不存在 P0/P1 still-live defect 静默降级为 `residual-risk`
-- [ ] **无静默跳过**（Rule #24）
-- [ ] 若复验发现新 confirmed live defect，已按 roadmap 规则指派 remediation plan
-- [ ] `No owner-doc update required`（disposition 是审计基础设施）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] disposition 文件含恰好 15 条 `@@DISPOSITION`，覆盖 Shard 20 全部 finding ID（`M7-2-P0-1,4,6`、`M7-2-P1-5,8,9,10,12,13,14,15`、`O7-2-AR-1,2,3,4`）
+- [x] `node ai-dev/tools/check-nop-stream-audit-manifest.mjs disposition --shard 20 --strict` 退出码 0（15 条完整、词表合法、字段依赖满足、`owner_plan` 为仓库路径或合法 `roadmap-stage-<N>` sentinel）
+- [x] `node ai-dev/tools/check-nop-stream-audit-manifest.mjs self-test` 退出码 0
+- [x] header 统计：disposition × severity 交叉表存在且 15 条合计一致
+- [x] O7-2-AR-1..4 每条有当前 HEAD 的 fixed-confirmation（仍 fixed → `revalidated` + 证据 + 新 anchor；regression → `active/successor owner`；机制移除 → `stale` + rationale）
+- [x] 不存在 P0/P1 still-live defect 静默降级为 `residual-risk`
+- [x] **无静默跳过**（Rule #24）
+- [x] 若复验发现新 confirmed live defect，已按 roadmap 规则指派 remediation plan
+- [x] `No owner-doc update required`（disposition 是审计基础设施）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > **纯审计/数据计划**：不改 nop-stream 生产代码。closure 以 validator 退出码 + disposition 完整性为证据。
 
-- [ ] Shard 20 全部 15 条 finding 各有恰好一条 `@@DISPOSITION`（completeness + no-dup）
-- [ ] 每条裁决值在 5-value 词表内，字段依赖满足
-- [ ] 不存在 P0/P1 still-live defect 静默降级为 `residual-risk`
-- [ ] 不存在被静默降级到 deferred/follow-up 的 in-scope finding
-- [ ] `active/successor owner` 的 `owner_plan` 为仓库内存在的 plan 路径或合法 `roadmap-stage-<N>` sentinel
-- [ ] O7-2-AR-1..4 verified-fixed 在当前 HEAD 已 reconfirm（含 anchor 漂移处理：新 anchor 记录在 revalidation_evidence 中）
-- [ ] `node ai-dev/tools/check-nop-stream-audit-manifest.mjs disposition --shard 20 --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-nop-stream-audit-manifest.mjs self-test` 退出码 0
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 验证（a）每条 `revalidated` 有可复核证据，（b）每条 `active/successor owner` owner plan 真实存在，（c）无 finding 被静默丢弃
+- [x] Shard 20 全部 15 条 finding 各有恰好一条 `@@DISPOSITION`（completeness + no-dup）
+- [x] 每条裁决值在 5-value 词表内，字段依赖满足
+- [x] 不存在 P0/P1 still-live defect 静默降级为 `residual-risk`
+- [x] 不存在被静默降级到 deferred/follow-up 的 in-scope finding
+- [x] `active/successor owner` 的 `owner_plan` 为仓库内存在的 plan 路径或合法 `roadmap-stage-<N>` sentinel
+- [x] O7-2-AR-1..4 verified-fixed 在当前 HEAD 已 reconfirm（含 anchor 漂移处理：新 anchor 记录在 revalidation_evidence 中）
+- [x] `node ai-dev/tools/check-nop-stream-audit-manifest.mjs disposition --shard 20 --strict` 退出码 0
+- [x] `node ai-dev/tools/check-nop-stream-audit-manifest.mjs self-test` 退出码 0
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 验证（a）每条 `revalidated` 有可复核证据，（b）每条 `active/successor owner` owner plan 真实存在，（c）无 finding 被静默丢弃
 
 ## Deferred But Adjudicated
 
@@ -148,14 +148,26 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写>>
-Completed: <<YYYY-MM-DD>>
+Status Note: Shard 20 全部 15 条 finding（3 P0 + 8 P1 + 4 AR）逐条 live-revalidation 完成，全部裁决 `revalidated`（缺陷在当前 HEAD 已修复或经正式裁定不再成立）。纯审计/数据计划，不改 nop-stream 生产代码；closure 以 validator 退出码 + disposition 完整性 + 独立 closure audit 为证据。O7-2-AR-1..4 verified-fixed 在当前 HEAD reconfirm 无 regression（anchor 漂移已处理，新 anchor 记录在 revalidation_evidence）。P1-8/P1-10/P1-12 三条无先验 evidence 的 finding 从零 live 复验（P1-8/P1-10 FIXED 含 dedicated regression tests；P1-12 Anti-Hollow-exempted non-goal per Stage 11 EVID-S11-016）。test-effectiveness P1（P1-13/14/15）由已完成 remediation plan 全部修复。
+Completed: 2026-08-08
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Evidence: <<逐条 Exit Criterion / Closure Gate 验证结果 + validator 退出码 + Anti-Hollow 检查>>
+- Reviewer / Agent: 独立子 agent (task ses_02139f06affem8urjs7O2C7x5t, general-type, fresh session)
+- Evidence:
+  - **Check 1 (Completeness + no-dup)**: PASS — 恰好 15 条 `@@DISPOSITION`，覆盖全部 Shard 20 finding ID（M7-2-P0-1,4,6 / M7-2-P1-5,8,9,10,12,13,14,15 / O7-2-AR-1,2,3,4），无重复、无遗漏
+  - **Check 2 (Vocabulary legality)**: PASS — 全部 15 条 `revalidated`，在 5-value 词表内
+  - **Check 3 (Conditional fields)**: PASS — 全部 `revalidated` 附非空 `revalidation_evidence`
+  - **Check 4 (No silent P0/P1 downgrade)**: PASS — 全部 3 P0 + 8 P1 均 `revalidated`，零 `residual-risk` / `active/successor owner`
+  - **Check 5 (Anti-Hollow spot-check, 3/3 verified against live source)**:
+    - M7-2-P1-8: InputGate.java:378-399 `readSingleChannel` catch block (:390-398) calls `Thread.currentThread().interrupt()` (:396) + returns `Optional.empty()` (:397) — interrupt restored, not swallowed ✅
+    - M7-2-P1-10: ResultPartition.java:316-329 `close()` uses blocking `queue.put(END_OF_STREAM)` (:320), NO `queue.clear()`; InterruptedException rethrown (:327) ✅
+    - O7-2-AR-1: OperatorChain.java:244-250 `deepCopy()` calls `op.copyForSubtask()` per operator (:247); non-copyable throws UnsupportedOperationException ✅
+  - **Check 6 (Header cross-tabs)**: PASS — disposition×severity (revalidated: 3 P0 + 8 P1 + 4 AR = 15) + disposition×domain (4 CEP + 8 coordinator/runtime + 3 connector = 15) 均一致
+  - **Check 7 (Validator)**: PASS — `node ai-dev/tools/check-nop-stream-audit-manifest.mjs disposition --shard 20 --strict` exit 0 (73 disposition rows validated); `self-test` exit 0
+  - **Deferred 项分类检查**: N/A — 本计划无 deferred 项；全部 15 条 in-scope finding 各有唯一终态裁决
 
 Follow-up:
 
-- <<只记录 non-blocking follow-up；confirmed live defect 不得出现在这里>>
+- no remaining plan-owned work
+- Stage 23（文档契约与 production-readiness 判定，roadmap status `todo`）将消费本 shard 及 Stage 18/19 disposition 结果做最终 readiness 判定
