@@ -159,7 +159,9 @@ IChannelBindProvider(对应信道) 收到信道回调
 
 **为什么绑定记录用 `NopAuthExtLogin` 而不新建表？** 该表语义就是"平台 userId ↔ 第三方 extId 的绑定"——`extId` 列注释即"第三方系统中对应的用户唯一标识"，飞书 open_id、钉钉 unionId 都是其实例。只需扩展 `auth/login-type` 字典（当前为整数码 `1`=密码、`10`=单点，见 §六 OQ），不增表。
 
-**唯一性约束（必须的 schema 变更）**：当前 `NopAuthExtLogin` 无 `(loginType, extId)` 唯一键，仅有一条 `user` 关联。扫码登录要求"一个信道 extId 唯一映射到一个平台 userId"，否则两个用户绑定同一飞书 open_id 会让 extId→userId 二义、登录错乱。因此**必须为 `NopAuthExtLogin` 增加 `(loginType, extId)` 唯一索引**（仅对 `verified=1 AND delFlag=0` 的有效绑定生效；通过应用层在 completeBinding 时校验，或建条件唯一索引）。这是本设计显式要求的 schema 变更，不隐藏在"不增迁移"措辞背后。
+**唯一性约束（必须的 schema 变更）**：当前 `NopAuthExtLogin` 无 `(loginType, extId)` 唯一键，仅有一条 `user` 关联。扫码登录要求"一个信道 extId 唯一映射到一个平台 userId"，否则两个用户绑定同一飞书 open_id 会让 extId→userId 二义、登录错乱。因此**必须为 `NopAuthExtLogin` 增加 `(loginType, extId)` 唯一索引**。这是本设计显式要求的 schema 变更，不隐藏在"不增迁移"措辞背后。
+
+**约束实现方式裁定（W0 已收口）**：采用**普通唯一约束 + 应用层兜底**（即原"方案 B"），而非条件唯一索引。理由：① MySQL 无原生 partial unique index，条件索引在 MySQL 上需变通（生成列/触发器），三种数据库（MySQL/PostgreSQL/Oracle）无法用统一 DDL 表达；② 本仓库既有 `NopAuthUser.userName` 已确立"普通唯一键 + `useLogicalDelete`"模式（软删行同样受唯一约束约束），本约束与之保持一致，DB 无关；③ 有效绑定条件 `verified=1 AND delFlag=0` 的过滤校验在 `IChannelBindService.completeBinding`（W3）应用层完成，**重绑定时先物理清理或复用旧软删行**（unbind 同一 extId 后重绑，应用层将旧 `delFlag=1` 行物理删除或原地置 `delFlag=0` 复用），避免软删行阻塞重绑定。这条裁定收口了原 Open Question 中的二选一。
 
 **扫码登录（③）**——复用既有登录主流程的一次性 `accessCode` 机制（`ILoginService.parseAccessCode` / `ILoginSpi.getLoginResultAsync(AccessCodeRequest)` 已存在）：
 
@@ -244,5 +246,5 @@ nop-biz-auth-core     无变化（不引入集成依赖）
 - [ ] `IChannelMessageService` 出站多绑定用户的信道选择策略默认值（最近活跃 vs 优先级表）——倾向"最近活跃 + 调用方可指定 channelType 覆盖"。
 - [ ] 入站消息在多消费者部署下经 `IMessageService` 骨干时，`InboundChannelMessage` 的 topic 命名约定（`channel.inbound.{channelType}` vs 按业务域分）。
 - [ ] 飞书扫码绑定的 `qrPayload` 是用飞书"扫码登录"二维码还是自建券 + 飞书机器人推送——影响 `FeishuBindProvider` 实现选型。
-- [ ] `auth/login-type` 字典当前为整数码（`1`=密码、`10`=单点）。需为 feishu/dingtalk/wecom 分配新整数码（建议 `20`+，避开已有）及对应中文 label。
+- [x] `auth/login-type` 字典当前为整数码（`1`=密码、`10`=单点）。需为 feishu/dingtalk/wecom 分配新整数码（建议 `20`+，避开已有）及对应中文 label。**W0 已收口**：`20`=飞书、`21`=钉钉、`22`=企微、`23`=Webhook，权威源 `nop-service-framework/nop-biz-auth-core/src/main/resources/_vfs/dict/auth/login-type.dict.yaml` 已扩展。
 - [ ] 附件/多媒体：`OutboundChannelMessage.attachments` 如何与传输层 `ChannelCapabilities`（supportsFileUpload 等，见 channel-connector 文档 §8）协商——目标信道不支持时的降级策略（转链接？拒绝？）。

@@ -20,11 +20,11 @@
 
 ## Work Items
 
-### W0. 基础与 Schema（前置，最高优先）
+### W0. 基础与 Schema（前置，最高优先）✅
 
-- [ ] W0-1 `NopAuthExtLogin` 加 `(loginType, extId)` 唯一索引（设计 §3.4 强制要求；当前 `nop-auth/model/nop-auth.orm.xml` 的 NopAuthExtLogin 实体无 `<unique-keys>`，对照 NopAuthUser 有）。有效绑定条件 `verified=1 AND delFlag=0`，选条件唯一索引或在 `completeBinding` 应用层先查后写 + DB 兜底唯一约束。**ORM 变更纪律**：编辑 `model/*.orm.xml` 源 → `mvn clean install -DskipTests` 触发增量重新生成 → 迁移 DDL；**禁止手编 `_gen/` 与 `_` 前缀生成产物**。Proof：`_gen/` 未被手改 + DDL 迁移可执行。
-- [ ] W0-2 扩展 `auth/login-type` 字典（当前整数码 `1`=密码/`10`=单点，`stdDataType=int`）：分配 `20`=飞书、`21`=钉钉、`22`=企微、`23`=Webhook（建议码段，避开已有），加中文 label。**先定位权威源**（非 `_dump/` 生成产物；nop 中 dict 权威源通常在 `_vfs/.../dict/` 或 app 模型源），编辑源后重新生成。
-- [ ] W0-3 新建模块 `nop-integration/nop-integration-feishu`：`pom.xml`（`<parent>`=nop-integration）**并在 `nop-integration/pom.xml` 的 `<modules>` 增加 `<module>nop-integration-feishu</module>`**（当前 9 模块无 feishu，不加则 `-pl nop-integration -am` 不构建本模块）；依赖 `nop-integration-api`（**不依赖任何 `nop-ai/*` 与 `nop-auth/*`**，保证厂商协议可被非 AI 场景复用）；包结构 `io.nop.integration.feishu.{client,codec,bind}`。Proof：`./mvnw compile -pl nop-integration-feishu -am` 成功 + `grep nop-ai nop-integration-feishu/pom.xml` 为空。
+- [x] W0-1 `NopAuthExtLogin` 加 `(loginType, extId)` 唯一索引（设计 §3.4 强制要求；当前 `nop-auth/model/nop-auth.orm.xml` 的 NopAuthExtLogin 实体无 `<unique-keys>`，对照 NopAuthUser 有）。有效绑定条件 `verified=1 AND delFlag=0`，选条件唯一索引或在 `completeBinding` 应用层先查后写 + DB 兜底唯一约束。**ORM 变更纪律**：编辑 `model/*.orm.xml` 源 → `mvn clean install -DskipTests` 触发增量重新生成 → 迁移 DDL；**禁止手编 `_gen/` 与 `_` 前缀生成产物**。Proof：`_gen/` 未被手改 + DDL 迁移可执行。**裁定（已落地）**：采用普通唯一约束（方案 B）+ 应用层兜底；`UK_NOP_AUTH_EXT_LOGIN_TYPE_EXTID` 已写入源 + 三方言生成 DDL + 三方言迁移 `_add_ext_login_unique.sql`。
+- [x] W0-2 扩展 `auth/login-type` 字典（当前整数码 `1`=密码/`10`=单点，`stdDataType=int`）：分配 `20`=飞书、`21`=钉钉、`22`=企微、`23`=Webhook（建议码段，避开已有），加中文 label。**先定位权威源**（非 `_dump/` 生成产物；nop 中 dict 权威源通常在 `_vfs/.../dict/` 或 app 模型源），编辑源后重新生成。**已落地**：权威源 `nop-service-framework/nop-biz-auth-core/src/main/resources/_vfs/dict/auth/login-type.dict.yaml` 已含 6 项。
+- [x] W0-3 新建模块 `nop-integration/nop-integration-feishu`：`pom.xml`（`<parent>`=nop-integration）**并在 `nop-integration/pom.xml` 的 `<modules>` 增加 `<module>nop-integration-feishu</module>`**（当前 9 模块无 feishu，不加则 `-pl nop-integration -am` 不构建本模块）；依赖 `nop-integration-api`（**不依赖任何 `nop-ai/*` 与 `nop-auth/*`**，保证厂商协议可被非 AI 场景复用）；包结构 `io.nop.integration.feishu.{client,codec,bind}`。Proof：`./mvnw compile -pl nop-integration-feishu -am` 成功 + `grep nop-ai nop-integration-feishu/pom.xml` 为空。**已落地**：BUILD SUCCESS + 依赖纯净（`rg "nop-ai|nop-auth"` 无匹配）+ 0 checkstyle violations。
 
 ### W1. 传输层 IChannelConnector（channel-connector 设计落地）
 
@@ -73,7 +73,7 @@
 
 ### W7. Owner-doc 同步
 
-- [ ] W7-1 设计 §3.5 表 `IChannelConnector` 行由 `nop-ai-agent` 改为 `nop-ai-gateway`（与本 roadmap 模块裁定一致）；设计/roadmap 中 `AgentEventPublisher` 统一为 `IAgentEventPublisher`（实际类型名，含传输设计文档 `nop-ai-agent/nop-ai-agent-channel-connector.md` 全部出现处）。实现完成后关键结论同步到 `docs-for-ai/`（若有对外使用契约）。
+- [ ] W7-1 设计 §3.5 表 `IChannelConnector` 行由 `nop-ai-agent` 改为 `nop-ai-gateway`（与本 roadmap 模块裁定一致）；设计/roadmap 中 `AgentEventPublisher` 统一为 `IAgentEventPublisher`（实际类型名，含传输设计文档 `ai-dev/design/nop-ai-agent/nop-ai-agent-channel-connector.md` 全部出现处）。实现完成后关键结论同步到 `docs-for-ai/`（若有对外使用契约）。
 
 ## 完成定义
 
