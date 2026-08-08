@@ -189,18 +189,40 @@ sequenceDiagram
     participant BP as IChannelBindProvider
     participant BS as IChannelBindService
     participant EL as NopAuthExtLogin
+    participant SB as ISessionBootstrap<br/>(LoginServiceImpl impl)
+    participant UC as IUserContextCache
     participant LS as ILoginSpi.getLoginResultAsync
     FE->>GW: 1. createBindTicket → 展示 qrPayload
     Note over FE, GW: 用户扫码确认
     GW->>BP: 2. 信道扫码回调到达
-    BP->>BS: 3. completeBinding / lookup(extId)
-    BS->>EL: 4. 查/写绑定 → 得到 platformUserId
-    GW->>GW: 5. 用 userId 经 IAuthTokenProvider.generateAccessCode<br/>签发一次性 accessCode（签名令牌，无需 store）
-    FE->>LS: 6. getLoginResultAsync(AccessCodeRequest)
-    LS-->>FE: 7. LoginResult(accessToken/refreshToken)
+    BP-->>GW: 3. ChannelBindResult(extId)
+    GW->>BS: 4. findBinding(channelType, extId)
+    BS->>EL: 5. 查绑定 → 得到 platformUserId
+    GW->>SB: 6. createSessionForUserAsync(userId)
+    SB->>SB: 7. buildUserContext(roles/tenant/dept)<br/>+ saveSession(sessionId/tokens)
+    SB->>UC: 8. saveUserContextAsync(ctx) 写两缓存
+    SB-->>GW: 9. UserContext(含 sessionId)
+    GW->>GW: 10. IAuthTokenProvider.generateAccessCode(ctx, ttl)<br/>签发一次性 accessCode
+    GW-->>FE: 11. accessCode
+    FE->>LS: 12. getLoginResultAsync(AccessCodeRequest)
+    LS->>UC: 13. parseAccessCode → getUserContextAsync(sessionId) 命中缓存
+    LS-->>FE: 14. LoginResult(accessToken/refreshToken)
 ```
 
-控制方向是：扫码回调（在 `nop-ai-gateway`）解析出 userId → 签发一次性 `accessCode` → 前端拿 `accessCode` 调既有 `ILoginSpi.getLoginResultAsync(AccessCodeRequest)` 换取 `LoginResult`。**不改动 `ILoginService` / `ILoginSpi` 的契约**，扫码登录只是"如何得到 accessCode"的一种新来源。新增信道扫码登录只需实现 `IChannelBindProvider`，登录主流程零改动。
+控制方向是：扫码回调（在 `nop-ai-gateway`）解析出 userId → 创建 session → 签发一次性 `accessCode` → 前端拿 `accessCode` 调既有 `ILoginSpi.getLoginResultAsync(AccessCodeRequest)` 换取 `LoginResult`。**不改动 `ILoginService` / `ILoginSpi` / `IAuthTokenProvider` / `LoginApiBizModel` 的既有契约**，扫码登录只是"如何得到 accessCode"的一种新来源。新增信道扫码登录只需实现 `IChannelBindProvider`，登录主流程零改动。
+
+**session 创建路径裁定（W4 Phase 0 收口）**：accessCode 消费链 `ILoginService.getUserContextAsync(AuthToken, headers)`（`AbstractLoginService:62-64`）→ `doGetUserContext(sessionId)` → `IUserContextCache.getUserContextAsync(sessionId)`（`AbstractUserContextCache:52-70`）是**按 sessionId 查缓存**：要求 `userContextCache.getAsync(sessionId)` 命中且 `userSessionCache.get(userName)` 等于该 sessionId，两者皆不满足则返回 null → `buildLoginResult(null)` 抛 `ERR_AUTH_SESSION_EXPIRED`。扫码登录场景（用户首次扫码、无预存 session）**必须先创建 session 并写入两缓存**，否则签发的 accessCode 无法被消费。
+
+经代码级 spike 在两条路径中裁定：
+
+- **路径 A（gateway session 编排）——拒绝**。gateway 直接调 `IUserContextCache.saveUserContextAsync` + `IAuthTokenProvider.generateAccessToken/RefreshToken` 创建 session。**致命缺口 (1)**：完整 `UserContextImpl`（roles/tenant/dept）的构建逻辑封装在 `LoginServiceImpl.buildUserContext`（`nop-auth-service`），依赖 `IDaoProvider` + `NopAuthUser`/`NopAuthRole`/`NopAuthDept` 实体（`nop-auth-dao`）；gateway 不依赖 `nop-auth-service`/`nop-auth-dao`，重建该加载逻辑会造成错误方向的依赖与代码复制。若退化为只存最小 context（无 roles/tenant），则 `LoginResult.userInfo` 残缺（无角色/租户），是真实功能缺陷而非 watch-only residual。缓存拓扑（缺口 3）在单体部署下虽共享 `LocalUserContextCache` 实例，但不解决缺口 (1)。
+- **路径 B2（auth 层 additive SPI）——选定**。在 `nop-biz-auth-core` 新增公开接口 `ISessionBootstrap.createSessionForUserAsync(userId) → CompletionStage<IUserContext>`，由 `LoginServiceImpl`（`nop-auth-service`）实现，**复用既有 `buildUserContext` + `saveSession` + `saveUserContextAsync`**——产生与凭证登录完全一致的 session（含 roles/tenant/dept/tokens）。
+  - **为何用新接口而非给 `ILoginService` 加 additive 方法**：roadmap 完成定义要求"未改 `ILoginService`/`ILoginSpi`/`IAuthTokenProvider` 契约"。新接口使这三个既有接口**字面零修改**（四文件 hash 对比证明），`LoginServiceImpl` 新增 `implements ISessionBootstrap` + 方法体属实现变更（非契约），是最忠实地满足"登录主流程零改动"的方式。`ISessionBootstrap` 是 `nop-biz-auth-core` 的 additive 模块表面（新文件），与 `ILoginSessionStore`/`IUserContextCache` 同级，语义上是"为已认证用户引导 session"（密码登录/扫码/SSO 通用）。
+  - **缓存拓扑**：`ISessionBootstrap` 的实现 bean 在生产装配中是 `LoginServiceImpl`（`nop-auth-service`），与消费侧 `LoginApiBizModel`（`nop-auth-service`）同 JVM、同 IoC 容器、同 `LocalUserContextCache` 实例——session 写入对消费侧立即可见。单体部署无需分布式 cache。gateway 仅经 `nop-biz-auth-core` 依赖取 `ISessionBootstrap` 接口，运行时由容器注入 auth-service 的实现 bean。
+  - **往返调用链（经代码验证）**：platformUserId → `ISessionBootstrap.createSessionForUserAsync` → `getUserByUserId` → `buildUserContext`（DB 加载 roles/dept/tenant）→ `saveSession`（`loginSessionStore` 生成 sessionId + `IAuthTokenProvider.generateAccessToken/RefreshToken`）→ `IUserContextCache.saveUserContextAsync`（写 `userSessionCache` + `userContextCache`）→ gateway 调 `IAuthTokenProvider.generateAccessCode(ctx, ttl)` 签 JWT（含 userName+sessionId）→ 消费侧 `parseAccessCode` 得 AuthToken(sessionId) → `getUserContextAsync(sessionId)` 命中 `userContextCache` 且 `userSessionCache.get(userName)` 匹配 → 返回完整 UserContext。
+  - **gateway 测试拓扑**：gateway 模块测试不引入 `nop-auth-service`（重量级，需 `IDaoProvider`/H2），改用 `ISessionBootstrap` 测试桩（构造 `UserContextImpl` + UUID sessionId + `IAuthTokenProvider` 真实签 token + 写真实 `IUserContextCache`），验证 gateway 编排链 + accessCode 往返（generateAccessCode→parseAccessCode→getUserContextAsync 命中）。真实 `LoginServiceImpl.createSessionForUserAsync` 的 DB 加载行为留待 W6-2 E2E（与 `getLoginResultAsync` 全链验证同期），本 plan 在 Phase 2 显式裁定此降级（裁定 A）。
+
+**roadmap 完成定义诚实修正**：原 W4 关键裁定假设"accessCode 可直接签发消费"，未意识到 session 创建的必要性。经 Phase 0 spike 证实，必须新增 `ISessionBootstrap` SPI 用于 session 引导。但此变更**不破坏 roadmap 的硬性完成定义**——`ILoginService`/`ILoginSpi`/`IAuthTokenProvider` 三既有契约字面零修改（hash 对比证明），`LoginApiBizModel` 零修改，仅新增 `ISessionBootstrap` 接口（additive 模块表面）与 `LoginServiceImpl` 实现方法（实现层）。"登录主流程零改动"在"既有登录方法契约不变"的严格意义上成立。
 
 ### 3.5 模块归属与依赖
 
