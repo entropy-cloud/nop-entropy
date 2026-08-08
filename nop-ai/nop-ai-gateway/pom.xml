@@ -35,6 +35,15 @@
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-ai-dao</artifactId>
         </dependency>
+        <!-- Business message layer (W2): IChannelMessageService impl bridges
+             OutboundChannelMessage (nop-integration-api) to the transport-layer
+             ChannelOutboundMessage via UserChannelResolver + ChannelConnectorManager.
+             nop-integration-api depends only on nop-api-core, so this edge
+             introduces no cycle. -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-integration-api</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>

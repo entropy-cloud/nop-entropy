@@ -26,4 +26,24 @@
         </property>
     </bean>
 
+    <!-- Business message layer (W2): the usage-layer facade that routes
+         identity-anchored OutboundChannelMessage (nop-integration-api) to the
+         transport-layer IChannelConnector via the resolver + manager. The
+         UserChannelResolver impl lives in nop-auth-service and is injected
+         optionally (ioc:optional) so a channel-less gateway deployment that
+         does not include nop-auth-service still starts — sendToUser then
+         returns NO_BINDING. ChannelConnectorManager is always present (same
+         beans file above). -->
+    <bean id="channelMessageService"
+          class="io.nop.ai.gateway.channel.ChannelMessageServiceImpl"
+          ioc:type="io.nop.integration.api.channel.IChannelMessageService"
+          ioc:default="true">
+        <property name="userChannelResolver">
+            <ref bean="userChannelResolver" ioc:optional="true"/>
+        </property>
+        <property name="channelConnectorManager">
+            <ref bean="channelConnectorManager"/>
+        </property>
+    </bean>
+
 </beans>
