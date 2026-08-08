@@ -265,7 +265,7 @@ public class ChannelCapabilities {
 </bean>
 ```
 
-凭证通过 Nop 标准的配置加密机制（`nop-config-encrypt`）保护，不使用明文文件。
+凭证通过 Nop 标准的配置加密机制保护，不使用明文文件。实际机制为 `DefaultConfigValueEnhancer`（`nop-core-framework/nop-config`，实现 `IConfigValueEnhancer`）识别配置值的 `@sec:` 前缀（常量 `CommonConstants.SEC_VALUE_PREFIX` / `ConfigConstants.CFG_SEC_PREFIX`），匹配后经 `AESTextCipher`（`io.nop.commons.crypto.impl`，实现 `ITextCipher`）解密。即 `@InjectValue("${nop.integration.feishu.appSecret}")` 注入的 `@sec:...` 形式值会被自动解密。（术语修正：原文档此处写的 `nop-config-encrypt` 不是实际模块名，实际走 `DefaultConfigValueEnhancer` + `@sec:` 前缀 + `AESTextCipher` 路径。）
 
 ## 11. 飞书适配器参考设计
 
@@ -313,7 +313,16 @@ public class ChannelCapabilities {
 
 ## 14. Open Questions
 
-- [ ] 飞书 Stream SDK 的 Java 版本选型——官方 SDK (`oapi-sdk-java`) 还是独立实现？
+- [x] 飞书 Stream SDK 的 Java 版本选型——官方 SDK (`oapi-sdk-java`) 还是独立实现？
+  - **裁定（W5-0 / 2026-08-09）：独立实现（选项 B）**。
+  - **决定性理由**：
+    1. **baseline 前提修正**：选项 B 的"无外部依赖"前提在 Java 11+ 项目中成立——`java.net.http.HttpClient` 与 `java.net.http.WebSocket` 是 JDK 标准库（自 Java 11 起）。本项目 `<maven.compiler.release>11</maven.compiler.release>`，故 WebSocket 传输经 JDK 零外部依赖获得。baseline 原将"Java 11 HttpClient"与 OkHttp/Netty 并列为"须引入的 WebSocket 客户端库"系误判。
+    2. **`oapi-sdk-java` 体积失称**：官方 SDK 是全平台客户端（im/contact/doc/drive/… 全部服务模型）并自带 shaded protobuf（`larksuite-oapi-shaded-protobuf`）——SDK 自身 shade protobuf 正说明 protobuf 版本冲突是真实痛点。把整套 SDK 引入"厂商协议层"模块（roadmap 要求该模块可被非 AI 场景复用）会让所有消费方耦合飞书全量 SDK。仓库先例 `sms-tencent→qcloudsms` 不具类比性：`qcloudsms` 是聚焦 SMS 的小库，非全平台 SDK。
+    3. **roadmap 硬性要求最大化满足**：roadmap 要求 `FeishuPbCodec` "独立可测（纯字节进出，不依赖网络或 SDK 连接）"。选项 B 下 codec 覆盖完整 Pbbp2 帧编解码（method=0 CONTROL / 1 DATA / 2 ACK），作为一等组件被完整单测；选项 A 下 SDK 内部自有帧编解码，codec 沦为边缘。
+    4. **避开 protobuf 依赖**：`protobuf` 未被 `nop-bom` 管理。为单一 Frame 消息（method/headers/payload 三字段）手写 protobuf wire format（发布标准 https://protobuf.dev/programming-guides/encoding/）约 80 行自洽代码，规避引入 `protobuf-java` 及其版本管理负担。
+  - **外部依赖后果：无**。`nop-integration-feishu` 模块的 pom 维持单一依赖 `nop-integration-api`。WebSocket 传输 = `java.net.http.WebSocket`（JDK stdlib）；Open API 调用 = `java.net.http.HttpClient`（JDK stdlib）；帧编解码 = 手写 protobuf wire format（无 `protobuf-java`）。
+  - **拒绝的替代（选项 A）理由**：(a) 依赖足迹失称（全平台 SDK + shaded protobuf）；(b) 边缘化 roadmap 要求的独立可测 `FeishuPbCodec`；(c) protobuf 版本冲突风险（SDK 自身 shading 即证据）；(d) 飞书 SDK 版本锁定与升级风险。
+  - **wire-format 来源**：protobuf 编码规则为发布标准；Frame 消息结构（method/headers/payload 字段）由官方飞书/Lark SDK 包结构（`com.lark.oapi.core.ws`）及跨语言一致性（Go/Java/Node SDK）佐证。字段号级 wire 兼容性于 W6 E2E 对真实飞书 Stream 服务器验证（归入 plan 的 Deferred But Adjudicated，非静默跳过）。
 - [ ] 群聊场景下 @机器人 的消息过滤策略——是否只处理 @当前机器人 的消息？
 - [ ] 长文本响应的分段发送策略——飞书消息有长度限制，超长响应如何分段？
 - [ ] 多媒体消息（图片、文件）的支持范围——是否通过工具（file-upload / file-download）实现？
