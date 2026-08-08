@@ -317,6 +317,15 @@ Recorded so successor authors need not re-audit the toolkit runtime:
   `HttpClientConfig.dnsResolver` (`HttpClientConfig.java:66`) holds a public
   `IDnsResolver` (`IDnsResolver.java:38-49`) — a pre-existing resolver-injection point
   that Plan 336 should evaluate before declaring a public `IHttpClient` migration.
+  > **Updated 2026-08-08 by Plan 336 (M-4 resolved):** the toolkit now ships
+  > `SsrfAddressGuard` (shared validation utility) and `SsrfGuardDnsResolver` (validating
+  > `IDnsResolver` implementation) in `io.nop.ai.toolkit.tools.ssrf`. Both
+  > `HttpRequestExecutor` and `GraphqlQueryExecutor` route pre-flight host validation through
+  > `SsrfAddressGuard.validateHost`, which normalizes encoded IP representations (decimal/hex/
+  > IPv6-mapped) and rejects internal/loopback/link-local/CGN/metadata addresses. The
+  > `SsrfGuardDnsResolver` provides transport-level enforcement (connection pinning +
+  > DNS-rebinding rejection + redirect-hop re-validation for supporting clients). No public
+  > `IHttpClient` contract change.
 - Resolver/transport test seams: `IHttpClient` is an injectable interface
   (`HttpRequestExecutor.java:40-43`), so a fake client can assert "no request was sent for
   a denied target" — this is the seam Plan 336 will use for no-request transport assertions.

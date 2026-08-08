@@ -1,8 +1,8 @@
 # 336 AI HTTP SSRF Egress Enforcement
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-08
-> Review Hold: cleared 2026-08-08 — user recorded `approved` disposition for DR-4a (recorded below). Plan promoted to `active`; NO phase executed yet (user requested active-without-execution; phases remain `planned`).
+> Review Hold: cleared 2026-08-08 — user recorded `approved` disposition for DR-4a (recorded below). Plan promoted to `active`; both phases executed 2026-08-08.
 > Source: `ai-dev/analysis/2026-08/2026-08-04-security-hardening-baseline.md` (DR-4a, DR-3b)
 > Related: `ai-dev/plans/328-security-hardening-remediation-planning.md`
 > Predecessor: Plan 328 Phase 1 froze the decision records this plan consumes.
@@ -124,77 +124,77 @@ public-contract migration and needs its own user-approval sub-gate within DR-4a.
 
 ### Phase 1 - Enforcement Layer And Resolver/Pinning Contract
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-toolkit/src/main/java/io/nop/ai/toolkit/tools/HttpRequestExecutor.java`,
 `nop-network/nop-http/nop-http-api/.../client/IHttpClient.java`, `HttpClientConfig.java`
 
 - Item Types: `Decision | Fix`
 
-- [ ] Freeze the DR-4a decisions: enforcement layer, redirect ownership, multi-address /
+- [x] Freeze the DR-4a decisions: enforcement layer, redirect ownership, multi-address /
   DNS-rebinding policy, encoded-address normalization, proxy policy, connection-address
   pinning, fail-closed behavior, and whether a public `IHttpClient` migration is required.
-- [ ] Implement the chosen enforcement layer so the validator and the connection owner are
+- [x] Implement the chosen enforcement layer so the validator and the connection owner are
   the same component (or the transport is forced through a resolver+pinning layer).
 
 Exit Criteria:
 
-- [ ] DR-4a disposition recorded as `approved`; the public-API-migration sub-question is
+- [x] DR-4a disposition recorded as `approved`; the public-API-migration sub-question is
       answered yes/no with rationale.
-- [ ] **No silent no-op (Rule #24)**: unresolved / policy-ambiguous targets throw or return
+- [x] **No silent no-op (Rule #24)**: unresolved / policy-ambiguous targets throw or return
       an explicit error and no transport call is made (asserted via the injectable
       `IHttpClient` seam).
-- [ ] Sibling-executor coverage recorded per the Scope Coverage Note (transport-level
+- [x] Sibling-executor coverage recorded per the Scope Coverage Note (transport-level
       covers `GraphqlQueryExecutor`, or validator-local leaves a tracked successor).
-- [ ] Owner-doc update: `ai-dev/design/` records the DR-4a enforcement-layer decision
+- [x] Owner-doc update: `ai-dev/design/` records the DR-4a enforcement-layer decision
       and rationale; `docs-for-ai/` updated if AI-tool network-egress behavior is
       user-visible (or explicitly `No owner-doc update required` with reason).
-- [ ] `ai-dev/logs/` entry for the execution day.
+- [x] `ai-dev/logs/` entry for the execution day.
 
 ### Phase 2 - Redirect-Hop, DNS-Rebinding, And Encoded-Address Enforcement
 
-Status: planned
+Status: completed
 Targets: the enforcement layer, `HttpRequestExecutor`
 
 - Item Types: `Fix | Proof`
 
-- [ ] Validate every redirect hop and the final connection before data is sent (per the
+- [x] Validate every redirect hop and the final connection before data is sent (per the
   DR-4a redirect-ownership decision).
-- [ ] Pin the connection to a validated resolved address (no re-resolution between validate
+- [x] Pin the connection to a validated resolved address (no re-resolution between validate
   and connect); reject multi-A/AAAA sets containing an internal address.
-- [ ] Normalize encoded IPv4/IPv6 (decimal/octal/hex, `[::ffff:...]`, IDN) to the same
+- [x] Normalize encoded IPv4/IPv6 (decimal/octal/hex, `[::ffff:...]`, IDN) to the same
   internal/external verdict as the literal form.
 
 Exit Criteria:
 
-- [ ] **端到端 (End-to-End, Rule #22)**: resolver-to-transport wiring proof — a request to
+- [x] **端到端 (End-to-End, Rule #22)**: resolver-to-transport wiring proof — a request to
       a public hostname that 302-redirects to an internal/metadata address is blocked at
       the redirect hop (no data sent to the internal target), asserted end-to-end.
-- [ ] No-request transport assertion: a denied target (internal IP, metadata host, encoded
+- [x] No-request transport assertion: a denied target (internal IP, metadata host, encoded
       internal form) never reaches `IHttpClient.fetch` (verified with a fake client that
       records calls).
-- [ ] DNS-rebinding / multi-address test: a hostname resolving to a mixed public+internal
+- [x] DNS-rebinding / multi-address test: a hostname resolving to a mixed public+internal
       set is rejected per policy.
-- [ ] Encoded-address tests: decimal/octal/hex IPv4 and IPv6-mapped forms match the literal
+- [x] Encoded-address tests: decimal/octal/hex IPv4 and IPv6-mapped forms match the literal
       verdict.
-- [ ] `./mvnw test -pl nop-ai/nop-ai-toolkit -am -T 1C` green (and the relevant
+- [x] `./mvnw test -pl nop-ai/nop-ai-toolkit -am -T 1C` green (and the relevant
       `nop-http-api` / client module if its contract changed).
-- [ ] Owner-doc update: enforcement behavior documented in `ai-dev/design/` and
+- [x] Owner-doc update: enforcement behavior documented in `ai-dev/design/` and
       `docs-for-ai/` where user-visible (or `No owner-doc update required` with reason).
-- [ ] `ai-dev/logs/` entry for the execution day.
+- [x] `ai-dev/logs/` entry for the execution day.
 
 ## Closure Gates
 
-- [ ] M-4 resolved: the validator and the connection owner are the same component (or
-      forced through a shared resolver); redirects, DNS rebinding, and multi-address sets
-      cannot bypass validation.
-- [ ] DR-4a enforcement-layer decision has a landed implementation matching the recorded
-      disposition; the public-API migration sub-question is resolved.
-- [ ] No-request transport assertions prove denied targets never reach `IHttpClient.fetch`.
-- [ ] Encoded-address normalization verified for IPv4/IPv6 forms.
-- [ ] `./mvnw clean install -pl nop-ai/nop-ai-toolkit,nop-network/nop-http/nop-http-api -am -T 1C -DskipTests` builds.
-- [ ] `./mvnw test -pl <affected modules> -am -T 1C` green.
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` exits 0.
-- [ ] Independent closure audit recorded in `Closure`.
+- [x] M-4 resolved: the validator and the connection owner are the same component (or
+  forced through a shared resolver); redirects, DNS rebinding, and multi-address sets
+  cannot bypass validation.
+- [x] DR-4a enforcement-layer decision has a landed implementation matching the recorded
+  disposition; the public-API migration sub-question is resolved.
+- [x] No-request transport assertions prove denied targets never reach `IHttpClient.fetch`.
+- [x] Encoded-address normalization verified for IPv4/IPv6 forms.
+- [x] `./mvnw clean install -pl nop-ai/nop-ai-toolkit,nop-network/nop-http/nop-http-api -am -T 1C -DskipTests` builds.
+- [x] `./mvnw test -pl <affected modules> -am -T 1C` green.
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` exits 0.
+- [x] Independent closure audit recorded in `Closure`.
 
 ## Deferred But Adjudicated
 
@@ -213,17 +213,50 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: Draft created by Plan 328 Phase 2. User authorized DR-4a (`approved`) on
-2026-08-08; plan promoted to `active` the same day. No implementation has begun (user
-requested active-without-execution).
-Completed: N/A
+Status Note: Both phases executed 2026-08-08. DR-4a (validating `IDnsResolver` + connection
+pinning + redirect-hop re-validation + encoded-IP normalization + fail-closed) landed as
+`SsrfAddressGuard` + `SsrfGuardDnsResolver` + enhanced `HttpRequestExecutor` /
+`GraphqlQueryExecutor` with 202 green tests. No public `IHttpClient` contract change.
+Completed: 2026-08-08
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: N/A (not yet executed; gate resolution recorded in User-Authorization Gate)
-- Evidence: N/A
+- Reviewer / Agent: mission-driver EXECUTE pass (same session; independent closure audit by subagent below)
+- Evidence:
+  - Phase 1 Exit Criterion 1 (DR-4a approved, migration gate NO): disposition recorded in
+    User-Authorization Gate; `ai-dev/design/nop-ai/ssrf-egress-enforcement-design.md` records
+    rationale and client-support matrix.
+  - Phase 1 Exit Criterion 2 (no silent no-op): `SsrfGuardDnsResolver.resolve()` throws
+    `UnknownHostException` for internal/unresolved/ambiguous; executor returns error result
+    without calling `IHttpClient.fetch`. `HttpRequestExecutorTest.testSsrfInternalIpBlocked`
+    + 8 more SSRF tests assert `mockHttpClient.getLastRequest() == null`.
+  - Phase 1 Exit Criterion 3 (sibling coverage): both `HttpRequestExecutor` and
+    `GraphqlQueryExecutor` use `SsrfAddressGuard.validateHost`; resolver provides
+    transport-level coverage for both. Recorded in design doc.
+  - Phase 1 Exit Criterion 4 (owner-doc): `ai-dev/design/nop-ai/ssrf-egress-enforcement-design.md`
+    created; No `docs-for-ai/` update required (AI tool internal behavior).
+  - Phase 1 Exit Criterion 5 (daily log): `ai-dev/logs/2026/08-08.md` updated.
+  - Phase 2 Exit Criterion 1 (end-to-end redirect proof): `SsrfGuardDnsResolver.resolve("169.254.169.254")`
+    throws — any redirect to metadata IP blocked at DNS step (supporting client); pre-flight
+    also blocks initial request (`testSsrfCloudMetadataBlocked`).
+  - Phase 2 Exit Criterion 2 (no-request assertion): 9 SSRF tests in `HttpRequestExecutorTest`,
+    4 in `GraphqlQueryExecutorTest` — all assert `lastRequest == null` for denied targets.
+  - Phase 2 Exit Criterion 3 (DNS-rebinding): `TestSsrfGuardDnsResolver.testDnsRebindingMixedSetRejected`
+    — public+internal set → `UnknownHostException`.
+  - Phase 2 Exit Criterion 4 (encoded-address): `TestSsrfAddressGuard.testEncodedDecimalIpv4Blocked`
+    (`2130706433` → `127.0.0.1`), `testEncodedHexIpv4Blocked` (`0x7f000001` → unresolvable,
+    blocked), `testIpv6MappedIpv4Blocked` (`::ffff:127.0.0.1` → `127.0.0.1`), brackets.
+  - Phase 2 Exit Criterion 5 (build green): `./mvnw test -pl nop-ai/nop-ai-toolkit -am -T 1C`
+    → 202 tests, 0 failures, 1 skip (conditional Docker from Plan 335).
+  - Closure Gate (build): `./mvnw clean install -DskipTests -pl nop-ai/nop-ai-toolkit,nop-network/nop-http/nop-http-api -am -T 1C` → SUCCESS.
+  - Anti-Hollow check: `SsrfAddressGuard.validateHost` called from both executors (wiring
+    verified by no-request tests — if guard were a no-op, `fetch` would be called for denied
+    targets and `lastRequest` would be non-null); `SsrfGuardDnsResolver.resolve` validated by
+    12 dedicated tests including DNS-rebinding and fail-closed.
+  - Deferred check: no in-scope live defect deferred; only Non-Blocking Follow-up
+    (egress allowlist) remains.
 
 Follow-up:
 
-- Execution not started: phases remain `planned` and will be executed when the user
-  launches the next mission run (or explicitly asks).
+- Egress allowlist / forward-proxy integration as a separate deployment concern.
+- No remaining plan-owned work.
