@@ -266,6 +266,95 @@ class TestFeishuConnector {
                 "existing sessionId must be reused in the execute request");
     }
 
+    // ---- W6-1 Phase 1: long-text segmentation / rate limit / @bot shape ----
+
+    @Test
+    void longTextReplyIsSegmentedByMaxMessageLength() {
+        connector.start(ctx());
+        connector.onMessage(dmMessage("oc_long", "ou_s", "q"));
+
+        // 5000-char response (no newlines) — must split into 2 segments of <=4000
+        StringBuilder sb = new StringBuilder(5000);
+        for (int i = 0; i < 500; i++) {
+            sb.append("0123456789");
+        }
+        String longText = sb.toString();
+        engine.lastFuture.complete(resultWithAssistant(longText));
+
+        assertTrue(feishuClient.sendMessageCount > 1,
+                "long assistant text must be segmented into multiple sendMessage calls");
+        // each segment envelope is {"text":"..."}; recover and rejoin
+        StringBuilder rejoined = new StringBuilder(longText.length());
+        for (String envelope : feishuClient.sentContents) {
+            rejoined.append(FeishuConnector.extractJsonTextField(envelope, "text"));
+        }
+        assertEquals(longText, rejoined.toString(),
+                "segments must concatenate back to the original text without loss");
+    }
+
+    @Test
+    void longTextWithNewlinesPrefersNewlineBoundary() {
+        connector.start(ctx());
+        connector.onMessage(dmMessage("oc_nl", "ou_s", "q"));
+
+        // 3 lines each ~2000 chars: total > 4000 but each newline window allows
+        // a clean cut at the first newline boundary rather than mid-line.
+        String line = repeat('a', 2000);
+        String longText = line + "\n" + line + "\n" + line;
+        engine.lastFuture.complete(resultWithAssistant(longText));
+
+        assertTrue(feishuClient.sendMessageCount >= 2, "must segment across newlines");
+        StringBuilder rejoined = new StringBuilder(longText.length());
+        for (String envelope : feishuClient.sentContents) {
+            rejoined.append(FeishuConnector.extractJsonTextField(envelope, "text"));
+        }
+        assertEquals(longText, rejoined.toString(),
+                "newline-boundary segmentation must still concatenate to the original");
+    }
+
+    @Test
+    void rateLimitGuardSuppressesEngineExecuteWhenExceeded() {
+        // lower the limit so the guard triggers after 2 messages (3000 is impractical)
+        connector.rateLimitPerMinute = 2;
+        connector.start(ctx());
+
+        // within limit: both messages reach the engine
+        connector.onMessage(dmMessage("oc_r1", "ou_s", "q1"));
+        connector.onMessage(dmMessage("oc_r2", "ou_s", "q2"));
+        assertEquals(2, engine.executeCount, "within limit: execute called for both");
+
+        // over limit: 3rd message must NOT reach the engine; explicit reply instead
+        connector.onMessage(dmMessage("oc_r3", "ou_s", "q3"));
+        assertEquals(2, engine.executeCount, "over limit: 3rd message must NOT call execute");
+        assertTrue(feishuClient.sendMessageCount > 0, "rate-limit reply must be sent");
+        assertTrue(feishuClient.lastContent.contains("请求过于频繁"),
+                "reply must mention rate limit: " + feishuClient.lastContent);
+    }
+
+    @Test
+    void botMentionParsedFromDocumentedPayloadShape() {
+        connector.start(ctx());
+
+        // positive: documented Feishu mention shape (key + id.open_id) → processed
+        String documented = "[{\"key\":\"@_user_1\",\"id\":{\"open_id\":\"ou_bot\","
+                + "\"union_id\":\"on_x\",\"name\":\"Bot\"}}]";
+        connector.onMessage(groupMessage("oc_gp", "ou_s", "hi", documented));
+        assertEquals(1, engine.executeCount,
+                "group message with documented-shape @bot mention must be processed");
+
+        // negative: mentions array has content but NOT the documented shape
+        // (no key/open_id markers) → treated as "未 @" → skipped
+        connector.onMessage(groupMessage("oc_gn", "ou_s", "hi", "[\"bare_string\"]"));
+        assertEquals(1, engine.executeCount,
+                "non-documented mention shape must NOT be processed (treated as not-@)");
+    }
+
+    private static String repeat(char c, int n) {
+        char[] a = new char[n];
+        java.util.Arrays.fill(a, c);
+        return new String(a);
+    }
+
     // ---- stubs ------------------------------------------------------------
 
     private static void assertSame(Object expected, Object actual) {
@@ -294,6 +383,7 @@ class TestFeishuConnector {
         int sendMessageCount;
         String lastContent;
         String lastReceiveId;
+        final List<String> sentContents = new ArrayList<>();
         IMessageHandler registeredHandler;
 
         @Override
@@ -313,10 +403,11 @@ class TestFeishuConnector {
         }
 
         @Override
-        public void sendMessage(String receiveIdType, String receiveId, String msgType, String content) {
+        public synchronized void sendMessage(String receiveIdType, String receiveId, String msgType, String content) {
             sendMessageCount++;
             this.lastReceiveId = receiveId;
             this.lastContent = content;
+            this.sentContents.add(content);
         }
     }
 

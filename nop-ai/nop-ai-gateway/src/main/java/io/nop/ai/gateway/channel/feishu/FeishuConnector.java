@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -79,6 +80,16 @@ public class FeishuConnector implements IChannelConnector, IMessageHandler {
 
     private static final int MAX_MESSAGE_LENGTH = 4000;
 
+    /**
+     * Default inbound rate limit (messages per rolling 60s window). Mirrors
+     * {@link ChannelCapabilities#getRateLimitPerMinute()}. Kept as a mutable
+     * package-private field so focused tests can lower it to trigger the
+     * guard quickly (sending 3000+ real messages is impractical); production
+     * leaves the default.
+     */
+    static final int DEFAULT_RATE_LIMIT_PER_MINUTE = 3000;
+    private static final long RATE_LIMIT_WINDOW_MS = 60_000L;
+
     @Inject
     protected FeishuClient feishuClient;
 
@@ -88,6 +99,17 @@ public class FeishuConnector implements IChannelConnector, IMessageHandler {
     private volatile ChannelConnectorContext context;
     private volatile boolean started = false;
     private ChannelCapabilities capabilities;
+
+    /**
+     * Inbound rate-limit window: timestamps of accepted inbound messages
+     * within the last {@link #RATE_LIMIT_WINDOW_MS}. Guarded by
+     * {@link #rateLimitLock} so the evict+count+add sequence is atomic under
+     * concurrent {@code onMessage} invocations.
+     */
+    private final List<Long> inboundWindow = new ArrayList<>();
+    private final Object rateLimitLock = new Object();
+
+    int rateLimitPerMinute = DEFAULT_RATE_LIMIT_PER_MINUTE;
 
     public void setFeishuClient(FeishuClient feishuClient) {
         this.feishuClient = feishuClient;
@@ -112,7 +134,7 @@ public class FeishuConnector implements IChannelConnector, IMessageHandler {
             capabilities.setSupportsGroupChat(true);
             capabilities.setSupportsMentions(true);
             capabilities.setMaxMessageLength(MAX_MESSAGE_LENGTH);
-            capabilities.setRateLimitPerMinute(3000);
+            capabilities.setRateLimitPerMinute(rateLimitPerMinute);
         }
         return capabilities;
     }
@@ -197,8 +219,7 @@ public class FeishuConnector implements IChannelConnector, IMessageHandler {
         if (reply.isEmpty()) {
             reply = "[空消息]";
         }
-        feishuClient.sendMessage(RECEIVE_ID_TYPE_CHAT, channelAddress, MSG_TYPE_TEXT,
-                toJsonText(reply));
+        deliverSegmented(channelAddress, reply);
     }
 
     // ---- IMessageHandler (inbound path) ----------------------------------
@@ -231,6 +252,16 @@ public class FeishuConnector implements IChannelConnector, IMessageHandler {
         String text = extractUserText(message);
         if (text == null || text.isEmpty()) {
             LOG.debug("feishu-connector ignoring message with no extractable text in chat {}", chatId);
+            return;
+        }
+
+        // inbound rate-limit guard (W6-1): a rolling 60s window caps the
+        // inbound messages forwarded to IAgentEngine. Over the limit the
+        // connector replies explicitly ("请求过于频繁") and does NOT call
+        // engine.execute — never a silent drop (Minimum Rules #24).
+        if (!tryAcquireInbound()) {
+            LOG.warn("feishu-connector inbound rate limit exceeded for chat {}; replying and not forwarding", chatId);
+            deliverSegmented(chatId, "请求过于频繁，请稍后再试");
             return;
         }
 
@@ -331,11 +362,80 @@ public class FeishuConnector implements IChannelConnector, IMessageHandler {
     }
 
     private void sendReply(String chatId, String text) {
-        try {
-            feishuClient.sendMessage(RECEIVE_ID_TYPE_CHAT, chatId, MSG_TYPE_TEXT, toJsonText(text));
-        } catch (Exception e) {
-            LOG.error("feishu-connector failed to send reply to chat {}", chatId, e);
+        deliverSegmented(chatId, text);
+    }
+
+    /**
+     * Send {@code text} to {@code chatId}, splitting it into ordered segments
+     * when its length exceeds {@link #MAX_MESSAGE_LENGTH} (W6-1 §7.2.1).
+     * Splitting prefers newline boundaries (so semantic units are not cut),
+     * falls back to a hard cut when no newline falls inside a window, and
+     * never loses characters — the concatenation of all segments equals the
+     * original text. Each segment is sent as its own
+     * {@code feishuClient.sendMessage} call. A send failure is logged and the
+     * remaining segments are still attempted (no silent swallow).
+     */
+    void deliverSegmented(String chatId, String text) {
+        if (text == null || text.isEmpty()) {
+            return;
         }
+        List<String> segments = splitIntoSegments(text, MAX_MESSAGE_LENGTH);
+        for (String seg : segments) {
+            try {
+                feishuClient.sendMessage(RECEIVE_ID_TYPE_CHAT, chatId, MSG_TYPE_TEXT, toJsonText(seg));
+            } catch (Exception e) {
+                // explicit log, then continue with the remaining segments
+                LOG.error("feishu-connector failed to send a segment to chat {}", chatId, e);
+            }
+        }
+    }
+
+    /**
+     * Rolling-window inbound admission (W6-1 §7.2.2). Atomically evicts
+     * timestamps older than the 60s window, then admits the current message
+     * only if the window is below {@link #rateLimitPerMinute}. The accepted
+     * message's timestamp is recorded; a rejected message is NOT recorded
+     * (so the window drains naturally once load subsides).
+     *
+     * @return {@code true} if admitted (caller proceeds to engine.execute);
+     *         {@code false} if over the limit (caller replies and returns)
+     */
+    private boolean tryAcquireInbound() {
+        long now = System.currentTimeMillis();
+        long cutoff = now - RATE_LIMIT_WINDOW_MS;
+        synchronized (rateLimitLock) {
+            inboundWindow.removeIf(ts -> ts < cutoff);
+            if (inboundWindow.size() >= rateLimitPerMinute) {
+                return false;
+            }
+            inboundWindow.add(now);
+            return true;
+        }
+    }
+
+    static List<String> splitIntoSegments(String text, int maxLen) {
+        if (text.length() <= maxLen) {
+            List<String> single = new ArrayList<>(1);
+            single.add(text);
+            return single;
+        }
+        List<String> out = new ArrayList<>();
+        int start = 0;
+        int n = text.length();
+        while (start < n) {
+            int end = Math.min(start + maxLen, n);
+            if (end < n) {
+                // prefer to cut just past the last newline inside the window
+                // (keeps a line intact within one segment)
+                int nl = text.lastIndexOf('\n', end - 1);
+                if (nl > start) {
+                    end = nl + 1;
+                }
+            }
+            out.add(text.substring(start, end));
+            start = end;
+        }
+        return out;
     }
 
     private static String toJsonText(String text) {
@@ -392,8 +492,10 @@ public class FeishuConnector implements IChannelConnector, IMessageHandler {
     /**
      * Minimal JSON "text" field extractor for the Feishu content envelope
      * (avoids a runtime JSON provider dependency, mirrors FeishuJsons).
+     * Package-private so focused tests can recover the segment text from the
+     * {@code {"text":"..."}} envelope that {@link #toJsonText} produces.
      */
-    private static String extractJsonTextField(String json, String key) {
+    static String extractJsonTextField(String json, String key) {
         String needle = "\"" + key + "\"";
         int i = json.indexOf(needle);
         if (i < 0) {
@@ -470,8 +572,15 @@ public class FeishuConnector implements IChannelConnector, IMessageHandler {
     }
 
     /**
-     * Group {@code @bot} detection: check the raw payload for a non-empty
-     * {@code mentions} array. Real payload-shape calibration is W6 E2E.
+     * Group {@code @bot} detection (W6-1 §7.2.3, fork (c)). Parses the Feishu
+     * {@code im.message.receive_v1} event {@code mentions} array and
+     * recognizes the documented mention shape — each element carries
+     * {@code "key":"@_user_N"} and {@code "id":{"open_id":"ou_..."}}. Absent /
+     * empty array, or elements lacking the documented markers, are treated as
+     * "not @bot" (correct semantics: a group message that does not mention
+     * the bot is not replied to). Precise matching of the bot's own
+     * {@code open_id} is deferred to the real-Feishu E2E (watch-only), since
+     * the bot identity is not available without touching nop-integration-feishu.
      */
     private static boolean isBotMentioned(FeishuInboundMessage message) {
         byte[] raw = message.getRawPayload();
@@ -479,12 +588,10 @@ public class FeishuConnector implements IChannelConnector, IMessageHandler {
             return false;
         }
         String json = new String(raw, StandardCharsets.UTF_8);
-        // Feishu event payload carries an "mentions" array; absence or empty → not mentioned
         int idx = json.indexOf("\"mentions\"");
         if (idx < 0) {
             return false;
         }
-        // check whether the array is non-empty (contains at least one element object)
         int colon = json.indexOf(':', idx + 9);
         if (colon < 0) {
             return false;
@@ -498,7 +605,14 @@ public class FeishuConnector implements IChannelConnector, IMessageHandler {
             return false;
         }
         String inside = json.substring(arrOpen + 1, arrClose).trim();
-        return !inside.isEmpty();
+        if (inside.isEmpty()) {
+            return false;
+        }
+        // documented shape markers: a real Feishu mention element exposes both
+        // "key":"@_user_N" and "id":{"open_id":...}. Require both so a
+        // non-documented element shape (e.g. a bare string) is NOT mistaken
+        // for a bot mention — missing-field case is treated as "未 @".
+        return inside.indexOf("\"key\"") >= 0 && inside.indexOf("\"open_id\"") >= 0;
     }
 
     private FeishuCredentials resolveCredentials(ChannelConfig config) {

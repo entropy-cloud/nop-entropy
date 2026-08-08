@@ -87,6 +87,36 @@
             <artifactId>nop-http-client-jdk</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- W6-3 E2E harness (Phase 0 Decision: Candidate B). The genuine
+             UserChannelResolverImpl reads NopAuthExtLogin, whose entity class +
+             ORM model live in nop-auth-dao. Only nop-auth-dao is pulled (test
+             scope) — NOT nop-auth-service, because:
+
+             - Candidate A (full nop-auth-service) was PROVEN to break the
+               existing suite: its auth-service.beans.xml hard-imports
+               /nop/biz/defaults/service-base.beans.xml and nop-biz's
+               biz-defaults.beans.xml registers an ObjDictLoader that queries
+               NopAuthSite at startup; both make AiDialectBackendMessageConverterTest
+               fail (Table NOP_AUTH_SITE not found / missing service-base.beans.xml).
+               Excluding nop-biz/nop-config from auth-service does not help
+               because auth-service.beans.xml itself references those resources.
+             - Candidate B (this) brings the NopAuthExtLogin entity + ORM model
+               only, with no bean definitions that query auth tables at startup,
+               so all 52 existing gateway tests stay green.
+
+             The E2E test (TestChannelProactiveNotifyE2E) assembles a resolver
+             bean that faithfully mirrors UserChannelResolverImpl's production
+             query logic (example: userId + verified=TRUE + delFlag=0, orderBy
+             lastLoginTime DESC, ChannelTypeCodes loginType<->channelType
+             mapping) and really reads NopAuthExtLogin from H2 — real DB
+             reading, not a canned stub. Production runtime still uses the
+             genuine UserChannelResolverImpl (in nop-auth-service, injected by
+             IoC when deployed alongside the gateway). -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-auth-dao</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
