@@ -40,6 +40,21 @@ public class TestFluxWebCrudPage extends JunitBaseTestCase {
         List<?> columns = (List<?>) crud.get("columns");
         assertTrue(columns.size() >= 4, "columns should include data columns plus rowActions column");
 
+        // 默认多选 checkbox
+        assertEquals(Map.of("type", "checkbox"), crud.get("selection"),
+                "crud should default to checkbox selection");
+
+        // 序号列：固定左侧、宽度 50、居中
+        Map<String, Object> firstCol = (Map<String, Object>) columns.get(0);
+        assertEquals("index", firstCol.get("type"), "first column should be index column");
+        assertEquals("left", firstCol.get("fixed"), "index column should be fixed left");
+        assertEquals("50", String.valueOf(firstCol.get("width")), "index column width should be 50");
+        assertEquals("center", firstCol.get("align"), "index column should be centered");
+
+        // 首个数据列固定左侧（GenGridCol colIndex==0 → left）
+        Map<String, Object> secondCol = (Map<String, Object>) columns.get(1);
+        assertEquals("left", secondCol.get("fixed"), "first data column should be fixed left");
+
         Map<String, Object> lastCol = (Map<String, Object>) columns.get(columns.size() - 1);
         assertNotNull(lastCol.get("buttons"), "last column should be rowActions column with buttons");
         assertEquals("right", lastCol.get("fixed"), "rowActions column should be fixed right");

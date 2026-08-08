@@ -21,18 +21,24 @@
         const _loadApiNorm = xpl('thisLib:NormalizeApi', gridApi, genScope);
         const loadAction = _loadApiNorm != null ? {action:'ajax', args: _loadApiNorm} : null;
         const crudName = pageModel.table.name || 'crud-grid';
+
+        // 默认多选 checkbox（selectable 显式 false 时关闭；picker 模式走自带选择，不生成）。
+        // 序号列固定左侧，首个数据列由 GenGridCol 固定左侧（colIndex==0 → left）。
+        const isPicker = pageModel.type == 'picker';
+        const selection = !isPicker && gridModel.selectable !== false ? {type:'checkbox'} : null;
     ]]></c:script>
 
-    <c:if test="${pageModel.type == 'picker'}">
+    <c:if test="${isPicker}">
        <size>${pageModel.size || 'lg'}</size>
        <modalSize>${pageModel.size || 'lg'}</modalSize>
        <source xpl:attrs="xpl('thisLib:NormalizeApi',gridApi,genScope)" valueField="id"
                labelField="${objMeta?.displayProp}" filter="${filter?.toJsonObject()}"/>
     </c:if>
 
-    <crud xpl:is="${pageModel.type == 'picker'? 'pickerSchema': 'crud'}" name="${crudName}" id="${crudName}"
+    <crud xpl:is="${isPicker? 'pickerSchema': 'crud'}" name="${crudName}" id="${crudName}"
           xpl:attrs="xpl('thisLib:FluxGridDefaultAttrs', gridModel)"
           defaultParams="${pageModel.defaultParams}"
+          selection="${selection}"
     >
 
         <toolbar j:list="true">
@@ -55,6 +61,7 @@
         </queryForm>
 
         <columns j:list="true">
+            <column type="index" name="index" label="@i18n:common.index" width="50" fixed="left" align="center" toggled="false"/>
             <thisLib:GenGridCols gridModel="${gridModel}" objMeta="${objMeta}" ignoreCols="${genScope.ignoreCols}"
                                  filterForm="${pageModel.autoGenerateFilter ? filterForm:null}"/>
             <column type="operation" label="@i18n:common.operation" name="operation"

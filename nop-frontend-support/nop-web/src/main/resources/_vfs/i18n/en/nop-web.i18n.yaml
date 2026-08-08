@@ -13,6 +13,7 @@ common:
   submit: Submit
   reset: Reset
   operation: Operation
+  index: Index
   cancel: Cancel
   confirm: Confirm
   confirmDelete: Confirm Deleted?
