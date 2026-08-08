@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 // check-nop-stream-audit-manifest.mjs
 //
-// Validator for the nop-stream independent audit "度量衡" (Stage 4 + Stage 5):
+// Validator for the nop-stream independent audit "度量衡" (Stage 4 + Stage 5 + Stage 18):
 //   - manifest     : execute every manifest selection command and compare to expected denominator
 //   - corpus       : check finding IDs unique, shard totals consistent, severity/domain vocabulary legal
 //   - evidence     : check evidence-row fields complete + disposition vocabulary legal
 //   - qualification: check @@LANE lane-registry blocks (Stage 5): frozen_strength/status vocabulary, blocked-reason/positive-result rules
+//   - disposition  : check @@DISPOSITION finding-disposition blocks (Stage 18): 5-value vocabulary, conditional fields, owner_plan path/sentinel, completeness
 //   - self-test    : positive control — proves each checker REJECTS known-bad input (no silent skip)
 //
 // Rule #24 (No Silent No-Op): a missing/unknown field or an out-of-vocabulary value is a hard error
@@ -16,8 +17,9 @@
 //   node ai-dev/tools/check-nop-stream-audit-manifest.mjs corpus         [--strict]
 //   node ai-dev/tools/check-nop-stream-audit-manifest.mjs evidence       [--strict]
 //   node ai-dev/tools/check-nop-stream-audit-manifest.mjs qualification  [--strict]
+//   node ai-dev/tools/check-nop-stream-audit-manifest.mjs disposition [--shard <N>] [--strict]
 //   node ai-dev/tools/check-nop-stream-audit-manifest.mjs self-test
-//   node ai-dev/tools/check-nop-stream-audit-manifest.mjs                (default: runs manifest+corpus+evidence+qualification)
+//   node ai-dev/tools/check-nop-stream-audit-manifest.mjs                (default: runs manifest+corpus+evidence+qualification+disposition)
 
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -41,6 +43,31 @@ const DISPOSITION_VOCAB = new Set([
 ]);
 const LANE_VOCAB = new Set(['unit', 'in-process', 'multi-jvm', 'none']);
 const LANE_STRENGTH = { none: 0, unit: 1, 'in-process': 2, 'multi-jvm': 3 };
+
+// Stage 18 — finding-disposition 5-value vocabulary (distinct from the 7-value evidence-row vocabulary)
+const FINDING_DISPOSITION_VOCAB = new Set([
+  'revalidated', 'stale', 'active/successor owner', 'residual-risk', 'blocked',
+]);
+const DISPOSITION_REQUIRED = ['finding_id', 'severity', 'source_anchor', 'disposition'];
+const DISPOSITION_ALLOWED = new Set([
+  ...DISPOSITION_REQUIRED,
+  'revalidation_evidence',   // REQUIRED when disposition=revalidated
+  'stale_rationale',         // REQUIRED when disposition=stale
+  'owner_plan',              // REQUIRED when disposition=active/successor owner
+  'residual_rationale',      // REQUIRED when disposition=residual-risk
+  'blocked_lane',            // REQUIRED when disposition=blocked
+  'note',                    // OPTIONAL
+  'successor_note',          // OPTIONAL
+]);
+// disposition value → required conditional field
+const DISPOSITION_COND = {
+  'revalidated': 'revalidation_evidence',
+  'stale': 'stale_rationale',
+  'active/successor owner': 'owner_plan',
+  'residual-risk': 'residual_rationale',
+  'blocked': 'blocked_lane',
+};
+const ROADMAP_FILE = join(PROJECT_ROOT, 'ai-dev', 'backlog', 'nop-stream-independent-audit-roadmap.md');
 
 // Stage 5 — lane qualification (frozen_strength excludes 'none'; a lane always provides real evidence strength)
 const LANE_STRENGTH_VOCAB = new Set(['unit', 'in-process', 'multi-jvm']);
@@ -375,6 +402,193 @@ function checkLanes(lanes) {
 }
 
 // ---------------------------------------------------------------------------
+// DISPOSITION (Stage 18 — finding-disposition 5-value vocabulary)
+// ---------------------------------------------------------------------------
+
+function parseDispositions(text) {
+  return parseBlocks(text, '@@DISPOSITION');
+}
+
+/**
+ * Parse the roadmap Work Items block and return a Map<stageNumber, status>.
+ * Lines like "- 18. 当前 production finding disposition: `planned`" → { 18: 'planned' }
+ */
+function parseRoadmapStageStatuses() {
+  const statuses = new Map();
+  if (!existsSync(ROADMAP_FILE)) return statuses;
+  const text = readFileSync(ROADMAP_FILE, 'utf-8');
+  for (const line of text.split('\n')) {
+    const m = line.match(/^\-\s+(\d+)\.\s+.+:\s*`(\w+)`\s*$/);
+    if (m) {
+      statuses.set(parseInt(m[1], 10), m[2]);
+    }
+  }
+  return statuses;
+}
+
+/**
+ * Parse registered lane_ids from environment-qualification.md.
+ * Returns a Set of lane_id strings.
+ */
+function parseRegisteredLaneIds() {
+  const ids = new Set();
+  if (!existsSync(QUAL_FILE)) return ids;
+  const lanes = parseLanes(readFileSync(QUAL_FILE, 'utf-8'));
+  for (const l of lanes) {
+    if (l.lane_id) ids.add(l.lane_id);
+  }
+  return ids;
+}
+
+/**
+ * Validate an owner_plan value:
+ * - If it matches `roadmap-stage-<N>`, check that stage N is NOT `done` in the roadmap.
+ * - Otherwise, check it is a path that exists in the repo (resolve relative to PROJECT_ROOT).
+ * Returns an array of error strings (empty if valid).
+ */
+function checkOwnerPlan(ownerPlan) {
+  const errors = [];
+  const sentinelMatch = ownerPlan.match(/^roadmap-stage-(\d+)$/);
+  if (sentinelMatch) {
+    const stageNum = parseInt(sentinelMatch[1], 10);
+    const statuses = parseRoadmapStageStatuses();
+    if (statuses.size === 0) {
+      errors.push(`owner_plan sentinel "${ownerPlan}": cannot parse roadmap statuses (file missing or unparseable)`);
+    } else if (!statuses.has(stageNum)) {
+      errors.push(`owner_plan sentinel "${ownerPlan}": stage ${stageNum} not found in roadmap`);
+    } else if (statuses.get(stageNum) === 'done') {
+      errors.push(`owner_plan sentinel "${ownerPlan}": stage ${stageNum} is 'done' (sentinel must point to a non-done stage)`);
+    }
+  } else {
+    const resolved = resolve(PROJECT_ROOT, ownerPlan);
+    if (!existsSync(resolved)) {
+      errors.push(`owner_plan path does not exist in repo: ${ownerPlan}`);
+    }
+  }
+  return errors;
+}
+
+/**
+ * Check a single @@DISPOSITION block.
+ * Returns an array of error strings (empty if valid).
+ */
+function checkDispositionBlock(block, { registeredLaneIds } = {}) {
+  const errors = [];
+  // required fields
+  for (const f of DISPOSITION_REQUIRED) {
+    if (block[f] === undefined || block[f] === '') errors.push(`missing required field: ${f}`);
+  }
+  // unknown fields
+  for (const k of Object.keys(block)) {
+    if (!DISPOSITION_ALLOWED.has(k)) errors.push(`unknown field: ${k}`);
+  }
+  // disposition vocabulary
+  if (block.disposition !== undefined && !FINDING_DISPOSITION_VOCAB.has(block.disposition)) {
+    errors.push(`disposition out of vocabulary: "${block.disposition}" (allowed: revalidated | stale | active/successor owner | residual-risk | blocked)`);
+  }
+  // conditional fields based on disposition value
+  if (block.disposition !== undefined && FINDING_DISPOSITION_VOCAB.has(block.disposition)) {
+    const condField = DISPOSITION_COND[block.disposition];
+    if (condField && (block[condField] === undefined || block[condField] === '')) {
+      errors.push(`disposition="${block.disposition}" requires non-empty "${condField}"`);
+    }
+    // owner_plan path/sentinel existence check
+    if (block.disposition === 'active/successor owner' && block.owner_plan) {
+      errors.push(...checkOwnerPlan(block.owner_plan));
+    }
+    // blocked_lane must be a registered lane
+    if (block.disposition === 'blocked' && block.blocked_lane) {
+      if (registeredLaneIds && registeredLaneIds.size > 0 && !registeredLaneIds.has(block.blocked_lane)) {
+        errors.push(`blocked_lane "${block.blocked_lane}" is not a registered lane_id in environment-qualification.md`);
+      }
+    }
+  }
+  return errors;
+}
+
+/**
+ * Check all disposition blocks (legality + optional corpus cross-check + optional completeness).
+ * @param {Array} blocks - parsed @@DISPOSITION blocks
+ * @param {Object} corpus - parsed finding corpus (from parseCorpus)
+ * @param {Object} opts - { shard: number|null, strict: bool, registeredLaneIds: Set }
+ * @returns {Array} error strings
+ */
+function checkDispositions(blocks, corpus, { shard, strict, registeredLaneIds } = {}) {
+  const errors = [];
+  const seen = new Map(); // finding_id → count
+
+  // legality check on each block
+  for (const b of blocks) {
+    const bErrs = checkDispositionBlock(b, { registeredLaneIds });
+    for (const err of bErrs) errors.push(`${b.finding_id || '<no-id>'}: ${err}`);
+    if (b.finding_id) {
+      seen.set(b.finding_id, (seen.get(b.finding_id) || 0) + 1);
+    }
+  }
+
+  // no-dup check
+  for (const [id, count] of seen) {
+    if (count > 1) errors.push(`${id}: duplicate @@DISPOSITION block (x${count})`);
+  }
+
+  // corpus cross-check (finding_id / severity consistency)
+  if (corpus && corpus.shards) {
+    const corpusMap = new Map(); // finding_id → { sev, shardNum }
+    for (const s of corpus.shards) {
+      const shardNumMatch = s.name.match(/Shard\s+(\d+)/);
+      const shardNum = shardNumMatch ? parseInt(shardNumMatch[1], 10) : null;
+      for (const e of s.entries) {
+        corpusMap.set(e.id, { sev: e.sev, shardNum });
+      }
+    }
+    for (const b of blocks) {
+      if (b.finding_id && corpusMap.has(b.finding_id)) {
+        const entry = corpusMap.get(b.finding_id);
+        if (b.severity !== undefined && b.severity !== entry.sev) {
+          errors.push(`${b.finding_id}: severity mismatch (disposition="${b.severity}", corpus="${entry.sev}")`);
+        }
+      } else if (b.finding_id && !corpusMap.has(b.finding_id)) {
+        errors.push(`${b.finding_id}: finding_id not found in frozen corpus`);
+      }
+    }
+
+    // completeness check (only in strict mode with shard specified)
+    if (strict && shard !== null && shard !== undefined) {
+      const shardData = corpus.shards.find((s) => {
+        const m = s.name.match(/Shard\s+(\d+)/);
+        return m && parseInt(m[1], 10) === shard;
+      });
+      if (shardData) {
+        for (const e of shardData.entries) {
+          if (!seen.has(e.id)) {
+            errors.push(`completeness: finding ${e.id} (shard ${shard}) has no @@DISPOSITION block`);
+          }
+        }
+      } else {
+        errors.push(`completeness: shard ${shard} not found in corpus`);
+      }
+    }
+  }
+
+  return errors;
+}
+
+/**
+ * Collect all @@DISPOSITION blocks from stage-*-disposition.md files.
+ */
+function collectDispositionBlocks() {
+  const blocks = [];
+  if (!existsSync(AUDIT_DIR)) return blocks;
+  for (const name of readdirSync(AUDIT_DIR, { withFileTypes: true })) {
+    if (name.isFile() && name.name.endsWith('-disposition.md')) {
+      const text = readFileSync(join(AUDIT_DIR, name.name), 'utf-8');
+      blocks.push(...parseDispositions(text));
+    }
+  }
+  return blocks;
+}
+
+// ---------------------------------------------------------------------------
 // SELF-TEST (positive control)
 // ---------------------------------------------------------------------------
 
@@ -488,6 +702,71 @@ function runSelfTest() {
   const goodErrs = checkLane(goodLane);
   if (goodErrs.length !== 0) failures.push(`qualification positive control: good lane was wrongly rejected: ${goodErrs.join('; ')}`);
 
+  // --- Disposition positive control: known-bad @@DISPOSITION blocks must be rejected.
+  const fakeLaneIds = new Set(['T1-unit-embedded-in-process', 'T2-multi-jvm', 'T3-kafka-dataplane']);
+  const badDispositions = [
+    // 1. out-of-vocabulary disposition value
+    { finding_id: 'BAD-D1', severity: 'P0', source_anchor: 'x.java:1', disposition: 'totally-made-up' },
+    // 2. revalidated missing revalidation_evidence
+    { finding_id: 'BAD-D2', severity: 'P1', source_anchor: 'x.java:2', disposition: 'revalidated' },
+    // 3. active/successor owner missing owner_plan
+    { finding_id: 'BAD-D3', severity: 'P0', source_anchor: 'x.java:3', disposition: 'active/successor owner' },
+    // 4. residual-risk missing residual_rationale
+    { finding_id: 'BAD-D4', severity: 'P2', source_anchor: 'x.java:4', disposition: 'residual-risk' },
+    // 5. blocked missing blocked_lane
+    { finding_id: 'BAD-D5', severity: 'P1', source_anchor: 'x.java:5', disposition: 'blocked' },
+    // 6. blocked with unregistered lane
+    { finding_id: 'BAD-D6', severity: 'P1', source_anchor: 'x.java:6', disposition: 'blocked', blocked_lane: 'nonexistent-lane' },
+    // 7. stale missing stale_rationale
+    { finding_id: 'BAD-D7', severity: 'P2', source_anchor: 'x.java:7', disposition: 'stale' },
+    // 8. unknown field
+    { finding_id: 'BAD-D8', severity: 'P2', source_anchor: 'x.java:8', disposition: 'residual-risk', residual_rationale: 'ok', bogus: 'no' },
+    // 9. owner_plan path does not exist in repo
+    { finding_id: 'BAD-D9', severity: 'P0', source_anchor: 'x.java:9', disposition: 'active/successor owner', owner_plan: 'nonexistent/plan/path.md' },
+  ];
+  for (const bd of badDispositions) {
+    const errs = checkDispositionBlock(bd, { registeredLaneIds: fakeLaneIds });
+    if (errs.length === 0) failures.push(`disposition positive control: known-bad block ${bd.finding_id} was NOT rejected`);
+  }
+
+  // Completeness + no-dup positive control using checkDispositions with strict mode
+  const fakeCorpus = {
+    shards: [
+      { name: '## Shard 99', total: 2, declaredIds: ['S99-1', 'S99-2'],
+        entries: [
+          { id: 'S99-1', sev: 'P0', domain: 'CEP' },
+          { id: 'S99-2', sev: 'P1', domain: 'window' },
+        ] },
+    ],
+  };
+  // strict mode: shard 99 missing S99-2 (completeness failure)
+  const partialBlocks = [
+    { finding_id: 'S99-1', severity: 'P0', source_anchor: 'x:1', disposition: 'revalidated', revalidation_evidence: 'Test#m' },
+  ];
+  const strictErrs = checkDispositions(partialBlocks, fakeCorpus, { shard: 99, strict: true, registeredLaneIds: fakeLaneIds });
+  if (strictErrs.length === 0) failures.push('disposition positive control: strict mode missing-finding was NOT rejected');
+
+  // strict mode: duplicate finding_id (no-dup failure)
+  const dupBlocks = [
+    { finding_id: 'S99-1', severity: 'P0', source_anchor: 'x:1', disposition: 'revalidated', revalidation_evidence: 'Test#m' },
+    { finding_id: 'S99-1', severity: 'P0', source_anchor: 'x:1', disposition: 'revalidated', revalidation_evidence: 'Test#m2' },
+    { finding_id: 'S99-2', severity: 'P1', source_anchor: 'x:2', disposition: 'residual-risk', residual_rationale: 'ok' },
+  ];
+  const dupErrs = checkDispositions(dupBlocks, fakeCorpus, { shard: 99, strict: true, registeredLaneIds: fakeLaneIds });
+  if (dupErrs.length === 0) failures.push('disposition positive control: strict mode duplicate-id was NOT rejected');
+
+  // roadmap-stage sentinel pointing to a done stage must be rejected
+  const doneSentinelErrs = checkOwnerPlan('roadmap-stage-4'); // Stage 4 is 'done' in the roadmap
+  if (doneSentinelErrs.length === 0) failures.push('disposition positive control: roadmap-stage-4 (done stage) sentinel was NOT rejected');
+
+  // And a GOOD disposition block must pass (ensures the checker is not blindly rejecting everything).
+  const goodDisposition = {
+    finding_id: 'GOOD-D', severity: 'P2', source_anchor: 'x.java:99',
+    disposition: 'residual-risk', residual_rationale: 'non-blocking test-quality gap', note: 'ok',
+  };
+  const goodDispErrs = checkDispositionBlock(goodDisposition, { registeredLaneIds: fakeLaneIds });
+  if (goodDispErrs.length !== 0) failures.push(`disposition positive control: good block was wrongly rejected: ${goodDispErrs.join('; ')}`);
+
   return failures;
 }
 
@@ -560,11 +839,12 @@ function cmdEvidence({ strict } = {}) {
 function cmdSelfTest() {
   const failures = runSelfTest();
   if (failures.length === 0) {
-    console.log('[PASS] self-test (positive control) — all 4 checkers reject their known-bad input');
+    console.log('[PASS] self-test (positive control) — all 5 checkers reject their known-bad input');
     console.log('  - manifest    : rejects bad/missing/unknown fields + denominator mismatch');
     console.log('  - corpus      : rejects duplicate IDs, shard total mismatch, out-of-vocab sev/domain');
     console.log('  - evidence    : rejects missing/unknown fields, out-of-vocab disposition, insufficient lane');
     console.log('  - qualification: rejects missing/unknown fields, out-of-vocab frozen_strength/status, blocked-missing-reason, qualified-missing-positive-result');
+    console.log('  - disposition : rejects out-of-vocab value, missing conditional fields, unregistered lane, nonexistent owner_plan path, done-stage sentinel, strict-mode missing/duplicate findings');
     return true;
   }
   console.error('[FAIL] self-test (positive control) — validator failed to reject known-bad input:');
@@ -587,11 +867,67 @@ function cmdQualification({ strict } = {}) {
   return printResult('qualification', errors, { strict });
 }
 
+function cmdDisposition({ strict, shard } = {}) {
+  const blocks = collectDispositionBlocks();
+  const registeredLaneIds = parseRegisteredLaneIds();
+
+  // Parse corpus for cross-check + completeness
+  let corpus = null;
+  if (existsSync(CORPUS_FILE)) {
+    corpus = parseCorpus(readFileSync(CORPUS_FILE, 'utf-8'));
+  }
+
+  if (blocks.length === 0) {
+    // No disposition files yet — legal in partial mode (0 rows to check)
+    if (strict && shard !== null && shard !== undefined) {
+      // In strict+shard mode, every finding in the shard is missing
+      const errors = [];
+      if (corpus) {
+        const shardData = corpus.shards.find((s) => {
+          const m = s.name.match(/Shard\s+(\d+)/);
+          return m && parseInt(m[1], 10) === shard;
+        });
+        if (shardData) {
+          for (const e of shardData.entries) {
+            errors.push(`completeness: finding ${e.id} (shard ${shard}) has no @@DISPOSITION block`);
+          }
+        }
+      }
+      return printResult(`disposition --shard ${shard} --strict`, errors);
+    }
+    console.log(`[PASS] disposition (0 disposition rows — no stage-*-disposition.md files found yet)`);
+    return true;
+  }
+
+  const errors = checkDispositions(blocks, corpus, { shard, strict, registeredLaneIds });
+  const label = shard !== null && shard !== undefined
+    ? `disposition --shard ${shard}${strict ? ' --strict' : ''}`
+    : 'disposition';
+  if (errors.length === 0) {
+    console.log(`[PASS] ${label} (${blocks.length} disposition rows validated)`);
+    return true;
+  }
+  console.error(`[FAIL] ${label} — ${errors.length} problem(s):`);
+  for (const e of errors) console.error(`  - ${e}`);
+  return false;
+}
+
 function main() {
   const args = process.argv.slice(2);
   const strict = args.includes('--strict');
   const subs = args.filter((a) => !a.startsWith('-'));
   const sub = subs[0] || 'all';
+
+  // Parse --shard <N>
+  let shard = null;
+  const shardIdx = args.indexOf('--shard');
+  if (shardIdx > -1 && shardIdx + 1 < args.length) {
+    shard = parseInt(args[shardIdx + 1], 10);
+    if (Number.isNaN(shard)) {
+      console.error(`Invalid --shard value: ${args[shardIdx + 1]}`);
+      process.exit(2);
+    }
+  }
 
   let ok = true;
   if (sub === 'manifest') {
@@ -604,14 +940,17 @@ function main() {
     ok = cmdSelfTest() && ok;
   } else if (sub === 'qualification') {
     ok = cmdQualification({ strict }) && ok;
+  } else if (sub === 'disposition') {
+    ok = cmdDisposition({ strict, shard }) && ok;
   } else if (sub === 'all') {
     ok = cmdManifest({ strict }) && ok;
     ok = cmdCorpus({ strict }) && ok;
     ok = cmdEvidence({ strict }) && ok;
     ok = cmdQualification({ strict }) && ok;
+    ok = cmdDisposition({ strict: false, shard: null }) && ok; // all mode: partial disposition (no shard, no completeness)
   } else {
     console.error(`Unknown subcommand: ${sub}`);
-    console.error('Usage: check-nop-stream-audit-manifest.mjs [manifest|corpus|evidence|qualification|self-test|all] [--strict]');
+    console.error('Usage: check-nop-stream-audit-manifest.mjs [manifest|corpus|evidence|qualification|disposition|self-test|all] [--strict] [--shard <N>]');
     process.exit(2);
   }
   process.exit(ok ? 0 : 1);
@@ -626,6 +965,9 @@ export {
   parseManifest, runManifestChecks, parseCorpus, checkCorpus,
   parseEvidence, checkEvidenceRow, checkEvidenceRows, runSelfTest,
   parseLanes, checkLane, checkLanes,
+  parseDispositions, checkDispositionBlock, checkDispositions, checkOwnerPlan,
+  parseRoadmapStageStatuses, parseRegisteredLaneIds,
   SEVERITY_VOCAB, DOMAIN_VOCAB, DISPOSITION_VOCAB,
+  FINDING_DISPOSITION_VOCAB, DISPOSITION_COND,
   LANE_STRENGTH_VOCAB, LANE_STATUS_VOCAB,
 };

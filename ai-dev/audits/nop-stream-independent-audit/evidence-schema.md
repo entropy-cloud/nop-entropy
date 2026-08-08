@@ -107,3 +107,62 @@ A domain audit's evidence row sets `environment_class` to the strongest lane act
 - Consequently, if a row needs `required_lane: multi-jvm` but no `multi-jvm` lane is `qualified`, the row cannot be `e2e-proved` (consistent with the Lane Semantics invariant already in this schema); it must be `blocked` or weaker.
 
 These three rules are enforced structurally: the `qualification` validator subcommand guards the lane registry, and the `evidence` subcommand already enforces the `environment_class ≥ required_lane` invariant for `e2e-proved`.
+
+## Stage 18 Supplement — Finding-Disposition Schema
+
+> Status: frozen supplement (Stage 18). This section is an **additive** rules block: it changes **neither** the 11 evidence-row fields (Field Specification table) **nor** the 7-value Disposition Vocabulary above. It introduces a **separate** `@@DISPOSITION` block format and a **separate** 5-value finding-disposition vocabulary used by Stages 18–22 to adjudicate the **terminal state** of each frozen-corpus finding. Authoritative text lives here; the `disposition` subcommand of `check-nop-stream-audit-manifest.mjs` enforces it.
+
+### Relationship Between the Two Vocabularies (must not be conflated)
+
+The audit uses **two distinct disposition vocabularies** that operate at different semantic layers:
+
+| Layer | Vocabulary | Values | What it adjudicates | Block type |
+| --- | --- | --- | --- | --- |
+| **Capability** (evidence-row) | 7-value | `e2e-proved \| component-only \| unverified \| fail-fast \| non-goal \| residual-risk \| blocked` | Whether a **capability** is proven to the required lane strength | `@@EVIDENCE` |
+| **Finding** (finding-disposition) | 5-value | `revalidated \| stale \| active/successor owner \| residual-risk \| blocked` | The **terminal state** of a specific frozen-corpus finding (was the defect fixed? did the anchor disappear? is it still live with an owner?) | `@@DISPOSITION` |
+
+The two vocabularies **share** the value names `residual-risk` and `blocked`, but their **semantics are different** and they **must not be conflated**:
+
+- An evidence-row `disposition: residual-risk` means a **capability** has a known limitation accepted as non-blocking (e.g., "cross-JVM distributed mutex cannot be proven in the in-process lane").
+- A finding-disposition `residual-risk` means a **finding** (a specific defect) has been accepted as a non-blocking residual (e.g., "the bare-exception two-tier violation is non-blocking because the behavior is correct, only the exception type drifts").
+
+A single finding may have multiple evidence rows (each adjudicating a different capability angle) with various 7-value dispositions, but receives **exactly one** 5-value finding-disposition.
+
+### Finding-Disposition — 5-Value Vocabulary (frozen)
+
+| Value | Meaning | Required conditional field |
+| --- | --- | --- |
+| `revalidated` | The defect described in the finding has been fixed or no longer holds against live code. The finding is resolved. | `revalidation_evidence` (test name / manual-trace `file:line` / cross-ref evidence row `inventory_id`) |
+| `stale` | The anchor or context described in the finding has disappeared (file deleted, code refactored, premise no longer holds). The finding cannot be revalidated because its target no longer exists. | `stale_rationale` (what disappeared / why the premise is false) |
+| `active/successor owner` | The finding is a confirmed still-live defect and has an owner: either a plan file in the repo, or a `roadmap-stage-<N>` sentinel pointing to a non-`done` roadmap stage. | `owner_plan` (repo plan path **or** `roadmap-stage-<N>` sentinel; validator verifies path exists or sentinel points to a non-`done` stage) |
+| `residual-risk` | The finding describes a known limitation accepted as a non-blocking residual. Must include explicit non-blocking rationale. | `residual_rationale` (why this is non-blocking for the supported baseline) |
+| `blocked` | The finding cannot be fully adjudicated because a required lane is not qualified (e.g., multi-jvm fencing test has a defect). | `blocked_lane` (a registered lane_id from `environment-qualification.md`) |
+
+### Cross-Cutting Adjudication Rules
+
+1. **P0/P1 still-live must have an owner**: a confirmed still-live P0 or P1 finding **must** fall to `active/successor owner` (with a valid plan path or sentinel). A P0/P1 still-live defect **must not** be silently downgraded to `residual-risk`. (Exception: if the defect has been fixed, it is `revalidated`, not "still-live".)
+2. **P2 residual-risk requires explicit rationale**: every P2 `residual-risk` must include a non-blocking rationale before residual acceptance.
+3. **Exactly one disposition per finding**: each frozen-corpus finding receives exactly one `@@DISPOSITION` block (completeness + no-dup).
+4. **finding_id / severity / source_anchor consistency**: the `finding_id`, `severity`, and `source_anchor` in a `@@DISPOSITION` block must match the frozen corpus entry for that ID.
+
+### `@@DISPOSITION` Block — Encoding Format
+
+Each disposition is a `@@DISPOSITION ... @@END` record with flat `key: value` lines (same convention as `@@EVIDENCE` / `@@ENTRY` blocks). Example (illustrative only):
+
+```
+@@DISPOSITION
+finding_id: M8-2-P0-1
+severity: P0
+source_anchor: nop-stream/nop-stream-runtime/.../JobCoordinator.java:889-1024
+disposition: revalidated
+revalidation_evidence: TestJobCoordinatorRecoveryConcurrency#concurrentGlobalRecovery_serializesToOneRotation; cross-ref EVID-S9-016
+@@END
+```
+
+**Required fields** (all blocks): `finding_id`, `severity`, `source_anchor`, `disposition`.
+
+**Conditional fields** (required when `disposition` value triggers them, see table above): `revalidation_evidence`, `stale_rationale`, `owner_plan`, `residual_rationale`, `blocked_lane`.
+
+**Optional fields**: `note`, `successor_note`.
+
+Disposition files live at `ai-dev/audits/nop-stream-independent-audit/stage-*-disposition.md`. The `disposition` subcommand scans these files (same pattern as the `evidence` subcommand scanning `*.evidence.md`).

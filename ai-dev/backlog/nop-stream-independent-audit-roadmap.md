@@ -1,6 +1,6 @@
 # nop-stream 独立深度审计路线图
 
-> Last updated: 2026-08-08 (item 15 → done; items 16/17 → done)
+> Last updated: 2026-08-08 (items 18/19/20 → planned; owner plans linked)
 > Sources: `ai-dev/analysis/2026-08/2026-08-06-nop-stream-audit-baseline-and-roadmap-analysis.md` (primary), `ai-dev/backlog/nop-stream-production-roadmap.md` (implementation ownership), `ai-dev/audits/nop-stream-production/2026-08-02-2107-*.md` (current confirmed findings)
 
 ## Purpose
@@ -31,9 +31,9 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 15. Batch/message connector capability 审计: `done`
 - 16. JDBC/file/CDC connector external-effect 审计: `done`
 - 17. 测试有效性与审计工具治理: `done`
-- 18. 当前 production finding disposition: `todo`
-- 19. 历史 P0/P1 checkpoint/state/window finding disposition: `todo`
-- 20. 历史 P0/P1 CEP/connector/runtime finding disposition: `todo`
+- 18. 当前 production finding disposition: `done`
+- 19. 历史 P0/P1 checkpoint/state/window finding disposition: `planned`
+- 20. 历史 P0/P1 CEP/connector/runtime finding disposition: `planned`
 - 21. 历史 P2 core/state/window finding disposition: `todo`
 - 22. 历史 P2 CEP/connector/runtime finding disposition: `todo`
 - 23. 文档契约与 production-readiness 判定: `todo`
@@ -94,9 +94,9 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 | 15 | Batch/message connector capability audit | `2026-08-08-0610-1-batch-message-connector-capability-audit.md` | 4, 5, 6, 14 | No | batch and message connector fixtures |
 | 16 | JDBC/file/CDC connector external-effect audit | `2026-08-08-0610-2-jdbc-file-cdc-connector-external-effect-audit.md` | 4, 5, 9, 14 | No | JDBC/file/Debezium fixtures |
 | 17 | Test effectiveness and audit-tool governance | `2026-08-08-0610-3-test-effectiveness-audit-tool-governance.md` | 4, 5 | No | audit tools and test inventory |
-| 18 | Current production finding disposition | successor audit plan | 1, 2, 3, 4 | **Yes** | frozen current-production corpus |
-| 19 | Historical P0/P1 checkpoint/state/window disposition | successor audit plan | 4, 9, 10, 11, 18 | No | frozen high-priority corpus slice |
-| 20 | Historical P0/P1 CEP/connector/runtime disposition | successor audit plan | 4, 12, 13, 14, 15, 16, 18 | No | frozen high-priority corpus slice |
+| 18 | Current production finding disposition | `2026-08-08-2000-1-current-production-finding-disposition.md` | 1, 2, 3, 4 | **Yes** | frozen current-production corpus |
+| 19 | Historical P0/P1 checkpoint/state/window disposition | `2026-08-08-2000-2-historical-p0p1-core-state-window-disposition.md` | 4, 9, 10, 11, 18 | No | frozen high-priority corpus slice |
+| 20 | Historical P0/P1 CEP/connector/runtime disposition | `2026-08-08-2000-3-historical-p0p1-cep-connector-runtime-disposition.md` | 4, 12, 13, 14, 15, 16, 18 | No | frozen high-priority corpus slice |
 | 21 | Historical P2 core/state/window disposition | successor audit plan | 4, 9, 10, 11, 17, 18, 19 | No | frozen P2 corpus slice |
 | 22 | Historical P2 CEP/connector/runtime disposition | successor audit plan | 4, 12, 13, 14, 15, 16, 17, 18, 20 | No | frozen P2 corpus slice |
 | 23 | Documentation contract and readiness decision | successor audit plan | 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22 | No | owner docs and evidence corpus |
