@@ -16,7 +16,9 @@
         <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
     </x:post-extends>
 
-    <keys/>
+    <keys>
+        <key name="loginTypeExtIdKey" props="loginType,extId"/>
+    </keys>
 
     <props>
         <prop name="sid" displayName="ID" propId="1" i18n-en:displayName="ID" tagSet="seq" mandatory="true"

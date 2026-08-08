@@ -229,6 +229,10 @@
                     </join>
                 </to-one>
             </relations>
+            <unique-keys>
+                <unique-key columns="loginType,extId" constraint="UK_NOP_AUTH_EXT_LOGIN_TYPE_EXTID"
+                            name="loginTypeExtIdKey"/>
+            </unique-keys>
         </entity>
         <entity className="io.nop.auth.dao.entity.NopAuthRole" createTimeProp="createTime" createrProp="createdBy"
                 deleteFlagProp="delFlag" displayName="角色" name="io.nop.auth.dao.entity.NopAuthRole"

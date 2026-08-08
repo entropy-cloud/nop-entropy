@@ -189,6 +189,7 @@ CREATE TABLE nop_auth_ext_login(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  constraint UK_NOP_AUTH_EXT_LOGIN_TYPE_EXTID unique (login_type,ext_id),
   constraint PK_nop_auth_ext_login primary key (sid)
 );
 

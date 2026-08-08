@@ -5,3 +5,11 @@ options:
     value: 1
   - label: 单点登录
     value: 10
+  - label: 飞书
+    value: 20
+  - label: 钉钉
+    value: 21
+  - label: 企微
+    value: 22
+  - label: Webhook
+    value: 23

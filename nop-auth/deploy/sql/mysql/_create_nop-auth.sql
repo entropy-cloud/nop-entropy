@@ -189,6 +189,7 @@ CREATE TABLE nop_auth_ext_login(
   UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint UK_NOP_AUTH_EXT_LOGIN_TYPE_EXTID unique (LOGIN_TYPE,EXT_ID),
   constraint PK_nop_auth_ext_login primary key (SID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 

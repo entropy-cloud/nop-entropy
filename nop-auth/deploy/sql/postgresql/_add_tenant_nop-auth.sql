@@ -67,4 +67,7 @@ alter table nop_auth_group_user add constraint PK_nop_auth_group_user primary ke
 alter table nop_auth_role drop constraint UK_NOP_AUTH_ROLE_NAME;
 alter table nop_auth_role add constraint UK_NOP_AUTH_ROLE_NAME unique (NOP_TENANT_ID,role_name);
 
+                alter table nop_auth_ext_login drop constraint UK_NOP_AUTH_EXT_LOGIN_TYPE_EXTID;
+alter table nop_auth_ext_login add constraint UK_NOP_AUTH_EXT_LOGIN_TYPE_EXTID unique (NOP_TENANT_ID,login_type,ext_id);
+
                 
