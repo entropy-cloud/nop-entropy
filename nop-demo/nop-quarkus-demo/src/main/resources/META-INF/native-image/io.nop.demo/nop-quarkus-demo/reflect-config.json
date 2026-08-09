@@ -401,6 +401,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.ai.dao.entity.NopAiChannelSession"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.ai.dao.entity.NopAiChatRequest"
   },
   {
@@ -602,6 +612,21 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.ai.dao.entity.NopAiTodo"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.ai.dao.entity._gen._NopAiChannelSession"
   },
   {
     "allDeclaredConstructors": true,
@@ -917,6 +942,16 @@
       }
     ],
     "name": "io.nop.ai.dao.entity._gen._NopAiTodo"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.ai.service.entity.NopAiChannelSessionBizModel"
   },
   {
     "allDeclaredConstructors": true,
@@ -2810,6 +2845,26 @@
       }
     ],
     "name": "io.nop.auth.service.biz.SiteMapApiBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.service.channel.ChannelBindServiceImpl"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.service.channel.UserChannelResolverImpl"
   },
   {
     "allDeclaredConstructors": true,
@@ -16726,6 +16781,16 @@
     "fields": [],
     "methods": [],
     "name": "java.util.Collections$SingletonList"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "java.util.Collections$UnmodifiableMap"
   },
   {
     "allDeclaredConstructors": true,

@@ -7,6 +7,11 @@
       "url": "/test/delete",
       "includeScope": "*"
     },
+    "confirmText": "Are you sure?",
+    "messages": {
+      "success": "Deleted",
+      "failed": "Delete failed"
+    },
     "then": [
       {
         "action": "refreshNearest"

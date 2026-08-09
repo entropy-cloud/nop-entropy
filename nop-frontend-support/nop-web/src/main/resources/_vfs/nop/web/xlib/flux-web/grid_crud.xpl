@@ -46,10 +46,7 @@
             <thisLib:GenActions actions="${pageModel.listActions?.filter(a=>a.batch)}" genScope="${genScope}"/>
         </toolbar>
 
-        <footerToolbar j:list="true" xpl:if="pageModel.table?.pager != 'none' ">
-            <statistics type="statistics"/>
-            <pagination type="pagination"/>
-        </footerToolbar>
+        <footerToolbar j:list="true" xpl:if="pageModel.table?.pager != 'none' " />
 
         <loadAction xpl:attrs="loadAction" xpl:if="loadAction"/>
 

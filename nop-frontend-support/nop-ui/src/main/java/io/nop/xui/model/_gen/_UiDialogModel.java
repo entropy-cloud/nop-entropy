@@ -39,6 +39,13 @@ public abstract class _UiDialogModel extends io.nop.core.resource.component.Abst
     
     /**
      *  
+     * xml name: closeOnSubmit
+     * 对话框内 submitScope=surface 的表单提交成功后自动关闭对话框（AMIS语义，Flux支持）
+     */
+    private java.lang.Boolean _closeOnSubmit ;
+    
+    /**
+     *  
      * xml name: data
      * 
      */
@@ -154,6 +161,25 @@ public abstract class _UiDialogModel extends io.nop.core.resource.component.Abst
         checkAllowChange();
         
         this._closeOnOutside = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: closeOnSubmit
+     *  对话框内 submitScope=surface 的表单提交成功后自动关闭对话框（AMIS语义，Flux支持）
+     */
+    
+    public java.lang.Boolean getCloseOnSubmit(){
+      return _closeOnSubmit;
+    }
+
+    
+    public void setCloseOnSubmit(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._closeOnSubmit = value;
            
     }
 
@@ -330,6 +356,7 @@ public abstract class _UiDialogModel extends io.nop.core.resource.component.Abst
         out.putNotNull("actions",this.getActions());
         out.putNotNull("closeOnEsc",this.getCloseOnEsc());
         out.putNotNull("closeOnOutside",this.getCloseOnOutside());
+        out.putNotNull("closeOnSubmit",this.getCloseOnSubmit());
         out.putNotNull("data",this.getData());
         out.putNotNull("height",this.getHeight());
         out.putNotNull("noActions",this.getNoActions());
@@ -352,6 +379,7 @@ public abstract class _UiDialogModel extends io.nop.core.resource.component.Abst
         instance.setActions(this.getActions());
         instance.setCloseOnEsc(this.getCloseOnEsc());
         instance.setCloseOnOutside(this.getCloseOnOutside());
+        instance.setCloseOnSubmit(this.getCloseOnSubmit());
         instance.setData(this.getData());
         instance.setHeight(this.getHeight());
         instance.setNoActions(this.getNoActions());

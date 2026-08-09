@@ -762,7 +762,7 @@
             <source><![CDATA[
                 import io.nop.api.core.exceptions.NopException;
 
-                let result = _.delete({...action}, ['actionType','type','actions','api','dialog','drawer','feedback','confirmText','initApi','onEvent','content','link','url','blank','copyFormat','target','iconOnly']);
+                let result = _.delete({...action}, ['actionType','type','actions','api','dialog','drawer','feedback','confirmText','messages','initApi','onEvent','content','link','url','blank','copyFormat','target','iconOnly']);
 
                 const iconOnly = action.iconOnly && action.icon;
                 result.label = iconOnly ? null : action.label;
@@ -786,7 +786,7 @@
                 let then = [];
 
                 let whenGuard = null;
-                if(action.confirmText){
+                if(action.confirmText && actionType != 'ajax' && !action.api){
                     whenGuard = { message: action.confirmText };
                 }
 
@@ -803,7 +803,12 @@
                                 method: api.method,
                                 data,
                                 includeScope
-                            })
+                            }),
+                            // flux 原生支持：confirmText 执行前确认；messages 自动成功/失败 toast
+                            confirmText: action.confirmText,
+                            messages: action.messages?.success || action.messages?.failed
+                                        ? _.pickNotNull(action.messages, ['success','failed']) : null,
+                            then:[{action: 'refreshNearest'}]
                         }));
                     }
                 } else if(actionType == 'dialog'){
@@ -818,7 +823,7 @@
                                     action.drawer||action.dialog, scope.fixedProps);
                     let args = _.delete({...drawer}, ['page','name']);
                     if (args.onSubmitSuccess) {
-                        if (!args.onSubmitSuccess.some(a => a?.action === 'refreshNearest')) {
+                        if (!args.onSubmitSuccess.some(a => a?.action == 'refreshNearest')) {
                             args.onSubmitSuccess.push({ action: 'refreshNearest' });
                         }
                     } else {
@@ -920,7 +925,12 @@
                const fluxMode = WebPageHelper.isFluxMode();
 
                const dlgProps = _.pickNotNull(dialog,["closeOnEsc","closeOnOutside","size","height",
-                    "width","showCloseButton","actions","title"]) || {};
+                    "width","showCloseButton","actions","title","closeOnSubmit"]) || {};
+               // 对话框/抽屉/feedback 默认提交成功后自动关闭（AMIS closeOnSubmit 语义，flux runtime
+               // 在 surface 的 submit:success hook 后自动 closeSurface，Enter 提交与按钮提交统一生效）；
+               // 显式 closeOnSubmit=false 可覆盖为提交后保持打开。
+               if(dlgProps.closeOnSubmit == null)
+                   dlgProps.closeOnSubmit = true;
                if(dlgProps?.actions?.length > 0){
                    dlgProps.actions = dlgProps.actions.map(a=>xpl('thisLib:NormalizeAction',a,{}));
                }else{

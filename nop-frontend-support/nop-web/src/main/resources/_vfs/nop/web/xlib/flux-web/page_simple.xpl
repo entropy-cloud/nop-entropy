@@ -32,6 +32,9 @@
         // flux 前端不会像 AMIS 那样为空 actions 的 dialog 隐式渲染 submit/cancel 按钮。
         // 当 form 没有显式 actions 且未设 noActions 时，补充缺省的提交、取消两个按钮。
         // 没有 submitAction 时为纯查看模式，submit 按钮只关闭 dialog。
+        // 提交后的关闭由 dialog 的 closeOnSubmit（LoadPage 默认 true）在 runtime 统一处理
+        // （Enter 提交与按钮提交都走 form submit → surface submit:success hook → 自动关闭），
+        // 因此提交按钮不需要再显式 then closeSurface。
         const _submitLabel = formModel.submitText != null ? formModel.submitText : ('@i18n:common.confirm').$i18n('确认');
         const _cancelLabel = ('@i18n:common.cancel').$i18n('取消');
         const _hasSubmitAction = submitAction != null;
@@ -39,7 +42,7 @@
             { id:'_default_cancel', label: _cancelLabel, actionType:'close' },
             { id:'_default_submit', label: _submitLabel, level:'primary',
               onClick: _hasSubmitAction
-                ? { action:'submitForm', then: { action:'closeSurface' } }
+                ? { action:'submitForm' }
                 : { action:'closeSurface' } }
         ];
 

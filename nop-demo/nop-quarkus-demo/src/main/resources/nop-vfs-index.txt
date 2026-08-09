@@ -124,6 +124,10 @@
 /nop/ai/llm/lm-studio.llm.xml
 /nop/ai/llm/ollama.llm.xml
 /nop/ai/llm/volcengine.llm.xml
+/nop/ai/model/NopAiChannelSession/NopAiChannelSession.xbiz
+/nop/ai/model/NopAiChannelSession/NopAiChannelSession.xmeta
+/nop/ai/model/NopAiChannelSession/_NopAiChannelSession.xbiz
+/nop/ai/model/NopAiChannelSession/_NopAiChannelSession.xmeta
 /nop/ai/model/NopAiChatRequest/NopAiChatRequest.xbiz
 /nop/ai/model/NopAiChatRequest/NopAiChatRequest.xmeta
 /nop/ai/model/NopAiChatRequest/_NopAiChatRequest.xbiz
@@ -212,6 +216,11 @@
 /nop/ai/model/module-meta.json
 /nop/ai/orm/_app.orm.xml
 /nop/ai/orm/app.orm.xml
+/nop/ai/pages/NopAiChannelSession/NopAiChannelSession.lib.xjs
+/nop/ai/pages/NopAiChannelSession/NopAiChannelSession.view.xml
+/nop/ai/pages/NopAiChannelSession/_gen/_NopAiChannelSession.view.xml
+/nop/ai/pages/NopAiChannelSession/main.page.yaml
+/nop/ai/pages/NopAiChannelSession/picker.page.yaml
 /nop/ai/pages/NopAiChatRequest/NopAiChatRequest.lib.xjs
 /nop/ai/pages/NopAiChatRequest/NopAiChatRequest.view.xml
 /nop/ai/pages/NopAiChatRequest/_gen/_NopAiChatRequest.view.xml

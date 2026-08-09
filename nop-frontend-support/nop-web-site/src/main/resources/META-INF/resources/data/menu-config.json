@@ -139,6 +139,15 @@
       "sort": 9
     },
     {
+      "id": "flux-ids-batch",
+      "title": "Flux Batch ids 验证",
+      "path": "/flux-ids-batch",
+      "icon": "trash-2",
+      "pageType": "flux",
+      "schemaPath": "/data/flux-ids-batch.json",
+      "sort": 10
+    },
+    {
       "id": "settings",
       "titleKey": "menu.settings",
       "path": "/settings",

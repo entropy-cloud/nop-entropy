@@ -1,0 +1,41 @@
+{
+  "type": "page",
+  "body": [
+    {
+      "type": "text",
+      "text": "Batch Delete ids 验证页：选择两行 → 点批量删除 → 查看 console 的 request 日志"
+    },
+    {
+      "type": "crud",
+      "id": "ids-batch-crud",
+      "name": "ids-batch-crud",
+      "rowKey": "id",
+      "selection": { "type": "checkbox" },
+      "source": [
+        { "id": "1", "name": "Alice", "dept": "Sales" },
+        { "id": "2", "name": "Bob", "dept": "IT" },
+        { "id": "3", "name": "Carol", "dept": "HR" }
+      ],
+      "listActions": [
+        {
+          "type": "button",
+          "label": "批量删除 (ids=${ids})",
+          "variant": "destructive",
+          "disabled": "${!$crud.hasSelection}",
+          "onClick": {
+            "action": "ajax",
+            "args": {
+              "url": "@mutation:Demo__batchDelete?ids=${ids}",
+              "method": "post"
+            }
+          }
+        }
+      ],
+      "columns": [
+        { "name": "id", "label": "ID", "width": 60 },
+        { "name": "name", "label": "姓名" },
+        { "name": "dept", "label": "部门" }
+      ]
+    }
+  ]
+}

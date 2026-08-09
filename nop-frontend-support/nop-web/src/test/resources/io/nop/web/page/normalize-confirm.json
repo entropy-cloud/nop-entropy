@@ -2,17 +2,15 @@
   "id": "del-btn",
   "label": "Delete",
   "onClick": {
-    "action": "confirm",
+    "action": "ajax",
     "args": {
-      "message": "Are you sure?"
+      "url": "/test/delete",
+      "includeScope": "*"
     },
+    "confirmText": "Are you sure?",
     "then": [
       {
-        "action": "ajax",
-        "args": {
-          "url": "/test/delete",
-          "includeScope": "*"
-        }
+        "action": "refreshNearest"
       }
     ]
   }

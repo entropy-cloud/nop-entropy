@@ -146,17 +146,68 @@ public class TestFluxWebCrudPage extends JunitBaseTestCase {
             Object onClick = btnMap.get("onClick");
             if (onClick instanceof Map) {
                 Map<String, Object> onClickMap = (Map<String, Object>) onClick;
-                if ("confirm".equals(onClickMap.get("action"))) {
+                if ("ajax".equals(onClickMap.get("action")) && onClickMap.get("confirmText") != null) {
                     hasConfirmGuard = true;
-                    Object args = onClickMap.get("args");
-                    assertNotNull(args, "confirm guard should have args");
-                    Map<String, Object> argsMap = (Map<String, Object>) args;
-                    assertNotNull(argsMap.get("message"), "confirm guard should have message in args");
                     break;
                 }
             }
         }
-        assertTrue(hasConfirmGuard, "row-delete-button should have confirm guard from confirmText");
+        assertTrue(hasConfirmGuard, "row-delete-button should have confirmText on the ajax action");
+    }
+
+    @Test
+    public void testDialogCloseOnSubmitAndSubmitButton() {
+        String path = "/nop/test/pages/test-flux-crud.page.yaml";
+        Map<String, Object> page = pageProvider.getPage(path, "");
+        String json = JSON.serialize(page, true);
+        System.out.println("Flux CRUD page JSON (dialog closeOnSubmit test):\n" + json);
+
+        Map<String, Object> crud = getCrud(page);
+        List<?> toolbar = (List<?>) crud.get("toolbar");
+
+        Map<String, Object> addButton = null;
+        for (Object item : toolbar) {
+            Map<String, Object> btn = (Map<String, Object>) item;
+            if ("add-button".equals(btn.get("id"))) {
+                addButton = btn;
+                break;
+            }
+        }
+        assertNotNull(addButton, "add-button should exist");
+
+        Map<String, Object> onClick = (Map<String, Object>) addButton.get("onClick");
+        assertNotNull(onClick, "add-button should have onClick");
+        assertEquals("openDialog", onClick.get("action"), "add-button should open a dialog");
+
+        Map<String, Object> args = (Map<String, Object>) onClick.get("args");
+        assertNotNull(args, "openDialog should have args");
+        assertEquals(Boolean.TRUE, args.get("closeOnSubmit"),
+                "dialog should default to closeOnSubmit: true (AMIS semantic, Enter submit closes too)");
+
+        // owner 侧 onSubmitSuccess 保留：提交成功后刷新下层列表
+        Object onSubmitSuccess = args.get("onSubmitSuccess");
+        assertNotNull(onSubmitSuccess, "openDialog args should keep onSubmitSuccess for owner-side refresh");
+
+        // dialog body 内 form 的提交按钮：submitForm 触发提交，关闭由 closeOnSubmit 统一处理。
+        // page_simple.xpl 把缺省按钮渲染在 page 级 actions，openDialog 展开后位于 args.actions。
+        Object body = args.get("body");
+        assertNotNull(body, "dialog args should have body");
+        List<?> dialogActions = (List<?>) args.get("actions");
+        assertNotNull(dialogActions, "dialog args should have page-level actions");
+        Map<String, Object> submitButton = null;
+        for (Object a : dialogActions) {
+            Map<String, Object> action = (Map<String, Object>) a;
+            if ("_default_submit".equals(action.get("id"))) {
+                submitButton = action;
+                break;
+            }
+        }
+        assertNotNull(submitButton, "form should have default submit button");
+        Map<String, Object> submitOnClick = (Map<String, Object>) submitButton.get("onClick");
+        assertNotNull(submitOnClick, "submit button should have onClick");
+        assertEquals("submitForm", submitOnClick.get("action"), "submit button should trigger submitForm");
+        assertFalse(submitOnClick.containsKey("then"),
+                "submit button should not carry then closeSurface (closeOnSubmit handles closing)");
     }
 
     @Test

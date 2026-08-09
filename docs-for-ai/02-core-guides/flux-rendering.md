@@ -261,12 +261,16 @@ view.xml action 中只写 `api`，不写 `onClick`。NormalizeAction 自动转�
 
 支持 `when` 条件守卫、`control.retry`/`control.debounce` 重试防抖、`onError`/`onSettled` 分支。详见 `flux-guide` 文档。
 
+> `ajax` 动作还支持动作级字段 `confirmText`（执行前确认文案）与 `messages: { success, failed }`（自动成功/失败 toast）。Flux 运行时原生处理这两个字段（`runtime-action-helpers.ts`）：`confirmText` 经 `env.confirm` 二次确认，用户取消返回 cancelled（不触发 failed toast）；`messages.success`/`messages.failed` 在成功/失败时自动 `env.notify`。详见 nop-chaos-flux 项目 flux-guide 的「API 配置」与「错误处理」章节。
+
+> **dialog/drawer 提交后自动关闭（`closeOnSubmit`）**：`LoadPage` 生成 dialog/drawer/feedback 内容时默认在 `openDialog`/`openDrawer` 的 args 上输出 `closeOnSubmit: true`（AMIS `Dialog.closeOnSubmit` 语义，view.xml 的 `<dialog closeOnSubmit="false">` 可覆盖）。运行时在 surface 内 `submitScope='surface'` 的表单提交成功后先执行 owner 侧 `onSubmitSuccess`（刷新下层列表），再自动 `closeSurface`——**按钮提交与 Enter 回车提交统一生效**（Enter 走 form 内置提交，不经过按钮 onClick，此前的 `submitForm.then: closeSurface` 只对按钮点击生效）。提交失败不关闭。生成器因此不再在缺省提交按钮上输出 `then: closeSurface`。
+
 ### 自动转换逻辑概要
 
 - 如果 action 中已有 `onClick`（Flux 原生 ActionSchema），直接透传，不做任何转换。
 - 如果没有 `onClick`，则从 `api`/`actionType`/`dialog`/`drawer` 自动转换为 Flux 原生 ActionSchema：
   1. 直接输出 `action` 字段（而非 `type` 简洁格式），无需前端归一化。映射表详见 `flux-web.xlib:NormalizeAction`。
-  2. 有 `confirmText` 时套 `{ action: 'confirm', args: { message }, then: [...] }`；单步时直接返回该 step；多步时用 `then: [...]` 数组。
+  2. AMIS action 的 `confirmText` 与 `messages`（`{ success, failed }`）**原生挂载到生成的 `ajax` action 节点**上（与 `args` 平级），走 Flux 运行时原生语义；非 ajax 类型（`dialog`/`drawer`/`close`/`submit`/`link`/`url`/`toast` 等）的 `confirmText` 仍套 `{ action: 'confirm', args: { message }, then: [...] }` 包裹。
 
 ## AMIS vs Flux 关键差异
 

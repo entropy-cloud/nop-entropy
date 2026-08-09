@@ -3,7 +3,6 @@ package io.nop.web.page;
 import io.nop.api.core.json.JSON;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.core.lang.eval.IEvalScope;
-import io.nop.core.resource.ResourceHelper;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.xpl.IXplTag;
 import io.nop.xlang.xpl.IXplTagLib;
@@ -82,6 +81,9 @@ public class TestFluxNormalizeAction extends JunitBaseTestCase {
                 {"onclick-passthrough", "{\"id\":\"test-btn\",\"label\":\"Test\",\"onClick\":{\"type\":\"custom\",\"customField\":\"abc\"}}"},
                 {"ajax-default-scope", "{\"id\":\"save-btn\",\"label\":\"Save\",\"actionType\":\"ajax\",\"api\":{\"url\":\"/test/save\",\"method\":\"POST\"}}"},
                 {"ajax-explicit-includescope", "{\"id\":\"save-btn\",\"label\":\"Save\",\"actionType\":\"ajax\",\"api\":{\"url\":\"/test/save\",\"method\":\"POST\",\"includeScope\":\"*\"}}"},
+                {"messages", "{\"id\":\"save-btn\",\"label\":\"Save\",\"actionType\":\"ajax\",\"api\":{\"url\":\"/test/save\",\"method\":\"POST\"},\"messages\":{\"success\":\"Saved\",\"failed\":\"Save failed\"}}"},
+                {"confirm-messages", "{\"id\":\"del-btn\",\"label\":\"Delete\",\"actionType\":\"ajax\",\"api\":{\"url\":\"/test/delete\"},\"confirmText\":\"Are you sure?\",\"messages\":{\"success\":\"Deleted\",\"failed\":\"Delete failed\"}}"},
+                {"confirm-reload", "{\"id\":\"reload-btn\",\"label\":\"Reload\",\"actionType\":\"reload\",\"confirmText\":\"Really reload?\"}"},
         };
 
         for (String[] c : cases) {
@@ -89,8 +91,7 @@ public class TestFluxNormalizeAction extends JunitBaseTestCase {
             String actionJson = c[1];
             Map<String, Object> action = (Map<String, Object>) JSON.parse(actionJson);
             String text = normalizeAndSerialize(action);
-            String path = "/io/nop/web/page/normalize-" + name + ".json";
-            ResourceHelper.writeText(ResourceHelper.resolve(path), text);
+            saveAttachmentText("normalize-" + name + ".json", text);
             System.out.println("=== " + name + " ===");
             System.out.println(text);
         }
@@ -122,6 +123,42 @@ public class TestFluxNormalizeAction extends JunitBaseTestCase {
         action.put("confirmText", "Are you sure?");
         String text = normalizeAndSerialize(action);
         assertEquals(attachmentJsonText("normalize-confirm.json"), text);
+    }
+
+    @Test
+    public void testAjaxMessages() {
+        Map<String, Object> action = actionWithId("save-btn", "Save");
+        action.put("actionType", "ajax");
+        action.put("api", api("/test/save", "POST"));
+        Map<String, Object> messages = new LinkedHashMap<>();
+        messages.put("success", "Saved");
+        messages.put("failed", "Save failed");
+        action.put("messages", messages);
+        String text = normalizeAndSerialize(action);
+        assertEquals(attachmentJsonText("normalize-messages.json"), text);
+    }
+
+    @Test
+    public void testConfirmTextWithMessages() {
+        Map<String, Object> action = actionWithId("del-btn", "Delete");
+        action.put("actionType", "ajax");
+        action.put("api", api("/test/delete", null));
+        action.put("confirmText", "Are you sure?");
+        Map<String, Object> messages = new LinkedHashMap<>();
+        messages.put("success", "Deleted");
+        messages.put("failed", "Delete failed");
+        action.put("messages", messages);
+        String text = normalizeAndSerialize(action);
+        assertEquals(attachmentJsonText("normalize-confirm-messages.json"), text);
+    }
+
+    @Test
+    public void testConfirmTextOnNonAjaxWrapsWithConfirmAction() {
+        Map<String, Object> action = actionWithId("reload-btn", "Reload");
+        action.put("actionType", "reload");
+        action.put("confirmText", "Really reload?");
+        String text = normalizeAndSerialize(action);
+        assertEquals(attachmentJsonText("normalize-confirm-reload.json"), text);
     }
 
     @Test

@@ -39,9 +39,11 @@
 
     <!--
     @size sm/lg/xl/full控制不同的大小。full表示全屏
+    @closeOnSubmit 对话框内 submitScope=surface 的表单提交成功后自动关闭对话框（AMIS语义，Flux支持）
     -->
     <dialog page="!name-or-v-path" height="string" width="string" size="string" closeOnEsc="boolean"
             closeOnOutside="boolean" showCloseButton="boolean" noActions="boolean"
+            closeOnSubmit="boolean"
             title="string"
             xdef:name="UiDialogModel">
         <data>xjson</data>

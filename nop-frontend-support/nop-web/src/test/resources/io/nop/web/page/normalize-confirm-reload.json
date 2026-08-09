@@ -1,0 +1,15 @@
+{
+  "id": "reload-btn",
+  "label": "Reload",
+  "onClick": {
+    "action": "confirm",
+    "args": {
+      "message": "Really reload?"
+    },
+    "then": [
+      {
+        "action": "refreshNearest"
+      }
+    ]
+  }
+}
