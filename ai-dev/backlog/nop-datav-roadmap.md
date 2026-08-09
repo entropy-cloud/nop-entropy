@@ -36,11 +36,11 @@ AI 或维护者读完本文即知哪些工作项已启动（`todo`）、已计�
 > 依赖：D0；前端 nop-chaos-flux dashboard editor / chart / pivot-table / stat-tile / map（flux 侧计划）
 > 设计契约：`ai-dev/design/nop-datav/runtime-design.md`（D1 时产出）
 
-- D1-1. 面板渲染协议（组件注册表 chart/pivot-table/stat-tile/map/table/text/iframe + 组件配置 JSON schema，参考 JimuReport option 透传 + DataEase 字段映射）: `todo`
-- D1-2. 数据绑定管线（面板 → 数据集引用 → 参数求值 → EQL/数据集查询 → 结果回传，复用 nop-report 数据集执行 + 缓存。**边界：仅模型侧解析 + 查询委托/回传，不含前端渲染**；若参数求值（template-tag/类型转换）复杂化则拆为「参数求值」与「查询委托/回传」两 plan）: `todo`
-- D1-3. 刷新机制（面板级 enable/interval，DataEase refreshViewEnable 参考 + 手动刷新 API）: `todo`
+- D1-1. 面板渲染协议（组件注册表 chart/pivot-table/stat-tile/map/table/text/iframe + 组件配置 JSON schema，参考 JimuReport option 透传 + DataEase 字段映射）: `done`
+- D1-2. 数据绑定管线（面板 → 数据集引用 → 参数求值 → EQL/数据集查询 → 结果回传，复用 nop-report 数据集执行 + 缓存。**边界：仅模型侧解析 + 查询委托/回传，不含前端渲染**；若参数求值（template-tag/类型转换）复杂化则拆为「参数求值」与「查询委托/回传」两 plan）: `done`
+- D1-3. 刷新机制（面板级 enable/interval，DataEase refreshViewEnable 参考 + 手动刷新 API）: `done`
 - D1-4. 前端集成（flux dashboard editor 布局 JSON 与 nop-datav `layoutJson` 双向对齐，flux 侧落地后对接）: `todo`
-- D1-5. 端到端（看板创建 → 面板配置 → 数据渲染 → 刷新 全链路）: `todo`
+- D1-5. 端到端（看板创建 → 面板配置 → 数据渲染 → 刷新 全链路）: `done`
 
 验收：面板可渲染 chart/pivot/stat-tile 数据；参数化数据集查询正确；刷新生效。
 
