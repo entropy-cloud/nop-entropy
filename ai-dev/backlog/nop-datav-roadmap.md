@@ -49,9 +49,9 @@ AI 或维护者读完本文即知哪些工作项已启动（`todo`）、已计�
 > 依赖：D1
 > 设计契约：`ai-dev/design/nop-datav/linkage-design.md`（D2 时产出）
 
-- D2-1. 全局筛选参数（看板级参数定义 + 面板级参数映射，Metabase parameters → parameter_mappings 参考 + URL 同步）: `todo`
-- D2-2. 图表联动三件套（联动 + 跳转 + 外部参数注入，DataEase LinkageService/LinkJump/LinkOuterParams 参考）: `todo`
-- D2-3. 联动状态服务（filter_state 保存/恢复，Superset filter_state API 参考）: `todo`
+- D2-1. 全局筛选参数（看板级参数定义 + 面板级参数映射，Metabase parameters → parameter_mappings 参考 + URL 同步）: `done`
+- D2-2. 图表联动三件套（联动 + 跳转 + 外部参数注入，DataEase LinkageService/LinkJump/LinkOuterParams 参考）: `planned`
+- D2-3. 联动状态服务（filter_state 保存/恢复，Superset filter_state API 参考）: `planned`
 - D2-4. 前端（flux dashboard-filter 约定与 nop-datav 参数模型对齐）: `todo`
 
 验收：看板级筛选改变所有绑定面板；图表点击联动 + 跳转 + 外部参数可用；刷新后筛选状态保持。
