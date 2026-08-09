@@ -4,6 +4,7 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
+import io.nop.api.core.annotations.directive.Auth;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.core.context.IServiceContext;
@@ -34,6 +35,7 @@ public class NopDatavPanelBizModel extends CrudBizModel<NopDatavPanel> implement
 
     @Override
     @BizQuery
+    @Auth(permissions = "NopDatavPanel:getPanelData")
     public PanelDataResult getPanelData(@Name("id") String id,
                                         @Name("params") Map<String, Object> requestParams,
                                         IServiceContext context) {
@@ -47,6 +49,7 @@ public class NopDatavPanelBizModel extends CrudBizModel<NopDatavPanel> implement
 
     @Override
     @BizMutation
+    @Auth(permissions = "NopDatavPanel:refreshPanel")
     public PanelDataResult refreshPanel(@Name("id") String id, IServiceContext context) {
         NopDatavPanel panel = requireEntity(id, "refreshPanel", context);
         if (panel == null) {
@@ -59,6 +62,7 @@ public class NopDatavPanelBizModel extends CrudBizModel<NopDatavPanel> implement
 
     @Override
     @BizQuery
+    @Auth(permissions = "NopDatavPanel:resolveLinkage")
     public LinkageResult resolveLinkage(@Name("id") String id,
                                         @Name("clickContext") Map<String, Object> clickContext,
                                         IServiceContext context) {
@@ -71,6 +75,7 @@ public class NopDatavPanelBizModel extends CrudBizModel<NopDatavPanel> implement
 
     @Override
     @BizQuery
+    @Auth(permissions = "NopDatavPanel:resolveJump")
     public JumpResult resolveJump(@Name("id") String id,
                                   @Name("clickContext") Map<String, Object> clickContext,
                                   IServiceContext context) {

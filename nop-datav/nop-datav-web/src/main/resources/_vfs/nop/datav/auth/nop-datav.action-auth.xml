@@ -1,5 +1,117 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<auth x:extends="_nop-datav.action-auth.xml" x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+<auth x:extends="_nop-datav.action-auth.xml" x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      xmlns:i18n-en="i18n-en">
 
-    <site id="main"/>
+    <!--
+        在生成物 _nop-datav.action-auth.xml 的基础上补充：
+        1. 各 FNPT 权限点资源的默认角色绑定（admin 全量；user 查询类 + 面板操作类）
+        2. 自定义 action 的 FNPT 权限点（生成物仅含 CRUD 的 query/mutation 两类）
+        roles 属性提供静态角色绑定，管理员亦可通过 NopAuthRoleResource 表运行时调整。
+    -->
+    <site id="main">
+        <resource id="test-orm-nop-datav">
+            <children>
+                <!-- ==================== NopDatavDashboard ==================== -->
+                <resource id="NopDatavDashboard-main">
+                    <children>
+                        <resource id="FNPT:NopDatavDashboard:query" roles="admin,user"/>
+                        <resource id="FNPT:NopDatavDashboard:mutation" roles="admin"/>
+                        <!-- 自定义 action 权限点 -->
+                        <resource id="FNPT:NopDatavDashboard:publishDashboard" displayName="发布看板"
+                                  i18n-en:displayName="Publish Dashboard" orderNo="10010" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavDashboard:publishDashboard</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDashboard:getPublishedDashboard" displayName="查看已发布看板"
+                                  i18n-en:displayName="Get Published Dashboard" orderNo="10011" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavDashboard:getPublishedDashboard</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDashboard:rollbackDashboard" displayName="回滚看板"
+                                  i18n-en:displayName="Rollback Dashboard" orderNo="10012" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavDashboard:rollbackDashboard</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDashboard:resolveFilterValues" displayName="解析筛选值"
+                                  i18n-en:displayName="Resolve Filter Values" orderNo="10013" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavDashboard:resolveFilterValues</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDashboard:parseFilterFromUrl" displayName="URL筛选解析"
+                                  i18n-en:displayName="Parse Filter From URL" orderNo="10014" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavDashboard:parseFilterFromUrl</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <!-- ==================== NopDatavDashboardSnapshot ==================== -->
+                <resource id="NopDatavDashboardSnapshot-main">
+                    <children>
+                        <resource id="FNPT:NopDatavDashboardSnapshot:query" roles="admin,user"/>
+                        <resource id="FNPT:NopDatavDashboardSnapshot:mutation" roles="admin"/>
+                    </children>
+                </resource>
+                <!-- ==================== NopDatavDashboardTab ==================== -->
+                <resource id="NopDatavDashboardTab-main">
+                    <children>
+                        <resource id="FNPT:NopDatavDashboardTab:query" roles="admin,user"/>
+                        <resource id="FNPT:NopDatavDashboardTab:mutation" roles="admin"/>
+                    </children>
+                </resource>
+                <!-- ==================== NopDatavDatasetRef ==================== -->
+                <resource id="NopDatavDatasetRef-main">
+                    <children>
+                        <resource id="FNPT:NopDatavDatasetRef:query" roles="admin,user"/>
+                        <resource id="FNPT:NopDatavDatasetRef:mutation" roles="admin"/>
+                    </children>
+                </resource>
+                <!-- ==================== NopDatavFilterState ==================== -->
+                <resource id="NopDatavFilterState-main">
+                    <children>
+                        <resource id="FNPT:NopDatavFilterState:query" roles="admin,user"/>
+                        <resource id="FNPT:NopDatavFilterState:mutation" roles="admin,user"/>
+                        <!-- 自定义 action 权限点 -->
+                        <resource id="FNPT:NopDatavFilterState:saveFilterState" displayName="保存筛选状态"
+                                  i18n-en:displayName="Save Filter State" orderNo="10020" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavFilterState:saveFilterState</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavFilterState:getFilterState" displayName="获取筛选状态"
+                                  i18n-en:displayName="Get Filter State" orderNo="10021" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavFilterState:getFilterState</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <!-- ==================== NopDatavPanel ==================== -->
+                <resource id="NopDatavPanel-main">
+                    <children>
+                        <resource id="FNPT:NopDatavPanel:query" roles="admin,user"/>
+                        <resource id="FNPT:NopDatavPanel:mutation" roles="admin,user"/>
+                        <!-- 自定义 action 权限点 -->
+                        <resource id="FNPT:NopDatavPanel:getPanelData" displayName="查询面板数据"
+                                  i18n-en:displayName="Get Panel Data" orderNo="10030" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavPanel:getPanelData</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavPanel:refreshPanel" displayName="刷新面板数据"
+                                  i18n-en:displayName="Refresh Panel" orderNo="10031" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavPanel:refreshPanel</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavPanel:resolveLinkage" displayName="图表联动"
+                                  i18n-en:displayName="Resolve Linkage" orderNo="10032" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavPanel:resolveLinkage</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavPanel:resolveJump" displayName="图表跳转"
+                                  i18n-en:displayName="Resolve Jump" orderNo="10033" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavPanel:resolveJump</permissions>
+                        </resource>
+                    </children>
+                </resource>
+            </children>
+        </resource>
+    </site>
 </auth>

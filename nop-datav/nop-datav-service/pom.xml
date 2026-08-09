@@ -51,6 +51,13 @@
             <artifactId>nop-rpc-cluster</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- Auth beans (nopActionAuthChecker / nopDataAuthChecker / nopGraphQLLogger / nopAuditService)
+             needed for enableActionAuth / enableDataAuth / enable-audit integration tests -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-auth-service</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-autotest-junit</artifactId>

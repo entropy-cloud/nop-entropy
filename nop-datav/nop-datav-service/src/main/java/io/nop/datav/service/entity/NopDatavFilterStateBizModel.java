@@ -5,6 +5,7 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
+import io.nop.api.core.annotations.directive.Auth;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
@@ -15,6 +16,7 @@ import io.nop.datav.biz.FilterState;
 import io.nop.datav.biz.INopDatavFilterStateBiz;
 import io.nop.datav.dao.entity.NopDatavDashboard;
 import io.nop.datav.dao.entity.NopDatavFilterState;
+import io.nop.datav.service.NopDatavOperatorResolver;
 import io.nop.datav.service.linkage.FilterStateCodec;
 
 import java.sql.Timestamp;
@@ -31,6 +33,7 @@ public class NopDatavFilterStateBizModel extends CrudBizModel<NopDatavFilterStat
 
     @Override
     @BizMutation
+    @Auth(permissions = "NopDatavFilterState:saveFilterState")
     public NopDatavFilterState saveFilterState(@Name("dashboardId") String dashboardId,
                                                @Name("globalFilters") Map<String, Object> globalFilters,
                                                @Name("panelSelections") Map<String, Map<String, Object>> panelSelections,
@@ -42,7 +45,7 @@ public class NopDatavFilterStateBizModel extends CrudBizModel<NopDatavFilterStat
             throw new NopException(ERR_DATAV_DASHBOARD_NOT_FOUND).param("dashboardId", dashboardId);
         }
 
-        String userName = resolveOperator(context);
+        String userName = NopDatavOperatorResolver.resolveOperator(context);
         String stateContent = FilterStateCodec.encode(globalFilters, panelSelections, urlState);
         Timestamp now = new Timestamp(System.currentTimeMillis());
 
@@ -71,8 +74,9 @@ public class NopDatavFilterStateBizModel extends CrudBizModel<NopDatavFilterStat
 
     @Override
     @BizQuery
+    @Auth(permissions = "NopDatavFilterState:getFilterState")
     public FilterState getFilterState(@Name("dashboardId") String dashboardId, IServiceContext context) {
-        String userName = resolveOperator(context);
+        String userName = NopDatavOperatorResolver.resolveOperator(context);
         NopDatavFilterState existing = findByUserAndDashboard(userName, dashboardId);
         if (existing == null) {
             // No saved record: return null (caller decides whether to use empty state)
@@ -87,19 +91,6 @@ public class NopDatavFilterStateBizModel extends CrudBizModel<NopDatavFilterStat
         query.addFilter(FilterBeans.eq("dashboardId", dashboardId));
         query.setLimit(1);
         return daoProvider().daoFor(NopDatavFilterState.class).findFirstByQuery(query);
-    }
-
-    private String resolveOperator(IServiceContext context) {
-        String userName = null;
-        if (context != null) {
-            if (context.getUserContext() != null) {
-                userName = context.getUserContext().getUserName();
-            }
-            if ((userName == null || userName.isEmpty()) && context.getContext() != null) {
-                userName = context.getContext().getUserName();
-            }
-        }
-        return userName == null || userName.isEmpty() ? "system" : userName;
     }
 
     private String generateStateId() {

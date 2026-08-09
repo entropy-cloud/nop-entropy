@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- Test-specific action-auth.xml for nop-datav-service auth integration tests.
+     Self-contained (does not extend the generated _nop-datav.action-auth.xml which lives in nop-datav-web).
+     Declares FNPT permission-point resources with static role bindings (roles attribute). -->
+<auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <site id="main">
+        <resource id="test-orm-nop-datav" displayName="测试nop-datav" resourceType="TOPM" orderNo="10000">
+            <children>
+                <resource id="NopDatavDashboard-main" displayName="看板" resourceType="SUBM" orderNo="10001">
+                    <children>
+                        <resource id="FNPT:NopDatavDashboard:query" displayName="查询看板" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavDashboard:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDashboard:mutation" displayName="修改看板" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavDashboard:mutation</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDashboard:publishDashboard" displayName="发布看板" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavDashboard:publishDashboard</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDashboard:getPublishedDashboard" displayName="查看已发布看板"
+                                  resourceType="FNPT" roles="admin,user">
+                            <permissions>NopDatavDashboard:getPublishedDashboard</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDashboard:rollbackDashboard" displayName="回滚看板" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavDashboard:rollbackDashboard</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDashboard:resolveFilterValues" displayName="解析筛选值"
+                                  resourceType="FNPT" roles="admin,user">
+                            <permissions>NopDatavDashboard:resolveFilterValues</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDashboard:parseFilterFromUrl" displayName="URL筛选解析"
+                                  resourceType="FNPT" roles="admin,user">
+                            <permissions>NopDatavDashboard:parseFilterFromUrl</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDatavPanel-main" displayName="面板" resourceType="SUBM" orderNo="10002">
+                    <children>
+                        <resource id="FNPT:NopDatavPanel:query" displayName="查询面板" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavPanel:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavPanel:mutation" displayName="修改面板" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavPanel:mutation</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavPanel:getPanelData" displayName="查询面板数据" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavPanel:getPanelData</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavPanel:refreshPanel" displayName="刷新面板数据" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavPanel:refreshPanel</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavPanel:resolveLinkage" displayName="图表联动" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavPanel:resolveLinkage</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavPanel:resolveJump" displayName="图表跳转" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavPanel:resolveJump</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDatavFilterState-main" displayName="筛选状态" resourceType="SUBM" orderNo="10003">
+                    <children>
+                        <resource id="FNPT:NopDatavFilterState:query" displayName="查询筛选状态" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavFilterState:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavFilterState:mutation" displayName="修改筛选状态" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavFilterState:mutation</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavFilterState:saveFilterState" displayName="保存筛选状态"
+                                  resourceType="FNPT" roles="admin,user">
+                            <permissions>NopDatavFilterState:saveFilterState</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavFilterState:getFilterState" displayName="获取筛选状态" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavFilterState:getFilterState</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDatavDashboardSnapshot-main" displayName="发布快照" resourceType="SUBM" orderNo="10004">
+                    <children>
+                        <resource id="FNPT:NopDatavDashboardSnapshot:query" displayName="查询发布快照" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavDashboardSnapshot:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDashboardSnapshot:mutation" displayName="修改发布快照" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavDashboardSnapshot:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+            </children>
+        </resource>
+    </site>
+</auth>

@@ -1,9 +1,19 @@
 site:
   resource:
+    FNPT:NopDatavDashboard:getPublishedDashboard:
+      displayName: Get Published Dashboard
     FNPT:NopDatavDashboard:mutation:
       displayName: Modify Dashboard
+    FNPT:NopDatavDashboard:parseFilterFromUrl:
+      displayName: Parse Filter From URL
+    FNPT:NopDatavDashboard:publishDashboard:
+      displayName: Publish Dashboard
     FNPT:NopDatavDashboard:query:
       displayName: Query Dashboard
+    FNPT:NopDatavDashboard:resolveFilterValues:
+      displayName: Resolve Filter Values
+    FNPT:NopDatavDashboard:rollbackDashboard:
+      displayName: Rollback Dashboard
     FNPT:NopDatavDashboardSnapshot:mutation:
       displayName: Modify Dashboard Snapshot
     FNPT:NopDatavDashboardSnapshot:query:
@@ -16,14 +26,26 @@ site:
       displayName: Modify Dataset Ref
     FNPT:NopDatavDatasetRef:query:
       displayName: Query Dataset Ref
+    FNPT:NopDatavFilterState:getFilterState:
+      displayName: Get Filter State
     FNPT:NopDatavFilterState:mutation:
       displayName: Modify Filter State
     FNPT:NopDatavFilterState:query:
       displayName: Query Filter State
+    FNPT:NopDatavFilterState:saveFilterState:
+      displayName: Save Filter State
+    FNPT:NopDatavPanel:getPanelData:
+      displayName: Get Panel Data
     FNPT:NopDatavPanel:mutation:
       displayName: Modify Panel
     FNPT:NopDatavPanel:query:
       displayName: Query Panel
+    FNPT:NopDatavPanel:refreshPanel:
+      displayName: Refresh Panel
+    FNPT:NopDatavPanel:resolveJump:
+      displayName: Resolve Jump
+    FNPT:NopDatavPanel:resolveLinkage:
+      displayName: Resolve Linkage
     NopDatavDashboard-main:
       displayName: Dashboard
     NopDatavDashboardSnapshot-main:

@@ -8,12 +8,21 @@ nop:
     login:
       allow-create-default-user: true # 如果用户表为空，则自动创建缺省账户nop, 密码nop-test
 
+    enable-action-auth: true
+    enable-data-auth: true
+    use-data-auth-table: true
+
     site-map:
       static-config-path: /nop/datav/auth/app.action-auth.xml
       cache-timeout: 1s
       support-debug: true
 
     data-auth-config-path: /nop/datav/auth/app.data-auth.xml
+
+    graphql:
+      enable-audit: true
+      audit-mutation-patterns: NopDatavDashboard__*,NopDatavPanel__*,NopDatavFilterState__*
+      audit-query-patterns: NopDatavDashboard__getPublishedDashboard
 
   web:
     validate-page-model: true

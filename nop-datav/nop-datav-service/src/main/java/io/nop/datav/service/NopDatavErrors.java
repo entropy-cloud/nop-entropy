@@ -135,4 +135,10 @@ public interface NopDatavErrors {
             "Invalid filter state content for dashboard: {dashboardId}, reason: {reason}",
             ARG_DASHBOARD_ID, ARG_REASON
     );
+
+    ErrorCode ERR_DATAV_NOT_DASHBOARD_OWNER = define(
+            "nop.err.datav.not-dashboard-owner",
+            "User {userName} is not the owner of dashboard: {dashboardId}",
+            ARG_USER_NAME, ARG_DASHBOARD_ID
+    );
 }

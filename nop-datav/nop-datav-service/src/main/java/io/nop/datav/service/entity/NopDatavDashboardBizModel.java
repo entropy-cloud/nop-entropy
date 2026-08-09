@@ -4,6 +4,7 @@ import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
+import io.nop.api.core.annotations.directive.Auth;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
@@ -21,6 +22,7 @@ import io.nop.datav.dao.entity.NopDatavDashboardSnapshot;
 import io.nop.datav.dao.entity.NopDatavDatasetRef;
 import io.nop.datav.dao.entity.NopDatavDashboardTab;
 import io.nop.datav.dao.entity.NopDatavPanel;
+import io.nop.datav.service.NopDatavOperatorResolver;
 import io.nop.datav.service.filter.DashboardFilterResolver;
 import io.nop.datav.service.filter.DashboardFilterUrlCodec;
 import io.nop.datav.service.filter.DashboardParamDefinition;
@@ -53,12 +55,13 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
 
     @Override
     @BizMutation
+    @Auth(permissions = "NopDatavDashboard:publishDashboard")
     public NopDatavDashboardSnapshot publishDashboard(@Name("id") String id, IServiceContext context) {
         NopDatavDashboard dashboard = requireEntity(id, "publishDashboard", context);
 
         String snapshotContent = serializeDashboardContent(dashboard);
         long nextVersion = calculateNextVersion(id);
-        String publishedBy = resolveOperator(context);
+        String publishedBy = NopDatavOperatorResolver.resolveOperator(context);
         Timestamp publishedTime = new Timestamp(System.currentTimeMillis());
 
         NopDatavDashboardSnapshot snapshot = daoProvider()
@@ -86,6 +89,7 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
 
     @Override
     @BizQuery
+    @Auth(permissions = "NopDatavDashboard:getPublishedDashboard")
     public NopDatavDashboardSnapshot getPublishedDashboard(@Name("id") String id, IServiceContext context) {
         NopDatavDashboard dashboard = requireEntity(id, "getPublishedDashboard", context);
 
@@ -99,6 +103,7 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
 
     @Override
     @BizMutation
+    @Auth(permissions = "NopDatavDashboard:rollbackDashboard")
     public NopDatavDashboardSnapshot rollbackDashboard(@Name("id") String id,
                                                        @Name("snapshotVersion") long snapshotVersion,
                                                        IServiceContext context) {
@@ -120,6 +125,7 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
 
     @Override
     @BizQuery
+    @Auth(permissions = "NopDatavDashboard:resolveFilterValues")
     public Map<String, Object> resolveFilterValues(@Name("id") String id,
                                                     @Name("filterValues") Map<String, Object> filterValues,
                                                     IServiceContext context) {
@@ -130,6 +136,7 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
 
     @Override
     @BizQuery
+    @Auth(permissions = "NopDatavDashboard:parseFilterFromUrl")
     public Map<String, Object> parseFilterFromUrl(@Name("id") String id,
                                                    @Name("url") String url,
                                                    IServiceContext context) {
@@ -268,19 +275,6 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
             return null;
         }
         return JsonTool.parse(json);
-    }
-
-    private String resolveOperator(IServiceContext context) {
-        String userName = null;
-        if (context != null) {
-            if (context.getUserContext() != null) {
-                userName = context.getUserContext().getUserName();
-            }
-            if ((userName == null || userName.isEmpty()) && context.getContext() != null) {
-                userName = context.getContext().getUserName();
-            }
-        }
-        return userName == null || userName.isEmpty() ? "system" : userName;
     }
 
     private String generateSnapshotId() {
