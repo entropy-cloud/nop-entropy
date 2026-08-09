@@ -60,7 +60,7 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
      * without a task), {@link #offerBarrier(CheckpointBarrier)} falls back to direct
      * injection so the operator remains usable in isolation.
      */
-    private MailboxExecutor mailboxExecutor;
+    private transient MailboxExecutor mailboxExecutor;
 
     /**
      * G52: per-record progress marker wired by the owning {@code StreamTaskInvokable}.
@@ -68,7 +68,7 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
      * emission so that a healthy-but-slow source is not misjudged as stalled. May be
      * null (e.g. isolated unit-test usage); collect() null-checks before invoking.
      */
-    private Runnable progressMarker;
+    private transient Runnable progressMarker;
 
     private final SourceFunction<OUT> sourceFunction;
 

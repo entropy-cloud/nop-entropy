@@ -342,9 +342,41 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             if (fencingEpoch.get() == 0L) {
                 recoveryGen.set(1L);
                 fencingEpoch.set(deriveHaFencingEpoch(0L, recoveryGen.get()));
+            } else {
+                // fencingEpoch was pre-set via setFencingEpoch (e.g. by JobCoordinatorMain
+                // or the in-process executors RpcDistributedExecutor /
+                // EmbeddedDistributedExecutor, which derive deriveHaFencingEpoch(0,1)=1
+                // before start()). The seed branch above is skipped, so recoveryGen must
+                // be synced here from the pre-set epoch: in non-HA mode the leaderEpoch
+                // component is 0, so the epoch's low-order component equals recoveryGen.
+                // Without this sync the first globalRecovery() would increment 0->1 and
+                // derive deriveHaFencingEpoch(0,1)=1 — the SAME epoch as the pre-set value
+                // — so the fencing epoch would NOT rotate on recovery (fencing invariant
+                // violation: each recovery must produce a strictly greater epoch).
+                recoveryGen.set(fencingEpoch.get());
             }
             long epoch = fencingEpoch.get();
             clusterRegistry.registerCoordinator(jobId, coordinatorId, epoch);
+
+            // Cross-JVM fencing sync (Stage 42 multi-JVM remediation): every other
+            // activation path pushes the fencing epoch to the TaskManagers before any
+            // deployTask is issued — rotateFencingEpochCoreLocked does it on
+            // recovery/HA-activation, and the in-process executors
+            // (RpcDistributedExecutor / EmbeddedDistributedExecutor) pre-sync each TM
+            // via tm.updateFencingToken before coordinator.start(). The non-HA start()
+            // path is the lone omission: it derived epoch=1 and registered, but never
+            // told the TMs. TMs boot at currentFencingEpoch=0, so the very first
+            // assignTasks() -> deployTask(descriptor, 1) RPC was rejected with
+            // ERR_STREAM_FENCING_TOKEN_MISMATCH (expected=0, actual=1), reported FAILED,
+            // and triggered a rapid globalRecovery loop. Mirror the recovery-path push
+            // here so TMs are at `epoch` before the caller issues assignTasks().
+            // Safe for the in-process executors: they pre-sync TMs to the same epoch, so
+            // updateFencingToken is a no-op there (old==new); and they call start()
+            // AFTER setFencingEpoch, so `epoch` equals the executor's value.
+            for (IStreamTaskRpcService rpc : taskRpcServices.values()) {
+                rpc.updateFencingToken(epoch);
+            }
+
             startFailureDetector();
             running = true;
             active = true;

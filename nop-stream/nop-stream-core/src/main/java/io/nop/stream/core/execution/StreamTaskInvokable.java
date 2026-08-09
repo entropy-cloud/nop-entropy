@@ -69,7 +69,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
      * MIDDLE/SINK: the main loop ({@code processInputGate}) polls this at the top of each
      * iteration. The abort handler delivers a cancel mail + raises the cancel flag here.
      */
-    private final MailboxExecutor mailboxExecutor = new MailboxExecutor();
+    private final transient MailboxExecutor mailboxExecutor = new MailboxExecutor();
 
     /**
      * G52: per-invokable liveness timestamp. Updated at every data-plane progress

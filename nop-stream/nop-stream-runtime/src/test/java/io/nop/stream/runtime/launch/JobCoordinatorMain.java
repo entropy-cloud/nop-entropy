@@ -9,6 +9,7 @@ package io.nop.stream.runtime.launch;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,10 +23,18 @@ import org.slf4j.LoggerFactory;
 import io.nop.api.core.message.IMessageService;
 import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.checkpoint.CheckpointIDCounter;
+import io.nop.stream.core.common.functions.sink.PrintSinkFunction;
+import io.nop.stream.core.execution.StreamTaskInvokable;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.execution.plan.PartitionPolicy;
 import io.nop.stream.core.execution.plan.PartitionedPlan;
+import io.nop.stream.core.jobgraph.JobEdge;
 import io.nop.stream.core.jobgraph.JobGraph;
+import io.nop.stream.core.jobgraph.JobVertex;
+import io.nop.stream.core.jobgraph.OperatorChain;
+import io.nop.stream.core.jobgraph.ResultPartitionType;
+import io.nop.stream.core.operators.StreamSinkOperator;
+import io.nop.stream.core.operators.StreamSourceOperator;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
@@ -37,6 +46,7 @@ import io.nop.stream.runtime.rpc.IStreamTaskRpcService;
 import io.nop.stream.runtime.rpc.StreamControlRpcProxyFactory;
 import io.nop.stream.runtime.rpc.StreamControlRpcServer;
 import io.nop.stream.runtime.rpc.StreamControlRpcTopics;
+import io.nop.stream.runtime.source.CollectionReplayableSource;
 
 /**
  * Stage 42 Phase 1: standalone JVM entry point for a {@link JobCoordinator}.
@@ -147,9 +157,25 @@ public final class JobCoordinatorMain {
             taskRpcProxies.put(nodeId, proxy.getProxy());
         }
 
-        // Build a trivial placeholder JobGraph + DeploymentPlan. Phase 3 wires
-        // a real source→keyBy→sink pipeline; for Phase 1 verification we only
-        // need the assignment/deploy RPC path to fire.
+        // Build a trivial but REAL source->sink pipeline (Stage 42 multi-JVM
+        // remediation). The prior placeholder used an empty JobGraph
+        // (new JobGraph(jobId)) which is incompatible with remote-deploy mode:
+        // remoteDeployMode=true requires the coordinator to build a
+        // TaskDeploymentDescriptor carrying a non-empty JobGraph, and each
+        // TaskManager rebuilds its own invokable locally via SubtaskPlanBuilder
+        // -> RemoteGraphExecutionPlanBuilder, which iterates the JobGraph
+        // vertices/edges. An empty graph yields zero reconstructed subtasks and
+        // the TaskManager throws "Subtask N of vertex X not found", reporting
+        // FAILED and triggering a rapid globalRecovery loop.
+        //
+        // The trivial pipeline uses an EMPTY CollectionReplayableSource (produces
+        // zero records) and a discarding PrintSinkFunction. This is sufficient
+        // for the multi-JVM capability tests, which verify the cross-JVM
+        // deploy/recovery/fencing infrastructure (deployTask RPC fires across
+        // JVM boundaries, kill/restart rotates the fencing epoch, coordinator
+        // log captures recovery) — NOT end-to-end record flow (Stage 43+ work).
+        // Vertex IDs MUST match the PartitionedPlan below ("source"/"sink") so
+        // RemoteGraphExecutionPlanBuilder.resolveParallelism can join them.
         Map<String, PartitionedPlan.VertexPlan> vertexPlans = new LinkedHashMap<>();
         vertexPlans.put("source", new PartitionedPlan.VertexPlan("source", 1, null));
         vertexPlans.put("sink", new PartitionedPlan.VertexPlan("sink", 1, null));
@@ -160,7 +186,7 @@ public final class JobCoordinatorMain {
         DeploymentPlan deploymentPlan = new DeploymentPlan(
                 jobId, "pipeline-0", partitionedPlan,
                 "local", "memory", "local", null, null);
-        JobGraph jobGraph = new JobGraph(jobId);
+        JobGraph jobGraph = buildTrivialSourceSinkJobGraph(jobId);
 
         coordinator = new JobCoordinator(
                 jobId, "coordinator-" + jobId, deploymentPlan,
@@ -225,6 +251,41 @@ public final class JobCoordinatorMain {
         LOG.info("JobCoordinatorMain started (jobId={}, rpcTopic={}, ha={}, deployed subtasks via remote-deploy)",
                 jobId, StreamControlRpcTopics.coordinatorTopic(topicNamespace), haEnabled);
         return coordinator;
+    }
+
+    /**
+     * Stage 42 multi-JVM remediation: builds the minimal real source->sink
+     * {@link JobGraph} used by the standalone coordinator to exercise the
+     * cross-JVM {@code deployTask} RPC path. See {@code buildTrivialSourceSinkJobGraph}
+     * in the start() method for why an empty placeholder JobGraph is incompatible
+     * with {@code remoteDeployMode=true}.
+     *
+     * <p>The source is an empty {@link CollectionReplayableSource} (zero records) and
+     * the sink is a discarding {@link PrintSinkFunction}. Vertex IDs ("source"/"sink")
+     * match the {@link PartitionedPlan} so
+     * {@code RemoteGraphExecutionPlanBuilder.resolveParallelism} can join them.
+     */
+    private static JobGraph buildTrivialSourceSinkJobGraph(String jobId) {
+        StreamSourceOperator<String> sourceOp =
+                new StreamSourceOperator<>(new CollectionReplayableSource<>(Collections.emptyList()));
+        StreamSinkOperator<String> sinkOp = new StreamSinkOperator<>(new PrintSinkFunction<>());
+
+        OperatorChain sourceChain = new OperatorChain(Collections.singletonList(sourceOp));
+        OperatorChain sinkChain = new OperatorChain(Collections.singletonList(sinkOp));
+
+        StreamTaskInvokable sourceInvokable = new StreamTaskInvokable(sourceChain);
+        StreamTaskInvokable sinkInvokable = new StreamTaskInvokable(sinkChain);
+
+        JobVertex sourceVertex = new JobVertex("source", "Source", 1,
+                Collections.singletonList(sourceChain), sourceInvokable);
+        JobVertex sinkVertex = new JobVertex("sink", "Sink", 1,
+                Collections.singletonList(sinkChain), sinkInvokable);
+
+        JobGraph jobGraph = new JobGraph(jobId);
+        jobGraph.addVertex(sourceVertex);
+        jobGraph.addVertex(sinkVertex);
+        jobGraph.addEdge(new JobEdge("source", "sink", ResultPartitionType.PIPELINED));
+        return jobGraph;
     }
 
     private void waitForNodeRegistration(List<String> expectedNodeIds, long timeoutMs)

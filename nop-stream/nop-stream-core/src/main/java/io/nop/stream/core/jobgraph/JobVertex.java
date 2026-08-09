@@ -90,8 +90,18 @@ public class JobVertex implements Serializable {
     /**
      * The invokable task that will execute the operator logic for this vertex.
      * This is the actual executable unit deployed to task managers.
+     *
+     * <p><strong>Transient (cross-JVM deployment)</strong>: a wired invokable holds
+     * non-serializable runtime state (mailbox executor, barrier tracker, input/output
+     * wiring, progress markers). For cross-JVM deployment via {@code deployTask} RPC the
+     * TaskManager does NOT reuse this invokable — {@code RemoteGraphExecutionPlanBuilder}
+     * rebuilds a fresh, locally-wired invokable from {@link #getOperatorChains()} (which
+     * carry only serializable user-function/config state). Marking the field transient
+     * drops the wired-invokable subgraph from the serialized {@link TaskDeploymentDescriptor}
+     * while preserving it for in-process execution (where the JobVertex is used directly,
+     * never serialized).
      */
-    private final Invokable<?> invokable;
+    private final transient Invokable<?> invokable;
 
     /**
      * Constructs a new JobVertex with all required parameters.
