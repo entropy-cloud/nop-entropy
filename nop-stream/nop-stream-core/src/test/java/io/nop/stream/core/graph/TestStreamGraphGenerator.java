@@ -11,6 +11,7 @@ import io.nop.commons.partition.IPartitioner;
 import io.nop.stream.core.common.eventtime.WatermarkStrategy;
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.functions.SinkFunction;
+import io.nop.stream.core.common.functions.sink.TwoPhaseCommitSinkFunction;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.operators.StreamOperator;
@@ -30,6 +31,8 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import io.nop.stream.core.exceptions.StreamException;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_2PC_SINK_PARALLELISM_NOT_SUPPORTED;
 
 /**
  * Comprehensive unit tests for StreamGraphGenerator class.
@@ -318,9 +321,71 @@ public class TestStreamGraphGenerator {
         assertEquals(4, streamGraph.getStreamNode(sink.getId()).getParallelism());
     }
 
+    // ===== 2PC Sink Fail-Fast Gate Tests (CONN-01 P1) =====
+
+    /**
+     * Test A: a TwoPhaseCommitSinkFunction sink at parallelism=1 builds a StreamGraph
+     * without error (regression guard for the proven path).
+     */
+    @Test
+    public void testTwoPhaseCommitSinkAtParallelism1BuildsGraph() {
+        SourceTransformation<String> source = createSourceTransformation("Source", 1);
+        SinkTransformation<String> sink = createTwoPhaseCommitSinkTransformation(source, "My2PCSink", 1);
+
+        StreamGraph streamGraph = generator.generate(Collections.singletonList(sink));
+
+        assertNotNull(streamGraph);
+        assertEquals(2, streamGraph.getStreamNodes().size());
+        assertEquals(1, streamGraph.getSinkIDs().size());
+        assertTrue(streamGraph.getSinkIDs().contains(sink.getId()));
+
+        // Verify the sink node has parallelism=1
+        StreamNode sinkNode = streamGraph.getStreamNode(sink.getId());
+        assertNotNull(sinkNode);
+        assertEquals(1, sinkNode.getParallelism());
+    }
+
+    /**
+     * Test B: a TwoPhaseCommitSinkFunction sink at parallelism=2 is rejected at planning
+     * with the expected error code, and the params carry the sink name + parallelism.
+     * This drives the full path: sink Transformation -> StreamGraphGenerator sink detection
+     * -> effective-parallelism resolution -> gate throw.
+     */
+    @Test
+    public void testTwoPhaseCommitSinkAtParallelism2IsRejected() {
+        SourceTransformation<String> source = createSourceTransformation("Source", 2);
+        SinkTransformation<String> sink = createTwoPhaseCommitSinkTransformation(source, "My2PCSink", 2);
+
+        StreamException ex = assertThrows(StreamException.class,
+                () -> generator.generate(Collections.singletonList(sink)));
+
+        assertEquals(ERR_STREAM_2PC_SINK_PARALLELISM_NOT_SUPPORTED.getErrorCode(), ex.getErrorCode());
+        assertEquals("My2PCSink", ex.getParam("sinkName"));
+        assertEquals(2, ex.getParam("parallelism"));
+    }
+
+    /**
+     * Test C: a non-2PC sink (plain SinkFunction) at parallelism>1 is NOT rejected
+     * (the gate is specific to TwoPhaseCommitSinkFunction).
+     */
+    @Test
+    public void testNonTwoPhaseCommitSinkAtParallelism2IsAllowed() {
+        SourceTransformation<String> source = createSourceTransformation("Source", 2);
+        SinkTransformation<String> sink = createSinkTransformation(source, "PlainSink", 2);
+
+        StreamGraph streamGraph = generator.generate(Collections.singletonList(sink));
+
+        assertNotNull(streamGraph);
+        assertEquals(2, streamGraph.getStreamNodes().size());
+        assertTrue(streamGraph.getSinkIDs().contains(sink.getId()));
+
+        StreamNode sinkNode = streamGraph.getStreamNode(sink.getId());
+        assertNotNull(sinkNode);
+        assertEquals(2, sinkNode.getParallelism());
+    }
+
     @Test
     public void testOneInputTransformationWithKeySelector() {
-        // Test OneInputTransformation with key selector
         SourceTransformation<String> source = createSourceTransformation("Source", 2);
         
         TypeInformation<String> outputType = createStringTypeInformation();
@@ -400,6 +465,13 @@ public class TestStreamGraphGenerator {
         return new SinkTransformation<>(input, name, sinkFunction, outputType, parallelism);
     }
 
+    private <T> SinkTransformation<T> createTwoPhaseCommitSinkTransformation(
+            Transformation<T> input, String name, int parallelism) {
+        TypeInformation<Void> outputType = createVoidTypeInformation();
+        SinkFunction<T> sinkFunction = new TestTwoPhaseCommitSinkFunction<>();
+        return new SinkTransformation<>(input, name, sinkFunction, outputType, parallelism);
+    }
+
     private <T> PartitionTransformation<T> createPartitionTransformation(
             Transformation<T> input, String name, int parallelism) {
         TypeInformation<T> outputType = (TypeInformation<T>) createStringTypeInformation();
@@ -456,6 +528,28 @@ public class TestStreamGraphGenerator {
         @Override
         public void consume(T value) throws Exception {
             // No-op for testing
+        }
+    }
+
+    private static class TestTwoPhaseCommitSinkFunction<T> extends TwoPhaseCommitSinkFunction<T> {
+        @Override
+        public void beginTransaction() {
+        }
+
+        @Override
+        public void invoke(T value) {
+        }
+
+        @Override
+        public void preCommit(long checkpointId) {
+        }
+
+        @Override
+        public void commit(long checkpointId) {
+        }
+
+        @Override
+        public void rollback() {
         }
     }
 

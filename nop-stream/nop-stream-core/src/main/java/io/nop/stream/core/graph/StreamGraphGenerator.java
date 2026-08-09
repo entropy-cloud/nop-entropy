@@ -19,6 +19,7 @@ import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.functions.SinkFunction;
+import io.nop.stream.core.common.functions.sink.TwoPhaseCommitSinkFunction;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.model.StreamComponents;
@@ -44,6 +45,9 @@ import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.exceptions.NopStreamErrors;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_OPERATION;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_PARALLELISM;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_SINK_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_2PC_SINK_PARALLELISM_NOT_SUPPORTED;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_UNSUPPORTED;
 
@@ -358,10 +362,23 @@ public class StreamGraphGenerator {
     private <T> void transformSink(SinkTransformation<T> transformation) {
         // 1. Recursively process the input transformation
         transform(transformation.getInput());
-        
+
         // 2. Create operator factory wrapper for the sink function
-        StreamOperatorFactory<Void> operatorFactory = 
-            new SinkOperatorFactory<>(transformation.getSinkFunction());
+        SinkFunction<T> sinkFunction = transformation.getSinkFunction();
+        int effectiveParallelism = resolveParallelism(transformation);
+
+        // Fail-fast gate (CONN-01 P1): reject a 2PC sink at effective parallelism > 1.
+        // The built-in 2PC sinks silently lose data at parallelism > 1 because the
+        // idempotency guard keys on epochId only and the UDF is shared across subtasks.
+        // See checkpoint-design.md §6.4.1 for the deferral rationale and successor.
+        if (sinkFunction instanceof TwoPhaseCommitSinkFunction && effectiveParallelism > 1) {
+            throw new StreamException(ERR_STREAM_2PC_SINK_PARALLELISM_NOT_SUPPORTED)
+                    .param(ARG_SINK_NAME, transformation.getName())
+                    .param(ARG_PARALLELISM, effectiveParallelism);
+        }
+
+        StreamOperatorFactory<Void> operatorFactory =
+            new SinkOperatorFactory<>(sinkFunction);
         
         // Create the stream node for this sink
         StreamNode node = new StreamNode(
@@ -369,7 +386,7 @@ public class StreamGraphGenerator {
             transformation.getName(),
             operatorFactory,
             transformation.getOutputType(),
-            resolveParallelism(transformation)
+            effectiveParallelism
         );
         applyParallelismLock(node, transformation);
         node.setChainingStrategy(operatorFactory.getChainingStrategy());

@@ -412,4 +412,24 @@ public interface NopStreamErrors {
             define("nop.err.stream.region-restart-unsupported",
                     "Region {regionId} cannot be safely restarted: it contains producer vertices requiring drain/reconnect (successor plan 4). Falling back to global recovery.",
                     ARG_REGION_ID);
+
+    String ARG_SINK_NAME = "sinkName";
+    String ARG_PARALLELISM = "parallelism";
+
+    /**
+     * Fail-fast gate (CONN-01 P1): a {@code TwoPhaseCommitSinkFunction} sink deployed at
+     * effective parallelism > 1 is rejected at planning time. The built-in 2PC sinks
+     * (JdbcTwoPhaseCommitSink, FileTwoPhaseCommitSink) silently lose data at parallelism > 1
+     * because (a) their idempotency guard keys on the job-global epochId only, (b) the UDF is
+     * shared across subtasks so the base-class pendingCommits map collides, and (c) the sink
+     * receives no operatorId/subtaskIndex at runtime. Full parallel exactly-once requires a
+     * sink identity-injection layer (see {@code checkpoint-design.md} §6.4.1) and is deferred
+     * to a successor plan. parallelism=1 is the proven, supported path.
+     */
+    ErrorCode ERR_STREAM_2PC_SINK_PARALLELISM_NOT_SUPPORTED =
+            define("nop.err.stream.2pc-sink-parallelism-not-supported",
+                    "Two-phase-commit sink '{sinkName}' does not support parallelism > 1: "
+                            + "requested parallelism={parallelism}. Exactly-once output is only proven at parallelism=1; "
+                            + "parallelism>1 would silently lose data. Use parallelism=1 or wait for the parallel-2PC successor capability.",
+                    ARG_SINK_NAME, ARG_PARALLELISM);
 }
