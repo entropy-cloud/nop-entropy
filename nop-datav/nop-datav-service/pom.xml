@@ -23,6 +23,13 @@
             <groupId>io.github.entropy-cloud</groupId>
         </dependency>
 
+        <!-- 引入 nop-report-dao 以读取 NopReportDataset 配置（dsType/dsText）。
+             仅依赖 -dao 层，不引入 nop-report-core/nop-report-service，避免拉入 XPT 引擎和渲染器。 -->
+        <dependency>
+            <artifactId>nop-report-dao</artifactId>
+            <groupId>io.github.entropy-cloud</groupId>
+        </dependency>
+
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-biz</artifactId>

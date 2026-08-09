@@ -48,4 +48,19 @@ public interface _NopDatavCoreConstants {
      */
     int PANEL_TYPE_CONTAINER = 40;
                     
+    /**
+     * 面板类型: 透视表 
+     */
+    int PANEL_TYPE_PIVOT_TABLE = 50;
+                    
+    /**
+     * 面板类型: 地图 
+     */
+    int PANEL_TYPE_MAP = 60;
+                    
+    /**
+     * 面板类型: 内嵌页面 
+     */
+    int PANEL_TYPE_IFRAME = 70;
+                    
 }

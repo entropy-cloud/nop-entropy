@@ -25,3 +25,15 @@ options:
     value: 40
     description: 
   
+  - label: 透视表
+    value: 50
+    description: 
+  
+  - label: 地图
+    value: 60
+    description: 
+  
+  - label: 内嵌页面
+    value: 70
+    description: 
+  

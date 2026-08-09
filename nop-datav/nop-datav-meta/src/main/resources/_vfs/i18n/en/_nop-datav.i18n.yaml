@@ -117,3 +117,6 @@ dict.option.label:
     '20': Metric
     '30': Text
     '40': Container
+    '50': Pivot Table
+    '60': Map
+    '70': IFrame
