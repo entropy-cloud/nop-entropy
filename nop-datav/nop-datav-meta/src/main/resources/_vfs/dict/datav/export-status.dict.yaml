@@ -1,0 +1,27 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 导出任务状态
+locale: zh-CN
+valueType: int
+description: 
+options:
+
+  - label: 待执行
+    value: 0
+    description: 
+  
+  - label: 执行中
+    value: 10
+    description: 
+  
+  - label: 成功
+    value: 20
+    description: 
+  
+  - label: 失败
+    value: 30
+    description: 
+  
+  - label: 已取消
+    value: 40
+    description: 
+  

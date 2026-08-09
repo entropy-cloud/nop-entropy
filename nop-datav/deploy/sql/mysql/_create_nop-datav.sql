@@ -21,6 +21,26 @@ CREATE TABLE nop_datav_dashboard(
   constraint PK_nop_datav_dashboard primary key (DASHBOARD_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+CREATE TABLE nop_datav_export_task(
+  TASK_ID VARCHAR(32) NOT NULL    COMMENT '任务ID',
+  SOURCE_TYPE VARCHAR(20) NOT NULL    COMMENT '来源类型',
+  SOURCE_ID VARCHAR(32) NOT NULL    COMMENT '来源ID',
+  FORMAT VARCHAR(10) NOT NULL    COMMENT '导出格式',
+  STATUS INTEGER NOT NULL    COMMENT '任务状态',
+  PARAMS LONGTEXT NULL    COMMENT '导出参数',
+  FILE_RECORD_ID VARCHAR(64) NULL    COMMENT '文件记录ID',
+  ROW_COUNT BIGINT NULL    COMMENT '导出行数',
+  ERROR_MSG VARCHAR(1000) NULL    COMMENT '错误信息',
+  DEL_FLAG TINYINT NULL    COMMENT '删除标记',
+  VERSION BIGINT NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
+  REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint PK_nop_datav_export_task primary key (TASK_ID)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
 CREATE TABLE nop_datav_panel(
   PANEL_ID VARCHAR(32) NOT NULL    COMMENT '面板ID',
   DASHBOARD_ID VARCHAR(32) NOT NULL    COMMENT '看板ID',
@@ -125,6 +145,8 @@ CREATE TABLE nop_datav_share(
 
 
    ALTER TABLE nop_datav_dashboard COMMENT '看板';
+                
+   ALTER TABLE nop_datav_export_task COMMENT '导出任务';
                 
    ALTER TABLE nop_datav_panel COMMENT '面板';
                 

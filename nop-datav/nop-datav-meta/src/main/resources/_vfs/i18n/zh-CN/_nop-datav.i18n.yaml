@@ -5,6 +5,7 @@ entity:
     NopDatavDashboardSnapshot: 发布快照
     NopDatavDashboardTab: 页签
     NopDatavDatasetRef: 数据集引用
+    NopDatavExportTask: 导出任务
     NopDatavFilterState: 筛选状态
     NopDatavPanel: 面板
 prop:
@@ -95,6 +96,27 @@ prop:
       refDatasetId: 引用数据集ID
       refDatasetName: 引用数据集名
       remark: 备注
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopDatavExportTask:
+      createTime: 创建时间
+      createdBy: 创建人
+      delFlag: 删除标记
+      errorMsg: 错误信息
+      fileRecordId: 文件记录ID
+      format: 导出格式
+      format_label: 导出格式
+      params: 导出参数
+      paramsComponent: null
+      remark: 备注
+      rowCount: 导出行数
+      sourceId: 来源ID
+      sourceType: 来源类型
+      sourceType_label: 来源类型
+      status: 任务状态
+      status_label: 任务状态
+      taskId: 任务ID
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本

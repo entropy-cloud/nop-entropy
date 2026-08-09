@@ -40,6 +40,23 @@
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-biz-auth-core</artifactId>
         </dependency>
+        <!-- nop-file-dao: 拉入 nopFileStore bean（DaoResourceFileStore，ioc:default=true）、
+             NopFileRecord 实体、传递 nop-biz-file-core 的 IFileStore/IFileRecord/UploadRequestBean。
+             用于 D3-3 数据导出文件落盘与下载。 -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-file-dao</artifactId>
+        </dependency>
+        <!-- nop-excel: ExcelWorkbook/ExcelSheet/ExcelRow/ExcelCell 模型（D3-3 xlsx 导出构造工作簿） -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-excel</artifactId>
+        </dependency>
+        <!-- nop-ooxml-xlsx: ExcelHelper.saveExcel(IResource, ExcelWorkbook) 写出 .xlsx（D3-3 xlsx 导出） -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-ooxml-xlsx</artifactId>
+        </dependency>
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-config</artifactId>

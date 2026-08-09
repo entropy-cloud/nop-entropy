@@ -25,6 +25,15 @@ public interface NopDatavErrors {
     String ARG_SHARE_ID = "shareId";
     String ARG_SHARE_TOKEN = "shareToken";
 
+    String ARG_TASK_ID = "taskId";
+    String ARG_FORMAT = "format";
+    String ARG_SOURCE_TYPE = "sourceType";
+    String ARG_SOURCE_ID = "sourceId";
+    String ARG_MAX_ROWS = "maxRows";
+    String ARG_ROW_COUNT = "rowCount";
+    String ARG_MAX_CONCURRENT = "maxConcurrent";
+    String ARG_CURRENT_CONCURRENT = "currentConcurrent";
+
     ErrorCode ERR_DATAV_DASHBOARD_NOT_FOUND = define(
             "nop.err.datav.dashboard-not-found",
             "Dashboard not found: {dashboardId}",
@@ -185,5 +194,53 @@ public interface NopDatavErrors {
             "nop.err.datav.share-password-mismatch",
             "Password does not match for share link: {shareToken}",
             ARG_SHARE_TOKEN
+    );
+
+    ErrorCode ERR_DATAV_EXPORT_TASK_NOT_FOUND = define(
+            "nop.err.datav.export-task-not-found",
+            "Export task not found: {taskId}",
+            ARG_TASK_ID
+    );
+
+    ErrorCode ERR_DATAV_EXPORT_TYPE_NOT_SUPPORTED = define(
+            "nop.err.datav.export-type-not-supported",
+            "Export format not supported: {format}. Supported: csv, xlsx.",
+            ARG_FORMAT
+    );
+
+    ErrorCode ERR_DATAV_EXPORT_ROW_LIMIT_EXCEEDED = define(
+            "nop.err.datav.export-row-limit-exceeded",
+            "Export row count {rowCount} exceeds maximum {maxRows}",
+            ARG_ROW_COUNT, ARG_MAX_ROWS
+    );
+
+    ErrorCode ERR_DATAV_EXPORT_CONCURRENCY_LIMIT = define(
+            "nop.err.datav.export-concurrency-limit",
+            "Concurrent export task count {currentConcurrent} exceeds maximum {maxConcurrent}",
+            ARG_CURRENT_CONCURRENT, ARG_MAX_CONCURRENT
+    );
+
+    ErrorCode ERR_DATAV_EXPORT_NOT_OWNER = define(
+            "nop.err.datav.export-not-owner",
+            "User {userName} is not the owner of export task: {taskId}",
+            ARG_USER_NAME, ARG_TASK_ID
+    );
+
+    ErrorCode ERR_DATAV_EXPORT_NOT_FINISHED = define(
+            "nop.err.datav.export-not-finished",
+            "Export task is not finished (current status prevents download): {taskId}",
+            ARG_TASK_ID
+    );
+
+    ErrorCode ERR_DATAV_EXPORT_FAILED = define(
+            "nop.err.datav.export-failed",
+            "Export task failed: {taskId}, reason: {reason}",
+            ARG_TASK_ID, ARG_REASON
+    );
+
+    ErrorCode ERR_DATAV_EXPORT_NO_EXPORTABLE_PANELS = define(
+            "nop.err.datav.export-no-exportable-panels",
+            "Dashboard has no exportable (needsDataset) panels: {dashboardId}",
+            ARG_DASHBOARD_ID
     );
 }

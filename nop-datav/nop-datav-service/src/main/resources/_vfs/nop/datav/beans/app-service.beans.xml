@@ -6,4 +6,12 @@
 
     <import resource="_service.beans.xml"/>
 
+    <!-- 引入 nop-file-dao beans：注册 nopFileStore（DaoResourceFileStore，ioc:default=true），
+         供 D3-3 数据导出文件落盘（IFileStore）与下载（IFileRecord）使用。 -->
+    <import resource="/nop/file/beans/app-file-dao.beans.xml"/>
+
+    <!-- D3-3 导出任务重启清理：非 lazy，IoC 启动后触发 @PostConstruct 扫描中断任务转 failed。
+         供 NopDatavExportTaskBizModel 注入，且在每次发起导出前幂等调用一次。 -->
+    <bean id="nopDatavExportTaskRecovery" class="io.nop.datav.service.export.NopDatavExportTaskRecovery"/>
+
 </beans>

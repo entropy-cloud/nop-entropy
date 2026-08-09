@@ -25,6 +25,21 @@
             <option code="MAP" label="地图" value="60" i18n-en:label="Map"/>
             <option code="IFRAME" label="内嵌页面" value="70" i18n-en:label="IFrame"/>
         </dict>
+        <dict label="导出来源" name="datav/export-source" valueType="string" i18n-en:label="Export Source">
+            <option code="PANEL" label="面板" value="panel" i18n-en:label="Panel"/>
+            <option code="DASHBOARD" label="看板" value="dashboard" i18n-en:label="Dashboard"/>
+        </dict>
+        <dict label="导出格式" name="datav/export-format" valueType="string" i18n-en:label="Export Format">
+            <option code="CSV" label="CSV" value="csv" i18n-en:label="CSV"/>
+            <option code="XLSX" label="Excel" value="xlsx" i18n-en:label="Excel"/>
+        </dict>
+        <dict label="导出任务状态" name="datav/export-status" valueType="int" i18n-en:label="Export Status">
+            <option code="PENDING" label="待执行" value="0" i18n-en:label="Pending"/>
+            <option code="RUNNING" label="执行中" value="10" i18n-en:label="Running"/>
+            <option code="SUCCEEDED" label="成功" value="20" i18n-en:label="Succeeded"/>
+            <option code="FAILED" label="失败" value="30" i18n-en:label="Failed"/>
+            <option code="CANCELLED" label="已取消" value="40" i18n-en:label="Cancelled"/>
+        </dict>
     </dicts>
 
     <domains>
@@ -485,6 +500,71 @@
             <indexes>
                 <index name="IX_NOP_DATAV_SHARE_DASHBOARD" unique="false">
                     <column name="dashboardId"/>
+                </index>
+            </indexes>
+        </entity>
+
+        <!-- =====================================================
+             NopDatavExportTask: 数据导出异步任务（D3-3）
+             来源类型 panel/dashboard，复用 D1 数据绑定管线取数，
+             经 nop-file 落盘，状态机 pending→running→succeeded/failed/cancelled
+             ===================================================== -->
+        <entity className="io.nop.datav.dao.entity.NopDatavExportTask" createTimeProp="createTime"
+                createrProp="createdBy" displayName="导出任务" name="io.nop.datav.dao.entity.NopDatavExportTask"
+                registerShortName="true" tableName="nop_datav_export_task" updateTimeProp="updateTime"
+                updaterProp="updatedBy" versionProp="version" ext:icon="download"
+                i18n-en:displayName="Export Task">
+            <columns>
+                <column code="TASK_ID" displayName="任务ID" mandatory="true" name="taskId" precision="32"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        i18n-en:displayName="Task Id"/>
+                <column code="SOURCE_TYPE" displayName="来源类型" mandatory="true" name="sourceType" precision="20"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR"
+                        ext:dict="datav/export-source" i18n-en:displayName="Source Type"/>
+                <column code="SOURCE_ID" displayName="来源ID" mandatory="true" name="sourceId" precision="32"
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Source Id"/>
+                <column code="FORMAT" displayName="导出格式" mandatory="true" name="format" precision="10"
+                        propId="4" stdDataType="string" stdSqlType="VARCHAR"
+                        ext:dict="datav/export-format" i18n-en:displayName="Format"/>
+                <column code="STATUS" displayName="任务状态" mandatory="true" name="status" propId="5"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Status"
+                        ext:dict="datav/export-status"/>
+                <column code="PARAMS" displayName="导出参数" domain="clobJson" name="params"
+                        propId="6" stdDataType="string" stdDomain="json" stdSqlType="CLOB"
+                        i18n-en:displayName="Params"/>
+                <column code="FILE_RECORD_ID" displayName="文件记录ID" name="fileRecordId" precision="64"
+                        propId="7" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="File Record Id"/>
+                <column code="ROW_COUNT" displayName="导出行数" name="rowCount" propId="8"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Row Count"/>
+                <column code="ERROR_MSG" displayName="错误信息" name="errorMsg" precision="1000" propId="9"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Error Msg"/>
+                <column code="DEL_FLAG" displayName="删除标记" domain="delFlag" name="delFlag" propId="10"
+                        stdDataType="byte" stdSqlType="TINYINT" i18n-en:displayName="Del Flag"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
+                        propId="11" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="12" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true"
+                        name="createTime" propId="13" stdDataType="timestamp" stdSqlType="TIMESTAMP"
+                        i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="14" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true"
+                        name="updateTime" propId="15" stdDataType="timestamp" stdSqlType="TIMESTAMP"
+                        i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="16"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+            </columns>
+            <indexes>
+                <index name="IX_NOP_DATAV_EXPORT_TASK_OWNER" unique="false">
+                    <column name="createdBy"/>
+                </index>
+                <index name="IX_NOP_DATAV_EXPORT_TASK_STATUS" unique="false">
+                    <column name="status"/>
                 </index>
             </indexes>
         </entity>

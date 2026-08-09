@@ -1,6 +1,8 @@
 
     alter table nop_datav_dashboard add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
+alter table nop_datav_export_task add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
 alter table nop_datav_panel add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_datav_tab add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
@@ -15,6 +17,9 @@ alter table nop_datav_share add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_datav_dashboard drop primary key;
 alter table nop_datav_dashboard add primary key (NOP_TENANT_ID, DASHBOARD_ID);
+
+alter table nop_datav_export_task drop primary key;
+alter table nop_datav_export_task add primary key (NOP_TENANT_ID, TASK_ID);
 
 alter table nop_datav_panel drop primary key;
 alter table nop_datav_panel add primary key (NOP_TENANT_ID, PANEL_ID);

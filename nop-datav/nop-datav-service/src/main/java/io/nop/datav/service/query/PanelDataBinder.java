@@ -1,5 +1,6 @@
 package io.nop.datav.service.query;
 
+import io.nop.api.core.beans.LongRangeBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.api.IDaoProvider;
@@ -66,6 +67,20 @@ public class PanelDataBinder {
      */
     public PanelDataResult queryPanelData(String panelId, NopDatavPanel panel,
                                           Map<String, Object> requestParams) {
+        return queryPanelData(panelId, panel, requestParams, null);
+    }
+
+    /**
+     * 查询面板数据（可选行数上限，用于导出防 OOM）。
+     *
+     * <p>当 {@code rowLimit} 非空时，经平台 {@code LongRangeBean} 在数据集层限定最多取 {@code rowLimit} 行
+     * （跨方言，由 {@link IJdbcTemplate} 经 dialect paging 实现，不手写 LIMIT SQL）。
+     * 导出路径用此重载传入 {@code maxRows}，取数阶段即防 OOM（非取数后校验）。</p>
+     *
+     * @param rowLimit 最多取的行数；null 表示不限制（运行时 getPanelData 路径）
+     */
+    public PanelDataResult queryPanelData(String panelId, NopDatavPanel panel,
+                                          Map<String, Object> requestParams, Integer rowLimit) {
         if (panel == null) {
             throw new NopException(ERR_DATAV_PANEL_NOT_FOUND).param("panelId", panelId);
         }
@@ -117,13 +132,15 @@ public class PanelDataBinder {
 
         SQL sql = PanelSqlBuilder.build(dsText, params, panelId);
 
-        // 使用 executeQuery 同时拿到 meta + rows
+        // 使用 executeQuery 同时拿到 meta + rows；导出路径经 LongRangeBean 在数据集层限行（防 OOM）
         try {
-            return jdbcTemplate.executeQuery(sql, ds -> {
-                List<String> columns = extractColumnNames(ds.getMeta());
-                List<Map<String, Object>> rows = extractRows(ds);
-                return new PanelDataResult(panelId, componentType, true, columns, rows);
-            });
+            return jdbcTemplate.executeQuery(sql,
+                    rowLimit == null ? null : LongRangeBean.longRange(0, rowLimit.longValue()),
+                    ds -> {
+                        List<String> columns = extractColumnNames(ds.getMeta());
+                        List<Map<String, Object>> rows = extractRows(ds);
+                        return new PanelDataResult(panelId, componentType, true, columns, rows);
+                    });
         } catch (NopException e) {
             throw e;
         } catch (Exception e) {

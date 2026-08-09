@@ -99,6 +99,34 @@
                         </resource>
                     </children>
                 </resource>
+                <resource id="NopDatavExportTask-main" displayName="导出任务" resourceType="SUBM" orderNo="10005">
+                    <children>
+                        <resource id="FNPT:NopDatavExportTask:query" displayName="查询导出任务" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavExportTask:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavExportTask:mutation" displayName="修改导出任务" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavExportTask:mutation</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavExportTask:createExportTask" displayName="发起导出" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavExportTask:createExportTask</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavExportTask:getExportTask" displayName="查询导出任务状态"
+                                  resourceType="FNPT" roles="admin,user">
+                            <permissions>NopDatavExportTask:getExportTask</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavExportTask:cancelExportTask" displayName="取消导出任务" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavExportTask:cancelExportTask</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavExportTask:downloadExportFile" displayName="下载导出文件"
+                                  resourceType="FNPT" roles="admin,user">
+                            <permissions>NopDatavExportTask:downloadExportFile</permissions>
+                        </resource>
+                    </children>
+                </resource>
             </children>
         </resource>
     </site>

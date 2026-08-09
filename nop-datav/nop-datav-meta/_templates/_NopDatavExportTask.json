@@ -1,0 +1,22 @@
+{
+  "taskId": "",
+  "sourceType": "",
+  "sourceType_label": "",
+  "sourceId": "",
+  "format": "",
+  "format_label": "",
+  "status": 0,
+  "status_label": "",
+  "params": "",
+  "fileRecordId": "",
+  "rowCount": 0,
+  "errorMsg": "",
+  "delFlag": 0,
+  "version": 0,
+  "createdBy": "",
+  "createTime": "2000-01-01 14:00:00",
+  "updatedBy": "",
+  "updateTime": "2000-01-01 14:00:00",
+  "remark": "",
+  "paramsComponent": null
+}

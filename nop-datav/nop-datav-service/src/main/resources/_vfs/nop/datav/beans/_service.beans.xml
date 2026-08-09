@@ -13,6 +13,14 @@
         <property name="bizObjName" value="NopDatavDashboard"/>
     </bean>
 
+    <bean id="io.nop.datav.service.entity.NopDatavExportTaskBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopDatavExportTask" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.datav.biz.INopDatavExportTaskBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopDatavExportTask"/>
+    </bean>
+
     <bean id="io.nop.datav.service.entity.NopDatavPanelBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="biz_NopDatavPanel" class="io.nop.biz.proxy.BizProxyFactoryBean"

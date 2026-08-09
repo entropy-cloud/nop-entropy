@@ -5,6 +5,7 @@ entity:
     NopDatavDashboardSnapshot: Dashboard Snapshot
     NopDatavDashboardTab: Dashboard Tab
     NopDatavDatasetRef: Dataset Ref
+    NopDatavExportTask: Export Task
     NopDatavFilterState: Filter State
     NopDatavPanel: Panel
 prop:
@@ -98,6 +99,27 @@ prop:
       dashboard: Dashboard
       dashboard.displayName: Dashboard
       paramMappingComponent: null
+    NopDatavExportTask:
+      taskId: Task Id
+      sourceType: Source Type
+      sourceType_label: null
+      sourceId: Source Id
+      format: Format
+      format_label: null
+      status: Status
+      status_label: null
+      params: Params
+      fileRecordId: File Record Id
+      rowCount: Row Count
+      errorMsg: Error Msg
+      delFlag: Del Flag
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      paramsComponent: null
     NopDatavFilterState:
       stateId: State Id
       userName: User Name
@@ -139,6 +161,9 @@ dict:
     datav/dashboard-type: Dashboard Type
     datav/publish-status: Publish Status
     datav/panel-type: Panel Type
+    datav/export-source: Export Source
+    datav/export-format: Export Format
+    datav/export-status: Export Status
 dict.option.label:
   datav/dashboard-type:
     '0': Dashboard
@@ -155,3 +180,15 @@ dict.option.label:
     '50': Pivot Table
     '60': Map
     '70': IFrame
+  datav/export-source:
+    panel: Panel
+    dashboard: Dashboard
+  datav/export-format:
+    csv: CSV
+    xlsx: Excel
+  datav/export-status:
+    '0': Pending
+    '10': Running
+    '20': Succeeded
+    '30': Failed
+    '40': Cancelled

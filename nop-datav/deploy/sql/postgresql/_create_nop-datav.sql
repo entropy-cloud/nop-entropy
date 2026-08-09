@@ -21,6 +21,26 @@ CREATE TABLE nop_datav_dashboard(
   constraint PK_nop_datav_dashboard primary key (dashboard_id)
 );
 
+CREATE TABLE nop_datav_export_task(
+  task_id VARCHAR(32) NOT NULL ,
+  source_type VARCHAR(20) NOT NULL ,
+  source_id VARCHAR(32) NOT NULL ,
+  format VARCHAR(10) NOT NULL ,
+  status INT4 NOT NULL ,
+  params TEXT  ,
+  file_record_id VARCHAR(64)  ,
+  row_count INT8  ,
+  error_msg VARCHAR(1000)  ,
+  del_flag INT4  ,
+  version INT8 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint PK_nop_datav_export_task primary key (task_id)
+);
+
 CREATE TABLE nop_datav_panel(
   panel_id VARCHAR(32) NOT NULL ,
   dashboard_id VARCHAR(32) NOT NULL ,
@@ -161,6 +181,40 @@ CREATE TABLE nop_datav_share(
       COMMENT ON COLUMN nop_datav_dashboard.remark IS '备注';
                     
       COMMENT ON COLUMN nop_datav_dashboard.param_config IS '参数定义';
+                    
+      COMMENT ON TABLE nop_datav_export_task IS '导出任务';
+                
+      COMMENT ON COLUMN nop_datav_export_task.task_id IS '任务ID';
+                    
+      COMMENT ON COLUMN nop_datav_export_task.source_type IS '来源类型';
+                    
+      COMMENT ON COLUMN nop_datav_export_task.source_id IS '来源ID';
+                    
+      COMMENT ON COLUMN nop_datav_export_task.format IS '导出格式';
+                    
+      COMMENT ON COLUMN nop_datav_export_task.status IS '任务状态';
+                    
+      COMMENT ON COLUMN nop_datav_export_task.params IS '导出参数';
+                    
+      COMMENT ON COLUMN nop_datav_export_task.file_record_id IS '文件记录ID';
+                    
+      COMMENT ON COLUMN nop_datav_export_task.row_count IS '导出行数';
+                    
+      COMMENT ON COLUMN nop_datav_export_task.error_msg IS '错误信息';
+                    
+      COMMENT ON COLUMN nop_datav_export_task.del_flag IS '删除标记';
+                    
+      COMMENT ON COLUMN nop_datav_export_task.version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_datav_export_task.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_datav_export_task.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_datav_export_task.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_datav_export_task.update_time IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_datav_export_task.remark IS '备注';
                     
       COMMENT ON TABLE nop_datav_panel IS '面板';
                 

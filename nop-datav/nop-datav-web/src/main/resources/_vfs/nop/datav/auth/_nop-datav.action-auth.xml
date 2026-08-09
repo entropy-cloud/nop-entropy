@@ -81,30 +81,44 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopDatavFilterState-main" displayName="筛选状态" orderNo="10016"
+                <resource id="NopDatavExportTask-main" displayName="导出任务" orderNo="10016"
+                          i18n-en:displayName="Export Task" icon="download" component="AMIS" resourceType="SUBM"
+                          url="/nop/datav/pages/NopDatavExportTask/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopDatavExportTask:query" displayName="查询导出任务"
+                                  i18n-en:displayName="Query Export Task" orderNo="10017" resourceType="FNPT">
+                            <permissions>NopDatavExportTask:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavExportTask:mutation" displayName="修改导出任务"
+                                  i18n-en:displayName="Modify Export Task" orderNo="10018" resourceType="FNPT">
+                            <permissions>NopDatavExportTask:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDatavFilterState-main" displayName="筛选状态" orderNo="10019"
                           i18n-en:displayName="Filter State" icon="filter" component="AMIS" resourceType="SUBM"
                           url="/nop/datav/pages/NopDatavFilterState/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopDatavFilterState:query" displayName="查询筛选状态"
-                                  i18n-en:displayName="Query Filter State" orderNo="10017" resourceType="FNPT">
+                                  i18n-en:displayName="Query Filter State" orderNo="10020" resourceType="FNPT">
                             <permissions>NopDatavFilterState:query</permissions>
                         </resource>
                         <resource id="FNPT:NopDatavFilterState:mutation" displayName="修改筛选状态"
-                                  i18n-en:displayName="Modify Filter State" orderNo="10018" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Filter State" orderNo="10021" resourceType="FNPT">
                             <permissions>NopDatavFilterState:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopDatavPanel-main" displayName="面板" orderNo="10019" i18n-en:displayName="Panel"
+                <resource id="NopDatavPanel-main" displayName="面板" orderNo="10022" i18n-en:displayName="Panel"
                           icon="panels-top-left" component="AMIS" resourceType="SUBM"
                           url="/nop/datav/pages/NopDatavPanel/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopDatavPanel:query" displayName="查询面板" i18n-en:displayName="Query Panel"
-                                  orderNo="10020" resourceType="FNPT">
+                                  orderNo="10023" resourceType="FNPT">
                             <permissions>NopDatavPanel:query</permissions>
                         </resource>
                         <resource id="FNPT:NopDatavPanel:mutation" displayName="修改面板" i18n-en:displayName="Modify Panel"
-                                  orderNo="10021" resourceType="FNPT">
+                                  orderNo="10024" resourceType="FNPT">
                             <permissions>NopDatavPanel:mutation</permissions>
                         </resource>
                     </children>
