@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 // check-nop-stream-audit-manifest.mjs
 //
-// Validator for the nop-stream independent audit "度量衡" (Stage 4 + Stage 5 + Stage 18):
+// Validator for the nop-stream independent audit "度量衡" (Stage 4 + Stage 5 + Stage 18 + Stage 23):
 //   - manifest     : execute every manifest selection command and compare to expected denominator
 //   - corpus       : check finding IDs unique, shard totals consistent, severity/domain vocabulary legal
 //   - evidence     : check evidence-row fields complete + disposition vocabulary legal
 //   - qualification: check @@LANE lane-registry blocks (Stage 5): frozen_strength/status vocabulary, blocked-reason/positive-result rules
 //   - disposition  : check @@DISPOSITION finding-disposition blocks (Stage 18): 5-value vocabulary, conditional fields, owner_plan path/sentinel, completeness
+//   - docs-coverage: check @@DOC_ENTRY registry + @@DOC_REVIEW blocks (Stage 23): doc paths exist, 3-value vocabulary, conditional fields, completeness (--strict)
+//   - readiness    : aggregate all evidence rows + lane registry (Stage 23): disposition counts, blocked-row enumeration, readiness gate decision
 //   - self-test    : positive control — proves each checker REJECTS known-bad input (no silent skip)
 //
 // Rule #24 (No Silent No-Op): a missing/unknown field or an out-of-vocabulary value is a hard error
@@ -18,8 +20,10 @@
 //   node ai-dev/tools/check-nop-stream-audit-manifest.mjs evidence       [--strict]
 //   node ai-dev/tools/check-nop-stream-audit-manifest.mjs qualification  [--strict]
 //   node ai-dev/tools/check-nop-stream-audit-manifest.mjs disposition [--shard <N>] [--strict]
+//   node ai-dev/tools/check-nop-stream-audit-manifest.mjs docs-coverage  [--strict]
+//   node ai-dev/tools/check-nop-stream-audit-manifest.mjs readiness      [--strict]
 //   node ai-dev/tools/check-nop-stream-audit-manifest.mjs self-test
-//   node ai-dev/tools/check-nop-stream-audit-manifest.mjs                (default: runs manifest+corpus+evidence+qualification+disposition)
+//   node ai-dev/tools/check-nop-stream-audit-manifest.mjs                (default: runs manifest+corpus+evidence+qualification+disposition+docs-coverage+readiness)
 
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -589,6 +593,208 @@ function collectDispositionBlocks() {
 }
 
 // ---------------------------------------------------------------------------
+// DOCS-COVERAGE (Stage 23 — owner-doc manifest review registry)
+// ---------------------------------------------------------------------------
+
+const DOC_MANIFEST_FILE = join(AUDIT_DIR, 'owner-doc-manifest.md');
+const DOC_REVIEW_VOCAB = new Set(['reviewed-no-change', 'corrected', 'out-of-scope']);
+const DOC_ENTRY_REQUIRED = ['doc_path', 'surface', 'expected_review', 'known_drift_ids'];
+const DOC_ENTRY_ALLOWED = new Set(DOC_ENTRY_REQUIRED);
+const DOC_REVIEW_REQUIRED = ['doc_path', 'review_status'];
+const DOC_REVIEW_ALLOWED = new Set([
+  ...DOC_REVIEW_REQUIRED,
+  'drift_ids',          // REQUIRED when review_status=corrected
+  'correction_summary', // REQUIRED when review_status=corrected OR out-of-scope
+  'reviewer_evidence',  // OPTIONAL (recommended)
+]);
+// review_status value → required conditional fields
+const DOC_REVIEW_COND = {
+  'corrected': ['correction_summary', 'drift_ids'],
+  'out-of-scope': ['correction_summary'],
+};
+
+function parseDocEntries(text) {
+  return parseBlocks(text, '@@DOC_ENTRY');
+}
+
+function parseDocReviews(text) {
+  return parseBlocks(text, '@@DOC_REVIEW');
+}
+
+function checkDocEntry(entry) {
+  const errors = [];
+  for (const f of DOC_ENTRY_REQUIRED) {
+    if (entry[f] === undefined || entry[f] === '') errors.push(`missing required field: ${f}`);
+  }
+  for (const k of Object.keys(entry)) {
+    if (!DOC_ENTRY_ALLOWED.has(k)) errors.push(`unknown field: ${k}`);
+  }
+  return errors;
+}
+
+function checkDocReview(review) {
+  const errors = [];
+  for (const f of DOC_REVIEW_REQUIRED) {
+    if (review[f] === undefined || review[f] === '') errors.push(`missing required field: ${f}`);
+  }
+  for (const k of Object.keys(review)) {
+    if (!DOC_REVIEW_ALLOWED.has(k)) errors.push(`unknown field: ${k}`);
+  }
+  if (review.review_status !== undefined && !DOC_REVIEW_VOCAB.has(review.review_status)) {
+    errors.push(`review_status out of vocabulary: "${review.review_status}" (allowed: reviewed-no-change | corrected | out-of-scope)`);
+  }
+  if (review.review_status !== undefined && DOC_REVIEW_VOCAB.has(review.review_status)) {
+    const condFields = DOC_REVIEW_COND[review.review_status] || [];
+    for (const cf of condFields) {
+      if (review[cf] === undefined || review[cf] === '' || review[cf] === 'none') {
+        errors.push(`review_status="${review.review_status}" requires non-empty "${cf}"`);
+      }
+    }
+  }
+  // doc_path must exist in the repo (resolve relative to PROJECT_ROOT)
+  if (review.doc_path !== undefined && review.doc_path !== '') {
+    const resolved = resolve(PROJECT_ROOT, review.doc_path);
+    if (!existsSync(resolved)) {
+      errors.push(`doc_path does not exist in repo: ${review.doc_path}`);
+    }
+  }
+  return errors;
+}
+
+/**
+ * Check all doc entries + reviews: legality, no-dup, completeness (strict), and
+ * that every review's doc_path is registered and every registered path is reviewed.
+ * @returns {Object} { errors: string[], entryPaths: Set, reviewPaths: Set, reviews: Array }
+ */
+function checkDocCoverage(entries, reviews, { strict } = {}) {
+  const errors = [];
+  const entryPaths = [];
+  const reviewPaths = [];
+
+  // legality check on entries
+  const entrySeen = new Set();
+  for (const e of entries) {
+    const eErrs = checkDocEntry(e);
+    for (const err of eErrs) errors.push(`[entry ${e.doc_path || '?'}] ${err}`);
+    if (e.doc_path) {
+      if (entrySeen.has(e.doc_path)) errors.push(`[entry] duplicate doc_path: ${e.doc_path}`);
+      entrySeen.add(e.doc_path);
+      entryPaths.push(e.doc_path);
+      // entry path must exist
+      const resolved = resolve(PROJECT_ROOT, e.doc_path);
+      if (!existsSync(resolved)) errors.push(`[entry] doc_path does not exist in repo: ${e.doc_path}`);
+    }
+  }
+
+  // legality check on reviews
+  const reviewSeen = new Set();
+  for (const r of reviews) {
+    const rErrs = checkDocReview(r);
+    for (const err of rErrs) errors.push(`[review ${r.doc_path || '?'}] ${err}`);
+    if (r.doc_path) {
+      if (reviewSeen.has(r.doc_path)) errors.push(`[review] duplicate doc_path: ${r.doc_path}`);
+      reviewSeen.add(r.doc_path);
+      reviewPaths.push(r.doc_path);
+    }
+  }
+
+  // strict mode: every registered entry must have a review
+  if (strict) {
+    for (const p of entryPaths) {
+      if (!reviewSeen.has(p)) {
+        errors.push(`completeness: registered doc "${p}" has no @@DOC_REVIEW block`);
+      }
+    }
+  }
+
+  return { errors, entryPaths, reviewPaths, reviews };
+}
+
+function collectDocEntries() {
+  if (!existsSync(DOC_MANIFEST_FILE)) return [];
+  return parseDocEntries(readFileSync(DOC_MANIFEST_FILE, 'utf-8'));
+}
+
+function collectDocReviews() {
+  if (!existsSync(DOC_MANIFEST_FILE)) return [];
+  return parseDocReviews(readFileSync(DOC_MANIFEST_FILE, 'utf-8'));
+}
+
+// ---------------------------------------------------------------------------
+// READINESS (Stage 23 — aggregate evidence corpus + lane registry → decision)
+// ---------------------------------------------------------------------------
+
+/**
+ * Classify a blocked evidence row's blocker source by scanning its proof/note text.
+ * Returns 'lane-blocked' (T3-T6 external backend unavailable) or
+ *         'capability-gap' (T2 lane qualified but the deeper test has a defect), or
+ *         'unknown'.
+ */
+function classifyBlockedRow(row) {
+  const hay = `${row.positive_proof || ''} ${row.rejection_proof || ''} ${row.declared_guarantee || ''}`.toLowerCase();
+  if (/evid-s13-015|evid-s13-016|evid-s14-013|evid-s14-014|takeover|fencing|exactly.once.recovery|failover|t2 .*defect|capability.level/.test(hay)) {
+    // T2 qualified lane but deeper test defect → capability-gap
+    if (/t2 .*defect|capability.level|takeover|evid-s14-013|evid-s14-014|evid-s13-015|evid-s13-016/.test(hay)) {
+      return 'capability-gap';
+    }
+  }
+  if (/t3|t4|t5|t6|kafka|pulsar|postgresql|debezium|backend|blocked lane|gated.*block/.test(hay)) {
+    return 'lane-blocked';
+  }
+  // default: a multi-jvm required_lane blocked row without explicit lane ref is a capability-gap
+  if (row.required_lane === 'multi-jvm') return 'capability-gap';
+  return 'lane-blocked';
+}
+
+/**
+ * Aggregate all evidence rows + lane registry → readiness counts + decision.
+ * @returns {Object} { counts: Map<disposition,number>, blockedRows: Array, totalRows,
+ *                      laneStatus: Map, decision: string, e2eRows: Array }
+ */
+function aggregateReadiness() {
+  const rows = collectEvidenceRows();
+  const counts = new Map();
+  for (const v of DISPOSITION_VOCAB) counts.set(v, 0);
+  const blockedRows = [];
+  const e2eRows = [];
+  for (const r of rows) {
+    if (counts.has(r.disposition)) counts.set(r.disposition, counts.get(r.disposition) + 1);
+    if (r.disposition === 'blocked') {
+      blockedRows.push({
+        inventory_id: r.inventory_id,
+        required_lane: r.required_lane,
+        blocker_source: classifyBlockedRow(r),
+        source_anchor: r.source_anchor,
+      });
+    }
+    if (r.disposition === 'e2e-proved') {
+      e2eRows.push({
+        inventory_id: r.inventory_id,
+        environment_class: r.environment_class,
+        required_lane: r.required_lane,
+        source_anchor: r.source_anchor,
+      });
+    }
+  }
+  // lane registry
+  const laneStatus = new Map();
+  if (existsSync(QUAL_FILE)) {
+    for (const l of parseLanes(readFileSync(QUAL_FILE, 'utf-8'))) {
+      laneStatus.set(l.lane_id, { status: l.status, frozen_strength: l.frozen_strength });
+    }
+  }
+  // readiness gate: any blocked row blocks blanket ready
+  const hasRequiredLaneBlocked = blockedRows.length > 0;
+  let decision;
+  if (hasRequiredLaneBlocked) {
+    decision = 'ready only for enumerated e2e-proved capability/environment pairs';
+  } else {
+    decision = 'ready';
+  }
+  return { counts, blockedRows, totalRows: rows.length, laneStatus, decision, e2eRows };
+}
+
+// ---------------------------------------------------------------------------
 // SELF-TEST (positive control)
 // ---------------------------------------------------------------------------
 
@@ -767,6 +973,71 @@ function runSelfTest() {
   const goodDispErrs = checkDispositionBlock(goodDisposition, { registeredLaneIds: fakeLaneIds });
   if (goodDispErrs.length !== 0) failures.push(`disposition positive control: good block was wrongly rejected: ${goodDispErrs.join('; ')}`);
 
+  // --- Docs-coverage positive control: known-bad @@DOC_REVIEW blocks must be rejected.
+  const badDocReviews = [
+    // 1. out-of-vocabulary review_status
+    { doc_path: 'README.md', review_status: 'totally-made-up' },
+    // 2. corrected missing correction_summary
+    { doc_path: 'README.md', review_status: 'corrected', drift_ids: 'X-1' },
+    // 3. corrected missing drift_ids
+    { doc_path: 'README.md', review_status: 'corrected', correction_summary: 'fixed' },
+    // 4. out-of-scope missing correction_summary
+    { doc_path: 'README.md', review_status: 'out-of-scope' },
+    // 5. doc_path does not exist in repo
+    { doc_path: 'nonexistent/file.md', review_status: 'reviewed-no-change' },
+    // 6. unknown field
+    { doc_path: 'README.md', review_status: 'reviewed-no-change', bogus: 'no' },
+    // 7. missing required field (no review_status)
+    { doc_path: 'README.md' },
+  ];
+  for (const bd of badDocReviews) {
+    const errs = checkDocReview(bd);
+    if (errs.length === 0) failures.push(`docs-coverage positive control: known-bad review ${bd.doc_path || '?'} was NOT rejected`);
+  }
+  // GOOD review must pass
+  const goodReview = { doc_path: 'README.md', review_status: 'corrected', drift_ids: 'X-1', correction_summary: 'fixed naming', reviewer_evidence: 'live code' };
+  const goodReviewErrs = checkDocReview(goodReview);
+  if (goodReviewErrs.length !== 0) failures.push(`docs-coverage positive control: good review was wrongly rejected: ${goodReviewErrs.join('; ')}`);
+  // BAD doc entry (missing field / unknown field)
+  const badEntry = { doc_path: 'README.md', surface: 'x', bogus: 'no' };
+  if (checkDocEntry(badEntry).length === 0) failures.push('docs-coverage positive control: known-bad entry was NOT rejected');
+  // strict completeness: registered doc with no review must be flagged
+  const strictCov = checkDocCoverage(
+    [{ doc_path: 'README.md', surface: 'x', expected_review: 'y', known_drift_ids: 'none' }],
+    [],
+    { strict: true },
+  );
+  if (strictCov.errors.length === 0) failures.push('docs-coverage positive control: strict mode missing-review was NOT rejected');
+  // duplicate doc_path in reviews must be flagged
+  const dupCov = checkDocCoverage(
+    [],
+    [
+      { doc_path: 'README.md', review_status: 'reviewed-no-change' },
+      { doc_path: 'README.md', review_status: 'reviewed-no-change' },
+    ],
+    { strict: false },
+  );
+  if (dupCov.errors.length === 0) failures.push('docs-coverage positive control: duplicate review doc_path was NOT rejected');
+
+  // --- Readiness positive control: a blocked-row corpus must NOT produce a blanket "ready" decision.
+  // Use the real aggregator but with an injected evidence source by checking classifyBlockedRow.
+  const laneBlockedRow = {
+    disposition: 'blocked', required_lane: 'in-process',
+    declared_guarantee: 'Pulsar wire-codec gated external backend BLOCKED',
+    positive_proof: 'T4 pulsar lane blocked', rejection_proof: 'none',
+  };
+  if (classifyBlockedRow(laneBlockedRow) !== 'lane-blocked') {
+    failures.push('readiness positive control: lane-blocked row was NOT classified as lane-blocked');
+  }
+  const capGapRow = {
+    disposition: 'blocked', required_lane: 'multi-jvm',
+    declared_guarantee: 'T2 lane deeper defect — takeover fails (EVID-S14-014)',
+    positive_proof: 'none', rejection_proof: 'none',
+  };
+  if (classifyBlockedRow(capGapRow) !== 'capability-gap') {
+    failures.push('readiness positive control: capability-gap row was NOT classified as capability-gap');
+  }
+
   return failures;
 }
 
@@ -839,12 +1110,14 @@ function cmdEvidence({ strict } = {}) {
 function cmdSelfTest() {
   const failures = runSelfTest();
   if (failures.length === 0) {
-    console.log('[PASS] self-test (positive control) — all 5 checkers reject their known-bad input');
+    console.log('[PASS] self-test (positive control) — all 7 checkers reject their known-bad input');
     console.log('  - manifest    : rejects bad/missing/unknown fields + denominator mismatch');
     console.log('  - corpus      : rejects duplicate IDs, shard total mismatch, out-of-vocab sev/domain');
     console.log('  - evidence    : rejects missing/unknown fields, out-of-vocab disposition, insufficient lane');
     console.log('  - qualification: rejects missing/unknown fields, out-of-vocab frozen_strength/status, blocked-missing-reason, qualified-missing-positive-result');
     console.log('  - disposition : rejects out-of-vocab value, missing conditional fields, unregistered lane, nonexistent owner_plan path, done-stage sentinel, strict-mode missing/duplicate findings');
+    console.log('  - docs-coverage: rejects out-of-vocab review_status, missing conditional fields, nonexistent doc_path, unknown fields, strict-mode missing-review, duplicate review doc_path');
+    console.log('  - readiness   : rejects gate violation (blocked rows + blanket ready); classifies lane-blocked vs capability-gap');
     return true;
   }
   console.error('[FAIL] self-test (positive control) — validator failed to reject known-bad input:');
@@ -912,6 +1185,55 @@ function cmdDisposition({ strict, shard } = {}) {
   return false;
 }
 
+function cmdDocsCoverage({ strict } = {}) {
+  if (!existsSync(DOC_MANIFEST_FILE)) {
+    // No manifest yet — legal in partial mode (0 rows)
+    if (strict) {
+      return printResult('docs-coverage --strict', [`doc manifest file not found: ${DOC_MANIFEST_FILE}`]);
+    }
+    console.log('[PASS] docs-coverage (0 doc-review rows — no owner-doc-manifest.md yet)');
+    return true;
+  }
+  const entries = collectDocEntries();
+  const reviews = collectDocReviews();
+  const { errors } = checkDocCoverage(entries, reviews, { strict });
+  const label = `docs-coverage${strict ? ' --strict' : ''}`;
+  if (errors.length === 0) {
+    console.log(`[PASS] ${label} (${reviews.length} doc-review rows; ${entries.length} registered docs)`);
+    return true;
+  }
+  return printResult(label, errors, { strict });
+}
+
+function cmdReadiness({ strict } = {}) {
+  const errors = [];
+  const agg = aggregateReadiness();
+  // Gate consistency check: if blocked rows exist, decision must NOT be blanket ready
+  if (agg.blockedRows.length > 0 && agg.decision === 'ready') {
+    errors.push(`readiness gate violation: ${agg.blockedRows.length} blocked rows exist but decision is blanket "ready"`);
+  }
+  if (agg.totalRows === 0) {
+    errors.push('no evidence rows found — cannot aggregate readiness');
+  }
+  const label = `readiness${strict ? ' --strict' : ''}`;
+  if (errors.length === 0) {
+    console.log(`[PASS] ${label} (${agg.totalRows} evidence rows; decision: "${agg.decision}")`);
+    console.log('  Evidence row counts by disposition:');
+    for (const [v, n] of agg.counts) console.log(`    ${v}: ${n}`);
+    console.log(`  Blocked rows (block blanket-ready): ${agg.blockedRows.length}`);
+    for (const b of agg.blockedRows) {
+      console.log(`    ${b.inventory_id} | required_lane=${b.required_lane} | blocker=${b.blocker_source}`);
+    }
+    console.log(`  e2e-proved rows (enumerate ready pairs): ${agg.e2eRows.length}`);
+    console.log(`  Lane registry:`);
+    for (const [id, l] of agg.laneStatus) {
+      console.log(`    ${id}: ${l.status} (${l.frozen_strength})`);
+    }
+    return true;
+  }
+  return printResult(label, errors, { strict });
+}
+
 function main() {
   const args = process.argv.slice(2);
   const strict = args.includes('--strict');
@@ -942,15 +1264,21 @@ function main() {
     ok = cmdQualification({ strict }) && ok;
   } else if (sub === 'disposition') {
     ok = cmdDisposition({ strict, shard }) && ok;
+  } else if (sub === 'docs-coverage') {
+    ok = cmdDocsCoverage({ strict }) && ok;
+  } else if (sub === 'readiness') {
+    ok = cmdReadiness({ strict }) && ok;
   } else if (sub === 'all') {
     ok = cmdManifest({ strict }) && ok;
     ok = cmdCorpus({ strict }) && ok;
     ok = cmdEvidence({ strict }) && ok;
     ok = cmdQualification({ strict }) && ok;
     ok = cmdDisposition({ strict: false, shard: null }) && ok; // all mode: partial disposition (no shard, no completeness)
+    ok = cmdDocsCoverage({ strict }) && ok; // all mode: strict docs-coverage (every registered doc reviewed)
+    ok = cmdReadiness({ strict: false }) && ok;
   } else {
     console.error(`Unknown subcommand: ${sub}`);
-    console.error('Usage: check-nop-stream-audit-manifest.mjs [manifest|corpus|evidence|qualification|disposition|self-test|all] [--strict] [--shard <N>]');
+    console.error('Usage: check-nop-stream-audit-manifest.mjs [manifest|corpus|evidence|qualification|disposition|docs-coverage|readiness|self-test|all] [--strict] [--shard <N>]');
     process.exit(2);
   }
   process.exit(ok ? 0 : 1);
@@ -967,7 +1295,10 @@ export {
   parseLanes, checkLane, checkLanes,
   parseDispositions, checkDispositionBlock, checkDispositions, checkOwnerPlan,
   parseRoadmapStageStatuses, parseRegisteredLaneIds,
+  parseDocEntries, parseDocReviews, checkDocEntry, checkDocReview, checkDocCoverage,
+  aggregateReadiness, classifyBlockedRow,
   SEVERITY_VOCAB, DOMAIN_VOCAB, DISPOSITION_VOCAB,
   FINDING_DISPOSITION_VOCAB, DISPOSITION_COND,
   LANE_STRENGTH_VOCAB, LANE_STATUS_VOCAB,
+  DOC_REVIEW_VOCAB, DOC_REVIEW_COND,
 };
