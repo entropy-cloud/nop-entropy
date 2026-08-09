@@ -69,7 +69,7 @@
 - [x] W6-1 E2E 飞书会话：用户消息 → FeishuConnector → IAgentEngine → AgentEvent → 飞书回复（含群聊 @机器人过滤、长文本分段、速率限制）。**已落地（Plan 8）**：真实 Nop IoC 容器装配 FeishuConnector + ChannelConnectorManager + ChannelSessionStoreImpl(H2) + 网络边界 stub FeishuClient + LLM 边界 stub engine，5 E2E tests 证明入站→execute→future→回复完整连通（round-trip/session 复用/@bot 过滤/错误路径/长文本分段）。Plan 7 三项 deferred connector 行为收口：长文本分段（按 maxMessageLength=4000 换行边界切片顺序发送）+ 速率限制守卫（rolling 60s 窗口超限显式回复"请求过于频繁"不调 engine）+ @bot payload 校准（fork c：文档化 mentions 形状 key+open_id，精确 bot open_id 匹配 defer 真实飞书 E2E）。设计 §7.2.1/§7.2.2/§7.2.3 + §14 Open Questions 收口。
 - [x] W6-2 E2E 扫码绑定 + 扫码登录：createBindTicket → 扫码 → completeBinding 写 NopAuthExtLogin → `generateAccessCode` → `getLoginResultAsync` 换 LoginResult；二次扫码直接登录；端点 W4-1 真实命中。**已落地（Plan 9）**：单 JVM 装配真实生产 bean（ChannelBindServiceImpl + FeishuBindProvider + LoginServiceImpl + JwtAuthTokenProvider + LocalUserContextCache + LoginApiBizModel + ChannelLoginApiBizModel）over 真实 H2（自包含 `OrmSessionFactoryBean`+`DdlSqlCreator.createTables`，绕开预先存在的全量容器 schema-init 缺陷），4 E2E tests 证明：绑定 E2E（completeBinding 写 NopAuthExtLogin read-back loginType=20/verified=1 + findBinding 反查）+ 重复绑定裁定（同用户幂等/跨用户显式失败）+ 登录全链（loginByScan→createSessionForUserAsync 真实 DB user/roles→generateAccessCode→parseAccessCode→IUserContextCache 单 JVM cache 命中→getLoginResultAsync→LoginResult，Plan 5 两项 deferred 偿还）+ 二次扫码直接登录 + 未绑定显式失败。契约四文件 hash == Plan 5 baseline（零改）。
 - [x] W6-3 E2E 主动通知：业务调用 `IChannelMessageService.sendToUser(userId,...)` → UserChannelResolver → FeishuConnector → 飞书私信；未绑定返回 `NO_BINDING`。**已落地（Plan 8）**：真实容器装配 ChannelMessageServiceImpl + 真实读 NopAuthExtLogin 的 resolver（Candidate B 忠实镜像 UserChannelResolverImpl 查询逻辑，auth-service 类经 Phase 0 裁定不可达——破坏 classpath）+ 真实 ChannelConnectorManager + 真实 FeishuConnector；H2 seed NopAuthExtLogin，4 E2E tests 证明 sendToUser→resolver→connector→sendOutbound→FeishuClient 完整连通（SENT/NO_BINDING/unverified 排除/附件降级）。
-- [ ] W6-4 可选骨干验证：入站经 `IMessageService` topic `channel.inbound.feishu` 多消费者分发（业务监听器 + 审计），证明单体直连与多消费者两种部署接口不变（设计 §3.3 问题 B）。
+- [x] W6-4 可选骨干验证：入站经 `IMessageService` topic `channel.inbound.feishu` 多消费者分发（业务监听器 + 审计），证明单体直连与多消费者两种部署接口不变（设计 §3.3 问题 B）。**已落地**：`ChannelMessageServiceImpl` 增加可选 `IMessageService` 注入（方式一/方式二切换）；内部 bridge 架构（`dispatchInbound` 在骨干模式 publish 到 per-channelType topic + 单例 bridge consumer 扇出给 all-channels listener；外部审计消费者直接订阅 topic）；topic 命名裁定 `channel.inbound.{channelType}`；bridge `onMessage` 返回 null 避免 ack 回环；`ai-gateway-defaults.beans.xml` 用真实 bean id `nopLocalMessageService` + `ioc:optional`（无实现→null 方式一，有实现→实例 方式二）；`pom.xml` 加 `nop-message-core` test scope（无 production 新依赖）。测试：单元测试（骨干 publish/多消费者/ack 回环防护/并发去重/channelType 缺失显式失败 + 方式一不回归）+ E2E（真实 `LocalMessageService` 骨干多消费者 + 调用契约稳定性对比 + IoC 接线 hollow-test）。**Plan**：`2026-08-09-2000-10-nop-channel-inbound-backbone.md`（completed）。
 
 ### W7. Owner-doc 同步
 
@@ -92,7 +92,7 @@
 ## 设计 Open Questions（实现期收口）
 
 - 出站多绑定信道选择默认值（最近活跃 vs 优先级表）→ W2-3 收口（已倾向最近活跃=lastLoginTime）
-- 入站骨干 topic 命名约定 → W6-4 收口
+- 入站骨干 topic 命名约定 → **W6-4 已收口（裁定 `channel.inbound.{channelType}` + 内部 bridge 架构）**
 - 飞书扫码 qrPayload 选型（飞书扫码登录二维码 vs 自建券 + 机器人推送）→ **W5-2 已收口（裁定 Option A — OAuth URL）**
 - 附件/多媒体与 `ChannelCapabilities` 协商降级（转链接/拒绝）→ **W5-3 已收口（supportsFileUpload=false → 降级为文本链接/提示）**
 - 飞书 Stream SDK 选型（官方 vs 独立实现，外部依赖后果）→ W5-0 收口

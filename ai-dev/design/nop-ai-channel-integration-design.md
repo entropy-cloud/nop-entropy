@@ -106,19 +106,29 @@ flowchart TB
 ```mermaid
 flowchart LR
     FC["IChannelConnector<br/>(收到飞书消息)"]
-    CMS["IChannelMessageService<br/>(dispatchInbound)"]
+    CMS["ChannelMessageServiceImpl<br/>.dispatchInbound"]
     MQ["IMessageService topic<br/>channel.inbound.feishu"]
-    H1["业务监听器"]
-    H2["工作流触发"]
-    H3["审计"]
-    FC -->|"方式一: 同 JVM 直接调"| CMS
-    FC -->|"方式二: 多实例/多消费者"| MQ
-    MQ --> H1
+    BR["内部 bridge consumer<br/>(单例, onMessage 返回 null)"]
+    H1["业务监听器<br/>(subscribeInbound)"]
+    H2["工作流 / 审计<br/>(外部直接订阅 topic)"]
+
+    FC -->|"方式一(直连): 同 JVM 调"| CMS
+    CMS -->|"方式一: 同步扇出"| H1
+
+    FC -->|"方式二(骨干): 同调 dispatchInbound"| CMS
+    CMS -->|"方式二: publish 到 topic"| MQ
+    MQ --> BR
+    BR -->|"扇出(复用方式一逻辑)"| H1
     MQ --> H2
-    MQ --> H3
 ```
 
 方式二的好处：入站消息可被多消费者消费（工作流 + 审计 + 业务监听器），且跨实例时可用 Kafka/Pulsar 实现（`nop-message-kafka`/`nop-message-pulsar` 已是 `IMessageService` 实现）。代价是多一跳。**单体部署用方式一，需要水平扩展或多消费者时用方式二**，业务门面接口不变。入站消息是否同时也路由给 Agent 引擎，是部署选择而非分层规则——Agent 会话默认走传输层直连（方式一），仅当需要多消费者分发时才并入骨干。
+
+**W6-4 收口裁定（topic 命名 + 内部 bridge 架构 + IoC 接线）**：
+
+- **topic 命名 = `channel.inbound.{channelType}`**（如 `channel.inbound.feishu`）。理由：(a) 与本节图示及 `IMessageService` topic 语义一致；(b) 按 channelType 分流天然支持"每信道独立消费组/速率"；(c) 按业务域分会让传输概念泄漏进 topic 命名，违背"业务只知 userId"。拒绝"按业务域分"替代方案。
+- **内部 bridge 架构（解决订阅时机断层）**：`subscribeInbound(listener)` 的语义是"订阅**所有**信道入站消息"（`IInboundMessageListener` 无 channelType 参数），而 topic 是 per-channelType——两者映射用**内部 bridge**，不把每个 listener 单独绑到 topic。`subscribeInbound` **永远只**加入内部 listener 列表（方式一/方式二逐字一致，不感知 topic）；骨干模式下 `dispatchInbound(msg)` 先（subscribe-before-publish，同一调用内同步完成）为 `channel.inbound.{channelType}` 注册一个**单例 bridge consumer**（不是 per-call lambda，使 `LocalMessageService.subscribe` 按 consumer 身份去重，并发首次 dispatch 同一 channelType 无重复扇出），再 `send(topic, msg)`。bridge 的 `onMessage` 复用方式一的扇出逻辑（单一分发代码、不漂移）并**返回 `null`**——`LocalMessageService.handleMessageResult` 会把非 null 返回值发到 `ack-{topic}` 形成回环，返回 null 触发其 `ignore-message-when-no-reply` 分支。**外部多消费者**（审计/工作流）不经 `subscribeInbound`，而是部署时直接 `messageService.subscribe(topic, consumer)` 订阅同一 topic——这正是方式二独有的多消费者能力。
+- **IoC 接线**：`channelMessageService` bean 的 `messageService` 属性用**真实平台 bean id**（`nopLocalMessageService`，来自 `nop-message-core`）+ `ioc:optional="true"`。平台**不存在** id=`messageService` 的 bean——引用虚构 id 会静默解析为 null、方式二永不激活。`ioc:optional` 使无 `IMessageService` 实现的部署注入 null（方式一），有实现的部署注入实例（方式二）。Kafka/Pulsar 部署替换为对应 bean id。
 
 > 既有 channel-connector 文档说"适配器不用 IMessageService"指的是问题 A（不当门面），与本篇问题 B（当可选骨干）不冲突。本篇把这两件事拆清楚，消除歧义。
 
@@ -283,7 +293,7 @@ nop-biz-auth-core     无变化（不引入集成依赖）
 ## 六、Open Questions
 
 - [ ] `IChannelMessageService` 出站多绑定用户的信道选择策略默认值（最近活跃 vs 优先级表）——倾向"最近活跃 + 调用方可指定 channelType 覆盖"。
-- [ ] 入站消息在多消费者部署下经 `IMessageService` 骨干时，`InboundChannelMessage` 的 topic 命名约定（`channel.inbound.{channelType}` vs 按业务域分）。
+- [x] 入站消息在多消费者部署下经 `IMessageService` 骨干时，`InboundChannelMessage` 的 topic 命名约定（`channel.inbound.{channelType}` vs 按业务域分）。**W6-4 已收口**：选定 `channel.inbound.{channelType}`（如 `channel.inbound.feishu`）。按 channelType 分流天然支持每信道独立消费组/速率，且不把传输概念泄漏进 topic；拒绝"按业务域分"。同时落地内部 bridge 架构（`subscribeInbound` 只加入 listener 列表；`dispatchInbound` 在骨干模式 publish 到 per-channelType topic，单例 bridge consumer 扇出并返回 null 避免 ack 回环；外部多消费者直接订阅 topic）。见 §3.3 裁定段与 Plan `2026-08-09-2000-10-nop-channel-inbound-backbone.md`。
 - [x] 飞书扫码绑定的 `qrPayload` 是用飞书"扫码登录"二维码还是自建券 + 飞书机器人推送——影响 `FeishuBindProvider` 实现选型。**W5-2 已收口**：选定**飞书扫码登录二维码（Option A — OAuth authorize URL）**。`qrPayload` = 飞书 OAuth 授权 URL（含 `app_id` + `state=ticketId`），无需 bot 推送，绑定流程与消息传输完全解耦。拒绝 Option B（自建券 + 机器人推送）：绑定流程不应依赖 Stream 长连接/bot 推送，引入不必要的运行时依赖。
 - [x] `auth/login-type` 字典当前为整数码（`1`=密码、`10`=单点）。需为 feishu/dingtalk/wecom 分配新整数码（建议 `20`+，避开已有）及对应中文 label。**W0 已收口**：`20`=飞书、`21`=钉钉、`22`=企微、`23`=Webhook，权威源 `nop-service-framework/nop-biz-auth-core/src/main/resources/_vfs/dict/auth/login-type.dict.yaml` 已扩展。
 - [x] 附件/多媒体：`OutboundChannelMessage.attachments` 如何与传输层 `ChannelCapabilities`（supportsFileUpload 等，见 channel-connector 文档 §8）协商——目标信道不支持时的降级策略（转链接？拒绝？）。**W5-3 已收口**：`supportsFileUpload=false` 时降级为文本链接/提示（附件名 + URL 或"暂不支持文件上传"），不静默丢弃。飞书 v1 `supportsFileUpload=false`，真实文件上传 deferred（设计 §11）。
