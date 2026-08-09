@@ -73,7 +73,7 @@ AI 或维护者读完本文即知哪些工作项已启动（`todo`）、已计�
 > 依赖：D1；优先级低于 D2/D3（看板核心优先）
 > 设计契约：`ai-dev/design/nop-datav/screen-design.md`（D4 时产出）
 
-- D4-1. 自由画布布局（x/y/w/h 画布 JSON + 屏幕适配 heightFirst/full/keep，DataEase screenAdaptor 参考；辅助线/标尺可选，DataRoom 参考）: `planned` ✅（plan `ai-dev/plans/nop-datav/2026-08-10-1130-2-screen-free-canvas-layout.md`）
+- D4-1. 自由画布布局（x/y/w/h 画布 JSON + 屏幕适配 heightFirst/full/keep，DataEase screenAdaptor 参考；辅助线/标尺可选，DataRoom 参考）: `done` ✅（plan `ai-dev/plans/nop-datav/2026-08-10-1130-2-screen-free-canvas-layout.md` 已完成 — 独立三实体 NopDatavScreen/ScreenWidget/ScreenSnapshot + dict `datav/screen-adaptor` + 自由画布布局协议 `ScreenLayoutParser`（widget 越界/未知组件运行时校验）+ `getScreenLayout` API（读已发布快照，经 PanelComponentRegistry.requireComponent 接线）+ publish/getPublished/rollback 复用 D0 模式 + 大屏 action `@Auth` + owner RLS；32 新测试，216/0/0 全绿；装饰组件 D4-2/主题 D4-3/发布生命周期 D4-4/前端渲染 各为独立 plan）
 - D4-2. 装饰/媒体组件族（装饰边框/滚动文字/时间时钟/视频/流媒体/轮播 Tab，DataEase de-* 族参考。**边界：仅组件注册表 + 配置 schema，渲染走 nop-chaos-flux；不含媒体代理/流后端实现**）: `todo`
 - D4-3. 大屏主题（主题色板 + 背景，JimuReport theme/sysDefColor 参考）: `todo`
 - D4-4. 发布生命周期（暂存/发布/历史/缩略图，DataRoom 参考简化版）: `todo`
