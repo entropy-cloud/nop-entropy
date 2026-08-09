@@ -1,6 +1,6 @@
 # nop-stream 独立深度审计路线图
 
-> Last updated: 2026-08-09 (T2 multi-JVM capability-gap code-remediation plan `2026-08-09-1252-1` completed: `TestMultiJvmExactlyOnceRecovery` + `TestMultiJvmCoordinatorFailover` now PASS in T2 lane; root cause was `AbstractPollingLeaderElector.scheduleCheck()` MICROSECONDS→MILLISECONDS bug; evidence reclassification `blocked`→`e2e-proved` is a successor audit task)
+> Last updated: 2026-08-09 (T2 capability-gap evidence reclassification + readiness re-decision plan `2026-08-09-1300-1` completed: 4 §2b rows EVID-S13-015/016 + EVID-S14-013/014 reclassified `blocked`→`e2e-proved` on fresh T2-lane PASS; 2 cross-JVM residual rows EVID-S13-021/EVID-S14-015 upgraded; §2b blocker class resolved; §2a lane-blocked remains the only blocker class. Readiness verdict unchanged: bounded `ready only for ...`; e2e-proved 132, blocked 4)
 > Sources: `ai-dev/analysis/2026-08/2026-08-06-nop-stream-audit-baseline-and-roadmap-analysis.md` (primary), `ai-dev/backlog/nop-stream-production-roadmap.md` (implementation ownership), `ai-dev/audits/nop-stream-production/2026-08-02-2107-*.md` (current confirmed findings)
 
 ## Purpose
@@ -37,7 +37,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 21. 历史 P2 core/state/window finding disposition: `done`
 - 22. 历史 P2 CEP/connector/runtime finding disposition: `done`
 - 23. 文档契约与 production-readiness 判定: `done`
-- ★ 独立 production-readiness 判定（4-23 均完成且无未归属 P0/P1 或 required lane blocked）: bounded — `ready only for enumerated e2e-proved capability/environment pairs`（126 e2e-proved rows；8 blocked rows 阻止 blanket-ready，详见 `ai-dev/audits/nop-stream-independent-audit/stage-23-readiness-report.md`）
+- ★ 独立 production-readiness 判定（4-23 均完成且无未归属 P0/P1 或 required lane blocked）: bounded — `ready only for enumerated e2e-proved capability/environment pairs`（132 e2e-proved rows；§2b capability-gap blocker class resolved 2026-08-09-1300-1；§2a 4 lane-blocked rows 仍为唯一 blocker 类，阻止 blanket-ready，详见 `ai-dev/audits/nop-stream-independent-audit/stage-23-readiness-report.md`）
 
 ## Status Values
 

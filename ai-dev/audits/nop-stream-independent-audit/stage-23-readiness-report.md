@@ -1,10 +1,11 @@
 # nop-stream Independent Audit — Stage 23 Readiness Report
 
-> Status: frozen
-> Frozen at: HEAD 2026-08-09
+> Status: frozen (re-audited 2026-08-09-1300-1)
+> Frozen at: HEAD 2026-08-09 (re-audit consumed plan `2026-08-09-1252-1` T2 multi-JVM fix)
 > Owner: nop-stream-independent-audit mission (Stage 23)
 > Validator: `node ai-dev/tools/check-nop-stream-audit-manifest.mjs readiness`
 > Consumes: frozen metric infra (Stage 4), env qualification (Stage 5), capability evidence (Stages 6–16), finding dispositions (Stages 18–22), owner-doc reconciliation (Stage 23 Phase 2)
+> Re-audit note (2026-08-09-1300-1): the §2b capability-gap blocker class (4 T2 multi-JVM rows EVID-S13-015/016, EVID-S14-013/014) is RESOLVED — plan `2026-08-09-1252-1` fixed the root causes (`AbstractPollingLeaderElector.scheduleCheck` MICROSECONDS→MILLISECONDS; `COORDINATOR_LABEL` constant), the T2 lane tests PASS fresh, and the 4 rows are reclassified `blocked`→`e2e-proved`. Two cross-JVM residual rows (EVID-S13-021, EVID-S14-015) whose multi-jvm claims are directly covered by the passing T2 tests are upgraded to `e2e-proved`; the remaining 8 cross-JVM residual rows stay `residual-risk` with updated rationale (they assert STRONGER/NARROWER invariants not directly covered). §2a (4 lane-blocked rows) remains the ONLY blocker class, so the bounded verdict stands.
 
 This report aggregates the entire frozen audit corpus into a **bounded** production-readiness decision. The decision follows the readiness gate in `evidence-schema.md` (Rule S5-2): any required-lane `blocked` evidence row blocks a blanket `ready` verdict; Stage 23 may only return `ready only for enumerated e2e-proved capability/environment pairs` (or `not ready`).
 
@@ -18,12 +19,12 @@ Aggregated by `node ai-dev/tools/check-nop-stream-audit-manifest.mjs readiness` 
 
 | Disposition (7-value) | Count | Meaning |
 | --- | --- | --- |
-| `e2e-proved` | 126 | Capability proven end-to-end on the required lane with positive + rejection evidence |
-| `residual-risk` | 47 | Known non-blocking limitation accepted as residual |
+| `e2e-proved` | 132 | Capability proven end-to-end on the required lane with positive + rejection evidence |
+| `residual-risk` | 45 | Known non-blocking limitation accepted as residual |
 | `fail-fast` | 13 | Unsupported/broken path fails fast (throws) — acceptable per Rule #24 |
 | `component-only` | 13 | Only component-level (unit) evidence; wiring/e2e not proven |
 | `non-goal` | 8 | Explicitly out of scope for the supported baseline |
-| `blocked` | 8 | Cannot be adjudicated — required lane unqualified or capability-level gap |
+| `blocked` | 4 | Cannot be adjudicated — required lane unqualified (external backend unavailable) |
 | `unverified` | 4 | Guarantee asserted but not demonstrated |
 | **Total** | **219** | |
 
@@ -33,11 +34,11 @@ Aggregated by `node ai-dev/tools/check-nop-stream-audit-manifest.mjs readiness` 
 | --- | --- |
 | `in-process` | 122 |
 | `unit` | 3 |
-| `multi-jvm` | 1 |
+| `multi-jvm` | 7 |
 
-## 2. Blocked Rows — Blockers to Blanket-Ready (8)
+## 2. Blocked Rows — Blockers to Blanket-Ready (4)
 
-These 8 rows have `disposition: blocked` and therefore block the blanket `ready` verdict per the readiness gate. Each is classified by blocker source:
+These 4 rows have `disposition: blocked` and therefore block the blanket `ready` verdict per the readiness gate. The §2b capability-gap class (formerly 4 rows) was RESOLVED on 2026-08-09-1300-1 (reclassified `blocked`→`e2e-proved`); only the §2a lane-blocked class remains.
 
 ### 2a. Lane-Blocked (external backend unavailable — T3/T4/T5/T6)
 
@@ -50,37 +51,30 @@ These rows need an external backend (Kafka / Pulsar / PostgreSQL / Debezium) who
 | `EVID-S15-011` | in-process | stage-15 | T3/T4 Kafka/Pulsar backend blocked (message connector capability) | infra provisioning (out of audit scope) |
 | `EVID-S16-016` | in-process | stage-16 | T5 PostgreSQL / T6 Debezium real-CDC lane blocked (no real PostgreSQL / CDC engine) | infra provisioning (out of audit scope) |
 
-### 2b. Capability-Gap (T2 lane qualified but deeper test has a defect)
+### 2b. Capability-Gap — RESOLVED 2026-08-09-1300-1
 
-T2-multi-jvm lane infrastructure IS `qualified`, but two deeper multi-JVM tests have capability-level defects that prevent the cross-JVM recovery / HA-fencing takeover capability from being evidenced. These need code-level remediation (independent remediation plan), not infra provisioning.
+The former §2b class (4 T2 multi-JVM capability-gap rows: `EVID-S13-015`, `EVID-S13-016`, `EVID-S14-013`, `EVID-S14-014`) is **RESOLVED**. Plan `2026-08-09-1252-1` fixed the root causes (`AbstractPollingLeaderElector.scheduleCheck` `MICROSECONDS`→`MILLISECONDS` bug; `COORDINATOR_LABEL = "coordinator-0"` constantisation). The T2 lane tests now PASS fresh (TestMultiJvmExactlyOnceRecovery 1/0/0 in 67.38s; TestMultiJvmCoordinatorFailover 2/0/0 in 8.201s), so all 4 rows are reclassified `disposition: e2e-proved` and no longer block blanket-ready. See `stage-13`/`stage-14` evidence files for the reclassified rows.
 
-| inventory_id | required_lane | stage file | blocker | owner / successor |
-| --- | --- | --- | --- | --- |
-| `EVID-S13-015` | multi-jvm | stage-13 | `TestMultiJvmExactlyOnceRecovery` log-label mismatch (cross-ref EVID-S14-013) | independent remediation plan |
-| `EVID-S13-016` | multi-jvm | stage-13 | `TestMultiJvmCoordinatorFailover` HA-fencing takeover assertion fails (cross-ref EVID-S14-014) | independent remediation plan |
-| `EVID-S14-013` | multi-jvm | stage-14 | `TestMultiJvmExactlyOnceRecovery` exactly-once recovery log-label defect | independent remediation plan |
-| `EVID-S14-014` | multi-jvm | stage-14 | `TestMultiJvmCoordinatorFailover` HA-fencing takeover fails (assertTrue epoch1 > 0) | independent remediation plan |
+**All 4 remaining blockers (§2a) have an owner.** No required-lane blocker is unowned. Per the readiness gate, a blanket `ready` verdict is forbidden while any of the §2a lane-blocked rows remain.
 
-**All 8 blockers have an owner.** No required-lane blocker is unowned. Per the readiness gate, a blanket `ready` verdict is forbidden while any of these remain `blocked`.
+## 3. Residual-Risk Rows — Non-Blocking Rationale Summary (45)
 
-## 3. Residual-Risk Rows — Non-Blocking Rationale Summary (47)
-
-47 evidence rows are `disposition: residual-risk`. Each carries an explicit non-blocking rationale in its evidence file (the `declared_guarantee` / `positive_proof` field). Representative themes (full ID list below):
+45 evidence rows are `disposition: residual-risk`. Each carries an explicit non-blocking rationale in its evidence file (the `declared_guarantee` / `positive_proof` field). Representative themes (full ID list below):
 
 - **Test-quality gaps**: a capability is correct but lacks a dedicated rejection/mutation test — accepted as residual with a named Stage 17 successor (Anti-Hollow / Rule #24 guard, not a correctness defect).
 - **Concurrency boundary documented but not tested**: e.g. M7-2-P1-15 happy-path-only residual (concurrency boundary documented, not exercised).
 - **Dormant multi-input facilities**: features without a supported consumer in the current baseline — non-goal-adjacent residuals.
-- **Cross-JVM residuals absorbed from Stage 13**: `required_lane: multi-jvm` capabilities where the in-process segment is proven but the true process-boundary segment is blocked by the 4 T2 capability gaps (§2b) — classified residual (not blocked) because an in-process proof exists and the gap is owned.
+- **Cross-JVM residuals absorbed from Stage 13/14** (re-audited 2026-08-09-1300-1): T2 capability gaps (§2b) RESOLVED — the passing T2 tests prove single-coordinator cross-JVM recovery redeploy + HA-fencing takeover, and two cross-JVM residual rows whose claims are directly covered (EVID-S13-021 distributed recovery boundary, EVID-S14-015 process-boundary recovery) were upgraded to `e2e-proved`. The remaining 8 cross-JVM residuals stay `residual-risk` because the passing T2 tests do NOT directly prove THIS specific invariant: the concurrent-distributed-mutex rows (EVID-S13-012/017, EVID-S14-016/020) need concurrent racing coordinators, and the cross-JVM zombie rows (EVID-S13-013/019, EVID-S14-017/021) need a zombie producer kept alive — neither is exercised by the single-coordinator T2 recovery test (which kills the TM rather than leaving it running as a zombie).
 - **CDC/connector residuals**: capabilities whose only path is fail-fast but lack a dedicated rejection test → residual with `manual-trace:` proof.
 
-Full residual-risk inventory IDs (47):
-`EVID-S7-028, EVID-S7-029, EVID-S7-030, EVID-S8-003, EVID-S8-008, EVID-S8-010, EVID-S8-011, EVID-S8-012, EVID-S8-013, EVID-S8-014, EVID-S9-014, EVID-S9-016, EVID-S9-017, EVID-S9-019, EVID-S10-007, EVID-S10-014, EVID-S10-018, EVID-S10-019, EVID-S11-009, EVID-S11-018, EVID-S11-019, EVID-S11-020, EVID-S11-021, EVID-S11-022, EVID-S11-023, EVID-S12-010, EVID-S12-013, EVID-S12-015, EVID-S12-016, EVID-S12-017, EVID-S12-018, EVID-S12-019, EVID-S12-020, EVID-S12-022, EVID-S13-012, EVID-S13-013, EVID-S13-017, EVID-S13-019, EVID-S13-021, EVID-S14-015, EVID-S14-016, EVID-S14-017, EVID-S14-020, EVID-S14-021, EVID-S15-004, EVID-S15-005, EVID-S16-012`
+Full residual-risk inventory IDs (45):
+`EVID-S7-028, EVID-S7-029, EVID-S7-030, EVID-S8-003, EVID-S8-008, EVID-S8-010, EVID-S8-011, EVID-S8-012, EVID-S8-013, EVID-S8-014, EVID-S9-014, EVID-S9-016, EVID-S9-017, EVID-S9-019, EVID-S10-007, EVID-S10-014, EVID-S10-018, EVID-S10-019, EVID-S11-009, EVID-S11-018, EVID-S11-019, EVID-S11-020, EVID-S11-021, EVID-S11-022, EVID-S11-023, EVID-S12-010, EVID-S12-013, EVID-S12-015, EVID-S12-016, EVID-S12-017, EVID-S12-018, EVID-S12-019, EVID-S12-020, EVID-S12-022, EVID-S13-012, EVID-S13-013, EVID-S13-017, EVID-S13-019, EVID-S14-016, EVID-S14-017, EVID-S14-020, EVID-S14-021, EVID-S15-004, EVID-S15-005, EVID-S16-012`
 
 None of these is a confirmed P0/P1 live defect without an owner — per the finding-disposition layer (§5), every P0/P1 is either `revalidated` or owned.
 
-## 4. e2e-proved Capability/Environment Pairs (126) — the "ready only for ..." Enumeration
+## 4. e2e-proved Capability/Environment Pairs (132) — the "ready only for ..." Enumeration
 
-The `ready only for enumerated e2e-proved capability/environment pairs` verdict is supported by the 126 `e2e-proved` rows. These enumerate the capabilities proven on a qualified lane (in-process T1 lane or stronger). They span:
+The `ready only for enumerated e2e-proved capability/environment pairs` verdict is supported by the 132 `e2e-proved` rows. These enumerate the capabilities proven on a qualified lane (in-process T1 lane or stronger). They span:
 
 - **Java API / graph / LOCAL execution** (Stage 6, 16 rows): DataStream construction, Transformation DAG, StreamGraph/JobGraph compilation, LOCAL execution source→sink.
 - **XDSL StreamModel entry** (Stage 7, 30 rows): `.stream.xml` compilation through StreamModel, supported topology equivalence, fail-fast for unsupported nodes.
@@ -89,12 +83,12 @@ The `ready only for enumerated e2e-proved capability/environment pairs` verdict 
 - **State backend / savepoint / rescale** (Stage 10, 22 rows): memory/RocksDB state, savepoint compatibility, migration, incremental-state integrity, key-group rescale.
 - **Window / watermark / timer** (Stage 11, 23 rows): event/processing-time, session merge, trigger/evictor, late-data, timer checkpoint/restore.
 - **CEP / NFA / SharedBuffer** (Stage 12, 22 rows): linear + branching pattern, overlapping release/refcount, timeout, skip strategies, checkpoint continuation.
-- **Control plane / HA / fencing** (Stage 13, 21 rows minus 2 blocked = 19 proven): coordinator RPC, leader transitions, task assignment, fencing, local vs distributed recovery boundary.
-- **Data plane / multi-JVM recovery** (Stage 14, 21 rows minus 4 blocked = 17 proven): in-process transport record/barrier/watermark, deployment-descriptor reconstruction.
+- **Control plane / HA / fencing** (Stage 13, 21 rows minus 0 blocked = 21 proven — re-audited 2026-08-09-1300-1): coordinator RPC, leader transitions, task assignment, fencing, cross-JVM control-plane transport (EVID-S13-015/016 now e2e-proved on T2 lane), cross-JVM HA-fencing takeover, local vs distributed recovery boundary (EVID-S13-021 upgraded).
+- **Data plane / multi-JVM recovery** (Stage 14, 21 rows minus 2 blocked = 19 proven — re-audited 2026-08-09-1300-1): in-process transport record/barrier/watermark, deployment-descriptor reconstruction, cross-JVM recovery fencing/redeploy (EVID-S14-013), cross-JVM HA-fencing takeover (EVID-S14-014), embedded-vs-multi-JVM boundary (EVID-S14-015 upgraded). The 2 remaining blocked are §2a lane-blocked (Kafka/Pulsar).
 - **Batch / message connector** (Stage 15, 15 rows minus 1 blocked = 14 proven): batch/message source/sink capability on in-process `LocalMessageService`.
 - **JDBC / file / CDC connector** (Stage 16, 16 rows minus 1 blocked = 15 proven): JDBC/file 2PC sink external-effect on embedded H2 / real NIO file system.
 
-The full per-row enumeration lives in the `*.evidence.md` files; the `readiness` validator emits the e2e-proved count and the ready-pair list is the set of 126 rows above.
+The full per-row enumeration lives in the `*.evidence.md` files; the `readiness` validator emits the e2e-proved count and the ready-pair list is the set of 132 rows above.
 
 ## 5. Finding-Disposition Coverage (97 findings, all uniquely disposed)
 
@@ -131,20 +125,20 @@ Consumed from frozen Stages 18–22 disposition corpus (`stage-{18..22}-*-dispos
 
 ### Gate Compliance (Rule S5-2 / evidence-schema.md:99)
 
-- A blanket `ready` verdict is **forbidden** because 8 evidence rows have `disposition: blocked` (§2). The readiness gate states: *"any evidence row whose `required_lane` corresponds to a lane that is `blocked` ... blocks the Stage 23 `ready` verdict."*
-- The decision is therefore the bounded form `ready only for enumerated e2e-proved capability/environment pairs`, enumerating the 126 `e2e-proved` rows (§4) proven on the qualified T1 in-process lane (and the 1 multi-jvm + 3 unit e2e-proved rows where the required lane is met).
-- **No required-lane blocker is unowned**: 4 are owned by infra provisioning (out of audit scope), 4 are owned by an independent code-remediation plan. The decision is NOT `not ready` (which would require an unowned required-lane blocker); it is the bounded `ready only for ...` form.
+- A blanket `ready` verdict is **forbidden** because 4 evidence rows have `disposition: blocked` (§2a). The readiness gate states: *"any evidence row whose `required_lane` corresponds to a lane that is `blocked` ... blocks the Stage 23 `ready` verdict."*
+- The decision is therefore the bounded form `ready only for enumerated e2e-proved capability/environment pairs`, enumerating the 132 `e2e-proved` rows (§4) proven on the qualified T1 in-process lane (and the 7 multi-jvm + 3 unit e2e-proved rows where the required lane is met).
+- **No required-lane blocker is unowned**: the 4 remaining §2a blockers are owned by infra provisioning (out of audit scope). The §2b capability-gap blocker class (formerly 4 rows) was RESOLVED on 2026-08-09-1300-1 and reclassified `blocked`→`e2e-proved`. The decision is NOT `not ready` (which would require an unowned required-lane blocker); it is the bounded `ready only for ...` form.
 
 ### Blockers to Blanket-Ready (must be resolved before a future blanket `ready`)
 
-1. **T3/T4/T5/T6 lane provisioning** (Kafka / Pulsar / PostgreSQL / Debezium external backends) — 4 lane-blocked rows (§2a). Owner: infrastructure provisioning (out of audit scope). Resolving this unblocks the 4 lane-blocked rows.
-2. **T2 multi-JVM capability gaps** — 4 capability-gap rows (§2b): `TestMultiJvmExactlyOnceRecovery` log-label defect, `TestMultiJvmCoordinatorFailover` HA-fencing takeover defect. Owner: independent code-remediation plan (out of this doc/decision plan's scope; this plan is audit/doc-only per its Non-Goals).
+1. **T3/T4/T5/T6 lane provisioning** (Kafka / Pulsar / PostgreSQL / Debezium external backends) — 4 lane-blocked rows (§2a). Owner: infrastructure provisioning (out of audit scope). Resolving this unblocks the 4 lane-blocked rows. **This is now the ONLY remaining blocker class.**
+2. ~~**T2 multi-JVM capability gaps**~~ — **RESOLVED 2026-08-09-1300-1**: plan `2026-08-09-1252-1` fixed the root causes, the T2 lane tests PASS fresh, and the 4 capability-gap rows (EVID-S13-015/016, EVID-S14-013/014) are reclassified `blocked`→`e2e-proved`. This blocker class no longer applies.
 
-Until both blocker classes are resolved and re-audited, the blanket `ready` verdict remains forbidden and the bounded `ready only for ...` verdict stands.
+Until the §2a lane-provisioning blocker class is resolved and re-audited, the blanket `ready` verdict remains forbidden and the bounded `ready only for ...` verdict stands.
 
 ### What "ready only for ..." means in practice
 
-nop-stream is production-ready **only** for the capabilities evidenced by the 126 `e2e-proved` rows — i.e. the in-process (single-JVM / LOCAL execution) capability surface: Java API, graph compilation, XDSL + Delta entry, checkpoint/barrier/recovery lifecycle (in-process), state backend (memory/RocksDB), window/watermark/timer, CEP/NFA/SharedBuffer, control-plane/HA/fencing (in-process boundary), data-plane transport (in-process), and batch/message/JDBC/file connector capabilities proven on the in-process lane. Capabilities requiring a real cross-JVM recovery, real Kafka/Pulsar/PostgreSQL/Debezium backend, or the T2 multi-JVM fencing takeover are **not** covered by this readiness verdict and must not be assumed production-ready.
+nop-stream is production-ready **only** for the capabilities evidenced by the 132 `e2e-proved` rows — i.e. the in-process (single-JVM / LOCAL execution) capability surface PLUS the cross-JVM recovery / HA-fencing takeover capability surface (re-audited e2e-proved on the T2 multi-jvm lane 2026-08-09-1300-1): Java API, graph compilation, XDSL + Delta entry, checkpoint/barrier/recovery lifecycle (in-process), state backend (memory/RocksDB), window/watermark/timer, CEP/NFA/SharedBuffer, control-plane/HA/fencing (in-process + cross-JVM HA-fencing takeover + cross-JVM recovery redeploy), data-plane transport (in-process), cross-JVM process-boundary recovery, and batch/message/JDBC/file connector capabilities proven on the in-process lane. Capabilities requiring a real Kafka/Pulsar/PostgreSQL/Debezium backend (§2a lane-blocked), or the STRONGER cross-JVM invariants not directly covered by the passing T2 tests (concurrent distributed mutex, cross-JVM zombie fencing — kept residual-risk), or the full source→keyBy→sink cross-JVM shared-sink exactly-once assertion (Stage 43+ follow-up) are **not** covered by this readiness verdict and must not be assumed production-ready.
 
 ## 7. Owner-Documentation Reconciliation Summary
 
@@ -163,7 +157,10 @@ Per Stage 23 Phase 2 (`owner-doc-manifest.md`), all 19 in-scope owner documents 
 ```
 $ node ai-dev/tools/check-nop-stream-audit-manifest.mjs readiness
 [PASS] readiness (219 evidence rows; decision: "ready only for enumerated e2e-proved capability/environment pairs")
-  ...counts + 8 blocked rows + 126 e2e-proved + lane registry...
+  Evidence row counts by disposition:
+    e2e-proved: 132  | residual-risk: 45  | fail-fast: 13  | component-only: 13  | non-goal: 8  | blocked: 4  | unverified: 4
+  Blocked rows (block blanket-ready): 4   [§2a only: EVID-S14-009/010, EVID-S15-011, EVID-S16-016]
+  e2e-proved rows (enumerate ready pairs): 132   [in-process 122, unit 3, multi-jvm 7]
 ```
 
 ```
