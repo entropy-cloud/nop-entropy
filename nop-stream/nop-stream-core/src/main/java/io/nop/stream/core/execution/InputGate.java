@@ -376,17 +376,50 @@ public class InputGate {
     }
 
     private Optional<StreamElement> readSingleChannel() {
+        // AR-1 (audit nop-stream-independent-audit, P1): the legacy path called the
+        // unbounded read() overload, which parks in queue.take() forever. A remote
+        // single-input consumer parked in take() could never re-evaluate the channel
+        // heartbeat-timeout, so a producer that died after the consumer entered
+        // take() left the consumer blocked indefinitely — the documented
+        // fast-fail-on-producer-death safety feature silently did not protect the
+        // single-input topology in the cross-JVM lane.
+        //
+        // Fix: mirror the already-correct readMultiChannel pattern — loop on the
+        // bounded read(50, MILLISECONDS) overload. Each iteration re-enters
+        // RemoteInputChannel.read(long, TimeUnit), which re-runs
+        // checkChannelTimeout() at its top, so the channel heartbeat-timeout
+        // re-fires every ~50 ms even while the consumer is effectively parked
+        // waiting for data. channelTimeoutMs lives on RemoteInputChannel (not the
+        // base InputChannel type) so it is not readable here; the fixed 50 ms poll
+        // is the same ceiling readMultiChannel uses, and is what re-fires the
+        // timeout check inside the bounded overload.
+        InputChannel channel = channels.get(0);
         try {
-            StreamElement element = channels.get(0).read();
-            if (element == null) {
-                return Optional.empty();
+            while (true) {
+                StreamElement element = channel.read(50, TimeUnit.MILLISECONDS);
+                if (element == null) {
+                    // The bounded overload returns null for BOTH poll-timeout AND
+                    // end-of-stream (review B1). Disambiguate via isFinished():
+                    //   finished  -> producer is done -> return empty (EOS)
+                    //   !finished -> momentary idle    -> loop and poll again
+                    // Treating all null as "continue" would busy-spin on EOS;
+                    // treating all null as "empty" would silently terminate on
+                    // every idle poll. This matches the disambiguation
+                    // readMultiChannel performs at the null branch.
+                    if (channel.isFinished()) {
+                        return Optional.empty();
+                    }
+                    continue;
+                }
+                // Track watermark for single channel
+                if (element.isWatermark()) {
+                    Watermark wm = element.asWatermark();
+                    currentWatermarks[0] = wm.getTimestamp();
+                }
+                // Single-channel = trivially aligned, so barriers are returned
+                // as-is without barrier alignment / handleBarrierNonRecursive.
+                return Optional.of(element);
             }
-            // Track watermark for single channel
-            if (element.isWatermark()) {
-                Watermark wm = element.asWatermark();
-                currentWatermarks[0] = wm.getTimestamp();
-            }
-            return Optional.of(element);
         } catch (InterruptedException e) {
             // P1-8: Align with multi-input interrupt handling — set interrupt flag
             // and return empty. The caller (processInputGate) breaks on empty, and
