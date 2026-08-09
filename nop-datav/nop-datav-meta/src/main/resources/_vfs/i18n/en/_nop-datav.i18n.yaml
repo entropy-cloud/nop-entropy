@@ -8,6 +8,9 @@ entity:
     NopDatavExportTask: Export Task
     NopDatavFilterState: Filter State
     NopDatavPanel: Panel
+    NopDatavScreen: Screen
+    NopDatavScreenSnapshot: Screen Snapshot
+    NopDatavScreenWidget: Screen Widget
 prop:
   label:
     NopDatavDashboard:
@@ -156,6 +159,69 @@ prop:
       dashboard: Dashboard
       dashboard.displayName: Dashboard
       panelConfigComponent: null
+    NopDatavScreen:
+      screenId: Screen Id
+      screenName: Screen Name
+      displayName: Display Name
+      description: Description
+      screenWidth: Screen Width
+      screenHeight: Screen Height
+      adaptorMode: Adaptor Mode
+      adaptorMode_label: null
+      backgroundConfig: Background Config
+      publishStatus: Publish Status
+      publishStatus_label: null
+      publishedVersion: Published Version
+      publishedBy: Published By
+      publishedTime: Published Time
+      delFlag: Del Flag
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      backgroundConfigComponent: null
+    NopDatavScreenSnapshot:
+      snapshotId: Snapshot Id
+      screenId: Screen Id
+      snapshotVersion: Snapshot Version
+      snapshotContent: Snapshot Content
+      publishedBy: Published By
+      publishedTime: Published Time
+      delFlag: Del Flag
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      screen: Screen
+      screen.displayName: Screen
+      snapshotContentComponent: null
+    NopDatavScreenWidget:
+      widgetId: Widget Id
+      screenId: Screen Id
+      widgetName: Widget Name
+      displayName: Display Name
+      componentType: Component Type
+      datasetRefId: Dataset Ref Id
+      x: X
+      y: Y
+      w: Width
+      h: Height
+      z: Z-Index
+      widgetConfig: Widget Config
+      delFlag: Del Flag
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      screen: Screen
+      screen.displayName: Screen
+      widgetConfigComponent: null
 dict:
   label:
     datav/dashboard-type: Dashboard Type
@@ -164,6 +230,7 @@ dict:
     datav/export-source: Export Source
     datav/export-format: Export Format
     datav/export-status: Export Status
+    datav/screen-adaptor: Screen Adaptor
 dict.option.label:
   datav/dashboard-type:
     '0': Dashboard
@@ -192,3 +259,7 @@ dict.option.label:
     '20': Succeeded
     '30': Failed
     '40': Cancelled
+  datav/screen-adaptor:
+    '0': Height First
+    '10': Full
+    '20': Keep

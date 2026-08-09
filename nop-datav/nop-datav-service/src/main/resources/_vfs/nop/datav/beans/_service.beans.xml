@@ -21,6 +21,13 @@
         <property name="bizObjName" value="NopDatavExportTask"/>
     </bean>
 
+    <bean id="io.nop.datav.service.entity.NopDatavScreenBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopDatavScreen" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.datav.biz.INopDatavScreenBiz" ioc:force-lazy-property="true" lazy-init="true" primary="true">
+        <property name="bizObjName" value="NopDatavScreen"/>
+    </bean>
+
     <bean id="io.nop.datav.service.entity.NopDatavPanelBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="biz_NopDatavPanel" class="io.nop.biz.proxy.BizProxyFactoryBean"
@@ -66,5 +73,21 @@
           ioc:type="io.nop.datav.biz.INopDatavDashboardShareBiz" ioc:force-lazy-property="true" lazy-init="true"
           primary="true">
         <property name="bizObjName" value="NopDatavDashboardShare"/>
+    </bean>
+
+    <bean id="io.nop.datav.service.entity.NopDatavScreenWidgetBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopDatavScreenWidget" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.datav.biz.INopDatavScreenWidgetBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopDatavScreenWidget"/>
+    </bean>
+
+    <bean id="io.nop.datav.service.entity.NopDatavScreenSnapshotBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopDatavScreenSnapshot" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.datav.biz.INopDatavScreenSnapshotBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopDatavScreenSnapshot"/>
     </bean>
 </beans>

@@ -34,6 +34,11 @@ public interface NopDatavErrors {
     String ARG_MAX_CONCURRENT = "maxConcurrent";
     String ARG_CURRENT_CONCURRENT = "currentConcurrent";
 
+    String ARG_SCREEN_ID = "screenId";
+    String ARG_WIDGET_ID = "widgetId";
+    String ARG_CANVAS_WIDTH = "canvasWidth";
+    String ARG_CANVAS_HEIGHT = "canvasHeight";
+
     ErrorCode ERR_DATAV_DASHBOARD_NOT_FOUND = define(
             "nop.err.datav.dashboard-not-found",
             "Dashboard not found: {dashboardId}",
@@ -242,5 +247,41 @@ public interface NopDatavErrors {
             "nop.err.datav.export-no-exportable-panels",
             "Dashboard has no exportable (needsDataset) panels: {dashboardId}",
             ARG_DASHBOARD_ID
+    );
+
+    ErrorCode ERR_DATAV_SCREEN_NOT_FOUND = define(
+            "nop.err.datav.screen-not-found",
+            "Screen not found: {screenId}",
+            ARG_SCREEN_ID
+    );
+
+    ErrorCode ERR_DATAV_SCREEN_SNAPSHOT_NOT_FOUND = define(
+            "nop.err.datav.screen-snapshot-not-found",
+            "Published snapshot not found for screen: {screenId}",
+            ARG_SCREEN_ID
+    );
+
+    ErrorCode ERR_DATAV_SCREEN_SNAPSHOT_VERSION_NOT_FOUND = define(
+            "nop.err.datav.screen-snapshot-version-not-found",
+            "Snapshot version {snapshotVersion} not found for screen: {screenId}",
+            ARG_SCREEN_ID, ARG_SNAPSHOT_VERSION
+    );
+
+    ErrorCode ERR_DATAV_INVALID_SCREEN_LAYOUT = define(
+            "nop.err.datav.invalid-screen-layout",
+            "Invalid screen layout JSON for screen: {screenId}, reason: {reason}",
+            ARG_SCREEN_ID, ARG_REASON
+    );
+
+    ErrorCode ERR_DATAV_SCREEN_WIDGET_UNKNOWN_COMPONENT = define(
+            "nop.err.datav.screen-widget-unknown-component",
+            "Screen widget references unknown component type: {componentType} (widget: {widgetId})",
+            ARG_COMPONENT_TYPE, ARG_WIDGET_ID
+    );
+
+    ErrorCode ERR_DATAV_SCREEN_WIDGET_OUT_OF_BOUNDS = define(
+            "nop.err.datav.screen-widget-out-of-bounds",
+            "Screen widget out of canvas bounds: widget={widgetId}, canvas={canvasWidth}x{canvasHeight}",
+            ARG_WIDGET_ID, ARG_CANVAS_WIDTH, ARG_CANVAS_HEIGHT
     );
 }

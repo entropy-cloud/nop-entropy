@@ -111,6 +111,48 @@
                         </resource>
                     </children>
                 </resource>
+                <!-- ==================== NopDatavScreen（D4-1 大屏）==================== -->
+                <resource id="NopDatavScreen-main">
+                    <children>
+                        <resource id="FNPT:NopDatavScreen:query" roles="admin,user"/>
+                        <resource id="FNPT:NopDatavScreen:mutation" roles="admin"/>
+                        <!-- 自定义 action 权限点 -->
+                        <resource id="FNPT:NopDatavScreen:publishScreen" displayName="发布大屏"
+                                  i18n-en:displayName="Publish Screen" orderNo="10040" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavScreen:publishScreen</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavScreen:getPublishedScreen" displayName="查看已发布大屏"
+                                  i18n-en:displayName="Get Published Screen" orderNo="10041" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavScreen:getPublishedScreen</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavScreen:rollbackScreen" displayName="回滚大屏"
+                                  i18n-en:displayName="Rollback Screen" orderNo="10042" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavScreen:rollbackScreen</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavScreen:getScreenLayout" displayName="获取大屏布局"
+                                  i18n-en:displayName="Get Screen Layout" orderNo="10043" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavScreen:getScreenLayout</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <!-- ==================== NopDatavScreenWidget（D4-1）==================== -->
+                <resource id="NopDatavScreenWidget-main">
+                    <children>
+                        <resource id="FNPT:NopDatavScreenWidget:query" roles="admin,user"/>
+                        <resource id="FNPT:NopDatavScreenWidget:mutation" roles="admin"/>
+                    </children>
+                </resource>
+                <!-- ==================== NopDatavScreenSnapshot（D4-1）==================== -->
+                <resource id="NopDatavScreenSnapshot-main">
+                    <children>
+                        <resource id="FNPT:NopDatavScreenSnapshot:query" roles="admin,user"/>
+                        <resource id="FNPT:NopDatavScreenSnapshot:mutation" roles="admin"/>
+                    </children>
+                </resource>
             </children>
         </resource>
     </site>

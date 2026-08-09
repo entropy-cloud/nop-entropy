@@ -127,6 +127,34 @@
                         </resource>
                     </children>
                 </resource>
+                <resource id="NopDatavScreen-main" displayName="大屏" resourceType="SUBM" orderNo="10006">
+                    <children>
+                        <resource id="FNPT:NopDatavScreen:query" displayName="查询大屏" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavScreen:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavScreen:mutation" displayName="修改大屏" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavScreen:mutation</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavScreen:publishScreen" displayName="发布大屏" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavScreen:publishScreen</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavScreen:getPublishedScreen" displayName="查看已发布大屏"
+                                  resourceType="FNPT" roles="admin,user">
+                            <permissions>NopDatavScreen:getPublishedScreen</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavScreen:rollbackScreen" displayName="回滚大屏" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavScreen:rollbackScreen</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavScreen:getScreenLayout" displayName="获取大屏布局"
+                                  resourceType="FNPT" roles="admin,user">
+                            <permissions>NopDatavScreen:getScreenLayout</permissions>
+                        </resource>
+                    </children>
+                </resource>
             </children>
         </resource>
     </site>

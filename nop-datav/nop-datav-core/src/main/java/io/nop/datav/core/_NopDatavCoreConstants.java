@@ -108,4 +108,19 @@ public interface _NopDatavCoreConstants {
      */
     int EXPORT_STATUS_CANCELLED = 40;
                     
+    /**
+     * 大屏适配模式: 高度优先 
+     */
+    int SCREEN_ADAPTOR_HEIGHT_FIRST = 0;
+                    
+    /**
+     * 大屏适配模式: 整体铺满 
+     */
+    int SCREEN_ADAPTOR_FULL = 10;
+                    
+    /**
+     * 大屏适配模式: 保持原始 
+     */
+    int SCREEN_ADAPTOR_KEEP = 20;
+                    
 }

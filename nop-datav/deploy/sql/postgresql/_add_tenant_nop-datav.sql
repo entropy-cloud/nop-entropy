@@ -3,6 +3,8 @@
 
 alter table nop_datav_export_task add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
+alter table nop_datav_screen add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
 alter table nop_datav_panel add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_datav_tab add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
@@ -15,11 +17,18 @@ alter table nop_datav_filter_state add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT
 
 alter table nop_datav_share add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
+alter table nop_datav_screen_widget add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
+alter table nop_datav_screen_snapshot add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
 alter table nop_datav_dashboard drop constraint PK_nop_datav_dashboard;
 alter table nop_datav_dashboard add constraint PK_nop_datav_dashboard primary key (NOP_TENANT_ID, dashboard_id);
 
 alter table nop_datav_export_task drop constraint PK_nop_datav_export_task;
 alter table nop_datav_export_task add constraint PK_nop_datav_export_task primary key (NOP_TENANT_ID, task_id);
+
+alter table nop_datav_screen drop constraint PK_nop_datav_screen;
+alter table nop_datav_screen add constraint PK_nop_datav_screen primary key (NOP_TENANT_ID, screen_id);
 
 alter table nop_datav_panel drop constraint PK_nop_datav_panel;
 alter table nop_datav_panel add constraint PK_nop_datav_panel primary key (NOP_TENANT_ID, panel_id);
@@ -38,5 +47,11 @@ alter table nop_datav_filter_state add constraint PK_nop_datav_filter_state prim
 
 alter table nop_datav_share drop constraint PK_nop_datav_share;
 alter table nop_datav_share add constraint PK_nop_datav_share primary key (NOP_TENANT_ID, share_id);
+
+alter table nop_datav_screen_widget drop constraint PK_nop_datav_screen_widget;
+alter table nop_datav_screen_widget add constraint PK_nop_datav_screen_widget primary key (NOP_TENANT_ID, widget_id);
+
+alter table nop_datav_screen_snapshot drop constraint PK_nop_datav_screen_snapshot;
+alter table nop_datav_screen_snapshot add constraint PK_nop_datav_screen_snapshot primary key (NOP_TENANT_ID, snapshot_id);
 
 

@@ -123,6 +123,48 @@
                         </resource>
                     </children>
                 </resource>
+                <resource id="NopDatavScreen-main" displayName="大屏" orderNo="10025" i18n-en:displayName="Screen"
+                          icon="monitor" component="AMIS" resourceType="SUBM"
+                          url="/nop/datav/pages/NopDatavScreen/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopDatavScreen:query" displayName="查询大屏" i18n-en:displayName="Query Screen"
+                                  orderNo="10026" resourceType="FNPT">
+                            <permissions>NopDatavScreen:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavScreen:mutation" displayName="修改大屏"
+                                  i18n-en:displayName="Modify Screen" orderNo="10027" resourceType="FNPT">
+                            <permissions>NopDatavScreen:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDatavScreenSnapshot-main" displayName="大屏快照" orderNo="10028"
+                          i18n-en:displayName="Screen Snapshot" icon="git-commit-horizontal" component="AMIS"
+                          resourceType="SUBM" url="/nop/datav/pages/NopDatavScreenSnapshot/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopDatavScreenSnapshot:query" displayName="查询大屏快照"
+                                  i18n-en:displayName="Query Screen Snapshot" orderNo="10029" resourceType="FNPT">
+                            <permissions>NopDatavScreenSnapshot:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavScreenSnapshot:mutation" displayName="修改大屏快照"
+                                  i18n-en:displayName="Modify Screen Snapshot" orderNo="10030" resourceType="FNPT">
+                            <permissions>NopDatavScreenSnapshot:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDatavScreenWidget-main" displayName="大屏组件" orderNo="10031"
+                          i18n-en:displayName="Screen Widget" icon="square" component="AMIS" resourceType="SUBM"
+                          url="/nop/datav/pages/NopDatavScreenWidget/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopDatavScreenWidget:query" displayName="查询大屏组件"
+                                  i18n-en:displayName="Query Screen Widget" orderNo="10032" resourceType="FNPT">
+                            <permissions>NopDatavScreenWidget:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavScreenWidget:mutation" displayName="修改大屏组件"
+                                  i18n-en:displayName="Modify Screen Widget" orderNo="10033" resourceType="FNPT">
+                            <permissions>NopDatavScreenWidget:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
             </children>
         </resource>
     </site>

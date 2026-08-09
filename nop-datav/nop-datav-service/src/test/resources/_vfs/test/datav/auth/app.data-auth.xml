@@ -21,6 +21,20 @@
                 </role-auth>
             </role-auths>
         </obj>
+        <obj name="NopDatavScreen">
+            <role-auths>
+                <role-auth id="admin" roleIds="admin">
+                </role-auth>
+                <role-auth id="user" roleIds="user">
+                    <filter>
+                        <or>
+                            <eq name="createdBy" value="${$context.userName}"/>
+                            <eq name="publishStatus" value="10"/>
+                        </or>
+                    </filter>
+                </role-auth>
+            </role-auths>
+        </obj>
         <obj name="NopDatavDashboardSnapshot">
             <role-auths>
                 <role-auth id="admin" roleIds="admin">

@@ -41,6 +41,29 @@ CREATE TABLE nop_datav_export_task(
   constraint PK_nop_datav_export_task primary key (task_id)
 );
 
+CREATE TABLE nop_datav_screen(
+  screen_id VARCHAR(32) NOT NULL ,
+  screen_name VARCHAR(100) NOT NULL ,
+  display_name VARCHAR(200) NOT NULL ,
+  description VARCHAR(4000)  ,
+  screen_width INT4 NOT NULL ,
+  screen_height INT4 NOT NULL ,
+  adaptor_mode INT4 default 10   ,
+  background_config VARCHAR(4000)  ,
+  publish_status INT4  ,
+  published_version INT8  ,
+  published_by VARCHAR(50)  ,
+  published_time TIMESTAMP  ,
+  del_flag INT4  ,
+  version INT8 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint PK_nop_datav_screen primary key (screen_id)
+);
+
 CREATE TABLE nop_datav_panel(
   panel_id VARCHAR(32) NOT NULL ,
   dashboard_id VARCHAR(32) NOT NULL ,
@@ -143,6 +166,46 @@ CREATE TABLE nop_datav_share(
   constraint PK_nop_datav_share primary key (share_id)
 );
 
+CREATE TABLE nop_datav_screen_widget(
+  widget_id VARCHAR(32) NOT NULL ,
+  screen_id VARCHAR(32) NOT NULL ,
+  widget_name VARCHAR(100)  ,
+  display_name VARCHAR(200)  ,
+  component_type VARCHAR(50) NOT NULL ,
+  dataset_ref_id VARCHAR(32)  ,
+  x INT4 default 0  NOT NULL ,
+  y INT4 default 0  NOT NULL ,
+  w INT4 NOT NULL ,
+  h INT4 NOT NULL ,
+  z INT4 default 0   ,
+  widget_config VARCHAR(4000)  ,
+  del_flag INT4  ,
+  version INT8 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint PK_nop_datav_screen_widget primary key (widget_id)
+);
+
+CREATE TABLE nop_datav_screen_snapshot(
+  snapshot_id VARCHAR(32) NOT NULL ,
+  screen_id VARCHAR(32) NOT NULL ,
+  snapshot_version INT8 NOT NULL ,
+  snapshot_content TEXT  ,
+  published_by VARCHAR(50)  ,
+  published_time TIMESTAMP  ,
+  del_flag INT4  ,
+  version INT8 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint PK_nop_datav_screen_snapshot primary key (snapshot_id)
+);
+
 
       COMMENT ON TABLE nop_datav_dashboard IS '看板';
                 
@@ -215,6 +278,46 @@ CREATE TABLE nop_datav_share(
       COMMENT ON COLUMN nop_datav_export_task.update_time IS '修改时间';
                     
       COMMENT ON COLUMN nop_datav_export_task.remark IS '备注';
+                    
+      COMMENT ON TABLE nop_datav_screen IS '大屏';
+                
+      COMMENT ON COLUMN nop_datav_screen.screen_id IS '大屏ID';
+                    
+      COMMENT ON COLUMN nop_datav_screen.screen_name IS '大屏名';
+                    
+      COMMENT ON COLUMN nop_datav_screen.display_name IS '显示名';
+                    
+      COMMENT ON COLUMN nop_datav_screen.description IS '描述';
+                    
+      COMMENT ON COLUMN nop_datav_screen.screen_width IS '画布宽度';
+                    
+      COMMENT ON COLUMN nop_datav_screen.screen_height IS '画布高度';
+                    
+      COMMENT ON COLUMN nop_datav_screen.adaptor_mode IS '适配模式';
+                    
+      COMMENT ON COLUMN nop_datav_screen.background_config IS '背景配置';
+                    
+      COMMENT ON COLUMN nop_datav_screen.publish_status IS '发布状态';
+                    
+      COMMENT ON COLUMN nop_datav_screen.published_version IS '已发布版本';
+                    
+      COMMENT ON COLUMN nop_datav_screen.published_by IS '发布人';
+                    
+      COMMENT ON COLUMN nop_datav_screen.published_time IS '发布时间';
+                    
+      COMMENT ON COLUMN nop_datav_screen.del_flag IS '删除标记';
+                    
+      COMMENT ON COLUMN nop_datav_screen.version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_datav_screen.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_datav_screen.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_datav_screen.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_datav_screen.update_time IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_datav_screen.remark IS '备注';
                     
       COMMENT ON TABLE nop_datav_panel IS '面板';
                 
@@ -383,4 +486,72 @@ CREATE TABLE nop_datav_share(
       COMMENT ON COLUMN nop_datav_share.update_time IS '修改时间';
                     
       COMMENT ON COLUMN nop_datav_share.remark IS '备注';
+                    
+      COMMENT ON TABLE nop_datav_screen_widget IS '大屏组件';
+                
+      COMMENT ON COLUMN nop_datav_screen_widget.widget_id IS '组件ID';
+                    
+      COMMENT ON COLUMN nop_datav_screen_widget.screen_id IS '大屏ID';
+                    
+      COMMENT ON COLUMN nop_datav_screen_widget.widget_name IS '组件名';
+                    
+      COMMENT ON COLUMN nop_datav_screen_widget.display_name IS '显示名';
+                    
+      COMMENT ON COLUMN nop_datav_screen_widget.component_type IS '组件类型';
+                    
+      COMMENT ON COLUMN nop_datav_screen_widget.dataset_ref_id IS '数据集引用ID';
+                    
+      COMMENT ON COLUMN nop_datav_screen_widget.x IS 'X坐标';
+                    
+      COMMENT ON COLUMN nop_datav_screen_widget.y IS 'Y坐标';
+                    
+      COMMENT ON COLUMN nop_datav_screen_widget.w IS '宽度';
+                    
+      COMMENT ON COLUMN nop_datav_screen_widget.h IS '高度';
+                    
+      COMMENT ON COLUMN nop_datav_screen_widget.z IS '层级';
+                    
+      COMMENT ON COLUMN nop_datav_screen_widget.widget_config IS '组件配置';
+                    
+      COMMENT ON COLUMN nop_datav_screen_widget.del_flag IS '删除标记';
+                    
+      COMMENT ON COLUMN nop_datav_screen_widget.version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_datav_screen_widget.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_datav_screen_widget.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_datav_screen_widget.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_datav_screen_widget.update_time IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_datav_screen_widget.remark IS '备注';
+                    
+      COMMENT ON TABLE nop_datav_screen_snapshot IS '大屏快照';
+                
+      COMMENT ON COLUMN nop_datav_screen_snapshot.snapshot_id IS '快照ID';
+                    
+      COMMENT ON COLUMN nop_datav_screen_snapshot.screen_id IS '大屏ID';
+                    
+      COMMENT ON COLUMN nop_datav_screen_snapshot.snapshot_version IS '快照版本';
+                    
+      COMMENT ON COLUMN nop_datav_screen_snapshot.snapshot_content IS '快照内容';
+                    
+      COMMENT ON COLUMN nop_datav_screen_snapshot.published_by IS '发布人';
+                    
+      COMMENT ON COLUMN nop_datav_screen_snapshot.published_time IS '发布时间';
+                    
+      COMMENT ON COLUMN nop_datav_screen_snapshot.del_flag IS '删除标记';
+                    
+      COMMENT ON COLUMN nop_datav_screen_snapshot.version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_datav_screen_snapshot.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_datav_screen_snapshot.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_datav_screen_snapshot.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_datav_screen_snapshot.update_time IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_datav_screen_snapshot.remark IS '备注';
                     

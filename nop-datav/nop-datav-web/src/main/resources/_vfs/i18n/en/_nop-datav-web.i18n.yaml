@@ -54,6 +54,26 @@ site:
       displayName: Resolve Jump
     FNPT:NopDatavPanel:resolveLinkage:
       displayName: Resolve Linkage
+    FNPT:NopDatavScreen:getPublishedScreen:
+      displayName: Get Published Screen
+    FNPT:NopDatavScreen:getScreenLayout:
+      displayName: Get Screen Layout
+    FNPT:NopDatavScreen:mutation:
+      displayName: Modify Screen
+    FNPT:NopDatavScreen:publishScreen:
+      displayName: Publish Screen
+    FNPT:NopDatavScreen:query:
+      displayName: Query Screen
+    FNPT:NopDatavScreen:rollbackScreen:
+      displayName: Rollback Screen
+    FNPT:NopDatavScreenSnapshot:mutation:
+      displayName: Modify Screen Snapshot
+    FNPT:NopDatavScreenSnapshot:query:
+      displayName: Query Screen Snapshot
+    FNPT:NopDatavScreenWidget:mutation:
+      displayName: Modify Screen Widget
+    FNPT:NopDatavScreenWidget:query:
+      displayName: Query Screen Widget
     NopDatavDashboard-main:
       displayName: Dashboard
     NopDatavDashboardShare-main:
@@ -70,5 +90,11 @@ site:
       displayName: Filter State
     NopDatavPanel-main:
       displayName: Panel
+    NopDatavScreen-main:
+      displayName: Screen
+    NopDatavScreenSnapshot-main:
+      displayName: Screen Snapshot
+    NopDatavScreenWidget-main:
+      displayName: Screen Widget
     test-orm-nop-datav:
       displayName: Test nop-datav

@@ -1,0 +1,387 @@
+package io.nop.datav.service.entity;
+
+import io.nop.api.core.context.TenantProxyContext;
+import io.nop.api.core.exceptions.NopException;
+import io.nop.core.context.IServiceContext;
+import io.nop.core.context.ServiceContextImpl;
+import io.nop.core.lang.json.JsonTool;
+import io.nop.dao.api.IDaoProvider;
+import io.nop.datav.biz.INopDatavScreenBiz;
+import io.nop.datav.biz.ScreenLayoutConfig;
+import io.nop.datav.dao.entity.NopDatavScreen;
+import io.nop.datav.dao.entity.NopDatavScreenSnapshot;
+import io.nop.datav.dao.entity.NopDatavScreenWidget;
+import io.nop.datav.service.screen.ScreenAdaptorMode;
+import jakarta.inject.Inject;
+import org.junit.jupiter.api.Test;
+
+import java.sql.Timestamp;
+import java.util.Map;
+
+import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_INVALID_SCREEN_LAYOUT;
+import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_SCREEN_SNAPSHOT_NOT_FOUND;
+import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_SCREEN_SNAPSHOT_VERSION_NOT_FOUND;
+import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_SCREEN_WIDGET_OUT_OF_BOUNDS;
+import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_UNKNOWN_COMPONENT_TYPE;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+/**
+ * 端到端集成测试 {@link NopDatavScreenBizModel}。
+ *
+ * <p>覆盖：创建大屏 → 配置画布/widget → 发布 → 读取已发布 → 适配解析（getScreenLayout）
+ * → 断言 widget 定位/组件类型/适配模式正确；以及发布/快照/回滚语义。</p>
+ *
+ * <p>包含 Anti-Hollow 接线验证：{@code getScreenLayout} 经 {@link io.nop.datav.service.component.PanelComponentRegistry#requireComponent}
+ * 实际调用——通过断言未知组件类型抛 {@code ERR_DATAV_UNKNOWN_COMPONENT_TYPE} 证明运行时连通（非空方法体）。</p>
+ */
+public class TestNopDatavScreenBizModel extends AbstractNopDatavTest {
+
+    @Inject
+    IDaoProvider daoProvider;
+
+    @Inject
+    INopDatavScreenBiz screenBiz;
+
+    // ==================== CRUD ====================
+
+    @Test
+    public void testScreenCrud() {
+        NopDatavScreen screen = newScreen("screen-crud", "crud-screen", 1920, 1080,
+                ScreenAdaptorMode.FULL);
+        daoProvider.daoFor(NopDatavScreen.class).saveEntityDirectly(screen);
+
+        NopDatavScreen loaded = daoProvider.daoFor(NopDatavScreen.class).getEntityById("screen-crud");
+        assertNotNull(loaded);
+        assertEquals("crud-screen", loaded.getScreenName());
+        assertEquals(1920, loaded.getScreenWidth());
+        assertEquals(1080, loaded.getScreenHeight());
+        assertEquals(ScreenAdaptorMode.FULL, loaded.getAdaptorMode());
+    }
+
+    @Test
+    public void testWidgetCrud() {
+        NopDatavScreen screen = saveScreen("screen-widget-crud", "widget-crud");
+        NopDatavScreenWidget widget = newWidget("widget-1", screen.getScreenId(),
+                "chart", 10, 20, 300, 200, 0);
+        daoProvider.daoFor(NopDatavScreenWidget.class).saveEntityDirectly(widget);
+
+        NopDatavScreenWidget loaded = daoProvider.daoFor(NopDatavScreenWidget.class)
+                .getEntityById("widget-1");
+        assertNotNull(loaded);
+        assertEquals(screen.getScreenId(), loaded.getScreenId());
+        assertEquals("chart", loaded.getComponentType());
+        assertEquals(10, loaded.getX());
+        assertEquals(20, loaded.getY());
+        assertEquals(300, loaded.getW());
+        assertEquals(200, loaded.getH());
+    }
+
+    // ==================== Publish / Snapshot ====================
+
+    @Test
+    public void testPublishScreenCreatesSnapshotAndUpdatesMainTable() {
+        NopDatavScreen screen = saveScreen("screen-pub", "publish-screen");
+        screen.setBackgroundConfig(JsonTool.stringify(Map.of("color", "#222")));
+        daoProvider.daoFor(NopDatavScreen.class).updateEntityDirectly(screen);
+        saveWidget("widget-pub-1", screen.getScreenId(), "chart", 0, 0, 600, 400, 0);
+
+        IServiceContext context = newContext("alice");
+
+        NopDatavScreenSnapshot snapshot = screenBiz.publishScreen(screen.getScreenId(), context);
+
+        assertNotNull(snapshot);
+        assertEquals(1L, snapshot.getSnapshotVersion());
+        assertEquals("alice", snapshot.getPublishedBy());
+        assertNotNull(snapshot.getSnapshotContent());
+        assertNotNull(snapshot.getPublishedTime());
+
+        Map<String, Object> content = JsonTool.parseMap(snapshot.getSnapshotContent());
+        assertNotNull(content);
+        assertEquals(1920, ((Number) content.get("screenWidth")).intValue());
+        assertEquals(1080, ((Number) content.get("screenHeight")).intValue());
+        assertEquals(ScreenAdaptorMode.FULL, ((Number) content.get("adaptorMode")).intValue());
+        assertEquals(1, ((java.util.List<?>) content.get("widgets")).size());
+
+        NopDatavScreen updated = daoProvider.daoFor(NopDatavScreen.class)
+                .getEntityById(screen.getScreenId());
+        assertEquals(NopDatavScreenBizModel.PUBLISH_STATUS_PUBLISHED, updated.getPublishStatus());
+        assertEquals(1L, updated.getPublishedVersion());
+        assertEquals("alice", updated.getPublishedBy());
+    }
+
+    @Test
+    public void testPublishTwiceIncrementsVersion() {
+        NopDatavScreen screen = saveScreen("screen-pub-2", "publish-twice");
+        IServiceContext context = newContext("bob");
+
+        NopDatavScreenSnapshot snap1 = screenBiz.publishScreen(screen.getScreenId(), context);
+        assertEquals(1L, snap1.getSnapshotVersion());
+
+        NopDatavScreenSnapshot snap2 = screenBiz.publishScreen(screen.getScreenId(), context);
+        assertEquals(2L, snap2.getSnapshotVersion());
+        assertNotEquals(snap1.getSnapshotId(), snap2.getSnapshotId());
+
+        NopDatavScreen updated = daoProvider.daoFor(NopDatavScreen.class)
+                .getEntityById(screen.getScreenId());
+        assertEquals(2L, updated.getPublishedVersion());
+    }
+
+    @Test
+    public void testGetPublishedScreenReturnsLatestSnapshot() {
+        NopDatavScreen screen = saveScreen("screen-getpub", "get-published");
+        IServiceContext context = newContext("alice");
+
+        screenBiz.publishScreen(screen.getScreenId(), context);
+        NopDatavScreenSnapshot snap2 = screenBiz.publishScreen(screen.getScreenId(), context);
+
+        NopDatavScreenSnapshot published = screenBiz.getPublishedScreen(screen.getScreenId(), context);
+
+        assertNotNull(published);
+        assertEquals(snap2.getSnapshotVersion(), published.getSnapshotVersion());
+    }
+
+    @Test
+    public void testGetPublishedScreenThrowsWhenNotPublished() {
+        NopDatavScreen screen = saveScreen("screen-nopub", "no-publish");
+        IServiceContext context = newContext("alice");
+
+        NopException ex = assertThrows(NopException.class,
+                () -> screenBiz.getPublishedScreen(screen.getScreenId(), context));
+        assertEquals(ERR_DATAV_SCREEN_SNAPSHOT_NOT_FOUND.getErrorCode(), ex.getErrorCode());
+    }
+
+    @Test
+    public void testRollbackScreenRestoresFromHistoricalSnapshot() {
+        NopDatavScreen screen = saveScreen("screen-rollback", "rollback-screen");
+        screen.setAdaptorMode(ScreenAdaptorMode.HEIGHT_FIRST);
+        daoProvider.daoFor(NopDatavScreen.class).updateEntityDirectly(screen);
+
+        IServiceContext context = newContext("alice");
+
+        NopDatavScreenSnapshot snap1 = screenBiz.publishScreen(screen.getScreenId(), context);
+
+        // change adaptorMode and publish v2
+        screen.setAdaptorMode(ScreenAdaptorMode.KEEP);
+        daoProvider.daoFor(NopDatavScreen.class).updateEntityDirectly(screen);
+        screenBiz.publishScreen(screen.getScreenId(), context);
+
+        // rollback to v1 (HEIGHT_FIRST)
+        NopDatavScreenSnapshot rolled = screenBiz.rollbackScreen(
+                screen.getScreenId(), snap1.getSnapshotVersion(), context);
+
+        assertNotNull(rolled);
+        assertEquals(snap1.getSnapshotVersion(), rolled.getSnapshotVersion());
+
+        NopDatavScreen restored = daoProvider.daoFor(NopDatavScreen.class)
+                .getEntityById(screen.getScreenId());
+        assertEquals(ScreenAdaptorMode.HEIGHT_FIRST, restored.getAdaptorMode());
+        assertEquals(snap1.getSnapshotVersion(), restored.getPublishedVersion());
+    }
+
+    @Test
+    public void testRollbackThrowsForNonExistentVersion() {
+        NopDatavScreen screen = saveScreen("screen-rollback-404", "rollback-404");
+        IServiceContext context = newContext("alice");
+
+        screenBiz.publishScreen(screen.getScreenId(), context);
+
+        NopException ex = assertThrows(NopException.class,
+                () -> screenBiz.rollbackScreen(screen.getScreenId(), 999L, context));
+        assertEquals(ERR_DATAV_SCREEN_SNAPSHOT_VERSION_NOT_FOUND.getErrorCode(), ex.getErrorCode());
+    }
+
+    // ==================== getScreenLayout (E2E + Anti-Hollow) ====================
+
+    @Test
+    public void testGetScreenLayoutEndToEnd() {
+        IServiceContext context = newContext("e2e-user");
+
+        // 1. Create screen with canvas size + adaptor
+        NopDatavScreen screen = saveScreen("screen-e2e", "e2e-screen");
+        screen.setAdaptorMode(ScreenAdaptorMode.HEIGHT_FIRST);
+        screen.setBackgroundConfig(JsonTool.stringify(Map.of("color", "#123456")));
+        daoProvider.daoFor(NopDatavScreen.class).updateEntityDirectly(screen);
+
+        // 2. Add a chart widget with absolute positioning
+        saveWidget("widget-e2e-1", screen.getScreenId(), "chart", 100, 200, 600, 400, 5);
+        saveWidget("widget-e2e-2", screen.getScreenId(), "text", 700, 50, 200, 100, 1);
+
+        // 3. Publish
+        screenBiz.publishScreen(screen.getScreenId(), context);
+
+        // 4. getScreenLayout returns parsed layout + adaptation
+        ScreenLayoutConfig layout = screenBiz.getScreenLayout(screen.getScreenId(), context);
+
+        assertNotNull(layout);
+        assertEquals("screen-e2e", layout.getScreenId());
+        assertEquals(1L, layout.getSnapshotVersion());
+
+        // Canvas assertions
+        assertNotNull(layout.getCanvas());
+        assertEquals(1920, layout.getCanvas().getWidth());
+        assertEquals(1080, layout.getCanvas().getHeight());
+        assertEquals(ScreenAdaptorMode.HEIGHT_FIRST, layout.getCanvas().getAdaptorMode());
+        assertNotNull(layout.getCanvas().getBackgroundConfig());
+        assertEquals("#123456", layout.getCanvas().getBackgroundConfig().get("color"));
+
+        // Adaptation mirrors canvas
+        assertEquals(1920, layout.getAdaptation().getBaseWidth());
+        assertEquals(1080, layout.getAdaptation().getBaseHeight());
+        assertEquals(ScreenAdaptorMode.HEIGHT_FIRST, layout.getAdaptation().getAdaptorMode());
+
+        // Widgets assertions
+        assertEquals(2, layout.getWidgets().size());
+        ScreenLayoutConfig.Widget w1 = layout.getWidgets().stream()
+                .filter(w -> "widget-e2e-1".equals(w.getWidgetId())).findFirst().orElseThrow();
+        assertEquals("chart", w1.getComponentType());
+        assertEquals(100, w1.getX());
+        assertEquals(200, w1.getY());
+        assertEquals(600, w1.getW());
+        assertEquals(400, w1.getH());
+        assertEquals(5, w1.getZ());
+    }
+
+    /**
+     * Anti-Hollow 接线验证：getScreenLayout 经 PanelComponentRegistry.requireComponent 实际调用。
+     * 若未调用（空方法体/静默跳过），未知组件类型不会抛 ERR_DATAV_UNKNOWN_COMPONENT_TYPE。
+     */
+    @Test
+    public void testGetScreenLayoutRejectsUnknownComponentType() {
+        IServiceContext context = newContext("e2e-user");
+
+        NopDatavScreen screen = saveScreen("screen-unknown-comp", "unknown-comp-screen");
+
+        // Manually craft a snapshot with unknown component type to bypass widget entity save
+        saveWidget("widget-unknown", screen.getScreenId(), "chart", 0, 0, 100, 100, 0);
+        screenBiz.publishScreen(screen.getScreenId(), context);
+
+        // Tamper with snapshot content to inject unknown component type
+        NopDatavScreenSnapshot snapshot = screenBiz.getPublishedScreen(screen.getScreenId(), context);
+        Map<String, Object> content = JsonTool.parseMap(snapshot.getSnapshotContent());
+        @SuppressWarnings("unchecked")
+        java.util.List<Map<String, Object>> widgets = (java.util.List<Map<String, Object>>) content.get("widgets");
+        widgets.get(0).put("componentType", "non-existent-component");
+        snapshot.setSnapshotContent(JsonTool.stringify(content));
+        daoProvider.daoFor(NopDatavScreenSnapshot.class).updateEntityDirectly(snapshot);
+
+        // getScreenLayout must call requireComponent → throw on unknown type
+        NopException ex = assertThrows(NopException.class,
+                () -> screenBiz.getScreenLayout(screen.getScreenId(), context));
+        assertEquals(ERR_DATAV_UNKNOWN_COMPONENT_TYPE.getErrorCode(), ex.getErrorCode(),
+                "getScreenLayout must invoke PanelComponentRegistry.requireComponent (anti-hollow)");
+    }
+
+    @Test
+    public void testGetScreenLayoutRejectsOutOfBoundsWidget() {
+        IServiceContext context = newContext("e2e-user");
+
+        NopDatavScreen screen = saveScreen("screen-oob", "oob-screen");
+        saveWidget("widget-oob", screen.getScreenId(), "chart", 0, 0, 100, 100, 0);
+        screenBiz.publishScreen(screen.getScreenId(), context);
+
+        // Tamper: make widget exceed canvas
+        NopDatavScreenSnapshot snapshot = screenBiz.getPublishedScreen(screen.getScreenId(), context);
+        Map<String, Object> content = JsonTool.parseMap(snapshot.getSnapshotContent());
+        @SuppressWarnings("unchecked")
+        java.util.List<Map<String, Object>> widgets = (java.util.List<Map<String, Object>>) content.get("widgets");
+        // canvas 1920x1080; set widget w=2000 → x+w=2000 > 1920
+        widgets.get(0).put("w", 2000);
+        snapshot.setSnapshotContent(JsonTool.stringify(content));
+        daoProvider.daoFor(NopDatavScreenSnapshot.class).updateEntityDirectly(snapshot);
+
+        NopException ex = assertThrows(NopException.class,
+                () -> screenBiz.getScreenLayout(screen.getScreenId(), context));
+        assertEquals(ERR_DATAV_SCREEN_WIDGET_OUT_OF_BOUNDS.getErrorCode(), ex.getErrorCode());
+    }
+
+    @Test
+    public void testGetScreenLayoutRejectsInvalidJson() {
+        IServiceContext context = newContext("e2e-user");
+
+        NopDatavScreen screen = saveScreen("screen-bad-json", "bad-json-screen");
+        screenBiz.publishScreen(screen.getScreenId(), context);
+
+        NopDatavScreenSnapshot snapshot = screenBiz.getPublishedScreen(screen.getScreenId(), context);
+        snapshot.setSnapshotContent("{ invalid json");
+        daoProvider.daoFor(NopDatavScreenSnapshot.class).updateEntityDirectly(snapshot);
+
+        NopException ex = assertThrows(NopException.class,
+                () -> screenBiz.getScreenLayout(screen.getScreenId(), context));
+        assertEquals(ERR_DATAV_INVALID_SCREEN_LAYOUT.getErrorCode(), ex.getErrorCode());
+    }
+
+    @Test
+    public void testGetScreenLayoutThrowsWhenNotPublished() {
+        NopDatavScreen screen = saveScreen("screen-layout-nopub", "layout-no-pub");
+        IServiceContext context = newContext("alice");
+
+        NopException ex = assertThrows(NopException.class,
+                () -> screenBiz.getScreenLayout(screen.getScreenId(), context));
+        assertEquals(ERR_DATAV_SCREEN_SNAPSHOT_NOT_FOUND.getErrorCode(), ex.getErrorCode());
+    }
+
+    // ==================== Helpers ====================
+
+    private IServiceContext newContext(String userName) {
+        ServiceContextImpl context = new ServiceContextImpl();
+        context.setContext(new TenantProxyContext(context.getContext()));
+        context.getContext().setUserName(userName);
+        return context;
+    }
+
+    private NopDatavScreen saveScreen(String id, String name) {
+        NopDatavScreen s = newScreen(id, name, 1920, 1080, ScreenAdaptorMode.FULL);
+        daoProvider.daoFor(NopDatavScreen.class).saveEntityDirectly(s);
+        return s;
+    }
+
+    private void saveWidget(String id, String screenId, String componentType,
+                            int x, int y, int w, int h, int z) {
+        NopDatavScreenWidget widget = newWidget(id, screenId, componentType, x, y, w, h, z);
+        daoProvider.daoFor(NopDatavScreenWidget.class).saveEntityDirectly(widget);
+    }
+
+    private NopDatavScreen newScreen(String id, String name, int width, int height, int adaptorMode) {
+        long now = System.currentTimeMillis();
+        NopDatavScreen s = new NopDatavScreen();
+        s.setScreenId(id);
+        s.setScreenName(name);
+        s.setDisplayName(name);
+        s.setScreenWidth(width);
+        s.setScreenHeight(height);
+        s.setAdaptorMode(adaptorMode);
+        s.setPublishStatus(0);
+        s.setVersion(0L);
+        s.setCreatedBy("test");
+        s.setCreateTime(new Timestamp(now));
+        s.setUpdatedBy("test");
+        s.setUpdateTime(new Timestamp(now));
+        return s;
+    }
+
+    private NopDatavScreenWidget newWidget(String id, String screenId, String componentType,
+                                           int x, int y, int w, int h, int z) {
+        long now = System.currentTimeMillis();
+        NopDatavScreenWidget widget = new NopDatavScreenWidget();
+        widget.setWidgetId(id);
+        widget.setScreenId(screenId);
+        widget.setWidgetName(id);
+        widget.setDisplayName(id);
+        widget.setComponentType(componentType);
+        widget.setX(x);
+        widget.setY(y);
+        widget.setW(w);
+        widget.setH(h);
+        widget.setZ(z);
+        widget.setWidgetConfig(JsonTool.stringify(Map.of("option", Map.of("title", id))));
+        widget.setVersion(0L);
+        widget.setCreatedBy("test");
+        widget.setCreateTime(new Timestamp(now));
+        widget.setUpdatedBy("test");
+        widget.setUpdateTime(new Timestamp(now));
+        return widget;
+    }
+}

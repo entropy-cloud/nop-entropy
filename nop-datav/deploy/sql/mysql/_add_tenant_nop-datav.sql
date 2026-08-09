@@ -3,6 +3,8 @@
 
 alter table nop_datav_export_task add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
+alter table nop_datav_screen add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
 alter table nop_datav_panel add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_datav_tab add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
@@ -15,11 +17,18 @@ alter table nop_datav_filter_state add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT
 
 alter table nop_datav_share add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
+alter table nop_datav_screen_widget add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
+alter table nop_datav_screen_snapshot add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
 alter table nop_datav_dashboard drop primary key;
 alter table nop_datav_dashboard add primary key (NOP_TENANT_ID, DASHBOARD_ID);
 
 alter table nop_datav_export_task drop primary key;
 alter table nop_datav_export_task add primary key (NOP_TENANT_ID, TASK_ID);
+
+alter table nop_datav_screen drop primary key;
+alter table nop_datav_screen add primary key (NOP_TENANT_ID, SCREEN_ID);
 
 alter table nop_datav_panel drop primary key;
 alter table nop_datav_panel add primary key (NOP_TENANT_ID, PANEL_ID);
@@ -38,5 +47,11 @@ alter table nop_datav_filter_state add primary key (NOP_TENANT_ID, STATE_ID);
 
 alter table nop_datav_share drop primary key;
 alter table nop_datav_share add primary key (NOP_TENANT_ID, SHARE_ID);
+
+alter table nop_datav_screen_widget drop primary key;
+alter table nop_datav_screen_widget add primary key (NOP_TENANT_ID, WIDGET_ID);
+
+alter table nop_datav_screen_snapshot drop primary key;
+alter table nop_datav_screen_snapshot add primary key (NOP_TENANT_ID, SNAPSHOT_ID);
 
 

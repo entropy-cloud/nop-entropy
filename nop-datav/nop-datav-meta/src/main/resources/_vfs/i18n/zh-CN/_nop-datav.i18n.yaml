@@ -8,6 +8,9 @@ entity:
     NopDatavExportTask: 导出任务
     NopDatavFilterState: 筛选状态
     NopDatavPanel: 面板
+    NopDatavScreen: 大屏
+    NopDatavScreenSnapshot: 大屏快照
+    NopDatavScreenWidget: 大屏组件
 prop:
   label:
     NopDatavDashboard:
@@ -156,3 +159,66 @@ prop:
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本
+    NopDatavScreen:
+      adaptorMode: 适配模式
+      adaptorMode_label: 适配模式
+      backgroundConfig: 背景配置
+      backgroundConfigComponent: null
+      createTime: 创建时间
+      createdBy: 创建人
+      delFlag: 删除标记
+      description: 描述
+      displayName: 显示名
+      publishStatus: 发布状态
+      publishStatus_label: 发布状态
+      publishedBy: 发布人
+      publishedTime: 发布时间
+      publishedVersion: 已发布版本
+      remark: 备注
+      screenHeight: 画布高度
+      screenId: 大屏ID
+      screenName: 大屏名
+      screenWidth: 画布宽度
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopDatavScreenSnapshot:
+      createTime: 创建时间
+      createdBy: 创建人
+      delFlag: 删除标记
+      publishedBy: 发布人
+      publishedTime: 发布时间
+      remark: 备注
+      screen: 大屏
+      screen.displayName: 大屏
+      screenId: 大屏ID
+      snapshotContent: 快照内容
+      snapshotContentComponent: null
+      snapshotId: 快照ID
+      snapshotVersion: 快照版本
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopDatavScreenWidget:
+      componentType: 组件类型
+      createTime: 创建时间
+      createdBy: 创建人
+      datasetRefId: 数据集引用ID
+      delFlag: 删除标记
+      displayName: 显示名
+      h: 高度
+      remark: 备注
+      screen: 大屏
+      screen.displayName: 大屏
+      screenId: 大屏ID
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+      w: 宽度
+      widgetConfig: 组件配置
+      widgetConfigComponent: null
+      widgetId: 组件ID
+      widgetName: 组件名
+      x: X坐标
+      y: Y坐标
+      z: 层级
