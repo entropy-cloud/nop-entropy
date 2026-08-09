@@ -117,6 +117,20 @@
             <artifactId>nop-auth-dao</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- W6-4 inbound backbone (mode 2) tests: provides the REAL platform
+             IMessageService implementation (LocalMessageService, bean id
+             nopLocalMessageService) so the backbone unit/E2E/IoC tests
+             exercise the genuine send/subscribe contract rather than a stub.
+             TEST SCOPE ONLY — the gateway module gains NO production-scope
+             dependency. Production deployments that want mode 2 put an
+             IMessageService implementation (nop-message-core / nop-message-kafka
+             / nop-message-pulsar) on their own runtime classpath; it is then
+             injected optionally (ioc:optional) by the container. -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-message-core</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

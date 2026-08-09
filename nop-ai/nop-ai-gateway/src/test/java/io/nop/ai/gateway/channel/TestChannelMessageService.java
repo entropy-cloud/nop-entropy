@@ -1,21 +1,31 @@
 package io.nop.ai.gateway.channel;
 
+import io.nop.api.core.message.IMessageConsumeContext;
+import io.nop.api.core.message.IMessageConsumer;
+import io.nop.api.core.message.IMessageSubscription;
 import io.nop.integration.api.channel.ChannelBinding;
 import io.nop.integration.api.channel.IInboundMessageListener;
 import io.nop.integration.api.channel.InboundChannelMessage;
 import io.nop.integration.api.channel.OutboundChannelMessage;
 import io.nop.integration.api.channel.SendResult;
 import io.nop.integration.api.channel.UserChannelResolver;
+import io.nop.message.core.local.LocalMessageService;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -177,7 +187,202 @@ public class TestChannelMessageService {
         assertEquals("https://example.com/report.pdf", bridged.getUrl());
     }
 
+    // ---- inbound backbone (mode 2) tests ----------------------------------
+
+    /**
+     * Mode 2: dispatchInbound publishes to channel.inbound.{channelType}.
+     * An external consumer subscribed to the feishu topic receives; a
+     * consumer on a different channelType topic does not. Proves the real
+     * IMessageService.send path and correct topic routing.
+     */
+    @Test
+    void backboneDispatchPublishesToPerChannelTypeTopic() {
+        LocalMessageService bus = new LocalMessageService();
+        ChannelMessageServiceImpl svc = newBackboneService(bus);
+
+        RecordingMessageConsumer feishuAudit = new RecordingMessageConsumer();
+        RecordingMessageConsumer dingtalkAudit = new RecordingMessageConsumer();
+        bus.subscribe("channel.inbound.feishu", feishuAudit);
+        bus.subscribe("channel.inbound.dingtalk", dingtalkAudit);
+
+        InboundChannelMessage inbound = inbound("feishu", "user-1", "hi");
+        svc.dispatchInbound(inbound);
+
+        // the feishu topic consumer really received the published message
+        assertEquals(1, feishuAudit.received.size(), "send must reach channel.inbound.feishu");
+        assertSame(inbound, feishuAudit.received.get(0));
+        // routing is per-channelType: the dingtalk topic must not receive it
+        assertTrue(dingtalkAudit.received.isEmpty(),
+                "a feishu message must NOT leak to channel.inbound.dingtalk");
+    }
+
+    /**
+     * Mode 2 multi-consumer: both the internal business listener (registered
+     * via subscribeInbound, reached through the bridge) AND an external audit
+     * consumer (subscribed directly to the topic) receive the same message.
+     * This is the multi-consumer capability that mode 1 cannot provide.
+     */
+    @Test
+    void backboneFansOutToInternalListenerAndExternalConsumer() {
+        LocalMessageService bus = new LocalMessageService();
+        ChannelMessageServiceImpl svc = newBackboneService(bus);
+
+        RecordingListener business = new RecordingListener();
+        svc.subscribeInbound(business);
+
+        RecordingMessageConsumer audit = new RecordingMessageConsumer();
+        bus.subscribe("channel.inbound.feishu", audit);
+
+        InboundChannelMessage inbound = inbound("feishu", "user-1", "audit-me");
+        svc.dispatchInbound(inbound);
+
+        // internal listener reached via the bridge fan-out
+        assertEquals(1, business.received.size(), "business listener must receive via bridge");
+        assertSame(inbound, business.received.get(0));
+        // external audit consumer reached directly from the topic
+        assertEquals(1, audit.received.size(), "external audit consumer must receive from topic");
+        assertSame(inbound, audit.received.get(0));
+    }
+
+    /**
+     * Mode 2 ack-loop guard: the bridge onMessage returns null, so
+     * LocalMessageService.handleMessageResult takes its no-reply branch and
+     * never forwards to ack-channel.inbound.feishu.
+     */
+    @Test
+    void backboneBridgeReturnsNullSoNoAckLoop() {
+        LocalMessageService bus = new LocalMessageService();
+        ChannelMessageServiceImpl svc = newBackboneService(bus);
+
+        RecordingListener business = new RecordingListener();
+        svc.subscribeInbound(business);
+
+        // a consumer on the ack topic — it must stay empty
+        RecordingMessageConsumer ackSink = new RecordingMessageConsumer();
+        bus.subscribe("ack-channel.inbound.feishu", ackSink);
+
+        svc.dispatchInbound(inbound("feishu", "user-1", "no-ack"));
+
+        assertEquals(1, business.received.size(), "business listener received (bridge worked)");
+        assertTrue(ackSink.received.isEmpty(),
+                "bridge must return null so nothing is forwarded to the ack topic (no loop)");
+    }
+
+    /**
+     * Mode 2 concurrency: the bridge is a single instance, so under concurrent
+     * first-dispatch of the same channelType only ONE subscription is ever
+     * registered (LocalMessageService dedups by consumer identity) and each
+     * message is fanned out exactly once (no duplicate delivery).
+     */
+    @Test
+    void backboneConcurrentFirstDispatchDedupsBridgeNoDuplicateFanOut() throws Exception {
+        LocalMessageService bus = new LocalMessageService();
+        ChannelMessageServiceImpl svc = newBackboneService(bus);
+        CountingListener listener = new CountingListener();
+        svc.subscribeInbound(listener);
+
+        int n = 64;
+        ExecutorService pool = Executors.newFixedThreadPool(n);
+        CountDownLatch fire = new CountDownLatch(1);
+        List<Future<?>> futures = new ArrayList<>(n);
+        for (int i = 0; i < n; i++) {
+            final int idx = i;
+            futures.add(pool.submit(() -> {
+                fire.await();
+                svc.dispatchInbound(inbound("feishu", "user-1", "m" + idx));
+                return null;
+            }));
+        }
+        fire.countDown();
+        for (Future<?> f : futures) {
+            f.get();
+        }
+        pool.shutdown();
+
+        // exactly one bridge subscription for the topic (singleton + dedup)
+        List<?> subscriptions = bus.getConsumers().get("channel.inbound.feishu");
+        assertNotNull(subscriptions, "bridge subscription must exist for the topic");
+        assertEquals(1, subscriptions.size(),
+                "concurrent first-dispatch must yield a single bridge subscription (deduped)");
+
+        // each of the n messages delivered exactly once (no duplicate fan-out)
+        assertEquals(n, listener.count.get(),
+                "no duplicate fan-out under concurrent first-dispatch");
+    }
+
+    /**
+     * Mode 2 no-silent-skip: a missing channelType cannot silently route to a
+     * bogus "channel.inbound.null" topic — it must fail loudly.
+     */
+    @Test
+    void backboneRejectsNullChannelType() {
+        ChannelMessageServiceImpl svc = newBackboneService(new LocalMessageService());
+        InboundChannelMessage m = new InboundChannelMessage();
+        m.setUserId("u");
+        // channelType left null
+        assertThrows(RuntimeException.class, () -> svc.dispatchInbound(m),
+                "backbone dispatch with null channelType must fail explicitly");
+    }
+
+    @Test
+    void backboneRejectsEmptyChannelType() {
+        ChannelMessageServiceImpl svc = newBackboneService(new LocalMessageService());
+        InboundChannelMessage m = inbound("", "u", "x");
+        assertThrows(RuntimeException.class, () -> svc.dispatchInbound(m),
+                "backbone dispatch with empty channelType must fail explicitly");
+    }
+
+    /**
+     * Mode 1 non-regression: when no IMessageService is injected, dispatchInbound
+     * takes the direct branch — synchronous fan-out, no topic publish. The
+     * existing dispatchInboundFansOutToAllRegisteredListeners test also covers
+     * this; here the direct branch is asserted explicitly against a live bus
+     * that would otherwise receive the publish.
+     */
+    @Test
+    void dispatchInboundUsesDirectBranchWhenNoMessageService() {
+        LocalMessageService bus = new LocalMessageService();
+        // observe the bus: if mode 2 were (wrongly) active it would publish here
+        RecordingMessageConsumer audit = new RecordingMessageConsumer();
+        bus.subscribe("channel.inbound.feishu", audit);
+
+        // no setMessageService(...) call -> mode 1 (messageService == null)
+        ChannelMessageServiceImpl svc = newService(
+                new RecordingResolver(Collections.emptyList()), new ChannelConnectorManager());
+        RecordingListener a = new RecordingListener();
+        RecordingListener b = new RecordingListener();
+        svc.subscribeInbound(a);
+        svc.subscribeInbound(b);
+
+        InboundChannelMessage inbound = inbound("feishu", "user-1", "direct");
+        svc.dispatchInbound(inbound);
+
+        // direct synchronous fan-out happened
+        assertEquals(1, a.received.size());
+        assertEquals(1, b.received.size());
+        assertSame(inbound, a.received.get(0));
+        // the bus was never used — no publish occurred
+        assertTrue(audit.received.isEmpty(),
+                "mode 1 must NOT publish to the backbone topic");
+    }
+
     // ---- helpers / stubs ---------------------------------------------------
+
+    private static InboundChannelMessage inbound(String channelType, String userId, String text) {
+        InboundChannelMessage m = new InboundChannelMessage();
+        m.setChannelType(channelType);
+        m.setUserId(userId);
+        m.setText(text);
+        return m;
+    }
+
+    private static ChannelMessageServiceImpl newBackboneService(LocalMessageService bus) {
+        ChannelMessageServiceImpl svc = new ChannelMessageServiceImpl();
+        svc.setUserChannelResolver(new RecordingResolver(Collections.emptyList()));
+        svc.setChannelConnectorManager(new ChannelConnectorManager());
+        svc.setMessageService(bus);
+        return svc;
+    }
 
     private static OutboundChannelMessage msg(String text) {
         OutboundChannelMessage m = new OutboundChannelMessage();
@@ -270,6 +475,35 @@ public class TestChannelMessageService {
         @Override
         public void onInbound(InboundChannelMessage message) {
             received.add(message);
+        }
+    }
+
+    /**
+     * Thread-safe counting listener for the concurrency test. Records total
+     * deliveries across all threads; does not retain messages (avoiding
+     * contention on a shared list).
+     */
+    static class CountingListener implements IInboundMessageListener {
+        final AtomicInteger count = new AtomicInteger();
+
+        @Override
+        public void onInbound(InboundChannelMessage message) {
+            count.incrementAndGet();
+        }
+    }
+
+    /**
+     * Recording IMessageConsumer for the backbone tests. Captures every
+     * delivered message object and returns {@code null} so it never triggers
+     * an ack-topic forward itself (keeping ack-loop assertions clean).
+     */
+    static class RecordingMessageConsumer implements IMessageConsumer {
+        final List<Object> received = new ArrayList<>();
+
+        @Override
+        public Object onMessage(String topic, Object message, IMessageConsumeContext context) {
+            received.add(message);
+            return null;
         }
     }
 }

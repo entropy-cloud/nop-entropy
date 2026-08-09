@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- IoC wiring hollow-test (mode 2): same channelMessageService bean
+     definition as production, PLUS an import of the REAL
+     message-core-defaults.beans.xml — so the platform nopLocalMessageService
+     bean (LocalMessageService) is present and the ioc:optional ref must
+     resolve to that REAL instance (mode 2, backbone active).
+
+     Anti-Hollow: the injected bean is the genuine platform nopLocalMessageService
+     (imported from nop-message-core), NOT a fabricated <bean id="messageService">
+     invented in this test file. This is what catches a mismatched production
+     bean id: if production referenced a non-existent id, the ref would resolve
+     to null even here. -->
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns:ioc="ioc">
+
+    <!-- brings the real nopLocalMessageService bean onto the container -->
+    <import resource="/nop/message/beans/message-core-defaults.beans.xml"/>
+
+    <bean id="channelConnectorManager"
+          class="io.nop.ai.gateway.channel.ChannelConnectorManager"/>
+
+    <bean id="channelMessageService"
+          class="io.nop.ai.gateway.channel.ChannelMessageServiceImpl"
+          ioc:type="io.nop.integration.api.channel.IChannelMessageService">
+        <property name="channelConnectorManager">
+            <ref bean="channelConnectorManager"/>
+        </property>
+        <property name="messageService">
+            <ref bean="nopLocalMessageService" ioc:optional="true"/>
+        </property>
+    </bean>
+</beans>

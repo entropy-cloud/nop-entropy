@@ -52,7 +52,20 @@
          optionally (ioc:optional) so a channel-less gateway deployment that
          does not include nop-auth-service still starts — sendToUser then
          returns NO_BINDING. ChannelConnectorManager is always present (same
-         beans file above). -->
+         beans file above).
+
+         Inbound backbone (W6-4, design §3.3 问题 B): the optional
+         IMessageService activates "mode 2" (publish to the
+         channel.inbound.{channelType} topic + internal bridge fan-out +
+         external multi-consumers). The reference uses the REAL platform
+         bean id nopLocalMessageService (from nop-message-core's
+         message-core-defaults.beans.xml) — there is intentionally no bean
+         with id "messageService" in the platform, so referencing a made-up id
+         would silently resolve to null and mode 2 would never activate.
+         ioc:optional makes this resolve to null (mode 1, direct fan-out) when
+         no IMessageService implementation is on the deployment classpath, and
+         to the real instance when nop-message-core (or an equivalent impl) is
+         present. A Kafka/Pulsar deployment substitutes its own bean id. -->
     <bean id="channelMessageService"
           class="io.nop.ai.gateway.channel.ChannelMessageServiceImpl"
           ioc:type="io.nop.integration.api.channel.IChannelMessageService"
@@ -62,6 +75,9 @@
         </property>
         <property name="channelConnectorManager">
             <ref bean="channelConnectorManager"/>
+        </property>
+        <property name="messageService">
+            <ref bean="nopLocalMessageService" ioc:optional="true"/>
         </property>
     </bean>
 

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- IoC wiring hollow-test (mode 1): mirrors the production
+     channelMessageService bean definition from ai-gateway-defaults.beans.xml
+     (same class, same ioc:type, same property refs) but does NOT import
+     message-core-defaults.beans.xml — so the nopLocalMessageService bean is
+     ABSENT and the ioc:optional ref must resolve to null (mode 1, direct
+     fan-out). This verifies the deployment semantics: a classpath without an
+     IMessageService implementation starts in mode 1. -->
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns:ioc="ioc">
+
+    <bean id="channelConnectorManager"
+          class="io.nop.ai.gateway.channel.ChannelConnectorManager"/>
+
+    <bean id="channelMessageService"
+          class="io.nop.ai.gateway.channel.ChannelMessageServiceImpl"
+          ioc:type="io.nop.integration.api.channel.IChannelMessageService">
+        <property name="channelConnectorManager">
+            <ref bean="channelConnectorManager"/>
+        </property>
+        <property name="messageService">
+            <ref bean="nopLocalMessageService" ioc:optional="true"/>
+        </property>
+    </bean>
+</beans>
