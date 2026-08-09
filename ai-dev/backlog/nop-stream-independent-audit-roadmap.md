@@ -1,6 +1,6 @@
 # nop-stream 独立深度审计路线图
 
-> Last updated: 2026-08-09 (T2 capability-gap evidence reclassification + readiness re-decision plan `2026-08-09-1300-1` completed: 4 §2b rows EVID-S13-015/016 + EVID-S14-013/014 reclassified `blocked`→`e2e-proved` on fresh T2-lane PASS; 2 cross-JVM residual rows EVID-S13-021/EVID-S14-015 upgraded; §2b blocker class resolved; §2a lane-blocked remains the only blocker class. Readiness verdict unchanged: bounded `ready only for ...`; e2e-proved 132, blocked 4)
+> Last updated: 2026-08-09 (Independent closure-audit of coordinator/runtime concurrency/recovery hardening completed: plan `2026-08-09-1330-1-coordinator-runtime-recovery-hardening-closure-audit.md` (fresh session, audit/doc-only) discharged the CLOSURE_VERIFY step deferred by production plan `2026-08-04-2300-1` and successor audit plans `2026-08-09-1252-1` / `2026-08-09-1300-1`. All four P0/P1 fixes verified in live repo + four regression tests non-vacuous + fresh run PASS + 3 E2E tests PASS; independent closure-audit evidence appended to production plan `Closure` section; M3 gate text contradiction resolved. Roadmap item 1 `planned` → `done`: the last remaining `planned` remediation item is now complete; all 23 work items done. Readiness verdict unchanged: bounded `ready only for ...`; §2a lane-blocked remains the only blocker class, out of audit scope.)
 > Sources: `ai-dev/analysis/2026-08/2026-08-06-nop-stream-audit-baseline-and-roadmap-analysis.md` (primary), `ai-dev/backlog/nop-stream-production-roadmap.md` (implementation ownership), `ai-dev/audits/nop-stream-production/2026-08-02-2107-*.md` (current confirmed findings)
 
 ## Purpose
@@ -14,7 +14,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 > **This is the only dynamic state block. Update status only here.**
 > Work items 1-3 reference existing remediation plans. Their roadmap item becomes `done` only after the referenced plan has independent closure-audit evidence.
 
-- 1. Coordinator、运行时并发与恢复缺陷收口: `planned`
+- 1. Coordinator、运行时并发与恢复缺陷收口: `done`
 - 2. Checkpoint、state backend 与 CEP 状态缺陷收口: `done`
 - 3. 契约、IoC 配置与测试完整性缺陷收口: `done`
 - 4. 审计 evidence schema、source-manifest 与 finding corpus: `done`
