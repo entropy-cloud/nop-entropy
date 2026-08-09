@@ -1,6 +1,6 @@
 # nop-datav 实现 Roadmap
 
-> Last updated: 2026-08-09（roadmap 迁入 `ai-dev/backlog/`，格式对齐 mission-driver 引擎：per-item 状态）
+> Last updated: 2026-08-10（D3-1/D3-4/D3-2 经两轮 plan review 通过，置 `planned`；D3-3 导出留待后续 round）
 > Sources: `ai-dev/analysis/2026-08/2026-08-09-nop-datav-function-analysis.md`（功能设计分析）
 > 前端配套：`nop-chaos-flux` BI 控件族（chart/pivot-table/stat-tile/map/dashboard editor 计划）
 > 目标：将 nop-datav 从空壳实现为「BI 看板/大屏的模型层 + 运行时编排」（数据源/数据集/查询复用 nop-report + nop-metadata + EQL）
@@ -61,10 +61,10 @@ AI 或维护者读完本文即知哪些工作项已启动（`todo`）、已计�
 > 依赖：D0；D3-3 图像导出（PDF/PNG）隐含依赖 D1（已渲染快照）；nop-auth（复用）、nop-report 导出管线（复用）
 > 设计契约：`ai-dev/design/nop-datav/permission-sharing-design.md`（D3 时产出）
 
-- D3-1. 看板权限（角色/用户级权限 + 数据权限行级，Superset RLS 参考，接入 nop-auth）: `todo`
-- D3-2. 分享（公共链接 + 密码 + 有效期，AJ-Report `report_share` 参考；嵌入可选，Metabase embedding 参考）: `todo`
+- D3-1. 看板权限（角色/用户级权限 + 数据权限行级，Superset RLS 参考，接入 nop-auth）: `done` ✅（plan `ai-dev/plans/nop-datav/2026-08-10-1100-1-dashboard-permission-and-audit-log.md`）
+- D3-2. 分享（公共链接 + 密码 + 有效期，AJ-Report `report_share` 参考；嵌入可选，Metabase embedding 参考）: `planned`（plan `ai-dev/plans/nop-datav/2026-08-10-1100-2-dashboard-sharing.md`）
 - D3-3. 导出（看板/面板导出 PDF/PNG/Excel，异步任务 + 限额，DataEase 导出中心参考。**注意：数据导出 CSV/Excel 仅依赖 D0 + nop-report；图像导出 PDF/PNG 需已渲染的看板快照，隐含依赖 D1 运行时**）: `todo`
-- D3-4. 操作日志（nop-auth 操作日志接入）: `todo`
+- D3-4. 操作日志（nop-auth 操作日志接入）: `done` ✅（与 D3-1 同 plan，纯配置启用 `GraphQLAuditLogger`）
 
 验收：权限矩阵生效；分享链接按有效期/密码校验；导出异步可用。
 
