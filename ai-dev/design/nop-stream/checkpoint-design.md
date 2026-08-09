@@ -758,6 +758,18 @@ Barrier N 之后的数据必须写入 epoch N+1 或更高 epoch 的 transaction�
 | source assignment transient state | 未进入 durable manifest 的临时 assignment 可丢弃 |
 | commit uncertainty | 依赖 transaction id 幂等查询或重复 commit 解决 |
 
+#### 6.4.1 Parallel 2PC — 当前限制与后继能力
+
+**当前状态（fail-fast 门禁）**：内置的 `TwoPhaseCommitSinkFunction` sink（`JdbcTwoPhaseCommitSink`、`FileTwoPhaseCommitSink`）在 `parallelism > 1` 时会在规划阶段被 **拒绝**（`StreamGraphGenerator.transformSink` 抛出 `ERR_STREAM_2PC_SINK_PARALLELISM_NOT_SUPPORTED`），而不是静默丢数据。exactly-once 的公开契约为："parallelism=1（已证明）或 fail-fast"。
+
+**为什么 composite-key（`{operatorId}:{subtaskIndex}:{epochId}`）方案目前不可行**：
+
+- **B1（无 sink 身份注入）**：`TwoPhaseCommitSinkFunction` 不是 `RichFunction`，`FunctionUtils.setFunctionRuntimeContext` 不设置 context；引擎中唯一的 subtask 身份注入（`wireSourceReaderSubtaskIdentity`）只针对 `SourceReaderOperator`。`operatorId` 是规划期 `VertexPlan` 字段，运行时不传给 UDF。因此 composite-key 修复需要先构建 sink 身份注入层。
+- **B2（共享 UDF / pendingCommits 冲突）**：`StreamSinkOperator.copyForSubtask()` 跨 subtask 共享同一 UDF 引用，`TwoPhaseCommitSinkFunction.pendingCommits` 是单个 `Map<Long,Object>`（以 `epochId` 为 key）。parallelism>1 时两个 subtask 的 `saveState(epochId)` 写入同一 map，last-write-wins，一个 batch 在 commit 之前即在内存中丢失。仅修正 ledger PK 不能修复此问题。
+- **B3（ledger 无法原地迁移）**：`CREATE TABLE IF NOT EXISTS` DDL 对已有单列 ledger 是 no-op；sentinel back-fill 会让活的 subtask-0 读取旧行误认为"已由我提交"而静默跳过（丢数据）。composite-key 方案也需要迁移设计。
+
+**后继能力**：完整的并行 exactly-once（composite-PK ledger + qualified manifest key + sink 身份注入 + per-subtask UDF 隔离 + ledger 迁移）由后继 plan 承接。后继 plan 必须先在 plan-first Protected Area `nop-stream-core` 构建 sink 身份注入层（解决 B1），然后修复 B2/B3，最后移除本门禁。在此门禁存在期间，没有任何部署能静默丢数据。
+
 ### 6.5 外部系统约束
 
 | 外部系统 | exactly-once 条件 |
@@ -1076,7 +1088,7 @@ Parallelism 变化必须通过显式 rescale manifest 或 migration action 描�
 | union/list operator state | 可声明 union redistribution，所有新 subtask 读取同一集合后自行过滤 |
 | broadcast state | 所有 subtask 获取完整副本，必须校验版本一致 |
 | source split state | 按 split registry 重新分配 owner，split cursor 不随 subtask 下标绑定 |
-| sink pending transaction | 不允许跨 subtask 静默迁移；必须先完成、abort，或由 connector 声明显式 takeover 协议 |
+| sink pending transaction | 不允许跨 subtask 静默迁移；必须先完成、abort，或由 connector 声明显式 takeover 协议（当前并行 2PC 由规划期 fail-fast 门禁拒绝，见 §6.4.1） |
 
 **选了什么（Stage 35）**：keyed rescale 采用 KeyGroupRange 区间路由，而非全量加载后丢弃。
 

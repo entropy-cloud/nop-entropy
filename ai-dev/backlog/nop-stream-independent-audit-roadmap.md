@@ -512,3 +512,31 @@ graph TD
 - Items 1-3 retain their existing active plans; do not create duplicate remediation plans.
 - Audit reports are evidence, not closure. A confirmed defect must be assigned to a new plan or an existing active plan.
 - The production-readiness milestone is derived only when items 4-23 are done, no confirmed P0/P1 finding lacks an owner, and no required capability lane is blocked.
+
+## Follow-up Backlog
+
+> P2/P3 findings from the 2026-08-09 independent audit round. These do **not** drive their own remediation plan (per the mission drafting gate: only P0/P1 warrant plans). Each item keeps its source audit path so it stays traceable. The P0/P1 findings (CONN-01, AR-1) from the same audits are remediated by plans `ai-dev/plans/2026-08-09-1253-1-nop-stream-2pc-sink-fail-fast-parallel-commit.md` and `2026-08-09-1253-2-nop-stream-single-channel-remote-read-liveness.md`.
+
+### P2 — backlog triage
+
+- **CONN-02** — `BatchConsumerSinkFunction` declares `IDEMPOTENT` but provides no idempotency mechanism; in-memory buffer not checkpointed. Label over-claim on a connector used for consistency gating. Source: `ai-dev/audits/nop-stream-independent-audit/2026-08-09-1252-multi-audit-nop-stream-independent-audit.md` (CONN-02).
+- **CONN-03** — `BatchLoaderSourceFunction` implements `ReplayableSourceFunction` but `seek()`/offset are unused by `run()`; replay contract not honored. Source: same multi-audit (CONN-03).
+- **CONN-04** — `DebeziumCdcSourceFunction.source` is non-transient but holds a non-`Serializable` type; latent `NotSerializableException` on active-`run()` serialization. Source: same multi-audit (CONN-04).
+- **CONN-05** — `NopStreamOffsetBackingStore` uses a process-wide static registry keyed only by connector name; broken exactly-once for same-name concurrent consumers (unenforced parallelism=1 + unique-name assumption). Source: same multi-audit (CONN-05).
+- **CEP-01** — `SharedBuffer.registerEvent` overflow guard bypassed when the initial `id == Integer.MAX_VALUE` (guard only fires after `id++`). Source: same multi-audit (CEP-01).
+- **CEP-02** — Public `NFA` constructor accepts null `windowTimes`; `advanceTime` dereferences without guard (NPE if a caller bypasses `NFACompiler`). Source: same multi-audit (CEP-02).
+- **CEP-03** — `CepOperator.copyForSubtask()` drops `stateBackend`; subtask copies silently fall to `MemoryKeyedStateBackend` if not re-injected (the logged sibling of AR-02). Source: same multi-audit (CEP-03).
+- **CEP-04** — Duplicated dangling-cleanup logic between `onEventTime` and `onProcessingTime` (drift hazard + local `nfa` shadowing). Source: same multi-audit (CEP-04).
+- **CEP-05** — `SharedBufferCacheConfig.cacheStatisticsInterval` field is dead; `CepOperator` re-reads the config directly. Source: same multi-audit (CEP-05).
+- **API-01** — `@Internal` applied inconsistently to user-implemented function interfaces (incl. the 2PC-sink / checkpointed-source base classes) while siblings are unannotated; no `@Public` exists. Source: same multi-audit (API-01).
+- **API-02** — Internal graph IR (`StreamGraph`, `JobGraph`, `Transformation`) lack `@Internal` while their generators are `@Internal`. Source: same multi-audit (API-02).
+- **TEST-01** — `testMergeTypeIncompatibilityThrowsException` never asserts the exception its name/Javadoc promise; reverting the fast-fail guard keeps the test green (illusory coverage). Source: same multi-audit (TEST-01).
+- **TEST-02** — `testTerminateDrainTriggersTerminalCheckpoint` / `testTerminateSuspendTriggersSavepoint` only assert `isRunning()==false`; never verify the `TERMINAL_SAVEPOINT` barrier (a sibling test proves the assertion is feasible). Source: same multi-audit (TEST-02).
+- **AR-02** — `WindowOperator.copyForSubtask()` silently drops `stateBackend` and `open()` silently falls back to `MemoryStateBackend` (no log); strictly worse than CEP-03 which at least warns. Source: `ai-dev/audits/nop-stream-independent-audit/2026-08-09-1252-open-audit-nop-stream-independent-audit.md` (AR-02).
+- **AR-03** — `JobCoordinator.start()` `else` branch syncs `recoveryGen` from the full pre-set `fencingEpoch` value, assuming the leaderEpoch component is 0 (non-HA); no assertion enforces it, so a future HA-mode caller corrupts `recoveryGen` and breaks `EPOCH_SCALE` separation. Source: same open-audit (AR-03).
+
+### P3 — record only
+
+- **DOC-01** — `STRM-037` wording: `SharedBuffer` RemovalListener logs on `wasEvicted()` (SIZE/COLLECTED/EXPIRED), not strictly SIZE (equivalent in current config). Source: multi-audit (DOC-01).
+- **CEP-06** — `NFA.EventWrapper.close()` failure discards an already-computed successful match on release-time exception (acceptable fail-forward CEP semantics). Source: multi-audit (CEP-06).
+- **NAME-01** — `NopCepErrors` constant names drift from their code strings / messages (log-triage friction only). Source: multi-audit (NAME-01).
