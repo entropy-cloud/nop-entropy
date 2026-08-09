@@ -21,9 +21,14 @@ import io.nop.datav.dao.entity.NopDatavDashboardSnapshot;
 import io.nop.datav.dao.entity.NopDatavDatasetRef;
 import io.nop.datav.dao.entity.NopDatavDashboardTab;
 import io.nop.datav.dao.entity.NopDatavPanel;
+import io.nop.datav.service.filter.DashboardFilterResolver;
+import io.nop.datav.service.filter.DashboardFilterUrlCodec;
+import io.nop.datav.service.filter.DashboardParamDefinition;
+import io.nop.datav.service.filter.DashboardParamParser;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -113,12 +118,39 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
         return snapshot;
     }
 
+    @Override
+    @BizQuery
+    public Map<String, Object> resolveFilterValues(@Name("id") String id,
+                                                    @Name("filterValues") Map<String, Object> filterValues,
+                                                    IServiceContext context) {
+        NopDatavDashboard dashboard = requireEntity(id, "resolveFilterValues", context);
+        List<DashboardParamDefinition> definitions = DashboardParamParser.parse(dashboard.getParamConfig());
+        return DashboardFilterResolver.resolve(definitions, filterValues);
+    }
+
+    @Override
+    @BizQuery
+    public Map<String, Object> parseFilterFromUrl(@Name("id") String id,
+                                                   @Name("url") String url,
+                                                   IServiceContext context) {
+        requireEntity(id, "parseFilterFromUrl", context);
+        Map<String, Object> parsed = DashboardFilterUrlCodec.parseQueryString(url);
+        if (parsed.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        NopDatavDashboard dashboard = daoProvider().daoFor(NopDatavDashboard.class)
+                .getEntityById(id);
+        List<DashboardParamDefinition> definitions = DashboardParamParser.parse(dashboard.getParamConfig());
+        return DashboardFilterResolver.resolve(definitions, parsed);
+    }
+
     private String serializeDashboardContent(NopDatavDashboard dashboard) {
         Map<String, Object> content = new LinkedHashMap<>();
         content.put("dashboardName", dashboard.getDashboardName());
         content.put("displayName", dashboard.getDisplayName());
         content.put("description", dashboard.getDescription());
         content.put("layoutConfig", parseJson(dashboard.getLayoutConfig()));
+        content.put("paramConfig", parseJson(dashboard.getParamConfig()));
         content.put("panels", serializePanels(dashboard.getDashboardId()));
         content.put("tabs", serializeTabs(dashboard.getDashboardId()));
         content.put("datasetRefs", serializeDatasetRefs(dashboard.getDashboardId()));
@@ -222,6 +254,9 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
         Object layoutConfig = content.get("layoutConfig");
         dashboard.setLayoutConfig(layoutConfig == null ? null : JsonTool.stringify(layoutConfig));
 
+        Object paramConfig = content.get("paramConfig");
+        dashboard.setParamConfig(paramConfig == null ? null : JsonTool.stringify(paramConfig));
+
         dashboard.setPublishStatus(PUBLISH_STATUS_PUBLISHED);
         dashboard.setPublishedVersion(snapshot.getSnapshotVersion());
         dashboard.setPublishedBy(snapshot.getPublishedBy());
@@ -265,6 +300,7 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
     private void updateDashboardFields(String dashboardId, NopDatavDashboard source) {
         jdbcTemplate.executeUpdate(SQL.begin().name("updateDashboardFields")
                 .sql("update NOP_DATAV_DASHBOARD set LAYOUT_CONFIG=").param(source.getLayoutConfig())
+                .sql(",PARAM_CONFIG=").param(source.getParamConfig())
                 .sql(",PUBLISH_STATUS=").param(source.getPublishStatus())
                 .sql(",PUBLISHED_VERSION=").param(source.getPublishedVersion())
                 .sql(",PUBLISHED_BY=").param(source.getPublishedBy())

@@ -223,6 +223,44 @@ public class TestNopDatavDashboardBizModel extends AbstractNopDatavTest {
         assertEquals(ERR_DATAV_SNAPSHOT_VERSION_NOT_FOUND.getErrorCode(), ex.getErrorCode());
     }
 
+    // ==================== Param Config Publish / Snapshot Round-Trip ====================
+
+    /**
+     * 发布→快照序列化→快照恢复→重新解析参数定义 往返测试。
+     * 验证 serializeDashboardContent / restoreDashboardFromSnapshot 不会丢失 paramConfig（D2-1 Phase 1）。
+     */
+    @Test
+    public void testPublishAndRollbackPreservesParamConfig() {
+        NopDatavDashboard dashboard = saveDashboard("dash-param-cfg", "param-cfg-dashboard");
+        String paramConfig = JsonTool.stringify(List.of(
+                Map.of("name", "region", "type", "string", "defaultValue", "all"),
+                Map.of("name", "dateRange", "type", "date-range",
+                        "defaultValue", Map.of("start", "2024-01-01", "end", "2024-12-31"))
+        ));
+        dashboard.setParamConfig(paramConfig);
+        daoProvider.daoFor(NopDatavDashboard.class).updateEntityDirectly(dashboard);
+
+        IServiceContext context = newContext("alice");
+
+        NopDatavDashboardSnapshot snapshot = dashboardBiz.publishDashboard(
+                dashboard.getDashboardId(), context);
+        Map<String, Object> content = JsonTool.parseMap(snapshot.getSnapshotContent());
+        assertNotNull(content.get("paramConfig"), "snapshot content must include paramConfig");
+
+        // rollback restores paramConfig onto main table
+        dashboard.setParamConfig(null);
+        daoProvider.daoFor(NopDatavDashboard.class).updateEntityDirectly(dashboard);
+
+        dashboardBiz.rollbackDashboard(dashboard.getDashboardId(), snapshot.getSnapshotVersion(), context);
+
+        NopDatavDashboard restored = daoProvider.daoFor(NopDatavDashboard.class)
+                .getEntityById(dashboard.getDashboardId());
+        assertNotNull(restored.getParamConfig(), "rollback must restore paramConfig");
+        Object parsed = JsonTool.parse(restored.getParamConfig());
+        assertTrue(parsed instanceof List, "restored paramConfig should be a JSON array");
+        assertEquals(2, ((List<?>) parsed).size(), "paramConfig array should have 2 param definitions");
+    }
+
     // ==================== End-to-End Test ====================
 
     @Test

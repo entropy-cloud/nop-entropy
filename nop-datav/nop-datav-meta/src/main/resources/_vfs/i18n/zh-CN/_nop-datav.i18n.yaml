@@ -19,6 +19,8 @@ prop:
       displayName: 显示名
       layoutConfig: 布局配置
       layoutConfigComponent: null
+      paramConfig: 参数定义
+      paramConfigComponent: null
       publishStatus: 发布状态
       publishStatus_label: 发布状态
       publishedBy: 发布人

@@ -91,7 +91,15 @@
               insertable="true" updatable="true">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>
+        <prop name="paramConfig" displayName="参数定义" propId="18" i18n-en:displayName="Param Config" queryable="true"
+              sortable="true" insertable="true" updatable="true" graphql:jsonComponentProp="paramConfigComponent">
+            <schema stdDomain="json" domain="clobJson" type="java.lang.String"/>
+        </prop>
         <prop name="layoutConfigComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"
+              updatable="true" lazy="true">
+            <schema type="io.nop.orm.component.JsonOrmComponent"/>
+        </prop>
+        <prop name="paramConfigComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"
               updatable="true" lazy="true">
             <schema type="io.nop.orm.component.JsonOrmComponent"/>
         </prop>

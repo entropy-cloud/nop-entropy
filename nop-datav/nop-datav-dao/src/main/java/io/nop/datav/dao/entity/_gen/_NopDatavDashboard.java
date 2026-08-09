@@ -89,18 +89,25 @@ public class _NopDatavDashboard extends DynamicOrmEntity{
     public static final String PROP_NAME_remark = "remark";
     public static final int PROP_ID_remark = 17;
     
+    /* 参数定义: PARAM_CONFIG CLOB */
+    public static final String PROP_NAME_paramConfig = "paramConfig";
+    public static final int PROP_ID_paramConfig = 18;
+    
 
-    private static int _PROP_ID_BOUND = 18;
+    private static int _PROP_ID_BOUND = 19;
 
     
     /* component:  */
     public static final String PROP_NAME_layoutConfigComponent = "layoutConfigComponent";
     
+    /* component:  */
+    public static final String PROP_NAME_paramConfigComponent = "paramConfigComponent";
+    
 
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_dashboardId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_dashboardId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[18];
+    private static final String[] PROP_ID_TO_NAME = new String[19];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -155,6 +162,9 @@ public class _NopDatavDashboard extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_remark] = PROP_NAME_remark;
           PROP_NAME_TO_ID.put(PROP_NAME_remark, PROP_ID_remark);
       
+          PROP_ID_TO_NAME[PROP_ID_paramConfig] = PROP_NAME_paramConfig;
+          PROP_NAME_TO_ID.put(PROP_NAME_paramConfig, PROP_ID_paramConfig);
+      
     }
 
     
@@ -208,6 +218,9 @@ public class _NopDatavDashboard extends DynamicOrmEntity{
     
     /* 备注: REMARK */
     private java.lang.String _remark;
+    
+    /* 参数定义: PARAM_CONFIG */
+    private java.lang.String _paramConfig;
     
 
     public _NopDatavDashboard(){
@@ -333,6 +346,9 @@ public class _NopDatavDashboard extends DynamicOrmEntity{
         
             case PROP_ID_remark:
                return getRemark();
+        
+            case PROP_ID_paramConfig:
+               return getParamConfig();
         
            default:
               return super.orm_propValue(propId);
@@ -515,6 +531,16 @@ public class _NopDatavDashboard extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_paramConfig:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_paramConfig));
+               }
+               setParamConfig(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -639,6 +665,13 @@ public class _NopDatavDashboard extends DynamicOrmEntity{
             case PROP_ID_remark:{
                onInitProp(propId);
                this._remark = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_paramConfig:{
+               onInitProp(propId);
+               this._paramConfig = (java.lang.String)value;
                
                break;
             }
@@ -972,6 +1005,25 @@ public class _NopDatavDashboard extends DynamicOrmEntity{
         }
     }
     
+    /**
+     * 参数定义: PARAM_CONFIG
+     */
+    public final java.lang.String getParamConfig(){
+         onPropGet(PROP_ID_paramConfig);
+         return _paramConfig;
+    }
+
+    /**
+     * 参数定义: PARAM_CONFIG
+     */
+    public final void setParamConfig(java.lang.String value){
+        if(onPropSet(PROP_ID_paramConfig,value)){
+            this._paramConfig = value;
+            internalClearRefs(PROP_ID_paramConfig);
+            
+        }
+    }
+    
    private io.nop.orm.component.JsonOrmComponent _layoutConfigComponent;
 
    private static Map<String,Integer> COMPONENT_PROP_ID_MAP_layoutConfigComponent = new HashMap<>();
@@ -987,6 +1039,23 @@ public class _NopDatavDashboard extends DynamicOrmEntity{
           _layoutConfigComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_layoutConfigComponent);
       }
       return _layoutConfigComponent;
+   }
+
+   private io.nop.orm.component.JsonOrmComponent _paramConfigComponent;
+
+   private static Map<String,Integer> COMPONENT_PROP_ID_MAP_paramConfigComponent = new HashMap<>();
+   static{
+      
+         COMPONENT_PROP_ID_MAP_paramConfigComponent.put(io.nop.orm.component.JsonOrmComponent.PROP_NAME__jsonText,PROP_ID_paramConfig);
+      
+   }
+
+   public final io.nop.orm.component.JsonOrmComponent getParamConfigComponent(){
+      if(_paramConfigComponent == null){
+          _paramConfigComponent = new io.nop.orm.component.JsonOrmComponent();
+          _paramConfigComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_paramConfigComponent);
+      }
+      return _paramConfigComponent;
    }
 
 }

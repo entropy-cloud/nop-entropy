@@ -65,6 +65,9 @@
 
                 <!--备注-->
                 <col id="remark" sortable="true"/>
+
+                <!--参数定义-->
+                <col id="paramConfig" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -81,6 +84,7 @@
  delFlag[删除标记] createdBy[创建人]
  createTime[创建时间] updatedBy[修改人]
  updateTime[修改时间] remark[备注]
+ paramConfig[参数定义] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-看板" i18n-en:title="Add Dashboard" x:prototype="edit"/>
@@ -92,6 +96,7 @@
  publishedVersion[已发布版本] publishedBy[发布人]
  publishedTime[发布时间] layoutConfig[布局配置]
  delFlag[删除标记] remark[备注]
+ paramConfig[参数定义] 
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

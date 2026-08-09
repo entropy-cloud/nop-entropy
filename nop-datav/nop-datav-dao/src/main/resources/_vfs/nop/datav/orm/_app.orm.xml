@@ -95,6 +95,8 @@
                         propId="16" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="17"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+                <column code="PARAM_CONFIG" displayName="参数定义" domain="clobJson" name="paramConfig" propId="18"
+                        stdDataType="string" stdDomain="json" stdSqlType="CLOB" i18n-en:displayName="Param Config"/>
             </columns>
             <unique-keys>
                 <unique-key columns="dashboardName" name="UK_NOP_DATAV_DASHBOARD_NAME"

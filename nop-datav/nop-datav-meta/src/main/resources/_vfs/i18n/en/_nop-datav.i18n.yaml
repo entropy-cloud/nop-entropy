@@ -27,7 +27,9 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+      paramConfig: Param Config
       layoutConfigComponent: null
+      paramConfigComponent: null
     NopDatavDashboardSnapshot:
       snapshotId: Snapshot Id
       dashboardId: Dashboard Id

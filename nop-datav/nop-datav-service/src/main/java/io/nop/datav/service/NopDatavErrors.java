@@ -12,6 +12,10 @@ public interface NopDatavErrors {
     String ARG_REF_DATASET_ID = "refDatasetId";
     String ARG_COMPONENT_TYPE = "componentType";
     String ARG_DS_TYPE = "dsType";
+    String ARG_PARAM_NAME = "paramName";
+    String ARG_VALUE = "value";
+    String ARG_EXPECTED_TYPE = "expectedType";
+    String ARG_REASON = "reason";
 
     ErrorCode ERR_DATAV_DASHBOARD_NOT_FOUND = define(
             "nop.err.datav.dashboard-not-found",
@@ -71,5 +75,23 @@ public interface NopDatavErrors {
             "nop.err.datav.invalid-panel-config",
             "Invalid panelConfig JSON for panel: {panelId}",
             ARG_PANEL_ID
+    );
+
+    ErrorCode ERR_DATAV_INVALID_PARAM_CONFIG = define(
+            "nop.err.datav.invalid-param-config",
+            "Invalid paramConfig JSON for dashboard: {reason}",
+            ARG_REASON
+    );
+
+    ErrorCode ERR_DATAV_UNKNOWN_PARAM_NAME = define(
+            "nop.err.datav.unknown-param-name",
+            "Unknown dashboard parameter: {paramName}",
+            ARG_PARAM_NAME
+    );
+
+    ErrorCode ERR_DATAV_PARAM_TYPE_MISMATCH = define(
+            "nop.err.datav.param-type-mismatch",
+            "Parameter {paramName} value '{value}' does not match expected type {expectedType}",
+            ARG_PARAM_NAME, ARG_VALUE, ARG_EXPECTED_TYPE
     );
 }

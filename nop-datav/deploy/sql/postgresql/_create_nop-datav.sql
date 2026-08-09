@@ -17,6 +17,7 @@ CREATE TABLE nop_datav_dashboard(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  param_config TEXT  ,
   constraint PK_nop_datav_dashboard primary key (dashboard_id)
 );
 
@@ -126,6 +127,8 @@ CREATE TABLE nop_datav_snapshot(
       COMMENT ON COLUMN nop_datav_dashboard.update_time IS '修改时间';
                     
       COMMENT ON COLUMN nop_datav_dashboard.remark IS '备注';
+                    
+      COMMENT ON COLUMN nop_datav_dashboard.param_config IS '参数定义';
                     
       COMMENT ON TABLE nop_datav_panel IS '面板';
                 

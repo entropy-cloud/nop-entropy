@@ -78,6 +78,9 @@
                 <column code="LAYOUT_CONFIG" displayName="布局配置" domain="json-4000" name="layoutConfig"
                         precision="4000" propId="10" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Layout Config"/>
+                <column code="PARAM_CONFIG" displayName="参数定义" domain="clobJson" name="paramConfig"
+                        propId="18" stdDataType="string" stdDomain="json" stdSqlType="CLOB"
+                        i18n-en:displayName="Param Config"/>
                 <column code="DEL_FLAG" displayName="删除标记" domain="delFlag" name="delFlag" propId="11"
                         stdDataType="byte" stdSqlType="TINYINT" i18n-en:displayName="Del Flag"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"

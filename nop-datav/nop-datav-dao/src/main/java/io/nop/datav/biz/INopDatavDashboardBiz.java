@@ -10,6 +10,8 @@ import io.nop.core.context.IServiceContext;
 import io.nop.datav.dao.entity.NopDatavDashboard;
 import io.nop.datav.dao.entity.NopDatavDashboardSnapshot;
 
+import java.util.Map;
+
 public interface INopDatavDashboardBiz extends ICrudBiz<NopDatavDashboard>{
 
     @BizMutation("publishDashboard")
@@ -21,4 +23,13 @@ public interface INopDatavDashboardBiz extends ICrudBiz<NopDatavDashboard>{
     @BizMutation("rollbackDashboard")
     NopDatavDashboardSnapshot rollbackDashboard(@Name("id") String id, @Name("snapshotVersion") long snapshotVersion,
                                                 IServiceContext context);
+
+    @BizQuery("resolveFilterValues")
+    Map<String, Object> resolveFilterValues(@Name("id") String id,
+                                            @Name("filterValues") Map<String, Object> filterValues,
+                                            IServiceContext context);
+
+    @BizQuery("parseFilterFromUrl")
+    Map<String, Object> parseFilterFromUrl(@Name("id") String id, @Name("url") String url,
+                                           IServiceContext context);
 }
