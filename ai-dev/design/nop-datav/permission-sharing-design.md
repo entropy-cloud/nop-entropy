@@ -1,15 +1,16 @@
 # nop-datav 权限/分享/导出设计 (D3)
 
-> Status: **final**（D3-1/D3-4 部分；D3-2 分享、D3-3 导出由后继 plan 产出）
+> Status: **final**（D3-1/D3-4/D3-2 部分；D3-3 导出由后继 plan 产出）
 > Last Reviewed: 2026-08-10
 
 ## 概述
 
-nop-datav 的权限体系**全程复用 nop-auth 既有机制**（roadmap §Framework reuse 硬约束），不自建权限/审计实体。本文档覆盖 D3-1（看板权限：action 级 RBAC + 行级数据权限 RLS）和 D3-4（操作审计日志）的最终设计决策。
+nop-datav 的权限体系**全程复用 nop-auth 既有机制**（roadmap §Framework reuse 硬约束），不自建权限/审计实体。分享能力（D3-2）为 nop-datav 专属实体（参考 AJ-Report `report_share` / Metabase embedding），不复用通用机制（平台无通用分享链接机制）。本文档覆盖 D3-1（看板权限：action 级 RBAC + 行级数据权限 RLS）、D3-4（操作审计日志）、D3-2（公共分享链接）的最终设计决策。
 
 - **D3-1 Action 级 RBAC**：自定义 GraphQL action 显式 `@Auth(permissions=...)`；CRUD action 沿用平台 `ReflectionBizModelBuilder` 自动生成的默认权限串。通过 `action-auth.xml` 暴露权限点资源并绑定默认角色，`enable-action-auth=true` 后生效。
 - **D3-1 行级数据权限（RLS）**：在 `data-auth.xml` 为 `NopDatavDashboard` 配置 owner 行级规则（admin 无 filter；user 按 `createdBy` = 当前用户 OR 已发布过滤）。`DataAuthEntityFilterProvider` / `CrudBizModel` 自动注入。
 - **D3-4 操作审计日志**：纯配置启用 `nop.auth.graphql.enable-audit=true` + audit-mutation-patterns，`GraphQLAuditLogger` 自动记录到 `NopAuthOpLog`。零业务代码。
+- **D3-2 公共分享链接**：新建 `NopDatavDashboardShare` 独立实体（一行一分享链接：token / 密码哈希 / 有效期 / 启用标记）。管理侧 action（create/list/revoke/toggle）经 D3-1 的 `@Auth` + Dashboard owner 校验收口；公共访问 action `getSharedDashboard(shareToken, password)` 用 `@Auth(publicAccess=true)` 匿名放行，校验 token+密码+有效期+启用后**直接经 DAO 读 `NopDatavDashboardSnapshot`**（不经 RLS/`requireEntity`）返回已发布快照。
 
 ## D3-1 Action 级 RBAC
 
@@ -152,6 +153,83 @@ pattern 使用 `StringHelper.matchSimplePatternSet`（glob `*` 匹配）。Graph
 
 D3-4 为纯配置启用：`GraphQLAuditLogger`（`IGraphQLLogger`）→ `IAuditService`（`AuditServiceImpl`）→ `NopAuthOpLog`。bean 已在 `auth-service.beans.xml` 注册（条件 bean `enable-audit`）。nop-datav 无任何审计业务代码。
 
+## D3-2 公共分享链接
+
+### 分享存储方案裁定：独立实体（A）
+
+新建 `NopDatavDashboardShare` 独立实体（一行一分享链接）。理由：(1) 一个看板可有多个分享链接（不同密码/有效期/用途）；(2) 吊销单条不影响其他；(3) 与 AJ-Report `report_share` 模式一致；(4) 支持 list/delete/toggle 管理语义最直接。
+
+拒绝方案 B（Dashboard 新增 `shareConfig` JSON 列存分享数组）：单看板多链接时管理/吊销/唯一令牌约束复杂，JSON 不利索引与唯一性。
+
+### 实体列约定（行为规格）
+
+`NopDatavDashboardShare`（表 `nop_datav_share`）：
+
+- `shareId`(PK, VARCHAR, tagSet `seq`)
+- `shareToken`(唯一键 VARCHAR，`StringHelper.generateUUID()` 生成不可枚举随机串)
+- `dashboardId`(FK + 索引，关联 `NopDatavDashboard`)
+- `passwordHash`(可空 VARCHAR，BCrypt 哈希非明文，单列无需 salt——见密码哈希策略)
+- `expireTime`(可空 TIMESTAMP，null=永不过期)
+- `enabled`(domain `boolFlag`，TINYINT，默认 true——与既有 `delFlag` 同 domain 约定)
+- 标准审计列（`createdBy`/`createTime`/`updatedBy`/`updateTime`/`version`/`delFlag`/`remark`）
+
+### 令牌生成策略
+
+使用 `io.nop.commons.util.StringHelper.generateUUID()`（UUID 无连字符的 32 位 hex 随机串）生成不可枚举随机令牌，**不复用顺序 ID 作令牌**（防枚举）。
+
+### 密码哈希策略
+
+采用 bean `nopPasswordEncoder`（`CompositePasswordEncoder`：SHA256 预哈希 + BCrypt 外层，`encodePassword`=`BCrypt(SHA256(password))`，`passwordMatches` 对称流转）。BCrypt 外层自带盐（`generateSalt()` 返回 null，盐嵌在哈希串内），**单 `passwordHash` 列即可，无需独立 salt 列**。
+
+- 密码可选：`passwordHash = null` 表示无需密码；存储仅哈希，校验经 `IPasswordEncoder.passwordMatches` 比对，非明文。
+- **分享密码绕过 `nopPasswordPolicy`**：该 policy（`DefaultPasswordPolicy`，`minLength=12` + 大小写/数字/特殊字符）面向用户账号强密码，不适合分享短密码。直接调 `IPasswordEncoder.encodePassword`，不经 `IUserStore`/policy 校验。
+- 注入：`@Inject IPasswordEncoder`（按类型注入，bean `nopPasswordEncoder` 为 `ioc:default="true"` 的 `CompositePasswordEncoder`；`nopBCryptPasswordEncoder` 的 `autowire-candidate="false"` 故不可直接按类型注入它）。
+
+### 吊销 vs 软删语义
+
+- `revokeShare(shareId)` / `toggleShare(shareId, enabled)`：置 `enabled=false`（软禁用，不删行，保留审计痕迹）。
+- 实体级删除走标准 `delFlag` 软删（CrudBizModel 既有 delete action）。
+- 公共访问对 `enabled=false` 显式拒绝（错误码 `ERR_DATAV_SHARE_DISABLED`）。
+
+### 公共访问 action 契约
+
+`getSharedDashboard(shareToken, password)`（`@BizQuery` + `@Auth(publicAccess=true)`）。行为：
+
+1. 按 `shareToken` 经 DAO 唯一键加载 share（**不调 `requireEntity`/不经 RLS**——share 实体无行级规则）。
+2. 校验 `enabled`（false → `ERR_DATAV_SHARE_DISABLED`）。
+3. 校验 `expireTime`（非空且 <= now → `ERR_DATAV_SHARE_EXPIRED`）。
+4. 密码校验：若 `passwordHash` 非空，要求传入 `password`（空/null → `ERR_DATAV_SHARE_PASSWORD_REQUIRED`）经 `passwordEncoder.passwordMatches` 比对（不匹配 → `ERR_DATAV_SHARE_PASSWORD_MISMATCH`）；`passwordHash` 为空则忽略 password。
+5. **直接经 `daoProvider().daoFor(NopDatavDashboardSnapshot.class)` 按 `dashboardId` 查询、`snapshotVersion DESC` 取首条**（不调用 `getPublishedDashboard`、不经 `requireEntity`/RLS——否则匿名用户 fail-closed 或 NPE）。无快照 → `ERR_DATAV_SNAPSHOT_NOT_FOUND`。
+6. 返回快照内容（仅已发布内容，非编辑态）。
+
+### 匿名访问 RLS 处理
+
+公共访问 action 是 `publicAccess`，运行时无登录用户上下文——**不对 `NopDatavDashboardShare` 配置行级规则**（`data-auth.xml` 仅含 `NopDatavDashboard`，share 实体无 `<obj>` 条目，否则匿名用户 fail-closed）。
+
+- 代码**不得**调用 `IServiceContext.getUserContext()`（`publicAccess` action 运行时为空）。
+- 公共访问直接读 share（唯一键）+ 快照实体（已序列化内容，不触发 Dashboard 行级 filter）。
+- 安全含义：公共访问仅返回已发布快照（非编辑态）。
+
+### 平台 publicAccess 机制
+
+`GraphQLActionAuthChecker.isAllowAccess` 在 `publicAccess=true` 时**先于** userContext 检查直接放行（参考既有 `LoginApiBizModel`），无需用户/角色。这是 D3-2 匿名访问 action 的放行机制。
+
+### 管理侧权限裁定
+
+分享管理 API（`createShare`/`listShares`/`revokeShare`/`toggleShare`）用 D3-1 的 `@Auth(permissions="NopDatavDashboardShare:{action}")` + Dashboard owner 校验：
+
+- `createShare(dashboardId, ...)`：经 `requireEntity(dashboardId, ...)` → `checkDataAuth` 校验当前用户为该 Dashboard 的 owner/admin（复用 D3-1 RLS 链路）；非 owner → `ERR_AUTH_NO_DATA_AUTH` 或 `ERR_DATAV_NOT_DASHBOARD_OWNER`。
+- `listShares(dashboardId)` / `revokeShare(shareId)` / `toggleShare(shareId, enabled)`：同样前置 Dashboard owner 校验（通过 share 的 `dashboardId` 反查 Dashboard 再校验）。
+- CRUD action（findPage/get/save/update/delete）沿用平台默认权限串 + D3-1 RLS（但 share 实体本身无行级规则，保护来自管理 action 内显式 Dashboard owner 校验）。
+
+### action-auth 生成
+
+`NopDatavDashboardShare` xmeta **不加** `no-web` tag，使其在 `_nop-datav.action-auth.xml` 获得 `FNPT:NopDatavDashboardShare:query/mutation` 权限点资源 + 管理页（与既有 6 实体同模式）。
+
+### 已发布前提
+
+分享访问要求看板至少有一个已发布快照；无快照时公共访问返回 `ERR_DATAV_SNAPSHOT_NOT_FOUND`（复用既有错误码）。
+
 ## 拒绝的替代方案
 
 | 替代方案 | 拒绝理由 |
@@ -160,6 +238,11 @@ D3-4 为纯配置启用：`GraphQLAuditLogger`（`IGraphQLLogger`）→ `IAuditS
 | owner 加 ORM 列（`owner`/`accessLevel`） | 复用既有 `createdBy` 即可满足 owner 标识，新增列违反 Non-Goals「不改 ORM 实体结构」 |
 | per-user per-dashboard ACL 实体 | 本 plan 的用户级由平台 RBAC（用户→角色→资源）+ owner 行级覆盖；针对单看板的显式用户授权归 D3-2 分享 plan |
 | 启用 `skip-check-for-admin=true` | H-2 历史已修复为默认 false，admin 通过显式 data-auth 规则获全量可见，非 skip 旁路 |
+| 分享存 Dashboard `shareConfig` JSON 列（方案 B） | 单看板多链接时管理/吊销/唯一令牌约束复杂，JSON 不利索引与唯一性；采用独立实体 `NopDatavDashboardShare`（方案 A） |
+| 分享令牌 = 看板 ID | 可枚举，安全风险高；采用 `StringHelper.generateUUID()` 随机不可枚举串 |
+| 分享密码明文存储 | 安全基线要求哈希；采用 `nopPasswordEncoder`（BCrypt + SHA256 复合），单 `passwordHash` 列 |
+| 公共访问调用 `getPublishedDashboard` action | 该 action 内部 `requireEntity` → `checkDataAuth`，在无用户上下文/RLS 下 NPE 或 fail-closed；公共访问直接经 DAO 读 `NopDatavDashboardSnapshot` |
+| 对 `NopDatavDashboardShare` 配置行级规则 | 匿名用户 fail-closed；公共访问唯一键查找无需 RLS，管理侧经 Dashboard owner 校验收口 |
 
 ## 测试策略
 

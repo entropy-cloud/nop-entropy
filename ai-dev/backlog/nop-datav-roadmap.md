@@ -62,7 +62,7 @@ AI 或维护者读完本文即知哪些工作项已启动（`todo`）、已计�
 > 设计契约：`ai-dev/design/nop-datav/permission-sharing-design.md`（D3 时产出）
 
 - D3-1. 看板权限（角色/用户级权限 + 数据权限行级，Superset RLS 参考，接入 nop-auth）: `done` ✅（plan `ai-dev/plans/nop-datav/2026-08-10-1100-1-dashboard-permission-and-audit-log.md`）
-- D3-2. 分享（公共链接 + 密码 + 有效期，AJ-Report `report_share` 参考；嵌入可选，Metabase embedding 参考）: `planned`（plan `ai-dev/plans/nop-datav/2026-08-10-1100-2-dashboard-sharing.md`）
+- D3-2. 分享（公共链接 + 密码 + 有效期，AJ-Report `report_share` 参考；嵌入可选，Metabase embedding 参考）: `done` ✅（plan `ai-dev/plans/nop-datav/2026-08-10-1100-2-dashboard-sharing.md`）
 - D3-3. 导出（看板/面板导出 PDF/PNG/Excel，异步任务 + 限额，DataEase 导出中心参考。**注意：数据导出 CSV/Excel 仅依赖 D0 + nop-report；图像导出 PDF/PNG 需已渲染的看板快照，隐含依赖 D1 运行时**）: `todo`
 - D3-4. 操作日志（nop-auth 操作日志接入）: `done` ✅（与 D3-1 同 plan，纯配置启用 `GraphQLAuditLogger`）
 
