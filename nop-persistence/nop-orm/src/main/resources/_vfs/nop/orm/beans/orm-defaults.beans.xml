@@ -73,7 +73,8 @@
 
     <bean id="nopTransactionalFunctionInvoker" class="io.nop.dao.utils.TransactionalFunctionInvoker"/>
 
-    <bean id="io.nop.orm.initialize.DataBaseSchemaInitializer" ioc:type="@bean:id" ioc:after="nopOrmSessionFactory">
+    <bean id="io.nop.orm.initialize.DataBaseSchemaInitializer" ioc:type="@bean:id" ioc:after="nopOrmSessionFactory"
+          ioc:force-init="true">
         <ioc:condition>
             <if-property name="nop.orm.init-database-schema"/>
         </ioc:condition>
