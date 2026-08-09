@@ -74,6 +74,18 @@ class TestMultiJvmExactlyOnceRecovery {
      */
     private static final long RECOVERY_TIMEOUT_MS = 90_000L;
 
+    /**
+     * The single coordinator spawned by {@link MiniStreamCluster#start()} runs at
+     * index 0, so its log label/key is {@code "coordinator-0"} (see
+     * {@code MiniStreamCluster.spawnJobCoordinator(int, boolean)} which uses
+     * {@code "coordinator-" + index}). Reading the bare {@code "coordinator"}
+     * label resolves to {@code logs/coordinator.log}, which does not exist —
+     * {@code Files.size} then throws {@code NoSuchFileException} before the
+     * cross-JVM recovery path can be exercised. Centralised as a constant so the
+     * label convention is not silently re-duplicated out of sync with the harness.
+     */
+    private static final String COORDINATOR_LABEL = "coordinator-0";
+
     @Test
     void multiJvmDeployKillRecoverFencing() throws Exception {
         try (MiniStreamCluster cluster = new MiniStreamCluster(2,
@@ -100,7 +112,7 @@ class TestMultiJvmExactlyOnceRecovery {
             long initialEpoch = waitForInitialAssignment(cluster, 60_000L);
             assertTrue(initialEpoch > 0L,
                     "Expected a positive fencing epoch after initial assignTasks. "
-                            + "Coordinator log: " + cluster.logFileFor("coordinator"));
+                            + "Coordinator log: " + cluster.logFileFor(COORDINATOR_LABEL));
             int initialAssignmentCount = countTaskAssignments(cluster, initialEpoch);
             assertTrue(initialAssignmentCount >= 2,
                     "Expected at least 2 task assignments (source + sink) at the "
@@ -108,7 +120,7 @@ class TestMultiJvmExactlyOnceRecovery {
                             + ", got " + initialAssignmentCount);
 
             // Capture the initial log size for delta-read later.
-            long coordLogSizeBeforeKill = Files.size(cluster.logFileFor("coordinator"));
+            long coordLogSizeBeforeKill = Files.size(cluster.logFileFor(COORDINATOR_LABEL));
 
             // 3. Kill one TaskManager process (real OS-level SIGTERM).
             boolean killed = cluster.killTaskManager("tm-1");
@@ -139,11 +151,11 @@ class TestMultiJvmExactlyOnceRecovery {
             assertTrue(recoveredAssignmentCount >= 2,
                     "Recovery must re-issue deployTask for all subtasks at the rotated epoch "
                             + recoveredEpoch + ", got " + recoveredAssignmentCount
-                            + " assignments. Logs: " + cluster.logFileFor("coordinator"));
+                            + " assignments. Logs: " + cluster.logFileFor(COORDINATOR_LABEL));
 
             // 6. Log aggregation captures the kill/recovery event: the
             //    coordinator log must mention recovery after the kill.
-            String coordLogDelta = readLogDelta(cluster.logFileFor("coordinator"), coordLogSizeBeforeKill);
+            String coordLogDelta = readLogDelta(cluster.logFileFor(COORDINATOR_LABEL), coordLogSizeBeforeKill);
             assertTrue(coordLogDelta.contains("global recovery")
                             || coordLogDelta.contains("globalRecovery")
                             || coordLogDelta.contains("Fencing epoch rotated")
@@ -226,7 +238,7 @@ class TestMultiJvmExactlyOnceRecovery {
             if (!cluster.coordinatorAlive()) {
                 throw new IllegalStateException(
                         "Coordinator process exited before assigning tasks. Log: "
-                                + cluster.logFileFor("coordinator"));
+                                + cluster.logFileFor(COORDINATOR_LABEL));
             }
             TimeUnit.MILLISECONDS.sleep(500L);
         }
@@ -260,7 +272,15 @@ class TestMultiJvmExactlyOnceRecovery {
         long length = size - fromOffset;
         try (java.io.RandomAccessFile raf = new java.io.RandomAccessFile(logFile.toFile(), "r")) {
             raf.seek(fromOffset);
-            byte[] buf = new byte[(int) Math.min(length, 64 * 1024L)];
+            // The cross-JVM coordinator log is dominated by PollingJdbcMessageService
+            // SQL-poll noise (~20 INFO queries/sec). A kill/recovery cycle fires the
+            // failure detector via per-task stall after ~60s, by which point the delta
+            // since the kill is well over 1MB of poll lines. A 64KB cap would never
+            // reach the genuine "Fencing epoch rotated" / "global recovery" event and
+            // the assertion would fail despite recovery having actually happened. Read
+            // up to 8MB so the recovery event is captured without weakening the
+            // assertion (it still genuinely verifies the coordinator logged recovery).
+            byte[] buf = new byte[(int) Math.min(length, 8 * 1024 * 1024L)];
             int read = raf.read(buf);
             return new String(buf, 0, read, java.nio.charset.StandardCharsets.UTF_8);
         }

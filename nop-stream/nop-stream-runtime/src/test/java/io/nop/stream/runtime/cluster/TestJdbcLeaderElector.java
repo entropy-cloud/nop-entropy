@@ -11,6 +11,7 @@ import com.zaxxer.hikari.HikariDataSource;
 
 import io.nop.cluster.elector.LeaderEpoch;
 import io.nop.commons.concurrent.executor.DefaultScheduledExecutor;
+import io.nop.commons.concurrent.executor.ThreadPoolConfig;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.sql.SQL;
@@ -186,6 +187,138 @@ class TestJdbcLeaderElector {
             b.stop();
             exec1.destroy();
             exec2.destroy();
+        }
+    }
+
+    @Test
+    void testPollingCadenceIsMillisecondsNotMicroseconds() throws Exception {
+        // Regression guard for the AbstractPollingLeaderElector.scheduleCheck() time-unit
+        // bug: scheduleCheck must use TimeUnit.MILLISECONDS (not MICROSECONDS). With
+        // MICROSECONDS, checkIntervalMs=200 schedules every 200us (0.2ms), causing
+        // ~5000 leader refreshes/sec — the root cause of the nop-stream T2 multi-JVM
+        // coordinator-failover defect (DB flooding + concurrent state corruption).
+        // With MILLISECONDS, checkIntervalMs=200 yields ~5 refreshes/sec.
+        //
+        // This test counts how many times the leader's refresh_at column changes over
+        // a fixed window. With MILLISECONDS + 200ms we expect < 20 changes; with
+        // MICROSECONDS we would see thousands — the upper bound catches the regression.
+        DefaultScheduledExecutor exec = DefaultScheduledExecutor.newSingleThreadTimer("cadence-test");
+        JdbcLeaderElector elector = newElector("host-cadence", exec);
+        elector.setCheckIntervalMs(200);
+        elector.setLeaseMs(60_000);
+        try {
+            elector.start();
+            elector.whenElectionCompleted().toCompletableFuture().get();
+
+            // Poll refresh_at every 20ms for ~1.5s; count how many times it changes.
+            long prev = readRefreshAt();
+            assertNotNull(prev, "lease row must exist after becoming leader");
+            int changes = 0;
+            long windowEnd = System.currentTimeMillis() + 1_500L;
+            while (System.currentTimeMillis() < windowEnd) {
+                Thread.sleep(20L);
+                long current = readRefreshAt();
+                if (current != prev) {
+                    changes++;
+                    prev = current;
+                }
+            }
+            // With MILLISECONDS + checkIntervalMs=200: ~7 refreshes in 1.5s.
+            // With MICROSECONDS + 0.2ms: thousands of refreshes.
+            // Upper bound 50 is generous (allows scheduling jitter) but catches a
+            // 1000x regression decisively.
+            assertTrue(changes < 50,
+                    "leader refresh count in 1.5s window must be < 50 (MILLISECONDS cadence), got "
+                            + changes + " — scheduleCheck may be using MICROSECONDS instead of MILLISECONDS");
+        } finally {
+            elector.stop();
+            exec.destroy();
+        }
+    }
+
+    @Test
+    void testMultiThreadedExecutorTakeoverGuardsConcurrentCheckElection() throws Exception {
+        // Regression guard for the cross-JVM coordinator-failover defect (T2 capability
+        // gap). The production code path (JobCoordinatorMain) uses GlobalExecutors which
+        // is a multi-threaded pool. This test proves standby→leader takeover works under
+        // a multi-threaded scheduled executor (corePoolSize=4), the condition under which
+        // the MICROSECONDS bug caused concurrent overlapping checkElection() calls.
+        DefaultScheduledExecutor exec1 = newMultiThreadedExecutor("mt-a");
+        DefaultScheduledExecutor exec2 = newMultiThreadedExecutor("mt-b");
+
+        JdbcLeaderElector a = newElector("host-A-mt", exec1);
+        a.setLeaseMs(1000);
+        a.setCheckIntervalMs(300);
+        a.setLeaseSafeGap(100);
+        JdbcLeaderElector b = newElector("host-B-mt", exec2);
+        b.setLeaseMs(2000);
+        b.setCheckIntervalMs(300);
+        b.setLeaseSafeGap(100);
+        try {
+            a.start();
+            LeaderEpoch aEpoch = a.whenElectionCompleted().toCompletableFuture().get();
+            assertEquals("host-A-mt", aEpoch.getLeaderId());
+            long initialEpoch = aEpoch.getEpoch();
+
+            // Fully stop host-A (simulates coordinator JVM kill): stop elector + destroy
+            // executor so it definitively stops refreshing the lease.
+            a.stop();
+            exec1.destroy();
+
+            // Expire host-A's lease so host-B observes an expired lease deterministically.
+            jdbcTemplate.executeUpdate(SQL.begin()
+                    .sql("UPDATE nop_stream_leader SET expire_at = ? WHERE cluster_id = ?",
+                            System.currentTimeMillis() - 1000, "test-cluster")
+                    .end());
+
+            b.start();
+            // B's first checkFollower sees the expired lease -> changeLeader.
+            LeaderEpoch bEpoch = null;
+            long deadline = System.currentTimeMillis() + 10_000;
+            while (System.currentTimeMillis() < deadline) {
+                LeaderEpoch le = b.getLeaderEpoch();
+                if (le != null && "host-B-mt".equals(le.getLeaderId())) {
+                    bEpoch = le;
+                    break;
+                }
+                Thread.sleep(100);
+            }
+            assertNotNull(bEpoch, "host-B must take over after host-A is killed (multi-threaded executor)");
+            assertTrue(bEpoch.getEpoch() > initialEpoch,
+                    "takeover epoch (" + bEpoch.getEpoch() + ") must be strictly greater than initial ("
+                            + initialEpoch + ") — fencing invariant");
+            assertTrue(b.isLeader(), "host-B must be leader after takeover");
+        } finally {
+            a.stop();
+            b.stop();
+            exec1.destroy();
+            exec2.destroy();
+        }
+    }
+
+    private DefaultScheduledExecutor newMultiThreadedExecutor(String name) {
+        ThreadPoolConfig config = new ThreadPoolConfig();
+        config.setCorePoolSize(4);
+        config.setMaxPoolSize(4);
+        config.setName(name);
+        DefaultScheduledExecutor exec = new DefaultScheduledExecutor();
+        exec.setConfig(config);
+        exec.init();
+        return exec;
+    }
+
+    private Long readRefreshAt() {
+        try {
+            return jdbcTemplate.executeQuery(SQL.begin()
+                    .sql("SELECT refresh_at FROM nop_stream_leader WHERE cluster_id = ?", "test-cluster")
+                    .end(), dataSet -> {
+                if (!dataSet.hasNext()) {
+                    return null;
+                }
+                return dataSet.next().getLong(0);
+            });
+        } catch (Exception e) {
+            return null;
         }
     }
 

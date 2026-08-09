@@ -56,12 +56,14 @@ class TestMultiJvmCoordinatorFailover {
                 60_000L, 10_000L, 100L)) {
             cluster.start(true); // HA mode: coordinator-0 runs leader-gated.
 
-            // Spawn a second coordinator (standby) sharing the same lease table.
-            cluster.spawnJobCoordinator(1);
-
-            // Wait for coordinator-0 to win leadership and assign tasks.
+            // Wait for coordinator-0 to win leadership BEFORE spawning the standby.
+            // Without this ordering, coordinator-1 can win the initial INSERT race
+            // (both JVMs start near-simultaneously), making the test non-deterministic.
             long initialEpoch = waitForLeaderAndAssignments(cluster, 0);
             assertTrue(initialEpoch > 0L, "coordinator-0 must win leadership and assign tasks");
+
+            // Spawn a second coordinator (standby) sharing the same lease table.
+            cluster.spawnJobCoordinator(1);
 
             // Confirm the lease row currently names coordinator-0 as leader.
             LeaseRow row0 = readLeaseRow(cluster);
@@ -107,9 +109,16 @@ class TestMultiJvmCoordinatorFailover {
         try (MiniStreamCluster cluster = new MiniStreamCluster(1,
                 60_000L, 10_000L, 100L)) {
             cluster.start(true);
+
+            // Wait for coordinator-0 to win leadership BEFORE spawning the standby.
+            // Without this ordering, coordinator-1 can win the initial INSERT race,
+            // making the rest of the test meaningless (coordinator-0 would be the
+            // standby, and killing it would not trigger any takeover).
+            long epoch0 = waitForLeaderAndAssignments(cluster, 0);
+            assertTrue(epoch0 > 0L, "coordinator-0 must win leadership before standby is spawned");
+
             cluster.spawnJobCoordinator(1);
 
-            long epoch0 = waitForLeaderAndAssignments(cluster, 0);
             LeaseRow row0 = readLeaseRow(cluster);
             assertNotNull(row0);
 
