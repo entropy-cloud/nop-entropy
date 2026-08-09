@@ -91,6 +91,21 @@ CREATE TABLE nop_datav_snapshot(
   constraint PK_nop_datav_snapshot primary key (SNAPSHOT_ID)
 );
 
+CREATE TABLE nop_datav_filter_state(
+  STATE_ID VARCHAR2(32) NOT NULL ,
+  USER_NAME VARCHAR2(50) NOT NULL ,
+  DASHBOARD_ID VARCHAR2(32) NOT NULL ,
+  STATE_CONTENT CLOB  ,
+  DEL_FLAG SMALLINT  ,
+  VERSION NUMBER(20) NOT NULL ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR2(200)  ,
+  constraint PK_nop_datav_filter_state primary key (STATE_ID)
+);
+
 
       COMMENT ON TABLE nop_datav_dashboard IS '看板';
                 
@@ -245,4 +260,28 @@ CREATE TABLE nop_datav_snapshot(
       COMMENT ON COLUMN nop_datav_snapshot.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON COLUMN nop_datav_snapshot.REMARK IS '备注';
+                    
+      COMMENT ON TABLE nop_datav_filter_state IS '筛选状态';
+                
+      COMMENT ON COLUMN nop_datav_filter_state.STATE_ID IS '状态ID';
+                    
+      COMMENT ON COLUMN nop_datav_filter_state.USER_NAME IS '用户名';
+                    
+      COMMENT ON COLUMN nop_datav_filter_state.DASHBOARD_ID IS '看板ID';
+                    
+      COMMENT ON COLUMN nop_datav_filter_state.STATE_CONTENT IS '状态内容';
+                    
+      COMMENT ON COLUMN nop_datav_filter_state.DEL_FLAG IS '删除标记';
+                    
+      COMMENT ON COLUMN nop_datav_filter_state.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_datav_filter_state.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_datav_filter_state.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_datav_filter_state.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_datav_filter_state.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_datav_filter_state.REMARK IS '备注';
                     

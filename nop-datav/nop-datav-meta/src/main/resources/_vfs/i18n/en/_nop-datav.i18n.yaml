@@ -4,6 +4,7 @@ entity:
     NopDatavDashboardSnapshot: Dashboard Snapshot
     NopDatavDashboardTab: Dashboard Tab
     NopDatavDatasetRef: Dataset Ref
+    NopDatavFilterState: Filter State
     NopDatavPanel: Panel
 prop:
   label:
@@ -80,6 +81,21 @@ prop:
       dashboard: Dashboard
       dashboard.displayName: Dashboard
       paramMappingComponent: null
+    NopDatavFilterState:
+      stateId: State Id
+      userName: User Name
+      dashboardId: Dashboard Id
+      stateContent: State Content
+      delFlag: Del Flag
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      dashboard: Dashboard
+      dashboard.displayName: Dashboard
+      stateContentComponent: null
     NopDatavPanel:
       panelId: Panel Id
       dashboardId: Dashboard Id

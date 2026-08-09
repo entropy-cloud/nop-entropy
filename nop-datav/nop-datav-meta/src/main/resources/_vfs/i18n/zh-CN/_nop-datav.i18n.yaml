@@ -4,6 +4,7 @@ entity:
     NopDatavDashboardSnapshot: 发布快照
     NopDatavDashboardTab: 页签
     NopDatavDatasetRef: 数据集引用
+    NopDatavFilterState: 筛选状态
     NopDatavPanel: 面板
 prop:
   label:
@@ -79,6 +80,21 @@ prop:
       remark: 备注
       updateTime: 修改时间
       updatedBy: 修改人
+      version: 数据版本
+    NopDatavFilterState:
+      createTime: 创建时间
+      createdBy: 创建人
+      dashboard: 看板
+      dashboard.displayName: 看板
+      dashboardId: 看板ID
+      delFlag: 删除标记
+      remark: 备注
+      stateContent: 状态内容
+      stateContentComponent: null
+      stateId: 状态ID
+      updateTime: 修改时间
+      updatedBy: 修改人
+      userName: 用户名
       version: 数据版本
     NopDatavPanel:
       createTime: 创建时间

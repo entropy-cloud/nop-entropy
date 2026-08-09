@@ -67,16 +67,30 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopDatavPanel-main" displayName="面板" orderNo="10013" i18n-en:displayName="Panel"
+                <resource id="NopDatavFilterState-main" displayName="筛选状态" orderNo="10013"
+                          i18n-en:displayName="Filter State" icon="filter" component="AMIS" resourceType="SUBM"
+                          url="/nop/datav/pages/NopDatavFilterState/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopDatavFilterState:query" displayName="查询筛选状态"
+                                  i18n-en:displayName="Query Filter State" orderNo="10014" resourceType="FNPT">
+                            <permissions>NopDatavFilterState:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavFilterState:mutation" displayName="修改筛选状态"
+                                  i18n-en:displayName="Modify Filter State" orderNo="10015" resourceType="FNPT">
+                            <permissions>NopDatavFilterState:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDatavPanel-main" displayName="面板" orderNo="10016" i18n-en:displayName="Panel"
                           icon="panels-top-left" component="AMIS" resourceType="SUBM"
                           url="/nop/datav/pages/NopDatavPanel/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopDatavPanel:query" displayName="查询面板" i18n-en:displayName="Query Panel"
-                                  orderNo="10014" resourceType="FNPT">
+                                  orderNo="10017" resourceType="FNPT">
                             <permissions>NopDatavPanel:query</permissions>
                         </resource>
                         <resource id="FNPT:NopDatavPanel:mutation" displayName="修改面板" i18n-en:displayName="Modify Panel"
-                                  orderNo="10015" resourceType="FNPT">
+                                  orderNo="10018" resourceType="FNPT">
                             <permissions>NopDatavPanel:mutation</permissions>
                         </resource>
                     </children>

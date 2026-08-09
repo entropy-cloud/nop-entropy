@@ -16,6 +16,10 @@ site:
       displayName: Modify Dataset Ref
     FNPT:NopDatavDatasetRef:query:
       displayName: Query Dataset Ref
+    FNPT:NopDatavFilterState:mutation:
+      displayName: Modify Filter State
+    FNPT:NopDatavFilterState:query:
+      displayName: Query Filter State
     FNPT:NopDatavPanel:mutation:
       displayName: Modify Panel
     FNPT:NopDatavPanel:query:
@@ -28,6 +32,8 @@ site:
       displayName: Dashboard Tab
     NopDatavDatasetRef-main:
       displayName: Dataset Ref
+    NopDatavFilterState-main:
+      displayName: Filter State
     NopDatavPanel-main:
       displayName: Panel
     test-orm-nop-datav:

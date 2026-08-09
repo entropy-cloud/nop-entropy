@@ -43,4 +43,12 @@
           primary="true">
         <property name="bizObjName" value="NopDatavDashboardSnapshot"/>
     </bean>
+
+    <bean id="io.nop.datav.service.entity.NopDatavFilterStateBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopDatavFilterState" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.datav.biz.INopDatavFilterStateBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopDatavFilterState"/>
+    </bean>
 </beans>

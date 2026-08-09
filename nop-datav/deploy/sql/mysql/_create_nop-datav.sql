@@ -91,6 +91,21 @@ CREATE TABLE nop_datav_snapshot(
   constraint PK_nop_datav_snapshot primary key (SNAPSHOT_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+CREATE TABLE nop_datav_filter_state(
+  STATE_ID VARCHAR(32) NOT NULL    COMMENT '状态ID',
+  USER_NAME VARCHAR(50) NOT NULL    COMMENT '用户名',
+  DASHBOARD_ID VARCHAR(32) NOT NULL    COMMENT '看板ID',
+  STATE_CONTENT LONGTEXT NULL    COMMENT '状态内容',
+  DEL_FLAG TINYINT NULL    COMMENT '删除标记',
+  VERSION BIGINT NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
+  REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint PK_nop_datav_filter_state primary key (STATE_ID)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
 
    ALTER TABLE nop_datav_dashboard COMMENT '看板';
                 
@@ -101,4 +116,6 @@ CREATE TABLE nop_datav_snapshot(
    ALTER TABLE nop_datav_dataset_ref COMMENT '数据集引用';
                 
    ALTER TABLE nop_datav_snapshot COMMENT '发布快照';
+                
+   ALTER TABLE nop_datav_filter_state COMMENT '筛选状态';
                 

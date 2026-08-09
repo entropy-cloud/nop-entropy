@@ -309,5 +309,53 @@
                             i18n-en:displayName="Unique Snapshot Per Dashboard Version"/>
             </unique-keys>
         </entity>
+        <entity className="io.nop.datav.dao.entity.NopDatavFilterState" createTimeProp="createTime"
+                createrProp="createdBy" displayName="筛选状态" name="io.nop.datav.dao.entity.NopDatavFilterState"
+                registerShortName="true" tableName="nop_datav_filter_state" updateTimeProp="updateTime"
+                updaterProp="updatedBy" versionProp="version" ext:icon="filter" i18n-en:displayName="Filter State">
+            <columns>
+                <column code="STATE_ID" displayName="状态ID" mandatory="true" name="stateId" precision="32" primary="true"
+                        propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="State Id"/>
+                <column code="USER_NAME" displayName="用户名" mandatory="true" name="userName" precision="50" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="User Name"/>
+                <column code="DASHBOARD_ID" displayName="看板ID" mandatory="true" name="dashboardId" precision="32"
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Dashboard Id"/>
+                <column code="STATE_CONTENT" displayName="状态内容" domain="clobJson" name="stateContent" propId="4"
+                        stdDataType="string" stdDomain="json" stdSqlType="CLOB" i18n-en:displayName="State Content"/>
+                <column code="DEL_FLAG" displayName="删除标记" domain="delFlag" name="delFlag" propId="5" stdDataType="byte"
+                        stdDomain="boolFlag" stdSqlType="TINYINT" i18n-en:displayName="Del Flag"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="6"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="7" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="8" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="9" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="10" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="11"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+            </columns>
+            <indexes>
+                <index name="IX_NOP_DATAV_FILTER_STATE_DASHBOARD" unique="false">
+                    <column name="dashboardId"/>
+                </index>
+            </indexes>
+            <relations>
+                <to-one displayName="看板" name="dashboard" refEntityName="io.nop.datav.dao.entity.NopDatavDashboard"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Dashboard">
+                    <join>
+                        <on leftProp="dashboardId" rightProp="dashboardId"/>
+                    </join>
+                </to-one>
+            </relations>
+            <unique-keys>
+                <unique-key columns="userName,dashboardId" name="UK_NOP_DATAV_FILTER_STATE_USER_DASH"
+                            i18n-en:displayName="Unique Filter State Per User And Dashboard"/>
+            </unique-keys>
+        </entity>
     </entities>
 </orm>

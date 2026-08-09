@@ -16,6 +16,11 @@ public interface NopDatavErrors {
     String ARG_VALUE = "value";
     String ARG_EXPECTED_TYPE = "expectedType";
     String ARG_REASON = "reason";
+    String ARG_TARGET_PANEL_ID = "targetPanelId";
+    String ARG_TARGET_TYPE = "targetType";
+    String ARG_TARGET_ID = "targetId";
+    String ARG_SOURCE_FIELD = "sourceField";
+    String ARG_USER_NAME = "userName";
 
     ErrorCode ERR_DATAV_DASHBOARD_NOT_FOUND = define(
             "nop.err.datav.dashboard-not-found",
@@ -93,5 +98,41 @@ public interface NopDatavErrors {
             "nop.err.datav.param-type-mismatch",
             "Parameter {paramName} value '{value}' does not match expected type {expectedType}",
             ARG_PARAM_NAME, ARG_VALUE, ARG_EXPECTED_TYPE
+    );
+
+    ErrorCode ERR_DATAV_INVALID_LINKAGE_CONFIG = define(
+            "nop.err.datav.invalid-linkage-config",
+            "Invalid linkage config JSON for panel: {panelId}, reason: {reason}",
+            ARG_PANEL_ID, ARG_REASON
+    );
+
+    ErrorCode ERR_DATAV_INVALID_JUMP_CONFIG = define(
+            "nop.err.datav.invalid-jump-config",
+            "Invalid jump config JSON for panel: {panelId}, reason: {reason}",
+            ARG_PANEL_ID, ARG_REASON
+    );
+
+    ErrorCode ERR_DATAV_LINKAGE_TARGET_PANEL_NOT_FOUND = define(
+            "nop.err.datav.linkage-target-panel-not-found",
+            "Linkage target panel not found: {targetPanelId} (source panel: {panelId})",
+            ARG_TARGET_PANEL_ID, ARG_PANEL_ID
+    );
+
+    ErrorCode ERR_DATAV_INVALID_JUMP_TARGET = define(
+            "nop.err.datav.invalid-jump-target",
+            "Invalid jump target: targetType={targetType}, targetId={targetId} (panel: {panelId})",
+            ARG_TARGET_TYPE, ARG_TARGET_ID, ARG_PANEL_ID
+    );
+
+    ErrorCode ERR_DATAV_LINKAGE_FIELD_NOT_MATCHED = define(
+            "nop.err.datav.linkage-field-not-matched",
+            "Linkage click context is missing required non-empty 'field' (panel: {panelId}, sourceField={sourceField})",
+            ARG_SOURCE_FIELD, ARG_PANEL_ID
+    );
+
+    ErrorCode ERR_DATAV_INVALID_FILTER_STATE = define(
+            "nop.err.datav.invalid-filter-state",
+            "Invalid filter state content for dashboard: {dashboardId}, reason: {reason}",
+            ARG_DASHBOARD_ID, ARG_REASON
     );
 }
