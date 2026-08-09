@@ -1,6 +1,6 @@
 # nop-stream 独立深度审计路线图
 
-> Last updated: 2026-08-09 (item 23 → done; plan `2026-08-09-1253-1` completed with owner-doc reconciliation + bounded readiness decision `ready only for enumerated e2e-proved capability/environment pairs`)
+> Last updated: 2026-08-09 (T2 multi-JVM capability-gap code-remediation plan `2026-08-09-1252-1` completed: `TestMultiJvmExactlyOnceRecovery` + `TestMultiJvmCoordinatorFailover` now PASS in T2 lane; root cause was `AbstractPollingLeaderElector.scheduleCheck()` MICROSECONDS→MILLISECONDS bug; evidence reclassification `blocked`→`e2e-proved` is a successor audit task)
 > Sources: `ai-dev/analysis/2026-08/2026-08-06-nop-stream-audit-baseline-and-roadmap-analysis.md` (primary), `ai-dev/backlog/nop-stream-production-roadmap.md` (implementation ownership), `ai-dev/audits/nop-stream-production/2026-08-02-2107-*.md` (current confirmed findings)
 
 ## Purpose
