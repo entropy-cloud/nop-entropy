@@ -1,0 +1,27 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 面板类型
+locale: zh-CN
+valueType: int
+description: 
+options:
+
+  - label: 图表
+    value: 0
+    description: 
+  
+  - label: 表格
+    value: 10
+    description: 
+  
+  - label: 指标
+    value: 20
+    description: 
+  
+  - label: 文本
+    value: 30
+    description: 
+  
+  - label: 容器
+    value: 40
+    description: 
+  

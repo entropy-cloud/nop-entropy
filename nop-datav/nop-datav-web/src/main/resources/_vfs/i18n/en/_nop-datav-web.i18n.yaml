@@ -1,0 +1,34 @@
+site:
+  resource:
+    FNPT:NopDatavDashboard:mutation:
+      displayName: Modify Dashboard
+    FNPT:NopDatavDashboard:query:
+      displayName: Query Dashboard
+    FNPT:NopDatavDashboardSnapshot:mutation:
+      displayName: Modify Dashboard Snapshot
+    FNPT:NopDatavDashboardSnapshot:query:
+      displayName: Query Dashboard Snapshot
+    FNPT:NopDatavDashboardTab:mutation:
+      displayName: Modify Dashboard Tab
+    FNPT:NopDatavDashboardTab:query:
+      displayName: Query Dashboard Tab
+    FNPT:NopDatavDatasetRef:mutation:
+      displayName: Modify Dataset Ref
+    FNPT:NopDatavDatasetRef:query:
+      displayName: Query Dataset Ref
+    FNPT:NopDatavPanel:mutation:
+      displayName: Modify Panel
+    FNPT:NopDatavPanel:query:
+      displayName: Query Panel
+    NopDatavDashboard-main:
+      displayName: Dashboard
+    NopDatavDashboardSnapshot-main:
+      displayName: Dashboard Snapshot
+    NopDatavDashboardTab-main:
+      displayName: Dashboard Tab
+    NopDatavDatasetRef-main:
+      displayName: Dataset Ref
+    NopDatavPanel-main:
+      displayName: Panel
+    test-orm-nop-datav:
+      displayName: Test nop-datav

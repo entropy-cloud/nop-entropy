@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en"
+      xmlns:auth-gen="auth-gen" xmlns:xpl="xpl">
+
+    <x:post-extends>
+        <auth-gen:DefaultActionAuthPostExtends xpl:lib="/nop/auth/xlib/auth-gen.xlib"/>
+    </x:post-extends>
+
+    <site id="main">
+        <resource id="test-orm-nop-datav" displayName="测试nop-datav" i18n-en:displayName="Test nop-datav"
+                  icon="layout-dashboard" resourceType="TOPM" orderNo="10000" routePath="/test-orm-nop-datav"
+                  component="layouts/default/index">
+            <children>
+                <resource id="NopDatavDashboard-main" displayName="看板" orderNo="10001" i18n-en:displayName="Dashboard"
+                          icon="layout-dashboard" component="AMIS" resourceType="SUBM"
+                          url="/nop/datav/pages/NopDatavDashboard/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopDatavDashboard:query" displayName="查询看板"
+                                  i18n-en:displayName="Query Dashboard" orderNo="10002" resourceType="FNPT">
+                            <permissions>NopDatavDashboard:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDashboard:mutation" displayName="修改看板"
+                                  i18n-en:displayName="Modify Dashboard" orderNo="10003" resourceType="FNPT">
+                            <permissions>NopDatavDashboard:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDatavDashboardSnapshot-main" displayName="发布快照" orderNo="10004"
+                          i18n-en:displayName="Dashboard Snapshot" icon="git-commit-horizontal" component="AMIS"
+                          resourceType="SUBM" url="/nop/datav/pages/NopDatavDashboardSnapshot/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopDatavDashboardSnapshot:query" displayName="查询发布快照"
+                                  i18n-en:displayName="Query Dashboard Snapshot" orderNo="10005" resourceType="FNPT">
+                            <permissions>NopDatavDashboardSnapshot:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDashboardSnapshot:mutation" displayName="修改发布快照"
+                                  i18n-en:displayName="Modify Dashboard Snapshot" orderNo="10006" resourceType="FNPT">
+                            <permissions>NopDatavDashboardSnapshot:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDatavDashboardTab-main" displayName="页签" orderNo="10007"
+                          i18n-en:displayName="Dashboard Tab" icon="tabs" component="AMIS" resourceType="SUBM"
+                          url="/nop/datav/pages/NopDatavDashboardTab/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopDatavDashboardTab:query" displayName="查询页签"
+                                  i18n-en:displayName="Query Dashboard Tab" orderNo="10008" resourceType="FNPT">
+                            <permissions>NopDatavDashboardTab:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDashboardTab:mutation" displayName="修改页签"
+                                  i18n-en:displayName="Modify Dashboard Tab" orderNo="10009" resourceType="FNPT">
+                            <permissions>NopDatavDashboardTab:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDatavDatasetRef-main" displayName="数据集引用" orderNo="10010"
+                          i18n-en:displayName="Dataset Ref" icon="database" component="AMIS" resourceType="SUBM"
+                          url="/nop/datav/pages/NopDatavDatasetRef/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopDatavDatasetRef:query" displayName="查询数据集引用"
+                                  i18n-en:displayName="Query Dataset Ref" orderNo="10011" resourceType="FNPT">
+                            <permissions>NopDatavDatasetRef:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDatasetRef:mutation" displayName="修改数据集引用"
+                                  i18n-en:displayName="Modify Dataset Ref" orderNo="10012" resourceType="FNPT">
+                            <permissions>NopDatavDatasetRef:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDatavPanel-main" displayName="面板" orderNo="10013" i18n-en:displayName="Panel"
+                          icon="panels-top-left" component="AMIS" resourceType="SUBM"
+                          url="/nop/datav/pages/NopDatavPanel/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopDatavPanel:query" displayName="查询面板" i18n-en:displayName="Query Panel"
+                                  orderNo="10014" resourceType="FNPT">
+                            <permissions>NopDatavPanel:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavPanel:mutation" displayName="修改面板" i18n-en:displayName="Modify Panel"
+                                  orderNo="10015" resourceType="FNPT">
+                            <permissions>NopDatavPanel:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+            </children>
+        </resource>
+    </site>
+</auth>

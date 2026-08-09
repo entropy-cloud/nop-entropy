@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc"
+       xmlns="http://www.springframework.org/schema/beans" x:extends="/nop/biz/defaults/service-base.beans.xml"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
+
+    <bean id="io.nop.datav.service.entity.NopDatavDashboardBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopDatavDashboard" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.datav.biz.INopDatavDashboardBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopDatavDashboard"/>
+    </bean>
+
+    <bean id="io.nop.datav.service.entity.NopDatavPanelBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopDatavPanel" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.datav.biz.INopDatavPanelBiz" ioc:force-lazy-property="true" lazy-init="true" primary="true">
+        <property name="bizObjName" value="NopDatavPanel"/>
+    </bean>
+
+    <bean id="io.nop.datav.service.entity.NopDatavDashboardTabBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopDatavDashboardTab" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.datav.biz.INopDatavDashboardTabBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopDatavDashboardTab"/>
+    </bean>
+
+    <bean id="io.nop.datav.service.entity.NopDatavDatasetRefBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopDatavDatasetRef" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.datav.biz.INopDatavDatasetRefBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopDatavDatasetRef"/>
+    </bean>
+
+    <bean id="io.nop.datav.service.entity.NopDatavDashboardSnapshotBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopDatavDashboardSnapshot" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.datav.biz.INopDatavDashboardSnapshotBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopDatavDashboardSnapshot"/>
+    </bean>
+</beans>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<c:script>
+// 根据ORM模型生成dao/entity/xbiz
+codeGenerator.withTargetDir("../").renderModel('../../model/nop-datav.orm.xml','/nop/templates/orm', '/',$scope);
+codeGenerator.withTargetDir("../nop-datav-dao/src/main/java").renderModel('../../nop-datav-dao/src/main/resources/_vfs/nop/datav/orm/app.orm.xml',
+    '/nop/templates/orm-entity','/',$scope);
+codeGenerator.withTargetDir("../").renderModel('../../nop-datav-dao/src/main/resources/_vfs/nop/datav/orm/app.orm.xml',
+   '/nop/templates/orm-model','/', $scope);
+</c:script>

@@ -1,0 +1,101 @@
+entity:
+  label:
+    NopDatavDashboard: 看板
+    NopDatavDashboardSnapshot: 发布快照
+    NopDatavDashboardTab: 页签
+    NopDatavDatasetRef: 数据集引用
+    NopDatavPanel: 面板
+prop:
+  label:
+    NopDatavDashboard:
+      createTime: 创建时间
+      createdBy: 创建人
+      dashboardId: 看板ID
+      dashboardName: 看板名
+      dashboardType: 看板类型
+      dashboardType_label: 看板类型
+      delFlag: 删除标记
+      description: 描述
+      displayName: 显示名
+      layoutConfig: 布局配置
+      layoutConfigComponent: null
+      publishStatus: 发布状态
+      publishStatus_label: 发布状态
+      publishedBy: 发布人
+      publishedTime: 发布时间
+      publishedVersion: 已发布版本
+      remark: 备注
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopDatavDashboardSnapshot:
+      createTime: 创建时间
+      createdBy: 创建人
+      dashboard: 看板
+      dashboard.displayName: 看板
+      dashboardId: 看板ID
+      delFlag: 删除标记
+      publishedBy: 发布人
+      publishedTime: 发布时间
+      remark: 备注
+      snapshotContent: 快照内容
+      snapshotContentComponent: null
+      snapshotId: 快照ID
+      snapshotVersion: 快照版本
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopDatavDashboardTab:
+      createTime: 创建时间
+      createdBy: 创建人
+      dashboard: 看板
+      dashboard.displayName: 看板
+      dashboardId: 看板ID
+      delFlag: 删除标记
+      displayName: 显示名
+      remark: 备注
+      sortOrder: 排序
+      tabConfig: 页签配置
+      tabConfigComponent: null
+      tabId: 页签ID
+      tabName: 页签名
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopDatavDatasetRef:
+      createTime: 创建时间
+      createdBy: 创建人
+      dashboard: 看板
+      dashboard.displayName: 看板
+      dashboardId: 看板ID
+      datasetRefId: 数据集引用ID
+      delFlag: 删除标记
+      paramMapping: 参数映射
+      paramMappingComponent: null
+      refDatasetId: 引用数据集ID
+      refDatasetName: 引用数据集名
+      remark: 备注
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopDatavPanel:
+      createTime: 创建时间
+      createdBy: 创建人
+      dashboard: 看板
+      dashboard.displayName: 看板
+      dashboardId: 看板ID
+      datasetRefId: 数据集引用ID
+      delFlag: 删除标记
+      displayName: 显示名
+      panelConfig: 面板配置
+      panelConfigComponent: null
+      panelId: 面板ID
+      panelName: 面板名
+      panelType: 面板类型
+      panelType_label: 面板类型
+      remark: 备注
+      sortOrder: 排序
+      tabId: 页签ID
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本

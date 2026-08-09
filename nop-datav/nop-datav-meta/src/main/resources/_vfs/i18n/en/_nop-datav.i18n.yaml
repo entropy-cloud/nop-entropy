@@ -1,0 +1,119 @@
+entity:
+  label:
+    NopDatavDashboard: Dashboard
+    NopDatavDashboardSnapshot: Dashboard Snapshot
+    NopDatavDashboardTab: Dashboard Tab
+    NopDatavDatasetRef: Dataset Ref
+    NopDatavPanel: Panel
+prop:
+  label:
+    NopDatavDashboard:
+      dashboardId: Dashboard Id
+      dashboardName: Dashboard Name
+      displayName: Display Name
+      description: Description
+      dashboardType: Dashboard Type
+      dashboardType_label: null
+      publishStatus: Publish Status
+      publishStatus_label: null
+      publishedVersion: Published Version
+      publishedBy: Published By
+      publishedTime: Published Time
+      layoutConfig: Layout Config
+      delFlag: Del Flag
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      layoutConfigComponent: null
+    NopDatavDashboardSnapshot:
+      snapshotId: Snapshot Id
+      dashboardId: Dashboard Id
+      snapshotVersion: Snapshot Version
+      snapshotContent: Snapshot Content
+      publishedBy: Published By
+      publishedTime: Published Time
+      delFlag: Del Flag
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      dashboard: Dashboard
+      dashboard.displayName: Dashboard
+      snapshotContentComponent: null
+    NopDatavDashboardTab:
+      tabId: Tab Id
+      dashboardId: Dashboard Id
+      tabName: Tab Name
+      displayName: Display Name
+      sortOrder: Sort Order
+      tabConfig: Tab Config
+      delFlag: Del Flag
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      dashboard: Dashboard
+      dashboard.displayName: Dashboard
+      tabConfigComponent: null
+    NopDatavDatasetRef:
+      datasetRefId: Dataset Ref Id
+      dashboardId: Dashboard Id
+      refDatasetId: Ref Dataset Id
+      refDatasetName: Ref Dataset Name
+      paramMapping: Param Mapping
+      delFlag: Del Flag
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      dashboard: Dashboard
+      dashboard.displayName: Dashboard
+      paramMappingComponent: null
+    NopDatavPanel:
+      panelId: Panel Id
+      dashboardId: Dashboard Id
+      panelName: Panel Name
+      displayName: Display Name
+      panelType: Panel Type
+      panelType_label: null
+      datasetRefId: Dataset Ref Id
+      tabId: Tab Id
+      sortOrder: Sort Order
+      panelConfig: Panel Config
+      delFlag: Del Flag
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      dashboard: Dashboard
+      dashboard.displayName: Dashboard
+      panelConfigComponent: null
+dict:
+  label:
+    datav/dashboard-type: Dashboard Type
+    datav/publish-status: Publish Status
+    datav/panel-type: Panel Type
+dict.option.label:
+  datav/dashboard-type:
+    '0': Dashboard
+    '10': Report
+  datav/publish-status:
+    '0': Draft
+    '10': Published
+  datav/panel-type:
+    '0': Chart
+    '10': Table
+    '20': Metric
+    '30': Text
+    '40': Container

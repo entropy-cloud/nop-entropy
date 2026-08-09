@@ -1,0 +1,15 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 看板类型
+locale: zh-CN
+valueType: int
+description: 
+options:
+
+  - label: 看板
+    value: 0
+    description: 
+  
+  - label: 报表
+    value: 10
+    description: 
+  
