@@ -166,3 +166,51 @@ revalidation_evidence: TestJobCoordinatorRecoveryConcurrency#concurrentGlobalRec
 **Optional fields**: `note`, `successor_note`.
 
 Disposition files live at `ai-dev/audits/nop-stream-independent-audit/stage-*-disposition.md`. The `disposition` subcommand scans these files (same pattern as the `evidence` subcommand scanning `*.evidence.md`).
+
+## Stage 23 Supplement — Owner-Doc Manifest Schema
+
+> Status: frozen supplement (Stage 23). This section is an **additive** rules block: it changes **neither** the 11 evidence-row fields (Field Specification table) **nor** the 7-value/5-value vocabularies above. It introduces a **separate** `@@DOC_REVIEW` block format and a **separate** 3-value owner-doc-review vocabulary used by Stage 23 to record that every owner document in the frozen manifest has been reviewed against the proven evidence corpus. Authoritative text lives here; the `docs-coverage` subcommand of `check-nop-stream-audit-manifest.mjs` enforces it.
+
+### Owner-Doc Review — 3-Value Vocabulary (frozen)
+
+| Value | Meaning | Required conditional field |
+| --- | --- | --- |
+| `reviewed-no-change` | The document was reviewed against proven evidence/dispositions and no contract drift was found; no edit applied. | none |
+| `corrected` | A confirmed contract drift was found and a minimal correction was applied to the document to reconcile it with live code / proven evidence. | `correction_summary` (non-empty) AND `drift_ids` (non-empty) |
+| `out-of-scope` | The document is registered in the manifest but the nop-stream content falls outside Stage 23 review scope; an explicit reason must be given. | `correction_summary` (the out-of-scope reason; non-empty) |
+
+### Cross-Cutting Review Rules
+
+1. **Exactly one review per manifest document**: each `doc_path` registered in `owner-doc-manifest.md` receives exactly one `@@DOC_REVIEW` block (completeness + no-dup).
+2. **Every `doc_path` must exist** in the repo (the validator resolves it relative to PROJECT_ROOT).
+3. **A confirmed contract drift MUST be `corrected`**: it may not be silently downgraded to `reviewed-no-change` or dropped (Rule #24 — No Silent No-Op).
+4. **`--strict` mode**: every manifest document MUST have a `@@DOC_REVIEW` block (partial mode permits zero review rows, e.g. before Phase 2 review sweep).
+
+### `@@DOC_REVIEW` Block — Encoding Format
+
+Each review is a `@@DOC_REVIEW ... @@END` record with flat `key: value` lines (same convention as `@@EVIDENCE` / `@@DISPOSITION` blocks). Review blocks live centrally in `owner-doc-manifest.md`. Example (illustrative only):
+
+```
+@@DOC_REVIEW
+doc_path: docs-for-ai/01-repo-map/module-groups.md
+review_status: corrected
+drift_ids: module-groups-nop-stream-submodules
+correction_summary: Updated submodule list from 6 to 10 to match live reactor
+reviewer_evidence: cross-checked nop-stream/pom.xml <modules>; Stage 4 manifest baseline
+@@END
+```
+
+**Required fields** (all blocks): `doc_path`, `review_status`.
+
+**Conditional fields** (required when `review_status` value triggers them, see table above): `correction_summary`, `drift_ids`.
+
+**Optional fields**: `reviewer_evidence` (recommended — records the cross-check source).
+
+The manifest lives at `ai-dev/audits/nop-stream-independent-audit/owner-doc-manifest.md`. The `docs-coverage` subcommand scans it (same pattern as the other subcommands scanning their respective files).
+
+### Readiness Aggregation Rule (Stage 23)
+
+Stage 23 also produces a **readiness decision** by aggregating every evidence row's `disposition` and `required_lane` against the lane registry in `environment-qualification.md`. The `readiness` subcommand of `check-nop-stream-audit-manifest.mjs` enforces the gate:
+
+- A row is **required-lane blocked** when its `disposition: blocked` AND the lane it needs (per its `required_lane` strength and the blocked-lane reason recorded in its `positive_proof`/`rejection_proof`/note) is unavailable.
+- **Readiness gate** (restated from Rule S5-2): any required-lane blocked row blocks the blanket `ready` verdict. Stage 23 may only return `ready only for enumerated e2e-proved capability/environment pairs` (enumerating the `e2e-proved` rows) OR `not ready` (if any required-lane blocker lacks an owner). A blanket `ready` verdict is **forbidden** while any required-lane row remains `blocked`.

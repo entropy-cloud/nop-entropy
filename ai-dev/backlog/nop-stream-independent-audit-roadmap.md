@@ -1,6 +1,6 @@
 # nop-stream 独立深度审计路线图
 
-> Last updated: 2026-08-08 (item 22 → done; plan `2026-08-08-2100-2` completed with validator+test evidence)
+> Last updated: 2026-08-09 (item 23 → done; plan `2026-08-09-1253-1` completed with owner-doc reconciliation + bounded readiness decision `ready only for enumerated e2e-proved capability/environment pairs`)
 > Sources: `ai-dev/analysis/2026-08/2026-08-06-nop-stream-audit-baseline-and-roadmap-analysis.md` (primary), `ai-dev/backlog/nop-stream-production-roadmap.md` (implementation ownership), `ai-dev/audits/nop-stream-production/2026-08-02-2107-*.md` (current confirmed findings)
 
 ## Purpose
@@ -36,8 +36,8 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 20. 历史 P0/P1 CEP/connector/runtime finding disposition: `done`
 - 21. 历史 P2 core/state/window finding disposition: `done`
 - 22. 历史 P2 CEP/connector/runtime finding disposition: `done`
-- 23. 文档契约与 production-readiness 判定: `todo`
-- ★ 独立 production-readiness 判定（4-23 均完成且无未归属 P0/P1 或 required lane blocked）: not yet reached
+- 23. 文档契约与 production-readiness 判定: `done`
+- ★ 独立 production-readiness 判定（4-23 均完成且无未归属 P0/P1 或 required lane blocked）: bounded — `ready only for enumerated e2e-proved capability/environment pairs`（126 e2e-proved rows；8 blocked rows 阻止 blanket-ready，详见 `ai-dev/audits/nop-stream-independent-audit/stage-23-readiness-report.md`）
 
 ## Status Values
 
@@ -99,7 +99,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 | 20 | Historical P0/P1 CEP/connector/runtime disposition | `2026-08-08-2000-3-historical-p0p1-cep-connector-runtime-disposition.md` | 4, 12, 13, 14, 15, 16, 18 | No | frozen high-priority corpus slice |
 | 21 | Historical P2 core/state/window disposition | `2026-08-08-2100-1-historical-p2-core-state-window-disposition.md` | 4, 9, 10, 11, 17, 18, 19 | No | frozen P2 corpus slice |
 | 22 | Historical P2 CEP/connector/runtime disposition | `2026-08-08-2100-2-historical-p2-cep-connector-runtime-disposition.md` | 4, 12, 13, 14, 15, 16, 17, 18, 20 | No | frozen P2 corpus slice |
-| 23 | Documentation contract and readiness decision | successor audit plan | 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22 | No | owner docs and evidence corpus |
+| 23 | Documentation contract and readiness decision | `2026-08-09-1253-1-documentation-contract-readiness-decision.md` | 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22 | No | owner docs and evidence corpus |
 
 > `Deps` lists direct hard prerequisites. The Mermaid graph below contains every direct dependency in this table; transitive reachability does not replace a listed direct edge.
 

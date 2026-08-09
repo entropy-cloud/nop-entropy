@@ -72,7 +72,7 @@ WindowAssigner.assignWindows(element, timestamp) → 窗口集合 W[]
 |---|---|---|---|
 | `TumblingEventTimeWindows` | TimeWindow | 滚动：固定大小，不重叠 | 否 |
 | `SlidingEventTimeWindows` | TimeWindow | 滑动：固定大小，有重叠 | 否 |
-| `SessionEventTimeWindows` | TimeWindow | 会话：按间隔动态合并 | 是（`MergingWindowAssigner`） |
+| `EventTimeSessionWindows` | TimeWindow | 会话：按间隔动态合并 | 是（`MergingWindowAssigner`） |
 | `GlobalWindows` | GlobalWindow | 全局：所有元素同一窗口 | 否 |
 
 `MergingWindowAssigner`（抽象类）：支持窗口合并的 Assigner 基类，提供 `mergeWindows(Collection<W>, MergeCallback<W>)` 方法。

@@ -8,15 +8,17 @@
 
 ## Disposition Summary
 
-**Totals: 16 findings → 15 revalidated, 0 stale, 1 active/successor owner, 0 residual-risk, 0 blocked**
+**Totals: 16 findings → 16 revalidated, 0 stale, 0 active/successor owner, 0 residual-risk, 0 blocked**
+
+> Update 2026-08-09 (Stage 23 closure): M7-2-P1-16 transitioned from `active/successor owner` (owner_plan: roadmap-stage-23) to `revalidated` — Stage 23 plan `2026-08-09-1253-1` completed the formal full-sweep doc-convergence of TimestampsAndWatermarksOperator placement across all owner docs. The successor owner discharged; the drift is fully closed (no live behavior defect).
 
 ### Disposition × Severity Cross-Tab
 
 | Disposition \ Severity | P0 | P1 | P2 | AR | Total |
 | --- | --- | --- | --- | --- | --- |
-| `revalidated` | 5 | 10 | 0 | 0 | 15 |
+| `revalidated` | 5 | 11 | 0 | 0 | 16 |
 | `stale` | 0 | 0 | 0 | 0 | 0 |
-| `active/successor owner` | 0 | 1 | 0 | 0 | 1 |
+| `active/successor owner` | 0 | 0 | 0 | 0 | 0 |
 | `residual-risk` | 0 | 0 | 0 | 0 | 0 |
 | `blocked` | 0 | 0 | 0 | 0 | 0 |
 | **Total** | **5** | **11** | **0** | **0** | **16** |
@@ -25,17 +27,16 @@
 
 | Disposition \ Domain | checkpoint/state | window | contract/test | Total |
 | --- | --- | --- | --- | --- |
-| `revalidated` | 8 | 0 | 7 | 15 |
+| `revalidated` | 8 | 0 | 8 | 16 |
 | `stale` | 0 | 0 | 0 | 0 |
-| `active/successor owner` | 0 | 0 | 1 | 1 |
+| `active/successor owner` | 0 | 0 | 0 | 0 |
 | `residual-risk` | 0 | 0 | 0 | 0 |
 | `blocked` | 0 | 0 | 0 | 0 |
 | **Total** | **8** | **0** | **8** | **16** |
 
 ### Cross-Cutting Concern Compliance
 
-- **No P0/P1 still-live defect is silently downgraded to `residual-risk`**: all 5 P0 and 10 of 11 P1 findings are `revalidated` (defect fixed against live code); the 1 remaining still-live P1 (M7-2-P1-16, TimestampsAndWatermarksOperator doc drift) falls to `active/successor owner` with `owner_plan: roadmap-stage-23` (Stage 23 = documentation contract, status `todo`). Zero P0/P1 are `residual-risk`.
-- **The single `active/successor owner` carries a valid sentinel**: `roadmap-stage-23` points to Stage 23 which is `todo` (not `done`) in the roadmap — a legal successor owner per the Stage 18 validator.
+- **No P0/P1 still-live defect is silently downgraded to `residual-risk`**: all 5 P0 and all 11 P1 findings are `revalidated`. M7-2-P1-16 (TimestampsAndWatermarksOperator doc drift) was the last `active/successor owner` (owner_plan: roadmap-stage-23); it is now `revalidated` because Stage 23 completed the doc-convergence sweep and discharged the successor ownership. Zero P0/P1 are `residual-risk`; zero P0/P1 remain `active/successor owner`.
 - **Recurrent consistency**: M7-2-P1-6 (Shard 19) is recurrent with M8-2-P1-10 (Shard 18). Both describe the same `StateDescriptor` TypeSerializer-ref root cause; both are `revalidated` (design `state-management-design.md` §6.1 sanctions the escape hatch). The two dispositions are CONSISTENT — same root cause, same resolution, no contradiction.
 - **ZERO-test findings (M7-2-P0-5/7/8)**: all three now have live regression coverage (Stage 10 + Stage 17 negative controls) — `revalidated`.
 
@@ -155,10 +156,9 @@ successor_note: anchor drifted (98-143 → 153-246 acknowledgeOperator in curren
 finding_id: M7-2-P1-16
 severity: P1
 source_anchor: README.md:90; ai-dev/design/nop-stream/time-model-design.md:174; nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/operators/TimestampsAndWatermarksOperator.java:8
-disposition: active/successor owner
-owner_plan: roadmap-stage-23
-revalidation_evidence: TimestampsAndWatermarksOperator confirmed to live in nop-stream-core/operators (not runtime). Stage 11 (EVID-S11-013/020) confirmed this doc-vs-code drift still-live and assigned documentation convergence to Stage 23. Live revalidation notes PARTIAL correction since Stage 11: time-model-design.md:174 now correctly states "core 模块（nop-stream-core/.../operators/）" and source-anchors.md:215 correctly states "core/operators"; the nop-stream README was rewritten (41 lines) and no longer mis-places the operator. However a formal doc-convergence sweep (every README + design doc + the bundled SessionEventTimeWindows→EventTimeSessionWindows naming drift cited in EVID-S11-020) has not been completed; Stage 23 (documentation contract, roadmap status `todo`) owns the formal convergence and readiness verdict
-note: still-live P1 doc-drift; per schema rule P0/P1 still-live must have an owner (active/successor owner), NOT residual-risk. roadmap-stage-23 sentinel is valid (Stage 23 = `todo`, not `done`)
+disposition: revalidated
+revalidation_evidence: Stage 23 (plan 2026-08-09-1253-1) completed the formal full-sweep doc-convergence: TimestampsAndWatermarksOperator placement verified consistent across ALL owner docs (source-anchors.md STRM-031, time-model-design.md §6, README.md, graph-model-design.md, component-roadmap.md, comparison.md) — all correctly locate the operator in nop-stream-core/operators (matching live nop-stream-core/src/main/java/io/nop/stream/core/operators/TimestampsAndWatermarksOperator.java). The bundled SessionEventTimeWindows→EventTimeSessionWindows naming drift (EVID-S11-020) was also corrected in window-design.md. owner-doc-manifest.md records 17 reviewed-no-change + 2 corrected docs; docs-coverage --strict exits 0. Doc drift is fully closed (revalidated); no live behavior defect discovered during the sweep. Former successor owner roadmap-stage-23 discharged.
+note: closed by Stage 23 Phase 2 doc-convergence sweep. Transitioned from active/successor owner (owner_plan: roadmap-stage-23) to revalidated because the successor discharged its ownership and the drift is fully converged. Per schema rule the successor owner was valid while Stage 23 was non-done; now that Stage 23 is done and the sweep is complete, the finding is revalidated (doc-drift-closed).
 @@END
 
 @@DISPOSITION
