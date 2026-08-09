@@ -1,6 +1,7 @@
 entity:
   label:
     NopDatavDashboard: Dashboard
+    NopDatavDashboardShare: Dashboard Share
     NopDatavDashboardSnapshot: Dashboard Snapshot
     NopDatavDashboardTab: Dashboard Tab
     NopDatavDatasetRef: Dataset Ref
@@ -31,6 +32,22 @@ prop:
       paramConfig: Param Config
       layoutConfigComponent: null
       paramConfigComponent: null
+    NopDatavDashboardShare:
+      shareId: Share Id
+      shareToken: Share Token
+      dashboardId: Dashboard Id
+      passwordHash: Password Hash
+      expireTime: Expire Time
+      enabled: Enabled
+      delFlag: Del Flag
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      dashboard: Dashboard
+      dashboard.displayName: Dashboard
     NopDatavDashboardSnapshot:
       snapshotId: Snapshot Id
       dashboardId: Dashboard Id

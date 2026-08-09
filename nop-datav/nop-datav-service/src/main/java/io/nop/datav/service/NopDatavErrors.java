@@ -22,6 +22,9 @@ public interface NopDatavErrors {
     String ARG_SOURCE_FIELD = "sourceField";
     String ARG_USER_NAME = "userName";
 
+    String ARG_SHARE_ID = "shareId";
+    String ARG_SHARE_TOKEN = "shareToken";
+
     ErrorCode ERR_DATAV_DASHBOARD_NOT_FOUND = define(
             "nop.err.datav.dashboard-not-found",
             "Dashboard not found: {dashboardId}",
@@ -140,5 +143,47 @@ public interface NopDatavErrors {
             "nop.err.datav.not-dashboard-owner",
             "User {userName} is not the owner of dashboard: {dashboardId}",
             ARG_USER_NAME, ARG_DASHBOARD_ID
+    );
+
+    ErrorCode ERR_DATAV_SHARE_TOKEN_GENERATE_FAILED = define(
+            "nop.err.datav.share-token-generate-failed",
+            "Failed to generate a unique share token after retries",
+            ARG_DASHBOARD_ID
+    );
+
+    ErrorCode ERR_DATAV_SHARE_NOT_FOUND = define(
+            "nop.err.datav.share-not-found",
+            "Share link not found for shareId: {shareId}",
+            ARG_SHARE_ID
+    );
+
+    ErrorCode ERR_DATAV_SHARE_TOKEN_NOT_FOUND = define(
+            "nop.err.datav.share-token-not-found",
+            "Share link not found for token: {shareToken}",
+            ARG_SHARE_TOKEN
+    );
+
+    ErrorCode ERR_DATAV_SHARE_DISABLED = define(
+            "nop.err.datav.share-disabled",
+            "Share link is disabled: {shareToken}",
+            ARG_SHARE_TOKEN
+    );
+
+    ErrorCode ERR_DATAV_SHARE_EXPIRED = define(
+            "nop.err.datav.share-expired",
+            "Share link has expired: {shareToken}",
+            ARG_SHARE_TOKEN
+    );
+
+    ErrorCode ERR_DATAV_SHARE_PASSWORD_REQUIRED = define(
+            "nop.err.datav.share-password-required",
+            "Password is required for share link: {shareToken}",
+            ARG_SHARE_TOKEN
+    );
+
+    ErrorCode ERR_DATAV_SHARE_PASSWORD_MISMATCH = define(
+            "nop.err.datav.share-password-mismatch",
+            "Password does not match for share link: {shareToken}",
+            ARG_SHARE_TOKEN
     );
 }

@@ -34,6 +34,12 @@
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-biz</artifactId>
         </dependency>
+        <!-- nop-biz-auth-core: 提供 IPasswordEncoder (bean nopPasswordEncoder = CompositePasswordEncoder:
+             SHA256 预哈希 + BCrypt 外层) 用于分享密码哈希存储。分享密码绕过 nopPasswordPolicy。 -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-biz-auth-core</artifactId>
+        </dependency>
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-config</artifactId>

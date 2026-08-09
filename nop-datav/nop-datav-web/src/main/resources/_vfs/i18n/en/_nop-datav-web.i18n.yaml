@@ -14,6 +14,10 @@ site:
       displayName: Resolve Filter Values
     FNPT:NopDatavDashboard:rollbackDashboard:
       displayName: Rollback Dashboard
+    FNPT:NopDatavDashboardShare:mutation:
+      displayName: Modify Dashboard Share
+    FNPT:NopDatavDashboardShare:query:
+      displayName: Query Dashboard Share
     FNPT:NopDatavDashboardSnapshot:mutation:
       displayName: Modify Dashboard Snapshot
     FNPT:NopDatavDashboardSnapshot:query:
@@ -48,6 +52,8 @@ site:
       displayName: Resolve Linkage
     NopDatavDashboard-main:
       displayName: Dashboard
+    NopDatavDashboardShare-main:
+      displayName: Dashboard Share
     NopDatavDashboardSnapshot-main:
       displayName: Dashboard Snapshot
     NopDatavDashboardTab-main:

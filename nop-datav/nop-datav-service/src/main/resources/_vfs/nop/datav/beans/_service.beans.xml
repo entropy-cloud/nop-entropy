@@ -51,4 +51,12 @@
           primary="true">
         <property name="bizObjName" value="NopDatavFilterState"/>
     </bean>
+
+    <bean id="io.nop.datav.service.entity.NopDatavDashboardShareBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopDatavDashboardShare" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.datav.biz.INopDatavDashboardShareBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopDatavDashboardShare"/>
+    </bean>
 </beans>

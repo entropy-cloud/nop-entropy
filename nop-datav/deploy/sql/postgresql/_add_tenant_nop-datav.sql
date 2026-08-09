@@ -11,6 +11,8 @@ alter table nop_datav_snapshot add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NUL
 
 alter table nop_datav_filter_state add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
+alter table nop_datav_share add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
 alter table nop_datav_dashboard drop constraint PK_nop_datav_dashboard;
 alter table nop_datav_dashboard add constraint PK_nop_datav_dashboard primary key (NOP_TENANT_ID, dashboard_id);
 
@@ -28,5 +30,8 @@ alter table nop_datav_snapshot add constraint PK_nop_datav_snapshot primary key 
 
 alter table nop_datav_filter_state drop constraint PK_nop_datav_filter_state;
 alter table nop_datav_filter_state add constraint PK_nop_datav_filter_state primary key (NOP_TENANT_ID, state_id);
+
+alter table nop_datav_share drop constraint PK_nop_datav_share;
+alter table nop_datav_share add constraint PK_nop_datav_share primary key (NOP_TENANT_ID, share_id);
 
 

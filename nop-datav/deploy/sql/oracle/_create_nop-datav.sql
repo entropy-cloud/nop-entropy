@@ -106,6 +106,23 @@ CREATE TABLE nop_datav_filter_state(
   constraint PK_nop_datav_filter_state primary key (STATE_ID)
 );
 
+CREATE TABLE nop_datav_share(
+  SHARE_ID VARCHAR2(32) NOT NULL ,
+  SHARE_TOKEN VARCHAR2(64) NOT NULL ,
+  DASHBOARD_ID VARCHAR2(32) NOT NULL ,
+  PASSWORD_HASH VARCHAR2(200)  ,
+  EXPIRE_TIME TIMESTAMP  ,
+  ENABLED SMALLINT default 1   ,
+  DEL_FLAG SMALLINT  ,
+  VERSION NUMBER(20) NOT NULL ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR2(200)  ,
+  constraint PK_nop_datav_share primary key (SHARE_ID)
+);
+
 
       COMMENT ON TABLE nop_datav_dashboard IS '看板';
                 
@@ -284,4 +301,32 @@ CREATE TABLE nop_datav_filter_state(
       COMMENT ON COLUMN nop_datav_filter_state.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON COLUMN nop_datav_filter_state.REMARK IS '备注';
+                    
+      COMMENT ON TABLE nop_datav_share IS '看板分享';
+                
+      COMMENT ON COLUMN nop_datav_share.SHARE_ID IS '分享ID';
+                    
+      COMMENT ON COLUMN nop_datav_share.SHARE_TOKEN IS '分享令牌';
+                    
+      COMMENT ON COLUMN nop_datav_share.DASHBOARD_ID IS '看板ID';
+                    
+      COMMENT ON COLUMN nop_datav_share.PASSWORD_HASH IS '密码哈希';
+                    
+      COMMENT ON COLUMN nop_datav_share.EXPIRE_TIME IS '过期时间';
+                    
+      COMMENT ON COLUMN nop_datav_share.ENABLED IS '启用标记';
+                    
+      COMMENT ON COLUMN nop_datav_share.DEL_FLAG IS '删除标记';
+                    
+      COMMENT ON COLUMN nop_datav_share.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_datav_share.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_datav_share.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_datav_share.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_datav_share.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_datav_share.REMARK IS '备注';
                     

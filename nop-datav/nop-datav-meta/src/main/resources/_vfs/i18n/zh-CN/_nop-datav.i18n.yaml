@@ -1,6 +1,7 @@
 entity:
   label:
     NopDatavDashboard: 看板
+    NopDatavDashboardShare: 看板分享
     NopDatavDashboardSnapshot: 发布快照
     NopDatavDashboardTab: 页签
     NopDatavDatasetRef: 数据集引用
@@ -28,6 +29,22 @@ prop:
       publishedTime: 发布时间
       publishedVersion: 已发布版本
       remark: 备注
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopDatavDashboardShare:
+      createTime: 创建时间
+      createdBy: 创建人
+      dashboard: 看板
+      dashboard.displayName: 看板
+      dashboardId: 看板ID
+      delFlag: 删除标记
+      enabled: 启用标记
+      expireTime: 过期时间
+      passwordHash: 密码哈希
+      remark: 备注
+      shareId: 分享ID
+      shareToken: 分享令牌
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本

@@ -106,6 +106,23 @@ CREATE TABLE nop_datav_filter_state(
   constraint PK_nop_datav_filter_state primary key (STATE_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+CREATE TABLE nop_datav_share(
+  SHARE_ID VARCHAR(32) NOT NULL    COMMENT '分享ID',
+  SHARE_TOKEN VARCHAR(64) NOT NULL    COMMENT '分享令牌',
+  DASHBOARD_ID VARCHAR(32) NOT NULL    COMMENT '看板ID',
+  PASSWORD_HASH VARCHAR(200) NULL    COMMENT '密码哈希',
+  EXPIRE_TIME DATETIME(3) NULL    COMMENT '过期时间',
+  ENABLED TINYINT default 1  NULL    COMMENT '启用标记',
+  DEL_FLAG TINYINT NULL    COMMENT '删除标记',
+  VERSION BIGINT NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
+  REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint PK_nop_datav_share primary key (SHARE_ID)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
 
    ALTER TABLE nop_datav_dashboard COMMENT '看板';
                 
@@ -118,4 +135,6 @@ CREATE TABLE nop_datav_filter_state(
    ALTER TABLE nop_datav_snapshot COMMENT '发布快照';
                 
    ALTER TABLE nop_datav_filter_state COMMENT '筛选状态';
+                
+   ALTER TABLE nop_datav_share COMMENT '看板分享';
                 

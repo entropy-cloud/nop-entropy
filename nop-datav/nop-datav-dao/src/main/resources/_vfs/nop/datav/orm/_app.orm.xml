@@ -357,5 +357,57 @@
                             i18n-en:displayName="Unique Filter State Per User And Dashboard"/>
             </unique-keys>
         </entity>
+        <entity className="io.nop.datav.dao.entity.NopDatavDashboardShare" createTimeProp="createTime"
+                createrProp="createdBy" displayName="看板分享" name="io.nop.datav.dao.entity.NopDatavDashboardShare"
+                registerShortName="true" tableName="nop_datav_share" updateTimeProp="updateTime" updaterProp="updatedBy"
+                versionProp="version" ext:icon="share-2" i18n-en:displayName="Dashboard Share">
+            <columns>
+                <column code="SHARE_ID" displayName="分享ID" mandatory="true" name="shareId" precision="32" primary="true"
+                        propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="Share Id"/>
+                <column code="SHARE_TOKEN" displayName="分享令牌" mandatory="true" name="shareToken" precision="64"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Share Token"/>
+                <column code="DASHBOARD_ID" displayName="看板ID" mandatory="true" name="dashboardId" precision="32"
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Dashboard Id"/>
+                <column code="PASSWORD_HASH" displayName="密码哈希" name="passwordHash" precision="200" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Password Hash"/>
+                <column code="EXPIRE_TIME" displayName="过期时间" name="expireTime" propId="5" stdDataType="timestamp"
+                        stdSqlType="TIMESTAMP" i18n-en:displayName="Expire Time"/>
+                <column code="ENABLED" defaultValue="1" displayName="启用标记" domain="boolFlag" name="enabled" propId="6"
+                        stdDataType="byte" stdSqlType="TINYINT" i18n-en:displayName="Enabled"/>
+                <column code="DEL_FLAG" displayName="删除标记" domain="delFlag" name="delFlag" propId="7" stdDataType="byte"
+                        stdDomain="boolFlag" stdSqlType="TINYINT" i18n-en:displayName="Del Flag"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="8"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="9" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="10" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="11" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="12" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="13"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+            </columns>
+            <indexes>
+                <index name="IX_NOP_DATAV_SHARE_DASHBOARD" unique="false">
+                    <column name="dashboardId"/>
+                </index>
+            </indexes>
+            <relations>
+                <to-one displayName="看板" name="dashboard" refEntityName="io.nop.datav.dao.entity.NopDatavDashboard"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Dashboard">
+                    <join>
+                        <on leftProp="dashboardId" rightProp="dashboardId"/>
+                    </join>
+                </to-one>
+            </relations>
+            <unique-keys>
+                <unique-key columns="shareToken" name="UK_NOP_DATAV_SHARE_TOKEN"
+                            i18n-en:displayName="Unique Share Token"/>
+            </unique-keys>
+        </entity>
     </entities>
 </orm>
