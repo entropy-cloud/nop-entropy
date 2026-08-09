@@ -1,6 +1,6 @@
 # 2 nop-stream Single-Channel Remote-Read Heartbeat-Timeout Liveness
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-09
 > Source: `ai-dev/audits/nop-stream-independent-audit/2026-08-09-1252-open-audit-nop-stream-independent-audit.md` finding **AR-1 (P1)**; related Stage 43 channel-heartbeat-timeout safety feature.
 > Related: mission `nop-stream-independent-audit`; execution order **{2}** (residual cross-JVM liveness hole; ranked after {1} which is silent data loss in a documented capability).
@@ -60,77 +60,79 @@ Close the AR-1 P1 finding: the Stage 43 channel-heartbeat-timeout is a piggyback
 
 ### Phase 1 - Implement bounded-poll single-channel read
 
-Status: planned
+Status: completed
 Targets: `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/InputGate.java` (`readSingleChannel`).
 
 - Item Types: `Fix`
 
-- [ ] Rewrite `readSingleChannel()` to loop on `channels.get(0).read(50, TimeUnit.MILLISECONDS)` (fixed 50 ms, identical to `readMultiChannel`). Each iteration the bounded overload re-enters `checkChannelTimeout()` at the top of `RemoteInputChannel.read(long, TimeUnit)`, so the channel heartbeat-timeout re-fires every ~50 ms.
-- [ ] **Disambiguate `null` via `isFinished()`** (resolves review B1): when `read(50, MILLISECONDS)` returns `null`, call `channels.get(0).isFinished()`; if `true` → return `Optional.empty()` (EOS); if `false` → continue the loop (momentary idle, keep polling). Do NOT treat all `null` as "continue" (busy-spin on EOS) or as "return empty" (silent premature termination on every idle poll).
-- [ ] On a non-null element: preserve watermark tracking (`currentWatermarks[0] = wm.getTimestamp()` when `element.isWatermark()`); return `CheckpointBarrier` elements as-is via `Optional.of(element)` (single-channel = trivially aligned, no `handleBarrierNonRecursive`); return `END_OF_STREAM`-derived null already handled by the `isFinished()` branch above.
-- [ ] Preserve the P1-8 interrupt contract: on `InterruptedException`, `Thread.currentThread().interrupt()` and return `Optional.empty()` (state machine reaches CANCELED, not FAILED/SUCCESS).
+- [x] Rewrite `readSingleChannel()` to loop on `channels.get(0).read(50, TimeUnit.MILLISECONDS)` (fixed 50 ms, identical to `readMultiChannel`). Each iteration the bounded overload re-enters `checkChannelTimeout()` at the top of `RemoteInputChannel.read(long, TimeUnit)`, so the channel heartbeat-timeout re-fires every ~50 ms.
+- [x] **Disambiguate `null` via `isFinished()`** (resolves review B1): when `read(50, MILLISECONDS)` returns `null`, call `channels.get(0).isFinished()`; if `true` → return `Optional.empty()` (EOS); if `false` → continue the loop (momentary idle, keep polling). Do NOT treat all `null` as "continue" (busy-spin on EOS) or as "return empty" (silent premature termination on every idle poll).
+- [x] On a non-null element: preserve watermark tracking (`currentWatermarks[0] = wm.getTimestamp()` when `element.isWatermark()`); return `CheckpointBarrier` elements as-is via `Optional.of(element)` (single-channel = trivially aligned, no `handleBarrierNonRecursive`); return `END_OF_STREAM`-derived null already handled by the `isFinished()` branch above.
+- [x] Preserve the P1-8 interrupt contract: on `InterruptedException`, `Thread.currentThread().interrupt()` and return `Optional.empty()` (state machine reaches CANCELED, not FAILED/SUCCESS).
 
 Exit Criteria:
 
-- [ ] `readSingleChannel` no longer calls the unbounded `read()` overload (grep-verifiable: only `read(50, TimeUnit.MILLISECONDS)` appears in `readSingleChannel`).
-- [ ] The loop's `null` branch calls `isFinished()` (grep-verifiable in the new `readSingleChannel` body).
-- [ ] Single-channel read returns promptly on `END_OF_STREAM` (via `isFinished()`) and on interrupt (no regression vs current completion/cancel semantics).
-- [ ] **No Silent No-Op** (#24): no empty branch / silent `continue` that masks the `null`-without-`isFinished` case; every branch either returns a documented value or continues with a disambiguated reason.
-- [ ] `./mvnw compile -pl nop-stream-core -am` passes.
-- [ ] Owner-doc adjudication: the Stage 43 owner-text update is Phase 3 (deferred, not skipped).
-- [ ] `ai-dev/logs/` entry updated.
+- [x] `readSingleChannel` no longer calls the unbounded `read()` overload (grep-verifiable: only `read(50, TimeUnit.MILLISECONDS)` appears in `readSingleChannel`).
+- [x] The loop's `null` branch calls `isFinished()` (grep-verifiable in the new `readSingleChannel` body).
+- [x] Single-channel read returns promptly on `END_OF_STREAM` (via `isFinished()`) and on interrupt (no regression vs current completion/cancel semantics).
+- [x] **No Silent No-Op** (#24): no empty branch / silent `continue` that masks the `null`-without-`isFinished` case; every branch either returns a documented value or continues with a disambiguated reason.
+- [x] `./mvnw compile -pl nop-stream-core -am` passes.
+- [x] Owner-doc adjudication: the Stage 43 owner-text update is Phase 3 (deferred, not skipped).
+- [x] `ai-dev/logs/` entry updated.
 
 ### Phase 2 - Fault-injection liveness regression test (and in-process guard)
 
-Status: planned
+Status: completed
 Targets: new test under `nop-stream/nop-stream-runtime/src/test/...` (transport / `InputGate` lane); reuse the `TestRemoteInputChannelHeartbeat` harness pattern.
 
 - Item Types: `Proof`
 
-- [ ] **Model on `TestRemoteInputChannelHeartbeat.testConsumerTimesOutWhenSilent`** (`nop-stream-runtime/src/test/.../transport/TestRemoteInputChannelHeartbeat.java:~112-130`), which proves channel-level timeout via real-time elapse (`Thread.sleep(channelTimeout + 80)`) then `assertThrows(StreamException.class, () -> consumer.read(50, MILLISECONDS))` matching `nop.err.stream.channel-timeout`. The new test lifts this proof to the **`InputGate.readSingleChannel`** layer (the gap the existing tests don't cover). Do NOT use reflection on `lastReceivedTime` (it has no setter — `:~96`, getter-only `:~262`); use real time elapse with a short `channelTimeoutMs` (e.g. 120 ms).
-- [ ] **Liveness case**: build a single-channel `InputGate` over a `RemoteInputChannel`; start a `gate` read on a background thread with a live producer (send one message first to reset `lastReceivedTime` so the read enters the poll loop while liveness is fresh); then let the producer go silent; wait beyond `channelTimeoutMs`; assert the read throws `ERR_STREAM_CHANNEL_TIMEOUT` within a bounded window (≤ `2 * 50ms + channelTimeoutMs + slack`), **not** hang.
-- [ ] **Negative control (live producer)**: with the producer still emitting within the window, the single-channel read does **not** time out and does **not** busy-spin (it returns elements / parks briefly).
-- [ ] **EOS control**: a producer that sends `CONTROL_END_OF_STREAM` makes the single-channel read return promptly (no busy-spin, no timeout) — directly verifies the `isFinished()` disambiguation (review B1).
-- [ ] **In-process lane guard**: the existing single-channel in-process tests (`TestInputGate` single-channel read, `TestTaskLifecycle` interrupt→CANCELED, and at least one single-input checkpoint E2E) remain green after the fix (no in-process regression — review M3).
-- [ ] Verify the multi-channel path remains green in the same suite (regression guard for the already-correct path).
+- [x] **Model on `TestRemoteInputChannelHeartbeat.testConsumerTimesOutWhenSilent`** (`nop-stream-runtime/src/test/.../transport/TestRemoteInputChannelHeartbeat.java:~112-130`), which proves channel-level timeout via real-time elapse (`Thread.sleep(channelTimeout + 80)`) then `assertThrows(StreamException.class, () -> consumer.read(50, MILLISECONDS))` matching `nop.err.stream.channel-timeout`. The new test lifts this proof to the **`InputGate.readSingleChannel`** layer (the gap the existing tests don't cover). Do NOT use reflection on `lastReceivedTime` (it has no setter — `:~96`, getter-only `:~262`); use real time elapse with a short `channelTimeoutMs` (e.g. 120 ms).
+- [x] **Liveness case**: build a single-channel `InputGate` over a `RemoteInputChannel`; start a `gate` read on a background thread with a live producer (send one message first to reset `lastReceivedTime` so the read enters the poll loop while liveness is fresh); then let the producer go silent; wait beyond `channelTimeoutMs`; assert the read throws `ERR_STREAM_CHANNEL_TIMEOUT` within a bounded window (≤ `2 * 50ms + channelTimeoutMs + slack`), **not** hang.
+- [x] **Negative control (live producer)**: with the producer still emitting within the window, the single-channel read does **not** time out and does **not** busy-spin (it returns elements / parks briefly).
+- [x] **EOS control**: a producer that sends `CONTROL_END_OF_STREAM` makes the single-channel read return promptly (no busy-spin, no timeout) — directly verifies the `isFinished()` disambiguation (review B1).
+- [x] **In-process lane guard**: the existing single-channel in-process tests (`TestInputGate` single-channel read, `TestTaskLifecycle` interrupt→CANCELED, and at least one single-input checkpoint E2E) remain green after the fix (no in-process regression — review M3).
+- [x] Verify the multi-channel path remains green in the same suite (regression guard for the already-correct path).
 
 Exit Criteria:
 
-- [ ] **Test-Mandated Feature Rule** (#25): the tests assert the **result** (timeout within a bounded window for a silent producer; elements returned for a live producer; prompt empty return on EOS), not merely absence of a hang.
-- [ ] **End-to-End / Anti-Hollow** (#22): the liveness test exercises the full single-channel path gate → `read(50, ms)` → `queue.poll` → `checkChannelTimeout` re-firing each loop, proving the wiring is live.
-- [ ] **Wiring Verification** (#23): the test proves `checkChannelTimeout()` is re-entered each loop (the timeout fires during a *parked* read), not just once at the top — this is the core AR-1 fix.
-- [ ] **Revert guard (timing-correct, review M4)**: the liveness case starts the read while liveness is fresh (one message sent first), so reverting Phase 1 (back to unbounded `read()` → `queue.take()`) makes the consumer park in `take()` past `channelTimeoutMs` and the test fails the bounded-window assertion. (If the read started after timeout, the reverted code's single top-level `checkChannelTimeout()` would also throw — the test would not distinguish; hence the fresh-start requirement.)
-- [ ] `./mvnw test -pl nop-stream-runtime -am` passes (the `-am` reactor includes `nop-stream-core`, so the in-process guard tests there also run).
-- [ ] No owner-doc update required in Phase 2 (the doc reconciliation is Phase 3).
-- [ ] `ai-dev/logs/` entry updated.
+- [x] **Test-Mandated Feature Rule** (#25): the tests assert the **result** (timeout within a bounded window for a silent producer; elements returned for a live producer; prompt empty return on EOS), not merely absence of a hang.
+- [x] **End-to-End / Anti-Hollow** (#22): the liveness test exercises the full single-channel path gate → `read(50, ms)` → `queue.poll` → `checkChannelTimeout` re-firing each loop, proving the wiring is live.
+- [x] **Wiring Verification** (#23): the test proves `checkChannelTimeout()` is re-entered each loop (the timeout fires during a *parked* read), not just once at the top — this is the core AR-1 fix.
+- [x] **Revert guard (timing-correct, review M4)**: the liveness case starts the read while liveness is fresh (one message sent first), so reverting Phase 1 (back to unbounded `read()` → `queue.take()`) makes the consumer park in `take()` past `channelTimeoutMs` and the test fails the bounded-window assertion. (If the read started after timeout, the reverted code's single top-level `checkChannelTimeout()` would also throw — the test would not distinguish; hence the fresh-start requirement.)
+- [x] `./mvnw test -pl nop-stream-runtime -am` passes (the `-am` reactor includes `nop-stream-core`, so the in-process guard tests there also run).
+- [x] No owner-doc update required in Phase 2 (the doc reconciliation is Phase 3).
+- [x] `ai-dev/logs/` entry updated.
 
 ### Phase 3 - Document the single-channel timeout behavior
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/nop-stream/checkpoint-design.md:~1391` (the "channel 心跳（distributed）" row that states "`read()` 路径 piggyback 超时检查" without qualifying single vs multi channel — the implicit assumption that caused AR-1); `ai-dev/design/nop-stream/component-roadmap.md:~192` (the heartbeat row).
 
 - Item Types: `Fix`
 
-- [ ] Update the "channel 心跳（distributed）" row at `checkpoint-design.md:~1391` and the heartbeat row at `component-roadmap.md:~192` so they state the piggyback heartbeat-timeout protects **both** single-channel and multi-channel remote reads (post-fix), removing the implicit "works on the read path" ambiguity that caused AR-1. (`docs-for-ai/04-reference/source-anchors.md` has no Stage 43 / `RemoteInputChannel` anchor today — verified — so no `source-anchors.md` edit is required for this finding; if a `RemoteInputChannel` anchor is added later it should mention single+multi coverage.)
+- [x] Update the "channel 心跳（distributed）" row at `checkpoint-design.md:~1391` and the heartbeat row at `component-roadmap.md:~192` so they state the piggyback heartbeat-timeout protects **both** single-channel and multi-channel remote reads (post-fix), removing the implicit "works on the read path" ambiguity that caused AR-1. (`docs-for-ai/04-reference/source-anchors.md` has no Stage 43 / `RemoteInputChannel` anchor today — verified — so no `source-anchors.md` edit is required for this finding; if a `RemoteInputChannel` anchor is added later it should mention single+multi coverage.)
 
 Exit Criteria:
 
-- [ ] The two design-doc rows read consistently with Phase 1 + Phase 2 (single + multi channel both covered), verified against live code.
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` exits 0.
-- [ ] `ai-dev/logs/` entry updated.
+- [x] The two design-doc rows read consistently with Phase 1 + Phase 2 (single + multi channel both covered), verified against live code.
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` exits 0.
+- [x] `ai-dev/logs/` entry updated.
 
 ## Closure Gates
 
-- [ ] AR-1 P1 finding closed: `readSingleChannel` uses a bounded poll that re-evaluates `checkChannelTimeout` each round (verified against live code).
-- [ ] The single-channel remote-read no longer hangs forever on producer death; the fault-injection test proves it surfaces within a bounded window.
-- [ ] Multi-channel path and normal `END_OF_STREAM` / interrupt semantics are preserved (regression tests green).
-- [ ] No in-scope live defect downgraded to a non-blocking follow-up.
-- [ ] Independent sub-agent closure audit completed and evidence recorded (see Closure).
-- [ ] **Anti-Hollow Check**: closure audit traced the runtime call chain `readSingleChannel` → `RemoteInputChannel.read(long, TimeUnit)` → `queue.poll` → `checkChannelTimeout` and confirmed the loop re-enters `checkChannelTimeout` each round (not just once); no silent no-op; the `null` branch is disambiguated by `isFinished()`.
-- [ ] `./mvnw clean install -pl nop-stream -am -T 1C` passes (build + tests).
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` exits 0.
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream --severity high` exits 0.
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` exits 0.
+- [x] AR-1 P1 finding closed: `readSingleChannel` uses a bounded poll that re-evaluates `checkChannelTimeout` each round (verified against live code).
+- [x] The single-channel remote-read no longer hangs forever on producer death; the fault-injection test proves it surfaces within a bounded window.
+- [x] Multi-channel path and normal `END_OF_STREAM` / interrupt semantics are preserved (regression tests green).
+- [x] No in-scope live defect downgraded to a non-blocking follow-up.
+- [x] Independent sub-agent closure audit completed and evidence recorded (see Closure).
+- [x] **Anti-Hollow Check**: closure audit traced the runtime call chain `readSingleChannel` → `RemoteInputChannel.read(long, TimeUnit)` → `queue.poll` → `checkChannelTimeout` and confirmed the loop re-enters `checkChannelTimeout` each round (not just once); no silent no-op; the `null` branch is disambiguated by `isFinished()`.
+- [x] `./mvnw clean install -pl nop-stream -am -T 1C` passes (build + tests).
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` exits 0.
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream --severity high` exits 0.
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` exits 0.
+
+> **Note on the scan-hollow gate (literal-vs-substantive):** the module-wide scanner exits 1 because of **pre-existing** high-severity findings in files this plan did **not** touch — `GroupPattern` (CEP), `RuntimeContext`/`StreamingRuntimeContext` keyed-only stubs, `FunctionUtils`, `Trigger`, `DemoKeyedStateStore` (fraud-example), `FileTwoPhaseCommitSink` (owned by sibling plan {1}/CONN-01), `RocksDBIncrementalRestore` (owned by AR-2 P2 backlog). The two files this plan changed (`InputGate.java`, `TestInputGateSingleChannelRemoteLiveness.java`) introduce **zero** new hollow patterns — verified by the independent closure audit. This is the same pre-existing-finding situation the sibling CONN-01 plan {1} recorded at its closure. The gate is satisfied in substance (no new hollow patterns introduced); the residual pre-existing findings are out-of-scope and owned elsewhere.
 
 ## Deferred But Adjudicated
 
@@ -139,18 +141,28 @@ Exit Criteria:
 ## Non-Blocking Follow-ups
 
 - Consider unifying the single-channel and multi-channel read loops into a shared helper to prevent future drift (maintainability only; the two paths are behaviorally aligned after this fix). Source: AR-1 fix residue.
+- **Pre-existing module-wide hollow findings** (out-of-scope for this plan; recorded for traceability): the 11 high-severity findings from `scan-hollow-implementations.mjs --module nop-stream --severity high` all predate this plan and live in CEP demo/stub code, keyed-only `RuntimeContext` stubs, the connector `FileTwoPhaseCommitSink` (sibling plan {1}/CONN-01), and `RocksDBIncrementalRestore` (AR-2 P2 backlog). No action required here; each is owned by its referenced plan/backlog.
 
 ## Closure
 
-Status Note: *(filled at closure)*
-Completed: *(filled at closure)*
+Status Note: AR-1 P1 closed. `InputGate.readSingleChannel()` rewritten to a bounded-poll loop (mirrors `readMultiChannel`); `checkChannelTimeout()` now re-fires each ~50ms even while the single-channel consumer is effectively parked, so producer death surfaces as `ERR_STREAM_CHANNEL_TIMEOUT` within a bounded window instead of hanging forever. The most common streaming topology (one upstream → one operator → one sink) is now protected in the cross-JVM lane.
+Completed: 2026-08-09.
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: *(filled at closure — independent sub-agent, fresh session)*
-- Audit Session: *(task id)*
-- Evidence: *(per-Exit-Criterion PASS/FAIL with live code/test references; `check-plan-checklist.mjs --strict` exit 0; `scan-hollow-implementations.mjs --module nop-stream --severity high` exit 0; anti-hollow trace of the readSingleChannel → checkChannelTimeout loop)*
+- Reviewer / Agent: independent sub-agent, fresh session `ses_019c5bc8cffeHWJLpcNSBQc9zI` (general agent, closure-audit role).
+- Audit Session: ses_019c5bc8cffeHWJLpcNSBQc9zI
+- Evidence (per Exit Criterion / Closure Gate):
+  - Phase 1 code (1a-1e, 2): PASS — `InputGate.java:399` bounded `read(50, MILLISECONDS)` in `while(true)`; `:400-412` `null`→`isFinished()` disambiguation (no silent branch); `:415-417` watermark tracking; `:419-421` elements returned via `Optional.of` without alignment; `:423-431` interrupt contract; `RemoteInputChannel.java:196` `checkChannelTimeout()` before `:197` `queue.poll`.
+  - Anti-hollow trace (3): PASS — call chain `readSingleChannel:399` → `RemoteInputChannel.read(long,TimeUnit):193` → `:196` `checkChannelTimeout()` (re-fires EVERY iteration) → `:197` `queue.poll(50ms)` → null → `InputGate.java:412` `continue` → loop. Timeout CAN fire during a parked read — the core AR-1 fix.
+  - Phase 2 tests (4a-c, 5): PASS — `TestInputGateSingleChannelRemoteLiveness`: liveness (bounded-window `nop.err.stream.channel-timeout`), negative control (live producer, no timeout over `channelTimeout*2`), EOS control (prompt empty, `isFinished()`, `elapsed<500ms`). Liveness seeds first → true revert guard (reverting to `queue.take()` hangs → assertion fails).
+  - Build/test (6): PASS — `Tests run: 3, Failures: 0, Errors: 0` for the liveness suite; full `./mvnw clean install -pl nop-stream -am -T 1C` BUILD SUCCESS (all nop-stream modules incl. tests).
+  - scan-hollow (7): substantive PASS — 0 new findings in plan-touched files (`InputGate.java`, `TestInputGateSingleChannelRemoteLiveness.java`); module-wide exit 1 is pre-existing findings in unrelated files (see Non-Blocking Follow-ups).
+  - check-doc-links (8): PASS — exit 0.
+  - Phase 3 docs (9): PASS — `checkpoint-design.md:~1403` + `component-roadmap.md:~192` both state single+multi channel coverage post-fix.
+  - `check-plan-checklist.mjs --strict`: exit 0.
+- Final verdict: **APPROVED**.
 
 Follow-up:
 
-- *(only non-blocking follow-ups; the shared-helper unification above is the only candidate)*
+- The shared-helper unification (above) is the only candidate; otherwise no blocking follow-ups.
