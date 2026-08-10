@@ -1,6 +1,6 @@
 # nop-datav 实现 Roadmap
 
-> Last updated: 2026-08-10（D5 全 done（D5-1+D5-2）；D4 全 done；D1-4/D2-4 前端仍 blocked 于 flux）
+> Last updated: 2026-08-10（D6-1 ChatBI 数据集查询 done；D5 全 done（D5-1+D5-2）；D4 全 done；D1-4/D2-4 前端仍 blocked 于 flux）
 > Sources: `ai-dev/analysis/2026-08/2026-08-09-nop-datav-function-analysis.md`（功能设计分析）
 > 前端配套：`nop-chaos-flux` BI 控件族（chart/pivot-table/stat-tile/map/dashboard editor 计划）
 > 目标：将 nop-datav 从空壳实现为「BI 看板/大屏的模型层 + 运行时编排」（数据源/数据集/查询复用 nop-report + nop-metadata + EQL）
@@ -95,7 +95,7 @@ AI 或维护者读完本文即知哪些工作项已启动（`todo`）、已计�
 > 依赖：D2（参数/联动语义稳定）；nop-ai 生态（已有）
 > 设计契约：`ai-dev/design/nop-datav/ai-design.md`（D6 时产出）
 
-- D6-1. ChatBI（自然语言 → 数据集查询/看板生成，DataEase SQL 助手 / Metabase Metabot 参考，nop-ai agent 接入）: `todo`
+- D6-1. ChatBI（自然语言 → 数据集查询/看板生成，DataEase SQL 助手 / Metabase Metabot 参考，nop-ai agent 接入）: `done`（核心查询部分；NL→看板生成拆为 successor）
 - D6-2. AI 大屏生成（可选，MCP Tool 暴露组件/配置，DataRoom ai-generation 参考）: `todo`
 
 验收：对话生成看板/查询可用；配置经 nop-ai 管线执行。
