@@ -137,6 +137,11 @@
                                   roles="admin,user">
                             <permissions>NopDatavScreen:getScreenLayout</permissions>
                         </resource>
+                        <resource id="FNPT:NopDatavScreen:getComponentTypes" displayName="查询组件类型"
+                                  i18n-en:displayName="Get Component Types" orderNo="10044" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavScreen:getComponentTypes</permissions>
+                        </resource>
                     </children>
                 </resource>
                 <!-- ==================== NopDatavScreenWidget（D4-1）==================== -->

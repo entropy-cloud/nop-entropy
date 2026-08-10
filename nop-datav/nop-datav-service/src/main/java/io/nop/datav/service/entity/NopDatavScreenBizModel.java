@@ -15,11 +15,13 @@ import io.nop.core.lang.sql.SQL;
 import io.nop.dao.api.IDaoEntity;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.datav.biz.INopDatavScreenBiz;
+import io.nop.datav.biz.PanelComponentMeta;
 import io.nop.datav.biz.ScreenLayoutConfig;
 import io.nop.datav.dao.entity.NopDatavScreen;
 import io.nop.datav.dao.entity.NopDatavScreenSnapshot;
 import io.nop.datav.dao.entity.NopDatavScreenWidget;
 import io.nop.datav.service.NopDatavOperatorResolver;
+import io.nop.datav.service.component.IPanelComponent;
 import io.nop.datav.service.component.PanelComponentRegistry;
 import io.nop.datav.service.screen.ScreenLayoutParser;
 
@@ -147,6 +149,26 @@ public class NopDatavScreenBizModel extends CrudBizModel<NopDatavScreen>
         }
         // 解析时执行完整运行时校验：JSON 非法 / widget 越界 / 未知组件类型（经 PanelComponentRegistry）
         return layoutParser.parse(screen.getScreenId(), snapshot);
+    }
+
+    /**
+     * 组件元信息查询（D4-2）。返回 {@link PanelComponentRegistry} 全部已注册组件的类型标识 +
+     * 显示名 + needsDataset + 配置区域描述符。全局查询，不绑定特定大屏。
+     *
+     * <p>供前端/测试消费，回答「哪些组件类型存在」与「每种类型接受什么配置」。
+     * 默认 admin,user 可读（与 {@code getScreenLayout} 同语义）。{@code context} 仅用于权限校验。</p>
+     */
+    @Override
+    @BizQuery
+    @Auth(permissions = "NopDatavScreen:getComponentTypes")
+    public List<PanelComponentMeta> getComponentTypes(IServiceContext context) {
+        java.util.Collection<IPanelComponent> components = PanelComponentRegistry.getInstance()
+                .getComponents().values();
+        List<PanelComponentMeta> result = new ArrayList<>(components.size());
+        for (IPanelComponent component : components) {
+            result.add(component.getMetadata());
+        }
+        return result;
     }
 
     private String serializeScreenContent(NopDatavScreen screen) {

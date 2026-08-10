@@ -10,11 +10,11 @@ import io.nop.dataset.IDataSet;
 import io.nop.dataset.IDataSetMeta;
 import io.nop.dataset.IDataRow;
 
+import io.nop.datav.biz.PanelComponentMeta;
 import io.nop.datav.biz.PanelDataResult;
 import io.nop.datav.dao.entity.NopDatavDatasetRef;
 import io.nop.datav.dao.entity.NopDatavPanel;
 import io.nop.datav.service.component.IPanelComponent;
-import io.nop.datav.service.component.PanelComponentMeta;
 import io.nop.datav.service.component.PanelComponentRegistry;
 import io.nop.datav.service.component.PanelTypeMapping;
 

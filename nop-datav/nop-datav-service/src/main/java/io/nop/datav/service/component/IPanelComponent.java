@@ -1,5 +1,7 @@
 package io.nop.datav.service.component;
 
+import io.nop.datav.biz.PanelComponentMeta;
+
 /**
  * 面板组件接口。每种组件类型实现本接口，向 {@link PanelComponentRegistry} 暴露其元信息。
  *

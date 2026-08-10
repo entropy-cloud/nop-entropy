@@ -54,6 +54,8 @@ site:
       displayName: Resolve Jump
     FNPT:NopDatavPanel:resolveLinkage:
       displayName: Resolve Linkage
+    FNPT:NopDatavScreen:getComponentTypes:
+      displayName: Get Component Types
     FNPT:NopDatavScreen:getPublishedScreen:
       displayName: Get Published Screen
     FNPT:NopDatavScreen:getScreenLayout:

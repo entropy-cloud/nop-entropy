@@ -7,10 +7,12 @@ import io.nop.core.context.ServiceContextImpl;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.datav.biz.INopDatavScreenBiz;
+import io.nop.datav.biz.PanelComponentMeta;
 import io.nop.datav.biz.ScreenLayoutConfig;
 import io.nop.datav.dao.entity.NopDatavScreen;
 import io.nop.datav.dao.entity.NopDatavScreenSnapshot;
 import io.nop.datav.dao.entity.NopDatavScreenWidget;
+import io.nop.datav.service.component.PanelComponentTypes;
 import io.nop.datav.service.screen.ScreenAdaptorMode;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
@@ -24,9 +26,11 @@ import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_SCREEN_SNAPSHOT_VERS
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_SCREEN_WIDGET_OUT_OF_BOUNDS;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_UNKNOWN_COMPONENT_TYPE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * 端到端集成测试 {@link NopDatavScreenBizModel}。
@@ -321,6 +325,76 @@ public class TestNopDatavScreenBizModel extends AbstractNopDatavTest {
         NopException ex = assertThrows(NopException.class,
                 () -> screenBiz.getScreenLayout(screen.getScreenId(), context));
         assertEquals(ERR_DATAV_SCREEN_SNAPSHOT_NOT_FOUND.getErrorCode(), ex.getErrorCode());
+    }
+
+    // ==================== D4-2 装饰/媒体组件 E2E + getComponentTypes API ====================
+
+    /**
+     * 端到端验证（rule #22）：创建大屏 → 添加 6 类装饰/媒体 widget → publish →
+     * getScreenLayout 解析通过并断言 widget componentType 正确（证明装饰/媒体类型经注册表接线，非空壳）。
+     */
+    @Test
+    public void testDecorativeMediaWidgetsPassGetScreenLayoutEndToEnd() {
+        IServiceContext context = newContext("e2e-user");
+
+        NopDatavScreen screen = saveScreen("screen-deco", "decorative-screen");
+        // 6 类装饰/媒体组件，各放一个 widget
+        saveWidget("w-border", screen.getScreenId(), PanelComponentTypes.DECORATIVE_BORDER, 0, 0, 200, 50, 0);
+        saveWidget("w-scroll", screen.getScreenId(), PanelComponentTypes.SCROLL_TEXT, 0, 60, 1920, 30, 1);
+        saveWidget("w-clock", screen.getScreenId(), PanelComponentTypes.TIME_CLOCK, 1700, 0, 220, 50, 2);
+        saveWidget("w-video", screen.getScreenId(), PanelComponentTypes.VIDEO, 100, 200, 600, 400, 0);
+        saveWidget("w-stream", screen.getScreenId(), PanelComponentTypes.STREAM, 800, 200, 600, 400, 0);
+        saveWidget("w-carousel", screen.getScreenId(), PanelComponentTypes.CAROUSEL_TAB, 100, 700, 1000, 300, 0);
+
+        screenBiz.publishScreen(screen.getScreenId(), context);
+
+        ScreenLayoutConfig layout = screenBiz.getScreenLayout(screen.getScreenId(), context);
+
+        assertNotNull(layout);
+        assertEquals(6, layout.getWidgets().size());
+
+        // 断言每类装饰/媒体 widget 经注册表校验通过且 componentType 透传正确
+        for (ScreenLayoutConfig.Widget w : layout.getWidgets()) {
+            boolean isDecorativeMedia = PanelComponentTypes.DECORATIVE_BORDER.equals(w.getComponentType())
+                    || PanelComponentTypes.SCROLL_TEXT.equals(w.getComponentType())
+                    || PanelComponentTypes.TIME_CLOCK.equals(w.getComponentType())
+                    || PanelComponentTypes.VIDEO.equals(w.getComponentType())
+                    || PanelComponentTypes.STREAM.equals(w.getComponentType())
+                    || PanelComponentTypes.CAROUSEL_TAB.equals(w.getComponentType());
+            assertTrue(isDecorativeMedia,
+                    "widget should be a decorative/media type, got: " + w.getComponentType());
+        }
+    }
+
+    /**
+     * 接线验证（rule #23）：getComponentTypes API 经 PanelComponentRegistry 运行时连通。
+     * 断言返回 14 类组件（8 既有 + 6 装饰/媒体），且新增 6 类均出现且 needsDataset=false。
+     */
+    @Test
+    public void testGetComponentTypesReturnsAllFourteenIncludingDecorativeMedia() {
+        IServiceContext context = newContext("e2e-user");
+
+        java.util.List<PanelComponentMeta> types = screenBiz.getComponentTypes(context);
+
+        assertNotNull(types);
+        assertEquals(14, types.size(), "getComponentTypes should return 14 component types");
+
+        // 新增 6 类装饰/媒体组件均出现且 needsDataset=false
+        for (String decoType : new String[]{
+                PanelComponentTypes.DECORATIVE_BORDER,
+                PanelComponentTypes.SCROLL_TEXT,
+                PanelComponentTypes.TIME_CLOCK,
+                PanelComponentTypes.VIDEO,
+                PanelComponentTypes.STREAM,
+                PanelComponentTypes.CAROUSEL_TAB}) {
+            PanelComponentMeta meta = types.stream()
+                    .filter(m -> decoType.equals(m.getType()))
+                    .findFirst()
+                    .orElse(null);
+            assertNotNull(meta, "decorative/media type should be present in getComponentTypes: " + decoType);
+            assertFalse(meta.isNeedsDataset(),
+                    "decorative/media component should have needsDataset=false: " + decoType);
+        }
     }
 
     // ==================== Helpers ====================

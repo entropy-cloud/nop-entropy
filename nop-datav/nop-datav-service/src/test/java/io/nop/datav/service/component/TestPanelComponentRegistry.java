@@ -1,8 +1,11 @@
 package io.nop.datav.service.component;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.datav.biz.PanelComponentConfigArea;
+import io.nop.datav.biz.PanelComponentMeta;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Map;
 
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_UNKNOWN_COMPONENT_TYPE;
@@ -77,5 +80,112 @@ public class TestPanelComponentRegistry {
         NopException nullEx = assertThrows(NopException.class,
                 () -> PanelTypeMapping.toComponentType(null));
         assertEquals(ERR_DATAV_UNKNOWN_COMPONENT_TYPE.getErrorCode(), nullEx.getErrorCode());
+    }
+
+    // ==================== D4-2 装饰/媒体组件族 ====================
+
+    @Test
+    public void testDecorativeMediaComponentsRegisteredWithNeedsDatasetFalse() {
+        PanelComponentRegistry registry = PanelComponentRegistry.getInstance();
+        // 6 类装饰/媒体组件均经 requireComponent 查询成功且 needsDataset=false
+        for (String type : new String[]{
+                PanelComponentTypes.DECORATIVE_BORDER,
+                PanelComponentTypes.SCROLL_TEXT,
+                PanelComponentTypes.TIME_CLOCK,
+                PanelComponentTypes.VIDEO,
+                PanelComponentTypes.STREAM,
+                PanelComponentTypes.CAROUSEL_TAB}) {
+            PanelComponentMeta meta = registry.requireComponent(type).getMetadata();
+            assertEquals(type, meta.getType());
+            assertFalse(meta.isNeedsDataset(),
+                    "decorative/media component should not need a dataset: " + type);
+            assertNotNull(meta.getDisplayName(), "displayName should be set: " + type);
+        }
+    }
+
+    @Test
+    public void testRegistryContainsFourteenComponentTypes() {
+        Map<String, IPanelComponent> all = PanelComponentRegistry.getInstance().getComponents();
+        // 8 D1-1 既有 + 6 D4-2 装饰/媒体 = 14
+        assertEquals(14, all.size(), "registry should contain 14 component types (8 D1-1 + 6 D4-2)");
+    }
+
+    @Test
+    public void testDecorativeMediaConfigAreasMatchDesignDoc() {
+        PanelComponentRegistry registry = PanelComponentRegistry.getInstance();
+
+        // decorative-border → variant(required) + color
+        assertConfigAreas(registry, PanelComponentTypes.DECORATIVE_BORDER,
+                new ExpectedArea("variant", true),
+                new ExpectedArea("color", false));
+
+        // scroll-text → text(required) + speed + direction
+        assertConfigAreas(registry, PanelComponentTypes.SCROLL_TEXT,
+                new ExpectedArea("text", true),
+                new ExpectedArea("speed", false),
+                new ExpectedArea("direction", false));
+
+        // time-clock → format + timezone
+        assertConfigAreas(registry, PanelComponentTypes.TIME_CLOCK,
+                new ExpectedArea("format", false),
+                new ExpectedArea("timezone", false));
+
+        // video → src(required) + autoplay + loop + controls
+        assertConfigAreas(registry, PanelComponentTypes.VIDEO,
+                new ExpectedArea("src", true),
+                new ExpectedArea("autoplay", false),
+                new ExpectedArea("loop", false),
+                new ExpectedArea("controls", false));
+
+        // stream → src(required) + protocol
+        assertConfigAreas(registry, PanelComponentTypes.STREAM,
+                new ExpectedArea("src", true),
+                new ExpectedArea("protocol", false));
+
+        // carousel-tab → tabs(required) + interval
+        assertConfigAreas(registry, PanelComponentTypes.CAROUSEL_TAB,
+                new ExpectedArea("tabs", true),
+                new ExpectedArea("interval", false));
+    }
+
+    @Test
+    public void testLegacyComponentsHaveEmptyConfigAreas() {
+        // D1-1 既有组件（无描述符）按空列表处理（向后兼容）
+        PanelComponentRegistry registry = PanelComponentRegistry.getInstance();
+        for (String type : new String[]{
+                PanelComponentTypes.CHART,
+                PanelComponentTypes.TEXT,
+                PanelComponentTypes.IFRAME,
+                PanelComponentTypes.CONTAINER}) {
+            List<PanelComponentConfigArea> areas = registry.requireComponent(type).getMetadata().getConfigAreas();
+            assertNotNull(areas, "configAreas should not be null (legacy): " + type);
+            assertTrue(areas.isEmpty(), "legacy components should have empty configAreas: " + type);
+        }
+    }
+
+    private static void assertConfigAreas(PanelComponentRegistry registry, String type,
+                                          ExpectedArea... expected) {
+        List<PanelComponentConfigArea> areas = registry.requireComponent(type).getMetadata().getConfigAreas();
+        assertNotNull(areas, "configAreas should not be null: " + type);
+        assertEquals(expected.length, areas.size(),
+                "config area count mismatch for " + type + ": " + areas);
+        for (int i = 0; i < expected.length; i++) {
+            assertEquals(expected[i].name, areas.get(i).getName(),
+                    "area[" + i + "].name mismatch for " + type);
+            assertEquals(expected[i].required, areas.get(i).isRequired(),
+                    "area[" + i + "].required mismatch for " + type);
+            assertNotNull(areas.get(i).getDescription(),
+                    "area[" + i + "].description should not be null for " + type);
+        }
+    }
+
+    private static final class ExpectedArea {
+        final String name;
+        final boolean required;
+
+        ExpectedArea(String name, boolean required) {
+            this.name = name;
+            this.required = required;
+        }
     }
 }

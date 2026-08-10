@@ -10,6 +10,8 @@ import io.nop.orm.biz.ICrudBiz;
 import io.nop.datav.dao.entity.NopDatavScreen;
 import io.nop.datav.dao.entity.NopDatavScreenSnapshot;
 
+import java.util.List;
+
 public interface INopDatavScreenBiz extends ICrudBiz<NopDatavScreen> {
 
     @BizMutation("publishScreen")
@@ -25,4 +27,7 @@ public interface INopDatavScreenBiz extends ICrudBiz<NopDatavScreen> {
 
     @BizQuery("getScreenLayout")
     ScreenLayoutConfig getScreenLayout(@Name("id") String id, IServiceContext context);
+
+    @BizQuery("getComponentTypes")
+    List<PanelComponentMeta> getComponentTypes(IServiceContext context);
 }
