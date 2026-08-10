@@ -19,6 +19,7 @@ public class ScreenLayoutConfig {
     private String displayName;
     private Canvas canvas;
     private Adaptation adaptation;
+    private ScreenThemeConfig theme;
     private List<Widget> widgets;
     private long snapshotVersion;
 
@@ -60,6 +61,20 @@ public class ScreenLayoutConfig {
 
     public void setAdaptation(Adaptation adaptation) {
         this.adaptation = adaptation;
+    }
+
+    /**
+     * 解析后的结构化主题（D4-3，additive）。含命名色板（palette 缺省值已填充）+ 背景定义（type/value 缺省已应用）。
+     *
+     * <p>与 {@link Canvas#getBackgroundConfig()} 区分：本字段是解析产物，{@code Canvas.backgroundConfig}
+     * 是原始配置透传（D4-1 契约不变，向后兼容）。</p>
+     */
+    public ScreenThemeConfig getTheme() {
+        return theme;
+    }
+
+    public void setTheme(ScreenThemeConfig theme) {
+        this.theme = theme;
     }
 
     public List<Widget> getWidgets() {
@@ -162,6 +177,12 @@ public class ScreenLayoutConfig {
         private int h;
         private int z;
         private Map<String, Object> widgetConfig;
+        /**
+         * widget 主题命名引用解析结果（D4-3）。当 {@code widgetConfig.theme} 存在时，
+         * 其命名引用（如 {@code "primary"}）被解析期替换为屏幕级 palette 实际色值放入此字段。
+         * {@code widgetConfig} 本身不被改写（styleOptions 也不被自动改写）。
+         */
+        private Map<String, Object> resolvedTheme;
 
         public String getWidgetId() {
             return widgetId;
@@ -249,6 +270,14 @@ public class ScreenLayoutConfig {
 
         public void setWidgetConfig(Map<String, Object> widgetConfig) {
             this.widgetConfig = widgetConfig;
+        }
+
+        public Map<String, Object> getResolvedTheme() {
+            return resolvedTheme;
+        }
+
+        public void setResolvedTheme(Map<String, Object> resolvedTheme) {
+            this.resolvedTheme = resolvedTheme;
         }
     }
 }

@@ -38,6 +38,7 @@ public interface NopDatavErrors {
     String ARG_WIDGET_ID = "widgetId";
     String ARG_CANVAS_WIDTH = "canvasWidth";
     String ARG_CANVAS_HEIGHT = "canvasHeight";
+    String ARG_THEME_FIELD = "themeField";
 
     ErrorCode ERR_DATAV_DASHBOARD_NOT_FOUND = define(
             "nop.err.datav.dashboard-not-found",
@@ -283,5 +284,11 @@ public interface NopDatavErrors {
             "nop.err.datav.screen-widget-out-of-bounds",
             "Screen widget out of canvas bounds: widget={widgetId}, canvas={canvasWidth}x{canvasHeight}",
             ARG_WIDGET_ID, ARG_CANVAS_WIDTH, ARG_CANVAS_HEIGHT
+    );
+
+    ErrorCode ERR_DATAV_INVALID_THEME_CONFIG = define(
+            "nop.err.datav.invalid-theme-config",
+            "Invalid screen theme config for screen: {screenId}, field: {themeField}, reason: {reason}",
+            ARG_SCREEN_ID, ARG_THEME_FIELD, ARG_REASON
     );
 }

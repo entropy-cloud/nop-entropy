@@ -3,18 +3,22 @@ package io.nop.datav.service.screen;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.datav.biz.ScreenLayoutConfig;
+import io.nop.datav.biz.ScreenThemeConfig;
 import io.nop.datav.dao.entity.NopDatavScreenSnapshot;
 import io.nop.datav.service.component.PanelComponentRegistry;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_INVALID_SCREEN_LAYOUT;
+import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_INVALID_THEME_CONFIG;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_SCREEN_WIDGET_OUT_OF_BOUNDS;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_SCREEN_WIDGET_UNKNOWN_COMPONENT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
@@ -247,18 +251,160 @@ public class TestScreenLayoutParser {
         assertEquals(ERR_DATAV_INVALID_SCREEN_LAYOUT.getErrorCode(), ex.getErrorCode());
     }
 
+    // ==================== D4-3 主题解析接线 ====================
+
+    /**
+     * 接线验证：parse 接入主题解析——结构化 backgroundConfig → theme 字段填充（palette 缺省 + background 缺省）。
+     * 同时验证 Canvas.backgroundConfig 原样透传（非破坏）。
+     */
+    @Test
+    public void testParseResolvesThemeFromStructuredBackgroundConfig() {
+        Map<String, Object> palette = new LinkedHashMap<>();
+        palette.put("primary", "#FF0000");
+        Map<String, Object> background = new LinkedHashMap<>();
+        background.put("type", "image");
+        background.put("value", "https://example.com/bg.png");
+        Map<String, Object> backgroundConfig = new LinkedHashMap<>();
+        backgroundConfig.put("palette", palette);
+        backgroundConfig.put("background", background);
+
+        NopDatavScreenSnapshot snapshot = newSnapshotWithBackgroundConfig(1920, 1080,
+                ScreenAdaptorMode.FULL, backgroundConfig);
+
+        ScreenLayoutConfig config = parser.parse("screen-theme", snapshot);
+
+        // theme 字段已填充
+        ScreenThemeConfig theme = config.getTheme();
+        assertNotNull(theme);
+        assertEquals("#FF0000", theme.getPalette().get("primary"));
+        // 未指定的命名色回退缺省
+        assertEquals("#13C2C2", theme.getPalette().get("secondary"));
+        assertEquals("image", theme.getBackground().getType());
+        assertEquals("https://example.com/bg.png", theme.getBackground().getValue());
+
+        // Canvas.backgroundConfig 原样透传（非破坏）
+        assertNotNull(config.getCanvas().getBackgroundConfig());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> passedThrough = (Map<String, Object>) config.getCanvas().getBackgroundConfig().get("palette");
+        assertEquals("#FF0000", passedThrough.get("primary"));
+    }
+
+    /**
+     * 向后兼容验证：legacy 自由格式 backgroundConfig（{"color":"#000"}）→ theme 用缺省，不报错，
+     * Canvas.backgroundConfig 原样透传。
+     */
+    @Test
+    public void testParseLegacyBackgroundConfigUsesDefaultTheme() {
+        NopDatavScreenSnapshot snapshot = newSnapshot(1920, 1080, ScreenAdaptorMode.FULL);
+
+        ScreenLayoutConfig config = parser.parse("screen-legacy", snapshot);
+
+        // theme 用缺省
+        ScreenThemeConfig theme = config.getTheme();
+        assertNotNull(theme);
+        assertEquals("#1890FF", theme.getPalette().get("primary"));
+        assertEquals("color", theme.getBackground().getType());
+        assertEquals("#131A2E", theme.getBackground().getValue());
+
+        // Canvas.backgroundConfig 原样透传（既有断言不回归）
+        assertNotNull(config.getCanvas().getBackgroundConfig());
+        assertEquals("#000", config.getCanvas().getBackgroundConfig().get("color"));
+    }
+
+    /**
+     * 接线验证：widget.widgetConfig.theme 命名引用 → widget.resolvedTheme 解析为 palette 实际色值；
+     * widgetConfig 原样透传（不被改写）。
+     */
+    @Test
+    public void testParseResolvesWidgetThemeNamedReferences() {
+        Map<String, Object> palette = new LinkedHashMap<>();
+        palette.put("primary", "#FF0000");
+        palette.put("background", "#000000");
+        Map<String, Object> backgroundConfig = new LinkedHashMap<>();
+        backgroundConfig.put("palette", palette);
+
+        // widget with widgetConfig.theme 命名引用 + styleOptions
+        Map<String, Object> widgetTheme = new LinkedHashMap<>();
+        widgetTheme.put("color", "primary");
+        widgetTheme.put("backgroundColor", "background");
+        Map<String, Object> widgetConfig = new LinkedHashMap<>();
+        widgetConfig.put("theme", widgetTheme);
+        widgetConfig.put("styleOptions", Map.of("color", "primary"));
+
+        NopDatavScreenSnapshot snapshot = newSnapshotWithWidgets(1920, 1080, ScreenAdaptorMode.FULL,
+                backgroundConfig, widgetWithConfig("w-theme", "chart", 0, 0, 100, 100, 0, widgetConfig));
+
+        ScreenLayoutConfig config = parser.parse("screen-widget-theme", snapshot);
+
+        assertEquals(1, config.getWidgets().size());
+        ScreenLayoutConfig.Widget w = config.getWidgets().get(0);
+
+        // resolvedTheme 命名引用已解析为实际色值
+        assertNotNull(w.getResolvedTheme());
+        assertEquals("#FF0000", w.getResolvedTheme().get("color"));
+        assertEquals("#000000", w.getResolvedTheme().get("backgroundColor"));
+
+        // widgetConfig 原样透传（theme 区仍是命名引用 "primary"，styleOptions 不被改写）
+        assertNotNull(w.getWidgetConfig());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> passedTheme = (Map<String, Object>) w.getWidgetConfig().get("theme");
+        assertEquals("primary", passedTheme.get("color"));
+        assertEquals("primary", ((Map<?, ?>) w.getWidgetConfig().get("styleOptions")).get("color"));
+    }
+
+    /**
+     * 接线验证：widget 无 theme 区域 → resolvedTheme 为 null（不报错）。
+     */
+    @Test
+    public void testParseWidgetWithoutThemeHasNullResolvedTheme() {
+        NopDatavScreenSnapshot snapshot = newSnapshot(1920, 1080, ScreenAdaptorMode.FULL,
+                widget("w-no-theme", "chart", 0, 0, 100, 100, 0, null));
+
+        ScreenLayoutConfig config = parser.parse("screen-no-theme", snapshot);
+
+        assertEquals(1, config.getWidgets().size());
+        assertNull(config.getWidgets().get(0).getResolvedTheme());
+    }
+
+    /**
+     * 非法主题结构经 parse 接线显式报错（非静默降级）。
+     */
+    @Test
+    public void testParseInvalidThemeConfigThrows() {
+        Map<String, Object> backgroundConfig = new LinkedHashMap<>();
+        backgroundConfig.put("palette", "not-an-object");
+
+        NopDatavScreenSnapshot snapshot = newSnapshotWithBackgroundConfig(1920, 1080,
+                ScreenAdaptorMode.FULL, backgroundConfig);
+
+        NopException ex = assertThrows(NopException.class,
+                () -> parser.parse("screen-invalid-theme", snapshot));
+        assertEquals(ERR_DATAV_INVALID_THEME_CONFIG.getErrorCode(), ex.getErrorCode());
+    }
+
     // ==================== Helpers ====================
 
     private NopDatavScreenSnapshot newSnapshot(int width, int height, int adaptorMode,
                                                 Map<String, Object>... widgets) {
+        return newSnapshotWithWidgets(width, height, adaptorMode, Map.of("color", "#000"), widgets);
+    }
+
+    private NopDatavScreenSnapshot newSnapshotWithBackgroundConfig(int width, int height, int adaptorMode,
+                                                                    Map<String, Object> backgroundConfig) {
+        return newSnapshotWithWidgets(width, height, adaptorMode, backgroundConfig);
+    }
+
+    private NopDatavScreenSnapshot newSnapshotWithWidgets(int width, int height, int adaptorMode,
+                                                          Map<String, Object> backgroundConfig,
+                                                          Map<String, Object>... widgets) {
         Map<String, Object> content = new LinkedHashMap<>();
         content.put("screenWidth", width);
         content.put("screenHeight", height);
         content.put("adaptorMode", adaptorMode);
         content.put("screenName", "test-screen");
         content.put("displayName", "Test Screen");
-        content.put("backgroundConfig", Map.of("color", "#000"));
-        content.put("widgets", java.util.Arrays.asList(widgets));
+        content.put("backgroundConfig", backgroundConfig);
+        content.put("widgets", Arrays.asList(widgets));
 
         NopDatavScreenSnapshot snapshot = new NopDatavScreenSnapshot();
         snapshot.setSnapshotVersion(1L);
@@ -268,6 +414,17 @@ public class TestScreenLayoutParser {
 
     private Map<String, Object> widget(String id, String componentType, int x, int y, int w, int h,
                                         int z, String datasetRefId) {
+        return widgetWithConfig(id, componentType, x, y, w, h, z,
+                Map.of("option", Map.of("title", id)), datasetRefId);
+    }
+
+    private Map<String, Object> widgetWithConfig(String id, String componentType, int x, int y, int w, int h,
+                                                  int z, Map<String, Object> widgetConfig) {
+        return widgetWithConfig(id, componentType, x, y, w, h, z, widgetConfig, null);
+    }
+
+    private Map<String, Object> widgetWithConfig(String id, String componentType, int x, int y, int w, int h,
+                                                  int z, Map<String, Object> widgetConfig, String datasetRefId) {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("widgetId", id);
         map.put("widgetName", id);
@@ -281,7 +438,7 @@ public class TestScreenLayoutParser {
         map.put("w", w);
         map.put("h", h);
         map.put("z", z);
-        map.put("widgetConfig", Map.of("option", Map.of("title", id)));
+        map.put("widgetConfig", widgetConfig);
         return map;
     }
 }

@@ -327,6 +327,110 @@ public class TestNopDatavScreenBizModel extends AbstractNopDatavTest {
         assertEquals(ERR_DATAV_SCREEN_SNAPSHOT_NOT_FOUND.getErrorCode(), ex.getErrorCode());
     }
 
+    // ==================== D4-3 主题：色板 + 背景 E2E ====================
+
+    /**
+     * 端到端验证（rule #22）：创建大屏（backgroundConfig 配置 {palette, background}）→
+     * 添加 widget（widgetConfig.theme 含命名引用）→ publish → getScreenLayout 返回：
+     * <ul>
+     *   <li>theme 字段（结构化 palette/background，缺省值填充）</li>
+     *   <li>widget resolvedTheme 命名引用已解析为实际色值</li>
+     *   <li>Canvas.backgroundConfig 原样透传（非破坏）</li>
+     * </ul>
+     */
+    @Test
+    public void testThemePaletteAndBackgroundEndToEnd() {
+        IServiceContext context = newContext("e2e-user");
+
+        // 1. 创建大屏，backgroundConfig 配置结构化主题（palette 部分覆盖 + background image）
+        Map<String, Object> palette = new java.util.LinkedHashMap<>();
+        palette.put("primary", "#FF0000");
+        Map<String, Object> background = Map.of("type", "image", "value", "https://example.com/bg.png");
+        Map<String, Object> backgroundConfig = new java.util.LinkedHashMap<>();
+        backgroundConfig.put("palette", palette);
+        backgroundConfig.put("background", background);
+
+        NopDatavScreen screen = saveScreen("screen-theme", "theme-screen");
+        screen.setBackgroundConfig(JsonTool.stringify(backgroundConfig));
+        daoProvider.daoFor(NopDatavScreen.class).updateEntityDirectly(screen);
+
+        // 2. 添加 widget，widgetConfig.theme 含命名引用 + styleOptions 不被自动改写
+        Map<String, Object> widgetTheme = new java.util.LinkedHashMap<>();
+        widgetTheme.put("color", "primary");
+        widgetTheme.put("backgroundColor", "background");
+        Map<String, Object> widgetConfig = new java.util.LinkedHashMap<>();
+        widgetConfig.put("theme", widgetTheme);
+        widgetConfig.put("styleOptions", Map.of("color", "primary"));
+
+        NopDatavScreenWidget widget = newWidget("widget-theme", screen.getScreenId(),
+                "chart", 0, 0, 100, 100, 0);
+        widget.setWidgetConfig(JsonTool.stringify(widgetConfig));
+        daoProvider.daoFor(NopDatavScreenWidget.class).saveEntityDirectly(widget);
+
+        // 3. Publish
+        screenBiz.publishScreen(screen.getScreenId(), context);
+
+        // 4. getScreenLayout 返回结构化主题
+        ScreenLayoutConfig layout = screenBiz.getScreenLayout(screen.getScreenId(), context);
+
+        assertNotNull(layout.getTheme());
+        // palette：用户指定的覆盖
+        assertEquals("#FF0000", layout.getTheme().getPalette().get("primary"));
+        // 未指定的回退缺省
+        assertEquals("#13C2C2", layout.getTheme().getPalette().get("secondary"));
+        assertEquals("#52C41A", layout.getTheme().getPalette().get("success"));
+        // background 解析
+        assertEquals("image", layout.getTheme().getBackground().getType());
+        assertEquals("https://example.com/bg.png", layout.getTheme().getBackground().getValue());
+
+        // 5. widget resolvedTheme 命名引用已解析
+        assertEquals(1, layout.getWidgets().size());
+        ScreenLayoutConfig.Widget w = layout.getWidgets().get(0);
+        assertNotNull(w.getResolvedTheme());
+        assertEquals("#FF0000", w.getResolvedTheme().get("color"));
+        // "background" 命名色 = palette.background 缺省值 #131A2E（用户未覆盖）
+        assertEquals("#131A2E", w.getResolvedTheme().get("backgroundColor"));
+
+        // 6. Canvas.backgroundConfig 原样透传（非破坏）
+        assertNotNull(layout.getCanvas().getBackgroundConfig());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> passedPalette = (Map<String, Object>) layout.getCanvas().getBackgroundConfig().get("palette");
+        assertEquals("#FF0000", passedPalette.get("primary"));
+
+        // 7. widgetConfig 原样透传（theme 区仍是命名引用 "primary"，styleOptions 不被改写）
+        @SuppressWarnings("unchecked")
+        Map<String, Object> passedWidgetTheme = (Map<String, Object>) w.getWidgetConfig().get("theme");
+        assertEquals("primary", passedWidgetTheme.get("color"));
+        assertEquals("primary", ((Map<?, ?>) w.getWidgetConfig().get("styleOptions")).get("color"));
+    }
+
+    /**
+     * 向后兼容 E2E：legacy 自由格式 backgroundConfig（{"color":"#123456"}）经 publish → getScreenLayout：
+     * theme 用缺省、Canvas.backgroundConfig 原样透传、不报错。既有 testGetScreenLayoutEndToEnd 行为不回归。
+     */
+    @Test
+    public void testLegacyFreeformBackgroundConfigEndToEndUsesDefaultTheme() {
+        IServiceContext context = newContext("e2e-user");
+
+        NopDatavScreen screen = saveScreen("screen-legacy-theme", "legacy-theme-screen");
+        screen.setBackgroundConfig(JsonTool.stringify(Map.of("color", "#123456")));
+        daoProvider.daoFor(NopDatavScreen.class).updateEntityDirectly(screen);
+        saveWidget("widget-legacy", screen.getScreenId(), "chart", 0, 0, 100, 100, 0);
+
+        screenBiz.publishScreen(screen.getScreenId(), context);
+
+        ScreenLayoutConfig layout = screenBiz.getScreenLayout(screen.getScreenId(), context);
+
+        // theme 用缺省
+        assertNotNull(layout.getTheme());
+        assertEquals("#1890FF", layout.getTheme().getPalette().get("primary"));
+        assertEquals("color", layout.getTheme().getBackground().getType());
+        assertEquals("#131A2E", layout.getTheme().getBackground().getValue());
+
+        // Canvas.backgroundConfig 原样透传
+        assertEquals("#123456", layout.getCanvas().getBackgroundConfig().get("color"));
+    }
+
     // ==================== D4-2 装饰/媒体组件 E2E + getComponentTypes API ====================
 
     /**

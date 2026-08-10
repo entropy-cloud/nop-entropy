@@ -6,6 +6,7 @@ import io.nop.datav.biz.ScreenLayoutConfig;
 import io.nop.datav.biz.ScreenLayoutConfig.Adaptation;
 import io.nop.datav.biz.ScreenLayoutConfig.Canvas;
 import io.nop.datav.biz.ScreenLayoutConfig.Widget;
+import io.nop.datav.biz.ScreenThemeConfig;
 import io.nop.datav.dao.entity.NopDatavScreenSnapshot;
 import io.nop.datav.service.component.PanelComponentRegistry;
 
@@ -41,9 +42,11 @@ import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_SCREEN_WIDGET_UNKNOW
 public final class ScreenLayoutParser {
 
     private final PanelComponentRegistry componentRegistry;
+    private final ScreenThemeParser themeParser;
 
     public ScreenLayoutParser(PanelComponentRegistry componentRegistry) {
         this.componentRegistry = componentRegistry;
+        this.themeParser = new ScreenThemeParser();
     }
 
     /**
@@ -81,6 +84,17 @@ public final class ScreenLayoutParser {
         Object widgetsRaw = content.get("widgets");
         List<Widget> widgets = parseWidgets(screenId, widgetsRaw, canvasWidth, canvasHeight);
 
+        // D4-3 主题解析：读取 backgroundConfig → 结构化 theme（palette 缺省值 + background type 缺省）。
+        // 非破坏：Canvas.backgroundConfig 仍原样透传（见下方 setBackgroundConfig），theme 放入独立字段。
+        Map<String, Object> backgroundConfig = asMap(content.get("backgroundConfig"));
+        ScreenThemeConfig theme = themeParser.resolve(screenId, backgroundConfig);
+
+        // widget 主题命名引用解析（widgetConfig.theme 命名引用 → palette 实际色值，放入 widget.resolvedTheme）
+        Map<String, String> resolvedPalette = theme.getPalette();
+        for (Widget widget : widgets) {
+            widget.setResolvedTheme(themeParser.resolveWidgetTheme(widget.getWidgetConfig(), resolvedPalette));
+        }
+
         ScreenLayoutConfig config = new ScreenLayoutConfig();
         config.setScreenId(screenId);
         config.setScreenName(asString(content.get("screenName")));
@@ -91,7 +105,8 @@ public final class ScreenLayoutParser {
         canvas.setWidth(canvasWidth);
         canvas.setHeight(canvasHeight);
         canvas.setAdaptorMode(adaptorMode);
-        canvas.setBackgroundConfig(asMap(content.get("backgroundConfig")));
+        // 既有契约：backgroundConfig 原样透传（D4-1 不变；向后兼容 legacy 自由格式）
+        canvas.setBackgroundConfig(backgroundConfig);
         config.setCanvas(canvas);
 
         Adaptation adaptation = new Adaptation();
@@ -100,6 +115,7 @@ public final class ScreenLayoutParser {
         adaptation.setAdaptorMode(adaptorMode);
         config.setAdaptation(adaptation);
 
+        config.setTheme(theme);
         config.setWidgets(widgets);
         return config;
     }
