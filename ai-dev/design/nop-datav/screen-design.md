@@ -2,13 +2,13 @@
 
 > Status: **final**
 > Last Reviewed: 2026-08-10
-> Scope owner: D4-1（自由画布 + 屏幕适配）。装饰/媒体组件族 D4-2、主题 D4-3、发布生命周期增强 D4-4 各有独立 plan，不在本文结论范围。
+> Scope owner: D4-1（自由画布 + 屏幕适配）+ D4-2（装饰/媒体组件族）。主题 D4-3、发布生命周期增强 D4-4 各有独立 plan，不在本文结论范围。
 
 ## 概述
 
 nop-datav 的「大屏」（Screen）是与「看板」（Dashboard）并列的可视化容器形态。看板采用网格布局（panel 按 sortOrder/tabId 组织），大屏采用**自由画布**（widget 按 x/y/w/h/z 绝对定位）+ **屏幕尺寸定义**（设计稿基准宽高）+ **屏幕适配模式**（`heightFirst` / `full` / `keep`，参考 DataEase `screenAdaptor`）。
 
-本设计文档定义 D4-1 的最终架构决策：
+本设计文档定义 D4-1 与 D4-2 的最终架构决策：
 
 - 独立三实体模型（不复用 Dashboard/Panel）
 - 自由画布布局 JSON schema
@@ -17,6 +17,7 @@ nop-datav 的「大屏」（Screen）是与「看板」（Dashboard）并列的�
 - 发布/快照语义（独立表，与 D0 同模式）
 - 权限模式（沿用 D3-1 action `@Auth` + owner 行级 RLS）
 - widget 越界/重叠运行时校验
+- 装饰/媒体组件族（D4-2）：6 类组件 + 配置区域描述符 + 元信息查询 API
 
 本文档为最终结论（无 "Proposed vs Current"）。被拒替代方案及理由在每一节末尾给出。
 
@@ -288,3 +289,81 @@ unique-key：`UK_NOP_DATAV_SCREEN_SNAPSHOT_SCREEN_VER(screenId, snapshotVersion)
 ## 9. 模块结构
 
 实体 ORM 源模型编辑于 `nop-datav/model/nop-datav.orm.xml`，codegen 经 `nop-datav-codegen/postcompile/gen-orm.xgen` 生成 dao/entity/meta/beans 到既有 8 件套模块。BizModel 位于 `nop-datav-service/.../service/entity/NopDatavScreenBizModel.java`，布局协议/适配解析位于 `nop-datav-service/.../service/screen/`（新建子包）。包名约定 `io.nop.datav`，与既有实体一致。
+
+## 10. 装饰/媒体组件族（D4-2）
+
+**决策：在既有 `PanelComponentRegistry`（D1-1）登记 6 类装饰/媒体组件，均为 `needsDataset=false`；扩展 `PanelComponentMeta` 携带命名配置区域描述符；通过 `NopDatavScreenBizModel.getComponentTypes` 暴露元信息查询。**
+
+本节是 D4-2 的最终结论。D4-1 已建立自由画布布局协议并将 `widget.componentType` 经 `PanelComponentRegistry.requireComponent` 校验；本节在该注册表上登记装饰/媒体类型并定义其配置 schema 描述符。模型层交付（注册表登记 + 配置 schema + 元信息暴露），不含前端渲染（走 nop-chaos-flux，未产出），不含媒体代理/流后端实现。
+
+### 10.1 组件族清单
+
+6 类装饰/媒体组件，类型标识稳定不变，均 `needsDataset=false`（纯展示/媒体，不绑定数据集；轮询 Tab 是容器式组件，承载其他 widget，但其自身不取数）：
+
+| 类型标识 | 显示名 | 用途 | 配置区域 |
+|---------|--------|------|---------|
+| `decorative-border` | Decorative Border | 装饰边框（大屏视觉装饰，可叠加在 chart 上，§7.3 装饰层叠合法） | `variant`（边框样式变体，必填）+ `color`（边框颜色） |
+| `scroll-text` | Scroll Text | 滚动文字（公告/跑马灯） | `text`（滚动文本内容，必填）+ `speed`（滚动速度）+ `direction`（滚动方向） |
+| `time-clock` | Time Clock | 时间时钟（实时显示当前时间） | `format`（时间格式模板，如 `yyyy-MM-dd HH:mm:ss`）+ `timezone`（时区） |
+| `video` | Video | 视频（点播/静态视频源） | `src`（视频源 URL，必填）+ `autoplay`（是否自动播放）+ `loop`（是否循环）+ `controls`（是否显示控件） |
+| `stream` | Stream | 流媒体（直播/实时流） | `src`（流源 URL，必填）+ `protocol`（流协议，如 hls/rtmp） |
+| `carousel-tab` | Carousel Tab | 轮播 Tab（按间隔切换显示内嵌 widget 组） | `tabs`（Tab 定义列表，必填）+ `interval`（切换间隔秒数） |
+
+以上类型标识集中在 `PanelComponentTypes`；登记在 `PanelComponentRegistry` 静态初始化块，保留既有重复检测（`IllegalStateException` on duplicate type）与未知类型拒绝（`ERR_DATAV_UNKNOWN_COMPONENT_TYPE`，不静默降级）。
+
+### 10.2 元信息描述符方案
+
+**决策：扩展 `PanelComponentMeta` 使其可携带命名配置区域描述符（机器可读）。**
+
+描述符结构（每个区域）：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `name` | String | 配置区域名称（如 `src` / `autoplay`） |
+| `description` | String | 用途说明（如 "视频源 URL"） |
+| `required` | boolean | 是否必填 |
+
+向后兼容：既有 8 类组件（D1-1，无描述符）在扩展后的元信息中按「空配置区域列表」处理（即「该类型目前未声明命名配置区域」），不破坏现有注册与测试。新增的 6 类装饰/媒体组件携带非空描述符列表。
+
+**被拒替代方案：仅文档约定、无运行时描述符。** 拒绝。理由：配置 schema 是 D4-2 的显式交付物；纯文档无法被 `getComponentTypes` API 消费，也无法在测试中断言，等于「注册表只回答哪些类型存在，不回答每种类型接受什么配置」，与 D4-2 交付目标不符。
+
+### 10.3 不做硬 JSON Schema 校验
+
+**决策：配置 schema 为描述符 + 向前兼容约定，注册表与 `getScreenLayout` 不强制拒绝含未声明区域的 `widgetConfig`。**
+
+`PanelComponentMeta.configAreas` 是描述性的（供前端/测试消费），不是运行时校验器。校验 `widgetConfig` JSON Schema 与否属组件实现层细节，由 nop-chaos-flux 控件族落地时决定；后端 `ScreenLayoutParser` 仅校验 `componentType` 是否注册（D4-1 既有行为不变）。
+
+**理由**：(1) 与 D1-1 「panelConfig 区域约定、字段级细节由 flux 定稿」哲学一致；(2) 强制 JSON Schema 校验会在 flux 控件 schema 未定稿时阻断合法配置演进。强制校验为 Non-Goal。
+
+### 10.4 复用 PanelComponentRegistry
+
+**决策：装饰/媒体组件登记进既有 `PanelComponentRegistry`，不新建独立 `ScreenComponentRegistry`。**
+
+D4-1 已复用该注册表校验大屏 widget（`ScreenLayoutParser.validateComponentType` / `parseWidget`）。新建独立注册表会割裂组件类型空间、增加 `ScreenLayoutParser` 分发分支。
+
+**被拒替代方案：独立 `ScreenComponentRegistry`。** 拒绝。理由：(1) 同一类型空间更简单，看板面板因无对应 `panelType` dict 项天然不会误引用装饰组件；(2) `widget.componentType` 是 string（非 dict int），不经 `panelType` dict 映射，无需为新类型新增 dict 选项；(3) D4-1 已验证复用模式可行。
+
+### 10.5 与看板面板的边界
+
+装饰/媒体组件是大屏专用，看板面板不引用：
+
+| 路径 | 组件类型空间 | 映射方式 |
+|------|-------------|---------|
+| 看板面板（`NopDatavPanel.panelType` int） | 经 `PanelTypeMapping` ↔ `PanelComponentTypes` | dict `datav/panel-type` 8 个 int 值（0/10/20/30/40/50/60/70），装饰/媒体组件不在此 dict |
+| 大屏 widget（`NopDatavScreenWidget.componentType` string） | 直接字符串标识，经 `PanelComponentRegistry.requireComponent` 校验 | 无 dict int 映射 |
+
+`PanelTypeMapping` 不为装饰/媒体类型新增 int 映射——看板面板（int 映射）天然不会引用装饰组件。
+
+### 10.6 组件元信息查询 API
+
+**决策：在 `NopDatavScreenBizModel` 新增 `getComponentTypes()`（`@BizQuery`，无 screenId 参数），返回全部已注册组件的类型标识 + 显示名 + needsDataset + 配置区域描述符。**
+
+| 项 | 值 |
+|----|----|
+| action | `NopDatavScreen.getComponentTypes()` |
+| 类型 | `@BizQuery` |
+| 权限 | `@Auth(permissions = "NopDatavScreen:getComponentTypes")` |
+| 输入 | 无（全局查询，不绑定特定大屏） |
+| 返回 | `List<PanelComponentMeta>`（含 D4-1 既有 8 类 + D4-2 新增 6 类，共 14 类） |
+
+**裁定：放在 `NopDatavScreenBizModel`（大屏是组件注册表的主要消费方），不新建 entity-less BizModel。** 避免新增 `_service.beans.xml` bean 定义与独立 action-auth 命名空间；与既有 4 个 screen action 同模式（接口声明 + action-auth 权限点）。权限点 `NopDatavScreen:getComponentTypes` 在 `nop-datav.action-auth.xml` 增配，默认 `admin,user` 可读（与 `getScreenLayout` 同语义，元信息对所有可读大屏的角色可见）。
