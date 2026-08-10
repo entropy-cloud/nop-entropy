@@ -66,6 +66,13 @@
     <bean id="ai-tools:datav-query-dataset"
           class="io.nop.datav.service.chatbi.DatavQueryDatasetExecutor" ioc:default="true"/>
 
+    <!-- D6-1b ChatBI 看板生成工具 executor。被 nopToolExecutorProvider 的
+         <ioc:collect-beans by-type="...IToolExecutor"/> 自动收集。
+         注入 IOrmTemplate 用于多表事务性创建（裁定 O）。工具定义位于
+         _vfs/nop/ai/tools/datav-generate-dashboard.tool.xml。 -->
+    <bean id="ai-tools:datav-generate-dashboard"
+          class="io.nop.datav.service.chatbi.DatavGenerateDashboardExecutor" ioc:default="true"/>
+
     <!-- ChatBI BizModel（@BizModel，经 GraphQL 暴露 chatToQuery action）。
          @Nullable 注入 IChatService/IToolManager（nop-ai 缺席时 action 显式抛 ERR_DATAV_CHATBI_AI_NOT_AVAILABLE）。
          ioc:default=true 保证宿主未自定义时本实现生效。 -->

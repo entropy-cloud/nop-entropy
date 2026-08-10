@@ -8,10 +8,15 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * ChatBI 查询结果。由 {@code NopDatavChatBiBizModel.chatToQuery} 返回。
+ * ChatBI 结果（D6-1 查询 + D6-1b 看板生成共享，裁定 K）。
  *
- * <p>{@code answer} 为 LLM 最终文本答案；{@code columns}/{@code rows} 为从 tool-calling 过程中解析出的
- * 最后一次 {@code datav-query-dataset} 调用结果（若 LLM 未执行查询则为空）。</p>
+ * <p>查询路径（{@code chatToQuery}）使用 {@code answer} + {@code columns}/{@code rows}（从 tool-calling
+ * 过程中解析出的最后一次 {@code datav-query-dataset} 调用结果）；{@code createdEntityId} 为 null。</p>
+ *
+ * <p>生成路径（{@code chatToDashboard}）使用 {@code answer} + {@code createdEntityId}（从
+ * {@code datav-generate-dashboard} 调用结果解析出的 dashboardId）；{@code columns}/{@code rows} 为空。</p>
+ *
+ * <p>{@code iterations} 为实际 tool-calling 轮次，两路径共用。</p>
  */
 @DataBean
 public class ChatBiResult {
@@ -19,6 +24,12 @@ public class ChatBiResult {
     private String answer;
     private List<String> columns = Collections.emptyList();
     private List<Map<String, Object>> rows = Collections.emptyList();
+
+    /**
+     * 生成路径产物 ID（dashboardId）；查询路径不用（保持 null）。裁定 K。
+     */
+    private String createdEntityId;
+
     private int iterations;
 
     public String getAnswer() {
@@ -43,6 +54,14 @@ public class ChatBiResult {
 
     public void setRows(List<Map<String, Object>> rows) {
         this.rows = rows != null ? new ArrayList<>(rows) : Collections.emptyList();
+    }
+
+    public String getCreatedEntityId() {
+        return createdEntityId;
+    }
+
+    public void setCreatedEntityId(String createdEntityId) {
+        this.createdEntityId = createdEntityId;
     }
 
     public int getIterations() {

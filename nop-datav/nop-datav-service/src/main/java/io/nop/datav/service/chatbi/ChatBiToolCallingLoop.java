@@ -18,8 +18,6 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.core.lang.json.JsonTool;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -27,26 +25,39 @@ import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_MAX_ITERATION
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_NO_RESULT;
 
 /**
- * ChatBI 轻量自建 tool-calling 循环（裁定 A）。
+ * ChatBI 轻量自建 tool-calling 循环（裁定 A + 裁定 L 泛化）。
  *
  * <p>**不复用 {@code IAgentEngine}**（ChatBI 为无状态单轮 Non-Goal，agent engine 的 session/budget/
  * guardrail/team/memory 重载不适用）。参考 {@code AgentToolDispatcher} 的类型转换逻辑（裁定 B，
  * 经 {@link ChatBiTypeConverter} 内联复制）。</p>
  *
- * <p>循环语义（裁定 D）：</p>
+ * <p><b>D6-1b 泛化（裁定 L）</b>：循环从 D6-1 查询专用泛化为查询 + 看板生成两路径共享。4 个泛化点：
  * <ol>
- *   <li>构建初始 {@link ChatRequest}（system prompt + 用户问题 + 工具清单）。</li>
+ *   <li><b>system prompt</b>：从硬编码改为 {@code run()} 入参（查询传查询 prompt，生成传生成 prompt）。</li>
+ *   <li><b>结果提取</b>：从硬编码 query-columns/rows 解析改为可插拔 {@link ToolResultHandler} 回调。</li>
+ *   <li><b>返回类型</b>：泛化 {@link ChatBiResult}（新增 {@code createdEntityId} 字段，裁定 K）。</li>
+ *   <li><b>context 构建</b>：{@code run()} 接受 {@code operator} 入参，构建携带 operator 的
+ *       {@link ChatBiToolExecuteContext}（裁定 G）。</li>
+ * </ol>
+ * </p>
+ *
+ * <p>循环语义（裁定 D）：
+ * <ol>
+ *   <li>构建初始 {@link ChatRequest}（system prompt + 用户消息 + 工具清单）+
+ *       {@link ChatBiToolExecuteContext}（携带 operator）。</li>
  *   <li>循环（最多 {@code maxIterations} 次）：
  *     <ul>
  *       <li>{@link IChatService#call} → {@link ChatResponse#outputToolCalls()}。</li>
- *       <li>为空 → LLM 给出最终文本答案 → 返回 {@link ChatBiResult}。</li>
+ *       <li>为空 → LLM 给出最终文本答案 → handler 收尾 → 返回 {@link ChatBiResult}。</li>
  *       <li>非空 → 每个 {@link ChatToolCall} 转 {@link AiToolCall}（保留原引用追踪 toolCallId）→
  *           {@link IToolManager#callTool} 执行 → 结果转 {@link ChatToolResponseMessage} →
- *           {@link ChatRequest#addToolResponse} 回喂 → 继续循环。</li>
+ *           {@link ToolResultHandler#handle} 累加字段 → {@link ChatRequest#addToolResponse} 回喂 →
+ *           继续循环。</li>
  *     </ul>
  *   </li>
  *   <li>迭代次数 ≥ {@code maxIterations} → 抛 {@code ERR_DATAV_CHATBI_MAX_ITERATIONS_EXCEEDED}。</li>
  * </ol>
+ * </p>
  */
 public class ChatBiToolCallingLoop {
 
@@ -59,49 +70,64 @@ public class ChatBiToolCallingLoop {
     }
 
     public ChatBiToolCallingLoop(IChatService chatService, IToolManager toolManager,
-                                 ICancelToken cancelToken) {
+                                  ICancelToken cancelToken) {
         this.chatService = chatService;
         this.toolManager = toolManager;
         this.cancelToken = cancelToken;
     }
 
     /**
-     * 运行 tool-calling 循环。
+     * D6-1 查询路径入口（回归兼容）：使用查询 system prompt + 无 operator + 查询结果提取 handler。
+     *
+     * <p>迁移到泛化循环后行为不变（回归测试保护）。</p>
      *
      * @param question      用户自然语言问题
      * @param maxIterations tool-calling 轮次上限
      * @return ChatBI 结果（answer + 最后一次 query 结果的 columns/rows + 实际迭代次数）
      */
     public ChatBiResult run(String question, int maxIterations) {
+        return run(question, ChatBiSystemPrompt.buildSystemPrompt(), null, maxIterations,
+                ChatBiQueryResultHandlers.QUERY_HANDLER);
+    }
+
+    /**
+     * 泛化循环入口（裁定 L）。供查询路径与生成路径共用。
+     *
+     * @param userMessage    用户消息（查询路径为问题，生成路径为看板描述）
+     * @param systemPrompt   system prompt（注入式，裁定 L 泛化点 1）
+     * @param operator       当前调用者身份（查询路径可 null，生成路径必传，裁定 L 泛化点 4 + 裁定 G）
+     * @param maxIterations  tool-calling 轮次上限
+     * @param resultHandler  可插拔结果提取回调（裁定 L 泛化点 2）
+     * @return ChatBI 结果（answer + handler 累加字段 + iterations）
+     */
+    public ChatBiResult run(String userMessage, String systemPrompt, String operator,
+                             int maxIterations, ToolResultHandler resultHandler) {
         List<AiToolModel> toolModels = toolManager.listTools();
         List<ChatToolDefinition> tools = ChatBiTypeConverter.toChatToolDefinitions(toolModels);
 
         ChatRequest request = new ChatRequest();
-        request.setSystemPrompt(ChatBiSystemPrompt.buildSystemPrompt());
-        request.addMessage(new ChatUserMessage(question));
+        request.setSystemPrompt(systemPrompt);
+        request.addMessage(new ChatUserMessage(userMessage));
         request.setTools(tools);
 
-        IToolExecuteContext context = new ChatBiToolExecuteContext(cancelToken);
+        // 裁定 L 泛化点 4 + 裁定 G：构建携带 operator 的 context
+        IToolExecuteContext context = new ChatBiToolExecuteContext(cancelToken, operator);
 
-        List<Map<String, Object>> lastQueryRows = Collections.emptyList();
-        List<String> lastQueryColumns = Collections.emptyList();
+        ChatBiResult accumulator = new ChatBiResult();
 
         for (int iteration = 1; iteration <= maxIterations; iteration++) {
             ChatResponse response = chatService.call(request, cancelToken);
             if (response == null) {
                 throw new NopException(ERR_DATAV_CHATBI_NO_RESULT)
-                        .param("question", question);
+                        .param("question", userMessage);
             }
 
             List<ChatToolCall> toolCalls = response.outputToolCalls();
             if (toolCalls == null || toolCalls.isEmpty()) {
                 // 循环终止条件 (a)：outputToolCalls 为空 → 最终答案
-                ChatBiResult result = new ChatBiResult();
-                result.setAnswer(response.outputText());
-                result.setColumns(lastQueryColumns);
-                result.setRows(lastQueryRows);
-                result.setIterations(iteration);
-                return result;
+                accumulator.setAnswer(response.outputText());
+                accumulator.setIterations(iteration);
+                return accumulator;
             }
 
             // 将 assistant 的 tool-call 消息加入对话（保持上下文）
@@ -118,32 +144,12 @@ public class ChatBiToolCallingLoop {
 
                 String toolResponseContent = toolResponse.getContent();
 
-                // 若为 query 工具且成功，解析 columns/rows 作为结果快照
-                if (DatavQueryDatasetExecutor.TOOL_NAME.equals(chatToolCall.getName())
-                        && "success".equals(toolResult.getStatus())
-                        && toolResult.getError() == null
-                        && toolResponseContent != null) {
+                // 裁定 L 泛化点 2：可插拔 handler 累加结果字段
+                if (resultHandler != null) {
                     try {
-                        @SuppressWarnings("unchecked")
-                        Map<String, Object> parsed = JsonTool.parseNonStrict(toolResponseContent) instanceof Map
-                                ? (Map<String, Object>) JsonTool.parseNonStrict(toolResponseContent)
-                                : null;
-                        if (parsed != null) {
-                            Object cols = parsed.get("columns");
-                            Object rws = parsed.get("rows");
-                            if (cols instanceof List) {
-                                @SuppressWarnings("unchecked")
-                                List<String> colList = (List<String>) cols;
-                                lastQueryColumns = colList;
-                            }
-                            if (rws instanceof List) {
-                                @SuppressWarnings("unchecked")
-                                List<Map<String, Object>> rowList = (List<Map<String, Object>>) rws;
-                                lastQueryRows = rowList;
-                            }
-                        }
+                        resultHandler.handle(chatToolCall.getName(), toolResult, toolResponseContent, accumulator);
                     } catch (Exception ignore) {
-                        // 解析失败不影响循环，保留前一次快照
+                        // handler 失败不影响循环（与 D6-1 query 解析失败容忍一致）
                     }
                 }
 
@@ -155,7 +161,7 @@ public class ChatBiToolCallingLoop {
         // 循环终止条件 (b)：迭代达 maxIterations 仍无最终答案
         throw new NopException(ERR_DATAV_CHATBI_MAX_ITERATIONS_EXCEEDED)
                 .param("maxIterations", maxIterations)
-                .param("question", question);
+                .param("question", userMessage);
     }
 
     /**
@@ -175,6 +181,49 @@ public class ChatBiToolCallingLoop {
             if (!(msg instanceof ChatSystemMessage)) {
                 request.addMessage(msg);
             }
+        }
+    }
+
+    // ==================== 查询路径内置 handler（D6-1 回归兼容） ====================
+
+    /**
+     * 解析 query 工具结果为 columns/rows 的内置 handler（D6-1 原硬编码逻辑提取，行为不变）。
+     * 供查询路径 {@code chatToQuery} 复用，保证迁移到泛化循环后既有查询行为不变（回归保护）。
+     */
+    public static final class ChatBiQueryResultHandlers {
+        public static final ToolResultHandler QUERY_HANDLER = (toolName, result, content, accumulator) -> {
+            if (!DatavQueryDatasetExecutor.TOOL_NAME.equals(toolName)) {
+                return;
+            }
+            if (!"success".equals(result.getStatus()) || result.getError() != null || content == null) {
+                return;
+            }
+            try {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> parsed = JsonTool.parseNonStrict(content) instanceof Map
+                        ? (Map<String, Object>) JsonTool.parseNonStrict(content)
+                        : null;
+                if (parsed == null) {
+                    return;
+                }
+                Object cols = parsed.get("columns");
+                Object rws = parsed.get("rows");
+                if (cols instanceof List) {
+                    @SuppressWarnings("unchecked")
+                    List<String> colList = (List<String>) cols;
+                    accumulator.setColumns(colList);
+                }
+                if (rws instanceof List) {
+                    @SuppressWarnings("unchecked")
+                    List<Map<String, Object>> rowList = (List<Map<String, Object>>) rws;
+                    accumulator.setRows(rowList);
+                }
+            } catch (Exception ignore) {
+                // 解析失败不影响循环，保留前一次快照
+            }
+        };
+
+        private ChatBiQueryResultHandlers() {
         }
     }
 }

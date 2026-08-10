@@ -1,0 +1,124 @@
+<tool x:schema="/nop/schema/ai/tool/tool.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      name="datav-generate-dashboard">
+
+    <schema>
+        <datav-generate-dashboard id="!int" explanation="!string" timeoutMs="int"
+                                  dashboardName="!string" description="string">
+            <panels>
+                <panel title="!string" componentType="!string" datasetSid="string" sortOrder="int">
+                    <fieldMapping>
+                        <field name="!string" value="string"/>*
+                    </fieldMapping>
+                </panel>*
+            </panels>
+        </datav-generate-dashboard>
+    </schema>
+
+    <schemaJson>{
+  "type": "object",
+  "properties": {
+    "dashboardName": {
+      "type": "string",
+      "description": "Name of the dashboard to create."
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional description of the dashboard."
+    },
+    "panels": {
+      "type": "array",
+      "description": "Panels to create within the dashboard. Only the 8 dashboard component types are allowed: chart, table, stat-tile, text, container, pivot-table, map, iframe. Decorative/media types (decorative-border, scroll-text, time-clock, video, stream, carousel-tab) are reserved for screens and will be rejected.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Panel title (mapped to panelName)."
+          },
+          "componentType": {
+            "type": "string",
+            "description": "One of the 8 dashboard component types: chart, table, stat-tile, text, container, pivot-table, map, iframe. Components that need data (chart/table/stat-tile/map/pivot-table) require datasetSid; text/iframe/container do not."
+          },
+          "datasetSid": {
+            "type": "string",
+            "description": "The dataset ID (sid) to bind this panel to. Required for chart/table/stat-tile/map/pivot-table (needsDataset=true). Omit for text/iframe/container. Multiple panels referencing the same datasetSid share one DatasetRef (deduplicated within the dashboard)."
+          },
+          "fieldMapping": {
+            "type": "object",
+            "description": "Optional field mapping config stored in panelConfig.fieldMapping for front-end rendering. Each referenced field name must exist in the dataset's dsMeta field set. Example: {\"x\":\"region\",\"y\":\"amount\"}.",
+            "additionalProperties": true
+          },
+          "sortOrder": {
+            "type": "integer",
+            "description": "Optional sort order. If omitted, panels are ordered by declaration order (0,1,2,...)."
+          }
+        },
+        "required": ["title", "componentType"]
+      }
+    }
+  },
+  "required": ["dashboardName", "panels"]
+}</schemaJson>
+
+    <description><![CDATA[Generate (create) a draft dashboard with panels and dataset references from a structured specification.
+
+Workflow: First use datav-list-datasets, datav-describe-dataset and datav-query-dataset to understand the available data, then call this tool ONCE to author the dashboard.
+
+Creates:
+- A Dashboard row with publishStatus=DRAFT (version=0, not published).
+- One DatasetRef per unique datasetSid referenced by needsDataset=true panels (deduplicated within the dashboard; paramMapping initialized to {}).
+- One Panel per panels[] entry (panelName=title, panelType mapped from componentType, panelConfig.fieldMapping stores the provided fieldMapping).
+
+Validation (failures return explicit errors, the loop will feed them back so you can correct and retry):
+- componentType MUST be one of the 8 dashboard types. Decorative/media types return ERR_DATAV_CHATBI_GENERATE_UNSUPPORTED_COMPONENT; truly unknown types return ERR_DATAV_CHATBI_GENERATE_UNKNOWN_COMPONENT.
+- For needsDataset=true components, datasetSid MUST reference an existing active (status=1) dataset; otherwise ERR_DATAV_CHATBI_GENERATE_DATASET_NOT_FOUND.
+- If fieldMapping is provided, every referenced field name MUST exist in the dataset's dsMeta field set; otherwise ERR_DATAV_CHATBI_GENERATE_INVALID_SPEC.
+
+The generated dashboard is a DRAFT — the user must explicitly publish it via the platform publishDashboard action. You MUST NOT claim the dashboard is published.
+
+Returns JSON with:
+- dashboardId: the created dashboard ID
+- panels: summary of created panels (panelName, componentType, datasetRefId)
+- datasetRefs: summary of created dataset references (datasetRefId, refDatasetId)
+
+Safety constraints (MUST FOLLOW):
+- You can ONLY reference pre-registered datasets and map existing fields. You MUST NOT generate, write, or execute raw SQL.
+- The result is a DRAFT. Do NOT auto-publish.]]></description>
+
+    <examples>
+        <example index="1">
+            <call-tools>
+                <datav-generate-dashboard id="1" explanation="Generate a regional sales dashboard"
+                                          dashboardName="Regional Sales Dashboard"
+                                          description="Sales analysis by region">
+                    <panels>
+                        <panel title="Sales by Region" componentType="chart" datasetSid="ds-sales" sortOrder="0">
+                            <fieldMapping>
+                                <field name="x" value="region"/>
+                                <field name="y" value="amount"/>
+                            </fieldMapping>
+                        </panel>
+                        <panel title="Sales Table" componentType="table" datasetSid="ds-sales" sortOrder="1"/>
+                        <panel title="Notes" componentType="text" sortOrder="2"/>
+                    </panels>
+                </datav-generate-dashboard>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="1" status="success">
+                    <output><![CDATA[{
+  "dashboardId": "dash-gen-abc123",
+  "panels": [
+    {"panelName": "Sales by Region", "componentType": "chart", "datasetRefId": "ref-xyz"},
+    {"panelName": "Sales Table", "componentType": "table", "datasetRefId": "ref-xyz"},
+    {"panelName": "Notes", "componentType": "text", "datasetRefId": null}
+  ],
+  "datasetRefs": [
+    {"datasetRefId": "ref-xyz", "refDatasetId": "ds-sales"}
+  ]
+}]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+    </examples>
+
+</tool>

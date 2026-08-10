@@ -249,7 +249,7 @@
                         <resource id="FNPT:NopDatavAlertState:mutation" roles="admin"/>
                     </children>
                 </resource>
-                <!-- ==================== NopDatavChatBi（D6-1 ChatBI 自然语言查询）==================== -->
+                <!-- ==================== NopDatavChatBi（D6-1 ChatBI 自然语言查询 + D6-1b 看板生成）==================== -->
                 <resource id="NopDatavChatBi-main">
                     <children>
                         <!-- 自定义 action 权限点 -->
@@ -257,6 +257,12 @@
                                   i18n-en:displayName="ChatBI Query" orderNo="10070" resourceType="FNPT"
                                   roles="admin,user">
                             <permissions>NopDatavChatBi:chatToQuery</permissions>
+                        </resource>
+                        <!-- D6-1b ChatBI 看板生成（写操作：创建草稿看板，用 @BizMutation，roles=user 可创作，admin 全量） -->
+                        <resource id="FNPT:NopDatavChatBi:chatToDashboard" displayName="ChatBI看板生成"
+                                  i18n-en:displayName="ChatBI Dashboard Generation" orderNo="10071" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavChatBi:chatToDashboard</permissions>
                         </resource>
                     </children>
                 </resource>

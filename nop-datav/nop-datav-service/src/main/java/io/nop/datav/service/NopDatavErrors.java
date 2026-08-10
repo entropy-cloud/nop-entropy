@@ -457,4 +457,33 @@ public interface NopDatavErrors {
             "ChatBI dataset is not a SQL dataset (dsType must be 'sql'): {datasetSid}",
             ARG_DATASET_SID
     );
+
+    // ===== D6-1b ChatBI 看板生成 =====
+
+    String ARG_DASHBOARD_NAME = "dashboardName";
+    String ARG_FIELD_MAPPING = "fieldMapping";
+
+    ErrorCode ERR_DATAV_CHATBI_GENERATE_INVALID_SPEC = define(
+            "nop.err.datav.chatbi-generate-invalid-spec",
+            "ChatBI generate-dashboard received an invalid spec: {reason}",
+            ARG_REASON
+    );
+
+    ErrorCode ERR_DATAV_CHATBI_GENERATE_DATASET_NOT_FOUND = define(
+            "nop.err.datav.chatbi-generate-dataset-not-found",
+            "ChatBI generate-dashboard referenced a dataset that does not exist or is not active: {datasetSid}",
+            ARG_DATASET_SID
+    );
+
+    ErrorCode ERR_DATAV_CHATBI_GENERATE_UNSUPPORTED_COMPONENT = define(
+            "nop.err.datav.chatbi-generate-unsupported-component",
+            "ChatBI generate-dashboard received a decorative/media component type that is not allowed for dashboards (only the 8 dashboard component types are allowed): {componentType}",
+            ARG_COMPONENT_TYPE
+    );
+
+    ErrorCode ERR_DATAV_CHATBI_GENERATE_UNKNOWN_COMPONENT = define(
+            "nop.err.datav.chatbi-generate-unknown-component",
+            "ChatBI generate-dashboard received an unknown component type: {componentType}",
+            ARG_COMPONENT_TYPE
+    );
 }
