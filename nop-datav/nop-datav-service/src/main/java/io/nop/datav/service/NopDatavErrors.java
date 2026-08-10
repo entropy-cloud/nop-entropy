@@ -486,4 +486,32 @@ public interface NopDatavErrors {
             "ChatBI generate-dashboard received an unknown component type: {componentType}",
             ARG_COMPONENT_TYPE
     );
+
+    // ===== D6-2 ChatBI 大屏生成 =====
+
+    String ARG_SCREEN_NAME = "screenName";
+
+    ErrorCode ERR_DATAV_CHATBI_GENERATE_INVALID_WIDGET_POSITION = define(
+            "nop.err.datav.chatbi-generate-invalid-widget-position",
+            "ChatBI generate-screen received an invalid widget position (x/y must be non-negative, w/h must be positive): {reason}",
+            ARG_REASON
+    );
+
+    ErrorCode ERR_DATAV_CHATBI_GENERATE_WIDGET_OUT_OF_BOUNDS = define(
+            "nop.err.datav.chatbi-generate-widget-out-of-bounds",
+            "ChatBI generate-screen received a widget that exceeds the canvas bounds (x+w must be <= screenWidth, y+h must be <= screenHeight): {reason}",
+            ARG_REASON
+    );
+
+    ErrorCode ERR_DATAV_CHATBI_GENERATE_DUPLICATE_SCREEN_NAME = define(
+            "nop.err.datav.chatbi-generate-duplicate-screen-name",
+            "ChatBI generate-screen received a duplicate screenName (a screen with this name already exists): {screenName}",
+            ARG_SCREEN_NAME
+    );
+
+    ErrorCode ERR_DATAV_CHATBI_GENERATE_INVALID_BACKGROUND_CONFIG = define(
+            "nop.err.datav.chatbi-generate-invalid-background-config",
+            "ChatBI generate-screen received an invalid backgroundConfig that cannot be parsed as screen theme: {reason}",
+            ARG_REASON
+    );
 }

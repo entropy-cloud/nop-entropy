@@ -20,6 +20,8 @@ site:
       displayName: ChatBI Dashboard Generation
     FNPT:NopDatavChatBi:chatToQuery:
       displayName: ChatBI Query
+    FNPT:NopDatavChatBi:chatToScreen:
+      displayName: ChatBI Screen Generation
     FNPT:NopDatavDashboard:getPublishedDashboard:
       displayName: Get Published Dashboard
     FNPT:NopDatavDashboard:mutation:

@@ -15,6 +15,7 @@ import io.nop.datav.service.chatbi.ChatBiResult;
 import io.nop.datav.service.chatbi.ChatBiSystemPrompt;
 import io.nop.datav.service.chatbi.ChatBiToolCallingLoop;
 import io.nop.datav.service.chatbi.DatavGenerateDashboardExecutor;
+import io.nop.datav.service.chatbi.DatavGenerateScreenExecutor;
 import io.nop.datav.service.chatbi.ToolResultHandler;
 import io.nop.datav.service.NopDatavOperatorResolver;
 import jakarta.annotation.Nullable;
@@ -26,14 +27,16 @@ import static io.nop.datav.service.NopDatavConfigs.CFG_DATAV_CHATBI_MAX_ITERATIO
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_AI_NOT_AVAILABLE;
 
 /**
- * ChatBI BizModel（D6-1 查询 + D6-1b 看板生成）。
+ * ChatBI BizModel（D6-1 查询 + D6-1b 看板生成 + D6-2 大屏生成）。
  *
- * <p>经 GraphQL 暴露两个 action：
+ * <p>经 GraphQL 暴露三个 action：
  * <ul>
  *   <li>{@code chatToQuery}（{@code @BizQuery}）：NL → tool-calling → 数据集查询 → 结构化结果。</li>
  *   <li>{@code chatToDashboard}（{@code @BizMutation @Auth}，D6-1b）：NL → tool-calling → 看板生成 →
  *       草稿看板 dashboardId。写操作（创建实体），故用 {@code @BizMutation} 非 {@code @BizQuery}，
  *       镜像 {@code publishDashboard(@BizMutation)} 约定。</li>
+ *   <li>{@code chatToScreen}（{@code @BizMutation @Auth}，D6-2）：NL → tool-calling → 大屏生成 →
+ *       草稿大屏 screenId。写操作（创建 Screen/ScreenWidget 实体），镜像 {@code chatToDashboard} 约定。</li>
  * </ul>
  * </p>
  *
@@ -41,7 +44,7 @@ import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_AI_NOT_AVAILA
  * 范式）。nop-ai 缺席时 action **显式抛 {@code ERR_DATAV_CHATBI_AI_NOT_AVAILABLE}**（非静默返回 null，
  * 见 Minimum Rules #24）。</p>
  *
- * <p>设计契约：{@code ai-dev/design/nop-datav/ai-design.md}（§1–7 D6-1，§8 D6-1b）。</p>
+ * <p>设计契约：{@code ai-dev/design/nop-datav/ai-design.md}（§1–7 D6-1，§8 D6-1b，§9 D6-2）。</p>
  */
 @BizModel("NopDatavChatBi")
 public class NopDatavChatBiBizModel {
@@ -150,6 +153,64 @@ public class NopDatavChatBiBizModel {
             }
         } catch (Exception ignore) {
             // 解析失败不影响循环（与 query handler 容忍一致）
+        }
+    };
+
+    /**
+     * ChatBI 大屏生成 action（D6-2）：自然语言描述 → tool-calling → 草稿大屏生成 → screenId。
+     *
+     * <p>写操作（创建 Screen/ScreenWidget 实体），故用 {@code @BizMutation}（镜像 {@code chatToDashboard} 约定）。
+     * 经泛化循环（裁定 L）+ 大屏生成专用 system prompt + operator 传递（裁定 G）+ 大屏生成结果提取 handler。</p>
+     *
+     * <p>nop-ai 缺席时显式抛 {@code ERR_DATAV_CHATBI_AI_NOT_AVAILABLE}（复用 D6-1 @Nullable 范式）。
+     * 生成的大屏为 DRAFT（不自动发布，沿用裁定 H），用户须手动 {@code publishScreen} 审阅发布。</p>
+     *
+     * @param description 自然语言大屏描述（必填，如"建一个经营 KPI 大屏，1920x1080"）
+     * @param context     服务上下文（解析 operator，填充 createdBy；镜像 publishScreen 约定）
+     * @return ChatBI 结果（answer + createdEntityId=screenId + iterations）
+     */
+    @BizMutation
+    @Auth(permissions = "NopDatavChatBi:chatToScreen")
+    public ChatBiResult chatToScreen(@Name("description") String description, IServiceContext context) {
+        if (chatService == null || toolManager == null) {
+            throw new NopException(ERR_DATAV_CHATBI_AI_NOT_AVAILABLE)
+                    .param("question", description);
+        }
+
+        // 裁定 G：从 IServiceContext 解析 operator，传入泛化循环 → 生成 executor 读取 → 手动填充 createdBy
+        String operator = NopDatavOperatorResolver.resolveOperator(context);
+
+        int maxIterations = CFG_DATAV_CHATBI_MAX_ITERATIONS.get();
+
+        ChatBiToolCallingLoop loop = new ChatBiToolCallingLoop(chatService, toolManager);
+        return loop.run(description, ChatBiSystemPrompt.buildScreenSystemPrompt(), operator,
+                maxIterations, SCREEN_RESULT_HANDLER);
+    }
+
+    /**
+     * 大屏生成路径结果提取 handler（D6-2，裁定 K + 裁定 L 泛化点 2）。
+     *
+     * <p>当 {@code datav-generate-screen} 成功执行时，从返回 JSON 解析 screenId 累加进
+     * {@link ChatBiResult#setCreatedEntityId}。</p>
+     */
+    private static final ToolResultHandler SCREEN_RESULT_HANDLER = (toolName, result, content, accumulator) -> {
+        if (!DatavGenerateScreenExecutor.TOOL_NAME.equals(toolName)) {
+            return;
+        }
+        if (!"success".equals(result.getStatus()) || result.getError() != null || content == null) {
+            return;
+        }
+        try {
+            Object parsed = JsonTool.parseNonStrict(content);
+            if (parsed instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Object screenId = ((Map<String, Object>) parsed).get("screenId");
+                if (screenId != null) {
+                    accumulator.setCreatedEntityId(screenId.toString());
+                }
+            }
+        } catch (Exception ignore) {
+            // 解析失败不影响循环（与 query/dashboard handler 容忍一致）
         }
     };
 }

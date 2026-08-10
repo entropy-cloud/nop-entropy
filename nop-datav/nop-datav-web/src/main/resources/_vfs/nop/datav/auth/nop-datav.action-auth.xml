@@ -264,6 +264,12 @@
                                   roles="admin,user">
                             <permissions>NopDatavChatBi:chatToDashboard</permissions>
                         </resource>
+                        <!-- D6-2 ChatBI 大屏生成（写操作：创建草稿大屏，用 @BizMutation，roles=user 可创作，admin 全量） -->
+                        <resource id="FNPT:NopDatavChatBi:chatToScreen" displayName="ChatBI大屏生成"
+                                  i18n-en:displayName="ChatBI Screen Generation" orderNo="10072" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavChatBi:chatToScreen</permissions>
+                        </resource>
                     </children>
                 </resource>
             </children>
