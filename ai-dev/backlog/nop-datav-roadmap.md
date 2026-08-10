@@ -1,6 +1,6 @@
 # nop-datav 实现 Roadmap
 
-> Last updated: 2026-08-10（D4-2 装饰/媒体组件族、D4-3 大屏主题、D4-4 发布生命周期 已 done；D1-4/D2-4 前端仍 blocked 于 flux）
+> Last updated: 2026-08-10（D5-1 done；D5-2 已 planned；D4 全 done；D1-4/D2-4 前端仍 blocked 于 flux）
 > Sources: `ai-dev/analysis/2026-08/2026-08-09-nop-datav-function-analysis.md`（功能设计分析）
 > 前端配套：`nop-chaos-flux` BI 控件族（chart/pivot-table/stat-tile/map/dashboard editor 计划）
 > 目标：将 nop-datav 从空壳实现为「BI 看板/大屏的模型层 + 运行时编排」（数据源/数据集/查询复用 nop-report + nop-metadata + EQL）
@@ -85,8 +85,8 @@ AI 或维护者读完本文即知哪些工作项已启动（`todo`）、已计�
 > 依赖：D1；nop-job 调度（复用）、nop-message 通知（复用）
 > 设计契约：`ai-dev/design/nop-datav/schedule-report-design.md`（D5 时产出）
 
-- D5-1. 定时报告（看板快照定时生成 + 发送邮件/IM，Superset 定时报告参考，crontab + grace）: `todo`
-- D5-2. 轻量告警（面板数据阈值条件 + 通知渠道，Redash Alert 参考：operator/value + rearm 冷静期）: `todo`
+- D5-1. 定时报告（看板快照定时生成 + 发送邮件/IM，Superset 定时报告参考，crontab + grace）: `done` ✅（plan `ai-dev/plans/nop-datav/2026-08-10-1230-1-scheduled-report-generation-and-delivery.md` 已完成 — 渲染时机=调度触发时复用 PanelDataExporter 取当前 panel 表实时数据 render-at-execution；通知走 nop-integration(IEmailSender)+nop-sys(NopSysNoticeTemplate) 非 nop-message；调度=beanMethod invoker+可空注入 IJobScheduler 镜像 MetaQualityCheckpointScheduler；新增 NopDatavReportTask/NopDatavReportDelivery 实体 + NopDatavReportScheduler/ReportDeliveryExecutor/NotificationSender/NopDatavReportDeliveryRecovery；邮件端到端打通，IM/固定版本快照/集群rpc 裁定 deferred；13 新测试，268/0/0 datav-service 全绿；独立 closure audit PASS 15/15 gates）
+- D5-2. 轻量告警（面板数据阈值条件 + 通知渠道，Redash Alert 参考：operator/value + rearm 冷静期）: `planned` ✅（plan `ai-dev/plans/nop-datav/2026-08-10-1230-2-lightweight-alert-threshold-rearm-notification.md` — 复用 D5-1 调度范式+通知抽象（sendAlert 本计划定义，告警专用错误码自建）；新增 NopDatavAlertRule/NopDatavAlertState 实体 + AlertEvaluator/NopDatavAlertScheduler；两态状态机 OK/TRIGGERED（RESOLVED=TRIGGERED→OK 瞬态恢复通知）+ rearm 冷静期；thresholdValue+thresholdValue2 支持 between；valueField+aggregation 标量聚合）
 
 验收：定时报告生成并送达；阈值告警触发与恢复通知正确。
 
