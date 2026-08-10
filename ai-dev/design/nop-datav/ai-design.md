@@ -1,6 +1,8 @@
 # nop-datav AI/ChatBI 设计 (D6)
 
-> Status: **final**（D6-1 数据集查询能力交付，plan `ai-dev/plans/nop-datav/2026-08-10-1300-1-chatbi-nl-dataset-query.md`）。
+> Status: **final**（D6-1 数据集查询 + D6-1b 看板生成能力交付，
+> plans `ai-dev/plans/nop-datav/2026-08-10-1300-1-chatbi-nl-dataset-query.md` +
+> `ai-dev/plans/nop-datav/2026-08-10-1516-1-nl-dashboard-panel-generation.md`）。
 > 本文件是 D6 ChatBI 集成的权威设计契约：工具集成方案、API 选择、被拒方案、类型转换契约、安全边界。
 > 相关代码：`nop-datav-service/.../chatbi/*`（executor + BizModel + tool-calling 循环）、
 > `nop-datav-service/.../_vfs/nop/ai/tools/*.tool.xml`（工具定义）。
@@ -211,3 +213,252 @@ ChatBI 不经 DatasetRef（无面板上下文），直接查 `NopReportDataset`�
 
 **Follow-up（不在 D6-1 scope）**：ChatBI 查询审计日志（NL 问题 + tool calls + 结果摘要）、
 多模型热切换、查询结果可视化建议、会话历史持久化。
+
+---
+
+## 8. D6-1b 看板生成（NL → 看板/面板配置生成）
+
+> 来源：plan `ai-dev/plans/nop-datav/2026-08-10-1516-1-nl-dashboard-panel-generation.md`。
+> 在 D6-1「只查询不创作」之上扩展「对话式创作」：用户用 NL 描述想要的看板，系统经 tool-calling
+> 自动发现数据集、理解字段、**生成一个草稿看板（含面板 + 数据集引用 + 字段映射）**并返回 dashboardId。
+
+### 8.1 关键裁定（Decision G–O）
+
+#### 裁定 G：operator 传递全链路
+
+**选择**：BizModel 从 `IServiceContext` 经 `NopDatavOperatorResolver.resolveOperator(context)` 解析
+operator → 传入泛化循环（`run()` 新增 `operator` 入参）→ 循环构建携带 operator 的
+`ChatBiToolExecuteContext`（该类新增 `operator` 字段 + getter）→ `DatavGenerateDashboardExecutor` 将
+入参 `IToolExecuteContext` **强转为 `ChatBiToolExecuteContext`** 读取 operator → 手动设置
+Dashboard/Panel/DatasetRef 的 `createdBy`/`updatedBy` 审计列。
+
+**理由**：
+- `IToolExecutor.executeAsync(AiToolCall, IToolExecuteContext)` 签名无 `IServiceContext`，无法直接拿到用户上下文。
+- 扩展 `ChatBiToolExecuteContext`（ChatBI 自有的 context 实现）携带 operator 是最小侵入方案：既不污染
+  `IToolExecuteContext` 公共接口，又让 ChatBI 自家的两个 executor（query + generate）能共享同一 context 类型。
+- tool executor 无 BizModel 用户上下文，**审计列必须手动填充**（非由框架自动注入），否则 `createdBy` 为 null。
+
+**context↔executor 强转耦合契约**：`DatavGenerateDashboardExecutor` 假定传入的 `IToolExecuteContext`
+是 `ChatBiToolExecuteContext` 实例（`ClassCastException` 不可恢复时由循环保证传入正确类型）。该假定仅
+在 ChatBI 循环内成立；executor 不可被其他（非 ChatBI）tool-calling 路径调用。
+
+**owner 身份 ≡ `createdBy`**：`NopDatavDashboard` 无独立 `owner` 列（身份/归属字段即 `createdBy`，
+domain="createdBy", mandatory）。RLS 按 `createdBy == $context.userName`。生成看板的归属即 operator。
+
+**被拒方案**：executor 可变状态 setter（`setOperator(String)` 注入）。拒绝理由：executor 是 IoC 单例，
+可变 setter 在并发 tool-calling 下线程不安全（多请求共享实例，operator 会被覆盖）。强转 + per-request
+context 是线程安全的。
+
+#### 裁定 H：草稿语义与发布边界
+
+**选择**：生成工具创建的 Dashboard 为 `publishStatus=DRAFT`（0）、`publishedVersion=0`、**不写快照表**
+（`NopDatavDashboardSnapshot`）。用户经既有 `publishDashboard` 审阅发布。
+
+**理由**：人审节点不可省略。LLM 产出的配置可能有字段映射语义错误（X/Y 轴选反），自动发布会把错误配置
+直接推上线。草稿语义保留人审关卡：用户在草稿上预览、修正、再手动发布。
+
+#### 裁定 I：DatasetRef 去重策略
+
+**选择**：同一生成规格内多个 panel 引用同一 `datasetSid` 时，创建**一个** `NopDatavDatasetRef` 复用
+（而非每 panel 一个）。去重键 = `(dashboardId, refDatasetId)`，应用层去重（无 DB unique 约束）。
+
+**paramMapping 初值**：生成阶段为空 `{}`（用户后续在草稿上补充参数映射）。
+
+**needsDataset=false 的 panel（text/iframe/container）不参与去重**（无 DatasetRef 关联，`datasetRefId=null`）。
+
+#### 裁定 J：校验失败语义
+
+**选择**：规格校验失败时工具返回**显式错误结果**（`status=failure` + 错误码 + 描述），由 LLM 在下一轮
+修正，**不静默跳过**（Minimum Rules #24）。
+
+**每类校验失败的错误码**：
+
+| 校验失败类 | 错误码 |
+|-----------|--------|
+| 未知 componentType（不在 14 类注册表内） | `ERR_DATAV_CHATBI_GENERATE_UNKNOWN_COMPONENT` |
+| 装饰类型（注册表内但无 panelType int 映射，用于大屏） | `ERR_DATAV_CHATBI_GENERATE_UNSUPPORTED_COMPONENT` |
+| datasetSid 不存在 / 非活跃（status≠1） | `ERR_DATAV_CHATBI_GENERATE_DATASET_NOT_FOUND` |
+| fieldMapping 引用字段不在 dsMeta 字段名集合 | `ERR_DATAV_CHATBI_GENERATE_INVALID_SPEC` |
+| needsDataset=true 组件未提供 datasetSid | `ERR_DATAV_CHATBI_GENERATE_INVALID_SPEC` |
+| panels 为空 / dashboardName 为空 | `ERR_DATAV_CHATBI_GENERATE_INVALID_SPEC` |
+
+#### 裁定 K：结果类型设计
+
+**选择**：泛化 `ChatBiResult`，新增**可选** `createdEntityId` 字段。查询路径不用（保持 null），
+生成路径填 dashboardId。`answer`（LLM 最终文本）+ `iterations` 两路径共用。
+
+**理由**：
+- `columns`/`rows` 是查询专用语义；`dashboardId` 是生成专用语义。二者并存于同一 result，用可选字段区分，
+  避免 fork 两个 result 类型。
+- 与裁定 L 协同：泛化循环返回同一 `ChatBiResult`，两个路径各自填充自己的字段。
+
+**被拒方案**：fork `ChatQueryResult` + `ChatDashboardResult` 两个类型 + 泛型化循环返回 `<T>`。
+拒绝理由：泛型化循环签名复杂化（`<T extends ChatResultBase>`），且 result 差异仅 2 字段，不值得双类型。
+
+#### 裁定 L：循环泛化方案
+
+**选择**：将 D6-1 查询专用 `ChatBiToolCallingLoop` 泛化为可复用的 tool-calling 循环。**4 个泛化点**：
+
+1. **system prompt**：从硬编码 `ChatBiSystemPrompt.buildSystemPrompt()` 改为 `run()` 入参。
+   查询路径传查询 prompt，生成路径传生成 prompt。
+2. **结果提取**：从硬编码 query-columns/rows 解析改为**可插拔 `ToolResultHandler` 回调**。
+   查询路径注入 query handler（解析 columns/rows），生成路径注入 generate handler（解析 dashboardId）。
+   handler 接收 `(toolName, toolResult, content, chatBiResult)`，按需更新 result。
+3. **返回类型**：泛化 `ChatBiResult`（裁定 K），两路径共享。
+4. **context 构建**：`run()` 接受 `operator` 入参，构建携带 operator 的 `ChatBiToolExecuteContext`（裁定 G）。
+
+**回归保护**：查询路径（`chatToQuery`）迁移到泛化循环后，既有 D6-1 测试必须全绿（行为不变）。具体：
+`chatToQuery` 调 `loop.run(question, maxIterations, ChatBiSystemPrompt.SYSTEM_PROMPT, null, queryHandler)`，
+其中 `queryHandler` 复刻原硬编码的 query-columns/rows 解析逻辑。
+
+**被拒方案**：fork 两个循环（`ChatBiQueryLoop` + `ChatBiDashboardLoop`）。拒绝理由：循环骨架
+（listTools → call → toolCalls 循环 → callTool → 回喂 → 终止判定）完全相同，fork 会重复 ~60 行代码，
+违反 DRY。泛化只增加 3 个参数（prompt + operator + handler），复杂度可控。
+
+#### 裁定 M：看板可生成组件类型边界
+
+**选择**：看板生成只接受 **8 类**（`PanelTypeMapping` 覆盖的：chart/table/stat-tile/text/container/
+pivot-table/map/iframe）。**6 类装饰/媒体组件**（decorative-border/scroll-text/time-clock/video/
+stream/carousel-tab）无 panelType int 映射（screen-design §10.5，大屏专用），看板生成拒绝。
+
+**两类错误码区分**（让 LLM 能区分）：
+- 完全未知类型（不在 14 类注册表）→ `ERR_DATAV_CHATBI_GENERATE_UNKNOWN_COMPONENT`
+- 注册表内但属装饰类型（无 panelType int 映射）→ `ERR_DATAV_CHATBI_GENERATE_UNSUPPORTED_COMPONENT`
+
+**needsDataset 边界**（决定是否要 datasetSid）：
+- needsDataset=true（5 类）：chart / table / stat-tile / map / pivot-table —— datasetSid 必填。
+- needsDataset=false（3 类）：text / iframe / container —— 不传 datasetSid，不建 DatasetRef。
+
+#### 裁定 N：dsMeta 解析共享 helper
+
+**选择**：从 `DatavDescribeDatasetExecutor` 提取共享 `DatasetMetaParser.parseFieldNames(String dsMeta): Set<String>`，
+声明字段名 key 约定。generate-dashboard executor 与 describe executor 共用。
+
+**字段名 key 约定**（dsMeta 三种形式的字段名提取规则）：
+1. `{"fields": [{"name": "region", ...}, ...]}` → 取 `fields[].name`。
+2. `{"columns": [{"name": ...}, ...]}` → 取 `columns[].name`（兼容形式）。
+3. `[{...}]`（数组根）→ 取每个元素（若有 `name`）。
+
+仅当字段对象含 `name` key 时纳入字段名集合；不含 `name` 的字段对象跳过（非报错）。dsMeta 解析失败返回空集合。
+
+#### 裁定 O：多表创建事务机制
+
+**选择**：executor 注入 `IOrmTemplate`，将 Dashboard + DatasetRef + Panel 创建包在 `runInSession` 事务内。
+**校验全部在创建前先发生**（fail-fast），失败时不落任何行（满足"无半成品"Exit Criteria）。
+
+**事务边界**：整个 `generate` 方法体在 `ormTemplate.runInSession(session -> { ... })` 内执行。校验阶段
+（componentType / datasetSid / fieldMapping）在校验阶段完成且全部通过后，才进入创建阶段。校验阶段抛
+`NopException` → 事务回滚（无行落盘）。创建阶段用 `dao.saveEntityDirectly(entity)` 逐行保存。
+
+### 8.2 循环泛化架构
+
+```
+NopDatavChatBiBizModel.chatToQuery / chatToDashboard
+   │
+   │  query path:  loop.run(question, maxIters, QUERY_PROMPT,    null,    queryHandler)
+   │  dash path:   loop.run(desc,    maxIters, DASHBOARD_PROMPT, operator, dashboardHandler)
+   │
+   ▼
+ChatBiToolCallingLoop.run(prompt, userMsg, maxIters, operator, handler)
+   │
+   │  构建 ChatRequest(prompt + userMsg + tools) + ChatBiToolExecuteContext(operator, cancelToken)
+   │
+   │  循环（最多 maxIters 次）:
+   │    IChatService.call → outputToolCalls()
+   │      ├─ 空 → handler 收尾 → 返回 ChatBiResult(answer + 累加字段 + iterations)
+   │      └─ 非空 → callTool → handler.handle(name, result, content, accumulator) → 回喂 → 继续
+   ▼
+ChatBiResult (answer + columns/rows[query] + createdEntityId[dash] + iterations)
+```
+
+**`ToolResultHandler` 契约**（函数式接口）：
+
+```java
+@FunctionalInterface
+interface ToolResultHandler {
+    void handle(String toolName, AiToolCallResult result, String content, ChatBiResult accumulator);
+}
+```
+
+- **QueryHandler**：`if ("datav-query-dataset".equals(toolName) && success) { parse columns/rows → accumulator }`
+- **DashboardHandler**：`if ("datav-generate-dashboard".equals(toolName) && success) { parse dashboardId → accumulator.createdEntityId }`
+
+### 8.3 创作工具架构（datav-generate-dashboard）
+
+```
+LLM 产出结构化规格（JSON）:
+{
+  "dashboardName": "...",
+  "description": "...",
+  "panels": [
+    { "title": "...", "componentType": "chart", "datasetSid": "ds-x", "fieldMapping": {...}, "sortOrder": 0 },
+    { "title": "...", "componentType": "text" },   // needsDataset=false, 无 datasetSid
+    ...
+  ]
+}
+        │
+        ▼
+DatavGenerateDashboardExecutor.executeAsync(call, context)
+   │
+   │  1. 解析 AiToolCall.input JSON → 规格对象
+   │  2. 校验（fail-fast，裁定 J/O）:
+   │     a. componentType 属 8 类（裁定 M）
+   │     b. datasetSid 存在 + status=1（needsDataset=true 时）
+   │     c. fieldMapping 字段 ∈ DatasetMetaParser.parseFieldNames(dsMeta)（裁定 N）
+   │  3. 去重 DatasetRef（裁定 I）: 同 dashboard + 同 refDatasetId → 一个 DatasetRef
+   │  4. 事务性创建（裁定 O，ormTemplate.runInSession）:
+   │     - Dashboard（DRAFT, createdBy=operator 手动填）
+   │     - DatasetRef 集合（dashboardId FK, paramMapping={}, createdBy=operator）
+   │     - Panel 集合（panelName=title, panelType=PanelTypeMapping, datasetRefId=去重后,
+   │                    panelConfig.fieldMapping=规格.fieldMapping, createdBy=operator）
+   │  5. 返回 dashboardId + 摘要 JSON
+   ▼
+dashboardId（写入 ChatBiResult.createdEntityId）
+```
+
+**输入 schema**（`datav-generate-dashboard.tool.xml` 的 schemaJson，嵌套 panels 数组）：
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "dashboardName": { "type": "string" },
+    "description": { "type": "string" },
+    "panels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "componentType": { "type": "string" },
+          "datasetSid": { "type": "string" },
+          "fieldMapping": { "type": "object" },
+          "sortOrder": { "type": "integer" }
+        },
+        "required": ["title", "componentType"]
+      }
+    }
+  },
+  "required": ["dashboardName", "panels"]
+}
+```
+
+### 8.4 被拒方案汇总（D6-1b 增补）
+
+| 方案 | 拒绝理由 |
+|-----|---------|
+| fork `ChatBiQueryLoop` + `ChatBiDashboardLoop` 两循环 | 循环骨架完全相同，fork 重复 ~60 行（裁定 L） |
+| fork `ChatQueryResult` + `ChatDashboardResult` 两 result + 泛型化循环 | 差异仅 2 字段，双类型 + 泛型签名复杂化（裁定 K） |
+| executor 可变 `setOperator` 注入 | 单例 + 并发 tool-calling 下线程不安全（裁定 G） |
+| 自动发布生成看板 | 人审节点不可省略，LLM 可能产出错误配置直接上线（裁定 H） |
+| LLM 产出 SQL | 沿用 D6-1 安全约束，只能引用已有数据集 + 映射字段（裁定 J/E） |
+| 生成看板含全局筛选/联动配置 | D2 paramConfig/linkageConfig 语义复杂，LLM 难可靠产出；列为 follow-up |
+
+### 8.5 D6-1b 安全边界
+
+- 生成工具只能引用**已有数据集**（`NopReportDataset` status=1）+ **映射已有字段**（dsMeta 内），
+  不能凭空造数据集/字段。
+- 生成的看板为 **DRAFT**，不自动发布（裁定 H）。
+- 生成看板归属 operator（`createdBy`），RLS 保护。
+- system prompt 含「禁止生成 SQL」「只用 8 类看板组件」「产出草稿不自动发布」约束。
+- `chatToDashboard` 经 `@BizMutation @Auth`（写操作，镜像 `publishDashboard` 约定）。
