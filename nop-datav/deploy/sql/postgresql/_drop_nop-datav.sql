@@ -8,6 +8,8 @@ drop table  if exists  nop_datav_dataset_ref;
 drop table  if exists  nop_datav_snapshot;
 drop table  if exists  nop_datav_filter_state;
 drop table  if exists  nop_datav_share;
+drop table  if exists  nop_datav_report_task;
 drop table  if exists  nop_datav_screen_widget;
 drop table  if exists  nop_datav_screen_snapshot;
+drop table  if exists  nop_datav_report_delivery;
 

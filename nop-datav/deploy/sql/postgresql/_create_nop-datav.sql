@@ -167,6 +167,32 @@ CREATE TABLE nop_datav_share(
   constraint PK_nop_datav_share primary key (share_id)
 );
 
+CREATE TABLE nop_datav_report_task(
+  report_task_id VARCHAR(32) NOT NULL ,
+  task_name VARCHAR(100) NOT NULL ,
+  display_name VARCHAR(200)  ,
+  dashboard_id VARCHAR(32) NOT NULL ,
+  cron_expr VARCHAR(100) NOT NULL ,
+  format VARCHAR(10) NOT NULL ,
+  recipients TEXT  ,
+  notify_channels TEXT  ,
+  params TEXT  ,
+  status INT4 NOT NULL ,
+  grace_minutes INT4 default 60   ,
+  template_key VARCHAR(100)  ,
+  last_run_time TIMESTAMP  ,
+  last_run_status VARCHAR(20)  ,
+  last_run_error VARCHAR(1000)  ,
+  del_flag INT4  ,
+  version INT8 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint PK_nop_datav_report_task primary key (report_task_id)
+);
+
 CREATE TABLE nop_datav_screen_widget(
   widget_id VARCHAR(32) NOT NULL ,
   screen_id VARCHAR(32) NOT NULL ,
@@ -205,6 +231,27 @@ CREATE TABLE nop_datav_screen_snapshot(
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
   constraint PK_nop_datav_screen_snapshot primary key (snapshot_id)
+);
+
+CREATE TABLE nop_datav_report_delivery(
+  delivery_id VARCHAR(32) NOT NULL ,
+  report_task_id VARCHAR(32) NOT NULL ,
+  status INT4 NOT NULL ,
+  generated_file_record_id VARCHAR(64)  ,
+  delivered_channels VARCHAR(200)  ,
+  row_count INT8  ,
+  error_msg VARCHAR(1000)  ,
+  triggered_by VARCHAR(20) NOT NULL ,
+  start_time TIMESTAMP  ,
+  end_time TIMESTAMP  ,
+  del_flag INT4  ,
+  version INT8 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint PK_nop_datav_report_delivery primary key (delivery_id)
 );
 
 
@@ -490,6 +537,52 @@ CREATE TABLE nop_datav_screen_snapshot(
                     
       COMMENT ON COLUMN nop_datav_share.remark IS '备注';
                     
+      COMMENT ON TABLE nop_datav_report_task IS '定时报告任务';
+                
+      COMMENT ON COLUMN nop_datav_report_task.report_task_id IS '报告任务ID';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.task_name IS '任务名';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.display_name IS '显示名';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.dashboard_id IS '看板ID';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.cron_expr IS 'cron表达式';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.format IS '导出格式';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.recipients IS '收件人';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.notify_channels IS '通知渠道';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.params IS '报告参数';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.status IS '任务状态';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.grace_minutes IS 'grace期(分钟)';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.template_key IS '模板键';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.last_run_time IS '最后执行时间';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.last_run_status IS '最后执行状态';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.last_run_error IS '最后执行错误';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.del_flag IS '删除标记';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.update_time IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.remark IS '备注';
+                    
       COMMENT ON TABLE nop_datav_screen_widget IS '大屏组件';
                 
       COMMENT ON COLUMN nop_datav_screen_widget.widget_id IS '组件ID';
@@ -557,4 +650,40 @@ CREATE TABLE nop_datav_screen_snapshot(
       COMMENT ON COLUMN nop_datav_screen_snapshot.update_time IS '修改时间';
                     
       COMMENT ON COLUMN nop_datav_screen_snapshot.remark IS '备注';
+                    
+      COMMENT ON TABLE nop_datav_report_delivery IS '报告交付历史';
+                
+      COMMENT ON COLUMN nop_datav_report_delivery.delivery_id IS '交付ID';
+                    
+      COMMENT ON COLUMN nop_datav_report_delivery.report_task_id IS '报告任务ID';
+                    
+      COMMENT ON COLUMN nop_datav_report_delivery.status IS '交付状态';
+                    
+      COMMENT ON COLUMN nop_datav_report_delivery.generated_file_record_id IS '生成文件记录ID';
+                    
+      COMMENT ON COLUMN nop_datav_report_delivery.delivered_channels IS '已送达渠道';
+                    
+      COMMENT ON COLUMN nop_datav_report_delivery.row_count IS '导出行数';
+                    
+      COMMENT ON COLUMN nop_datav_report_delivery.error_msg IS '错误信息';
+                    
+      COMMENT ON COLUMN nop_datav_report_delivery.triggered_by IS '触发来源';
+                    
+      COMMENT ON COLUMN nop_datav_report_delivery.start_time IS '开始时间';
+                    
+      COMMENT ON COLUMN nop_datav_report_delivery.end_time IS '结束时间';
+                    
+      COMMENT ON COLUMN nop_datav_report_delivery.del_flag IS '删除标记';
+                    
+      COMMENT ON COLUMN nop_datav_report_delivery.version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_datav_report_delivery.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_datav_report_delivery.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_datav_report_delivery.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_datav_report_delivery.update_time IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_datav_report_delivery.remark IS '备注';
                     

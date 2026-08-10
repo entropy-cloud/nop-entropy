@@ -75,6 +75,14 @@
         <property name="bizObjName" value="NopDatavDashboardShare"/>
     </bean>
 
+    <bean id="io.nop.datav.service.entity.NopDatavReportTaskBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopDatavReportTask" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.datav.biz.INopDatavReportTaskBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopDatavReportTask"/>
+    </bean>
+
     <bean id="io.nop.datav.service.entity.NopDatavScreenWidgetBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="biz_NopDatavScreenWidget" class="io.nop.biz.proxy.BizProxyFactoryBean"
@@ -89,5 +97,13 @@
           ioc:type="io.nop.datav.biz.INopDatavScreenSnapshotBiz" ioc:force-lazy-property="true" lazy-init="true"
           primary="true">
         <property name="bizObjName" value="NopDatavScreenSnapshot"/>
+    </bean>
+
+    <bean id="io.nop.datav.service.entity.NopDatavReportDeliveryBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopDatavReportDelivery" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.datav.biz.INopDatavReportDeliveryBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopDatavReportDelivery"/>
     </bean>
 </beans>

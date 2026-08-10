@@ -40,6 +40,14 @@ public interface NopDatavErrors {
     String ARG_CANVAS_HEIGHT = "canvasHeight";
     String ARG_THEME_FIELD = "themeField";
 
+    // ===== D5-1 定时报告 =====
+    String ARG_REPORT_TASK_ID = "reportTaskId";
+    String ARG_DELIVERY_ID = "deliveryId";
+    String ARG_CRON_EXPR = "cronExpr";
+    String ARG_TEMPLATE_KEY = "templateKey";
+    String ARG_RECIPIENTS = "recipients";
+    String ARG_NOTIFY_CHANNELS = "notifyChannels";
+
     ErrorCode ERR_DATAV_DASHBOARD_NOT_FOUND = define(
             "nop.err.datav.dashboard-not-found",
             "Dashboard not found: {dashboardId}",
@@ -290,5 +298,55 @@ public interface NopDatavErrors {
             "nop.err.datav.invalid-theme-config",
             "Invalid screen theme config for screen: {screenId}, field: {themeField}, reason: {reason}",
             ARG_SCREEN_ID, ARG_THEME_FIELD, ARG_REASON
+    );
+
+    // ===== D5-1 定时报告 =====
+
+    ErrorCode ERR_DATAV_REPORT_TASK_NOT_FOUND = define(
+            "nop.err.datav.report-task-not-found",
+            "Report task not found: {reportTaskId}",
+            ARG_REPORT_TASK_ID
+    );
+
+    ErrorCode ERR_DATAV_REPORT_CRON_INVALID = define(
+            "nop.err.datav.report-cron-invalid",
+            "Invalid cron expression: {cronExpr}",
+            ARG_CRON_EXPR
+    );
+
+    ErrorCode ERR_DATAV_REPORT_NO_PUBLISHABLE_DASHBOARD = define(
+            "nop.err.datav.report-no-publishable-dashboard",
+            "Dashboard has no published snapshot, cannot render report: {dashboardId}",
+            ARG_DASHBOARD_ID
+    );
+
+    ErrorCode ERR_DATAV_REPORT_DELIVERY_FAILED = define(
+            "nop.err.datav.report-delivery-failed",
+            "Report delivery failed for task: {reportTaskId}, reason: {reason}",
+            ARG_REPORT_TASK_ID, ARG_REASON
+    );
+
+    ErrorCode ERR_DATAV_REPORT_NO_NOTIFIABLE_CHANNEL = define(
+            "nop.err.datav.report-no-notifiable-channel",
+            "No notifiable channel configured for report task: {reportTaskId} (notifyChannels is empty)",
+            ARG_REPORT_TASK_ID, ARG_NOTIFY_CHANNELS
+    );
+
+    ErrorCode ERR_DATAV_REPORT_SENDER_NOT_CONFIGURED = define(
+            "nop.err.datav.report-sender-not-configured",
+            "Email sender not configured (nop.datav.report.default-sender is empty), cannot send email for report task: {reportTaskId}",
+            ARG_REPORT_TASK_ID
+    );
+
+    ErrorCode ERR_DATAV_REPORT_TEMPLATE_NOT_FOUND = define(
+            "nop.err.datav.report-template-not-found",
+            "Notice template not found for templateKey: {templateKey} (expected NopSysNoticeTemplate.name match)",
+            ARG_TEMPLATE_KEY
+    );
+
+    ErrorCode ERR_DATAV_REPORT_NOT_DASHBOARD_OWNER = define(
+            "nop.err.datav.report-not-dashboard-owner",
+            "User {userName} is not the owner of dashboard {dashboardId}, cannot manage report task",
+            ARG_USER_NAME, ARG_DASHBOARD_ID
     );
 }

@@ -57,6 +57,20 @@
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-ooxml-xlsx</artifactId>
         </dependency>
+        <!-- nop-sys-dao: NopSysNoticeTemplate 实体访问（D5-1 定时报告通知模板渲染）。
+             通知走 nop-integration(IEmailSender) + nop-sys(NopSysNoticeTemplate)，
+             非 nop-message（pub-sub 总线，与用户通知语义不符）——见 schedule-report-design.md §1。 -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-sys-dao</artifactId>
+        </dependency>
+        <!-- nop-job-api: IJobScheduler / JobSpec / TriggerSpec 接口（D5-1 定时报告 cron 调度）。
+             Runtime impl 由宿主 app 经 app-local-scheduler.beans.xml 提供（可空注入，scheduler==null 时禁用调度）。
+             镜像 MetaQualityCheckpointScheduler（nop-metadata-service）的集成范式——见 schedule-report-design.md §3。 -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-job-api</artifactId>
+        </dependency>
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-config</artifactId>
@@ -79,6 +93,13 @@
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-auth-service</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- nop-job-local (test scope): LocalJobScheduler / BeanMethodJobInvoker beans for e2e AutoTest
+             (D5-1 定时报告 cron 调度端到端测试). Production runtime supplies the scheduler via host app. -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-job-local</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

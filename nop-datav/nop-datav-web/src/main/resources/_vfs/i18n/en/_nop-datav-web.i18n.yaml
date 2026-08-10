@@ -54,6 +54,22 @@ site:
       displayName: Resolve Jump
     FNPT:NopDatavPanel:resolveLinkage:
       displayName: Resolve Linkage
+    FNPT:NopDatavReportDelivery:mutation:
+      displayName: Modify Report Delivery
+    FNPT:NopDatavReportDelivery:query:
+      displayName: Query Report Delivery
+    FNPT:NopDatavReportTask:disableReportTask:
+      displayName: Disable Report Task
+    FNPT:NopDatavReportTask:enableReportTask:
+      displayName: Enable Report Task
+    FNPT:NopDatavReportTask:getReportDeliveryHistory:
+      displayName: Get Report Delivery History
+    FNPT:NopDatavReportTask:mutation:
+      displayName: Modify Report Task
+    FNPT:NopDatavReportTask:query:
+      displayName: Query Report Task
+    FNPT:NopDatavReportTask:triggerReportNow:
+      displayName: Trigger Report Now
     FNPT:NopDatavScreen:getComponentTypes:
       displayName: Get Component Types
     FNPT:NopDatavScreen:getPublishedScreen:
@@ -100,6 +116,10 @@ site:
       displayName: Filter State
     NopDatavPanel-main:
       displayName: Panel
+    NopDatavReportDelivery-main:
+      displayName: Report Delivery
+    NopDatavReportTask-main:
+      displayName: Report Task
     NopDatavScreen-main:
       displayName: Screen
     NopDatavScreenSnapshot-main:

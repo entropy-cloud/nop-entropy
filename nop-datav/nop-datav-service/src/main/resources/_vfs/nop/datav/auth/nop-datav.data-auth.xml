@@ -30,5 +30,30 @@
                 </role-auth>
             </role-auths>
         </obj>
+        <!-- D5-1 定时报告任务：报告任务属看板 owner 可管理对象（沿用 D3 owner RLS 模式）。
+             admin 全量；user 限 createdBy == userName（owner）。交付历史经 reportTaskId → reportTask.createdBy
+             间接归属（BizModel 层 requireTaskWithOwnership 显式校验）。 -->
+        <obj name="NopDatavReportTask">
+            <role-auths>
+                <role-auth id="admin" roleIds="admin">
+                </role-auth>
+                <role-auth id="user" roleIds="user">
+                    <filter>
+                        <eq name="createdBy" value="${$context.userName}"/>
+                    </filter>
+                </role-auth>
+            </role-auths>
+        </obj>
+        <obj name="NopDatavReportDelivery">
+            <role-auths>
+                <role-auth id="admin" roleIds="admin">
+                </role-auth>
+                <role-auth id="user" roleIds="user">
+                    <filter>
+                        <eq name="createdBy" value="${$context.userName}"/>
+                    </filter>
+                </role-auth>
+            </role-auths>
+        </obj>
     </objs>
 </data-auth>

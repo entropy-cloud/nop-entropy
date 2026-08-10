@@ -17,9 +17,13 @@ alter table nop_datav_filter_state add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NO
 
 alter table nop_datav_share add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
 
+alter table nop_datav_report_task add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
+
 alter table nop_datav_screen_widget add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
 
 alter table nop_datav_screen_snapshot add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
+
+alter table nop_datav_report_delivery add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
 
 alter table nop_datav_dashboard drop constraint PK_nop_datav_dashboard;
 alter table nop_datav_dashboard add constraint PK_nop_datav_dashboard primary key (NOP_TENANT_ID, DASHBOARD_ID);
@@ -48,10 +52,16 @@ alter table nop_datav_filter_state add constraint PK_nop_datav_filter_state prim
 alter table nop_datav_share drop constraint PK_nop_datav_share;
 alter table nop_datav_share add constraint PK_nop_datav_share primary key (NOP_TENANT_ID, SHARE_ID);
 
+alter table nop_datav_report_task drop constraint PK_nop_datav_report_task;
+alter table nop_datav_report_task add constraint PK_nop_datav_report_task primary key (NOP_TENANT_ID, REPORT_TASK_ID);
+
 alter table nop_datav_screen_widget drop constraint PK_nop_datav_screen_widget;
 alter table nop_datav_screen_widget add constraint PK_nop_datav_screen_widget primary key (NOP_TENANT_ID, WIDGET_ID);
 
 alter table nop_datav_screen_snapshot drop constraint PK_nop_datav_screen_snapshot;
 alter table nop_datav_screen_snapshot add constraint PK_nop_datav_screen_snapshot primary key (NOP_TENANT_ID, SNAPSHOT_ID);
+
+alter table nop_datav_report_delivery drop constraint PK_nop_datav_report_delivery;
+alter table nop_datav_report_delivery add constraint PK_nop_datav_report_delivery primary key (NOP_TENANT_ID, DELIVERY_ID);
 
 

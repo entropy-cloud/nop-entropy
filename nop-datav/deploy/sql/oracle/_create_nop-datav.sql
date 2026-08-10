@@ -167,6 +167,32 @@ CREATE TABLE nop_datav_share(
   constraint PK_nop_datav_share primary key (SHARE_ID)
 );
 
+CREATE TABLE nop_datav_report_task(
+  REPORT_TASK_ID VARCHAR2(32) NOT NULL ,
+  TASK_NAME VARCHAR2(100) NOT NULL ,
+  DISPLAY_NAME VARCHAR2(200)  ,
+  DASHBOARD_ID VARCHAR2(32) NOT NULL ,
+  CRON_EXPR VARCHAR2(100) NOT NULL ,
+  FORMAT VARCHAR2(10) NOT NULL ,
+  RECIPIENTS CLOB  ,
+  NOTIFY_CHANNELS CLOB  ,
+  PARAMS CLOB  ,
+  STATUS INTEGER NOT NULL ,
+  GRACE_MINUTES INTEGER default 60   ,
+  TEMPLATE_KEY VARCHAR2(100)  ,
+  LAST_RUN_TIME TIMESTAMP  ,
+  LAST_RUN_STATUS VARCHAR2(20)  ,
+  LAST_RUN_ERROR VARCHAR2(1000)  ,
+  DEL_FLAG SMALLINT  ,
+  VERSION NUMBER(20) NOT NULL ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR2(200)  ,
+  constraint PK_nop_datav_report_task primary key (REPORT_TASK_ID)
+);
+
 CREATE TABLE nop_datav_screen_widget(
   WIDGET_ID VARCHAR2(32) NOT NULL ,
   SCREEN_ID VARCHAR2(32) NOT NULL ,
@@ -205,6 +231,27 @@ CREATE TABLE nop_datav_screen_snapshot(
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR2(200)  ,
   constraint PK_nop_datav_screen_snapshot primary key (SNAPSHOT_ID)
+);
+
+CREATE TABLE nop_datav_report_delivery(
+  DELIVERY_ID VARCHAR2(32) NOT NULL ,
+  REPORT_TASK_ID VARCHAR2(32) NOT NULL ,
+  STATUS INTEGER NOT NULL ,
+  GENERATED_FILE_RECORD_ID VARCHAR2(64)  ,
+  DELIVERED_CHANNELS VARCHAR2(200)  ,
+  ROW_COUNT NUMBER(20)  ,
+  ERROR_MSG VARCHAR2(1000)  ,
+  TRIGGERED_BY VARCHAR2(20) NOT NULL ,
+  START_TIME TIMESTAMP  ,
+  END_TIME TIMESTAMP  ,
+  DEL_FLAG SMALLINT  ,
+  VERSION NUMBER(20) NOT NULL ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR2(200)  ,
+  constraint PK_nop_datav_report_delivery primary key (DELIVERY_ID)
 );
 
 
@@ -490,6 +537,52 @@ CREATE TABLE nop_datav_screen_snapshot(
                     
       COMMENT ON COLUMN nop_datav_share.REMARK IS '备注';
                     
+      COMMENT ON TABLE nop_datav_report_task IS '定时报告任务';
+                
+      COMMENT ON COLUMN nop_datav_report_task.REPORT_TASK_ID IS '报告任务ID';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.TASK_NAME IS '任务名';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.DISPLAY_NAME IS '显示名';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.DASHBOARD_ID IS '看板ID';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.CRON_EXPR IS 'cron表达式';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.FORMAT IS '导出格式';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.RECIPIENTS IS '收件人';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.NOTIFY_CHANNELS IS '通知渠道';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.PARAMS IS '报告参数';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.STATUS IS '任务状态';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.GRACE_MINUTES IS 'grace期(分钟)';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.TEMPLATE_KEY IS '模板键';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.LAST_RUN_TIME IS '最后执行时间';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.LAST_RUN_STATUS IS '最后执行状态';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.LAST_RUN_ERROR IS '最后执行错误';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.DEL_FLAG IS '删除标记';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_datav_report_task.REMARK IS '备注';
+                    
       COMMENT ON TABLE nop_datav_screen_widget IS '大屏组件';
                 
       COMMENT ON COLUMN nop_datav_screen_widget.WIDGET_ID IS '组件ID';
@@ -557,4 +650,40 @@ CREATE TABLE nop_datav_screen_snapshot(
       COMMENT ON COLUMN nop_datav_screen_snapshot.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON COLUMN nop_datav_screen_snapshot.REMARK IS '备注';
+                    
+      COMMENT ON TABLE nop_datav_report_delivery IS '报告交付历史';
+                
+      COMMENT ON COLUMN nop_datav_report_delivery.DELIVERY_ID IS '交付ID';
+                    
+      COMMENT ON COLUMN nop_datav_report_delivery.REPORT_TASK_ID IS '报告任务ID';
+                    
+      COMMENT ON COLUMN nop_datav_report_delivery.STATUS IS '交付状态';
+                    
+      COMMENT ON COLUMN nop_datav_report_delivery.GENERATED_FILE_RECORD_ID IS '生成文件记录ID';
+                    
+      COMMENT ON COLUMN nop_datav_report_delivery.DELIVERED_CHANNELS IS '已送达渠道';
+                    
+      COMMENT ON COLUMN nop_datav_report_delivery.ROW_COUNT IS '导出行数';
+                    
+      COMMENT ON COLUMN nop_datav_report_delivery.ERROR_MSG IS '错误信息';
+                    
+      COMMENT ON COLUMN nop_datav_report_delivery.TRIGGERED_BY IS '触发来源';
+                    
+      COMMENT ON COLUMN nop_datav_report_delivery.START_TIME IS '开始时间';
+                    
+      COMMENT ON COLUMN nop_datav_report_delivery.END_TIME IS '结束时间';
+                    
+      COMMENT ON COLUMN nop_datav_report_delivery.DEL_FLAG IS '删除标记';
+                    
+      COMMENT ON COLUMN nop_datav_report_delivery.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_datav_report_delivery.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_datav_report_delivery.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_datav_report_delivery.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_datav_report_delivery.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_datav_report_delivery.REMARK IS '备注';
                     

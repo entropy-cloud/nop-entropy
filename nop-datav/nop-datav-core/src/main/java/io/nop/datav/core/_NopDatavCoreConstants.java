@@ -123,4 +123,59 @@ public interface _NopDatavCoreConstants {
      */
     int SCREEN_ADAPTOR_KEEP = 20;
                     
+    /**
+     * 报告任务状态: 已禁用 
+     */
+    int REPORT_TASK_STATUS_DISABLED = 0;
+                    
+    /**
+     * 报告任务状态: 已启用 
+     */
+    int REPORT_TASK_STATUS_ENABLED = 10;
+                    
+    /**
+     * 报告交付状态: 待执行 
+     */
+    int DELIVERY_STATUS_PENDING = 0;
+                    
+    /**
+     * 报告交付状态: 执行中 
+     */
+    int DELIVERY_STATUS_RUNNING = 10;
+                    
+    /**
+     * 报告交付状态: 成功 
+     */
+    int DELIVERY_STATUS_SUCCEEDED = 20;
+                    
+    /**
+     * 报告交付状态: 失败 
+     */
+    int DELIVERY_STATUS_FAILED = 30;
+                    
+    /**
+     * 报告交付状态: 已跳过 
+     */
+    int DELIVERY_STATUS_SKIPPED = 40;
+                    
+    /**
+     * 报告触发来源: 定时触发 
+     */
+    String REPORT_TRIGGER_SOURCE_SCHEDULE = "schedule";
+                    
+    /**
+     * 报告触发来源: 手动触发 
+     */
+    String REPORT_TRIGGER_SOURCE_MANUAL = "manual";
+                    
+    /**
+     * 通知渠道: 邮件 
+     */
+    String NOTIFY_CHANNEL_EMAIL = "email";
+                    
+    /**
+     * 通知渠道: 即时消息 
+     */
+    String NOTIFY_CHANNEL_IM = "im";
+                    
 }

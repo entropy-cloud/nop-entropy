@@ -8,6 +8,8 @@ entity:
     NopDatavExportTask: Export Task
     NopDatavFilterState: Filter State
     NopDatavPanel: Panel
+    NopDatavReportDelivery: Report Delivery
+    NopDatavReportTask: Report Task
     NopDatavScreen: Screen
     NopDatavScreenSnapshot: Screen Snapshot
     NopDatavScreenWidget: Screen Widget
@@ -159,6 +161,58 @@ prop:
       dashboard: Dashboard
       dashboard.displayName: Dashboard
       panelConfigComponent: null
+    NopDatavReportDelivery:
+      deliveryId: Delivery Id
+      reportTaskId: Report Task Id
+      status: Status
+      status_label: null
+      generatedFileRecordId: Generated File Record Id
+      deliveredChannels: Delivered Channels
+      rowCount: Row Count
+      errorMsg: Error Msg
+      triggeredBy: Triggered By
+      triggeredBy_label: null
+      startTime: Start Time
+      endTime: End Time
+      delFlag: Del Flag
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      reportTask: Report Task
+      reportTask.displayName: Report Task
+    NopDatavReportTask:
+      reportTaskId: Report Task Id
+      taskName: Task Name
+      displayName: Display Name
+      dashboardId: Dashboard Id
+      cronExpr: Cron Expr
+      format: Format
+      format_label: null
+      recipients: Recipients
+      notifyChannels: Notify Channels
+      params: Params
+      status: Status
+      status_label: null
+      graceMinutes: Grace Minutes
+      templateKey: Template Key
+      lastRunTime: Last Run Time
+      lastRunStatus: Last Run Status
+      lastRunError: Last Run Error
+      delFlag: Del Flag
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      dashboard: Dashboard
+      dashboard.displayName: Dashboard
+      recipientsComponent: null
+      notifyChannelsComponent: null
+      paramsComponent: null
     NopDatavScreen:
       screenId: Screen Id
       screenName: Screen Name
@@ -232,6 +286,10 @@ dict:
     datav/export-format: Export Format
     datav/export-status: Export Status
     datav/screen-adaptor: Screen Adaptor
+    datav/report-task-status: Report Task Status
+    datav/delivery-status: Delivery Status
+    datav/report-trigger-source: Report Trigger Source
+    datav/notify-channel: Notify Channel
 dict.option.label:
   datav/dashboard-type:
     '0': Dashboard
@@ -264,3 +322,18 @@ dict.option.label:
     '0': Height First
     '10': Full
     '20': Keep
+  datav/report-task-status:
+    '0': Disabled
+    '10': Enabled
+  datav/delivery-status:
+    '0': Pending
+    '10': Running
+    '20': Succeeded
+    '30': Failed
+    '40': Skipped
+  datav/report-trigger-source:
+    schedule: Schedule
+    manual: Manual
+  datav/notify-channel:
+    email: Email
+    im: IM

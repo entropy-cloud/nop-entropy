@@ -14,4 +14,29 @@
          供 NopDatavExportTaskBizModel 注入，且在每次发起导出前幂等调用一次。 -->
     <bean id="nopDatavExportTaskRecovery" class="io.nop.datav.service.export.NopDatavExportTaskRecovery"/>
 
+    <!-- ==================== D5-1 定时报告 ==================== -->
+
+    <!-- 定时报告通知发送器（普通 bean）：渲染 NopSysNoticeTemplate → IEmailSender.sendEmail 带附件送达。
+         IEmailSender 经 @Nullable 注入（宿主未提供 IEmailSender 实现时为 null，
+         邮件渠道显式失败 ERR_DATAV_REPORT_SENDER_NOT_CONFIGURED，非静默跳过）。 -->
+    <bean id="notificationSender" class="io.nop.datav.service.report.NotificationSender" ioc:default="true"/>
+
+    <!-- 定时报告交付执行器（普通 bean）：异步取数（PanelDataExporter.exportDashboard）+ 文件落盘
+         （IFileStore.saveFile）+ 通知送达（NotificationSender）+ 更新交付记录。
+         镜像 NopDatavExportTaskBizModel.submitExecution 的 GlobalExecutors + runInNewSession 模式。 -->
+    <bean id="reportDeliveryExecutor" class="io.nop.datav.service.report.ReportDeliveryExecutor" ioc:default="true"/>
+
+    <!-- 定时报告 cron 调度器（普通 IoC bean 非 BizModel，镜像 MetaQualityCheckpointScheduler）。
+         启动 scanner 全量注册 ENABLED 报告任务的 cron job + 运行时增量（save/enable/disable/delete 调用）。
+         IJobScheduler 经 @Inject @Nullable 注入：宿主未注册调度器时为 null，scanner 跳过（不抛崩），
+         手动 triggerReportNow 仍可用。 -->
+    <bean id="nopDatavReportScheduler"
+          class="io.nop.datav.service.report.NopDatavReportScheduler" ioc:default="true"/>
+
+    <!-- 定时报告交付记录重启清理（独立 bean，职责分离，镜像 NopDatavExportTaskRecovery）：
+         IoC 启动后触发 @PostConstruct 扫描 stale running 交付记录转 failed。
+         NopDatavReportScheduler.init 只负责重注册 cron job，不混入 stale 清理。 -->
+    <bean id="nopDatavReportDeliveryRecovery"
+          class="io.nop.datav.service.report.NopDatavReportDeliveryRecovery"/>
+
 </beans>

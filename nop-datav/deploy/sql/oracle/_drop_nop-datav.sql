@@ -8,6 +8,8 @@ drop table nop_datav_dataset_ref;
 drop table nop_datav_snapshot;
 drop table nop_datav_filter_state;
 drop table nop_datav_share;
+drop table nop_datav_report_task;
 drop table nop_datav_screen_widget;
 drop table nop_datav_screen_snapshot;
+drop table nop_datav_report_delivery;
 

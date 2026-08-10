@@ -167,6 +167,32 @@ CREATE TABLE nop_datav_share(
   constraint PK_nop_datav_share primary key (SHARE_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+CREATE TABLE nop_datav_report_task(
+  REPORT_TASK_ID VARCHAR(32) NOT NULL    COMMENT '报告任务ID',
+  TASK_NAME VARCHAR(100) NOT NULL    COMMENT '任务名',
+  DISPLAY_NAME VARCHAR(200) NULL    COMMENT '显示名',
+  DASHBOARD_ID VARCHAR(32) NOT NULL    COMMENT '看板ID',
+  CRON_EXPR VARCHAR(100) NOT NULL    COMMENT 'cron表达式',
+  FORMAT VARCHAR(10) NOT NULL    COMMENT '导出格式',
+  RECIPIENTS LONGTEXT NULL    COMMENT '收件人',
+  NOTIFY_CHANNELS LONGTEXT NULL    COMMENT '通知渠道',
+  PARAMS LONGTEXT NULL    COMMENT '报告参数',
+  STATUS INTEGER NOT NULL    COMMENT '任务状态',
+  GRACE_MINUTES INTEGER default 60  NULL    COMMENT 'grace期(分钟)',
+  TEMPLATE_KEY VARCHAR(100) NULL    COMMENT '模板键',
+  LAST_RUN_TIME DATETIME(3) NULL    COMMENT '最后执行时间',
+  LAST_RUN_STATUS VARCHAR(20) NULL    COMMENT '最后执行状态',
+  LAST_RUN_ERROR VARCHAR(1000) NULL    COMMENT '最后执行错误',
+  DEL_FLAG TINYINT NULL    COMMENT '删除标记',
+  VERSION BIGINT NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
+  REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint PK_nop_datav_report_task primary key (REPORT_TASK_ID)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
 CREATE TABLE nop_datav_screen_widget(
   WIDGET_ID VARCHAR(32) NOT NULL    COMMENT '组件ID',
   SCREEN_ID VARCHAR(32) NOT NULL    COMMENT '大屏ID',
@@ -207,6 +233,27 @@ CREATE TABLE nop_datav_screen_snapshot(
   constraint PK_nop_datav_screen_snapshot primary key (SNAPSHOT_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+CREATE TABLE nop_datav_report_delivery(
+  DELIVERY_ID VARCHAR(32) NOT NULL    COMMENT '交付ID',
+  REPORT_TASK_ID VARCHAR(32) NOT NULL    COMMENT '报告任务ID',
+  STATUS INTEGER NOT NULL    COMMENT '交付状态',
+  GENERATED_FILE_RECORD_ID VARCHAR(64) NULL    COMMENT '生成文件记录ID',
+  DELIVERED_CHANNELS VARCHAR(200) NULL    COMMENT '已送达渠道',
+  ROW_COUNT BIGINT NULL    COMMENT '导出行数',
+  ERROR_MSG VARCHAR(1000) NULL    COMMENT '错误信息',
+  TRIGGERED_BY VARCHAR(20) NOT NULL    COMMENT '触发来源',
+  START_TIME DATETIME(3) NULL    COMMENT '开始时间',
+  END_TIME DATETIME(3) NULL    COMMENT '结束时间',
+  DEL_FLAG TINYINT NULL    COMMENT '删除标记',
+  VERSION BIGINT NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
+  REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint PK_nop_datav_report_delivery primary key (DELIVERY_ID)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
 
    ALTER TABLE nop_datav_dashboard COMMENT '看板';
                 
@@ -226,7 +273,11 @@ CREATE TABLE nop_datav_screen_snapshot(
                 
    ALTER TABLE nop_datav_share COMMENT '看板分享';
                 
+   ALTER TABLE nop_datav_report_task COMMENT '定时报告任务';
+                
    ALTER TABLE nop_datav_screen_widget COMMENT '大屏组件';
                 
    ALTER TABLE nop_datav_screen_snapshot COMMENT '大屏快照';
+                
+   ALTER TABLE nop_datav_report_delivery COMMENT '报告交付历史';
                 

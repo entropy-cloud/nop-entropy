@@ -179,6 +179,41 @@
                         <resource id="FNPT:NopDatavScreenSnapshot:mutation" roles="admin"/>
                     </children>
                 </resource>
+                <!-- ==================== NopDatavReportTask（D5-1 定时报告任务）==================== -->
+                <resource id="NopDatavReportTask-main">
+                    <children>
+                        <resource id="FNPT:NopDatavReportTask:query" roles="admin,user"/>
+                        <resource id="FNPT:NopDatavReportTask:mutation" roles="admin"/>
+                        <!-- 自定义 action 权限点 -->
+                        <resource id="FNPT:NopDatavReportTask:enableReportTask" displayName="启用报告任务"
+                                  i18n-en:displayName="Enable Report Task" orderNo="10050" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavReportTask:enableReportTask</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavReportTask:disableReportTask" displayName="禁用报告任务"
+                                  i18n-en:displayName="Disable Report Task" orderNo="10051" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavReportTask:disableReportTask</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavReportTask:triggerReportNow" displayName="手动触发报告"
+                                  i18n-en:displayName="Trigger Report Now" orderNo="10052" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavReportTask:triggerReportNow</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavReportTask:getReportDeliveryHistory" displayName="查询交付历史"
+                                  i18n-en:displayName="Get Report Delivery History" orderNo="10053" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavReportTask:getReportDeliveryHistory</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <!-- ==================== NopDatavReportDelivery（D5-1 报告交付历史）==================== -->
+                <resource id="NopDatavReportDelivery-main">
+                    <children>
+                        <resource id="FNPT:NopDatavReportDelivery:query" roles="admin,user"/>
+                        <resource id="FNPT:NopDatavReportDelivery:mutation" roles="admin"/>
+                    </children>
+                </resource>
             </children>
         </resource>
     </site>
