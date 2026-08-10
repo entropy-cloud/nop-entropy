@@ -2,7 +2,7 @@
 
 > Status: **final**
 > Last Reviewed: 2026-08-10
-> Scope owner: D4-1（自由画布 + 屏幕适配）+ D4-2（装饰/媒体组件族）+ D4-3（主题：色板 + 背景）。发布生命周期增强 D4-4 有独立 plan，不在本文结论范围。
+> Scope owner: D4-1（自由画布 + 屏幕适配）+ D4-2（装饰/媒体组件族）+ D4-3（主题：色板 + 背景）+ D4-4（发布生命周期：历史 + 缩略图 + 草稿预览）。
 
 ## 概述
 
@@ -45,6 +45,7 @@ nop-datav 的「大屏」（Screen）是与「看板」（Dashboard）并列的�
 | publishedBy | string(50) | 发布人 |
 | publishedTime | timestamp | 发布时间 |
 | 标准审计列 | — | delFlag/version/createdBy/createTime/updatedBy/updateTime/remark |
+| thumbnail | string(4000) | 缩略图（D4-4 §12.3；存文件记录引用 ID 或 data URL；仅由 `setScreenThumbnail` 写入） |
 
 ### 1.2 NopDatavScreenWidget（大屏组件，自由画布定位）
 
@@ -493,3 +494,93 @@ palette 内允许出现上表之外的命名色（向前兼容，如未来 serie
 - `serializeScreenContent`/`restoreScreenFromSnapshot` 仍原样流转 backgroundConfig（主题解析不写入快照，快照存原始 backgroundConfig）。
 - 主题解析是读取期的派生计算，结果（`theme` 字段）不持久化。
 - 这样保证：快照可回滚到任意历史版本且主题按该版本的 backgroundConfig 重新解析，无迁移负担。
+
+## 12. 发布生命周期增强（D4-4）：历史 + 缩略图 + 草稿预览
+
+**决策：在 D4-1 已落地的 publish/getPublished/rollback/getScreenLayout 基础上，补齐三项能力——快照历史浏览、缩略图存储、草稿预览。新增 4 个 action（`getScreenSnapshotHistory` / `getScreenLayoutByVersion` / `getScreenDraftLayout` / `setScreenThumbnail`）+ 主表新增 `thumbnail` 列 + `ScreenLayoutParser` 增 content overload（草稿预览复用既有解析路径，不新建第二套）。**
+
+本节是 D4-4 的最终结论。被拒替代方案及理由在每一节末尾给出。
+
+### 12.1 快照历史浏览契约
+
+**决策：`getScreenSnapshotHistory(screenId)` 返回某大屏全部快照的版本元信息列表（不含 snapshotContent），按版本号倒序。**
+
+返回结构：每条 = `{snapshotVersion, publishedBy, publishedTime}`（不含 snapshotId/snapshotContent/审计列——列表场景只需"谁/何时发布了哪个版本"）。
+
+查看具体历史版本的布局用 `getScreenLayoutByVersion`（§12.2）。
+
+**被拒替代方案：列表直接返回全量 snapshotContent。** 拒绝。理由：快照 snapshotContent 是 CLOB（完整画布 + widget 列表 JSON），列表场景全量返回浪费带宽、影响列表页渲染性能；用户浏览历史时通常先看版本/时间摘要，再按需展开单个版本。→ 列表只返元信息，内容按需单条取。
+
+### 12.2 指定版本布局查看契约
+
+**决策：`getScreenLayoutByVersion(screenId, snapshotVersion)` 读指定版本快照 → 经 `ScreenLayoutParser` 解析为 `ScreenLayoutConfig`（与 `getScreenLayout` 同解析路径，只是数据源从"最新快照"改为"指定版本快照"）。**
+
+- 指定版本的快照不存在 → 抛 `ERR_DATAV_SCREEN_SNAPSHOT_VERSION_NOT_FOUND`（不返回 null/空，rule #24 无静默跳过）。
+- 复用 `ScreenLayoutParser.parse`，不新建第二套解析路径（与 §12.4 草稿预览同复用哲学）。
+
+### 12.3 缩略图存储裁定
+
+**决策：主表 `NopDatavScreen` 新增 `thumbnail` 列（string，存文件记录引用 ID 或 data URL），不存于快照表；`thumbnail` 列仅由 `setScreenThumbnail` 写入，`publishScreen` 不改动 thumbnail 列。**
+
+存储位 + 设置 API 落地；缩略图图像生成（截图/渲染）走前端（nop-chaos-flux，未产出），前端截图后调用 `setScreenThumbnail` 写入主表。
+
+**thumbnail 写入唯一性裁定（确定性）：**
+- `thumbnail` 主表列**仅**由 `setScreenThumbnail(screenId, thumbnail)` 写入（前端截图后调用，单一写入点）。
+- `publishScreen` **不**改动 thumbnail 列（保持 publish 单一职责，避免副作用）。`publishScreen` 仅更新 `publishStatus/publishedVersion/publishedBy/publishedTime` 四列（D4-1 既有行为不变）。
+- `serializeScreenContent` 在序列化快照 JSON 时**只读**附带当前 thumbnail 值（在 snapshotContent JSON 中加 `thumbnail` 字段，供历史版本附带视觉预览），不回写主表。
+
+**权限：** `setScreenThumbnail` = owner/admin（与编辑权限一致，编辑态语义）；与已发布内容的 admin/user 可读（§12.6 权限矩阵）区分。
+
+**被拒替代方案：**
+
+- **每快照一行缩略图（snapshot 表新增 thumbnail 列）。** 拒绝。理由：列表页（`NopDatavScreen` 列表）只需"当前缩略图"（最近一次手动设置），无需每版本一行缩略图；历史版本的视觉预览可在 snapshotContent JSON 内附带 thumbnail 值（只读），无需独立列。→ 主表单列 + 快照 JSON 内附带，最小存储位。
+
+- **publish 自动生成/回填缩略图。** 拒绝。理由：缩略图生成需渲染（截图/转图片），渲染属前端能力（flux 未产出）；publish 应保持单一职责（"序列化编辑态 → 写快照行 → 更新发布状态"），自动触发渲染会引入 publish 与渲染的耦合 + 在渲染能力缺失时阻塞 publish。→ thumbnail 单独由 `setScreenThumbnail` 写入，publish 不触碰 thumbnail。
+
+### 12.4 草稿预览复用契约
+
+**决策：`getScreenDraftLayout(screenId)` 从当前编辑态构建 `ScreenLayoutConfig`，无需先 publish；实现 = `serializeScreenContent(screen)` 产出内容字符串 → `ScreenLayoutParser.parse(screenId, content)` 新 overload 解析（不经快照表落盘）。**
+
+复用既有路径，不新建独立草稿布局构建：
+- `serializeScreenContent`（D4-1 既有，私有）已能从编辑态（screen 主表行 + widget 行集合）构建内容 JSON 字符串。
+- `ScreenLayoutParser` 新增 overload `parse(String screenId, String snapshotContent)`（解析 JSON 内容字符串），既有 `parse(String screenId, NopDatavScreenSnapshot)` 改为委托新 overload（提取 snapshotContent + snapshotVersion）。草稿预览无 snapshotVersion（编辑态未发布），新 overload 不设置 snapshotVersion（或设为 0/默认，标记"草稿"语义）。
+- 从未 publish 的大屏也能预览（草稿预览不读快照表，直接从主表 + widget 行构建）。
+
+**被拒替代方案：为草稿单独写第二套布局构建逻辑。** 拒绝。理由：(1) 复用 `serializeScreenContent` + `ScreenLayoutParser.parse` 避免双路径漂移（编辑态预览 vs 已发布布局用同一套序列化 + 解析，保证一致性）；(2) D4-3 主题解析已接入 `ScreenLayoutParser.parse`，草稿预览经同一 overload 自动获得主题解析能力，无需重复实现。→ 单一解析路径，草稿/已发布共用。
+
+### 12.5 ScreenLayoutParser overload 裁定
+
+**决策：`ScreenLayoutParser` 增 `parse(String screenId, String snapshotContent)` overload；既有 `parse(String screenId, NopDatavScreenSnapshot)` 委托新 overload（提取 snapshotContent + snapshotVersion）。**
+
+overload 签名：
+- `parse(String screenId, NopDatavScreenSnapshot snapshot)`（既有）：从 snapshot 取 snapshotContent + snapshotVersion，委托下一 overload。
+- `parse(String screenId, String snapshotContent)`（新增，草稿预览用）：解析 JSON 内容字符串，snapshotVersion 不设置（草稿无版本）。
+
+解析逻辑（JSON 解析 / 画布校验 / widget 越界/未知组件校验 / 主题解析）全部在 overload 内，不重复。
+
+### 12.6 权限矩阵
+
+| Action | 类型 | 角色 | 语义 |
+|--------|------|------|------|
+| `getScreenSnapshotHistory` | @BizQuery | admin,user | 已发布内容的历史元信息，与 `getPublishedScreen` 同语义（已发布内容对所有有读权限的用户可见） |
+| `getScreenLayoutByVersion` | @BizQuery | admin,user | 已发布内容的指定版本布局，与 `getScreenLayout` 同语义 |
+| `getScreenDraftLayout` | @BizQuery | admin | 草稿预览，编辑态语义，仅 owner/admin 可预览（与编辑权限一致；区别于已发布内容的 admin/user 可读） |
+| `setScreenThumbnail` | @BizMutation | admin | 缩略图设置，编辑态语义，仅 owner/admin 可设置 |
+
+行级权限：4 个新 action 均经 `requireEntity(id, action, context)` → `checkDataAuth`（沿用 D4-1 模式）。草稿预览/缩略图设置的 owner/admin 语义通过 `@Auth` + 既有 RLS（user 行级 filter `createdBy == $context.userName OR publishStatus == 10`）+ 角色绑定（仅 admin）共同收口。
+
+### 12.7 serializeScreenContent 附带 thumbnail（只读）
+
+**决策：`serializeScreenContent` 序列化快照 JSON 时只读附带当前主表 thumbnail 值（在 snapshotContent JSON 中加 `thumbnail` 字段），不回写主表。**
+
+- 快照 JSON schema（§2.2）增 `thumbnail` 字段（可选，存当时的缩略图引用）。历史版本布局查看（§12.2）解析时该字段原样透传进 `ScreenLayoutConfig`（供前端展示历史版本视觉预览）。
+- 主表 thumbnail 列仅由 `setScreenThumbnail` 写入；publish 时 serialize 只读 current thumbnail 写入快照 JSON，不触发主表 thumbnail 列更新。
+
+### 12.8 错误码
+
+复用既有：
+- 快照版本不存在：`ERR_DATAV_SCREEN_SNAPSHOT_VERSION_NOT_FOUND`（D4-1 已定义）。
+- 大屏不存在：`ERR_DATAV_SCREEN_NOT_FOUND`（D4-1 已定义）。
+- 布局非法：`ERR_DATAV_INVALID_SCREEN_LAYOUT`（D4-1 已定义）。
+
+无需新增错误码。
