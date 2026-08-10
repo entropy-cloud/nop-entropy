@@ -99,11 +99,27 @@
         <property name="bizObjName" value="NopDatavScreenSnapshot"/>
     </bean>
 
+    <bean id="io.nop.datav.service.entity.NopDatavAlertRuleBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopDatavAlertRule" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.datav.biz.INopDatavAlertRuleBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopDatavAlertRule"/>
+    </bean>
+
     <bean id="io.nop.datav.service.entity.NopDatavReportDeliveryBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="biz_NopDatavReportDelivery" class="io.nop.biz.proxy.BizProxyFactoryBean"
           ioc:type="io.nop.datav.biz.INopDatavReportDeliveryBiz" ioc:force-lazy-property="true" lazy-init="true"
           primary="true">
         <property name="bizObjName" value="NopDatavReportDelivery"/>
+    </bean>
+
+    <bean id="io.nop.datav.service.entity.NopDatavAlertStateBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopDatavAlertState" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.datav.biz.INopDatavAlertStateBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopDatavAlertState"/>
     </bean>
 </beans>

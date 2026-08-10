@@ -1,5 +1,7 @@
 entity:
   label:
+    NopDatavAlertRule: Alert Rule
+    NopDatavAlertState: Alert State
     NopDatavDashboard: Dashboard
     NopDatavDashboardShare: Dashboard Share
     NopDatavDashboardSnapshot: Dashboard Snapshot
@@ -15,6 +17,58 @@ entity:
     NopDatavScreenWidget: Screen Widget
 prop:
   label:
+    NopDatavAlertRule:
+      alertRuleId: Alert Rule Id
+      ruleName: Rule Name
+      displayName: Display Name
+      panelId: Panel Id
+      valueField: Value Field
+      aggregation: Aggregation
+      aggregation_label: null
+      operator: Operator
+      operator_label: null
+      thresholdValue: Threshold Value
+      thresholdValue2: Threshold Value2
+      rearmSeconds: Rearm Seconds
+      notifyChannels: Notify Channels
+      recipients: Recipients
+      cronExpr: Cron Expr
+      params: Params
+      templateKey: Template Key
+      status: Status
+      status_label: null
+      delFlag: Del Flag
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      panel: Panel
+      panel.displayName: Panel
+      notifyChannelsComponent: null
+      recipientsComponent: null
+      paramsComponent: null
+    NopDatavAlertState:
+      alertStateId: Alert State Id
+      alertRuleId: Alert Rule Id
+      state: State
+      state_label: null
+      lastEvalTime: Last Eval Time
+      lastTriggeredTime: Last Triggered Time
+      lastResolvedTime: Last Resolved Time
+      lastNotifiedTime: Last Notified Time
+      consecutiveEvalCount: Consecutive Eval Count
+      errorMsg: Error Msg
+      delFlag: Del Flag
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      alertRule: Alert Rule
+      alertRule.displayName: Alert Rule
     NopDatavDashboard:
       dashboardId: Dashboard Id
       dashboardName: Dashboard Name
@@ -290,6 +344,9 @@ dict:
     datav/delivery-status: Delivery Status
     datav/report-trigger-source: Report Trigger Source
     datav/notify-channel: Notify Channel
+    datav/alert-operator: Alert Operator
+    datav/alert-aggregation: Alert Aggregation
+    datav/alert-state: Alert State
 dict.option.label:
   datav/dashboard-type:
     '0': Dashboard
@@ -337,3 +394,22 @@ dict.option.label:
   datav/notify-channel:
     email: Email
     im: IM
+  datav/alert-operator:
+    gt: Greater Than
+    gte: Greater Than or Equal
+    lt: Less Than
+    lte: Less Than or Equal
+    eq: Equal
+    neq: Not Equal
+    between: Between
+  datav/alert-aggregation:
+    none: None
+    first: First
+    sum: Sum
+    avg: Average
+    min: Min
+    max: Max
+    count: Count
+  datav/alert-state:
+    OK: OK
+    TRIGGERED: Triggered

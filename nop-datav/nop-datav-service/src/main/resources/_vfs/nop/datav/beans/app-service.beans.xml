@@ -39,4 +39,19 @@
     <bean id="nopDatavReportDeliveryRecovery"
           class="io.nop.datav.service.report.NopDatavReportDeliveryRecovery"/>
 
+    <!-- ==================== D5-2 轻量告警 ==================== -->
+
+    <!-- 告警评估器（普通 bean）：取数（PanelDataBinder）→ 聚合（AlertAggregator）→ 比较
+         （AlertThresholdComparator）→ 状态机转换 + rearm 判定 → 通知（NotificationSender.sendAlert）
+         → 更新 NopDatavAlertState。PanelDataBinder 非 bean，本评估器注入 IDaoProvider+IJdbcTemplate
+         后 new PanelDataBinder(...) 构造（与 NopDatavPanelBizModel:47 同模式）。 -->
+    <bean id="alertEvaluator" class="io.nop.datav.service.alert.AlertEvaluator" ioc:default="true"/>
+
+    <!-- 告警 cron 调度器（普通 IoC bean 非 BizModel，与 NopDatavReportScheduler 同模式）。
+         启动 scanner 全量注册 ENABLED 告警规则的 cron job + 运行时增量（save/enable/disable/delete 调用）。
+         IJobScheduler 经 @Inject @Nullable 注入：宿主未注册调度器时为 null，scanner 跳过（不抛崩），
+         手动 evaluateAlertNow 仍可用。调度器分离裁定见 schedule-report-design.md §20。 -->
+    <bean id="nopDatavAlertScheduler"
+          class="io.nop.datav.service.alert.NopDatavAlertScheduler" ioc:default="true"/>
+
 </beans>

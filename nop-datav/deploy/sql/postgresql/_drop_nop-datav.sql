@@ -11,5 +11,7 @@ drop table  if exists  nop_datav_share;
 drop table  if exists  nop_datav_report_task;
 drop table  if exists  nop_datav_screen_widget;
 drop table  if exists  nop_datav_screen_snapshot;
+drop table  if exists  nop_datav_alert_rule;
 drop table  if exists  nop_datav_report_delivery;
+drop table  if exists  nop_datav_alert_state;
 

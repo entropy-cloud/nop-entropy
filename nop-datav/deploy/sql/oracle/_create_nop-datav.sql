@@ -233,6 +233,33 @@ CREATE TABLE nop_datav_screen_snapshot(
   constraint PK_nop_datav_screen_snapshot primary key (SNAPSHOT_ID)
 );
 
+CREATE TABLE nop_datav_alert_rule(
+  ALERT_RULE_ID VARCHAR2(32) NOT NULL ,
+  RULE_NAME VARCHAR2(100) NOT NULL ,
+  DISPLAY_NAME VARCHAR2(200)  ,
+  PANEL_ID VARCHAR2(32) NOT NULL ,
+  VALUE_FIELD VARCHAR2(100) NOT NULL ,
+  AGGREGATION VARCHAR2(20) NOT NULL ,
+  OPERATOR VARCHAR2(20) NOT NULL ,
+  THRESHOLD_VALUE NUMBER(20,4) NOT NULL ,
+  THRESHOLD_VALUE2 NUMBER(20,4)  ,
+  REARM_SECONDS INTEGER default 0   ,
+  NOTIFY_CHANNELS CLOB  ,
+  RECIPIENTS CLOB  ,
+  CRON_EXPR VARCHAR2(100) NOT NULL ,
+  PARAMS CLOB  ,
+  TEMPLATE_KEY VARCHAR2(100)  ,
+  STATUS INTEGER NOT NULL ,
+  DEL_FLAG SMALLINT  ,
+  VERSION NUMBER(20) NOT NULL ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR2(200)  ,
+  constraint PK_nop_datav_alert_rule primary key (ALERT_RULE_ID)
+);
+
 CREATE TABLE nop_datav_report_delivery(
   DELIVERY_ID VARCHAR2(32) NOT NULL ,
   REPORT_TASK_ID VARCHAR2(32) NOT NULL ,
@@ -252,6 +279,26 @@ CREATE TABLE nop_datav_report_delivery(
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR2(200)  ,
   constraint PK_nop_datav_report_delivery primary key (DELIVERY_ID)
+);
+
+CREATE TABLE nop_datav_alert_state(
+  ALERT_STATE_ID VARCHAR2(32) NOT NULL ,
+  ALERT_RULE_ID VARCHAR2(32) NOT NULL ,
+  STATE VARCHAR2(20) NOT NULL ,
+  LAST_EVAL_TIME TIMESTAMP  ,
+  LAST_TRIGGERED_TIME TIMESTAMP  ,
+  LAST_RESOLVED_TIME TIMESTAMP  ,
+  LAST_NOTIFIED_TIME TIMESTAMP  ,
+  CONSECUTIVE_EVAL_COUNT INTEGER default 0   ,
+  ERROR_MSG VARCHAR2(1000)  ,
+  DEL_FLAG SMALLINT  ,
+  VERSION NUMBER(20) NOT NULL ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR2(200)  ,
+  constraint PK_nop_datav_alert_state primary key (ALERT_STATE_ID)
 );
 
 
@@ -651,6 +698,54 @@ CREATE TABLE nop_datav_report_delivery(
                     
       COMMENT ON COLUMN nop_datav_screen_snapshot.REMARK IS '备注';
                     
+      COMMENT ON TABLE nop_datav_alert_rule IS '告警规则';
+                
+      COMMENT ON COLUMN nop_datav_alert_rule.ALERT_RULE_ID IS '告警规则ID';
+                    
+      COMMENT ON COLUMN nop_datav_alert_rule.RULE_NAME IS '规则名';
+                    
+      COMMENT ON COLUMN nop_datav_alert_rule.DISPLAY_NAME IS '显示名';
+                    
+      COMMENT ON COLUMN nop_datav_alert_rule.PANEL_ID IS '面板ID';
+                    
+      COMMENT ON COLUMN nop_datav_alert_rule.VALUE_FIELD IS '取值字段';
+                    
+      COMMENT ON COLUMN nop_datav_alert_rule.AGGREGATION IS '聚合方式';
+                    
+      COMMENT ON COLUMN nop_datav_alert_rule.OPERATOR IS '比较运算符';
+                    
+      COMMENT ON COLUMN nop_datav_alert_rule.THRESHOLD_VALUE IS '阈值';
+                    
+      COMMENT ON COLUMN nop_datav_alert_rule.THRESHOLD_VALUE2 IS '阈值上限';
+                    
+      COMMENT ON COLUMN nop_datav_alert_rule.REARM_SECONDS IS '冷静期秒数';
+                    
+      COMMENT ON COLUMN nop_datav_alert_rule.NOTIFY_CHANNELS IS '通知渠道';
+                    
+      COMMENT ON COLUMN nop_datav_alert_rule.RECIPIENTS IS '收件人';
+                    
+      COMMENT ON COLUMN nop_datav_alert_rule.CRON_EXPR IS 'cron表达式';
+                    
+      COMMENT ON COLUMN nop_datav_alert_rule.PARAMS IS '查询参数';
+                    
+      COMMENT ON COLUMN nop_datav_alert_rule.TEMPLATE_KEY IS '模板键';
+                    
+      COMMENT ON COLUMN nop_datav_alert_rule.STATUS IS '规则状态';
+                    
+      COMMENT ON COLUMN nop_datav_alert_rule.DEL_FLAG IS '删除标记';
+                    
+      COMMENT ON COLUMN nop_datav_alert_rule.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_datav_alert_rule.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_datav_alert_rule.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_datav_alert_rule.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_datav_alert_rule.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_datav_alert_rule.REMARK IS '备注';
+                    
       COMMENT ON TABLE nop_datav_report_delivery IS '报告交付历史';
                 
       COMMENT ON COLUMN nop_datav_report_delivery.DELIVERY_ID IS '交付ID';
@@ -686,4 +781,38 @@ CREATE TABLE nop_datav_report_delivery(
       COMMENT ON COLUMN nop_datav_report_delivery.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON COLUMN nop_datav_report_delivery.REMARK IS '备注';
+                    
+      COMMENT ON TABLE nop_datav_alert_state IS '告警状态';
+                
+      COMMENT ON COLUMN nop_datav_alert_state.ALERT_STATE_ID IS '状态ID';
+                    
+      COMMENT ON COLUMN nop_datav_alert_state.ALERT_RULE_ID IS '告警规则ID';
+                    
+      COMMENT ON COLUMN nop_datav_alert_state.STATE IS '告警状态';
+                    
+      COMMENT ON COLUMN nop_datav_alert_state.LAST_EVAL_TIME IS '最后评估时间';
+                    
+      COMMENT ON COLUMN nop_datav_alert_state.LAST_TRIGGERED_TIME IS '最后触发时间';
+                    
+      COMMENT ON COLUMN nop_datav_alert_state.LAST_RESOLVED_TIME IS '最后恢复时间';
+                    
+      COMMENT ON COLUMN nop_datav_alert_state.LAST_NOTIFIED_TIME IS '最后通知时间';
+                    
+      COMMENT ON COLUMN nop_datav_alert_state.CONSECUTIVE_EVAL_COUNT IS '连续评估满足次数';
+                    
+      COMMENT ON COLUMN nop_datav_alert_state.ERROR_MSG IS '错误信息';
+                    
+      COMMENT ON COLUMN nop_datav_alert_state.DEL_FLAG IS '删除标记';
+                    
+      COMMENT ON COLUMN nop_datav_alert_state.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_datav_alert_state.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_datav_alert_state.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_datav_alert_state.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_datav_alert_state.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_datav_alert_state.REMARK IS '备注';
                     

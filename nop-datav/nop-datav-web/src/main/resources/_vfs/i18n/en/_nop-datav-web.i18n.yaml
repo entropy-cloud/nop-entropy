@@ -1,5 +1,21 @@
 site:
   resource:
+    FNPT:NopDatavAlertRule:disableAlertRule:
+      displayName: Disable Alert Rule
+    FNPT:NopDatavAlertRule:enableAlertRule:
+      displayName: Enable Alert Rule
+    FNPT:NopDatavAlertRule:evaluateAlertNow:
+      displayName: Evaluate Alert Now
+    FNPT:NopDatavAlertRule:getAlertState:
+      displayName: Get Alert State
+    FNPT:NopDatavAlertRule:mutation:
+      displayName: Modify Alert Rule
+    FNPT:NopDatavAlertRule:query:
+      displayName: Query Alert Rule
+    FNPT:NopDatavAlertState:mutation:
+      displayName: Modify Alert State
+    FNPT:NopDatavAlertState:query:
+      displayName: Query Alert State
     FNPT:NopDatavDashboard:getPublishedDashboard:
       displayName: Get Published Dashboard
     FNPT:NopDatavDashboard:mutation:
@@ -100,6 +116,10 @@ site:
       displayName: Modify Screen Widget
     FNPT:NopDatavScreenWidget:query:
       displayName: Query Screen Widget
+    NopDatavAlertRule-main:
+      displayName: Alert Rule
+    NopDatavAlertState-main:
+      displayName: Alert State
     NopDatavDashboard-main:
       displayName: Dashboard
     NopDatavDashboardShare-main:

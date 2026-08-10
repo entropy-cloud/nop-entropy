@@ -23,7 +23,11 @@ alter table nop_datav_screen_widget add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NO
 
 alter table nop_datav_screen_snapshot add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
+alter table nop_datav_alert_rule add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
 alter table nop_datav_report_delivery add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
+alter table nop_datav_alert_state add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_datav_dashboard drop primary key;
 alter table nop_datav_dashboard add primary key (NOP_TENANT_ID, DASHBOARD_ID);
@@ -61,7 +65,13 @@ alter table nop_datav_screen_widget add primary key (NOP_TENANT_ID, WIDGET_ID);
 alter table nop_datav_screen_snapshot drop primary key;
 alter table nop_datav_screen_snapshot add primary key (NOP_TENANT_ID, SNAPSHOT_ID);
 
+alter table nop_datav_alert_rule drop primary key;
+alter table nop_datav_alert_rule add primary key (NOP_TENANT_ID, ALERT_RULE_ID);
+
 alter table nop_datav_report_delivery drop primary key;
 alter table nop_datav_report_delivery add primary key (NOP_TENANT_ID, DELIVERY_ID);
+
+alter table nop_datav_alert_state drop primary key;
+alter table nop_datav_alert_state add primary key (NOP_TENANT_ID, ALERT_STATE_ID);
 
 

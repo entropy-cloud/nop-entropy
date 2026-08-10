@@ -48,6 +48,14 @@ public interface NopDatavErrors {
     String ARG_RECIPIENTS = "recipients";
     String ARG_NOTIFY_CHANNELS = "notifyChannels";
 
+    // ===== D5-2 轻量告警 =====
+    String ARG_ALERT_RULE_ID = "alertRuleId";
+    String ARG_VALUE_FIELD = "valueField";
+    String ARG_AGGREGATION = "aggregation";
+    String ARG_ALERT_OPERATOR = "operator";
+    String ARG_THRESHOLD_VALUE = "thresholdValue";
+    String ARG_CURRENT_VALUE = "currentValue";
+
     ErrorCode ERR_DATAV_DASHBOARD_NOT_FOUND = define(
             "nop.err.datav.dashboard-not-found",
             "Dashboard not found: {dashboardId}",
@@ -348,5 +356,61 @@ public interface NopDatavErrors {
             "nop.err.datav.report-not-dashboard-owner",
             "User {userName} is not the owner of dashboard {dashboardId}, cannot manage report task",
             ARG_USER_NAME, ARG_DASHBOARD_ID
+    );
+
+    // ===== D5-2 轻量告警 =====
+
+    ErrorCode ERR_DATAV_ALERT_RULE_NOT_FOUND = define(
+            "nop.err.datav.alert-rule-not-found",
+            "Alert rule not found: {alertRuleId}",
+            ARG_ALERT_RULE_ID
+    );
+
+    ErrorCode ERR_DATAV_ALERT_VALUE_FIELD_NOT_FOUND = define(
+            "nop.err.datav.alert-value-field-not-found",
+            "Value field not found in panel result columns: {valueField} (alertRule: {alertRuleId})",
+            ARG_VALUE_FIELD, ARG_ALERT_RULE_ID
+    );
+
+    ErrorCode ERR_DATAV_ALERT_VALUE_NOT_NUMERIC = define(
+            "nop.err.datav.alert-value-not-numeric",
+            "Aggregated value is not numeric: {currentValue} (valueField: {valueField}, alertRule: {alertRuleId})",
+            ARG_CURRENT_VALUE, ARG_VALUE_FIELD, ARG_ALERT_RULE_ID
+    );
+
+    ErrorCode ERR_DATAV_ALERT_INVALID_THRESHOLD = define(
+            "nop.err.datav.alert-invalid-threshold",
+            "Invalid threshold config: operator=between requires thresholdValue2 not null (alertRule: {alertRuleId}, thresholdValue: {thresholdValue})",
+            ARG_ALERT_RULE_ID, ARG_THRESHOLD_VALUE
+    );
+
+    ErrorCode ERR_DATAV_ALERT_TEMPLATE_NOT_FOUND = define(
+            "nop.err.datav.alert-template-not-found",
+            "Notice template not found for templateKey: {templateKey} (expected NopSysNoticeTemplate.name match)",
+            ARG_TEMPLATE_KEY
+    );
+
+    ErrorCode ERR_DATAV_ALERT_SENDER_NOT_CONFIGURED = define(
+            "nop.err.datav.alert-sender-not-configured",
+            "Email sender not configured (nop.datav.report.default-sender is empty), cannot send email for alert rule: {alertRuleId}",
+            ARG_ALERT_RULE_ID
+    );
+
+    ErrorCode ERR_DATAV_ALERT_NO_NOTIFIABLE_CHANNEL = define(
+            "nop.err.datav.alert-no-notifiable-channel",
+            "No notifiable channel configured for alert rule: {alertRuleId} (notifyChannels is empty)",
+            ARG_ALERT_RULE_ID, ARG_NOTIFY_CHANNELS
+    );
+
+    ErrorCode ERR_DATAV_ALERT_PANEL_NOT_FOUND = define(
+            "nop.err.datav.alert-panel-not-found",
+            "Alert rule references a panel that no longer exists: {panelId} (alertRule: {alertRuleId})",
+            ARG_PANEL_ID, ARG_ALERT_RULE_ID
+    );
+
+    ErrorCode ERR_DATAV_ALERT_NOT_OWNER = define(
+            "nop.err.datav.alert-not-owner",
+            "User {userName} is not the owner of alert rule: {alertRuleId}",
+            ARG_USER_NAME, ARG_ALERT_RULE_ID
     );
 }

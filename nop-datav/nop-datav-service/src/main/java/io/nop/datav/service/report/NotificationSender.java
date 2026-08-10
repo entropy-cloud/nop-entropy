@@ -12,6 +12,7 @@ import io.nop.file.core.IFileStore;
 import io.nop.integration.api.email.EmailMessage;
 import io.nop.integration.api.email.IEmailSender;
 import io.nop.sys.dao.entity.NopSysNoticeTemplate;
+import io.nop.datav.dao.entity.NopDatavAlertRule;
 import io.nop.datav.dao.entity.NopDatavDashboard;
 import io.nop.datav.dao.entity.NopDatavReportDelivery;
 import io.nop.datav.dao.entity.NopDatavReportTask;
@@ -24,12 +25,17 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static io.nop.datav.service.NopDatavErrors.ARG_ALERT_RULE_ID;
 import static io.nop.datav.service.NopDatavErrors.ARG_NOTIFY_CHANNELS;
 import static io.nop.datav.service.NopDatavErrors.ARG_REPORT_TASK_ID;
 import static io.nop.datav.service.NopDatavErrors.ARG_TEMPLATE_KEY;
+import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_ALERT_NO_NOTIFIABLE_CHANNEL;
+import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_ALERT_SENDER_NOT_CONFIGURED;
+import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_ALERT_TEMPLATE_NOT_FOUND;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_REPORT_NO_NOTIFIABLE_CHANNEL;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_REPORT_SENDER_NOT_CONFIGURED;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_REPORT_TEMPLATE_NOT_FOUND;
+import static io.nop.datav.service.NopDatavConfigs.CFG_DATAV_ALERT_DEFAULT_SUBJECT;
 import static io.nop.datav.service.NopDatavConfigs.CFG_DATAV_REPORT_DEFAULT_SENDER;
 import static io.nop.datav.service.NopDatavConfigs.CFG_DATAV_REPORT_DEFAULT_SUBJECT;
 
@@ -63,6 +69,13 @@ public class NotificationSender {
     /** NopSysNoticeTemplate.tplType 约定值（本计划定义的报告交付通知模板类型）。
      *  受 NOP_SYS_NOTICE_TEMPLATE.TPL_TYPE 列 precision=10 限制，取 ≤ 10 字符的简短形式。 */
     public static final String TPL_TYPE_REPORT_DELIVERY = "rpt-deliv";
+
+    /** 告警通知默认模板键（rule.templateKey 为空时使用，schedule-report-design.md §17） */
+    public static final String DEFAULT_ALERT_TEMPLATE_KEY = "alert-notify";
+
+    /** NopSysNoticeTemplate.tplType 约定值（D5-2 告警通知模板类型）。
+     *  受 NOP_SYS_NOTICE_TEMPLATE.TPL_TYPE 列 precision=10 限制，取 ≤ 10 字符的简短形式。 */
+    public static final String TPL_TYPE_ALERT_NOTIFY = "alert-ntl";
 
     private final IDaoProvider daoProvider;
     private final IFileStore fileStore;
@@ -130,7 +143,143 @@ public class NotificationSender {
     }
 
     // ============================================================
-    // 邮件分发
+    // 告警通知（D5-2，无附件短文本，schedule-report-design.md §17）
+    // ============================================================
+
+    /**
+     * 发送告警通知（D5-2，无附件短文本）。
+     *
+     * <p>与 {@link #sendReport} 共享渠道解析 / recipients JSON 解析 / {@link IEmailSender} 接线，
+     * 但<b>无附件</b>（告警通知通常是短文本：告警/恢复 + 当前值）。</p>
+     *
+     * <p><b>渠道范围</b>：邮件（{@link IEmailSender#sendEmail}，无附件）端到端打通；
+     * IM 渠道显式抛 {@link UnsupportedOperationException}（沿用 D5-1 §1/§10 deferred 裁定）。</p>
+     *
+     * <p><b>显式失败约定（Minimum Rules #24）</b>：
+     * <ul>
+     *   <li>{@code notifyChannels} 为空 JSON 数组 → {@link NopDatavErrors#ERR_DATAV_ALERT_NO_NOTIFIABLE_CHANNEL}</li>
+     *   <li>邮件渠道但发件人未配置 → {@link NopDatavErrors#ERR_DATAV_ALERT_SENDER_NOT_CONFIGURED}</li>
+     *   <li>模板缺失 → {@link NopDatavErrors#ERR_DATAV_ALERT_TEMPLATE_NOT_FOUND}</li>
+     *   <li>IM 渠道 → {@link UnsupportedOperationException}</li>
+     * </ul>
+     * 告警专用错误码自建（不复用 report 码），避免跨 plan 命名耦合与错误消息文本不匹配。</p>
+     *
+     * @param rule         告警规则（含 recipients/notifyChannels/templateKey）
+     * @param state        告警当前状态（OK/TRIGGERED）
+     * @param currentValue 当前评估标量值（字符串形式，用于模板变量）
+     * @param alertType    告警类型（trigger/recover）
+     * @return 已送达渠道列表
+     */
+    public List<String> sendAlert(NopDatavAlertRule rule, String state, String currentValue,
+                                  String alertType) {
+        List<String> channels = parseJsonArray(rule.getNotifyChannels());
+        if (channels.isEmpty()) {
+            throw new NopException(ERR_DATAV_ALERT_NO_NOTIFIABLE_CHANNEL)
+                    .param(ARG_ALERT_RULE_ID, rule.getAlertRuleId())
+                    .param(ARG_NOTIFY_CHANNELS, rule.getNotifyChannels());
+        }
+
+        List<String> recipients = parseJsonArray(rule.getRecipients());
+        Map<String, Object> templateVars = buildAlertTemplateVars(rule, state, currentValue, alertType);
+
+        RenderedTemplate tpl = renderAlertTemplate(rule, templateVars);
+
+        List<String> delivered = new ArrayList<>();
+        for (String channel : channels) {
+            String c = channel == null ? "" : channel.trim().toLowerCase();
+            if (CHANNEL_EMAIL.equals(c)) {
+                deliverAlertViaEmail(rule, recipients, tpl);
+                delivered.add(CHANNEL_EMAIL);
+            } else if (CHANNEL_IM.equals(c)) {
+                throw new UnsupportedOperationException(
+                        "IM channel not yet implemented: notifyChannels contains 'im' for alertRuleId="
+                                + rule.getAlertRuleId() + " (IChannelMessageService impl in nop-ai-gateway)");
+            } else {
+                throw new NopException(ERR_DATAV_ALERT_NO_NOTIFIABLE_CHANNEL)
+                        .param(ARG_ALERT_RULE_ID, rule.getAlertRuleId())
+                        .param(ARG_NOTIFY_CHANNELS, rule.getNotifyChannels());
+            }
+        }
+        return delivered;
+    }
+
+    private void deliverAlertViaEmail(NopDatavAlertRule rule, List<String> recipients, RenderedTemplate tpl) {
+        if (emailSender == null) {
+            throw new NopException(ERR_DATAV_ALERT_SENDER_NOT_CONFIGURED)
+                    .param(ARG_ALERT_RULE_ID, rule.getAlertRuleId());
+        }
+        String sender = CFG_DATAV_REPORT_DEFAULT_SENDER.get();
+        if (StringHelper.isEmpty(sender)) {
+            throw new NopException(ERR_DATAV_ALERT_SENDER_NOT_CONFIGURED)
+                    .param(ARG_ALERT_RULE_ID, rule.getAlertRuleId());
+        }
+        if (recipients.isEmpty()) {
+            throw new NopException(ERR_DATAV_ALERT_NO_NOTIFIABLE_CHANNEL)
+                    .param(ARG_ALERT_RULE_ID, rule.getAlertRuleId())
+                    .param(ARG_NOTIFY_CHANNELS, rule.getRecipients());
+        }
+
+        EmailMessage mail = new EmailMessage();
+        mail.setFrom(sender);
+        mail.setTo(recipients);
+        mail.setSubject(tpl.subject);
+        mail.setText(tpl.body);
+        mail.setHtml(false);
+        // 告警通知无附件（与 sendReport 区别）
+        emailSender.sendEmail(mail);
+    }
+
+    private RenderedTemplate renderAlertTemplate(NopDatavAlertRule rule, Map<String, Object> vars) {
+        // subject 永远从告警配置项渲染（保证有值）
+        String subject = StringHelper.renderTemplate(
+                CFG_DATAV_ALERT_DEFAULT_SUBJECT.get(), vars::get);
+
+        String templateKey = rule.getTemplateKey();
+        if (StringHelper.isEmpty(templateKey)) {
+            // 无模板键 → body 用默认占位
+            return new RenderedTemplate(subject, defaultAlertBody(vars));
+        }
+        NopSysNoticeTemplate tpl = findTemplateByName(templateKey);
+        if (tpl == null) {
+            throw new NopException(ERR_DATAV_ALERT_TEMPLATE_NOT_FOUND)
+                    .param(ARG_TEMPLATE_KEY, templateKey);
+        }
+        String body = StringHelper.renderTemplate(tpl.getContent(), vars::get);
+        return new RenderedTemplate(subject, body);
+    }
+
+    private static String defaultAlertBody(Map<String, Object> vars) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Alert Rule: ").append(vars.get("ruleName")).append('\n');
+        sb.append("Panel: ").append(vars.get("panelId")).append('\n');
+        sb.append("State: ").append(vars.get("state")).append('\n');
+        sb.append("Type: ").append(vars.get("alertType")).append('\n');
+        sb.append("Current Value: ").append(vars.get("currentValue")).append('\n');
+        sb.append("Threshold: ").append(vars.get("thresholdValue"));
+        if (vars.get("thresholdValue2") != null && !"".equals(vars.get("thresholdValue2"))) {
+            sb.append(" ~ ").append(vars.get("thresholdValue2"));
+        }
+        sb.append('\n');
+        sb.append("Operator: ").append(vars.get("operator"));
+        return sb.toString();
+    }
+
+    private static Map<String, Object> buildAlertTemplateVars(NopDatavAlertRule rule, String state,
+                                                              String currentValue, String alertType) {
+        Map<String, Object> vars = new LinkedHashMap<>();
+        vars.put("ruleName", rule.getRuleName());
+        vars.put("panelId", rule.getPanelId());
+        vars.put("state", state == null ? "" : state);
+        vars.put("currentValue", currentValue == null ? "" : currentValue);
+        vars.put("alertType", alertType == null ? "" : alertType);
+        vars.put("operator", rule.getOperator() == null ? "" : rule.getOperator());
+        vars.put("thresholdValue", rule.getThresholdValue() == null ? "" : rule.getThresholdValue().toPlainString());
+        vars.put("thresholdValue2", rule.getThresholdValue2() == null ? "" : rule.getThresholdValue2().toPlainString());
+        return vars;
+    }
+
+    // ============================================================
+    // 邮件分发（报告）
     // ============================================================
 
     private void deliverViaEmail(NopDatavReportTask task, List<String> recipients,

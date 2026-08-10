@@ -178,4 +178,84 @@ public interface _NopDatavCoreConstants {
      */
     String NOTIFY_CHANNEL_IM = "im";
                     
+    /**
+     * 告警操作符: 大于 
+     */
+    String ALERT_OPERATOR_GT = "gt";
+                    
+    /**
+     * 告警操作符: 大于等于 
+     */
+    String ALERT_OPERATOR_GTE = "gte";
+                    
+    /**
+     * 告警操作符: 小于 
+     */
+    String ALERT_OPERATOR_LT = "lt";
+                    
+    /**
+     * 告警操作符: 小于等于 
+     */
+    String ALERT_OPERATOR_LTE = "lte";
+                    
+    /**
+     * 告警操作符: 等于 
+     */
+    String ALERT_OPERATOR_EQ = "eq";
+                    
+    /**
+     * 告警操作符: 不等于 
+     */
+    String ALERT_OPERATOR_NEQ = "neq";
+                    
+    /**
+     * 告警操作符: 介于 
+     */
+    String ALERT_OPERATOR_BETWEEN = "between";
+                    
+    /**
+     * 告警聚合方式: 无 
+     */
+    String ALERT_AGGREGATION_NONE = "none";
+                    
+    /**
+     * 告警聚合方式: 首行 
+     */
+    String ALERT_AGGREGATION_FIRST = "first";
+                    
+    /**
+     * 告警聚合方式: 求和 
+     */
+    String ALERT_AGGREGATION_SUM = "sum";
+                    
+    /**
+     * 告警聚合方式: 平均 
+     */
+    String ALERT_AGGREGATION_AVG = "avg";
+                    
+    /**
+     * 告警聚合方式: 最小 
+     */
+    String ALERT_AGGREGATION_MIN = "min";
+                    
+    /**
+     * 告警聚合方式: 最大 
+     */
+    String ALERT_AGGREGATION_MAX = "max";
+                    
+    /**
+     * 告警聚合方式: 计数 
+     */
+    String ALERT_AGGREGATION_COUNT = "count";
+                    
+    /**
+     * 告警状态: 正常 
+     */
+    String ALERT_STATE_OK = "OK";
+                    
+    /**
+     * 告警状态: 已触发 
+     */
+    String ALERT_STATE_TRIGGERED = "TRIGGERED";
+                    
 }

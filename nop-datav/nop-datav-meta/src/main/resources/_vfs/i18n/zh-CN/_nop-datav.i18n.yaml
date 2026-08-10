@@ -1,5 +1,7 @@
 entity:
   label:
+    NopDatavAlertRule: 告警规则
+    NopDatavAlertState: 告警状态
     NopDatavDashboard: 看板
     NopDatavDashboardShare: 看板分享
     NopDatavDashboardSnapshot: 发布快照
@@ -15,6 +17,58 @@ entity:
     NopDatavScreenWidget: 大屏组件
 prop:
   label:
+    NopDatavAlertRule:
+      aggregation: 聚合方式
+      aggregation_label: 聚合方式
+      alertRuleId: 告警规则ID
+      createTime: 创建时间
+      createdBy: 创建人
+      cronExpr: cron表达式
+      delFlag: 删除标记
+      displayName: 显示名
+      notifyChannels: 通知渠道
+      notifyChannelsComponent: null
+      operator: 比较运算符
+      operator_label: 比较运算符
+      panel: 面板
+      panel.displayName: 面板
+      panelId: 面板ID
+      params: 查询参数
+      paramsComponent: null
+      rearmSeconds: 冷静期秒数
+      recipients: 收件人
+      recipientsComponent: null
+      remark: 备注
+      ruleName: 规则名
+      status: 规则状态
+      status_label: 规则状态
+      templateKey: 模板键
+      thresholdValue: 阈值
+      thresholdValue2: 阈值上限
+      updateTime: 修改时间
+      updatedBy: 修改人
+      valueField: 取值字段
+      version: 数据版本
+    NopDatavAlertState:
+      alertRule: 告警规则
+      alertRule.displayName: 告警规则
+      alertRuleId: 告警规则ID
+      alertStateId: 状态ID
+      consecutiveEvalCount: 连续评估满足次数
+      createTime: 创建时间
+      createdBy: 创建人
+      delFlag: 删除标记
+      errorMsg: 错误信息
+      lastEvalTime: 最后评估时间
+      lastNotifiedTime: 最后通知时间
+      lastResolvedTime: 最后恢复时间
+      lastTriggeredTime: 最后触发时间
+      remark: 备注
+      state: 告警状态
+      state_label: 告警状态
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
     NopDatavDashboard:
       createTime: 创建时间
       createdBy: 创建人

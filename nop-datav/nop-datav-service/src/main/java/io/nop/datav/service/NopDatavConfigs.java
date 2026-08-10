@@ -41,4 +41,18 @@ public interface NopDatavConfigs {
     @Description("定时报告邮件主题模板（{reportName} 占位符替换，渲染用 StringHelper.renderTemplate）")
     IConfigReference<String> CFG_DATAV_REPORT_DEFAULT_SUBJECT = varRef(
             s_loc, "nop.datav.report.default-subject", String.class, "Report: {reportName}");
+
+    // ===== D5-2 轻量告警 =====
+
+    @Description("告警默认冷静期秒数。0=仅状态转换时通知（OK→TRIGGERED 或 TRIGGERED→OK）；>0 时 TRIGGERED 持续满足距上次通知超过该秒数才重发")
+    IConfigReference<Integer> CFG_DATAV_ALERT_DEFAULT_REARM_SECONDS = varRef(
+            s_loc, "nop.datav.alert.default-rearm-seconds", Integer.class, 0);
+
+    @Description("告警评估单面板最大查询行数（透传给 PanelDataBinder.queryPanelData 的 rowLimit，跨方言防 OOM）。聚合 sum/avg/min/max 基于返回行近似计算，精确聚合应让数据集 SQL 预聚合返回单行")
+    IConfigReference<Integer> CFG_DATAV_ALERT_EVAL_MAX_ROWS = varRef(
+            s_loc, "nop.datav.alert.eval-max-rows", Integer.class, 1000);
+
+    @Description("告警通知邮件主题模板（{ruleName} 占位符替换，渲染用 StringHelper.renderTemplate）")
+    IConfigReference<String> CFG_DATAV_ALERT_DEFAULT_SUBJECT = varRef(
+            s_loc, "nop.datav.alert.default-subject", String.class, "Alert: {ruleName}");
 }

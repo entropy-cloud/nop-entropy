@@ -214,6 +214,41 @@
                         <resource id="FNPT:NopDatavReportDelivery:mutation" roles="admin"/>
                     </children>
                 </resource>
+                <!-- ==================== NopDatavAlertRule（D5-2 轻量告警规则）==================== -->
+                <resource id="NopDatavAlertRule-main">
+                    <children>
+                        <resource id="FNPT:NopDatavAlertRule:query" roles="admin,user"/>
+                        <resource id="FNPT:NopDatavAlertRule:mutation" roles="admin"/>
+                        <!-- 自定义 action 权限点 -->
+                        <resource id="FNPT:NopDatavAlertRule:enableAlertRule" displayName="启用告警规则"
+                                  i18n-en:displayName="Enable Alert Rule" orderNo="10060" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavAlertRule:enableAlertRule</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavAlertRule:disableAlertRule" displayName="禁用告警规则"
+                                  i18n-en:displayName="Disable Alert Rule" orderNo="10061" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavAlertRule:disableAlertRule</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavAlertRule:evaluateAlertNow" displayName="手动评估告警"
+                                  i18n-en:displayName="Evaluate Alert Now" orderNo="10062" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavAlertRule:evaluateAlertNow</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavAlertRule:getAlertState" displayName="查询告警状态"
+                                  i18n-en:displayName="Get Alert State" orderNo="10063" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavAlertRule:getAlertState</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <!-- ==================== NopDatavAlertState（D5-2 告警状态）==================== -->
+                <resource id="NopDatavAlertState-main">
+                    <children>
+                        <resource id="FNPT:NopDatavAlertState:query" roles="admin,user"/>
+                        <resource id="FNPT:NopDatavAlertState:mutation" roles="admin"/>
+                    </children>
+                </resource>
             </children>
         </resource>
     </site>

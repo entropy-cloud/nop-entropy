@@ -55,5 +55,30 @@
                 </role-auth>
             </role-auths>
         </obj>
+        <!-- D5-2 轻量告警：规则经 panelId → dashboard 间接归属看板 owner；状态经 alertRuleId → rule.createdBy 间接归属。
+             admin 全量；user 限 createdBy == userName（owner）。BizModel 层 requireRuleWithOwnership 显式校验
+             panelId → dashboard 链路归属（schedule-report-design.md §21）。 -->
+        <obj name="NopDatavAlertRule">
+            <role-auths>
+                <role-auth id="admin" roleIds="admin">
+                </role-auth>
+                <role-auth id="user" roleIds="user">
+                    <filter>
+                        <eq name="createdBy" value="${$context.userName}"/>
+                    </filter>
+                </role-auth>
+            </role-auths>
+        </obj>
+        <obj name="NopDatavAlertState">
+            <role-auths>
+                <role-auth id="admin" roleIds="admin">
+                </role-auth>
+                <role-auth id="user" roleIds="user">
+                    <filter>
+                        <eq name="createdBy" value="${$context.userName}"/>
+                    </filter>
+                </role-auth>
+            </role-auths>
+        </obj>
     </objs>
 </data-auth>
