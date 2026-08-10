@@ -61,6 +61,7 @@ CREATE TABLE nop_datav_screen(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  thumbnail VARCHAR(4000)  ,
   constraint PK_nop_datav_screen primary key (screen_id)
 );
 
@@ -318,6 +319,8 @@ CREATE TABLE nop_datav_screen_snapshot(
       COMMENT ON COLUMN nop_datav_screen.update_time IS '修改时间';
                     
       COMMENT ON COLUMN nop_datav_screen.remark IS '备注';
+                    
+      COMMENT ON COLUMN nop_datav_screen.thumbnail IS '缩略图';
                     
       COMMENT ON TABLE nop_datav_panel IS '面板';
                 

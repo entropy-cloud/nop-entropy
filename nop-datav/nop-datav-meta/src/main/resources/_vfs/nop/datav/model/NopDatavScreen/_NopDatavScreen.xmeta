@@ -100,6 +100,10 @@
               insertable="true" updatable="true">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>
+        <prop name="thumbnail" displayName="缩略图" propId="20" i18n-en:displayName="Thumbnail" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="4000"/>
+        </prop>
         <prop name="backgroundConfigComponent" tagSet="json,pub,edit" ext:kind="component" internal="true"
               insertable="true" updatable="true" lazy="true">
             <schema type="io.nop.orm.component.JsonOrmComponent"/>

@@ -382,6 +382,74 @@ public class TestScreenLayoutParser {
         assertEquals(ERR_DATAV_INVALID_THEME_CONFIG.getErrorCode(), ex.getErrorCode());
     }
 
+    // ==================== D4-4 草稿预览：parse(String, String) content overload 接线验证 ====================
+
+    /**
+     * 草稿预览 overload 接线验证（rule #23）：{@link ScreenLayoutParser#parse(String, String)}
+     * 直接接受内容 JSON 字符串，与 {@link ScreenLayoutParser#parse(String, NopDatavScreenSnapshot)}
+     * 解析行为一致（证明草稿预览复用既有解析路径，非独立第二套构建）。
+     */
+    @Test
+    public void testParseContentOverloadParsesSameAsSnapshotOverload() {
+        NopDatavScreenSnapshot snapshot = newSnapshot(1920, 1080, ScreenAdaptorMode.FULL,
+                widget("w1", "chart", 0, 0, 600, 400, 0, null));
+
+        // snapshot overload（含 snapshotVersion）
+        ScreenLayoutConfig fromSnapshot = parser.parse("screen-1", snapshot);
+        assertEquals(1L, fromSnapshot.getSnapshotVersion());
+
+        // content overload（草稿预览入口；snapshotVersion 保留默认 0）
+        ScreenLayoutConfig fromContent = parser.parse("screen-1", snapshot.getSnapshotContent());
+        assertEquals(0L, fromContent.getSnapshotVersion(),
+                "content overload must not set snapshotVersion (drafts have no version)");
+
+        // 解析行为一致：画布/widget 定位/组件类型均相同
+        assertEquals(fromSnapshot.getCanvas().getWidth(), fromContent.getCanvas().getWidth());
+        assertEquals(fromSnapshot.getCanvas().getHeight(), fromContent.getCanvas().getHeight());
+        assertEquals(fromSnapshot.getWidgets().size(), fromContent.getWidgets().size());
+        assertEquals(fromSnapshot.getWidgets().get(0).getWidgetId(), fromContent.getWidgets().get(0).getWidgetId());
+        assertEquals(fromSnapshot.getWidgets().get(0).getComponentType(),
+                fromContent.getWidgets().get(0).getComponentType());
+    }
+
+    /**
+     * content overload 主题解析生效（证明 D4-3 主题解析经同一 overload 接入）。
+     */
+    @Test
+    public void testParseContentOverloadResolvesTheme() {
+        Map<String, Object> backgroundConfig = Map.of("palette", Map.of("primary", "#FF0000"));
+        Map<String, Object> content = new LinkedHashMap<>();
+        content.put("screenWidth", 1920);
+        content.put("screenHeight", 1080);
+        content.put("adaptorMode", ScreenAdaptorMode.FULL);
+        content.put("backgroundConfig", backgroundConfig);
+        content.put("widgets", java.util.Collections.emptyList());
+
+        ScreenLayoutConfig config = parser.parse("screen-theme-draft", JsonTool.stringify(content));
+
+        assertNotNull(config.getTheme());
+        assertEquals("#FF0000", config.getTheme().getPalette().get("primary"));
+        assertEquals("#13C2C2", config.getTheme().getPalette().get("secondary"));
+    }
+
+    /**
+     * content overload 校验路径生效：未知组件类型经 requireComponent 抛错（rule #23 接线验证）。
+     */
+    @Test
+    public void testParseContentOverloadRejectsUnknownComponent() {
+        Map<String, Object> content = new LinkedHashMap<>();
+        content.put("screenWidth", 1920);
+        content.put("screenHeight", 1080);
+        content.put("adaptorMode", ScreenAdaptorMode.FULL);
+        content.put("widgets", java.util.Collections.singletonList(
+                widget("w-bad", "non-existent-type", 0, 0, 100, 100, 0, null)));
+
+        NopException ex = assertThrows(NopException.class,
+                () -> parser.parse("screen-unknown", JsonTool.stringify(content)));
+        assertEquals(io.nop.datav.service.NopDatavErrors.ERR_DATAV_UNKNOWN_COMPONENT_TYPE.getErrorCode(),
+                ex.getErrorCode());
+    }
+
     // ==================== Helpers ====================
 
     private NopDatavScreenSnapshot newSnapshot(int width, int height, int adaptorMode,

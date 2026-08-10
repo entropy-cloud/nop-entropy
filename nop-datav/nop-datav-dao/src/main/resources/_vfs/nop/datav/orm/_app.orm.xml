@@ -529,6 +529,8 @@
                         propId="18" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="19"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+                <column code="THUMBNAIL" displayName="缩略图" name="thumbnail" precision="4000" propId="20"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Thumbnail"/>
             </columns>
             <unique-keys>
                 <unique-key columns="screenName" name="UK_NOP_DATAV_SCREEN_NAME"

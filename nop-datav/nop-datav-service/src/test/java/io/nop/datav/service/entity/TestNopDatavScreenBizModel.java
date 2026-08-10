@@ -9,6 +9,7 @@ import io.nop.dao.api.IDaoProvider;
 import io.nop.datav.biz.INopDatavScreenBiz;
 import io.nop.datav.biz.PanelComponentMeta;
 import io.nop.datav.biz.ScreenLayoutConfig;
+import io.nop.datav.biz.ScreenSnapshotHistory;
 import io.nop.datav.dao.entity.NopDatavScreen;
 import io.nop.datav.dao.entity.NopDatavScreenSnapshot;
 import io.nop.datav.dao.entity.NopDatavScreenWidget;
@@ -29,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -499,6 +501,252 @@ public class TestNopDatavScreenBizModel extends AbstractNopDatavTest {
             assertFalse(meta.isNeedsDataset(),
                     "decorative/media component should have needsDataset=false: " + decoType);
         }
+    }
+
+    // ==================== D4-4 发布生命周期增强：历史 + 缩略图 + 草稿预览 ====================
+
+    /**
+     * 历史浏览：多次 publish 后 getScreenSnapshotHistory 返回全部版本元信息（版本号递增、发布人/时间正确、不含 snapshotContent）。
+     */
+    @Test
+    public void testGetScreenSnapshotHistoryReturnsAllVersions() {
+        IServiceContext context = newContext("history-user");
+
+        NopDatavScreen screen = saveScreen("screen-history", "history-screen");
+        saveWidget("widget-h-1", screen.getScreenId(), "chart", 0, 0, 100, 100, 0);
+
+        screenBiz.publishScreen(screen.getScreenId(), context);
+        screenBiz.publishScreen(screen.getScreenId(), context);
+        NopDatavScreenSnapshot snap3 = screenBiz.publishScreen(screen.getScreenId(), context);
+
+        java.util.List<ScreenSnapshotHistory> history = screenBiz.getScreenSnapshotHistory(
+                screen.getScreenId(), context);
+
+        assertNotNull(history);
+        assertEquals(3, history.size());
+
+        // 按版本号倒序
+        assertEquals(3L, history.get(0).getSnapshotVersion());
+        assertEquals(2L, history.get(1).getSnapshotVersion());
+        assertEquals(1L, history.get(2).getSnapshotVersion());
+
+        // 最新版本元信息正确
+        assertEquals(snap3.getPublishedBy(), history.get(0).getPublishedBy());
+        assertEquals(snap3.getPublishedTime(), history.get(0).getPublishedTime());
+        assertNotNull(history.get(0).getPublishedTime());
+
+        // ScreenSnapshotHistory 无 snapshotContent 字段（DTO 只含元信息）
+        // （断言 DTO 类型不暴露 snapshotContent——结构由 ScreenSnapshotHistory 类定义保证）
+    }
+
+    /**
+     * 指定版本布局查看：getScreenLayoutByVersion 读历史版本解析正确；不存在版本 → ERR_DATAV_SCREEN_SNAPSHOT_VERSION_NOT_FOUND。
+     */
+    @Test
+    public void testGetScreenLayoutByVersionReadsHistoricalLayout() {
+        IServiceContext context = newContext("version-user");
+
+        NopDatavScreen screen = saveScreen("screen-version", "version-screen");
+        saveWidget("widget-v-1", screen.getScreenId(), "chart", 0, 0, 600, 400, 0);
+
+        NopDatavScreenSnapshot snap1 = screenBiz.publishScreen(screen.getScreenId(), context);
+
+        // 改 widget 配置后 publish v2
+        NopDatavScreenWidget w = daoProvider.daoFor(NopDatavScreenWidget.class).getEntityById("widget-v-1");
+        w.setW(800);
+        daoProvider.daoFor(NopDatavScreenWidget.class).updateEntityDirectly(w);
+        screenBiz.publishScreen(screen.getScreenId(), context);
+
+        // 读 v1 布局（历史版本）
+        ScreenLayoutConfig v1Layout = screenBiz.getScreenLayoutByVersion(
+                screen.getScreenId(), snap1.getSnapshotVersion(), context);
+        assertNotNull(v1Layout);
+        assertEquals(1L, v1Layout.getSnapshotVersion());
+        assertEquals(1, v1Layout.getWidgets().size());
+        assertEquals(600, v1Layout.getWidgets().get(0).getW());
+
+        // 读 v2 布局（最新）
+        ScreenLayoutConfig v2Layout = screenBiz.getScreenLayoutByVersion(
+                screen.getScreenId(), 2L, context);
+        assertEquals(2L, v2Layout.getSnapshotVersion());
+        assertEquals(800, v2Layout.getWidgets().get(0).getW());
+
+        // 不存在版本 → 显式报错（rule #24 无静默跳过）
+        NopException ex = assertThrows(NopException.class,
+                () -> screenBiz.getScreenLayoutByVersion(screen.getScreenId(), 999L, context));
+        assertEquals(ERR_DATAV_SCREEN_SNAPSHOT_VERSION_NOT_FOUND.getErrorCode(), ex.getErrorCode());
+    }
+
+    /**
+     * 草稿预览（从未 publish 的大屏可预览）：getScreenDraftLayout 返回布局（含 widget 定位/组件类型）。
+     * 验证经 parse(screenId, content) overload 实现（非独立第二套构建）——通过断言 widget 经 requireComponent
+     * 校验通过 + 主题解析生效证明复用既有解析路径。
+     */
+    @Test
+    public void testGetScreenDraftLayoutReturnsLayoutWithoutPublish() {
+        IServiceContext context = newContext("draft-user");
+
+        NopDatavScreen screen = saveScreen("screen-draft", "draft-screen");
+        screen.setAdaptorMode(ScreenAdaptorMode.HEIGHT_FIRST);
+        // backgroundConfig 含主题键，证明草稿预览复用 ScreenLayoutParser（D4-3 主题解析经同一路径生效）
+        screen.setBackgroundConfig(JsonTool.stringify(Map.of("palette", Map.of("primary", "#FF0000"))));
+        daoProvider.daoFor(NopDatavScreen.class).updateEntityDirectly(screen);
+        saveWidget("widget-draft-1", screen.getScreenId(), "chart", 100, 200, 600, 400, 5);
+
+        // 从未 publish 的大屏 → 草稿预览可工作（不抛 ERR_DATAV_SCREEN_SNAPSHOT_NOT_FOUND）
+        ScreenLayoutConfig draft = screenBiz.getScreenDraftLayout(screen.getScreenId(), context);
+
+        assertNotNull(draft);
+        assertEquals("screen-draft", draft.getScreenId());
+        // 草稿无版本（snapshotVersion 保留默认 0）
+        assertEquals(0L, draft.getSnapshotVersion());
+
+        // Canvas 反映当前编辑态
+        assertNotNull(draft.getCanvas());
+        assertEquals(1920, draft.getCanvas().getWidth());
+        assertEquals(ScreenAdaptorMode.HEIGHT_FIRST, draft.getCanvas().getAdaptorMode());
+
+        // Widgets 反映当前编辑态
+        assertEquals(1, draft.getWidgets().size());
+        ScreenLayoutConfig.Widget w = draft.getWidgets().get(0);
+        assertEquals("chart", w.getComponentType());
+        assertEquals(100, w.getX());
+        assertEquals(600, w.getW());
+
+        // 接线验证：经 ScreenLayoutParser.parse(content overload) → D4-3 主题解析生效
+        // （证明草稿预览复用既有解析路径，非独立第二套构建）
+        assertNotNull(draft.getTheme());
+        assertEquals("#FF0000", draft.getTheme().getPalette().get("primary"));
+        // 未指定的命名色回退缺省
+        assertEquals("#13C2C2", draft.getTheme().getPalette().get("secondary"));
+    }
+
+    /**
+     * 草稿预览反映编辑态变更：编辑 widget 后再次预览，应反映新的 widget 定位。
+     */
+    @Test
+    public void testGetScreenDraftLayoutReflectsEditChanges() {
+        IServiceContext context = newContext("draft-edit-user");
+
+        NopDatavScreen screen = saveScreen("screen-draft-edit", "draft-edit-screen");
+        saveWidget("widget-edit", screen.getScreenId(), "chart", 0, 0, 300, 200, 0);
+
+        // 第一次预览
+        ScreenLayoutConfig draft1 = screenBiz.getScreenDraftLayout(screen.getScreenId(), context);
+        assertEquals(300, draft1.getWidgets().get(0).getW());
+
+        // 编辑 widget 配置（不 publish）
+        NopDatavScreenWidget w = daoProvider.daoFor(NopDatavScreenWidget.class).getEntityById("widget-edit");
+        w.setW(700);
+        daoProvider.daoFor(NopDatavScreenWidget.class).updateEntityDirectly(w);
+
+        // 再次预览 → 反映变更
+        ScreenLayoutConfig draft2 = screenBiz.getScreenDraftLayout(screen.getScreenId(), context);
+        assertEquals(700, draft2.getWidgets().get(0).getW());
+    }
+
+    /**
+     * 缩略图：setScreenThumbnail 更新主表 thumbnail；publish 不改动 thumbnail（单一写入点验证）。
+     */
+    @Test
+    public void testSetScreenThumbnailUpdatesMainTableOnly() {
+        IServiceContext context = newContext("thumb-user");
+
+        NopDatavScreen screen = saveScreen("screen-thumb", "thumb-screen");
+        saveWidget("widget-thumb", screen.getScreenId(), "chart", 0, 0, 100, 100, 0);
+
+        // 初始 thumbnail 为 null
+        NopDatavScreen initial = daoProvider.daoFor(NopDatavScreen.class).getEntityById(screen.getScreenId());
+        assertNull(initial.getThumbnail());
+
+        // setScreenThumbnail 更新 thumbnail
+        NopDatavScreen updated = screenBiz.setScreenThumbnail(
+                screen.getScreenId(), "file-record-abc-123", context);
+        assertNotNull(updated.getThumbnail());
+        assertEquals("file-record-abc-123", updated.getThumbnail());
+
+        // 重新加载确认持久化
+        NopDatavScreen reloaded = daoProvider.daoFor(NopDatavScreen.class).getEntityById(screen.getScreenId());
+        assertEquals("file-record-abc-123", reloaded.getThumbnail());
+
+        // publish 后 thumbnail 不变（publish 不触碰 thumbnail 列）
+        screenBiz.publishScreen(screen.getScreenId(), context);
+        NopDatavScreen afterPublish = daoProvider.daoFor(NopDatavScreen.class).getEntityById(screen.getScreenId());
+        assertEquals("file-record-abc-123", afterPublish.getThumbnail(),
+                "publish must not modify thumbnail column (single writer: setScreenThumbnail only)");
+    }
+
+    /**
+     * serializeScreenContent 只读附带当前 thumbnail 到快照 JSON（§12.7）：
+     * 设置 thumbnail → publish → 快照 snapshotContent 含 thumbnail 字段。
+     */
+    @Test
+    public void testSerializeScreenContentAttachesThumbnailReadOnly() {
+        IServiceContext context = newContext("thumb-snap-user");
+
+        NopDatavScreen screen = saveScreen("screen-thumb-snap", "thumb-snap-screen");
+        saveWidget("widget-ts", screen.getScreenId(), "chart", 0, 0, 100, 100, 0);
+
+        // 设置主表 thumbnail
+        screen.setThumbnail("file-rec-xyz");
+        daoProvider.daoFor(NopDatavScreen.class).updateEntityDirectly(screen);
+
+        // publish → 快照 snapshotContent 应附带 thumbnail
+        NopDatavScreenSnapshot snap = screenBiz.publishScreen(screen.getScreenId(), context);
+        Map<String, Object> content = JsonTool.parseMap(snap.getSnapshotContent());
+        assertNotNull(content.get("thumbnail"));
+        assertEquals("file-rec-xyz", content.get("thumbnail"));
+
+        // 验证 publish 未改动主表 thumbnail（单一写入点）
+        NopDatavScreen afterPublish = daoProvider.daoFor(NopDatavScreen.class).getEntityById(screen.getScreenId());
+        assertEquals("file-rec-xyz", afterPublish.getThumbnail());
+    }
+
+    /**
+     * 端到端（rule #22）：创建大屏 → 配置 widget → getScreenDraftLayout 预览（未 publish）
+     * → publish v1 → 改 widget → publish v2 → getScreenSnapshotHistory 列出 [v2,v1]
+     * → getScreenLayoutByVersion(v1) 返回 v1 布局 → setScreenThumbnail → 断言全链路。
+     */
+    @Test
+    public void testPublishLifecycleEndToEnd() {
+        IServiceContext context = newContext("e2e-lifecycle-user");
+
+        // 1. 创建大屏 + 配置 widget
+        NopDatavScreen screen = saveScreen("screen-e2e-lifecycle", "e2e-lifecycle");
+        saveWidget("widget-e2e-lc", screen.getScreenId(), "chart", 0, 0, 500, 300, 0);
+
+        // 2. 草稿预览（未 publish）
+        ScreenLayoutConfig draft = screenBiz.getScreenDraftLayout(screen.getScreenId(), context);
+        assertNotNull(draft);
+        assertEquals(1, draft.getWidgets().size());
+        assertEquals(500, draft.getWidgets().get(0).getW());
+
+        // 3. publish v1
+        screenBiz.publishScreen(screen.getScreenId(), context);
+
+        // 4. 改 widget → publish v2
+        NopDatavScreenWidget w = daoProvider.daoFor(NopDatavScreenWidget.class).getEntityById("widget-e2e-lc");
+        w.setW(900);
+        daoProvider.daoFor(NopDatavScreenWidget.class).updateEntityDirectly(w);
+        screenBiz.publishScreen(screen.getScreenId(), context);
+
+        // 5. getScreenSnapshotHistory 列出 [v2, v1]
+        java.util.List<ScreenSnapshotHistory> history = screenBiz.getScreenSnapshotHistory(
+                screen.getScreenId(), context);
+        assertEquals(2, history.size());
+        assertEquals(2L, history.get(0).getSnapshotVersion());
+        assertEquals(1L, history.get(1).getSnapshotVersion());
+
+        // 6. getScreenLayoutByVersion(v1) 返回 v1 布局（w=500）
+        ScreenLayoutConfig v1Layout = screenBiz.getScreenLayoutByVersion(
+                screen.getScreenId(), 1L, context);
+        assertEquals(1L, v1Layout.getSnapshotVersion());
+        assertEquals(500, v1Layout.getWidgets().get(0).getW());
+
+        // 7. setScreenThumbnail → 主表 thumbnail 更新
+        NopDatavScreen withThumb = screenBiz.setScreenThumbnail(
+                screen.getScreenId(), "thumb-rec-final", context);
+        assertEquals("thumb-rec-final", withThumb.getThumbnail());
     }
 
     // ==================== Helpers ====================

@@ -179,6 +179,7 @@ prop:
       screenId: 大屏ID
       screenName: 大屏名
       screenWidth: 画布宽度
+      thumbnail: 缩略图
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本

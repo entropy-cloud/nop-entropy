@@ -97,8 +97,12 @@ public class _NopDatavScreen extends DynamicOrmEntity{
     public static final String PROP_NAME_remark = "remark";
     public static final int PROP_ID_remark = 19;
     
+    /* 缩略图: THUMBNAIL VARCHAR */
+    public static final String PROP_NAME_thumbnail = "thumbnail";
+    public static final int PROP_ID_thumbnail = 20;
+    
 
-    private static int _PROP_ID_BOUND = 20;
+    private static int _PROP_ID_BOUND = 21;
 
     
     /* component:  */
@@ -108,7 +112,7 @@ public class _NopDatavScreen extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_screenId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_screenId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[20];
+    private static final String[] PROP_ID_TO_NAME = new String[21];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -169,6 +173,9 @@ public class _NopDatavScreen extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_remark] = PROP_NAME_remark;
           PROP_NAME_TO_ID.put(PROP_NAME_remark, PROP_ID_remark);
       
+          PROP_ID_TO_NAME[PROP_ID_thumbnail] = PROP_NAME_thumbnail;
+          PROP_NAME_TO_ID.put(PROP_NAME_thumbnail, PROP_ID_thumbnail);
+      
     }
 
     
@@ -228,6 +235,9 @@ public class _NopDatavScreen extends DynamicOrmEntity{
     
     /* 备注: REMARK */
     private java.lang.String _remark;
+    
+    /* 缩略图: THUMBNAIL */
+    private java.lang.String _thumbnail;
     
 
     public _NopDatavScreen(){
@@ -359,6 +369,9 @@ public class _NopDatavScreen extends DynamicOrmEntity{
         
             case PROP_ID_remark:
                return getRemark();
+        
+            case PROP_ID_thumbnail:
+               return getThumbnail();
         
            default:
               return super.orm_propValue(propId);
@@ -561,6 +574,16 @@ public class _NopDatavScreen extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_thumbnail:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_thumbnail));
+               }
+               setThumbnail(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -699,6 +722,13 @@ public class _NopDatavScreen extends DynamicOrmEntity{
             case PROP_ID_remark:{
                onInitProp(propId);
                this._remark = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_thumbnail:{
+               onInitProp(propId);
+               this._thumbnail = (java.lang.String)value;
                
                break;
             }
@@ -1066,6 +1096,25 @@ public class _NopDatavScreen extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);
+            
+        }
+    }
+    
+    /**
+     * 缩略图: THUMBNAIL
+     */
+    public final java.lang.String getThumbnail(){
+         onPropGet(PROP_ID_thumbnail);
+         return _thumbnail;
+    }
+
+    /**
+     * 缩略图: THUMBNAIL
+     */
+    public final void setThumbnail(java.lang.String value){
+        if(onPropSet(PROP_ID_thumbnail,value)){
+            this._thumbnail = value;
+            internalClearRefs(PROP_ID_thumbnail);
             
         }
     }

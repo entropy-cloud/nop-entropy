@@ -181,6 +181,7 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+      thumbnail: Thumbnail
       backgroundConfigComponent: null
     NopDatavScreenSnapshot:
       snapshotId: Snapshot Id

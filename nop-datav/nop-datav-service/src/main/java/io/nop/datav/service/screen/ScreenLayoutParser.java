@@ -52,6 +52,9 @@ public final class ScreenLayoutParser {
     /**
      * 解析已发布快照内容为 {@link ScreenLayoutConfig}，含完整运行时校验。
      *
+     * <p>委托 {@link #parse(String, String)}（content overload，D4-4 草稿预览复用入口），
+     * 仅追加 snapshotVersion（已发布快照才有版本号）。</p>
+     *
      * @param screenId   大屏 ID（用于错误上下文）
      * @param snapshot   已发布快照（snapshotContent 为 JSON 字符串）
      * @return 解析后的布局配置（含画布定义、适配基准、widget 列表）
@@ -63,8 +66,27 @@ public final class ScreenLayoutParser {
                     .param(ARG_SCREEN_ID, screenId)
                     .param(ARG_REASON, "snapshot is null");
         }
+        ScreenLayoutConfig config = parse(screenId, snapshot.getSnapshotContent());
+        config.setSnapshotVersion(snapshot.getSnapshotVersion());
+        return config;
+    }
 
-        Map<String, Object> content = parseContentJson(screenId, snapshot.getSnapshotContent());
+    /**
+     * 解析大屏内容 JSON 字符串为 {@link ScreenLayoutConfig}，含完整运行时校验。
+     *
+     * <p>D4-4 草稿预览（{@code getScreenDraftLayout}）入口：{@code serializeScreenContent} 产出编辑态内容 →
+     * 本 overload 解析（不经快照表落盘）。与已发布快照共用同一套解析逻辑（避免双路径漂移）。</p>
+     *
+     * <p>snapshotVersion 不被本 overload 设置（保留默认 0，标记"草稿/无版本"语义）；
+     * 已发布快照经 {@link #parse(String, NopDatavScreenSnapshot)} 覆盖为实际版本号。</p>
+     *
+     * @param screenId        大屏 ID（用于错误上下文）
+     * @param snapshotContent 内容 JSON 字符串（编辑态 serializeScreenContent 产物 或 已发布快照内容）
+     * @return 解析后的布局配置（snapshotVersion 为默认 0，调用方可覆盖）
+     * @throws NopException JSON 非法 / 画布非法 / widget 越界 / 组件类型未注册
+     */
+    public ScreenLayoutConfig parse(String screenId, String snapshotContent) {
+        Map<String, Object> content = parseContentJson(screenId, snapshotContent);
 
         int canvasWidth = requireInt(screenId, content, "screenWidth");
         int canvasHeight = requireInt(screenId, content, "screenHeight");
@@ -99,7 +121,7 @@ public final class ScreenLayoutParser {
         config.setScreenId(screenId);
         config.setScreenName(asString(content.get("screenName")));
         config.setDisplayName(asString(content.get("displayName")));
-        config.setSnapshotVersion(snapshot.getSnapshotVersion());
+        // snapshotVersion 保留默认 0（草稿无版本）；已发布快照经 snapshot overload 覆盖
 
         Canvas canvas = new Canvas();
         canvas.setWidth(canvasWidth);

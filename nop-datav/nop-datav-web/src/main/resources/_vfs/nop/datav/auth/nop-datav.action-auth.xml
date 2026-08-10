@@ -142,6 +142,27 @@
                                   roles="admin,user">
                             <permissions>NopDatavScreen:getComponentTypes</permissions>
                         </resource>
+                        <!-- D4-4 发布生命周期增强 -->
+                        <resource id="FNPT:NopDatavScreen:getScreenSnapshotHistory" displayName="大屏发布历史"
+                                  i18n-en:displayName="Get Screen Snapshot History" orderNo="10045" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavScreen:getScreenSnapshotHistory</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavScreen:getScreenLayoutByVersion" displayName="查看历史版本布局"
+                                  i18n-en:displayName="Get Screen Layout By Version" orderNo="10046" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavScreen:getScreenLayoutByVersion</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavScreen:getScreenDraftLayout" displayName="草稿预览"
+                                  i18n-en:displayName="Get Screen Draft Layout" orderNo="10047" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavScreen:getScreenDraftLayout</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavScreen:setScreenThumbnail" displayName="设置大屏缩略图"
+                                  i18n-en:displayName="Set Screen Thumbnail" orderNo="10048" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavScreen:setScreenThumbnail</permissions>
+                        </resource>
                     </children>
                 </resource>
                 <!-- ==================== NopDatavScreenWidget（D4-1）==================== -->

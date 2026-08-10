@@ -58,8 +58,14 @@ site:
       displayName: Get Component Types
     FNPT:NopDatavScreen:getPublishedScreen:
       displayName: Get Published Screen
+    FNPT:NopDatavScreen:getScreenDraftLayout:
+      displayName: Get Screen Draft Layout
     FNPT:NopDatavScreen:getScreenLayout:
       displayName: Get Screen Layout
+    FNPT:NopDatavScreen:getScreenLayoutByVersion:
+      displayName: Get Screen Layout By Version
+    FNPT:NopDatavScreen:getScreenSnapshotHistory:
+      displayName: Get Screen Snapshot History
     FNPT:NopDatavScreen:mutation:
       displayName: Modify Screen
     FNPT:NopDatavScreen:publishScreen:
@@ -68,6 +74,8 @@ site:
       displayName: Query Screen
     FNPT:NopDatavScreen:rollbackScreen:
       displayName: Rollback Screen
+    FNPT:NopDatavScreen:setScreenThumbnail:
+      displayName: Set Screen Thumbnail
     FNPT:NopDatavScreenSnapshot:mutation:
       displayName: Modify Screen Snapshot
     FNPT:NopDatavScreenSnapshot:query:

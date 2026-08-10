@@ -71,6 +71,9 @@
 
                 <!--备注-->
                 <col id="remark" sortable="true"/>
+
+                <!--缩略图-->
+                <col id="thumbnail" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -88,6 +91,7 @@
  delFlag[删除标记] createdBy[创建人]
  createTime[创建时间] updatedBy[修改人]
  updateTime[修改时间] remark[备注]
+ thumbnail[缩略图] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-大屏" i18n-en:title="Add Screen" x:prototype="edit"/>
@@ -100,6 +104,7 @@
  publishStatus[发布状态] publishedVersion[已发布版本]
  publishedBy[发布人] publishedTime[发布时间]
  delFlag[删除标记] remark[备注]
+ thumbnail[缩略图] 
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

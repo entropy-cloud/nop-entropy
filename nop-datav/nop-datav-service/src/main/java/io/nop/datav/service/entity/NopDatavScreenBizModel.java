@@ -17,6 +17,7 @@ import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.datav.biz.INopDatavScreenBiz;
 import io.nop.datav.biz.PanelComponentMeta;
 import io.nop.datav.biz.ScreenLayoutConfig;
+import io.nop.datav.biz.ScreenSnapshotHistory;
 import io.nop.datav.dao.entity.NopDatavScreen;
 import io.nop.datav.dao.entity.NopDatavScreenSnapshot;
 import io.nop.datav.dao.entity.NopDatavScreenWidget;
@@ -171,6 +172,103 @@ public class NopDatavScreenBizModel extends CrudBizModel<NopDatavScreen>
         return result;
     }
 
+    // ==================== D4-4 发布生命周期增强 ====================
+
+    /**
+     * 浏览指定大屏的全部发布历史（D4-4 §12.1）。
+     *
+     * <p>返回每版本的元信息（snapshotVersion/publishedBy/publishedTime，<b>不含</b> snapshotContent），
+     * 按版本号倒序。已发布内容对所有有读权限的用户可见（与 {@code getPublishedScreen} 同语义）。</p>
+     */
+    @Override
+    @BizQuery
+    @Auth(permissions = "NopDatavScreen:getScreenSnapshotHistory")
+    public List<ScreenSnapshotHistory> getScreenSnapshotHistory(@Name("id") String id, IServiceContext context) {
+        NopDatavScreen screen = requireEntity(id, "getScreenSnapshotHistory", context);
+
+        List<NopDatavScreenSnapshot> snapshots = findAllSnapshots(screen.getScreenId());
+        List<ScreenSnapshotHistory> result = new ArrayList<>(snapshots.size());
+        for (NopDatavScreenSnapshot snapshot : snapshots) {
+            ScreenSnapshotHistory history = new ScreenSnapshotHistory();
+            history.setSnapshotVersion(snapshot.getSnapshotVersion());
+            history.setPublishedBy(snapshot.getPublishedBy());
+            history.setPublishedTime(snapshot.getPublishedTime());
+            result.add(history);
+        }
+        return result;
+    }
+
+    /**
+     * 查看指定历史版本的布局（D4-4 §12.2）。
+     *
+     * <p>读指定版本快照（不存在抛 {@code ERR_DATAV_SCREEN_SNAPSHOT_VERSION_NOT_FOUND}，rule #24 无静默跳过）
+     * → 经 {@link ScreenLayoutParser} 解析为 {@link ScreenLayoutConfig}（复用既有解析路径）。</p>
+     */
+    @Override
+    @BizQuery
+    @Auth(permissions = "NopDatavScreen:getScreenLayoutByVersion")
+    public ScreenLayoutConfig getScreenLayoutByVersion(@Name("id") String id,
+                                                        @Name("snapshotVersion") long snapshotVersion,
+                                                        IServiceContext context) {
+        NopDatavScreen screen = requireEntity(id, "getScreenLayoutByVersion", context);
+
+        NopDatavScreenSnapshot snapshot = findSnapshotByVersion(screen.getScreenId(), snapshotVersion);
+        if (snapshot == null) {
+            throw new NopException(ERR_DATAV_SCREEN_SNAPSHOT_VERSION_NOT_FOUND)
+                    .param("screenId", screen.getScreenId())
+                    .param("snapshotVersion", snapshotVersion);
+        }
+        // 解析时执行完整运行时校验（与 getScreenLayout 同路径，只是数据源从"最新快照"改为"指定版本快照"）
+        return layoutParser.parse(screen.getScreenId(), snapshot);
+    }
+
+    /**
+     * 草稿预览（D4-4 §12.4）。
+     *
+     * <p>从当前编辑态构建 {@link ScreenLayoutConfig}，无需先 publish。
+     * 实现 = {@code serializeScreenContent}(当前编辑态) → {@link ScreenLayoutParser#parse(String, String)}
+     * （content overload，不经快照表落盘）。从未 publish 的大屏也能预览（草稿预览不读快照表）。</p>
+     *
+     * <p>编辑态语义，仅 owner/admin 可预览（区别于已发布内容的 admin/user 可读，见 §12.6 权限矩阵）。</p>
+     */
+    @Override
+    @BizQuery
+    @Auth(permissions = "NopDatavScreen:getScreenDraftLayout")
+    public ScreenLayoutConfig getScreenDraftLayout(@Name("id") String id, IServiceContext context) {
+        NopDatavScreen screen = requireEntity(id, "getScreenDraftLayout", context);
+
+        // 复用 serializeScreenContent（构建编辑态内容 JSON）+ ScreenLayoutParser.parse(content overload)
+        // 不经快照表落盘；草稿无 snapshotVersion（保留默认 0）
+        String content = serializeScreenContent(screen);
+        return layoutParser.parse(screen.getScreenId(), content);
+    }
+
+    /**
+     * 设置大屏缩略图（D4-4 §12.3）。
+     *
+     * <p>更新主表 thumbnail 列（<b>唯一</b>写入点；publish 不触碰 thumbnail，保持 publish 单一职责）。
+     * 编辑态语义，仅 owner/admin 可设置。{@code thumbnail} 参数为文件记录引用 ID 或 data URL。</p>
+     */
+    @Override
+    @BizMutation
+    @Auth(permissions = "NopDatavScreen:setScreenThumbnail")
+    public NopDatavScreen setScreenThumbnail(@Name("id") String id, @Name("thumbnail") String thumbnail,
+                                              IServiceContext context) {
+        NopDatavScreen screen = requireEntity(id, "setScreenThumbnail", context);
+
+        // 仅更新 thumbnail 列（部分列更新，保留乐观锁 version）
+        jdbcTemplate.executeUpdate(SQL.begin().name("updateScreenThumbnail")
+                .sql("update NOP_DATAV_SCREEN set THUMBNAIL=").param(thumbnail)
+                .sql(",VERSION=VERSION+1")
+                .sql(",UPDATED_BY=").param(NopDatavOperatorResolver.resolveOperator(context))
+                .sql(",UPDATE_TIME=").param(new Timestamp(System.currentTimeMillis()))
+                .sql(" where SCREEN_ID=").param(screen.getScreenId()).end());
+
+        afterEntityChange(screen, "setScreenThumbnail", context);
+        // 返回最新主表行（含更新后的 thumbnail + version）
+        return daoProvider().daoFor(NopDatavScreen.class).getEntityById(screen.getScreenId());
+    }
+
     private String serializeScreenContent(NopDatavScreen screen) {
         Map<String, Object> content = new LinkedHashMap<>();
         content.put("screenName", screen.getScreenName());
@@ -182,6 +280,8 @@ public class NopDatavScreenBizModel extends CrudBizModel<NopDatavScreen>
                 ? io.nop.datav.service.screen.ScreenAdaptorMode.FULL
                 : screen.getAdaptorMode());
         content.put("backgroundConfig", parseJson(screen.getBackgroundConfig()));
+        // D4-4 §12.7：只读附带当前主表 thumbnail 值（供历史版本附带视觉预览，不回写主表）
+        content.put("thumbnail", screen.getThumbnail());
         content.put("widgets", serializeWidgets(screen.getScreenId()));
         return JsonTool.stringify(content);
     }
@@ -244,6 +344,16 @@ public class NopDatavScreenBizModel extends CrudBizModel<NopDatavScreen>
         query.addFilter(FilterBeans.eq("snapshotVersion", snapshotVersion));
         query.setLimit(1);
         return daoProvider().daoFor(NopDatavScreenSnapshot.class).findFirstByQuery(query);
+    }
+
+    /**
+     * 查询某大屏的全部快照，按版本号倒序（D4-4 §12.1 历史浏览）。
+     */
+    private List<NopDatavScreenSnapshot> findAllSnapshots(String screenId) {
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq("screenId", screenId));
+        query.addOrderField("snapshotVersion", true);
+        return daoProvider().daoFor(NopDatavScreenSnapshot.class).findAllByQuery(query);
     }
 
     @SuppressWarnings("unchecked")
