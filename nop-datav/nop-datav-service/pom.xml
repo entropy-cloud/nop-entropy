@@ -71,6 +71,19 @@
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-job-api</artifactId>
         </dependency>
+        <!-- nop-ai-api: 新非废弃 ChatBI API（IChatService/ChatRequest/ChatResponse/ChatToolDefinition/ChatToolCall）。
+             D6-1 ChatBI 经 IChatService.call 实现 LLM tool-calling 循环。拒 @Deprecated 的 IAiChatService。 -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-ai-api</artifactId>
+        </dependency>
+        <!-- nop-ai-toolkit: 工具发现与执行（IToolManager/IToolExecutor/IToolExecuteContext/AiToolCall/AiToolCallResult/AiToolModel）。
+             ChatBI 3 个 datav-* 工具经 IToolExecutor 实现注册，被 nopToolExecutorProvider 自动收集。
+             不引入 nop-ai-agent（类型转换逻辑参考 AgentToolDispatcher/ToolSchemaConverter 但内联复制）。 -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-ai-toolkit</artifactId>
+        </dependency>
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-config</artifactId>

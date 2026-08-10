@@ -16,6 +16,8 @@ site:
       displayName: Modify Alert State
     FNPT:NopDatavAlertState:query:
       displayName: Query Alert State
+    FNPT:NopDatavChatBi:chatToQuery:
+      displayName: ChatBI Query
     FNPT:NopDatavDashboard:getPublishedDashboard:
       displayName: Get Published Dashboard
     FNPT:NopDatavDashboard:mutation:
@@ -120,6 +122,8 @@ site:
       displayName: Alert Rule
     NopDatavAlertState-main:
       displayName: Alert State
+    NopDatavChatBi-main:
+      displayName: ''
     NopDatavDashboard-main:
       displayName: Dashboard
     NopDatavDashboardShare-main:

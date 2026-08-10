@@ -413,4 +413,48 @@ public interface NopDatavErrors {
             "User {userName} is not the owner of alert rule: {alertRuleId}",
             ARG_USER_NAME, ARG_ALERT_RULE_ID
     );
+
+    // ===== D6-1 ChatBI =====
+
+    String ARG_QUESTION = "question";
+    String ARG_TOOL_NAME = "toolName";
+    String ARG_ITERATIONS = "iterations";
+    String ARG_MAX_ITERATIONS = "maxIterations";
+    String ARG_DATASET_SID = "datasetSid";
+
+    ErrorCode ERR_DATAV_CHATBI_AI_NOT_AVAILABLE = define(
+            "nop.err.datav.chatbi-ai-not-available",
+            "ChatBI AI service is not available (nop-ai IChatService/IToolManager not registered). Question: {question}",
+            ARG_QUESTION
+    );
+
+    ErrorCode ERR_DATAV_CHATBI_MAX_ITERATIONS_EXCEEDED = define(
+            "nop.err.datav.chatbi-max-iterations-exceeded",
+            "ChatBI tool-calling exceeded max iterations ({maxIterations}) without a final answer. Question: {question}",
+            ARG_MAX_ITERATIONS, ARG_QUESTION
+    );
+
+    ErrorCode ERR_DATAV_CHATBI_TOOL_EXECUTION_FAILED = define(
+            "nop.err.datav.chatbi-tool-execution-failed",
+            "ChatBI tool execution failed for tool: {toolName}, reason: {reason}",
+            ARG_TOOL_NAME, ARG_REASON
+    );
+
+    ErrorCode ERR_DATAV_CHATBI_NO_RESULT = define(
+            "nop.err.datav.chatbi-no-result",
+            "ChatBI produced no result for question: {question}",
+            ARG_QUESTION
+    );
+
+    ErrorCode ERR_DATAV_CHATBI_DATASET_NOT_FOUND = define(
+            "nop.err.datav.chatbi-dataset-not-found",
+            "ChatBI dataset not found: {datasetSid}",
+            ARG_DATASET_SID
+    );
+
+    ErrorCode ERR_DATAV_CHATBI_DATASET_NOT_SQL = define(
+            "nop.err.datav.chatbi-dataset-not-sql",
+            "ChatBI dataset is not a SQL dataset (dsType must be 'sql'): {datasetSid}",
+            ARG_DATASET_SID
+    );
 }

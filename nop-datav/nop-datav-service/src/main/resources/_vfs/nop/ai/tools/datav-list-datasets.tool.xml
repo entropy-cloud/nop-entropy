@@ -1,0 +1,47 @@
+<tool x:schema="/nop/schema/ai/tool/tool.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      name="datav-list-datasets">
+
+    <schema>
+        <datav-list-datasets id="!int" explanation="!string" timeoutMs="int"
+                             keyword="string"/>
+    </schema>
+
+    <schemaJson>{
+  "type": "object",
+  "properties": {
+    "keyword": {
+      "type": "string",
+      "description": "Optional keyword to filter datasets by name or description. Empty returns all active datasets."
+    }
+  }
+}</schemaJson>
+
+    <description><![CDATA[List all active datasets available for ChatBI query.
+
+Returns a JSON array of dataset descriptors. Each descriptor contains:
+- sid: dataset ID (use as datasetSid in other datav-* tools)
+- dsName: dataset name
+- description: dataset description (may be empty)
+- dsType: dataset type (only "sql" type supports query)
+
+Only datasets with status=active (status=1) are returned. Use this tool first to discover what data is available, then call datav-describe-dataset to understand fields/params, then datav-query-dataset to execute a query.]]></description>
+
+    <examples>
+        <example index="1">
+            <call-tools>
+                <datav-list-datasets id="1" explanation="List all datasets"/>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="1" status="success">
+                    <output><![CDATA[{
+  "datasets": [
+    {"sid": "ds-sales", "dsName": "Sales Dataset", "description": "Regional sales", "dsType": "sql"},
+    {"sid": "ds-orders", "dsName": "Orders Dataset", "description": "Order records", "dsType": "sql"}
+  ]
+}]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+    </examples>
+
+</tool>

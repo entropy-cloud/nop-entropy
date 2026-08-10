@@ -54,4 +54,22 @@
     <bean id="nopDatavAlertScheduler"
           class="io.nop.datav.service.alert.NopDatavAlertScheduler" ioc:default="true"/>
 
+    <!-- ==================== D6-1 ChatBI ==================== -->
+
+    <!-- ChatBI 数据集查询工具 executor（3 个）。被 nopToolExecutorProvider（nop-ai-toolkit 的
+         ai-tools-defaults.beans.xml 提供）的 <ioc:collect-beans by-type="...IToolExecutor"/> 自动收集。
+         工具定义位于 _vfs/nop/ai/tools/*.tool.xml，IToolManager.listTools() 从此目录发现。 -->
+    <bean id="ai-tools:datav-list-datasets"
+          class="io.nop.datav.service.chatbi.DatavListDatasetsExecutor" ioc:default="true"/>
+    <bean id="ai-tools:datav-describe-dataset"
+          class="io.nop.datav.service.chatbi.DatavDescribeDatasetExecutor" ioc:default="true"/>
+    <bean id="ai-tools:datav-query-dataset"
+          class="io.nop.datav.service.chatbi.DatavQueryDatasetExecutor" ioc:default="true"/>
+
+    <!-- ChatBI BizModel（@BizModel，经 GraphQL 暴露 chatToQuery action）。
+         @Nullable 注入 IChatService/IToolManager（nop-ai 缺席时 action 显式抛 ERR_DATAV_CHATBI_AI_NOT_AVAILABLE）。
+         ioc:default=true 保证宿主未自定义时本实现生效。 -->
+    <bean id="nopDatavChatBiBizModel"
+          class="io.nop.datav.service.entity.NopDatavChatBiBizModel" ioc:default="true"/>
+
 </beans>

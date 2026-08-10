@@ -249,6 +249,17 @@
                         <resource id="FNPT:NopDatavAlertState:mutation" roles="admin"/>
                     </children>
                 </resource>
+                <!-- ==================== NopDatavChatBi（D6-1 ChatBI 自然语言查询）==================== -->
+                <resource id="NopDatavChatBi-main">
+                    <children>
+                        <!-- 自定义 action 权限点 -->
+                        <resource id="FNPT:NopDatavChatBi:chatToQuery" displayName="ChatBI自然语言查询"
+                                  i18n-en:displayName="ChatBI Query" orderNo="10070" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavChatBi:chatToQuery</permissions>
+                        </resource>
+                    </children>
+                </resource>
             </children>
         </resource>
     </site>

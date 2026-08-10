@@ -55,4 +55,22 @@ public interface NopDatavConfigs {
     @Description("告警通知邮件主题模板（{ruleName} 占位符替换，渲染用 StringHelper.renderTemplate）")
     IConfigReference<String> CFG_DATAV_ALERT_DEFAULT_SUBJECT = varRef(
             s_loc, "nop.datav.alert.default-subject", String.class, "Alert: {ruleName}");
+
+    // ===== D6-1 ChatBI =====
+
+    @Description("ChatBI tool-calling 循环最大轮次（超出抛 ERR_DATAV_CHATBI_MAX_ITERATIONS_EXCEEDED）")
+    IConfigReference<Integer> CFG_DATAV_CHATBI_MAX_ITERATIONS = varRef(
+            s_loc, "nop.datav.chatbi.max-iterations", Integer.class, 5);
+
+    @Description("ChatBI 单次数据集查询最大返回行数（经 LongRangeBean 在数据集层限行，跨方言防 OOM）")
+    IConfigReference<Integer> CFG_DATAV_CHATBI_MAX_ROWS = varRef(
+            s_loc, "nop.datav.chatbi.max-rows", Integer.class, 1000);
+
+    @Description("ChatBI 默认 LLM model（为空时由 IChatService 实现决定 provider 默认）")
+    IConfigReference<String> CFG_DATAV_CHATBI_DEFAULT_MODEL = varRef(
+            s_loc, "nop.datav.chatbi.default-model", String.class, "");
+
+    @Description("ChatBI 默认 provider（为空时由 IChatService 实现决定 provider 默认）")
+    IConfigReference<String> CFG_DATAV_CHATBI_DEFAULT_PROVIDER = varRef(
+            s_loc, "nop.datav.chatbi.default-provider", String.class, "");
 }
