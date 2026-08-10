@@ -2,7 +2,7 @@
 
 > Status: **final**
 > Last Reviewed: 2026-08-10
-> Scope owner: D4-1（自由画布 + 屏幕适配）+ D4-2（装饰/媒体组件族）。主题 D4-3、发布生命周期增强 D4-4 各有独立 plan，不在本文结论范围。
+> Scope owner: D4-1（自由画布 + 屏幕适配）+ D4-2（装饰/媒体组件族）+ D4-3（主题：色板 + 背景）。发布生命周期增强 D4-4 有独立 plan，不在本文结论范围。
 
 ## 概述
 
@@ -18,6 +18,7 @@ nop-datav 的「大屏」（Screen）是与「看板」（Dashboard）并列的�
 - 权限模式（沿用 D3-1 action `@Auth` + owner 行级 RLS）
 - widget 越界/重叠运行时校验
 - 装饰/媒体组件族（D4-2）：6 类组件 + 配置区域描述符 + 元信息查询 API
+- 主题模型（D4-3）：色板（palette）+ 背景（background）+ 主题解析与 widget 命名引用回退
 
 本文档为最终结论（无 "Proposed vs Current"）。被拒替代方案及理由在每一节末尾给出。
 
@@ -38,7 +39,7 @@ nop-datav 的「大屏」（Screen）是与「看板」（Dashboard）并列的�
 | screenWidth | int mandatory | 画布基准宽度（如 1920） |
 | screenHeight | int mandatory | 画布基准高度（如 1080） |
 | adaptorMode | int, dict `datav/screen-adaptor` | 屏幕适配模式（0/10/20，默认 10） |
-| backgroundConfig | json-4000 | 背景配置位（D4-3 主题扩展占位；本 plan 不解析内部结构） |
+| backgroundConfig | json-4000 | 背景配置位（主题扩展位；D4-3 §11 定义其内容结构 `{palette, background}`；legacy 自由格式向后兼容，见 §11.2） |
 | publishStatus | int, dict `datav/publish-status` | 发布状态（D0 复用） |
 | publishedVersion | long | 已发布版本 |
 | publishedBy | string(50) | 发布人 |
@@ -367,3 +368,128 @@ D4-1 已复用该注册表校验大屏 widget（`ScreenLayoutParser.validateComp
 | 返回 | `List<PanelComponentMeta>`（含 D4-1 既有 8 类 + D4-2 新增 6 类，共 14 类） |
 
 **裁定：放在 `NopDatavScreenBizModel`（大屏是组件注册表的主要消费方），不新建 entity-less BizModel。** 避免新增 `_service.beans.xml` bean 定义与独立 action-auth 命名空间；与既有 4 个 screen action 同模式（接口声明 + action-auth 权限点）。权限点 `NopDatavScreen:getComponentTypes` 在 `nop-datav.action-auth.xml` 增配，默认 `admin,user` 可读（与 `getScreenLayout` 同语义，元信息对所有可读大屏的角色可见）。
+
+## 11. 主题模型：色板 + 背景（D4-3）
+
+**决策：主题配置复用 D4-1 预留的 `backgroundConfig` 列，定义其内容结构为 `{palette: {命名色}, background: {type, value}}`，不新增 ORM 列；主题解析在 `getScreenLayout` 读取期发生，将结构化主题经 `ScreenLayoutConfig` 新增的 `theme` 字段暴露（additive，非破坏）。**
+
+D4-1 已在大屏实体预留 `backgroundConfig`（json-4000）作为主题扩展占位，`serializeScreenContent`/`restoreScreenFromSnapshot` 原样序列化/回填。D4-3 填充该占位的内部结构与解析逻辑。本节是模型层交付（配置 schema + 解析 + 元信息暴露），不含前端渲染（走 nop-chaos-flux，未产出）。
+
+### 11.1 backgroundConfig 内容结构
+
+推荐结构（含 palette + background 两区域）：
+
+```json
+{
+  "palette": {
+    "primary": "#1890FF",
+    "secondary": "#13C2C2",
+    "accent": "#722ED1",
+    "success": "#52C41A",
+    "warning": "#FAAD14",
+    "danger": "#F5222D",
+    "info": "#1890FF",
+    "text": "#FFFFFF",
+    "textSecondary": "#BFBFBF",
+    "background": "#131A2E"
+  },
+  "background": {
+    "type": "color",
+    "value": "#131A2E"
+  }
+}
+```
+
+- `palette`：命名语义色集合（name → hex 色值字符串）。name 取自下方 §11.3 固定清单，缺省项按 §11.3 填充默认值。
+- `background`：背景定义。
+  - `type`：`color`（缺省）| `image` | `gradient`。
+  - `value`：依 type 而定——
+    - `color`：hex 色值字符串（如 `"#131A2E"`）；缺省取 `palette.background`。
+    - `image`：图片 URL 字符串（如 `"https://..."`）。
+    - `gradient`：渐变描述对象（如 `{"angle": 90, "stops": [{"color":"#1890FF","offset":0}, ...]}`）或 CSS 渐变字符串。
+
+**被拒替代方案：新增 `themeConfig` ORM 列。** 拒绝。理由：(1) D4-1 已预留 `backgroundConfig` 占位，复用避免 ORM 变更（plan-first 区域）+ 快照序列化/回滚已覆盖 backgroundConfig 原样流转；(2) 主题与背景本就是同一"视觉外观"概念，分两列割裂语义。→ 复用 backgroundConfig。
+
+### 11.2 向后兼容裁定（关键）
+
+**决策：解析 backgroundConfig 时区分"含主题键"与"legacy 自由格式"，legacy 不报错。**
+
+| backgroundConfig 形态 | 解析动作 | 是否报错 |
+|----------------------|----------|----------|
+| 缺省 / 空 / null | `theme` 用缺省 palette + 缺省 background（color type，value 取 palette.background） | 否 |
+| 不含 `palette`/`background` 键（legacy 自由格式，如 `{"color":"#123456"}`） | `theme` 用缺省 palette + 缺省 background；**backgroundConfig 原始 Map 原样透传**（`Canvas.backgroundConfig` 不变） | 否 |
+| 含 `palette` 或 `background` 键且值结构合法 | 按 §11.1 结构解析，缺省项填充 | 否 |
+| 含 `palette`/`background` 键但值结构非法（如 `palette` 非 object、`background` 非 object） | 抛 `ERR_DATAV_INVALID_THEME_CONFIG` | **是** |
+
+**理由**：(1) 既有测试 `TestNopDatavScreenBizModel`（`{"color":"#123456"}` 断言透传）与 `TestScreenLayoutParser`（`{"color":"#000"}`）依赖 backgroundConfig 原样透传，legacy 不报错保证不回归；(2) "含主题键即声明使用新结构"是明确的语义边界，结构非法显式失败避免静默降级（rule #24）。
+
+### 11.3 palette 命名色清单 + 缺省值
+
+固定命名语义色集合（参考 JimuReport sysDefColor + Ant Design 语义色，面向大屏深色场景取默认值）：
+
+| 命名色 | 语义 | 缺省值 |
+|--------|------|--------|
+| `primary` | 主色 / 品牌色 | `#1890FF` |
+| `secondary` | 辅色 | `#13C2C2` |
+| `accent` | 强调色 | `#722ED1` |
+| `success` | 成功 / 正向 | `#52C41A` |
+| `warning` | 警告 / 注意 | `#FAAD14` |
+| `danger` | 危险 / 错误 | `#F5222D` |
+| `info` | 信息 | `#1890FF` |
+| `text` | 主文字色 | `#FFFFFF` |
+| `textSecondary` | 次要文字色 | `#BFBFBF` |
+| `background` | 背景基色（background.value 缺省取此） | `#131A2E` |
+
+解析时：用户在 `palette` 中指定的色覆盖默认；未指定的命名色按上表填充默认值（非 null）。palette 值非 hex 字符串时不阻断（向前兼容，仅约定），但解析后的 `theme.palette` 中命名色值均为字符串。
+
+palette 内允许出现上表之外的命名色（向前兼容，如未来 series 色序列），原样保留进 `theme.palette`，不强制拒绝未声明键（与 §10.3 配置 schema 不做硬 JSON Schema 校验哲学一致）。
+
+### 11.4 返回结构非破坏裁定
+
+**决策：`Canvas.backgroundConfig` 保持 `Map<String,Object>` 原样透传（D4-1 公共契约不变）；解析后的结构化主题放入 `ScreenLayoutConfig` 新增的 `theme` 字段（additive）。**
+
+`getScreenLayout` 返回的 `ScreenLayoutConfig` 新增 `theme` 字段（`ScreenThemeConfig` 类型），含：
+
+```json
+{
+  "theme": {
+    "palette": { "primary": "#1890FF", "...": "...", "background": "#131A2E" },
+    "background": { "type": "color", "value": "#131A2E" }
+  }
+}
+```
+
+- `theme.palette`：解析后的命名色 Map（缺省值已填充），`Map<String,String>`（name → hex）。
+- `theme.background`：解析后的背景定义（`type` 缺省 `color`，`value` 缺省取 `palette.background`）。
+
+既有 `Canvas.backgroundConfig`（`Map<String,Object>`，D4-1 公共契约）**类型与透传语义不变**——既有 `getBackgroundConfig().get("color")` 断言继续成立。
+
+**被拒替代方案：将 `Canvas.backgroundConfig` 字段类型改为结构化对象。** 拒绝。理由：(1) 破坏 D4-1 公共契约 + dao 模块 POJO + 既有消费者（TestNopDatavScreenBizModel/TestScreenLayoutParser 的透传断言）；(2) 主题与原始 backgroundConfig 透传是两个关注点（一个是结构化解析产物，一个是原始配置透传），混在一个字段增加耦合。→ 新增独立 `theme` 字段。
+
+### 11.5 widget 主题命名引用裁定
+
+**决策：widget 可在 `widgetConfig.theme` 区域用命名引用（如 `{"color":"primary","backgroundColor":"background"}`）引用屏幕级 palette；解析期将命名引用替换为 palette 实际色值，放入 widget 解析结果的新增 `resolvedTheme` 字段。**
+
+解析规则：
+
+- widget.widgetConfig 含 `theme` 键（值为 Map）→ 对该 Map 每个条目：若 value 是 String 且是 palette 中的命名色名 → 替换为 palette 实际色值；否则原样保留。
+- 解析结果放入 `Widget.resolvedTheme`（`Map<String,Object>`，name → 解析后值）。
+- **widgetConfig 本身不被改写**——`Widget.widgetConfig` 原样透传，含原始命名引用；styleOptions（D1-1 §1.3）更不被自动改写。
+
+**不对 D1-1 `styleOptions` 的任意颜色键做自动 palette 回退。** styleOptions 键到 palette 名的映射无定义、不可测。widget 主题引用范围明确收窄为 `widgetConfig.theme` 区域的命名引用。
+
+**被拒替代方案：styleOptions 任意颜色键自动 palette 回退。** 拒绝。理由：(1) styleOptions 键到 palette 名的映射无定义（哪个 styleOptions 键对应 primary？），不可测；(2) 自动改写 styleOptions 会破坏 D1-1 透传语义。→ 收窄为 `widgetConfig.theme` 命名引用，可测且范围明确。
+
+### 11.6 per-screen 主题裁定
+
+**决策：每屏独立主题配置，不做可复用主题库实体。**
+
+**被拒替代方案：新建 `NopDatavTheme` 可复用主题库实体（CRUD + 引用关系）。** 拒绝。理由：(1) 需 CRUD + 引用关系，scope 过宽；(2) 当前无跨屏共享主题用例，per-screen 配置已满足"色板 + 背景"需求。→ 列为 Non-Blocking Follow-up（无 successor 要求）。
+
+### 11.7 主题解析时机与存储不变
+
+**决策：主题解析只发生在 `getScreenLayout` 读取期（解析已发布快照），不改变存储格式。**
+
+- `serializeScreenContent`/`restoreScreenFromSnapshot` 仍原样流转 backgroundConfig（主题解析不写入快照，快照存原始 backgroundConfig）。
+- 主题解析是读取期的派生计算，结果（`theme` 字段）不持久化。
+- 这样保证：快照可回滚到任意历史版本且主题按该版本的 backgroundConfig 重新解析，无迁移负担。

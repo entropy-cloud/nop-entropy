@@ -1,6 +1,6 @@
 # nop-datav 实现 Roadmap
 
-> Last updated: 2026-08-10（D4-2 装饰/媒体组件族、D4-3 大屏主题、D4-4 发布生命周期 经两轮 plan review 通过，置 `planned`；D1-4/D2-4 前端仍 blocked 于 flux）
+> Last updated: 2026-08-10（D4-2 装饰/媒体组件族、D4-3 大屏主题 已 done；D4-4 发布生命周期 plan review 通过，置 `planned`；D1-4/D2-4 前端仍 blocked 于 flux）
 > Sources: `ai-dev/analysis/2026-08/2026-08-09-nop-datav-function-analysis.md`（功能设计分析）
 > 前端配套：`nop-chaos-flux` BI 控件族（chart/pivot-table/stat-tile/map/dashboard editor 计划）
 > 目标：将 nop-datav 从空壳实现为「BI 看板/大屏的模型层 + 运行时编排」（数据源/数据集/查询复用 nop-report + nop-metadata + EQL）
@@ -75,7 +75,7 @@ AI 或维护者读完本文即知哪些工作项已启动（`todo`）、已计�
 
 - D4-1. 自由画布布局（x/y/w/h 画布 JSON + 屏幕适配 heightFirst/full/keep，DataEase screenAdaptor 参考；辅助线/标尺可选，DataRoom 参考）: `done` ✅（plan `ai-dev/plans/nop-datav/2026-08-10-1130-2-screen-free-canvas-layout.md` 已完成 — 独立三实体 NopDatavScreen/ScreenWidget/ScreenSnapshot + dict `datav/screen-adaptor` + 自由画布布局协议 `ScreenLayoutParser`（widget 越界/未知组件运行时校验）+ `getScreenLayout` API（读已发布快照，经 PanelComponentRegistry.requireComponent 接线）+ publish/getPublished/rollback 复用 D0 模式 + 大屏 action `@Auth` + owner RLS；32 新测试，216/0/0 全绿；装饰组件 D4-2/主题 D4-3/发布生命周期 D4-4/前端渲染 各为独立 plan）
 - D4-2. 装饰/媒体组件族（装饰边框/滚动文字/时间时钟/视频/流媒体/轮播 Tab，DataEase de-* 族参考。**边界：仅组件注册表 + 配置 schema，渲染走 nop-chaos-flux；不含媒体代理/流后端实现**）: `done` ✅（plan `ai-dev/plans/nop-datav/2026-08-10-1200-1-screen-decorative-media-components.md` 已完成 — 6 类装饰/媒体组件（decorative-border/scroll-text/time-clock/video/stream/carousel-tab，均 needsDataset=false）登记进既有 PanelComponentRegistry（共 14 类）+ PanelComponentMeta 扩展携带命名配置区域描述符（向后兼容）+ `NopDatavScreenBizModel.getComponentTypes` API（@BizQuery，admin,user 可读，返回类型清单+配置区域描述符）+ `nop-datav.action-auth.xml` 增配权限点；端到端验证 6 类装饰 widget 经 getScreenLayout → ScreenLayoutParser → requireComponent 运行时连通；6 新测试，222/0/0 全绿；前端渲染走 flux out-of-scope）
-- D4-3. 大屏主题（主题色板 + 背景，JimuReport theme/sysDefColor 参考）: `planned` ✅（plan `ai-dev/plans/nop-datav/2026-08-10-1200-2-screen-theme-palette.md`）
+- D4-3. 大屏主题（主题色板 + 背景，JimuReport theme/sysDefColor 参考）: `done` ✅（plan `ai-dev/plans/nop-datav/2026-08-10-1200-2-screen-theme-palette.md` 已完成 — 复用 D4-1 预留 backgroundConfig 列定义其内容结构 `{palette:{命名色}, background:{type,value}}`（不新增 ORM 列）+ ScreenThemeConfig（dao）+ ScreenThemeParser（service）实现 backgroundConfig → 结构化 theme 解析（palette 缺省值填充 + background type/value 缺省 + 含主题键但值非法显式抛 ERR_DATAV_INVALID_THEME_CONFIG）+ ScreenLayoutConfig 新增 theme 字段（additive，Canvas.backgroundConfig 原样透传不破坏 D4-1 契约）+ widget.widgetConfig.theme 命名引用解析期替换为 palette 实际色值放入 widget.resolvedTheme（styleOptions 不被自动改写）+ screen-design.md §11 最终结论；向后兼容：legacy 自由格式 backgroundConfig 不报错、原样透传；22 新测试，245/0/0 全绿；前端渲染走 flux out-of-scope）
 - D4-4. 发布生命周期（暂存/发布/历史/缩略图，DataRoom 参考简化版）: `planned` ✅（plan `ai-dev/plans/nop-datav/2026-08-10-1200-3-screen-publish-lifecycle.md`）
 
 验收：大屏可自由布局 + 装饰组件 + 轮播 + 全屏适配；发布/回滚可用。
