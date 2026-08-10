@@ -1,6 +1,6 @@
 # nop-datav 实现 Roadmap
 
-> Last updated: 2026-08-10（D6-1 successor（NL→看板生成）plan 1516-1 已 completed；D6-2（AI 大屏生成）plan 1516-2 active；D6-1 全 done；D5 全 done；D4 全 done；D1-4/D2-4 前端仍 blocked 于 flux）
+> Last updated: 2026-08-10（D6-2（AI 大屏生成）plan 1516-2 已 completed；D6-1 successor（NL→看板生成）plan 1516-1 已 completed；D6 全 done；D5 全 done；D4 全 done；D1-4/D2-4 前端仍 blocked 于 flux）
 > Sources: `ai-dev/analysis/2026-08/2026-08-09-nop-datav-function-analysis.md`（功能设计分析）
 > 前端配套：`nop-chaos-flux` BI 控件族（chart/pivot-table/stat-tile/map/dashboard editor 计划）
 > 目标：将 nop-datav 从空壳实现为「BI 看板/大屏的模型层 + 运行时编排」（数据源/数据集/查询复用 nop-report + nop-metadata + EQL）
@@ -96,7 +96,7 @@ AI 或维护者读完本文即知哪些工作项已启动（`todo`）、已计�
 > 设计契约：`ai-dev/design/nop-datav/ai-design.md`（D6 时产出）
 
 - D6-1. ChatBI（自然语言 → 数据集查询/看板生成，DataEase SQL 助手 / Metabase Metabot 参考，nop-ai agent 接入）: `done` ✅（核心查询 plan `2026-08-10-1300-1` + NL→看板生成 successor plan `2026-08-10-1516-1-nl-dashboard-panel-generation.md` 均完成 — 循环泛化将 D6-1 查询专用 ChatBiToolCallingLoop 泛化为查询+生成两路径共享（裁定 L，4 泛化点：注入式 system prompt + 可插拔 ToolResultHandler + 泛化 ChatBiResult.createdEntityId + operator 传递）；新增 datav-generate-dashboard 工具 + DatavGenerateDashboardExecutor（裁定 G-O：operator 强转传递/草稿语义/DatasetRef 去重/显式校验失败/8 类组件边界/dsMeta 共享 helper/IOrmTemplate 事务无半成品）+ DatasetMetaParser + chatToDashboard(@BizMutation @Auth) action；设计文档 ai-design.md §8 增补裁定 G-O；349/0/0 datav-service 全绿含 16 新测试）
-- D6-2. AI 大屏生成（可选，MCP Tool 暴露组件/配置，DataRoom ai-generation 参考）: `planned` ✅（plan `ai-dev/plans/nop-datav/2026-08-10-1516-2-ai-screen-generation.md` 已 active；依赖 1516-1 completed）
+- D6-2. AI 大屏生成（可选，MCP Tool 暴露组件/配置，DataRoom ai-generation 参考）: `done` ✅（plan `ai-dev/plans/nop-datav/2026-08-10-1516-2-ai-screen-generation.md` 完成 — 复用 1516-1 的「创作型工具 + chatToXxx 编排 + operator 传递 + 泛化循环」模式面向大屏自由画布；新增 datav-list-component-types 工具（14 类组件发现，裁定 O 独立 executor）+ datav-generate-screen 工具（DatavGenerateScreenExecutor：裁定 N 直存 sid 不经 DatasetRef / 裁定 L 越界 mandatory throw 对齐 screen-design §7.1 / 裁定 M 装饰组件 datasetSid 忽略 / 裁定 P displayName 回退 screenName / 裁定 Q screenName UK 冲突显式错误）+ chatToScreen(@BizMutation @Auth) action + SCREEN_SYSTEM_PROMPT（含禁止 SQL + 草稿 + 不越界约束）；设计文档 ai-design.md §9 增补裁定 L–Q；378/0/0 datav-service 全绿含 29 新测试）
 
 验收：对话生成看板/查询可用；配置经 nop-ai 管线执行。
 

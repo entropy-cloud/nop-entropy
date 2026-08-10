@@ -1,8 +1,9 @@
 # nop-datav AI/ChatBI 设计 (D6)
 
-> Status: **final**（D6-1 数据集查询 + D6-1b 看板生成能力交付，
+> Status: **final**（D6-1 数据集查询 + D6-1b 看板生成 + D6-2 大屏生成能力交付，
 > plans `ai-dev/plans/nop-datav/2026-08-10-1300-1-chatbi-nl-dataset-query.md` +
-> `ai-dev/plans/nop-datav/2026-08-10-1516-1-nl-dashboard-panel-generation.md`）。
+> `ai-dev/plans/nop-datav/2026-08-10-1516-1-nl-dashboard-panel-generation.md` +
+> `ai-dev/plans/nop-datav/2026-08-10-1516-2-ai-screen-generation.md`）。
 > 本文件是 D6 ChatBI 集成的权威设计契约：工具集成方案、API 选择、被拒方案、类型转换契约、安全边界。
 > 相关代码：`nop-datav-service/.../chatbi/*`（executor + BizModel + tool-calling 循环）、
 > `nop-datav-service/.../_vfs/nop/ai/tools/*.tool.xml`（工具定义）。
@@ -462,3 +463,190 @@ dashboardId（写入 ChatBiResult.createdEntityId）
 - 生成看板归属 operator（`createdBy`），RLS 保护。
 - system prompt 含「禁止生成 SQL」「只用 8 类看板组件」「产出草稿不自动发布」约束。
 - `chatToDashboard` 经 `@BizMutation @Auth`（写操作，镜像 `publishDashboard` 约定）。
+
+---
+
+## 9. D6-2 大屏生成（NL → 大屏配置生成）
+
+> plans `ai-dev/plans/nop-datav/2026-08-10-1516-2-ai-screen-generation.md`。
+> 复用 §8（D6-1b）建立的「创作型工具 + chatToXxx 编排 + operator 传递」模式，面向大屏（Screen/ScreenWidget 自由画布）。
+> 设计依据：`screen-design.md` §7（widget 越界/重叠校验）+ §8（datasetRefId 逻辑引用语义）+ §10.5（componentType string 直存）。
+
+### 9.1 关键裁定（Decision L–Q）
+
+#### 裁定 L：自由画布定位校验规则（对齐 screen-design §7.1）
+
+**选择**：`generate-screen` executor 对 widget 定位的校验分三级：
+
+| 级别 | 条件 | 处置 | 理由 |
+|------|------|------|------|
+| mandatory throw | `x < 0` 或 `y < 0` 或 `w ≤ 0` 或 `h ≤ 0` | `ERR_DATAV_CHATBI_GENERATE_INVALID_WIDGET_POSITION` | 负坐标/非正宽高是非法规格 |
+| **mandatory throw** | `x + w > screenWidth` 或 `y + h > screenHeight` | `ERR_DATAV_CHATBI_GENERATE_WIDGET_OUT_OF_BOUNDS` | **对齐 screen-design §7.1 + `ScreenLayoutParser` 已实现行为**：生成的草稿经 `getScreenDraftLayout` 解析时，越界会抛 `ERR_DATAV_SCREEN_WIDGET_OUT_OF_BOUNDS`。若生成阶段允许越界，生成 → 运行时消费链路断裂 |
+| watch-only | widget 间重叠 | 不阻断（不校验） | §7.3 装饰层叠合法（如装饰边框套数据组件） |
+
+> **纠正先前倾向**：越界不是 watch-only。越界必须 throw，否则生成的配置运行时不可消费（`getScreenDraftLayout`/`getScreenLayout` 都会抛异常）。重叠才是 watch-only。
+
+#### 裁定 M：装饰/媒体组件的 datasetSid 处理
+
+**选择**：
+- `needsDataset=false` 的组件（text/decorative-border/scroll-text/time-clock/video/stream/carousel-tab/iframe/container）→ `datasetSid` 字段**忽略**（即便 LLM 传了也不存入 `ScreenWidget.datasetRefId`）。
+- `needsDataset=true` 的组件（chart/pivot-table/stat-tile/map/table）→ `datasetSid` **必填**，缺失返回 `ERR_DATAV_CHATBI_GENERATE_INVALID_SPEC`。
+
+#### 裁定 N：大屏数据集引用方式（定论：直存 sid，不经 DatasetRef）
+
+**选择**：生成大屏时 `ScreenWidget.datasetRefId` **直接存 nop-report 数据集 sid**，不创建 `NopDatavDatasetRef` 行，不涉及 ORM 变更。
+
+**理由**：
+- `NopDatavDatasetRef.dashboardId` 是 **mandatory FK → NopDatavDashboard**，无 `ownerType` 列，不能归属 Screen。
+- screen-design §8 明确 `ScreenWidget.datasetRefId` 是**逻辑引用**（"可指向任一 DatasetRef 行或外部 nop-report 数据集标识"）。
+- 大屏 widget 本就按逻辑 sid 引用数据集，不需要 DatasetRef 中间层去重/paramMapping。
+
+**被拒方案**：新增 `ownerType` 列到 `NopDatavDatasetRef`（区分 dashboard/screen 归属）。属 plan-first ORM 变更，过重故拒。大屏逻辑引用 sid 即可满足。
+
+**fieldMapping 存储位置**：存入 `ScreenWidget.widgetConfig` 的子键 `widgetConfig.fieldMapping`。
+
+#### 裁定 O：组件发现工具方案
+
+**选择**：`datav-list-component-types` 为独立 `IToolExecutor`（直接读 `PanelComponentRegistry`），不经 BizModel 调用链，保持工具自包含。
+输出 14 类组件清单（type/displayName/needsDataset/configAreas[]）。
+
+#### 裁定 P：displayName 处理
+
+**选择**：`NopDatavScreen.displayName` 是 ORM mandatory。`generate-screen` 工具输入 `displayName`（可选）；executor 在 `displayName` 为空时**回退为 `screenName`**，确保 mandatory 约束满足。
+
+#### 裁定 Q：screenName 唯一约束冲突处理
+
+**选择**：`NopDatavScreen` 有 `UK_NOP_DATAV_SCREEN_NAME(screenName)`。executor 在 save 时捕获 UK 冲突并返回显式错误 `ERR_DATAV_CHATBI_GENERATE_DUPLICATE_SCREEN_NAME`（不静默吞异常），由 LLM 下一轮换名。
+
+### 9.2 组件发现工具架构（datav-list-component-types）
+
+```
+LLM 调用 datav-list-component-types（无输入）
+        │
+        ▼
+DatavListComponentTypesExecutor.executeAsync(call, context)
+   │
+   │  1. PanelComponentRegistry.getInstance().getComponents()
+   │  2. 遍历 14 类组件 → 提取 type/displayName/needsDataset/configAreas[]
+   │  3. 返回 JSON: { "components": [ {type, displayName, needsDataset, configAreas}, ... ] }
+   ▼
+LLM 获得组件清单，选择合适组件创作大屏
+```
+
+独立 executor（不经 BizModel），直接读注册表，工具自包含。
+
+### 9.3 大屏创作工具架构（datav-generate-screen）
+
+```
+LLM 产出结构化规格（JSON）:
+{
+  "screenName": "...",
+  "displayName": "...",         // 可选，缺省回退 screenName（裁定 P）
+  "screenWidth": 1920,
+  "screenHeight": 1080,
+  "adaptorMode": 10,            // 可选，默认 10（FULL）
+  "backgroundConfig": {...},     // 可选
+  "widgets": [
+    { "componentType": "chart", "datasetSid": "ds-x", "fieldMapping": {...},
+      "x": 0, "y": 0, "w": 500, "h": 300, "z": 1 },
+    { "componentType": "decorative-border",               // needsDataset=false，无 datasetSid（裁定 M）
+      "x": 0, "y": 0, "w": 1920, "h": 100, "z": 0 },
+    ...
+  ]
+}
+        │
+        ▼
+DatavGenerateScreenExecutor.executeAsync(call, context)
+   │
+   │  1. 解析 AiToolCall.input JSON → 规格对象
+   │  2. displayName 回退（裁定 P）
+   │  3. 校验（fail-fast，裁定 L/M/N/O）:
+   │     a. componentType 经 PanelComponentRegistry.requireComponent（全部 14 类可用）
+   │     b. widget 定位（裁定 L）: x/y 非负 + w/h > 0 → INVALID_POSITION；越界 → OUT_OF_BOUNDS
+   │     c. datasetSid（裁定 M）: needsDataset=true 必填 + 存在 + status=1；needsDataset=false 忽略
+   │     d. fieldMapping 字段 ∈ DatasetMetaParser.parseFieldNames(dsMeta)
+   │     e. backgroundConfig（若提供）经 ScreenThemeParser.resolve 可解析
+   │  4. 事务性创建（裁定 O 事务机制）:
+   │     - Screen（DRAFT, createdBy=operator, displayName 已回退）
+   │     - ScreenWidget 集合（componentType string 直存 / datasetRefId 直存 nop-report sid 不经 DatasetRef /
+   │       x/y/w/h/z / widgetConfig.fieldMapping）
+   │     - screenName UK 冲突 → DUPLICATE_SCREEN_NAME（裁定 Q）
+   │  5. 返回 screenId + 摘要 JSON
+   ▼
+screenId（写入 ChatBiResult.createdEntityId）
+```
+
+**输入 schema**（`datav-generate-screen.tool.xml` 的 schemaJson，嵌套 widgets 数组）：
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "screenName": { "type": "string" },
+    "displayName": { "type": "string" },
+    "screenWidth": { "type": "integer" },
+    "screenHeight": { "type": "integer" },
+    "adaptorMode": { "type": "integer" },
+    "backgroundConfig": { "type": "object" },
+    "widgets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "componentType": { "type": "string" },
+          "datasetSid": { "type": "string" },
+          "fieldMapping": { "type": "object" },
+          "x": { "type": "integer" }, "y": { "type": "integer" },
+          "w": { "type": "integer" }, "h": { "type": "integer" },
+          "z": { "type": "integer" }
+        },
+        "required": ["componentType", "x", "y", "w", "h"]
+      }
+    }
+  },
+  "required": ["screenName", "screenWidth", "screenHeight", "widgets"]
+}
+```
+
+### 9.4 chatToScreen 编排
+
+```
+NopDatavChatBiBizModel.chatToScreen(description, IServiceContext context)
+   │
+   │  operator = NopDatavOperatorResolver.resolveOperator(context)
+   │  loop.run(desc, SCREEN_SYSTEM_PROMPT, operator, maxIters, SCREEN_RESULT_HANDLER)
+   ▼
+ChatBiToolCallingLoop（复用 D6-1b 泛化循环）
+   │  tools = [list-component-types, list-datasets, describe-dataset, query-dataset, generate-screen]
+   │  LLM: list-component-types 了解组件 → list/describe/query 理解数据 → 设计画布布局 → generate-screen 创作
+   ▼
+ChatBiResult (answer + createdEntityId=screenId + iterations)
+```
+
+**ScreenHandler**：`if ("datav-generate-screen".equals(toolName) && success) { parse screenId → accumulator.createdEntityId }`
+
+### 9.5 大屏生成 system prompt 约束
+
+system prompt 含（可观测）：
+- 大屏创作角色 + 工作流（list-component-types 了解组件 → list/describe/query 理解数据 → 设计画布布局 → generate-screen 创作）
+- **禁止生成 SQL**（沿用 D6-1 安全约束）
+- **产出草稿不自动发布**（沿用裁定 H，人审节点不可省略）
+- **widget 不可越界**（裁定 L，x+w ≤ screenWidth, y+h ≤ screenHeight）
+
+### 9.6 被拒方案汇总（D6-2 增补）
+
+| 方案 | 拒绝理由 |
+|-----|---------|
+| 新增 `ownerType` 列到 `NopDatavDatasetRef`（区分 dashboard/screen 归属） | plan-first ORM 变更过重；大屏 datasetRefId 逻辑引用 sid 即可（裁定 N） |
+| 越界为 watch-only（仅告警不阻断） | 生成的配置经 `getScreenDraftLayout` 解析会抛 `ERR_DATAV_SCREEN_WIDGET_OUT_OF_BOUNDS`，运行时不可消费（裁定 L） |
+| 大屏生成自动发布 | 沿用裁定 H，人审节点不可省略 |
+| 自动布局算法（widget 自动排布/吸附） | 属 LLM 模型能力范畴；后端只校验非负 + w/h > 0 + 不越界（Non-Goal） |
+| 媒体源可达性校验（video/stream src URL） | 网络副作用，非模型层职责（Non-Goal） |
+
+### 9.7 D6-2 安全边界
+
+- 生成工具只能引用**已有数据集**（`NopReportDataset` status=1）+ **映射已有字段**（dsMeta 内），不能凭空造数据集/字段。
+- 生成的大屏为 **DRAFT**（publishStatus=0），不自动发布（裁定 H）。
+- 生成大屏归属 operator（`createdBy`），RLS 保护。
+- 大屏可用全部 14 类组件（含装饰类型，与看板不同——看板只能用 8 类）。
+- `chatToScreen` 经 `@BizMutation @Auth`（写操作，镜像 `chatToDashboard` 约定）。
