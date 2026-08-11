@@ -67,8 +67,8 @@ public class BeanProperty {
 
 
     public void assignToObject(Object bean, String propName, IBeanContainerImplementor container,
-                               IBeanScope beanScope) {
-        Object value = valueResolver.resolveValue(container, beanScope);
+                               IBeanScope beanScope, BeanCreationContext beanCtx) {
+        Object value = valueResolver.resolveValue(container, beanScope, beanCtx);
 
         if (skipIfEmpty && StringHelper.isEmptyObject(value))
             return;

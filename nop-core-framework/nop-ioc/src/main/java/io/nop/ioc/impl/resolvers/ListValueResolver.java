@@ -11,6 +11,7 @@ import io.nop.commons.util.ClassHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.ioc.api.IBeanContainerImplementor;
 import io.nop.ioc.api.IBeanScope;
+import io.nop.ioc.impl.BeanCreationContext;
 import io.nop.ioc.impl.IBeanPropValueResolver;
 
 import java.util.List;
@@ -42,11 +43,11 @@ public class ListValueResolver implements IBeanPropValueResolver {
     }
 
     @Override
-    public List<Object> resolveValue(IBeanContainerImplementor container, IBeanScope scope) {
+    public List<Object> resolveValue(IBeanContainerImplementor container, IBeanScope scope, BeanCreationContext beanCtx) {
         List<Object> ret = (List<Object>) ClassHelper.newInstance(type);
 
         for (IBeanPropValueResolver item : items) {
-            Object value = item.resolveValue(container, scope);
+            Object value = item.resolveValue(container, scope, beanCtx);
             if (excludeNull && value == null)
                 continue;
 

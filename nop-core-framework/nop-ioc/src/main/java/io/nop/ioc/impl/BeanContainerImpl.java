@@ -173,13 +173,13 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
     @Nonnull
     @Override
     public Object getBean(String name) {
-        return getBean(name, false);
+        return getBean(name, false, null);
     }
 
     @Nonnull
     @Override
     public <T> T getBeanByType(Class<T> clazz) {
-        return getBeanByType(clazz, false);
+        return getBeanByType(clazz, false, null);
     }
 
     @Override
@@ -193,7 +193,7 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
                 return null;
             }
         }
-        return (T) getBean0(bean, false, false);
+        return (T) getBean0(bean, false, false, new BeanCreationContext(bean));
     }
 
     @Override
@@ -206,7 +206,7 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
             ret.putAll(parentContainer.getBeansOfType(clazz));
         }
         for (BeanDefinition beanDef : mapping.getBeans()) {
-            T bean = (T) getBean0(beanDef, false, false);
+            T bean = (T) getBean0(beanDef, false, false, new BeanCreationContext(beanDef));
             ret.put(beanDef.getId(), bean);
         }
         return ret;
@@ -232,7 +232,7 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
             ret.putAll(parentContainer.getBeansWithAnnotation(annClass));
         }
         for (BeanDefinition bean : annBeans) {
-            Object instance = getBean0(bean, false, false);
+            Object instance = getBean0(bean, false, false, new BeanCreationContext(bean));
             ret.put(bean.getId(), instance);
         }
         return ret;
@@ -276,7 +276,7 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
     }
 
     @Override
-    public Object getBean(@Nonnull String name, boolean includeCreating) {
+    public Object getBean(@Nonnull String name, boolean includeCreating, BeanCreationContext beanCtx) {
         checkStarted();
 
         String rawName = name;
@@ -296,11 +296,18 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
         if (onlyProducer && bean.getBeanMethod() == null)
             throw new NopException(ERR_IOC_NOT_PRODUCER_BEAN).param(ARG_BEAN_NAME, name);
 
-        return getBean0(bean, onlyProducer, includeCreating);
+        if (beanCtx == null) {
+            beanCtx = new BeanCreationContext(bean);
+            Object ret = getBean0(bean, onlyProducer, includeCreating, beanCtx);
+            beanCtx.flushActions();
+            return ret;
+        } else {
+            return getBean0(bean, onlyProducer, includeCreating, beanCtx);
+        }
     }
 
     @Override
-    public <T> T getBeanByType(Class<T> requiredType, boolean includeCreating) {
+    public <T> T getBeanByType(Class<T> requiredType, boolean includeCreating, BeanCreationContext beanCtx) {
         checkStarted();
         BeanDefinition bean = findBeanByType(requiredType);
         if (bean == null) {
@@ -310,7 +317,10 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
             throw new NopException(ApiErrors.ERR_IOC_UNKNOWN_BEAN_FOR_TYPE).param(ARG_BEAN_TYPE, requiredType)
                     .param(ARG_CONTAINER_ID, getId());
         }
-        return (T) getBean0(bean, false, includeCreating);
+
+        if (beanCtx == null)
+            beanCtx = new BeanCreationContext(bean);
+        return (T) getBean0(bean, false, includeCreating, beanCtx);
     }
 
     @Override
@@ -354,13 +364,13 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
         }
     }
 
-    private Object getBean0(BeanDefinition beanDef, boolean onlyProducer, boolean includeCreating) {
+    private Object getBean0(BeanDefinition beanDef, boolean onlyProducer, boolean includeCreating, BeanCreationContext beanCtx) {
         IBeanScope beanScope = getBeanScope(beanDef);
 
         if (includeCreating && beanScope != null) {
-            Object bean = beanScope.get(beanDef.getId());
+            ProducedBeanInstance bean = beanScope.get(beanDef.getId());
             if (bean != null) {
-                Object createdBean = beanDef.getBeanInstance(bean, onlyProducer);
+                Object createdBean = beanDef.getBeanInstance(bean, onlyProducer, includeCreating, beanCtx);
                 // 生产者bean尚未执行完init/beanMethod，说明依赖关系未满足，不允许返回
                 if (createdBean == null)
                     throw new NopException(ERR_IOC_PRODUCER_BEAN_NOT_INITED).param(ARG_BEAN, beanDef)
@@ -370,26 +380,20 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
             }
         }
 
-        Object bean;
+        ProducedBeanInstance beanInstance;
         if (beanScope == null) {
-            bean = beanDef.newObject(null, this);
-            bean = beanDef.getBeanInstance(bean, onlyProducer);
+            beanInstance = beanDef.newObject(null, this, beanCtx);
         } else {
             synchronized (beanDef) { //NOSONAR
-                bean = beanScope.get(beanDef.getId());
-                if (bean == null) {
+                beanInstance = beanScope.get(beanDef.getId());
+                if (beanInstance == null) {
                     LOG.info("nop.new-bean:{}", beanDef);
-                    bean = beanDef.newObject(beanScope, this);
-                    LOG.trace("nop.new-bean-completed:{}", beanDef);
-                    if (isStarted() && beanDef.hasDelayMethod()) {
-                        beanDef.runDelayMethod(bean, beanScope, this);
-                    }
+                    beanInstance = beanDef.newObject(beanScope, this, beanCtx);
                 }
-                bean = beanDef.getBeanInstance(bean, onlyProducer);
             }
         }
 
-        return bean;
+        return beanDef.getBeanInstance(beanInstance, onlyProducer, includeCreating, beanCtx);
     }
 
     IBeanScope getBeanScope(BeanDefinition bean) {
@@ -497,55 +501,15 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
             FutureHelper.syncGet(startFuture);
     }
 
-    /*
-    @DataBean
-    public static class BeanCreation {
-        final String threadName;
-        final String beanId;
-        final Set<String> depends;
-        final boolean created;
-
-        public BeanCreation(String threadName, String beanId, Set<String> depends, boolean created) {
-            this.threadName = threadName;
-            this.beanId = beanId;
-            this.depends = depends;
-            this.created = created;
-        }
-
-        public String toString() {
-            return StringHelper.rightPad(threadName,25,' ') + " " + beanId + (created ? depends : "");
-        }
-
-        public String getThreadName() {
-            return threadName;
-        }
-
-        public String getBeanId() {
-            return beanId;
-        }
-
-        public Set<String> getDepends() {
-            return depends;
-        }
-
-        public boolean isCreated() {
-            return created;
-        }
-    }
-
-    Queue<BeanCreation> beanCreations = new LinkedTransferQueue<>();
-
-    void dumpCreations() {
-        System.out.println(StringHelper.join(beanCreations,"\r\n"));
-    }*/
-
     CompletableFuture<Void> asyncStartBeans(List<BeanDefinition> startBeans) {
         TaskExecutionGraph graph = new TaskExecutionGraph(GlobalExecutors.globalWorker(), "ioc-container-start");
         for (BeanDefinition bean : startBeans) {
             graph.addTaskWithDepends(bean.getId(),
                     cancelToken -> {
                         // beanCreations.add(new BeanCreation(Thread.currentThread().getName(), bean.getId(), graph.getDepends(bean.getId()), false));
-                        getBean0(bean, true, false);
+                        BeanCreationContext beanCtx = new BeanCreationContext(bean,false);
+                        getBean0(bean, true, false, beanCtx);
+                        beanCtx.flushActions();
                         // beanCreations.add(new BeanCreation(Thread.currentThread().getName(), bean.getId(), graph.getDepends(bean.getId()), true));
                         return null;
                     },
@@ -560,7 +524,9 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
         if (concurrentStart) {
             startBeans.add(bean);
         } else {
-            getBean0(bean, true, false);
+            BeanCreationContext beanCtx = new BeanCreationContext(bean,false);
+            getBean0(bean, true, false, beanCtx);
+            beanCtx.flushActions();
         }
     }
 
@@ -568,9 +534,9 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
         for (BeanDefinition beanDef : orderedBeans) {
             if (beanDef.isSingleton() && beanDef.hasDelayMethod()) {
                 IBeanScope beanScope = getBeanScope(beanDef);
-                Object instance = beanScope.get(beanDef.getId());
+                ProducedBeanInstance instance = beanScope.get(beanDef.getId());
                 if (instance != null)
-                    beanDef.runDelayMethod(instance, beanScope, this);
+                    instance.checkBeanDelayActionRun();
             }
         }
         LOG.info("nop.ioc.run-delay-method-finished");
@@ -580,9 +546,9 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
         for (BeanDefinition beanDef : orderedBeans) {
             if (beanDef.isSingleton() && beanDef.hasLazyProperties()) {
                 IBeanScope beanScope = getBeanScope(beanDef);
-                Object instance = beanScope.get(beanDef.getId());
+                ProducedBeanInstance instance = beanScope.get(beanDef.getId());
                 if (instance != null)
-                    beanDef.runLazyProperties(instance, beanScope, this);
+                    instance.checkBeanLazyPropSet();
             }
         }
         LOG.info("nop.ioc.run-lazy-properties-finished");
@@ -640,7 +606,9 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
         BeanDefinition beanDef = new BeanDefinitionBuilder(classLoader, getClassIntrospection(), this)
                 .useBeans(this.enabledBeans).buildForAutowire(beanClass);
 
-        beanDef.initProps(bean, this, null);
+        BeanCreationContext beanCtx = new BeanCreationContext(beanDef);
+        beanDef.initProps(bean, this, null, beanCtx);
+        beanCtx.flushActions();
     }
 
     public XNode toConfigNode() {

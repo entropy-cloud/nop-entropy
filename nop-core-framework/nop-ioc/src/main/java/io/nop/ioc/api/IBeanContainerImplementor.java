@@ -13,6 +13,7 @@ import io.nop.api.core.ioc.IBeanContainer;
 import io.nop.commons.lang.IClassLoader;
 import io.nop.commons.service.ILifeCycle;
 import io.nop.core.lang.xml.XNode;
+import io.nop.ioc.impl.BeanCreationContext;
 import io.nop.ioc.impl.IBeanClassIntrospection;
 import jakarta.annotation.Nonnull;
 
@@ -42,9 +43,9 @@ public interface IBeanContainerImplementor extends IBeanContainer, ILifeCycle {
 
     IClassLoader getClassLoader();
 
-    Object getBean(@Nonnull String name, boolean includeCreating);
+    Object getBean(@Nonnull String name, boolean includeCreating, BeanCreationContext beanCtx);
 
-    <T> T getBeanByType(Class<T> requiredType, boolean includeCreating);
+    <T> T getBeanByType(Class<T> requiredType, boolean includeCreating, BeanCreationContext beanCtx);
 
     String findAutowireCandidate(Class<?> beanType);
 

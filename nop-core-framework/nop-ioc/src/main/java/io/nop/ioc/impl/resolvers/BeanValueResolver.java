@@ -13,6 +13,7 @@ import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.bean.IBeanModel;
 import io.nop.ioc.api.IBeanContainerImplementor;
 import io.nop.ioc.api.IBeanScope;
+import io.nop.ioc.impl.BeanCreationContext;
 import io.nop.ioc.impl.IBeanPropValueResolver;
 
 import java.util.Map;
@@ -54,12 +55,12 @@ public class BeanValueResolver implements IBeanPropValueResolver {
     }
 
     @Override
-    public Object resolveValue(IBeanContainerImplementor container, IBeanScope scope) {
+    public Object resolveValue(IBeanContainerImplementor container, IBeanScope scope, BeanCreationContext beanCtx) {
         IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(beanClass);
         Object bean = beanModel.newInstance();
         for (Map.Entry<String, IBeanPropValueResolver> entry : props.entrySet()) {
             String propName = entry.getKey();
-            Object value = entry.getValue().resolveValue(container, scope);
+            Object value = entry.getValue().resolveValue(container, scope, beanCtx);
 
             if (skipIfEmpty && StringHelper.isEmptyObject(value))
                 continue;

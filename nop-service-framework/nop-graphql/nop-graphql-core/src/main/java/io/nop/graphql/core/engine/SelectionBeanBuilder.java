@@ -29,7 +29,7 @@ public class SelectionBeanBuilder {
     private final Map<String, GraphQLDirectiveDefinition> directiveTypes;
 
     public SelectionBeanBuilder(Map<String, GraphQLDirectiveDefinition> directiveTypes) {
-        this.directiveTypes = Guard.notNull(directiveTypes, "directiveTypes");
+        this.directiveTypes = directiveTypes == null ? Collections.emptyMap() : directiveTypes;
     }
 
     public FieldSelectionBean buildSelectionBean(String name, GraphQLSelectionSet selectionSet,

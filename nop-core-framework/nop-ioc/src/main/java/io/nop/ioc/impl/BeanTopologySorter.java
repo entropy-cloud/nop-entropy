@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -71,8 +72,13 @@ public class BeanTopologySorter {
             ret.addAll(ordered);
         }
 
+        for (int i = 0, n = ret.size(); i < n; i++) {
+            ret.get(i).setBeanTopoIndex(i);
+        }
+
         verifyOrderConstraints(ret, beans);
-        fillResolvedDepends(ret, beans);
+        fillResolvedDepends(ret, beans, buildBeforeReverseMap(ret, beans));
+
         return ret;
     }
 
@@ -81,20 +87,16 @@ public class BeanTopologySorter {
      * 无条件执行，不依赖于 allow-cycle 配置。目标 bean 不存在（被条件禁用/父容器/可选模块）时跳过。
      */
     private void verifyOrderConstraints(List<BeanDefinition> orderedBeans, Map<String, BeanDefinition> allBeans) {
-        Map<String, Integer> positions = new HashMap<>();
-        for (int i = 0; i < orderedBeans.size(); i++) {
-            positions.put(orderedBeans.get(i).getId(), i);
-        }
-
         for (BeanDefinition bean : orderedBeans) {
-            Integer pos = positions.get(bean.getId());
+            int pos = bean.getBeanTopoIndex();
 
             if (bean.getBeanModel().getDependsOn() != null) {
                 for (String dep : bean.getBeanModel().getDependsOn()) {
                     String resolvedId = normalizeBeanId(dep, allBeans);
                     if (resolvedId == null)
                         continue;
-                    Integer targetPos = positions.get(resolvedId);
+
+                    Integer targetPos = getBeanTopoOrder(allBeans, resolvedId);
                     if (targetPos != null && pos <= targetPos) {
                         throw new NopException(ERR_IOC_BEAN_ORDER_CONSTRAINT_VIOLATED).source(bean)
                                 .param(ARG_BEAN_NAME, bean.getId()).param(ARG_DEPEND, resolvedId);
@@ -107,7 +109,7 @@ public class BeanTopologySorter {
                     String resolvedId = normalizeBeanId(before, allBeans);
                     if (resolvedId == null)
                         continue;
-                    Integer targetPos = positions.get(resolvedId);
+                    Integer targetPos = getBeanTopoOrder(allBeans, resolvedId);
                     if (targetPos != null && pos >= targetPos) {
                         throw new NopException(ERR_IOC_BEAN_ORDER_CONSTRAINT_VIOLATED).source(bean)
                                 .param(ARG_BEAN_NAME, bean.getId()).param(ARG_DEPEND, resolvedId);
@@ -120,7 +122,7 @@ public class BeanTopologySorter {
                     String resolved = normalizeBeanId(after, allBeans);
                     if (resolved == null)
                         continue;
-                    Integer targetPos = positions.get(resolved);
+                    Integer targetPos = getBeanTopoOrder(allBeans, resolved);
                     if (targetPos != null && pos <= targetPos) {
                         throw new NopException(ERR_IOC_BEAN_ORDER_CONSTRAINT_VIOLATED).source(bean)
                                 .param(ARG_BEAN_NAME, bean.getId()).param(ARG_DEPEND, resolved);
@@ -128,6 +130,13 @@ public class BeanTopologySorter {
                 }
             }
         }
+    }
+
+    private Integer getBeanTopoOrder(Map<String, BeanDefinition> allBeans, String beanId) {
+        BeanDefinition beanDef = allBeans.get(beanId);
+        if (beanDef == null)
+            return null;
+        return beanDef.getBeanTopoIndex();
     }
 
     /**
@@ -141,14 +150,15 @@ public class BeanTopologySorter {
      * </pre>
      * 缺失的目标（被条件禁用/父容器/可选模块）不进 resolvedDepends。
      */
-    private void fillResolvedDepends(List<BeanDefinition> orderedBeans, Map<String, BeanDefinition> allBeans) {
+    private void fillResolvedDepends(List<BeanDefinition> orderedBeans, Map<String, BeanDefinition> allBeans,
+                                     Map<String, List<String>> beforeReverse) {
         Map<String, Integer> positions = new HashMap<>();
         for (int i = 0; i < orderedBeans.size(); i++) {
             positions.put(orderedBeans.get(i).getId(), i);
         }
 
         for (BeanDefinition bean : orderedBeans) {
-            Set<String> deps = new HashSet<>();
+            Set<String> deps = new LinkedHashSet<>();
             if (bean.getBeanModel().getDependsOn() != null)
                 deps.addAll(bean.getBeanModel().getDependsOn());
 
@@ -156,15 +166,9 @@ public class BeanTopologySorter {
                 deps.addAll(bean.getBeanModel().getIocAfter());
             }
 
-            for (BeanDefinition other : orderedBeans) {
-                if (other.getBeanModel().getIocBefore() != null) {
-                    for (String before : other.getBeanModel().getIocBefore()) {
-                        String resolved = normalizeBeanId(before, allBeans);
-                        if (bean.getId().equals(resolved)) {
-                            deps.add(other.getId());
-                        }
-                    }
-                }
+            List<String> beforeBeans = beforeReverse.get(bean.getId());
+            if (beforeBeans != null) {
+                deps.addAll(beforeBeans);
             }
 
             Set<String> refs = new HashSet<>();
@@ -175,7 +179,7 @@ public class BeanTopologySorter {
                 if (resolvedId == null)
                     continue;
                 Integer refPos = positions.get(resolvedId);
-                if (refPos != null && refPos < positions.get(bean.getId())) {
+                if (refPos != null && refPos < bean.getBeanTopoIndex()) {
                     deps.add(resolvedId);
                 }
             }
@@ -199,6 +203,8 @@ public class BeanTopologySorter {
             graph.addVertex(bean.getId());
         }
 
+        Map<String, List<String>> beforeReverse = buildBeforeReverseMap(beans, allBeans);
+
         for (BeanDefinition bean : beans) {
             Set<String> deps = new HashSet<>();
             if (bean.getBeanModel().getDependsOn() != null)
@@ -210,15 +216,9 @@ public class BeanTopologySorter {
             }
 
             // ioc:before => 该bean拥有目标的前置，目标依赖本bean
-            for (BeanDefinition other : beans) {
-                if (other.getBeanModel().getIocBefore() != null) {
-                    for (String before : other.getBeanModel().getIocBefore()) {
-                        String resolved = normalizeBeanId(before, allBeans);
-                        if (bean.getId().equals(resolved)) {
-                            deps.add(other.getId());
-                        }
-                    }
-                }
+            List<String> beforeBeans = beforeReverse.get(bean.getId());
+            if (beforeBeans != null) {
+                deps.addAll(beforeBeans);
             }
 
             bean.collectDepends(deps);
@@ -261,6 +261,26 @@ public class BeanTopologySorter {
         }
 
         return ret;
+    }
+
+    /**
+     * 构建 ioc:before 反向索引：resolvedTargetId -> 声明 "ioc:before targetId" 的 bean id 列表。
+     * 一次 O(n) 遍历替代 fillResolvedDepends / sortBeans 中的 O(n²) 反向扫描。
+     */
+    private Map<String, List<String>> buildBeforeReverseMap(
+            Collection<BeanDefinition> beans, Map<String, BeanDefinition> allBeans) {
+        Map<String, List<String>> beforeReverse = new HashMap<>();
+        for (BeanDefinition bean : beans) {
+            if (bean.getBeanModel().getIocBefore() != null) {
+                for (String before : bean.getBeanModel().getIocBefore()) {
+                    String resolved = normalizeBeanId(before, allBeans);
+                    if (resolved != null) {
+                        beforeReverse.computeIfAbsent(resolved, k -> new ArrayList<>()).add(bean.getId());
+                    }
+                }
+            }
+        }
+        return beforeReverse;
     }
 
     String normalizeBeanId(String beanId, Map<String, BeanDefinition> allBeans) {

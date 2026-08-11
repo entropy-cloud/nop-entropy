@@ -15,7 +15,9 @@
     </bean>
 
     <bean id="nopDefaultTransactionListener" ioc:default="true"
-          class="io.nop.orm.txn.OrmTransactionListener"/>
+          class="io.nop.orm.txn.OrmTransactionListener">
+        <property name="ormTemplate" ref="nopOrmTemplate" ioc:lazy-property="true" />
+    </bean>
 
     <bean id="nopOrmGlobalCacheConfig" class="io.nop.commons.cache.CacheConfig"
           ioc:config-prefix="nop.orm.global-cache" ioc:default="true">
@@ -73,7 +75,8 @@
 
     <bean id="nopTransactionalFunctionInvoker" class="io.nop.dao.utils.TransactionalFunctionInvoker"/>
 
-    <bean id="io.nop.orm.initialize.DataBaseSchemaInitializer" ioc:type="@bean:id" ioc:after="nopOrmSessionFactory">
+    <bean id="io.nop.orm.initialize.DataBaseSchemaInitializer" ioc:type="@bean:id" ioc:after="nopOrmSessionFactory"
+          ioc:force-init="true">
         <ioc:condition>
             <if-property name="nop.orm.init-database-schema"/>
         </ioc:condition>

@@ -402,3 +402,39 @@ CREATED (0)
 ### 5. 不恰当的 local=true 会导致步骤不退出
 
 如果在 reject 等应该退出步骤的 action 上误用 `local="true"`，会出现"当前步骤和新创建的前驱步骤同时 active"的问题。
+
+---
+
+## 工作流设计器（Workflow Designer）
+
+Nop 平台集成了基于 flux `designer-page` renderer 的**通用工作流设计器**，支持图形化编辑 `.xwf` 模型。
+
+### 入口与数据流
+
+- **入口**：`NopWfDefinition` 行操作 `design` → 抽屉打开 `/nop/wf/designer/designer.flux.yaml`，通过 `<drawer><data><wfDefId>${id}</wfDefId></data></drawer>` 传递定义 ID。
+- **页面装配**：`designer.flux.yaml` 仅含 `dynamic-renderer` + spinner fallback，所有领域 schema 由服务端 `WorkflowDesignerService__loadDesignerPage` 返回（"页面可变、契约稳定"）。
+- **保存链**：page 级 `toolbar` region 的保存按钮 = `designer:export` + `then` ajax → `WorkflowDesignerService__saveDocument`。
+
+### 服务端 API（`WorkflowDesignerService`）
+
+| 操作 | 入参 | 返回 | 语义 |
+|------|------|------|------|
+| `loadDesignerPage` | `wfDefId: string` | designer-page schema（type/config/document/toolbar） | 读取 modelText → 解析为 GraphDocument + DesignerConfig |
+| `saveDocument` | `wfDefId: string`, `doc: string` | `{ ok, wfDefId }` | GraphDocument → .xwf → 引擎加载路径校验 → modelText 落库 |
+
+保存语义：
+- 已发布（`status=1`）定义拒绝保存；
+- 仅更新 `modelText`，不改变版本号 / status；
+- 落库前必须能经**引擎加载路径**（`WfModelParser` + `WfModelAnalyzer` DAG 检查）成功解析，失败快速失败不落库。
+
+### 转换器（`WfGraphDocumentCodec`）
+
+- 工作在**原始 XNode 层**：`x:extends` 头、未识别属性、xpl 片段原样保留，零编辑保存接近零 diff。
+- **合成节点**：`__wf_start` / `__wf_end` / `__wf_empty` 为保留 id（呈现 start/end/empty 边界），保存时从 `.xwf` 剔除；步骤名与保留 id 冲突时保存拒绝。
+- **边记录 `<transition>`**：步骤级、步骤 action 级、被 `ref-actions` 引用的工作流级 action 级；删除语义只在图中可见的 transition 随边删除，未枚举到的元素原样保留。
+- 坐标是视图状态，不进入持久化模型。
+
+### 前端 bundle 前置
+
+设计器渲染依赖 flux bundle 包含 `designer-page` renderer。bundle 由 nop-chaos-next 仓构建（三仓链路：flux tgz → nop-chaos-next apps/main → nop-web-site assets）。若 bundle 未含 `designer-page`，集成链路需先推进 bundle 升级。
+

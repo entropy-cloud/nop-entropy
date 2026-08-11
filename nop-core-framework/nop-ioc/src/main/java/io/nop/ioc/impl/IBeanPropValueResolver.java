@@ -22,7 +22,7 @@ public interface IBeanPropValueResolver {
         return false;
     }
 
-    Object resolveValue(IBeanContainerImplementor container, IBeanScope scope);
+    Object resolveValue(IBeanContainerImplementor container, IBeanScope scope, BeanCreationContext beanCtx);
 
     default void collectConfigVars(Set<String> vars, boolean reactive) {
 

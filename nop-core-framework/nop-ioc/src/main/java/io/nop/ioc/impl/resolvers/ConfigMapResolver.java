@@ -16,6 +16,7 @@ import io.nop.core.type.IGenericType;
 import io.nop.ioc.IocConstants;
 import io.nop.ioc.api.IBeanContainerImplementor;
 import io.nop.ioc.api.IBeanScope;
+import io.nop.ioc.impl.BeanCreationContext;
 import io.nop.ioc.impl.IBeanPropValueResolver;
 
 import java.util.Map;
@@ -64,7 +65,7 @@ public class ConfigMapResolver implements IBeanPropValueResolver {
     }
 
     @Override
-    public Object resolveValue(IBeanContainerImplementor container, IBeanScope scope) {
+    public Object resolveValue(IBeanContainerImplementor container, IBeanScope scope, BeanCreationContext beanCtx) {
         Map<String, Object> data = container.getConfigValueWithPrefix(configPrefix);
 
         if (mandatory && CollectionHelper.isEmptyMap(data)) {

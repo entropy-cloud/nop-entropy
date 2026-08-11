@@ -10,6 +10,7 @@ package io.nop.ioc.impl.resolvers;
 import io.nop.core.lang.xml.XNode;
 import io.nop.ioc.api.IBeanContainerImplementor;
 import io.nop.ioc.api.IBeanScope;
+import io.nop.ioc.impl.BeanCreationContext;
 import io.nop.ioc.impl.IBeanPropValueResolver;
 
 public class BeanContainerValueResolver implements IBeanPropValueResolver {
@@ -26,7 +27,7 @@ public class BeanContainerValueResolver implements IBeanPropValueResolver {
     }
 
     @Override
-    public Object resolveValue(IBeanContainerImplementor container, IBeanScope scope) {
+    public Object resolveValue(IBeanContainerImplementor container, IBeanScope scope, BeanCreationContext beanCtx) {
         return container;
     }
 }
