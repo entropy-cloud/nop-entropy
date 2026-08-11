@@ -67,10 +67,11 @@ public class TestFluxWebCrudPage extends JunitBaseTestCase {
         assertNotNull(args, "loadAction should have args");
         assertNotNull(((Map<?, ?>) args).get("url"), "loadAction args should have url");
 
+        // footerToolbar 现为 flux 分页启用标记（空 list），具体渲染由 flux 运行时默认填充，
+        // 参见 grid_crud.xpl 的 <footerToolbar j:list="true" xpl:if="pager != 'none'"/>。
         Object footerToolbar = crud.get("footerToolbar");
         if (footerToolbar != null) {
-            List<?> ftList = (List<?>) footerToolbar;
-            assertFalse(ftList.isEmpty(), "footerToolbar should have elements if present");
+            assertTrue(footerToolbar instanceof List, "footerToolbar should be a list if present");
         }
     }
 
