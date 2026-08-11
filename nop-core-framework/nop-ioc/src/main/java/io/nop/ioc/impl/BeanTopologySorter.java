@@ -57,7 +57,7 @@ public class BeanTopologySorter {
             if (bean.isAbstract() || bean.isDisabled())
                 continue;
 
-            orderMap.computeIfAbsent(bean.getIocSortOrder(), k -> new ArrayList<>()).add(bean);
+            orderMap.computeIfAbsent(bean.getBeanModel().getIocInitOrder(), k -> new ArrayList<>()).add(bean);
         }
 
         // 值越小优先级越高
