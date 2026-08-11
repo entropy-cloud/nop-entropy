@@ -231,7 +231,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      * P1 hardening: mutual-exclusion monitor for the recovery critical section.
      * Two concurrent sources reach {@link #globalRecovery()}: the single-threaded
      * {@code failureDetector} (via {@link #detectFailures()}) and the RPC server
-     * thread pool (via {@link #reportTaskStatus} on a FAILED report with
+     * thread pool (via {@code reportTaskStatus} on a FAILED report with
      * {@code autoRecoverOnFailedReport=true}). This lock serializes them so the
      * rotate-epoch → register-coordinator → update-fencing-token → clear working
      * set → materialize-assignment sequence executes atomically.
@@ -246,6 +246,41 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      * standalone-assignment path) can be reused safely.
      */
     private final ReentrantLock recoveryLock = new ReentrantLock();
+
+    /**
+     * P1 hardening: dedup flag for the {@code globalRecovery} trigger path.
+     *
+     * <p>Two concurrent sources (failure-detector thread + RPC FAILED report) can
+     * fire {@link #requestRecovery()} for the <em>same</em> failure event. Without
+     * dedup, both would reach {@link #globalRecovery()} and — depending on thread
+     * scheduling — both complete the full rotate/clear/assign sequence, bumping
+     * {@code restartCount} twice and producing duplicate attemptIds. The previous
+     * epoch-snapshot guard (snapshot taken before lock acquisition) was
+     * <strong>non-deterministic</strong>: if the loser thread was scheduled such
+     * that it snapshotted the fencing epoch AFTER the winner had already completed
+     * its full critical section and released the lock, the snapshot matched the
+     * current epoch, the guard did not fire, and the loser performed a redundant
+     * full recovery.
+     *
+     * <p>This flag fixes that by serializing callers at the <em>trigger boundary</em>
+     * via a single CAS: {@link #requestRecovery()} does {@code compareAndSet(false,
+     * true)}; exactly one caller wins regardless of subsequent scheduling, and the
+     * loser short-circuits with an observable WARN. The flag is cleared at the
+     * END of {@link #globalRecovery()}'s locked section (in {@code finally}, before
+     * {@code unlock}) so the CAS window stays closed for the recovery's ENTIRE
+     * duration — a redundant trigger arriving mid-recovery observes
+     * {@code recoveryPending=true} and its CAS fails. Any trigger firing AFTER
+     * the in-flight recovery completes re-arms the flag and runs a fresh,
+     * legitimate recovery; globalRecovery is global/idempotent so a truly
+     * redundant post-completion trigger is wasteful but not corrupting, and the
+     * failure detector's periodicity bounds any unhandled gap.
+     *
+     * <p>Memory-model notes: writes to this flag happen-before {@code globalRecovery}'s
+     * lock acquisition (program order in the caller) and the lock's release/acquire
+     * pair provides the synchronization barrier; {@link AtomicBoolean} is used for
+     * the atomic CAS semantics, not for volatile visibility alone.
+     */
+    private final AtomicBoolean recoveryPending = new AtomicBoolean(false);
 
     /** G56: cause captured by {@link #failJob(Throwable)}; null until FAILED. */
     private volatile Throwable jobFailureCause;
@@ -871,7 +906,10 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                         report.getVertexId(), report.getSubtaskIndex(), report.getAttemptNumber(),
                         report.getErrorCause());
                 try {
-                    globalRecovery();
+                    // P1 hardening: route through requestRecovery() so a concurrent
+                    // failure-detector cycle for the same event is deduped via the
+                    // recoveryPending CAS rather than racing into globalRecovery.
+                    requestRecovery();
                 } catch (Exception e) {
                     LOG.error("globalRecovery triggered by FAILED report threw for job {}", jobId, e);
                 }
@@ -988,11 +1026,59 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             if (nodeFailureDetected || taskStallDetected) {
                 LOG.warn("Failures detected (nodeLoss={}, taskStall={}), triggering global recovery for job {}",
                         nodeFailureDetected, taskStallDetected, jobId);
-                globalRecovery();
+                // P1 hardening: route through requestRecovery() so concurrent triggers
+                // from the FAILED-report RPC path are deduped via the recoveryPending CAS.
+                requestRecovery();
             }
         } catch (Exception e) {
             LOG.error("Error during failure detection for job {}", jobId, e);
         }
+    }
+
+    /**
+     * P1 hardening: trigger entry point for global recovery with concurrent-call
+     * deduplication. This is the method production trigger sites (failure detector,
+     * FAILED-report RPC handler) MUST call instead of {@link #globalRecovery()}.
+     *
+     * <p>Two concurrent sources can fire for the <em>same</em> failure event:
+     * <ul>
+     *   <li>the single-threaded {@code failureDetector} via {@link #detectFailures()}
+     *       (node-lease expiration or per-task liveness stall);</li>
+     *   <li>the RPC server thread pool via {@link #reportTaskStatus} on a FAILED
+     *       report with {@code autoRecoverOnFailedReport=true}.</li>
+     * </ul>
+     *
+     * <p>Dedup is implemented as a single CAS on {@link #recoveryPending}: exactly
+     * one caller transitions {@code false → true} and proceeds into
+     * {@link #globalRecovery()}; all redundant callers (whether truly overlapping
+     * or arriving while the in-flight recovery is still running) observe the CAS
+     * fail and short-circuit with an observable WARN (No-Silent-No-Op). The flag
+     * is cleared at the END of {@code globalRecovery()}'s locked section (in
+     * {@code finally}), so the CAS window stays closed for the recovery's entire
+     * duration — a mid-recovery redundant trigger cannot squeeze through. A
+     * trigger firing AFTER the in-flight recovery completes re-arms the flag and
+     * runs a fresh recovery; globalRecovery is global/idempotent so a redundant
+     * post-completion trigger is wasteful but not corrupting.
+     *
+     * <p><strong>Why a CAS flag, not the previous epoch-snapshot guard:</strong>
+     * the snapshot guard's correctness depended on the loser thread snapshotting
+     * {@code fencingEpoch} BEFORE the winner rotated it inside the critical section.
+     * That ordering is NOT enforced by {@code startLatch}-style test harnesses (and
+     * is not guaranteed by the JVM scheduler in production either): if the loser
+     * was scheduled such that it snapshotted AFTER the winner had already completed
+     * and released the lock, the snapshot matched the current epoch, the guard did
+     * not fire, and the loser performed a redundant full recovery — bumping
+     * {@code restartCount} twice and producing duplicate attemptIds. The CAS flag
+     * has no such timing dependency: the winner is determined atomically at the
+     * trigger boundary, not at lock-acquisition time.
+     */
+    public void requestRecovery() {
+        if (!recoveryPending.compareAndSet(false, true)) {
+            LOG.warn("Short-circuiting redundant recovery request for job {}: another recovery "
+                    + "is pending or in-flight (recoveryPending=true); not re-entering globalRecovery", jobId);
+            return;
+        }
+        globalRecovery();
     }
 
     /**
@@ -1008,38 +1094,23 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      * Each reassigned subtask bumps its {@code attemptNumber} so
      * {@code ClusterRegistry.getAttemptHistory(...)} retains the full attempt
      * sequence for observability and for Stage 27 targeted failover.
+     *
+     * <p><strong>Dedup contract:</strong> concurrent-trigger deduplication is the
+     * caller's responsibility and lives in {@link #requestRecovery()} (CAS on
+     * {@link #recoveryPending}). Production trigger sites (failure detector,
+     * FAILED-report RPC handler) MUST go through {@code requestRecovery()}.
+     * Direct callers of this method (tests, {@code activateAsLeader}-style
+     * administrative paths) bypass dedup and always perform the full recovery —
+     * this preserves the existing contract relied on by recovery-mechanics tests
+     * (e.g. {@code TestJobCoordinatorRestartStrategy}, {@code TestFencingEpochUnification}).
      */
     public void globalRecovery() {
-        // P1 hardening: snapshot the fencing epoch BEFORE acquiring the lock. Two
-        // concurrent sources reach this method — the failure-detector thread (via
-        // detectFailures) and the RPC server thread pool (via reportTaskStatus on a
-        // FAILED report). The lock serializes them; the snapshot lets the loser
-        // detect that a recovery already completed while it was waiting and
-        // short-circuit instead of re-clearing/re-assigning (no duplicate attemptIds,
-        // no double epoch rotation, no phantom restartCount bump).
-        long epochAtEntry = fencingEpoch.get();
-
         List<AssignmentDispatch> dispatches = Collections.emptyList();
         recoveryLock.lock();
         try {
-            // LATE-ARRIVAL / REDUNDANT-RECOVERY GUARD: if the fencing epoch advanced
-            // since this caller decided to recover, another recovery driver already
-            // completed the full rotate → register → clear → assign sequence under
-            // the lock. The redundant caller short-circuits with an observable WARN
-            // (No-Silent-No-Op) — it does NOT bump restartCount/recoveryGen and does
-            // NOT re-clear the working set.
-            if (fencingEpoch.get() != epochAtEntry) {
-                LOG.warn("Short-circuiting redundant globalRecovery for job {}: another recovery "
-                        + "driver already rotated the fencing epoch (entry={}, now={}); not "
-                        + "re-clearing/re-assigning", jobId, epochAtEntry, fencingEpoch.get());
-                return;
-            }
-
             // G56: global restart strategy. The counter is incremented only here
             // (Stage 27 scoped restart will need its own per-region counter, since
-            // scoped restart does not flow through globalRecovery). Guard-then-
-            // increment: the increment happens only after the late-arrival guard
-            // passes, so a redundant caller never bumps the counter.
+            // scoped restart does not flow through globalRecovery).
             int newCount = restartCount.incrementAndGet();
             if (newCount > maxRestarts) {
                 LOG.error("Global restart cap exceeded for job {}: count={} maxRestarts={}",
@@ -1071,6 +1142,22 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             // Materialize the assignment under the lock; fan-out after release.
             dispatches = prepareAssignmentsLocked();
         } finally {
+            // P1 hardening: clear the dedup flag at the END (still under the lock)
+            // so the CAS window in requestRecovery stays closed for the ENTIRE
+            // duration of this recovery. Any redundant requestRecovery that arrives
+            // while this recovery is in flight observes recoveryPending=true and its
+            // CAS(false→true) fails, so it short-circuits. We only re-arm the flag
+            // once this recovery is fully done (epoch rotated, working set rebuilt).
+            //
+            // Clearing in finally (not at the start) closes the race where a second
+            // caller's CAS would succeed between "globalRecovery clears pending" and
+            // "globalRecovery finishes", queuing a redundant second recovery. With
+            // end-clear, the only way a second requestRecovery proceeds is if it
+            // fires AFTER this method returns — which is a legitimate, distinct
+            // trigger (globalRecovery is global/idempotent, so a redundant trigger
+            // after completion is wasteful but not corrupting, and the failure-
+            // detector's periodicity bounds how long a true gap can go unhandled).
+            recoveryPending.set(false);
             recoveryLock.unlock();
         }
 

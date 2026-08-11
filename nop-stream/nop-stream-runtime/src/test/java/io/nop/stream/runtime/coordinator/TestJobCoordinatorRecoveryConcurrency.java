@@ -44,22 +44,36 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
- * P1 hardening: verifies {@link JobCoordinator#globalRecovery()} is mutually
- * exclusive across its two concurrent trigger sources (the failure-detector
+ * P1 hardening: verifies {@link JobCoordinator#requestRecovery()} deduplicates
+ * concurrent triggers across its two production sources (the failure-detector
  * thread via {@code detectFailures}, and the RPC server thread pool via
  * {@code reportTaskStatus} on a FAILED report). Both sources funnel into
- * {@code globalRecovery()}; this test fires two concurrent drivers and asserts
- * that exactly ONE recovery completes (single epoch rotation, single
- * restartCount bump, single assignment round per subtask) and the redundant
- * driver short-circuits with an observable WARN rather than interleaving its
- * clear/register/assign sequence with the winner.
+ * {@code requestRecovery()}; this suite asserts that exactly ONE recovery
+ * completes (single epoch rotation, single restartCount bump, single assignment
+ * round per subtask) and the redundant driver short-circuits with an observable
+ * WARN rather than interleaving its clear/register/assign sequence with the
+ * winner.
  *
- * <p>Without the recovery lock, the two drivers would interleave: both bump
- * restartCount (delta 2), both rotate the fencing epoch (one overwriting the
- * other), and both push assignments — producing duplicate attemptIds for the
- * same subtask and a corrupted working set. The lock serializes them; the
- * late-arrival guard (epoch snapshot taken before lock acquisition) lets the
- * loser detect that the epoch already advanced and short-circuit.
+ * <p><strong>Determinism strategy (why these tests are NOT flaky):</strong> the
+ * previous implementation deduped via a fencing-epoch snapshot taken BEFORE lock
+ * acquisition, which depended on the loser thread snapshotting before the winner
+ * rotated the epoch — a timing assumption the JVM scheduler does not guarantee.
+ * Replacing it with a CAS on {@code recoveryPending} at the trigger boundary
+ * makes the <em>overlapping-concurrent</em> case deterministic, but a
+ * start-latch alone still cannot guarantee overlap when the mocks are no-ops
+ * (globalRecovery completes in microseconds, so the scheduler can serialize the
+ * two drivers and the second CAS observes an already-cleared flag).
+ *
+ * <p>To eliminate all scheduler dependency, {@link RecordingClusterRegistry}
+ * supports a <em>block gate</em>: the test installs two latches, fires driver A,
+ * waits until A is blocked <strong>inside {@code assignTask}</strong> (which
+ * runs under {@code recoveryLock} via {@code prepareAssignmentsLocked}), then
+ * fires driver B. Because A is provably mid-recovery with
+ * {@code recoveryPending=true} at that instant, B's CAS(false→true) MUST fail
+ * and B MUST short-circuit immediately. If the dedup contract regressed, B would
+ * call {@code globalRecovery} and block on {@code recoveryLock} (held by A), and
+ * the test's bounded await on B would time out — surfacing the regression
+ * deterministically rather than as an intermittent count mismatch.
  */
 class TestJobCoordinatorRecoveryConcurrency {
 
@@ -124,16 +138,17 @@ class TestJobCoordinatorRecoveryConcurrency {
     }
 
     /**
-     * Two concurrent globalRecovery drivers must serialize: exactly one epoch
-     * rotation, one restartCount bump, and one assignment round (2 assignTask
-     * calls — one per subtask). The redundant driver short-circuits.
+     * Deterministic dedup test: driver A is positioned mid-recovery (blocked
+     * inside {@code assignTask} under {@code recoveryLock}) before driver B
+     * fires. Asserts exactly one epoch rotation, one restartCount bump, and one
+     * assignment round (2 assignTask calls — one per subtask). The redundant
+     * driver B short-circuits via the {@code recoveryPending} CAS.
      *
-     * <p>Both threads are released by a shared start-latch so each snapshots the
-     * pre-recovery fencing epoch before either acquires the lock. The winner then
-     * performs ~7 operations inside the critical section before rotating the
-     * epoch, while the loser's snapshot is a single volatile read — so the loser
-     * deterministically observes the pre-rotation epoch and short-circuits once
-     * it acquires the lock.
+     * <p>If the CAS dedup regressed, B would proceed into {@code globalRecovery}
+     * and block on {@code recoveryLock} held by A; the bounded await on
+     * {@code bDone} would then time out, failing the test deterministically
+     * (instead of producing an intermittent restartCount=2 as the old
+     * epoch-snapshot guard did).
      */
     @Test
     void concurrentGlobalRecovery_serializesToOneRotation() throws Exception {
@@ -146,41 +161,70 @@ class TestJobCoordinatorRecoveryConcurrency {
         // are counted below.
         clusterRegistry.reset();
 
-        int drivers = 2;
-        CountDownLatch startLatch = new CountDownLatch(1);
-        CountDownLatch doneLatch = new CountDownLatch(drivers);
-        AtomicInteger errors = new AtomicInteger();
+        // Install the block gate AFTER the initial assignTasks() so only
+        // recovery-phase assignTask calls are gated.
+        CountDownLatch assignEntered = new CountDownLatch(1);
+        CountDownLatch releaseAssign = new CountDownLatch(1);
+        clusterRegistry.installBlockGate(assignEntered, releaseAssign);
 
-        Runnable recoveryDriver = () -> {
+        AtomicInteger errors = new AtomicInteger();
+        CountDownLatch aDone = new CountDownLatch(1);
+
+        // Driver A: enters globalRecovery, acquires recoveryLock, reaches
+        // assignTask (called from prepareAssignmentsLocked UNDER the lock) and
+        // blocks there. recoveryPending is still TRUE at this point (it is only
+        // cleared in globalRecovery's finally, which has NOT run yet).
+        threadPool.submit(() -> {
             try {
-                startLatch.await();
-                // Both drivers represent the two concurrent sources (failure-
-                // detector thread + reportTaskStatus FAILED RPC) that funnel into
-                // globalRecovery().
-                coordinator.globalRecovery();
+                coordinator.requestRecovery();
             } catch (Throwable t) {
                 errors.incrementAndGet();
-                fail("recovery driver threw: " + t, t);
+                fail("driver A threw: " + t, t);
             } finally {
-                doneLatch.countDown();
+                aDone.countDown();
             }
-        };
+        });
 
-        threadPool.submit(recoveryDriver);
-        threadPool.submit(recoveryDriver);
+        // Wait until A is provably mid-recovery (blocked inside assignTask,
+        // holding recoveryLock, recoveryPending still true).
+        assertTrue(assignEntered.await(15, TimeUnit.SECONDS),
+                "driver A did not reach assignTask (mid-recovery) in time");
 
-        startLatch.countDown();
-        assertTrue(doneLatch.await(15, TimeUnit.SECONDS), "recovery drivers did not finish in time");
+        // Driver B: fired WHILE A is mid-recovery. Its CAS(false→true) must
+        // observe recoveryPending=true and short-circuit immediately. If the CAS
+        // incorrectly succeeded, B would call globalRecovery and block on
+        // recoveryLock (held by A), and this bounded await would time out —
+        // surfacing the regression deterministically.
+        CountDownLatch bDone = new CountDownLatch(1);
+        threadPool.submit(() -> {
+            try {
+                coordinator.requestRecovery();
+            } catch (Throwable t) {
+                errors.incrementAndGet();
+                fail("driver B threw: " + t, t);
+            } finally {
+                bDone.countDown();
+            }
+        });
+        assertTrue(bDone.await(5, TimeUnit.SECONDS),
+                "driver B must short-circuit and return immediately (not block on recoveryLock) "
+                        + "— if this timed out, the recoveryPending CAS dedup regressed and B entered globalRecovery");
+
+        // Release A: assignTask returns, prepareAssignmentsLocked finishes,
+        // finally clears recoveryPending + unlocks, fan-out runs, globalRecovery
+        // returns.
+        releaseAssign.countDown();
+        assertTrue(aDone.await(15, TimeUnit.SECONDS), "driver A did not finish in time");
         assertEquals(0, errors.get(), "no recovery driver should throw");
 
         // Exactly one restartCount bump (the loser short-circuited without bumping).
         assertEquals(1, coordinator.getRestartCount(),
-                "concurrent globalRecovery must bump restartCount exactly once, got "
+                "concurrent requestRecovery must bump restartCount exactly once, got "
                         + coordinator.getRestartCount());
 
         // Exactly one epoch rotation.
         assertEquals(1, coordinator.getRecoveryGen() - gen0,
-                "concurrent globalRecovery must rotate the fencing epoch exactly once, got delta "
+                "concurrent requestRecovery must rotate the fencing epoch exactly once, got delta "
                         + (coordinator.getRecoveryGen() - gen0));
         assertTrue(coordinator.getFencingEpoch() > epoch0,
                 "fencing epoch must have advanced");
@@ -202,10 +246,17 @@ class TestJobCoordinatorRecoveryConcurrency {
     }
 
     /**
-     * 接线验证: the clear → register → assign sequence is atomic — the loser
-     * cannot observe a half-cleared working set. After both drivers finish, the
-     * coordinator's working set is consistent: exactly one entry per vertex in
-     * taskAssignmentMap, and allTaskLocations is fully populated.
+     * 接线验证: the clear → register → assign sequence is atomic — a redundant
+     * driver cannot observe a half-cleared working set. After both drivers
+     * finish, the coordinator's working set is consistent: exactly one entry per
+     * vertex in taskAssignmentMap, and every assignment carries the current
+     * fencing epoch.
+     *
+     * <p>This test is dedup-insensitive: its assertions hold whether the two
+     * drivers dedupe to one recovery or (in a pathological scheduling) both
+     * complete, because each recovery clears-then-reassigns and the final
+     * working set is always consistent. The dedup-only guarantee is exercised by
+     * {@link #concurrentGlobalRecovery_serializesToOneRotation()}.
      */
     @Test
     void concurrentRecovery_leavesConsistentWorkingSet() throws Exception {
@@ -219,7 +270,7 @@ class TestJobCoordinatorRecoveryConcurrency {
         Runnable recoveryDriver = () -> {
             try {
                 startLatch.await();
-                coordinator.globalRecovery();
+                coordinator.requestRecovery();
             } catch (Throwable t) {
                 errors.incrementAndGet();
             } finally {
@@ -250,11 +301,29 @@ class TestJobCoordinatorRecoveryConcurrency {
 
     // ==================== Mocks ====================
 
-    /** Records every assignTask call so the test can assert non-interleaving. */
+    /**
+     * Records every assignTask call so the test can assert non-interleaving.
+     * Optionally supports a <strong>block gate</strong> ({@link #installBlockGate})
+     * so a test can deterministically position one driver mid-recovery (blocked
+     * inside assignTask, which runs under {@code recoveryLock}) before firing a
+     * second driver.
+     */
     static final class RecordingClusterRegistry implements ClusterRegistry {
         final AtomicInteger assignTaskCount = new AtomicInteger();
         final List<String> recoverySubtaskKeys = new java.util.concurrent.CopyOnWriteArrayList<>();
         final Map<String, NodeInfo> nodes = new java.util.concurrent.ConcurrentHashMap<>();
+
+        // Block gate: when installed, assignTask counts down assignEnteredGate on
+        // first entry (signalling "I'm mid-recovery") and then awaits
+        // releaseAssignGate before returning. Both latches are nullable; a null
+        // gate means assignTask runs straight through (the default).
+        private volatile CountDownLatch assignEnteredGate;
+        private volatile CountDownLatch releaseAssignGate;
+
+        void installBlockGate(CountDownLatch assignEntered, CountDownLatch releaseAssign) {
+            this.assignEnteredGate = assignEntered;
+            this.releaseAssignGate = releaseAssign;
+        }
 
         void reset() {
             assignTaskCount.set(0);
@@ -274,6 +343,22 @@ class TestJobCoordinatorRecoveryConcurrency {
         @Override
         public void assignTask(String jobId, String vertexId, int subtaskIndex,
                                String nodeId, String attemptId, long fencingEpoch, int attemptNumber) {
+            // Signal "mid-recovery" on first entry, then block until the test
+            // releases. Subsequent calls find both latches already at zero and
+            // return immediately.
+            CountDownLatch entered = assignEnteredGate;
+            if (entered != null) {
+                entered.countDown();
+            }
+            CountDownLatch release = releaseAssignGate;
+            if (release != null) {
+                try {
+                    assertTrue(release.await(15, TimeUnit.SECONDS),
+                            "assignTask block gate was not released within 15s (test deadlock?)");
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
             assignTaskCount.incrementAndGet();
             recoverySubtaskKeys.add(vertexId + "/" + subtaskIndex);
         }
