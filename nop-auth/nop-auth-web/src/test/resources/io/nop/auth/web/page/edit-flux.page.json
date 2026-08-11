@@ -548,14 +548,7 @@
             "name": "crud-grid",
             "id": "crud-grid",
             "toolbar": [],
-            "footerToolbar": [
-              {
-                "type": "statistics"
-              },
-              {
-                "type": "pagination"
-              }
-            ],
+            "footerToolbar": [],
             "loadAction": {
               "action": "ajax",
               "args": {
@@ -566,6 +559,15 @@
               }
             },
             "columns": [
+              {
+                "type": "index",
+                "name": "index",
+                "label": "序号",
+                "width": "50",
+                "fixed": "left",
+                "align": "center",
+                "toggled": "false"
+              },
               {
                 "name": "roleId",
                 "label": "角色ID",
@@ -666,14 +668,7 @@
             "name": "crud-grid",
             "id": "crud-grid",
             "toolbar": [],
-            "footerToolbar": [
-              {
-                "type": "statistics"
-              },
-              {
-                "type": "pagination"
-              }
-            ],
+            "footerToolbar": [],
             "loadAction": {
               "action": "ajax",
               "args": {
@@ -742,6 +737,15 @@
               ]
             },
             "columns": [
+              {
+                "type": "index",
+                "name": "index",
+                "label": "序号",
+                "width": "50",
+                "fixed": "left",
+                "align": "center",
+                "toggled": "false"
+              },
               {
                 "name": "userName",
                 "label": "用户名",
