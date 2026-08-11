@@ -271,6 +271,47 @@ public class TestNopDatavExportE2E extends AbstractNopDatavTest {
         assertTrue(r1.getErrorMsg().contains("restart"), "reason indicates restart");
     }
 
+    /**
+     * Dim14-01 回归保护：在途任务（其他用户 RUNNING）不应被新导出请求误标 FAILED。
+     *
+     * <p>历史 bug：{@code createExportTask} 请求路径同步调用 {@code recovery.recoverInterruptedTasks()}，
+     * 该方法选全部非终态任务（无 owner 谓词）写 status=FAILED，导致并发导出下每个请求都把所有其他用户在途任务误杀。
+     * 修复后恢复仅由 {@code @PostConstruct} 启动期执行一次。</p>
+     *
+     * <p>断言时机：recovery 旧调用在请求线程内同步执行，故 {@code createExportTask} 返回时即可确定性地观察。
+     * 该测试在「恢复 per-request 调用」时会失败（bob 的 RUNNING 任务被翻转为 FAILED）。</p>
+     */
+    @Test
+    public void testCreateExportTaskDoesNotKillInFlightTasks() {
+        setupSalesData();
+        // bob 有一个在途 RUNNING 任务（与 alice 的新请求无关）
+        seedTask("bob-inflight-running", "bob", NopDatavExportTaskStatus.RUNNING);
+        // 同时 seed 一个 PENDING 任务（覆盖 pending 也不被误杀）
+        seedTask("bob-inflight-pending", "bob", NopDatavExportTaskStatus.PENDING);
+
+        IServiceContext aliceCtx = ownerContext("alice");
+        String dashboardId = setupDashboard("dash-no-kill");
+        NopDatavPanel panel = saveChartPanelWithDataset("panel-no-kill", dashboardId, "Chart NoKill");
+
+        // alice 发起新导出请求（修复前此处会同步触发 recoverInterruptedTasks 误杀 bob）
+        NopDatavExportTask aliceTask = exportBiz.createExportTask(
+                "panel", panel.getPanelId(), "csv", Map.of("region", "north"), aliceCtx);
+        assertNotNull(aliceTask.getTaskId());
+
+        // 关键断言：bob 的在途任务未被误改为 FAILED（status 维持原值）
+        NopDatavExportTask bobRunning = daoProvider.daoFor(NopDatavExportTask.class)
+                .getEntityById("bob-inflight-running");
+        NopDatavExportTask bobPending = daoProvider.daoFor(NopDatavExportTask.class)
+                .getEntityById("bob-inflight-pending");
+        assertEquals(NopDatavExportTaskStatus.RUNNING, bobRunning.getStatus(),
+                "in-flight RUNNING task must NOT be marked FAILED by another user's createExportTask request");
+        assertEquals(NopDatavExportTaskStatus.PENDING, bobPending.getStatus(),
+                "in-flight PENDING task must NOT be marked FAILED by another user's createExportTask request");
+        // 顺带断言 errorMsg 未被 recovery 写入（restart 字样不应出现）
+        assertFalse(bobRunning.getErrorMsg() != null && bobRunning.getErrorMsg().contains("restart"),
+                "in-flight task errorMsg must not be touched by request-path recovery");
+    }
+
     // ==================== Helpers ====================
 
     private NopDatavExportTask pollUntilTerminal(String taskId, IServiceContext ctx) {

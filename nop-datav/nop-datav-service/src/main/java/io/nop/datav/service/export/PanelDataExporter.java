@@ -29,11 +29,14 @@ import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BooleanSupplier;
 
 import static io.nop.datav.service.NopDatavErrors.ARG_DASHBOARD_ID;
 import static io.nop.datav.service.NopDatavErrors.ARG_FORMAT;
 import static io.nop.datav.service.NopDatavErrors.ARG_MAX_ROWS;
+import static io.nop.datav.service.NopDatavErrors.ARG_REASON;
 import static io.nop.datav.service.NopDatavErrors.ARG_ROW_COUNT;
+import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_EXPORT_FAILED;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_EXPORT_NO_EXPORTABLE_PANELS;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_EXPORT_ROW_LIMIT_EXCEEDED;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_EXPORT_TYPE_NOT_SUPPORTED;
@@ -71,7 +74,18 @@ public class PanelDataExporter {
     }
 
     /**
-     * 导出单个面板数据。
+     * 检查取消标志位（D2 §312）。命中即抛 {@code ERR_DATAV_EXPORT_FAILED}（"cancelled by user"），
+     * 让调用方（{@code executeTask}）的 catch 分流走 cancel 路径。{@code cancelChecker} 为 null 时为 noop
+     * （向后兼容旧调用方）。
+     */
+    private static void checkCancelled(BooleanSupplier cancelChecker) {
+        if (cancelChecker != null && cancelChecker.getAsBoolean()) {
+            throw new NopException(ERR_DATAV_EXPORT_FAILED).param(ARG_REASON, "cancelled by user");
+        }
+    }
+
+    /**
+     * 导出单个面板数据（不带 cancel 检查；向后兼容）。
      *
      * @param panel   已加载的面板实体
      * @param params  请求参数（允许 null）
@@ -80,24 +94,39 @@ public class PanelDataExporter {
      * @return 写出的导出文件（临时 IResource + 元数据 + 行数）
      */
     public ExportFile exportPanel(NopDatavPanel panel, Map<String, Object> params, String format, int maxRows) {
+        return exportPanel(panel, params, format, maxRows, null);
+    }
+
+    /**
+     * 导出单个面板数据（带 cancel 检查）。
+     *
+     * <p>取消检查点：(1) 取数后写出前；(2) 写出循环内每行。命中即抛
+     * {@code ERR_DATAV_EXPORT_FAILED}("cancelled by user")。</p>
+     *
+     * @param cancelChecker 取消标志位供应者（允许 null = 不检查）
+     */
+    public ExportFile exportPanel(NopDatavPanel panel, Map<String, Object> params, String format, int maxRows,
+                                  BooleanSupplier cancelChecker) {
         PanelDataResult result = dataBinder.queryPanelData(panel.getPanelId(), panel, params, maxRows + 1);
         if (result.isHasDataset() && result.getRows().size() > maxRows) {
             throw new NopException(ERR_DATAV_EXPORT_ROW_LIMIT_EXCEEDED)
                     .param(ARG_ROW_COUNT, result.getRows().size())
                     .param(ARG_MAX_ROWS, maxRows);
         }
+        // 取数后、写出前检查（主保护点）
+        checkCancelled(cancelChecker);
         String baseName = sanitizeFileName(panel.getDisplayName() != null ? panel.getDisplayName() : panel.getPanelName());
         if (FORMAT_CSV.equalsIgnoreCase(format)) {
-            return writeCsv(baseName, result.getColumns(), result.getRows());
+            return writeCsv(baseName, result.getColumns(), result.getRows(), cancelChecker);
         }
         if (FORMAT_XLSX.equalsIgnoreCase(format)) {
-            return writeXlsx(baseName, toSheet(baseName, result.getColumns(), result.getRows()));
+            return writeXlsx(baseName, toSheet(baseName, result.getColumns(), result.getRows(), cancelChecker));
         }
         throw new NopException(ERR_DATAV_EXPORT_TYPE_NOT_SUPPORTED).param(ARG_FORMAT, format);
     }
 
     /**
-     * 导出看板下所有 needsDataset 面板（多 sheet xlsx）。
+     * 导出看板下所有 needsDataset 面板（多 sheet xlsx，不带 cancel 检查；向后兼容）。
      *
      * @param dashboardId 看板 ID
      * @param params      请求参数（允许 null）
@@ -105,6 +134,19 @@ public class PanelDataExporter {
      * @return 写出的导出文件（xlsx 多 sheet）
      */
     public ExportFile exportDashboard(String dashboardId, Map<String, Object> params, int maxRows) {
+        return exportDashboard(dashboardId, params, maxRows, null);
+    }
+
+    /**
+     * 导出看板下所有 needsDataset 面板（多 sheet xlsx，带 cancel 检查）。
+     *
+     * <p>取消检查点：(1) 每个面板取数前（面板间）；(2) 取数后写出前；(3) 行循环内。
+     * 命中即抛 {@code ERR_DATAV_EXPORT_FAILED}("cancelled by user")。</p>
+     *
+     * @param cancelChecker 取消标志位供应者（允许 null = 不检查）
+     */
+    public ExportFile exportDashboard(String dashboardId, Map<String, Object> params, int maxRows,
+                                      BooleanSupplier cancelChecker) {
         IEntityDao<NopDatavPanel> panelDao = daoProvider.daoFor(NopDatavPanel.class);
         io.nop.api.core.beans.query.QueryBean query = new io.nop.api.core.beans.query.QueryBean();
         query.addFilter(io.nop.api.core.beans.FilterBeans.eq("dashboardId", dashboardId));
@@ -128,16 +170,20 @@ public class PanelDataExporter {
         long totalRows = 0;
         List<String> usedNames = new ArrayList<>();
         for (NopDatavPanel panel : exportable) {
+            // 面板间检查（主保护点：exporter 内最重要的 cancel 时机）
+            checkCancelled(cancelChecker);
             PanelDataResult result = dataBinder.queryPanelData(panel.getPanelId(), panel, params, maxRows + 1);
             if (result.getRows().size() > maxRows) {
                 throw new NopException(ERR_DATAV_EXPORT_ROW_LIMIT_EXCEEDED)
                         .param(ARG_ROW_COUNT, result.getRows().size())
                         .param(ARG_MAX_ROWS, maxRows);
             }
+            // 取数后写出前检查
+            checkCancelled(cancelChecker);
             totalRows += result.getRows().size();
             String sheetName = sanitizeSheetName(panel.getDisplayName() != null
                     ? panel.getDisplayName() : panel.getPanelName(), usedNames);
-            workbook.addSheet(toSheet(sheetName, result.getColumns(), result.getRows()));
+            workbook.addSheet(toSheet(sheetName, result.getColumns(), result.getRows(), cancelChecker));
         }
 
         String baseName = "dashboard-" + sanitizeFileName(dashboardId);
@@ -146,7 +192,8 @@ public class PanelDataExporter {
 
     // ==================== 写出实现 ====================
 
-    private ExportFile writeCsv(String baseName, List<String> columns, List<Map<String, Object>> rows) {
+    private ExportFile writeCsv(String baseName, List<String> columns, List<Map<String, Object>> rows,
+                                BooleanSupplier cancelChecker) {
         // 写到临时 IResource；先写 UTF-8 BOM，再用 CsvRecordOutput 写表头+数据
         IResource resource = ResourceHelper.getTempResource("datav-export");
         OutputStream os = null;
@@ -158,6 +205,8 @@ public class PanelDataExporter {
             output = new CsvRecordOutput<>(writer, org.apache.commons.csv.CSVFormat.DEFAULT);
             output.setHeaders(columns);
             for (Map<String, Object> row : rows) {
+                // 写出循环内检查
+                checkCancelled(cancelChecker);
                 output.write(row);
             }
             output.flush();
@@ -204,7 +253,8 @@ public class PanelDataExporter {
      * 构造单 sheet（表头 + 数据行）。采用 {@code table.setCell(rowIndex, colIndex, cell)}
      * 的成熟写法（参考 {@code TestExcelHelper.testXlsxToCsv}），避免 addRow 触发 freeze 检查问题。
      */
-    private ExcelSheet toSheet(String sheetName, List<String> columns, List<Map<String, Object>> rows) {
+    private ExcelSheet toSheet(String sheetName, List<String> columns, List<Map<String, Object>> rows,
+                               BooleanSupplier cancelChecker) {
         ExcelSheet sheet = new ExcelSheet();
         sheet.setName(sheetName);
         ExcelTable table = sheet.getTable();
@@ -218,6 +268,8 @@ public class PanelDataExporter {
 
         // 数据行（rowIndex 从 1 开始）
         for (int r = 0; r < rows.size(); r++) {
+            // 写出循环内检查
+            checkCancelled(cancelChecker);
             Map<String, Object> dataRow = rows.get(r);
             for (int c = 0; c < columns.size(); c++) {
                 ExcelCell cell = new ExcelCell();

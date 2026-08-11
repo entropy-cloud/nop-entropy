@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.BooleanSupplier;
 
 import static io.nop.datav.service.NopDatavConfigs.CFG_DATAV_EXPORT_FILE_MAX_LENGTH;
 import static io.nop.datav.service.NopDatavConfigs.CFG_DATAV_EXPORT_MAX_CONCURRENT_PER_USER;
@@ -132,8 +133,9 @@ public class NopDatavExportTaskBizModel extends CrudBizModel<NopDatavExportTask>
         // 并发限额校验（请求线程同步）
         checkConcurrencyLimit(operator);
 
-        // 清理重启遗留的中断任务（幂等；覆盖 init 后再次出现的场景）
-        recovery.recoverInterruptedTasks();
+        // 注：恢复中断任务仅由 NopDatavExportTaskRecovery 的 @PostConstruct 在容器启动期执行一次。
+        // 此前在请求路径调用 recovery.recoverInterruptedTasks() 会把所有其他用户/同用户的在途任务误标 FAILED
+        // （audit Dim14-01）。请求路径不再触碰恢复逻辑。
 
         // INSERT pending 任务
         NopDatavExportTask task = newTaskEntity(sourceType, sourceId, format, params, operator);
@@ -216,6 +218,9 @@ public class NopDatavExportTaskBizModel extends CrudBizModel<NopDatavExportTask>
         touchUpdate(task, operator);
         dao.updateEntityDirectly(task);
 
+        // D2 §312：执行体内经 BooleanSupplier 轮询 cancelFlags，命中时 exporter 抛 ERR_DATAV_EXPORT_FAILED
+        BooleanSupplier cancelChecker = () -> Boolean.TRUE.equals(cancelFlags.get(taskId));
+
         try {
             PanelDataExporter exporter = new PanelDataExporter(daoProvider(), jdbcTemplate);
             int maxRows = CFG_DATAV_EXPORT_MAX_ROWS.get();
@@ -225,18 +230,25 @@ public class NopDatavExportTaskBizModel extends CrudBizModel<NopDatavExportTask>
 
             PanelDataExporter.ExportFile file;
             if (SOURCE_DASHBOARD.equalsIgnoreCase(task.getSourceType())) {
-                file = exporter.exportDashboard(task.getSourceId(), params, maxRows);
+                file = exporter.exportDashboard(task.getSourceId(), params, maxRows, cancelChecker);
             } else {
                 NopDatavPanel panel = daoProvider().daoFor(NopDatavPanel.class)
                         .getEntityById(task.getSourceId());
                 if (panel == null) {
                     throw new NopException(ERR_DATAV_PANEL_NOT_FOUND).param("panelId", task.getSourceId());
                 }
-                file = exporter.exportPanel(panel, params, task.getFormat(), maxRows);
+                file = exporter.exportPanel(panel, params, task.getFormat(), maxRows, cancelChecker);
             }
 
             // 落盘
             String fileId = saveExportFile(file, taskId);
+
+            // D2 §312：pre-SUCCEEDED 确定性兜底点——cancel 线程已写 CANCELLED 时跳过 SUCCEEDED 写入，
+            // 保留 cancel 线程的终态（errorMsg 已由 cancel 线程写入 "cancelled by user"）。
+            if (Boolean.TRUE.equals(cancelFlags.get(taskId))) {
+                LOG_EXPORT_FAILURE.info("nop.datav.export.cancelled-pre-success:taskId={}", taskId);
+                return null;
+            }
 
             task.setStatus(NopDatavExportTaskStatus.SUCCEEDED);
             task.setFileRecordId(fileId);
@@ -246,13 +258,19 @@ public class NopDatavExportTaskBizModel extends CrudBizModel<NopDatavExportTask>
             dao.updateEntityDirectly(task);
         } catch (Throwable t) {
             Throwable reason = NopException.adapt(t);
-            task.setStatus(NopDatavExportTaskStatus.FAILED);
-            task.setErrorMsg(safeMsg(reason));
-            touchUpdate(task, operator);
-            dao.updateEntityDirectly(task);
-            // 取消触发的失败不算异常：状态已落库，记录日志即可
-            if (!Boolean.TRUE.equals(cancelFlags.get(taskId)) && reason instanceof NopException) {
-                LOG_EXPORT_FAILURE.warn("nop.datav.export.task-failed:taskId={}", taskId, reason);
+            // D2 §312：catch 分流必须在 setStatus(FAILED) 之前判定 cancelFlags
+            if (Boolean.TRUE.equals(cancelFlags.get(taskId))) {
+                // cancel 命中：status 已由 cancel 线程写为 CANCELLED，执行体不覆盖、不写 FAILED；
+                // errorMsg 已由 cancel 线程写入 "cancelled by user"。仅记录日志。
+                LOG_EXPORT_FAILURE.info("nop.datav.export.cancelled-in-flight:taskId={}", taskId);
+            } else {
+                task.setStatus(NopDatavExportTaskStatus.FAILED);
+                task.setErrorMsg(safeMsg(reason));
+                touchUpdate(task, operator);
+                dao.updateEntityDirectly(task);
+                if (reason instanceof NopException) {
+                    LOG_EXPORT_FAILURE.warn("nop.datav.export.task-failed:taskId={}", taskId, reason);
+                }
             }
         } finally {
             cancelFlags.remove(taskId);

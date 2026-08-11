@@ -66,26 +66,26 @@ cancel-during-running 契约零有效测试。修复后导出任务状态机在 
 
 ### Phase 1 - 移除 per-request 恢复调用（Dim14-01）
 
-Status: planned
+Status: completed
 Targets: `nop-datav/nop-datav-service/src/main/java/io/nop/datav/service/entity/NopDatavExportTaskBizModel.java:135-136`
 
 - Item Types: `Fix`
 
-- [ ] 删除 `createExportTask` 中 `recovery.recoverInterruptedTasks();`（`:136`）及其上方的注释（`:135`）。`@PostConstruct init()` 仍是唯一恢复入口（保留 `NopDatavExportTaskRecovery` 不变）。**Scope 边界**：仅删 `:136` 请求路径调用；**保留** `NopDatavExportTaskBizModel.java:443-445` 的 `public void recoverInterruptedTasks()` 委托方法（注释「供测试/管理直接触发重启清理」，是测试/管理入口，非请求路径）；`recovery` 字段仍被 `:444` 引用，不留未用注入。
-- [ ] 新增/扩展测试：并发场景——一个任务处于 RUNNING/PENDING 时，另一用户（或同用户）发起 `createExportTask`，断言前者状态**未被误改为 FAILED**（仍为 PENDING/RUNNING 或其真实终态）。
+- [x] 删除 `createExportTask` 中 `recovery.recoverInterruptedTasks();`（`:136`）及其上方的注释（`:135`）。`@PostConstruct init()` 仍是唯一恢复入口（保留 `NopDatavExportTaskRecovery` 不变）。**Scope 边界**：仅删 `:136` 请求路径调用；**保留** `NopDatavExportTaskBizModel.java:443-445` 的 `public void recoverInterruptedTasks()` 委托方法（注释「供测试/管理直接触发重启清理」，是测试/管理入口，非请求路径）；`recovery` 字段仍被 `:444` 引用，不留未用注入。
+- [x] 新增/扩展测试：并发场景——一个任务处于 RUNNING/PENDING 时，另一用户（或同用户）发起 `createExportTask`，断言前者状态**未被误改为 FAILED**（仍为 PENDING/RUNNING 或其真实终态）。
 
 Exit Criteria:
 
-- [ ] `createExportTask` 请求路径不再调用 `recoverInterruptedTasks()`（live code 与 grep 确认 `:136` 已删；`:443-445` 测试/管理委托保留）。
-- [ ] 在途任务在新导出请求后状态不被误杀（focused test 断言）。
-- [ ] `@PostConstruct init()` 恢复路径未被移除（容器启动仍清理中断任务）。
-- [ ] **owner-doc 漂移裁定**：`permission-sharing-design.md` §322-326 描述恢复为启动期；§323 设计原文为「BizModel 实现 `IInitializer`」，live 实现为独立 `NopDatavExportTaskRecovery` bean + `@PostConstruct`（行为等价：均启动期执行一次）。本 plan **不修 §323**（out-of-scope 预存漂移，behaviorally equivalent），仅在 closure 记录该裁定，避免审计误判。
-- [ ] **无静默跳过**：删除的是错误调用，非以空方法体/吞异常替代。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] `createExportTask` 请求路径不再调用 `recoverInterruptedTasks()`（live code 与 grep 确认 `:136` 已删；`:443-445` 测试/管理委托保留）。
+- [x] 在途任务在新导出请求后状态不被误杀（focused test 断言）。
+- [x] `@PostConstruct init()` 恢复路径未被移除（容器启动仍清理中断任务）。
+- [x] **owner-doc 漂移裁定**：`permission-sharing-design.md` §322-326 描述恢复为启动期；§323 设计原文为「BizModel 实现 `IInitializer`」，live 实现为独立 `NopDatavExportTaskRecovery` bean + `@PostConstruct`（行为等价：均启动期执行一次）。本 plan **不修 §323**（out-of-scope 预存漂移，behaviorally equivalent），仅在 closure 记录该裁定，避免审计误判。
+- [x] **无静默跳过**：删除的是错误调用，非以空方法体/吞异常替代。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 2 - cancel 执行体内轮询（Dim07-01）
 
-Status: planned
+Status: in progress
 Targets: `NopDatavExportTaskBizModel.java:204-261`（executeTask）；`PanelDataExporter.java:82-145`（exportPanel/exportDashboard）
 
 - Item Types: `Fix | Decision`
