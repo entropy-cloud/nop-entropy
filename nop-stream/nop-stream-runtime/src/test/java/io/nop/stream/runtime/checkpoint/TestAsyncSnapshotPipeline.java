@@ -43,6 +43,36 @@ class TestAsyncSnapshotPipeline {
     private static final TaskLocation LOC_2 = new TaskLocation(JOB_ID, PIPELINE_ID, "v2", 2);
 
     /**
+     * Busy-wait for {@code coord.getNumberOfPendingCheckpoints()} to reach {@code expected}.
+     *
+     * <p>Necessary because the async persist completion path completes the pending
+     * checkpoint's CompletableFuture (via {@code forceComplete}) BEFORE decrementing
+     * {@code numPendingCheckpoints}, and {@code getNumberOfPendingCheckpoints()} is a
+     * non-synchronized {@link AtomicInteger} read. So a caller returning from
+     * {@code future.get()} (or observing {@code status==FAILED}, which is set before the
+     * decrement in the failure path) is NOT guaranteed by the JMM to observe the
+     * subsequent decrement without an explicit synchronization point. Under JVM load
+     * (full module suite) the gap between {@code forceComplete} and
+     * {@code decrementPendingCheckpointCount} is observable, producing a flaky
+     * {@code expected: <0> but was: <1>}.
+     *
+     * <p>The bounded busy-wait lets the volatile decrement become visible without
+     * changing the production ordering, which is intentional: the count must not drop to
+     * zero before the checkpoint is signaled durable / failed (otherwise a racing trigger
+     * could start a new checkpoint prematurely).
+     */
+    private static void awaitPendingCount(CheckpointCoordinator coord, int expected, long timeoutMs)
+            throws InterruptedException {
+        long deadline = System.currentTimeMillis() + timeoutMs;
+        while (coord.getNumberOfPendingCheckpoints() != expected && System.currentTimeMillis() < deadline) {
+            Thread.sleep(10);
+        }
+        assertEquals(expected, coord.getNumberOfPendingCheckpoints(),
+                "numPendingCheckpoints did not settle to " + expected + " within " + timeoutMs
+                        + "ms (forceComplete/decrement race in async persist path)");
+    }
+
+    /**
      * Minimal in-memory storage that records the thread that executed each store call,
      * optionally blocks on a latch, and can be flipped into a failing mode.
      */
@@ -303,7 +333,10 @@ class TestAsyncSnapshotPipeline {
             release.countDown();
             CompletedCheckpoint completed = pending.getCompletableFuture().get(10, TimeUnit.SECONDS);
             assertNotNull(completed);
-            assertEquals(0, coord.getNumberOfPendingCheckpoints());
+            // forceComplete (which unblocks the future above) runs BEFORE
+            // decrementPendingCheckpointCount in onCompletePersistSuccess; the count is
+            // a non-synchronized AtomicInteger read, so we must busy-wait for it to settle.
+            awaitPendingCount(coord, 0, 5_000);
         } finally {
             coord.shutdown();
         }
@@ -355,8 +388,9 @@ class TestAsyncSnapshotPipeline {
                     "finishCommit(false) must be called on storage failure");
             assertFalse(finishCommitSuccessTrueCalled.get(),
                     "finishCommit(true) (commit) must NOT be called when storage failed (§12 invariant 5)");
-            assertEquals(0, coord.getNumberOfPendingCheckpoints(),
-                    "Pending counter must be decremented on failure");
+            // status=FAILED is set BEFORE decrement in onCompletePersistFailure; busy-wait
+            // for the decrement to become visible.
+            awaitPendingCount(coord, 0, 5_000);
             assertTrue(storage.storeCheckpointFailCount.get() >= 1);
         } finally {
             coord.shutdown();
@@ -387,7 +421,9 @@ class TestAsyncSnapshotPipeline {
                     "storeCheckPoint must have succeeded before manifest failure");
             assertTrue(storage.storeManifestCount.get() >= 1,
                     "storeEpochManifest must have been attempted");
-            assertEquals(0, coord.getNumberOfPendingCheckpoints());
+            // status=FAILED is set BEFORE decrement in onCompletePersistFailure; busy-wait
+            // for the decrement to become visible.
+            awaitPendingCount(coord, 0, 5_000);
         } finally {
             coord.shutdown();
         }
