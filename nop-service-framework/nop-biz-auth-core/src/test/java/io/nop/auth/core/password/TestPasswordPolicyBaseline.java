@@ -9,12 +9,14 @@ import static io.nop.auth.core.AuthCoreErrors.ERR_PASSWORD_TOO_FEW_SPECIAL_CHAR;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
- * 验证密码策略基线（M-6，DR-1d）：minLength=12，且必须同时包含大写/小写/数字/特殊字符。
+ * 验证密码策略支持强基线配置（minLength=12，且必须同时包含大写/小写/数字/特殊字符）。
+ * 注意：强基线是 opt-in，auth-core-defaults.beans.xml 的缺省值已放宽（minLength=8、仅要求特殊字符），
+ * 生产环境可通过 nop.auth.password.* 配置项启用此处验证的强策略。
  */
 public class TestPasswordPolicyBaseline {
 
     private DefaultPasswordPolicy baselinePolicy() {
-        // 与 auth-core-defaults.beans.xml 中 DR-1d 基线一致
+        // 强基线策略（可通过配置项 nop.auth.password.* 启用）
         DefaultPasswordPolicy policy = new DefaultPasswordPolicy();
         policy.setMinLength(12);
         policy.setUpperCaseCount(1);
