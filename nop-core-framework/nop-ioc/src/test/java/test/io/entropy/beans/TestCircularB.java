@@ -24,8 +24,7 @@ public class TestCircularB {
 
     @PostConstruct
     public void init() {
-        // TEMP-DIAG: 记录 init 时依赖的 beanA 是否已完整创建（inited 由 beanA.init 设置）
-        aFullyInited = a != null && a.inited;
+        aFullyInited = TestCircularA.s_inited;
         LOG.info("nop.ioc.diag.circular-init:beanB.init sees a.inited={}", a == null ? null : a.inited);
     }
 }

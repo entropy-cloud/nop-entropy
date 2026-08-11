@@ -10,7 +10,9 @@ import io.nop.ioc.api.IBeanContainerImplementor;
 import io.nop.ioc.loader.AppBeanContainerLoader;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import test.io.entropy.beans.TestCircularA;
 import test.io.entropy.beans.TestCircularB;
 
 import static io.nop.core.unittest.BaseTestCase.setTestConfig;
@@ -27,6 +29,11 @@ public class TestReentrantCircularRepro extends BaseTestCase {
     @AfterAll
     public static void destroy() {
         CoreInitialization.destroy();
+    }
+
+    @BeforeEach
+    public void setUp() {
+        TestCircularA.s_inited = false;
     }
 
     @Test

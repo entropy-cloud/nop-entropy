@@ -9,6 +9,8 @@ import jakarta.annotation.PostConstruct;
 public class TestCircularA {
     public boolean inited;
 
+    public static boolean s_inited;
+
     private TestCircularB b;
 
     public void setB(TestCircularB b) {
@@ -22,5 +24,6 @@ public class TestCircularA {
     @PostConstruct
     public void init() {
         inited = true;
+        s_inited = true;
     }
 }
