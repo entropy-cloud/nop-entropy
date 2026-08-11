@@ -13,4 +13,6 @@
     <bean id="nopWfActorResolver" ioc:default="true"
           class="io.nop.wf.service.actor.DaoWfActorResolver" />
 
+    <bean id="io.nop.wf.service.designer.WorkflowDesignerService" ioc:type="@bean:id"/>
+
 </beans>
