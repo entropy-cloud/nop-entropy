@@ -48,6 +48,8 @@ nop-datav 的权限体系**全程复用 nop-auth 既有机制**（roadmap §Fram
 
 CRUD action（findPage/findList/get/save/update/delete）沿用平台默认权限 `{BizObj}:query` / `{BizObj}:mutation`，已在 `_nop-datav.action-auth.xml` 生成物中注册，无需额外注解。
 
+> **plan {1} D1 偏离裁定**：`NopDatavDashboardShare` 与 `NopDatavExportTask` 的继承 CRUD `query`/`mutation` 偏离平台默认（其他 14 实体为 query→`admin,user` / mutation→`admin`），改为 **`admin`-only**。理由：闭合 §223 未覆盖的继承 CRUD 越权 + passwordHash 泄漏入口（share/export 实体无 RLS，user 角色放开 CRUD 后水平越权即刻生效）。其余 14 实体不变。两个实体的各自定义 action（4+4 个）均绑 `admin,user`，内部经 owner 校验（Share 经 `requireDashboardOwnership`；ExportTask 经 `task.createdBy == 当前用户`）。详见 §222（Share 自定义 action 角色表）与 §370-377（ExportTask action 角色表）。
+
 ### 自定义 action 行级校验清单（是否经 requireEntity → checkDataAuth）
 
 | BizObj | Action | 调用 requireEntity | 行级校验来源 | 裁定 |
@@ -221,6 +223,18 @@ D3-4 为纯配置启用：`GraphQLAuditLogger`（`IGraphQLLogger`）→ `IAuditS
 - `createShare(dashboardId, ...)`：经 `requireEntity(dashboardId, ...)` → `checkDataAuth` 校验当前用户为该 Dashboard 的 owner/admin（复用 D3-1 RLS 链路）；非 owner → `ERR_AUTH_NO_DATA_AUTH` 或 `ERR_DATAV_NOT_DASHBOARD_OWNER`。
 - `listShares(dashboardId)` / `revokeShare(shareId)` / `toggleShare(shareId, enabled)`：同样前置 Dashboard owner 校验（通过 share 的 `dashboardId` 反查 Dashboard 再校验）。
 - CRUD action（findPage/get/save/update/delete）沿用平台默认权限串 + D3-1 RLS（但 share 实体本身无行级规则，保护来自管理 action 内显式 Dashboard owner 校验）。
+- **plan {1} 增补裁定（闭合 §223 保护声明）**：继承 CRUD `query`/`mutation` 仅绑 `admin`（**不**绑 `user`），与 `NopDatavExportTask` 对称。`user` 角色只能经 owner 校验过的自定义管理 action 触达 share 数据。同时 `passwordHash` 在 xmeta 层 `published="false"`（同仓先例：`NopAuthUser.password`、`NopAiModel.apiKey`），从 GraphQL 出口完全移除——显式选择该字段会触发 `nop.err.graphql.undefined-field`。继承 CRUD 限 `admin` + 字段 `published="false"`，二者共同闭合 §223 的保护声明（避免「放开 CRUD 后水平越权 + passwordHash 泄漏」）。
+
+### action 权限点 → 默认角色对照表（D3-2 plan {1} 增补）
+
+| BizObj | Action | 权限串 | 类型 | 默认角色 | 备注 |
+|--------|--------|--------|------|----------|------|
+| NopDatavDashboardShare | createShare | `NopDatavDashboardShare:createShare` | mutation | admin,user | 创建分享（来源 dashboard 经 requireDashboardOwnership 校验） |
+| NopDatavDashboardShare | listShares | `NopDatavDashboardShare:listShares` | query | admin,user | 查询某看板的分享列表（经 requireDashboardOwnership 校验） |
+| NopDatavDashboardShare | revokeShare | `NopDatavDashboardShare:revokeShare` | mutation | admin,user | 吊销分享（经 requireDashboardOwnership 校验） |
+| NopDatavDashboardShare | toggleShare | `NopDatavDashboardShare:toggleShare` | mutation | admin,user | 启用/禁用分享（经 requireDashboardOwnership 校验） |
+
+CRUD action（findPage/get 等）沿用平台默认权限 `NopDatavDashboardShare:query/mutation`，但 **plan {1} D1 偏离裁定**：CRUD `query`/`mutation` 均仅绑 `admin`（不绑 `user`），与 §49 偏离裁定一致。
 
 ### action-auth 生成
 
@@ -376,7 +390,7 @@ nop-datav-service 测试需 `nopActionAuthChecker`/`nopDataAuthChecker`/`nopGrap
 | NopDatavExportTask | cancelExportTask | `NopDatavExportTask:cancelExportTask` | mutation | admin,user | 取消自己任务 |
 | NopDatavExportTask | downloadExportFile | `NopDatavExportTask:downloadExportFile` | query | admin,user | 下载自己任务产物 |
 
-CRUD action（findPage/get 等）沿用平台默认权限 `NopDatavExportTask:query/mutation`。
+CRUD action（findPage/get 等）沿用平台默认权限 `NopDatavExportTask:query/mutation`，但 **plan {1} D1 偏离裁定**：CRUD `query`/`mutation` 均仅绑 `admin`（不绑 `user`），与 `NopDatavDashboardShare` 对称（见 §49 偏离裁定）。理由：export task 实体无 RLS，user 角色放开 CRUD 后水平越权入口即刻生效；user 角色只能经 owner 校验过的自定义 action 触达 export task 数据。
 
 ### 图像导出 out-of-scope 裁定
 
