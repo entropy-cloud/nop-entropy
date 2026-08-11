@@ -1,6 +1,8 @@
 package io.nop.ioc.impl;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -43,17 +45,34 @@ public class BeanCreationContext {
         if (initActions == null)
             return;
 
-        Iterator<Map.Entry<Integer, Runnable>> it = initActions.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<Integer, Runnable> entry = it.next();
-            if (entry.getKey() <= beanIndex) {
-                it.remove();
-                entry.getValue().run();
-                ;
-            } else {
-                break;
+        do {
+            // Drain eligible actions to a snapshot before iterating: action.run() may trigger
+            // recursive bean creation (getBean -> flushInit), which would otherwise mutate the
+            // same TreeMap during iteration and throw ConcurrentModificationException.
+            // New actions with key <= beanIndex go into a fresh map and are picked up by the
+            // loop below or by the next flushInit pass.
+            List<Runnable> snapshot = new ArrayList<>();
+            Iterator<Map.Entry<Integer, Runnable>> it = initActions.entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry<Integer, Runnable> entry = it.next();
+                if (entry.getKey() <= beanIndex) {
+                    it.remove();
+                    snapshot.add(entry.getValue());
+                } else {
+                    break;
+                }
             }
-        }
+
+            for (Runnable action : snapshot) {
+                action.run();
+            }
+
+            // If recursive bean creation added new init actions with key <= beanIndex during
+            // the run above, flush them now (one extra pass; further additions will be handled
+            // by the next flushInit call or by flushActions at the top level).
+            if (initActions == null || initActions.isEmpty() || initActions.firstKey() > beanIndex)
+                break;
+        } while (true);
     }
 
     public void addInitAction(int beanIndex, Runnable action) {
@@ -64,10 +83,16 @@ public class BeanCreationContext {
 
     public void runInitActions() {
         if (initActions != null) {
-            for (Runnable action : initActions.values()) {
+            // Drain to a snapshot before iterating: action.run() may trigger further bean
+            // creation (recursive getBean -> flushActions), which would otherwise call
+            // addInitAction on the same TreeMap during iteration and throw
+            // ConcurrentModificationException. New actions go into a fresh map and are
+            // picked up by the next flushActions pass.
+            TreeMap<Integer, Runnable> snapshot = initActions;
+            initActions = null;
+            for (Runnable action : snapshot.values()) {
                 action.run();
             }
-            initActions = null;
         }
     }
 
@@ -79,10 +104,12 @@ public class BeanCreationContext {
 
     public void runLazyPropActions() {
         if (lazyPropActions != null) {
-            for (Runnable action : lazyPropActions.values()) {
+            // Same drain-then-iterate pattern as runInitActions — see comment there.
+            TreeMap<Integer, Runnable> snapshot = lazyPropActions;
+            lazyPropActions = null;
+            for (Runnable action : snapshot.values()) {
                 action.run();
             }
-            lazyPropActions = null;
         }
     }
 
@@ -94,9 +121,11 @@ public class BeanCreationContext {
 
     public void runDelayActions() {
         if (delayActions != null) {
-            for (Runnable action : delayActions.values())
-                action.run();
+            // Same drain-then-iterate pattern as runInitActions — see comment there.
+            TreeMap<Integer, Runnable> snapshot = delayActions;
             delayActions = null;
+            for (Runnable action : snapshot.values())
+                action.run();
         }
     }
 }

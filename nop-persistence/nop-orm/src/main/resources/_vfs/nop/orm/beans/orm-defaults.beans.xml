@@ -15,7 +15,9 @@
     </bean>
 
     <bean id="nopDefaultTransactionListener" ioc:default="true"
-          class="io.nop.orm.txn.OrmTransactionListener"/>
+          class="io.nop.orm.txn.OrmTransactionListener">
+        <property name="ormTemplate" ref="nopOrmTemplate" ioc:lazy-property="true" />
+    </bean>
 
     <bean id="nopOrmGlobalCacheConfig" class="io.nop.commons.cache.CacheConfig"
           ioc:config-prefix="nop.orm.global-cache" ioc:default="true">

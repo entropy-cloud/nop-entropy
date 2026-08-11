@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -76,7 +77,7 @@ public class BeanTopologySorter {
         }
 
         verifyOrderConstraints(ret, beans);
-        fillResolvedDepends(ret, beans);
+        fillResolvedDepends(ret, beans, buildBeforeReverseMap(ret, beans));
 
         return ret;
     }
@@ -149,7 +150,8 @@ public class BeanTopologySorter {
      * </pre>
      * 缺失的目标（被条件禁用/父容器/可选模块）不进 resolvedDepends。
      */
-    private void fillResolvedDepends(List<BeanDefinition> orderedBeans, Map<String, BeanDefinition> allBeans) {
+    private void fillResolvedDepends(List<BeanDefinition> orderedBeans, Map<String, BeanDefinition> allBeans,
+                                     Map<String, List<String>> beforeReverse) {
         Map<String, Integer> positions = new HashMap<>();
         for (int i = 0; i < orderedBeans.size(); i++) {
             positions.put(orderedBeans.get(i).getId(), i);
@@ -164,15 +166,9 @@ public class BeanTopologySorter {
                 deps.addAll(bean.getBeanModel().getIocAfter());
             }
 
-            for (BeanDefinition other : orderedBeans) {
-                if (other.getBeanModel().getIocBefore() != null) {
-                    for (String before : other.getBeanModel().getIocBefore()) {
-                        String resolved = normalizeBeanId(before, allBeans);
-                        if (bean.getId().equals(resolved)) {
-                            deps.add(other.getId());
-                        }
-                    }
-                }
+            List<String> beforeBeans = beforeReverse.get(bean.getId());
+            if (beforeBeans != null) {
+                deps.addAll(beforeBeans);
             }
 
             Set<String> refs = new HashSet<>();
@@ -183,7 +179,7 @@ public class BeanTopologySorter {
                 if (resolvedId == null)
                     continue;
                 Integer refPos = positions.get(resolvedId);
-                if (refPos != null && refPos < positions.get(bean.getId())) {
+                if (refPos != null && refPos < bean.getBeanTopoIndex()) {
                     deps.add(resolvedId);
                 }
             }
@@ -207,6 +203,8 @@ public class BeanTopologySorter {
             graph.addVertex(bean.getId());
         }
 
+        Map<String, List<String>> beforeReverse = buildBeforeReverseMap(beans, allBeans);
+
         for (BeanDefinition bean : beans) {
             Set<String> deps = new HashSet<>();
             if (bean.getBeanModel().getDependsOn() != null)
@@ -218,15 +216,9 @@ public class BeanTopologySorter {
             }
 
             // ioc:before => 该bean拥有目标的前置，目标依赖本bean
-            for (BeanDefinition other : beans) {
-                if (other.getBeanModel().getIocBefore() != null) {
-                    for (String before : other.getBeanModel().getIocBefore()) {
-                        String resolved = normalizeBeanId(before, allBeans);
-                        if (bean.getId().equals(resolved)) {
-                            deps.add(other.getId());
-                        }
-                    }
-                }
+            List<String> beforeBeans = beforeReverse.get(bean.getId());
+            if (beforeBeans != null) {
+                deps.addAll(beforeBeans);
             }
 
             bean.collectDepends(deps);
@@ -269,6 +261,26 @@ public class BeanTopologySorter {
         }
 
         return ret;
+    }
+
+    /**
+     * 构建 ioc:before 反向索引：resolvedTargetId -> 声明 "ioc:before targetId" 的 bean id 列表。
+     * 一次 O(n) 遍历替代 fillResolvedDepends / sortBeans 中的 O(n²) 反向扫描。
+     */
+    private Map<String, List<String>> buildBeforeReverseMap(
+            Collection<BeanDefinition> beans, Map<String, BeanDefinition> allBeans) {
+        Map<String, List<String>> beforeReverse = new HashMap<>();
+        for (BeanDefinition bean : beans) {
+            if (bean.getBeanModel().getIocBefore() != null) {
+                for (String before : bean.getBeanModel().getIocBefore()) {
+                    String resolved = normalizeBeanId(before, allBeans);
+                    if (resolved != null) {
+                        beforeReverse.computeIfAbsent(resolved, k -> new ArrayList<>()).add(bean.getId());
+                    }
+                }
+            }
+        }
+        return beforeReverse;
     }
 
     String normalizeBeanId(String beanId, Map<String, BeanDefinition> allBeans) {

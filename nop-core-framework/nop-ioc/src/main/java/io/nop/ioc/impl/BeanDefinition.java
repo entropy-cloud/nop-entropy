@@ -317,7 +317,7 @@ public class BeanDefinition implements IBeanDefinition {
     }
 
     public String toString() {
-        return "bean[id=" + getId() + ",class=" + beanClass + "]@" + getLocation()
+        return "bean[id=" + getId() + ",index=" + beanTopoIndex + ",class=" + beanClass + "]@" + getLocation()
                 + (trace == null ? "" : "<==" + trace);
     }
 
@@ -570,6 +570,7 @@ public class BeanDefinition implements IBeanDefinition {
                     BeanCreationContext beanCtx) {
         try {
             Object bean = beanInstance.getCreatedBean();
+            LOG.debug("nop.ioc.init-bean:bean={}", this);
 
             if (getResolvedDepends() != null) {
                 // 执行init方法之前，确保依赖的bean已经被完整创建（包括init）。
@@ -596,6 +597,7 @@ public class BeanDefinition implements IBeanDefinition {
                     return instance;
                 }
             }
+
             return bean;
         } catch (Exception e) {
             if (e instanceof NopException) {
@@ -676,7 +678,7 @@ public class BeanDefinition implements IBeanDefinition {
 
     Object getBeanInstance(ProducedBeanInstance bean, boolean onlyProducer, boolean includeCreating,
                            BeanCreationContext beanCtx) {
-        if (!includeCreating) {
+        if (!includeCreating || (getBeanMethod() != null && !onlyProducer)) {
             beanCtx.flushInit(getBeanTopoIndex());
             bean.checkBeanInitialized();
         }
