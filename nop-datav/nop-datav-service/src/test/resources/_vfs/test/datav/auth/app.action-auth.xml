@@ -101,12 +101,14 @@
                 </resource>
                 <resource id="NopDatavExportTask-main" displayName="导出任务" resourceType="SUBM" orderNo="10005">
                     <children>
+                        <!-- plan {1} D1 偏离裁定：CRUD query/mutation 仅绑 admin（不绑 user），
+                             与 NopDatavDashboardShare 对称。production nop-datav.action-auth.xml 同。 -->
                         <resource id="FNPT:NopDatavExportTask:query" displayName="查询导出任务" resourceType="FNPT"
-                                  roles="admin,user">
+                                  roles="admin">
                             <permissions>NopDatavExportTask:query</permissions>
                         </resource>
                         <resource id="FNPT:NopDatavExportTask:mutation" displayName="修改导出任务" resourceType="FNPT"
-                                  roles="admin,user">
+                                  roles="admin">
                             <permissions>NopDatavExportTask:mutation</permissions>
                         </resource>
                         <resource id="FNPT:NopDatavExportTask:createExportTask" displayName="发起导出" resourceType="FNPT"
@@ -124,6 +126,36 @@
                         <resource id="FNPT:NopDatavExportTask:downloadExportFile" displayName="下载导出文件"
                                   resourceType="FNPT" roles="admin,user">
                             <permissions>NopDatavExportTask:downloadExportFile</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <!-- plan {1}：NopDatavDashboardShare-main 与 production nop-datav.action-auth.xml 对称 -->
+                <resource id="NopDatavDashboardShare-main" displayName="看板分享" resourceType="SUBM" orderNo="10007">
+                    <children>
+                        <!-- D1 偏离裁定：CRUD query/mutation 仅绑 admin（不绑 user），与 ExportTask 对称 -->
+                        <resource id="FNPT:NopDatavDashboardShare:query" displayName="查询看板分享" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavDashboardShare:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDashboardShare:mutation" displayName="修改看板分享" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavDashboardShare:mutation</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDashboardShare:createShare" displayName="创建分享" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavDashboardShare:createShare</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDashboardShare:listShares" displayName="查询分享列表"
+                                  resourceType="FNPT" roles="admin,user">
+                            <permissions>NopDatavDashboardShare:listShares</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDashboardShare:revokeShare" displayName="吊销分享" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavDashboardShare:revokeShare</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDashboardShare:toggleShare" displayName="切换分享启用"
+                                  resourceType="FNPT" roles="admin,user">
+                            <permissions>NopDatavDashboardShare:toggleShare</permissions>
                         </resource>
                     </children>
                 </resource>

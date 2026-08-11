@@ -27,9 +27,6 @@
                 <!--看板ID-->
                 <col id="dashboardId" mandatory="true" sortable="true"/>
 
-                <!--密码哈希-->
-                <col id="passwordHash" sortable="true"/>
-
                 <!--过期时间-->
                 <col id="expireTime" sortable="true"/>
 
@@ -62,11 +59,11 @@
         <form id="view" editMode="view" title="查看-看板分享" i18n-en:title="View Dashboard Share">
             <layout>
  shareId[分享ID] shareToken[分享令牌]
- dashboardId[看板ID] passwordHash[密码哈希]
- expireTime[过期时间] enabled[启用标记]
- delFlag[删除标记] createdBy[创建人]
- createTime[创建时间] updatedBy[修改人]
- updateTime[修改时间] remark[备注]
+ dashboardId[看板ID] expireTime[过期时间]
+ enabled[启用标记] delFlag[删除标记]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[修改人] updateTime[修改时间]
+ remark[备注] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-看板分享" i18n-en:title="Add Dashboard Share" x:prototype="edit"/>
@@ -75,7 +72,6 @@
  shareId[分享ID]
  shareToken[分享令牌]
  dashboardId[看板ID]
- passwordHash[密码哈希]
  expireTime[过期时间]
  enabled[启用标记]
  delFlag[删除标记]

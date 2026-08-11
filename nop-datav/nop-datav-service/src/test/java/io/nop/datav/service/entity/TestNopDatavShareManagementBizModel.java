@@ -67,9 +67,16 @@ public class TestNopDatavShareManagementBizModel extends AbstractNopDatavTest {
         NopDatavDashboardShare share = shareBiz.createShare(
                 dash.getDashboardId(), password, null, ownerCtx);
 
-        assertNotNull(share.getPasswordHash());
-        assertNotEquals(password, share.getPasswordHash(), "plaintext password must never be stored");
-        assertTrue(share.getPasswordHash().startsWith("$2a"),
+        // Returned entity must not expose passwordHash (mask-on-return contract).
+        assertNull(share.getPasswordHash(),
+                "createShare return value must never expose passwordHash");
+
+        // DB row must contain a BCrypt hash (not the plaintext password).
+        NopDatavDashboardShare persisted = daoProvider.daoFor(NopDatavDashboardShare.class)
+                .getEntityById(share.getShareId());
+        assertNotNull(persisted.getPasswordHash(), "DB row must persist a password hash");
+        assertNotEquals(password, persisted.getPasswordHash(), "plaintext password must never be stored");
+        assertTrue(persisted.getPasswordHash().startsWith("$2a"),
                 "CompositePasswordEncoder(BCrypt) output starts with $2a");
     }
 

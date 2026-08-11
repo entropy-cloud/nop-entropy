@@ -96,6 +96,7 @@ public class NopDatavDashboardShareBizModel extends CrudBizModel<NopDatavDashboa
         share.setUpdateTime(now);
 
         daoProvider().daoFor(NopDatavDashboardShare.class).saveEntityDirectly(share);
+        share.setPasswordHash(null);
         return share;
     }
 

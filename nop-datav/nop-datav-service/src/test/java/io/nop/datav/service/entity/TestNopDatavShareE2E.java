@@ -24,6 +24,7 @@ import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_SHARE_EXPIRED;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_SHARE_PASSWORD_MISMATCH;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -69,7 +70,10 @@ public class TestNopDatavShareE2E extends AbstractNopDatavTest {
         NopDatavDashboardShare share = shareBiz.createShare(
                 dash.getDashboardId(), "e2e-pwd", future, ownerCtx);
         assertNotNull(share.getShareToken());
-        assertTrue(share.getPasswordHash().startsWith("$2a"), "password hashed via BCrypt composite");
+        // createShare returns null passwordHash (mask-on-return); password hashing
+        // is verified implicitly by step 4 below (getSharedDashboard succeeds with the right password).
+        assertNull(share.getPasswordHash(),
+                "createShare return value must never expose passwordHash");
 
         // 4. 匿名上下文凭 token + password 访问
         NopDatavDashboardSnapshot accessed = shareBiz.getSharedDashboard(

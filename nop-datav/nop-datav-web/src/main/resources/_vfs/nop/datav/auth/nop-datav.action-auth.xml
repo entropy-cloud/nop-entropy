@@ -272,6 +272,72 @@
                         </resource>
                     </children>
                 </resource>
+                <!-- ==================== NopDatavDashboardShare（D3-2 公共分享链接）==================== -->
+                <!--
+                    D1 裁定（plan {1}）：继承 CRUD query/mutation 仅绑 admin（不绑 user），与 NopDatavExportTask 对称。
+                    理由：share 实体无 RLS，user 角色放开 CRUD 后水平越权 + passwordHash 泄漏入口即刻生效。
+                    user 角色只能经 owner 校验过的自定义管理 action 触达 share 数据。
+                -->
+                <resource id="NopDatavDashboardShare-main">
+                    <children>
+                        <resource id="FNPT:NopDatavDashboardShare:query" roles="admin"/>
+                        <resource id="FNPT:NopDatavDashboardShare:mutation" roles="admin"/>
+                        <!-- 自定义 action 权限点（内均 requireDashboardOwnership owner 校验） -->
+                        <resource id="FNPT:NopDatavDashboardShare:createShare" displayName="创建分享"
+                                  i18n-en:displayName="Create Share" orderNo="10080" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavDashboardShare:createShare</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDashboardShare:listShares" displayName="查询分享列表"
+                                  i18n-en:displayName="List Shares" orderNo="10081" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavDashboardShare:listShares</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDashboardShare:revokeShare" displayName="吊销分享"
+                                  i18n-en:displayName="Revoke Share" orderNo="10082" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavDashboardShare:revokeShare</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDashboardShare:toggleShare" displayName="切换分享启用"
+                                  i18n-en:displayName="Toggle Share" orderNo="10083" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavDashboardShare:toggleShare</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <!-- ==================== NopDatavExportTask（D3-3 数据导出）==================== -->
+                <!--
+                    D1 裁定（plan {1}）：继承 CRUD query/mutation 仅绑 admin（不绑 user），与 NopDatavDashboardShare 对称。
+                    理由：export task 实体无 RLS，user 角色放开 CRUD 后水平越权入口即刻生效。
+                    user 角色只能经 owner 校验过的自定义 action 触达 export task 数据。
+                -->
+                <resource id="NopDatavExportTask-main">
+                    <children>
+                        <resource id="FNPT:NopDatavExportTask:query" roles="admin"/>
+                        <resource id="FNPT:NopDatavExportTask:mutation" roles="admin"/>
+                        <!-- 自定义 action 权限点（内均做 owner 校验：task.createdBy == 当前用户） -->
+                        <resource id="FNPT:NopDatavExportTask:createExportTask" displayName="创建导出任务"
+                                  i18n-en:displayName="Create Export Task" orderNo="10090" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavExportTask:createExportTask</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavExportTask:getExportTask" displayName="查询导出任务"
+                                  i18n-en:displayName="Get Export Task" orderNo="10091" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavExportTask:getExportTask</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavExportTask:cancelExportTask" displayName="取消导出任务"
+                                  i18n-en:displayName="Cancel Export Task" orderNo="10092" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavExportTask:cancelExportTask</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavExportTask:downloadExportFile" displayName="下载导出文件"
+                                  i18n-en:displayName="Download Export File" orderNo="10093" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavExportTask:downloadExportFile</permissions>
+                        </resource>
+                    </children>
+                </resource>
             </children>
         </resource>
     </site>

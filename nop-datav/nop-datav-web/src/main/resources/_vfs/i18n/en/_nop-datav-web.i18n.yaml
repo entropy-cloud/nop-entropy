@@ -36,10 +36,18 @@ site:
       displayName: Resolve Filter Values
     FNPT:NopDatavDashboard:rollbackDashboard:
       displayName: Rollback Dashboard
+    FNPT:NopDatavDashboardShare:createShare:
+      displayName: Create Share
+    FNPT:NopDatavDashboardShare:listShares:
+      displayName: List Shares
     FNPT:NopDatavDashboardShare:mutation:
       displayName: Modify Dashboard Share
     FNPT:NopDatavDashboardShare:query:
       displayName: Query Dashboard Share
+    FNPT:NopDatavDashboardShare:revokeShare:
+      displayName: Revoke Share
+    FNPT:NopDatavDashboardShare:toggleShare:
+      displayName: Toggle Share
     FNPT:NopDatavDashboardSnapshot:mutation:
       displayName: Modify Dashboard Snapshot
     FNPT:NopDatavDashboardSnapshot:query:
@@ -52,6 +60,14 @@ site:
       displayName: Modify Dataset Ref
     FNPT:NopDatavDatasetRef:query:
       displayName: Query Dataset Ref
+    FNPT:NopDatavExportTask:cancelExportTask:
+      displayName: Cancel Export Task
+    FNPT:NopDatavExportTask:createExportTask:
+      displayName: Create Export Task
+    FNPT:NopDatavExportTask:downloadExportFile:
+      displayName: Download Export File
+    FNPT:NopDatavExportTask:getExportTask:
+      displayName: Get Export Task
     FNPT:NopDatavExportTask:mutation:
       displayName: Modify Export Task
     FNPT:NopDatavExportTask:query:
