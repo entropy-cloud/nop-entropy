@@ -69,7 +69,7 @@
         </property>
     </bean>
 
-    <bean id="nopCrudBizInitializer" class="io.nop.biz.crud.CrudBizInitializer" ioc:sort-order="90">
+    <bean id="nopCrudBizInitializer" class="io.nop.biz.crud.CrudBizInitializer">
         <ioc:condition>
             <on-bean>nopDaoProvider</on-bean>
         </ioc:condition>

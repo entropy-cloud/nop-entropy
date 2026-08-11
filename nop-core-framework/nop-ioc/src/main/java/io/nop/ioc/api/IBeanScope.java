@@ -8,6 +8,7 @@
 package io.nop.ioc.api;
 
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.ioc.impl.ProducedBeanInstance;
 
 import java.util.Map.Entry;
 import java.util.Set;
@@ -26,13 +27,13 @@ public interface IBeanScope extends AutoCloseable {
      */
     String getName();
 
-    Set<Entry<String, Object>> entrySet();
+    Set<Entry<String, ProducedBeanInstance>> entrySet();
 
-    Object get(String name);
+    ProducedBeanInstance get(String name);
 
-    void add(String name, Object bean);
+    void add(String name, ProducedBeanInstance bean);
 
-    boolean remove(String name, Object bean);
+    boolean remove(String name, ProducedBeanInstance bean);
 
     void close();
 }

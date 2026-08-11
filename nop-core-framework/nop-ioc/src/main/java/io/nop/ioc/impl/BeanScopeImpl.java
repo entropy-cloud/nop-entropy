@@ -27,7 +27,7 @@ import static io.nop.ioc.IocErrors.ERR_IOC_BEAN_SCOPE_ALREADY_CLOSED;
 public class BeanScopeImpl implements IBeanScope {
     static final Logger LOG = LoggerFactory.getLogger(BeanScopeImpl.class);
 
-    private final Map<String, Object> beans = new ConcurrentHashMap<>();
+    private final Map<String, ProducedBeanInstance> beans = new ConcurrentHashMap<>();
     private final IEvalScope scope;
     private final String name;
 
@@ -57,27 +57,27 @@ public class BeanScopeImpl implements IBeanScope {
     }
 
     @Override
-    public Set<Entry<String, Object>> entrySet() {
+    public Set<Entry<String, ProducedBeanInstance>> entrySet() {
         return beans.entrySet();
     }
 
     @Override
-    public Object get(String name) {
+    public ProducedBeanInstance get(String name) {
         checkClosed();
         return beans.get(name);
     }
 
     @Override
-    public void add(String name, Object value) {
+    public void add(String name, ProducedBeanInstance value) {
         checkClosed();
         beans.put(name, value);
     }
 
     @Override
-    public boolean remove(String name, Object bean) {
+    public boolean remove(String name, ProducedBeanInstance bean) {
         boolean b = beans.remove(name, bean);
         if (b) {
-            container.destroyBean(name, bean);
+            container.destroyBean(name, bean.getCreatedBean());
         }
         return b;
     }
@@ -93,7 +93,7 @@ public class BeanScopeImpl implements IBeanScope {
         closed = true;
 
         Exception e = null;
-        for (Map.Entry<String, Object> entry : beans.entrySet()) {
+        for (Map.Entry<String, ProducedBeanInstance> entry : beans.entrySet()) {
             String beanName = entry.getKey();
             try {
                 remove(beanName, entry.getValue());

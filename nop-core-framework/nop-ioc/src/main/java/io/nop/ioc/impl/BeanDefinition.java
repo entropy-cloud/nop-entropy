@@ -116,6 +116,16 @@ public class BeanDefinition implements IBeanDefinition {
     private boolean intercepted;
     private boolean removed;
 
+    private int beanTopoIndex;
+
+    public int getBeanTopoIndex() {
+        return beanTopoIndex;
+    }
+
+    public void setBeanTopoIndex(int beanTopoIndex) {
+        this.beanTopoIndex = beanTopoIndex;
+    }
+
     /**
      * 解析后的前置依赖集合：= 声明的 dependsOn ∪ before/after 推导 ∪ 拓扑序在前的 ref 目标。
      * 排序阶段填充，运行时强制创建与异步启动共用。
@@ -470,11 +480,11 @@ public class BeanDefinition implements IBeanDefinition {
 
     Object[] getConstructorArgs(IBeanScope scope, IBeanContainerImplementor container) {
         Object[] args = IFunctionModel.EMPTY_ARGS;
-        if (constructorArgs.size() > 0) {
+        if (!constructorArgs.isEmpty()) {
             args = new Object[constructorArgs.size()];
             int i, n = constructorArgs.size();
             for (i = 0; i < n; i++) {
-                Object value = constructorArgs.get(i).resolveValue(container, scope);
+                Object value = constructorArgs.get(i).resolveValue(container, scope, null);
                 value = container.getClassIntrospection().convertTo(constructor.getArgRawTypes()[i], value,
                         NopException::new);
                 args[i] = value;
@@ -483,14 +493,15 @@ public class BeanDefinition implements IBeanDefinition {
         return args;
     }
 
-    private Object newInstance(IBeanScope scope, IBeanContainerImplementor container) {
+    private Object newInstance(IBeanScope scope, IBeanContainerImplementor container, BeanCreationContext beanCtx) {
         if (supplier != null)
             return supplier.apply(container);
 
         Object[] args = getConstructorArgs(scope, container);
         if (this.factoryMethod != null) {
             if (beanModel.getFactoryBean() != null) {
-                Object factory = container.getBean(beanModel.getFactoryBean(), true);
+                // factoryBean必须已经完整初始化，否则无法调用factoryMethod
+                Object factory = container.getBean(beanModel.getFactoryBean(), false, beanCtx);
                 return this.factoryMethod.invoke(factory, args, scope == null ? null : scope.getEvalScope());
             }
             return this.factoryMethod.invoke(null, args, scope == null ? null : scope.getEvalScope());
@@ -498,21 +509,40 @@ public class BeanDefinition implements IBeanDefinition {
         return constructor.invoke(null, args, scope == null ? null : scope.getEvalScope());
     }
 
-    public Object newObject(IBeanScope scope, IBeanContainerImplementor container) {
+    public ProducedBeanInstance newObject(IBeanScope scope, IBeanContainerImplementor container, BeanCreationContext beanCtx) {
         try {
-            Object bean = newInstance(scope, container);
-            //LOG.debug("ioc.new-object:{}", this);
+            Object bean = newInstance(scope, container, beanCtx);
 
-            ProducedBeanInstance producedBeanInstance = null;
-            if (beanMethod != null) {
-                producedBeanInstance = new ProducedBeanInstance(bean);
-            } else if (beanModel.isIocProxy()) {
-                producedBeanInstance = new ProducedBeanInstance(bean);
-                producedBeanInstance.setBean(createProxy(new DelegateInvocationHandler((InvocationHandler) bean)));
+            ProducedBeanInstance producedBeanInstance = new ProducedBeanInstance(bean,
+                    pb -> initBean(pb, scope, container, beanCtx),
+                    pb -> runLazyProperties(pb, scope, container, beanCtx),
+                    pb -> runDelayMethod(pb, scope, container));
+
+            if (beanModel.isIocProxy()) {
+                if (beanMethod == null) {
+                    producedBeanInstance.setBean(createProxy(new DelegateInvocationHandler((InvocationHandler) bean)));
+                } else {
+                    producedBeanInstance.setBean(createProxy(new DelegateInvocationHandler()));
+                }
+            } else if (beanMethod == null) {
+                producedBeanInstance.setBean(bean);
             }
 
             if (scope != null) {
-                scope.add(getId(), producedBeanInstance != null ? producedBeanInstance : bean);
+                scope.add(getId(), producedBeanInstance);
+            }
+
+            int beanIndex = this.getBeanTopoIndex();
+            beanCtx.addInitAction(beanIndex, producedBeanInstance::checkBeanInitialized);
+
+            // 如果容器没有启动，则由容器整体负责处理
+            if (container.isStarted()) {
+                if (hasLazyProperties()) {
+                    beanCtx.addLazyPropAction(beanIndex, producedBeanInstance::checkBeanLazyPropSet);
+                }
+                if (hasDelayMethod()) {
+                    beanCtx.addDelayAction(beanIndex, producedBeanInstance::checkBeanDelayActionRun);
+                }
             }
 
             for (Map.Entry<String, BeanProperty> entry : props.entrySet()) {
@@ -520,40 +550,12 @@ public class BeanDefinition implements IBeanDefinition {
                 // lazy-property不在newObject中设置，而是在init-method之后通过runLazyProperties设置
                 if (prop.isLazyProperty())
                     continue;
-                prop.assignToObject(bean, entry.getKey(), container, scope);
+                prop.assignToObject(bean, entry.getKey(), container, scope, beanCtx);
             }
 
-            if (getResolvedDepends() != null) {
-                // 执行init方法之前，确保依赖的bean已经被完整创建（包括init）。
-                // includeCreating=false: 通过synchronized路径阻塞等待依赖完成创建后再继续。
-                // 当全部lazy启动的时候，即使是拓扑排序靠前的bean也不会被初始化，所以需要手工指定依赖关系
-                for (String depend : getResolvedDepends()) {
-                    container.getBean(depend, false);
-                }
-            }
+            addInterceptors(bean, scope, container, beanCtx);
 
-            addInterceptors(bean, scope, container);
-
-            if (this.isSingleton())
-                subscribeConfigChange(bean, scope, container);
-
-            if (initMethod != null)
-                initMethod.invoke(bean, IEvalFunction.EMPTY_ARGS, DisabledEvalScope.INSTANCE);
-
-            runXpl(beanModel.getIocInit(), bean, container, scope);
-
-            if (beanMethod != null && producedBeanInstance != null) {
-                Object instance = beanMethod.call0(bean, DisabledEvalScope.INSTANCE);
-                if (beanModel.isIocProxy()) {
-                    Object proxy = createProxy((InvocationHandler) instance);
-                    // 更新aop代理
-                    producedBeanInstance.setBean(proxy);
-                } else {
-                    producedBeanInstance.setBean(instance);
-                }
-            }
-
-            return producedBeanInstance != null ? producedBeanInstance : bean;
+            return producedBeanInstance;
         } catch (Exception e) {
             if (e instanceof NopException) {
                 NopException nopErr = (NopException) e;
@@ -564,13 +566,54 @@ public class BeanDefinition implements IBeanDefinition {
         }
     }
 
-    void addInterceptors(Object bean, IBeanScope scope, IBeanContainerImplementor container) {
+    Object initBean(ProducedBeanInstance beanInstance, IBeanScope scope, IBeanContainerImplementor container,
+                    BeanCreationContext beanCtx) {
+        try {
+            Object bean = beanInstance.getCreatedBean();
+
+            if (getResolvedDepends() != null) {
+                // 执行init方法之前，确保依赖的bean已经被完整创建（包括init）。
+                // includeCreating=false: 通过synchronized路径阻塞等待依赖完成创建后再继续。
+                // 当全部lazy启动的时候，即使是拓扑排序靠前的bean也不会被初始化，所以需要手工指定依赖关系
+                for (String depend : getResolvedDepends()) {
+                    container.getBean(depend, false, beanCtx);
+                }
+            }
+            if (initMethod != null)
+                initMethod.invoke(bean, IEvalFunction.EMPTY_ARGS, DisabledEvalScope.INSTANCE);
+
+            runXpl(beanModel.getIocInit(), bean, container, scope);
+
+            if (this.isSingleton())
+                subscribeConfigChange(bean, scope, container, beanCtx);
+
+            if (beanMethod != null) {
+                Object instance = beanMethod.call0(bean, DisabledEvalScope.INSTANCE);
+                if (beanModel.isIocProxy()) {
+                    beanInstance.setHandler(((InvocationHandler) instance));
+                    return beanInstance.getBean();
+                } else {
+                    return instance;
+                }
+            }
+            return bean;
+        } catch (Exception e) {
+            if (e instanceof NopException) {
+                NopException nopErr = (NopException) e;
+                nopErr.addXplStack("initBean:" + getId() + "|" + getLocation());
+            }
+            LOG.error("nop.ioc.init-bean-fail:bean={}", this, e);
+            throw NopException.adapt(e);
+        }
+    }
+
+    void addInterceptors(Object bean, IBeanScope scope, IBeanContainerImplementor container, BeanCreationContext beanCtx) {
         if (intercepted && beanModel.hasIocInterceptors()) {
             IMethodInterceptor[] interceptors = new IMethodInterceptor[beanModel.getIocInterceptors().size()];
             int i = 0;
             for (BeanInterceptorModel interceptorModel : beanModel.getIocInterceptors()) {
-                IMethodInterceptor interceptor = (IMethodInterceptor) container.getBean(interceptorModel.getBean(),
-                        true);
+                IMethodInterceptor interceptor = (IMethodInterceptor) container.getBean(interceptorModel.getBean(), true,
+                        beanCtx);
                 interceptors[i++] = interceptor;
             }
             ((IAopProxy) bean).$$aop_interceptors(interceptors);
@@ -579,13 +622,13 @@ public class BeanDefinition implements IBeanDefinition {
 
     private Object createProxy(InvocationHandler bean) {
         Class[] ifs = beanTypes.toArray(new Class[beanTypes.size()]);
-        return ReflectionManager.instance().newProxyInstance(ifs, (InvocationHandler) bean);
+        return ReflectionManager.instance().newProxyInstance(ifs, bean);
     }
 
-    public void initProps(Object bean, IBeanContainerImplementor container, IBeanScope scope) {
+    public void initProps(Object bean, IBeanContainerImplementor container, IBeanScope scope, BeanCreationContext beanCtx) {
         for (Map.Entry<String, BeanProperty> entry : props.entrySet()) {
             BeanProperty prop = entry.getValue();
-            prop.assignToObject(bean, entry.getKey(), container, scope);
+            prop.assignToObject(bean, entry.getKey(), container, scope, beanCtx);
         }
         if (initMethod != null)
             initMethod.invoke(bean, IEvalFunction.EMPTY_ARGS, DisabledEvalScope.INSTANCE);
@@ -609,11 +652,9 @@ public class BeanDefinition implements IBeanDefinition {
         }
     }
 
-    void runDelayMethod(Object bean, IBeanScope beanScope, IBeanContainerImplementor container) {
+    void runDelayMethod(ProducedBeanInstance beanInstance, IBeanScope beanScope, IBeanContainerImplementor container) {
+        Object bean = beanInstance.getCreatedBean();
         if (bean != null) {
-            if (bean instanceof ProducedBeanInstance) {
-                bean = ((ProducedBeanInstance) bean).getCreatedBean();
-            }
             if (delayMethod != null) {
                 delayMethod.call0(bean, DisabledEvalScope.INSTANCE);
             }
@@ -621,31 +662,35 @@ public class BeanDefinition implements IBeanDefinition {
         }
     }
 
-    void runLazyProperties(Object bean, IBeanScope beanScope, IBeanContainerImplementor container) {
-        if (bean != null && !lazyPropertySetters.isEmpty()) {
-            if (bean instanceof ProducedBeanInstance) {
-                bean = ((ProducedBeanInstance) bean).getCreatedBean();
-            }
+    void runLazyProperties(ProducedBeanInstance beanInstance, IBeanScope beanScope, IBeanContainerImplementor container,
+                           BeanCreationContext beanCtx) {
+        Object bean = beanInstance.getCreatedBean();
 
+        if (bean != null && !lazyPropertySetters.isEmpty()) {
             for (LazyPropertySetter lazySetter : lazyPropertySetters) {
                 BeanProperty prop = lazySetter.getProperty();
-                prop.assignToObject(bean, lazySetter.getPropName(), container, beanScope);
+                prop.assignToObject(bean, lazySetter.getPropName(), container, beanScope, beanCtx);
             }
         }
     }
 
-    Object getBeanInstance(Object bean, boolean onlyProducer) {
+    Object getBeanInstance(ProducedBeanInstance bean, boolean onlyProducer, boolean includeCreating,
+                           BeanCreationContext beanCtx) {
+        if (!includeCreating) {
+            beanCtx.flushInit(getBeanTopoIndex());
+            bean.checkBeanInitialized();
+        }
+
         if (getBeanMethod() != null || beanModel.isIocProxy()) {
-            ProducedBeanInstance producer = (ProducedBeanInstance) bean;
             if (onlyProducer) {
-                return producer.getCreatedBean();
+                return bean.getCreatedBean();
             }
-            return producer.getBean();
         }
-        return bean;
+        return bean.getBean();
     }
 
-    private void subscribeConfigChange(Object bean, IBeanScope scope, IBeanContainerImplementor container) {
+    private void subscribeConfigChange(Object bean, IBeanScope scope, IBeanContainerImplementor container,
+                                       BeanCreationContext beanCtx) {
         IConfigProvider configProvider = container.getConfigProvider();
         boolean reactiveConfig = isSingleton() && configProvider != null;
 
@@ -662,7 +707,7 @@ public class BeanDefinition implements IBeanDefinition {
                 if (!prop.getReactiveConfigVars().isEmpty()) {
                     // configVar发生变化的时候，会触发prop更新
                     IConfigChangeListener propChangeListener = (p, vars) -> {
-                        prop.assignToObject(bean, entry.getKey(), container, scope);
+                        prop.assignToObject(bean, entry.getKey(), container, scope, beanCtx);
                     };
 
                     for (String configVar : prop.getReactiveConfigVars()) {

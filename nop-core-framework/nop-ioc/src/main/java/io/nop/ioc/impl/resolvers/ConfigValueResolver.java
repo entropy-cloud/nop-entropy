@@ -14,6 +14,7 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.ioc.IocConstants;
 import io.nop.ioc.api.IBeanContainerImplementor;
 import io.nop.ioc.api.IBeanScope;
+import io.nop.ioc.impl.BeanCreationContext;
 import io.nop.ioc.impl.IBeanPropValueResolver;
 
 import java.util.Collections;
@@ -66,7 +67,7 @@ public class ConfigValueResolver implements IBeanPropValueResolver {
     }
 
     @Override
-    public Object resolveValue(IBeanContainerImplementor container, IBeanScope scope) {
+    public Object resolveValue(IBeanContainerImplementor container, IBeanScope scope, BeanCreationContext beanCtx) {
         int n = configVars.size();
         for (int i = 0; i < n; i++) {
             String configVar = configVars.get(i);

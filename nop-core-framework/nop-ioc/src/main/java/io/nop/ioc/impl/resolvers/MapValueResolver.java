@@ -11,6 +11,7 @@ import io.nop.commons.util.ClassHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.ioc.api.IBeanContainerImplementor;
 import io.nop.ioc.api.IBeanScope;
+import io.nop.ioc.impl.BeanCreationContext;
 import io.nop.ioc.impl.IBeanPropValueResolver;
 
 import java.util.Map;
@@ -52,12 +53,12 @@ public class MapValueResolver implements IBeanPropValueResolver {
     }
 
     @Override
-    public Object resolveValue(IBeanContainerImplementor container, IBeanScope scope) {
+    public Object resolveValue(IBeanContainerImplementor container, IBeanScope scope, BeanCreationContext beanCtx) {
         Map<String, Object> ret = ClassHelper.newMap(type);
 
         for (Map.Entry<String, IBeanPropValueResolver> entry : props.entrySet()) {
             IBeanPropValueResolver prop = entry.getValue();
-            Object value = prop.resolveValue(container, scope);
+            Object value = prop.resolveValue(container, scope, beanCtx);
             if (excludeNull && value == null)
                 continue;
             ret.put(entry.getKey(), value);

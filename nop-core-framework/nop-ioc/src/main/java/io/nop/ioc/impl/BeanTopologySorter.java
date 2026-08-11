@@ -56,7 +56,7 @@ public class BeanTopologySorter {
             if (bean.isAbstract() || bean.isDisabled())
                 continue;
 
-            orderMap.computeIfAbsent(bean.getBeanModel().getIocInitOrder(), k -> new ArrayList<>()).add(bean);
+            orderMap.computeIfAbsent(bean.getIocSortOrder(), k -> new ArrayList<>()).add(bean);
         }
 
         // 值越小优先级越高
@@ -71,8 +71,13 @@ public class BeanTopologySorter {
             ret.addAll(ordered);
         }
 
+        for (int i = 0, n = ret.size(); i < n; i++) {
+            ret.get(i).setBeanTopoIndex(i);
+        }
+
         verifyOrderConstraints(ret, beans);
         fillResolvedDepends(ret, beans);
+
         return ret;
     }
 
@@ -81,20 +86,16 @@ public class BeanTopologySorter {
      * 无条件执行，不依赖于 allow-cycle 配置。目标 bean 不存在（被条件禁用/父容器/可选模块）时跳过。
      */
     private void verifyOrderConstraints(List<BeanDefinition> orderedBeans, Map<String, BeanDefinition> allBeans) {
-        Map<String, Integer> positions = new HashMap<>();
-        for (int i = 0; i < orderedBeans.size(); i++) {
-            positions.put(orderedBeans.get(i).getId(), i);
-        }
-
         for (BeanDefinition bean : orderedBeans) {
-            Integer pos = positions.get(bean.getId());
+            int pos = bean.getBeanTopoIndex();
 
             if (bean.getBeanModel().getDependsOn() != null) {
                 for (String dep : bean.getBeanModel().getDependsOn()) {
                     String resolvedId = normalizeBeanId(dep, allBeans);
                     if (resolvedId == null)
                         continue;
-                    Integer targetPos = positions.get(resolvedId);
+
+                    Integer targetPos = getBeanTopoOrder(allBeans, resolvedId);
                     if (targetPos != null && pos <= targetPos) {
                         throw new NopException(ERR_IOC_BEAN_ORDER_CONSTRAINT_VIOLATED).source(bean)
                                 .param(ARG_BEAN_NAME, bean.getId()).param(ARG_DEPEND, resolvedId);
@@ -107,7 +108,7 @@ public class BeanTopologySorter {
                     String resolvedId = normalizeBeanId(before, allBeans);
                     if (resolvedId == null)
                         continue;
-                    Integer targetPos = positions.get(resolvedId);
+                    Integer targetPos = getBeanTopoOrder(allBeans, resolvedId);
                     if (targetPos != null && pos >= targetPos) {
                         throw new NopException(ERR_IOC_BEAN_ORDER_CONSTRAINT_VIOLATED).source(bean)
                                 .param(ARG_BEAN_NAME, bean.getId()).param(ARG_DEPEND, resolvedId);
@@ -120,7 +121,7 @@ public class BeanTopologySorter {
                     String resolved = normalizeBeanId(after, allBeans);
                     if (resolved == null)
                         continue;
-                    Integer targetPos = positions.get(resolved);
+                    Integer targetPos = getBeanTopoOrder(allBeans, resolved);
                     if (targetPos != null && pos <= targetPos) {
                         throw new NopException(ERR_IOC_BEAN_ORDER_CONSTRAINT_VIOLATED).source(bean)
                                 .param(ARG_BEAN_NAME, bean.getId()).param(ARG_DEPEND, resolved);
@@ -128,6 +129,13 @@ public class BeanTopologySorter {
                 }
             }
         }
+    }
+
+    private Integer getBeanTopoOrder(Map<String, BeanDefinition> allBeans, String beanId) {
+        BeanDefinition beanDef = allBeans.get(beanId);
+        if (beanDef == null)
+            return null;
+        return beanDef.getBeanTopoIndex();
     }
 
     /**
@@ -148,7 +156,7 @@ public class BeanTopologySorter {
         }
 
         for (BeanDefinition bean : orderedBeans) {
-            Set<String> deps = new HashSet<>();
+            Set<String> deps = new LinkedHashSet<>();
             if (bean.getBeanModel().getDependsOn() != null)
                 deps.addAll(bean.getBeanModel().getDependsOn());
 

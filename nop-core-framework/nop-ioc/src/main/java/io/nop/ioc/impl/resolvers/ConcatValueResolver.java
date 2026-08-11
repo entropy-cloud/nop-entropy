@@ -10,6 +10,7 @@ package io.nop.ioc.impl.resolvers;
 import io.nop.core.lang.xml.XNode;
 import io.nop.ioc.api.IBeanContainerImplementor;
 import io.nop.ioc.api.IBeanScope;
+import io.nop.ioc.impl.BeanCreationContext;
 import io.nop.ioc.impl.IBeanPropValueResolver;
 
 import java.util.List;
@@ -57,10 +58,10 @@ public class ConcatValueResolver implements IBeanPropValueResolver {
     }
 
     @Override
-    public Object resolveValue(IBeanContainerImplementor container, IBeanScope scope) {
+    public Object resolveValue(IBeanContainerImplementor container, IBeanScope scope, BeanCreationContext beanCtx) {
         StringBuilder sb = new StringBuilder();
         for (IBeanPropValueResolver resolver : resolvers) {
-            Object value = resolver.resolveValue(container, scope);
+            Object value = resolver.resolveValue(container, scope, beanCtx);
             if (value != null)
                 sb.append(value);
         }
