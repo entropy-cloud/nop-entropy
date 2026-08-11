@@ -507,7 +507,9 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
             graph.addTaskWithDepends(bean.getId(),
                     cancelToken -> {
                         // beanCreations.add(new BeanCreation(Thread.currentThread().getName(), bean.getId(), graph.getDepends(bean.getId()), false));
-                        getBean0(bean, true, false, new BeanCreationContext(bean));
+                        BeanCreationContext beanCtx = new BeanCreationContext(bean,false);
+                        getBean0(bean, true, false, beanCtx);
+                        beanCtx.flushActions();
                         // beanCreations.add(new BeanCreation(Thread.currentThread().getName(), bean.getId(), graph.getDepends(bean.getId()), true));
                         return null;
                     },
@@ -522,7 +524,9 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
         if (concurrentStart) {
             startBeans.add(bean);
         } else {
-            getBean0(bean, true, false, new BeanCreationContext(bean));
+            BeanCreationContext beanCtx = new BeanCreationContext(bean,false);
+            getBean0(bean, true, false, beanCtx);
+            beanCtx.flushActions();
         }
     }
 
