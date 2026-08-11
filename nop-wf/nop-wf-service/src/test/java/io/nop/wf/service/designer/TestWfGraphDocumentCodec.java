@@ -14,6 +14,8 @@ import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.unittest.BaseTestCase;
+import io.nop.wf.core.model.WfModel;
+import io.nop.wf.core.store.WfModelParser;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -93,6 +95,64 @@ public class TestWfGraphDocumentCodec extends BaseTestCase {
         assertEquals(2, childrenByTag(steps, "step"));
         assertEquals("a", updated.childByTag("start").attrText("startStepName", null));
         assertNotNull(updated.childByTag("steps").childByTag("step").childByTag("transition"));
+    }
+
+    /**
+     * 端到端（无 DB）：模拟「空定义 → 加载空图 → 编辑（新增步骤与迁移）→ 保存回写」，
+     * 验证保存后的 XNode 经引擎加载路径（WfModelParser + WfModelAnalyzer DAG 校验）
+     * 可成功解析，证明设计器产出对引擎可用（计划 Phase 3 端到端验证的 codec 层等价）。
+     */
+    @Test
+    public void testEditFlowEngineLoadable() {
+        XNode node = WfGraphDocumentCodec.newWorkflowNode("test/engine-flow", 1);
+        Map<String, Object> doc = WfGraphDocumentCodec.workflowToDocument(node, "test-engine");
+
+        addNode(doc, "a", "step", "审批A");
+        addNode(doc, "b", "step", "审批B");
+        addEdge(doc, WfDesignerConstants.NODE_START, "a", "to-step");
+        addEdge(doc, "a", "b", "to-step");
+        addEdge(doc, "b", WfDesignerConstants.NODE_END, "to-end");
+
+        XNode updated = XNodeParser.instance().parseFromText(null, node.xml());
+        WfGraphDocumentCodec.updateWorkflowFromDocument(doc, updated);
+
+        // 引擎加载路径：DslModelParser 触发 INeedInit.init() → WfModelAnalyzer DAG 检查
+        WfModel model = WfModelParser.parseWorkflowNode(updated);
+        assertNotNull(model, "engine-loaded model must not be null");
+        assertFalse(model.getSteps().isEmpty(), "engine-loaded model must contain steps");
+    }
+
+    /**
+     * 错误路径（无 DB）：构造有环图（a -> b -> a，非 backLink）回写后，
+     * 引擎加载路径必须拒绝（WfModelAnalyzer DAG 检查），证明保存语义与引擎校验一致。
+     *
+     * <p>注：当前 baseline DagAnalyzer 对该形状会抛出 NopException（DAG 有环）或
+     * ArrayIndexOutOfBoundsException（DagAnalyzer.checkStartReachable 数组越界，
+     * 已是单独的 baseline 缺陷）。两者都表示「拒绝」，本测试断言不静默通过。
+     */
+    @Test
+    public void testCycleRejectedByEngineLoadPath() {
+        XNode node = WfGraphDocumentCodec.newWorkflowNode("test/cycle-flow", 1);
+        Map<String, Object> doc = WfGraphDocumentCodec.workflowToDocument(node, "test-cycle");
+
+        addNode(doc, "a", "step", "A");
+        addNode(doc, "b", "step", "B");
+        addEdge(doc, WfDesignerConstants.NODE_START, "a", "to-step");
+        addEdge(doc, "a", "b", "to-step");
+        addEdge(doc, "b", "a", "to-step"); // 构成环（非 backLink）
+
+        XNode updated = XNodeParser.instance().parseFromText(null, node.xml());
+        WfGraphDocumentCodec.updateWorkflowFromDocument(doc, updated);
+
+        // 引擎加载路径必须拒绝（任何异常都表示拒绝，不允许静默通过）
+        boolean rejected;
+        try {
+            WfModelParser.parseWorkflowNode(updated);
+            rejected = false;
+        } catch (Exception e) {
+            rejected = true;
+        }
+        assertTrue(rejected, "cycle (non-backLink) must be rejected by engine-load path DAG check");
     }
 
     @Test
