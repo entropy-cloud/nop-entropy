@@ -352,7 +352,7 @@ public class TestSysDaoMessageService extends JunitBaseTestCase {
         return request;
     }
 
-    private static class TestableSysDaoMessageService extends SysDaoMessageService {
+    static class TestableSysDaoMessageService extends SysDaoMessageService {
         private final String hostId;
 
         private TestableSysDaoMessageService(String hostId) {
