@@ -11,7 +11,7 @@
 
 1. **复用 flux `designer-page`（graph mode），本仓库不实现任何前端图编辑器代码**。DesignerConfig 与 GraphDocument 全部由服务端生成/装配，页面 JSON 通过 flux `dynamic-renderer` 加载。
 2. **文档契约是通用工作流图**：GraphDocument.nodes = `.xwf` 的步骤（`WfStepModel`），GraphDocument.edges = transitions（to-step / to-end / to-empty）。双向转换（.xwf ⇄ GraphDocument）在服务端单一实现，不绑定 DingFlow 格式或 tree mode。
-3. **加载/保存走专用 GraphQL 服务**：`WorkflowDesignerService__loadDesignerPage(wfDefId)` 返回完整 designer-page schema；保存由工具栏按钮触发 `designer:export` → 链式 ajax 提交 `WorkflowDesignerService__saveDocument(wfDefId, doc)`，服务端完成转换、`WfModelParser` 校验、modelText 落库。
+3. **加载/保存走专用 GraphQL 服务**：`WorkflowDesignerService__loadDesignerPage(wfDefId)` 返回完整 designer-page schema；保存由工具栏按钮触发 `designer:export` → 链式 ajax 提交 `WorkflowDesignerService__saveDocument(wfDefId, doc)`，服务端完成转换、`WfModelParser` 校验、modelText 落库。**保存按钮装配在 designer-page schema 的 page 级 `toolbar` region**（`DesignerPageSchema.toolbar`，有内容时整体替换内置工具栏）；`DesignerConfig.toolbar`（内置工具栏 `ToolbarItem.action: string`）按钮只支持单个命名 action、不支持 `then` 链，不能承载保存链（详见 §3.5）。
 4. **DesignerConfig 由固定通用模板 + 步骤 `specialType` 派生**：nodeTypes 基线为 start / end / step，`specialType` 只影响图标与颜色（未知值回退默认 step），不依赖 `*.graph-designer.xml` 模型；输出字段严格限定于 flux `DesignerConfig` 契约内。
 5. **前端 bundle 升级为外部前置**：nop-chaos-flux 的 `flux-bundle` 必须注册 `flow-designer-renderers`，并经 flux → nop-chaos-next → nop-web-site 三仓链路重建 `pkg-nop-chaos-flux-*.js.gz`，本仓库负责校验 bundle 已含设计器并复制资产。
 6. **转换器工作在原始 XNode 层**：start/end/empty 用保留 id 合成节点呈现（保存时剔除）；`x:extends` 头、未识别属性与 xpl 片段原样保留，零编辑保存接近零 diff；保存校验与引擎加载路径完全同源。
@@ -35,7 +35,7 @@ flowchart LR
     D -->|XNode| E[WfGraphDocumentCodec]
     E -->|GraphDocument + DesignerConfig| F[designer-page schema]
     F -->|渲染| G[flux designer-page]
-    G -->|toolbar 保存: designer:export + ajax| H[WorkflowDesignerService__saveDocument]
+    G -->|page 级 toolbar region 保存按钮<br/>designer:export + then ajax| H[WorkflowDesignerService__saveDocument]
     H -->|GraphDocument| I[WfGraphDocumentCodec]
     I -->|.xwf XNode| J[引擎加载路径校验<br/>WfModelParser + DAG]
     J -->|modelText| K[NopWfDefinition.modelText 落库]
@@ -106,6 +106,8 @@ flowchart LR
 - 落库通道：经 `NopWfDefinition` 实体 DAO 更新 `modelText`（`IWorkflowDefinitionDO.getSourceObject()` 解出实体后写入、保存），写后调用 `IWorkflowDefinitionDO.validateModel()` 类型接口复核（v2 若契约变化以 live 为准）。
 - 注册方式：`WorkflowDesignerService` 是非实体 BizModel，NopIoC 无注解扫描，必须在 `nop-wf-service` 的 retention bean 文件（`app-service.beans.xml`）显式声明 `<bean>`，否则 `/r/WorkflowDesignerService__*` 不可达。
 
+> 返回的 `toolbar` 字段即 **page 级 `toolbar` region**（SchemaInput，见 §3.5 装配形态）；`config` 内不携带 `toolbar`。
+
 ### 3.5 前端页面与入口
 
 ```
@@ -123,6 +125,12 @@ flowchart LR
 - 入口：`NopWfDefinition.view.xml` 的 design 行操作 → draw 抽屉（flux 模式下 flux-web.xlib 映射为 `openDrawer` action）→ 必须携带行数据 `${id}` 作为 `wfDefId`。
 - 若现有 view.xml → flux 的 drawer 映射无法传递页面数据，则改为路由式入口（页面地址携带 `wfDefId` 查询参数），实施阶段以一个为主并验证；两者都不改变后端契约。
 - 页面 JSON 中仅含 `dynamic-renderer` 装配，所有领域 schema 由服务端返回——保证"页面可变、契约稳定"。
+
+**工具栏装配面（实施裁定 2026-08-10）**：保存按钮必须放在 designer-page schema 的 **page 级 `toolbar` region**（`DesignerPageSchema.toolbar`，类型为 SchemaInput），而不是 `DesignerConfig.toolbar.items`：
+
+- flux 内置工具栏 `DesignerToolbarContent` 渲染 `config.toolbar.items`，其中 `ToolbarItem.action` 是**纯字符串**（flux `flow-designer-core` 的 `types.ts`），按钮 onClick 只做 `actionScope.resolve(item.action)` 单步调用（`designer-toolbar.tsx`）——**不支持 `then` 链 / `prevResult` 传递**，无法承载 `designer:export → ajax` 保存链；`DesignerConfig.toolbar` 仅用于内置撤销/重做/网格开关等单命名按钮（装配时保持 `config.toolbar` 为空即可，内置步骤按钮由 page 级 region 提供）。
+- page 级 `toolbar` region 有内容时**整体替换**内置工具栏（flux `designer-page-body.tsx` 的 `toolbarSlot` 渲染分支：`hasRendererSlotContent(toolbarSlot) ? toolbarSlot : <DesignerToolbarContent/>`），按完整 flux schema 渲染且注入 designer 命名空间 actionScope，按钮支持完整 action 链。
+- 装配形态：`loadDesignerPage` 返回的 schema 顶层 `toolbar` 字段 = 一行工具条 schema——undo/redo/save/网格开关等用命名 action（`designer:undo`/`designer:redo`/`designer:save`/`designer:toggleGrid`），保存按钮用 `designer:export` + `then` ajax → `WorkflowDesignerService__saveDocument`（`prevResult`/`result` 绑定导出 JSON）；`readOnly` 时省略保存与编辑类按钮（服务端保存校验仍兜底拒绝）。
 
 ### 3.6 前端 bundle 前置（三仓链路）
 
@@ -149,7 +157,7 @@ flowchart LR
 | 使用 tree mode（DingFlow 风格流程树） | 通用 `.xwf` 允许任意 DAG 与 `backLink` 回边，graph mode 保真度更高；tree mode 是 DingFlow 领域形状，与"通用设计器"目标冲突（`dingflow-json-format.md` 承接 DingFlow 场景） |
 | 客户端（浏览器）执行 .xwf ⇄ GraphDocument 转换 | flux design.md §6.4 明确 parse/serialize/validate 属领域适配器职责；服务端实现保证"模型即代码"、可单测、与引擎校验共用同一代码 |
 | 扩展 PageProvider / nop-web 页面管线支持参数化动态页面 | 改动平台核心页面缓存与加载链路，成本高、影响面大；`dynamic-renderer` 是 flux 既有原语，零平台改动 |
-| 用全局自定义 flux action（打包 JS）实现保存 | 需要自定义 JS + 构建链路；`designer:export` + `then` 链（`prevResult`/`result` 传递）是 flux 既有原语，优先使用；若实施中发现绑定不可行，再回退此方案（已在计划中设验证门） |
+| 用全局自定义 flux action（打包 JS）实现保存 | 需要自定义 JS + 构建链路；`designer:export` + `then` 链（`prevResult`/`result` 传递）是 flux 既有原语，优先使用；若实施中发现绑定不可行，再回退此方案（已在计划中设验证门）。注：该链必须装配于 **page 级 `toolbar` region**——内置 `config.toolbar` 按钮只支持单命名 action（`ToolbarItem.action: string`），无 `then` 链，详见 §3.5 |
 | GraphDocument 直接采用 DingFlow JSON | DingFlow 是具体审批域格式（链式 tree 形状），通用工作流设计器需要通用的图结构与保留任意 ×wf 属性；两个契约并存，`dingflow-json-format.md` 管 DingFlow 侧 |
 
 ## 五、与已有设计的关系

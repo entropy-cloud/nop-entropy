@@ -23,6 +23,7 @@
 - 浏览器 bundle 实际由 **nop-chaos-next** 仓构建（`apps/main/dist/assets/pkg-nop-chaos-flux-ttsAZmES.js` 与本仓 `nop-web-site` 资产 hash 一致）；flux 仓 `scripts/pack-flux-bundle.mjs` 只产 npm tgz（`dist-packages/*.tgz`），全仓无 `pkg-nop-chaos-flux` 字面量。
 - `WfModelAnalyzer.analyze()` 仅当 `!allowStepLoop` 时报循环（`wf.xdef` 默认 false），且 backLink 边不计入环检测（`WfModelAnalyzer.java:66-71,257-259`）；`WfModel.init()` 触发 analyze（`WfModel.java:42`）。
 - flux 文档契约（`designer-page` schema）：`document: GraphDocument` 在渲染时一次性注入（`designer-page.tsx` 挂载时创建 core），不支持运行时替换；动态加载需 flux `dynamic-renderer` 原语（`flux-guide/design-patterns/dynamic-renderer.md`）。
+- flux 内置工具栏 `DesignerToolbarContent`（`designer-toolbar.tsx`）渲染 `config.toolbar.items`，`ToolbarItem.action` 为**纯字符串**（`flow-designer-core/src/types.ts:251,259,268`），按钮 onClick 仅 `actionScope.resolve(item.action)` 单步调用，**不支持 `then` 链/`prevResult`**；page 级 `toolbar` region（`DesignerPageSchema.toolbar`，`designer-page-body.tsx` toolbarSlot 分支）有内容时**整体替换**内置工具栏并按完整 flux schema 渲染（支持 action 链 + designer 命名空间）——保存链必须装配在该 region（验证日期 2026-08-10）。
 
 ## Goals
 
@@ -92,7 +93,7 @@ Targets: `nop-wf-web`（`designer.flux.yaml`、`NopWfDefinition.view.xml`）、`
 
 - [ ] bundle 前置：解压 `pkg-nop-chaos-flux-*.js.gz` 确认 `designer-page` renderer 存在；若缺失，执行三仓构建链：① flux 仓 `flux-bundle/src/index.tsx` 注册 `registerFlowDesignerRenderers` → `pack-flux-bundle.mjs` 产 tgz → ② nop-chaos-next 仓导入 tgz 重建 `apps/main` → ③ 复制 `apps/main/dist/assets/pkg-nop-chaos-flux-*.js`（+ 设计器 CSS）到 `nop-web-site` 并 gzip，两个仓均记录来源 commit hash
 - [ ] `designer.flux.yaml` 改造：`body` 改为 `type: dynamic-renderer`，`loadAction` = ajax → `/r/WorkflowDesignerService__loadDesignerPage`，加载期 spinner fallback
-- [ ] 保存按钮装配：加载出的 designer-page schema 中 toolbar 保存按钮 = `designer:export` + `then` ajax → `/r/WorkflowDesignerService__saveDocument`（`prevResult`/`result` 绑定导出 JSON；实施时以 flux 运行时实际绑定名验证为准）
+- [ ] 保存按钮装配（装配面裁定 2026-08-10）：加载出的 designer-page schema **page 级 `toolbar` region**（`DesignerPageSchema.toolbar`；**非** `config.toolbar`——内置工具栏仅支持单命名 action 无 `then` 链）保存按钮 = `designer:export` + `then` ajax → `/r/WorkflowDesignerService__saveDocument`（`prevResult`/`result` 绑定导出 JSON；实施时以 flux 运行时实际绑定名验证为准）；同 region 的 undo/redo/网格开关等用命名 action（`designer:undo`/`designer:redo`/`designer:save`/`designer:toggleGrid`），readOnly 时省略保存/编辑按钮
 - [ ] 入口接线：`NopWfDefinition.view.xml` design 行操作向抽屉页面传递 `${id}`（wfDefId）；验证 flux 模式下抽屉页面能读到该值（必要时改路由式入口，见设计文档 §3.5）
 - [ ] 测试：`TestFluxYamlPages` 扩展 —— flux 模式下 `designer.flux.yaml` 可加载且含 dynamic-renderer；后端 mock `loadDesignerPage` 返回的 designer-page schema 结构正确（type/config/document/toolbar）
 - [ ] `designer:export` → ajax 保存链的接线验证（见计划指南 Rule 23：确认保存按钮真的会调用后端 action）
@@ -103,7 +104,7 @@ Exit Criteria:
 
 - [ ] bundle 验证通过：设计器 renderer 已注册（grep `designer-page` 命中 或 运行时渲染测试通过）；若发生 bundle 复制，记录了来源版本 hash
 - [ ] `designer.flux.yaml` 在 flux 模式下经 `PageProvider` 可加载，返回的 JSON 顶层含 `dynamic-renderer` 且 loadAction URL 指向 `WorkflowDesignerService__loadDesignerPage`
-- [ ] 保存链验证：页面 schema 中保存按钮包含 `designer:export` 与后端 ajax 提交（测试断言 schema 结构）；若 `prevResult` 绑定不可行，按设计文档 §四 回退方案（自定义 action）实施并记录裁定
+- [ ] 保存链验证：测试断言保存按钮位于 schema **顶层 `toolbar` region**（非 `config.toolbar`）且该按钮含 `designer:export` + 后端 ajax 链式 action（保存链出现在 `config.toolbar` 内视为失败——内置工具栏不支持 `then` 链）；若 `prevResult` 绑定不可行，按设计文档 §四 回退方案（自定义 action）实施并记录裁定
 - [ ] 入口验证：flux 模式下从 `NopWfDefinition` 行操作进入设计器页面，页面可拿到 `wfDefId`（单测断言 drawer/schema 数据传递）
 - [ ] `./mvnw test -pl nop-wf-web -am` 通过（新增/扩展测试全绿）
 - [ ] 若该 Phase 改变 live baseline：`docs-for-ai/02-core-guides/flux-rendering.md` 或对应 owner doc 已更新；否则明确写 `No owner-doc update required`
