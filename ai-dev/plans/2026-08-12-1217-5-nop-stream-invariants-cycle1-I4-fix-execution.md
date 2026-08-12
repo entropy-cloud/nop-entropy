@@ -145,30 +145,30 @@ Exit Criteria:
 
 ### Phase 4 - 输出契约族：ChainingOutput side-output 转发（WI-4：RL-7，双轨 PD-15）
 
-Status: planned
+Status: completed
 Targets: `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/operators/ChainingOutput.java`、`nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/StreamTaskInvokable.java`（接线）、**`nop-stream/nop-stream-runtime/src/test/...`（新增 side-output 端到端测试——入口是 runtime 的 `WindowOperator.sideOutput(lateDataOutputTag)`，测试必须放在 runtime 模块；core 不能反向依赖 runtime）**
 
 - Item Types: `Fix`
 
-- [ ] **test-first 先红**：新增端到端测试（**落点 nop-stream-runtime/src/test**）——`WindowOperator.sideOutput(lateDataOutputTag)` → 链式 `ChainingOutput` → side-output 消费者收到记录（无消费者注册时 fail-fast 抛异常）；**既有 `new ChainingOutput(...)` 构造点适配核查**：grep 全部直接构造点（live 实测 = 41 处测试构造点 + 2 处 main 接线 `StreamTaskInvokable.java:171/:209`；分布于 TestDistributedExactlyOnce 11 / TestRocksDBStateBackendE2E 6 / TestCheckpointEndToEnd 6 / TestBarrierPropagation 6 / TestE2ECheckpointAndRecovery 4 等），选注册方案后逐一确认适配（构造参数默认值兼容或测试侧同步适配，编译断裂必须先行处理）；跑测试确认红（当前丢弃/无消费者通道）
-- [ ] **RL-7 修复**：`ChainingOutput.collect(OutputTag, record)` 转发至注册的 side-output 消费者；链式接线（`StreamTaskInvokable.java:171/:209`）支持消费者注册；无消费者接线时 fail-fast（抛异常），**禁止静默丢弃**（Rule #24：不得保留 LOG.warn + 丢弃路径）。**最小契约约束（防止执行者即兴发明）**：注册机制限于 `ChainingOutput` 级别（构造参数或方法级注册 per-tag consumer，选型须与既有 ~10 处直接构造点兼容）+ `StreamTaskInvokable` 暴露可选注册入口（测试可触达）；`Output` 接口契约不变；无消费者 = fail-fast（默认）。**用户可见行为变更声明**：修复后默认链式部署下，使用 `lateDataOutputTag`（经 `WindowOperatorBuilder` 接线，字段 :58 / builder 方法 :101-102 / ctor 传参 :197）或 ProcessFunction/CepOperator 多输出的任务，在首个侧输出记录时**fail-fast 崩溃而非静默丢弃**（I3 裁决认可的方向；已核实仓库无既有测试依赖静默丢弃）
-- [ ] **类别清扫（输出契约族）**：grep `Output.collect(OutputTag` 全部 call-site（`WindowOperator.sideOutput` :1015-1017、ProcessWindowFunction 多输出路径、`CepOperator.java:482-483` 等）确认转发契约覆盖；grep 全部 `Output` 实现类（`ChainingOutput` + `TimestampedCollector` + `StreamTaskInvokable` 内部 `RecordWriterOutput` :621-623 / `BroadcastingRecordWriterOutput` :681-682）逐一核对各自 collect(OutputTag) 行为。**清扫发现处置规则（roadmap 类别清扫强制 vs Non-Goals 边界）**：
-  - in-task 丢弃点（与 RL-7 同根因，如链式路径内其它静默丢弃）→ 本 plan 一并修复（同类实例，只修同类）；
-  - 跨 task 边界 no-op（`RecordWriterOutput` / `BroadcastingRecordWriterOutput`：侧输出需线协议支持）→ **不静默修复也不静默忽略**：记录为「同族已知实例 + 处置依据（跨 task 转发 = 线协议结构性变更，mission 授权要求结构性变更执行前人工确认）」→ 移交 I6 评估（人工确认候选），证据入清扫清单
-- [ ] **test-first 后绿**：端到端测试绿（side-output 消费者收到记录）；无消费者 fail-fast 断言绿；`./mvnw test -pl nop-stream/nop-stream-runtime` 全量绿（端到端测试所在模块）
+- [x] **test-first 先红**：新增端到端测试（**落点 nop-stream-runtime/src/test**，`TestSideOutputChainingE2E` 3 用例）——`WindowOperator.sideOutput(lateDataOutputTag)` → 链式 `ChainingOutput` → side-output 消费者收到记录（无消费者注册时 fail-fast 抛异常）；**既有 `new ChainingOutput(...)` 构造点适配核查**：grep 全部直接构造点（live 实测 = 41 处测试构造点 + 2 处 main 接线 `StreamTaskInvokable.java:171/:209`；分布于 TestDistributedExactlyOnce 11 / TestRocksDBStateBackendE2E 6 / TestCheckpointEndToEnd 6 / TestBarrierPropagation 6 / TestE2ECheckpointAndRecovery 4 等），选注册方案后逐一确认适配（构造参数默认值兼容或测试侧同步适配，编译断裂必须先行处理）；跑测试确认红（当前丢弃/无消费者通道）。**红输出记录（2026-08-12 实测，双阶段）**：(a) 构造参数默认值兼容——既有 2 构造器保留（`(input)` / `(input, operatorName)` 委托空 map），43 处既有构造点零改动零编译断裂（core 1418 / runtime 804 / cep 320 全量复跑验证）；(b) 临时还原纯丢弃行为（保留 API 面）→ `Tests run: 3, Failures: 3`（`testWindowOperatorSideOutputReachesChainedConsumer` / `testInvokableWiredChainingOutputDeliversSideOutput` / `testWindowOperatorSideOutputFailsFastWithoutConsumer` 全红——先红载体 = 端到端转发断言 + fail-fast 断言）
+- [x] **RL-7 修复**：`ChainingOutput.collect(OutputTag, record)` 转发至注册的 side-output 消费者；链式接线（`StreamTaskInvokable.java:171/:209`）支持消费者注册；无消费者接线时 fail-fast（抛异常），**禁止静默丢弃**（Rule #24：不得保留 LOG.warn + 丢弃路径——`LOG` 字段已删除，grep 零残留）。**最小契约约束（防止执行者即兴发明）**：注册机制限于 `ChainingOutput` 级别（构造参数或方法级注册 per-tag consumer，选型须与既有 ~10 处直接构造点兼容）+ `StreamTaskInvokable` 暴露可选注册入口（测试可触达）；`Output` 接口契约不变；无消费者 = fail-fast（默认）。**实现选型（记入决策）**：`ChainingOutput` 新增 3 参构造器 `(input, operatorName, Map<OutputTag<?>, Consumer<StreamRecord<?>>>)`（共享 map 引用，注册可先于/晚于接线）+ `registerSideOutputConsumer(tag, consumer)` 方法；`StreamTaskInvokable` 持有共享 map（字段）+ `registerSideOutputConsumer` 公开方法，wireOperators 两处（:171/:209）传入共享 map；新增错误码 `ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER`（`NopStreamErrors`，`ARG_OUTPUT_TAG` 参数）；`Output` 接口契约零变更。**用户可见行为变更声明**：修复后默认链式部署下，使用 `lateDataOutputTag`（经 `WindowOperatorBuilder` 接线，字段 :58 / builder 方法 :101-102 / ctor 传参 :197）或 ProcessFunction/CepOperator 多输出的任务，在首个侧输出记录时 **fail-fast 崩溃而非静默丢弃**（I3 裁决认可的方向；已核实仓库无既有测试依赖静默丢弃——core/runtime/cep 三模块全量复跑 0 failure 佐证）
+- [x] **类别清扫（输出契约族）**：grep `Output.collect(OutputTag` 全部 call-site（`WindowOperator.sideOutput` :1029-1031、ProcessWindowFunction 多输出路径、`CepOperator.java:482-483`（lateDataOutputTag）+ :770（ProcessFunction 多输出）等）确认转发契约覆盖；grep 全部 `Output` 实现类（`ChainingOutput` + `TimestampedCollector` + `StreamTaskInvokable` 内部 `RecordWriterOutput` :621-623 / `BroadcastingRecordWriterOutput` :681-682）逐一核对各自 collect(OutputTag) 行为。**清扫发现处置规则（roadmap 类别清扫强制 vs Non-Goals 边界）**：
+  - in-task 丢弃点（与 RL-7 同根因，如链式路径内其它静默丢弃）→ 本 plan 一并修复（同类实例，只修同类）——**ChainingOutput 为唯一 in-task 静默丢弃点，已修复**；
+  - 跨 task 边界 no-op（`RecordWriterOutput` / `BroadcastingRecordWriterOutput`：侧输出需线协议支持）→ **不静默修复也不静默忽略**：记录为「同族已知实例 + 处置依据（跨 task 转发 = 线协议结构性变更，mission 授权要求结构性变更执行前人工确认）」→ 移交 I6 评估（人工确认候选），证据入清扫清单——**处置记录（2026-08-12）**：`StreamTaskInvokable.java:645-647`（RecordWriterOutput.collect(OutputTag) 注释「Side outputs not supported in cross-task exchange」）与 `:705-706`（BroadcastingRecordWriterOutput 同型 no-op），跨 task 侧输出需 ResultPartition 线协议扩展（结构性变更），已列入清扫清单移交 I6；`TimestampedCollector.collect(OutputTag)` :97 为纯转发（非丢弃点）✓
+- [x] **test-first 后绿**：端到端测试绿（side-output 消费者收到记录）；无消费者 fail-fast 断言绿；`./mvnw test -pl nop-stream/nop-stream-runtime` 全量绿（端到端测试所在模块）。**绿输出（2026-08-12 实测）**：`TestSideOutputChainingE2E` 3/3（含 StreamTaskInvokable 接线路径）；`./mvnw test -pl nop-stream/nop-stream-runtime` 804 tests 0 failures；`nop-stream-core` 1418 / `nop-stream-cep` 320 全量 0 failures（构造点兼容 + 无依赖静默丢弃的行为变更回归）；`check-nop-stream-invariants.mjs all` exit 0
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] **端到端验证**（Rule #22/#23）：从 `WindowOperator.sideOutput(lateDataOutputTag)` 入口到 side-output 消费者出口完整连通（测试断言消费者实际收到记录，非组件级孤立断言）
-- [ ] **接线验证**（Rule #23）：链式部署下 `StreamTaskInvokable` 创建的 `ChainingOutput` 确实把 side-output 记录送达注册消费者（运行时连通，非仅类型存在）
-- [ ] **无静默跳过**（Rule #24）：无消费者接线时 fail-fast（测试断言异常抛出），`ChainingOutput` 中无 LOG.warn+丢弃路径残留（code review + grep 核对）
-- [ ] 类别清扫证据存在（collect(OutputTag call-site + Output 实现类 + OutputTag 消费路径核对结论）
-- [ ] `./mvnw test -pl nop-stream/nop-stream-runtime` 全量绿（端到端测试所在模块）
-- [ ] 双轨标注在案：本 Phase 修复为 Cycle 2 / PD-15（I6 追加）提供 live 修复基线
-- [ ] `ai-dev/logs/` 对应日期条目已更新
-- [ ] No owner-doc update required for this phase（`Output` 接口契约不变，修复为实现侧）
+- [x] **端到端验证**（Rule #22/#23）：从 `WindowOperator.sideOutput(lateDataOutputTag)` 入口到 side-output 消费者出口完整连通（测试断言消费者实际收到记录，非组件级孤立断言）——`testWindowOperatorSideOutputReachesChainedConsumer`（入口→ChainingOutput→消费者收到 ts=50 value=99 记录）
+- [x] **接线验证**（Rule #23）：链式部署下 `StreamTaskInvokable` 创建的 `ChainingOutput` 确实把 side-output 记录送达注册消费者（运行时连通，非仅类型存在）——`testInvokableWiredChainingOutputDeliversSideOutput`（OperatorChain [windowOp, sinkOp] + `invokable.registerSideOutputConsumer` 后置注册，wireOperators 创建的 ChainingOutput 送达消费者）
+- [x] **无静默跳过**（Rule #24）：无消费者接线时 fail-fast（测试断言异常抛出），`ChainingOutput` 中无 LOG.warn+丢弃路径残留（code review + grep 核对）——`testWindowOperatorSideOutputFailsFastWithoutConsumer` 断言 `ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER` 抛出且消息含 tag id；grep `discarded|LOG.warn` 零残留
+- [x] 类别清扫证据存在（collect(OutputTag call-site + Output 实现类 + OutputTag 消费路径核对结论）
+- [x] `./mvnw test -pl nop-stream/nop-stream-runtime` 全量绿（端到端测试所在模块）
+- [x] 双轨标注在案：本 Phase 修复为 Cycle 2 / PD-15（I6 追加）提供 live 修复基线
+- [x] `ai-dev/logs/` 对应日期条目已更新
+- [x] No owner-doc update required for this phase（`Output` 接口契约不变，修复为实现侧）
 
 ### Phase 5 - 门禁复跑、pin 注册表同步与文档收口
 

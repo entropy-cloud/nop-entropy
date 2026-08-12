@@ -8,8 +8,11 @@
 package io.nop.stream.core.execution;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +36,7 @@ import io.nop.stream.core.operators.SourceReaderOperator;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
+import io.nop.stream.core.util.OutputTag;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHAINING_OUTPUT_CLOSE_FAILED;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
@@ -86,6 +90,13 @@ public class StreamTaskInvokable implements Invokable<Void> {
     private CheckpointBarrierTracker barrierTracker;
 
     private Input<Object> headInput;
+
+    /**
+     * RL-7 (R15-AR-4): side-output consumers shared by all ChainingOutputs this task wires.
+     * Registration may happen before or after wiring (the map reference is shared). A side
+     * output without a registered consumer fails fast instead of being silently dropped.
+     */
+    private final Map<OutputTag<?>, Consumer<StreamRecord<?>>> sideOutputConsumers = new HashMap<>();
 
     public StreamTaskInvokable(OperatorChain operatorChain) {
         if (operatorChain == null) {
@@ -168,7 +179,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
                     wiredInput = nextInput;
                 }
 
-                currentOp.setOutput(new ChainingOutput<>(wiredInput));
+                currentOp.setOutput(new ChainingOutput<>(wiredInput, null, sideOutputConsumers));
             }
         }
 
@@ -206,7 +217,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
                     wiredInput = nextInput;
                 }
 
-                currentOp.setOutput(new ChainingOutput<>(wiredInput));
+                currentOp.setOutput(new ChainingOutput<>(wiredInput, null, sideOutputConsumers));
             }
         }
 
@@ -286,6 +297,19 @@ public class StreamTaskInvokable implements Invokable<Void> {
      */
     public MailboxExecutor getMailboxExecutor() {
         return mailboxExecutor;
+    }
+
+    /**
+     * RL-7 (R15-AR-4): registers a consumer for a side-output tag in the chained execution.
+     * All ChainingOutputs wired by this task share the consumer map, so registration may
+     * happen before or after {@code wireOperators}. Without a registered consumer, emitting
+     * a side output fails fast ({@code ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER}) instead of
+     * silently dropping the record.
+     */
+    @SuppressWarnings("unchecked")
+    public <X> void registerSideOutputConsumer(OutputTag<X> outputTag,
+                                               Consumer<StreamRecord<X>> consumer) {
+        sideOutputConsumers.put(outputTag, (Consumer<StreamRecord<?>>) (Consumer<?>) consumer);
     }
 
     /**

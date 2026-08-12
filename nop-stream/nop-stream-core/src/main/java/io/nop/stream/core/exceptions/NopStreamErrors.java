@@ -36,6 +36,7 @@ public interface NopStreamErrors {
     String ARG_NODE_ID = "nodeId";
     String ARG_POINT_ID = "pointId";
     String ARG_FROM_EPOCH = "fromEpoch";
+    String ARG_OUTPUT_TAG = "outputTag";
 
     ErrorCode ERR_STREAM_NULL_ARG =
             define("nop.err.stream.null-arg", "Argument {argName} must not be null", ARG_ARG_NAME);
@@ -95,6 +96,14 @@ public interface NopStreamErrors {
 
     ErrorCode ERR_STREAM_CHAINING_OUTPUT_EXCEPTION =
             define("nop.err.stream.chaining-output-exception", "Error in chaining output: {detail}", ARG_DETAIL);
+
+    /**
+     * RL-7 (R15-AR-4): side output has no registered consumer in the chained execution — fail
+     * fast instead of silently dropping (plan guide #24).
+     */
+    ErrorCode ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER =
+            define("nop.err.stream.side-output-no-consumer", "Side output {outputTag} has no registered consumer: {detail}",
+                    ARG_OUTPUT_TAG, ARG_DETAIL);
 
     ErrorCode ERR_STREAM_CHAINING_OUTPUT_CLOSE_FAILED =
             define("nop.err.stream.chaining-output-close-failed", "Failed to close chaining output");
