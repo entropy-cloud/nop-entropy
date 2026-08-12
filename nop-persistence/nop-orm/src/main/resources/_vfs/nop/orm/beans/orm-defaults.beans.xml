@@ -99,5 +99,6 @@
     <bean id="io.nop.orm.sql_lib.dict.SqlLibDictLoader" ioc:type="@bean:id"/>
 
     <bean id="nopDaoResourceNamespaceHandler" class="io.nop.orm.resource.DaoResourceNamespaceHandler"
-          init-method="register" destroy-method="unregister" ioc:after="nopOrmSessionFactory"/>
+          init-method="register" destroy-method="unregister"
+          ioc:force-init="true"/>
 </beans>
