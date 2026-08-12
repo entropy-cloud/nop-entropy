@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -24,7 +25,10 @@ public class TestBeanMethodJobInvoker {
 
     static class TestService {
         private Map<String, Object> lastParams;
+        private Map<String, Object> lastCancelParams;
         private boolean noArgCalled;
+        private boolean cancelNoArgCalled;
+        private boolean customCancelCalled;
 
         public void execute(Map<String, Object> params) {
             this.lastParams = params;
@@ -38,12 +42,45 @@ public class TestBeanMethodJobInvoker {
             throw new RuntimeException("intentional failure");
         }
 
+        public void cancel() {
+            this.cancelNoArgCalled = true;
+        }
+
+        public void cancel(Map<String, Object> params) {
+            this.lastCancelParams = params;
+        }
+
+        public boolean customCancel() {
+            this.customCancelCalled = true;
+            return true;
+        }
+
+        public void cancelFails() {
+            throw new RuntimeException("intentional cancel failure");
+        }
+
+        public CompletionStage<Boolean> cancelAsync() {
+            return CompletableFuture.completedFuture(Boolean.TRUE);
+        }
+
         Map<String, Object> getLastParams() {
             return lastParams;
         }
 
+        Map<String, Object> getLastCancelParams() {
+            return lastCancelParams;
+        }
+
         boolean isNoArgCalled() {
             return noArgCalled;
+        }
+
+        boolean isCancelNoArgCalled() {
+            return cancelNoArgCalled;
+        }
+
+        boolean isCustomCancelCalled() {
+            return customCancelCalled;
         }
     }
 
@@ -157,9 +194,95 @@ public class TestBeanMethodJobInvoker {
     }
 
     @Test
-    void testCancelAsync() {
+    void testCancelAsync_emptyParams_returnsTrue() {
         setupContainer();
         CompletionStage<Boolean> result = invoker.cancelAsync(new TestJobContext(Map.of()));
+        assertTrue(result.toCompletableFuture().join());
+    }
+
+    @Test
+    void testCancelAsync_beanMissing_returnsTrue() {
+        StaticBeanContainer container = new StaticBeanContainer();
+        BeanContainer.registerInstance(container);
+
+        Map<String, Object> jobParams = new HashMap<>();
+        jobParams.put("beanName", "nonExistentBean");
+
+        CompletionStage<Boolean> result = invoker.cancelAsync(new TestJobContext(jobParams));
+        assertTrue(result.toCompletableFuture().join());
+    }
+
+    @Test
+    void testCancelAsync_noCancelMethod_returnsTrue() {
+        // TestService2 has execute() but no cancel method
+        StaticBeanContainer container = new StaticBeanContainer();
+        Object service = new Object(); // java.lang.Object has no execute/cancel
+        container.registerBean("plainBean", service);
+        BeanContainer.registerInstance(container);
+
+        Map<String, Object> jobParams = new HashMap<>();
+        jobParams.put("beanName", "plainBean");
+
+        CompletionStage<Boolean> result = invoker.cancelAsync(new TestJobContext(jobParams));
+        assertTrue(result.toCompletableFuture().join());
+    }
+
+    @Test
+    void testCancelAsync_callsNoArgCancelMethod() {
+        setupContainer();
+        Map<String, Object> jobParams = new HashMap<>();
+        jobParams.put("beanName", "testService");
+
+        CompletionStage<Boolean> result = invoker.cancelAsync(new TestJobContext(jobParams));
+        assertTrue(result.toCompletableFuture().join());
+        assertTrue(testService.isCancelNoArgCalled());
+    }
+
+    @Test
+    void testCancelAsync_callsMapArgCancelMethodWhenParamsPresent() {
+        setupContainer();
+        Map<String, Object> jobParams = new HashMap<>();
+        jobParams.put("beanName", "testService");
+        jobParams.put("customCancelKey", "customCancelValue");
+
+        CompletionStage<Boolean> result = invoker.cancelAsync(new TestJobContext(jobParams));
+        assertTrue(result.toCompletableFuture().join());
+        assertNotNull(testService.getLastCancelParams());
+        assertEquals("customCancelValue", testService.getLastCancelParams().get("customCancelKey"));
+        assertNull(testService.getLastCancelParams().get("beanName"));
+    }
+
+    @Test
+    void testCancelAsync_customCancelMethodName() {
+        setupContainer();
+        Map<String, Object> jobParams = new HashMap<>();
+        jobParams.put("beanName", "testService");
+        jobParams.put("cancelMethodName", "customCancel");
+
+        CompletionStage<Boolean> result = invoker.cancelAsync(new TestJobContext(jobParams));
+        assertTrue(result.toCompletableFuture().join());
+        assertTrue(testService.isCustomCancelCalled());
+    }
+
+    @Test
+    void testCancelAsync_methodThrows_returnsTrue() {
+        setupContainer();
+        Map<String, Object> jobParams = new HashMap<>();
+        jobParams.put("beanName", "testService");
+        jobParams.put("cancelMethodName", "cancelFails");
+
+        CompletionStage<Boolean> result = invoker.cancelAsync(new TestJobContext(jobParams));
+        assertTrue(result.toCompletableFuture().join());
+    }
+
+    @Test
+    void testCancelAsync_asyncResultUnwrappedToBoolean() {
+        setupContainer();
+        Map<String, Object> jobParams = new HashMap<>();
+        jobParams.put("beanName", "testService");
+        jobParams.put("cancelMethodName", "cancelAsync");
+
+        CompletionStage<Boolean> result = invoker.cancelAsync(new TestJobContext(jobParams));
         assertTrue(result.toCompletableFuture().join());
     }
 
