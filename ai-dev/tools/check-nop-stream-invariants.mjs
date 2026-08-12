@@ -12,10 +12,28 @@
 //                       inside a synchronized block whose monitor is the field, `this`, or a local alias
 //                       of the same collection object (invariant #2). Pinned residuals are compared
 //                       against ai-dev/audits/nop-stream-invariants/mjs-pins.json (violations ⊆ pins = green)
+//   scan-output-contract - static scan of the output-contract family (invariant #6, PD-15):
+//                       V1 class-level enumeration (every `implements Output` class in src/main/java,
+//                       top-level + nested, must be in output-contract-registry.json implementationClasses;
+//                       new class not in registry = red),
+//                       V2 stale class (registry class no longer implements Output = red),
+//                       V3 behavior drift (collect(OutputTag) method-body classification {forward,
+//                       fail-fast, no-op} vs registry class classification {forward, fail-fast,
+//                       pinned-known-violation}; body no-op + registry pinned-known-violation -> violation
+//                       absorbed by transition pin = green overall; any other mismatch = red;
+//                       unrecognized body form / missing collect(OutputTag) on a registered Output class
+//                       = hard error, no silent classification),
+//                       V4 new emission point (OutputTag-typed declarations field/local/param forms ->
+//                       `.collect(<name>,` calls outside Output implementation class method bodies must be
+//                       in the registry emissionPoints table; new = red; implementation-class internal
+//                       forwarding calls like TimestampedCollector.java:98 are V1/V3 governed, NOT V4),
+//                       V5 stale emission point (registry emission point no longer present = red).
+//                       Violations ⊆ mjs-pins.json (p.key exact match) = green; pins may only cover
+//                       cross-task instance classes (registry classification pinned-known-violation).
 //   self-test         - positive control: proves the scanners reject known-bad input (no silent skip)
 //   init              - (maintainer tool) regenerate the `methods` arrays of gate-inventory.json
 //                       from live source, preserving existing `exclusions`
-//   (no argument)     - runs inventory + sync + scan-iterations + self-test
+//   (no argument)     - runs inventory + sync + scan-iterations + scan-output-contract + self-test
 //
 // Style precedent: check-nop-stream-audit-manifest.mjs (subcommand based, strict exit codes,
 // Rule #24 no-silent-skip: a missing file / unknown command / inconsistent table is a hard error).
@@ -32,6 +50,7 @@ const INVARIANTS_DIR = join(PROJECT_ROOT, 'ai-dev', 'audits', 'nop-stream-invari
 const INVENTORY_FILE = join(INVARIANTS_DIR, 'gate-inventory.json');
 const CATALOG_FILE = join(INVARIANTS_DIR, 'invariant-catalog.md');
 const PINS_FILE = join(INVARIANTS_DIR, 'mjs-pins.json');
+const OUTPUT_REGISTRY_FILE = join(INVARIANTS_DIR, 'output-contract-registry.json');
 const FIXTURES_DIR = join(INVARIANTS_DIR, 'fixtures');
 
 const GATE_MODULES = ['nop-stream-core', 'nop-stream-runtime', 'nop-stream-cep'];
@@ -541,8 +560,357 @@ function runScanIterations() {
     violations.push(...scanIterationsModule(module));
   }
   const pins = loadPins();
-  const {unpinned, stale} = compareViolationsToPins(violations, pins);
+  // the shared mjs-pins.json holds pins for multiple scanners — scan-iterations only
+  // considers its own pins (non output-contract ones, identified by the violation prefix)
+  const ownPins = {pinnedViolations: (pins.pinnedViolations || []).filter(p => !String(p.key).includes('[scan-output-contract]'))};
+  const {unpinned, stale} = compareViolationsToPins(violations, ownPins);
   return {violations, unpinned, stale};
+}
+
+// ---------------------------------------------------------------------------
+// scan-output-contract: output-contract family (invariant #6, PD-15) static scan
+//
+// V1 class-level enumeration: every `implements Output` class in src/main/java
+//   (top-level + nested) must be in output-contract-registry.json implementationClasses;
+//   a new class not in the registry = red.
+// V2 stale class: a registry implementation class no longer `implements Output` = red.
+// V3 behavior drift: collect(OutputTag) method-body classification (scanner vocabulary:
+//   {forward, fail-fast, no-op}; precedence forward > fail-fast > no-op) vs registry class
+//   classification ({forward, fail-fast, pinned-known-violation}): body no-op + registry
+//   pinned-known-violation -> violation emitted, absorbed by transition pin (green overall);
+//   any other mismatch -> red. Unrecognized method-body forms / a registered Output class
+//   without a collect(OutputTag) method = hard error (no silent classification).
+// V4 new emission point: OutputTag-typed variable declarations (field / local variable /
+//   method parameter three forms) -> `.collect(<name>,` calls outside Output implementation
+//   class method bodies must be in the registry emissionPoints table; new = red.
+//   Implementation-class internal forwarding calls (e.g. TimestampedCollector.java:98,
+//   parameter-form OutputTag) are V1/V3 governed, NOT V4. Method declaration lines
+//   (void output(OutputTag, X)) and internal helper calls (e.g. WindowOperator.java:600
+//   sideOutput(element)) never match `.collect(`, naturally excluded. Registry line
+//   semantics = the emission point (call line), same as scan output line.
+// V5 stale emission point: a registry emission point no longer present in live code = red.
+// Pin matching: violations ⊆ mjs-pins.json (p.key exact match) = green; pins may only
+//   cover cross-task instance classes (registry classification pinned-known-violation).
+
+function loadOutputRegistry() {
+  if (!existsSync(OUTPUT_REGISTRY_FILE)) {
+    throw new Error(`output-contract registry not found: ${OUTPUT_REGISTRY_FILE} (scan-output-contract requires it)`);
+  }
+  return JSON.parse(readFileSync(OUTPUT_REGISTRY_FILE, 'utf-8'));
+}
+
+function outputContractModuleRoots() {
+  const streamRoot = join(PROJECT_ROOT, 'nop-stream');
+  if (!existsSync(streamRoot)) return [];
+  const roots = [];
+  for (const entry of readdirSync(streamRoot, {withFileTypes: true})) {
+    if (!entry.isDirectory()) continue;
+    const root = join(streamRoot, entry.name, SRC_PREFIX);
+    if (existsSync(root)) roots.push(root);
+  }
+  return roots;
+}
+
+/**
+ * Parse the type structure of a cleaned Java source: every class/interface/enum frame with
+ * its opening-brace index (nested classes included), and whether the type `implements Output`
+ * (exact word boundary — OutputTag does NOT match). Tokens `(` `)` `=` `;` between the type
+ * name and the opening `{` reject the candidate (e.g. `String.class` member access), so no
+ * false type frames are produced. Braces/extends/implements clause tokens are the only legal
+ * content between a real type name and its body.
+ */
+function parseTypeStructure(clean) {
+  const frames = [];
+  const tokenRe = /[A-Za-z_$][\w$]*|\{|\}|<|>|\(|\)|;|=/g;
+  let m;
+  let candidate = null; // {name, nameIdx}
+  while ((m = tokenRe.exec(clean)) !== null) {
+    const tok = m[0];
+    if (candidate) {
+      if (tok === '{') {
+        const implText = clean.slice(candidate.nameIdx, m.index);
+        frames.push({
+          name: candidate.name,
+          bodyStart: m.index,
+          implementsOutput: /\bimplements\b[^{]*\bOutput\b/.test(implText)
+        });
+        candidate = null;
+      } else if (tok === '(' || tok === ')' || tok === '=' || tok === ';') {
+        candidate = null; // member access / call / field init — not a type declaration
+      }
+      continue;
+    }
+    if (tok === 'class' || tok === 'interface' || tok === 'enum') {
+      const next = tokenRe.exec(clean);
+      if (next && /^[A-Za-z_$][\w$]*$/.test(next[0])) {
+        candidate = {name: next[0], nameIdx: next.index};
+      }
+      continue;
+    }
+  }
+  return frames;
+}
+
+/**
+ * Compute the body end of every frame (matching brace) and the nested name path.
+ * A frame with an unmatched opening brace is a hard parse failure (no silent skip).
+ */
+function finalizeTypeFrames(clean, frames) {
+  for (const frame of frames) {
+    let depth = 0;
+    let bodyEnd = -1;
+    for (let i = frame.bodyStart; i < clean.length; i++) {
+      if (clean[i] === '{') depth++;
+      else if (clean[i] === '}') {
+        depth--;
+        if (depth === 0) {
+          bodyEnd = i;
+          break;
+        }
+      }
+    }
+    if (bodyEnd < 0) {
+      throw new Error(`parse failure: type frame '${frame.name}' without closing brace at ${frame.bodyStart}`);
+    }
+    frame.bodyEnd = bodyEnd;
+  }
+  for (const frame of frames) {
+    const parents = frames
+        .filter(f => f !== frame && f.bodyStart < frame.bodyStart && frame.bodyEnd < f.bodyEnd)
+        .sort((a, b) => b.bodyStart - a.bodyStart)
+        .map(p => p.name)
+        .reverse();
+    frame.namePath = [...parents, frame.name];
+    frame.fqcnTail = frame.namePath.join('$');
+  }
+  return frames;
+}
+
+/**
+ * Extract the collect(OutputTag, ...) method body of a type frame (direct member only).
+ * Returns {bodyText, bodyStartIndex} or null when the method is absent. Nested parens in
+ * the parameter list are tracked; a missing body is a hard parse failure (no silent skip).
+ */
+function findCollectOutputTagMethod(frame, clean) {
+  const start = frame.bodyStart;
+  const end = frame.bodyEnd;
+  let depth = 0; // frame.bodyStart is the opening '{' — the first token consumes it, so members sit at depth 1
+  let collectParenIdx = null; // index of the '(' right after a member-level `collect` identifier
+  let parenDepth = 0;
+  const tokenRe = /[A-Za-z_$][\w$]*|\{|\}|\(|\)/g;
+  tokenRe.lastIndex = start;
+  let m;
+  while ((m = tokenRe.exec(clean)) !== null && m.index < end) {
+    const tok = m[0];
+    if (collectParenIdx !== null) {
+      if (tok === '(') {
+        parenDepth++;
+      } else if (tok === ')') {
+        if (parenDepth === 0) {
+          const params = clean.slice(collectParenIdx, m.index);
+          if (/\bOutputTag\b/.test(params)) {
+            // find the body '{' after the declaration
+            const bodyOpen = clean.indexOf('{', m.index);
+            if (bodyOpen < 0 || bodyOpen > end) {
+              throw new Error(`parse failure: collect(OutputTag) without body in ${frame.fqcnTail}`);
+            }
+            let d = 0;
+            for (let i = bodyOpen; i < end; i++) {
+              if (clean[i] === '{') d++;
+              else if (clean[i] === '}') {
+                d--;
+                if (d === 0) {
+                  return {bodyText: clean.slice(bodyOpen, i + 1), bodyStartIndex: bodyOpen};
+                }
+              }
+            }
+            throw new Error(`parse failure: unmatched brace in collect(OutputTag) body of ${frame.fqcnTail}`);
+          }
+          collectParenIdx = null;
+        } else {
+          parenDepth--;
+        }
+      }
+      continue;
+    }
+    if (tok === '{') {
+      depth++;
+    } else if (tok === '}') {
+      depth--;
+    } else if (tok === 'collect' && depth === 1) {
+      // candidate member-level method named collect; expect '(' right after
+      const nextTok = tokenRe.exec(clean);
+      if (nextTok && nextTok[0] === '(' && nextTok.index < end) {
+        collectParenIdx = nextTok.index;
+        parenDepth = 0;
+      }
+    }
+  }
+  return null;
+}
+
+function classifyCollectBody(bodyText) {
+  // bodyText spans the method body INCLUDING the wrapping { ... } — strip them first
+  const inner = bodyText.replace(/^\s*\{/, '').replace(/\}\s*$/, '');
+  const forwardRe = /(?:consumer\.accept\s*\(|\.collect\s*\(|\.accept\s*\()/;
+  const failFastRe = /\bthrow\s/;
+  if (forwardRe.test(inner)) return 'forward';
+  if (failFastRe.test(inner)) return 'fail-fast';
+  const stripped = inner
+      .replace(/\/\/[^\n]*/g, '')
+      .replace(/\/\*[\s\S]*?\*\//g, '');
+  if (stripped.trim().length === 0) return 'no-op';
+  throw new Error(`unrecognized collect(OutputTag) method body form (not forward/fail-fast/no-op): ${inner.slice(0, 120).trim()}`);
+}
+
+function lineOfIndex(text, index) {
+  return text.substring(0, index).split('\n').length;
+}
+
+/**
+ * Analyze one source file (cleaned) for the output-contract scan.
+ * Returns {implClasses: [{fqcn, frame, body, bodyClass, line}], emissionPoints: [{line, name}]}.
+ */
+function analyzeOutputContractSource(clean, rel) {
+  const pkgMatch = clean.match(/^package\s+([\w.]+)\s*;/m);
+  const pkg = pkgMatch ? pkgMatch[1] : '';
+  const frames = finalizeTypeFrames(clean, parseTypeStructure(clean));
+  const implFrames = frames.filter(f => f.implementsOutput);
+  const implClasses = [];
+  for (const frame of implFrames) {
+    const body = findCollectOutputTagMethod(frame, clean);
+    if (!body) {
+      throw new Error(`parse failure: registered Output implementation ${frame.fqcnTail} has no collect(OutputTag) method (${rel})`);
+    }
+    implClasses.push({
+      fqcn: pkg ? `${pkg}.${frame.fqcnTail}` : frame.fqcnTail,
+      frame,
+      body,
+      bodyClass: classifyCollectBody(body.bodyText),
+      line: lineOfIndex(clean, body.bodyStartIndex)
+    });
+  }
+  // V4: OutputTag-typed declarations (field / local / method parameter forms)
+  const declared = new Set();
+  const tagDeclRe = /\bOutputTag\s*<[^>]*>\s+(?:final\s+)?([A-Za-z_$][\w$]*)/g;
+  let m;
+  while ((m = tagDeclRe.exec(clean)) !== null) declared.add(m[1]);
+  const tagParamRe = /\(\s*(?:final\s+)?OutputTag\s*<[^>]*>\s+([A-Za-z_$][\w$]*)/g;
+  while ((m = tagParamRe.exec(clean)) !== null) declared.add(m[1]);
+  const emissionPoints = [];
+  for (const name of declared) {
+    const callRe = new RegExp('\\.collect\\s*\\(\\s*' + name + '\\s*,', 'g');
+    let cm;
+    while ((cm = callRe.exec(clean)) !== null) {
+      const insideImpl = implFrames.some(f => cm.index >= f.bodyStart && cm.index <= f.bodyEnd);
+      if (insideImpl) continue; // implementation-class internal forwarding -> V1/V3 governed
+      emissionPoints.push({line: lineOfIndex(clean, cm.index), name});
+    }
+  }
+  return {implClasses, emissionPoints};
+}
+
+function outputContractLive(registry) {
+  // returns {liveClasses: Map<fqcn, {rel, impl}>, liveEmissionPoints: Set<rel:line>}
+  const liveClasses = new Map();
+  const liveEmissionPoints = new Set();
+  for (const root of outputContractModuleRoots()) {
+    const walk = dir => {
+      for (const entry of readdirSync(dir, {withFileTypes: true})) {
+        const full = join(dir, entry.name);
+        if (entry.isDirectory()) walk(full);
+        else if (entry.name.endsWith('.java')) {
+          const rel = relative(PROJECT_ROOT, full);
+          const clean = stripAnnotations(stripCommentsAndStrings(readFileSync(full, 'utf-8')));
+          const analyzed = analyzeOutputContractSource(clean, rel);
+          for (const impl of analyzed.implClasses) {
+            liveClasses.set(impl.fqcn, {rel, impl});
+          }
+          for (const point of analyzed.emissionPoints) {
+            liveEmissionPoints.add(`${rel}:${point.line}`);
+          }
+        }
+      }
+    };
+    walk(root);
+  }
+  return {liveClasses, liveEmissionPoints};
+}
+
+/**
+ * V1-V5 evaluation against a registry and live data (shared by the disk scan and the
+ * self-test fixtures, so fixtures exercise exactly the production code path).
+ */
+function evaluateOutputContract(registry, liveClasses, liveEmissionPoints) {
+  const violations = [];
+  const registeredFqcns = new Set((registry.implementationClasses || []).map(c => c.fqcn));
+
+  // V1: live implementation class not in the registry -> red
+  for (const [fqcn, {rel}] of [...liveClasses].sort()) {
+    if (!registeredFqcns.has(fqcn)) {
+      violations.push(`[scan-output-contract] V1 Output implementation class not in registry: ${fqcn} (${rel})`);
+    }
+  }
+  // V2: registry class no longer implements Output -> red
+  for (const entry of (registry.implementationClasses || [])) {
+    if (!liveClasses.has(entry.fqcn)) {
+      violations.push(`[scan-output-contract] V2 registry class no longer implements Output: ${entry.fqcn} (${entry.file})`);
+    }
+  }
+  // V3: behavior drift — body classification vs registry classification. A `no-op` body on a
+  // `pinned-known-violation` class IS a mismatch (violation emitted) but is absorbed by the
+  // transition pin (green overall); any other mismatch is red. A flip to fail-fast/forward
+  // changes the violation string, so the pin no longer matches -> unpinned violation + stale
+  // pin = red, forcing the registry classification update together with the I4 fix.
+  for (const entry of (registry.implementationClasses || [])) {
+    const live = liveClasses.get(entry.fqcn);
+    if (!live) continue; // V2 already reported
+    const bodyClass = live.impl.bodyClass;
+    const registryClass = entry.classification;
+    if (bodyClass !== registryClass) {
+      violations.push(`[scan-output-contract] V3 behavior drift: ${entry.fqcn} collect(OutputTag) `
+          + `body-classification=${bodyClass} registry-classification=${registryClass} (${live.rel}:${live.impl.line})`);
+    }
+  }
+  // V4: emission point not in the registry -> red
+  const registryKeys = new Set((registry.emissionPoints || []).map(p => `${p.file}:${p.line}`));
+  for (const point of [...liveEmissionPoints].sort()) {
+    if (!registryKeys.has(point)) {
+      violations.push(`[scan-output-contract] V4 emission point not in registry: ${point}`);
+    }
+  }
+  // V5: registry emission point no longer present -> red
+  for (const entry of (registry.emissionPoints || [])) {
+    const key = `${entry.file}:${entry.line}`;
+    if (!liveEmissionPoints.has(key)) {
+      violations.push(`[scan-output-contract] V5 registry emission point no longer exists: ${key}`);
+    }
+  }
+  return violations;
+}
+
+/** Pins carrying the scan-output-contract tag may only cover cross-task instance classes. */
+function validateOutputContractPins(pins, registry) {
+  const pinnedFqcns = new Set((registry.implementationClasses || [])
+      .filter(c => c.classification === 'pinned-known-violation').map(c => c.fqcn));
+  const errors = [];
+  for (const p of (pins.pinnedViolations || [])) {
+    if (String(p.key).includes('[scan-output-contract]') && ![...pinnedFqcns].some(fq => p.key.includes(fq))) {
+      errors.push(`scan-output-contract pin not covering a cross-task instance class: ${p.key}`);
+    }
+  }
+  return errors;
+}
+
+function runScanOutputContract() {
+  const registry = loadOutputRegistry();
+  const {liveClasses, liveEmissionPoints} = outputContractLive(registry);
+  const violations = evaluateOutputContract(registry, liveClasses, liveEmissionPoints);
+  const pins = loadPins();
+  // only output-contract pins participate in this scan's pin matching
+  const ownPins = {pinnedViolations: (pins.pinnedViolations || []).filter(p => String(p.key).includes('[scan-output-contract]'))};
+  const {unpinned, stale} = compareViolationsToPins(violations, ownPins);
+  return {violations, unpinned, stale, pinErrors: validateOutputContractPins(ownPins, registry)};
 }
 
 // ---------------------------------------------------------------------------
@@ -662,7 +1030,178 @@ class GoodSink {
     failures.push(`stale-pin detection: expected 1 stale pin, got ${JSON.stringify(staleResult)}`);
   }
 
+  // ---------------------------------------------------------------------------
+  // scan-output-contract self-test fixtures (invariant #6): V1-V5 positive/negative
+
+  // V3 positive: forward body + registry forward -> no V3 violation; registered emission point -> no V4
+  const fwdFixture = `
+package fixtures;
+import java.util.function.Consumer;
+class FwdOutput implements Output<StreamRecord<String>> {
+    private final java.util.Map<OutputTag<?>, Consumer<StreamRecord<?>>> consumers;
+    public <X> void collect(OutputTag<X> outputTag, StreamRecord<X> record) {
+        Consumer<StreamRecord<X>> c = (Consumer<StreamRecord<X>>) (Consumer<?>) consumers.get(outputTag);
+        c.accept(record);
+    }
+}`;
+  const fwdLive = analyzeFixtureSources([{rel: 'fixtures/FwdOutput.java', src: fwdFixture}]);
+  const fwdRegistry = {implementationClasses: [{fqcn: 'fixtures.FwdOutput', file: 'fixtures/FwdOutput.java', classification: 'forward'}], emissionPoints: []};
+  const fwdViolations = evaluateOutputContract(fwdRegistry, fwdLive.liveClasses, fwdLive.liveEmissionPoints);
+  if (fwdViolations.length !== 0) {
+    failures.push(`output-contract V3/V4 positive: expected 0 violations for forward body + self-consistent registry, got ${JSON.stringify(fwdViolations)}`);
+  }
+
+  // V3 negative (empty body not pinned): registry forward, body no-op -> behavior drift violation
+  const emptyFixture = `
+package fixtures;
+class EmptyOutput implements Output<StreamRecord<String>> {
+    public <X> void collect(OutputTag<X> outputTag, StreamRecord<X> record) {
+        // comment only — empty body
+    }
+}`;
+  const emptyLive = analyzeFixtureSources([{rel: 'fixtures/EmptyOutput.java', src: emptyFixture}]);
+  const emptyRegistry = {implementationClasses: [{fqcn: 'fixtures.EmptyOutput', file: 'fixtures/EmptyOutput.java', classification: 'forward'}], emissionPoints: []};
+  const emptyViolations = evaluateOutputContract(emptyRegistry, emptyLive.liveClasses, emptyLive.liveEmissionPoints);
+  if (emptyViolations.length !== 1 || !emptyViolations[0].includes('V3 behavior drift')) {
+    failures.push(`output-contract V3 negative: expected exactly 1 V3 behavior-drift violation for unpinned empty body, got ${JSON.stringify(emptyViolations)}`);
+  }
+
+  // V3 pinned absorption: registry pinned-known-violation + matching pin -> green; stale pin -> red
+  const pinnedRegistry = {implementationClasses: [{fqcn: 'fixtures.EmptyOutput', file: 'fixtures/EmptyOutput.java', classification: 'pinned-known-violation'}], emissionPoints: []};
+  const pinnedViolations = evaluateOutputContract(pinnedRegistry, emptyLive.liveClasses, emptyLive.liveEmissionPoints);
+  if (pinnedViolations.length !== 1 || !pinnedViolations[0].includes('body-classification=no-op registry-classification=pinned-known-violation')) {
+    failures.push(`output-contract V3 pin semantics: expected 1 pin-eligible V3 violation for pinned no-op, got ${JSON.stringify(pinnedViolations)}`);
+  }
+  const pinnedOk = {pinnedViolations: [{key: pinnedViolations[0], id: 'fixture-empty', file: 'fixtures/EmptyOutput.java', invariant: '#6', classification: 'known-violation'}]};
+  const absorbed = compareViolationsToPins(pinnedViolations, pinnedOk);
+  if (absorbed.unpinned.length !== 0 || absorbed.stale.length !== 0) {
+    failures.push(`output-contract pin absorption: expected pinned violation absorbed, got ${JSON.stringify(absorbed)}`);
+  }
+  const staleOutPins = {pinnedViolations: [{key: pinnedViolations[0], id: 'fixture-empty', file: 'fixtures/EmptyOutput.java', invariant: '#6', classification: 'known-violation'}]};
+  const staleOut = compareViolationsToPins([], staleOutPins);
+  if (staleOut.stale.length !== 1) {
+    failures.push(`output-contract stale-pin detection: expected 1 stale #6 pin, got ${JSON.stringify(staleOut)}`);
+  }
+
+  // V1 negative: live Output implementation class missing from the registry -> V1 violation
+  const unregistered = evaluateOutputContract({implementationClasses: [], emissionPoints: []}, emptyLive.liveClasses, emptyLive.liveEmissionPoints);
+  if (!unregistered.some(v => v.includes('V1 Output implementation class not in registry: fixtures.EmptyOutput'))) {
+    failures.push(`output-contract V1 negative: expected V1 violation for class not in registry, got ${JSON.stringify(unregistered)}`);
+  }
+
+  // V4 positive + parameter-form: ProcessOperator-style param-declared OutputTag emission
+  // detected as an emission point; registered -> green, unregistered -> red
+  const emitterFixture = `
+package fixtures;
+class EmitterOperator {
+    private Output<StreamRecord<Object>> output;
+    public <X> void output(OutputTag<X> outputTag, X value) {
+        output.collect(outputTag, new StreamRecord<>(value));
+    }
+}`;
+  const emitterLive = analyzeFixtureSources([{rel: 'fixtures/EmitterOperator.java', src: emitterFixture}]);
+  const emitterPoint = emitterLive.liveEmissionPoints.values().next().value;
+  const emitterRegistry = {implementationClasses: [], emissionPoints: [{file: 'fixtures/EmitterOperator.java', line: Number(emitterPoint.split(':')[1])}]};
+  const emitterGreen = evaluateOutputContract(emitterRegistry, emitterLive.liveClasses, emitterLive.liveEmissionPoints);
+  if (emitterGreen.some(v => v.includes('V4'))) {
+    failures.push(`output-contract V4 positive: registered parameter-form emission point must be green, got ${JSON.stringify(emitterGreen)}`);
+  }
+  const emitterRed = evaluateOutputContract({implementationClasses: [], emissionPoints: []}, emitterLive.liveClasses, emitterLive.liveEmissionPoints);
+  if (!emitterRed.some(v => v.includes('V4 emission point not in registry'))) {
+    failures.push(`output-contract V4 negative: unregistered emission point must be red, got ${JSON.stringify(emitterRed)}`);
+  }
+
+  // V4 exclusion: TimestampedCollector-style implementation-internal forwarding call
+  // (parameter-form OutputTag inside an Output class method body) is NOT a V4 emission point
+  const passThroughFixture = `
+package fixtures;
+class PassThroughOutput implements Output<StreamRecord<String>> {
+    private Output<StreamRecord<String>> output;
+    public <X> void collect(OutputTag<X> outputTag, StreamRecord<X> record) {
+        output.collect(outputTag, record);
+    }
+}`;
+  const passThroughLive = analyzeFixtureSources([{rel: 'fixtures/PassThroughOutput.java', src: passThroughFixture}]);
+  if (passThroughLive.liveEmissionPoints.size !== 0) {
+    failures.push(`output-contract V4 exclusion: implementation-internal forwarding must NOT be a V4 emission point, got ${JSON.stringify([...passThroughLive.liveEmissionPoints])}`);
+  }
+  const passThroughRegistry = {implementationClasses: [{fqcn: 'fixtures.PassThroughOutput', file: 'fixtures/PassThroughOutput.java', classification: 'forward'}], emissionPoints: []};
+  const passThroughViolations = evaluateOutputContract(passThroughRegistry, passThroughLive.liveClasses, passThroughLive.liveEmissionPoints);
+  if (passThroughViolations.length !== 0) {
+    failures.push(`output-contract V1/V3 positive: pass-through impl class classified forward must be green, got ${JSON.stringify(passThroughViolations)}`);
+  }
+
+  // V5 negative: registry emission point no longer present -> red
+  const v5Registry = {implementationClasses: [], emissionPoints: [{file: 'fixtures/Gone.java', line: 7}]};
+  const v5 = evaluateOutputContract(v5Registry, emitterLive.liveClasses, emitterLive.liveEmissionPoints);
+  if (!v5.some(v => v.includes('V5 registry emission point no longer exists: fixtures/Gone.java:7'))) {
+    failures.push(`output-contract V5 negative: stale registry emission point must be red, got ${JSON.stringify(v5)}`);
+  }
+
+  // V2 negative: registry class no longer implements Output -> red
+  const v2Registry = {implementationClasses: [{fqcn: 'fixtures.DeletedOutput', file: 'fixtures/DeletedOutput.java', classification: 'forward'}], emissionPoints: []};
+  const v2 = evaluateOutputContract(v2Registry, emptyLive.liveClasses, emptyLive.liveEmissionPoints);
+  if (!v2.some(v => v.includes('V2 registry class no longer implements Output: fixtures.DeletedOutput'))) {
+    failures.push(`output-contract V2 negative: registry class missing from live code must be red, got ${JSON.stringify(v2)}`);
+  }
+
+  // no-silent-skip: an unrecognized collect(OutputTag) body form must be a hard error
+  const weirdFixture = `
+package fixtures;
+class WeirdOutput implements Output<StreamRecord<String>> {
+    public <X> void collect(OutputTag<X> outputTag, StreamRecord<X> record) {
+        System.out.println("not forward, not fail-fast, not a comment-only body");
+    }
+}`;
+  try {
+    analyzeFixtureSources([{rel: 'fixtures/WeirdOutput.java', src: weirdFixture}]);
+    failures.push('output-contract no-silent-skip: unrecognized collect(OutputTag) body must throw, but it did not');
+  } catch (e) {
+    if (!String(e.message).includes('unrecognized collect(OutputTag)')) {
+      failures.push(`output-contract no-silent-skip: unexpected error: ${e.message}`);
+    }
+  }
+
+  // committed fixture: OutputContractFixture.java contains a deliberate unpinned empty body
+  // (V3) and an unregistered emission point (V4) — the scanner must flag both.
+  const committedFixture = join(FIXTURES_DIR, 'OutputContractFixture.java');
+  if (existsSync(committedFixture)) {
+    const src = readFileSync(committedFixture, 'utf-8');
+    const clean = stripAnnotations(stripCommentsAndStrings(src));
+    const analyzed = analyzeOutputContractSource(clean, 'fixtures/OutputContractFixture.java');
+    const fixtureLive = analyzeFixtureSources([{rel: 'fixtures/OutputContractFixture.java', src}]);
+    const fixtureRegistry = {
+      implementationClasses: (analyzed.implClasses).map(c => ({fqcn: c.fqcn, file: 'fixtures/OutputContractFixture.java', classification: 'forward'})),
+      emissionPoints: []
+    };
+    const fixtureViolations = evaluateOutputContract(fixtureRegistry, fixtureLive.liveClasses, fixtureLive.liveEmissionPoints);
+    if (!fixtureViolations.some(v => v.includes('V3 behavior drift'))) {
+      failures.push(`output-contract fixture: expected V3 behavior drift for committed empty-body fixture, got ${JSON.stringify(fixtureViolations)}`);
+    }
+    if (!fixtureViolations.some(v => v.includes('V4 emission point not in registry'))) {
+      failures.push(`output-contract fixture: expected V4 violation for committed unregistered emission point, got ${JSON.stringify(fixtureViolations)}`);
+    }
+  } else {
+    failures.push('output-contract fixture: OutputContractFixture.java missing — cannot prove scanner can go red on committed violations');
+  }
+
   return failures;
+}
+
+function analyzeFixtureSources(sources) {
+  const liveClasses = new Map();
+  const liveEmissionPoints = new Set();
+  for (const {rel, src} of sources) {
+    const clean = stripAnnotations(stripCommentsAndStrings(src));
+    const analyzed = analyzeOutputContractSource(clean, rel);
+    for (const impl of analyzed.implClasses) {
+      liveClasses.set(impl.fqcn, {rel, impl});
+    }
+    for (const point of analyzed.emissionPoints) {
+      liveEmissionPoints.add(`${rel}:${point.line}`);
+    }
+  }
+  return {liveClasses, liveEmissionPoints};
 }
 
 function scanIterationsFileRaw(clean, rel) {
@@ -757,6 +1296,21 @@ function main() {
         ok = printViolations('scan-iterations (synchronized collection iteration)', unpinned) && ok;
         break;
       }
+      case 'scan-output-contract': {
+        const {unpinned, stale, pinErrors} = runScanOutputContract();
+        if (stale.length > 0) {
+          console.error(`scan-output-contract: ${stale.length} stale pin(s) (pinned violation no longer present — remove or update pin record)`);
+          for (const s of stale) console.error('  ' + s);
+          ok = false;
+        }
+        if (pinErrors.length > 0) {
+          console.error(`scan-output-contract: ${pinErrors.length} invalid pin(s) (pins may only cover cross-task instance classes)`);
+          for (const s of pinErrors) console.error('  ' + s);
+          ok = false;
+        }
+        ok = printViolations('scan-output-contract (invariant #6 V1-V5)', unpinned) && ok;
+        break;
+      }
       case 'self-test': {
         const failures = runSelfTest();
         ok = printViolations('self-test', failures) && ok;
@@ -778,13 +1332,25 @@ function main() {
           ok = false;
         }
         ok = printViolations('scan-iterations', unpinned) && ok;
+        const outputContract = runScanOutputContract();
+        if (outputContract.stale.length > 0) {
+          console.error(`scan-output-contract: ${outputContract.stale.length} stale pin(s)`);
+          for (const s of outputContract.stale) console.error('  ' + s);
+          ok = false;
+        }
+        if (outputContract.pinErrors.length > 0) {
+          console.error(`scan-output-contract: ${outputContract.pinErrors.length} invalid pin(s)`);
+          for (const s of outputContract.pinErrors) console.error('  ' + s);
+          ok = false;
+        }
+        ok = printViolations('scan-output-contract', outputContract.unpinned) && ok;
         const failures = runSelfTest();
         ok = printViolations('self-test', failures) && ok;
         break;
       }
       default:
         console.error(`Unknown command: ${command}`);
-        console.error('Usage: node ai-dev/tools/check-nop-stream-invariants.mjs [inventory|sync|scan-iterations|self-test|init|all]');
+        console.error('Usage: node ai-dev/tools/check-nop-stream-invariants.mjs [inventory|sync|scan-iterations|scan-output-contract|self-test|init|all]');
         process.exit(2);
     }
   } catch (e) {
