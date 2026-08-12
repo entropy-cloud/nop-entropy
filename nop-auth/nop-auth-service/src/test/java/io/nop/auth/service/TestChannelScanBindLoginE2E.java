@@ -39,6 +39,7 @@ import io.nop.dao.jdbc.impl.JdbcFactory;
 import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.context.ServiceContextImpl;
+import io.nop.core.unittest.VarCollector;
 import io.nop.integration.api.bind.BindTicket;
 import io.nop.integration.api.bind.ChannelScanCallback;
 import io.nop.integration.api.channel.ChannelTypeCodes;
@@ -150,6 +151,14 @@ class TestChannelScanBindLoginE2E {
 
     @BeforeEach
     void setUp() {
+        // Defensive: AutoTestCase-based sibling tests legitimately reset the global
+        // VarCollector singleton to null on teardown. This E2E test (not an AutoTestCase)
+        // calls VarCollector.instance() via the real LoginApiBizModel, so ensure a
+        // non-null collector exists when this class happens to run after them.
+        // Order-dependent flakiness fix; only restores the default when nulled.
+        if (VarCollector.instance() == null) {
+            VarCollector.registerInstance(new VarCollector());
+        }
         buildH2Stack();
         wireRealBeans();
     }

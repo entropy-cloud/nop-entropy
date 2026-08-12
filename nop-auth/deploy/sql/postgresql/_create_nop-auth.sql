@@ -260,6 +260,26 @@ CREATE TABLE nop_auth_group(
   constraint PK_nop_auth_group primary key (group_id)
 );
 
+CREATE TABLE nop_auth_mfa_setting(
+  user_id VARCHAR(50) NOT NULL ,
+  mfa_type VARCHAR(10)  ,
+  secret VARCHAR(500)  ,
+  status VARCHAR(20) NOT NULL ,
+  bind_token VARCHAR(64)  ,
+  phone VARCHAR(50)  ,
+  last_verified_window INT8  ,
+  last_verified_at TIMESTAMP  ,
+  del_flag INT4 NOT NULL ,
+  version INT4 NOT NULL ,
+  tenant_id VARCHAR(32)  ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint PK_nop_auth_mfa_setting primary key (user_id)
+);
+
 CREATE TABLE nop_auth_role_resource(
   sid VARCHAR(32) NOT NULL ,
   role_id VARCHAR(50) NOT NULL ,
@@ -314,6 +334,22 @@ CREATE TABLE nop_auth_group_user(
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
   constraint PK_nop_auth_group_user primary key (user_id,group_id)
+);
+
+CREATE TABLE nop_auth_mfa_recovery_code(
+  sid VARCHAR(32) NOT NULL ,
+  user_id VARCHAR(50) NOT NULL ,
+  code_hash VARCHAR(100) NOT NULL ,
+  used INT4 default 0   ,
+  used_at TIMESTAMP  ,
+  expire_at TIMESTAMP  ,
+  del_flag INT4 NOT NULL ,
+  version INT4 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  constraint PK_nop_auth_mfa_recovery_code primary key (sid)
 );
 
 
@@ -755,6 +791,40 @@ CREATE TABLE nop_auth_group_user(
                     
       COMMENT ON COLUMN nop_auth_group.remark IS '备注';
                     
+      COMMENT ON TABLE nop_auth_mfa_setting IS '用户MFA配置';
+                
+      COMMENT ON COLUMN nop_auth_mfa_setting.user_id IS '用户ID';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_setting.mfa_type IS 'MFA类型';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_setting.secret IS 'TOTP密钥';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_setting.status IS '绑定状态';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_setting.bind_token IS '绑定令牌';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_setting.phone IS 'MFA手机号';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_setting.last_verified_window IS '最近验证窗口';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_setting.last_verified_at IS '最近验证时间';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_setting.del_flag IS '删除标识';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_setting.version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_setting.tenant_id IS '租户ID';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_setting.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_setting.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_setting.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_setting.update_time IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_setting.remark IS '备注';
+                    
       COMMENT ON TABLE nop_auth_role_resource IS '角色可访问资源';
                 
       COMMENT ON COLUMN nop_auth_role_resource.sid IS '主键';
@@ -842,4 +912,30 @@ CREATE TABLE nop_auth_group_user(
       COMMENT ON COLUMN nop_auth_group_user.update_time IS '修改时间';
                     
       COMMENT ON COLUMN nop_auth_group_user.remark IS '备注';
+                    
+      COMMENT ON TABLE nop_auth_mfa_recovery_code IS 'MFA恢复码';
+                
+      COMMENT ON COLUMN nop_auth_mfa_recovery_code.sid IS '主键';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_recovery_code.user_id IS '用户ID';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_recovery_code.code_hash IS '恢复码哈希';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_recovery_code.used IS '已使用';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_recovery_code.used_at IS '使用时间';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_recovery_code.expire_at IS '过期时间';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_recovery_code.del_flag IS '删除标识';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_recovery_code.version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_recovery_code.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_recovery_code.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_recovery_code.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_recovery_code.update_time IS '修改时间';
                     

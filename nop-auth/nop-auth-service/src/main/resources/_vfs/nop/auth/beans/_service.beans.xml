@@ -98,6 +98,14 @@
         <property name="bizObjName" value="NopAuthGroup"/>
     </bean>
 
+    <bean id="io.nop.auth.service.entity.NopAuthMfaSettingBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopAuthMfaSetting" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.auth.biz.INopAuthMfaSettingBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopAuthMfaSetting"/>
+    </bean>
+
     <bean id="io.nop.auth.service.entity.NopAuthRoleResourceBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="biz_NopAuthRoleResource" class="io.nop.biz.proxy.BizProxyFactoryBean"
@@ -125,5 +133,13 @@
     <bean id="biz_NopAuthGroupUser" class="io.nop.biz.proxy.BizProxyFactoryBean"
           ioc:type="io.nop.auth.biz.INopAuthGroupUserBiz" ioc:force-lazy-property="true" lazy-init="true" primary="true">
         <property name="bizObjName" value="NopAuthGroupUser"/>
+    </bean>
+
+    <bean id="io.nop.auth.service.entity.NopAuthMfaRecoveryCodeBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopAuthMfaRecoveryCode" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.auth.biz.INopAuthMfaRecoveryCodeBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopAuthMfaRecoveryCode"/>
     </bean>
 </beans>

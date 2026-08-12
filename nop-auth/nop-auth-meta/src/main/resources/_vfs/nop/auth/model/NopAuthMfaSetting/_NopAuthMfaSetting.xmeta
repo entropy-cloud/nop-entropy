@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" ext:model="orm" ext:icon="shield-check" ext:web-renderer="" xmlns:c="c" xmlns:graphql="graphql"
+      xmlns:meta-gen="meta-gen" xmlns:biz="biz" displayName="用户MFA配置" i18n-en:displayName="MFA Setting"
+      tagSet="mapper,no-tenant" xmlns:ui="ui" xmlns:orm="orm">
+
+    <entityName>io.nop.auth.dao.entity.NopAuthMfaSetting</entityName>
+
+    <primaryKey>userId</primaryKey>
+
+    <x:gen-extends>
+        <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:post-extends>
+
+    <keys/>
+
+    <props>
+        <prop name="userId" displayName="用户ID" propId="1" i18n-en:displayName="User ID" tagSet="seq" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false" ext:relation="user">
+            <schema domain="userId" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="mfaType" displayName="MFA类型" propId="2" i18n-en:displayName="MFA Type" queryable="true"
+              sortable="true" insertable="true" updatable="true" ui:show="L">
+            <schema type="java.lang.String" precision="10"/>
+        </prop>
+        <prop name="secret" displayName="TOTP密钥" propId="3" i18n-en:displayName="Secret" tagSet="masked,var,not-pub"
+              published="false" queryable="true" sortable="true" insertable="true" updatable="true" internal="true"
+              ui:show="X">
+            <schema type="java.lang.String" precision="500"/>
+        </prop>
+        <prop name="status" displayName="绑定状态" propId="4" i18n-en:displayName="Status" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true" ui:show="L">
+            <schema type="java.lang.String" precision="20"/>
+        </prop>
+        <prop name="bindToken" displayName="绑定令牌" propId="5" i18n-en:displayName="Bind Token" tagSet="var,not-pub"
+              published="false" queryable="true" sortable="true" insertable="true" updatable="true" internal="true"
+              ui:show="X">
+            <schema type="java.lang.String" precision="64"/>
+        </prop>
+        <prop name="phone" displayName="MFA手机号" propId="6" i18n-en:displayName="MFA Phone" queryable="true"
+              sortable="true" insertable="true" updatable="true" ui:show="L">
+            <schema domain="phone" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="lastVerifiedWindow" displayName="最近验证窗口" propId="7" i18n-en:displayName="Last Verified Window"
+              queryable="true" sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
+            <schema type="java.lang.Long"/>
+        </prop>
+        <prop name="lastVerifiedAt" displayName="最近验证时间" propId="8" i18n-en:displayName="Last Verified At"
+              queryable="true" sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="delFlag" displayName="删除标识" propId="9" i18n-en:displayName="Deleted" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="true" internal="true" ui:show="X">
+            <schema stdDomain="boolFlag" domain="delFlag" type="java.lang.Byte"/>
+        </prop>
+        <prop name="version" displayName="数据版本" propId="10" i18n-en:displayName="Version" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
+            <schema domain="version" type="java.lang.Integer"/>
+        </prop>
+        <prop name="tenantId" displayName="租户ID" propId="11" i18n-en:displayName="Tenant ID" queryable="true"
+              sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="createdBy" displayName="创建人" propId="12" i18n-en:displayName="Created By" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false" ui:show="L">
+            <schema domain="createdBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="createTime" displayName="创建时间" propId="13" i18n-en:displayName="Create Time" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false" ui:show="L">
+            <schema domain="createTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="updatedBy" displayName="修改人" propId="14" i18n-en:displayName="Updated By" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false" ui:show="L">
+            <schema domain="updatedBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="updateTime" displayName="修改时间" propId="15" i18n-en:displayName="Update Time" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false" ui:show="L">
+            <schema domain="updateTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="remark" displayName="备注" propId="16" i18n-en:displayName="Remark" queryable="true" sortable="true"
+              insertable="true" updatable="true" ui:show="S">
+            <schema domain="remark" type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="user" displayName="用户" i18n-en:displayName="User" tagSet="pub,ref-pub" ext:kind="to-one"
+              internal="true" queryable="true" ext:joinLeftProp="userId" ext:joinRightProp="userId"
+              ext:joinRightDisplayProp="userName" insertable="false" updatable="false" mandatory="true" lazy="true">
+            <schema bizObjName="NopAuthUser"/>
+        </prop>
+        <prop name="user.userName" displayName="用户" i18n-en:displayName="User" internal="true" queryable="true"
+              sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="recoveryCodes" displayName="恢复码" i18n-en:displayName="Recovery Codes"
+              tagSet="pub,cascade-delete,insertable,updatable" ext:kind="to-many" internal="true"
+              ext:joinLeftProp="userId" ext:joinRightProp="userId" insertable="true" updatable="true" lazy="true">
+            <schema>
+                <item bizObjName="NopAuthMfaRecoveryCode"/>
+            </schema>
+        </prop>
+    </props>
+</meta>

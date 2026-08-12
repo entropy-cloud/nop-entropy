@@ -5,6 +5,8 @@ entity:
     NopAuthGroup: User Group
     NopAuthGroupDept: Group Department
     NopAuthGroupUser: Group User
+    NopAuthMfaRecoveryCode: MFA Recovery Code
+    NopAuthMfaSetting: MFA Setting
     NopAuthOpLog: Operation Log
     NopAuthPosition: Position
     NopAuthResource: Menu Resource
@@ -118,6 +120,42 @@ prop:
       user.userName: User
       group: Group
       group.name: Group
+    NopAuthMfaRecoveryCode:
+      sid: SID
+      userId: User ID
+      codeHash: Code Hash
+      used: Used
+      usedAt: Used At
+      expireAt: Expire At
+      delFlag: Deleted
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      user: User
+      user.userName: User
+      setting: MFA Setting
+    NopAuthMfaSetting:
+      userId: User ID
+      mfaType: MFA Type
+      secret: Secret
+      status: Status
+      bindToken: Bind Token
+      phone: MFA Phone
+      lastVerifiedWindow: Last Verified Window
+      lastVerifiedAt: Last Verified At
+      delFlag: Deleted
+      version: Version
+      tenantId: Tenant ID
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      user: User
+      user.userName: User
+      recoveryCodes: Recovery Codes
     NopAuthOpLog:
       logId: LOG_ID
       userName: USER_NAME

@@ -1,0 +1,21 @@
+{
+  "userId": "",
+  "mfaType": "",
+  "secret": "",
+  "status": "",
+  "bindToken": "",
+  "phone": "",
+  "lastVerifiedWindow": 0,
+  "lastVerifiedAt": "2000-01-01 14:00:00",
+  "delFlag": 0,
+  "version": 0,
+  "tenantId": "",
+  "createdBy": "",
+  "createTime": "2000-01-01 14:00:00",
+  "updatedBy": "",
+  "updateTime": "2000-01-01 14:00:00",
+  "remark": "",
+  "user": null,
+  "user.userName": "",
+  "recoveryCodes": null
+}

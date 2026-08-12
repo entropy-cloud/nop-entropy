@@ -5,6 +5,8 @@ entity:
     NopAuthGroup: 用户组
     NopAuthGroupDept: 分组部门
     NopAuthGroupUser: 分组用户
+    NopAuthMfaRecoveryCode: MFA恢复码
+    NopAuthMfaSetting: 用户MFA配置
     NopAuthOpLog: 操作日志
     NopAuthPosition: 岗位
     NopAuthResource: 菜单资源
@@ -112,6 +114,42 @@ prop:
       group.name: 分组
       groupId: 分组ID
       remark: 备注
+      updateTime: 修改时间
+      updatedBy: 修改人
+      user: 用户
+      user.userName: 用户
+      userId: 用户ID
+      version: 数据版本
+    NopAuthMfaRecoveryCode:
+      codeHash: 恢复码哈希
+      createTime: 创建时间
+      createdBy: 创建人
+      delFlag: 删除标识
+      expireAt: 过期时间
+      setting: MFA配置
+      sid: 主键
+      updateTime: 修改时间
+      updatedBy: 修改人
+      used: 已使用
+      usedAt: 使用时间
+      user: 用户
+      user.userName: 用户
+      userId: 用户ID
+      version: 数据版本
+    NopAuthMfaSetting:
+      bindToken: 绑定令牌
+      createTime: 创建时间
+      createdBy: 创建人
+      delFlag: 删除标识
+      lastVerifiedAt: 最近验证时间
+      lastVerifiedWindow: 最近验证窗口
+      mfaType: MFA类型
+      phone: MFA手机号
+      recoveryCodes: 恢复码
+      remark: 备注
+      secret: TOTP密钥
+      status: 绑定状态
+      tenantId: 租户ID
       updateTime: 修改时间
       updatedBy: 修改人
       user: 用户

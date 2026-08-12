@@ -12,6 +12,14 @@ site:
       displayName: Modify User Group
     FNPT:NopAuthGroup:query:
       displayName: Query User Group
+    FNPT:NopAuthMfaRecoveryCode:mutation:
+      displayName: Modify MFA Recovery Code
+    FNPT:NopAuthMfaRecoveryCode:query:
+      displayName: Query MFA Recovery Code
+    FNPT:NopAuthMfaSetting:mutation:
+      displayName: Modify MFA Setting
+    FNPT:NopAuthMfaSetting:query:
+      displayName: Query MFA Setting
     FNPT:NopAuthOpLog:mutation:
       displayName: Modify Operation Log
     FNPT:NopAuthOpLog:query:
@@ -70,6 +78,10 @@ site:
       displayName: Ext Login
     NopAuthGroup-main:
       displayName: User Group
+    NopAuthMfaRecoveryCode-main:
+      displayName: MFA Recovery Code
+    NopAuthMfaSetting-main:
+      displayName: MFA Setting
     NopAuthOpLog-main:
       displayName: Operation Log
     NopAuthPosition-main:

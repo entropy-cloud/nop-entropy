@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopAuthMfaSetting.xmeta">
+
+    <!-- 明文边界结构性强制：secret 与 bindToken 永不发布到 GraphQL/REST schema。
+         即使 ORM tagSet 的 not-pub 被误删，retention 层仍兜底 published=false。
+         参照 nop-credential 的 NopCredential.data 处理（W3 模式）。 -->
+    <props>
+        <prop name="secret" published="false"/>
+        <prop name="bindToken" published="false"/>
+    </props>
+</meta>

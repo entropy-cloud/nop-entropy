@@ -69,6 +69,16 @@
             <artifactId>nop-ioc</artifactId>
         </dependency>
 
+        <!-- W4: Redis-backed MFA challenge / SMS code stores (store-type=redis).
+             Optional: only required at runtime when nop.auth.mfa.store-type=redis;
+             default is Local (in-JVM).nop-auth-service compiles against the
+             INosqlService / INosqlKeyValueOperations / INosqlCounter primitives. -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-nosql-core</artifactId>
+            <optional>true</optional>
+        </dependency>
+
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-core</artifactId>

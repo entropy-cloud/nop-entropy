@@ -260,6 +260,26 @@ CREATE TABLE nop_auth_group(
   constraint PK_nop_auth_group primary key (GROUP_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+CREATE TABLE nop_auth_mfa_setting(
+  USER_ID VARCHAR(50) NOT NULL    COMMENT '用户ID',
+  MFA_TYPE VARCHAR(10) NULL    COMMENT 'MFA类型',
+  SECRET VARCHAR(500) NULL    COMMENT 'TOTP密钥',
+  STATUS VARCHAR(20) NOT NULL    COMMENT '绑定状态',
+  BIND_TOKEN VARCHAR(64) NULL    COMMENT '绑定令牌',
+  PHONE VARCHAR(50) NULL    COMMENT 'MFA手机号',
+  LAST_VERIFIED_WINDOW BIGINT NULL    COMMENT '最近验证窗口',
+  LAST_VERIFIED_AT DATETIME(3) NULL    COMMENT '最近验证时间',
+  DEL_FLAG TINYINT NOT NULL    COMMENT '删除标识',
+  VERSION INTEGER NOT NULL    COMMENT '数据版本',
+  TENANT_ID VARCHAR(32) NULL    COMMENT '租户ID',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
+  REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint PK_nop_auth_mfa_setting primary key (USER_ID)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
 CREATE TABLE nop_auth_role_resource(
   SID VARCHAR(32) NOT NULL    COMMENT '主键',
   ROLE_ID VARCHAR(50) NOT NULL    COMMENT '角色ID',
@@ -316,6 +336,22 @@ CREATE TABLE nop_auth_group_user(
   constraint PK_nop_auth_group_user primary key (USER_ID,GROUP_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+CREATE TABLE nop_auth_mfa_recovery_code(
+  SID VARCHAR(32) NOT NULL    COMMENT '主键',
+  USER_ID VARCHAR(50) NOT NULL    COMMENT '用户ID',
+  CODE_HASH VARCHAR(100) NOT NULL    COMMENT '恢复码哈希',
+  USED TINYINT default 0  NULL    COMMENT '已使用',
+  USED_AT DATETIME(3) NULL    COMMENT '使用时间',
+  EXPIRE_AT DATETIME(3) NULL    COMMENT '过期时间',
+  DEL_FLAG TINYINT NOT NULL    COMMENT '删除标识',
+  VERSION INTEGER NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
+  constraint PK_nop_auth_mfa_recovery_code primary key (SID)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
 
    ALTER TABLE nop_auth_dept COMMENT '部门';
                 
@@ -343,6 +379,8 @@ CREATE TABLE nop_auth_group_user(
                 
    ALTER TABLE nop_auth_group COMMENT '用户组';
                 
+   ALTER TABLE nop_auth_mfa_setting COMMENT '用户MFA配置';
+                
    ALTER TABLE nop_auth_role_resource COMMENT '角色可访问资源';
                 
    ALTER TABLE nop_auth_op_log COMMENT '操作日志';
@@ -350,4 +388,6 @@ CREATE TABLE nop_auth_group_user(
    ALTER TABLE nop_auth_group_dept COMMENT '分组部门';
                 
    ALTER TABLE nop_auth_group_user COMMENT '分组用户';
+                
+   ALTER TABLE nop_auth_mfa_recovery_code COMMENT 'MFA恢复码';
                 
