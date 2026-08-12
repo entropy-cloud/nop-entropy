@@ -22,6 +22,10 @@ public interface CredentialErrors {
     String ARG_CIPHERTEXT = "ciphertext";
     String ARG_AVAILABLE_KEY_IDS = "availableKeyIds";
     String ARG_MASTER_KEY_ENTRY = "masterKeyEntry";
+    String ARG_TYPE_NAME = "typeName";
+    String ARG_AVAILABLE_TYPE_NAMES = "availableTypeNames";
+    String ARG_CREDENTIAL_ID = "credentialId";
+    String ARG_CONSUMER_REF = "consumerRef";
 
     ErrorCode ERR_CREDENTIAL_INVALID_CIPHERTEXT_FORMAT = define(
             "nop.err.credential.invalid-ciphertext-format",
@@ -43,4 +47,20 @@ public interface CredentialErrors {
     ErrorCode ERR_CREDENTIAL_NO_MASTER_KEY_CONFIGURED = define(
             "nop.err.credential.no-master-key-configured",
             "未配置任何主密钥（nop.credential.master-keys 为空）");
+
+    ErrorCode ERR_CREDENTIAL_UNKNOWN_TYPE = define(
+            "nop.err.credential.unknown-type",
+            "未知的凭证类型名", ARG_TYPE_NAME, ARG_AVAILABLE_TYPE_NAMES);
+
+    ErrorCode ERR_CREDENTIAL_NOT_FOUND = define(
+            "nop.err.credential.not-found",
+            "凭证不存在", ARG_CREDENTIAL_ID);
+
+    ErrorCode ERR_CREDENTIAL_DELETED = define(
+            "nop.err.credential.deleted",
+            "凭证已被软删除，拒绝访问（fail-closed）", ARG_CREDENTIAL_ID);
+
+    ErrorCode ERR_CREDENTIAL_TYPE_LOAD_FAILED = define(
+            "nop.err.credential.type-load-failed",
+            "凭证类型文件加载失败", ARG_TYPE_NAME);
 }
