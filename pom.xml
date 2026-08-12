@@ -574,6 +574,7 @@
         <module>nop-code</module>
         <module>nop-graph</module>
         <module>nop-metadata</module>
+        <module>nop-credential</module>
         <!--        <module>nop-commons-java21</module>-->
     </modules>
 </project>
