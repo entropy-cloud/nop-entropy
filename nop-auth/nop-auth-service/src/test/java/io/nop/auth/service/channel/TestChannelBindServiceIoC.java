@@ -60,10 +60,10 @@ public class TestChannelBindServiceIoC {
 
     @Test
     public void channelBindServiceBeanIsResolvable() {
-        Object bean = container.getBean("channelBindService");
-        assertNotNull(bean, "channelBindService bean must be resolvable from the IoC container");
+        Object bean = container.getBean("nopChannelBindService");
+        assertNotNull(bean, "nopChannelBindService bean must be resolvable from the IoC container");
         assertTrue(bean instanceof IChannelBindService,
-                "channelBindService bean must implement IChannelBindService (ioc:type on the bean declaration)");
+                "nopChannelBindService bean must implement IChannelBindService (ioc:type on the bean declaration)");
     }
 
     @Test

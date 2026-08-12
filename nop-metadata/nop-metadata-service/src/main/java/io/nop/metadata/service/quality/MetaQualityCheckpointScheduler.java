@@ -80,8 +80,8 @@ public class MetaQualityCheckpointScheduler {
     /** jobParams 中传递给包装方法的检查点 ID 键。 */
     static final String PARAM_CHECKPOINT_ID = "checkpointId";
 
-    /** 本 bean 在 IoC 容器中的注册名（与 app-quality-scheduler.beans.xml 一致）。 */
-    public static final String BEAN_NAME = "metaQualityCheckpointScheduler";
+    /** 本 bean 在 IoC 容器中的注册名（与 app-service.beans.xml 一致）。 */
+    public static final String BEAN_NAME = "nopMetaQualityCheckpointScheduler";
     /** beanMethod 调用的方法名。 */
     public static final String SCHEDULED_METHOD_NAME = "executeScheduledCheckpoint";
 

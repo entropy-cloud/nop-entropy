@@ -94,9 +94,9 @@ class TestChannelProactiveNotifyE2E {
         container = new AppBeanContainerLoader().loadFromResource("e2e-notify", resource);
         container.start();
 
-        manager = (ChannelConnectorManager) container.getBean("channelConnectorManager");
-        feishuClient = (TestFeishuConversationE2E.RecordingFeishuClient) container.getBean("feishuClient");
-        h2Store = (TestFeishuConversationE2E.E2EH2SessionStore) container.getBean("channelSessionStore");
+        manager = (ChannelConnectorManager) container.getBean("nopChannelConnectorManager");
+        feishuClient = (TestFeishuConversationE2E.RecordingFeishuClient) container.getBean("nopFeishuClient");
+        h2Store = (TestFeishuConversationE2E.E2EH2SessionStore) container.getBean("nopChannelSessionStore");
         daoProvider = h2Store.getDaoProvider();
 
         // REAL ChannelMessageServiceImpl with a REAL-reading resolver + manager

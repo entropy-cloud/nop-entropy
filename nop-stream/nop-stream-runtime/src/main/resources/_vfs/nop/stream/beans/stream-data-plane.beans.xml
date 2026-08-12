@@ -35,24 +35,24 @@
 
   Deployment template (illustrative — concrete bean ids depend on the app assembly):
 
-    <bean id="streamMessageService"
+    <bean id="nopStreamMessageService"
           class="io.nop.sys.dao.message.SysDaoMessageService">
         <property name="daoProvider" ref="nopDaoProvider"/>
     </bean>
 
-    <bean id="streamDistributedExecutor"
+    <bean id="nopStreamDistributedExecutor"
           class="io.nop.stream.runtime.execution.RpcDistributedExecutor">
-        <property name="messageService" ref="streamMessageService"/>
+        <property name="messageService" ref="nopStreamMessageService"/>
         <property name="dataPlaneWireCodec"
                   class="io.nop.stream.runtime.transport.SysDaoWireCodec"
                   ioc:bean="true"/>
     </bean>
 
-  Pulsar variant: wire io.nop.message.pulsar.PulsarMessageService as streamMessageService
+  Pulsar variant: wire io.nop.message.pulsar.PulsarMessageService as nopStreamMessageService
   (with its PulsarClientConfig + init/destroy lifecycle) and set dataPlaneWireCodec to
   io.nop.stream.runtime.transport.PulsarStringWireCodec.
 
-  Kafka variant (Stage 48): wire io.nop.message.kafka.KafkaMessageService as streamMessageService
+  Kafka variant (Stage 48): wire io.nop.message.kafka.KafkaMessageService as nopStreamMessageService
   (with its KafkaClientConfig + init/destroy lifecycle) and set dataPlaneWireCodec to
   io.nop.stream.runtime.transport.KafkaStringWireCodec.
 -->
@@ -65,7 +65,7 @@
       PulsarMessageService for cross-JVM). Mirrors stream-control-rpc.beans.xml so the
       control and data planes share one transport bean when deployed together.
     -->
-    <bean id="streamMessageService" ioc:default="true"
+    <bean id="nopStreamMessageService" ioc:default="true"
           class="io.nop.message.core.local.LocalMessageService"/>
 
     <!--
@@ -73,7 +73,7 @@
       A deployment overrides this with SysDaoWireCodec / PulsarStringWireCodec to match
       its chosen backend.
     -->
-    <bean id="streamDataPlaneWireCodec" ioc:default="true"
+    <bean id="nopStreamDataPlaneWireCodec" ioc:default="true"
           class="io.nop.stream.runtime.transport.IdentityWireCodec"/>
 
 </beans>

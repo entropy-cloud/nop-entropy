@@ -79,8 +79,8 @@ class TestChannelMessageServiceIoC {
         IBeanContainer container = startContainer("/test/beans/test-channel-message-service-ioc-mode1.beans.xml");
         try {
             ChannelMessageServiceImpl svc = (ChannelMessageServiceImpl)
-                    container.getBean("channelMessageService");
-            assertNotNull(svc, "channelMessageService bean must exist");
+                    container.getBean("nopChannelMessageService");
+            assertNotNull(svc, "nopChannelMessageService bean must exist");
 
             // the optional ref resolved to null: mode 1 (direct fan-out)
             assertNull(readMessageService(svc),
@@ -106,7 +106,7 @@ class TestChannelMessageServiceIoC {
         IBeanContainer container = startContainer("/test/beans/test-channel-message-service-ioc-mode2.beans.xml");
         try {
             ChannelMessageServiceImpl svc = (ChannelMessageServiceImpl)
-                    container.getBean("channelMessageService");
+                    container.getBean("nopChannelMessageService");
             LocalMessageService platformBus = (LocalMessageService)
                     container.getBean("nopLocalMessageService");
             assertNotNull(platformBus, "the real platform nopLocalMessageService bean must be present");

@@ -9,14 +9,14 @@
 <beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
        xmlns:ioc="ioc">
 
-    <bean id="channelConnectorManager"
+    <bean id="nopChannelConnectorManager"
           class="io.nop.ai.gateway.channel.ChannelConnectorManager"/>
 
-    <bean id="channelMessageService"
+    <bean id="nopChannelMessageService"
           class="io.nop.ai.gateway.channel.ChannelMessageServiceImpl"
           ioc:type="io.nop.integration.api.channel.IChannelMessageService">
         <property name="channelConnectorManager">
-            <ref bean="channelConnectorManager"/>
+            <ref bean="nopChannelConnectorManager"/>
         </property>
         <property name="messageService">
             <ref bean="nopLocalMessageService" ioc:optional="true"/>

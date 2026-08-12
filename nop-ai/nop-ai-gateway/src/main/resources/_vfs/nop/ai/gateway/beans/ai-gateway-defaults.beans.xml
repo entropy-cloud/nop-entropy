@@ -18,7 +18,7 @@
          arrive in W5 and are auto-collected here by type. With no connectors
          registered yet the collected list is empty and startAll/stopAll are
          legitimate no-ops over an empty set (not a silent skip of work). -->
-    <bean id="channelConnectorManager"
+    <bean id="nopChannelConnectorManager"
           class="io.nop.ai.gateway.channel.ChannelConnectorManager">
         <property name="connectors">
             <ioc:collect-beans by-type="io.nop.ai.gateway.channel.IChannelConnector"
@@ -29,7 +29,7 @@
     <!-- Channel session store (W1): default DB-backed IChannelSessionStore.
          Injected into connectors via @Inject (NopIoC). Depends on IDaoProvider
          + IOrmTemplate (from nop-dao, already on classpath via nop-ai-dao). -->
-    <bean id="channelSessionStore"
+    <bean id="nopChannelSessionStore"
           class="io.nop.ai.gateway.channel.ChannelSessionStoreImpl"
           ioc:type="io.nop.ai.gateway.channel.IChannelSessionStore"/>
 
@@ -42,7 +42,7 @@
          A deployment that excludes nop-integration-feishu from the classpath
          will not have this bean (the class is absent) and the collect-beans
          gracefully returns an empty connector set. -->
-    <bean id="feishuConnector"
+    <bean id="nopFeishuConnector"
           class="io.nop.ai.gateway.channel.feishu.FeishuConnector"/>
 
     <!-- Business message layer (W2): the usage-layer facade that routes
@@ -66,15 +66,15 @@
          no IMessageService implementation is on the deployment classpath, and
          to the real instance when nop-message-core (or an equivalent impl) is
          present. A Kafka/Pulsar deployment substitutes its own bean id. -->
-    <bean id="channelMessageService"
+    <bean id="nopChannelMessageService"
           class="io.nop.ai.gateway.channel.ChannelMessageServiceImpl"
           ioc:type="io.nop.integration.api.channel.IChannelMessageService"
           ioc:default="true">
         <property name="userChannelResolver">
-            <ref bean="userChannelResolver" ioc:optional="true"/>
+            <ref bean="nopUserChannelResolver" ioc:optional="true"/>
         </property>
         <property name="channelConnectorManager">
-            <ref bean="channelConnectorManager"/>
+            <ref bean="nopChannelConnectorManager"/>
         </property>
         <property name="messageService">
             <ref bean="nopLocalMessageService" ioc:optional="true"/>

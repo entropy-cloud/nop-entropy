@@ -15,7 +15,7 @@
 
     <!-- The FeishuConnector bean under test — @Inject fields feishuClient +
          sessionStore must be resolved by the container. -->
-    <bean id="feishuConnector"
+    <bean id="nopFeishuConnector"
           class="io.nop.ai.gateway.channel.feishu.FeishuConnector"/>
 
     <!-- Manager that auto-collects all IChannelConnector beans by type -->

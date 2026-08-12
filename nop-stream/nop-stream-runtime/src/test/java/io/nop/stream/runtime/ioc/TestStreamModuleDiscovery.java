@@ -108,16 +108,16 @@ class TestStreamModuleDiscovery {
         try {
             container.start();
 
-            // streamMessageService (LocalMessageService) + streamDataPlaneWireCodec
+            // nopStreamMessageService (LocalMessageService) + nopStreamDataPlaneWireCodec
             // (IdentityWireCodec) are ioc:default beans in stream-data-plane.beans.xml.
-            assertTrue(container.containsBean("streamMessageService"),
-                    "_module-driven discovery must materialize the ioc:default streamMessageService bean");
-            assertTrue(container.containsBean("streamDataPlaneWireCodec"),
-                    "_module-driven discovery must materialize the ioc:default streamDataPlaneWireCodec bean");
+            assertTrue(container.containsBean("nopStreamMessageService"),
+                    "_module-driven discovery must materialize the ioc:default nopStreamMessageService bean");
+            assertTrue(container.containsBean("nopStreamDataPlaneWireCodec"),
+                    "_module-driven discovery must materialize the ioc:default nopStreamDataPlaneWireCodec bean");
 
-            Object messageService = container.getBean("streamMessageService");
+            Object messageService = container.getBean("nopStreamMessageService");
             assertTrue(messageService instanceof IMessageService,
-                    "streamMessageService must be an IMessageService, got " + messageService.getClass());
+                    "nopStreamMessageService must be an IMessageService, got " + messageService.getClass());
         } finally {
             container.stop();
         }

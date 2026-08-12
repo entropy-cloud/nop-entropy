@@ -115,10 +115,10 @@ public class TestFeishuConversationE2E {
         container = new AppBeanContainerLoader().loadFromResource("e2e-feishu", resource);
         container.start();
 
-        connector = (FeishuConnector) container.getBean("feishuConnector");
-        manager = (ChannelConnectorManager) container.getBean("channelConnectorManager");
-        feishuClient = (RecordingFeishuClient) container.getBean("feishuClient");
-        h2Store = (E2EH2SessionStore) container.getBean("channelSessionStore");
+        connector = (FeishuConnector) container.getBean("nopFeishuConnector");
+        manager = (ChannelConnectorManager) container.getBean("nopChannelConnectorManager");
+        feishuClient = (RecordingFeishuClient) container.getBean("nopFeishuClient");
+        h2Store = (E2EH2SessionStore) container.getBean("nopChannelSessionStore");
         engine = new CannedAgentEngine();
 
         // verify the container REALLY injected both @Inject fields (anti-hollow)

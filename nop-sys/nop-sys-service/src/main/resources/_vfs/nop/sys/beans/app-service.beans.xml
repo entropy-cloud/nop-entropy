@@ -6,6 +6,6 @@
 
     <import resource="_service.beans.xml"/>
 
-    <bean id="sysCompactExtFieldHelper" class="io.nop.sys.service.impl.SysCompactExtFieldHelper"
+    <bean id="nopSysCompactExtFieldHelper" class="io.nop.sys.service.impl.SysCompactExtFieldHelper"
           ioc:type="io.nop.orm.support.IOrmCompactExtFieldHelper" primary="true"/>
 </beans>

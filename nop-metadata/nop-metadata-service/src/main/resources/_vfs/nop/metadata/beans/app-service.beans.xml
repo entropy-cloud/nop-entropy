@@ -37,7 +37,7 @@
          启动 scanner 全量注册 ACTIVE 检查点的 cron job + 运行时增量（save/delete override 调用）。
          IJobScheduler 经 @Inject @Nullable 注入：宿主未注册调度器时为 null，scanner 跳过（不抛崩）。
          注意：此 bean 必须放在 app-service.beans.xml（非生成的 _service.beans.xml），否则 codegen 会覆盖。-->
-    <bean id="metaQualityCheckpointScheduler"
+    <bean id="nopMetaQualityCheckpointScheduler"
           class="io.nop.metadata.service.quality.MetaQualityCheckpointScheduler" ioc:default="true"/>
 
     <!-- 搜索引擎索引构建器（plan 312 Phase 2）：遍历 6 个核心实体 DAO 查询 + ISearchEngine 全量索引写入。 -->

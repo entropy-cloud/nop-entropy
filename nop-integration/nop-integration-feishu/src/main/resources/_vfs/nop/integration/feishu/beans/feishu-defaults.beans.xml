@@ -15,13 +15,13 @@
          setters — secret values (appSecret, encryptKey) may use the @sec: prefix
          for transparent decryption by DefaultConfigValueEnhancer. -->
 
-    <bean id="feishuCredentials"
+    <bean id="nopFeishuCredentials"
           class="io.nop.integration.feishu.client.FeishuCredentials"/>
 
     <!-- FeishuClient: Stream long-connection + Open API client. Credentials
          and IMessageHandler are passed at start() time by the connector, not
          at construction. -->
-    <bean id="feishuClient"
+    <bean id="nopFeishuClient"
           class="io.nop.integration.feishu.client.FeishuClient"/>
 
     <!-- FeishuBindProvider: IChannelBindProvider impl. Auto-collected by
@@ -29,9 +29,9 @@
          No ioc:type attribute: the concrete class FeishuBindProvider
          implements IChannelBindProvider, so collect-beans by-type finds it
          via the actual class. -->
-    <bean id="feishuBindProvider"
+    <bean id="nopFeishuBindProvider"
           class="io.nop.integration.feishu.bind.FeishuBindProvider">
-        <property name="credentials" ref="feishuCredentials"/>
+        <property name="credentials" ref="nopFeishuCredentials"/>
     </bean>
 
 </beans>

@@ -71,8 +71,8 @@ class TestFeishuConnectorIoC {
     void feishuConnectorBeanConstructedWithInjectedFields() {
         IBeanContainer container = startContainer();
         try {
-            FeishuConnector connector = (FeishuConnector) container.getBean("feishuConnector");
-            assertNotNull(connector, "feishuConnector bean must exist");
+            FeishuConnector connector = (FeishuConnector) container.getBean("nopFeishuConnector");
+            assertNotNull(connector, "nopFeishuConnector bean must exist");
             assertEquals("feishu", connector.getChannelType());
 
             // verify @Inject fields are really injected (not null = hollow)
@@ -133,8 +133,8 @@ class TestFeishuConnectorIoC {
     void feishuCredentialsBeanConstructedWithConfig() {
         IBeanContainer container = startContainer();
         try {
-            FeishuCredentials creds = (FeishuCredentials) container.getBean("feishuCredentials");
-            assertNotNull(creds, "feishuCredentials bean must exist");
+            FeishuCredentials creds = (FeishuCredentials) container.getBean("nopFeishuCredentials");
+            assertNotNull(creds, "nopFeishuCredentials bean must exist");
             // @InjectValue("@cfg:nop.integration.feishu.appId|") resolves to ""
             // when no config is set (the "|" default); appId is non-null (resolved)
             assertNotNull(creds.getAppId(), "appId must be resolved by @InjectValue");

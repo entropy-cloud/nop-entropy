@@ -17,7 +17,7 @@
         <property name="plannerMetrics">
             <bean class="io.nop.job.coordinator.metrics.JobPlannerMetricsImpl"/>
         </property>
-        <property name="partitionResolver" ref="jobPartitionResolver"/>
+        <property name="partitionResolver" ref="nopJobPartitionResolver"/>
     </bean>
 
     <bean id="nopJobTaskBuilder_default" class="io.nop.job.coordinator.engine.DefaultJobTaskBuilder"/>
@@ -25,20 +25,20 @@
     <bean id="nopJobTaskBuilder_broadcast" class="io.nop.job.coordinator.engine.RpcBroadcastTaskBuilder"/>
     <bean id="nopJobTaskBuilder_partition" class="io.nop.job.coordinator.engine.PartitionTaskBuilder"/>
 
-    <bean id="workerLoadProvider" class="io.nop.job.coordinator.engine.DefaultWorkerLoadProvider"/>
-    <bean id="workerAssignmentStrategy" class="io.nop.job.coordinator.engine.LeastLoadedStrategy"/>
+    <bean id="nopWorkerLoadProvider" class="io.nop.job.coordinator.engine.DefaultWorkerLoadProvider"/>
+    <bean id="nopWorkerAssignmentStrategy" class="io.nop.job.coordinator.engine.LeastLoadedStrategy"/>
     <bean id="nopJobTaskBuilder_bestFit" class="io.nop.job.coordinator.engine.AdaptiveJobTaskBuilder">
-        <property name="loadProvider" ref="workerLoadProvider"/>
-        <property name="strategy" ref="workerAssignmentStrategy"/>
+        <property name="loadProvider" ref="nopWorkerLoadProvider"/>
+        <property name="strategy" ref="nopWorkerAssignmentStrategy"/>
     </bean>
 
     <bean id="io.nop.job.coordinator.engine.IJobDispatcherScanner"
           class="io.nop.job.coordinator.engine.JobDispatcherScannerImpl">
         <property name="defaultTaskBuilder" ref="nopJobTaskBuilder_default"/>
-        <property name="partitionResolver" ref="jobPartitionResolver"/>
-        <!-- AR-96: 共用 workerLoadProvider 实例，使 scanOnce 的 beginScan/endScan 控制
+        <property name="partitionResolver" ref="nopJobPartitionResolver"/>
+        <!-- AR-96: 共用 nopWorkerLoadProvider 实例，使 scanOnce 的 beginScan/endScan 控制
              AdaptiveJobTaskBuilder（ref 同一 bean）的 per-scan 缓存生命周期 -->
-        <property name="workerLoadProvider" ref="workerLoadProvider"/>
+        <property name="workerLoadProvider" ref="nopWorkerLoadProvider"/>
     </bean>
 
     <bean id="io.nop.job.coordinator.engine.IJobCancelHandler"
@@ -46,14 +46,14 @@
 
     <bean id="io.nop.job.coordinator.engine.IJobCompletionProcessor"
           class="io.nop.job.coordinator.engine.JobCompletionProcessorImpl">
-        <property name="partitionResolver" ref="jobPartitionResolver"/>
+        <property name="partitionResolver" ref="nopJobPartitionResolver"/>
         <property name="retryBridge" ref="io.nop.job.api.retry.IJobRetryBridge"/>
         <property name="alarmHandler" ref="io.nop.job.api.alarm.IJobAlarmHandler"/>
     </bean>
 
     <bean id="io.nop.job.coordinator.engine.IJobTimeoutChecker"
           class="io.nop.job.coordinator.engine.JobTimeoutCheckerImpl">
-        <property name="partitionResolver" ref="jobPartitionResolver"/>
+        <property name="partitionResolver" ref="nopJobPartitionResolver"/>
         <property name="alarmHandler" ref="io.nop.job.api.alarm.IJobAlarmHandler"/>
     </bean>
 

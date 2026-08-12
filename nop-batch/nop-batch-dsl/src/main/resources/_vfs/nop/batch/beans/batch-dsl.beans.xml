@@ -4,9 +4,9 @@
     <bean id="nopBatchTaskManager" class="io.nop.batch.dsl.manager.BatchTaskManagerImpl"/>
 
     <bean id="nopBatchTaskRunner" class="io.nop.batch.dsl.runner.BatchTaskRunner">
-        <!-- 可选注入：无 job 模块的纯 batch 部署中 jobPartitionResolver bean 不存在，ioc:optional 使其注入 null -->
+        <!-- 可选注入：无 job 模块的纯 batch 部署中 nopJobPartitionResolver bean 不存在，ioc:optional 使其注入 null -->
         <property name="partitionResolver">
-            <ref bean="jobPartitionResolver" ioc:optional="true"/>
+            <ref bean="nopJobPartitionResolver" ioc:optional="true"/>
         </property>
     </bean>
 </beans>

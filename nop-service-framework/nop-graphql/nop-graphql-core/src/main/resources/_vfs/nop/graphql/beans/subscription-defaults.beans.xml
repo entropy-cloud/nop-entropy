@@ -7,9 +7,9 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
 
-    <bean id="graphqlSubscriptionManager" class="io.nop.graphql.core.subscription.GraphQLSubscriptionManager"
+    <bean id="nopGraphqlSubscriptionManager" class="io.nop.graphql.core.subscription.GraphQLSubscriptionManager"
           ioc:type="@bean:id" ioc:default="true">
-        <property name="graphQLEngine" ref="graphQLEngine"/>
+        <property name="graphQLEngine" ref="nopGraphQLEngine"/>
         <property name="messageService" ref="nopMessageService"/>
         <property name="maxActiveSubscriptions" value="@cfg:nop.graphql.subscription.max-active|1000"/>
     </bean>

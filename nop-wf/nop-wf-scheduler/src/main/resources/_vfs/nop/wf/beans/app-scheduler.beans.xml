@@ -6,7 +6,7 @@
 
     <import resource="/nop/job/beans/app-local-scheduler.beans.xml"/>
 
-    <bean id="wfTaskScanner" class="io.nop.wf.scheduler.WfTaskScanner">
+    <bean id="nopWfTaskScanner" class="io.nop.wf.scheduler.WfTaskScanner">
         <property name="reminderListeners">
             <ioc:collect-beans by-type="io.nop.wf.scheduler.IWfTaskReminderListener"/>
         </property>

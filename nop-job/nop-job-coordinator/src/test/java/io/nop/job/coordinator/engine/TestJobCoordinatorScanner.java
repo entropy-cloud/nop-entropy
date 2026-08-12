@@ -552,7 +552,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
         realProvider.setTaskStore(taskStore);
         RecordingWorkerLoadProvider recording = new RecordingWorkerLoadProvider(realProvider);
 
-        // bestFit builder 共用同一 provider 实例（与 app-engine.beans.xml 的 ref="workerLoadProvider" 一致）
+        // bestFit builder 共用同一 provider 实例（与 app-engine.beans.xml 的 ref="nopWorkerLoadProvider" 一致）
         AdaptiveJobTaskBuilder bestFitBuilder = new AdaptiveJobTaskBuilder();
         bestFitBuilder.setScheduleStore(scheduleStore);
         bestFitBuilder.setDaoProvider(daoProvider);

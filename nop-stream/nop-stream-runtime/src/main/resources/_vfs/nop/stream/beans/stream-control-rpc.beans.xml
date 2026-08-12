@@ -31,28 +31,28 @@
     <!-- The shared control-plane transport. Default LocalMessageService (single-JVM);
          production overrides to SysDaoMessageService / PulsarMessageService (ioc:default
          yields to an explicitly-wired IMessageService of the same name). -->
-    <bean id="streamMessageService" ioc:default="true"
+    <bean id="nopStreamMessageService" ioc:default="true"
           class="io.nop.message.core.local.LocalMessageService"/>
 
     <!--
       Deployment scaffold (Stage 42 will materialize these per node). The wiring pattern:
 
-      <bean id="streamTaskRpcServer_node0"
+      <bean id="nopStreamTaskRpcServer_node0"
             class="io.nop.stream.runtime.rpc.StreamControlRpcServer"
             ioc:configMethod="...">
           <property name="serviceName" value="streamTaskRpc@node-0"/>
           <property name="serviceInterface" value="io.nop.stream.runtime.rpc.IStreamTaskRpcService"/>
-          <property name="serviceImpl" ref="taskManager_node0"/>
-          <property name="messageService" ref="streamMessageService"/>
+          <property name="serviceImpl" ref="nopTaskManager_node0"/>
+          <property name="messageService" ref="nopStreamMessageService"/>
           <property name="topic" value="nop-stream.rpc.task.node-0"/>
       </bean>
 
-      <bean id="streamTaskRpcProxy_node0"
+      <bean id="nopStreamTaskRpcProxy_node0"
             class="io.nop.stream.runtime.rpc.StreamControlRpcProxyFactory"
             ioc:configMethod="...">
           <property name="serviceName" value="streamTaskRpc@node-0"/>
           <property name="serviceInterface" value="io.nop.stream.runtime.rpc.IStreamTaskRpcService"/>
-          <property name="messageService" ref="streamMessageService"/>
+          <property name="messageService" ref="nopStreamMessageService"/>
           <property name="topic" value="nop-stream.rpc.task.node-0"/>
       </bean>
     -->

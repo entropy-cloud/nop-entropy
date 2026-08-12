@@ -6,10 +6,20 @@
  *   - 全限定类名（含 '.'）视为合法（BeanModel 支持 class 名直接作为 id）
  *   - 测试目录（src/test）与生成物（_dump、_gen、target）排除
  *
+ * 豁免（非违规）：
+ *   - `abstract="true"` bean：Spring 风格配置模板（非实例 bean），其 id 是文档化的公共 API 契约，
+ *     用户经 `parent="..."` 派生（如 nop-cluster 的 `AbstractRpcProxyFactoryBean` 系列，见
+ *     docs/dev-guide/microservice/rpc.md 等用户文档）。模板名属用户契约，不强制 nop 前缀。
+ *
  * 同时检查受影响的位置：
- *   - `ref="xxx"` / `value-ref="xxx"`：引用短名 bean 时，被引用 id 也应遵守命名约定（ref 本身不改名，
- *     但被引用 id 违规时给出提示，帮助定位需要改名的 ref 点）
+ *   - `ref="xxx"` / `value-ref="xxx"` / `depends-on="xxx"`：仅当被引用 id 是本仓库已定义的 bean id
+ *     且违规时才报告（ref 本身不改名，但被引用 id 迹规时给出提示，帮助定位需要同步的 ref 点）。
+ *     引用外部上下文 bean（如 Spring 的 `sqlSessionTemplate`，不在本仓库任何 beans.xml 中定义）
+ *     不报告——命名检查只覆盖本仓库可控的 bean。
  *   - `ioc:collect-beans name-prefix="xxx"`：前缀本身若不是 nop/biz_ 前缀则提示（收集约定与命名强约定应一致）
+ *
+ * 实现要点：扫描前先剔除 XML 注释 `<!-- ... -->`，避免把注释中的示例 `<bean id="...">` 误判为违规
+ * （如 nop-stream beans.xml 中 Stage 42 部署脚手架注释里的 `streamTaskRpcServer_node0` 示例）。
  *
  * 用法:
  *   node ai-dev/tools/check-bean-naming.mjs                  # 全仓库检查
@@ -40,8 +50,14 @@ const TOOL_NAMESPACE_PREFIXES = ['ai-tools:', 'ai-agent-tools:'];
 // 豁免：BizModel 变体注册（id 形如 "NopAuthUserBizModel_tenant"——bizObjName 变体如 NopAuthUser_tenant，
 // 平台多租户/多应用约定）
 const BIZMODEL_VARIANT_RE = /^[A-Z][A-Za-z0-9]*BizModel_[A-Za-z0-9_]+$/;
-// 排除路径段
-const EXCLUDED_SEGMENTS = ['target', '_dump', '_gen', 'node_modules', '.git'];
+// 排除路径段：构建产物 + 生成物 + 演示模块
+//   - nop-demo：示例/演示代码，非产品基线（用户裁决豁免，不纳入命名检查范围）
+const EXCLUDED_SEGMENTS = ['target', '_dump', '_gen', 'node_modules', '.git', 'nop-demo'];
+
+// 剔除 XML 注释 <!-- ... -->（含跨行），避免把注释中的示例 <bean id="..."> 误判为违规。
+function stripXmlComments(content) {
+  return content.replace(/<!--[\s\S]*?-->/g, '');
+}
 
 function toPosix(path) {
   return path.replace(/\\/g, '/');
@@ -117,18 +133,22 @@ function collectBeanFiles() {
   return [...files].sort();
 }
 
-function analyzeFile(file) {
-  const content = readFileSync(file, 'utf8');
+function analyzeFile(file, allBeanIds) {
+  const raw = readFileSync(file, 'utf8');
+  const content = stripXmlComments(raw);
   const findings = [];
   const beanIds = new Set();
 
-  // 1. 收集所有 bean id
-  const beanRe = /<bean\s+id="([^"]+)"/g;
+  // 1. 收集所有 bean id（在去注释后的内容上匹配）
+  const beanRe = /<bean\s+id="([^"]+)"([^>]*)>/g;
   let m;
   while ((m = beanRe.exec(content)) !== null) {
     const id = m[1];
+    const attrs = m[2] || '';
     beanIds.add(id);
     if (isTestPath(file)) continue;
+    // 豁免：abstract="true" 配置模板 bean（文档化公共 API 契约，经 parent= 派生，非实例 bean）
+    if (/\babstract\s*=\s*"true"/.test(attrs)) continue;
     if (isLegalShortName(id)) continue;
     if (isExemptShortName(id)) continue;
     if (isTestName(id)) continue;
@@ -140,7 +160,8 @@ function analyzeFile(file) {
     });
   }
 
-  // 2. ref / value-ref / depends-on 引用检查（引用短名 bean 时，被引用 id 也应合法）
+  // 2. ref / value-ref / depends-on 引用检查：仅当被引用 id 是本仓库已定义的 bean id 且违规时报告。
+  //    引用外部上下文 bean（不在 allBeanIds 中，如 Spring 的 sqlSessionTemplate）不报告。
   if (!isTestPath(file)) {
     const refRe = /(?:ref|value-ref|depends-on|ioc:default-ref)="([^"]+)"/g;
     while ((m = refRe.exec(content)) !== null) {
@@ -149,6 +170,8 @@ function analyzeFile(file) {
       if (isLegalShortName(ref)) continue;
       if (isExemptShortName(ref)) continue;
       if (isTestName(ref)) continue;
+      // 只覆盖本仓库可控 bean：被引用 id 必须是某处已定义的 bean id
+      if (!allBeanIds || !allBeanIds.has(ref)) continue;
       findings.push({
         type: 'REF',
         file,
@@ -176,11 +199,25 @@ function analyzeFile(file) {
 
 function main() {
   const files = collectBeanFiles();
+
+  // Pass 1: 收集全仓库所有已定义的 bean id（去注释后），供 REF 检查判断"被引用 id 是否本仓库可控"。
+  const allBeanIds = new Set();
+  for (const file of files) {
+    const raw = readFileSync(file, 'utf8');
+    const content = stripXmlComments(raw);
+    const beanRe = /<bean\s+id="([^"]+)"/g;
+    let m;
+    while ((m = beanRe.exec(content)) !== null) {
+      allBeanIds.add(m[1]);
+    }
+  }
+
+  // Pass 2: 逐文件分析（BEAN-ID / REF / COLLECT-PREFIX）。
   const allFindings = [];
   let beanCount = 0;
 
   for (const file of files) {
-    const { beanIds, findings } = analyzeFile(file);
+    const { beanIds, findings } = analyzeFile(file, allBeanIds);
     beanCount += beanIds.size;
     allFindings.push(...findings);
   }

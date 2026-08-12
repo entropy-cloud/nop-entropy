@@ -26,8 +26,8 @@
     <bean id="daoProvider" class="io.nop.auth.service.channel.IocTestFactories"
           factory-method="stubDaoProvider"/>
 
-    <!-- Same declaration as auth-service.beans.xml#channelBindService -->
-    <bean id="channelBindService"
+    <!-- Same declaration as auth-service.beans.xml#nopChannelBindService -->
+    <bean id="nopChannelBindService"
           class="io.nop.auth.service.channel.ChannelBindServiceImpl"
           ioc:type="io.nop.auth.api.bind.IChannelBindService"
           ioc:default="true">

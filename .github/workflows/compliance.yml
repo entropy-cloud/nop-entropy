@@ -1,0 +1,22 @@
+# Lightweight compliance gates that do not require a Maven build.
+# These run fast (node-only) and fail early on convention violations.
+
+name: Compliance
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+
+jobs:
+  bean-naming:
+    name: Bean naming convention (nop prefix)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Check bean id naming
+        run: node ai-dev/tools/check-bean-naming.mjs

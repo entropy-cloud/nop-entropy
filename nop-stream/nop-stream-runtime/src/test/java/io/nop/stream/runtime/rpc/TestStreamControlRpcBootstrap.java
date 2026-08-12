@@ -66,11 +66,11 @@ class TestStreamControlRpcBootstrap {
 
     @Test
     void beansXmlLoadsAndTransportBeanInstantiates() {
-        // The beans.xml wires a streamMessageService bean — it must materialize.
-        Object messageService = container.getBean("streamMessageService");
-        assertNotNull(messageService, "streamMessageService bean must be instantiated by the IoC container");
+        // The beans.xml wires a nopStreamMessageService bean — it must materialize.
+        Object messageService = container.getBean("nopStreamMessageService");
+        assertNotNull(messageService, "nopStreamMessageService bean must be instantiated by the IoC container");
         assertTrue(messageService instanceof IMessageService,
-                "streamMessageService bean must be an IMessageService, got " + messageService.getClass());
+                "nopStreamMessageService bean must be an IMessageService, got " + messageService.getClass());
     }
 
     @Test
@@ -79,7 +79,7 @@ class TestStreamControlRpcBootstrap {
         // using the IoC-provided IMessageService bean as the transport. A successful
         // round-trip proves the beans.xml is a genuine (non-hollow) wiring of the
         // control-plane RPC infrastructure.
-        IMessageService messageService = (IMessageService) container.getBean("streamMessageService");
+        IMessageService messageService = (IMessageService) container.getBean("nopStreamMessageService");
 
         RecordingTaskRpc serverImpl = new RecordingTaskRpc();
         String topic = StreamControlRpcTopics.taskTopic("bootstrap-node");

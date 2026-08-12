@@ -23,7 +23,7 @@
     <!-- Network-boundary stub: a FeishuClient subclass that records calls.
          Instantiated by the container (public static inner class, no-arg c'tor
          inherited from FeishuClient); injected into FeishuConnector by type. -->
-    <bean id="feishuClient"
+    <bean id="nopFeishuClient"
           class="io.nop.ai.gateway.channel.feishu.TestFeishuConversationE2E$RecordingFeishuClient"
           ioc:type="io.nop.integration.feishu.client.FeishuClient"/>
 
@@ -33,20 +33,20 @@
          constructor, then sets its own daoProvider/ormTemplate. All store
          methods are inherited from ChannelSessionStoreImpl and read/write the
          real H2 database — the real call chain persists sessions for real. -->
-    <bean id="channelSessionStore"
+    <bean id="nopChannelSessionStore"
           class="io.nop.ai.gateway.channel.feishu.TestFeishuConversationE2E$E2EH2SessionStore"
           ioc:type="io.nop.ai.gateway.channel.IChannelSessionStore"/>
 
     <!-- REAL FeishuConnector under test. @Inject feishuClient resolves to the
          RecordingFeishuClient above; @Inject sessionStore resolves to the real
          H2-backed ChannelSessionStoreImpl above. Both wired by the container. -->
-    <bean id="feishuConnector"
+    <bean id="nopFeishuConnector"
           class="io.nop.ai.gateway.channel.feishu.FeishuConnector"/>
 
     <!-- REAL ChannelConnectorManager: auto-collects FeishuConnector by type
          (the same collect-beans wiring as ai-gateway-defaults.beans.xml).
          manager.startAll(ctx) in the test really invokes FeishuConnector.start. -->
-    <bean id="channelConnectorManager"
+    <bean id="nopChannelConnectorManager"
           class="io.nop.ai.gateway.channel.ChannelConnectorManager">
         <property name="connectors">
             <ioc:collect-beans by-type="io.nop.ai.gateway.channel.IChannelConnector"
