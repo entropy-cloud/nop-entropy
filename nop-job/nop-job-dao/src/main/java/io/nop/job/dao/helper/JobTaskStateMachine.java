@@ -2,6 +2,8 @@ package io.nop.job.dao.helper;
 
 import io.nop.job.core._NopJobCoreConstants;
 
+import java.util.List;
+
 /**
  * State machine for {@code NopJobTask.taskStatus}: predicates describing which statuses
  * are pending, finished, recoverable, or concurrently finalized.
@@ -21,6 +23,77 @@ import io.nop.job.core._NopJobCoreConstants;
 public final class JobTaskStateMachine {
 
     private JobTaskStateMachine() {
+    }
+
+    /**
+     * Task statuses counted as "in-flight" for concurrency metrics: CLAIMED(10) and RUNNING(20).
+     * Strictly tasks that have been dispatched to a worker and are expected to be executing now.
+     * Excludes WAITING (not yet dispatched) and SUSPICIOUS (worker lost — counted separately).
+     * <p>
+     * Intentionally narrower than {@link #RUNNING_LIKE_STATUSES} (which adds SUSPICIOUS for
+     * timeout scanning) and than {@code RESERVED_TASK_STATUSES} in {@code NopJobCoreConstants}
+     * (which adds WAITING + SUSPICIOUS for resource reservation). Keep the three sets distinct.
+     */
+    public static final List<Integer> IN_FLIGHT_STATUSES = List.of(
+            _NopJobCoreConstants.TASK_STATUS_CLAIMED,
+            _NopJobCoreConstants.TASK_STATUS_RUNNING);
+
+    /**
+     * Task statuses considered "running-like" for timeout / worker-health scanning:
+     * CLAIMED(10), SUSPICIOUS(15), RUNNING(20). Used by {@code fetchRunningTasks} to enumerate
+     * every task that is not yet finalized and might need timeout enforcement.
+     * <p>
+     * Differs from {@link #IN_FLIGHT_STATUSES} by including SUSPICIOUS, and from
+     * {@code RESERVED_TASK_STATUSES} by excluding WAITING.
+     */
+    public static final List<Integer> RUNNING_LIKE_STATUSES = List.of(
+            _NopJobCoreConstants.TASK_STATUS_CLAIMED,
+            _NopJobCoreConstants.TASK_STATUS_SUSPICIOUS,
+            _NopJobCoreConstants.TASK_STATUS_RUNNING);
+
+    public static boolean isWaiting(Integer taskStatus) {
+        return taskStatus != null && taskStatus == _NopJobCoreConstants.TASK_STATUS_WAITING;
+    }
+
+    public static boolean isClaimed(Integer taskStatus) {
+        return taskStatus != null && taskStatus == _NopJobCoreConstants.TASK_STATUS_CLAIMED;
+    }
+
+    public static boolean isRunning(Integer taskStatus) {
+        return taskStatus != null && taskStatus == _NopJobCoreConstants.TASK_STATUS_RUNNING;
+    }
+
+    public static boolean isSuspicious(Integer taskStatus) {
+        return taskStatus != null && taskStatus == _NopJobCoreConstants.TASK_STATUS_SUSPICIOUS;
+    }
+
+    public static boolean isSuccess(Integer taskStatus) {
+        return taskStatus != null && taskStatus == _NopJobCoreConstants.TASK_STATUS_SUCCESS;
+    }
+
+    public static boolean isFailed(Integer taskStatus) {
+        return taskStatus != null && taskStatus == _NopJobCoreConstants.TASK_STATUS_FAILED;
+    }
+
+    public static boolean isTimeout(Integer taskStatus) {
+        return taskStatus != null && taskStatus == _NopJobCoreConstants.TASK_STATUS_TIMEOUT;
+    }
+
+    public static boolean isCanceled(Integer taskStatus) {
+        return taskStatus != null && taskStatus == _NopJobCoreConstants.TASK_STATUS_CANCELED;
+    }
+
+    /**
+     * Whether a task is currently executing on a worker: CLAIMED or RUNNING. Excludes WAITING
+     * (not yet dispatched), SUSPICIOUS (worker lost), and terminal statuses. This is the
+     * predicate counterpart of {@link #IN_FLIGHT_STATUSES}; used by the timeout checker's
+     * worker-liveness probe (a task can only be marked SUSPICIOUS if its worker is gone and
+     * the task is currently in flight).
+     */
+    public static boolean isInFlight(Integer taskStatus) {
+        return taskStatus != null
+                && (taskStatus == _NopJobCoreConstants.TASK_STATUS_CLAIMED
+                        || taskStatus == _NopJobCoreConstants.TASK_STATUS_RUNNING);
     }
 
     /**

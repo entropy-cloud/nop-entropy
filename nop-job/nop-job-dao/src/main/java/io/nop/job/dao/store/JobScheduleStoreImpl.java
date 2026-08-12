@@ -204,7 +204,7 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
 
         NopJobFire freshFire = fireDao().requireEntityById(failedFire.getJobFireId());
         Integer currentFireStatus = freshFire.getFireStatus();
-        if (currentFireStatus == null || (currentFireStatus != _NopJobCoreConstants.FIRE_STATUS_FAILED && currentFireStatus != _NopJobCoreConstants.FIRE_STATUS_TIMEOUT)) {
+        if (!JobFireStateMachine.isRecoverable(currentFireStatus)) {
             LOG.info("nop.job.schedule.recovery-skip-fire-no-longer-failed:fireId={},status={}",
                     failedFire.getJobFireId(), currentFireStatus);
             return;
@@ -269,7 +269,7 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
         if (isOverlay(schedule)) {
             for (NopJobFire af : activeFires) {
                 NopJobFire fresh = fireDao().requireEntityById(af.getJobFireId());
-                if (fresh.getFireStatus() != null && fresh.getFireStatus() == _NopJobCoreConstants.FIRE_STATUS_CANCELED) {
+                if (JobFireStateMachine.isCanceled(fresh.getFireStatus())) {
                     cancelledCount++;
                 }
             }
@@ -417,10 +417,7 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
     private boolean cancelFire(NopJobFire fire, Timestamp cancelTime) {
         NopJobFire fresh = fireDao().requireEntityById(fire.getJobFireId());
         Integer currentStatus = fresh.getFireStatus();
-        if (currentStatus != null && (currentStatus == _NopJobCoreConstants.FIRE_STATUS_CANCELED
-                || currentStatus == _NopJobCoreConstants.FIRE_STATUS_TIMEOUT
-                || currentStatus == _NopJobCoreConstants.FIRE_STATUS_SUCCESS
-                || currentStatus == _NopJobCoreConstants.FIRE_STATUS_FAILED)) {
+        if (JobFireStateMachine.isTerminal(currentStatus)) {
             return false;
         }
 

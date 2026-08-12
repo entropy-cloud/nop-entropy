@@ -21,6 +21,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
@@ -319,8 +320,8 @@ public class TestJobStoreImpl extends JunitBaseTestCase {
         saveCostTask("task-ar88-fresh", schedule, "worker-alive", _NopJobCoreConstants.TASK_STATUS_WAITING, 100, 200);
 
         long deadline = System.currentTimeMillis() - 300_000; // 5 min ago
-        int reset = taskStore.resetStaleWaitingTasks(100, null, deadline);
-        assertEquals(1, reset, "only the stale task matches the deadline");
+        List<NopJobTask> reset = taskStore.resetStaleWaitingTasks(100, null, deadline, null, null);
+        assertEquals(1, reset.size(), "only the stale task matches the deadline");
 
         NopJobTask reDispatched = taskStore.loadTask("task-ar88-stale");
         assertEquals(_NopJobCoreConstants.TASK_STATUS_WAITING, reDispatched.getTaskStatus(),
@@ -535,5 +536,96 @@ public class TestJobStoreImpl extends JunitBaseTestCase {
         task.setUpdatedBy("test");
         task.setUpdateTime(new Timestamp(System.currentTimeMillis()));
         return task;
+    }
+
+    // ========== Plan 338: cursor 分页谓词 focused tests ==========
+
+    /**
+     * Plan 338: fetchRunningTasks cursor 谓词。
+     * 首批无 cursor 返回全部 RUNNING_LIKE task；第二批传 cursor 后应严格排除 cursor 之前（含同 key 同 id）的 row。
+     */
+    @Test
+    public void testFetchRunningTasksCursorPaginatesStrictly() {
+        NopJobSchedule schedule = newSchedule("sched-cursor", "job-cursor");
+        daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
+
+        // 3 RUNNING tasks，startTime 不同
+        Timestamp t1 = new Timestamp(1000L);
+        Timestamp t2 = new Timestamp(2000L);
+        Timestamp t3 = new Timestamp(3000L);
+
+        NopJobTask task1 = newTask("task-cursor-1", newFire("fire-cursor-1", schedule));
+        task1.setTaskStatus(_NopJobCoreConstants.TASK_STATUS_RUNNING);
+        task1.setStartTime(t1);
+        daoProvider.daoFor(NopJobTask.class).saveEntityDirectly(task1);
+
+        NopJobTask task2 = newTask("task-cursor-2", newFire("fire-cursor-2", schedule));
+        task2.setTaskStatus(_NopJobCoreConstants.TASK_STATUS_RUNNING);
+        task2.setStartTime(t2);
+        daoProvider.daoFor(NopJobTask.class).saveEntityDirectly(task2);
+
+        NopJobTask task3 = newTask("task-cursor-3", newFire("fire-cursor-3", schedule));
+        task3.setTaskStatus(_NopJobCoreConstants.TASK_STATUS_RUNNING);
+        task3.setStartTime(t3);
+        daoProvider.daoFor(NopJobTask.class).saveEntityDirectly(task3);
+
+        // 首批无 cursor：返回全部 3 条，按 startTime DESC 排序
+        List<NopJobTask> firstBatch = taskStore.fetchRunningTasks(100, null, null, null);
+        assertEquals(3, firstBatch.size(), "first batch without cursor returns all 3 RUNNING tasks");
+        assertEquals("task-cursor-3", firstBatch.get(0).getJobTaskId(), "ordered by startTime DESC");
+        assertEquals("task-cursor-2", firstBatch.get(1).getJobTaskId());
+        assertEquals("task-cursor-1", firstBatch.get(2).getJobTaskId());
+
+        // 第二批 cursor=(t3, task-cursor-3)：应排除 task3，只返回 task2 + task1
+        List<NopJobTask> secondBatch = taskStore.fetchRunningTasks(100, null, t3, "task-cursor-3");
+        assertEquals(2, secondBatch.size(), "cursor (t3, task-cursor-3) excludes task3");
+        assertEquals("task-cursor-2", secondBatch.get(0).getJobTaskId());
+        assertEquals("task-cursor-1", secondBatch.get(1).getJobTaskId());
+
+        // 第三批 cursor=(t1, task-cursor-1)：应返回空
+        List<NopJobTask> thirdBatch = taskStore.fetchRunningTasks(100, null, t1, "task-cursor-1");
+        assertTrue(thirdBatch.isEmpty(), "cursor past last row returns empty");
+    }
+
+    /**
+     * Plan 338: cursor 校验——cursorId 非空但 cursorTime 为空必须抛 IllegalArgumentException。
+     */
+    @Test
+    public void testFetchRunningTasksCursorValidationRejectsIdWithoutTime() {
+        assertThrows(IllegalArgumentException.class,
+                () -> taskStore.fetchRunningTasks(100, null, null, "orphan-id"),
+                "cursorId without cursorTime must fail fast");
+    }
+
+    /**
+     * Plan 338: resetStaleWaitingTasks cursor 谓词。
+     * 第一批返回 N 条；第二批传 cursor 后应排除已 fetch 的 row。
+     */
+    @Test
+    public void testResetStaleWaitingTasksCursorPaginatesStrictly() {
+        NopJobSchedule schedule = newSchedule("sched-cursor2", "job-cursor2");
+        daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
+
+        NopJobTask stale1 = newTask("task-stale-cursor-1", newFire("fire-stale-cursor-1", schedule));
+        stale1.setCreateTime(new Timestamp(System.currentTimeMillis() - 600_000));
+        daoProvider.daoFor(NopJobTask.class).saveEntityDirectly(stale1);
+
+        NopJobTask stale2 = newTask("task-stale-cursor-2", newFire("fire-stale-cursor-2", schedule));
+        stale2.setCreateTime(new Timestamp(System.currentTimeMillis() - 700_000));
+        daoProvider.daoFor(NopJobTask.class).saveEntityDirectly(stale2);
+
+        long deadline = System.currentTimeMillis() - 300_000;
+
+        // 首批：返回 1 条（按 createTime DESC，更老的 stale2 在前）
+        List<NopJobTask> firstBatch = taskStore.resetStaleWaitingTasks(1, null, deadline, null, null);
+        assertEquals(1, firstBatch.size(), "first batch returns 1");
+        assertEquals("task-stale-cursor-2", firstBatch.get(0).getJobTaskId(),
+                "createTime DESC: older task-stale-cursor-2 first");
+
+        // 第二批 cursor=(stale2.createTime, task-stale-cursor-2)：应只剩 stale1
+        List<NopJobTask> secondBatch = taskStore.resetStaleWaitingTasks(100, null, deadline,
+                firstBatch.get(0).getCreateTime(), firstBatch.get(0).getJobTaskId());
+        assertEquals(1, secondBatch.size(), "cursor advances past stale2");
+        assertEquals("task-stale-cursor-1", secondBatch.get(0).getJobTaskId());
     }
 }

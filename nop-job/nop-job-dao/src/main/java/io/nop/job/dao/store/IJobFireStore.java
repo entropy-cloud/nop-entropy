@@ -5,6 +5,7 @@ import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
 
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -29,7 +30,21 @@ public interface IJobFireStore {
 
     Map<String, NopJobFire> batchLoadFires(Set<String> fireIds);
 
-    List<NopJobFire> fetchDispatchingFires(int limit, IntRangeSet partitions);
+    /**
+     * 拉取处于 DISPATCHING 状态的 fire，按 {@code startTime DESC, jobFireId DESC} 排序。
+     * 支持游标分页：当 {@code cursorTime} 非空时，追加谓词
+     * {@code startTime < cursorTime OR (startTime = cursorTime AND jobFireId < cursorId)}，
+     * 保证本批返回的 row 在排序空间中严格位于 cursor 之前。
+     *
+     * @param limit      最多返回条数
+     * @param partitions 分区过滤
+     * @param cursorTime 上一批最后一条的 {@code startTime}；null 表示首批
+     * @param cursorId   上一批最后一条的 {@code jobFireId}；当 {@code cursorTime} 非空时必须配合使用
+     * @return 命中的 fire 列表，按 {@code startTime DESC, jobFireId DESC} 排序
+     * @throws IllegalArgumentException 若 {@code cursorTime} 为空但 {@code cursorId} 非空
+     */
+    List<NopJobFire> fetchDispatchingFires(int limit, IntRangeSet partitions,
+                                           Timestamp cursorTime, String cursorId);
 
     /**
      * 把一个 DISPATCHING 状态的 fire 回退为 WAITING（重新可派发），用于 no-fitting-worker

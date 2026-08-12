@@ -69,8 +69,7 @@ public class TriggerSpecHelper {
 
             @Override
             public boolean isScheduleCompleted() {
-                return schedule.getScheduleStatus() != null
-                        && schedule.getScheduleStatus() == _NopJobCoreConstants.SCHEDULE_STATUS_COMPLETED;
+                return JobScheduleStateMachine.isCompleted(schedule.getScheduleStatus());
             }
         };
     }

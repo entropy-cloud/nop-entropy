@@ -3,10 +3,75 @@ package io.nop.job.dao.helper;
 import io.nop.job.core._NopJobCoreConstants;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestJobTaskStateMachine {
+
+    @Test
+    void singleValuePredicates_matchExactlyOneStatus() {
+        assertTrue(JobTaskStateMachine.isWaiting(_NopJobCoreConstants.TASK_STATUS_WAITING));
+        assertTrue(JobTaskStateMachine.isClaimed(_NopJobCoreConstants.TASK_STATUS_CLAIMED));
+        assertTrue(JobTaskStateMachine.isSuspicious(_NopJobCoreConstants.TASK_STATUS_SUSPICIOUS));
+        assertTrue(JobTaskStateMachine.isRunning(_NopJobCoreConstants.TASK_STATUS_RUNNING));
+        assertTrue(JobTaskStateMachine.isSuccess(_NopJobCoreConstants.TASK_STATUS_SUCCESS));
+        assertTrue(JobTaskStateMachine.isFailed(_NopJobCoreConstants.TASK_STATUS_FAILED));
+        assertTrue(JobTaskStateMachine.isTimeout(_NopJobCoreConstants.TASK_STATUS_TIMEOUT));
+        assertTrue(JobTaskStateMachine.isCanceled(_NopJobCoreConstants.TASK_STATUS_CANCELED));
+    }
+
+    @Test
+    void singleValuePredicates_returnFalseForNull() {
+        assertFalse(JobTaskStateMachine.isWaiting(null));
+        assertFalse(JobTaskStateMachine.isClaimed(null));
+        assertFalse(JobTaskStateMachine.isSuspicious(null));
+        assertFalse(JobTaskStateMachine.isRunning(null));
+        assertFalse(JobTaskStateMachine.isSuccess(null));
+        assertFalse(JobTaskStateMachine.isFailed(null));
+        assertFalse(JobTaskStateMachine.isTimeout(null));
+        assertFalse(JobTaskStateMachine.isCanceled(null));
+    }
+
+    @Test
+    void singleValuePredicates_returnFalseForOtherStatuses() {
+        assertFalse(JobTaskStateMachine.isWaiting(_NopJobCoreConstants.TASK_STATUS_CLAIMED));
+        assertFalse(JobTaskStateMachine.isRunning(_NopJobCoreConstants.TASK_STATUS_CLAIMED));
+        assertFalse(JobTaskStateMachine.isSuccess(_NopJobCoreConstants.TASK_STATUS_FAILED));
+        assertFalse(JobTaskStateMachine.isSuspicious(_NopJobCoreConstants.TASK_STATUS_RUNNING));
+    }
+
+    @Test
+    void isInFlight_returnsTrueForClaimedAndRunning() {
+        assertTrue(JobTaskStateMachine.isInFlight(_NopJobCoreConstants.TASK_STATUS_CLAIMED));
+        assertTrue(JobTaskStateMachine.isInFlight(_NopJobCoreConstants.TASK_STATUS_RUNNING));
+    }
+
+    @Test
+    void isInFlight_returnsFalseForWaitingSuspiciousAndTerminal() {
+        assertFalse(JobTaskStateMachine.isInFlight(_NopJobCoreConstants.TASK_STATUS_WAITING));
+        assertFalse(JobTaskStateMachine.isInFlight(_NopJobCoreConstants.TASK_STATUS_SUSPICIOUS));
+        assertFalse(JobTaskStateMachine.isInFlight(_NopJobCoreConstants.TASK_STATUS_SUCCESS));
+        assertFalse(JobTaskStateMachine.isInFlight(_NopJobCoreConstants.TASK_STATUS_FAILED));
+        assertFalse(JobTaskStateMachine.isInFlight(_NopJobCoreConstants.TASK_STATUS_TIMEOUT));
+        assertFalse(JobTaskStateMachine.isInFlight(_NopJobCoreConstants.TASK_STATUS_CANCELED));
+        assertFalse(JobTaskStateMachine.isInFlight(null));
+    }
+
+    @Test
+    void inFlightStatuses_containsClaimedAndRunning() {
+        assertEquals(2, JobTaskStateMachine.IN_FLIGHT_STATUSES.size());
+        assertTrue(JobTaskStateMachine.IN_FLIGHT_STATUSES.contains(_NopJobCoreConstants.TASK_STATUS_CLAIMED));
+        assertTrue(JobTaskStateMachine.IN_FLIGHT_STATUSES.contains(_NopJobCoreConstants.TASK_STATUS_RUNNING));
+    }
+
+    @Test
+    void runningLikeStatuses_containsClaimedSuspiciousRunning() {
+        assertEquals(3, JobTaskStateMachine.RUNNING_LIKE_STATUSES.size());
+        assertTrue(JobTaskStateMachine.RUNNING_LIKE_STATUSES.contains(_NopJobCoreConstants.TASK_STATUS_CLAIMED));
+        assertTrue(JobTaskStateMachine.RUNNING_LIKE_STATUSES.contains(_NopJobCoreConstants.TASK_STATUS_SUSPICIOUS));
+        assertTrue(JobTaskStateMachine.RUNNING_LIKE_STATUSES.contains(_NopJobCoreConstants.TASK_STATUS_RUNNING));
+    }
 
     @Test
     void isPending_returnsTrueForWaitingClaimedRunning() {

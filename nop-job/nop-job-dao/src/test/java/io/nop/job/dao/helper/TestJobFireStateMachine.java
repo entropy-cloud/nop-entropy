@@ -13,6 +13,56 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class TestJobFireStateMachine {
 
     @Test
+    void singleValuePredicates_matchExactlyOneStatus() {
+        assertTrue(JobFireStateMachine.isWaiting(_NopJobCoreConstants.FIRE_STATUS_WAITING));
+        assertTrue(JobFireStateMachine.isDispatching(_NopJobCoreConstants.FIRE_STATUS_DISPATCHING));
+        assertTrue(JobFireStateMachine.isRunning(_NopJobCoreConstants.FIRE_STATUS_RUNNING));
+        assertTrue(JobFireStateMachine.isSuccess(_NopJobCoreConstants.FIRE_STATUS_SUCCESS));
+        assertTrue(JobFireStateMachine.isFailed(_NopJobCoreConstants.FIRE_STATUS_FAILED));
+        assertTrue(JobFireStateMachine.isTimeout(_NopJobCoreConstants.FIRE_STATUS_TIMEOUT));
+        assertTrue(JobFireStateMachine.isCanceled(_NopJobCoreConstants.FIRE_STATUS_CANCELED));
+    }
+
+    @Test
+    void singleValuePredicates_returnFalseForNull() {
+        assertFalse(JobFireStateMachine.isWaiting(null));
+        assertFalse(JobFireStateMachine.isDispatching(null));
+        assertFalse(JobFireStateMachine.isRunning(null));
+        assertFalse(JobFireStateMachine.isSuccess(null));
+        assertFalse(JobFireStateMachine.isFailed(null));
+        assertFalse(JobFireStateMachine.isTimeout(null));
+        assertFalse(JobFireStateMachine.isCanceled(null));
+    }
+
+    @Test
+    void singleValuePredicates_returnFalseForOtherStatuses() {
+        // spot-check a few cross-status cases
+        assertFalse(JobFireStateMachine.isWaiting(_NopJobCoreConstants.FIRE_STATUS_DISPATCHING));
+        assertFalse(JobFireStateMachine.isRunning(_NopJobCoreConstants.FIRE_STATUS_SUCCESS));
+        assertFalse(JobFireStateMachine.isSuccess(_NopJobCoreConstants.FIRE_STATUS_FAILED));
+        assertFalse(JobFireStateMachine.isCanceled(_NopJobCoreConstants.FIRE_STATUS_TIMEOUT));
+    }
+
+    @Test
+    void mapFireToTaskStatus_returnsTerminalTaskStatusForNegativeFireStatuses() {
+        assertEquals(_NopJobCoreConstants.TASK_STATUS_TIMEOUT,
+                JobFireStateMachine.mapFireToTaskStatus(_NopJobCoreConstants.FIRE_STATUS_TIMEOUT));
+        assertEquals(_NopJobCoreConstants.TASK_STATUS_FAILED,
+                JobFireStateMachine.mapFireToTaskStatus(_NopJobCoreConstants.FIRE_STATUS_FAILED));
+        assertEquals(_NopJobCoreConstants.TASK_STATUS_CANCELED,
+                JobFireStateMachine.mapFireToTaskStatus(_NopJobCoreConstants.FIRE_STATUS_CANCELED));
+    }
+
+    @Test
+    void mapFireToTaskStatus_returnsNullForSuccessAndActiveAndNull() {
+        assertNull(JobFireStateMachine.mapFireToTaskStatus(_NopJobCoreConstants.FIRE_STATUS_SUCCESS));
+        assertNull(JobFireStateMachine.mapFireToTaskStatus(_NopJobCoreConstants.FIRE_STATUS_WAITING));
+        assertNull(JobFireStateMachine.mapFireToTaskStatus(_NopJobCoreConstants.FIRE_STATUS_DISPATCHING));
+        assertNull(JobFireStateMachine.mapFireToTaskStatus(_NopJobCoreConstants.FIRE_STATUS_RUNNING));
+        assertNull(JobFireStateMachine.mapFireToTaskStatus(null));
+    }
+
+    @Test
     void isActive_returnsTrueForWaitingDispatchingRunning() {
         assertTrue(JobFireStateMachine.isActive(_NopJobCoreConstants.FIRE_STATUS_WAITING));
         assertTrue(JobFireStateMachine.isActive(_NopJobCoreConstants.FIRE_STATUS_DISPATCHING));

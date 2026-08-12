@@ -11,11 +11,13 @@ import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.core.NopJobCoreConstants;
 import io.nop.job.dao.entity.NopJobTask;
 import io.nop.job.dao.helper.JobQueryHelper;
+import io.nop.job.dao.helper.JobTaskStateMachine;
 import io.nop.job.dao.mapper.NopJobTaskMapper;
 import io.nop.job.dao.mapper.ReservedCostRow;
 import io.nop.orm.dao.IOrmEntityDao;
 import jakarta.inject.Inject;
 
+import java.sql.Timestamp;
 import java.util.List;
 
 import static io.nop.job.dao.entity._gen._NopJobTask.PROP_NAME_createTime;
@@ -89,12 +91,22 @@ public class JobTaskStoreImpl implements IJobTaskStore {
     }
 
     @Override
-    public List<NopJobTask> fetchRunningTasks(int limit, IntRangeSet partitions) {
+    public List<NopJobTask> fetchRunningTasks(int limit, IntRangeSet partitions,
+                                              Timestamp cursorTime, String cursorId) {
+        validateCursor(cursorTime, cursorId);
         QueryBean query = new QueryBean();
         query.setLimit(limit);
-        query.addFilter(FilterBeans.in(PROP_NAME_taskStatus,
-                List.of(_NopJobCoreConstants.TASK_STATUS_RUNNING, _NopJobCoreConstants.TASK_STATUS_CLAIMED, _NopJobCoreConstants.TASK_STATUS_SUSPICIOUS)));
+        query.addFilter(FilterBeans.in(PROP_NAME_taskStatus, JobTaskStateMachine.RUNNING_LIKE_STATUSES));
         JobQueryHelper.addPartitionFilter(query, partitions, PROP_NAME_partitionIndex);
+        if (cursorTime != null) {
+            query.addFilter(FilterBeans.or(
+                    FilterBeans.lt(PROP_NAME_startTime, cursorTime),
+                    FilterBeans.and(
+                            FilterBeans.eq(PROP_NAME_startTime, cursorTime),
+                            FilterBeans.lt(PROP_NAME_jobTaskId, cursorId)
+                    )
+            ));
+        }
         query.addOrderField(PROP_NAME_startTime, false);
         query.addOrderField(PROP_NAME_jobTaskId, false);
         return taskDao().findAllByQuery(query);
@@ -117,8 +129,7 @@ public class JobTaskStoreImpl implements IJobTaskStore {
     @Override
     public long countInFlightTasks(String workerInstanceId) {
         QueryBean query = new QueryBean();
-        query.addFilter(FilterBeans.in(PROP_NAME_taskStatus,
-                List.of(_NopJobCoreConstants.TASK_STATUS_RUNNING, _NopJobCoreConstants.TASK_STATUS_CLAIMED)));
+        query.addFilter(FilterBeans.in(PROP_NAME_taskStatus, JobTaskStateMachine.IN_FLIGHT_STATUSES));
         query.addFilter(FilterBeans.eq(PROP_NAME_workerInstanceId, workerInstanceId));
         return taskDao().countByQuery(query);
     }
@@ -142,18 +153,29 @@ public class JobTaskStoreImpl implements IJobTaskStore {
 
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
     @Override
-    public int resetStaleWaitingTasks(int batchSize, IntRangeSet partitions, long deadlineMs) {
+    public List<NopJobTask> resetStaleWaitingTasks(int batchSize, IntRangeSet partitions, long deadlineMs,
+                                                   Timestamp cursorTime, String cursorId) {
+        validateCursor(cursorTime, cursorId);
         QueryBean query = new QueryBean();
         query.setLimit(batchSize);
         query.addFilter(FilterBeans.eq(PROP_NAME_taskStatus, _NopJobCoreConstants.TASK_STATUS_WAITING));
         query.addFilter(FilterBeans.lt(PROP_NAME_createTime, new java.sql.Timestamp(deadlineMs)));
         JobQueryHelper.addPartitionFilter(query, partitions, PROP_NAME_partitionIndex);
+        if (cursorTime != null) {
+            query.addFilter(FilterBeans.or(
+                    FilterBeans.lt(PROP_NAME_createTime, cursorTime),
+                    FilterBeans.and(
+                            FilterBeans.eq(PROP_NAME_createTime, cursorTime),
+                            FilterBeans.lt(PROP_NAME_jobTaskId, cursorId)
+                    )
+            ));
+        }
         query.addOrderField(PROP_NAME_createTime, false);
         query.addOrderField(PROP_NAME_jobTaskId, false);
 
         List<NopJobTask> stale = taskDao().findAllByQuery(query);
         if (stale.isEmpty()) {
-            return 0;
+            return java.util.Collections.emptyList();
         }
 
         // Re-dispatch: clear workerInstanceId so any worker (competing-consumer) can claim.
@@ -164,7 +186,18 @@ public class JobTaskStoreImpl implements IJobTaskStore {
         for (NopJobTask task : stale) {
             task.setWorkerInstanceId(null);
         }
-        return taskDao().tryUpdateManyWithVersionCheck(stale).size();
+        taskDao().tryUpdateManyWithVersionCheck(stale);
+        // Return the fetched stale list (entities mutated: workerInstanceId=null, but
+        // createTime/jobTaskId retained for caller cursor advancement). Cursor must advance
+        // past these rows even if some had version-conflict (they'll have transitioned to
+        // CLAIMED via worker, leaving the WAITING result set on next fetch anyway).
+        return stale;
+    }
+
+    private static void validateCursor(Timestamp cursorTime, String cursorId) {
+        if (cursorTime == null && cursorId != null) {
+            throw new IllegalArgumentException("cursorId requires cursorTime");
+        }
     }
 
     private IOrmEntityDao<NopJobTask> taskDao() {

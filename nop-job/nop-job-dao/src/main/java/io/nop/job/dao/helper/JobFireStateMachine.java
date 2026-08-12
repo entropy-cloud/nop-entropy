@@ -54,6 +54,56 @@ public final class JobFireStateMachine {
         return fireStatus != null && fireStatus >= _NopJobCoreConstants.FIRE_STATUS_SUCCESS;
     }
 
+    public static boolean isWaiting(Integer fireStatus) {
+        return fireStatus != null && fireStatus == _NopJobCoreConstants.FIRE_STATUS_WAITING;
+    }
+
+    public static boolean isDispatching(Integer fireStatus) {
+        return fireStatus != null && fireStatus == _NopJobCoreConstants.FIRE_STATUS_DISPATCHING;
+    }
+
+    public static boolean isRunning(Integer fireStatus) {
+        return fireStatus != null && fireStatus == _NopJobCoreConstants.FIRE_STATUS_RUNNING;
+    }
+
+    public static boolean isSuccess(Integer fireStatus) {
+        return fireStatus != null && fireStatus == _NopJobCoreConstants.FIRE_STATUS_SUCCESS;
+    }
+
+    public static boolean isFailed(Integer fireStatus) {
+        return fireStatus != null && fireStatus == _NopJobCoreConstants.FIRE_STATUS_FAILED;
+    }
+
+    public static boolean isTimeout(Integer fireStatus) {
+        return fireStatus != null && fireStatus == _NopJobCoreConstants.FIRE_STATUS_TIMEOUT;
+    }
+
+    public static boolean isCanceled(Integer fireStatus) {
+        return fireStatus != null && fireStatus == _NopJobCoreConstants.FIRE_STATUS_CANCELED;
+    }
+
+    /**
+     * Maps a terminal fire status to the corresponding terminal task status, used when
+     * propagating an externally-decided fire outcome (cancel / timeout / fail) onto tasks
+     * that have not yet individually reached that state. Returns {@code null} for SUCCESS
+     * (no negative task status to propagate) and for non-terminal / null inputs.
+     */
+    public static Integer mapFireToTaskStatus(Integer fireStatus) {
+        if (fireStatus == null) {
+            return null;
+        }
+        if (fireStatus == _NopJobCoreConstants.FIRE_STATUS_TIMEOUT) {
+            return _NopJobCoreConstants.TASK_STATUS_TIMEOUT;
+        }
+        if (fireStatus == _NopJobCoreConstants.FIRE_STATUS_FAILED) {
+            return _NopJobCoreConstants.TASK_STATUS_FAILED;
+        }
+        if (fireStatus == _NopJobCoreConstants.FIRE_STATUS_CANCELED) {
+            return _NopJobCoreConstants.TASK_STATUS_CANCELED;
+        }
+        return null;
+    }
+
     /**
      * Whether a fire can be reused by the recovery (block-strategy RECOVERY) flow:
      * FAILED or TIMEOUT. This is the query counterpart of {@link #RECOVERABLE_STATUSES}.

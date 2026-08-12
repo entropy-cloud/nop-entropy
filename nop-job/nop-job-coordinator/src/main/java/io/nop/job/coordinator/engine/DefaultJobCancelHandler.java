@@ -10,6 +10,7 @@ import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
 import io.nop.job.dao.helper.JobScheduleStateMachine;
+import io.nop.job.dao.helper.JobTaskStateMachine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -113,8 +114,7 @@ public class DefaultJobCancelHandler implements IJobCancelHandler {
             this.maxScheduleTime = toTime(schedule.getMaxScheduleTime());
             this.maxExecutionCount = defaultLong(schedule.getMaxExecutionCount());
             this.jobFinished = JobScheduleStateMachine.isCompleted(schedule.getScheduleStatus());
-            this.instanceRunning = task.getTaskStatus() != null
-                    && task.getTaskStatus() == _NopJobCoreConstants.TASK_STATUS_RUNNING;
+            this.instanceRunning = JobTaskStateMachine.isRunning(task.getTaskStatus());
             this.scheduleEnabled = JobScheduleStateMachine.isEnabled(schedule.getScheduleStatus());
         }
 

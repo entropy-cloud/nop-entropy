@@ -103,7 +103,7 @@ public class JobFireStoreImpl implements IJobFireStore {
     @Override
     public void insertTasksAndMarkFireDispatching(NopJobFire fire, List<NopJobTask> tasks) {
         NopJobFire currentFire = fireDao().requireEntityById(fire.getJobFireId());
-        if (currentFire.getFireStatus() == null || currentFire.getFireStatus() != _NopJobCoreConstants.FIRE_STATUS_DISPATCHING) {
+        if (!JobFireStateMachine.isDispatching(currentFire.getFireStatus())) {
             return;
         }
 
@@ -234,12 +234,26 @@ public class JobFireStoreImpl implements IJobFireStore {
     }
 
     @Override
-    public List<NopJobFire> fetchDispatchingFires(int limit, IntRangeSet partitions) {
+    public List<NopJobFire> fetchDispatchingFires(int limit, IntRangeSet partitions,
+                                                  Timestamp cursorTime, String cursorId) {
+        if (cursorTime == null && cursorId != null) {
+            throw new IllegalArgumentException("cursorId requires cursorTime");
+        }
         QueryBean query = new QueryBean();
         query.setLimit(limit);
         query.addFilter(FilterBeans.eq(PROP_NAME_fireStatus, _NopJobCoreConstants.FIRE_STATUS_DISPATCHING));
         JobQueryHelper.addPartitionFilter(query, partitions, PROP_NAME_partitionIndex);
+        if (cursorTime != null) {
+            query.addFilter(FilterBeans.or(
+                    FilterBeans.lt(PROP_NAME_startTime, cursorTime),
+                    FilterBeans.and(
+                            FilterBeans.eq(PROP_NAME_startTime, cursorTime),
+                            FilterBeans.lt(PROP_NAME_jobFireId, cursorId)
+                    )
+            ));
+        }
         query.addOrderField(PROP_NAME_startTime, false);
+        query.addOrderField(PROP_NAME_jobFireId, false);
         return fireDao().findAllByQuery(query);
     }
 
@@ -247,8 +261,7 @@ public class JobFireStoreImpl implements IJobFireStore {
     @Override
     public boolean revertDispatchingFireToWaiting(NopJobFire fire, long backoffUntilMs) {
         NopJobFire currentFire = fireDao().requireEntityById(fire.getJobFireId());
-        if (currentFire.getFireStatus() == null
-                || currentFire.getFireStatus() != _NopJobCoreConstants.FIRE_STATUS_DISPATCHING) {
+        if (!JobFireStateMachine.isDispatching(currentFire.getFireStatus())) {
             return false;
         }
         currentFire.setFireStatus(_NopJobCoreConstants.FIRE_STATUS_WAITING);
