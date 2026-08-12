@@ -1,0 +1,19 @@
+{
+  "id": "save-btn",
+  "label": "Save",
+  "onClick": {
+    "then": [
+      {
+        "action": "ajax",
+        "args": {
+          "url": "/test/save",
+          "method": "POST",
+          "includeScope": "field1,field2"
+        }
+      },
+      {
+        "action": "refreshNearest"
+      }
+    ]
+  }
+}
