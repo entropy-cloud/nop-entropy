@@ -1,0 +1,298 @@
+{
+  "schemaVersion": 1,
+  "updated": "2026-08-12",
+  "classifier": "I0 §4.1 mechanical form: change-type methods = public/protected/package-private (non-private) methods declared by the class/interface itself; excluded: private, static, abstract-in-classes, constructors, synthetic/bridge, test-only accessors (get/set*ForTesting), 0-param read accessors named get*/is*/has* (getAnd*/getOr* are mutators and ARE included). Mirrored by ChangeTypeMethodClassifier in nop-stream-core/src/test and the mjs parser in check-nop-stream-invariants.mjs.",
+  "modules": {
+    "nop-stream-core": {
+      "io.nop.stream.core.datastream.WindowedStreamImpl": {
+        "methods": [
+          "aggregate",
+          "allowedLateness",
+          "apply",
+          "evictor",
+          "process",
+          "reduce",
+          "transform",
+          "trigger",
+          "withComponents"
+        ]
+      },
+      "io.nop.stream.core.operators.IWindowOperatorFactory": {
+        "methods": [
+          "createAggregateOperator",
+          "createApplyOperator",
+          "createProcessOperator",
+          "createReduceOperator"
+        ]
+      },
+      "io.nop.stream.core.operators.StreamReduceOperator": {
+        "methods": [
+          "copyForSubtask",
+          "open",
+          "processElement",
+          "restoreState",
+          "setCurrentKey",
+          "snapshotState"
+        ]
+      },
+      "io.nop.stream.core.common.functions.sink.TwoPhaseCommitSinkFunction": {
+        "methods": [
+          "abort",
+          "consume",
+          "finishCommit",
+          "prepareCommit",
+          "recover",
+          "restoreFromEpoch",
+          "saveState",
+          "setPendingCommits"
+        ]
+      },
+      "io.nop.stream.core.operators.StreamSinkOperator": {
+        "methods": [
+          "close",
+          "copyForSubtask",
+          "notifyCheckpointAborted",
+          "notifyCheckpointComplete",
+          "processBarrier",
+          "processElement",
+          "processWatermark",
+          "restoreState"
+        ]
+      },
+      "io.nop.stream.core.checkpoint.CheckpointIDCounter": {
+        "methods": [
+          "compareAndSet",
+          "getAndIncrement",
+          "incrementAndGet",
+          "set"
+        ]
+      },
+      "io.nop.stream.core.execution.InputGate": {
+        "methods": [
+          "abortBarrierAlignment",
+          "blockConsumption",
+          "consumePendingChannelState",
+          "read",
+          "restoreChannelState",
+          "resumeConsumption",
+          "resumeConsumptionAll"
+        ]
+      }
+    },
+    "nop-stream-runtime": {
+      "io.nop.stream.runtime.operators.windowing.WindowOperatorFactoryImpl": {
+        "methods": [
+          "createAggregateOperator",
+          "createApplyOperator",
+          "createProcessOperator",
+          "createReduceOperator"
+        ]
+      },
+      "io.nop.stream.runtime.operators.windowing.WindowOperatorBuilder": {
+        "methods": [
+          "accumulationMode",
+          "aggregate",
+          "allowedLateness",
+          "apply",
+          "evictor",
+          "keyClass",
+          "keySelector",
+          "keySerializer",
+          "lateDataOutputTag",
+          "process",
+          "reduce",
+          "trigger",
+          "windowAssigner",
+          "windowSerializer"
+        ]
+      },
+      "io.nop.stream.runtime.operators.windowing.WindowOperator": {
+        "methods": [
+          "close",
+          "copyForSubtask",
+          "createAccumulatorForWindow",
+          "deleteCleanupTimer",
+          "onEventTime",
+          "onProcessingTime",
+          "open",
+          "processElement",
+          "processWatermark",
+          "registerCleanupTimer",
+          "restoreState",
+          "sideOutput",
+          "snapshotState"
+        ]
+      },
+      "io.nop.stream.runtime.checkpoint.CheckpointCoordinator": {
+        "methods": [
+          "abortPendingCheckpoint",
+          "acknowledgeTask",
+          "addListener",
+          "addParticipant",
+          "completePendingCheckpoint",
+          "incrementTriggerFailures",
+          "registerSourceEnumeratorVertex",
+          "registerTask",
+          "removeListener",
+          "removeParticipant",
+          "reportTaskCheckpointFailure",
+          "restoreFromCheckpoint",
+          "restoreLatestEpochManifest",
+          "restoreSharedStateRegistry",
+          "setAbortHandler",
+          "setCurrentFingerprint",
+          "setIncrementalCheckpointEnabled",
+          "setSegmentStore",
+          "setTasksToAcknowledge",
+          "shutdown",
+          "startCheckpointScheduler",
+          "stopCheckpointScheduler",
+          "tryTriggerCheckpointWithReason",
+          "tryTriggerPendingCheckpoint",
+          "unregisterTask",
+          "validateIncrementalConfig"
+        ]
+      },
+      "io.nop.stream.runtime.checkpoint.PendingCheckpoint": {
+        "methods": [
+          "abort",
+          "acknowledgeTask",
+          "dispose",
+          "fail",
+          "forceComplete",
+          "toCompletedCheckpoint"
+        ]
+      },
+      "io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage": {
+        "methods": [
+          "deleteAllCheckpoints",
+          "deleteCheckpoint",
+          "loadLatestEpochManifest",
+          "loadRetainedEpochManifests",
+          "loadSavepoint",
+          "loadSavepointMetadata",
+          "storeCheckPoint",
+          "storeEpochManifest",
+          "storeSavepoint"
+        ]
+      },
+      "io.nop.stream.runtime.checkpoint.CheckpointPlanBuilder": {
+        "methods": [],
+        "exclusions": [
+          {
+            "name": "build",
+            "reason": "public static factory — static methods excluded by the change-type classifier (I0 §4.1: static factories not in table)"
+          }
+        ]
+      },
+      "io.nop.stream.runtime.cluster.ClusterRegistry": {
+        "methods": [
+          "assignTask",
+          "registerCoordinator",
+          "registerNode",
+          "removeTaskAssignment",
+          "renewLease"
+        ]
+      },
+      "io.nop.stream.runtime.cluster.JdbcClusterRegistry": {
+        "methods": [
+          "assignTask",
+          "registerCoordinator",
+          "registerNode",
+          "removeTaskAssignment",
+          "renewLease"
+        ]
+      },
+      "io.nop.stream.runtime.cluster.InMemoryClusterRegistry": {
+        "methods": [
+          "assignTask",
+          "evictExpiredNodes",
+          "registerCoordinator",
+          "registerNode",
+          "removeTaskAssignment",
+          "renewLease"
+        ]
+      },
+      "io.nop.stream.runtime.cluster.NodeDiscoveryConsistencyChecker": {
+        "methods": [
+          "assertConsistent",
+          "check"
+        ]
+      }
+    },
+    "nop-stream-cep": {
+      "io.nop.stream.cep.nfa.NFA": {
+        "methods": [
+          "advanceTime",
+          "close",
+          "createInitialNFAState",
+          "open",
+          "process"
+        ]
+      },
+      "io.nop.stream.cep.nfa.DeweyNumber": {
+        "methods": [
+          "addStage",
+          "increase",
+          "length"
+        ]
+      },
+      "io.nop.stream.cep.nfa.sharedbuffer.Lockable": {
+        "methods": [
+          "lock",
+          "release",
+          "releaseOrDetach"
+        ]
+      },
+      "io.nop.stream.cep.nfa.sharedbuffer.SharedBuffer": {
+        "methods": [
+          "advanceTime",
+          "flushCache",
+          "logCacheStatistics",
+          "registerEvent",
+          "removeEntry",
+          "removeEvent",
+          "upsertEntry",
+          "upsertEvent"
+        ]
+      },
+      "io.nop.stream.cep.nfa.sharedbuffer.SharedBufferAccessor": {
+        "methods": [
+          "advanceTime",
+          "close",
+          "extractPatterns",
+          "lockNode",
+          "materializeMatch",
+          "put",
+          "registerEvent",
+          "releaseEvent",
+          "releaseNode"
+        ]
+      },
+      "io.nop.stream.cep.operator.CepOperator": {
+        "methods": [
+          "close",
+          "copyForSubtask",
+          "onCacheStatisticsTimer",
+          "onEventTime",
+          "onProcessingTime",
+          "open",
+          "processElement",
+          "processWatermark",
+          "releaseCacheStatisticsTimer",
+          "restoreState",
+          "snapshotState"
+        ]
+      },
+      "io.nop.stream.cep.nfa.NFAState": {
+        "methods": [
+          "resetNewStartPartialMatch",
+          "resetStateChanged",
+          "setNewPartialMatches",
+          "setNewStartPartialMatch",
+          "setStateChanged"
+        ]
+      }
+    }
+  }
+}

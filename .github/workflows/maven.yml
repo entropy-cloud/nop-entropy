@@ -41,6 +41,12 @@ jobs:
         cache: maven
     - name: Build with Maven
       run: mvn -B package --file pom.xml
+    - name: Set up Node.js (for nop-stream invariant gate scanner)
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+    - name: Check nop-stream invariant gates (mjs scanner)
+      run: node ai-dev/tools/check-nop-stream-invariants.mjs
 
   e2e:
     needs: build
