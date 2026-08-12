@@ -13,9 +13,9 @@
 > **这是唯一动态状态块。状态只在这里更新。**
 > 人工设定条目与顺序；AI 取第一个 `todo`，起草/执行计划，closure audit 通过后标 `done`。
 
-- W1. nop-credential 模块骨架 + 密码学层（cv1 格式/密钥管理/主密钥配置）：`todo`
-- W2. nop-credential 类型注册 + 数据模型 + 消费 SPI：`todo`
-- W3. nop-credential 管理 API + 明文边界 + Web 动态表单：`todo`
+- W1. nop-credential 模块骨架 + 密码学层（cv1 格式/密钥管理/主密钥配置）：`done` — plan: `ai-dev/plans/2026-08-12-0615-1-nop-credential-module-skeleton-and-crypto-layer.md`
+- W2. nop-credential类型注册 + 数据模型 + 消费 SPI：`planned` — plan: `ai-dev/plans/2026-08-12-0615-2-nop-credential-type-registry-data-model-spi.md`
+- W3. nop-credential 管理 API + 明文边界 + Web 动态表单：`planned` — plan: `ai-dev/plans/2026-08-12-0615-3-nop-credential-management-api-plaintext-boundary-web.md`
 - W4. MFA 数据模型 + TOTP 验证器 + 存储组件（MfaChallengeStore/SmsCodeStore）：`todo`
 - W5. MFA 登录流程两阶段改造 + 短信验证码登录（loginType=5 + dict 修复）：`todo`
 - W6. MFA 用户自助/管理员 API + nop-ai-gateway 扫码适配：`todo`
