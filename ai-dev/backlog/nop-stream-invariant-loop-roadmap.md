@@ -46,7 +46,13 @@ I0 盘点基线 → I1 沉淀不变式(→门禁入CI) → I2 按不变式审计
 | Cycle 1 / I3. 发现裁决与工作项拟制 | red list 逐条裁决（P0/P1/P2/P3）→ P0/P1 派 I4；新族派 Cycle 2 / I1（Loop Rule）；裁决表零悬挂 | `done` | I2 |
 | Cycle 1 / I4. 修复执行（实例 + 类别清扫 + 测试） | 强制类别清扫（修任一 Operator/SinkFunction 必 grep 全部同类兄弟）+ test-first（先红后绿）+ 不变式门禁复跑零命中；WindowAggregationOperator 族历史案例作为回归基线。**执行结果（plan `2026-08-12-1217-5`）**：RL-1..7 全部修复（含 RL-3 backlog 触发闭合）；四族类别清扫证据在案；92 门禁 + 全量 `-am` 全绿；mjs pins 清零 | `done` | I3 |
 | Cycle 1 / I5. 全量验证与门禁零命中 | `./mvnw test -pl nop-stream -am -T 1C` + 门禁零命中 + 相关 e2e；full-green 记录。**执行结果（plan `2026-08-12-1217-6`）**：2822 tests / 0 failures 全绿；mjs all exit 0（pins 0）；JUnit 9 门禁类 92 tests 0 failures；e2e 6/6 + 7/7；零新失败；full-green 记录 + `cycle1-I6-input.md` 落档（I6 输入唯一落点） | `done` | I4 |
-| Cycle 1 / I6. 循环收口与下一轮触发判定 | 统计本轮门禁数/red list/新族数；有新族 → 派 Cycle 2（Loop Rule）；无新族且 red list 零 → 稳态暂停 + 登记复触发条件；closure 独立 fresh session | `todo` | I5 |
+| Cycle 1 / I6. 循环收口与下一轮触发判定 | 统计本轮门禁数/red list/新族数；有新族 → 派 Cycle 2（Loop Rule）；无新族且 red list 零 → 稳态暂停 + 登记复触发条件；closure 独立 fresh session。**执行结果（plan `2026-08-12-1217-7`）**：收口统计与 `cycle1-I6-input.md` 一致（2822 tests / 0 failures；门禁 9 类 / 92 tests；pin 0）；red list 零悬挂（7/7 + RL-3 闭合）；PD-15 裁定正式新族（输出契约族）→ Cycle 2 派生（I1–I6 六行）；跨 task side-output 缺口双层裁决（interim fail-fast 预授权分派 Cycle 2 / I4 + 线协议 `HG-01` 人工确认门）；复触发登记 | `done` | I5 |
+| Cycle 2 / I1. 不变式沉淀（输出契约族门禁） | PD-15 输出契约族不变式 #6 沉淀为一等门禁并入 CI：JUnit `TestOutputContractInvariant`（全 main `Output` 实现类 `collect(OutputTag,X)` 行为三态穷举：转发 / fail-fast / 已知违约 pin）+ 类级枚举完备性（新增 main `Output` 实现类不入注册表即红）+ 发射点注册表（6 发射点全覆盖，新增即红）+ mjs `scan-output-contract` 子命令 + committed 回归测试；跨 task 已知违约实例以过渡 pin 登记（关联 `HG-01`，移除 = Cycle 2 / I4 interim fail-fast 落地后）。**触发证据（PD-15 先例链）**：不变式「任何 `Output.collect(OutputTag, X)` 调用必须被转发到注册的 side-output 消费者，不得静默丢弃；无注册消费者 → fail-fast」；发现 `文件:行` = `ChainingOutput.java:84-86`（原始丢弃点）→ live 发射点 `ProcessOperator.java:111/:134` / `WindowOperator.java:1030/:1860` / `CepOperator.java:483/:777`；派生说明 = I3 登记（adjudication-table.md §4 PD-15）→ I4 修复基线 `b20fcd0e1`（`ChainingOutput.java:111` 转发 + fail-fast）→ I6 裁定正式新族（adjudication-table.md §I6） | `todo` | I6 |
+| Cycle 2 / I2. 不变式驱动审计 | ① 跑 I1 门禁跨全部 `Output` 实现类与发射点 → 确定性 red list；② 对抗探查聚焦门禁未表达盲区（透传目标敏感分类、嵌套类方法体解析、注册/接线时序）；③ 标注已知族或新族 | `todo` | I1 |
+| Cycle 2 / I3. 发现裁决与工作项拟制 | red list 逐条裁决（P0/P1/P2/P3）→ P0/P1 派 I4（含跨 task interim fail-fast 预授权确认，I6 预裁决输入，见 adjudication-table.md §I6）；新族派 Cycle 3 / I1（Loop Rule）；裁决表零悬挂 | `todo` | I2 |
+| Cycle 2 / I4. 修复执行 | 跨 task interim fail-fast 修复（`RecordWriterOutput` / `BroadcastingRecordWriterOutput` `collect(OutputTag)` 空体 → 抛 `ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER` 风格异常；类内部行为修复，private 嵌套类、`Output` 接口零变更，同 RL-7 先例）+ 注册表分类更新 + 过渡 pin 移除；test-first 先红后绿；类别清扫（全 `Output` 实现类兄弟） | `todo` | I3 |
+| Cycle 2 / I5. 全量验证与门禁零命中 | `./mvnw test -pl nop-stream -am -T 1C` + 门禁零命中 + 相关 e2e；full-green 记录 + 下轮输入落档 | `todo` | I4 |
+| Cycle 2 / I6. 循环收口 | 统计/稳态判定；`HG-01` 线协议支持如获人工批准另立 plan（Successor）；closure 独立 fresh session | `todo` | I5 |
 
 ## Phase Details
 
@@ -78,6 +84,8 @@ red list → P0/P1 入 I4；新族 → Cycle 2 / I1；P2/P3 入 Follow-up Backlo
 
 统计门禁数/red list/新族数；稳态判定 + 复触发条件登记；closure 独立 fresh session。
 
+Cycle 1 / I6 裁定摘要（2026-08-12，plan `2026-08-12-1217-7`）：PD-15 输出契约族裁定正式新族 → 依 Loop Rule 派生 Cycle 2（I1–I6 六行已追加，I1 附触发证据）；跨 task side-output 缺口双层裁决 = interim fail-fast 预授权分派 Cycle 2 / I4（类内部行为修复，自动信封）+ 线协议结构性重构 = `HG-01` 人工确认门（执行门未过，登记待办，非延期非降级）；Cycle 2 / I1 门禁范围裁定（三态分类 + 类级枚举完备性 + call-site 注册表 + 过渡 pin）见 adjudication-table.md §I6；Cycle 2 触发原因 = 新族沉淀 + `HG-01` 人工确认门；复触发三选一继续生效。
+
 ## Dependency Graph
 
 ```mermaid
@@ -98,6 +106,7 @@ flowchart LR
 - **新族强制沉淀**：I2/I3 发现的任一"新失败类"→ I6 必须派生 Cycle N+1 / I1，**AI 可自动追加**（预授权，PD-n 先例链），追加时附「触发证据 = 发现 `文件:行` + 不变式陈述」回写本表。
 - **棘轮**：已沉淀的不变式门禁只增不减；弱化/删除/豁免需人工确认 + 留痕 + committed 回归测试同步。
 - **稳态暂停与复触发**：一轮零新族且 red list 零 → 稳态暂停；复触发三选一：① CI 该门禁变红；② nop-stream 核心类结构变更（新增/重命名 Operator/SinkFunction/Checkpoint 机制）；③ 周期复探。
+- **Cycle 2 触发登记（2026-08-12，I6 落档）**：Cycle 2 触发原因 = 新族沉淀（PD-15 输出契约族，正式新族）+ 跨 task side-output 缺口（已确认契约缺口，执行门 = 人工确认待办 `HG-01`）。三选一复触发继续生效（① CI 任一不变式门禁变红；② nop-stream 核心类结构变更；③ 周期复探）；**人工确认待办的触发** = 人工批准跨 task side-output 线协议结构性变更（`HG-01`，登记见 Follow-up Backlog）。
 - **类别清扫强制**：I4 修任一实例必须 grep 全类兄弟；只修报到的实例 = 未完成。
 - **范围独立**：本图专注 nop-stream 不变式沉淀与防回退，与 `nop-stream-production-roadmap.md`（功能建设）/ `nop-stream-independent-audit-roadmap.md`（一次性深度审计）范围不重叠。
 
@@ -117,3 +126,12 @@ flowchart LR
 - **Description**: `InMemoryClusterRegistry.java:68-81` renewLease 只存 `now`（:74），忽略 per-renewal `leaseTimeoutMs` 参数；`:90/:98/:114` 活性计算全部用固定 `leaseTtlMs`（15s）→ InMemory（嵌入式/单机执行模式，`EmbeddedDistributedExecutor.java:134` / `RpcDistributedExecutor.java:191` 生产接线）语义与 JDBC 实现不一致，违反不变式 #5(b)。
 - **Recommendation**: renewLease 记录 `now + leaseTimeoutMs` 并按参数计算活性；同步核对 `evictExpiredNodes`/`getActiveNodes`/`getNodeLease`。
 - **Status**: ✅ 已由 I4 触发闭合（2026-08-12，plan `2026-08-12-1217-5` Phase 1，commit `fcc71fc05`）— renewLease 按 `leaseTimeoutMs` 参数计算过期时间（`InMemoryClusterRegistry.java:88-89`），getNodeLease/evictExpiredNodes/getActiveNodes 全部读存储 expireAt；翻转测试 `TestClusterRegistryConsistencyInvariant.testRenewLeasePerRenewalTimeoutIsPinnedPerImpl`（InMemory 分支）+ 新增 `testInMemoryRenewLeaseHonorsPerRenewalTimeout` 全绿。历史处置记录保留如上。
+
+### 跨 task side-output 线协议结构性变更（人工确认待办 `HG-01`）
+
+- **Source**: I6 裁定 `ai-dev/audits/nop-stream-invariants/adjudication-table.md` §I6（2026-08-12，plan `2026-08-12-1217-7`）；同族 PD-15 派生登记（§4）
+- **Description**: `RecordWriterOutput.collect(OutputTag)`（`nop-stream-core/.../execution/StreamTaskInvokable.java:645` 空体）/ `BroadcastingRecordWriterOutput.collect(OutputTag)`（同文件 :706 空体）→ 多 vertex 部署下 task tail 算子（WindowOperator / CepOperator / ProcessOperator）发出的 side-output 静默丢弃——**已确认契约缺口**（P1，静默数据丢失，生产可达，同 RL-7 族）。接线路径：`GraphExecutionPlan.java:454-458`（fanOutWriters 构造 `StreamTaskInvokable`）→ `wireOperators`（`StreamTaskInvokable.java:239/:245`）/ `wireTailToRecordWriter`（:352）→ tail 算子 `setOutput(RecordWriterOutput / BroadcastingRecordWriterOutput)`。证据 = 6 发射点：`ProcessOperator.java:111/:134` / `WindowOperator.java:1030/:1860` / `CepOperator.java:483/:777`。
+- **Recommendation（修复方向）**: RecordWriter 线协议结构性重构（跨 task side-output 序列化 / 路由 / 消费注册机制），公共内部机制变更 → 执行门 = 人工确认（mission Cross-Cutting：「结构性重构执行前人工确认」），不在自动修复信封内。
+- **Status**: `pending human confirmation`
+- **Successor**: 人工确认后另立 plan（跨 task 侧输出线协议设计 + 实现 + E2E）；触发条件 = 人工批准 + 跨 task side-output 需求出现（或 CI 门禁红暴露新实例）
+- **保护性覆盖（四重留痕）**: ① in-task 路径已 fail-fast（I4 `b20fcd0e1`，`ChainingOperator` 无消费者抛 `ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER`）；② Cycle 2 / I1 门禁（类级枚举完备性 + call-site 注册表 + 行为三态分类，新增实现类 / 新增发射点 / 行为漂移即红）；③ 过渡 pin 2 条（`mjs-pins.json`，关联 `HG-01`；移除 = Cycle 2 / I4 interim fail-fast 修复落地 + 注册表分类更新后，禁静默移除——`HG-01` 线协议支持落地属增强，不阻塞 pin 移除）；④ 本待办条目。interim fail-fast（空体 → 抛异常）属自动信封，预授权分派 Cycle 2 / I4，不入 backlog（记入 adjudication-table.md §I6）。
