@@ -271,7 +271,7 @@ public class TestJobE2E {
             for (String id : ids) { NopJobFire f = fires.get(id); if (f != null) result.put(id, f); }
             return result;
         }
-        @Override public List<NopJobFire> fetchDispatchingFires(int limit, IntRangeSet p) { return Collections.emptyList(); }
+        @Override public List<NopJobFire> fetchDispatchingFires(int limit, IntRangeSet p, java.sql.Timestamp ct, String cid) { return Collections.emptyList(); }
         @Override public boolean revertDispatchingFireToWaiting(NopJobFire fire, long backoffUntilMs) { return false; }
         @Override public void updateRetryRecordId(String jobFireId, String retryRecordId) {}
         @Override public List<NopJobFire> fetchWaitingFires(int limit, IntRangeSet p) { return Collections.emptyList(); }
@@ -288,7 +288,7 @@ public class TestJobE2E {
         final List<NopJobTask> runningTasks = new ArrayList<>();
         final Map<String, List<NopJobTask>> tasksByFire = new HashMap<>();
 
-        @Override public List<NopJobTask> fetchRunningTasks(int limit, IntRangeSet p) { return new ArrayList<>(runningTasks); }
+        @Override public List<NopJobTask> fetchRunningTasks(int limit, IntRangeSet p, java.sql.Timestamp ct, String cid) { return new ArrayList<>(runningTasks); }
         @Override public List<NopJobTask> findTasksByFireId(String fireId) { return tasksByFire.getOrDefault(fireId, Collections.emptyList()); }
         @Override public boolean updateTask(NopJobTask t) { return true; }
         @Override public List<NopJobTask> fetchWaitingTasks(int limit, IntRangeSet p) { return Collections.emptyList(); }
@@ -298,7 +298,7 @@ public class TestJobE2E {
         @Override public long countInFlightTasks(String w) { return 0; }
         @Override public io.nop.job.api.resource.ResourceVector sumReservedCost(String w) { return io.nop.job.api.resource.ResourceVector.ZERO; }
         @Override public java.util.List<io.nop.job.dao.store.WorkerReservedCost> sumReservedCostByWorker() { return java.util.Collections.emptyList(); }
-        @Override public int resetStaleWaitingTasks(int batchSize, IntRangeSet partitions, long deadlineMs) { return 0; }
+        @Override public List<NopJobTask> resetStaleWaitingTasks(int batchSize, IntRangeSet partitions, long deadlineMs, java.sql.Timestamp ct, String cid) { return Collections.emptyList(); }
     }
 
     static class MockNamingService implements INamingService {

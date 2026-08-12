@@ -11,7 +11,6 @@ import io.nop.job.api.alarm.IJobAlarmHandler;
 import io.nop.job.api.alarm.JobAlarmEvent;
 import io.nop.job.core.AbstractBatchScanner;
 import io.nop.job.core._NopJobCoreConstants;
-import io.nop.job.core.partition.JobPartitionResolver;
 
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_SCHEDULE_DELETED;
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_TIMEOUT;
@@ -43,7 +42,6 @@ public class JobTimeoutCheckerImpl extends AbstractBatchScanner implements IJobT
     private IJobCancelHandler cancelHandler;
     private IJobAlarmHandler alarmHandler;
     private INamingService namingService;
-    private JobPartitionResolver partitionResolver;
     private long dispatchTimeoutMs = 300000;
     private long executionTimeoutMs = -1;
     private long taskDispatchWaitTimeoutMs = 600000;
@@ -76,27 +74,14 @@ public class JobTimeoutCheckerImpl extends AbstractBatchScanner implements IJobT
         this.namingService = namingService;
     }
 
-    @Inject
-    public void setPartitionResolver(JobPartitionResolver partitionResolver) {
-        this.partitionResolver = partitionResolver;
-    }
-
     @InjectValue("@cfg:nop.job.coordinator.timeout.scan-interval-ms|5000")
     public void setScanIntervalMs(int scanIntervalMs) {
-        if (scanIntervalMs < 1000) {
-            throw new IllegalArgumentException(
-                    "nop.job.timeout.scan-interval-ms must be >= 1000, got " + scanIntervalMs);
-        }
-        this.scanIntervalMs = scanIntervalMs;
+        applyScanIntervalMs(scanIntervalMs);
     }
 
     @InjectValue("@cfg:nop.job.coordinator.timeout.batch-size|100")
     public void setBatchSize(int batchSize) {
-        if (batchSize < 1) {
-            throw new IllegalArgumentException(
-                    "nop.job.timeout.batch-size must be >= 1, got " + batchSize);
-        }
-        this.batchSize = batchSize;
+        applyBatchSize(batchSize);
     }
 
     @InjectValue("@cfg:nop.job.coordinator.dispatch-timeout-ms|300000")
@@ -124,57 +109,92 @@ public class JobTimeoutCheckerImpl extends AbstractBatchScanner implements IJobT
         this.taskDispatchWaitTimeoutMs = taskDispatchWaitTimeoutMs;
     }
 
-    @InjectValue("@cfg:nop.job.coordinator.assigned-partitions|")
-    public void setAssignedPartitions(String partitions) {
-        if (partitionResolver == null) {
-            partitionResolver = new JobPartitionResolver();
-        }
-        partitionResolver.setAssignedPartitions(partitions);
-    }
-
     @Override
     protected void onScanFailed(Exception e) {
         LOG.error("nop.job.timeout.scan-failed", e);
     }
 
-    @Override
-    protected void scanOnce() {
-        super.scanOnce();
-    }
+    // ========== Plan 338: per-cycle cursor state ==========
+    //
+    // Three sub-scans each own a Cursor registered via newCursor(). The base class
+    // AbstractBatchScanner.scanOnce() automatically resets all registered cursors at
+    // the start of each scheduling cycle, so this subclass does NOT override
+    // onCycleStart() — cursor lifecycle is fully managed by the base class.
+
+    private final Cursor taskCursor = newCursor();
+    private final Cursor fireCursor = newCursor();
+    private final Cursor waitingCursor = newCursor();
 
     @Override
     @SingleSession
     protected boolean scanBatch() {
-        IntRangeSet partitions = partitionResolver != null ? partitionResolver.resolvePartitions() : null;
-        scanTaskTimeouts(partitions);
-        scanDispatchTimeouts(partitions);
-        scanStaleWaitingTasks(partitions);
-        return false;
+        IntRangeSet partitions = resolvePartitions();
+        // Sub-scan 1: task timeouts. drainBatch handles fetch/process/cursor-advance/markDrained.
+        drainBatch(taskCursor,
+                (t, i) -> taskStore.fetchRunningTasks(batchSize, partitions, t, i),
+                this::scanTaskTimeouts,
+                NopJobTask::getStartTime, NopJobTask::getJobTaskId);
+        // Sub-scan 2: dispatch timeouts. Skip when disabled.
+        if (dispatchTimeoutMs > 0) {
+            drainBatch(fireCursor,
+                    (t, i) -> fireStore.fetchDispatchingFires(batchSize, partitions, t, i),
+                    this::processDispatchTimeouts,
+                    NopJobFire::getStartTime, NopJobFire::getJobFireId);
+        } else {
+            fireCursor.markDrained();
+        }
+        // Sub-scan 3: stale waiting task reset. Skip when disabled.
+        if (taskDispatchWaitTimeoutMs > 0) {
+            long deadline = scheduleStore.getCurrentTime() - taskDispatchWaitTimeoutMs;
+            drainBatch(waitingCursor,
+                    (t, i) -> taskStore.resetStaleWaitingTasks(batchSize, partitions, deadline, t, i),
+                    this::processStaleWaitingResets,
+                    NopJobTask::getCreateTime, NopJobTask::getJobTaskId);
+        } else {
+            waitingCursor.markDrained();
+        }
+        return !(taskCursor.isDrained() && fireCursor.isDrained() && waitingCursor.isDrained());
     }
 
     /**
-     * WAITING-task 派发超时回收（AR-88）。把滞留超过 {@code taskDispatchWaitTimeoutMs} 的
-     * WAITING 任务重派发（workerInstanceId 置 null），含归因给已下线 worker 的任务。
+     * 处理一批 DISPATCHING fire：逐条检查派发超时（startTime + dispatchTimeoutMs 已到），命中则 mark timeout。
+     * 单 fire 异常被 try/catch 隔离，不中断整批。
      */
-    private void scanStaleWaitingTasks(IntRangeSet partitions) {
-        if (taskDispatchWaitTimeoutMs <= 0) {
-            return;
-        }
+    private void processDispatchTimeouts(List<NopJobFire> dispatchingFires) {
         long now = scheduleStore.getCurrentTime();
-        long deadline = now - taskDispatchWaitTimeoutMs;
-        int reset = taskStore.resetStaleWaitingTasks(batchSize, partitions, deadline);
-        if (reset > 0) {
-            LOG.info("nop.job.timeout.stale-waiting-task-reset:count={},waitTimeoutMs={}",
-                    reset, taskDispatchWaitTimeoutMs);
+        for (NopJobFire fire : dispatchingFires) {
+            try {
+                Timestamp startTime = fire.getStartTime();
+                if (startTime == null) {
+                    continue;
+                }
+                long deadline = startTime.getTime() + dispatchTimeoutMs;
+                if (now < deadline) {
+                    continue;
+                }
+                tryMarkDispatchTimeout(fire, now);
+            } catch (Exception e) {
+                LOG.error("nop.job.timeout.dispatch-check-failed:fireId={}", fire.getJobFireId(), e);
+            }
         }
     }
 
-    private void scanTaskTimeouts(IntRangeSet partitions) {
-        List<NopJobTask> tasks = taskStore.fetchRunningTasks(batchSize, partitions);
-        if (tasks.isEmpty()) {
-            return;
+    /**
+     * 处理一批 stale WAITING reset 结果：仅记 INFO 日志（reset 操作已在 store 层完成）。
+     */
+    private void processStaleWaitingResets(List<NopJobTask> reset) {
+        int count = reset.size();
+        if (count > 0) {
+            LOG.info("nop.job.timeout.stale-waiting-task-reset:count={},waitTimeoutMs={}",
+                    count, taskDispatchWaitTimeoutMs);
         }
+    }
 
+    /**
+     * 处理一批 RUNNING_LIKE task：批量预取 fire + schedule，逐条尝试 mark suspicious/timeout。
+     * Cursor 推进在 caller 处基于本批 list 的最后一条，不依赖单条处理成功与否。
+     */
+    private void scanTaskTimeouts(List<NopJobTask> tasks) {
         Set<String> fireIds = new HashSet<>();
         for (NopJobTask task : tasks) {
             String fireId = task.getJobFireId();
@@ -182,7 +202,6 @@ public class JobTimeoutCheckerImpl extends AbstractBatchScanner implements IJobT
                 fireIds.add(fireId);
             }
         }
-
         Map<String, NopJobFire> fireMap = fireIds.isEmpty()
                 ? Collections.emptyMap()
                 : fireStore.batchLoadFires(fireIds);
@@ -194,7 +213,6 @@ public class JobTimeoutCheckerImpl extends AbstractBatchScanner implements IJobT
                 scheduleIds.add(scheduleId);
             }
         }
-
         Map<String, NopJobSchedule> scheduleMap = scheduleIds.isEmpty()
                 ? Collections.emptyMap()
                 : scheduleStore.batchLoadSchedules(scheduleIds);
@@ -207,8 +225,8 @@ public class JobTimeoutCheckerImpl extends AbstractBatchScanner implements IJobT
                 if (aliveWorkerIds != null) {
                     tryMarkSuspiciousIfWorkerGone(task, aliveWorkerIds);
                 }
-                if (task.getTaskStatus() != null && task.getTaskStatus() == _NopJobCoreConstants.TASK_STATUS_SUSPICIOUS
-                        && statusBefore != _NopJobCoreConstants.TASK_STATUS_SUSPICIOUS) {
+                if (JobTaskStateMachine.isSuspicious(task.getTaskStatus())
+                        && !JobTaskStateMachine.isSuspicious(statusBefore)) {
                     continue;
                 }
                 tryMarkTimeout(task, fireMap, scheduleMap);
@@ -243,8 +261,7 @@ public class JobTimeoutCheckerImpl extends AbstractBatchScanner implements IJobT
 
     private void tryMarkSuspiciousIfWorkerGone(NopJobTask task, Set<String> aliveWorkerIds) {
         Integer status = task.getTaskStatus();
-        if (status == null || (status != _NopJobCoreConstants.TASK_STATUS_RUNNING
-                && status != _NopJobCoreConstants.TASK_STATUS_CLAIMED)) {
+        if (!JobTaskStateMachine.isInFlight(status)) {
             return;
         }
 
@@ -259,36 +276,6 @@ public class JobTimeoutCheckerImpl extends AbstractBatchScanner implements IJobT
         }
 
         LOG.info("nop.job.timeout.worker-suspicious:taskId={},workerId={}", task.getJobTaskId(), workerId);
-    }
-    private void scanDispatchTimeouts(IntRangeSet partitions) {
-        if (dispatchTimeoutMs <= 0) {
-            return;
-        }
-
-        List<NopJobFire> dispatchingFires = fireStore.fetchDispatchingFires(batchSize, partitions);
-        if (dispatchingFires.isEmpty()) {
-            return;
-        }
-
-        long now = scheduleStore.getCurrentTime();
-
-        for (NopJobFire fire : dispatchingFires) {
-            try {
-                Timestamp startTime = fire.getStartTime();
-                if (startTime == null) {
-                    continue;
-                }
-
-                long deadline = startTime.getTime() + dispatchTimeoutMs;
-                if (now < deadline) {
-                    continue;
-                }
-
-                tryMarkDispatchTimeout(fire, now);
-            } catch (Exception e) {
-                LOG.error("nop.job.timeout.dispatch-check-failed:fireId={}", fire.getJobFireId(), e);
-            }
-        }
     }
 
     private void tryMarkDispatchTimeout(NopJobFire fire, long now) {
@@ -432,12 +419,12 @@ public class JobTimeoutCheckerImpl extends AbstractBatchScanner implements IJobT
             return;
         }
 
-        if (taskStatus == _NopJobCoreConstants.TASK_STATUS_SUSPICIOUS) {
+        if (JobTaskStateMachine.isSuspicious(taskStatus)) {
             markSuspiciousAsTimeout(task, fireMap, scheduleMap);
             return;
         }
 
-        if (taskStatus != _NopJobCoreConstants.TASK_STATUS_RUNNING) {
+        if (!JobTaskStateMachine.isRunning(taskStatus)) {
             return;
         }
 

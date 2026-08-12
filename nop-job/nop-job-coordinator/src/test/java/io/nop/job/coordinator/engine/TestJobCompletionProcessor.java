@@ -490,7 +490,7 @@ public class TestJobCompletionProcessor {
         }
 
         @Override public List<NopJobFire> fetchWaitingFires(int limit, IntRangeSet partitions) { return Collections.emptyList(); }
-        @Override public List<NopJobFire> fetchDispatchingFires(int limit, IntRangeSet partitions) { return Collections.emptyList(); }
+        @Override public List<NopJobFire> fetchDispatchingFires(int limit, IntRangeSet partitions, java.sql.Timestamp ct, String cid) { return Collections.emptyList(); }
         @Override public boolean revertDispatchingFireToWaiting(NopJobFire fire, long backoffUntilMs) { return false; }
         @Override public void updateRetryRecordId(String jobFireId, String retryRecordId) {}
         @Override public List<NopJobFire> tryLockFiresForDispatch(List<NopJobFire> fires, String dispatchInstanceId, long lockTimeoutMs) { return fires; }
@@ -545,12 +545,12 @@ public class TestJobCompletionProcessor {
         @Override public List<NopJobTask> fetchWaitingTasks(int limit, IntRangeSet partitions) { return Collections.emptyList(); }
         @Override public List<NopJobTask> fetchWaitingTasks(int limit, IntRangeSet p, String wid, boolean enfo) { return Collections.emptyList(); }
         @Override public List<NopJobTask> tryLockTasksForExecute(List<NopJobTask> tasks, String workerInstanceId, long lockTimeoutMs) { return tasks; }
-        @Override public List<NopJobTask> fetchRunningTasks(int limit, IntRangeSet partitions) { return Collections.emptyList(); }
+        @Override public List<NopJobTask> fetchRunningTasks(int limit, IntRangeSet partitions, java.sql.Timestamp ct, String cid) { return Collections.emptyList(); }
         @Override public NopJobTask loadTask(String jobTaskId) { return null; }
         @Override public long countInFlightTasks(String workerInstanceId) { return 0; }
         @Override public io.nop.job.api.resource.ResourceVector sumReservedCost(String workerInstanceId) { return io.nop.job.api.resource.ResourceVector.ZERO; }
         @Override public java.util.List<io.nop.job.dao.store.WorkerReservedCost> sumReservedCostByWorker() { return java.util.Collections.emptyList(); }
-        @Override public int resetStaleWaitingTasks(int batchSize, IntRangeSet partitions, long deadlineMs) { return 0; }
+        @Override public List<NopJobTask> resetStaleWaitingTasks(int batchSize, IntRangeSet partitions, long deadlineMs, java.sql.Timestamp ct, String cid) { return Collections.emptyList(); }
     }
 
     @Test

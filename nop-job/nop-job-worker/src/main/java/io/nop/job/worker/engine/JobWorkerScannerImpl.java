@@ -84,20 +84,12 @@ public class JobWorkerScannerImpl extends AbstractBatchScanner implements IJobWo
 
     @InjectValue("@cfg:nop.job.worker.scan-interval-ms|5000")
     public void setScanIntervalMs(int scanIntervalMs) {
-        if (scanIntervalMs < 1000) {
-            throw new IllegalArgumentException(
-                    "nop.job.worker.scan-interval-ms must be >= 1000, got " + scanIntervalMs);
-        }
-        this.scanIntervalMs = scanIntervalMs;
+        applyScanIntervalMs(scanIntervalMs);
     }
 
     @InjectValue("@cfg:nop.job.worker.batch-size|100")
     public void setBatchSize(int batchSize) {
-        if (batchSize < 1) {
-            throw new IllegalArgumentException(
-                    "nop.job.worker.batch-size must be >= 1, got " + batchSize);
-        }
-        this.batchSize = batchSize;
+        applyBatchSize(batchSize);
     }
 
     @InjectValue("@cfg:nop.job.worker.lock-timeout-ms|60000")
@@ -109,6 +101,12 @@ public class JobWorkerScannerImpl extends AbstractBatchScanner implements IJobWo
         this.lockTimeoutMs = lockTimeoutMs;
     }
 
+    /**
+     * Worker overrides base's {@code setAssignedPartitions} to parse partitions into a local
+     * {@code IntRangeSet} field rather than going through {@code JobPartitionResolver}.
+     * Worker does not use the base's partitionResolver mechanism.
+     */
+    @Override
     @InjectValue("@cfg:nop.job.worker.assigned-partitions|")
     public void setAssignedPartitions(String partitions) {
         if (partitions != null && !partitions.isEmpty()) {
@@ -129,11 +127,6 @@ public class JobWorkerScannerImpl extends AbstractBatchScanner implements IJobWo
     @Override
     protected void onScanFailed(Exception e) {
         LOG.error("nop.job.worker.scan-failed", e);
-    }
-
-    @Override
-    protected void scanOnce() {
-        super.scanOnce();
     }
 
     @Override
@@ -245,8 +238,7 @@ public class JobWorkerScannerImpl extends AbstractBatchScanner implements IJobWo
         }
 
         NopJobTask runningTask = taskStore.loadTask(task.getJobTaskId());
-        if (runningTask.getTaskStatus() == null
-                || runningTask.getTaskStatus() != io.nop.job.core._NopJobCoreConstants.TASK_STATUS_CLAIMED) {
+        if (!JobTaskStateMachine.isClaimed(runningTask.getTaskStatus())) {
             return;
         }
 
@@ -361,9 +353,9 @@ public class JobWorkerScannerImpl extends AbstractBatchScanner implements IJobWo
             }
 
             long duration = task.getStartTime() != null ? Math.max(endTime.getTime() - task.getStartTime().getTime(), 0L) : 0L;
-            if (update.getTaskStatus() == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_SUCCESS) {
+            if (JobTaskStateMachine.isSuccess(update.getTaskStatus())) {
                 workerMetrics.onTaskSuccess(duration);
-            } else if (update.getTaskStatus() == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_TIMEOUT) {
+            } else if (JobTaskStateMachine.isTimeout(update.getTaskStatus())) {
                 workerMetrics.onTaskTimeout(duration);
             } else {
                 workerMetrics.onTaskFailure(duration);

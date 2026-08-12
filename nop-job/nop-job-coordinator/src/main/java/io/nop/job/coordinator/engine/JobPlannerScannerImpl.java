@@ -11,10 +11,10 @@ import io.nop.job.coordinator.metrics.JobPlannerMetricsImpl;
 import io.nop.job.core.AbstractBatchScanner;
 import io.nop.job.core.ITriggerEvalContext;
 import io.nop.job.core._NopJobCoreConstants;
-import io.nop.job.core.partition.JobPartitionResolver;
 import io.nop.job.core.trigger.JobTriggerCalculator;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
+import io.nop.job.dao.helper.JobScheduleStateMachine;
 import io.nop.job.dao.helper.TriggerSpecHelper;
 import io.nop.job.dao.store.IJobScheduleStore;
 import jakarta.inject.Inject;
@@ -33,7 +33,6 @@ public class JobPlannerScannerImpl extends AbstractBatchScanner implements IJobP
 
     private IJobScheduleStore scheduleStore;
     private IJobPlannerMetrics plannerMetrics = new JobPlannerMetricsImpl();
-    private JobPartitionResolver partitionResolver;
     private IDaoProvider daoProvider;
     private long planningTimeoutMs = 60000;
 
@@ -47,31 +46,18 @@ public class JobPlannerScannerImpl extends AbstractBatchScanner implements IJobP
     }
 
     @Inject
-    public void setPartitionResolver(JobPartitionResolver partitionResolver) {
-        this.partitionResolver = partitionResolver;
-    }
-
-    @Inject
     public void setDaoProvider(IDaoProvider daoProvider) {
         this.daoProvider = daoProvider;
     }
 
     @InjectValue("@cfg:nop.job.coordinator.planner.scan-interval-ms|5000")
     public void setScanIntervalMs(int scanIntervalMs) {
-        if (scanIntervalMs < 1000) {
-            throw new IllegalArgumentException(
-                    "nop.job.planner.scan-interval-ms must be >= 1000, got " + scanIntervalMs);
-        }
-        this.scanIntervalMs = scanIntervalMs;
+        applyScanIntervalMs(scanIntervalMs);
     }
 
     @InjectValue("@cfg:nop.job.coordinator.planner.batch-size|100")
     public void setBatchSize(int batchSize) {
-        if (batchSize < 1) {
-            throw new IllegalArgumentException(
-                    "nop.job.planner.batch-size must be >= 1, got " + batchSize);
-        }
-        this.batchSize = batchSize;
+        applyBatchSize(batchSize);
     }
 
     @InjectValue("@cfg:nop.job.coordinator.planner.lock-timeout-ms|60000")
@@ -83,33 +69,25 @@ public class JobPlannerScannerImpl extends AbstractBatchScanner implements IJobP
         this.planningTimeoutMs = planningTimeoutMs;
     }
 
-    @InjectValue("@cfg:nop.job.coordinator.assigned-partitions|")
-    public void setAssignedPartitions(String partitions) {
-        if (partitionResolver == null) {
-            partitionResolver = new JobPartitionResolver();
-        }
-        partitionResolver.setAssignedPartitions(partitions);
-    }
-
     @Override
     protected void onScanFailed(Exception e) {
         LOG.error("nop.job.planner.scan-failed", e);
     }
 
     @Override
-    protected void scanOnce() {
-        super.scanOnce();
-    }
-
-    @Override
     @SingleSession
     protected boolean scanBatch() {
-        IntRangeSet partitions = partitionResolver != null ? partitionResolver.resolvePartitions() : null;
+        IntRangeSet partitions = resolvePartitions();
         List<NopJobSchedule> schedules = scheduleStore.fetchDueSchedules(batchSize, partitions);
         if (schedules.isEmpty()) {
             return false;
         }
 
+        // Snapshot the due fire time BEFORE tryLockSchedulesForPlan: that method overwrites
+        // schedule.nextFireTime with a future lock deadline (now + lockTimeoutMs) as the
+        // planner's optimistic lock, so the original due time would be lost if read back
+        // from the entity afterwards. The snapshot is passed to planSchedule → buildFire to
+        // set fire.scheduledFireTime to the real due time (not the lock deadline).
         Map<String, Timestamp> dueFireTimes = new HashMap<>(schedules.size());
         for (NopJobSchedule schedule : schedules) {
             dueFireTimes.put(schedule.getJobScheduleId(), schedule.getNextFireTime());
@@ -175,7 +153,7 @@ public class JobPlannerScannerImpl extends AbstractBatchScanner implements IJobP
         Timestamp nextFireTime = calculateNextFireTime(schedule);
 
         if (schedule.getScheduleStatus() != null
-                && schedule.getScheduleStatus() != _NopJobCoreConstants.SCHEDULE_STATUS_ENABLED) {
+                && !JobScheduleStateMachine.isEnabled(schedule.getScheduleStatus())) {
             LOG.debug("nop.job.planner.schedule-no-longer-enabled:scheduleId={},status={}",
                     schedule.getJobScheduleId(), schedule.getScheduleStatus());
             return;

@@ -668,6 +668,221 @@ public class TestJobTimeoutChecker {
                 "resetStaleWaitingTasks must NOT be called when disabled");
     }
 
+    // ========== Plan 338 Phase 3: cursor pagination / drain / no-dead-loop ==========
+
+    /**
+     * Plan 338: 单调度周期内 drain 全部超时 task。25 条超时 RUNNING task、batchSize=10。
+     * 期望：scanOnce 内 fetchRunningTasks 调用 3 次（10+10+5），全部 25 条被标 TIMEOUT。
+     */
+    @Test
+    void testDrainAllTimedOutTasksInOneCycle() {
+        checker.setBatchSize(10);
+        checker.setExecutionTimeoutMs(1000);
+        checker.setDispatchTimeoutMs(-1);
+        checker.setTaskDispatchWaitTimeoutMs(-1);
+
+        NopJobSchedule schedule = createSchedule("s-drain", "job-drain");
+        schedule.setTimeoutSeconds(0);
+        scheduleStore.addSchedule("s-drain", schedule);
+
+        Timestamp start = new Timestamp(currentTime - 100_000);
+        for (int i = 0; i < 25; i++) {
+            String id = String.format("task-drain-%02d", i);
+            String fireId = "fire-drain-" + i;
+            NopJobTask task = createTask(id, fireId, _NopJobCoreConstants.TASK_STATUS_RUNNING);
+            task.setStartTime(start);
+            taskStore.addRunningTask(task);
+
+            NopJobFire fire = createFire(fireId, "s-drain",
+                    _NopJobCoreConstants.FIRE_STATUS_RUNNING, start);
+            fireStore.addFire(fireId, fire);
+        }
+
+        scheduleStore.setCurrentTime(currentTime);
+
+        checker.scanOnce();
+
+        long timeoutCount = taskStore.runningTasks.stream()
+                .filter(t -> t.getTaskStatus() == _NopJobCoreConstants.TASK_STATUS_TIMEOUT)
+                .count();
+        assertEquals(25, timeoutCount, "all 25 timed-out tasks must be marked TIMEOUT in one cycle");
+
+        // Model A (check-at-end): batch 1=10, batch 2=10, batch 3=5(<10 → drained). fetch calls = 3.
+        assertEquals(3, taskStore.fetchRunningCursorTimes.size(),
+                "fetchRunningTasks must be called exactly 3 times (10+10+5 then drained)");
+        assertNull(taskStore.fetchRunningCursorTimes.get(0), "first fetch has null cursor");
+        assertNotNull(taskStore.fetchRunningCursorTimes.get(1), "second fetch has advanced cursor");
+        assertNotNull(taskStore.fetchRunningCursorTimes.get(2), "third fetch has advanced cursor");
+    }
+
+    /**
+     * Plan 338: 验证 cursor 防死循环。10 条 RUNNING task 全部未超时、batchSize=10。
+     * 期望：scanOnce 退出（不卡到 maxScanLoops 上限）；fetchRunningTimes 调用 2 次
+     *（首批 10 条 → cursor 推进 → 第二批 0 条 → taskDrained → 退出）；task 状态不变。
+     */
+    @Test
+    void testNoDeadLoopOnNonTimedOutRunningTasks() {
+        checker.setBatchSize(10);
+        checker.setExecutionTimeoutMs(100_000); // 100s — none timed out
+        checker.setDispatchTimeoutMs(-1);
+        checker.setTaskDispatchWaitTimeoutMs(-1);
+
+        NopJobSchedule schedule = createSchedule("s-noop", "job-noop");
+        schedule.setTimeoutSeconds(0);
+        scheduleStore.addSchedule("s-noop", schedule);
+
+        // 10 tasks, just started (no timeout)
+        Timestamp start = new Timestamp(currentTime - 100);
+        for (int i = 0; i < 10; i++) {
+            String id = String.format("task-noop-%02d", i);
+            String fireId = "fire-noop-" + i;
+            NopJobTask task = createTask(id, fireId, _NopJobCoreConstants.TASK_STATUS_RUNNING);
+            task.setStartTime(start);
+            taskStore.addRunningTask(task);
+
+            NopJobFire fire = createFire(fireId, "s-noop",
+                    _NopJobCoreConstants.FIRE_STATUS_RUNNING, start);
+            fireStore.addFire(fireId, fire);
+        }
+
+        scheduleStore.setCurrentTime(currentTime);
+
+        checker.scanOnce();
+
+        // fetch calls: batch 1 returns 10 (size=batchSize, not drained, cursor advances),
+        // batch 2 returns 0 (past cursor) → drained → exit. Total = 2.
+        assertEquals(2, taskStore.fetchRunningCursorTimes.size(),
+                "fetchRunningTasks must be called exactly 2 times (10 then 0), no dead loop");
+
+        long stillRunning = taskStore.runningTasks.stream()
+                .filter(t -> t.getTaskStatus() == _NopJobCoreConstants.TASK_STATUS_RUNNING)
+                .count();
+        assertEquals(10, stillRunning, "no task should be marked TIMEOUT (deadline not reached)");
+    }
+
+    /**
+     * Plan 338: 验证跨调度周期 cursor 重置。batchSize=2、5 条 task（不超时）。
+     * 期望：第 1 次 scanOnce 内 fetch 调用 3 次（cursor 序列 null→t1→t3）；
+     * 第 2 次 scanOnce 第 1 次 fetch 的 cursor 又是 null（onCycleStart reset）。
+     */
+    @Test
+    void testCursorResetBetweenCycles() {
+        checker.setBatchSize(2);
+        checker.setExecutionTimeoutMs(100_000); // no timeout, focus on cursor behavior
+        checker.setDispatchTimeoutMs(-1);
+        checker.setTaskDispatchWaitTimeoutMs(-1);
+
+        NopJobSchedule schedule = createSchedule("s-reset", "job-reset");
+        schedule.setTimeoutSeconds(0);
+        scheduleStore.addSchedule("s-reset", schedule);
+
+        Timestamp start = new Timestamp(currentTime - 100);
+        for (int i = 0; i < 5; i++) {
+            String id = String.format("task-reset-%02d", i);
+            String fireId = "fire-reset-" + i;
+            NopJobTask task = createTask(id, fireId, _NopJobCoreConstants.TASK_STATUS_RUNNING);
+            task.setStartTime(start);
+            taskStore.addRunningTask(task);
+
+            NopJobFire fire = createFire(fireId, "s-reset",
+                    _NopJobCoreConstants.FIRE_STATUS_RUNNING, start);
+            fireStore.addFire(fireId, fire);
+        }
+
+        scheduleStore.setCurrentTime(currentTime);
+
+        // 1st scanOnce
+        checker.scanOnce();
+        int firstCycleFetches = taskStore.fetchRunningCursorTimes.size();
+        assertEquals(3, firstCycleFetches, "1st cycle: 3 fetches (2+2+1, last < batchSize → drained)");
+        assertNull(taskStore.fetchRunningCursorTimes.get(0), "1st cycle 1st fetch: null cursor");
+
+        // 2nd scanOnce — onCycleStart should reset cursor
+        checker.scanOnce();
+        // fetchRunningCursorTimes now has 6 entries (3 from 1st + 3 from 2nd)
+        assertEquals(6, taskStore.fetchRunningCursorTimes.size(),
+                "2nd cycle: 3 more fetches (cursor reset, same pattern)");
+        assertNull(taskStore.fetchRunningCursorTimes.get(3),
+                "2nd cycle 1st fetch: cursor reset to null by onCycleStart");
+    }
+
+    /**
+     * Plan 338: 三类子扫描独立 drain、互不阻塞。25 task + 15 fire + 10 waiting，batchSize=10。
+     * 期望：fetchRunningTasks=3、fetchDispatchingFires=2、resetStaleWaitingTasks=2；全部 drain 后 scanBatch 返回 false。
+     */
+    @Test
+    void testDrainMixesTaskTimeoutAndDispatchTimeoutAndStaleWaiting() {
+        checker.setBatchSize(10);
+        checker.setExecutionTimeoutMs(1000);
+        checker.setDispatchTimeoutMs(1000);
+        checker.setTaskDispatchWaitTimeoutMs(60_000);
+
+        NopJobSchedule schedule = createSchedule("s-mix", "job-mix");
+        schedule.setTimeoutSeconds(0);
+        scheduleStore.addSchedule("s-mix", schedule);
+
+        // 25 timed-out RUNNING tasks
+        Timestamp taskStart = new Timestamp(currentTime - 100_000);
+        for (int i = 0; i < 25; i++) {
+            String id = String.format("task-mix-%02d", i);
+            String fireId = "fire-mix-task-" + i;
+            NopJobTask task = createTask(id, fireId, _NopJobCoreConstants.TASK_STATUS_RUNNING);
+            task.setStartTime(taskStart);
+            taskStore.addRunningTask(task);
+
+            NopJobFire fire = createFire(fireId, "s-mix",
+                    _NopJobCoreConstants.FIRE_STATUS_RUNNING, taskStart);
+            fireStore.addFire(fireId, fire);
+        }
+
+        // 15 timed-out DISPATCHING fires
+        Timestamp fireStart = new Timestamp(currentTime - 100_000);
+        for (int i = 0; i < 15; i++) {
+            String fireId = "fire-mix-disp-" + i;
+            NopJobFire fire = createFire(fireId, "s-mix",
+                    _NopJobCoreConstants.FIRE_STATUS_DISPATCHING, fireStart);
+            fireStore.addDispatchingFire(fire);
+        }
+
+        // 10 stale WAITING tasks (createTime old)
+        for (int i = 0; i < 10; i++) {
+            String id = String.format("task-mix-wait-%02d", i);
+            String fireId = "fire-mix-wait-" + i;
+            NopJobTask task = createTask(id, fireId, _NopJobCoreConstants.TASK_STATUS_WAITING);
+            task.setCreateTime(new Timestamp(currentTime - 200_000));
+            taskStore.addWaitingTask(task);
+        }
+
+        scheduleStore.setCurrentTime(currentTime);
+
+        checker.scanOnce();
+
+        // task drain: 25/10 → 3 fetches
+        assertEquals(3, taskStore.fetchRunningCursorTimes.size(),
+                "task sub-scan: 3 fetches to drain 25 tasks at batchSize=10");
+
+        // fire drain: 15/10 → 2 fetches (10+5)
+        // mock fire store doesn't track cursor times, but we can verify via state changes
+        long timeoutFires = fireStore.dispatchingFires.stream()
+                .filter(f -> f.getFireStatus() == _NopJobCoreConstants.FIRE_STATUS_TIMEOUT)
+                .count();
+        assertEquals(15, timeoutFires, "all 15 dispatching fires timed out");
+
+        // waiting drain: 10/10 → 2 fetches (10 + 0)
+        assertEquals(2, taskStore.resetCursorTimes.size(),
+                "waiting sub-scan: 2 fetches (10 then 0, both < batchSize+1 triggers drained)");
+        long resetCount = taskStore.waitingTasks.stream()
+                .filter(t -> t.getWorkerInstanceId() == null)
+                .count();
+        assertEquals(10, resetCount, "all 10 stale waiting tasks had workerInstanceId reset");
+
+        // task timeouts applied
+        long taskTimeoutCount = taskStore.runningTasks.stream()
+                .filter(t -> t.getTaskStatus() == _NopJobCoreConstants.TASK_STATUS_TIMEOUT)
+                .count();
+        assertEquals(25, taskTimeoutCount, "all 25 RUNNING tasks timed out");
+    }
+
     private NopJobTask createTask(String taskId, String fireId, int status) {
         NopJobTask task = new NopJobTask();
         task.setJobTaskId(taskId);
@@ -707,6 +922,9 @@ public class TestJobTimeoutChecker {
         private List<NopJobTask> waitingTasks = new ArrayList<>();
         int resetCallCount = 0;
         long lastResetDeadline = 0L;
+        // Plan 338: cursor capture for cross-cycle reset verification.
+        final List<java.sql.Timestamp> fetchRunningCursorTimes = new java.util.ArrayList<>();
+        final List<java.sql.Timestamp> resetCursorTimes = new java.util.ArrayList<>();
 
         void addRunningTask(NopJobTask task) {
             runningTasks.add(task);
@@ -717,27 +935,89 @@ public class TestJobTimeoutChecker {
         }
 
         @Override
-        public List<NopJobTask> fetchRunningTasks(int limit, IntRangeSet partitions) {
-            return new ArrayList<>(runningTasks);
+        public List<NopJobTask> fetchRunningTasks(int limit, IntRangeSet partitions,
+                                                  java.sql.Timestamp cursorTime, String cursorId) {
+            fetchRunningCursorTimes.add(cursorTime);
+            // Cursor predicate: keep rows strictly before cursor in (startTime DESC, jobTaskId DESC) order.
+            // Then apply limit truncation (matching JobTaskStoreImpl behavior with setLimit).
+            return runningTasks.stream()
+                    .filter(t -> cursorTime == null
+                            || beforeCursor(t.getStartTime(), t.getJobTaskId(), cursorTime, cursorId))
+                    .sorted(java.util.Comparator.comparing(NopJobTask::getStartTime,
+                            java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder()))
+                            .thenComparing(NopJobTask::getJobTaskId, java.util.Comparator.reverseOrder()))
+                    .limit(limit)
+                    .collect(java.util.stream.Collectors.toList());
+        }
+
+        /**
+         * Returns true if (t.time, t.id) is strictly before (cursor.time, cursor.id) in DESC order
+         * (i.e., would appear AFTER the cursor in descending iteration).
+         */
+        private static boolean beforeCursor(java.sql.Timestamp tTime, String tId,
+                                            java.sql.Timestamp cTime, String cId) {
+            if (tTime == null) {
+                return false;
+            }
+            int cmp = tTime.compareTo(cTime);
+            if (cmp < 0) {
+                return true;
+            }
+            if (cmp > 0) {
+                return false;
+            }
+            // Equal timestamps: compare ids; null cursorId means "end of equal-time group".
+            if (cId == null) {
+                return false;
+            }
+            return cId.compareTo(tId) > 0;
         }
 
         @Override
-        public int resetStaleWaitingTasks(int batchSize, IntRangeSet partitions, long deadlineMs) {
+        public List<NopJobTask> resetStaleWaitingTasks(int batchSize, IntRangeSet partitions, long deadlineMs,
+                                                       java.sql.Timestamp cursorTime, String cursorId) {
             resetCallCount++;
             lastResetDeadline = deadlineMs;
-            int count = 0;
-            for (NopJobTask task : waitingTasks) {
-                if (count >= batchSize) {
-                    break;
-                }
-                Integer status = task.getTaskStatus();
-                if (status != null && status == _NopJobCoreConstants.TASK_STATUS_WAITING
-                        && task.getCreateTime() != null && task.getCreateTime().getTime() < deadlineMs) {
-                    task.setWorkerInstanceId(null);
-                    count++;
-                }
+            resetCursorTimes.add(cursorTime);
+            List<NopJobTask> result = waitingTasks.stream()
+                    .filter(t -> {
+                        Integer status = t.getTaskStatus();
+                        if (status == null || status != _NopJobCoreConstants.TASK_STATUS_WAITING) {
+                            return false;
+                        }
+                        if (t.getCreateTime() == null || t.getCreateTime().getTime() >= deadlineMs) {
+                            return false;
+                        }
+                        if (cursorTime == null) {
+                            return true;
+                        }
+                        return beforeCursorCreateTime(t.getCreateTime(), t.getJobTaskId(), cursorTime, cursorId);
+                    })
+                    .sorted(java.util.Comparator.comparing(NopJobTask::getCreateTime,
+                            java.util.Comparator.reverseOrder())
+                            .thenComparing(NopJobTask::getJobTaskId, java.util.Comparator.reverseOrder()))
+                    .limit(batchSize)
+                    .collect(java.util.stream.Collectors.toList());
+            // Mutate workerInstanceId (matches JobTaskStoreImpl behavior)
+            for (NopJobTask task : result) {
+                task.setWorkerInstanceId(null);
             }
-            return count;
+            return result;
+        }
+
+        private static boolean beforeCursorCreateTime(java.sql.Timestamp tTime, String tId,
+                                                      java.sql.Timestamp cTime, String cId) {
+            int cmp = tTime.compareTo(cTime);
+            if (cmp < 0) {
+                return true;
+            }
+            if (cmp > 0) {
+                return false;
+            }
+            if (cId == null) {
+                return false;
+            }
+            return cId.compareTo(tId) > 0;
         }
 
         @Override public boolean updateTask(NopJobTask task) { return true; }
@@ -787,8 +1067,35 @@ public class TestJobTimeoutChecker {
         }
 
         @Override
-        public List<NopJobFire> fetchDispatchingFires(int limit, IntRangeSet partitions) {
-            return new ArrayList<>(dispatchingFires);
+        public List<NopJobFire> fetchDispatchingFires(int limit, IntRangeSet partitions,
+                                                      java.sql.Timestamp cursorTime, String cursorId) {
+            // Cursor predicate + limit truncation + stable ordering matching JobFireStoreImpl.
+            return dispatchingFires.stream()
+                    .filter(f -> cursorTime == null
+                            || beforeFireCursor(f.getStartTime(), f.getJobFireId(), cursorTime, cursorId))
+                    .sorted(java.util.Comparator.comparing(NopJobFire::getStartTime,
+                            java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder()))
+                            .thenComparing(NopJobFire::getJobFireId, java.util.Comparator.reverseOrder()))
+                    .limit(limit)
+                    .collect(java.util.stream.Collectors.toList());
+        }
+
+        private static boolean beforeFireCursor(java.sql.Timestamp tTime, String tId,
+                                               java.sql.Timestamp cTime, String cId) {
+            if (tTime == null) {
+                return false;
+            }
+            int cmp = tTime.compareTo(cTime);
+            if (cmp < 0) {
+                return true;
+            }
+            if (cmp > 0) {
+                return false;
+            }
+            if (cId == null) {
+                return false;
+            }
+            return cId.compareTo(tId) > 0;
         }
 
         @Override public boolean revertDispatchingFireToWaiting(NopJobFire fire, long backoffUntilMs) { return false; }

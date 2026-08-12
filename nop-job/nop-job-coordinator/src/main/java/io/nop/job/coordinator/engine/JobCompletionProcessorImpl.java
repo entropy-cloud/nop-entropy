@@ -19,13 +19,13 @@ import io.nop.job.core.AbstractBatchScanner;
 import io.nop.job.core.ITriggerEvalContext;
 import io.nop.job.core.JobCoreErrors;
 import io.nop.job.core._NopJobCoreConstants;
-import io.nop.job.core.partition.JobPartitionResolver;
 import io.nop.job.core.trigger.JobTriggerCalculator;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
 import io.nop.job.dao.helper.JobFireStateMachine;
 import io.nop.job.dao.helper.JobScheduleStateMachine;
+import io.nop.job.dao.helper.JobTaskStateMachine;
 import io.nop.job.dao.helper.TriggerSpecHelper;
 import io.nop.job.dao.store.IJobFireStore;
 import io.nop.job.dao.store.IJobScheduleStore;
@@ -48,7 +48,6 @@ public class JobCompletionProcessorImpl extends AbstractBatchScanner implements 
     private IJobCompletionMetrics completionMetrics = new JobCompletionMetricsImpl();
     private IJobRetryBridge retryBridge = new io.nop.job.coordinator.retry.NoOpJobRetryBridge();
     private IJobAlarmHandler alarmHandler = new io.nop.job.coordinator.alarm.NoOpJobAlarmHandler();
-    private JobPartitionResolver partitionResolver;
 
     @Inject
     public void setFireStore(IJobFireStore fireStore) {
@@ -79,35 +78,14 @@ public class JobCompletionProcessorImpl extends AbstractBatchScanner implements 
         this.alarmHandler = alarmHandler;
     }
 
-    @Inject
-    public void setPartitionResolver(JobPartitionResolver partitionResolver) {
-        this.partitionResolver = partitionResolver;
-    }
-
     @InjectValue("@cfg:nop.job.coordinator.completion.scan-interval-ms|5000")
     public void setScanIntervalMs(int scanIntervalMs) {
-        if (scanIntervalMs < 1000) {
-            throw new IllegalArgumentException(
-                    "nop.job.completion.scan-interval-ms must be >= 1000, got " + scanIntervalMs);
-        }
-        this.scanIntervalMs = scanIntervalMs;
+        applyScanIntervalMs(scanIntervalMs);
     }
 
     @InjectValue("@cfg:nop.job.coordinator.completion.batch-size|100")
     public void setBatchSize(int batchSize) {
-        if (batchSize < 1) {
-            throw new IllegalArgumentException(
-                    "nop.job.completion.batch-size must be >= 1, got " + batchSize);
-        }
-        this.batchSize = batchSize;
-    }
-
-    @InjectValue("@cfg:nop.job.coordinator.assigned-partitions|")
-    public void setAssignedPartitions(String partitions) {
-        if (partitionResolver == null) {
-            partitionResolver = new JobPartitionResolver();
-        }
-        partitionResolver.setAssignedPartitions(partitions);
+        applyBatchSize(batchSize);
     }
 
     @Override
@@ -116,13 +94,8 @@ public class JobCompletionProcessorImpl extends AbstractBatchScanner implements 
     }
 
     @Override
-    protected void scanOnce() {
-        super.scanOnce();
-    }
-
-    @Override
     protected boolean scanBatch() {
-        IntRangeSet partitions = partitionResolver != null ? partitionResolver.resolvePartitions() : null;
+        IntRangeSet partitions = resolvePartitions();
         List<NopJobFire> fires = fireStore.fetchRunningFires(batchSize, partitions);
         if (fires.isEmpty()) {
             return false;
@@ -207,7 +180,7 @@ public class JobCompletionProcessorImpl extends AbstractBatchScanner implements 
         schedule.setLastFireStatus(finalFireStatus);
         schedule.setLastDurationMs(fire.getDurationMs());
         schedule.setTotalFireCount(defaultLong(schedule.getTotalFireCount()) + 1);
-        if (finalFireStatus == _NopJobCoreConstants.FIRE_STATUS_SUCCESS) {
+        if (JobFireStateMachine.isSuccess(finalFireStatus)) {
             schedule.setSuccessFireCount(defaultLong(schedule.getSuccessFireCount()) + 1);
         } else {
             schedule.setFailFireCount(defaultLong(schedule.getFailFireCount()) + 1);
@@ -226,9 +199,9 @@ public class JobCompletionProcessorImpl extends AbstractBatchScanner implements 
         // Entities are managed by @SingleSession — dirty fields flushed on
         // @Transactional commit. No need for completeFireAndUpdateSchedule.
         long duration = fire.getDurationMs() != null ? fire.getDurationMs() : 0L;
-        if (finalFireStatus == _NopJobCoreConstants.FIRE_STATUS_SUCCESS) {
+        if (JobFireStateMachine.isSuccess(finalFireStatus)) {
             completionMetrics.onFireSuccess(duration);
-        } else if (finalFireStatus == _NopJobCoreConstants.FIRE_STATUS_TIMEOUT) {
+        } else if (JobFireStateMachine.isTimeout(finalFireStatus)) {
             completionMetrics.onFireTimeout(duration);
             handleAlarmTimeout(fire, schedule, duration);
         } else {
@@ -305,11 +278,11 @@ public class JobCompletionProcessorImpl extends AbstractBatchScanner implements 
     }
 
     private NopJobTask findMatchingErrorTask(List<NopJobTask> tasks, Integer finalFireStatus) {
-        Integer targetTaskStatus = toTaskStatus(finalFireStatus);
+        Integer targetTaskStatus = JobFireStateMachine.mapFireToTaskStatus(finalFireStatus);
         if (targetTaskStatus != null) {
             for (NopJobTask task : tasks) {
                 Integer taskStatus = task.getTaskStatus();
-                if (taskStatus != null && taskStatus == targetTaskStatus) {
+                if (taskStatus != null && taskStatus.equals(targetTaskStatus)) {
                     return task;
                 }
             }
@@ -317,7 +290,7 @@ public class JobCompletionProcessorImpl extends AbstractBatchScanner implements 
 
         for (NopJobTask task : tasks) {
             Integer taskStatus = task.getTaskStatus();
-            if (taskStatus != null && taskStatus != _NopJobCoreConstants.TASK_STATUS_SUCCESS) {
+            if (taskStatus != null && !JobTaskStateMachine.isSuccess(taskStatus)) {
                 return task;
             }
         }
@@ -362,22 +335,6 @@ public class JobCompletionProcessorImpl extends AbstractBatchScanner implements 
                 fireEndTime.getTime()
         );
         return next <= 0 ? null : new Timestamp(next);
-    }
-
-    private Integer toTaskStatus(Integer fireStatus) {
-        if (fireStatus == null) {
-            return null;
-        }
-        if (fireStatus == _NopJobCoreConstants.FIRE_STATUS_TIMEOUT) {
-            return _NopJobCoreConstants.TASK_STATUS_TIMEOUT;
-        }
-        if (fireStatus == _NopJobCoreConstants.FIRE_STATUS_FAILED) {
-            return _NopJobCoreConstants.TASK_STATUS_FAILED;
-        }
-        if (fireStatus == _NopJobCoreConstants.FIRE_STATUS_CANCELED) {
-            return _NopJobCoreConstants.TASK_STATUS_CANCELED;
-        }
-        return null;
     }
 
     private TriggerSpec toTriggerSpec(NopJobSchedule schedule) {

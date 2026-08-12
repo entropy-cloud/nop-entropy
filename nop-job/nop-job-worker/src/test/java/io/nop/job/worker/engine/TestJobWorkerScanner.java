@@ -575,8 +575,8 @@ public class TestJobWorkerScanner extends JunitBaseTestCase {
             t.setCreateTime(new Timestamp(System.currentTimeMillis() - 600_000));
             daoProvider.daoFor(NopJobTask.class).updateEntityDirectly(t);
         }
-        int reset = taskStore.resetStaleWaitingTasks(100, null, System.currentTimeMillis() - 300_000);
-        assertEquals(5, reset, "all over-assigned tasks re-dispatched (workerInstanceId cleared)");
+        List<NopJobTask> reset = taskStore.resetStaleWaitingTasks(100, null, System.currentTimeMillis() - 300_000, null, null);
+        assertEquals(5, reset.size(), "all over-assigned tasks re-dispatched (workerInstanceId cleared)");
 
         worker.scanOnce();
         int claimedSuccess = 0;
@@ -805,8 +805,9 @@ public class TestJobWorkerScanner extends JunitBaseTestCase {
         }
 
         @Override
-        public List<NopJobTask> fetchRunningTasks(int limit, IntRangeSet partitions) {
-            return delegate.fetchRunningTasks(limit, partitions);
+        public List<NopJobTask> fetchRunningTasks(int limit, IntRangeSet partitions,
+                                                  java.sql.Timestamp cursorTime, String cursorId) {
+            return delegate.fetchRunningTasks(limit, partitions, cursorTime, cursorId);
         }
 
         @Override
@@ -835,8 +836,9 @@ public class TestJobWorkerScanner extends JunitBaseTestCase {
         }
 
         @Override
-        public int resetStaleWaitingTasks(int batchSize, IntRangeSet partitions, long deadlineMs) {
-            return delegate.resetStaleWaitingTasks(batchSize, partitions, deadlineMs);
+        public List<NopJobTask> resetStaleWaitingTasks(int batchSize, IntRangeSet partitions, long deadlineMs,
+                                                       java.sql.Timestamp cursorTime, String cursorId) {
+            return delegate.resetStaleWaitingTasks(batchSize, partitions, deadlineMs, cursorTime, cursorId);
         }
     }
 
