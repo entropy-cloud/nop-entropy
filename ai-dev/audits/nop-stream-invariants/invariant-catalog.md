@@ -175,7 +175,7 @@
 | R16-AR-4 | WindowAggregationOperator → WindowOperator | **fixed** | 旧合并多目标路径已随 `WindowAggregationOperator` 删除（git `905d6411a`）；live 合并路径集中于 `WindowOperator.java:641-652`（单 merged window + onMerge） |
 | R13-AR-5 / R14-AR-1 | WindowAggregationOperator → WindowOperator | **fixed（随类删除）** | 旧 `#`/`:` 分隔符序列化路径已删除；live `WindowOperator` 状态键用结构化描述符（stateDesc） |
 | R13-AR-6 | WindowOperator | **fixed** | 非累加器回退路径改为显式 fail-fast：`WindowOperator.java:1462-1472` 非累加器冲突抛 `ERR_STREAM_WINDOW_NON_ACCUMULATOR_MERGE_CONFLICT`（`mergeWindowContents` 定义于 :1336） |
-| R15-AR-8 | WindowOperator | **待 I2 动态验证** | `WindowOperator.java:776-783` onEventTime cleanup 分支未见 `retireWindow` 调用（MergingWindowSet 收敛性待 I2 验证）——watch-only residual |
+| R15-AR-8 | WindowOperator | **待 I2 动态验证** | `WindowOperator.java:773-783` onEventTime cleanup 分支未见 `retireWindow` 调用（MergingWindowSet 收敛性待 I2 验证）——watch-only residual（I2 复核：行号以 :773-783 为准；动态验证确认泄漏 → red list RL-6） |
 | R15-AR-9 | InputGate | **fixed** | `InputGate.java:625-674` handleBarrierNonRecursive 已改为 per-id `inFlightAlignments` 对齐，跨 channel 重叠 barrier 按 checkpoint ID 分离 |
 
 **核实方法**：所有 `fixed` 结论均以 2026-08-12 live 源码 + 上述 `文件:行` 为据；R16 AR-1/AR-11/AR-9/AR-18 的 residual 结论同样 live 实测。
@@ -315,7 +315,7 @@
 ### I2 watch-only residual（不阻塞门禁，但需验证）
 
 - `LocalFileCheckpointStorage.java:116-138` 仍按文件名 ID 排序（R16-AR-15）；因 AR-5 已修而级联解除。
-- `WindowOperator.java:776-783` onEventTime cleanup 路径未显式 `retireWindow`（R15-AR-8 相关）——live 代码在 cleanup 分支未见 retireWindow 调用，需 I2 动态验证 MergingWindowSet 是否随 cleanup 收敛（潜在 watch-only residual）。
+- `WindowOperator.java:773-783` onEventTime cleanup 路径未显式 `retireWindow`（R15-AR-8 相关）——live 代码在 cleanup 分支未见 retireWindow 调用，需 I2 动态验证 MergingWindowSet 是否随 cleanup 收敛（I2 已动态验证确认泄漏 → red list RL-6，行号以 :773-783 为准）。
 - `InputGate.java:625-674` handleBarrierNonRecursive 已改为 per-id `inFlightAlignments` 对齐（R15-AR-9 跨 channel 重叠 barrier 路径已按 checkpoint ID 分离），需 I2 验证 `maxConcurrentCheckpoints>1` 场景语义成立。
 
 ### 非五族但同族复发的候选（I2 对抗探查评估升格）
