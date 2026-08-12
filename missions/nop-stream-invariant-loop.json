@@ -1,0 +1,23 @@
+{
+  "name": "nop-stream-invariant-loop",
+  "description": "nop-stream 不变式驱动的持续审计闭环。范围：nop-stream 全模块组（nop-stream-core/cep/connector/flow/rocksdb 等，排除与 nop-stream-production/independent-audit/flink-comparison roadmap 的功能建设范围重叠）。诊断依据：21 轮审计（5 deep + 16 adversarial r1-r16）+ 23 阶段独立审计，WindowAggregationOperator 被同族击穿 7+ 次（R8/R13/R14/R15/R16），TwoPhaseCommitSinkFunction 并发族 2 级联，CEP/NFA/SharedBuffer 族 5 兄弟。授权：P0/P1 自动修复预授权（同 audit-remediation 先例），结构性重构（公共 API/模块边界）执行前人工确认。Loop Rule 预授权下轮 I1 自动派生（PD-n 先例链，附触发证据），不逐次人工重启。",
+  "roadmapPath": "ai-dev/backlog/nop-stream-invariant-loop-roadmap.md",
+  "plansDir": "ai-dev/plans",
+  "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
+  "auditsDir": "ai-dev/audits",
+  "contextDir": "docs-for-ai/00-start-here",
+  "moduleDir": "nop-stream",
+  "agent": "build",
+  "commands": {
+    "test": "./mvnw test -pl nop-stream -am -T 1C",
+    "build": "./mvnw clean install -DskipTests -pl nop-stream -am -T 1C",
+    "lint": "./mvnw checkstyle:check -pl nop-stream -am -q 2>/dev/null || echo 'lint not configured'",
+    "typecheck": "./mvnw compile -pl nop-stream -am -q 2>/dev/null || echo 'typecheck not configured'"
+  },
+  "prompts": {
+    "multiAudit": "ai-dev/skills/deep-audit-prompts.md",
+    "openAudit": "ai-dev/skills/open-ended-adversarial-review-prompt.md",
+    "invariantLoop": "ai-dev/skills/invariant-loop-audit-prompt.md"
+  },
+  "commitFormat": "fix(nop-stream): <description>"
+}

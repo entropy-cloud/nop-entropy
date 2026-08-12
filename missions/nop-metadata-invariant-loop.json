@@ -1,0 +1,24 @@
+{
+  "name": "nop-metadata-invariant-loop",
+  "description": "nop-metadata 不变式驱动的持续审计闭环。范围：nop-metadata 全模块组（8 子模块，39 实体，~283 main Java，排除与 nop-metadata-audit-remediation-roadmap 的已完成线性审计范围重叠）。诊断依据：5 轮 multi+open 审计 + ARM MA1-MA7（21 维）+ MR1-MR8（含 R6.1-R6.6/R7.3/R8.1-R8.4b），先例链交叉引用铁证（R6.2 脱敏→R8.2 沿先例补兄弟；AR-09 limit→AR-23 沿先例补兄弟），R3.14 AR-06 虚假关闭（commit 9b769490e diff 只有版权头），36 个 unique-key 缺 constraint 系统性遗漏。授权：P0/P1 自动修复预授权，ORM/API 模型变更执行前人工确认。Loop Rule 预授权下轮 I1 自动派生（PD-n 先例链）。",
+  "roadmapPath": "ai-dev/backlog/nop-metadata-invariant-loop-roadmap.md",
+  "plansDir": "ai-dev/plans",
+  "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
+  "auditsDir": "ai-dev/audits",
+  "contextDir": "docs-for-ai/00-start-here",
+  "moduleDir": "nop-metadata",
+  "agent": "build",
+  "commands": {
+    "test": "./mvnw test -pl nop-metadata -am -T 1C",
+    "build": "./mvnw clean install -DskipTests -pl nop-metadata -am -T 1C",
+    "lint": "./mvnw checkstyle:check -pl nop-metadata -am -q 2>/dev/null || echo 'lint not configured'",
+    "typecheck": "./mvnw compile -pl nop-metadata -am -q 2>/dev/null || echo 'typecheck not configured'"
+  },
+  "prompts": {
+    "multiAudit": "ai-dev/skills/deep-audit-prompts.md",
+    "openAudit": "ai-dev/skills/open-ended-adversarial-review-prompt.md",
+    "invariantLoop": "ai-dev/skills/invariant-loop-audit-prompt.md",
+    "ormModelAudit": "ai-dev/skills/orm-model-audit-prompt.md"
+  },
+  "commitFormat": "fix(nop-metadata): <description>"
+}

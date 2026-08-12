@@ -112,7 +112,7 @@ After completing any significant **CODE CHANGE**, you MUST:
 | `bugs/` | 复杂 bug 的修复记录 | 根因不明显、跨模块的 bug | `ai-dev/bugs/00-bug-fix-note-writing-guide.md` |
 | `audits/` | 代码和设计审计记录 | 执行代码审计时 | `ai-dev/audits/README.md` |
 | `lessons/` | 经验教训索引 | 踩坑后总结 | `ai-dev/lessons/README.md` |
-| `skills/` | 可复用的 AI 审计/review prompt 模板 | 需要标准化审计流程时 | `ai-dev/audits/README.md` 中的 prompt 对照表 |
+| `skills/` | 可复用的 AI 审计/review prompt 模板（含 `invariant-loop-audit-prompt.md` 不变式闭环审计方法论） | 需要标准化审计流程时；同族缺陷反复复发时用 invariant-loop | `ai-dev/audits/README.md` 中的 prompt 对照表 |
 
 **所有 AI 开发计划必须写在 `ai-dev/plans/` 下，禁止写入 `docs/plans/`。**
 

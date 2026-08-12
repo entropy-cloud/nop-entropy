@@ -25,7 +25,7 @@
 | `bugs/` | 复杂 bug 的修复记录 | `bugs/00-bug-fix-note-writing-guide.md` |
 | `audits/` | 代码和设计审计记录 | `README.md` |
 | `lessons/` | 经验教训索引 | `README.md` |
-| `skills/` | 可复用的审计/review prompt 模板 | — |
+| `skills/` | 可复用的审计/review prompt 模板（含 `invariant-loop-audit-prompt.md` 不变式闭环方法论） | — |
 
 ## 约定
 

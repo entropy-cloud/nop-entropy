@@ -1,0 +1,23 @@
+{
+  "name": "nop-code-invariant-loop",
+  "description": "nop-code 不变式驱动的持续审计闭环。范围：nop-code 全模块组（nop-code-core/dao/meta/service/web/app/api/codegen/flow/lang-java/lang-python/lang-typescript 等，排除与其他模块 invariant-loop 范围重叠）。诊断依据：2 baseline audit + 13 轮 adversarial review（含同日 5 sub-round r9-r13），AR-168 buildFilePathCache OOM→AR-177 getProjectFilePaths 同族交叉引用，增量索引去同步族（AR-158~AR-169/AR-176~AR-178），逻辑删除 vs 物理删除契约不一致。当前无活跃 mission，审计发现 AR-94→AR-178 大量悬空。本闭环待 nop-code 重新激活后启动，直接上闭环而非重复线性审计。授权：P0/P1 自动修复预授权，ORM/API 模型变更执行前人工确认。Loop Rule 预授权下轮 I1 自动派生。",
+  "roadmapPath": "ai-dev/backlog/nop-code-invariant-loop-roadmap.md",
+  "plansDir": "ai-dev/plans",
+  "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
+  "auditsDir": "ai-dev/audits",
+  "contextDir": "docs-for-ai/00-start-here",
+  "moduleDir": "nop-code",
+  "agent": "build",
+  "commands": {
+    "test": "./mvnw test -pl nop-code -am -T 1C",
+    "build": "./mvnw clean install -DskipTests -pl nop-code -am -T 1C",
+    "lint": "./mvnw checkstyle:check -pl nop-code -am -q 2>/dev/null || echo 'lint not configured'",
+    "typecheck": "./mvnw compile -pl nop-code -am -q 2>/dev/null || echo 'typecheck not configured'"
+  },
+  "prompts": {
+    "multiAudit": "ai-dev/skills/deep-audit-prompts.md",
+    "openAudit": "ai-dev/skills/open-ended-adversarial-review-prompt.md",
+    "invariantLoop": "ai-dev/skills/invariant-loop-audit-prompt.md"
+  },
+  "commitFormat": "fix(nop-code): <description>"
+}
