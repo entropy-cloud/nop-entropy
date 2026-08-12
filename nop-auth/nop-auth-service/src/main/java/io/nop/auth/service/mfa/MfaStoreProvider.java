@@ -2,103 +2,81 @@
  * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
  * Author: canonical_entropy@163.com
  * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://gitee.com/entropy-cloud/nop-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
 package io.nop.auth.service.mfa;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.auth.core.mfa.store.LocalMfaChallengeStore;
-import io.nop.auth.core.mfa.store.LocalSmsCodeStore;
 import io.nop.auth.core.mfa.store.MfaChallengeStore;
-import io.nop.auth.core.mfa.store.MfaChallengeStoreConfig;
 import io.nop.auth.core.mfa.store.SmsCodeStore;
-import io.nop.auth.core.mfa.store.SmsCodeStoreConfig;
 import io.nop.auth.service.mfa.store.MfaStoreErrors;
+
+import java.util.Map;
 
 /**
  * MFA 存储装配点（设计 §3.3 / §3.7 {@code nop.auth.mfa.store-type}）。
  * <p>
- * 选择规则：
- * <ul>
- *   <li>{@code local}（默认）→ Local 实现（JVM 内，零外部依赖）。</li>
- *   <li>{@code redis} + Redis store 已注入 → 返回注入的 Redis 实现。</li>
- *   <li>{@code redis} 但 Redis store 未注入 → <b>显式抛异常</b>（fail-closed，
- *       不静默回退到 Local；见 No-Silent-No-Op 规则）。</li>
- * </ul>
+ * 声明式装配（ai-dev/lessons/15）：store 实现按命名型扩展点前缀注册
+ * （{@code nopMfaChallengeStore_}/{@code nopSmsCodeStore_}），本类经
+ * {@code ioc:collect-beans name-prefix} 收集（纯字符串匹配 bean id，<b>不加载类</b>），
+ * 按 {@code store-type} 选择对应实现。新增实现只需注册同前缀 bean 即被自动收集，零消费者改动。
  * <p>
- * <b>类加载安全</b>：本类不得在类签名（字段/方法参数/返回类型）中引用
- * {@code io.nop.nosql.core.INosqlService}——该依赖在 {@code nop-auth-service/pom.xml}
- * 中声明为 {@code <optional>}，未引入 nosql 的应用在 IoC 反射本类方法签名时会抛
- * {@code NoClassDefFoundError}（教训 ai-dev/lessons/15）。Redis store 实现通过接口类型
- * ({@link MfaChallengeStore}/{@link SmsCodeStore}) 注入，本类零 nosql 类型引用。
+ * 选择规则：{@code local}/{@code db}（默认）/ {@code redis}（条件注册）；请求的类型未注册则
+ * <b>显式抛异常</b>（fail-closed，不静默回退）。
+ * <p>
+ * <b>类加载安全</b>：本类零 {@code io.nop.nosql.core.INosqlService} 类型引用。Redis store 的 bean
+ * 定义经 {@code ioc:condition}（{@code store-type=redis} + {@code on-class}）条件激活——classpath
+ * 无 nosql 时根本不注册、不被收集、类不加载（教训 ai-dev/lessons/15）。
  */
 public class MfaStoreProvider {
 
     public static final String STORE_TYPE_LOCAL = "local";
+    public static final String STORE_TYPE_DB = "db";
     public static final String STORE_TYPE_REDIS = "redis";
 
-    private String storeType = STORE_TYPE_LOCAL;
+    private String storeType = STORE_TYPE_DB;
 
-    private MfaChallengeStore redisChallengeStore;
-    private SmsCodeStore redisSmsCodeStore;
+    private Map<String, MfaChallengeStore> challengeStores;
+    private Map<String, SmsCodeStore> smsCodeStores;
 
-    private MfaChallengeStoreConfig challengeConfig = new MfaChallengeStoreConfig();
-    private SmsCodeStoreConfig smsConfig = new SmsCodeStoreConfig();
+    public void setStoreType(String storeType) { this.storeType = storeType; }
+    public String getStoreType() { return storeType; }
+    public void setChallengeStores(Map<String, MfaChallengeStore> m) { this.challengeStores = m; }
+    public Map<String, MfaChallengeStore> getChallengeStores() { return challengeStores; }
+    public void setSmsCodeStores(Map<String, SmsCodeStore> m) { this.smsCodeStores = m; }
+    public Map<String, SmsCodeStore> getSmsCodeStores() { return smsCodeStores; }
 
-    public void setStoreType(String storeType) {
-        this.storeType = storeType;
+    public MfaChallengeStore getMfaChallengeStore() { return select(challengeStores, "MfaChallengeStore"); }
+    public SmsCodeStore getSmsCodeStore() { return select(smsCodeStores, "SmsCodeStore"); }
+
+    private <T> T select(Map<String, T> stores, String storeName) {
+        if (stores == null || stores.isEmpty())
+            throw failClosed(storeName, "no store implementations registered");
+        T store = lookup(stores, storeType);
+        if (store == null)
+            throw failClosed(storeName, "store-type=" + storeType + " not found among " + stores.keySet());
+        return store;
     }
 
-    public String getStoreType() {
-        return storeType;
-    }
-
-    public void setRedisChallengeStore(MfaChallengeStore redisChallengeStore) {
-        this.redisChallengeStore = redisChallengeStore;
-    }
-
-    public void setRedisSmsCodeStore(SmsCodeStore redisSmsCodeStore) {
-        this.redisSmsCodeStore = redisSmsCodeStore;
-    }
-
-    public void setChallengeConfig(MfaChallengeStoreConfig challengeConfig) {
-        this.challengeConfig = challengeConfig;
-    }
-
-    public void setSmsConfig(SmsCodeStoreConfig smsConfig) {
-        this.smsConfig = smsConfig;
-    }
-
-    public MfaChallengeStore getMfaChallengeStore() {
-        if (isRedis()) {
-            if (redisChallengeStore == null) {
-                throw failClosed("MfaChallengeStore");
-            }
-            return redisChallengeStore;
+    private <T> T lookup(Map<String, T> stores, String type) {
+        if (type == null) return null;
+        T s = stores.get(type);
+        if (s != null) return s;
+        s = stores.get("_" + type);
+        if (s != null) return s;
+        for (Map.Entry<String, T> e : stores.entrySet()) {
+            String key = e.getKey();
+            if (key == null) continue;
+            String normalized = key.startsWith("_") ? key.substring(1) : key;
+            if (type.equalsIgnoreCase(key) || type.equalsIgnoreCase(normalized)) return e.getValue();
         }
-        return new LocalMfaChallengeStore(challengeConfig);
+        return null;
     }
 
-    public SmsCodeStore getSmsCodeStore() {
-        if (isRedis()) {
-            if (redisSmsCodeStore == null) {
-                throw failClosed("SmsCodeStore");
-            }
-            return redisSmsCodeStore;
-        }
-        return new LocalSmsCodeStore(smsConfig);
-    }
-
-    private boolean isRedis() {
-        return STORE_TYPE_REDIS.equalsIgnoreCase(storeType);
-    }
-
-    private NopException failClosed(String storeName) {
+    private NopException failClosed(String storeName, String reason) {
         return new NopException(MfaStoreErrors.ERR_MFA_STORE_REDIS_BACKEND_NOT_AVAILABLE)
                 .param(MfaStoreErrors.ARG_STORE_TYPE, storeType)
-                .param(MfaStoreErrors.ARG_REASON,
-                        storeName + " is not configured; set nop.auth.mfa.store-type=local "
-                                + "or provide a nop-nosql backend");
+                .param(MfaStoreErrors.ARG_REASON, storeName + ": " + reason);
     }
 }

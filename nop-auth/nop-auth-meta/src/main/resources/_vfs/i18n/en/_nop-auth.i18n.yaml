@@ -5,6 +5,7 @@ entity:
     NopAuthGroup: User Group
     NopAuthGroupDept: Group Department
     NopAuthGroupUser: Group User
+    NopAuthMfaChallenge: MFA Challenge
     NopAuthMfaRecoveryCode: MFA Recovery Code
     NopAuthMfaSetting: MFA Setting
     NopAuthOpLog: Operation Log
@@ -16,6 +17,7 @@ entity:
     NopAuthRoleResource: Role Resource
     NopAuthSession: Session
     NopAuthSite: Sub Site
+    NopAuthSmsCode: SMS Code
     NopAuthTenant: Tenant
     NopAuthUser: User
     NopAuthUser_tenant: User
@@ -120,6 +122,19 @@ prop:
       user.userName: User
       group: Group
       group.name: Group
+    NopAuthMfaChallenge:
+      challengeToken: Challenge Token
+      userId: User ID
+      mfaType: MFA Type
+      loginType: Login Type
+      tenantId: Tenant ID
+      phone: Phone
+      expireAt: Expire At
+      failCount: Fail Count
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
     NopAuthMfaRecoveryCode:
       sid: SID
       userId: User ID
@@ -367,6 +382,16 @@ prop:
       resourcesConnection: null
       extConfigComponent: null
       resourcesList: null
+    NopAuthSmsCode:
+      codeKey: Code Key
+      phone: Phone
+      code: Code
+      expireAt: Expire At
+      failCount: Fail Count
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
     NopAuthTenant:
       tenantId: Tenant ID
       name: Name

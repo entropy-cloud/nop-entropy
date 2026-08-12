@@ -12,6 +12,10 @@ site:
       displayName: Modify User Group
     FNPT:NopAuthGroup:query:
       displayName: Query User Group
+    FNPT:NopAuthMfaChallenge:mutation:
+      displayName: Modify MFA Challenge
+    FNPT:NopAuthMfaChallenge:query:
+      displayName: Query MFA Challenge
     FNPT:NopAuthMfaRecoveryCode:mutation:
       displayName: Modify MFA Recovery Code
     FNPT:NopAuthMfaRecoveryCode:query:
@@ -52,6 +56,10 @@ site:
       displayName: Modify Sub Site
     FNPT:NopAuthSite:query:
       displayName: Query Sub Site
+    FNPT:NopAuthSmsCode:mutation:
+      displayName: Modify SMS Code
+    FNPT:NopAuthSmsCode:query:
+      displayName: Query SMS Code
     FNPT:NopAuthTenant:mutation:
       displayName: Modify Tenant
     FNPT:NopAuthTenant:query:
@@ -78,6 +86,8 @@ site:
       displayName: Ext Login
     NopAuthGroup-main:
       displayName: User Group
+    NopAuthMfaChallenge-main:
+      displayName: MFA Challenge
     NopAuthMfaRecoveryCode-main:
       displayName: MFA Recovery Code
     NopAuthMfaSetting-main:
@@ -98,6 +108,8 @@ site:
       displayName: Session
     NopAuthSite-main:
       displayName: Sub Site
+    NopAuthSmsCode-main:
+      displayName: SMS Code
     NopAuthTenant-main:
       displayName: Tenant
     NopAuthUser-changeSelfPass:

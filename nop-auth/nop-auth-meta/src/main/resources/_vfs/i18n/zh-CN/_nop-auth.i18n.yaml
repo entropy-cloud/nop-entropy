@@ -5,6 +5,7 @@ entity:
     NopAuthGroup: 用户组
     NopAuthGroupDept: 分组部门
     NopAuthGroupUser: 分组用户
+    NopAuthMfaChallenge: MFA挑战码
     NopAuthMfaRecoveryCode: MFA恢复码
     NopAuthMfaSetting: 用户MFA配置
     NopAuthOpLog: 操作日志
@@ -16,6 +17,7 @@ entity:
     NopAuthRoleResource: 角色可访问资源
     NopAuthSession: 会话日志
     NopAuthSite: 子站点
+    NopAuthSmsCode: 短信验证码
     NopAuthTenant: 租户
     NopAuthUser: 用户
     NopAuthUserRole: 用户角色
@@ -120,6 +122,19 @@ prop:
       user.userName: 用户
       userId: 用户ID
       version: 数据版本
+    NopAuthMfaChallenge:
+      challengeToken: 挑战令牌
+      createTime: 创建时间
+      createdBy: 创建人
+      expireAt: 过期时间
+      failCount: 失败计数
+      loginType: 登录方式
+      mfaType: MFA类型
+      phone: 手机号
+      tenantId: 租户ID
+      updateTime: 修改时间
+      updatedBy: 修改人
+      userId: 用户ID
     NopAuthMfaRecoveryCode:
       codeHash: 恢复码哈希
       createTime: 创建时间
@@ -367,6 +382,16 @@ prop:
       updatedBy: 修改人
       url: 链接
       version: 数据版本
+    NopAuthSmsCode:
+      code: 验证码
+      codeKey: 验证码Key
+      createTime: 创建时间
+      createdBy: 创建人
+      expireAt: 过期时间
+      failCount: 失败计数
+      phone: 手机号
+      updateTime: 修改时间
+      updatedBy: 修改人
     NopAuthTenant:
       beginTime: 开始时间
       createTime: 创建时间

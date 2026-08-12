@@ -48,6 +48,21 @@
         <property name="bizObjName" value="NopAuthTenant"/>
     </bean>
 
+    <bean id="io.nop.auth.service.entity.NopAuthMfaChallengeBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopAuthMfaChallenge" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.auth.biz.INopAuthMfaChallengeBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopAuthMfaChallenge"/>
+    </bean>
+
+    <bean id="io.nop.auth.service.entity.NopAuthSmsCodeBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopAuthSmsCode" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.auth.biz.INopAuthSmsCodeBiz" ioc:force-lazy-property="true" lazy-init="true" primary="true">
+        <property name="bizObjName" value="NopAuthSmsCode"/>
+    </bean>
+
     <bean id="io.nop.auth.service.entity.NopAuthUserBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="biz_NopAuthUser" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.auth.biz.INopAuthUserBiz"

@@ -1,0 +1,14 @@
+{
+  "challengeToken": "",
+  "userId": "",
+  "mfaType": "",
+  "loginType": 0,
+  "tenantId": "",
+  "phone": "",
+  "expireAt": 0,
+  "failCount": 0,
+  "createdBy": "",
+  "createTime": "2000-01-01 14:00:00",
+  "updatedBy": "",
+  "updateTime": "2000-01-01 14:00:00"
+}

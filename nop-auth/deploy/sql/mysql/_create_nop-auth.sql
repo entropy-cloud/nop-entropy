@@ -99,6 +99,35 @@ CREATE TABLE nop_auth_tenant(
   constraint PK_nop_auth_tenant primary key (TENANT_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+CREATE TABLE nop_auth_mfa_challenge(
+  CHALLENGE_TOKEN VARCHAR(64) NOT NULL    COMMENT '挑战令牌',
+  USER_ID VARCHAR(50) NOT NULL    COMMENT '用户ID',
+  MFA_TYPE VARCHAR(10) NULL    COMMENT 'MFA类型',
+  LOGIN_TYPE INTEGER NULL    COMMENT '登录方式',
+  TENANT_ID VARCHAR(32) NULL    COMMENT '租户ID',
+  PHONE VARCHAR(50) NULL    COMMENT '手机号',
+  EXPIRE_AT BIGINT NULL    COMMENT '过期时间',
+  FAIL_COUNT INTEGER default 0  NULL    COMMENT '失败计数',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) NULL    COMMENT '修改时间',
+  constraint PK_nop_auth_mfa_challenge primary key (CHALLENGE_TOKEN)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
+CREATE TABLE nop_auth_sms_code(
+  CODE_KEY VARCHAR(100) NOT NULL    COMMENT '验证码Key',
+  PHONE VARCHAR(50) NULL    COMMENT '手机号',
+  CODE VARCHAR(20) NULL    COMMENT '验证码',
+  EXPIRE_AT BIGINT NULL    COMMENT '过期时间',
+  FAIL_COUNT INTEGER default 0  NULL    COMMENT '失败计数',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) NULL    COMMENT '修改时间',
+  constraint PK_nop_auth_sms_code primary key (CODE_KEY)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
 CREATE TABLE nop_auth_user(
   USER_ID VARCHAR(50) NOT NULL    COMMENT '用户ID',
   USER_NAME VARCHAR(50) NOT NULL    COMMENT '用户名',
@@ -364,6 +393,10 @@ CREATE TABLE nop_auth_mfa_recovery_code(
    ALTER TABLE nop_auth_role_data_auth COMMENT '角色数据权限';
                 
    ALTER TABLE nop_auth_tenant COMMENT '租户';
+                
+   ALTER TABLE nop_auth_mfa_challenge COMMENT 'MFA挑战码';
+                
+   ALTER TABLE nop_auth_sms_code COMMENT '短信验证码';
                 
    ALTER TABLE nop_auth_user COMMENT '用户';
                 

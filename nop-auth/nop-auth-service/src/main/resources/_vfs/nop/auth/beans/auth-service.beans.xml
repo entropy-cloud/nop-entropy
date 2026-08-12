@@ -18,21 +18,53 @@
     <bean id="nopLoginService" class="io.nop.auth.service.login.LoginServiceImpl" ioc:default="true"
           ioc:delay-method="lazyInit"/>
 
-    <!-- MFA 存储装配（设计 §3.3 / §3.7 nop.auth.mfa.store-type）。
-         nop-auth-service 内部按配置选择 Local/Redis 实现，供 LoginServiceImpl 注入。
-         MfaStoreProvider.fail-closed：redis 请求但无 INosqlService 时抛异常而非静默回退 Local。 -->
+    <!-- MFA 存储装配（设计 §3.3 / §3.7 nop.auth.mfa.store-type，默认 db）。声明式 collect-beans 装配。 -->
+    <bean id="mfaChallengeStoreConfig" class="io.nop.auth.core.mfa.store.MfaChallengeStoreConfig">
+        <property name="expireSeconds" value="@cfg:nop.auth.mfa.challenge-expire-seconds|300"/>
+    </bean>
+    <bean id="smsCodeStoreConfig" class="io.nop.auth.core.mfa.store.SmsCodeStoreConfig">
+        <property name="expireSeconds" value="@cfg:nop.auth.sms-code.expire-seconds|300"/>
+        <property name="maxAttempts" value="@cfg:nop.auth.sms-code.max-attempts|5"/>
+    </bean>
+
+    <bean id="nopMfaChallengeStore_local" class="io.nop.auth.core.mfa.store.LocalMfaChallengeStore"
+          autowire-candidate="false" lazy-init="true">
+        <constructor-arg index="0" ref="mfaChallengeStoreConfig"/>
+    </bean>
+    <bean id="nopMfaChallengeStore_db" class="io.nop.auth.service.mfa.store.DbMfaChallengeStore"
+          autowire-candidate="false" lazy-init="true">
+        <property name="config" ref="mfaChallengeStoreConfig"/>
+    </bean>
+    <bean id="nopMfaChallengeStore_redis" class="io.nop.auth.service.mfa.store.RedisMfaChallengeStore"
+          autowire-candidate="false" lazy-init="true">
+        <ioc:condition>
+            <if-property name="nop.auth.mfa.store-type" value="redis"/>
+            <on-class>io.nop.nosql.core.INosqlService</on-class>
+        </ioc:condition>
+    </bean>
+    <bean id="nopSmsCodeStore_local" class="io.nop.auth.core.mfa.store.LocalSmsCodeStore"
+          autowire-candidate="false" lazy-init="true">
+        <constructor-arg index="0" ref="smsCodeStoreConfig"/>
+    </bean>
+    <bean id="nopSmsCodeStore_db" class="io.nop.auth.service.mfa.store.DbSmsCodeStore"
+          autowire-candidate="false" lazy-init="true">
+        <property name="config" ref="smsCodeStoreConfig"/>
+    </bean>
+    <bean id="nopSmsCodeStore_redis" class="io.nop.auth.service.mfa.store.RedisSmsCodeStore"
+          autowire-candidate="false" lazy-init="true">
+        <ioc:condition>
+            <if-property name="nop.auth.mfa.store-type" value="redis"/>
+            <on-class>io.nop.nosql.core.INosqlService</on-class>
+        </ioc:condition>
+    </bean>
+
     <bean id="mfaStoreProvider" class="io.nop.auth.service.mfa.MfaStoreProvider">
-        <property name="storeType" value="@cfg:nop.auth.mfa.store-type|local"/>
-        <property name="challengeConfig">
-            <bean class="io.nop.auth.core.mfa.store.MfaChallengeStoreConfig">
-                <property name="expireSeconds" value="@cfg:nop.auth.mfa.challenge-expire-seconds|300"/>
-            </bean>
+        <property name="storeType" value="@cfg:nop.auth.mfa.store-type|db"/>
+        <property name="challengeStores">
+            <ioc:collect-beans name-prefix="nopMfaChallengeStore" as-map="true" ioc:ignore-depends="true"/>
         </property>
-        <property name="smsConfig">
-            <bean class="io.nop.auth.core.mfa.store.SmsCodeStoreConfig">
-                <property name="expireSeconds" value="@cfg:nop.auth.sms-code.expire-seconds|300"/>
-                <property name="maxAttempts" value="@cfg:nop.auth.sms-code.max-attempts|5"/>
-            </bean>
+        <property name="smsCodeStores">
+            <ioc:collect-beans name-prefix="nopSmsCodeStore" as-map="true" ioc:ignore-depends="true"/>
         </property>
     </bean>
 

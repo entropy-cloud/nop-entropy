@@ -1199,5 +1199,90 @@
                 </to-one>
             </relations>
         </entity>
+        <entity className="io.nop.auth.dao.entity.NopAuthMfaChallenge" createTimeProp="createTime"
+                createrProp="createdBy" displayName="MFA挑战码" name="io.nop.auth.dao.entity.NopAuthMfaChallenge"
+                registerShortName="true" tableName="nop_auth_mfa_challenge" tagSet="no-tenant"
+                updateTimeProp="updateTime" updaterProp="updatedBy" ext:icon="key" i18n-en:displayName="MFA Challenge">
+            <columns>
+                <column code="CHALLENGE_TOKEN" comment="一次性 challenge token（UUID，store 生成）" displayName="挑战令牌"
+                        mandatory="true" name="challengeToken" precision="64" primary="true" propId="1"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="var,not-pub" ui:show="X"
+                        i18n-en:displayName="Challenge Token"/>
+                <column code="USER_ID" displayName="用户ID" domain="userId" mandatory="true" name="userId" precision="50"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="User ID"/>
+                <column code="MFA_TYPE" comment="第二因子类型：totp/sms" displayName="MFA类型" name="mfaType" precision="10"
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR" ui:show="L" i18n-en:displayName="MFA Type"/>
+                <column code="LOGIN_TYPE" comment="触发 MFA 的登录方式" displayName="登录方式" name="loginType" propId="4"
+                        stdDataType="int" stdSqlType="INTEGER" ui:show="L" i18n-en:displayName="Login Type"/>
+                <column code="TENANT_ID" displayName="租户ID" name="tenantId" precision="32" propId="5"
+                        stdDataType="string" stdSqlType="VARCHAR" ui:show="X" i18n-en:displayName="Tenant ID"/>
+                <column code="PHONE" comment="短信接收手机号（sms 类型）" displayName="手机号" domain="phone" name="phone"
+                        precision="50" propId="6" stdDataType="string" stdSqlType="VARCHAR" ui:show="L"
+                        i18n-en:displayName="Phone"/>
+                <column code="EXPIRE_AT" comment="过期时间戳（epoch 毫秒，用于 TTL 比较）" displayName="过期时间" name="expireAt"
+                        propId="7" stdDataType="long" stdSqlType="BIGINT" ui:show="X" i18n-en:displayName="Expire At"/>
+                <column code="FAIL_COUNT" comment="失败计数（SQL 原子递增，对齐 Redis INCRBY）" defaultValue="0" displayName="失败计数"
+                        name="failCount" propId="8" stdDataType="int" stdSqlType="INTEGER" ui:show="X"
+                        i18n-en:displayName="Fail Count"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="9" stdDataType="string" stdSqlType="VARCHAR" ui:show="X"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="10" stdDataType="timestamp" stdSqlType="TIMESTAMP" ui:show="X"
+                        i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" name="updatedBy" precision="50"
+                        propId="11" stdDataType="string" stdSqlType="VARCHAR" ui:show="X"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" name="updateTime" propId="12"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" ui:show="X" i18n-en:displayName="Update Time"/>
+            </columns>
+            <comment>MFA 挑战码存储（DB 实现，TTL 过期 + 失败计数 + 一次性消费，惰性清理）</comment>
+            <indexes>
+                <index name="IX_NOP_AUTH_MFA_CHALLENGE_USER" unique="false">
+                    <column name="userId"/>
+                </index>
+                <index name="IX_NOP_AUTH_MFA_CHALLENGE_EXPIRE" unique="false">
+                    <column name="expireAt"/>
+                </index>
+            </indexes>
+        </entity>
+        <entity className="io.nop.auth.dao.entity.NopAuthSmsCode" createTimeProp="createTime" createrProp="createdBy"
+                displayName="短信验证码" name="io.nop.auth.dao.entity.NopAuthSmsCode" registerShortName="true"
+                tableName="nop_auth_sms_code" tagSet="no-tenant" updateTimeProp="updateTime" updaterProp="updatedBy"
+                ext:icon="message-square" i18n-en:displayName="SMS Code">
+            <columns>
+                <column code="CODE_KEY" comment="逻辑 key（login:{phone} / mfa:{userId}）" displayName="验证码Key"
+                        mandatory="true" name="codeKey" precision="100" primary="true" propId="1" stdDataType="string"
+                        stdSqlType="VARCHAR" tagSet="var,not-pub" ui:show="X" i18n-en:displayName="Code Key"/>
+                <column code="PHONE" comment="手机号（审计/信息性，从 key 提取）" displayName="手机号" domain="phone" name="phone"
+                        precision="50" propId="2" stdDataType="string" stdSqlType="VARCHAR" ui:show="L"
+                        i18n-en:displayName="Phone"/>
+                <column code="CODE" comment="6 位验证码（明文 + 短 TTL，对齐 Local/Redis 实现）" displayName="验证码" name="code"
+                        precision="20" propId="3" stdDataType="string" stdSqlType="VARCHAR" tagSet="masked,var,not-pub"
+                        ui:show="X" i18n-en:displayName="Code"/>
+                <column code="EXPIRE_AT" comment="过期时间戳（epoch 毫秒，用于 TTL 比较）" displayName="过期时间" name="expireAt"
+                        propId="4" stdDataType="long" stdSqlType="BIGINT" ui:show="X" i18n-en:displayName="Expire At"/>
+                <column code="FAIL_COUNT" comment="失败计数（SQL 原子递增，达 max-attempts 作废）" defaultValue="0" displayName="失败计数"
+                        name="failCount" propId="5" stdDataType="int" stdSqlType="INTEGER" ui:show="X"
+                        i18n-en:displayName="Fail Count"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="6" stdDataType="string" stdSqlType="VARCHAR" ui:show="X"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="7" stdDataType="timestamp" stdSqlType="TIMESTAMP" ui:show="X"
+                        i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" name="updatedBy" precision="50"
+                        propId="8" stdDataType="string" stdSqlType="VARCHAR" ui:show="X"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" name="updateTime" propId="9"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" ui:show="X" i18n-en:displayName="Update Time"/>
+            </columns>
+            <comment>短信验证码存储（DB 实现，三态校验 + 失败计数 + 一次性消费，惰性清理）</comment>
+            <indexes>
+                <index name="IX_NOP_AUTH_SMS_CODE_EXPIRE" unique="false">
+                    <column name="expireAt"/>
+                </index>
+            </indexes>
+        </entity>
     </entities>
 </orm>

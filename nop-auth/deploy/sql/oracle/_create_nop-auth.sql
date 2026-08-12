@@ -99,6 +99,35 @@ CREATE TABLE nop_auth_tenant(
   constraint PK_nop_auth_tenant primary key (TENANT_ID)
 );
 
+CREATE TABLE nop_auth_mfa_challenge(
+  CHALLENGE_TOKEN VARCHAR2(64) NOT NULL ,
+  USER_ID VARCHAR2(50) NOT NULL ,
+  MFA_TYPE VARCHAR2(10)  ,
+  LOGIN_TYPE INTEGER  ,
+  TENANT_ID VARCHAR2(32)  ,
+  PHONE VARCHAR2(50)  ,
+  EXPIRE_AT NUMBER(20)  ,
+  FAIL_COUNT INTEGER default 0   ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50)  ,
+  UPDATE_TIME TIMESTAMP  ,
+  constraint PK_nop_auth_mfa_challenge primary key (CHALLENGE_TOKEN)
+);
+
+CREATE TABLE nop_auth_sms_code(
+  CODE_KEY VARCHAR2(100) NOT NULL ,
+  PHONE VARCHAR2(50)  ,
+  CODE VARCHAR2(20)  ,
+  EXPIRE_AT NUMBER(20)  ,
+  FAIL_COUNT INTEGER default 0   ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50)  ,
+  UPDATE_TIME TIMESTAMP  ,
+  constraint PK_nop_auth_sms_code primary key (CODE_KEY)
+);
+
 CREATE TABLE nop_auth_user(
   USER_ID VARCHAR2(50) NOT NULL ,
   USER_NAME VARCHAR2(50) NOT NULL ,
@@ -514,6 +543,52 @@ CREATE TABLE nop_auth_mfa_recovery_code(
       COMMENT ON COLUMN nop_auth_tenant.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON COLUMN nop_auth_tenant.REMARK IS '备注';
+                    
+      COMMENT ON TABLE nop_auth_mfa_challenge IS 'MFA挑战码';
+                
+      COMMENT ON COLUMN nop_auth_mfa_challenge.CHALLENGE_TOKEN IS '挑战令牌';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_challenge.USER_ID IS '用户ID';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_challenge.MFA_TYPE IS 'MFA类型';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_challenge.LOGIN_TYPE IS '登录方式';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_challenge.TENANT_ID IS '租户ID';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_challenge.PHONE IS '手机号';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_challenge.EXPIRE_AT IS '过期时间';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_challenge.FAIL_COUNT IS '失败计数';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_challenge.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_challenge.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_challenge.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_challenge.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON TABLE nop_auth_sms_code IS '短信验证码';
+                
+      COMMENT ON COLUMN nop_auth_sms_code.CODE_KEY IS '验证码Key';
+                    
+      COMMENT ON COLUMN nop_auth_sms_code.PHONE IS '手机号';
+                    
+      COMMENT ON COLUMN nop_auth_sms_code.CODE IS '验证码';
+                    
+      COMMENT ON COLUMN nop_auth_sms_code.EXPIRE_AT IS '过期时间';
+                    
+      COMMENT ON COLUMN nop_auth_sms_code.FAIL_COUNT IS '失败计数';
+                    
+      COMMENT ON COLUMN nop_auth_sms_code.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_auth_sms_code.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_auth_sms_code.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_auth_sms_code.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON TABLE nop_auth_user IS '用户';
                 
