@@ -24,13 +24,15 @@
             <null/>
         </property>
     </bean>
-    <bean class="com.zaxxer.hikari.HikariDataSource" id="nopDataSource_meta" ioc:aop="false" destroy-method="close">
+    <bean class="com.zaxxer.hikari.HikariDataSource" id="nopDataSource_meta" ioc:aop="false"
+          ext:resolved-depends="$GEN$com.zaxxer.hikari.HikariConfig$1" destroy-method="close">
         <constructor-arg index="0">
             <ref bean="$GEN$com.zaxxer.hikari.HikariConfig$1"
                  ext:resolved-loc="[21:8:0:0]/test/test-dataSources.beans.xml"/>
         </constructor-arg>
     </bean>
-    <bean class="com.zaxxer.hikari.HikariDataSource" id="nopDataSource_default" ioc:aop="false" destroy-method="close">
+    <bean class="com.zaxxer.hikari.HikariDataSource" id="nopDataSource_default" ioc:aop="false"
+          ext:resolved-depends="$GEN$com.zaxxer.hikari.HikariConfig$2" destroy-method="close">
         <constructor-arg index="0">
             <ref bean="$GEN$com.zaxxer.hikari.HikariConfig$2"
                  ext:resolved-loc="[9:8:0:0]/test/test-dataSources.beans.xml"/>
