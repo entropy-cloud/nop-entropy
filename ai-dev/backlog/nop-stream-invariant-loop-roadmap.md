@@ -52,7 +52,7 @@ I0 盘点基线 → I1 沉淀不变式(→门禁入CI) → I2 按不变式审计
 | Cycle 2 / I3. 发现裁决与工作项拟制 | red list 逐条裁决（P0/P1/P2/P3）→ P0/P1 派 I4（含跨 task interim fail-fast 预授权确认，I6 预裁决输入，见 adjudication-table.md §I6）；新族派 Cycle 3 / I1（Loop Rule）；裁决表零悬挂。**执行结果（plan `2026-08-12-1217-10`）**：裁决表 Cycle 2 节落档（adjudication-table.md §7-§10，8 条目零悬挂：C2-RL-1/2 = P1 派 I4（interim fail-fast，信封通过无人工确认门）/ C2-RL-3 = P3 backlog / C2-PR-1/2/5 = 关闭（非 defect）/ C2-PR-3/4 = P3 backlog）；interim fail-fast 预授权确认（§7.3 信封复核通过，WI-C2-1 派发六要素齐全含收尾三连）；无新族显式声明 + C2-PR-2/5 扩展候选移交 I6；Follow-up Backlog 新增 2 条；独立共识审查 8/8 PASS + closure audit 8/8 PASS | `done` | I2 |
 | Cycle 2 / I4. 修复执行 | 跨 task interim fail-fast 修复（`RecordWriterOutput` / `BroadcastingRecordWriterOutput` `collect(OutputTag)` 空体 → 抛 `ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER` 风格异常；类内部行为修复，private 嵌套类、`Output` 接口零变更，同 RL-7 先例）+ 注册表分类更新 + 过渡 pin 移除；test-first 先红后绿；类别清扫（全 `Output` 实现类兄弟）。**执行结果（plan `2026-08-12-1217-11`）**：RWO/BRWO `collect(OutputTag)` fail-fast 落地（`ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER` + `ARG_OUTPUT_TAG`/`ARG_DETAIL`，commit `88bc0270c`）；注册表分类迁移 `pinned-known-violation` → `fail-fast`（含 `TimestampedCollector` disposition 同步）；过渡 pin 2 条移除（留痕在案）；JUnit 断言翻转 + 跨 task E2E 第 4 用例（RWO 1 writer + BRWO 2 writers，4/4 绿）；类别清扫零遗留（4 实现类 + 6 发射点 + 接线链）；门禁复跑零命中（JUnit 门禁子集 102 tests / 0 failures + mjs `all` exit 0 pins 0）+ core 1428 / runtime 805 全量回归绿；文档收口（core-design §6.1 / red-list / logs）；独立 closure audit 10/10 PASS | `done` | I3 |
 | Cycle 2 / I5. 全量验证与门禁零命中 | `./mvnw test -pl nop-stream -am -T 1C` + 门禁零命中 + 相关 e2e；full-green 记录 + 下轮输入落档。**执行结果（plan `2026-08-12-1217-12`）**：全量 2833 tests / 0 failures 全绿（core 1428 / runtime 805 / cep 320 / rocksdb 83 / connector 35 / connector-jdbc 32 / connector-batch 35 / connector-debezium 19 / flow 51 / fraud-example 25）；mjs `all` exit 0（pin 0，无 unpinned / 无 stale）；JUnit 门禁 10 类 102 tests 0 failures（含 I4 翻转/新增用例）；e2e 复跑绿（`TestSideOutputChainingE2E` 4/4 含跨 task fail-fast 第 4 用例 + Window E2E 6/6 + 7/7）；零新失败；E2E 发射点覆盖事实核实在案（仅 WindowOperator:1030 有 E2E 覆盖，其余 5 发射点无——P3 backlog 处置不变，注册表措辞未改）；full-green 记录 + `cycle2-I6-input.md` 落档（I6 输入唯一落点） | `done` | I4 |
-| Cycle 2 / I6. 循环收口 | 统计/稳态判定；`HG-01` 线协议支持如获人工批准另立 plan（Successor）；closure 独立 fresh session | `todo` | I5 |
+| Cycle 2 / I6. 循环收口 | 统计/稳态判定；`HG-01` 线协议支持如获人工批准另立 plan（Successor）；closure 独立 fresh session | `planned` | I5 |
 
 ## Phase Details
 
@@ -86,6 +86,8 @@ red list → P0/P1 入 I4；新族 → Cycle 2 / I1；P2/P3 入 Follow-up Backlo
 
 Cycle 1 / I6 裁定摘要（2026-08-12，plan `2026-08-12-1217-7`）：PD-15 输出契约族裁定正式新族 → 依 Loop Rule 派生 Cycle 2（I1–I6 六行已追加，I1 附触发证据）；跨 task side-output 缺口双层裁决 = interim fail-fast 预授权分派 Cycle 2 / I4（类内部行为修复，自动信封）+ 线协议结构性重构 = `HG-01` 人工确认门（执行门未过，登记待办，非延期非降级）；Cycle 2 / I1 门禁范围裁定（三态分类 + 类级枚举完备性 + call-site 注册表 + 过渡 pin）见 adjudication-table.md §I6；Cycle 2 触发原因 = 新族沉淀 + `HG-01` 人工确认门；复触发三选一继续生效。
 
+Cycle 2 / I6 裁定摘要（2026-08-12，plan `2026-08-12-1217-13`）：收口统计与 `cycle2-I6-input.md` 一致（2833 tests / 0 failures；门禁 10 类 / 102 tests；pin 0 + mjs all exit 0 实测）；red list 零悬挂（C2-RL-1/2 修复 `88bc0270c` 在案 + C2-RL-3 P3 已裁决）；新族数 = 0 → **稳态暂停裁定**（C2-PR-2 / C2-PR-5 扩展候选均裁定维持稳态，显式依据见 adjudication-table.md §11——零实例 / 控制面非数据丢失 + `HG-01` 执行门未过 + 循环机器重量与收益不匹配）；`HG-01` 未获人工批准（全仓无批准记录）→ 维持 `pending human confirmation` 待办登记（四重保护性覆盖复核在案），不登记 Successor；复触发条件登记（三选一 + C2-PR-2 形态出现 + `HG-01` 人工批准），Cycle 2 循环暂停，roadmap I6 行 `done`（closure audit 通过后）。
+
 ## Dependency Graph
 
 ```mermaid
@@ -107,6 +109,7 @@ flowchart LR
 - **棘轮**：已沉淀的不变式门禁只增不减；弱化/删除/豁免需人工确认 + 留痕 + committed 回归测试同步。
 - **稳态暂停与复触发**：一轮零新族且 red list 零 → 稳态暂停；复触发三选一：① CI 该门禁变红；② nop-stream 核心类结构变更（新增/重命名 Operator/SinkFunction/Checkpoint 机制）；③ 周期复探。
 - **Cycle 2 触发登记（2026-08-12，I6 落档）**：Cycle 2 触发原因 = 新族沉淀（PD-15 输出契约族，正式新族）+ 跨 task side-output 缺口（已确认契约缺口，执行门 = 人工确认待办 `HG-01`）。三选一复触发继续生效（① CI 任一不变式门禁变红；② nop-stream 核心类结构变更；③ 周期复探）；**人工确认待办的触发** = 人工批准跨 task side-output 线协议结构性变更（`HG-01`，登记见 Follow-up Backlog）。
+- **Cycle 2 / I6 稳态登记（2026-08-12，I6 落档）**：Cycle 2 收口完成 → **稳态暂停**（零新族 + red list 零悬挂 + 门禁全绿：2833/0 全量 + 10 类 / 102 tests + mjs all exit 0）。C2-PR-2/5 扩展候选裁定 = 均维持稳态（显式依据见 adjudication-table.md §11，I3 §9 移交收口）。**复触发条件（循环重启）**：三选一继续生效——① CI 任一不变式门禁变红；② nop-stream 核心类结构变更（新增/重命名 Operator/SinkFunction/Checkpoint 机制/Output 实现类）；③ 周期复探（默认每 major release 或季度，取早）。**本 plan 新增触发**：C2-PR-2 形态出现（main 出现匿名 `new Output<>(){}` / `record ... implements Output` / raw `OutputTag` 声明）；C2-PR-5 = `HG-01` 人工批准跨 task 线协议变更（批准后评估不变式 #6 陈述扩展 + RWO/BRWO 控制面处理）。**人工确认待办触发** = 人工批准跨 task 线协议结构性变更（`HG-01`）。
 - **类别清扫强制**：I4 修任一实例必须 grep 全类兄弟；只修报到的实例 = 未完成。
 - **范围独立**：本图专注 nop-stream 不变式沉淀与防回退，与 `nop-stream-production-roadmap.md`（功能建设）/ `nop-stream-independent-audit-roadmap.md`（一次性深度审计）范围不重叠。
 

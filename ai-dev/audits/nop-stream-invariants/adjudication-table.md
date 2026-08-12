@@ -264,3 +264,29 @@
 
 - **C2-RL-3 + C2-PR-4**（注册表 disposition 措辞过 claim + 6 发射点 E2E 覆盖缺口，P3 优化）→ roadmap 新增 backlog 条目「输出契约族审计证据准确性 + E2E 覆盖扩展」（2026-08-12）。
 - **C2-PR-3**（同一 OutputTag 重复注册 last-wins 静默覆盖，P3 优化）→ roadmap 新增 backlog 条目「side-output 消费者重复注册语义」（2026-08-12）。
+
+---
+
+## 11. Cycle 2 / I6 收口裁定记录（稳态暂停，2026-08-12）
+
+> Status: active（I6 落档，plan `2026-08-12-1217-13-nop-stream-invariants-cycle2-I6-closure-and-trigger-determination.md`）
+> Consumption: 后续 cycle 触发时引用（复触发条件见 roadmap §Loop Rule「Cycle 2 / I6 稳态登记」）；`HG-01` 人工确认门延续
+> 输入核对：`cycle2-I6-input.md`（I5 唯一落点）与 on-disk surefire 一致（2833 tests / 0 failures / 0 errors / 10 skipped；门禁 10 类 / 102 tests / 0 failures；mjs pin 0 + `all` exit 0 实测）；red list 零悬挂（C2-RL-1/2 修复 `88bc0270c` 在案 + C2-RL-3 P3 已裁决）；新族数 = 0。
+
+### 11.1 收口统计确认（2026-08-12 I6 实测）
+
+- 全量 2833 tests / 0 failures / 0 errors / 10 skipped（逐模块与 `cycle2-I6-input.md` 精确一致）；门禁 10 类 / 102 tests / 0 failures（CheckpointIDCounter 8 / SynchronizedCollection 12 / OutputContract 10 / core 表完备 10 / WindowRoundTrip 9 / ClusterRegistry 10 / MergingCleanup 4 / runtime 表完备 11 / CepRelease 21 / cep 表完备 7）；mjs `all` exit 0（pins 0，`mjs-pins.json` pinnedViolations = []）；e2e 4/4 + 6/6 + 7/7（I5 记录）。
+- 报告 mtime 窗口核对：448 份 TEST-*.xml mtime = 2026-08-12 23:15-23:16（I5 执行窗口内）；I5 后无后续构建（git log 最后提交 = I6 plan 建档 `2286ddc2d`）→ **无出入**。
+
+### 11.2 稳态 / 派生总裁定：**稳态暂停**（Cycle 3 不派生）
+
+- **判定输入**：零新族（0）+ red list 零悬挂（C2-RL-1/2 修复 + C2-RL-3 P3 裁决）+ 门禁全绿 → Loop Rule「零新族且 red list 零 → 稳态暂停」成立；「新族强制沉淀」强制分支未触发（C2-PR-2/5 = 非新失败类，I3 §9 显式裁定）。
+- **C2-PR-2（扫描器静默跳过形态）→ 维持稳态**：0 实例（grep 实测无匿名 / record Output / raw OutputTag）；显式 fail 五路径 + self-test 已覆盖（fail-loud）；派生 = 完整循环机器 vs 零实例收益不匹配；复触发 = main 出现匿名 / record Output 实现或 raw OutputTag 声明。
+- **C2-PR-5（控制面方法陈述扩展）→ 维持稳态**：控制面遥测降级非数据丢失；修复依赖 `HG-01` 线协议人工确认门（执行门未过，派生则循环在 I4 停滞）；RWO :644/:662 已注释文档化、BRWO :713/:730 空体无注释（code-style 级观察已登记）；复触发 = `HG-01` 人工批准后评估不变式 #6 陈述扩展与 RWO/BRWO 控制面处理。
+- **`HG-01` 处置**：**未批准**（全仓无人工批准记录）→ 维持 backlog 待办条目 `pending human confirmation`；四重保护性覆盖复核在案（① in-task fail-fast `88bc0270c`/`b20fcd0e1`；② 门禁类级枚举 / call-site 注册表 / 三态分类；③ pin 移除留痕；④ backlog 条目）；不登记 Successor plan（执行门未过）。
+
+### 11.3 复触发登记摘要
+
+- 三选一继续生效：① CI 任一不变式门禁变红；② nop-stream 核心类结构变更（新增/重命名 Operator/SinkFunction/Checkpoint 机制/Output 实现类）；③ 周期复探（默认每 major release 或季度，取早）。
+- 本 plan 新增触发：C2-PR-2 形态出现（main 匿名 / record Output 实现或 raw OutputTag 声明）；C2-PR-5 = `HG-01` 人工批准跨 task 线协议变更（含不变式 #6 陈述扩展评估）。
+- 人工确认待办触发 = 人工批准跨 task 线协议结构性变更（`HG-01`，登记见 roadmap Follow-up Backlog）。
