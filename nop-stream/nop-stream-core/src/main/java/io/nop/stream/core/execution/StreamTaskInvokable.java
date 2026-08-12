@@ -31,9 +31,11 @@ import io.nop.stream.core.operators.Input;
 import io.nop.stream.core.operators.KeyContext;
 import io.nop.stream.core.operators.KeyExtractingOutput;
 import io.nop.stream.core.operators.Output;
+import io.nop.stream.core.operators.ProcessingTimeService;
 import io.nop.stream.core.operators.StreamOperator;
 import io.nop.stream.core.operators.StreamSourceOperator;
 import io.nop.stream.core.operators.SourceReaderOperator;
+import io.nop.stream.core.operators.TimerServiceManager;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
@@ -102,6 +104,29 @@ public class StreamTaskInvokable implements Invokable<Void> {
      */
     private final Map<OutputTag<?>, Consumer<StreamRecord<?>>> sideOutputConsumers = new HashMap<>();
 
+    /**
+     * Production {@link ProcessingTimeService} wired into every operator of this task's chain.
+     * Created in the constructor (before any operator {@code open()} can run), driven by
+     * {@link #processingTimeDriver} which is started at {@link #invoke()} and stopped in its
+     * {@code finally}. Never null after construction.
+     */
+    private transient TaskProcessingTimeService processingTimeService;
+
+    /**
+     * Production {@link TimerServiceManager} wired into every operator of this task's chain.
+     * Operators register their {@code HeapInternalTimerService} in {@code open()}; the driver
+     * fires due processing-time timers through this manager. Never null after construction.
+     */
+    private transient TimerServiceManager timeServiceManager;
+
+    /**
+     * Scheduler thread that delivers processing-time fire mails to this task's mailbox.
+     * Started unconditionally at {@link #invoke()} (never on the conditional
+     * setBarrierTracker/setupSnapshotCallbacks path — the local {@code env.execute()} path
+     * never creates a barrier tracker), stopped in {@code invoke()}'s {@code finally}.
+     */
+    private transient ProcessingTimeServiceDriver processingTimeDriver;
+
     public StreamTaskInvokable(OperatorChain operatorChain) {
         if (operatorChain == null) {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "operatorChain");
@@ -111,6 +136,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
         this.inputGate = null;
         wireOperators();
         wireMailboxToHeadSource();
+        setupProcessingTimeServices();
     }
 
     public StreamTaskInvokable(OperatorChain operatorChain, List<RecordWriter<Object>> fanOutWriters) {
@@ -122,6 +148,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
         this.inputGate = null;
         wireOperators(fanOutWriters);
         wireMailboxToHeadSource();
+        setupProcessingTimeServices();
     }
 
     @SuppressWarnings("unchecked")
@@ -136,6 +163,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
         this.inputGate = inputGate;
         wireOperators();
         wireMailboxToHeadSource();
+        setupProcessingTimeServices();
     }
 
     public StreamTaskInvokable(OperatorChain operatorChain,
@@ -149,6 +177,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
         this.inputGate = inputGate;
         wireOperators(fanOutWriters);
         wireMailboxToHeadSource();
+        setupProcessingTimeServices();
     }
 
     public TaskRole getRole() {
@@ -295,6 +324,22 @@ public class StreamTaskInvokable implements Invokable<Void> {
     }
 
     /**
+     * @return the production {@link TimerServiceManager} wired into this task's operators;
+     *         never null. Intended for runtime wiring assertions and diagnostics.
+     */
+    public TimerServiceManager getTimeServiceManager() {
+        return timeServiceManager;
+    }
+
+    /**
+     * @return the production {@link ProcessingTimeService} wired into this task's operators;
+     *         never null. Intended for runtime wiring assertions and diagnostics.
+     */
+    public ProcessingTimeService getProcessingTimeService() {
+        return processingTimeService;
+    }
+
+    /**
      * @return this task's mailbox executor (control-plane anchor). Never null. The
      *         barrier-injector thread and abort handler deliver control mails here; the
      *         task thread drains them at safe points.
@@ -369,21 +414,77 @@ public class StreamTaskInvokable implements Invokable<Void> {
         }
     }
 
+    /**
+     * Injects the production {@link ProcessingTimeService} and {@link TimerServiceManager}
+     * into every operator of this task's chain.
+     *
+     * <p>This runs in the constructor — BEFORE any {@code operatorChain.open()} can run
+     * (both {@link SubtaskTask} and {@link Task} open the chains before {@link #invoke()}).
+     * It is unconditional: it does NOT live on the {@code setBarrierTracker} /
+     * {@code setupSnapshotCallbacks} path, which the local {@code env.execute()} path never
+     * reaches (no {@code CheckpointBarrierTracker} is created there).
+     *
+     * <p>The service OBJECTS are created here; the scheduler thread (driver) is started
+     * separately at {@link #invoke()} so that a constructed-but-never-invoked invokable
+     * does not leak a thread.
+     */
+    private void setupProcessingTimeServices() {
+        TaskProcessingTimeService pts = new TaskProcessingTimeService();
+        TimerServiceManager tsm = new TimerServiceManager();
+        for (StreamOperator<?> op : operatorChain.getOperators()) {
+            if (op instanceof AbstractStreamOperator) {
+                AbstractStreamOperator<?> abstractOp = (AbstractStreamOperator<?>) op;
+                abstractOp.setProcessingTimeService(pts);
+                abstractOp.setTimeServiceManager(tsm);
+            }
+        }
+        this.processingTimeService = pts;
+        this.timeServiceManager = tsm;
+    }
+
+    /**
+     * Starts the processing-time driver (daemon scheduler thread) unconditionally at the
+     * start of {@link #invoke()}, before the invoke-level {@code operatorChain.open()}.
+     * Idempotent.
+     */
+    private void startProcessingTimeDriver() {
+        if (processingTimeDriver == null) {
+            processingTimeDriver = new ProcessingTimeServiceDriver(
+                    mailboxExecutor.getMailbox(), processingTimeService, timeServiceManager);
+            processingTimeDriver.start();
+        }
+    }
+
+    /**
+     * Stops the processing-time driver in {@code invoke()}'s {@code finally}. Idempotent.
+     */
+    private void stopProcessingTimeDriver() {
+        if (processingTimeDriver != null) {
+            processingTimeDriver.shutdown();
+            processingTimeDriver = null;
+        }
+    }
+
     @Override
     public void invoke() throws Exception {
-        switch (getRole()) {
-            case SOURCE:
-                invokeSource();
-                break;
-            case MIDDLE:
-                invokeMiddle();
-                break;
-            case SINK:
-                invokeSink();
-                break;
-            case SELF_CONTAINED:
-                invokeSelfContained();
-                break;
+        startProcessingTimeDriver();
+        try {
+            switch (getRole()) {
+                case SOURCE:
+                    invokeSource();
+                    break;
+                case MIDDLE:
+                    invokeMiddle();
+                    break;
+                case SINK:
+                    invokeSink();
+                    break;
+                case SELF_CONTAINED:
+                    invokeSelfContained();
+                    break;
+            }
+        } finally {
+            stopProcessingTimeDriver();
         }
     }
 

@@ -136,6 +136,10 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
         return processingTimeService;
     }
 
+    public void setProcessingTimeService(ProcessingTimeService processingTimeService) {
+        this.processingTimeService = processingTimeService;
+    }
+
     public void setStateBackend(IStateBackend stateBackend) {
         this.stateBackend = stateBackend;
     }

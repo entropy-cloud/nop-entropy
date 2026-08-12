@@ -38,6 +38,14 @@ public class HeapInternalTimerService<K, N> implements InternalTimerService<N> {
     private final Supplier<K> currentKeySupplier;
     private long currentWatermark = Long.MIN_VALUE;
 
+    /**
+     * Earliest registered processing-time timer, or {@link Long#MAX_VALUE} when none is
+     * registered. Written by the owning task thread (register / delete / fire / restore),
+     * read by the {@code ProcessingTimeServiceDriver} scheduler thread — a single volatile
+     * read, so the scheduler never touches the timer map itself.
+     */
+    private volatile long nextProcessingTimeTimer = Long.MAX_VALUE;
+
     public HeapInternalTimerService(Triggerable<K, N> triggerable) {
         this(triggerable, null);
     }
@@ -62,6 +70,9 @@ public class HeapInternalTimerService<K, N> implements InternalTimerService<N> {
         K key = currentKeySupplier != null ? currentKeySupplier.get() : null;
         processingTimeTimers.computeIfAbsent(time, k -> new HashSet<>())
                 .add(new TimerEntry<>(key, namespace, time));
+        if (time < nextProcessingTimeTimer) {
+            nextProcessingTimeTimer = time;
+        }
     }
 
     @Override
@@ -72,6 +83,7 @@ public class HeapInternalTimerService<K, N> implements InternalTimerService<N> {
             timers.remove(new TimerEntry<>(key, namespace, time));
             if (timers.isEmpty()) {
                 processingTimeTimers.remove(time);
+                recomputeNextProcessingTimeTimer();
             }
         }
     }
@@ -128,6 +140,9 @@ public class HeapInternalTimerService<K, N> implements InternalTimerService<N> {
             processingTimeTimers.pollFirstEntry();
             toFire.add(entry);
         }
+        if (!toFire.isEmpty()) {
+            recomputeNextProcessingTimeTimer();
+        }
         for (Map.Entry<Long, Set<TimerEntry<K, N>>> entry : toFire) {
             List<TimerEntry<K, N>> timersToFire = new ArrayList<>(entry.getValue());
             for (TimerEntry<K, N> timer : timersToFire) {
@@ -170,6 +185,28 @@ public class HeapInternalTimerService<K, N> implements InternalTimerService<N> {
 
     public int numProcessingTimeTimers() {
         return processingTimeTimers.values().stream().mapToInt(Set::size).sum();
+    }
+
+    /**
+     * @return the earliest registered processing-time timer timestamp, or
+     *         {@link Long#MAX_VALUE} when no processing-time timer is registered.
+     *         Safe to call from the scheduler thread (single volatile read).
+     */
+    public long nextProcessingTimeTimer() {
+        return nextProcessingTimeTimer;
+    }
+
+    /**
+     * @return {@code true} if at least one processing-time timer is due at or before
+     *         {@code now}. Safe to call from the scheduler thread.
+     */
+    public boolean hasProcessingTimeTimersDue(long now) {
+        return nextProcessingTimeTimer <= now;
+    }
+
+    private void recomputeNextProcessingTimeTimer() {
+        Map.Entry<Long, Set<TimerEntry<K, N>>> first = processingTimeTimers.firstEntry();
+        nextProcessingTimeTimer = first != null ? first.getKey() : Long.MAX_VALUE;
     }
 
     // ------------------------------------------------------------------------
@@ -223,6 +260,9 @@ public class HeapInternalTimerService<K, N> implements InternalTimerService<N> {
         }
         for (TimerEntry<K, N> entry : snapshot.getProcessingTimeTimers()) {
             processingTimeTimers.computeIfAbsent(entry.timestamp, k -> new HashSet<>()).add(entry);
+        }
+        if (!snapshot.getProcessingTimeTimers().isEmpty()) {
+            recomputeNextProcessingTimeTimer();
         }
         // Restore the watermark as well so subsequent advanceWatermark() calls do not
         // re-fire timers that were already fired before the checkpoint (those timers

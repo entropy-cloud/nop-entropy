@@ -7,8 +7,8 @@
  */
 package io.nop.stream.core.operators;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,10 +23,23 @@ public class TimerServiceManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(TimerServiceManager.class);
 
-    private final List<HeapInternalTimerService<?, ?>> timerServices = new ArrayList<>();
+    /**
+     * Copy-on-write so the {@code ProcessingTimeServiceDriver} scheduler thread can iterate
+     * (due-check) while the task thread registers services during operator open().
+     */
+    private final List<HeapInternalTimerService<?, ?>> timerServices = new CopyOnWriteArrayList<>();
 
     public void registerTimerService(HeapInternalTimerService<?, ?> timerService) {
         timerServices.add(timerService);
+    }
+
+    /**
+     * @return the number of registered {@link HeapInternalTimerService} instances. Used by
+     *         runtime wiring assertions (a timer-using operator must have registered its
+     *         service during {@code open()}).
+     */
+    public int numTimerServices() {
+        return timerServices.size();
     }
 
     public void advanceWatermark(Watermark mark) throws Exception {
@@ -47,6 +60,21 @@ public class TimerServiceManager {
                 LOG.error("Failed to fire processing time timers for service: {}", service, e);
             }
         }
+    }
+
+    /**
+     * @return {@code true} if any registered {@link HeapInternalTimerService} has a
+     *         processing-time timer due at or before {@code now}. Safe to call from the
+     *         scheduler thread ({@code ProcessingTimeServiceDriver}): each service's check
+     *         is a single volatile read.
+     */
+    public boolean hasProcessingTimeTimersDue(long now) {
+        for (HeapInternalTimerService<?, ?> service : timerServices) {
+            if (service.hasProcessingTimeTimersDue(now)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
