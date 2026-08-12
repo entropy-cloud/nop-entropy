@@ -152,3 +152,59 @@ flowchart LR
 - **Description**: 同一 `OutputTag` 第二次注册消费者时 `sideOutputConsumers.put` last-wins 静默覆盖前一消费者（`ChainingOutput.java:67-69` / `StreamTaskInvokable.java:310-313`），无 fail-fast / 无合并 / 无广播语义。不违反不变式 #6（仍转发到"一个"注册消费者，无静默丢弃）；生产当前无重复注册调用面。
 - **Recommendation**: 重复注册 fail-fast 或广播语义（多 sink 场景），优化候选。
 - **Status**: `todo`（已裁定处置附依据，不驱动独立修复计划；触发条件 = 多消费者接线需求出现或类别清扫时评估）
+
+### 2026-08-13 P2 批次（open-audit `2026-08-12-1217-open-audit-nop-stream-invariant-loop.md`，10 条）
+
+> P2 findings from the 2026-08-13 open-ended adversarial audit. Adjudicated per mission rule: no P2-only plan; trigger evaluation on category sweep / re-probe. Source audit paths preserved for traceability.
+
+- **[P2-01] checkpointSuccessMap abort/fail 路径无界增长** — Source: `ai-dev/audits/2026-08-12-1217-open-audit-nop-stream-invariant-loop.md` P2-01 — abort/persist-fail 且无 failedCommitParticipants 的 epoch 永久驻留 `CheckpointCoordinator.java:1091-1092`（R16-AR-10 只清了成功路径）；建议 abort/fail 通知后移除条目或带上限/定期裁剪 — Status: `todo`（触发：abort 高频场景复探或类别清扫）
+- **[P2-02] onCompletePersistFailure 不完成 PendingCheckpoint future** — Source: 同上 P2-02 — 持久化失败被伪装成超时（`CheckpointCoordinator.java:821-831` 只设状态不 complete future；`triggerFinalCheckpoint` catch 后仅 LOG 不重抛）；建议段 3b 调 `pending.fail(...)`、终态 checkpoint 失败重抛 — Status: `todo`
+- **[P2-03] InMemoryClusterRegistry.getNodeLease 无锁双 map 读 NPE** — Source: 同上 P2-03 — `InMemoryClusterRegistry.java:98-108` 与 `evictExpiredNodes` 并发时拆箱 NPE（`getActiveNodes` :130-134 有防御）；建议补 null 防御或锁内读 — Status: `todo`
+- **[P2-04] WindowOperator.triggerAccumulators 永不裁剪 + 纯 FIRE 不调 clear()** — Source: 同上 P2-04 — `WindowOperator.java:1944-1957` 只增不删；:707-717 纯 FIRE 不清；建议 cleanup 路径同步删 `trigger_*` 条目、合并路径迁移 — Status: `todo`
+- **[P2-05] 带 evictor 的 descriptor 路径不建 elementTimestampsState** — Source: 同上 P2-05 — `WindowOperator.java:442-453` 仅 null-descriptor 分支创建 → `TimeEvictor` 永不驱逐（:1230-1233 早退）；建议 descriptor 路径同样创建或并入内容状态 — Status: `todo`
+- **[P2-06] 合并路径 pane 跟踪键与实际窗口/状态窗口错位** — Source: 同上 P2-06 — `WindowOperator.java:917-943/:681-683` pane 按 actual window、清除按 stateWindow → 泄漏 + DISCARDING 清错命名空间；建议统一命名空间基准 — Status: `todo`
+- **[P2-07] 合并路径 purge 跳过 triggerContext.clear()** — Source: 同上 P2-07 — `WindowOperator.java:681-683` vs `:714-717` 不对称；建议补 clear() — Status: `todo`
+- **[P2-08] CepOperator STEP-5 超时基准错误 + 绕过 TimedOutPartialMatchHandler** — Source: 同上 P2-08 — `CepOperator.java:540-554` 用 startTimestamp + wt 判定；建议改 previousTimestamp + `isStateTimedOut` 语义并走超时通知路径 — Status: `todo`
+- **[P2-09] 前次 multi-audit 发现复核：全部仍 live 未修复（引用级）** — Source: 同上 P2-09（引用 `2026-08-12-1217-multi-audit-nop-stream-invariant-loop.md` P0-01/P1-01/P2-01~23）— 无独立动作：multi-audit P0-01/P1-01 已由 plan `2026-08-13-0132-3` 承接，其余 P2 见本 backlog 各条 — Status: `todo`（触发：plan 3 执行中核对）
+- **[P2-10] mjs scan-output-contract V4 盲区：嵌套泛型 OutputTag 声明逃逸** — Source: 同上 P2-10 — `ai-dev/tools/check-nop-stream-invariants.mjs:795-808` 正则 `[^>]*` 不支持 `OutputTag<List<X>>`；建议括号配对式解析 + self-test 补 fixture — Status: `todo`
+
+### 2026-08-13 P2 批次（multi-audit `2026-08-12-1217-multi-audit-nop-stream-invariant-loop.md`，21 条）
+
+> P2 findings from the 2026-08-13 multi-dimensional audit. Source audit paths preserved for traceability.
+
+- **[P2-01] WindowOperator keySerializer/windowSerializer 死字段 + dummy serializer createInstance() 返回 null** — Source: `ai-dev/audits/2026-08-12-1217-multi-audit-nop-stream-invariant-loop.md` P2-01 — `WindowOperator.java:151/:161` 零消费；`WindowOperatorFactoryImpl.java:137-143` 反射失败静默返回 null 违反 TypeSerializer 契约；建议三选一（消费 / fail-fast / 删字段+门禁登记 exclusion）— Status: `todo`
+- **[P2-02] 142 处裸 IllegalArgumentException/IllegalStateException/UnsupportedOperationException** — Source: 同上 P2-02 — flow DSL 公共入口高发（`StreamModelDslBuilder.java:88-432` 24 处等）；建议统一 `StreamRuntimeException` 或登记豁免，优先 flow builder — Status: `todo`
+- **[P2-03] RocksDBKeyedStateBackend 打开期临时 Options 未关闭** — Source: 同上 P2-03 — `RocksDBKeyedStateBackend.java:195-201`；建议 `try (Options ...)`（同文件 :150 正确写法对照）— Status: `todo`
+- **[P2-04] JdbcCheckpointStorage 通用回退路径裸 RuntimeException** — Source: 同上 P2-04 — `JdbcCheckpointStorage.java:747-750`；建议 `NopException.adapt(e)` 或 `StreamException(ERR_STREAM_CHECKPOINT_ERROR, e)` — Status: `todo`
+- **[P2-05] GraphModelCheckpointExecutor 1595 行静态上帝类** — Source: 同上 P2-05 — 执行/恢复职责混合；建议拆分或区域注释 — Status: `todo`
+- **[P2-06] FollowKind.java main javadoc 中文** — Source: 同上 P2-06 — `FollowKind.java:12-18`；建议翻译 — Status: `todo`
+- **[P2-07] TestTaskDeploymentDescriptor.defaultConstructorAndSettersInteract 纯 set/get 往返** — Source: 同上 P2-07 — `TestTaskDeploymentDescriptor.java:90-113`；建议删除或 `@Tag("low-value")` — Status: `todo`
+- **[P2-08] partitionedPlanEdgePlanIsSerializable 名字声称序列化实际无** — Source: 同上 P2-08 — `TestTaskDeploymentDescriptor.java:115-121`；建议真实序列化往返或删除 — Status: `todo`
+- **[P2-09] 测试命名与内容不符遗留 + 近重复测试** — Source: 同上 P2-09 — `TestCepOperatorTimeout.java:94-115` / `TestCepPatternBuilder.java:90-113` 等；建议按行为改名、近重复参数化 — Status: `todo`
+- **[P2-10] @Tag("low-value") 应用不一致 + surefire 无 excludedGroups** — Source: 同上 P2-10 — 约 90-120 个镜像测试仅标 33 个；建议批量打标或删除 — Status: `todo`
+- **[P2-11] 两 beans.xml 声明同一 bean id streamMessageService** — Source: 同上 P2-11 — `stream-control-rpc.beans.xml:34-35` / `stream-data-plane.beans.xml:68-69`；建议移除重复声明或加互斥 + 注释（与 plan `2026-08-13-0132-3` Phase 1 相邻，执行时评估）— Status: `todo`
+- **[P2-12] fraud-example 引用未定义 bean transactionSourceFunction** — Source: 同上 P2-12 — `fraud-detection.stream.xml:31-34`；建议补 beans.xml 注册或改内联 XPL + 注明 — Status: `todo`
+- **[P2-13] import 分组分裂 + code-style.md 与 AGENTS.md 矛盾** — Source: 同上 P2-13 — `code-style.md:17` 与 AGENTS.md 方向相反；建议先修文档矛盾再批量收敛 — Status: `todo`
+- **[P2-14] StreamControlRpcServer javadoc 语病 + 裸 RuntimeException 包装** — Source: 同上 P2-14 — `StreamControlRpcServer.java:49/:124`；建议改 "Builds a control-plane RPC server without starting it." + `StreamRuntimeException` — Status: `todo`
+- **[P2-15] CEP 错误码常量名与 code 不一致** — Source: 同上 P2-15 — `NopCepErrors.java:27-29` `ERR_CEP_NOT_CONDITION_DOES_NOT_SUPPORT_GROUP` vs `nop.err.cep.follow-not-does-support-group`；建议统一（code 串属公共 API 需谨慎）— Status: `todo`
+- **[P2-16] 同一测试类两 beans.xml 注册不同 id** — Source: 同上 P2-16 — `test-smoke.beans.xml:14-15` / `test-reduce-pipeline.beans.xml:18-19`；建议 `advancedCollectingSinkFunction`（测试查找点改 1 行）— Status: `todo`
+- **[P2-17] BeanFunctionResolver 缺 I 前缀** — Source: 同上 P2-17 — `BeanFunctionResolver.java:20`；建议 `IBeanFunctionResolver`（3 实现类 + 2 测试 + 文档）— Status: `todo`
+- **[P2-18] INDEX.md:219 缺 connector-jdbc / rocksdb 两模块** — Source: 同上 P2-18 — `docs-for-ai/INDEX.md:219`；建议补上 — Status: `todo`
+- **[P2-19] OutputTag javadoc 示例不可编译** — Source: 同上 P2-19 — `OutputTag.java:31-44`；建议重写为 `new OutputTag<>("late-data", TypeInformation.of(Long.class))` — Status: `todo`
+- **[P2-20] STRM-026 锚点状态机 5 态 vs 实际 9 态** — Source: 同上 P2-20 — `source-anchors.md:210` vs `SubtaskTask.java:35-47`；建议补全或注明简化视图 — Status: `todo`
+- **[P2-21] INDEX.md:219 nop-stream-flow "流控"措辞不准确** — Source: 同上 P2-21；建议改 "XDSL StreamModel 声明式编排（Delta 定制）" — Status: `todo`
+- **[P2-22] module-groups.md:23 检查点存储抽象归属错误** — Source: 同上 P2-22 — 抽象接口在 core（ICheckpointStorage 等），文档归 runtime；建议修订 — Status: `todo`
+- **[P2-23] IWindowOperatorFactory 反射类名契约未记录** — Source: 同上 P2-23 — `WindowedStreamImpl.java:154-177` 硬编码 `io.nop.stream.runtime.operators.windowing.WindowOperatorFactoryImpl`；建议 source-anchors 或 module-groups 补说明 — Status: `todo`
+
+### 生产 wiring 存在性不变式门禁沉淀（Cycle 3 / I1 派生候选，2026-08-13 登记）
+
+- **Source**: open-audit 总评建议（`ai-dev/audits/2026-08-12-1217-open-audit-nop-stream-invariant-loop.md`「本次审核盲区」§1）；由 plan `2026-08-13-0132-1` Deferred But Adjudicated 登记（roadmap Loop Rule 派生候选）
+- **Description**: 新失败族（运行时服务注入完整性）——`ProcessingTimeService` 在 main 代码零接线导致 CepOperator open NPE / PT 窗口永不触发，且测试全部经 mock 注入规避。建议沉淀"生产 wiring 存在性"门禁（如服务接线点注册表：`setProcessingTimeService` 等必须存在生产调用点，新增依赖该服务的调用即红——仿 V1 类级枚举思路）。
+- **Recommendation**: 按 roadmap Loop Rule 在 Cycle 3 / I1 派生沉淀；plan `2026-08-13-0132-1` 修复落地后评估门禁形态（接线点注册表 + 类级枚举完备性）。
+- **Status**: `todo`（Cycle 3 / I1 派生候选；触发 = plan 1 执行收口后按 Loop Rule 评估）
+
+### ✅ 运行时服务注入完整性修复（P0-01 / P1-02，2026-08-13 plan `2026-08-13-0132-1` 收口）
+
+- **Source**: `ai-dev/audits/2026-08-12-1217-open-audit-nop-stream-invariant-loop.md` P0-01（CepOperator open 生产路径 NPE）/ P1-02（PT 窗口永不触发 + 状态无界）——新失败族（运行时服务注入完整性）
+- **处置（closed，2026-08-13）**：`ProcessingTimeService` 生产接线落地——`StreamTaskInvokable` 构造函数无条件注入 `TaskProcessingTimeService` + `TimerServiceManager`（先于任何 operatorChain.open），`ProcessingTimeServiceDriver`（daemon）在 `invoke()` 启动处 start、finally shutdown，mailbox 投递 fire mail 在 task 线程执行回调；`WindowOperator.open()` 补 `registerTimerService`（TimerServiceManager 四环节生产连通）；CepOperator null 守卫 + WARN + PT 模式显式失败；PT 窗口生产驱动 E2E + cleanup 验证（`numProcessingTimeTimers()==0` + `window-contents` 空）+ 新 PTS/驱动单测（Rule #25）。全量回归绿（`./mvnw test -pl nop-stream -am -T 1C`：core 1448 / runtime 807 / cep 324 / 其余 0 失败）；mjs `all` exit 0（output-contract 注册表行号已同步）；hollow scan exit 0。测试证据：`TestCepProductionExecutionE2E` / `TestProcessingTimeWindowProductionE2E` / `TestStreamTaskInvokableProcessingTimeWiring` / `TestTaskProcessingTimeService` / `TestProcessingTimeServiceDriver`。
+- **残余**：同族其余服务（checkpoint / watermark 服务）"仅测试注入"实例复探 = 非阻塞 follow-up；`TimestampsAndWatermarksOperator` 静默守卫形态 = watch-only residual（接线后自然失效，语义不破坏）。

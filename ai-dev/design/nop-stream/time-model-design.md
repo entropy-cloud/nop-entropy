@@ -286,3 +286,20 @@ public class HeapInternalTimerService<K, N> implements InternalTimerService<N>
 **关键约束**：`restoreState()` 在 `open()` **之前**调用（见 `TestCheckpointRecovery.java:478`），因此 timer restore 必须使用延迟应用模式。
 
 **CepOperator 兼容性**：`snapshotTimers()`/`restoreTimers()` 仅添加到 `HeapInternalTimerService` 具体类，**不**添加到 `InternalTimerService<N>` 接口。CepOperator 的匿名 `InternalTimerService<VoidNamespace>` 实现不受影响（它有自己的 bypass 持久化机制）。
+
+### 10.3 处理时间 Timer 生产接线（2026-08-13，plan `2026-08-13-0132-1`）
+
+> **Updated: 2026-08-13** — 处理时间 timer 从"仅测试注入/生产零驱动"变为生产真实接线（P0-01/P1-02 族，运行时服务注入完整性）。
+
+**四环节接线契约**（缺一即 PT timer 不触发，anti-hollow）：
+
+1. **生产创建**：`StreamTaskInvokable.setupProcessingTimeServices()`（构造函数，无条件——先于任何 `operatorChain.open()`，包括 `SubtaskTask.run()`/`Task.run()` 在 `invoke()` 之前的预 open）创建 `TaskProcessingTimeService` + `TimerServiceManager` 并注入算子链全部 `AbstractStreamOperator`（`setProcessingTimeService` / `setTimeServiceManager`）。
+2. **算子注册**：`ProcessOperator.open()`（既有）与 `WindowOperator.open()`（本批次补）在创建 `HeapInternalTimerService` 后调用 `timeServiceManager.registerTimerService(...)`（null 守卫：直接 open 于 task 外时无 manager）。
+3. **驱动**：`ProcessingTimeServiceDriver`（daemon 线程）在 `invoke()` 启动处 start、finally shutdown；周期 tick（100ms）+ volatile 到期检查，**只投递** control mail 到 task mailbox，**不执行**回调。
+4. **回调执行**：task 线程在安全点（source `collect()` / `processInputGate` 循环顶 / source run 收尾 drain）执行 mail → `TaskProcessingTimeService.fireDueTimers(now)` + `TimerServiceManager.fireProcessingTimeTimers(now)`。
+
+**跨线程只读契约**：驱动线程不触碰 timer 表——`TaskProcessingTimeService.nextTimerTimestamp` 与 `HeapInternalTimerService.nextProcessingTimeTimer`（均为 volatile，仅 task 线程写、驱动只读）驱动到期判断；`TimerServiceManager.timerServices` 为 `CopyOnWriteArrayList`（open 期注册 vs 驱动迭代安全）。
+
+**回调异常策略（裁定）**：PTS 直接回调 fail-fast（异常传播到 task 线程 → 任务可见失败）；TimerServiceManager 保留 per-service catch + LOG.error（既有 robustness 契约）。
+
+**驱动缺失显式行为**：`WindowOperator.open()` 对非事件时间 assigner 且无 PTS 时 WARN（"will never fire"）；`CepOperator` 无 PTS 时 open WARN（cache-stats timer 不注册）、PT 模式 processElement 显式抛异常。

@@ -156,10 +156,12 @@ mailbox 原语与接线分支：
 - `Mail.run()` 执行真实闭包；`TaskMailbox.put/poll/take` 有完整队列逻辑；`MailboxExecutor.processAvailableMails()/runLoop()` 有完整 drain 逻辑。
 - cancel flag 是真实可观测的 boolean（`volatile`），不是空操作。
 
-## 7. 奠基（未接线）
+## 7. 奠基（已接线：PT timer；其余未接线）
+
+> **Updated: 2026-08-13**（plan `2026-08-13-0132-1`）——**processing-time timer 生产接线已落地**：timer 触发作为 control mail 投递到 task 线程，task 线程在安全点执行回调。接线组件：`ProcessingTimeServiceDriver`（daemon 调度线程，周期 tick + volatile 到期检查，只投递不执行）+ `TaskProcessingTimeService`（`ProcessingTimeService` 生产实现）+ `StreamTaskInvokable.setupProcessingTimeServices()`（构造函数无条件注入 PTS/TSM）。回调执行线程 = task 线程（`SourceContext.collect()` / `processInputGate` 循环顶 / source run 收尾 drain），与 `processElement` 串行化，无并发写共享状态。
 
 mailbox 原语为以下后续工作奠基，但本设计**不接线**：
 
-- **processing-time timer 生产接线**：timer 触发需作为 mail 投递到 task 线程（当前生产不触发）。`MailboxExecutor.runLoop()` 与 `TaskMailbox` 已具备承载能力。
+- ~~**processing-time timer 生产接线**：timer 触发需作为 mail 投递到 task 线程（当前生产不触发）。`MailboxExecutor.runLoop()` 与 `TaskMailbox` 已具备承载能力。~~ → **已接线（2026-08-13）**：`MailboxExecutor.runLoop()` 未用于生产（任务主循环内联 drain 与设计原文一致），投递语义由 `ProcessingTimeServiceDriver` + `Mail.control` 承载。
 - **异步 snapshot（Stage 18）**：异步 snapshot 完成回调需作为 mail 回到 task 线程更新状态。
 - **full-mailbox 化**（middle/sink trigger 也改 mail）：需先重构 `processBarrier` 使其能从 in-band barrier 自 prime，或引入显式 priming 同步——属更大范围改造，独立 successor plan。
