@@ -118,6 +118,8 @@
 | 做 Delta 定制 | `02-core-guides/delta-customization.md` |
 | 编写 XDef / XDSL 文件 | `02-core-guides/xdef-and-xdsl.md` |
 | 理解 XDef/XDSL 中 union schema 的 subtype 路由与校验规则 | `02-core-guides/xdef-and-xdsl.md` |
+| **理解子节点 `x:extends` 的隐式 replace 语义（子节点写 `x:extends` 后父继承同名子节点为何不生效）** | **`02-core-guides/xdef-and-xdsl.md`**（「子节点 `x:extends` 的隐式 `replace` 语义」章节） |
+| **为无 xdef 的 JSON/YAML（i18n.yaml、amis 页面等）做差量合并；理解 `DeltaJsonLoader` 与 `XDslExtender` 两条链路的关系** | **`02-core-guides/xdef-and-xdsl.md`**（「无 xdef 的并行 JSON 合并链路」章节） |
 | 理解 XLang / XPL / xrun / xgen 基本写法 + XScript 语法与 `xpl\`...\`` 标签模板 + **xbiz action source 内置变量**（`svcCtx`/`$context`/`thisObj`/全局变量） | `02-core-guides/xlang-and-xpl-basics.md` |
 | 定制 index.html 扩展注入 | `02-core-guides/index-html-extensions.md` |
 | 编写测试 | `02-core-guides/testing.md` |

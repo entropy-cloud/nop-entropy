@@ -366,6 +366,76 @@ if (renderMode == 'flux') {
 | `bounded-merge` | 与 `merge` 类似，但只保留基础模型和派生模型中都存在的子节点 |
 | `merge-replace` | 合并属性，但子节点或内容完全替换 |
 
+### 子节点 `x:extends` 的隐式 `replace` 语义
+
+当**子节点**自己再写一个 `x:extends` 时，平台会**自动**把该子节点标记为 `x:override="replace"`，从而切断父继承方向在该子树上的传递。
+
+**典型场景**：
+
+```xml
+<root x:extends="a.page">
+    <sub x:extends="b.sub">
+        <sub_child x:override="append"/>
+    </sub>
+</root>
+```
+
+合并事实：
+
+1. `<sub>` 自己先解析 `x:extends="b.sub"`，得到它**自己**那条继承链的结果。
+2. 解析完成后，`<sub>` 被自动打上 `x:override="replace"`。
+3. 根的 `x:extends="a.page"` 随后合并进来时，由于 `<sub>` 是 `replace`，**`a.page` 中同名 `<sub>` 子树被整体丢弃**，不会被合并进来。
+4. `<sub_child x:override="append">` 里的 `append` 指的是覆盖 **`b.sub`** 中的节点，**不是** `a.page` 中的节点。
+
+> **关键含义**：子节点一旦重新指定继承方向，就在该子树上**切断**父继承方向的传递。等价于该子树的局部继承被完全重写。
+
+**只影响"对应同名子节点"，不影响根继承的其它部分**。根 `x:extends` 引入的其它子节点仍然按正常 `merge` 合并。被放弃的仅是父继承链中那个 key/name 与自继承子节点相同的子树。
+
+**两个常见误判**：
+
+- 误以为"子节点的 `x:extends` 会和父继承的同名子节点再合并一次"——不会，replace 之后不再合并。
+- 误以为"`<sub_child x:override="append">` 会作用于 `a.page`"——不会，它只作用于该子节点自己解析出来的基线（`b.sub`）。
+
+**实现锚点**：
+
+- XDSL 链路：`XDslExtender.java:115-125`（`xtend` 末尾 `setAttr(OVERRIDE, REPLACE)`）+ `XDslExtender.java:408-436`（`extendsSub` 递归处理子节点上的 `x:extends`）。见 `EXT-002`。
+- 无 xdef 的 JSON 链路：见下一节。
+
+### 无 xdef 的并行 JSON 合并链路（`DeltaJsonLoader`）
+
+平台有**两条并行的 `x:extends` 合并链路**，二者对"子节点 `x:extends` → 自动 replace"语义的实现**完全一致**，但适用场景不同：
+
+| 维度 | XDSL 链路（`XDslExtender`） | 纯 JSON 链路（`JsonExtender`） |
+|---|---|---|
+| 所在模块 | `nop-xlang` | `nop-core` |
+| 数据结构 | `XNode` | 原生 `Map<String,Object>` |
+| 是否需要 xdef | **需要**（必须有 `x:schema`） | **不需要** |
+| 入口 Loader | `DslJsonResourceLoader` / `DslXmlResourceLoader` / `DslNodeLoader` | `DeltaJsonLoader` |
+| 子节点 `x:extends` 自动 replace | ✅ `XDslExtender.java:125` | ✅ `JsonExtender.java:90-91` |
+| `x:gen-extends` / `x:post-extends` | ✅ 支持 | ❌ 不支持（仅 `x:extends` 与可选的 `x:gen-extends` 字符串形式） |
+| `x:override` 全部算子 | ✅ 支持 | ✅ 支持（merge/replace/remove/bounded-merge/merge-replace） |
+| 典型场景 | orm/view/xbiz/beans/task 等 XDSL 模型 | `i18n.yaml`、amis 页面 JSON 等"无 schema 的 JSON/YAML 差量" |
+
+**为什么会有两条平行链路**：
+
+`JsonExtender` 之所以存在于 `nop-core`（比 `nop-xlang` 更底层），正是因为它**不依赖 xdef** 这个前提。像 `_nop-auth.i18n.yaml`（`"x:extends": _nop-auth.i18n.yaml`，见 `./error-handling.md`）这种文件没有 xdef schema，走的就是这条链路。
+
+**调用入口对照**：
+
+- XDSL：`DslJsonResourceLoader.loadDslNodeFromResource` → `JsonTool.parseBeanFromResource` + `transformBeanToNode` → `DslNodeLoader.processDslNode` → `XDslExtender.xtend`。
+- 纯 JSON：`DeltaJsonLoader.resolveExtends(obj, options)` → `new JsonExtender(loader, options).xtend(obj, true)`，全程在 `Map<String,Object>` 上操作，不经过 `XNode`。
+
+**配套的差量保存**：`DeltaJsonSaver` 与 `DeltaJsonLoader` 配套使用——保存时先用 `resolveExtends` 把基线 resolve 出来，再用 `JsonDiffer` 算 diff，从而把全量 JSON 写回为最小差量。XDSL 链路没有这条"自动 diff 写回"路径。
+
+**实现锚点**：
+
+- `nop-kernel/nop-core/src/main/java/io/nop/core/lang/json/delta/DeltaJsonLoader.java`（入口）。
+- `nop-kernel/nop-core/src/main/java/io/nop/core/lang/json/delta/JsonExtender.java:60-93`（`xtendMap`，含 `:88-92` 的"自动 replace"注释与赋值）。
+- `nop-kernel/nop-core/src/main/java/io/nop/core/lang/json/delta/JsonMerger.java`（实际合并算子）。
+- `nop-kernel/nop-core/src/main/java/io/nop/core/lang/json/delta/DeltaJsonSaver.java`（差量保存）。
+
+> **判断选择哪条链路**：如果文件带 `x:schema`，必然走 XDSL 链路；如果只是普通 JSON/YAML 但需要 `x:extends`/`x:override` 差量合并，走 `DeltaJsonLoader`（通常通过 `JsonTool.loadDeltaBeanFromResource` 或 XLang 函数 `loadDeltaJson` 调用，见 `RESOLVE-002`）。
+
 ### `_dump` 调试
 
 设置 `x:dump="true"` 或在 `nop.debug=true` 模式下启动，合并后的最终模型会输出到 `_dump/{appName}/...`。输出文件通过 **XML 注释**（`<!--LOC:[行:列]/vfs路径-->`）记录每个节点和属性的实际来源源码位置，方便定位 Delta 是否生效、某个值来自哪个层。详见 `./debugging-and-diagnostics.md`。
@@ -379,6 +449,8 @@ if (renderMode == 'flux') {
 5. 需要理解"为什么改了 Delta 文件但运行时没生效"（合并顺序不对）。
 6. 需要判断一个 XML DSL 文件为什么不符合仓库惯例。
 7. 需要理解 `xdef:bean-body-prop`、`xdef:bean-tag-prop`、`xdef:bean-value-prop` 等属性如何控制 XDSL→Java Bean 的属性映射。
+8. **需要理解"子节点上写 `x:extends` 之后，父继承的同名子节点为什么没生效"**（隐式 replace 语义）。
+9. **需要为没有 xdef 的 JSON/YAML 文件（i18n.yaml、amis 页面等）做差量合并**（`DeltaJsonLoader` 链路）。
 
 ## 相关文档
 

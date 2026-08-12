@@ -37,6 +37,8 @@
 - **XMeta** — 实体元数据 DSL（`.xmeta`），描述字段、权限、GraphQL 暴露等对外属性。
 - **`x:extends`** — 差量合并算子，把当前模型叠加到基线之上。
 - **`x:override`** — 控制差量合并策略的属性（merge / remove / remove-child 等）。
+- **子节点 `x:extends` 隐式 replace** — 子节点上写 `x:extends` 后，平台自动标记该节点为 `x:override="replace"`，父继承方向在该子树上不再合并（实现于 `XDslExtender.java:125` 与 `JsonExtender.java:90-91`）。
+- **`DeltaJsonLoader` / `JsonExtender`** — `nop-core` 中的无 xdef 并行 JSON 合并链路；在原生 `Map<String,Object>` 上直接执行 `x:extends` / `x:override`，不经过 `XNode`，适用于 i18n.yaml、amis 页面等无 schema 差量。
 - **`x:gen-extends`** — 编译期生成式扩展，在合并前用 XPL 生成节点再参与 `x:extends`。
 - **`x:post-extends`** — 合并后再执行的生成式扩展，用于对最终模型做后处理。
 - **objMeta** — BizModel 关联的对象元数据，驱动 GraphQL schema 生成。
