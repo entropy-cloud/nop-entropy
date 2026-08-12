@@ -7,6 +7,8 @@
   "auditsDir": "ai-dev/audits",
   "contextDir": "docs-for-ai/00-start-here",
   "moduleDir": "nop-ai",
+  "model": "opencode-go/deepseek-v4-flash",
+  "variant": "max",
   "agent": "build",
   "commands": {
     "test": "./mvnw test -pl nop-ai -am -T 1C",
