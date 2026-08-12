@@ -7,8 +7,10 @@
  */
 package io.nop.stream.core.execution;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -97,6 +99,20 @@ public class InputGate {
      * not preserve it.
      */
     private final ConcurrentHashMap<Long, BarrierAlignment> inFlightAlignments = new ConcurrentHashMap<>();
+
+    /**
+     * P1-05: alignments that became fully received in a single
+     * {@link #markFinishedChannel} call (a finished channel counts as having
+     * delivered every in-flight barrier, so several alignments can complete in
+     * the same round) but have not been emitted yet. Aligned barriers must be
+     * emitted in checkpoint-id order, ONE per read() call; the completed
+     * alignments wait here and stay in {@link #inFlightAlignments} until each
+     * is emitted (remove-after-emit). Only the task thread touches the queue
+     * (markFinishedChannel / the read-loop drain); the abort handler thread
+     * interacts via {@link #abortedBarriers}, which the drain also consults so
+     * an aborted pending barrier is dropped, never emitted.
+     */
+    private final ArrayDeque<BarrierAlignment> pendingBarrierEmissions = new ArrayDeque<>();
 
     /**
      * Stage 45: checkpoint ids whose alignment has been aborted. A barrier element
@@ -434,6 +450,22 @@ public class InputGate {
     private Optional<StreamElement> readMultiChannel() {
         retry:
         while (true) {
+            // P1-05: emit (one per read(), in checkpoint-id order) any barrier
+            // completed by an earlier markFinishedChannel call — a single
+            // channel-finish can complete several in-flight alignments at once.
+            // A pending barrier whose checkpoint was aborted in the meantime is
+            // dropped (never emitted) and must not block later emissions.
+            if (barrierAlignment && !pendingBarrierEmissions.isEmpty()) {
+                BarrierAlignment pending = pendingBarrierEmissions.pollFirst();
+                if (abortedBarriers.contains(pending.checkpointId)) {
+                    for (int c : pending.blockedChannels) {
+                        blockedChannels.remove(c);
+                    }
+                    continue retry;
+                }
+                return emitCompletedAlignment(pending);
+            }
+
             int channelsChecked = 0;
             int totalChannels = channels.size();
 
@@ -686,27 +718,59 @@ public class InputGate {
      * Stage 45: marks a finished channel as having delivered every in-flight
      * barrier (it will never send more data), then completes any alignment that
      * becomes satisfied. Replaces the legacy single-pending finished-channel check.
+     *
+     * <p>P1-05: a finished channel delivers EVERY in-flight barrier, so several
+     * alignments can become fully received in the same call. ALL of them are
+     * collected and emitted in checkpoint-id order, one per read() call (the
+     * lowest completes now; the rest wait in {@link #pendingBarrierEmissions});
+     * each is removed from {@link #inFlightAlignments} only at emission. This
+     * replaces the legacy bucket-order scan that emitted the first completed
+     * alignment it happened to visit and leaked every other fully-received one —
+     * a leaked alignment never emits its barrier (downstream never snapshots
+     * that checkpoint) and, being fully received, permanently masks the
+     * alignment-timeout / unaligned-fallback gates as the min-id in-flight item.
      */
     private Optional<StreamElement> markFinishedChannel(int channelIndex) {
-        CheckpointBarrier completed = null;
-        for (BarrierAlignment align : new ArrayList<>(inFlightAlignments.values())) {
+        List<BarrierAlignment> completed = new ArrayList<>();
+        for (BarrierAlignment align : inFlightAlignments.values()) {
             if (!align.receivedChannels.contains(channelIndex)) {
                 align.receivedChannels.add(channelIndex);
-                boolean fullyReceived = align.receivedChannels.size() >= channels.size();
-                if (barrierAlignment && fullyReceived && completed == null) {
-                    // Barriers complete in id order; emit the lowest completed one.
-                    inFlightAlignments.remove(align.checkpointId);
-                    for (int c : align.blockedChannels) {
-                        blockedChannels.remove(c);
+                if (align.receivedChannels.size() >= channels.size()) {
+                    if (!barrierAlignment) {
+                        // AT_LEAST_ONCE: emission happened at first receipt;
+                        // removal at full receipt is cleanup only.
+                        inFlightAlignments.remove(align.checkpointId);
+                    } else {
+                        completed.add(align);
                     }
-                    cleanupAbortedBarriersUpTo(align.checkpointId);
-                    completed = align.firstBarrier;
-                } else if (!barrierAlignment && fullyReceived) {
-                    inFlightAlignments.remove(align.checkpointId);
                 }
             }
         }
-        return completed != null ? Optional.of(completed) : Optional.empty();
+        if (completed.isEmpty()) {
+            return Optional.empty();
+        }
+        // Barrier ids are monotonically increasing from the coordinator, so the
+        // completed alignments must be emitted in ascending checkpoint-id order.
+        completed.sort(Comparator.comparingLong(a -> a.checkpointId));
+        for (int i = 1; i < completed.size(); i++) {
+            pendingBarrierEmissions.addLast(completed.get(i));
+        }
+        return emitCompletedAlignment(completed.get(0));
+    }
+
+    /**
+     * P1-05: removes the alignment from the in-flight map, resumes the channels
+     * it had blocked, opportunistically clears aborted markers, and returns the
+     * barrier for emission. Shared by {@link #markFinishedChannel} and the
+     * pending-emission drain in {@link #readMultiChannel}.
+     */
+    private Optional<StreamElement> emitCompletedAlignment(BarrierAlignment align) {
+        inFlightAlignments.remove(align.checkpointId);
+        for (int c : align.blockedChannels) {
+            blockedChannels.remove(c);
+        }
+        cleanupAbortedBarriersUpTo(align.checkpointId);
+        return Optional.of(align.firstBarrier);
     }
 
     /**
