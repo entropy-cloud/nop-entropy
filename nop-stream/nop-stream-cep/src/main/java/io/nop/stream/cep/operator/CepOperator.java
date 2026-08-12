@@ -363,6 +363,14 @@ public class CepOperator<IN, KEY, OUT>
                     cacheStatsIntervalMs);
             return;
         }
+        if (getProcessingTimeService() == null) {
+            // Production path injects a real service before open(); a null here means the
+            // operator was opened outside a task (direct unit-test usage) with no service.
+            // Explicit WARN (not silent skip) so a missing wiring is visible in logs.
+            LOG.warn("CEP cache statistics timer not registered: no ProcessingTimeService was "
+                    + "injected into the operator chain before open()");
+            return;
+        }
         long firstFire = getProcessingTimeService().getCurrentProcessingTime() + cacheStatsIntervalMs;
         this.cacheStatsTimerFuture = getProcessingTimeService().registerTimer(
                 firstFire, this::onCacheStatisticsTimer);
@@ -461,6 +469,15 @@ public class CepOperator<IN, KEY, OUT>
     @Override
     public void processElement(StreamRecord<IN> element) throws Exception {
         if (isProcessingTime) {
+            if (getProcessingTimeService() == null) {
+                // Explicit fail-fast instead of the silent NPE this branch previously produced:
+                // processing-time mode requires a real ProcessingTimeService. The production
+                // task wiring injects one before open(); a null here means the operator was
+                // opened outside a task with no service — fail visibly, never silently drop.
+                throw new StreamException(ERR_STREAM_STATE_ERROR).param(ARG_DETAIL,
+                        "CepOperator in processing-time mode requires a ProcessingTimeService; "
+                                + "none was injected into the operator chain before open()");
+            }
             if (comparator == null) {
                 NFAState nfaState = getNFAState();
                 long timestamp = getProcessingTimeService().getCurrentProcessingTime();
