@@ -26,7 +26,7 @@ public abstract class Transformation<T> implements Serializable {
     
     private static final AtomicInteger idCounter = new AtomicInteger(0);
     
-    private final int id;
+    private int id;
     private final String name;
     private final int parallelism;
     private final TypeInformation<T> outputType;
@@ -65,6 +65,21 @@ public abstract class Transformation<T> implements Serializable {
      */
     public int getId() {
         return id;
+    }
+
+    /**
+     * Reassigns this transformation's id to a deterministic value derived from
+     * the pipeline structure (transformation name + occurrence index). Called
+     * by {@code StreamExecutionEnvironment.buildStreamModel} before graph
+     * generation: the constructor's global static counter drifts across
+     * {@code env.execute()} calls, so an identically regenerated job would get
+     * different transformation/vertex ids — breaking checkpoint restore
+     * (task-location vertex matching) and the stream-model fingerprint. The
+     * stable id is identical for identical rebuilds and unique within one
+     * build (collision-probed against the build's id set by the caller).
+     */
+    public void assignStableId(int stableId) {
+        this.id = stableId;
     }
     
     /**

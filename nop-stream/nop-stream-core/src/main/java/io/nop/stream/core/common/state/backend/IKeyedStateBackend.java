@@ -103,4 +103,33 @@ public interface IKeyedStateBackend<K> extends KeyedStateStore, AutoCloseable {
     default int getMaxParallelism() {
         return KeyGroup.DEFAULT_MAX_PARALLELISM;
     }
+
+    /**
+     * P1-01: registers the LIVE {@code AggregateFunction} that the restore path
+     * must prefer when re-materializing aggregating state under
+     * {@code stateName}. The snapshot only records the function's class name;
+     * reflection-based recreation fails for capturing anonymous classes and
+     * lambdas (the window reduce/aggregate descriptor path). Operators that own
+     * an {@code AggregatingStateDescriptor} register its function here BEFORE
+     * restore runs (e.g. {@code WindowOperator} in {@code open()} prior to
+     * {@code applyPendingRestoreState()}).
+     *
+     * <p>Registration is a hint, not a mutation of the snapshot: a provider
+     * absent for a given state name simply falls back to the reflection path.
+     *
+     * @param stateName the state name (descriptor name) being restored
+     * @param function  the live aggregate function instance to use on restore
+     */
+    default void registerRestoreAggregateFunction(String stateName,
+                                                  io.nop.stream.core.common.functions.AggregateFunction<?, ?, ?> function) {
+    }
+
+    /**
+     * P1-01: the live aggregate function registered for {@code stateName}, or
+     * {@code null} when no provider was registered (fall back to the snapshot's
+     * class-name reflection path).
+     */
+    default io.nop.stream.core.common.functions.AggregateFunction<?, ?, ?> getRestoreAggregateFunction(String stateName) {
+        return null;
+    }
 }

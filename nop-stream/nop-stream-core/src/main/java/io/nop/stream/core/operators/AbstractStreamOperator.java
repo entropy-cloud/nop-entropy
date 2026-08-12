@@ -121,7 +121,16 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
 
     @Override
     public void close() throws Exception {
-        // subclasses may override
+        // Close the keyed state backend so resource-held backends (RocksDB
+        // locks its data directory) release their resources: without this, a
+        // job-restart (or supervision retry) re-opening the SAME backend/dir
+        // fails with a self-held LOCK. The field is intentionally NOT nulled:
+        // tests and callers may inspect the backend after close() (cleanup
+        // verification); backends must tolerate repeated close() (chain
+        // failure cleanup + task finally).
+        if (keyedStateBackend != null) {
+            keyedStateBackend.close();
+        }
     }
 
     public Output<StreamRecord<OUT>> getOutput() {

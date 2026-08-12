@@ -398,10 +398,9 @@ class MemoryStateSerDe {
         Class<Object> valueClass = (Class<Object>) Class.forName(valueTypeName);
         String aggregateFunctionTypeName = (String) stateInfo.get("aggregateFunctionType");
         ClassNameValidator.validateAccumulatorClass(aggregateFunctionTypeName);
-        Class<? extends AggregateFunction<?, ?, ?>> aggregateFunctionClass =
-                (Class<? extends AggregateFunction<?, ?, ?>>) Class.forName(aggregateFunctionTypeName);
         AggregateFunction<Object, Object, Object> aggregateFunction =
-                (AggregateFunction<Object, Object, Object>) aggregateFunctionClass.getDeclaredConstructor().newInstance();
+                resolveAggregateFunction(stateName, aggregateFunctionTypeName);
+        valueClass = (Class<Object>) inferAccumulatorType(aggregateFunction, valueClass);
 
         AggregatingStateDescriptor<Object, Object, Object> descriptor =
                 new AggregatingStateDescriptor<>(stateName, aggregateFunction, valueClass);
@@ -429,10 +428,9 @@ class MemoryStateSerDe {
         Class<Object> valueClass = (Class<Object>) Class.forName(valueTypeName);
         String aggregateFunctionTypeName = (String) stateInfo.get("aggregateFunctionType");
         ClassNameValidator.validateAccumulatorClass(aggregateFunctionTypeName);
-        Class<? extends AggregateFunction<?, ?, ?>> aggregateFunctionClass =
-                (Class<? extends AggregateFunction<?, ?, ?>>) Class.forName(aggregateFunctionTypeName);
         AggregateFunction<Object, Object, Object> aggregateFunction =
-                (AggregateFunction<Object, Object, Object>) aggregateFunctionClass.getDeclaredConstructor().newInstance();
+                resolveAggregateFunction(stateName, aggregateFunctionTypeName);
+        valueClass = (Class<Object>) inferAccumulatorType(aggregateFunction, valueClass);
 
         AggregatingStateDescriptor<Object, Object, Object> descriptor =
                 new AggregatingStateDescriptor<>(stateName, aggregateFunction, valueClass);
@@ -451,6 +449,77 @@ class MemoryStateSerDe {
         }
 
         states.put(stateName, state);
+    }
+
+    /**
+     * The window descriptor path (WindowedStreamImpl.aggregate/reduce) records the
+     * accumulator type as {@code java.lang.Object} (generic erasure), so the snapshot's
+     * recorded valueType cannot drive value re-materialization: a JSON array round-trip
+     * of a {@code long[]} accumulator would be restored as an ArrayList and the user
+     * function's {@code add} would ClassCastException. When the recorded type is the
+     * generic {@code Object}, infer the real accumulator type from the LIVE aggregate
+     * function's {@code createAccumulator()} (registered by the operator before restore).
+     * Functions whose {@code createAccumulator()} returns {@code null} (e.g. the
+     * reduce-function wrapper) keep the recorded type — JSON-native accumulators
+     * (String/numbers) restore correctly without the inference.
+     */
+    private static Class<?> inferAccumulatorType(AggregateFunction<?, ?, ?> aggregateFunction, Class<?> recordedType) {
+        if (recordedType != Object.class || aggregateFunction == null) {
+            return recordedType;
+        }
+        try {
+            Object accumulator = aggregateFunction.createAccumulator();
+            if (accumulator != null) {
+                return accumulator.getClass();
+            }
+        } catch (Exception e) {
+            // Keep the recorded (generic) type; JSON-native accumulators restore
+            // correctly either way.
+        }
+        return recordedType;
+    }
+
+    /**
+     * P1-01 (Decision: 方案 1 = live function reuse): resolves the aggregate
+     * function used to rebuild aggregating state on restore.
+     *
+     * <p>Priority order:
+     * <ol>
+     *   <li>the LIVE function registered via
+     *       {@code IKeyedStateBackend#registerRestoreAggregateFunction} (the
+     *       operator's descriptor function — works for capturing anonymous
+     *       classes / lambdas AND restores old snapshots written before the
+     *       fix);</li>
+     *   <li>class-name + no-arg reflection (legacy path for user functions with
+     *       a public no-arg constructor).</li>
+     * </ol>
+     *
+     * <p>When reflection fails because the recorded class has no no-arg
+     * constructor (e.g. {@code WindowOperatorBuilder.reduceFunctionAsAggregate}
+     * wrapper), fail fast with a clear error instead of silently producing a
+     * broken function (No-Silent-No-Op rule #24).
+     */
+    @SuppressWarnings("unchecked")
+    private AggregateFunction<Object, Object, Object> resolveAggregateFunction(
+            String stateName, String aggregateFunctionTypeName) throws Exception {
+        AggregateFunction<?, ?, ?> live = backend.getRestoreAggregateFunction(stateName);
+        if (live != null) {
+            return (AggregateFunction<Object, Object, Object>) live;
+        }
+        ClassNameValidator.validateAccumulatorClass(aggregateFunctionTypeName);
+        Class<? extends AggregateFunction<?, ?, ?>> aggregateFunctionClass =
+                (Class<? extends AggregateFunction<?, ?, ?>>) Class.forName(aggregateFunctionTypeName);
+        try {
+            return (AggregateFunction<Object, Object, Object>)
+                    aggregateFunctionClass.getDeclaredConstructor().newInstance();
+        } catch (NoSuchMethodException e) {
+            throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                    .param(ARG_DETAIL, "AggregateFunction class " + aggregateFunctionTypeName
+                            + " has no no-arg constructor and no live function was registered for state '"
+                            + stateName + "' — the operator must register its descriptor's function via "
+                            + "IKeyedStateBackend.registerRestoreAggregateFunction before restore "
+                            + "(window operators do this in open() prior to applyPendingRestoreState)");
+        }
     }
 
     private Map<String, Object> snapshotValueState(MemoryValueState<?> state) {

@@ -27,6 +27,9 @@ public class TestKeyedStreamAggregation {
         public String key;
         public int value;
 
+        public Item() {
+        }
+
         public Item(String key, int value) {
             this.key = key;
             this.value = value;

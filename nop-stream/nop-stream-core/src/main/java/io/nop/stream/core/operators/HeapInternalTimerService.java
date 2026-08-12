@@ -307,6 +307,30 @@ public class HeapInternalTimerService<K, N> implements InternalTimerService<N> {
             return timestamp;
         }
 
+        /**
+         * JSON-safe map form for the checkpoint persist path (see {@link TimerSnapshot#toSerializableForm()}).
+         */
+        @SuppressWarnings("unchecked")
+        public Map<String, Object> toSerializableForm() {
+            java.util.LinkedHashMap<String, Object> form = new java.util.LinkedHashMap<>();
+            form.put("key", key);
+            form.put("namespace", TimerSnapshot.serializeNamespace(namespace));
+            form.put("timestamp", timestamp);
+            return form;
+        }
+
+        /**
+         * Rebuilds a {@link TimerEntry} from the JSON-safe form produced by
+         * {@link #toSerializableForm()}.
+         */
+        @SuppressWarnings("unchecked")
+        public static <K, N> TimerEntry<K, N> fromSerializableForm(Map<String, Object> form) {
+            return new TimerEntry<>(
+                    (K) form.get("key"),
+                    (N) TimerSnapshot.deserializeNamespace(form.get("namespace")),
+                    form.get("timestamp") instanceof Number ? ((Number) form.get("timestamp")).longValue() : 0L);
+        }
+
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
@@ -330,9 +354,19 @@ public class HeapInternalTimerService<K, N> implements InternalTimerService<N> {
      * directly inside {@link TimerEntry}. They must be {@link Serializable} when the
      * checkpoint needs to survive JVM restart; within a single JVM they may be any
      * object reference.
+     *
+     * <p>The JSON checkpoint persist path ({@code CheckpointSerDe}) converts this DTO
+     * to a plain JSON-safe map form via {@link #toSerializableForm()} / {@link
+     * #fromSerializableForm(Map)} — the DTO itself is NOT a Nop {@code @DataBean}
+     * (generic type parameters conflict with the annotation processor, see
+     * {@code PaneState}).
      */
     public static final class TimerSnapshot<K, N> implements Serializable {
         private static final long serialVersionUID = 1L;
+
+        private static final String FORM_TYPE_TIMER_SNAPSHOT = "TimerSnapshot";
+        private static final String FORM_TYPE_TIME_WINDOW = "TimeWindow";
+        private static final String FORM_GLOBAL_WINDOW = "GlobalWindow";
 
         private final List<TimerEntry<K, N>> eventTimeTimers;
         private final List<TimerEntry<K, N>> processingTimeTimers;
@@ -364,6 +398,94 @@ public class HeapInternalTimerService<K, N> implements InternalTimerService<N> {
 
         public int size() {
             return eventTimeTimers.size() + processingTimeTimers.size();
+        }
+
+        /**
+         * JSON-safe map form used by the checkpoint persist path (the generic DTO
+         * itself cannot be serialized by {@code JsonTool} — not a {@code @DataBean}).
+         * Self-describing via {@code "@type"}. Namespaces are window types only
+         * (TimeWindow / GlobalWindow / null); the key is JSON-safe in all current uses.
+         */
+        @SuppressWarnings("unchecked")
+        public Map<String, Object> toSerializableForm() {
+            java.util.LinkedHashMap<String, Object> form = new java.util.LinkedHashMap<>();
+            form.put("@type", FORM_TYPE_TIMER_SNAPSHOT);
+            form.put("currentWatermark", currentWatermark);
+            List<Object> eventForms = new ArrayList<>();
+            for (TimerEntry<K, N> entry : eventTimeTimers) {
+                eventForms.add(entry.toSerializableForm());
+            }
+            List<Object> processingForms = new ArrayList<>();
+            for (TimerEntry<K, N> entry : processingTimeTimers) {
+                processingForms.add(entry.toSerializableForm());
+            }
+            form.put("eventTimeTimers", eventForms);
+            form.put("processingTimeTimers", processingForms);
+            return form;
+        }
+
+        /**
+         * Rebuilds a {@link TimerSnapshot} from the JSON-safe form produced by
+         * {@link #toSerializableForm()}. Returns {@code null} for non-timer maps.
+         */
+        @SuppressWarnings("unchecked")
+        public static <K, N> TimerSnapshot<K, N> fromSerializableForm(Map<String, Object> form) {
+            if (form == null || !FORM_TYPE_TIMER_SNAPSHOT.equals(form.get("@type"))) {
+                return null;
+            }
+            List<TimerEntry<K, N>> eventTimers = new ArrayList<>();
+            List<Object> eventForms = (List<Object>) form.get("eventTimeTimers");
+            if (eventForms != null) {
+                for (Object f : eventForms) {
+                    if (f instanceof Map) {
+                        eventTimers.add(TimerEntry.fromSerializableForm((Map<String, Object>) f));
+                    }
+                }
+            }
+            List<TimerEntry<K, N>> processingTimers = new ArrayList<>();
+            List<Object> processingForms = (List<Object>) form.get("processingTimeTimers");
+            if (processingForms != null) {
+                for (Object f : processingForms) {
+                    if (f instanceof Map) {
+                        processingTimers.add(TimerEntry.fromSerializableForm((Map<String, Object>) f));
+                    }
+                }
+            }
+            long watermark = form.get("currentWatermark") instanceof Number
+                    ? ((Number) form.get("currentWatermark")).longValue() : Long.MIN_VALUE;
+            return new TimerSnapshot<>(eventTimers, processingTimers, watermark);
+        }
+
+        private static Object serializeNamespace(Object namespace) {
+            if (namespace instanceof io.nop.stream.core.windowing.windows.TimeWindow) {
+                io.nop.stream.core.windowing.windows.TimeWindow w =
+                        (io.nop.stream.core.windowing.windows.TimeWindow) namespace;
+                java.util.LinkedHashMap<String, Object> m = new java.util.LinkedHashMap<>();
+                m.put("@type", FORM_TYPE_TIME_WINDOW);
+                m.put("start", w.getStart());
+                m.put("end", w.getEnd());
+                return m;
+            }
+            if (namespace instanceof io.nop.stream.core.windowing.windows.GlobalWindow) {
+                return FORM_GLOBAL_WINDOW;
+            }
+            return namespace;
+        }
+
+        @SuppressWarnings("unchecked")
+        private static Object deserializeNamespace(Object obj) {
+            if (obj instanceof Map) {
+                Map<String, Object> m = (Map<String, Object>) obj;
+                if (FORM_TYPE_TIME_WINDOW.equals(m.get("@type"))) {
+                    return new io.nop.stream.core.windowing.windows.TimeWindow(
+                            ((Number) m.get("start")).longValue(),
+                            ((Number) m.get("end")).longValue());
+                }
+            }
+            if (FORM_GLOBAL_WINDOW.equals(obj)) {
+                return io.nop.stream.core.windowing.windows.GlobalWindow.get();
+            }
+            return obj;
         }
     }
 

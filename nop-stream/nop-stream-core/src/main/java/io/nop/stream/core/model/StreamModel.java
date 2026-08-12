@@ -61,7 +61,17 @@ public class StreamModel implements Serializable {
         StreamModelFingerprint.Builder builder = StreamModelFingerprint.builder();
 
         for (Map.Entry<String, Transformation<?>> entry : transformations.entrySet()) {
-            String valueStr = entry.getValue() != null ? entry.getValue().toString() : "null";
+            // Stable per-component hash: the transformation's identity-agnostic
+            // structure (class, name, parallelism). The legacy valueStr used
+            // Object.toString() (class@identityHashCode), which differs for
+            // every instance — an identically regenerated job would never match
+            // its stored fingerprint. These hashes are informational (the
+            // compatibility check uses dagTopologyHash/requirements/
+            // participants), but must be stable across rebuilds.
+            Transformation<?> t = entry.getValue();
+            String valueStr = t != null
+                    ? t.getClass().getSimpleName() + "|" + t.getName() + "|" + t.getParallelism() + "|" + t.getOutputType()
+                    : "null";
             String transformHash = StreamModelFingerprint.computeSHA256(
                     entry.getKey() + ":" + valueStr);
             builder.addComponentHash(entry.getKey(), transformHash);

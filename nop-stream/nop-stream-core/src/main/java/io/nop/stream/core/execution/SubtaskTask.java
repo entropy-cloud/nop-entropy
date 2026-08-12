@@ -21,8 +21,6 @@ import io.nop.stream.core.exceptions.StreamException;
 
 import io.nop.stream.core.exceptions.NopStreamErrors;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
-import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
-import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INIT_ERROR;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 
 public class SubtaskTask implements Runnable {
@@ -101,7 +99,16 @@ public class SubtaskTask implements Runnable {
                 return;
             }
 
-            openOperatorChains();
+            // The invokable's invoke() opens its own operator chain (all four
+            // roles — SOURCE/MIDDLE/SINK/SELF_CONTAINED — call
+            // operatorChain.open() at the top of their invoke path). The
+            // chains held here ARE the invokable's chain (every construction
+            // site passes subtask.getInvokable().getOperatorChain()), so
+            // opening them here too would open the SAME chain twice. The
+            // double-open re-creates the operator's keyed state backend: the
+            // first open's restore/state is silently discarded and, for the
+            // RocksDB backend, the second open fails with a self-held LOCK.
+            // The invokable's single open happens inside invoke() below.
 
             // DEPLOYING → RUNNING
             if (!compareAndTransition(State.DEPLOYING, State.RUNNING)) {
@@ -207,24 +214,6 @@ public class SubtaskTask implements Runnable {
 
     public String getTaskName() {
         return String.format("%s [subtask %d]", subtask.getVertexId(), subtask.getTaskIndex());
-    }
-
-    private void openOperatorChains() {
-        for (int i = 0; i < operatorChains.size(); i++) {
-            try {
-                operatorChains.get(i).open();
-            } catch (Exception e) {
-                for (int j = 0; j < i; j++) {
-                    try {
-                        operatorChains.get(j).close();
-                    } catch (Exception closeEx) {
-                        e.addSuppressed(closeEx);
-                    }
-                }
-                throw new StreamException(ERR_STREAM_INIT_ERROR, e)
-                    .param(ARG_DETAIL, "Failed to open operator chain " + i + " for subtask: " + getTaskName());
-            }
-        }
     }
 
     private void closeOperatorChains() {

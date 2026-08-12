@@ -11,6 +11,7 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
+import io.nop.stream.core.common.functions.AggregateFunction;
 import io.nop.stream.core.common.state.AggregatingState;
 import io.nop.stream.core.common.state.AggregatingStateDescriptor;
 import io.nop.stream.core.common.state.backend.IInternalStateBackend;
@@ -87,6 +88,15 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
     private final Map<String, Object> states = new HashMap<>();
 
     private final Map<String, Class<?>> stateTypes = new HashMap<>();
+
+    /**
+     * P1-01: live {@code AggregateFunction} providers keyed by state name,
+     * consulted by the serde restore path (preferred over class-name
+     * reflection, which fails for capturing anonymous classes / lambdas).
+     * Operators register their descriptor's function before restore runs
+     * (e.g. {@code WindowOperator}).
+     */
+    private final Map<String, AggregateFunction<?, ?, ?>> restoreAggregateFunctions = new HashMap<>();
 
     /**
      * Processing-time source used by all {@link TtlContext}s created in {@link #applyTtl}.
@@ -431,6 +441,20 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
     public void restoreState(StateSnapshot snapshot) throws Exception {
         new MemoryStateSerDe(this).restoreState(states, snapshot);
         rebindStateBackends();
+    }
+
+    @Override
+    public void registerRestoreAggregateFunction(String stateName,
+                                                 AggregateFunction<?, ?, ?> function) {
+        if (stateName == null || function == null) {
+            return;
+        }
+        restoreAggregateFunctions.put(stateName, function);
+    }
+
+    @Override
+    public AggregateFunction<?, ?, ?> getRestoreAggregateFunction(String stateName) {
+        return restoreAggregateFunctions.get(stateName);
     }
 
     void rebindStateBackends() {

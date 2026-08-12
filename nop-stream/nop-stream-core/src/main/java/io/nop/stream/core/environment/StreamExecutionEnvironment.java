@@ -493,8 +493,28 @@ public class StreamExecutionEnvironment {
         StreamComponents components = new StreamComponents();
         Map<String, Transformation<?>> transformMap = new LinkedHashMap<>();
 
+        // Stable map keys and transformation ids across identical rebuilds: the
+        // transformation id is a global static counter that drifts across
+        // env.execute() calls, so id-based keys/ids would change the
+        // stream-model fingerprint and the vertex ids — rejecting checkpoint
+        // restore of an identically regenerated job (task-location vertex
+        // matching + fingerprint validation). Both the model key and the id
+        // are derived from the STABLE transformation name, disambiguated by
+        // occurrence index (stable for identical user code); ids are
+        // collision-probed against the per-build id set (deterministic for
+        // the same key order).
+        Map<String, Integer> nameCounts = new java.util.HashMap<>();
+        java.util.Set<Integer> usedIds = new java.util.HashSet<>();
         for (Transformation<?> t : transformations) {
-            transformMap.put(String.valueOf(t.getId()), t);
+            int occurrence = nameCounts.merge(t.getName(), 1, Integer::sum) - 1;
+            String stableKey = occurrence == 0 ? t.getName() : t.getName() + "#" + occurrence;
+            transformMap.put(stableKey, t);
+
+            int stableId = stableKey.hashCode() & Integer.MAX_VALUE;
+            while (!usedIds.add(stableId)) {
+                stableId = (stableId + 1) & Integer.MAX_VALUE;
+            }
+            t.assignStableId(stableId);
         }
 
         return new StreamModel(components, transformMap);
