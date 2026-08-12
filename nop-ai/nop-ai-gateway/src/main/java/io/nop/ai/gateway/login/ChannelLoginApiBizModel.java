@@ -62,6 +62,19 @@ import static io.nop.api.core.ApiErrors.ERR_CHECK_INVALID_ARGUMENT;
 @BizModel("ChannelLoginApi")
 public class ChannelLoginApiBizModel {
 
+    /**
+     * Error-code value for {@code ERR_AUTH_MFA_REQUIRED} (defined in nop-auth-service's
+     * {@code NopAuthErrors}). {@code nop-ai-gateway} does NOT depend on {@code nop-auth-service}
+     * (only {@code nop-auth-api} + {@code nop-biz-auth-core}), so the constant cannot be imported;
+     * match by this stable string value instead (Phase 3 Decision, option a).
+     */
+    static final String MFA_REQUIRED_ERROR_CODE = "nop.err.auth.mfa-required";
+
+    /** errorParam keys carried by the MFA_REQUIRED exception (design §3.8 ARG_* constants). */
+    static final String ATTR_CHALLENGE_TOKEN = "challengeToken";
+    static final String ATTR_MFA_TYPE = "mfaType";
+    static final String ATTR_LOGIN_TYPE = "loginType";
+
     private final Map<String, IChannelBindProvider> providersByType = new LinkedHashMap<>();
 
     @Inject
@@ -180,15 +193,55 @@ public class ChannelLoginApiBizModel {
             loginType = AuthApiConstants.LOGIN_TYPE_SSO;
         }
         final int resolvedLoginType = loginType;
-        return sessionBootstrap.createSessionForUserAsync(binding.getPlatformUserId(), resolvedLoginType)
-                .thenApply(userContext -> {
-            if (userContext == null) {
-                throw new NopException(ERR_CHECK_INVALID_ARGUMENT)
-                        .param("userId", binding.getPlatformUserId())
-                        .param("msg", "ISessionBootstrap.createSessionForUserAsync returned null context");
+        // createSessionForUserAsync throws ERR_AUTH_MFA_REQUIRED SYNCHRONOUSLY when the bound
+        // user has MFA enabled (LoginServiceImpl.java:355 bare `throw`, not a rejected future).
+        // A try/catch around the call intercepts it; a .exceptionally() handler on the returned
+        // stage would NOT (the sync throw bypasses the CompletionStage chain). See plan Phase 3.
+        try {
+            return sessionBootstrap.createSessionForUserAsync(binding.getPlatformUserId(), resolvedLoginType)
+                    .thenApply(userContext -> {
+                if (userContext == null) {
+                    throw new NopException(ERR_CHECK_INVALID_ARGUMENT)
+                            .param("userId", binding.getPlatformUserId())
+                            .param("msg", "ISessionBootstrap.createSessionForUserAsync returned null context");
+                }
+                return buildResult(userContext);
+            });
+        } catch (NopException e) {
+            // MFA adaptation (W6, design §3.2 / §五): capture only ERR_AUTH_MFA_REQUIRED and translate
+            // to a ScanLoginResult carrying the challenge params. All other exceptions bubble unchanged.
+            // Error-code identification裁决 (Phase 3 Decision, option a): nop-ai-gateway does NOT depend
+            // on nop-auth-service, so the constant cannot be imported — match by the stable error-code
+            // string value instead (avoids a cross-module public-API migration).
+            if (MFA_REQUIRED_ERROR_CODE.equals(e.getErrorCode())) {
+                return io.nop.api.core.util.FutureHelper.success(buildMfaResult(e));
             }
-            return buildResult(userContext);
-        });
+            throw e;
+        }
+    }
+
+    /**
+     * Build a {@link ScanLoginResult} that signals MFA is required, carrying the challenge
+     * params from the captured {@code ERR_AUTH_MFA_REQUIRED} exception. The challenge itself
+     * was created upstream by {@code createSessionForUserAsync} and stored in
+     * {@code MfaChallengeStore}; this method only forwards the params.
+     */
+    private ScanLoginResult buildMfaResult(NopException mfaException) {
+        ScanLoginResult result = new ScanLoginResult();
+        result.setMfaRequired(true);
+        Object challengeToken = mfaException.getParam(ATTR_CHALLENGE_TOKEN);
+        Object mfaType = mfaException.getParam(ATTR_MFA_TYPE);
+        Object loginType = mfaException.getParam(ATTR_LOGIN_TYPE);
+        if (challengeToken instanceof String) {
+            result.setChallengeToken((String) challengeToken);
+        }
+        if (mfaType instanceof String) {
+            result.setMfaType((String) mfaType);
+        }
+        if (loginType instanceof Integer) {
+            result.setLoginType((Integer) loginType);
+        }
+        return result;
     }
 
     private ScanLoginResult buildResult(IUserContext userContext) {

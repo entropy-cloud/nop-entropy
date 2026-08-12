@@ -106,6 +106,10 @@ public interface NopAuthConfigs {
     IConfigReference<Integer> CFG_AUTH_MFA_ACCESS_CODE_EXPIRE_SECONDS = varRef(s_loc, "nop.auth.mfa.access-code-expire-seconds",
             Integer.class, 300);
 
+    @Description("MFA 绑定流程 bindToken 有效期，单位秒。confirmMfa 据此判定 pending 记录是否过期（复用 pending 记录 updateTime）")
+    IConfigReference<Integer> CFG_AUTH_MFA_BIND_EXPIRE_SECONDS = varRef(s_loc, "nop.auth.mfa.bind-expire-seconds",
+            Integer.class, 300);
+
     // ===== 短信验证码配置（设计 §3.7） =====
 
     @Description("短信验证码登录开关")
