@@ -102,6 +102,8 @@ public class DynCodeGen implements ITenantResourceProvider, ITenantBizModelProvi
         }
         codeCache.clear();
         tenantCache.clear();
+        VirtualFileSystem.instance().updateInMemoryLayer(null);
+        ModuleManager.instance().updateDynamicModules(null);
     }
 
     @Override
