@@ -11,7 +11,7 @@
     <bean id="nopWorkflowStore" ioc:default="true"
           class="io.nop.wf.dao.store.DaoWorkflowStore"/>
 
-    <bean id="nopWorkflowModelLoader" ioc:default="true"
+    <bean id="nopDaoWorkflowModelLoader" ioc:default="true"
           class="io.nop.wf.dao.store.DaoWorkflowModelLoader"/>
 
     <bean id="nopWfResourceNamespaceHandler" ioc:default="true"

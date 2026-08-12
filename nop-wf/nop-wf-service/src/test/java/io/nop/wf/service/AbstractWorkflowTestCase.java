@@ -26,10 +26,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AbstractWorkflowTestCase extends JunitAutoTestCase {
     @Inject
-    IWorkflowManager workflowManager;
+    protected IWorkflowManager workflowManager;
 
     @Inject
-    IOrmTemplate ormTemplate;
+    protected IOrmTemplate ormTemplate;
 
     @BeforeEach
     public void init() {

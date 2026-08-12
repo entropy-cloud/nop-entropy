@@ -14,11 +14,13 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.core.resource.IResourceObjectLoader;
+import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.component.version.ResourceVersionHelper;
 import io.nop.core.resource.component.version.VersionedName;
 import io.nop.dao.DaoConstants;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
+import io.nop.orm.resource.DaoEntityResource;
 import io.nop.wf.core.NopWfCoreConstants;
 import io.nop.wf.core.model.IWorkflowModel;
 import io.nop.wf.core.store.WfModelParser;
@@ -47,7 +49,10 @@ public class DaoWorkflowModelLoader implements IResourceObjectLoader<IWorkflowMo
         VersionedName versionedName = ResourceVersionHelper.parseVersionedName(path, NopWfCoreConstants.RESOLVE_WF_NS_PREFIX);
         NopWfDefinition entity = requireWfDefinition(versionedName.getName(), versionedName.getVersion());
 
-        SourceLocation loc = SourceLocation.fromPath(path);
+        String daoResourcePath = DaoEntityResource.makeDaoResourcePath(entity);
+        ResourceComponentManager.instance().traceDepends(daoResourcePath);
+
+        SourceLocation loc = SourceLocation.fromPath(daoResourcePath);
         XNode node = XNodeParser.instance().parseFromText(loc, entity.getModelText());
 
         return WfModelParser.parseWorkflowNode(node);

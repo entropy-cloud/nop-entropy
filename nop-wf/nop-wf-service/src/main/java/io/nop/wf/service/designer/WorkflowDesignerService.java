@@ -117,19 +117,17 @@ public class WorkflowDesignerService {
         NopWfDefinition entity = requireDefinition(wfDefId);
         checkNotPublished(entity);
 
-        Map<String, Object> doc;
+        Object parsed;
         try {
-            Object parsed = JsonTool.parse(docJson);
-            if (!(parsed instanceof Map))
-                throw new NopException(ERR_WF_DESIGNER_INVALID_DOCUMENT)
-                        .param(ARG_DETAIL, "document must be a JSON object");
-            doc = (Map<String, Object>) parsed;
-        } catch (NopException e) {
-            throw e;
+            parsed = JsonTool.parse(docJson);
         } catch (Exception e) {
             throw new NopException(ERR_WF_DESIGNER_INVALID_DOCUMENT)
                     .param(ARG_DETAIL, e.getMessage());
         }
+        if (!(parsed instanceof Map))
+            throw new NopException(ERR_WF_DESIGNER_INVALID_DOCUMENT)
+                    .param(ARG_DETAIL, "document must be a JSON object");
+        Map<String, Object> doc = (Map<String, Object>) parsed;
 
         XNode workflow = loadWorkflowNode(entity);
         WfGraphDocumentCodec.updateWorkflowFromDocument(doc, workflow);
