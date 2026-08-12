@@ -128,11 +128,8 @@ public class ResourceVersionHelper {
 
         int pos = subPath.lastIndexOf('/');
         if (pos < 0) {
-            String name = subPath;
-            return new VersionedName(name, -1L);
+            return new VersionedName(subPath, -1L);
         }
-
-        String name = subPath.substring(0, pos);
 
         String versionStr = subPath.substring(pos + 1);
         int pos2 = versionStr.indexOf('.');
@@ -140,10 +137,9 @@ public class ResourceVersionHelper {
             versionStr = versionStr.substring(0, pos2);
 
         if (!isNumberVersionString(versionStr))
-            throw new NopException(ERR_RESOURCE_INVALID_VERSIONED_PATH)
-                    .param(ARG_PATH, path)
-                    .param(ARG_BASE_PATH, basePath);
+            return new VersionedName(subPath, -1L);
 
+        String name = subPath.substring(0, pos);
         return new VersionedName(name, getNumberVersion(versionStr));
     }
 
