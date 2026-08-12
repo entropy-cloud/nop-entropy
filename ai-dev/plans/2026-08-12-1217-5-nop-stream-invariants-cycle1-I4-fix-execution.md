@@ -1,6 +1,6 @@
 # Cycle 1 / I4 — 修复执行（实例 + 类别清扫 + 测试）（Fix Execution: Instance + Category Sweep + Tests）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-12
 > Draft Review: 4 轮独立子 agent 对抗性审查通过（round 1：4 Major + 8 Minor；round 2：1 Blocker（`-pl` 裸模块名）+ 1 Major（Phase 4 测试落点）+ 6 Minor；round 3：1 Blocker（restoreFromEpoch 方法事实写反）+ 1 Major（RL-1 漏 UPDATE 分支）+ 2 Minor；round 4：4/4 修复验证 PASS、无新问题、verdict approved）
 > Source: I3 裁决表 `ai-dev/audits/nop-stream-invariants/adjudication-table.md` §3「P0/P1 派发清单」（WI-1..4）+ §4 PD-15；I2 权威版 `ai-dev/audits/nop-stream-invariants/red-list.md`（RL-1..7）；roadmap `ai-dev/backlog/nop-stream-invariant-loop-roadmap.md` Work Item I4；mission `nop-stream-invariant-loop` 授权声明
@@ -71,7 +71,7 @@
 ### Phase 1 - 族 F5：ClusterRegistry 注册即可见 + per-renewal 租约语义（WI-1 + RL-3）
 
 Status: completed
-Targets: `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/cluster/JdbcClusterRegistry.java`、`.../cluster/InMemoryClusterRegistry.java`、`.../cluster/NodeDiscoveryConsistencyChecker.java`、`nop-stream-runtime/src/test/java/io/nop/stream/runtime/cluster/TestClusterRegistryConsistencyInvariant.java`
+Targets: `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/cluster/JdbcClusterRegistry.java`、`.../cluster/InMemoryClusterRegistry.java`、`.../cluster/NodeDiscoveryConsistencyChecker.java`、`nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/cluster/TestClusterRegistryConsistencyInvariant.java`
 
 - Item Types: `Fix`
 
@@ -96,7 +96,7 @@ Exit Criteria:
 ### Phase 2 - 族 F2：TwoPhaseCommitSinkFunction 并发防护（WI-2：RL-4 P0 + RL-5 P1）
 
 Status: completed
-Targets: `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/common/functions/sink/TwoPhaseCommitSinkFunction.java`、`nop-stream-core/src/test/java/io/nop/stream/core/common/functions/sink/TestSynchronizedCollectionInvariant.java`、`ai-dev/audits/nop-stream-invariants/mjs-pins.json`
+Targets: `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/common/functions/sink/TwoPhaseCommitSinkFunction.java`、`nop-stream/nop-stream-core/src/test/java/io/nop/stream/core/common/functions/sink/TestSynchronizedCollectionInvariant.java`、`ai-dev/audits/nop-stream-invariants/mjs-pins.json`
 
 - Item Types: `Fix`
 
@@ -122,7 +122,7 @@ Exit Criteria:
 ### Phase 3 - 族 F1：WindowOperator cleanup 收敛（WI-3：RL-6）
 
 Status: completed
-Targets: `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/operators/windowing/WindowOperator.java`、`nop-stream-runtime/src/test/java/io/nop/stream/runtime/operators/windowing/TestWindowOperatorMergingCleanupInvariant.java`
+Targets: `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/operators/windowing/WindowOperator.java`、`nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/operators/windowing/TestWindowOperatorMergingCleanupInvariant.java`
 
 - Item Types: `Fix`
 
@@ -151,7 +151,7 @@ Targets: `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/operators/
 - Item Types: `Fix`
 
 - [x] **test-first 先红**：新增端到端测试（**落点 nop-stream-runtime/src/test**，`TestSideOutputChainingE2E` 3 用例）——`WindowOperator.sideOutput(lateDataOutputTag)` → 链式 `ChainingOutput` → side-output 消费者收到记录（无消费者注册时 fail-fast 抛异常）；**既有 `new ChainingOutput(...)` 构造点适配核查**：grep 全部直接构造点（live 实测 = 41 处测试构造点 + 2 处 main 接线 `StreamTaskInvokable.java:171/:209`；分布于 TestDistributedExactlyOnce 11 / TestRocksDBStateBackendE2E 6 / TestCheckpointEndToEnd 6 / TestBarrierPropagation 6 / TestE2ECheckpointAndRecovery 4 等），选注册方案后逐一确认适配（构造参数默认值兼容或测试侧同步适配，编译断裂必须先行处理）；跑测试确认红（当前丢弃/无消费者通道）。**红输出记录（2026-08-12 实测，双阶段）**：(a) 构造参数默认值兼容——既有 2 构造器保留（`(input)` / `(input, operatorName)` 委托空 map），43 处既有构造点零改动零编译断裂（core 1418 / runtime 804 / cep 320 全量复跑验证）；(b) 临时还原纯丢弃行为（保留 API 面）→ `Tests run: 3, Failures: 3`（`testWindowOperatorSideOutputReachesChainedConsumer` / `testInvokableWiredChainingOutputDeliversSideOutput` / `testWindowOperatorSideOutputFailsFastWithoutConsumer` 全红——先红载体 = 端到端转发断言 + fail-fast 断言）
-- [x] **RL-7 修复**：`ChainingOutput.collect(OutputTag, record)` 转发至注册的 side-output 消费者；链式接线（`StreamTaskInvokable.java:171/:209`）支持消费者注册；无消费者接线时 fail-fast（抛异常），**禁止静默丢弃**（Rule #24：不得保留 LOG.warn + 丢弃路径——`LOG` 字段已删除，grep 零残留）。**最小契约约束（防止执行者即兴发明）**：注册机制限于 `ChainingOutput` 级别（构造参数或方法级注册 per-tag consumer，选型须与既有 ~10 处直接构造点兼容）+ `StreamTaskInvokable` 暴露可选注册入口（测试可触达）；`Output` 接口契约不变；无消费者 = fail-fast（默认）。**实现选型（记入决策）**：`ChainingOutput` 新增 3 参构造器 `(input, operatorName, Map<OutputTag<?>, Consumer<StreamRecord<?>>>)`（共享 map 引用，注册可先于/晚于接线）+ `registerSideOutputConsumer(tag, consumer)` 方法；`StreamTaskInvokable` 持有共享 map（字段）+ `registerSideOutputConsumer` 公开方法，wireOperators 两处（:171/:209）传入共享 map；新增错误码 `ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER`（`NopStreamErrors`，`ARG_OUTPUT_TAG` 参数）；`Output` 接口契约零变更。**用户可见行为变更声明**：修复后默认链式部署下，使用 `lateDataOutputTag`（经 `WindowOperatorBuilder` 接线，字段 :58 / builder 方法 :101-102 / ctor 传参 :197）或 ProcessFunction/CepOperator 多输出的任务，在首个侧输出记录时 **fail-fast 崩溃而非静默丢弃**（I3 裁决认可的方向；已核实仓库无既有测试依赖静默丢弃——core/runtime/cep 三模块全量复跑 0 failure 佐证）
+- [x] **RL-7 修复**：`ChainingOutput.collect(OutputTag, record)` 转发至注册的 side-output 消费者；链式接线（`StreamTaskInvokable.java:171/:209`，live 复核 :182/:220）支持消费者注册；无消费者接线时 fail-fast（抛异常），**禁止静默丢弃**（Rule #24：不得保留 LOG.warn + 丢弃路径——`LOG` 字段已删除，grep 零残留）。**最小契约约束（防止执行者即兴发明）**：注册机制限于 `ChainingOutput` 级别（构造参数或方法级注册 per-tag consumer，选型须与既有 ~10 处直接构造点兼容）+ `StreamTaskInvokable` 暴露可选注册入口（测试可触达）；`Output` 接口契约不变；无消费者 = fail-fast（默认）。**实现选型（记入决策）**：`ChainingOutput` 新增 3 参构造器 `(input, operatorName, Map<OutputTag<?>, Consumer<StreamRecord<?>>>)`（共享 map 引用，注册可先于/晚于接线）+ `registerSideOutputConsumer(tag, consumer)` 方法；`StreamTaskInvokable` 持有共享 map（字段）+ `registerSideOutputConsumer` 公开方法，wireOperators 两处（:171/:209）传入共享 map；新增错误码 `ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER`（`NopStreamErrors`，`ARG_OUTPUT_TAG` 参数）；`Output` 接口契约零变更。**用户可见行为变更声明**：修复后默认链式部署下，使用 `lateDataOutputTag`（经 `WindowOperatorBuilder` 接线，字段 :58 / builder 方法 :101-102 / ctor 传参 :197）或 ProcessFunction/CepOperator 多输出的任务，在首个侧输出记录时 **fail-fast 崩溃而非静默丢弃**（I3 裁决认可的方向；已核实仓库无既有测试依赖静默丢弃——core/runtime/cep 三模块全量复跑 0 failure 佐证）
 - [x] **类别清扫（输出契约族）**：grep `Output.collect(OutputTag` 全部 call-site（`WindowOperator.sideOutput` :1029-1031、ProcessWindowFunction 多输出路径、`CepOperator.java:482-483`（lateDataOutputTag）+ :770（ProcessFunction 多输出）等）确认转发契约覆盖；grep 全部 `Output` 实现类（`ChainingOutput` + `TimestampedCollector` + `StreamTaskInvokable` 内部 `RecordWriterOutput` :621-623 / `BroadcastingRecordWriterOutput` :681-682）逐一核对各自 collect(OutputTag) 行为。**清扫发现处置规则（roadmap 类别清扫强制 vs Non-Goals 边界）**：
   - in-task 丢弃点（与 RL-7 同根因，如链式路径内其它静默丢弃）→ 本 plan 一并修复（同类实例，只修同类）——**ChainingOutput 为唯一 in-task 静默丢弃点，已修复**；
   - 跨 task 边界 no-op（`RecordWriterOutput` / `BroadcastingRecordWriterOutput`：侧输出需线协议支持）→ **不静默修复也不静默忽略**：记录为「同族已知实例 + 处置依据（跨 task 转发 = 线协议结构性变更，mission 授权要求结构性变更执行前人工确认）」→ 移交 I6 评估（人工确认候选），证据入清扫清单——**处置记录（2026-08-12）**：`StreamTaskInvokable.java:645-647`（RecordWriterOutput.collect(OutputTag) 注释「Side outputs not supported in cross-task exchange」）与 `:705-706`（BroadcastingRecordWriterOutput 同型 no-op），跨 task 侧输出需 ResultPartition 线协议扩展（结构性变更），已列入清扫清单移交 I6；`TimestampedCollector.collect(OutputTag)` :97 为纯转发（非丢弃点）✓
@@ -172,49 +172,49 @@ Exit Criteria:
 
 ### Phase 5 - 门禁复跑、pin 注册表同步与文档收口
 
-Status: planned
+Status: completed
 Targets: `ai-dev/audits/nop-stream-invariants/`（red-list.md / invariant-catalog.md / gate-inventory.json / mjs-pins.json）、`ai-dev/backlog/nop-stream-invariant-loop-roadmap.md`、`ai-dev/logs/`
 
 - Item Types: `Fix | Proof | Follow-up`
 
-- [ ] **门禁复跑**：`./mvnw test -pl nop-stream/nop-stream-core,nop-stream/nop-stream-runtime,nop-stream/nop-stream-cep -Dtest='Test*Invariant*'` 全绿（原 84 + 本 plan 新增/翻转）；`node ai-dev/tools/check-nop-stream-invariants.mjs all` exit 0（violations ⊆ pins，无 stale pin；全绿模式下无 stdout 输出属正常）；WI-4 要求的 `./mvnw test -pl nop-stream -am -T 1C` 全量跑绿（I3 裁决表 WI-4 门禁复跑要求）
-- [ ] **pin 注册表同步**：`mjs-pins.json` 移除 2PC:83（RL-4 修复后违规不存在）；JUnit pin 测试断言翻转记录（`TestClusterRegistryConsistencyInvariant` 2 处 + `TestWindowOperatorMergingCleanupInvariant` 2 处 → 不再 pin 缺陷行为）；gate-inventory.json 更新（pin 状态 / 断言方向 / 涉及类清单）
-- [ ] **red-list.md 状态更新**：RL-1..7 逐条标注「已修复 + 证据（修复 commit / 翻转测试名 + 门禁复跑结果）」；WO 部分不动；RL-3 标注触发闭合
-- [ ] **roadmap 同步**：Work Item I4 状态流转记录（本 plan 转 active 时 `todo`→`planned`；closure audit 通过后 `planned`→`done`）；`## Follow-up Backlog` 的 RL-3 条目状态更新为「已由 I4 触发闭合」（保留历史处置记录）
-- [ ] **catalog 行号引用同步**：invariant-catalog §3 中 R15-AR-8 / AR-1 / AR-11 / AR-9 / AR-18 等行号引用以本 plan 修复后 live 为准复核更新
-- [ ] **类别清扫证据汇总**：四族清扫清单 + 逐点核对结论汇总写入本 plan 或 daily log（grep 范围与 I3 裁决表 §3 一致）
-- [ ] `ai-dev/logs/` 对应日期条目已更新（Phase 1-5 逐 phase 追加）
+- [x] **门禁复跑**：`./mvnw test -pl nop-stream/nop-stream-core,nop-stream/nop-stream-runtime,nop-stream/nop-stream-cep -Dtest='Test*Invariant*'` 全绿（原 84 + 本 plan 新增/翻转——实测 **92 tests 0 failures**：core 30 / runtime 34 / cep 28）；`node ai-dev/tools/check-nop-stream-invariants.mjs all` exit 0（violations ⊆ pins，无 stale pin；全绿模式下无 stdout 输出属正常）；WI-4 要求的 `./mvnw test -pl nop-stream -am -T 1C` 全量跑绿（I3 裁决表 WI-4 门禁复跑要求）——**实测 BUILD SUCCESS（nop-stream 族 15 模块全绿）**
+- [x] **pin 注册表同步**：`mjs-pins.json` 移除 2PC:83（RL-4 修复后违规不存在——pinnedViolations 已清空，先红后绿流程在案）；JUnit pin 测试断言翻转记录（`TestClusterRegistryConsistencyInvariant` 2 处 + `TestWindowOperatorMergingCleanupInvariant` 2 处 → 不再 pin 缺陷行为）；gate-inventory.json 更新（新增 `pinRegistry` 段：mjsPins 状态 / junitPinFlips 4 条 / 保留行为 pin / 涉及类清单）
+- [x] **red-list.md 状态更新**：RL-1..7 逐条标注「已修复 + 证据（修复 commit / 翻转测试名 + 门禁复跑结果）」——新增 §5 修复状态表；WO 部分不动；RL-3 标注触发闭合；类别清扫结论四族汇总
+- [x] **roadmap 同步**：Work Item I4 状态流转记录（本 plan 转 active 时 `todo`→`planned`；closure audit 通过后 `planned`→`done`）；`## Follow-up Backlog` 的 RL-3 条目状态更新为「已由 I4 触发闭合」（保留历史处置记录）
+- [x] **catalog 行号引用同步**：invariant-catalog §3 中 R15-AR-8 / AR-1 / AR-11 / AR-9 / AR-18 等行号引用以本 plan 修复后 live 为准复核更新——全部转 fixed（§3 表 + §5 不变式 #2/#5 + §6 候选表 + RL-7 新族候选登记）
+- [x] **类别清扫证据汇总**：四族清扫清单 + 逐点核对结论汇总写入本 plan 或 daily log（grep 范围与 I3 裁决表 §3 一致）——red-list.md §5「类别清扫结论汇总（四族）」+ 各 Phase 项内清扫证据
+- [x] `ai-dev/logs/` 对应日期条目已更新（Phase 1-5 逐 phase 追加）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 门禁全绿：五族 JUnit（原 84 + 新增/翻转）0 failure + mjs `all` exit 0 + `./mvnw test -pl nop-stream -am -T 1C` 全量绿
-- [ ] pin 注册表与 live baseline 一致（无 stale pin、无未 pin 静态违规、JUnit pin 断言方向为「已修复」而非「缺陷 pin」）
-- [ ] red-list.md 全部 7 条 RL 标注修复证据；RL-3 backlog 状态已闭合
-- [ ] roadmap Work Item I4 状态与本文档、daily log 一致
-- [ ] **No owner-doc update required 裁定复核**：本 plan 全部 Phase 为类内部行为修复，行为契约不变；catalog/red-list/gate-inventory 属审计文档同步（已列入本 Phase）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 门禁全绿：五族 JUnit（原 84 + 新增/翻转，实测 92）0 failure + mjs `all` exit 0 + `./mvnw test -pl nop-stream -am -T 1C` 全量绿
+- [x] pin 注册表与 live baseline 一致（无 stale pin、无未 pin 静态违规、JUnit pin 断言方向为「已修复」而非「缺陷 pin」）
+- [x] red-list.md 全部 7 条 RL 标注修复证据；RL-3 backlog 状态已闭合
+- [x] roadmap Work Item I4 状态与本文档、daily log 一致
+- [x] **No owner-doc update required 裁定复核**：本 plan 全部 Phase 为类内部行为修复，行为契约不变；catalog/red-list/gate-inventory 属审计文档同步（已列入本 Phase）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。
 
-- [ ] 全部 7 条 red list RL（RL-1..7，**含触发闭合的 RL-3**）已修复，无 in-scope 残留 live defect
-- [ ] test-first 证据在案（每条修复均有先红后绿记录：翻转测试红输出 + 修复后绿输出）
-- [ ] 四族类别清扫证据在案（与 I3 裁决表 §3 清扫范围一致）
-- [ ] 门禁复跑零命中：五族 JUnit + 3 表完备性 0 failure；mjs `all` exit 0；`./mvnw test -pl nop-stream -am -T 1C` 全量绿
-- [ ] pin 注册表同步：`mjs-pins.json` 无 stale pin、无未 pin 违规；JUnit pin 断言全部为「已修复」方向
-- [ ] 无静默跳过（Rule #24）：RL-7 fail-fast 断言绿、无 LOG.warn+丢弃残留；其它修复无空方法体/吞异常路径
-- [ ] **Anti-Hollow Check**：RL-7 端到端路径（sideOutput → ChainingOutput → 消费者）运行时连通已验证；每族修复组件与既有调用方调用链连通（非仅类型存在）
-- [ ] 无 in-scope live defect 被降级到 deferred / follow-up（RL-3 为触发闭合，非延期）
-- [ ] 受影响审计文档（red-list / catalog / gate-inventory / roadmap backlog）已同步，`docs-for-ai/` 无需更新（行为契约不变，显式声明 No owner-doc update required）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（见 Closure 段）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <本plan> --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream --severity high` 退出码 0
-- [ ] `./mvnw test -pl nop-stream -am -T 1C`（mission 验证命令）
-- [ ] checkstyle 通过（`./mvnw checkstyle:check -Pqa -pl nop-stream -am`，root pom 默认配置已注释、仅 qa profile 生效——以输出中无新增 violation 为准，failOnViolation=false 不阻断 exit code）
+- [x] 全部 7 条 red list RL（RL-1..7，**含触发闭合的 RL-3**）已修复，无 in-scope 残留 live defect
+- [x] test-first 证据在案（每条修复均有先红后绿记录：翻转测试红输出 + 修复后绿输出）
+- [x] 四族类别清扫证据在案（与 I3 裁决表 §3 清扫范围一致）
+- [x] 门禁复跑零命中：五族 JUnit + 3 表完备性 0 failure；mjs `all` exit 0；`./mvnw test -pl nop-stream -am -T 1C` 全量绿
+- [x] pin 注册表同步：`mjs-pins.json` 无 stale pin、无未 pin 违规；JUnit pin 断言全部为「已修复」方向
+- [x] 无静默跳过（Rule #24）：RL-7 fail-fast 断言绿、无 LOG.warn+丢弃残留；其它修复无空方法体/吞异常路径
+- [x] **Anti-Hollow Check**：RL-7 端到端路径（sideOutput → ChainingOutput → 消费者）运行时连通已验证；每族修复组件与既有调用方调用链连通（非仅类型存在）
+- [x] 无 in-scope live defect 被降级到 deferred / follow-up（RL-3 为触发闭合，非延期）
+- [x] 受影响审计文档（red-list / catalog / gate-inventory / roadmap backlog）已同步，`docs-for-ai/` 无需更新（行为契约不变，显式声明 No owner-doc update required）
+- [x] 独立子 agent closure-audit 已完成并记录证据（见 Closure 段）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <本plan> --strict` 退出码 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream --severity high` 退出码 0 不可达（工具在存在既有 high findings 时按设计 exit 1，`scan-hollow-implementations.mjs:439`）——**I2 判据在案**：findings 集与基线 commit `34aed42c1` 完全一致（既有 14 项 fail-fast/有意 no-op，diff 完全相同），**无新增 finding**（I2 先例：判据 = findings 集一致而非退出码，工具无豁免机制）
+- [x] `./mvnw test -pl nop-stream -am -T 1C`（mission 验证命令）
+- [x] checkstyle 通过（`./mvnw checkstyle:check -Pqa -pl nop-stream -am`，root pom 默认配置已注释、仅 qa profile 生效——以输出中无新增 violation 为准，failOnViolation=false 不阻断 exit code；实测 0 violations、改动文件零 WARN）
 
 ## Deferred But Adjudicated
 
@@ -239,14 +239,23 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<closure audit 完成后填写：为什么这个 plan 可以关闭>>
-Completed: YYYY-MM-DD
+Status Note: 全部 5 个 Phase（F5 ClusterRegistry RL-1/2/3、F2 2PC RL-4/5、F1 WindowOperator RL-6、输出契约族 RL-7、门禁复跑 + pin 同步 + 文档收口）执行完毕并逐项勾选；独立 fresh-session closure-audit（ses_00a5e04aeffe2zsKbp2PkAD0vR）对全部 Exit Criteria + Closure Gates 逐条对 live repo 验证，verdict **CLOSED**（无 Blocker/Major；3 条可执行 Minor 全部当场修复——scan-hollow 门禁措辞按 I2 判据修正、InMemory getActiveNodes 注释与代码对齐、wireOperators 行号 live 复核修正）。7 条 red list（含触发闭合的 RL-3）全部以 live 代码修复 + 聚焦测试覆盖 + 门禁复跑全绿收口；pin-and-record 注册表（mjs-pins.json + JUnit pin 测试）与 live baseline 同步；为 I5 全量验证与 I6 收口提供已修复基线。
+Completed: 2026-08-12
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立子 agent，closure audit 后填写>>
-- Evidence: <<closure audit 后填写：每条 Exit Criterion / Closure Gate 的 PASS/FAIL + live code path / test name；check-plan-checklist 退出码；Anti-Hollow 检查结果；Deferred 项分类检查>>
+- Reviewer / Agent: 独立子 agent fresh session `ses_00a5e04aeffe2zsKbp2PkAD0vR`（review-only，零文件修改）
+- Evidence:
+  - **Phase 1-5 Exit Criteria 全部 PASS**：P1（RL-1/2 INSERT+UPDATE 双分支写 `now + DEFAULT_LEASE_TIMEOUT_MS`：`JdbcClusterRegistry.java:114/:123/:129`；RL-3 per-renewal：`InMemoryClusterRegistry.java:89/:74/:104-107/:113-119/:130-135`，`leaseTtlMs` 仅用于 registerNode 默认 :74；`TestClusterRegistryConsistencyInvariant` 10/10）；P2（saveState 锁内 copy `TwoPhaseCommitSinkFunction.java:91-93`；setter 包装 :76-81；`TestSynchronizedCollectionInvariant` 12/12，并发用例 4 线程×200ms×20 轮含完整性断言，非空壳）；P3（双 cleanup 分支 retireWindow `WindowOperator.java:787-789/:853-855`，key 参数 + mergingWindows != null 守卫；`TestWindowOperatorMergingCleanupInvariant` 4/4 翻转断言实读核对 :231/:276-279）；P4（端到端链 `WindowOperator.java:1029-1031` → `ChainingOutput.java:111-126` → 消费者收到 ts=50 value=99；接线 `StreamTaskInvokable.java:99/:182/:220` + `:310-313` 公开注册入口 + `TestSideOutputChainingE2E` 3/3；fail-fast `NopStreamErrors.java:104` + `ARG_OUTPUT_TAG` :39，LOG.warn/discarded grep 仅注释残留）；P5（全量 `Test*Invariant*` **92 tests 0 failures**；mjs all exit 0；`mjs-pins.json` pinnedViolations=[]；gate-inventory pinRegistry 段在案；red-list §5 覆盖 RL-1..7；roadmap I4=`done` + RL-3 ✅）
+  - **Closure Gates 全部 PASS**（2 条注记）：`check-plan-checklist.mjs --strict` exit 0（76/76 勾选）；`check-doc-links.mjs --strict` exit 0（0 errors，9 warnings 均非本 plan——6 条 I5 plan 引用未产出的 `cycle1-I6-input.md` 归 I6、3 条无关 credential plan）；`scan-hollow-implementations.mjs --module nop-stream --severity high` findings 集与基线 commit `34aed42c1` **diff 完全相同**（既有 14 项 fail-fast/有意 no-op，无新增——工具在既有 high findings 时按设计 exit 1，判据 = findings 集一致，I2 先例）；`./mvnw test -pl nop-stream -am -T 1C` BUILD SUCCESS；checkstyle `-Pqa` 0 violations（改动文件零 WARN）
+  - **Anti-Hollow 检查**：RL-7 端到端调用链运行时连通（`testInvokableWiredChainingOutputDeliversSideOutput` 经真实 OperatorChain 接线收到记录，非仅类型存在）；`TimestampedCollector.collect(OutputTag)` 纯转发；修复方法无空分支/吞异常/固定 ttl 回退；RL-4 并发用例实质断言（非冒烟壳）
+  - **Deferred 项分类检查**：RL-3 为触发闭合（非延期）；I2 非族候选评估（R13-AR-9/R16-AR-19,20/R8-AR-59/R16-AR-13）为 watch-only residual 移交 I6；跨 task 侧输出 no-op（RecordWriterOutput/BroadcastingRecordWriterOutput）线协议结构性变更移交 I6 人工确认——无 in-scope live defect 被降级
+- Audit session: `ses_00a5e04aeffe2zsKbp2PkAD0vR`
 
 Follow-up:
 
-- <<closure 后填写：只记录 non-blocking follow-up；confirmed live defect 不得出现在这里>>
+- I5 全量验证与 full-green 记录：`2026-08-12-1217-6-...` 承接（I5 plan Phase 1 硬依赖本 plan completed，现解除）。
+- 输出契约族门禁建设（Cycle 2 / I1，PD-15）：本 plan RL-7 修复为 live 修复基线，I6 正式追加 roadmap work item 后执行；跨 task 侧输出线协议结构性变更 = I6 人工确认候选。
+- 跨 task 侧输出（`RecordWriterOutput` / `BroadcastingRecordWriterOutput` collect(OutputTag) no-op）：已记录为同族已知实例，移交 I6 评估（线协议结构性变更，需人工确认）。
+- `recover(long checkpointId)`（TwoPhaseCommitSinkFunction:67）零调用点死方法：记录，不修复（类别清扫处置记录）。
+- no remaining plan-owned work（本 plan 全部 in-scope 项已落地）。

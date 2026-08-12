@@ -2,6 +2,47 @@
   "schemaVersion": 1,
   "updated": "2026-08-12",
   "classifier": "I0 §4.1 mechanical form: change-type methods = public/protected/package-private (non-private) methods declared by the class/interface itself; excluded: private, static, abstract-in-classes, constructors, synthetic/bridge, test-only accessors (get/set*ForTesting), 0-param read accessors named get*/is*/has* (getAnd*/getOr* are mutators and ARE included). Mirrored by ChangeTypeMethodClassifier in nop-stream-core/src/test and the mjs parser in check-nop-stream-invariants.mjs.",
+  "pinRegistry": {
+    "note": "I4 (plan 2026-08-12-1217-5) pin-registry sync: static pins (mjs-pins.json) and JUnit behavior pins aligned to the fixed baseline.",
+    "mjsPins": {
+      "status": "empty",
+      "detail": "mjs-pins.json pinnedViolations = [] (was: 1 pin TwoPhaseCommitSinkFunction.java:83). RL-4 fix removed the violation; the pin was removed first (red) then the fix landed (green). No stale pins, no unpinned violations; `mjs all` exit 0."
+    },
+    "junitPinFlips": [
+      {
+        "test": "TestClusterRegistryConsistencyInvariant.testRegisterNodeVisibilityIsPinnedPerImpl (jdbc branch)",
+        "before": "pinned defect: JDBC registerNode writes lease_expire_at=0L -> NOT visible after register",
+        "after": "RL-1 fixed: immediately visible (assertion flipped)"
+      },
+      {
+        "test": "TestClusterRegistryConsistencyInvariant.testRenewLeasePerRenewalTimeoutIsPinnedPerImpl (inmemory branch)",
+        "before": "pinned defect: InMemory ignores leaseTimeoutMs -> expireAt-startAt ~15s",
+        "after": "RL-3 fixed: per-renewal 5s honored (assertion flipped)"
+      },
+      {
+        "test": "TestWindowOperatorMergingCleanupInvariant.testSessionWindowCleanupRetainsMergingWindowIsPinned",
+        "before": "pinned leak: cleaned window retained in MergingWindowSet",
+        "after": "RL-6 fixed: retired (assertion flipped)"
+      },
+      {
+        "test": "TestWindowOperatorMergingCleanupInvariant.testSessionWindowCleanupAndLaterElementMergesIntoStaleRangeIsPinned",
+        "before": "pinned stale-range resurrection: later element merges into cleaned [10,60)",
+        "after": "RL-6 fixed: fresh window [55,105) (assertion flipped)"
+      }
+    ],
+    "behaviorPinsRetained": [
+      "TestSynchronizedCollectionInvariant.testSaveStatePinsSnapshotContentComplete (content completeness; lock state now covered by mjs scan, pin removed)",
+      "TestClusterRegistryConsistencyInvariant.testEvictionExpiresNode / testConsistentLifecycleAcrossImpls (semantic consistency, no pin direction)"
+    ],
+    "involvedClasses": [
+      "JdbcClusterRegistry",
+      "InMemoryClusterRegistry",
+      "TwoPhaseCommitSinkFunction",
+      "WindowOperator",
+      "ChainingOutput",
+      "StreamTaskInvokable"
+    ]
+  },
   "modules": {
     "nop-stream-core": {
       "io.nop.stream.core.datastream.WindowedStreamImpl": {

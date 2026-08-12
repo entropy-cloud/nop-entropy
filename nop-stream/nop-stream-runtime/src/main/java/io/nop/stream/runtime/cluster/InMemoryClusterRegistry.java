@@ -128,8 +128,9 @@ public class InMemoryClusterRegistry implements ClusterRegistry {
         List<NodeInfo> active = new ArrayList<>();
         for (Map.Entry<String, NodeInfo> entry : nodes.entrySet()) {
             Long expireAt = leaseExpireTimes.get(entry.getKey());
-            // registerNode always populates leaseExpireTimes together with nodes (same lock), so a
-            // missing entry is an invariant violation — surface it instead of silently skipping.
+            // registerNode populates leaseExpireTimes together with nodes under the same
+            // lock, so a missing entry is unreachable in practice; treat it defensively as
+            // inactive rather than crashing the liveness view.
             if (expireAt != null && expireAt > now) {
                 active.add(entry.getValue());
             }

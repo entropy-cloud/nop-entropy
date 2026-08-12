@@ -44,7 +44,7 @@ I0 盘点基线 → I1 沉淀不变式(→门禁入CI) → I2 按不变式审计
 | Cycle 1 / I1. 不变式沉淀（首批门禁） | 将首批不变式落为参数化穷举测试 + 门禁脚本 + 表完备性门禁。首批候选族（I0 确认后定稿）：① WindowAggregationOperator 构造参数完备性（每个构造器参数列表必须 round-trip 全部 WindowedStreamImpl 字段）；② Collections.synchronizedMap/Xxx 字段迭代点必须在 synchronized 块内；③ Checkpoint idCounter 更新原子性；④ CEP SharedBuffer/Lockable 释放对称性；⑤ ClusterRegistry 多实现语义一致性（lease timeout）。门禁入 CI（JUnit `@ParameterizedTest` + `ai-dev/tools/check-nop-stream-invariants.mjs`） | `done` | I0 |
 | Cycle 1 / I2. 不变式驱动审计 | ① 跑 I1 门禁跨全部方法 → red list（确定性）；② 对抗探查聚焦门禁未表达盲区（新交错组合、refactor 引入新方法、跨 Operator 参数遗漏）；③ 标注每条发现属已知族或新族 | `done` | I1 |
 | Cycle 1 / I3. 发现裁决与工作项拟制 | red list 逐条裁决（P0/P1/P2/P3）→ P0/P1 派 I4；新族派 Cycle 2 / I1（Loop Rule）；裁决表零悬挂 | `done` | I2 |
-| Cycle 1 / I4. 修复执行（实例 + 类别清扫 + 测试） | 强制类别清扫（修任一 Operator/SinkFunction 必 grep 全部同类兄弟）+ test-first（先红后绿）+ 不变式门禁复跑零命中；WindowAggregationOperator 族历史案例作为回归基线 | `planned` | I3 |
+| Cycle 1 / I4. 修复执行（实例 + 类别清扫 + 测试） | 强制类别清扫（修任一 Operator/SinkFunction 必 grep 全部同类兄弟）+ test-first（先红后绿）+ 不变式门禁复跑零命中；WindowAggregationOperator 族历史案例作为回归基线。**执行结果（plan `2026-08-12-1217-5`）**：RL-1..7 全部修复（含 RL-3 backlog 触发闭合）；四族类别清扫证据在案；92 门禁 + 全量 `-am` 全绿；mjs pins 清零 | `done` | I3 |
 | Cycle 1 / I5. 全量验证与门禁零命中 | `./mvnw test -pl nop-stream -am -T 1C` + 门禁零命中 + 相关 e2e；full-green 记录 | `planned` | I4 |
 | Cycle 1 / I6. 循环收口与下一轮触发判定 | 统计本轮门禁数/red list/新族数；有新族 → 派 Cycle 2（Loop Rule）；无新族且 red list 零 → 稳态暂停 + 登记复触发条件；closure 独立 fresh session | `todo` | I5 |
 
@@ -116,4 +116,4 @@ flowchart LR
 - **Source**: `ai-dev/audits/nop-stream-invariants/red-list.md` RL-3（2026-08-12 I2 权威版）(P2)
 - **Description**: `InMemoryClusterRegistry.java:68-81` renewLease 只存 `now`（:74），忽略 per-renewal `leaseTimeoutMs` 参数；`:90/:98/:114` 活性计算全部用固定 `leaseTtlMs`（15s）→ InMemory（嵌入式/单机执行模式，`EmbeddedDistributedExecutor.java:134` / `RpcDistributedExecutor.java:191` 生产接线）语义与 JDBC 实现不一致，违反不变式 #5(b)。
 - **Recommendation**: renewLease 记录 `now + leaseTimeoutMs` 并按参数计算活性；同步核对 `evictExpiredNodes`/`getActiveNodes`/`getNodeLease`。
-- **Status**: 🔲 Open（P2，待触发）— 触发条件：I4 修 F5 族（WI-1）类别清扫时顺手覆盖；或复探发现 InMemory 模式故障检测延迟造成用户可见影响。I2 动态验证载体：`TestClusterRegistryConsistencyInvariant.testRenewLeasePerRenewalTimeoutIsPinnedPerImpl` InMemory 分支 pin。
+- **Status**: ✅ 已由 I4 触发闭合（2026-08-12，plan `2026-08-12-1217-5` Phase 1，commit `fcc71fc05`）— renewLease 按 `leaseTimeoutMs` 参数计算过期时间（`InMemoryClusterRegistry.java:88-89`），getNodeLease/evictExpiredNodes/getActiveNodes 全部读存储 expireAt；翻转测试 `TestClusterRegistryConsistencyInvariant.testRenewLeasePerRenewalTimeoutIsPinnedPerImpl`（InMemory 分支）+ 新增 `testInMemoryRenewLeaseHonorsPerRenewalTimeout` 全绿。历史处置记录保留如上。

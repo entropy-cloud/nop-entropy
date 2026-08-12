@@ -1,6 +1,6 @@
 # nop-stream I2 red list（权威版，移交 I3 裁决）
 
-> Status: active
+> Status: active（7 条 RL 已于 I4 全部修复，见 §5 修复状态；WO 部分为历史裁定记录不动）
 > Created: 2026-08-12 (I1 pin-and-record 版)；2026-08-12 I2 升级为确定性 red list（门禁全量运行 + watch-only 裁定 + 聚焦探查合并）
 > Sources: I1 plan `2026-08-12-1217-2-nop-stream-invariants-cycle1-I1-first-gates.md`（pin 登记）；
 > I2 plan `2026-08-12-1217-3-nop-stream-invariants-cycle1-I2-invariant-driven-audit.md`（red list 权威化）；
@@ -223,6 +223,30 @@
 - 门禁保持全绿（pin-and-record 语义下，I2 未引入新 CI 红；mjs `all` exit 0 + 五族 JUnit 0 failures 复验在案）。
 - I2 未改动任何被测类代码（Non-Goals 遵守）；全部结论基于 live 代码 + 测试载体。
 - 顺带同步：I0 catalog §3 的 R15-AR-8 行号引用（:776-783 → :773-783，live 行号以本次复核为准）——由 Phase 4 写入 catalog。
+
+---
+
+## 5. 修复状态（I4 执行结果，2026-08-12）
+
+> I4 plan `2026-08-12-1217-5-nop-stream-invariants-cycle1-I4-fix-execution.md` 执行完毕（test-first 先红后绿 + 类别清扫 + 门禁复跑零命中）。全部 7 条 RL（含触发闭合的 RL-3）已修复；RL-1..7 修复证据见下。WO 部分（§2）为 I2 历史裁定记录，不动。
+
+| RL | 严重度 | 修复 commit | 翻转/新增测试（先红后绿） | 门禁复跑 |
+|---|---|---|---|---|
+| RL-1（JDBC INSERT 0L）+ RL-2（过滤互为表里） | P1 | `fcc71fc05` | `TestClusterRegistryConsistencyInvariant.testRegisterNodeVisibilityIsPinnedPerImpl`（JDBC 分支翻转）+ 新增 `testJdbcReregisterAfterLeaseExpiryIsImmediatelyVisible`（UPDATE 路径子用例） | 4 失败红 → 10/10 绿 |
+| RL-3（InMemory per-renewal） | P2 触发闭合 | `fcc71fc05` | `testRenewLeasePerRenewalTimeoutIsPinnedPerImpl`（InMemory 分支翻转）+ 新增 `testInMemoryRenewLeaseHonorsPerRenewalTimeout` | 同上 |
+| RL-4（saveState 无锁 copy） | P0 | `fcc71fc05` | mjs pin（mjs-pins.json 2PC:83）移除后 scan 变红 → 修复后违规清零；新增 `TestSynchronizedCollectionInvariant.testSaveStateConcurrentWithCommitAbortIsSafe` | `mjs all` exit 0；`nop-stream-core` 1418 全绿 |
+| RL-5（setPendingCommits 任意 Map） | P1 | `fcc71fc05` | 新增 `testSetPendingCommitsWrapsUnsafeMap`（防御性拷贝确定性断言 + 并发冒烟） | 同上 |
+| RL-6（cleanup 不 retire merging window） | P1 | `58255014b` | `TestWindowOperatorMergingCleanupInvariant` 2 pin 断言翻转 + 新增长跑收敛 + processing-time 分支用例（onProcessingTime 同型缺失一并修复） | 4 失败红 → 4/4 绿；WindowRoundTrip 9 / Window E2E 13 全绿 |
+| RL-7（ChainingOutput 静默丢弃 side-output） | P1 | `b20fcd0e1` | 新增 `TestSideOutputChainingE2E`（端到端转发 / 无消费者 fail-fast / StreamTaskInvokable 接线 3 用例）——先红 3/3，修复后 3/3 绿 | runtime 804 / core 1418 / cep 320 全绿；`mjs all` exit 0 |
+
+- **修复基线门禁复跑（2026-08-12 实测）**：五族 JUnit 门禁 92 tests 0 failures（原 84 + ClusterRegistry +2 / SynchColl +2 / MergingCleanup +2 + 表完备性不变）；`./mvnw test -pl nop-stream -am -T 1C` BUILD SUCCESS；`node ai-dev/tools/check-nop-stream-invariants.mjs all` exit 0（无 stale pin、无未 pin 违规）；`mjs-pins.json` pinnedViolations 已清空（2PC:83 修复后移除）。
+- **类别清扫结论汇总（四族）**：
+  - F5：两实现全部 lease 路径一致（InMemory 5 方法 + JDBC INSERT/UPDATE/renewLease/getActiveNodes/getNodeLease）；`NodeDiscoveryConsistencyChecker` 仅消费 `getActiveNodes()`，视图自动一致；`JdbcLeaderElector`（leader 选举租约）不属本族。
+  - F2：`pendingCommits` 全使用点锁路径核对（saveState 修复 + finishCommit/restoreFromEpoch 对照面已同步）；synchronized 集合 4 类全在门禁表；`BatchConsumerSinkFunction` buffer 为文档化 unsynchronized by design（非契约违约）；`recover(:67)` 零调用点死方法记录不修。
+  - F1：`MergingWindowSet` 生产消费方仅 WindowOperator；retireWindow 三调用点（:657 既有 + :788/:854 双 cleanup 修复）全部以 mapping key 为参数；生产 MergingWindowAssigner 仅 EventTimeSessionWindows；purge ≠ GC cleanup（Flink 等价语义）不在清扫范围。
+  - 输出契约族：`ChainingOutput` 为唯一 in-task 静默丢弃点（已修）；`TimestampedCollector.collect(OutputTag)` 纯转发（非丢弃点）；**跨 task no-op（`RecordWriterOutput` :645 / `BroadcastingRecordWriterOutput` :706）记录为同族已知实例 + 处置依据（线协议结构性变更）→ 移交 I6 人工确认候选**；call-site 全核对（WindowOperator.sideOutput :1029-1031 / CepOperator :482-483/:770）。
+- **双轨标注**：RL-7 修复为 Cycle 2 / PD-15（输出契约族不变式，I6 追加）提供 live 修复基线；跨 task 侧输出线协议结构性变更移交 I6 人工确认。
+- **RL-3 backlog 状态**：已由 I4 触发闭合（roadmap Follow-up Backlog 条目状态已更新，保留历史处置记录）。
 
 ---
 

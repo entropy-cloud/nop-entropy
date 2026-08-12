@@ -152,10 +152,10 @@
 
 | finding-ID | 旧类 → live 类 | 状态 | 证据（live 文件:行） |
 |---|---|---|---|
-| R16-AR-9 | JdbcClusterRegistry | **residual** | `JdbcClusterRegistry.java:112-115` INSERT 仍写 `lease_expire_at=0L`（:115）；`:172-174` getActiveNodes 仍按 `lease_expire_at > now` 过滤（:174）。**I2 red list 候选** |
-| R16-AR-18 | InMemoryClusterRegistry | **residual** | `InMemoryClusterRegistry.java:68-81` renewLease 仍忽略 `leaseTimeoutMs` 参数（:74 只存时间戳）；`:90/:98/:114` 仍用固定 `leaseTtlMs`。**I2 red list 候选** |
-| R16-AR-1 | TwoPhaseCommitSinkFunction | **residual** | `TwoPhaseCommitSinkFunction.java:83` saveState() 的 `new TreeMap<>(pendingCommits)` 无 synchronized 块。**I2 red list 候选** |
-| R16-AR-11 | TwoPhaseCommitSinkFunction | **residual** | `TwoPhaseCommitSinkFunction.java:76-78` setPendingCommits() 仍接受任意 Map（未包装 synchronizedMap）。调用方 `StreamSinkOperator.java:157` restore 路径已主动包装 synchronizedMap —— 部分缓解但 setter 本身未防护。**I2 red list 候选** |
+| R16-AR-9 | JdbcClusterRegistry | **fixed（I4）** | I4 修复（plan `2026-08-12-1217-5` Phase 1，commit `fcc71fc05`）：INSERT 与 UPDATE 分支均写 `lease_expire_at = now + DEFAULT_LEASE_TIMEOUT_MS(15000L)`（`JdbcClusterRegistry.java:114/:122-123`）；`:174` getActiveNodes 过滤语义不变（RL-2 互为表里）。翻转测试 `TestClusterRegistryConsistencyInvariant.testRegisterNodeVisibilityIsPinnedPerImpl`（JDBC 分支）+ 新增 `testJdbcReregisterAfterLeaseExpiryIsImmediatelyVisible`（UPDATE 路径） |
+| R16-AR-18 | InMemoryClusterRegistry | **fixed（I4）** | I4 修复（同上 commit）：`renewLease` 存 `now + leaseTimeoutMs`（`InMemoryClusterRegistry.java:88-89`），registerNode 存 `now + leaseTtlMs`（:72-74）；`:99-107/:113-118/:130` 活性判定全部读存储 expireAt。翻转测试 `testRenewLeasePerRenewalTimeoutIsPinnedPerImpl`（InMemory 分支）+ 新增 `testInMemoryRenewLeaseHonorsPerRenewalTimeout` |
+| R16-AR-1 | TwoPhaseCommitSinkFunction | **fixed（I4）** | I4 修复（plan Phase 2，commit `fcc71fc05`）：saveState copy 移入 `synchronized (pendingCommits)`（`TwoPhaseCommitSinkFunction.java:87-93`）；mjs pin（mjs-pins.json 2PC:83）已移除，scan 违规清零。新增 `TestSynchronizedCollectionInvariant.testSaveStateConcurrentWithCommitAbortIsSafe` |
+| R16-AR-11 | TwoPhaseCommitSinkFunction | **fixed（I4）** | I4 修复（同上 commit）：setPendingCommits 内部包装 `Collections.synchronizedMap(new TreeMap<>(pending))`（`TwoPhaseCommitSinkFunction.java:76-81`）。新增 `TestSynchronizedCollectionInvariant.testSetPendingCommitsWrapsUnsafeMap` |
 | R16-AR-2 | WindowedStreamImpl → WindowOperator | **fixed** | `WindowedStreamImpl.java:186/:201/:216/:231` 4 个 call-site 均传 `assigner, trigger, evictor, allowedLateness, function, elementType, keySelector, keyClass`；`WindowOperatorFactoryImpl.java:29-119` 4 个 create*Operator 全参数转发；`WindowOperatorBuilder.java:183-203` buildWindowOperator 14 参数全部传入 `WindowOperator` 构造器 |
 | R15-AR-3 | WindowAggregationOperator → WindowOperator | **fixed** | `WindowOperator.java:644` 已调用 `triggerContext.onMerge(mergedWindows)`；`:652` 调 `mergeWindowContents` |
 | R16-AR-8 | Lockable | **fixed** | `Lockable.java:56-66` release() CAS + refCounter<=0 抛 `StreamRuntimeException`；`:68-81` releaseOrDetach() 同样 CAS + 负数 fail-fast |
@@ -175,7 +175,7 @@
 | R16-AR-4 | WindowAggregationOperator → WindowOperator | **fixed** | 旧合并多目标路径已随 `WindowAggregationOperator` 删除（git `905d6411a`）；live 合并路径集中于 `WindowOperator.java:641-652`（单 merged window + onMerge） |
 | R13-AR-5 / R14-AR-1 | WindowAggregationOperator → WindowOperator | **fixed（随类删除）** | 旧 `#`/`:` 分隔符序列化路径已删除；live `WindowOperator` 状态键用结构化描述符（stateDesc） |
 | R13-AR-6 | WindowOperator | **fixed** | 非累加器回退路径改为显式 fail-fast：`WindowOperator.java:1462-1472` 非累加器冲突抛 `ERR_STREAM_WINDOW_NON_ACCUMULATOR_MERGE_CONFLICT`（`mergeWindowContents` 定义于 :1336） |
-| R15-AR-8 | WindowOperator | **待 I2 动态验证** | `WindowOperator.java:773-783` onEventTime cleanup 分支未见 `retireWindow` 调用（MergingWindowSet 收敛性待 I2 验证）——watch-only residual（I2 复核：行号以 :773-783 为准；动态验证确认泄漏 → red list RL-6） |
+| R15-AR-8 | WindowOperator | **fixed（I4）** | I2 动态验证确认泄漏 → red list RL-6；I4 修复（plan Phase 3，commit `58255014b`）：onEventTime cleanup 分支补 `mergingWindows.retireWindow(triggerContext.window)`（`:788`，mapping key = cleanup timer namespace），**类别清扫发现 onProcessingTime 同型缺失一并修复**（`:854`）；非 merging 路径不需要 retire。翻转测试 `TestWindowOperatorMergingCleanupInvariant` 2 断言 + 新增长跑收敛 / processing-time 分支用例 |
 | R15-AR-9 | InputGate | **fixed** | `InputGate.java:625-674` handleBarrierNonRecursive 已改为 per-id `inFlightAlignments` 对齐，跨 channel 重叠 barrier 按 checkpoint ID 分离 |
 
 **核实方法**：所有 `fixed` 结论均以 2026-08-12 live 源码 + 上述 `文件:行` 为据；R16 AR-1/AR-11/AR-9/AR-18 的 residual 结论同样 live 实测。
@@ -272,7 +272,7 @@
 - **覆盖失败族**：F2（SinkFunction 族并发守卫）
 - **历史审计证据**：R16-AR-1（`r16/01-open-findings.md`，`TwoPhaseCommitSinkFunction.saveState()` 无锁遍历）；R16-AR-11（`r16/01-open-findings.md`，setPendingCommits 接受任意 Map 破坏同步保证）；R11-AR-3（`r11/01-open-findings.md`，finishCommit 迭代未同步）；R12-AR-1（`r12/01-open-findings.md`，saveState 返回 null 同文件 :66-71）。
 - **检测方法**：JUnit `@ParameterizedTest` 或 mjs 静态扫描——枚举 live 代码中 `Collections.synchronized*` 字段，检查其所有使用点（引用/迭代/copy）是否在 `synchronized` 块内。
-- **live 修复状态**：partial——`finishCommit` 已同步（`TwoPhaseCommitSinkFunction.java:101-118`），但 `saveState()`(:83) 仍无锁 copy、`setPendingCommits()`(:76-78) 仍接受任意 Map。**I2 red list 候选**（`TwoPhaseCommitSinkFunction.java:83`）。
+- **live 修复状态**：fixed（I4）——`saveState()`(:87-93) copy 已入 `synchronized (pendingCommits)`；`setPendingCommits()`(:76-81) 内部包装 synchronizedMap；`finishCommit` :101-118 / `restoreFromEpoch` :158-167/:178-180/:190-192 已同步（对照面）；`recover(:67)` 零调用点死方法（记录不修）；mjs `mjs-pins.json` 2PC:83 pin 已移除、scan 违规清零。**I4 red list 修复**（RL-4/RL-5）。
 
 ### 不变式 #3 — CheckpointIDCounter 更新原子性 / 恢复后单调性
 
@@ -296,27 +296,31 @@
 - **覆盖失败族**：F5（ClusterRegistry 族）
 - **历史审计证据**：R16-AR-9（`r16/01-open-findings.md`，Jdbc registerNode 写 0L + getActiveNodes 过滤 `> now`）；R16-AR-18（`r16/01-open-findings.md`，InMemory 忽略 leaseTimeoutMs 硬编码 15s）。
 - **检测方法**：JUnit `@ParameterizedTest`——以 `ClusterRegistry` 接口为表，对两个实现（Jdbc + InMemory）跑同一语义断言集：注册即可见、renewLease 用自定义 timeout 后节点在超时前活跃/超时后不活跃、过期判定一致。
-- **live 修复状态**：**residual**——`JdbcClusterRegistry.java:112-115` INSERT 仍写 0L、`:172-174` 仍过滤 `lease_expire_at > now`（AR-9 未修复）；`InMemoryClusterRegistry.java:68-81` renewLease 仍忽略 `leaseTimeoutMs`（AR-18 未修复）。**I2 red list 候选**（两条）。
+- **live 修复状态**：fixed（I4，plan `2026-08-12-1217-5` Phase 1）——JDBC INSERT/UPDATE 双分支写有效租约（`JdbcClusterRegistry.java:114/:122-123`），InMemory 按 per-renewal 参数计算过期时间（`InMemoryClusterRegistry.java:88-89/:99-107/:113-118/:130`）；两实现语义一致（翻转后的 `TestClusterRegistryConsistencyInvariant` 断言两实现同语义）。**I4 red list 修复**（RL-1/RL-2/RL-3）。
 
 ---
 
 ## 6. I2 关注点汇总（red list 候选 + 非族候选）
 
-### I2 red list 候选（residual 不变式命中点）
+### I2 red list 候选（residual 不变式命中点）— 全部于 I4 修复（2026-08-12，plan `2026-08-12-1217-5`）
 
-| # | 位置 | 关联不变式 | 对应 finding |
-|---|---|---|---|
-| 1 | `JdbcClusterRegistry.java:112-115`（INSERT lease_expire_at=0L） | #5 | R16-AR-9 |
-| 2 | `JdbcClusterRegistry.java:172-174`（getActiveNodes 按 > now 过滤） | #5 | R16-AR-9 |
-| 3 | `InMemoryClusterRegistry.java:68-81`（renewLease 忽略 leaseTimeoutMs） | #5 | R16-AR-18 |
-| 4 | `TwoPhaseCommitSinkFunction.java:83`（saveState 无锁 copy） | #2 | R16-AR-1 |
-| 5 | `TwoPhaseCommitSinkFunction.java:76-78`（setPendingCommits 接受任意 Map） | #2 | R16-AR-11 |
+| # | 位置 | 关联不变式 | 对应 finding | I4 处置 |
+|---|---|---|---|---|
+| 1 | `JdbcClusterRegistry.java:112-115`（INSERT lease_expire_at=0L） | #5 | R16-AR-9 | **fixed**（RL-1） |
+| 2 | `JdbcClusterRegistry.java:172-174`（getActiveNodes 按 > now 过滤） | #5 | R16-AR-9 | **fixed**（RL-2，与 RL-1 互为表里） |
+| 3 | `InMemoryClusterRegistry.java:68-81`（renewLease 忽略 leaseTimeoutMs） | #5 | R16-AR-18 | **fixed**（RL-3，backlog 触发闭合） |
+| 4 | `TwoPhaseCommitSinkFunction.java:83`（saveState 无锁 copy） | #2 | R16-AR-1 | **fixed**（RL-4） |
+| 5 | `TwoPhaseCommitSinkFunction.java:76-78`（setPendingCommits 接受任意 Map） | #2 | R16-AR-11 | **fixed**（RL-5） |
 
 ### I2 watch-only residual（不阻塞门禁，但需验证）
 
 - `LocalFileCheckpointStorage.java:116-138` 仍按文件名 ID 排序（R16-AR-15）；因 AR-5 已修而级联解除。
-- `WindowOperator.java:773-783` onEventTime cleanup 路径未显式 `retireWindow`（R15-AR-8 相关）——live 代码在 cleanup 分支未见 retireWindow 调用，需 I2 动态验证 MergingWindowSet 是否随 cleanup 收敛（I2 已动态验证确认泄漏 → red list RL-6，行号以 :773-783 为准）。
+- `WindowOperator.java:773-783` onEventTime cleanup 路径未显式 `retireWindow`（R15-AR-8 相关）——live 代码在 cleanup 分支未见 retireWindow 调用，需 I2 动态验证 MergingWindowSet 是否随 cleanup 收敛（I2 已动态验证确认泄漏 → red list RL-6 → **I4 已修复**，见 §3 R15-AR-8 行）。
 - `InputGate.java:625-674` handleBarrierNonRecursive 已改为 per-id `inFlightAlignments` 对齐（R15-AR-9 跨 channel 重叠 barrier 路径已按 checkpoint ID 分离），需 I2 验证 `maxConcurrentCheckpoints>1` 场景语义成立。
+
+### I2 新族候选（输出契约族，RL-7）
+
+- **RL-7**：`ChainingOutput.java` `collect(OutputTag, record)` 静默丢弃 side-output（R15-AR-4）——I4 已修复（plan Phase 4，commit `b20fcd0e1`）：转发至注册消费者（共享 consumer map + `StreamTaskInvokable.registerSideOutputConsumer`），无消费者 fail-fast（`ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER`）；`Output` 接口契约零变更；跨 task no-op（`RecordWriterOutput`/`BroadcastingRecordWriterOutput`）为线协议结构性变更 → 移交 I6 人工确认候选；双轨 PD-15（输出契约族不变式）移交 I6 追加 Cycle 2。
 
 ### 非五族但同族复发的候选（I2 对抗探查评估升格）
 
