@@ -17,6 +17,8 @@ public interface JobCoreErrors {
     String ARG_DISPATCH_MODE = "dispatchMode";
     String ARG_JOB_FIRE_ID = "jobFireId";
     String ARG_TASK_COST = "taskCost";
+    String ARG_SERVICE_NAME = "serviceName";
+    String ARG_HEALTHY_COUNT = "healthyCount";
 
     ErrorCode ERR_JOB_TRIGGER_LOOP_COUNT_EXCEED_LIMIT = define("nop.err.job.trigger.loop-count-exceed-limit",
             "Trigger calculation loop count exceeded limit", ARG_LOOP_COUNT);
@@ -97,8 +99,20 @@ public interface JobCoreErrors {
             "IWorkerCapacityProvider is not injected; cannot evaluate worker-side resource limit");
 
     ErrorCode ERR_JOB_DISPATCH_MODE_NOT_IMPLEMENTED = define("nop.err.job.dispatch-mode-not-implemented",
-            "dispatchMode '{dispatchMode}' is not yet implemented (jobFireId={jobFireId}); use 'single', 'partition', or 'broadcast' instead",
+            "dispatchMode '{dispatchMode}' is not yet implemented (jobFireId={jobFireId}); use 'single', 'partition', 'broadcast', or 'bestFit' instead",
             ARG_DISPATCH_MODE, ARG_JOB_FIRE_ID);
+
+    ErrorCode ERR_JOB_SERVICE_NAME_REQUIRED = define("nop.err.job.service-name-required",
+            "serviceName is required for dispatchMode '{dispatchMode}' (jobFireId={jobFireId}); add a string 'serviceName' param to the job params",
+            ARG_DISPATCH_MODE, ARG_JOB_FIRE_ID);
+
+    ErrorCode ERR_JOB_DISCOVERY_CLIENT_REQUIRED = define("nop.err.job.discovery-client-required",
+            "IDiscoveryClient is not injected for service '{serviceName}'; configure discovery to use broadcast/partition dispatch",
+            ARG_SERVICE_NAME);
+
+    ErrorCode ERR_JOB_NO_AVAILABLE_INSTANCE = define("nop.err.job.no-available-instance",
+            "No healthy instance found for service '{serviceName}' (healthyCount={healthyCount}); dispatch-failed, fire stays DISPATCHING until timeout recovery",
+            ARG_SERVICE_NAME, ARG_HEALTHY_COUNT);
 
     ErrorCode ERR_JOB_NO_FITTING_WORKER = define("nop.err.job.no-fitting-worker",
             "No worker can fit task cost {taskCost} for service '{serviceName}'; either reduce cost, add workers, or switch dispatchMode to single",

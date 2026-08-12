@@ -19,8 +19,11 @@ public interface IJobTaskBuilder {
 
     /**
      * AR-99 类型安全的 serviceName 提取。jobParams 中 {@code serviceName} 为 String 时返回之；
-     * 缺失、null、或非 String 类型（如数字/JSON 对象）时返回 null（调用方据此 fallback 到 single 模式），
-     * 避免 {@code (String) jobParams.get("serviceName")} 在非 String 时抛 ClassCastException 中断批次。
+     * 缺失、null、或非 String 类型（如数字/JSON 对象）时返回 null。
+     * Plan 339：service 型 builder 不再据此 fallback 到 single 模式——调用方（共享基类
+     * {@link AbstractServiceTaskBuilder#requireServiceName}）对 null 结果显式抛
+     * {@code ERR_JOB_SERVICE_NAME_REQUIRED}，避免 {@code (String) jobParams.get("serviceName")}
+     * 在非 String 时抛 ClassCastException 中断批次。
      */
     static String resolveServiceName(Map<String, Object> jobParams) {
         if (jobParams == null) {

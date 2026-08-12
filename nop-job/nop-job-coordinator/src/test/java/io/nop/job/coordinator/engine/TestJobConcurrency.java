@@ -308,7 +308,7 @@ public class TestJobConcurrency extends JunitBaseTestCase {
         dispatcher.setFireStore(fireStore);
         DefaultJobTaskBuilder defaultBuilder = new DefaultJobTaskBuilder();
         defaultBuilder.setDaoProvider(daoProvider);
-        dispatcher.setDefaultTaskBuilder(defaultBuilder);
+        dispatcher.setTaskBuilders(Map.of("single", (IJobTaskBuilder) defaultBuilder));
         dispatcher.setBatchSize(10);
         dispatcher.setLockTimeoutMs(1000);
         dispatcher.setAssignedPartitions("1");

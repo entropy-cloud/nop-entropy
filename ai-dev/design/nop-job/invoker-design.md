@@ -1,8 +1,8 @@
 # nop-job Invoker 设计文档
 
-**日期**：2026-05-17（v5 更新：executorKind 统一路由，废弃 executorRef）
+**日期**：2026-05-17（v5 更新：executorKind 统一路由，废弃 executorRef；v6 更新：plan 339 路由收敛——dispatchMode 单一路由 + Map 注入，同步 §1.8/§2.5/§3.2/§3.5/§3.6/§6.11）
 **范围**：`nop-job` 的 IJobInvoker / IJobTaskBuilder / IJobWorker 设计
-**状态**：草案 v5，待确认
+**状态**：v6（与 live baseline 同步），历史版本见 git
 
 ---
 
@@ -15,7 +15,7 @@
 5. **不需要 executorMethod**。RPC 调用的 serviceName、serviceMethod 等参数由 invoker 自行从 `jobParams` 中解析。
 6. **RPC invoker 注入 `IRpcServiceInvoker`**（平台已有的 `nopRpcServiceInvoker` bean），利用已有服务发现和负载均衡。
 7. **RPC 调用参数由 header + data 两部分构成**，都从 `jobParams` 解析。`jobParams` 中可包含 `headers` 子对象指定 RPC header。
-8. **广播/分片通过 `IJobTaskBuilder` 接口扩展**。Dispatcher 查找 `nopJobTaskBuilder_{dispatchMode}` 或 `nopJobTaskBuilder_{executorKind}`，找不到则用默认的单 task 构建。**`dispatchMode` 优先于 `executorKind` 路由**（Plan 213 引入），详见 §3.6。
+8. **广播/分片通过 `IJobTaskBuilder` 接口扩展**（plan 339 收敛）。`dispatchMode` 是 coordinator 侧**唯一** builder 路由键：dispatcher 启动期经 IoC `collect-beans as-map` 注入 `Map<String, IJobTaskBuilder>`（bean 名 `nopJobTaskBuilder_<mode>`，key=去前缀后缀，`single` → `DefaultJobTaskBuilder`），运行期直接查 map、无字符串拼接、无 executorKind 分支；未知 `dispatchMode` 显式失败（`ERR_JOB_DISPATCH_MODE_NOT_IMPLEMENTED`）。详见 §3.6。
 
 ---
 
@@ -199,10 +199,15 @@ public class NopE2eTestJobInvoker implements IJobInvoker {
 ### 2.5 Bean 注册
 
 ```xml
-<!-- app-service.beans.xml -->
+<!-- app-service.beans.xml（worker 侧 invoker 注册） -->
 <bean id="nopJobInvoker_test" class="io.nop.job.service.executor.NopE2eTestJobInvoker"/>
 <bean id="nopJobInvoker_rpc" class="io.nop.job.service.executor.RpcJobInvoker"/>
-<bean id="nopJobTaskBuilder_rpcBroadcast" class="io.nop.job.service.executor.RpcDistributedTaskBuilder"/>
+<!--
+  TaskBuilder 已迁移到 nop-job-coordinator 的 app-engine.beans.xml（plan 339）：
+  nopJobTaskBuilder_single / broadcast / partition / bestFit 四个 bean，
+  dispatcher 经 <ioc:collect-beans as-map="true" name-prefix="nopJobTaskBuilder_" by-type="IJobTaskBuilder"/>
+  启动期注入 taskBuilders map。不再注册 default / rpcBroadcast 别名 bean。
+-->
 ```
 
 ---
@@ -225,7 +230,7 @@ public interface IJobTaskBuilder {
 **默认实现：**
 
 ```java
-// bean id: nopJobTaskBuilder_default (ioc:default=true)
+// bean id: nopJobTaskBuilder_single (ioc:default=true)
 public class DefaultJobTaskBuilder implements IJobTaskBuilder {
     @Override
     public List<NopJobTask> buildTasks(NopJobFire fire) {
@@ -244,8 +249,8 @@ public class DefaultJobTaskBuilder implements IJobTaskBuilder {
 同一个 builder 同时覆盖广播和分片两种场景。通过向每个 task 的 RPC header 注入 `shardingIndex`（0..N-1）和 `shardingTotal`（= 实例数），接收方从 header 即可判断自己在哪个分片。`shardingTotal` 直接采用服务实例个数，无需额外配置。
 
 ```java
-// bean id: nopJobTaskBuilder_rpcBroadcast
-public class RpcDistributedTaskBuilder implements IJobTaskBuilder {
+// 现实现：RpcBroadcastTaskBuilder（plan 339 继承 AbstractServiceTaskBuilder，无内嵌 fallback）
+public class RpcBroadcastTaskBuilder implements IJobTaskBuilder {
     @Inject
     protected IServerChooser<ApiRequest<?>> serverChooser;
 
@@ -316,12 +321,13 @@ int shardingTotal = (int) request.getHeader("nop-sharding-total");    // N
 
 ### 3.3 Dispatcher 修改
 
+> v6（plan 339）：路由改为启动期注入 `Map<String, IJobTaskBuilder>`（`<ioc:collect-beans as-map="true" name-prefix="nopJobTaskBuilder_">`），`dispatchMode` 唯一路由键，无 `BeanContainer` 运行时查找、无 executorKind 分支。旧实现（`TASK_BUILDER_PREFIX` + `BeanContainer.tryGetBean` + executorKind fallback）已删除。
+
 ```java
 public class JobDispatcherScannerImpl implements IJobDispatcherScanner {
-    static final String TASK_BUILDER_PREFIX = "nopJobTaskBuilder_";
+    private Map<String, IJobTaskBuilder> taskBuilders = Map.of();   // XML property 注入
 
-    @Inject
-    protected IJobTaskBuilder defaultTaskBuilder;
+    public void setTaskBuilders(Map<String, IJobTaskBuilder> taskBuilders) { ... }
 
     void scanOnce() {
         var fires = fireStore.fetchWaitingFires(batchSize, assignedPartitions);
@@ -334,14 +340,14 @@ public class JobDispatcherScannerImpl implements IJobDispatcherScanner {
     }
 
     private IJobTaskBuilder resolveTaskBuilder(NopJobFire fire) {
-        String executorKind = fire.getExecutorKind();
-        if (executorKind != null && !executorKind.isBlank()) {
-            String beanName = TASK_BUILDER_PREFIX + executorKind;
-            IJobTaskBuilder builder = BeanContainer.tryGetBean(beanName);
-            if (builder != null)
-                return builder;
-        }
-        return defaultTaskBuilder;
+        String mode = fire.getDispatchMode();
+        if (mode == null || mode.isBlank())
+            mode = "single";
+        IJobTaskBuilder builder = taskBuilders.get(mode);
+        if (builder == null)
+            throw ERR_JOB_DISPATCH_MODE_NOT_IMPLEMENTED.param(ARG_DISPATCH_MODE, mode)
+                .param(ARG_JOB_FIRE_ID, fire.getJobFireId());
+        return builder;
     }
 }
 ```
@@ -363,17 +369,17 @@ public interface IJobFireStore {
 
 **普通模式（单 task）：**
 ```
-Fire(WAITING) → Dispatcher → nopJobTaskBuilder_rpc (未注册，fallback to default)
-                         → defaultTaskBuilder.buildTasks(fire) → [task_1]
+Fire(WAITING) → Dispatcher → taskBuilders.get("single")（dispatchMode=null/blank/single 统一解析为 single）
+                         → DefaultJobTaskBuilder.buildTasks(fire) → [task_1]
                          → insertTasksAndMarkFireDispatching
                          → Worker → invoker.invokeAsync() → task_1 完成
 ```
 
-**分布式模式（N tasks，统一 RpcDistributedTaskBuilder）：**
+**分布式模式（N tasks，RpcBroadcastTaskBuilder）：**
 ```
-Fire(WAITING) → Dispatcher → nopJobTaskBuilder_rpcBroadcast (已注册)
-                         → distributedBuilder.buildTasks(fire)
-                           → serverChooser.getServers("data-processor") → [inst_1, inst_2, inst_3]
+Fire(WAITING) → Dispatcher → taskBuilders.get("broadcast")（dispatchMode=broadcast）
+                         → RpcBroadcastTaskBuilder.buildTasks(fire)
+                           → discoveryClient.getInstances(serviceName) → 健康过滤 → [inst_1, inst_2, inst_3]
                            → [task_1(shardingIdx=0, shardTotal=3, targetHost=inst_1),
                               task_2(shardingIdx=1, shardTotal=3, targetHost=inst_2),
                               task_3(shardingIdx=2, shardTotal=3, targetHost=inst_3)]
@@ -407,18 +413,19 @@ Fire(WAITING) → Dispatcher → nopJobTaskBuilder_rpcBroadcast (已注册)
 </dict>
 ```
 
-**路由优先级**：`dispatchMode` 非空且非 `single` 时优先路由（`nopJobTaskBuilder_{dispatchMode}`），否则回退到 `executorKind` 路由（`nopJobTaskBuilder_{executorKind}`）。`dispatchMode=bestFit` 在 Plan 215 落地前抛 `NopException`。
+**路由优先级（plan 339 收敛）**：`dispatchMode` 是 coordinator 侧**唯一** builder 路由键。dispatcher 启动期注入 `Map<String, IJobTaskBuilder>`（`<ioc:collect-beans as-map="true" name-prefix="nopJobTaskBuilder_" by-type="IJobTaskBuilder"/>`），运行期 `taskBuilders.get(dispatchMode)` 直接查 map：`null`/blank/`single` 统一解析为 `single` → `DefaultJobTaskBuilder`（单 task 竞争认领，**不参与 executorKind 路由**）；任意未注册的 `dispatchMode` 显式抛 `ERR_JOB_DISPATCH_MODE_NOT_IMPLEMENTED`（per-fire 隔离，fire 留 DISPATCHING 由超时检查器回收），无静默 fallback。`executorKind` 完全退出 coordinator 路由，仅作 worker 侧 invoker 选择键（`nopJobInvoker_<executorKind>`）。旧 `executorKind=rpcBroadcast` 调度需迁移为 `dispatchMode=broadcast`。
 
 配套 bean 对照：
 
-| dispatchMode | executorKind | Invoker Bean | TaskBuilder Bean | 说明 |
-|-------------|-------------|-------------|-----------------|------|
-| `single`(默认) / 未设 | `test` | `nopJobInvoker_test` | — (default) | e2e 测试 |
-| `single`(默认) / 未设 | `rpc` | `nopJobInvoker_rpc` | — (default) | 单次 RPC |
-| `single`(默认) / 未设 | `rpcBroadcast` | `nopJobInvoker_rpc` | `nopJobTaskBuilder_rpcBroadcast` | 每个实例一个 task |
-| `broadcast` | (任意) | (按 executorKind) | `nopJobTaskBuilder_rpcBroadcast` | 1:1 广播 |
-| `partition` | (任意) | (按 executorKind) | `nopJobTaskBuilder_partition` | 按 weight 切 hash range |
-| `bestFit` | (任意) | — | `nopJobTaskBuilder_bestFit` (Plan 215) | 负载感知派发 |
+| dispatchMode | Invoker Bean（按 executorKind 选） | TaskBuilder Bean | 说明 |
+|-------------|----------------------------------|-----------------|------|
+| `single`(默认) / null / blank | `nopJobInvoker_test` | `nopJobTaskBuilder_single` → `DefaultJobTaskBuilder` | 单 task，任意 worker 竞争认领 |
+| `single`(默认) / null / blank | `nopJobInvoker_rpc` | `nopJobTaskBuilder_single` → `DefaultJobTaskBuilder` | 单次 RPC |
+| `broadcast` | (按 executorKind) | `nopJobTaskBuilder_broadcast` → `RpcBroadcastTaskBuilder` | 1:1 广播（每健康实例 1 task） |
+| `partition` | (按 executorKind) | `nopJobTaskBuilder_partition` → `PartitionTaskBuilder` | 按 weight 切 hash range |
+| `bestFit` | — | `nopJobTaskBuilder_bestFit` → `AdaptiveJobTaskBuilder` | 负载感知派发（单 task） |
+
+> 注：`broadcast`/`partition`/`bestFit` 均为 service 型 builder（plan 339 共享基类 `AbstractServiceTaskBuilder`）：serviceName 缺失/非 String → `ERR_JOB_SERVICE_NAME_REQUIRED`；discoveryClient 未注入 → `ERR_JOB_DISCOVERY_CLIENT_REQUIRED`；0 健康实例 → `ERR_JOB_NO_AVAILABLE_INSTANCE`。失败显式可观测，不静默退化为 single。
 
 ---
 
@@ -514,7 +521,7 @@ List<NopJobTask> locked = taskStore.tryLockTasksForExecute(pending, AppConfig.ho
 | 8 | 新增 IJobTaskBuilder 接口 | nop-job-coordinator 或 nop-job-api | `List<NopJobTask> buildTasks(NopJobFire fire)` |
 | 9 | DefaultJobTaskBuilder | 新文件 | 当前 buildTask 逻辑移入 |
 | 10 | RpcDistributedTaskBuilder | 新文件 | 注入 IServerChooser，每个实例一个 task，注入 shardingIndex/shardingTotal/targetHost header |
-| 11 | 修改 Dispatcher | `JobDispatcherScannerImpl.java` | 查找 nopJobTaskBuilder_{executorKind}，fallback default |
+| 11 | 修改 Dispatcher | `JobDispatcherScannerImpl.java` | plan 339：`BeanContainer.tryGetBean(nopJobTaskBuilder_{executorKind})` 查找 + fallback default → 启动期 `collect-beans as-map` 注入 `taskBuilders` map，dispatchMode 唯一路由，未知 mode fail-fast |
 | 12 | IJobFireStore 扩展 | `IJobFireStore.java` / `JobFireStoreImpl.java` | `insertTasksAndMarkFireDispatching(fire, List<NopJobTask>)` |
 | 13 | 删除 nop-job-invokers | 删除目录 | 回退之前的错误实现 |
 

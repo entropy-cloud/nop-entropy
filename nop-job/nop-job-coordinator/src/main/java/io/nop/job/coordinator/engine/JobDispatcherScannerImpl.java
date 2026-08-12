@@ -5,11 +5,9 @@ import io.nop.api.core.annotations.orm.SingleSession;
 import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.api.core.ioc.BeanContainer;
 import io.nop.job.coordinator.metrics.IJobDispatcherMetrics;
 import io.nop.job.coordinator.metrics.JobDispatcherMetricsImpl;
 import io.nop.job.core.AbstractBatchScanner;
-import io.nop.job.core.partition.JobPartitionResolver;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
@@ -20,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Map;
 
 import static io.nop.job.core.JobCoreErrors.ARG_DISPATCH_MODE;
 import static io.nop.job.core.JobCoreErrors.ARG_JOB_FIRE_ID;
@@ -28,13 +27,12 @@ import static io.nop.job.core.JobCoreErrors.ERR_JOB_NO_FITTING_WORKER;
 
 public class JobDispatcherScannerImpl extends AbstractBatchScanner implements IJobDispatcherScanner {
     static final Logger LOG = LoggerFactory.getLogger(JobDispatcherScannerImpl.class);
-    static final String TASK_BUILDER_PREFIX = "nopJobTaskBuilder_";
+    static final String SINGLE_DISPATCH_MODE = "single";
 
     private IJobFireStore fireStore;
-    private IJobTaskBuilder defaultTaskBuilder;
     private IJobScheduleStore scheduleStore;
+    private Map<String, IJobTaskBuilder> taskBuilders = Map.of();
     private IJobDispatcherMetrics dispatcherMetrics = new JobDispatcherMetricsImpl();
-    private JobPartitionResolver partitionResolver;
     private IWorkerLoadProvider workerLoadProvider;
     private long lockTimeoutMs = 60000;
     private long noWorkerBackoffMs = 30000;
@@ -44,9 +42,17 @@ public class JobDispatcherScannerImpl extends AbstractBatchScanner implements IJ
         this.fireStore = fireStore;
     }
 
-    @Inject
-    public void setDefaultTaskBuilder(IJobTaskBuilder defaultTaskBuilder) {
-        this.defaultTaskBuilder = defaultTaskBuilder;
+    /**
+     * 按 dispatchMode 路由的 task builder 注册表（key = 去前缀 bean id，如 "single"/"partition"/"broadcast"/"bestFit"），
+     * 由 IoC 容器经 {@code <ioc:collect-beans as-map="true" name-prefix="nopJobTaskBuilder_" .../>} 注入，不经运行时
+     * bean 名拼接。plan 339：executorKind 不再参与 coordinator 侧路由。
+     */
+    public void setTaskBuilders(Map<String, IJobTaskBuilder> taskBuilders) {
+        this.taskBuilders = taskBuilders != null ? taskBuilders : Map.of();
+    }
+
+    Map<String, IJobTaskBuilder> getTaskBuilders() {
+        return taskBuilders;
     }
 
     @Inject
@@ -56,11 +62,6 @@ public class JobDispatcherScannerImpl extends AbstractBatchScanner implements IJ
 
     public void setDispatcherMetrics(IJobDispatcherMetrics dispatcherMetrics) {
         this.dispatcherMetrics = dispatcherMetrics;
-    }
-
-    @Inject
-    public void setPartitionResolver(JobPartitionResolver partitionResolver) {
-        this.partitionResolver = partitionResolver;
     }
 
     /**
@@ -74,29 +75,17 @@ public class JobDispatcherScannerImpl extends AbstractBatchScanner implements IJ
 
     @InjectValue("@cfg:nop.job.coordinator.dispatcher.scan-interval-ms|5000")
     public void setScanIntervalMs(int scanIntervalMs) {
-        if (scanIntervalMs < 1000) {
-            throw new IllegalArgumentException(
-                    "nop.job.dispatcher.scan-interval-ms must be >= 1000, got " + scanIntervalMs);
-        }
-        this.scanIntervalMs = scanIntervalMs;
+        applyScanIntervalMs(scanIntervalMs);
     }
 
     @InjectValue("@cfg:nop.job.coordinator.dispatcher.batch-size|100")
     public void setBatchSize(int batchSize) {
-        if (batchSize < 1) {
-            throw new IllegalArgumentException(
-                    "nop.job.dispatcher.batch-size must be >= 1, got " + batchSize);
-        }
-        this.batchSize = batchSize;
+        applyBatchSize(batchSize);
     }
 
     @InjectValue("@cfg:nop.job.coordinator.dispatcher.max-scan-loops|1000")
     public void setMaxScanLoops(int maxScanLoops) {
-        if (maxScanLoops < 1) {
-            throw new IllegalArgumentException(
-                    "nop.job.coordinator.dispatcher.max-scan-loops must be >= 1, got " + maxScanLoops);
-        }
-        this.maxScanLoops = maxScanLoops;
+        applyMaxScanLoops(maxScanLoops);
     }
 
     @InjectValue("@cfg:nop.job.coordinator.dispatcher.lock-timeout-ms|60000")
@@ -122,28 +111,15 @@ public class JobDispatcherScannerImpl extends AbstractBatchScanner implements IJ
         this.noWorkerBackoffMs = noWorkerBackoffMs;
     }
 
-    @InjectValue("@cfg:nop.job.coordinator.assigned-partitions|")
-    public void setAssignedPartitions(String partitions) {
-        if (partitionResolver == null) {
-            partitionResolver = new JobPartitionResolver();
-        }
-        partitionResolver.setAssignedPartitions(partitions);
-    }
-
     @Override
     protected void onScanFailed(Exception e) {
         LOG.error("nop.job.dispatcher.scan-failed", e);
     }
 
     @Override
-    protected void scanOnce() {
-        super.scanOnce();
-    }
-
-    @Override
     @SingleSession
     protected boolean scanBatch() {
-        IntRangeSet partitions = partitionResolver != null ? partitionResolver.resolvePartitions() : null;
+        IntRangeSet partitions = resolvePartitions();
         var fires = fireStore.fetchWaitingFires(batchSize, partitions);
         if (fires.isEmpty()) {
             return false;
@@ -214,32 +190,23 @@ public class JobDispatcherScannerImpl extends AbstractBatchScanner implements IJ
         return code != null && code.equals(ERR_JOB_NO_FITTING_WORKER.getErrorCode());
     }
 
+    /**
+     * plan 339：dispatchMode 是 coordinator 侧唯一路由键（single/null/blank 均归一为 "single"），
+     * executorKind 不参与 coordinator 路由（仅 worker 侧 invoker 选择）。未知 dispatchMode 显式
+     * fail-fast（AR-87），不静默降级。
+     */
     IJobTaskBuilder resolveTaskBuilder(NopJobFire fire) {
         String dispatchMode = fire.getDispatchMode();
-        if (dispatchMode != null && !dispatchMode.isBlank() && !"single".equals(dispatchMode)) {
-            String beanName = TASK_BUILDER_PREFIX + dispatchMode;
-            Object bean = BeanContainer.tryGetBean(beanName);
-            if (bean instanceof IJobTaskBuilder) {
-                return (IJobTaskBuilder) bean;
-            }
-            // AR-87: explicit failure instead of silent fallback to single. A configured dispatchMode
-            // (e.g. "bestFit"/"partition") with a missing bean is a config error (module not loaded, bean
-            // name typo). Fail fast (caught by per-fire isolation) rather than silently degrading.
+        if (dispatchMode == null || dispatchMode.isBlank()) {
+            dispatchMode = SINGLE_DISPATCH_MODE;
+        }
+        IJobTaskBuilder builder = taskBuilders.get(dispatchMode);
+        if (builder == null) {
             throw new NopException(ERR_JOB_DISPATCH_MODE_NOT_IMPLEMENTED)
                     .param(ARG_DISPATCH_MODE, dispatchMode)
                     .param(ARG_JOB_FIRE_ID, fire.getJobFireId());
         }
-        // dispatchMode ∈ {null, blank, "single"}: keep executorKind → default fallback (guards the
-        // rpcBroadcast-via-executorKind legal route, see TestJobDispatcherScannerRouting).
-        String executorKind = fire.getExecutorKind();
-        if (executorKind != null && !executorKind.isBlank()) {
-            String beanName = TASK_BUILDER_PREFIX + executorKind;
-            Object bean = BeanContainer.tryGetBean(beanName);
-            if (bean instanceof IJobTaskBuilder) {
-                return (IJobTaskBuilder) bean;
-            }
-        }
-        return defaultTaskBuilder;
+        return builder;
     }
 
     private static int normalizeCost(Integer value) {

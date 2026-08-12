@@ -8,9 +8,7 @@
 package io.nop.job.coordinator.engine;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.dao.api.IDaoProvider;
 import io.nop.job.api.resource.ResourceVector;
-import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
@@ -19,7 +17,6 @@ import jakarta.inject.Inject;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import static io.nop.job.core.JobCoreErrors.ARG_TASK_COST;
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_NO_FITTING_WORKER;
@@ -31,16 +28,16 @@ import static io.nop.job.core.JobCoreErrors.ERR_JOB_NO_FITTING_WORKER;
  * 默认策略 {@link LeastLoadedStrategy} 选最空闲的单个 worker（返回 1 个 assignment）。
  * 自定义策略可返回多个 assignment（如广播到所有 worker），builder 会为每个 assignment 生成一个 task。
  * <p>
- * 无 fitting worker 时抛 {@link NopException}（不静默 fallback）。
- * serviceName 缺失时 fallback 到 {@link DefaultJobTaskBuilder}。
+ * Plan 339：serviceName 缺失不再 fallback 到 {@link DefaultJobTaskBuilder}，改抛
+ * {@code ERR_JOB_SERVICE_NAME_REQUIRED}（由 {@link AbstractServiceTaskBuilder} 前置校验）。
+ * 无 fitting worker 时抛 {@link NopException}（不静默 fallback），loadProvider 未注入抛
+ * {@code ERR_JOB_WORKER_CAPACITY_PROVIDER_REQUIRED}——失败路径全部显式化。
  */
-public class AdaptiveJobTaskBuilder implements IJobTaskBuilder {
+public class AdaptiveJobTaskBuilder extends AbstractServiceTaskBuilder {
 
     private IWorkerLoadProvider loadProvider;
     private IWorkerAssignmentStrategy strategy = new LeastLoadedStrategy();
     private IJobScheduleStore scheduleStore;
-    private final IJobTaskBuilder fallback = new DefaultJobTaskBuilder();
-    private IDaoProvider daoProvider;
 
     @Inject
     public void setLoadProvider(IWorkerLoadProvider loadProvider) {
@@ -50,14 +47,6 @@ public class AdaptiveJobTaskBuilder implements IJobTaskBuilder {
     @Inject
     public void setScheduleStore(IJobScheduleStore scheduleStore) {
         this.scheduleStore = scheduleStore;
-    }
-
-    @Inject
-    public void setDaoProvider(IDaoProvider daoProvider) {
-        this.daoProvider = daoProvider;
-        if (fallback instanceof DefaultJobTaskBuilder) {
-            ((DefaultJobTaskBuilder) fallback).setDaoProvider(daoProvider);
-        }
     }
 
     public void setStrategy(IWorkerAssignmentStrategy strategy) {
@@ -71,15 +60,7 @@ public class AdaptiveJobTaskBuilder implements IJobTaskBuilder {
                     .param("reason", "IWorkerLoadProvider not injected into AdaptiveJobTaskBuilder");
         }
 
-        Map<String, Object> jobParams = fire.getJobParamsSnapshotComponent().get_jsonMap();
-        if (jobParams == null) {
-            return fallback.buildTasks(fire);
-        }
-
-        String serviceName = IJobTaskBuilder.resolveServiceName(jobParams);
-        if (serviceName == null || serviceName.isBlank()) {
-            return fallback.buildTasks(fire);
-        }
+        String serviceName = requireServiceName(fire);
 
         NopJobSchedule schedule = scheduleStore != null
                 ? scheduleStore.loadSchedule(fire.getJobScheduleId()) : null;
@@ -108,16 +89,12 @@ public class AdaptiveJobTaskBuilder implements IJobTaskBuilder {
 
             ResourceVector assignedCost = assignment.getCost() != null ? assignment.getCost() : taskCost;
 
-            NopJobTask task = daoProvider.daoFor(NopJobTask.class).newEntity();
-            task.setJobFireId(fire.getJobFireId());
-            task.setTaskNo(i + 1);
-            task.setTaskStatus(_NopJobCoreConstants.TASK_STATUS_WAITING);
+            NopJobTask task = newTask(fire, i + 1);
             task.setWorkerInstanceId(assignment.getWorkerInstanceId());
             task.setTargetHost(assignment.getTargetHost());
             task.setShardingIndex(assignment.getShardingIndex());
             task.setShardingTotal(assignment.getShardingTotal());
             task.setPartitionRange(assignment.getPartitionRange());
-            task.setPartitionIndex(fire.getPartitionIndex());
             task.setCostCpu(assignedCost.getCpu());
             task.setCostMemory(assignedCost.getMemory());
             if (schedule != null) {

@@ -10,21 +10,15 @@ package io.nop.job.coordinator.engine;
 import io.nop.api.core.beans.IntRangeBean;
 import io.nop.cluster.assigner.IPartitionAssigner;
 import io.nop.cluster.assigner.WeightedPartitionAssigner;
-import io.nop.cluster.discovery.IDiscoveryClient;
 import io.nop.cluster.discovery.ServiceInstance;
-import io.nop.dao.api.IDaoProvider;
-import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
 import io.nop.job.dao.store.IJobScheduleStore;
-import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Builds partitioned tasks using {@link WeightedPartitionAssigner} to split the
@@ -34,10 +28,12 @@ import java.util.stream.Collectors;
  * format, e.g. "0,10922") that the business invoker can parse and use for SQL filtering:
  * {@code WHERE partition_index BETWEEN offset AND getLast()}.
  * <p>
- * Falls back to {@link DefaultJobTaskBuilder} when no discovery client is available,
- * no service name is configured, or no healthy instances are found.
+ * Plan 339：不再内嵌 {@link DefaultJobTaskBuilder} fallback。serviceName 缺失 /
+ * discoveryClient 未注入 / 无健康实例时由 {@link AbstractServiceTaskBuilder} 显式抛错
+ * （ERR_JOB_SERVICE_NAME_REQUIRED / ERR_JOB_DISCOVERY_CLIENT_REQUIRED /
+ * ERR_JOB_NO_AVAILABLE_INSTANCE），fire 留 DISPATCHING 等 timeout 回收。
  */
-public class PartitionTaskBuilder implements IJobTaskBuilder {
+public class PartitionTaskBuilder extends AbstractServiceTaskBuilder {
 
     /**
      * AR-98: 覆盖完整 SMALLINT 哈希范围 [0, 32767]（含上界 32767）。{@code IntRangeBean.shortRange()}
@@ -47,24 +43,8 @@ public class PartitionTaskBuilder implements IJobTaskBuilder {
      */
     private static final IntRangeBean PARTITION_HASH_RANGE = IntRangeBean.intRange(0, Short.MAX_VALUE + 1);
 
-    private IDiscoveryClient discoveryClient;
     private IPartitionAssigner partitionAssigner = new WeightedPartitionAssigner();
     private IJobScheduleStore scheduleStore;
-    private final IJobTaskBuilder fallback = new DefaultJobTaskBuilder();
-    private IDaoProvider daoProvider;
-
-    @Inject
-    public void setDaoProvider(IDaoProvider daoProvider) {
-        this.daoProvider = daoProvider;
-        if (fallback instanceof DefaultJobTaskBuilder) {
-            ((DefaultJobTaskBuilder) fallback).setDaoProvider(daoProvider);
-        }
-    }
-
-    @Inject
-    public void setDiscoveryClient(@Nullable IDiscoveryClient discoveryClient) {
-        this.discoveryClient = discoveryClient;
-    }
 
     @Inject
     public void setScheduleStore(IJobScheduleStore scheduleStore) {
@@ -77,31 +57,8 @@ public class PartitionTaskBuilder implements IJobTaskBuilder {
 
     @Override
     public List<NopJobTask> buildTasks(NopJobFire fire) {
-        Map<String, Object> jobParams = fire.getJobParamsSnapshotComponent().get_jsonMap();
-        if (jobParams == null) {
-            return fallback.buildTasks(fire);
-        }
-
-        String serviceName = IJobTaskBuilder.resolveServiceName(jobParams);
-        if (serviceName == null || serviceName.isBlank()) {
-            return fallback.buildTasks(fire);
-        }
-
-        if (discoveryClient == null) {
-            return fallback.buildTasks(fire);
-        }
-
-        List<ServiceInstance> instances = discoveryClient.getInstances(serviceName);
-        if (instances == null || instances.isEmpty()) {
-            return fallback.buildTasks(fire);
-        }
-
-        List<ServiceInstance> healthyInstances = instances.stream()
-                .filter(instance -> instance.isHealthy() && instance.isEnabled())
-                .collect(Collectors.toList());
-        if (healthyInstances.isEmpty()) {
-            return fallback.buildTasks(fire);
-        }
+        String serviceName = requireServiceName(fire);
+        List<ServiceInstance> healthyInstances = resolveHealthyInstances(serviceName);
 
         int partitionCount = resolvePartitionCount(fire);
         int n = partitionCount > 0 ? Math.min(partitionCount, healthyInstances.size()) : healthyInstances.size();
@@ -115,13 +72,9 @@ public class PartitionTaskBuilder implements IJobTaskBuilder {
             ServiceInstance instance = selected.get(i);
             IntRangeBean range = ranges.get(i);
 
-            NopJobTask task = daoProvider.daoFor(NopJobTask.class).newEntity();
-            task.setJobFireId(fire.getJobFireId());
-            task.setTaskNo(i + 1);
-            task.setTaskStatus(_NopJobCoreConstants.TASK_STATUS_WAITING);
+            NopJobTask task = newTask(fire, i + 1);
             task.setWorkerInstanceId(instance.getInstanceId());
             task.setTargetHost(instance.getHost());
-            task.setPartitionIndex(fire.getPartitionIndex());
             task.setShardingIndex(i);
             task.setShardingTotal(n);
             task.setPartitionRange(range.toString());

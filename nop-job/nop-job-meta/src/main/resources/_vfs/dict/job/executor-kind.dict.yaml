@@ -15,5 +15,5 @@ options:
   
   - label: RPC广播执行器
     value: rpcBroadcast
-    description: 
+    description: 仅 worker 侧 invoker 选择键（nopJobInvoker_rpcBroadcast），与 task 拆分无关（plan 339：task 拆分只由 dispatchMode 决定，广播需配 dispatchMode=broadcast）
   

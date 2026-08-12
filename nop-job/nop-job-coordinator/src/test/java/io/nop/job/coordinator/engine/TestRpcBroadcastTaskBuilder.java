@@ -1,5 +1,6 @@
 package io.nop.job.coordinator.engine;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.OptionalBoolean;
@@ -17,8 +18,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_DISCOVERY_CLIENT_REQUIRED;
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_NO_AVAILABLE_INSTANCE;
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_SERVICE_NAME_REQUIRED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
@@ -80,8 +85,11 @@ public class TestRpcBroadcastTaskBuilder extends JunitBaseTestCase {
         assertTrue(tasks.get(0).getTargetHost().contains("h1"));
     }
 
+    /**
+     * Plan 339：全不健康不再 fallback，显式抛 ERR_JOB_NO_AVAILABLE_INSTANCE（运行时瞬态）。
+     */
     @Test
-    void testFallsBackWhenAllUnhealthy() {
+    void testAllUnhealthyThrowsNoAvailableInstance() {
         List<ServiceInstance> instances = new ArrayList<>();
         instances.add(createInstance("h1", 8080, false, true));
 
@@ -98,10 +106,9 @@ public class TestRpcBroadcastTaskBuilder extends JunitBaseTestCase {
         });
 
         NopJobFire fire = createFire("test-svc");
-        List<NopJobTask> tasks = builder.buildTasks(fire);
-
-        assertEquals(1, tasks.size(), "Should fallback to DefaultJobTaskBuilder when all unhealthy");
-        assertEquals(1, tasks.get(0).getTaskNo());
+        NopException ex = assertThrows(NopException.class, () -> builder.buildTasks(fire),
+                "all-unhealthy must throw, not fall back to single (plan 339)");
+        assertEquals(ERR_JOB_NO_AVAILABLE_INSTANCE.getErrorCode(), ex.getErrorCode());
     }
 
     @Test
@@ -137,10 +144,11 @@ public class TestRpcBroadcastTaskBuilder extends JunitBaseTestCase {
     }
 
     /**
-     * AR-99：serviceName 为非 String 类型（如 Boolean）时不抛 ClassCastException，fallback。
+     * AR-99：serviceName 为非 String 类型（如 Boolean）时不抛 ClassCastException，而抛
+     * ERR_JOB_SERVICE_NAME_REQUIRED（plan 339 显式失败，不再 fallback）。
      */
     @Test
-    void testNonStringServiceNameDoesNotThrowCCE() {
+    void testNonStringServiceNameThrowsServiceNameRequired() {
         builder.setDiscoveryClient(new IDiscoveryClient() {
             @Override
             public List<ServiceInstance> getInstances(String serviceName) {
@@ -156,23 +164,29 @@ public class TestRpcBroadcastTaskBuilder extends JunitBaseTestCase {
         fire.setJobFireId("f-ar99");
         fire.getJobParamsSnapshotComponent().set_jsonValue(Map.of("serviceName", true)); // non-String
 
-        List<NopJobTask> tasks = builder.buildTasks(fire);
-        assertEquals(1, tasks.size(), "non-String serviceName must fallback (no CCE)");
+        NopException ex = assertThrows(NopException.class, () -> builder.buildTasks(fire),
+                "non-String serviceName must fail explicitly (no CCE, no fallback)");
+        assertEquals(ERR_JOB_SERVICE_NAME_REQUIRED.getErrorCode(), ex.getErrorCode());
     }
 
+    /**
+     * Plan 339：discoveryClient 未注入是配置错误，显式抛 ERR_JOB_DISCOVERY_CLIENT_REQUIRED。
+     */
     @Test
-    void testNullDiscoveryClientFallsBack() {
+    void testNullDiscoveryClientThrowsDiscoveryClientRequired() {
         builder.setDiscoveryClient(null);
 
         NopJobFire fire = createFire("fallback-svc");
-        List<NopJobTask> tasks = builder.buildTasks(fire);
-
-        assertEquals(1, tasks.size(), "Should fallback to DefaultJobTaskBuilder when discoveryClient is null");
-        assertEquals(1, tasks.get(0).getTaskNo());
+        NopException ex = assertThrows(NopException.class, () -> builder.buildTasks(fire),
+                "null discoveryClient must throw, not fall back to single (plan 339)");
+        assertEquals(ERR_JOB_DISCOVERY_CLIENT_REQUIRED.getErrorCode(), ex.getErrorCode());
     }
 
+    /**
+     * Plan 339：serviceName 缺失显式抛 ERR_JOB_SERVICE_NAME_REQUIRED。
+     */
     @Test
-    void testMissingServiceNameFallsBack() {
+    void testMissingServiceNameThrowsServiceNameRequired() {
         builder.setDiscoveryClient(new IDiscoveryClient() {
             @Override
             public List<ServiceInstance> getInstances(String serviceName) {
@@ -186,8 +200,8 @@ public class TestRpcBroadcastTaskBuilder extends JunitBaseTestCase {
         });
 
         NopJobFire fire = createFire(null);
-        List<NopJobTask> tasks = builder.buildTasks(fire);
-
-        assertEquals(1, tasks.size(), "Should fallback when serviceName is missing from jobParams");
+        NopException ex = assertThrows(NopException.class, () -> builder.buildTasks(fire),
+                "missing serviceName must throw, not fall back (plan 339)");
+        assertEquals(ERR_JOB_SERVICE_NAME_REQUIRED.getErrorCode(), ex.getErrorCode());
     }
 }

@@ -19,7 +19,8 @@ import java.util.List;
  * <p>命名澄清（AR-89）：装箱（bin-packing）意义上的 best-fit 应选最<b>紧</b>的 worker（最高利用率）；
  * 本实现选最闲的，实为 worst-fit / spread。原类名 {@code SingleBestFitStrategy} 名实不符，已重命名为
  * {@code LeastLoadedStrategy}。dispatchMode 值 {@code bestFit} 与 bean id
- * {@code nopJobTaskBuilder_bestFit} 保持不变（避免路由断裂 + 存量数据迁移）；仅策略类与文档对齐。
+ * {@code nopJobTaskBuilder_bestFit} 保持不变（plan 339：dispatchMode 为唯一路由键，
+ * map key=去前缀 bean id）；仅策略类与文档对齐。
  *
  * <p>平手时按 instanceId 字典序 tiebreaker（确定性）。
  */

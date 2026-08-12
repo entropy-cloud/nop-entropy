@@ -1,5 +1,6 @@
 package io.nop.job.coordinator.engine;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.OptionalBoolean;
@@ -23,8 +24,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_DISCOVERY_CLIENT_REQUIRED;
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_NO_AVAILABLE_INSTANCE;
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_SERVICE_NAME_REQUIRED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
@@ -77,31 +82,40 @@ public class TestPartitionTaskBuilder extends JunitBaseTestCase {
         };
     }
 
+    /**
+     * Plan 339：serviceName 缺失显式抛 ERR_JOB_SERVICE_NAME_REQUIRED（不再 fallback）。
+     */
     @Test
-    void testMissingServiceNameFallsBack() {
+    void testMissingServiceNameThrowsServiceNameRequired() {
         builder.setDiscoveryClient(mockClient(Collections.emptyList()));
         NopJobFire fire = createFire(null);
-        List<NopJobTask> tasks = builder.buildTasks(fire);
-        assertEquals(1, tasks.size(), "Should fallback to DefaultJobTaskBuilder when serviceName is missing");
+        NopException ex = assertThrows(NopException.class, () -> builder.buildTasks(fire));
+        assertEquals(ERR_JOB_SERVICE_NAME_REQUIRED.getErrorCode(), ex.getErrorCode());
     }
 
+    /**
+     * Plan 339：discoveryClient 未注入是配置错误，抛 ERR_JOB_DISCOVERY_CLIENT_REQUIRED。
+     */
     @Test
-    void testNullDiscoveryClientFallsBack() {
+    void testNullDiscoveryClientThrowsDiscoveryClientRequired() {
         builder.setDiscoveryClient(null);
         NopJobFire fire = createFire("test-svc");
-        List<NopJobTask> tasks = builder.buildTasks(fire);
-        assertEquals(1, tasks.size(), "Should fallback when discoveryClient is null");
+        NopException ex = assertThrows(NopException.class, () -> builder.buildTasks(fire));
+        assertEquals(ERR_JOB_DISCOVERY_CLIENT_REQUIRED.getErrorCode(), ex.getErrorCode());
     }
 
+    /**
+     * Plan 339：全不健康是运行时瞬态，抛 ERR_JOB_NO_AVAILABLE_INSTANCE（不再 fallback）。
+     */
     @Test
-    void testAllUnhealthyFallsBack() {
+    void testAllUnhealthyThrowsNoAvailableInstance() {
         builder.setDiscoveryClient(mockClient(List.of(
                 createInstance("w1", false, true),
                 createInstance("w2", true, false)
         )));
         NopJobFire fire = createFire("test-svc");
-        List<NopJobTask> tasks = builder.buildTasks(fire);
-        assertEquals(1, tasks.size(), "Should fallback when no healthy+enabled instances");
+        NopException ex = assertThrows(NopException.class, () -> builder.buildTasks(fire));
+        assertEquals(ERR_JOB_NO_AVAILABLE_INSTANCE.getErrorCode(), ex.getErrorCode());
     }
 
     @Test
@@ -162,18 +176,20 @@ public class TestPartitionTaskBuilder extends JunitBaseTestCase {
     }
 
     /**
-     * AR-99：serviceName 为非 String 类型（如 Integer）时不抛 ClassCastException，优雅 fallback。
+     * AR-99：serviceName 为非 String 类型（如 Integer）时不抛 ClassCastException，而抛
+     * ERR_JOB_SERVICE_NAME_REQUIRED（plan 339 显式失败，不再 fallback）。
      */
     @Test
-    void testNonStringServiceNameDoesNotThrowCCE() {
+    void testNonStringServiceNameThrowsServiceNameRequired() {
         builder.setDiscoveryClient(mockClient(List.of(createInstance("w1", true, true))));
         NopJobFire fire = new NopJobFire();
         fire.setJobFireId("f-ar99");
         fire.setJobScheduleId("s1");
         fire.getJobParamsSnapshotComponent().set_jsonValue(Map.of("serviceName", 12345)); // non-String
 
-        List<NopJobTask> tasks = builder.buildTasks(fire);
-        assertEquals(1, tasks.size(), "non-String serviceName must fallback (no CCE)");
+        NopException ex = assertThrows(NopException.class, () -> builder.buildTasks(fire),
+                "non-String serviceName must fail explicitly (no CCE, no fallback)");
+        assertEquals(ERR_JOB_SERVICE_NAME_REQUIRED.getErrorCode(), ex.getErrorCode());
     }
 
     @Test

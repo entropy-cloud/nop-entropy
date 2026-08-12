@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_SERVICE_NAME_REQUIRED;
 import static org.junit.jupiter.api.Assertions.*;
 
 @NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
@@ -49,12 +50,15 @@ public class TestAdaptiveJobTaskBuilder extends JunitBaseTestCase {
         return fire;
     }
 
+    /**
+     * Plan 339：serviceName 缺失显式抛 ERR_JOB_SERVICE_NAME_REQUIRED（不再 fallback）。
+     */
     @Test
-    void testMissingServiceNameFallsBack() {
+    void testMissingServiceNameThrowsServiceNameRequired() {
         builder.setLoadProvider(new MockLoadProvider(List.of()));
         NopJobFire fire = createFire(null);
-        List<NopJobTask> tasks = builder.buildTasks(fire);
-        assertEquals(1, tasks.size(), "Missing serviceName → fallback to DefaultJobTaskBuilder");
+        NopException ex = assertThrows(NopException.class, () -> builder.buildTasks(fire));
+        assertEquals(ERR_JOB_SERVICE_NAME_REQUIRED.getErrorCode(), ex.getErrorCode());
     }
 
     @Test
@@ -244,18 +248,20 @@ public class TestAdaptiveJobTaskBuilder extends JunitBaseTestCase {
     }
 
     /**
-     * AR-99：serviceName 为非 String 类型（如数字）时不抛 ClassCastException，fallback 到 default builder。
+     * AR-99：serviceName 为非 String 类型（如数字）时不抛 ClassCastException，而抛
+     * ERR_JOB_SERVICE_NAME_REQUIRED（plan 339 显式失败，不再 fallback）。
      */
     @Test
-    void testNonStringServiceNameDoesNotThrowCCE() {
+    void testNonStringServiceNameThrowsServiceNameRequired() {
         builder.setLoadProvider(new MockLoadProvider(List.of()));
         NopJobFire fire = new NopJobFire();
         fire.setJobFireId("f-ar99");
         fire.setJobScheduleId("s1");
         fire.getJobParamsSnapshotComponent().set_jsonValue(Map.of("serviceName", 999)); // non-String
 
-        List<NopJobTask> tasks = builder.buildTasks(fire);
-        assertEquals(1, tasks.size(), "non-String serviceName must fallback to default builder (no CCE)");
+        NopException ex = assertThrows(NopException.class, () -> builder.buildTasks(fire),
+                "non-String serviceName must fail explicitly (no CCE, no fallback)");
+        assertEquals(ERR_JOB_SERVICE_NAME_REQUIRED.getErrorCode(), ex.getErrorCode());
     }
 
     // === Mocks ===

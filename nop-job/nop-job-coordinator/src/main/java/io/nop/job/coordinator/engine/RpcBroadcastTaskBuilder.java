@@ -7,19 +7,12 @@
  */
 package io.nop.job.coordinator.engine;
 
-import io.nop.cluster.discovery.IDiscoveryClient;
 import io.nop.cluster.discovery.ServiceInstance;
-import io.nop.dao.api.IDaoProvider;
-import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobTask;
-import jakarta.annotation.Nullable;
-import jakarta.inject.Inject;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Builds one NopJobTask per registered service instance for broadcast RPC.
@@ -27,67 +20,25 @@ import java.util.stream.Collectors;
  * entity columns so that the worker can read them via typed getters and
  * inject the {@code nop-svc-target-host} header for per-instance routing.
  * <p>
- * Falls back to {@link DefaultJobTaskBuilder} when no discovery client is available,
- * no service name is configured, or no instances are found.
+ * Plan 339：不再内嵌 {@link DefaultJobTaskBuilder} fallback。serviceName 缺失 /
+ * discoveryClient 未注入 / 无健康实例时由 {@link AbstractServiceTaskBuilder} 显式抛错
+ * （ERR_JOB_SERVICE_NAME_REQUIRED / ERR_JOB_DISCOVERY_CLIENT_REQUIRED /
+ * ERR_JOB_NO_AVAILABLE_INSTANCE），fire 留 DISPATCHING 等 timeout 回收。
  */
-public class RpcBroadcastTaskBuilder implements IJobTaskBuilder {
-
-    private IDiscoveryClient discoveryClient;
-    private final IJobTaskBuilder fallback = new DefaultJobTaskBuilder();
-    private IDaoProvider daoProvider;
-
-    @Inject
-    public void setDiscoveryClient(@Nullable IDiscoveryClient discoveryClient) {
-        this.discoveryClient = discoveryClient;
-    }
-
-    @Inject
-    public void setDaoProvider(IDaoProvider daoProvider) {
-        this.daoProvider = daoProvider;
-        if (fallback instanceof DefaultJobTaskBuilder) {
-            ((DefaultJobTaskBuilder) fallback).setDaoProvider(daoProvider);
-        }
-    }
+public class RpcBroadcastTaskBuilder extends AbstractServiceTaskBuilder {
 
     @Override
     public List<NopJobTask> buildTasks(NopJobFire fire) {
-        Map<String, Object> jobParams = fire.getJobParamsSnapshotComponent().get_jsonMap();
-        if (jobParams == null) {
-            return fallback.buildTasks(fire);
-        }
-
-        String serviceName = IJobTaskBuilder.resolveServiceName(jobParams);
-        if (serviceName == null || serviceName.isBlank()) {
-            return fallback.buildTasks(fire);
-        }
-
-        if (discoveryClient == null) {
-            return fallback.buildTasks(fire);
-        }
-
-        List<ServiceInstance> instances = discoveryClient.getInstances(serviceName);
-        if (instances == null || instances.isEmpty()) {
-            return fallback.buildTasks(fire);
-        }
-
-        List<ServiceInstance> healthyInstances = instances.stream()
-                .filter(instance -> instance.isHealthy() && instance.isEnabled())
-                .collect(Collectors.toList());
-        if (healthyInstances.isEmpty()) {
-            return fallback.buildTasks(fire);
-        }
+        String serviceName = requireServiceName(fire);
+        List<ServiceInstance> healthyInstances = resolveHealthyInstances(serviceName);
 
         List<NopJobTask> tasks = new ArrayList<>();
         int total = healthyInstances.size();
         for (int i = 0; i < total; i++) {
             ServiceInstance instance = healthyInstances.get(i);
 
-            NopJobTask task = daoProvider.daoFor(NopJobTask.class).newEntity();
-            task.setJobFireId(fire.getJobFireId());
-            task.setTaskNo(i + 1);
-            task.setTaskStatus(_NopJobCoreConstants.TASK_STATUS_WAITING);
+            NopJobTask task = newTask(fire, i + 1);
             task.setWorkerInstanceId(instance.getInstanceId());
-            task.setPartitionIndex(fire.getPartitionIndex());
 
             // Dispatch routing: columns instead of JSON payload
             task.setTargetHost(instance.getHost());

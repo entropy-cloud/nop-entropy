@@ -5,9 +5,6 @@ import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.config.AppConfig;
-import io.nop.api.core.ioc.BeanContainer;
-import io.nop.api.core.ioc.IBeanContainer;
-import io.nop.api.core.ioc.StaticBeanContainer;
 import io.nop.cluster.discovery.ServiceInstance;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.core.lang.json.JsonTool;
@@ -22,11 +19,11 @@ import io.nop.job.dao.store.IJobFireStore;
 import io.nop.job.dao.store.IJobScheduleStore;
 import io.nop.job.dao.store.IJobTaskStore;
 import jakarta.inject.Inject;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Timestamp;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -74,26 +71,25 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
     @Inject
     IJobCompletionProcessor completionProcessorBean;
 
-    private IBeanContainer originalBeanContainer;
-
-    @AfterEach
-    public void restoreBeanContainer() {
-        if (originalBeanContainer != null) {
-            BeanContainer.registerInstance(originalBeanContainer);
-            originalBeanContainer = null;
-        }
-    }
-
-    private void rememberOriginalBeanContainer() {
-        if (originalBeanContainer == null && BeanContainer.isInitialized()) {
-            originalBeanContainer = BeanContainer.instance();
-        }
-    }
-
     private DefaultJobTaskBuilder defaultBuilder() {
         DefaultJobTaskBuilder b = new DefaultJobTaskBuilder();
         b.setDaoProvider(daoProvider);
         return b;
+    }
+
+    /**
+     * plan 339：dispatchMode 是唯一路由键。map 缺少 "single" key 时，
+     * 默认 fire（newSchedule 不设 dispatchMode）会抛 ERR_JOB_DISPATCH_MODE_NOT_IMPLEMENTED，
+     * 因此所有 dispatcher 装配必须含 "single"。
+     */
+    private Map<String, IJobTaskBuilder> singleBuilders() {
+        return Map.of("single", (IJobTaskBuilder) defaultBuilder());
+    }
+
+    private Map<String, IJobTaskBuilder> withSingle(Map<String, IJobTaskBuilder> builders) {
+        Map<String, IJobTaskBuilder> merged = new HashMap<>(builders);
+        merged.put("single", defaultBuilder());
+        return merged;
     }
 
     @Test
@@ -126,7 +122,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
 
         JobDispatcherScannerImpl dispatcher = new JobDispatcherScannerImpl();
         dispatcher.setFireStore(fireStore);
-        dispatcher.setDefaultTaskBuilder(defaultBuilder());
+        dispatcher.setTaskBuilders(singleBuilders());
         dispatcher.setBatchSize(10);
         dispatcher.setLockTimeoutMs(1000);
         dispatcher.setAssignedPartitions("1");
@@ -176,9 +172,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
      */
     @Test
     public void testDispatcherNormalizesNullCostToZeroBestFit() {
-        rememberOriginalBeanContainer();
-        StaticBeanContainer container = new StaticBeanContainer();
-        container.registerBean("nopJobTaskBuilder_bestFit", (IJobTaskBuilder) fire -> {
+        IJobTaskBuilder bestFitStub = fire -> {
             NopJobTask task = new NopJobTask();
             task.setJobFireId(fire.getJobFireId());
             task.setTaskNo(1);
@@ -186,8 +180,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
             task.setPartitionIndex(fire.getPartitionIndex());
             // deliberately do NOT set cost/priority — dispatcher normalization must fill 0
             return List.of(task);
-        });
-        BeanContainer.registerInstance(container);
+        };
 
         NopJobSchedule schedule = newSchedule("sched-ar95-bestfit", "job-ar95-bestfit");
         daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
@@ -201,7 +194,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
         fire.setDispatchMode("bestFit");
         daoProvider.daoFor(NopJobFire.class).updateEntityDirectly(fire);
 
-        runDispatcher();
+        runDispatcher(Map.of("bestFit", bestFitStub));
 
         List<NopJobTask> tasks = daoProvider.daoFor(NopJobTask.class).findAll();
         assertEquals(1, tasks.size());
@@ -213,8 +206,6 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
 
     @Test
     public void testBestFitAssignmentMetadataAndAssignmentCostEndToEnd() {
-        rememberOriginalBeanContainer();
-
         AdaptiveJobTaskBuilder bestFitBuilder = new AdaptiveJobTaskBuilder();
         bestFitBuilder.setScheduleStore(scheduleStore);
         bestFitBuilder.setDaoProvider(daoProvider);
@@ -230,10 +221,6 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
             return new AssignmentPlan(List.of(assignment));
         });
 
-        StaticBeanContainer container = new StaticBeanContainer();
-        container.registerBean("nopJobTaskBuilder_bestFit", bestFitBuilder);
-        BeanContainer.registerInstance(container);
-
         NopJobSchedule schedule = newSchedule("sched-bestfit-meta", "job-bestfit-meta");
         schedule.setTaskCostCpu(900);
         schedule.setTaskCostMemory(1800);
@@ -242,7 +229,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
         NopJobFire fire = newWaitingBestFitFire(schedule, "svc-meta");
         daoProvider.daoFor(NopJobFire.class).saveEntityDirectly(fire);
 
-        JobDispatcherScannerImpl dispatcher = newDispatcher(10);
+        JobDispatcherScannerImpl dispatcher = newDispatcher(10, Map.of("bestFit", bestFitBuilder));
         dispatcher.scanOnce();
 
         NopJobTask task = daoProvider.daoFor(NopJobTask.class).findAll().stream()
@@ -261,9 +248,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
 
     @Test
     public void testDispatcherPreservesBuilderSetCostAndPriority() {
-        rememberOriginalBeanContainer();
-        StaticBeanContainer container = new StaticBeanContainer();
-        container.registerBean("nopJobTaskBuilder_bestFit", (IJobTaskBuilder) fire -> {
+        IJobTaskBuilder bestFitStub = fire -> {
             NopJobTask task = new NopJobTask();
             task.setJobFireId(fire.getJobFireId());
             task.setTaskNo(1);
@@ -273,8 +258,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
             task.setCostMemory(222);
             task.setPriority(9);
             return List.of(task);
-        });
-        BeanContainer.registerInstance(container);
+        };
 
         NopJobSchedule schedule = newSchedule("sched-preserve-builder", "job-preserve-builder");
         schedule.setTaskCostCpu(700);
@@ -284,7 +268,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
         NopJobFire fire = newWaitingBestFitFire(schedule, "svc-preserve");
         daoProvider.daoFor(NopJobFire.class).saveEntityDirectly(fire);
 
-        runDispatcher();
+        runDispatcher(Map.of("bestFit", bestFitStub));
 
         NopJobTask task = daoProvider.daoFor(NopJobTask.class).findAll().stream()
                 .filter(item -> fire.getJobFireId().equals(item.getJobFireId()))
@@ -306,13 +290,11 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
     }
 
     private void runDispatcher() {
-        JobDispatcherScannerImpl dispatcher = new JobDispatcherScannerImpl();
-        dispatcher.setFireStore(fireStore);
-        dispatcher.setDefaultTaskBuilder(defaultBuilder());
-        dispatcher.setBatchSize(10);
-        dispatcher.setLockTimeoutMs(1000);
-        dispatcher.setAssignedPartitions("1");
-        dispatcher.setScheduleStore(scheduleStore);
+        runDispatcher(Map.of());
+    }
+
+    private void runDispatcher(Map<String, IJobTaskBuilder> builders) {
+        JobDispatcherScannerImpl dispatcher = newDispatcher(10, builders);
         dispatcher.scanOnce();
     }
 
@@ -354,14 +336,11 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
      */
     @Test
     public void testNoFittingWorkerRevertsToWaitingWithBackoff() {
-        rememberOriginalBeanContainer();
-        StaticBeanContainer container = new StaticBeanContainer();
-        container.registerBean("nopJobTaskBuilder_bestFit", (IJobTaskBuilder) fire -> {
+        IJobTaskBuilder bestFitStub = fire -> {
             throw new NopException(ERR_JOB_NO_FITTING_WORKER)
                     .param("taskCost", "1000")
                     .param("serviceName", "svc");
-        });
-        BeanContainer.registerInstance(container);
+        };
 
         NopJobSchedule schedule = newSchedule("sched-noWorker", "job-noWorker");
         schedule.setTaskCostCpu(1000);
@@ -370,7 +349,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
         daoProvider.daoFor(NopJobFire.class).saveEntityDirectly(fire);
 
         RecordingDispatcherMetrics metrics = new RecordingDispatcherMetrics();
-        JobDispatcherScannerImpl dispatcher = newDispatcher(10);
+        JobDispatcherScannerImpl dispatcher = newDispatcher(10, Map.of("bestFit", bestFitStub));
         dispatcher.setNoWorkerBackoffMs(30000);
         dispatcher.setDispatcherMetrics(metrics);
         dispatcher.scanOnce();
@@ -485,7 +464,6 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
      */
     @Test
     public void testTwoDispatchersOverAssignBeyondCapacityViaStaleRead() {
-        rememberOriginalBeanContainer();
         // Shared bestFit builder: load provider恒报 worker 空闲（reserved=ZERO），模拟 stale-read 竞态
         AdaptiveJobTaskBuilder bestFitBuilder = new AdaptiveJobTaskBuilder();
         bestFitBuilder.setScheduleStore(scheduleStore);
@@ -499,9 +477,6 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
             load.setReserved(ResourceVector.ZERO); // stale-read: 永远认为 worker 空闲
             return List.of(load);
         });
-        StaticBeanContainer container = new StaticBeanContainer();
-        container.registerBean("nopJobTaskBuilder_bestFit", bestFitBuilder);
-        BeanContainer.registerInstance(container);
 
         // 5 个 schedule（cost {300,500}）+ 5 个 WAITING bestFit fire
         for (int i = 0; i < 5; i++) {
@@ -514,8 +489,8 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
         }
 
         // 两个 dispatcher 实例，batchSize=3 → dispatcher1 锁 3 个 fire，dispatcher2 锁剩余 2 个
-        JobDispatcherScannerImpl dispatcher1 = newDispatcher(3);
-        JobDispatcherScannerImpl dispatcher2 = newDispatcher(3);
+        JobDispatcherScannerImpl dispatcher1 = newDispatcher(3, Map.of("bestFit", bestFitBuilder));
+        JobDispatcherScannerImpl dispatcher2 = newDispatcher(3, Map.of("bestFit", bestFitBuilder));
         dispatcher1.scanOnce();
         dispatcher2.scanOnce();
 
@@ -544,8 +519,6 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
      */
     @Test
     public void testScanOnceInvokesWorkerLoadProviderLifecycleAndCachesAcrossFires() {
-        rememberOriginalBeanContainer();
-
         CountingDiscoveryClient discovery = new CountingDiscoveryClient();
         DefaultWorkerLoadProvider realProvider = new DefaultWorkerLoadProvider();
         realProvider.setDiscoveryClient(discovery);
@@ -558,10 +531,6 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
         bestFitBuilder.setDaoProvider(daoProvider);
         bestFitBuilder.setLoadProvider(recording);
 
-        StaticBeanContainer container = new StaticBeanContainer();
-        container.registerBean("nopJobTaskBuilder_bestFit", bestFitBuilder);
-        BeanContainer.registerInstance(container);
-
         // 3 个 WAITING bestFit fire（同一 serviceName）
         for (int i = 0; i < 3; i++) {
             NopJobSchedule schedule = newSchedule("sched-ar96-" + i, "job-ar96-" + i);
@@ -570,7 +539,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
             daoProvider.daoFor(NopJobFire.class).saveEntityDirectly(newWaitingBestFitFire(schedule, "svc"));
         }
 
-        JobDispatcherScannerImpl dispatcher = newDispatcher(10);
+        JobDispatcherScannerImpl dispatcher = newDispatcher(10, Map.of("bestFit", bestFitBuilder));
         dispatcher.setWorkerLoadProvider(recording); // 接线：dispatcher 持有同一 provider 做生命周期管理
         dispatcher.scanOnce();
 
@@ -590,9 +559,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
      */
     @Test
     public void testPartitionDispatchEndToEndCoversFullSmallintBoundary() {
-        rememberOriginalBeanContainer();
-
-        // 注册带 mock discovery client 的 PartitionTaskBuilder（2 个 healthy worker → 2 分片）
+        // 带 mock discovery client 的 PartitionTaskBuilder（2 个 healthy worker → 2 分片）
         PartitionTaskBuilder partitionBuilder = new PartitionTaskBuilder();
         partitionBuilder.setScheduleStore(scheduleStore);
         partitionBuilder.setDaoProvider(daoProvider);
@@ -619,9 +586,6 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
                 return Collections.emptyList();
             }
         });
-        StaticBeanContainer container = new StaticBeanContainer();
-        container.registerBean("nopJobTaskBuilder_partition", partitionBuilder);
-        BeanContainer.registerInstance(container);
 
         // schedule + partition 模式 fire
         NopJobSchedule schedule = newSchedule("sched-ar98", "job-ar98");
@@ -647,7 +611,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
         fire.setUpdateTime(new Timestamp(now));
         daoProvider.daoFor(NopJobFire.class).saveEntityDirectly(fire);
 
-        JobDispatcherScannerImpl dispatcher = newDispatcher(10);
+        JobDispatcherScannerImpl dispatcher = newDispatcher(10, Map.of("partition", partitionBuilder));
         dispatcher.scanOnce();
 
         List<NopJobTask> tasks = daoProvider.daoFor(NopJobTask.class).findAll().stream()
@@ -671,9 +635,13 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
     }
 
     private JobDispatcherScannerImpl newDispatcher(int batchSize) {
+        return newDispatcher(batchSize, Map.of());
+    }
+
+    private JobDispatcherScannerImpl newDispatcher(int batchSize, Map<String, IJobTaskBuilder> builders) {
         JobDispatcherScannerImpl dispatcher = new JobDispatcherScannerImpl();
         dispatcher.setFireStore(fireStore);
-        dispatcher.setDefaultTaskBuilder(defaultBuilder());
+        dispatcher.setTaskBuilders(withSingle(builders));
         dispatcher.setBatchSize(batchSize);
         dispatcher.setLockTimeoutMs(1000);
         dispatcher.setAssignedPartitions("1");
@@ -1029,7 +997,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
 
         JobDispatcherScannerImpl dispatcher = new JobDispatcherScannerImpl();
         dispatcher.setFireStore(fireStore);
-        dispatcher.setDefaultTaskBuilder(defaultBuilder());
+        dispatcher.setTaskBuilders(singleBuilders());
         dispatcher.setBatchSize(10);
         dispatcher.setLockTimeoutMs(1000);
         dispatcher.setAssignedPartitions("1");

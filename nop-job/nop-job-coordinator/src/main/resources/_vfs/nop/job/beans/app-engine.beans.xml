@@ -20,8 +20,9 @@
         <property name="partitionResolver" ref="nopJobPartitionResolver"/>
     </bean>
 
-    <bean id="nopJobTaskBuilder_default" class="io.nop.job.coordinator.engine.DefaultJobTaskBuilder"/>
-    <bean id="nopJobTaskBuilder_rpcBroadcast" class="io.nop.job.coordinator.engine.RpcBroadcastTaskBuilder"/>
+    <!-- plan 339: dispatchMode 是 coordinator 侧唯一路由键。key = 去前缀 bean id（single/partition/broadcast/bestFit），
+         由 dispatcher 的 taskBuilders 属性经 collect-beans 收集；executorKind 不再参与 coordinator 路由。 -->
+    <bean id="nopJobTaskBuilder_single" class="io.nop.job.coordinator.engine.DefaultJobTaskBuilder"/>
     <bean id="nopJobTaskBuilder_broadcast" class="io.nop.job.coordinator.engine.RpcBroadcastTaskBuilder"/>
     <bean id="nopJobTaskBuilder_partition" class="io.nop.job.coordinator.engine.PartitionTaskBuilder"/>
 
@@ -34,9 +35,12 @@
 
     <bean id="io.nop.job.coordinator.engine.IJobDispatcherScanner"
           class="io.nop.job.coordinator.engine.JobDispatcherScannerImpl">
-        <property name="defaultTaskBuilder" ref="nopJobTaskBuilder_default"/>
+        <property name="taskBuilders">
+            <ioc:collect-beans as-map="true" name-prefix="nopJobTaskBuilder_"
+                               by-type="io.nop.job.coordinator.engine.IJobTaskBuilder"/>
+        </property>
         <property name="partitionResolver" ref="nopJobPartitionResolver"/>
-        <!-- AR-96: 共用 nopWorkerLoadProvider 实例，使 scanOnce 的 beginScan/endScan 控制
+        <!-- AR-96: 共用 workerLoadProvider 实例，使 scanOnce 的 beginScan/endScan 控制
              AdaptiveJobTaskBuilder（ref 同一 bean）的 per-scan 缓存生命周期 -->
         <property name="workerLoadProvider" ref="nopWorkerLoadProvider"/>
     </bean>

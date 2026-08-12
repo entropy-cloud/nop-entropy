@@ -15,9 +15,10 @@
 
  - `dispatchMode=bestFit` routes to `AdaptiveJobTaskBuilder`.
  - `dispatchMode=partition` routes to `PartitionTaskBuilder`; it does not call `IWorkerAssignmentStrategy`.
- - `dispatchMode=broadcast` and legacy `executorKind=rpcBroadcast` route to `RpcBroadcastTaskBuilder`; they do not call `IWorkerAssignmentStrategy`.
- - `dispatchMode ∈ {null, blank, single}` falls back to `executorKind`, then to `DefaultJobTaskBuilder`.
- - Missing non-single builders fail fast with `nop.err.job.dispatch-mode-not-implemented`; they do not silently degrade to single-task dispatch.
+ - `dispatchMode=broadcast` routes to `RpcBroadcastTaskBuilder`; it does not call `IWorkerAssignmentStrategy`.
+ - `dispatchMode ∈ {null, blank, single}` resolves to `single` → `DefaultJobTaskBuilder` (plan 339: no `executorKind` fallback; `executorKind` is worker-side invoker selection only).
+ - Routing is a startup-injected `Map<String,IJobTaskBuilder>` (`<ioc:collect-beans as-map="true" name-prefix="nopJobTaskBuilder_">`); unknown `dispatchMode` fails fast with `nop.err.job.dispatch-mode-not-implemented`; no silent degrade to single-task dispatch.
+ - `broadcast`/`partition`/`bestFit` are service builders (shared base `AbstractServiceTaskBuilder`): missing/non-String `serviceName` → `nop.err.job.service-name-required`; missing `discoveryClient` → `nop.err.job.discovery-client-required`; zero healthy instances → `nop.err.job.no-available-instance`. Failures leave the fire DISPATCHING for timeout recovery (no fallback to `DefaultJobTaskBuilder`).
 
  ## Assignment Contract
 
