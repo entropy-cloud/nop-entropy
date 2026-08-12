@@ -85,8 +85,12 @@ public class _NopAiModel extends DynamicOrmEntity{
     public static final String PROP_NAME_currency = "currency";
     public static final int PROP_ID_currency = 16;
     
+    /* 凭证ID: credential_id VARCHAR */
+    public static final String PROP_NAME_credentialId = "credentialId";
+    public static final int PROP_ID_credentialId = 17;
+    
 
-    private static int _PROP_ID_BOUND = 17;
+    private static int _PROP_ID_BOUND = 18;
 
     
     /* relation: 调用记录 */
@@ -96,7 +100,7 @@ public class _NopAiModel extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_id);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_id};
 
-    private static final String[] PROP_ID_TO_NAME = new String[17];
+    private static final String[] PROP_ID_TO_NAME = new String[18];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -148,6 +152,9 @@ public class _NopAiModel extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_currency] = PROP_NAME_currency;
           PROP_NAME_TO_ID.put(PROP_NAME_currency, PROP_ID_currency);
       
+          PROP_ID_TO_NAME[PROP_ID_credentialId] = PROP_NAME_credentialId;
+          PROP_NAME_TO_ID.put(PROP_NAME_credentialId, PROP_ID_credentialId);
+      
     }
 
     
@@ -198,6 +205,9 @@ public class _NopAiModel extends DynamicOrmEntity{
     
     /* 币种: currency */
     private java.lang.String _currency;
+    
+    /* 凭证ID: credential_id */
+    private java.lang.String _credentialId;
     
 
     public _NopAiModel(){
@@ -320,6 +330,9 @@ public class _NopAiModel extends DynamicOrmEntity{
         
             case PROP_ID_currency:
                return getCurrency();
+        
+            case PROP_ID_credentialId:
+               return getCredentialId();
         
            default:
               return super.orm_propValue(propId);
@@ -492,6 +505,16 @@ public class _NopAiModel extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_credentialId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_credentialId));
+               }
+               setCredentialId(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -609,6 +632,13 @@ public class _NopAiModel extends DynamicOrmEntity{
             case PROP_ID_currency:{
                onInitProp(propId);
                this._currency = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_credentialId:{
+               onInitProp(propId);
+               this._credentialId = (java.lang.String)value;
                
                break;
             }
@@ -919,6 +949,25 @@ public class _NopAiModel extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_currency,value)){
             this._currency = value;
             internalClearRefs(PROP_ID_currency);
+            
+        }
+    }
+    
+    /**
+     * 凭证ID: credential_id
+     */
+    public final java.lang.String getCredentialId(){
+         onPropGet(PROP_ID_credentialId);
+         return _credentialId;
+    }
+
+    /**
+     * 凭证ID: credential_id
+     */
+    public final void setCredentialId(java.lang.String value){
+        if(onPropSet(PROP_ID_credentialId,value)){
+            this._credentialId = value;
+            internalClearRefs(PROP_ID_credentialId);
             
         }
     }

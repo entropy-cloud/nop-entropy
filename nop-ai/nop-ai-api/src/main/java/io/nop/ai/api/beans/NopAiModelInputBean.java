@@ -166,4 +166,18 @@
         }
 
 
+        private String _credentialId;
+
+    
+        @PropMeta(propId=17)
+    
+        public String getCredentialId(){
+            return _credentialId;
+        }
+
+        public void setCredentialId(String value){
+            this._credentialId = value;
+        }
+
+
     }

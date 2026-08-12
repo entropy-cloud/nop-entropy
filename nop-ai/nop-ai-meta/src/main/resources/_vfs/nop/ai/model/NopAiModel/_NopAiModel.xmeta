@@ -83,6 +83,10 @@
               updatable="true">
             <schema type="java.lang.String" precision="3"/>
         </prop>
+        <prop name="credentialId" displayName="凭证ID" propId="17" i18n-en:displayName="Credential ID" queryable="true"
+              sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
         <prop name="responses" displayName="调用记录" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
               ext:joinRightProp="modelId" lazy="true" published="false">
             <schema>

@@ -44,6 +44,7 @@ CREATE TABLE nop_ai_model(
   cache_read_price_per_1m NUMERIC(10,4)  ,
   cache_write_price_per_1m NUMERIC(10,4)  ,
   currency VARCHAR(3)  ,
+  credential_id VARCHAR(50)  ,
   constraint PK_nop_ai_model primary key (id)
 );
 
@@ -435,6 +436,8 @@ CREATE TABLE nop_ai_test_result(
       COMMENT ON COLUMN nop_ai_model.cache_write_price_per_1m IS '缓存写单价';
                     
       COMMENT ON COLUMN nop_ai_model.currency IS '币种';
+                    
+      COMMENT ON COLUMN nop_ai_model.credential_id IS '凭证ID';
                     
       COMMENT ON TABLE nop_ai_prompt_template IS '提示词模板';
                 

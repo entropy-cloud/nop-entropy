@@ -60,6 +60,7 @@ import java.util.Map;
 
 import io.nop.ai.biz.INopAiChatRequestBiz;import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -248,6 +249,37 @@ public class TestNopAiOrmEntityMapping {
         assertNotNull(stored);
         assertTrue(!stored.toString().contains("sk-secret-value-42"),
                 "enc-tagged column must not be stored as plaintext");
+    }
+
+    @Test
+    public void testCredentialIdColumnRoundTrip() {
+        IEntityDao<NopAiModel> dao = daoProvider.daoFor(NopAiModel.class);
+
+        NopAiModel model = dao.newEntity();
+        model.setId("m-cred");
+        model.setProvider("test");
+        model.setModelName("gpt-4");
+        model.setApiKey("sk-x");
+        model.setCredentialId("cred-001");
+        model.setVersion(1);
+        dao.saveEntity(model);
+
+        NopAiModel loaded = dao.requireEntityById("m-cred");
+        assertEquals("cred-001", loaded.getCredentialId(),
+                "credentialId plain column must round-trip its value");
+
+        NopAiModel nullable = dao.newEntity();
+        nullable.setId("m-cred-null");
+        nullable.setProvider("test");
+        nullable.setModelName("gpt-4");
+        nullable.setApiKey("sk-y");
+        nullable.setVersion(1);
+        dao.saveEntity(nullable);
+        assertNull(dao.requireEntityById("m-cred-null").getCredentialId(),
+                "credentialId is optional and must remain null when unset");
+
+        assertEquals(17, NopAiModel.PROP_ID_credentialId,
+                "credentialId must be propId=17 on the generated entity");
     }
 
     @Test

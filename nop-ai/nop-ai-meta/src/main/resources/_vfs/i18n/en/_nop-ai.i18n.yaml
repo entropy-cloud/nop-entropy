@@ -152,6 +152,7 @@ prop:
       cacheReadPricePer1m: null
       cacheWritePricePer1m: null
       currency: null
+      credentialId: Credential ID
       responses: null
     NopAiProject:
       id: null

@@ -314,6 +314,9 @@
                         stdSqlType="DECIMAL"/>
                 <column code="currency" comment="币种代码" displayName="币种" name="currency" precision="3" propId="16"
                         stdDataType="string" stdSqlType="VARCHAR" ext:defaultValue="USD"/>
+                <column code="credential_id" comment="关联加密凭证ID(逻辑外键指向nop_credential，运行时经ICredentialProvider读取)"
+                        displayName="凭证ID" name="credentialId" precision="50" propId="17" stdDataType="string"
+                        stdSqlType="VARCHAR" ui:show="X" i18n-en:displayName="Credential ID"/>
             </columns>
             <comment>第三方AI模型注册信息</comment>
             <relations>

@@ -141,6 +141,7 @@ prop:
       cacheWritePricePer1m: 缓存写单价
       createTime: 创建时间
       createdBy: 创建人
+      credentialId: 凭证ID
       currency: 币种
       id: 主键
       inputPricePer1m: 输入单价

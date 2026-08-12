@@ -325,6 +325,12 @@
                         stdSqlType="DECIMAL"/>
                 <column code="currency" comment="币种代码" displayName="币种" ext:defaultValue="USD"
                         name="currency" precision="3" propId="16" stdDataType="string" stdSqlType="VARCHAR"/>
+                <!-- credentialId: 逻辑外键指向 nop_credential.CREDENTIAL_ID。
+                     声明为普通可选列，不设 refEntityName/to-one 关系（避免 nop-ai-dao 引入对
+                     nop-credential-dao 的跨模块 DAO 依赖）。运行时消费经 ICredentialProvider（api 层）。 -->
+                <column code="credential_id" comment="关联加密凭证ID(逻辑外键指向nop_credential，运行时经ICredentialProvider读取)"
+                        displayName="凭证ID" name="credentialId" precision="50" propId="17"
+                        stdDataType="string" stdSqlType="VARCHAR" ui:show="X" i18n-en:displayName="Credential ID"/>
             </columns>
             <comment>第三方AI模型注册信息</comment>
             <relations>

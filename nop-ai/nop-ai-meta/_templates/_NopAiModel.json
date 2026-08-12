@@ -16,5 +16,6 @@
   "cacheReadPricePer1m": 0.0,
   "cacheWritePricePer1m": 0.0,
   "currency": "",
+  "credentialId": "",
   "responses": null
 }
