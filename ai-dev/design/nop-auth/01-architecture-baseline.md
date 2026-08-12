@@ -232,7 +232,7 @@ MfaChallengeStore:   # 结构化 challenge 状态（作废/超限的统一出口
   peek(challengeToken): Challenge | null               # 读取（非删除，不刷新 TTL）
   incrFailCount(challengeToken): int                   # 原子失败计数（Redis 用 INCR，§3.3）
   consume(challengeToken): Challenge | null            # 原子删除，一次性
-  # Local 实现（LocalCache）+ Redis 实现（基于 INosqlKeyValueOperations/NosqlCache）
+  # 三实现：Local（LocalCache）+ DB（W8 默认，见下）+ Redis（基于 INosqlKeyValueOperations/NosqlCache）
 
 SmsCodeStore:         # 短信验证码（独立于图形验证码缓存）
   send(phone): code                    # 生成 6 位码，TTL 5min
@@ -242,6 +242,8 @@ SmsCodeStore:         # 短信验证码（独立于图形验证码缓存）
 ```
 
 **Redis 实现的复用方式**：`INosqlKeyValueOperations`（`nop-nosql-core`）具备每 key TTL（`putExAsync`/`setTimeoutAsync`）、条件写入（`putIfAbsentOrMatchExAsync`，幂等去重语义，非通用 CAS）；`NosqlCache` 实现 `ICache<String,Object>` 提供原子删除（`removeIfMatch`）；`INosqlRateLimiter` 提供限流原语；`INosqlService.counter(key)` → `INosqlCounter` 提供原子自增（INCRBY）。**Redis 写路径约束**：两个 store 的写一律走 `putExAsync`（TTL 在此设定）；读用**不刷新 TTL** 的 `get`（禁用 `getExAsync`/`NosqlCache.getAsync`——GETEX 滑动刷新会让"5 分钟过期"失效）；`NosqlCache` 仅承担 `removeIfMatch` 原子消费。`nop-auth-service` 新增依赖 `nop-nosql-core`（可选，配置 `nop.auth.mfa.store-type=redis` 时启用）。
+
+**DB 实现（W8，默认 store-type）**：`DbMfaChallengeStore`/`DbSmsCodeStore` 基于 ORM 实体表 `nop_auth_mfa_challenge`（PK `challengeToken`，列 `expireAt` BIGINT epoch 毫秒 + `failCount` INTEGER）+ `nop_auth_sms_code`（PK `codeKey`，列 `code` 明文 + `expireAt` + `failCount`），经 `IDaoProvider`（CRUD）+ `IJdbcTemplate.executeUpdate`（原子 SQL）操作。**原子性**：`consume` 用条件 `DELETE WHERE pk=? AND expire_at>?` + affected-row 判定保证一次性（并发 consume 仅一个 affected>0）；`incrFailCount` 用 `UPDATE SET fail_count=fail_count+1 WHERE pk=? AND expire_at>?`（SQL 原子递增，对齐 Redis INCRBY 方案 A）；TTL 清理为**惰性**（peek/consume 过期即删；批量清理为 Follow-up）。**SMS code 明文裁决**：对齐 Local/Redis 实现的行为等价；5min TTL + maxAttempts 防爆破已足够，BCrypt 收益对瞬态数据不显著（恢复码 long-lived 故仍用 BCrypt）。**装配**：store 实现经 `ioc:collect-beans name-prefix`（`nopMfaChallengeStore_`/`nopSmsCodeStore_`，`as-map`，**`ioc:ignore-depends="true"`**）声明式收集；`autowire-candidate="false"` 隔离不污染类型注入。Redis store bean 经 `ioc:condition`（`store-type=redis` + `on-class INosqlService`）条件激活——classpath 无 nosql 时不注册、不收集、类不加载（ai-dev/lessons/15 不变式）。
 
 **Redis 原子失败计数（关键）**：`INosqlKeyValueOperations` **无原子 INCR 原语**（`getAndSetExAsync` 只能写已知新值，`putIfAbsentOrMatchExAsync` 为条件写入-幂等去重、非通用 CAS），若按"读-改-写"实现 `incrFailCount`，并发错误请求会同时读到同一计数，`max-attempts` 上限可被绕过。方案（实施时必须）：
 
@@ -386,7 +388,7 @@ unbindMfa({code}):                           # 换绑/解绑：需验证当前�
 | 配置 | 默认值 | 说明 |
 |---|---|---|
 | `nop.auth.mfa.enabled` | `false` | 全局 MFA 开关（关时即使有配置也不强制） |
-| `nop.auth.mfa.store-type` | `local` | challenge/验证码存储实现：`local`/`redis` |
+| `nop.auth.mfa.store-type` | `db` | challenge/验证码存储实现：`local`/`db`（默认）/`redis`。W8 裁决：缺省不使用 Redis，默认 `db`（数据库实现，零外部依赖、多实例共享、持久化）。store 实现经 `ioc:collect-beans name-prefix`（`nopMfaChallengeStore_`/`nopSmsCodeStore_`，`ioc:ignore-depends="true"`）声明式装配；Redis bean 经 `ioc:condition`（`store-type=redis` + `on-class INosqlService`）条件激活，classpath 无 nosql 时不加载（ai-dev/lessons/15）。
 | `nop.auth.mfa.challenge-expire-seconds` | `300` | challenge 有效期 |
 | `nop.auth.mfa.max-attempts` | `5` | 第二因子最大尝试次数（超限作废 challenge） |
 | `nop.auth.mfa.totp-issuer` | `nop` | TOTP issuer 名称 |

@@ -1,6 +1,6 @@
 # 2251 - Bean 命名前缀合规修正（check-bean-naming 落地）
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-08-13
 > Source: `docs-for-ai/02-core-guides/code-style.md`（§IoC Bean 命名强约定：平台内置 bean 短名以 `nop` 为前缀）；用户 2026-08-13 指示——写检查工具确认所有短名 bean 非测试目录均以 `nop` 前缀，nop-demo 豁免，其余修正
 > Related: `ai-dev/plans/2026-08-13-0900-1-mfa-db-store-and-default-db.md`（MFA 4 bean 顺带改名，本 plan 与其协同）
@@ -67,7 +67,7 @@
 
 ### Phase 1 - 裁决与白名单
 
-Status: pending
+Status: planned
 
 - [ ] 裁决 nop-cluster 4 个 `Abstract*RpcProxyFactoryBean`（abstract="true" 模板）：豁免入工具白名单，或在 `rpc-cluster-defaults.beans.xml` 改名（`nopRpcClusterProxyFactoryBean` 等）+ 引用同步
 - [ ] 裁决 nop-stream 2 个 `_node0` 变体（脚手架形态）：豁免（`_nodeN` 变体模式）或改名
@@ -81,7 +81,7 @@ Exit Criteria:
 
 ### Phase 2 - 批量改名 + 引用同步（按模块）
 
-Status: pending
+Status: planned
 
 - [ ] **nop-auth（6）**：`mfaStoreProvider`→`nopMfaStoreProvider`、`mfaChallengeStore`→`nopMfaChallengeStore`、`smsCodeStore`→`nopSmsCodeStore`、`totpAuthenticator`→`nopTotpAuthenticator`、`channelBindService`→`nopChannelBindService`、`userChannelResolver`→`nopUserChannelResolver`（含该 beans.xml 内全部 ref 引用点 + Java 侧 `@Inject`/`inject('...')` 引用点全仓 grep 同步）
 - [ ] **nop-persistence/db-migration（19）**：`migrationEngine`→`nopMigrationEngine`、`migrationExecutor`→`nopMigrationExecutor`、`migrationFileScanner`→`nopMigrationFileScanner`、`migrationHistoryManager`→`nopMigrationHistoryManager`、`sqlExecutor`→`nopSqlExecutor`、`createTableExecutor`→`nopCreateTableExecutor`、`dropTableExecutor`→`nopDropTableExecutor`、`renameTableExecutor`→`nopRenameTableExecutor`、`addColumnExecutor`→`nopAddColumnExecutor`、`dropColumnExecutor`→`nopDropColumnExecutor`、`alterColumnExecutor`→`nopAlterColumnExecutor`、`createIndexExecutor`→`nopCreateIndexExecutor`、`dropIndexExecutor`→`nopDropIndexExecutor`、`createViewExecutor`→`nopCreateViewExecutor`、`dropViewExecutor`→`nopDropViewExecutor`、`insertDataExecutor`→`nopInsertDataExecutor`、`updateDataExecutor`→`nopUpdateDataExecutor`、`deleteDataExecutor`→`nopDeleteDataExecutor`、`customChangeExecutor`→`nopCustomChangeExecutor`（含 ref 同步 12 处 + Java 引用点）
@@ -104,7 +104,7 @@ Exit Criteria:
 
 ### Phase 3 - CI 门控接入 + 文档同步
 
-Status: pending
+Status: planned
 
 - [ ] `check-bean-naming.mjs` 接入 CI（`compliance.yml` 或独立 job）：全仓库运行，BEAN-ID 违规 exit 1
 - [ ] `docs-for-ai/02-core-guides/code-style.md` §IoC Bean 命名补「check-bean-naming 检查工具」引用行（含运行命令）
