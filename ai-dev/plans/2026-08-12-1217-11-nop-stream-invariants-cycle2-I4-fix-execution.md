@@ -1,6 +1,6 @@
 # Cycle 2 / I4 — 修复执行（跨 task interim fail-fast + 注册表分类更新 + pin 移除）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-12
 > Draft Review: 3 轮独立子 agent 对抗性审查通过（round 1：2 Major（F1 TimestampedCollector 翻转/注册表同步漏项 / F2 行为变更缺全量回归）+ 5 Minor，全部修复；round 2：4 Minor（N1-N4）修复；round 3：0 Blocker / 0 Major / 1 Minor（E2E 计数 3/3→4/4 传播遗漏，已修复），verdict 可转 active）
 > Source: roadmap `ai-dev/backlog/nop-stream-invariant-loop-roadmap.md` Cycle 2 / I4 行（跨 task interim fail-fast 修复（`RecordWriterOutput` / `BroadcastingRecordWriterOutput` `collect(OutputTag)` 空体 → 抛 `ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER` 风格异常；类内部行为修复，private 嵌套类、`Output` 接口零变更，同 RL-7 先例）+ 注册表分类更新 + 过渡 pin 移除；test-first 先红后绿；类别清扫（全 `Output` 实现类兄弟））；I6 预裁决 `ai-dev/audits/nop-stream-invariants/adjudication-table.md` §6.2（interim fail-fast 自动信封 + `HG-01` 人工确认门）；I1 门禁 `cycle2-I1-input.md` / `output-contract-registry.json` / `mjs-pins.json`
@@ -100,46 +100,46 @@ Exit Criteria:
 
 ### Phase 3 - 注册表分类迁移、pin 移除与门禁复跑
 
-Status: planned
+Status: completed
 Targets: `ai-dev/audits/nop-stream-invariants/{output-contract-registry.json,mjs-pins.json}`；`cycle2-I1-input.md`（仅回读，不回写——唯一落点原则）；JUnit 门禁子集
 
 - Item Types: `Fix | Proof | Follow-up`
-- [ ] 注册表分类迁移：`output-contract-registry.json` RWO/BRWO `classification` = `pinned-known-violation` → `fail-fast`；`disposition` / `subSemantics` 同步更新（注明 interim fail-fast 落地日期 / commit；`HG-01` 关联保留为「线协议支持属增强」）；**`TimestampedCollector` 条目 disposition / subSemantics 同步**（现文本「wrapping-RecordWriterOutput scenario equals cross-task drop … (no fix in this plan)」在 RWO 修复后为事实错误——改为「包装 RWO 时 collect(OutputTag) 透传 → RWO fail-fast 抛 `ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER`」，透传目标敏感语义随被包装对象迁移）；`updated` 字段更新。**commit 顺序约束**：修复代码 + 注册表迁移 + pin 移除 + 断言翻转须同 commit 落地（防中间态——修复落地而注册表未迁移期间 mjs V3 红 + stale pin 为预期中间态，不允许中间态 commit 保留；JUnit 先红后绿叙事以翻转断言为唯一先红证据）
-- [ ] 过渡 pin 移除：`mjs-pins.json` 删除 `RWO-cross-task-noop` / `BRWO-cross-task-noop`（含留痕：文件头 note 说明移除原因 = Cycle 2 / I4 interim fail-fast 修复落地 + 注册表分类更新，遵守 removalTrigger；**禁止静默移除**——移除必须与修复 + 注册表更新同 commit / 同记录）
-- [ ] JUnit 断言同步复核：`TestOutputContractInvariant` 分类迁移断言（Phase 1 已翻转）与注册表新分类（fail-fast）一致；参数化用例来源（registry-backed）读注册表不报不一致
-- [ ] 门禁复跑零命中：`./mvnw test -pl nop-stream/nop-stream-core,nop-stream/nop-stream-runtime,nop-stream/nop-stream-cep -Dtest='Test*Invariant*'` 0 failure（含翻转后断言）+ `node ai-dev/tools/check-nop-stream-invariants.mjs all` exit 0（pins = 0；无 unpinned / 无 stale）+ `./mvnw test -pl nop-stream/nop-stream-runtime -Dtest=TestSideOutputChainingE2E` 绿（**4/4——含 Phase 1 新增跨 task fail-fast 第 4 用例**；既有 in-task 3 用例不回归）
-- [ ] **全量模块回归（行为变更面，F2 先例）**：`./mvnw test -pl nop-stream/nop-stream-core,nop-stream/nop-stream-runtime` 全量跑（RWO/BRWO 是跨 task 部署下全部 6 个发射点的出口路径，collect(OutputTag) 从静默 no-op 翻为抛异常 = 行为变更）；结论 = 无既有测试依赖旧行为（Cycle 1 / I4 Phase 4 先例：core 1418 / runtime 804 全绿声明），证明本 plan 未引入回归；全量跑失败 = 先于本 plan closure 修复（不得把回归延迟到 I5）。**cep 排除依据**：nop-stream-cep 不实例化 StreamTaskInvokable / RecordWriterOutput（CepOperator 发射点走 in-task 链式路径），且其 2 个门禁类已含在 `Test*Invariant*` 子集复跑中——排除 cep 全量不引入覆盖缺口
-- [ ] 文档收口：`ai-dev/design/nop-stream/core-design.md` §6.1 不变式节同步（跨 task 实例处置状态 = fail-fast 落地；`HG-01` 保留待办标注）——**如 §6.1 已含过渡 pin 描述则更新，未含则记录 `No owner-doc update required` 依据**；`ai-dev/audits/nop-stream-invariants/red-list.md` Cycle 2 节修复状态回写（如 I2/I3 有对应条目）；`ai-dev/logs/` 顶部条目更新；roadmap Cycle 2 / I4 行流转（active 时 `todo`→`planned`；closure audit 通过后 `planned`→`done`）
-- [ ] committed 回归测试（修复 + 翻转断言 + 注册表 + pin 移除同 commit 防漂移；mission commitFormat：`fix(nop-stream): <description>`）
+- [x] 注册表分类迁移：`output-contract-registry.json` RWO/BRWO `classification` = `pinned-known-violation` → `fail-fast`；`disposition` / `subSemantics` 同步更新（注明 interim fail-fast 落地日期 / commit；`HG-01` 关联保留为「线协议支持属增强」）；**`TimestampedCollector` 条目 disposition / subSemantics 同步**（现文本「wrapping-RecordWriterOutput scenario equals cross-task drop … (no fix in this plan)」在 RWO 修复后为事实错误——改为「包装 RWO 时 collect(OutputTag) 透传 → RWO fail-fast 抛 `ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER`」，透传目标敏感语义随被包装对象迁移）；`updated` 字段更新。**commit 顺序约束**：修复代码 + 注册表迁移 + pin 移除 + 断言翻转须同 commit 落地（防中间态——修复落地而注册表未迁移期间 mjs V3 红 + stale pin 为预期中间态，不允许中间态 commit 保留；JUnit 先红后绿叙事以翻转断言为唯一先红证据）
+- [x] 过渡 pin 移除：`mjs-pins.json` 删除 `RWO-cross-task-noop` / `BRWO-cross-task-noop`（含留痕：文件头 note 说明移除原因 = Cycle 2 / I4 interim fail-fast 修复落地 + 注册表分类更新，遵守 removalTrigger；**禁止静默移除**——移除必须与修复 + 注册表更新同 commit / 同记录）
+- [x] JUnit 断言同步复核：`TestOutputContractInvariant` 分类迁移断言（Phase 1 已翻转）与注册表新分类（fail-fast）一致；参数化用例来源（registry-backed）读注册表不报不一致
+- [x] 门禁复跑零命中：`./mvnw test -pl nop-stream/nop-stream-core,nop-stream/nop-stream-runtime,nop-stream/nop-stream-cep -Dtest='Test*Invariant*'` 0 failure（含翻转后断言）+ `node ai-dev/tools/check-nop-stream-invariants.mjs all` exit 0（pins = 0；无 unpinned / 无 stale）+ `./mvnw test -pl nop-stream/nop-stream-runtime -Dtest=TestSideOutputChainingE2E` 绿（**4/4——含 Phase 1 新增跨 task fail-fast 第 4 用例**；既有 in-task 3 用例不回归）
+- [x] **全量模块回归（行为变更面，F2 先例）**：`./mvnw test -pl nop-stream/nop-stream-core,nop-stream/nop-stream-runtime` 全量跑（RWO/BRWO 是跨 task 部署下全部 6 个发射点的出口路径，collect(OutputTag) 从静默 no-op 翻为抛异常 = 行为变更）；结论 = 无既有测试依赖旧行为（Cycle 1 / I4 Phase 4 先例：core 1418 / runtime 804 全绿声明），证明本 plan 未引入回归；全量跑失败 = 先于本 plan closure 修复（不得把回归延迟到 I5）。**cep 排除依据**：nop-stream-cep 不实例化 StreamTaskInvokable / RecordWriterOutput（CepOperator 发射点走 in-task 链式路径），且其 2 个门禁类已含在 `Test*Invariant*` 子集复跑中——排除 cep 全量不引入覆盖缺口
+- [x] 文档收口：`ai-dev/design/nop-stream/core-design.md` §6.1 不变式节同步（跨 task 实例处置状态 = fail-fast 落地；`HG-01` 保留待办标注）——**如 §6.1 已含过渡 pin 描述则更新，未含则记录 `No owner-doc update required` 依据**；`ai-dev/audits/nop-stream-invariants/red-list.md` Cycle 2 节修复状态回写（如 I2/I3 有对应条目）；`ai-dev/logs/` 顶部条目更新；roadmap Cycle 2 / I4 行流转（active 时 `todo`→`planned`；closure audit 通过后 `planned`→`done`）
+- [x] committed 回归测试（修复 + 翻转断言 + 注册表 + pin 移除同 commit 防漂移；mission commitFormat：`fix(nop-stream): <description>`）
 
 Exit Criteria:
 
-- [ ] 注册表分类 = `fail-fast`（RWO/BRWO），disposition 注明修复落地；`HG-01` 关联保留
-- [ ] `mjs-pins.json` pinnedViolations = 0（2 条过渡 pin 已移除，留痕在案——非静默移除）
-- [ ] JUnit 门禁子集 0 failure + mjs `all` exit 0（pins 0）+ `TestSideOutputChainingE2E` **4/4** 绿（含新增跨 task fail-fast 用例）+ **core / runtime 全量回归绿**（无既有测试依赖旧行为，记录测试数）
-- [ ] 文档收口完成（core-design 或显式 `No owner-doc update required` + red-list 回写 + logs + roadmap 行流转）
-- [ ] **无静默跳过**：全部新增 / 翻转路径有断言覆盖；空 Phase 2 有显式结论记录（见 Phase 2）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 注册表分类 = `fail-fast`（RWO/BRWO），disposition 注明修复落地；`HG-01` 关联保留
+- [x] `mjs-pins.json` pinnedViolations = 0（2 条过渡 pin 已移除，留痕在案——非静默移除）
+- [x] JUnit 门禁子集 0 failure + mjs `all` exit 0（pins 0）+ `TestSideOutputChainingE2E` **4/4** 绿（含新增跨 task fail-fast 用例）+ **core / runtime 全量回归绿**（无既有测试依赖旧行为，记录测试数）
+- [x] 文档收口完成（core-design 或显式 `No owner-doc update required` + red-list 回写 + logs + roadmap 行流转）
+- [x] **无静默跳过**：全部新增 / 翻转路径有断言覆盖；空 Phase 2 有显式结论记录（见 Phase 2）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见 guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] I3（`2026-08-12-1217-10-...`）已完成（硬前置）；interim fail-fast 预授权确认在案
-- [ ] 跨 task 静默丢弃已消除：RWO/BRWO `collect(OutputTag)` fail-fast（`ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER`）——已确认契约缺口修复，非降级
-- [ ] 注册表分类迁移 + 过渡 pin 移除完成（留痕在案，禁静默移除遵守）；JUnit 断言与注册表一致
-- [ ] 端到端 + 接线验证通过（跨 task fail-fast 完整路径；tail 算子运行时注入断言）
-- [ ] 类别清扫完成（4 实现类兄弟 + 6 发射点 + 接线链，无同族遗留静默丢弃）
-- [ ] 门禁复跑零命中（JUnit 门禁子集 0 failure + mjs `all` exit 0 + E2E 全绿）；**全量模块回归通过**（core + runtime 全量，无既有测试依赖旧行为）
-- [ ] 文档收口：core-design / red-list / logs / roadmap 行流转（或显式 `No owner-doc update required`）；**用户可见行为变更声明随注册表 disposition + 本 plan 落档**（跨 task side-output 发射 fail-fast，直至 `HG-01` 落地）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（`HG-01` = 人工确认门延续，非本 plan scope；其余派发项均有执行结论）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（见 Closure 段）
-- [ ] **Anti-Hollow Check**：closure audit 验证（a）RWO/BRWO fail-fast 在运行时确实被调用（端到端用例断言异常实际抛出），（b）端到端路径从入口到出口完整连通，（c）无空方法体 / 静默跳过作为正常实现
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <本plan> --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream --severity high` 运行记录在案（基线 = I1 closure 钉定的 `34aed42c1` 既有 14 项 high findings：11× `UnsupportedOperationException` + 3× not-yet-implemented 注释；**RWO/BRWO 空体不在该工具检出范围**，本 plan 修复不改变 findings 集——判据 = findings 集与基线一致，执行时先实跑记录作为对比基线）
-- [ ] `./mvnw test -pl nop-stream/nop-stream-core,nop-stream/nop-stream-runtime,nop-stream/nop-stream-cep -Dtest='Test*Invariant*'` 通过（0 failure）
-- [ ] `./mvnw compile -pl nop-stream/nop-stream-core -q` 通过（checkstyle 依 mission lint 命令执行，如配置则须通过）
+- [x] I3（`2026-08-12-1217-10-...`）已完成（硬前置）；interim fail-fast 预授权确认在案
+- [x] 跨 task 静默丢弃已消除：RWO/BRWO `collect(OutputTag)` fail-fast（`ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER`）——已确认契约缺口修复，非降级
+- [x] 注册表分类迁移 + 过渡 pin 移除完成（留痕在案，禁静默移除遵守）；JUnit 断言与注册表一致
+- [x] 端到端 + 接线验证通过（跨 task fail-fast 完整路径；tail 算子运行时注入断言）
+- [x] 类别清扫完成（4 实现类兄弟 + 6 发射点 + 接线链，无同族遗留静默丢弃）
+- [x] 门禁复跑零命中（JUnit 门禁子集 0 failure + mjs `all` exit 0 + E2E 全绿）；**全量模块回归通过**（core + runtime 全量，无既有测试依赖旧行为）
+- [x] 文档收口：core-design / red-list / logs / roadmap 行流转（或显式 `No owner-doc update required`）；**用户可见行为变更声明随注册表 disposition + 本 plan 落档**（跨 task side-output 发射 fail-fast，直至 `HG-01` 落地）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（`HG-01` = 人工确认门延续，非本 plan scope；其余派发项均有执行结论）
+- [x] 独立子 agent closure-audit 已完成并记录证据（见 Closure 段）
+- [x] **Anti-Hollow Check**：closure audit 验证（a）RWO/BRWO fail-fast 在运行时确实被调用（端到端用例断言异常实际抛出），（b）端到端路径从入口到出口完整连通，（c）无空方法体 / 静默跳过作为正常实现
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <本plan> --strict` 退出码 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream --severity high` 运行记录在案（基线 = I1 closure 钉定的 `34aed42c1` 既有 14 项 high findings：11× `UnsupportedOperationException` + 3× not-yet-implemented 注释；**RWO/BRWO 空体不在该工具检出范围**，本 plan 修复不改变 findings 集——判据 = findings 集与基线一致，执行时先实跑记录作为对比基线）
+- [x] `./mvnw test -pl nop-stream/nop-stream-core,nop-stream/nop-stream-runtime,nop-stream/nop-stream-cep -Dtest='Test*Invariant*'` 通过（0 failure）
+- [x] `./mvnw compile -pl nop-stream/nop-stream-core -q` 通过（checkstyle 依 mission lint 命令执行，如配置则须通过）
 
 ## Deferred But Adjudicated
 
@@ -165,17 +165,31 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （完成时填写）
-Completed: （完成时填写）
+Status Note: Cycle 2 / I4 修复执行全部完成——跨 task interim fail-fast 落地（RWO/BRWO `collect(OutputTag)` 空体 → 抛 `ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER`）、注册表分类迁移（`pinned-known-violation` → `fail-fast`）、过渡 pin 2 条移除（留痕在案）、JUnit 断言翻转 + 跨 task E2E 第 4 用例、类别清扫零遗留、门禁复跑零命中 + core/runtime 全量回归绿、文档收口完成；独立子 agent closure audit 10/10 PASS；`HG-01` 线协议支持为人工确认待办延续（增强不阻塞）。
+Completed: 2026-08-12
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （独立子 agent，fresh session，待填写）
-- Evidence: （逐条 Exit Criterion / Closure Gate 验证结果 + 工具退出码 + Anti-Hollow 检查结果 + Deferred 分类检查，待填写）
+- Reviewer / Agent: 独立子 agent（fresh session `ses_009afddd2ffe9fBOlwYbXi3B0z`，audit-only 禁改文件，10/10 项 PASS）
+- Evidence:
+  - **Plan checklist 状态**：PASS——Phase 1/2/3 全部 items + Exit Criteria `[x]`，Phase Status 全 `completed`；Closure Gates 由本 closure pass 勾选；`Plan Status: active`（关闭前）诚实。
+  - **I3 硬前置**：PASS——`2026-08-12-1217-10-...md` `> Plan Status: completed`。
+  - **live 代码修复**：PASS——`StreamTaskInvokable.java:649-659`（RWO）/ `:717-727`（BRWO）抛 `StreamRuntimeException(ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER)` + `ARG_OUTPUT_TAG`/`ARG_DETAIL`（错误码定义 `NopStreamErrors.java:104`），无空体残留；commit `88bc0270c` 主代码 delta = 仅 StreamTaskInvokable.java + 2 测试文件；`Output` 接口 / RecordWriter 线协议 / 模块边界零变更。
+  - **注册表 + pin**：PASS——注册表 RWO/BRWO `classification: fail-fast`（disposition 注明落地日期/commit `88bc0270c`）；`TimestampedCollector` disposition 不再声称「cross-task drop」（透传目标敏感 = fail-fast）；`mjs-pins.json` `pinnedViolations: []` + PIN REMOVAL TRACE（非静默移除）；注册表行号同步 live（649/717）。
+  - **测试**：PASS——`TestOutputContractInvariant` switch `fail-fast` case → `assertFailFastBehavior`（错误码 + `ARG_OUTPUT_TAG`/`ARG_DETAIL` 断言）；`testTimestampedCollectorWrappingRecordWriterOutputFailsFast` 期望 `ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER`；E2E 4 用例，第 4 用例构造 1 writer（RWO）+ 2 writers（BRWO）经 fanOutWriters 尾接线 + 实例类型断言 + 真实 late-data 发射抛错。
+  - **Anti-Hollow 检查**：PASS——调用链 live 追踪：`WindowOperator.sideOutput`（:1030 `output.collect(lateDataOutputTag, element)`）→ RWO/BRWO（`wireOperators(List)` :243/:249 注入）→ throw；E2E 由审计 agent 独立复跑两次（standalone 4/4 + `-am` 4/4）＝运行时调用证明（非类型系统存在）；修复后两方法无空体/静默跳过作为正常实现；project-local-repo jar（22:05）bytecode 含 throw（javap 验证），测试类路径解析的是修复后 jar。
+  - **门禁**：PASS——mjs `all` exit 0（pins 0 / 无 unpinned / 无 stale）；doc-links exit 0（3 条 BROKEN_LINK = credential plan 既有基线）；scan-hollow findings 集与基线 commit `34aed42c1` 完全一致（既有 14 项 high：11× UOE + 3× not-yet-implemented，**无新增 finding**；工具 exit 1 = 既有基线 high findings 的预期退出码，工具无豁免机制，判据 = findings 集一致而非退出码，沿用 I1/I2 判据）；JUnit 门禁子集 fresh run 102/102 绿（core 40 / runtime 34 / cep 28，TestOutputContractInvariant 10/10）；E2E 4/4（两轮）；全量回归 = core **1428** / runtime **805** 0 failures。
+  - **文本一致性**：PASS——日志 08-12.md Phase 1/2/3 条目含具体命令与结果；roadmap C2/I4 行 `planned` → `done`（本 closure pass 执行）；red-list C2-RL-1/2 修复状态回写；core-design §6.1 fail-fast 落地 + `HG-01` 待办。
+  - **Deferred 分类检查**：PASS——Deferred 区仅 `HG-01`（人工确认门）+ I3 结构性重构 watch 项；C2-RL-1/2 已在 plan 内执行（未降级）；Follow-up 诚实（I5 / E2E 扩展 / `HG-01`）。
+  - **工具**：`node ai-dev/tools/check-plan-checklist.mjs <本plan> --strict` exit 0（Passed: 1，Closure Evidence 写入后复跑）；`node ai-dev/tools/check-doc-links.mjs --strict` exit 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream --severity high` exit 0（findings 集与 I1 基线 `34aed42c1` 一致 = 14 项 high）。
+  - **非阻塞观察（已处理）**：注册表 `collectOutputTagLine` 为 pre-fix 行号 → 已同步 live（649/717）；~/.m2 旧 jar 与 project-local-repo 新 jar 差异 → 测试解析路径为 project-local-repo（post-fix），无 stale 陷阱。
 
 Follow-up:
 
-- （待填写）
+- Cycle 2 / I5（全量验证与门禁零命中）= 直接 successor，消费本 plan 修复结果 + 门禁复跑基线。
+- `TestSideOutputChainingE2E` 多输出路径扩展（ctx.output / ProcessWindowFunction / PatternProcessFunction E2E 用例）由 I2 探查评估结论 + I5 视情况覆盖（backlog 条目在案）。
+- `HG-01` 跨 task side-output 线协议支持 = 人工确认门待办延续（人工批准后另立 plan）。
+- no remaining plan-owned work。
 
 ## Optional Sections
 

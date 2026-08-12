@@ -26,7 +26,7 @@
     {
       "fqcn": "io.nop.stream.core.execution.StreamTaskInvokable$RecordWriterOutput",
       "file": "nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/StreamTaskInvokable.java",
-      "collectOutputTagLine": 645,
+      "collectOutputTagLine": 649,
       "classification": "fail-fast",
       "disposition": "cross-task; collect(OutputTag) throws ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER (ARG_OUTPUT_TAG / ARG_DETAIL) - Cycle 2 / I4 interim fail-fast fix landed (2026-08-12, plan 2026-08-12-1217-11, commit 88bc0270c): side outputs have no consumer channel across task boundaries, fail fast instead of silently dropping (Rule #24); wire-protocol support = HG-01 human confirmation gate (enhancement, does not block this classification)",
       "subSemantics": "fail-fast is a standalone classification: the method body only throws; no consumer channel exists in the cross-task exchange (in-task forwarding remains ChainingOutput's job)",
@@ -35,7 +35,7 @@
     {
       "fqcn": "io.nop.stream.core.execution.StreamTaskInvokable$BroadcastingRecordWriterOutput",
       "file": "nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/StreamTaskInvokable.java",
-      "collectOutputTagLine": 705,
+      "collectOutputTagLine": 717,
       "classification": "fail-fast",
       "disposition": "cross-task; collect(OutputTag) throws ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER (ARG_OUTPUT_TAG / ARG_DETAIL) - Cycle 2 / I4 interim fail-fast fix landed (2026-08-12, plan 2026-08-12-1217-11, commit 88bc0270c): side outputs have no consumer channel across task boundaries, fail fast instead of silently dropping (Rule #24); wire-protocol support = HG-01 human confirmation gate (enhancement, does not block this classification)",
       "subSemantics": "fail-fast is a standalone classification: the method body only throws; the broadcast fan-out covers the main record channel only, never side outputs",
