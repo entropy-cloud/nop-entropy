@@ -112,6 +112,28 @@
 - 当前仓库里的平台内置 bean 大量使用 `nop` 前缀，这是强约定而不是 IoC 硬性保留规则。
 - 业务自定义 bean 默认避免复用 `nop*` 命名，除非你明确要接入或替换框架的命名型扩展点。
 - 测试 bean 可使用 `test` / `testMock` 前缀。
+- **短名 bean id（不含 `.` 的单标识符）必须以 `nop` 或 `biz_` 为前缀**。全限定类名（含 `.`，如 `io.nop.auth.service.biz.LoginApiBizModel`）视为合法，无需前缀。
+- `ref` / `value-ref` / `depends-on` 引用本仓库已定义的短名 bean 时，引用点须与定义同步命名（改名时一并同步，避免悬空引用）。
+
+### 检查工具
+
+平台提供 bean 命名检查工具（`check-bean-naming.mjs`），已接入 CI（compliance workflow）作为门控，违规即失败：
+
+```bash
+node ai-dev/tools/check-bean-naming.mjs            # 全仓库检查（CI 运行）
+node ai-dev/tools/check-bean-naming.mjs nop-auth   # 指定模块
+node ai-dev/tools/check-bean-naming.mjs --json     # JSON 输出（CI 友好）
+```
+
+工具覆盖范围：`*.beans.xml` 中的 `<bean id>`、`ref`/`value-ref`/`depends-on`、`ioc:collect-beans name-prefix`；自动排除测试目录（`src/test`）、生成物（`_dump`、`_gen`、`target`）、`nop-demo` 示例模块。
+
+### 豁免（非违规）
+
+- `abstract="true"` bean：Spring 风格配置模板（非实例 bean），其 id 是文档化的公共 API 契约，用户经 `parent="..."` 派生（如 nop-cluster 的 `Abstract*RpcProxyFactoryBean` 系列，见 `docs/dev-guide/microservice/rpc.md`）。模板名属用户契约，不强制 `nop` 前缀。
+- `biz_` 前缀：codegen 生成的 BizModel bean（`_service.beans.xml`）。
+- `test` / `testMock` 前缀：测试 bean。
+- AI 工具注册名 `ai-tools:` / `ai-agent-tools:`：经 by-type 收集的平台约定。
+- 引用外部上下文 bean（如 Spring 的 `sqlSessionTemplate`，不在本仓库任何 beans.xml 中定义）不报告——命名检查只覆盖本仓库可控的 bean。
 
 ## 相关文档
 
