@@ -60,43 +60,43 @@
 
 ### Phase 1 - 跨 task interim fail-fast 修复（RWO/BRWO）
 
-Status: planned
+Status: completed
 Targets: `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/StreamTaskInvokable.java`（RWO :645 / BRWO :705）；`nop-stream/nop-stream-core/src/test/java/io/nop/stream/core/`（`TestOutputContractInvariant`）；nop-stream-runtime（E2E 用例，见接线验证）
 
 - Item Types: `Fix | Proof`
-- [ ] **test-first**：先翻转 / 新增断言——`TestOutputContractInvariant` RWO/BRWO 反射实例化断言改为「`collect(OutputTag, record)` 抛 `StreamRuntimeException`，错误码 = `ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER`，含 `ARG_OUTPUT_TAG` / `ARG_DETAIL` 参数」→ 先红（当前空体不抛错）→ 修复后转绿（先例 = I4 pin 翻转测试同风格）。**同步翻转联动项（Must）**：`testTimestampedCollectorWrappingRecordWriterOutputEqualsCrossTaskDrop`（断言包装 RWO 后分区大小为 0 无异常）改为断言包装 RWO 后 `collect(OutputTag)` 抛 `ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER`（透传目标敏感语义随 RWO 修复迁移）+ 测试类 javadoc 相关描述同步；参数化用例 `testCollectOutputTagBehaviorMatchesRegistry` 的 switch 增加 `fail-fast` 分类 case（当前仅 forward / pinned 两 case，default fail——注册表迁移后必须有新 case，否则门禁自红）
-- [ ] 修复实现：RWO / BRWO `collect(OutputTag, X)` 空体 → 抛 `StreamRuntimeException(ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER).param(ARG_OUTPUT_TAG, outputTag.getId()).param(ARG_DETAIL, ...)`（镜像 `ChainingOutput.java:119` 语义：跨 task 部署下 side-output 无消费通道 = 配置错误，必须快速失败，禁止静默丢弃）；**保留 `Output` 接口零变更、private 嵌套类结构零变更**（信封内，I6 §6.2 边界）
-- [ ] **端到端验证（Rule #22）**：新增跨 task fail-fast 端到端用例——从任务入口（`env` source 或既有 E2E 先例等价构造，见下）到 task tail 算子（WindowOperator / CepOperator / ProcessOperator 任一发射点）经 fanOutWriters 尾接线（`GraphExecutionPlan` → `StreamTaskInvokable(List<RecordWriter>)` → **`wireOperators(fanOutWriters)`（:233-248，tail 接线点；1 个 writer → RWO（:239），≥2 个 writer → BRWO（:245），BRWO 仅出自此路径**）→ tail 算子 setOutput(RWO/BRWO)）→ 算子发射 side-output → 断言任务抛 `ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER`（入口到出口完整路径，非组件级孤立断言）。**构造方式对齐先例**：`TestSideOutputChainingE2E` 第 3 用例风格（直接构造 invokable + 驱动算子方法 processElement → 发射 → 异常断言）为验收模式，不强制 `env.execute()` 全栈 harness；`wireTailToRecordWriter`（:348）仅无参 wireOperators 的 recordWriter 路径使用（单 RWO），本用例的 fanOutWriters 路径走 `wireOperators(fanOutWriters)`。**BRWO 覆盖要求**：用例构造 **2 个 fanOut writer** 覆盖 BRWO 路径（1 个 writer 仅覆盖 RWO）；新用例**加入 `TestSideOutputChainingE2E`（作为第 4 用例）**，确保 Phase 3 门禁命令 `-Dtest=TestSideOutputChainingE2E` 覆盖到它
-- [ ] **接线验证（Rule #23）**：断言 RWO/BRWO 实例确实由跨 task 接线链在运行时注入（tail 算子 `setOutput` 收到的是 RWO/BRWO 且该实例的 `collect(OutputTag)` 抛错被实际调用——计数器 / 标志位 / 异常断言任一方式；异常断言即可充当接线证明：抛错发生 = 该实例被运行时调用）
-- [ ] **类别清扫（roadmap 强制）**：grep 全部 main `Output` 实现类兄弟（4 个：ChainingOutput / TimestampedCollector / RWO / BRWO——逐一核对 `collect(OutputTag)` 无其余静默丢弃点）+ 全部 `collect(OutputTag` call-site（6 发射点 + 转发调用）+ 接线链（`GraphExecutionPlan.java:454-458` / `wireOperators` / `wireTailToRecordWriter`）——只修报到的实例 = 未完成
-- [ ] 无静默跳过（Rule #24）：修复后 `collect(OutputTag)` 路径 = 显式 fail-fast；不留空体 / continue / 吞异常
+- [x] **test-first**：先翻转 / 新增断言——`TestOutputContractInvariant` RWO/BRWO 反射实例化断言改为「`collect(OutputTag, record)` 抛 `StreamRuntimeException`，错误码 = `ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER`，含 `ARG_OUTPUT_TAG` / `ARG_DETAIL` 参数」→ 先红（当前空体不抛错）→ 修复后转绿（先例 = I4 pin 翻转测试同风格）。**同步翻转联动项（Must）**：`testTimestampedCollectorWrappingRecordWriterOutputEqualsCrossTaskDrop`（断言包装 RWO 后分区大小为 0 无异常）改为断言包装 RWO 后 `collect(OutputTag)` 抛 `ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER`（透传目标敏感语义随 RWO 修复迁移）+ 测试类 javadoc 相关描述同步；参数化用例 `testCollectOutputTagBehaviorMatchesRegistry` 的 switch 增加 `fail-fast` 分类 case（当前仅 forward / pinned 两 case，default fail——注册表迁移后必须有新 case，否则门禁自红）
+- [x] 修复实现：RWO / BRWO `collect(OutputTag, X)` 空体 → 抛 `StreamRuntimeException(ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER).param(ARG_OUTPUT_TAG, outputTag.getId()).param(ARG_DETAIL, ...)`（镜像 `ChainingOutput.java:119` 语义：跨 task 部署下 side-output 无消费通道 = 配置错误，必须快速失败，禁止静默丢弃）；**保留 `Output` 接口零变更、private 嵌套类结构零变更**（信封内，I6 §6.2 边界）
+- [x] **端到端验证（Rule #22）**：新增跨 task fail-fast 端到端用例——从任务入口（`env` source 或既有 E2E 先例等价构造，见下）到 task tail 算子（WindowOperator / CepOperator / ProcessOperator 任一发射点）经 fanOutWriters 尾接线（`GraphExecutionPlan` → `StreamTaskInvokable(List<RecordWriter>)` → **`wireOperators(fanOutWriters)`（:233-248，tail 接线点；1 个 writer → RWO（:239），≥2 个 writer → BRWO（:245），BRWO 仅出自此路径**）→ tail 算子 setOutput(RWO/BRWO)）→ 算子发射 side-output → 断言任务抛 `ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER`（入口到出口完整路径，非组件级孤立断言）。**构造方式对齐先例**：`TestSideOutputChainingE2E` 第 3 用例风格（直接构造 invokable + 驱动算子方法 processElement → 发射 → 异常断言）为验收模式，不强制 `env.execute()` 全栈 harness；`wireTailToRecordWriter`（:348）仅无参 wireOperators 的 recordWriter 路径使用（单 RWO），本用例的 fanOutWriters 路径走 `wireOperators(fanOutWriters)`。**BRWO 覆盖要求**：用例构造 **2 个 fanOut writer** 覆盖 BRWO 路径（1 个 writer 仅覆盖 RWO）；新用例**加入 `TestSideOutputChainingE2E`（作为第 4 用例）**，确保 Phase 3 门禁命令 `-Dtest=TestSideOutputChainingE2E` 覆盖到它
+- [x] **接线验证（Rule #23）**：断言 RWO/BRWO 实例确实由跨 task 接线链在运行时注入（tail 算子 `setOutput` 收到的是 RWO/BRWO 且该实例的 `collect(OutputTag)` 抛错被实际调用——计数器 / 标志位 / 异常断言任一方式；异常断言即可充当接线证明：抛错发生 = 该实例被运行时调用）
+- [x] **类别清扫（roadmap 强制）**：grep 全部 main `Output` 实现类兄弟（4 个：ChainingOutput / TimestampedCollector / RWO / BRWO——逐一核对 `collect(OutputTag)` 无其余静默丢弃点）+ 全部 `collect(OutputTag` call-site（6 发射点 + 转发调用）+ 接线链（`GraphExecutionPlan.java:454-458` / `wireOperators` / `wireTailToRecordWriter`）——只修报到的实例 = 未完成
+- [x] 无静默跳过（Rule #24）：修复后 `collect(OutputTag)` 路径 = 显式 fail-fast；不留空体 / continue / 吞异常
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 先红后绿证据在案（翻转断言在修复前红、修复后绿；**「修复后绿」语义 = 直接翻转断言绿；registry-backed 参数化用例（`testCollectOutputTagBehaviorMatchesRegistry`）按注册表路由、须待 Phase 3 注册表迁移后转绿——Phase 1 完成时不要求该参数化用例绿，先红证据不受影响**）
-- [ ] **端到端验证**：跨 task fail-fast 端到端用例绿（入口 → fanOutWriters 尾接线 → 发射 → 抛 `ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER` 完整路径断言；对齐先例 `TestSideOutputChainingE2E` 验收模式——直接构造 invokable + 驱动算子方法亦可，完整路径 = 尾接线实例上 processElement → 发射 → 异常断言）
-- [ ] **接线验证**：RWO/BRWO 实例运行时注入 + `collect(OutputTag)` 抛错被实际调用的断言在案
-- [ ] **无静默跳过**：4 实现类兄弟 + 6 发射点 + 接线链类别清扫结论记录（无遗留静默丢弃点）
-- [ ] `Output` 接口 / RecordWriter 线协议 / 模块边界零变更（git diff 核对）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 先红后绿证据在案（翻转断言在修复前红、修复后绿；**「修复后绿」语义 = 直接翻转断言绿；registry-backed 参数化用例（`testCollectOutputTagBehaviorMatchesRegistry`）按注册表路由、须待 Phase 3 注册表迁移后转绿——Phase 1 完成时不要求该参数化用例绿，先红证据不受影响**）
+- [x] **端到端验证**：跨 task fail-fast 端到端用例绿（入口 → fanOutWriters 尾接线 → 发射 → 抛 `ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER` 完整路径断言；对齐先例 `TestSideOutputChainingE2E` 验收模式——直接构造 invokable + 驱动算子方法亦可，完整路径 = 尾接线实例上 processElement → 发射 → 异常断言）
+- [x] **接线验证**：RWO/BRWO 实例运行时注入 + `collect(OutputTag)` 抛错被实际调用的断言在案
+- [x] **无静默跳过**：4 实现类兄弟 + 6 发射点 + 接线链类别清扫结论记录（无遗留静默丢弃点）
+- [x] `Output` 接口 / RecordWriter 线协议 / 模块边界零变更（git diff 核对）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - I3 派发清单其余 P0/P1 工作项（如有）
 
-Status: planned
+Status: completed
 Targets: 按 `ai-dev/audits/nop-stream-invariants/adjudication-table.md` Cycle 2 节「P0/P1 派发清单」（I3 产出）
 
 - Item Types: `Fix | Proof`
-- [ ] 与 I3 派发清单核对：除 interim fail-fast（Phase 1）外的其余 P0/P1 工作项——逐项按 I3 六要素执行（目标类 + 缺陷描述 + 预期行为 + 类别清扫范围 + test-first 先红后绿 + 门禁复跑要求）；每项执行前确认信封边界（结构性重构项须「需人工确认」标注，不得自动执行）
-- [ ] **无追加派发时的显式声明**：若 I3 派发清单仅有 interim fail-fast 一项（预期情形），本 Phase 记录 `No additional I4 work items dispatched by I3` 并标记完成（不允许空 Phase 静默关闭——必须有显式结论记录）
-- [ ] 每项执行后：类别清扫结论 + 测试证据 + 门禁复跑记录写入 `ai-dev/logs/` 与 red-list.md 修复状态节
+- [x] 与 I3 派发清单核对：除 interim fail-fast（Phase 1）外的其余 P0/P1 工作项——逐项按 I3 六要素执行（目标类 + 缺陷描述 + 预期行为 + 类别清扫范围 + test-first 先红后绿 + 门禁复跑要求）；每项执行前确认信封边界（结构性重构项须「需人工确认」标注，不得自动执行）
+- [x] **无追加派发时的显式声明**：若 I3 派发清单仅有 interim fail-fast 一项（预期情形），本 Phase 记录 `No additional I4 work items dispatched by I3` 并标记完成（不允许空 Phase 静默关闭——必须有显式结论记录）
+- [x] 每项执行后：类别清扫结论 + 测试证据 + 门禁复跑记录写入 `ai-dev/logs/` 与 red-list.md 修复状态节
 
 Exit Criteria:
 
-- [ ] I3 派发清单逐项有执行结论（修复完成 + 测试绿）或显式「无追加派发」记录在案
-- [ ] 结构性重构标注项（如有）未被自动执行（人工确认门遵守记录在案）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] I3 派发清单逐项有执行结论（修复完成 + 测试绿）或显式「无追加派发」记录在案
+- [x] 结构性重构标注项（如有）未被自动执行（人工确认门遵守记录在案）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 注册表分类迁移、pin 移除与门禁复跑
 

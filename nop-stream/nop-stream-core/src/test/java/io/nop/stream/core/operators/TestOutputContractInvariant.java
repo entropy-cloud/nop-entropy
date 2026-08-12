@@ -38,9 +38,12 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_OUTPUT_TAG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
@@ -58,19 +61,20 @@ import static org.junit.jupiter.api.Assertions.fail;
  *   <li>{@link ChainingOutput} = forward to the registered consumer + fail-fast
  *       ({@code ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER}) without one (RL-7 fix, commit b20fcd0e1);</li>
  *   <li>{@link TimestampedCollector} = pure pass-through to the wrapped output — pass-through
- *       TARGET SENSITIVE: wrapping a no-op output drops side outputs with the wrapped object's
- *       semantics (wrapping the cross-task {@code RecordWriterOutput} equals the cross-task drop,
- *       recorded against the transition pins, no fix in this plan);</li>
+ *       TARGET SENSITIVE: wrapping a fail-fast output inherits the wrapped object's fail-fast
+ *       semantics (wrapping the cross-task {@code RecordWriterOutput} now surfaces
+ *       {@code ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER}, Cycle 2 / I4 interim fail-fast fix);</li>
  *   <li>{@code StreamTaskInvokable$RecordWriterOutput} / {@code $BroadcastingRecordWriterOutput}
- *       = pinned-known-violation: empty-body no-op, reflectively instantiated (private nested
- *       classes), recorded against the two transition pins in {@code mjs-pins.json}
- *       (HG-01 wire-protocol human confirmation gate; removal = Cycle 2 / I4 interim fail-fast
- *       fix landed + registry classification updated, NO silent removal).</li>
+ *       = fail-fast: cross-task {@code collect(OutputTag, X)} has no consumer channel, reflectively
+ *       instantiated (private nested classes), must throw {@code ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER}
+ *       instead of silently dropping (Cycle 2 / I4 interim fail-fast fix, WI-C2-1; HG-01
+ *       wire-protocol support = human confirmation gate, enhancement not a prerequisite).</li>
  * </ul>
  *
  * <p>E2E evidence (Rule #22) lives in nop-stream-runtime's {@code TestSideOutputChainingE2E}
- * (3 cases: end-to-end forwarding / no-consumer fail-fast / StreamTaskInvokable wiring) — this
- * core gate class must not reference runtime's WindowOperator (dependency direction).
+ * (4 cases: end-to-end forwarding / no-consumer fail-fast / StreamTaskInvokable wiring /
+ * cross-task tail-output fail-fast) — this core gate class must not reference runtime's
+ * WindowOperator (dependency direction).
  */
 public class TestOutputContractInvariant {
 
@@ -136,6 +140,9 @@ public class TestOutputContractInvariant {
             case "forward":
                 assertForwardBehavior(fqcn);
                 break;
+            case "fail-fast":
+                assertFailFastBehavior(fqcn);
+                break;
             case "pinned-known-violation":
                 assertPinnedNoOpBehavior(fqcn);
                 break;
@@ -170,6 +177,59 @@ public class TestOutputContractInvariant {
             default:
                 fail("no forward-behavior harness for " + fqcn
                         + "; a new forward-classified implementation class needs a harness here (no silent skip)");
+        }
+    }
+
+    /**
+     * Cycle 2 / I4 (WI-C2-1): cross-task instances fail fast. {@code collect(OutputTag, record)}
+     * on the cross-task {@code RecordWriterOutput} / {@code BroadcastingRecordWriterOutput} has no
+     * consumer channel — it must throw {@code ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER} (with
+     * {@code ARG_OUTPUT_TAG} / {@code ARG_DETAIL}) instead of silently dropping (Rule #24);
+     * wire-protocol support = {@code HG-01} human confirmation gate (enhancement, not a
+     * prerequisite for the interim fail-fast).
+     */
+    private void assertFailFastBehavior(String fqcn) throws Exception {
+        switch (fqcn) {
+            case "io.nop.stream.core.execution.StreamTaskInvokable$RecordWriterOutput": {
+                ResultPartition partition = new ResultPartition();
+                RecordWriter<Object> writer = new RecordWriter<>(partition);
+                Object instance = instantiateNested(
+                        "io.nop.stream.core.execution.StreamTaskInvokable$RecordWriterOutput",
+                        RecordWriter.class, writer);
+                StreamRuntimeException ex = assertThrows(StreamRuntimeException.class,
+                        () -> invokeCollectOutputTagRaw(instance, fqcn, new StreamRecord<>("v", 10)),
+                        "RecordWriterOutput.collect(OutputTag) must fail fast in the cross-task exchange "
+                                + "(no consumer channel), never silently drop");
+                assertEquals(ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER.getErrorCode(), ex.getErrorCode(),
+                        "fail-fast must use ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER");
+                assertEquals("cross-task-tag", ex.getParam(ARG_OUTPUT_TAG),
+                        "fail-fast must carry ARG_OUTPUT_TAG with the unregistered tag id");
+                assertTrue(String.valueOf(ex.getParam(ARG_DETAIL)).contains("cross-task-tag"),
+                        "fail-fast must carry ARG_DETAIL naming the unregistered tag");
+                break;
+            }
+            case "io.nop.stream.core.execution.StreamTaskInvokable$BroadcastingRecordWriterOutput": {
+                RecordingTagOutput inner = new RecordingTagOutput();
+                List<Output<StreamRecord<Object>>> outputs = new ArrayList<>();
+                outputs.add((Output<StreamRecord<Object>>) (Output<?>) inner);
+                Object instance = instantiateNested(
+                        "io.nop.stream.core.execution.StreamTaskInvokable$BroadcastingRecordWriterOutput",
+                        List.class, outputs);
+                StreamRuntimeException ex = assertThrows(StreamRuntimeException.class,
+                        () -> invokeCollectOutputTagRaw(instance, fqcn, new StreamRecord<>("v", 10)),
+                        "BroadcastingRecordWriterOutput.collect(OutputTag) must fail fast in the "
+                                + "cross-task exchange (no consumer channel), never silently drop");
+                assertEquals(ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER.getErrorCode(), ex.getErrorCode(),
+                        "fail-fast must use ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER");
+                assertEquals("cross-task-tag", ex.getParam(ARG_OUTPUT_TAG),
+                        "fail-fast must carry ARG_OUTPUT_TAG with the unregistered tag id");
+                assertEquals(0, inner.sideReceived.size(),
+                        "fail-fast must throw before forwarding anything to any broadcast output");
+                break;
+            }
+            default:
+                fail("no fail-fast harness for " + fqcn
+                        + "; a new fail-fast-classified implementation class needs a harness here (no silent skip)");
         }
     }
 
@@ -229,6 +289,25 @@ public class TestOutputContractInvariant {
         }
     }
 
+    /**
+     * Invokes the reflectively-instantiated instance's {@code collect(OutputTag, record)}, unwrapping
+     * {@link InvocationTargetException} so the runtime exception surfaces to the caller (fail-fast
+     * harness, Cycle 2 / I4).
+     */
+    static void invokeCollectOutputTagRaw(Object instance, String fqcn, StreamRecord<?> record) throws Exception {
+        try {
+            Method collect = instance.getClass().getDeclaredMethod("collect", OutputTag.class, StreamRecord.class);
+            collect.setAccessible(true);
+            collect.invoke(instance, new OutputTag<>("cross-task-tag", BasicTypeInfo.STRING), record);
+        } catch (InvocationTargetException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof RuntimeException) {
+                throw (RuntimeException) cause;
+            }
+            throw new IllegalStateException("collect(OutputTag) threw a checked exception in " + fqcn, cause);
+        }
+    }
+
     /** Forward + fail-fast of ChainingOutput (RL-7 fix, b20fcd0e1). */
     @Test
     void testChainingOutputForwardsToRegisteredConsumer() {
@@ -278,21 +357,30 @@ public class TestOutputContractInvariant {
     }
 
     /**
-     * Wrapping the cross-task RecordWriterOutput (reflectively instantiated) = equivalent cross-task
-     * drop. Ties to the transition pins (mjs-pins.json, HG-01): the drop is the wrapped object's
-     * pinned no-op, NOT a new silent-skip defect. No fix in this plan (Cycle 2 / I4).
+     * Pass-through TARGET SENSITIVE (migrated with the Cycle 2 / I4 interim fail-fast fix):
+     * wrapping the cross-task {@code RecordWriterOutput} (reflectively instantiated) inherits its
+     * fail-fast semantics — {@code collect(OutputTag)} must surface
+     * {@code ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER}, never silently drop. The pass-through itself
+     * never swallows; the fail-fast is the wrapped object's behavior (pre-fix the wrapped RWO was
+     * a pinned empty-body no-op, recorded against the transition pins).
      */
     @Test
-    void testTimestampedCollectorWrappingRecordWriterOutputEqualsCrossTaskDrop() throws Exception {
+    void testTimestampedCollectorWrappingRecordWriterOutputFailsFast() throws Exception {
         ResultPartition partition = new ResultPartition();
         RecordWriter<Object> writer = new RecordWriter<>(partition);
         Object rwo = instantiateNested("io.nop.stream.core.execution.StreamTaskInvokable$RecordWriterOutput",
                 RecordWriter.class, writer);
         TimestampedCollector<Object> out = new TimestampedCollector<>((Output<StreamRecord<Object>>) (Output<?>) rwo);
         OutputTag<String> tag = new OutputTag<>("cross-task-tag", BasicTypeInfo.STRING);
-        out.collect(tag, new StreamRecord<>("v", 10));
-        assertEquals(0, partition.size(),
-                "wrapping RecordWriterOutput must equal the pinned cross-task drop (HG-01 transition pin)");
+        StreamRuntimeException ex = assertThrows(StreamRuntimeException.class,
+                () -> out.collect(tag, new StreamRecord<>("v", 10)),
+                "wrapping RecordWriterOutput must inherit its cross-task fail-fast behavior "
+                        + "(Cycle 2 / I4 interim fail-fast), never silently drop");
+        assertEquals(ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER.getErrorCode(), ex.getErrorCode(),
+                "pass-through target sensitive: the wrapped RWO fail-fast must surface as "
+                        + "ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER");
+        assertEquals("cross-task-tag", ex.getParam(ARG_OUTPUT_TAG),
+                "the surfaced fail-fast must carry ARG_OUTPUT_TAG with the unregistered tag id");
     }
 
     /**

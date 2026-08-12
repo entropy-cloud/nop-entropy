@@ -1,25 +1,6 @@
 {
   "schemaVersion": 1,
-  "updated": "2026-08-12",
-  "note": "Pinned violations for check-nop-stream-invariants.mjs scan-iterations (invariant #2: synchronized collection iteration points must be inside a synchronized block) AND scan-output-contract (invariant #6 / PD-15 output-contract family: any Output.collect(OutputTag, X) must be forwarded to a registered side-output consumer, never silently dropped; no registered consumer -> fail-fast). Semantics = pin-and-record: violations ⊆ pins → green (CI stays green despite known residuals); NEW violations (not pinned) → red; a pin whose violation no longer exists → stale-pin error (the residual was fixed — remove the pin). Each key MUST match the scanner's violation string exactly. The 2 invariant-#6 pins cover the cross-task instance classes (RecordWriterOutput / BroadcastingRecordWriterOutput empty-body no-op), tied to the HG-01 wire-protocol human-confirmation gate: interim fail-fast is pre-authorized to Cycle 2 / I4; removalTrigger = Cycle 2 / I4 interim fail-fast fix landed + registry classification updated, NO silent removal (HG-01 wire-protocol support landing is an enhancement and does not block pin removal). Differences are transferred to I2 red list via ai-dev/audits/nop-stream-invariants/red-list.md; I1 does NOT fix them.",
-  "pinnedViolations": [
-    {
-      "key": "[scan-output-contract] V3 behavior drift: io.nop.stream.core.execution.StreamTaskInvokable$RecordWriterOutput collect(OutputTag) body-classification=no-op registry-classification=pinned-known-violation (nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/StreamTaskInvokable.java:645)",
-      "id": "RWO-cross-task-noop",
-      "file": "nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/StreamTaskInvokable.java",
-      "invariant": "#6",
-      "classification": "known-violation",
-      "reason": "Cross-task RecordWriterOutput.collect(OutputTag) is an empty-body no-op (side outputs not supported in cross-task exchange). Confirmed contract gap (P1, I6 adjudication): interim fail-fast pre-authorized to Cycle 2 / I4; wire-protocol support = HG-01 human confirmation gate.",
-      "removalTrigger": "Cycle 2 / I4 interim fail-fast fix landed + registry classification updated, then remove; NO silent removal (HG-01 wire-protocol support landing is an enhancement, does not block pin removal)"
-    },
-    {
-      "key": "[scan-output-contract] V3 behavior drift: io.nop.stream.core.execution.StreamTaskInvokable$BroadcastingRecordWriterOutput collect(OutputTag) body-classification=no-op registry-classification=pinned-known-violation (nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/StreamTaskInvokable.java:705)",
-      "id": "BRWO-cross-task-noop",
-      "file": "nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/StreamTaskInvokable.java",
-      "invariant": "#6",
-      "classification": "known-violation",
-      "reason": "Cross-task BroadcastingRecordWriterOutput.collect(OutputTag) is an empty-body no-op. Confirmed contract gap (P1, I6 adjudication): interim fail-fast pre-authorized to Cycle 2 / I4; wire-protocol support = HG-01 human confirmation gate.",
-      "removalTrigger": "Cycle 2 / I4 interim fail-fast fix landed + registry classification updated, then remove; NO silent removal (HG-01 wire-protocol support landing is an enhancement, does not block pin removal)"
-    }
-  ]
+  "updated": "2026-08-12 (Cycle 2 / I4: transition pins RWO-cross-task-noop / BRWO-cross-task-noop removed - interim fail-fast fix landed + registry classification updated)",
+  "note": "Pinned violations for check-nop-stream-invariants.mjs scan-iterations (invariant #2: synchronized collection iteration points must be inside a synchronized block) AND scan-output-contract (invariant #6 / PD-15 output-contract family: any Output.collect(OutputTag, X) must be forwarded to a registered side-output consumer, never silently dropped; no registered consumer -> fail-fast). Semantics = pin-and-record: violations ⊆ pins → green (CI stays green despite known residuals); NEW violations (not pinned) → red; a pin whose violation no longer exists → stale-pin error (the residual was fixed — remove the pin). Each key MUST match the scanner's violation string exactly. PIN REMOVAL TRACE (2026-08-12, Cycle 2 / I4 plan 2026-08-12-1217-11): the 2 invariant-#6 transition pins (RWO-cross-task-noop / BRWO-cross-task-noop) were removed because their removalTrigger was satisfied - the Cycle 2 / I4 interim fail-fast fix landed (RecordWriterOutput / BroadcastingRecordWriterOutput collect(OutputTag) empty-body no-op -> throw ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER) and the registry classification was updated (pinned-known-violation -> fail-fast, output-contract-registry.json). NOT a silent removal: fix + registry migration + pin removal landed in the same commit. HG-01 wire-protocol support remains a human confirmation gate (enhancement, does not affect pin removal). Differences are transferred to I2 red list via ai-dev/audits/nop-stream-invariants/red-list.md; I1 does NOT fix them.",
+  "pinnedViolations": []
 }

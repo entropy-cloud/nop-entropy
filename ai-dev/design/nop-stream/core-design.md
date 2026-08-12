@@ -357,15 +357,15 @@ class TaskLocation {
 
 ## 6. Side Output
 
-> 更新（Cycle 2 / I1，2026-08-12）：侧输出已落地——`OutputTag` + 链式侧输出通道（RL-7 修复 `b20fcd0e1` 后 `ChainingOutput` 转发至注册消费者，无消费者 fail-fast）。6 个发射点：`ProcessOperator.java:111/:134`（ProcessFunction / OnTimer ctx.output）、`WindowOperator.java:1030/:1860`（late-data / ProcessWindowFunction ctx.output）、`CepOperator.java:483/:777`（late-data / PatternProcessFunction ctx.output）。跨 task 边界（`RecordWriterOutput` / `BroadcastingRecordWriterOutput`）侧输出为已知契约缺口（过渡 pin，`HG-01` 人工确认门，interim fail-fast 预授权 Cycle 2 / I4）。
+> 更新（Cycle 2 / I4，2026-08-12）：侧输出已落地——`OutputTag` + 链式侧输出通道（RL-7 修复 `b20fcd0e1` 后 `ChainingOutput` 转发至注册消费者，无消费者 fail-fast）。6 个发射点：`ProcessOperator.java:111/:134`（ProcessFunction / OnTimer ctx.output）、`WindowOperator.java:1030/:1860`（late-data / ProcessWindowFunction ctx.output）、`CepOperator.java:483/:777`（late-data / PatternProcessFunction ctx.output）。跨 task 边界（`RecordWriterOutput` / `BroadcastingRecordWriterOutput`）`collect(OutputTag)` **已 fail-fast**（Cycle 2 / I4 interim fail-fast 落地：抛 `ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER`，替代静默丢弃）；`HG-01` 线协议支持（跨 task side-output 序列化/路由/消费注册）仍为人工确认待办（增强，不阻塞 fail-fast 语义）。
 
 ### 6.1 不变式（Invariants）
 
 > 交叉引用：`ai-dev/audits/nop-stream-invariants/invariant-catalog.md` §5 不变式 #6（PD-15 输出契约族，覆盖 RL-7 + 跨 task 缺口）。
 
-- **输出契约族（side-output 转发契约）**：任何 `Output.collect(OutputTag, X)` 调用必须被转发到注册的 side-output 消费者，不得静默丢弃；无注册消费者 → fail-fast（`ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER`）。跨 task 已知违约实例（`RecordWriterOutput` / `BroadcastingRecordWriterOutput` 空体 no-op）以过渡 pin 登记（`mjs-pins.json`，关联 `HG-01`），禁止静默移除（移除 = Cycle 2 / I4 interim fail-fast 修复落地 + 注册表分类更新）。
-- **门禁（已入 CI）**：JUnit `TestOutputContractInvariant`（`nop-stream-core`，10 用例——参数化穷举 4 个 main `Output` 实现类三态行为（分类以 `ai-dev/audits/nop-stream-invariants/output-contract-registry.json` 为准）+ `registerSideOutputConsumer` ↔ `ChainingOutput.sideOutputConsumers` 接线断言 + 反射实例化断言）；mjs `scan-output-contract`（V1 类级枚举 / V2 失效类 / V3 行为漂移 / V4 新增发射点 / V5 失效发射点，`check-nop-stream-invariants.mjs all` 纳入）；端到端证据 = runtime `TestSideOutputChainingE2E`（3 用例）。
-- **历史证据**：R15-AR-4（`ChainingOutput` 侧输出静默丢弃，pre-fix `ChainingOutput.java:84-86`）、I2 探查 PR-1、RL-7 修复 `b20fcd0e1`、I6 裁定跨 task 缺口双层处置（详见 catalog §5 不变式 #6）。
+- **输出契约族（side-output 转发契约）**：任何 `Output.collect(OutputTag, X)` 调用必须被转发到注册的 side-output 消费者，不得静默丢弃；无注册消费者 → fail-fast（`ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER`）。跨 task 实例（`RecordWriterOutput` / `BroadcastingRecordWriterOutput`）**处置状态 = fail-fast 已落地**（Cycle 2 / I4 interim fail-fast，2026-08-12：`collect(OutputTag)` 空体 no-op → 抛 `ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER`，过渡 pin 已移除，注册表分类 = `fail-fast`）；`HG-01` 线协议支持 = 人工确认待办（增强，不阻塞）。
+- **门禁（已入 CI）**：JUnit `TestOutputContractInvariant`（`nop-stream-core`，10 用例——参数化穷举 4 个 main `Output` 实现类三态行为（分类以 `ai-dev/audits/nop-stream-invariants/output-contract-registry.json` 为准）+ `registerSideOutputConsumer` ↔ `ChainingOutput.sideOutputConsumers` 接线断言 + 反射实例化断言）；mjs `scan-output-contract`（V1 类级枚举 / V2 失效类 / V3 行为漂移 / V4 新增发射点 / V5 失效发射点，`check-nop-stream-invariants.mjs all` 纳入）；端到端证据 = runtime `TestSideOutputChainingE2E`（4 用例，含跨 task 尾接线 fail-fast）。
+- **历史证据**：R15-AR-4（`ChainingOutput` 侧输出静默丢弃，pre-fix `ChainingOutput.java:84-86`）、I2 探查 PR-1、RL-7 修复 `b20fcd0e1`、I6 裁定跨 task 缺口双层处置（interim fail-fast 自动信封 + `HG-01` 人工确认门，Cycle 2 / I4 修复落地，详见 catalog §5 不变式 #6）。
 
 侧输出与替代方案对照（保留历史决策记录）：
 

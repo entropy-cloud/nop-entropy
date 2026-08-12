@@ -72,6 +72,12 @@
 - **裁决输入**：已确认契约缺口（P1，I6 预裁决）；修复方向（Cycle 2 / I4）= 空体 → 抛
   `ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER` 风格异常（interim fail-fast，类内部行为修复，`Output` 接口零变更）；
   pin 移除条件 = I4 修复落地 + 注册表分类更新；线协议结构性支持 = `HG-01` 人工确认门（不阻塞 pin 移除）
+- **修复状态（Cycle 2 / I4，plan `2026-08-12-1217-11`）**：**已修复**（2026-08-12）——`collect(OutputTag)`
+  空体 → 抛 `StreamRuntimeException(ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER)`（`ARG_OUTPUT_TAG` / `ARG_DETAIL`，
+  镜像 `ChainingOutput.java:119`）；注册表分类迁移 `pinned-known-violation` → `fail-fast`；过渡 pin
+  `RWO-cross-task-noop` 移除（removalTrigger 满足，留痕在案，非静默移除）；`TestOutputContractInvariant`
+  断言翻转（反射断言 → fail-fast 分支）全绿 + 跨 task E2E 第 4 用例（`testCrossTaskTailOutputFailsFastOnSideOutput`）
+  4/4 绿 + core/runtime 全量回归绿（core 1428 / runtime 805，0 failures）。`HG-01` 线协议支持 = 人工确认待办延续
 
 ### C2-RL-2. `StreamTaskInvokable$BroadcastingRecordWriterOutput.collect(OutputTag)` 跨 task 空体 no-op（过渡 pin `BRWO-cross-task-noop`）
 
@@ -86,6 +92,10 @@
 - **验证结论（Phase 1 + Phase 2 live 复核）**：live :705-706 空体确认，行为与 pin 描述 / 注册表分类一致；
   pin key 精确匹配；行号零漂移
 - **裁决输入**：同 C2-RL-1（interim fail-fast 预授权分派 Cycle 2 / I4；`HG-01` 线协议人工确认门）
+- **修复状态（Cycle 2 / I4，plan `2026-08-12-1217-11`）**：**已修复**（2026-08-12）——同 C2-RL-1
+  （`collect(OutputTag)` 空体 → 抛 `ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER`）；注册表分类迁移 → `fail-fast`；
+  过渡 pin `BRWO-cross-task-noop` 移除（留痕在案）；断言翻转 + E2E 第 4 用例 BRWO 路径（2 fanOut writer）
+  覆盖在案。`HG-01` 线协议支持 = 人工确认待办延续
 
 ### C2-RL-3. 注册表 disposition 措辞与 E2E 覆盖实际不符（过 claim，评估项）
 

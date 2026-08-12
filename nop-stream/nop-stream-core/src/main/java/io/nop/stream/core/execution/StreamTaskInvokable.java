@@ -22,6 +22,7 @@ import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.exceptions.NopStreamErrors;
 import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.exceptions.StreamRuntimeException;
 import io.nop.stream.core.jobgraph.Invokable;
 import io.nop.stream.core.jobgraph.OperatorChain;
 import io.nop.stream.core.operators.AbstractStreamOperator;
@@ -38,8 +39,11 @@ import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.util.OutputTag;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_OUTPUT_TAG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHAINING_OUTPUT_CLOSE_FAILED;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER;
 
 /**
  * Invokable that executes a streaming pipeline through the graph model path,
@@ -643,7 +647,15 @@ public class StreamTaskInvokable implements Invokable<Void> {
 
         @Override
         public <X> void collect(io.nop.stream.core.util.OutputTag<X> outputTag, StreamRecord<X> record) {
-            // Side outputs not supported in cross-task exchange
+            // Cycle 2 / I4 (WI-C2-1): interim fail-fast — side outputs have no consumer channel
+            // across task boundaries. Fail fast instead of silently dropping (plan guide #24);
+            // wire-protocol support = HG-01 human confirmation gate (enhancement).
+            throw new StreamRuntimeException(ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER)
+                    .param(ARG_OUTPUT_TAG, outputTag.getId())
+                    .param(ARG_DETAIL, "Side output '" + outputTag.getId()
+                            + "' has no consumer channel in the cross-task exchange (RecordWriterOutput); "
+                            + "side outputs are not supported across task boundaries (HG-01 wire-protocol "
+                            + "support pending human confirmation)");
         }
 
         @Override
@@ -703,6 +715,15 @@ public class StreamTaskInvokable implements Invokable<Void> {
 
         @Override
         public <X> void collect(io.nop.stream.core.util.OutputTag<X> outputTag, StreamRecord<X> record) {
+            // Cycle 2 / I4 (WI-C2-1): interim fail-fast — side outputs have no consumer channel
+            // across task boundaries. Fail fast instead of silently dropping (plan guide #24);
+            // wire-protocol support = HG-01 human confirmation gate (enhancement).
+            throw new StreamRuntimeException(ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER)
+                    .param(ARG_OUTPUT_TAG, outputTag.getId())
+                    .param(ARG_DETAIL, "Side output '" + outputTag.getId()
+                            + "' has no consumer channel in the cross-task exchange "
+                            + "(BroadcastingRecordWriterOutput); side outputs are not supported across "
+                            + "task boundaries (HG-01 wire-protocol support pending human confirmation)");
         }
 
         @Override
