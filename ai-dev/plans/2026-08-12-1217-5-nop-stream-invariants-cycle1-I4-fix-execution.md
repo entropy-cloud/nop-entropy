@@ -121,27 +121,27 @@ Exit Criteria:
 
 ### Phase 3 - 族 F1：WindowOperator cleanup 收敛（WI-3：RL-6）
 
-Status: planned
+Status: completed
 Targets: `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/operators/windowing/WindowOperator.java`、`nop-stream-runtime/src/test/java/io/nop/stream/runtime/operators/windowing/TestWindowOperatorMergingCleanupInvariant.java`
 
 - Item Types: `Fix`
 
-- [ ] **test-first 先红**：翻转 `TestWindowOperatorMergingCleanupInvariant` 2 个 pin 测试断言（泄漏 → 收敛：cleanup 后 MergingWindowSet 映射目标条目移除、persist 状态不增长；cleanup 后到达的重叠元素 t=55 生成 [55,105) 而非 [10,105)）；新增长跑场景「多次 session 开合后 checkpoint 状态收敛」用例；跑测试确认红（记录翻转断言的红输出）
-- [ ] **RL-6 修复**：onEventTime cleanup 分支（:773-782）补 `mergingWindows.retireWindow(triggerContext.window)`——**参数 = in-flight 窗口（mapping key），不是 stateWindow（mapping value）**：cleanup timer 以 actualWindow 注册，`triggerContext.window` 即 mapping key；`retireWindow(stateWindow)` 会因 key 不存在抛 `StreamException`（`MergingWindowSet.java:134-139` 实测语义）；对照 Flink 语义 = timer namespace 即映射 key；非 merging 路径（mergingWindows == null）不需要 retire
-- [ ] **类别清扫（F1 族）**：grep `WindowOperator` 全部 cleanup/retire 路径（onEventTime :725-790 + onProcessingTime :791+ 双分支——onProcessingTime cleanup 分支 :834-843 存在同型缺失（只 clearWindowContents + clear()，无 retire），**一并修复**）；grep `MergingWindowSet` 全部调用点（retireWindow :134 / persist / getStateWindow）核对收敛语义；核对其它 Window 算子 merge 语义（如有同型窗口算子）——**只修同类实例，不顺手改无关行为**
-- [ ] **onProcessingTime 修复的测试要求**：与 onEventTime 同型修复必须配套测试——能通过 `HeapInternalTimerService` 推进 processing-time 的聚焦测试（如新增/扩展 `TestWindowOperatorMergingCleanupInvariant` 的 processing-time 分支用例）；若推进路径不可测，显式记录 `No new test required: <原因>`（Rule #25）并说明规避方法
-- [ ] **test-first 后绿**：`TestWindowOperatorMergingCleanupInvariant`（翻转 + 新增）全绿；`TestWindowRoundTripInvariant`（9）全绿；Window E2E（`TestWindowOperatorUnificationE2E` / `TestWindowEndToEnd`）复跑绿
+- [x] **test-first 先红**：翻转 `TestWindowOperatorMergingCleanupInvariant` 2 个 pin 测试断言（泄漏 → 收敛：cleanup 后 MergingWindowSet 映射目标条目移除、persist 状态不增长；cleanup 后到达的重叠元素 t=55 生成 [55,105) 而非 [10,105)）；新增长跑场景「多次 session 开合后 checkpoint 状态收敛」用例；跑测试确认红（记录翻转断言的红输出）。**红输出记录（2026-08-12 实测）**：`Tests run: 4, Failures: 4`——`testSessionWindowCleanupRetainsMergingWindowIsPinned`（[10,80) 仍在映射）、`testSessionWindowCleanupAndLaterElementMergesIntoStaleRangeIsPinned`（[10,105) 仍映射至 [10,60)）、`testRepeatedSessionOpenCloseCheckpointStateConverges`（round 0 泄漏）、`testProcessingTimeCleanupRetiresMergingWindow`（processing-time 分支同样泄漏）
+- [x] **RL-6 修复**：onEventTime cleanup 分支（:773-782）补 `mergingWindows.retireWindow(triggerContext.window)`——**参数 = in-flight 窗口（mapping key），不是 stateWindow（mapping value）**：cleanup timer 以 actualWindow 注册，`triggerContext.window` 即 mapping key；`retireWindow(stateWindow)` 会因 key 不存在抛 `StreamException`（`MergingWindowSet.java:134-139` 实测语义）；对照 Flink 语义 = timer namespace 即映射 key；非 merging 路径（mergingWindows == null）不需要 retire
+- [x] **类别清扫（F1 族）**：grep `WindowOperator` 全部 cleanup/retire 路径（onEventTime :725-790 + onProcessingTime :791+ 双分支——onProcessingTime cleanup 分支 :834-843 存在同型缺失（只 clearWindowContents + clear()，无 retire），**一并修复**）；grep `MergingWindowSet` 全部调用点（retireWindow :134 / persist / getStateWindow）核对收敛语义；核对其它 Window 算子 merge 语义（如有同型窗口算子）——**只修同类实例，不顺手改无关行为**。**清扫证据（2026-08-12）**：`MergingWindowSet` 生产消费方仅 `WindowOperator`（全仓 grep 确认）；retireWindow 三处调用点（:657 isWindowLate 既有 + :788 onEventTime 修复 + :854 onProcessingTime 修复）全部以 mapping key（in-flight window）为参数；生产 MergingWindowAssigner 仅 `EventTimeSessionWindows`（TimeWindow.mergeWindows 共享）；purge 路径（triggerResult.isPurge()）不 retire 属 Flink 等价语义（purge ≠ GC cleanup），不在清扫范围
+- [x] **onProcessingTime 修复的测试要求**：与 onEventTime 同型修复必须配套测试——通过 `HeapInternalTimerService#fireProcessingTimeTimers` 推进 processing-time 的聚焦测试（新增 `testProcessingTimeCleanupRetiresMergingWindow`：测试内 `ProcessingTimeMergingSessionWindows`（isEventTime=false + 元素时间戳确定性窗口）构造合并 session，fire 后断言映射收敛）。**测试期间发现**：fire 后必须重新 `mergingWindowSetForTest()` 取新实例（每次调用从持久化状态重建），预取实例为 stale——已修正并记录；两个 timer（trigger/cleanup）同 time+namespace 在 HashSet 中坍缩为单条目，但 onProcessingTime 单回调内同时执行 fire + cleanup 分支（与 event-time 一致），行为正确
+- [x] **test-first 后绿**：`TestWindowOperatorMergingCleanupInvariant`（翻转 + 新增）全绿；`TestWindowRoundTripInvariant`（9）全绿；Window E2E（`TestWindowOperatorUnificationE2E` / `TestWindowEndToEnd`）复跑绿。**绿输出（2026-08-12 实测）**：`TestWindowOperatorMergingCleanupInvariant` 4/4（原 2 pin 翻转 + 长跑 + processing-time 新增）；`TestWindowRoundTripInvariant` 9/9；`TestWindowOperatorUnificationE2E` 6/6；`TestWindowEndToEnd`（core）7/7
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] RL-6 修复落地：cleanup 后 MergingWindowSet 映射收敛（翻转 pin 测试绿 + persist 状态不增长）
-- [ ] cleanup 后重叠元素从新范围合并（t=55 → [55,105)），无 stale 范围复活（翻转 pin 测试绿）
-- [ ] 类别清扫证据存在（双 cleanup 分支 + MergingWindowSet 调用点 + 其它窗口算子核对结论）
-- [ ] `TestWindowRoundTripInvariant`（9）+ `TestWindowOperatorMergingCleanupInvariant` + Window E2E 全绿
-- [ ] `ai-dev/logs/` 对应日期条目已更新
-- [ ] No owner-doc update required for this phase（行为修复与 Flink 语义对齐，无契约变更）
+- [x] RL-6 修复落地：cleanup 后 MergingWindowSet 映射收敛（翻转 pin 测试绿 + persist 状态不增长）
+- [x] cleanup 后重叠元素从新范围合并（t=55 → [55,105)），无 stale 范围复活（翻转 pin 测试绿）
+- [x] 类别清扫证据存在（双 cleanup 分支 + MergingWindowSet 调用点 + 其它窗口算子核对结论）
+- [x] `TestWindowRoundTripInvariant`（9）+ `TestWindowOperatorMergingCleanupInvariant` + Window E2E 全绿
+- [x] `ai-dev/logs/` 对应日期条目已更新
+- [x] No owner-doc update required for this phase（行为修复与 Flink 语义对齐，无契约变更）
 
 ### Phase 4 - 输出契约族：ChainingOutput side-output 转发（WI-4：RL-7，双轨 PD-15）
 

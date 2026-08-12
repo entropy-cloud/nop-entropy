@@ -778,6 +778,15 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             if (stateWindow != null) {
                 clearWindowContents(triggerContext.key, stateWindow);
                 triggerContext.clear();
+                // RL-6 (R15-AR-8): retire the in-flight window (= cleanup timer namespace =
+                // MergingWindowSet mapping KEY) so the mapping converges after cleanup —
+                // otherwise the cleaned window leaks into the checkpointed merging-sets
+                // state (unbounded growth) and later overlapping elements merge into a
+                // stale range. Retiring the state-window VALUE instead would throw
+                // StreamException (key not found, MergingWindowSet.java:134-139).
+                if (mergingWindows != null) {
+                    mergingWindows.retireWindow(triggerContext.window);
+                }
             }
         }
 
@@ -839,6 +848,11 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             if (stateWindow != null) {
                 clearWindowContents(triggerContext.key, stateWindow);
                 triggerContext.clear();
+                // RL-6 (R15-AR-8): same convergence fix as the onEventTime cleanup branch —
+                // retire the in-flight window (mapping key = cleanup timer namespace).
+                if (mergingWindows != null) {
+                    mergingWindows.retireWindow(triggerContext.window);
+                }
             }
         }
 
