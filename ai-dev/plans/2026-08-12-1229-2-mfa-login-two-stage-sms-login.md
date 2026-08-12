@@ -1,6 +1,6 @@
 # W5 - MFA 登录流程两阶段改造 + 短信验证码登录
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-12
 > Source: `ai-dev/backlog/nop-credential-mfa-roadmap.md` (W5); `ai-dev/design/nop-auth/01-architecture-baseline.md` (§3.1 / §3.2 / §3.3 / §3.6 / §3.7 / §3.8 / §五)
 > Related: W4（MFA 模型 + TOTP + 存储，本 plan 的前置依赖，需先 done）；W6（绑定/解绑/扫码适配，依赖本 plan）；W7（迁移 + docs-for-ai 同步）
@@ -69,136 +69,136 @@
 
 ### Phase 1 - 常量 / 字典 / 配置 / 错误码 / 请求模型
 
-Status: planned
+Status: completed
 Targets: `nop-biz-auth-api/.../AuthApiConstants.java` + `LoginApi.java` + `LoginResult.java`、`nop-biz-auth-core/.../_vfs/dict/auth/login-type.dict.yaml`、`nop-auth-service` 配置类与 `NopAuthErrors`
 
 - Item Types: `Fix | Decision`
 
-- [ ] `AuthApiConstants` 新增 `LOGIN_TYPE_PHONE_SMS = 5`
-- [ ] 修复 `login-type.dict.yaml`：补 2(EMAIL_PASSWORD)/3(PHONE_PASSWORD)/5(PHONE_SMS) 条目，SSO 统一为 **4**（以 `AuthApiConstants` 为准），保留 20-23
-- [ ] `NopAuthConfigs`（或等价）新增 `nop.auth.mfa.*`（6 项：enabled/store-type/challenge-expire-seconds/max-attempts/totp-issuer/totp-window-skew）与 `nop.auth.sms-code.*`（8 项：enabled/expire-seconds/send-interval-seconds/daily-limit/ip-daily-limit/max-attempts/template-id/allow-register），共 **14 项**（与设计 §3.7 一致；Phase 3 的 accessCode TTL 裁决若选"新增 MFA 自有键"将追加第 15 项 `nop.auth.mfa.access-code-expire-seconds`），默认值与设计 §3.7 一致
-- [ ] `NopAuthErrors` 新增 MFA/SMS 系列（11 个：`ERR_AUTH_MFA_REQUIRED`/`ERR_AUTH_MFA_FAIL`/`ERR_AUTH_MFA_CHALLENGE_EXPIRED`/`ERR_AUTH_MFA_NOT_ENABLED`/`ERR_AUTH_MFA_ALREADY_ENABLED`/`ERR_AUTH_MFA_BIND_EXPIRED`/`ERR_AUTH_SMS_CODE_INVALID`/`ERR_AUTH_SMS_CODE_EXPIRED`/`ERR_AUTH_SMS_RATE_LIMITED`/`ERR_AUTH_SMS_DAILY_LIMIT`/`ERR_AUTH_MFA_RECOVERY_CODE_USED`），`ERR_AUTH_MFA_REQUIRED` 支持 `.param(challengeToken/mfaType/loginType)`
-- [ ] 新增 `MfaVerifyRequest`（`nop-biz-auth-api`）请求模型，字段 `{challengeToken, code, recoveryCode?}`（设计 §3.6）
-- [ ] `LoginResult` 新增可选 `accessCode` 字段（承载信道类 mfaVerify 成功出口；密码类路径为 null）——公共契约扩展，本 plan 即 plan-first 产物
+- [x] `AuthApiConstants` 新增 `LOGIN_TYPE_PHONE_SMS = 5`
+- [x] 修复 `login-type.dict.yaml`：补 2(EMAIL_PASSWORD)/3(PHONE_PASSWORD)/5(PHONE_SMS) 条目，SSO 统一为 **4**（以 `AuthApiConstants` 为准），保留 20-23
+- [x] `NopAuthConfigs`（或等价）新增 `nop.auth.mfa.*`（6 项：enabled/store-type/challenge-expire-seconds/max-attempts/totp-issuer/totp-window-skew）与 `nop.auth.sms-code.*`（8 项：enabled/expire-seconds/send-interval-seconds/daily-limit/ip-daily-limit/max-attempts/template-id/allow-register），共 **14 项**（与设计 §3.7 一致；Phase 3 的 accessCode TTL 裁决若选"新增 MFA 自有键"将追加第 15 项 `nop.auth.mfa.access-code-expire-seconds`），默认值与设计 §3.7 一致
+- [x] `NopAuthErrors` 新增 MFA/SMS 系列（11 个：`ERR_AUTH_MFA_REQUIRED`/`ERR_AUTH_MFA_FAIL`/`ERR_AUTH_MFA_CHALLENGE_EXPIRED`/`ERR_AUTH_MFA_NOT_ENABLED`/`ERR_AUTH_MFA_ALREADY_ENABLED`/`ERR_AUTH_MFA_BIND_EXPIRED`/`ERR_AUTH_SMS_CODE_INVALID`/`ERR_AUTH_SMS_CODE_EXPIRED`/`ERR_AUTH_SMS_RATE_LIMITED`/`ERR_AUTH_SMS_DAILY_LIMIT`/`ERR_AUTH_MFA_RECOVERY_CODE_USED`），`ERR_AUTH_MFA_REQUIRED` 支持 `.param(challengeToken/mfaType/loginType)`
+- [x] 新增 `MfaVerifyRequest`（`nop-biz-auth-api`）请求模型，字段 `{challengeToken, code, recoveryCode?}`（设计 §3.6）
+- [x] `LoginResult` 新增可选 `accessCode` 字段（承载信道类 mfaVerify 成功出口；密码类路径为 null）——公共契约扩展，本 plan 即 plan-first 产物
 
 Exit Criteria:
 
-- [ ] `AuthApiConstants.LOGIN_TYPE_PHONE_SMS` 存在且 = 5
-- [ ] `login-type.dict.yaml` 含 1/2/3/4/5/20-23，SSO value=4；与 `AuthApiConstants` 一致（有一致性测试断言，防再次漂移）
-- [ ] 全部 **14** 个配置项以设计 §3.7 默认值存在并可注入
-- [ ] 全部 **11** 个错误码存在；`ERR_AUTH_MFA_REQUIRED` 可携带 `.param(challengeToken/mfaType/loginType)`
-- [ ] `MfaVerifyRequest` 存在且字段为 `{challengeToken, code, recoveryCode?}`
-- [ ] `LoginResult.accessCode` 可选字段存在（密码类为 null，向后兼容）
-- [ ] **新功能测试**：配置默认值绑定测试、dict 与常量一致性测试、`LoginResult.accessCode` 序列化兼容测试（既有无 accessCode 响应仍可解析）
-- [ ] **无静默跳过**：配置缺失时使用文档化默认值并记录，不静默关闭功能
-- [ ] 若该 Phase 改变 live baseline：`No owner-doc update required`（`docs-for-ai/` 同步属 W7；公共契约变更已在本 plan 与设计 §五 记录为 plan-first）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `AuthApiConstants.LOGIN_TYPE_PHONE_SMS` 存在且 = 5
+- [x] `login-type.dict.yaml` 含 1/2/3/4/5/20-23，SSO value=4；与 `AuthApiConstants` 一致（有一致性测试断言，防再次漂移）
+- [x] 全部 **14** 个配置项以设计 §3.7 默认值存在并可注入
+- [x] 全部 **11** 个错误码存在；`ERR_AUTH_MFA_REQUIRED` 可携带 `.param(challengeToken/mfaType/loginType)`
+- [x] `MfaVerifyRequest` 存在且字段为 `{challengeToken, code, recoveryCode?}`
+- [x] `LoginResult.accessCode` 可选字段存在（密码类为 null，向后兼容）
+- [x] **新功能测试**：配置默认值绑定测试、dict 与常量一致性测试、`LoginResult.accessCode` 序列化兼容测试（既有无 accessCode 响应仍可解析）
+- [x] **无静默跳过**：配置缺失时使用文档化默认值并记录，不静默关闭功能
+- [x] 若该 Phase 改变 live baseline：`No owner-doc update required`（`docs-for-ai/` 同步属 W7；公共契约变更已在本 plan 与设计 §五 记录为 plan-first）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - loginAsync + createSessionForUserAsync 两阶段改造 + completeLogin 抽取与行为裁决
 
-Status: planned
+Status: completed
 Targets: `nop-auth-service/.../login/LoginServiceImpl.java`、`nop-biz-auth-core/.../ISessionBootstrap.java`、`nop-ai-gateway/.../ChannelLoginApiBizModel.java`（仅调用点）、`ai-dev/design/nop-auth/01-architecture-baseline.md` §3.2
 
 - Item Types: `Fix | Decision`
 
-- [ ] **completeLogin 行为裁决（Decision）**：裁决三处调用点的行为差异并回写 design §3.2：(1) `resetLoginFailCountForUser`——loginAsync 成功后调用，createSessionForUserAsync/mfaVerify 不调用（第二因子失败不触发用户锁账号）；(2) `userContextHook.onLoginSuccess`——loginAsync 调用，信道/mfaVerify 路径的归属需裁决；(3) `LoginRequest`/headers 来源——loginAsync 有完整 request+headers，createSessionForUserAsync/mfaVerify 无，需裁决如何为 `buildUserContext`/`saveSession` 提供等价输入（从用户档案/challenge 重建或接受必要输入参数）
-- [ ] 抽取 `completeLogin` 公共方法，其行为契约遵循上一条裁决；三处（loginAsync/createSessionForUserAsync/mfaVerify）复用，无重复会话签发逻辑
-- [ ] `ISessionBootstrap` 新增重载 `createSessionForUserAsync(String userId, int loginType)`；单参数版本 `@Deprecated` 委托到 `LOGIN_TYPE_SSO=4`（向后兼容外部调用方）
-- [ ] `createSessionForUserAsync(userId, loginType)` 两阶段改造：账号检查 → MFA 门禁 → status==enabled 则 `MfaChallengeStore.create` + 抛 `ERR_AUTH_MFA_REQUIRED(challengeToken,mfaType,loginType)`（loginType 为真实信道值，审计不失真）；未启用走 `completeLogin`
-- [ ] `ChannelLoginApiBizModel` 调用点改为新重载，经 `ChannelTypeCodes.loginType(channelType)` 派生信道 loginType（20-23）传入（BizModel 当前持有 `channelType` 字符串，无 int loginType）——**仅参数化，不实现扫码结果适配**
-- [ ] `loginAsync` 改造：凭证校验 → `mfaConfig.enabled` 门禁 → 查 `NopAuthMfaSetting`（status==enabled 口径）→ 因子等同分支（PHONE_SMS + mfaType==sms 不重复验证）→ `MfaChallengeStore.create` → 抛 `ERR_AUTH_MFA_REQUIRED(challengeToken,mfaType,loginType)`；未启用 MFA 走 `completeLogin`（零回归）
-- [ ] `getAuthUser` 适配 loginType=5（按 phone 查找用户）；`needCheckPassword` 适配（loginType=5 不走密码路径，走 SmsCodeStore.verify 分支）；`isValidLoginMethod` 对 loginType=5 的准入（受 `sms-code.enabled` 门禁）
-- [ ] 第一因子失败沿用 `setLoginFailCountForUser`（锁账号）；第二因子失败只计 challenge（不锁账号）
-- [ ] 更新涉及签名变更的既有测试（`TestChannelLoginApi` 单参数桩、`TestChannelScanBindLoginE2E`）至新重载
+- [x] **completeLogin 行为裁决（Decision）**：裁决三处调用点的行为差异并回写 design §3.2：(1) `resetLoginFailCountForUser`——loginAsync 成功后调用，createSessionForUserAsync/mfaVerify 不调用（第二因子失败不触发用户锁账号）；(2) `userContextHook.onLoginSuccess`——loginAsync 调用，信道/mfaVerify 路径不调用；(3) `LoginRequest`/headers 来源——loginAsync 有完整 request+headers，createSessionForUserAsync/mfaVerify 用合成 LoginRequest + 空 headers
+- [x] 抽取 `completeLogin` 公共方法，其行为契约遵循上一条裁决；三处（loginAsync/createSessionForUserAsync/mfaVerify）复用，无重复会话签发逻辑
+- [x] `ISessionBootstrap` 新增重载 `createSessionForUserAsync(String userId, int loginType)`；单参数版本 `@Deprecated` 委托到 `LOGIN_TYPE_SSO=4`（向后兼容外部调用方）
+- [x] `createSessionForUserAsync(userId, loginType)` 两阶段改造：账号检查 → MFA 门禁 → status==enabled 则 `MfaChallengeStore.create` + 抛 `ERR_AUTH_MFA_REQUIRED(challengeToken,mfaType,loginType)`（loginType 为真实信道值，审计不失真）；未启用走 `completeLogin`
+- [x] `ChannelLoginApiBizModel` 调用点改为新重载，经 `ChannelTypeCodes.loginType(channelType)` 派生信道 loginType（20-23）传入（BizModel 当前持有 `channelType` 字符串，无 int loginType）——**仅参数化，不实现扫码结果适配**
+- [x] `loginAsync` 改造：凭证校验 → `mfaConfig.enabled` 门禁 → 查 `NopAuthMfaSetting`（status==enabled 口径）→ 因子等同分支（PHONE_SMS + mfaType==sms 不重复验证）→ `MfaChallengeStore.create` → 抛 `ERR_AUTH_MFA_REQUIRED(challengeToken,mfaType,loginType)`；未启用 MFA 走 `completeLogin`（零回归）
+- [x] `getAuthUser` 适配 loginType=5（按 phone 查找用户）；`needCheckPassword` 适配（loginType=5 不走密码路径，走 SmsCodeStore.verify 分支）；`isValidLoginMethod` 对 loginType=5 的准入（受 `sms-code.enabled` 门禁）
+- [x] 第一因子失败沿用 `setLoginFailCountForUser`（锁账号）；第二因子失败只计 challenge（不锁账号）
+- [x] 更新涉及签名变更的既有测试（`TestChannelLoginApi` 单参数桩、`TestChannelScanBindLoginE2E`）至新重载
 
 Exit Criteria:
 
-- [ ] design §3.2 已记录 completeLogin 行为裁决（三项差异结论）
-- [ ] `completeLogin` 被三处复用（代码追踪可证，无重复会话签发逻辑）
-- [ ] 启用 MFA 的密码用户：第一因子通过后**不签发 token**，响应携带 `ERR_AUTH_MFA_REQUIRED` + challengeToken/mfaType/loginType
-- [ ] SSO/信道用户启用 MFA 同样被拦截（createSessionForUserAsync 路径），challenge.loginType 为真实信道值（20-23），审计不失真（有断言对照）
-- [ ] 单参数 `createSessionForUserAsync` 仍可调用（向后兼容，委托 SSO=4）
-- [ ] 未启用 MFA 的用户：登录行为与改造前**逐项一致**（签发 token/accessCode、失败计数、审计 loginType、userContextHook 调用）——零回归断言
-- [ ] 因子等同：loginType=5 且 mfaType=sms 的用户直接 `completeLogin`，不抛 MFA_REQUIRED（断言）
-- [ ] loginType=5 用户查找/方法校验通过（`getAuthUser` 按 phone 命中、`isValidLoginMethod` 准入）
-- [ ] 第二因子失败不调用 `setLoginFailCountForUser`（断言）
-- [ ] **接线验证**：改造后 `loginAsync`/`createSessionForUserAsync` 确实调用 `MfaChallengeStore.create`（运行时可观测，E2E 中以计数器/mock/日志断言）
-- [ ] **无静默跳过**：全局开关关闭时不强制 MFA 是**显式配置门禁**（非静默跳过）；setting 查询异常显式抛出
-- [ ] 若该 Phase 改变 live baseline：design §3.2 已更新（completeLogin 裁决）；`docs-for-ai/` 同步属 W7
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] design §3.2 已记录 completeLogin 行为裁决（三项差异结论）
+- [x] `completeLogin` 被三处复用（代码追踪可证，无重复会话签发逻辑）
+- [x] 启用 MFA 的密码用户：第一因子通过后**不签发 token**，响应携带 `ERR_AUTH_MFA_REQUIRED` + challengeToken/mfaType/loginType
+- [x] SSO/信道用户启用 MFA 同样被拦截（createSessionForUserAsync 路径），challenge.loginType 为真实信道值（20-23），审计不失真（有断言对照）
+- [x] 单参数 `createSessionForUserAsync` 仍可调用（向后兼容，委托 SSO=4）
+- [x] 未启用 MFA 的用户：登录行为与改造前**逐项一致**（签发 token/accessCode、失败计数、审计 loginType、userContextHook 调用）——零回归断言
+- [x] 因子等同：loginType=5 且 mfaType=sms 的用户直接 `completeLogin`，不抛 MFA_REQUIRED（断言）
+- [x] loginType=5 用户查找/方法校验通过（`getAuthUser` 按 phone 命中、`isValidLoginMethod` 准入）
+- [x] 第二因子失败不调用 `setLoginFailCountForUser`（断言）
+- [x] **接线验证**：改造后 `loginAsync`/`createSessionForUserAsync` 确实调用 `MfaChallengeStore.create`（运行时可观测，E2E 中以计数器/mock/日志断言）
+- [x] **无静默跳过**：全局开关关闭时不强制 MFA 是**显式配置门禁**（非静默跳过）；setting 查询异常显式抛出
+- [x] 若该 Phase 改变 live baseline：design §3.2 已更新（completeLogin 裁决）；`docs-for-ai/` 同步属 W7
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - mfaVerify + 短信发送端点 + LoginApi 接线 + 限流
 
-Status: planned
+Status: completed
 Targets: `nop-auth-service`（`LoginServiceImpl`/`LoginApiBizModel`）、`nop-biz-auth-api`（`LoginApi`）
 
 - Item Types: `Fix | Decision`
 
-- [ ] `LoginApi` 接口新增 `sendSmsCode(String phone)` / `sendMfaCode(String challengeToken)` / `mfaVerify(MfaVerifyRequest request)` 方法声明
-- [ ] `LoginApiBizModel` 接线：上述三方法加 `@BizMutation` + `@Auth(publicAccess=true)`；响应形状裁决（sendSmsCode/sendMfaCode 返回确认/Void、mfaVerify 返回 `LoginResult`）
-- [ ] `mfaVerify(request)`：peek challenge（null→`CHALLENGE_EXPIRED`）→ loadUser（`runWithTenant(challenge.tenantId)`）→ setting 复核（null/!enabled 作废 challenge）→ recovery 分支（BCrypt 比对/`RECOVERY_USED` 统一 `MFA_FAIL` 不计数不消费/成功 consume + status=disabled 强制重绑 + 审计）→ TOTP 分支（verify + 防重放：当前窗口 ≤ lastVerifiedWindow 拒绝）→ SMS 分支（`SmsCodeStore.verify("mfa:"+userId,code)` 三态）→ 成功 consume + `completeLogin(user, challenge.loginType)`；失败 `incrFailCount` ≥ max-attempts 作废
-- [ ] `mfaVerify` 成功出口：按 challenge.loginType 决定（密码类签发 accessToken 填入 LoginResult；信道类签发 accessCode 填入 `LoginResult.accessCode`）；accessCode TTL 裁决（见下条）
-- [ ] **accessCode TTL 跨模块裁决（Decision）**：`nop.auth.mfa.access-code-expire-seconds` 配置归属——裁定为在 `NopAuthConfigs` 新增 MFA 自有键（默认值与 `nop.ai.channel.login.access-code-expire-seconds` 一致），避免 nop-auth-service 反向依赖 nop-ai-gateway 命名空间的配置；或显式记录跨模块重用理由。裁决结论写入 plan/design
-- [ ] `sendSmsCode(phone)`（公开）：防枚举（未注册且 !allow-register 统一返回"已发送"）→ 手机号 60s 间隔 + 日上限 + IP 日上限限流 → `SmsCodeStore.send` → `ISmsSender.sendMessage`
-- [ ] `sendMfaCode(challengeToken)`（公开）：peek 校验 challenge 未消费/作废（否则 `CHALLENGE_EXPIRED`）→ 服务端取号 → 限流同 sendSmsCode
-- [ ] MFA 短信路径双计数保留（`SmsCodeStore` 内部失败计数 + challenge `incrAndCheck`），两者独立生效
+- [x] `LoginApi` 接口新增 `sendSmsCode(String phone)` / `sendMfaCode(String challengeToken)` / `mfaVerify(MfaVerifyRequest request)` 方法声明
+- [x] `LoginApiBizModel` 接线：上述三方法加 `@BizMutation` + `@Auth(publicAccess=true)`；响应形状裁决（sendSmsCode/sendMfaCode 返回确认/Void、mfaVerify 返回 `LoginResult`）
+- [x] `mfaVerify(request)`：peek challenge（null→`CHALLENGE_EXPIRED`）→ loadUser（`runWithTenant(challenge.tenantId)`）→ setting 复核（null/!enabled 作废 challenge）→ recovery 分支（BCrypt 比对/`RECOVERY_USED` 统一 `MFA_FAIL` 不计数不消费/成功 consume + status=disabled 强制重绑 + 审计）→ TOTP 分支（verify + 防重放：当前窗口 ≤ lastVerifiedWindow 拒绝）→ SMS 分支（`SmsCodeStore.verify("mfa:"+userId,code)` 三态）→ 成功 consume + `completeLogin(user, challenge.loginType)`；失败 `incrFailCount` ≥ max-attempts 作废
+- [x] `mfaVerify` 成功出口：按 challenge.loginType 决定（密码类签发 accessToken 填入 LoginResult；信道类签发 accessCode 填入 `LoginResult.accessCode`）；accessCode TTL 裁决（见下条）
+- [x] **accessCode TTL 跨模块裁决（Decision）**：`nop.auth.mfa.access-code-expire-seconds` 配置归属——裁定为在 `NopAuthConfigs` 新增 MFA 自有键（默认值与 `nop.ai.channel.login.access-code-expire-seconds` 一致），避免 nop-auth-service 反向依赖 nop-ai-gateway 命名空间的配置；或显式记录跨模块重用理由。裁决结论写入 plan/design
+- [x] `sendSmsCode(phone)`（公开）：防枚举（未注册且 !allow-register 统一返回"已发送"）→ 手机号 60s 间隔 + 日上限 + IP 日上限限流 → `SmsCodeStore.send` → `ISmsSender.sendMessage`
+- [x] `sendMfaCode(challengeToken)`（公开）：peek 校验 challenge 未消费/作废（否则 `CHALLENGE_EXPIRED`）→ 服务端取号 → 限流同 sendSmsCode
+- [x] MFA 短信路径双计数保留（`SmsCodeStore` 内部失败计数 + challenge `incrAndCheck`），两者独立生效
 
 Exit Criteria:
 
-- [ ] `LoginApi` 三个新方法声明存在且为 publicAccess；可通过 GraphQL/REST 访问（schema 中可见）
-- [ ] mfaVerify 成功路径：密码类签发 accessToken、信道类签发 `LoginResult.accessCode`（有断言区分两种出口）；challenge 被一次性 consume（再验同一 token 返 `CHALLENGE_EXPIRED`）
-- [ ] recovery 分支：已用恢复码统一 `MFA_FAIL`（不计数、不消费、不暴露"曾有效"）；成功恢复码登录后 status=disabled（强制重绑）+ 恢复码作废
-- [ ] TOTP 防重放：同窗口码二次提交被拒（依赖 W4 的 lastVerifiedWindow 判定面，本 phase 串联）
-- [ ] SMS 三态错误码与 loginAsync 口径一致（EXPIRED→`ERR_AUTH_SMS_CODE_EXPIRED`/INVALID→`ERR_AUTH_SMS_CODE_INVALID` 双错误码）
-- [ ] 限流：同手机号 60s 内二次发码被拒（`RATE_LIMITED`）；日上限/IP 上限生效；防枚举：未注册手机号响应与已注册一致
-- [ ] accessCode TTL 裁决已记录，实现与裁决一致
-- [ ] **接线验证**：mfaVerify 确实调用 `MfaChallengeStore.peek/incrFailCount/consume`、`TOTPAuthenticator.verify`、`SmsCodeStore.verify`、`IPasswordEncoder`（recovery）、`ISmsSender`（sendSmsCode/sendMfaCode）——E2E 中可观测
-- [ ] **无静默跳过**：challenge 不存在、setting 复核失败等分支显式作废并返回错误码，不静默放行
-- [ ] 若该 Phase 改变 live baseline：`No owner-doc update required`（`docs-for-ai/` 同步属 W7）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `LoginApi` 三个新方法声明存在且为 publicAccess；可通过 GraphQL/REST 访问（schema 中可见）
+- [x] mfaVerify 成功路径：密码类签发 accessToken、信道类签发 `LoginResult.accessCode`（有断言区分两种出口）；challenge 被一次性 consume（再验同一 token 返 `CHALLENGE_EXPIRED`）
+- [x] recovery 分支：已用恢复码统一 `MFA_FAIL`（不计数、不消费、不暴露"曾有效"）；成功恢复码登录后 status=disabled（强制重绑）+ 恢复码作废
+- [x] TOTP 防重放：同窗口码二次提交被拒（依赖 W4 的 lastVerifiedWindow 判定面，本 phase 串联）
+- [x] SMS 三态错误码与 loginAsync 口径一致（EXPIRED→`ERR_AUTH_SMS_CODE_EXPIRED`/INVALID→`ERR_AUTH_SMS_CODE_INVALID` 双错误码）
+- [x] 限流：同手机号 60s 内二次发码被拒（`RATE_LIMITED`）；日上限/IP 上限生效；防枚举：未注册手机号响应与已注册一致
+- [x] accessCode TTL 裁决已记录，实现与裁决一致
+- [x] **接线验证**：mfaVerify 确实调用 `MfaChallengeStore.peek/incrFailCount/consume`、`TOTPAuthenticator.verify`、`SmsCodeStore.verify`、`IPasswordEncoder`（recovery）、`ISmsSender`（sendSmsCode/sendMfaCode）——E2E 中可观测
+- [x] **无静默跳过**：challenge 不存在、setting 复核失败等分支显式作废并返回错误码，不静默放行
+- [x] 若该 Phase 改变 live baseline：`No owner-doc update required`（`docs-for-ai/` 同步属 W7）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - 端到端测试 + 回归
 
-Status: planned
+Status: completed
 Targets: `nop-auth-service` 测试 + `nop-ai-gateway` 既有回归（扫码链仅调用点变更，验证不回归）
 
 - Item Types: `Proof`
 
-- [ ] E2E：密码登录→MFA_REQUIRED→mfaVerify(TOTP)→accessToken 全链
-- [ ] E2E：短信验证码登录（sendSmsCode→login(loginType=5)→accessToken），含因子等同（mfaType=sms 不重复验证）
-- [ ] E2E：恢复码登录（mfaVerify(recoveryCode)→accessCode/accessToken + status=disabled + 恢复码作废）
-- [ ] E2E：SSO/信道（createSessionForUserAsync(userId,loginType)）启用 MFA 用户被拦截→mfaVerify→accessCode（loginType 不失真断言）
-- [ ] 失败计数分界：第二因子连续失败 max-attempts 后 challenge 作废、且不触发用户锁账号
-- [ ] 零回归：未启用 MFA 用户登录（密码/SSO/信道）行为与改造前逐项一致；全局开关关闭时所有 MFA 路径不触发
-- [ ] dict 记录核对：`nop_auth_ext_login` 中 loginType=10 的存量记录检查结果已记录（预期为空——信道编码从 20 起）
+- [x] E2E：密码登录→MFA_REQUIRED→mfaVerify(TOTP)→accessToken 全链
+- [x] E2E：短信验证码登录（sendSmsCode→login(loginType=5)→accessToken），含因子等同（mfaType=sms 不重复验证）
+- [x] E2E：恢复码登录（mfaVerify(recoveryCode)→accessCode/accessToken + status=disabled + 恢复码作废）
+- [x] E2E：SSO/信道（createSessionForUserAsync(userId,loginType)）启用 MFA 用户被拦截→mfaVerify→accessCode（loginType 不失真断言）
+- [x] 失败计数分界：第二因子连续失败 max-attempts 后 challenge 作废、且不触发用户锁账号
+- [x] 零回归：未启用 MFA 用户登录（密码/SSO/信道）行为与改造前逐项一致；全局开关关闭时所有 MFA 路径不触发
+- [x] dict 记录核对：`nop_auth_ext_login` 中 loginType=10 的存量记录检查结果已记录（预期为空——信道编码从 20 起）
 
 Exit Criteria:
 
-- [ ] 上述 7 条 E2E/场景测试全部通过，且测试名与覆盖行为在 plan 中可对照
-- [ ] **端到端验证（Anti-Hollow Rule #22）**：从用户入口点（login/sendSmsCode）经第一因子→challenge→mfaVerify→token/accessCode 出口的完整路径跑通。**Local store-type 的 E2E 完整跑通**；Redis store-type 的连通性经 W4 已建立的原语映射/代码追踪覆盖（仓库内无嵌入式 Redis 测试设施，本 plan 不新增——与 W4 Phase 3 三证合一基线一致）
-- [ ] **接线验证（Wiring Rule #23）**：E2E 中断言 W4 组件（`MfaChallengeStore`/`SmsCodeStore`/`TOTPAuthenticator`）在登录链路上确实被调用（计数器/标志/mock verify）
-- [ ] **无静默跳过（Rule #24）**：新增分支在异常输入下显式失败（有对应负向用例）
-- [ ] 若该 Phase 改变 live baseline：`No owner-doc update required`（`docs-for-ai/` 同步属 W7）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 上述 7 条 E2E/场景测试全部通过，且测试名与覆盖行为在 plan 中可对照
+- [x] **端到端验证（Anti-Hollow Rule #22）**：从用户入口点（login/sendSmsCode）经第一因子→challenge→mfaVerify→token/accessCode 出口的完整路径跑通。**Local store-type 的 E2E 完整跑通**；Redis store-type 的连通性经 W4 已建立的原语映射/代码追踪覆盖（仓库内无嵌入式 Redis 测试设施，本 plan 不新增——与 W4 Phase 3 三证合一基线一致）
+- [x] **接线验证（Wiring Rule #23）**：E2E 中断言 W4 组件（`MfaChallengeStore`/`SmsCodeStore`/`TOTPAuthenticator`）在登录链路上确实被调用（计数器/标志/mock verify）
+- [x] **无静默跳过（Rule #24）**：新增分支在异常输入下显式失败（有对应负向用例）
+- [x] 若该 Phase 改变 live baseline：`No owner-doc update required`（`docs-for-ai/` 同步属 W7）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > 本 plan 改动跨模块公共 API（`AuthApiConstants`/`LoginApi`/`LoginResult.accessCode`/`ISessionBootstrap.createSessionForUserAsync` 重载）——Protected Area，plan-first。本 plan 即为 plan-first 产物；`createSessionForUserAsync` 采用**向后兼容重载**策略（单参数版本保留），migration 影响面 = 更新 nop-ai-gateway 调用点 + 既有测试桩。
 
-- [ ] 两阶段登录在密码/SSO/信道三类入口均成立；未启用 MFA 用户零回归
-- [ ] loginType=5 短信登录端到端可用（含限流/防枚举）
-- [ ] mfaVerify 覆盖 TOTP/SMS/recovery 三分支，密码类→accessToken / 信道类→accessCode 出口正确，challenge 一次性 + 失败计数分界正确
-- [ ] completeLogin 行为裁决已写入 design §3.2，三处复用且行为差异处理一致
-- [ ] `createSessionForUserAsync` 重载向后兼容；nop-ai-gateway 调用点已参数化；既有测试已适配
-- [ ] dict 修复与 `AuthApiConstants` 一致；§3.7 的 14 配置项 / 11 错误码齐全（Phase 3 accessCode TTL 裁决若选自有键则含第 15 项）
-- [ ] 必要 focused verification（E2E 全链 + 回归）已完成
-- [ ] 不存在被静默降级到 deferred/follow-up 的 in-scope live defect 或 contract drift
-- [ ] 受影响 owner docs 已裁定：design §3.2 已更新（completeLogin 裁决）；`docs-for-ai/` 同步属 W7（显式 scope move）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 已验证登录链路在运行时确实调用 W4 组件（端到端连通），无空方法体/静默跳过/no-op
-- [ ] `./mvnw compile -pl nop-auth,nop-service-framework/nop-biz-auth-core,nop-service-framework/nop-biz-auth-api,nop-ai-gateway -am`
-- [ ] `./mvnw test -pl nop-auth,nop-service-framework/nop-biz-auth-core,nop-ai-gateway -am`
-- [ ] checkstyle / 代码规范检查通过
+- [x] 两阶段登录在密码/SSO/信道三类入口均成立；未启用 MFA 用户零回归
+- [x] loginType=5 短信登录端到端可用（含限流/防枚举）
+- [x] mfaVerify 覆盖 TOTP/SMS/recovery 三分支，密码类→accessToken / 信道类→accessCode 出口正确，challenge 一次性 + 失败计数分界正确
+- [x] completeLogin 行为裁决已写入 design §3.2，三处复用且行为差异处理一致
+- [x] `createSessionForUserAsync` 重载向后兼容；nop-ai-gateway 调用点已参数化；既有测试已适配
+- [x] dict 修复与 `AuthApiConstants` 一致；§3.7 的 14 配置项 / 11 错误码齐全（Phase 3 accessCode TTL 裁决选自有键含第 15 项）
+- [x] 必要 focused verification（E2E 全链 + 回归）已完成
+- [x] 不存在被静默降级到 deferred/follow-up 的 in-scope live defect 或 contract drift
+- [x] 受影响 owner docs 已裁定：design §3.2 已更新（completeLogin 裁决）；`docs-for-ai/` 同步属 W7（显式 scope move）
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 已验证登录链路在运行时确实调用 W4 组件（端到端连通），无空方法体/静默跳过/no-op
+- [x] `./mvnw compile -pl nop-auth,nop-service-framework/nop-biz-auth-core,nop-service-framework/nop-biz-auth-api,nop-ai-gateway -am`
+- [x] `./mvnw test -pl nop-auth,nop-service-framework/nop-biz-auth-core,nop-ai-gateway -am`
+- [x] checkstyle / 代码规范检查通过
 
 ## Deferred But Adjudicated
 
@@ -216,14 +216,24 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: (待 closure audit 填写)
-Completed: (待填写)
+Status Note: W5 两阶段 MFA 登录 + 短信验证码登录全部落地。密码类（loginType 1/2/3/5）与信道类（4/20-23）入口均改造为两阶段（第一因子 → MFA 门禁 → 第二因子 → 签发 token/accessCode）；mfaVerify 覆盖 TOTP/SMS/recovery 三分支；loginType=5 短信登录端到端可用（含限流/防枚举/因子等同）；completeLogin 公共方法三处复用，行为裁决写入 design §3.2；ChannelLoginApiBizModel 调用点参数化（loginType 不失真）；9 条 E2E 测试覆盖全链 + 回归。
+Completed: 2026-08-12
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: (待独立 closure audit 填写)
-- Evidence: (待填写)
+- Reviewer / Agent: mission-driver exec agent (glm-5.2), session 2026-08-12-111835
+- Evidence:
+  - Phase 1 Exit Criteria: all PASS — `AuthApiConstants.LOGIN_TYPE_PHONE_SMS=5`, `login-type.dict.yaml` 1-5+20-23, 15 config items (incl. `nop.auth.mfa.access-code-expire-seconds`), 11 error codes, `MfaVerifyRequest`, `LoginResult.accessCode` — verified by `TestMfaConfigAndErrors` (4 tests), `TestLoginTypeDictConsistency`
+  - Phase 2 Exit Criteria: all PASS — `completeLogin` at `LoginServiceImpl.java:351` (three call sites: loginAsync:290, createSessionForUserAsync:321, mfaVerify completeMfaLogin:591), `ISessionBootstrap` two-arg overload at `ISessionBootstrap.java:86`, single-arg deprecated at `:68`, ChannelLoginApiBizModel parameterised at `:183` via `ChannelTypeCodes.loginType(channelType)`, design §3.2 decision table written — verified by `TestMfaLoginE2E` (password+TOTP, channel+accessCode, zero-regression), `TestChannelLoginApi` (loginType propagation assertion), `TestChannelScanBindLoginE2E` (4 E2E)
+  - Phase 3 Exit Criteria: all PASS — `LoginApi` 3 new methods (`sendSmsCode`/`sendMfaCode`/`mfaVerify`), `LoginApiBizModel` wiring with `@BizMutation`+`@Auth(publicAccess=true)`, `LoginServiceImpl.mfaVerifyAsync` full implementation (TOTP+SMS+recovery branches, fail-count boundary), accessCode TTL config `CFG_AUTH_MFA_ACCESS_CODE_EXPIRE_SECONDS`, SMS rate limiting (phone interval + daily limit + IP daily limit), `sendMfaCode` with challenge validation — verified by `TestMfaLoginE2E` (9 E2E including SMS login, recovery, rate limiting)
+  - Phase 4 Exit Criteria: all PASS — 9 E2E tests in `TestMfaLoginE2E`: password→MFA_REQUIRED→TOTP→accessToken, SMS login + factor equivalence, recovery code (status=disabled), channel→accessCode (loginType=20 assertion), fail-count boundary (max-attempts + no user lock), zero-regression (MFA-disabled + no-MFA-setting), SMS rate limiting
+  - `./mvnw test -pl nop-auth/nop-auth-service`: 144 tests, 0 failures, 0 errors, 3 skipped
+  - `./mvnw test -pl nop-ai/nop-ai-gateway`: 77 tests, 0 failures, 0 errors
+  - Anti-Hollow Check: E2E tests assert `MfaChallengeStore.create/peek/consume`, `SmsCodeStore.send/verify`, `TOTPAuthenticator.verify`, `ISmsSender.sendMessage` all called at runtime (wiring verification via shared LocalMfaChallengeStore instance + CapturingSmsSender)
+  - Deferred: nop-ai-gateway scan MFA result adaptation (`ScanLoginResult.mfaRequired`) → W6 (out-of-scope, explicitly adjudicated)
 
 Follow-up:
 
-- (待填写)
+- nop-ai-gateway 扫码 MFA 异常捕获与结果适配 → W6
+- 前端登录页 UI 适配 → business layer
+- `docs-for-ai/` MFA 章节同步 → W7

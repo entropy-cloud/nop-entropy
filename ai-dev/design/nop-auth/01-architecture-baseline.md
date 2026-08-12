@@ -199,6 +199,19 @@ sequenceDiagram
 - **challenge 生命周期**：`peek`（读取，**用不刷新 TTL 的读**，避免失败重试把 300s 有效期变成滑动窗口）→ 失败 `incrFailCount`（超限作废）→ 成功 `consume`（一次性消费）。**先 peek 后 consume**：保证失败计数可达 max-attempts（若先 consume，第一次失败后 token 即失效，上限形同虚设）
 - **MFA 启用状态查询**：直查 `NopAuthMfaSetting` 表（不做缓存，绑定/解绑即时生效）
 - **completeLogin**：抽公共方法（原成功路径），三处复用（loginAsync / createSessionForUserAsync / mfaVerify）；含 `autoLogout`（单会话互踢，与现有一致）；`mfaVerify` 成功路径 = `buildUserContext → autoLogout → saveSession（设 sessionId）→ saveUserContextAsync → 按 challenge.loginType 决定出口：密码类签发 accessToken，信道类签发 accessCode`（`generateAccessCode(userContext, ttl)` 需要已含 sessionId 的 context，此链保证）；`ContextProvider.runWithTenant(challenge.tenantId)` 包裹 loadUser/completeLogin（与现有 loginAsync 的 runWithTenant 模式一致）；accessCode TTL 复用 `nop.ai.channel.login.access-code-expire-seconds` 配置
+
+**completeLogin 三处调用点行为裁决（Decision，W5）**：
+
+| 差异点 | loginAsync | createSessionForUserAsync / mfaVerify |
+|---|---|---|
+| `resetLoginFailCountForUser` | **调用**（凭证成功后清零，与既有行为一致） | **不调用**（第二因子失败不触发用户锁账号，避免攻击者用第二因子爆破锁定受害者账号） |
+| `userContextHook.onLoginSuccess` | **调用**（登录成功通知，与既有行为一致） | **不调用**（信道引导/mfaVerify 是凭证登录的延续，不重复触发登录成功钩子；信道侧的登录通知由信道层负责） |
+| `LoginRequest` / headers 来源 | 完整客户端输入（request 含 locale/timezone/headers） | **合成 `LoginRequest`**（`syntheticRequest(loginType)`：loginType=真实信道值，locale/timezone 取 `AppConfig` 默认）+ 空 headers 传入 `buildUserContext`/`saveSession` |
+
+裁决理由：
+1. `resetLoginFailCountForUser`：createSessionForUserAsync/mfaVerify 路径的用户已通过第一因子（凭证/信道认证），第二因子失败只在 challenge 内计数（超限作废 challenge），不污染用户级失败计数——这是"失败计数分界"决策的直接体现。
+2. `userContextHook.onLoginSuccess`：信道引导（SSO/扫码）与 mfaVerify 是已认证操作的延续，不是新的登录事件。loginAsync 的 `onLoginSuccess` 钩子面向"用户主动凭证登录"场景（如下发登录通知、初始化用户偏好），信道/mfaVerify 路径不需要重复触发。
+3. `LoginRequest`/headers：信道引导/mfaVerify 没有 HTTP 请求上下文（createSessionForUserAsync 只接收 userId+loginType，mfaVerify 只接收 challengeToken），使用合成 LoginRequest 保证 `buildUserContext`/`saveSession` 的 locale/timezone/loginType 不失真（取 AppConfig 默认值是安全降级）。
 - **短信登录与 MFA=sms 的因子等同**：用户以短信验证码登录（loginType=5）且 MFA 类型为 sms 时，验证码即第二因子，不重复验证（Vision Non-Goals #9）
 - **失败计数分界**：第一因子失败沿用现有 `setLoginFailCountForUser`（锁账号）；**第二因子失败只计在 challenge 内**（超限作废 challenge），不触发用户锁账号（避免攻击者用第二因子爆破锁定受害者账号）；审计区分 `login-fail`（第一因子）与 `mfa-fail`（第二因子）
 - **全局开关中途关闭**：已发出的 challenge 继续有效（challenge 存在即用户已过第一因子，放行无害）；开关只影响新登录流程，不回溯作废进行中的挑战

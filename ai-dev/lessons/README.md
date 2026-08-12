@@ -27,3 +27,4 @@
 | 12 | [12-xwf-listener-end-reason.md](12-xwf-listener-end-reason.md) | xwf listener 结束判定缺失：*end 不区分驳回/通过，驳回即通过 | 2026-08-05 |
 | 13 | [13-hollow-assertion-test.md](13-hollow-assertion-test.md) | 空洞断言测试：只测"不抛异常"的回归测试无法捕获回归 | 2026-08-05 |
 | 14 | [14-conditional-activation-bypass.md](14-conditional-activation-bypass.md) | 条件激活的旁路面："开关默认 false" 必须三方实证，不能想当然 | 2026-08-05 |
+| 15 | [15-optional-dependency-compile-time-type-ref-crashes-startup.md](15-optional-dependency-compile-time-type-ref-crashes-startup.md) | optional 依赖 + 编译期类型引用 = 启动崩溃；SPI 多实现应经 ioc:collect-beans 自动发现 | 2026-08-13 |
