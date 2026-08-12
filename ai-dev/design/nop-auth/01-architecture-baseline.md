@@ -355,6 +355,8 @@ resetUserMfa(userId)    # 管理员重置用户 MFA（用户丢失验证器+恢�
 
 **绑定状态机（关键，secret 生命周期）**：
 
+> **落地确认（W6，2026-08-13）**：用户自助绑定/解绑 API（`bindMfa`/`confirmMfa`/`unbindMfa`/`generateRecoveryCodes`/`getMfaStatus`）与管理员 `resetUserMfa` 已在 `NopAuthUserBizModel` 实现（裁决：并入既有 BizModel + 运行时 admin 角色校验，不新建 BizModel，避免 NopIoC bean 注册空壳风险）。bindToken TTL 裁决为 option (a)：复用 pending 记录 `updateTime` + 配置 `nop.auth.mfa.bind-expire-seconds`（默认 300）；`confirmMfa` 显式区分"未找到/不匹配"与"已过期"两分支（均映射 `ERR_AUTH_MFA_BIND_EXPIRED`）。恢复码 codeHash 编码 `salt:hash` 与 W5 `verifyRecoveryCode` 消费逐字兼容；secret 经 `TOTPAuthenticator.getCipher()` 加密落库、经 `verify` 解密校验（跨组件 round-trip 已验证）。
+
 ```pseudocode
 bindMfa(mfaType):
     if status == enabled: return ALREADY_ENABLED
@@ -430,7 +432,7 @@ unbindMfa({code}):                           # 换绑/解绑：需验证当前�
 
 - **上游复用**：`nop-commons` `AESTextCipher`（secret 加密）、`IPasswordEncoder`（恢复码哈希）、`ISmsSender`（短信发送，nop-integration-api）、`LocalCache`（Local 存储实现基础）、`nop-nosql`（Redis 存储基础设施，`NosqlCache`/`INosqlKeyValueOperations`/`INosqlRateLimiter`）、失败计数/审计机制
 - **同层协作**：`LoginServiceImpl.loginAsync` 改造、`createSessionForUserAsync` 改造（SSO/信道拦截，loginType 参数化）、`LoginApiBizModel`（新增接口）、`NopAuthUserBizModel`/`NopAuthUserMaintenanceBizModel`（绑定管理/管理员重置）、`login-type.dict.yaml` 同步修复（SSO 4/10 不一致 + 补 2/3/5）
-- **跨模块**：`nop-ai-gateway` 的 `ChannelLoginApiBizModel.loginByScan` 适配 MFA 异常（捕获 `ERR_AUTH_MFA_REQUIRED` → `ScanLoginResult.mfaRequired`）——**跨模块公共 API 变更，实施需 plan-first + migration plan**
+- **跨模块**：`nop-ai-gateway` 的 `ChannelLoginApiBizModel.loginByScan` 适配 MFA 异常（捕获 `ERR_AUTH_MFA_REQUIRED` → `ScanLoginResult.mfaRequired`）——**跨模块公共 API 变更，实施需 plan-first + migration plan**。> **落地确认（W6，2026-08-13）**：`ScanLoginResult` 新增可选字段 `mfaRequired`/`challengeToken`/`mfaType`/`loginType`（向后兼容）；`loginByScanAsync` 以 try/catch 包裹 `createSessionForUserAsync` 同步抛出的 `ERR_AUTH_MFA_REQUIRED`（`createSessionForUserAsync` 为裸 `throw` 非 reject future，故 try/catch 而非 `.exceptionally()`），按 ErrorCode 字符串值 `nop.err.auth.mfa-required` 识别（nop-ai-gateway 不依赖 nop-auth-service，option a 裁决），非 MFA 异常继续冒泡。
 - **下游影响**：`docs-for-ai/03-modules/nop-auth.md` 与 `docs-for-ai/02-core-guides/auth-and-permissions.md` 需补充 MFA 章节（实施后同步）；前端登录页需适配 `ERR_AUTH_MFA_REQUIRED` 错误响应（前端改动为业务层）
 - **参照**：n8n MFA（`packages/cli/src/mfa/`：TOTP + recovery codes + challenge 流程）——要素对应：TOTP ✅、recovery codes ✅（加盐哈希，比 n8n 更安全）、challenge 两阶段 ✅、防重放 ✅
 - **约束**：ORM 实体遵循 `docs-for-ai/02-core-guides/model-first-development.md`；API 遵循 `api-and-graphql.md`（BizModel mutation 惯例）；**以下均为公共 API/跨模块契约变更，实施需 plan-first + owner doc + migration plan：`createSessionForUserAsync`（ISessionBootstrap）、`LoginApi`（nop-biz-auth-api 新增方法）、`LoginResult`/`ScanLoginResult`（扩展字段）、`INosqlKeyValueOperations`（新增 incrementAsync）**
