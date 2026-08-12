@@ -2,9 +2,9 @@
 
 > **产出方法**：`ai-dev/skills/invariant-loop-audit-prompt.md`；待经独立 fresh session 审查至共识。
 > **驱动方**：`missions/nop-code-invariant-loop.json`（范围：nop-code 全模块组）
-> **先例**：nop-chaos-flux `docs/backlog/ai-invariant-loop-roadmap.md`（首个闭环先例）
+> **先例**：nop-chaos-flux 的 ai-invariant-loop-roadmap.md（docs/backlog 下，首个闭环先例，位于独立 worktree 不可在本仓解析）
 > **状态**：**待激活**——nop-code 当前无活跃 mission，审计发现 AR-94→AR-178 大量悬空。本 roadmap 在 nop-code 重新激活后启动，**直接上闭环而非重复线性审计**（已有的 13 轮 adversarial review 已证明线性审计在打地鼠）。
-> **与既有审计的关系**：`skills/nop-code/audit-prompt.md`（模块专用补充审计维度）+ `nop-code-audit-2026-05-05.md` / `nop-code-audit-2026-05-10.md`（2 baseline）+ 13 轮 adversarial review（2026-05-25 至 2026-06-06，含同日 5 sub-round）为输入材料，不重复执行。
+> **与既有审计的关系**：`ai-dev/skills/nop-code/audit-prompt.md`（模块专用补充审计维度）+ `nop-code-audit-2026-05-05.md` / `nop-code-audit-2026-05-10.md`（2 baseline）+ 13 轮 adversarial review（2026-05-25 至 2026-06-06，含同日 5 sub-round）为输入材料，不重复执行。
 
 ## 目的
 
@@ -28,7 +28,7 @@ nop-code 已被审计 **2 baseline + 13 轮 adversarial review**（2026-05-25 �
 
 | Work Item | 交付范围 | 状态 | 依赖 |
 | --- | --- | --- | --- |
-| Cycle 1 / I0. 不变式盘点与基线 | 从 2 baseline + 13 轮 adversarial review 提取已知失败族 → 不变式目录（`ai-dev/audits/nop-code-invariants/invariant-catalog.md`）；盘点 AR-94→AR-178 悬空发现的当前 live 状态（哪些已修、哪些仍开放）；枚举全部 SearchService / IndexManager / CodeClassLoader / 删除路径方法作为审计目标集 | `todo` | — |
+| Cycle 1 / I0. 不变式盘点与基线 | 从 2 baseline + 13 轮 adversarial review 提取已知失败族 → 不变式目录（ai-dev/audits/nop-code-invariants/invariant-catalog.md（I0 待产出））；盘点 AR-94→AR-178 悬空发现的当前 live 状态（哪些已修、哪些仍开放）；枚举全部 SearchService / IndexManager / CodeClassLoader / 删除路径方法作为审计目标集 | `todo` | — |
 | Cycle 1 / I1. 不变式沉淀（首批门禁） | 首批候选族：① 实体加载字段最小化门禁——加载实体列表只为取少量字段时必须用投影查询（SELECT field）而非全实体加载（静态扫描 + ArchUnit）；② 增量索引一致性门禁——`useLogicalDelete` 实体的删除路径必须走逻辑删除而非物理删除（ORM 模型 + service 方法交叉检查）；③ 增量索引幂等性门禁——每个索引更新操作必须可安全重试（JUnit 参数化穷举）；④ 查询结果上限门禁——每个全表/大表查询必须声明 LIMIT（防 OOM） | `todo` | I0 |
 | Cycle 1 / I2. 不变式驱动审计 | 跑 I1 门禁 → red list + 对抗探查 + 盘点 AR-94→AR-178 悬空发现哪些已被门禁覆盖、哪些仍需手动修复 | `todo` | I1 |
 | Cycle 1 / I3. 发现裁决 | red list + 悬空发现逐条裁决 → P0/P1 派 I4；裁决表零悬挂 | `todo` | I2 |
@@ -40,7 +40,7 @@ nop-code 已被审计 **2 baseline + 13 轮 adversarial review**（2026-05-25 �
 
 ### I0 — 不变式盘点与基线（仅 Cycle 1）
 
-不变式目录 `ai-dev/audits/nop-code-invariants/invariant-catalog.md`：每条含「陈述 / 覆盖失败族 / 历史 audit-finding-ID 证据 / 检测方法」。**特殊**：盘点 AR-94→AR-178 悬空发现的当前 live 状态（哪些已修、哪些仍开放），作为 I2/I3 的额外输入。审计目标集 = nop-code 全部 SearchService / IndexManager / CodeClassLoader / 删除路径方法。
+不变式目录 ai-dev/audits/nop-code-invariants/invariant-catalog.md（I0 待产出）：每条含「陈述 / 覆盖失败族 / 历史 audit-finding-ID 证据 / 检测方法」。**特殊**：盘点 AR-94→AR-178 悬空发现的当前 live 状态（哪些已修、哪些仍开放），作为 I2/I3 的额外输入。审计目标集 = nop-code 全部 SearchService / IndexManager / CodeClassLoader / 删除路径方法。
 
 ### I1 — 不变式沉淀
 

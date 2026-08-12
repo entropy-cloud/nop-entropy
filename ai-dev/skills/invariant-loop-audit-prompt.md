@@ -6,7 +6,7 @@
 >
 > **定位**：这是一份**过程元提示词**（method selector），不是对象级审计提示词。它编排「诊断 → 选型 → 拟 roadmap+mission → 共识审查 → 执行」的工作流，特别针对**反复复发的有状态子系统**设计持续闭环飞轮。
 > **与既有 skill 的关系**：`audit-remediation-roadmap-authoring-prompt.md` 是**线性管道**（M0→MA→MR→MV→MG）的专用提示，其 MG 产出为 lessons 文档；本提示是其**闭环升级版**——MG 产出为**可执行 CI 门禁**（门禁即契约），适用于线性管道反复复发后的根治。两者不互斥：线性管道先行铺面，闭环飞轮后续治根。
-> **先例**：nop-chaos-flux `docs/skills/roadmap-and-mission-authoring-with-consensus-review.md`（可移植元提示词，本文件按其「如何移植到其他项目」节移植）；nop-chaos-flux `docs/backlog/ai-invariant-loop-roadmap.md`（首个闭环先例，Cycle 1+2 完成后稳态暂停）。
+> **先例**：nop-chaos-flux 的 roadmap-and-mission-authoring-with-consensus-review.md（docs/skills 下，可移植元提示词，位于独立 worktree 不可在本仓解析，本文件按其「如何移植到其他项目」节移植）；nop-chaos-flux 的 ai-invariant-loop-roadmap.md（docs/backlog 下，首个闭环先例，Cycle 1+2 完成后稳态暂停）。
 
 ## 用途
 

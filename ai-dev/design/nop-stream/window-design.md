@@ -20,6 +20,14 @@
 
 事件时间窗口为主，保留处理时间接口。状态存储使用平台 `IKeyedStateBackend` 的 namespace 分区能力，定时器使用 `InternalTimerService`。
 
+## 2.1 不变式（Invariants）
+
+> 交叉引用：`ai-dev/audits/nop-stream-invariants/invariant-catalog.md` §5 不变式 #1（覆盖失败族 F1）。
+
+- **窗口粘合层构造参数完备性**：`WindowedStreamImpl` 4 个聚合入口（apply/aggregate/reduce/process）的 8 参数元组 `(windowAssigner, trigger, evictor, allowedLateness, function, elementType, keySelector, keyClass)` 必须 round-trip 至 `WindowOperator` 构造器（经 `IWindowOperatorFactory.create*` → `WindowOperatorBuilder.buildWindowOperator` → `WindowOperator(...)`），任何参数不得在传输链上被遗漏、替换或置默认值。
+- **门禁（已入 CI）**：JUnit `TestWindowRoundTripInvariant`（`nop-stream-runtime/src/test`，与 `TestWindowOperatorUnificationE2E` 同包）——8 组参数化（4 call-site × 有/无 evictor）经真实 `WindowOperatorFactoryImpl` 接线验证，反例（漏传 allowedLateness 的桩 factory）必须被 `WindowRoundTripAssertions` 判定 helper 抓住；`IWindowOperatorFactory` 新增 create 方法必须入 `gate-inventory.json`（表完备性门禁，`check-nop-stream-invariants.mjs inventory`）。
+- **历史证据**：R16-AR-2（allowedLateness 死 API）、R8-AR-58（resolveKey 方向反转）、R10-AR-5/6/7、R15-AR-3、R16-AR-4（详见 catalog §5 不变式 #1）。
+
 ## 3. 窗口模型四要素
 
 | 组件 | 职责 |

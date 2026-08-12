@@ -2,7 +2,7 @@
 
 > **产出方法**：`ai-dev/skills/invariant-loop-audit-prompt.md`；待经独立 fresh session 审查至共识。
 > **驱动方**：`missions/nop-ai-invariant-loop.json`（范围：nop-ai 全模块组排除 MCP）
-> **先例**：nop-chaos-flux `docs/backlog/ai-invariant-loop-roadmap.md`（首个闭环先例）
+> **先例**：nop-chaos-flux 的 ai-invariant-loop-roadmap.md（docs/backlog 下，首个闭环先例，位于独立 worktree 不可在本仓解析）
 > **与既有线性 roadmap 的关系**：`audit-remediation-roadmap.md`（MR1-MR4/MV/MG 全 done，50/50）为**线性管道**——MG 产出为 lessons（含 Lesson 05 overclaimed closure、Lesson 08 ToolExecutor 安全边界）。本图为**闭环飞轮**——把 lessons 中识别的模式升级为可执行 CI 门禁。
 
 ## 目的
@@ -27,7 +27,7 @@ nop-ai 的 audit-remediation mission 已关闭（50/50 done），审计-修复�
 
 | Work Item | 交付范围 | 状态 | 依赖 |
 | --- | --- | --- | --- |
-| Cycle 1 / I0. 不变式盘点与基线 | 从 6 deep + ARM + MR + Lesson 05/08 提取已知失败族 → 不变式目录（`ai-dev/audits/nop-ai-invariants/invariant-catalog.md`）；确认基线 = 当前零代码不变式门禁；枚举全部 Default* 类 / 编排入口 / ToolExecutor / entry-point 方法作为审计目标集 | `todo` | — |
+| Cycle 1 / I0. 不变式盘点与基线 | 从 6 deep + ARM + MR + Lesson 05/08 提取已知失败族 → 不变式目录（ai-dev/audits/nop-ai-invariants/invariant-catalog.md（I0 待产出））；确认基线 = 当前零代码不变式门禁；枚举全部 Default* 类 / 编排入口 / ToolExecutor / entry-point 方法作为审计目标集 | `todo` | — |
 | Cycle 1 / I1. 不变式沉淀（首批门禁） | 首批候选族：① Default* 类 secure-default 声明门禁——每个 IoC 注入的 Default* 类必须声明安全默认配置（ArchUnit / 注解扫描）；② 异步编排 timeout 声明门禁——每个编排入口（callAgent / runTurn / dispatch 等）必须声明 timeout（方法签名或注解穷举检查）；③ 资源清理对称性门禁——每个 entry-point 的 try/cleanup 对称性（JUnit / 静态扫描）；④ ToolExecutor 安全边界声明门禁——每个 ToolExecutor 实现必须声明安全边界（SSRF/路径逃逸防护）；⑤ Fix commit real-diff 验证门禁——fix commit 的 diff 不能为零实质行（防 overclaimed closure） | `todo` | I0 |
 | Cycle 1 / I2. 不变式驱动审计 | 跑 I1 门禁 → red list（预期 = 门禁覆盖缺口，即已有但未声明 secure-default/timeout 的实例）+ 对抗探查 | `todo` | I1 |
 | Cycle 1 / I3. 发现裁决 | red list 裁决 → P0/P1 派 I4；裁决表零悬挂 | `todo` | I2 |
@@ -39,7 +39,7 @@ nop-ai 的 audit-remediation mission 已关闭（50/50 done），审计-修复�
 
 ### I0 — 不变式盘点与基线（仅 Cycle 1）
 
-不变式目录 `ai-dev/audits/nop-ai-invariants/invariant-catalog.md`：每条含「陈述 / 覆盖失败族 / 历史 audit-finding-ID + Lesson 证据 / 检测方法」。审计目标集 = nop-ai 全部 Default* 类 / 编排入口（callAgent/runTurn/dispatch 等）/ ToolExecutor 实现 / 资源 entry-point 方法。
+不变式目录 ai-dev/audits/nop-ai-invariants/invariant-catalog.md（I0 待产出）：每条含「陈述 / 覆盖失败族 / 历史 audit-finding-ID + Lesson 证据 / 检测方法」。审计目标集 = nop-ai 全部 Default* 类 / 编排入口（callAgent/runTurn/dispatch 等）/ ToolExecutor 实现 / 资源 entry-point 方法。
 
 ### I1 — 不变式沉淀
 

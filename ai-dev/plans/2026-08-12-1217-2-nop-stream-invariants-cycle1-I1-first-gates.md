@@ -1,6 +1,6 @@
 # Cycle 1 / I1 — 不变式沉淀：首批门禁（First-Batch Invariant Gates）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-12
 > Draft Review: 2 轮独立子 agent 对抗性审查通过（round 1 发现 2 Blocker（门禁① 测试落点模块依赖错误、I0 catalog 不存在却声称已核对）+ 5 Major + 6 Minor，全部修复；round 2 确认 Fix 1/2/4/6/7 到位、verdict: approved（条件：Phase 3 补 pin 集比较 + 局部别名锁两条规则与正例 fixture），条件已全部落定）
 > Source: `ai-dev/backlog/nop-stream-invariant-loop-roadmap.md` Work Item I1；`ai-dev/skills/invariant-loop-audit-prompt.md` 步骤 1b「门禁技术栈」；前置 I0 产出 `ai-dev/audits/nop-stream-invariants/invariant-catalog.md`
@@ -63,104 +63,104 @@
 
 ### Phase 1 - 门禁基座与表完备性机制
 
-Status: planned
+Status: completed
 Targets: `nop-stream-runtime/src/test`、`nop-stream-core/src/test`、`nop-stream-cep/src/test`；`ai-dev/tools/check-nop-stream-invariants.mjs`
 
 - Item Types: `Decision | Proof`
-- [ ] 裁定门禁测试组织：五族门禁按模块分布（**runtime：①**（round-trip 必须经 `WindowOperatorFactoryImpl` 真实类，测试落 runtime）、core：②JUnit/③；cep：④；runtime：⑤；mjs：②静态/表完备性），每族一个 `TestXxxInvariant` 参数化测试类，方法表用 `@MethodSource` 从静态表驱动
-- [ ] **表完备性机制规格落定（双向精确相等）**：门禁表数据源 = I0 审计目标集清单（"变更型"分类器按 I0 定稿标准：public/protected 且改变内部状态的方法，getter/只读不入表）；断言 = **表 == 反射枚举的变更型方法集**（双向精确相等：代码新增方法不入表 → 红；表中有代码不存在的方法 → 红）；JUnit 侧与 mjs 侧共用同一份清单文件（单一事实源，防双表漂移）
-- [ ] 建立 mjs 扫描器骨架（`check-nop-stream-invariants.mjs`），先实现"清单完整性 diff"（diff I0 清单 vs live 反射/源码枚举）与"同步检查"两个最小命令，风格对齐 `check-nop-stream-audit-manifest.mjs`
-- [ ] 编写门禁自验证 fixture：每个门禁至少 1 个正例（合规代码路径通过）+ 1 个反例（故意违背被抓住）；**JUnit 侧反例通过可测试的判定辅助类（helper）演示**（把"同步性/完备性判定"提取为可单测组件，反例 fixture 作用于 helper，避免在真实类上注入违背代码）
+- [x] 裁定门禁测试组织：五族门禁按模块分布（**runtime：①**（round-trip 必须经 `WindowOperatorFactoryImpl` 真实类，测试落 runtime）、core：②JUnit/③；cep：④；runtime：⑤；mjs：②静态/表完备性），每族一个 `TestXxxInvariant` 参数化测试类，方法表用 `@MethodSource` 从静态表驱动
+- [x] **表完备性机制规格落定（双向精确相等）**：门禁表数据源 = I0 审计目标集清单（"变更型"分类器按 I0 定稿标准：public/protected 且改变内部状态的方法，getter/只读不入表）；断言 = **表 == 反射枚举的变更型方法集**（双向精确相等：代码新增方法不入表 → 红；表中有代码不存在的方法 → 红）；JUnit 侧与 mjs 侧共用同一份清单文件（单一事实源，防双表漂移）
+- [x] 建立 mjs 扫描器骨架（`check-nop-stream-invariants.mjs`），先实现"清单完整性 diff"（diff I0 清单 vs live 反射/源码枚举）与"同步检查"两个最小命令，风格对齐 `check-nop-stream-audit-manifest.mjs`
+- [x] 编写门禁自验证 fixture：每个门禁至少 1 个正例（合规代码路径通过）+ 1 个反例（故意违背被抓住）；**JUnit 侧反例通过可测试的判定辅助类（helper）演示**（把"同步性/完备性判定"提取为可单测组件，反例 fixture 作用于 helper，避免在真实类上注入违背代码）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 五族门禁测试类骨架存在（runtime/core/cep 对应测试包内，repo-observable；门禁 ① 在 `nop-stream-runtime/src/test`）
-- [ ] 表完备性机制双向验证：a) 向门禁表插入代码中不存在的方法/类 → 红；b) 代码侧模拟新增方法不入表 → 红（用 helper 层 fixture 验证方向 b）
-- [ ] mjs 扫描器可运行：`node ai-dev/tools/check-nop-stream-invariants.mjs` 退出码 0（清单一致时）
-- [ ] **无静默跳过**：门禁表缺项、扫描器命令缺失均显式报错（非零退出），非静默忽略
-- [ ] No owner-doc update required（门禁基座不改变被测行为）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 五族门禁测试类骨架存在（runtime/core/cep 对应测试包内，repo-observable；门禁 ① 在 `nop-stream-runtime/src/test`）
+- [x] 表完备性机制双向验证：a) 向门禁表插入代码中不存在的方法/类 → 红；b) 代码侧模拟新增方法不入表 → 红（用 helper 层 fixture 验证方向 b）
+- [x] mjs 扫描器可运行：`node ai-dev/tools/check-nop-stream-invariants.mjs` 退出码 0（清单一致时）
+- [x] **无静默跳过**：门禁表缺项、扫描器命令缺失均显式报错（非零退出），非静默忽略
+- [x] No owner-doc update required（门禁基座不改变被测行为）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 门禁 ①（runtime 模块）
 
-Status: planned
+Status: completed
 Targets: `nop-stream-runtime/src/test`（Window 粘合层 round-trip，与 `TestWindowOperatorUnificationE2E` 同包）
 
 - Item Types: `Proof`
-- [ ] 门禁 ①：参数化验证 4 个 call-site 经 `WindowOperatorFactoryImpl`（真实类）到 builder 到 `WindowOperator` 构造器的字段 round-trip（8 实参断言映射见 Goals；正例：当前代码全字段传递；反例：任一字段缺失必须被抓住，反例经判定 helper 演示）；`IWindowOperatorFactory` 新增 create 方法必须入表
-- [ ] 自验证 fixture：门禁 ① 的反例（如模拟漏传 allowedLateness 的桩 factory）必须被抓住
-- [ ] 门禁 ③（core 侧顺带落位）：多线程 `CheckpointIDCounter.getAndIncrement` 并发测试（无重复/无丢失）+ `set` 恢复后递增正确性（`CheckpointIDCounter` 在 core，测试放 `nop-stream-core/src/test/.../checkpoint`）
+- [x] 门禁 ①：参数化验证 4 个 call-site 经 `WindowOperatorFactoryImpl`（真实类）到 builder 到 `WindowOperator` 构造器的字段 round-trip（8 实参断言映射见 Goals；正例：当前代码全字段传递；反例：任一字段缺失必须被抓住，反例经判定 helper 演示）；`IWindowOperatorFactory` 新增 create 方法必须入表
+- [x] 自验证 fixture：门禁 ① 的反例（如模拟漏传 allowedLateness 的桩 factory）必须被抓住
+- [x] 门禁 ③（core 侧顺带落位）：多线程 `CheckpointIDCounter.getAndIncrement` 并发测试（无重复/无丢失）+ `set` 恢复后递增正确性（`CheckpointIDCounter` 在 core，测试放 `nop-stream-core/src/test/.../checkpoint`）
 
 Exit Criteria:
 
-- [ ] 门禁 ① 测试通过且反例 fixture 可抓住漏传字段（repo-observable）
-- [ ] **接线验证**：测试真实经 `IWindowOperatorFactory` 接口调用 `WindowOperatorFactoryImpl`（runtime 类，非 mock 绕过），从 `WindowedStreamImpl` call-site 到 `WindowOperator` 构造器的调用链连通
-- [ ] 门禁 ③ 并发测试通过（固定线程数 × 固定迭代数，结果集无重复无缺口）
-- [ ] No owner-doc update required（门禁不改被测行为；设计文档「不变式」节在 Phase 4 统一补）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 门禁 ① 测试通过且反例 fixture 可抓住漏传字段（repo-observable）
+- [x] **接线验证**：测试真实经 `IWindowOperatorFactory` 接口调用 `WindowOperatorFactoryImpl`（runtime 类，非 mock 绕过），从 `WindowedStreamImpl` call-site 到 `WindowOperator` 构造器的调用链连通
+- [x] 门禁 ③ 并发测试通过（固定线程数 × 固定迭代数，结果集无重复无缺口）
+- [x] No owner-doc update required（门禁不改被测行为；设计文档「不变式」节在 Phase 4 统一补）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 门禁 ②④⑤（core 静态 + cep + runtime）
 
-Status: planned
+Status: completed
 Targets: `nop-stream-cep/src/test`（Lockable/SharedBuffer）；`nop-stream-runtime/src/test`（ClusterRegistry）；`nop-stream-core`（TwoPhaseCommitSinkFunction 迭代点）；`ai-dev/tools/check-nop-stream-invariants.mjs`
 
 - Item Types: `Proof | Decision`
-- [ ] 门禁 ② JUnit 部分：`TwoPhaseCommitSinkFunction` 全部迭代点（saveState/finishCommit/restoreFromEpoch）入表；**红/绿语义 = pin-and-record**：saveState 无锁 copy（已知 residual）pin **行为语义**（快照内容完整），锁状态交由 mjs 扫描器侧 pin；其余迭代点断言在 synchronized 块内；静态部分由 mjs 扫描器实现（规格见下）
-- [ ] **门禁 ② 表范围定稿**：live 中持有 `Collections.synchronized*` 集合的类共 4 个——`TwoPhaseCommitSinkFunction`（core）、`SourceReaderOperator:98`（core）、`StreamSinkOperator:157`（core）、`LocalSourceCoordinator:167`（core）；JUnit 侧点名 2PC 迭代点表，其余三类以 mjs 全量扫描兜底（防止新增 synchronized 集合字段漏网，同时避免 scope 歧义）
-- [ ] **mjs 静态扫描规格落定**：① 字段声明识别（`Collections.synchronizedMap/List` 初始化的字段名，扫描范围 = nop-stream-core + nop-stream-cep + nop-stream-runtime 的 `src/main`，不扫测试/示例）；② 迭代语句识别（for-each / iterator / entrySet / values / keySet / copy 构造器 `new TreeMap<>(f)`）；③ **锁对象匹配语义**：`synchronized (字段名)`、`synchronized (this)`、或经**局部变量/方法返回值别名持有同一集合对象**的锁（如 `TwoPhaseCommitSinkFunction` 中 `pending = getPendingCommits()` 局部别名后 `synchronized (pending)`——:101/:158 范本）均合规；④ **pinned-residual 豁免机制**：扫描器输出违规集与 pin 记录文件做集合比较——`违规集 ⊆ pin 集 → 绿`、新增违规 → 红、pin 项消失 → stale-pin 提示（保证 saveState 无锁 copy 首日不红、行为漂移才红，与 pin-and-record 语义一致）；⑤ 误报边界（仅限直接迭代点，不追传递调用）；⑥ 扫描器以 fixture 反例（故意注入无锁迭代样例文件）验证"能红"、**以 live 2PC 正例验证"零误报"**
-- [ ] 门禁 ④：**在既有测试之上扩展**（`TestLockable`/`TestLockableOverRelease`/`TestSharedBuffer` 等 7 个已存在，先读后补）：`Lockable` release/releaseOrDetach 参数化序列测试（over-release fail-fast、对称 lock/release）+ `SharedBuffer` 条目生命周期对称性（lock 数与 release 数守恒）
-- [ ] 门禁 ⑤：`JdbcClusterRegistry`/`InMemoryClusterRegistry` 同语义场景参数化（**registerNode 后 getActiveNodes 可见性**（AR-9 缺陷点）、renewLease 超时语义（AR-18）、evictExpiredNodes）；两实现行为差异**显式断言（pin）差异存在并登记 red list 移交 I2，不修复**
-- [ ] 裁定 mjs 扫描器入 CI 方式（Decision）：a) `.github/workflows/maven.yml` 新增 node step（e2e job 已有 node 先例）；或 b) Maven exec 插件绑定 test 阶段；裁定结果 committed
-- [ ] 门禁 ②⑤ 已知 residual 的 pin-and-record 记录文件建立（red list 移交 I2 的载体，含 `文件:行` 证据）
+- [x] 门禁 ② JUnit 部分：`TwoPhaseCommitSinkFunction` 全部迭代点（saveState/finishCommit/restoreFromEpoch）入表；**红/绿语义 = pin-and-record**：saveState 无锁 copy（已知 residual）pin **行为语义**（快照内容完整），锁状态交由 mjs 扫描器侧 pin；其余迭代点断言在 synchronized 块内；静态部分由 mjs 扫描器实现（规格见下）
+- [x] **门禁 ② 表范围定稿**：live 中持有 `Collections.synchronized*` 集合的类共 4 个——`TwoPhaseCommitSinkFunction`（core）、`SourceReaderOperator:98`（core）、`StreamSinkOperator:157`（core）、`LocalSourceCoordinator:167`（core）；JUnit 侧点名 2PC 迭代点表，其余三类以 mjs 全量扫描兜底（防止新增 synchronized 集合字段漏网，同时避免 scope 歧义）
+- [x] **mjs 静态扫描规格落定**：① 字段声明识别（`Collections.synchronizedMap/List` 初始化的字段名，扫描范围 = nop-stream-core + nop-stream-cep + nop-stream-runtime 的 `src/main`，不扫测试/示例）；② 迭代语句识别（for-each / iterator / entrySet / values / keySet / copy 构造器 `new TreeMap<>(f)`）；③ **锁对象匹配语义**：`synchronized (字段名)`、`synchronized (this)`、或经**局部变量/方法返回值别名持有同一集合对象**的锁（如 `TwoPhaseCommitSinkFunction` 中 `pending = getPendingCommits()` 局部别名后 `synchronized (pending)`——:101/:158 范本）均合规；④ **pinned-residual 豁免机制**：扫描器输出违规集与 pin 记录文件做集合比较——`违规集 ⊆ pin 集 → 绿`、新增违规 → 红、pin 项消失 → stale-pin 提示（保证 saveState 无锁 copy 首日不红、行为漂移才红，与 pin-and-record 语义一致）；⑤ 误报边界（仅限直接迭代点，不追传递调用）；⑥ 扫描器以 fixture 反例（故意注入无锁迭代样例文件）验证"能红"、**以 live 2PC 正例验证"零误报"**
+- [x] 门禁 ④：**在既有测试之上扩展**（`TestLockable`/`TestLockableOverRelease`/`TestSharedBuffer` 等 7 个已存在，先读后补）：`Lockable` release/releaseOrDetach 参数化序列测试（over-release fail-fast、对称 lock/release）+ `SharedBuffer` 条目生命周期对称性（lock 数与 release 数守恒）
+- [x] 门禁 ⑤：`JdbcClusterRegistry`/`InMemoryClusterRegistry` 同语义场景参数化（**registerNode 后 getActiveNodes 可见性**（AR-9 缺陷点）、renewLease 超时语义（AR-18）、evictExpiredNodes）；两实现行为差异**显式断言（pin）差异存在并登记 red list 移交 I2，不修复**
+- [x] 裁定 mjs 扫描器入 CI 方式（Decision）：a) `.github/workflows/maven.yml` 新增 node step（e2e job 已有 node 先例）；或 b) Maven exec 插件绑定 test 阶段；裁定结果 committed
+- [x] 门禁 ②⑤ 已知 residual 的 pin-and-record 记录文件建立（red list 移交 I2 的载体，含 `文件:行` 证据）
 
 Exit Criteria:
 
-- [ ] 门禁 ② 静态扫描器能抓住故意注入的无锁迭代样例（fixture 反例）**且对 live 2PC 迭代点零误报（正例）**；JUnit 部分迭代点表完整（4 个 synchronized 集合类全部在表或 mjs 扫描范围内）；**saveState 已知 residual 以 pin 语义（行为 pin）登记 red list（未修复）**
-- [ ] 门禁 ④ 全部序列测试通过（在既有 `TestLockable*`/`TestSharedBuffer` 之上扩展）；over-release 必须抛 `StreamRuntimeException`（fail-fast 验证）
-- [ ] 门禁 ⑤ 两实现参数化场景运行结果登记在案（含 registerNode 可见性、renewLease 语义）；差异项（若有）显式 pin 并标记为 I2 red list，**未在 I1 内修复**
-- [ ] **无静默跳过**：门禁 ②⑤ 的已知差异在测试/记录中显式断言（pin）或标注，无吞掉差异的路径
-- [ ] mjs 入 CI 方式已裁定并落地（workflow step 或 exec 插件，repo-observable）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 门禁 ② 静态扫描器能抓住故意注入的无锁迭代样例（fixture 反例）**且对 live 2PC 迭代点零误报（正例）**；JUnit 部分迭代点表完整（4 个 synchronized 集合类全部在表或 mjs 扫描范围内）；**saveState 已知 residual 以 pin 语义（行为 pin）登记 red list（未修复）**
+- [x] 门禁 ④ 全部序列测试通过（在既有 `TestLockable*`/`TestSharedBuffer` 之上扩展）；over-release 必须抛 `StreamRuntimeException`（fail-fast 验证）
+- [x] 门禁 ⑤ 两实现参数化场景运行结果登记在案（含 registerNode 可见性、renewLease 语义）；差异项（若有）显式 pin 并标记为 I2 red list，**未在 I1 内修复**
+- [x] **无静默跳过**：门禁 ②⑤ 的已知差异在测试/记录中显式断言（pin）或标注，无吞掉差异的路径
+- [x] mjs 入 CI 方式已裁定并落地（workflow step 或 exec 插件，repo-observable）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - 设计文档「不变式」节 + 全量验证
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/nop-stream/{window-design,checkpoint-design,cep-design,01-architecture-baseline}.md`；nop-stream 全模块测试
 
 - Item Types: `Proof | Decision`
-- [ ] 按 guide Minimum Rules #14（design doc 只记最终设计状态）为门禁 ①②③④⑤ 对应的设计文档补「不变式」节（window-design.md：门禁 ①；checkpoint-design.md：门禁 ②③；cep-design.md：门禁 ④；**门禁 ⑤ 分层落笔**：01-architecture-baseline.md ClusterRegistry 节写架构语义契约（两实现必须语义一致、per-renewal timeout 生效），checkpoint-design.md 只写 lease 与 checkpoint 交互侧）
-- [ ] 设计文档「不变式」节与 invariant-catalog.md 交叉引用一致（双向核对，无悬空引用）
-- [ ] 全量验证：`./mvnw test -pl nop-stream -am -T 1C` 全绿（含新增门禁测试）
-- [ ] 运行 mjs 扫描器全量扫描，输出登记（red list 移交 I2）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 按 guide Minimum Rules #14（design doc 只记最终设计状态）为门禁 ①②③④⑤ 对应的设计文档补「不变式」节（window-design.md：门禁 ①；checkpoint-design.md：门禁 ②③；cep-design.md：门禁 ④；**门禁 ⑤ 分层落笔**：01-architecture-baseline.md ClusterRegistry 节写架构语义契约（两实现必须语义一致、per-renewal timeout 生效），checkpoint-design.md 只写 lease 与 checkpoint 交互侧）
+- [x] 设计文档「不变式」节与 invariant-catalog.md 交叉引用一致（双向核对，无悬空引用）
+- [x] 全量验证：`./mvnw test -pl nop-stream -am -T 1C` 全绿（含新增门禁测试）
+- [x] 运行 mjs 扫描器全量扫描，输出登记（red list 移交 I2）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] 四份设计文档的「不变式」节存在（门禁 ⑤ 按架构/checkpoint 分层落笔，无重复冗余），且与 catalog 交叉引用双向可核
-- [ ] `./mvnw test -pl nop-stream -am -T 1C` 全绿（构建命令级验证）
-- [ ] mjs 扫描器全量扫描结果登记在案（含已知差异清单移交 I2）
-- [ ] **端到端验证**：至少一条既有端到端测试（如 `TestWindowOperatorUnificationE2E` 或 `TestWindowEndToEnd`）在门禁加入后仍通过，证明门禁未破坏从 `addSource` 到 sink 的完整链路
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 四份设计文档的「不变式」节存在（门禁 ⑤ 按架构/checkpoint 分层落笔，无重复冗余），且与 catalog 交叉引用双向可核
+- [x] `./mvnw test -pl nop-stream -am -T 1C` 全绿（构建命令级验证）
+- [x] mjs 扫描器全量扫描结果登记在案（含已知差异清单移交 I2）
+- [x] **端到端验证**：至少一条既有端到端测试（如 `TestWindowOperatorUnificationE2E` 或 `TestWindowEndToEnd`）在门禁加入后仍通过，证明门禁未破坏从 `addSource` 到 sink 的完整链路
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。
 
-- [ ] 五族首批门禁（①②③④⑤ + 表完备性）全部落地为可执行测试/扫描器，且各自反例 fixture 验证有效
-- [ ] `ai-dev/tools/check-nop-stream-invariants.mjs` 存在且可运行（清单 diff + 静态迭代点扫描）
-- [ ] 门禁跑出的全部差异/红项显式登记（pin-and-record red list）并移交 I2（**无 in-scope defect 被静默降级或忽略**）
-- [ ] 表完备性门禁验证：新增变更型方法/类不入表即红（双向精确相等，方向 b 经 helper fixture 验证）
-- [ ] 设计文档「不变式」节已补并交叉核对
-- [ ] `./mvnw test -pl nop-stream -am -T 1C` 全绿；端到端既有测试通过（Anti-Hollow：门禁未破坏入口→出口链路）
-- [ ] **Anti-Hollow Check**：closure audit 验证门禁确实被测试/CI 运行时调用（非只存在不运行），无空方法体/静默跳过
-- [ ] 独立子 agent closure-audit 已完成并记录证据（`ai-dev/logs/`）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <本plan> --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 受影响 owner docs（设计文档）已同步；`ai-dev/logs/` 已更新
+- [x] 五族首批门禁（①②③④⑤ + 表完备性）全部落地为可执行测试/扫描器，且各自反例 fixture 验证有效
+- [x] `ai-dev/tools/check-nop-stream-invariants.mjs` 存在且可运行（清单 diff + 静态迭代点扫描）
+- [x] 门禁跑出的全部差异/红项显式登记（pin-and-record red list）并移交 I2（**无 in-scope defect 被静默降级或忽略**）
+- [x] 表完备性门禁验证：新增变更型方法/类不入表即红（双向精确相等，方向 b 经 helper fixture 验证）
+- [x] 设计文档「不变式」节已补并交叉核对
+- [x] `./mvnw test -pl nop-stream -am -T 1C` 全绿；端到端既有测试通过（Anti-Hollow：门禁未破坏入口→出口链路）
+- [x] **Anti-Hollow Check**：closure audit 验证门禁确实被测试/CI 运行时调用（非只存在不运行），无空方法体/静默跳过
+- [x] 独立子 agent closure-audit 已完成并记录证据（`ai-dev/logs/`）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <本plan> --strict` 退出码 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 受影响 owner docs（设计文档）已同步；`ai-dev/logs/` 已更新
 
 ## Deferred But Adjudicated
 
@@ -190,12 +190,13 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: 完成后填写。
-Completed: （待定）
+Status Note: 独立 fresh-session closure audit（task `ses_00b14ee46ffeSfPdlyMYZ5Roo1`）对 11 项 Closure Gates + 4 个 Phase Exit Criteria 逐条对 live 代码验证：10/11 门禁 PASS（含 Anti-Hollow：surefire 报告证明 5 族门禁 56 个测试实际执行、mjs all/inventory/sync/scan-iterations 全退出码 0、CI workflow step 落地、Window 测试真实经 `WindowOperatorFactoryImpl` 非 mock）、Gate 8 为审计自身过程项（本记录完成）。无 work-product defect、无静默降级、无空壳门禁。
+Completed: 2026-08-12
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待定，独立 fresh session）
+- Reviewer / Agent: 独立 fresh session（task `ses_00b14ee46ffeSfPdlyMYZ5Roo1`），verdict 11 项门禁 10 PASS + 1 过程项（本记录补齐后关闭），详见 `ai-dev/logs/2026/08-12.md` 顶部条目
+- 验证命令：`./mvnw test -pl nop-stream -am -T 1C` BUILD SUCCESS（51 模块，E2E `TestWindowOperatorUnificationE2E` 6 + `TestWindowEndToEnd` 7 全过）；`node ai-dev/tools/check-nop-stream-invariants.mjs all` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs <本plan> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（0 errors，修复 17 个 pre-existing 错误后全仓绿）
 
 Follow-up:
 

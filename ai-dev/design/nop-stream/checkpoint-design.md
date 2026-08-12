@@ -22,6 +22,21 @@ nop-stream 的 checkpoint 子系统为流处理管线提供**容错和状态一�
 
 设计采用 Chandy-Lamport 分布式快照算法的 barrier 对齐模式，以 Nop 平台的模型驱动和可逆计算思想表达分布式流处理的不变量。
 
+## 1.1 不变式（Invariants）
+
+> 交叉引用：`ai-dev/audits/nop-stream-invariants/invariant-catalog.md` §5 不变式 #2/#3（覆盖失败族 F2/F3）。
+
+- **synchronized 集合字段迭代点必须在 synchronized 块内（#2）**：所有 `Collections.synchronizedMap/List/Set` 类型字段的遍历（含 copy 构造 `new TreeMap<>(f)`、`entrySet()`/`iterator()` 迭代）必须持有该集合的 monitor（`synchronized(field)` / `synchronized(this)` / 局部别名 `synchronized(pending)` 均合规）；违反即潜在 CME。`TwoPhaseCommitSinkFunction` 的 `finishCommit`/`restoreFromEpoch` 迭代点均在此约束内；`saveState` 的 copy 迭代为**已知 residual（R16-AR-1，pin-and-record）**——行为 pin（快照内容完整）由 JUnit 断言，锁状态由 mjs 扫描器 pin（`mjs-pins.json`），行为漂移才触发 CI 红，修复移交 I2。
+- **CheckpointIDCounter 更新原子性 / 恢复后单调性（#3）**：(a) 并发下 `getAndIncrement` 原子（AtomicLong），无重复、无丢失；(b) 恢复路径必须将计数器推进至 `restoredId + 1`（`restoredId >= current` 才 set），任何恢复后 ID 倒退 = 违约（live 修复点 `CheckpointCoordinator.java:896-900`）。
+- **门禁（已入 CI）**：JUnit `TestSynchronizedCollectionInvariant`（`nop-stream-core/src/test/.../functions/sink`）+ `TestCheckpointIDCounterInvariant`（`nop-stream-core/src/test/.../checkpoint`）；静态部分 `check-nop-stream-invariants.mjs scan-iterations`（扫描范围含 core 全部 synchronized 集合字段，`SourceReaderOperator`/`StreamSinkOperator`/`LocalSourceCoordinator` 兜底）。
+- **历史证据**：R16-AR-1/AR-11、R11-AR-3、R12-AR-1（synchronized 迭代）；R16-AR-5/AR-15、R8-AR-56（checkpoint ID 原子性/恢复单调性）（详见 catalog §5 不变式 #2/#3）。
+
+### 1.1.1 ClusterRegistry lease 与 checkpoint 交互侧（不变式 #5 的 checkpoint 关联）
+
+- `JdbcClusterRegistry.registerNode` 必须写入有效 lease 过期时间（`lease_expire_at > now`），否则注册窗口内 `getActiveNodes` 不可见、依赖 registry 发现节点的 checkpoint 协调路径（coordinator 选址）可能在注册窗口内观察到空节点集。
+- 两实现（Jdbc/InMemory）对同一接口语义必须一致（注册可见性、lease 计算、过期判定）；已知 residual（AR-9 写 lease=0、AR-18 忽略 per-renewal timeout）由 `TestClusterRegistryConsistencyInvariant` 显式 pin 并登记 `red-list.md` 移交 I2。
+- 架构语义契约见 `01-architecture-baseline.md`「ClusterRegistry 节不变式」；本节的 checkpoint 交互侧 = lease 存活决定节点可参与 checkpoint/任务分配。
+
 ## 2. Epoch Checkpoint 协议
 
 ### 2.1 Epoch 是一致性的中心

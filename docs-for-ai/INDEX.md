@@ -214,7 +214,7 @@
 - 业务模块普遍遵循 `model -> codegen -> dao -> meta -> service -> web -> app -> api` 的骨架。
 - `nop-auth`、`nop-job`、`nop-task`、`nop-wf`、`nop-ai` 是最适合用来理解这套骨架的代表模块。
 - `nop-kernel`、`nop-core-framework`、`nop-persistence`、`nop-service-framework` 是框架主干。
-- `nop-runner/` 是 CLI / runner 入口（`nop-cli` uber-jar 在 `nop-runner/nop-cli/target/`，提供 `gen`/`convert` 子命令，获取与用法见 `03-runbooks/bootstrap-new-application.md`）；`nop-demo/` 和 `demo/` 是示例入口。
+- `nop-runner/` 是 CLI / runner 入口（`nop-cli` uber-jar 构建产物在 `nop-runner/nop-cli/` 模块的 target/ 目录，提供 `gen`/`convert` 子命令，获取与用法见 `03-runbooks/bootstrap-new-application.md`）；`nop-demo/` 和 `demo/` 是示例入口。
 - `docs/theory/` 下的论文与技术报告属于研究/论证材料，不是开发 AI 的默认规范入口；出现解释歧义时，不要把其中术语直接当作 `docs-for-ai/` 级别的开发规则。
 - `nop-stream/` 是流处理引擎子模块组，包含 `nop-stream-core`（核心 API、状态、算子）、`nop-stream-cep`（CEP 复杂事件处理）、`nop-stream-runtime`（运行时、检查点、协调器）、`nop-stream-connector`（消息源/汇连接器）、`nop-stream-connector-batch`（nop-batch 桥接连接器）、`nop-stream-connector-debezium`（Debezium CDC 连接器）、`nop-stream-flow`（流控）、`nop-stream-fraud-example`（欺诈检测示例）。
 

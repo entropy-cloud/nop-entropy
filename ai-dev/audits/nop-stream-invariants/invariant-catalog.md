@@ -184,6 +184,13 @@
 
 ## 4. 审计目标集清单（Phase 2 — live 枚举，I1 表完备性门禁的「表」来源）
 
+> **I1 门禁表（机器可读单一事实源）**：`ai-dev/audits/nop-stream-invariants/gate-inventory.json`
+> （schemaVersion 1，2026-08-12 由 I1 建立）。JUnit（`InvariantTableCompleteness`）与 mjs
+> 扫描器（`check-nop-stream-invariants.mjs inventory/sync`）共用此文件做**双向精确相等**校验：
+> 代码新增变更型方法不入表 → 红；表中有代码不存在的方法 → 红。下表为人类可读视图，I1 已按
+> 机械分类器补全（「I1 补表」注记）并回写；`CheckpointPlanBuilder.build` 为 public static
+> 工厂，按 §4.1 静态工厂不入表，记 exclusion。
+
 ### 4.1 「变更型方法」判定标准（定稿，I1 分类器语义）
 
 - **入表**：`public`/`protected` 且会改变对象内部状态的方法——显式状态更新、集合/Map 写入、计数器递增、状态注册/清除、lease 续期/注册、timer 注册/删除。
@@ -196,19 +203,19 @@
 
 | 类（live 路径） | 变更型方法 |
 |---|---|
-| `nop-stream-core/.../datastream/WindowedStreamImpl.java` | `apply`(:186), `aggregate`(:201), `reduce`(:216), `process`(:231)（4 个 call-site） |
+| `nop-stream-core/.../datastream/WindowedStreamImpl.java` | `apply`(:186), `aggregate`(:201), `reduce`(:216), `process`(:231)（4 个 call-site）；I1 补表：`trigger`(:120), `evictor`(:130), `allowedLateness`(:135), `withComponents`(:179), `transform`(:245) |
 | `nop-stream-core/.../operators/IWindowOperatorFactory.java` | `createAggregateOperator`(:22), `createReduceOperator`(:33), `createApplyOperator`(:44), `createProcessOperator`(:55) |
-| `nop-stream-runtime/.../windowing/WindowOperatorFactoryImpl.java` | 4 个 `create*Operator`(:31/:54/:77/:100) |
+| `nop-stream-runtime/.../windowing/WindowOperatorFactoryImpl.java` | `createAggregateOperator`(:31), `createReduceOperator`(:54), `createApplyOperator`(:77), `createProcessOperator`(:100) |
 | `nop-stream-runtime/.../windowing/WindowOperatorBuilder.java` | `windowAssigner`(:61), `trigger`(:66), `evictor`(:71), `allowedLateness`(:76), `keySelector`(:81), `keyClass`(:86), `keySerializer`(:91), `windowSerializer`(:96), `lateDataOutputTag`(:101), `accumulationMode`(:106), `reduce`(:135), `apply`(:163), `process`(:173), `aggregate`(:119) |
-| `nop-stream-runtime/.../windowing/WindowOperator.java` | `open`(:386), `processElement`(:578), `processWatermark`(:494), `onEventTime`(:725), `onProcessingTime`(:791), `snapshotState`(:513), `restoreState`(:545), `close`(:500), `copyForSubtask`(:381) |
-| `nop-stream-core/.../operators/StreamReduceOperator.java` | （live 类，待 I1 复核变更方法） |
+| `nop-stream-runtime/.../windowing/WindowOperator.java` | `open`(:386), `processElement`(:578), `processWatermark`(:494), `onEventTime`(:725), `onProcessingTime`(:791), `snapshotState`(:513), `restoreState`(:545), `close`(:500), `copyForSubtask`(:381)；I1 补表：`createAccumulatorForWindow`(:1075), `deleteCleanupTimer`(:1052), `registerCleanupTimer`(:1059), `sideOutput`(:1015) |
+| `nop-stream-core/.../operators/StreamReduceOperator.java` | I1 复核落定：`copyForSubtask`(:55), `setCurrentKey`(:60), `open`(:74), `processElement`(:80), `snapshotState`(:101), `restoreState`(:121) |
 
 ### 4.3 SinkFunction 族
 
 | 类（live 路径） | 变更型方法 |
 |---|---|
 | `nop-stream-core/.../functions/sink/TwoPhaseCommitSinkFunction.java` | `setPendingCommits`(:76), `saveState`(:81), `prepareCommit`(:89), `finishCommit`(:95), `restoreFromEpoch`(:153), `abort`(:63), `recover`(:67), `consume`(:40) |
-| `nop-stream-core/.../operators/StreamSinkOperator.java` | `restoreState`(:141)（2PC pendingCommits 重建路径 :146-158） |
+| `nop-stream-core/.../operators/StreamSinkOperator.java` | `restoreState`(:141)（2PC pendingCommits 重建路径 :146-158）；I1 补表（机械分类器含继承实现的公共契约方法）：`close`, `copyForSubtask`, `notifyCheckpointAborted`, `notifyCheckpointComplete`, `processBarrier`, `processElement`, `processWatermark` |
 | `nop-stream-connector-batch/.../BatchConsumerSinkFunction.java` | `consume`(:77), `finish`(:108), `close`(:116)（`flush`(:91) 为 private 内部助手，不入表） |
 | `nop-stream-connector/.../MessageSinkFunction.java` | （live 类，serialization 关注） |
 | `nop-stream-connector/.../MessageSourceFunction.java` | （live 类，serialization 关注） |
@@ -218,23 +225,23 @@
 | 类（live 路径） | 变更型方法 |
 |---|---|
 | `nop-stream-core/.../checkpoint/CheckpointIDCounter.java` | `getAndIncrement`(:35), `set`(:49), `incrementAndGet`(:56), `compareAndSet`(:63) |
-| `nop-stream-runtime/.../checkpoint/CheckpointCoordinator.java` | `addListener`(:242), `removeListener`(:246), `addParticipant`(:250), `removeParticipant`(:254), `setAbortHandler`(:262), `startCheckpointScheduler`(:266), `stopCheckpointScheduler`(:334), `tryTriggerPendingCheckpoint`(:353), `tryTriggerCheckpointWithReason`(:369), `acknowledgeTask`(:423), `completePendingCheckpoint`(:453), `abortPendingCheckpoint`(:849), `restoreFromCheckpoint`(:885), `registerTask`(:983), `unregisterTask`(:987), `shutdown`(:1138), `registerSourceEnumeratorVertex`(:1259), `reportTaskCheckpointFailure`(:930) |
+| `nop-stream-runtime/.../checkpoint/CheckpointCoordinator.java` | `addListener`(:242), `removeListener`(:246), `addParticipant`(:250), `removeParticipant`(:254), `setAbortHandler`(:262), `startCheckpointScheduler`(:266), `stopCheckpointScheduler`(:334), `tryTriggerPendingCheckpoint`(:353), `tryTriggerCheckpointWithReason`(:369), `acknowledgeTask`(:423), `completePendingCheckpoint`(:453), `abortPendingCheckpoint`(:849), `restoreFromCheckpoint`(:885), `registerTask`(:983), `unregisterTask`(:987), `shutdown`(:1138), `registerSourceEnumeratorVertex`(:1259), `reportTaskCheckpointFailure`(:930)；I1 补表：`incrementTriggerFailures`(:948), `setTasksToAcknowledge`(:971), `setCurrentFingerprint`(:1277), `setSegmentStore`(:1291), `setIncrementalCheckpointEnabled`(:1299), `validateIncrementalConfig`(:1330), `restoreLatestEpochManifest`(:1269), `restoreSharedStateRegistry`(:1354) |
 | `nop-stream-runtime/.../checkpoint/PendingCheckpoint.java` | `acknowledgeTask`(:135), `toCompletedCheckpoint`(:150), `abort`(:162/:188), `fail`(:175), `forceComplete`(:196), `dispose`(:207) |
-| `nop-stream-runtime/.../checkpoint/storage/LocalFileCheckpointStorage.java` | `storeCheckPoint`(:84), `deleteCheckpoint`(:237), `deleteAllCheckpoints`(:255), `storeSavepoint`(:389), `storeEpochManifest`(:489) |
-| `nop-stream-runtime/.../checkpoint/CheckpointPlanBuilder.java` | `build`(:44) |
-| `nop-stream-core/.../execution/InputGate.java` | barrier 对齐状态机（I1 复核变更方法） |
+| `nop-stream-runtime/.../checkpoint/storage/LocalFileCheckpointStorage.java` | `storeCheckPoint`(:84), `deleteCheckpoint`(:237), `deleteAllCheckpoints`(:255), `storeSavepoint`(:389), `storeEpochManifest`(:489)；I1 补表：`loadSavepoint`(:426), `loadSavepointMetadata`(:457), `loadLatestEpochManifest`(:515), `loadRetainedEpochManifests`(:558) |
+| `nop-stream-runtime/.../checkpoint/CheckpointPlanBuilder.java` | `build`(:44)（public static 工厂，按 §4.1 静态工厂不入表，gate table 记 exclusion） |
+| `nop-stream-core/.../execution/InputGate.java` | I1 复核落定（机械分类器）：`abortBarrierAlignment`, `blockConsumption`, `consumePendingChannelState`, `read`, `restoreChannelState`, `resumeConsumption`, `resumeConsumptionAll` |
 
 ### 4.5 CEP NFA 族
 
 | 类（live 路径） | 变更型方法 |
 |---|---|
-| `nop-stream-cep/.../nfa/NFA.java` | `open`(:193), `close`(:206), `process`(:236), `advanceTime`(:266) |
-| `nop-stream-cep/.../nfa/DeweyNumber.java` | `increase`(:99), `increase(int)`(:110), `addStage`(:127) |
+| `nop-stream-cep/.../nfa/NFA.java` | `open`(:193), `close`(:206), `process`(:236), `advanceTime`(:266)；I1 补表：`createInitialNFAState`(:142) |
+| `nop-stream-cep/.../nfa/DeweyNumber.java` | `increase`(:99), `increase(int)`(:110), `addStage`(:127)；I1 补表（机械分类器含只读查询）：`length`(:90) |
 | `nop-stream-cep/.../nfa/sharedbuffer/Lockable.java` | `lock`(:46), `release`(:56), `releaseOrDetach`(:68) |
-| `nop-stream-cep/.../nfa/sharedbuffer/SharedBuffer.java` | `advanceTime`(:224), `registerEvent`(:236), `upsertEvent`(:311), `upsertEntry`(:327), `removeEvent`(:342), `removeEntry`(:352), `flushCache`(:420) |
-| `nop-stream-cep/.../nfa/sharedbuffer/SharedBufferAccessor.java` | `advanceTime`(:64), `registerEvent`(:80), `lockNode`(:237), `releaseNode`(:258), `releaseEvent`(:329), `close`(:345), `materializeMatch`(:211) |
-| `nop-stream-cep/.../operator/CepOperator.java` | `open`(:247), `processElement`(:462), `processWatermark`(:450), `onEventTime`(:509), `onProcessingTime`(:571), `snapshotState`(:419), `restoreState`(:429), `close`(:405) |
-| `nop-stream-cep/.../nfa/NFAState.java` | `setStateChanged` 等（I1 复核） |
+| `nop-stream-cep/.../nfa/sharedbuffer/SharedBuffer.java` | `advanceTime`(:224), `registerEvent`(:236), `upsertEvent`(:311), `upsertEntry`(:327), `removeEvent`(:342), `removeEntry`(:352), `flushCache`(:420)；I1 补表：`logCacheStatistics`(:293) |
+| `nop-stream-cep/.../nfa/sharedbuffer/SharedBufferAccessor.java` | `advanceTime`(:64), `registerEvent`(:80), `lockNode`(:237), `releaseNode`(:258), `releaseEvent`(:329), `close`(:345), `materializeMatch`(:211)；I1 补表：`extractPatterns`(:124), `put`(:94) |
+| `nop-stream-cep/.../operator/CepOperator.java` | `open`(:247), `processElement`(:462), `processWatermark`(:450), `onEventTime`(:509), `onProcessingTime`(:571), `snapshotState`(:419), `restoreState`(:429), `close`(:405)；I1 补表：`copyForSubtask`, `onCacheStatisticsTimer`(:380), `releaseCacheStatisticsTimer`(:397) |
+| `nop-stream-cep/.../nfa/NFAState.java` | I1 复核落定（机械分类器）：`resetNewStartPartialMatch`(:107), `resetStateChanged`(:82), `setNewPartialMatches`(:99), `setNewStartPartialMatch`(:111), `setStateChanged`(:87) |
 
 ### 4.6 ClusterRegistry 族
 
