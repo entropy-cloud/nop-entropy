@@ -693,11 +693,9 @@ final class RocksDBSnapshotSerDe {
         ClassNameValidator.validateClassName(valueTypeName);
         Class<Object> valueClass = (Class<Object>) Class.forName(valueTypeName);
         String aggregateFunctionTypeName = (String) stateInfo.get("aggregateFunctionType");
-        ClassNameValidator.validateAccumulatorClass(aggregateFunctionTypeName);
-        Class<? extends AggregateFunction<?, ?, ?>> aggregateFunctionClass =
-                (Class<? extends AggregateFunction<?, ?, ?>>) Class.forName(aggregateFunctionTypeName);
         AggregateFunction<Object, Object, Object> aggregateFunction =
-                (AggregateFunction<Object, Object, Object>) aggregateFunctionClass.getDeclaredConstructor().newInstance();
+                resolveAggregateFunction(backend, stateName, aggregateFunctionTypeName);
+        valueClass = (Class<Object>) inferAccumulatorType(aggregateFunction, valueClass);
 
         AggregatingStateDescriptor<Object, Object, Object> descriptor =
                 new AggregatingStateDescriptor<>(stateName, aggregateFunction, valueClass);
@@ -723,11 +721,9 @@ final class RocksDBSnapshotSerDe {
         ClassNameValidator.validateClassName(valueTypeName);
         Class<Object> valueClass = (Class<Object>) Class.forName(valueTypeName);
         String aggregateFunctionTypeName = (String) stateInfo.get("aggregateFunctionType");
-        ClassNameValidator.validateAccumulatorClass(aggregateFunctionTypeName);
-        Class<? extends AggregateFunction<?, ?, ?>> aggregateFunctionClass =
-                (Class<? extends AggregateFunction<?, ?, ?>>) Class.forName(aggregateFunctionTypeName);
         AggregateFunction<Object, Object, Object> aggregateFunction =
-                (AggregateFunction<Object, Object, Object>) aggregateFunctionClass.getDeclaredConstructor().newInstance();
+                resolveAggregateFunction(backend, stateName, aggregateFunctionTypeName);
+        valueClass = (Class<Object>) inferAccumulatorType(aggregateFunction, valueClass);
 
         AggregatingStateDescriptor<Object, Object, Object> descriptor =
                 new AggregatingStateDescriptor<>(stateName, aggregateFunction, valueClass);
@@ -744,6 +740,68 @@ final class RocksDBSnapshotSerDe {
                 Object value = RocksDBValueSerDe.deserializeObject(e.get("value"), valueClass);
                 putEntry(backend, cf, e.get("namespace"), e.get("key"), RocksDBValueSerDe.serialize(value));
             }
+        }
+    }
+
+    /**
+     * The window descriptor path (WindowedStreamImpl.aggregate/reduce) records the
+     * accumulator type as {@code java.lang.Object} (generic erasure), so the snapshot's
+     * recorded valueType cannot drive value re-materialization: a JSON array round-trip
+     * of a {@code long[]} accumulator would be restored as an ArrayList and the user
+     * function's {@code add} would ClassCastException. When the recorded type is the
+     * generic {@code Object}, infer the real accumulator type from the LIVE aggregate
+     * function's {@code createAccumulator()} (registered by the operator before restore).
+     * Functions whose {@code createAccumulator()} returns {@code null} (e.g. the
+     * reduce-function wrapper) keep the recorded type — JSON-native accumulators
+     * (String/numbers) restore correctly without the inference.
+     */
+    private static Class<?> inferAccumulatorType(AggregateFunction<?, ?, ?> aggregateFunction, Class<?> recordedType) {
+        if (recordedType != Object.class || aggregateFunction == null) {
+            return recordedType;
+        }
+        try {
+            Object accumulator = aggregateFunction.createAccumulator();
+            if (accumulator != null) {
+                return accumulator.getClass();
+            }
+        } catch (Exception e) {
+            // Keep the recorded (generic) type; JSON-native accumulators restore
+            // correctly either way.
+        }
+        return recordedType;
+    }
+
+    /**
+     * P1-01 (Decision: 方案 1 = live function reuse): resolves the aggregate
+     * function used to rebuild aggregating state on restore.
+     *
+     * <p>Priority order: (1) the LIVE function registered via
+     * {@code IKeyedStateBackend#registerRestoreAggregateFunction} (the
+     * operator's descriptor function — required for capturing anonymous
+     * classes / lambdas, and also restores old snapshots); (2) class-name +
+     * no-arg reflection (legacy path). Reflection failure with no registered
+     * provider fails fast with a clear error (No-Silent-No-Op rule #24).
+     */
+    @SuppressWarnings("unchecked")
+    private static AggregateFunction<Object, Object, Object> resolveAggregateFunction(
+            RocksDBKeyedStateBackend<?> backend, String stateName, String aggregateFunctionTypeName) throws Exception {
+        AggregateFunction<?, ?, ?> live = backend.getRestoreAggregateFunction(stateName);
+        if (live != null) {
+            return (AggregateFunction<Object, Object, Object>) live;
+        }
+        ClassNameValidator.validateAccumulatorClass(aggregateFunctionTypeName);
+        Class<? extends AggregateFunction<?, ?, ?>> aggregateFunctionClass =
+                (Class<? extends AggregateFunction<?, ?, ?>>) Class.forName(aggregateFunctionTypeName);
+        try {
+            return (AggregateFunction<Object, Object, Object>)
+                    aggregateFunctionClass.getDeclaredConstructor().newInstance();
+        } catch (NoSuchMethodException e) {
+            throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                    .param(ARG_DETAIL, "AggregateFunction class " + aggregateFunctionTypeName
+                            + " has no no-arg constructor and no live function was registered for state '"
+                            + stateName + "' — the operator must register its descriptor's function via "
+                            + "IKeyedStateBackend.registerRestoreAggregateFunction before restore "
+                            + "(window operators do this in open() prior to applyPendingRestoreState)");
         }
     }
 

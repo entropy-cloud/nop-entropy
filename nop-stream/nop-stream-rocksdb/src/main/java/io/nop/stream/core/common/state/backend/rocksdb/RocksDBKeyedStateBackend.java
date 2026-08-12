@@ -29,6 +29,7 @@ import io.nop.stream.core.common.state.backend.rocksdb.incremental.RocksDBIncrem
 import io.nop.stream.core.common.state.backend.rocksdb.incremental.RocksDBIncrementalSnapshotStrategy;
 import io.nop.stream.core.common.state.AggregatingState;
 import io.nop.stream.core.common.state.AggregatingStateDescriptor;
+import io.nop.stream.core.common.functions.AggregateFunction;
 import io.nop.stream.core.common.state.InternalAppendingState;
 import io.nop.stream.core.common.state.InternalListState;
 import io.nop.stream.core.common.state.ListState;
@@ -134,6 +135,15 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
 
     @SuppressWarnings("unchecked")
     private final Map<String, Object> states = new LinkedHashMap<>();
+
+    /**
+     * P1-01: live {@code AggregateFunction} providers keyed by state name,
+     * consulted by {@code RocksDBSnapshotSerDe} restore (preferred over
+     * class-name reflection, which fails for capturing anonymous classes /
+     * lambdas). Operators register their descriptor's function before restore
+     * runs (e.g. {@code WindowOperator}).
+     */
+    private final Map<String, AggregateFunction<?, ?, ?>> restoreAggregateFunctions = new java.util.HashMap<>();
 
     private final Map<String, Class<?>> stateTypes = new LinkedHashMap<>();
 
@@ -797,6 +807,20 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
         RocksDBSnapshotSerDe.restoreState(this, snapshot);
     }
 
+    @Override
+    public void registerRestoreAggregateFunction(String stateName,
+                                                 AggregateFunction<?, ?, ?> function) {
+        if (stateName == null || function == null) {
+            return;
+        }
+        restoreAggregateFunctions.put(stateName, function);
+    }
+
+    @Override
+    public AggregateFunction<?, ?, ?> getRestoreAggregateFunction(String stateName) {
+        return restoreAggregateFunctions.get(stateName);
+    }
+
     /**
      * Stage 35: real key-group range restore from an incremental checkpoint (Stage 31
      * deferred item). Reconstructs the content-addressed SST set into a temp RocksDB
@@ -852,6 +876,7 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
         }
         if (defaultCF != null) {
             defaultCF.close();
+            defaultCF = null;
         }
         if (db != null) {
             db.close();

@@ -39,11 +39,40 @@ class RocksDBInternalAggregatingState<K, N, IN, ACC, OUT>
 
     private transient N currentNamespace;
 
+    /**
+     * The DB round-trip type of the accumulator value. The window descriptor
+     * path records {@code Object.class} (generic erasure at the
+     * WindowedStreamImpl call-site); an Object-typed round-trip turns a
+     * {@code long[]} accumulator into an ArrayList on read (the user function's
+     * {@code add} then ClassCastExceptions). Resolve the real accumulator type
+     * from the live function's {@code createAccumulator()} once at construction
+     * (null-returning functions — e.g. the reduce wrapper — keep the recorded
+     * type; JSON-native accumulators round-trip either way).
+     */
+    private final Class<?> storageValueType;
+
     RocksDBInternalAggregatingState(RocksDBKeyedStateBackend<K> backend, ColumnFamilyHandle cfHandle,
                                     AggregatingStateDescriptor<IN, ACC, OUT> descriptor) {
         this.backend = backend;
         this.cfHandle = cfHandle;
         this.descriptor = descriptor;
+        this.storageValueType = resolveStorageValueType(descriptor);
+    }
+
+    private static Class<?> resolveStorageValueType(AggregatingStateDescriptor<?, ?, ?> descriptor) {
+        Class<?> type = descriptor.getValueType();
+        if (type == Object.class && descriptor.getAggregateFunction() != null) {
+            try {
+                Object accumulator = descriptor.getAggregateFunction().createAccumulator();
+                if (accumulator != null) {
+                    type = accumulator.getClass();
+                }
+            } catch (Exception e) {
+                // Keep the recorded (generic) type; JSON-native accumulators
+                // round-trip correctly either way.
+            }
+        }
+        return type;
     }
 
     @Override
@@ -173,7 +202,7 @@ class RocksDBInternalAggregatingState<K, N, IN, ACC, OUT>
             if (bytes == null) {
                 return null;
             }
-            ACC accumulator = RocksDBValueSerDe.deserialize(bytes, descriptor.getValueType());
+            ACC accumulator = (ACC) RocksDBValueSerDe.deserialize(bytes, storageValueType);
             return descriptor.getAggregateFunction().getResult(accumulator);
         } catch (Exception e) {
             throw new IOException("Failed to get aggregated state", e);
@@ -194,7 +223,7 @@ class RocksDBInternalAggregatingState<K, N, IN, ACC, OUT>
             ACC accumulator;
             byte[] existing = backend.getDb().get(cfHandle, key);
             if (existing != null) {
-                accumulator = RocksDBValueSerDe.deserialize(existing, descriptor.getValueType());
+                accumulator = (ACC) RocksDBValueSerDe.deserialize(existing, storageValueType);
             } else {
                 accumulator = aggFn.createAccumulator();
             }
