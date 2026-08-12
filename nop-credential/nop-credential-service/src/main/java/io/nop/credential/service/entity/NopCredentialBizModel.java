@@ -36,7 +36,7 @@ import io.nop.credential.biz.INopCredentialBiz;
 import io.nop.credential.crypto.CredentialCipher;
 import io.nop.credential.crypto.CredentialErrors;
 import io.nop.credential.dao.entity.NopCredential;
-import io.nop.dao.api.IDaoProvider;
+import io.nop.credential.dao.entity.NopCredentialUsage;
 import io.nop.dao.api.IEntityDao;
 import jakarta.inject.Inject;
 
@@ -45,6 +45,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
 import static io.nop.biz.BizConstants.BIZ_OBJ_NAME_THIS_OBJ;
 
@@ -77,9 +78,9 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
     @Inject
     protected ICredentialProvider credentialProvider;
 
-    @Inject
-    protected IDaoProvider daoProvider;
-
+    // 注意：IDaoProvider daoProvider 由父类 CrudBizModel 声明并通过 NopIoC 注入，
+    // 此处不再重复声明（重复声明会导致字段遮蔽，子类字段保持 null）。
+    // ICredentialKeyProvider 用于 reencryptAll 读取 active keyId。
     @Inject
     protected ICredentialKeyProvider keyProvider;
 
@@ -179,6 +180,11 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
             dao.updateEntityDirectly(entity);
         }
 
+        // 防御性驱逐：BizMutation 运行在读写事务中，若不驱逐则在事务 commit 时
+        // 会把下面的 setData(null) 回写数据库（污染密文）。驱逐后实体变为 detached，
+        // 后续修改不会触发 flush。
+        orm().requireSession().evict(entity);
+
         // 返回前清除密文（明文边界：API 永不暴露密文）
         entity.setData(null);
         return entity;
@@ -195,6 +201,8 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
                              IServiceContext context) {
         NopCredential entity = super.get(id, ignoreUnknown, context);
         if (entity != null) {
+            // 防御性驱逐：避免 setData(null) 被事务 flush 回写数据库
+            orm().requireSession().evict(entity);
             entity.setData(null);
         }
         return entity;
@@ -209,7 +217,9 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
             FieldSelectionBean selection, IServiceContext context) {
         PageBean<NopCredential> page = super.findPage(query, selection, context);
         if (page != null && page.getItems() != null) {
+            // 防御性驱逐：避免 setData(null) 被事务 flush 回写数据库（污染密文）
             for (NopCredential entity : page.getItems()) {
+                orm().requireSession().evict(entity);
                 entity.setData(null);
             }
         }
@@ -321,5 +331,44 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
             return null;
         }
         return rest.substring(0, colonIdx);
+    }
+
+    // ==================== 删除引用计数拦截 ====================
+
+    /**
+     * 覆盖标准 {@code delete}：在 ORM 删除前先做引用计数检查，活跃引用存在时 fail-closed
+     * （遵循 Plan Phase 2 + Rule #24 禁止静默跳过）。
+     *
+     * <p>委托给 {@link CrudBizModel#doDelete}，通过 {@code prepareDelete} 回调插入引用检查与
+     * 业务级禁用。ORM 的 {@code useLogicalDelete} 会自动设置 {@code delFlag=true}，
+     * 本回调额外设置 {@code status=disabled}（业务层关闭）。
+     *
+     * @throws NopException {@link CredentialErrors#ERR_CREDENTIAL_HAS_ACTIVE_USAGE} 当存在活跃引用时
+     */
+    @Description("@i18n:biz.delete|根据主键删除指定对象")
+    @BizMutation
+    @Override
+    public boolean delete(@Name("id") String id, IServiceContext context) {
+        return super.doDelete(id, null, this::prepareDeleteWithUsageCheck, context);
+    }
+
+    /**
+     * 删除前置回调：(1) 查询 {@link NopCredentialUsage} 按 {@code credentialId} 的活跃引用数，
+     * 若 &gt; 0 抛出 {@link CredentialErrors#ERR_CREDENTIAL_HAS_ACTIVE_USAGE}（fail-closed）；
+     * (2) 业务级禁用——置 {@code status=disabled}（ORM 软删除 {@code delFlag} 由 dao 自动处理）。
+     */
+    private void prepareDeleteWithUsageCheck(NopCredential entity, IServiceContext context) {
+        IEntityDao<NopCredentialUsage> usageDao = daoFor(NopCredentialUsage.class);
+        QueryBean usageQuery = new QueryBean();
+        usageQuery.addFilter(FilterBeans.eq(NopCredentialUsage.PROP_NAME_credentialId,
+                entity.getCredentialId()));
+        long count = usageDao.countByQuery(usageQuery);
+        if (count > 0) {
+            throw new NopException(CredentialErrors.ERR_CREDENTIAL_HAS_ACTIVE_USAGE)
+                    .param(CredentialErrors.ARG_CREDENTIAL_ID, entity.getCredentialId())
+                    .param(CredentialErrors.ARG_USAGE_COUNT, count);
+        }
+        // 业务级禁用（ORM useLogicalDelete 会同时设置 delFlag=true）
+        entity.setStatus("disabled");
     }
 }
