@@ -56,7 +56,7 @@
 
 ## NopAiModel 凭证库迁移（credentialId）
 
-`NopAiModel` 增加了可选普通列 `credentialId`（`credential_id VARCHAR(50)`，propId=17），作为指向加密凭证库 `nop_credential` 的**逻辑外键**。
+`NopAiModel` 增加了可选普通列 `credentialId`（`credential_id VARCHAR(50)`，propId=17），作为指向加密凭证库 `nop_credential` 的**逻辑外键**。运行时消费读取路径**已接通**（W7-successor，2026-08-13）。
 
 **设计要点**：
 
@@ -64,14 +64,21 @@
 - 运行时消费经 `ICredentialProvider`（接口在 `nop-credential-api`，实现 `CredentialProviderImpl` 在 `nop-credential-service`，是平台唯一凭证解密点），而非直接 DAO 引用。
 - `apiKey` 列**保留兼容**（已是 `tagSet="enc"` 列级加密，非明文）。未迁移的存量行继续用 `apiKey` 列，迁移是增量可选。
 
-**迁移路径**（建凭证 → 登记引用 → 设 credentialId → apiKey 冗余）：
+**运行时消费集成点（W7-successor 已落地）**：
+
+- **SPI**：`IAiModelCredentialResolver`（`nop-ai-api`，纯加法接口），impl `AiModelCredentialResolverImpl`（`nop-ai-service`，注入 `IDaoProvider` + `ICredentialProvider`）。`ChatServiceImpl.buildHttpRequest` 经 `@Inject @Nullable` 引用——未装配时（部署不含 nop-credential）字段为 null → 跳过 credential 解析 → **零回归**。
+- **apiKey 优先级链**：`accountKey > credentialId > resolveApiKey(config-var/secret-file)`。accountKey（coordinator FALLBACK 下沉的纠正账号）优先；credentialId（DB 凭证）次之；config 变量最低。配了 credentialId 仍可被 account-chain 覆盖（fallback 是显式纠正动作）。
+- **查找键/粒度**：按 `provider + modelName` 精确匹配 `NopAiModel` 行取该模型的 credentialId（每模型自有行/自有凭证）。`.llm.xml` modelName ↔ `NopAiModel.modelName` 不对应（模型仅在 `.llm.xml` 存在）= 显式回退到 resolveApiKey + WARN 审计（非报错）。
+- **fail-closed**：credentialId 非空但凭证缺失/软删/解密失败/字段空 → 抛 `NopException` 中止调用（强 fail-closed，不静默用错配 key）。credentialId 为空 → 回退 resolveApiKey（正常兼容路径，非异常）。
+- **引用计数**：`NopAiModelBizModel.save` 按 credentialId 新旧差异调用 `registerUsage`/`unregisterUsage`，consumerRef 约定 `ai:NopAiModel:<modelId>`（bind/换绑/解绑）。凭证删除时由 `NopCredentialBizModel.delete` 的引用计数拦截。
+
+**迁移路径**（建凭证 → 设 credentialId（save 自动登记引用） → apiKey 冗余）：
 
 1. 建凭证：`NopCredential__saveCredential(typeName="openai-api-key", name="<模型名>", fields={apiKey:"<明文>"})`，得到 `credentialId`。明文经 `CredentialCipher` 加密为 `cv1:` 密文落库，不跨出服务进程。
-2. 登记引用：`ICredentialProvider.registerUsage(credentialId, consumerRef="ai:NopAiModel:<modelId>")`——幂等写入 `NopCredentialUsage`，删除凭证前据此检查引用计数。
-3. 设 `NopAiModel.credentialId`：将上一步的 `credentialId` 写入对应模型行。
-4. `apiKey` 列冗余：迁移后 `apiKey` 列成为冗余备份，可在确认运行时消费稳定后清理（本期保留，不破坏兼容）。
+2. 设 `NopAiModel.credentialId`：`NopAiModel__save(data={id, credentialId})`——BizModel.save 自动 `registerUsage(credentialId, "ai:NopAiModel:<modelId>")`，无需手动登记引用。换绑/解绑自动 reconcile。
+3. `apiKey` 列冗余：迁移后 `apiKey` 列成为冗余备份，可在确认运行时消费稳定后清理（保留不破坏兼容）。
 
-> **本期边界**：`credentialId` 字段与迁移路径文档已落地，但**运行时消费读取切换未接通**（credentialId 存在时经 `ICredentialProvider.getCredentialData` 解析 apiKey、否则回退 apiKey 列的钩子未接）。运行时切换为独立后续工作（Deferred），届时须 fail-closed。凭证库与 `@sec:` 的边界详见 `nop-credential.md`。
+> **运行时消费装配**：消费 app 需含 `nop-credential-service`（提供 `nopCredentialProvider` bean）并在装配链 import `credential-defaults.beans.xml`。`ICredentialProvider`/`IDaoProvider` 在 resolver 中为 `@Nullable` 可选注入——部署不含 nop-credential 时 resolver bean 仍创建（credentialId 空→回退、credentialId 非空→fail-closed）。凭证库与 `@sec:` 的边界详见 `nop-credential.md`。
 
 ## Agent 引擎可靠性配置（nop-ai-agent）
 

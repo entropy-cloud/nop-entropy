@@ -165,11 +165,30 @@ NopCredentialBizModel
 - 配置文件中的静态密钥继续用既有 `@sec:`（如 `oss.secret-key = @sec:xxxx`），无需凭证库
 - 凭证库服务的场景是 DB 行级数据（业务实体敏感列），由业务代码经 `ICredentialProvider` 取用
 
-### 3.5 消费方迁移路径（二期执行）
+**nop-ai 运行时消费集成点（W7-successor，2026-08-13 落地）**：
+
+- **集成层裁决**：在 nop-ai-api 引入 SPI `IAiModelCredentialResolver`（纯加法，跨模块 SPI 载体），impl
+  `AiModelCredentialResolverImpl` 在 nop-ai-service（持 nop-ai-dao + nop-credential-api）。钩点为
+  `ChatServiceImpl.buildHttpRequest`（stream/非 stream 共同的唯一 apiKey 解析点）。`nop-ai-core` 不直接依赖
+  DAO/credential，经此可注入抽象解耦。
+- **apiKey 优先级链**：`accountKey > credentialId > resolveApiKey(config-var/secret-file)`。accountKey
+  （coordinator FALLBACK 显式纠正账号）优先；credentialId（DB 凭证）次之；config 变量最低。未配
+  credentialId / resolver 未装配 → 回退 resolveApiKey（零回归）。
+- **查找键/粒度**：`provider + modelName` 精确匹配 `NopAiModel` 注册。`.llm.xml` modelName ↔
+  `NopAiModel.modelName` 不对应（模型仅在 .llm.xml 存在）= 显式回退 + WARN 审计（非报错）。
+- **fail-closed**：credentialId 非空但凭证缺失/软删/解密失败/字段空 → 抛 `NopException` 中止调用（强
+  fail-closed，不静默回退到 config 变量）。credentialId 为空 → 回退（正常兼容路径，非异常）。
+- **装配**：nop-ai-service 依赖 nop-credential-api（compile）；`ICredentialProvider` 经 `@Nullable` 可选注入
+  （部署不含 nop-credential 时为 null，credentialId 空→回退、credentialId 非空→fail-closed）。ChatServiceImpl
+  经 `@Inject @Nullable` 引用 resolver bean（无 nop-ai-service 时为 null → 零回归）。消费 app 含
+  nop-credential-service 时需 import `credential-defaults.beans.xml`。
+- **consumerRef 约定**：`ai:NopAiModel:<modelId>`（NopAiModelBizModel.save 时 register/unregister）。
+
+### 3.5 消费方迁移路径
 
 | 消费方 | 现状 | 迁移 |
 |---|---|---|
-| nop-ai `NopAiModel.apiKey` | 明文列 | 新增可选字段 `credentialId`（关联凭证库）；apiKey 列保留兼容，迁移动作列二期 |
+| nop-ai `NopAiModel.apiKey` | 明文列 | ✅ **已落地（W7 + W7-successor，2026-08-13）**：可选字段 `credentialId`（关联凭证库，propId=17）；apiKey 列保留兼容。运行时消费经 `IAiModelCredentialResolver`（nop-ai-api SPI）+ `AiModelCredentialResolverImpl`（nop-ai-service）接入 `ChatServiceImpl.buildHttpRequest`，优先级链 `accountKey > credentialId > resolveApiKey`，fail-closed。引用计数 `ai:NopAiModel:<modelId>` 在 NopAiModelBizModel.save 接线。详见 §3.4「nop-ai 运行时消费集成点」。 |
 | nop-integration OSS/邮件/短信/飞书 | `@cfg:` 明文 | 静态密钥改用 `@sec:` 加密（立即可做）；需要运行期管理的场景改用 `ICredentialProvider` |
 | nop-metadata 数据源 | connectionConfig JSON 列 | `tagSet="sensitive"` 字段改为经凭证库取用，二期执行 |
 
