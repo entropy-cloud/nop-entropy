@@ -19,6 +19,18 @@
             <version>${nop-entropy.version}</version>
         </dependency>
         <dependency>
+            <artifactId>nop-ai-api</artifactId>
+            <groupId>io.github.entropy-cloud</groupId>
+            <version>${nop-entropy.version}</version>
+        </dependency>
+        <!-- W7-successor: nop-ai-service 消费 nop-credential SPI（ICredentialProvider）解析 NopAiModel.credentialId。
+             runtime bean 由 nop-credential-service 提供（消费 app 需 import credential-defaults.beans.xml）。 -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-credential-api</artifactId>
+            <version>${nop-entropy.version}</version>
+        </dependency>
+        <dependency>
             <artifactId>nop-ai-codegen</artifactId>
             <groupId>io.github.entropy-cloud</groupId>
             <version>${nop-entropy.version}</version>

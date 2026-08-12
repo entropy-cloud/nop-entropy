@@ -14,6 +14,7 @@ import io.nop.ai.api.chat.IChatService;
 import io.nop.ai.api.chat.stream.ChatStreamChunk;
 import io.nop.ai.api.chat.stream.StreamItemPhase;
 import io.nop.ai.api.chat.stream.StreamItemType;
+import io.nop.ai.api.credential.IAiModelCredentialResolver;
 import io.nop.ai.core.dialect.ILlmDialect;
 import io.nop.ai.core.model.LlmModel;
 import io.nop.ai.core.model.LlmModelModel;
@@ -23,6 +24,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.json.JSON;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.ICancelToken;
+import jakarta.annotation.Nullable;
 import io.nop.commons.concurrent.ratelimit.DefaultRateLimiter;
 import io.nop.commons.concurrent.ratelimit.IRateLimiter;
 import io.nop.commons.util.StringHelper;
@@ -70,6 +72,15 @@ public class ChatServiceImpl implements IChatService {
     private final Map<String, IRateLimiter> rateLimiters = new ConcurrentHashMap<>();
     private IChatLogger chatLogger;
 
+    /**
+     * 可选的凭证解析器（W7-successor，plan 2026-08-13-1118-3 Phase 1 D1）。当 nop-ai-service +
+     * nop-credential 在 classpath 且 bean 装配时注入；否则为 null（{@code @Nullable} → NopIoC optional），
+     * 此时跳过 credentialId 解析，回退既有 {@code resolveApiKey} 路径，**零回归**。
+     *
+     * <p>非 private：兼容 NopIoC 字段注入可见性（AGENTS.md）。这里用 setter 注入 + {@code @Nullable}。
+     */
+    private IAiModelCredentialResolver credentialResolver;
+
     @Inject
     public void setChatLogger(IChatLogger chatLogger) {
         this.chatLogger = chatLogger;
@@ -78,6 +89,15 @@ public class ChatServiceImpl implements IChatService {
     @Inject
     public void setHttpClient(IHttpClient httpClient) {
         this.httpClient = httpClient;
+    }
+
+    /**
+     * 凭证解析器可选注入。{@code @Nullable} 使 NopIoC 在无匹配 bean 时注入 null（optional=true），
+     * 部署不含 nop-credential 时仍可启动（mode: 回退 config 变量 apiKey）。
+     */
+    @Inject
+    public void setCredentialResolver(@Nullable IAiModelCredentialResolver credentialResolver) {
+        this.credentialResolver = credentialResolver;
     }
 
     @InjectValue("@cfg:nop.ai.secret-dir|/nop/ai/secret")
@@ -217,6 +237,18 @@ public class ChatServiceImpl implements IChatService {
      * 非空时（agent 层重试循环在 QUOTA/AUTH FALLBACK 时从备用账号链取下一个账号后经 ChatOptions
      * 下沉），用该账号身份（apiKey + 可选 accountBaseUrl 覆盖）构造请求——而非按 provider 解析单 key。
      * 为空时退回 {@code LlmConfigHelper.resolveApiKey(provider)}（今日行为，零回归）。
+     *
+     * <p><b>apiKey 优先级链（W7-successor，plan 2026-08-13-1118-3 Phase 1 D2）</b>：
+     * {@code accountKey > credentialId > resolveApiKey(config-var/secret-file)}。
+     * <ol>
+     *   <li>{@code accountKey} 非空（coordinator FALLBACK 下沉的显式纠正账号）→ 用之。</li>
+     *   <li>否则若 {@code credentialResolver} 已装配且按 provider+model 解析出非空 apiKey
+     *       （模型配了 credentialId 且凭证库解析成功）→ 用之。</li>
+     *   <li>否则回退 {@code LlmConfigHelper.resolveApiKey(provider)}（零回归）。</li>
+     * </ol>
+     * credentialResolver 为 null（无 nop-credential 装配）或返回 null（模型未配 credentialId，
+     * 显式回退+审计，Phase 1 D4）时直接走第 3 步。credentialId 非空但凭证失效时 resolver 抛
+     * {@link NopException}（强 fail-closed，Phase 1 D5）——本方法不吞，异常向上传播中止调用。
      */
     private HttpRequest buildHttpRequest(LlmModel config, String provider, String model,
                                            ChatRequest request, boolean stream, ILlmDialect dialect) {
@@ -225,10 +257,8 @@ public class ChatServiceImpl implements IChatService {
         String accountBaseUrl = opts != null ? opts.getAccountBaseUrl() : null;
 
         String baseUrl = resolveBaseUrl(config, provider, accountBaseUrl);
-        // 账号链下沉：优先用 ChatOptions.accountKey（重试循环切换的账号），为空退回主账号单 key。
-        String apiKey = StringHelper.isEmpty(accountKey)
-                ? LlmConfigHelper.resolveApiKey(provider)
-                : accountKey;
+        // apiKey 优先级链：accountKey > credentialId > resolveApiKey
+        String apiKey = resolveApiKeyForRequest(provider, model, accountKey);
         LlmModelModel modelConfig = LlmConfigHelper.getModelConfig(config, model);
 
         HttpRequest httpRequest = new HttpRequest();
@@ -242,6 +272,28 @@ public class ChatServiceImpl implements IChatService {
         httpRequest.setBody(JsonTool.serialize(body, false));
 
         return httpRequest;
+    }
+
+    /**
+     * 解析本次请求的 apiKey（W7-successor，plan 2026-08-13-1118-3 Phase 1 D2 优先级链）。
+     * <p>
+     * accountKey 非空（coordinator FALLBACK 显式纠正账号）→ 直接用之。否则 consult 凭证解析器：
+     * 装配且返回非空（模型配了 credentialId 且解析成功）→ 用之；返回 null（未配 credentialId 或
+     * resolver 未装配）→ 回退 {@link LlmConfigHelper#resolveApiKey(String)}（零回归）。
+     * <p>
+     * credentialId 非空但凭证失效时 resolver 抛 {@link NopException}（强 fail-closed），本方法不吞。
+     */
+    private String resolveApiKeyForRequest(String provider, String model, String accountKey) {
+        if (!StringHelper.isEmpty(accountKey)) {
+            return accountKey;
+        }
+        if (credentialResolver != null) {
+            String credApiKey = credentialResolver.resolveApiKeyByCredential(provider, model);
+            if (!StringHelper.isEmpty(credApiKey)) {
+                return credApiKey;
+            }
+        }
+        return LlmConfigHelper.resolveApiKey(provider);
     }
 
     /**
