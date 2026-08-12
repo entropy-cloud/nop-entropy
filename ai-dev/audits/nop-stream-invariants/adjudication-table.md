@@ -1,10 +1,10 @@
-# nop-stream I3 裁决表（Adjudication Table）— Cycle 1 / I3
+# nop-stream I3 裁决表（Adjudication Table）— Cycle 1 / I3（含 Cycle 2 / I3 §7-§10）
 
 > Status: active
 > Created: 2026-08-12
-> Source: I2 权威版 `ai-dev/audits/nop-stream-invariants/red-list.md`（RL-1..7 + WO-1..3 裁定）；I2 探查报告 `ai-dev/audits/nop-stream-invariants/I2-probing-report.md`
-> Plan: `ai-dev/plans/2026-08-12-1217-4-nop-stream-invariants-cycle1-I3-adjudication.md`
-> Consumption: I4（`2026-08-12-1217-5-...`，以本表「P0/P1 派发清单」为输入）；I6（以本表「Cycle 2 派生登记」为输入）
+> Source: Cycle 1 — I2 权威版 `ai-dev/audits/nop-stream-invariants/red-list.md`（RL-1..7 + WO-1..3 裁定）；I2 探查报告 `ai-dev/audits/nop-stream-invariants/I2-probing-report.md`。Cycle 2 — 权威版 `red-list.md` §1-§3（C2-RL-1..3 + C2-PR-1..5）+ `cycle2-I2-probing-report.md`（§7-§10，本文件追加节）
+> Plan: Cycle 1 — `ai-dev/plans/2026-08-12-1217-4-...`；Cycle 2 — `ai-dev/plans/2026-08-12-1217-10-nop-stream-invariants-cycle2-I3-adjudication.md`
+> Consumption: I4（Cycle 1 = `2026-08-12-1217-5-...`；Cycle 2 = `2026-08-12-1217-11-...`，以 §8「P0/P1 派发清单」为输入）；I6（以 §9 派生登记 + C2-PR-2/5 扩展候选移交为输入）
 > Semantics: **每条 I2 red list 条目一行，零悬挂**——严重度（P0-P3）+ 族归属 + 处置 + 依据，禁止无依据裁决。
 
 ## 0. 假设复核记录（Phase 1）
@@ -157,3 +157,110 @@
 ### 6.4 复触发登记摘要
 
 - Cycle 2 触发原因 = 新族沉淀（PD-15）+ 跨 task 缺口人工确认门；三选一复触发继续生效（① CI 任一不变式门禁变红；② nop-stream 核心类结构变更（新增/重命名 Operator/SinkFunction/Checkpoint 机制/Output 实现类）；③ 周期复探）；人工确认待办触发 = 人工批准跨 task 线协议变更（roadmap §Loop Rule 已登记）。
+
+---
+
+## 7. Cycle 2 / I3 裁决表（权威版，2026-08-12）
+
+> Status: active（Cycle 2 / I3 产出，plan `2026-08-12-1217-10-nop-stream-invariants-cycle2-I3-adjudication.md`）
+> Source: Cycle 2 / I2 权威版 `red-list.md`（C2-RL-1..3 + C2-PR-1..5，2026-08-12 实测）；前置 I6 §6.2 预裁决（interim fail-fast 预授权输入）
+> Consumption: Cycle 2 / I4（plan `2026-08-12-1217-11-...`，以 §8「P0/P1 派发清单」为输入）；I6 收口（以 §9 派生登记 + C2-PR-2/5 扩展候选移交为输入）
+> Semantics: **Cycle 2 / I2 red list + 探查发现逐条一行，零悬挂**——严重度（P0-P3）+ 族归属 + 处置 + 依据，禁止无依据裁决；I6 §6.2 预裁决的 interim fail-fast 确认结论在 §7.3。
+
+### 7.1 假设复核记录（Phase 1）
+
+> 本 plan 的 Current Baseline 假设以 Cycle 2 / I2 完成前的登记基线为输入；I2 权威版（`red-list.md`，2026-08-12 I2 completed 后）逐条对照复核如下。I2 已 `completed`（plan `2026-08-12-1217-09-...` Status: completed，Closure Audit 11/11 PASS），按 I2 权威版修正基线。
+
+| # | 本 plan 假设 | I2 权威版事实 | 差异处置 |
+|---|---|---|---|
+| 1 | red list 条目集 = 2 条过渡 pin 已知实例（C2-RL-1 RWO / C2-RL-2 BRWO） | 权威版 §1 = **3 条**：C2-RL-1/2（pin 实例）+ **C2-RL-3**（注册表 disposition 措辞过 claim 评估项，I2 Phase 1 首发） | 预期内差异（plan 声明「I2 可能新增 red list 条目」）→ 按权威版纳入裁决（§7.2） |
+| 2 | 2 条过渡 pin 维持（跨 task 实例未修复） | 权威版 §2 裁定表：**均维持**（live 空体 + pin key 精确匹配 + 三方一致 + 接线路径复核） | 无差异 |
+| 3 | 探查发现 = 聚焦对抗探查产物（盲区 a-d） | 权威版 §3 = **C2-PR-1..5** 在案；**无新独立族**；2 个扩展候选（C2-PR-2 门禁形态覆盖 / C2-PR-5 控制面陈述扩展）供 I6 Loop Rule 评估 | 无实质差异（plan 声明「可能增减」；细节以权威版为准）→ 逐条裁决（§7.2） |
+| 4 | 注册表行号 RWO :645 / BRWO :705（以 live / pin / 注册表为准；I6 §6.2 原文记 :706） | 权威版 §0 复核表确认 :645/:705（BRWO :705 = 方法体起始行，扫描语义；§6.2 原文 :706 = 闭括号行记法） | 无差异（按 :705 口径记录；§6.2 原文已注明以 live/pin/注册表为准） |
+| 5 | 门禁基线 = 10 门禁类 / 102 tests / 0 failures + mjs all exit 0 + E2E 3/3 | 权威版 §0 实测一致（102 tests / 0 failures / 0 errors / 0 skipped；mjs 5 命令全 OK；E2E 3/3） | 无差异 |
+
+**复核结论**：无实质基线差异（#1 为预期内新增，按权威版纳入）；**无信息不足条目**（每条均含裁决输入，I2 Phase 4 契约满足 → 无 `NEEDS_I2_SUPPLEMENT`，无阻塞升级）；注册表行号零漂移（0 处移动，无需更新）。
+**非族候选追溯（补记）**：I2 已裁定的非族候选（R16-AR-14 OperatorChain 广播 / R16-AR-19,20 BatchConsumerSinkFunction buffer）在 `red-list.md` §3 与 `cycle2-I2-probing-report.md` §3 存档（均不升格 + 理由），不在本 plan 裁决范围（非 red list 条目），随权威版零悬挂移交核对覆盖，追溯链完整。
+
+### 7.2 裁决表（Cycle 2 / I2 red list + 探查发现逐条）
+
+> 严重度标尺：**P0** = 数据丢失 / 损坏或核心恢复语义破坏；**P1** = 现实场景正确性 / 并发安全缺陷；
+> **P2** = 健壮性 / 资源泄漏 / 边界场景；**P3** = 次要治理或优化。
+> 处置枚举：P0/P1 → 派 I4；P2/P3 → Follow-up Backlog（已裁定处置，附依据即合规）；非 defect / 已检查无问题 → 关闭（转述 I2 结论不重裁）。
+
+| finding-ID（I2 权威版） | 位置（live 2026-08-12） | 族 | 严重度 | 处置 | 依据（历史严重度 + 影响面 + I2 结论引用） |
+|---|---|---|---|---|---|
+| C2-RL-1 `StreamTaskInvokable$RecordWriterOutput.collect(OutputTag)` 跨 task 空体 no-op（过渡 pin `RWO-cross-task-noop`） | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/StreamTaskInvokable.java:645-647`（:646 仅注释「Side outputs not supported in cross-task exchange」） | 已知族（不变式 #6 输出契约族；跨 task 兄弟实例，RL-7 修复 `b20fcd0e1` 的同族残余） | **P1** | **派 I4**（interim fail-fast，自动信封——§7.3 确认通过，无「需人工确认」门） | I6 §6.2 预裁决 = P1（已确认契约缺口）；历史 RL-7 = P1 先例（同族静默丢弃）。影响面 = **现实场景正确性（契约违约 + 静默数据丢失）**：跨 task 多 vertex 部署下 tail 算子（WindowOperator / CepOperator / ProcessOperator）的 6 个发射点全部可达（接线链 §7.2 依据：`GraphExecutionPlan.java:454-461` → `wireOperators :239/:245` / `wireTailToRecordWriter :352` → `setOutput(RWO/BRWO)`），side-output 发射全部落入空体 = 静默丢弃，无 fail-fast / 无日志；主通道与恢复语义不受影响故不达 P0。**P0/P1 边界显式说明**：标尺 P0 含「数据丢失」字面，本项静默丢弃的为用户 side-output 数据，但主数据通道、checkpoint 恢复语义、exactly-once 保证均不受影响，且与同族 RL-7（I3 Cycle 1 裁 P1）先例一致 → 维持 P1（现实场景正确性），不升 P0。I2 验证：`red-list.md` C2-RL-1「live :645-647 空体确认，行为与 pin 描述 / 注册表分类一致；pin key 精确匹配；行号零漂移」+ §2 接线路径复核。修复方向（I6 §6.2 层次 1 + I2 裁决输入）= 空体 → 抛 `ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER` 风格异常（先例 `ChainingOutput.java:119`，含 `ARG_OUTPUT_TAG` / `ARG_DETAIL` 参数），类内部行为修复。修复成本低。 |
+| C2-RL-2 `StreamTaskInvokable$BroadcastingRecordWriterOutput.collect(OutputTag)` 跨 task 空体 no-op（过渡 pin `BRWO-cross-task-noop`） | 同文件 :705-706（空体无注释） | 已知族（不变式 #6 输出契约族，同上） | **P1** | **派 I4**（与 C2-RL-1 联合，同一工作项 WI-C2-1，§8） | 同 C2-RL-1（BRWO = 多 fanOut writer 下游形态，`wireOperators :242-245` 组装；单 fanOut / 单 writer 路径 = RWO）。**BRWO 独立影响面**：多下游 vertex 广播场景（fanOutWriters.size() > 1）下同一静默丢弃面按下游数放大——每个下游都收不到 side-output 且无任何提示；与 RWO 同一修复点（方法体）联合派发，修复成本同 C2-RL-1。I2 验证：`red-list.md` C2-RL-2「live :705-706 空体确认；pin key 精确匹配；行号零漂移」。P0/P1 边界裁定同 C2-RL-1（主通道 / 恢复语义不受影响，RL-7 先例一致 → P1）。 |
+| C2-RL-3 注册表 disposition 措辞与 E2E 实际覆盖不符（过 claim） | `ai-dev/audits/nop-stream-invariants/output-contract-registry.json` emissionPoints 表（6 条中 5 条 disposition 写 "E2E covered by TestSideOutputChainingE2E"，实际该 E2E 仅覆盖 WindowOperator late-data 路径 :1030） | 已知族（不变式 #6 输出契约族审计证据质量问题，非代码缺陷） | **P3** | **Follow-up Backlog**（与 C2-PR-4 联动，同一 backlog 条目，§10） | 历史无先例（本版 red list 首发）。影响面 = **次要治理 / 审计证据可追溯性**：措辞过 claim 不改变门禁行为（mjs 不消费 disposition 字段，V4 注册表判定不受影响），无任何运行时正确性影响；修复成本低（修订措辞 与/或 扩展 E2E）。I2 验证：`red-list.md` C2-RL-3「TestSideOutputChainingE2E（3 用例）源码确认仅覆盖 WindowOperator late-data 路径；ProcessOperator:111/:134、WindowOperator:1860、CepOperator:483/:777 共 5 个发射点无 E2E 覆盖（C2-PR-4 实测）」+ §0「已记录，供 I3 评估，不静默放过」。已裁定处置附依据即合规；未来触发条件 = I4 类别清扫或复探时评估措辞修订 / E2E 扩展。 |
+| C2-PR-1 透传链中间形态（6 发射点直连算子 `output` 字段，不经 TimestampedCollector） | `ProcessOperator.java:111/:134`、`WindowOperator.java:1860`、`CepOperator.java:777`（:1030/:483 同型） | 已知族（不变式 #6）门禁表达完备性观察 | —（非 defect） | **关闭**（记录在案，不重裁） | I2 探查结论「检查后无问题」（`cycle2-I2-probing-report.md` C2-PR-1）：`Collector<T>` 不继承 `Output`，用户函数无法经 collector 发 side-output；生产 `new TimestampedCollector(` 调用点 3 处均包装算子 output；main 无更深层 Output 包装链；JUnit 包装 RWO 断言 = 合成场景但分类语义有效。无处置动作。 |
+| C2-PR-2 扫描器静默跳过形态（匿名类 `new Output<>(){}` / `record implements Output` / raw `OutputTag tag`） | `ai-dev/tools/check-nop-stream-invariants.mjs`（parseTypeStructure :622-652 / V4 声明 regex :795-799） | 已知族（不变式 #6）门禁表达扩展候选 | —（非 defect，当前 0 实例） | **关闭**（不派发）+ **显式移交 I6**（Loop Rule 评估 Cycle 3 / I1 门禁形态覆盖；§9 记录） | I2 探查结论（C2-PR-2）：显式 fail 五路径全部实现 + self-test 覆盖；静默跳过三形态当前 0 实例（grep 实测）；false-positive 方向 fail-loud 安全。影响面 = 未来引入匿名 / record Output 实现或 raw OutputTag 声明时门禁静默放过（门禁表达缺口，非当前 live defect）。显式裁定「不派生 PD-16」（依据 = 非新失败类、无失败实例、已知族门禁表达扩展，派生与否 = I6 Loop Rule 显式评估，本行记录供 I6 可见）。 |
+| C2-PR-3 同一 OutputTag 重复注册消费者 = 静默覆盖（last-wins） | `ChainingOutput.java:67-69`（`sideOutputConsumers.put`）、`StreamTaskInvokable.java:310-313`（同型 put） | 已知族（不变式 #6）API 语义观察项 | **P3** | **Follow-up Backlog**（§10） | I2 探查结论（C2-PR-3）：「I3 可裁 P3」。影响面 = 健壮性 / 易误配（第二个注册者静默遮蔽第一个，数据只到一处）；**不违反不变式 #6**（仍转发到"一个"注册消费者，无静默丢弃）；生产当前无重复注册调用面（唯一注册入口 = StreamTaskInvokable / ChainingOutput 公开方法）。优化候选（重复注册 fail-fast 或广播语义），已裁定处置附依据即合规；未来触发条件 = 多消费者接线需求出现或类别清扫时评估。 |
+| C2-PR-4 E2E 覆盖缺口（6 发射点仅 1 个有 E2E） | `TestSideOutputChainingE2E`（nop-stream-runtime/.../integration/，3 用例）仅覆盖 `WindowOperator.java:1030` | 已知族（不变式 #6）覆盖缺口评估项 | **P3** | **Follow-up Backlog**（与 C2-RL-3 联动，同一 backlog 条目，§10） | I2 探查结论（C2-PR-4）：缺口确认，优化级候选，**不升格 red list**（I2 裁定）。影响面 = 未覆盖发射点（ProcessOperator:111/:134、WindowOperator:1860、CepOperator:483/:777）的端到端转发 / 无消费者 fail-fast 行为无回归测试兜底（风险 = 算子侧 ctx.output 接线形态差异，如 timestamp 处理）；门禁 V4 注册表 + ChainingOutput 行为断言在案（非裸奔）。未来触发条件 = I4 类别清扫或 E2E 扩展评估。 |
+| C2-PR-5 RWO/BRWO 控制面方法（emitWatermarkStatus / emitLatencyMarker）跨 task 空体 | `StreamTaskInvokable.java:640-642/:650-652`（RWO，注释文档化）/ `:701-702/:709-710`（BRWO，空体无注释） | 不变式 #6 陈述扩展候选（同根因族——跨 task Output 方法无线协议支持；**非独立新族**） | —（非 defect） | **关闭**（不派发）+ **显式移交 I6**（Loop Rule 评估不变式 #6 陈述扩展或新立控制面不变式；§9 记录） | I2 探查结论（C2-PR-5）：影响 = 控制面遥测 / 空闲检测降级，**非用户数据丢失**；RWO 两处有注释（文档化选择，Rule #24 合规）、BRWO 两处空体无注释（code-style 级观察）；修复需 RecordWriter 线协议扩展（同 `HG-01` 处置门——人工确认，不在 I4 自动信封内）。显式裁定「不派生 PD-16」（依据 = 非新独立族、同根因族扩展候选，扩展 / 派生判定 = I6 Loop Rule 显式评估，本行记录供 I6 可见）。 |
+
+### 7.3 interim fail-fast 预授权确认（信封复核结论：**通过**，2026-08-12 实测）
+
+> I6 §6.2 层次 1 预裁决确认流程——按本 plan Phase 1「失败路径必须闭合」要求执行**真实检查**（live 代码 + I2 权威版证据核对），非形式确认。
+
+- **目标形态**：`StreamTaskInvokable$RecordWriterOutput`（:611 `private static class`）/ `$BroadcastingRecordWriterOutput`（:660 `private static class`）的 `collect(OutputTag, X)` 方法体（:645-647 / :705-706）——**private 嵌套类方法体行为**，无 public API 暴露。
+- **`Output` 公共接口零变更**：`io.nop.stream.core.operators.Output.java:41` 接口 `collect(OutputTag<X>, StreamRecord<X>)` 已存在于 :59；修复只改 private 类方法体，接口签名 / 默认方法 / 其他实现类（ChainingOutput / TimestampedCollector）零改动。
+- **RecordWriter 线协议零变更**：修复不触碰 `RecordWriter` / `ResultPartition` / 跨 task 序列化 / 路由路径。
+- **模块边界零变更**：修复全部落在 `StreamTaskInvokable.java` 单文件内，无跨模块依赖变化、无新增公共内部机制。
+- **Rule #24 合规**：空体 no-op（静默）→ 显式 fail-fast（抛异常），非静默降级；先例 = `ChainingOutput.java:119`（`ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER` + `ARG_OUTPUT_TAG` / `ARG_DETAIL` 参数，RL-7 修复 `b20fcd0e1` 落地）。
+- **I2 权威版证据复核**：`red-list.md` C2-RL-1/2（I6 §6.2 预裁决 + pin / 注册表分类 + 接线路径复核）与信封边界全部一致；**I2 权威版未显示 `Output` 接口被改动、未显示修复需动模块边界、RWO/BRWO 确认为 private 嵌套类**（§2 裁定表 + §0 复核表在案）。
+- **结论：信封通过** → C2-RL-1/2 确认派发 = **自动修复信封内**（interim fail-fast，同 RL-7 先例），**无「需人工确认」门**；I4 派发清单按信封内标注（§8 WI-C2-1）；`HG-01` 线协议支持**明确排除**（不在本工作项范围，I6 已登记待办延续）。
+- **失败分支**：未触发（信封复核全部边界项通过；无 `NEEDS_I2_SUPPLEMENT`、无升级阻塞）。
+
+### 7.4 零悬挂复核（Phase 2）
+
+| 条目 | 严重度 | 处置 | 落点 |
+|---|---|---|---|
+| C2-RL-1 | P1 | 派 I4（interim fail-fast，信封内） | §8 WI-C2-1 |
+| C2-RL-2 | P1 | 派 I4（联合） | §8 WI-C2-1 |
+| C2-RL-3 | P3 | Follow-up Backlog | roadmap「## Follow-up Backlog」（2026-08-12 新增，C2-RL-3 + C2-PR-4 合并条目，§10） |
+| C2-PR-1 | — | 关闭（记录在案） | §7.2 |
+| C2-PR-2 | — | 关闭 + 移交 I6（扩展候选） | §7.2 + §9 |
+| C2-PR-3 | P3 | Follow-up Backlog | roadmap「## Follow-up Backlog」（2026-08-12 新增，§10） |
+| C2-PR-4 | P3 | Follow-up Backlog（与 C2-RL-3 合并） | roadmap「## Follow-up Backlog」（§10） |
+| C2-PR-5 | — | 关闭 + 移交 I6（扩展候选） | §7.2 + §9 |
+
+**复核结论**：8 条（3 red list + 5 探查发现）全部有处置，处置与派发一一对应（1 个 I4 工作项 + 2 条 backlog + 4 条关闭 / 移交 + C2-PR-2/5 显式移交 I6），**零悬挂达成**，无「已裁决但无处可去」项。
+
+## 8. Cycle 2 / I3 P0/P1 派发清单（I4 工作项，按族组织）
+
+> I4 计划（plan `2026-08-12-1217-11-...`）以本清单为输入起草。每条含：目标类 + 缺陷描述 + 预期行为 +
+> **类别清扫范围**（grep 全类兄弟，roadmap「类别清扫强制」）+ 测试要求（test-first 先红后绿）+ 门禁复跑要求。
+> **结构性重构标注**：本清单 1 个工作项 = **类内部行为修复**（private 嵌套类方法体），`Output` 公共接口零变更 /
+> RecordWriter 线协议零变更 / 模块边界零变更 → **信封通过（§7.3），无「需人工确认」门，显式声明**。
+
+### WI-C2-1. 族 #6 — 跨 task interim fail-fast（C2-RL-1 + C2-RL-2 联合，I6 §6.2 层次 1 预授权确认）
+
+- **目标类**：`StreamTaskInvokable$RecordWriterOutput` / `$BroadcastingRecordWriterOutput`（`nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/StreamTaskInvokable.java`，private 嵌套类）
+- **缺陷描述**：`collect(OutputTag, X)` 空体 no-op（RWO :645-647，:646 仅注释「Side outputs not supported in cross-task exchange」/ BRWO :705-706 空体无注释）→ 跨 task 多 vertex 部署下 tail 算子（WindowOperator / CepOperator / ProcessOperator）6 发射点的 side-output 发射全部静默丢弃（契约违约，无 fail-fast；RL-7 同族残余）。
+- **预期行为**：无注册消费者时抛 `ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER` 风格异常（先例 `ChainingOutput.java:119`，含 `ARG_OUTPUT_TAG` / `ARG_DETAIL` 参数），**禁止静默丢弃（Rule #24）**；RWO :646 注释同步更新与 fail-fast 语义一致。
+- **类别清扫范围**：全部 main `Output` 实现类（4 个：ChainingOutput / TimestampedCollector / RWO / BRWO——兄弟行为核对，RWO/BRWO 为同缺陷双实例）+ 全部 `collect(OutputTag` call-site（6 发射点 + TimestampedCollector:98 转发）+ 接线链（`GraphExecutionPlan.java:454-458` → `StreamTaskInvokable.wireOperators :239/:245` / `wireTailToRecordWriter :352`）。
+- **测试要求（test-first 先红后绿）**：翻转 `TestOutputContractInvariant` pinned-known-violation 分支反射断言（RWO `partition.size()==0` / BRWO `sideReceived.size()==0` → 无消费者 fail-fast 断言）+ 跨 task 端到端 fail-fast 用例（RWO / BRWO 两路径，含接线可达验证）。
+- **门禁复跑要求**：`node ai-dev/tools/check-nop-stream-invariants.mjs all` exit 0（scan-output-contract 零命中）+ `TestOutputContractInvariant` 全绿 + `./mvnw test -pl nop-stream -am -T 1C` 全量 BUILD SUCCESS。
+- **收尾三连（I4 内，三处一致）**：① 注册表分类更新 = RWO/BRWO `pinned-known-violation` → `fail-fast`（含 `TimestampedCollector` disposition / subSemantics 同步——其现文「包装 RWO = 等价跨 task 丢弃」在修复后不再成立，需同步为包装 fail-fast 对象 = fail-fast 语义）；② 过渡 pin 2 条移除（`RWO-cross-task-noop` / `BRWO-cross-task-noop`，removalTrigger 已满足，禁静默移除）；③ 门禁复跑零命中（注册表 + JUnit 断言 + pin 移除三处同步一致）。
+- **信封边界（显式声明）**：信封通过（§7.3）→ 无「需人工确认」门；`HG-01` 线协议支持**明确排除**（不属本项，I6 待办延续）。
+- **兜底核对**：I2 权威版仍含 C2-RL-1/2（§2 pin 裁定均维持，未 verified）→ 派发成立；「部分 verified」边缘未触发（2 条 pin 均维持，无已 verified 条目）。
+
+### 其余 P0/P1
+
+**显式声明：无其他 P0/P1 项**——C2-RL-3 = P3（治理 / 文档措辞）；C2-PR-1/2/5 = 非 defect（关闭 / 移交 I6）；C2-PR-3/4 = P3（backlog）。
+
+## 9. Cycle 3 派生登记（Cycle 2 / I3 版）
+
+- **显式声明：无新独立族**（I2 权威版 §3/§4 结论复核一致——全部发现属已知族（不变式 #6 输出契约族）或其后继扩展候选）→ **无 PD-16 派生登记**（PD-16 = 本仓下一铸号：`max(lessons 最高编号 14, 已铸 PD 最大值 15) + 1 = 16`，live grep 复核无已铸 PD-16；编号保留，由 I6 按需铸造）。
+- **已知族扩展候选（显式移交 I6 Loop Rule 评估，本小节为 I6 输入记录）**：
+  - **C2-PR-2（门禁表达扩展候选）**：建议 Cycle 3 / I1 评估 scan-output-contract 增加匿名类 / record Output 实现形态显式 fail 或枚举，及 raw OutputTag 声明覆盖；触发证据 = `ai-dev/tools/check-nop-stream-invariants.mjs` parseTypeStructure :622-652 / V4 声明 regex :795-799；当前 0 实例。显式裁定「不派生 PD-16」（依据 = 非新失败类、无失败实例、已知族门禁表达扩展）。
+  - **C2-PR-5（不变式 #6 陈述扩展候选）**：不变式陈述扩展候选 =「跨 task 部署下 Output 控制面方法（emitWatermarkStatus / emitLatencyMarker）不得静默丢弃，或显式 fail-fast / 文档化」；触发证据 = `StreamTaskInvokable.java:640-642/:650-652/:701-702/:709-710`；修复需线协议扩展（`HG-01` 门）。显式裁定「不派生 PD-16」（依据 = 非独立新族、同根因族扩展候选、控制面遥测非数据丢失）。
+- **移交**：两条候选显式移交 I6（本 plan Non-Blocking Follow-ups 第 2 条），I6 按 Loop Rule 评估正式追加 Cycle 3 / I1 work item 或维持稳态。
+
+## 10. Cycle 2 / I3 Follow-up Backlog 登记
+
+> 已裁定处置（附依据即合规），不驱动独立修复计划；当 I4/I5 类别清扫或复探触发其适用场景时评估修复。落点 = roadmap「## Follow-up Backlog」。
+
+- **C2-RL-3 + C2-PR-4**（注册表 disposition 措辞过 claim + 6 发射点 E2E 覆盖缺口，P3 优化）→ roadmap 新增 backlog 条目「输出契约族审计证据准确性 + E2E 覆盖扩展」（2026-08-12）。
+- **C2-PR-3**（同一 OutputTag 重复注册 last-wins 静默覆盖，P3 优化）→ roadmap 新增 backlog 条目「side-output 消费者重复注册语义」（2026-08-12）。
