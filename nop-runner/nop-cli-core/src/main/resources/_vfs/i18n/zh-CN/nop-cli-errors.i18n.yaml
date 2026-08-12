@@ -1,28 +1,52 @@
 nop.err.ai.coder.headers-and-data-not-match: 表头和数据的列数不匹配:headers={headers},data={data}
+nop.err.ai.coder.method-signature-not-found: 'Method signature not found: {signature}'
+nop.err.ai.coder.unbalanced-braces: Unbalanced braces in method body
 nop.err.ai.coder.unknown-sql-type: '未知的SQL类型: {sqlType}'
+nop.err.ai.coder.unsupported-conversion: Unsupported conversion:{from}->{to}
 nop.err.ai.command.empty-tools-node: call-tools节点为空
 nop.err.ai.command.file-path-empty: 文件路径不能为空
 nop.err.ai.command.not-found: 命令未找到:{command}
 nop.err.ai.command.tools-node-parse-failed: 解析call-tools节点失败
 nop.err.ai.file-content.no-path: 文件对象没有指定路径属性
+nop.err.ai.file.invalid-edit-type: Invalid edit type
 nop.err.ai.invalid-expr-var-name: 提示词表达式中的变量名无效:{varName}
 nop.err.ai.mandatory-input-is-empty: 输入参数{inputName}不能为空
 nop.err.ai.mandatory-output-is-empty: 输出参数{outputName}不能为空
 nop.err.ai.no-var-in-scope: 上下文中不存在对应变量:{varName}
 nop.err.ai.prompt-empty-expr: 提示词表达式内容为空
 nop.err.ai.prompt-expr-prefix-unknown: 未定义的提示词表达式前缀:{prefix}
+nop.err.ai.prompt-template-null: prompt template is null
 nop.err.ai.prompt-unclosed-expr: 提示词表达式两侧的括号没有正确匹配
+nop.err.ai.prompt-unsupported-parse-from-response: 'unsupported parseFromResponse:
+  {parseModel}'
 nop.err.ai.prompt-var-not-defined: 提示词使用了未定义的变量{varName}
+nop.err.ai.service.get-session-deprecated: 'Deprecated: use IChatService instead'
 nop.err.ai.service.http-error: 大语言模型{llmName}调用失败，HTTP状态码={httpStatus}
 nop.err.ai.service.invalid-response: 大语言模型返回的结果不正确
 nop.err.ai.service.no-base-url: 大语言模型{llmName}没有指定baseUrl配置
 nop.err.ai.service.no-default-llms: 没有指定调用的大语言模型，也没有配置nop.ai.service.default-llm来指定缺省的大语言模型
 nop.err.ai.service.option-not-set: 大语言模型{llmName}没有设置选项{optionName}
+nop.err.ai.service.rate-limited: 大语言模型{llmName}调用被限流（本地配额耗尽）
 nop.err.ai.service.result-invalid-end-line: 大语言模型返回的结果行没有符合预期模式
-nop.err.ai.service.result-invalid-number: 大语言模型返回的结果不是数字:name={name},value={name}
+nop.err.ai.service.result-invalid-number: 大语言模型返回的结果不是数字:name={name},value={value}
 nop.err.ai.service.result-is-empty: 大语言模型返回的结果为空
 nop.err.ai.service.result-no-expected-part: 大语言模型返回的结果没有符合预期模式, 缺少内容：{expected}
+nop.err.ai.session-id-empty: sessionId must not be null or empty (path-traversal guard)
+nop.err.ai.session-id-invalid: 'sessionId contains invalid characters; only [A-Za-z0-9_-]
+  are allowed (path-traversal guard): sessionId={sessionId}'
+nop.err.ai.tools.invalid-max-results: maxResults must be positive
+nop.err.ai.tools.invalid-project-name: projectName must be valid file directory name:{value}
+nop.err.ai.tools.invalid-stage: 'Invalid ThoughtStage: {value}'
+nop.err.ai.tools.invalid-thought: '思维处理请求无效: {value}'
+nop.err.ai.tools.invalid-thought-number: Thought number must be positive
+nop.err.ai.tools.invalid-total-thoughts: Total thoughts must be positive
+nop.err.ai.tools.thought-empty: Thought cannot be empty
+nop.err.ai.tools.total-thoughts-less-than-number: Total thoughts must be >= thought
+  number
+nop.err.ai.unknown-role: unknown role:{role}
 nop.err.ai.unknown-tool-call: 调用的工具未注册:{toolName}
+nop.err.ai.vector-length-mismatch: Length of vector a  must be equal to the length
+  of vector b
 nop.err.antlr.common.parse-fail: 解析失败
 nop.err.antlr.lexer-parse-fail: 词法解析失败：{source}
 nop.err.antlr.not-end-properly: 语句没有正常结束
@@ -704,6 +728,7 @@ nop.err.ioc.aop-class-no-constructor: bean[{beanName}]对应的AOP代理类没�
 nop.err.ioc.bean-aop-proxy-not-generated: bean[{beanName}]指定了interceptor，但没有生成对应的Aop代理类
 nop.err.ioc.bean-depend-on-high-order-bean: bean[{beanName}]依赖的bean[{depend}]的优先级比自身的优先级高
 nop.err.ioc.bean-depends-graph-contains-loop: bean依赖关系不允许包含循环依赖。如果确实存在，可以在必要的地方配置节点上标注ioc:ignore-depends
+nop.err.ioc.bean-order-constraint-violated: bean[{beanName}]的ioc:before/ioc:after顺序约束不能满足：目标bean[{depend}]的拓扑顺序违反声明
 nop.err.ioc.bean-scope-already-closed: scope[{beanScope}]已经被关闭
 nop.err.ioc.class-no-field: 静态字段[{staticField}]配置不正确，类[className]上不存在字段[{fieldName}]
 nop.err.ioc.class-not-annotation: bean[{beanName}]的pointcut配置中用到的类[{className}]不是注解类型
@@ -743,8 +768,6 @@ nop.err.ioc.unknown-bean-prop: id为[{beanName}]的bean没有定义属性[{propN
 nop.err.ioc.unknown-bean-ref: 引用名[{beanRef}]没有指向已定义的bean
 nop.err.ioc.unknown-concrete-bean-ref: 引用名[{beanRef}]没有指向已定义的具体的bean
 nop.err.ioc.unknown-depend-ref: '[{beanName}]的依赖[{depend}]没有指向已定义的bean'
-nop.err.ioc.unknown-ioc-after: bean[{beanName}]的ioc:after指定的依赖[{after}]没有被定义
-nop.err.ioc.unknown-ioc-before: bean[{beanName}]的ioc:before指定的依赖[{before}]没有被定义
 nop.err.ioc.unknown-parent-ref: bean[{beanName}]的parent属性值[{parent}]没有指向已定义的bean
 nop.err.ioc.unresolved-alias: alias[{alias}]对应的bean[{beanName}]未定义
 nop.err.javac.not-support-transform-to-xlang-ast-fail: 不支持转换到XLang AST语法树节点
@@ -912,6 +935,7 @@ nop.err.orm.unknown-fragment: 未知的SQL片段:{fragmentId}
 nop.err.orm.unsupported-data-type: 不支持的数据类型:{dataType}
 nop.err.orm.update-entity-multiple-rows: 更新实体[{entityName}:{entityId}]时发现多条重复记录
 nop.err.orm.update-entity-not-found: 更新实体[{entityName}:{entityId}]失败，未找到匹配记录，可能是乐观锁更新失败
+nop.err.orm.update-retry-entity-not-allow-dirty: 执行updateWithRetry更新时传入的实体必须为未修改状态，当前实体已经被修改
 nop.err.orm.visit-loop-count-exceed-limit: 实体遍历循环的执行次数超过最大限制
 nop.err.pom.reference-contains-loop: Maven不允许循环依赖
 nop.err.proto.not-support-data-type: 不支持的类型:{dataType}
@@ -1040,6 +1064,7 @@ nop.err.web.missing-resource: 资源文件[{path}]不存在
 nop.err.web.page-load-fail: 页面[{pagePath}]加载失败
 nop.err.web.page-not-allow-edit: 没有开启编辑模式，不允许编辑页面文件
 nop.err.web.page-resource-not-file: 页面资源[{path}]不是文件，不允许修改
+nop.err.web.unsupported-action-type: 不支持的页面操作类型[{actionType}]
 nop.err.web.unsupported-file-type: 请求路径[{path}]不是允许的文件类型，文件后缀名必须是{allowedFileTypes}
 nop.err.xlang.break-statement-not-in-loop: break语句必须放到循环语句内部
 nop.err.xlang.const-decl-no-initializer: 常量声明没有初始化表达式
