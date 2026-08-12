@@ -19,7 +19,7 @@
 - W4. MFA 数据模型 + TOTP 验证器 + 存储组件（MfaChallengeStore/SmsCodeStore）：`done` — plan: `ai-dev/plans/2026-08-12-1229-1-mfa-data-model-totp-stores.md`
 - W5. MFA 登录流程两阶段改造 + 短信验证码登录（loginType=5 + dict 修复）：`done` — plan: `ai-dev/plans/2026-08-12-1229-2-mfa-login-two-stage-sms-login.md`
 - W6. MFA 用户自助/管理员 API + nop-ai-gateway 扫码适配：`planned` — plan: `ai-dev/plans/2026-08-13-1118-1-mfa-user-admin-api-scan-adaptation.md`
-- W7. 存量迁移（NopAiModel.apiKey）+ docs-for-ai 同步：`planned` — plan: `ai-dev/plans/2026-08-13-1118-2-legacy-migration-docs-sync.md`（Phase 1 仅依赖 W2 可先行；Phase 2/3 docs 引用 W6 live 产物，含 repo-observable W6 gate）
+- W7. 存量迁移（NopAiModel.apiKey）+ docs-for-ai 同步：`done` — plan: `ai-dev/plans/2026-08-13-1118-2-legacy-migration-docs-sync.md`（Phase 1 仅依赖 W2 可先行；Phase 2/3 docs 引用 W6 live 产物，含 repo-observable W6 gate）
 - W8. **MFA 存储数据库实现 + store-type 默认 db**：`done` — plan: `ai-dev/plans/2026-08-13-0900-1-mfa-db-store-and-default-db.md`（用户 2026-08-13 裁决：缺省不使用 Redis；所有存储必须有基于数据库的实现——新增 `DbMfaChallengeStore`/`DbSmsCodeStore` 两 ORM 实体表 `nop_auth_mfa_challenge`/`nop_auth_sms_code`；默认 `store-type` 由 `local` 改 `db`；`MfaStoreProvider` 改 collect-beans name-prefix 声明式装配 + 条件式 Redis 注册守住类加载安全不变式 ai-dev/lessons/15）
 - ★ **Milestone: 安全能力一期落地**（W1-W7 全部 done）：`todo`
 
@@ -99,7 +99,7 @@
 
 **Deliverables:**
 - `credential-type.xdef` 元模型 + register-model.xml（xdsl-loader fileType="credential-type.xml"）+ 示例类型实例文件（`_vfs/nop/credential/types/`）
-- ORM 实体：`NopCredential`（data 加密列、status/deleted/usageScope/lastUsedAt/expireAt/testResult 等）+ `NopCredentialUsage`（credentialId + consumerRef 唯一约束）；model-first（`model/nop-credential.orm.xml` 源 → codegen → DDL 迁移，**禁止手编 `_gen/` 与 `_` 前缀文件**）
+- ORM 实体：`NopCredential`（data 加密列、status/deleted/usageScope/lastUsedAt/expireAt/testResult 等）+ `NopCredentialUsage`（credentialId + consumerRef 唯一约束）；model-first（`nop-credential/model/nop-credential.orm.xml` 源 → codegen → DDL 迁移，**禁止手编 `_gen/` 与 `_` 前缀文件**）
 - `ICredentialProvider` SPI（接口在 api，实现+唯一解密点在 service）：getCredential/getCredentialData/testCredential/mask/registerUsage/unregisterUsage
 - 软删除语义（fail-closed）+ 引用计数（registerUsage/unregisterUsage）
 - xmeta：`data` 列 `published="false"`（明文边界结构性强制）

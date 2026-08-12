@@ -20,7 +20,7 @@
 |------|------|------|
 | NopAiProject | `nop_ai_project` | AI 项目 |
 | NopAiProjectRule | `nop_ai_project_rule` | 项目规则 |
-| NopAiModel | `nop_ai_model` | AI 模型注册（provider, modelName, baseUrl, apiKey） |
+| NopAiModel | `nop_ai_model` | AI 模型注册（provider, modelName, baseUrl, apiKey, credentialId） |
 | NopAiRequirement | `nop_ai_requirement` | 需求管理 |
 | NopAiKnowledge | `nop_ai_knowledge` | 知识库 |
 | NopAiPromptTemplate | `nop_ai_prompt_template` | Prompt 模板 |
@@ -53,6 +53,25 @@
 |------|------|
 | ORM 模型 | `nop-ai/model/nop-ai.orm.xml` |
 | 引擎可靠性/超时 | `AIREL-001`（见 `../04-reference/source-anchors.md`）：`nop-ai-agent` 的 `DefaultAgentEngine` |
+
+## NopAiModel 凭证库迁移（credentialId）
+
+`NopAiModel` 增加了可选普通列 `credentialId`（`credential_id VARCHAR(50)`，propId=17），作为指向加密凭证库 `nop_credential` 的**逻辑外键**。
+
+**设计要点**：
+
+- `credentialId` 是**普通可选列**，ORM 模型中**不声明 `refEntityName`/`to-one` 关系**——这避免 `nop-ai-dao` 引入对 `nop-credential-dao` 的跨模块 DAO 依赖。逻辑外键关系仅在文档中描述。
+- 运行时消费经 `ICredentialProvider`（接口在 `nop-credential-api`，实现 `CredentialProviderImpl` 在 `nop-credential-service`，是平台唯一凭证解密点），而非直接 DAO 引用。
+- `apiKey` 列**保留兼容**（已是 `tagSet="enc"` 列级加密，非明文）。未迁移的存量行继续用 `apiKey` 列，迁移是增量可选。
+
+**迁移路径**（建凭证 → 登记引用 → 设 credentialId → apiKey 冗余）：
+
+1. 建凭证：`NopCredential__saveCredential(typeName="openai-api-key", name="<模型名>", fields={apiKey:"<明文>"})`，得到 `credentialId`。明文经 `CredentialCipher` 加密为 `cv1:` 密文落库，不跨出服务进程。
+2. 登记引用：`ICredentialProvider.registerUsage(credentialId, consumerRef="ai:NopAiModel:<modelId>")`——幂等写入 `NopCredentialUsage`，删除凭证前据此检查引用计数。
+3. 设 `NopAiModel.credentialId`：将上一步的 `credentialId` 写入对应模型行。
+4. `apiKey` 列冗余：迁移后 `apiKey` 列成为冗余备份，可在确认运行时消费稳定后清理（本期保留，不破坏兼容）。
+
+> **本期边界**：`credentialId` 字段与迁移路径文档已落地，但**运行时消费读取切换未接通**（credentialId 存在时经 `ICredentialProvider.getCredentialData` 解析 apiKey、否则回退 apiKey 列的钩子未接）。运行时切换为独立后续工作（Deferred），届时须 fail-closed。凭证库与 `@sec:` 的边界详见 `nop-credential.md`。
 
 ## Agent 引擎可靠性配置（nop-ai-agent）
 

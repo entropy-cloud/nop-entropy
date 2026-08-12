@@ -219,6 +219,48 @@ Nop IoC 提供 `<ioc:collect-beans>` 标签，用于在 bean 定义中声明式�
 <ioc:collect-beans by-type="io.nop.ai.toolkit.api.IToolExecutor"/>
 ```
 
+## 配置值加密 `@sec:`
+
+配置文件中的静态敏感值（数据库密码、第三方密钥等）可用 `@sec:` 前缀加密，启动期自动解密。
+
+### 机制
+
+- 配置值以 `@sec:` 前缀标记（常量 `CommonConstants.SEC_VALUE_PREFIX`，`nop-commons/.../CommonConstants.java:33`）。
+- `ConfigStarter`（`nop-config/.../starter/ConfigStarter.java:449`）装配 `DefaultConfigValueEnhancer` + `AESTextCipher`（`:473`）。
+- `DefaultConfigValueEnhancer.doEnhance()`（`nop-config/.../enhancer/DefaultConfigValueEnhancer.java:67`）检测到 `@sec:` 前缀时，用 `AESTextCipher.decrypt()` 解密后续密文。
+- 密文格式 `v1:{base64(iv || ciphertext+tag)}`（AES-256-GCM + PBKDF2-SHA256），由 `AESTextCipher`（`nop-commons/.../crypto/impl/AESTextCipher.java`）处理。
+
+### 加密密钥配置
+
+| 配置项 | 说明 |
+|--------|------|
+| `nop.config.encrypt-key` | AES 主密钥（passphrase） |
+| `nop.config.encrypt-salt-key` | 盐值 |
+| `nop.config.encrypt-concat-iv` | IV 拼接方式 |
+
+### 用法
+
+在 yaml/properties 中写：
+
+```yaml
+nop:
+  integration:
+    feishu:
+      app-secret: "@sec:v1:..."   # 加密后的密文
+```
+
+注入侧（Java bean）正常用 `@cfg:` 注入，`DefaultConfigValueEnhancer` 在配置加载期已解密为明文。消费样例见 `nop-integration-feishu/.../client/FeishuCredentials.java`（Javadoc 说明 `@sec:` → `DefaultConfigValueEnhancer` + `AESTextCipher`，`appSecret`/`encryptKey` 字段可承载 `@sec:` 密文）。
+
+### `@sec:` vs 加密凭证库（nop-credential）
+
+| | `@sec:`（本节） | nop-credential 凭证库 |
+|---|---|---|
+| **服务对象** | 配置文件静态值（启动期一次解密） | DB 行级动态数据（运行期写入/读取） |
+| **管理能力** | 无（仅配置值替换） | 类型注册 / 连通性测试 / 密钥轮换 / 引用计数 / 脱敏展示 |
+| **典型场景** | `oss.secret-key`、`feishu.appSecret` 等配置项 | `NopAiModel.apiKey`、数据源密码等 DB 列 |
+
+> 判断规则：密钥写在**配置文件**里、不随业务运行期变化 → 用 `@sec:`；密钥存在 **DB 业务行**里、需要运行期管理与轮换 → 用 nop-credential 凭证库（`ICredentialProvider`）。详见 `../03-modules/nop-credential.md`。
+
 ## 不要默认传播的模式
 
 1. Spring `@Value`

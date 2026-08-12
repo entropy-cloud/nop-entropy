@@ -468,6 +468,37 @@ curl -s -X POST "http://localhost:8080/r/LoginApi__refreshToken" \
 | SSO 认证 | `OAuthLoginServiceImpl` — `nop-auth-sso/.../login/OAuthLoginServiceImpl.java` |
 | JWK 密钥定位 | `JWKPublicKeyLocator` — `nop-auth-sso/.../jwk/JWKPublicKeyLocator.java` |
 
+## 两阶段登录（MFA）
+
+启用 MFA 后，登录变为两阶段：第一因子（密码/SSO/信道）校验通过后，不直接签发 token，而是抛 `ERR_AUTH_MFA_REQUIRED`（`nop.err.auth.mfa-required`）携带 challenge 参数，客户端完成第二因子验证后才签发 token。未启用 MFA 的用户零感知（直接签发）。
+
+### loginType 登录类型
+
+| 值 | 含义 |
+|----|------|
+| 1 | 用户名 + 密码 |
+| 2 | 邮箱 + 密码 |
+| 3 | 手机号 + 密码 |
+| 4 | 单点登录（SSO） |
+| 5 | 手机号 + 短信验证码（短信登录） |
+| 20-23 | 信道登录（飞书 / 钉钉 / 企微 / Webhook） |
+
+字典定义：`nop-biz-auth-core/.../_vfs/dict/auth/login-type.dict.yaml`。
+
+### 两阶段流程
+
+1. `LoginApi__login`（`loginType` + 凭证）→ `LoginServiceImpl.loginAsync()` 校验第一因子。
+2. `checkMfaRequired()` 判定 `nop.auth.mfa.enabled` + 用户 MFA 设置 status==enabled。
+3. 命中 MFA → `MfaChallengeStore.create()` 生成 challengeToken → 抛 `ERR_AUTH_MFA_REQUIRED`（errorParams 携带 `challengeToken`/`mfaType`/`loginType`）。
+4. 客户端调 `LoginApi__mfaVerify`（`challengeToken` + 第二因子码）→ `LoginServiceImpl.mfaVerifyAsync()`：校验 TOTP/SMS/恢复码 → 成功后签发 token。
+5. SSO（loginType=4）与信道登录（20-23）同样经 `createSessionForUserAsync` 拦截（loginType 参数化保证审计不失真）。
+
+### 扫码登录 MFA 适配
+
+扫码登录（nop-ai-gateway `loginByScan`）捕获 `ERR_AUTH_MFA_REQUIRED` → 返回 `ScanLoginResult{mfaRequired=true}`。时序：手机扫码 → 输码 → `mfaVerify` → accessCode → PC 轮询 `getLoginResultAsync`。
+
+> MFA 数据模型、TOTP 验证器、存储后端、用户自助/管理员 API、配置项详见 `../03-modules/nop-auth.md`（"多因子验证（MFA）"章节）。
+
 ## 平台默认权限实体
 
 | 实体 | 表 | 用途 |

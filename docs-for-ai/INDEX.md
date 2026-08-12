@@ -168,7 +168,7 @@
 | **BizModel 方法自检清单**（写 BizModel 前后逐项核对） | **`04-reference/bizmodel-method-selfcheck.md`** |
 | 理解服务接口的异步调用（CompletionStage 变体） | `04-reference/async-service-guide.md` |
 | **选择可复用业务模块** | **`03-modules/reusable-modules-overview.md`**（总览 + 场景→模块路由） |
-| 理解 nop-auth（认证/权限/多租户） | `03-modules/nop-auth.md`（多租户核心机制见 `02-core-guides/tenant-model.md`） |
+| 理解 nop-auth（认证/权限/多租户） | `03-modules/nop-auth.md`（多租户核心机制见 `02-core-guides/tenant-model.md`，MFA 两阶段登录见同文件"多因子验证（MFA）"章节 + `02-core-guides/auth-and-permissions.md`"两阶段登录（MFA）"章节） |
 | 理解 nop-sys（字典/序列号/编码规则/锁/事件） | `03-modules/nop-sys.md` |
 | **生成业务编码 / 单据编号（CodeRule）** | **`03-runbooks/generate-business-code.md`**（模式 `{@year}{@seq:5}` + `tagSet="code"` autoExpr 自动集成 + Sequence 并发模型） |
 | **记录字段级变更日志 / 字段级审计** | **`03-runbooks/audit-field-changes.md`**（实体加 `tagSet="audit"` 自动记 old→new 到 `NopSysChangeLog`，默认启用） |
@@ -183,6 +183,7 @@
 | 理解 nop-batch（批处理） | `03-modules/nop-batch.md` + `02-core-guides/batch-dsl.md`（DSL 配置参考）+ `04-reference/xdefs/batch.xdef`（DSL 权威定义） |
 | 理解 nop-job（定时任务：本地模式 + 分布式模式） | `03-modules/nop-job.md` |
 | 理解 nop-ai（AI 集成/LLM/Agent/RAG） | `03-modules/nop-ai.md` |
+| 理解 nop-credential（加密凭证库/行级敏感数据加密/ICredentialProvider） | `03-modules/nop-credential.md`（与 `@sec:` 配置加密的边界见 `02-core-guides/ioc-and-config.md`） |
 | 理解 nop-dyn（动态表单/实体） | `03-modules/nop-dyn.md` |
 | 理解 nop-file（文件上传下载与存储机制） | `03-modules/nop-file.md` |
 | 理解 nop-retry（分布式重试） | `03-modules/nop-retry.md` |
