@@ -455,6 +455,25 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         internalTimerService = new HeapInternalTimerService<>(this,
                 () -> getKeyedStateBackend() != null ? (K) getKeyedStateBackend().getCurrentKey() : null);
 
+        // Register with the task's TimerServiceManager (mirroring ProcessOperator.open()).
+        // Null-guarded: direct unit-test usage without a task has no manager — the timer
+        // service still works standalone (fired via advanceWatermark/onProcessingTime).
+        if (timeServiceManager != null) {
+            timeServiceManager.registerTimerService(internalTimerService);
+        }
+
+        // Explicit warning instead of silent zero output (plan `2026-08-13-0132-1` Phase 2):
+        // a processing-time window without a wired ProcessingTimeService/TimerServiceManager
+        // has no driver to fire its timers — without this WARN the job would silently never
+        // emit. The production task wiring always injects both before open(); this fires only
+        // when the operator is opened outside a task (direct unit-test usage).
+        if (!windowAssigner.isEventTime() && getProcessingTimeService() == null) {
+            LOG.warn("Processing-time window operator opened without a ProcessingTimeService; "
+                    + "its processing-time timers will never fire (no processing-time driver). "
+                    + "The production task wiring injects the service before open(); "
+                    + "direct open() outside a task has no driver.");
+        }
+
         // Apply any timer snapshot captured by restoreState() (called before open()).
         // This deferred-application pattern is required because restoreState() runs
         // before open() creates the timer service (see TestCheckpointRecovery.java:478).
