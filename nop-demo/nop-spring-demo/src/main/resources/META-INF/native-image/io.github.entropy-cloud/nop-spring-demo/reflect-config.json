@@ -6079,6 +6079,10 @@
         ]
       },
       {
+        "name": "authCookieName",
+        "parameterTypes": []
+      },
+      {
         "name": "buildLoginUrlWithState",
         "parameterTypes": [
           "io.nop.http.api.server.IHttpServerContext",
@@ -6268,6 +6272,10 @@
     "fields": [],
     "methods": [
       {
+        "name": "ensureKeys",
+        "parameterTypes": []
+      },
+      {
         "name": "generateAccessCode",
         "parameterTypes": [
           "io.nop.api.core.auth.IUserContext",
@@ -6295,6 +6303,12 @@
       {
         "name": "getEncKey",
         "parameterTypes": []
+      },
+      {
+        "name": "getKey",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
       },
       {
         "name": "getSignKey",
@@ -13999,6 +14013,26 @@
       }
     ],
     "name": "io.nop.auth.service.biz.SiteMapApiBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.service.channel.ChannelBindServiceImpl"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.service.channel.UserChannelResolverImpl"
   },
   {
     "allDeclaredConstructors": true,

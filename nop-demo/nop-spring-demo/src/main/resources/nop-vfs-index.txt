@@ -900,6 +900,7 @@
 /nop/web/xlib/flux-web/init_grid_gen_scope.xpl
 /nop/web/xlib/flux-web/page_complex.xpl
 /nop/web/xlib/flux-web/page_crud.xpl
+/nop/web/xlib/flux-web/page_embed.xpl
 /nop/web/xlib/flux-web/page_group.xpl
 /nop/web/xlib/flux-web/page_picker.xpl
 /nop/web/xlib/flux-web/page_simple.xpl
