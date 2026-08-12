@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.nop.api.core.annotations.core.Internal;
+import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.checkpoint.CheckpointPlan;
 import io.nop.stream.core.checkpoint.CompletedCheckpoint;
 import io.nop.stream.core.checkpoint.OperatorStateMapping;
@@ -190,6 +191,7 @@ public class SupervisionLoop {
                            CheckpointCoordinator coordinator,
                            CheckpointPlan checkpointPlan) throws InterruptedException {
         run(execPlan, tasks, executor, jobGraph, coordinator, checkpointPlan,
+                null, null,
                 DEFAULT_MAX_RESTARTS_PER_REGION, DEFAULT_POLL_INTERVAL_MS);
     }
 
@@ -203,11 +205,18 @@ public class SupervisionLoop {
                            TaskExecutor executor,
                            JobGraph jobGraph) throws InterruptedException {
         run(execPlan, tasks, executor, jobGraph, null, null,
+                null, null,
                 DEFAULT_MAX_RESTARTS_PER_REGION, DEFAULT_POLL_INTERVAL_MS);
     }
 
     /**
-     * Full-parameter run method (package-private for focused testing).
+     * Legacy full-parameter overload (pre-P0-02 signature). Restarted tasks are
+     * wired into the checkpoint pipeline (tracker/listeners/participants) but the
+     * barrier-injection list is NOT updated (no list reference) — the checkpoint
+     * config is unknown, so the rebuilt chain receives the default
+     * MemoryStateBackend. Kept for direct-test compatibility; the production
+     * entry ({@code GraphModelCheckpointExecutor.submitAndRun}) uses the
+     * full 10-parameter overload.
      */
     static void run(GraphExecutionPlan execPlan,
                     Map<String, SubtaskTask> tasks,
@@ -215,6 +224,31 @@ public class SupervisionLoop {
                     JobGraph jobGraph,
                     CheckpointCoordinator coordinator,
                     CheckpointPlan checkpointPlan,
+                    int maxRestartsPerRegion,
+                    long pollIntervalMs) throws InterruptedException {
+        run(execPlan, tasks, executor, jobGraph, coordinator, checkpointPlan,
+                null, null,
+                maxRestartsPerRegion, pollIntervalMs);
+    }
+
+    /**
+     * Full-parameter run method (package-private for focused testing).
+     *
+     * @param allInvokables    the barrier-scheduler injection list (thread-safe;
+     *                         nullable). When non-null, a region restarted task
+     *                         REPLACES its old invokable in this list so the
+     *                         rebuilt task receives checkpoint barriers (P0-02).
+     * @param checkpointConfig the job's checkpoint config (state-backend source
+     *                         for rebuilt operator chains; nullable)
+     */
+    static void run(GraphExecutionPlan execPlan,
+                    Map<String, SubtaskTask> tasks,
+                    TaskExecutor executor,
+                    JobGraph jobGraph,
+                    CheckpointCoordinator coordinator,
+                    CheckpointPlan checkpointPlan,
+                    List<StreamTaskInvokable> allInvokables,
+                    CheckpointConfig checkpointConfig,
                     int maxRestartsPerRegion,
                     long pollIntervalMs) throws InterruptedException {
 
@@ -271,7 +305,8 @@ public class SupervisionLoop {
                 LOG.info("Supervision loop restarting region {} (attempt {}/{})",
                         failedRegionId, count, maxRestartsPerRegion);
                 boolean restarted = restartRegion(execPlan, tasks, executor, jobGraph,
-                        decomposition, failedRegionId, coordinator, checkpointPlan);
+                        decomposition, failedRegionId, coordinator, checkpointPlan,
+                        allInvokables, checkpointConfig);
                 if (!restarted) {
                     // Region contains producers needing drain/reconnect (successor plan 4).
                     throw new StreamException(ERR_STREAM_REGION_RESTART_UNSUPPORTED, failedTask.getError())
@@ -386,7 +421,9 @@ public class SupervisionLoop {
                                          RegionDecomposition decomposition,
                                          RegionId regionId,
                                          CheckpointCoordinator coordinator,
-                                         CheckpointPlan checkpointPlan) {
+                                         CheckpointPlan checkpointPlan,
+                                         List<StreamTaskInvokable> allInvokables,
+                                         CheckpointConfig checkpointConfig) {
         // Find the region and its vertices.
         Region targetRegion = null;
         for (Region r : decomposition.getRegions()) {
@@ -444,7 +481,8 @@ public class SupervisionLoop {
             if (oldTask == null) {
                 continue;
             }
-            SubtaskTask newTask = rebuildTask(execPlan, oldTask, regionId, coordinator, checkpointPlan);
+            SubtaskTask newTask = rebuildTask(execPlan, oldTask, regionId, coordinator, checkpointPlan,
+                    allInvokables, checkpointConfig);
             tasks.put(taskKey, newTask);
             executor.submitTask(newTask);
             LOG.info("Restarted task {} in region {}", taskKey, regionId);
@@ -532,17 +570,47 @@ public class SupervisionLoop {
      *   <li>A fresh {@link InputGate}/{@link InputChannel} pointing to the fresh
      *       partition (consumer) or a fresh {@link StreamTaskInvokable} wired to
      *       the reused writer (producer).</li>
+     *   <li>P0-02: when {@code coordinator} + {@code checkpointPlan} are provided,
+     *       the rebuilt invokable is re-wired into the checkpoint pipeline — a
+     *       fresh {@code CheckpointBarrierTracker} is attached (so
+     *       {@code setupSnapshotCallbacks} installs non-null snapshot callbacks
+     *       and the task ACKs checkpoints), the coordinator re-registers the task,
+     *       the new chain's operators (and UDFs) are registered as
+     *       CheckpointListener/CheckpointParticipant after the old chain's are
+     *       removed (no stale accumulation across repeated restarts), the
+     *       configured state backend is re-provisioned, and the old invokable is
+     *       REPLACED in {@code allInvokables} (when non-null) so the rebuilt task
+     *       receives checkpoint barriers from the scheduler.</li>
      * </ul>
      */
     private static SubtaskTask rebuildTask(GraphExecutionPlan execPlan,
                                            SubtaskTask oldTask,
                                            RegionId regionId,
                                            CheckpointCoordinator coordinator,
-                                           CheckpointPlan checkpointPlan) {
+                                           CheckpointPlan checkpointPlan,
+                                           List<StreamTaskInvokable> allInvokables,
+                                           CheckpointConfig checkpointConfig) {
         Subtask oldSubtask = oldTask.getSubtask();
         String vertexId = oldSubtask.getVertexId();
         int taskIndex = oldSubtask.getTaskIndex();
-        TaskLocation taskLocation = oldSubtask.getTaskLocation();
+
+        // P0-02: resolve the task location through the CHECKPOINT PLAN, not the
+        // execution plan. GraphExecutionPlan builds locations from
+        // jobGraph.getJobName()+"pipeline-0", while the checkpoint pipeline
+        // (coordinator tasksToAcknowledge, tracker ACK routing, state restore,
+        // manifest task snapshots) is keyed by the checkpoint plan's locations
+        // (config jobId/pipelineId). The two families are value-distinct whenever
+        // the configured jobId/pipelineId differ from the job graph name — an
+        // ACK from a rebuilt task carrying the exec-plan location would never
+        // match tasksToAcknowledge, so post-restart checkpoints could not
+        // full-ACK (and state restore would fail the task-location lookup).
+        TaskLocation taskLocation;
+        if (checkpointPlan != null) {
+            taskLocation = GraphModelCheckpointExecutor.findTaskLocationInPlan(
+                    checkpointPlan, vertexId, taskIndex);
+        } else {
+            taskLocation = oldSubtask.getTaskLocation();
+        }
 
         JobVertex jobVertex = execPlan.getExecutionVertices().get(vertexId);
         if (jobVertex == null) {
@@ -695,10 +763,68 @@ public class SupervisionLoop {
             newInvokable = new StreamTaskInvokable(newChain);
         }
 
+        // P0-02: re-wire the rebuilt task into the checkpoint pipeline. Without
+        // this, the rebuilt invokable has no barrier tracker (so its operators'
+        // snapshotCallback stays null and the task silently never ACKs), the
+        // coordinator never learns the task was rebuilt, and the barrier
+        // scheduler keeps injecting into the OLD invokable — every post-restart
+        // checkpoint times out and aborts the job.
+        if (coordinator != null && checkpointPlan != null) {
+            rewireCheckpointPipeline(coordinator, checkpointPlan, checkpointConfig,
+                    oldInvokable, newInvokable, taskLocation, allInvokables);
+            LOG.info("Re-wired rebuilt task vertex={} taskIndex={} into the checkpoint pipeline"
+                            + " (tracker + listeners + participants + barrier-injection list)",
+                    vertexId, taskIndex);
+        }
+
         // Build the new subtask + SubtaskTask.
         Subtask newSubtask = new Subtask(vertexId, taskIndex, taskLocation, newInvokable, regionId);
         List<OperatorChain> chainList = Collections.singletonList(newChain);
         return new SubtaskTask(newSubtask, jobVertex, chainList);
+    }
+
+    /**
+     * P0-02: re-wires a region-restarted task into the checkpoint pipeline:
+     * <ol>
+     *   <li>Un-registers the OLD chain's operators (and UDFs) from the
+     *       coordinator's CheckpointListener / CheckpointParticipant registries —
+     *       repeated restarts must not accumulate stale registrations on dead
+     *       operator instances.</li>
+     *   <li>REPLACES the old invokable with the rebuilt one in the barrier
+     *       injection list (remove + add; never append — an append would leave a
+     *       phantom old invokable receiving barriers forever).</li>
+     *   <li>Registers the rebuilt task with the coordinator and wires a fresh
+     *       {@code CheckpointBarrierTracker} (which installs non-null operator
+     *       snapshot callbacks via {@code setupSnapshotCallbacks}), re-registers
+     *       the new chain's operators/UDFs as listeners/participants, and
+     *       re-provisions the configured state backend on the fresh operator
+     *       instances (deep-copied chains carry no state backend).</li>
+     * </ol>
+     */
+    private static void rewireCheckpointPipeline(CheckpointCoordinator coordinator,
+                                                 CheckpointPlan checkpointPlan,
+                                                 CheckpointConfig checkpointConfig,
+                                                 StreamTaskInvokable oldInvokable,
+                                                 StreamTaskInvokable newInvokable,
+                                                 TaskLocation taskLocation,
+                                                 List<StreamTaskInvokable> allInvokables) {
+        // (a) de-register the superseded chain's listeners/participants
+        GraphModelCheckpointExecutor.unwireTaskCheckpointPipeline(coordinator, oldInvokable);
+
+        // (b) replace the old invokable in the barrier-injection list. The list
+        // is a thread-safe CopyOnWriteArrayList in the production path — the
+        // barrier scheduler iterates it concurrently (a plain ArrayList would
+        // CME and the scheduler catch would swallow the tick's barrier silently).
+        if (allInvokables != null) {
+            allInvokables.remove(oldInvokable);
+            allInvokables.add(newInvokable);
+        }
+
+        // (c) register + wire the rebuilt task (tracker / listeners / participants
+        // / state backend) using the exact same helper as the initial registration
+        // so the rebuilt task is indistinguishable from an initially-registered one.
+        GraphModelCheckpointExecutor.wireTaskCheckpointPipeline(
+                coordinator, checkpointPlan, checkpointConfig, newInvokable, taskLocation);
     }
 
     // ==================== Region Classification ====================

@@ -96,10 +96,18 @@ public class WindowRoundTripAssertions {
         Object userFunction = readField(op, "userFunction");
         checkFunctionReached(op, callSite, function, withEvictor, userFunction, violations);
 
-        // elementType → accClass（构造器第 10 参）与 ListStateDescriptor valueType
+        // elementType → accClass（构造器第 10 参）与 ListStateDescriptor valueType。
+        // P1-01：AGGREGATE call-site 传 Object.class（泛型擦除），工厂从 live 函数的
+        // createAccumulator() 推断真实累加器类型（Object 类型槽会让 RocksDB 读路径把
+        // long[]/int[] 累加器还原成 ArrayList）——因此 AGGREGATE 的期望值是推断类型。
         Object accClass = readField(op, "accClass");
-        if (accClass != TestWindowRoundTripInvariant.ELEMENT_TYPE) {
-            violations.add("accClass (elementType slot): expected " + TestWindowRoundTripInvariant.ELEMENT_TYPE
+        Class<?> expectedAccClass = TestWindowRoundTripInvariant.ELEMENT_TYPE;
+        if (callSite == TestWindowRoundTripInvariant.CallSite.AGGREGATE && function instanceof AggregateFunction) {
+            Object acc = ((AggregateFunction<?, ?, ?>) function).createAccumulator();
+            expectedAccClass = acc != null ? acc.getClass() : TestWindowRoundTripInvariant.ELEMENT_TYPE;
+        }
+        if (accClass != expectedAccClass) {
+            violations.add("accClass (elementType slot): expected " + expectedAccClass
                     + ", got " + accClass);
         }
         Object stateDesc = readField(op, "windowStateDescriptor");

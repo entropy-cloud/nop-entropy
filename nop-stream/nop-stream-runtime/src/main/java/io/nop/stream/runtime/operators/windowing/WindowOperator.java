@@ -420,6 +420,15 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         }
         this.keyedStateBackend = this.stateBackend.createKeyedStateBackend(keyClass);
 
+        // P1-01 (Decision: 方案 1 = live function reuse): register the live
+        // descriptor's aggregate function BEFORE the deferred keyed-state
+        // restore (applyPendingRestoreState) runs, so the serde restore path
+        // reuses the live function instance instead of failing to reflectively
+        // recreate capturing anonymous classes / lambdas. Also covers the
+        // region-restart path (rebuildTask restores before open; the provider
+        // is re-registered here on the fresh operator).
+        registerRestoreAggregateFunctionIfPresent();
+
         applyPendingRestoreState();
 
         if (windowStateDescriptor != null && keyedStateBackend instanceof IInternalStateBackend) {
@@ -562,6 +571,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     @SuppressWarnings("unchecked")
     @Override
     public void restoreState(io.nop.stream.core.checkpoint.OperatorSnapshotResult snapshotResult) throws Exception {
+        registerRestoreAggregateFunctionIfPresent();
         super.restoreState(snapshotResult);
         if (snapshotResult != null) {
             Object restored = snapshotResult.getOperatorState("trigger-accumulators");
@@ -591,6 +601,25 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                 this.restoredPaneTrackingSnapshot = (PaneTrackingSnapshot) paneSnapshot;
             }
         }
+    }
+
+    /**
+     * P1-01: registers the live {@code windowStateDescriptor}'s aggregate
+     * function into the keyed state backend's restore-function provider (when
+     * both exist), so the serde restore path prefers the live instance over
+     * class-name reflection. No-op when the window contents state is not an
+     * aggregating descriptor (evictor path uses a list descriptor) or the
+     * backend is not yet created.
+     */
+    @SuppressWarnings("unchecked")
+    private void registerRestoreAggregateFunctionIfPresent() {
+        if (keyedStateBackend == null || !(windowStateDescriptor instanceof AggregatingStateDescriptor)) {
+            return;
+        }
+        AggregatingStateDescriptor<IN, ACC, ?> aggDesc =
+                (AggregatingStateDescriptor<IN, ACC, ?>) windowStateDescriptor;
+        keyedStateBackend.registerRestoreAggregateFunction(
+                aggDesc.getName(), aggDesc.getAggregateFunction());
     }
 
     @Override
@@ -999,9 +1028,15 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     /**
      * Serializable snapshot DTO of the pane-tracking map (G48). Only TimeWindow-scoped
      * entries are stored (see {@link #isTimeWindowPaneKey}).
+     *
+     * <p>The JSON checkpoint persist path ({@code CheckpointSerDe}) converts this DTO
+     * to a plain JSON-safe map form via {@link #toSerializableForm()} / {@link
+     * #fromSerializableForm(Map)} — the DTO itself is not a Nop {@code @DataBean}.
      */
     public static final class PaneTrackingSnapshot implements java.io.Serializable {
         private static final long serialVersionUID = 1L;
+
+        private static final String FORM_TYPE_PANE_TRACKING = "PaneTrackingSnapshot";
 
         private final List<PaneTrackingEntry> entries;
 
@@ -1011,6 +1046,43 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
         public List<PaneTrackingEntry> getEntries() {
             return entries;
+        }
+
+        /**
+         * JSON-safe map form used by the checkpoint persist path. Self-describing via
+         * {@code "@type"}.
+         */
+        @SuppressWarnings("unchecked")
+        public Map<String, Object> toSerializableForm() {
+            java.util.LinkedHashMap<String, Object> form = new java.util.LinkedHashMap<>();
+            form.put("@type", FORM_TYPE_PANE_TRACKING);
+            List<Object> entryForms = new ArrayList<>();
+            for (PaneTrackingEntry entry : entries) {
+                entryForms.add(entry.toSerializableForm());
+            }
+            form.put("entries", entryForms);
+            return form;
+        }
+
+        /**
+         * Rebuilds a {@link PaneTrackingSnapshot} from the JSON-safe form produced by
+         * {@link #toSerializableForm()}. Returns {@code null} for non-pane-tracking maps.
+         */
+        @SuppressWarnings("unchecked")
+        public static PaneTrackingSnapshot fromSerializableForm(Map<String, Object> form) {
+            if (form == null || !FORM_TYPE_PANE_TRACKING.equals(form.get("@type"))) {
+                return null;
+            }
+            List<PaneTrackingEntry> result = new ArrayList<>();
+            List<Object> entryForms = (List<Object>) form.get("entries");
+            if (entryForms != null) {
+                for (Object f : entryForms) {
+                    if (f instanceof Map) {
+                        result.add(PaneTrackingEntry.fromSerializableForm((Map<String, Object>) f));
+                    }
+                }
+            }
+            return new PaneTrackingSnapshot(result);
         }
 
         public static final class PaneTrackingEntry implements java.io.Serializable {
@@ -1036,6 +1108,21 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
             public boolean isOnTimeEmitted() {
                 return onTimeEmitted;
+            }
+
+            public Map<String, Object> toSerializableForm() {
+                java.util.LinkedHashMap<String, Object> form = new java.util.LinkedHashMap<>();
+                form.put("paneKey", paneKey);
+                form.put("paneIndex", paneIndex);
+                form.put("onTimeEmitted", onTimeEmitted);
+                return form;
+            }
+
+            public static PaneTrackingEntry fromSerializableForm(Map<String, Object> form) {
+                return new PaneTrackingEntry(
+                        (String) form.get("paneKey"),
+                        form.get("paneIndex") instanceof Number ? ((Number) form.get("paneIndex")).intValue() : 0,
+                        Boolean.TRUE.equals(form.get("onTimeEmitted")));
             }
         }
     }

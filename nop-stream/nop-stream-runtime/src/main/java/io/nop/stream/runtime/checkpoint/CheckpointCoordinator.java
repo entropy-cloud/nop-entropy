@@ -904,6 +904,31 @@ public class CheckpointCoordinator {
         return checkpoint;
     }
 
+    /**
+     * Monotonic advance of the checkpoint ID counter past a restored epoch id
+     * (EpochManifest-recovery path, P0-03). Mirrors the counter-advance logic in
+     * {@link #restoreFromCheckpoint()}: a counter already beyond {@code restoredId}
+     * (e.g. an in-process coordinator that already triggered newer checkpoints) is
+     * left untouched; otherwise the next triggered checkpoint produces a strictly
+     * greater epoch id.
+     *
+     * <p>Without this advance, a manifest restore followed by new checkpoints would
+     * restart the counter at 0, and every new checkpoint id would fall below the
+     * restored epoch — {@code loadLatestEpochManifest} / {@code getLatestCheckpoint}
+     * select by max id, so a crash in that window would roll the job back to the
+     * stale epoch and silently lose the "completed" checkpoints (P0-03).
+     *
+     * @param restoredId the epoch id recovered from the latest EpochManifest
+     */
+    public void advanceCheckpointIdCounterAfterRestore(long restoredId) {
+        long currentCounter = checkpointIdCounter.get();
+        if (restoredId >= currentCounter) {
+            checkpointIdCounter.set(restoredId + 1);
+        }
+        LOG.info("Advanced checkpoint id counter for job {} to >= {} (restored epoch {})",
+                jobId, restoredId + 1, restoredId);
+    }
+
     public CompletedCheckpoint getLatestCheckpoint() {
         return latestCompletedCheckpoint;
     }

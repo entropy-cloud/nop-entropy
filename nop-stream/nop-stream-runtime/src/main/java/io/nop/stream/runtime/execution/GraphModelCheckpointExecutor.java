@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -129,6 +130,7 @@ public class GraphModelCheckpointExecutor {
 
         try {
             submitAndRun(execPlan, tasks, executor, jobGraph, coordinator, checkpointPlan,
+                    allInvokables, checkpointConfig,
                     checkpointConfig.getMaxRestartsPerRegion());
             checkAbortMarker(abortMarked);
             handleJobTermination(allInvokables, coordinator, checkpointConfig);
@@ -197,6 +199,7 @@ public class GraphModelCheckpointExecutor {
 
         try {
             submitAndRun(execPlan, tasks, executor, jobGraph, coordinator, checkpointPlan,
+                    allInvokables, checkpointConfig,
                     checkpointConfig.getMaxRestartsPerRegion());
             checkAbortMarker(abortMarked);
             handleJobTermination(allInvokables, coordinator, checkpointConfig);
@@ -272,6 +275,7 @@ public class GraphModelCheckpointExecutor {
 
         try {
             submitAndRun(execPlan, tasks, executor, jobGraph, coordinator, checkpointPlan,
+                    allInvokables, checkpointConfig,
                     checkpointConfig.getMaxRestartsPerRegion());
             checkAbortMarker(abortMarked);
             handleJobTermination(allInvokables, coordinator, checkpointConfig);
@@ -337,6 +341,7 @@ public class GraphModelCheckpointExecutor {
 
         try {
             submitAndRun(execPlan, tasks, executor, jobGraph, coordinator, checkpointPlan,
+                    allInvokables, checkpointConfig,
                     checkpointConfig.getMaxRestartsPerRegion());
             checkAbortMarker(abortMarked);
 
@@ -401,6 +406,7 @@ public class GraphModelCheckpointExecutor {
 
         try {
             submitAndRun(execPlan, tasks, executor, jobGraph, coordinator, checkpointPlan,
+                    allInvokables, checkpointConfig,
                     checkpointConfig.getMaxRestartsPerRegion());
             checkAbortMarker(abortMarked);
             triggerFinalCheckpoint(allInvokables, coordinator);
@@ -622,13 +628,26 @@ public class GraphModelCheckpointExecutor {
         }
     }
 
+    /**
+     * Registers every task's checkpoint pipeline wiring (tracker + coordinator
+     * task registration + listener/participant registration + state-backend
+     * provisioning) and returns the thread-safe list of all invokables used by
+     * the barrier scheduler.
+     *
+     * <p>P0-02: the returned list is a {@link CopyOnWriteArrayList} — the barrier
+     * scheduler thread iterates it while the supervision thread replaces an
+     * invokable during a region restart (remove old + add new). A plain
+     * ArrayList would throw CME inside the scheduler's for-each, and the
+     * {@link #startBarrierScheduler} catch would swallow it, silently dropping
+     * that tick's barrier.
+     */
     private static List<StreamTaskInvokable> registerTasksAndTrackers(
             GraphExecutionPlan execPlan,
             CheckpointPlan checkpointPlan,
             CheckpointCoordinator coordinator,
             CheckpointConfig checkpointConfig) {
 
-        List<StreamTaskInvokable> allInvokables = new ArrayList<>();
+        List<StreamTaskInvokable> allInvokables = new CopyOnWriteArrayList<>();
 
         for (String vertexId : execPlan.getSortedVertexIds()) {
             JobVertex execVertex = execPlan.getExecutionVertices().get(vertexId);
@@ -638,66 +657,140 @@ public class GraphModelCheckpointExecutor {
                 allInvokables.add(invokable);
 
                 TaskLocation taskLocation = findTaskLocationInPlan(checkpointPlan, vertexId, subtask.getTaskIndex());
-                coordinator.registerTask(taskLocation);
-
-                List<OperatorStateMapping> mappings = checkpointPlan.getStateMappings(taskLocation);
-
-                // IMPORTANT: use the invokable's ACTUAL operator chain, not the original
-                // execVertex chains. For multi-vertex topologies the execution plan
-                // deep-copies each chain (GraphExecutionPlan line ~215), so the original
-                // chains reference different operator instances than the ones the invokable
-                // runs. Creating the tracker / snapshot callbacks / state-backend wiring
-                // from the original chains would disconnect checkpoint priming, barrier
-                // injection, and ACKs from the live operators.
-                OperatorChain chain = invokable.getOperatorChain();
-                List<StreamOperator<?>> operators = chain.getOperators();
-
-                CheckpointBarrierTracker tracker = new CheckpointBarrierTracker(
-                        taskLocation, operators, mappings,
-                        snapshot -> coordinator.acknowledgeTask(taskLocation, snapshot.getCheckpointId(), snapshot),
-                        (CheckpointFailureListener) (checkpointId, error) ->
-                                coordinator.reportTaskCheckpointFailure(taskLocation, checkpointId, error)
-                );
-
-                invokable.setBarrierTracker(tracker);
-
-                for (StreamOperator<?> op : operators) {
-                    if (op instanceof CheckpointListener) {
-                        coordinator.addListener((CheckpointListener) op);
-                    }
-                    if (op instanceof AbstractUdfStreamOperator) {
-                        Object udf = ((AbstractUdfStreamOperator<?, ?>) op).getUserFunction();
-                        if (udf instanceof CheckpointListener && udf != op) {
-                            coordinator.addListener((CheckpointListener) udf);
-                        }
-                        if (udf instanceof CheckpointParticipant && udf != op) {
-                            coordinator.addParticipant((CheckpointParticipant) udf);
-                        }
-                    }
-                    if (op instanceof CheckpointParticipant && !(op instanceof AbstractUdfStreamOperator)) {
-                        coordinator.addParticipant((CheckpointParticipant) op);
-                    }
-
-                    // Provision state backend for operators that need managed keyed state
-                    if (op instanceof AbstractStreamOperator) {
-                        AbstractStreamOperator<?> abstractOp = (AbstractStreamOperator<?>) op;
-                        if (abstractOp.getStateBackend() == null) {
-                            IStateBackend configuredBackend = checkpointConfig != null
-                                    ? checkpointConfig.getStateBackend() : null;
-                            IStateBackend stateBackend = configuredBackend != null
-                                    ? configuredBackend
-                                    : new MemoryStateBackend();
-                            abstractOp.setStateBackend(stateBackend);
-                        }
-                    }
-                }
+                wireTaskCheckpointPipeline(coordinator, checkpointPlan, checkpointConfig,
+                        invokable, taskLocation);
             }
         }
 
         return allInvokables;
     }
 
-    private static TaskLocation findTaskLocationInPlan(CheckpointPlan plan, String vertexId, int taskIndex) {
+    /**
+     * Wires one task's checkpoint pipeline: coordinator task registration,
+     * {@link CheckpointBarrierTracker} creation + attachment (which triggers
+     * {@code setupSnapshotCallbacks} so every operator's {@code snapshotCallback}
+     * is non-null), CheckpointListener/CheckpointParticipant registration for the
+     * chain's operators (and their UDFs), and state-backend provisioning.
+     *
+     * <p>Extracted from {@link #registerTasksAndTrackers} so the region-restart
+     * path ({@code SupervisionLoop.rebuildTask}, P0-02) reuses the exact same
+     * wiring for rebuilt invokables — a rebuilt task must be indistinguishable
+     * from an initially-registered task w.r.t. the checkpoint pipeline.
+     *
+     * @param coordinator      the checkpoint coordinator (must be non-null)
+     * @param checkpointPlan   the checkpoint plan (state mappings for the tracker)
+     * @param checkpointConfig the job's checkpoint config (state-backend source;
+     *                         may be null → MemoryStateBackend default)
+     * @param invokable        the task's invokable to wire
+     * @param taskLocation     the checkpoint-plan task location for this task
+     */
+    static void wireTaskCheckpointPipeline(
+            CheckpointCoordinator coordinator,
+            CheckpointPlan checkpointPlan,
+            CheckpointConfig checkpointConfig,
+            StreamTaskInvokable invokable,
+            TaskLocation taskLocation) {
+        coordinator.registerTask(taskLocation);
+
+        List<OperatorStateMapping> mappings = checkpointPlan.getStateMappings(taskLocation);
+
+        // IMPORTANT: use the invokable's ACTUAL operator chain, not the original
+        // execVertex chains. For multi-vertex topologies the execution plan
+        // deep-copies each chain (GraphExecutionPlan line ~215), so the original
+        // chains reference different operator instances than the ones the invokable
+        // runs. Creating the tracker / snapshot callbacks / state-backend wiring
+        // from the original chains would disconnect checkpoint priming, barrier
+        // injection, and ACKs from the live operators.
+        OperatorChain chain = invokable.getOperatorChain();
+        List<StreamOperator<?>> operators = chain.getOperators();
+
+        CheckpointBarrierTracker tracker = new CheckpointBarrierTracker(
+                taskLocation, operators, mappings,
+                snapshot -> coordinator.acknowledgeTask(taskLocation, snapshot.getCheckpointId(), snapshot),
+                (CheckpointFailureListener) (checkpointId, error) ->
+                        coordinator.reportTaskCheckpointFailure(taskLocation, checkpointId, error)
+        );
+
+        invokable.setBarrierTracker(tracker);
+
+        for (StreamOperator<?> op : operators) {
+            if (op instanceof CheckpointListener) {
+                coordinator.addListener((CheckpointListener) op);
+            }
+            if (op instanceof AbstractUdfStreamOperator) {
+                Object udf = ((AbstractUdfStreamOperator<?, ?>) op).getUserFunction();
+                if (udf instanceof CheckpointListener && udf != op) {
+                    coordinator.addListener((CheckpointListener) udf);
+                }
+                if (udf instanceof CheckpointParticipant && udf != op) {
+                    coordinator.addParticipant((CheckpointParticipant) udf);
+                }
+            }
+            if (op instanceof CheckpointParticipant && !(op instanceof AbstractUdfStreamOperator)) {
+                coordinator.addParticipant((CheckpointParticipant) op);
+            }
+
+            // Provision state backend for operators that need managed keyed state
+            if (op instanceof AbstractStreamOperator) {
+                AbstractStreamOperator<?> abstractOp = (AbstractStreamOperator<?>) op;
+                if (abstractOp.getStateBackend() == null) {
+                    IStateBackend configuredBackend = checkpointConfig != null
+                            ? checkpointConfig.getStateBackend() : null;
+                    IStateBackend stateBackend = configuredBackend != null
+                            ? configuredBackend
+                            : new MemoryStateBackend();
+                    abstractOp.setStateBackend(stateBackend);
+                }
+            }
+        }
+    }
+
+    /**
+     * Removes a task's operator chain from the coordinator's
+     * CheckpointListener / CheckpointParticipant registries. Called by the
+     * region-restart path (P0-02) for the OLD (superseded) task's operators
+     * before the rebuilt task's operators are registered, so repeated region
+     * restarts do not accumulate stale listeners/participants on dead operator
+     * instances (mirror of the registration logic in
+     * {@link #wireTaskCheckpointPipeline}).
+     *
+     * <p>Shared UDFs are safe: when the old and new chain reference the same
+     * user-function object, unwire removes it and wire re-adds it — net
+     * single registration; when they differ, each instance is registered once.
+     */
+    static void unwireTaskCheckpointPipeline(CheckpointCoordinator coordinator, StreamTaskInvokable invokable) {
+        if (invokable == null || invokable.getOperatorChain() == null) {
+            return;
+        }
+        for (StreamOperator<?> op : invokable.getOperatorChain().getOperators()) {
+            if (op instanceof CheckpointListener) {
+                coordinator.removeListener((CheckpointListener) op);
+            }
+            if (op instanceof AbstractUdfStreamOperator) {
+                Object udf = ((AbstractUdfStreamOperator<?, ?>) op).getUserFunction();
+                if (udf instanceof CheckpointListener && udf != op) {
+                    coordinator.removeListener((CheckpointListener) udf);
+                }
+                if (udf instanceof CheckpointParticipant && udf != op) {
+                    coordinator.removeParticipant((CheckpointParticipant) udf);
+                }
+            }
+            if (op instanceof CheckpointParticipant && !(op instanceof AbstractUdfStreamOperator)) {
+                coordinator.removeParticipant((CheckpointParticipant) op);
+            }
+        }
+    }
+
+    /**
+     * Finds the checkpoint plan's {@link TaskLocation} instance for the given
+     * vertex/task-index. Package-private so the region-restart path
+     * ({@code SupervisionLoop.rebuildTask}) resolves the SAME location family
+     * as the initial registration — the checkpoint pipeline (coordinator
+     * tasksToAcknowledge, tracker ACKs, state restore) is keyed by these
+     * instances, and the execution plan's locations (jobGraph name based) are
+     * value-distinct whenever the configured jobId/pipelineId differ.
+     */
+    static TaskLocation findTaskLocationInPlan(CheckpointPlan plan, String vertexId, int taskIndex) {
         for (TaskLocation loc : plan.getAllTasks()) {
             if (loc.getVertexId().equals(vertexId) && loc.getTaskIndex() == taskIndex) {
                 return loc;
@@ -810,12 +903,26 @@ public class GraphModelCheckpointExecutor {
      * config → executeWithCheckpoint → submitAndRun → SupervisionLoop.run
      * (package-private full-parameter signature).
      */
+    /**
+     * Submits all tasks and runs the supervision loop (mid-execution failure
+     * detection + region-scoped restart).
+     *
+     * <p>P0-02: {@code allInvokables} (the barrier-scheduler injection list) and
+     * {@code checkpointConfig} are threaded into the supervision loop so a
+     * region-restarted task can be re-wired into the checkpoint pipeline: the
+     * old invokable is replaced in the injection list, a fresh tracker +
+     * listener/participant registrations are installed, and the configured
+     * state backend is re-provisioned.
+     */
     private static void submitAndRun(GraphExecutionPlan execPlan, Map<String, SubtaskTask> tasks,
                                      TaskExecutor executor, JobGraph jobGraph,
                                      CheckpointCoordinator coordinator,
                                      CheckpointPlan checkpointPlan,
+                                     List<StreamTaskInvokable> allInvokables,
+                                     CheckpointConfig checkpointConfig,
                                      int maxRestartsPerRegion) throws InterruptedException {
         SupervisionLoop.run(execPlan, tasks, executor, jobGraph, coordinator, checkpointPlan,
+                allInvokables, checkpointConfig,
                 maxRestartsPerRegion, SupervisionLoop.DEFAULT_POLL_INTERVAL_MS);
     }
 
@@ -947,6 +1054,13 @@ public class GraphModelCheckpointExecutor {
         if (epochManifest != null) {
             LOG.info("Recovering from EpochManifest epoch {} (jobId={})",
                     epochManifest.getEpochId(), epochManifest.getJobId());
+
+            // P0-03: advance the checkpoint id counter past the restored epoch so
+            // the next triggered checkpoint produces a strictly greater epoch id
+            // (monotonic-only advance, identical semantics to restoreFromCheckpoint).
+            // Without this, new checkpoints would land in the shadow window [0, R)
+            // below the restored epoch and be unobservable on the next crash.
+            coordinator.advanceCheckpointIdCounterAfterRestore(epochManifest.getEpochId());
 
             validateFingerprintCompatibility(epochManifest, streamModel, coordinator);
 
@@ -1573,6 +1687,25 @@ public class GraphModelCheckpointExecutor {
                                 builder.putKeyedState(entry.getKey(), entry.getValue());
                                 found = true;
                             }
+                        }
+                    } else {
+                        // P1-01 (restore-chain gap found during execution):
+                        // CheckpointPlanBuilder marks keyed state only when the
+                        // operator's keyedStateBackend exists AT PLAN-BUILD TIME
+                        // (pre-open → always null), so the tracker ACK writes the
+                        // operator's keyed snapshot under the RAW key
+                        // ("keyed-state", the key AbstractStreamOperator.
+                        // snapshotState uses) instead of a per-operator prefix.
+                        // Without this fallback, keyed state was silently dropped
+                        // on restore (opResult empty → restore skipped) and every
+                        // keyed operator resumed from empty state. The fallback
+                        // mirrors the tracker's raw-key ACK path; a chain has at
+                        // most one keyed-state-bearing operator by construction
+                        // (the raw key would otherwise overwrite on the ACK side).
+                        Object rawKeyed = taskState.getKeyedState("keyed-state");
+                        if (rawKeyed != null) {
+                            builder.putKeyedState("keyed-state", rawKeyed);
+                            found = true;
                         }
                     }
                     break;
