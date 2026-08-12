@@ -56,6 +56,7 @@ public class DefaultCredentialKeyProvider implements ICredentialKeyProvider {
         this.masterKeys = masterKeys;
     }
 
+    @InjectValue("@cfg:nop.credential.active-key-id|")
     public void setActiveKeyId(String activeKeyId) {
         this.activeKeyId = activeKeyId;
     }

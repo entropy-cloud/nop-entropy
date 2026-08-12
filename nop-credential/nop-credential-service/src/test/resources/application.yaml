@@ -1,0 +1,18 @@
+nop:
+  debug: true
+  datasource:
+    driver-class-name: org.h2.Driver
+    jdbc-url: jdbc:h2:mem:test
+    username: sa
+    password:
+
+  orm:
+    init-database-schema: true
+
+  credential:
+    # 测试用主密钥：两个 keyId 便于测试密钥轮换（reencryptAll）
+    # keyA 为初始 active，测试时可通过 DefaultCredentialKeyProvider.setActiveKeyId 切换
+    master-keys:
+      - "keyA:test-passphrase-for-keyA-autotest"
+      - "keyB:test-passphrase-for-keyB-autotest"
+    active-key-id: keyA

@@ -26,6 +26,8 @@ public interface CredentialErrors {
     String ARG_AVAILABLE_TYPE_NAMES = "availableTypeNames";
     String ARG_CREDENTIAL_ID = "credentialId";
     String ARG_CONSUMER_REF = "consumerRef";
+    String ARG_FIELD_NAME = "fieldName";
+    String ARG_USAGE_COUNT = "usageCount";
 
     ErrorCode ERR_CREDENTIAL_INVALID_CIPHERTEXT_FORMAT = define(
             "nop.err.credential.invalid-ciphertext-format",
@@ -63,4 +65,22 @@ public interface CredentialErrors {
     ErrorCode ERR_CREDENTIAL_TYPE_LOAD_FAILED = define(
             "nop.err.credential.type-load-failed",
             "凭证类型文件加载失败", ARG_TYPE_NAME);
+
+    ErrorCode ERR_CREDENTIAL_FIELDS_REQUIRED = define(
+            "nop.err.credential.fields-required",
+            "凭证字段不能为空（fields 为必填，至少包含一个明文字段）");
+
+    ErrorCode ERR_CREDENTIAL_NAME_REQUIRED = define(
+            "nop.err.credential.name-required",
+            "凭证名称不能为空");
+
+    ErrorCode ERR_CREDENTIAL_HAS_ACTIVE_USAGE = define(
+            "nop.err.credential.has-active-usage",
+            "凭证存在活跃的使用引用，拒绝删除（fail-closed）",
+            ARG_CREDENTIAL_ID, ARG_USAGE_COUNT);
+
+    ErrorCode ERR_CREDENTIAL_REENCRYPT_FAILED = define(
+            "nop.err.credential.reencrypt-failed",
+            "凭证重新加密失败",
+            ARG_CREDENTIAL_ID);
 }
