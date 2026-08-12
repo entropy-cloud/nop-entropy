@@ -26,6 +26,7 @@ pnpm check         # run all checks
 | `codex-module-driver.sh` | Launch codex TUI with module-specific goal prompt | `./codex-module-driver.sh nop-stream` |
 | `run-java-lint.sh` | Run ast-grep Java lint rules (empty catches, getMessage-only, bare RuntimeException, etc.) | `pnpm lint:java` |
 | `check-ibiz-interfaces.mjs` | Check `I*Biz` interfaces: every method must have `@BizQuery`/`@BizMutation`/`@BizAction` and an `IServiceContext` last param | `pnpm check:ibiz` |
+| `check-nop-stream-invariants.mjs` | nop-stream invariant gate scanner (inventory / sync / scan-iterations / scan-output-contract / self-test / init / all) | `node ai-dev/tools/check-nop-stream-invariants.mjs all` |
 
 ## Per-Tool Details
 
