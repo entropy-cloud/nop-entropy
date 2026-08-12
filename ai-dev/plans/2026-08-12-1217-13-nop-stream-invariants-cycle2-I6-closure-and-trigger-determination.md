@@ -1,7 +1,7 @@
 # Cycle 2 / I6 — 循环收口与下一轮触发判定（Closure And Next-Cycle Trigger Determination）
 
-> Plan Status: active
-> Last Reviewed: 2026-08-12
+> Plan Status: completed
+> Last Reviewed: 2026-08-13
 > Draft Review: 2 轮独立子 agent 对抗性审查通过（round 1：2 Major（C2-PR-5 行号 stale + I5 空体行号 stale）+ 8 Minor，全部修复；round 2：11/11 修复验证 PASS、无 Blocker/Major、verdict 可转 active，3 个非阻塞 Minor 已顺手修复）
 > Source: roadmap `ai-dev/backlog/nop-stream-invariant-loop-roadmap.md` Work Item I6（统计/稳态判定；`HG-01` 线协议支持如获人工批准另立 plan（Successor）；closure 独立 fresh session）+ Loop Rule；I5 全量验证结果 `ai-dev/audits/nop-stream-invariants/cycle2-I6-input.md`（唯一落点）；I3 派生登记 `ai-dev/audits/nop-stream-invariants/adjudication-table.md` §9（C2-PR-2/5 扩展候选移交）与 §7-§10 裁决表；mission `nop-stream-invariant-loop.json`（Cross-Cutting 授权边界）
 > Related: 前置 `2026-08-12-1217-12-nop-stream-invariants-cycle2-I5-full-verification.md`（I5，硬串行依赖，须已 `completed`）；后继 = 依本 plan 裁定：Cycle 3 / I1（若派生）或 `HG-01` 人工确认后的线协议 plan（若人工批准）
@@ -165,15 +165,24 @@ Exit Criteria:
 >
 > **纯文档计划**：本 plan 不涉及任何代码变更（仅修改 `ai-dev/` 下文档），`./mvnw test`、`./mvnw lint` 等构建验证条目已按 guide 删除；保留文档与 checklist 门禁。
 
-- [ ] 收口统计确认（与 `cycle2-I6-input.md` 一致）且 red list 零悬挂（C2-RL-1/2 修复 + C2-RL-3 P3 裁决）
-- [ ] 扩展候选裁定完成（C2-PR-2 / C2-PR-5 逐条依据在案）→ Cycle 3 派生（roadmap 追加行 + 触发证据）或稳态暂停（复触发登记）已落档
-- [ ] `HG-01` 处置登记在案（未批准维持待办 + 保护性覆盖复核 / 已批准 Successor 登记）
-- [ ] 复触发条件登记在案
-- [ ] 无 in-scope live defect / contract drift 被静默降级到 deferred / follow-up（C2-PR-5 控制面 = 非数据丢失 + `HG-01` 人工确认门 + RWO 已文档化 / BRWO 空体已登记（code-style 观察）；C2-PR-2 = 0 实例门禁表达扩展候选；均非已确认 live defect，且均有显式裁定）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（见 Closure 段）
-- [ ] **Anti-Hollow Check**：本 plan 纯文档，无代码接线面；closure audit 验证（a）roadmap 回写与 I5 实测记录 / 裁决档案一致，（b）扩展候选裁定与 live 代码（扫描器 :622-652/:795-799、`StreamTaskInvokable.java:644-646/:662-664/:713-714/:730-731`）一致，（c）无「记录在案但实际未发生」的空壳断言
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <本plan> --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 收口统计确认（与 `cycle2-I6-input.md` 一致）且 red list 零悬挂（C2-RL-1/2 修复 + C2-RL-3 P3 裁决）
+  - **closure audit 实测（2026-08-13 fresh session）**：on-disk 448 份 surefire TEST-*.xml 独立汇总 = 2833 tests（与落档精确一致）；`mjs-pins.json` pinnedViolations = []；`git log` `88bc0270c` 在案；注册表 RWO/BRWO `fail-fast` 分类在案；adjudication-table §7.2 C2-RL-3 P3 裁决在案 → **PASS**
+- [x] 扩展候选裁定完成（C2-PR-2 / C2-PR-5 逐条依据在案）→ Cycle 3 派生（roadmap 追加行 + 触发证据）或稳态暂停（复触发登记）已落档
+  - **closure audit 实测**：roadmap §Loop Rule「Cycle 2 / I6 稳态登记（2026-08-12）」+ §I6 Phase Details 裁定摘要（稳态暂停 + C2-PR-2/5 均维持 + 复触发）在案；adjudication-table §11 逐条依据在案；**roadmap 无 Cycle 3 / I1 追加行**（正确 = 稳态路径）→ **PASS**
+- [x] `HG-01` 处置登记在案（未批准维持待办 + 保护性覆盖复核 / 已批准 Successor 登记）
+  - **closure audit 实测**：roadmap Follow-up Backlog `HG-01` 条目 = `pending human confirmation`（四重保护性覆盖留痕在案）；全仓 grep 无人工批准记录 → 未批准处置一致 → **PASS**
+- [x] 复触发条件登记在案
+  - **closure audit 实测**：roadmap §Loop Rule 稳态登记含三选一 + C2-PR-2 形态出现 + C2-PR-5 = `HG-01` 人工批准 + 人工确认待办触发 → **PASS**
+- [x] 无 in-scope live defect / contract drift 被静默降级到 deferred / follow-up（C2-PR-5 控制面 = 非数据丢失 + `HG-01` 人工确认门 + RWO 已文档化 / BRWO 空体已登记（code-style 观察）；C2-PR-2 = 0 实例门禁表达扩展候选；均非已确认 live defect，且均有显式裁定）
+  - **closure audit 实测**：C2-PR-5 = watch-only residual（非数据丢失、执行门 = `HG-01` 人工确认）；C2-PR-2 = watch-only residual（0 实例）；`HG-01` 在 Deferred But Adjudicated 中分类 = `Fix`（执行门 = 人工确认，Successor Required: yes）——**未被降级为 non-blocking** → **PASS**
+- [x] 独立子 agent closure-audit 已完成并记录证据（见 Closure 段）
+  - **closure audit 实测**：本 fresh session 独立审计（与执行 session 不同），evidence 已写入 Closure 段 → **PASS**
+- [x] **Anti-Hollow Check**：本 plan 纯文档，无代码接线面；closure audit 验证（a）roadmap 回写与 I5 实测记录 / 裁决档案一致，（b）扩展候选裁定与 live 代码（扫描器 :622-652/:795-799、`StreamTaskInvokable.java:644-646/:662-664/:713-714/:730-731`）一致，（c）无「记录在案但实际未发生」的空壳断言
+  - **closure audit 实测**：`StreamTaskInvokable.java` live 复核——RWO `emitWatermarkStatus` :644-646 空体 + 「Not forwarded across task boundaries」注释 / `emitLatencyMarker` :662-664 空体 + 注释；BRWO :713-714/:730-731 空体无注释（与 plan 描述精确一致）；`collect(OutputTag)` :649-659/:717-727 抛 `ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER`（fail-fast 在案）；扫描器 `parseTypeStructure` :622-652（仅 `class|interface|enum`）+ V4 声明 regex :795-799（要求 `OutputTag<...>` 泛型形态）live 一致；所有「实测记录」断言与 on-disk 文件逐项吻合，无空壳断言 → **PASS**
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <本plan> --strict` 退出码 0
+  - **closure audit 实测**：exit 0（Passed: 1 / Failed: 0）→ **PASS**
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+  - **closure audit 实测**：exit 0（No errors found）→ **PASS**
 
 ## Deferred But Adjudicated
 
@@ -207,16 +216,26 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: 待 I6 执行完成后填写（Cycle 2 收口统计确认 + red list 零悬挂 + C2-PR-2/5 扩展候选裁定 + `HG-01` 处置登记 + 复触发登记 + roadmap I6 行流转；独立 closure audit 完成）。
-Completed: 待定
+Status Note: Cycle 2 收口统计确认（与 `cycle2-I6-input.md` 一致）+ red list 零悬挂（C2-RL-1/2 修复 `88bc0270c` + C2-RL-3 P3 已裁决）+ C2-PR-2/5 扩展候选均裁定维持稳态（显式依据落档 adjudication §11）→ **稳态暂停**（Cycle 3 不派生）+ `HG-01` 未批准维持 `pending human confirmation` 待办登记（四重保护性覆盖复核在案）+ 复触发登记（roadmap §Loop Rule「Cycle 2 / I6 稳态登记」）+ roadmap I6 行流转 `done`（closure audit 通过后）+ 独立 fresh session closure audit 完成。
+Completed: 2026-08-13
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: 待独立子 agent closure audit 完成后填写
-- Evidence: 待填写（Phase Exit Criteria 逐条 PASS、Closure Gates 逐条 PASS、Anti-Hollow 结果、Deferred 分类检查）
+- Reviewer / Agent: 独立 closure auditor（fresh session，与执行 session 不同 task_id）
+- Audit Session: mission-driver closure audit（plan 2026-08-12-1217-13）
+- Evidence:
+  - **Plan 完整性**：3 Phase 全 `completed` + 全部执行项 / Exit Criteria [x]（PASS）；Closure Gates 9 条全部 [x]（PASS）。
+  - **收口统计（Exit Criteria Phase 1 逐条）**：on-disk 448 份 `nop-stream/**/target/surefire-reports/TEST-*.xml` 独立汇总 = 2833 tests，与 `cycle2-I6-input.md` 逐模块一致（PASS，live path = surefire 报告 + `cycle2-I6-input.md`）；`mjs-pins.json` pinnedViolations = []（PASS）；`git log` `88bc0270c`（I4 fix commit）在案 + 注册表 RWO/BRWO `fail-fast` 分类 + PIN REMOVAL TRACE（PASS）。
+  - **red list 零悬挂（Exit Criteria Phase 1）**：red-list.md §1 C2-RL-1/2 修复状态 + C2-RL-3 P3 裁决（adjudication §7.2）在案；C2-PR-1..5 处置一一对应（PASS）。
+  - **C2-PR-2 / C2-PR-5 裁定（Exit Criteria Phase 2）**：adjudication-table.md §11 落档含逐条依据；live 代码复核——`StreamTaskInvokable.java` RWO :644-646/:662-664（空体 + 注释文档化）/ BRWO :713-714/:730-731（空体无注释）、`collect(OutputTag)` :649-659/:717-727 抛 `ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER`、扫描器 `check-nop-stream-invariants.mjs` parseTypeStructure :622-652 + V4 regex :795-799——与 plan 陈述精确一致（PASS，live path = `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/StreamTaskInvokable.java` + `ai-dev/tools/check-nop-stream-invariants.mjs`）。
+  - **`HG-01` 处置（Exit Criteria Phase 2）**：roadmap Follow-up Backlog 条目 `pending human confirmation` + 四重保护性覆盖留痕在案；全仓 grep 无人工批准记录（PASS）。
+  - **复触发登记 + roadmap 流转（Exit Criteria Phase 3）**：roadmap §Loop Rule「Cycle 2 / I6 稳态登记（2026-08-12）」含三选一 + C2-PR-2 形态出现 + `HG-01` 人工批准触发（PASS）；roadmap I6 行 `planned` → `done`（closure 时同步，PASS）。
+  - **工具门禁**：`node ai-dev/tools/check-plan-checklist.mjs <本plan> --strict` exit 0（Passed: 1 / Failed: 0）；`node ai-dev/tools/check-doc-links.mjs --strict` exit 0（No errors found）（PASS）。
+  - **Anti-Hollow**：本 plan 纯文档/裁决，无代码变更（git log 确认 I6 执行 commit `b74dbb637` 为 docs-only）；无空方法体/placeholder/静默跳过断言（PASS）。
+  - **Deferred 分类检查**：C2-PR-5 / C2-PR-2 = `watch-only residual`（非数据丢失 / 0 实例 + 显式复触发登记 + Why Not Blocking Closure 在案）；`HG-01` = `Fix`（执行门 = 人工确认，Successor Required: yes）——无 in-scope live defect 被降级（PASS）。
 
 Follow-up:
 
-- 依裁定：Cycle 3 / I1（若派生，另立 plan）或 稳态暂停（复触发条件已登记）
-- `HG-01`（若人工批准）→ 线协议 Successor plan
+- 依裁定：Cycle 3 / I1 不派生（稳态暂停；复触发条件已登记 roadmap §Loop Rule）
+- `HG-01`（人工批准后）→ 线协议 Successor plan（跨 task 侧输出线协议设计 + 实现 + E2E）
 - no other remaining plan-owned work
