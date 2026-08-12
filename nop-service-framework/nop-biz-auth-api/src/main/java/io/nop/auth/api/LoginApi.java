@@ -19,6 +19,7 @@ import io.nop.auth.api.messages.LoginRequest;
 import io.nop.auth.api.messages.LoginResult;
 import io.nop.auth.api.messages.LoginUserInfo;
 import io.nop.auth.api.messages.LogoutRequest;
+import io.nop.auth.api.messages.MfaVerifyRequest;
 import io.nop.auth.api.messages.RefreshTokenRequest;
 
 import java.util.concurrent.CompletionStage;
@@ -34,6 +35,32 @@ public interface LoginApi {
      */
     @BizMutation
     ApiResponse<LoginResult> login(ApiRequest<LoginRequest> request);
+
+    /**
+     * 发送短信验证码（登录用，公开访问）。含手机号/IP 双维度限流 + 防枚举统一响应（设计 §3.3 / §3.6）。
+     *
+     * @param phone 手机号
+     */
+    @BizMutation
+    ApiResponse<Void> sendSmsCode(ApiRequest<java.util.Map<String, Object>> request);
+
+    /**
+     * MFA 第二因子短信验证码重发（公开访问）。凭 challengeToken 服务端取号，
+     * challenge 已消费/作废则返回 {@code ERR_AUTH_MFA_CHALLENGE_EXPIRED}（设计 §3.6）。
+     *
+     * @param challengeToken 第一因子通过后返回的 challenge token
+     */
+    @BizMutation
+    ApiResponse<Void> sendMfaCode(ApiRequest<java.util.Map<String, Object>> request);
+
+    /**
+     * 第二因子验证（公开访问）。成功返回 {@link LoginResult}：
+     * 密码类 loginType 签发 accessToken；信道类 loginType 签发 accessCode（设计 §3.2 / §3.6）。
+     *
+     * @param request {@code {challengeToken, code, recoveryCode?}}
+     */
+    @BizMutation
+    ApiResponse<LoginResult> mfaVerify(ApiRequest<MfaVerifyRequest> request);
 
     @BizMutation
     ApiResponse<Void> logout(ApiRequest<LogoutRequest> request);

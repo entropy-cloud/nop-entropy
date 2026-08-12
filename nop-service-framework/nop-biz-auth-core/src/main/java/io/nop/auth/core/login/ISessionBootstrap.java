@@ -59,6 +59,29 @@ public interface ISessionBootstrap {
      * @return a completion stage resolving to the newly-cached, non-null
      *         {@link IUserContext} (with sessionId/accessToken/refreshToken
      *         set); never resolves to null
+     * @deprecated use {@link #createSessionForUserAsync(String, int)} so the
+     *             real channel loginType is recorded for audit and MFA exits.
+     *             This single-arg overload delegates to
+     *             {@code LOGIN_TYPE_SSO=4} for backward compatibility.
      */
+    @Deprecated
     CompletionStage<IUserContext> createSessionForUserAsync(String userId);
+
+    /**
+     * Create and cache a login session for the given platform user id, tagged
+     * with the real channel {@code loginType} (e.g. 20=feishu, 21=dingtalk)
+     * so audit and the MFA success-exit (accessToken vs accessCode) stay
+     * accurate. If the user has MFA enabled, this throws
+     * {@code ERR_AUTH_MFA_REQUIRED} (carrying a challenge token) instead of
+     * completing the session — the caller then drives the second factor via
+     * {@code LoginApi.mfaVerify}.
+     *
+     * @param userId    the platform user id; never null/empty
+     * @param loginType the real login type that triggered this session
+     *                  (SSO=4, or a channel code 20-23)
+     * @return a completion stage resolving to the newly-cached, non-null
+     *         {@link IUserContext}; never resolves to null
+     * @since W5
+     */
+    CompletionStage<IUserContext> createSessionForUserAsync(String userId, int loginType);
 }

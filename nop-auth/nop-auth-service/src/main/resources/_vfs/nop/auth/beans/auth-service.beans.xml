@@ -18,6 +18,35 @@
     <bean id="nopLoginService" class="io.nop.auth.service.login.LoginServiceImpl" ioc:default="true"
           ioc:delay-method="lazyInit"/>
 
+    <!-- MFA 存储装配（设计 §3.3 / §3.7 nop.auth.mfa.store-type）。
+         nop-auth-service 内部按配置选择 Local/Redis 实现，供 LoginServiceImpl 注入。
+         MfaStoreProvider.fail-closed：redis 请求但无 INosqlService 时抛异常而非静默回退 Local。 -->
+    <bean id="mfaStoreProvider" class="io.nop.auth.service.mfa.MfaStoreProvider">
+        <property name="storeType" value="@cfg:nop.auth.mfa.store-type|local"/>
+        <property name="challengeConfig">
+            <bean class="io.nop.auth.core.mfa.store.MfaChallengeStoreConfig">
+                <property name="expireSeconds" value="@cfg:nop.auth.mfa.challenge-expire-seconds|300"/>
+            </bean>
+        </property>
+        <property name="smsConfig">
+            <bean class="io.nop.auth.core.mfa.store.SmsCodeStoreConfig">
+                <property name="expireSeconds" value="@cfg:nop.auth.sms-code.expire-seconds|300"/>
+                <property name="maxAttempts" value="@cfg:nop.auth.sms-code.max-attempts|5"/>
+            </bean>
+        </property>
+    </bean>
+
+    <bean id="mfaChallengeStore" ioc:type="io.nop.auth.core.mfa.store.MfaChallengeStore"
+          factory-bean="mfaStoreProvider" factory-method="getMfaChallengeStore"/>
+
+    <bean id="smsCodeStore" ioc:type="io.nop.auth.core.mfa.store.SmsCodeStore"
+          factory-bean="mfaStoreProvider" factory-method="getSmsCodeStore"/>
+
+    <!-- TOTP 验证器（W4）。skew 从配置读取，mfaVerify TOTP 分支调用。 -->
+    <bean id="totpAuthenticator" class="io.nop.auth.core.totp.TOTPAuthenticator">
+        <property name="skew" value="@cfg:nop.auth.mfa.totp-window-skew|1"/>
+    </bean>
+
     <bean id="nopLoginSessionStore" class="io.nop.auth.service.login.DaoLoginSessionStore" ioc:default="true">
 
     </bean>

@@ -9,12 +9,14 @@ import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.auth.api.bind.ChannelBindingInfo;
 import io.nop.auth.api.bind.IChannelBindService;
+import io.nop.auth.api.AuthApiConstants;
 import io.nop.auth.core.login.IAuthTokenProvider;
 import io.nop.auth.core.login.ISessionBootstrap;
 import io.nop.core.context.IServiceContext;
 import io.nop.integration.api.bind.ChannelBindResult;
 import io.nop.integration.api.bind.ChannelScanCallback;
 import io.nop.integration.api.bind.IChannelBindProvider;
+import io.nop.integration.api.channel.ChannelTypeCodes;
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
 
@@ -170,7 +172,16 @@ public class ChannelLoginApiBizModel {
 
         // 3. bootstrap a full session for the bound platform user, then
         //    4. mint a one-time accessCode over the session id.
-        return sessionBootstrap.createSessionForUserAsync(binding.getPlatformUserId()).thenApply(userContext -> {
+        //    loginType is derived from the real channelType (20-23) so audit and
+        //    the MFA exit stay accurate (W5 parameterisation; scan-result MFA
+        //    adaptation itself is W6).
+        int loginType = ChannelTypeCodes.loginType(channelType);
+        if (loginType < 0) {
+            loginType = AuthApiConstants.LOGIN_TYPE_SSO;
+        }
+        final int resolvedLoginType = loginType;
+        return sessionBootstrap.createSessionForUserAsync(binding.getPlatformUserId(), resolvedLoginType)
+                .thenApply(userContext -> {
             if (userContext == null) {
                 throw new NopException(ERR_CHECK_INVALID_ARGUMENT)
                         .param("userId", binding.getPlatformUserId())

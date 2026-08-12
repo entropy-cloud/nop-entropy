@@ -63,7 +63,8 @@
       "review": "审核中",
       "draft": "草稿",
       "closed": "已关闭"
-    }
+    },
+    "confirm": "确认"
   },
   "auth": {
     "login": "登录",

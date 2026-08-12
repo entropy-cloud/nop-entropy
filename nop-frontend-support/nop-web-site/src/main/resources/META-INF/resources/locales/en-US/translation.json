@@ -63,7 +63,8 @@
       "review": "Review",
       "draft": "Draft",
       "closed": "Closed"
-    }
+    },
+    "confirm": "Confirm"
   },
   "auth": {
     "login": "Sign in",

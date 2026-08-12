@@ -95,6 +95,9 @@ public class TestChannelLoginApi {
         assertEquals(1, bootstrap.createCallCount.get(),
                 "ISessionBootstrap.createSessionForUserAsync must be called");
         assertEquals(USER_ID, bootstrap.lastUserId);
+        // W5: the real channel loginType (feishu=20) must be propagated for audit fidelity
+        assertEquals(io.nop.integration.api.channel.ChannelTypeCodes.LOGIN_TYPE_FEISHU,
+                bootstrap.lastLoginType, "channel loginType must be propagated to the bootstrap");
         // accessCode is non-empty and not a hardcoded constant
         assertNotNull(result.getAccessCode());
         assertTrue(!result.getAccessCode().isEmpty(), "accessCode must be non-empty");
@@ -238,17 +241,19 @@ public class TestChannelLoginApi {
      * (with a generated sessionId + access/refresh tokens signed by the test
      * {@link JwtAuthTokenProvider}) so the returned context can be fed to
      * {@link io.nop.auth.core.login.IAuthTokenProvider#generateAccessCode}.
-     * Records the last userId and call count for wiring assertions.
+     * Records the last userId, loginType and call count for wiring assertions.
      */
     static class RecordingSessionBootstrap implements ISessionBootstrap {
         final AtomicInteger createCallCount = new AtomicInteger();
         String lastUserId;
+        int lastLoginType;
         IUserContext lastContext;
 
         @Override
-        public CompletionStage<IUserContext> createSessionForUserAsync(String userId) {
+        public CompletionStage<IUserContext> createSessionForUserAsync(String userId, int loginType) {
             createCallCount.incrementAndGet();
             lastUserId = userId;
+            lastLoginType = loginType;
             UserContextImpl ctx = new UserContextImpl();
             ctx.setUserId(userId);
             ctx.setUserName(USER_NAME);
@@ -257,6 +262,11 @@ public class TestChannelLoginApi {
             ctx.setRefreshToken("refresh-token-" + StringHelper.generateUUID());
             lastContext = ctx;
             return CompletableFuture.completedFuture(ctx);
+        }
+
+        @Override
+        public CompletionStage<IUserContext> createSessionForUserAsync(String userId) {
+            return createSessionForUserAsync(userId, 4);
         }
     }
 }

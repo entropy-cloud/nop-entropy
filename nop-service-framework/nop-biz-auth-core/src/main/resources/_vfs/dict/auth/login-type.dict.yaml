@@ -3,8 +3,14 @@ locale: zh-CN
 options:
   - label: 密码登录
     value: 1
+  - label: 邮箱密码登录
+    value: 2
+  - label: 手机密码登录
+    value: 3
   - label: 单点登录
-    value: 10
+    value: 4
+  - label: 短信验证码登录
+    value: 5
   - label: 飞书
     value: 20
   - label: 钉钉

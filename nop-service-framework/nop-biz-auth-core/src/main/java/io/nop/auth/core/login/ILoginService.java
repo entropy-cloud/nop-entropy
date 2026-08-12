@@ -14,6 +14,7 @@ import io.nop.api.core.util.FutureHelper;
 import io.nop.auth.api.messages.LoginRequest;
 import io.nop.auth.api.messages.LoginUserInfo;
 import io.nop.auth.api.messages.LogoutRequest;
+import io.nop.auth.api.messages.MfaVerifyRequest;
 
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
@@ -56,6 +57,40 @@ public interface ILoginService extends IUserContextExtractor {
     LoginUserInfo getUserInfo(IUserContext userContext);
 
     String generateVerifyCode(String verifySecret);
+
+    /**
+     * 第二因子验证（MFA，设计 §3.2 / §3.6）。成功后 {@code completeLogin} 签发会话：
+     * 密码类 loginType 返回的 {@link IUserContext} 含 accessToken；信道类 loginType
+     * 的 accessCode 通过 {@code IUserContext.setAttr("mfaAccessCode", code)} 携带。
+     * <p>
+     * 默认抛出 {@link UnsupportedOperationException}——不支持 MFA 的实现快速失败，
+     * 不静默跳过（No-Silent-No-Op 规则）。
+     *
+     * @since W5
+     */
+    default CompletionStage<IUserContext> mfaVerifyAsync(MfaVerifyRequest request, Map<String, Object> headers) {
+        throw new UnsupportedOperationException("mfaVerifyAsync not implemented");
+    }
+
+    /**
+     * 发送登录短信验证码（设计 §3.3 / §3.6）。含手机号/IP 限流 + 防枚举。
+     * 默认抛出 {@link UnsupportedOperationException}（不支持 SMS 登录的实现快速失败）。
+     *
+     * @since W5
+     */
+    default void sendSmsCode(String phone, String clientIp) {
+        throw new UnsupportedOperationException("sendSmsCode not implemented");
+    }
+
+    /**
+     * MFA 第二因子短信验证码重发（设计 §3.6）。凭 challengeToken 服务端取号。
+     * 默认抛出 {@link UnsupportedOperationException}。
+     *
+     * @since W5
+     */
+    default void sendMfaCode(String challengeToken, String clientIp) {
+        throw new UnsupportedOperationException("sendMfaCode not implemented");
+    }
 
     AuthToken parseAuthToken(String accessToken);
 

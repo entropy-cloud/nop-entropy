@@ -75,4 +75,68 @@ public interface NopAuthConfigs {
 
     @Description("是否跳过对管理员的操作权限检查")
     IConfigReference<Boolean> CFG_AUTH_SKIP_CHECK_FOR_ADMIN = varRef(s_loc, "nop.auth.skip-check-for-admin", Boolean.class, false);
+
+    // ===== MFA 配置（设计 §3.7） =====
+
+    @Description("全局 MFA 开关，关闭时即使有用户配置也不强制第二因子")
+    IConfigReference<Boolean> CFG_AUTH_MFA_ENABLED = varRef(s_loc, "nop.auth.mfa.enabled",
+            Boolean.class, false);
+
+    @Description("MFA challenge / 短信验证码存储实现类型：local 或 redis")
+    IConfigReference<String> CFG_AUTH_MFA_STORE_TYPE = varRef(s_loc, "nop.auth.mfa.store-type",
+            String.class, "local");
+
+    @Description("MFA challenge 有效期，单位秒")
+    IConfigReference<Integer> CFG_AUTH_MFA_CHALLENGE_EXPIRE_SECONDS = varRef(s_loc, "nop.auth.mfa.challenge-expire-seconds",
+            Integer.class, 300);
+
+    @Description("第二因子最大尝试次数，超限后作废 challenge")
+    IConfigReference<Integer> CFG_AUTH_MFA_MAX_ATTEMPTS = varRef(s_loc, "nop.auth.mfa.max-attempts",
+            Integer.class, 5);
+
+    @Description("TOTP issuer 名称（otpauth URI 中显示）")
+    IConfigReference<String> CFG_AUTH_MFA_TOTP_ISSUER = varRef(s_loc, "nop.auth.mfa.totp-issuer",
+            String.class, "nop");
+
+    @Description("TOTP 校验允许的时钟偏差窗口数")
+    IConfigReference<Integer> CFG_AUTH_MFA_TOTP_WINDOW_SKEW = varRef(s_loc, "nop.auth.mfa.totp-window-skew",
+            Integer.class, 1);
+
+    @Description("MFA 信道类登录成功后签发 accessCode 的有效期，单位秒")
+    IConfigReference<Integer> CFG_AUTH_MFA_ACCESS_CODE_EXPIRE_SECONDS = varRef(s_loc, "nop.auth.mfa.access-code-expire-seconds",
+            Integer.class, 300);
+
+    // ===== 短信验证码配置（设计 §3.7） =====
+
+    @Description("短信验证码登录开关")
+    IConfigReference<Boolean> CFG_AUTH_SMS_CODE_ENABLED = varRef(s_loc, "nop.auth.sms-code.enabled",
+            Boolean.class, false);
+
+    @Description("短信验证码有效期，单位秒")
+    IConfigReference<Integer> CFG_AUTH_SMS_CODE_EXPIRE_SECONDS = varRef(s_loc, "nop.auth.sms-code.expire-seconds",
+            Integer.class, 300);
+
+    @Description("同一手机号短信发送最小间隔，单位秒")
+    IConfigReference<Integer> CFG_AUTH_SMS_CODE_SEND_INTERVAL_SECONDS = varRef(s_loc, "nop.auth.sms-code.send-interval-seconds",
+            Integer.class, 60);
+
+    @Description("同一手机号每日短信发送上限")
+    IConfigReference<Integer> CFG_AUTH_SMS_CODE_DAILY_LIMIT = varRef(s_loc, "nop.auth.sms-code.daily-limit",
+            Integer.class, 20);
+
+    @Description("同一 IP 每日短信发送上限")
+    IConfigReference<Integer> CFG_AUTH_SMS_CODE_IP_DAILY_LIMIT = varRef(s_loc, "nop.auth.sms-code.ip-daily-limit",
+            Integer.class, 50);
+
+    @Description("短信验证码错误上限，超过后作废需重发")
+    IConfigReference<Integer> CFG_AUTH_SMS_CODE_MAX_ATTEMPTS = varRef(s_loc, "nop.auth.sms-code.max-attempts",
+            Integer.class, 5);
+
+    @Description("短信模板 ID（SmsMessage.templateCode）")
+    IConfigReference<String> CFG_AUTH_SMS_CODE_TEMPLATE_ID = varRef(s_loc, "nop.auth.sms-code.template-id",
+            String.class, null);
+
+    @Description("未注册手机号是否允许发送验证码（防枚举：关闭时未注册号也统一响应已发送）")
+    IConfigReference<Boolean> CFG_AUTH_SMS_CODE_ALLOW_REGISTER = varRef(s_loc, "nop.auth.sms-code.allow-register",
+            Boolean.class, false);
 }

@@ -30,4 +30,19 @@ public interface NopAuthConstants {
     String PATH_MAIN_ACTION_AUTH = "/nop/main/auth/app.action-auth.xml";
 
     String PATH_MAIN_DATA_AUTH = "/nop/main/auth/app.data-auth.xml";
+
+    // ===== MFA 常量（设计 §3.5 / §3.6） =====
+
+    /** NopAuthMfaSetting.status 绑定状态：待确认 / 已启用 / 已禁用。启用判定统一口径 status==enabled。 */
+    String MFA_STATUS_PENDING = "pending";
+    String MFA_STATUS_ENABLED = "enabled";
+    String MFA_STATUS_DISABLED = "disabled";
+
+    /** NopAuthMfaSetting.mfaType 第二因子类型。 */
+    String MFA_TYPE_TOTP = "totp";
+    String MFA_TYPE_SMS = "sms";
+
+    /** SmsCodeStore key 前缀：登录验证码 / MFA 第二因子验证码（互不通用）。 */
+    String SMS_KEY_LOGIN = "login:";
+    String SMS_KEY_MFA = "mfa:";
 }

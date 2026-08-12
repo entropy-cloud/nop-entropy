@@ -62,6 +62,11 @@ public interface AuthApiConstants {
 
     int LOGIN_TYPE_SSO = 4;
 
+    /**
+     * 短信验证码登录（手机号 + 一次性验证码），不经过密码校验。
+     */
+    int LOGIN_TYPE_PHONE_SMS = 5;
+
     String RESOURCE_TYPE_TOP_MENU = "TOPM";
     String RESOURCE_TYPE_SUB_MENU = "SUBM";
     String RESOURCE_TYPE_FUNCTION_POINT = "FNPT";

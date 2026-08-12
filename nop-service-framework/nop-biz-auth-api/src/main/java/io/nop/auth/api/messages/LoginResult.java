@@ -33,6 +33,12 @@ public class LoginResult extends ExtensibleBean {
 
     private LoginUserInfo userInfo;
 
+    /**
+     * 信道类登录（SSO/扫码）经 mfaVerify 成功后的出口：一次性 accessCode，
+     * 由前端再换取 accessToken。密码类登录路径为 null（直接签发 accessToken）。
+     */
+    private String accessCode;
+
     @PropMeta(propId = 1)
     public String getAccessToken() {
         return accessToken;
@@ -112,6 +118,16 @@ public class LoginResult extends ExtensibleBean {
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public Map<String, Object> getAttrs() {
         return super.getAttrs();
+    }
+
+    @PropMeta(propId = 10)
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    public String getAccessCode() {
+        return accessCode;
+    }
+
+    public void setAccessCode(String accessCode) {
+        this.accessCode = accessCode;
     }
 
 }
