@@ -15,6 +15,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -36,13 +37,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * （registerNode 后 getActiveNodes 可见性（AR-9 缺陷点）、renewLease per-renewal timeout
  * （AR-18）、eviction），行为差异**显式断言（pin）差异存在并登记 red list 移交 I2，不修复**。
  *
- * <p>已知 residual 的 pin 语义（非"首日即红"）：
- * <ul>
- *   <li><b>AR-9</b>：JDBC registerNode 写 lease_expire_at=0L → 注册后立即可见性不成立
- *       （getActiveNodes 按 &gt; now 过滤）；InMemory 立即可见。差异被显式断言并登记。</li>
- *   <li><b>AR-18</b>：InMemory renewLease 忽略 leaseTimeoutMs（固定 leaseTtlMs=15s）；
- *       JDBC 按 per-renewal 参数计算过期时间。差异被显式断言并登记。</li>
- * </ul>
+ * <p>I1 期间两实现差异曾被显式 pin（AR-9：JDBC 注册后不可见；AR-18：InMemory 忽略 per-renewal
+ * leaseTimeoutMs）；I4 修复后断言翻转——两实现现在同语义：registerNode 后立即可见、renewLease
+ * 按 per-renewal 参数计算过期时间（不变式 #5）。
  */
 public class TestClusterRegistryConsistencyInvariant {
 
@@ -112,56 +109,69 @@ public class TestClusterRegistryConsistencyInvariant {
         return "jdbc".equals(name) ? jdbcRegistry : inMemoryRegistry;
     }
 
-    /** registerNode 后 getActiveNodes 可见性（AR-9 缺陷点）：两实现差异显式 pin。 */
+    /** registerNode 后 getActiveNodes 可见性（不变式 #5）：两实现必须立即可见（RL-1 修复，断言翻转）。 */
     @ParameterizedTest
     @MethodSource("implNames")
     void testRegisterNodeVisibilityIsPinnedPerImpl(String impl) {
         ClusterRegistry registry = registryFor(impl);
         registry.registerNode("node-1", "host1:8080", 4);
         List<NodeInfo> active = registry.getActiveNodes();
-        if ("inmemory".equals(impl)) {
-            assertEquals(1, active.size(),
-                    "InMemory: registerNode must be immediately visible in getActiveNodes");
-            assertEquals("node-1", active.get(0).getNodeId());
-        } else {
-            // AR-9 pin: JDBC registerNode 写 lease_expire_at=0L → 注册窗口内不可见（差异登记 I2 red list）
-            assertTrue(active.isEmpty(),
-                    "AR-9 pin: JdbcClusterRegistry.registerNode writes lease_expire_at=0L, "
-                            + "so the node must NOT be visible immediately (difference pinned for I2, not fixed in I1)");
-            // 经 renewLease 后可见（per-renewal 生效路径）
-            assertTrue(registry.renewLease("node-1", 60_000L));
-            assertEquals(1, registry.getActiveNodes().size(),
-                    "after renewLease with a real timeout the node must become visible");
-        }
+        assertEquals(1, active.size(),
+                "RL-1 fixed: registerNode must be immediately visible in getActiveNodes (impl=" + impl + ")");
+        assertEquals("node-1", active.get(0).getNodeId());
     }
 
-    /** renewLease per-renewal timeout 语义（AR-18）：JDBC 生效，InMemory 忽略 → 差异显式 pin。 */
+    /** renewLease per-renewal timeout 语义（不变式 #5）：两实现都按参数计算（RL-3 修复，断言翻转）。 */
     @ParameterizedTest
     @MethodSource("implNames")
     void testRenewLeasePerRenewalTimeoutIsPinnedPerImpl(String impl) {
         ClusterRegistry registry = registryFor(impl);
         registry.registerNode("node-1", "host1:8080", 4);
-        if ("jdbc".equals(impl)) {
-            // JDBC: renewLease 按 per-renewal 参数计算过期时间（AR-18 合规侧）
-            long before = System.currentTimeMillis();
-            assertTrue(registry.renewLease("node-1", 5_000L));
-            LeaseInfo lease = registry.getNodeLease("node-1");
-            assertNotNull(lease);
-            assertTrue(lease.getLeaseExpireAt() >= before + 4_500L,
-                    "JDBC renewLease must honor per-renewal leaseTimeoutMs (expireAt ~ now + 5000)");
-            assertTrue(lease.getLeaseExpireAt() <= before + 6_000L);
-            assertTrue(lease.isActive());
-        } else {
-            // AR-18 pin: InMemory 忽略 leaseTimeoutMs（固定 leaseTtlMs=15s）→ 差异登记 I2 red list
-            assertTrue(registry.renewLease("node-1", 5_000L));
-            LeaseInfo lease = registry.getNodeLease("node-1");
-            assertNotNull(lease);
-            assertTrue(lease.getLeaseExpireAt() - lease.getLeaseStartAt() > 10_000L,
-                    "AR-18 pin: InMemoryClusterRegistry.renewLease ignores leaseTimeoutMs and uses fixed "
-                            + "leaseTtlMs (15000ms), so expireAt - startAt must be ~15s, not 5s "
-                            + "(difference pinned for I2, not fixed in I1)");
-            assertTrue(lease.isActive());
-        }
+        long before = System.currentTimeMillis();
+        assertTrue(registry.renewLease("node-1", 5_000L));
+        LeaseInfo lease = registry.getNodeLease("node-1");
+        assertNotNull(lease);
+        assertTrue(lease.getLeaseExpireAt() >= before + 4_500L,
+                "RL-3 fixed (impl=" + impl + "): renewLease must honor per-renewal leaseTimeoutMs (expireAt ~ now + 5000)");
+        assertTrue(lease.getLeaseExpireAt() <= before + 6_000L);
+        assertTrue(lease.isActive());
+    }
+
+    /** RL-3：InMemory renewLease 按 per-renewal leaseTimeoutMs 计算活性（自定义 timeout 到期后淘汰、未到期活性）。 */
+    @Test
+    void testInMemoryRenewLeaseHonorsPerRenewalTimeout() throws Exception {
+        InMemoryClusterRegistry inMem = new InMemoryClusterRegistry();
+        inMem.registerNode("node-1", "host1:8080", 4);
+
+        // 未到期：按自定义 timeout 保持活性（不得用固定 leaseTtlMs=15s 兜底）
+        assertTrue(inMem.renewLease("node-1", 300L));
+        assertEquals(1, inMem.getActiveNodes().size());
+        assertTrue(inMem.getNodeLease("node-1").isActive());
+
+        // 自定义 timeout 到期：getActiveNodes 不包含、getNodeLease 不活性、evictExpiredNodes 移除
+        Thread.sleep(500);
+        assertTrue(inMem.getActiveNodes().isEmpty(),
+                "RL-3: InMemory node must be inactive once the custom leaseTimeoutMs (300ms) expires");
+        assertFalse(inMem.getNodeLease("node-1").isActive());
+        inMem.evictExpiredNodes();
+        assertFalse(inMem.renewLease("node-1", 5_000L), "evicted node must not be renewable");
+    }
+
+    /** RL-1 UPDATE 分支：注册 → 短租约过期 → 重新注册（UPDATE 路径）→ 立即可见（UPDATE 不得停留旧过期值）。 */
+    @Test
+    void testJdbcReregisterAfterLeaseExpiryIsImmediatelyVisible() throws Exception {
+        ClusterRegistry registry = new JdbcClusterRegistry(jdbcTemplate);
+        registry.registerNode("node-1", "host1:8080", 4);
+        assertTrue(registry.renewLease("node-1", 200L));
+        Thread.sleep(400);
+        assertTrue(registry.getActiveNodes().isEmpty(), "precondition: node lease must have expired");
+
+        // 节点已存在 → registerNode 走 UPDATE 分支；UPDATE 必须刷新 lease_expire_at 使节点立即可见
+        registry.registerNode("node-1", "host1:9090", 8);
+        List<NodeInfo> active = registry.getActiveNodes();
+        assertEquals(1, active.size(),
+                "RL-1: re-register via the UPDATE path must refresh lease_expire_at and make the node immediately visible");
+        assertEquals("node-1", active.get(0).getNodeId());
     }
 
     /** eviction：两实现都必须在 lease 过期后移除节点（语义一致性）。 */

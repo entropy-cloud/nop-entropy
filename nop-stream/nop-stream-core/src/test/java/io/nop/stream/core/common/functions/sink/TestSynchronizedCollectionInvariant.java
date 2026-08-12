@@ -15,6 +15,7 @@ import java.util.TreeMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
@@ -26,6 +27,7 @@ import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.test.InvariantTableCompleteness;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -33,10 +35,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * <p><b>2PC 迭代点表</b>（TwoPhaseCommitSinkFunction 的全部 synchronized-map 迭代点）：
  * <ol>
- *   <li>{@code saveState} :83 {@code new TreeMap<>(pendingCommits)}（copy 迭代）—
- *       <b>已知 residual（R16-AR-1）→ pin-and-record</b>：JUnit 侧 pin 行为语义（快照内容完整），
- *       锁状态由 mjs 扫描器 pin（见 {@code mjs-pins.json}）；</li>
- *   <li>{@code finishCommit} :101-118 entrySet 迭代 — 断言在 synchronized(pending) 内
+ *   <li>{@code saveState} {@code new TreeMap<>(pendingCommits)}（copy 迭代）—
+ *       I4 修复（RL-4，R16-AR-1）：copy 已移入 {@code synchronized (pendingCommits)} 块，
+ *       静态违规消失（mjs pin 已移除）；本类行为断言 = 快照内容完整；</li>
+ *   <li>{@code finishCommit} entrySet 迭代 — 断言在 synchronized(pending) 内
  *       （行为证明：并发变更不抛 CME）；</li>
  *   <li>{@code restoreFromEpoch} :158-167 entrySet 迭代 — 断言在 synchronized(pending) 内
  *       （行为证明：并发变更不抛 CME）。</li>
@@ -103,9 +105,9 @@ public class TestSynchronizedCollectionInvariant {
     }
 
     /**
-     * saveState 已知 residual（R16-AR-1）pin-and-record：行为语义 pin = 快照内容完整
-     * （pending 全部条目原样进入 snapshot）。锁状态（无锁 copy）由 mjs 扫描器 pin
-     * （mjs-pins.json），本测试不修复、不断言锁。
+     * saveState 快照内容完整（RL-4 修复后行为断言）：pending 全部条目原样进入 snapshot。
+     * I4 前该断言是行为 pin（锁状态由 mjs pin）；修复后锁已加（mjs pin 移除），本断言
+     * 继续守住内容完整性（锁状态由 mjs 扫描器覆盖）。
      */
     @Test
     void testSaveStatePinsSnapshotContentComplete() throws Exception {
@@ -115,12 +117,123 @@ public class TestSynchronizedCollectionInvariant {
         }
         TaskStateSnapshot snapshot = sink.saveState(3L);
         Object raw = snapshot.getOperatorState(TwoPhaseCommitSinkFunction.PENDING_COMMITS_KEY);
-        assertTrue(raw instanceof Map, "pinned behavior: saveState must return a real snapshot");
+        assertTrue(raw instanceof Map, "saveState must return a real snapshot");
         Map<?, ?> copy = (Map<?, ?>) raw;
-        assertEquals(5, copy.size(), "pinned behavior: snapshot content must be complete (all 5 pending)");
+        assertEquals(5, copy.size(), "snapshot content must be complete (all 5 pending)");
         for (long e = 1; e <= 5; e++) {
             assertEquals("tx-" + e, copy.get(e));
         }
+    }
+
+    /**
+     * RL-4 (R16-AR-1)：saveState 与 commit/abort 路径并发下无 CME 且快照完整。
+     * 多轮 saveState 期间 4 个噪声线程持续 put/remove（模拟 commit/abort 的 pending 变更），
+     * 断言：无异常、首 50 条 pending 全部完整进入每次快照。
+     */
+    @Test
+    void testSaveStateConcurrentWithCommitAbortIsSafe() throws Exception {
+        TestSink sink = new TestSink();
+        for (long e = 1; e <= 50; e++) {
+            sink.getPendingCommits().put(e, "tx-" + e);
+        }
+        ExecutorService pool = Executors.newFixedThreadPool(4);
+        CountDownLatch go = new CountDownLatch(1);
+        CountDownLatch noiseDone = new CountDownLatch(4);
+        List<Throwable> errors = java.util.Collections.synchronizedList(new ArrayList<>());
+        for (int i = 0; i < 4; i++) {
+            pool.submit(() -> {
+                try {
+                    go.await();
+                    long base = System.nanoTime();
+                    while (System.nanoTime() - base < 200_000_000L) {
+                        long noiseEpoch = 100L + (System.nanoTime() % 1000);
+                        sink.getPendingCommits().put(noiseEpoch, "noise");
+                        sink.getPendingCommits().remove(noiseEpoch);
+                    }
+                } catch (Throwable t) {
+                    errors.add(t);
+                } finally {
+                    noiseDone.countDown();
+                }
+                return null;
+            });
+        }
+        TaskStateSnapshot lastSnapshot;
+        go.countDown();
+        try {
+            lastSnapshot = null;
+            for (int round = 0; round < 20; round++) {
+                lastSnapshot = sink.saveState(round);
+            }
+        } finally {
+            assertTrue(noiseDone.await(30, TimeUnit.SECONDS), "noise threads must finish");
+            pool.shutdown();
+            assertTrue(pool.awaitTermination(10, TimeUnit.SECONDS));
+        }
+        assertTrue(errors.isEmpty(), "concurrent mutation must not throw, got: " + errors);
+        Object raw = lastSnapshot.getOperatorState(TwoPhaseCommitSinkFunction.PENDING_COMMITS_KEY);
+        assertTrue(raw instanceof Map, "saveState must produce a snapshot map");
+        Map<?, ?> copy = (Map<?, ?>) raw;
+        assertTrue(copy.size() >= 50, "all original pending entries must be in the snapshot");
+        for (long e = 1; e <= 50; e++) {
+            assertEquals("tx-" + e, copy.get(e), "snapshot must remain complete under concurrency");
+        }
+    }
+
+    /**
+     * RL-5 (R16-AR-11)：setPendingCommits 传入任意（非同步）Map 后类内迭代路径仍安全等价。
+     * 确定性断言 = 防御性拷贝（传入 map 的后续变更不影响类内部视图）；并发冒烟 = 原始 map
+     * 被外部变更期间 saveState 不抛 CME 且快照完整。
+     */
+    @Test
+    void testSetPendingCommitsWrapsUnsafeMap() throws Exception {
+        TestSink sink = new TestSink();
+        Map<Long, Object> raw = new TreeMap<>();
+        raw.put(1L, "tx-1");
+        raw.put(2L, "tx-2");
+        sink.setPendingCommits(raw);
+
+        // 确定性断言：setter 必须防御性拷贝——传入 map 的后续变更不得进入类内部视图
+        raw.put(99L, "late-mutation");
+        assertEquals(2, sink.getPendingCommits().size(),
+                "setPendingCommits must defensively copy the incoming map (late mutation must not leak in)");
+        assertFalse(sink.getPendingCommits().containsKey(99L));
+        assertEquals("tx-1", sink.getPendingCommits().get(1L));
+        assertEquals("tx-2", sink.getPendingCommits().get(2L));
+
+        // 并发冒烟：原始 map 被外部变更期间 saveState 不抛 CME 且快照完整
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        CountDownLatch go = new CountDownLatch(1);
+        List<Throwable> errors = java.util.Collections.synchronizedList(new ArrayList<>());
+        java.util.concurrent.        Future<?> noise = pool.submit(() -> {
+            try {
+                go.await();
+                long base = System.nanoTime();
+                while (System.nanoTime() - base < 100_000_000L) {
+                    raw.put(100L + (System.nanoTime() % 1000), "noise");
+                    raw.remove(100L + (System.nanoTime() % 1000));
+                }
+            } catch (Throwable t) {
+                errors.add(t);
+            }
+            return null;
+        });
+        TaskStateSnapshot snapshot;
+        go.countDown();
+        try {
+            snapshot = sink.saveState(3L);
+        } finally {
+            noise.get(30, TimeUnit.SECONDS);
+            pool.shutdown();
+            assertTrue(pool.awaitTermination(10, TimeUnit.SECONDS));
+        }
+        assertTrue(errors.isEmpty(), "external mutation of the raw map must not break saveState, got: " + errors);
+        Object rawSnap = snapshot.getOperatorState(TwoPhaseCommitSinkFunction.PENDING_COMMITS_KEY);
+        assertTrue(rawSnap instanceof Map, "saveState must produce a snapshot map");
+        Map<?, ?> copy = (Map<?, ?>) rawSnap;
+        assertEquals(2, copy.size(), "snapshot must contain exactly the defensive-copy entries");
+        assertEquals("tx-1", copy.get(1L));
+        assertEquals("tx-2", copy.get(2L));
     }
 
     /**

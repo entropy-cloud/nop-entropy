@@ -2,10 +2,5 @@
   "schemaVersion": 1,
   "updated": "2026-08-12",
   "note": "Pinned violations for check-nop-stream-invariants.mjs scan-iterations (invariant #2: synchronized collection iteration points must be inside a synchronized block). Semantics = pin-and-record: violations ⊆ pins → green (CI stays green despite known residuals); NEW violations (not pinned) → red; a pin whose violation no longer exists → stale-pin error (the residual was fixed — remove the pin). Each key MUST match the scanner's violation string exactly (relative path:line iteration ...). Differences are transferred to I2 red list via ai-dev/audits/nop-stream-invariants/red-list.md; I1 does NOT fix them.",
-  "pinnedViolations": [
-    {
-      "key": "nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/common/functions/sink/TwoPhaseCommitSinkFunction.java:83 iteration of synchronized collection 'pendingCommits' (copy-constructor) outside synchronized block",
-      "reason": "R16-AR-1: TwoPhaseCommitSinkFunction.saveState() copies pendingCommits (new TreeMap<>(pendingCommits)) without holding the monitor. Known residual, pin-and-record; behavior pin in TestSynchronizedCollectionInvariant (snapshot content completeness). I2 red list #4."
-    }
-  ]
+  "pinnedViolations": []
 }
