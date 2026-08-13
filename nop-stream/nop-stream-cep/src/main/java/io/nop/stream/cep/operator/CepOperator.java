@@ -275,7 +275,14 @@ public class CepOperator<IN, KEY, OUT>
                 new MapStateDescriptor<>(EVENT_QUEUE_STATE_NAME, Long.class, (Class) List.class));
         partialMatches = new SharedBuffer<>(keyedStateStore, inputSerializer, new SharedBufferCacheConfig());
 
-        registeredEventTimeTimers = new TreeSet<>();
+        // P1-04: restoreState() may run BEFORE open() (the order pinned by
+        // TestCepCheckpointRestoreE2E), so only initialize the timer registry when
+        // it is still null. The previous unconditional rebuild wiped every timer
+        // restored from a checkpoint — the storage side (AR-9) persisted them, but
+        // the consumption side silently lost them on open().
+        if (registeredEventTimeTimers == null) {
+            registeredEventTimeTimers = new TreeSet<>();
+        }
 
         timerService = new InternalTimerService<VoidNamespace>() {
             @Override
@@ -583,6 +590,19 @@ public class CepOperator<IN, KEY, OUT>
                 computationStates.clear();
             }
         }
+
+        // P1-04 (bookkeeping semantics): the registry is a LEDGER of pending
+        // event-time timers, not a trigger mechanism — onEventTime is driven by
+        // watermark advancement (STEP 2 drains every queue bucket <= watermark
+        // directly). A registry entry's work is done once the watermark reaches
+        // it: its queue bucket has been consumed (STEP 2) and window cleanup
+        // performed (STEP 3-5). Expired entries are removed here so the registry
+        // (which is checkpointed in FULL on every snapshot) does not grow without
+        // bound, and so a restored registry only ever contains genuinely pending
+        // timers.
+        if (registeredEventTimeTimers != null) {
+            registeredEventTimeTimers.removeIf(timer -> timer <= time);
+        }
     }
 
     public void onProcessingTime(long time) throws Exception {
@@ -852,5 +872,17 @@ public class CepOperator<IN, KEY, OUT>
 
     public long getCurrentWatermark() {
         return currentWatermark;
+    }
+
+    /**
+     * P1-04: testing accessor for the event-time timer bookkeeping registry.
+     *
+     * @return the currently registered (pending) event-time timers; empty when the
+     *         registry has not been initialized yet
+     */
+    java.util.Set<Long> getRegisteredEventTimeTimersForTesting() {
+        return registeredEventTimeTimers == null
+                ? java.util.Collections.emptySet()
+                : java.util.Collections.unmodifiableSet(registeredEventTimeTimers);
     }
 }
