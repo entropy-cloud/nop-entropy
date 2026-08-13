@@ -252,8 +252,8 @@ public class JobFireStoreImpl implements IJobFireStore {
                     )
             ));
         }
-        query.addOrderField(PROP_NAME_startTime, false);
-        query.addOrderField(PROP_NAME_jobFireId, false);
+        query.addOrderField(PROP_NAME_startTime, true);
+        query.addOrderField(PROP_NAME_jobFireId, true);
         return fireDao().findAllByQuery(query);
     }
 
@@ -288,7 +288,12 @@ public class JobFireStoreImpl implements IJobFireStore {
         fire.setDurationMs(DateHelper.durationMs(fire.getStartTime(), fire.getEndTime()));
         fire.setErrorCode(errorCode);
         fire.setErrorMessage(errorMessage);
-        fireDao().tryUpdateWithVersionCheck(fire);
+        // plan 340 §2.4 (P2-3): observe version-conflict outcome instead of discarding it.
+        // A false return means the fire was already terminalized concurrently; the timeout
+        // checker would otherwise re-enter this path every cycle silently.
+        if (!fireDao().tryUpdateWithVersionCheck(fire)) {
+            LOG.warn("nop.job.fire-finalize-conflict:fireId={},errorCode={}", jobFireId, errorCode);
+        }
     }
 
     private IOrmEntityDao<NopJobFire> fireDao() {
@@ -308,6 +313,9 @@ public class JobFireStoreImpl implements IJobFireStore {
         query.addFilter(FilterBeans.eq(_NopJobTask.PROP_NAME_jobFireId, jobFireId));
         query.addOrderField(_NopJobTask.PROP_NAME_taskNo, false);
         query.addOrderField(_NopJobTask.PROP_NAME_jobTaskId, false);
+        // No LIMIT: completion/cancel need ALL tasks of a fire (capping would yield incomplete
+        // status aggregation / partial cancel). Task count per fire is bounded at dispatch time
+        // (broadcast = healthy instances, partition = partition count, single = 1).
         return taskDao().findAllByQuery(query);
     }
 

@@ -61,6 +61,11 @@
         <property name="alarmHandler" ref="io.nop.job.api.alarm.IJobAlarmHandler"/>
     </bean>
 
+    <!-- plan 340 §2.5 (P2-4): 周期对账 activeFireCount，收敛 @SingleSession 路径的计数漂移。
+         刻意 non-@SingleSession（见类 javadoc），复用 planner 的 scan-interval-ms 节拍。 -->
+    <bean id="io.nop.job.coordinator.engine.JobScheduleCounterReconciler"
+          class="io.nop.job.coordinator.engine.JobScheduleCounterReconciler"/>
+
     <bean id="io.nop.job.coordinator.engine.JobCoordinator"
           class="io.nop.job.coordinator.engine.JobCoordinator"/>
 </beans>

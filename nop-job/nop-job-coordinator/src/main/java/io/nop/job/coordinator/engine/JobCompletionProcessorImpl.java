@@ -108,7 +108,12 @@ public class JobCompletionProcessorImpl extends AbstractBatchScanner implements 
                     completedCount++;
                 }
             } catch (Exception e) {
-                LOG.warn("nop.job.completion.fire-complete-failed:fireId={}", fire.getJobFireId(), e);
+                // plan 340 §2.7 (P2-6): include scheduleId so commit-time conflicts (e.g. schedule
+                // version bumped by a concurrent planner) are correlatable to schedules for the
+                // counter reconciler. The reconciler is the primary drift-convergence mechanism
+                // (see timeout-and-recovery-design.md §2); this warn makes the failure observable.
+                LOG.warn("nop.job.completion.fire-complete-failed:fireId={},scheduleId={}",
+                        fire.getJobFireId(), fire.getJobScheduleId(), e);
             }
         }
         if (completedCount > 0) {

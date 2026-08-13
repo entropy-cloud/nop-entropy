@@ -117,4 +117,12 @@ public interface JobCoreErrors {
     ErrorCode ERR_JOB_NO_FITTING_WORKER = define("nop.err.job.no-fitting-worker",
             "No worker can fit task cost {taskCost} for service '{serviceName}'; either reduce cost, add workers, or switch dispatchMode to single",
             ARG_TASK_COST);
+
+    String ARG_ENFORCE_ATTRIBUTION = "enforceAttribution";
+
+    // plan 340 §2.11 (P3-e): dedicated worker-pool mode requires hostId to be configured.
+    ErrorCode ERR_JOB_WORKER_INSTANCE_ID_REQUIRED = define("nop.err.job.worker-instance-id-required",
+            "fetchWaitingTasks called with enforceAttribution={enforceAttribution} but workerInstanceId is null/empty; "
+                    + "configure the worker hostId before enabling dedicated-pool attribution",
+            ARG_ENFORCE_ATTRIBUTION);
 }

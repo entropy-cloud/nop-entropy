@@ -49,14 +49,17 @@ public class PeriodicTrigger implements ITrigger {
             return time;
         } else {
             long start = evalContext.getLastScheduledTime();
-            if (start < 0) {
-                start = evalContext.getMinScheduleTime();
-                if (start < 0) {
-                    return afterTime + 1;
-                } else {
-                    if (afterTime < start) {
-                        return start;
-                    }
+            if (start <= 0) {
+                // plan 340 §2.10 (P2-9): never fired — do NOT anchor the fixed-rate grid to
+                // epoch 0. Anchor to minScheduleTime if set, else fire from now so the grid
+                // starts at the schedule's first actual execution.
+                long minStart = evalContext.getMinScheduleTime();
+                if (minStart <= 0) {
+                    return afterTime;
+                }
+                start = minStart;
+                if (afterTime < start) {
+                    return start;
                 }
             }
 

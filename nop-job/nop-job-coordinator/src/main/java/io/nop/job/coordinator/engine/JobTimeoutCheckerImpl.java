@@ -308,7 +308,7 @@ public class JobTimeoutCheckerImpl extends AbstractBatchScanner implements IJobT
         Timestamp endTime = new Timestamp(now);
         fire.setFireStatus(_NopJobCoreConstants.FIRE_STATUS_TIMEOUT);
         fire.setEndTime(endTime);
-        fire.setDurationMs(startTimeOrNow(fire, now));
+        fire.setDurationMs(computeDispatchElapsedMs(fire, now));
         fire.setErrorCode(ERR_JOB_TIMEOUT.getErrorCode());
         fire.setErrorMessage(ERR_JOB_TIMEOUT.getDescription());
 
@@ -373,12 +373,12 @@ public class JobTimeoutCheckerImpl extends AbstractBatchScanner implements IJobT
                 fire.getJobFireId(), schedule.getJobScheduleId(), fire.getDurationMs());
     }
 
-    private long startTimeOrNow(NopJobFire fire, long now) {
+    // plan 340 §2.11: renamed from startTimeOrNow (the method returns an elapsed duration, not a
+    // timestamp) and dropped the updateTime fallback — a DISPATCHING fire always has startTime set
+    // by tryLockFiresForDispatch; a stale startTime on a reverted fire would otherwise yield a
+    // nonsensical (negative-then-maxed-to-0) duration via the old updateTime fallback.
+    private long computeDispatchElapsedMs(NopJobFire fire, long now) {
         Timestamp startTime = fire.getStartTime();
-        if (startTime == null) {
-            Timestamp updateTime = fire.getUpdateTime();
-            startTime = updateTime;
-        }
         return startTime != null ? Math.max(now - startTime.getTime(), 0L) : 0L;
     }
 
@@ -450,9 +450,11 @@ public class JobTimeoutCheckerImpl extends AbstractBatchScanner implements IJobT
         } else if (executionTimeoutMs > 0) {
             effectiveTimeoutMs = executionTimeoutMs;
         } else {
-            effectiveTimeoutMs = dispatchTimeoutMs;
-        }
-        if (effectiveTimeoutMs <= 0) {
+            // plan 340 §2.1 (P1-1): no execution timeout configured — do not fall back to
+            // dispatchTimeoutMs (that is the "fire stuck in DISPATCHING" timeout, semantically
+            // unrelated to task wall-clock). Long-running tasks without a per-schedule timeout
+            // are instead recovered by the worker-liveness chain (SUSPICIOUS -> TIMEOUT) when
+            // their worker disappears.
             return;
         }
 

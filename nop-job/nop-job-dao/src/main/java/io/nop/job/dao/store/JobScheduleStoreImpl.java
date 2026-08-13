@@ -40,6 +40,9 @@ import static io.nop.job.dao.entity._gen._NopJobSchedule.PROP_NAME_scheduleStatu
 public class JobScheduleStoreImpl implements IJobScheduleStore {
     static final Logger LOG = LoggerFactory.getLogger(JobScheduleStoreImpl.class);
 
+    // plan 340 §2.9 (P2-8): defensive cap on active-fire queries (overlay/manual storm drain).
+    private static final int ACTIVE_FIRES_QUERY_LIMIT = 500;
+
     private IDaoProvider daoProvider;
 
     @Inject
@@ -123,7 +126,7 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
         int actualCancelledCount = 0;
         for (NopJobFire activeFire : activeFires) {
             try {
-                boolean cancelled = cancelFire(activeFire, cancelTime);
+                boolean cancelled = markFireCanceledOnly(activeFire, cancelTime);
                 if (cancelled) {
                     actualCancelledCount++;
                 }
@@ -194,19 +197,20 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
         Timestamp recoveryTime = new Timestamp(now);
 
         NopJobFire failedFire = failedFires.get(0);
-        failedFire.setFireStatus(_NopJobCoreConstants.FIRE_STATUS_WAITING);
-        failedFire.setErrorCode(null);
-        failedFire.setErrorMessage(null);
-        failedFire.setEndTime(null);
-        failedFire.setDurationMs(null);
-        failedFire.setJobParamsSnapshot(schedule.getJobParams());
-        failedFire.setRetryPolicyId(schedule.getRetryPolicyId());
 
+        // plan 340 §2.8 (P2-7): the failedFire field mutations below were dead code — only the
+        // reloaded freshFire is persisted. Reload is required for version-check correctness
+        // (the entity must reflect the latest row state before tryUpdateWithVersionCheck).
         NopJobFire freshFire = fireDao().requireEntityById(failedFire.getJobFireId());
         Integer currentFireStatus = freshFire.getFireStatus();
         if (!JobFireStateMachine.isRecoverable(currentFireStatus)) {
             LOG.info("nop.job.schedule.recovery-skip-fire-no-longer-failed:fireId={},status={}",
                     failedFire.getJobFireId(), currentFireStatus);
+            // plan 340 §2.3 (P2-2): still advance nextFireTime so the planner does not re-fetch
+            // this schedule every 5s cycle in a tight retry loop.
+            updateScheduleWithRetry(schedule,
+                    () -> schedule.setNextFireTime(nextFireTime),
+                    "recovery-skip");
             return;
         }
 
@@ -255,7 +259,7 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
         if (isOverlay(schedule)) {
             for (NopJobFire activeFire : activeFires) {
                 try {
-                    cancelFire(activeFire, updateTime);
+                    markFireCanceledOnly(activeFire, updateTime);
                     cancelTasks(activeFire.getJobFireId(), updateTime);
                 } catch (Exception e) {
                     LOG.warn("nop.job.schedule.cancel-fire-failed:fireId={}", activeFire.getJobFireId(), e);
@@ -366,7 +370,14 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
         query.addFilter(FilterBeans.in(_NopJobFire.PROP_NAME_fireStatus, JobFireStateMachine.ACTIVE_STATUSES));
         query.addOrderField(_NopJobFire.PROP_NAME_scheduledFireTime, false);
         query.addOrderField(_NopJobFire.PROP_NAME_jobFireId, false);
-        return fireDao().findAllByQuery(query);
+        // plan 340 §2.9 (P2-8): defensive cap; remaining active fires are handled on subsequent cycles.
+        query.setLimit(ACTIVE_FIRES_QUERY_LIMIT);
+        List<NopJobFire> result = fireDao().findAllByQuery(query);
+        if (result.size() >= ACTIVE_FIRES_QUERY_LIMIT) {
+            LOG.warn("nop.job.query-limit-hit:method=findActiveFires,scheduleId={},limit={}",
+                    jobScheduleId, ACTIVE_FIRES_QUERY_LIMIT);
+        }
+        return result;
     }
 
     private boolean isDiscard(NopJobSchedule schedule) {
@@ -414,7 +425,12 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
         return JobTaskStateMachine.isRecoverable(taskStatus);
     }
 
-    private boolean cancelFire(NopJobFire fire, Timestamp cancelTime) {
+    // plan 340 §2.6 (P2-5): renamed from cancelFire to eliminate the name collision with
+    // IJobFireStore.cancelFire(jobFireId). This private helper marks ONLY the fire row as
+    // CANCELED (ERR_JOB_OVERLAID); it does NOT cancel tasks nor update schedule counters —
+    // the overlay/manual callers compose markFireCanceledOnly + cancelTasks + aggregated
+    // counter math in their own transaction (more efficient than per-fire REQUIRES_NEW).
+    private boolean markFireCanceledOnly(NopJobFire fire, Timestamp cancelTime) {
         NopJobFire fresh = fireDao().requireEntityById(fire.getJobFireId());
         Integer currentStatus = fresh.getFireStatus();
         if (JobFireStateMachine.isTerminal(currentStatus)) {

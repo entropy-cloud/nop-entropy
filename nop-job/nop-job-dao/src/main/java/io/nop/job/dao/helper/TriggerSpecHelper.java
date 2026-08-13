@@ -44,7 +44,11 @@ public class TriggerSpecHelper {
 
             @Override
             public long getLastScheduledTime() {
-                return toTime(schedule.getLastFireTime());
+                // plan 340 §2.10 (P2-9): return -1 (not 0) when never fired, so consumers can
+                // distinguish "never fired" from "fired at epoch 0" and avoid anchoring the
+                // fixed-rate grid to epoch 0.
+                Timestamp lastFireTime = schedule.getLastFireTime();
+                return lastFireTime == null ? -1L : lastFireTime.getTime();
             }
 
             @Override

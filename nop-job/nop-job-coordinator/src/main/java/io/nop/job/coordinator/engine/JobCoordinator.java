@@ -12,6 +12,7 @@ public class JobCoordinator extends LifeCycleSupport {
     private IJobDispatcherScanner dispatcherScanner;
     private IJobCompletionProcessor completionProcessor;
     private IJobTimeoutChecker timeoutChecker;
+    private JobScheduleCounterReconciler counterReconciler;
 
     @Inject
     public void setPlannerScanner(IJobPlannerScanner plannerScanner) {
@@ -33,6 +34,11 @@ public class JobCoordinator extends LifeCycleSupport {
         this.timeoutChecker = timeoutChecker;
     }
 
+    @Inject
+    public void setCounterReconciler(JobScheduleCounterReconciler counterReconciler) {
+        this.counterReconciler = counterReconciler;
+    }
+
     @Override
     protected void doStart() {
         if (plannerScanner != null) {
@@ -46,6 +52,9 @@ public class JobCoordinator extends LifeCycleSupport {
         }
         if (timeoutChecker != null) {
             timeoutChecker.startScanning();
+        }
+        if (counterReconciler != null) {
+            counterReconciler.startScanning();
         }
     }
 
@@ -74,6 +83,12 @@ public class JobCoordinator extends LifeCycleSupport {
                 timeoutChecker.stopScanning();
         } catch (Exception e) {
             LOG.warn("nop.job.coordinator.stop-component-failed:component=timeoutChecker", e);
+        }
+        try {
+            if (counterReconciler != null)
+                counterReconciler.stopScanning();
+        } catch (Exception e) {
+            LOG.warn("nop.job.coordinator.stop-component-failed:component=counterReconciler", e);
         }
     }
 }

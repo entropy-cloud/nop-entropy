@@ -546,6 +546,33 @@ public class TestJobTimeoutChecker {
     }
 
     @Test
+    void testLongRunningTaskWithoutTimeoutNotKilled() {
+        // plan 340 §2.1 (P1-1): a long-running task with NO schedule.timeoutSeconds and
+        // executionTimeoutMs disabled must NOT fall back to dispatchTimeoutMs.
+        checker.setExecutionTimeoutMs(-1);
+        checker.setDispatchTimeoutMs(5000);
+
+        NopJobTask task = createTask("t-p11", "f-p11", _NopJobCoreConstants.TASK_STATUS_RUNNING);
+        task.setWorkerInstanceId("worker-a");
+        task.setStartTime(new Timestamp(currentTime - 600_000)); // 10 min ago >> 5min dispatchTimeout
+        taskStore.addRunningTask(task);
+
+        NopJobFire fire = createFire("f-p11", "s-p11", _NopJobCoreConstants.FIRE_STATUS_RUNNING, null);
+        fireStore.addFire("f-p11", fire);
+
+        NopJobSchedule schedule = createSchedule("s-p11", "job1");
+        schedule.setTimeoutSeconds(null);
+        scheduleStore.addSchedule("s-p11", schedule);
+
+        scheduleStore.setCurrentTime(currentTime);
+
+        checker.scanOnce();
+
+        assertEquals(_NopJobCoreConstants.TASK_STATUS_RUNNING, task.getTaskStatus(),
+                "Long-running task without execution timeout must not be killed by dispatchTimeoutMs fallback");
+    }
+
+    @Test
     void testExecutionTimeoutNotExpiredYet() {
         checker.setExecutionTimeoutMs(10000);
 

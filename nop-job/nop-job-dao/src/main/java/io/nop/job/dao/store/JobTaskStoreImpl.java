@@ -5,9 +5,11 @@ import io.nop.api.core.annotations.txn.Transactional;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.job.api.resource.ResourceVector;
 import io.nop.job.core._NopJobCoreConstants;
+import io.nop.job.core.JobCoreErrors;
 import io.nop.job.core.NopJobCoreConstants;
 import io.nop.job.dao.entity.NopJobTask;
 import io.nop.job.dao.helper.JobQueryHelper;
@@ -60,10 +62,17 @@ public class JobTaskStoreImpl implements IJobTaskStore {
     @Override
     public List<NopJobTask> fetchWaitingTasks(int limit, IntRangeSet partitions,
                                               String workerInstanceId, boolean enforceAttribution) {
+        // plan 340 §2.11 (P3-e): enforce-attribution with unset hostId is a config error —
+        // throwing prevents a null-hostId worker from silently seeing all tasks (which would
+        // defeat the dedicated-pool isolation that enforceAttribution is meant to provide).
+        if (enforceAttribution && (workerInstanceId == null || workerInstanceId.isEmpty())) {
+            throw new NopException(JobCoreErrors.ERR_JOB_WORKER_INSTANCE_ID_REQUIRED)
+                    .param(JobCoreErrors.ARG_ENFORCE_ATTRIBUTION, true);
+        }
         QueryBean query = new QueryBean();
         query.setLimit(limit);
         query.addFilter(FilterBeans.eq(PROP_NAME_taskStatus, _NopJobCoreConstants.TASK_STATUS_WAITING));
-        if (enforceAttribution && workerInstanceId != null) {
+        if (enforceAttribution) {
             query.addFilter(FilterBeans.or(
                     FilterBeans.eq(PROP_NAME_workerInstanceId, workerInstanceId),
                     FilterBeans.isNull(PROP_NAME_workerInstanceId)
@@ -107,8 +116,8 @@ public class JobTaskStoreImpl implements IJobTaskStore {
                     )
             ));
         }
-        query.addOrderField(PROP_NAME_startTime, false);
-        query.addOrderField(PROP_NAME_jobTaskId, false);
+        query.addOrderField(PROP_NAME_startTime, true);
+        query.addOrderField(PROP_NAME_jobTaskId, true);
         return taskDao().findAllByQuery(query);
     }
 
@@ -170,8 +179,8 @@ public class JobTaskStoreImpl implements IJobTaskStore {
                     )
             ));
         }
-        query.addOrderField(PROP_NAME_createTime, false);
-        query.addOrderField(PROP_NAME_jobTaskId, false);
+        query.addOrderField(PROP_NAME_createTime, true);
+        query.addOrderField(PROP_NAME_jobTaskId, true);
 
         List<NopJobTask> stale = taskDao().findAllByQuery(query);
         if (stale.isEmpty()) {
