@@ -60,7 +60,5 @@ public interface IJobFireStore {
      */
     boolean revertDispatchingFireToWaiting(NopJobFire fire, long backoffUntilMs);
 
-    void updateRetryRecordId(String jobFireId, String retryRecordId);
-
     void failFireWithoutSchedule(String jobFireId, String errorCode, String errorMessage);
 }

@@ -1143,7 +1143,6 @@ public class TestJobTimeoutChecker {
         }
         @Override public NopJobFire loadFire(String jobFireId) { return fireMap.get(jobFireId); }
         @Override public NopJobFire getFireById(String jobFireId) { return fireMap.get(jobFireId); }
-        @Override public void updateRetryRecordId(String jobFireId, String retryRecordId) {}
     }
 
     static class MockScheduleStore implements IJobScheduleStore {

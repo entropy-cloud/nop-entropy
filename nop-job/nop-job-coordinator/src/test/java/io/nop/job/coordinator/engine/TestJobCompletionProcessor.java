@@ -492,7 +492,6 @@ public class TestJobCompletionProcessor {
         @Override public List<NopJobFire> fetchWaitingFires(int limit, IntRangeSet partitions) { return Collections.emptyList(); }
         @Override public List<NopJobFire> fetchDispatchingFires(int limit, IntRangeSet partitions, java.sql.Timestamp ct, String cid) { return Collections.emptyList(); }
         @Override public boolean revertDispatchingFireToWaiting(NopJobFire fire, long backoffUntilMs) { return false; }
-        @Override public void updateRetryRecordId(String jobFireId, String retryRecordId) {}
         @Override public List<NopJobFire> tryLockFiresForDispatch(List<NopJobFire> fires, String dispatchInstanceId, long lockTimeoutMs) { return fires; }
         @Override public void insertTasksAndMarkFireDispatching(NopJobFire fire, List<NopJobTask> tasks) {}
         @Override public FireScheduleOutcome completeFireAndUpdateSchedule(NopJobFire fire, NopJobSchedule schedule) {

@@ -273,14 +273,6 @@ public class JobFireStoreImpl implements IJobFireStore {
 
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
     @Override
-    public void updateRetryRecordId(String jobFireId, String retryRecordId) {
-        NopJobFire fire = fireDao().requireEntityById(jobFireId);
-        fire.setRetryRecordId(retryRecordId);
-        fireDao().updateEntityDirectly(fire);
-    }
-
-    @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
-    @Override
     public void failFireWithoutSchedule(String jobFireId, String errorCode, String errorMessage) {
         NopJobFire fire = fireDao().requireEntityById(jobFireId);
         fire.setFireStatus(_NopJobCoreConstants.FIRE_STATUS_FAILED);

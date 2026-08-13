@@ -336,7 +336,6 @@ public class TestDefaultJobCancelHandler {
         NopJobFire fire = createFire("f1", "s1", null);
         NopJobTask task = createTask("t1", "f1");
         task.setTargetHost("target-host-10.0.0.1");
-        task.setWorkerAddress("worker-addr-10.0.0.2");
 
         handler.cancelRunningTask(schedule, fire, task);
 
