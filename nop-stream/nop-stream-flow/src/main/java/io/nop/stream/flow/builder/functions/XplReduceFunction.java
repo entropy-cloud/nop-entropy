@@ -8,6 +8,7 @@
 package io.nop.stream.flow.builder.functions;
 
 import io.nop.core.lang.eval.IEvalFunction;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.common.functions.ReduceFunction;
 
 /**
@@ -22,7 +23,7 @@ public final class XplReduceFunction<T> implements ReduceFunction<T> {
 
     public XplReduceFunction(IEvalFunction body) {
         if (body == null) {
-            throw new IllegalArgumentException("XplReduceFunction body must not be null");
+            throw new StreamException("XplReduceFunction body must not be null");
         }
         this.body = body;
     }

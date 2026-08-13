@@ -87,12 +87,15 @@
     </transforms>
 
     <!-- 边连接 -->
+    <!-- P1-XDSL-5: REBALANCE 与 HASH+keyExpr 分区在 nop-stream-core 尚无对应 DataStream
+         算子，构建期 fail-fast；本文件是破损死文件（P2-03-02/XDSL-1~4 backlog），
+         两条边顺手改为 FORWARD 对齐修复后行为（留痕见 plan 2026-08-13-1243-2 Phase 1）。 -->
     <edges>
         <edge id="e0" from="tx-source" to="tw" partition="FORWARD"/>
         <edge id="e1" from="tw" to="amount-filter" partition="FORWARD"/>
         <edge id="e2" from="amount-filter" to="enrich-map" partition="FORWARD"/>
-        <edge id="e3" from="enrich-map" to="rapid-cep" partition="REBALANCE"/>
-        <edge id="e4" from="rapid-cep" to="alert-sink" partition="HASH" keyExpr="userId"/>
+        <edge id="e3" from="enrich-map" to="rapid-cep" partition="FORWARD"/>
+        <edge id="e4" from="rapid-cep" to="alert-sink" partition="FORWARD"/>
     </edges>
 
     <!-- CEP 模式定义 -->

@@ -18,6 +18,7 @@ import io.nop.ioc.api.IBeanContainerImplementor;
 import io.nop.ioc.loader.BeanContainerBuilder;
 import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.common.functions.source.SourceFunction;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.flow.testing.CollectingSinkFunction;
 import io.nop.stream.flow.testing.TestSourceFunction;
 import org.junit.jupiter.api.AfterAll;
@@ -85,16 +86,23 @@ public class TestBeanFunctionResolver {
     public void globalResolverFailsFastOnMissingBean() {
         GlobalBeanFunctionResolver resolver = GlobalBeanFunctionResolver.INSTANCE;
         assertFalse(resolver.contains("doesNotExist"));
-        assertThrows(IllegalArgumentException.class,
+        StreamException ex = assertThrows(StreamException.class,
                 () -> resolver.resolve("doesNotExist", SourceFunction.class));
+        assertEquals("nop.err.stream.bean-not-found", ex.getErrorCode().toString(),
+                () -> ex.getMessage());
+        assertTrue(ex.getMessage().contains("doesNotExist"), () -> ex.getMessage());
     }
 
     @Test
     public void globalResolverFailsFastOnTypeMismatch() {
         GlobalBeanFunctionResolver resolver = GlobalBeanFunctionResolver.INSTANCE;
         // testSourceFunction is a SourceFunction, not a SinkFunction
-        assertThrows(IllegalArgumentException.class,
+        StreamException ex = assertThrows(StreamException.class,
                 () -> resolver.resolve("testSourceFunction", SinkFunction.class));
+        assertEquals("nop.err.stream.bean-type-mismatch", ex.getErrorCode().toString(),
+                () -> ex.getMessage());
+        assertTrue(ex.getMessage().contains("testSourceFunction"), () -> ex.getMessage());
+        assertTrue(ex.getMessage().contains("SinkFunction"), () -> ex.getMessage());
     }
 
     @Test

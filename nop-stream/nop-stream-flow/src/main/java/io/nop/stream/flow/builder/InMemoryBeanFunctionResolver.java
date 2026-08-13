@@ -31,13 +31,10 @@ public final class InMemoryBeanFunctionResolver implements BeanFunctionResolver 
     public <T> T resolve(String beanName, Class<T> targetType) {
         Object bean = beans.get(beanName);
         if (bean == null) {
-            throw new IllegalArgumentException(
-                    "Stream DSL bean reference not registered: bean='" + beanName + "'");
+            throw StreamModelDslBuilder.beanNotFound(beanName);
         }
         if (!targetType.isInstance(bean)) {
-            throw new IllegalArgumentException(
-                    "Stream DSL bean '" + beanName + "' is not a " + targetType.getName()
-                            + ": actual=" + bean.getClass().getName());
+            throw StreamModelDslBuilder.beanTypeMismatch(beanName, targetType, bean.getClass());
         }
         return targetType.cast(bean);
     }

@@ -44,7 +44,7 @@ StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan 
 
     <!-- 窗口策略注册表 -->
     <windowingStrategies xdef:key-attr="strategyId" xdef:body-type="list">
-        <strategy strategyId="!string" windowFnId="!string" triggerId="!string"
+        <strategy strategyId="!string" windowFnId="!string" triggerId="string"
                   allowedLateness="!long=0"
                   accumulationMode="!enum:io.nop.stream.core.windowing.AccumulationMode=DISCARDING"
                   xdef:name="WindowingStrategyModel" xdef:unique-attr="strategyId">

@@ -73,7 +73,7 @@ public class TestAdvancedTransforms {
                         + "<keyBy id=\"k\" keyExpr=\"event\"/>"
                         + "<window id=\"w\" strategyRef=\"global-strat\"/>",
                 "<windowingStrategies>"
-                        + "<strategy strategyId=\"global-strat\" windowFnId=\"global\" triggerId=\"t\"/>"
+                        + "<strategy strategyId=\"global-strat\" windowFnId=\"global\"/>"
                         + "</windowingStrategies>");
 
         StreamModelDslBuilder builder = StreamModelDslBuilder.of(model, resolver());
@@ -90,12 +90,13 @@ public class TestAdvancedTransforms {
                 "<source id=\"src\" bean=\"srcFn\"/>"
                         + "<window id=\"w\" strategyRef=\"global-strat\"/>",
                 "<windowingStrategies>"
-                        + "<strategy strategyId=\"global-strat\" windowFnId=\"global\" triggerId=\"t\"/>"
+                        + "<strategy strategyId=\"global-strat\" windowFnId=\"global\"/>"
                         + "</windowingStrategies>");
 
         StreamModelDslBuilder builder = StreamModelDslBuilder.of(model, resolver());
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+        StreamException ex = assertThrows(StreamException.class,
                 builder::build);
+        assertEquals("nop.err.stream.upstream-type", ex.getErrorCode().toString());
         assertTrue(ex.getMessage().contains("KeyedStream"),
                 () -> "Expected KeyedStream requirement error, got: " + ex.getMessage());
     }
@@ -112,7 +113,7 @@ public class TestAdvancedTransforms {
                         + "<window id=\"w\" strategyRef=\"global-strat\"/>"
                         + "<aggregate id=\"agg\" bean=\"aggFn\"/>",
                 "<windowingStrategies>"
-                        + "<strategy strategyId=\"global-strat\" windowFnId=\"global\" triggerId=\"t\"/>"
+                        + "<strategy strategyId=\"global-strat\" windowFnId=\"global\"/>"
                         + "</windowingStrategies>");
 
         InMemoryBeanFunctionResolver resolver = resolver();
@@ -135,12 +136,13 @@ public class TestAdvancedTransforms {
                         + "<window id=\"w\" strategyRef=\"global-strat\"/>"
                         + "<aggregate id=\"agg\"/>",
                 "<windowingStrategies>"
-                        + "<strategy strategyId=\"global-strat\" windowFnId=\"global\" triggerId=\"t\"/>"
+                        + "<strategy strategyId=\"global-strat\" windowFnId=\"global\"/>"
                         + "</windowingStrategies>");
 
         StreamModelDslBuilder builder = StreamModelDslBuilder.of(model, resolver());
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+        StreamException ex = assertThrows(StreamException.class,
                 builder::build);
+        assertEquals("nop.err.stream.required-attr", ex.getErrorCode().toString());
         assertTrue(ex.getMessage().contains("bean"),
                 () -> "Expected bean requirement error, got: " + ex.getMessage());
     }
@@ -177,7 +179,7 @@ public class TestAdvancedTransforms {
                         + "<window id=\"w\" strategyRef=\"global-strat\"/>"
                         + "<reduce id=\"r\" bean=\"reduceFn\"/>",
                 "<windowingStrategies>"
-                        + "<strategy strategyId=\"global-strat\" windowFnId=\"global\" triggerId=\"t\"/>"
+                        + "<strategy strategyId=\"global-strat\" windowFnId=\"global\"/>"
                         + "</windowingStrategies>");
 
         InMemoryBeanFunctionResolver resolver = resolver();
@@ -311,8 +313,9 @@ public class TestAdvancedTransforms {
         resolver.register("cepFn", new FirstMatchPatternProcessFunction<>());
 
         StreamModelDslBuilder builder = StreamModelDslBuilder.of(model, resolver);
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+        StreamException ex = assertThrows(StreamException.class,
                 builder::build);
+        assertEquals("nop.err.stream.upstream-type", ex.getErrorCode().toString());
         assertTrue(ex.getMessage().contains("KeyedStream"),
                 () -> "Expected KeyedStream requirement error, got: " + ex.getMessage());
     }
@@ -329,8 +332,9 @@ public class TestAdvancedTransforms {
         resolver.register("cepFn", new FirstMatchPatternProcessFunction<>());
 
         StreamModelDslBuilder builder = StreamModelDslBuilder.of(model, resolver);
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+        StreamException ex = assertThrows(StreamException.class,
                 builder::build);
+        assertEquals("nop.err.stream.ref-unknown", ex.getErrorCode().toString());
         assertTrue(ex.getMessage().contains("doesNotExist"),
                 () -> "Expected unknown-pattern-ref error, got: " + ex.getMessage());
     }
@@ -347,8 +351,9 @@ public class TestAdvancedTransforms {
                 "");
 
         StreamModelDslBuilder builder = StreamModelDslBuilder.of(model, resolver());
-        UnsupportedOperationException ex = assertThrows(
-                UnsupportedOperationException.class, builder::build);
+        StreamException ex = assertThrows(StreamException.class,
+                builder::build);
+        assertEquals("nop.err.stream.not-implemented", ex.getErrorCode().toString());
         assertTrue(ex.getMessage().contains("union"),
                 () -> "Expected union in error, got: " + ex.getMessage());
     }
@@ -361,8 +366,9 @@ public class TestAdvancedTransforms {
                 "");
 
         StreamModelDslBuilder builder = StreamModelDslBuilder.of(model, resolver());
-        UnsupportedOperationException ex = assertThrows(
-                UnsupportedOperationException.class, builder::build);
+        StreamException ex = assertThrows(StreamException.class,
+                builder::build);
+        assertEquals("nop.err.stream.not-implemented", ex.getErrorCode().toString());
         assertTrue(ex.getMessage().contains("sideOutput"),
                 () -> "Expected sideOutput in error, got: " + ex.getMessage());
     }
