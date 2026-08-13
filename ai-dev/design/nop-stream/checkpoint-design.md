@@ -164,6 +164,8 @@ Aligned checkpoint 是基线能力。Unaligned checkpoint 是性能优化，不�
 
 **Aligned→Unaligned 回退（背压逃生，详见 §2.11）**：当 `unalignedCheckpointEnabled=true`（默认）时，对齐等待超过 `unalignedThreshold`（默认 1000ms，必须 < `barrierAlignmentTimeout`）后 checkpoint 切换为 unaligned 模式——捕获在途数据（§2.11.2）、立即完成 barrier、取消对齐超时计时。`unalignedCheckpointEnabled=false` 时保留纯对齐超时→FAILED 行为。
 
+> **Updated: 2026-08-13（plan `2026-08-13-1243-1` P1-INV-2）**——elapsed 评估已与数据返回**解耦**：`InputGate.readMultiChannel()` 在**每次 read 入口**评估最老 in-flight 对齐的 elapsed（`checkAlignmentElapsed()`），不再要求"整轮 sweep 零返回"。修复前持续有数据的 channel 会使每次 read 提前返回、评估永不执行——累计超时上限（30s）与 unaligned 逃生（1s）在持续流量下被饿死，失败检测劣化到 coordinator 侧 `checkpointTimeout`（默认 600s）。语义不变：oldest in-flight 对齐为基准、逃生发射 barrier + ChannelState、超时抛 `ERR_STREAM_BARRIER_ALIGNMENT_TIMEOUT`。
+
 ### 2.5 Snapshot 内容
 
 每个 task 对 epoch N 上报 `TaskEpochSnapshot`。

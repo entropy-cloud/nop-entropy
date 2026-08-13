@@ -204,6 +204,8 @@ Phase 1 已为 `IInternalStateBackend` 增加 `getInternalAppendingState(Aggrega
 
 **Cleanup time 计算**：`window.maxTimestamp() + allowedLateness`。注册为事件时间定时器，触发时清除窗口全部状态（窗口内容 + trigger 状态）。
 
+> **Updated: 2026-08-13（plan `2026-08-13-1243-1` P1-INV-1）**——trigger 状态清理闭环：`triggerAccumulators`（per-(key,window) trigger 计数 map）随窗口清理/merge/retire 删除对应条目（删除 hook 位于最后一次 `triggerContext.clear()` 之后——trigger clear 经 `getSimpleAccumulator` 会重建 miss 条目）；timer 路径 PURGE（event-time + processing-time）与合并路径元素 purge 补全 `triggerContext.clear()`，与元素路径对称。修复前该 map 只增不删：purge/cleanup/merge 过的窗口条目泄漏进 checkpoint 与恢复后的算子（无界增长 + 快照体积膨胀）。回归测试 `TestWindowOperatorTriggerAccumulatorCleanup`（5 用例，先红后绿）在案。
+
 **Late firing**：在 `allowedLateness` 窗口内（即 `window.maxTimestamp() < currentWatermark ≤ cleanupTime`），迟到数据仍可加入窗口。Trigger 在此阶段触发的 firing 的 PaneTiming 为 `LATE`。
 
 ### 8.5 非合并窗口处理流程
