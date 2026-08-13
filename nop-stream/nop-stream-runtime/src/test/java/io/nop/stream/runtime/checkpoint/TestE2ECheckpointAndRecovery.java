@@ -310,4 +310,92 @@ class TestE2ECheckpointAndRecovery {
 
         recoveredCoordinator.shutdown();
     }
+
+    /**
+     * AR-01 (P0) job-level restart E2E: run1 writes Long-keyed keyed state and
+     * checkpoints it through the coordinator into the JSON storage; the job is
+     * restarted against the same storage and run2 reads the SAME Long keys —
+     * proving the numeric keys survive the JSON persistence round-trip.
+     *
+     * <p>Pre-fix (red): the checkpoint JSON round-trips {@code Long(123)} as
+     * {@code Integer(123)} (TextScanner tries {@code Integer.parseInt} first),
+     * the Memory restore kept the Integer key, and the class-sensitive
+     * {@code TypedNamespaceAndKey.equals} missed the live Long lookups — run2
+     * silently read the default {@code 0L}. Keys &gt; 2^31 survived only because
+     * the Integer parse overflowed to Long.
+     */
+    @Test
+    void testLongKeyedStateJobRestartRestoresSameKeys() throws Exception {
+        MemoryStateBackend stateBackend = new MemoryStateBackend();
+        ValueStateDescriptor<Long> desc = new ValueStateDescriptor<>("counter", Long.class, 0L);
+
+        // ---- run 1: write Long-keyed state and checkpoint it ----
+        IKeyedStateBackend<Long> run1Backend = stateBackend.createKeyedStateBackend(Long.class);
+        AbstractStreamOperator<Long> run1Op = new AbstractStreamOperator<>() {
+            private static final long serialVersionUID = 1L;
+        };
+        run1Op.setStateBackend(stateBackend);
+        run1Op.setKeyedStateBackend(run1Backend);
+        run1Op.setOutput(new TestOutput<>());
+
+        run1Backend.setCurrentKey(123L);            // < 2^31 → JSON round-trip yields Integer
+        run1Backend.getState(desc).update(100L);
+        run1Backend.setCurrentKey(3_000_000_000L);  // > 2^31 → survives as Long
+        run1Backend.getState(desc).update(200L);
+
+        PendingCheckpoint pending = coordinator.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
+        assertNotNull(pending);
+        long checkpointId = pending.getCheckpointId();
+
+        CheckpointBarrier barrier = new CheckpointBarrier(checkpointId, System.currentTimeMillis(), CheckpointType.CHECKPOINT);
+        run1Op.processBarrier(barrier);
+        OperatorSnapshotResult snapshotResult = run1Op.getLastSnapshotResult();
+        assertNotNull(snapshotResult);
+        assertFalse(snapshotResult.isEmpty());
+
+        TaskStateSnapshot taskState = TaskStateSnapshot.builder(LOC_0)
+                .checkpointId(checkpointId)
+                .build();
+        for (Map.Entry<String, Object> e : snapshotResult.getKeyedStates().entrySet()) {
+            taskState.putKeyedState(e.getKey(), e.getValue());
+        }
+        coordinator.acknowledgeTask(LOC_0, checkpointId, taskState);
+        CompletedCheckpoint completed = pending.getCompletableFuture().get(5, TimeUnit.SECONDS);
+        assertNotNull(completed);
+        assertEquals(checkpointId, completed.getCheckpointId());
+        run1Backend.close();
+
+        // ---- run 2: job-level restart against the same (JSON) storage ----
+        coordinator.shutdown();
+        CheckpointIDCounter recoveredCounter = new CheckpointIDCounter();
+        CheckpointCoordinator recoveredCoordinator = new CheckpointCoordinator("1", "0", recoveredCounter, storage, new CheckpointConfig());
+        CompletedCheckpoint restored = recoveredCoordinator.restoreFromCheckpoint();
+        assertNotNull(restored);
+        TaskStateSnapshot restoredTaskState = restored.getTaskState(LOC_0);
+        assertNotNull(restoredTaskState);
+
+        IKeyedStateBackend<Long> run2Backend = stateBackend.createKeyedStateBackend(Long.class);
+        AbstractStreamOperator<Long> run2Op = new AbstractStreamOperator<>() {
+            private static final long serialVersionUID = 1L;
+        };
+        run2Op.setStateBackend(stateBackend);
+        run2Op.setKeyedStateBackend(run2Backend);
+
+        OperatorSnapshotResult restoredResult = new OperatorSnapshotResult();
+        for (Map.Entry<String, Object> e : restoredTaskState.getKeyedStates().entrySet()) {
+            restoredResult.putKeyedState(e.getKey(), e.getValue());
+        }
+        run2Op.restoreState(restoredResult);
+
+        run2Backend.setCurrentKey(123L);
+        assertEquals(Long.valueOf(100L), run2Backend.getState(desc).value(),
+                "run2 must read the state of Long key 123 after job-level restart "
+                        + "(pre-fix: silently null/default)");
+        run2Backend.setCurrentKey(3_000_000_000L);
+        assertEquals(Long.valueOf(200L), run2Backend.getState(desc).value(),
+                "run2 must read the state of Long key 3000000000 after job-level restart");
+
+        recoveredCoordinator.shutdown();
+        run2Backend.close();
+    }
 }

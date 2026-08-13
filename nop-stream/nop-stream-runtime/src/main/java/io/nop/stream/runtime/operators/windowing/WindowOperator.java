@@ -694,6 +694,13 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                                     for (W m : mergedWindows) {
                                         triggerContext.window = m;
                                         triggerContext.clear();
+                                        // P1-INV-1: delete with the MERGED window m as the
+                                        // baseline — the trigger accumulator stateKey embeds
+                                        // triggerContext.window (the actual/merged window),
+                                        // which differs from the stateWindow in merge
+                                        // scenarios. Must run after triggerContext.clear()
+                                        // (which may rebuild the entry via getSimpleAccumulator).
+                                        removeTriggerAccumulators(key, m);
                                         deleteCleanupTimer(m);
                                     }
 
@@ -728,6 +735,12 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
             if (triggerResult.isPurge()) {
                 clearWindowContents(key, stateWindow);
+                // P1-INV-1: symmetric with the regular element path — the merging
+                // path cleared window contents without clearing the trigger state.
+                // Entries are keyed with triggerContext.window (the ACTUAL window),
+                // so the delete baseline is actualWindow, not stateWindow.
+                triggerContext.clear();
+                removeTriggerAccumulators(key, actualWindow);
             }
             registerCleanupTimer(actualWindow);
         }
@@ -762,6 +775,8 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             if (triggerResult.isPurge()) {
                 clearWindowContents(key, window);
                 triggerContext.clear();
+                // P1-INV-1: delete after the last clear (the clear may rebuild).
+                removeTriggerAccumulators(key, window);
             }
             registerCleanupTimer(window);
         }
@@ -816,6 +831,11 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                     ? mergingWindows.getStateWindow(triggerContext.window)
                     : triggerContext.window;
             clearWindowContents(triggerContext.key, stateWindow);
+            // P1-INV-1: symmetric with the element paths — the timer PURGE branch
+            // cleared window contents without clearing the trigger state (leaking
+            // both the accumulator entry AND the trigger's registered timers).
+            triggerContext.clear();
+            removeTriggerAccumulators(triggerContext.key, triggerContext.window);
         }
 
         if (windowAssigner.isEventTime()
@@ -826,6 +846,8 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             if (stateWindow != null) {
                 clearWindowContents(triggerContext.key, stateWindow);
                 triggerContext.clear();
+                // P1-INV-1: delete after the last clear (the clear may rebuild).
+                removeTriggerAccumulators(triggerContext.key, triggerContext.window);
                 // RL-6 (R15-AR-8): retire the in-flight window (= cleanup timer namespace =
                 // MergingWindowSet mapping KEY) so the mapping converges after cleanup —
                 // otherwise the cleaned window leaks into the checkpointed merging-sets
@@ -886,6 +908,11 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                     ? mergingWindows.getStateWindow(triggerContext.window)
                     : triggerContext.window;
             clearWindowContents(triggerContext.key, stateWindow);
+            // P1-INV-1: symmetric with the element paths — the timer PURGE branch
+            // cleared window contents without clearing the trigger state (leaking
+            // both the accumulator entry AND the trigger's registered timers).
+            triggerContext.clear();
+            removeTriggerAccumulators(triggerContext.key, triggerContext.window);
         }
 
         if (!windowAssigner.isEventTime()
@@ -896,6 +923,8 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             if (stateWindow != null) {
                 clearWindowContents(triggerContext.key, stateWindow);
                 triggerContext.clear();
+                // P1-INV-1: delete after the last clear (the clear may rebuild).
+                removeTriggerAccumulators(triggerContext.key, triggerContext.window);
                 // RL-6 (R15-AR-8): same convergence fix as the onEventTime cleanup branch —
                 // retire the in-flight window (mapping key = cleanup timer namespace).
                 if (mergingWindows != null) {
@@ -908,6 +937,33 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             // need to make sure to update the merging state in state
             mergingWindows.persist();
         }
+    }
+
+    /**
+     * P1-INV-1 (AR-02 Phase 4): removes every {@link #triggerAccumulators} entry
+     * whose stateKey was built for {@code (key, window)} — the exact prefix
+     * constructed by {@code Context#getSimpleAccumulator}
+     * ({@code "trigger_" + key + STATE_KEY_SEPARATOR + window + STATE_KEY_SEPARATOR}).
+     *
+     * <p><b>Call-site contract:</b> must run AFTER the last
+     * {@code triggerContext.clear()} on the path. {@code CountTrigger.clear} /
+     * {@code ContinuousProcessingTimeTrigger.clear} call
+     * {@code getSimpleAccumulator()}, which RE-CREATES a deleted entry on miss
+     * (the {@code accums.put} in getSimpleAccumulator), so deleting inside
+     * {@code clearWindowContents} (which purge paths run BEFORE the trigger
+     * clear) would be silently undone. After the final clear, no further
+     * {@code getSimpleAccumulator} call can occur for this window, so the
+     * prefix delete is the terminal state. This closes the unbounded-growth
+     * defect: entries were only ever put (single write point) and never
+     * removed — purged/cleaned/merged windows leaked into the map, the
+     * checkpoint, and the restored operator forever.
+     */
+    private void removeTriggerAccumulators(K key, W window) {
+        if (triggerAccumulators == null || triggerAccumulators.isEmpty()) {
+            return;
+        }
+        String prefix = "trigger_" + key + STATE_KEY_SEPARATOR + window + STATE_KEY_SEPARATOR;
+        triggerAccumulators.keySet().removeIf(stateKey -> stateKey.startsWith(prefix));
     }
 
     @SuppressWarnings("unchecked")
