@@ -306,6 +306,17 @@
 - **检测方法**：JUnit `TestOutputContractInvariant`（core，10 用例：参数化穷举 4 个 main `Output` 实现类三态行为（分类以 `output-contract-registry.json` 为准）+ 接线断言 + 反射实例化断言）+ mjs `scan-output-contract`（类级枚举 V1 / 失效类 V2 / 行为漂移 V3 / 新增发射点 V4 / 失效发射点 V5）+ 发射点注册表 `output-contract-registry.json`（6 发射点）+ 既有 E2E `TestSideOutputChainingE2E`（runtime，3 用例）。
 - **live 修复状态**：in-task 路径 fixed（I4 `b20fcd0e1`）；跨 task no-op = 已知违约实例（过渡 pin 2 条，`mjs-pins.json`，移除 = Cycle 2 / I4 interim fail-fast 落地 + 注册表分类更新）。**状态 = 已沉淀**（Cycle 2 / I1 门禁全绿：JUnit 10 门禁类 / 102 tests / 0 failures + mjs `all` exit 0 + E2E 3/3）。
 
+### 不变式 #7 — 生产 wiring 存在性（运行时服务注入完整性）（定稿，Cycle 3 / I1 沉淀）
+
+> 状态 = **已沉淀**（Cycle 3 / I1 门禁全绿：JUnit `TestWiringExistenceInvariant` 10 用例 + 接线点注册表 `wiring-registry.json` + mjs `scan-wiring` V1–V5，`all` exit 0，E2E 3/3 + 4/4 归属在案，2026-08-13 收口）。
+
+- **陈述**：任何被 main 代码（非测试）消费的运行时服务注入 API（如 `AbstractStreamOperator.setProcessingTimeService` / `setTimeServiceManager` / `setStateBackend` / `setKeyedStateBackend` / `setOperatorStateBackend` / `setOutput` / `setSnapshotCallback`）必须存在生产接线点（main 代码调用方，含注入时机声明）；仅被测试代码注入（测试 mock 规避、生产零调用）→ 违约（红）。新增消费这些服务的 main 调用（getter 调用点所属新类）必须入接线点注册表，否则红。
+- **覆盖失败族**：运行时服务注入完整性族（open-audit P0-01/P1-02 先例链——「恰好是 mission 已沉淀六条不变式都不覆盖的维度」）。
+- **历史审计证据**：open-audit P0-01（`CepOperator.java:347` open → `registerCacheStatisticsTimer` :356-368 → `getProcessingTimeService().getCurrentProcessingTime()` :366 生产路径 null NPE）；P1-02（PT 窗口永不触发，`WindowOperator.java:479` 无 PTS 早退面）；测试规避机制 = 13 个测试类经 `CepTestUtils.injectProcessingTimeService` / 私有静态 `setProcessingTimeService` 包装器注入 mock（open-audit P0-01 详情）；修复基线 = plan `2026-08-13-0132-1`（`StreamTaskInvokable.setupProcessingTimeServices` :456-477 生产接线，2026-08-13 收口）。
+- **检测方法**：JUnit `TestWiringExistenceInvariant`（core，注册表驱动参数化：API 面完备性（反射枚举 `AbstractStreamOperator` 全部 `set*` 注入方法，参数类型 ∈ 已登记服务类型——`setKeyContextElement1/2` 等非服务注入 API 不参与）+ 生产接线运行时连通断言（invokable 构造注入 ↔ 算子 getter 同一实例 + numTimerServices 注册证据））+ mjs `scan-wiring`（V1 仅测试注入检测（receiver 限定成员访问形态；production-wired main 零调用点 → 红）/ V2 消费方枚举完备性 / V3 失效接线点 / V4 新注入 API / V5 失效消费方/服务）+ 接线点注册表 `wiring-registry.json`（服务注入 API × 生产接线点（文件:行 + 注入时机）× 消费方类枚举 × disposition × test-only 豁免）。无服务 fail-fast 行为断言归属 cep/runtime 既有 E2E（`TestCepProductionExecutionE2E` PT 无服务 fail-fast + `TestProcessingTimeWindowProductionE2E` WARN 断言；core 依赖方向约束）。
+- **已裁定（Block-2 前置事实）**：`setKeyedStateBackend` / `setOperatorStateBackend` 全仓 main **零调用点** → disposition = `internal-creation`（生产经 `stateBackend.createKeyedStateBackend()` 在 open() 内直建，如 `CepOperator.java:257` / `WindowOperator.java:421`；setter 为测试注入后门）——V1 carve-out 附理由登记于注册表，受棘轮约束（弱化/豁免需人工确认 + 留痕），禁止静默缩小 V1 规则或偷偷 pin。
+- **live 修复状态**：P0-01/P1-02 已修复（plan `2026-08-13-0132-1`）；本不变式已沉淀为一等门禁（JUnit + 注册表 + mjs `scan-wiring`，plan `2026-08-13-0805-1` 收口）——门禁全绿零命中（JUnit 11 门禁类 112 tests / 0 failures；mjs `all` exit 0（pin 0）；E2E 3/3 + 4/4；全量 2895 tests / 0 failures）。为 Cycle 3 / I2 提供确定性全绿基线。
+
 ---
 
 ## 6. I2 关注点汇总（red list 候选 + 非族候选）

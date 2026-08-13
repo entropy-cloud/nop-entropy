@@ -30,10 +30,24 @@
 //                       V5 stale emission point (registry emission point no longer present = red).
 //                       Violations ⊆ mjs-pins.json (p.key exact match) = green; pins may only cover
 //                       cross-task instance classes (registry classification pinned-known-violation).
+//   scan-wiring        - static scan of the production wiring-existence family (invariant #7, Cycle 3 / I1):
+//                       V1 test-only injection detection (every registered service injection API must
+//                       have >= 1 main call site, receiver-qualified to the AbstractStreamOperator
+//                       (subclass) surface; method declarations/javadoc never count; disposition
+//                       internal-creation = adjudicated carve-out, main zero call sites not red),
+//                       V2 consumer enumeration completeness (main call sites of the registered service
+//                       getters getProcessingTimeService()/getTimeServiceManager() and of
+//                       registerTimerService( must be owned by consumerTable classes; new class = red),
+//                       V3 stale wiring point (registry file:line no longer present in main = red),
+//                       V4 new injection API (set* declaration with a registered service parameter type
+//                       on AbstractStreamOperator or a main subclass, not in the registry = red),
+//                       V5 stale consumer/service (registry class no longer exists = red; java.* services
+//                       excluded). Parse failures are hard errors — no silent classification.
+//                       Violations ⊆ mjs-pins.json (p.key exact match) = green; expected zero pins at I1.
 //   self-test         - positive control: proves the scanners reject known-bad input (no silent skip)
 //   init              - (maintainer tool) regenerate the `methods` arrays of gate-inventory.json
 //                       from live source, preserving existing `exclusions`
-//   (no argument)     - runs inventory + sync + scan-iterations + scan-output-contract + self-test
+//   (no argument)     - runs inventory + sync + scan-iterations + scan-output-contract + scan-wiring + self-test
 //
 // Style precedent: check-nop-stream-audit-manifest.mjs (subcommand based, strict exit codes,
 // Rule #24 no-silent-skip: a missing file / unknown command / inconsistent table is a hard error).
@@ -51,6 +65,7 @@ const INVENTORY_FILE = join(INVARIANTS_DIR, 'gate-inventory.json');
 const CATALOG_FILE = join(INVARIANTS_DIR, 'invariant-catalog.md');
 const PINS_FILE = join(INVARIANTS_DIR, 'mjs-pins.json');
 const OUTPUT_REGISTRY_FILE = join(INVARIANTS_DIR, 'output-contract-registry.json');
+const WIRING_REGISTRY_FILE = join(INVARIANTS_DIR, 'wiring-registry.json');
 const FIXTURES_DIR = join(INVARIANTS_DIR, 'fixtures');
 
 const GATE_MODULES = ['nop-stream-core', 'nop-stream-runtime', 'nop-stream-cep'];
@@ -632,7 +647,19 @@ function parseTypeStructure(clean) {
         frames.push({
           name: candidate.name,
           bodyStart: m.index,
-          implementsOutput: /\bimplements\b[^{]*\bOutput\b/.test(implText)
+          implementsOutput: /\bimplements\b[^{]*\bOutput\b/.test(implText),
+          // scan-wiring (invariant #7): direct-superclass simple names from the extends
+          // clause (single inheritance — the first name after `extends`), used to compute
+          // the transitive AbstractStreamOperator subclass closure for receiver-qualified
+          // call-site matching. Additive field; scan-output-contract ignores it.
+          // Fully-qualified parents (extends io.nop...AbstractStreamOperator) are reduced
+          // to their last segment.
+          extendsNames: [...implText.matchAll(/\bextends\s+([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)/g)]
+              .map(mm => {
+                const fq = mm[1];
+                const dot = fq.lastIndexOf('.');
+                return dot >= 0 ? fq.substring(dot + 1) : fq;
+              })
         });
         candidate = null;
       } else if (tok === '(' || tok === ')' || tok === '=' || tok === ';') {
@@ -914,6 +941,448 @@ function runScanOutputContract() {
 }
 
 // ---------------------------------------------------------------------------
+// scan-wiring: production wiring-existence family (invariant #7, Cycle 3 / I1)
+//
+// Registry: wiring-registry.json — services table (service fqcn x injection API
+//   (class:method + paramType) x production wiring points (file:line +
+//   injectionTiming) x consumer enumeration x disposition {production-wired,
+//   internal-creation} x test-only exemption) + consumerTable (class,
+//   getterOrRegistration, call lines, service, behaviorWithoutService).
+//
+// V1 test-only injection detection: every registered service injection API must
+//   have >= 1 main call site. Call sites = member-access forms `.setX(` /
+//   `this.setX(` / bare `setX(` / cast form `(Type)).setX(` — method DECLARATIONS
+//   (the following char after the closing paren is `{` or `throws`) and javadoc
+//   never count (a registered API's own declaration must not make main >= 1).
+//   Receiver-qualified: the receiver's declared type (`this` = enclosing class,
+//   cast = cast type) must be AbstractStreamOperator or a transitive main
+//   subclass — CheckpointConfig.setStateBackend / StreamExecutionEnvironment
+//   declarations and non-operator receivers never match (no cross-class false
+//   greens). disposition = internal-creation: main zero call sites are NOT red
+//   (adjudicated carve-out, reason registered in the registry, ratchet-
+//   constrained); production-wired: main zero call sites = red regardless of
+//   test injection (P0-01 original shape: main=0 test>0).
+// V2 consumer enumeration completeness: main call sites (non-declaration) of the
+//   registered service getters `getProcessingTimeService()` /
+//   `getTimeServiceManager()` and of `registerTimerService(` must have their
+//   owning top-level class (file fqcn) in the registry consumerTable; a new
+//   consumer class = red.
+// V3 stale wiring point: a registry wiringPoint (file:line) must still exist in
+//   main code (file present + line present + line contains the injection method
+//   name); otherwise = red (forces honest registry maintenance).
+// V4 new injection API: a `set*` method DECLARATION in AbstractStreamOperator or
+//   a main operator subclass whose parameter type is a registered service param
+//   type (raw type in the registry + generic argument match for e.g.
+//   Consumer<OperatorSnapshotResult>; setKeyContextElement1/2 (StreamRecord),
+//   setCurrentKey (Object), setMailboxExecutor (MailboxExecutor),
+//   setProgressMarker (Runnable) do NOT trigger) and that is not in the
+//   registry's injectionApi set = red.
+// V5 stale consumer / stale service: a registry consumerTable class or registry
+//   service (java.* JDK services excluded) no longer exists as a type in main
+//   code = red.
+// Pin matching: violations ⊆ mjs-pins.json (p.key exact match) = green; expected
+//   zero pins at I1 (internal-creation is a registry disposition, NOT a pin). A
+//   pin whose violation no longer exists = stale-pin error. Parse failures
+//   (unresolved receiver type / unrecognized continuation / unmatched braces)
+//   are hard errors — no silent classification.
+
+function loadWiringRegistry() {
+  if (!existsSync(WIRING_REGISTRY_FILE)) {
+    throw new Error(`wiring registry not found: ${WIRING_REGISTRY_FILE} (scan-wiring requires it)`);
+  }
+  return JSON.parse(readFileSync(WIRING_REGISTRY_FILE, 'utf-8'));
+}
+
+function wiringModuleRoots(kind) {
+  const streamRoot = join(PROJECT_ROOT, 'nop-stream');
+  if (!existsSync(streamRoot)) return [];
+  const roots = [];
+  for (const entry of readdirSync(streamRoot, {withFileTypes: true})) {
+    if (!entry.isDirectory()) continue;
+    const root = join(streamRoot, entry.name, `src/${kind}/java`);
+    if (existsSync(root)) roots.push(root);
+  }
+  return roots;
+}
+
+/** All nop-stream module main + test sources: rel-path (from project root) -> raw source. */
+function collectWiringSources() {
+  const main = new Map();
+  const test = new Map();
+  const walk = (root, map) => {
+    for (const entry of readdirSync(root, {withFileTypes: true})) {
+      const full = join(root, entry.name);
+      if (entry.isDirectory()) walk(full, map);
+      else if (entry.name.endsWith('.java')) {
+        map.set(relative(PROJECT_ROOT, full), readFileSync(full, 'utf-8'));
+      }
+    }
+  };
+  for (const root of wiringModuleRoots('main')) walk(root, main);
+  for (const root of wiringModuleRoots('test')) walk(root, test);
+  return {main, test};
+}
+
+function parseWiringFile(raw, rel) {
+  const clean = stripAnnotations(stripCommentsAndStrings(raw));
+  const pkgMatch = clean.match(/^package\s+([\w.]+)\s*;/m);
+  const frames = finalizeTypeFrames(clean, parseTypeStructure(clean));
+  const topLevel = frames.find(f => f.namePath.length === 1);
+  return {
+    rel,
+    clean,
+    frames,
+    topLevelFqcn: topLevel && pkgMatch ? `${pkgMatch[1]}.${topLevel.name}` : null
+  };
+}
+
+/** Transitive closure: AbstractStreamOperator + all frames whose extends clause names an operator class. */
+function collectOperatorClassNames(parsedFiles) {
+  const names = new Set(['AbstractStreamOperator']);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const pf of parsedFiles.values()) {
+      for (const frame of pf.frames) {
+        if (names.has(frame.name)) continue;
+        if (frame.extendsNames.some(p => names.has(p))) {
+          names.add(frame.name);
+          changed = true;
+        }
+      }
+    }
+  }
+  return names;
+}
+
+/** Member-level field names of every operator class (inherited-field receivers resolve against this). */
+function collectOperatorFields(parsedFiles, operatorNames) {
+  const fields = new Set();
+  for (const pf of parsedFiles.values()) {
+    for (const frame of pf.frames) {
+      if (!operatorNames.has(frame.name)) continue;
+      const memberDepth = braceDepthAt(pf.clean, frame.bodyStart) + 1;
+      const fieldRe = /\b(?:private|public|protected)?\s*(?:static\s+)?(?:final\s+)?(?:transient\s+)?[A-Za-z_$][\w$]*(?:<[^>]*>)?\s+([A-Za-z_$][\w$]*)\s*[;=]/g;
+      let m;
+      while ((m = fieldRe.exec(pf.clean)) !== null) {
+        if (m.index < frame.bodyStart || m.index >= frame.bodyEnd) continue;
+        if (braceDepthAt(pf.clean, m.index) !== memberDepth) continue;
+        fields.add(m[1]);
+      }
+    }
+  }
+  return fields;
+}
+
+/** Declared simple type name of a receiver identifier (field / local / for-each / method param), nearest before index. */
+function declaredTypeOf(clean, name, index) {
+  const patterns = [
+    new RegExp(`\\b(?:private|public|protected)\\s+(?:static\\s+)?(?:final\\s+)?(?:transient\\s+)?([A-Za-z_$][\\w$]*)\\s*<[^>]*>\\s+${name}\\s*[;=]`, 'g'),
+    new RegExp(`\\b(?:private|public|protected)\\s+(?:static\\s+)?(?:final\\s+)?(?:transient\\s+)?([A-Za-z_$][\\w$]*)\\s+${name}\\s*[;=]`, 'g'),
+    new RegExp(`\\bfor\\s*\\(\\s*(?:final\\s+)?([A-Za-z_$][\\w$]*)\\s*<[^>]*>\\s+${name}\\s*:`, 'g'),
+    new RegExp(`\\bfor\\s*\\(\\s*(?:final\\s+)?([A-Za-z_$][\\w$]*)\\s+${name}\\s*:`, 'g'),
+    new RegExp(`\\b([A-Za-z_$][\\w$]*)\\s*<[^>]*>\\s+${name}\\s*=`, 'g'),
+    new RegExp(`\\b([A-Za-z_$][\\w$]*)\\s+${name}\\s*=`, 'g'),
+    new RegExp(`\\(\\s*(?:final\\s+)?([A-Za-z_$][\\w$]*)\\s*<[^>]*>\\s+${name}\\s*[,)]`, 'g'),
+    new RegExp(`\\(\\s*(?:final\\s+)?([A-Za-z_$][\\w$]*)\\s+${name}\\s*[,)]`, 'g')
+  ];
+  let best = null;
+  for (const re of patterns) {
+    let m;
+    while ((m = re.exec(clean)) !== null) {
+      if (m.index < index) best = m[1];
+    }
+  }
+  return best;
+}
+
+/**
+ * Method-name occurrences: member access (identReceiver.method( / this.method( /
+ * super.method(), parenthesized-receiver ((Type) expr).method(, bare method(.
+ * Declarations are excluded (following char after the closing paren = `{` or
+ * `throws`); any other continuation is either a call or a hard parse failure.
+ */
+function findCalls(clean, methodName) {
+  const calls = [];
+  const identRe = new RegExp(`\\b([A-Za-z_$][\\w$]*)\\.${methodName}\\s*\\(`, 'g');
+  let m;
+  while ((m = identRe.exec(clean)) !== null) {
+    const openIdx = m.index + m[0].lastIndexOf('(');
+    if (isCallOccurrence(clean, openIdx)) {
+      calls.push({
+        index: m.index,
+        receiver: m[1] === 'this' || m[1] === 'super' ? {kind: 'this'} : {kind: 'ident', name: m[1]}
+      });
+    }
+  }
+  const parenRe = new RegExp(`\\)\\.${methodName}\\s*\\(`, 'g');
+  while ((m = parenRe.exec(clean)) !== null) {
+    const openIdx = m.index + m[0].lastIndexOf('(');
+    if (isCallOccurrence(clean, openIdx)) {
+      const closeIdx = m.index + m[0].indexOf(').');
+      calls.push({index: m.index, receiver: {kind: 'paren', text: clean.slice(matchBack(clean, closeIdx), closeIdx + 1)}});
+    }
+  }
+  const bareRe = new RegExp(`(?:^|[^A-Za-z0-9_$.])${methodName}\\s*\\(`, 'g');
+  while ((m = bareRe.exec(clean)) !== null) {
+    const openIdx = m.index + m[0].length - 1;
+    if (isCallOccurrence(clean, openIdx)) {
+      calls.push({index: m.index, receiver: {kind: 'this'}});
+    }
+  }
+  return calls;
+}
+
+/** true = call occurrence; false = method declaration; unrecognized continuation = hard parse failure. */
+function isCallOccurrence(clean, openIdx) {
+  let depth = 0;
+  for (let i = openIdx; i < clean.length; i++) {
+    const c = clean[i];
+    if (c === '(') {
+      depth++;
+    } else if (c === ')') {
+      depth--;
+      if (depth === 0) {
+        let j = i + 1;
+        while (j < clean.length && /\s/.test(clean[j])) j++;
+        if (clean.startsWith('throws', j)) return false; // declaration
+        const c2 = clean[j];
+        if (c2 === '{') return false; // declaration (method body)
+        if (c2 === undefined) {
+          throw new Error(`parse failure: method-name occurrence without continuation at ${openIdx} (no silent classification)`);
+        }
+        if (';.,)=:<>!?&|+-*/%[]'.includes(c2)) return true; // call continuation
+        throw new Error(`parse failure: unrecognized continuation '${c2}' after method-name occurrence at ${openIdx} (no silent classification)`);
+      }
+    }
+  }
+  throw new Error(`parse failure: unmatched '(' at ${openIdx} (no silent skip)`);
+}
+
+function matchBack(clean, closeIdx) {
+  let depth = 0;
+  for (let i = closeIdx; i >= 0; i--) {
+    const c = clean[i];
+    if (c === ')') depth++;
+    else if (c === '(') {
+      depth--;
+      if (depth === 0) return i;
+    }
+  }
+  throw new Error(`parse failure: unmatched ')' at ${closeIdx} (no silent skip)`);
+}
+
+/** Cast type of a parenthesized receiver, e.g. `(AbstractStreamOperator<?>) operators.get(i)` -> AbstractStreamOperator. */
+function extractCastType(parenText) {
+  let text = parenText;
+  if (text.startsWith('(') && matchBack(text, text.length - 1) === 0) {
+    text = text.slice(1, -1);
+  }
+  const m = text.match(/^\(\s*([A-Za-z_$][\w$]*)(?:\s*<[^>]*>)?\s*\)/);
+  return m ? m[1] : null;
+}
+
+/**
+ * Receiver qualification: the call target must be an AbstractStreamOperator (subclass) surface.
+ *
+ * <p>{@code lenient} = test-side diagnostic counting: an unresolvable identifier receiver is
+ * still counted as a call site (the test-side figure only feeds the V1 violation message's
+ * test=N statistic; a test-side parse gap must never crash the scanner when a real V1 red is
+ * being reported). Strict mode (main side) hard-fails on unresolvable receivers — a production
+ * call whose receiver cannot be classified is a genuine scan gap (no silent classification).
+ * Non-cast parenthesized receivers (e.g. {@code operators.get(i)).setX(}) are deterministically
+ * NOT operator-qualified casts on both sides — they never match.
+ */
+function receiverQualifies(receiver, callIndex, clean, parsedFile, operatorNames, operatorFields, lenient) {
+  if (receiver.kind === 'this') {
+    return parsedFile.frames.some(f => operatorNames.has(f.name));
+  }
+  if (receiver.kind === 'ident') {
+    const t = declaredTypeOf(clean, receiver.name, callIndex);
+    if (t !== null) return operatorNames.has(t);
+    if (operatorFields.has(receiver.name)) return true; // inherited operator field
+    if (lenient) return true; // diagnostic stat: count the call site
+    throw new Error(`parse failure: cannot resolve declared type of receiver '${receiver.name}' in ${parsedFile.rel} (no silent classification)`);
+  }
+  const castType = extractCastType(receiver.text);
+  if (castType === null) return false; // method-call / variable parenthesized receiver — not a cast
+  return operatorNames.has(castType);
+}
+
+function countQualifiedCalls(methodName, parsedFiles, operatorNames, operatorFields, lenient) {
+  let count = 0;
+  for (const pf of parsedFiles.values()) {
+    for (const call of findCalls(pf.clean, methodName)) {
+      if (receiverQualifies(call.receiver, call.index, pf.clean, pf, operatorNames, operatorFields, lenient)) count++;
+    }
+  }
+  return count;
+}
+
+function simpleNameOf(fqcn) {
+  const dot = String(fqcn).lastIndexOf('.');
+  return dot >= 0 ? String(fqcn).substring(dot + 1) : String(fqcn);
+}
+
+/** Split a single-param declaration text into {raw, generic} (qualified names + balanced angle brackets). */
+function splitParamDeclaration(paramText) {
+  const m = paramText.match(/^([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)([\s\S]*?)\s+([A-Za-z_$][\w$]*)$/);
+  if (!m) return null;
+  const rest = m[2].trim();
+  if (rest === '') return {raw: m[1], generic: null};
+  if (!rest.startsWith('<') || !rest.endsWith('>')) return null;
+  return {raw: m[1], generic: rest.slice(1, -1)};
+}
+
+function paramTypeMatchesRegistered(paramTypeText, services) {
+  const decl = splitParamDeclaration(paramTypeText);
+  if (!decl) return false;
+  for (const service of services) {
+    const api = service.injectionApi || {};
+    if (simpleNameOf(api.paramType) !== simpleNameOf(decl.raw)) continue;
+    if (api.genericArg) {
+      const want = simpleNameOf(String(api.genericArg));
+      if (decl.generic !== null
+          && (decl.generic === String(api.genericArg) || decl.generic === want
+              || simpleNameOf(decl.generic) === want)) {
+        return true;
+      }
+      continue; // generic mismatch — not the registered injection-API shape
+    }
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Member-level `set*` DECLARATIONS of an operator-class frame whose parameter type
+ * matches a registered service param type. Returns [{method, paramType, index}].
+ */
+function findSetDeclarationsWithServiceParams(clean, frame, services) {
+  const out = [];
+  const memberDepth = braceDepthAt(clean, frame.bodyStart) + 1;
+  const declRe = /\b(?:public|protected|private)?\s*(?:static\s+)?(?:final\s+)?[A-Za-z_$][\w$]*(?:<[^>]*>)?\s+(set[A-Za-z_$][\w$]*)\s*\(\s*([^()]*?)\s*\)\s*\{/g;
+  let m;
+  while ((m = declRe.exec(clean)) !== null) {
+    if (m.index < frame.bodyStart || m.index >= frame.bodyEnd) continue;
+    if (braceDepthAt(clean, m.index) !== memberDepth) continue;
+    if (paramTypeMatchesRegistered(m[2].trim(), services)) {
+      out.push({method: m[1], paramType: m[2].trim(), index: m.index});
+    }
+  }
+  return out;
+}
+
+/** Registry wiring point still present in the main source (file + line + method name on the line). */
+function wiringPointPresent(src, line, methodName) {
+  const lines = src.split('\n');
+  if (line < 1 || line > lines.length) return false;
+  return lines[line - 1].includes(methodName);
+}
+
+function evaluateWiring(registry, mainSources, testSources) {
+  const violations = [];
+  const services = registry.services || [];
+  const registeredMethods = new Set(services.map(s => (s.injectionApi || {}).method));
+
+  const parsedMain = new Map();
+  for (const [rel, raw] of mainSources) parsedMain.set(rel, parseWiringFile(raw, rel));
+  const parsedTest = new Map();
+  for (const [rel, raw] of testSources) parsedTest.set(rel, parseWiringFile(raw, rel));
+
+  // operator classes are collected from main + test (test-only receivers only feed V1 stats)
+  const allParsed = new Map([...parsedMain, ...parsedTest]);
+  const operatorNames = collectOperatorClassNames(allParsed);
+  const operatorFields = collectOperatorFields(allParsed, operatorNames);
+
+  // V1: test-only injection detection (main zero call sites = red for production-wired)
+  for (const service of services) {
+    const api = service.injectionApi || {};
+    if (!api.method) {
+      throw new Error(`scan-wiring: service ${service.service} missing injectionApi.method (no silent skip)`);
+    }
+    if (service.disposition === 'internal-creation') continue; // adjudicated carve-out
+    const mainCalls = countQualifiedCalls(api.method, parsedMain, operatorNames, operatorFields, false);
+    if (mainCalls === 0) {
+      const testCalls = countQualifiedCalls(api.method, parsedTest, operatorNames, operatorFields, true);
+      violations.push(`[scan-wiring] V1 test-only injection: ${service.service} injection API '${api.method}' `
+          + `has 0 main call sites (production wiring missing); main=0 test=${testCalls} — P0-01 original shape (test-mock evasion)`);
+    }
+  }
+
+  // V2: consumer enumeration completeness
+  const consumerClasses = new Set((registry.consumerTable || []).map(r => r.class));
+  const v2Forms = ['getProcessingTimeService', 'getTimeServiceManager', 'registerTimerService'];
+  for (const pf of parsedMain.values()) {
+    for (const form of v2Forms) {
+      const calls = findCalls(pf.clean, form);
+      if (calls.length > 0 && pf.topLevelFqcn && !consumerClasses.has(pf.topLevelFqcn)) {
+        violations.push(`[scan-wiring] V2 consumer class not in registry: ${pf.topLevelFqcn} calls ${form}() `
+            + `at ${pf.rel}:${lineOfIndex(pf.clean, calls[0].index)} (a new main consumer of a registered service must be registered)`);
+      }
+    }
+  }
+
+  // V3: stale wiring points
+  for (const service of services) {
+    const api = service.injectionApi || {};
+    for (const point of (service.wiringPoints || [])) {
+      const key = `${point.file}:${point.line}`;
+      const src = mainSources.get(point.file);
+      if (!src || !wiringPointPresent(src, Number(point.line), api.method)) {
+        violations.push(`[scan-wiring] V3 stale wiring point: ${key} (${api.method}) no longer present in main code (sync the registry)`);
+      }
+    }
+  }
+
+  // V4: new service injection API on the AbstractStreamOperator (subclass) surface
+  for (const pf of parsedMain.values()) {
+    for (const frame of pf.frames) {
+      if (!operatorNames.has(frame.name)) continue;
+      for (const decl of findSetDeclarationsWithServiceParams(pf.clean, frame, services)) {
+        if (!registeredMethods.has(decl.method)) {
+          violations.push(`[scan-wiring] V4 new service injection API not in registry: ${pf.rel}:${lineOfIndex(pf.clean, decl.index)} `
+              + `${decl.method}(${decl.paramType}) — parameter type is a registered service type (register the API or rename it)`);
+        }
+      }
+    }
+  }
+
+  // V5: stale consumer / stale service
+  const knownFqcns = new Set();
+  for (const pf of parsedMain.values()) {
+    const pkg = pf.topLevelFqcn ? pf.topLevelFqcn.slice(0, pf.topLevelFqcn.lastIndexOf('.')) : '';
+    for (const frame of pf.frames) {
+      knownFqcns.add(pkg ? `${pkg}.${frame.fqcnTail}` : frame.fqcnTail);
+    }
+  }
+  for (const row of (registry.consumerTable || [])) {
+    if (!knownFqcns.has(row.class)) {
+      violations.push(`[scan-wiring] V5 registry consumer class no longer exists: ${row.class} (${row.file || 'unknown'})`);
+    }
+  }
+  for (const service of services) {
+    const f = String(service.service);
+    if (f.startsWith('java.') || f.startsWith('javax.')) continue;
+    if (!knownFqcns.has(f)) {
+      violations.push(`[scan-wiring] V5 registry service no longer exists: ${f}`);
+    }
+  }
+
+  return violations;
+}
+
+function runScanWiring() {
+  const registry = loadWiringRegistry();
+  const {main, test} = collectWiringSources();
+  const violations = evaluateWiring(registry, main, test);
+  const pins = loadPins();
+  const ownPins = {pinnedViolations: (pins.pinnedViolations || []).filter(p => String(p.key).includes('[scan-wiring]'))};
+  const {unpinned, stale} = compareViolationsToPins(violations, ownPins);
+  return {violations, unpinned, stale};
+}
+
+// ---------------------------------------------------------------------------
 // self-test: positive control fixtures
 
 function runSelfTest() {
@@ -1185,6 +1654,138 @@ class WeirdOutput implements Output<StreamRecord<String>> {
     failures.push('output-contract fixture: OutputContractFixture.java missing — cannot prove scanner can go red on committed violations');
   }
 
+  // ---------------------------------------------------------------------------
+  // scan-wiring self-test fixtures (invariant #7): V1-V5 positive/negative
+
+  const wiringOpSrc = `
+package fixtures;
+class WiringPts {
+}
+class WiringOp extends io.nop.stream.core.operators.AbstractStreamOperator<String> {
+    public void processElement(io.nop.stream.core.streamrecord.StreamRecord<String> element) {
+    }
+}`;
+  const wiringMainSrc = `
+package fixtures;
+class WiringMain {
+    private WiringPts pts;
+    void wire(WiringOp op) {
+        op.setProcessingTimeService(pts);
+    }
+}`;
+  const wiringTestSrc = `
+package fixtures;
+class WiringTestOnly {
+    void inject(WiringPts pts) {
+        WiringOp op = new WiringOp();
+        op.setProcessingTimeService(pts);
+    }
+}`;
+  const mkWiringServices = wiringPoints => [{
+    service: 'fixtures.WiringPts',
+    injectionApi: {
+      class: 'io.nop.stream.core.operators.AbstractStreamOperator',
+      method: 'setProcessingTimeService',
+      paramType: 'io.nop.stream.core.operators.ProcessingTimeService'
+    },
+    wiringPoints,
+    consumers: [],
+    disposition: 'production-wired',
+    reason: 'fixture'
+  }];
+  const wiringGreenFixtureRegistry = {
+    services: mkWiringServices([{
+      file: 'fixtures/WiringMain.java',
+      line: lineOfIndex(wiringMainSrc, wiringMainSrc.indexOf('op.setProcessingTimeService')),
+      injectionTiming: 'fixture'
+    }]),
+    consumerTable: [],
+    testOnlyExemptions: [],
+    violationSemantics: {},
+    pinSchema: {}
+  };
+  const wiringGreen = evaluateWiring(wiringGreenFixtureRegistry,
+      new Map([['fixtures/WiringMain.java', wiringMainSrc], ['fixtures/WiringOp.java', wiringOpSrc]]),
+      new Map());
+  if (wiringGreen.length !== 0) {
+    failures.push(`wiring V1-V5 positive: self-consistent registry + wired main must be green, got ${JSON.stringify(wiringGreen)}`);
+  }
+
+  // V1 negative: main zero call sites + test-only injection -> red (P0-01 original shape)
+  const wiringV1Registry = {services: mkWiringServices([]), consumerTable: []};
+  const wiringV1 = evaluateWiring(wiringV1Registry,
+      new Map([['fixtures/WiringOp.java', wiringOpSrc]]),
+      new Map([['fixtures/WiringTestOnly.java', wiringTestSrc]]));
+  if (!wiringV1.some(v => v.includes('V1 test-only injection') && v.includes('setProcessingTimeService')
+      && v.includes('main=0 test=1'))) {
+    failures.push(`wiring V1 negative: test-only injection must be red with call-site stats, got ${JSON.stringify(wiringV1)}`);
+  }
+
+  // V2 negative: new main consumer class of a registered getter -> red
+  const newConsumerSrc = `
+package fixtures;
+class NewConsumer {
+    long now(io.nop.stream.core.operators.AbstractStreamOperator op) {
+        return op.getProcessingTimeService().getCurrentProcessingTime();
+    }
+}`;
+  const wiringV2Registry = {services: mkWiringServices([]), consumerTable: []};
+  const wiringV2 = evaluateWiring(wiringV2Registry, new Map([['fixtures/NewConsumer.java', newConsumerSrc]]), new Map());
+  if (!wiringV2.some(v => v.includes('V2 consumer class not in registry: fixtures.NewConsumer calls getProcessingTimeService()'))) {
+    failures.push(`wiring V2 negative: unregistered consumer class must be red, got ${JSON.stringify(wiringV2)}`);
+  }
+  const wiringV2GreenRegistry = {services: mkWiringServices([]),
+    consumerTable: [{class: 'fixtures.NewConsumer', getterOrRegistration: 'getProcessingTimeService()',
+      service: 'fixtures.WiringPts', behaviorWithoutService: 'fixture'}]};
+  const wiringV2Green = evaluateWiring(wiringV2GreenRegistry, new Map([['fixtures/NewConsumer.java', newConsumerSrc]]), new Map());
+  if (wiringV2Green.some(v => v.includes('V2 '))) {
+    failures.push(`wiring V2 positive: registered consumer class must be green, got ${JSON.stringify(wiringV2Green)}`);
+  }
+
+  // V3 negative: registry wiring point no longer present in main -> red
+  const wiringV3Registry = {services: mkWiringServices([{file: 'fixtures/Gone.java', line: 7, injectionTiming: 'fixture'}]), consumerTable: []};
+  const wiringV3 = evaluateWiring(wiringV3Registry, new Map([['fixtures/WiringMain.java', wiringMainSrc]]), new Map());
+  if (!wiringV3.some(v => v.includes('V3 stale wiring point: fixtures/Gone.java:7'))) {
+    failures.push(`wiring V3 negative: stale wiring point must be red, got ${JSON.stringify(wiringV3)}`);
+  }
+
+  // V4 negative: new set* service injection API on an operator subclass, unregistered -> red
+  const v4OpSrc = `
+package fixtures;
+class WiringPts {
+}
+class V4Op extends io.nop.stream.core.operators.AbstractStreamOperator<String> {
+    public void setCustomService(io.nop.stream.core.operators.ProcessingTimeService s) {
+    }
+}`;
+  const wiringV4Registry = {services: mkWiringServices([]), consumerTable: []};
+  const wiringV4 = evaluateWiring(wiringV4Registry, new Map([['fixtures/V4Op.java', v4OpSrc]]), new Map());
+  if (!wiringV4.some(v => v.includes('V4 new service injection API not in registry: fixtures/V4Op.java')
+      && v.includes('setCustomService'))) {
+    failures.push(`wiring V4 negative: unregistered new service injection API must be red, got ${JSON.stringify(wiringV4)}`);
+  }
+  const v4NonServiceSrc = `
+package fixtures;
+class V4NonServiceOp extends io.nop.stream.core.operators.AbstractStreamOperator<String> {
+    public void setMailboxExecutor(io.nop.stream.core.execution.MailboxExecutor m) {
+    }
+    public void setKeyContextElement(io.nop.stream.core.streamrecord.StreamRecord<?> r) {
+    }
+}`;
+  const wiringV4NonService = evaluateWiring(wiringV4Registry, new Map([['fixtures/V4NonServiceOp.java', v4NonServiceSrc]]), new Map());
+  if (wiringV4NonService.some(v => v.includes('V4 '))) {
+    failures.push(`wiring V4 non-service exclusion: setMailboxExecutor/setKeyContextElement must NOT trigger V4, got ${JSON.stringify(wiringV4NonService)}`);
+  }
+
+  // V5 negative: registry consumer class no longer exists -> red
+  const wiringV5Registry = {services: mkWiringServices([]),
+    consumerTable: [{class: 'fixtures.GoneConsumer', getterOrRegistration: 'registerTimerService(',
+      file: 'fixtures/GoneConsumer.java', service: 'fixtures.WiringPts', behaviorWithoutService: 'fixture'}]};
+  const wiringV5 = evaluateWiring(wiringV5Registry, new Map([['fixtures/WiringMain.java', wiringMainSrc]]), new Map());
+  if (!wiringV5.some(v => v.includes('V5 registry consumer class no longer exists: fixtures.GoneConsumer'))) {
+    failures.push(`wiring V5 negative: stale registry consumer class must be red, got ${JSON.stringify(wiringV5)}`);
+  }
+
   return failures;
 }
 
@@ -1311,6 +1912,16 @@ function main() {
         ok = printViolations('scan-output-contract (invariant #6 V1-V5)', unpinned) && ok;
         break;
       }
+      case 'scan-wiring': {
+        const {unpinned, stale} = runScanWiring();
+        if (stale.length > 0) {
+          console.error(`scan-wiring: ${stale.length} stale pin(s) (pinned violation no longer present — remove or update pin record)`);
+          for (const s of stale) console.error('  ' + s);
+          ok = false;
+        }
+        ok = printViolations('scan-wiring (invariant #7 V1-V5)', unpinned) && ok;
+        break;
+      }
       case 'self-test': {
         const failures = runSelfTest();
         ok = printViolations('self-test', failures) && ok;
@@ -1344,13 +1955,20 @@ function main() {
           ok = false;
         }
         ok = printViolations('scan-output-contract', outputContract.unpinned) && ok;
+        const wiring = runScanWiring();
+        if (wiring.stale.length > 0) {
+          console.error(`scan-wiring: ${wiring.stale.length} stale pin(s)`);
+          for (const s of wiring.stale) console.error('  ' + s);
+          ok = false;
+        }
+        ok = printViolations('scan-wiring', wiring.unpinned) && ok;
         const failures = runSelfTest();
         ok = printViolations('self-test', failures) && ok;
         break;
       }
       default:
         console.error(`Unknown command: ${command}`);
-        console.error('Usage: node ai-dev/tools/check-nop-stream-invariants.mjs [inventory|sync|scan-iterations|scan-output-contract|self-test|init|all]');
+        console.error('Usage: node ai-dev/tools/check-nop-stream-invariants.mjs [inventory|sync|scan-iterations|scan-output-contract|scan-wiring|self-test|init|all]');
         process.exit(2);
     }
   } catch (e) {
