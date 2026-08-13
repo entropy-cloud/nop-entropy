@@ -3,7 +3,7 @@
 > **产出方法**：`ai-dev/skills/invariant-loop-audit-prompt.md`；待经独立 fresh session 审查至共识。
 > **驱动方**：`missions/nop-code-invariant-loop.json`（范围：nop-code 全模块组）
 > **先例**：nop-chaos-flux `docs/backlog/ai-invariant-loop-roadmap.md`（首个闭环先例）
-> **状态**：**进行中**——I0（不变式盘点与基线）已完成，产出 `ai-dev/audits/nop-code-invariants/`（invariant-catalog / ar-status-matrix / audit-target-set）。I1 门禁沉淀为当前工作项。
+> **状态**：**进行中（Cycle 1 interim closure）**——I0-I3 done；I4 active（Phase 1-2 done / Phase 3-9 planned）；I5 done*（I4 已执行面验证全绿，非稳态）；I6 done-interim（统计+稳态判定程序+复触发条件+后继派生已完成，确定性稳态判定 deferred——I4 Phase 3-9 未完成，见 `i6-cycle1-closure-report.md`）。下一行动 = 恢复 I4 Phase 3-9。
 > **与既有审计的关系**：`skills/nop-code/audit-prompt.md`（模块专用补充审计维度）+ `nop-code-audit-2026-05-05.md` / `nop-code-audit-2026-05-10.md`（2 baseline）+ 13 轮 adversarial review（2026-05-25 至 2026-06-06，含同日 5 sub-round）为输入材料，不重复执行。
 
 ## 目的
@@ -34,7 +34,7 @@ nop-code 已被审计 **2 baseline + 13 轮 adversarial review**（2026-05-25 �
 | Cycle 1 / I3. 发现裁决 | red list + 悬空发现逐条裁决 → P0/P1 派 I4；裁决表零悬挂 | `done` | I2 |
 | Cycle 1 / I4. 修复执行 | 悬空发现关闭 + 门禁覆盖缺口补齐 + 类别清扫 + test-first | `active`（Phase 1-2 done：query-limit/entity-field-min/idempotency；Phase 3-9 planned：WP-7/4/5/6/8/9/10） | I3 |
 | Cycle 1 / I5. 全量验证 | `./mvnw test -pl nop-code -am -T 1C` + 门禁零命中 + full-green 记录 | `done*`（I4 P1-2 范围全量验证全绿，record `i5-full-green-record.md` 已产出；I4 P3-9 未完成 → 需 I4 完成后 re-verify，**非 Cycle 1 稳态**） | I4 |
-| Cycle 1 / I6. 循环收口 | 统计 + 稳态判定 + 复触发条件登记；closure 独立 fresh session | `todo` | I5 |
+| Cycle 1 / I6. 循环收口 | 统计 + 稳态判定 + 复触发条件登记；closure 独立 fresh session | `done (interim)`（统计+稳态判定程序+复触发条件+Cycle 2 后继派生+closure 已完成，见 `i6-cycle1-closure-report.md`；**确定性稳态判定 DEFERRED**——I4 Phase 3-9 未完成，Cycle 1 维持 active；下一行动 = 恢复 I4 Phase 3-9 → I5 re-verify → I6-revisit 确定性稳态判定） | I5 |
 
 ## Phase Details
 
@@ -53,7 +53,7 @@ nop-code 已被审计 **2 baseline + 13 轮 adversarial review**（2026-05-25 �
 - **I2 审计目标**：跑 I1 四族门禁 + 盘点 AR-94→AR-178 悬空发现 → red list + 悬空发现处置矩阵；对抗探查聚焦增量索引并发路径与 OOM 潜在点。
 - **I4 类别清扫面**：修任一 SearchService 的全实体加载必 grep 全部 SearchService 方法；修任一删除路径必穷举全部 useLogicalDelete 实体的删除路径。
 - **I5 验证**：`./mvnw test -pl nop-code -am -T 1C` + 四族门禁零命中。
-- **I6 收口**：稳态判定 + 复触发条件（CI 变红 / 新增 SearchService 或 IndexManager / 周期复探）；closure 独立 fresh session。
+- **I6 收口**：稳态判定 + 复触发条件（CI 变红 / 新增 SearchService 或 IndexManager / 周期复探）；closure 独立 fresh session。**Cycle 1 I6 已 interim closure**（`i6-cycle1-closure-report.md`）：统计+稳态判定程序+复触发条件+Cycle 2 后继派生完成；确定性稳态判定 deferred（I4 Phase 3-9 未完成）。
 
 ## Dependency Graph
 
@@ -72,7 +72,17 @@ flowchart LR
 
 ## Loop Rule
 
-同 nop-stream invariant-loop roadmap，范围换为 nop-code，结构变更触发条件换为"新增/重命名 SearchService / IndexManager / 删除路径"。
+nop-code 专属复触发条件（I6 `i6-cycle1-closure-report.md` §4 登记）：
+
+### Cycle 1 继续执行（首要，立即生效——I4 未完成）
+
+- **T0**：I4 Phase 3-9（WP-7/4/5/6/8/9/10）未完成 → 直接恢复 I4 执行，无需等待复触发。I4 完成后触发 I5 re-verification（以现 I5 plan 为模板），再由 I6-revisit 做确定性稳态判定。
+
+### Cycle 2 / 稳态打破触发（稳态建立后生效，≥3 条）
+
+1. **CI 门禁变红**：`check-nop-code-invariants.mjs` strict/ratchet 模式报告 `[NEW]` 违规，或 `TestNopCodeIndexIdempotencyInvariant` red-list 锁变红（KNOWN_NON_IDEMPOTENT 新增）→ 启动新 Cycle 或退回 I4 修复。
+2. **审计目标集结构变更**：新增/重命名 SearchService / IndexManager / CodeClassLoader / 删除路径方法（`audit-target-set.md` 6 服务类 + ORM 11 实体增删改）→ 重新激活 I0 盘点 → I1..I6。
+3. **周期复探**：季度（或大版本发布后）主动重跑四族门禁 + I2 三面对抗探查（并发 / OOM / 跨文件孤儿+搜索去同步），即使门禁绿也探查新失败模式 → 若发现新族，派生 Cycle 2/I1。
 
 ## Cross-Cutting
 
