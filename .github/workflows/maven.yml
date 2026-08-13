@@ -42,6 +42,30 @@ jobs:
     - name: Build with Maven
       run: mvn -B package --file pom.xml
 
+  # nop-ai 不变式门禁 ④⑤（ToolExecutor 安全边界声明 / fix-commit real-diff）。
+  # 门禁①②③（JUnit/ArchUnit）随 mvn test 自动执行；本 job 负责 mjs 门禁。
+  # fetch-depth: 0 必须保留——门禁⑤ 扫描 PR 内 fix(nop-ai) commit，shallow clone 会让扫描静默为空。
+  invariant-gates:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - uses: pnpm/action-setup@v4
+      with:
+        version: 10
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: 'pnpm'
+        cache-dependency-path: ai-dev/tools/pnpm-lock.yaml
+    - name: Install tools dependencies
+      run: pnpm install --frozen-lockfile
+      working-directory: ai-dev/tools
+    - name: Run nop-ai invariant gates (④ ToolExecutor boundary, ⑤ fix-commit real-diff)
+      run: pnpm check:ai-invariants
+      working-directory: ai-dev/tools
+
   e2e:
     needs: build
     runs-on: ubuntu-latest

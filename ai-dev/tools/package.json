@@ -20,7 +20,10 @@
     "lint:java": "./run-java-lint.sh",
     "scan:hollow": "node scan-hollow-implementations.mjs",
     "scan:hollow:all": "node scan-hollow-implementations.mjs --include-tests",
-    "scan:hollow:json": "node scan-hollow-implementations.mjs --format json"
+    "scan:hollow:json": "node scan-hollow-implementations.mjs --format json",
+    "check:ai-tool-boundary": "node check-ai-tool-executor-boundary.mjs",
+    "check:fix-commit-diff": "node check-fix-commit-diff.mjs",
+    "check:ai-invariants": "node check-ai-tool-executor-boundary.mjs --self-test && node check-fix-commit-diff.mjs --self-test && node check-ai-tool-executor-boundary.mjs && node check-fix-commit-diff.mjs"
   },
   "devDependencies": {
     "@ast-grep/cli": "^0.43.0",
