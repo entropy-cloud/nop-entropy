@@ -94,7 +94,7 @@
 
 ### INV-LIMIT — limit 负值校验族
 
-**① 陈述**（通用）：每个接受 `limit`（或同义分页参数）入参的 public 入口方法，必须在入口处显式拒绝负值（抛带 `ErrorCode` 的异常，如 `ERR_PAGINATION_LIMIT_INVALID` / `ERR_SEARCH_LIMIT_INVALID`）。**禁止**：负 limit 直通下游（SQL `LIMIT ?` 占位符把负值绑给 DB，得到不可诊断错误）或静默钳制到默认值（掩盖调用方 bug）。「null/0 → 缺省值」与「超上限 → 封顶或拒绝」的语义可为有意裁定（如 queryTableData 静默封顶 vs queryJoinData 显式拒绝，MA7.4-03 / AR-09 已裁定），但**负值必须显式失败**。
+**① 陈述**（通用）：每个接受 `limit`（或同义分页参数）入参的 public 入口方法，必须在入口处显式拒绝负值（抛带 `ErrorCode` 的异常，如 `ERR_PAGINATION_LIMIT_INVALID` / `ERR_SEARCH_LIMIT_INVALID`）。**禁止**：负 limit 直通下游（SQL `LIMIT ?` 占位符把负值绑给 DB，得到不可诊断错误）或静默钳制到默认值（掩盖调用方 bug）。「null/0 → 缺省值」与「超上限 → 封顶或拒绝」的语义可为有意裁定（如 queryTableData 对超大正值静默封顶 vs queryJoinData 原样透传由截断层拒绝，MA7.4-03 / AR-09 已裁定），但**负值必须显式失败**——此规则统一适用于全部 4 个 limit-taking 入口（queryTableData 的历史负值静默封顶已由 plan 2026-08-13-1930-5 Phase 0 收敛为显式拒绝；MA7.4-03 的范围是「缺省值 + 上限」，不含负值）。
 
 **② 覆盖的失败族**：limit 负值校验族——AR-09 → AR-23④ 显式「沿先例」交叉引用。
 

@@ -142,9 +142,9 @@ mutation {
 
 ## 查询分页契约（AR-09 裁定，plan 2026-08-06-0553-3）
 
-`queryTableData` / `queryJoinData` / `queryAggregation` 的 `limit` 语义（两个入口差异为有意裁定）：
+`queryTableData` / `queryJoinData` / `queryAggregation` 的 `limit` 语义（负值统一显式拒绝 INV-LIMIT，正值上限差异为有意裁定）：
 
-- **`queryTableData`**（数据浏览入口）：`limit` 缺省（null/≤0）给默认值 1000，超大 limit 静默封顶（上限 10000 或配置 `nop.metadata.query.max-limit`）——浏览语义下封顶安全。
+- **`queryTableData`**（数据浏览入口）：`limit < 0` → **显式拒绝**（`nop.err.metadata.pagination-limit-invalid`，INV-LIMIT）；`limit` 缺省（null/0）给默认值 1000，超大正值静默封顶（上限 10000 或配置 `nop.metadata.query.max-limit`）——浏览语义下正值封顶安全（MA7.4-03）。
 - **`queryJoinData` / `queryAggregation`**（分析/分页入口）：`limit < 0` → **显式拒绝**（`nop.err.metadata.pagination-limit-invalid`，错误可诊断，不做静默钳制——静默改 limit 会让分页语义静默漂移）；`limit` 缺省（null/0）给默认值 1000（**有界**，不提供"无界"选项）；`limit > Integer.MAX_VALUE` → 截断层显式拒绝（`pagination-limit-too-large`）；`offset` 为 null 或 ≤0 视为不偏移。三条 JOIN 路径（同库 table-table / external↔external / mixed）与跨库内存合并路径语义一致。
 
 ## 导入失败路径语义（AR-08 裁定，plan 2026-08-06-0553-3）
