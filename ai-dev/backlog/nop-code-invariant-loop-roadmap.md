@@ -31,7 +31,7 @@ nop-code 已被审计 **2 baseline + 13 轮 adversarial review**（2026-05-25 �
 | Cycle 1 / I0. 不变式盘点与基线 | 从 2 baseline + 13 轮 adversarial review 提取已知失败族 → 不变式目录（`ai-dev/audits/nop-code-invariants/invariant-catalog.md`）；盘点 AR-94→AR-178 悬空发现的当前 live 状态（哪些已修、哪些仍开放）；枚举全部 SearchService / IndexManager / CodeClassLoader / 删除路径方法作为审计目标集 | `done` | — |
 | Cycle 1 / I1. 不变式沉淀（首批门禁） | 首批候选族：① 实体加载字段最小化门禁——加载实体列表只为取少量字段时必须用投影查询（SELECT field）而非全实体加载（静态扫描 + ArchUnit）；② 增量索引一致性门禁——`useLogicalDelete` 实体的删除路径必须走逻辑删除而非物理删除（ORM 模型 + service 方法交叉检查）；③ 增量索引幂等性门禁——每个索引更新操作必须可安全重试（JUnit 参数化穷举）；④ 查询结果上限门禁——每个全表/大表查询必须声明 LIMIT（防 OOM） | `done` | I0 |
 | Cycle 1 / I2. 不变式驱动审计 | 跑 I1 门禁 → red list + 对抗探查 + 盘点 AR-94→AR-178 悬空发现哪些已被门禁覆盖、哪些仍需手动修复 | `done` | I1 |
-| Cycle 1 / I3. 发现裁决 | red list + 悬空发现逐条裁决 → P0/P1 派 I4；裁决表零悬挂 | `todo` | I2 |
+| Cycle 1 / I3. 发现裁决 | red list + 悬空发现逐条裁决 → P0/P1 派 I4；裁决表零悬挂 | `done` | I2 |
 | Cycle 1 / I4. 修复执行 | 悬空发现关闭 + 门禁覆盖缺口补齐 + 类别清扫 + test-first | `todo` | I3 |
 | Cycle 1 / I5. 全量验证 | `./mvnw test -pl nop-code -am -T 1C` + 门禁零命中 + full-green 记录 | `todo` | I4 |
 | Cycle 1 / I6. 循环收口 | 统计 + 稳态判定 + 复触发条件登记；closure 独立 fresh session | `todo` | I5 |
