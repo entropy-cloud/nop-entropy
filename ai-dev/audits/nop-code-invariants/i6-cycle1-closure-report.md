@@ -1,8 +1,8 @@
 # nop-code 不变式闭环 I6 — Cycle 1 循环收口报告
 
-> Status: active
+> Status: closed (Cycle 1 final closure — 稳态暂停 / 分支 A，I6-revisit 2026-08-13 收口)
 > Last Reviewed: 2026-08-13
-> Source: I6 计划 `ai-dev/plans/2026-08-13-1059-7-nop-code-invariant-i6-cycle-closure.md`
+> Source: I6 计划 `ai-dev/plans/2026-08-13-1059-7-nop-code-invariant-i6-cycle-closure.md`（interim closure）+ I6-revisit 计划 `ai-dev/plans/2026-08-13-1930-2-nop-code-invariant-i6-revisit-steady-state.md`（确定性稳态判定，§3.3）
 > 输入: I4 计划（Phase 1-2 completed / Phase 3-9 planned）+ I5 `i5-full-green-record.md`（I4 已执行面全量验证全绿）+ I3 `i3-adjudication-matrix.md`（§A/§B/§D/§E 裁决）+ `invariant-catalog.md`（INV-01..05）+ `ar-status-matrix.md`
 > 后继: 本报告驱动 roadmap Cycle 1 状态裁定（稳态判定 + 复触发条件 + Cycle 2 后继派生）
 > 方法论: `ai-dev/skills/invariant-loop-audit-prompt.md`
@@ -16,6 +16,8 @@
 ---
 
 ## §1. Cycle 1 修复统计（I4 已执行范围）
+
+> **范围说明（I6-revisit 补注）**：本节统计锚定前序 interim closure 时的「I4 已执行范围 = Phase 1-2」。I4 Phase 3-9 全部完成后，**全范围（Phase 1-9）修复统计见 `i5-full-green-record.md` §5**（10 个 focused test 类、25 Phase 3-9 tests、6 条调用链连通、四族 real-violation 0）。本节保留作为 interim closure 历史轨迹。
 
 ### 1.1 I4 工作包落地数（WP 级，以 I4 closure evidence / I5 record 实算为准）
 
@@ -111,6 +113,8 @@ I3 裁定的 5 条 stale 已在 I4 Phase 1 改判（`ar-status-matrix.md`）：A
 
 ## §3. 稳态判定（可复现程序）
 
+> **最终裁定状态**：§3.3（I6-revisit）已 resolve 前序 §3.2 DEFERRED，裁定为**分支 A — 稳态暂停**。§3.1-3.2 为前序 interim closure 的判定程序与诚实推迟记录，保留作为可复现依据与历史轨迹。
+
 ### 3.1 判定程序（三步）
 
 #### (a) 数据源
@@ -156,6 +160,69 @@ I3 裁定的 5 条 stale 已在 I4 Phase 1 改判（`ar-status-matrix.md`）：A
 **最终裁定**：**Cycle 1 维持 `active`——本次为「过渡性循环收口（interim closure）」，确定性稳态判定 DEFERRED（推迟）**。待 I4 Phase 3-9 全部完成 → 触发 I5 re-verification（以现 I5 plan 为模板）全绿后 → 由后续 I6-revisit 做确定性稳态判定（届时按 Dependency Graph 二选一：零新族且零 red → 稳态暂停；或发现新族 → 派生 Cycle 2/I1）。
 
 > **为何不强行二选一**：Dependency Graph 的两个分支是为「I4 已完成」设计。在 I4 未完成时强行选分支 A 会掩盖未修缺陷；强行选分支 B（派生 Cycle 2）则无依据（零新族）。诚实做法是显式声明前置条件未满足 + 推迟判定，并锁定后续触发路径（§4 复触发条件 + §5 后继派生）。
+
+### 3.3 确定性稳态判定最终裁定（I6-revisit，2026-08-13）
+
+> 本节由 I6-revisit 计划 `ai-dev/plans/2026-08-13-1930-2-nop-code-invariant-i6-revisit-steady-state.md` 执行，**resolve 前序 §3.2 DEFERRED 裁定**。前序 DEFERRED 的理由（I4 Phase 3-9 未完成）现已消除——见 (a) 前置条件验证。本节为最终确定性裁定（无第三态）。
+
+#### (a) 前置条件验证（I6-revisit Phase 1(a) Gate）
+
+| 前置条件 | 状态 | 证据来源 |
+|---------|------|---------|
+| I4 Phase 1-9 全部 completed | ✅ | I4 plan `2026-08-13-1059-5` `Plan Status: completed`，9 Phase 均 `Status: completed` + checklist 全 `[x]`；`ai-dev/logs/2026/08-13.md` I4 Phase 3-9 条目 |
+| I5-reverify `completed` | ✅ | I5-reverify plan `2026-08-13-1930-1` `Plan Status: completed` |
+| i5-full-green-record 升级为全范围 Phase 1-9（非 Phase 1-2） | ✅ | `i5-full-green-record.md` 标题「全范围 Phase 1-9」+ §1「383/0/0」+ §4「6 条 Phase 3-9 调用链连通」 |
+| 零 red（四族门禁 real-violation + 模块测试全绿） | ✅ | I5 record §1 Tests run: 383, Failures: 0, Errors: 0；§2 四族 real-violation 0；§3 棘轮 baseline per-family 0 NEW；§4 Anti-Hollow 0 high/critical |
+
+**Gate 通过**：确定性稳态判定可执行。若任一未满足则本计划 blocked（见 I6-revisit plan Phase 1(a) 硬门）。
+
+#### (b) 零新族复核（锚定 Phase 3-9 **实际执行结果**，按 AR-ID 逐条比对）
+
+> 比对基线 = `invariant-catalog.md` INV-01..05（已沉淀族）+ I3 §D Cycle 2/I1 候选门禁 4 条（INV-05 缓存不可变性 / 截断可观测性 / error-handling / @Auth）+ I3 §B.4 data-consistency 族（已知族但既无 INV 也无 §D 候选，单独点名）。前序 §3.1(c) 锚定的是「I4 待续 WP 预测」；**本表锚定 Phase 3-9 实际执行后的真实 AR-ID 集合**，复核前序预测是否被实际结果推翻。
+
+| AR-ID | Phase | 实际修复内容摘要 | 落在哪条 INV / §D 候选 / §B.4 | 判定 |
+|-------|-------|----------------|------------------------------|------|
+| AR-166 | 3 | `removeStaleSymbolDocsForFile` 搜索引擎增量同步（saveFileResultInSession 写新数据前清旧 symbol doc） | INV-03（幂等/去同步） | 已知族 |
+| AR-30/66 | 4 | `deleteRelationalBySymbolIds` 跨文件孤儿清理（Call.calleeId/callerId、Inheritance.superTypeId、Usage.symbolId）+ `batchDeleteFileRecords` 事务/会话包裹 | INV-03（去同步）+ INV-02（删除契约/cascade 子项） | 已知族 |
+| AR-60 | 4 | 调查 = stale（deleteIndex 按 indexId 整索引删，无跨索引残留） | INV-02（调查项） | 已知族 |
+| AR-149/150 | 4 | ORM cascadeDelete **gated 阻塞（plan-first）**；service-layer 降级 `deleteRelationalBySymbolIds(NopCodeUsage.class,"symbolId",...)` 已覆盖 correctness | INV-02（cascade delete 子项） | 已知族（gated successor） |
+| AR-155/158 | 5 | `SymbolTable.getAll()` 防御性快照（synchronized）+ add/findAllByQualifiedNamePrefix 同步 | INV-05（缓存不可变性） | 已知族 |
+| AR-145/148 | 5 | `CallGraph.getAllNodeIds/getForwardMap` 加 synchronized；getForwardMap 返回全隔离快照 | INV-05 | 已知族 |
+| AR-42 | 5 | `filterByLanguage`（CodeSearchService+CodeIndexService）removeIf 改拷贝 | INV-05（不可变/防御拷贝子项） | 已知族 |
+| AR-62 | 5 | 调查 = by-design/stale（withIndexLock finally 仅 unlock 是正确互斥语义） | INV-05（concurrency 子项） | 已知族（调查） |
+| AR-147 | 5 | `FlowDetector.listFlows/detectFlows` 返回 unmodifiableList | INV-05 | 已知族 |
+| AR-136/168/177 | 6 | `warnIfCapped`/`isCapped` 应用到全部单次有界查询点（getFiles/getFileSymbols/getModuleDigest/getPublicSurface/findReferences/findByAnnotation） | INV-04 子项（截断可观测）+ §D 候选门禁 | 已知族 |
+| AR-76/61 | 6 | `warnIfCacheTruncated` 消费 `SymbolTable/CallGraph.isTruncated()`（生产侧 rebuildSymbolTable/rebuildCallGraph 已 setTruncated+WARN） | INV-04 子项 + §D 候选门禁 | 已知族 |
+| AR-01 | 7 | 调查 = by-design（resolveQualifiedNamesToIds 不删除层级，仅解析引用） | §B.4 data-consistency | 已知族（调查） |
+| AR-10/40 | 7 | `ChangeAnalyzer.pathSegmentMatch` 补起始边界（双侧边界感知，防 `mycom/...` 误匹配 `com.example...`） | §B.4 data-consistency | 已知族 |
+| AR-41 | 7 | `getSymbolById` 补 indexId 过滤（跨索引隔离） | §B.4 data-consistency | 已知族 |
+| AR-59 | 7 | 调查 = stale（extData.filePath 已写入） | §B.4 data-consistency | 已知族（调查） |
+| AR-63 | 7 | 调查 = by-design（entityToFileResult 关系按需加载，非 N+1） | §B.4 data-consistency | 已知族（调查） |
+| AR-93 | 7 | 调查 = 无可复现缺陷（FlowMembership 按 flowId 投影 symbolId） | §B.4 data-consistency | 已知族（调查） |
+| AR-132/151 | 7 | 调查 = investigated（entityToInheritance subTypeId+superTypeQualifiedName 两字段设计一致，回退 best-effort，不改输出契约） | §B.4 data-consistency | 已知族（调查） |
+| AR-51 | 7 | 调查 = stale（全部布尔列均被写入，无永远 NULL） | §B.4 orm-schema 聚合 | 已知族（调查） |
+| AR-160/162/165/175 | 8 | `packagePrefix()` 包边界（防 `com.example` 跨包匹配 `com.exampleOther`）；模糊搜索 contains 保留 | §D 候选门禁（error-handling） | 已知族 |
+| AR-18 | 8 | 调查 = stale（13 处 catch 全部 LOG/recover，无空 catch） | §D 候选门禁（error-handling） | 已知族（调查） |
+| AR-146/155/170 | 9 | @Auth 调查清单交付（8 个空 BizModel 已识别）；@Auth **gated 阻塞（ask-first）** | §D 候选门禁（@Auth） | 已知族（gated successor） |
+
+**比对结论**：Phase 3-9 实际执行处理的 22 个 AR-ID 集合，**全部落在 INV-01..05 已沉淀族 / §D 4 候选门禁 / §B.4 data-consistency 族之内**，**无超出已知覆盖面的新缺陷模式被发现**。前序 §3.1(c) 基于「I4 待续 WP 预测」建立的「零新族」结论，**经 Phase 3-9 实际执行结果复核仍然成立**——预测未被推翻。即「零新族」**确定性成立**。
+
+> **诚实披露（gated 项非降级）**：AR-149/150（ORM cascadeDelete，plan-first gate）与 AR-146/155/170（@Auth，ask-first gate）为 Protected Area 阻塞项，**不是「门禁 red」也非「已确认缺陷被静默降级」**——它们是 AGENTS.md Protected Areas 规定的合规人工确认 gate，service-layer 降级路径 / 调查清单 / successor path 均已登记（见 §5）。Dependency Graph 的「零 red」语义指 CI 门禁零违规（I5-reverify 确认 0），gated 项不构成 red。
+
+#### (c) Dependency Graph 二选一裁定（无第三态）
+
+> Dependency Graph 条件：I6 -- 有新族 --> Cycle 2/I1；I6 -- 零新族**且零 red** --> 稳态暂停。
+
+- **零新族**：✅ **确定性成立**（(b) 逐条比对，22 个 AR-ID 全部落在已知族/候选内，无新族）。
+- **零 red**：✅ **确定性成立**（I5-reverify full-scope：模块测试 383/0/0、四族门禁 real-violation 0、棘轮 baseline per-family 0 NEW、Anti-Hollow 0 high/critical、6 条 Phase 3-9 调用链连通）。
+
+**最终裁定：分支 A — 稳态暂停（Steady-State Pause）**。
+
+Cycle 1（I0→I6）正式关闭，roadmap 进入「稳态暂停待复触发」状态。后续由 §4.2 三条复触发条件（CI 门禁变红 / 审计目标集结构变更 / 周期复探）驱动，触发则派生 Cycle 2/I0 重启闭环。
+
+> **与 §3.2 DEFERRED 的关系**：§3.2 的 DEFERRED（第三态）是前置条件未满足时的诚实推迟——当时 I4 Phase 3-9 未完成，Dependency Graph 的两分支假设（I4 fully closed）不成立。现 I4 Phase 1-9 全部 completed + I5-reverify full-scope 全绿，前置条件已满足，**§3.2 DEFERRED 被 §3.3 resolve 为分支 A（稳态暂停）**。无残留第三态。
+>
+> **两个 gated successor（不阻塞稳态）**：Phase 9 @Auth ×8 BizModel（ask-first）+ Phase 4 AR-149/150 ORM cascadeDelete（plan-first）维持阻塞待人工确认状态，successor path 已登记（§5）。它们不随稳态判定自动关闭，也不阻塞稳态建立——它们是 Protected Area 合规 gate，非缺陷或门禁 red。人工确认通过后由 successor plan 补齐。
 
 ---
 
@@ -218,10 +285,22 @@ I3 裁定的 5 条 stale 已在 I4 Phase 1 改判（`ar-status-matrix.md`）：A
 
 ## §6. 结论
 
+> **最终状态（I6-revisit 2026-08-13 收口）**：Cycle 1 **正式关闭——稳态暂停（分支 A）**。下文 §6.1-6.2 为前序 interim closure 的结论（I4 已执行范围 Phase 1-2），保留作为历史轨迹；§6.3 为 I6-revisit 确定性最终结论。
+
+### 6.1 前序 interim 结论（I4 Phase 1-2 范围，历史轨迹）
+
 1. **Cycle 1 修复统计（I4 已执行范围）**：3 个工作包（WP-1/WP-2/WP-3）落地，38 条 red-list 真违规中 33 条已收敛；门禁棘轮前进（query-limit 33→0 / entity-field-min 24→12 / idempotency 2→0 / delete-contract 0→0），四族 real-violation 归零（I5 record 权威）。
 2. **稳态判定**：**Cycle 1 未达稳态——维持 `active`，确定性稳态判定 DEFERRED**。「零新族」成立（全部缺陷落在 INV-01..05 + §D 候选内），但 I4 Phase 3-9（7 WP）未完成，Dependency Graph 的前置条件（I4 fully closed）未满足。强行宣布稳态会静默遗漏已知未修缺陷（违反 Anti-Slacking）。
 3. **复触发条件**：已登记 ≥3 条（CI 门禁变红 / 审计目标集结构变更 / 周期复探）+ T0 首要条件（I4 Phase 3-9 立即恢复执行）。
 4. **Cycle 2 后继派生**：§D 4 候选门禁 + §B 27 条 P2/P3 后继修复均已登记 successor path + Why Not Blocking（以 §E.2 总账为准，26/27 差异已逐族对账消除）。
 5. **I4 Phase 3-9 是 Cycle 1 达稳态的唯一阻塞项**——完成后触发 I5 re-verification 全绿，再由 I6-revisit 做确定性稳态判定。
 
-> **本报告为过渡性循环收口（interim closure）**：I6 的交付物（统计 / 稳态判定程序 / 复触发条件 / 后继派生）已完成，但 Cycle 1 本身未关闭。下一行动 = 恢复 I4 Phase 3-9 执行。
+### 6.2 I6-revisit 确定性最终结论（2026-08-13）
+
+1. **前置条件已满足**：I4 Phase 1-9 全部 completed（9 Phase 均 completed + checklist 全 `[x]`）；I5-reverify（`2026-08-13-1930-1`）completed 且 full-scope 全绿（383/0/0、四族 real-violation 0、棘轮 0 NEW、Anti-Hollow 0 high/critical + 6 条 Phase 3-9 调用链连通）。
+2. **确定性稳态裁定（无第三态）**：**分支 A — 稳态暂停**。零新族确定性成立（§3.3(b) 逐条比对 22 个 AR-ID 全落已知族/候选）且零 red 确定性成立（I5-reverify full-scope 全绿）。§3.2 DEFERRED 被 §3.3 resolve。
+3. **Cycle 1 正式关闭**：roadmap 进入「稳态暂停待复触发」。后续由 §4.2 三条复触发条件驱动。
+4. **gated successor（不阻塞稳态）**：Phase 9 @Auth ×8 BizModel（ask-first）+ Phase 4 AR-149/150 ORM cascadeDelete（plan-first）维持阻塞待人工确认，successor path 已登记（§5），不随稳态判定自动关闭。
+5. **Cycle 2 后继路径保留**：§5 派生的 4 候选门禁 + 27 P2/P3 后继为 Cycle 2（稳态打破后）的工作池，不阻塞当前稳态。
+
+> **本报告为 Cycle 1 最终收口（final closure）**：I6 的全部交付物（统计 / 稳态判定程序 / 复触发条件 / 后继派生 / 确定性最终裁定）已完成。Cycle 1 关闭。下一行动 = 复触发条件驱动（非主动恢复）。
