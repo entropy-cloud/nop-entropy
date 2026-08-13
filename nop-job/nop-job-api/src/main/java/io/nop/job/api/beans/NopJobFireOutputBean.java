@@ -219,20 +219,6 @@
         }
 
 
-        private String _retryRecordId;
-
-    
-        @PropMeta(propId=18)
-    
-        public String getRetryRecordId(){
-            return _retryRecordId;
-        }
-
-        public void setRetryRecordId(String value){
-            this._retryRecordId = value;
-        }
-
-
         private Short _partitionIndex;
 
     
@@ -328,34 +314,6 @@
 
         public void setRemark(String value){
             this._remark = value;
-        }
-
-
-        private Integer _taskCostCpu;
-
-    
-        @PropMeta(propId=28)
-    
-        public Integer getTaskCostCpu(){
-            return _taskCostCpu;
-        }
-
-        public void setTaskCostCpu(Integer value){
-            this._taskCostCpu = value;
-        }
-
-
-        private Integer _taskCostMemory;
-
-    
-        @PropMeta(propId=29)
-    
-        public Integer getTaskCostMemory(){
-            return _taskCostMemory;
-        }
-
-        public void setTaskCostMemory(Integer value){
-            this._taskCostMemory = value;
         }
 
 

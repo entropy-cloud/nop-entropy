@@ -48,9 +48,6 @@
                 <!--执行节点ID-->
                 <col id="workerInstanceId" sortable="true"/>
 
-                <!--执行节点地址-->
-                <col id="workerAddress" sortable="true"/>
-
                 <!--开始时间-->
                 <col id="startTime" sortable="true"/>
 
@@ -93,12 +90,6 @@
                 <!--备注-->
                 <col id="remark" sortable="true"/>
 
-                <!--执行进度-->
-                <col id="progress" ui:number="true" sortable="true"/>
-
-                <!--进度消息-->
-                <col id="progressMessage" sortable="true"/>
-
                 <!--目标节点地址-->
                 <col id="targetHost" sortable="true"/>
             </cols>
@@ -114,15 +105,14 @@
  costCpu[CPU开销(毫核)] costMemory[内存开销(MB)]
  partitionRange[分片范围] priority[优先级]
  taskStatus[任务状态] workerInstanceId[执行节点ID]
- workerAddress[执行节点地址] startTime[开始时间]
- endTime[结束时间] durationMs[执行时长(毫秒)]
- resultPayload[执行结果] errorCode[错误码]
- errorMessage[错误消息] taskPayload[投递参数]
- taskNo[任务序号] partitionIndex[分区索引]
- createdBy[创建人] createTime[创建时间]
- updatedBy[修改人] updateTime[修改时间]
- remark[备注] progress[执行进度]
- progressMessage[进度消息] targetHost[目标节点地址]
+ startTime[开始时间] endTime[结束时间]
+ durationMs[执行时长(毫秒)] resultPayload[执行结果]
+ errorCode[错误码] errorMessage[错误消息]
+ taskPayload[投递参数] taskNo[任务序号]
+ partitionIndex[分区索引] createdBy[创建人]
+ createTime[创建时间] updatedBy[修改人]
+ updateTime[修改时间] remark[备注]
+ targetHost[目标节点地址] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-执行任务" i18n-en:title="Add Job Task" x:prototype="edit"/>
@@ -134,7 +124,6 @@
  partitionRange[分片范围] priority[优先级]
  taskPayload[投递参数] taskNo[任务序号]
  partitionIndex[分区索引] remark[备注]
- progress[执行进度] progressMessage[进度消息]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

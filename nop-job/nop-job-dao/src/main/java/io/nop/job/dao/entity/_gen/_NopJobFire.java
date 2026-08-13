@@ -89,10 +89,6 @@ public class _NopJobFire extends DynamicOrmEntity{
     public static final String PROP_NAME_retryPolicyId = "retryPolicyId";
     public static final int PROP_ID_retryPolicyId = 17;
     
-    /* 重试记录ID: RETRY_RECORD_ID VARCHAR */
-    public static final String PROP_NAME_retryRecordId = "retryRecordId";
-    public static final int PROP_ID_retryRecordId = 18;
-    
     /* 错误码: ERROR_CODE VARCHAR */
     public static final String PROP_NAME_errorCode = "errorCode";
     public static final int PROP_ID_errorCode = 19;
@@ -128,14 +124,6 @@ public class _NopJobFire extends DynamicOrmEntity{
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
     public static final int PROP_ID_remark = 27;
-    
-    /* 任务CPU开销(毫核): TASK_COST_CPU INTEGER */
-    public static final String PROP_NAME_taskCostCpu = "taskCostCpu";
-    public static final int PROP_ID_taskCostCpu = 28;
-    
-    /* 任务内存开销(MB): TASK_COST_MEMORY INTEGER */
-    public static final String PROP_NAME_taskCostMemory = "taskCostMemory";
-    public static final int PROP_ID_taskCostMemory = 29;
     
     /* 派发模式: DISPATCH_MODE VARCHAR */
     public static final String PROP_NAME_dispatchMode = "dispatchMode";
@@ -210,9 +198,6 @@ public class _NopJobFire extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_retryPolicyId] = PROP_NAME_retryPolicyId;
           PROP_NAME_TO_ID.put(PROP_NAME_retryPolicyId, PROP_ID_retryPolicyId);
       
-          PROP_ID_TO_NAME[PROP_ID_retryRecordId] = PROP_NAME_retryRecordId;
-          PROP_NAME_TO_ID.put(PROP_NAME_retryRecordId, PROP_ID_retryRecordId);
-      
           PROP_ID_TO_NAME[PROP_ID_errorCode] = PROP_NAME_errorCode;
           PROP_NAME_TO_ID.put(PROP_NAME_errorCode, PROP_ID_errorCode);
       
@@ -239,12 +224,6 @@ public class _NopJobFire extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_remark] = PROP_NAME_remark;
           PROP_NAME_TO_ID.put(PROP_NAME_remark, PROP_ID_remark);
-      
-          PROP_ID_TO_NAME[PROP_ID_taskCostCpu] = PROP_NAME_taskCostCpu;
-          PROP_NAME_TO_ID.put(PROP_NAME_taskCostCpu, PROP_ID_taskCostCpu);
-      
-          PROP_ID_TO_NAME[PROP_ID_taskCostMemory] = PROP_NAME_taskCostMemory;
-          PROP_NAME_TO_ID.put(PROP_NAME_taskCostMemory, PROP_ID_taskCostMemory);
       
           PROP_ID_TO_NAME[PROP_ID_dispatchMode] = PROP_NAME_dispatchMode;
           PROP_NAME_TO_ID.put(PROP_NAME_dispatchMode, PROP_ID_dispatchMode);
@@ -303,9 +282,6 @@ public class _NopJobFire extends DynamicOrmEntity{
     /* 重试策略ID: RETRY_POLICY_ID */
     private java.lang.String _retryPolicyId;
     
-    /* 重试记录ID: RETRY_RECORD_ID */
-    private java.lang.String _retryRecordId;
-    
     /* 错误码: ERROR_CODE */
     private java.lang.String _errorCode;
     
@@ -332,12 +308,6 @@ public class _NopJobFire extends DynamicOrmEntity{
     
     /* 备注: REMARK */
     private java.lang.String _remark;
-    
-    /* 任务CPU开销(毫核): TASK_COST_CPU */
-    private java.lang.Integer _taskCostCpu;
-    
-    /* 任务内存开销(MB): TASK_COST_MEMORY */
-    private java.lang.Integer _taskCostMemory;
     
     /* 派发模式: DISPATCH_MODE */
     private java.lang.String _dispatchMode;
@@ -467,9 +437,6 @@ public class _NopJobFire extends DynamicOrmEntity{
             case PROP_ID_retryPolicyId:
                return getRetryPolicyId();
         
-            case PROP_ID_retryRecordId:
-               return getRetryRecordId();
-        
             case PROP_ID_errorCode:
                return getErrorCode();
         
@@ -496,12 +463,6 @@ public class _NopJobFire extends DynamicOrmEntity{
         
             case PROP_ID_remark:
                return getRemark();
-        
-            case PROP_ID_taskCostCpu:
-               return getTaskCostCpu();
-        
-            case PROP_ID_taskCostMemory:
-               return getTaskCostMemory();
         
             case PROP_ID_dispatchMode:
                return getDispatchMode();
@@ -687,16 +648,6 @@ public class _NopJobFire extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_retryRecordId:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_retryRecordId));
-               }
-               setRetryRecordId(typedValue);
-               break;
-            }
-        
             case PROP_ID_errorCode:{
                java.lang.String typedValue = null;
                if(value != null){
@@ -784,26 +735,6 @@ public class _NopJobFire extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_remark));
                }
                setRemark(typedValue);
-               break;
-            }
-        
-            case PROP_ID_taskCostCpu:{
-               java.lang.Integer typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toInteger(value,
-                       err-> newTypeConversionError(PROP_NAME_taskCostCpu));
-               }
-               setTaskCostCpu(typedValue);
-               break;
-            }
-        
-            case PROP_ID_taskCostMemory:{
-               java.lang.Integer typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toInteger(value,
-                       err-> newTypeConversionError(PROP_NAME_taskCostMemory));
-               }
-               setTaskCostMemory(typedValue);
                break;
             }
         
@@ -945,13 +876,6 @@ public class _NopJobFire extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_retryRecordId:{
-               onInitProp(propId);
-               this._retryRecordId = (java.lang.String)value;
-               
-               break;
-            }
-        
             case PROP_ID_errorCode:{
                onInitProp(propId);
                this._errorCode = (java.lang.String)value;
@@ -1011,20 +935,6 @@ public class _NopJobFire extends DynamicOrmEntity{
             case PROP_ID_remark:{
                onInitProp(propId);
                this._remark = (java.lang.String)value;
-               
-               break;
-            }
-        
-            case PROP_ID_taskCostCpu:{
-               onInitProp(propId);
-               this._taskCostCpu = (java.lang.Integer)value;
-               
-               break;
-            }
-        
-            case PROP_ID_taskCostMemory:{
-               onInitProp(propId);
-               this._taskCostMemory = (java.lang.Integer)value;
                
                break;
             }
@@ -1366,25 +1276,6 @@ public class _NopJobFire extends DynamicOrmEntity{
     }
     
     /**
-     * 重试记录ID: RETRY_RECORD_ID
-     */
-    public final java.lang.String getRetryRecordId(){
-         onPropGet(PROP_ID_retryRecordId);
-         return _retryRecordId;
-    }
-
-    /**
-     * 重试记录ID: RETRY_RECORD_ID
-     */
-    public final void setRetryRecordId(java.lang.String value){
-        if(onPropSet(PROP_ID_retryRecordId,value)){
-            this._retryRecordId = value;
-            internalClearRefs(PROP_ID_retryRecordId);
-            
-        }
-    }
-    
-    /**
      * 错误码: ERROR_CODE
      */
     public final java.lang.String getErrorCode(){
@@ -1551,44 +1442,6 @@ public class _NopJobFire extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);
-            
-        }
-    }
-    
-    /**
-     * 任务CPU开销(毫核): TASK_COST_CPU
-     */
-    public final java.lang.Integer getTaskCostCpu(){
-         onPropGet(PROP_ID_taskCostCpu);
-         return _taskCostCpu;
-    }
-
-    /**
-     * 任务CPU开销(毫核): TASK_COST_CPU
-     */
-    public final void setTaskCostCpu(java.lang.Integer value){
-        if(onPropSet(PROP_ID_taskCostCpu,value)){
-            this._taskCostCpu = value;
-            internalClearRefs(PROP_ID_taskCostCpu);
-            
-        }
-    }
-    
-    /**
-     * 任务内存开销(MB): TASK_COST_MEMORY
-     */
-    public final java.lang.Integer getTaskCostMemory(){
-         onPropGet(PROP_ID_taskCostMemory);
-         return _taskCostMemory;
-    }
-
-    /**
-     * 任务内存开销(MB): TASK_COST_MEMORY
-     */
-    public final void setTaskCostMemory(java.lang.Integer value){
-        if(onPropSet(PROP_ID_taskCostMemory,value)){
-            this._taskCostMemory = value;
-            internalClearRefs(PROP_ID_taskCostMemory);
             
         }
     }

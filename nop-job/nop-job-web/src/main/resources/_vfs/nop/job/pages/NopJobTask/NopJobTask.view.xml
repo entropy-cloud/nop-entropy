@@ -19,10 +19,10 @@
         <form id="runtimeSummaryForm" editMode="view" title="运行态摘要-执行任务" i18n-en:title="Task Runtime Summary">
             <layout>
  taskNo[任务序号] taskStatus[任务状态]
- workerInstanceId[执行节点ID] workerAddress[执行节点地址]
- startTime[开始时间] endTime[结束时间]
- durationMs[执行时长(毫秒)] partitionIndex[分区索引]
- errorCode[错误码] errorMessage[错误消息]
+ workerInstanceId[执行节点ID] startTime[开始时间]
+ endTime[结束时间] durationMs[执行时长(毫秒)]
+ partitionIndex[分区索引] errorCode[错误码]
+ errorMessage[错误消息]
 </layout>
         </form>
         <form id="parentFireForm" editMode="view"

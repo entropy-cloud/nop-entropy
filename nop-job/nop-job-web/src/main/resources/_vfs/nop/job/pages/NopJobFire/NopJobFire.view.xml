@@ -22,8 +22,8 @@
  scheduledFireTime[计划触发时间] plannerInstanceId[计划节点ID]
  dispatchInstanceId[分发节点ID] startTime[开始时间]
  endTime[结束时间] durationMs[执行时长(毫秒)]
- retryPolicyId[重试策略ID] retryRecordId[重试记录ID]
- errorCode[错误码] errorMessage[错误消息]
+ retryPolicyId[重试策略ID] errorCode[错误码]
+ errorMessage[错误消息]
 </layout>
         </form>
     </forms>

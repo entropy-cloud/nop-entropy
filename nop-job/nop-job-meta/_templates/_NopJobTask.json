@@ -13,7 +13,6 @@
   "taskStatus": 0,
   "taskStatus_label": "",
   "workerInstanceId": "",
-  "workerAddress": "",
   "startTime": "2000-01-01 14:00:00",
   "endTime": "2000-01-01 14:00:00",
   "durationMs": 0,
@@ -29,7 +28,5 @@
   "updatedBy": "",
   "updateTime": "2000-01-01 14:00:00",
   "remark": "",
-  "progress": 0,
-  "progressMessage": "",
   "targetHost": ""
 }

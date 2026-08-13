@@ -64,7 +64,6 @@ CREATE TABLE nop_job_fire(
   job_params_snapshot VARCHAR(4000)  ,
   executor_kind VARCHAR(50)  ,
   retry_policy_id VARCHAR(32)  ,
-  retry_record_id VARCHAR(32)  ,
   error_code VARCHAR(200)  ,
   error_message VARCHAR(1000)  ,
   partition_index INT4 NOT NULL ,
@@ -74,8 +73,6 @@ CREATE TABLE nop_job_fire(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
-  task_cost_cpu INT4 default 0   ,
-  task_cost_memory INT4 default 0   ,
   dispatch_mode VARCHAR(30)  ,
   constraint PK_nop_job_fire primary key (job_fire_id)
 );
@@ -86,7 +83,6 @@ CREATE TABLE nop_job_task(
   task_no INT4 default 1  NOT NULL ,
   task_status INT4 NOT NULL ,
   worker_instance_id VARCHAR(100)  ,
-  worker_address VARCHAR(200)  ,
   task_payload VARCHAR(4000)  ,
   start_time TIMESTAMP  ,
   end_time TIMESTAMP  ,
@@ -101,8 +97,6 @@ CREATE TABLE nop_job_task(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
-  progress INT4  ,
-  progress_message VARCHAR(500)  ,
   target_host VARCHAR(200)  ,
   sharding_index INT4  ,
   sharding_total INT4  ,
@@ -238,8 +232,6 @@ CREATE TABLE nop_job_task(
                     
       COMMENT ON COLUMN nop_job_fire.retry_policy_id IS '重试策略ID';
                     
-      COMMENT ON COLUMN nop_job_fire.retry_record_id IS '重试记录ID';
-                    
       COMMENT ON COLUMN nop_job_fire.error_code IS '错误码';
                     
       COMMENT ON COLUMN nop_job_fire.error_message IS '错误消息';
@@ -258,10 +250,6 @@ CREATE TABLE nop_job_task(
                     
       COMMENT ON COLUMN nop_job_fire.remark IS '备注';
                     
-      COMMENT ON COLUMN nop_job_fire.task_cost_cpu IS '任务CPU开销(毫核)';
-                    
-      COMMENT ON COLUMN nop_job_fire.task_cost_memory IS '任务内存开销(MB)';
-                    
       COMMENT ON COLUMN nop_job_fire.dispatch_mode IS '派发模式';
                     
       COMMENT ON TABLE nop_job_task IS '执行任务';
@@ -275,8 +263,6 @@ CREATE TABLE nop_job_task(
       COMMENT ON COLUMN nop_job_task.task_status IS '任务状态';
                     
       COMMENT ON COLUMN nop_job_task.worker_instance_id IS '执行节点ID';
-                    
-      COMMENT ON COLUMN nop_job_task.worker_address IS '执行节点地址';
                     
       COMMENT ON COLUMN nop_job_task.task_payload IS '投递参数';
                     
@@ -305,10 +291,6 @@ CREATE TABLE nop_job_task(
       COMMENT ON COLUMN nop_job_task.update_time IS '修改时间';
                     
       COMMENT ON COLUMN nop_job_task.remark IS '备注';
-                    
-      COMMENT ON COLUMN nop_job_task.progress IS '执行进度';
-                    
-      COMMENT ON COLUMN nop_job_task.progress_message IS '进度消息';
                     
       COMMENT ON COLUMN nop_job_task.target_host IS '目标节点地址';
                     

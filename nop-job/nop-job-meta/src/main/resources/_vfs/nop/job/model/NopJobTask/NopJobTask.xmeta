@@ -7,7 +7,6 @@
         <prop name="shardingTotal" updatable="false"/>
         <prop name="taskStatus" insertable="false" updatable="false"/>
         <prop name="workerInstanceId" insertable="false" updatable="false"/>
-        <prop name="workerAddress" insertable="false" updatable="false"/>
         <prop name="startTime" insertable="false" updatable="false"/>
         <prop name="endTime" insertable="false" updatable="false"/>
         <prop name="durationMs" insertable="false" updatable="false"/>

@@ -41,10 +41,6 @@ public class _NopJobTask extends DynamicOrmEntity{
     public static final String PROP_NAME_workerInstanceId = "workerInstanceId";
     public static final int PROP_ID_workerInstanceId = 5;
     
-    /* 执行节点地址: WORKER_ADDRESS VARCHAR */
-    public static final String PROP_NAME_workerAddress = "workerAddress";
-    public static final int PROP_ID_workerAddress = 6;
-    
     /* 投递参数: TASK_PAYLOAD VARCHAR */
     public static final String PROP_NAME_taskPayload = "taskPayload";
     public static final int PROP_ID_taskPayload = 7;
@@ -100,14 +96,6 @@ public class _NopJobTask extends DynamicOrmEntity{
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
     public static final int PROP_ID_remark = 20;
-    
-    /* 执行进度: PROGRESS INTEGER */
-    public static final String PROP_NAME_progress = "progress";
-    public static final int PROP_ID_progress = 21;
-    
-    /* 进度消息: PROGRESS_MESSAGE VARCHAR */
-    public static final String PROP_NAME_progressMessage = "progressMessage";
-    public static final int PROP_ID_progressMessage = 22;
     
     /* 目标节点地址: TARGET_HOST VARCHAR */
     public static final String PROP_NAME_targetHost = "targetHost";
@@ -173,9 +161,6 @@ public class _NopJobTask extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_workerInstanceId] = PROP_NAME_workerInstanceId;
           PROP_NAME_TO_ID.put(PROP_NAME_workerInstanceId, PROP_ID_workerInstanceId);
       
-          PROP_ID_TO_NAME[PROP_ID_workerAddress] = PROP_NAME_workerAddress;
-          PROP_NAME_TO_ID.put(PROP_NAME_workerAddress, PROP_ID_workerAddress);
-      
           PROP_ID_TO_NAME[PROP_ID_taskPayload] = PROP_NAME_taskPayload;
           PROP_NAME_TO_ID.put(PROP_NAME_taskPayload, PROP_ID_taskPayload);
       
@@ -218,12 +203,6 @@ public class _NopJobTask extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_remark] = PROP_NAME_remark;
           PROP_NAME_TO_ID.put(PROP_NAME_remark, PROP_ID_remark);
       
-          PROP_ID_TO_NAME[PROP_ID_progress] = PROP_NAME_progress;
-          PROP_NAME_TO_ID.put(PROP_NAME_progress, PROP_ID_progress);
-      
-          PROP_ID_TO_NAME[PROP_ID_progressMessage] = PROP_NAME_progressMessage;
-          PROP_NAME_TO_ID.put(PROP_NAME_progressMessage, PROP_ID_progressMessage);
-      
           PROP_ID_TO_NAME[PROP_ID_targetHost] = PROP_NAME_targetHost;
           PROP_NAME_TO_ID.put(PROP_NAME_targetHost, PROP_ID_targetHost);
       
@@ -262,9 +241,6 @@ public class _NopJobTask extends DynamicOrmEntity{
     
     /* 执行节点ID: WORKER_INSTANCE_ID */
     private java.lang.String _workerInstanceId;
-    
-    /* 执行节点地址: WORKER_ADDRESS */
-    private java.lang.String _workerAddress;
     
     /* 投递参数: TASK_PAYLOAD */
     private java.lang.String _taskPayload;
@@ -307,12 +283,6 @@ public class _NopJobTask extends DynamicOrmEntity{
     
     /* 备注: REMARK */
     private java.lang.String _remark;
-    
-    /* 执行进度: PROGRESS */
-    private java.lang.Integer _progress;
-    
-    /* 进度消息: PROGRESS_MESSAGE */
-    private java.lang.String _progressMessage;
     
     /* 目标节点地址: TARGET_HOST */
     private java.lang.String _targetHost;
@@ -424,9 +394,6 @@ public class _NopJobTask extends DynamicOrmEntity{
             case PROP_ID_workerInstanceId:
                return getWorkerInstanceId();
         
-            case PROP_ID_workerAddress:
-               return getWorkerAddress();
-        
             case PROP_ID_taskPayload:
                return getTaskPayload();
         
@@ -468,12 +435,6 @@ public class _NopJobTask extends DynamicOrmEntity{
         
             case PROP_ID_remark:
                return getRemark();
-        
-            case PROP_ID_progress:
-               return getProgress();
-        
-            case PROP_ID_progressMessage:
-               return getProgressMessage();
         
             case PROP_ID_targetHost:
                return getTargetHost();
@@ -554,16 +515,6 @@ public class _NopJobTask extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_workerInstanceId));
                }
                setWorkerInstanceId(typedValue);
-               break;
-            }
-        
-            case PROP_ID_workerAddress:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_workerAddress));
-               }
-               setWorkerAddress(typedValue);
                break;
             }
         
@@ -707,26 +658,6 @@ public class _NopJobTask extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_progress:{
-               java.lang.Integer typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toInteger(value,
-                       err-> newTypeConversionError(PROP_NAME_progress));
-               }
-               setProgress(typedValue);
-               break;
-            }
-        
-            case PROP_ID_progressMessage:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_progressMessage));
-               }
-               setProgressMessage(typedValue);
-               break;
-            }
-        
             case PROP_ID_targetHost:{
                java.lang.String typedValue = null;
                if(value != null){
@@ -841,13 +772,6 @@ public class _NopJobTask extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_workerAddress:{
-               onInitProp(propId);
-               this._workerAddress = (java.lang.String)value;
-               
-               break;
-            }
-        
             case PROP_ID_taskPayload:{
                onInitProp(propId);
                this._taskPayload = (java.lang.String)value;
@@ -942,20 +866,6 @@ public class _NopJobTask extends DynamicOrmEntity{
             case PROP_ID_remark:{
                onInitProp(propId);
                this._remark = (java.lang.String)value;
-               
-               break;
-            }
-        
-            case PROP_ID_progress:{
-               onInitProp(propId);
-               this._progress = (java.lang.Integer)value;
-               
-               break;
-            }
-        
-            case PROP_ID_progressMessage:{
-               onInitProp(propId);
-               this._progressMessage = (java.lang.String)value;
                
                break;
             }
@@ -1106,25 +1016,6 @@ public class _NopJobTask extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_workerInstanceId,value)){
             this._workerInstanceId = value;
             internalClearRefs(PROP_ID_workerInstanceId);
-            
-        }
-    }
-    
-    /**
-     * 执行节点地址: WORKER_ADDRESS
-     */
-    public final java.lang.String getWorkerAddress(){
-         onPropGet(PROP_ID_workerAddress);
-         return _workerAddress;
-    }
-
-    /**
-     * 执行节点地址: WORKER_ADDRESS
-     */
-    public final void setWorkerAddress(java.lang.String value){
-        if(onPropSet(PROP_ID_workerAddress,value)){
-            this._workerAddress = value;
-            internalClearRefs(PROP_ID_workerAddress);
             
         }
     }
@@ -1391,44 +1282,6 @@ public class _NopJobTask extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);
-            
-        }
-    }
-    
-    /**
-     * 执行进度: PROGRESS
-     */
-    public final java.lang.Integer getProgress(){
-         onPropGet(PROP_ID_progress);
-         return _progress;
-    }
-
-    /**
-     * 执行进度: PROGRESS
-     */
-    public final void setProgress(java.lang.Integer value){
-        if(onPropSet(PROP_ID_progress,value)){
-            this._progress = value;
-            internalClearRefs(PROP_ID_progress);
-            
-        }
-    }
-    
-    /**
-     * 进度消息: PROGRESS_MESSAGE
-     */
-    public final java.lang.String getProgressMessage(){
-         onPropGet(PROP_ID_progressMessage);
-         return _progressMessage;
-    }
-
-    /**
-     * 进度消息: PROGRESS_MESSAGE
-     */
-    public final void setProgressMessage(java.lang.String value){
-        if(onPropSet(PROP_ID_progressMessage,value)){
-            this._progressMessage = value;
-            internalClearRefs(PROP_ID_progressMessage);
             
         }
     }

@@ -47,9 +47,12 @@
             <option code="RECOVERY" label="恢复触发" value="3"/>
         </dict>
         <dict label="执行器类型" name="job/executor-kind" valueType="string" i18n-en:label="Executor Kind">
-            <option code="test" label="测试执行器" value="test" i18n-en:label="Test Executor"/>
-            <option code="rpc" label="RPC执行器" value="rpc" i18n-en:label="RPC Executor"/>
-            <option code="rpcBroadcast" label="RPC广播执行器" value="rpcBroadcast" i18n-en:label="RPC Broadcast Executor"/>
+            <option code="test" description="仅用于测试/调试的本地执行器" label="测试执行器" value="test" i18n-en:label="Test Executor"/>
+            <option code="rpc" description="将 fire 投递给 worker 侧 RPC 执行器（nopJobInvoker_rpc）" label="RPC执行器" value="rpc"
+                    i18n-en:label="RPC Executor"/>
+            <option code="rpcBroadcast"
+                    description="仅 worker 侧 invoker 选择键（nopJobInvoker_rpcBroadcast），与 task 拆分无关：task 拆分只由 dispatchMode 决定，广播需配 dispatchMode=broadcast（plan 339）"
+                    label="RPC广播执行器" value="rpcBroadcast" i18n-en:label="RPC Broadcast Executor"/>
         </dict>
         <dict label="阻塞策略" name="job/block-strategy" valueType="int" i18n-en:label="Block Strategy">
             <option code="DISCARD" label="丢弃" value="1"/>
@@ -247,9 +250,6 @@
                         ext:dict="job/executor-kind"/>
                 <column code="RETRY_POLICY_ID" displayName="重试策略ID" name="retryPolicyId" precision="32" propId="17"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Retry Policy Id"/>
-                <column code="RETRY_RECORD_ID" comment="由 nop-retry 创建后回填" displayName="重试记录ID" name="retryRecordId"
-                        precision="32" propId="18" stdDataType="string" stdSqlType="VARCHAR"
-                        i18n-en:displayName="Retry Record Id"/>
                 <column code="ERROR_CODE" displayName="错误码" name="errorCode" precision="200" propId="19"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Error Code"/>
                 <column code="ERROR_MESSAGE" displayName="错误消息" name="errorMessage" precision="1000" propId="20"
@@ -270,10 +270,6 @@
                         propId="26" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="27"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
-                <column code="TASK_COST_CPU" defaultValue="0" displayName="任务CPU开销(毫核)" name="taskCostCpu" propId="28"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Task Cost Cpu(Millicore)"/>
-                <column code="TASK_COST_MEMORY" defaultValue="0" displayName="任务内存开销(MB)" name="taskCostMemory"
-                        propId="29" stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Task Cost Memory(MB)"/>
                 <column code="DISPATCH_MODE" displayName="派发模式" name="dispatchMode" precision="30" propId="30"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Dispatch Mode"
                         ext:dict="job/dispatch-mode"/>
@@ -288,8 +284,11 @@
                     <column name="jobScheduleId"/>
                     <column name="scheduledFireTime"/>
                 </index>
-                <index name="IX_NOP_JOB_FIRE_RETRY" unique="false">
-                    <column name="retryRecordId"/>
+                <index name="IX_NOP_JOB_FIRE_DISPATCH_TIME" unique="false">
+                    <column name="fireStatus"/>
+                    <column name="partitionIndex"/>
+                    <column name="startTime"/>
+                    <column name="jobFireId"/>
                 </index>
                 <index name="IX_NOP_JOB_FIRE_SCHEDULE_STATUS" unique="false">
                     <column name="jobScheduleId"/>
@@ -327,8 +326,6 @@
                         ext:dict="job/task-status"/>
                 <column code="WORKER_INSTANCE_ID" displayName="执行节点ID" name="workerInstanceId" precision="100"
                         propId="5" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Worker Instance Id"/>
-                <column code="WORKER_ADDRESS" displayName="执行节点地址" name="workerAddress" precision="200" propId="6"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Worker Address"/>
                 <column code="TASK_PAYLOAD" displayName="投递参数" domain="json-4000" name="taskPayload" precision="4000"
                         propId="7" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Task Payload"/>
@@ -361,10 +358,6 @@
                         propId="19" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="20"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
-                <column code="PROGRESS" displayName="执行进度" name="progress" propId="21" stdDataType="int"
-                        stdSqlType="INTEGER" i18n-en:displayName="Progress"/>
-                <column code="PROGRESS_MESSAGE" displayName="进度消息" name="progressMessage" precision="500" propId="22"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Progress Message"/>
                 <column code="TARGET_HOST" displayName="目标节点地址" name="targetHost" precision="200" propId="23"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Target Host"/>
                 <column code="SHARDING_INDEX" displayName="分片索引" name="shardingIndex" propId="24" stdDataType="int"
@@ -385,6 +378,12 @@
                     <column name="taskStatus"/>
                     <column name="partitionIndex"/>
                     <column name="createTime"/>
+                </index>
+                <index name="IX_NOP_JOB_TASK_RUN_TIME" unique="false">
+                    <column name="taskStatus"/>
+                    <column name="partitionIndex"/>
+                    <column name="startTime"/>
+                    <column name="jobTaskId"/>
                 </index>
                 <index name="IX_NOP_JOB_TASK_FIRE" unique="false">
                     <column name="jobFireId"/>

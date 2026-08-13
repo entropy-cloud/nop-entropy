@@ -57,9 +57,6 @@
                 <!--重试策略ID-->
                 <col id="retryPolicyId" sortable="true"/>
 
-                <!--重试记录ID-->
-                <col id="retryRecordId" sortable="true"/>
-
                 <!--分区索引-->
                 <col id="partitionIndex" mandatory="true" ui:number="true" sortable="true"/>
 
@@ -77,12 +74,6 @@
 
                 <!--备注-->
                 <col id="remark" sortable="true"/>
-
-                <!--任务CPU开销(毫核)-->
-                <col id="taskCostCpu" ui:number="true" sortable="true"/>
-
-                <!--任务内存开销(MB)-->
-                <col id="taskCostMemory" ui:number="true" sortable="true"/>
 
                 <!--派发模式-->
                 <col id="dispatchMode" sortable="true"/>
@@ -118,28 +109,24 @@
  durationMs[执行时长(毫秒)] errorCode[错误码]
  errorMessage[错误消息] triggerSource[触发来源]
  scheduledFireTime[计划触发时间] triggeredBy[触发人]
- retryPolicyId[重试策略ID] retryRecordId[重试记录ID]
- partitionIndex[分区索引] createdBy[创建人]
- createTime[创建时间] updatedBy[修改人]
- updateTime[修改时间] remark[备注]
- taskCostCpu[任务CPU开销(毫核)] taskCostMemory[任务内存开销(MB)]
- dispatchMode[派发模式] jobScheduleId[调度ID]
- namespaceId[命名空间] groupId[分组]
- jobName[作业名] jobParamsSnapshot[参数快照]
- executorKind[执行器类型] 
+ retryPolicyId[重试策略ID] partitionIndex[分区索引]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[修改人] updateTime[修改时间]
+ remark[备注] dispatchMode[派发模式]
+ jobScheduleId[调度ID] namespaceId[命名空间]
+ groupId[分组] jobName[作业名]
+ jobParamsSnapshot[参数快照] executorKind[执行器类型]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-触发批次" i18n-en:title="Add Job Fire" x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-触发批次" i18n-en:title="Edit Job Fire">
             <layout>
  jobFireId[触发批次ID] scheduledFireTime[计划触发时间]
- retryPolicyId[重试策略ID] retryRecordId[重试记录ID]
- partitionIndex[分区索引] remark[备注]
- taskCostCpu[任务CPU开销(毫核)] taskCostMemory[任务内存开销(MB)]
- dispatchMode[派发模式] jobScheduleId[调度ID]
- namespaceId[命名空间] groupId[分组]
- jobName[作业名] jobParamsSnapshot[参数快照]
- executorKind[执行器类型] 
+ retryPolicyId[重试策略ID] partitionIndex[分区索引]
+ remark[备注] dispatchMode[派发模式]
+ jobScheduleId[调度ID] namespaceId[命名空间]
+ groupId[分组] jobName[作业名]
+ jobParamsSnapshot[参数快照] executorKind[执行器类型]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

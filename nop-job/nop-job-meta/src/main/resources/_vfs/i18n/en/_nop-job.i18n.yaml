@@ -21,7 +21,6 @@ prop:
       scheduledFireTime: Scheduled Fire Time
       triggeredBy: Triggered By
       retryPolicyId: Retry Policy Id
-      retryRecordId: Retry Record Id
       partitionIndex: Partition Index
       version: Version
       createdBy: Created By
@@ -29,8 +28,6 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
-      taskCostCpu: Task Cost Cpu(Millicore)
-      taskCostMemory: Task Cost Memory(MB)
       dispatchMode: Dispatch Mode
       dispatchMode_label: null
       jobSchedule: Job Schedule
@@ -110,7 +107,6 @@ prop:
       taskStatus: Task Status
       taskStatus_label: null
       workerInstanceId: Worker Instance Id
-      workerAddress: Worker Address
       startTime: Start Time
       endTime: End Time
       durationMs: Duration Ms
@@ -126,8 +122,6 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
-      progress: Progress
-      progressMessage: Progress Message
       targetHost: Target Host
 dict:
   label:

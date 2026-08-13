@@ -165,20 +165,6 @@
         }
 
 
-        private String _workerAddress;
-
-    
-        @PropMeta(propId=6)
-    
-        public String getWorkerAddress(){
-            return _workerAddress;
-        }
-
-        public void setWorkerAddress(String value){
-            this._workerAddress = value;
-        }
-
-
         private java.sql.Timestamp _startTime;
 
     
@@ -386,34 +372,6 @@
 
         public void setRemark(String value){
             this._remark = value;
-        }
-
-
-        private Integer _progress;
-
-    
-        @PropMeta(propId=21)
-    
-        public Integer getProgress(){
-            return _progress;
-        }
-
-        public void setProgress(Integer value){
-            this._progress = value;
-        }
-
-
-        private String _progressMessage;
-
-    
-        @PropMeta(propId=22)
-    
-        public String getProgressMessage(){
-            return _progressMessage;
-        }
-
-        public void setProgressMessage(String value){
-            this._progressMessage = value;
         }
 
 

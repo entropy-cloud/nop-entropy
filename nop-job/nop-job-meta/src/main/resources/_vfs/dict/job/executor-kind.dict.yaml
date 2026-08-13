@@ -7,13 +7,13 @@ options:
 
   - label: 测试执行器
     value: test
-    description: 
+    description: 仅用于测试/调试的本地执行器
   
   - label: RPC执行器
     value: rpc
-    description: 
+    description: 将 fire 投递给 worker 侧 RPC 执行器（nopJobInvoker_rpc）
   
   - label: RPC广播执行器
     value: rpcBroadcast
-    description: 仅 worker 侧 invoker 选择键（nopJobInvoker_rpcBroadcast），与 task 拆分无关（plan 339：task 拆分只由 dispatchMode 决定，广播需配 dispatchMode=broadcast）
+    description: 仅 worker 侧 invoker 选择键（nopJobInvoker_rpcBroadcast），与 task 拆分无关：task 拆分只由 dispatchMode 决定，广播需配 dispatchMode=broadcast（plan 339）
   

@@ -115,8 +115,6 @@ class NopJobFire{
 
   String retryPolicyId; //重试策略ID
 
-  String retryRecordId; //异步重试提交后的重试记录ID（当前NopRetryJobRetryBridge使用异步提交，此字段暂不可用）
-
   String errorCode; //错误码
 
   String errorMessage; //错误消息
@@ -151,8 +149,6 @@ class NopJobTask{
 
   String workerInstanceId; //执行节点ID
 
-  String workerAddress; //执行节点地址
-
   String taskPayload; //投递参数
 
   String targetHost; //目标节点地址
@@ -186,10 +182,6 @@ class NopJobTask{
   Timestamp updateTime; //修改时间
 
   String remark; //备注
-
-  Integer progress; //执行进度
-
-  String progressMessage; //进度消息
 
   NopJobFire jobFire; //触发批次
 

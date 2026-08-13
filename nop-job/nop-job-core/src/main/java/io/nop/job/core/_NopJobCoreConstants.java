@@ -119,17 +119,17 @@ public interface _NopJobCoreConstants {
     int TRIGGER_SOURCE_RECOVERY = 3;
                     
     /**
-     * 执行器类型: 测试执行器 
+     * 执行器类型: 测试执行器 仅用于测试/调试的本地执行器
      */
     String EXECUTOR_KIND_test = "test";
                     
     /**
-     * 执行器类型: RPC执行器 
+     * 执行器类型: RPC执行器 将 fire 投递给 worker 侧 RPC 执行器（nopJobInvoker_rpc）
      */
     String EXECUTOR_KIND_rpc = "rpc";
                     
     /**
-     * 执行器类型: RPC广播执行器 
+     * 执行器类型: RPC广播执行器 仅 worker 侧 invoker 选择键（nopJobInvoker_rpcBroadcast），与 task 拆分无关：task 拆分只由 dispatchMode 决定，广播需配 dispatchMode=broadcast（plan 339）
      */
     String EXECUTOR_KIND_rpcBroadcast = "rpcBroadcast";
                     
