@@ -358,7 +358,11 @@ public interface IJobInvoker {
 
 > **cost/priority 归一约定**：dispatcher 落库 task 行时，会保留 builder 已明确设置的 `costCpu`、`costMemory`、`priority`；仅当这些列为 null 时才从 schedule 的 `taskCostCpu`/`taskCostMemory`/`priority` 填充，并对剩余空值做 null→0 归一（`JobDispatcherScannerImpl.scanOnce` 单点）。因此 task 行的 `costCpu`/`costMemory`/`priority` 恒非 null，未配置时为 0；bestFit 路径若 strategy 返回了 `Assignment.cost`，该值会进入最终 task cost，而不会被 dispatcher 覆盖。
 
-> **capacity 配置语义**（worker `nop.job.capacity.cpu/memory` 配置或 `ServiceInstance.metadata`，两侧一致）：`0` 或未声明 → 视为"未设/无限"（`MAX_VALUE`，退化为 count-based）；负数视为配置错误抛异常（不静默退化为拒绝一切的黑洞 worker）。`nop.job.fetch.enforce-attribution=true` 用于 dedicated worker 池；single 模式 task 的 `workerInstanceId` 留 NULL（走 competing-consumer IS NULL 分支被任意 worker 认领，含分离部署），认领后被设为认领 worker 的 hostId。
+> **capacity 配置语义**（worker `nop.job.capacity.cpu/memory` 配置或 `ServiceInstance.metadata`，两侧一致）：`0` 或未声明 → 视为"未设/无限"（`MAX_VALUE`，退化为 count-based）；负数视为配置错误抛异常（不静默退化为拒绝一切的黑洞 worker）。`nop.job.fetch.enforce-attribution=true` 用于 dedicated worker 池（此时 worker `hostId` 必须已配置，否则拉取 task 抛配置错误，不静默看到全部 task）；single 模式 task 的 `workerInstanceId` 留 NULL（走 competing-consumer IS NULL 分支被任意 worker 认领，含分离部署），认领后被设为认领 worker 的 hostId。
+
+> **超时语义（三层独立，不互相回退）**：`dispatchTimeoutMs`（fire 卡在 DISPATCHING，默认 5min）/ `executionTimeoutMs`（task 执行墙钟，默认 -1 禁用）/ `schedule.timeoutSeconds`（per-schedule 覆盖执行超时）。判定 RUNNING-task 是否超时：`schedule.timeoutSeconds>0` 用之 → 否则 `executionTimeoutMs>0` 用之 → **否则不超时**。未配任何执行超时的长任务**不会**被墙钟超时误杀，由 worker-liveness 链兜底（worker 不存活则 task `CLAIMED/RUNNING → SUSPICIOUS → TIMEOUT`）。若需要默认执行超时，显式配 `executionTimeoutMs`，不要依赖隐式回退。
+
+> **fire 计数自愈**：`schedule.activeFireCount` 由 dispatcher/planner 维护，但并发版本冲突下可能漂移。平台周期运行 `JobScheduleCounterReconciler`（独立会话）按 live 非 terminal fire 计数重算 `activeFireCount` 收敛漂移，因此 DISCARD/OVERLAY/RECOVERY 调度（依赖该计数）最终一致。
 
 ## 架构
 
