@@ -376,6 +376,12 @@ Pulsar 支持事务，可实现 `TwoPhaseCommitSinkFunction` 提供 exactly-once
 
 **接线裁定（Debezium 2.4.0 约束）**：Debezium 2.4.0 的 `DebeziumEngine.Builder` **不暴露** `using(OffsetBackingStore)` 方法，无法直接把 store 实例交给 engine builder。实际机制：engine 从 `offset.storage` 属性读取 store 类 FQCN，经反射实例化（public no-arg constructor + `configure(WorkerConfig)`）。为桥接 source function 创建的实例（持有恢复的 offsets）与 engine 经反射创建的实例，`NopStreamOffsetBackingStore` 维护**静态 registry（connector name → 共享 data map）**：source function 经 `forConnector(name)` 创建实例并 pre-populate，engine 实例在 `configure(WorkerConfig)` 时按 connector name 绑定到同一份 data map。
 
+**registry 生命周期（AR-03 修复，2026-08-13）**：静态 registry 是"只进不出"的设计曾导致同 JVM 内复用连接器名即从陈旧 offset 续跑（崩溃未 checkpoint 的运行、redeploy、不同 pipeline 复用名），未命名连接器共享 `_default_` 桶互相污染。修复后的生命周期契约：
+
+- **首跑清理**：`DebeziumCdcSourceFunction.initializeState` 的两个 fresh 分支（`state == null`；或 `state` 非 null 但无 `cdc-offsets` 条目）在绑定前先调 `NopStreamOffsetBackingStore.clearConnector(name)` 再 `forConnector(name)`——新作业永不继承上一运行遗留的静态 offset，引擎从起点（snapshot）开始。恢复分支（`state` 含 offsets 条目）不清理，保留 checkpoint 恢复语义。
+- **未命名连接器 fail-fast**：三处 `_default_` 回退点全部改为抛异常——`DebeziumCdcSourceFunction.resolveConnectorName()` 抛 `StreamException(ERR_STREAM_CONFIG_ERROR)`（connector 模块有 core 依赖）；store 侧 `configure(WorkerConfig)` 与 `ensureBound()` 抛模块本地 `NopException(ERR_DEBEZIUM_CONNECTOR_NAME_REQUIRED)`（nop-message-debezium 无 core 依赖，不可抛 StreamException）。共享桶选项（Option B）显式拒绝：同 JVM 并发未命名 pipeline 静默互相覆盖 offset 无法可靠检测，违反 No-Silent-No-Op。
+- **`clearConnector` 语义**：不再仅测试使用——首跑路径按连接器名清除陈旧 entry；测试隔离为次要用途。
+
 **类型不对称 API 使用说明**：`CheckpointedSourceFunction.snapshotState` 写入 `OperatorSnapshotResult`（经 `putOperatorState`），`initializeState` 从 `TaskStateSnapshot`（经 `getOperatorState`）读取。operator state key = `"cdc-offsets"`。offset map 序列化为 `TreeMap<String,String>`（base64 编码 key/value——`ByteBuffer` 不可序列化）。`StreamSourceOperator.snapshotState/restoreState` 负责两个类型之间的转换。
 
 ### 5.5 FileTwoPhaseCommitSink（exactly-once 文件 sink，Stage 53）

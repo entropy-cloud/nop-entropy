@@ -4,7 +4,7 @@ Nop 平台的流处理引擎，定位为**声明式图模型驱动的可分布�
 
 核心模型是 StreamModel（可序列化的算子图及其组件注册表），可由 XDSL 声明式定义、Java DataStream API 编程构造、或 Delta 定制合成。三种入口最终生成同一套 canonical StreamModel，经统一的五层执行管线（StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan → RuntimeTopology）编译执行。
 
-> **注:** RuntimeTopology 处于规划阶段，LOCAL 模式当前通过 `GraphExecutionPlan` 直接执行，DISTRIBUTED 模式规划通过 `IStreamExecutionDispatcher` 调度。
+> **注:** LOCAL 模式经 `GraphExecutionPlan` + `TaskExecutor` 直接执行；DISTRIBUTED 模式经 `IStreamExecutionDispatcher` 调度（`EmbeddedDistributedExecutor` / `RpcDistributedExecutor`，含控制面 RPC、数据面后端与 remote-deploy 多 JVM 能力，Stage 39-42 已落地）。`RuntimeTopology` 类仍处于概念阶段（0 Java 引用），不代表分布式能力缺失。
 
 ## 模块
 
