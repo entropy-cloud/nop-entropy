@@ -4,6 +4,8 @@ import io.nop.code.core.model.CodeSymbol;
 import io.nop.code.core.model.CodeSymbolKind;
 import org.junit.jupiter.api.Test;
 
+import java.util.Collection;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class TestSymbolTable {
@@ -62,5 +64,20 @@ class TestSymbolTable {
         assertEquals(2, table.getAll().size());
         assertEquals(2, table.size());
         assertNotNull(table.getById("id2"));
+    }
+
+    // WP-5 AR-155/158: getAll() must return a defensive snapshot that is immune to later mutations.
+    @Test
+    void testGetAllReturnsDefensiveSnapshot() {
+        SymbolTable table = new SymbolTable();
+        table.add(createSymbol("id1", "com.example.Foo"));
+
+        Collection<CodeSymbol> snapshot = table.getAll();
+        assertEquals(1, snapshot.size());
+
+        table.add(createSymbol("id2", "com.example.Bar"));
+
+        assertEquals(1, snapshot.size(), "prior snapshot must not reflect later additions");
+        assertEquals(2, table.getAll().size(), "a fresh getAll reflects current state");
     }
 }

@@ -349,7 +349,9 @@ class CodeSearchService {
             offset += BATCH_QUERY_LIMIT;
         }
         if (matchingPaths.isEmpty()) return Collections.emptyList();
-        results.removeIf(dto -> !matchingPaths.contains(dto.getFilePath()));
-        return results;
+        // WP-5 AR-42: do not mutate the caller's list — filter a defensive copy.
+        List<CodeSearchResultDTO> filtered = new ArrayList<>(results);
+        filtered.removeIf(dto -> !matchingPaths.contains(dto.getFilePath()));
+        return filtered;
     }
 }

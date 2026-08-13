@@ -272,14 +272,18 @@ public class ChangeAnalyzer implements IChangeAnalyzer {
     }
 
     private boolean pathSegmentMatch(String normalized, String pathSegment) {
+        // WP-7 AR-10/40: boundary-aware on BOTH sides. indexOf is a substring test, so without a
+        // leading-boundary check "com/example/User" would falsely match "mycom/example/User.java".
         int idx = normalized.indexOf(pathSegment);
         while (idx >= 0) {
             int endIdx = idx + pathSegment.length();
-            if (endIdx == normalized.length()) {
-                return true;
+            boolean endOk = endIdx == normalized.length();
+            if (!endOk) {
+                char next = normalized.charAt(endIdx);
+                endOk = next == '.' || next == '/';
             }
-            char next = normalized.charAt(endIdx);
-            if (next == '.' || next == '/') {
+            boolean startOk = idx == 0 || normalized.charAt(idx - 1) == '/';
+            if (startOk && endOk) {
                 return true;
             }
             idx = normalized.indexOf(pathSegment, endIdx);

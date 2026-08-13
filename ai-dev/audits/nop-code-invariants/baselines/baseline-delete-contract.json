@@ -1,6 +1,6 @@
 {
   "family": "delete-contract",
-  "generatedAt": "2026-08-13T00:52:13.804Z",
+  "generatedAt": "2026-08-13T12:31:04.050Z",
   "note": "Monotonic ratchet baseline. Removing/weakening entries requires human review + committed regression. See gate-baseline-I1.md.",
   "signatures": []
 }

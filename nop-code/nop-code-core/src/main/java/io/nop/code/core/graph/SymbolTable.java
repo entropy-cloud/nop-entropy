@@ -23,7 +23,7 @@ public class SymbolTable {
         this.truncated = truncated;
     }
 
-    public void add(CodeSymbol symbol) {
+    public synchronized void add(CodeSymbol symbol) {
         if (symbol.getQualifiedName() != null) {
             byQualifiedName.put(symbol.getQualifiedName(), symbol);
         }
@@ -40,15 +40,17 @@ public class SymbolTable {
         return byId.get(id);
     }
 
-    public Collection<CodeSymbol> getAll() {
-        return byId.values();
+    // WP-5 AR-155/158: return a defensive snapshot so callers iterating a cached table are immune
+    // to later mutations (e.g. addToSymbolTableCache adding symbols) and to concurrent CME.
+    public synchronized Collection<CodeSymbol> getAll() {
+        return new ArrayList<>(byId.values());
     }
 
     public int size() {
         return byId.size();
     }
 
-    public List<CodeSymbol> findAllByQualifiedNamePrefix(String prefix) {
+    public synchronized List<CodeSymbol> findAllByQualifiedNamePrefix(String prefix) {
         List<CodeSymbol> result = new ArrayList<>();
         for (Map.Entry<String, CodeSymbol> entry : byQualifiedName.entrySet()) {
             if (entry.getKey() != null && entry.getKey().startsWith(prefix)) {

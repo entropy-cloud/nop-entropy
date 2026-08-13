@@ -43,13 +43,21 @@ public class CallGraph {
         return callers != null ? new ArrayList<>(callers) : Collections.emptyList();
     }
 
-    public Set<String> getAllNodeIds() {
+    // WP-5 AR-145: read methods must be synchronized to match the write methods.
+    public synchronized Set<String> getAllNodeIds() {
         Set<String> all = new HashSet<>(forwardEdges.keySet());
         all.addAll(reverseEdges.keySet());
         return all;
     }
 
-    public Map<String, List<String>> getForwardMap() {
-        return Collections.unmodifiableMap(forwardEdges);
+    // WP-5 AR-148: return a fully isolated snapshot — an unmodifiable map whose values are
+    // unmodifiable copies, so callers cannot mutate the cached graph's internal lists and are
+    // unaffected by later addEdge calls.
+    public synchronized Map<String, List<String>> getForwardMap() {
+        Map<String, List<String>> copy = new HashMap<>();
+        for (Map.Entry<String, List<String>> e : forwardEdges.entrySet()) {
+            copy.put(e.getKey(), Collections.unmodifiableList(new ArrayList<>(e.getValue())));
+        }
+        return Collections.unmodifiableMap(copy);
     }
 }

@@ -46,6 +46,28 @@ class TestChangeAnalyzerPathMatching {
         assertFalse(matches, "Should not match based on substring prefix of class name");
     }
 
+    // WP-7 AR-10/40: substring indexOf must not match mid-token at the START boundary either —
+    // "mycom" is a different package than "com", so a path under mycom/ must not match a com.* QN.
+    @Test
+    void testNoFalsePositiveOnPrefixedPackageSegment() {
+        String filePath = "src/main/java/mycom/example/User.java";
+        String qualifiedName = "com.example.User";
+
+        ChangeAnalyzer analyzer = new ChangeAnalyzer();
+        boolean matches = invokePathMatchesQualifiedName(analyzer, filePath, qualifiedName);
+        assertFalse(matches, "mycom/example/User must not match QN com.example.User");
+    }
+
+    @Test
+    void testLegitimateClassMatchStillHolds() {
+        String filePath = "src/main/java/com/example/User.java";
+        String qualifiedName = "com.example.User";
+
+        ChangeAnalyzer analyzer = new ChangeAnalyzer();
+        boolean matches = invokePathMatchesQualifiedName(analyzer, filePath, qualifiedName);
+        assertTrue(matches, "Exact package/class path must still match");
+    }
+
     private boolean invokePathMatchesQualifiedName(ChangeAnalyzer analyzer, String filePath, String qn) {
         try {
             java.lang.reflect.Method method = ChangeAnalyzer.class.getDeclaredMethod(

@@ -1,6 +1,6 @@
 {
   "family": "query-limit",
-  "generatedAt": "2026-08-13T04:02:43.867Z",
+  "generatedAt": "2026-08-13T12:31:01.752Z",
   "note": "Monotonic ratchet baseline. Removing/weakening entries requires human review + committed regression. See gate-baseline-I1.md.",
   "signatures": []
 }

@@ -37,7 +37,32 @@ import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.orm.IOrmTemplate;
 import io.nop.core.lang.json.JsonTool;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 class CodeQueryService {
+
+    private static final Logger LOG = LoggerFactory.getLogger(CodeQueryService.class);
+
+    // WP-6 AR-136/168/177: surface silent truncation of single-shot capped queries so downstream
+    // consumers know the result may be incomplete (size == cap ⇒ possibly more rows exist).
+    static boolean isCapped(int resultSize, int cap) {
+        return cap > 0 && resultSize >= cap;
+    }
+
+    private static void warnIfCapped(int resultSize, int cap, String context) {
+        if (isCapped(resultSize, cap)) {
+            LOG.warn("Query result capped at {} for {}; result may be incomplete (more rows may exist)",
+                    cap, context);
+        }
+    }
+
+    // WP-8 AR-160/162/165: package filter must respect package boundaries — "com.example" must
+    // match "com.example.Foo" and "com.example.sub.Bar" but NOT the sibling "com.exampleFoo.Bar".
+    // startsWith(packageName) is a plain prefix test that leaks across the boundary, so append a
+    // dot separator.
+    private static String packagePrefix(String packageName) {
+        return packageName.endsWith(".") ? packageName : packageName + ".";
+    }
 
     private final IDaoProvider daoProvider;
     private final CodeCacheManager cacheManager;
@@ -113,7 +138,9 @@ class CodeQueryService {
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.eq("indexId", indexId));
         query.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
-        return fileDao.findAllByQuery(query).stream()
+        List<NopCodeFile> files = fileDao.findAllByQuery(query);
+        warnIfCapped(files.size(), CodeIndexService.MAX_QUERY_RESULTS, "getFiles:" + indexId);
+        return files.stream()
                 .map(this::entityToFileResult)
                 .collect(Collectors.toList());
     }
@@ -148,7 +175,9 @@ class CodeQueryService {
         String fileId = generateFileId(indexId, filePath);
         query.addFilter(FilterBeans.eq("fileId", fileId));
         query.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
-        return symbolDao.findAllByQuery(query).stream()
+        List<NopCodeSymbol> symbols = symbolDao.findAllByQuery(query);
+        warnIfCapped(symbols.size(), CodeIndexService.MAX_QUERY_RESULTS, "getFileSymbols:" + filePath);
+        return symbols.stream()
                 .map(CodeSymbolConverter::toCodeSymbol)
                 .collect(Collectors.toList());
     }
@@ -259,6 +288,7 @@ class CodeQueryService {
         fileQuery.addField(QueryFieldBean.forField("packageName"));
         // Projection: avoid loading CLOB sourceCode for a digest that only needs scalars
         List<Map<String, Object>> fileRows = fileDao.selectFieldsByQuery(fileQuery);
+        warnIfCapped(fileRows.size(), CodeIndexService.MAX_QUERY_RESULTS, "getModuleDigest:files:" + indexId);
 
         Set<String> allowedKinds = new HashSet<>(Arrays.asList(
                 "CLASS", "INTERFACE", "ENUM", "ANNOTATION_TYPE", "METHOD", "FUNCTION"));
@@ -282,6 +312,7 @@ class CodeQueryService {
         }
         symQuery.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
         List<NopCodeSymbol> allSymbols = symbolDao.findAllByQuery(symQuery);
+        warnIfCapped(allSymbols.size(), CodeIndexService.MAX_QUERY_RESULTS, "getModuleDigest:symbols:" + indexId);
 
         Map<String, List<NopCodeSymbol>> symbolsByFileId = new LinkedHashMap<>();
         for (NopCodeSymbol sym : allSymbols) {
@@ -332,6 +363,7 @@ class CodeQueryService {
         fileQuery.addField(QueryFieldBean.forField("filePath"));
         // Projection: avoid loading CLOB sourceCode for a surface scan that only needs id+path
         List<Map<String, Object>> fileRows = fileDao.selectFieldsByQuery(fileQuery);
+        warnIfCapped(fileRows.size(), CodeIndexService.MAX_QUERY_RESULTS, "getPublicSurface:files:" + indexId);
 
         Set<String> allowedKinds = new HashSet<>(Arrays.asList(
                 "CLASS", "INTERFACE", "ENUM", "METHOD", "FIELD"));
@@ -412,8 +444,14 @@ class CodeQueryService {
     CodeSymbol getSymbolById(String indexId, String symbolId) {
         if (daoProvider == null) return null;
         IEntityDao<NopCodeSymbol> symbolDao = daoProvider.daoFor(NopCodeSymbol.class);
-        NopCodeSymbol entity = symbolDao.getEntityById(symbolId);
-        return entity != null ? CodeSymbolConverter.toCodeSymbol(entity) : null;
+        // WP-7 AR-41: scope by indexId so a symbol from another index is never returned
+        // (getEntityById alone ignores indexId → cross-index leak).
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq("indexId", indexId));
+        query.addFilter(FilterBeans.eq("id", symbolId));
+        query.setLimit(1);
+        List<NopCodeSymbol> results = symbolDao.findAllByQuery(query);
+        return results.isEmpty() ? null : CodeSymbolConverter.toCodeSymbol(results.get(0));
     }
 
     CodeSymbol findSymbolByQualifiedName(String indexId, String qualifiedName) {
@@ -443,7 +481,7 @@ class CodeQueryService {
             qb.addFilter(FilterBeans.in("kind", kindNames));
         }
         if (packageName != null && !packageName.isEmpty()) {
-            qb.addFilter(FilterBeans.startsWith("qualifiedName", packageName));
+            qb.addFilter(FilterBeans.startsWith("qualifiedName", packagePrefix(packageName)));
         }
         if (limit > 0) qb.setLimit(limit);
         return symbolDao.findAllByQuery(qb).stream()
@@ -477,7 +515,7 @@ class CodeQueryService {
             countQb.addFilter(FilterBeans.in("kind", kindNames));
         }
         if (packageName != null && !packageName.isEmpty()) {
-            countQb.addFilter(FilterBeans.startsWith("qualifiedName", packageName));
+            countQb.addFilter(FilterBeans.startsWith("qualifiedName", packagePrefix(packageName)));
         }
 
         long total = symbolDao.countByQuery(countQb);
@@ -712,9 +750,10 @@ class CodeQueryService {
         if (kind != null && !kind.isEmpty()) {
             qb.addFilter(FilterBeans.eq("kind", kind));
         }
-        if (limit > 0) qb.setLimit(limit);
-        else qb.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
+        int usageCap = limit > 0 ? limit : CodeIndexService.MAX_QUERY_RESULTS;
+        qb.setLimit(usageCap);
         List<NopCodeUsage> usages = usageDao.findAllByQuery(qb);
+        warnIfCapped(usages.size(), usageCap, "findReferences:usages:" + indexId);
 
         Set<String> fileIds = new LinkedHashSet<>();
         Set<String> enclosingSymbolIds = new LinkedHashSet<>();
@@ -792,6 +831,7 @@ class CodeQueryService {
         annotQuery.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
         annotQuery.addField(QueryFieldBean.forField("annotatedSymbolId"));
         List<Map<String, Object>> exactRows = annotDao.selectFieldsByQuery(annotQuery);
+        warnIfCapped(exactRows.size(), CodeIndexService.MAX_QUERY_RESULTS, "findByAnnotation:exact:" + annotationName);
 
         if (exactRows.isEmpty()) {
             QueryBean fuzzyQuery = new QueryBean();
@@ -800,6 +840,7 @@ class CodeQueryService {
             fuzzyQuery.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
             fuzzyQuery.addField(QueryFieldBean.forField("annotatedSymbolId"));
             exactRows = annotDao.selectFieldsByQuery(fuzzyQuery);
+            warnIfCapped(exactRows.size(), CodeIndexService.MAX_QUERY_RESULTS, "findByAnnotation:fuzzy:" + annotationName);
         }
 
         if (exactRows.isEmpty()) return Collections.emptyList();
@@ -818,7 +859,9 @@ class CodeQueryService {
         symQuery.addFilter(FilterBeans.eq("indexId", indexId));
         symQuery.addFilter(FilterBeans.in("id", new ArrayList<>(symbolIds)));
         symQuery.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
-        return symbolDao.findAllByQuery(symQuery).stream()
+        List<NopCodeSymbol> annotSymbols = symbolDao.findAllByQuery(symQuery);
+        warnIfCapped(annotSymbols.size(), CodeIndexService.MAX_QUERY_RESULTS, "findByAnnotation:symbols:" + annotationName);
+        return annotSymbols.stream()
                 .map(CodeSymbolConverter::toCodeSymbol)
                 .collect(Collectors.toList());
     }

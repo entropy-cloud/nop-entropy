@@ -228,6 +228,23 @@ function scanEntityFieldMin(javaFiles) {
       }
       // skip if the same statement is a delete (batchDeleteEntities after size)
       if (sizeOnly && DELETE_LOOP_RE.test(lines.slice(i, i + 6).join(' '))) continue;
+      // precision guard: an incidental .size() (e.g. a truncation warning) does NOT make a load
+      // size-only if the result variable is ALSO consumed for its content (stream/get/iterate/
+      // return). Only flag when the variable is used solely for its size.
+      if (sizeOnly) {
+        const assignMatch = trimmed.match(/\b(\w+)\s*=\s*\w+\.findAllByQuery\(/);
+        const resultVar = assignMatch ? assignMatch[1] : null;
+        if (resultVar) {
+          const window = lines.slice(i, Math.min(lines.length, i + 14)).join('\n');
+          const contentUseRe = new RegExp(
+            '\\b' + resultVar + '\\s*\\.\\s*(?:stream|forEach|iterator|get\\s*\\()' +
+            '|\\bfor\\s*\\([^)]*\\b' + resultVar + '\\b' +
+            '|\\breturn\\s+' + resultVar + '\\b');
+          if (contentUseRe.test(window)) {
+            sizeOnly = false;
+          }
+        }
+      }
 
       // sub-pattern (b): iterate and access <=3 distinct getters
       const getters = distinctGettersUsed(lines, i + 1, 15);

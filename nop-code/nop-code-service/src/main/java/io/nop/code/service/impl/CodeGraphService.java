@@ -65,6 +65,18 @@ class CodeGraphService {
         this.cacheManager = cacheManager;
     }
 
+    // WP-6 AR-76/61: when the cached symbol/call-graph was built from partial data (exceeded
+    // MAX_CACHE_SYMBOLS/MAX_CACHE_EDGES), graph results are derived from incomplete input — warn so
+    // consumers know the output may be partial. Best-effort: proceed with available data.
+    private static void warnIfCacheTruncated(SymbolTable symbolTable, CallGraph callGraph, String indexId) {
+        if (symbolTable != null && symbolTable.isTruncated()) {
+            LOG.warn("Symbol table cache for index {} is truncated; graph analysis may be incomplete", indexId);
+        }
+        if (callGraph != null && callGraph.isTruncated()) {
+            LOG.warn("Call graph cache for index {} is truncated; graph analysis may be incomplete", indexId);
+        }
+    }
+
     CommunityDetectionResultDTO detectCommunities(String indexId) {
         if (daoProvider == null) return null;
         CallGraph callGraph = cacheManager.getOrRebuildCallGraph(indexId, daoProvider,
@@ -72,6 +84,7 @@ class CodeGraphService {
         SymbolTable symbolTable = cacheManager.getOrRebuildSymbolTable(indexId, daoProvider,
                 CodeSymbolConverter::toCodeSymbol);
         if (symbolTable.size() == 0) return null;
+        warnIfCacheTruncated(symbolTable, callGraph, indexId);
         CommunityResult result = runCommunityDetection(callGraph);
         return convertCommunityResult(result, symbolTable);
     }
@@ -82,6 +95,7 @@ class CodeGraphService {
                 (g, e) -> g.addEdge(e.getCallerId(), e.getCalleeId()));
         SymbolTable symbolTable = cacheManager.getOrRebuildSymbolTable(indexId, daoProvider,
                 CodeSymbolConverter::toCodeSymbol);
+        warnIfCacheTruncated(symbolTable, callGraph, indexId);
         int limit = topN > 0 ? topN : 20;
         List<EntryPointScorer.EntryPointScore> scores =
                 new EntryPointScorer().scoreEntryPoints(callGraph, symbolTable);

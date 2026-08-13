@@ -1142,6 +1142,12 @@ public class CodeIndexService implements ICodeIndexService {
         Set<String> cachedProjectFilePaths = null;
         String fileEntityId = generateFileId(indexId, file.getFilePath());
 
+        // WP-7: purge this file's OLD symbol docs from the search engine BEFORE writing the new
+        // data. A re-index (e.g. a symbol was removed) otherwise leaves ghost search results.
+        // This runs before any new symbol is staged, so removeDocs targets the prior symbol IDs,
+        // never the freshly written ones.
+        removeStaleSymbolDocsForFile(indexId, fileEntityId);
+
         NopCodeFile fileEntity = (NopCodeFile) ormTemplate.newEntity(NopCodeFile.class.getName());
         fileEntity.setId(fileEntityId);
         fileEntity.setIndexId(indexId);
@@ -1525,6 +1531,16 @@ public class CodeIndexService implements ICodeIndexService {
             deleteRelationalBySymbolIds(NopCodeSemanticEdge.class, "sourceSymbolId", symbolIds);
             deleteRelationalBySymbolIds(NopCodeSemanticEdge.class, "targetSymbolId", symbolIds);
             deleteRelationalBySymbolIds(NopCodeFlowMembership.class, "symbolId", symbolIds);
+            // WP-4 AR-30/66/149/150: clean CROSS-FILE references to this file's symbols so no
+            // dangling rows survive in OTHER files (calls in file B calling A's symbols, file B
+            // classes inheriting A's symbols, file B usages referencing A's symbols). The ORM
+            // cascadeDelete on NopCodeSymbol.callers/callees/superTypes/subTypes/usages only fires
+            // through ORM-relation navigation; this bulk path bypasses it, so mirror it explicitly.
+            // This is the service-layer degradation for AR-149/150 (usages cascadeDelete gap).
+            deleteRelationalBySymbolIds(NopCodeCall.class, "calleeId", symbolIds);
+            deleteRelationalBySymbolIds(NopCodeCall.class, "callerId", symbolIds);
+            deleteRelationalBySymbolIds(NopCodeInheritance.class, "superTypeId", symbolIds);
+            deleteRelationalBySymbolIds(NopCodeUsage.class, "symbolId", symbolIds);
 
             IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
             QueryBean q = new QueryBean();
@@ -1572,6 +1588,18 @@ public class CodeIndexService implements ICodeIndexService {
         return dao.findAllByQuery(q).stream()
                 .map(NopCodeSymbol::getId)
                 .collect(Collectors.toList());
+    }
+
+    private void removeStaleSymbolDocsForFile(String indexId, String fileId) {
+        if (searchEngine == null) return;
+        List<String> oldSymbolIds = findSymbolIdsByFileId(fileId);
+        if (oldSymbolIds.isEmpty()) return;
+        String topic = "nop-code-" + indexId;
+        try {
+            searchEngine.removeDocs(topic, oldSymbolIds);
+        } catch (Exception e) {
+            LOG.warn("Failed to remove stale search docs for file id {}", fileId, e);
+        }
     }
 
     private <T extends IDaoEntity> void deleteRelationalBySymbolIds(Class<T> entityClass, String field, List<String> symbolIds) {
@@ -1916,7 +1944,18 @@ public class CodeIndexService implements ICodeIndexService {
 
     @Override
     public void batchDeleteFileRecords(String indexId, List<String> filePaths) {
-        deleteFileRecords(indexId, filePaths);
+        // Wrap in a transaction+session (under the per-index lock) so the paged load/delete inside
+        // deleteFileRecords shares one ORM session — entities loaded by findAllByQuery must belong
+        // to the session that later deletes them. The other deleteFileRecords callers already wrap
+        // in runInSession; this public entry point must too, otherwise it is unsafe standalone.
+        withIndexLock(indexId, () -> {
+            invalidateAnalysisCache(indexId);
+            transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRED, txn ->
+                    ormTemplate.runInSession(session -> {
+                        deleteFileRecords(indexId, filePaths);
+                        return null;
+                    }));
+        });
     }
 
     private String generateFileId(String indexId, String filePath) {
@@ -1977,8 +2016,10 @@ public class CodeIndexService implements ICodeIndexService {
             offset += BATCH_SIZE;
         }
         if (matchingPaths.isEmpty()) return Collections.emptyList();
-        results.removeIf(dto -> !matchingPaths.contains(dto.getFilePath()));
-        return results;
+        // WP-5 AR-42: do not mutate the caller's list — filter a defensive copy.
+        List<CodeSearchResultDTO> filtered = new ArrayList<>(results);
+        filtered.removeIf(dto -> !matchingPaths.contains(dto.getFilePath()));
+        return filtered;
     }
 
     private String extractLines(String source, int startLine, int endLine) {

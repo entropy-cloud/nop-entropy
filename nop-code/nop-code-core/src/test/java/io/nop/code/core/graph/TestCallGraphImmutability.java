@@ -42,6 +42,22 @@ class TestCallGraphImmutability {
         assertThrows(UnsupportedOperationException.class, () -> forwardMap.put("X", List.of("Y")));
     }
 
+    // WP-5 AR-148: the value lists must be unmodifiable AND isolated from later addEdge calls.
+    @Test
+    void testGetForwardMapValuesAreImmutableSnapshot() {
+        CallGraph graph = new CallGraph();
+        graph.addEdge("A", "B");
+
+        Map<String, List<String>> forwardMap = graph.getForwardMap();
+        List<String> callees = forwardMap.get("A");
+        assertEquals(1, callees.size());
+        assertThrows(UnsupportedOperationException.class, () -> callees.add("X"));
+
+        graph.addEdge("A", "C");
+        assertEquals(1, callees.size(), "snapshot value must not reflect later addEdge");
+        assertEquals(2, graph.getForwardMap().get("A").size());
+    }
+
     @Test
     void testAddEdgeDeduplication() {
         CallGraph graph = new CallGraph();

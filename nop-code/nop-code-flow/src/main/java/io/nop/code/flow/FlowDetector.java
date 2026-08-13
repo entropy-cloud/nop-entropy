@@ -144,7 +144,8 @@ public class FlowDetector implements IFlowDetector {
         evictOverflow(flowCache);
         evictOverflow(symbolFilePathCache);
         LOG.info("Detected {} execution flows for index {}", flows.size(), indexId);
-        return flows;
+        // WP-5 AR-147: return a read-only view so callers cannot mutate the cached list.
+        return Collections.unmodifiableList(flows);
     }
 
     @Override
@@ -161,7 +162,8 @@ public class FlowDetector implements IFlowDetector {
 
     @Override
     public List<ExecutionFlow> listFlows(String indexId) {
-        return flowCache.getOrDefault(indexId, Collections.emptyList());
+        // WP-5 AR-147: never hand out the cached mutable list — wrap read-only.
+        return Collections.unmodifiableList(flowCache.getOrDefault(indexId, Collections.emptyList()));
     }
 
     @Override
