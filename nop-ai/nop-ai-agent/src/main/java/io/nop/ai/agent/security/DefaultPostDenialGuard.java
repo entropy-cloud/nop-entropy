@@ -1,5 +1,6 @@
 package io.nop.ai.agent.security;
 
+import io.nop.ai.api.secure.SecureDefault;
 import java.util.Map;
 
 /**
@@ -18,6 +19,7 @@ import java.util.Map;
  * <p>{@link PassThroughPostDenialGuard} is retained as a public opt-in for
  * integrators who need the "no tracking, no blocking" behavior.
  */
+@SecureDefault
 public final class DefaultPostDenialGuard implements IPostDenialGuard {
 
     private final FingerprintPostDenialGuard delegate = new FingerprintPostDenialGuard();

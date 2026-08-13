@@ -1,5 +1,6 @@
 package io.nop.ai.core.service;
 
+import io.nop.ai.api.secure.SecureDefault;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.messages.ChatMessage;
@@ -14,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.regex.Pattern;
 
+@SecureDefault
 public class DefaultChatLogger implements IChatLogger {
     static final Logger LOG = LoggerFactory.getLogger(DefaultChatLogger.class);
 

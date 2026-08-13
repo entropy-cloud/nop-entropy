@@ -31,7 +31,7 @@ import java.util.concurrent.ExecutorService;
  * {@link DefaultAgentEngineConfig}.
  */
 public class AgentExecutorResolver {
-    private static final Logger LOG = LoggerFactory.getLogger(DefaultAgentEngine.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AgentExecutorResolver.class);
     private final DefaultAgentEngineConfig config;
     private final IChatService chatService;
     private final IToolManager toolManager;
@@ -127,7 +127,7 @@ public class AgentExecutorResolver {
      * and behave identically.
      */
     public IAgentExecutor resolveExecutor(AgentModel model, IToolAccessChecker toolAccessChecker) {
-        return resolveExecutor(model, config.getToolAccessChecker(), config.getPathAccessChecker());
+        return resolveExecutor(model, toolAccessChecker, config.getPathAccessChecker());
     }
 
     /**
@@ -204,7 +204,11 @@ public class AgentExecutorResolver {
                     .build();
         }
         if ("single-turn".equals(mode)) {
-            return new SingleTurnExecutor(chatService, eventPublisher);
+            // I3 gate-2/SingleTurnExecutor fix: same llmTimeoutMs + dedicated
+            // timeoutExecutor source as the ReAct path (:200/:202 above), so
+            // a hanging LLM call cannot block the calling thread indefinitely.
+            return new SingleTurnExecutor(chatService, eventPublisher,
+                    config.getLlmTimeoutMs(), agentExecutorSupplier.get());
         }
         if ("plan".equals(mode)) {
             throw new NopAiAgentException(NopAiAgentErrors.ERR_AGENT_PLAN_MODE_NOT_IMPLEMENTED)

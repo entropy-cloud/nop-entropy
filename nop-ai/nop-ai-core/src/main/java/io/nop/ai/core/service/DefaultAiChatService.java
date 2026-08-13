@@ -1,5 +1,6 @@
 package io.nop.ai.core.service;
 
+import io.nop.ai.api.secure.SecureDefault;
 import io.nop.ai.core.AiCoreConstants;
 import io.nop.ai.core.api.chat.AiChatOptions;
 import io.nop.ai.api.chat.IChatLogger;
@@ -76,6 +77,7 @@ import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_SERVICE_OPTION_NOT_SET;
  * @deprecated 被ChatServiceImpl替代
  */
 @Deprecated
+@SecureDefault
 public class DefaultAiChatService implements IAiChatService {
     static final Logger LOG = LoggerFactory.getLogger(DefaultAiChatService.class);
 

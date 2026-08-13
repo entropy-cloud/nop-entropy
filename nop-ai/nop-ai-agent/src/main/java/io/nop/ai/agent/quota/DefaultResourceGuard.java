@@ -1,5 +1,6 @@
 package io.nop.ai.agent.quota;
 
+import io.nop.ai.api.secure.SecureDefault;
 import java.util.Objects;
 
 /**
@@ -38,6 +39,7 @@ import java.util.Objects;
  * <p>See plan 234 (L4-resource-guard-quota), Design Decisions §3 / §8, vision
  * §5.2.
  */
+@SecureDefault
 public final class DefaultResourceGuard implements IResourceGuard {
 
     private final QuotaConfig config;

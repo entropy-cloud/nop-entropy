@@ -223,8 +223,16 @@ public class TeamExecuteFlowExecutor implements IToolExecutor {
                             + "(needed by the orchestrator to execute member agents)");
         }
 
+        // I3 R-2-3: the flow assembly path derives the member-execution
+        // deadline from the engine's single config source
+        // (DefaultAgentEngineConfig.memberExecTimeoutMs) — same knob as the
+        // daemon path, never an independently invented default.
+        long memberExecTimeoutMs = engine instanceof io.nop.ai.agent.engine.DefaultAgentEngine
+                ? ((io.nop.ai.agent.engine.DefaultAgentEngine) engine).getMemberExecTimeoutMs()
+                : io.nop.ai.agent.engine.DefaultAgentEngineConfig.DEFAULT_MEMBER_EXEC_TIMEOUT_MS;
+
         TeamTaskFlowOrchestrator orchestrator = new TeamTaskFlowOrchestrator(
-                engine, taskStore, teamManager, null, memberSpawner);
+                engine, taskStore, teamManager, null, memberSpawner, null, memberExecTimeoutMs);
 
         // The returned future completes when the DAG future completes (not when
         // the synchronous call returns), eliminating the pre-241 "wrap sync

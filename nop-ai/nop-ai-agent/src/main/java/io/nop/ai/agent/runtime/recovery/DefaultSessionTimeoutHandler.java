@@ -1,5 +1,6 @@
 package io.nop.ai.agent.runtime.recovery;
 
+import io.nop.ai.api.secure.SecureDefault;
 import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.engine.IAgentEngine;
 import io.nop.ai.agent.engine.NopAiAgentException;
@@ -100,6 +101,7 @@ import java.sql.SQLException;
  * <p>See plan 229 Phase 2 and design
  * {@code nop-ai-agent-actor-runtime-vision.md} §6.3.
  */
+@SecureDefault
 public class DefaultSessionTimeoutHandler implements ISessionTimeoutHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultSessionTimeoutHandler.class);

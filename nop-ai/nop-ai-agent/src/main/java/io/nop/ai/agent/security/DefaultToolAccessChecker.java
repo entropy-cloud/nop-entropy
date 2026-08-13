@@ -1,9 +1,11 @@
 package io.nop.ai.agent.security;
 
+import io.nop.ai.api.secure.SecureDefault;
 import io.nop.ai.agent.engine.AgentExecutionContext;
 
 import java.util.Set;
 
+@SecureDefault
 public class DefaultToolAccessChecker implements IToolAccessChecker {
 
     private static final Set<String> DENIED_TOOLS = Set.of(

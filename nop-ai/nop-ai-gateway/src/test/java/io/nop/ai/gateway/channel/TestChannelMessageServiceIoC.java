@@ -1,5 +1,6 @@
 package io.nop.ai.gateway.channel;
 
+import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.message.IMessageConsumeContext;
 import io.nop.api.core.message.IMessageConsumer;
 import io.nop.api.core.message.IMessageService;
@@ -18,12 +19,14 @@ import org.junit.jupiter.api.Test;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * IoC wiring hollow-test for the optional inbound backbone (W6-4, design §3.3
@@ -86,11 +89,13 @@ class TestChannelMessageServiceIoC {
             assertNull(readMessageService(svc),
                     "without an IMessageService bean, messageService must be null (mode 1)");
 
-            // behavioral: direct fan-out still works in mode 1
+            // behavioral: direct fan-out still works in mode 1 (fan-out is
+            // async on the dedicated executor — I3 R-2-1 — await delivery)
             TestChannelMessageService.RecordingListener listener =
                     new TestChannelMessageService.RecordingListener();
             svc.subscribeInbound(listener);
             svc.dispatchInbound(inbound("feishu", "user-1", "mode-1-direct"));
+            awaitUntil(() -> listener.received.size() == 1, "mode 1 direct fan-out delivery");
             assertEquals(1, listener.received.size(), "mode 1 direct fan-out delivers");
         } finally {
             container.stop();
@@ -129,6 +134,9 @@ class TestChannelMessageServiceIoC {
 
             svc.dispatchInbound(inbound("feishu", "user-1", "mode-2-backbone"));
 
+            // mode-2 publish is async + bounded (I3 R-2-1) — await delivery
+            awaitUntil(() -> audit.received.size() == 1,
+                    "mode 2 dispatch to reach the platform bus topic");
             assertEquals(1, audit.received.size(),
                     "mode 2 dispatch must publish to the platform bus topic (wiring is live)");
             assertEquals("mode-2-backbone",
@@ -138,7 +146,72 @@ class TestChannelMessageServiceIoC {
         }
     }
 
+    /**
+     * AR-9 wiring: the production {@code channelMessageService} bean wires
+     * {@code dispatchTimeoutMs} through an {@code @cfg} expression with
+     * default 30000, so a container built from the test beans.xml mirror
+     * yields the default while no config value is assigned. Observed via
+     * reflection (no public getter — see {@link #readDispatchTimeoutMs}).
+     */
+    @Test
+    void dispatchTimeoutMsDefaultsTo30000() {
+        IBeanContainer container = startContainer("/test/beans/test-channel-message-service-ioc-mode1.beans.xml");
+        try {
+            ChannelMessageServiceImpl svc = (ChannelMessageServiceImpl)
+                    container.getBean("channelMessageService");
+            assertEquals(30_000L, readDispatchTimeoutMs(svc),
+                    "unwired dispatchTimeoutMs must fall back to the @cfg default 30000");
+        } finally {
+            container.stop();
+        }
+    }
+
+    /**
+     * AR-9 wiring (Anti-Hollow): assigning the config value BEFORE the
+     * container starts must change the bean's {@code dispatchTimeoutMs} —
+     * proving the {@code @cfg} wiring reaches the setter at bean-creation
+     * time (the wiring is runtime-live, not a text-only property). The
+     * assigned value is restored in finally so the global static
+     * configProvider never leaks into other tests.
+     */
+    @Test
+    void dispatchTimeoutMsFollowsAssignedConfigValue() {
+        String key = "nop.ai.gateway.channel.dispatchTimeoutMs";
+        Object old = AppConfig.var(key);
+        try {
+            AppConfig.getConfigProvider().assignConfigValue(key, 12_345L);
+            IBeanContainer container = startContainer("/test/beans/test-channel-message-service-ioc-mode1.beans.xml");
+            try {
+                ChannelMessageServiceImpl svc = (ChannelMessageServiceImpl)
+                        container.getBean("channelMessageService");
+                assertEquals(12_345L, readDispatchTimeoutMs(svc),
+                        "an assigned config value must reach the bean via the @cfg wiring");
+            } finally {
+                container.stop();
+            }
+        } finally {
+            AppConfig.getConfigProvider().assignConfigValue(key, old);
+        }
+    }
+
     // ---- helpers ----------------------------------------------------------
+
+    /** Await an async delivery (inbound fan-out runs on the dedicated fan-out executor — I3 R-2-1). */
+    private static void awaitUntil(Supplier<Boolean> condition, String label) {
+        long deadline = System.currentTimeMillis() + 5000;
+        while (System.currentTimeMillis() < deadline) {
+            if (condition.get()) {
+                return;
+            }
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                fail("interrupted while awaiting " + label);
+            }
+        }
+        fail("timed out awaiting " + label);
+    }
 
     private static InboundChannelMessage inbound(String channelType, String userId, String text) {
         InboundChannelMessage m = new InboundChannelMessage();
@@ -160,6 +233,22 @@ class TestChannelMessageServiceIoC {
             return (IMessageService) f.get(svc);
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new AssertionError("unable to read messageService field", e);
+        }
+    }
+
+    /**
+     * Read the package-private-in-spirit {@code dispatchTimeoutMs} field. There
+     * is no public getter (AR-9 keeps the public API surface unchanged), so the
+     * wiring test inspects the field directly — mirroring
+     * {@link #readMessageService}.
+     */
+    private static long readDispatchTimeoutMs(ChannelMessageServiceImpl svc) {
+        try {
+            Field f = ChannelMessageServiceImpl.class.getDeclaredField("dispatchTimeoutMs");
+            f.setAccessible(true);
+            return (Long) f.get(svc);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new AssertionError("unable to read dispatchTimeoutMs field", e);
         }
     }
 

@@ -90,6 +90,7 @@ public class SpawnMemberFanOutStep extends AbstractTaskStep {
     private final IReductionStrategy reductionStrategy;
     private final Executor spawnExecutor;
     private final String capturedTenant;
+    private final long memberExecTimeoutMs;
 
     /**
      * @param spawnTargets          the spawn dispatch targets to fan out to
@@ -110,12 +111,16 @@ public class SpawnMemberFanOutStep extends AbstractTaskStep {
      *                              (plan 243 design 裁定 2). May be null.
      * @param reductionStrategy     the reduction strategy for the N member
      *                              futures (non-null)
+     * @param memberExecTimeoutMs   the per-member execution deadline (ms,
+     *                              I3 R-2-3; derived from
+     *                              {@code DefaultAgentEngineConfig.memberExecTimeoutMs})
      */
     public SpawnMemberFanOutStep(TeamTask task, Team team, List<DispatchTarget> spawnTargets,
                                  String orchestratorSessionId,
                                  IMemberSpawner memberSpawner, ITeamTaskStore taskStore,
                                  ExecutionRecorder recorder, Executor spawnExecutor,
-                                 String capturedTenant, IReductionStrategy reductionStrategy) {
+                                 String capturedTenant, IReductionStrategy reductionStrategy,
+                                 long memberExecTimeoutMs) {
         this.task = task;
         this.team = team;
         this.spawnTargets = new ArrayList<>(spawnTargets);
@@ -128,6 +133,7 @@ public class SpawnMemberFanOutStep extends AbstractTaskStep {
                         + "is required (plan 243 design 裁定 3)");
         this.capturedTenant = capturedTenant;
         this.reductionStrategy = reductionStrategy;
+        this.memberExecTimeoutMs = memberExecTimeoutMs;
         if (this.spawnTargets.isEmpty()) {
             throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG,
                     "SpawnMemberFanOutStep requires at least one spawn target — the orchestrator must pre-check the empty plan as an honest failure");
@@ -176,7 +182,8 @@ public class SpawnMemberFanOutStep extends AbstractTaskStep {
         CompletableFuture<MemberDispatchOutcome> dispatched = MemberFanOutDispatcher.dispatch(
                 claimed.get(), team, spawnTargets, reductionStrategy,
                 /*agentEngine=*/null /* spawn-only: no bound targets, no engine needed */,
-                memberSpawner, taskStore, orchestratorSessionId, spawnExecutor, capturedTenant);
+                memberSpawner, taskStore, orchestratorSessionId, spawnExecutor, capturedTenant,
+                memberExecTimeoutMs);
 
         // Adapt to a nop-task TaskStepReturn + record markComplete/markFailed
         // on the STEP's shared recorder (the dispatcher uses a throwaway

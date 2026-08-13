@@ -64,7 +64,7 @@ public class TestSecureDefaultsInfoAwareness {
 
     @BeforeEach
     void attachAppender() {
-        engineLogger = (Logger) LoggerFactory.getLogger(DefaultAgentEngine.class);
+        engineLogger = (Logger) LoggerFactory.getLogger(AgentStartupWarnings.class);
         appender = new ListAppender<>();
         appender.start();
         engineLogger.addAppender(appender);

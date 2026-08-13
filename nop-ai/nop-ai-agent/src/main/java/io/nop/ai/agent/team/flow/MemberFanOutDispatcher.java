@@ -13,6 +13,9 @@ import io.nop.ai.agent.team.TeamTask;
 import io.nop.ai.agent.team.scheduler.SpawnMemberRequest;
 import io.nop.ai.agent.team.scheduler.SpawnMemberResult;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -23,6 +26,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Shared, nop-task-runtime-agnostic dispatcher that builds the per-target
@@ -95,6 +99,7 @@ import java.util.concurrent.Executor;
  * <p>See plan 245 (daemon dispatch parity), design 裁定 1 / 3 / 4 / 5.
  */
 public final class MemberFanOutDispatcher {
+    private static final Logger LOG = LoggerFactory.getLogger(MemberFanOutDispatcher.class);
 
     private MemberFanOutDispatcher() {
     }
@@ -159,7 +164,8 @@ public final class MemberFanOutDispatcher {
             ITeamTaskStore taskStore,
             String dispatchSessionId,
             Executor spawnExecutor,
-            String capturedTenant) {
+            String capturedTenant,
+            long memberExecTimeoutMs) {
 
         Objects.requireNonNull(task, "task");
         Objects.requireNonNull(targets, "targets");
@@ -167,6 +173,11 @@ public final class MemberFanOutDispatcher {
         Objects.requireNonNull(memberSpawner, "memberSpawner");
         Objects.requireNonNull(taskStore, "taskStore");
         Objects.requireNonNull(dispatchSessionId, "dispatchSessionId");
+        if (memberExecTimeoutMs <= 0) {
+            throw new NopAiAgentException(
+                    "nop.ai.team.flow.fanout-invalid-timeout: memberExecTimeoutMs must be positive, got: "
+                            + memberExecTimeoutMs);
+        }
 
         // Defend empty plan (caller pre-checks; this is the safety net —
         // never a vacuous success, Minimum Rules #24).
@@ -219,10 +230,10 @@ public final class MemberFanOutDispatcher {
         List<CompletableFuture<MemberExecOutcome>> perMember = new ArrayList<>(targets.size());
         for (DispatchTarget target : targets) {
             if (target.isBound()) {
-                perMember.add(executeBoundMember(target, task, agentEngine));
+                perMember.add(executeBoundMember(target, task, agentEngine, memberExecTimeoutMs));
             } else {
                 perMember.add(spawnOneTarget(target, teamForSpawn, task, memberSpawner,
-                        dispatchSessionId, spawnExecutor, capturedTenant));
+                        dispatchSessionId, spawnExecutor, capturedTenant, memberExecTimeoutMs));
             }
         }
 
@@ -292,9 +303,18 @@ public final class MemberFanOutDispatcher {
      * map the engine future to a {@link MemberExecOutcome} (honest failure
      * semantics mirror {@code MemberAgentTaskStep}: engine exception →
      * ENGINE_FAILED; non-completed status → NOT_COMPLETED; otherwise COMPLETED).
+     *
+     * <p>I3 R-2-3 fix: the engine future is bounded with a per-member
+     * {@code orTimeout(memberExecTimeoutMs)} — a hanging member agent can no
+     * longer make the team task wait indefinitely. On timeout the child
+     * session is cancelled (aligned with the AUDIT-14-01 semantics of
+     * {@code CallAgentExecutor}: cancel the underlying execution so it does
+     * not keep consuming quota as a zombie) and the member is reported as an
+     * honest failed outcome (the task stays CLAIMED for the scheduler layer
+     * to reclaim). Cancel failures are logged but never mask the timeout.
      */
     private static CompletableFuture<MemberExecOutcome> executeBoundMember(
-            DispatchTarget target, TeamTask task, IAgentEngine agentEngine) {
+            DispatchTarget target, TeamTask task, IAgentEngine agentEngine, long memberExecTimeoutMs) {
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("teamTaskId", task.getTaskId());
         metadata.put("teamId", task.getTeamId());
@@ -302,12 +322,23 @@ public final class MemberFanOutDispatcher {
         AgentMessageRequest request = new AgentMessageRequest(target.getAgentName(),
                 buildPrompt(task), target.getSessionId(), metadata);
 
-        CompletableFuture<AgentExecutionResult> engineFuture = agentEngine.execute(request);
+        CompletableFuture<AgentExecutionResult> engineFuture =
+                agentEngine.execute(request).orTimeout(memberExecTimeoutMs, TimeUnit.MILLISECONDS);
 
         return engineFuture.handle((result, ex) -> {
             if (ex != null) {
                 Throwable cause = (ex instanceof CompletionException && ex.getCause() != null)
                         ? ex.getCause() : ex;
+                if (cause instanceof java.util.concurrent.TimeoutException) {
+                    try {
+                        agentEngine.cancelSession(target.getSessionId(),
+                                "member fan-out timeout after " + memberExecTimeoutMs + "ms", true);
+                    } catch (RuntimeException cancelEx) {
+                        LOG.warn("MemberFanOutDispatcher: failed to cancel member session after timeout: "
+                                        + "memberSessionId={}, taskId={}",
+                                target.getSessionId(), task.getTaskId(), cancelEx);
+                    }
+                }
                 return MemberExecOutcome.engineFailed(target, cause);
             }
             if (result.getStatus() != AgentExecStatus.completed) {
@@ -324,21 +355,36 @@ public final class MemberFanOutDispatcher {
      * {@code spawnMember}, interpret the three-state result, and map to a
      * {@link MemberExecOutcome}. Tenant is cleared in finally so pooled worker
      * threads never leak tenant context (plan 243 裁定 2).
+     *
+     * <p>Plan 2026-08-12-2050-2 / AR-2: the returned future is bounded with a
+     * per-target {@code orTimeout(memberExecTimeoutMs)} — two-layer
+     * protection: (1) the spawner layer's bounded {@code get()} (via
+     * {@code SpawnMemberRequest.memberExecTimeoutMs} → {@code
+     * DefaultMemberSpawner}) guarantees a real production engine hang releases
+     * the spawn worker; (2) this dispatcher-layer orTimeout guarantees that
+     * even a spawner that blocks abnormally (e.g. a test mock) settles the
+     * per-member future within the deadline — the timeout completes the
+     * future exceptionally, the {@code allOf} reduce propagates it, and the
+     * {@code dispatch} {@code exceptionally} (:298) converts it to an honest
+     * failed outcome. This is what makes {@code dispatch}'s reduce
+     * {@code f.join()} (:251) bounded.
      */
     private static CompletableFuture<MemberExecOutcome> spawnOneTarget(
             DispatchTarget target, Team team, TeamTask task,
             IMemberSpawner memberSpawner, String dispatchSessionId,
-            Executor spawnExecutor, String capturedTenant) {
+            Executor spawnExecutor, String capturedTenant, long memberExecTimeoutMs) {
         SpawnMemberRequest spawnReq = new SpawnMemberRequest(
-                team, task, dispatchSessionId, target.getSpawnTarget());
-        return CompletableFuture.supplyAsync(() -> {
-            ThreadLocalTenantResolver.set(capturedTenant);
-            try {
-                return spawnAndInterpret(target, task, memberSpawner, spawnReq);
-            } finally {
-                ThreadLocalTenantResolver.clear();
-            }
-        }, spawnExecutor);
+                team, task, dispatchSessionId, target.getSpawnTarget(), memberExecTimeoutMs);
+        CompletableFuture<MemberExecOutcome> spawned =
+                CompletableFuture.supplyAsync(() -> {
+                    ThreadLocalTenantResolver.set(capturedTenant);
+                    try {
+                        return spawnAndInterpret(target, task, memberSpawner, spawnReq);
+                    } finally {
+                        ThreadLocalTenantResolver.clear();
+                    }
+                }, spawnExecutor);
+        return spawned.orTimeout(memberExecTimeoutMs, TimeUnit.MILLISECONDS);
     }
 
     /**

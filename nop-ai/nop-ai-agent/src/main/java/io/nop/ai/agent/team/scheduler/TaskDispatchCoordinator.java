@@ -41,6 +41,7 @@ public class TaskDispatchCoordinator {
     private IMemberSpawner memberSpawner;
     private final ITeamTaskStore taskStore;
     private final String daemonSessionId;
+    private final long memberExecTimeoutMs;
     private final java.util.concurrent.ConcurrentLinkedQueue<java.util.concurrent.CompletableFuture<MemberDispatchOutcome>> inFlightDispatches =
             new java.util.concurrent.ConcurrentLinkedQueue<>();
 
@@ -50,9 +51,25 @@ public class TaskDispatchCoordinator {
     public TaskDispatchCoordinator(IAgentEngine agentEngine,
                                    ITeamTaskStore taskStore,
                                    String daemonSessionId) {
+        this(agentEngine, taskStore, daemonSessionId,
+                io.nop.ai.agent.engine.DefaultAgentEngineConfig.DEFAULT_MEMBER_EXEC_TIMEOUT_MS);
+    }
+
+    /**
+     * Fully-parameterized constructor (I3 R-2-3): {@code memberExecTimeoutMs}
+     * is derived from the single config source
+     * {@code DefaultAgentEngineConfig.memberExecTimeoutMs} by the daemon
+     * assembly path and applied per-member by
+     * {@link MemberFanOutDispatcher#dispatch}.
+     */
+    public TaskDispatchCoordinator(IAgentEngine agentEngine,
+                                   ITeamTaskStore taskStore,
+                                   String daemonSessionId,
+                                   long memberExecTimeoutMs) {
         this.agentEngine = agentEngine;
         this.taskStore = taskStore;
         this.daemonSessionId = daemonSessionId;
+        this.memberExecTimeoutMs = memberExecTimeoutMs;
         this.taskMemberRouter = NoOpTaskMemberRouter.noOp();
         this.memberSpawner = NoOpMemberSpawner.noOp();
     }
@@ -118,6 +135,17 @@ public class TaskDispatchCoordinator {
             return t;
         }
     }
+    /**
+     * Package-private test observability (plan 2026-08-12-2050-2 / AR-2
+     * Proof): the number of in-flight dispatch entries still tracked. The
+     * queue must drain back to zero after every tracked future settles
+     * (the bounded per-member timeout guarantees settlement, so the
+     * {@code whenComplete} removal always fires — no permanent leak).
+     */
+    int inFlightDispatchCount() {
+        return inFlightDispatches.size();
+    }
+
     public boolean awaitInFlightDispatches(long timeoutMs) {
         long deadline = System.currentTimeMillis() + timeoutMs;
         for (CompletableFuture<MemberDispatchOutcome> f : inFlightDispatches) {
@@ -196,7 +224,7 @@ public class TaskDispatchCoordinator {
         CompletableFuture<MemberDispatchOutcome> dispatched = MemberFanOutDispatcher.dispatch(
                 claimedTask, team, plan.getTargets(), plan.getReductionStrategy(),
                 agentEngine, memberSpawner, taskStore, daemonSessionId,
-                spawnExecutor, capturedTenant);
+                spawnExecutor, capturedTenant, memberExecTimeoutMs);
 
         if (dispatched.isDone()) {
             // Synchronous resolution (already-complete futures). Record the

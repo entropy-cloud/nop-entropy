@@ -1,5 +1,6 @@
 package io.nop.ai.agent.team;
 
+import io.nop.ai.api.secure.SecureDefault;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.IAgentEngine;
@@ -14,6 +15,9 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Functional {@link IMemberSpawner} that materialises a member agent for an
@@ -38,9 +42,15 @@ import java.util.concurrent.CompletionException;
  *       — per-task spawn, session reuse is a Non-Goal successor), and whose
  *       metadata carries {@code teamTaskId}/{@code teamId}/{@code daemonSessionId}
  *       for audit (identical metadata shape to a bound-member dispatch).
- *       Submit to {@link IAgentEngine#execute} and synchronous-join (same
- *       {@code execute(request).join()} semantics as the daemon's bound-member
- *       dispatch and plan 233 {@code MemberAgentTaskStep}).</li>
+ *       Submit to {@link IAgentEngine#execute} and synchronous-join with a
+ *       <b>bounded</b> wait (plan 2026-08-12-2050-2 / AR-2): the deadline is
+ *       {@code SpawnMemberRequest.memberExecTimeoutMs} (carried on the
+ *       request, never 0), so a hung spawned execution releases the spawn
+ *       worker within the deadline and fails honestly (SPAWN_FAILED) instead
+ *       of joining unbounded (the pre-AR-2 {@code execute(request).join()}
+ *       behaviour — same execution semantics as the daemon's bound-member
+ *       dispatch and plan 233 {@code MemberAgentTaskStep} when the engine
+ *       settles in time, but no longer unbounded when it hangs).</li>
  *   <li><b>Honest outcome mapping</b> (design 裁定 4):
  *     <ul>
  *       <li>{@code execute} returned a result → {@link SpawnMemberResult#dispatched}
@@ -101,6 +111,7 @@ import java.util.concurrent.CompletionException;
  *
  * <p>See plan 237 ({@code L4-auto-spawn-member-agent}), design 裁定 1 / 2 / 3 / 4.
  */
+@SecureDefault
 public final class DefaultMemberSpawner implements IMemberSpawner {
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultMemberSpawner.class);
@@ -169,7 +180,38 @@ public final class DefaultMemberSpawner implements IMemberSpawner {
         AgentExecutionResult result;
         try {
             CompletableFuture<AgentExecutionResult> future = agentEngine.execute(execRequest);
-            result = future.join();
+            // Plan 2026-08-12-2050-2 / AR-2: bounded wait. The deadline comes
+            // from SpawnMemberRequest.memberExecTimeoutMs (never 0 — the
+            // request constructor rejects non-positive values), so a hung
+            // spawned execution releases this spawn worker within the
+            // deadline and fails honestly instead of waiting unbounded.
+            result = future.get(request.getMemberExecTimeoutMs(), TimeUnit.MILLISECONDS);
+        } catch (TimeoutException e) {
+            // Honest failure: the spawned execution did not settle within the
+            // per-member deadline. The spawn worker is released (bounded
+            // get()); the caller reports a failed outcome — never a silent
+            // wait-continues.
+            LOG.warn("DefaultMemberSpawner: spawned agent timed out after {}ms for taskId={}, agentModel={} "
+                            + "— SPAWN_FAILED",
+                    request.getMemberExecTimeoutMs(), task.getTaskId(), agentModel);
+            return SpawnMemberResult.spawnFailed(
+                    "spawned agent timed out after " + request.getMemberExecTimeoutMs() + "ms");
+        } catch (InterruptedException e) {
+            // Restore the interrupt flag (pooled worker hygiene) and fail
+            // honestly — never swallow the interruption.
+            Thread.currentThread().interrupt();
+            LOG.warn("DefaultMemberSpawner: spawn wait interrupted for taskId={}, agentModel={} — SPAWN_FAILED",
+                    task.getTaskId(), agentModel, e);
+            return SpawnMemberResult.spawnFailed(
+                    "spawn wait interrupted: " + e.toString());
+        } catch (ExecutionException e) {
+            // unwrap the cause (same precedent as
+            // MemberFanOutDispatcher.java:330-331 / :426-432)
+            Throwable cause = e.getCause() != null ? e.getCause() : e;
+            LOG.warn("DefaultMemberSpawner: spawned agent threw for taskId={}, agentModel={} — SPAWN_FAILED",
+                    task.getTaskId(), agentModel, cause);
+            return SpawnMemberResult.spawnFailed(
+                    "spawned agent threw: " + cause.toString());
         } catch (CompletionException e) {
             Throwable cause = e.getCause() != null ? e.getCause() : e;
             LOG.warn("DefaultMemberSpawner: spawned agent threw for taskId={}, agentModel={} — SPAWN_FAILED",

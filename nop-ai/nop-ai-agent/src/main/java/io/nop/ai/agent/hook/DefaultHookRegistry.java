@@ -1,5 +1,6 @@
 package io.nop.ai.agent.hook;
 
+import io.nop.ai.api.secure.SecureDefault;
 import io.nop.ai.agent.middleware.ExecutionPoint;
 import io.nop.ai.agent.middleware.IAgentMiddleware;
 import io.nop.ai.agent.middleware.MiddlewareChain;
@@ -17,6 +18,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 
+@SecureDefault
 public class DefaultHookRegistry implements IHookRegistry {
 
     private static final Map<String, AgentLifecyclePoint> EVENT_NAME_MAP = buildEventNameMap();

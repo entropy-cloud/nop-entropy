@@ -1,5 +1,6 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.api.secure.SecureDefault;
 import io.nop.ai.agent.budget.IBudgetProvider;
 import io.nop.ai.agent.budget.NoOpBudgetProvider;
 import io.nop.ai.agent.compact.IContextCompactor;
@@ -96,8 +97,9 @@ import java.util.function.Predicate;
  * unchanged. Setter bodies (including validation and NoOp fallbacks) are
  * moved verbatim.
  */
+@SecureDefault
 public class DefaultAgentEngineConfig {
-    private static final Logger LOG = LoggerFactory.getLogger(DefaultAgentEngine.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DefaultAgentEngineConfig.class);
 
     private IPermissionProvider permissionProvider;
     private IToolAccessChecker toolAccessChecker;
@@ -145,7 +147,17 @@ public class DefaultAgentEngineConfig {
     private long callAgentTimeoutMs = 120_000L;
     private long llmTimeoutMs = 120_000L;
     private long toolTimeoutMs = 300_000L;
+    private long memberExecTimeoutMs = DEFAULT_MEMBER_EXEC_TIMEOUT_MS;
     private IWaitCoordinator waitCoordinator = NoOpWaitCoordinator.noOp();
+
+    /**
+     * Single source of the team-flow member-execution deadline (I3 R-2-3
+     * adjudication): shared by the flow assembly path
+     * ({@code TeamTaskFlowOrchestrator} / fan-out steps) and the daemon
+     * path ({@code TeamTaskSchedulerDaemon} / {@code TaskDispatchCoordinator})
+     * — both derive from this same knob, never inventing their own default.
+     */
+    public static final long DEFAULT_MEMBER_EXEC_TIMEOUT_MS = 120_000L;
 
     public void setSkillProvider(ISkillProvider skillProvider) {
         this.skillProvider = skillProvider != null ? skillProvider : NoOpSkillProvider.noOp();
@@ -935,9 +947,37 @@ public class DefaultAgentEngineConfig {
         this.callAgentTimeoutMs = callAgentTimeoutMs;
     }
     public long getLlmTimeoutMs() { return llmTimeoutMs; }
-    public void setLlmTimeoutMs(long llmTimeoutMs) { this.llmTimeoutMs = llmTimeoutMs; }
+    public void setLlmTimeoutMs(long llmTimeoutMs) {
+        if (llmTimeoutMs <= 0) {
+            throw new NopAiAgentException("llmTimeoutMs must be positive, got: " + llmTimeoutMs);
+        }
+        this.llmTimeoutMs = llmTimeoutMs;
+    }
     public long getToolTimeoutMs() { return toolTimeoutMs; }
-    public void setToolTimeoutMs(long toolTimeoutMs) { this.toolTimeoutMs = toolTimeoutMs; }
+    public void setToolTimeoutMs(long toolTimeoutMs) {
+        if (toolTimeoutMs <= 0) {
+            throw new NopAiAgentException("toolTimeoutMs must be positive, got: " + toolTimeoutMs);
+        }
+        this.toolTimeoutMs = toolTimeoutMs;
+    }
+
+    /**
+     * I3 R-2-3: the per-member agent-execution deadline (ms) applied by the
+     * team-flow fan-out ({@code MemberFanOutDispatcher.dispatch} per-member
+     * {@code orTimeout}) and the daemon-level overall deadline of
+     * {@code TeamTaskFlowOrchestrator.executeAsync}. Both assembly paths
+     * (flow and daemon) derive from this single knob. Default =
+     * {@link #DEFAULT_MEMBER_EXEC_TIMEOUT_MS} (120s, same family as
+     * {@code callAgentTimeoutMs}/{@code llmTimeoutMs}/{@code toolTimeoutMs});
+     * the setter rejects non-positive values.
+     */
+    public long getMemberExecTimeoutMs() { return memberExecTimeoutMs; }
+    public void setMemberExecTimeoutMs(long memberExecTimeoutMs) {
+        if (memberExecTimeoutMs <= 0) {
+            throw new NopAiAgentException("memberExecTimeoutMs must be positive, got: " + memberExecTimeoutMs);
+        }
+        this.memberExecTimeoutMs = memberExecTimeoutMs;
+    }
 
     public IWaitCoordinator getWaitCoordinator() { return waitCoordinator; }
     public void setWaitCoordinator(IWaitCoordinator waitCoordinator) {

@@ -32,29 +32,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.Supplier;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.function.Supplier;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-
 /**
  * Session-lifecycle orchestration for the engine (extracted from
  * {@link DefaultAgentEngine}, MA4.2-05): resume/restore execution
@@ -63,7 +40,7 @@ import java.util.concurrent.Future;
  * event publication and the {@link CancelHandle} holder.
  */
 public class AgentSessionLifecycle {
-    private static final Logger LOG = LoggerFactory.getLogger(DefaultAgentEngine.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AgentSessionLifecycle.class);
     private final DefaultAgentEngineConfig config;
     private final ISessionStore sessionStore;
     private final IAgentEventPublisher eventPublisher;

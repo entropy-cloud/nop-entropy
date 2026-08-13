@@ -3,7 +3,6 @@ package io.nop.ai.agent.hook;
 import io.nop.ai.agent.engine.AgentExecutionContext;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.engine.AgentExecutionResult;
-import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.engine.ReActAgentExecutor;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.model.AgentModel;
@@ -25,6 +24,8 @@ import io.nop.ai.toolkit.model.AiToolModel;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.core.CoreConstants;
 import io.nop.core.initialize.CoreInitialization;
+import io.nop.ai.agent.support.ChatResponseFixtures;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,7 +48,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-import io.nop.ai.agent.support.ChatResponseFixtures;
 
 public class TestHookInReActLoop {
 

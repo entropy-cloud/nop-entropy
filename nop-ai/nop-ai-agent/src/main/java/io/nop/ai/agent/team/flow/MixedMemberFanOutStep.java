@@ -67,13 +67,14 @@ public class MixedMemberFanOutStep extends AbstractTaskStep {
     private final IReductionStrategy reductionStrategy;
     private final Executor spawnExecutor;
     private final String capturedTenant;
+    private final long memberExecTimeoutMs;
 
     public MixedMemberFanOutStep(TeamTask task, Team team, List<DispatchTarget> targets,
                                  String orchestratorSessionId,
                                  IAgentEngine agentEngine, IMemberSpawner memberSpawner,
                                  ITeamTaskStore taskStore, ExecutionRecorder recorder,
                                  Executor spawnExecutor, String capturedTenant,
-                                 IReductionStrategy reductionStrategy) {
+                                 IReductionStrategy reductionStrategy, long memberExecTimeoutMs) {
         this.task = task;
         this.team = team;
         this.targets = new ArrayList<>(targets);
@@ -85,6 +86,7 @@ public class MixedMemberFanOutStep extends AbstractTaskStep {
         this.spawnExecutor = spawnExecutor;
         this.capturedTenant = capturedTenant;
         this.reductionStrategy = reductionStrategy;
+        this.memberExecTimeoutMs = memberExecTimeoutMs;
         if (this.targets.size() < 2) {
             throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG,
                     "MixedMemberFanOutStep is for plans mixing bound and spawn targets with size >= 2; "
@@ -140,7 +142,8 @@ public class MixedMemberFanOutStep extends AbstractTaskStep {
         //    into the single completeTask CAS.
         CompletableFuture<MemberDispatchOutcome> dispatched = MemberFanOutDispatcher.dispatch(
                 claimed.get(), team, targets, reductionStrategy,
-                agentEngine, memberSpawner, taskStore, orchestratorSessionId, spawnExecutor, capturedTenant);
+                agentEngine, memberSpawner, taskStore, orchestratorSessionId, spawnExecutor, capturedTenant,
+                memberExecTimeoutMs);
 
         // Adapt to a nop-task TaskStepReturn + record markComplete/markFailed
         // on the STEP's shared recorder (the dispatcher uses a throwaway

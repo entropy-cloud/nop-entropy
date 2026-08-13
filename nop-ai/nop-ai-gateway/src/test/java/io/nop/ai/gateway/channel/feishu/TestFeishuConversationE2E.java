@@ -13,7 +13,6 @@ import io.nop.ai.gateway.channel.ChannelConnectorContext;
 import io.nop.ai.gateway.channel.ChannelConnectorManager;
 import io.nop.ai.gateway.channel.ChannelSession;
 import io.nop.ai.gateway.channel.ChannelSessionStoreImpl;
-import io.nop.ai.gateway.channel.ChannelSession;
 import io.nop.ai.gateway.channel.IChannelConnector;
 import io.nop.ai.gateway.channel.IChannelSessionStore;
 import io.nop.api.core.ioc.IBeanContainer;
@@ -39,6 +38,7 @@ import io.nop.orm.factory.OrmSessionFactoryBean;
 import io.nop.orm.impl.OrmTemplateImpl;
 import io.nop.orm.dao.OrmDaoProvider;
 import io.nop.orm.model.IEntityModel;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;

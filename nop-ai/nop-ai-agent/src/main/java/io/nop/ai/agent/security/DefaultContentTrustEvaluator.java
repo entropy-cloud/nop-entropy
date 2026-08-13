@@ -1,7 +1,9 @@
 package io.nop.ai.agent.security;
 
+import io.nop.ai.api.secure.SecureDefault;
 import io.nop.ai.agent.engine.AgentExecutionContext;
 
+@SecureDefault
 public class DefaultContentTrustEvaluator implements IContentTrustEvaluator {
 
     @Override

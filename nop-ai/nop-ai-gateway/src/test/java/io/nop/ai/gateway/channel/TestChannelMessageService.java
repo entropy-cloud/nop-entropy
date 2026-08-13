@@ -21,12 +21,14 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Phase 3 tests for {@link ChannelMessageServiceImpl}. Proves the full
@@ -51,6 +53,36 @@ public class TestChannelMessageService {
 
     private static final String USER_ID = "user-1";
     private static final String FEISHU_ADDR = "feishu-open-id";
+
+    /**
+     * Await an async condition (inbound fan-out now runs on the dedicated
+     * fan-out executor — I3 R-2-1) with a bounded deadline; fails the test
+     * when the condition never holds.
+     */
+    private static void awaitUntil(Supplier<Boolean> condition, String label) {
+        long deadline = System.currentTimeMillis() + 5000;
+        while (System.currentTimeMillis() < deadline) {
+            if (condition.get()) {
+                return;
+            }
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                fail("interrupted while awaiting " + label);
+            }
+        }
+        fail("timed out awaiting " + label);
+    }
+
+    /** Give any would-be (wrong) delivery a chance to land before asserting absence. */
+    private static void settle() {
+        try {
+            Thread.sleep(150);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
 
     @Test
     void sendToUserBoundRoutesToConnectorAndReturnsSent() {
@@ -155,7 +187,10 @@ public class TestChannelMessageService {
 
         svc.dispatchInbound(inbound);
 
-        // both listeners received the exact message (real fan-out, not a no-op)
+        // both listeners received the exact message (real fan-out, not a no-op).
+        // Fan-out runs on the dedicated executor (I3 R-2-1) — await delivery.
+        awaitUntil(() -> a.received.size() == 1 && b.received.size() == 1,
+                "both listeners to receive the inbound message");
         assertEquals(1, a.received.size());
         assertEquals(1, b.received.size());
         assertSame(inbound, a.received.get(0));
@@ -209,9 +244,12 @@ public class TestChannelMessageService {
         svc.dispatchInbound(inbound);
 
         // the feishu topic consumer really received the published message
-        assertEquals(1, feishuAudit.received.size(), "send must reach channel.inbound.feishu");
+        // (mode-2 publish is async + bounded — I3 R-2-1 — await delivery)
+        awaitUntil(() -> feishuAudit.received.size() == 1,
+                "send to reach channel.inbound.feishu");
         assertSame(inbound, feishuAudit.received.get(0));
         // routing is per-channelType: the dingtalk topic must not receive it
+        settle();
         assertTrue(dingtalkAudit.received.isEmpty(),
                 "a feishu message must NOT leak to channel.inbound.dingtalk");
     }
@@ -236,8 +274,9 @@ public class TestChannelMessageService {
         InboundChannelMessage inbound = inbound("feishu", "user-1", "audit-me");
         svc.dispatchInbound(inbound);
 
-        // internal listener reached via the bridge fan-out
-        assertEquals(1, business.received.size(), "business listener must receive via bridge");
+        // internal listener reached via the bridge fan-out (async, I3 R-2-1)
+        awaitUntil(() -> business.received.size() == 1 && audit.received.size() == 1,
+                "business listener and external audit consumer to receive");
         assertSame(inbound, business.received.get(0));
         // external audit consumer reached directly from the topic
         assertEquals(1, audit.received.size(), "external audit consumer must receive from topic");
@@ -263,7 +302,8 @@ public class TestChannelMessageService {
 
         svc.dispatchInbound(inbound("feishu", "user-1", "no-ack"));
 
-        assertEquals(1, business.received.size(), "business listener received (bridge worked)");
+        awaitUntil(() -> business.received.size() == 1, "business listener received (bridge worked)");
+        settle();
         assertTrue(ackSink.received.isEmpty(),
                 "bridge must return null so nothing is forwarded to the ack topic (no loop)");
     }
@@ -305,9 +345,10 @@ public class TestChannelMessageService {
         assertEquals(1, subscriptions.size(),
                 "concurrent first-dispatch must yield a single bridge subscription (deduped)");
 
-        // each of the n messages delivered exactly once (no duplicate fan-out)
-        assertEquals(n, listener.count.get(),
-                "no duplicate fan-out under concurrent first-dispatch");
+        // each of the n messages delivered exactly once (no duplicate fan-out).
+        // The bridge fan-out is async (I3 R-2-1) — await the final count.
+        awaitUntil(() -> listener.count.get() == n,
+                "exactly n deliveries under concurrent first-dispatch");
     }
 
     /**
@@ -357,11 +398,13 @@ public class TestChannelMessageService {
         InboundChannelMessage inbound = inbound("feishu", "user-1", "direct");
         svc.dispatchInbound(inbound);
 
-        // direct synchronous fan-out happened
-        assertEquals(1, a.received.size());
-        assertEquals(1, b.received.size());
+        // direct bounded fan-out happened (async on the fan-out executor —
+        // I3 R-2-1 — await delivery)
+        awaitUntil(() -> a.received.size() == 1 && b.received.size() == 1,
+                "mode-1 direct fan-out delivery");
         assertSame(inbound, a.received.get(0));
         // the bus was never used — no publish occurred
+        settle();
         assertTrue(audit.received.isEmpty(),
                 "mode 1 must NOT publish to the backbone topic");
     }

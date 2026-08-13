@@ -20,24 +20,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-
 /**
  * call-agent message delegation for the engine (extracted from
  * {@link DefaultAgentEngine}, MA4.2-05). Registers the engine-level
@@ -46,7 +28,7 @@ import java.util.concurrent.TimeUnit;
  * extracts the final assistant message from the result.
  */
 public class AgentCallDelegate {
-    private static final Logger LOG = LoggerFactory.getLogger(DefaultAgentEngine.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AgentCallDelegate.class);
     private final DefaultAgentEngine engine;
 
     private IAgentMessenger messenger = NoOpAgentMessenger.noOp();

@@ -87,7 +87,6 @@ import io.nop.ai.agent.usage.IUsageRecorder;
 import io.nop.ai.agent.usage.NoOpUsageRecorder;
 import io.nop.ai.agent.usage.UsageRecord;
 import io.nop.ai.api.chat.ChatOptions;
-import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.IChatService;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
@@ -161,6 +160,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
     private final IToolCallRepairer toolCallRepairer;
     private final io.nop.ai.agent.security.ISandboxBackend sandboxBackend;
     private final SecurityCheckpointChain checkpointChain;
+    private final IToolAccessChecker toolAccessChecker;
 
     private final AgentHookInvoker hookInvoker;
     private final LlmCallCoordinator llmCoordinator;
@@ -235,6 +235,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
         this.usageRecorder = usageRecorder != null ? usageRecorder : NoOpUsageRecorder.noOp();
         this.denialLedger = denialLedger != null ? denialLedger : new DefaultDenialLedger();
         this.toolCallRepairer = toolCallRepairer != null ? toolCallRepairer : NoOpToolCallRepairer.INSTANCE;
+        this.toolAccessChecker = toolAccessChecker;
         this.sandboxBackend = sandboxBackend != null
                 ? sandboxBackend
                 : io.nop.ai.agent.security.NoOpSandboxBackend.INSTANCE;
@@ -334,6 +335,16 @@ public class ReActAgentExecutor implements IAgentExecutor {
      */
     public io.nop.ai.agent.security.ISandboxBackend getSandboxBackend() {
         return sandboxBackend;
+    }
+
+    /**
+     * Test-support accessor (MA4.2-05 contract fix): the effective (possibly
+     * parent-constrained) tool access checker wired into this executor.
+     * Package-private, mirrors {@link DefaultAgentEngine#getToolAccessCheckerForTest()};
+     * not part of the public contract.
+     */
+    IToolAccessChecker getToolAccessCheckerForTest() {
+        return toolAccessChecker;
     }
 
     public CompletionStage<AgentExecutionResult> execute(AgentExecutionContext ctx) {

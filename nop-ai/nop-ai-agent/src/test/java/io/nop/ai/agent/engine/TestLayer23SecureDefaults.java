@@ -113,7 +113,7 @@ public class TestLayer23SecureDefaults {
 
     @BeforeEach
     void attachAppender() {
-        engineLogger = (Logger) LoggerFactory.getLogger(DefaultAgentEngine.class);
+        engineLogger = (Logger) LoggerFactory.getLogger(AgentStartupWarnings.class);
         warnAppender = new ListAppender<>();
         warnAppender.start();
         engineLogger.addAppender(warnAppender);

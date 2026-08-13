@@ -10,15 +10,6 @@ import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.HashMap;
-import java.util.Map;
-
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * Loop-governance abort handlers for the ReAct loop (extracted from
  * {@link ReActAgentExecutor}, MA4.2-05). Implements the denial-ledger

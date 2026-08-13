@@ -83,6 +83,7 @@ public class BoundMemberFanOutStep extends AbstractTaskStep {
     private final ExecutionRecorder recorder;
     private final IReductionStrategy reductionStrategy;
     private final String capturedTenant;
+    private final long memberExecTimeoutMs;
 
     /**
      * @param boundTargets          the bound dispatch targets to fan out to
@@ -100,12 +101,15 @@ public class BoundMemberFanOutStep extends AbstractTaskStep {
      *                              裁定 2). May be null.
      * @param reductionStrategy     the reduction strategy for the N member
      *                              futures (non-null)
+     * @param memberExecTimeoutMs   the per-member execution deadline (ms,
+     *                              I3 R-2-3; derived from
+     *                              {@code DefaultAgentEngineConfig.memberExecTimeoutMs})
      */
     public BoundMemberFanOutStep(TeamTask task, List<DispatchTarget> boundTargets,
                                  String orchestratorSessionId,
                                  IAgentEngine agentEngine, ITeamTaskStore taskStore,
                                  ExecutionRecorder recorder, String capturedTenant,
-                                 IReductionStrategy reductionStrategy) {
+                                 IReductionStrategy reductionStrategy, long memberExecTimeoutMs) {
         this.task = task;
         this.boundTargets = new ArrayList<>(boundTargets);
         this.orchestratorSessionId = orchestratorSessionId;
@@ -114,6 +118,7 @@ public class BoundMemberFanOutStep extends AbstractTaskStep {
         this.recorder = recorder;
         this.capturedTenant = capturedTenant;
         this.reductionStrategy = reductionStrategy;
+        this.memberExecTimeoutMs = memberExecTimeoutMs;
         if (this.boundTargets.isEmpty()) {
             throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG,
                     "BoundMemberFanOutStep requires at least one bound target — the orchestrator must pre-check the empty plan as an honest failure");
@@ -163,7 +168,8 @@ public class BoundMemberFanOutStep extends AbstractTaskStep {
         CompletableFuture<MemberDispatchOutcome> dispatched = MemberFanOutDispatcher.dispatch(
                 claimed.get(), /*team=*/null, boundTargets, reductionStrategy,
                 agentEngine, io.nop.ai.agent.team.NoOpMemberSpawner.noOp(),
-                taskStore, orchestratorSessionId, /*spawnExecutor=*/null, capturedTenant);
+                taskStore, orchestratorSessionId, /*spawnExecutor=*/null, capturedTenant,
+                memberExecTimeoutMs);
 
         // Adapt to a nop-task TaskStepReturn + record markComplete/markFailed
         // on the STEP's shared recorder (the dispatcher uses a throwaway

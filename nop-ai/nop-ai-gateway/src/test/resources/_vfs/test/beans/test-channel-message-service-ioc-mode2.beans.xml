@@ -28,5 +28,8 @@
         <property name="messageService">
             <ref bean="nopLocalMessageService" ioc:optional="true"/>
         </property>
+        <!-- AR-9: mirrors the production @cfg wiring (default 30000) -->
+        <property name="dispatchTimeoutMs"
+                  value="@cfg:nop.ai.gateway.channel.dispatchTimeoutMs|30000"/>
     </bean>
 </beans>

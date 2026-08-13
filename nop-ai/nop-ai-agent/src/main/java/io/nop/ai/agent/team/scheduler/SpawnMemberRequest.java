@@ -1,6 +1,7 @@
 package io.nop.ai.agent.team.scheduler;
 
 import io.nop.ai.agent.NopAiAgentErrors;
+import io.nop.ai.agent.engine.DefaultAgentEngineConfig;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.team.Team;
 import io.nop.ai.agent.team.TeamMemberSpec;
@@ -40,6 +41,19 @@ import java.util.Objects;
  *       additive: the original 3-arg constructor preserves {@code target =
  *       null}, so every existing call site (daemon, orchestrator spawn step
  *       pre-244) is unchanged.</li>
+ *   <li>{@code memberExecTimeoutMs} — <b>per-member execution deadline</b>
+ *       (plan 2026-08-12-2050-2 / AR-2). Carried on the request (not the
+ *       {@code IMemberSpawner} interface signature — the interface is a
+ *       cross-module public API and is unchanged) so the timeout reaches
+ *       {@code DefaultMemberSpawner}'s bounded {@code get()} inside the
+ *       synchronous {@code spawnMember} contract: a hung spawned execution
+ *       releases the spawn worker within the deadline and fails honestly
+ *       (SPAWN_FAILED) instead of waiting unbounded. The existing
+ *       constructors default this to
+ *       {@code DefaultAgentEngineConfig.DEFAULT_MEMBER_EXEC_TIMEOUT_MS}
+ *       (120s) — never 0 (a 0 deadline would make {@code get(0, TimeUnit)}
+ *       fail immediately, silently converting "unbounded wait" into
+ *       "instant failure").</li>
  * </ul>
  *
  * <p>See plan 237 ({@code L4-auto-spawn-member-agent}), design 裁定 4;
@@ -52,6 +66,7 @@ public final class SpawnMemberRequest {
     private final TeamTask task;
     private final String daemonSessionId;
     private final TeamMemberSpec target;
+    private final long memberExecTimeoutMs;
 
     /**
      * Construct an immutable spawn request with no explicit target (the
@@ -65,7 +80,8 @@ public final class SpawnMemberRequest {
      *                        (non-null, non-blank)
      */
     public SpawnMemberRequest(Team team, TeamTask task, String daemonSessionId) {
-        this(team, task, daemonSessionId, null);
+        this(team, task, daemonSessionId, null,
+                DefaultAgentEngineConfig.DEFAULT_MEMBER_EXEC_TIMEOUT_MS);
     }
 
     /**
@@ -85,6 +101,29 @@ public final class SpawnMemberRequest {
      */
     public SpawnMemberRequest(Team team, TeamTask task, String daemonSessionId,
                               TeamMemberSpec target) {
+        this(team, task, daemonSessionId, target,
+                DefaultAgentEngineConfig.DEFAULT_MEMBER_EXEC_TIMEOUT_MS);
+    }
+
+    /**
+     * Construct an immutable spawn request with an explicit pre-resolved
+     * target memberSpec and an explicit per-member execution deadline
+     * (plan 2026-08-12-2050-2 / AR-2). The timeout is carried to
+     * {@code DefaultMemberSpawner}'s bounded {@code get()} so a hung spawned
+     * execution releases the spawn worker within the deadline and fails
+     * honestly instead of waiting unbounded.
+     *
+     * @param team                the live team snapshot (non-null)
+     * @param task                the team task to dispatch (non-null)
+     * @param daemonSessionId     the daemon session identity for audit
+     *                            metadata (non-null, non-blank)
+     * @param target              the pre-resolved target memberSpec to spawn
+     *                            (may be null — the spawner self-resolves)
+     * @param memberExecTimeoutMs the per-member execution deadline (ms);
+     *                            must be positive
+     */
+    public SpawnMemberRequest(Team team, TeamTask task, String daemonSessionId,
+                              TeamMemberSpec target, long memberExecTimeoutMs) {
         this.team = Objects.requireNonNull(team, "team");
         this.task = Objects.requireNonNull(task, "task");
         Objects.requireNonNull(daemonSessionId, "daemonSessionId");
@@ -92,8 +131,14 @@ public final class SpawnMemberRequest {
             throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
                     .param(NopAiAgentErrors.ARG_MSG, "daemonSessionId must not be blank");
         }
+        if (memberExecTimeoutMs <= 0) {
+            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiAgentErrors.ARG_MSG,
+                            "memberExecTimeoutMs must be positive, got: " + memberExecTimeoutMs);
+        }
         this.daemonSessionId = daemonSessionId;
         this.target = target;
+        this.memberExecTimeoutMs = memberExecTimeoutMs;
     }
 
     /**
@@ -127,5 +172,16 @@ public final class SpawnMemberRequest {
      */
     public TeamMemberSpec getTarget() {
         return target;
+    }
+
+    /**
+     * @return the per-member execution deadline (ms) the spawner must bound
+     *         its synchronous {@code spawnMember} wait by (plan
+     *         2026-08-12-2050-2 / AR-2). Always positive (never 0 — a 0
+     *         deadline would fail instantly, silently converting "unbounded
+     *         wait" into "instant failure").
+     */
+    public long getMemberExecTimeoutMs() {
+        return memberExecTimeoutMs;
     }
 }

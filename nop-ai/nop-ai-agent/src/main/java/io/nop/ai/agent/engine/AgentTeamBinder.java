@@ -18,17 +18,6 @@ import org.slf4j.LoggerFactory;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.Optional;
-import java.util.UUID;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.UUID;
-
 /**
  * Declarative team/member auto-binding for the engine (extracted from
  * {@link DefaultAgentEngine}, MA4.2-05): pre-checks team declarations,
@@ -36,7 +25,7 @@ import java.util.UUID;
  * Actor association tag when an ActorRuntime is configured.
  */
 public class AgentTeamBinder {
-    private static final Logger LOG = LoggerFactory.getLogger(DefaultAgentEngine.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AgentTeamBinder.class);
     private final DefaultAgentEngineConfig config;
 
     public AgentTeamBinder(DefaultAgentEngineConfig config) {

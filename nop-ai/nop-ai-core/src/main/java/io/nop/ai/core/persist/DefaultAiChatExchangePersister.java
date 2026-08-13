@@ -1,5 +1,6 @@
 package io.nop.ai.core.persist;
 
+import io.nop.ai.api.secure.SecureDefault;
 import io.nop.ai.core.AiCoreConfigs;
 import io.nop.ai.core.api.chat.AiChatOptions;
 import io.nop.ai.core.api.messages.AbstractTextMessage;
@@ -25,6 +26,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
+@SecureDefault
 public class DefaultAiChatExchangePersister implements IAiChatExchangePersister {
     static final String TITLE_CHAT = "# Chat: ";
 

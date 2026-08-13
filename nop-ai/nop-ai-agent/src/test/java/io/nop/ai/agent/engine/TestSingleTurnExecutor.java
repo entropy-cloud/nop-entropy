@@ -26,6 +26,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Flow;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -298,5 +300,89 @@ public class TestSingleTurnExecutor {
 
         assertEquals(0, ctx.getCurrentIteration(),
                 "SingleTurnExecutor should not increment iteration counter");
+    }
+
+    /**
+     * I3 gate-2/SingleTurnExecutor fix — behavior-level timeout verification:
+     * a hanging {@code chatService.call} must NOT block the calling thread
+     * indefinitely. With a 100ms {@code llmTimeoutMs} and a chat service that
+     * never answers, {@code execute} must complete within a bounded window
+     * with an honest failed result (status=failed, error mentions the
+     * timeout) and emit EXECUTION_FAILED — proving the timeout mechanism is
+     * wired into the failure path, not just declared.
+     */
+    @Test
+    void testHangingChatServiceTimesOutAndFails() throws Exception {
+        CountDownLatch hang = new CountDownLatch(1);
+        IChatService hanging = new IChatService() {
+            @Override
+            public CompletionStage<ChatResponse> callAsync(ChatRequest request, ICancelToken cancelToken) {
+                // SingleTurnExecutor invokes the blocking `call` — never settle
+                // until the test releases the latch.
+                return CompletableFuture.supplyAsync(() -> {
+                    try {
+                        hang.await(30, TimeUnit.SECONDS);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                    return buildSuccessResponse("late");
+                });
+            }
+
+            @Override
+            public ChatResponse call(ChatRequest request, ICancelToken cancelToken) {
+                try {
+                    hang.await(30, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new NopAiAgentException("hanging chat service interrupted", e);
+                }
+                return buildSuccessResponse("late");
+            }
+
+            @Override
+            public Flow.Publisher<ChatStreamChunk> callStream(ChatRequest request, ICancelToken cancelToken) {
+                return subscriber -> {};
+            }
+        };
+
+        DefaultAgentEventPublisher publisher = new DefaultAgentEventPublisher();
+        List<AgentEvent> events = new ArrayList<>();
+        publisher.addSubscriber(events::add);
+
+        ExecutorService timeoutExecutor = java.util.concurrent.Executors.newSingleThreadExecutor();
+        try {
+            SingleTurnExecutor executor = new SingleTurnExecutor(hanging, publisher, 100L, timeoutExecutor);
+
+            AgentModel model = createAgentModel("test", "single-turn");
+            AgentExecutionContext ctx = AgentExecutionContext.create(model, "session-1");
+            ctx.addMessage(new io.nop.ai.api.chat.messages.ChatUserMessage("Hi"));
+
+            long start = System.currentTimeMillis();
+            CompletableFuture<AgentExecutionResult> future = executor.execute(ctx).toCompletableFuture();
+            // must complete well before the hanging call would return (30s)
+            AgentExecutionResult result = future.get(10, TimeUnit.SECONDS);
+            long elapsedMs = System.currentTimeMillis() - start;
+
+            assertEquals(AgentExecStatus.failed, result.getStatus(),
+                    "a timed-out LLM call must produce a failed execution result");
+            assertEquals(AgentExecStatus.failed, ctx.getStatus());
+            assertNotNull(ctx.getLastError());
+            assertTrue(ctx.getLastError().toLowerCase().contains("timeout")
+                            || ctx.getLastError().contains("TimeoutException"),
+                    "the failure must report the timeout, got: " + ctx.getLastError());
+            assertTrue(elapsedMs < 5000,
+                    "execute must return bounded by the timeout (not wait for the hanging call), took "
+                            + elapsedMs + "ms");
+
+            List<AgentEventType> eventTypes = events.stream()
+                    .map(AgentEvent::getEventType).collect(Collectors.toList());
+            assertTrue(eventTypes.contains(AgentEventType.EXECUTION_STARTED));
+            assertTrue(eventTypes.contains(AgentEventType.EXECUTION_FAILED),
+                    "a timed-out execution must emit EXECUTION_FAILED");
+        } finally {
+            hang.countDown();
+            timeoutExecutor.shutdownNow();
+        }
     }
 }

@@ -1,5 +1,6 @@
 package io.nop.ai.agent.security;
 
+import io.nop.ai.api.secure.SecureDefault;
 import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.engine.NopAiAgentException;
 
@@ -33,6 +34,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * <p>{@link NoOpDenialLedger} is retained as a public opt-in for integrators
  * who need the "no counting, no pausing" behavior.
  */
+@SecureDefault
 public final class DefaultDenialLedger implements IDenialLedger {
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultDenialLedger.class);

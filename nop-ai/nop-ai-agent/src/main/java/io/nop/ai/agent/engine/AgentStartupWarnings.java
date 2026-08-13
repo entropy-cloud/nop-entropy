@@ -32,12 +32,6 @@ import io.nop.ai.api.chat.IChatService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * Startup security-default warnings for the engine (extracted from
  * {@link DefaultAgentEngine}, MA4.2-05). Emits WARN/INFO lines when the
@@ -46,7 +40,7 @@ import org.slf4j.LoggerFactory;
  * NoOpUsageRecorder warning flag.
  */
 public class AgentStartupWarnings {
-    private static final Logger LOG = LoggerFactory.getLogger(DefaultAgentEngine.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AgentStartupWarnings.class);
     private boolean usageRecorderNoOpWarned;
 
     public void resetUsageRecorderNoOpWarned() {

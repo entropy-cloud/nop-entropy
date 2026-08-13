@@ -1,5 +1,6 @@
 package io.nop.ai.shell.checker;
 
+import io.nop.ai.api.secure.SecureDefault;
 import io.nop.ai.shell.model.Redirect;
 import io.nop.ai.shell.model.SimpleCommand;
 
@@ -15,6 +16,7 @@ import java.util.regex.Pattern;
  * clearly destructive patterns are rejected, mirroring the semantics of
  * {@code BashExecutor.DESTRUCTIVE_COMMAND}.
  */
+@SecureDefault
 public class DefaultCommandChecker implements ICommandChecker {
 
     private static final Set<String> BLOCKED_COMMANDS = Set.of(

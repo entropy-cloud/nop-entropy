@@ -79,6 +79,11 @@
         <property name="messageService">
             <ref bean="nopLocalMessageService" ioc:optional="true"/>
         </property>
+        <!-- AR-9: inbound dispatch deadline (I3 R-2-1) wired to the config
+             item promised by ChannelMessageServiceImpl javadoc. Default 30000
+             must stay in sync with DEFAULT_DISPATCH_TIMEOUT_MS. -->
+        <property name="dispatchTimeoutMs"
+                  value="@cfg:nop.ai.gateway.channel.dispatchTimeoutMs|30000"/>
     </bean>
 
     <!-- Scan-login orchestration (W4): the QR-scan-login callback endpoint

@@ -15,20 +15,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
-
 /**
  * Session-facility helpers for the engine (extracted from
  * {@link DefaultAgentEngine}, MA4.2-05): per-session mailbox creation with
@@ -36,7 +22,7 @@ import java.util.function.Function;
  * loading from the VFS resource registry.
  */
 public class AgentSessionSupport {
-    private static final Logger LOG = LoggerFactory.getLogger(DefaultAgentEngine.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AgentSessionSupport.class);
     private final AgentCallDelegate callDelegate;
     private final java.util.concurrent.ConcurrentHashMap<String, IMailbox> sessionMailboxes;
     private final java.util.concurrent.ConcurrentHashMap<String, IMessageSubscription> sessionMailboxSubscriptions;

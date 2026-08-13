@@ -1,11 +1,13 @@
 package io.nop.ai.core.prompt;
 
+import io.nop.ai.api.secure.SecureDefault;
 import io.nop.ai.core.api.chat.AiChatOptions;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.cache.ResourceLoadingCache;
 
+@SecureDefault
 public class DefaultSystemPromptLoader {
     public static DefaultSystemPromptLoader _instance = new DefaultSystemPromptLoader();
 

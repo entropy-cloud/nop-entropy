@@ -1,5 +1,6 @@
 package io.nop.ai.agent.security;
 
+import io.nop.ai.api.secure.SecureDefault;
 /**
  * Shipped default {@link IPermissionMatrix} implementing the design §5.3
  * channel × security-level matrix with a <b>usability-safe null-channel</b>
@@ -35,6 +36,7 @@ package io.nop.ai.agent.security;
  * <p>{@link PassThroughPermissionMatrix} is retained as a public opt-in for
  * integrators who need the "allow all" behavior.
  */
+@SecureDefault
 public final class DefaultPermissionMatrix implements IPermissionMatrix {
 
     @Override

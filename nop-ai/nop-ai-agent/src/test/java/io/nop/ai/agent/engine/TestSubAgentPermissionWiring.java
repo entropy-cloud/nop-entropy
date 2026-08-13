@@ -289,7 +289,9 @@ public class TestSubAgentPermissionWiring {
     /**
      * Verify that {@code resolveExecutor} passes the effective (wrapped)
      * checker through to the ReAct executor. The executor should carry the
-     * wrapped checker.
+     * wrapped checker — identity assertion, so a regression that silently
+     * drops the caller-supplied checker (e.g. substituting the config
+     * default) fails loudly.
      */
     @Test
     void resolveExecutorPassesEffectiveCheckerToExecutor() {
@@ -307,6 +309,9 @@ public class TestSubAgentPermissionWiring {
 
         assertNotNull(executor,
                 "resolveExecutor must accept an overridden toolAccessChecker and return a functional executor");
+        assertSame(wrapped, ((ReActAgentExecutor) executor).getToolAccessCheckerForTest(),
+                "The two-arg resolveExecutor overload must pass the caller-supplied wrapped checker through "
+                        + "unchanged, not substitute the config default");
     }
 
     /**

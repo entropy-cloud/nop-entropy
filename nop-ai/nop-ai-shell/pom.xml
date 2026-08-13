@@ -24,6 +24,13 @@
         </dependency>
 
         <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit-junit5</artifactId>
+            <version>1.5.0</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
             <groupId>org.jline</groupId>
             <artifactId>jline-reader</artifactId>
             <version>3.26.0</version>

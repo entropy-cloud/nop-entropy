@@ -148,6 +148,7 @@ public class SpawnMemberAgentTaskStep extends AbstractTaskStep {
     private final ExecutionRecorder recorder;
     private final Executor spawnExecutor;
     private final String capturedTenant;
+    private final long memberExecTimeoutMs;
 
     /**
      * @param spawnExecutor     a dedicated executor (independent of the
@@ -160,11 +161,16 @@ public class SpawnMemberAgentTaskStep extends AbstractTaskStep {
      *                          re-applied inside the supplyAsync worker
      *                          (plan 243 design 裁定 2). May be {@code null}
      *                          (= no tenant context, all data visible).
+     * @param memberExecTimeoutMs the per-member execution deadline (ms,
+     *                          plan 2026-08-12-2050-2 / AR-2) carried to the
+     *                          {@link SpawnMemberRequest} so the spawner's
+     *                          synchronous {@code spawnMember} wait is
+     *                          bounded; must be positive.
      */
     public SpawnMemberAgentTaskStep(TeamTask task, Team team, String orchestratorSessionId,
                                      IMemberSpawner memberSpawner, ITeamTaskStore taskStore,
                                      ExecutionRecorder recorder, Executor spawnExecutor,
-                                     String capturedTenant) {
+                                     String capturedTenant, long memberExecTimeoutMs) {
         this.task = task;
         this.team = team;
         this.orchestratorSessionId = orchestratorSessionId;
@@ -175,6 +181,12 @@ public class SpawnMemberAgentTaskStep extends AbstractTaskStep {
                 "spawnExecutor must not be null — a dedicated executor independent of the commonPool "
                         + "is required (plan 243 design 裁定 3: commonPool nesting would stall/deadlock)");
         this.capturedTenant = capturedTenant;
+        if (memberExecTimeoutMs <= 0) {
+            throw new NopAiAgentException(
+                    "nop.ai.team.flow.invalid-member-timeout: memberExecTimeoutMs must be positive, got: "
+                            + memberExecTimeoutMs);
+        }
+        this.memberExecTimeoutMs = memberExecTimeoutMs;
     }
 
     @Nonnull
@@ -239,13 +251,17 @@ public class SpawnMemberAgentTaskStep extends AbstractTaskStep {
      * honest {@code TeamTaskFlowResult{success=false}}.
      */
     private TaskStepReturn spawnAndComplete(String taskId, Long claimEpoch) {
-        // spawnMember executes the member agent synchronously
-        // (DefaultMemberSpawner does execute(request).join()) and returns a
-        // three-state result. This call happens here — inside the supplyAsync
+        // spawnMember executes the member agent synchronously but bounded
+        // (DefaultMemberSpawner does execute(request).get(memberExecTimeoutMs,
+        // TimeUnit) — plan 2026-08-12-2050-2 / AR-2 — and returns a
+        // three-state result; a hung spawned execution surfaces SPAWN_FAILED
+        // within the deadline instead of blocking the worker unbounded).
+        // This call happens here — inside the supplyAsync
         // worker — so it only runs once the DAG scheduler has triggered this
         // node after its blockedBy predecessors completed (plan 238 decision
         // 1), and it no longer blocks the DAG scheduler thread (plan 243).
-        SpawnMemberRequest spawnReq = new SpawnMemberRequest(team, task, orchestratorSessionId);
+        SpawnMemberRequest spawnReq = new SpawnMemberRequest(
+                team, task, orchestratorSessionId, null, memberExecTimeoutMs);
         SpawnMemberResult spawnResult;
         try {
             spawnResult = memberSpawner.spawnMember(spawnReq);

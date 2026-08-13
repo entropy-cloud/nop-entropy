@@ -1,5 +1,6 @@
 package io.nop.ai.agent.security;
 
+import io.nop.ai.api.secure.SecureDefault;
 import io.nop.ai.agent.engine.AgentExecutionContext;
 
 import java.io.File;
@@ -43,6 +44,7 @@ import java.util.Set;
  * integrators who need the "all STANDARD" behavior (equivalent to no
  * classification).
  */
+@SecureDefault
 public final class DefaultSecurityLevelResolver implements ISecurityLevelResolver {
 
     private static final Set<String> NETWORK_TOOLS = Set.of(

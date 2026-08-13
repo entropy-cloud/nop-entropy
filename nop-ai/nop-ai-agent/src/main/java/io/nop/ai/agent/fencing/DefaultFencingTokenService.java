@@ -1,5 +1,6 @@
 package io.nop.ai.agent.fencing;
 
+import io.nop.ai.api.secure.SecureDefault;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -50,6 +51,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  * <p>See plan 235 (L4-fencing-token), Design Decisions §3 / §7, vision §5.1.
  */
+@SecureDefault
 public final class DefaultFencingTokenService implements IFencingTokenService {
 
     private final ConcurrentHashMap<String, AtomicLong> issueCounters = new ConcurrentHashMap<>();

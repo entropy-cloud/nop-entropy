@@ -1,5 +1,6 @@
 package io.nop.ai.core.api.tool;
 
+import io.nop.ai.api.secure.SecureDefault;
 import io.nop.core.reflect.IClassModel;
 import io.nop.core.reflect.IFunctionModel;
 import io.nop.core.reflect.ReflectionManager;
@@ -17,6 +18,7 @@ import static io.nop.ai.core.api.tool.DefaultAiChatFunctionTool.fromMethod;
  * @deprecated Use {@link io.nop.ai.toolkit.api.IToolManager} (nop-ai-toolkit) instead.
  */
 @Deprecated
+@SecureDefault
 public class DefaultAiChatToolSet implements IAiChatToolSet {
     protected final Map<String, IAiChatFunctionTool> toolMap;
 

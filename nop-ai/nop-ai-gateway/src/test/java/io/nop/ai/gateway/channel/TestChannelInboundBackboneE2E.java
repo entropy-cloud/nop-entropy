@@ -9,10 +9,12 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * End-to-end + calling-contract-stability verification for the optional
@@ -69,8 +71,10 @@ class TestChannelInboundBackboneE2E {
         // use it).
         svc.dispatchInbound(inbound);
 
-        // (a) business listener received via the bridge fan-out
-        assertEquals(1, business.received.size(), "business listener received via bridge");
+        // (a) business listener received via the bridge fan-out (async on the
+        // fan-out executor — I3 R-2-1 — await delivery)
+        awaitUntil(() -> business.received.size() == 1 && audit.received.size() == 1,
+                "business listener and external audit consumer to receive");
         // (b) external audit consumer received directly from the topic
         assertEquals(1, audit.received.size(), "external audit consumer received from topic");
         // the two consumers received the SAME message (equivalent delivery)
@@ -115,6 +119,9 @@ class TestChannelInboundBackboneE2E {
         svcB.dispatchInbound(msg);
 
         // identical calling code delivered in both modes, equivalent messages
+        // (fan-out is async on the dedicated executor — I3 R-2-1 — await)
+        awaitUntil(() -> listenerA.received.size() == 1 && listenerB.received.size() == 1,
+                "mode 1 and mode 2 delivery");
         assertEquals(1, listenerA.received.size(), "mode 1 delivered");
         assertEquals(1, listenerB.received.size(), "mode 2 delivered");
         assertSame(msg, listenerA.received.get(0));
@@ -139,9 +146,10 @@ class TestChannelInboundBackboneE2E {
         bus.subscribe(TOPIC, topicConsumer);
 
         // the backbone topic only receives what dispatchInbound publishes
+        // (mode-2 publish is async + bounded — I3 R-2-1 — await delivery)
         svc.dispatchInbound(inbound(FEISHU, "user-1", "non-agent"));
-        assertEquals(1, topicConsumer.received.size(),
-                "the backbone topic receives non-agent inbound dispatched via dispatchInbound");
+        awaitUntil(() -> topicConsumer.received.size() == 1,
+                "the backbone topic to receive the non-agent inbound");
 
         // Agent-session inbound is handled by IChannelConnector + IAgentEngine
         // directly (not asserted here by construction — there is no code path
@@ -152,6 +160,23 @@ class TestChannelInboundBackboneE2E {
     }
 
     // ---- helpers ----------------------------------------------------------
+
+    /** Await an async delivery (inbound fan-out runs on the dedicated fan-out executor — I3 R-2-1). */
+    private static void awaitUntil(Supplier<Boolean> condition, String label) {
+        long deadline = System.currentTimeMillis() + 5000;
+        while (System.currentTimeMillis() < deadline) {
+            if (condition.get()) {
+                return;
+            }
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                fail("interrupted while awaiting " + label);
+            }
+        }
+        fail("timed out awaiting " + label);
+    }
 
     private static ChannelMessageServiceImpl newChannelMessageService() {
         ChannelMessageServiceImpl svc = new ChannelMessageServiceImpl();

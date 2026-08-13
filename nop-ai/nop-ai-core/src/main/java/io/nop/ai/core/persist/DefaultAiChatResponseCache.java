@@ -1,5 +1,6 @@
 package io.nop.ai.core.persist;
 
+import io.nop.ai.api.secure.SecureDefault;
 import io.nop.ai.core.api.chat.AiChatOptions;
 import io.nop.ai.core.api.messages.AiChatExchange;
 import io.nop.ai.core.api.messages.Prompt;
@@ -11,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 
+@SecureDefault
 public class DefaultAiChatResponseCache implements IAiChatResponseCache {
     static final Logger LOG = LoggerFactory.getLogger(DefaultAiChatResponseCache.class);
 

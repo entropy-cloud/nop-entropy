@@ -13,16 +13,41 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class SingleTurnExecutor implements IAgentExecutor {
 
     private final IChatService chatService;
     private final IAgentEventPublisher eventPublisher;
+    private final long llmTimeoutMs;
+    private final Executor timeoutExecutor;
 
+    /** Backward-compatible constructor: 120s timeout on the common pool. */
     public SingleTurnExecutor(IChatService chatService, IAgentEventPublisher eventPublisher) {
+        this(chatService, eventPublisher, 120_000L, ForkJoinPool.commonPool());
+    }
+
+    /**
+     * Fully-parameterized constructor (I3 adjudication gate-2/SingleTurnExecutor
+     * fix): the synchronous {@code chatService.call} is dispatched to
+     * {@code timeoutExecutor} and bounded by {@code get(llmTimeoutMs)} so a
+     * hanging LLM call cannot block the calling thread indefinitely. Mirrors
+     * {@code LlmCallCoordinator.callChatWithTimeout} (same config source:
+     * {@code DefaultAgentEngineConfig.llmTimeoutMs} wired by
+     * {@code AgentExecutorResolver}).
+     */
+    public SingleTurnExecutor(IChatService chatService, IAgentEventPublisher eventPublisher,
+                              long llmTimeoutMs, Executor timeoutExecutor) {
         this.chatService = chatService;
         this.eventPublisher = eventPublisher;
+        this.llmTimeoutMs = llmTimeoutMs;
+        this.timeoutExecutor = timeoutExecutor != null ? timeoutExecutor : ForkJoinPool.commonPool();
     }
 
     @Override
@@ -38,7 +63,7 @@ public class SingleTurnExecutor implements IAgentExecutor {
 
         try {
             ChatRequest request = new ChatRequest(new ArrayList<>(ctx.getMessages()));
-            ChatResponse response = chatService.call(request, null);
+            ChatResponse response = callWithTimeout(request);
 
             if (!response.isSuccess()) {
                 ctx.setStatus(AgentExecStatus.failed);
@@ -88,6 +113,38 @@ public class SingleTurnExecutor implements IAgentExecutor {
                                    String error) {
         if (eventPublisher != null) {
             eventPublisher.publish(AgentEvent.createError(type, sessionId, agentName, error));
+        }
+    }
+
+    /**
+     * Wall-clock-bounded invocation of the blocking {@code chatService.call}
+     * (I3 gate-2/SingleTurnExecutor fix). A hanging LLM call times out after
+     * {@code llmTimeoutMs} with a {@link TimeoutException} (wrapped in a
+     * {@link CompletionException}), which the caller's failure path converts
+     * into an honest failed execution result — the calling thread never
+     * blocks indefinitely. {@code get(long, TimeUnit)} (interruptible) is
+     * used instead of {@code join()} so a forced cancel can break the wait.
+     */
+    private ChatResponse callWithTimeout(ChatRequest request) {
+        CompletableFuture<ChatResponse> future = CompletableFuture.supplyAsync(
+                () -> chatService.call(request, null), timeoutExecutor);
+        try {
+            return future.get(llmTimeoutMs, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new NopAiAgentException("single-turn LLM call interrupted (forced cancel or thread interrupt)", e);
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof RuntimeException) {
+                throw (RuntimeException) cause;
+            }
+            if (cause instanceof Error) {
+                throw (Error) cause;
+            }
+            throw new CompletionException(cause != null ? cause : e);
+        } catch (TimeoutException e) {
+            future.cancel(true);
+            throw new CompletionException(e);
         }
     }
 

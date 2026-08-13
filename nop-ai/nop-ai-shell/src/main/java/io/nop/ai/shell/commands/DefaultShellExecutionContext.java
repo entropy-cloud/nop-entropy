@@ -1,5 +1,6 @@
 package io.nop.ai.shell.commands;
 
+import io.nop.ai.api.secure.SecureDefault;
 import io.nop.ai.shell.io.IShellInput;
 import io.nop.ai.shell.io.IShellOutput;
 import io.nop.ai.toolkit.fs.IToolFileSystem;
@@ -10,6 +11,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+@SecureDefault
 public class DefaultShellExecutionContext implements IShellCommandExecutionContext {
 
     private final IShellInput stdin;

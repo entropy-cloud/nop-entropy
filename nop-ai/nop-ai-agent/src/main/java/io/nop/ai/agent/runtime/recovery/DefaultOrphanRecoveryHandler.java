@@ -1,5 +1,6 @@
 package io.nop.ai.agent.runtime.recovery;
 
+import io.nop.ai.api.secure.SecureDefault;
 import io.nop.ai.agent.engine.IAgentEngine;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.model.AgentExecStatus;
@@ -64,6 +65,7 @@ import java.sql.SQLException;
  * <p>See plan 226 Phase 2 and design
  * {@code nop-ai-agent-actor-runtime-vision.md} §6.3.
  */
+@SecureDefault
 public class DefaultOrphanRecoveryHandler implements IOrphanRecoveryHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultOrphanRecoveryHandler.class);

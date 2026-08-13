@@ -19,6 +19,8 @@ import io.nop.ai.toolkit.model.AiToolCallResult;
 import io.nop.ai.toolkit.model.AiToolModel;
 import io.nop.api.core.util.ICancelToken;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -112,6 +114,70 @@ public class TestEngineConfigAndHelpers {
     void configRejectsNonPositiveCallAgentTimeout() {
         DefaultAgentEngineConfig config = new DefaultAgentEngineConfig();
         assertThrows(NopAiAgentException.class, () -> config.setCallAgentTimeoutMs(0));
+    }
+
+    // AR-7 (plan 2026-08-12-2311-1): all four timeout setters must reject
+    // non-positive values uniformly (contract declared in catalog INV-2).
+    @ParameterizedTest
+    @CsvSource({
+            "callAgentTimeoutMs, 0",
+            "callAgentTimeoutMs, -1",
+            "llmTimeoutMs, 0",
+            "llmTimeoutMs, -1",
+            "toolTimeoutMs, 0",
+            "toolTimeoutMs, -1",
+            "memberExecTimeoutMs, 0",
+            "memberExecTimeoutMs, -1"
+    })
+    void configRejectsNonPositiveTimeoutSetter(String setterName, long value) {
+        DefaultAgentEngineConfig config = new DefaultAgentEngineConfig();
+        switch (setterName) {
+            case "callAgentTimeoutMs":
+                assertThrows(NopAiAgentException.class, () -> config.setCallAgentTimeoutMs(value));
+                break;
+            case "llmTimeoutMs":
+                assertThrows(NopAiAgentException.class, () -> config.setLlmTimeoutMs(value));
+                break;
+            case "toolTimeoutMs":
+                assertThrows(NopAiAgentException.class, () -> config.setToolTimeoutMs(value));
+                break;
+            case "memberExecTimeoutMs":
+                assertThrows(NopAiAgentException.class, () -> config.setMemberExecTimeoutMs(value));
+                break;
+            default:
+                throw new AssertionError("unexpected setter: " + setterName);
+        }
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "callAgentTimeoutMs, 1000",
+            "llmTimeoutMs, 1000",
+            "toolTimeoutMs, 1000",
+            "memberExecTimeoutMs, 1000"
+    })
+    void configAcceptsPositiveTimeoutSetter(String setterName, long value) {
+        DefaultAgentEngineConfig config = new DefaultAgentEngineConfig();
+        switch (setterName) {
+            case "callAgentTimeoutMs":
+                config.setCallAgentTimeoutMs(value);
+                assertEquals(value, config.getCallAgentTimeoutMs());
+                break;
+            case "llmTimeoutMs":
+                config.setLlmTimeoutMs(value);
+                assertEquals(value, config.getLlmTimeoutMs());
+                break;
+            case "toolTimeoutMs":
+                config.setToolTimeoutMs(value);
+                assertEquals(value, config.getToolTimeoutMs());
+                break;
+            case "memberExecTimeoutMs":
+                config.setMemberExecTimeoutMs(value);
+                assertEquals(value, config.getMemberExecTimeoutMs());
+                break;
+            default:
+                throw new AssertionError("unexpected setter: " + setterName);
+        }
     }
 
     // ============ AgentStartupWarnings ============

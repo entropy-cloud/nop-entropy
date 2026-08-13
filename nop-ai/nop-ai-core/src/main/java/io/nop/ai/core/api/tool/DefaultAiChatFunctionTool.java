@@ -1,5 +1,6 @@
 package io.nop.ai.core.api.tool;
 
+import io.nop.ai.api.secure.SecureDefault;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.json.JsonSchema;
 import io.nop.api.core.util.FutureHelper;
@@ -17,6 +18,7 @@ import static io.nop.core.type.utils.GenericTypeToJsonSchema.buildOutputSchema;
  * @deprecated Use the new tool contracts instead: {@link io.nop.ai.api.tool.IToolDefinition} (nop-ai-api) with {@link io.nop.ai.toolkit.api.IToolExecutor} and {@link io.nop.ai.toolkit.api.IToolManager} (nop-ai-toolkit); declarative tools are defined as {@link io.nop.ai.toolkit.model.AiToolModel} from {@code *.tool.xml}.
  */
 @Deprecated
+@SecureDefault
 public class DefaultAiChatFunctionTool implements IAiChatFunctionTool {
     private String name;
     private String description;

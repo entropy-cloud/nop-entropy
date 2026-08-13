@@ -102,7 +102,7 @@ public class TestAuditLoggerDefault {
 
     @BeforeEach
     void attachAppenders() {
-        engineLogger = (Logger) LoggerFactory.getLogger(DefaultAgentEngine.class);
+        engineLogger = (Logger) LoggerFactory.getLogger(AgentStartupWarnings.class);
         engineWarnAppender = new ListAppender<>();
         engineWarnAppender.start();
         engineLogger.addAppender(engineWarnAppender);

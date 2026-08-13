@@ -1,5 +1,6 @@
 package io.nop.ai.agent.runtime.recovery;
 
+import io.nop.ai.api.secure.SecureDefault;
 import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.security.ITenantResolver;
@@ -97,6 +98,7 @@ import java.util.Objects;
  * <p>See plan 240 Phase 2 and design
  * {@code nop-ai-agent-team-task-reclaim.md}.
  */
+@SecureDefault
 public class DefaultTeamTaskRecoveryHandler implements ITeamTaskRecoveryHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultTeamTaskRecoveryHandler.class);

@@ -1,5 +1,6 @@
 package io.nop.ai.agent.security;
 
+import io.nop.ai.api.secure.SecureDefault;
 import io.nop.ai.agent.engine.AgentExecutionContext;
 
 import java.io.File;
@@ -40,6 +41,7 @@ import java.util.Set;
  * arguments, and {@code null} workDir — returns a conservative
  * {@link LevelHints} rather than throwing.
  */
+@SecureDefault
 public class DefaultLevelHintsProducer {
 
     private static final Set<String> NETWORK_TOOLS = Set.of(

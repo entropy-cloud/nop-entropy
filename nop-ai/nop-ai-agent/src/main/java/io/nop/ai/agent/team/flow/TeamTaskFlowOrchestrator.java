@@ -1,5 +1,6 @@
 package io.nop.ai.agent.team.flow;
 
+import io.nop.ai.agent.engine.DefaultAgentEngineConfig;
 import io.nop.ai.agent.engine.IAgentEngine;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.security.ThreadLocalTenantResolver;
@@ -9,6 +10,7 @@ import io.nop.ai.agent.team.ITeamTaskStore;
 import io.nop.ai.agent.team.NoOpMemberSpawner;
 import io.nop.ai.agent.team.Team;
 import io.nop.ai.agent.team.TeamTask;
+import io.nop.api.core.util.ICancellable;
 import io.nop.task.ITask;
 import io.nop.task.ITaskFlowManager;
 import io.nop.task.ITaskRuntime;
@@ -22,18 +24,24 @@ import io.nop.task.step.GraphTaskStep;
 import io.nop.task.step.GraphTaskStep.GraphStepNode;
 import io.nop.task.step.TaskStepExecution;
 import jakarta.annotation.Nonnull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -122,6 +130,8 @@ import java.util.stream.Collectors;
  */
 public class TeamTaskFlowOrchestrator {
 
+    private static final Logger LOG = LoggerFactory.getLogger(TeamTaskFlowOrchestrator.class);
+
     private final IAgentEngine agentEngine;
     private final ITeamTaskStore taskStore;
     private final ITeamManager teamManager;
@@ -202,6 +212,16 @@ public class TeamTaskFlowOrchestrator {
      */
     private ExecutorService ownedSpawnExecutor;
 
+    /**
+     * Per-member execution deadline (ms) for team-flow fan-out (I3 R-2-3).
+     * Derived from the single config source
+     * {@code DefaultAgentEngineConfig.memberExecTimeoutMs} (both assembly
+     * paths — flow and daemon — derive from that same knob). Applied as a
+     * per-member {@code orTimeout} in {@link MemberFanOutDispatcher} and as
+     * a daemon-level overall deadline on {@link #executeAsync}.
+     */
+    private long memberExecTimeoutMs = DefaultAgentEngineConfig.DEFAULT_MEMBER_EXEC_TIMEOUT_MS;
+
     public TeamTaskFlowOrchestrator(IAgentEngine agentEngine, ITeamTaskStore taskStore,
                                     ITeamManager teamManager) {
         this(agentEngine, taskStore, teamManager, null);
@@ -264,6 +284,33 @@ public class TeamTaskFlowOrchestrator {
                                     ITeamManager teamManager, ITaskFlowManager taskFlowManager,
                                     IMemberSpawner memberSpawner,
                                     ITaskMemberRouter taskMemberRouter) {
+        this(agentEngine, taskStore, teamManager, taskFlowManager, memberSpawner, taskMemberRouter,
+                DefaultAgentEngineConfig.DEFAULT_MEMBER_EXEC_TIMEOUT_MS);
+    }
+
+    /**
+     * Fully-parameterized constructor with the team-flow member-execution
+     * deadline (I3 R-2-3). {@code memberExecTimeoutMs} is derived from
+     * {@code DefaultAgentEngineConfig.memberExecTimeoutMs} by the flow
+     * assembly point ({@code TeamExecuteFlowExecutor}); the default is the
+     * same shared constant so both assembly paths stay same-source.
+     *
+     * @param memberSpawner    optional member spawner consulted at node run time
+     *                         for unbound-member nodes; {@code null} falls back to
+     *                         the shipped {@link NoOpMemberSpawner} default
+     * @param taskMemberRouter optional per-task member router consulted at graph
+     *                         build time to decide the node's fan-out; {@code null}
+     *                         falls back to the shipped {@link NoOpTaskMemberRouter}
+     *                         single-member default
+     * @param memberExecTimeoutMs the per-member execution deadline (ms) applied
+     *                         by the fan-out and the {@link #executeAsync}
+     *                         overall deadline; must be positive
+     */
+    public TeamTaskFlowOrchestrator(IAgentEngine agentEngine, ITeamTaskStore taskStore,
+                                    ITeamManager teamManager, ITaskFlowManager taskFlowManager,
+                                    IMemberSpawner memberSpawner,
+                                    ITaskMemberRouter taskMemberRouter,
+                                    long memberExecTimeoutMs) {
         this.agentEngine = agentEngine;
         this.taskStore = taskStore;
         this.teamManager = teamManager;
@@ -271,6 +318,12 @@ public class TeamTaskFlowOrchestrator {
         this.graphBuilder = new TeamTaskGraphBuilder();
         this.memberSpawner = memberSpawner != null ? memberSpawner : NoOpMemberSpawner.noOp();
         this.taskMemberRouter = taskMemberRouter != null ? taskMemberRouter : NoOpTaskMemberRouter.noOp();
+        if (memberExecTimeoutMs <= 0) {
+            throw new NopAiAgentException(
+                    "nop.ai.team.flow.invalid-member-timeout: memberExecTimeoutMs must be positive, got: "
+                            + memberExecTimeoutMs);
+        }
+        this.memberExecTimeoutMs = memberExecTimeoutMs;
     }
 
     /**
@@ -366,6 +419,21 @@ public class TeamTaskFlowOrchestrator {
      */
     public void setSpawnStepExecutor(Executor executor) {
         this.spawnStepExecutor = executor;
+    }
+
+    /**
+     * I3 R-2-3: set the per-member execution deadline (ms) for fan-out and
+     * the {@link #executeAsync} overall deadline. Derived from
+     * {@code DefaultAgentEngineConfig.memberExecTimeoutMs} by the flow
+     * assembly point; rejects non-positive values.
+     */
+    public void setMemberExecTimeoutMs(long memberExecTimeoutMs) {
+        if (memberExecTimeoutMs <= 0) {
+            throw new NopAiAgentException(
+                    "nop.ai.team.flow.invalid-member-timeout: memberExecTimeoutMs must be positive, got: "
+                            + memberExecTimeoutMs);
+        }
+        this.memberExecTimeoutMs = memberExecTimeoutMs;
     }
 
     /**
@@ -550,12 +618,57 @@ public class TeamTaskFlowOrchestrator {
         CompletableFuture<TeamTaskFlowResult> result = stepReturn.asyncOutputs()
                 .thenApply(outputs -> built.recorder.buildResult(true, built.tasks))
                 .toCompletableFuture()
+                // Plan 2026-08-12-2050-2 / AR-3: the overall deadline is
+                // DECOUPLED from the per-member timeout — a legal N-layer
+                // sequential DAG (each layer legitimately running up to its
+                // per-member deadline) must not be killed by the overall
+                // backstop. Overall = memberExecTimeoutMs × maxDepth (the
+                // graph's longest dependency chain; maxDepth computed at
+                // build time from the blockedBy DAG — decision recorded in
+                // the plan daily log). Even if a node future never settles
+                // (e.g. a reduce/complete chain hang that no per-member
+                // orTimeout covers), the whole team flow cannot wait
+                // indefinitely; a deadline breach converts to the same honest
+                // failed result as a node failure (the future never completes
+                // exceptionally — contract unchanged).
+                .orTimeout(built.overallTimeoutMs, TimeUnit.MILLISECONDS)
                 .exceptionally(ex -> {
-                    // A node delegate threw (claim/complete CAS loss, member-
-                    // agent failure, etc.). nop-task's GraphTaskStep short-
-                    // circuited the graph and cancelled successor nodes.
-                    // Report honestly which task failed and which were
-                    // skipped — never silently succeed (Minimum Rules #24).
+                    // Distinguish the overall-deadline breach from a node
+                    // failure: orTimeout delivers CompletionException
+                    // (TimeoutException) — unwrap first (same precedent as
+                    // MemberFanOutDispatcher.java:330-331 / :426-432), then
+                    // limit cancellation to the timeout case. A plain node
+                    // failure (claim/complete CAS loss, member-agent failure,
+                    // etc.) must NOT trigger a whole-graph cancel — that
+                    // would change nop-task's GraphTaskStep short-circuit
+                    // semantics for ordinary failures.
+                    Throwable cause = unwrapException(ex);
+                    if (cause instanceof TimeoutException) {
+                        // AR-3: a deadline breach must not be "wait ends but
+                        // the graph keeps running" — cancel the underlying
+                        // graph so member agents / spawn workers do not
+                        // continue as zombies consuming quota. nop-task's
+                        // GraphTaskStep scheduler checks the cancel token
+                        // before starting any successor step, so this stops
+                        // further graph progress.
+                        try {
+                            taskRt.cancel(ICancellable.CANCEL_REASON_TIMEOUT);
+                        } catch (RuntimeException cancelEx) {
+                            // Honest record: the graph may still be running.
+                            // Never swallow the failure silently.
+                            LOG.warn("TeamTaskFlowOrchestrator: failed to cancel underlying task graph after "
+                                            + "overall timeout — the graph may still be executing: teamId={}",
+                                    teamId, cancelEx);
+                        }
+                        LOG.warn("TeamTaskFlowOrchestrator: team flow exceeded overall deadline of {}ms "
+                                        + "(maxDepth={}, memberExecTimeoutMs={}) for teamId={} — underlying "
+                                        + "graph cancelled, reporting honest failure",
+                                built.overallTimeoutMs, built.maxDepth, memberExecTimeoutMs, teamId);
+                    }
+                    // Node failure or overall timeout: nop-task's GraphTaskStep
+                    // short-circuited the graph (or was cancelled above).
+                    // Report honestly which task failed and which were skipped
+                    // — never silently succeed (Minimum Rules #24).
                     return built.recorder.buildResult(false, built.tasks);
                 });
 
@@ -654,7 +767,77 @@ public class TeamTaskFlowOrchestrator {
         ITask task = new TaskImpl("team-flow:" + teamId, 0, graph, false,
                 null, null, Collections.emptyList(), Collections.emptyList());
 
-        return new BuiltGraph(task, recorder, tasks);
+        // Plan 2026-08-12-2050-2 / AR-3: the overall deadline is decoupled
+        // from the per-member timeout via the graph's longest dependency
+        // chain (maxDepth). A legal N-layer sequential DAG may legitimately
+        // take up to N × memberExecTimeoutMs, so the overall backstop scales
+        // with the DAG depth instead of reusing the per-member value (which
+        // would kill legal multi-layer flows at the first layer's deadline).
+        int maxDepth = computeGraphDepth(tasks, allTaskIds);
+        return new BuiltGraph(task, recorder, tasks, maxDepth, overallTimeoutMs(memberExecTimeoutMs, maxDepth));
+    }
+
+    /**
+     * Longest dependency chain of the task DAG (edges = {@code blockedBy}
+     * references within the task set). Depth(task) = 1 + max(depth of
+     * blockedBy predecessor), computed by relaxation until fixpoint — the
+     * graph is acyclic (graphBuilder.buildGraph already rejected cycles), so
+     * this terminates. A task with no in-set predecessor has depth 1.
+     */
+    private static int computeGraphDepth(List<TeamTask> tasks, Set<String> allTaskIds) {
+        Map<String, Integer> depth = new HashMap<>();
+        for (TeamTask t : tasks) {
+            depth.put(t.getTaskId(), 1);
+        }
+        boolean changed;
+        do {
+            changed = false;
+            for (TeamTask t : tasks) {
+                int d = 1;
+                for (String pred : t.getBlockedBy()) {
+                    if (allTaskIds.contains(pred)) {
+                        d = Math.max(d, depth.getOrDefault(pred, 1) + 1);
+                    }
+                }
+                if (d > depth.getOrDefault(t.getTaskId(), 1)) {
+                    depth.put(t.getTaskId(), d);
+                    changed = true;
+                }
+            }
+        } while (changed);
+        int max = 1;
+        for (int d : depth.values()) {
+            max = Math.max(max, d);
+        }
+        return max;
+    }
+
+    /**
+     * Plan 2026-08-12-2050-2 / AR-3: overall team-flow deadline (ms) =
+     * {@code memberExecTimeoutMs × maxDepth}, saturating at
+     * {@link Long#MAX_VALUE} on overflow.
+     */
+    private static long overallTimeoutMs(long memberExecTimeoutMs, int maxDepth) {
+        if (maxDepth <= 0) {
+            return memberExecTimeoutMs;
+        }
+        if (memberExecTimeoutMs > Long.MAX_VALUE / maxDepth) {
+            return Long.MAX_VALUE;
+        }
+        return memberExecTimeoutMs * maxDepth;
+    }
+
+    /**
+     * Unwrap {@link CompletionException} wrappers (the {@code orTimeout}
+     * delivery form) to the root cause — same precedent as
+     * {@code MemberFanOutDispatcher.unwrap}.
+     */
+    private static Throwable unwrapException(Throwable ex) {
+        Throwable c = ex;
+        while (c instanceof CompletionException && c.getCause() != null) {
+            c = c.getCause();
+        }
+        return c;
     }
 
     private ITaskStepExecution wrapExecution(AbstractTaskStep delegate, String stepName) {
@@ -671,11 +854,18 @@ public class TeamTaskFlowOrchestrator {
         final ITask task;
         final ExecutionRecorder recorder;
         final List<TeamTask> tasks;
+        /** Longest dependency chain of the task DAG (plan AR-3). */
+        final int maxDepth;
+        /** Overall team-flow deadline = memberExecTimeoutMs × maxDepth. */
+        final long overallTimeoutMs;
 
-        BuiltGraph(ITask task, ExecutionRecorder recorder, List<TeamTask> tasks) {
+        BuiltGraph(ITask task, ExecutionRecorder recorder, List<TeamTask> tasks,
+                   int maxDepth, long overallTimeoutMs) {
             this.task = task;
             this.recorder = recorder;
             this.tasks = tasks;
+            this.maxDepth = maxDepth;
+            this.overallTimeoutMs = overallTimeoutMs;
         }
     }
 
@@ -743,7 +933,7 @@ public class TeamTaskFlowOrchestrator {
             Executor spawnExecutor = resolveSpawnExecutor();
             return new SpawnMemberAgentTaskStep(
                     task, team, orchestratorSessionId, memberSpawner, taskStore, recorder,
-                    spawnExecutor, capturedTenant);
+                    spawnExecutor, capturedTenant, memberExecTimeoutMs);
         }
 
         // Multi-member fan-out. Partition by kind to select the step variant.
@@ -760,16 +950,17 @@ public class TeamTaskFlowOrchestrator {
             Executor spawnExecutor = resolveSpawnExecutor();
             return new MixedMemberFanOutStep(task, team, targets, orchestratorSessionId,
                     agentEngine, memberSpawner, taskStore, recorder, spawnExecutor,
-                    capturedTenant, reduction);
+                    capturedTenant, reduction, memberExecTimeoutMs);
         }
         if (hasBound) {
             return new BoundMemberFanOutStep(task, targets, orchestratorSessionId,
-                    agentEngine, taskStore, recorder, capturedTenant, reduction);
+                    agentEngine, taskStore, recorder, capturedTenant, reduction, memberExecTimeoutMs);
         }
         // hasSpawn only.
         Executor spawnExecutor = resolveSpawnExecutor();
         return new SpawnMemberFanOutStep(task, team, targets, orchestratorSessionId,
-                memberSpawner, taskStore, recorder, spawnExecutor, capturedTenant, reduction);
+                memberSpawner, taskStore, recorder, spawnExecutor, capturedTenant, reduction,
+                memberExecTimeoutMs);
     }
 
     /**

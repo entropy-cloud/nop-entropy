@@ -1,5 +1,6 @@
 package io.nop.ai.agent.reliability;
 
+import io.nop.ai.api.secure.SecureDefault;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +38,7 @@ import java.util.function.LongSupplier;
  * {@code System.currentTimeMillis()} anti-pattern (design §13.4 Decision D
  * ruling applied to WAIT_FOR). Tests inject a controllable time source.
  */
+@SecureDefault
 public class DefaultWaitCoordinator implements IWaitCoordinator {
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultWaitCoordinator.class);

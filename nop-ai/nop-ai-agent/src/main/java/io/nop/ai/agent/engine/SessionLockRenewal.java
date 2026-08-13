@@ -10,20 +10,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-
 /**
  * Takeover-lock lease renewal (extracted from {@link DefaultAgentEngine},
  * MA4.2-05). Lazily creates the dedicated renewal scheduler, schedules the
@@ -31,7 +17,7 @@ import java.util.concurrent.TimeUnit;
  * lost (preempted by another instance or expired) to prevent double-execution.
  */
 public class SessionLockRenewal {
-    private static final Logger LOG = LoggerFactory.getLogger(DefaultAgentEngine.class);
+    private static final Logger LOG = LoggerFactory.getLogger(SessionLockRenewal.class);
     private final DefaultAgentEngineConfig config;
     private final java.util.concurrent.ConcurrentHashMap<String, AgentSessionLifecycle.CancelHandle> runningExecutions;
 

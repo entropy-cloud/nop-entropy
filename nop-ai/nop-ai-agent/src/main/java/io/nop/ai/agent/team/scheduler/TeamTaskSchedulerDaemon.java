@@ -116,6 +116,45 @@ public class TeamTaskSchedulerDaemon implements ITeamTaskSchedulerDaemon {
                                     long scanIntervalSec, String daemonSessionId,
                                     Collection<String> targetTeamIds,
                                     IMemberSpawner memberSpawner) {
+        this(agentEngine, taskStore, teamManager, scheduledExecutor,
+                scanIntervalSec, daemonSessionId, targetTeamIds, memberSpawner,
+                io.nop.ai.agent.engine.DefaultAgentEngineConfig.DEFAULT_MEMBER_EXEC_TIMEOUT_MS);
+    }
+
+    /**
+     * Fully-parameterized constructor with the per-member execution deadline
+     * (I3 R-2-3). {@code memberExecTimeoutMs} is derived from the single
+     * config source {@code DefaultAgentEngineConfig.memberExecTimeoutMs} by
+     * the daemon assembly path and threaded through to
+     * {@link TaskDispatchCoordinator} → {@link MemberFanOutDispatcher}.
+     *
+     * @param agentEngine       the member-agent engine used to dispatch claimed
+     *                          tasks (non-null)
+     * @param taskStore         the team-task store (non-null)
+     * @param teamManager       the team manager (non-null)
+     * @param scheduledExecutor the scheduler used to register the periodic
+     *                          task (non-null)
+     * @param scanIntervalSec   the fixed delay between scans, in seconds;
+     *                          must be {@code > 0}
+     * @param daemonSessionId   the session id recorded as {@code claimedBy} /
+     *                          {@code completedBy} / {@code abandonedBy} on
+     *                          state transitions driven by this daemon
+     *                          (non-null, non-blank)
+     * @param targetTeamIds     optional restriction of the scan to a fixed set
+     *                          of team ids; {@code null} or empty means scan
+     *                          all {@link ITeamManager#getActiveTeams()}
+     * @param memberSpawner     optional member spawner for SPAWN dispatch
+     *                          targets; {@code null} falls back to the shipped
+     *                          {@link NoOpMemberSpawner} default
+     * @param memberExecTimeoutMs the per-member execution deadline (ms) applied
+     *                          by the fan-out; must be positive
+     */
+    public TeamTaskSchedulerDaemon(IAgentEngine agentEngine, ITeamTaskStore taskStore,
+                                    ITeamManager teamManager, IScheduledExecutor scheduledExecutor,
+                                    long scanIntervalSec, String daemonSessionId,
+                                    Collection<String> targetTeamIds,
+                                    IMemberSpawner memberSpawner,
+                                    long memberExecTimeoutMs) {
         this.agentEngine = Objects.requireNonNull(agentEngine, "agentEngine");
         this.taskStore = Objects.requireNonNull(taskStore, "taskStore");
         this.teamManager = Objects.requireNonNull(teamManager, "teamManager");
@@ -134,7 +173,8 @@ public class TeamTaskSchedulerDaemon implements ITeamTaskSchedulerDaemon {
         this.targetTeamIds = targetTeamIds != null && !targetTeamIds.isEmpty()
                 ? Collections.unmodifiableSet(new HashSet<>(targetTeamIds))
                 : Collections.emptySet();
-        this.dispatchCoordinator = new TaskDispatchCoordinator(this.agentEngine, this.taskStore, this.daemonSessionId);
+        this.dispatchCoordinator = new TaskDispatchCoordinator(this.agentEngine, this.taskStore,
+                this.daemonSessionId, memberExecTimeoutMs);
         this.dispatchCoordinator.setMemberSpawner(memberSpawner);
     }
 

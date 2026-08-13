@@ -2,6 +2,7 @@ package io.nop.ai.agent.usage;
 
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageRequest;
+import io.nop.ai.agent.engine.AgentStartupWarnings;
 import io.nop.ai.agent.engine.DefaultAgentEngine;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.model.AgentModel;
@@ -117,7 +118,7 @@ public class TestUsageRecorderWiring {
 
     @Test
     void noOpDefaultEmitsUsageRecorderWarnAtExecution() throws Exception {
-        Logger engineLogger = (Logger) LoggerFactory.getLogger(DefaultAgentEngine.class);
+        Logger engineLogger = (Logger) LoggerFactory.getLogger(AgentStartupWarnings.class);
         ListAppender<ILoggingEvent> appender = new ListAppender<>();
         appender.start();
         engineLogger.addAppender(appender);
@@ -149,7 +150,7 @@ public class TestUsageRecorderWiring {
 
     @Test
     void builderWiredFunctionalRecorderDoesNotEmitUsageRecorderWarn() throws Exception {
-        Logger engineLogger = (Logger) LoggerFactory.getLogger(DefaultAgentEngine.class);
+        Logger engineLogger = (Logger) LoggerFactory.getLogger(AgentStartupWarnings.class);
         ListAppender<ILoggingEvent> appender = new ListAppender<>();
         appender.start();
         engineLogger.addAppender(appender);

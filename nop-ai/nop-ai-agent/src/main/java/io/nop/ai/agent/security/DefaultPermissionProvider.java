@@ -1,5 +1,6 @@
 package io.nop.ai.agent.security;
 
+import io.nop.ai.api.secure.SecureDefault;
 import io.nop.ai.agent.model.AgentPermissionModel;
 
 import java.util.ArrayList;
@@ -7,6 +8,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+@SecureDefault
 public class DefaultPermissionProvider implements IPermissionProvider {
 
     private final List<AgentPermissionModel> defaultRules;

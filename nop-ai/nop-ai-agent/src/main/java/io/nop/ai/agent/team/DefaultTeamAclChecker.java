@@ -1,5 +1,6 @@
 package io.nop.ai.agent.team;
 
+import io.nop.ai.api.secure.SecureDefault;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -59,6 +60,7 @@ import java.util.Optional;
  * <p>See plan 228 (L4-team-acl-enforcement), Design Decisions §1 / §2 / §3,
  * vision §5.1.
  */
+@SecureDefault
 public final class DefaultTeamAclChecker implements ITeamAclChecker {
 
     private static final String KEY_SEP = "\u0001";

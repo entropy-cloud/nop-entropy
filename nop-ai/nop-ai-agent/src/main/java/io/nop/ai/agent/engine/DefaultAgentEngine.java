@@ -1,5 +1,6 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.api.secure.SecureDefault;
 import io.nop.ai.agent.budget.IBudgetProvider;
 import io.nop.ai.agent.budget.NoOpBudgetProvider;
 import io.nop.ai.agent.compact.IContextCompactor;
@@ -95,24 +96,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Function;
-import java.util.function.Predicate;
-
+@SecureDefault
 public class DefaultAgentEngine implements IAgentEngine {
     private static final Logger LOG = LoggerFactory.getLogger(DefaultAgentEngine.class);
 
@@ -505,6 +489,11 @@ public class DefaultAgentEngine implements IAgentEngine {
     public void setToolTimeoutMs(long toolTimeoutMs) { config.setToolTimeoutMs(toolTimeoutMs); }
 
     public long getToolTimeoutMs() { return config.getToolTimeoutMs(); }
+
+    /** I3 R-2-3: team-flow member-execution deadline (ms), single config source. */
+    public void setMemberExecTimeoutMs(long memberExecTimeoutMs) { config.setMemberExecTimeoutMs(memberExecTimeoutMs); }
+
+    public long getMemberExecTimeoutMs() { return config.getMemberExecTimeoutMs(); }
 
     public void setUsageRecorder(IUsageRecorder usageRecorder) {
         config.setUsageRecorder(usageRecorder);

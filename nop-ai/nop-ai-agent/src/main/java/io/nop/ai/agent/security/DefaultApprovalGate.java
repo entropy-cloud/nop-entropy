@@ -1,5 +1,6 @@
 package io.nop.ai.agent.security;
 
+import io.nop.ai.api.secure.SecureDefault;
 /**
  * Shipped default {@link IApprovalGate} used as the engine default (design §4.8
  * / §6.1). Unlike {@link AutoApproveGate} (which unconditionally approves all
@@ -27,6 +28,7 @@ package io.nop.ai.agent.security;
  * need unconditional auto-approval (e.g. trusted test environments), analogous
  * to the {@code AllowAll*} checker opt-in pattern (plan 193).
  */
+@SecureDefault
 public final class DefaultApprovalGate implements IApprovalGate {
 
     /** The approver identifier recorded on auto-approved decisions. */

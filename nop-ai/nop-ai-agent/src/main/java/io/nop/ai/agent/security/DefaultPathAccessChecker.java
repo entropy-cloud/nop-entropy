@@ -1,5 +1,6 @@
 package io.nop.ai.agent.security;
 
+import io.nop.ai.api.secure.SecureDefault;
 import io.nop.ai.agent.engine.AgentExecutionContext;
 
 import java.io.IOException;
@@ -12,6 +13,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+@SecureDefault
 public class DefaultPathAccessChecker implements IPathAccessChecker {
 
     private static final String HOME = System.getProperty("user.home", "").replace("\\", "/");

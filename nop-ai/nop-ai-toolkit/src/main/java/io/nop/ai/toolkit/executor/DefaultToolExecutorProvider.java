@@ -1,5 +1,6 @@
 package io.nop.ai.toolkit.executor;
 
+import io.nop.ai.api.secure.SecureDefault;
 import io.nop.ai.api.exceptions.NopAiException;
 import io.nop.ai.toolkit.api.IToolExecutor;
 import io.nop.ai.toolkit.api.IToolExecutorProvider;
@@ -10,6 +11,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+@SecureDefault
 public class DefaultToolExecutorProvider implements IToolExecutorProvider {
     private Map<String, IToolExecutor> executors = new HashMap<>();
 

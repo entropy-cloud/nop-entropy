@@ -13,12 +13,24 @@ import io.nop.integration.api.channel.SendResult;
 import io.nop.integration.api.channel.UserChannelResolver;
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static io.nop.api.core.ApiErrors.ERR_CHECK_INVALID_ARGUMENT;
 
@@ -46,10 +58,11 @@ import static io.nop.api.core.ApiErrors.ERR_CHECK_INVALID_ARGUMENT;
  * <p><b>Inbound deployment modes</b> (design §3.3 问题 B — W6-4):
  * <ul>
  *   <li><b>Mode 1 (direct, default)</b>: when no {@link IMessageService} is
- *       injected, {@link #dispatchInbound} fans the message out synchronously
- *       to all registered listeners. This is the single-JVM deployment form
- *       and its behavior is byte-for-byte identical to the pre-mode-2
- *       implementation.</li>
+ *       injected, {@link #dispatchInbound} fans the message out to all
+ *       registered listeners on a dedicated executor, each listener bounded
+ *       by {@code dispatchTimeoutMs} (I3 R-2-1 — a hanging listener can no
+ *       longer block the transport thread). This is the single-JVM
+ *       deployment form.</li>
  *   <li><b>Mode 2 (optional backbone)</b>: when an {@link IMessageService} is
  *       injected (e.g. the platform {@code nopLocalMessageService}, or a
  *       Kafka/Pulsar implementation for horizontal scale),
@@ -69,6 +82,7 @@ import static io.nop.api.core.ApiErrors.ERR_CHECK_INVALID_ARGUMENT;
  * the caller inspects {@link SendResult} and decides its own fallback.
  */
 public class ChannelMessageServiceImpl implements IChannelMessageService {
+    private static final Logger LOG = LoggerFactory.getLogger(ChannelMessageServiceImpl.class);
 
     /**
      * Topic prefix for the optional inbound backbone (design §3.3 问题 B,
@@ -77,6 +91,28 @@ public class ChannelMessageServiceImpl implements IChannelMessageService {
      * own topic and can have an independent consumer group / rate.
      */
     static final String INBOUND_TOPIC_PREFIX = "channel.inbound.";
+
+    /**
+     * Default dispatch deadline (ms) for the inbound path (I3 R-2-1):
+     * mode-1 per-listener fan-out and mode-2 sendAsync wait are bounded by
+     * this value so a hanging listener or a hanging persistence layer can
+     * never block the transport thread indefinitely. Configurable via
+     * {@code nop.ai.gateway.channel.dispatchTimeoutMs}; setter rejects
+     * non-positive values (aligned with {@code DefaultAgentEngineConfig}).
+     */
+    static final long DEFAULT_DISPATCH_TIMEOUT_MS = 30_000L;
+
+    private volatile long dispatchTimeoutMs = DEFAULT_DISPATCH_TIMEOUT_MS;
+
+    /**
+     * Dedicated executor for the mode-1 per-listener fan-out (I3 R-2-1).
+     * Setter-injected; when null a lazy daemon-thread pool is created and
+     * shut down by {@link #close()} (aligned with
+     * {@code TeamTaskFlowOrchestrator.ownedSpawnExecutor}).
+     */
+    private Executor fanOutExecutor;
+
+    private ExecutorService ownedFanOutExecutor;
 
     private UserChannelResolver userChannelResolver;
     private ChannelConnectorManager channelConnectorManager;
@@ -147,6 +183,85 @@ public class ChannelMessageServiceImpl implements IChannelMessageService {
         this.messageService = messageService;
     }
 
+    /**
+     * I3 R-2-1: set the inbound dispatch deadline (ms) applied to mode-1
+     * per-listener fan-out and mode-2 {@code sendAsync} waits. Non-positive
+     * values are rejected (fail-fast, aligned with
+     * {@code DefaultAgentEngineConfig} timeout setters).
+     */
+    public void setDispatchTimeoutMs(long dispatchTimeoutMs) {
+        if (dispatchTimeoutMs <= 0) {
+            throw new NopException(ERR_CHECK_INVALID_ARGUMENT)
+                    .param("msg", "dispatchTimeoutMs must be positive, got: " + dispatchTimeoutMs);
+        }
+        this.dispatchTimeoutMs = dispatchTimeoutMs;
+    }
+
+    /**
+     * I3 R-2-1: inject the dedicated fan-out executor (independent of the
+     * common pool) used for mode-1 per-listener dispatch. When not injected,
+     * a lazy daemon-thread pool is created and owned by this instance,
+     * released by {@link #close()}.
+     */
+    @Inject
+    public void setFanOutExecutor(@Nullable Executor fanOutExecutor) {
+        this.fanOutExecutor = fanOutExecutor;
+    }
+
+    /**
+     * Resolve the fan-out executor: the injected one, or a lazily-created
+     * owned daemon pool (daemon threads so a forgotten {@link #close()} does
+     * not hang JVM exit; named {@code ai-channel-fanout-N} for diagnostics).
+     */
+    private Executor resolveFanOutExecutor() {
+        Executor injected = this.fanOutExecutor;
+        if (injected != null) {
+            return injected;
+        }
+        ExecutorService owned = this.ownedFanOutExecutor;
+        if (owned == null) {
+            synchronized (this) {
+                owned = this.ownedFanOutExecutor;
+                if (owned == null) {
+                    ThreadFactory factory = new FanOutWorkerThreadFactory();
+                    owned = Executors.newFixedThreadPool(
+                            Math.max(2, Runtime.getRuntime().availableProcessors()), factory);
+                    this.ownedFanOutExecutor = owned;
+                }
+            }
+        }
+        return owned;
+    }
+
+    /**
+     * Release the fan-out executor pool created (and owned) by this instance,
+     * if any. No-op when an executor was injected via
+     * {@link #setFanOutExecutor} (the injector owns its lifecycle).
+     */
+    public void close() {
+        ExecutorService owned = this.ownedFanOutExecutor;
+        if (owned != null) {
+            owned.shutdownNow();
+            try {
+                owned.awaitTermination(2, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            this.ownedFanOutExecutor = null;
+        }
+    }
+
+    private static final class FanOutWorkerThreadFactory implements ThreadFactory {
+        private final AtomicInteger counter = new AtomicInteger();
+
+        @Override
+        public Thread newThread(Runnable r) {
+            Thread t = new Thread(r, "ai-channel-fanout-" + counter.incrementAndGet());
+            t.setDaemon(true);
+            return t;
+        }
+    }
+
     private final List<IInboundMessageListener> inboundListeners = new CopyOnWriteArrayList<>();
 
     @Override
@@ -198,18 +313,24 @@ public class ChannelMessageServiceImpl implements IChannelMessageService {
     /**
      * Called by transport-layer connectors when a non-agent inbound message
      * is received. In mode 1 (no {@link IMessageService}) the message is
-     * fanned out synchronously to every registered listener; in mode 2
-     * (backbone assembled) it is published to
-     * {@code channel.inbound.{channelType}}, from which the singleton bridge
-     * consumer fans it out to listeners and external multi-consumers also
-     * receive it. The two modes are a pure deployment-assembly choice; this
-     * entry point is called identically in both.
+     * fanned out to every registered listener; in mode 2 (backbone
+     * assembled) it is published to {@code channel.inbound.{channelType}},
+     * from which the singleton bridge consumer fans it out to listeners and
+     * external multi-consumers also receive it. The two modes are a pure
+     * deployment-assembly choice; this entry point is called identically in
+     * both.
+     *
+     * <p><b>Bounded dispatch (I3 R-2-1)</b>: both modes are deadline-bounded
+     * by {@link #dispatchTimeoutMs} — a hanging listener (mode 1) or a
+     * hanging persistence layer (mode 2) can no longer block the transport
+     * thread indefinitely. Timeouts / listener exceptions are logged
+     * fail-loud (never silently swallowed).
      */
     public void dispatchInbound(InboundChannelMessage message) {
         if (messageService == null) {
-            // Mode 1 (direct): byte-for-byte identical to the pre-mode-2
-            // behavior — including the no-null-check contract (a null message
-            // is forwarded as-is to listeners, unchanged).
+            // Mode 1 (direct): fan out to listeners on the dedicated executor,
+            // each listener bounded by dispatchTimeoutMs (I3 R-2-1 — a
+            // hanging listener must not block the transport thread forever).
             fanOutToListeners(message);
             return;
         }
@@ -219,18 +340,120 @@ public class ChannelMessageServiceImpl implements IChannelMessageService {
         // bogus topic like "channel.inbound.null".
         String topic = inboundTopicFor(message.getChannelType());
         ensureBridgeSubscribed(topic);
-        messageService.send(topic, message);
+        // I3 R-2-1: publish async (send blocks on FutureHelper.syncGet —
+        // a hanging DB would block the transport thread) and bound the wait
+        // by dispatchTimeoutMs. at-least-once delivery is carried by
+        // DBMessageService persist-before-return; a timeout only stops the
+        // wait (delivery may already be persisted — consumers must be
+        // idempotent, consistent with the DBMessageService contract).
+        CompletableFuture<Void> sendFuture = messageService.sendAsync(topic, message)
+                .toCompletableFuture()
+                .orTimeout(dispatchTimeoutMs, TimeUnit.MILLISECONDS);
+        sendFuture.whenComplete((v, ex) -> {
+            if (ex != null) {
+                LOG.error("channel dispatch mode-2 failed or timed out after {}ms: topic={}",
+                        dispatchTimeoutMs, topic, ex);
+            }
+        });
     }
 
     /**
      * Shared fan-out used by both mode-1 {@link #dispatchInbound} and the
      * mode-2 {@link #bridgeConsumer}. Keeping it in one place ensures the
      * two modes cannot drift apart.
+     *
+     * <p>I3 R-2-1: each listener invocation is submitted to the dedicated
+     * fan-out executor and bounded by {@code dispatchTimeoutMs} — a hanging
+     * listener can no longer block the calling (transport) thread, and a
+     * listener that does not settle within the deadline is reported
+     * fail-loud (never silently skipped).
      */
     private void fanOutToListeners(InboundChannelMessage message) {
+        Executor executor = resolveFanOutExecutor();
         for (IInboundMessageListener listener : inboundListeners) {
-            listener.onInbound(message);
+            // Plan 2026-08-12-2050-2 / AR-4: keep the RAW runAsync future
+            // reference. orTimeout returns a NEW stage — timing out that
+            // stage does NOT interrupt the source task (cancel propagates
+            // only downwards), so a hanging listener would keep running on
+            // the fan-out pool thread and eventually exhaust the bounded
+            // pool. On timeout the raw future is cancelled explicitly AND
+            // the worker thread is interrupted — aligned with the in-repo
+            // interrupt-based cancel pattern of SingleTurnExecutor /
+            // AgentToolDispatcher / MemberFanOutDispatcher.
+            //
+            // Interruption note (recorded in the plan daily log): JDK's
+            // CompletableFuture.cancel(true) does not reliably interrupt the
+            // running async task (no thread reference in AsyncRun on current
+            // runtimes), so the worker thread is captured inside the runnable
+            // (which always runs on the fan-out pool thread) and interrupted
+            // directly on the timeout path. A cooperative listener (blocking
+            // calls throw InterruptedException) releases the pool thread.
+            final AtomicReference<Thread> workerRef = new AtomicReference<>();
+            final AtomicBoolean cancelled = new AtomicBoolean();
+            CompletableFuture<Void> raw = CompletableFuture.runAsync(() -> {
+                Thread worker = Thread.currentThread();
+                workerRef.set(worker);
+                boolean wasInterrupted;
+                try {
+                    if (cancelled.get()) {
+                        // The timeout already fired before this worker
+                        // started — do not let the listener run unguarded.
+                        worker.interrupt();
+                    }
+                    listener.onInbound(message);
+                } finally {
+                    // Consume the interrupt flag (set by the timeout path's
+                    // worker.interrupt()) so a cooperative listener that
+                    // returned after interruption is still reported as
+                    // cancelled, and the pool thread is not left with a
+                    // stale interrupt.
+                    wasInterrupted = Thread.interrupted();
+                    workerRef.set(null);
+                }
+                if (wasInterrupted) {
+                    throw new java.util.concurrent.CancellationException(
+                            "fan-out listener interrupted after dispatch timeout");
+                }
+            }, executor);
+            CompletableFuture<Void> timed = raw.orTimeout(dispatchTimeoutMs, TimeUnit.MILLISECONDS);
+            timed.whenComplete((v, ex) -> {
+                if (ex == null) {
+                    return;
+                }
+                Throwable cause = unwrapException(ex);
+                if (cause instanceof TimeoutException) {
+                    cancelled.set(true);
+                    try {
+                        raw.cancel(true);
+                    } catch (RuntimeException cancelEx) {
+                        // Honest record: never swallow the failure.
+                        LOG.error("channel fan-out cancel failed after timeout {}ms: listener={}",
+                                dispatchTimeoutMs, listener.getClass().getName(), cancelEx);
+                    }
+                    Thread worker = workerRef.get();
+                    if (worker != null) {
+                        worker.interrupt();
+                    }
+                    LOG.error("channel fan-out listener timed out after {}ms — task cancelled: listener={}",
+                            dispatchTimeoutMs, listener.getClass().getName());
+                } else {
+                    LOG.error("channel fan-out listener failed: listener={}",
+                            listener.getClass().getName(), cause);
+                }
+            });
         }
+    }
+
+    /**
+     * Unwrap {@link java.util.concurrent.CompletionException} wrappers (the
+     * delivery form of {@code orTimeout}) to the root cause.
+     */
+    private static Throwable unwrapException(Throwable ex) {
+        Throwable c = ex;
+        while (c instanceof java.util.concurrent.CompletionException && c.getCause() != null) {
+            c = c.getCause();
+        }
+        return c;
     }
 
     private static String inboundTopicFor(String channelType) {
