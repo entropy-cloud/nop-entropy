@@ -456,6 +456,56 @@ class TestRocksDBSnapshotRestore {
         restored.close();
     }
 
+    // ==================== Numeric-key cross-backend consistency (AR-01) ====================
+
+    /**
+     * AR-01 (P0): the same JSON-persisted checkpoint must restore identically on
+     * the Memory and RocksDB backends for numeric (Long) keys. Pre-fix the Memory
+     * backend lost Long keys &lt; 2^31 silently (JSON parse returns Integer, the
+     * class-sensitive {@code TypedNamespaceAndKey.equals} missed live Long
+     * lookups) while RocksDB re-materialized keys by keyType and restored
+     * correctly — a cross-backend fork on the DEFAULT backend path.
+     *
+     * <p>The snapshot is taken on the Memory backend, run through the exact
+     * storage-layer JSON round trip ({@code JsonTool.serialize} →
+     * {@code JsonTool.parseMap}), and restored on BOTH backends: each must hit
+     * the same keys with the same values.
+     */
+    @SuppressWarnings("unchecked")
+    @Test
+    void testNumericKeySnapshotRestoresIdenticallyAcrossBackends() throws Exception {
+        IKeyedStateBackend<Long> mem = new MemoryStateBackend().createKeyedStateBackend(Long.class);
+        mem.setCurrentKey(123L);            // < 2^31 → JSON round-trip yields Integer
+        mem.getState(new ValueStateDescriptor<>("vs", Long.class)).update(10L);
+        mem.setCurrentKey(3_000_000_000L);  // > 2^31 → survives as Long
+        mem.getState(new ValueStateDescriptor<>("vs", Long.class)).update(20L);
+        StateSnapshot snapshot = mem.snapshotState();
+
+        String json = io.nop.core.lang.json.JsonTool.serialize(snapshot.getStateData(), false);
+        Map<String, Object> parsed = io.nop.core.lang.json.JsonTool.parseMap(json);
+        StateSnapshot persisted = new StateSnapshot(parsed);
+
+        RocksDBKeyedStateBackend<Long> rocks = new RocksDBKeyedStateBackend<>(tempDir.getAbsolutePath(), Long.class, 1, null);
+        rocks.restoreState(persisted);
+        rocks.setCurrentKey(123L);
+        assertEquals(10L, rocks.getState(new ValueStateDescriptor<>("vs", Long.class)).value(),
+                "RocksDB backend must hit Long key < 2^31 after JSON checkpoint restore");
+        rocks.setCurrentKey(3_000_000_000L);
+        assertEquals(20L, rocks.getState(new ValueStateDescriptor<>("vs", Long.class)).value(),
+                "RocksDB backend must hit Long key > 2^31 after JSON checkpoint restore");
+
+        IKeyedStateBackend<Long> memRestored = new MemoryStateBackend().createKeyedStateBackend(Long.class);
+        memRestored.restoreState(persisted);
+        memRestored.setCurrentKey(123L);
+        assertEquals(10L, memRestored.getState(new ValueStateDescriptor<>("vs", Long.class)).value(),
+                "Memory backend must hit Long key < 2^31 after JSON checkpoint restore (same as RocksDB)");
+        memRestored.setCurrentKey(3_000_000_000L);
+        assertEquals(20L, memRestored.getState(new ValueStateDescriptor<>("vs", Long.class)).value(),
+                "Memory backend must hit Long key > 2^31 after JSON checkpoint restore (same as RocksDB)");
+
+        rocks.close();
+    }
+
     // ==================== Helper ====================
 
     @SuppressWarnings("unchecked")
