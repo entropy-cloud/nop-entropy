@@ -7,10 +7,15 @@
  */
 package io.nop.stream.core.operators;
 
+import io.nop.api.core.annotations.data.DataBean;
+import io.nop.core.lang.json.JsonTool;
+import io.nop.stream.core.exceptions.StreamException;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -38,6 +43,21 @@ public class TestHeapInternalTimerServiceSnapshotRestore {
 
             @Override
             public void onProcessingTime(InternalTimer<String, String> timer) throws Exception {
+                processingFired.add(timer);
+            }
+        };
+    }
+
+    private <K> Triggerable<K, String> recordingKeyedTriggerable(List<InternalTimer<K, String>> eventFired,
+                                                                 List<InternalTimer<K, String>> processingFired) {
+        return new Triggerable<K, String>() {
+            @Override
+            public void onEventTime(InternalTimer<K, String> timer) throws Exception {
+                eventFired.add(timer);
+            }
+
+            @Override
+            public void onProcessingTime(InternalTimer<K, String> timer) throws Exception {
                 processingFired.add(timer);
             }
         };
@@ -213,5 +233,173 @@ public class TestHeapInternalTimerServiceSnapshotRestore {
 
         restored.advanceWatermark(5000L);
         assertEquals(1, restoredFired.size());
+    }
+
+    /**
+     * AR-22 (P0) reproduction: the checkpoint JSON persist path (storageType=local,
+     * {@code CheckpointSerDe}) round-trips timer keys through {@code TextScanner},
+     * which parses {@code "123"} as {@code Integer} even when the timer key type is
+     * {@code Long}. {@link TypedNamespaceAndKey#equals} is class-sensitive, so after
+     * restore the timer fires with {@code Integer(123)} while the keyed state lookups
+     * (window contents) use live {@code Long(123)} keys — everything silently misses.
+     *
+     * <p>The DTO round trip below mirrors exactly what {@code CheckpointSerDe} does:
+     * {@code TimerSnapshot.toSerializableForm()} → {@code JsonTool} JSON → re-parse →
+     * {@code TimerSnapshot.fromSerializableForm()} → {@code restoreTimers()} → fire.
+     * The assertion is bound to the restore→fire downstream layer (the fired key's
+     * type), NOT the DTO layer — post-fix the DTO still carries the JSON-parsed value.
+     *
+     * <p>Pre-fix (red): the restored timer fires with an {@code Integer} key.
+     */
+    @Test
+    void testLongTimerKeyJsonRoundTripFiresWithLongKey() throws Exception {
+        List<InternalTimer<Long, String>> eventFired = new ArrayList<>();
+        HeapInternalTimerService<Long, String> original =
+                new HeapInternalTimerService<>(recordingKeyedTriggerable(eventFired, new ArrayList<>()), () -> 123L);
+        original.registerEventTimeTimer("ns-1", 1000L);
+
+        Map<String, Object> form = original.snapshotTimers().toSerializableForm();
+        Map<String, Object> parsed = JsonTool.parseMap(JsonTool.serialize(form, false));
+        HeapInternalTimerService.TimerSnapshot<Long, String> restoredSnapshot =
+                HeapInternalTimerService.TimerSnapshot.fromSerializableForm(parsed);
+
+        List<InternalTimer<Long, String>> restoredFired = new ArrayList<>();
+        HeapInternalTimerService<Long, String> restored =
+                new HeapInternalTimerService<>(recordingKeyedTriggerable(restoredFired, new ArrayList<>()));
+        // AR-22 fix wiring: the owning operator declares its key type (WindowOperator.open()
+        // does this from keyClass), so restore re-materializes drifted keys.
+        restored.setKeyType(Long.class);
+        restored.restoreTimers(restoredSnapshot);
+
+        restored.advanceWatermark(2000L);
+
+        assertEquals(1, restoredFired.size());
+        assertEquals(Long.valueOf(123L), restoredFired.get(0).getKey(),
+                "Restored timer key must be Long(123) after JSON round-trip — pre-fix it "
+                        + "drifts to Integer(123) and class-sensitive TypedNamespaceAndKey "
+                        + "lookups silently miss (AR-22, same mechanism as AR-01)");
+    }
+
+    /**
+     * AR-22 POJO-key variant: a POJO timer key is restored as a {@code LinkedHashMap}
+     * by the JSON round trip (same mechanism as P2-INV-4 on the keyed-state face, which
+     * AR-01 covered). The timer face has no coverage — the restored timer fires with a
+     * map key and the equals-based keyed-state hit silently fails.
+     *
+     * <p>The key must be a {@code @DataBean} — the JSON persist path
+     * ({@code JsonTool}) only serializes @DataBean / whitelisted classes. Non-@DataBean
+     * POJO keys fail loudly at checkpoint serialize time (JsonTool guard, no silent
+     * skip); @DataBean POJO keys round-trip and drift to {@code LinkedHashMap} (the
+     * silent-loss variant covered here).
+     *
+     * <p>Pre-fix (red): the restored timer fires with a {@code LinkedHashMap} key.
+     */
+    @Test
+    void testPojoTimerKeyJsonRoundTripFiresWithPojoKey() throws Exception {
+        PojoKey originalKey = new PojoKey("k1", 42L);
+        List<InternalTimer<PojoKey, String>> eventFired = new ArrayList<>();
+        HeapInternalTimerService<PojoKey, String> original =
+                new HeapInternalTimerService<>(recordingKeyedTriggerable(eventFired, new ArrayList<>()),
+                        () -> originalKey);
+        original.registerEventTimeTimer("ns-1", 1000L);
+
+        Map<String, Object> form = original.snapshotTimers().toSerializableForm();
+        Map<String, Object> parsed = JsonTool.parseMap(JsonTool.serialize(form, false));
+        HeapInternalTimerService.TimerSnapshot<PojoKey, String> restoredSnapshot =
+                HeapInternalTimerService.TimerSnapshot.fromSerializableForm(parsed);
+
+        List<InternalTimer<PojoKey, String>> restoredFired = new ArrayList<>();
+        HeapInternalTimerService<PojoKey, String> restored =
+                new HeapInternalTimerService<>(recordingKeyedTriggerable(restoredFired, new ArrayList<>()));
+        // AR-22 fix wiring: the owning operator declares its key type.
+        restored.setKeyType(PojoKey.class);
+        restored.restoreTimers(restoredSnapshot);
+
+        restored.advanceWatermark(2000L);
+
+        assertEquals(1, restoredFired.size());
+        assertEquals(originalKey, restoredFired.get(0).getKey(),
+                "Restored timer key must be rematerialized to PojoKey after JSON round-trip — "
+                        + "pre-fix it is a LinkedHashMap and equals() misses (AR-22 POJO variant)");
+    }
+
+    /**
+     * No-silent-skip (guide rule #24, AR-22): when a restored timer key cannot be
+     * re-materialized to the declared keyType (e.g. a String-keyed snapshot restored
+     * into a Long-keyed service), restore fails fast with {@code ERR_STREAM_STATE_ERROR}
+     * instead of silently keeping the mismatched key (which class-sensitive
+     * {@code TypedNamespaceAndKey} lookups would drop).
+     */
+    @SuppressWarnings("unchecked")
+    @Test
+    void testTimerKeyRematerializationFailureFailsFast() throws Exception {
+        List<InternalTimer<String, String>> eventFired = new ArrayList<>();
+        HeapInternalTimerService<String, String> original =
+                new HeapInternalTimerService<>(recordingTriggerable(eventFired, new ArrayList<>()),
+                        () -> "not-a-number");
+        original.registerEventTimeTimer("ns-1", 1000L);
+
+        Map<String, Object> form = original.snapshotTimers().toSerializableForm();
+        Map<String, Object> parsed = JsonTool.parseMap(JsonTool.serialize(form, false));
+        HeapInternalTimerService.TimerSnapshot<String, String> restoredSnapshot =
+                HeapInternalTimerService.TimerSnapshot.fromSerializableForm(parsed);
+
+        HeapInternalTimerService<Long, String> restored =
+                new HeapInternalTimerService<>(recordingKeyedTriggerable(new ArrayList<>(), new ArrayList<>()));
+        restored.setKeyType(Long.class);
+        assertThrows(StreamException.class,
+                () -> restored.restoreTimers((HeapInternalTimerService.TimerSnapshot<Long, String>)
+                        (HeapInternalTimerService.TimerSnapshot<?, ?>) restoredSnapshot),
+                "Restoring a non-Long timer key into a Long-keyed timer service must fail fast, "
+                        + "not silently keep the mismatched key");
+    }
+
+    /**
+     * Static nested {@code @DataBean} key with a public no-arg constructor — required
+     * for {@code JsonTool} serialization and {@code JsonTool.parseBeanFromText}
+     * reflective materialization (anonymous/inner classes cannot be rematerialized and
+     * would throw ERR_STREAM_STATE_ERROR).
+     */
+    @DataBean
+    public static class PojoKey {
+        private String id;
+        private long seq;
+
+        public PojoKey() {
+        }
+
+        public PojoKey(String id, long seq) {
+            this.id = id;
+            this.seq = seq;
+        }
+
+        public String getId() {
+            return id;
+        }
+
+        public void setId(String id) {
+            this.id = id;
+        }
+
+        public long getSeq() {
+            return seq;
+        }
+
+        public void setSeq(long seq) {
+            this.seq = seq;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof PojoKey)) return false;
+            PojoKey pojoKey = (PojoKey) o;
+            return seq == pojoKey.seq && Objects.equals(id, pojoKey.id);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(id, seq);
+        }
     }
 }

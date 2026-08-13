@@ -398,6 +398,19 @@
 
 ---
 
+## 18. AR-22 严重级裁定（2026-08-13，plan `2026-08-13-1615-1` Phase 1）
+
+> Status: adjudicated（plan `2026-08-13-1615-1-nop-stream-ar22-timer-key-json-restore-materialization.md` Phase 1 Decision）
+> 输入：roadmap backlog AR-22 条目（plan `2026-08-13-1243-1` Phase 1 类别清扫登记）+ 本表 §1 AR-01（P0 先例，键控面）
+
+| finding | 位置（live） | 族 | 严重度 | 处置 | 依据 |
+|---|---|---|---|---|---|
+| AR-22 Timer 键 JSON 恢复类型漂移（Long < 2^31 → Integer；@DataBean POJO → LinkedHashMap） | `HeapInternalTimerService.java:327-332`（`TimerEntry.fromSerializableForm` 原样 cast）+ `CheckpointSerDe.java:474-475`（@type 路由）+ `WindowOperator.java:558-560/:489-492`（snapshot/restore→open 延迟应用） | 同 AR-01 族（JSON round-trip 数值键类型漂移 → 类敏感 equals 静默 miss） | **P0** | **派 Fix**（本 plan Phase 2，机制对齐 `MemoryStateSerDe.deserializeKey`） | **按 AR-01 先例链四对比项裁定**：① 同机制——JSON 持久化经 TextScanner round-trip，`Long(123)` 写为 `"123"` 恢复成 `Integer(123)`（AR-01 完全同机制，键控面已修，本条目走 operator state 面 `internal-timers`，`deserializeKey` 修复不覆盖）；② 触发面——恢复后 timer 回调 `onEventTime`/`onProcessingTime` 经 `setCurrentKey(firedKey)`（`WindowOperator.java:789-799/:871-877`）访问键控状态，`TypedNamespaceAndKey.equals` 类敏感（Integer vs Long miss）→ 窗口内容/触发结果静默丢失；定时器窗口（EventTimeTrigger/ContinuousEventTimeTrigger/ProcessingTimeTrigger）作业重启场景必达（`TestE2EWindowAggregateRestore` 已证明重启路径可用）；③ 后果——均静默状态丢失，无异常无日志（与 AR-01 相同）；④ 生产可达性——作业级重启 + 窗口定时器为既有功能，storageType=local 为既有配置。**双后端同受影响**：operator state 的 `internal-timers` 走共享 checkpoint JSON 路径（`CheckpointSerDe.serializeOperatorStates`/`deserializeOperatorState`，storage 层后端无关），Memory 与 RocksDB 后端恢复同一路径（RocksDB 仅替换键控面 serde = AR-01 面）。**边界发现（复现测试暴露，落档）**：非 @DataBean POJO 键在 JSON 持久化序列化点即抛 `ERR_JSON_ONLY_DATA_BEAN_IS_SERIALIZABLE`（`JsonSerializer.java:157-158` onlyForDataBean 守卫）→ checkpoint 响亮失败，非静默丢失（JsonTool 层 fail-fast，Guide #24 合规）；静默漂移面 = Long 数值键（本 Fix 面）+ @DataBean POJO 键（同 Fix 面覆盖）。 |
+
+**裁定结论**：AR-22 = **P0**（与 AR-01 同机制同后果同触发面，走 operator state 面 `internal-timers`），按 P0/P1 路径以 Fix 落地（本 plan Phase 2）；测试先红后绿证据在案（`TestHeapInternalTimerServiceSnapshotRestore` 两新用例 red 实测：Long 键 `ClassCastException: Integer cannot be cast to Long` + POJO 键 fired key = `LinkedHashMap {id=k1, seq=42}`）。backlog 状态流转见 roadmap AR-22 条目。
+
+---
+
 ## 17. Cycle 3 / I6 收口裁定记录（稳态暂停，2026-08-13）
 
 > Status: active（I6 落档，plan `2026-08-13-1040-2-nop-stream-invariants-cycle3-I6-closure-and-trigger-determination.md`）

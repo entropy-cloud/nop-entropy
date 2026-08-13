@@ -47,7 +47,7 @@ nop-stream 的 checkpoint 子系统为流处理管线提供**容错和状态一�
 |---|---|
 | source offset | 每个 source split 在 epoch 切点的读取位置 |
 | operator state | 每个 operator/subtask/state shard 的状态快照 |
-| timer state | event-time 和 processing-time timer 的待触发集合（**已实现**：`WindowOperator` 通过 `HeapInternalTimerService.snapshotTimers()` 持久化；`CepOperator` 通过自有 bypass 机制持久化 `registeredEventTimeTimers`） |
+| timer state | event-time 和 processing-time timer 的待触发集合（**已实现**：`WindowOperator` 通过 `HeapInternalTimerService.snapshotTimers()` 持久化；`CepOperator` 通过自有 bypass 机制持久化 `registeredEventTimeTimers`）。**AR-22（2026-08-13，P0 修复）**：timer 键 JSON 恢复按声明 keyType 重物化（`HeapInternalTimerService.restoreTimers`，keyType 由 `WindowOperator.open()` 自 `keyClass` final 字段注入）——storageType=local JSON round-trip 将 Long 键 < 2^31 漂移为 Integer（TextScanner parseInt 优先）、@DataBean POJO 键漂移为 LinkedHashMap，类敏感 `TypedNamespaceAndKey` 查找静默 miss（窗口内容/触发结果丢失，与 AR-01 键控面同机制）；机制对齐 `MemoryStateSerDe.deserializeKey`：重物化失败抛 `ERR_STREAM_STATE_ERROR`（无静默跳过，guide #24），null 键与 `keyType == Object.class` 守卫跳过。非 @DataBean POJO 键在序列化点即抛 `ERR_JSON_ONLY_DATA_BEAN_IS_SERIALIZABLE`（JsonTool onlyForDataBean 守卫，响亮失败非静默丢失） |
 | watermark state | 输入 watermark 和 idle 状态 |
 | sink transaction | 每个 sink subtask 的 pending transaction |
 | plan fingerprint | 生成该 epoch 时的 PartitionedPlan 指纹 |

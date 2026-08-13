@@ -7,6 +7,12 @@
  */
 package io.nop.stream.core.operators;
 
+import io.nop.core.lang.json.JsonTool;
+import io.nop.stream.core.exceptions.StreamException;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -39,6 +45,14 @@ public class HeapInternalTimerService<K, N> implements InternalTimerService<N> {
     private long currentWatermark = Long.MIN_VALUE;
 
     /**
+     * Declared key type used to re-materialize restored timer keys (AR-22).
+     * Null when the service is used without a known key type (e.g. direct
+     * unit-test usage) — re-materialization is then skipped. Wired by
+     * {@code WindowOperator.open()} from its {@code keyClass}.
+     */
+    private Class<?> keyType;
+
+    /**
      * Earliest registered processing-time timer, or {@link Long#MAX_VALUE} when none is
      * registered. Written by the owning task thread (register / delete / fire / restore),
      * read by the {@code ProcessingTimeServiceDriver} scheduler thread — a single volatile
@@ -53,6 +67,18 @@ public class HeapInternalTimerService<K, N> implements InternalTimerService<N> {
     public HeapInternalTimerService(Triggerable<K, N> triggerable, Supplier<K> currentKeySupplier) {
         this.triggerable = triggerable;
         this.currentKeySupplier = currentKeySupplier;
+    }
+
+    /**
+     * Declares the key type of this timer service, used by
+     * {@link #restoreTimers} to re-materialize keys that drifted through
+     * the JSON checkpoint persist path (AR-22). Set by
+     * {@code WindowOperator.open()} from the operator's
+     * {@code keyClass}; optional for direct unit-test usage (null → no
+     * re-materialization, prior behavior).
+     */
+    public void setKeyType(Class<?> keyType) {
+        this.keyType = keyType;
     }
 
     @Override
@@ -256,10 +282,10 @@ public class HeapInternalTimerService<K, N> implements InternalTimerService<N> {
             return;
         }
         for (TimerEntry<K, N> entry : snapshot.getEventTimeTimers()) {
-            eventTimeTimers.computeIfAbsent(entry.timestamp, k -> new HashSet<>()).add(entry);
+            eventTimeTimers.computeIfAbsent(entry.timestamp, k -> new HashSet<>()).add(rematerializeEntry(entry));
         }
         for (TimerEntry<K, N> entry : snapshot.getProcessingTimeTimers()) {
-            processingTimeTimers.computeIfAbsent(entry.timestamp, k -> new HashSet<>()).add(entry);
+            processingTimeTimers.computeIfAbsent(entry.timestamp, k -> new HashSet<>()).add(rematerializeEntry(entry));
         }
         if (!snapshot.getProcessingTimeTimers().isEmpty()) {
             recomputeNextProcessingTimeTimer();
@@ -271,6 +297,58 @@ public class HeapInternalTimerService<K, N> implements InternalTimerService<N> {
         if (snapshot.getCurrentWatermark() > currentWatermark) {
             currentWatermark = snapshot.getCurrentWatermark();
         }
+    }
+
+    /**
+     * AR-22 (P0): re-materializes a restored timer key to the service's
+     * declared {@link #keyType}, mirroring
+     * {@code MemoryStateSerDe.deserializeKey}.
+     *
+     * <p>JSON persistence ({@code storageType="local"}) round-trips numeric
+     * keys through {@code TextScanner}, which tries
+     * {@code Integer.parseInt} first: a {@code Long(123)} written as
+     * {@code "123"} comes back as {@code Integer(123)}, and
+     * {@code @DataBean} POJO keys come back as {@code LinkedHashMap}.
+     * {@link TypedNamespaceAndKey#equals} is class-sensitive, so a drifted
+     * timer key never matches the live keyed-state lookups when the restored
+     * timer fires — window contents silently lost. Keys that already match
+     * the declared keyType (String keys, values that survived as Long) pass
+     * through unchanged.
+     *
+     * <p>No-silent-skip (guide rule #24): a failed re-materialization throws
+     * {@code ERR_STREAM_STATE_ERROR} instead of silently keeping the
+     * mismatched key.
+     *
+     * @return the original entry when no re-materialization applies, otherwise
+     *         a new entry carrying the key re-materialized to {@link #keyType}
+     */
+    @SuppressWarnings("unchecked")
+    private TimerEntry<K, N> rematerializeEntry(TimerEntry<K, N> entry) {
+        Object key = entry.getKey();
+        if (key == null || keyType == null || keyType == Object.class
+                || keyType.isInstance(key)) {
+            return entry;
+        }
+        String json = JsonTool.serialize(key, false);
+        Object rematerialized;
+        try {
+            rematerialized = JsonTool.parseBeanFromText(json, keyType);
+        } catch (Exception e) {
+            throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                    .param(ARG_DETAIL,
+                            "Failed to re-materialize timer key " + json
+                                    + " as " + keyType.getName()
+                                    + " during timer restore");
+        }
+        if (rematerialized == null || !keyType.isInstance(rematerialized)) {
+            throw new StreamException(ERR_STREAM_STATE_ERROR)
+                    .param(ARG_DETAIL,
+                            "Failed to re-materialize timer key " + json
+                                    + " as " + keyType.getName()
+                                    + " during timer restore");
+        }
+        return new TimerEntry<>((K) rematerialized, entry.getNamespace(),
+                entry.getTimestamp());
     }
 
     // ------------------------------------------------------------------------

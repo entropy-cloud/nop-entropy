@@ -463,6 +463,12 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
         internalTimerService = new HeapInternalTimerService<>(this,
                 () -> getKeyedStateBackend() != null ? (K) getKeyedStateBackend().getCurrentKey() : null);
+        // AR-22 (P0): declare the operator's key class so restored timer keys are
+        // re-materialized to it — the JSON checkpoint persist path (storageType=local)
+        // round-trips Long keys < 2^31 as Integer and @DataBean POJO keys as
+        // LinkedHashMap, and the class-sensitive TypedNamespaceAndKey lookups in
+        // onEventTime/onProcessingTime would silently miss (window output lost).
+        internalTimerService.setKeyType(keyClass);
 
         // Register with the task's TimerServiceManager (mirroring ProcessOperator.open()).
         // Null-guarded: direct unit-test usage without a task has no manager — the timer
