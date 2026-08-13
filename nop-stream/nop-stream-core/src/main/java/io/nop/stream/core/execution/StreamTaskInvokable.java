@@ -67,6 +67,17 @@ public class StreamTaskInvokable implements Invokable<Void> {
 
     private final OperatorChain operatorChain;
     private final RecordWriter<Object> outputWriter;
+
+    /**
+     * P1-03: the FULL list of fan-out writers (one per outgoing edge), kept for
+     * close-time traversal. The fan-out constructors previously discarded this
+     * list after wiring the tail operator, keeping only {@code outputWriter}
+     * (= {@code fanOutWriters.get(0)}), so edge 2..N's EOS was never signalled
+     * and bounded fan-out jobs hung their downstream sinks. Null for
+     * non-fan-out roles.
+     */
+    private final List<RecordWriter<Object>> fanOutWriters;
+
     private final InputGate inputGate;
 
     /**
@@ -133,6 +144,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
         }
         this.operatorChain = operatorChain;
         this.outputWriter = null;
+        this.fanOutWriters = null;
         this.inputGate = null;
         wireOperators();
         wireMailboxToHeadSource();
@@ -145,6 +157,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
         }
         this.operatorChain = operatorChain;
         this.outputWriter = !fanOutWriters.isEmpty() ? fanOutWriters.get(0) : null;
+        this.fanOutWriters = fanOutWriters;
         this.inputGate = null;
         wireOperators(fanOutWriters);
         wireMailboxToHeadSource();
@@ -160,6 +173,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
         }
         this.operatorChain = operatorChain;
         this.outputWriter = (RecordWriter<Object>) outputWriter;
+        this.fanOutWriters = null;
         this.inputGate = inputGate;
         wireOperators();
         wireMailboxToHeadSource();
@@ -174,6 +188,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
         }
         this.operatorChain = operatorChain;
         this.outputWriter = !fanOutWriters.isEmpty() ? fanOutWriters.get(0) : null;
+        this.fanOutWriters = fanOutWriters;
         this.inputGate = inputGate;
         wireOperators(fanOutWriters);
         wireMailboxToHeadSource();
@@ -389,6 +404,16 @@ public class StreamTaskInvokable implements Invokable<Void> {
         return outputWriter;
     }
 
+    /**
+     * @return the full fan-out writer list (one per outgoing edge), or null
+     *         when this task is not a fan-out producer. P1-03: the restart
+     *         path reuses the whole list so a rebuilt fan-out producer keeps
+     *         feeding every edge.
+     */
+    public List<RecordWriter<Object>> getFanOutWriters() {
+        return fanOutWriters;
+    }
+
     public InputGate getInputGate() {
         return inputGate;
     }
@@ -462,6 +487,51 @@ public class StreamTaskInvokable implements Invokable<Void> {
         if (processingTimeDriver != null) {
             processingTimeDriver.shutdown();
             processingTimeDriver = null;
+        }
+    }
+
+    /**
+     * P1-03: closes ALL output writers of this task. A fan-out producer (2+
+     * outgoing edges) must signal EOS on every edge — closing only
+     * {@link #outputWriter} (edge 0) leaves edges 2..N open, so their
+     * downstream sinks poll forever and a bounded fan-out job never
+     * terminates.
+     *
+     * <p>The explicit traversal is deliberate:
+     * {@code BroadcastingRecordWriterOutput} (the tail operator's fan-out
+     * output) cannot do this job — its {@code close()} delegates to
+     * {@code RecordWriterOutput.close()}, a no-op ("RecordWriter lifecycle
+     * is managed by invoke()"), so closing via the operator output would
+     * silently skip every writer (no-silent-skip, plan guide #24). Every
+     * writer in the list is attempted; the first failure is rethrown with
+     * the rest suppressed, mirroring {@link RecordWriter#close()} semantics.
+     */
+    private void closeOutputWriters() {
+        if (fanOutWriters != null && !fanOutWriters.isEmpty()) {
+            Exception firstError = null;
+            for (RecordWriter<Object> writer : fanOutWriters) {
+                try {
+                    writer.close();
+                } catch (Exception e) {
+                    if (firstError == null) {
+                        firstError = e;
+                    } else {
+                        firstError.addSuppressed(e);
+                    }
+                }
+            }
+            if (firstError != null) {
+                if (firstError instanceof StreamException) {
+                    throw (StreamException) firstError;
+                }
+                if (firstError instanceof RuntimeException) {
+                    throw (RuntimeException) firstError;
+                }
+                throw new StreamException(
+                        ERR_STREAM_CHAINING_OUTPUT_CLOSE_FAILED, firstError);
+            }
+        } else if (outputWriter != null) {
+            outputWriter.close();
         }
     }
 
@@ -549,9 +619,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
                 } catch (Exception e) {
                     LOG.warn("Failed to emit MAX_WATERMARK during source shutdown", e);
                 }
-                if (outputWriter != null) {
-                    outputWriter.close();
-                }
+                closeOutputWriters();
             }
             operatorChain.close();
         }
@@ -578,9 +646,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
                 }
             }
         } finally {
-            if (outputWriter != null) {
-                outputWriter.close();
-            }
+            closeOutputWriters();
             operatorChain.close();
         }
         if (inputError != null) {
