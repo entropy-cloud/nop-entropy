@@ -22,6 +22,14 @@
 | 需要容器+DB，不需要快照 | `JunitBaseTestCase` |
 | 需要录制和校验 `_cases/` 快照 | `JunitAutoTestCase` |
 
+## 同 JVM 混跑时 `VarCollector.instance()` 可能为 null
+
+`JunitAutoTestCase` 每个测试方法结束（`AutoTestCase.complete()`）都会执行 `VarCollector.registerInstance(null)`，把 JVM 级静态实例置空且不再恢复。**任何纯 JUnit 类（不继承 AutoTestCase）如果在同一次 surefire 运行中排在某个 AutoTestCase 类之后，且被测生产代码调用 `VarCollector.instance()`（如 `LoginApiBizModel.buildLoginResult` 录制 accessToken/refreshToken 变量），就会 NPE。**
+
+- 生产代码调用 `VarCollector.instance()` 前必须做 null 判断——它是可选的自测支持设施，默认实例就是 no-op；
+- 纯 JUnit 的 E2E 测试若覆盖这类代码路径，应在 `@BeforeEach` 显式 `VarCollector.registerInstance(null)` 模拟该状态（确定性回归防护），隔离运行也能复现问题；
+- 判别特征：测试隔离运行通过、全量套件偶发 NPE、报错在 `VarCollector.instance()` 调用点。
+
 ## 测试 BizModel 服务方法必须经 `IGraphQLEngine`
 
 **不要在测试里直接调用 `bizObj.method(args, context)`（注入的 BizModel/I*Biz 代理 + 裸 `new ServiceContextImpl()`）。** BizModel 的 `@BizQuery`/`@BizMutation` 方法依赖执行环境提供的 ORM Session、事务、`IUserContext`，直调时这些都不存在：

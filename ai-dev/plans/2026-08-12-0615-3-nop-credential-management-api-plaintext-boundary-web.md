@@ -2,6 +2,7 @@
 
 > Plan Status: completed
 > Last Reviewed: 2026-08-12
+> Note: superseded in this worktree — plan belongs to `nop-credential-mfa` mission which executes on the master branch.
 > Source: `ai-dev/backlog/nop-credential-mfa-roadmap.md` (W3), `ai-dev/design/nop-credential/01-architecture-baseline.md` §3.4
 > Mission: nop-credential-mfa
 > Work Item: W3

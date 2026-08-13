@@ -1,6 +1,6 @@
 {
   "name": "nop-ai-invariant-loop",
-  "description": "nop-ai 不变式驱动的持续审计闭环（回归防护型）。范围：nop-ai 全模块组（nop-ai-agent/api/core/app/coder/dao 等，排除 MCP，排除与 audit-remediation-roadmap 已完成线性审计范围重叠）。诊断依据：6 deep audit + ARM MA1-MA7 + MR1-MR4/MV（50/50 done），Lesson 05 记录 3 次虚假关闭（MR2 overclaim / MR1 codegen 产物 / MR3 AES 未提交），Default* 类缺 secure-default 6 兄弟实例，ToolExecutor 安全族（SSRF/路径逃逸），异步编排缺 timeout 5 兄弟。mission 已关闭但同族缺陷在重构时会回归——本闭环以回归防护门禁为主。授权：P0/P1 自动修复预授权，公共 API 变更执行前人工确认。Loop Rule 预授权下轮 I1 自动派生（PD-n 先例链）。",
+  "description": "nop-ai 不变式驱动的持续审计闭环（回归防护型）。范围：nop-ai 全模块组（nop-ai-agent/api/core/app/coder/dao 等，排除 MCP，排除与 audit-remediation-roadmap 已完成线性审计范围重叠）。诊断依据：6 deep audit + ARM MA1-MA7 + MR1-MR4/MV（50/50 done），Lesson 05 记录 3 次虚假关闭（MR2 overclaim / MR1 codegen 产物 / MR3 AES 未提交），Default* 类缺 secure-default 6 兄弟实例，ToolExecutor 安全族（SSRF/路径逃逸），异步编排缺 timeout 5 兄弟。mission 已关闭但同族缺陷在重构时会回归——本闭环以回归防护门禁为主。授权：P0/P1 自动修复预授权；P2 自动修复授权为 plan 级裁定（I3 裁定，2026-08-12）；公共 API 变更执行前人工确认。Loop Rule 预授权下轮 I1 自动派生（PD-n 先例链）。",
   "roadmapPath": "ai-dev/backlog/nop-ai-invariant-loop-roadmap.md",
   "plansDir": "ai-dev/plans",
   "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",

@@ -1,0 +1,80 @@
+# nop-ai 不变式门禁 known-gaps 清单（I1 Phase 1 裁定，2026-08-12）
+#
+# 机制（见 ai-dev/audits/nop-ai-invariants/invariant-catalog.md §3.5）：
+#   - 门禁判定：表内实例 = 声明通过（注解/标记/对称对存在）或 在清单（同族）→ pass；
+#     两者皆无 → fail（新缺口，表完备性/棘轮违约）。
+#   - 登记入口仅两种：(1) I1 首跑登记；(2) I2/I3 裁决后的 finding 登记（附裁决证据）。
+#   - 任何人不允许为保持 CI 绿而向清单添加条目（添加即 = 缺口在 I4 修复而非豁免）。
+#   - 清单移除 = I4 修复后（移除后门禁恢复实判，未真修复即 fail——自校验）。
+#   - 门禁⑤（fix-commit real-diff）为 commit 卫生门禁，不适用本清单；输出 = 违规 commit 清单。
+#
+# 字段：instance（FQCN / 方法引用）| reason | reason-type（missing-declaration | not-applicable）
+#       | date | owner
+#
+# I1 首跑登记（2026-08-12，owner: I1 executor）：
+
+# 门禁①：Default* 类 secure-default 声明。首跑实判：33/33 无 @SecureDefault 注解
+# （I1 契约引入，声明形式 2026-08-12 裁定）→ 全部登记，I4 补注解（声明与门禁契约同步）。
+# 行为语义验证不属门禁①（归 I2）。实例 = FQCN（目标集 = invariant-catalog §3.1）。
+# I4 修复（2026-08-12）：33/33 类已补 @SecureDefault 注解 → 清单条目全部移除，
+# 门禁恢复实判（有注解 → 绿；棘轮反例验证：临时去注解 → 红 → 恢复 → 绿）。
+gate-1-default-secure: []
+
+# 门禁②：编排入口 timeout 声明。首跑实判：9/14 已声明（配置/机制标记），4 个 not-applicable
+# （forkSession/cancelSession/close 无异步执行等待面 + getSessionStatus 同步查询入口——I1 表完备性
+# 发现 I0 §3.2 漏计，live 接口 10 个公共方法））+ 1 个 missing（SingleTurnExecutor.execute）。
+# 实例 = 入口标识（§3.2 行号）。
+# I4 修复（2026-08-12）：SingleTurnExecutor.execute 补 llmTimeoutMs+timeoutExecutor 机制、
+# R-2-1 ChannelMessageServiceImpl.dispatchInbound 补 orTimeout 有界派发、R-2-3 两入口
+# （MemberFanOutDispatcher.dispatch / TeamTaskFlowOrchestrator.executeAsync）补 orTimeout——
+# 4 条 missing-declaration 条目已移除，门禁恢复实判（marker 存在 → 绿）。not-applicable 4 条
+# 保持登记（I3 已确认，timeout 契约不适用）。
+# 判定升级（plan 2026-08-12-2050-2 / AR-2 / WS4，2026-08-12 验证）：gate-2 对 team-flow fan-out
+# 与 channel fan-out 条目升级为分支级代码计数判定（MemberFanOutDispatcher 代码级 orTimeout ≥ 2 /
+# gateway 按 mode 拆条各 ≥1；注释与字符串字面量剥离——裸计数/contains 无法区分「注释里的 marker」
+# 与「每条执行分支各一个 marker」）；修复后实判绿、负例（SPAWN 分支 marker 移除 → 计数 1）红已验证
+# （红/绿对照记录于 plan daily log）。本 family 状态不变：4 条 not-applicable，无新增 missing-declaration
+# （`SpawnMemberAgentTaskStep` timeout 契约由 spawner 层承载，裁定 not-applicable——catalog §3.2 登记）。
+gate-2-orchestration-timeout:
+  - instance: IAgentEngine.forkSession
+    reason: 不适用：fork 仅注册子会话（sessionStore.forkSession），不启动 agent 执行路径、无异步等待面（timeout 契约不适用；I3 裁决输入）
+    reason-type: not-applicable
+    date: 2026-08-12
+    owner: I1-executor
+  - instance: IAgentEngine.cancelSession
+    reason: 不适用：取消原语（取消即终结等待），无异步执行等待面（I3 裁决输入）
+    reason-type: not-applicable
+    date: 2026-08-12
+    owner: I1-executor
+  - instance: IAgentEngine.close
+    reason: 不适用：生命周期终止入口（AR-09 AutoCloseable），无异步执行等待面（I3 裁决输入）
+    reason-type: not-applicable
+    date: 2026-08-12
+    owner: I1-executor
+  - instance: IAgentEngine.getSessionStatus
+    reason: 不适用：同步状态查询入口（非异步编排，无 timeout 契约面；I1 表完备性发现 I0 §3.2 漏计，live IAgentEngine 公共方法 10 个；I3 裁决输入）
+    reason-type: not-applicable
+    date: 2026-08-12
+    owner: I1-executor
+
+# I3 裁决后登记（入口 #2，附裁决证据，2026-08-12，owner: I3 adjudicator）：
+#   登记依据：ai-dev/audits/nop-ai-invariants/adjudication-2026-08.md §3（R-2-1 / R-2-3）。
+#   三条均为 I3 裁决「补入 gate-2 表 + I4 修复」（missing-declaration，等 I4 补 timeout/at-least-once
+#   声明后移除，移除后门禁恢复实判）。登记表外实例不会让门禁变红（判定只看表内实例 declared 或清单内，
+#   对表外实例无 red 逻辑——中间态安全）；补表动作（catalog §3.2 + 测试 TABLE + 派生逻辑）属 I4。
+#   I4 修复（2026-08-12）完成 → 三条目已移除（门禁测试 TABLE/派生逻辑已先更新使实判通过，再移除，
+#   无中间态红——见 I4 plan Phase 3）。
+
+# 门禁③：entry-point 清理对称性。首跑实判：8/8 成对存在，零缺口。
+gate-3-entry-point-cleanup: []
+
+# 门禁④：ToolExecutor 安全边界声明。首跑实判：29/30 声明成立（网络/命令/文件面标记 + 内存面无外部
+# IO；UpdateTodosExecutor 表标注文件面但 live 为内存实现，按 live 面判声明成立——偏差显式记录供 I2 核对）；
+# AskOracleExecutor（oracle client 未实现、P2-MA1-011 fail-fast、无实际网络 I/O）登记 not-applicable，
+# SSRF 校验入口待 client 落地时补（I3 裁决输入）。
+gate-4-tool-boundary:
+  - instance: io.nop.ai.toolkit.tools.AskOracleExecutor
+    reason: 不适用：oracle client 未实现（P2-MA1-011 fail-fast，无实际网络 I/O），SSRF 校验入口待 client 落地时补（I3 裁决输入）
+    reason-type: not-applicable
+    date: 2026-08-12
+    owner: I1-executor
