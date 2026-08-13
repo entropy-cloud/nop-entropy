@@ -119,13 +119,13 @@ r8 轮（2026-06-06）的原始 `01-open-findings.md` 包含 AR-94~AR-123（约 
 
 | AR-ID | 标题 | 严重度 | 状态 | live 证据 / 当前缺陷位置 | 等同 |
 |-------|------|--------|------|--------------------------|------|
-| AR-04 | CallGraph 返回内部可变列表 | P2 | **open** | `CallGraph.java:36-41`：`getOrDefault` 返回内部 ArrayList 引用 | — |
+| AR-04 | CallGraph 返回内部可变列表 | P2 | **fixed**（I3 stale 改判） | live 证据（I3 §concurrency / probe §1.4）: `CallGraph.java:36,41` 已 `synchronized` + `new ArrayList<>(...)` 防御拷贝，不再返回内部引用 | — |
 | AR-11 | CodeIndexService 粗粒度 synchronized | P2 | **open** | `withIndexLock` 已改为 per-indexId 锁；但 `getOrRebuildSymbolTable` 等缓存方法仍粗粒度 | — |
 | AR-20 | JavaFileAnalyzer JavaParser 非线程安全 | P2 | **fixed** | 每次调用创建新 JavaParser（r3 确认） | — |
 | AR-42 | filterByLanguage 用 removeIf 修改传入列表 | P2 | **open** | `CodeSearchService.java:320`：原地修改 | — |
 | AR-62 | indexLocks ConcurrentHashMap 永不清理 | P2 | **open** | `withIndexLock` 在 finally 中 remove（部分缓解），但并发场景下仍可能泄漏 | — |
 | AR-91 | FlowDetector.evictOverflow Iterator.remove 无限循环 | P1 | **fixed**（循环）/ **open**（无序驱逐） | 无限循环已修（`stream().findFirst()`）；驱逐策略仍无序 → AR-157(r8) | =AR-157(r8) |
-| AR-92 | CodeCacheManager 全方法 synchronized + ConcurrentHashMap 冗余 | P3 | **open** | `CodeCacheManager.java:38-80`：冗余设计仍在 | — |
+| AR-92 | CodeCacheManager 全方法 synchronized + ConcurrentHashMap 冗余 | P3 | **stale-premise**（I3 改判） | live 证据（I3 §concurrency / probe §1.3）: `CodeCacheManager.java:62` 单 `ReentrantLock`，`:60` 普通 `LinkedHashMap`——既无 synchronized 方法也无 ConcurrentHashMap，前提过时 | — |
 | AR-127 ✅ | deleteIndex 在并发持锁时移除锁对象 | P1 | **fixed** | `CodeIndexService.java:558`：`indexLocks.remove` 在 `withIndexLock` lambda 内（锁释放前） | — |
 | AR-128 ✅ | triggerIncrementalIndex/indexFile 缺锁保护 | P1 | **fixed** | `CodeIndexService.java:321,661`：均使用 `withIndexLock` | — |
 | AR-144 | incrementalStatusMap 无序驱逐 | P3 | **fixed** | access-order LinkedHashMap + removeEldestEntry（r8 确认） | — |
@@ -185,7 +185,7 @@ r8 轮（2026-06-06）的原始 `01-open-findings.md` 包含 AR-94~AR-123（约 
 | AR-165 | filterByFilePattern 不完整正则转义 | P2 | **open** | `CodeSearchService.java:284`：只转义 `.` `*` `?` | — |
 | AR-171 | triggerFullIndex 硬编码 **/*.java | P1 | **open** | `NopCodeIndexBizModel.java:61` | — |
 | AR-175 | DeadCodeDetector contains 匹配 listener/handler | P2 | **open** | `DeadCodeDetector.java:349-359` | =AR-84 |
-| AR-180 | buildInheritanceIndex/loadExistingEdgeKeys 截断 | P2 | **open** | `CodeIndexService.java:865-896`：MAX_QUERY_RESULTS 截断 | — |
+| AR-180 | buildInheritanceIndex/loadExistingEdgeKeys 截断 | P2 | **stale-premise**（I3 改判，截断部分） | live 证据（I3 §error-handling / probe §2.3）: `CodeIndexService:862-889` 与 `:891-908` 均 `while+offset+setLimit(BATCH_SIZE=1000)+break` 全量分页，非截断。entity-field-min 残留（投影）已在 I4/WP-2 收敛 | — |
 
 > error-handling 族另有约 18 条 open finding（AR-32, AR-36, AR-52, AR-57, AR-58, AR-76, AR-78(r4), AR-84, AR-136, AR-156(r8), AR-161, AR-163, AR-164, AR-167, AR-36/151(r10) 等），均为同类模式（子串误匹配 / 静默截断 / 硬编码常量），详见各轮审计原文。
 
@@ -220,8 +220,8 @@ r8 轮（2026-06-06）的原始 `01-open-findings.md` 包含 AR-94~AR-123（约 
 | AR-16 | NopCodeCall/SemanticEdge 缺唯一约束 | P2 | **fixed** | uk_call_unique / uk_semantic_edge_unique 已加（r3 确认） | — |
 | AR-51 | ORM 布尔列永远 NULL | P1 | **open** | `nop-code.orm.xml:277-287` | — |
 | AR-139 | NopCodeDependency 缺唯一约束 | P2 | **fixed** | uk_dependency_unique 已加（r8 确认） | — |
-| AR-153(r10) | NopCodeIndex 缺 (name) 唯一约束 | P2 | **open** | `nop-code.orm.xml:28-65`（注：live 有 `uk_nop_code_index_name`，需复核） | — |
-| AR-179 | NopCodeFlowMembership 缺 indexId 列 | P2 | **open** | `nop-code.orm.xml:871-920` | — |
+| AR-153(r10) | NopCodeIndex 缺 (name) 唯一约束 | P2 | **stale-premise**（I3 改判） | live 证据（I3 §orm-schema）: `nop-code.orm.xml:210` `<unique-key name="uk_nop_code_index_name" columns="name"/>` 已存在 | — |
+| AR-179 | NopCodeFlowMembership 缺 indexId 列 | P2 | **stale-premise**（I3 改判） | live 证据（I3 §orm-schema）: `nop-code.orm.xml:881-882` `<column code="INDEX_ID" name="indexId" ...>` 存在 + 索引 `ix_nop_code_flow_membership_index_id` | — |
 
 ### 其余族（performance / config-contract / dead-code）选列
 
