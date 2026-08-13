@@ -227,7 +227,7 @@ public class AutoTestCase extends BaseTestCase {
     public void complete(boolean success) {
         try {
             AutoTestVars.dumpVars();
-            VarCollector.registerInstance(null);
+            VarCollector.registerInstance(new VarCollector());
 
             if (sessionFactory != null && ormHook != null) {
                 sessionFactory.removeDaoListener(ormHook);
