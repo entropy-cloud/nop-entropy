@@ -3,7 +3,7 @@
 > **产出方法**：`ai-dev/skills/invariant-loop-audit-prompt.md`；待经独立 fresh session 审查至共识。
 > **驱动方**：`missions/nop-code-invariant-loop.json`（范围：nop-code 全模块组）
 > **先例**：nop-chaos-flux `docs/backlog/ai-invariant-loop-roadmap.md`（首个闭环先例）
-> **状态**：**Cycle 1 关闭——稳态暂停（分支 A）待复触发**（I6-revisit 2026-08-13 确定性稳态判定收口）。I0-I3 done；I4 `done*`（Phase 1-9 全部落地，Phase 4 ORM cascadeDelete + Phase 9 @Auth 阻塞待人工确认）；I5 `done`（I4 Phase 1-9 全范围全量独立验证全绿）；I6 `done`（确定性稳态判定 = 分支 A 稳态暂停，见 `i6-cycle1-closure-report.md` §3.3）。下一行动 = 复触发条件驱动（§Loop Rule T1-T3；非主动恢复）。
+> **状态**：**Cycle 1 关闭——稳态暂停（分支 A）待复触发**（I6-revisit 2026-08-13 确定性稳态判定收口）。I0-I3 done；I4 `done*`（Phase 1-9 全部落地，Phase 4 ORM cascadeDelete ✅ successor 已落地 `2026-08-14-0707-1-nop-code-cascade-delete-successor.md`，Phase 9 @Auth 阻塞待人工确认）；I5 `done`（I4 Phase 1-9 全范围全量独立验证全绿）；I6 `done`（确定性稳态判定 = 分支 A 稳态暂停，见 `i6-cycle1-closure-report.md` §3.3）。下一行动 = 复触发条件驱动（§Loop Rule T1-T3；非主动恢复）。
 > **与既有审计的关系**：`skills/nop-code/audit-prompt.md`（模块专用补充审计维度）+ `nop-code-audit-2026-05-05.md` / `nop-code-audit-2026-05-10.md`（2 baseline）+ 13 轮 adversarial review（2026-05-25 至 2026-06-06，含同日 5 sub-round）为输入材料，不重复执行。
 
 ## 目的
@@ -32,7 +32,7 @@ nop-code 已被审计 **2 baseline + 13 轮 adversarial review**（2026-05-25 �
 | Cycle 1 / I1. 不变式沉淀（首批门禁） | 首批候选族：① 实体加载字段最小化门禁——加载实体列表只为取少量字段时必须用投影查询（SELECT field）而非全实体加载（静态扫描 + ArchUnit）；② 增量索引一致性门禁——`useLogicalDelete` 实体的删除路径必须走逻辑删除而非物理删除（ORM 模型 + service 方法交叉检查）；③ 增量索引幂等性门禁——每个索引更新操作必须可安全重试（JUnit 参数化穷举）；④ 查询结果上限门禁——每个全表/大表查询必须声明 LIMIT（防 OOM） | `done` | I0 |
 | Cycle 1 / I2. 不变式驱动审计 | 跑 I1 门禁 → red list + 对抗探查 + 盘点 AR-94→AR-178 悬空发现哪些已被门禁覆盖、哪些仍需手动修复 | `done` | I1 |
 | Cycle 1 / I3. 发现裁决 | red list + 悬空发现逐条裁决 → P0/P1 派 I4；裁决表零悬挂 | `done` | I2 |
-| Cycle 1 / I4. 修复执行 | 悬空发现关闭 + 门禁覆盖缺口补齐 + 类别清扫 + test-first | `done*`（Phase 1-9 全部落地：query-limit/entity-field-min/idempotency/搜索同步/删除路径/缓存不变性/截断可观测/数据一致性/error-handling；Phase 4 ORM cascadeDelete + Phase 9 @Auth 阻塞待人工确认，已落 service-layer 降级 / successor 派生） | I3 |
+| Cycle 1 / I4. 修复执行 | 悬空发现关闭 + 门禁覆盖缺口补齐 + 类别清扫 + test-first | `done*`（Phase 1-9 全部落地：query-limit/entity-field-min/idempotency/搜索同步/删除路径/缓存不变性/截断可观测/数据一致性/error-handling；Phase 4 ORM cascadeDelete ✅ successor 已落地 `2026-08-14-0707-1-nop-code-cascade-delete-successor.md`，Phase 9 @Auth 阻塞待人工确认，已落 service-layer 降级 / successor 派生） | I3 |
 | Cycle 1 / I5. 全量验证 | `./mvnw test -pl nop-code -am -T 1C` + 门禁零命中 + full-green 记录 | `done`（I4 Phase 1-9 **全范围**全量独立验证全绿：模块测试 383 全绿、四族门禁 real-violation 0、棘轮 baseline per-family 0 NEW、Anti-Hollow 0 high/critical + 6 条 Phase 3-9 调用链连通；Phase 9 @Auth + Phase 4 ORM cascadeDelete 两项 gated 阻塞待人工确认，I5 验证已落地范围；record `i5-full-green-record.md` 已更新为全范围；稳态判定属 I6-revisit） | I4 |
 | Cycle 1 / I6. 循环收口 | 统计 + 稳态判定 + 复触发条件登记；closure 独立 fresh session | `done`（统计+稳态判定程序+复触发条件+Cycle 2 后继派生+interim closure+**确定性稳态判定 = 分支 A 稳态暂停**，见 `i6-cycle1-closure-report.md` §3.3（I6-revisit）；前置条件 I4 全完成 + I5-reverify full-scope 全绿已满足；零新族确定性成立（22 AR-ID 逐条比对）+ 零 red；Cycle 1 正式关闭；Phase 9 @Auth + Phase 4 ORM cascadeDelete gated 阻塞待人工确认，successor path 已登记） | I5 |
 
@@ -76,7 +76,7 @@ nop-code 专属复触发条件（I6 `i6-cycle1-closure-report.md` §4 登记）�
 
 ### Cycle 1 继续执行（T0 — 已 resolved）
 
-- **T0（已 resolved，2026-08-13 I6-revisit）**：~~I4 Phase 3-9（WP-7/4/5/6/8/9/10）未完成 → 直接恢复 I4 执行~~。**现状**：I4 Phase 1-9 全部 completed（Phase 4 ORM cascadeDelete + Phase 9 @Auth gated 阻塞待人工确认，已落 service-layer 降级 / successor 派生），I5-reverify full-scope 全绿，I6-revisit 确定性稳态判定 = 分支 A 稳态暂停。**T0 条件已消除，Cycle 1 关闭**。剩余 Phase 9 @Auth + Phase 4 ORM cascadeDelete 为 Protected Area gated successor，不随 T0 自动关闭，待人工确认后由 successor plan 补齐。
+- **T0（已 resolved，2026-08-13 I6-revisit）**：~~I4 Phase 3-9（WP-7/4/5/6/8/9/10）未完成 → 直接恢复 I4 执行~~。**现状**：I4 Phase 1-9 全部 completed（Phase 4 ORM cascadeDelete ✅ successor 已落地 `2026-08-14-0707-1-nop-code-cascade-delete-successor.md`，Phase 9 @Auth gated 阻塞待人工确认，已落 service-layer 降级 / successor 派生），I5-reverify full-scope 全绿，I6-revisit 确定性稳态判定 = 分支 A 稳态暂停。**T0 条件已消除，Cycle 1 关闭**。剩余 Phase 9 @Auth 为 Protected Area gated successor，不随 T0 自动关闭，待人工确认后由 successor plan 补齐。
 
 ### Cycle 2 / 稳态打破触发（稳态已建立，T1-T3 生效，≥3 条）
 
