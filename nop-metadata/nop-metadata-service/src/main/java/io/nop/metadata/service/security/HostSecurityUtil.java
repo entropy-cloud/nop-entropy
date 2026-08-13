@@ -1,5 +1,9 @@
 package io.nop.metadata.service.security;
 
+import io.nop.metadata.service.NopMetadataErrors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Locale;
@@ -29,6 +33,8 @@ import java.util.Locale;
  * 本工具统一 {@code trim()} 后再判定。
  */
 public final class HostSecurityUtil {
+
+    private static final Logger LOG = LoggerFactory.getLogger(HostSecurityUtil.class);
 
     private HostSecurityUtil() {
     }
@@ -139,6 +145,7 @@ public final class HostSecurityUtil {
             byte[] b = addr.getAddress();
             return b != null && (b.length == 4 || b.length == 16);
         } catch (UnknownHostException e) {
+            LOG.debug(NopMetadataErrors.ERR_DATASOURCE_HOST_RESOLVE_SKIPPED.getErrorCode() + ": IP literal resolution failed", e);
             return false;
         }
     }
@@ -266,6 +273,7 @@ public final class HostSecurityUtil {
                         return true;
                     }
                 } catch (NumberFormatException ignored) {
+                    LOG.debug(NopMetadataErrors.ERR_DATASOURCE_PORT_PARSE_SKIPPED.getErrorCode() + ": 172.x second segment not numeric, not RFC1918", ignored);
                     // 非数字段不算 RFC1918，落入后续检查
                 }
             }
@@ -279,6 +287,7 @@ public final class HostSecurityUtil {
         try {
             addr = InetAddress.getByName(h);
         } catch (UnknownHostException e) {
+            LOG.debug(NopMetadataErrors.ERR_DATASOURCE_HOST_RESOLVE_SKIPPED.getErrorCode() + ": IPv6 literal parse failed, treating as external", e);
             // 非合法字面量：无法确定为内网，视为外部（不破坏合法外网主机）
             return false;
         }

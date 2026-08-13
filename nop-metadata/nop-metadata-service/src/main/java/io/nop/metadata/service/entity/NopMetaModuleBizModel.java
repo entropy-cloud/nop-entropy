@@ -318,7 +318,8 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
         try {
             searchService.removeFromIndex(entityType, id);
         } catch (RuntimeException ex) {
-            LOG.warn("import rollback index cleanup failed for entityType={} id={}", entityType, id, ex);
+            LOG.warn("import rollback index cleanup failed for entityType={} id={}, errorCode={}",
+                    entityType, id, NopMetadataErrors.ERR_MODULE_OPERATION_ISOLATED.getErrorCode(), ex);
         }
     }
 
@@ -392,7 +393,8 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
             NopMetaModule baseModule = dao().findFirstByQuery(query);
             return baseModule != null ? baseModule.getMetaModuleId() : null;
         } catch (Exception e) {
-            LOG.warn("resolveBaseModuleId failed, baseModuleId set to null", e);
+            LOG.warn("resolveBaseModuleId failed, baseModuleId set to null, errorCode={}",
+                    NopMetadataErrors.ERR_MODULE_OPERATION_ISOLATED.getErrorCode(), e);
             return null;
         }
     }
@@ -482,7 +484,8 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
                 result.setModuleName(module.getModuleName());
                 result.setSuccess(true);
             } catch (Exception e) {
-                LOG.error("importOrmModels failed for path: {}", path, e);
+                LOG.error("importOrmModels failed for path: {}, errorCode={}",
+                        path, NopMetadataErrors.ERR_MODULE_OPERATION_ISOLATED.getErrorCode(), e);
                 result.setSuccess(false);
                 result.setError(NopMetadataHelper.toErrorMessage(e));
                 // AR-08（plan 2026-08-06-0553-3 Phase 3）：per-path 独立事务（importOrmModel 内

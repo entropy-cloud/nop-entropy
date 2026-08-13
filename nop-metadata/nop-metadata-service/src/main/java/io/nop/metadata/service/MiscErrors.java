@@ -166,4 +166,54 @@ interface MiscErrors extends NopMetadataArgs {
     ErrorCode ERR_SEARCH_LIMIT_INVALID =
             ErrorCode.define("nop.err.metadata.search-limit-invalid",
                     "Search limit must be null or a positive integer: {limit}", ARG_LIMIT);
+    ErrorCode ERR_SEARCH_INDEX_BUILD_FAILED =
+            ErrorCode.define("nop.err.metadata.search-index-build-failed",
+                    "Search index build/rebuild failed for entityType={entityType} -- {error}",
+                    ARG_ENTITY_TYPE, ARG_ERROR);
+    ErrorCode ERR_SEARCH_INDEX_PURGE_FAILED =
+            ErrorCode.define("nop.err.metadata.search-index-purge-failed",
+                    "Search index topic/type purge failed -- {error}", ARG_ERROR);
+    ErrorCode ERR_SEARCH_INDEX_REFRESH_FAILED =
+            ErrorCode.define("nop.err.metadata.search-index-refresh-failed",
+                    "Search index refresh failed for entityType={entityType} -- {error}",
+                    ARG_ENTITY_TYPE, ARG_ERROR);
+    ErrorCode ERR_SEARCH_DOC_CONVERT_FAILED =
+            ErrorCode.define("nop.err.metadata.search-doc-convert-failed",
+                    "Search document conversion failed (isolated, batch continues): "
+                            + "entityType={entityType} -- {error}",
+                    ARG_ENTITY_TYPE, ARG_ERROR);
+
+    // ===== Profiling isolation / type probe (clause-b formalize) =====
+
+    ErrorCode ERR_PROFILING_COLUMN_PROFILE_ISOLATED =
+            ErrorCode.define("nop.err.metadata.profiling-column-profile-isolated",
+                    "Profiling column failed (isolated, batch continues): table={tableName} column={columnName} "
+                            + "-- {error}",
+                    ARG_TABLE_NAME, ARG_COLUMN_NAME, ARG_ERROR);
+    ErrorCode ERR_PROFILING_TYPE_PROBE_FAILED =
+            ErrorCode.define("nop.err.metadata.profiling-type-probe-failed",
+                    "Profiling type probe failed (fallback applied): {error}", ARG_ERROR);
+
+    // ===== Contract type probe (clause-b formalize) =====
+
+    ErrorCode ERR_CONTRACT_TYPE_PROBE_FAILED =
+            ErrorCode.define("nop.err.metadata.contract-type-probe-failed",
+                    "Contract column type probe failed (fallback applied): {error}", ARG_ERROR);
+
+    // ===== Entity / Glossary / TagLabel sync isolation (clause-b formalize) =====
+
+    ErrorCode ERR_ENTITY_SYNC_ISOLATED =
+            ErrorCode.define("nop.err.metadata.entity-sync-isolated",
+                    "Entity sync failed (isolated, batch continues): entityType={entityType} entityId={entityId} "
+                            + "-- {error}",
+                    ARG_ENTITY_TYPE, ARG_ENTITY_ID, ARG_ERROR);
+    ErrorCode ERR_AUTOMATION_PROCESS_ISOLATED =
+            ErrorCode.define("nop.err.metadata.automation-process-isolated",
+                    "Automation processing failed (isolated, batch continues): entityType={entityType} "
+                            + "entityId={entityId} -- {error}",
+                    ARG_ENTITY_TYPE, ARG_ENTITY_ID, ARG_ERROR);
+    ErrorCode ERR_PROFILING_RULE_OPERATION_FAILED =
+            ErrorCode.define("nop.err.metadata.profiling-rule-operation-failed",
+                    "Profiling rule operation failed: profilingRuleId={profilingRuleId} -- {error}",
+                    ARG_PROFILING_RULE_ID, ARG_ERROR);
 }

@@ -51,6 +51,7 @@ const GOOD_SIGNALS = [
     'NopMetadataException(',
     '.errorCode(',
     'ErrorCode.',
+    'Errors.',
     'BizException',
     'Biz.fatal(',
 ];
@@ -244,12 +245,90 @@ function findMatchingBrace(lines, openLine, openCol) {
 }
 
 /**
+ * Strip comments and string/char literals from Java source text using a
+ * single-pass state machine. Prevents false-positive signal detection from
+ * tokens that appear only inside comments or string literals.
+ *
+ * Replaces stripped ranges with a space (not empty) to avoid accidentally
+ * merging adjacent tokens. If the input ends mid-string/mid-comment
+ * (unterminated), the remainder is stripped — this is conservative (strips
+ * any signal inside = potential hit, never a false pass).
+ */
+function stripCommentsAndStrings(text) {
+    let result = '';
+    let i = 0;
+    const len = text.length;
+    let state = 'code';
+    while (i < len) {
+        const ch = text[i];
+        const next = i + 1 < len ? text[i + 1] : '';
+        if (state === 'code') {
+            if (ch === '/' && next === '/') {
+                state = 'lineComment';
+                i += 2;
+            } else if (ch === '/' && next === '*') {
+                state = 'blockComment';
+                i += 2;
+            } else if (ch === '"') {
+                state = 'string';
+                i++;
+            } else if (ch === "'") {
+                state = 'char';
+                i++;
+            } else {
+                result += ch;
+                i++;
+            }
+        } else if (state === 'string') {
+            if (ch === '\\') {
+                i += 2;
+            } else if (ch === '"') {
+                state = 'code';
+                result += ' ';
+                i++;
+            } else {
+                i++;
+            }
+        } else if (state === 'char') {
+            if (ch === '\\') {
+                i += 2;
+            } else if (ch === "'") {
+                state = 'code';
+                result += ' ';
+                i++;
+            } else {
+                i++;
+            }
+        } else if (state === 'lineComment') {
+            if (ch === '\n') {
+                state = 'code';
+                result += ch;
+                i++;
+            } else {
+                i++;
+            }
+        } else if (state === 'blockComment') {
+            if (ch === '*' && next === '/') {
+                state = 'code';
+                result += ' ';
+                i += 2;
+            } else {
+                i++;
+            }
+        }
+    }
+    return result;
+}
+
+/**
  * Check if the catch block content contains any good signal.
+ * Signals are matched against code only (comments and string literals stripped).
  * Returns true if it has at least one good signal (NOT a hit).
  */
 function hasGoodSignal(blockContent) {
+    const codeOnly = stripCommentsAndStrings(blockContent);
     for (const signal of GOOD_SIGNALS) {
-        if (blockContent.includes(signal)) {
+        if (codeOnly.includes(signal)) {
             return true;
         }
     }
@@ -367,23 +446,77 @@ class FixtureCompliant {
 }
 `;
 
-function runFixture() {
-    const violationBlocks = findCatchBlocks(FIXTURE_VIOLATION);
-    const compliantBlocks = findCatchBlocks(FIXTURE_COMPLIANT);
+// (a) catch references *Errors. ErrorCode enum → must PASS (not a hit)
+const FIXTURE_ERRORS_ENUM = `
+class FixtureErrorsEnum {
+    void example() {
+        try {
+            doSomething();
+        } catch (Exception e) {
+            result.setErrors(List.of(NopMetadataErrors.ERR_INDEX_BUILD_FAILED + ": " + e.getMessage()));
+        }
+    }
+}
+`;
 
+// (b) catch only has ErrorCode. inside a comment → must be HIT (comment bypass blocked)
+const FIXTURE_COMMENT_BYPASS = `
+class FixtureCommentBypass {
+    void example() {
+        try {
+            doSomething();
+        } catch (Exception e) {
+            // ErrorCode. in comment should NOT count
+            LOG.warn("ignored", e);
+        }
+    }
+}
+`;
+
+// (c) catch has throw → must PASS (regression)
+const FIXTURE_THROW = `
+class FixtureThrow {
+    void example() {
+        try {
+            doSomething();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+}
+`;
+
+// (d) catch has string containing "//" followed by throw → must PASS (no false strip of // inside string)
+const FIXTURE_STRING_URL = `
+class FixtureStringUrl {
+    void example() {
+        try {
+            doSomething();
+        } catch (Exception e) {
+            LOG.warn("see http://example.com for details");
+            throw new RuntimeException(e);
+        }
+    }
+}
+`;
+
+function runFixture() {
     const results = [];
 
-    // Violation: should be HIT (no good signal)
-    for (const b of violationBlocks) {
-        const hit = !hasGoodSignal(b.content);
-        results.push({ sample: 'violation', expectedHit: true, actualHit: hit, pass: hit === true });
-    }
+    const check = (label, fixture, expectedHit) => {
+        const blocks = findCatchBlocks(fixture);
+        for (const b of blocks) {
+            const hit = !hasGoodSignal(b.content);
+            results.push({ sample: label, expectedHit, actualHit: hit, pass: hit === expectedHit });
+        }
+    };
 
-    // Compliant: should NOT be HIT (has throw + NopMetadataException)
-    for (const b of compliantBlocks) {
-        const hit = !hasGoodSignal(b.content);
-        results.push({ sample: 'compliant', expectedHit: false, actualHit: hit, pass: hit === false });
-    }
+    check('violation', FIXTURE_VIOLATION, true);
+    check('compliant', FIXTURE_COMPLIANT, false);
+    check('errors-enum', FIXTURE_ERRORS_ENUM, false);
+    check('comment-bypass', FIXTURE_COMMENT_BYPASS, true);
+    check('throw', FIXTURE_THROW, false);
+    check('string-url', FIXTURE_STRING_URL, false);
 
     const allPass = results.every(r => r.pass);
 

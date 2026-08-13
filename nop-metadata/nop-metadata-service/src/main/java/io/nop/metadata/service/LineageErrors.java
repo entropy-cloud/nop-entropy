@@ -51,4 +51,10 @@ interface LineageErrors extends NopMetadataArgs {
                     "Lineage table-name index size exceeds limit (abort to avoid OOM): "
                             + "tables={tables} limit={limit}. Increase nop.metadata.lineage.max-tables if legitimate.",
                     ARG_TABLES, ARG_LIMIT);
+
+    // ===== Lineage query isolation (clause-b formalize) =====
+
+    ErrorCode ERR_LINEAGE_QUERY_ISOLATED =
+            ErrorCode.define("nop.err.metadata.lineage-query-isolated",
+                    "Lineage query failed (isolated, graceful degradation): {error}", ARG_ERROR);
 }

@@ -4,6 +4,7 @@ package io.nop.metadata.service.entity;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
 import io.nop.biz.api.IBizObjectManager;
 import io.nop.core.context.IServiceContext;
@@ -159,9 +160,9 @@ public class LineageTagPropagationProcessor {
                 // AR-21（plan 2026-08-06-1228-1 Phase 3）：后台传播路径保留 per-edge 隔离（单边失败不中断
                 // 整条血缘传播），但内层不再静默返回 null（内层抛错）——此处 LOG.error 含完整上下文留证，
                 // 失败可观测（显式裁定语义：传播失败可观测但不中断批处理）。
-                LOG.error("propagation failed for edge edgeId={} sourceTableId={} targetTableId={} tagId={}",
+                LOG.error("propagation failed for edge edgeId={} sourceTableId={} targetTableId={} tagId={}, errorCode={}",
                         edge.getLineageEdgeId(), edge.getSourceTableId(), edge.getTargetTableId(),
-                        sourceLabel.getTagId(), e);
+                        sourceLabel.getTagId(), NopMetadataErrors.ERR_AUTOMATION_PROCESS_ISOLATED.getErrorCode(), e);
             }
         }
     }

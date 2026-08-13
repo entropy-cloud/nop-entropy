@@ -295,7 +295,8 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
             scheduler.registerCheckpoint(checkpointId);
         } catch (Exception e) {
             // 调度器注册失败不影响 save 主路径（调度是旁路能力）
-            LOG.warn("nop.meta.checkpoint-scheduler.register-after-save-failed: checkpointId={}", checkpointId, e);
+            LOG.warn("nop.meta.checkpoint-scheduler.register-after-save-failed: checkpointId={}, errorCode={}",
+                    checkpointId, NopMetadataErrors.ERR_CHECKPOINT_RULE_EXEC_ISOLATED.getErrorCode(), e);
         }
     }
 
@@ -309,7 +310,8 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
             // AR-23①（R8.4b）：删除成功后才摘 cron；此处仍是删除成功后的旁路失败——unregister 失败残留 cron
             // 属已接受成本（显式裁定）：残留 job 每 tick 经 executeScheduledCheckpoint 存活兜底打 ERROR 日志
             // （不转 FAILED），调度器 init() 重注册自愈。日志键语义 = unregister 发生在 delete 之后。
-            LOG.warn("nop.meta.checkpoint-scheduler.unregister-after-delete-failed: checkpointId={}", checkpointId, e);
+            LOG.warn("nop.meta.checkpoint-scheduler.unregister-after-delete-failed: checkpointId={}, errorCode={}",
+                    checkpointId, NopMetadataErrors.ERR_CHECKPOINT_RULE_EXEC_ISOLATED.getErrorCode(), e);
         }
     }
 
@@ -359,7 +361,8 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
                 entry.put("overallScore", scoreSummary.getOverallScore());
                 scoreResults.add(entry);
             } catch (Exception e) {
-                LOG.error("auto-score failed for affected table: {}", metaTableId, e);
+                LOG.error("auto-score failed for affected table: {}, errorCode={}",
+                        metaTableId, NopMetadataErrors.ERR_CHECKPOINT_RULE_EXEC_ISOLATED.getErrorCode(), e);
                 Map<String, Object> errEntry = new LinkedHashMap<>();
                 errEntry.put("source", "autoScore");
                 errEntry.put("metaTableId", metaTableId);
@@ -389,8 +392,8 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
             return config == null || config.isAutoScoreEffective();
         } catch (Exception e) {
             // extConfig 不可解析 → 默认开启（不静默伪造关闭），但留 WARN 根因
-            LOG.warn("checkpoint {} extConfig is not valid JSON, auto-score defaults to on",
-                    cp.getCheckpointId(), e);
+            LOG.warn("checkpoint {} extConfig is not valid JSON, auto-score defaults to on, errorCode={}",
+                    cp.getCheckpointId(), NopMetadataErrors.ERR_CHECKPOINT_RULE_EXEC_ISOLATED.getErrorCode(), e);
             return true;
         }
     }
@@ -444,7 +447,8 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
             });
         } catch (Exception e) {
             // dispatcher 内部 per-action try/catch 已隔离；此处仅兜底防异常外泄到 executeCheckpoint
-            LOG.error("action dispatch failed for checkpoint {}", cp.getCheckpointId(), e);
+            LOG.error("action dispatch failed for checkpoint {}, errorCode={}",
+                    cp.getCheckpointId(), NopMetadataErrors.ERR_CHECKPOINT_RULE_EXEC_ISOLATED.getErrorCode(), e);
         }
     }
 

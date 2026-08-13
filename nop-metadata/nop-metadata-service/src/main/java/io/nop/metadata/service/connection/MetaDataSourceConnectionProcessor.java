@@ -97,7 +97,7 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
         try {
             DriverManager.setLoginTimeout(DEFAULT_LOGIN_TIMEOUT_SECONDS);
         } catch (SecurityException se) {
-            LOG.warn("DriverManager.setLoginTimeout denied by security manager", se);
+            LOG.warn(NopMetadataErrors.ERR_DATASOURCE_SECURITY_CHECK_SKIPPED.getErrorCode() + ": DriverManager.setLoginTimeout denied by security manager", se);
         }
     }
 
@@ -154,9 +154,9 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
             result.put("driverVersion", metaData.getDriverVersion());
             return result;
         } catch (SQLException e) {
-            LOG.warn("testConnect failed for datasourceType={}", datasourceType, e);
+            LOG.warn(NopMetadataErrors.ERR_DATASOURCE_TEST_CONNECT_FAILED.getErrorCode() + ": testConnect failed for datasourceType={}", datasourceType, e);
             result.put("connected", false);
-            result.put("error", "Connection failed");
+            result.put("error", NopMetadataErrors.ERR_DATASOURCE_TEST_CONNECT_FAILED.getErrorCode() + ": Connection failed");
             return result;
         } finally {
             IoHelper.safeCloseObject(conn);
@@ -360,6 +360,7 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
             byte[] b = addr.getAddress();
             return b != null && (b.length == 4 || b.length == 16);
         } catch (UnknownHostException e) {
+            LOG.debug(NopMetadataErrors.ERR_DATASOURCE_HOST_RESOLVE_SKIPPED.getErrorCode() + ": IP literal resolution failed", e);
             return false;
         }
     }
@@ -383,6 +384,7 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
                     return false;
                 }
             } catch (NumberFormatException e) {
+                LOG.debug(NopMetadataErrors.ERR_DATASOURCE_PORT_PARSE_SKIPPED.getErrorCode() + ": octet parse failed", e);
                 return false;
             }
         }

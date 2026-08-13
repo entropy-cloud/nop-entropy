@@ -163,7 +163,8 @@ public class NopMetaLineageEdgeQueryAction {
         try {
             refs = sqlExtractor.extract(sourceSql);
         } catch (NopException e) {
-            LOG.error("extractLineageFromSql failed for metaTableId={}", metaTableId, e);
+            LOG.error("extractLineageFromSql failed for metaTableId={}, errorCode={}",
+                    metaTableId, NopMetadataErrors.ERR_LINEAGE_QUERY_ISOLATED.getErrorCode(), e);
             errors.add(errorMap("sql_parse", e));
             refs = Collections.emptyList();
         }
@@ -219,7 +220,8 @@ public class NopMetaLineageEdgeQueryAction {
         try {
             candidates = columnExtractor.extract(sourceSql);
         } catch (NopException e) {
-            LOG.error("extractColumnLineageFromSql failed for metaTableId={}", metaTableId, e);
+            LOG.error("extractColumnLineageFromSql failed for metaTableId={}, errorCode={}",
+                    metaTableId, NopMetadataErrors.ERR_LINEAGE_QUERY_ISOLATED.getErrorCode(), e);
             errors.add(errorMap("sql_parse_column", e));
             candidates = Collections.emptyList();
         }
@@ -336,8 +338,8 @@ public class NopMetaLineageEdgeQueryAction {
                     extracted++;
                 }
             } catch (NopException e) {
-                LOG.warn("extractMeasureLineage validator failed for metaTableId={}, measureName={}",
-                        metaTableId, measureName, e);
+                LOG.warn("extractMeasureLineage validator failed for metaTableId={}, measureName={}, errorCode={}",
+                        metaTableId, measureName, NopMetadataErrors.ERR_LINEAGE_QUERY_ISOLATED.getErrorCode(), e);
                 Map<String, Object> err = new LinkedHashMap<>();
                 err.put("stage", "measure_parse");
                 err.put("measureName", measureName);

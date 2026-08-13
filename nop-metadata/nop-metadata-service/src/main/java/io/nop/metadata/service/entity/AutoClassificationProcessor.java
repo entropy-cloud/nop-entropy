@@ -4,6 +4,7 @@ package io.nop.metadata.service.entity;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.biz.api.IBizObjectManager;
@@ -103,8 +104,9 @@ public class AutoClassificationProcessor {
             }
             rules = (List<Map<String, Object>>) parsed;
         } catch (Exception e) {
-            LOG.warn("Failed to parse autoClassificationConfig for classificationId={}",
-                    classification.getClassificationId(), e);
+            LOG.warn("Failed to parse autoClassificationConfig for classificationId={}, errorCode={}",
+                    classification.getClassificationId(),
+                    NopMetadataErrors.ERR_AUTOMATION_PROCESS_ISOLATED.getErrorCode(), e);
             return Collections.emptyList();
         }
 
@@ -141,8 +143,9 @@ public class AutoClassificationProcessor {
                 } catch (Exception e) {
                     String warnKey = classification.getClassificationId() + "|" + pattern;
                     if (warnedInvalidPatterns.add(warnKey)) {
-                        LOG.warn("Invalid auto-classification rule pattern pattern={} classificationId={} ruleIndex={}",
-                                pattern, classification.getClassificationId(), i, e);
+                        LOG.warn("Invalid auto-classification rule pattern pattern={} classificationId={} ruleIndex={}, errorCode={}",
+                                pattern, classification.getClassificationId(), i,
+                                NopMetadataErrors.ERR_AUTOMATION_PROCESS_ISOLATED.getErrorCode(), e);
                     }
                     continue;
                 }

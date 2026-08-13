@@ -164,4 +164,10 @@ interface AggregationErrors extends NopMetadataArgs {
                     "granularity value not in supported set [year,quarter,month,week,day,hour]: "
                             + "{granularity} dimensionName={dimensionName}",
                     ARG_GRANULARITY, ARG_DIMENSION_NAME);
+
+    // ===== Aggregation type probe (clause-b formalize) =====
+
+    ErrorCode ERR_AGGR_TYPE_PROBE_FAILED =
+            ErrorCode.define("nop.err.metadata.aggr-type-probe-failed",
+                    "Aggregation column type probe failed (fallback applied): {error}", ARG_ERROR);
 }

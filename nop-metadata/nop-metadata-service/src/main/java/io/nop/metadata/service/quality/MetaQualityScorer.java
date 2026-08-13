@@ -264,7 +264,8 @@ public class MetaQualityScorer {
             return dim != null ? String.valueOf(dim) : null;
         } catch (Exception e) {
             // extConfig 不可解析 → 回退静态 ruleType 映射（不静默伪造），但留 WARN 根因
-            LOG.warn("quality rule {} extConfig is not valid JSON, falling back to ruleType mapping",
+            LOG.warn("quality rule extConfig is not valid JSON, falling back to ruleType mapping: errorCode={} ruleId={}",
+                    NopMetadataErrors.ERR_QUALITY_SCORE_RULE_ISOLATED.getErrorCode(),
                     rule.getQualityRuleId(), e);
             return null;
         }

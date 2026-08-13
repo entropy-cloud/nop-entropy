@@ -8,6 +8,7 @@ import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaGlossaryTerm;
 import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.dao.entity.NopMetaTag;
+import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataHelper;
 import io.nop.search.api.ISearchEngine;
 import io.nop.search.api.SearchHit;
@@ -72,7 +73,8 @@ public class NopMetaIndexBuilder {
                 searchEngine.removeTopic(topic);
             } catch (Exception e) {
                 // 清理失败显式反映（不吞掉）：topic 清理失败时陈旧文档残留 + 新文档叠加——每个类型行都标记失败
-                LOG.warn("Failed to purge topic before full index rebuild", e);
+                LOG.warn(NopMetadataErrors.ERR_SEARCH_INDEX_PURGE_FAILED.getErrorCode()
+                        + ": Failed to purge topic before full index rebuild", e);
                 topicPurgeFailed = true;
             }
         }
@@ -112,9 +114,11 @@ public class NopMetaIndexBuilder {
                         continue;
                 }
             } catch (Exception e) {
-                LOG.warn("Failed to process entity type={}", entityType, e);
+                LOG.warn(NopMetadataErrors.ERR_SEARCH_INDEX_BUILD_FAILED.getErrorCode()
+                        + ": Failed to process entity type={}", entityType, e);
                 result.setFailed(result.getFailed() + 1);
-                result.setErrors(List.of("Failed to process: " + entityType));
+                result.setErrors(List.of(NopMetadataErrors.ERR_SEARCH_INDEX_BUILD_FAILED.getErrorCode()
+                        + ": Failed to process: " + entityType));
                 results.add(result);
                 continue;
             }
@@ -123,7 +127,8 @@ public class NopMetaIndexBuilder {
                 // 全量重建：topic 级清理已在循环前执行；若清理失败，在每个类型行显式标记（failed += 1 + errors）
                 if (topicPurgeFailed) {
                     result.setFailed(result.getFailed() + 1);
-                    result.setErrors(List.of("Topic purge failed before rebuild"));
+                    result.setErrors(List.of(NopMetadataErrors.ERR_SEARCH_INDEX_PURGE_FAILED.getErrorCode()
+                            + ": Topic purge failed before rebuild"));
                 }
             } else {
                 // AR-23②：部分重建在 addDocs 前按类型级清理该类型现有 docId（空 query + tags 过滤枚举；
@@ -135,9 +140,11 @@ public class NopMetaIndexBuilder {
                 try {
                     searchEngine.addDocs(topic, docs);
                 } catch (Exception e) {
-                    LOG.warn("Failed to index docs for type={}", entityType, e);
+                    LOG.warn(NopMetadataErrors.ERR_SEARCH_INDEX_ADD_FAILED.getErrorCode()
+                            + ": Failed to index docs for type={}", entityType, e);
                     result.setFailed(result.getFailed() + docs.size());
-                    result.setErrors(List.of("Batch add failed for type: " + entityType));
+                    result.setErrors(List.of(NopMetadataErrors.ERR_SEARCH_INDEX_ADD_FAILED.getErrorCode()
+                            + ": Batch add failed for type: " + entityType));
                     results.add(result);
                     continue;
                 }
@@ -147,9 +154,11 @@ public class NopMetaIndexBuilder {
                 } catch (Exception e) {
                     // AR-23③（R8.2）：refresh 失败不再仅 LOG.warn 静默——写入 IndexResult（failed += 1，
                     // 非 docs.size()：文档已 addDocs 成功），indexed 如实反映已 addDocs 数；搜索不再报"成功"却读陈旧索引
-                    LOG.warn("Failed to refresh index for type={}", entityType, e);
+                    LOG.warn(NopMetadataErrors.ERR_SEARCH_INDEX_REFRESH_FAILED.getErrorCode()
+                            + ": Failed to refresh index for type={}", entityType, e);
                     result.setFailed(result.getFailed() + 1);
-                    result.setErrors(List.of("Index refresh failed for type: " + entityType));
+                    result.setErrors(List.of(NopMetadataErrors.ERR_SEARCH_INDEX_REFRESH_FAILED.getErrorCode()
+                            + ": Index refresh failed for type: " + entityType));
                 }
             }
 
@@ -190,9 +199,11 @@ public class NopMetaIndexBuilder {
                 searchEngine.removeDocs(topic, docIds);
             }
         } catch (Exception e) {
-            LOG.warn("Failed to purge stale docs for type={}", entityType, e);
+            LOG.warn(NopMetadataErrors.ERR_SEARCH_INDEX_PURGE_FAILED.getErrorCode()
+                    + ": Failed to purge stale docs for type={}", entityType, e);
             result.setFailed(result.getFailed() + 1);
-            result.setErrors(List.of("Stale doc purge failed for type: " + entityType));
+            result.setErrors(List.of(NopMetadataErrors.ERR_SEARCH_INDEX_PURGE_FAILED.getErrorCode()
+                    + ": Stale doc purge failed for type: " + entityType));
         }
     }
 
@@ -213,7 +224,8 @@ public class NopMetaIndexBuilder {
                 doc.setTagSet(Set.of("Classification"));
                 docs.add(doc);
             } catch (Exception ex) {
-                LOG.warn("Failed to convert Classification doc", ex);
+                LOG.warn(NopMetadataErrors.ERR_SEARCH_DOC_CONVERT_FAILED.getErrorCode()
+                        + ": Failed to convert Classification doc", ex);
                 result.setFailed(result.getFailed() + 1);
             }
         }
@@ -237,7 +249,8 @@ public class NopMetaIndexBuilder {
                 doc.setTagSet(Set.of("Tag"));
                 docs.add(doc);
             } catch (Exception ex) {
-                LOG.warn("Failed to convert Tag doc", ex);
+                LOG.warn(NopMetadataErrors.ERR_SEARCH_DOC_CONVERT_FAILED.getErrorCode()
+                        + ": Failed to convert Tag doc", ex);
                 result.setFailed(result.getFailed() + 1);
             }
         }
@@ -261,7 +274,8 @@ public class NopMetaIndexBuilder {
                 doc.setTagSet(Set.of("GlossaryTerm"));
                 docs.add(doc);
             } catch (Exception ex) {
-                LOG.warn("Failed to convert GlossaryTerm doc", ex);
+                LOG.warn(NopMetadataErrors.ERR_SEARCH_DOC_CONVERT_FAILED.getErrorCode()
+                        + ": Failed to convert GlossaryTerm doc", ex);
                 result.setFailed(result.getFailed() + 1);
             }
         }
@@ -284,7 +298,8 @@ public class NopMetaIndexBuilder {
                 doc.setTagSet(Set.of("MetaTable"));
                 docs.add(doc);
             } catch (Exception ex) {
-                LOG.warn("Failed to convert MetaTable doc", ex);
+                LOG.warn(NopMetadataErrors.ERR_SEARCH_DOC_CONVERT_FAILED.getErrorCode()
+                        + ": Failed to convert MetaTable doc", ex);
                 result.setFailed(result.getFailed() + 1);
             }
         }
@@ -308,7 +323,8 @@ public class NopMetaIndexBuilder {
                 doc.setTagSet(Set.of("MetaEntity"));
                 docs.add(doc);
             } catch (Exception ex) {
-                LOG.warn("Failed to convert MetaEntity doc", ex);
+                LOG.warn(NopMetadataErrors.ERR_SEARCH_DOC_CONVERT_FAILED.getErrorCode()
+                        + ": Failed to convert MetaEntity doc", ex);
                 result.setFailed(result.getFailed() + 1);
             }
         }
@@ -332,7 +348,8 @@ public class NopMetaIndexBuilder {
                 doc.setTagSet(Set.of("MetaEntityField"));
                 docs.add(doc);
             } catch (Exception ex) {
-                LOG.warn("Failed to convert MetaEntityField doc", ex);
+                LOG.warn(NopMetadataErrors.ERR_SEARCH_DOC_CONVERT_FAILED.getErrorCode()
+                        + ": Failed to convert MetaEntityField doc", ex);
                 result.setFailed(result.getFailed() + 1);
             }
         }

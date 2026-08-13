@@ -303,9 +303,11 @@ public class MetaQualityRuleExecutor {
         try {
             value = querySingleValue(conn, sql);
         } catch (SQLException e) {
-            LOG.error("custom_sql execution failed (sqlHash={})", sqlHash, e);
+            LOG.error("custom_sql execution failed: errorCode={} sqlHash={}",
+                    NopMetadataErrors.ERR_QUALITY_RULE_EXEC_ISOLATED.getErrorCode(), sqlHash, e);
             j.setStatus("ERROR");
-            j.setMessage("custom_sql execution failed (executes on external data source account): " + messageOf(e));
+            j.setMessage("custom_sql execution failed (executes on external data source account): ["
+                    + NopMetadataErrors.ERR_QUALITY_RULE_EXEC_ISOLATED.getErrorCode() + "] " + messageOf(e));
             return j;
         }
         if (value == null) {
@@ -526,9 +528,11 @@ public class MetaQualityRuleExecutor {
                 outOfRange = rs.getLong(1);
             }
         } catch (SQLException e) {
-            LOG.error("range SQL execution failed", e);
+            LOG.error("range SQL execution failed: errorCode={}",
+                    NopMetadataErrors.ERR_QUALITY_RULE_EXEC_ISOLATED.getErrorCode(), e);
             j.setStatus("ERROR");
-            j.setMessage("range SQL execution failed: " + messageOf(e));
+            j.setMessage("range SQL execution failed: ["
+                    + NopMetadataErrors.ERR_QUALITY_RULE_EXEC_ISOLATED.getErrorCode() + "] " + messageOf(e));
             return j;
         }
         j.setActualValue((double) outOfRange);
@@ -577,9 +581,11 @@ public class MetaQualityRuleExecutor {
                 j.getDetails().put("reason", "regexp-unsupported-dialect");
                 return j;
             }
-            LOG.error("regex SQL execution failed", e);
+            LOG.error("regex SQL execution failed: errorCode={}",
+                    NopMetadataErrors.ERR_QUALITY_RULE_EXEC_ISOLATED.getErrorCode(), e);
             j.setStatus("ERROR");
-            j.setMessage("regex SQL execution failed: " + messageOf(e));
+            j.setMessage("regex SQL execution failed: ["
+                    + NopMetadataErrors.ERR_QUALITY_RULE_EXEC_ISOLATED.getErrorCode() + "] " + messageOf(e));
             return j;
         }
         j.setActualValue((double) notMatching);
@@ -701,12 +707,16 @@ public class MetaQualityRuleExecutor {
                 }
             } catch (SQLException ignore) {
                 // 非数值列，尝试按布尔读
+                LOG.debug(NopMetadataErrors.ERR_QUALITY_RULE_TYPE_PROBE_FAILED.getErrorCode()
+                        + ": numeric column probe failed, falling back to boolean read", ignore);
             }
             // 回退按布尔读（true=1, false=0）
             try {
                 boolean b = rs.getBoolean(1);
                 return b ? 1.0 : 0.0;
             } catch (SQLException ignore) {
+                LOG.debug(NopMetadataErrors.ERR_QUALITY_RULE_TYPE_PROBE_FAILED.getErrorCode()
+                        + ": boolean column probe failed, returning null", ignore);
                 return null;
             }
         }
@@ -840,6 +850,8 @@ public class MetaQualityRuleExecutor {
         try {
             return Double.parseDouble(String.valueOf(v));
         } catch (NumberFormatException e) {
+            LOG.debug(NopMetadataErrors.ERR_QUALITY_RULE_TYPE_PROBE_FAILED.getErrorCode()
+                    + ": numeric parse failed for getDouble param, returning null", e);
             return null;
         }
     }

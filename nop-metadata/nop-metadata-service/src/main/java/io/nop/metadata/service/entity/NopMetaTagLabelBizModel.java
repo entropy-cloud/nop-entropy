@@ -7,6 +7,7 @@ import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
 
 import io.nop.api.core.time.CoreMetrics;
@@ -118,7 +119,8 @@ public class NopMetaTagLabelBizModel extends CrudBizModel<NopMetaTagLabel> imple
             return val instanceof String ? (String) val : null;
         } catch (Exception e) {
             // R2.11（P2-MA4-001）：不静默吞异常——记录完整异常（含堆栈），调用方按 wfName==null 降级（不自动提审）
-            LOG.warn("nop.metadata.taglabel.wf-name-read-failed", e);
+            LOG.warn("nop.metadata.taglabel.wf-name-read-failed, errorCode={}",
+                    NopMetadataErrors.ERR_ENTITY_SYNC_ISOLATED.getErrorCode(), e);
             return null;
         }
     }
@@ -174,7 +176,8 @@ public class NopMetaTagLabelBizModel extends CrudBizModel<NopMetaTagLabel> imple
                 bizObjectManager().getBizObject("NopMetaTagLabel")
                         .invoke("save", Map.of("data", data), null, context);
             } catch (Exception e) {
-                LOG.warn("Failed to save propagated TagLabel for tagId={}", tagId, e);
+                LOG.warn("Failed to save propagated TagLabel for tagId={}, errorCode={}",
+                        tagId, NopMetadataErrors.ERR_ENTITY_SYNC_ISOLATED.getErrorCode(), e);
             }
         }
     }

@@ -32,4 +32,11 @@ interface ModuleErrors extends NopMetadataArgs {
             ErrorCode.define("nop.err.metadata.manifest-orm-model-null",
                     "MetaManifest build failed: full ORM model is null",
                     ARG_META_MODULE_ID);
+
+    // ===== Module operation isolation (clause-b formalize) =====
+
+    ErrorCode ERR_MODULE_OPERATION_ISOLATED =
+            ErrorCode.define("nop.err.metadata.module-operation-isolated",
+                    "Module operation failed (isolated, batch continues): metaModuleId={metaModuleId} -- {error}",
+                    ARG_META_MODULE_ID, ARG_ERROR);
 }

@@ -46,4 +46,11 @@ interface ReconErrors extends NopMetadataArgs {
             ErrorCode.define("nop.err.metadata.recon-invalid-selection",
                     "Reconciliation selection value is invalid: resultId={resultId} value={value}",
                     ARG_RESULT_ID, ARG_VALUE);
+
+    // ===== Reconciliation process isolation (clause-b formalize) =====
+
+    ErrorCode ERR_RECON_PROCESS_ISOLATED =
+            ErrorCode.define("nop.err.metadata.recon-process-isolated",
+                    "Reconciliation processing failed (isolated, batch continues): configId={configId} -- {error}",
+                    ARG_CONFIG_ID, ARG_ERROR);
 }

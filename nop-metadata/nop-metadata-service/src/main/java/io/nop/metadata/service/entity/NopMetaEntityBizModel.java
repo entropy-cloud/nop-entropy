@@ -11,6 +11,7 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaEntityBiz;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
+import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataHelper;
 import io.nop.metadata.service.search.NopMetaSearchProcessor;
 import io.nop.search.api.SearchableDoc;
@@ -70,7 +71,8 @@ public class NopMetaEntityBizModel extends CrudBizModel<NopMetaEntity> implement
         } catch (RuntimeException e) {
             // 索引清理为 best-effort（fail-closed 可抛）：失败留 WARN，不掩盖删除结果
             org.slf4j.LoggerFactory.getLogger(NopMetaEntityBizModel.class)
-                    .warn("delete index cleanup failed for entityType={} id={}", entityType, id, e);
+                    .warn("delete index cleanup failed for entityType={} id={}, errorCode={}",
+                            entityType, id, NopMetadataErrors.ERR_ENTITY_SYNC_ISOLATED.getErrorCode(), e);
         }
     }
 

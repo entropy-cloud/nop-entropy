@@ -153,7 +153,9 @@ public class CheckpointActionDispatcher {
             }
             actionList = (List<Object>) parsed;
         } catch (Exception e) {
-            LOG.error("actions JSON parse failed (should have been validated): checkpointId={}", cp.getCheckpointId(), e);
+            LOG.error("actions JSON parse failed (should have been validated): errorCode={} checkpointId={}",
+                    NopMetadataErrors.ERR_CHECKPOINT_ACTION_DISPATCH_ISOLATED.getErrorCode(),
+                    cp.getCheckpointId(), e);
             return;
         }
 
@@ -186,7 +188,9 @@ public class CheckpointActionDispatcher {
                             + "checkpointId={}, actionType={}", cp.getCheckpointId(), actionType);
                 }
             } catch (Exception e) {
-                LOG.error("action dispatch failed: actionType={}, checkpointId={}", actionType, cp.getCheckpointId(), e);
+                LOG.error("action dispatch failed: errorCode={} actionType={} checkpointId={}",
+                        NopMetadataErrors.ERR_CHECKPOINT_ACTION_DISPATCH_ISOLATED.getErrorCode(),
+                        actionType, cp.getCheckpointId(), e);
                 errors.add(buildDispatchError(actionType, e));
             }
         }
@@ -390,6 +394,8 @@ public class CheckpointActionDispatcher {
             byte[] b = addr.getAddress();
             return b != null && (b.length == 4 || b.length == 16);
         } catch (UnknownHostException e) {
+            LOG.debug(NopMetadataErrors.ERR_DATASOURCE_HOST_RESOLVE_SKIPPED.getErrorCode()
+                    + ": IP literal resolve failed for host head, treating as non-literal", e);
             return false;
         }
     }

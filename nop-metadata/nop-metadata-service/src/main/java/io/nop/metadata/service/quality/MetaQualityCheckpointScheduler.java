@@ -148,7 +148,8 @@ public class MetaQualityCheckpointScheduler {
                 }
             } catch (Exception e) {
                 // 单检查点注册失败不中断其他检查点、不抛崩启动（D4 容错）
-                LOG.error("nop.meta.checkpoint-scheduler.register-failed: checkpointId={}", cp.getCheckpointId(), e);
+                LOG.error("nop.meta.checkpoint-scheduler.register-failed: errorCode={} checkpointId={}",
+                        NopMetadataErrors.ERR_CHECKPOINT_SCHEDULE_FAILED.getErrorCode(), cp.getCheckpointId(), e);
             }
         }
         LOG.info("nop.meta.checkpoint-scheduler.init-done: activeCheckpoints={} registered={}", active.size(), registered);
@@ -172,7 +173,8 @@ public class MetaQualityCheckpointScheduler {
         try {
             doRegister(cp);
         } catch (Exception e) {
-            LOG.error("nop.meta.checkpoint-scheduler.register-failed: checkpointId={}", checkpointId, e);
+            LOG.error("nop.meta.checkpoint-scheduler.register-failed: errorCode={} checkpointId={}",
+                    NopMetadataErrors.ERR_CHECKPOINT_SCHEDULE_FAILED.getErrorCode(), checkpointId, e);
         }
     }
 
@@ -221,8 +223,9 @@ public class MetaQualityCheckpointScheduler {
                 LOG.warn("nop.meta.checkpoint-scheduler.scheduled-exec-skipped: checkpointId={} "
                         + "(already running, concurrent execution rejected fail-fast)", checkpointId);
             } else {
-                LOG.error("nop.meta.checkpoint-scheduler.scheduled-exec-failed: checkpointId={} error={}",
-                        checkpointId, NopMetadataHelper.toErrorMessage(e), e);
+                LOG.error("nop.meta.checkpoint-scheduler.scheduled-exec-failed: errorCode={} checkpointId={} error={}",
+                        NopMetadataErrors.ERR_CHECKPOINT_SCHEDULE_FAILED.getErrorCode(), checkpointId,
+                        NopMetadataHelper.toErrorMessage(e), e);
             }
             return buildErrorResult(checkpointId, e);
         }
@@ -258,8 +261,8 @@ public class MetaQualityCheckpointScheduler {
                     ? detail.getTriggerSpec().getCronExpr() : null;
         } catch (Exception e) {
             // scheduler 查询失败 → null（诊断用，不影响主流程），但留 WARN 根因
-            LOG.warn("nop.meta.checkpoint-scheduler.read-registered-cron-failed: checkpointId={}",
-                    checkpointId, e);
+            LOG.warn("nop.meta.checkpoint-scheduler.read-registered-cron-failed: errorCode={} checkpointId={}",
+                    NopMetadataErrors.ERR_CHECKPOINT_SCHEDULE_FAILED.getErrorCode(), checkpointId, e);
             return null;
         }
     }
@@ -295,12 +298,14 @@ public class MetaQualityCheckpointScheduler {
             // MA7.5-03：addJob 失败（如 cron 被运维改为非法值）时，旧 job（旧 cron）仍留在调度器继续触发，
             // 检查点会按过期时间表运行（可能凌晨误跑）且运维误以为已停用。清理残留 job；
             // removeJob 自身失败不掩盖 addJob 失败原因。
-            LOG.error("nop.meta.checkpoint-scheduler.add-job-failed: checkpointId={} oldCron={} newCron={}",
-                    checkpointId, readRegisteredCron(checkpointId), cron, e);
+            LOG.error("nop.meta.checkpoint-scheduler.add-job-failed: errorCode={} checkpointId={} oldCron={} newCron={}",
+                    NopMetadataErrors.ERR_CHECKPOINT_SCHEDULE_FAILED.getErrorCode(), checkpointId,
+                    readRegisteredCron(checkpointId), cron, e);
             try {
                 scheduler.removeJob(jobName(checkpointId));
             } catch (Exception re) {
-                LOG.error("nop.meta.checkpoint-scheduler.remove-stale-job-failed: checkpointId={}", checkpointId, re);
+                LOG.error("nop.meta.checkpoint-scheduler.remove-stale-job-failed: errorCode={} checkpointId={}",
+                        NopMetadataErrors.ERR_CHECKPOINT_SCHEDULE_FAILED.getErrorCode(), checkpointId, re);
             }
             return false;
         }
@@ -323,7 +328,8 @@ public class MetaQualityCheckpointScheduler {
             return config == null ? null : config.getSchedule();
         } catch (Exception e) {
             // extConfig 不可解析 → 视为无 schedule（不静默伪造）
-            LOG.warn("nop.meta.checkpoint-scheduler.ext-config-unparseable: checkpointId={}", cp.getCheckpointId(), e);
+            LOG.warn("nop.meta.checkpoint-scheduler.ext-config-unparseable: errorCode={} checkpointId={}",
+                    NopMetadataErrors.ERR_CHECKPOINT_SCHEDULE_FAILED.getErrorCode(), cp.getCheckpointId(), e);
             return null;
         }
     }

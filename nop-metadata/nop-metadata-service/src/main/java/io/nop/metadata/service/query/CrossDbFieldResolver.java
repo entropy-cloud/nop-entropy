@@ -223,7 +223,7 @@ public class CrossDbFieldResolver {
         try {
             return ctx.daoProvider().daoFor(NopMetaEntityField.class).getEntityById(entityFieldId);
         } catch (Exception e) {
-            LOG.warn("failed to load entity field by id: {}", entityFieldId, e);
+            LOG.warn(NopMetadataErrors.ERR_AGGR_EXEC_FAILED.getErrorCode() + ": failed to load entity field by id: {}", entityFieldId, e);
             return null;
         }
     }

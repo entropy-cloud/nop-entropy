@@ -162,7 +162,8 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
             try {
                 alertWorkflowService.createAlertWorkflow(row, context);
             } catch (Exception e) {
-                LOG.error("Failed to create alert workflow for quality rule: {}", rule.getQualityRuleId(), e);
+                LOG.error("Failed to create alert workflow for quality rule: {}, errorCode={}",
+                        rule.getQualityRuleId(), NopMetadataErrors.ERR_QUALITY_RULE_EXEC_ISOLATED.getErrorCode(), e);
             }
         }
 
@@ -257,8 +258,8 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
                             executedCount.incrementAndGet();
                             results.add(buildSingleResultDto(row, judgment));
                         } catch (Exception e) {
-                            LOG.error("executeQualityRulesForDataSource failed for rule: {}",
-                                    rule.getQualityRuleId(), e);
+                            LOG.error("executeQualityRulesForDataSource failed for rule: {}, errorCode={}",
+                                    rule.getQualityRuleId(), NopMetadataErrors.ERR_QUALITY_RULE_EXEC_ISOLATED.getErrorCode(), e);
                             errors.add(new ErrorDTO(rule.getQualityRuleId(), NopMetadataHelper.toErrorMessage(e), rule.getRuleName()));
                             // 隔离失败：清理未刷出的脏实体，不影响已 flush 的规则与后续规则
                             orm().clearSession();
@@ -395,7 +396,8 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
         try {
             return metaData.getDatabaseProductName();
         } catch (SQLException e) {
-            LOG.warn("getDatabaseProductName failed, product name will be absent from details", e);
+            LOG.warn("getDatabaseProductName failed, product name will be absent from details, errorCode={}",
+                    NopMetadataErrors.ERR_QUALITY_RULE_TYPE_PROBE_FAILED.getErrorCode(), e);
             return null;
         }
     }

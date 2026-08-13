@@ -199,7 +199,8 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
                                 upsertExternalTableGuarded(externalModuleId, dataSource, table);
                                 syncedCount.incrementAndGet();
                             } catch (Exception e) {
-                                LOG.error("syncExternalTables failed for table: {}", table.getTableName(), e);
+                                LOG.error("syncExternalTables failed for table: {}, errorCode={}",
+                                        table.getTableName(), NopMetadataErrors.ERR_ENTITY_SYNC_ISOLATED.getErrorCode(), e);
                                 ErrorDTO errDTO = new ErrorDTO();
                                 errDTO.setCode(table.getTableName());
                                 errDTO.setMessage(NopMetadataHelper.toErrorMessage(e));
@@ -257,7 +258,8 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
                 return null;
             });
         } catch (Exception e) {
-            LOG.error("publish sync scan failure event failed: dataSourceId={}", dataSourceId, e);
+            LOG.error("publish sync scan failure event failed: dataSourceId={}, errorCode={}",
+                    dataSourceId, NopMetadataErrors.ERR_ENTITY_SYNC_ISOLATED.getErrorCode(), e);
         }
     }
 
@@ -323,7 +325,8 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
                             orm().flushSession();
                             collectedCount.incrementAndGet();
                         } catch (Exception e) {
-                            LOG.error("collectCatalog failed for table: {}", table.getTableName(), e);
+                            LOG.error("collectCatalog failed for table: {}, errorCode={}",
+                                    table.getTableName(), NopMetadataErrors.ERR_ENTITY_SYNC_ISOLATED.getErrorCode(), e);
                             ErrorDTO errDTO = new ErrorDTO();
                             errDTO.setCode(table.getTableName());
                             errDTO.setMessage(NopMetadataHelper.toErrorMessage(e));
@@ -454,7 +457,8 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
         try {
             return metaData.getDatabaseProductName();
         } catch (SQLException e) {
-            LOG.warn("getDatabaseProductName failed, product name will be absent from details", e);
+            LOG.warn("getDatabaseProductName failed, product name will be absent from details, errorCode={}",
+                    NopMetadataErrors.ERR_EXTERNAL_TABLE_SCAN_FAILED.getErrorCode(), e);
             return null;
         }
     }

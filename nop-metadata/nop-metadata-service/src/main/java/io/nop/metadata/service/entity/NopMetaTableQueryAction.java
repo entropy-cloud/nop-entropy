@@ -238,7 +238,8 @@ public class NopMetaTableQueryAction {
         try {
             return metaData.getDatabaseProductName();
         } catch (SQLException e) {
-            LOG.warn("getDatabaseProductName failed, product name will be absent from tableStats", e);
+            LOG.warn("getDatabaseProductName failed, product name will be absent from tableStats, errorCode={}",
+                    NopMetadataErrors.ERR_QUERY_SQL_EXEC_FAILED.getErrorCode(), e);
             return null;
         }
     }

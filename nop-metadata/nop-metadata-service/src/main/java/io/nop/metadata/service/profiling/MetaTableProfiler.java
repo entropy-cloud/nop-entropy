@@ -134,7 +134,7 @@ public class MetaTableProfiler {
                     ProfilingColumnStats cs = profileColumn(conn, fromClause, col);
                     snapshot.getColumnStats().add(cs);
                 } catch (Exception e) {
-                    LOG.error("profileTable failed for column: {} of table: {}", col.name, displayTableName, e);
+                    LOG.error(NopMetadataErrors.ERR_PROFILING_COLUMN_PROFILE_ISOLATED.getErrorCode() + ": profileTable failed for column: {} of table: {}", col.name, displayTableName, e);
                     snapshot.recordColumnError(col.name, messageOf(e));
                 }
             }
@@ -184,7 +184,7 @@ public class MetaTableProfiler {
             } catch (SQLException e) {
                 // 类型名含字符串关键字但实际不支持 = '' 比较（如 CLOB）→ emptyCount 无意义，记 0 不中断；
                 // 但真实 SQL 错误（列被删/权限/连接失败）不能静默吞掉——记录日志供区分（MA6.2-002）
-                LOG.warn("nop.metadata.profiler.empty-count-query-failed: col={}", col.name, e);
+                LOG.warn(NopMetadataErrors.ERR_PROFILING_TYPE_PROBE_FAILED.getErrorCode() + ": nop.metadata.profiler.empty-count-query-failed: col={}", col.name, e);
                 cs.setEmptyCount(0L);
             }
         } else {
@@ -216,6 +216,7 @@ public class MetaTableProfiler {
             queryNullableDouble(conn, "SELECT SUM(" + col + ") FROM " + fromClause);
             return true;
         } catch (SQLException e) {
+            LOG.debug(NopMetadataErrors.ERR_PROFILING_TYPE_PROBE_FAILED.getErrorCode() + ": probeNumeric failed", e);
             return false;
         }
     }
@@ -435,6 +436,7 @@ public class MetaTableProfiler {
                 return Double.parseDouble(s.trim());
             } catch (NumberFormatException e) {
                 // 非数值字符串（如全 null 列的 MIN/MAX），按 null 处理（不伪造）
+                LOG.debug(NopMetadataErrors.ERR_PROFILING_TYPE_PROBE_FAILED.getErrorCode() + ": queryNullableDouble parse failed", e);
                 return null;
             }
         }
@@ -453,6 +455,7 @@ public class MetaTableProfiler {
             try {
                 return Long.parseLong(s.trim());
             } catch (NumberFormatException e) {
+                LOG.debug(NopMetadataErrors.ERR_PROFILING_TYPE_PROBE_FAILED.getErrorCode() + ": queryNullableLong parse failed", e);
                 return null;
             }
         }
@@ -478,7 +481,7 @@ public class MetaTableProfiler {
                 return v;
             }
         } catch (SQLException ignore) {
-            LOG.trace("Non-numeric column type, falling back to string parsing", ignore);
+            LOG.debug(NopMetadataErrors.ERR_PROFILING_TYPE_PROBE_FAILED.getErrorCode() + ": Non-numeric column type, falling back to string parsing", ignore);
         }
         String s = rs.getString(col);
         return s == null ? 0L : Long.parseLong(s.trim());

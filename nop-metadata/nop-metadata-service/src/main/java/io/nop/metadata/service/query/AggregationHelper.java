@@ -470,7 +470,7 @@ public class AggregationHelper {
         try {
             return metaData.getDatabaseProductName();
         } catch (SQLException e) {
-            LOG.error("safeProductName failed: getDatabaseProductName threw", e);
+            LOG.error(NopMetadataErrors.ERR_AGGR_TYPE_PROBE_FAILED.getErrorCode() + ": safeProductName failed: getDatabaseProductName threw", e);
             return null;
         }
     }

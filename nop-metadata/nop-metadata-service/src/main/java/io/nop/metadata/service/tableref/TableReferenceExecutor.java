@@ -139,7 +139,7 @@ public class TableReferenceExecutor {
         try {
             return metaData.getDatabaseProductName();
         } catch (SQLException e) {
-            LOG.warn("getDatabaseProductName failed, product name will be absent", e);
+            LOG.warn(NopMetadataErrors.ERR_TABLEREF_PLATFORM_META_FAILED.getErrorCode() + ": getDatabaseProductName failed, product name will be absent", e);
             return null;
         }
     }

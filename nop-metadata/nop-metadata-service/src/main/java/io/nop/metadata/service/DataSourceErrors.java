@@ -105,4 +105,25 @@ interface DataSourceErrors extends NopMetadataArgs {
             ErrorCode.define("nop.err.metadata.query-sql-exec-failed",
                     "Query SQL execution failed: metaTableId={metaTableId} -- {error}",
                     ARG_META_TABLE_ID, ARG_ERROR);
+
+    // ===== DataSource operation isolation / type probe (clause-b formalize) =====
+
+    ErrorCode ERR_DATASOURCE_TEST_CONNECT_FAILED =
+            ErrorCode.define("nop.err.metadata.datasource-test-connect-failed",
+                    "DataSource test connection failed: datasourceType={datasourceType} -- {error}",
+                    ARG_DATASOURCE_TYPE, ARG_ERROR);
+    ErrorCode ERR_DATASOURCE_SECURITY_CHECK_SKIPPED =
+            ErrorCode.define("nop.err.metadata.datasource-security-check-skipped",
+                    "DataSource security check skipped (SecurityManager denied, per-edge accepted): {error}",
+                    ARG_ERROR);
+    ErrorCode ERR_DATASOURCE_HOST_RESOLVE_SKIPPED =
+            ErrorCode.define("nop.err.metadata.datasource-host-resolve-skipped",
+                    "DataSource host resolution skipped (UnknownHostException, per-edge accepted): host={schema} "
+                            + "-- {error}",
+                    ARG_SCHEMA, ARG_ERROR);
+    ErrorCode ERR_DATASOURCE_PORT_PARSE_SKIPPED =
+            ErrorCode.define("nop.err.metadata.datasource-port-parse-skipped",
+                    "DataSource port parse skipped (NumberFormatException, fallback applied, per-edge accepted): "
+                            + "{error}",
+                    ARG_ERROR);
 }

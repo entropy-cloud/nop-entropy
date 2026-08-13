@@ -101,4 +101,10 @@ interface JoinErrors extends NopMetadataArgs {
     ErrorCode ERR_PAGINATION_LIMIT_INVALID =
             ErrorCode.define("nop.err.metadata.pagination-limit-invalid",
                     "Pagination limit must be null or a positive integer: {limit}", ARG_LIMIT);
+
+    // ===== Join resolve isolation (clause-b formalize) =====
+
+    ErrorCode ERR_JOIN_RESOLVE_ISOLATED =
+            ErrorCode.define("nop.err.metadata.join-resolve-isolated",
+                    "Join side resolution failed (isolated, fallback applied): {error}", ARG_ERROR);
 }

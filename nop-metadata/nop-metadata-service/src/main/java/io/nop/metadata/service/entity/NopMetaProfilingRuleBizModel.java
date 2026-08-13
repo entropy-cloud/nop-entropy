@@ -191,7 +191,8 @@ public class NopMetaProfilingRuleBizModel extends CrudBizModel<NopMetaProfilingR
         try {
             return metaData.getDatabaseProductName();
         } catch (SQLException e) {
-            LOG.warn("getDatabaseProductName failed, product name will be absent from tableStats", e);
+            LOG.warn("getDatabaseProductName failed, product name will be absent from tableStats, errorCode={}",
+                    NopMetadataErrors.ERR_PROFILING_RULE_OPERATION_FAILED.getErrorCode(), e);
             return null;
         }
     }

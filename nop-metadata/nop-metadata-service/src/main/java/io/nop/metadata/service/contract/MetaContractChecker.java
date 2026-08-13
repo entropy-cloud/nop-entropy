@@ -13,6 +13,8 @@ import io.nop.metadata.dao.entity.NopMetaQualityRule;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
 import jakarta.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -40,6 +42,8 @@ import java.util.concurrent.TimeUnit;
  */
 public class MetaContractChecker {
 
+
+    private static final Logger LOG = LoggerFactory.getLogger(MetaContractChecker.class);
 
     private final IDaoProvider daoProvider;
 
@@ -333,6 +337,7 @@ public class MetaContractChecker {
         try {
             amount = ((Number) amountObj).doubleValue();
         } catch (ClassCastException e) {
+            LOG.debug(NopMetadataErrors.ERR_CONTRACT_TYPE_PROBE_FAILED.getErrorCode() + ": duration amount is not a Number, falling back to string parse", e);
             amount = Double.parseDouble(String.valueOf(amountObj));
         }
         String unit = String.valueOf(unitObj).toLowerCase();

@@ -189,9 +189,9 @@ public class LocalReconciliationProcessor implements IReconciliationProcessor {
             }
         } catch (Exception e) {
             // plan 2026-07-19-1250-3 Phase 2 维度09-09：静默吞异常修复——记录 warn 日志（含原始 JSON 摘要 + 完整 stack trace）
-            LOG.warn("parseProperties failed -- propertiesJsonSnippet={}",
+            LOG.warn("parseProperties failed -- propertiesJsonSnippet={}, errorCode={}",
                     propertiesJson.length() > 200 ? propertiesJson.substring(0, 200) + "..." : propertiesJson,
-                    e);
+                    NopMetadataErrors.ERR_RECON_PROCESS_ISOLATED.getErrorCode(), e);
         }
         return Collections.emptyMap();
     }

@@ -198,7 +198,7 @@ public class SqlViewFieldTypeInferrer {
             return metaData.getDatabaseProductName();
         } catch (SQLException e) {
             // R2.11（P2-MA4-002）：不静默吞异常——记录完整异常（含堆栈）后走既有显式失败路径（方言不支持）
-            LOG.warn("nop.metadata.sqlview.product-name-read-failed", e);
+            LOG.warn(NopMetadataErrors.ERR_SQL_TYPE_INFERENCE_FAILED.getErrorCode() + ": nop.metadata.sqlview.product-name-read-failed", e);
             return null;
         }
     }
