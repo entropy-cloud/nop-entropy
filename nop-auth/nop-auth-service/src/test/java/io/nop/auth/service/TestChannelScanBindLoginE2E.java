@@ -31,6 +31,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.CoreConstants;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.sql.SQL;
+import io.nop.core.unittest.VarCollector;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.dao.jdbc.IJdbcTemplate;
@@ -151,14 +152,10 @@ class TestChannelScanBindLoginE2E {
 
     @BeforeEach
     void setUp() {
-        // Defensive: AutoTestCase-based sibling tests legitimately reset the global
-        // VarCollector singleton to null on teardown. This E2E test (not an AutoTestCase)
-        // calls VarCollector.instance() via the real LoginApiBizModel, so ensure a
-        // non-null collector exists when this class happens to run after them.
-        // Order-dependent flakiness fix; only restores the default when nulled.
-        if (VarCollector.instance() == null) {
-            VarCollector.registerInstance(new VarCollector());
-        }
+        // 模拟 AutoTestCase 类先于本类运行后的 JVM 状态：VarCollector 被 complete() 置空。
+        // LoginApiBizModel.buildLoginResult 必须容忍 VarCollector.instance() 为 null，
+        // 否则全量套件中本 E2E 在 AutoTestCase 之后执行时会 NPE（回归防护）。
+        VarCollector.registerInstance(null);
         buildH2Stack();
         wireRealBeans();
     }

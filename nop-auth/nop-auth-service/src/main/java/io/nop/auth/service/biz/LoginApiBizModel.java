@@ -166,7 +166,11 @@ public class LoginApiBizModel implements ILoginSpi {
         String accessToken = userContext.getAccessToken();
         result.setAccessToken(accessToken);
 
-        VarCollector.instance().collectVar("accessToken", accessToken);
+        // VarCollector 是可选的自测支持设施，AutoTestCase 结束后会将其置空，生产代码必须容忍其缺失
+        VarCollector varCollector = VarCollector.instance();
+        if (varCollector != null) {
+            varCollector.collectVar("accessToken", accessToken);
+        }
 
         String refreshToken = userContext.getRefreshToken();
         result.setRefreshToken(refreshToken);
@@ -177,7 +181,9 @@ public class LoginApiBizModel implements ILoginSpi {
 
         result.setUserInfo(loginService.getUserInfo(userContext));
 
-        VarCollector.instance().collectVar("refreshToken", refreshToken);
+        if (varCollector != null) {
+            varCollector.collectVar("refreshToken", refreshToken);
+        }
 
         return result;
     }
