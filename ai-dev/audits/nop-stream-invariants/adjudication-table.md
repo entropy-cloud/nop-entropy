@@ -1,10 +1,10 @@
-# nop-stream I3 裁决表（Adjudication Table）— Cycle 1 / I3（含 Cycle 2 / I3 §7-§10）
+# nop-stream I3 裁决表（Adjudication Table）— Cycle 1 / I3（含 Cycle 2 / I3 §7-§10、Cycle 3 / I3 §12-§14）
 
 > Status: active
 > Created: 2026-08-12
-> Source: Cycle 1 — I2 权威版 `ai-dev/audits/nop-stream-invariants/red-list.md`（RL-1..7 + WO-1..3 裁定）；I2 探查报告 `ai-dev/audits/nop-stream-invariants/I2-probing-report.md`。Cycle 2 — 权威版 `red-list.md` §1-§3（C2-RL-1..3 + C2-PR-1..5）+ `cycle2-I2-probing-report.md`（§7-§10，本文件追加节）
-> Plan: Cycle 1 — `ai-dev/plans/2026-08-12-1217-4-...`；Cycle 2 — `ai-dev/plans/2026-08-12-1217-10-nop-stream-invariants-cycle2-I3-adjudication.md`
-> Consumption: I4（Cycle 1 = `2026-08-12-1217-5-...`；Cycle 2 = `2026-08-12-1217-11-...`，以 §8「P0/P1 派发清单」为输入）；I6（以 §9 派生登记 + C2-PR-2/5 扩展候选移交为输入）
+> Source: Cycle 1 — I2 权威版 `ai-dev/audits/nop-stream-invariants/red-list.md`（RL-1..7 + WO-1..3 裁定）；I2 探查报告 `ai-dev/audits/nop-stream-invariants/I2-probing-report.md`。Cycle 2 — 权威版 `red-list.md` §1-§3（C2-RL-1..3 + C2-PR-1..5）+ `cycle2-I2-probing-report.md`（§7-§10，本文件追加节）。Cycle 3 — 权威版 `red-list.md` §0-§4（C3-RL-1..10 + C3-PR-1..8）+ `cycle3-I2-probing-report.md`（§12-§14，本文件追加节）
+> Plan: Cycle 1 — `ai-dev/plans/2026-08-12-1217-4-...`；Cycle 2 — `ai-dev/plans/2026-08-12-1217-10-nop-stream-invariants-cycle2-I3-adjudication.md`；Cycle 3 — `ai-dev/plans/2026-08-13-0805-3-nop-stream-invariants-cycle3-I3-adjudication.md`
+> Consumption: I4（Cycle 1 = `2026-08-12-1217-5-...`；Cycle 2 = `2026-08-12-1217-11-...`；Cycle 3 = 下轮 I4 计划另立，以 §13「P0/P1 派发清单」为输入）；I6（以 §9/§14 派生登记 + 扩展候选移交为输入）
 > Semantics: **每条 I2 red list 条目一行，零悬挂**——严重度（P0-P3）+ 族归属 + 处置 + 依据，禁止无依据裁决。
 
 ## 0. 假设复核记录（Phase 1）
@@ -290,3 +290,108 @@
 - 三选一继续生效：① CI 任一不变式门禁变红；② nop-stream 核心类结构变更（新增/重命名 Operator/SinkFunction/Checkpoint 机制/Output 实现类）；③ 周期复探（默认每 major release 或季度，取早）。
 - 本 plan 新增触发：C2-PR-2 形态出现（main 匿名 / record Output 实现或 raw OutputTag 声明）；C2-PR-5 = `HG-01` 人工批准跨 task 线协议变更（含不变式 #6 陈述扩展评估）。
 - 人工确认待办触发 = 人工批准跨 task 线协议结构性变更（`HG-01`，登记见 roadmap Follow-up Backlog）。
+
+---
+
+## 12. Cycle 3 / I3 裁决表（权威版，2026-08-13）
+
+> Status: active（Cycle 3 / I3 产出，plan `2026-08-13-0805-3-nop-stream-invariants-cycle3-I3-adjudication.md`）
+> Source: Cycle 3 / I2 权威版 `red-list.md` §0-§4（C3-RL-1..10 + C3-PR-1..8，2026-08-13 实测）；`cycle3-I2-probing-report.md`
+> Consumption: Cycle 3 / I4（下轮 mission-driver 另立 plan，以 §13「P0/P1 派发清单」为输入）；I6 收口（以 §14 派生登记为输入）
+> Semantics: **Cycle 3 / I2 red list 逐条一行，零悬挂**——严重度（P0-P3）+ 族归属 + 处置 + 依据，禁止无依据裁决。
+
+### 12.1 假设复核记录（Phase 1）
+
+> 本 plan 的 Current Baseline 假设以 Cycle 3 / I2 完成前的登记基线为输入；I2 权威版（`red-list.md`，2026-08-13 I2 completed 后）逐条对照复核如下。I2 已 `completed`（plan `2026-08-13-0805-2-...` Status: completed，Closure Audit APPROVE），按 I2 权威版修正基线。
+
+| # | 本 plan 假设 | I2 权威版事实 | 差异处置 |
+|---|---|---|---|
+| 1 | red list 条目集 = 门禁结果（预期全绿）+ 注册表裁定 + 探查发现（可能含 checkpoint/watermark 同族实例、新族候选） | 权威版 §1 = **C3-RL-1..10**：3 条记录性（C3-RL-1 门禁全绿 / C3-RL-2 注册表 9/9 维持 / C3-RL-3 组合面恢复面无缺口）+ 6 条复探确认项（C3-RL-4..9）+ 1 条处置记录（C3-RL-10）；§3 探查发现 C3-PR-1..8 | 预期内差异（plan 声明「I2 可能增减条目」）→ 按权威版纳入裁决（§12.2） |
+| 2 | 仅测试注入复探结果：checkpoint/watermark 服务同族实例「若确认 → 裁决严重度并派发/入 backlog；若未确认 → 关闭条目」 | C3-PR-1：checkpoint/watermark/其他 `set*Service` 逐服务**零 P0-01 同形态新实例**（全部 main 创建+接线）→ 关闭条目（无派发） | 符合 plan 声明（未确认 → 关闭）→ §12.3 记录关闭，不派发 |
+| 3 | `TimestampsAndWatermarksOperator` residual 复核：维持 watch-only / 升格修复 | C3-PR-2：:82-84 守卫接线后 PTS 恒非 null、守卫分支生产不可达——plan `2026-08-13-0132-1` 裁定「接线后自然失效，语义不破坏」**成立** | 符合 plan 声明 → §12.3 记录维持 watch-only，不升格 |
+| 4 | 恢复路径/时序组合面探查：可能含新族候选 | C3-PR-3（组合面无新 null 面/无重复注入/无顺序破坏）+ C3-PR-4（恢复路径注入面保持）+ C3-PR-8（非族候选全部不升格）——**无新独立族** | 符合 plan 声明（新族「如有」；实际无）→ §14 显式声明「无新独立族」 |
+| 5 | P2 backlog 触发评估表：已触发条目入裁决面 | C3-PR-6 触发评估表：open-audit P2-01..08 触发（→ C3-RL-4..8）、P2-09 claim 过期不触发（C3-RL-10）、P2-10 不触发（工具面）；multi-audit P2-11/P2-01/P2-03/P2-05 触发（→ C3-RL-9）、其余逐条一行依据不触发 | 无实质差异 → 按权威版逐条裁决 |
+| 6 | 注册表行号（以 live / 注册表 / I2 权威版为准） | 权威版 §0/§2：7 API + 9 接线点 + 消费方 3 类 11 行全部 live 零漂移，内部 9/9 维持 | 无差异（I2 已实测复核） |
+
+**复核结论**：无实质基线差异（#2/#3/#4 均在 plan 声明的预期变化范围内）；**无信息不足条目**（I2 Phase 4 契约满足，每条含裁决输入 → 无 `NEEDS_I2_SUPPLEMENT`，无阻塞升级）。
+
+### 12.2 裁决表（Cycle 3 / I2 red list 逐条）
+
+> 严重度标尺（沿 Cycle 2 / I3 先例）：**P0** = 数据丢失/损坏或核心恢复语义破坏；**P1** = 现实场景正确性/并发安全缺陷；**P2** = 健壮性/资源泄漏/边界场景；**P3** = 次要治理或优化。
+> 处置枚举：P0/P1 → 派 I4；P2/P3 → Follow-up Backlog（已裁定处置，附依据即合规）；记录性/已 verified → 关闭（转述 I2 结论不重裁）。
+
+| finding-ID（I2 权威版） | 位置（live 2026-08-13） | 族 | 严重度 | 处置 | 依据（历史严重度 + 影响面 + I2 结论引用） |
+|---|---|---|---|---|---|
+| C3-RL-1 门禁全绿（记录性） | mjs `all` exit 0 六命令 + JUnit 11 类 112 tests 0 failures + pin 空表 + E2E 8/8（`red-list.md` §0） | —（无缺陷） | — | **关闭**（记录在案，不重裁） | I2 结论：无新违规、无行为漂移、无 stale pin、无新增非 pin red list 项（`red-list.md` §0 处置结论）。无修复项、无派发。 |
+| C3-RL-2 注册表 9/9 维持（记录性） | 7 服务注入 API + 9 接线点 + 消费方 3 类 11 行全部 live 零漂移（`red-list.md` §0 复核表 / §2 接线点复核表） | —（无缺陷） | — | **关闭**（记录在案，不重裁） | I2 结论：注册表 9/9 维持、零 pin 维持、三方一致（注册表 ↔ pin ↔ JUnit 断言同源）（`red-list.md` §2）。无修订项。 |
+| C3-RL-3 组合面/恢复面核查无缺口（记录性） | 构造注入 vs open vs restoreState vs rebuildTask 四维组合 + snapshot→restore 服务注入面保持（C3-PR-3/C3-PR-4） | —（无缺陷） | — | **关闭**（记录在案，不重裁） | I2 结论：无新 null 面、无重复注入、无顺序依赖破坏；恢复路径注入面保持、timer 注册表恢复闭环在案。判定依据维持，供 I4 参考。 |
+| C3-RL-4 checkpoint 协调面（P2-01 checkpointSuccessMap 无界增长 + P2-02 onCompletePersistFailure 不 complete future + P2-03 getNodeLease 无锁 NPE） | `CheckpointCoordinator.java:1117`（put，fail/abort 路径无 remove，:805/:1155/:1204 三处 remove）/ `CheckpointCoordinator.java:821-831`（:826 直接 `set(FAILED)` 绕过 `pending.fail()`）/ `InMemoryClusterRegistry.java:99-108`（:104 自动拆箱 NPE；**live 实测 `getNodeLease` main 零调用方**） | 已知族（open-audit P2 批次触发确认；checkpoint/cluster 面） | **P2**（逐条） | **Follow-up Backlog**（三条合并登记，roadmap 2026-08-13 升级条目） | 历史 open-audit P2-01/02/03 = P2。影响面逐条：**P2-01** = 资源泄漏/健壮性——checkpointSuccessMap 在 fail/abort 路径 put 后无 remove，高频 abort/fail 场景（生产现实场景）下 map 无界增长（内存泄漏），无数据丢失、无恢复语义破坏（checkpoint id 本身单调，不影响恢复正确性），不达 P1 → **P2**。**P2-02** = 健壮性/失败路径语义——`:826` 只 `set(FAILED)` 不 `pending.fail()`，future 消费者（JobCoordinator :1439/:1462/:1485 + GraphModelCheckpointExecutor :353/:485）等待至超时（live 复核均为 `.get(timeout)` 有界等待）——持久化失败被伪装成超时（延迟故障检测、掩盖根因、日志误导），但**不造成数据丢失/损坏**（超时后按超时路径处理，恢复语义仍成立）、无静默吞掉（状态已置 FAILED）→ **P2**（失败路径健壮性，不达 P1 现实场景正确性——最终仍会失败/超时，无错误结果）。**P2-03** = 边界/并发潜伏——`:104` 自动拆箱 NPE（`evictExpiredNodes` 并发移除导致 `leaseStartTimes` 有而 `leaseExpireTimes` 无）；**live 实测 `getNodeLease` 在 main 零调用方**（仅测试调用），当前生产无触发路径（潜伏缺陷，公共 API 面）→ **P2**（边界场景/潜伏并发缺陷；若未来生产消费方出现则需升格 P1，I4 修复候选 = 防御检查或锁内读，对照 `getActiveNodes :134` 防御先例）。 |
+| C3-RL-5 WindowOperator.triggerAccumulators 永不裁剪 + 纯 FIRE 不调 clear（P2-04 触发确认） | `WindowOperator.java:2043-2071`（stateKey :2050 只增不删，全文件零 remove，仅 :536 close 置空）；纯 FIRE 路径 :722-727（合并）/ :755-760（常规）不调 triggerContext.clear() | 已知族（open-audit P2-04 触发确认；窗口面） | **P2** | **Follow-up Backlog**（roadmap 2026-08-13 升级条目） | 历史 open-audit P2-04 = P2。影响面 = 资源泄漏/边界——长运行窗口 map 无界（内存泄漏）+ 复发窗口复用陈旧累加器（FIRE 后不 clear，同窗口再次 FIRE 时累加陈旧值——触发状态语义偏差）；无主数据丢失（窗口内容状态本身不受累加器 map 影响）、无恢复语义破坏 → **P2**。I2 验证：C3-PR-5 触发确认（live :2050 只增不删 + 纯 FIRE 双路径不 clear）。修复方向候选 = cleanup timer 路径同步删除 trigger_* 条目 + 合并路径迁移。 |
+| C3-RL-6 evictor descriptor 路径不建 elementTimestampsState（P2-05 触发确认） | `WindowOperator.java:451-462`（仅 null-descriptor else 分支建 elementTimestampsState）/ :1337（storeElementTimestamp 早退）/ :924-932（emitWindowContents 拿当前 watermark 兜底）——TimeEvictor 永不驱逐 | 已知族（open-audit P2-05 触发确认；窗口面） | **P2** | **Follow-up Backlog**（roadmap 2026-08-13 升级条目） | 历史 open-audit P2-05 = P2。影响面 = 健壮性/边界——descriptor 路径（builder 恒传 stateDesc = 常规路径）elementTimestampsState 恒 null → `storeElementTimestamp` 早退 → TimeEvictor 永不驱逐（evictor 语义静默失效）；TimeEvictor 标 `@Internal`（内部 API 潜伏），影响 = 内存占用上升（元素不被驱逐）+ evictor 语义不生效，无数据丢失/损坏 → **P2**。I2 验证：C3-PR-5 触发确认（live :451-462 else 分支 + :1337 早退）。 |
+| C3-RL-7 合并路径 pane 跟踪键错位 + purge 缺 triggerContext.clear（P2-06/P2-07 触发确认） | `WindowOperator.java:965-995`（computePaneInfo/paneKey = key + SEP + actualWindow）/ :729-731（合并路径清除用 stateWindow——(key, actualWindow) pane 条目泄漏 + DISCARDING 清错命名空间 + purge 无 triggerContext.clear，对照常规路径 :762-765） | 已知族（open-audit P2-06/P2-07 触发确认；窗口面） | **P2** | **Follow-up Backlog**（roadmap 2026-08-13 升级条目） | 历史 open-audit P2-06/P2-07 = P2。影响面 = 健壮性/边界——合并路径清除键基准差异（pane 键 actualWindow vs 清除 stateWindow）→ (key, actualWindow) pane 条目泄漏（资源泄漏）+ DISCARDING 清错命名空间（触发状态/窗口内容清理语义偏差）+ 合并路径 purge 无 triggerContext.clear（与常规路径不对称，触发状态残留）；仅合并窗口 + DISCARDING 组合场景（边界），无主数据丢失 → **P2**。I2 验证：C3-PR-5 触发确认（live :965-995 vs :729-731 键基准差异可证）。 |
+| C3-RL-8 CepOperator STEP-5 超时基准错误 + 绕过 TimedOutPartialMatchHandler（P2-08 触发确认） | `CepOperator.java:563-592`（onEventTime STEP-5：:573 `cs.getStartTimestamp() + wt` 判定，start state 为 -1；:579-591 清理不触发 processTimedOutSequences——超时事件静默丢弃；:564 size==1 守卫）+ :636-660（onProcessingTime 同构 :646） | 已知族（open-audit P2-08 触发确认；CEP 面） | **P2** | **Follow-up Backlog**（roadmap P2-08 条目升级登记，附裁决引用） | 历史 open-audit P2-08 = P2；I2 权威版定性 = 「P2 级候选（潜伏地雷）」（red-list.md C3-RL-8 裁决输入 + probing C3-PR-5「破坏性路径巧合安全」）。**独立共识审查（2026-08-13）对首版 P1 升格裁定 REJECT，触发面分析成立 → 修正为 P2**：(a) STEP-5 清理仅在 `partialMatches.size()==1 && completedMatches.isEmpty()`（:564）时触发；`NFA.java:736-747` 事件处理后**无条件重建 fresh start state** → size==1 ⟹ 唯一 partial match 必为 start state（startTimestamp=-1，previousBufferEntry=null——无节点可 release，惰性清理、下一事件重建）；(b) 对 start state，NFA 语义（`isStateTimedOut :352-353` `!isStartState` 守卫）= **永不过期、无超时事件可通知**——「start state 单匹配等待首个事件 → 超时事件静默丢弃」无用户可见损失（handler 无通知义务）；(c) 真实影响面收敛为边界/潜伏：恢复快照中 fresh start 被 skip-strategy 裁剪后、单非 start 匹配 + per-state window（PREVIOUS_AND_CURRENT）边角场景的基准差异（:573/:646 `startTimestamp + wt` vs per-state `prevTs + wt_s`）——无主数据丢失、无恢复语义破坏、非现实场景高频触发 → **P2**（边界/潜伏语义不一致，对齐 I2 候选级）。修复方向候选（backlog 触发时）= 以 `NFA.isStateTimedOut` 语义统一 STEP-5 基准 + 清理前评估走超时通知路径；**触发条件** = I4/I5 类别清扫（CEP 面）或 per-state windowTimes 使用面扩展或复探时评估。I2 验证：C3-PR-5 触发确认（谓词语义与 NFA 逐状态窗口不一致 + 清理不触发 processTimedOutSequences）。 |
+| C3-RL-9 multi-audit P2 预枚举候选触发确认（P2-11 beans 重复 id / P2-01 serializer 死字段 / P2-03 RocksDB Options 泄漏 / P2-05 上帝类） | `stream-control-rpc.beans.xml:34` + `stream-data-plane.beans.xml:38/:68`（同一 bean id `streamMessageService`；live 复核两文件同目录 `_vfs/nop/stream/beans/` → 同容器双加载冲突成立）；`WindowOperator.java:151/:161`（keySerializer/windowSerializer 死字段）+ `WindowOperatorFactoryImpl.java:151-189`（createDummySerializer :166-171 反射失败返回 null）；`RocksDBKeyedStateBackend.java:206-210`（Options 无 try-with-resources，对照 RocksDBIncrementalRestore :151 正确写法）；`GraphModelCheckpointExecutor.java`（1728 行，执行与恢复职责混合） | 已知族（multi-audit P2 批次预枚举触发确认——beans 面 / 窗口面 / RocksDB 面 / 架构面，非新族） | **P2**（逐条） | **Follow-up Backlog**（四条合并登记，roadmap 2026-08-13 升级条目） | 历史 multi-audit P2-11/P2-01/P2-03/P2-05 = P2。影响面逐条：**P2-11** = 配置健壮性——同容器双加载冲突（bean id 重复，行为 = 覆盖/失败取决于加载顺序），无数据丢失（IoC 装配面），边界/配置场景 → **P2**。**P2-01** = 死字段（维护性）+ createDummySerializer 反射失败返回 null（契约违约，潜在 NPE——当前反射路径不触发则为潜伏；对照 TimeWindowSerializer 返回真实实例）→ **P2**（边界/潜伏）。**P2-03** = 资源泄漏——RocksDB Options 原生资源未关闭（对照 :151 正确写法），重复打开场景泄漏 FD/内存 → **P2**。**P2-05** = 架构/维护性——上帝类 1728 行（执行与恢复职责混合），重构 = 结构性重构 → 需人工确认（不入 I4 自动信封），治理级 → **P2**（backlog，触发 = 类别清扫/架构专项时评估）。I2 验证：C3-PR-6 §2 表 4 条逐一 live 复核触发成立。 |
+| C3-RL-10 open-audit P2-09 引用 claim 过期（multi P0-01 触发条件已解决，处置记录） | `TestWindowOperatorCorrectness.java:551-585/:607-625`（MixedTypeWindowOperator 2 处实例化 :554/:610 + `ERR_STREAM_WINDOW_NON_ACCUMULATOR_MERGE_CONFLICT` 断言 :576-581） | 不属 #7 wiring 族——claim 过期处置记录 | —（非缺陷） | **关闭**（处置记录，不派发）+ **backlog 修订**（open-audit P2-09 条目更新为「claim 过期，触发条件已解决」） | I2 结论（C3-PR-7）：multi P0-01（merge fail-fast 零回归测试）触发条件**已解决**——2 处实例化 + 2 个 assertThrows 回归用例在案（:551/:607），open-audit P2-09 声称「全部仍 live 未修复 / 零实例化」与 live 不符 = claim 过期。非缺陷、无修复项 → 关闭；roadmap P2-09 backlog 条目按处置记录修订（roadmap 2026-08-13）。 |
+
+### 12.3 仅测试注入复探 + residual 裁决（转述 I2，不重裁）
+
+> 依据 I2 Phase 3 探查（C3-PR-1/C3-PR-2），I3 记录裁决结论。
+
+| 条目 | I2 探查结论 | I3 处置 |
+|---|---|---|
+| 同族"仅测试注入"复探（checkpoint/watermark/其他运行时服务） | C3-PR-1：checkpoint 服务（CheckpointCoordinator :581 / CheckpointBarrierTracker :707 / SharedStateRegistry :1327 内部创建）+ watermark 服务（StreamGraphGenerator :458 生产创建）+ 其他 `set*Service`（setTimerService / setCoordinatorRpcService / RPC 面）**全部 main 创建 + main 接线，零 P0-01 同形态新实例** | **关闭**（无派发；plan `2026-08-13-0132-1` Non-Blocking 登记项 = 复探完成可闭合，roadmap 相应条目已闭合记录在案） |
+| `TimestampsAndWatermarksOperator` 静默守卫形态 | C3-PR-2：:82-84 守卫接线后 PTS 恒非 null（4 构造无条件注入）→ 守卫分支生产不可达；plan `2026-08-13-0132-1` 裁定「接线后自然失效，语义不破坏」成立 | **维持 watch-only residual**（不升格 red list；如未来接线被移除则需重新评估，触发 = 接线面结构变更时复探） |
+
+### 13. Cycle 3 / I3 P0/P1 派发清单（I4 工作项，按族组织）
+
+> I4 计划（下轮 mission-driver 另立 plan）以本清单为输入起草。每条含：目标类 + 缺陷描述 + 预期行为 +
+> **类别清扫范围**（grep 全类兄弟，roadmap「类别清扫强制」）+ 测试要求（test-first 先红后绿）+ 门禁复跑要求 +
+> **收尾三连（如适用）**（`wiring-registry.json` 注册表分类更新 / `mjs-pins.json` 过渡 pin 增删 / JUnit 断言三处一致同步——沿 WI-C2-1 先例）。
+
+### 其余 P0/P1
+
+**显式声明：无 P0/P1 项（I4 不立 plan，直接进入 I5 或 I6 判定，本 plan Non-Blocking Follow-ups 第 1 条）**——C3-RL-1/2/3 = 记录性（关闭）；C3-RL-4 = P2（checkpoint/cluster 面三条，backlog 升级）；C3-RL-5/6/7 = P2（窗口面，backlog 升级）；C3-RL-8 = P2（CEP 面，**独立共识审查修正：首版 P1 升格 REJECT，触发面分析（size==1 ⟹ start state、无超时通知义务、惰性清理）证实 I2「潜伏地雷」定性 → 维持 P2**，backlog 升级）；C3-RL-9 = P2（multi-audit 四条，backlog 升级，其中 P2-05 上帝类重构 = 结构性重构需人工确认，不入自动信封）；C3-RL-10 = 处置记录（关闭 + backlog 修订）。
+
+## 14. Cycle 4 派生登记（Cycle 3 / I3 版）
+
+- **显式声明：无新独立族**（I2 权威版 §3/§4 结论复核一致——全部发现属已知族（#7 wiring 族兄弟实例 / open-audit P2 批次 / multi-audit P2 批次）或既有 backlog 批次）→ **无 PD-16 派生登记**（PD-16 = 本仓下一铸号：`max(lessons 最高编号 14, 已铸 PD 最大值 15) + 1 = 16`，live grep 复核无已铸 PD-16；编号保留，由 I6 按需铸造）。
+- **已知族扩展候选**：无新增（C3-PR-8 非族候选全部「不升格」+ 理由在案：setCurrentKey/setKeyContextElement1/2 非服务注入面 / HeapInternalTimerService 触发机制对齐 / StreamTaskInvokable 自身 getter 声明）；plan `2026-08-13-0132-3` Non-Blocking（HeapInternalTimerService 对齐）处置闭合。
+- **移交**：显式移交 I6（本 plan Non-Blocking Follow-ups 第 1 条），I6 按 Loop Rule 评估（预期 = 稳态判定输入：零新族）。
+
+## 15. Cycle 3 / I3 Follow-up Backlog 登记
+
+> 已裁定处置（附依据即合规），不驱动独立修复计划；当 I4/I5 类别清扫或复探触发其适用场景时评估修复。落点 = roadmap「## Follow-up Backlog」。2026-08-13 新增/升级登记（open-audit 批 8 条 + multi-audit 批 4 条升级 + 1 条修订）：
+
+- **C3-RL-4（checkpoint/cluster 面，P2）** → roadmap P2-01/P2-02/P2-03 三条目升级（触发确认 + 裁决 P2 维持 backlog，附裁决引用）。
+- **C3-RL-5（窗口面，P2）** → roadmap P2-04 条目升级（触发确认 + 裁决 P2，cleanup timer 路径同步删 trigger_* 条目）。
+- **C3-RL-6（窗口面，P2）** → roadmap P2-05 条目升级（触发确认 + 裁决 P2，descriptor 路径创建时间戳状态或并入窗口内容状态）。
+- **C3-RL-7（窗口面，P2）** → roadmap P2-06/P2-07 条目升级（触发确认 + 裁决 P2，pane 键与清除路径统一命名空间基准 + 合并路径补 triggerContext.clear()）。
+- **C3-RL-8（CEP 面，P2）** → roadmap P2-08 条目升级（触发确认 + 裁决 P2 维持 backlog——独立共识审查修正，触发条件 = I4/I5 类别清扫（CEP 面）或 per-state windowTimes 使用面扩展或复探时评估）。
+- **C3-RL-9（multi-audit 面，P2）** → roadmap multi P2-11/P2-01/P2-03/P2-05 四条目升级（触发确认 + 裁决 P2，beans 二选一加载 / serializer 消费或删字段 / RocksDB try-with-resources / 上帝类重构（架构级，需人工确认））。
+- **C3-RL-10（处置记录）** → roadmap open-audit P2-09 条目修订（claim 过期，multi P0-01 触发条件已解决——处置记录非缺陷）。
+- **维持 backlog 原状（watch-only residual）**：open-audit P2-10（工具面，未触发）+ multi-audit 其余未触发条目（逐条一行依据在案，C3-PR-6 §2 表）——已裁定处置附依据即合规，不升格不降级。
+
+## 16. Cycle 3 / I3 零悬挂复核（Phase 2）
+
+| 条目 | 严重度 | 处置 | 落点 |
+|---|---|---|---|
+| C3-RL-1 | — | 关闭（记录性） | §12.2 |
+| C3-RL-2 | — | 关闭（记录性） | §12.2 |
+| C3-RL-3 | — | 关闭（记录性） | §12.2 |
+| C3-RL-4 | P2（P2-01/02/03） | Follow-up Backlog | roadmap「## Follow-up Backlog」（2026-08-13 升级，§15） |
+| C3-RL-5 | P2 | Follow-up Backlog | roadmap（2026-08-13 升级，§15） |
+| C3-RL-6 | P2 | Follow-up Backlog | roadmap（2026-08-13 升级，§15） |
+| C3-RL-7 | P2 | Follow-up Backlog | roadmap（2026-08-13 升级，§15） |
+| C3-RL-8 | **P2** | Follow-up Backlog | roadmap（2026-08-13 升级，§15；独立共识审查修正 P1 → P2） |
+| C3-RL-9 | P2（P2-11/01/03/05） | Follow-up Backlog | roadmap（2026-08-13 升级，§15） |
+| C3-RL-10 | —（处置记录） | 关闭 + backlog 修订 | §12.2 + roadmap P2-09 修订（§15） |
+| C3-PR-1（仅测试注入复探） | — | 关闭（零新实例） | §12.3 |
+| C3-PR-2（守卫 residual） | — | 维持 watch-only | §12.3 |
+| C3-PR-3（时序组合面） | — | 关闭（无缺口，经 C3-RL-3） | §12.2 C3-RL-3 行 + probing C3-PR-3 |
+| C3-PR-4（恢复路径） | — | 关闭（无缺口，经 C3-RL-3） | §12.2 C3-RL-3 行 + probing C3-PR-4 |
+| C3-PR-5（窗口/CEP 触发确认） | —（证据项，并入裁决） | 并入 C3-RL-5..8 | §12.2 C3-RL-5..8 行 |
+| C3-PR-6（P2 触发评估表） | —（评估表） | 触发 → C3-RL-4..9；未触发维持原状 | §12.2 + §15 |
+| C3-PR-7（multi P0-01 已解决） | —（处置记录） | 关闭（claim 过期，经 C3-RL-10） | §12.2 C3-RL-10 行 |
+| C3-PR-8（非族候选） | —（不升格） | 关闭（不升格 + 理由在案） | §14 + probing C3-PR-8 |
+
+**复核结论**：10 条 red list + 8 条探查发现全部有处置，处置与派发一一对应（无 I4 派发——显式声明无 P0/P1；6 条 backlog 升级 + 1 条 backlog 修订 + 3 条关闭 + 1 条 watch-only 维持 + 探查项全部显式处置），**零悬挂达成**，无「已裁决但无处可去」项。
