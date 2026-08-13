@@ -352,7 +352,7 @@ public interface IJobInvoker {
 
 **NopJobFire 关键字段**：`triggerSource`（SCHEDULE/MANUAL/RECOVERY）、`fireStatus`、`durationMs`。
 
-**NopJobTask 关键字段**：`taskStatus`、`workerInstanceId`、`targetHost`、`partitionRange`、`shardingIndex`/`shardingTotal`、`progress`、`costCpu`（CPU 毫核，资源限制用）、`costMemory`（内存 MB）、`priority`（优先级，越大越优先）。
+**NopJobTask 关键字段**：`taskStatus`、`workerInstanceId`、`targetHost`、`partitionRange`、`shardingIndex`/`shardingTotal`、`costCpu`（CPU 毫核，资源限制用）、`costMemory`（内存 MB）、`priority`（优先级，越大越优先）。
 
 > **bestFit assignment 元数据约定**：`AdaptiveJobTaskBuilder` 只把 typed assignment 元数据映射到已有 task 列：`workerInstanceId`、`targetHost`、`shardingIndex`、`shardingTotal`、`partitionRange`。不使用无约束 `Map<String,Object>` 承载框架级路由字段。
 

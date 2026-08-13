@@ -29,7 +29,6 @@ interface FireItem {
   fireStatus: number;
   jobScheduleId: string;
   retryPolicyId: string | null;
-  retryRecordId: string | null;
   errorCode: string | null;
   errorMessage: string | null;
   durationMs: number | null;
@@ -39,8 +38,6 @@ interface TaskItem {
   jobTaskId: string;
   jobFireId: string;
   taskStatus: number;
-  progress: number | null;
-  progressMessage: string | null;
 }
 
 interface FindPageResult<T> { total: number; items: T[] }
@@ -128,64 +125,6 @@ test.describe('Plan 18 容错改进集成测试', () => {
 
     expect(findResp.ok).toBeTruthy();
     expect(findResp.data.items[0].retryPolicyId).toBe('test-retry-policy');
-  });
-
-  test('Phase 4: Task progress 字段可读写', async ({ request }) => {
-    await loginRpc(request);
-
-    const jobName = `${E2E_JOB_PREFIX}progress_${Date.now()}`;
-
-    const createResp = await rpc<ScheduleItem>(request, 'NopJobSchedule__save', {
-      data: {
-        jobName,
-        displayName: 'E2E Progress Test',
-        executorRef: 'nopE2eTestInvoker',
-        executorKind: 1,
-        triggerType: 4,
-        scheduleStatus: SCHEDULE_STATUS_ENABLED,
-        blockStrategy: 1,
-        partitionIndex: 0,
-      },
-    });
-
-    expect(createResp.ok).toBeTruthy();
-    const scheduleId = createResp.data?.id;
-    expect(scheduleId).toBeTruthy();
-    createdScheduleIds.push(scheduleId!);
-
-    await rpc(request, 'NopJobSchedule__triggerNow', { id: scheduleId });
-
-    const fire = await pollUntilFireNotWaiting(request, createResp.data!.jobScheduleId, 30, 2000);
-    expect(fire).not.toBeNull();
-
-    const taskResp = await rpc<FindPageResult<TaskItem>>(request, 'NopJobTask__findPage', {
-      query: {
-        offset: 0, limit: 10,
-        filter: { $type: 'eq', name: 'jobFireId', value: fire!.jobFireId },
-      },
-    });
-
-    if (taskResp.ok && taskResp.data.total > 0) {
-      const task = taskResp.data.items[0];
-
-      const updateResp = await rpc(request, 'NopJobTask__update', {
-        data: {
-          jobTaskId: task.jobTaskId,
-          progress: 50,
-          progressMessage: 'E2E test progress update',
-        },
-      });
-
-      if (updateResp.ok) {
-        const verifyResp = await rpc<TaskItem>(request, 'NopJobTask__get', {
-          id: task.jobTaskId,
-        });
-        if (verifyResp.ok && verifyResp.data) {
-          expect(verifyResp.data.progress).toBe(50);
-          expect(verifyResp.data.progressMessage).toBe('E2E test progress update');
-        }
-      }
-    }
   });
 
   test('Phase 5: Fire 失败时触发告警（验证 fire error 字段）', async ({ request }) => {

@@ -65,15 +65,17 @@ nop-job 的 `retryPolicyId` 是一个**声明式外键桥接点**，指向 `nop_
 public interface IJobRetryBridge {
     /**
      * Fire 失败时调用。如果 fire 关联了 retryPolicyId，
-     * 桥接实现应将其提交给 nop-retry。
-     *
-     * @return retry_record_id，null 表示未提交重试
+     * 桥接实现应将其提交给 nop-retry（异步投递，不返回 retry 记录 ID）。
      */
-    String onFireFailed(JobFireFailedEvent event);
+    void onFireFailed(JobFireFailedEvent event);
 }
 ```
 
-默认实现 `NoOpJobRetryBridge` 返回 null，不做任何事。
+默认实现 `NoOpJobRetryBridge` 不做任何事。
+
+> 2026-08-13 更新（plan 341）：`onFireFailed` 返回类型从 `String`（retry_record_id）改为 `void`。
+> 实际实现 `NopRetryJobRetryBridge` 自始使用 `task.callAsync(...)` 异步提交，从未回填 `fire.retry_record_id`；
+> 同步回填能力废弃后 `NopJobFire.retry_record_id` 列被移除（见 §4.1），桥接不再有返回值。
 
 ### 3.2 nop-job-retry-adapter 模块
 
@@ -89,8 +91,9 @@ public interface IJobRetryBridge {
 6. 设置 `.withNamespaceId(schedule.getNamespaceId())`
 7. 设置 `.withGroupId(schedule.getGroupId())`
 8. 构建 `ApiRequest`：request body 包含 fire 的 `jobFireId`、schedule 的关键信息
-9. 调用 `task.callAsync(request, null)`
-10. 返回 retry record ID
+9. 调用 `task.callAsync(request, null)`（异步投递，不等待执行结果，也不回填 fire）
+
+> 2026-08-13 更新（plan 341）：bridge 为异步 fire-and-forget 投递，删除原本"返回 retry record ID"的描述（§3.1 签名已改 void）。
 
 ### 3.3 调用时机
 
@@ -102,8 +105,6 @@ fire 失败 (FIRE_STATUS_FAILED)
 检查 fire.getRetryPolicyId() 或 schedule.getRetryPolicyId()
   ↓ (非空)
 调用 IJobRetryBridge.onFireFailed(event)
-  ↓
-将返回的 retry_record_id 回填到 fire.setRetryRecordId(...)
   ↓
 fireStore.completeFireAndUpdateSchedule(fire, schedule)  → boolean
   ↓
@@ -143,12 +144,14 @@ schedule.retryPolicyId 兜底
 
 ## 4. 数据模型变更
 
-### 4.1 NopJobFire 已有字段（无需变更）
+### 4.1 NopJobFire 已有字段
 
 | 字段 | 用途 |
 |------|------|
 | `retry_policy_id` | 桥接到 `nop_retry_policy.sid` |
-| `retry_record_id` | 回填的 retry 记录 ID（已有） |
+
+> 2026-08-13 更新（plan 341）：`retry_record_id` 列已移除——
+> 桥接为异步 fire-and-forget 投递（§3.1 签名 void），不存在回填方；同步回填若未来实现，需以独立设计引入新列。
 
 ### 4.2 NopJobSchedule 已有字段（无需变更）
 
@@ -158,7 +161,7 @@ schedule.retryPolicyId 兜底
 
 ### 4.3 无需新增数据库字段
 
-所有桥接所需的字段（`retry_policy_id`、`retry_record_id`）已存在于现有实体中。
+桥接所需的 `retry_policy_id` 已存在于现有实体中；`retry_record_id` 因异步投递不需要（plan 341 移除）。
 
 ---
 

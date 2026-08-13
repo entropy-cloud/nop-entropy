@@ -88,7 +88,33 @@ overlay/manual 路径在 `updateScheduleWithRetry` 回调里基于 `cancelledCou
 
 ---
 
-## 6. 关联文档
+## 6. 索引布局与死列裁定（Decision，plan 341）
+
+### 6.1 死列裁定（已从 ORM 模型移除）
+
+2026-08-13 清理（plan 341），移除前由 plan 340 审计确认无生产写方/读方：
+
+| 表 | 移除列 | 理由 |
+|----|--------|------|
+| `nop_job_fire` | `task_cost_cpu`/`task_cost_memory` | 快照列无写方（dispatch 落库读 schedule，未写 fire）；§1 索引设计不依赖 |
+| `nop_job_fire` | `retry_record_id` | 唯一"写方" `IJobFireStore.updateRetryRecordId` 无生产调用；bridge 为异步 fire-and-forget（见 `retry-integration-design.md` §3.1/§4.1），接口与列一并移除 |
+| `nop_job_task` | `worker_address` | 无写方（`targetHost` 承载地址语义）；唯一引用为页面布局/view，已清理 |
+| `nop_job_task` | `progress`/`progress_message` | 无任何 Java 读写方；E2E 断言已按 `if (updateResp.ok)` 守卫修订 |
+
+> schedule 表 `task_cost_cpu`/`task_cost_memory`/`priority`（`NopJobSchedule`）**保留**——task 落库时由 dispatcher 从 schedule 读取的归一来源（见 `nop-job.md` cost/priority 归一约定）。
+
+### 6.2 覆盖索引
+
+游标 drain 查询（§1）的排序键 `startTime DESC, <id> DESC` 无既有索引覆盖（`IX_NOP_JOB_TASK_RUN_SCAN` 按 `createTime`、`IX_NOP_JOB_FIRE_DISPATCH_SCAN` 按 `scheduledFireTime`），SQL 层对 `taskStatus + partitionIndex` 过滤后再对 `startTime, id` filesort。新增：
+
+- `IX_NOP_JOB_TASK_RUN_TIME (taskStatus, partitionIndex, startTime, jobTaskId)` → 服务 `fetchRunningTasks`/`resetStaleWaitingTasks`
+- `IX_NOP_JOB_FIRE_DISPATCH_TIME (fireStatus, partitionIndex, startTime, jobFireId)` → 服务 `fetchDispatchingFires`
+
+既有 `IX_NOP_JOB_FIRE_RETRY`（仅服务已删 `retry_record_id`）一并移除。
+
+> 注：`deploy/sql/_create_*.sql` 的 DDL 渲染（`ddl.xlib` CreateTables）不输出 CREATE INDEX，索引迁移由产品侧 DBA 按 `_app.orm.xml` 索引清单执行（H2 集成测试环境为 gated successor 范畴）。
+
+## 7. 关联文档
 
 - 超时三层边界与对账器选型理由见 `timeout-and-recovery-design.md`。
 - 状态机谓词与迁移约束见源码 `JobFireStateMachine`/`JobTaskStateMachine`/`JobScheduleStateMachine`（FSM 是状态语义的单一可信源，本 doc 不重复）。
