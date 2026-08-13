@@ -1,5 +1,9 @@
 package io.nop.stream.runtime.checkpoint.storage;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+
 import io.nop.stream.core.checkpoint.ChannelState;
 import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.checkpoint.CompletedCheckpoint;
@@ -11,9 +15,12 @@ import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -129,5 +136,125 @@ class TestCheckpointSerDeChannelState {
         assertTrue(restored instanceof TaskEpochSnapshot);
         assertNotNull(((TaskEpochSnapshot) restored).getChannelState());
         assertEquals(1, ((TaskEpochSnapshot) restored).getChannelState().getTotalRecordCount());
+    }
+
+    // ==================== P1-09-01 negative tests (skip contract is observable) ====================
+
+    /**
+     * P1-09-01: a malformed channel index must NOT fail the whole restore and must be
+     * logged (before the fix all skip paths in {@code fromSerializableForm} were
+     * silent — in-flight records are the only exactly-once carrier on the unaligned
+     * recovery path, so silent skips would downgrade exactly-once to at-least-once
+     * without any diagnostic).
+     */
+    @Test
+    void testMalformedChannelIndexIsSkippedWithWarning() {
+        Logger logger = (Logger) LoggerFactory.getLogger(ChannelState.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        logger.addAppender(appender);
+        appender.start();
+        try {
+            Map<String, Object> serializable = new LinkedHashMap<>();
+            serializable.put("abc", recordEnvelopes("in-flight-a"));
+            serializable.put("0", recordEnvelopes("in-flight-b"));
+
+            ChannelState restored = ChannelState.fromSerializableForm(serializable);
+
+            assertFalse(restored.getRecords(0).isEmpty(),
+                    "Valid channel must still be restored when a sibling channel index is malformed");
+            assertTrue(restored.getAllRecords().containsKey(0));
+            assertFalse(restored.getAllRecords().containsKey(-1),
+                    "Malformed channel index must not be restored as a channel");
+            assertTrue(appender.list.stream().anyMatch(
+                            ev -> ev.getFormattedMessage().contains("malformed channel index")),
+                    "Malformed channel index skip must be observable via LOG.warn");
+        } finally {
+            logger.detachAppender(appender);
+        }
+    }
+
+    /**
+     * P1-09-01: an undecodable in-flight record (payload referencing a class that
+     * cannot be loaded) must be skipped WITHOUT failing the whole restore, the other
+     * records of the same channel must still be restored, and the skip must be
+     * observable via LOG.warn with the throwable attached (error-handling.md
+     * per-element isolation rule).
+     */
+    @Test
+    void testUndecodableRecordIsSkippedWithWarningAndOthersRestored() {
+        Logger logger = (Logger) LoggerFactory.getLogger(ChannelState.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        logger.addAppender(appender);
+        appender.start();
+        try {
+            Map<String, Object> serializable = new LinkedHashMap<>();
+            List<Map<String, Object>> records = new ArrayList<>();
+            records.add(envelope("STREAM_RECORD", "java.lang.String", "\"good\""));
+            records.add(envelope("STREAM_RECORD", "com.example.DoesNotExist", "{}"));
+            serializable.put("0", records);
+
+            ChannelState restored = ChannelState.fromSerializableForm(serializable);
+
+            assertEquals(1, restored.getRecords(0).size(),
+                    "Undecodable record must be skipped, the decodable one restored");
+            assertEquals("good", restored.getRecords(0).get(0).asRecord().getValue());
+            assertTrue(appender.list.stream().anyMatch(
+                            ev -> ev.getFormattedMessage().contains("undecodable in-flight record")),
+                    "Undecodable record skip must be observable via LOG.warn");
+            assertTrue(appender.list.stream().anyMatch(ev -> ev.getThrowableProxy() != null),
+                    "LOG.warn must carry the throwable (per-element isolation rule)");
+        } finally {
+            logger.detachAppender(appender);
+        }
+    }
+
+    /**
+     * P1-09-01: a non-List channel value and a non-Map record item are also skip
+     * paths — both must be observable, not silent.
+     */
+    @Test
+    void testNonListChannelAndNonMapItemAreSkippedWithWarning() {
+        Logger logger = (Logger) LoggerFactory.getLogger(ChannelState.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        logger.addAppender(appender);
+        appender.start();
+        try {
+            Map<String, Object> serializable = new LinkedHashMap<>();
+            serializable.put("0", "not-a-list");
+            List<Object> records = new ArrayList<>();
+            records.add("not-a-map");
+            serializable.put("1", records);
+
+            ChannelState restored = ChannelState.fromSerializableForm(serializable);
+
+            assertTrue(restored.isEmpty(), "Nothing restorable must be restored");
+            assertTrue(appender.list.stream().anyMatch(
+                            ev -> ev.getFormattedMessage().contains("value is not a List")),
+                    "Non-List channel skip must be observable via LOG.warn");
+            assertTrue(appender.list.stream().anyMatch(
+                            ev -> ev.getFormattedMessage().contains("item is not a Map")),
+                    "Non-Map item skip must be observable via LOG.warn");
+        } finally {
+            logger.detachAppender(appender);
+        }
+    }
+
+    private static List<Map<String, Object>> recordEnvelopes(String... values) {
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (String v : values) {
+            out.add(envelope("STREAM_RECORD", "java.lang.String", "\"" + v + "\""));
+        }
+        return out;
+    }
+
+    private static Map<String, Object> envelope(String type, String valueType, Object payload) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("epochId", 0L);
+        m.put("type", type);
+        m.put("valueType", valueType);
+        m.put("payload", payload);
+        m.put("timestamp", 0L);
+        m.put("hasTimestamp", false);
+        return m;
     }
 }

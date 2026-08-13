@@ -31,6 +31,7 @@ import io.nop.stream.core.common.state.TtlContext;
 import io.nop.stream.core.common.state.ValueState;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
 import io.nop.stream.core.checkpoint.SerializerFingerprint;
+import io.nop.stream.core.common.state.backend.ContainerValueCodec;
 import io.nop.stream.core.common.state.backend.StateSnapshot;
 import io.nop.stream.core.common.state.shard.KeyGroupRange;
 import io.nop.stream.core.common.state.shard.KeyGroupRangeRestoreFilter;
@@ -194,7 +195,19 @@ final class RocksDBSnapshotSerDe {
                     groupedMapValues.put(groupKey, new ArrayList<>());
                 }
                 Object mapKey = extractMapKey(fullKey, baseLen, state.descriptor.getKeyClass());
-                Object mapValue = RocksDBValueSerDe.deserialize(it.value(), state.descriptor.getValueType());
+                // P1-21-01: container values are stored as the element-type wrapper
+                // (see ContainerValueCodec); parse them JSON-natively so the snapshot
+                // carries the wrapper (same format as the Memory backend after the
+                // storage-layer JSON round trip). Non-container values keep the plain
+                // deserialize path.
+                Object mapValue;
+                Class<?> valueType = state.descriptor.getValueType();
+                if (ContainerValueCodec.isContainerType(valueType)) {
+                    mapValue = io.nop.core.lang.json.JsonTool.parseNonStrict(
+                            new String(it.value(), java.nio.charset.StandardCharsets.UTF_8));
+                } else {
+                    mapValue = RocksDBValueSerDe.deserialize(it.value(), valueType);
+                }
                 List<Object> pair = new ArrayList<>();
                 pair.add(mapKey);
                 pair.add(mapValue);
@@ -552,9 +565,20 @@ final class RocksDBSnapshotSerDe {
                 if (mapEntries != null) {
                     for (List<Object> me : mapEntries) {
                         Object mk = me.get(0);
-                        Object mv = RocksDBValueSerDe.deserializeObject(me.get(1), valueClass);
+                        // P1-21-01: container values arrive as the element-type wrapper
+                        // (or as a raw JSON form for legacy snapshots); decode re-materializes
+                        // inner elements (warn on legacy degradation), then re-encode so the
+                        // stored bytes carry the wrapper for the runtime read path.
+                        Object mv;
+                        if (ContainerValueCodec.isContainerType(valueClass)) {
+                            mv = ContainerValueCodec.decode(me.get(1), valueClass,
+                                    "RocksDB MapState '" + stateName + "'");
+                        } else {
+                            mv = RocksDBValueSerDe.deserializeObject(me.get(1), valueClass);
+                        }
                         byte[] fullKey = appendMapKey(baseKey, mk);
-                        backend.getDb().put(cf, fullKey, RocksDBValueSerDe.serialize(mv));
+                        backend.getDb().put(cf, fullKey,
+                                RocksDBValueSerDe.serialize(ContainerValueCodec.encode(mv)));
                     }
                 }
             }

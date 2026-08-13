@@ -22,6 +22,7 @@ import io.nop.stream.core.common.state.MapStateDescriptor;
 import io.nop.stream.core.common.state.StateDescriptor;
 import io.nop.stream.core.common.state.StateMigrationFunction;
 import io.nop.stream.core.common.state.TtlContext;
+import io.nop.stream.core.common.state.backend.ContainerValueCodec;
 import io.nop.stream.core.common.state.backend.MigratableKeyedState;
 
 import io.nop.stream.core.exceptions.StreamException;
@@ -84,12 +85,12 @@ class RocksDBMapState<UK, UV> implements MapState<UK, UV>, RocksDbTtlAware, Migr
         }
         try {
             for (int i = 0; i < keys.size(); i++) {
-                Object old = RocksDBValueSerDe.deserialize(values.get(i), descriptor.getValueType());
+                Object old = readValue(values.get(i));
                 if (old == null) {
                     continue;
                 }
                 Object migrated = fn.migrate(old);
-                backend.getDb().put(cfHandle, keys.get(i), RocksDBValueSerDe.serialize(migrated));
+                backend.getDb().put(cfHandle, keys.get(i), serializeValue((UV) migrated));
             }
         } catch (RocksDBException e) {
             throw new StreamException("Failed to migrate RocksDB MapState", e);
@@ -168,7 +169,7 @@ class RocksDBMapState<UK, UV> implements MapState<UK, UV>, RocksDbTtlAware, Migr
                     ttl.recordRead(baseBuf);
                 }
             }
-            return RocksDBValueSerDe.deserialize(bytes, descriptor.getValueType());
+            return readValue(bytes);
         } catch (Exception e) {
             throw new StreamException("Failed to read MapState", e);
         }
@@ -178,7 +179,7 @@ class RocksDBMapState<UK, UV> implements MapState<UK, UV>, RocksDbTtlAware, Migr
     public void put(UK key, UV value) {
         try {
             byte[] baseKey = evictMapIfExpired();
-            backend.getDb().put(cfHandle, buildFullKey(key), RocksDBValueSerDe.serialize(value));
+            backend.getDb().put(cfHandle, buildFullKey(key), serializeValue(value));
             if (ttl != null) {
                 ttl.recordWrite(ByteBuffer.wrap(baseKey));
             }
@@ -193,7 +194,7 @@ class RocksDBMapState<UK, UV> implements MapState<UK, UV>, RocksDbTtlAware, Migr
             byte[] baseKey = evictMapIfExpired();
             for (Map.Entry<UK, UV> entry : map.entrySet()) {
                 backend.getDb().put(cfHandle, buildFullKey(entry.getKey()),
-                        RocksDBValueSerDe.serialize(entry.getValue()));
+                        serializeValue(entry.getValue()));
             }
             if (ttl != null) {
                 ttl.recordWrite(ByteBuffer.wrap(baseKey));
@@ -243,7 +244,7 @@ class RocksDBMapState<UK, UV> implements MapState<UK, UV>, RocksDbTtlAware, Migr
                     break;
                 }
                 UK mapKey = extractMapKey(fullKey, baseKey.length);
-                UV value = RocksDBValueSerDe.deserialize(it.value(), descriptor.getValueType());
+                UV value = readValue(it.value());
                 result.put(mapKey, value);
                 it.next();
             }
@@ -297,6 +298,31 @@ class RocksDBMapState<UK, UV> implements MapState<UK, UV>, RocksDbTtlAware, Migr
         if (ttl != null) {
             ttl.removeTimestamp(ByteBuffer.wrap(baseKey));
         }
+    }
+
+    /**
+     * P1-21-01: container-aware value read. Container values (List/Map declared
+     * types) are stored wrapped with per-level element type info (see
+     * {@code ContainerValueCodec}) and are re-materialized on read; non-container
+     * values keep the plain {@code RocksDBValueSerDe} path.
+     */
+    @SuppressWarnings("unchecked")
+    private UV readValue(byte[] bytes) {
+        if (ContainerValueCodec.isContainerType(descriptor.getValueType())) {
+            return (UV) RocksDBValueSerDe.deserializeContainer(
+                    bytes, descriptor.getValueType(), "RocksDBMapState '" + descriptor.getName() + "'");
+        }
+        return RocksDBValueSerDe.deserialize(bytes, descriptor.getValueType());
+    }
+
+    /**
+     * P1-21-01: container-aware value write. Container values are wrapped with
+     * per-level element type info so the JSON storage layer (and the RocksDB
+     * runtime read path) can restore inner element types; non-container values are
+     * serialized as before.
+     */
+    private byte[] serializeValue(UV value) {
+        return RocksDBValueSerDe.serialize(ContainerValueCodec.encode(value));
     }
 
     private static boolean startsWith(byte[] data, byte[] prefix) {

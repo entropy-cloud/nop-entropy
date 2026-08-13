@@ -25,6 +25,7 @@ import io.nop.stream.core.common.state.StateSchemaResolver;
 import io.nop.stream.core.common.state.TtlContext;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
 import io.nop.stream.core.checkpoint.SerializerFingerprint;
+import io.nop.stream.core.common.state.backend.ContainerValueCodec;
 import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
 import io.nop.stream.core.common.state.backend.StateSnapshot;
 import io.nop.stream.core.common.state.shard.KeyGroupRange;
@@ -572,7 +573,14 @@ class MemoryStateSerDe {
             for (Map.Entry<?, ?> me : e.getValue().entrySet()) {
                 List<Object> pair = new ArrayList<>();
                 pair.add(me.getKey());
-                pair.add(serializeWithSerializer(me.getValue(), valueSer));
+                // P1-21-01: container values (List/Map, nested) are wrapped with per-level
+                // element type info so the JSON storage layer can restore inner element
+                // types (the raw List.class declared type carries no element type, and the
+                // JSON round trip would turn them into LinkedHashMaps). Only the JSON path
+                // (no custom serializer) is wrapped — a custom IStreamSerializer keeps its
+                // own byte[] contract (P2-09-02c tracks its silent degradation separately).
+                Object value = serializeWithSerializer(me.getValue(), valueSer);
+                pair.add(valueSer == null ? ContainerValueCodec.encode(value) : value);
                 mapEntries.add(pair);
             }
             entry.put("mapValue", mapEntries);
@@ -893,6 +901,14 @@ class MemoryStateSerDe {
             if (ser instanceof IStreamSerializer && obj instanceof byte[]) {
                 return ((IStreamSerializer<T>) ser).deserialize((byte[]) obj, type);
             }
+        }
+        // P1-21-01: container values (List/Map/Collection) carry per-level element type
+        // info in the snapshot (wrapped by snapshotMapState); decode re-materializes inner
+        // elements. Unwrapped legacy containers degrade with a LOG.warn instead of
+        // silently returning JSON-native elements (No-Silent-No-Op rule #24).
+        if (ContainerValueCodec.isContainerType(type)) {
+            return (T) ContainerValueCodec.decode(obj, type,
+                    "state '" + (descriptor != null ? descriptor.getName() : "?") + "'");
         }
         if (type.isInstance(obj)) {
             return (T) obj;

@@ -21,7 +21,10 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
+import java.util.LinkedHashMap;
 import java.util.concurrent.ScheduledFuture;
+
+import io.nop.core.lang.json.JsonTool;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -241,6 +244,206 @@ public class TestCepCheckpointRestoreE2E {
         }
 
         restored.close();
+    }
+
+    /**
+     * P1-21-01: the CEP element queue ({@code MapState<Long, List<DataBeanEvent>>},
+     * raw {@code List.class} descriptor) must survive the storage-layer JSON
+     * round-trip with inner element types intact.
+     *
+     * <p>The queue state's snapshot info is JSON-persisted and parsed back exactly
+     * as {@code CheckpointSerDe} does for {@code storageType="local"} (the same
+     * {@code JsonTool} mechanism), then restored through the real restore path
+     * ({@code CepOperator.restoreState} → {@code applyPendingRestoreState} →
+     * {@code MemoryStateSerDe.restoreMapState}). Pre-fix the JSON round-trip
+     * turned the queued elements into {@code LinkedHashMap}s and the first typed
+     * access ({@code event.getId()}) threw ClassCastException — the restore was
+     * immediately broken (red). Post-fix the queue elements re-materialize to
+     * {@code DataBeanEvent} and the match fires (green).
+     *
+     * <p>Only the queue state's info is round-tripped: the other keyed states
+     * (NFAState / SharedBuffer) are not JSON-serializable by design (non-@DataBean,
+     * backlog P2-INV-6/P2-TST-9), so a whole-snapshot JSON round-trip is not
+     * possible in production today either.
+     */
+    @Test
+    void testE2EElementQueueSurvivesJsonStorageLayerRoundTrip() throws Exception {
+        CepOperator<DataBeanEvent, Integer, String> op = createDataBeanOperator();
+
+        // Buffer events in the element queue (timestamps above the initial watermark).
+        op.processElement(new StreamRecord<>(new DataBeanEvent(42, "start42"), 1000));
+        op.processElement(new StreamRecord<>(new DataBeanEvent(43, "mid"), 1001));
+
+        StateSnapshotContext ctx = new StateSnapshotContext(1L, System.currentTimeMillis());
+        OperatorSnapshotResult snapshot = op.snapshotState(ctx);
+        assertNotNull(snapshot);
+        op.close();
+
+        OperatorSnapshotResult persisted = jsonRoundTripQueueState(snapshot);
+
+        TestOutput<String> restoredOutput = new TestOutput<>();
+        CepOperator<DataBeanEvent, Integer, String> restored =
+                createDataBeanReceiverAfterRestore(restoredOutput, persisted);
+
+        restored.processElement(new StreamRecord<>(new DataBeanEvent(99, "end"), 1002));
+        restored.processWatermark(new Watermark(1100));
+
+        assertFalse(restoredOutput.isEmpty(),
+                "Pattern must match after JSON storage-layer round-trip restore (queue element type preserved)");
+        assertTrue(restoredOutput.getElements().contains("start42->end"),
+                "Restored match should be start42->end, got: " + restoredOutput.getElements());
+
+        restored.close();
+    }
+
+    /**
+     * JSON-persists only the element-queue state info (the storage-layer mechanism
+     * for {@code storageType="local"} applied to the queue state) and puts the
+     * parsed form back into the keyed snapshot.
+     */
+    @SuppressWarnings("unchecked")
+    private OperatorSnapshotResult jsonRoundTripQueueState(OperatorSnapshotResult snapshot) {
+        Map<String, Object> newKeyed = new LinkedHashMap<>();
+        for (Map.Entry<String, Object> e : snapshot.getKeyedStates().entrySet()) {
+            Object v = e.getValue();
+            if (v instanceof io.nop.stream.core.common.state.backend.StateSnapshot) {
+                io.nop.stream.core.common.state.backend.StateSnapshot snap =
+                        (io.nop.stream.core.common.state.backend.StateSnapshot) v;
+                Map<String, Object> stateData = new LinkedHashMap<>(snap.getStateData());
+                Map<String, Object> states = (Map<String, Object>) snap.getStateData().get("states");
+                Map<String, Object> newStates = new LinkedHashMap<>(states);
+                Object queueInfo = states.get("eventQueuesStateName");
+                String json = JsonTool.serialize(queueInfo, false);
+                newStates.put("eventQueuesStateName", JsonTool.parseMap(json));
+                stateData.put("states", newStates);
+                newKeyed.put(e.getKey(), new io.nop.stream.core.common.state.backend.StateSnapshot(stateData));
+            } else {
+                newKeyed.put(e.getKey(), v);
+            }
+        }
+        return new OperatorSnapshotResult(snapshot.getOperatorStates(), newKeyed, snapshot.getRawKeyedStates());
+    }
+
+    private CepOperator<DataBeanEvent, Integer, String> createDataBeanOperator() throws Exception {
+        CepOperator<DataBeanEvent, Integer, String> operator = new CepOperator<>(
+                new DataBeanEventTypeSerializer(),
+                false,
+                dataBeanNfaFactory,
+                null,
+                null,
+                dataBeanFunction,
+                null
+        );
+        operator.setStateBackend(new MemoryStateBackend());
+        operator.setOutput(output);
+        setProcessingTimeService(operator, MOCK_PTS);
+        operator.open();
+        return operator;
+    }
+
+    private CepOperator<DataBeanEvent, Integer, String> createDataBeanReceiverAfterRestore(
+            TestOutput<String> out, OperatorSnapshotResult snapshot) throws Exception {
+        CepOperator<DataBeanEvent, Integer, String> operator = new CepOperator<>(
+                new DataBeanEventTypeSerializer(),
+                false,
+                dataBeanNfaFactory,
+                null,
+                null,
+                dataBeanFunction,
+                null
+        );
+        operator.setStateBackend(new MemoryStateBackend());
+        operator.setOutput(out);
+        operator.restoreState(snapshot);
+        setProcessingTimeService(operator, MOCK_PTS);
+        operator.open();
+        return operator;
+    }
+
+    // ------------------------------------------------------------------------
+    // P1-21-01 fixtures: @DataBean event (JsonTool serialization guard requires
+    // @DataBean or whitelisted classes) + its pattern/factory/function/serializer
+    // ------------------------------------------------------------------------
+
+    @io.nop.api.core.annotations.data.DataBean
+    public static class DataBeanEvent {
+        private int id;
+        private String name;
+
+        public DataBeanEvent() {
+        }
+
+        public DataBeanEvent(int id, String name) {
+            this.id = id;
+            this.name = name;
+        }
+
+        public int getId() {
+            return id;
+        }
+
+        public void setId(int id) {
+            this.id = id;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+    }
+
+    private final PatternProcessFunction<DataBeanEvent, String> dataBeanFunction = new PatternProcessFunction<>() {
+        @Override
+        public void processMatch(Map<String, List<DataBeanEvent>> match, Context ctx, Collector<String> out) {
+            DataBeanEvent start = match.get("start").get(0);
+            DataBeanEvent end = match.get("end").get(0);
+            out.collect(start.getName() + "->" + end.getName());
+        }
+    };
+
+    private final NFACompiler.NFAFactory<DataBeanEvent> dataBeanNfaFactory;
+
+    {
+        Pattern<DataBeanEvent, ?> pattern = Pattern.<DataBeanEvent>begin("start")
+                .where(SimpleCondition.of(event -> event.getId() >= 42))
+                .followedBy("end")
+                .where(SimpleCondition.of(event -> event.getName().equals("end")));
+        dataBeanNfaFactory = NFACompiler.compileFactory(pattern, false);
+    }
+
+    private static class DataBeanEventTypeSerializer implements TypeSerializer<DataBeanEvent> {
+        @Override
+        public boolean isImmutableType() {
+            return false;
+        }
+
+        @Override
+        public TypeSerializer<DataBeanEvent> duplicate() {
+            return this;
+        }
+
+        @Override
+        public DataBeanEvent createInstance() {
+            return new DataBeanEvent();
+        }
+
+        @Override
+        public DataBeanEvent copy(DataBeanEvent from) {
+            return new DataBeanEvent(from.getId(), from.getName());
+        }
+
+        @Override
+        public DataBeanEvent copy(DataBeanEvent from, DataBeanEvent reuse) {
+            return new DataBeanEvent(from.getId(), from.getName());
+        }
+
+        @Override
+        public int getLength() {
+            return -1;
+        }
     }
 
     private static class EventTypeSerializer implements TypeSerializer<Event> {

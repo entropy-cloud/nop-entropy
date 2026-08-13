@@ -174,7 +174,7 @@ Aligned checkpoint 是基线能力。Unaligned checkpoint 是性能优化，不�
 |---|---|
 | task identity | 稳定 task 身份（jobId / pipelineId / vertexId / subtaskIndex），不含 attemptId |
 | operator snapshots | 按 operatorId 分组 |
-| keyed state shards | 每个 shard 独立引用（shard 路由规则见 `state-management-design.md` §3） |
+| keyed state shards | 每个 shard 独立引用（shard 路由规则见 `state-management-design.md` §3）。**P1-21-01（2026-08-13 修复）**：MapState 容器值（List/Map，含嵌套）经 storageType=local JSON round-trip 后内层元素类型丢失（raw `List.class` 声明类型短路 + JSON 无 `@type` + 生产 inputSerializer 为 null → 恢复侧无元素类型来源）。修复在**快照侧建立类型来源**（Decision B：`ContainerValueCodec` 递归类型感知包装器——每个容器值带 per-level 元素类型（首元素 class），嵌套递归；Memory snapshot 与 RocksDB put 均写该包装器，双后端同一快照格式）：恢复侧（`MemoryStateSerDe.deserializeValue` / `RocksDBSnapshotSerDe.restoreMapState` / `RocksDBMapState.get()` 运行时读取）按元素类型递归重物化（JSON-native map → `JsonTool.parseBeanFromText` 成 bean、标量重定类型、嵌套包装器递归）。无包装的 legacy 快照（无元素类型信息）降级为 JSON-native 形态并 `LOG.warn`（guide #24，不静默损坏），与 state 侧版本漂移 fail-fast（`ERR_STREAM_STATE_SCHEMA_MISMATCH`）形成 best-effort 跳过 vs 版本漂移 fail-fast 的分工 |
 | timer state | 事件时间和处理时间 timer |
 | watermark state | **spec-only / 未实现**：规划为输入 channel watermark 和 idle 标记，但 `TaskEpochSnapshot`/`TaskStateSnapshot`/`EpochManifest` 无 watermark/idle 字段，checkpoint 两包对 watermark 零引用；唯一持久化点是 `HeapInternalTimerService.java:238` 的 task 级 currentWatermark（随 timer state，非 per-channel）。恢复后各 channel 水位归零重爬（对应 backlog [P2-INV-7]） |
 | source split state | source offset 或 split cursor |
@@ -386,6 +386,7 @@ capture 语义是 **drain**（记录从 channel 缓冲移入 `ChannelState`，�
 - **WHERE**：task 生命周期中，operator state restore **之后**、task 开始从 `InputGate` 读取**之前**。新增生命周期步骤 `restoreChannelState(ChannelState)`。
 - **WHAT ORDER**：replay 的在途记录**先于**任何新 upstream 记录 / barrier 处理。实现方式：把 `ChannelState` 记录按 channelIndex 预注入对应 `InputChannel` 的缓冲（local channel 注入 `ResultPartition` 队列；`RemoteInputChannel` 注入其 `LinkedBlockingQueue`），再启动订阅/读取。
 - **顺序保证**：恢复后的 task 先消费完所有 replay 的在途记录，再处理新数据。pre-barrier 记录（来自 non-aligned channel）与新 epoch 记录（来自 aligned channel 的 post-barrier）都因此被正确重放，state 与 checkpoint 一致。
+- **跳过语义可观测（P1-09-01，2026-08-13 修复）**：`ChannelState.fromSerializableForm` 是 in-flight 记录（exactly-once 唯一载体）的恢复主路径，采用 best-effort 跳过（单条不可解码记录不 abort 整个恢复）——但任何跳过路径都必须可观测：畸形 channelIndex / 非 List channel 值 / 非 Map 记录项 / decode 失败四类跳过全部 `LOG.warn`（含 channel/key 与原因；decode 失败携带 throwable 作末参数，error-handling.md per-element 隔离规则）。与 state 侧版本漂移 fail-fast（`ERR_STREAM_STATE_SCHEMA_MISMATCH`）的分工：**解码/结构损坏 = best-effort 跳过 + 日志留证**（避免单个坏记录拖垮整作业恢复），**schema 版本漂移 = fail-fast**（结构性不兼容，继续运行必然静默损坏）。
 
 #### 2.11.5 输出侧安全性（output channel state 不持久化的理由）
 

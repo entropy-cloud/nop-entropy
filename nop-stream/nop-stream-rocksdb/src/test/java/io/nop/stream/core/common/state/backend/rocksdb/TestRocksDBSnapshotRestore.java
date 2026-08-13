@@ -8,6 +8,8 @@
 package io.nop.stream.core.common.state.backend.rocksdb;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import io.nop.stream.core.common.accumulators.LongCounter;
@@ -454,6 +456,136 @@ class TestRocksDBSnapshotRestore {
         iag2.setCurrentNamespace("ns");
         assertEquals(7L, iag2.get());
         restored.close();
+    }
+
+    // ==================== Container-value MapState (P1-21-01) ====================
+
+    /**
+     * P1-21-01: the RocksDB runtime path itself must preserve container-value inner
+     * element types (the JSON byte round trip loses them without the element-type
+     * wrapper — the audit showed RocksDB was damaged even without checkpoints).
+     */
+    @Test
+    void testMapStateContainerValueRuntimePutGet() throws Exception {
+        RocksDBKeyedStateBackend<String> backend = newRocksBackend();
+        backend.setCurrentKey("k1");
+        MapState<String, List<Event>> ms = backend.getMapState(
+                new MapStateDescriptor<>("cq", String.class, (Class) List.class));
+        List<Event> events = new ArrayList<>();
+        events.add(new Event(42, "start42"));
+        ms.put("t1", events);
+
+        List<Event> restored = ms.get("t1");
+        assertEquals(Event.class, restored.get(0).getClass(),
+                "RocksDB runtime get() must return Event elements, not LinkedHashMap");
+        assertEquals("start42", restored.get(0).getName());
+
+        backend.close();
+    }
+
+    /**
+     * P1-21-01: RocksDB container-value MapState survives its own JSON checkpoint
+     * round trip with inner element types intact.
+     */
+    @Test
+    void testMapStateContainerValueJsonRoundTrip() throws Exception {
+        RocksDBKeyedStateBackend<String> backend = newRocksBackend();
+        backend.setCurrentKey("k1");
+        MapState<String, List<Event>> ms = backend.getMapState(
+                new MapStateDescriptor<>("cq", String.class, (Class) List.class));
+        List<Event> events = new ArrayList<>();
+        events.add(new Event(7, "inner"));
+        ms.put("t1", events);
+        StateSnapshot snapshot = backend.snapshotState();
+        backend.close();
+
+        String json = io.nop.core.lang.json.JsonTool.serialize(snapshot.getStateData(), false);
+        Map<String, Object> parsed = io.nop.core.lang.json.JsonTool.parseMap(json);
+        StateSnapshot persisted = new StateSnapshot(parsed);
+
+        RocksDBKeyedStateBackend<String> restored = newRocksBackend();
+        restored.restoreState(persisted);
+        restored.setCurrentKey("k1");
+        MapState<String, List<Event>> ms2 = restored.getMapState(
+                new MapStateDescriptor<>("cq", String.class, (Class) List.class));
+        List<Event> restoredEvents = ms2.get("t1");
+        assertEquals(Event.class, restoredEvents.get(0).getClass(),
+                "RocksDB container-value elements must survive the JSON checkpoint round trip");
+        assertEquals("inner", restoredEvents.get(0).getName());
+        restored.close();
+    }
+
+    /**
+     * P1-21-01 cross-backend consistency: the SAME JSON-persisted checkpoint with
+     * container values must restore identically on the Memory and RocksDB backends
+     * (the audit pinned "same snapshot, both backends" for the numeric-key face; this
+     * pins the container-value face).
+     */
+    @SuppressWarnings("unchecked")
+    @Test
+    void testContainerValueSnapshotRestoresIdenticallyAcrossBackends() throws Exception {
+        IKeyedStateBackend<Long> mem = new MemoryStateBackend().createKeyedStateBackend(Long.class);
+        mem.setCurrentKey(123L);
+        List<Event> events = new ArrayList<>();
+        events.add(new Event(42, "start42"));
+        mem.getMapState(new MapStateDescriptor<>("queue", Long.class, (Class) List.class))
+                .put(1000L, events);
+        StateSnapshot snapshot = mem.snapshotState();
+
+        String json = io.nop.core.lang.json.JsonTool.serialize(snapshot.getStateData(), false);
+        Map<String, Object> parsed = io.nop.core.lang.json.JsonTool.parseMap(json);
+        StateSnapshot persisted = new StateSnapshot(parsed);
+
+        RocksDBKeyedStateBackend<Long> rocks = new RocksDBKeyedStateBackend<>(tempDir.getAbsolutePath(), Long.class, 1, null);
+        rocks.restoreState(persisted);
+        rocks.setCurrentKey(123L);
+        List<Event> rocksEvents = (List<Event>) (List<?>) rocks.getMapState(
+                new MapStateDescriptor<>("queue", Long.class, (Class) List.class)).get(1000L);
+        assertEquals(Event.class, rocksEvents.get(0).getClass(),
+                "RocksDB backend must re-materialize container-value elements (same snapshot as Memory)");
+        assertEquals("start42", rocksEvents.get(0).getName());
+
+        IKeyedStateBackend<Long> memRestored = new MemoryStateBackend().createKeyedStateBackend(Long.class);
+        memRestored.restoreState(persisted);
+        memRestored.setCurrentKey(123L);
+        List<Event> memEvents = (List<Event>) (List<?>) memRestored.getMapState(
+                new MapStateDescriptor<>("queue", Long.class, (Class) List.class)).get(1000L);
+        assertEquals(Event.class, memEvents.get(0).getClass(),
+                "Memory backend must re-materialize container-value elements (same snapshot as RocksDB)");
+        assertEquals("start42", memEvents.get(0).getName());
+
+        rocks.close();
+    }
+
+    /** @DataBean POJO element — required by the JsonTool serialization guard. */
+    @io.nop.api.core.annotations.data.DataBean
+    public static class Event {
+        private int id;
+        private String name;
+
+        public Event() {
+        }
+
+        public Event(int id, String name) {
+            this.id = id;
+            this.name = name;
+        }
+
+        public int getId() {
+            return id;
+        }
+
+        public void setId(int id) {
+            this.id = id;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
     }
 
     // ==================== Numeric-key cross-backend consistency (AR-01) ====================

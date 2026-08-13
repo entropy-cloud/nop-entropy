@@ -58,6 +58,24 @@ final class RocksDBValueSerDe {
         return JsonTool.parseBeanFromText(json, type);
     }
 
+    /**
+     * P1-21-01: container-aware deserialization for MapState values. Bytes written by
+     * {@code RocksDBMapState} carry the recursive element-type wrapper (see
+     * {@code ContainerValueCodec}); {@link #deserialize} cannot be used for them (the
+     * wrapper is a JSON object, not the declared array/map shape). Unwrapped legacy
+     * bytes degrade with a LOG.warn inside the codec instead of silently returning
+     * JSON-native elements.
+     */
+    @SuppressWarnings("unchecked")
+    static Object deserializeContainer(byte[] bytes, Class<?> declaredType, String logContext) {
+        if (bytes == null) {
+            return null;
+        }
+        String json = new String(bytes, StandardCharsets.UTF_8);
+        return io.nop.stream.core.common.state.backend.ContainerValueCodec.decode(
+                JsonTool.parseNonStrict(json), declaredType, logContext);
+    }
+
     @SuppressWarnings("unchecked")
     static List<Object> deserializeList(byte[] bytes, Class<?> elementType) {
         if (bytes == null) {
