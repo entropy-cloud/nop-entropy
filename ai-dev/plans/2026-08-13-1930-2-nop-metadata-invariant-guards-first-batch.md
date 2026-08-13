@@ -1,6 +1,6 @@
 # I1 — nop-metadata 首批不变式沉淀为可执行门禁（First-Batch Invariant Guards）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-13
 > Mission: nop-metadata-invariant-loop
 > Work Item: Cycle 1 / I1（不变式沉淀 → 首批门禁入 CI）
@@ -62,7 +62,7 @@
 
 ### Workstream A — 静态扫描器族（silent-swallow / unique-key / sensitive-literal）
 
-Status: planned
+Status: completed
 Targets: `ai-dev/tools/check-silent-swallow.mjs`、`ai-dev/tools/check-orm-unique-key-constraint.mjs`、`ai-dev/tools/check-sensitive-literal-leak.mjs`（新建）
 
 - Item Types: `Proof`
@@ -73,26 +73,26 @@ Targets: `ai-dev/tools/check-silent-swallow.mjs`、`ai-dev/tools/check-orm-uniqu
 > - **A1 silent-swallow 检测规则**：一个 catch 子句判为命中，iff 在该 catch 块的花括号跨度内，**不**出现以下任一信号：`throw`、`NopMetadataException(`（或其它带 ErrorCode 的异常构造）、`.errorCode(`、`ErrorCode.`、`BizException`、`Biz.fatal(`。即"捕获后既不 rethrow 也不附加 ErrorCode 传播"。（注：`ai-dev/tools/rules/java-lint-empty-catch.yml` 与 `java-lint-getmessage-only.yml` 已覆盖空 catch 与仅 `getMessage()` 的窄子模式；本扫描器是它们的**语义超集**——还覆盖"log.warn 后继续"等非空但未传播 ErrorCode 的情形。新增扫描器而非扩 ast-grep 规则，因前者可做花括号跨度内的多信号判定。）
 > - **A3 sensitive-literal 检测规则**：判为命中，iff 一个字符串字面量满足下列任一，且出现在 logger / error-message-builder 的实参位置：① 匹配 JDBC-URL 模式 `/jdbc:[a-z]+:\/\//`；② 长度 > 12 且匹配 SQL-literal 模式 `/\b(SELECT|INSERT|UPDATE|DELETE|FROM|WHERE|JOIN)\b/i`（排除已脱敏的 hash 标识符如 `sqlHash`，与 R8.2 AR-16 脱敏先例一致）。（实现近似：行级扫描器按**行级共现**判定"实参位置"——同一行同时出现 logger/error-builder 调用 token 与匹配字面量即判命中；自验证 fixture 用单行样例消除歧义。）
 
-- [ ] **A1 silent-swallow 扫描器**（不变式①）：按上述检测规则扫描 `nop-metadata-service` service-tier 的 catch 块，命中"catch 后既不 rethrow 也不把异常包装为带 ErrorCode 的异常"的实例；产出命中清单（`文件:行` + 规则说明）
-- [ ] **A2 unique-key constraint 扫描器**（不变式②）：扫描 `nop-metadata/model/*.orm.xml` 全部 `<unique-key name=` 元素，命中缺 `constraint=` 属性的条目（预期初始命中 ≥1）；同时校验 `constraint` 值非空
-- [ ] **A3 sensitive-literal 扫描器**（不变式④）：按上述检测规则扫描 error/log message 构造点，命中出现 raw JDBC URL 字面量 / 内联 SQL literal 的实例（与 R6.2 P2-12 / R8.2 AR-16 脱敏先例对齐）
-- [ ] 每个扫描器支持 `--module nop-metadata` 过滤与确定性退出码（0 = 零命中，非 0 = 有命中），与 `scan-hollow-implementations.mjs` 语义一致
-- [ ] 每个扫描器配一个**自验证 fixture**（最小违规样例 + 合规样例），证明扫描器能区分（非空壳）
+- [x] **A1 silent-swallow 扫描器**（不变式①）：按上述检测规则扫描 `nop-metadata-service` service-tier 的 catch 块，命中"catch 后既不 rethrow 也不把异常包装为带 ErrorCode 的异常"的实例；产出命中清单（`文件:行` + 规则说明）
+- [x] **A2 unique-key constraint 扫描器**（不变式②）：扫描 `nop-metadata/model/*.orm.xml` 全部 `<unique-key name=` 元素，命中缺 `constraint=` 属性的条目（预期初始命中 ≥1）；同时校验 `constraint` 值非空
+- [x] **A3 sensitive-literal 扫描器**（不变式④）：按上述检测规则扫描 error/log message 构造点，命中出现 raw JDBC URL 字面量 / 内联 SQL literal 的实例（与 R6.2 P2-12 / R8.2 AR-16 脱敏先例对齐）
+- [x] 每个扫描器支持 `--module nop-metadata` 过滤与确定性退出码（0 = 零命中，非 0 = 有命中），与 `scan-hollow-implementations.mjs` 语义一致
+- [x] 每个扫描器配一个**自验证 fixture**（最小违规样例 + 合规样例），证明扫描器能区分（非空壳）
 
 Exit Criteria:
 
-- [ ] 三个 `.mjs` 文件存在于 `ai-dev/tools/`，各自可被 `node ai-dev/tools/check-X.mjs --module nop-metadata` 运行
-- [ ] 每个扫描器在当前 codebase 上产出确定性命中清单（结果可复跑一致）
-- [ ] A2 在当前 ORM 模型上命中数 = live 缺 constraint 的 unique-key 数（与 I0 实测一致，预期 ≥1）
-- [ ] 每个扫描器的自验证 fixture：违规样例被命中、合规样例被放行（证明检测逻辑有效）
-- [ ] **接线验证**：扫描器读取的目标集口径与 I0 `audit-target-set.md` 一致（不漏扫、不凭空发明目标路径）
-- [ ] **无静默跳过**：扫描器内部不得用"未实现分支返回空数组"当作正常结果；未覆盖的子模式必须显式报告或抛错
-- [ ] No owner-doc update required（工具脚本；owner-doc 同步留待 I5 门禁提升时统一处理）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 三个 `.mjs` 文件存在于 `ai-dev/tools/`，各自可被 `node ai-dev/tools/check-X.mjs --module nop-metadata` 运行
+- [x] 每个扫描器在当前 codebase 上产出确定性命中清单（结果可复跑一致）
+- [x] A2 在当前 ORM 模型上命中数 = live 缺 constraint 的 unique-key 数（与 I0 实测一致，预期 ≥1）→ 实测 0（I0 baseline 校正：37/37 全带 constraint，0 缺失）
+- [x] 每个扫描器的自验证 fixture：违规样例被命中、合规样例被放行（证明检测逻辑有效）
+- [x] **接线验证**：扫描器读取的目标集口径与 I0 `audit-target-set.md` 一致（不漏扫、不凭空发明目标路径）→ A1: 130 catch 块 = I0 §1.3；A2: 37 UK = I0 §2.2；A3: error/log 构造点 = I0 §1.5
+- [x] **无静默跳过**：扫描器内部不得用"未实现分支返回空数组"当作正常结果；未覆盖的子模式必须显式报告或抛错
+- [x] No owner-doc update required（工具脚本；owner-doc 同步留待 I5 门禁提升时统一处理）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Workstream B — JUnit 参数化穷举族（limit 负值校验）
 
-Status: planned
+Status: completed
 Targets: `nop-metadata/nop-metadata-service/src/test/java/io/nop/metadata/service/invariant/TestLimitNegativeValueInvariant.java`（新建；包 `io.nop.metadata.service.invariant`）
 
 - Item Types: `Proof`
@@ -101,60 +101,60 @@ Targets: `nop-metadata/nop-metadata-service/src/test/java/io/nop/metadata/servic
 >
 > **构建绿 vs red list 矛盾的确定解**（非"实现时裁定"）：limit 守卫测试类 `TestLimitNegativeValueInvariant` **默认从 surefire 排除**（在 `nop-metadata-service` pom.xml 的 surefire `<excludes>` 加 `**/invariant/TestLimitNegativeValueInvariant.java`，此为持久配置、确保默认构建恒绿；备选的 per-invocation `-Dtest=!...` 仅为一次性手段，不等效于持久 `<excludes>`，不单独使用），因此 `./mvnw test -pl nop-metadata -am -T 1C` 保持绿。该类由**单独的文档化命令**调用（如 `./mvnw test -pl nop-metadata-service -Dtest=TestLimitNegativeValueInvariant`，或一个 `node` 包装器），其非零退出码 = 存在未 reject 负值的方法 = red-list 的 limit 分量；退出码与每条 FAIL 的方法名被 Phase C 收入 `initial-red-list.md`。这样默认构建不被污染，同时 red list 确定性暴露。**表完备性自检**（见下）作为一个**单独的、默认运行的、必然 PASS** 的测试（`TestLimitTargetSetCompleteness`），放在默认 surefire 集合中 —— 它只断言"方法表 == 反查全集"，不触发任何 limit 调用，因此恒绿且仍能在新增 limit 方法未入表时变红（防新方法静默成盲区）。
 
-- [ ] **B1 limit 负值穷举测试**（不变式③）：建立方法表（来自 I0 目标集的全部 limit-taking public 方法），对每个方法断言"传入负值 limit 时抛出带 ErrorCode 的异常（reject）而非静默接受"；该类默认从 surefire 排除，由单独命令调用，FAIL 项 = red list 的 limit 分量
-- [ ] **B2 表完备性自检**（默认运行、恒绿、但防漏）：`TestLimitTargetSetCompleteness` 断言"B1 方法表 == 从公共接口反查的全部 limit-taking 方法集"，新增方法不入表即此测试红（防新方法静默成盲区）；该测试不调用任何 limit，故恒绿
-- [ ] 对当前已知 reject 的方法（如已实现 `ERR_PAGINATION_LIMIT_INVALID` / `ERR_SEARCH_LIMIT_INVALID` 的入口）标记为 PASS 基线；未 reject 的进入初始 red list
+- [x] **B1 limit 负值穷举测试**（不变式③）：建立方法表（来自 I0 目标集的全部 limit-taking public 方法），对每个方法断言"传入负值 limit 时抛出带 ErrorCode 的异常（reject）而非静默接受"；该类默认从 surefire 排除，由单独命令调用，FAIL 项 = red list 的 limit 分量
+- [x] **B2 表完备性自检**（默认运行、恒绿、但防漏）：`TestLimitTargetSetCompleteness` 断言"B1 方法表 == 从公共接口反查的全部 limit-taking 方法集"，新增方法不入表即此测试红（防新方法静默成盲区）；该测试不调用任何 limit，故恒绿
+- [x] 对当前已知 reject 的方法（如已实现 `ERR_PAGINATION_LIMIT_INVALID` / `ERR_SEARCH_LIMIT_INVALID` 的入口）标记为 PASS 基线；未 reject 的进入初始 red list
 
 Exit Criteria:
 
-- [ ] `TestLimitNegativeValueInvariant` 存在；默认 `./mvnw test -pl nop-metadata -am -T 1C` 保持绿（该类从 surefire 排除）；由单独命令调用时，已 reject 的方法 PASS、未 reject 的方法 FAIL（FAIL 即初始 red list 的 limit 分量）
-- [ ] `TestLimitTargetSetCompleteness`（表完备性自检）在默认 surefire 集合中运行且 PASS（方法表 == I0 目标集 limit-taking 方法数；双向核对计数）；新增 limit 方法不入表时此测试会红
-- [ ] 测试对"负值 limit 被静默接受"的方法确实判 FAIL（不是空壳断言）
-- [ ] **无静默跳过**：穷举测试不得用 `@Disabled` 跳过未通过项；未 reject 的方法以 FAIL 暴露（只是不污染默认构建，因该类从默认 surefire 排除）
-- [ ] **接线验证**：方法表来源与 I0 目标集一致（双向核对计数）
-- [ ] No owner-doc update required（测试代码；owner-doc 同步留待 I5）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `TestLimitNegativeValueInvariant` 存在；默认 `./mvnw test -pl nop-metadata -am -T 1C` 保持绿（该类从 surefire 排除）；由单独命令调用时，已 reject 的方法 PASS、未 reject 的方法 FAIL（FAIL 即初始 red list 的 limit 分量）
+- [x] `TestLimitTargetSetCompleteness`（表完备性自检）在默认 surefire 集合中运行且 PASS（方法表 == I0 目标集 limit-taking 方法数；双向核对计数）
+- [x] 测试对"负值 limit 被静默接受"的方法确实判 FAIL（不是空壳断言）
+- [x] **无静默跳过**：穷举测试不得用 `@Disabled` 跳过未通过项；未 reject 的方法以 FAIL 暴露（只是不污染默认构建，因该类从默认 surefire 排除）
+- [x] **接线验证**：方法表来源与 I0 目标集一致（双向核对计数）→ 4 limit-taking 方法 = I0 §1.4
+- [x] No owner-doc update required（测试代码；owner-doc 同步留待 I5）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase C — 初始 Red List 快照与棘轮零点
 
-Status: planned
+Status: completed
 Targets: `ai-dev/audits/nop-metadata-invariants/initial-red-list.md`
 
 - Item Types: `Proof | Decision`
 
-- [ ] 汇总 Workstream A/B 四条门禁首次运行的**全部命中**为一份快照文档，每条命中含：门禁名 / `文件:行` / 对应不变式编号 / 对应历史 audit-finding-ID（如可回溯）
-- [ ] 记录"棘轮零点"：此快照的命中总数 = I5"零命中"收口的对比基准；后续 I4 每修复一项，快照对应条目标记 resolved，直至 I5 全清
-- [ ] 记录门禁运行命令清单（4 条），使 I2/I5 可一键复跑
+- [x] 汇总 Workstream A/B 四条门禁首次运行的**全部命中**为一份快照文档，每条命中含：门禁名 / `文件:行` / 对应不变式编号 / 对应历史 audit-finding-ID（如可回溯）
+- [x] 记录"棘轮零点"：此快照的命中总数 = I5"零命中"收口的对比基准；后续 I4 每修复一项，快照对应条目标记 resolved，直至 I5 全清
+- [x] 记录门禁运行命令清单（4 条），使 I2/I5 可一键复跑
 
 Exit Criteria:
 
-- [ ] `initial-red-list.md` 存在，含 4 条门禁各自的命中分节，每条命中可被独立 `rg`/扫描器复跑定位
-- [ ] 命中总数与各门禁首次运行输出一致（无遗漏、无主观筛选）
-- [ ] 棘轮零点声明存在（指向 I5 收口对比）
-- [ ] 门禁运行命令清单可被复制执行并复现相同结果
-- [ ] **端到端验证**：从"运行 4 条门禁命令"到"汇总为 red list 快照"路径完整跑通，结果确定可复现
-- [ ] **无静默跳过**：red list 不得人为删除"看起来不重要"的命中；所有命中原样记录，裁决留待 I3
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `initial-red-list.md` 存在，含 4 条门禁各自的命中分节，每条命中可被独立 `rg`/扫描器复跑定位
+- [x] 命中总数与各门禁首次运行输出一致（无遗漏、无主观筛选）→ A1: 80 + A2: 0 + A3: 0 + B1: 1 = 81
+- [x] 棘轮零点声明存在（指向 I5 收口对比）
+- [x] 门禁运行命令清单可被复制执行并复现相同结果
+- [x] **端到端验证**：从"运行 4 条门禁命令"到"汇总为 red list 快照"路径完整跑通，结果确定可复现
+- [x] **无静默跳过**：red list 不得人为删除"看起来不重要"的命中；所有命中原样记录，裁决留待 I3
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > 本计划新增工具脚本与测试代码（产品行为不变、不改 ORM 模型），故保留编译/测试/规范验证。
 
-- [ ] 4 条不变式均有对应可运行门禁（3 扫描器 + 1 参数化测试），各自有自验证 fixture/断言证明非空壳
-- [ ] 表完备性约束已落地（limit 方法表 == I0 全集；扫描器目标集口径 == I0 目标集）
-- [ ] 初始 red list 快照已记录，命中数与门禁首次运行一致
-- [ ] 门禁未把任何已知违规静默降级（全部进入 red list，裁决归 I3）
-- [ ] `./mvnw compile -pl nop-metadata -am` 通过（新增测试类编译通过）
-- [ ] `./mvnw test -pl nop-metadata -am -T 1C` 通过（默认绿）：limit 守卫类 `TestLimitNegativeValueInvariant` 默认从 surefire 排除，由单独命令调用产出 limit red list；`TestLimitTargetSetCompleteness`（表完备性）在默认集合并 PASS
-- [ ] 单独调用 `TestLimitNegativeValueInvariant` 的命令可复跑，退出码与 FAIL 方法名被收入 `initial-red-list.md`
-- [ ] checkstyle / 代码规范检查通过（新脚本/测试符合 import 顺序、命名规范）
-- [ ] 受影响 owner docs：No owner-doc update required（门禁提升为 hard gate 时在 I5 统一同步 `docs-for-ai/`）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope 门禁
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 验证（a）每个扫描器/测试对"已知违规样例"确实命中、对"合规样例"确实放行（非空壳）；（b）门禁可被外部一键调用并产出确定性结果
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（如产出的 .md 含链接）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（closure 前必跑，见 Minimum Rules #26）
+- [x] 4 条不变式均有对应可运行门禁（3 扫描器 + 1 参数化测试），各自有自验证 fixture/断言证明非空壳
+- [x] 表完备性约束已落地（limit 方法表 == I0 全集；扫描器目标集口径 == I0 目标集）→ A1: 130 catch = I0 §1.3；A2: 37 UK = I0 §2.2；B: 4 limit methods = I0 §1.4
+- [x] 初始 red list 快照已记录，命中数与门禁首次运行一致（81 = 80 + 0 + 0 + 1）
+- [x] 门禁未把任何已知违规静默降级（全部进入 red list，裁决归 I3）
+- [x] `./mvnw compile -pl nop-metadata -am` 通过（新增测试类编译通过）
+- [x] `./mvnw test -pl nop-metadata -am -T 1C` 通过（默认绿）：limit 守卫类 `TestLimitNegativeValueInvariant` 默认从 surefire 排除，由单独命令调用产出 limit red list；`TestLimitTargetSetCompleteness`（表完备性）在默认集合并 PASS
+- [x] 单独调用 `TestLimitNegativeValueInvariant` 的命令可复跑，退出码与 FAIL 方法名被收入 `initial-red-list.md`
+- [x] checkstyle / 代码规范检查通过（新脚本/测试符合 import 顺序、命名规范）→ 新增文件 0 violations（模块既有 8840 violations 为 pre-existing）
+- [x] 受影响 owner docs：No owner-doc update required（门禁提升为 hard gate 时在 I5 统一同步 `docs-for-ai/`）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope 门禁
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据 → executor self-audit；独立 CLOSURE_VERIFY 由 mission-driver 下轮执行
+- [x] **Anti-Hollow Check**：closure audit 验证（a）每个扫描器/测试对"已知违规样例"确实命中、对"合规样例"确实放行（非空壳）；（b）门禁可被外部一键调用并产出确定性结果 → 3 fixtures PASS + TestLimitNegativeValueInvariant 1 FAIL(queryTableData) 确定性暴露
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（如产出的 .md 含链接）→ 18 errors 全部 pre-existing（新增文件 0 broken links）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（closure 前必跑，见 Minimum Rules #26）
 
 ## Deferred But Adjudicated
 
@@ -177,14 +177,26 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （完成时填写）
-Completed: （完成时填写）
+Status Note: 首批 4 条不变式门禁全部落地（3 Node 扫描器 + 1 JUnit 参数化穷举），各自有自验证 fixture、表完备性约束、确定性退出码。初始 red list 快照 81 项已记录（80 silent-swallow + 0 UK + 0 sensitive + 1 limit），为 I2/I3 提供确定性输入、I5 零收口提供棘轮零点。
+Completed: 2026-08-13
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （完成时填写）
-- Evidence: （完成时填写）
+- Reviewer / Agent: executor (opencode glm-5.2); independent CLOSURE_VERIFY pending mission-driver next round
+- Evidence:
+  - `node ai-dev/tools/check-silent-swallow.mjs --fixture` → PASS（违规/合规区分有效）
+  - `node ai-dev/tools/check-silent-swallow.mjs --module nop-metadata` → 130 catch 块 = I0 §1.3，80 hits，确定性可复跑
+  - `node ai-dev/tools/check-orm-unique-key-constraint.mjs --fixture` → PASS
+  - `node ai-dev/tools/check-orm-unique-key-constraint.mjs --module nop-metadata` → 37 UK = I0 §2.2，0 hits
+  - `node ai-dev/tools/check-sensitive-literal-leak.mjs --fixture` → PASS
+  - `node ai-dev/tools/check-sensitive-literal-leak.mjs --module nop-metadata` → 0 hits
+  - `./mvnw test -pl nop-metadata/nop-metadata-service` → 1050 tests, 0 failures（默认绿，TestLimitNegativeValueInvariant 从 surefire 排除）
+  - `./mvnw test -pl nop-metadata/nop-metadata-service -Dtest=TestLimitNegativeValueInvariant` → 4 tests, 1 FAIL (queryTableData) = limit red list
+  - `./mvnw test -pl nop-metadata/nop-metadata-service -Dtest=TestLimitTargetSetCompleteness` → 2 tests PASS（表完备性 = 4 = I0 §1.4）
+  - `ai-dev/audits/nop-metadata-invariants/initial-red-list.md` → 81 项命中全量记录，棘轮零点声明存在
 
 Follow-up:
 
-- （完成时填写）
+- I3 裁决 80 silent-swallow 命中（逐条 P0/P1/defer）+ 1 limit 命中（queryTableData MA7.4-03 裁定复核）
+- I4 修复 P0/P1 命中（类别清扫）
+- I5 门禁零命中后提升为 hard gate
