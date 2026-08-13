@@ -45,3 +45,11 @@
 
 - 不变式 #7 门禁全绿（JUnit 11 类 112/112 + mjs `all` exit 0 含 `scan-wiring` + E2E 3/3 + 4/4）——为 Cycle 3 / I2 提供确定性全绿基线；I2 以此 + 对抗探查（checkpoint/watermark 服务同族"仅测试注入"复探等）产出 red list。
 - 全量回归：`./mvnw test -pl nop-stream -am -T 1C` BUILD SUCCESS（**2895 tests / 0 failures / 0 errors**，含新门禁类）。
+
+## Cycle 3 / I2 消费记录（2026-08-13，plan `2026-08-13-0805-2`）
+
+- **本文件为 Cycle 3 门禁统计唯一落点**（不新建统计文件）；I2 复跑记录落于 `red-list.md` §0（Cycle 3 / I2 权威版）：
+  门禁 11 类 / 112 tests 0 failures（surefire 复跑 2026-08-13，与本节基线一致）、mjs `all` exit 0（六命令逐条输出）、
+  E2E Anti-Hollow 复跑 8/8 绿（`TestProcessingTimeWindowProductionE2E` 3/3 + `TestCepProductionExecutionE2E` 4/4 +
+  `TestSupervisionLoopCheckpointReconnectE2E` 1/1）、pin 0 维持、注册表 9 接线点零漂移。
+- 消费后不改写本节统计；I3 裁决输入 = `red-list.md` §1-§4 + `cycle3-I2-probing-report.md`。
