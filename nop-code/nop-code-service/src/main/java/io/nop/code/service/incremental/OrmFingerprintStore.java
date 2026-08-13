@@ -19,6 +19,8 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.orm.IOrmTemplate;
 public class OrmFingerprintStore implements IFingerprintStore {
 
+    private static final int BATCH_SIZE = 1000;
+
     private final IDaoProvider daoProvider;
     private final IOrmTemplate ormTemplate;
     private final Function<String, String> pathMapper;
@@ -81,14 +83,21 @@ public class OrmFingerprintStore implements IFingerprintStore {
         query.addFilter(FilterBeans.eq("indexId", indexId));
         query.addField(io.nop.api.core.beans.query.QueryFieldBean.forField("id"));
         query.addField(io.nop.api.core.beans.query.QueryFieldBean.forField("filePath"));
-        List<Map<String, Object>> rows = fileDao.selectFieldsByQuery(query);
-        Map<String, String> map = new HashMap<>(rows.size());
-        for (Map<String, Object> row : rows) {
-            Object path = row.get("filePath");
-            Object id = row.get("id");
-            if (path != null && id != null) {
-                map.put(path.toString(), id.toString());
+        Map<String, String> map = new HashMap<>();
+        long offset = 0;
+        while (true) {
+            query.setOffset(offset);
+            query.setLimit(BATCH_SIZE);
+            List<Map<String, Object>> rows = fileDao.selectFieldsByQuery(query);
+            for (Map<String, Object> row : rows) {
+                Object path = row.get("filePath");
+                Object id = row.get("id");
+                if (path != null && id != null) {
+                    map.put(path.toString(), id.toString());
+                }
             }
+            if (rows.size() < BATCH_SIZE) break;
+            offset += BATCH_SIZE;
         }
         return map;
     }
@@ -98,18 +107,32 @@ public class OrmFingerprintStore implements IFingerprintStore {
         IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.eq("indexId", indexId));
+        query.addField(io.nop.api.core.beans.query.QueryFieldBean.forField("filePath"));
+        query.addField(io.nop.api.core.beans.query.QueryFieldBean.forField("fileHash"));
+        query.addField(io.nop.api.core.beans.query.QueryFieldBean.forField("lastModified"));
+        query.addField(io.nop.api.core.beans.query.QueryFieldBean.forField("fileSize"));
 
-        List<NopCodeFile> entities = fileDao.findAllByQuery(query);
-        // Full file list needed for fingerprint comparison
-        List<FileFingerprint> fingerprints = new ArrayList<>(entities.size());
-
-        for (NopCodeFile entity : entities) {
-            FileFingerprint fp = new FileFingerprint();
-            fp.setFilePath(pathMapper.apply(entity.getFilePath()));
-            fp.setContentHash(entity.getFileHash());
-            fp.setLastModified(entity.getLastModified() != null ? entity.getLastModified() : 0L);
-            fp.setFileSize(entity.getFileSize() != null ? entity.getFileSize() : 0L);
-            fingerprints.add(fp);
+        // Projection (avoid CLOB sourceCode load) + paginated to exhaust all rows
+        List<FileFingerprint> fingerprints = new ArrayList<>();
+        long offset = 0;
+        while (true) {
+            query.setOffset(offset);
+            query.setLimit(BATCH_SIZE);
+            List<Map<String, Object>> rows = fileDao.selectFieldsByQuery(query);
+            for (Map<String, Object> row : rows) {
+                FileFingerprint fp = new FileFingerprint();
+                Object path = row.get("filePath");
+                fp.setFilePath(pathMapper.apply(path != null ? path.toString() : ""));
+                Object hash = row.get("fileHash");
+                fp.setContentHash(hash != null ? hash.toString() : null);
+                Object lm = row.get("lastModified");
+                fp.setLastModified(lm != null ? ((Number) lm).longValue() : 0L);
+                Object sz = row.get("fileSize");
+                fp.setFileSize(sz != null ? ((Number) sz).longValue() : 0L);
+                fingerprints.add(fp);
+            }
+            if (rows.size() < BATCH_SIZE) break;
+            offset += BATCH_SIZE;
         }
 
         return fingerprints;
@@ -131,13 +154,14 @@ public class OrmFingerprintStore implements IFingerprintStore {
     @Override
     public void deleteByIndex(String indexId) throws IOException {
         IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
-        QueryBean query = new QueryBean();
-        query.addFilter(FilterBeans.eq("indexId", indexId));
-
-        List<NopCodeFile> entities = fileDao.findAllByQuery(query);
-        // Full file list needed for complete deletion
-        for (NopCodeFile entity : entities) {
-            fileDao.deleteEntity(entity);
+        // Filter-based delete: exhausts all matching rows in pages without loading full entities.
+        // Loops until deleteByQuery affects zero rows (complete exhaustion, no silent truncation).
+        while (true) {
+            QueryBean query = new QueryBean();
+            query.addFilter(FilterBeans.eq("indexId", indexId));
+            query.setLimit(BATCH_SIZE);
+            long deleted = fileDao.deleteByQuery(query);
+            if (deleted == 0) break;
         }
     }
 
@@ -145,6 +169,7 @@ public class OrmFingerprintStore implements IFingerprintStore {
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.eq("indexId", indexId));
         query.addFilter(FilterBeans.eq("filePath", filePath));
+        query.setLimit(1);
         List<NopCodeFile> results = fileDao.findAllByQuery(query);
         return results.isEmpty() ? null : results.get(0);
     }

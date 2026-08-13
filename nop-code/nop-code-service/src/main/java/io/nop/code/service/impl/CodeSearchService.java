@@ -33,6 +33,8 @@ class CodeSearchService {
 
     private static final Logger LOG = LoggerFactory.getLogger(CodeSearchService.class);
 
+    private static final int BATCH_QUERY_LIMIT = 1000;
+
     private final IDaoProvider daoProvider;
     private final ISearchEngine searchEngine;
     private final CodeCacheManager cacheManager;
@@ -199,14 +201,21 @@ class CodeSearchService {
         fq.addFilter(FilterBeans.eq("indexId", indexId));
         fq.addField(QueryFieldBean.forField("id"));
         fq.addField(QueryFieldBean.forField("filePath"));
-        List<Map<String, Object>> rows = fileDao.selectFieldsByQuery(fq);
-        Map<String, String> cache = new HashMap<>(rows.size());
-        for (Map<String, Object> row : rows) {
-            Object id = row.get("id");
-            Object path = row.get("filePath");
-            if (id != null && path != null) {
-                cache.put(id.toString(), path.toString());
+        Map<String, String> cache = new HashMap<>();
+        long offset = 0;
+        while (true) {
+            fq.setOffset(offset);
+            fq.setLimit(BATCH_QUERY_LIMIT);
+            List<Map<String, Object>> rows = fileDao.selectFieldsByQuery(fq);
+            for (Map<String, Object> row : rows) {
+                Object id = row.get("id");
+                Object path = row.get("filePath");
+                if (id != null && path != null) {
+                    cache.put(id.toString(), path.toString());
+                }
             }
+            if (rows.size() < BATCH_QUERY_LIMIT) break;
+            offset += BATCH_QUERY_LIMIT;
         }
         return cache;
     }
@@ -325,9 +334,19 @@ class CodeSearchService {
         QueryBean fq = new QueryBean();
         fq.addFilter(FilterBeans.eq("indexId", indexId));
         fq.addFilter(FilterBeans.eq("language", language));
+        fq.addField(QueryFieldBean.forField("filePath"));
         Set<String> matchingPaths = new HashSet<>();
-        for (NopCodeFile f : fileDao.findAllByQuery(fq)) {
-            matchingPaths.add(f.getFilePath());
+        long offset = 0;
+        while (true) {
+            fq.setOffset(offset);
+            fq.setLimit(BATCH_QUERY_LIMIT);
+            List<Map<String, Object>> rows = fileDao.selectFieldsByQuery(fq);
+            for (Map<String, Object> row : rows) {
+                Object path = row.get("filePath");
+                if (path != null) matchingPaths.add(path.toString());
+            }
+            if (rows.size() < BATCH_QUERY_LIMIT) break;
+            offset += BATCH_QUERY_LIMIT;
         }
         if (matchingPaths.isEmpty()) return Collections.emptyList();
         results.removeIf(dto -> !matchingPaths.contains(dto.getFilePath()));

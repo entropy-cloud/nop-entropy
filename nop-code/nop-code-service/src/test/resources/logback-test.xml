@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Tests run thousands of ORM/JDBC statements; logging them at INFO/DEBUG makes
+         surefire's in-memory capture exhaust the default -Xmx1G heap (OutOfMemoryError).
+         Keep test logging quiet by default. -->
+    <logger name="io.nop" level="WARN"/>
+    <logger name="io.nop.dao" level="WARN"/>
+    <logger name="io.nop.orm" level="WARN"/>
+
+    <root level="WARN">
+        <appender-ref ref="STDOUT"/>
+    </root>
+</configuration>

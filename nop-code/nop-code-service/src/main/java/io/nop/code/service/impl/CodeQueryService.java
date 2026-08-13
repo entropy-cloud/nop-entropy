@@ -21,6 +21,7 @@ import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.PageBean;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.beans.query.QueryFieldBean;
 import io.nop.code.core.graph.SymbolTable;
 import io.nop.code.core.model.*;
 import io.nop.code.core.util.BfsNode;
@@ -123,6 +124,7 @@ class CodeQueryService {
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.eq("indexId", indexId));
         query.addFilter(FilterBeans.eq("filePath", filePath));
+        query.setLimit(1);
         List<NopCodeFile> files = fileDao.findAllByQuery(query);
         return files.isEmpty() ? null : entityToFileResult(files.get(0));
     }
@@ -133,6 +135,7 @@ class CodeQueryService {
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.eq("indexId", indexId));
         query.addFilter(FilterBeans.eq("filePath", filePath));
+        query.setLimit(1);
         List<NopCodeFile> files = fileDao.findAllByQuery(query);
         return files.isEmpty() ? null : files.get(0).getSourceCode();
     }
@@ -144,6 +147,7 @@ class CodeQueryService {
         query.addFilter(FilterBeans.eq("indexId", indexId));
         String fileId = generateFileId(indexId, filePath);
         query.addFilter(FilterBeans.eq("fileId", fileId));
+        query.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
         return symbolDao.findAllByQuery(query).stream()
                 .map(CodeSymbolConverter::toCodeSymbol)
                 .collect(Collectors.toList());
@@ -250,14 +254,23 @@ class CodeQueryService {
             fileQuery.addFilter(FilterBeans.startsWith("filePath", dirPath));
         }
         fileQuery.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
-        List<NopCodeFile> files = fileDao.findAllByQuery(fileQuery);
+        fileQuery.addField(QueryFieldBean.forField("id"));
+        fileQuery.addField(QueryFieldBean.forField("filePath"));
+        fileQuery.addField(QueryFieldBean.forField("packageName"));
+        // Projection: avoid loading CLOB sourceCode for a digest that only needs scalars
+        List<Map<String, Object>> fileRows = fileDao.selectFieldsByQuery(fileQuery);
 
         Set<String> allowedKinds = new HashSet<>(Arrays.asList(
                 "CLASS", "INTERFACE", "ENUM", "ANNOTATION_TYPE", "METHOD", "FUNCTION"));
 
         Set<String> fileIds = new HashSet<>();
-        for (NopCodeFile f : files) {
-            fileIds.add(f.getId());
+        Map<String, Map<String, Object>> fileById = new LinkedHashMap<>();
+        for (Map<String, Object> row : fileRows) {
+            Object id = row.get("id");
+            if (id != null) {
+                fileIds.add(id.toString());
+                fileById.put(id.toString(), row);
+            }
         }
 
         IEntityDao<NopCodeSymbol> symbolDao = daoProvider.daoFor(NopCodeSymbol.class);
@@ -275,14 +288,10 @@ class CodeQueryService {
             symbolsByFileId.computeIfAbsent(sym.getFileId(), k -> new ArrayList<>()).add(sym);
         }
 
-        Map<String, NopCodeFile> fileById = new LinkedHashMap<>();
-        for (NopCodeFile f : files) {
-            fileById.put(f.getId(), f);
-        }
-
         List<ModuleDigestDTO> result = new ArrayList<>();
-        for (NopCodeFile file : files) {
-            String fileId = file.getId();
+        for (Map<String, Object> file : fileRows) {
+            Object fid = file.get("id");
+            String fileId = fid != null ? fid.toString() : "";
 
             List<SymbolInfoDTO> symbols = new ArrayList<>();
             List<NopCodeSymbol> fileSymbols = symbolsByFileId.getOrDefault(fileId, Collections.emptyList());
@@ -297,8 +306,10 @@ class CodeQueryService {
             }
 
             ModuleDigestDTO dto = new ModuleDigestDTO();
-            dto.setFilePath(file.getFilePath());
-            dto.setPackageName(file.getPackageName());
+            Object fp = file.get("filePath");
+            dto.setFilePath(fp != null ? fp.toString() : null);
+            Object pn = file.get("packageName");
+            dto.setPackageName(pn != null ? pn.toString() : null);
             dto.setSymbols(symbols);
             result.add(dto);
         }
@@ -317,16 +328,23 @@ class CodeQueryService {
             fileQuery.addFilter(FilterBeans.startsWith("filePath", dirPath));
         }
         fileQuery.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
-        List<NopCodeFile> files = fileDao.findAllByQuery(fileQuery);
+        fileQuery.addField(QueryFieldBean.forField("id"));
+        fileQuery.addField(QueryFieldBean.forField("filePath"));
+        // Projection: avoid loading CLOB sourceCode for a surface scan that only needs id+path
+        List<Map<String, Object>> fileRows = fileDao.selectFieldsByQuery(fileQuery);
 
         Set<String> allowedKinds = new HashSet<>(Arrays.asList(
                 "CLASS", "INTERFACE", "ENUM", "METHOD", "FIELD"));
 
         Map<String, String> fileIdToPath = new HashMap<>();
         Set<String> fileIds = new HashSet<>();
-        for (NopCodeFile file : files) {
-            fileIds.add(file.getId());
-            fileIdToPath.put(file.getId(), file.getFilePath());
+        for (Map<String, Object> row : fileRows) {
+            Object id = row.get("id");
+            Object path = row.get("filePath");
+            if (id != null) {
+                fileIds.add(id.toString());
+                fileIdToPath.put(id.toString(), path != null ? path.toString() : null);
+            }
         }
 
         if (fileIds.isEmpty()) return Collections.emptyList();
@@ -404,6 +422,7 @@ class CodeQueryService {
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.eq("indexId", indexId));
         query.addFilter(FilterBeans.eq("qualifiedName", qualifiedName));
+        query.setLimit(1);
         List<NopCodeSymbol> results = symbolDao.findAllByQuery(query);
         return results.isEmpty() ? null : CodeSymbolConverter.toCodeSymbol(results.get(0));
     }
@@ -506,6 +525,7 @@ class CodeQueryService {
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.eq("indexId", indexId));
         query.addFilter(FilterBeans.eq("qualifiedName", qualifiedName));
+        query.setLimit(1);
         List<NopCodeSymbol> results = symbolDao.findAllByQuery(query);
         if (results.isEmpty()) return null;
 
@@ -556,6 +576,7 @@ class CodeQueryService {
                 FilterBeans.eq("parentId", symbol.getId()),
                 FilterBeans.eq("declaringSymbolId", symbol.getId())
         ));
+        childQuery.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
 
         List<SymbolInfoDTO> methods = new ArrayList<>();
         List<SymbolInfoDTO> fields = new ArrayList<>();
@@ -587,6 +608,7 @@ class CodeQueryService {
         QueryBean qnQuery = new QueryBean();
         qnQuery.addFilter(FilterBeans.eq("indexId", indexId));
         qnQuery.addFilter(FilterBeans.in("qualifiedName", qualifiedNames));
+        qnQuery.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
         List<NopCodeSymbol> typeSymbols = symbolDao.findAllByQuery(qnQuery);
 
         Map<String, NopCodeSymbol> symbolByQN = new LinkedHashMap<>();
@@ -603,11 +625,13 @@ class CodeQueryService {
         QueryBean childQuery = new QueryBean();
         childQuery.addFilter(FilterBeans.eq("indexId", indexId));
         childQuery.addFilter(FilterBeans.in("parentId", new ArrayList<>(typeIds)));
+        childQuery.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
         List<NopCodeSymbol> childrenByParent = symbolDao.findAllByQuery(childQuery);
 
         QueryBean memberQuery = new QueryBean();
         memberQuery.addFilter(FilterBeans.eq("indexId", indexId));
         memberQuery.addFilter(FilterBeans.in("declaringSymbolId", new ArrayList<>(typeIds)));
+        memberQuery.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
         List<NopCodeSymbol> childrenByDecl = symbolDao.findAllByQuery(memberQuery);
 
         Map<String, List<NopCodeSymbol>> childrenMap = new LinkedHashMap<>();
@@ -670,12 +694,15 @@ class CodeQueryService {
         QueryBean symbolQuery = new QueryBean();
         symbolQuery.addFilter(FilterBeans.eq("indexId", indexId));
         symbolQuery.addFilter(FilterBeans.eq("qualifiedName", qualifiedName));
-        List<NopCodeSymbol> symbols = symbolDao.findAllByQuery(symbolQuery);
-        if (symbols.isEmpty()) return Collections.emptyList();
+        symbolQuery.setLimit(1);
+        symbolQuery.addField(QueryFieldBean.forField("id"));
+        List<Map<String, Object>> symbolRows = symbolDao.selectFieldsByQuery(symbolQuery);
+        if (symbolRows.isEmpty()) return Collections.emptyList();
 
         Set<String> symbolIds = new LinkedHashSet<>();
-        for (NopCodeSymbol sym : symbols) {
-            symbolIds.add(sym.getId());
+        for (Map<String, Object> row : symbolRows) {
+            Object id = row.get("id");
+            if (id != null) symbolIds.add(id.toString());
         }
 
         IEntityDao<NopCodeUsage> usageDao = daoProvider.daoFor(NopCodeUsage.class);
@@ -686,6 +713,7 @@ class CodeQueryService {
             qb.addFilter(FilterBeans.eq("kind", kind));
         }
         if (limit > 0) qb.setLimit(limit);
+        else qb.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
         List<NopCodeUsage> usages = usageDao.findAllByQuery(qb);
 
         Set<String> fileIds = new LinkedHashSet<>();
@@ -700,9 +728,17 @@ class CodeQueryService {
             IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
             QueryBean fileQuery = new QueryBean();
             fileQuery.addFilter(FilterBeans.in("id", new ArrayList<>(fileIds)));
+            fileQuery.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
+            fileQuery.addField(QueryFieldBean.forField("id"));
+            fileQuery.addField(QueryFieldBean.forField("filePath"));
             fileMap = new HashMap<>();
-            for (NopCodeFile file : fileDao.findAllByQuery(fileQuery)) {
-                fileMap.put(file.getId(), file);
+            for (Map<String, Object> row : fileDao.selectFieldsByQuery(fileQuery)) {
+                NopCodeFile stub = new NopCodeFile();
+                Object id = row.get("id");
+                Object path = row.get("filePath");
+                if (id != null) stub.setId(id.toString());
+                if (path != null) stub.setFilePath(path.toString());
+                fileMap.put(stub.getId(), stub);
             }
         }
 
@@ -710,6 +746,7 @@ class CodeQueryService {
         if (!enclosingSymbolIds.isEmpty()) {
             QueryBean encQuery = new QueryBean();
             encQuery.addFilter(FilterBeans.in("id", new ArrayList<>(enclosingSymbolIds)));
+            encQuery.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
             enclosingMap = new HashMap<>();
             for (NopCodeSymbol enc : symbolDao.findAllByQuery(encQuery)) {
                 enclosingMap.put(enc.getId(), enc);
@@ -753,22 +790,25 @@ class CodeQueryService {
         annotQuery.addFilter(FilterBeans.eq("indexId", indexId));
         annotQuery.addFilter(FilterBeans.eq("annotationTypeId", annotationName));
         annotQuery.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
-        List<NopCodeAnnotationUsage> exactMatches = annotDao.findAllByQuery(annotQuery);
+        annotQuery.addField(QueryFieldBean.forField("annotatedSymbolId"));
+        List<Map<String, Object>> exactRows = annotDao.selectFieldsByQuery(annotQuery);
 
-        if (exactMatches.isEmpty()) {
+        if (exactRows.isEmpty()) {
             QueryBean fuzzyQuery = new QueryBean();
             fuzzyQuery.addFilter(FilterBeans.eq("indexId", indexId));
             fuzzyQuery.addFilter(FilterBeans.contains("annotationTypeId", annotationName));
             fuzzyQuery.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
-            exactMatches = annotDao.findAllByQuery(fuzzyQuery);
+            fuzzyQuery.addField(QueryFieldBean.forField("annotatedSymbolId"));
+            exactRows = annotDao.selectFieldsByQuery(fuzzyQuery);
         }
 
-        if (exactMatches.isEmpty()) return Collections.emptyList();
+        if (exactRows.isEmpty()) return Collections.emptyList();
 
         Set<String> symbolIds = new LinkedHashSet<>();
-        for (NopCodeAnnotationUsage usage : exactMatches) {
-            if (usage.getAnnotatedSymbolId() != null) {
-                symbolIds.add(usage.getAnnotatedSymbolId());
+        for (Map<String, Object> row : exactRows) {
+            Object sid = row.get("annotatedSymbolId");
+            if (sid != null) {
+                symbolIds.add(sid.toString());
             }
         }
         if (symbolIds.isEmpty()) return Collections.emptyList();
@@ -777,6 +817,7 @@ class CodeQueryService {
         QueryBean symQuery = new QueryBean();
         symQuery.addFilter(FilterBeans.eq("indexId", indexId));
         symQuery.addFilter(FilterBeans.in("id", new ArrayList<>(symbolIds)));
+        symQuery.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
         return symbolDao.findAllByQuery(symQuery).stream()
                 .map(CodeSymbolConverter::toCodeSymbol)
                 .collect(Collectors.toList());
@@ -789,6 +830,7 @@ class CodeQueryService {
         QueryBean symQuery = new QueryBean();
         symQuery.addFilter(FilterBeans.eq("indexId", indexId));
         symQuery.addFilter(FilterBeans.eq("qualifiedName", qualifiedName));
+        symQuery.setLimit(1);
         List<NopCodeSymbol> targets = symbolDao.findAllByQuery(symQuery);
         if (targets.isEmpty()) return Collections.emptyList();
 
@@ -850,6 +892,7 @@ class CodeQueryService {
         QueryBean allSymQuery = new QueryBean();
         allSymQuery.addFilter(FilterBeans.eq("indexId", indexId));
         allSymQuery.addFilter(FilterBeans.in("id", new ArrayList<>(resultIds)));
+        allSymQuery.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
         return symbolDao.findAllByQuery(allSymQuery).stream()
                 .map(CodeSymbolConverter::toCodeSymbol)
                 .collect(Collectors.toList());

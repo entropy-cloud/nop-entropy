@@ -1,5 +1,6 @@
 package io.nop.code.service.impl;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -189,7 +190,7 @@ class CodeCacheManager {
             query.addFilter(FilterBeans.eq("indexId", indexId));
             query.setOffset(offset);
             query.setLimit(BATCH_SIZE);
-            List<NopCodeSymbol> batch = symbolDao.findAllByQuery(query);
+            List<NopCodeSymbol> batch = symbolDao.findPageByQuery(query);
             if (batch.isEmpty())
                 break;
             for (NopCodeSymbol entity : batch) {
@@ -220,7 +221,7 @@ class CodeCacheManager {
             query.addFilter(FilterBeans.eq("indexId", indexId));
             query.setLimit(BATCH_SIZE);
             query.setOffset(offset);
-            List<NopCodeCall> batch = callDao.findAllByQuery(query);
+            List<NopCodeCall> batch = callDao.findPageByQuery(query);
             if (batch.isEmpty())
                 break;
             for (NopCodeCall entity : batch) {
@@ -242,8 +243,19 @@ class CodeCacheManager {
 
     private List<NopCodeDependency> rebuildDependencies(String indexId, IDaoProvider daoProvider) {
         IEntityDao<NopCodeDependency> dao = daoProvider.daoFor(NopCodeDependency.class);
-        QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq("indexId", indexId));
-        return dao.findAllByQuery(q);
+        List<NopCodeDependency> result = new ArrayList<>();
+        long offset = 0;
+        while (true) {
+            QueryBean q = new QueryBean();
+            q.addFilter(FilterBeans.eq("indexId", indexId));
+            q.setOffset(offset);
+            q.setLimit(BATCH_SIZE);
+            List<NopCodeDependency> batch = dao.findPageByQuery(q);
+            if (batch.isEmpty()) break;
+            result.addAll(batch);
+            if (batch.size() < BATCH_SIZE) break;
+            offset += BATCH_SIZE;
+        }
+        return result;
     }
 }

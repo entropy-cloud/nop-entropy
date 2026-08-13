@@ -95,7 +95,6 @@ import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.orm.IOrmSession;
 import io.nop.orm.IOrmTemplate;
-import io.nop.orm.exceptions.OrmException;
 import io.nop.search.api.ISearchEngine;
 import io.nop.search.api.SearchableDoc;
 import static io.nop.code.service.NopCodeErrors.*;
@@ -304,6 +303,13 @@ public class CodeIndexService implements ICodeIndexService {
             return transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRED, txn ->
                     ormTemplate.runInSession(session -> {
                         ensureIndexEntity(indexId, resolvedPath, session);
+                        // Delete existing records for the files being re-indexed so a retry over the
+                        // same directory is idempotent. Symbols/relational rows have non-deterministic
+                        // IDs and must be cleared before re-saving; the file row is also cleared and
+                        // re-inserted. Mirrors triggerIncrementalIndex's delete-before-reindex pattern.
+                        for (CodeFileAnalysisResult fr : finalResult.getFileResults()) {
+                            deleteFileRecords(indexId, Collections.singletonList(fr.getFilePath()));
+                        }
                         persistInSession(indexId, resolvedPath, finalResult, session);
                         return finalResult.getFileResults().size();
                     }));
@@ -322,6 +328,10 @@ public class CodeIndexService implements ICodeIndexService {
             transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRED, txn ->
                     ormTemplate.runInSession(session -> {
                         ensureIndexEntity(indexId, null, session);
+                        // Delete existing records for this file so a retry is idempotent: symbols and
+                        // other relational rows carry non-deterministic IDs, so they must be cleared
+                        // before re-saving (mirrors triggerIncrementalIndex's delete-before-reindex).
+                        deleteFileRecords(indexId, Collections.singletonList(filePath));
                         persistSingleFileInSession(indexId, result, session);
                         return null;
                     }));
@@ -502,13 +512,20 @@ public class CodeIndexService implements ICodeIndexService {
         QueryBean kindQuery = new QueryBean();
         kindQuery.addFilter(FilterBeans.eq("indexId", indexId));
         kindQuery.addField(io.nop.api.core.beans.query.QueryFieldBean.forField("kind"));
-        List<Map<String, Object>> kindResults = symbolDao.selectFieldsByQuery(kindQuery);
-        if (!kindResults.isEmpty()) {
-            Map<String, Integer> kindCounts = new LinkedHashMap<>();
+        Map<String, Integer> kindCounts = new LinkedHashMap<>();
+        long kindOffset = 0;
+        while (true) {
+            kindQuery.setOffset(kindOffset);
+            kindQuery.setLimit(BATCH_SIZE);
+            List<Map<String, Object>> kindResults = symbolDao.selectFieldsByQuery(kindQuery);
             for (Map<String, Object> row : kindResults) {
                 String kind = row.get("kind") != null ? row.get("kind").toString() : "UNKNOWN";
                 kindCounts.merge(kind, 1, Integer::sum);
             }
+            if (kindResults.size() < BATCH_SIZE) break;
+            kindOffset += BATCH_SIZE;
+        }
+        if (!kindCounts.isEmpty()) {
             stats.setSymbolCounts(kindCounts);
         }
         return stats;
@@ -574,6 +591,40 @@ public class CodeIndexService implements ICodeIndexService {
             dao.batchDeleteEntities(batch);
             session.flush();
             session.evictAll(entityName);
+        }
+    }
+
+    /**
+     * Delete all flows for an index and their flow-memberships, paged.
+     * Flows are loaded by projection (id only) so memberships can be deleted by filter,
+     * avoiding full-entity load when only the id is needed.
+     */
+    private void deleteExistingFlowsByIndex(IOrmSession session, String indexId) {
+        IEntityDao<NopCodeFlow> flowDao = daoProvider.daoFor(NopCodeFlow.class);
+        while (true) {
+            QueryBean q = new QueryBean();
+            q.addFilter(FilterBeans.eq("indexId", indexId));
+            q.setLimit(DELETE_BATCH_SIZE);
+            q.addField(io.nop.api.core.beans.query.QueryFieldBean.forField("id"));
+            List<Map<String, Object>> rows = flowDao.selectFieldsByQuery(q);
+            if (rows.isEmpty()) break;
+            for (Map<String, Object> row : rows) {
+                Object id = row.get("id");
+                if (id != null) {
+                    deleteEntitiesPaged(session, NopCodeFlowMembership.class, "flowId", id.toString());
+                }
+            }
+            // delete the fetched flows by their ids
+            List<String> ids = new ArrayList<>(rows.size());
+            for (Map<String, Object> row : rows) {
+                Object id = row.get("id");
+                if (id != null) ids.add(id.toString());
+            }
+            QueryBean delQ = new QueryBean();
+            delQ.addFilter(FilterBeans.in("id", ids));
+            flowDao.deleteByQuery(delQ);
+            session.flush();
+            session.evictAll(NopCodeFlow.class.getName());
         }
     }
 
@@ -896,10 +947,14 @@ public class CodeIndexService implements ICodeIndexService {
             query.addFilter(FilterBeans.eq("indexId", indexId));
             query.setOffset(offset);
             query.setLimit(BATCH_SIZE);
-            List<NopCodeCall> batch = callDao.findAllByQuery(query);
+            query.addField(io.nop.api.core.beans.query.QueryFieldBean.forField("callerId"));
+            query.addField(io.nop.api.core.beans.query.QueryFieldBean.forField("calleeId"));
+            List<Map<String, Object>> batch = callDao.selectFieldsByQuery(query);
             if (batch.isEmpty()) break;
-            for (NopCodeCall call : batch) {
-                keys.add(indexId + ":" + call.getCallerId() + ":" + call.getCalleeId());
+            for (Map<String, Object> row : batch) {
+                Object caller = row.get("callerId");
+                Object callee = row.get("calleeId");
+                keys.add(indexId + ":" + caller + ":" + callee);
             }
             if (batch.size() < BATCH_SIZE) break;
             offset += BATCH_SIZE;
@@ -1401,13 +1456,20 @@ public class CodeIndexService implements ICodeIndexService {
         QueryBean q = new QueryBean();
         q.addFilter(FilterBeans.eq("indexId", indexId));
         q.addField(io.nop.api.core.beans.query.QueryFieldBean.forField("filePath"));
-        List<Map<String, Object>> rows = fileDao.selectFieldsByQuery(q);
-        Set<String> paths = new HashSet<>(rows.size());
-        for (Map<String, Object> row : rows) {
-            Object path = row.get("filePath");
-            if (path != null) {
-                paths.add(path.toString());
+        Set<String> paths = new HashSet<>();
+        long offset = 0;
+        while (true) {
+            q.setOffset(offset);
+            q.setLimit(BATCH_SIZE);
+            List<Map<String, Object>> rows = fileDao.selectFieldsByQuery(q);
+            for (Map<String, Object> row : rows) {
+                Object path = row.get("filePath");
+                if (path != null) {
+                    paths.add(path.toString());
+                }
             }
+            if (rows.size() < BATCH_SIZE) break;
+            offset += BATCH_SIZE;
         }
         return paths;
     }
@@ -1468,46 +1530,45 @@ public class CodeIndexService implements ICodeIndexService {
             QueryBean q = new QueryBean();
             q.addFilter(FilterBeans.eq("indexId", indexId));
             q.addFilter(FilterBeans.eq("id", fileId));
+            q.setLimit(1);
             fileDao.batchDeleteEntities(fileDao.findAllByQuery(q));
+            // Flush the file delete so a following re-save (retry) inserts into an empty slot
+            // instead of conflicting with the staged-but-unflushed delete.
+            fileDao.flushSession();
         }
     }
 
     private void saveReplacingExisting(IOrmSession session, IOrmEntity entity) {
-        try {
-            session.save(entity);
-        } catch (OrmException e) {
-            if ("nop.err.orm.save-entity-replace-existing-entity".equals(e.getErrorCode())) {
-                session.flush();
-                IOrmEntity existing = (IOrmEntity) session.get(entity.orm_entityName(), entity.orm_id());
-                if (existing != null) {
-                    existing.orm_clearDirty();
-                    Map<String, Object> initedValues = entity.orm_initedValues();
-                    for (Map.Entry<String, Object> entry : initedValues.entrySet()) {
-                        String propName = entry.getKey();
-                        int propId = existing.orm_propId(propName);
-                        if (propId >= 0 && !existing.orm_isPrimary(propId)) {
-                            try {
-                                existing.orm_propValue(propId, entry.getValue());
-                            } catch (Exception ex) {
-                                LOG.trace("Skipping prop {} during entity update", propName, ex);
-                            }
-                        }
+        // Query-first upsert so indexDirectory/indexFile are retry-safe. A retry re-saves entities
+        // whose deterministic IDs already exist in the DB; a plain session.save() stages an INSERT
+        // whose duplicate-key (UK_NOP_CODE_FILE_PATH) only surfaces at the deferred batch flush in
+        // persistInSession — outside any try/catch, so it cannot be caught there. By loading the
+        // existing row first the ORM tracks it as MANAGED; copying the new field values turns the
+        // flush into an UPDATE instead of a constraint-violating INSERT.
+        IOrmEntity existing = (IOrmEntity) session.get(entity.orm_entityName(), entity.orm_id());
+        if (existing != null) {
+            Map<String, Object> initedValues = entity.orm_initedValues();
+            for (Map.Entry<String, Object> entry : initedValues.entrySet()) {
+                String propName = entry.getKey();
+                int propId = existing.orm_propId(propName);
+                if (propId >= 0 && !existing.orm_isPrimary(propId)) {
+                    try {
+                        existing.orm_propValue(propId, entry.getValue());
+                    } catch (Exception ex) {
+                        LOG.trace("Skipping prop {} during entity update", propName, ex);
                     }
-                    session.flush();
-                    return;
                 }
-                session.evictAll(entity.orm_entityName());
-                session.save(entity);
-            } else {
-                throw e;
             }
+            return;
         }
+        session.save(entity);
     }
 
     private List<String> findSymbolIdsByFileId(String fileId) {
         IEntityDao<NopCodeSymbol> dao = daoProvider.daoFor(NopCodeSymbol.class);
         QueryBean q = new QueryBean();
         q.addFilter(FilterBeans.eq("fileId", fileId));
+        q.setLimit(MAX_QUERY_RESULTS);
         return dao.findAllByQuery(q).stream()
                 .map(NopCodeSymbol::getId)
                 .collect(Collectors.toList());
@@ -1516,21 +1577,33 @@ public class CodeIndexService implements ICodeIndexService {
     private <T extends IDaoEntity> void deleteRelationalBySymbolIds(Class<T> entityClass, String field, List<String> symbolIds) {
         if (symbolIds.isEmpty()) return;
         IEntityDao<T> dao = daoProvider.daoFor(entityClass);
-        QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.in(field, symbolIds));
-        List<T> entities = dao.findAllByQuery(q);
-        if (!entities.isEmpty()) {
+        // Paginated delete to exhaust all matching rows
+        while (true) {
+            QueryBean q = new QueryBean();
+            q.addFilter(FilterBeans.in(field, symbolIds));
+            q.setLimit(DELETE_BATCH_SIZE);
+            List<T> entities = dao.findAllByQuery(q);
+            if (entities.isEmpty()) break;
             dao.batchDeleteEntities(entities);
+            // Flush staged deletes before the next query, otherwise the re-query keeps finding
+            // the not-yet-flushed rows and the loop never terminates (matches deleteEntitiesPaged).
+            dao.flushSession();
         }
     }
 
     private <T extends IDaoEntity> void deleteEntitiesByFilter(Class<T> entityClass, String field, String value) {
         IEntityDao<T> dao = daoProvider.daoFor(entityClass);
-        QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq(field, value));
-        List<T> entities = dao.findAllByQuery(q);
-        if (!entities.isEmpty()) {
+        // Paginated delete to exhaust all matching rows
+        while (true) {
+            QueryBean q = new QueryBean();
+            q.addFilter(FilterBeans.eq(field, value));
+            q.setLimit(DELETE_BATCH_SIZE);
+            List<T> entities = dao.findAllByQuery(q);
+            if (entities.isEmpty()) break;
             dao.batchDeleteEntities(entities);
+            // Flush staged deletes before the next query, otherwise the re-query keeps finding
+            // the not-yet-flushed rows and the loop never terminates (matches deleteEntitiesPaged).
+            dao.flushSession();
         }
     }
 
@@ -1599,6 +1672,7 @@ public class CodeIndexService implements ICodeIndexService {
         IEntityDao<NopCodeFlow> flowDao = daoProvider.daoFor(NopCodeFlow.class);
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.eq("indexId", indexId));
+        query.setLimit(MAX_QUERY_RESULTS);
         List<NopCodeFlow> entities = flowDao.findAllByQuery(query);
 
         return entities.stream()
@@ -1621,9 +1695,13 @@ public class CodeIndexService implements ICodeIndexService {
         IEntityDao<NopCodeFlowMembership> membershipDao = daoProvider.daoFor(NopCodeFlowMembership.class);
         QueryBean membershipQuery = new QueryBean();
         membershipQuery.addFilter(FilterBeans.eq("flowId", flowId));
-        List<NopCodeFlowMembership> memberships = membershipDao.findAllByQuery(membershipQuery);
-        flow.setPathNodeIds(memberships.stream()
-                .map(NopCodeFlowMembership::getSymbolId)
+        membershipQuery.setLimit(MAX_QUERY_RESULTS);
+        membershipQuery.addField(io.nop.api.core.beans.query.QueryFieldBean.forField("symbolId"));
+        List<Map<String, Object>> membershipRows = membershipDao.selectFieldsByQuery(membershipQuery);
+        flow.setPathNodeIds(membershipRows.stream()
+                .map(row -> row.get("symbolId"))
+                .filter(sid -> sid != null)
+                .map(Object::toString)
                 .collect(Collectors.toList()));
 
         return flow;
@@ -1690,20 +1768,10 @@ public class CodeIndexService implements ICodeIndexService {
         List<ExecutionFlow> finalFlows = limitedFlows;
         transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRED, txn ->
                 ormTemplate.runInSession(session -> {
-            IEntityDao<NopCodeFlow> flowDao = daoProvider.daoFor(NopCodeFlow.class);
-            QueryBean deleteQuery = new QueryBean();
-            deleteQuery.addFilter(FilterBeans.eq("indexId", indexId));
-            deleteQuery.setLimit(DELETE_BATCH_SIZE);
-            while (true) {
-                List<NopCodeFlow> existing = flowDao.findAllByQuery(deleteQuery);
-                if (existing.isEmpty()) break;
-                for (NopCodeFlow existingFlow : existing) {
-                    deleteEntitiesPaged(session, NopCodeFlowMembership.class, "flowId", existingFlow.getId());
-                }
-                flowDao.batchDeleteEntities(existing);
-                session.flush();
-                session.evictAll(NopCodeFlow.class.getName());
-            }
+            // Paged delete of existing flows + their memberships via filter-based helpers
+            // (deleteEntitiesPaged loads+deletes in pages; avoid entity-field-min by not
+            //  accessing getters on the result list)
+            deleteExistingFlowsByIndex(session, indexId);
 
             for (ExecutionFlow flow : finalFlows) {
                 NopCodeFlow flowEntity = (NopCodeFlow) ormTemplate.newEntity(NopCodeFlow.class.getName());
@@ -1785,6 +1853,7 @@ public class CodeIndexService implements ICodeIndexService {
             QueryBean query = new QueryBean();
             query.addFilter(FilterBeans.eq("indexId", indexId));
             query.addFilter(FilterBeans.eq("filePath", fp.getFilePath()));
+            query.setLimit(1);
             List<NopCodeFile> existing = fileDao.findAllByQuery(query);
 
             NopCodeFile fileEntity;
@@ -1814,17 +1883,32 @@ public class CodeIndexService implements ICodeIndexService {
         IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.eq("indexId", indexId));
+        query.addField(io.nop.api.core.beans.query.QueryFieldBean.forField("filePath"));
+        query.addField(io.nop.api.core.beans.query.QueryFieldBean.forField("fileHash"));
+        query.addField(io.nop.api.core.beans.query.QueryFieldBean.forField("lastModified"));
+        query.addField(io.nop.api.core.beans.query.QueryFieldBean.forField("fileSize"));
 
-        List<NopCodeFile> entities = fileDao.findAllByQuery(query);
-        List<FileFingerprint> fingerprints = new ArrayList<>(entities.size());
-
-        for (NopCodeFile entity : entities) {
-            FileFingerprint fp = new FileFingerprint();
-            fp.setFilePath(entity.getFilePath());
-            fp.setContentHash(entity.getFileHash());
-            fp.setLastModified(entity.getLastModified() != null ? entity.getLastModified() : 0L);
-            fp.setFileSize(entity.getFileSize() != null ? entity.getFileSize() : 0L);
-            fingerprints.add(fp);
+        // Projection (avoid CLOB sourceCode load) + paginated to exhaust all rows
+        List<FileFingerprint> fingerprints = new ArrayList<>();
+        long offset = 0;
+        while (true) {
+            query.setOffset(offset);
+            query.setLimit(BATCH_SIZE);
+            List<Map<String, Object>> rows = fileDao.selectFieldsByQuery(query);
+            for (Map<String, Object> row : rows) {
+                FileFingerprint fp = new FileFingerprint();
+                Object path = row.get("filePath");
+                fp.setFilePath(path != null ? path.toString() : null);
+                Object hash = row.get("fileHash");
+                fp.setContentHash(hash != null ? hash.toString() : null);
+                Object lm = row.get("lastModified");
+                fp.setLastModified(lm != null ? ((Number) lm).longValue() : 0L);
+                Object sz = row.get("fileSize");
+                fp.setFileSize(sz != null ? ((Number) sz).longValue() : 0L);
+                fingerprints.add(fp);
+            }
+            if (rows.size() < BATCH_SIZE) break;
+            offset += BATCH_SIZE;
         }
 
         return fingerprints;
@@ -1878,9 +1962,19 @@ public class CodeIndexService implements ICodeIndexService {
         QueryBean fq = new QueryBean();
         fq.addFilter(FilterBeans.eq("indexId", indexId));
         fq.addFilter(FilterBeans.eq("language", language));
+        fq.addField(io.nop.api.core.beans.query.QueryFieldBean.forField("filePath"));
         Set<String> matchingPaths = new HashSet<>();
-        for (NopCodeFile f : fileDao.findAllByQuery(fq)) {
-            matchingPaths.add(f.getFilePath());
+        long offset = 0;
+        while (true) {
+            fq.setOffset(offset);
+            fq.setLimit(BATCH_SIZE);
+            List<Map<String, Object>> rows = fileDao.selectFieldsByQuery(fq);
+            for (Map<String, Object> row : rows) {
+                Object path = row.get("filePath");
+                if (path != null) matchingPaths.add(path.toString());
+            }
+            if (rows.size() < BATCH_SIZE) break;
+            offset += BATCH_SIZE;
         }
         if (matchingPaths.isEmpty()) return Collections.emptyList();
         results.removeIf(dto -> !matchingPaths.contains(dto.getFilePath()));

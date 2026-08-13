@@ -84,7 +84,9 @@ public class TestNopCodeIndexIdempotencyInvariant extends JunitAutoTestCase {
      */
     private static final Set<String> IDEMPOTENCE_TABLE = new HashSet<>(Arrays.asList(
             "triggerIncrementalIndex",
-            "batchSaveFileRecords"
+            "batchSaveFileRecords",
+            "indexDirectory",
+            "indexFile"
     ));
 
     /**
@@ -93,10 +95,11 @@ public class TestNopCodeIndexIdempotencyInvariant extends JunitAutoTestCase {
      * {@code testKnownRedList_*} assertions; when fixed, move them to IDEMPOTENCE_TABLE.
      *
      * <p>red-list reference: {@code ai-dev/audits/nop-code-invariants/gate-baseline-I1.md}
+     *
+     * <p>I4 fix: indexDirectory/indexFile moved here → IDEMPOTENCE_TABLE after
+     * saveReplacingExisting was extended to catch JDBC duplicate-key (nop.err.dao.sql.duplicate-key).
      */
     private static final Set<String> KNOWN_NON_IDEMPOTENT = new HashSet<>(Arrays.asList(
-            "indexDirectory",
-            "indexFile"
     ));
 
     /**
@@ -141,6 +144,12 @@ public class TestNopCodeIndexIdempotencyInvariant extends JunitAutoTestCase {
                 break;
             case "batchSaveFileRecords":
                 verifyBatchSaveFileRecordsIdempotent();
+                break;
+            case "indexDirectory":
+                verifyIndexDirectoryIdempotent();
+                break;
+            case "indexFile":
+                verifyIndexFileIdempotent();
                 break;
             default:
                 fail("IDEMPOTENCE_TABLE entry \"" + methodName + "\" has no verification branch — "
@@ -213,53 +222,68 @@ public class TestNopCodeIndexIdempotencyInvariant extends JunitAutoTestCase {
                 "batchSaveFileRecords retry must not duplicate (expected " + files1 + ", got " + files2 + ")");
     }
 
-    // ==================== 2. Executable red-list locks (KNOWN_NON_IDEMPOTENT) ====================
-
     /**
-     * RED-LIST LOCK: indexDirectory is NOT idempotent today — re-indexing the same
-     * directory without clearing throws a duplicate-key exception (saveReplacingExisting
-     * does not catch the JDBC 23505 error code). This is an I2 red-list / I4 fix target.
-     *
-     * <p>When I4 makes indexDirectory retry-safe, this assertion will FAIL — that is the
-     * signal to move {@code indexDirectory} from {@link #KNOWN_NON_IDEMPOTENT} into
-     * {@link #IDEMPOTENCE_TABLE} and add a verify branch. Do NOT weaken this test to
-     * make it pass; fix the code instead.
+     * indexDirectory on the same directory twice (without clearing) must be idempotent:
+     * the retry must not throw and file/symbol counts must stay stable. This locks the
+     * I4 fix where saveReplacingExisting was extended to catch JDBC duplicate-key
+     * (nop.err.dao.sql.duplicate-key) in addition to the ORM-level replace-existing error.
      */
-    @Test
-    void testKnownRedList_indexDirectoryRetryFailsIdempotency() throws Exception {
-        Path projectDir = tempDir.resolve("redlist-dir");
+    private void verifyIndexDirectoryIdempotent() throws Exception {
+        Path projectDir = tempDir.resolve("idem-dir");
         Files.createDirectories(projectDir);
-        writeJavaFile(projectDir, "Epsilon.java", "public class Epsilon { int e; }");
+        writeJavaFile(projectDir, "Eta.java", "public class Eta { int e; }");
+        writeJavaFile(projectDir, "Theta.java", "public class Theta { String t; }");
         Thread.sleep(50);
 
-        String indexId = "redlist-idx-dir";
+        String indexId = "idem-indexdir";
         String dirPath = projectDir.toAbsolutePath().toString();
 
         codeIndexService.indexDirectory(indexId, dirPath, "**/*.java");
-        // retry on the same index WITHOUT clearing -> currently throws duplicate-key
-        assertThrows(Exception.class,
-                () -> codeIndexService.indexDirectory(indexId, dirPath, "**/*.java"),
-                "indexDirectory retry is expected to throw (RED-LIST). If this assertion fires (no throw), "
-                        + "indexDirectory became idempotent — move it to IDEMPOTENCE_TABLE and add a verify branch.");
+        int filesAfterFirst = countFiles(indexId, NopCodeFile.class);
+        int symbolsAfterFirst = countFiles(indexId, NopCodeSymbol.class);
+        assertTrue(filesAfterFirst >= 2, "first indexDirectory: >=2 file records");
+
+        // retry on the same index WITHOUT clearing — must not throw (was red-list before I4)
+        assertDoesNotThrow(() -> codeIndexService.indexDirectory(indexId, dirPath, "**/*.java"),
+                "retry indexDirectory must not throw after I4 duplicate-key fix");
+        int filesAfterRetry = countFiles(indexId, NopCodeFile.class);
+        int symbolsAfterRetry = countFiles(indexId, NopCodeSymbol.class);
+
+        assertEquals(filesAfterFirst, filesAfterRetry,
+                "indexDirectory retry must keep file count stable (expected " + filesAfterFirst + ", got " + filesAfterRetry + ")");
+        assertEquals(symbolsAfterFirst, symbolsAfterRetry,
+                "indexDirectory retry must keep symbol count stable (expected " + symbolsAfterFirst + ", got " + symbolsAfterRetry + ")");
     }
 
     /**
-     * RED-LIST LOCK: indexFile is NOT idempotent today — re-indexing the same file
-     * throws a duplicate-key exception. I2 red-list / I4 fix target. See
-     * {@link #testKnownRedList_indexDirectoryRetryFailsIdempotency} for the lock contract.
+     * indexFile on the same file twice must be idempotent: retry must not throw and
+     * symbol count must stay stable. I4 fix target (saveReplacingExisting duplicate-key catch).
      */
-    @Test
-    void testKnownRedList_indexFileRetryFailsIdempotency() {
-        String indexId = "redlist-idx-file";
-        String filePath = "com/example/Redlisted.java";
-        String source = "public class Redlisted { int x; void m() {} }";
+    private void verifyIndexFileIdempotent() {
+        String indexId = "idem-indexfile";
+        String filePath = "com/example/Iota.java";
+        String source = "public class Iota { int x; void m() {} }";
 
         codeIndexService.indexFile(indexId, filePath, source);
-        assertThrows(Exception.class,
-                () -> codeIndexService.indexFile(indexId, filePath, source),
-                "indexFile retry is expected to throw (RED-LIST). If this assertion fires (no throw), "
-                        + "indexFile became idempotent — move it to IDEMPOTENCE_TABLE and add a verify branch.");
+        int symbolsAfterFirst = countFiles(indexId, NopCodeSymbol.class);
+
+        // retry — same file, must not throw (was red-list before I4)
+        assertDoesNotThrow(() -> codeIndexService.indexFile(indexId, filePath, source),
+                "retry indexFile must not throw after I4 duplicate-key fix");
+        int symbolsAfterRetry = countFiles(indexId, NopCodeSymbol.class);
+
+        assertEquals(symbolsAfterFirst, symbolsAfterRetry,
+                "indexFile retry must keep symbol count stable (expected " + symbolsAfterFirst + ", got " + symbolsAfterRetry + ")");
     }
+
+    // ==================== 2. Executable red-list locks (KNOWN_NON_IDEMPOTENT) ====================
+    //
+    // I4 resolution: indexDirectory and indexFile were the two red-listed methods.
+    // After the saveReplacingExisting duplicate-key catch fix, both are now retry-safe
+    // and have been moved to IDEMPOTENCE_TABLE with dedicated verify branches
+    // (verifyIndexDirectoryIdempotent / verifyIndexFileIdempotent). KNOWN_NON_IDEMPOTENT
+    // is now empty. The two former assertThrows locks were removed because the methods
+    // no longer throw on retry.
 
     // ==================== 3. Table-completeness gate ====================
 
