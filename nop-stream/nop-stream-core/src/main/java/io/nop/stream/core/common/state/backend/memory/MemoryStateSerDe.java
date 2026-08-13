@@ -815,7 +815,45 @@ class MemoryStateSerDe {
         return key;
     }
 
-    private Object deserializeKey(Object obj) {
+    /**
+     * AR-01 (P0): re-materializes a restored state key to the backend's
+     * declared {@link #keyType}, mirroring {@code RocksDBKeyEncoder.jsonToKey}.
+     *
+     * <p>JSON persistence ({@code storageType="local"}) round-trips numeric keys
+     * through {@code TextScanner}, which tries {@code Integer.parseInt} first:
+     * a {@code Long(123)} written as {@code "123"} comes back as
+     * {@code Integer(123)}. {@link TypedNamespaceAndKey#equals} is
+     * class-sensitive, so live lookups with the original {@code Long} key missed
+     * everything — the keyed state silently restarted from empty on the default
+     * backend while the RocksDB backend (which re-materializes by keyType)
+     * restored the same checkpoint correctly. Keys that already match the
+     * declared keyType (String keys, values that survived as Long) pass through
+     * unchanged.
+     *
+     * <p>No-silent-skip (guide rule #24): a failed re-materialization throws
+     * instead of returning the original object.
+     */
+    private Object deserializeKey(Object obj) throws Exception {
+        if (obj == null) {
+            return null;
+        }
+        if (keyType != null && keyType != Object.class && !keyType.isInstance(obj)) {
+            String json = JsonTool.serialize(obj, false);
+            Object rematerialized;
+            try {
+                rematerialized = JsonTool.parseBeanFromText(json, keyType);
+            } catch (Exception e) {
+                throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                        .param(ARG_DETAIL, "Failed to re-materialize state key " + json
+                                + " as " + keyType.getName() + " during restore");
+            }
+            if (rematerialized == null || !keyType.isInstance(rematerialized)) {
+                throw new StreamException(ERR_STREAM_STATE_ERROR)
+                        .param(ARG_DETAIL, "Failed to re-materialize state key " + json
+                                + " as " + keyType.getName() + " during restore");
+            }
+            return rematerialized;
+        }
         return obj;
     }
 
