@@ -73,7 +73,14 @@ class TestInputGateMultiEpochBarrier {
             try {
                 while (true) {
                     Optional<StreamElement> e = gate.read();
-                    if (!e.isPresent()) break;
+                    if (!e.isPresent()) {
+                        // AR-02: empty may be an idle return (channels still
+                        // open) — only a true EOS terminates the loop.
+                        if (gate.isAllFinished()) {
+                            break;
+                        }
+                        continue;
+                    }
                     if (e.get().isCheckpointBarrier()) {
                         emitted.add(e.get().asCheckpointBarrier().getId());
                     }

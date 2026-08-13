@@ -32,7 +32,22 @@ public class TestInputGateTermination {
 
         Thread reader = new Thread(() -> {
             try {
-                result.set(gate.read());
+                // AR-02 (P1): InputGate.read() may now return empty for momentary
+                // idle (idle-return threshold), so "empty" is no longer equivalent
+                // to "end-of-stream". The loop only terminates on a TRUE EOS (all
+                // channels finished) — preserving the original premature-
+                // termination guard ("read must not terminate while a slow
+                // producer is alive") under the idle-return semantics.
+                while (true) {
+                    Optional<StreamElement> el = gate.read();
+                    if (el.isPresent()) {
+                        result.set(el);
+                        continue;
+                    }
+                    if (gate.isAllFinished()) {
+                        break;
+                    }
+                }
             } finally {
                 finished.set(true);
                 latch.countDown();
@@ -50,6 +65,8 @@ public class TestInputGateTermination {
 
         Optional<StreamElement> val = result.get();
         assertTrue(val.isPresent(), "Should read an element");
+        assertEquals("b", val.get().asRecord().getValue(),
+                "The late record must be delivered once the slow producer emits");
     }
 
     @Test

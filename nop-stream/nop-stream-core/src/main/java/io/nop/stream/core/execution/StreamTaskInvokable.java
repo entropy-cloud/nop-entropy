@@ -741,7 +741,26 @@ public class StreamTaskInvokable implements Invokable<Void> {
 
             Optional<StreamElement> elementOpt = inputGate.read();
             if (!elementOpt.isPresent()) {
-                break;
+                // AR-02 (P1): InputGate now returns empty for BOTH end-of-stream
+                // and momentary idle (idle-return threshold, see
+                // InputGate.IDLE_RETURN_THRESHOLD_MS). Only a true EOS — all
+                // channels finished — terminates the loop; an idle return cycles
+                // back to the loop top, where processAvailableMails() drains any
+                // pending control mails (e.g. processing-time timer fire mails)
+                // before re-reading. Without this, an idle task (no data flow)
+                // never reached the mailbox drain and processing-time timers
+                // never fired (AR-02).
+                //
+                // Interrupt/cancel guard: a read unblocked by interruption returns
+                // empty with the interrupt flag set; the abort path also raises the
+                // cooperative cancel flag. Either must exit promptly instead of
+                // busy-looping on empty returns (no-silent-skip, plan guide #24).
+                if (inputGate.isAllFinished()
+                        || Thread.currentThread().isInterrupted()
+                        || mailboxExecutor.isCancelled()) {
+                    break;
+                }
+                continue;
             }
 
             // G52: per-iteration liveness marker for MIDDLE/SINK roles.
