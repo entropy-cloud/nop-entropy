@@ -372,11 +372,22 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
     }
 
     /**
-     * 归一化 queryTableData 的 limit（MA7.4-03）：缺省给默认值，超上限封顶，
-     * 防止省略 limit 的大表查询把全表拉入内存序列化。
+     * 归一化 queryTableData 的 limit（MA7.4-03 + INV-LIMIT）：
+     * <ul>
+     *   <li>{@code limit < 0} → 显式拒绝 {@code ERR_PAGINATION_LIMIT_INVALID}——负 limit 是参数错误，
+     *       静默钳制到默认值会掩盖调用方 bug（INV-LIMIT，与 {@link #normalizeJoinQueryLimit} 对齐，
+     *       沿 AR-09 先例）。MA7.4-03 的范围是「缺省值 + 上限」（null/大正值），不含负值。</li>
+     *   <li>{@code limit == null 或 0} → 缺省值 {@link #DEFAULT_QUERY_LIMIT}（MA7.4-03：防止省略 limit
+     *       的大表查询把全表拉入内存序列化）。</li>
+     *   <li>{@code limit > 0} → 超上限封顶 {@code Math.min(limit, max)}（MA7.4-03 上限配置）。</li>
+     * </ul>
      */
     private Long normalizeQueryLimit(Long limit) {
-        if (limit == null || limit <= 0) {
+        if (limit != null && limit < 0) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_PAGINATION_LIMIT_INVALID)
+                    .param(NopMetadataErrors.ARG_LIMIT, limit);
+        }
+        if (limit == null || limit == 0) {
             return (long) DEFAULT_QUERY_LIMIT;
         }
         long max = configuredMaxQueryLimit > 0 ? configuredMaxQueryLimit : DEFAULT_MAX_QUERY_LIMIT;
@@ -395,9 +406,9 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
      * </ul>
      *
      * <p>与 {@link #normalizeQueryLimit}（queryTableData）的差异（裁定 (b)，文档化于
-     * {@code docs-for-ai/03-modules/nop-metadata.md}）：queryTableData 是数据浏览入口，对超大 limit
-     * 静默封顶；queryJoinData/queryAggregation 是分析/分页入口，非法 limit 显式拒绝——静默改 limit
-     * 会让分页语义静默漂移，两入口差异为有意裁定。
+     * {@code docs-for-ai/03-modules/nop-metadata.md}）：两者对负值均显式拒绝（INV-LIMIT 统一）；
+     * 差异仅在正值上限——queryTableData（数据浏览入口）对超大 limit 静默封顶，queryJoinData/queryAggregation
+     * （分析/分页入口）原样透传由截断层显式拒绝——静默改 limit 会让分页语义静默漂移，两入口差异为有意裁定。
      */
     private Long normalizeJoinQueryLimit(Long limit) {
         if (limit != null && limit < 0) {
