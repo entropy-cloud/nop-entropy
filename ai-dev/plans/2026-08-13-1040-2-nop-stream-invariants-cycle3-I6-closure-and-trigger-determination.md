@@ -1,6 +1,6 @@
 # Cycle 3 / I6 — 循环收口与下一轮触发判定（Closure And Next-Cycle Trigger Determination）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-13
 > Draft Review: 3 轮独立子 agent 对抗性审查通过（round 1：1 Major（M1，本 plan 无关）+ 3 Minor（M2-M4），全部修复；round 2：M1/M2/M4 FIXED + M3 残留（In Scope gate-inventory.json）与 N2（陈旧「I3 §8」引用）修复；round 3：6/6 修复 FIXED 验证、0 Blocker / 0 Major、verdict APPROVE-WITH-MINORS（1 Minor = Phase 1 注册表零漂移核对缺执行锚点）——本 plan 已补 checklist 项 + Exit Criteria 后合入，Minor 处置在案）
 > Source: roadmap `ai-dev/backlog/nop-stream-invariant-loop-roadmap.md` Work Item I6（统计/稳态判定；`HG-01` 线协议支持如获人工批准另立 plan（Successor）；closure 独立 fresh session）+ Loop Rule；I5 全量验证结果 `ai-dev/audits/nop-stream-invariants/cycle3-I6-input.md`（唯一落点，I5 新建）；I3 裁决登记 `ai-dev/audits/nop-stream-invariants/adjudication-table.md` §12-§16（Cycle 3 / I3）与 §14（无新独立族显式声明）；mission `nop-stream-invariant-loop.json`（Cross-Cutting 授权边界）
@@ -65,77 +65,77 @@
 
 ### Phase 1 - 收口统计确认与稳态判定输入
 
-Status: planned
+Status: completed
 Targets: `ai-dev/audits/nop-stream-invariants/cycle3-I6-input.md`、`red-list.md`（Cycle 3 权威版）、`mjs-pins.json`、`wiring-registry.json`、`output-contract-registry.json`、nop-stream 模块组 surefire 报告（`nop-stream/*/target/surefire-reports/TEST-*.xml`，限定 nop-stream 模块组，不含 `-am` 连带的上游模块）、`ai-dev/logs/2026/08-13.md`
 
 - Item Types: `Proof`
 
-- [ ] **I5 硬前置预检（机械门，先于任何统计动作）**：逐一验证 (a) `2026-08-13-1040-1-...` Plan Status == `completed`；(b) `cycle3-I6-input.md` 存在（I5 唯一落点）；(c) `red-list.md` 头部为「Cycle 3 / I2 权威版」（I3 裁决输入一致性）；(d) `adjudication-table.md` 无既有 Cycle 3 / I6 裁定节（防中止的旧 run 残留被叠加——如有残留 → 记录并按权威证据重建该节，不沿用残留）；任一不满足 → **立即返回 `blocked`**（不开始任何 Phase），记录缺项
-- [ ] 逐条核对 `cycle3-I6-input.md` 统计与 on-disk surefire 报告一致（解析 nop-stream 模块组 TEST-*.xml 汇总 tests/failures/errors；**确认报告 mtime 与 I5 执行窗口一致**——若 mtime 晚于 I5 记录时间，说明报告已被后续构建覆盖，须以 I5 `ai-dev/logs/` 记录为准并在本 plan 记录差异；门禁 11 类 / 112 tests 与 `-Dtest='Test*Invariant*'` 报告一致；pin 0 与 `mjs-pins.json` pinnedViolations 空一致）。**出入处置**：以 surefire 实测为准，差异记录到 `ai-dev/logs/` + 本 plan 裁定记录与 closure evidence；**不回写 `cycle3-I6-input.md`**（I5 落点唯一性原则——统计落点归 I5，数据差异只记录不回写；差异不影响本 plan 裁定）
-- [ ] 确认 red list 零悬挂：red-list.md Cycle 3 权威版 C3-RL-1..10 每条 I3 裁决在案（§12.2 裁决表 10 行 + §16 零悬挂表 18 行 1:1 对应）；C3-PR-1..8 处置一一对应（关闭 / watch-only / 并入裁决 / 评估表）；backlog 升级登记（roadmap 2026-08-13）与 I3 §15 一致
-- [ ] **注册表零漂移事实核对（Proof）**：`wiring-registry.json`（7 服务注入 API × 9 生产接线点 × 消费方 3 类）与 `output-contract-registry.json`（6 发射点）live 抽查与 C3-RL-2 记录一致（Cycle 3 无代码变更，预期零漂移；抽查方式 = 注册表条目 live 行号核对或引用 I2 复核表结论 + I5 全量验证无接线相关失败）——结论一行记录写入 `ai-dev/logs/`
-- [ ] 确认新族数 = 0：I3 §14 显式声明（「无新独立族 → 无 PD-16 派生登记」，编号规则复核 = max(lessons 最高 14, 已铸 PD 最大值 15) + 1 = 16，live grep 无已铸 PD-16）；I5 零新失败 → 无新增族；I2 探查 C3-PR-3/4/8 无新族候选（组合面 / 恢复路径 / 非族候选全部不升格）
-- [ ] **Cycle 3 执行路径事实确认**：roadmap Cycle 3 / I1–I3 行 done + I4 行不追加（无 P0/P1）+ I5 行 done（I5 已追加）→ 统计口径按「Cycle 3 门禁 = 11 类 / 112 tests、red list = C3-RL-1..10、新族 = 0、I4 无修复面」记录
-- [ ] **`HG-01` 状态复核**：检查 roadmap Follow-up Backlog 条目状态 + 是否有人工批准记录（daily log / backlog 条目变更）；未批准 → 维持 `pending human confirmation`；已批准 → Phase 2 登记 Successor
-- [ ] **稳态判定（初步）**：零新族 + red list 零悬挂 → 稳态暂停候选；Cycle 4 派生与否按 Phase 2 裁定——本 Phase 记录「无新失败类 → Loop Rule『新族强制沉淀』不触发；Cycle 4 派生属 I6 显式评估范围」的判定边界（**论证**：roadmap §Loop Rule「零新族且 red list 零 → 稳态暂停」的强制分支仅针对「新失败类」的派生义务（「新族强制沉淀」句），I3 §14 已显式裁定无新独立族 → 不触发强制派生分支；派生与否 = I6 显式评估）
+- [x] **I5 硬前置预检（机械门，先于任何统计动作）**：逐一验证 (a) `2026-08-13-1040-1-...` Plan Status == `completed`；(b) `cycle3-I6-input.md` 存在（I5 唯一落点）；(c) `red-list.md` 头部为「Cycle 3 / I2 权威版」（I3 裁决输入一致性）；(d) `adjudication-table.md` 无既有 Cycle 3 / I6 裁定节（防中止的旧 run 残留被叠加——如有残留 → 记录并按权威证据重建该节，不沿用残留）；任一不满足 → **立即返回 `blocked`**（不开始任何 Phase），记录缺项
+- [x] 逐条核对 `cycle3-I6-input.md` 统计与 on-disk surefire 报告一致（解析 nop-stream 模块组 TEST-*.xml 汇总 tests/failures/errors；**确认报告 mtime 与 I5 执行窗口一致**——若 mtime 晚于 I5 记录时间，说明报告已被后续构建覆盖，须以 I5 `ai-dev/logs/` 记录为准并在本 plan 记录差异；门禁 11 类 / 112 tests 与 `-Dtest='Test*Invariant*'` 报告一致；pin 0 与 `mjs-pins.json` pinnedViolations 空一致）。**出入处置**：以 surefire 实测为准，差异记录到 `ai-dev/logs/` + 本 plan 裁定记录与 closure evidence；**不回写 `cycle3-I6-input.md`**（I5 落点唯一性原则——统计落点归 I5，数据差异只记录不回写；差异不影响本 plan 裁定）
+- [x] 确认 red list 零悬挂：red-list.md Cycle 3 权威版 C3-RL-1..10 每条 I3 裁决在案（§12.2 裁决表 10 行 + §16 零悬挂表 18 行 1:1 对应）；C3-PR-1..8 处置一一对应（关闭 / watch-only / 并入裁决 / 评估表）；backlog 升级登记（roadmap 2026-08-13）与 I3 §15 一致
+- [x] **注册表零漂移事实核对（Proof）**：`wiring-registry.json`（7 服务注入 API × 9 生产接线点 × 消费方 3 类）与 `output-contract-registry.json`（6 发射点）live 抽查与 C3-RL-2 记录一致（Cycle 3 无代码变更，预期零漂移；抽查方式 = 注册表条目 live 行号核对或引用 I2 复核表结论 + I5 全量验证无接线相关失败）——结论一行记录写入 `ai-dev/logs/`
+- [x] 确认新族数 = 0：I3 §14 显式声明（「无新独立族 → 无 PD-16 派生登记」，编号规则复核 = max(lessons 最高 14, 已铸 PD 最大值 15) + 1 = 16，live grep 无已铸 PD-16）；I5 零新失败 → 无新增族；I2 探查 C3-PR-3/4/8 无新族候选（组合面 / 恢复路径 / 非族候选全部不升格）
+- [x] **Cycle 3 执行路径事实确认**：roadmap Cycle 3 / I1–I3 行 done + I4 行不追加（无 P0/P1）+ I5 行 done（I5 已追加）→ 统计口径按「Cycle 3 门禁 = 11 类 / 112 tests、red list = C3-RL-1..10、新族 = 0、I4 无修复面」记录
+- [x] **`HG-01` 状态复核**：检查 roadmap Follow-up Backlog 条目状态 + 是否有人工批准记录（daily log / backlog 条目变更）；未批准 → 维持 `pending human confirmation`；已批准 → Phase 2 登记 Successor
+- [x] **稳态判定（初步）**：零新族 + red list 零悬挂 → 稳态暂停候选；Cycle 4 派生与否按 Phase 2 裁定——本 Phase 记录「无新失败类 → Loop Rule『新族强制沉淀』不触发；Cycle 4 派生属 I6 显式评估范围」的判定边界（**论证**：roadmap §Loop Rule「零新族且 red list 零 → 稳态暂停」的强制分支仅针对「新失败类」的派生义务（「新族强制沉淀」句），I3 §14 已显式裁定无新独立族 → 不触发强制派生分支；派生与否 = I6 显式评估）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 核对记录在案：`cycle3-I6-input.md` 全部统计项与 on-disk surefire 一致（无出入或出入已修正记录）
-- [ ] red list 零悬挂确认记录（C3-RL-1..10 全裁决 + C3-PR-1..8 全处置；backlog 升级登记一致）
-- [ ] 注册表零漂移事实核对记录在案（wiring 7 API × 9 接线点 / output-contract 6 发射点，与 C3-RL-2 一致）
-- [ ] 新族数 = 0 确认记录（I3 §14 显式声明 + I5 零新失败；Loop Rule 强制派生不触发）
-- [ ] Cycle 3 执行路径事实确认记录（I1→I2→I3→I5→I6，I4 不立 plan）
-- [ ] `HG-01` 状态复核结论记录（未批准 / 已批准）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
-- [ ] 本 Phase 为纯核对/文档工作，无代码变更 → `No owner-doc update required`（`docs-for-ai/` 不涉及；`ai-dev/` 记录归本 plan 各 Phase）
+- [x] 核对记录在案：`cycle3-I6-input.md` 全部统计项与 on-disk surefire 一致（无出入或出入已修正记录）
+- [x] red list 零悬挂确认记录（C3-RL-1..10 全裁决 + C3-PR-1..8 全处置；backlog 升级登记一致）
+- [x] 注册表零漂移事实核对记录在案（wiring 7 API × 9 接线点 / output-contract 6 发射点，与 C3-RL-2 一致）
+- [x] 新族数 = 0 确认记录（I3 §14 显式声明 + I5 零新失败；Loop Rule 强制派生不触发）
+- [x] Cycle 3 执行路径事实确认记录（I1→I2→I3→I5→I6，I4 不立 plan）
+- [x] `HG-01` 状态复核结论记录（未批准 / 已批准）
+- [x] `ai-dev/logs/` 对应日期条目已更新
+- [x] 本 Phase 为纯核对/文档工作，无代码变更 → `No owner-doc update required`（`docs-for-ai/` 不涉及；`ai-dev/` 记录归本 plan 各 Phase）
 
 ### Phase 2 - 稳态 / 派生裁定与处置登记
 
-Status: planned
+Status: completed
 Targets: `ai-dev/backlog/nop-stream-invariant-loop-roadmap.md`（Work Item 表 + Follow-up Backlog + §Loop Rule）、`ai-dev/audits/nop-stream-invariants/adjudication-table.md`（I6 裁定记录，§17 节追加——顺延既有 §12-§16「Cycle 3 / I3」编号）
 
 - Item Types: `Decision | Follow-up`
 
-- [ ] **Cycle 4 / I1 派生裁定**：按 Loop Rule 评估——输入 = I3 §14 显式「无新独立族」（零新族）+ Phase 1 red list 零悬挂 + I5 全绿。裁定二选一：**(a) 派生 Cycle 4 / I1**（追加 work item，附触发证据——需存在新族候选，本 plan 预期无）或 **(b) 维持稳态**（登记复触发条件）；裁定必须显式记录依据（成本 / 收益 / 触发面 / 棘轮影响）。**预期裁定：(b) 维持稳态**——依据（执行时 live 复核）：I3 §14 显式无新独立族（C3-PR-3/4/8 全部不升格 + 理由在案）；Cycle 3 无新失败类（I5 预期全绿）；C3-PR-2 watch-only residual（接线后自然失效，语义不破坏）不构成派生输入；I1 已沉淀不变式 #7 一等门禁（11 类 / 112 tests + scan-wiring V1–V5）→ 门禁面完整；派生 Cycle 4 = 六份 plan + 六轮执行的完整循环机器，为**零新族**的预防性派生——机器重量与收益不匹配；复触发登记（三选一 + Cycle 3 新增触发）可覆盖未来风险
-- [ ] **C3-RL-8 等 backlog 触发条件登记（Follow-up 级）**：C3-RL-8（CEP 面 P2）触发条件 = I4/I5 类别清扫（CEP 面）或 per-state windowTimes 使用面扩展或复探时评估——登记为 Cycle 3 新增复触发条件；C3-RL-4..9 其余 backlog 条目维持既有触发条件（类别清扫 / 复探 / 配置需求出现），不逐一重裁
-- [ ] **`HG-01` 处置登记**：未批准 → 维持 backlog 待办条目（四重保护性覆盖复核在案：in-task fail-fast `88bc0270c` + 门禁（类级枚举 / call-site 注册表 / 三态分类）+ pin 移除留痕（`mjs-pins.json` PIN REMOVAL TRACE）+ backlog 条目）；已批准 → 登记 Successor plan 需求（跨 task 侧输出线协议设计 + 实现 + E2E），并在 roadmap Follow-up Backlog 标注「已批准，Successor 计划中」
-- [ ] **roadmap 回写**：依总裁定追加 Cycle 4 / I1 work item（若派生）或更新复触发条件登记（若稳态）；Follow-up Backlog 条目状态核对（C3-RL-4..9 维持 P2 backlog；C2-RL-3/C2-PR-3 维持 P3；`HG-01` 状态更新）
-- [ ] **I6 裁定记录落档**：adjudication-table.md 追加 §17 裁定节（Cycle 3 / I6 收口裁定记录：收口统计确认、稳态/派生裁定、Cycle 3 执行路径事实、`HG-01` 处置、复触发登记摘要）——供后续 cycle 引用
+- [x] **Cycle 4 / I1 派生裁定**：按 Loop Rule 评估——输入 = I3 §14 显式「无新独立族」（零新族）+ Phase 1 red list 零悬挂 + I5 全绿。裁定二选一：**(a) 派生 Cycle 4 / I1**（追加 work item，附触发证据——需存在新族候选，本 plan 预期无）或 **(b) 维持稳态**（登记复触发条件）；裁定必须显式记录依据（成本 / 收益 / 触发面 / 棘轮影响）。**预期裁定：(b) 维持稳态**——依据（执行时 live 复核）：I3 §14 显式无新独立族（C3-PR-3/4/8 全部不升格 + 理由在案）；Cycle 3 无新失败类（I5 预期全绿）；C3-PR-2 watch-only residual（接线后自然失效，语义不破坏）不构成派生输入；I1 已沉淀不变式 #7 一等门禁（11 类 / 112 tests + scan-wiring V1–V5）→ 门禁面完整；派生 Cycle 4 = 六份 plan + 六轮执行的完整循环机器，为**零新族**的预防性派生——机器重量与收益不匹配；复触发登记（三选一 + Cycle 3 新增触发）可覆盖未来风险
+- [x] **C3-RL-8 等 backlog 触发条件登记（Follow-up 级）**：C3-RL-8（CEP 面 P2）触发条件 = I4/I5 类别清扫（CEP 面）或 per-state windowTimes 使用面扩展或复探时评估——登记为 Cycle 3 新增复触发条件；C3-RL-4..9 其余 backlog 条目维持既有触发条件（类别清扫 / 复探 / 配置需求出现），不逐一重裁
+- [x] **`HG-01` 处置登记**：未批准 → 维持 backlog 待办条目（四重保护性覆盖复核在案：in-task fail-fast `88bc0270c` + 门禁（类级枚举 / call-site 注册表 / 三态分类）+ pin 移除留痕（`mjs-pins.json` PIN REMOVAL TRACE）+ backlog 条目）；已批准 → 登记 Successor plan 需求（跨 task 侧输出线协议设计 + 实现 + E2E），并在 roadmap Follow-up Backlog 标注「已批准，Successor 计划中」
+- [x] **roadmap 回写**：依总裁定追加 Cycle 4 / I1 work item（若派生）或更新复触发条件登记（若稳态）；Follow-up Backlog 条目状态核对（C3-RL-4..9 维持 P2 backlog；C2-RL-3/C2-PR-3 维持 P3；`HG-01` 状态更新）
+- [x] **I6 裁定记录落档**：adjudication-table.md 追加 §17 裁定节（Cycle 3 / I6 收口裁定记录：收口统计确认、稳态/派生裁定、Cycle 3 执行路径事实、`HG-01` 处置、复触发登记摘要）——供后续 cycle 引用
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] Cycle 4 / I1 派生裁定记录在案（派生 or 维持稳态 + 显式依据；预期维持稳态——若意外出现派生输入，须 live 证据支撑）
-- [ ] C3-RL-8 等 Cycle 3 新增触发条件登记在案
-- [ ] `HG-01` 处置登记在案（未批准维持 / 已批准 Successor）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
-- [ ] 无静默跳过：扩展候选未以「后续再说」/「watch-only」形式降级——已确认事项全部有显式裁定记录（派生 or 维持 + 依据 + 复触发条件）
-- [ ] I6 裁定记录落档（adjudication-table.md §17）
+- [x] Cycle 4 / I1 派生裁定记录在案（派生 or 维持稳态 + 显式依据；预期维持稳态——若意外出现派生输入，须 live 证据支撑）
+- [x] C3-RL-8 等 Cycle 3 新增触发条件登记在案
+- [x] `HG-01` 处置登记在案（未批准维持 / 已批准 Successor）
+- [x] `ai-dev/logs/` 对应日期条目已更新
+- [x] 无静默跳过：扩展候选未以「后续再说」/「watch-only」形式降级——已确认事项全部有显式裁定记录（派生 or 维持 + 依据 + 复触发条件）
+- [x] I6 裁定记录落档（adjudication-table.md §17）
 
 ### Phase 3 - 复触发登记与 roadmap 状态流转
 
-Status: planned
+Status: completed
 Targets: `ai-dev/backlog/nop-stream-invariant-loop-roadmap.md`、`ai-dev/logs/2026/08-13.md`
 
 - Item Types: `Decision | Follow-up`
 
-- [ ] **复触发条件登记**（roadmap §Loop Rule / §I6 Phase Details）：继续登记三选一复触发（① CI 任一不变式门禁变红；② nop-stream 核心类结构变更（新增/重命名 Operator/SinkFunction/Checkpoint 机制/Output 实现类）；③ 周期复探（默认每 major release 或季度，取早））；叠加本 plan 新增触发（若稳态维持：C3-RL-8 CEP 面触发条件 = I4/I5 类别清扫（CEP 面）或 per-state windowTimes 使用面扩展或复探；C2-PR-2 形态出现 = main 出现匿名/record Output 实现或 raw OutputTag 声明；`HG-01` 人工批准 = 跨 task 线协议变更）；人工确认待办的触发 = 人工批准跨 task 线协议变更
-- [ ] roadmap Work Item Cycle 3 / I6 行追加 + 状态流转 `todo`→`planned`（本 plan 激活时）→`done`（closure audit 通过后，不得提前）；I5 行执行结果段已由 I5 填充（核对）
-- [ ] `ai-dev/logs/2026/08-13.md` 顶部追加 I6 条目（统计确认 + 裁定摘要 + Cycle 4 派生或稳态暂停 + 复触发登记）
-- [ ] 文本一致性核对：Plan Status、Phase Status、Exit Criteria、Closure Gates、roadmap 行、daily log 六处一致后方可进入 closure
+- [x] **复触发条件登记**（roadmap §Loop Rule / §I6 Phase Details）：继续登记三选一复触发（① CI 任一不变式门禁变红；② nop-stream 核心类结构变更（新增/重命名 Operator/SinkFunction/Checkpoint 机制/Output 实现类）；③ 周期复探（默认每 major release 或季度，取早））；叠加本 plan 新增触发（若稳态维持：C3-RL-8 CEP 面触发条件 = I4/I5 类别清扫（CEP 面）或 per-state windowTimes 使用面扩展或复探；C2-PR-2 形态出现 = main 出现匿名/record Output 实现或 raw OutputTag 声明；`HG-01` 人工批准 = 跨 task 线协议变更）；人工确认待办的触发 = 人工批准跨 task 线协议变更
+- [x] roadmap Work Item Cycle 3 / I6 行追加 + 状态流转 `todo`→`planned`（本 plan 激活时）→`done`（closure audit 通过后，不得提前）；I5 行执行结果段已由 I5 填充（核对）
+- [x] `ai-dev/logs/2026/08-13.md` 顶部追加 I6 条目（统计确认 + 裁定摘要 + Cycle 4 派生或稳态暂停 + 复触发登记）
+- [x] 文本一致性核对：Plan Status、Phase Status、Exit Criteria、Closure Gates、roadmap 行、daily log 六处一致后方可进入 closure
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 复触发条件登记在案（三选一 + 本 plan 新增触发：C3-RL-8 / C2-PR-2 / `HG-01`）
-- [ ] roadmap Cycle 3 / I6 行已追加 + 流转（`planned`；`done` 在 closure 后由独立审计确认）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
-- [ ] 文本一致性核对完成（无「顶部已 completed、内部未勾选」矛盾态）
+- [x] 复触发条件登记在案（三选一 + 本 plan 新增触发：C3-RL-8 / C2-PR-2 / `HG-01`）
+- [x] roadmap Cycle 3 / I6 行已追加 + 流转（`planned`；`done` 在 closure 后由独立审计确认）
+- [x] `ai-dev/logs/` 对应日期条目已更新
+- [x] 文本一致性核对完成（无「顶部已 completed、内部未勾选」矛盾态）
 
 ## Closure Gates
 
@@ -143,15 +143,15 @@ Exit Criteria:
 >
 > **纯文档计划**：本 plan 不涉及任何代码变更（仅修改 `ai-dev/` 下文档），`./mvnw test`、`./mvnw lint` 等构建验证条目已按 guide 删除；保留文档与 checklist 门禁。
 
-- [ ] 收口统计确认（与 `cycle3-I6-input.md` 一致）且 red list 零悬挂（C3-RL-1..10 全裁决 + C3-PR-1..8 全处置）
-- [ ] Cycle 4 / I1 派生裁定完成（显式依据在案）→ Cycle 4 派生（roadmap 追加行 + 触发证据）或稳态暂停（复触发登记）已落档
-- [ ] `HG-01` 处置登记在案（未批准维持待办 + 保护性覆盖复核 / 已批准 Successor 登记）
-- [ ] 复触发条件登记在案（三选一 + C3-RL-8 / C2-PR-2 / `HG-01` 触发）
-- [ ] 无 in-scope live defect / contract drift 被静默降级到 deferred / follow-up（C3-RL-4..9 = P2 backlog 已裁决附依据；C3-PR-2 = watch-only residual 有显式裁定；`HG-01` = 人工确认门）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（见 Closure 段）
-- [ ] **Anti-Hollow Check**：本 plan 纯文档，无代码接线面；closure audit 验证（a）roadmap 回写与 I5 实测记录 / 裁决档案一致，（b）裁定与 live 代码（注册表 / red-list / backlog）一致，（c）无「记录在案但实际未发生」的空壳断言
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <本plan> --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 收口统计确认（与 `cycle3-I6-input.md` 一致）且 red list 零悬挂（C3-RL-1..10 全裁决 + C3-PR-1..8 全处置）
+- [x] Cycle 4 / I1 派生裁定完成（显式依据在案）→ Cycle 4 派生（roadmap 追加行 + 触发证据）或稳态暂停（复触发登记）已落档
+- [x] `HG-01` 处置登记在案（未批准维持待办 + 保护性覆盖复核 / 已批准 Successor 登记）
+- [x] 复触发条件登记在案（三选一 + C3-RL-8 / C2-PR-2 / `HG-01` 触发）
+- [x] 无 in-scope live defect / contract drift 被静默降级到 deferred / follow-up（C3-RL-4..9 = P2 backlog 已裁决附依据；C3-PR-2 = watch-only residual 有显式裁定；`HG-01` = 人工确认门）
+- [x] 独立子 agent closure-audit 已完成并记录证据（见 Closure 段）
+- [x] **Anti-Hollow Check**：本 plan 纯文档，无代码接线面；closure audit 验证（a）roadmap 回写与 I5 实测记录 / 裁决档案一致，（b）裁定与 live 代码（注册表 / red-list / backlog）一致，（c）无「记录在案但实际未发生」的空壳断言
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <本plan> --strict` 退出码 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
 
 ## Deferred But Adjudicated
 
@@ -185,16 +185,24 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: 待 closure（本 plan 为 draft，未执行）。
-Completed: 未完成
+Status Note: 三 Phase 全部完成（Status: completed 均已设置，Phase Exit Criteria 18/18 + Closure Gates 9/9 全勾选）。Cycle 3 收口完成：收口统计与 `cycle3-I6-input.md` 一致（2895 tests / 0 failures；门禁 11 类 / 112 tests；pin 0）；red list 零悬挂（C3-RL-1..10 全裁决 + C3-PR-1..8 全处置）；新族数 = 0 → **稳态暂停**（Cycle 4 不派生，显式依据落档 adjudication-table.md §17.2）；`HG-01` 未获人工批准 → 维持 `pending human confirmation` 待办登记（四重保护性覆盖复核在案）；复触发条件登记（三选一 + C3-RL-8 / C2-PR-2 / `HG-01`）；roadmap Cycle 3 / I6 行追加 + `done`；独立 closure audit（fresh session）PASS 14/14。
+Completed: 2026-08-13
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （closure 时填写独立子 agent 标识）
-- Evidence: （closure 时填写：每条 Exit Criterion / Closure Gate 验证结果 + `check-plan-checklist.mjs --strict` 退出码 + Anti-Hollow 检查结果）
+- Reviewer / Agent: 独立子 agent closure audit（fresh session `ses_006db0c9affeVdCCi2njUtDcIV`，read-only，与执行 session 不同）
+- Audit Session: `ses_006db0c9affeVdCCi2njUtDcIV`
+- Evidence:
+  - **每条 Exit Criterion 验证结果**（auditor 独立重推导，PASS 14/14）：
+    - Phase 1 EC（8/8 PASS）：I5 硬前置（`2026-08-13-1040-1` Plan Status = completed，plan :3）；surefire 独立汇总 = 2895/0/0/10 与 `cycle3-I6-input.md` 逐模块一致，门禁子集 11 类 / 112 tests / 0 failures（core 50 / runtime 34 / cep 28），`mjs-pins.json` pinnedViolations = []，报告 mtime 11:15-11:16 在 I5 执行窗口内（`find -newermt 11:16:59` 空 + git head = `f5e18a0dc` 11:17:11）；red list 零悬挂（§12.2 10 行 + §16 18 行 1:1）；注册表零漂移 15 处 live 行号抽查全命中（StreamTaskInvokable :230/:268/:287/:293/:426/:435/:462/:463 + GraphModelCheckpointExecutor :742 + 6 发射点）；新族数 = 0（§14 显式 + 无已铸 PD-16）；Cycle 3 执行路径事实（I1/I2/I3/I5 done、无 I4 行无 I4 plan 文件）；`HG-01` 未批准；稳态初步判定边界记录。
+    - Phase 2 EC（6/6 PASS）：Cycle 4 派生裁定 = 维持稳态（§17.2 六点显式依据）；C3-RL-8 触发条件登记（§17.3 + roadmap）；`HG-01` 处置登记（未批准维持 + 四重覆盖，roadmap 条目 line 147 复核在案）；`ai-dev/logs/2026/08-13.md` 顶部条目；无静默跳过（C3-RL-4..9 P2 附依据 / C3-PR-2 watch-only 显式裁定 / `HG-01` 人工确认门）；adjudication-table.md §17 落档（lines 401-426）。
+    - Phase 3 EC（4/4 PASS）：复触发登记（三选一 + C3-RL-8 / C2-PR-2 / `HG-01`，roadmap §Loop Rule「Cycle 3 / I6 稳态登记」line 121）；roadmap Cycle 3 / I6 行追加（line 60，执行结果段与 §17 / daily log 一致）；daily log 三 Phase 条目（08-13.md:3-32）；文本一致性核对。
+  - **每条 Closure Gate 验证结果**（PASS 9/9）：收口统计 + red list 零悬挂（见上）；稳态暂停落档（§17.2 + roadmap）；`HG-01` 登记；复触发登记；无静默降级（deferred 分类诚实——C3-RL-8 `watch-only residual` + C3-PR-2 `watch-only residual` + `HG-01` = `Fix` 人工确认门显式标注「非 watch-only」）；独立 closure audit PASS；Anti-Hollow（roadmap I6 行 ⇔ §17 ⇔ `cycle3-I6-input.md` 数字一致 + 裁定与 live 代码一致（C3-RL-4 CheckpointCoordinator :1117 / C3-RL-5 WindowOperator :2050 / C3-RL-8 CepOperator :563/:573 + NFA.java:736-747 复验）+ plan diff 38 处 [x] 翻转 = 实执行非预勾）；`check-plan-checklist.mjs --strict` exit 0；`check-doc-links.mjs --strict` exit 0（0 errors，3 条 BROKEN_LINK 均属历史 credential plan 既有引用，非本 plan 引入）。
+  - **Anti-Hollow 检查结果**：纯文档 plan 无代码接线面；auditor 验证 (a) roadmap 回写与 I5 实测记录 / 裁决档案一致（数字逐项对账），(b) 裁定与 live 代码一致（注册表 / red-list / backlog 状态全部 live 核对），(c) 无空壳断言（38 处 checklist 翻转 + 落档内容与实测一致）；`scan-hollow-implementations.mjs` 不适用（无代码变更）。
+  - **Deferred 项分类检查**：C3-RL-8（watch-only residual + conditional successor）/ C3-PR-2（watch-only residual，successor no）/ `HG-01`（Fix + 人工确认门，successor yes）——分类诚实，无 in-scope live defect 被降级。
 
 Follow-up:
 
-- 依裁定：Cycle 4 / I1 派生（若出现新族候选，预期无）或稳态暂停（预期路径，复触发条件已登记 roadmap §Loop Rule）
+- 依裁定：**稳态暂停**（Cycle 4 不派生）——循环暂停待复触发（三选一 + C3-RL-8 CEP 面触发条件 + C2-PR-2 形态出现 + `HG-01` 人工批准），登记在案（roadmap §Loop Rule「Cycle 3 / I6 稳态登记」）
 - `HG-01`（人工批准后）→ 线协议 Successor plan（跨 task 侧输出线协议设计 + 实现 + E2E）
 - no other remaining plan-owned work

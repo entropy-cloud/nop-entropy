@@ -395,3 +395,32 @@
 | C3-PR-8（非族候选） | —（不升格） | 关闭（不升格 + 理由在案） | §14 + probing C3-PR-8 |
 
 **复核结论**：10 条 red list + 8 条探查发现全部有处置，处置与派发一一对应（无 I4 派发——显式声明无 P0/P1；6 条 backlog 升级 + 1 条 backlog 修订 + 3 条关闭 + 1 条 watch-only 维持 + 探查项全部显式处置），**零悬挂达成**，无「已裁决但无处可去」项。
+
+---
+
+## 17. Cycle 3 / I6 收口裁定记录（稳态暂停，2026-08-13）
+
+> Status: active（I6 落档，plan `2026-08-13-1040-2-nop-stream-invariants-cycle3-I6-closure-and-trigger-determination.md`）
+> Consumption: 后续 cycle 触发时引用（复触发条件见 roadmap §Loop Rule「Cycle 3 / I6 稳态登记」）；`HG-01` 人工确认门延续
+> 输入核对：`cycle3-I6-input.md`（I5 唯一落点）与 on-disk surefire 一致（2895 tests / 0 failures / 0 errors / 10 skipped，逐模块一致；门禁 11 类 / 112 tests / 0 failures；mjs pin 0（`mjs-pins.json` pinnedViolations = []）；报告 mtime 11:15-11:16 在 I5 执行窗口内（收口提交 `f5e18a0dc` 11:17:11 为最后提交，无后续构建覆盖；I6 执行前工作树无 src 变更））；red list 零悬挂（C3-RL-1..10 全裁决在案 + C3-PR-1..8 全处置）；新族数 = 0。
+
+### 17.1 收口统计确认（2026-08-13 I6 实测）
+
+- 全量 2895 tests / 0 failures / 0 errors / 10 skipped（core 1465 / runtime 821 / cep 327 / rocksdb 85 / connector 35 / connector-jdbc 32 / connector-batch 35 / connector-debezium 19 / flow 51 / fraud-example 25，逐模块与 `cycle3-I6-input.md` 精确一致）；门禁 11 类 / 112 tests / 0 failures（CheckpointIDCounter 8 / SynchronizedCollection 12 / OutputContract 10 / WiringExistence 10 / core 表完备 10 / WindowRoundTrip 9 / ClusterRegistry 10 / MergingCleanup 4 / runtime 表完备 11 / CepRelease 21 / cep 表完备 7）；mjs `all` exit 0（I5 实测，pins 0）；e2e 8/8（PT 3/3 + CEP 4/4 + Supervision 1/1）；注册表零漂移 live 抽查（wiring 7 API × 9 接线点 + output-contract 6 发射点全部命中）。
+- **Cycle 3 执行路径事实**：I1 → I2 → I3 → I5 → I6（I4 不立 plan——I3 §13 显式声明无 P0/P1，`ai-dev/plans/` 无 Cycle 3 / I4 文件）→ 统计口径 = 门禁 11 类 / 112 tests（10 → 11，I1 新增 wiring 族）、red list = C3-RL-1..10 全裁决零悬挂、新族数 = 0。
+
+### 17.2 稳态 / 派生总裁定：**稳态暂停**（Cycle 4 不派生）
+
+- **判定输入**：零新族（0，I3 §14 显式声明「无新独立族」+ I5 零新失败 + 全仓 grep 无已铸 PD-16）+ red list 零悬挂（C3-RL-1..10 全裁决 + C3-PR-1..8 全处置）+ 门禁全绿 → Loop Rule「零新族且 red list 零 → 稳态暂停」成立；「新族强制沉淀」强制分支未触发（I3 §14 显式裁定无新独立族 → 无派生义务）。
+- **显式依据（成本 / 收益 / 触发面 / 棘轮影响）**：① I3 §14 显式无新独立族（C3-PR-3/4/8 全部不升格 + 理由在案）；② Cycle 3 无新失败类（I5 全绿 2895 tests / 0 failures）；③ C3-PR-2 watch-only residual（接线后自然失效，语义不破坏）不构成派生输入（§12.3 维持）；④ I1 已沉淀不变式 #7 一等门禁（11 类 / 112 tests + scan-wiring V1–V5）→ 门禁面完整；⑤ 派生 Cycle 4 = 六份 plan + 六轮执行的完整循环机器，为**零新族**的预防性派生——机器重量与收益不匹配；⑥ 复触发登记（三选一 + C3-RL-8 / C2-PR-2 / `HG-01` 触发）可覆盖未来风险。
+- **`HG-01` 处置**：**未批准**（全仓 daily log / backlog 无人工批准记录）→ 维持 backlog 待办条目 `pending human confirmation`；四重保护性覆盖复核在案（① in-task fail-fast `88bc0270c`/`b20fcd0e1`；② 门禁类级枚举 / call-site 注册表 / 三态分类；③ pin 移除留痕 `mjs-pins.json` PIN REMOVAL TRACE；④ backlog 条目）；不登记 Successor plan（执行门未过）。
+
+### 17.3 复触发登记摘要
+
+- 三选一继续生效：① CI 任一不变式门禁变红；② nop-stream 核心类结构变更（新增/重命名 Operator/SinkFunction/Checkpoint 机制/Output 实现类）；③ 周期复探（默认每 major release 或季度，取早）。
+- 本 plan 新增触发：**C3-RL-8 CEP 面触发条件** = I4/I5 类别清扫（CEP 面）或 per-state windowTimes 使用面扩展或复探时评估（P2 backlog 升级条目触发）；C3-RL-4..9 其余 backlog 条目维持既有触发条件（类别清扫 / 复探 / 配置需求出现），不逐一重裁；**C2-PR-2 形态出现**（main 匿名 / record Output 实现或 raw OutputTag 声明）；**`HG-01` 人工批准**（跨 task 线协议结构性变更，批准后另立 Successor plan）。
+- 人工确认待办触发 = 人工批准跨 task 线协议结构性变更（`HG-01`，登记见 roadmap Follow-up Backlog）。
+
+### 17.4 Cycle 3 收口结论（供后续 cycle 引用）
+
+- Cycle 3 = 新族沉淀驱动受限派生（不变式 #7 wiring 存在性门禁落地，I1）+ 全量验证全绿（I5）+ 稳态暂停（I6）。无 I4 修复面（I3 显式声明无 P0/P1）。red list 零悬挂：C3-RL-1/2/3 记录性关闭 + C3-RL-4..9 P2 backlog 升级（附触发条件）+ C3-RL-10 关闭 + backlog 修订；C3-PR-1..8 全显式处置。新族数 = 0 → 无 Cycle 4 派生。`HG-01` 人工确认门延续（未批准）。
