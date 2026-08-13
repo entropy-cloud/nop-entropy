@@ -256,8 +256,8 @@
                         <on leftProp="id" rightProp="fileId"/>
                     </join>
                 </to-many>
-                <to-many displayName="引用" name="usages" refEntityName="io.nop.code.dao.entity.NopCodeUsage"
-                         refPropName="file">
+                <to-many cascadeDelete="true" displayName="引用" name="usages"
+                         refEntityName="io.nop.code.dao.entity.NopCodeUsage" refPropName="file">
                     <join>
                         <on leftProp="id" rightProp="fileId"/>
                     </join>
@@ -406,8 +406,8 @@
                         <on leftProp="id" rightProp="declaringSymbolId"/>
                     </join>
                 </to-many>
-                <to-many displayName="引用" name="usages" refEntityName="io.nop.code.dao.entity.NopCodeUsage"
-                         refPropName="symbol">
+                <to-many cascadeDelete="true" displayName="引用" name="usages"
+                         refEntityName="io.nop.code.dao.entity.NopCodeUsage" refPropName="symbol">
                     <join>
                         <on leftProp="id" rightProp="symbolId"/>
                     </join>
