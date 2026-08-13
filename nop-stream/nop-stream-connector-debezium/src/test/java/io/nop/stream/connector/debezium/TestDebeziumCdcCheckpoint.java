@@ -19,6 +19,9 @@ import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.common.functions.source.CheckpointedSourceFunction;
 import io.nop.stream.core.common.functions.source.SourceFunction;
+import io.nop.stream.core.exceptions.StreamException;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CONFIG_ERROR;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -264,13 +267,15 @@ public class TestDebeziumCdcCheckpoint {
         }
         assertTrue(collected.size() >= 2, "should collect at least 2 events on first run");
 
-        // Checkpoint: snapshot the offset
-        OperatorSnapshotResult snapshot = source.snapshotState(1L);
-        assertNotNull(snapshot.getOperatorState(DebeziumCdcSourceFunction.CDC_OFFSETS_KEY));
-
         // Kill: cancel the source
         source.cancel();
         runner.join(5000);
+
+        // Snapshot AFTER kill: capture the final committed offset. Snapshotting before cancel
+        // races with the emitter thread (events committed between snapshot and cancel would be
+        // replayed on recovery, producing false duplicates under parallel test scheduling).
+        OperatorSnapshotResult snapshot = source.snapshotState(1L);
+        assertNotNull(snapshot.getOperatorState(DebeziumCdcSourceFunction.CDC_OFFSETS_KEY));
 
         int firstRunCount = collected.size();
 
@@ -333,6 +338,149 @@ public class TestDebeziumCdcCheckpoint {
                         "duplicate record key detected across kill/recover: " + allKeys.get(i));
             }
         }
+    }
+
+    // ---- AR-03: first run must not inherit stale static registry offsets ----
+
+    @Test
+    void testFirstRunStateNullDoesNotResumeFromStaleOffsets() throws Exception {
+        // Simulate a previous run in the same JVM: the static registry already holds offsets
+        // for the connector name (crashed run / redeploy / another pipeline reusing the name).
+        NopStreamOffsetBackingStore stale = NopStreamOffsetBackingStore.forConnector(CONNECTOR);
+        stale.setOffsets(Collections.singletonMap(
+                ByteBuffer.wrap("__idx__".getBytes()), ByteBuffer.wrap("42".getBytes())));
+        assertFalse(stale.getOffsets().isEmpty(), "precondition: stale offsets present");
+
+        // A brand-new job (no checkpoint) starts in the same JVM with the same connector name.
+        DebeziumCdcSourceFunction source = new DebeziumCdcSourceFunction(newConfig());
+        source.initializeState(null); // first-run fresh branch (state == null)
+
+        NopStreamOffsetBackingStore freshStore = source.getOffsetStore();
+        assertNotNull(freshStore);
+        assertTrue(freshStore.getOffsets().isEmpty(),
+                "first run must not inherit the previous run's static offsets");
+    }
+
+    @Test
+    void testFirstRunRawNullDoesNotResumeFromStaleOffsets() throws Exception {
+        // Previous run left stale offsets in the static registry.
+        NopStreamOffsetBackingStore stale = NopStreamOffsetBackingStore.forConnector(CONNECTOR);
+        stale.setOffsets(Collections.singletonMap(
+                ByteBuffer.wrap("__idx__".getBytes()), ByteBuffer.wrap("7".getBytes())));
+
+        // A prior checkpoint exists but carries no CDC offset entry (raw == null fresh branch).
+        TaskStateSnapshot state = new TaskStateSnapshot(new TaskLocation("", "", "", 0));
+
+        DebeziumCdcSourceFunction source = new DebeziumCdcSourceFunction(newConfig());
+        source.initializeState(state);
+
+        NopStreamOffsetBackingStore freshStore = source.getOffsetStore();
+        assertNotNull(freshStore);
+        assertTrue(freshStore.getOffsets().isEmpty(),
+                "raw==null fresh branch must not inherit the previous run's static offsets");
+    }
+
+    @Test
+    void testUnnamedConnectorFailsFast() throws Exception {
+        // No connector name configured: must fail fast instead of sharing the "_default_" bucket.
+        DebeziumConfig config = newConfig();
+        config.setName(null);
+
+        DebeziumCdcSourceFunction source = new DebeziumCdcSourceFunction(config);
+        StreamException ex = assertThrows(StreamException.class, () -> source.initializeState(null));
+        assertEquals(ERR_STREAM_CONFIG_ERROR.getErrorCode(), ex.getErrorCode());
+    }
+
+    @Test
+    void testUnnamedConnectorFailsFastOnRawNullBranch() throws Exception {
+        DebeziumConfig config = newConfig();
+        config.setName("");
+
+        TaskStateSnapshot state = new TaskStateSnapshot(new TaskLocation("", "", "", 0));
+        DebeziumCdcSourceFunction source = new DebeziumCdcSourceFunction(config);
+        StreamException ex = assertThrows(StreamException.class, () -> source.initializeState(state));
+        assertEquals(ERR_STREAM_CONFIG_ERROR.getErrorCode(), ex.getErrorCode());
+    }
+
+    // ---- AR-03 E2E: first-run restart starts from the beginning, not from stale offsets ----
+
+    @Test
+    void testFirstRunRestartStartsFromBeginning() throws Exception {
+        DebeziumConfig config = newConfig();
+
+        // run1: a previous job in the same JVM consumes and produces offsets.
+        List<String> run1EmittedKeys = new CopyOnWriteArrayList<>();
+        AtomicInteger run1EmitIndex = new AtomicInteger(0);
+        DebeziumCdcSourceFunction run1 = new DebeziumCdcSourceFunction(config) {
+            @Override
+            protected DebeziumMessageSource createMessageSource(
+                    DebeziumConfig cfg, NopStreamOffsetBackingStore offsetStore) {
+                return new MockCdcMessageSource(cfg, offsetStore, run1EmittedKeys, run1EmitIndex);
+            }
+        };
+        run1.initializeState(null);
+
+        CopyOnWriteArrayList<ChangeEvent> run1Collected = new CopyOnWriteArrayList<>();
+        SourceFunction.SourceContext<ChangeEvent> run1Ctx = collectorContext(run1Collected);
+        Thread run1Thread = new Thread(() -> {
+            try {
+                run1.run(run1Ctx);
+            } catch (Exception e) {
+                // expected on cancel
+            }
+        });
+        run1Thread.start();
+
+        long deadline = System.currentTimeMillis() + 5000;
+        while (run1Collected.size() < 2 && System.currentTimeMillis() < deadline) {
+            Thread.sleep(50);
+        }
+        assertTrue(run1Collected.size() >= 2, "run1 should collect at least 2 events");
+        run1.cancel();
+        run1Thread.join(5000);
+        assertFalse(run1EmittedKeys.isEmpty(), "run1 must have emitted keys");
+
+        // run2: a NEW job in the same JVM, same connector name, first run (no checkpoint).
+        // Independent emittedRecordKeys set: run2 re-emitting from the beginning is NOT a
+        // duplicate — it proves the fresh start did not inherit run1's offsets.
+        List<String> run2EmittedKeys = new CopyOnWriteArrayList<>();
+        AtomicInteger run2EmitIndex = new AtomicInteger(0);
+        DebeziumCdcSourceFunction run2 = new DebeziumCdcSourceFunction(config) {
+            @Override
+            protected DebeziumMessageSource createMessageSource(
+                    DebeziumConfig cfg, NopStreamOffsetBackingStore offsetStore) {
+                return new MockCdcMessageSource(cfg, offsetStore, run2EmittedKeys, run2EmitIndex);
+            }
+        };
+        run2.initializeState(null);
+
+        // The fresh store must be empty: no inherited offset.
+        assertTrue(run2.getOffsetStore().getOffsets().isEmpty(),
+                "run2 first-run store must be empty (no inherited stale offset)");
+
+        CopyOnWriteArrayList<ChangeEvent> run2Collected = new CopyOnWriteArrayList<>();
+        SourceFunction.SourceContext<ChangeEvent> run2Ctx = collectorContext(run2Collected);
+        Thread run2Thread = new Thread(() -> {
+            try {
+                run2.run(run2Ctx);
+            } catch (Exception e) {
+                // expected on cancel
+            }
+        });
+        run2Thread.start();
+
+        deadline = System.currentTimeMillis() + 5000;
+        while (run2Collected.isEmpty() && System.currentTimeMillis() < deadline) {
+            Thread.sleep(50);
+        }
+        run2.cancel();
+        run2Thread.join(5000);
+
+        assertFalse(run2Collected.isEmpty(), "run2 should emit events from the beginning");
+        // The mock resumes from the offset store's committed index; an empty store means
+        // run2's first emission index == 0 (start from the beginning, no stale resume).
+        assertEquals("rec-0", run2EmittedKeys.get(0),
+                "run2 first emission index must be 0 (start from beginning, not stale offset)");
     }
 
     // ---- helpers ----

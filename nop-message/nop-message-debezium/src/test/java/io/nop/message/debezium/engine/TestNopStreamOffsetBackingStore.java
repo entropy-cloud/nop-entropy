@@ -7,6 +7,8 @@
  */
 package io.nop.message.debezium.engine;
 
+import io.nop.api.core.exceptions.NopException;
+import io.nop.message.debezium.DebeziumErrors;
 import org.apache.kafka.connect.runtime.WorkerConfig;
 import org.apache.kafka.connect.util.Callback;
 import org.junit.jupiter.api.AfterEach;
@@ -140,5 +142,28 @@ public class TestNopStreamOffsetBackingStore {
         Map<ByteBuffer, ByteBuffer> read = engineInstance.getOffsets();
         assertEquals(1, read.size());
         assertEquals("v", new String(read.get(bb("k")).array()));
+    }
+
+    @Test
+    void testConfigureWithoutNameFailsFast() {
+        // WorkerConfig without a "name" property must not silently bind to the shared
+        // "_default_" bucket (AR-03): unnamed connectors overwrite each other's offsets.
+        NopStreamOffsetBackingStore engineInstance = new NopStreamOffsetBackingStore();
+        WorkerConfig wc = mock(WorkerConfig.class);
+        Map<String, Object> originals = new HashMap<>();
+        when(wc.originals()).thenReturn(originals);
+
+        NopException ex = assertThrows(NopException.class, () -> engineInstance.configure(wc));
+        assertEquals(DebeziumErrors.ERR_DEBEZIUM_CONNECTOR_NAME_REQUIRED.getErrorCode(), ex.getErrorCode());
+    }
+
+    @Test
+    void testEnsureBoundWithoutConfiguredNameFailsFast() {
+        // An engine-instantiated store that reaches a data operation without ever being
+        // configured (or configured without a name) must fail fast instead of binding
+        // "_default_" silently.
+        NopStreamOffsetBackingStore store = new NopStreamOffsetBackingStore();
+        NopException ex = assertThrows(NopException.class, store::getOffsets);
+        assertEquals(DebeziumErrors.ERR_DEBEZIUM_CONNECTOR_NAME_REQUIRED.getErrorCode(), ex.getErrorCode());
     }
 }
