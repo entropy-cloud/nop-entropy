@@ -3,7 +3,7 @@
 > **产出方法**：`ai-dev/skills/invariant-loop-audit-prompt.md`；待经独立 fresh session 审查至共识。
 > **驱动方**：`missions/nop-code-invariant-loop.json`（范围：nop-code 全模块组）
 > **先例**：nop-chaos-flux `docs/backlog/ai-invariant-loop-roadmap.md`（首个闭环先例）
-> **状态**：**进行中（Cycle 1 I4 完成，待 I5 re-verify）**——I0-I3 done；I4 `done*`（Phase 1-9 全部落地，Phase 4 ORM cascadeDelete + Phase 9 @Auth 阻塞待人工确认）；I5 done*（I4 已执行面验证全绿，非稳态）；I6 done-interim。下一行动 = I5 re-verify（I4 Phase 3-9 已完成）→ I6-revisit 确定性稳态判定。
+> **状态**：**进行中（Cycle 1 I4+I5 完成，待 I6-revisit 确定性稳态判定）**——I0-I3 done；I4 `done*`（Phase 1-9 全部落地，Phase 4 ORM cascadeDelete + Phase 9 @Auth 阻塞待人工确认）；I5 `done`（I4 Phase 1-9 全范围全量独立验证全绿）；I6 done-interim。下一行动 = I6-revisit 确定性稳态判定（消费 I5 full-scope 全绿结论）。
 > **与既有审计的关系**：`skills/nop-code/audit-prompt.md`（模块专用补充审计维度）+ `nop-code-audit-2026-05-05.md` / `nop-code-audit-2026-05-10.md`（2 baseline）+ 13 轮 adversarial review（2026-05-25 至 2026-06-06，含同日 5 sub-round）为输入材料，不重复执行。
 
 ## 目的
@@ -33,7 +33,7 @@ nop-code 已被审计 **2 baseline + 13 轮 adversarial review**（2026-05-25 �
 | Cycle 1 / I2. 不变式驱动审计 | 跑 I1 门禁 → red list + 对抗探查 + 盘点 AR-94→AR-178 悬空发现哪些已被门禁覆盖、哪些仍需手动修复 | `done` | I1 |
 | Cycle 1 / I3. 发现裁决 | red list + 悬空发现逐条裁决 → P0/P1 派 I4；裁决表零悬挂 | `done` | I2 |
 | Cycle 1 / I4. 修复执行 | 悬空发现关闭 + 门禁覆盖缺口补齐 + 类别清扫 + test-first | `done*`（Phase 1-9 全部落地：query-limit/entity-field-min/idempotency/搜索同步/删除路径/缓存不变性/截断可观测/数据一致性/error-handling；Phase 4 ORM cascadeDelete + Phase 9 @Auth 阻塞待人工确认，已落 service-layer 降级 / successor 派生） | I3 |
-| Cycle 1 / I5. 全量验证 | `./mvnw test -pl nop-code -am -T 1C` + 门禁零命中 + full-green 记录 | `done*`（I4 P1-2 范围全量验证全绿，record `i5-full-green-record.md` 已产出；I4 P3-9 未完成 → 需 I4 完成后 re-verify，**非 Cycle 1 稳态**） | I4 |
+| Cycle 1 / I5. 全量验证 | `./mvnw test -pl nop-code -am -T 1C` + 门禁零命中 + full-green 记录 | `done`（I4 Phase 1-9 **全范围**全量独立验证全绿：模块测试 383 全绿、四族门禁 real-violation 0、棘轮 baseline per-family 0 NEW、Anti-Hollow 0 high/critical + 6 条 Phase 3-9 调用链连通；Phase 9 @Auth + Phase 4 ORM cascadeDelete 两项 gated 阻塞待人工确认，I5 验证已落地范围；record `i5-full-green-record.md` 已更新为全范围；稳态判定属 I6-revisit） | I4 |
 | Cycle 1 / I6. 循环收口 | 统计 + 稳态判定 + 复触发条件登记；closure 独立 fresh session | `done (interim)`（统计+稳态判定程序+复触发条件+Cycle 2 后继派生+closure 已完成，见 `i6-cycle1-closure-report.md`；**确定性稳态判定 DEFERRED**——I4 Phase 3-9 未完成，Cycle 1 维持 active；下一行动 = 恢复 I4 Phase 3-9 → I5 re-verify → I6-revisit 确定性稳态判定） | I5 |
 
 ## Phase Details
