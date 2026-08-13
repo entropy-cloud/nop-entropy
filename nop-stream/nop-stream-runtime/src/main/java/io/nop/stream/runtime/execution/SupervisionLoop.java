@@ -749,15 +749,27 @@ public class SupervisionLoop {
             newInvokable = new StreamTaskInvokable(newChain, (RecordWriter<?>) null, newInputGate);
         } else if (oldOutputWriter != null) {
             // Stage 44 successor 4 Phase 2: producer role (SOURCE or MIDDLE with
-            // no InputGate). Reuse the old output writer so the new producer
+            // no InputGate). Reuse the old output writer(s) so the new producer
             // writes to the SAME ResultPartition(s) the surviving consumer is
             // reading from (with the same attached materialization points). The
             // consumer continues reading seamlessly; no explicit cross-region
             // reconnect is needed when the consumer is healthy. Operator state
             // was restored above (if a checkpoint exists) or starts fresh.
-            newInvokable = new StreamTaskInvokable(newChain, oldOutputWriter, null);
-            LOG.info("Rebuilt producer task vertex={} taskIndex={} reusing existing output writer"
-                    + " (state restored from epoch {})", vertexId, taskIndex, consistentCutEpoch);
+            //
+            // P1-03: a fan-out producer must reuse the FULL writer list (one per
+            // outgoing edge) — reusing only writer[0] would leave edges 2..N
+            // fed by nobody after the restart.
+            List<RecordWriter<Object>> oldFanOutWriters = oldInvokable.getFanOutWriters();
+            if (oldFanOutWriters != null && !oldFanOutWriters.isEmpty()) {
+                newInvokable = new StreamTaskInvokable(newChain, oldFanOutWriters, null);
+                LOG.info("Rebuilt producer task vertex={} taskIndex={} reusing {} fan-out output writer(s)"
+                                + " (state restored from epoch {})",
+                        vertexId, taskIndex, oldFanOutWriters.size(), consistentCutEpoch);
+            } else {
+                newInvokable = new StreamTaskInvokable(newChain, oldOutputWriter, null);
+                LOG.info("Rebuilt producer task vertex={} taskIndex={} reusing existing output writer"
+                        + " (state restored from epoch {})", vertexId, taskIndex, consistentCutEpoch);
+            }
         } else {
             // No InputGate and no output writer → self-contained.
             newInvokable = new StreamTaskInvokable(newChain);

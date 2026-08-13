@@ -10,11 +10,14 @@ package io.nop.stream.runtime.operators.windowing;
 import io.nop.stream.core.common.accumulators.IntCounter;
 import io.nop.stream.core.common.accumulators.SimpleAccumulator;
 import io.nop.stream.core.common.functions.KeySelector;
-import io.nop.stream.core.common.typeutils.TypeSerializer;
-import io.nop.stream.core.operators.InternalTimerService;
-import io.nop.stream.core.operators.Output;
 import io.nop.stream.core.common.state.MapState;
 import io.nop.stream.core.common.state.MapStateDescriptor;
+import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
+import io.nop.stream.core.common.typeutils.TypeSerializer;
+import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.operators.HeapInternalTimerService;
+import io.nop.stream.core.operators.InternalTimerService;
+import io.nop.stream.core.operators.Output;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.test.TestOutput;
 import io.nop.stream.core.util.OutputTag;
@@ -23,15 +26,18 @@ import io.nop.stream.core.windowing.assigners.TumblingEventTimeWindows;
 import io.nop.stream.core.windowing.triggers.CountTrigger;
 import io.nop.stream.core.windowing.triggers.EventTimeTrigger;
 import io.nop.stream.core.windowing.windows.TimeWindow;
-import io.nop.stream.core.operators.HeapInternalTimerService;
 import io.nop.stream.runtime.operators.windowing.functions.InternalWindowFunction;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_WINDOW_NON_ACCUMULATOR_MERGE_CONFLICT;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -527,6 +533,126 @@ public class TestWindowOperatorCorrectness {
             // Should successfully merge and produce correct result
             assertEquals(1, output.size());
             assertEquals("sum=60", output.getElements().get(0));
+        } finally {
+            operator.close();
+        }
+    }
+
+    /**
+     * Multi-audit P0-01 (main path): TWO raw (non-accumulator) window values merging must
+     * fail fast with {@code ERR_STREAM_WINDOW_NON_ACCUMULATOR_MERGE_CONFLICT}. Constructible
+     * via {@code MixedTypeWindowOperator(useAccumulator=false)} (raw mode): each session window
+     * holds its raw value, and the bridging element merges two raw-value windows.
+     *
+     * <p>Red evidence: without the fail-fast throws in {@code mergeWindowContents} this test
+     * passes trivially (no exception) — it locks the behavior.
+     */
+    @Test
+    void testMergeTwoRawWindowValuesFailsFast() throws Exception {
+        TestOutput<String> output = new TestOutput<>();
+
+        MixedTypeWindowOperator operator = new MixedTypeWindowOperator(
+                EventTimeSessionWindows.withGap(50L),
+                new SimpleTimeWindowSerializer(),
+                (KeySelector<Integer, String>) v -> "key1",
+                new SimpleStringSerializer(),
+                String.class,
+                new SumWindowFunction(),
+                EventTimeTrigger.create(),
+                0L,
+                null,
+                false // raw mode: createAccumulatorForWindow() returns null
+        );
+
+        operator.setOutput((Output) output);
+        operator.open();
+
+        try {
+            // Window [10, 60) holds raw value 10; window [100, 150) holds raw value 20.
+            operator.processElement(new StreamRecord<>(10, 10));
+            operator.processElement(new StreamRecord<>(20, 100));
+
+            // Element at t=55 bridges both windows → merge reads two raw values → fail fast.
+            StreamException ex = assertThrows(StreamException.class,
+                    () -> operator.processElement(new StreamRecord<>(30, 55)),
+                    "merging two raw (non-accumulator) window values must fail fast, never silently "
+                            + "merge or drop");
+            assertEquals(ERR_STREAM_WINDOW_NON_ACCUMULATOR_MERGE_CONFLICT.getErrorCode(), ex.getErrorCode(),
+                    "raw+raw merge must use ERR_STREAM_WINDOW_NON_ACCUMULATOR_MERGE_CONFLICT, got: " + ex.getErrorCode());
+        } finally {
+            operator.close();
+        }
+    }
+
+    /**
+     * Multi-audit P0-01 (accumulator+raw scenario): an accumulator target window merging with a
+     * raw (non-accumulator) source window must fail fast with {@code ERR_STREAM_INVALID_STATE}.
+     *
+     * <p>{@code MixedTypeWindowOperator.useAccumulator} is a per-operator final flag, so a single
+     * operator instance cannot produce both types by itself. The mixed layout is constructed by
+     * STATE INJECTION: both windows start as accumulators (useAccumulator=true), then a raw value
+     * is written into the SOURCE window's {@code window-contents} namespace through the keyed
+     * state backend — the same descriptor the operator itself created in {@code open()}
+     * ({@code MapStateDescriptor("window-contents", String.class, Object.class)} with the default
+     * {@code accClass=Object.class} path), so schema verification passes and the write lands in
+     * the operator's own state.
+     *
+     * <p>Which pre-existing window becomes the merge target is chosen by
+     * {@code MergingWindowSet.addWindow} via {@code mergedWindows.iterator().next()} — the test
+     * replicates the exact HashSet to learn the target, then injects the raw value into the OTHER
+     * (source) window, making the assertion deterministic: target=accumulator, source=raw →
+     * {@code ERR_STREAM_INVALID_STATE}.
+     */
+    @Test
+    void testMergeAccumulatorWithRawValueFailsFast() throws Exception {
+        TestOutput<String> output = new TestOutput<>();
+
+        MixedTypeWindowOperator operator = new MixedTypeWindowOperator(
+                EventTimeSessionWindows.withGap(50L),
+                new SimpleTimeWindowSerializer(),
+                (KeySelector<Integer, String>) v -> "key1",
+                new SimpleStringSerializer(),
+                String.class,
+                new SumWindowFunction(),
+                EventTimeTrigger.create(),
+                0L,
+                null,
+                true // accumulator mode
+        );
+
+        operator.setOutput((Output) output);
+        operator.open();
+
+        try {
+            // Both windows start as accumulators: [10, 60) = acc(10), [100, 150) = acc(20).
+            operator.processElement(new StreamRecord<>(10, 10));
+            operator.processElement(new StreamRecord<>(20, 100));
+
+            // Learn the merge target exactly as MergingWindowSet.addWindow does
+            // (mergedWindows.iterator().next() over the pre-existing windows).
+            TimeWindow w1 = new TimeWindow(10, 60);
+            TimeWindow w2 = new TimeWindow(100, 150);
+            Set<TimeWindow> preExisting = new HashSet<>(List.of(w1, w2));
+            TimeWindow mergeTarget = preExisting.iterator().next();
+            TimeWindow rawSource = mergeTarget.equals(w1) ? w2 : w1;
+
+            // Inject a RAW value into the source window's namespace (operator's own
+            // windowContentsState, value type Object in the default accClass path).
+            @SuppressWarnings({"unchecked", "rawtypes"})
+            IKeyedStateBackend<String> backend = (IKeyedStateBackend<String>) (IKeyedStateBackend) operator.getKeyedStateBackend();
+            backend.setCurrentKey("key1");
+            backend.setCurrentNamespace("TW:" + rawSource.getStart() + "," + rawSource.getEnd());
+            MapState<String, Object> windowContents = backend.getMapState(
+                    new MapStateDescriptor<>("window-contents", String.class, Object.class));
+            windowContents.put("__window_value__", 999);
+
+            // Element at t=55 bridges both windows → merge reads target=accumulator,
+            // source=raw (the injected value) → fail fast.
+            StreamException ex = assertThrows(StreamException.class,
+                    () -> operator.processElement(new StreamRecord<>(30, 55)),
+                    "merging an accumulator target with a raw (non-accumulator) source must fail fast");
+            assertEquals(ERR_STREAM_INVALID_STATE.getErrorCode(), ex.getErrorCode(),
+                    "accumulator+raw merge must use ERR_STREAM_INVALID_STATE, got: " + ex.getErrorCode());
         } finally {
             operator.close();
         }

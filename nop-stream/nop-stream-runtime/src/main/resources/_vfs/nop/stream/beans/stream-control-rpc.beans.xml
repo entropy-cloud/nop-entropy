@@ -38,22 +38,20 @@
       Deployment scaffold (Stage 42 will materialize these per node). The wiring pattern:
 
       <bean id="streamTaskRpcServer_node0"
-            class="io.nop.stream.runtime.rpc.StreamControlRpcServer"
-            ioc:configMethod="...">
-          <property name="serviceName" value="streamTaskRpc@node-0"/>
-          <property name="serviceInterface" value="io.nop.stream.runtime.rpc.IStreamTaskRpcService"/>
-          <property name="serviceImpl" ref="taskManager_node0"/>
-          <property name="messageService" ref="streamMessageService"/>
-          <property name="topic" value="nop-stream.rpc.task.node-0"/>
+            class="io.nop.stream.runtime.rpc.StreamControlRpcServer">
+          <constructor-arg index="0" value="streamTaskRpc@node-0"/>
+          <constructor-arg index="1" value="io.nop.stream.runtime.rpc.IStreamTaskRpcService"/>
+          <constructor-arg index="2" ref="taskManager_node0"/>
+          <constructor-arg index="3" ref="streamMessageService"/>
+          <constructor-arg index="4" value="nop-stream.rpc.task.node-0"/>
       </bean>
 
       <bean id="streamTaskRpcProxy_node0"
-            class="io.nop.stream.runtime.rpc.StreamControlRpcProxyFactory"
-            ioc:configMethod="...">
-          <property name="serviceName" value="streamTaskRpc@node-0"/>
-          <property name="serviceInterface" value="io.nop.stream.runtime.rpc.IStreamTaskRpcService"/>
-          <property name="messageService" ref="streamMessageService"/>
-          <property name="topic" value="nop-stream.rpc.task.node-0"/>
+            class="io.nop.stream.runtime.rpc.StreamControlRpcProxyFactory">
+          <constructor-arg index="0" value="streamTaskRpc@node-0"/>
+          <constructor-arg index="1" value="io.nop.stream.runtime.rpc.IStreamTaskRpcService"/>
+          <constructor-arg index="2" ref="streamMessageService"/>
+          <constructor-arg index="3" value="nop-stream.rpc.task.node-0"/>
       </bean>
     -->
 

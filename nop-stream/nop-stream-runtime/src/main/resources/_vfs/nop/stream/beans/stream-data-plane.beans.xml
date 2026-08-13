@@ -42,10 +42,10 @@
 
     <bean id="streamDistributedExecutor"
           class="io.nop.stream.runtime.execution.RpcDistributedExecutor">
-        <property name="messageService" ref="streamMessageService"/>
-        <property name="dataPlaneWireCodec"
-                  class="io.nop.stream.runtime.transport.SysDaoWireCodec"
-                  ioc:bean="true"/>
+        <constructor-arg index="0" ref="streamMessageService"/>
+        <property name="dataPlaneWireCodec">
+            <bean class="io.nop.stream.runtime.transport.SysDaoWireCodec"/>
+        </property>
     </bean>
 
   Pulsar variant: wire io.nop.message.pulsar.PulsarMessageService as streamMessageService
