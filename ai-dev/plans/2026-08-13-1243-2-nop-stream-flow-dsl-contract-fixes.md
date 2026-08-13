@@ -1,6 +1,6 @@
 # 2 nop-stream-flow DSL 契约修复：edge 分区属性静默忽略（P1）+ checkpoint/窗口策略属性静默忽略（P1）+ 模块错误码接入（P1）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-13
 > Source: `ai-dev/audits/2026-08-13-0805-multi-audit-nop-stream-invariant-loop.md`（P1-XDSL-5 / P1-XDSL-6 / P1-09-02）
 > Related: `2026-08-13-1243-1`（运行时引擎）、`2026-08-13-1243-3`（跨模块契约）
@@ -54,93 +54,93 @@
 
 ### Phase 1 - edge 分区/流控属性契约（P1-XDSL-5）
 
-Status: planned
+Status: completed
 Targets: `nop-stream/nop-stream-flow/src/main/java/io/nop/stream/flow/builder/StreamModelDslBuilder.java`、`test-reduce-pipeline.stream.xml`
 
 - Item Types: `Decision | Fix | Fix | Fix`
 
-- [ ] Decision: 逐属性裁定落地——**partition + keyExpr 组合矩阵**：(1) `partition="HASH"` + keyExpr → 经 `keyBy(EvalActionKeySelector(edge.getKeyExpr()))` 落地（下游非 keyBy 时应用；下游本身是 keyBy 时视为冗余 HASH → fail-fast 提示）；(2) `partition="HASH"` 无 keyExpr → fail-fast；(3) **keyExpr 声明于非 HASH 边（FORWARD 或未设置 partition）→ fail-fast**（edge id + 属性名；否则 keyExpr 仍被静默忽略，违反本 plan 目的与"无静默跳过"exit criterion）；(4) REBALANCE / BROADCAST / 流控四属性（flowControlPolicy/queueCapacity/receiveWindow/packetSize）非默认值 → fail-fast（core 无对应算子 API）；(5) FORWARD（无 keyExpr）维持现状
-- [ ] Fix: 在 `buildTransforms`/`buildTransform` 消费 edge 属性（HASH+keyExpr 应用 keyBy；其余非默认值抛 `StreamException` 含 edge id + 属性名）；`resolveEdgePartition` 接入实际调用链作为消费入口或删除死代码
-- [ ] Fix: `test-reduce-pipeline.stream.xml:20` 的 `partition="HASH"` 与修复后行为一致（HASH+keyExpr 且下游非 keyBy → 语义落地；若下游是 keyBy → 示例改为 FORWARD）；示例 DSL 测试回归先红后绿
-- [ ] Fix: 新增 DSL 构建期测试——未实现边属性非默认值声明抛错（fail-fast 断言含 edge id + 属性名，参数化覆盖：HASH-无keyExpr / HASH+keyExpr 下游是 keyBy / 非 HASH 边声明 keyExpr / REBALANCE / BROADCAST / 四流控属性）；已落地 HASH 的语义断言（**repo-observable 形式**：HASH+keyExpr 且下游是 `<window>` 时 `registeredStream("w") instanceof WindowedStream`——flow 测试无法检查中间 transformation DAG，`TestStreamModelDslBuilderE2E.java:87-90` 已注明不可检查且示例 DSL 多为 parallelism=1，分区运行时语义不可观测，见 Phase 1 exit criteria 说明）
+- [x] Decision: 逐属性裁定落地——**partition + keyExpr 组合矩阵**：(1) `partition="HASH"` + keyExpr → 经 `keyBy(EvalActionKeySelector(edge.getKeyExpr()))` 落地（下游非 keyBy 时应用；下游本身是 keyBy 时视为冗余 HASH → fail-fast 提示）；(2) `partition="HASH"` 无 keyExpr → fail-fast；(3) **keyExpr 声明于非 HASH 边（FORWARD 或未设置 partition）→ fail-fast**（edge id + 属性名；否则 keyExpr 仍被静默忽略，违反本 plan 目的与"无静默跳过"exit criterion）；(4) REBALANCE / BROADCAST / 流控四属性（flowControlPolicy/queueCapacity/receiveWindow/packetSize）非默认值 → fail-fast（core 无对应算子 API）；(5) FORWARD（无 keyExpr）维持现状
+- [x] Fix: 在 `buildTransforms`/`buildTransform` 消费 edge 属性（HASH+keyExpr 应用 keyBy；其余非默认值抛 `StreamException` 含 edge id + 属性名）；`resolveEdgePartition` 接入实际调用链作为消费入口或删除死代码
+- [x] Fix: `test-reduce-pipeline.stream.xml:20` 的 `partition="HASH"` 与修复后行为一致（HASH+keyExpr 且下游非 keyBy → 语义落地；若下游是 keyBy → 示例改为 FORWARD）；示例 DSL 测试回归先红后绿
+- [x] Fix: 新增 DSL 构建期测试——未实现边属性非默认值声明抛错（fail-fast 断言含 edge id + 属性名，参数化覆盖：HASH-无keyExpr / HASH+keyExpr 下游是 keyBy / 非 HASH 边声明 keyExpr / REBALANCE / BROADCAST / 四流控属性）；已落地 HASH 的语义断言（**repo-observable 形式**：HASH+keyExpr 且下游是 `<window>` 时 `registeredStream("w") instanceof WindowedStream`——flow 测试无法检查中间 transformation DAG，`TestStreamModelDslBuilderE2E.java:87-90` 已注明不可检查且示例 DSL 多为 parallelism=1，分区运行时语义不可观测，见 Phase 1 exit criteria 说明）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 已落地属性（HASH+keyExpr 非 keyBy 下游）有构建成功断言（WindowedStream 形式）；未实现属性非默认值 fail-fast 有断言测试（参数化覆盖全部组合矩阵）
-- [ ] `resolveEdgePartition` 有 live 调用者或已删除（grep 复核）
-- [ ] `test-reduce-pipeline.stream.xml` 全量 DSL 测试回归绿；示例文件与 builder 行为一致（HASH 语义落地或改 FORWARD）
-- [ ] **无静默跳过**：无任何被忽略的已声明非默认属性（grep 复核六属性全部消费或 fail-fast；含 keyExpr 单独声明场景）
-- [ ] 说明：本 Phase 的落地验证为**构建期断言**（flow 测试无法观测运行时分区——`TestStreamModelDslBuilderE2E.java:87-90` 明确 transformation 不可检查且示例 DSL 均为低 parallelism；流控/分区运行时语义验证不适用，属 Non-Goals 的分区运行时）；**连带影响**：`fraud-detection.stream.xml:94/:95`（REBALANCE + HASH 边）在 fail-fast 后不可构建——该文件本身是破损死文件（P2-03-02/XDSL-1~4，backlog），本 plan 执行时顺手将这两条边改为 FORWARD 或随 backlog 修复，留痕即可
-- [ ] `docs-for-ai/` 相关 DSL 文档（若存在 stream DSL 用法章节）同步 fail-fast 行为；否则 `No owner-doc update required`
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 已落地属性（HASH+keyExpr 非 keyBy 下游）有构建成功断言（WindowedStream 形式）；未实现属性非默认值 fail-fast 有断言测试（参数化覆盖全部组合矩阵）
+- [x] `resolveEdgePartition` 有 live 调用者或已删除（grep 复核）
+- [x] `test-reduce-pipeline.stream.xml` 全量 DSL 测试回归绿；示例文件与 builder 行为一致（HASH 语义落地或改 FORWARD）
+- [x] **无静默跳过**：无任何被忽略的已声明非默认属性（grep 复核六属性全部消费或 fail-fast；含 keyExpr 单独声明场景）
+- [x] 说明：本 Phase 的落地验证为**构建期断言**（flow 测试无法观测运行时分区——`TestStreamModelDslBuilderE2E.java:87-90` 明确 transformation 不可检查且示例 DSL 均为低 parallelism；流控/分区运行时语义验证不适用，属 Non-Goals 的分区运行时）；**连带影响**：`fraud-detection.stream.xml:94/:95`（REBALANCE + HASH 边）在 fail-fast 后不可构建——该文件本身是破损死文件（P2-03-02/XDSL-1~4，backlog），本 plan 执行时顺手将这两条边改为 FORWARD 或随 backlog 修复，留痕即可
+- [x] `docs-for-ai/` 相关 DSL 文档（若存在 stream DSL 用法章节）同步 fail-fast 行为；否则 `No owner-doc update required`
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - checkpoint 配置与窗口策略属性契约（P1-XDSL-6）
 
-Status: planned
+Status: completed
 Targets: `nop-stream/nop-stream-flow/src/main/java/io/nop/stream/flow/builder/StreamModelDslBuilder.java`、`AdvancedTransforms.java`、`TestAdvancedTransforms.java`（内联策略 fixture）
 
 - Item Types: `Fix | Fix | Fix | Fix`
 
-- [ ] Fix: `applyCheckpointConfig` 消费六个未消费字段（barrierAlignmentTimeout/maxConsecutiveCheckpointFailures/storageType/jobId/pipelineId/storageConfig）→ 映射到 core `CheckpointConfig` 对应 setter（setter 已存在，逐字段映射含 storageConfig 结构：DSL `KeyedList<StorageConfigEntry(key,value)>` → core `Map<String,String>`）；**非默认值判定钉死为 `!= xdef 默认值才 set`**（xdef 默认：barrierAlignmentTimeout=30000、maxConsecutiveCheckpointFailures=3、storageType="local"；jobId/pipelineId 为 null 检查——不得用 `> 0` 守卫，否则声明 0 被静默忽略）
-- [ ] Fix: `buildWindow` 对 `triggerId`/`allowedLateness`/`accumulationMode` 非默认值（xdef 默认：allowedLateness=0、accumulationMode=DISCARDING、triggerId 未设置）即 fail-fast（`StreamException` 含 transform id + 属性名）；默认值静默忽略合法（与默认行为一致）
-- [ ] Fix: `TestAdvancedTransforms` 内联策略中 `triggerId="t"` 的 5 处 fixture（:76/:93/:115/:138/:180）**全部改为删除 triggerId（回默认路径）**——注意 :115/:180 的断言消息 "nop-stream-runtime" 依赖 `buildWindow` 成功后才在 aggregate/reduce 边界失败，:138 依赖 buildWindow 的 IAE 先于 bean 检查触发，这些用例只有"回默认路径"才能保留其断言目的，不能改 fail-fast 分支；`test-smoke.stream.xml` 无 checkpoint/窗口属性，无需修改（其 `consistencyCapability` 属 AR-11 watch-only，不动）
-- [ ] Fix: 新增测试——checkpoint 六字段语义断言（DSL 构建后 `env.getCheckpointConfig()` 各字段值与声明一致，参数化，含 0/默认值边界）；窗口三属性非默认值 fail-fast 断言（参数化）
+- [x] Fix: `applyCheckpointConfig` 消费六个未消费字段（barrierAlignmentTimeout/maxConsecutiveCheckpointFailures/storageType/jobId/pipelineId/storageConfig）→ 映射到 core `CheckpointConfig` 对应 setter（setter 已存在，逐字段映射含 storageConfig 结构：DSL `KeyedList<StorageConfigEntry(key,value)>` → core `Map<String,String>`）；**非默认值判定钉死为 `!= xdef 默认值才 set`**（xdef 默认：barrierAlignmentTimeout=30000、maxConsecutiveCheckpointFailures=3、storageType="local"；jobId/pipelineId 为 null 检查——不得用 `> 0` 守卫，否则声明 0 被静默忽略）
+- [x] Fix: `buildWindow` 对 `triggerId`/`allowedLateness`/`accumulationMode` 非默认值（xdef 默认：allowedLateness=0、accumulationMode=DISCARDING、triggerId 未设置）即 fail-fast（`StreamException` 含 transform id + 属性名）；默认值静默忽略合法（与默认行为一致）。**执行时裁定（基线事实修正）**：live `stream.xdef:47` 的 `triggerId="!string"` 是 mandatory，与 plan 假定的"triggerId 未设置"默认路径矛盾——minimal relaxation `!string → string`（仅去除 mandatory 标记，属性定义/生成类零变更）；不放松则 triggerId 必声明 → fail-fast 必触发 → window DSL 整体不可构建，违反 Phase 1 exit criteria。`window` 节点级 `<allowedLateness>`/`<triggerId>` 子元素（AR-12 watch-only）经同一校验天然覆盖，AR-12 标注关闭（roadmap 已更新）
+- [x] Fix: `TestAdvancedTransforms` 内联策略中 `triggerId="t"` 的 5 处 fixture（:76/:93/:115/:138/:180）**全部改为删除 triggerId（回默认路径）**——注意 :115/:180 的断言消息 "nop-stream-runtime" 依赖 `buildWindow` 成功后才在 aggregate/reduce 边界失败，:138 依赖 buildWindow 的 IAE 先于 bean 检查触发，这些用例只有"回默认路径"才能保留其断言目的，不能改 fail-fast 分支；`test-smoke.stream.xml` 无 checkpoint/窗口属性，无需修改（其 `consistencyCapability` 属 AR-11 watch-only，不动）
+- [x] Fix: 新增测试——checkpoint 六字段语义断言（DSL 构建后 `env.getCheckpointConfig()` 各字段值与声明一致，参数化，含 0/默认值边界）；窗口三属性非默认值 fail-fast 断言（参数化）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 六字段全部实现映射（grep 复核 setter 调用点）；窗口三属性全部 fail-fast（grep 复核 getter 调用点 + fail-fast 断言测试）
-- [ ] checkpoint 六字段语义断言全绿：`env.getCheckpointConfig()` 反映声明值（含 storageConfig 结构映射）
-- [ ] `TestAdvancedTransforms` 中 `triggerId="t"` 用例与修复后行为一致（先红后绿）
-- [ ] flow 模块全量测试回归绿（`TestAdvancedTransforms`、`TestStreamModelDslBuilderE2E`/`TestStreamModelDslBuilderFailFast`、示例 DSL 测试等）
-- [ ] **无静默跳过**：fail-fast 错误信息含 DSL 节点 id 与属性名，可定位到声明位置
-- [ ] 说明：无 pipeline-execution E2E 适用——flow 测试 classpath 无 `nop-stream-runtime`（`TestAdvancedTransforms.java:41-51` 记录），窗口/checkpoint 执行验证由 `env.getCheckpointConfig()` 断言与构建期 fail-fast 断言承担；运行时语义由运行时模块测试覆盖
-- [ ] `docs-for-ai/` 相关 DSL 文档（若存在 checkpoint/窗口用法章节）同步；否则 `No owner-doc update required`
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 六字段全部实现映射（grep 复核 setter 调用点）；窗口三属性全部 fail-fast（grep 复核 getter 调用点 + fail-fast 断言测试）
+- [x] checkpoint 六字段语义断言全绿：`env.getCheckpointConfig()` 反映声明值（含 storageConfig 结构映射）
+- [x] `TestAdvancedTransforms` 中 `triggerId="t"` 用例与修复后行为一致（先红后绿）
+- [x] flow 模块全量测试回归绿（`TestAdvancedTransforms`、`TestStreamModelDslBuilderE2E`/`TestStreamModelDslBuilderFailFast`、示例 DSL 测试等）
+- [x] **无静默跳过**：fail-fast 错误信息含 DSL 节点 id 与属性名，可定位到声明位置
+- [x] 说明：无 pipeline-execution E2E 适用——flow 测试 classpath 无 `nop-stream-runtime`（`TestAdvancedTransforms.java:41-51` 记录），窗口/checkpoint 执行验证由 `env.getCheckpointConfig()` 断言与构建期 fail-fast 断言承担；运行时语义由运行时模块测试覆盖
+- [x] `docs-for-ai/` 相关 DSL 文档（若存在 checkpoint/窗口用法章节）同步；否则 `No owner-doc update required`
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - flow 模块错误码体系接入（P1-09-02）
 
-Status: planned
+Status: completed
 Targets: `nop-stream/nop-stream-flow/src/main/java/io/nop/stream/flow/builder/`（含 `builder/functions/` 子目录全部文件）、`nop-stream-core/.../exceptions/NopStreamErrors.java`（仅新增码）、`TestAdvancedTransforms.java` / `TestStreamModelDslBuilderFailFast.java` / `TestStreamModelDeltaFailFast.java` / `TestBeanFunctionResolver.java`（异常断言迁移）
 
 - Item Types: `Fix | Fix | Fix | Proof | Proof`
 
-- [ ] Fix: 新增高频错误码（duplicate transform id、not-yet-implemented registry、upstream 校验失败、类型校验失败等）到 `NopStreamErrors`（遵循 AGENTS.md 两档错误处理：模块内用 `StreamException` + ErrorCode + `.param(...)`）
-- [ ] Fix: 58 处裸异常批量替换为 `StreamException(ERR_STREAM_...)`（保留英文消息、cause、fail-fast 意图）；错误码语义与场景匹配（不得盲取死码）；**范围含 `builder/functions/*.java` 的 6 处**（Phase 1/2 新增的 fail-fast 抛出点同步用新体系）
-- [ ] Fix: **迁移既有异常类型断言**——按 live grep 实测计数：`TestAdvancedTransforms`（4× IAE :97/:142/:314/:332 + 2× UOE :350/:364）、`TestStreamModelDslBuilderFailFast`（7× UOE）、`TestStreamModelDeltaFailFast`（1× UOE）、`TestBeanFunctionResolver`（2× IAE）改为断言 `StreamException` + 错误码 + 保留消息断言（不得放宽为 `Exception.class`）；**`TestAdvancedTransforms` 已有的 2 处 `StreamException` 断言（:125/:188）无需改动**；`:268` 的 `assertThrows(Exception.class)` 是解析器拒绝测试（builder 外作用域），维持不变并在执行日志注明
-- [ ] Proof: 新增/扩展测试——至少高频路径（duplicate id、not-yet-implemented）断言 `getErrorCode()` 非空且消息保留上下文
-- [ ] Proof: 类别清扫——flow 模块（含 `builder/functions/`）grep 复核零裸 `RuntimeException` 子类残留（`throw new (IllegalArgumentException|IllegalStateException|UnsupportedOperationException)` 在 flow main 代码 0 命中，或全部命中处经裁定豁免登记）
+- [x] Fix: 新增高频错误码（duplicate transform id、not-yet-implemented registry、upstream 校验失败、类型校验失败等）到 `NopStreamErrors`（遵循 AGENTS.md 两档错误处理：模块内用 `StreamException` + ErrorCode + `.param(...)`）
+- [x] Fix: 58 处裸异常批量替换为 `StreamException(ERR_STREAM_...)`（保留英文消息、cause、fail-fast 意图）；错误码语义与场景匹配（不得盲取死码）；**范围含 `builder/functions/*.java` 的 6 处**（Phase 1/2 新增的 fail-fast 抛出点同步用新体系）
+- [x] Fix: **迁移既有异常类型断言**——按 live grep 实测计数：`TestAdvancedTransforms`（4× IAE :97/:142/:314/:332 + 2× UOE :350/:364）、`TestStreamModelDslBuilderFailFast`（7× UOE）、`TestStreamModelDeltaFailFast`（1× UOE）、`TestBeanFunctionResolver`（2× IAE）改为断言 `StreamException` + 错误码 + 保留消息断言（不得放宽为 `Exception.class`）；**`TestAdvancedTransforms` 已有的 2 处 `StreamException` 断言（:125/:188）无需改动**；`:268` 的 `assertThrows(Exception.class)` 是解析器拒绝测试（builder 外作用域），维持不变并在执行日志注明
+- [x] Proof: 新增/扩展测试——至少高频路径（duplicate id、not-yet-implemented）断言 `getErrorCode()` 非空且消息保留上下文
+- [x] Proof: 类别清扫——flow 模块（含 `builder/functions/`）grep 复核零裸 `RuntimeException` 子类残留（`throw new (IllegalArgumentException|IllegalStateException|UnsupportedOperationException)` 在 flow main 代码 0 命中，或全部命中处经裁定豁免登记）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] flow 模块（含 `builder/functions/`）裸异常清零（grep 复核）
-- [ ] 新增错误码有抛出点 + 测试断言 `getErrorCode()` 非空
-- [ ] 既有异常类型断言迁移完成且回归全绿（4 个测试文件；保留消息断言）
-- [ ] flow 模块全量测试回归绿
-- [ ] **端到端验证**：DSL 构建错误经 `StreamException` 冒泡到调用方（错误码可程序化处理）已验证
-- [ ] `docs-for-ai/02-core-guides/error-handling.md` 若需登记模块异常类用法则同步；否则 `No owner-doc update required`
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] flow 模块（含 `builder/functions/`）裸异常清零（grep 复核）
+- [x] 新增错误码有抛出点 + 测试断言 `getErrorCode()` 非空
+- [x] 既有异常类型断言迁移完成且回归全绿（4 个测试文件；保留消息断言）
+- [x] flow 模块全量测试回归绿
+- [x] **端到端验证**：DSL 构建错误经 `StreamException` 冒泡到调用方（错误码可程序化处理）已验证
+- [x] `docs-for-ai/02-core-guides/error-handling.md` 若需登记模块异常类用法则同步；否则 `No owner-doc update required`
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。
 
-- [ ] P1-XDSL-5 已修复：edge 六属性消费或 fail-fast + 测试证据在案
-- [ ] P1-XDSL-6 已修复：checkpoint 六字段 + 窗口策略三属性消费或 fail-fast + 测试证据在案
-- [ ] P1-09-02 已修复：flow 模块裸异常清零 + 错误码测试证据在案
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] 受影响的 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）fail-fast 分支在运行时确实可达（测试断言），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw test -pl nop-stream/nop-stream-flow -am -T 1C`
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream-flow --severity high` exit 0
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs 2026-08-13-1243-2-nop-stream-flow-dsl-contract-fixes.md --strict` exit 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` exit 0（若修改了 docs-for-ai）
+- [x] P1-XDSL-5 已修复：edge 六属性消费或 fail-fast + 测试证据在案
+- [x] P1-XDSL-6 已修复：checkpoint 六字段 + 窗口策略三属性消费或 fail-fast + 测试证据在案
+- [x] P1-09-02 已修复：flow 模块裸异常清零 + 错误码测试证据在案
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
+- [x] 受影响的 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）fail-fast 分支在运行时确实可达（测试断言），（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw test -pl nop-stream/nop-stream-flow -am -T 1C`
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream-flow --severity high` exit 0
+- [x] `node ai-dev/tools/check-plan-checklist.mjs 2026-08-13-1243-2-nop-stream-flow-dsl-contract-fixes.md --strict` exit 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` exit 0（若修改了 docs-for-ai）
 
 ## Deferred But Adjudicated
 
@@ -169,15 +169,22 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: 完成或关闭时填写
-Completed: YYYY-MM-DD
+Status Note: 三 Phase 全部落地（edge 属性消费/fail-fast、checkpoint 六字段实现 + 窗口属性 fail-fast、flow 错误码体系接入），Phase 1/2/3 Exit Criteria 与 Closure Gates 全部勾选，独立 closure audit（fresh session）PASS 16/16。
+Completed: 2026-08-13
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Evidence: <<task id / daily log link / findings 摘要>>
+- Reviewer / Agent: 独立子 agent（fresh session，read-only）
+- Audit Session: `ses_0061177d2ffefKhB6Sj3RueLxJ`
+- Evidence:
+  - Phase 1 exit criteria 验证（PASS）：`validateEdgeDeclarations`（`StreamModelDslBuilder.java:349`，buildTransforms:304 调用）覆盖六属性；`applyEdgePartition`（:568）经 `keyBy` 落地 HASH+keyExpr（:576）；`resolveEdgePartition`（:545）live 调用者在 :569（main）；`requireSingleInput` :434 消费边属性；`AdvancedTransforms.java:469` 同链。`TestStreamModelEdgeContract` 11 用例 0 失败（8 参数化 fail-fast + redundant + WindowedStream 落地断言 + sink 构建）。`test-reduce-pipeline.stream.xml:24` e0=FORWARD、`fraud-detection.stream.xml:97-98` e3/e4=FORWARD。
+  - Phase 2 exit criteria 验证（PASS）：`applyCheckpointConfig`（:167-221）六字段 `!= xdef 默认` 映射（:198-220，常量 :120-122 对齐 stream.xdef:31-35 默认）；`buildWindow` → `failFastOnUnsupportedWindowStrategy`（:177-197）+ `failFastOnUnsupportedWindowNodeAttrs`（:204-216）ERR_STREAM_WINDOW_ATTR_UNSUPPORTED 含 transform id + 属性名；`stream.xdef` git diff 唯一变更 = `triggerId="!string"` → `"string"`（:47，plan 基线事实修正，见 Phase 2 item 2 记录）；`TestAdvancedTransforms` triggerId 零残留；`TestStreamCheckpointAndWindowContract` 8 用例 0 失败（六字段语义 + 0 边界 + core 默认对齐）。
+  - Phase 3 exit criteria 验证（PASS）：flow main grep `throw new (IAE|ISE|UOE)` 0 命中；16 个新错误码（NopStreamErrors.java:462-539）各有 ≥1 flow main 抛出点；四个测试文件断言迁移完成全绿；`TestStreamErrorCodeContract` 4 用例（getErrorCode() 非空 + 端到端程序化错误码分支）。
+  - Closure Gate 工具验证（PASS）：`./mvnw test -pl nop-stream/nop-stream-flow -am -T 1C` BUILD SUCCESS（flow 74 tests / 0 failures；nop-stream 组全量 0 失败：core 1473 / runtime 829 / cep 327 / rocksdb 86 / connector 35 / connector-jdbc 32 / connector-batch 35 / connector-debezium 19 / flow 74 / fraud-example 25）；`scan-hollow-implementations.mjs --module nop-stream-flow --severity high` exit 0（0 findings）；`check-nop-stream-invariants.mjs all` exit 0；`check-plan-checklist.mjs --strict` exit 0；`check-doc-links.mjs --strict` exit 0。
+  - Anti-Hollow 检查：keyBy 调用链 buildTransform → requireSingleInput → applyEdgePartition → keyBy（:419-435→:568-576）运行时连通（测试断言 WindowedStream 产物）；checkpoint 六 setter 经 build() → applyCheckpointConfig 调用（:157）可达（语义断言验证）；无空方法体/静默跳过/no-op。
+  - Deferred 项分类检查：Non-Goals/Deferred 项全部维持 out-of-scope（分区运行时数据面、WindowedStream 公共 API、AR-11 watch-only、AR-16）——无 in-scope live defect 被降级；AR-12（window 节点级属性）由 fail-fast 机制天然覆盖，roadmap 标 done。
 
 Follow-up:
 
-- <<只记录 non-blocking follow-up；confirmed live defect 不得出现在这里>>
-- 或明确写 no remaining plan-owned work
+- no remaining plan-owned work
+- P2 批次维持 backlog 触发条件不变：fraud-detection.stream.xml 死文件（P2-03-02/XDSL-1~4）、AR-10（7 个死错误码 + NopStreamErrors 死码清理）、AR-11（source/sink maxParallelism/consistencyCapability watch-only）、P2-09-02b（core/runtime 裸异常批次）、AR-16（CEP SKIP_TO 校验）
