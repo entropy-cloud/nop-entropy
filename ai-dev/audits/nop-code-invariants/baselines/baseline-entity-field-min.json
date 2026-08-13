@@ -1,0 +1,31 @@
+{
+  "family": "entity-field-min",
+  "generatedAt": "2026-08-13T00:52:13.779Z",
+  "note": "Monotonic ratchet baseline. Removing/weakening entries requires human review + committed regression. See gate-baseline-I1.md.",
+  "signatures": [
+    "nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeIndexService.java:1602 [findAllByQuery(query) few-fields]",
+    "nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeIndexService.java:1698 [findAllByQuery(deleteQuery) few-fields]",
+    "nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeIndexService.java:1818 [findAllByQuery(query) size]",
+    "nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeIndexService.java:1882 [findAllByQuery(fq) few-fields]",
+    "nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeIndexService.java:899 [findAllByQuery(query) size]",
+    "nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeQueryService.java:126 [findAllByQuery(query) few-fields]",
+    "nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeQueryService.java:136 [findAllByQuery(query) few-fields]",
+    "nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeQueryService.java:147 [findAllByQuery(query) few-fields]",
+    "nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeQueryService.java:253 [findAllByQuery(fileQuery) few-fields]",
+    "nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeQueryService.java:271 [findAllByQuery(symQuery) few-fields]",
+    "nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeQueryService.java:320 [findAllByQuery(fileQuery) few-fields]",
+    "nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeQueryService.java:590 [findAllByQuery(qnQuery) few-fields]",
+    "nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeQueryService.java:606 [findAllByQuery(childQuery) few-fields]",
+    "nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeQueryService.java:611 [findAllByQuery(memberQuery) few-fields]",
+    "nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeQueryService.java:673 [findAllByQuery(symbolQuery) few-fields]",
+    "nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeQueryService.java:689 [findAllByQuery(qb) few-fields]",
+    "nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeQueryService.java:704 [findAllByQuery(fileQuery) few-fields]",
+    "nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeQueryService.java:756 [findAllByQuery(annotQuery) few-fields]",
+    "nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeQueryService.java:763 [findAllByQuery(fuzzyQuery) few-fields]",
+    "nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeQueryService.java:792 [findAllByQuery(symQuery) few-fields]",
+    "nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeSearchService.java:129 [findAllByQuery(qb) few-fields]",
+    "nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeSearchService.java:152 [findAllByQuery(qb) few-fields]",
+    "nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeSearchService.java:329 [findAllByQuery(fq) few-fields]",
+    "nop-code/nop-code-service/src/main/java/io/nop/code/service/incremental/OrmFingerprintStore.java:102 [findAllByQuery(query) size]"
+  ]
+}
