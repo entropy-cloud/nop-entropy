@@ -36,7 +36,9 @@ public interface IStreamCoordinatorRpcService {
 
     /**
      * G52: per-node batched liveness piggybacked on {@code TaskManager.heartbeat()}.
-     * Each entry carries one task's {@code lastProgressTime}; the coordinator
+     * Each entry carries one task's aliveness timestamp (G52 / AR-01: task
+     * thread loop activity for MIDDLE/SINK, TaskManager wall clock for
+     * SOURCE/SELF_CONTAINED — decoupled from data progress); the coordinator
      * detects stalls by comparing against {@code taskTimeout}.
      *
      * @param nodeId the reporting node

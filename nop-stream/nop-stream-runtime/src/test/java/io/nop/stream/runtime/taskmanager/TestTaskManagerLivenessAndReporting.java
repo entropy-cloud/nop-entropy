@@ -140,6 +140,71 @@ class TestTaskManagerLivenessAndReporting {
                 new io.nop.stream.core.operators.StreamMap<>(x -> x)));
     }
 
+    /**
+     * AR-01 regression (idle task): a SINK-role task whose input gate delivers
+     * no data must keep reporting FRESH aliveness on the heartbeat, so the
+     * coordinator never flags a healthy idle task as stalled.
+     *
+     * <p>Pre-fix the heartbeat reported the invokable's {@code lastProgressTime}
+     * (frozen at construction when no data flows) → the reported value ages past
+     * taskTimeoutMs → stall → recovery. Post-fix the heartbeat reports the task
+     * thread's loop-activity timestamp, which the idle loop top keeps refreshing.
+     */
+    @Test
+    void idleSinkTaskHeartbeatReportsFreshAliveness() throws Exception {
+        long token = 1L;
+        taskManager.updateFencingToken(token);
+        TaskAssignment a = new TaskAssignment(
+                "job-1", "v-idle", 0, "node-1", "att-1", token, System.currentTimeMillis(), 1);
+        taskManager.receiveAssignment(a);
+
+        // SINK-role invokable: input gate that is never finished but never
+        // delivers data → the task runs an idle loop.
+        StreamTaskInvokable inv = new StreamTaskInvokable(
+                buildEmptyOperatorChain(), (io.nop.stream.core.execution.RecordWriter<Object>) null,
+                new IdleInputGate());
+        taskManager.installInvokable("job-1", "v-idle", 0, inv);
+
+        // Let the idle loop run past the idle-return threshold several times.
+        Thread.sleep(800);
+        assertEquals(1, taskManager.getRunningTaskCount(),
+                "idle task must still be running (not completed, not failed)");
+
+        taskManager.heartbeat();
+        List<TaskProgress> batch = coordinatorRpc.livenessBatches.get(coordinatorRpc.livenessBatches.size() - 1);
+        assertNotNull(batch, "heartbeat must report liveness for the idle task");
+        assertEquals(1, batch.size(), "exactly one running task → one liveness entry");
+        long reported = batch.get(0).getLastProgressTime();
+        assertTrue(reported >= System.currentTimeMillis() - 300L,
+                "idle task heartbeat must report FRESH aliveness (got " + reported
+                        + "); a stale value ages past taskTimeoutMs and falsely triggers stall recovery");
+
+        taskManager.cancelTask("job-1", "v-idle", 0);
+    }
+
+    /**
+     * An input gate that is momentarily idle forever: no data, never finished.
+     * Mirrors the AR-02 idle-return path (read() returning empty so the task
+     * loop cycles back to its top). The single dummy channel is never touched
+     * because read()/isAllFinished() are overridden.
+     */
+    static class IdleInputGate extends io.nop.stream.core.execution.InputGate {
+        IdleInputGate() {
+            super(java.util.Collections.singletonList(
+                    new io.nop.stream.core.execution.InputChannel(new io.nop.stream.core.execution.ResultPartition())));
+        }
+
+        @Override
+        public java.util.Optional<io.nop.stream.core.streamrecord.StreamElement> read() {
+            return java.util.Optional.empty();
+        }
+
+        @Override
+        public boolean isAllFinished() {
+            return false;
+        }
+    }
+
     @Test
     void runningTaskFinallyReportsFailedStatusOnException() throws Exception {
         long token = 1L;

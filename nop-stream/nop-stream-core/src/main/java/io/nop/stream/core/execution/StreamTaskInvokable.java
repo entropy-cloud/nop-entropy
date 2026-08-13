@@ -104,6 +104,23 @@ public class StreamTaskInvokable implements Invokable<Void> {
      */
     private volatile long lastProgressTime = System.currentTimeMillis();
 
+    /**
+     * G52 / AR-01: task-thread aliveness timestamp. Updated at every loop
+     * iteration of {@link #processInputGate} — <b>including idle
+     * iterations</b> (the AR-02 idle-return path cycles back to the loop
+     * top) — so a healthy but data-idle MIDDLE/SINK task keeps a fresh
+     * aliveness while a genuinely hung task (thread stuck in user code, loop
+     * no longer progressing) ages out. Reported by
+     * {@code TaskManager.heartbeat()} as the liveness signal for MIDDLE/SINK
+     * roles. SOURCE/SELF_CONTAINED roles report the TM-side wall clock
+     * instead (their run loop may legitimately block for the whole source
+     * lifetime; data progress is decoupled from liveness there).
+     *
+     * <p>Volatile because the writer is the task thread and the reader is the
+     * heartbeat thread; only ever assigned monotonically non-decreasing values.
+     */
+    private volatile long lastActivityTime = System.currentTimeMillis();
+
     private CheckpointBarrierTracker barrierTracker;
 
     private Input<Object> headInput;
@@ -396,6 +413,28 @@ public class StreamTaskInvokable implements Invokable<Void> {
         this.lastProgressTime = System.currentTimeMillis();
     }
 
+    /**
+     * G52 / AR-01: task-thread aliveness timestamp. Fresh while the task's main
+     * loop keeps cycling (data or idle); ages only when the task thread is
+     * genuinely stuck and no longer reaches the loop top.
+     *
+     * @return monotonic timestamp of the last task-thread loop activity; never
+     *         decreases
+     */
+    public long getLastActivityTime() {
+        return lastActivityTime;
+    }
+
+    /**
+     * G52 / AR-01: marks a task-thread aliveness event. Called at the top of
+     * every {@link #processInputGate} loop iteration (idle and data) and at
+     * {@code invoke()} role start points. Idempotent and thread-safe (volatile
+     * assignment from the task thread only).
+     */
+    public void markActivity() {
+        this.lastActivityTime = System.currentTimeMillis();
+    }
+
     public OperatorChain getOperatorChain() {
         return operatorChain;
     }
@@ -564,6 +603,10 @@ public class StreamTaskInvokable implements Invokable<Void> {
         // SourceContext.collect() (the per-record emission path) also marks progress;
         // this initial marker covers a slow-start source that has not emitted yet.
         markProgress();
+        // G52 / AR-01: task-thread aliveness at role start. SOURCE liveness is
+        // reported by the TM as wall clock (see TaskManager.heartbeat), so this
+        // marker is diagnostic-only for the blocking-source path.
+        markActivity();
         Exception sourceError = null;
         try {
             List<StreamOperator<?>> operators = operatorChain.getOperators();
@@ -631,6 +674,9 @@ public class StreamTaskInvokable implements Invokable<Void> {
     @SuppressWarnings("unchecked")
     private void invokeMiddle() throws Exception {
         operatorChain.open();
+        // G52 / AR-01: task-thread aliveness at role start (the loop top tick
+        // in processInputGate keeps it fresh afterwards, incl. idle iter.).
+        markActivity();
         Exception inputError = null;
         try {
             if (headInput != null) {
@@ -657,6 +703,8 @@ public class StreamTaskInvokable implements Invokable<Void> {
     @SuppressWarnings("unchecked")
     private void invokeSink() throws Exception {
         operatorChain.open();
+        // G52 / AR-01: task-thread aliveness at role start (see invokeMiddle).
+        markActivity();
         Exception inputError = null;
         try {
             if (headInput != null) {
@@ -683,6 +731,8 @@ public class StreamTaskInvokable implements Invokable<Void> {
         operatorChain.open();
         // G52: liveness marker for SELF_CONTAINED at the start of run.
         markProgress();
+        // G52 / AR-01: task-thread aliveness at role start (see invokeSource).
+        markActivity();
         Exception sourceError = null;
         try {
             List<StreamOperator<?>> operators = operatorChain.getOperators();
@@ -729,6 +779,13 @@ public class StreamTaskInvokable implements Invokable<Void> {
     @SuppressWarnings("unchecked")
     private void processInputGate(Input<Object> headInput) throws Exception {
         while (true) {
+            // G52 / AR-01: task-thread aliveness tick at the top of every loop
+            // iteration, INCLUDING idle iterations (the AR-02 idle-return path
+            // cycles back here). A healthy idle task keeps this fresh; a hung
+            // task (thread stuck in user code, no data, no loop progress) stops
+            // ticking and ages out past taskTimeoutMs at the coordinator.
+            markActivity();
+
             // Control-plane drain at the top of the main loop: process any pending
             // control mails (cancel marker, future processing-time timer) and observe
             // the cooperative cancel flag so abort exits gracefully instead of relying

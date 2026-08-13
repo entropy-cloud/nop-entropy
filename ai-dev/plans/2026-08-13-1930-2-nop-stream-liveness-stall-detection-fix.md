@@ -1,6 +1,6 @@
 # 2 G52 per-task liveness 停滞检测修复：空闲/已完成任务不再被误判停滞（AR-01 P1）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-13
 > Mission: nop-stream-invariant-loop
 > Source: `ai-dev/audits/2026-08-13-1930-open-audit-nop-stream-invariant-loop.md` AR-01（G52 liveness 停滞检测误杀空闲/已完成任务）
@@ -61,71 +61,71 @@
 
 ### Phase 1 - 停滞检测语义修正（Fix + 裁定）
 
-Status: planned
+Status: completed
 Targets: `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/coordinator/JobCoordinator.java`、`nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/taskmanager/TaskManager.java`、`nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/StreamTaskInvokable.java`
 
 - Item Types: `Fix | Decision`
 
-- [ ] Decision：裁定停滞判定方案——(a) liveness 改为心跳时间戳（TM 每跳上报墙钟，与数据进度解耦）或 (b) 停滞判定排除 COMPLETED/空闲任务（reportTaskStatus 收到 COMPLETED 时清除 assignment/liveness）。裁定依据：与 FAILED-report 恢复路径语义一致性、心跳周期（5s）与数据流量的耦合度、对"真停滞"检测时延的影响。裁定结论 + 拒绝理由落档 plan 或 design doc。**硬约束**：所选方案必须同时满足本节 Exit Criteria 的三条行为（空闲不触发 / 已完成不触发 / 真停滞仍触发）——纯"心跳墙钟"方案单独成立会静默丢失真停滞检测（心跳存活的任务永不超时），若选 (a) 必须补充等价信号（如 input-pending / busy 维度）使三条同时成立；不允许为满足空闲排除而牺牲真停滞面。
-- [ ] Fix：按裁定方案实现停滞判定修正（涉及 `detectFailures` 判定逻辑 + `reportTaskStatus` COMPLETED 清理 与/或 `TaskManager` 心跳/`StreamTaskInvokable` liveness 语义）。
-- [ ] Fix：停滞路径门控——`detectFailures` 的停滞驱动恢复与 `autoRecoverOnFailedReport` 语义对齐（若选门控方案）或显式裁定"停滞检测恒启用"并文档化理由。
-- [ ] 类别清扫：grep 全仓 `subtaskLiveness` / `lastProgressTime` / `taskStallDetected` / `taskTimeoutMs` 消费点，确认无其他路径依赖旧语义。
+- [x] Decision：裁定停滞判定方案——(a) liveness 改为心跳时间戳（TM 每跳上报墙钟，与数据进度解耦）或 (b) 停滞判定排除 COMPLETED/空闲任务（reportTaskStatus 收到 COMPLETED 时清除 assignment/liveness）。裁定依据：与 FAILED-report 恢复路径语义一致性、心跳周期（5s）与数据流量的耦合度、对"真停滞"检测时延的影响。裁定结论 + 拒绝理由落档 plan 或 design doc。**硬约束**：所选方案必须同时满足本节 Exit Criteria 的三条行为（空闲不触发 / 已完成不触发 / 真停滞仍触发）——纯"心跳墙钟"方案单独成立会静默丢失真停滞检测（心跳存活的任务永不超时），若选 (a) 必须补充等价信号（如 input-pending / busy 维度）使三条同时成立；不允许为满足空闲排除而牺牲真停滞面。
+- [x] Fix：按裁定方案实现停滞判定修正（涉及 `detectFailures` 判定逻辑 + `reportTaskStatus` COMPLETED 清理 与/或 `TaskManager` 心跳/`StreamTaskInvokable` liveness 语义）。
+- [x] Fix：停滞路径门控——`detectFailures` 的停滞驱动恢复与 `autoRecoverOnFailedReport` 语义对齐（若选门控方案）或显式裁定"停滞检测恒启用"并文档化理由。
+- [x] 类别清扫：grep 全仓 `subtaskLiveness` / `lastProgressTime` / `taskStallDetected` / `taskTimeoutMs` 消费点，确认无其他路径依赖旧语义。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] Decision 裁定记录在案（方案选择 + 拒绝理由）。
-- [ ] 空闲任务（无数据流入 > 2×taskTimeoutMs）不再触发停滞恢复。
-- [ ] 已完成任务（COMPLETED 报告后）不再触发停滞恢复。
-- [ ] 真停滞任务（数据不推进但进程存活）仍触发恢复（既有 `staleLivenessTriggersRecoveryViaDetectFailures` 测试保持绿）。
-- [ ] 停滞路径门控与 FAILED 路径门控语义一致（或显式裁定记录）。
-- [ ] **无静默跳过**：新逻辑无空方法体/吞异常占位。
-- [ ] 文档：`checkpoint-design.md` / `core-design.md` 停滞检测语义同步；否则 `No owner-doc update required`。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] Decision 裁定记录在案（方案选择 + 拒绝理由）。
+- [x] 空闲任务（无数据流入 > 2×taskTimeoutMs）不再触发停滞恢复。
+- [x] 已完成任务（COMPLETED 报告后）不再触发停滞恢复。
+- [x] 真停滞任务（数据不推进但进程存活）仍触发恢复（既有 `staleLivenessTriggersRecoveryViaDetectFailures` 测试保持绿）。
+- [x] 停滞路径门控与 FAILED 路径门控语义一致（或显式裁定记录）。
+- [x] **无静默跳过**：新逻辑无空方法体/吞异常占位。
+- [x] 文档：`checkpoint-design.md` / `core-design.md` 停滞检测语义同步；否则 `No owner-doc update required`。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 2 - 回归测试（先红后绿）
 
-Status: planned
+Status: completed
 Targets: `nop-stream/nop-stream-runtime/src/test`（TestJobCoordinatorPerTaskFailure 扩展或新增测试类）
 
 - Item Types: `Fix | Proof`
 
-- [ ] 复现测试（先红）：空闲任务（构造无数据心跳停滞场景，推进 wall clock 超 taskTimeoutMs）pre-fix 触发 recovery（红）→ post-fix 不触发（绿）。
-- [ ] 复现测试（先红）：已完成上游任务（COMPLETED 报告后）pre-fix 触发 recovery（红）→ post-fix 不触发（绿）。
-- [ ] 真停滞用例保持绿（`staleLivenessTriggersRecoveryViaDetectFailures`）。
-- [ ] 如采用门控方案：`autoRecoverOnFailedReport=false` 时停滞不触发恢复的用例。
-- [ ] 验证：新增测试 + 既有 `TestJobCoordinatorPerTaskFailure` 全绿。
+- [x] 复现测试（先红）：空闲任务（构造无数据心跳停滞场景，推进 wall clock 超 taskTimeoutMs）pre-fix 触发 recovery（红）→ post-fix 不触发（绿）。
+- [x] 复现测试（先红）：已完成上游任务（COMPLETED 报告后）pre-fix 触发 recovery（红）→ post-fix 不触发（绿）。
+- [x] 真停滞用例保持绿（`staleLivenessTriggersRecoveryViaDetectFailures`）。
+- [x] 如采用门控方案：`autoRecoverOnFailedReport=false` 时停滞不触发恢复的用例。
+- [x] 验证：新增测试 + 既有 `TestJobCoordinatorPerTaskFailure` 全绿。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 三条核心用例（空闲不触发 / 已完成不触发 / 真停滞触发）存在且全绿，先红后绿证据在案。
-- [ ] 门控语义用例（如适用）存在且全绿。
-- [ ] 既有相关测试未回退。
-- [ ] **端到端验证**：分布式路径（RpcDistributedExecutor）空闲作业长时间运行不被误杀的验证——复用既有基建 `TestRpcDistributedExecutorE2E`（`nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/execution/TestRpcDistributedExecutorE2E.java`），扩展或新增空闲作业长跑用例（空闲时长 > restart 上限所需周期，断言不 FAILED）；若扩展面超出既有 E2E 基建能力，明确标注组件级验证范围 + 原因。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 三条核心用例（空闲不触发 / 已完成不触发 / 真停滞触发）存在且全绿，先红后绿证据在案。
+- [x] 门控语义用例（如适用）存在且全绿。
+- [x] 既有相关测试未回退。
+- [x] **端到端验证**：分布式路径（RpcDistributedExecutor）空闲作业长时间运行不被误杀的验证——复用既有基建 `TestRpcDistributedExecutorE2E`（`nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/execution/TestRpcDistributedExecutorE2E.java`），扩展或新增空闲作业长跑用例（空闲时长 > restart 上限所需周期，断言不 FAILED）；若扩展面超出既有 E2E 基建能力，明确标注组件级验证范围 + 原因。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见本 guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] AR-01 已修复（空闲/已完成任务不再误判停滞；真停滞仍触发）。
-- [ ] 停滞路径与 FAILED 路径门控语义一致（或显式裁定记录）。
-- [ ] 回归测试覆盖三态（空闲/已完成/真停滞）+ 门控语义。
-- [ ] 类别清扫完成，无遗留依赖旧语义的消费点。
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift。
-- [ ] 受影响的 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required。
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据。
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）修复后 `detectFailures` → `requestRecovery` 调用链在真停滞场景运行时连通（测试绿），（b）无空方法体/静默跳过/no-op 作为正常实现。
-- [ ] `./mvnw test -pl nop-stream -am -T 1C`（全绿）
-- [ ] `./mvnw compile -pl nop-stream -am`
-- [ ] `node ai-dev/tools/check-nop-stream-invariants.mjs all` exit 0（JUnit 门禁 + output-contract/wiring 注册表；若改动影响注册表行号，同步注册表）
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream-core --severity high` exit 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream-runtime --severity high` exit 0
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs 2026-08-13-1930-2-nop-stream-liveness-stall-detection-fix.md --strict` exit 0
-- [ ] checkstyle / 代码规范检查通过
+- [x] AR-01 已修复（空闲/已完成任务不再误判停滞；真停滞仍触发）。
+- [x] 停滞路径与 FAILED 路径门控语义一致（或显式裁定记录）。
+- [x] 回归测试覆盖三态（空闲/已完成/真停滞）+ 门控语义。
+- [x] 类别清扫完成，无遗留依赖旧语义的消费点。
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift。
+- [x] 受影响的 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required。
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据。
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）修复后 `detectFailures` → `requestRecovery` 调用链在真停滞场景运行时连通（测试绿），（b）无空方法体/静默跳过/no-op 作为正常实现。
+- [x] `./mvnw test -pl nop-stream -am -T 1C`（全绿）
+- [x] `./mvnw compile -pl nop-stream -am`
+- [x] `node ai-dev/tools/check-nop-stream-invariants.mjs all` exit 0（JUnit 门禁 + output-contract/wiring 注册表；若改动影响注册表行号，同步注册表）
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream-core --severity high` exit 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream-runtime --severity high` exit 0
+- [x] `node ai-dev/tools/check-plan-checklist.mjs 2026-08-13-1930-2-nop-stream-liveness-stall-detection-fix.md --strict` exit 0
+- [x] checkstyle / 代码规范检查通过
 
 ## Deferred But Adjudicated
 
@@ -148,14 +148,20 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写>>
-Completed: YYYY-MM-DD
+Status Note: AR-01（G52 per-task liveness 停滞检测误杀空闲/已完成任务）已修复——liveness 信号与数据进度解耦（MIDDLE/SINK 任务线程循环活性 + SOURCE/SELF_CONTAINED TM 墙钟 + COMPLETED 报告移除 liveness 条目），真停滞检测面保留（既有 `staleLivenessTriggersRecoveryViaDetectFailures` 绿）；停滞驱动恢复无条件启用（显式裁定 + 文档 + 测试钉）；三态回归测试 + 分布式 RPC 空闲作业 E2E 先红后绿证据在案；类别清扫零遗留；全量回归 8616 tests 0 failures；门禁全绿。
+Completed: 2026-08-13
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Evidence: <<task id / daily log link / findings 摘要>>
+- Reviewer / Agent: 独立 closure audit（fresh session，read-only 子 agent）
+- Audit Session: `ses_0042c0939ffeObFHG9zczBdtNO`
+- Evidence:
+  - **Phase 1 Exit Criteria 8/8 PASS**：Decision 裁定落档 `checkpoint-design.md` §8.1.3（混合方案 + 拒绝纯墙钟/纯 COMPLETED 排除理由）；空闲不触发——`StreamTaskInvokable.java:122` lastActivityTime + `:787` processInputGate 循环顶 tick（空闲返回路径含内）+ `TaskManager.java:266-273` livenessValue 角色分流 + 3 项测试（TM 心跳新鲜度 / core 活性-进度解耦 / E2E）；已完成不触发——`JobCoordinator.java:903-910` COMPLETED → `subtaskLiveness.remove` + `completedTaskWithStaleProgressDoesNotTriggerStallRecovery`（断言 count==0 且 epoch 不变）；真停滞仍触发——`JobCoordinator.java:1059` 停滞分支 + 既有测试绿；门控裁定——停滞恒启用（`checkpoint-design.md:938` + `stallDetectionFiresEvenWhenAutoRecoverOnFailedReportDisabled` 测试钉）；无静默跳过——scan-hollow 双模块 0 发现；文档 + daily log 同步在案。
+  - **Phase 2 Exit Criteria 5/5 PASS**：三态用例先红后绿（red 实测：completed-stale progress 恢复触发、idle 心跳上报冻结值、E2E 首拍 restartCount=1）→ post-fix 全绿；门控语义用例在案；既有相关测试未回退（真停滞用例保留）；**E2E** `TestRpcDistributedExecutorE2E.idleJobWithNoDataIsNotKilledByStallDetection` 经真实 `RpcDistributedExecutor.startJob` + RPC 控制面（StreamControlRpcServer/Proxy）+ 空闲源，taskTimeoutMs=8s/maxRestarts=1 加速窗口，双 detectFailures 断言 restartCount==0 + 作业 RUNNING。
+  - **Closure Gates 15/15 PASS**：`./mvnw test -pl nop-stream -am -T 1C` 8616 tests / 0 failures / 0 errors（core 1479 / runtime 837）；`./mvnw compile -pl nop-stream -am` PASS；mjs `all` exit 0（wiring-registry 8 行 + output-contract 2 行重钉 501/502/247/285/304/310/465/474 + 892/960，审计复核与 live 行号一致）；scan-hollow core/runtime exit 0（0 findings）；check-doc-links `--strict` exit 0（0 errors）；repo checkstyle.xml 门禁 0 违规（默认 CLI Sun 噪音 11444 条 = 既有仓库基线，变更行零新增命中）；check-plan-checklist `--strict` exit 0（本文件）。
+  - **Anti-Hollow**：调用链运行时连通——链 1 `TaskManager.heartbeat()` → `livenessValue` → `reportNodeTaskLiveness`（跨真实 RPC）→ `subtaskLiveness` → `detectFailures` 停滞分支 → `requestRecovery`（CAS 去重）→ `globalRecovery`（E2E 实测：空闲 0 恢复 RUNNING；真停滞单测恢复触发）；链 2 `RunningTask.run()` finally → `reportTerminalStatus`(COMPLETED) → `reportTaskStatus` remove（双侧单测绿）；无空方法体/静默跳过/no-op。
+  - **Deferred 分类检查**：AR-03（RunningTask finally 槽位竞态）/ AR-04（日志占位符错位）为 P2 watch-only residual，plan Non-Goals 预先声明 out-of-scope，roadmap 维持 backlog `todo` 触发条件——无 in-scope live defect 被降级。
 
 Follow-up:
 
-- <<只记录 non-blocking follow-up>>
+- 无 remaining plan-owned work。非阻塞 follow-up：若未来为阻塞源引入源级活性钩子，可评估将"源停滞面"提升为 task 级检测（当前由 node lease / FAILED 报告 / 心跳缺口兜底，文档化限制在 `checkpoint-design.md` §8.1.3）。

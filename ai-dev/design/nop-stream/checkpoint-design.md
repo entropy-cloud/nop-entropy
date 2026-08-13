@@ -923,6 +923,23 @@ detect failure
 
 **对 baseline 的影响**：无。`globalRecovery()` 仍是唯一恢复入口，语义完整。targeted failover 从始至终是优化项，不是 exactly-once 正确性前置——本裁定确认该立场成立。G57 / G28（续）/ per-region 计数器保持 deferred → Stage 44。
 
+#### 8.1.3 per-task liveness 停滞检测语义（G52，AR-01 修复）
+
+**裁定（2026-08-13，plan `2026-08-13-1930-2` Phase 1）**：per-task 停滞检测的 liveness 信号与数据进度**解耦**——采用「任务线程活性（busy 维度）+ TM 墙钟（阻塞源）+ COMPLETED 排除」混合方案，使「空闲但健康」「已正常完成」「真正停滞」三态可区分。修复前 `lastProgressTime`（数据进度）被当作唯一存活信号，空闲源/已完成上游任务 60s 后即被误判停滞 → 每 ~60s 一次 globalRecovery → restart 上限（默认 3）耗尽 → 健康作业被 FAILED。
+
+**信号语义**（修复后）：
+
+| 角色 | 上报信号 | 来源 | 空闲时行为 | 真停滞时行为 |
+|---|---|---|---|---|
+| MIDDLE / SINK | 任务线程循环活性时间戳 | `StreamTaskInvokable.getLastActivityTime()`（`processInputGate` 循环顶每次迭代刷新，含 AR-02 空闲返回路径） | 循环持续运转 → 活性新鲜（~每 250ms 一拍） | 线程卡死在用户代码（循环不再前进）→ 活性老化 → 停滞触发 |
+| SOURCE / SELF_CONTAINED | TM 侧墙钟 | `TaskManager.heartbeat()` 上报 `System.currentTimeMillis()` | 心跳每 5s 刷新 → 永不老化 | 源挂死不在 task 级可检测面（阻塞 run 循环无循环边界钩子）→ 由 node lease / FAILED 报告 / 心跳缺口兜底 |
+
+- **COMPLETED 排除**：`JobCoordinator.reportTaskStatus` 收到 COMPLETED 报告时 `subtaskLiveness.remove(key)`（RunningTask.run() finally 已把任务移出 `runningTasks`，心跳不再上报，条目不会被重新加入）；`detectFailures` 对无记录条目保持 benefit-of-the-doubt → 已完成任务永久排除。FAILED 等其余终态报告记录**报告到达时刻**（存活事件本身），使心跳缺口恢复机制（槽位释放 → 心跳停 → liveness 老化 → 停滞触发）从新鲜基线起算。
+- **门控裁定**：停滞驱动的恢复**保持无条件启用**（不挂 `autoRecoverOnFailedReport`）。理由：`RpcDistributedExecutor` 显式关闭 FAILED-report 恢复（`autoRecoverOnFailedReport=false`），停滞路径是其 per-task 恢复的唯一触发器——挂上同一开关会移除生产 RPC 路径的全部 per-task 恢复；且修复后停滞检测只在真失败时触发（空闲/已完成误杀面已消除），与 FAILED 路径的「真实问题才恢复」意图收敛。测试钉：`TestJobCoordinatorPerTaskFailure.stallDetectionFiresEvenWhenAutoRecoverOnFailedReportDisabled`。
+- **可观测行为**：`taskTimeoutMs` 必须高于 TM 心跳周期（5s）——健康空闲任务的 liveness 每 5s 刷新，低于心跳周期会导致误判（javadoc 已注明）。
+- **测试**：`TestJobCoordinatorPerTaskFailure.completedTaskWithStaleProgressDoesNotTriggerStallRecovery`（已完成不触发，先红后绿）+ `TestTaskManagerLivenessAndReporting.idleSinkTaskHeartbeatReportsFreshAliveness`（空闲心跳新鲜，先红后绿）+ `TestStreamTaskInvokableActivityLiveness`（活性 vs 进度解耦单元）+ `TestRpcDistributedExecutorE2E.idleJobWithNoDataIsNotKilledByStallDetection`（分布式 RPC 路径空闲作业长跑不被误杀，先红后绿，taskTimeoutMs=8s/maxRestarts=1 加速窗口）；既有 `staleLivenessTriggersRecoveryViaDetectFailures`（真停滞仍触发）保持绿。
+- **不变式关联**：本修复不改变节点 lease 检测面（不变式 #5(b) 族维持）；「停滞检测恒启用」裁定为显式决策记录（非 gate 变更）。
+
 ### 8.2 Fencing
 
 分布式 exactly-once 必须防止旧 attempt 继续输出。

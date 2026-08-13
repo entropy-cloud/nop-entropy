@@ -199,10 +199,20 @@ public class TaskManager implements IStreamTaskRpcService {
      * per-task liveness to the coordinator on the existing heartbeat cadence.
      *
      * <p>No new task-level heartbeat thread is introduced: this method reads each
-     * RunningTask's invokable {@code lastProgressTime} (null-checking the invokable
+     * RunningTask's invokable liveness signal (null-checking the invokable
      * since it is set lazily by {@link RunningTask#setInvokable} after a 30s
      * {@code waitForInvokable} window) and reports a {@link TaskProgress} batch to
      * the coordinator via {@link IStreamCoordinatorRpcService#reportNodeTaskLiveness}.
+     *
+     * <p>G52 / AR-01 liveness semantics: the reported value is the <b>task
+     * aliveness</b> signal, decoupled from data progress. MIDDLE/SINK roles
+     * report the task thread's loop-activity timestamp
+     * ({@link StreamTaskInvokable#getLastActivityTime()}) — fresh while the
+     * loop cycles (data or idle), aging only when the thread is genuinely
+     * stuck. SOURCE/SELF_CONTAINED roles report the TM-side wall clock: their
+     * run loop may legitimately block for the whole source lifetime (e.g. a
+     * polling source with no data), so an idle source must never age out of
+     * the coordinator's liveness window.
      */
     public void heartbeat() {
         if (!running) {
@@ -236,7 +246,7 @@ public class TaskManager implements IStreamTaskRpcService {
                     task.vertexId,
                     task.subtaskIndex,
                     task.attemptNumber,
-                    inv.getLastProgressTime()));
+                    livenessValue(inv)));
         }
         if (!progress.isEmpty()) {
             try {
@@ -247,6 +257,19 @@ public class TaskManager implements IStreamTaskRpcService {
                 LOG.warn("reportNodeTaskLiveness failed for node {} ({} tasks)", nodeId, progress.size(), e);
             }
         }
+    }
+
+    /**
+     * G52 / AR-01: computes the per-task liveness value reported to the
+     * coordinator (see {@link #heartbeat()} javadoc for the semantics split).
+     */
+    private long livenessValue(StreamTaskInvokable inv) {
+        StreamTaskInvokable.TaskRole role = inv.getRole();
+        if (role == StreamTaskInvokable.TaskRole.SOURCE
+                || role == StreamTaskInvokable.TaskRole.SELF_CONTAINED) {
+            return System.currentTimeMillis();
+        }
+        return inv.getLastActivityTime();
     }
 
     // ==================== Task Assignment ====================

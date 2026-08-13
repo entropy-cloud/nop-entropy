@@ -151,6 +151,63 @@ class TestJobCoordinatorPerTaskFailure {
                 "COMPLETED report must NOT trigger recovery");
     }
 
+    /**
+     * AR-01 regression (idle-then-completed): a COMPLETED report carrying an
+     * OLD data-progress timestamp (e.g. a bounded source that was idle before
+     * completing) must NOT trip stall detection later. Pre-fix the coordinator
+     * recorded the report's stale progress as the liveness entry, so the next
+     * detectFailures tick flagged the completed task as stalled and triggered
+     * recovery; post-fix the COMPLETED report removes the liveness entry.
+     */
+    @Test
+    void completedTaskWithStaleProgressDoesNotTriggerStallRecovery() {
+        coordinator.start();
+        coordinator.assignTasks();
+        coordinator.setTaskTimeoutMs(1_000L);
+
+        long token = coordinator.getFencingEpoch();
+        // COMPLETED report with a lastProgressTime well beyond the cutoff
+        // (10s old vs 1s taskTimeout) — simulates a task that was data-idle
+        // for a long stretch before completing.
+        coordinator.reportTaskStatus(new TaskStatusReport(
+                JOB_ID, "source", 0, 1,
+                TaskStatusReport.TerminalState.COMPLETED,
+                null, System.currentTimeMillis() - 10_000L,
+                token, System.currentTimeMillis()));
+
+        // The COMPLETED report must have cleared the liveness entry entirely.
+        assertEquals(0, coordinator.getSubtaskLivenessCount(),
+                "COMPLETED report must clear the subtask liveness entry");
+
+        coordinator.detectFailures();
+        assertEquals(token, coordinator.getFencingEpoch(),
+                "Completed task must never trigger stall-driven recovery, even when "
+                        + "its recorded data progress is stale");
+    }
+
+    /**
+     * AR-01 gate-semantics pin: stall-driven recovery stays UNCONDITIONALLY
+     * enabled when {@code autoRecoverOnFailedReport=false} (the RPC production
+     * path disables FAILED-report recovery; the stall path is its only per-task
+     * recovery trigger — adjudicated in plan 2026-08-13-1930-2 Phase 1).
+     */
+    @Test
+    void stallDetectionFiresEvenWhenAutoRecoverOnFailedReportDisabled() {
+        coordinator.start();
+        coordinator.assignTasks();
+        coordinator.setTaskTimeoutMs(1_000L);
+        coordinator.setAutoRecoverOnFailedReport(false);
+
+        coordinator.reportNodeTaskLiveness("node-1", Collections.singletonList(
+                new TaskProgress("source", 0, 1, System.currentTimeMillis() - 10_000L)));
+
+        long tokenBefore = coordinator.getFencingEpoch();
+        coordinator.detectFailures();
+        assertNotEquals(tokenBefore, coordinator.getFencingEpoch(),
+                "stall-driven recovery must fire even when autoRecoverOnFailedReport=false "
+                        + "(stall detection is unconditional by adjudication)");
+    }
+
     @Test
     void reportNodeTaskLivenessUpdatesLivenessMap() throws Exception {
         coordinator.start();
