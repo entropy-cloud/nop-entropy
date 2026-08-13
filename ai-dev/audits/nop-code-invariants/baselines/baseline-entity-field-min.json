@@ -1,9 +1,9 @@
 {
   "family": "entity-field-min",
-  "generatedAt": "2026-08-13T04:02:43.949Z",
+  "generatedAt": "2026-08-13T07:34:31.194Z",
   "note": "Monotonic ratchet baseline. Removing/weakening entries requires human review + committed regression. See gate-baseline-I1.md.",
   "signatures": [
-    "nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeIndexService.java:1663 [findAllByQuery(query) few-fields]",
+    "nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeIndexService.java:1676 [findAllByQuery(query) few-fields]",
     "nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeQueryService.java:128 [findAllByQuery(query) few-fields]",
     "nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeQueryService.java:139 [findAllByQuery(query) few-fields]",
     "nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeQueryService.java:151 [findAllByQuery(query) few-fields]",
