@@ -39,7 +39,7 @@ node ai-dev/tools/check-silent-swallow.mjs --module nop-metadata
 node ai-dev/tools/check-orm-unique-key-constraint.mjs --module nop-metadata
 node ai-dev/tools/check-sensitive-literal-leak.mjs --module nop-metadata
 
-# 4 为 JUnit（默认从 surefire 排除，单独调用；0 failures = 零命中）
+# 4 为 JUnit（默认 surefire 即运行；显式 -Dtest= 仅作单条调试 / 聚合入口复用，0 failures = 零命中）
 ./mvnw test -pl nop-metadata/nop-metadata-service \
   -Dtest=TestLimitNegativeValueInvariant -Dsurefire.failIfNoSpecifiedTests=false
 ```
@@ -48,7 +48,7 @@ node ai-dev/tools/check-sensitive-literal-leak.mjs --module nop-metadata
 
 `.github/workflows/maven.yml` 的 `invariant-gate` job（`needs: build`）在 `build` 成功后运行聚合入口。3 条 Node 扫描器依赖 `pnpm` + Node 20（工具目录的 pnpm-lock.yaml）；limit 测试依赖 JDK 21。**非零即红**——不得用 `continue-on-error` 或 `|| true` 静默放行。
 
-> INV-LIMIT 的 `TestLimitNegativeValueInvariant` 默认从 surefire `<excludes>` 排除（避免默认构建依赖这条强于一般契约的门禁），仅由聚合入口 / 显式 `-Dtest=` 调用。表完备性由 `TestLimitTargetSetCompleteness`（默认 surefire，常驻 PASS）守护——新增 limit-taking 入口方法不入方法表即该测试变红。
+> INV-LIMIT 的 `TestLimitNegativeValueInvariant` 采用**双重运行（defense-in-depth）**：① 默认 surefire（本地 `./mvnw test -pl nop-metadata -am` 即覆盖，底层 limit 缺陷已修复，该测试全绿）；② CI `invariant-gate` job 经聚合入口 `run-nop-metadata-invariants.sh` step 4 显式 fail-fast 复跑（第二层，任一重新引入 `limit<0?0:limit` / `Math.abs(limit)` 的改动在本地默认测试与 CI 两处均变红）。表完备性由 `TestLimitTargetSetCompleteness`（默认 surefire，常驻 PASS）守护——新增 limit-taking 入口方法不入方法表即该测试变红。
 
 ## 棘轮规则（Ratchet）
 
