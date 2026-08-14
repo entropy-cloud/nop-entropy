@@ -99,12 +99,12 @@ flowchart LR
 - **F13** `meta/quality-trend-direction` dict 缺兄弟 dict 的"retained for Java constants"注释。源：同上（F13）
 
 ### API/文档/代码卫生族
-- **F14** `KeyValueDTO` 死 DTO（零生产引用）。源：同上（F14）
-- **F15** owner-doc IBiz 方法表对 5 个接口不够精确。源：同上（F15）
-- **F16** 死代码 `NopMetaQualityRuleBizModel.resolveDataSourceOrThrow`。源：同上（F16）
+- **F14** `KeyValueDTO` 死 DTO（零生产引用）。源：同上（F14） — ✅ Fixed（plan `2026-08-14-1448-1`：删除 KeyValueDTO.java + 测试引用，全仓 `rg -n KeyValueDTO` 零残留）
+- **F15** owner-doc IBiz 方法表对 5 个接口不够精确。源：同上（F15） — ✅ Fixed（plan `2026-08-14-1448-1`：5 接口展开为显式方法名，与 live `INopMeta*Biz` 接口逐一核对）
+- **F16** 死代码 `NopMetaQualityRuleBizModel.resolveDataSourceOrThrow`。源：同上（F16） — ✅ Fixed（plan `2026-08-14-1448-1`：删除死方法 + 同步 MetaDataSourceResolver javadoc 真值表述，MetaTableReferenceResolver 同名方法保留）
 - **F17** `safeProductName` 重复 7×（含 1 死实例）。源：同上（F17）
-- **F18** 空壳测试 `TestNopMetaDtoResults.testDtoJsonRoundTripAllTypes`。源：同上（F18）
-- **F19** `TestAllEntitiesHaveBizModels` 用硬编码实体清单（守卫可被绕过）。源：同上（F19）
+- **F18** 空壳测试 `TestNopMetaDtoResults.testDtoJsonRoundTripAllTypes`。源：同上（F18） — ✅ Fixed（plan `2026-08-14-1448-1`：6 DTO 改为真实 round-trip，stringify→parseBeanFromText→断言关键字段，命名与行为一致）
+- **F19** `TestAllEntitiesHaveBizModels` 用硬编码实体清单（守卫可被绕过）。源：同上（F19） — ✅ Fixed（plan `2026-08-14-1448-1`：硬编码 list 改为 ORM 注册表动态发现（IOrmTemplate.getEntityModels + 包过滤 + `_gen` 基类过滤）+ ≥39 sanity 断言）
 
 ### 静默错算/精度族（建议下轮 Cycle 2 / I1 评估"silent-wrong-result"不变式）
 - **AR-05** Profiler `isNumericType` 子串匹配误分类几何/布尔列。源：`ai-dev/audits/2026-08-14-0707-open-audit-nop-metadata-invariant-loop.md`（AR-05） — ✅ Fixed（plan `2026-08-14-1133-2` Phase 1：`NUMERIC_TYPE_NAMES` exact-match `Set.of` 替代 substring contains；移除 BOOLEAN/BIT；`TestMetaTableProfilerClassification` 9 例）

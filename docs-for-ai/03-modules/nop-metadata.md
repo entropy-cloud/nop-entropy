@@ -183,8 +183,11 @@ mutation {
 - `INopMetaDataSourceBiz` — testConnection / syncExternalTables / collectCatalog / collectCatalogForTable
 - `INopMetaModuleBiz` — importOrmModel / importOrmModels / releaseModule / generateManifest
 - `INopMetaLineageEdgeBiz` — recordLineage / extractLineageFromSql / extractColumnLineageFromSql / extractMeasureLineage / getUpstream / getDownstream / getLineagePath / getImpactAnalysis
-- `INopMetaQualityRuleBiz` / `INopMetaQualityCheckpointBiz` / `INopMetaQualityScoreBiz` — 质量规则/检查点/评分
-- `INopMetaDataContractBiz` / `INopMetaProfilingRuleBiz` — 契约 / 剖析
+- `INopMetaQualityRuleBiz` — executeQualityRule / executeQualityRulesForDataSource / judgeByRuleId
+- `INopMetaQualityCheckpointBiz` — executeCheckpoint
+- `INopMetaQualityScoreBiz` — computeQualityScore
+- `INopMetaDataContractBiz` — checkContract / checkContractReadOnly
+- `INopMetaProfilingRuleBiz` — executeProfilingRule
 
 ## 关键内部组件（source anchors）
 
