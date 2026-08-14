@@ -9,6 +9,7 @@ package io.nop.stream.core.execution.transport;
 
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.checkpoint.CheckpointType;
+import io.nop.stream.core.streamrecord.SideOutputElement;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
@@ -173,6 +174,92 @@ class TestStreamElementCodec {
     void decode_nullEnvelope_throws() {
         assertThrows(StreamException.class,
                 () -> StreamElementCodec.decode(null));
+    }
+
+    // ===== SideOutputElement tests (HG-01, 2026-08-14) =====
+
+    @Test
+    void sideOutput_roundTrips_withTagId() {
+        SideOutputElement original = new SideOutputElement("side-tag-1", new StreamRecord<>("side-value"));
+        StreamMessageEnvelope envelope = StreamElementCodec.encode(original, null, EPOCH_ID);
+
+        assertEquals(StreamMessageEnvelope.TYPE_SIDE_OUTPUT_RECORD, envelope.getType());
+        assertEquals("side-tag-1", envelope.getOutputTagId());
+        assertEquals(String.class.getName(), envelope.getValueType());
+
+        StreamElement decoded = StreamElementCodec.decode(envelope);
+        assertTrue(decoded.isSideOutput());
+        assertFalse(decoded.isRecord(), "SideOutputElement must not satisfy isRecord()");
+        SideOutputElement side = decoded.asSideOutput();
+        assertEquals("side-tag-1", side.getOutputTagId());
+        assertEquals("side-value", side.getRecord().getValue());
+    }
+
+    @Test
+    void sideOutput_roundTrips_withTimestamp() {
+        SideOutputElement original = new SideOutputElement("tag-ts", new StreamRecord<>(42, 999L));
+        StreamMessageEnvelope envelope = StreamElementCodec.encode(original, null, EPOCH_ID);
+
+        assertTrue(envelope.isHasTimestamp());
+        assertEquals(999L, envelope.getTimestamp());
+
+        StreamElement decoded = StreamElementCodec.decode(envelope);
+        SideOutputElement side = decoded.asSideOutput();
+        assertEquals(42, side.getRecord().getValue());
+        assertTrue(side.getRecord().hasTimestamp());
+        assertEquals(999L, side.getRecord().getTimestamp());
+    }
+
+    @Test
+    void sideOutput_roundTrips_withNullPayload() {
+        SideOutputElement original = new SideOutputElement("tag-null", new StreamRecord<>(null));
+        StreamMessageEnvelope envelope = StreamElementCodec.encode(original, null, EPOCH_ID);
+
+        StreamElement decoded = StreamElementCodec.decode(envelope);
+        SideOutputElement side = decoded.asSideOutput();
+        assertEquals("tag-null", side.getOutputTagId());
+        assertNull(side.getRecord().getValue());
+    }
+
+    @Test
+    void sideOutput_tagIdWithSpecialChars_roundTrips() {
+        SideOutputElement original = new SideOutputElement("tag-with-特殊字符-/-space _dots", new StreamRecord<>("v"));
+        StreamMessageEnvelope envelope = StreamElementCodec.encode(original, null, EPOCH_ID);
+
+        StreamElement decoded = StreamElementCodec.decode(envelope);
+        assertEquals("tag-with-特殊字符-/-space _dots", decoded.asSideOutput().getOutputTagId());
+    }
+
+    @Test
+    void sideOutput_ignoresEdgeLevelValueType() {
+        // HG-01 Phase 1 decision (review M2): the passed-in valueType (edge-level) is
+        // intentionally ignored — valueType is always derived from the inner record value.
+        SideOutputElement original = new SideOutputElement("tag-m2", new StreamRecord<>(3.14));
+        StreamMessageEnvelope envelope = StreamElementCodec.encode(original, "java.lang.String", EPOCH_ID);
+
+        assertEquals(Double.class.getName(), envelope.getValueType(),
+                "side-output valueType must be derived from inner record value, ignoring edge-level valueType");
+
+        StreamElement decoded = StreamElementCodec.decode(envelope);
+        assertEquals(3.14, decoded.asSideOutput().getRecord().getValue());
+    }
+
+    @Test
+    void sideOutput_copy_detachesInnerRecord() {
+        SideOutputElement original = new SideOutputElement("tag-copy", new StreamRecord<>("shared", 5L));
+        SideOutputElement copy = original.copy();
+
+        assertEquals("tag-copy", copy.getOutputTagId());
+        assertNotSame(original.getRecord(), copy.getRecord());
+        assertEquals(original.getRecord().getValue(), copy.getRecord().getValue());
+        assertEquals(5L, copy.getRecord().getTimestamp());
+    }
+
+    @Test
+    void unknownEnvelopeType_stillThrows() {
+        // HG-01 no-silent-skip invariant: an unknown envelope type must throw, not decode to null.
+        StreamMessageEnvelope envelope = new StreamMessageEnvelope(EPOCH_ID, "NOT_A_TYPE", null, null);
+        assertThrows(StreamException.class, () -> StreamElementCodec.decode(envelope));
     }
 
     // ===== TypeRegistry tests =====

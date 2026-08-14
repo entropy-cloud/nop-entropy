@@ -36,6 +36,15 @@ public class StreamMessageEnvelope implements Serializable {
     public static final String TYPE_CONTROL = "CONTROL";
 
     /**
+     * HG-01 (2026-08-14): side-output record envelope type. Carries a tagged
+     * {@link io.nop.stream.core.streamrecord.StreamRecord} whose tag id is stored in
+     * {@link #outputTagId}; consumers route the decoded element to the registered
+     * side-output consumer by tag id. {@link #valueType} is derived from the inner
+     * record value class (edge-level valueType is ignored, HG-01 Phase 1 decision).
+     */
+    public static final String TYPE_SIDE_OUTPUT_RECORD = "SIDE_OUTPUT_RECORD";
+
+    /**
      * Stage 43: {@link #TYPE_CONTROL} payload values. {@code END_OF_STREAM}
      * signals producer completion; {@code HEARTBEAT} is an idle-liveness signal
      * sent by {@code RemoteResultPartition} when no data has flowed for the
@@ -66,6 +75,12 @@ public class StreamMessageEnvelope implements Serializable {
 
     /** StreamRecord 是否设置了时间戳（仅 STREAM_RECORD 使用） */
     private boolean hasTimestamp;
+
+    /**
+     * HG-01 (2026-08-14): side-output tag id (only {@link #TYPE_SIDE_OUTPUT_RECORD}).
+     * Default null — backward compatible with the existing five envelope types.
+     */
+    private String outputTagId;
 
     public StreamMessageEnvelope() {
     }
@@ -132,12 +147,21 @@ public class StreamMessageEnvelope implements Serializable {
         this.hasTimestamp = hasTimestamp;
     }
 
+    public String getOutputTagId() {
+        return outputTagId;
+    }
+
+    public void setOutputTagId(String outputTagId) {
+        this.outputTagId = outputTagId;
+    }
+
     @Override
     public String toString() {
         return "StreamMessageEnvelope{" +
                 "epochId=" + epochId +
                 ", type='" + type + '\'' +
                 ", valueType='" + valueType + '\'' +
+                ", outputTagId='" + outputTagId + '\'' +
                 ", payload=" + payload +
                 '}';
     }

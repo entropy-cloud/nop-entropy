@@ -73,6 +73,25 @@ public abstract class StreamElement {
     }
 
     /**
+     * Checks whether this element is a side output element (HG-01 wire protocol).
+     *
+     * @return True, if this element is a side output element, false otherwise.
+     */
+    public final boolean isSideOutput() {
+        return getClass() == SideOutputElement.class;
+    }
+
+    /**
+     * Casts this element into a SideOutputElement.
+     *
+     * @return This element as a side output element.
+     * @throws ClassCastException Thrown, if this element is actually not a side output element.
+     */
+    public final SideOutputElement asSideOutput() {
+        return (SideOutputElement) this;
+    }
+
+    /**
      * Casts this element into a StreamRecord.
      *
      * @return This element as a stream record.

@@ -20,6 +20,14 @@ nop-stream-cep 是 nop-stream 中最成熟的子模块，提供复杂事件处�
 - 业务规则引擎（登录→改密→提现序列）
 - 任何需要识别事件模式中时序关系的场景
 
+## 1.1 不变式（Invariants）
+
+> 交叉引用：`ai-dev/audits/nop-stream-invariants/invariant-catalog.md` §5 不变式 #4（覆盖失败族 F4）。
+
+- **SharedBuffer/Lockable 释放对称性（#4）**：(a) 每个 `lock()` 必须有对称的 `release()`/`releaseOrDetach()`；(b) `release()` 时 refCounter<=0（over-release）必须 fail-fast（抛 `StreamRuntimeException`），不得静默返回 true；(c) `advanceTime`/`releaseNode`/`CepOperator` 清理路径不得遗留未释放的 SharedBuffer 条目（EventId 不得复用冲突）。
+- **门禁（已入 CI）**：JUnit `TestCepReleaseSymmetryInvariant`（`nop-stream-cep/src/test/.../nfa/sharedbuffer`）——在既有反应式测试（`TestLockable`/`TestLockableOverRelease`/`TestSharedBuffer` 等 7 个）之上扩展：Lockable 参数化序列表（over-release fail-fast、对称 lock/release 守恒、releaseOrDetach 语义）+ SharedBuffer 条目生命周期对称性（lock 数与 release 数守恒、条目与事件随释放移除不泄漏）。
+- **历史证据**：R16-AR-8（双重释放静默 true）、R16-AR-7（DeweyNumber 溢出）、R16-AR-6（CepOperator 清空非 start state）、R11-AR-4（pending 超时跳过 releaseNode）、R13-AR-15/R14-AR-4（advanceTime 不清理 eventsBuffer）、R11-AR-6（TOCTOU）（详见 catalog §5 不变式 #4）。
+
 ## 2. 核心架构
 
 ### 2.1 组件关系

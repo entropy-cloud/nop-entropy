@@ -282,8 +282,40 @@ public class KeyedStreamImpl<T, KEY> extends DataStreamImpl<T> implements KeyedS
             Number accVal = (Number) fieldAccessor.get(acc);
             Number newVal = (Number) fieldAccessor.get(value);
             Number result = aggregate(accVal, newVal);
-            fieldAccessor.set(acc, convert(accVal, result));
-            return acc;
+            // The stored accumulator must not be mutated in place: the emitted
+            // record is the same object reference as the stored value (same-JVM
+            // channels share references), so a later reduce would retroactively
+            // change the values of already-emitted records. Return a fresh copy
+            // carrying the new aggregate value instead.
+            T copy = copyBean(acc);
+            fieldAccessor.set(copy, convert(accVal, result));
+            return copy;
+        }
+
+        private static <T> T copyBean(T source) throws Exception {
+            Class<?> clazz = source.getClass();
+            T copy;
+            try {
+                copy = (T) clazz.getDeclaredConstructor().newInstance();
+            } catch (NoSuchMethodException e) {
+                throw new StreamException(ERR_STREAM_INVALID_STATE, e)
+                        .param(ARG_DETAIL, "Field aggregation requires a public no-arg constructor on the "
+                                + "accumulator type " + clazz.getName() + " so the stored value is never mutated "
+                                + "in place (emitted records share the stored accumulator's reference across "
+                                + "same-JVM channels)");
+            }
+            Class<?> c = clazz;
+            while (c != null && c != Object.class) {
+                for (Field f : c.getDeclaredFields()) {
+                    if (java.lang.reflect.Modifier.isStatic(f.getModifiers())) {
+                        continue;
+                    }
+                    f.setAccessible(true);
+                    f.set(copy, f.get(source));
+                }
+                c = c.getSuperclass();
+            }
+            return copy;
         }
 
         private void initField(Class<?> clazz) throws NoSuchFieldException {

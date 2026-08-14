@@ -7,8 +7,10 @@
  */
 package io.nop.stream.core.execution;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -64,6 +66,25 @@ public class InputGate {
     static final long DEFAULT_ALIGNMENT_TIMEOUT_MS = 30000L;
 
     /**
+     * AR-02 (P1): the idle-return threshold. When all channels are momentarily
+     * idle (no data, no EOS), {@link #readSingleChannel} / {@link #readMultiChannel}
+     * return {@code Optional.empty()} after this much cumulative idle time so the
+     * caller's loop top (mailbox drain in {@code StreamTaskInvokable#processInputGate})
+     * can process control mails — in particular processing-time timer fire mails,
+     * which otherwise sit in the mailbox forever on an idle task (the driver
+     * delivers them, but nothing drains them until the next record arrives).
+     *
+     * <p><b>Contract with the channel heartbeat timeout:</b> the threshold MUST
+     * stay above the producer-death channel timeout (150 ms in the liveness
+     * tests; production disables the channel timeout entirely), otherwise an
+     * idle return would preempt {@code RemoteInputChannel.checkChannelTimeout()}
+     * and silently defeat the fast-fail-on-producer-death safety feature
+     * (plan AR-02 Phase 2 item 2). 250 ms keeps the mailbox drain cadence
+     * bounded (~4 drains/sec) while staying strictly above 150 ms.
+     */
+    static final long IDLE_RETURN_THRESHOLD_MS = 250L;
+
+    /**
      * Stage 43 default for aligned→unaligned mode-switch threshold. Must be <
      * {@link #DEFAULT_ALIGNMENT_TIMEOUT_MS}. Used only by the legacy constructors
      * that do not opt into unaligned mode — the production path threads the value
@@ -97,6 +118,20 @@ public class InputGate {
      * not preserve it.
      */
     private final ConcurrentHashMap<Long, BarrierAlignment> inFlightAlignments = new ConcurrentHashMap<>();
+
+    /**
+     * P1-05: alignments that became fully received in a single
+     * {@link #markFinishedChannel} call (a finished channel counts as having
+     * delivered every in-flight barrier, so several alignments can complete in
+     * the same round) but have not been emitted yet. Aligned barriers must be
+     * emitted in checkpoint-id order, ONE per read() call; the completed
+     * alignments wait here and stay in {@link #inFlightAlignments} until each
+     * is emitted (remove-after-emit). Only the task thread touches the queue
+     * (markFinishedChannel / the read-loop drain); the abort handler thread
+     * interacts via {@link #abortedBarriers}, which the drain also consults so
+     * an aborted pending barrier is dropped, never emitted.
+     */
+    private final ArrayDeque<BarrierAlignment> pendingBarrierEmissions = new ArrayDeque<>();
 
     /**
      * Stage 45: checkpoint ids whose alignment has been aborted. A barrier element
@@ -394,6 +429,7 @@ public class InputGate {
         // is the same ceiling readMultiChannel uses, and is what re-fires the
         // timeout check inside the bounded overload.
         InputChannel channel = channels.get(0);
+        long idleSince = -1L;
         try {
             while (true) {
                 StreamElement element = channel.read(50, TimeUnit.MILLISECONDS);
@@ -409,8 +445,20 @@ public class InputGate {
                     if (channel.isFinished()) {
                         return Optional.empty();
                     }
+                    // AR-02: idle drain signal. After the idle-return threshold of
+                    // consecutive idle polls, return empty (NOT EOS) so the caller
+                    // (processInputGate) can drain control mails at its loop top
+                    // and then re-read. The channel heartbeat timeout (where
+                    // enabled) fires first because the threshold is larger.
+                    if (idleSince < 0L) {
+                        idleSince = System.currentTimeMillis();
+                    }
+                    if (System.currentTimeMillis() - idleSince >= IDLE_RETURN_THRESHOLD_MS) {
+                        return Optional.empty();
+                    }
                     continue;
                 }
+                idleSince = -1L;
                 // Track watermark for single channel
                 if (element.isWatermark()) {
                     Watermark wm = element.asWatermark();
@@ -432,8 +480,40 @@ public class InputGate {
     }
 
     private Optional<StreamElement> readMultiChannel() {
+        long idleSince = -1L;
         retry:
         while (true) {
+            // P1-05: emit (one per read(), in checkpoint-id order) any barrier
+            // completed by an earlier markFinishedChannel call — a single
+            // channel-finish can complete several in-flight alignments at once.
+            // A pending barrier whose checkpoint was aborted in the meantime is
+            // dropped (never emitted) and must not block later emissions.
+            if (barrierAlignment && !pendingBarrierEmissions.isEmpty()) {
+                BarrierAlignment pending = pendingBarrierEmissions.pollFirst();
+                if (abortedBarriers.contains(pending.checkpointId)) {
+                    for (int c : pending.blockedChannels) {
+                        blockedChannels.remove(c);
+                    }
+                    continue retry;
+                }
+                return emitCompletedAlignment(pending);
+            }
+
+            // P1-INV-2 (AR-02 Phase 3): evaluate the oldest in-flight alignment's
+            // elapsed time at the ENTRY of every read(), decoupled from whether a
+            // channel returned data. The legacy sweep-level check only ran after a
+            // whole round with zero returns, so a continuously-active channel
+            // (sustained traffic during alignment) starved the unaligned escape
+            // (1s) and the fail-fast alignment timeout (30s) — degradation down to
+            // the coordinator-side checkpointTimeout. Stage 43/45 semantics are
+            // unchanged: oldest in-flight alignment is the baseline, escape emits
+            // the barrier with captured ChannelState, timeout throws
+            // ERR_STREAM_BARRIER_ALIGNMENT_TIMEOUT.
+            Optional<StreamElement> elapsedResult = checkAlignmentElapsed();
+            if (elapsedResult.isPresent()) {
+                return elapsedResult;
+            }
+
             int channelsChecked = 0;
             int totalChannels = channels.size();
 
@@ -461,6 +541,10 @@ public class InputGate {
                         continue;
                     }
 
+                    // Any element is data-plane progress: reset the idle clock so
+                    // the idle-return signal only fires after real idle stretches.
+                    idleSince = -1L;
+
                     if (element.isCheckpointBarrier()) {
                         Optional<StreamElement> result = handleBarrierNonRecursive(channelIndex, element.asCheckpointBarrier());
                         if (result.isPresent()) return result;
@@ -484,27 +568,51 @@ public class InputGate {
                 return Optional.empty();
             }
 
-            // Stage 43/45: timeout / aligned→unaligned fallback applies to the
-            // oldest in-flight alignment (the one currently aligning). Aligned
-            // barriers serialize via channel blocking, so there is at most one
-            // actively-aligning barrier at a time.
-            BarrierAlignment oldest = oldestAligning();
-            if (oldest != null && barrierAlignment
-                    && oldest.receivedChannels.size() < channels.size()) {
-                long elapsed = System.currentTimeMillis() - oldest.startTime;
-
-                if (unalignedCheckpointEnabled && elapsed > unalignedThreshold) {
-                    return Optional.of(switchToUnalignedAndEmit(oldest));
-                }
-
-                if (elapsed > barrierAlignmentTimeout) {
-                    throw new StreamException(ERR_STREAM_BARRIER_ALIGNMENT_TIMEOUT)
-                            .param(ARG_TIMEOUT_MS, elapsed);
-                }
+            // AR-02: idle drain signal — a full sweep with zero returns and no
+            // EOS yet. Return empty (NOT EOS) once the idle-return threshold has
+            // been idle, so the caller's loop top can drain control mails
+            // (processing-time timer fires) and then re-read. The caller must
+            // distinguish this from EOS via isAllFinished().
+            if (idleSince < 0L) {
+                idleSince = System.currentTimeMillis();
+            }
+            if (System.currentTimeMillis() - idleSince >= IDLE_RETURN_THRESHOLD_MS) {
+                return Optional.empty();
             }
 
             LockSupport.parkNanos(10_000_000L);
         }
+    }
+
+    /**
+     * P1-INV-2 (AR-02 Phase 3): evaluates the oldest in-flight alignment's
+     * elapsed time at every {@link #readMultiChannel()} entry. Returns the
+     * unaligned-mode barrier when the escape threshold fired, throws
+     * {@code ERR_STREAM_BARRIER_ALIGNMENT_TIMEOUT} when the fail-fast timeout
+     * fired, and returns empty when no alignment is overdue. Fully-received
+     * (pending-emission) alignments never trip the gates.
+     */
+    private Optional<StreamElement> checkAlignmentElapsed() {
+        // Stage 43/45: timeout / aligned→unaligned fallback applies to the
+        // oldest in-flight alignment (the one currently aligning). Aligned
+        // barriers serialize via channel blocking, so there is at most one
+        // actively-aligning barrier at a time.
+        BarrierAlignment oldest = oldestAligning();
+        if (oldest == null || !barrierAlignment
+                || oldest.receivedChannels.size() >= channels.size()) {
+            return Optional.empty();
+        }
+        long elapsed = System.currentTimeMillis() - oldest.startTime;
+
+        if (unalignedCheckpointEnabled && elapsed > unalignedThreshold) {
+            return Optional.of(switchToUnalignedAndEmit(oldest));
+        }
+
+        if (elapsed > barrierAlignmentTimeout) {
+            throw new StreamException(ERR_STREAM_BARRIER_ALIGNMENT_TIMEOUT)
+                    .param(ARG_TIMEOUT_MS, elapsed);
+        }
+        return Optional.empty();
     }
 
     /**
@@ -686,27 +794,59 @@ public class InputGate {
      * Stage 45: marks a finished channel as having delivered every in-flight
      * barrier (it will never send more data), then completes any alignment that
      * becomes satisfied. Replaces the legacy single-pending finished-channel check.
+     *
+     * <p>P1-05: a finished channel delivers EVERY in-flight barrier, so several
+     * alignments can become fully received in the same call. ALL of them are
+     * collected and emitted in checkpoint-id order, one per read() call (the
+     * lowest completes now; the rest wait in {@link #pendingBarrierEmissions});
+     * each is removed from {@link #inFlightAlignments} only at emission. This
+     * replaces the legacy bucket-order scan that emitted the first completed
+     * alignment it happened to visit and leaked every other fully-received one —
+     * a leaked alignment never emits its barrier (downstream never snapshots
+     * that checkpoint) and, being fully received, permanently masks the
+     * alignment-timeout / unaligned-fallback gates as the min-id in-flight item.
      */
     private Optional<StreamElement> markFinishedChannel(int channelIndex) {
-        CheckpointBarrier completed = null;
-        for (BarrierAlignment align : new ArrayList<>(inFlightAlignments.values())) {
+        List<BarrierAlignment> completed = new ArrayList<>();
+        for (BarrierAlignment align : inFlightAlignments.values()) {
             if (!align.receivedChannels.contains(channelIndex)) {
                 align.receivedChannels.add(channelIndex);
-                boolean fullyReceived = align.receivedChannels.size() >= channels.size();
-                if (barrierAlignment && fullyReceived && completed == null) {
-                    // Barriers complete in id order; emit the lowest completed one.
-                    inFlightAlignments.remove(align.checkpointId);
-                    for (int c : align.blockedChannels) {
-                        blockedChannels.remove(c);
+                if (align.receivedChannels.size() >= channels.size()) {
+                    if (!barrierAlignment) {
+                        // AT_LEAST_ONCE: emission happened at first receipt;
+                        // removal at full receipt is cleanup only.
+                        inFlightAlignments.remove(align.checkpointId);
+                    } else {
+                        completed.add(align);
                     }
-                    cleanupAbortedBarriersUpTo(align.checkpointId);
-                    completed = align.firstBarrier;
-                } else if (!barrierAlignment && fullyReceived) {
-                    inFlightAlignments.remove(align.checkpointId);
                 }
             }
         }
-        return completed != null ? Optional.of(completed) : Optional.empty();
+        if (completed.isEmpty()) {
+            return Optional.empty();
+        }
+        // Barrier ids are monotonically increasing from the coordinator, so the
+        // completed alignments must be emitted in ascending checkpoint-id order.
+        completed.sort(Comparator.comparingLong(a -> a.checkpointId));
+        for (int i = 1; i < completed.size(); i++) {
+            pendingBarrierEmissions.addLast(completed.get(i));
+        }
+        return emitCompletedAlignment(completed.get(0));
+    }
+
+    /**
+     * P1-05: removes the alignment from the in-flight map, resumes the channels
+     * it had blocked, opportunistically clears aborted markers, and returns the
+     * barrier for emission. Shared by {@link #markFinishedChannel} and the
+     * pending-emission drain in {@link #readMultiChannel}.
+     */
+    private Optional<StreamElement> emitCompletedAlignment(BarrierAlignment align) {
+        inFlightAlignments.remove(align.checkpointId);
+        for (int c : align.blockedChannels) {
+            blockedChannels.remove(c);
+        }
+        cleanupAbortedBarriersUpTo(align.checkpointId);
+        return Optional.of(align.firstBarrier);
     }
 
     /**

@@ -8,8 +8,11 @@
 package io.nop.stream.core.execution;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,6 +22,7 @@ import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.exceptions.NopStreamErrors;
 import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.exceptions.StreamRuntimeException;
 import io.nop.stream.core.jobgraph.Invokable;
 import io.nop.stream.core.jobgraph.OperatorChain;
 import io.nop.stream.core.operators.AbstractStreamOperator;
@@ -27,15 +31,22 @@ import io.nop.stream.core.operators.Input;
 import io.nop.stream.core.operators.KeyContext;
 import io.nop.stream.core.operators.KeyExtractingOutput;
 import io.nop.stream.core.operators.Output;
+import io.nop.stream.core.operators.ProcessingTimeService;
 import io.nop.stream.core.operators.StreamOperator;
 import io.nop.stream.core.operators.StreamSourceOperator;
 import io.nop.stream.core.operators.SourceReaderOperator;
+import io.nop.stream.core.operators.TimerServiceManager;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.StreamRecord;
+import io.nop.stream.core.streamrecord.SideOutputElement;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
+import io.nop.stream.core.util.OutputTag;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_OUTPUT_TAG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHAINING_OUTPUT_CLOSE_FAILED;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER;
 
 /**
  * Invokable that executes a streaming pipeline through the graph model path,
@@ -57,6 +68,17 @@ public class StreamTaskInvokable implements Invokable<Void> {
 
     private final OperatorChain operatorChain;
     private final RecordWriter<Object> outputWriter;
+
+    /**
+     * P1-03: the FULL list of fan-out writers (one per outgoing edge), kept for
+     * close-time traversal. The fan-out constructors previously discarded this
+     * list after wiring the tail operator, keeping only {@code outputWriter}
+     * (= {@code fanOutWriters.get(0)}), so edge 2..N's EOS was never signalled
+     * and bounded fan-out jobs hung their downstream sinks. Null for
+     * non-fan-out roles.
+     */
+    private final List<RecordWriter<Object>> fanOutWriters;
+
     private final InputGate inputGate;
 
     /**
@@ -83,9 +105,56 @@ public class StreamTaskInvokable implements Invokable<Void> {
      */
     private volatile long lastProgressTime = System.currentTimeMillis();
 
+    /**
+     * G52 / AR-01: task-thread aliveness timestamp. Updated at every loop
+     * iteration of {@link #processInputGate} — <b>including idle
+     * iterations</b> (the AR-02 idle-return path cycles back to the loop
+     * top) — so a healthy but data-idle MIDDLE/SINK task keeps a fresh
+     * aliveness while a genuinely hung task (thread stuck in user code, loop
+     * no longer progressing) ages out. Reported by
+     * {@code TaskManager.heartbeat()} as the liveness signal for MIDDLE/SINK
+     * roles. SOURCE/SELF_CONTAINED roles report the TM-side wall clock
+     * instead (their run loop may legitimately block for the whole source
+     * lifetime; data progress is decoupled from liveness there).
+     *
+     * <p>Volatile because the writer is the task thread and the reader is the
+     * heartbeat thread; only ever assigned monotonically non-decreasing values.
+     */
+    private volatile long lastActivityTime = System.currentTimeMillis();
+
     private CheckpointBarrierTracker barrierTracker;
 
     private Input<Object> headInput;
+
+    /**
+     * RL-7 (R15-AR-4): side-output consumers shared by all ChainingOutputs this task wires.
+     * Registration may happen before or after wiring (the map reference is shared). A side
+     * output without a registered consumer fails fast instead of being silently dropped.
+     */
+    private final Map<OutputTag<?>, Consumer<StreamRecord<?>>> sideOutputConsumers = new HashMap<>();
+
+    /**
+     * Production {@link ProcessingTimeService} wired into every operator of this task's chain.
+     * Created in the constructor (before any operator {@code open()} can run), driven by
+     * {@link #processingTimeDriver} which is started at {@link #invoke()} and stopped in its
+     * {@code finally}. Never null after construction.
+     */
+    private transient TaskProcessingTimeService processingTimeService;
+
+    /**
+     * Production {@link TimerServiceManager} wired into every operator of this task's chain.
+     * Operators register their {@code HeapInternalTimerService} in {@code open()}; the driver
+     * fires due processing-time timers through this manager. Never null after construction.
+     */
+    private transient TimerServiceManager timeServiceManager;
+
+    /**
+     * Scheduler thread that delivers processing-time fire mails to this task's mailbox.
+     * Started unconditionally at {@link #invoke()} (never on the conditional
+     * setBarrierTracker/setupSnapshotCallbacks path — the local {@code env.execute()} path
+     * never creates a barrier tracker), stopped in {@code invoke()}'s {@code finally}.
+     */
+    private transient ProcessingTimeServiceDriver processingTimeDriver;
 
     public StreamTaskInvokable(OperatorChain operatorChain) {
         if (operatorChain == null) {
@@ -93,9 +162,11 @@ public class StreamTaskInvokable implements Invokable<Void> {
         }
         this.operatorChain = operatorChain;
         this.outputWriter = null;
+        this.fanOutWriters = null;
         this.inputGate = null;
         wireOperators();
         wireMailboxToHeadSource();
+        setupProcessingTimeServices();
     }
 
     public StreamTaskInvokable(OperatorChain operatorChain, List<RecordWriter<Object>> fanOutWriters) {
@@ -104,9 +175,11 @@ public class StreamTaskInvokable implements Invokable<Void> {
         }
         this.operatorChain = operatorChain;
         this.outputWriter = !fanOutWriters.isEmpty() ? fanOutWriters.get(0) : null;
+        this.fanOutWriters = fanOutWriters;
         this.inputGate = null;
         wireOperators(fanOutWriters);
         wireMailboxToHeadSource();
+        setupProcessingTimeServices();
     }
 
     @SuppressWarnings("unchecked")
@@ -118,9 +191,11 @@ public class StreamTaskInvokable implements Invokable<Void> {
         }
         this.operatorChain = operatorChain;
         this.outputWriter = (RecordWriter<Object>) outputWriter;
+        this.fanOutWriters = null;
         this.inputGate = inputGate;
         wireOperators();
         wireMailboxToHeadSource();
+        setupProcessingTimeServices();
     }
 
     public StreamTaskInvokable(OperatorChain operatorChain,
@@ -131,9 +206,11 @@ public class StreamTaskInvokable implements Invokable<Void> {
         }
         this.operatorChain = operatorChain;
         this.outputWriter = !fanOutWriters.isEmpty() ? fanOutWriters.get(0) : null;
+        this.fanOutWriters = fanOutWriters;
         this.inputGate = inputGate;
         wireOperators(fanOutWriters);
         wireMailboxToHeadSource();
+        setupProcessingTimeServices();
     }
 
     public TaskRole getRole() {
@@ -168,7 +245,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
                     wiredInput = nextInput;
                 }
 
-                currentOp.setOutput(new ChainingOutput<>(wiredInput));
+                currentOp.setOutput(new ChainingOutput<>(wiredInput, null, sideOutputConsumers));
             }
         }
 
@@ -206,7 +283,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
                     wiredInput = nextInput;
                 }
 
-                currentOp.setOutput(new ChainingOutput<>(wiredInput));
+                currentOp.setOutput(new ChainingOutput<>(wiredInput, null, sideOutputConsumers));
             }
         }
 
@@ -280,12 +357,41 @@ public class StreamTaskInvokable implements Invokable<Void> {
     }
 
     /**
+     * @return the production {@link TimerServiceManager} wired into this task's operators;
+     *         never null. Intended for runtime wiring assertions and diagnostics.
+     */
+    public TimerServiceManager getTimeServiceManager() {
+        return timeServiceManager;
+    }
+
+    /**
+     * @return the production {@link ProcessingTimeService} wired into this task's operators;
+     *         never null. Intended for runtime wiring assertions and diagnostics.
+     */
+    public ProcessingTimeService getProcessingTimeService() {
+        return processingTimeService;
+    }
+
+    /**
      * @return this task's mailbox executor (control-plane anchor). Never null. The
      *         barrier-injector thread and abort handler deliver control mails here; the
      *         task thread drains them at safe points.
      */
     public MailboxExecutor getMailboxExecutor() {
         return mailboxExecutor;
+    }
+
+    /**
+     * RL-7 (R15-AR-4): registers a consumer for a side-output tag in the chained execution.
+     * All ChainingOutputs wired by this task share the consumer map, so registration may
+     * happen before or after {@code wireOperators}. Without a registered consumer, emitting
+     * a side output fails fast ({@code ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER}) instead of
+     * silently dropping the record.
+     */
+    @SuppressWarnings("unchecked")
+    public <X> void registerSideOutputConsumer(OutputTag<X> outputTag,
+                                               Consumer<StreamRecord<X>> consumer) {
+        sideOutputConsumers.put(outputTag, (Consumer<StreamRecord<?>>) (Consumer<?>) consumer);
     }
 
     /**
@@ -308,12 +414,44 @@ public class StreamTaskInvokable implements Invokable<Void> {
         this.lastProgressTime = System.currentTimeMillis();
     }
 
+    /**
+     * G52 / AR-01: task-thread aliveness timestamp. Fresh while the task's main
+     * loop keeps cycling (data or idle); ages only when the task thread is
+     * genuinely stuck and no longer reaches the loop top.
+     *
+     * @return monotonic timestamp of the last task-thread loop activity; never
+     *         decreases
+     */
+    public long getLastActivityTime() {
+        return lastActivityTime;
+    }
+
+    /**
+     * G52 / AR-01: marks a task-thread aliveness event. Called at the top of
+     * every {@link #processInputGate} loop iteration (idle and data) and at
+     * {@code invoke()} role start points. Idempotent and thread-safe (volatile
+     * assignment from the task thread only).
+     */
+    public void markActivity() {
+        this.lastActivityTime = System.currentTimeMillis();
+    }
+
     public OperatorChain getOperatorChain() {
         return operatorChain;
     }
 
     public RecordWriter<Object> getOutputWriter() {
         return outputWriter;
+    }
+
+    /**
+     * @return the full fan-out writer list (one per outgoing edge), or null
+     *         when this task is not a fan-out producer. P1-03: the restart
+     *         path reuses the whole list so a rebuilt fan-out producer keeps
+     *         feeding every edge.
+     */
+    public List<RecordWriter<Object>> getFanOutWriters() {
+        return fanOutWriters;
     }
 
     public InputGate getInputGate() {
@@ -341,21 +479,122 @@ public class StreamTaskInvokable implements Invokable<Void> {
         }
     }
 
+    /**
+     * Injects the production {@link ProcessingTimeService} and {@link TimerServiceManager}
+     * into every operator of this task's chain.
+     *
+     * <p>This runs in the constructor — BEFORE any {@code operatorChain.open()} can run
+     * (both {@link SubtaskTask} and {@link Task} open the chains before {@link #invoke()}).
+     * It is unconditional: it does NOT live on the {@code setBarrierTracker} /
+     * {@code setupSnapshotCallbacks} path, which the local {@code env.execute()} path never
+     * reaches (no {@code CheckpointBarrierTracker} is created there).
+     *
+     * <p>The service OBJECTS are created here; the scheduler thread (driver) is started
+     * separately at {@link #invoke()} so that a constructed-but-never-invoked invokable
+     * does not leak a thread.
+     */
+    private void setupProcessingTimeServices() {
+        TaskProcessingTimeService pts = new TaskProcessingTimeService();
+        TimerServiceManager tsm = new TimerServiceManager();
+        for (StreamOperator<?> op : operatorChain.getOperators()) {
+            if (op instanceof AbstractStreamOperator) {
+                AbstractStreamOperator<?> abstractOp = (AbstractStreamOperator<?>) op;
+                abstractOp.setProcessingTimeService(pts);
+                abstractOp.setTimeServiceManager(tsm);
+            }
+        }
+        this.processingTimeService = pts;
+        this.timeServiceManager = tsm;
+    }
+
+    /**
+     * Starts the processing-time driver (daemon scheduler thread) unconditionally at the
+     * start of {@link #invoke()}, before the invoke-level {@code operatorChain.open()}.
+     * Idempotent.
+     */
+    private void startProcessingTimeDriver() {
+        if (processingTimeDriver == null) {
+            processingTimeDriver = new ProcessingTimeServiceDriver(
+                    mailboxExecutor.getMailbox(), processingTimeService, timeServiceManager);
+            processingTimeDriver.start();
+        }
+    }
+
+    /**
+     * Stops the processing-time driver in {@code invoke()}'s {@code finally}. Idempotent.
+     */
+    private void stopProcessingTimeDriver() {
+        if (processingTimeDriver != null) {
+            processingTimeDriver.shutdown();
+            processingTimeDriver = null;
+        }
+    }
+
+    /**
+     * P1-03: closes ALL output writers of this task. A fan-out producer (2+
+     * outgoing edges) must signal EOS on every edge — closing only
+     * {@link #outputWriter} (edge 0) leaves edges 2..N open, so their
+     * downstream sinks poll forever and a bounded fan-out job never
+     * terminates.
+     *
+     * <p>The explicit traversal is deliberate:
+     * {@code BroadcastingRecordWriterOutput} (the tail operator's fan-out
+     * output) cannot do this job — its {@code close()} delegates to
+     * {@code RecordWriterOutput.close()}, a no-op ("RecordWriter lifecycle
+     * is managed by invoke()"), so closing via the operator output would
+     * silently skip every writer (no-silent-skip, plan guide #24). Every
+     * writer in the list is attempted; the first failure is rethrown with
+     * the rest suppressed, mirroring {@link RecordWriter#close()} semantics.
+     */
+    private void closeOutputWriters() {
+        if (fanOutWriters != null && !fanOutWriters.isEmpty()) {
+            Exception firstError = null;
+            for (RecordWriter<Object> writer : fanOutWriters) {
+                try {
+                    writer.close();
+                } catch (Exception e) {
+                    if (firstError == null) {
+                        firstError = e;
+                    } else {
+                        firstError.addSuppressed(e);
+                    }
+                }
+            }
+            if (firstError != null) {
+                if (firstError instanceof StreamException) {
+                    throw (StreamException) firstError;
+                }
+                if (firstError instanceof RuntimeException) {
+                    throw (RuntimeException) firstError;
+                }
+                throw new StreamException(
+                        ERR_STREAM_CHAINING_OUTPUT_CLOSE_FAILED, firstError);
+            }
+        } else if (outputWriter != null) {
+            outputWriter.close();
+        }
+    }
+
     @Override
     public void invoke() throws Exception {
-        switch (getRole()) {
-            case SOURCE:
-                invokeSource();
-                break;
-            case MIDDLE:
-                invokeMiddle();
-                break;
-            case SINK:
-                invokeSink();
-                break;
-            case SELF_CONTAINED:
-                invokeSelfContained();
-                break;
+        startProcessingTimeDriver();
+        try {
+            switch (getRole()) {
+                case SOURCE:
+                    invokeSource();
+                    break;
+                case MIDDLE:
+                    invokeMiddle();
+                    break;
+                case SINK:
+                    invokeSink();
+                    break;
+                case SELF_CONTAINED:
+                    invokeSelfContained();
+                    break;
+            }
+        } finally {
+            stopProcessingTimeDriver();
         }
     }
 
@@ -365,6 +604,10 @@ public class StreamTaskInvokable implements Invokable<Void> {
         // SourceContext.collect() (the per-record emission path) also marks progress;
         // this initial marker covers a slow-start source that has not emitted yet.
         markProgress();
+        // G52 / AR-01: task-thread aliveness at role start. SOURCE liveness is
+        // reported by the TM as wall clock (see TaskManager.heartbeat), so this
+        // marker is diagnostic-only for the blocking-source path.
+        markActivity();
         Exception sourceError = null;
         try {
             List<StreamOperator<?>> operators = operatorChain.getOperators();
@@ -420,9 +663,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
                 } catch (Exception e) {
                     LOG.warn("Failed to emit MAX_WATERMARK during source shutdown", e);
                 }
-                if (outputWriter != null) {
-                    outputWriter.close();
-                }
+                closeOutputWriters();
             }
             operatorChain.close();
         }
@@ -434,6 +675,9 @@ public class StreamTaskInvokable implements Invokable<Void> {
     @SuppressWarnings("unchecked")
     private void invokeMiddle() throws Exception {
         operatorChain.open();
+        // G52 / AR-01: task-thread aliveness at role start (the loop top tick
+        // in processInputGate keeps it fresh afterwards, incl. idle iter.).
+        markActivity();
         Exception inputError = null;
         try {
             if (headInput != null) {
@@ -449,9 +693,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
                 }
             }
         } finally {
-            if (outputWriter != null) {
-                outputWriter.close();
-            }
+            closeOutputWriters();
             operatorChain.close();
         }
         if (inputError != null) {
@@ -462,6 +704,8 @@ public class StreamTaskInvokable implements Invokable<Void> {
     @SuppressWarnings("unchecked")
     private void invokeSink() throws Exception {
         operatorChain.open();
+        // G52 / AR-01: task-thread aliveness at role start (see invokeMiddle).
+        markActivity();
         Exception inputError = null;
         try {
             if (headInput != null) {
@@ -488,6 +732,8 @@ public class StreamTaskInvokable implements Invokable<Void> {
         operatorChain.open();
         // G52: liveness marker for SELF_CONTAINED at the start of run.
         markProgress();
+        // G52 / AR-01: task-thread aliveness at role start (see invokeSource).
+        markActivity();
         Exception sourceError = null;
         try {
             List<StreamOperator<?>> operators = operatorChain.getOperators();
@@ -534,6 +780,13 @@ public class StreamTaskInvokable implements Invokable<Void> {
     @SuppressWarnings("unchecked")
     private void processInputGate(Input<Object> headInput) throws Exception {
         while (true) {
+            // G52 / AR-01: task-thread aliveness tick at the top of every loop
+            // iteration, INCLUDING idle iterations (the AR-02 idle-return path
+            // cycles back here). A healthy idle task keeps this fresh; a hung
+            // task (thread stuck in user code, no data, no loop progress) stops
+            // ticking and ages out past taskTimeoutMs at the coordinator.
+            markActivity();
+
             // Control-plane drain at the top of the main loop: process any pending
             // control mails (cancel marker, future processing-time timer) and observe
             // the cooperative cancel flag so abort exits gracefully instead of relying
@@ -546,7 +799,26 @@ public class StreamTaskInvokable implements Invokable<Void> {
 
             Optional<StreamElement> elementOpt = inputGate.read();
             if (!elementOpt.isPresent()) {
-                break;
+                // AR-02 (P1): InputGate now returns empty for BOTH end-of-stream
+                // and momentary idle (idle-return threshold, see
+                // InputGate.IDLE_RETURN_THRESHOLD_MS). Only a true EOS — all
+                // channels finished — terminates the loop; an idle return cycles
+                // back to the loop top, where processAvailableMails() drains any
+                // pending control mails (e.g. processing-time timer fire mails)
+                // before re-reading. Without this, an idle task (no data flow)
+                // never reached the mailbox drain and processing-time timers
+                // never fired (AR-02).
+                //
+                // Interrupt/cancel guard: a read unblocked by interruption returns
+                // empty with the interrupt flag set; the abort path also raises the
+                // cooperative cancel flag. Either must exit promptly instead of
+                // busy-looping on empty returns (no-silent-skip, plan guide #24).
+                if (inputGate.isAllFinished()
+                        || Thread.currentThread().isInterrupted()
+                        || mailboxExecutor.isCancelled()) {
+                    break;
+                }
+                continue;
             }
 
             // G52: per-iteration liveness marker for MIDDLE/SINK roles.
@@ -555,6 +827,27 @@ public class StreamTaskInvokable implements Invokable<Void> {
             StreamElement element = elementOpt.get();
             if (element.isRecord()) {
                 headInput.processElement((StreamRecord<Object>) (StreamRecord<?>) element.asRecord());
+            } else if (element.isSideOutput()) {
+                // HG-01 (2026-08-14): cross-task side-output routing. Look up the registered
+                // consumer by tag id (Phase 1 decision D4 — OutputTag's ctor forbids a
+                // null-typeInfo lookup key, so iterate sideOutputConsumers keySet with
+                // getId() equality). Unmatched tag = fail-fast at the consumption side.
+                io.nop.stream.core.streamrecord.SideOutputElement side = element.asSideOutput();
+                String tagId = side.getOutputTagId();
+                io.nop.stream.core.util.OutputTag<?> matched = null;
+                for (io.nop.stream.core.util.OutputTag<?> tag : sideOutputConsumers.keySet()) {
+                    if (tag.getId().equals(tagId)) {
+                        matched = tag;
+                        break;
+                    }
+                }
+                if (matched == null) {
+                    throw new StreamRuntimeException(ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER)
+                            .param(ARG_OUTPUT_TAG, tagId)
+                            .param(ARG_DETAIL, "No registered side-output consumer for tag '"
+                                    + tagId + "' on task " + getRole());
+                }
+                sideOutputConsumers.get(matched).accept(side.getRecord());
             } else if (element.isWatermark()) {
                 headInput.processWatermark(element.asWatermark());
             } else if (element.isCheckpointBarrier()) {
@@ -619,7 +912,14 @@ public class StreamTaskInvokable implements Invokable<Void> {
 
         @Override
         public <X> void collect(io.nop.stream.core.util.OutputTag<X> outputTag, StreamRecord<X> record) {
-            // Side outputs not supported in cross-task exchange
+            // HG-01 (2026-08-14, I4 replacement): the cross-task wire protocol now carries
+            // side outputs — wrap the tagged record in a SideOutputElement and broadcast it
+            // through RecordWriter.emitElement to ALL downstream partitions (Phase 1
+            // decision D3). The inner record is copied so the producer's reused StreamRecord
+            // instance is never aliased by the exchange queue (D5). No-consumer fail-fast
+            // moved to the consumption-side routing point in processInputGate.
+            writer.emitElement(new SideOutputElement(outputTag.getId(),
+                    record.copy(record.getValue())));
         }
 
         @Override
@@ -679,6 +979,12 @@ public class StreamTaskInvokable implements Invokable<Void> {
 
         @Override
         public <X> void collect(io.nop.stream.core.util.OutputTag<X> outputTag, StreamRecord<X> record) {
+            // HG-01 (2026-08-14, I4 replacement): fan the tagged record out to every wrapped
+            // output. Each RecordWriterOutput copies the inner record on construction, so no
+            // single SideOutputElement instance is shared across partition queues (D5).
+            for (Output<StreamRecord<Object>> output : outputs) {
+                output.collect(outputTag, record);
+            }
         }
 
         @Override

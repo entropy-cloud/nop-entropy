@@ -20,6 +20,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 
+import io.nop.api.core.exceptions.NopException;
+import io.nop.message.debezium.DebeziumErrors;
+
 import org.apache.kafka.connect.runtime.WorkerConfig;
 import org.apache.kafka.connect.storage.OffsetBackingStore;
 import org.apache.kafka.connect.util.Callback;
@@ -87,7 +90,13 @@ public class NopStreamOffsetBackingStore implements OffsetBackingStore {
     }
 
     /**
-     * Clears the registry entry for a connector name. Useful for test isolation.
+     * Clears the registry entry for a connector name, discarding any offsets a previous run in
+     * the same JVM may have left behind.
+     *
+     * <p><b>Call semantics</b>: {@code DebeziumCdcSourceFunction.initializeState} invokes this on
+     * its first-run paths (state == null or no persisted offset entry) so a brand-new job never
+     * resumes from the stale static offset of a crashed/redeployed/reused connector name
+     * (AR-03). Test isolation is a secondary use.
      */
     public static void clearConnector(String connectorName) {
         REGISTRY.remove(connectorName);
@@ -111,7 +120,10 @@ public class NopStreamOffsetBackingStore implements OffsetBackingStore {
                 }
             }
         }
-        return "_default_";
+        // AR-03: an unnamed connector silently binds to the shared "_default_" bucket and
+        // overwrites other unnamed connectors' offsets. Fail fast with a clear message instead.
+        throw new NopException(DebeziumErrors.ERR_DEBEZIUM_CONNECTOR_NAME_REQUIRED)
+                .param("connector", "_default_");
     }
 
     @Override
@@ -201,7 +213,13 @@ public class NopStreamOffsetBackingStore implements OffsetBackingStore {
 
     private void ensureBound() {
         if (data == null) {
-            String name = connectorName != null ? connectorName : "_default_";
+            String name = connectorName;
+            if (name == null || name.isEmpty()) {
+                // AR-03: never fall back to the shared "_default_" bucket silently — an unnamed
+                // connector would overwrite other connectors' offsets in the same JVM.
+                throw new NopException(DebeziumErrors.ERR_DEBEZIUM_CONNECTOR_NAME_REQUIRED)
+                        .param("connector", "_default_");
+            }
             connectorName = name;
             data = REGISTRY.computeIfAbsent(name, k -> new ConcurrentHashMap<>());
         }

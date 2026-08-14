@@ -10,12 +10,14 @@ package io.nop.stream.flow.builder;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.flow.model.StreamModel;
 import io.nop.xlang.xdsl.DslModelParser;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -50,8 +52,10 @@ public class TestStreamModelDeltaFailFast {
         assertTrue(model.hasStreams(),
                 "Delta-merged model must contain the delta-introduced <streams> registry");
 
-        UnsupportedOperationException ex = assertThrows(UnsupportedOperationException.class,
+        StreamException ex = assertThrows(StreamException.class,
                 () -> StreamModelDslBuilder.of(model, new InMemoryBeanFunctionResolver()).build());
+        assertEquals("nop.err.stream.not-implemented", ex.getErrorCode().toString(),
+                () -> ex.getMessage());
         assertTrue(ex.getMessage().contains("<streams>"),
                 "Fail-fast must reject <streams> even under delta merge: " + ex.getMessage());
     }

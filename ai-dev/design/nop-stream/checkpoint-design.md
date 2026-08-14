@@ -22,6 +22,21 @@ nop-stream 的 checkpoint 子系统为流处理管线提供**容错和状态一�
 
 设计采用 Chandy-Lamport 分布式快照算法的 barrier 对齐模式，以 Nop 平台的模型驱动和可逆计算思想表达分布式流处理的不变量。
 
+## 1.1 不变式（Invariants）
+
+> 交叉引用：`ai-dev/audits/nop-stream-invariants/invariant-catalog.md` §5 不变式 #2/#3（覆盖失败族 F2/F3）。
+
+- **synchronized 集合字段迭代点必须在 synchronized 块内（#2）**：所有 `Collections.synchronizedMap/List/Set` 类型字段的遍历（含 copy 构造 `new TreeMap<>(f)`、`entrySet()`/`iterator()` 迭代）必须持有该集合的 monitor（`synchronized(field)` / `synchronized(this)` / 局部别名 `synchronized(pending)` 均合规）；违反即潜在 CME。`TwoPhaseCommitSinkFunction` 的 `finishCommit`/`restoreFromEpoch` 迭代点均在此约束内；`saveState` 的 copy 迭代为**已知 residual（R16-AR-1，pin-and-record）**——行为 pin（快照内容完整）由 JUnit 断言，锁状态由 mjs 扫描器 pin（`mjs-pins.json`），行为漂移才触发 CI 红，修复移交 I2。
+- **CheckpointIDCounter 更新原子性 / 恢复后单调性（#3）**：(a) 并发下 `getAndIncrement` 原子（AtomicLong），无重复、无丢失；(b) 恢复路径必须将计数器推进至 `restoredId + 1`（`restoredId >= current` 才 set），任何恢复后 ID 倒退 = 违约（live 修复点 `CheckpointCoordinator.java:896-900`）。
+- **门禁（已入 CI）**：JUnit `TestSynchronizedCollectionInvariant`（`nop-stream-core/src/test/.../functions/sink`）+ `TestCheckpointIDCounterInvariant`（`nop-stream-core/src/test/.../checkpoint`）；静态部分 `check-nop-stream-invariants.mjs scan-iterations`（扫描范围含 core 全部 synchronized 集合字段，`SourceReaderOperator`/`StreamSinkOperator`/`LocalSourceCoordinator` 兜底）。
+- **历史证据**：R16-AR-1/AR-11、R11-AR-3、R12-AR-1（synchronized 迭代）；R16-AR-5/AR-15、R8-AR-56（checkpoint ID 原子性/恢复单调性）（详见 catalog §5 不变式 #2/#3）。
+
+### 1.1.1 ClusterRegistry lease 与 checkpoint 交互侧（不变式 #5 的 checkpoint 关联）
+
+- `JdbcClusterRegistry.registerNode` 必须写入有效 lease 过期时间（`lease_expire_at > now`），否则注册窗口内 `getActiveNodes` 不可见、依赖 registry 发现节点的 checkpoint 协调路径（coordinator 选址）可能在注册窗口内观察到空节点集。
+- 两实现（Jdbc/InMemory）对同一接口语义必须一致（注册可见性、lease 计算、过期判定）；已知 residual（AR-9 写 lease=0、AR-18 忽略 per-renewal timeout）由 `TestClusterRegistryConsistencyInvariant` 显式 pin 并登记 `red-list.md` 移交 I2。
+- 架构语义契约见 `01-architecture-baseline.md`「ClusterRegistry 节不变式」；本节的 checkpoint 交互侧 = lease 存活决定节点可参与 checkpoint/任务分配。
+
 ## 2. Epoch Checkpoint 协议
 
 ### 2.1 Epoch 是一致性的中心
@@ -32,7 +47,7 @@ nop-stream 的 checkpoint 子系统为流处理管线提供**容错和状态一�
 |---|---|
 | source offset | 每个 source split 在 epoch 切点的读取位置 |
 | operator state | 每个 operator/subtask/state shard 的状态快照 |
-| timer state | event-time 和 processing-time timer 的待触发集合（**已实现**：`WindowOperator` 通过 `HeapInternalTimerService.snapshotTimers()` 持久化；`CepOperator` 通过自有 bypass 机制持久化 `registeredEventTimeTimers`） |
+| timer state | event-time 和 processing-time timer 的待触发集合（**已实现**：`WindowOperator` 通过 `HeapInternalTimerService.snapshotTimers()` 持久化；`CepOperator` 通过自有 bypass 机制持久化 `registeredEventTimeTimers`）。**AR-22（2026-08-13，P0 修复）**：timer 键 JSON 恢复按声明 keyType 重物化（`HeapInternalTimerService.restoreTimers`，keyType 由 `WindowOperator.open()` 自 `keyClass` final 字段注入）——storageType=local JSON round-trip 将 Long 键 < 2^31 漂移为 Integer（TextScanner parseInt 优先）、@DataBean POJO 键漂移为 LinkedHashMap，类敏感 `TypedNamespaceAndKey` 查找静默 miss（窗口内容/触发结果丢失，与 AR-01 键控面同机制）；机制对齐 `MemoryStateSerDe.deserializeKey`：重物化失败抛 `ERR_STREAM_STATE_ERROR`（无静默跳过，guide #24），null 键与 `keyType == Object.class` 守卫跳过。非 @DataBean POJO 键在序列化点即抛 `ERR_JSON_ONLY_DATA_BEAN_IS_SERIALIZABLE`（JsonTool onlyForDataBean 守卫，响亮失败非静默丢失） |
 | watermark state | 输入 watermark 和 idle 状态 |
 | sink transaction | 每个 sink subtask 的 pending transaction |
 | plan fingerprint | 生成该 epoch 时的 PartitionedPlan 指纹 |
@@ -83,7 +98,7 @@ CREATED → INJECTING → ALIGNING → SNAPSHOTTING → PRECOMMITTED → DURABLE
 |---|---|
 | `CREATED` | Coordinator 分配 epochId，建立待 ACK 集合 |
 | `INJECTING` | source subtask 在读取线程中注入 barrier |
-| `ALIGNING` | 多输入 task 等待所有输入 channel barrier 到齐。**实现**：`InputGate.handleBarrierNonRecursive()`（`InputGate.java:347`）— 首 barrier 到达调用 `blockConsumption(channelIndex)`（line 220）阻塞该 channel，所有 channel 到齐调用 `resumeConsumptionAll()`（line 245）并输出单一对齐 barrier；累计超 `barrierAlignmentTimeout`（默认 30s）抛 `ERR_STREAM_BARRIER_ALIGNMENT_TIMEOUT`（`readMultiChannel():335`）；重叠 barrier 抛 `ERR_STREAM_CHECKPOINT_ABORTED`（line 381）。`barrierAlignment` 标志由 `ProcessingGuarantee.isBarrierAlignment()` 派生（STRICT_EXACTLY_ONCE=true / AT_LEAST_ONCE=false）。注：原 `BarrierAligner`/`AlignedBarrier` 类（runtime/checkpoint/barrier/）已于 Stage 23 代码清理删除（`@Deprecated` reference code，零生产调用者，对齐一律走 `InputGate`） |
+| `ALIGNING` | 多输入 task 等待所有输入 channel barrier 到齐。**实现**：`InputGate.handleBarrierNonRecursive()`（`InputGate.java:347`）— 首 barrier 到达调用 `blockConsumption(channelIndex)`（line 220）阻塞该 channel，所有 channel 到齐调用 `resumeConsumptionAll()`（line 245）并输出单一对齐 barrier；累计超 `barrierAlignmentTimeout`（默认 30s）抛 `ERR_STREAM_BARRIER_ALIGNMENT_TIMEOUT`（`readMultiChannel():335`）；**重叠 barrier id 按 in-flight 集合逐 id 对齐，迟到/被 abort 的 barrier 被丢弃而非抛错**（Stage 45 多 epoch 重构，§2.8.1 D1；`ERR_STREAM_CHECKPOINT_ABORTED` 不再由 InputGate 抛出，仅 import，唯一抛出点在 GraphModelCheckpointExecutor abort 路径）。`barrierAlignment` 标志由 `ProcessingGuarantee.isBarrierAlignment()` 派生（STRICT_EXACTLY_ONCE=true / AT_LEAST_ONCE=false）。注：原 `BarrierAligner`/`AlignedBarrier` 类（runtime/checkpoint/barrier/）已于 Stage 23 代码清理删除（`@Deprecated` reference code，零生产调用者，对齐一律走 `InputGate`） |
 | `SNAPSHOTTING` | task 生成本地 state snapshot |
 | `PRECOMMITTED` | sink 已完成 epoch 对应 transaction 的 preCommit |
 | `DURABLE` | epoch manifest 和 state segment 已持久化 |
@@ -149,6 +164,8 @@ Aligned checkpoint 是基线能力。Unaligned checkpoint 是性能优化，不�
 
 **Aligned→Unaligned 回退（背压逃生，详见 §2.11）**：当 `unalignedCheckpointEnabled=true`（默认）时，对齐等待超过 `unalignedThreshold`（默认 1000ms，必须 < `barrierAlignmentTimeout`）后 checkpoint 切换为 unaligned 模式——捕获在途数据（§2.11.2）、立即完成 barrier、取消对齐超时计时。`unalignedCheckpointEnabled=false` 时保留纯对齐超时→FAILED 行为。
 
+> **Updated: 2026-08-13（plan `2026-08-13-1243-1` P1-INV-2）**——elapsed 评估已与数据返回**解耦**：`InputGate.readMultiChannel()` 在**每次 read 入口**评估最老 in-flight 对齐的 elapsed（`checkAlignmentElapsed()`），不再要求"整轮 sweep 零返回"。修复前持续有数据的 channel 会使每次 read 提前返回、评估永不执行——累计超时上限（30s）与 unaligned 逃生（1s）在持续流量下被饿死，失败检测劣化到 coordinator 侧 `checkpointTimeout`（默认 600s）。语义不变：oldest in-flight 对齐为基准、逃生发射 barrier + ChannelState、超时抛 `ERR_STREAM_BARRIER_ALIGNMENT_TIMEOUT`。
+
 ### 2.5 Snapshot 内容
 
 每个 task 对 epoch N 上报 `TaskEpochSnapshot`。
@@ -157,9 +174,9 @@ Aligned checkpoint 是基线能力。Unaligned checkpoint 是性能优化，不�
 |---|---|
 | task identity | 稳定 task 身份（jobId / pipelineId / vertexId / subtaskIndex），不含 attemptId |
 | operator snapshots | 按 operatorId 分组 |
-| keyed state shards | 每个 shard 独立引用（shard 路由规则见 `state-management-design.md` §3） |
+| keyed state shards | 每个 shard 独立引用（shard 路由规则见 `state-management-design.md` §3）。**P1-21-01（2026-08-13 修复）**：MapState 容器值（List/Map，含嵌套）经 storageType=local JSON round-trip 后内层元素类型丢失（raw `List.class` 声明类型短路 + JSON 无 `@type` + 生产 inputSerializer 为 null → 恢复侧无元素类型来源）。修复在**快照侧建立类型来源**（Decision B：`ContainerValueCodec` 递归类型感知包装器——每个容器值带 per-level 元素类型（首元素 class），嵌套递归；Memory snapshot 与 RocksDB put 均写该包装器，双后端同一快照格式）：恢复侧（`MemoryStateSerDe.deserializeValue` / `RocksDBSnapshotSerDe.restoreMapState` / `RocksDBMapState.get()` 运行时读取）按元素类型递归重物化（JSON-native map → `JsonTool.parseBeanFromText` 成 bean、标量重定类型、嵌套包装器递归）。无包装的 legacy 快照（无元素类型信息）降级为 JSON-native 形态并 `LOG.warn`（guide #24，不静默损坏），与 state 侧版本漂移 fail-fast（`ERR_STREAM_STATE_SCHEMA_MISMATCH`）形成 best-effort 跳过 vs 版本漂移 fail-fast 的分工 |
 | timer state | 事件时间和处理时间 timer |
-| watermark state | 输入 channel watermark 和 idle 标记 |
+| watermark state | **spec-only / 未实现**：规划为输入 channel watermark 和 idle 标记，但 `TaskEpochSnapshot`/`TaskStateSnapshot`/`EpochManifest` 无 watermark/idle 字段，checkpoint 两包对 watermark 零引用；唯一持久化点是 `HeapInternalTimerService.java:238` 的 task 级 currentWatermark（随 timer state，非 per-channel）。恢复后各 channel 水位归零重爬（对应 backlog [P2-INV-7]） |
 | source split state | source offset 或 split cursor |
 | sink transaction state | pending transaction handle |
 | participant states | CheckpointParticipant 快照 |
@@ -369,6 +386,7 @@ capture 语义是 **drain**（记录从 channel 缓冲移入 `ChannelState`，�
 - **WHERE**：task 生命周期中，operator state restore **之后**、task 开始从 `InputGate` 读取**之前**。新增生命周期步骤 `restoreChannelState(ChannelState)`。
 - **WHAT ORDER**：replay 的在途记录**先于**任何新 upstream 记录 / barrier 处理。实现方式：把 `ChannelState` 记录按 channelIndex 预注入对应 `InputChannel` 的缓冲（local channel 注入 `ResultPartition` 队列；`RemoteInputChannel` 注入其 `LinkedBlockingQueue`），再启动订阅/读取。
 - **顺序保证**：恢复后的 task 先消费完所有 replay 的在途记录，再处理新数据。pre-barrier 记录（来自 non-aligned channel）与新 epoch 记录（来自 aligned channel 的 post-barrier）都因此被正确重放，state 与 checkpoint 一致。
+- **跳过语义可观测（P1-09-01，2026-08-13 修复）**：`ChannelState.fromSerializableForm` 是 in-flight 记录（exactly-once 唯一载体）的恢复主路径，采用 best-effort 跳过（单条不可解码记录不 abort 整个恢复）——但任何跳过路径都必须可观测：畸形 channelIndex / 非 List channel 值 / 非 Map 记录项 / decode 失败四类跳过全部 `LOG.warn`（含 channel/key 与原因；decode 失败携带 throwable 作末参数，error-handling.md per-element 隔离规则）。与 state 侧版本漂移 fail-fast（`ERR_STREAM_STATE_SCHEMA_MISMATCH`）的分工：**解码/结构损坏 = best-effort 跳过 + 日志留证**（避免单个坏记录拖垮整作业恢复），**schema 版本漂移 = fail-fast**（结构性不兼容，继续运行必然静默损坏）。
 
 #### 2.11.5 输出侧安全性（output channel state 不持久化的理由）
 
@@ -904,6 +922,23 @@ detect failure
 - 解除 no-go 需五项架构前置（blocking edge + region 概念 + supervision loop + drain/reconnect + per-region 计数器），全部超出 in-process scope，归属 Stage 44 / vision 决策。
 
 **对 baseline 的影响**：无。`globalRecovery()` 仍是唯一恢复入口，语义完整。targeted failover 从始至终是优化项，不是 exactly-once 正确性前置——本裁定确认该立场成立。G57 / G28（续）/ per-region 计数器保持 deferred → Stage 44。
+
+#### 8.1.3 per-task liveness 停滞检测语义（G52，AR-01 修复）
+
+**裁定（2026-08-13，plan `2026-08-13-1930-2` Phase 1）**：per-task 停滞检测的 liveness 信号与数据进度**解耦**——采用「任务线程活性（busy 维度）+ TM 墙钟（阻塞源）+ COMPLETED 排除」混合方案，使「空闲但健康」「已正常完成」「真正停滞」三态可区分。修复前 `lastProgressTime`（数据进度）被当作唯一存活信号，空闲源/已完成上游任务 60s 后即被误判停滞 → 每 ~60s 一次 globalRecovery → restart 上限（默认 3）耗尽 → 健康作业被 FAILED。
+
+**信号语义**（修复后）：
+
+| 角色 | 上报信号 | 来源 | 空闲时行为 | 真停滞时行为 |
+|---|---|---|---|---|
+| MIDDLE / SINK | 任务线程循环活性时间戳 | `StreamTaskInvokable.getLastActivityTime()`（`processInputGate` 循环顶每次迭代刷新，含 AR-02 空闲返回路径） | 循环持续运转 → 活性新鲜（~每 250ms 一拍） | 线程卡死在用户代码（循环不再前进）→ 活性老化 → 停滞触发 |
+| SOURCE / SELF_CONTAINED | TM 侧墙钟 | `TaskManager.heartbeat()` 上报 `System.currentTimeMillis()` | 心跳每 5s 刷新 → 永不老化 | 源挂死不在 task 级可检测面（阻塞 run 循环无循环边界钩子）→ 由 node lease / FAILED 报告 / 心跳缺口兜底 |
+
+- **COMPLETED 排除**：`JobCoordinator.reportTaskStatus` 收到 COMPLETED 报告时 `subtaskLiveness.remove(key)`（RunningTask.run() finally 已把任务移出 `runningTasks`，心跳不再上报，条目不会被重新加入）；`detectFailures` 对无记录条目保持 benefit-of-the-doubt → 已完成任务永久排除。FAILED 等其余终态报告记录**报告到达时刻**（存活事件本身），使心跳缺口恢复机制（槽位释放 → 心跳停 → liveness 老化 → 停滞触发）从新鲜基线起算。
+- **门控裁定**：停滞驱动的恢复**保持无条件启用**（不挂 `autoRecoverOnFailedReport`）。理由：`RpcDistributedExecutor` 显式关闭 FAILED-report 恢复（`autoRecoverOnFailedReport=false`），停滞路径是其 per-task 恢复的唯一触发器——挂上同一开关会移除生产 RPC 路径的全部 per-task 恢复；且修复后停滞检测只在真失败时触发（空闲/已完成误杀面已消除），与 FAILED 路径的「真实问题才恢复」意图收敛。测试钉：`TestJobCoordinatorPerTaskFailure.stallDetectionFiresEvenWhenAutoRecoverOnFailedReportDisabled`。
+- **可观测行为**：`taskTimeoutMs` 必须高于 TM 心跳周期（5s）——健康空闲任务的 liveness 每 5s 刷新，低于心跳周期会导致误判（javadoc 已注明）。
+- **测试**：`TestJobCoordinatorPerTaskFailure.completedTaskWithStaleProgressDoesNotTriggerStallRecovery`（已完成不触发，先红后绿）+ `TestTaskManagerLivenessAndReporting.idleSinkTaskHeartbeatReportsFreshAliveness`（空闲心跳新鲜，先红后绿）+ `TestStreamTaskInvokableActivityLiveness`（活性 vs 进度解耦单元）+ `TestRpcDistributedExecutorE2E.idleJobWithNoDataIsNotKilledByStallDetection`（分布式 RPC 路径空闲作业长跑不被误杀，先红后绿，taskTimeoutMs=8s/maxRestarts=1 加速窗口）；既有 `staleLivenessTriggersRecoveryViaDetectFailures`（真停滞仍触发）保持绿。
+- **不变式关联**：本修复不改变节点 lease 检测面（不变式 #5(b) 族维持）；「停滞检测恒启用」裁定为显式决策记录（非 gate 变更）。
 
 ### 8.2 Fencing
 

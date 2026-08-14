@@ -144,4 +144,30 @@ class TestChannelStateCapture {
         assertEquals(1, withCs.getChannelState().getRecords(1).size());
         assertNotSame(withoutCs, withCs);
     }
+
+    /**
+     * HG-01 (2026-08-14): side-output elements survive the checkpoint snapshot round-trip —
+     * the envelope field-enumeration layer (envelopeToMap/mapToEnvelope) must carry
+     * outputTagId; fixing only the codec call sites (ChannelState:145/:193) would lose the
+     * tag on restore.
+     */
+    @Test
+    void testSideOutputElementRoundTripPreservesTagId() {
+        ChannelState original = new ChannelState();
+        original.putRecords(0, Arrays.asList(
+                new io.nop.stream.core.streamrecord.SideOutputElement("side-tag-ckpt",
+                        new StreamRecord<>("side-in-flight", 7L))
+        ));
+
+        Map<String, Object> form = original.toSerializableForm();
+        ChannelState restored = ChannelState.fromSerializableForm(form);
+
+        List<StreamElement> ch0 = restored.getRecords(0);
+        assertEquals(1, ch0.size());
+        assertTrue(ch0.get(0).isSideOutput());
+        io.nop.stream.core.streamrecord.SideOutputElement side = ch0.get(0).asSideOutput();
+        assertEquals("side-tag-ckpt", side.getOutputTagId(), "outputTagId must survive snapshot round-trip");
+        assertEquals("side-in-flight", side.getRecord().getValue());
+        assertEquals(7L, side.getRecord().getTimestamp());
+    }
 }

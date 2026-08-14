@@ -73,7 +73,14 @@ class TestInputGateMultiEpochBarrier {
             try {
                 while (true) {
                     Optional<StreamElement> e = gate.read();
-                    if (!e.isPresent()) break;
+                    if (!e.isPresent()) {
+                        // AR-02: empty may be an idle return (channels still
+                        // open) — only a true EOS terminates the loop.
+                        if (gate.isAllFinished()) {
+                            break;
+                        }
+                        continue;
+                    }
                     if (e.get().isCheckpointBarrier()) {
                         emitted.add(e.get().asCheckpointBarrier().getId());
                     }
@@ -143,6 +150,62 @@ class TestInputGateMultiEpochBarrier {
         // Barrier 1, then its post-barrier record, then barrier 2 — all in order.
         assertEquals(Arrays.asList(1L, "after-1", 2L), emitted,
                 "Completing barrier 1 must not leave stale state for barrier 2");
+    }
+
+    @Test
+    void testAlignedOverlapBarrierQueuedOnBlockedChannelAlignsFreshly() throws Exception {
+        // I2 WO-3 (R15-AR-9) dynamic verification — maxConcurrentCheckpoints>1, aligned mode.
+        // Barrier 6 is written to ch0 BEFORE barrier 5 arrives on ch1: while align(5)
+        // blocks ch0, barrier 6 sits queued in the channel buffer. When align(5) completes
+        // and ch0 unblocks, barrier 6 must start a FRESH per-id alignment (not inherit
+        // align(5)'s receivedChannels / blockedChannels state) and align independently.
+        ResultPartition p0 = new ResultPartition();
+        ResultPartition p1 = new ResultPartition();
+        InputGate gate = new InputGate(Arrays.asList(new InputChannel(p0), new InputChannel(p1)),
+                null, true);
+
+        p0.write(new CheckpointBarrier(5, 0, CheckpointType.CHECKPOINT));
+        p0.write(new CheckpointBarrier(6, 0, CheckpointType.CHECKPOINT));
+        p1.write(new CheckpointBarrier(5, 0, CheckpointType.CHECKPOINT));
+        p1.write(new CheckpointBarrier(6, 0, CheckpointType.CHECKPOINT));
+        p0.close();
+        p1.close();
+
+        List<Long> emitted = drainBarriers(gate);
+
+        assertEquals(Arrays.asList(5L, 6L), emitted,
+                "Each checkpoint id must align independently and emit exactly once in id order");
+        assertTrue(gate.getInFlightBarrierIds().isEmpty(),
+                "No alignment state may be left in-flight after both ids complete");
+    }
+
+    @Test
+    void testAtLeastOnceOverlappingIdsTrackedPerIdWithoutCrossTalk() throws Exception {
+        // I2 WO-3 (R15-AR-9) dynamic verification — AT_LEAST_ONCE (barrierAlignment=false).
+        // Two checkpoint ids (5, 6) arrive interleaved across channels; per-id
+        // inFlightAlignments must track each id's receivedChannels independently,
+        // emit each id exactly once, coalesce duplicates per id, and remove both
+        // alignments once fully received (no cross-talk, no silent discard).
+        ResultPartition p0 = new ResultPartition();
+        ResultPartition p1 = new ResultPartition();
+        InputGate gate = new InputGate(Arrays.asList(new InputChannel(p0), new InputChannel(p1)),
+                null, false);
+
+        // Interleaved arrival: id 5 arrives on ch0, id 6 arrives on ch1,
+        // then the remaining halves of each id's alignment.
+        p0.write(new CheckpointBarrier(5, 0, CheckpointType.CHECKPOINT));
+        p1.write(new CheckpointBarrier(6, 0, CheckpointType.CHECKPOINT));
+        p1.write(new CheckpointBarrier(5, 0, CheckpointType.CHECKPOINT));
+        p0.write(new CheckpointBarrier(6, 0, CheckpointType.CHECKPOINT));
+        p0.close();
+        p1.close();
+
+        List<Long> emitted = drainBarriers(gate);
+
+        assertEquals(Arrays.asList(5L, 6L), emitted,
+                "Each overlapping id must be emitted exactly once (first receipt), in arrival order");
+        assertTrue(gate.getInFlightBarrierIds().isEmpty(),
+                "Both alignments must be removed once fully received (no leak)");
     }
 
     private List<Long> drainBarriers(InputGate gate) throws Exception {

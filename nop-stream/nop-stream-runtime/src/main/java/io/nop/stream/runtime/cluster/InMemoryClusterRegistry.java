@@ -23,17 +23,25 @@ public class InMemoryClusterRegistry implements ClusterRegistry {
     static final long LEASE_TIMEOUT_MS = 15000L;
 
     void setLeaseTimestampForTest(String nodeId, long timestamp) {
-        leaseTimestamps.put(nodeId, timestamp);
+        leaseStartTimes.put(nodeId, timestamp);
+        leaseExpireTimes.put(nodeId, timestamp + leaseTtlMs);
     }
 
     private final Map<String, CoordinatorInfo> coordinators = new ConcurrentHashMap<>();
     private final Map<String, NodeInfo> nodes = new ConcurrentHashMap<>();
-    private final Map<String, Long> leaseTimestamps = new ConcurrentHashMap<>();
+    /** Last lease renewal / registration timestamp per node (= leaseStartAt, updated on renew). */
+    private final Map<String, Long> leaseStartTimes = new ConcurrentHashMap<>();
+    /**
+     * RL-3 (R16-AR-18): per-node lease expiry, computed from the per-renewal {@code leaseTimeoutMs}
+     * parameter (or the registry default TTL on registerNode) — never a fixed class-level TTL.
+     */
+    private final Map<String, Long> leaseExpireTimes = new ConcurrentHashMap<>();
     /**
      * G56: attempt history per task key. Each list is append-only and ordered by
      * insertion (= monotonically increasing attemptNumber, enforced by callers).
      */
     private final Map<String, List<TaskAssignment>> taskAssignmentHistory = new ConcurrentHashMap<>();
+    /** Default lease duration applied on registerNode (also used by setLeaseTimestampForTest). */
     private final long leaseTtlMs;
 
     public InMemoryClusterRegistry() {
@@ -57,10 +65,14 @@ public class InMemoryClusterRegistry implements ClusterRegistry {
 
     @Override
     public void registerNode(String nodeId, String endpoint, int capacity) {
-        long now = System.currentTimeMillis();
-        NodeInfo info = new NodeInfo(nodeId, endpoint, capacity, now, now);
-        nodes.put(nodeId, info);
-        leaseTimestamps.put(nodeId, now);
+        synchronized (nodes) {
+            long now = System.currentTimeMillis();
+            NodeInfo info = new NodeInfo(nodeId, endpoint, capacity, now, now);
+            nodes.put(nodeId, info);
+            // Default lease = registry TTL; renewLease overrides with the per-renewal timeout.
+            leaseStartTimes.put(nodeId, now);
+            leaseExpireTimes.put(nodeId, now + leaseTtlMs);
+        }
         LOG.debug("Registered node {} at endpoint {} with capacity {}", nodeId, endpoint, capacity);
     }
 
@@ -71,7 +83,10 @@ public class InMemoryClusterRegistry implements ClusterRegistry {
                 return false;
             }
             long now = System.currentTimeMillis();
-            leaseTimestamps.put(nodeId, now);
+            // RL-3 (R16-AR-18): persist the expiry computed from the per-renewal parameter so all
+            // liveness computations below agree with the stored value (invariant #5, JDBC parity).
+            leaseStartTimes.put(nodeId, now);
+            leaseExpireTimes.put(nodeId, now + leaseTimeoutMs);
             NodeInfo info = nodes.get(nodeId);
             if (info != null) {
                 info.setLastHeartbeatAt(now);
@@ -82,23 +97,25 @@ public class InMemoryClusterRegistry implements ClusterRegistry {
 
     @Override
     public LeaseInfo getNodeLease(String nodeId) {
-        Long timestamp = leaseTimestamps.get(nodeId);
-        if (timestamp == null) {
+        Long startAt = leaseStartTimes.get(nodeId);
+        if (startAt == null) {
             return null;
         }
+        long expireAt = leaseExpireTimes.get(nodeId);
         long now = System.currentTimeMillis();
-        boolean active = (now - timestamp) < leaseTtlMs;
-        return new LeaseInfo(nodeId, timestamp, timestamp + leaseTtlMs, active);
+        boolean active = expireAt > now;
+        return new LeaseInfo(nodeId, startAt, expireAt, active);
     }
 
     public void evictExpiredNodes() {
         long now = System.currentTimeMillis();
         synchronized (nodes) {
-            for (Map.Entry<String, Long> entry : leaseTimestamps.entrySet()) {
-                if ((now - entry.getValue()) >= leaseTtlMs) {
+            for (Map.Entry<String, Long> entry : leaseExpireTimes.entrySet()) {
+                if (entry.getValue() <= now) {
                     String nodeId = entry.getKey();
                     nodes.remove(nodeId);
-                    leaseTimestamps.remove(nodeId);
+                    leaseStartTimes.remove(nodeId);
+                    leaseExpireTimes.remove(nodeId);
                     LOG.debug("Evicted expired node {}", nodeId);
                 }
             }
@@ -110,8 +127,11 @@ public class InMemoryClusterRegistry implements ClusterRegistry {
         long now = System.currentTimeMillis();
         List<NodeInfo> active = new ArrayList<>();
         for (Map.Entry<String, NodeInfo> entry : nodes.entrySet()) {
-            Long leaseTime = leaseTimestamps.get(entry.getKey());
-            if (leaseTime != null && (now - leaseTime) < leaseTtlMs) {
+            Long expireAt = leaseExpireTimes.get(entry.getKey());
+            // registerNode populates leaseExpireTimes together with nodes under the same
+            // lock, so a missing entry is unreachable in practice; treat it defensively as
+            // inactive rather than crashing the liveness view.
+            if (expireAt != null && expireAt > now) {
                 active.add(entry.getValue());
             }
         }

@@ -87,7 +87,10 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
     private static final long DEFAULT_LEASE_CHECK_INTERVAL_MS = 5000L;
     private static final long DEFAULT_LEASE_EXPIRE_THRESHOLD_MS = 30000L;
     private static final long DEFAULT_TERMINATION_CHECKPOINT_TIMEOUT_MS = 60_000L;
-    /** G52: default per-task liveness timeout (a task whose lastProgressTime is older than this is considered stalled). */
+    /**
+     * G52 / AR-01: default per-task aliveness timeout (a task whose recorded
+     * liveness signal is older than this is considered stalled).
+     */
     static final long DEFAULT_TASK_TIMEOUT_MS = 60_000L;
 
     /**
@@ -189,9 +192,18 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
     private final Map<String, Integer> attemptCounters = new ConcurrentHashMap<>();
 
     /**
-     * G52: per-subtask liveness tracking. Key = "{vertexId}/{subtaskIndex}".
-     * Values are the latest known lastProgressTime (updated by
+     * G52 / AR-01: per-subtask liveness tracking. Key =
+     * "{vertexId}/{subtaskIndex}".
+     * Values are the latest known task-aliveness timestamp (updated by
      * {@link #reportNodeTaskLiveness} / {@link #reportTaskStatus}).
+     *
+     * <p>Semantics (AR-01 fix): the value is the <b>task aliveness</b> signal,
+     * decoupled from data progress — MIDDLE/SINK report the task thread's
+     * loop activity (fresh while the loop cycles, data or idle), SOURCE/
+     * SELF_CONTAINED report the TaskManager wall clock. A COMPLETED report
+     * <b>removes</b> the entry so the task is permanently excluded from stall
+     * detection ({@link #detectFailures} gives a task with no record the
+     * benefit of the doubt).
      */
     private final Map<String, Long> subtaskLiveness = new ConcurrentHashMap<>();
 
@@ -851,10 +863,13 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
     /**
      * G52: per-task terminal-state report handler.
      *
-     * <p>Updates per-subtask liveness on every report. On a FAILED report from a
-     * task whose host node is still alive, triggers global recovery (so the
-     * coordinator no longer depends solely on node-lease detection to react to
-     * a single-task failure). Rejects reports with stale fencing tokens.
+     * <p>Updates per-subtask liveness on every report (G52 / AR-01: a COMPLETED
+     * report <b>removes</b> the liveness entry so the completed task is
+     * excluded from stall detection; a FAILED report records the report arrival
+     * time as a fresh aliveness baseline). On a FAILED report from a task whose
+     * host node is still alive, triggers global recovery (so the coordinator no
+     * longer depends solely on node-lease detection to react to a single-task
+     * failure). Rejects reports with stale fencing tokens.
      */
     @Override
     public void reportTaskStatus(TaskStatusReport report) {
@@ -884,10 +899,22 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
 
         String livenessKey = report.getVertexId() + "/" + report.getSubtaskIndex();
         long now = System.currentTimeMillis();
-        long reportedProgress = report.getLastProgressTime();
-        if (reportedProgress > 0) {
-            subtaskLiveness.put(livenessKey, reportedProgress);
+        TaskStatusReport.TerminalState state = report.getTerminalState();
+        if (state == TaskStatusReport.TerminalState.COMPLETED) {
+            // G52 / AR-01: a completed task must be excluded from stall
+            // detection. Remove its liveness entry so detectFailures'
+            // benefit-of-the-doubt branch (no record) never flags it as
+            // stalled. The task has already left the TaskManager's
+            // runningTasks set (RunningTask.run() finally), so no further
+            // heartbeats will re-add it.
+            subtaskLiveness.remove(livenessKey);
         } else {
+            // G52 / AR-01: any other terminal report (FAILED) is an
+            // aliveness event in its own right — record the report arrival
+            // time (not the possibly-stale data-progress timestamp) so the
+            // heartbeat-gap recovery mechanism (task left runningTasks →
+            // no more heartbeats → liveness ages → stall detection) starts
+            // from a fresh baseline.
             subtaskLiveness.put(livenessKey, now);
         }
 
@@ -924,9 +951,11 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
     }
 
     /**
-     * G52: per-node liveness piggybacked on the heartbeat. Updates the
+     * G52 / AR-01: per-node liveness piggybacked on the heartbeat. Updates the
      * per-subtask liveness map; the {@link #detectFailures()} loop checks for
-     * stalls against {@link #taskTimeoutMs}.
+     * stalls against {@link #taskTimeoutMs}. The reported values carry the
+     * task-aliveness semantics described on {@link #subtaskLiveness}
+     * (MIDDLE/SINK loop activity, SOURCE/SELF_CONTAINED TM wall clock).
      */
     @Override
     public void reportNodeTaskLiveness(String nodeId, List<TaskProgress> progress) {
@@ -966,8 +995,18 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
 
     /**
      * Checks ClusterRegistry node leases AND per-task liveness (G52). If any assigned
-     * node has expired, OR if any task's {@code lastProgressTime} is older than
+     * node has expired, OR if any task's recorded aliveness timestamp is
+     * older than
      * {@link #taskTimeoutMs}, triggers global recovery.
+     *
+     * <p>G52 / AR-01: the per-task liveness values are the task-aliveness
+     * signal (decoupled from data progress — see {@link #subtaskLiveness}).
+     * Healthy idle tasks keep fresh values (MIDDLE/SINK loop activity ticks
+     * every idle cycle; SOURCE/SELF_CONTAINED report the TM wall clock every
+     * heartbeat), completed tasks have their entry removed by
+     * {@link #reportTaskStatus}, so only a genuinely hung task (loop stopped
+     * ticking) or a task whose heartbeats have stopped (slot freed without a
+     * terminal report) falls behind the cutoff.
      */
     public void detectFailures() {
         if (!running) {
@@ -1001,8 +1040,11 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                 }
             }
 
-            // G52: per-task liveness check. A task whose lastProgressTime is older
-            // than taskTimeoutMs is considered stalled (node alive but task hung).
+            // G52 / AR-01: per-task aliveness check. A task whose recorded
+            // aliveness timestamp is older than taskTimeoutMs is considered
+            // stalled (node alive but task hung / heartbeats stopped). The
+            // recorded values are the task-aliveness signal (see
+            // subtaskLiveness), so idle/completed tasks never fall behind.
             boolean taskStallDetected = false;
             long now = System.currentTimeMillis();
             long cutoff = now - taskTimeoutMs;
@@ -1668,9 +1710,11 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
     }
 
     /**
-     * G52: per-task liveness timeout. A task whose {@code lastProgressTime} is
-     * older than this is considered stalled and triggers recovery on the next
-     * {@link #detectFailures()} tick.
+     * G52 / AR-01: per-task aliveness timeout. A task whose recorded aliveness
+     * timestamp (see {@link #subtaskLiveness}) is older than this is considered
+     * stalled and triggers recovery on the next {@link #detectFailures()} tick.
+     * The value must stay above the TaskManager heartbeat interval (5s) so a
+     * healthy idle task (heartbeat-refreshed) never falls behind the cutoff.
      */
     public void setTaskTimeoutMs(long taskTimeoutMs) {
         this.taskTimeoutMs = taskTimeoutMs;

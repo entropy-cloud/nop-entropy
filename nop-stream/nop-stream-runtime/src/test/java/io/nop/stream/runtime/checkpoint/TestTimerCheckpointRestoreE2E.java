@@ -7,8 +7,11 @@
  */
 package io.nop.stream.runtime.checkpoint;
 
+import io.nop.core.lang.json.JsonTool;
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
 import io.nop.stream.core.checkpoint.StateSnapshotContext;
+import io.nop.stream.core.checkpoint.TaskLocation;
+import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.typeutils.TypeSerializer;
 import io.nop.stream.core.operators.HeapInternalTimerService;
@@ -20,9 +23,12 @@ import io.nop.stream.core.util.OutputTag;
 import io.nop.stream.core.windowing.assigners.TumblingEventTimeWindows;
 import io.nop.stream.core.windowing.triggers.EventTimeTrigger;
 import io.nop.stream.core.windowing.windows.TimeWindow;
+import io.nop.stream.runtime.checkpoint.storage.CheckpointSerDe;
 import io.nop.stream.runtime.operators.windowing.WindowOperator;
 import io.nop.stream.runtime.operators.windowing.functions.InternalWindowFunction;
 import org.junit.jupiter.api.Test;
+
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -49,6 +55,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class TestTimerCheckpointRestoreE2E {
 
     private static final long WINDOW_SIZE = 100L;
+    private static final TaskLocation LOC_0 = new TaskLocation("1", "0", "v0", 0);
 
     @Test
     void testTimerSurvivesCheckpointAndFiresAfterRestore() throws Exception {
@@ -212,6 +219,82 @@ class TestTimerCheckpointRestoreE2E {
         }
     }
 
+    /**
+     * AR-22 (P0) runtime-level reproduction: a Long-keyed window operator checkpoints
+     * timers through the REAL JSON persist path ({@code CheckpointSerDe} +
+     * {@code JsonTool}, the exact storageType=local round trip), then a brand-new
+     * operator restores and fires the restored timer.
+     *
+     * <p>Pre-fix (red): the checkpoint JSON round-trips {@code Long(123)} as
+     * {@code Integer(123)} (TextScanner tries {@code Integer.parseInt} first), the
+     * restored timer fires with {@code Integer(123)}, and the class-sensitive
+     * {@code TypedNamespaceAndKey} lookup for the live {@code Long(123)} window
+     * contents silently misses — no output. Post-fix: the timer service re-materializes
+     * the key to {@code Long} and the window fires correctly.
+     *
+     * <p>The keyed states pass through in-memory (same-JVM transfer, mirroring the
+     * existing String-key tests) — the timer-key drift under test lives in the
+     * operator-state persist path, which is exactly what the JSON round trip exercises.
+     */
+    @Test
+    void testLongTimerKeySurvivesJsonCheckpointRestoreAndFires() throws Exception {
+        TestOutput<String> output1 = new TestOutput<>();
+        TestableLongKeyWindowOperator op1 = newLongKeyOperator();
+        op1.setOutput((Output) output1);
+        op1.open();
+
+        try {
+            // Process elements under Long key 123L (< 2^31 → JSON round-trips as Integer).
+            op1.processElement(new StreamRecord<>(5, 10));
+            op1.processElement(new StreamRecord<>(7, 50));
+
+            OperatorSnapshotResult snapshot = op1.snapshotState(
+                    new StateSnapshotContext(1L, System.currentTimeMillis()));
+
+            // Simulate the storageType=local persist path: serialize the task state
+            // snapshot to its JSON-safe form, persist as JSON, and re-parse it.
+            TaskStateSnapshot taskState = TaskStateSnapshot.builder(LOC_0).checkpointId(1L).build();
+            for (Map.Entry<String, Object> e : snapshot.getOperatorStates().entrySet()) {
+                taskState.putOperatorState(e.getKey(), e.getValue());
+            }
+            Map<String, Object> form = CheckpointSerDe.serializeTaskStateSnapshot(taskState);
+            Map<String, Object> parsed = JsonTool.parseMap(JsonTool.serialize(form, false));
+            TaskStateSnapshot restoredTaskState = CheckpointSerDe.deserializeTaskStateSnapshot(parsed, LOC_0);
+
+            // Kill + restore: brand-new operator restores the JSON-persisted operator
+            // state (restoreState runs before open() — deferred-application pattern).
+            TestOutput<String> output2 = new TestOutput<>();
+            TestableLongKeyWindowOperator op2 = newLongKeyOperator();
+            op2.setOutput((Output) output2);
+
+            OperatorSnapshotResult restoredResult = new OperatorSnapshotResult();
+            for (Map.Entry<String, Object> e : restoredTaskState.getOperatorStates().entrySet()) {
+                restoredResult.putOperatorState(e.getKey(), e.getValue());
+            }
+            for (Map.Entry<String, Object> e : snapshot.getKeyedStates().entrySet()) {
+                restoredResult.putKeyedState(e.getKey(), e.getValue());
+            }
+            op2.restoreState(restoredResult);
+            op2.open();
+
+            try {
+                // Advance watermark past the timer threshold (window.maxTimestamp() = 99).
+                // Pre-fix: the restored timer fires with Integer(123) → window contents
+                // miss → NO output (silent loss). Post-fix: fires with Long(123) → hit.
+                op2.advanceInternalWatermark(99);
+
+                assertEquals(1, output2.size(),
+                        "Restored Long-key timer must fire and emit the window result "
+                                + "(pre-fix: Integer-key drift silently misses the window contents)");
+                assertEquals("7", output2.getElements().get(0));
+            } finally {
+                op2.close();
+            }
+        } finally {
+            op1.close();
+        }
+    }
+
     // ------------------------------------------------------------------------
 
     private TestableWindowOperator newOperator() {
@@ -221,7 +304,21 @@ class TestTimerCheckpointRestoreE2E {
                 (KeySelector<Integer, String>) v -> "key1",
                 new SimpleStringSerializer(),
                 String.class,
-                new ToStringWindowFunction(),
+                new ToStringWindowFunction<String>(),
+                EventTimeTrigger.create(),
+                0L,
+                null
+        );
+    }
+
+    private TestableLongKeyWindowOperator newLongKeyOperator() {
+        return new TestableLongKeyWindowOperator(
+                TumblingEventTimeWindows.of(WINDOW_SIZE),
+                new SimpleTimeWindowSerializer(),
+                (KeySelector<Integer, Long>) v -> 123L,
+                new SimpleLongSerializer(),
+                Long.class,
+                new ToStringWindowFunction<Long>(),
                 EventTimeTrigger.create(),
                 0L,
                 null
@@ -253,11 +350,38 @@ class TestTimerCheckpointRestoreE2E {
         }
     }
 
-    static class ToStringWindowFunction implements InternalWindowFunction<Object, String, String, TimeWindow> {
+    /**
+     * Long-keyed variant of {@link TestableWindowOperator} (AR-22): the operator's
+     * {@code keyClass} is {@code Long.class}, which the fix wires into the timer
+     * service so restored timer keys are re-materialized to Long after the JSON
+     * checkpoint round trip.
+     */
+    static class TestableLongKeyWindowOperator extends WindowOperator<Long, Integer, Object, String, TimeWindow> {
+
+        TestableLongKeyWindowOperator(
+                TumblingEventTimeWindows windowAssigner,
+                TypeSerializer<TimeWindow> windowSerializer,
+                KeySelector<Integer, Long> keySelector,
+                TypeSerializer<Long> keySerializer,
+                Class<Long> keyClass,
+                InternalWindowFunction<Object, String, Long, TimeWindow> windowFunction,
+                EventTimeTrigger trigger,
+                long allowedLateness,
+                OutputTag<Integer> lateDataOutputTag) {
+            super(windowAssigner, windowSerializer, keySelector, keySerializer, keyClass,
+                    windowFunction, trigger, allowedLateness, lateDataOutputTag);
+        }
+
+        void advanceInternalWatermark(long timestamp) throws Exception {
+            internalTimerService.advanceWatermark(timestamp);
+        }
+    }
+
+    static class ToStringWindowFunction<K> implements InternalWindowFunction<Object, String, K, TimeWindow> {
         private static final long serialVersionUID = 1L;
 
         @Override
-        public void process(String key, TimeWindow window, InternalWindowContext context,
+        public void process(K key, TimeWindow window, InternalWindowContext context,
                             Object input, io.nop.stream.core.util.Collector<String> out) {
             out.collect(String.valueOf(input));
         }
@@ -326,6 +450,40 @@ class TestTimerCheckpointRestoreE2E {
 
         @Override
         public String copy(String from, String reuse) {
+            return from;
+        }
+
+        @Override
+        public int getLength() {
+            return -1;
+        }
+    }
+
+    static class SimpleLongSerializer implements TypeSerializer<Long> {
+        private static final long serialVersionUID = 1L;
+
+        @Override
+        public boolean isImmutableType() {
+            return true;
+        }
+
+        @Override
+        public TypeSerializer<Long> duplicate() {
+            return this;
+        }
+
+        @Override
+        public Long createInstance() {
+            return 0L;
+        }
+
+        @Override
+        public Long copy(Long from) {
+            return from;
+        }
+
+        @Override
+        public Long copy(Long from, Long reuse) {
             return from;
         }
 

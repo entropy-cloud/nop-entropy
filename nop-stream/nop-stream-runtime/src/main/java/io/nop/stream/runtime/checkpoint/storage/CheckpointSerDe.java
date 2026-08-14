@@ -324,7 +324,7 @@ public class CheckpointSerDe {
     public static Map<String, Object> serializeTaskStateSnapshot(TaskStateSnapshot snapshot) {
         Map<String, Object> map = new LinkedHashMap<>();
         if (snapshot.getOperatorStates() != null && !snapshot.getOperatorStates().isEmpty()) {
-            map.put("operatorStates", snapshot.getOperatorStates());
+            map.put("operatorStates", serializeOperatorStates(snapshot.getOperatorStates()));
         }
         if (snapshot.getKeyedStates() != null && !snapshot.getKeyedStates().isEmpty()) {
             map.put("keyedStates", snapshot.getKeyedStates());
@@ -363,7 +363,8 @@ public class CheckpointSerDe {
                 ? (Map<String, Object>) map.get("operatorStates") : null;
         if (operatorStates != null) {
             for (Map.Entry<String, Object> entry : operatorStates.entrySet()) {
-                snapshot.putOperatorState(entry.getKey(), entry.getValue());
+                snapshot.putOperatorState(entry.getKey(),
+                        deserializeOperatorState(entry.getValue()));
             }
         }
 
@@ -405,6 +406,136 @@ public class CheckpointSerDe {
     private static int intField(Map<String, Object> map, String key, int defaultValue) {
         Object v = map.get(key);
         return (v instanceof Number) ? ((Number) v).intValue() : defaultValue;
+    }
+
+    /**
+     * Converts operator-state values that are not JSON-safe (not Nop {@code @DataBean}s)
+     * into plain JSON-safe map forms, so the checkpoint JSON persist path can store them.
+     * Currently handled: {@code HeapInternalTimerService.TimerSnapshot},
+     * {@code WindowOperator.PaneTrackingSnapshot}, and {@code SimpleAccumulator} values
+     * (trigger-accumulators map). Everything else passes through unchanged.
+     */
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> serializeOperatorStates(Map<String, Object> operatorStates) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        for (Map.Entry<String, Object> entry : operatorStates.entrySet()) {
+            Object value = entry.getValue();
+            if (value instanceof io.nop.stream.core.operators.HeapInternalTimerService.TimerSnapshot) {
+                result.put(entry.getKey(),
+                        ((io.nop.stream.core.operators.HeapInternalTimerService.TimerSnapshot<?, ?>) value)
+                                .toSerializableForm());
+            } else if (value instanceof io.nop.stream.runtime.operators.windowing.WindowOperator.PaneTrackingSnapshot) {
+                result.put(entry.getKey(),
+                        ((io.nop.stream.runtime.operators.windowing.WindowOperator.PaneTrackingSnapshot) value)
+                                .toSerializableForm());
+            } else if (isAccumulatorMap(value)) {
+                Map<String, Object> accMap = (Map<String, Object>) value;
+                Map<String, Object> accForms = new LinkedHashMap<>();
+                for (Map.Entry<String, Object> accEntry : accMap.entrySet()) {
+                    accForms.put(accEntry.getKey(), accumulatorToForm(
+                            (io.nop.stream.core.common.accumulators.SimpleAccumulator<?>) accEntry.getValue()));
+                }
+                result.put(entry.getKey(), accForms);
+            } else {
+                result.put(entry.getKey(), value);
+            }
+        }
+        return result;
+    }
+
+    private static boolean isAccumulatorMap(Object value) {
+        if (!(value instanceof Map)) {
+            return false;
+        }
+        Map<?, ?> map = (Map<?, ?>) value;
+        if (map.isEmpty()) {
+            return false;
+        }
+        for (Object v : map.values()) {
+            if (!(v instanceof io.nop.stream.core.common.accumulators.SimpleAccumulator)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Rebuilds typed operator-state values from their JSON-safe forms (the inverse of
+     * {@link #serializeOperatorStates}). Self-describing {@code "@type"} markers route
+     * each form back to its original type; unknown / plain maps pass through unchanged.
+     */
+    @SuppressWarnings("unchecked")
+    private static Object deserializeOperatorState(Object value) {
+        if (!(value instanceof Map)) {
+            return value;
+        }
+        Map<String, Object> form = (Map<String, Object>) value;
+        Object type = form.get("@type");
+        if ("TimerSnapshot".equals(type)) {
+            return io.nop.stream.core.operators.HeapInternalTimerService.TimerSnapshot.fromSerializableForm(form);
+        }
+        if ("PaneTrackingSnapshot".equals(type)) {
+            return io.nop.stream.runtime.operators.windowing.WindowOperator.PaneTrackingSnapshot.fromSerializableForm(form);
+        }
+        if (isAccumulatorFormMap(form)) {
+            Map<String, Object> accMap = new LinkedHashMap<>();
+            for (Map.Entry<String, Object> accEntry : form.entrySet()) {
+                accMap.put(accEntry.getKey(),
+                        accumulatorFromForm((Map<String, Object>) accEntry.getValue()));
+            }
+            return accMap;
+        }
+        return value;
+    }
+
+    /**
+     * Accumulator map form detection: every value is a self-describing
+     * {@code {"@type": <accumulator class>, "localValue": ...}} map.
+     */
+    private static boolean isAccumulatorFormMap(Map<String, Object> form) {
+        if (form.isEmpty()) {
+            return false;
+        }
+        for (Object v : form.values()) {
+            if (!(v instanceof Map)) {
+                return false;
+            }
+            Object vt = ((Map<String, Object>) v).get("@type");
+            if (!(vt instanceof String) || ((String) vt).isEmpty()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * JSON-safe form of a {@code SimpleAccumulator}: the concrete class name plus the
+     * accumulated local value (re-accumulated on restore via the no-arg constructor +
+     * {@code add}).
+     */
+    private static Map<String, Object> accumulatorToForm(io.nop.stream.core.common.accumulators.SimpleAccumulator<?> acc) {
+        Map<String, Object> form = new LinkedHashMap<>();
+        form.put("@type", acc.getClass().getName());
+        form.put("localValue", acc.getLocalValue());
+        return form;
+    }
+
+    private static io.nop.stream.core.common.accumulators.SimpleAccumulator<?> accumulatorFromForm(Map<String, Object> form) {
+        String typeName = (String) form.get("@type");
+        io.nop.stream.core.common.accumulators.SimpleAccumulator<?> acc;
+        try {
+            io.nop.stream.core.util.ClassNameValidator.validateAccumulatorClass(typeName);
+            acc = (io.nop.stream.core.common.accumulators.SimpleAccumulator<?>)
+                    Class.forName(typeName).getDeclaredConstructor().newInstance();
+        } catch (Exception e) {
+            throw new StreamException(io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR, e)
+                    .param(ARG_DETAIL, "Failed to recreate accumulator of type " + typeName);
+        }
+        Object localValue = form.get("localValue");
+        if (localValue != null) {
+            ((io.nop.stream.core.common.accumulators.SimpleAccumulator<Object>) acc).add(localValue);
+        }
+        return acc;
     }
 
     /**

@@ -32,6 +32,14 @@ public class JdbcClusterRegistry implements ClusterRegistry {
 
     private static final String DEFAULT_QUERY_SPACE = "default";
 
+    /**
+     * RL-1 (R16-AR-9): default node lease duration applied on registerNode (INSERT and UPDATE
+     * branches). Must equal the InMemory default ({@link InMemoryClusterRegistry#LEASE_TIMEOUT_MS})
+     * and {@link io.nop.stream.runtime.taskmanager.TaskManager#DEFAULT_LEASE_TIMEOUT_MS} so both
+     * implementations share the same semantics (invariant #5).
+     */
+    static final long DEFAULT_LEASE_TIMEOUT_MS = 15000L;
+
     private final IJdbcTemplate jdbcTemplate;
     private final String querySpace;
 
@@ -98,6 +106,12 @@ public class JdbcClusterRegistry implements ClusterRegistry {
         ensureTables();
 
         long now = System.currentTimeMillis();
+        // RL-1 (R16-AR-9): a freshly registered node must be immediately visible to the scheduler,
+        // so both the INSERT and the UPDATE branch persist a valid lease expiry (now + default
+        // timeout) instead of 0L / a stale value. Otherwise the node is invisible until the first
+        // renewLease (INSERT wrote 0L) or forever if the persisted lease already expired (UPDATE
+        // path after a node restart, see TestClusterRegistryConsistencyInvariant).
+        long leaseExpireAt = now + DEFAULT_LEASE_TIMEOUT_MS;
 
         SQL existsSql = SQL.begin().name("nodeExists").querySpace(querySpace)
                 .sql("SELECT 1 FROM " + NODE_TABLE + " WHERE node_id = ?", nodeId)
@@ -105,14 +119,14 @@ public class JdbcClusterRegistry implements ClusterRegistry {
 
         SQL updateSql = SQL.begin().name("updateNode").querySpace(querySpace)
                 .sql("UPDATE " + NODE_TABLE +
-                                " SET endpoint = ?, capacity = ?, last_heartbeat_at = ? WHERE node_id = ?",
-                        endpoint, capacity, now, nodeId)
+                                " SET endpoint = ?, capacity = ?, last_heartbeat_at = ?, lease_expire_at = ? WHERE node_id = ?",
+                        endpoint, capacity, now, leaseExpireAt, nodeId)
                 .end();
 
         SQL insertSql = SQL.begin().name("insertNode").querySpace(querySpace)
                 .sql("INSERT INTO " + NODE_TABLE +
                                 " (node_id, endpoint, capacity, registered_at, last_heartbeat_at, lease_expire_at) VALUES (?,?,?,?,?,?)",
-                        nodeId, endpoint, capacity, now, now, 0L)
+                        nodeId, endpoint, capacity, now, now, leaseExpireAt)
                 .end();
 
         jdbcTemplate.txn().runInTransaction(querySpace, TransactionPropagation.REQUIRED, txn -> {

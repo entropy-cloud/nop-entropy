@@ -41,6 +41,12 @@ jobs:
         cache: maven
     - name: Build with Maven
       run: mvn -B package --file pom.xml
+    - name: Set up Node.js (for nop-stream invariant gate scanner)
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+    - name: Check nop-stream invariant gates (mjs scanner)
+      run: node ai-dev/tools/check-nop-stream-invariants.mjs
 
   # nop-ai 不变式门禁 ④⑤（ToolExecutor 安全边界声明 / fix-commit real-diff）。
   # 门禁①②③（JUnit/ArchUnit）随 mvn test 自动执行；本 job 负责 mjs 门禁。

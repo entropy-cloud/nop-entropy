@@ -36,6 +36,7 @@ public interface NopStreamErrors {
     String ARG_NODE_ID = "nodeId";
     String ARG_POINT_ID = "pointId";
     String ARG_FROM_EPOCH = "fromEpoch";
+    String ARG_OUTPUT_TAG = "outputTag";
 
     ErrorCode ERR_STREAM_NULL_ARG =
             define("nop.err.stream.null-arg", "Argument {argName} must not be null", ARG_ARG_NAME);
@@ -95,6 +96,14 @@ public interface NopStreamErrors {
 
     ErrorCode ERR_STREAM_CHAINING_OUTPUT_EXCEPTION =
             define("nop.err.stream.chaining-output-exception", "Error in chaining output: {detail}", ARG_DETAIL);
+
+    /**
+     * RL-7 (R15-AR-4): side output has no registered consumer in the chained execution — fail
+     * fast instead of silently dropping (plan guide #24).
+     */
+    ErrorCode ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER =
+            define("nop.err.stream.side-output-no-consumer", "Side output {outputTag} has no registered consumer: {detail}",
+                    ARG_OUTPUT_TAG, ARG_DETAIL);
 
     ErrorCode ERR_STREAM_CHAINING_OUTPUT_CLOSE_FAILED =
             define("nop.err.stream.chaining-output-close-failed", "Failed to close chaining output");
@@ -432,4 +441,100 @@ public interface NopStreamErrors {
                             + "requested parallelism={parallelism}. Exactly-once output is only proven at parallelism=1; "
                             + "parallelism>1 would silently lose data. Use parallelism=1 or wait for the parallel-2PC successor capability.",
                     ARG_SINK_NAME, ARG_PARALLELISM);
+
+    // ------------------------------------------------------------------
+    // nop-stream-flow DSL contract error codes (P1-XDSL-5 / P1-XDSL-6 / P1-09-02)
+    // ------------------------------------------------------------------
+
+    String ARG_ID = "id";
+    String ARG_ELEMENT = "element";
+    String ARG_ATTR_NAME = "attrName";
+    String ARG_ATTR_VALUE = "attrValue";
+    String ARG_EDGE_ID = "edgeId";
+    String ARG_TRANSFORM_ID = "transformId";
+    String ARG_REF_TYPE = "refType";
+    String ARG_REF_NAME = "refName";
+    String ARG_PARTITION = "partition";
+    String ARG_BEAN_NAME = "beanName";
+    String ARG_EXPECTED_STREAM_TYPE = "expectedStreamType";
+    String ARG_ACTUAL_STREAM_TYPE = "actualStreamType";
+
+    ErrorCode ERR_STREAM_DUPLICATE_ID =
+            define("nop.err.stream.duplicate-id",
+                    "Duplicate Stream DSL {element} id: {id}", ARG_ELEMENT, ARG_ID);
+
+    ErrorCode ERR_STREAM_REQUIRED_ATTR =
+            define("nop.err.stream.required-attr",
+                    "Stream DSL {element} requires attribute {attrName}", ARG_ELEMENT, ARG_ATTR_NAME);
+
+    ErrorCode ERR_STREAM_REQUIRED_BODY =
+            define("nop.err.stream.required-body",
+                    "Stream DSL {element} must declare either bean=\"...\" or inline <source>xpl</source>",
+                    ARG_ELEMENT);
+
+    ErrorCode ERR_STREAM_REF_UNKNOWN =
+            define("nop.err.stream.ref-unknown",
+                    "Stream DSL {element} references unknown {refType} '{refName}'",
+                    ARG_ELEMENT, ARG_REF_TYPE, ARG_REF_NAME);
+
+    ErrorCode ERR_STREAM_NOT_IMPLEMENTED =
+            define("nop.err.stream.not-implemented", "not yet implemented: {detail}", ARG_DETAIL);
+
+    ErrorCode ERR_STREAM_UPSTREAM_TYPE =
+            define("nop.err.stream.upstream-type",
+                    "Stream DSL {element} requires a {expectedStreamType} upstream, got {actualStreamType}",
+                    ARG_ELEMENT, ARG_EXPECTED_STREAM_TYPE, ARG_ACTUAL_STREAM_TYPE);
+
+    ErrorCode ERR_STREAM_UPSTREAM_NULL =
+            define("nop.err.stream.upstream-null",
+                    "Stream DSL {element} upstream is null", ARG_ELEMENT);
+
+    ErrorCode ERR_STREAM_UPSTREAM_NOT_STREAM =
+            define("nop.err.stream.upstream-not-stream",
+                    "Stream DSL {element} upstream is not a recognized stream type: {actualStreamType}",
+                    ARG_ELEMENT, ARG_ACTUAL_STREAM_TYPE);
+
+    ErrorCode ERR_STREAM_EDGE_HASH_KEY_EXPR_REQUIRED =
+            define("nop.err.stream.edge-hash-key-expr-required",
+                    "Stream DSL edge {edgeId} declares partition=\"HASH\" without keyExpr; "
+                            + "declare keyExpr=\"...\" or use FORWARD", ARG_EDGE_ID);
+
+    ErrorCode ERR_STREAM_EDGE_HASH_REDUNDANT =
+            define("nop.err.stream.edge-hash-redundant",
+                    "Stream DSL edge {edgeId} declares partition=\"HASH\" but its target transform "
+                            + "{transformId} is already a keyBy transform; use FORWARD",
+                    ARG_EDGE_ID, ARG_TRANSFORM_ID);
+
+    ErrorCode ERR_STREAM_EDGE_KEY_EXPR_WITHOUT_HASH =
+            define("nop.err.stream.edge-key-expr-without-hash",
+                    "Stream DSL edge {edgeId} declares keyExpr but partition is not HASH; "
+                            + "keyExpr is only consumed with partition=\"HASH\"", ARG_EDGE_ID);
+
+    ErrorCode ERR_STREAM_EDGE_PARTITION_UNSUPPORTED =
+            define("nop.err.stream.edge-partition-unsupported",
+                    "Stream DSL edge {edgeId} declares partition={partition} which is not yet "
+                            + "implemented in nop-stream-core; use FORWARD or a <keyBy> transform",
+                    ARG_EDGE_ID, ARG_PARTITION);
+
+    ErrorCode ERR_STREAM_EDGE_ATTR_UNSUPPORTED =
+            define("nop.err.stream.edge-attr-unsupported",
+                    "Stream DSL edge {edgeId} declares {attrName} which is not yet implemented "
+                            + "in nop-stream-core; remove the attribute",
+                    ARG_EDGE_ID, ARG_ATTR_NAME);
+
+    ErrorCode ERR_STREAM_WINDOW_ATTR_UNSUPPORTED =
+            define("nop.err.stream.window-attr-unsupported",
+                    "Stream DSL {element} declares {attrName}={attrValue} which is not yet "
+                            + "implemented in nop-stream-core windowing; remove the declaration "
+                            + "or use the default value",
+                    ARG_ELEMENT, ARG_ATTR_NAME, ARG_ATTR_VALUE);
+
+    ErrorCode ERR_STREAM_BEAN_NOT_FOUND =
+            define("nop.err.stream.bean-not-found",
+                    "Stream DSL bean reference not found: bean='{beanName}'", ARG_BEAN_NAME);
+
+    ErrorCode ERR_STREAM_BEAN_TYPE_MISMATCH =
+            define("nop.err.stream.bean-type-mismatch",
+                    "Stream DSL bean '{beanName}' is not a {expectedType}: actual={actualType}",
+                    ARG_BEAN_NAME, ARG_EXPECTED_TYPE, ARG_ACTUAL_TYPE);
 }

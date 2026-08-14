@@ -31,6 +31,7 @@ import io.nop.stream.core.exceptions.StreamException;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_STATE_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CONFIG_ERROR;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
 
@@ -173,11 +174,13 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent>,
         if (completionLatch != null) {
             completionLatch.countDown();
         }
-        if (subscription != null) {
-            subscription.cancel();
+        ICancellable sub = this.subscription;
+        if (sub != null) {
+            sub.cancel();
         }
-        if (source != null) {
-            source.stop();
+        DebeziumMessageSource msgSource = this.source;
+        if (msgSource != null) {
+            msgSource.stop();
         }
     }
 
@@ -189,12 +192,14 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent>,
     @Override
     public void truncateForDrain() throws Exception {
         draining = true;
-        if (subscription != null) {
-            subscription.cancel();
+        ICancellable sub = this.subscription;
+        if (sub != null) {
+            sub.cancel();
             subscription = null;
         }
-        if (source != null) {
-            source.stop();
+        DebeziumMessageSource msgSource = this.source;
+        if (msgSource != null) {
+            msgSource.stop();
             source = null;
         }
         if (completionLatch != null) {
@@ -230,16 +235,19 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent>,
     @SuppressWarnings("unchecked")
     public void initializeState(TaskStateSnapshot state) throws Exception {
         if (state == null) {
-            // First run: no prior checkpoint. Create an empty store so the engine starts fresh.
-            this.offsetStore = NopStreamOffsetBackingStore.forConnector(resolveConnectorName());
+            // First run: no prior checkpoint. Clear any stale static-registry offset left by a
+            // previous run in the same JVM (crashed run / redeploy / another pipeline reusing
+            // the connector name), then create an empty store so the engine starts fresh.
+            this.offsetStore = newFreshOffsetStore();
             return;
         }
 
         Object raw = state.getOperatorState(CDC_OFFSETS_KEY);
         if (raw == null) {
             // Prior checkpoint existed but carried no CDC offset entry. Start fresh rather than
-            // silently dropping the offset: bind an empty store.
-            this.offsetStore = NopStreamOffsetBackingStore.forConnector(resolveConnectorName());
+            // silently dropping the offset: clear stale static-registry offsets and bind an
+            // empty store.
+            this.offsetStore = newFreshOffsetStore();
             return;
         }
 
@@ -257,11 +265,28 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent>,
         this.offsetStore.setOffsets(restored);
     }
 
+    /**
+     * AR-03: first-run paths must never inherit the static offset registry entry left by a
+     * previous run in the same JVM. Clearing the entry before binding forces the engine to start
+     * from the beginning (fresh snapshot) instead of silently resuming from a stale offset.
+     */
+    private NopStreamOffsetBackingStore newFreshOffsetStore() {
+        String name = resolveConnectorName();
+        NopStreamOffsetBackingStore.clearConnector(name);
+        return NopStreamOffsetBackingStore.forConnector(name);
+    }
+
     private String resolveConnectorName() {
         DebeziumConfig cfg = this.config;
         if (cfg != null && cfg.getName() != null && !cfg.getName().isEmpty()) {
             return cfg.getName();
         }
-        return "_default_";
+        // AR-03: unnamed connectors silently share the "_default_" offset bucket and overwrite
+        // each other's offsets in the same JVM. Fail fast with configuration guidance.
+        throw new StreamException(ERR_STREAM_CONFIG_ERROR)
+                .param(ARG_DETAIL,
+                        "Debezium connector name is required: set DebeziumConfig.name so the offset "
+                                + "registry bucket is unique per connector (unnamed connectors share "
+                                + "the '_default_' bucket and silently overwrite each other's offsets)");
     }
 }

@@ -7,6 +7,12 @@
  */
 package io.nop.stream.core.operators;
 
+import io.nop.core.lang.json.JsonTool;
+import io.nop.stream.core.exceptions.StreamException;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -38,6 +44,22 @@ public class HeapInternalTimerService<K, N> implements InternalTimerService<N> {
     private final Supplier<K> currentKeySupplier;
     private long currentWatermark = Long.MIN_VALUE;
 
+    /**
+     * Declared key type used to re-materialize restored timer keys (AR-22).
+     * Null when the service is used without a known key type (e.g. direct
+     * unit-test usage) — re-materialization is then skipped. Wired by
+     * {@code WindowOperator.open()} from its {@code keyClass}.
+     */
+    private Class<?> keyType;
+
+    /**
+     * Earliest registered processing-time timer, or {@link Long#MAX_VALUE} when none is
+     * registered. Written by the owning task thread (register / delete / fire / restore),
+     * read by the {@code ProcessingTimeServiceDriver} scheduler thread — a single volatile
+     * read, so the scheduler never touches the timer map itself.
+     */
+    private volatile long nextProcessingTimeTimer = Long.MAX_VALUE;
+
     public HeapInternalTimerService(Triggerable<K, N> triggerable) {
         this(triggerable, null);
     }
@@ -45,6 +67,18 @@ public class HeapInternalTimerService<K, N> implements InternalTimerService<N> {
     public HeapInternalTimerService(Triggerable<K, N> triggerable, Supplier<K> currentKeySupplier) {
         this.triggerable = triggerable;
         this.currentKeySupplier = currentKeySupplier;
+    }
+
+    /**
+     * Declares the key type of this timer service, used by
+     * {@link #restoreTimers} to re-materialize keys that drifted through
+     * the JSON checkpoint persist path (AR-22). Set by
+     * {@code WindowOperator.open()} from the operator's
+     * {@code keyClass}; optional for direct unit-test usage (null → no
+     * re-materialization, prior behavior).
+     */
+    public void setKeyType(Class<?> keyType) {
+        this.keyType = keyType;
     }
 
     @Override
@@ -62,6 +96,9 @@ public class HeapInternalTimerService<K, N> implements InternalTimerService<N> {
         K key = currentKeySupplier != null ? currentKeySupplier.get() : null;
         processingTimeTimers.computeIfAbsent(time, k -> new HashSet<>())
                 .add(new TimerEntry<>(key, namespace, time));
+        if (time < nextProcessingTimeTimer) {
+            nextProcessingTimeTimer = time;
+        }
     }
 
     @Override
@@ -72,6 +109,7 @@ public class HeapInternalTimerService<K, N> implements InternalTimerService<N> {
             timers.remove(new TimerEntry<>(key, namespace, time));
             if (timers.isEmpty()) {
                 processingTimeTimers.remove(time);
+                recomputeNextProcessingTimeTimer();
             }
         }
     }
@@ -128,6 +166,9 @@ public class HeapInternalTimerService<K, N> implements InternalTimerService<N> {
             processingTimeTimers.pollFirstEntry();
             toFire.add(entry);
         }
+        if (!toFire.isEmpty()) {
+            recomputeNextProcessingTimeTimer();
+        }
         for (Map.Entry<Long, Set<TimerEntry<K, N>>> entry : toFire) {
             List<TimerEntry<K, N>> timersToFire = new ArrayList<>(entry.getValue());
             for (TimerEntry<K, N> timer : timersToFire) {
@@ -170,6 +211,28 @@ public class HeapInternalTimerService<K, N> implements InternalTimerService<N> {
 
     public int numProcessingTimeTimers() {
         return processingTimeTimers.values().stream().mapToInt(Set::size).sum();
+    }
+
+    /**
+     * @return the earliest registered processing-time timer timestamp, or
+     *         {@link Long#MAX_VALUE} when no processing-time timer is registered.
+     *         Safe to call from the scheduler thread (single volatile read).
+     */
+    public long nextProcessingTimeTimer() {
+        return nextProcessingTimeTimer;
+    }
+
+    /**
+     * @return {@code true} if at least one processing-time timer is due at or before
+     *         {@code now}. Safe to call from the scheduler thread.
+     */
+    public boolean hasProcessingTimeTimersDue(long now) {
+        return nextProcessingTimeTimer <= now;
+    }
+
+    private void recomputeNextProcessingTimeTimer() {
+        Map.Entry<Long, Set<TimerEntry<K, N>>> first = processingTimeTimers.firstEntry();
+        nextProcessingTimeTimer = first != null ? first.getKey() : Long.MAX_VALUE;
     }
 
     // ------------------------------------------------------------------------
@@ -219,10 +282,13 @@ public class HeapInternalTimerService<K, N> implements InternalTimerService<N> {
             return;
         }
         for (TimerEntry<K, N> entry : snapshot.getEventTimeTimers()) {
-            eventTimeTimers.computeIfAbsent(entry.timestamp, k -> new HashSet<>()).add(entry);
+            eventTimeTimers.computeIfAbsent(entry.timestamp, k -> new HashSet<>()).add(rematerializeEntry(entry));
         }
         for (TimerEntry<K, N> entry : snapshot.getProcessingTimeTimers()) {
-            processingTimeTimers.computeIfAbsent(entry.timestamp, k -> new HashSet<>()).add(entry);
+            processingTimeTimers.computeIfAbsent(entry.timestamp, k -> new HashSet<>()).add(rematerializeEntry(entry));
+        }
+        if (!snapshot.getProcessingTimeTimers().isEmpty()) {
+            recomputeNextProcessingTimeTimer();
         }
         // Restore the watermark as well so subsequent advanceWatermark() calls do not
         // re-fire timers that were already fired before the checkpoint (those timers
@@ -231,6 +297,58 @@ public class HeapInternalTimerService<K, N> implements InternalTimerService<N> {
         if (snapshot.getCurrentWatermark() > currentWatermark) {
             currentWatermark = snapshot.getCurrentWatermark();
         }
+    }
+
+    /**
+     * AR-22 (P0): re-materializes a restored timer key to the service's
+     * declared {@link #keyType}, mirroring
+     * {@code MemoryStateSerDe.deserializeKey}.
+     *
+     * <p>JSON persistence ({@code storageType="local"}) round-trips numeric
+     * keys through {@code TextScanner}, which tries
+     * {@code Integer.parseInt} first: a {@code Long(123)} written as
+     * {@code "123"} comes back as {@code Integer(123)}, and
+     * {@code @DataBean} POJO keys come back as {@code LinkedHashMap}.
+     * {@link TypedNamespaceAndKey#equals} is class-sensitive, so a drifted
+     * timer key never matches the live keyed-state lookups when the restored
+     * timer fires — window contents silently lost. Keys that already match
+     * the declared keyType (String keys, values that survived as Long) pass
+     * through unchanged.
+     *
+     * <p>No-silent-skip (guide rule #24): a failed re-materialization throws
+     * {@code ERR_STREAM_STATE_ERROR} instead of silently keeping the
+     * mismatched key.
+     *
+     * @return the original entry when no re-materialization applies, otherwise
+     *         a new entry carrying the key re-materialized to {@link #keyType}
+     */
+    @SuppressWarnings("unchecked")
+    private TimerEntry<K, N> rematerializeEntry(TimerEntry<K, N> entry) {
+        Object key = entry.getKey();
+        if (key == null || keyType == null || keyType == Object.class
+                || keyType.isInstance(key)) {
+            return entry;
+        }
+        String json = JsonTool.serialize(key, false);
+        Object rematerialized;
+        try {
+            rematerialized = JsonTool.parseBeanFromText(json, keyType);
+        } catch (Exception e) {
+            throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                    .param(ARG_DETAIL,
+                            "Failed to re-materialize timer key " + json
+                                    + " as " + keyType.getName()
+                                    + " during timer restore");
+        }
+        if (rematerialized == null || !keyType.isInstance(rematerialized)) {
+            throw new StreamException(ERR_STREAM_STATE_ERROR)
+                    .param(ARG_DETAIL,
+                            "Failed to re-materialize timer key " + json
+                                    + " as " + keyType.getName()
+                                    + " during timer restore");
+        }
+        return new TimerEntry<>((K) rematerialized, entry.getNamespace(),
+                entry.getTimestamp());
     }
 
     // ------------------------------------------------------------------------
@@ -267,6 +385,30 @@ public class HeapInternalTimerService<K, N> implements InternalTimerService<N> {
             return timestamp;
         }
 
+        /**
+         * JSON-safe map form for the checkpoint persist path (see {@link TimerSnapshot#toSerializableForm()}).
+         */
+        @SuppressWarnings("unchecked")
+        public Map<String, Object> toSerializableForm() {
+            java.util.LinkedHashMap<String, Object> form = new java.util.LinkedHashMap<>();
+            form.put("key", key);
+            form.put("namespace", TimerSnapshot.serializeNamespace(namespace));
+            form.put("timestamp", timestamp);
+            return form;
+        }
+
+        /**
+         * Rebuilds a {@link TimerEntry} from the JSON-safe form produced by
+         * {@link #toSerializableForm()}.
+         */
+        @SuppressWarnings("unchecked")
+        public static <K, N> TimerEntry<K, N> fromSerializableForm(Map<String, Object> form) {
+            return new TimerEntry<>(
+                    (K) form.get("key"),
+                    (N) TimerSnapshot.deserializeNamespace(form.get("namespace")),
+                    form.get("timestamp") instanceof Number ? ((Number) form.get("timestamp")).longValue() : 0L);
+        }
+
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
@@ -290,9 +432,19 @@ public class HeapInternalTimerService<K, N> implements InternalTimerService<N> {
      * directly inside {@link TimerEntry}. They must be {@link Serializable} when the
      * checkpoint needs to survive JVM restart; within a single JVM they may be any
      * object reference.
+     *
+     * <p>The JSON checkpoint persist path ({@code CheckpointSerDe}) converts this DTO
+     * to a plain JSON-safe map form via {@link #toSerializableForm()} / {@link
+     * #fromSerializableForm(Map)} — the DTO itself is NOT a Nop {@code @DataBean}
+     * (generic type parameters conflict with the annotation processor, see
+     * {@code PaneState}).
      */
     public static final class TimerSnapshot<K, N> implements Serializable {
         private static final long serialVersionUID = 1L;
+
+        private static final String FORM_TYPE_TIMER_SNAPSHOT = "TimerSnapshot";
+        private static final String FORM_TYPE_TIME_WINDOW = "TimeWindow";
+        private static final String FORM_GLOBAL_WINDOW = "GlobalWindow";
 
         private final List<TimerEntry<K, N>> eventTimeTimers;
         private final List<TimerEntry<K, N>> processingTimeTimers;
@@ -324,6 +476,94 @@ public class HeapInternalTimerService<K, N> implements InternalTimerService<N> {
 
         public int size() {
             return eventTimeTimers.size() + processingTimeTimers.size();
+        }
+
+        /**
+         * JSON-safe map form used by the checkpoint persist path (the generic DTO
+         * itself cannot be serialized by {@code JsonTool} — not a {@code @DataBean}).
+         * Self-describing via {@code "@type"}. Namespaces are window types only
+         * (TimeWindow / GlobalWindow / null); the key is JSON-safe in all current uses.
+         */
+        @SuppressWarnings("unchecked")
+        public Map<String, Object> toSerializableForm() {
+            java.util.LinkedHashMap<String, Object> form = new java.util.LinkedHashMap<>();
+            form.put("@type", FORM_TYPE_TIMER_SNAPSHOT);
+            form.put("currentWatermark", currentWatermark);
+            List<Object> eventForms = new ArrayList<>();
+            for (TimerEntry<K, N> entry : eventTimeTimers) {
+                eventForms.add(entry.toSerializableForm());
+            }
+            List<Object> processingForms = new ArrayList<>();
+            for (TimerEntry<K, N> entry : processingTimeTimers) {
+                processingForms.add(entry.toSerializableForm());
+            }
+            form.put("eventTimeTimers", eventForms);
+            form.put("processingTimeTimers", processingForms);
+            return form;
+        }
+
+        /**
+         * Rebuilds a {@link TimerSnapshot} from the JSON-safe form produced by
+         * {@link #toSerializableForm()}. Returns {@code null} for non-timer maps.
+         */
+        @SuppressWarnings("unchecked")
+        public static <K, N> TimerSnapshot<K, N> fromSerializableForm(Map<String, Object> form) {
+            if (form == null || !FORM_TYPE_TIMER_SNAPSHOT.equals(form.get("@type"))) {
+                return null;
+            }
+            List<TimerEntry<K, N>> eventTimers = new ArrayList<>();
+            List<Object> eventForms = (List<Object>) form.get("eventTimeTimers");
+            if (eventForms != null) {
+                for (Object f : eventForms) {
+                    if (f instanceof Map) {
+                        eventTimers.add(TimerEntry.fromSerializableForm((Map<String, Object>) f));
+                    }
+                }
+            }
+            List<TimerEntry<K, N>> processingTimers = new ArrayList<>();
+            List<Object> processingForms = (List<Object>) form.get("processingTimeTimers");
+            if (processingForms != null) {
+                for (Object f : processingForms) {
+                    if (f instanceof Map) {
+                        processingTimers.add(TimerEntry.fromSerializableForm((Map<String, Object>) f));
+                    }
+                }
+            }
+            long watermark = form.get("currentWatermark") instanceof Number
+                    ? ((Number) form.get("currentWatermark")).longValue() : Long.MIN_VALUE;
+            return new TimerSnapshot<>(eventTimers, processingTimers, watermark);
+        }
+
+        private static Object serializeNamespace(Object namespace) {
+            if (namespace instanceof io.nop.stream.core.windowing.windows.TimeWindow) {
+                io.nop.stream.core.windowing.windows.TimeWindow w =
+                        (io.nop.stream.core.windowing.windows.TimeWindow) namespace;
+                java.util.LinkedHashMap<String, Object> m = new java.util.LinkedHashMap<>();
+                m.put("@type", FORM_TYPE_TIME_WINDOW);
+                m.put("start", w.getStart());
+                m.put("end", w.getEnd());
+                return m;
+            }
+            if (namespace instanceof io.nop.stream.core.windowing.windows.GlobalWindow) {
+                return FORM_GLOBAL_WINDOW;
+            }
+            return namespace;
+        }
+
+        @SuppressWarnings("unchecked")
+        private static Object deserializeNamespace(Object obj) {
+            if (obj instanceof Map) {
+                Map<String, Object> m = (Map<String, Object>) obj;
+                if (FORM_TYPE_TIME_WINDOW.equals(m.get("@type"))) {
+                    return new io.nop.stream.core.windowing.windows.TimeWindow(
+                            ((Number) m.get("start")).longValue(),
+                            ((Number) m.get("end")).longValue());
+                }
+            }
+            if (FORM_GLOBAL_WINDOW.equals(obj)) {
+                return io.nop.stream.core.windowing.windows.GlobalWindow.get();
+            }
+            return obj;
         }
     }
 

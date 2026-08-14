@@ -203,6 +203,10 @@ public class ResultPartition implements IWriteStatus {
             // causing spurious barriers/watermarks to be injected on replay.
             // The epoch bump above still happens for barriers (epoch alignment),
             // but the barrier element itself is not persisted.
+            // HG-01 Phase 1 decision D6 (2026-08-14): SideOutputElement is likewise
+            // NOT dual-written — isRecord() is false for it, so the gate excludes it
+            // naturally; materialization dual-write for side outputs is excluded
+            // (best-effort delivery semantics, no consumer-side contract).
             // Tag with the producer's current epoch. Bypass failures abort the
             // write (fail-fast) rather than silently diverging the two stores.
             try {

@@ -17,7 +17,11 @@
     </transforms>
 
     <edges>
-        <edge id="e0" from="intSrc" to="key" partition="HASH"/>
+        <!-- P1-XDSL-5: the downstream <keyBy> transform already applies keyed
+             partitioning; declaring partition="HASH" here (without keyExpr) was
+             previously silently ignored and now fails fast — FORWARD is the
+             correct declaration for an edge into a keyBy transform. -->
+        <edge id="e0" from="intSrc" to="key" partition="FORWARD"/>
         <edge id="e1" from="key" to="sum" partition="FORWARD"/>
         <edge id="e2" from="sum" to="out" partition="FORWARD"/>
     </edges>

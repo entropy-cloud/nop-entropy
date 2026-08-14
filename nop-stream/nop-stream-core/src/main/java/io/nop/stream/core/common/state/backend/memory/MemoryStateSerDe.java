@@ -25,6 +25,7 @@ import io.nop.stream.core.common.state.StateSchemaResolver;
 import io.nop.stream.core.common.state.TtlContext;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
 import io.nop.stream.core.checkpoint.SerializerFingerprint;
+import io.nop.stream.core.common.state.backend.ContainerValueCodec;
 import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
 import io.nop.stream.core.common.state.backend.StateSnapshot;
 import io.nop.stream.core.common.state.shard.KeyGroupRange;
@@ -398,10 +399,9 @@ class MemoryStateSerDe {
         Class<Object> valueClass = (Class<Object>) Class.forName(valueTypeName);
         String aggregateFunctionTypeName = (String) stateInfo.get("aggregateFunctionType");
         ClassNameValidator.validateAccumulatorClass(aggregateFunctionTypeName);
-        Class<? extends AggregateFunction<?, ?, ?>> aggregateFunctionClass =
-                (Class<? extends AggregateFunction<?, ?, ?>>) Class.forName(aggregateFunctionTypeName);
         AggregateFunction<Object, Object, Object> aggregateFunction =
-                (AggregateFunction<Object, Object, Object>) aggregateFunctionClass.getDeclaredConstructor().newInstance();
+                resolveAggregateFunction(stateName, aggregateFunctionTypeName);
+        valueClass = (Class<Object>) inferAccumulatorType(aggregateFunction, valueClass);
 
         AggregatingStateDescriptor<Object, Object, Object> descriptor =
                 new AggregatingStateDescriptor<>(stateName, aggregateFunction, valueClass);
@@ -429,10 +429,9 @@ class MemoryStateSerDe {
         Class<Object> valueClass = (Class<Object>) Class.forName(valueTypeName);
         String aggregateFunctionTypeName = (String) stateInfo.get("aggregateFunctionType");
         ClassNameValidator.validateAccumulatorClass(aggregateFunctionTypeName);
-        Class<? extends AggregateFunction<?, ?, ?>> aggregateFunctionClass =
-                (Class<? extends AggregateFunction<?, ?, ?>>) Class.forName(aggregateFunctionTypeName);
         AggregateFunction<Object, Object, Object> aggregateFunction =
-                (AggregateFunction<Object, Object, Object>) aggregateFunctionClass.getDeclaredConstructor().newInstance();
+                resolveAggregateFunction(stateName, aggregateFunctionTypeName);
+        valueClass = (Class<Object>) inferAccumulatorType(aggregateFunction, valueClass);
 
         AggregatingStateDescriptor<Object, Object, Object> descriptor =
                 new AggregatingStateDescriptor<>(stateName, aggregateFunction, valueClass);
@@ -451,6 +450,77 @@ class MemoryStateSerDe {
         }
 
         states.put(stateName, state);
+    }
+
+    /**
+     * The window descriptor path (WindowedStreamImpl.aggregate/reduce) records the
+     * accumulator type as {@code java.lang.Object} (generic erasure), so the snapshot's
+     * recorded valueType cannot drive value re-materialization: a JSON array round-trip
+     * of a {@code long[]} accumulator would be restored as an ArrayList and the user
+     * function's {@code add} would ClassCastException. When the recorded type is the
+     * generic {@code Object}, infer the real accumulator type from the LIVE aggregate
+     * function's {@code createAccumulator()} (registered by the operator before restore).
+     * Functions whose {@code createAccumulator()} returns {@code null} (e.g. the
+     * reduce-function wrapper) keep the recorded type — JSON-native accumulators
+     * (String/numbers) restore correctly without the inference.
+     */
+    private static Class<?> inferAccumulatorType(AggregateFunction<?, ?, ?> aggregateFunction, Class<?> recordedType) {
+        if (recordedType != Object.class || aggregateFunction == null) {
+            return recordedType;
+        }
+        try {
+            Object accumulator = aggregateFunction.createAccumulator();
+            if (accumulator != null) {
+                return accumulator.getClass();
+            }
+        } catch (Exception e) {
+            // Keep the recorded (generic) type; JSON-native accumulators restore
+            // correctly either way.
+        }
+        return recordedType;
+    }
+
+    /**
+     * P1-01 (Decision: 方案 1 = live function reuse): resolves the aggregate
+     * function used to rebuild aggregating state on restore.
+     *
+     * <p>Priority order:
+     * <ol>
+     *   <li>the LIVE function registered via
+     *       {@code IKeyedStateBackend#registerRestoreAggregateFunction} (the
+     *       operator's descriptor function — works for capturing anonymous
+     *       classes / lambdas AND restores old snapshots written before the
+     *       fix);</li>
+     *   <li>class-name + no-arg reflection (legacy path for user functions with
+     *       a public no-arg constructor).</li>
+     * </ol>
+     *
+     * <p>When reflection fails because the recorded class has no no-arg
+     * constructor (e.g. {@code WindowOperatorBuilder.reduceFunctionAsAggregate}
+     * wrapper), fail fast with a clear error instead of silently producing a
+     * broken function (No-Silent-No-Op rule #24).
+     */
+    @SuppressWarnings("unchecked")
+    private AggregateFunction<Object, Object, Object> resolveAggregateFunction(
+            String stateName, String aggregateFunctionTypeName) throws Exception {
+        AggregateFunction<?, ?, ?> live = backend.getRestoreAggregateFunction(stateName);
+        if (live != null) {
+            return (AggregateFunction<Object, Object, Object>) live;
+        }
+        ClassNameValidator.validateAccumulatorClass(aggregateFunctionTypeName);
+        Class<? extends AggregateFunction<?, ?, ?>> aggregateFunctionClass =
+                (Class<? extends AggregateFunction<?, ?, ?>>) Class.forName(aggregateFunctionTypeName);
+        try {
+            return (AggregateFunction<Object, Object, Object>)
+                    aggregateFunctionClass.getDeclaredConstructor().newInstance();
+        } catch (NoSuchMethodException e) {
+            throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                    .param(ARG_DETAIL, "AggregateFunction class " + aggregateFunctionTypeName
+                            + " has no no-arg constructor and no live function was registered for state '"
+                            + stateName + "' — the operator must register its descriptor's function via "
+                            + "IKeyedStateBackend.registerRestoreAggregateFunction before restore "
+                            + "(window operators do this in open() prior to applyPendingRestoreState)");
+        }
     }
 
     private Map<String, Object> snapshotValueState(MemoryValueState<?> state) {
@@ -503,7 +573,14 @@ class MemoryStateSerDe {
             for (Map.Entry<?, ?> me : e.getValue().entrySet()) {
                 List<Object> pair = new ArrayList<>();
                 pair.add(me.getKey());
-                pair.add(serializeWithSerializer(me.getValue(), valueSer));
+                // P1-21-01: container values (List/Map, nested) are wrapped with per-level
+                // element type info so the JSON storage layer can restore inner element
+                // types (the raw List.class declared type carries no element type, and the
+                // JSON round trip would turn them into LinkedHashMaps). Only the JSON path
+                // (no custom serializer) is wrapped — a custom IStreamSerializer keeps its
+                // own byte[] contract (P2-09-02c tracks its silent degradation separately).
+                Object value = serializeWithSerializer(me.getValue(), valueSer);
+                pair.add(valueSer == null ? ContainerValueCodec.encode(value) : value);
                 mapEntries.add(pair);
             }
             entry.put("mapValue", mapEntries);
@@ -746,7 +823,45 @@ class MemoryStateSerDe {
         return key;
     }
 
-    private Object deserializeKey(Object obj) {
+    /**
+     * AR-01 (P0): re-materializes a restored state key to the backend's
+     * declared {@link #keyType}, mirroring {@code RocksDBKeyEncoder.jsonToKey}.
+     *
+     * <p>JSON persistence ({@code storageType="local"}) round-trips numeric keys
+     * through {@code TextScanner}, which tries {@code Integer.parseInt} first:
+     * a {@code Long(123)} written as {@code "123"} comes back as
+     * {@code Integer(123)}. {@link TypedNamespaceAndKey#equals} is
+     * class-sensitive, so live lookups with the original {@code Long} key missed
+     * everything — the keyed state silently restarted from empty on the default
+     * backend while the RocksDB backend (which re-materializes by keyType)
+     * restored the same checkpoint correctly. Keys that already match the
+     * declared keyType (String keys, values that survived as Long) pass through
+     * unchanged.
+     *
+     * <p>No-silent-skip (guide rule #24): a failed re-materialization throws
+     * instead of returning the original object.
+     */
+    private Object deserializeKey(Object obj) throws Exception {
+        if (obj == null) {
+            return null;
+        }
+        if (keyType != null && keyType != Object.class && !keyType.isInstance(obj)) {
+            String json = JsonTool.serialize(obj, false);
+            Object rematerialized;
+            try {
+                rematerialized = JsonTool.parseBeanFromText(json, keyType);
+            } catch (Exception e) {
+                throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                        .param(ARG_DETAIL, "Failed to re-materialize state key " + json
+                                + " as " + keyType.getName() + " during restore");
+            }
+            if (rematerialized == null || !keyType.isInstance(rematerialized)) {
+                throw new StreamException(ERR_STREAM_STATE_ERROR)
+                        .param(ARG_DETAIL, "Failed to re-materialize state key " + json
+                                + " as " + keyType.getName() + " during restore");
+            }
+            return rematerialized;
+        }
         return obj;
     }
 
@@ -786,6 +901,14 @@ class MemoryStateSerDe {
             if (ser instanceof IStreamSerializer && obj instanceof byte[]) {
                 return ((IStreamSerializer<T>) ser).deserialize((byte[]) obj, type);
             }
+        }
+        // P1-21-01: container values (List/Map/Collection) carry per-level element type
+        // info in the snapshot (wrapped by snapshotMapState); decode re-materializes inner
+        // elements. Unwrapped legacy containers degrade with a LOG.warn instead of
+        // silently returning JSON-native elements (No-Silent-No-Op rule #24).
+        if (ContainerValueCodec.isContainerType(type)) {
+            return (T) ContainerValueCodec.decode(obj, type,
+                    "state '" + (descriptor != null ? descriptor.getName() : "?") + "'");
         }
         if (type.isInstance(obj)) {
             return (T) obj;

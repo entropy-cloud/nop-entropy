@@ -23,7 +23,7 @@ import io.nop.stream.core.common.state.ValueStateDescriptor;
 import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
 import io.nop.stream.core.common.state.backend.IStateBackend;
 import io.nop.stream.core.common.state.backend.memory.MemoryStateBackend;
-import io.nop.stream.core.common.state.backend.rocksdb.RocksDBStateBackend;
+import io.nop.stream.rocksdb.RocksDBStateBackend;
 import io.nop.stream.core.common.state.shard.KeyGroup;
 import io.nop.stream.core.operators.ChainingOutput;
 import io.nop.stream.core.operators.ProcessOperator;

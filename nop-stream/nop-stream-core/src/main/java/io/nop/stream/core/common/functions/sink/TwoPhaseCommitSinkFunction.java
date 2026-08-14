@@ -74,13 +74,23 @@ public abstract class TwoPhaseCommitSinkFunction<IN> implements SinkFunction<IN>
     }
 
     public void setPendingCommits(Map<Long, Object> pending) {
-        this.pendingCommits = pending;
+        // RL-5 (R16-AR-11): defensively wrap the incoming map so the class-internal
+        // synchronization contract (invariant #2) holds no matter what the caller passes.
+        // Callers that already pass a synchronized map (e.g. StreamSinkOperator.restoreState)
+        // simply get a harmless double wrap.
+        this.pendingCommits = Collections.synchronizedMap(new TreeMap<>(pending));
     }
 
     @Override
     public TaskStateSnapshot saveState(long epochId) throws Exception {
         TaskStateSnapshot snapshot = new TaskStateSnapshot(new TaskLocation(), epochId);
-        Map<Long, Object> copy = new TreeMap<>(pendingCommits);
+        // RL-4 (R16-AR-1): the defensive copy iterates pendingCommits, so it must hold the
+        // monitor — otherwise a concurrent commit/abort mutation can throw CME or tear the
+        // snapshot (checkpoint snapshot is the sole recovery source for the 2PC sink).
+        Map<Long, Object> copy;
+        synchronized (pendingCommits) {
+            copy = new TreeMap<>(pendingCommits);
+        }
         snapshot.putOperatorState(PENDING_COMMITS_KEY, copy);
         return snapshot;
     }

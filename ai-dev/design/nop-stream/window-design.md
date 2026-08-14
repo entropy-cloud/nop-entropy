@@ -20,6 +20,14 @@
 
 事件时间窗口为主，保留处理时间接口。状态存储使用平台 `IKeyedStateBackend` 的 namespace 分区能力，定时器使用 `InternalTimerService`。
 
+## 2.1 不变式（Invariants）
+
+> 交叉引用：`ai-dev/audits/nop-stream-invariants/invariant-catalog.md` §5 不变式 #1（覆盖失败族 F1）。
+
+- **窗口粘合层构造参数完备性**：`WindowedStreamImpl` 4 个聚合入口（apply/aggregate/reduce/process）的 8 参数元组 `(windowAssigner, trigger, evictor, allowedLateness, function, elementType, keySelector, keyClass)` 必须 round-trip 至 `WindowOperator` 构造器（经 `IWindowOperatorFactory.create*` → `WindowOperatorBuilder.buildWindowOperator` → `WindowOperator(...)`），任何参数不得在传输链上被遗漏、替换或置默认值。
+- **门禁（已入 CI）**：JUnit `TestWindowRoundTripInvariant`（`nop-stream-runtime/src/test`，与 `TestWindowOperatorUnificationE2E` 同包）——8 组参数化（4 call-site × 有/无 evictor）经真实 `WindowOperatorFactoryImpl` 接线验证，反例（漏传 allowedLateness 的桩 factory）必须被 `WindowRoundTripAssertions` 判定 helper 抓住；`IWindowOperatorFactory` 新增 create 方法必须入 `gate-inventory.json`（表完备性门禁，`check-nop-stream-invariants.mjs inventory`）。
+- **历史证据**：R16-AR-2（allowedLateness 死 API）、R8-AR-58（resolveKey 方向反转）、R10-AR-5/6/7、R15-AR-3、R16-AR-4（详见 catalog §5 不变式 #1）。
+
 ## 3. 窗口模型四要素
 
 | 组件 | 职责 |
@@ -195,6 +203,8 @@ Phase 1 已为 `IInternalStateBackend` 增加 `getInternalAppendingState(Aggrega
 - 配置 `lateDataOutputTag` 时：输出到 side output
 
 **Cleanup time 计算**：`window.maxTimestamp() + allowedLateness`。注册为事件时间定时器，触发时清除窗口全部状态（窗口内容 + trigger 状态）。
+
+> **Updated: 2026-08-13（plan `2026-08-13-1243-1` P1-INV-1）**——trigger 状态清理闭环：`triggerAccumulators`（per-(key,window) trigger 计数 map）随窗口清理/merge/retire 删除对应条目（删除 hook 位于最后一次 `triggerContext.clear()` 之后——trigger clear 经 `getSimpleAccumulator` 会重建 miss 条目）；timer 路径 PURGE（event-time + processing-time）与合并路径元素 purge 补全 `triggerContext.clear()`，与元素路径对称。修复前该 map 只增不删：purge/cleanup/merge 过的窗口条目泄漏进 checkpoint 与恢复后的算子（无界增长 + 快照体积膨胀）。回归测试 `TestWindowOperatorTriggerAccumulatorCleanup`（5 用例，先红后绿）在案。
 
 **Late firing**：在 `allowedLateness` 窗口内（即 `window.maxTimestamp() < currentWatermark ≤ cleanupTime`），迟到数据仍可加入窗口。Trigger 在此阶段触发的 firing 的 PaneTiming 为 `LATE`。
 

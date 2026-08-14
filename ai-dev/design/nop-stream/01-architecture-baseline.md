@@ -261,6 +261,12 @@ CheckpointCoordinator (manifest durable → sink commit)
 
 **选了什么**：`ClusterRegistry`（coordinator / runtime node / lease / task assignment 的一致视图）提供 `InMemoryClusterRegistry`（开发测试）和 `JdbcClusterRegistry`（生产）两种实现。生产实现用 JDBC + `IJdbcTemplate` 多数据库适配，自动建表（`nop_stream_coordinator` / `nop_stream_node` / `nop_stream_task_assignment`），索引 `lease_expire_at` / `node_id`。
 
+**不变式（架构语义契约，交叉引用 `invariant-catalog.md` §5 不变式 #5，覆盖失败族 F5）**：
+
+- **多实现语义一致性**：`JdbcClusterRegistry` 与 `InMemoryClusterRegistry` 对同一 `ClusterRegistry` 接口必须语义一致——(a) `registerNode` 成功后节点必须对 `getActiveNodes` 立即可见（JDBC 实现不得写 `lease_expire_at=0L` 导致注册窗口内不可见）；(b) `renewLease(nodeId, leaseTimeoutMs)` 必须按 per-renewal 参数计算过期时间，不得忽略参数使用固定 TTL；(c) 过期判定（eviction）一致。
+- **门禁（已入 CI）**：JUnit `TestClusterRegistryConsistencyInvariant`（`nop-stream-runtime/src/test/.../cluster`）对两实现跑同一语义场景参数化（registerNode 可见性、renewLease per-renewal timeout、eviction），行为差异**显式断言（pin）并登记 `red-list.md` 移交 I2，不在 I1 修复**。已知 residual：AR-9（JDBC 写 lease=0）、AR-18（InMemory 忽略 leaseTimeoutMs）。checkpoint 交互侧见 `checkpoint-design.md` §1.1.1。
+- **历史证据**：R16-AR-9、R16-AR-18（详见 catalog §5 不变式 #5）。
+
 **与 Flink 的差异**：Flink HA 依赖 **ZooKeeper**（`LeaderElectionService` + `ZooKeeperLeaderElectionDriver` + `ZooKeeperHaServices`），需要外部协调服务作为强一致性后端。nop-stream 选择**用业务库 JDBC 表承担 durability**，不引入 ZooKeeper 依赖。
 
 **为什么如此设计**：

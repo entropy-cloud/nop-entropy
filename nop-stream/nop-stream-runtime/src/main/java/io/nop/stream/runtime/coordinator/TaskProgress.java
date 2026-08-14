@@ -16,11 +16,14 @@ import io.nop.api.core.annotations.data.DataBean;
  * {@code TaskManager.heartbeat()} via
  * {@code IStreamCoordinatorRpcService.reportNodeTaskLiveness}.
  *
- * <p>The {@code lastProgressTime} field is the heartbeat-of-heartbeats: a
- * monotonic timestamp updated by the invokable on every data-plane progress
- * (record emission for SOURCE/SELF_CONTAINED, input-gate iteration for
- * MIDDLE/SINK). The coordinator compares it against the configurable
- * {@code taskTimeout} to detect per-task stalls independent of node lease.
+ * <p>The {@code lastProgressTime} field carries the task-<b>aliveness</b>
+ * signal (G52 / AR-01), decoupled from data progress: MIDDLE/SINK roles report
+ * the task thread's loop-activity timestamp (fresh while the loop cycles, data
+ * or idle); SOURCE/SELF_CONTAINED roles report the TaskManager wall clock
+ * (their run loop may legitimately block for the whole source lifetime). The
+ * coordinator compares it against the configurable {@code taskTimeout} to
+ * detect per-task stalls independent of node lease. The field name is retained
+ * for wire compatibility.
  */
 @DataBean
 public class TaskProgress implements Serializable {

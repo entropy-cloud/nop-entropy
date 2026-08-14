@@ -8,6 +8,7 @@
 package io.nop.stream.flow.builder.functions;
 
 import io.nop.core.lang.eval.IEvalFunction;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 /**
  * Adapts a parsed {@code <source><source>xpl-fn:(ctx)=>void</source></source>} body to a
@@ -29,7 +30,7 @@ public final class XplSourceFunction<T> implements SourceFunction<T> {
 
     public XplSourceFunction(IEvalFunction body) {
         if (body == null) {
-            throw new IllegalArgumentException("XplSourceFunction body must not be null");
+            throw new StreamException("XplSourceFunction body must not be null");
         }
         this.body = body;
     }

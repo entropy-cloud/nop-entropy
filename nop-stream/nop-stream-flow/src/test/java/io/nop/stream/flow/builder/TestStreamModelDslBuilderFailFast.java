@@ -11,19 +11,22 @@ import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.flow.model.StreamModel;
 import io.nop.xlang.xdsl.DslModelParser;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Verifies the fail-fast guarantees in {@link StreamModelDslBuilder}: every
  * {@code stream.xdef}-declared element that is not yet wired must throw
- * {@link UnsupportedOperationException} rather than being silently ignored.
+ * {@link StreamException} (carrying an {@code ERR_STREAM_*} code) rather than
+ * being silently ignored.
  *
  * <p>Phase 1 covered base transforms (source/map/flatMap/filter/keyBy/sink) and
  * top-level registries. Phase 2 implemented the remaining transform types
@@ -95,16 +98,20 @@ public class TestStreamModelDslBuilderFailFast {
 
     private void assertFailFast(String transformXml, String expectedToken) {
         StreamModel model = parseInline(transformXml, "");
-        UnsupportedOperationException ex = assertThrows(UnsupportedOperationException.class,
+        StreamException ex = assertThrows(StreamException.class,
                 () -> StreamModelDslBuilder.of(model, new InMemoryBeanFunctionResolver()).build());
+        assertEquals("nop.err.stream.not-implemented", ex.getErrorCode().toString(),
+                () -> "Exception should carry ERR_STREAM_NOT_IMPLEMENTED: " + ex.getMessage());
         assertTrue(ex.getMessage().contains(expectedToken),
                 "Exception should mention " + expectedToken + ": " + ex.getMessage());
     }
 
     private void assertTopLevelRegistryFailsFast(String topLevelXml, String expectedToken) {
         StreamModel model = parseInline("", topLevelXml);
-        UnsupportedOperationException ex = assertThrows(UnsupportedOperationException.class,
+        StreamException ex = assertThrows(StreamException.class,
                 () -> StreamModelDslBuilder.of(model, new InMemoryBeanFunctionResolver()).build());
+        assertEquals("nop.err.stream.not-implemented", ex.getErrorCode().toString(),
+                () -> "Exception should carry ERR_STREAM_NOT_IMPLEMENTED: " + ex.getMessage());
         assertTrue(ex.getMessage().contains(expectedToken),
                 "Exception should mention " + expectedToken + ": " + ex.getMessage());
     }

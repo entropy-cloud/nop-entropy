@@ -8,6 +8,7 @@
 package io.nop.stream.flow.builder.functions;
 
 import io.nop.core.lang.eval.IEvalFunction;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.common.functions.SinkFunction;
 
 /**
@@ -23,7 +24,7 @@ public final class XplSinkFunction<T> implements SinkFunction<T> {
 
     public XplSinkFunction(IEvalFunction body) {
         if (body == null) {
-            throw new IllegalArgumentException("XplSinkFunction body must not be null");
+            throw new StreamException("XplSinkFunction body must not be null");
         }
         this.body = body;
     }

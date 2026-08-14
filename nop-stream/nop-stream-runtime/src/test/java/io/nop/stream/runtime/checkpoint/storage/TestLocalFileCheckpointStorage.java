@@ -123,6 +123,43 @@ class TestLocalFileCheckpointStorage {
     }
 
     @Test
+    void testGetLatestCheckpointSelectsMaxIdUnderOutOfOrderWrites() throws Exception {
+        // I2 WO-1 (AR-15) dynamic verification: getLatestCheckpoint must select the
+        // max checkpoint id by filename-ID sort, not the last-written file. Mixed /
+        // out-of-order writes simulate concurrent writers and restore races.
+        storage.storeCheckPoint(createTestCheckpoint("1", "1", 300L));
+        storage.storeCheckPoint(createTestCheckpoint("1", "1", 100L));
+        storage.storeCheckPoint(createTestCheckpoint("1", "1", 250L));
+        storage.storeCheckPoint(createTestCheckpoint("1", "1", 200L));
+
+        CompletedCheckpoint latest = storage.getLatestCheckpoint("1", "1");
+        assertNotNull(latest);
+        assertEquals(300L, latest.getCheckpointId(),
+                "getLatestCheckpoint must return the max-ID checkpoint (300), not the last-written (200)");
+
+        List<CompletedCheckpoint> top2 = storage.getLatestCheckpoints("1", 2);
+        assertEquals(2, top2.size());
+        assertEquals(300L, top2.get(0).getCheckpointId());
+        assertEquals(250L, top2.get(1).getCheckpointId(),
+                "getLatestCheckpoints must return descending ID order (300, 250)");
+    }
+
+    @Test
+    void testGetLatestCheckpointAfterDeletingMaxId() throws Exception {
+        // I2 WO-1 (AR-15): after deleting the max-ID checkpoint, getLatestCheckpoint
+        // must fall back to the next max by filename-ID sort (not file mtime).
+        storage.storeCheckPoint(createTestCheckpoint("1", "1", 300L));
+        storage.storeCheckPoint(createTestCheckpoint("1", "1", 100L));
+        storage.storeCheckPoint(createTestCheckpoint("1", "1", 200L));
+
+        storage.deleteCheckpoint("1", "1", 300L);
+
+        CompletedCheckpoint latest = storage.getLatestCheckpoint("1", "1");
+        assertNotNull(latest);
+        assertEquals(200L, latest.getCheckpointId());
+    }
+
+    @Test
     void testExistsByCheckpointIdAndPipeline() throws Exception {
         storage.storeCheckPoint(createTestCheckpoint("1", "1", 100L));
         storage.storeCheckPoint(createTestCheckpoint("1", "2", 200L));

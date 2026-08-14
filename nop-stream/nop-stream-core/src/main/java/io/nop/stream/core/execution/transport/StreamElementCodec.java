@@ -14,6 +14,7 @@ import io.nop.stream.core.util.ClassNameValidator;
 import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.StreamRecord;
+import io.nop.stream.core.streamrecord.SideOutputElement;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.streamrecord.watermark.WatermarkStatus;
 import io.nop.stream.core.exceptions.StreamException;
@@ -60,6 +61,21 @@ public class StreamElementCodec {
             return new StreamMessageEnvelope(epochId,
                     StreamMessageEnvelope.TYPE_STREAM_RECORD, effectiveType, serializedPayload,
                     record.getTimestamp(), record.hasTimestamp());
+        }
+
+        if (element.isSideOutput()) {
+            // HG-01 (2026-08-14): side-output record — tag id rides the envelope; valueType is
+            // always derived from the inner record value class (edge-level valueType ignored,
+            // Phase 1 decision), so the passed-in valueType parameter is intentionally unused.
+            SideOutputElement side = element.asSideOutput();
+            StreamRecord<?> record = side.getRecord();
+            Object serializedPayload = record.getValue() != null ? JsonTool.stringify(record.getValue()) : null;
+            String derivedType = record.getValue() != null ? record.getValue().getClass().getName() : null;
+            StreamMessageEnvelope env = new StreamMessageEnvelope(epochId,
+                    StreamMessageEnvelope.TYPE_SIDE_OUTPUT_RECORD, derivedType, serializedPayload,
+                    record.getTimestamp(), record.hasTimestamp());
+            env.setOutputTagId(side.getOutputTagId());
+            return env;
         }
 
         if (element.isCheckpointBarrier()) {
@@ -138,6 +154,29 @@ public class StreamElementCodec {
                     return (WatermarkStatus) envelope.getPayload();
                 }
                 return decodeWatermarkStatusFromPayload(envelope.getPayload());
+            }
+
+            case StreamMessageEnvelope.TYPE_SIDE_OUTPUT_RECORD: {
+                // HG-01 (2026-08-14): decode into a SideOutputElement carrying the tag id.
+                // valueType is always derived from the inner record value class.
+                Object payload = envelope.getPayload();
+                Object value = payload;
+                if (payload instanceof String && envelope.getValueType() != null) {
+                    try {
+                        ClassNameValidator.validateClassName(envelope.getValueType());
+                        Class<?> clazz = Class.forName(envelope.getValueType());
+                        value = JsonTool.parseBeanFromText((String) payload, clazz);
+                    } catch (ClassNotFoundException e) {
+                        throw new StreamException(ERR_STREAM_CODEC_VALUE_TYPE_LOAD_FAILED, e).param(ARG_CLASS_NAME, envelope.getValueType());
+                    }
+                }
+                StreamRecord<Object> record;
+                if (envelope.isHasTimestamp()) {
+                    record = new StreamRecord<>(value, envelope.getTimestamp());
+                } else {
+                    record = new StreamRecord<>(value);
+                }
+                return new SideOutputElement(envelope.getOutputTagId(), record);
             }
 
             default:

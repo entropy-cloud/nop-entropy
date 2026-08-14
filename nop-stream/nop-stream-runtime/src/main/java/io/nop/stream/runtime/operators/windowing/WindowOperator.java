@@ -420,6 +420,15 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         }
         this.keyedStateBackend = this.stateBackend.createKeyedStateBackend(keyClass);
 
+        // P1-01 (Decision: 方案 1 = live function reuse): register the live
+        // descriptor's aggregate function BEFORE the deferred keyed-state
+        // restore (applyPendingRestoreState) runs, so the serde restore path
+        // reuses the live function instance instead of failing to reflectively
+        // recreate capturing anonymous classes / lambdas. Also covers the
+        // region-restart path (rebuildTask restores before open; the provider
+        // is re-registered here on the fresh operator).
+        registerRestoreAggregateFunctionIfPresent();
+
         applyPendingRestoreState();
 
         if (windowStateDescriptor != null && keyedStateBackend instanceof IInternalStateBackend) {
@@ -454,6 +463,31 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
         internalTimerService = new HeapInternalTimerService<>(this,
                 () -> getKeyedStateBackend() != null ? (K) getKeyedStateBackend().getCurrentKey() : null);
+        // AR-22 (P0): declare the operator's key class so restored timer keys are
+        // re-materialized to it — the JSON checkpoint persist path (storageType=local)
+        // round-trips Long keys < 2^31 as Integer and @DataBean POJO keys as
+        // LinkedHashMap, and the class-sensitive TypedNamespaceAndKey lookups in
+        // onEventTime/onProcessingTime would silently miss (window output lost).
+        internalTimerService.setKeyType(keyClass);
+
+        // Register with the task's TimerServiceManager (mirroring ProcessOperator.open()).
+        // Null-guarded: direct unit-test usage without a task has no manager — the timer
+        // service still works standalone (fired via advanceWatermark/onProcessingTime).
+        if (timeServiceManager != null) {
+            timeServiceManager.registerTimerService(internalTimerService);
+        }
+
+        // Explicit warning instead of silent zero output (plan `2026-08-13-0132-1` Phase 2):
+        // a processing-time window without a wired ProcessingTimeService/TimerServiceManager
+        // has no driver to fire its timers — without this WARN the job would silently never
+        // emit. The production task wiring always injects both before open(); this fires only
+        // when the operator is opened outside a task (direct unit-test usage).
+        if (!windowAssigner.isEventTime() && getProcessingTimeService() == null) {
+            LOG.warn("Processing-time window operator opened without a ProcessingTimeService; "
+                    + "its processing-time timers will never fire (no processing-time driver). "
+                    + "The production task wiring injects the service before open(); "
+                    + "direct open() outside a task has no driver.");
+        }
 
         // Apply any timer snapshot captured by restoreState() (called before open()).
         // This deferred-application pattern is required because restoreState() runs
@@ -543,6 +577,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     @SuppressWarnings("unchecked")
     @Override
     public void restoreState(io.nop.stream.core.checkpoint.OperatorSnapshotResult snapshotResult) throws Exception {
+        registerRestoreAggregateFunctionIfPresent();
         super.restoreState(snapshotResult);
         if (snapshotResult != null) {
             Object restored = snapshotResult.getOperatorState("trigger-accumulators");
@@ -572,6 +607,25 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                 this.restoredPaneTrackingSnapshot = (PaneTrackingSnapshot) paneSnapshot;
             }
         }
+    }
+
+    /**
+     * P1-01: registers the live {@code windowStateDescriptor}'s aggregate
+     * function into the keyed state backend's restore-function provider (when
+     * both exist), so the serde restore path prefers the live instance over
+     * class-name reflection. No-op when the window contents state is not an
+     * aggregating descriptor (evictor path uses a list descriptor) or the
+     * backend is not yet created.
+     */
+    @SuppressWarnings("unchecked")
+    private void registerRestoreAggregateFunctionIfPresent() {
+        if (keyedStateBackend == null || !(windowStateDescriptor instanceof AggregatingStateDescriptor)) {
+            return;
+        }
+        AggregatingStateDescriptor<IN, ACC, ?> aggDesc =
+                (AggregatingStateDescriptor<IN, ACC, ?>) windowStateDescriptor;
+        keyedStateBackend.registerRestoreAggregateFunction(
+                aggDesc.getName(), aggDesc.getAggregateFunction());
     }
 
     @Override
@@ -646,6 +700,13 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                                     for (W m : mergedWindows) {
                                         triggerContext.window = m;
                                         triggerContext.clear();
+                                        // P1-INV-1: delete with the MERGED window m as the
+                                        // baseline — the trigger accumulator stateKey embeds
+                                        // triggerContext.window (the actual/merged window),
+                                        // which differs from the stateWindow in merge
+                                        // scenarios. Must run after triggerContext.clear()
+                                        // (which may rebuild the entry via getSimpleAccumulator).
+                                        removeTriggerAccumulators(key, m);
                                         deleteCleanupTimer(m);
                                     }
 
@@ -680,6 +741,12 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
             if (triggerResult.isPurge()) {
                 clearWindowContents(key, stateWindow);
+                // P1-INV-1: symmetric with the regular element path — the merging
+                // path cleared window contents without clearing the trigger state.
+                // Entries are keyed with triggerContext.window (the ACTUAL window),
+                // so the delete baseline is actualWindow, not stateWindow.
+                triggerContext.clear();
+                removeTriggerAccumulators(key, actualWindow);
             }
             registerCleanupTimer(actualWindow);
         }
@@ -714,6 +781,8 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             if (triggerResult.isPurge()) {
                 clearWindowContents(key, window);
                 triggerContext.clear();
+                // P1-INV-1: delete after the last clear (the clear may rebuild).
+                removeTriggerAccumulators(key, window);
             }
             registerCleanupTimer(window);
         }
@@ -768,6 +837,11 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                     ? mergingWindows.getStateWindow(triggerContext.window)
                     : triggerContext.window;
             clearWindowContents(triggerContext.key, stateWindow);
+            // P1-INV-1: symmetric with the element paths — the timer PURGE branch
+            // cleared window contents without clearing the trigger state (leaking
+            // both the accumulator entry AND the trigger's registered timers).
+            triggerContext.clear();
+            removeTriggerAccumulators(triggerContext.key, triggerContext.window);
         }
 
         if (windowAssigner.isEventTime()
@@ -778,6 +852,17 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             if (stateWindow != null) {
                 clearWindowContents(triggerContext.key, stateWindow);
                 triggerContext.clear();
+                // P1-INV-1: delete after the last clear (the clear may rebuild).
+                removeTriggerAccumulators(triggerContext.key, triggerContext.window);
+                // RL-6 (R15-AR-8): retire the in-flight window (= cleanup timer namespace =
+                // MergingWindowSet mapping KEY) so the mapping converges after cleanup —
+                // otherwise the cleaned window leaks into the checkpointed merging-sets
+                // state (unbounded growth) and later overlapping elements merge into a
+                // stale range. Retiring the state-window VALUE instead would throw
+                // StreamException (key not found, MergingWindowSet.java:134-139).
+                if (mergingWindows != null) {
+                    mergingWindows.retireWindow(triggerContext.window);
+                }
             }
         }
 
@@ -829,6 +914,11 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                     ? mergingWindows.getStateWindow(triggerContext.window)
                     : triggerContext.window;
             clearWindowContents(triggerContext.key, stateWindow);
+            // P1-INV-1: symmetric with the element paths — the timer PURGE branch
+            // cleared window contents without clearing the trigger state (leaking
+            // both the accumulator entry AND the trigger's registered timers).
+            triggerContext.clear();
+            removeTriggerAccumulators(triggerContext.key, triggerContext.window);
         }
 
         if (!windowAssigner.isEventTime()
@@ -839,6 +929,13 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             if (stateWindow != null) {
                 clearWindowContents(triggerContext.key, stateWindow);
                 triggerContext.clear();
+                // P1-INV-1: delete after the last clear (the clear may rebuild).
+                removeTriggerAccumulators(triggerContext.key, triggerContext.window);
+                // RL-6 (R15-AR-8): same convergence fix as the onEventTime cleanup branch —
+                // retire the in-flight window (mapping key = cleanup timer namespace).
+                if (mergingWindows != null) {
+                    mergingWindows.retireWindow(triggerContext.window);
+                }
             }
         }
 
@@ -846,6 +943,33 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             // need to make sure to update the merging state in state
             mergingWindows.persist();
         }
+    }
+
+    /**
+     * P1-INV-1 (AR-02 Phase 4): removes every {@link #triggerAccumulators} entry
+     * whose stateKey was built for {@code (key, window)} — the exact prefix
+     * constructed by {@code Context#getSimpleAccumulator}
+     * ({@code "trigger_" + key + STATE_KEY_SEPARATOR + window + STATE_KEY_SEPARATOR}).
+     *
+     * <p><b>Call-site contract:</b> must run AFTER the last
+     * {@code triggerContext.clear()} on the path. {@code CountTrigger.clear} /
+     * {@code ContinuousProcessingTimeTrigger.clear} call
+     * {@code getSimpleAccumulator()}, which RE-CREATES a deleted entry on miss
+     * (the {@code accums.put} in getSimpleAccumulator), so deleting inside
+     * {@code clearWindowContents} (which purge paths run BEFORE the trigger
+     * clear) would be silently undone. After the final clear, no further
+     * {@code getSimpleAccumulator} call can occur for this window, so the
+     * prefix delete is the terminal state. This closes the unbounded-growth
+     * defect: entries were only ever put (single write point) and never
+     * removed — purged/cleaned/merged windows leaked into the map, the
+     * checkpoint, and the restored operator forever.
+     */
+    private void removeTriggerAccumulators(K key, W window) {
+        if (triggerAccumulators == null || triggerAccumulators.isEmpty()) {
+            return;
+        }
+        String prefix = "trigger_" + key + STATE_KEY_SEPARATOR + window + STATE_KEY_SEPARATOR;
+        triggerAccumulators.keySet().removeIf(stateKey -> stateKey.startsWith(prefix));
     }
 
     @SuppressWarnings("unchecked")
@@ -966,9 +1090,15 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     /**
      * Serializable snapshot DTO of the pane-tracking map (G48). Only TimeWindow-scoped
      * entries are stored (see {@link #isTimeWindowPaneKey}).
+     *
+     * <p>The JSON checkpoint persist path ({@code CheckpointSerDe}) converts this DTO
+     * to a plain JSON-safe map form via {@link #toSerializableForm()} / {@link
+     * #fromSerializableForm(Map)} — the DTO itself is not a Nop {@code @DataBean}.
      */
     public static final class PaneTrackingSnapshot implements java.io.Serializable {
         private static final long serialVersionUID = 1L;
+
+        private static final String FORM_TYPE_PANE_TRACKING = "PaneTrackingSnapshot";
 
         private final List<PaneTrackingEntry> entries;
 
@@ -978,6 +1108,43 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
         public List<PaneTrackingEntry> getEntries() {
             return entries;
+        }
+
+        /**
+         * JSON-safe map form used by the checkpoint persist path. Self-describing via
+         * {@code "@type"}.
+         */
+        @SuppressWarnings("unchecked")
+        public Map<String, Object> toSerializableForm() {
+            java.util.LinkedHashMap<String, Object> form = new java.util.LinkedHashMap<>();
+            form.put("@type", FORM_TYPE_PANE_TRACKING);
+            List<Object> entryForms = new ArrayList<>();
+            for (PaneTrackingEntry entry : entries) {
+                entryForms.add(entry.toSerializableForm());
+            }
+            form.put("entries", entryForms);
+            return form;
+        }
+
+        /**
+         * Rebuilds a {@link PaneTrackingSnapshot} from the JSON-safe form produced by
+         * {@link #toSerializableForm()}. Returns {@code null} for non-pane-tracking maps.
+         */
+        @SuppressWarnings("unchecked")
+        public static PaneTrackingSnapshot fromSerializableForm(Map<String, Object> form) {
+            if (form == null || !FORM_TYPE_PANE_TRACKING.equals(form.get("@type"))) {
+                return null;
+            }
+            List<PaneTrackingEntry> result = new ArrayList<>();
+            List<Object> entryForms = (List<Object>) form.get("entries");
+            if (entryForms != null) {
+                for (Object f : entryForms) {
+                    if (f instanceof Map) {
+                        result.add(PaneTrackingEntry.fromSerializableForm((Map<String, Object>) f));
+                    }
+                }
+            }
+            return new PaneTrackingSnapshot(result);
         }
 
         public static final class PaneTrackingEntry implements java.io.Serializable {
@@ -1003,6 +1170,21 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
             public boolean isOnTimeEmitted() {
                 return onTimeEmitted;
+            }
+
+            public Map<String, Object> toSerializableForm() {
+                java.util.LinkedHashMap<String, Object> form = new java.util.LinkedHashMap<>();
+                form.put("paneKey", paneKey);
+                form.put("paneIndex", paneIndex);
+                form.put("onTimeEmitted", onTimeEmitted);
+                return form;
+            }
+
+            public static PaneTrackingEntry fromSerializableForm(Map<String, Object> form) {
+                return new PaneTrackingEntry(
+                        (String) form.get("paneKey"),
+                        form.get("paneIndex") instanceof Number ? ((Number) form.get("paneIndex")).intValue() : 0,
+                        Boolean.TRUE.equals(form.get("onTimeEmitted")));
             }
         }
     }

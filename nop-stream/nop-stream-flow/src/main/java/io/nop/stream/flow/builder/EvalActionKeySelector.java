@@ -9,6 +9,7 @@ package io.nop.stream.flow.builder;
 
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.stream.core.common.functions.KeySelector;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.flow.builder.functions.XplFunctionSupport;
 
 /**
@@ -25,7 +26,8 @@ public final class EvalActionKeySelector<T, K> implements KeySelector<T, K> {
 
     public EvalActionKeySelector(IEvalAction keyExpr) {
         if (keyExpr == null) {
-            throw new IllegalArgumentException("EvalActionKeySelector keyExpr must not be null");
+            throw new StreamException(
+                    "EvalActionKeySelector keyExpr must not be null");
         }
         this.keyExpr = keyExpr;
     }

@@ -7,12 +7,18 @@
  */
 package io.nop.stream.core.operators;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Consumer;
+
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.exceptions.StreamRuntimeException;
 import io.nop.stream.core.exceptions.NopStreamErrors;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_OPERATOR_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_OUTPUT_TAG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHAINING_OUTPUT_EXCEPTION;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER;
 import io.nop.stream.core.streamrecord.LatencyMarker;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
@@ -28,18 +34,38 @@ import io.nop.stream.core.util.OutputTag;
  */
 public class ChainingOutput<T> implements Output<StreamRecord<T>> {
 
-    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(ChainingOutput.class);
-
     private final Input<T> input;
     private final String operatorName;
+    /**
+     * RL-7 (R15-AR-4): registered side-output consumers, shared across all ChainingOutputs of a
+     * chained task (see {@code StreamTaskInvokable#registerSideOutputConsumer}). A side output
+     * with no registered consumer fails fast — side outputs are never silently dropped.
+     */
+    private final Map<OutputTag<?>, Consumer<StreamRecord<?>>> sideOutputConsumers;
 
     public ChainingOutput(Input<T> input) {
         this(input, null);
     }
 
     public ChainingOutput(Input<T> input, String operatorName) {
+        this(input, operatorName, new HashMap<>());
+    }
+
+    public ChainingOutput(Input<T> input, String operatorName,
+                          Map<OutputTag<?>, Consumer<StreamRecord<?>>> sideOutputConsumers) {
         this.input = input;
         this.operatorName = operatorName;
+        this.sideOutputConsumers = sideOutputConsumers != null
+                ? sideOutputConsumers : new HashMap<>();
+    }
+
+    /**
+     * RL-7 (R15-AR-4): registers a consumer for the given side-output tag. When the map is
+     * shared with {@code StreamTaskInvokable}, registration may happen before or after wiring.
+     */
+    @SuppressWarnings("unchecked")
+    public <X> void registerSideOutputConsumer(OutputTag<X> outputTag, Consumer<StreamRecord<X>> consumer) {
+        sideOutputConsumers.put(outputTag, (Consumer<StreamRecord<?>>) (Consumer<?>) consumer);
     }
 
     @Override
@@ -81,8 +107,22 @@ public class ChainingOutput<T> implements Output<StreamRecord<T>> {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public <X> void collect(OutputTag<X> outputTag, StreamRecord<X> record) {
-        LOG.warn("Side output '{}' discarded in simplified chaining mode. Side outputs are not forwarded in the fast-path execution.", outputTag);
+        // RL-7 (R15-AR-4): forward to the registered side-output consumer instead of silently
+        // discarding (the pre-I4 behavior was LOG.warn + drop). No consumer => fail fast
+        // (plan guide #24) — a task that emits side outputs without wiring a consumer is
+        // misconfigured and must not lose records silently.
+        Consumer<StreamRecord<X>> consumer =
+                (Consumer<StreamRecord<X>>) (Consumer<?>) sideOutputConsumers.get(outputTag);
+        if (consumer == null) {
+            throw new StreamRuntimeException(ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER)
+                    .param(ARG_OUTPUT_TAG, outputTag.getId())
+                    .param(ARG_DETAIL, "Side output '" + outputTag.getId()
+                            + "' has no registered consumer in the chained execution; register one via "
+                            + "ChainingOutput.registerSideOutputConsumer / StreamTaskInvokable.registerSideOutputConsumer");
+        }
+        consumer.accept(record);
     }
 
     @Override

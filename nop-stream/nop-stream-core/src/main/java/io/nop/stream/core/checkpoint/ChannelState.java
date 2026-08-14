@@ -20,6 +20,9 @@ import io.nop.stream.core.execution.transport.StreamMessageEnvelope;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.StreamRecord;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Stage 43 (unaligned checkpoint): per-channel in-flight records captured at the
  * moment a checkpoint switches to unaligned mode (see {@code checkpoint-design.md}
@@ -44,6 +47,8 @@ import io.nop.stream.core.streamrecord.StreamRecord;
 public class ChannelState implements Serializable {
 
     private static final long serialVersionUID = 1L;
+
+    private static final Logger LOG = LoggerFactory.getLogger(ChannelState.class);
 
     /**
      * channelIndex → in-flight records for that channel. {@code TreeMap} so
@@ -136,6 +141,13 @@ public class ChannelState implements Serializable {
                     if (v != null) {
                         valueType = v.getClass().getName();
                     }
+                } else if (element.isSideOutput()) {
+                    // HG-01 (2026-08-14): side-output valueType derived from the inner
+                    // record value class (edge-level valueType ignored, Phase 1 decision).
+                    Object v = element.asSideOutput().getRecord().getValue();
+                    if (v != null) {
+                        valueType = v.getClass().getName();
+                    }
                 }
                 StreamMessageEnvelope env = StreamElementCodec.encode(element, valueType, 0L);
                 envelopeList.add(envelopeToMap(env));
@@ -164,16 +176,23 @@ public class ChannelState implements Serializable {
             try {
                 channelIndex = Integer.parseInt(e.getKey());
             } catch (NumberFormatException nfe) {
-                // Skip malformed channel index rather than failing the whole restore.
+                // P1-09-01: skip a malformed channel index rather than failing the whole
+                // restore, but never silently — every skip must be observable.
+                LOG.warn("Skipping malformed channel index '{}' in channel state during restore (best-effort skip)",
+                        e.getKey());
                 continue;
             }
             Object value = e.getValue();
             if (!(value instanceof List)) {
+                LOG.warn("Skipping channel '{}' in channel state during restore: value is not a List but {} (best-effort skip)",
+                        channelIndex, value == null ? "null" : value.getClass().getName());
                 continue;
             }
             List<StreamElement> elements = new ArrayList<>();
             for (Object item : (List<Object>) value) {
                 if (!(item instanceof Map)) {
+                    LOG.warn("Skipping in-flight record of channel '{}' during restore: item is not a Map but {} (best-effort skip)",
+                            channelIndex, item == null ? "null" : item.getClass().getName());
                     continue;
                 }
                 StreamMessageEnvelope env = mapToEnvelope((Map<String, Object>) item);
@@ -181,9 +200,15 @@ public class ChannelState implements Serializable {
                     StreamElement element = StreamElementCodec.decode(env);
                     elements.add(element);
                 } catch (Exception ex) {
-                    // A single undecodable in-flight record must not abort the whole
-                    // restore; skip it (best-effort). This is observable via logging
-                    // in the codec path.
+                    // P1-09-01: a single undecodable in-flight record must not abort the
+                    // whole restore — skip it (best-effort) and log the throwable so the
+                    // exactly-once degradation (in-flight record silently lost) is
+                    // observable. In-flight records are the only carrier of exactly-once
+                    // semantics on the unaligned recovery path; skipping without a trace
+                    // would silently downgrade to at-least-once (see error-handling.md
+                    // per-element isolation rule: LOG.warn(..., e), throwable last).
+                    LOG.warn("Skipping undecodable in-flight record of channel '{}' during restore (best-effort skip)",
+                            channelIndex, ex);
                 }
             }
             if (!elements.isEmpty()) {
@@ -202,6 +227,9 @@ public class ChannelState implements Serializable {
         m.put("payload", env.getPayload());
         m.put("timestamp", env.getTimestamp());
         m.put("hasTimestamp", env.isHasTimestamp());
+        // HG-01 (2026-08-14): side-output tag id must survive the checkpoint snapshot
+        // round-trip (the field-enumeration layer below ChannelState's codec call sites).
+        m.put("outputTagId", env.getOutputTagId());
         return m;
     }
 
@@ -216,6 +244,8 @@ public class ChannelState implements Serializable {
         env.setTimestamp(ts instanceof Number ? ((Number) ts).longValue() : 0L);
         Object ht = m.get("hasTimestamp");
         env.setHasTimestamp(Boolean.TRUE.equals(ht));
+        Object tagId = m.get("outputTagId");
+        env.setOutputTagId(tagId instanceof String ? (String) tagId : null);
         return env;
     }
 }

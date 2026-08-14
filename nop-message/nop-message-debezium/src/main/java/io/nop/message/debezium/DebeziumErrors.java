@@ -32,4 +32,10 @@ public interface DebeziumErrors {
 
     ErrorCode ERR_DEBEZIUM_UNSUPPORTED_CONNECTOR_TYPE =
             ErrorCode.define(PREFIX + "unsupported-connector-type", "Unsupported connector type");
+
+    ErrorCode ERR_DEBEZIUM_CONNECTOR_NAME_REQUIRED =
+            ErrorCode.define(PREFIX + "connector-name-required",
+                    "Debezium connector name is required: unnamed connectors share the _default_ offset "
+                            + "bucket and silently overwrite each other's offsets. Set DebeziumConfig.name "
+                            + "(source function) or the WorkerConfig 'name' property (offset store).");
 }

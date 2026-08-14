@@ -119,6 +119,7 @@ processInputGate() (MIDDLE/SINK):
 
 - cancel mail 与未来 mail（processing-time timer）在循环顶 `poll` 处理。
 - **barrier/element 处理保持 in-line 不变**（不延迟、不改序）。
+- **Updated: 2026-08-13（plan `2026-08-13-1243-1` AR-02）**：`InputGate.read()` 现为**空闲有界**——全 channel 空转超过 `IDLE_RETURN_THRESHOLD_MS`（250ms，恒大于 channel 心跳超时 150ms）后返回空 `Optional`（空闲信号，非 EOS）；`processInputGate` 在空返回时经 `isAllFinished()` 区分**空闲**（continue → 循环顶 drain 后可重新执行）与 **EOS**（break）。空闲任务因此周期性到达循环顶 drain control mail——processing-time timer fire mail 不再滞留 mailbox，PT 窗口/cleanup 定时器在数据面完全空闲时仍按墙钟触发（AR-02 修复核心）。中断/cancel 语义不变：interrupt 或 cancel flag 置位时空返回直接退出，不空转。
 
 ### 3.5 abort 协作式 cancel（替代仅靠 interrupt 上传）
 
@@ -132,7 +133,7 @@ task main loop (middle/sink processInputGate / source run wrapper):
     top of loop: if (mailboxExecutor.isCancelled()) exit gracefully;
 ```
 
-- `Thread.interrupt()` **保留**：作为解除阻塞 `InputGate.read()` / source 阻塞 I/O 的手段（无现成非阻塞 read）。
+- `Thread.interrupt()` **保留**：作为解除阻塞 `InputGate.read()` / source 阻塞 I/O 的手段（单次 read 内仍可阻塞至空闲阈值；无真正无阻塞的 read）。
 - **新增**：cancel flag/mail 在主循环顶检查，使退出为受控优雅退出，而非仅靠 `InterruptedException` 上传。两者协同：interrupt 解除阻塞 → 线程醒来 → 循环顶看到 cancel flag → 退出。
 
 ## 4. `synchronized` 处置裁定
@@ -156,10 +157,14 @@ mailbox 原语与接线分支：
 - `Mail.run()` 执行真实闭包；`TaskMailbox.put/poll/take` 有完整队列逻辑；`MailboxExecutor.processAvailableMails()/runLoop()` 有完整 drain 逻辑。
 - cancel flag 是真实可观测的 boolean（`volatile`），不是空操作。
 
-## 7. 奠基（未接线）
+## 7. 奠基（已接线：PT timer；其余未接线）
+
+> **Updated: 2026-08-13**（plan `2026-08-13-0132-1`）——**processing-time timer 生产接线已落地**：timer 触发作为 control mail 投递到 task 线程，task 线程在安全点执行回调。接线组件：`ProcessingTimeServiceDriver`（daemon 调度线程，周期 tick + volatile 到期检查，只投递不执行）+ `TaskProcessingTimeService`（`ProcessingTimeService` 生产实现）+ `StreamTaskInvokable.setupProcessingTimeServices()`（构造函数无条件注入 PTS/TSM）。回调执行线程 = task 线程（`SourceContext.collect()` / `processInputGate` 循环顶 / source run 收尾 drain），与 `processElement` 串行化，无并发写共享状态。
+
+> **Updated: 2026-08-13**（plan `2026-08-13-1243-1` AR-02）——**空闲期 drain 已闭环**：0132-1 接线后 fire mail 仍只在"数据到达"时被 drain（`InputGate.read()` 空闲期忙等永不返回，循环顶不可达），空闲任务定时器永不触发。AR-02 使 `InputGate.read()` 空闲有界（250ms 空闲阈值返回空信号）+ `processInputGate` 区分空闲/EOS 后继续循环，fire mail 在空闲期被周期性 drain。回归测试 `TestIdlePeriodProcessingTimeWindowE2E`（E2E 中间态断言 + cleanup timer 计数断言，先红后绿）与 `TestInputGateTermination`/`TestInputGateSingleChannelRemoteLiveness`（生产者死亡语义保留）在案。
 
 mailbox 原语为以下后续工作奠基，但本设计**不接线**：
 
-- **processing-time timer 生产接线**：timer 触发需作为 mail 投递到 task 线程（当前生产不触发）。`MailboxExecutor.runLoop()` 与 `TaskMailbox` 已具备承载能力。
+- ~~**processing-time timer 生产接线**：timer 触发需作为 mail 投递到 task 线程（当前生产不触发）。`MailboxExecutor.runLoop()` 与 `TaskMailbox` 已具备承载能力。~~ → **已接线（2026-08-13）**：`MailboxExecutor.runLoop()` 未用于生产（任务主循环内联 drain 与设计原文一致），投递语义由 `ProcessingTimeServiceDriver` + `Mail.control` 承载。
 - **异步 snapshot（Stage 18）**：异步 snapshot 完成回调需作为 mail 回到 task 线程更新状态。
 - **full-mailbox 化**（middle/sink trigger 也改 mail）：需先重构 `processBarrier` 使其能从 in-band barrier 自 prime，或引入显式 priming 同步——属更大范围改造，独立 successor plan。

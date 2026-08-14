@@ -188,7 +188,7 @@
 **Deliverables:**
 - `NopAiModel` 增加可选 `credentialId` 字段（关联凭证库），apiKey 列保留兼容；迁移工具/脚本 + 迁移文档
 - nop-integration 静态密钥改用 `@sec:` 加密的说明文档（立即可做项）
-- `docs-for-ai/03-modules/nop-auth.md` 补充 MFA 章节；`docs-for-ai/02-core-guides/auth-and-permissions.md` 补充两阶段登录说明；新增 `docs-for-ai/03-modules/nop-credential.md`
+- `docs-for-ai/03-modules/nop-auth.md` 补充 MFA 章节；`docs-for-ai/02-core-guides/auth-and-permissions.md` 补充两阶段登录说明；新增 docs-for-ai/03-modules/nop-credential.md（W7 待产出）
 - 设计文档收口（Open Questions 全部关闭）+ `ai-dev/design/README.md` 索引更新
 - `docs-for-ai/04-reference/source-anchors.md` 更新（若锚点变化）
 

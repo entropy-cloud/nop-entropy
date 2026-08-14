@@ -275,7 +275,14 @@ public class CepOperator<IN, KEY, OUT>
                 new MapStateDescriptor<>(EVENT_QUEUE_STATE_NAME, Long.class, (Class) List.class));
         partialMatches = new SharedBuffer<>(keyedStateStore, inputSerializer, new SharedBufferCacheConfig());
 
-        registeredEventTimeTimers = new TreeSet<>();
+        // P1-04: restoreState() may run BEFORE open() (the order pinned by
+        // TestCepCheckpointRestoreE2E), so only initialize the timer registry when
+        // it is still null. The previous unconditional rebuild wiped every timer
+        // restored from a checkpoint — the storage side (AR-9) persisted them, but
+        // the consumption side silently lost them on open().
+        if (registeredEventTimeTimers == null) {
+            registeredEventTimeTimers = new TreeSet<>();
+        }
 
         timerService = new InternalTimerService<VoidNamespace>() {
             @Override
@@ -361,6 +368,14 @@ public class CepOperator<IN, KEY, OUT>
             // would never fire or fire in a tight loop. Explicit rather than silently skipping.
             LOG.warn("CEP cache statistics timer disabled: interval={}ms (non-positive)",
                     cacheStatsIntervalMs);
+            return;
+        }
+        if (getProcessingTimeService() == null) {
+            // Production path injects a real service before open(); a null here means the
+            // operator was opened outside a task (direct unit-test usage) with no service.
+            // Explicit WARN (not silent skip) so a missing wiring is visible in logs.
+            LOG.warn("CEP cache statistics timer not registered: no ProcessingTimeService was "
+                    + "injected into the operator chain before open()");
             return;
         }
         long firstFire = getProcessingTimeService().getCurrentProcessingTime() + cacheStatsIntervalMs;
@@ -461,6 +476,15 @@ public class CepOperator<IN, KEY, OUT>
     @Override
     public void processElement(StreamRecord<IN> element) throws Exception {
         if (isProcessingTime) {
+            if (getProcessingTimeService() == null) {
+                // Explicit fail-fast instead of the silent NPE this branch previously produced:
+                // processing-time mode requires a real ProcessingTimeService. The production
+                // task wiring injects one before open(); a null here means the operator was
+                // opened outside a task with no service — fail visibly, never silently drop.
+                throw new StreamException(ERR_STREAM_STATE_ERROR).param(ARG_DETAIL,
+                        "CepOperator in processing-time mode requires a ProcessingTimeService; "
+                                + "none was injected into the operator chain before open()");
+            }
             if (comparator == null) {
                 NFAState nfaState = getNFAState();
                 long timestamp = getProcessingTimeService().getCurrentProcessingTime();
@@ -565,6 +589,19 @@ public class CepOperator<IN, KEY, OUT>
                 }
                 computationStates.clear();
             }
+        }
+
+        // P1-04 (bookkeeping semantics): the registry is a LEDGER of pending
+        // event-time timers, not a trigger mechanism — onEventTime is driven by
+        // watermark advancement (STEP 2 drains every queue bucket <= watermark
+        // directly). A registry entry's work is done once the watermark reaches
+        // it: its queue bucket has been consumed (STEP 2) and window cleanup
+        // performed (STEP 3-5). Expired entries are removed here so the registry
+        // (which is checkpointed in FULL on every snapshot) does not grow without
+        // bound, and so a restored registry only ever contains genuinely pending
+        // timers.
+        if (registeredEventTimeTimers != null) {
+            registeredEventTimeTimers.removeIf(timer -> timer <= time);
         }
     }
 
@@ -835,5 +872,17 @@ public class CepOperator<IN, KEY, OUT>
 
     public long getCurrentWatermark() {
         return currentWatermark;
+    }
+
+    /**
+     * P1-04: testing accessor for the event-time timer bookkeeping registry.
+     *
+     * @return the currently registered (pending) event-time timers; empty when the
+     *         registry has not been initialized yet
+     */
+    java.util.Set<Long> getRegisteredEventTimeTimersForTesting() {
+        return registeredEventTimeTimers == null
+                ? java.util.Collections.emptySet()
+                : java.util.Collections.unmodifiableSet(registeredEventTimeTimers);
     }
 }

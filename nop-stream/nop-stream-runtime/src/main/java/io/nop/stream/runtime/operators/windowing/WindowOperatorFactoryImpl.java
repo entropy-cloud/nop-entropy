@@ -46,7 +46,36 @@ public class WindowOperatorFactoryImpl implements IWindowOperatorFactory {
                .keyClass(keyClass)
                .keySerializer(createDummySerializer(keyClass))
                .windowSerializer(inferWindowSerializer(windowAssigner));
-        return builder.aggregate(aggregateFunction, accumulatorType);
+        return builder.aggregate(aggregateFunction, inferAccumulatorType(aggregateFunction, accumulatorType));
+    }
+
+    /**
+     * The aggregate API passes {@code Object.class} as the accumulator type
+     * (generic erasure at the WindowedStreamImpl call-site). A generic
+     * Object-typed accumulator breaks the RocksDB state read path (the DB value
+     * round-trip deserializes via the descriptor's valueType: a {@code long[]}
+     * accumulator comes back as an ArrayList and the user function's {@code add}
+     * ClassCastExceptions) and records an unusable snapshot valueType/schema
+     * checksum. Infer the real accumulator type from the live function's
+     * {@code createAccumulator()} when the recorded type is the generic
+     * {@code Object}; functions that return {@code null} (e.g. the
+     * reduce-function wrapper) keep the recorded type (JSON-native accumulators
+     * work either way).
+     */
+    @SuppressWarnings("unchecked")
+    private static <ACC> Class<ACC> inferAccumulatorType(AggregateFunction<?, ACC, ?> function, Class<ACC> recordedType) {
+        if (recordedType != Object.class || function == null) {
+            return recordedType;
+        }
+        try {
+            ACC accumulator = function.createAccumulator();
+            if (accumulator != null) {
+                return (Class<ACC>) accumulator.getClass();
+            }
+        } catch (Exception e) {
+            // Keep the recorded (generic) type.
+        }
+        return recordedType;
     }
 
     @Override

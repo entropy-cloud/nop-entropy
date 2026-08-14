@@ -8,6 +8,7 @@
 package io.nop.stream.flow.builder.functions;
 
 import io.nop.core.lang.eval.IEvalFunction;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.common.functions.MapFunction;
 
 /**
@@ -22,7 +23,7 @@ public final class XplMapFunction<T, R> implements MapFunction<T, R> {
 
     public XplMapFunction(IEvalFunction body) {
         if (body == null) {
-            throw new IllegalArgumentException("XplMapFunction body must not be null");
+            throw new StreamException("XplMapFunction body must not be null");
         }
         this.body = body;
     }
