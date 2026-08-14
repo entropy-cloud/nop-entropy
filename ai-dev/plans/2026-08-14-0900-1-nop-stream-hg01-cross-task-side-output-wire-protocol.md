@@ -1,6 +1,6 @@
 # 1 跨 task side-output 线协议实现（HG-01，人工批准 2026-08-14）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-14
 > Source: `ai-dev/backlog/nop-stream-invariant-loop-roadmap.md` Follow-up Backlog「跨 task side-output 线协议结构性变更（人工确认待办 `HG-01`）」
 > Related: `2026-08-12-1217-11`（Cycle 2 / I4 interim fail-fast 落地 `88bc0270c`）；`2026-08-12-1217-8`（Cycle 2 / I1 输出契约族门禁）
@@ -142,8 +142,8 @@ Targets: `StreamTaskInvokable.java`、`ResultPartition`（本地路径 + materia
 
 Exit Criteria:
 
-- [ ] 生产端两实现类 `collect(OutputTag)` 均转发（grep/测试证据），fail-fast 文案从生产端移除
-- [ ] 消费端路由：注册消费者送达断言 + 未注册 fail-fast 断言全绿（先红后绿）
+- [x] 生产端两实现类 `collect(OutputTag)` 均转发（grep/测试证据），fail-fast 文案从生产端移除
+- [x] 消费端路由：注册消费者送达断言 + 未注册 fail-fast 断言全绿（先红后绿）
 - [x] `registerSideOutputConsumer` 双路径（in-task + 跨 task）服务同一 map，接线断言在案
 - [x] `DataPlaneWireSupport.toWireMap` 含 `outputTagId`（wire 层 round-trip 断言，审查 B1 证据）
 - [x] materialization 双写路径按裁决处置（纳入 → 恢复测试；排除 → 留痕 + 测试注明）
@@ -161,21 +161,21 @@ Status: planned
 Targets: `output-contract-registry.json`、`check-nop-stream-invariants.mjs`、`invariant-catalog.md`、`core-design.md`、roadmap
 
 - Item Types: `Fix | Proof`
-- [ ] [Fix] `output-contract-registry.json`：RWO/BRWO 行为分类 `fail-fast` → `forward`（disposition 附 tagged 说明 + 本 plan 批准依据）；**TimestampedCollector disposition 文案修订**（审查 M3，现文案引用「wrapped output is a fail-fast output」）；发射点行号复核重钉。
-- [ ] [Fix] `check-nop-stream-invariants.mjs` `scan-output-contract` V3（行为漂移检测）消费新分类；**`classifyCollectBody` 正则扩展或实现形态锁定**（`check-nop-stream-invariants.mjs:782-790`，审查 M1——`forwardRe` 不识别 `writer.emit(...)` 形态会抛 `unrecognized collect(OutputTag) method body form` crash）+ **self-test 正反例夹具更新**（:1503-1580，新增 emit 形态正例）。
-- [ ] [Proof] `mjs all` 全绿（含 scan-output-contract V1–V5 + self-test，正反例覆盖新分类 + 新实现形态）。
-- [ ] [Proof] 全量回归：`./mvnw test -pl nop-stream -am -T 1C` 全绿 + 门禁 JUnit 类全绿 + E2E 全绿。
-- [ ] [Proof] `check-doc-links.mjs --strict` exit 0。
-- [ ] [Fix] roadmap backlog `HG-01` 条目：Status `pending human confirmation` → 已批准（2026-08-14）+ 已落地（本 plan 收口后）；**接线路径行号重钉**（审查 m2——条目 :145 现为 pre-I4 旧值 :645/:706、:239/:245、:352；live 为 :892/:960、:247/:285、:461-467）；四重保护性覆盖复核更新（in-task fail-fast 维持、门禁三态分类更新、**过渡 pin 2 条 = 历史记录**（审查 m5，已随 I4 移除，`mjs-pins.json` 注记在案）、本条目转 closed）。
+- [x] [Fix] `output-contract-registry.json`：RWO/BRWO 行为分类 `fail-fast` → `forward`（disposition 附 tagged 说明 + 本 plan 批准依据）；**TimestampedCollector disposition 文案修订**（审查 M3，现文案引用「wrapped output is a fail-fast output」）；发射点行号复核重钉。
+- [x] [Fix] `check-nop-stream-invariants.mjs` `scan-output-contract` V3（行为漂移检测）消费新分类；**`classifyCollectBody` 正则扩展或实现形态锁定**（`check-nop-stream-invariants.mjs:782-790`，审查 M1——`forwardRe` 不识别 `writer.emit(...)` 形态会抛 `unrecognized collect(OutputTag) method body form` crash）+ **self-test 正反例夹具更新**（:1503-1580，新增 emit 形态正例）。
+- [x] [Proof] `mjs all` 全绿（含 scan-output-contract V1–V5 + self-test，正反例覆盖新分类 + 新实现形态）。
+- [x] [Proof] 全量回归：`./mvnw test -pl nop-stream -am -T 1C` 全绿 + 门禁 JUnit 类全绿 + E2E 全绿。
+- [x] [Proof] `check-doc-links.mjs --strict` exit 0。
+- [x] [Fix] roadmap backlog `HG-01` 条目：Status `pending human confirmation` → 已批准（2026-08-14）+ 已落地（本 plan 收口后）；**接线路径行号重钉**（审查 m2——条目 :145 现为 pre-I4 旧值 :645/:706、:239/:245、:352；live 为 :892/:960、:247/:285、:461-467）；四重保护性覆盖复核更新（in-task fail-fast 维持、门禁三态分类更新、**过渡 pin 2 条 = 历史记录**（审查 m5，已随 I4 移除，`mjs-pins.json` 注记在案）、本条目转 closed）。
 
 Exit Criteria:
 
-- [ ] 注册表分类迁移完成且附棘轮理由（无静默豁免）；TimestampedCollector disposition 已同步
-- [ ] mjs `all` exit 0（含 self-test，正反例覆盖新分类 + emit 形态——审查 M1 证据）
-- [ ] 全量回归 0 failures（nop-stream 全组 + 门禁类 + E2E）
-- [ ] `check-doc-links.mjs --strict` exit 0
-- [ ] roadmap `HG-01` 条目 closed（批准记录 + 落地记录 + 行号重钉在案）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 注册表分类迁移完成且附棘轮理由（无静默豁免）；TimestampedCollector disposition 已同步
+- [x] mjs `all` exit 0（含 self-test，正反例覆盖新分类 + emit 形态——审查 M1 证据）
+- [x] 全量回归 0 failures（nop-stream 全组 + 门禁类 + E2E）
+- [x] `check-doc-links.mjs --strict` exit 0
+- [x] roadmap `HG-01` 条目 closed（批准记录 + 落地记录 + 行号重钉在案）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
@@ -217,17 +217,19 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: 待执行收口后填写。
-Completed: 
+Status Note: 全 4 Phase 收口（2026-08-14）。
+Completed: 2026-08-14
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: 
-- Evidence: 
+- Reviewer / Agent: 独立子 agent（fresh task_id，非本 plan 执行者）
+- Evidence: 独立 closure audit 针对 live 代码复核：① 生产端两实现类 `collect(OutputTag)` 转发（RWO :914 经 `writer.emitElement(SideOutputElement)` 广播；BRWO :981 扇出）——fail-fast 文案已从生产端移除；② 消费端 `processInputGate` side-output 分支（`sideOutputConsumers.keySet()` 按 `getId()` 匹配，未命中抛 `ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER`）；③ 全链运行时连通（`TestSideOutputChainingE2E.testCrossTaskSideOutputDeliveryReachesRegisteredConsumer` 生产者 → 线协议 → 消费 task 注册消费者收到 99；BRWO 扇出 + D5 无别名化断言在案）；④ 无空方法体/静默跳过/no-op 作为正常实现（三态分类 = forward/fail-fast/无，注册表 V1-V5 零违规）；⑤ 门禁全绿（JUnit 门禁类 14/14、E2E 6/6、mjs all exit 0、doc-links exit 0、全量回归 0 failures）；⑥ 注册表分类迁移 fail-fast → forward 附棘轮理由（disposition + plan 批准依据在案），TimestampedCollector disposition 同步；⑦ roadmap HG-01 条目 closed + 行号重钉在案。audit PASS 结论与证据见 dev log 08-14 收口条目。
 
 Follow-up:
 
-- 待收口后填写。
+- 图级 `getSideOutput` API / `StreamEdge.outputTag` 图模型消费 / DSL `<sideOutput>` 解封 = 本 plan Deferred But Adjudicated 节，另立 successor plan 按需评估（roadmap 注记在案）。
+- C2-PR-3（重复注册 last-wins 语义）维持 backlog 触发条件不变。
+- 剩余 5 发射点无 E2E 覆盖（C2-RL-3 + C2-PR-4 P3 优化）维持 backlog。
 
 ## Optional Sections
 

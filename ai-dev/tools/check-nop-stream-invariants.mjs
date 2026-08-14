@@ -779,7 +779,9 @@ function findCollectOutputTagMethod(frame, clean) {
 function classifyCollectBody(bodyText) {
   // bodyText spans the method body INCLUDING the wrapping { ... } — strip them first
   const inner = bodyText.replace(/^\s*\{/, '').replace(/\}\s*$/, '');
-  const forwardRe = /(?:consumer\.accept\s*\(|\.collect\s*\(|\.accept\s*\()/;
+  // HG-01 (2026-08-14): forward forms now also include emit/emitElement forwarding (RWO
+  // wraps the tagged record into a SideOutputElement and calls writer.emitElement(...)).
+  const forwardRe = /(?:consumer\.accept\s*\(|\.collect\s*\(|\.accept\s*\(|\.emit(?:Element)?\s*\()/;
   const failFastRe = /\bthrow\s/;
   if (forwardRe.test(inner)) return 'forward';
   if (failFastRe.test(inner)) return 'fail-fast';
@@ -1518,6 +1520,24 @@ class FwdOutput implements Output<StreamRecord<String>> {
   const fwdViolations = evaluateOutputContract(fwdRegistry, fwdLive.liveClasses, fwdLive.liveEmissionPoints);
   if (fwdViolations.length !== 0) {
     failures.push(`output-contract V3/V4 positive: expected 0 violations for forward body + self-consistent registry, got ${JSON.stringify(fwdViolations)}`);
+  }
+
+  // V3 positive (emitElement form, HG-01 D8): RWO wraps the tagged record into a
+  // SideOutputElement and forwards via writer.emitElement(...) — classifyCollectBody must
+  // recognize the emit/emitElement form as forward (review M1: pre-extension this crashed).
+  const emitFixture = `
+package fixtures;
+class EmitOutput implements Output<StreamRecord<String>> {
+    private final RecordWriter<Object> writer;
+    public <X> void collect(OutputTag<X> outputTag, StreamRecord<X> record) {
+        writer.emitElement(new SideOutputElement(outputTag.getId(), record.copy(record.getValue())));
+    }
+}`;
+  const emitLive = analyzeFixtureSources([{rel: 'fixtures/EmitOutput.java', src: emitFixture}]);
+  const emitRegistry = {implementationClasses: [{fqcn: 'fixtures.EmitOutput', file: 'fixtures/EmitOutput.java', classification: 'forward'}], emissionPoints: []};
+  const emitViolations = evaluateOutputContract(emitRegistry, emitLive.liveClasses, emitLive.liveEmissionPoints);
+  if (emitViolations.length !== 0) {
+    failures.push(`output-contract V3 emitElement positive: expected 0 violations for emitElement-form forward body + self-consistent registry, got ${JSON.stringify(emitViolations)}`);
   }
 
   // V3 negative (empty body not pinned): registry forward, body no-op -> behavior drift violation
