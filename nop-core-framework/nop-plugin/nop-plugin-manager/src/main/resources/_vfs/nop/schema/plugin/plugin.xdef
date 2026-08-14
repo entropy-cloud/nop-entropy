@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+plugin 定义的结构层 schema（动态模型模式：不声明 xdef:bean-package/xdef:name，根模型即 DynamicObject，
+无需 codegen 生成 _gen 模型类；in-repo 先例：nop-ai-dsl-orm 的 gpt/orm.xdef 同样无 bean-package/name）。
+
+@name 插件名
+@requires 依赖的 plugin id 集合（csv-set，空格分隔）
+@if-property 激活条件配置项，格式 propName|expectedValue（缺省 expectedValue 视为 true），如 agent.tools.enabled|true
+@activator 激活器 bean id（实例激活时经 IPluginActivator 调用，scope+config 参数传入）
+-->
+<plugin name="!string" requires="csv-set" if-property="string" activator="bean-name"
+        x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef">
+
+    <!--
+    插件内部 bean 定义。跨文件 xdef:ref 仅解析目标文件根节点（XDefRefResolver 语义），
+    故本节点直接合并 beans.xdef 根（BeansModel），bean 定义模型（BeanModel/BeanPropValue 等）完整复用；
+    beans.xdef 本身零修改。先例：nop-xdefs schema/task/task.xdef 的 <beans xdef:ref="../beans.xdef"/>。
+    -->
+    <beans xdef:ref="/nop/schema/beans.xdef"/>
+</plugin>
