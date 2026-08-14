@@ -86,11 +86,11 @@ flowchart LR
 > 来源：2026-08-14 不变式闭环再审计（multi + open）。P2 项不入独立 remediation plan，仅登记待后续清扫。每项标注源审计路径以保持可追溯。
 
 ### 安全硬化族
-- **F5** `jdbcUrl` 危险参数 blocklist 缺类加载参数（`socketFactory`/`statementInterceptors`/PG `sslFactory`/`options=`）。源：`ai-dev/audits/2026-08-14-0707-multi-audit-nop-metadata-invariant-loop.md`（F5）
-- **F6** `redactJdbcUrl` 对含 `@` 的口令截断不全。源：同上（F6）
-- **F7** 空/畸形主机 fail-open（`jdbc:mysql:///db` / `jdbc:mysql://:3306/db`）。源：同上（F7）
-- **F8** `isInternalIpv6Literal` 触发 DNS（违反"不触发 DNS"类契约）。源：同上（F8）
-- **F9** `custom_sql` blocklist 缺 PG `DO`/`WITH`(CTE)/`PG_CATALOG`/`PG_SLEEP`。源：同上（F9）
+- **F5** `jdbcUrl` 危险参数 blocklist 缺类加载参数（`socketFactory`/`statementInterceptors`/PG `sslFactory`/`options=`）。源：`ai-dev/audits/2026-08-14-0707-multi-audit-nop-metadata-invariant-loop.md`（F5） — ✅ Fixed（plan `2026-08-14-1133-1` Phase 1：`DANGEROUS_URL_TOKENS` 补 5 token + 对抗测试）
+- **F6** `redactJdbcUrl` 对含 `@` 的口令截断不全。源：同上（F6） — ✅ Fixed（plan `2026-08-14-1133-1` Phase 1：`lastIndexOf('@')` 定位 + 对抗测试）
+- **F7** 空/畸形主机 fail-open（`jdbc:mysql:///db` / `jdbc:mysql://:3306/db`）。源：同上（F7） — ✅ Fixed（plan `2026-08-14-1133-1` Phase 2：`isPlausibleHostShape` 形状校验 enforced fail-closed + 对抗测试）
+- **F8** `isInternalIpv6Literal` 触发 DNS（违反"不触发 DNS"类契约）。源：同上（F8） — ✅ Fixed（plan `2026-08-14-1133-1` Phase 2：charset 前置过滤 + 对抗测试）
+- **F9** `custom_sql` blocklist 缺 PG `DO`/`WITH`(CTE)/`PG_CATALOG`/`PG_SLEEP`。源：同上（F9） — ✅ Fixed（plan `2026-08-14-1133-1` Phase 3：补 5 关键字 + DRY 裁定 + WITH tradeoff 记录 + 对抗测试）
 
 ### ORM 模型族（性能/卫生）
 - **F10** `NopMetaModelChangedEvent` 缺 `entityId` 审计日志索引。源：同上（F10）
