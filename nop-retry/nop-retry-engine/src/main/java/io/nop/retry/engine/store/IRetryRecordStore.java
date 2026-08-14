@@ -10,6 +10,7 @@ package io.nop.retry.engine.store;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.IntRangeSet;
 import io.nop.retry.api.IRetryTask;
+import io.nop.retry.dao.entity.NopRetryAttempt;
 import io.nop.retry.dao.entity.NopRetryDeadLetter;
 import io.nop.retry.dao.entity.NopRetryPolicy;
 import io.nop.retry.dao.entity.NopRetryRecord;
@@ -19,6 +20,17 @@ import java.util.List;
 public interface IRetryRecordStore {
 
     NopRetryRecord newRecord(IRetryTask task, ApiRequest<?> request);
+
+    /**
+     * 为记录创建新的执行尝试实体（attemptNo = 当前 retryCount + 1，status = WAITING）。
+     * 执行开始后由引擎置为 RUNNING 并调用 {@link #saveAttempt} 落盘。
+     */
+    NopRetryAttempt newAttempt(NopRetryRecord record);
+
+    /**
+     * 保存执行尝试（插入或更新）。每次执行尝试（含立即重试与延迟重试）一条记录。
+     */
+    void saveAttempt(NopRetryAttempt attempt);
     /**
      * 获取待处理的重试记录（不锁定）。
      * <p>

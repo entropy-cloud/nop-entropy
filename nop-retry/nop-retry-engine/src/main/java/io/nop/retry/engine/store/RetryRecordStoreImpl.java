@@ -18,6 +18,7 @@ import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.orm.dao.IOrmEntityDao;
 import io.nop.retry.api.IRetryTask;
+import io.nop.retry.dao.entity.NopRetryAttempt;
 import io.nop.retry.dao.entity.NopRetryDeadLetter;
 import io.nop.retry.dao.entity.NopRetryPolicy;
 import io.nop.retry.dao.entity.NopRetryRecord;
@@ -97,7 +98,7 @@ public class RetryRecordStoreImpl implements IRetryRecordStore {
         record.setPolicyId(task.getPolicyId());
         record.setServiceName(task.getServiceName());
         record.setServiceMethod(task.getServiceMethod());
-        record.setExecutorName(task.getExecutorId());
+        record.setExecutorName(task.getExecutorName());
         record.setStatus(NopRetryConstants.RETRY_RECORD_STATUS_PENDING);
         record.setRetryCount(0);
 
@@ -113,7 +114,30 @@ public class RetryRecordStoreImpl implements IRetryRecordStore {
         }
 
         record.setNextTriggerTime(CoreMetrics.currentTimestamp());
+
+        // 确定性分区：同 (namespaceId, groupId, idempotentId) 稳定落同一分区，集群扫描按分区取数
+        String partitionKey = (record.getNamespaceId() == null ? "" : record.getNamespaceId())
+                + ":" + (record.getGroupId() == null ? "" : record.getGroupId())
+                + ":" + (record.getIdempotentId() == null ? "" : record.getIdempotentId());
+        record.setPartitionIndex(Math.floorMod(partitionKey.hashCode(), NopRetryConstants.DEFAULT_PARTITION_COUNT));
         return record;
+    }
+
+    @Override
+    public NopRetryAttempt newAttempt(NopRetryRecord record) {
+        IOrmEntityDao<NopRetryAttempt> dao = getAttemptDao();
+        NopRetryAttempt attempt = dao.newEntity();
+        attempt.setRecordId(record.getSid());
+        attempt.setAttemptNo((record.getRetryCount() != null ? record.getRetryCount() : 0) + 1);
+        attempt.setStatus(NopRetryConstants.RETRY_ATTEMPT_STATUS_WAITING);
+        attempt.setStartTime(new Timestamp(getCurrentTime()));
+        attempt.setRequestPayloadSnapshot(record.getRequestPayload());
+        return attempt;
+    }
+
+    @Override
+    public void saveAttempt(NopRetryAttempt attempt) {
+        getAttemptDao().saveEntityDirectly(attempt);
     }
 
     @Override
@@ -243,7 +267,6 @@ public class RetryRecordStoreImpl implements IRetryRecordStore {
         deadLetter.setRecordId(record.getSid());
         deadLetter.setPolicyId(record.getPolicyId());
         deadLetter.setIdempotentId(record.getIdempotentId());
-        deadLetter.setBizNo(record.getBizNo());
         deadLetter.setExecutorName(record.getExecutorName());
         deadLetter.setServiceName(record.getServiceName());
         deadLetter.setServiceMethod(record.getServiceMethod());
@@ -255,8 +278,10 @@ public class RetryRecordStoreImpl implements IRetryRecordStore {
 
         deadLetterDao.saveEntityDirectly(deadLetter);
 
-        record.setStatus(NopRetryConstants.RETRY_RECORD_STATUS_MAX_RETRIES);
-        getRecordDao().updateEntityDirectly(record);
+        // 死信保存成功后删除原 record 行，使同一 idempotentId 可以重新提交（plan 342 裁定）。
+        // 副作用：deadLetter.record 关系悬空（无 FK/cascade），attempt 行成为孤儿；
+        // 终态视图以死信页为准（死信行保留 recordId 快照）。
+        getRecordDao().deleteEntityDirectly(record);
     }
 
     @Override
@@ -274,5 +299,9 @@ public class RetryRecordStoreImpl implements IRetryRecordStore {
 
     private IEntityDao<NopRetryPolicy> getPolicyDao() {
         return daoProvider.daoFor(NopRetryPolicy.class);
+    }
+
+    private IOrmEntityDao<NopRetryAttempt> getAttemptDao() {
+        return (IOrmEntityDao<NopRetryAttempt>) daoProvider.daoFor(NopRetryAttempt.class);
     }
 }

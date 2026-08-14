@@ -21,6 +21,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.retry.api.IRetryEngine;
 import io.nop.retry.api.IRetryTask;
+import io.nop.retry.dao.entity.NopRetryAttempt;
 import io.nop.retry.dao.entity.NopRetryDeadLetter;
 import io.nop.retry.dao.entity.NopRetryPolicy;
 import io.nop.retry.dao.entity.NopRetryRecord;
@@ -365,12 +366,38 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
             ApiRequest<?> request,
             ICancelToken cancelToken) {
 
+        NopRetryAttempt attempt = recordStore.newAttempt(record);
+        attempt.setStatus(NopRetryConstants.RETRY_ATTEMPT_STATUS_RUNNING);
+        recordStore.saveAttempt(attempt);
+
         return rpcServiceInvoker.invokeAsync(
                 record.getServiceName(),
                 record.getServiceMethod(),
                 request,
                 cancelToken
-        );
+        ).whenComplete((response, ex) -> {
+            long endTime = recordStore.getCurrentTime();
+            Timestamp startTime = attempt.getStartTime();
+            attempt.setEndTime(new Timestamp(endTime));
+            attempt.setDurationMs(startTime != null ? endTime - startTime.getTime() : null);
+
+            if (ex != null) {
+                attempt.setStatus(NopRetryConstants.RETRY_ATTEMPT_STATUS_FAILED);
+                ErrorBean errorBean = ErrorMessageManager.instance().buildErrorMessage(null, ex);
+                attempt.setErrorCode(errorBean.getErrorCode());
+                attempt.setErrorMessage(errorBean.getDescription());
+                attempt.setErrorStack(errorBean.getErrorStack());
+            } else if (response.isOk()) {
+                attempt.setStatus(NopRetryConstants.RETRY_ATTEMPT_STATUS_SUCCESS);
+            } else {
+                attempt.setStatus(NopRetryConstants.RETRY_ATTEMPT_STATUS_FAILED);
+                ErrorBean errorBean = ErrorMessageManager.instance().buildErrorMessage(null, NopRebuildException.rebuild(response));
+                attempt.setErrorCode(errorBean.getErrorCode());
+                attempt.setErrorMessage(errorBean.getDescription());
+                attempt.setErrorStack(errorBean.getErrorStack());
+            }
+            recordStore.saveAttempt(attempt);
+        });
     }
 
     private CompletionStage<ApiResponse<?>> handleDeadlineExceeded(NopRetryRecord record) {
