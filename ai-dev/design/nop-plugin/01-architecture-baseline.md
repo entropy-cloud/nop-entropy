@@ -276,6 +276,12 @@ reloadPlugin:
 
 **getService 的代理语义**：返回的代理绑定实例生命周期——deactivate/destroy 后调用抛 `INACTIVE` 异常（快速失败），不悬空。对应 Cordis 的 traceable proxy（访问非活跃 fiber 抛 INACTIVE 错）。
 
+**代理机制裁定**（W4 Phase 1 落定，实现见 `ServiceProxy`）：
+- 实现 = `ReflectionManager.instance().newProxyInstance`（GraalVM 原生镜像注册代理类，仓库惯例）；**仅支持接口类型**——`serviceType.isInterface()` 为 false 时抛 `ERR_PLUGIN_SERVICE_PROXY_ONLY_INTERFACE`（带 beanType 参数），`getServices(具体类)` 同规则抛错（具体类无法代理，禁止静默返回裸引用/裸集合）。
+- **按调用重新解析**：代理 handler 每次调用从实例**当前** scope 重新解析目标 bean（不捕获一次性引用）——重新 activate 后同一代理引用恢复可用；scope 为 null（deactivate 窗口内已置空）按 INACTIVE 处理，不 NPE；**包装时立即解析一次**（多候选/无候选错误在 getService 调用点抛出，不延迟到首次代理调用）。
+- `getServices` 集合代理以 `getBeansOfType` 的 bean id 为候选键，重激活后按 id 重新解析。
+- `equals/hashCode/toString` 与业务方法同规则（需 ACTIVATED，deactivated 抛 INACTIVE——一致且无悬空）。
+
 **不暴露内部容器**：子容器是实现细节，API 层不出现 `IBeanContainer`/`BeansModel`。
 
 ### 7.3 IPluginManager（管理）
@@ -300,8 +306,8 @@ reloadPlugin:
 | `Disposable effect(Disposable d)` | 注册可逆操作，返回可移除句柄 |
 | `List<Disposable> effects()` | 当前 effect 可观测视图 |
 | `void close()` | LIFO 回退全部 effect（quiescence） |
-| `<T> T getService(Class<T> serviceType)` | 激活期等价 instance 的 `getService`（activator 取 bean 用）；多候选规则同 7.2 |
-| `<T> Collection<T> getServices(Class<T> serviceType)` | 集合版（`getServices`） |
+| `<T> T getService(Class<T> serviceType)` | 激活期等价 instance 的 `getService`（activator 取 bean 用）；多候选规则同 7.2。**注（W4 裁定）**：等价仅指调用语义（多候选规则相同）；scope 是激活期句柄（activator 在激活流程内调用，无失效语义需求），**返回真实 bean 非代理**——instance 级（7.2）才是代理边界 |
+| `<T> Collection<T> getServices(Class<T> serviceType)` | 集合版（`getServices`）；同注：返回真实 bean 非代理 |
 
 **实例配置域（权威在 7.2）**：实例配置（createInstance 传入 + 定义默认合并视图）随 `IPluginInstance` 持有、任何态可读（DEACTIVATED 仍可读，实例级 coeffect 依此评估）；activator 经**参数** `config` 直接获取（不绕 scope）。
 
