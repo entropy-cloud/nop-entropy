@@ -116,10 +116,14 @@ public interface NopDatavErrors {
             ARG_PANEL_ID
     );
 
+    // 注：此 ErrorCode 由 PanelParamEvaluator（面板 paramMapping）、DashboardParamParser（看板 paramConfig）、
+    // DashboardFilterUrlCodec/Resolver（filter）共用。message 保持中性（不绑定单一实体名词），
+    // 面板路径经 PanelDataBinder 补 ARG_PANEL_ID 作为结构化 param（供 GraphQL 错误响应/聚合），
+    // 看板/filter 路径无 panelId 上下文故不填——若硬编码 "for panel:{panelId}" 会误标看板/filter 错误。
     ErrorCode ERR_DATAV_INVALID_PARAM_CONFIG = define(
             "nop.err.datav.invalid-param-config",
-            "Invalid paramConfig JSON for dashboard: {reason}",
-            ARG_REASON
+            "Invalid param config: {reason}",
+            ARG_PANEL_ID, ARG_REASON
     );
 
     ErrorCode ERR_DATAV_UNKNOWN_PARAM_NAME = define(

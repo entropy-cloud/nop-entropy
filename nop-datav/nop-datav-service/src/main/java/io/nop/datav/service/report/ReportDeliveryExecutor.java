@@ -42,10 +42,15 @@ import org.slf4j.LoggerFactory;
 /**
  * 定时报告交付执行器（D5-1）。
  *
- * <p>职责：插 pending 交付记录 → 异步执行（{@link GlobalExecutors#globalWorker()} + {@link IOrmTemplate#runInNewSession}）
- * → 加载任务 → 校验看板已发布 → 复用 {@link PanelDataExporter#exportDashboard} 取数生成文件 →
- * {@link IFileStore#saveFile} 持久化 → {@link NotificationSender#sendReport} 送达 → 更新交付记录。
- * Throwable → 交付记录 failed + errorMessage。</p>
+ * <p>职责：插 pending 交付记录 → 异步执行（{@link GlobalExecutors#globalWorker()}）→
+ * <b>session 内</b>（{@link IOrmTemplate#runInNewSession}）：加载任务 → 校验看板已发布 →
+ * 复用 {@link PanelDataExporter#exportDashboard} 取数生成文件 → {@link IFileStore#saveFile} 持久化 →
+ * 交付记录 SUCCEEDED 提交；<b>session 关闭后</b>：{@link NotificationSender#sendReport}（SMTP）送达 →
+ * 成功回写 deliveredChannels / 失败回补 FAILED。Throwable → 交付记录 failed + errorMessage。</p>
+ *
+ * <p><b>SMTP 移出 session（Dim14-02）</b>：{@link NotificationSender#sendReport}（同步 SMTP，典型超时 30-60s）
+ * 不再在持有 JDBC 连接的 ORM session 内执行——SUCCEEDED 先提交，邮件后发，避免并发 cron 下连接池耗尽，
+ * 并消除「邮件已发但记录未更新」窗口。邮件失败时经独立新 session 强制回补 SUCCEEDED → FAILED。</p>
  *
  * <p><b>grace 语义（schedule-report-design.md §5）</b>：触发时若距预定时间超过 graceMinutes 则写
  * skipped 记录（显式记录，非静默跳过）。cron 触发时 scheduledFireTime ≈ now，grace 主要兜底
@@ -56,8 +61,8 @@ import org.slf4j.LoggerFactory;
  * （固定版本渲染列 follow-up）。</p>
  *
  * <p><b>异步执行模式</b>：镜像 {@code NopDatavExportTaskBizModel.submitExecution} ——
- * {@code GlobalExecutors.globalWorker().submit(...)} + {@code runInNewSession(session -> ...)}；
- * 执行体内部捕获业务异常并落库 failed；外层仅兜底 session 基础设施故障。</p>
+ * {@code GlobalExecutors.globalWorker().submit(...)}；session 内执行体捕获业务异常并落库 failed；
+ * 外层仅兜底 session 基础设施故障。</p>
  */
 public class ReportDeliveryExecutor {
 
@@ -121,8 +126,8 @@ public class ReportDeliveryExecutor {
         String deliveryId = delivery.getDeliveryId();
         GlobalExecutors.globalWorker().submit(() -> {
             try {
-                ormTemplate.runInNewSession(session -> doExecute(session, reportTaskId, deliveryId,
-                        triggerSource, scheduledFireTime));
+                // SMTP 送达在 session 关闭后执行（Dim14-02：不在持有 JDBC 连接的 ORM session 内做远程调用）
+                runDelivery(reportTaskId, deliveryId, triggerSource, scheduledFireTime);
             } catch (Throwable t) {
                 LOG.error("nop.datav.report.session-fail:reportTaskId={} deliveryId={}",
                         reportTaskId, deliveryId, t);
@@ -138,8 +143,31 @@ public class ReportDeliveryExecutor {
     // 异步执行体
     // ============================================================
 
-    private Void doExecute(IOrmSession session, String reportTaskId, String deliveryId,
-                           String triggerSource, long scheduledFireTime) {
+    /**
+     * 完整交付执行：session 内取数/落盘 + SUCCEEDED 提交 → session 关闭后 SMTP 送达。
+     *
+     * <p><b>Dim14-02 修复</b>：{@link NotificationSender#sendReport}（同步 SMTP，典型超时 30-60s）不再在
+     * 持有 JDBC 连接的 ORM session 内执行，避免并发 cron 下连接池耗尽。交付记录先提交 SUCCEEDED，
+     * 邮件后发；邮件失败回补 FAILED（经独立新 session）。</p>
+     *
+     * <p>供 {@link #execute}（异步）与 {@link #executeSyncForTest}（同步）共用，确保两条路径行为一致。</p>
+     */
+    private void runDelivery(String reportTaskId, String deliveryId, String triggerSource, long scheduledFireTime) {
+        // Part A：session 内完成取数/落盘/SUCCEEDED 提交（返回送达所需快照，或 null 表示无需/未能送达）
+        PreparedDelivery prepared = ormTemplate.runInNewSession(session ->
+                runDeliveryInSession(session, reportTaskId, deliveryId, triggerSource, scheduledFireTime));
+        // Part B：session 已关闭（JDBC 连接已释放），SMTP 送达不再持有连接
+        if (prepared != null) {
+            sendNotificationOutOfSession(prepared, reportTaskId, deliveryId);
+        }
+    }
+
+    /**
+     * session 内执行体：加载 → grace → running → 校验 → 取数 → 落盘 → SUCCEEDED 提交。
+     * 成功返回送达所需快照（task + delivery，含 generatedFileRecordId/rowCount）；skipped/failed 返回 null。
+     */
+    private PreparedDelivery runDeliveryInSession(IOrmSession session, String reportTaskId, String deliveryId,
+                                                  String triggerSource, long scheduledFireTime) {
         IEntityDao<NopDatavReportDelivery> deliveryDao = daoProvider.daoFor(NopDatavReportDelivery.class);
         IEntityDao<NopDatavReportTask> taskDao = daoProvider.daoFor(NopDatavReportTask.class);
         NopDatavReportDelivery delivery = deliveryDao.getEntityById(deliveryId);
@@ -188,9 +216,7 @@ public class ReportDeliveryExecutor {
             delivery.setGeneratedFileRecordId(fileId);
             delivery.setRowCount(file.getRowCount());
 
-            // 送达
-            List<String> delivered = notificationSender.sendReport(task, delivery, null);
-            delivery.setDeliveredChannels(StringHelper.join(delivered, ","));
+            // SUCCEEDED 提交（在 session 内，先于邮件送达）。deliveredChannels 待邮件送达成功后回写。
             delivery.setStatus(NopDatavReportDeliveryStatus.SUCCEEDED);
             delivery.setErrorMsg(null);
             delivery.setEndTime(new Timestamp(System.currentTimeMillis()));
@@ -198,6 +224,8 @@ public class ReportDeliveryExecutor {
             deliveryDao.updateEntityDirectly(delivery);
 
             touchTask(taskDao, task, NopDatavReportDeliveryStatus.SUCCEEDED, null, delivery.getEndTime());
+
+            return new PreparedDelivery(task, delivery);
         } catch (Throwable t) {
             Throwable reason = NopException.adapt(t);
             String errMsg = safeMsg(reason);
@@ -209,8 +237,89 @@ public class ReportDeliveryExecutor {
             touchTask(taskDao, task, NopDatavReportDeliveryStatus.FAILED, errMsg, delivery.getEndTime());
             LOG.warn("nop.datav.report.delivery-failed:reportTaskId={} deliveryId={} error={}",
                     reportTaskId, deliveryId, errMsg, reason);
+            return null;
         }
-        return null;
+    }
+
+    /**
+     * session 外 SMTP 送达（Dim14-02）：SUCCEEDED 已提交，此处发邮件。
+     * 成功 → 回写 deliveredChannels（新 session）；失败 → 回补 FAILED（新 session）。
+     */
+    private void sendNotificationOutOfSession(PreparedDelivery prepared, String reportTaskId, String deliveryId) {
+        List<String> delivered;
+        try {
+            delivered = notificationSender.sendReport(prepared.task, prepared.delivery, null);
+        } catch (Throwable t) {
+            Throwable reason = NopException.adapt(t);
+            String errMsg = safeMsg(reason);
+            LOG.warn("nop.datav.report.notify-failed:reportTaskId={} deliveryId={} error={}",
+                    reportTaskId, deliveryId, errMsg, reason);
+            // 邮件失败回补 FAILED（SUCCEEDED 已提交，故需强制覆盖 SUCCEEDED → FAILED）
+            rollbackSucceededToFailed(deliveryId, reportTaskId, "notification failed: " + errMsg);
+            return;
+        }
+        // 成功 → 回写 deliveredChannels（cosmetic，失败仅 warn，不改变 SUCCEEDED 终态）
+        if (delivered != null && !delivered.isEmpty()) {
+            recordDeliveredChannels(deliveryId, StringHelper.join(delivered, ","));
+        }
+    }
+
+    /** 新 session 回写 deliveredChannels（仅当记录仍为 SUCCEEDED）。 */
+    private void recordDeliveredChannels(String deliveryId, String channels) {
+        try {
+            ormTemplate.runInNewSession(session -> {
+                IEntityDao<NopDatavReportDelivery> dao = daoProvider.daoFor(NopDatavReportDelivery.class);
+                NopDatavReportDelivery delivery = dao.getEntityById(deliveryId);
+                if (delivery != null && delivery.getStatus() == NopDatavReportDeliveryStatus.SUCCEEDED) {
+                    delivery.setDeliveredChannels(channels);
+                    touchDelivery(delivery, "system");
+                    dao.updateEntityDirectly(delivery);
+                }
+                return null;
+            });
+        } catch (Exception e) {
+            LOG.warn("nop.datav.report.record-channels-fail:deliveryId={}", deliveryId, e);
+        }
+    }
+
+    /**
+     * 新 session 强制回补 SUCCEEDED → FAILED（邮件送达失败专用，覆盖 SUCCEEDED 终态）。
+     * 同时回退 task.lastRunStatus，保持交付记录与任务状态一致。
+     */
+    private void rollbackSucceededToFailed(String deliveryId, String reportTaskId, String reason) {
+        try {
+            ormTemplate.runInNewSession(session -> {
+                IEntityDao<NopDatavReportDelivery> deliveryDao = daoProvider.daoFor(NopDatavReportDelivery.class);
+                IEntityDao<NopDatavReportTask> taskDao = daoProvider.daoFor(NopDatavReportTask.class);
+                NopDatavReportDelivery delivery = deliveryDao.getEntityById(deliveryId);
+                Timestamp endTime = new Timestamp(System.currentTimeMillis());
+                if (delivery != null && delivery.getStatus() == NopDatavReportDeliveryStatus.SUCCEEDED) {
+                    delivery.setStatus(NopDatavReportDeliveryStatus.FAILED);
+                    delivery.setErrorMsg(reason);
+                    delivery.setEndTime(endTime);
+                    touchDelivery(delivery, "system");
+                    deliveryDao.updateEntityDirectly(delivery);
+                }
+                NopDatavReportTask task = taskDao.getEntityById(reportTaskId);
+                if (task != null) {
+                    touchTask(taskDao, task, NopDatavReportDeliveryStatus.FAILED, reason, endTime);
+                }
+                return null;
+            });
+        } catch (Exception e) {
+            LOG.error("nop.datav.report.rollback-failed-fail:deliveryId={}", deliveryId, e);
+        }
+    }
+
+    /** session 内 SUCCEEDED 提交后供 session 外 SMTP 送达使用的快照。 */
+    private static final class PreparedDelivery {
+        final NopDatavReportTask task;
+        final NopDatavReportDelivery delivery;
+
+        PreparedDelivery(NopDatavReportTask task, NopDatavReportDelivery delivery) {
+            this.task = task;
+            this.delivery = delivery;
+        }
     }
 
     // ============================================================
@@ -325,39 +434,41 @@ public class ReportDeliveryExecutor {
         return msg == null ? t.getClass().getSimpleName() : msg;
     }
 
-    /**
-     * 测试辅助：直接同步执行 doExecute（绕过 GlobalExecutors 异步），供测试断言交付记录状态。
-     */
-    public String executeSyncForTest(String reportTaskId, String triggerSource, long scheduledFireTime) {
-        IEntityDao<NopDatavReportTask> taskDao = daoProvider.daoFor(NopDatavReportTask.class);
-        NopDatavReportTask task = taskDao.getEntityById(reportTaskId);
-        if (task == null) {
-            throw new NopException(ERR_DATAV_REPORT_TASK_NOT_FOUND).param(ARG_REPORT_TASK_ID, reportTaskId);
-        }
+        /**
+         * 测试辅助：直接同步执行 runDelivery（绕过 GlobalExecutors 异步），供测试断言交付记录状态。
+         *
+         * <p>契约（session 拆分后）：同步执行 runDelivery（session 内 SUCCEEDED 提交 → session 外 SMTP 送达），
+         * 与异步 {@link #execute} 行为一致；返回时邮件已发（或回补 FAILED）。</p>
+         */
+        public String executeSyncForTest(String reportTaskId, String triggerSource, long scheduledFireTime) {
+            IEntityDao<NopDatavReportTask> taskDao = daoProvider.daoFor(NopDatavReportTask.class);
+            NopDatavReportTask task = taskDao.getEntityById(reportTaskId);
+            if (task == null) {
+                throw new NopException(ERR_DATAV_REPORT_TASK_NOT_FOUND).param(ARG_REPORT_TASK_ID, reportTaskId);
+            }
 
-        Timestamp now = new Timestamp(System.currentTimeMillis());
-        NopDatavReportDelivery delivery = new NopDatavReportDelivery();
-        delivery.setDeliveryId(StringHelper.generateUUID());
-        delivery.setReportTaskId(reportTaskId);
-        delivery.setStatus(NopDatavReportDeliveryStatus.PENDING);
-        delivery.setTriggeredBy(triggerSource);
-        delivery.setStartTime(now);
-        delivery.setDelFlag((byte) 0);
-        delivery.setVersion(0L);
-        delivery.setCreatedBy(task.getCreatedBy());
-        delivery.setCreateTime(now);
-        delivery.setUpdatedBy(task.getUpdatedBy());
-        delivery.setUpdateTime(now);
-        daoProvider.daoFor(NopDatavReportDelivery.class).saveEntityDirectly(delivery);
+            Timestamp now = new Timestamp(System.currentTimeMillis());
+            NopDatavReportDelivery delivery = new NopDatavReportDelivery();
+            delivery.setDeliveryId(StringHelper.generateUUID());
+            delivery.setReportTaskId(reportTaskId);
+            delivery.setStatus(NopDatavReportDeliveryStatus.PENDING);
+            delivery.setTriggeredBy(triggerSource);
+            delivery.setStartTime(now);
+            delivery.setDelFlag((byte) 0);
+            delivery.setVersion(0L);
+            delivery.setCreatedBy(task.getCreatedBy());
+            delivery.setCreateTime(now);
+            delivery.setUpdatedBy(task.getUpdatedBy());
+            delivery.setUpdateTime(now);
+            daoProvider.daoFor(NopDatavReportDelivery.class).saveEntityDirectly(delivery);
 
-        try {
-            ormTemplate.runInNewSession(session -> doExecute(session, reportTaskId,
-                    delivery.getDeliveryId(), triggerSource, scheduledFireTime));
-        } catch (Throwable t) {
-            markFailedSafe(delivery.getDeliveryId(), "sync session error: " + safeMsg(t));
+            try {
+                runDelivery(reportTaskId, delivery.getDeliveryId(), triggerSource, scheduledFireTime);
+            } catch (Throwable t) {
+                markFailedSafe(delivery.getDeliveryId(), "sync session error: " + safeMsg(t));
+            }
+            return delivery.getDeliveryId();
         }
-        return delivery.getDeliveryId();
-    }
 
     /** 测试辅助：暴露 IOrmTemplate（断言新 session 路径） */
     public IOrmTemplate getOrmTemplate() {

@@ -1,10 +1,14 @@
 package io.nop.datav.service.query;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.json.JsonTool;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+
+import static io.nop.datav.service.NopDatavErrors.ARG_REASON;
+import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_INVALID_PARAM_CONFIG;
 
 /**
  * 面板查询参数求值器。根据 {@code NopDatavDatasetRef.paramMapping} JSON 规则，从 API 请求参数 Map 合成最终查询参数。
@@ -42,13 +46,16 @@ public final class PanelParamEvaluator {
         try {
             parsed = JsonTool.parse(paramMappingJson);
         } catch (Exception e) {
-            throw new IllegalArgumentException("Invalid paramMapping JSON: " + e.getMessage(), e);
+            throw new NopException(ERR_DATAV_INVALID_PARAM_CONFIG)
+                    .param(ARG_REASON, "Invalid paramMapping JSON: " + e.getMessage())
+                    .cause(e);
         }
         if (parsed == null) {
             return Collections.emptyMap();
         }
         if (!(parsed instanceof Map)) {
-            throw new IllegalArgumentException("paramMapping JSON must be an object");
+            throw new NopException(ERR_DATAV_INVALID_PARAM_CONFIG)
+                    .param(ARG_REASON, "paramMapping JSON must be an object");
         }
         Map<String, Object> mapping = (Map<String, Object>) parsed;
         if (mapping.isEmpty()) {
@@ -60,14 +67,16 @@ public final class PanelParamEvaluator {
             String paramName = entry.getKey();
             Object ruleObj = entry.getValue();
             if (!(ruleObj instanceof Map)) {
-                throw new IllegalArgumentException(
-                        "paramMapping rule for '" + paramName + "' must be an object with 'source'");
+                throw new NopException(ERR_DATAV_INVALID_PARAM_CONFIG)
+                        .param(ARG_REASON,
+                                "paramMapping rule for '" + paramName + "' must be an object with 'source'");
             }
             Map<String, Object> rule = (Map<String, Object>) ruleObj;
             Object sourceKey = rule.get("source");
             if (sourceKey == null || sourceKey.toString().isEmpty()) {
-                throw new IllegalArgumentException(
-                        "paramMapping rule for '" + paramName + "' is missing 'source'");
+                throw new NopException(ERR_DATAV_INVALID_PARAM_CONFIG)
+                        .param(ARG_REASON,
+                                "paramMapping rule for '" + paramName + "' is missing 'source'");
             }
             Object defaultValue = rule.get("defaultValue");
             Object value = requestMap.get(sourceKey.toString());

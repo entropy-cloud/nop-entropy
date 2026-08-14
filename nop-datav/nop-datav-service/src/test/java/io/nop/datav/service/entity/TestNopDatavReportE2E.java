@@ -3,6 +3,8 @@ package io.nop.datav.service.entity;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.autotest.NopTestProperty;
 import io.nop.api.core.annotations.core.OptionalBoolean;
+import io.nop.api.core.beans.FilterBeans;
+import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.context.TenantProxyContext;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.context.IServiceContext;
@@ -37,11 +39,13 @@ import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static io.nop.datav.service.component.PanelTypeMapping.TYPE_CHART;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -441,6 +445,92 @@ public class TestNopDatavReportE2E extends AbstractNopDatavTest {
                 io.nop.datav.service.NopDatavDashboardOwnerGuard.requireDashboardOwnership(
                         daoProvider, "nonexistent-dashboard-id", nonOwner));
         assertNotNull(ex.getMessage(), "owner guard throws for nonexistent dashboard (explicit failure)");
+    }
+
+    // ==================== Dim14-02 接线验证（SMTP 移出 session） ====================
+
+    /**
+     * 接线验证：{@code notificationSender.sendReport}（SMTP）在交付记录 SUCCEEDED 提交之后才被调用。
+     *
+     * <p><b>Anti-Hollow（rule #23）</b>：在 sendEmail 调用时机读取该交付记录的已提交状态，
+     * 断言为 SUCCEEDED（而非 RUNNING/PENDING）。这证明 sendReport 运行于 runInNewSession 块之外——
+     * SUCCEEDED 已先提交，SMTP 期间不再持有 JDBC 连接（Dim14-02 修复）。若 SMTP 仍在 session 内
+     * （旧代码 sendReport 在 setStatus(SUCCEEDED) 之前），此处会读到 RUNNING/PENDING。</p>
+     */
+    @Test
+    public void testSendReportHappensAfterSucceededCommit() {
+        setupSalesData();
+        IServiceContext ctx = ownerContext("alice");
+        String dashboardId = setupDashboard("dash-smtp-order", "alice", true);
+        saveChartPanelWithDataset("panel-smtp-order", dashboardId, "Chart");
+        NopDatavReportTask task = seedReportTask("task-smtp-order", dashboardId, "alice",
+                "0 0 8 * * ?", "xlsx", true);
+
+        AtomicReference<Integer> statusAtSend = new AtomicReference<>();
+        AtomicReference<String> channelsAtSend = new AtomicReference<>();
+        mockEmailSender.setOnSend(() -> {
+            // SMTP 调用时机：读取该任务交付记录的已提交状态（独立读取，不经执行 session）
+            QueryBean q = new QueryBean();
+            q.addFilter(FilterBeans.eq("reportTaskId", task.getReportTaskId()));
+            q.setLimit(1);
+            NopDatavReportDelivery d = daoProvider.daoFor(NopDatavReportDelivery.class).findFirstByQuery(q);
+            if (d != null) {
+                statusAtSend.set(d.getStatus());
+                channelsAtSend.set(d.getDeliveredChannels());
+            }
+        });
+
+        String deliveryId = reportDeliveryExecutor.executeSyncForTest(
+                task.getReportTaskId(), NopDatavReportTriggerSource.MANUAL, System.currentTimeMillis());
+        NopDatavReportDelivery delivery = pollUntilTerminal(deliveryId);
+        assertEquals(NopDatavReportDeliveryStatus.SUCCEEDED, delivery.getStatus(),
+                "delivery succeeded");
+        assertEquals("email", delivery.getDeliveredChannels(), "deliveredChannels recorded after email");
+
+        // 关键断言：SMTP 调用时交付记录已提交为 SUCCEEDED（sendReport 在 session 外、SUCCEEDED 提交之后）
+        assertNotNull(statusAtSend.get(), "sendReport was invoked (onSend hook fired)");
+        assertEquals(NopDatavReportDeliveryStatus.SUCCEEDED, statusAtSend.get(),
+                "delivery already committed SUCCEEDED when sendReport invoked (SMTP outside session)");
+        // deliveredChannels 在邮件成功后才回写，SMTP 调用时仍为 null
+        assertNull(channelsAtSend.get(),
+                "deliveredChannels not yet recorded at SMTP time (recorded only after successful send)");
+        assertEquals(1, mockEmailSender.getSendCount(), "one email sent");
+    }
+
+    /**
+     * 邮件失败回补 FAILED：sendReport 抛错时，已提交的 SUCCEEDED 被强制覆盖为 FAILED（新 session），
+     * 不留「email sent / record SUCCEEDED」或「record RUNNING」状态。
+     *
+     * <p>同时断言 task.lastRunStatus 一并回退为 failed，保持交付记录与任务状态一致。</p>
+     */
+    @Test
+    public void testNotificationFailureRollsBackSucceededToFailed() {
+        setupSalesData();
+        IServiceContext ctx = ownerContext("alice");
+        String dashboardId = setupDashboard("dash-smtp-fail", "alice", true);
+        saveChartPanelWithDataset("panel-smtp-fail", dashboardId, "Chart");
+        NopDatavReportTask task = seedReportTask("task-smtp-fail", dashboardId, "alice",
+                "0 0 8 * * ?", "xlsx", true);
+
+        // 模拟 SMTP 失败（sendEmail 入口抛错）
+        mockEmailSender.setFailOnSend(new RuntimeException("simulated SMTP timeout"));
+
+        String deliveryId = reportDeliveryExecutor.executeSyncForTest(
+                task.getReportTaskId(), NopDatavReportTriggerSource.MANUAL, System.currentTimeMillis());
+        NopDatavReportDelivery delivery = pollUntilTerminal(deliveryId);
+        // 邮件失败 → 回补 FAILED（SUCCEEDED 已先提交，此处强制覆盖）
+        assertEquals(NopDatavReportDeliveryStatus.FAILED, delivery.getStatus(),
+                "notification failure rolls back SUCCEEDED -> FAILED");
+        assertNotNull(delivery.getErrorMsg(), "errorMsg recorded");
+        assertTrue(delivery.getErrorMsg().toLowerCase().contains("notification"),
+                "errorMsg indicates notification failure: " + delivery.getErrorMsg());
+        assertEquals(0, mockEmailSender.getSendCount(), "no successful send recorded (SMTP threw)");
+
+        // task.lastRunStatus 一并回退为 failed
+        NopDatavReportTask refreshedTask = daoProvider.daoFor(NopDatavReportTask.class)
+                .getEntityById(task.getReportTaskId());
+        assertEquals(NopDatavReportDeliveryStatus.label(NopDatavReportDeliveryStatus.FAILED),
+                refreshedTask.getLastRunStatus(), "task lastRunStatus rolled back to failed");
     }
 
     // ==================== Helpers ====================

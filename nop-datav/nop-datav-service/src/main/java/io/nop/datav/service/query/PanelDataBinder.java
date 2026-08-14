@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import static io.nop.datav.service.NopDatavErrors.ARG_PANEL_ID;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_DATASET_NOT_FOUND;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_DATASET_REF_NOT_FOUND;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_PANEL_NOT_FOUND;
@@ -128,7 +129,14 @@ public class PanelDataBinder {
         }
 
         String dsText = reportDataset.getDsText();
-        Map<String, Object> params = PanelParamEvaluator.evaluate(datasetRef.getParamMapping(), requestParams);
+        // PanelParamEvaluator 抛出的 NopException(ERR_DATAV_INVALID_PARAM_CONFIG) 静态工具层无 panelId 上下文，
+        // 在此补 panelId 后 rethrow（catch 紧贴 evaluate，仍在下方 executeQuery try 之外，保持结构清晰）
+        Map<String, Object> params;
+        try {
+            params = PanelParamEvaluator.evaluate(datasetRef.getParamMapping(), requestParams);
+        } catch (NopException ne) {
+            throw ne.param(ARG_PANEL_ID, panelId);
+        }
 
         SQL sql = PanelSqlBuilder.build(dsText, params, panelId);
 
