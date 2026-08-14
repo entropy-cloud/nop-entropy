@@ -53,5 +53,5 @@
           <constructor-arg index="2" ref="nopStreamMessageService"/>
           <constructor-arg index="3" value="nop-stream.rpc.task.node-0"/>
       </bean>
-
+    -->
 </beans>

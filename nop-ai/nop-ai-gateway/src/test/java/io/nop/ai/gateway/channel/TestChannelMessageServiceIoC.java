@@ -158,7 +158,7 @@ class TestChannelMessageServiceIoC {
         IBeanContainer container = startContainer("/test/beans/test-channel-message-service-ioc-mode1.beans.xml");
         try {
             ChannelMessageServiceImpl svc = (ChannelMessageServiceImpl)
-                    container.getBean("channelMessageService");
+                    container.getBean("nopChannelMessageService");
             assertEquals(30_000L, readDispatchTimeoutMs(svc),
                     "unwired dispatchTimeoutMs must fall back to the @cfg default 30000");
         } finally {
@@ -183,7 +183,7 @@ class TestChannelMessageServiceIoC {
             IBeanContainer container = startContainer("/test/beans/test-channel-message-service-ioc-mode1.beans.xml");
             try {
                 ChannelMessageServiceImpl svc = (ChannelMessageServiceImpl)
-                        container.getBean("channelMessageService");
+                        container.getBean("nopChannelMessageService");
                 assertEquals(12_345L, readDispatchTimeoutMs(svc),
                         "an assigned config value must reach the bean via the @cfg wiring");
             } finally {

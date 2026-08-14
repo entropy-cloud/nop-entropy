@@ -111,7 +111,8 @@ class TestStreamBeansDeploymentTemplateSyntax {
         String fragment = extractTemplateFragment(fileText, "Deployment template");
         // RpcDistributedExecutor's messageService is a constructor parameter
         // (private final, no setter) — property injection was the historical break.
-        assertTrue(fragment.contains("<constructor-arg index=\"0\" ref=\"streamMessageService\"/>"),
+        // Bean id is nop-prefixed (nopStreamMessageService) per bean naming compliance.
+        assertTrue(fragment.contains("<constructor-arg index=\"0\" ref=\"nopStreamMessageService\"/>"),
                 "RpcDistributedExecutor must receive messageService via <constructor-arg index=\"0\">");
         assertFalse(fragment.contains("<property name=\"messageService\""),
                 "constructor-only property must not be property-injected: messageService");
