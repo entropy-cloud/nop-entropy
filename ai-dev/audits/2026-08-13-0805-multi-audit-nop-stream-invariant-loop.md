@@ -154,6 +154,7 @@
 - **信心水平**: 确定
 - **误报排除**: Nop 平台各模块均使用独立命名空间；违规点在"实现类放置于 core 命名空间"而非依赖方向（依赖方向正确）。
 - **复核状态**: 已保留（独立复核未发现反驳证据）
+- **处置记录（2026-08-14，successor 执行完成）**: plan `2026-08-13-1243-3` Phase 3 预设路径「未批准 → 取消 + successor」→ 2026-08-14 用户人工批准 → successor = plan `2026-08-14-0900-2` 执行完成（commit `6b742c86d`）：17 main + 13 test 类迁移至 `io.nop.stream.rocksdb[.incremental]`，runtime test 7 文件引用同步（含 FQN 内联 2 文件 6 处），grep 零残留，全量回归 3050 tests / 0 failures，独立 closure audit PASS，roadmap backlog 条目已 closed。本条目 = **closed**。
 
 ### [P1-DOC-01] checkpoint-design §2.4 声称"重叠 barrier 抛 ERR_STREAM_CHECKPOINT_ABORTED"，与代码及文档自身 §2.8.1 D1 三方矛盾
 
