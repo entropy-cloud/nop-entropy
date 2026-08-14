@@ -213,4 +213,50 @@ public class TestHostSecurityUtil {
         assertFalse(HostSecurityUtil.isInternalHost("[2001:db8::1]:3306"),
                 "bracketed form is out of util contract (caller strips brackets) - must stay external");
     }
+
+    // ===== F8（plan 2026-08-14-1133-1）：isInternalIpv6Literal charset 前置过滤（不触发 DNS）=====
+
+    /**
+     * <b>F8 adversarial</b>：含非 hex 字母（g-z）的含 {@code :} 串（{@code gzzz::1}）经 {@code isInternalHost}
+     * 判定为外部（返回 false），且 charset 前置过滤使 {@link java.net.InetAddress#getByName} 不被调用（不触发 DNS）。
+     *
+     * <p>修复前任何含 {@code :} 的输入都路由到 {@code isInternalIpv6Literal} 直接调 {@code getByName}，
+     * 含非 hex 字母的串会触发 DNS 查找，违反类 javadoc "纯确定性解析，不触发 DNS" 契约。
+     */
+    @Test
+    public void testF8NonHexColonStringExternalNoDns() {
+        assertFalse(HostSecurityUtil.isInternalHost("gzzz::1"),
+                "non-hex chars (g,z) with ':' must be external (charset pre-filter, no DNS)");
+        assertFalse(HostSecurityUtil.isInternalHost("hello:world"),
+                "non-hex chars with ':' must be external (single colon < 2 also filtered)");
+        assertFalse(HostSecurityUtil.isInternalHost("xyz:abc:def"),
+                "non-hex chars with multiple ':' must be external without DNS lookup");
+    }
+
+    /**
+     * F8：合法 IPv6 字面量判定不回归——charset 前置过滤仅排除非 hex 输入，合法 hex IPv6 字面量仍走
+     * {@code getByName} 字面量解析（内网 loopback/link-local 仍判 true，外网仍判 false）。
+     */
+    @Test
+    public void testF8LegitIpv6LiteralsNotRegressed() {
+        assertTrue(HostSecurityUtil.isInternalHost("::1"),
+                "::1 loopback still internal after F8 charset filter");
+        assertTrue(HostSecurityUtil.isInternalHost("fe80::1"),
+                "fe80::1 link-local still internal after F8 charset filter");
+        assertTrue(HostSecurityUtil.isInternalHost("::ffff:127.0.0.1"),
+                "::ffff:127.0.0.1 IPv4-mapped loopback still internal after F8 charset filter");
+        assertFalse(HostSecurityUtil.isInternalHost("2001:db8::1"),
+                "2001:db8::1 external documentation IPv6 still external after F8 charset filter");
+    }
+
+    /**
+     * F8 charset 一致性：{@code isInternalIpv6Literal} 的 charset 前置过滤（[0-9a-fA-F:.] + ≥2 冒号）与
+     * {@code isIpLiteral} 的 charset 检查逐项一致（代码审查验证）——两者均要求字符集 ⊆ hex+冒号+点
+     * 且 ≥2 冒号才尝试 {@code getByName}。单冒号输入（如 {@code 1:2}，colons<2）也 return false 不触发 DNS。
+     */
+    @Test
+    public void testF8SingleColonFilteredAsNonLiteral() {
+        assertFalse(HostSecurityUtil.isInternalHost("1:2"),
+                "single colon (colons<2) filtered as non-IPv6-literal, no DNS");
+    }
 }

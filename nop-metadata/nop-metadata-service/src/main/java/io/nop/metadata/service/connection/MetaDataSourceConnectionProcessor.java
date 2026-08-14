@@ -58,7 +58,14 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
     private static final Set<String> ALLOWED_JDBC_PROTOCOLS = new HashSet<>(Arrays.asList(
             "jdbc:mysql:", "jdbc:postgresql:", "jdbc:h2:mem:", "jdbc:h2:file:"));
 
-    /** AR-02: 危险 JDBC URL 参数/子串（大小写不敏感 contains）。 */
+    /**
+     * AR-02: 危险 JDBC URL 参数/子串（大小写不敏感 contains）。
+     *
+     * <p>F5（plan 2026-08-14-1133-1）补全触发反射类加载的参数族（RCE-chain 潜力，取决于部署 classpath）：
+     * MySQL {@code socketfactory} / {@code statementinterceptors} / {@code detectcustomcollatz}，
+     * PostgreSQL {@code sslfactory}（SSL SocketFactory 反射实例化）与 {@code options=}（向 backend
+     * 透传命令行风格选项，可绕过应用层约束）。{@code driverClassName} 白名单缓解但不能替代 URL 参数侧的 fail-closed。
+     */
     private static final Set<String> DANGEROUS_URL_TOKENS = new HashSet<>(Arrays.asList(
             "allowLoadLocalInfile".toLowerCase(),
             "allowmultiqueries",
@@ -72,7 +79,14 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
             "#initscript",
             "runscript",
             "executeimmediate",
-            "tracemaster"));
+            "tracemaster",
+            // F5: 反射类加载参数族（MySQL）
+            "socketfactory",
+            "statementinterceptors",
+            "detectcustomcollatz",
+            // F5: 反射类加载 / 选项透传参数族（PostgreSQL）
+            "sslfactory",
+            "options="));
 
     /** AR-02: 允许的 JDBC driver 类名白名单（H2/MySQL/PostgreSQL）。 */
     private static final Set<String> ALLOWED_DRIVER_CLASSES = new HashSet<>(Arrays.asList(
@@ -83,10 +97,6 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
 
     /** AR-02: 默认建连超时秒数（{@link SimpleDataSource#setLoginTimeout} 是 no-op，实际靠 {@link DriverManager#setLoginTimeout}）。 */
     public static final int DEFAULT_LOGIN_TIMEOUT_SECONDS = 5;
-
-    /** 从 jdbcUrl 中提取 user:password@ 前缀用于 redaction 的正则。 */
-    private static final Pattern CREDENTIAL_PATTERN = Pattern.compile(
-            "(://)([^:@/]+)(?::[^@/]*)?@");
 
     public MetaDataSourceConnectionProcessor() {
         setGlobalLoginTimeout();
@@ -242,6 +252,15 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
         // (3) 主机白名单：默认禁内网（RFC1918 + link-local + loopback + 0.0.0.0/8 + IP 记法变体归一化）
         // F2（plan 2026-08-14-0707-1）：对 JDBC URL 中**每一**主机执行校验，关闭多主机 SSRF 绕过。
         for (String host : extractHosts(jdbcUrl)) {
+            // F7（plan 2026-08-14-1133-1）：空/畸形主机 fail-closed。extractHosts 对 jdbc:mysql:///db
+            // （空主机）和 jdbc:mysql://:3306/db（空主机带端口）会返回非主机形状串（"/db" / ":3306"），
+            // HostSecurityUtil 判其为外部 → 静默放行（当前无害——驱动拒绝空主机——但属 "lucky fail-closed"
+            // 而非 enforced fail-closed）。这里显式拒绝非主机形状串，不再依赖驱动拒绝。
+            if (!isPlausibleHostShape(host)) {
+                throw new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED)
+                        .param("jdbcUrl", redactJdbcUrl(jdbcUrl))
+                        .param("reason", "host unparseable: " + host);
+            }
             if (HostSecurityUtil.isInternalHost(host)
                     && !resolveAllowedInternalHosts().contains(host.toLowerCase())) {
                 throw new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED)
@@ -252,16 +271,74 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
     }
 
     /**
+     * F7：判断提取出的 host 段是否为合理的主机形状。拒绝：
+     * <ul>
+     *   <li>空串/null（{@code jdbc:mysql:///db}）</li>
+     *   <li>以 {@code /} 开头（authority 解析出 path 片段）</li>
+     *   <li>以 {@code :} 开头且无第二个冒号——纯端口，无主机（{@code jdbc:mysql://:3306/db}）</li>
+     * </ul>
+     * 合法主机：以字母/数字开头，或以 {@code :} 开头但含第二个冒号（无括号 IPv6 字面量如 {@code ::1}，
+     * 经 {@link HostSecurityUtil#isInternalHost} 判定），或数字开头（十进制 IP 字面量）。
+     * 不以 {@code [} 开头——{@code extractHosts} 已剥离 IPv6 方括号。
+     */
+    private static boolean isPlausibleHostShape(String host) {
+        if (host == null || host.isEmpty()) {
+            return false;
+        }
+        char c = host.charAt(0);
+        if (c == '/') {
+            // path 片段，非主机形状
+            return false;
+        }
+        if (c == ':') {
+            // 纯端口（:3306）非主机形状；无括号 IPv6 字面量（::1）含第二个冒号 → 合法主机
+            return host.indexOf(':', 1) >= 0;
+        }
+        return true;
+    }
+
+    /**
      * 脱敏 jdbcUrl 中的凭据：移除 {@code user:password@} 段，保留其余部分不变。
      * <ul>
      *   <li>{@code jdbc:mysql://user:pass@host:3306/db} → {@code jdbc:mysql://host:3306/db}</li>
      *   <li>{@code jdbc:mysql://host:3306/db} → {@code jdbc:mysql://host:3306/db}（无变化）</li>
      *   <li>{@code jdbc:h2:mem:test} → {@code jdbc:h2:mem:test}（无变化）</li>
      * </ul>
+     *
+     * <p>F6（plan 2026-08-14-1133-1）：原 {@code CREDENTIAL_PATTERN} 正则 {@code (://)([^:@/]+)(?::[^@/]*)?@}
+     * 在用户名/口令含 {@code @} 时于第一个 {@code @} 处停止，口令尾部泄漏进 redacted 错误消息
+     * （{@code user:p@ss@host} → {@code ss@host} 泄漏）。改为与 {@code extractHosts} 自身逻辑一致：
+     * 定位 authority 段（{@code ://} 后到首个 {@code /} 或 {@code ?} 之间），用 {@code lastIndexOf('@')}
+     * 找 userinfo 边界，substring-replace userinfo 段（含末尾 {@code @}）。多 {@code @} 极端用例下
+     * 仅保留最后一个 {@code @} 之后的内容（host 段不含 {@code @}），凭据不再泄漏。
      */
     public static String redactJdbcUrl(String jdbcUrl) {
-        if (jdbcUrl == null) return null;
-        return CREDENTIAL_PATTERN.matcher(jdbcUrl).replaceAll("$1");
+        if (jdbcUrl == null) {
+            return null;
+        }
+        int schemeEnd = jdbcUrl.indexOf("://");
+        if (schemeEnd < 0) {
+            // jdbc:h2:mem:xxx / jdbc:h2:file:xxx → 无 authority，不含 userinfo
+            return jdbcUrl;
+        }
+        int authorityStart = schemeEnd + 3;
+        // authority 终止于首个 '/' 或 '?'（path / query 中的 '@' 不属于 userinfo）
+        int authorityEnd = jdbcUrl.length();
+        int slash = jdbcUrl.indexOf('/', authorityStart);
+        int q = jdbcUrl.indexOf('?', authorityStart);
+        if (slash >= 0 && slash < authorityEnd) {
+            authorityEnd = slash;
+        }
+        if (q >= 0 && q < authorityEnd) {
+            authorityEnd = q;
+        }
+        String authority = jdbcUrl.substring(authorityStart, authorityEnd);
+        int lastAt = authority.lastIndexOf('@');
+        if (lastAt < 0) {
+            return jdbcUrl;
+        }
+        // 剥离 userinfo 段：authority 起点 到 最后一个 '@'（含 '@'）
+        return jdbcUrl.substring(0, authorityStart) + jdbcUrl.substring(authorityStart + lastAt + 1);
     }
 
     /**

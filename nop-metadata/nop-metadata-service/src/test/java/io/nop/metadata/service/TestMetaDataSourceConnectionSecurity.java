@@ -103,6 +103,58 @@ public class TestMetaDataSourceConnectionSecurity {
                 ex.getErrorCode());
     }
 
+    // ===== F5（plan 2026-08-14-1133-1）：反射类加载 / 选项透传参数族 blocklist 完备 =====
+
+    /**
+     * <b>F5 adversarial</b>：触发反射类加载（RCE-chain 潜力）的 5 个新参数必须被 fail-fast 拒绝。
+     *
+     * <p>使用外网主机（example.com）隔离危险参数检查（dangerous-param check 在 host check 之前），
+     * 确保命中由新增 token 触发，reason 标识具体 token。
+     */
+    @Test
+    public void testF5ClassLoadingParamsRejected() {
+        // 每行：{token, jdbcUrl}——token 用于断言 reason
+        String[][] vectors = {
+                {"socketfactory", "jdbc:mysql://example.com:3306/db?socketfactory=com.attack.Evil"},
+                {"statementinterceptors", "jdbc:mysql://example.com:3306/db?statementinterceptors=com.attack.Evil"},
+                {"detectcustomcollatz", "jdbc:mysql://example.com:3306/db?detectcustomcollatz=1"},
+                {"sslfactory", "jdbc:postgresql://example.com:5432/db?sslfactory=com.attack.Evil"},
+                {"options=", "jdbc:postgresql://example.com:5432/db?options=-c%20exit_on_error=true"}
+        };
+        for (String[] v : vectors) {
+            String token = v[0];
+            String url = v[1];
+            NopException ex = assertThrows(NopException.class,
+                    () -> service.testConnect("jdbc",
+                            "{\"jdbcUrl\":\"" + url + "\"," + BASE_CFG + "}"),
+                    "F5: class-loading/option-passing dangerous param must fail: " + url);
+            assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(),
+                    ex.getErrorCode(),
+                    "F5: must throw ERR_DATASOURCE_JDBC_URL_BLOCKED for token=" + token);
+            String reason = String.valueOf(ex.getParam("reason"));
+            assertTrue(reason.contains("dangerous") && reason.contains(token),
+                    "F5: reason must flag dangerous + token '" + token + "': " + reason);
+        }
+    }
+
+    /** F5：既有危险 token 不丢失（回归：13 个原 token + 5 个新 token 全覆盖）。 */
+    @Test
+    public void testF5ExistingDangerousTokensStillRejected() {
+        String[] legacyUrls = {
+                "jdbc:mysql://example.com:3306/db?allowLoadLocalInfile=true",
+                "jdbc:h2:mem:x;INIT=RUNSCRIPTFROM",
+                "jdbc:mysql://example.com:3306/db?allowMultiQueries=true"
+        };
+        for (String url : legacyUrls) {
+            NopException ex = assertThrows(NopException.class,
+                    () -> service.testConnect("jdbc",
+                            "{\"jdbcUrl\":\"" + url + "\"," + BASE_CFG + "}"),
+                    "legacy dangerous token must still fail: " + url);
+            assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(),
+                    ex.getErrorCode());
+        }
+    }
+
     // ===== 主机白名单（fail-closed 默认禁内网）=====
 
     /** AWS 元数据服务 IP（SSRF 经典目标）必须失败。 */
@@ -360,6 +412,48 @@ public class TestMetaDataSourceConnectionSecurity {
         assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(), ex.getErrorCode());
     }
 
+    // ===== F7（plan 2026-08-14-1133-1）：空/畸形主机 fail-closed（enforced，不再依赖驱动拒绝）=====
+
+    /**
+     * <b>F7 adversarial</b>：空主机（{@code jdbc:mysql:///db}）必须被显式拒绝，不再依赖驱动拒绝的 lucky path。
+     *
+     * <p>修复前 {@code extractHosts} 返回非主机形状串 {@code "/db"}，HostSecurityUtil 判其为外部 → 静默放行。
+     */
+    @Test
+    public void testF7EmptyHostRejected() {
+        NopException ex = assertThrows(NopException.class,
+                () -> service.testConnect("jdbc",
+                        "{\"jdbcUrl\":\"jdbc:mysql:///db\"," + BASE_CFG + "}"),
+                "F7: empty host (jdbc:mysql:///db) must be explicitly rejected");
+        assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(), ex.getErrorCode());
+        assertTrue(String.valueOf(ex.getParam("reason")).contains("host unparseable"),
+                "F7: reason must flag host unparseable: " + ex.getParam("reason"));
+    }
+
+    /**
+     * <b>F7 adversarial</b>：空主机带端口（{@code jdbc:mysql://:3306/db}）必须被显式拒绝。
+     *
+     * <p>修复前 {@code extractHosts} 返回 {@code ":3306"}（纯端口），HostSecurityUtil 判其为外部 → 静默放行。
+     */
+    @Test
+    public void testF7EmptyHostWithPortRejected() {
+        NopException ex = assertThrows(NopException.class,
+                () -> service.testConnect("jdbc",
+                        "{\"jdbcUrl\":\"jdbc:mysql://:3306/db\"," + BASE_CFG + "}"),
+                "F7: empty host with port (jdbc:mysql://:3306/db) must be explicitly rejected");
+        assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(), ex.getErrorCode());
+        assertTrue(String.valueOf(ex.getParam("reason")).contains("host unparseable"),
+                "F7: reason must flag host unparseable: " + ex.getParam("reason"));
+    }
+
+    /** F7：合法外网主机不误伤（回归——host shape 校验不破坏既有外网放行路径）。 */
+    @Test
+    public void testF7ValidExternalHostNotBlocked() {
+        assertDoesNotThrow(() -> service.testConnect("jdbc",
+                        "{\"jdbcUrl\":\"jdbc:mysql://example.com:3306/db\"," + BASE_CFG + "}"),
+                "valid external host must pass shape check + host check");
+    }
+
     // ===== driverClassName 白名单 =====
 
     /** 非白名单 driverClassName（任意类加载攻击）必须失败。 */
@@ -451,6 +545,65 @@ public class TestMetaDataSourceConnectionSecurity {
     @Test
     public void testCredentialRedactionNull() {
         assertEquals(null, MetaDataSourceConnectionProcessor.redactJdbcUrl(null));
+    }
+
+    // ===== F6（plan 2026-08-14-1133-1）：含 @ 口令脱敏不再泄漏尾部 =====
+
+    /**
+     * <b>F6 adversarial</b>：口令含 {@code @}（{@code user:p@ss@host}）必须 redact 到最后一个 {@code @}，
+     * 口令尾部 {@code ss} 不泄漏进 redacted URL。
+     *
+     * <p>修复前 {@code CREDENTIAL_PATTERN} 在第一个 {@code @} 处停止，{@code user:p@ss@host} → {@code ss@host} 泄漏。
+     */
+    @Test
+    public void testF6PasswordWithAtSignFullyRedacted() {
+        String raw = "jdbc:mysql://user:p@ss@host:3306/db";
+        String redacted = MetaDataSourceConnectionProcessor.redactJdbcUrl(raw);
+        assertEquals("jdbc:mysql://host:3306/db", redacted,
+                "password fragment after first '@' must NOT leak");
+        assertTrue(!redacted.contains("ss@host") && !redacted.contains("p@ss"),
+                "no password fragment leak: " + redacted);
+    }
+
+    /** F6：多 {@code @} 极端用例——口令含 3 个 {@code @}，仅 host 段保留。 */
+    @Test
+    public void testF6MultipleAtSignsRedacted() {
+        String raw = "jdbc:mysql://u:a@b@c@prod-db:3306/mydb";
+        String redacted = MetaDataSourceConnectionProcessor.redactJdbcUrl(raw);
+        assertEquals("jdbc:mysql://prod-db:3306/mydb", redacted,
+                "only host segment after last '@' is retained");
+        assertTrue(!redacted.contains("a@b@c"),
+                "multi-@ password fragment must not leak: " + redacted);
+    }
+
+    /** F6：既有脱敏语义不回归（user:pass@ / user@ / 无凭据 / null / h2 全保持原行为）。 */
+    @Test
+    public void testF6LegacyRedactionSemanticsPreserved() {
+        assertEquals("jdbc:mysql://prod-db:3306/mydb",
+                MetaDataSourceConnectionProcessor.redactJdbcUrl("jdbc:mysql://admin:s3cret@prod-db:3306/mydb"));
+        assertEquals("jdbc:mysql://prod-db:3306/mydb",
+                MetaDataSourceConnectionProcessor.redactJdbcUrl("jdbc:mysql://admin@prod-db:3306/mydb"));
+        assertEquals("jdbc:mysql://prod-db:3306/mydb",
+                MetaDataSourceConnectionProcessor.redactJdbcUrl("jdbc:mysql://prod-db:3306/mydb"));
+        assertEquals("jdbc:h2:mem:test",
+                MetaDataSourceConnectionProcessor.redactJdbcUrl("jdbc:h2:mem:test"));
+        assertEquals(null,
+                MetaDataSourceConnectionProcessor.redactJdbcUrl(null));
+    }
+
+    /** F6：含 {@code @} 口令 + 危险参数被拒时，错误消息不含口令片段（端到端脱敏验证）。 */
+    @Test
+    public void testF6AtPasswordNoLeakViaErrorPath() {
+        NopException ex = assertThrows(NopException.class,
+                () -> service.testConnect("jdbc",
+                        "{\"jdbcUrl\":\"jdbc:mysql://admin:p@ss@169.254.169.254:3306/db?allowMultiQueries=true\","
+                                + BASE_CFG + "}"));
+        assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(), ex.getErrorCode());
+        String redactedUrl = String.valueOf(ex.getParam("jdbcUrl"));
+        assertTrue(!redactedUrl.contains("p@ss") && !redactedUrl.contains("ss@"),
+                "jdbcUrl param must be fully redacted (no password fragment): " + redactedUrl);
+        assertTrue(redactedUrl.startsWith("jdbc:mysql://169.254.169.254:3306/db"),
+                "redacted jdbcUrl must retain host (for ops diagnostics) but not credentials: " + redactedUrl);
     }
 
     /**

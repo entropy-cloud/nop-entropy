@@ -281,8 +281,30 @@ public final class HostSecurityUtil {
         return h.startsWith("169.254.");
     }
 
-    /** IPv6 字面量内网判定：loopback（::1）、link-local（fe80::/10）、IPv4-mapped（::ffff:a.b.c.d）。 */
+    /**
+     * IPv6 字面量内网判定：loopback（::1）、link-local（fe80::/10）、IPv4-mapped（::ffff:a.b.c.d）。
+     *
+     * <p>F8（plan 2026-08-14-1133-1）：入口增加 charset 前置过滤——仅"字符集 ⊆ [0-9a-fA-F:.] 且 ≥2 冒号"
+     * 的输入才调用 {@link InetAddress#getByName}；否则视为非字面量直接 return false（不触发 DNS）。
+     * 与 {@link #isIpLiteral} 的 charset 检查一致（合法 IPv6 字面量至少含 2 冒号，hostname 头部被前置排除）。
+     * 修复前含 {@code :} 但含非 hex 字母（g-z）的串（如 {@code gzzz::1}）路由到本方法后直接调
+     * {@code getByName} 触发 DNS 查找，违反类 javadoc "纯确定性解析，不触发 DNS" 契约。
+     */
     private static boolean isInternalIpv6Literal(String h) {
+        // F8: charset 前置过滤——合法 IPv6 字面量字符集 ⊆ [0-9a-fA-F:.] 且 ≥2 冒号
+        int colons = 0;
+        for (int i = 0; i < h.length(); i++) {
+            char c = h.charAt(i);
+            if (c == ':') {
+                colons++;
+            } else if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')
+                    || (c >= 'A' && c <= 'F') || c == '.')) {
+                return false;
+            }
+        }
+        if (colons < 2) {
+            return false;
+        }
         InetAddress addr;
         try {
             addr = InetAddress.getByName(h);

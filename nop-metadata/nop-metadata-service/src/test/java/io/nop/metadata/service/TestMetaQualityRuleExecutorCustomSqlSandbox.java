@@ -374,6 +374,85 @@ public class TestMetaQualityRuleExecutorCustomSqlSandbox {
         validateCustomSqlSandbox("SELECT COUNT(*) FROM orders /* daily count */");
     }
 
+    // ===== F9（plan 2026-08-14-1133-1）：PG 脚本执行 / 时序攻击 / 系统目录族 + WITH CTE =====
+
+    /**
+     * <b>F9 adversarial</b>：5 个新增关键字（{@code DO}/{@code WITH}/{@code PG_CATALOG}/{@code PG_SLEEP}/
+     * {@code PG_STAT_USER_TABLES}）的 custom_sql payload 必须被 fail-fast 拒绝。
+     *
+     * <p>每个 payload 唯一钉住一个新增条目（不与既有黑名单词重叠）：
+     * <ul>
+     *   <li>{@code DO $$ BEGIN PERFORM 1 END $$}——PG 执行匿名 PL/pgSQL 代码块（DO 语句，RCE 等价面）</li>
+     *   <li>{@code WITH t AS (SELECT 1) SELECT * FROM t}——CTE 包装（F9 tradeoff：合法分析型 CTE 亦被阻断）</li>
+     *   <li>{@code SELECT PG_SLEEP(5)}——PG 时序盲注 / DoS 函数</li>
+     *   <li>{@code SELECT * FROM PG_CATALOG.PG_DATABASE}——PG 系统目录 schema 信息泄漏</li>
+     *   <li>{@code SELECT * FROM PG_STAT_USER_TABLES}——PG 系统统计视图信息泄漏</li>
+     * </ul>
+     */
+    @Test
+    public void testF9NewKeywordsBlocked() {
+        String[] payloads = {
+                "DO $$ BEGIN PERFORM 1 END $$",
+                "WITH t AS (SELECT 1) SELECT * FROM t",
+                "SELECT PG_SLEEP(5)",
+                "SELECT * FROM PG_CATALOG.PG_DATABASE",
+                "SELECT * FROM PG_STAT_USER_TABLES"
+        };
+        for (String payload : payloads) {
+            NopException ex = assertThrows(NopException.class,
+                    () -> validateCustomSqlSandbox(payload),
+                    "F9: newly added keyword must be blocked: " + payload);
+            assertEquals(NopMetadataErrors.ERR_QUALITY_CUSTOM_SQL_BLOCKED.getErrorCode(),
+                    ex.getErrorCode(),
+                    "must throw ERR_QUALITY_CUSTOM_SQL_BLOCKED for payload: " + payload);
+            String reason = String.valueOf(ex.getParam("reason"));
+            assertTrue(reason.contains("forbidden keyword"),
+                    "reason must mention 'forbidden keyword': " + reason + " (payload=" + payload + ")");
+            assertNotNull(ex.getParam("sqlHash"),
+                    "sqlHash param must be present for audit (payload=" + payload + ")");
+        }
+    }
+
+    /**
+     * <b>F9 接线验证</b>：新增关键字经 {@code judge} 公开入口（null Connection）到
+     * {@code ERR_QUALITY_CUSTOM_SQL_BLOCKED} 抛错链路成立——sqlHash 参数证明调用链经
+     * judge → judgeCustomSql → validateCustomSqlSandbox（沿 {@code testR61NewKeywordsBlockedViaJudgeEntry}
+     * 与 {@code testCteWrappedDmlBlockedViaJudgeEntry} 先例）。
+     */
+    @Test
+    public void testF9NewKeywordsBlockedViaJudgeEntry() {
+        String[] payloads = {
+                "SELECT PG_SLEEP(5)",
+                "DO $$ BEGIN END $$"
+        };
+        for (String payload : payloads) {
+            NopException ex = assertThrows(NopException.class,
+                    () -> judgeCustomSqlViaPublicEntry(payload),
+                    "F9: new keyword must be blocked via judge entry: " + payload);
+            assertEquals(NopMetadataErrors.ERR_QUALITY_CUSTOM_SQL_BLOCKED.getErrorCode(),
+                    ex.getErrorCode(),
+                    "must throw ERR_QUALITY_CUSTOM_SQL_BLOCKED via judge entry: " + payload);
+            assertNotNull(ex.getParam("sqlHash"),
+                    "sqlHash proves sandbox check reached from judgeCustomSql (payload=" + payload + ")");
+        }
+    }
+
+    /**
+     * F9 WITH CTE false-positive tradeoff 回归：合法分析型 CTE 查询被阻断（over-block，与 fail-closed 哲学一致）。
+     * 合法 CTE 需求应改用子查询或专用 measure 表达式通道。本测试钉死 tradeoff 行为，防止未来"善意"放开 WITH
+     * 而丢失 CTE 包装 DML/递归攻击面的拦截。
+     */
+    @Test
+    public void testF9WithCteFalsePositiveTradeoff() {
+        NopException ex = assertThrows(NopException.class,
+                () -> validateCustomSqlSandbox("WITH regional_sales AS (SELECT region, SUM(amount) FROM orders GROUP BY region) SELECT * FROM regional_sales"),
+                "F9: legitimate analytical CTE is blocked (documented over-block tradeoff)");
+        assertEquals(NopMetadataErrors.ERR_QUALITY_CUSTOM_SQL_BLOCKED.getErrorCode(), ex.getErrorCode());
+        String reason = String.valueOf(ex.getParam("reason"));
+        assertTrue(reason.contains("WITH"),
+                "F9: CTE block must identify WITH keyword: " + reason);
+    }
+
     /** sqlHash 稳定性：相同 SQL 产出相同 hash；不同 SQL 产出不同 hash（审计追溯基础）。 */
     @Test
     public void testSqlHashStability() {
