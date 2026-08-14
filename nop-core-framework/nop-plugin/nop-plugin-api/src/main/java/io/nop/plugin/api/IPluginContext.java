@@ -22,11 +22,12 @@ public interface IPluginContext {
      */
     Collection<IPluginInstance> allInstances();
 
-    /**
-     * 评估全部 plugin 的 coeffect spec（定义级：能否派生实例；实例级：该实例是否激活，基于实例配置域），
-     * 批量 activating / deactivating。环检测 + 最大迭代（依赖成环时报告 unresolved，不激活环内 plugin）。
-     *
-     * <p>本方法只做 registry + coeffect reconcile；配置变更的自动订阅由实现层保证，API 层不做配置监听。
-     */
-    void reconcile();
+/**
+ * 评估全部 plugin 的 coeffect spec（定义级：能否派生实例；实例级：该实例是否激活，基于实例配置域），
+ * 批量 activating / deactivating。环处理 = 静态依赖图环检测（环成员强制门控关闭并报告 unresolved）
+ * + 防御性迭代上限（级联收敛终止保护）。
+ *
+ * <p>本方法只做 registry + coeffect reconcile；配置变更的自动订阅由实现层保证，API 层不做配置监听。
+ */
+void reconcile();
 }

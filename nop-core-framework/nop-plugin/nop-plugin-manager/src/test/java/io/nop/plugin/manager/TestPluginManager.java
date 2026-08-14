@@ -1,5 +1,6 @@
 package io.nop.plugin.manager;
 
+import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.plugin.api.IPlugin;
@@ -49,9 +50,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestPluginManager {
 
     private static final String VFS_PLUGIN_ID = "/nop/plugin/test/agent-tools.plugin.xml";
+    private static final String MODEL_PROVIDER_ID = "/nop/plugin/test/model-provider.plugin.xml";
     private static final String INVALID_PLUGIN_ID = "/nop/plugin/test/invalid.plugin.xml";
     private static final String NOT_EXISTS_PLUGIN_ID = "/nop/plugin/test/not-exists.plugin.xml";
     private static final String JAR_COORDS = "io.nop.plugin.test:mock-plugin:1.0.0";
+    private static final String GLOBAL_TOOLS_ENABLED = "agent.tools.enabled";
 
     @BeforeAll
     public static void init() {
@@ -140,42 +143,69 @@ public class TestPluginManager {
     public void testVfsTrackAwareDefinitionState() {
         PluginManagerImpl manager = newManager();
 
-        IPlugin plugin = manager.loadPlugin(VFS_PLUGIN_ID);
+        // W5 门控适配（钉死）：agent-tools 的 coeffect 有两条腿——requires=model-provider +
+        // 定义级 if-property 读全局 agent.tools.enabled。只开 requires 腿门控仍关闭、start 不创建
+        // 实例、ERR_PLUGIN_ACTIVATOR_NOT_FOUND 断言必挂（JUnit 类执行顺序不保证
+        // TestPluginInstanceLifecycle 先跑，不能依赖其 setUp）。内联开门控：model-provider 加载 +
+        // ACTIVATED 实例 + 显式赋值全局 agent.tools.enabled=true（捕获原值，finally 恢复防跨类污染）。
+        Object priorToolsEnabled = AppConfig.getConfigProvider().getConfigValue(GLOBAL_TOOLS_ENABLED, null);
+        try {
+            AppConfig.getConfigProvider().assignConfigValue(GLOBAL_TOOLS_ENABLED, "true");
+            manager.loadPlugin(MODEL_PROVIDER_ID);
+            manager.createInstance(MODEL_PROVIDER_ID, "p1", Collections.emptyMap(), null);
 
-        assertTrue(plugin.isStateMachineAware());
-        assertEquals(PluginState.LOADED, plugin.getState());
-        assertTrue(plugin.getInstances().isEmpty(), "定义级 LOADED 不得派生实例");
-        assertNull(plugin.getInstance("any-key"));
-        assertNull(plugin.getPluginGroupId(), "VFS 轨无 Maven 坐标");
-        assertNull(plugin.getPluginArtifactId());
-        assertNull(plugin.getPluginVersion());
-        assertNotNull(plugin.getLoadTime(), "load 时记录真实 loadTime");
-        assertNotNull(plugin.getLastChangeTime());
+            IPlugin plugin = manager.loadPlugin(VFS_PLUGIN_ID);
 
-        // W3 收敛：start = load + createInstance(默认 key)。agent-tools 定义声明了
-        // activator="agentToolsActivator" 但 beans 中未声明该 bean → 激活失败（错误带 key 参数），
-        // 实例回退 DEACTIVATED 留在 registry（不残留半激活实例）
-        NopException startErr = assertThrows(NopException.class,
-                () -> plugin.start("g", "a", "1.0", Collections.emptyMap()));
-        assertEquals(ERR_PLUGIN_ACTIVATOR_NOT_FOUND.getErrorCode(), startErr.getErrorCode());
-        assertEquals(PluginManagerConstants.DEFAULT_INSTANCE_KEY, startErr.getParam("instanceKey"));
-        IPluginInstance failed = manager.getInstance(VFS_PLUGIN_ID, PluginManagerConstants.DEFAULT_INSTANCE_KEY);
-        assertNotNull(failed, "激活失败实例仍注册在 registry（DEACTIVATED）");
-        assertEquals(InstanceState.DEACTIVATED, failed.getState());
-        manager.destroyInstance(VFS_PLUGIN_ID, PluginManagerConstants.DEFAULT_INSTANCE_KEY);
-        assertNull(manager.getInstance(VFS_PLUGIN_ID, PluginManagerConstants.DEFAULT_INSTANCE_KEY));
+            assertTrue(plugin.isStateMachineAware());
+            assertEquals(PluginState.LOADED, plugin.getState());
+            assertTrue(plugin.getInstances().isEmpty(), "定义级 LOADED 不得派生实例");
+            assertNull(plugin.getInstance("any-key"));
+            assertNull(plugin.getPluginGroupId(), "VFS 轨无 Maven 坐标");
+            assertNull(plugin.getPluginArtifactId());
+            assertNull(plugin.getPluginVersion());
+            assertNotNull(plugin.getLoadTime(), "load 时记录真实 loadTime");
+            assertNotNull(plugin.getLastChangeTime());
 
-        NopException inactive = assertThrows(NopException.class,
-                () -> plugin.invokeCommand("cmd", Collections.emptyMap(), null, null));
-        assertEquals(ERR_PLUGIN_INACTIVE.getErrorCode(), inactive.getErrorCode());
+            // W3 收敛：start = load + createInstance(默认 key)。agent-tools 定义声明了
+            // activator="agentToolsActivator" 但 beans 中未声明该 bean → 激活失败（错误带 key 参数），
+            // 实例回退 DEACTIVATED 留在 registry（不残留半激活实例）——门控已打开，断言语义保留
+            NopException startErr = assertThrows(NopException.class,
+                    () -> plugin.start("g", "a", "1.0", Collections.emptyMap()));
+            assertEquals(ERR_PLUGIN_ACTIVATOR_NOT_FOUND.getErrorCode(), startErr.getErrorCode());
+            assertEquals(PluginManagerConstants.DEFAULT_INSTANCE_KEY, startErr.getParam("instanceKey"));
+            IPluginInstance failed = manager.getInstance(VFS_PLUGIN_ID, PluginManagerConstants.DEFAULT_INSTANCE_KEY);
+            assertNotNull(failed, "激活失败实例仍注册在 registry（DEACTIVATED）");
+            assertEquals(InstanceState.DEACTIVATED, failed.getState());
+            manager.destroyInstance(VFS_PLUGIN_ID, PluginManagerConstants.DEFAULT_INSTANCE_KEY);
+            assertNull(manager.getInstance(VFS_PLUGIN_ID, PluginManagerConstants.DEFAULT_INSTANCE_KEY));
 
-        assertSame(plugin, manager.loadPlugin(VFS_PLUGIN_ID), "重复 loadPlugin 幂等返回同一定义");
+            NopException inactive = assertThrows(NopException.class,
+                    () -> plugin.invokeCommand("cmd", Collections.emptyMap(), null, null));
+            assertEquals(ERR_PLUGIN_INACTIVE.getErrorCode(), inactive.getErrorCode());
 
-        manager.unloadPlugin(VFS_PLUGIN_ID);
-        assertEquals(PluginState.UNLOADED, plugin.getState(), "unload 后回到 UNLOADED");
-        assertFalse(manager.getLoadedPlugins().contains(plugin));
-        assertNull(manager.getInstance(VFS_PLUGIN_ID, "any-key"));
-        assertTrue(manager.getInstances(VFS_PLUGIN_ID).isEmpty());
+            assertSame(plugin, manager.loadPlugin(VFS_PLUGIN_ID), "重复 loadPlugin 幂等返回同一定义");
+
+            manager.unloadPlugin(VFS_PLUGIN_ID);
+            assertEquals(PluginState.UNLOADED, plugin.getState(), "unload 后回到 UNLOADED");
+            assertFalse(manager.getLoadedPlugins().contains(plugin));
+            assertNull(manager.getInstance(VFS_PLUGIN_ID, "any-key"));
+            assertTrue(manager.getInstances(VFS_PLUGIN_ID).isEmpty());
+        } finally {
+            AppConfig.getConfigProvider().assignConfigValue(GLOBAL_TOOLS_ENABLED, priorToolsEnabled);
+        }
+    }
+
+    @Test
+    public void testReconcileSkipsJarTrack() throws IOException {
+        MockPluginRecorder.reset();
+        URL jar = buildPluginJar("io.nop.plugin.jarplugin.MockPlugin");
+        PluginManagerImpl manager = newManager(jar);
+        manager.loadPlugin(JAR_COORDS);
+
+        // W5：reconcile 遍历全部 LOADED 定义时跳过 jar 轨（无实例机制，instanceof VfsPluginDefinition
+        // 判别）——jar 插件在册时 reconcile 正常终止、无 unresolved 报告（No Silent No-Op 真实路径）
+        manager.reconcileInstances();
+        assertTrue(manager.getUnresolvedPluginIds().isEmpty(), "jar 轨不参与 reconcile（无环检测报告）");
     }
 
     @Test

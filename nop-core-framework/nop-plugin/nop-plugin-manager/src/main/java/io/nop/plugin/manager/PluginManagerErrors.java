@@ -12,6 +12,7 @@ public interface PluginManagerErrors {
     String ARG_BEAN_TYPE = "beanType";
     String ARG_BEAN_ID = "beanId";
     String ARG_ACTIVATOR = "activator";
+    String ARG_SPEC_ATTR = "specAttr";
 
     ErrorCode ERR_PLUGIN_MISSING_CONFIG_FILE =
             define("nop.err.plugin.missing-config-file", "插件中缺少nop/plugin.json文件");
@@ -105,4 +106,13 @@ public interface PluginManagerErrors {
             define("nop.err.plugin.service-candidate-not-found",
                     "服务候选不存在:{beanType},{beanId}",
                     ARG_BEAN_TYPE, ARG_BEAN_ID);
+
+    /**
+     * coeffect spec 格式非法（load 解析时构造即校验）：if-property 的 propName 为空等
+     * （No Silent No-Op——非法格式显式失败，不静默忽略）。
+     */
+    ErrorCode ERR_PLUGIN_INVALID_COEFFECT_SPEC =
+            define("nop.err.plugin.invalid-coeffect-spec",
+                    "coeffect spec 格式非法:{pluginId},{specAttr}",
+                    io.nop.plugin.api.PluginApiErrors.ARG_PLUGIN_ID, ARG_SPEC_ATTR);
 }

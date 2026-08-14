@@ -14,6 +14,7 @@ import io.nop.plugin.test.BashTool;
 import io.nop.plugin.test.IConfigReader;
 import io.nop.plugin.test.ITool;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -70,11 +71,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestPluginInstanceLifecycle {
 
     private static final String PLUGIN_ID = "/nop/plugin/test/agent-instance.plugin.xml";
+    private static final String MODEL_PROVIDER_ID = "/nop/plugin/test/model-provider.plugin.xml";
     private static final String MULTI_CANDIDATE_ID = "/nop/plugin/test/multi-candidate.plugin.xml";
     private static final String FAIL_ID = "/nop/plugin/test/activate-fail.plugin.xml";
     private static final String JAR_COORDS = "io.nop.plugin.test:mock-plugin:1.0.0";
+    private static final String GLOBAL_TOOLS_ENABLED = "agent.tools.enabled";
 
     private PluginManagerImpl manager;
+    private Object priorToolsEnabled;
 
     @BeforeAll
     public static void init() {
@@ -93,6 +97,29 @@ public class TestPluginInstanceLifecycle {
     public void setUp() {
         manager = new PluginManagerImpl();
         AgentInstanceRecorder.reset();
+        // W5 门控基线（钉死）：agent-instance 的 coeffect 有两条腿——requires=model-provider
+        // （开门控 = model-provider 定义加载 + ≥1 ACTIVATED 实例）+ 定义级 if-property 读全局
+        // agent.tools.enabled（设 true）。赋值前捕获原值，@AfterEach 恢复（防跨测试类污染）。
+        priorToolsEnabled = AppConfig.getConfigProvider().getConfigValue(GLOBAL_TOOLS_ENABLED, null);
+        AppConfig.getConfigProvider().assignConfigValue(GLOBAL_TOOLS_ENABLED, "true");
+        manager.loadPlugin(MODEL_PROVIDER_ID);
+        manager.createInstance(MODEL_PROVIDER_ID, "provider-1", Map.of(), null);
+    }
+
+    @AfterEach
+    public void tearDown() {
+        // 统一清理（钉死）：destroy 本用例全部实例（含 model-provider 实例）→ 恢复全局配置键原值
+        // （捕获赋值前值而非硬编码恢复；manager 每测试新建，无跨用例 manager 状态泄漏）
+        for (IPlugin plugin : manager.getLoadedPlugins()) {
+            for (IPluginInstance instance : plugin.getInstances()) {
+                try {
+                    instance.destroy();
+                } catch (RuntimeException ignore) {
+                    // 测试已自行销毁：忽略（@AfterEach 清理容错）
+                }
+            }
+        }
+        AppConfig.getConfigProvider().assignConfigValue(GLOBAL_TOOLS_ENABLED, priorToolsEnabled);
     }
 
     /**
@@ -313,11 +340,21 @@ public class TestPluginInstanceLifecycle {
         assertEquals("prod", inst.getConfig().get("agent.mode"));
         assertEquals("30", inst.getConfig().get("agent.timeout"), "实例配置仍覆盖定义默认");
 
-        // DEACTIVATED 缓存：updateConfig 不应用；下次 activate 应用
+        // DEACTIVATED 缓存：W5 适配（P2-C 缓存契约的可观测窗口 = 条件不满足时）——
+        // 显式 deactivate（钉死为显式路径，非 reconcile 去激活）→ 关闭条件（全局
+        // agent.tools.enabled=false，定义级 + 实例级同时不满足）→ updateConfig → 缓存不应用
         inst.deactivate();
+        AppConfig.getConfigProvider().assignConfigValue(GLOBAL_TOOLS_ENABLED, "false");
         plugin.updateConfig(Map.of("agent.mode", "stage"));
         assertEquals("prod", inst.getConfig().get("agent.mode"), "DEACTIVATED 缓存配置、下次 activate 应用");
-        inst.activate();
+        assertEquals(InstanceState.DEACTIVATED, inst.getState(),
+                "门控关闭下 updateConfig 自动 reconcile 不重新激活实例");
+
+        // 恢复条件 → 显式 reconcileInstances 触发激活（测试环境 SimpleConfigProvider 的
+        // assignConfigValue 不触发订阅回调，自动订阅路径由 Phase 4 可控 provider 测试覆盖）→ 新值生效
+        AppConfig.getConfigProvider().assignConfigValue(GLOBAL_TOOLS_ENABLED, "true");
+        manager.reconcileInstances();
+        assertEquals(InstanceState.ACTIVATED, inst.getState(), "条件恢复 + 显式 reconcile 触发激活");
         assertEquals("stage", inst.getConfig().get("agent.mode"));
         assertEquals("stage", inst.getService(IConfigReader.class).getMode());
 

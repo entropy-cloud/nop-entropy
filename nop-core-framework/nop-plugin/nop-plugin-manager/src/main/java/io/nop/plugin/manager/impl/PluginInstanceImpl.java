@@ -68,12 +68,19 @@ public class PluginInstanceImpl implements IPluginInstance {
 
     private final Object lifecycleLock = new Object();
 
+    /**
+     * 连续激活失败阈值（W5 reconcile）：达到后暂停自动激活（仅显式 activate() 可恢复），避免无限重试。
+     */
+    static final int AUTO_ACTIVATION_FAILURE_THRESHOLD = 5;
+
     private volatile InstanceState state = InstanceState.DEACTIVATED;
     private volatile PluginScopeImpl scope;
     private volatile IBeanContainer container;
     private volatile InstanceConfigProvider configProvider;
     private volatile Map<String, Object> mergedView;
     private volatile Throwable lastActivationError;
+    private volatile int activationFailures;
+    private volatile boolean autoActivationPaused;
 
     public PluginInstanceImpl(VfsPluginDefinition definition, String instanceKey, Map<String, Object> config,
                               IPluginInstance parent) {
@@ -103,6 +110,27 @@ public class PluginInstanceImpl implements IPluginInstance {
      */
     public Throwable getLastActivationError() {
         return lastActivationError;
+    }
+
+    /**
+     * 自动激活是否被失败阈值暂停（W5 reconcile 读取）：连续激活失败 ≥ 阈值 → 暂停
+     * reconcile 的自动激活尝试；仅显式 {@link #activate()} 成功可恢复（清计数 + 解除暂停）。
+     */
+    public boolean isAutoActivationPaused() {
+        return autoActivationPaused;
+    }
+
+    private void onActivationFailed() {
+        if (++activationFailures >= AUTO_ACTIVATION_FAILURE_THRESHOLD && !autoActivationPaused) {
+            autoActivationPaused = true;
+            LOG.warn("nop.plugin.auto-activation-paused:pluginId={},instanceKey={},failures={}",
+                    getPluginId(), instanceKey, activationFailures);
+        }
+    }
+
+    private void onActivationSucceeded() {
+        activationFailures = 0;
+        autoActivationPaused = false;
     }
 
     @Override
@@ -235,6 +263,16 @@ public class PluginInstanceImpl implements IPluginInstance {
         return merged;
     }
 
+    /**
+     * 实例级 coeffect 求值数据源（W5）：定义默认 + 实例配置的<b>实时</b>合并视图。
+     * {@link #getConfig()} 为缓存快照（P2-C：DEACTIVATED 缓存配置、下次 activate 应用）——
+     * 缓存语义保持；求值用实时视图使 updateConfig → 自动 reconcile 的 activate/deactivate
+     * 往返可驱动（快照在 DEACTIVATED 期间不刷新，会永久卡在旧值）。
+     */
+    Map<String, Object> getCoeffectConfigView() {
+        return newMergedView();
+    }
+
     private void doActivate() {
         synchronized (lifecycleLock) {
             if (state == InstanceState.ACTIVATED) {
@@ -249,6 +287,7 @@ public class PluginInstanceImpl implements IPluginInstance {
                 // 回滚：停止本次激活创建的子容器（scope 随之回退）——不残留半激活实例
                 rollbackActivation();
                 lastActivationError = e;
+                onActivationFailed();
                 if (e instanceof NopException) {
                     ((NopException) e).param(ARG_PLUGIN_ID, getPluginId()).param(ARG_INSTANCE_KEY, instanceKey);
                     throw e;
@@ -312,6 +351,7 @@ public class PluginInstanceImpl implements IPluginInstance {
 
         this.state = InstanceState.ACTIVATED;
         this.lastActivationError = null;
+        onActivationSucceeded();
     }
 
     private void rollbackActivation() {

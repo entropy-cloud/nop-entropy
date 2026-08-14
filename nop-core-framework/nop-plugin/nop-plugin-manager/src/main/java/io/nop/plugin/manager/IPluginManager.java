@@ -50,6 +50,10 @@ public interface IPluginManager {
      * （子容器 + activator + effect）。同 key 重复创建抛明确异常；激活失败抛明确异常
      * （错误带实例 key 参数，实例回退 DEACTIVATED 留在 registry）。
      *
+     * <p><b>W5 定义级 coeffect 门控</b>：定义级 spec（requires + if-property）不满足时
+     * <b>no-op 返回 null</b>（设计 §五）——重复 key 检查先于门控，门控关闭但实例已存在
+     * 仍抛重复 key 异常。创建成功后 manager 自动 reconcile（级联激活下游依赖实例）。
+     *
      * <p>parent 为层级实例化（subagent）预留（W6 落地，本阶段传 null）。
      * uber jar 轨定义的实例化路径为 successor 项（W4/W7 评估），调用时抛明确异常。
      */
@@ -72,4 +76,13 @@ public interface IPluginManager {
     List<IPluginInstance> getInstances(String pluginId);
 
     List<IPlugin> getLoadedPlugins();
+
+    /**
+     * 扫描全部实例的 coeffect（定义级 + 实例级），批量 activating / deactivating（§7.3）。
+     *
+     * <p>委托 {@link io.nop.plugin.api.IPluginContext#reconcile()}：迭代收敛 + 静态环检测报告
+     * + 激活失败阈值暂停；reconcile 不自动创建实例——定义级满足但无实例的定义保持 LOADED，
+     * 实例由 {@link #createInstance}（显式调用）创建。
+     */
+    void reconcileInstances();
 }

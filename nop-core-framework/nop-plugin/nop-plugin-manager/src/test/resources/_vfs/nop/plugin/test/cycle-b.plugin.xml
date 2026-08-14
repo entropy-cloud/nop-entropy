@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin name="cycle-b" requires="cycle-a"
+        x:schema="/nop/schema/plugin/plugin.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <beans/>
+</plugin>
