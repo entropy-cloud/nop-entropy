@@ -997,6 +997,9 @@
                 <index name="IX_NOP_META_DOMAIN_MODEL" unique="false">
                     <column name="ormModelId"/>
                 </index>
+                <index name="IX_NOP_META_DOMAIN_SOURCE_MODULE" unique="false">
+                    <column name="sourceModuleId"/>
+                </index>
             </indexes>
             <relations>
                 <to-one displayName="ORM模型" name="ormModel" refEntityName="io.nop.metadata.dao.entity.NopMetaOrmModel"
@@ -1204,6 +1207,9 @@
                     <column name="metaSchema"/>
                     <column name="tableName"/>
                 </index>
+                <index name="IX_NOP_META_TABLE_BASE_ENTITY" unique="false">
+                    <column name="baseEntityId"/>
+                </index>
             </indexes>
             <relations>
                 <to-one displayName="元数据模块" name="metaModule" refEntityName="io.nop.metadata.dao.entity.NopMetaModule"
@@ -1379,6 +1385,9 @@
                 <index name="IX_NOP_META_DIM_BUSINESS_DOMAIN" unique="false">
                     <column name="businessDomainId"/>
                 </index>
+                <index name="IX_NOP_META_DIM_ENTITY_FIELD" unique="false">
+                    <column name="entityFieldId"/>
+                </index>
             </indexes>
             <relations>
                 <to-one displayName="逻辑表" name="metaTable" refEntityName="io.nop.metadata.dao.entity.NopMetaTable"
@@ -1448,6 +1457,9 @@
                 </index>
                 <index name="IX_NOP_META_MEASURE_BUSINESS_DOMAIN" unique="false">
                     <column name="businessDomainId"/>
+                </index>
+                <index name="IX_NOP_META_MEASURE_ENTITY_FIELD" unique="false">
+                    <column name="entityFieldId"/>
                 </index>
             </indexes>
             <relations>
@@ -1883,6 +1895,10 @@
             <indexes>
                 <index name="IX_NOP_META_QRESULT_RULE" unique="false">
                     <column name="qualityRuleId"/>
+                    <column name="executeTime"/>
+                </index>
+                <index name="IX_NOP_META_QRESULT_RUN" unique="false">
+                    <column name="runId"/>
                     <column name="executeTime"/>
                 </index>
             </indexes>
@@ -2582,6 +2598,7 @@
             <indexes>
                 <index name="IX_NOP_META_EVENT_TYPE_TIME" unique="false">
                     <column name="entityType"/>
+                    <column name="entityId"/>
                     <column name="changeTime"/>
                 </index>
                 <index name="IX_NOP_META_EVENT_SOURCE" unique="false">
