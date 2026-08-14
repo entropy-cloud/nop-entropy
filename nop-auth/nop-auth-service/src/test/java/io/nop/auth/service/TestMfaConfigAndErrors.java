@@ -47,7 +47,7 @@ public class TestMfaConfigAndErrors {
     @Test
     void mfaConfigDefaultsAreDocumentedValues() {
         assertEquals(false, NopAuthConfigs.CFG_AUTH_MFA_ENABLED.get());
-        assertEquals("local", NopAuthConfigs.CFG_AUTH_MFA_STORE_TYPE.get());
+        assertEquals("db", NopAuthConfigs.CFG_AUTH_MFA_STORE_TYPE.get());
         assertEquals(300, NopAuthConfigs.CFG_AUTH_MFA_CHALLENGE_EXPIRE_SECONDS.get());
         assertEquals(5, NopAuthConfigs.CFG_AUTH_MFA_MAX_ATTEMPTS.get());
         assertEquals("nop", NopAuthConfigs.CFG_AUTH_MFA_TOTP_ISSUER.get());

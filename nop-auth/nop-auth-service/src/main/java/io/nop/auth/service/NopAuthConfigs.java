@@ -82,9 +82,9 @@ public interface NopAuthConfigs {
     IConfigReference<Boolean> CFG_AUTH_MFA_ENABLED = varRef(s_loc, "nop.auth.mfa.enabled",
             Boolean.class, false);
 
-    @Description("MFA challenge / 短信验证码存储实现类型：local 或 redis")
+    @Description("MFA challenge / 短信验证码存储实现类型：local、db（默认）或 redis")
     IConfigReference<String> CFG_AUTH_MFA_STORE_TYPE = varRef(s_loc, "nop.auth.mfa.store-type",
-            String.class, "local");
+            String.class, "db");
 
     @Description("MFA challenge 有效期，单位秒")
     IConfigReference<Integer> CFG_AUTH_MFA_CHALLENGE_EXPIRE_SECONDS = varRef(s_loc, "nop.auth.mfa.challenge-expire-seconds",
