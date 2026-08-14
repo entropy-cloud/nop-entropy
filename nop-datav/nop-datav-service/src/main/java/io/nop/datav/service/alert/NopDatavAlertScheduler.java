@@ -17,6 +17,9 @@ import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static io.nop.datav.service.NopDatavErrors.ARG_ALERT_RULE_ID;
+import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_ALERT_RULE_NOT_FOUND;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -195,7 +198,9 @@ public class NopDatavAlertScheduler {
         try {
             Object id = params != null ? params.get(PARAM_ALERT_RULE_ID) : null;
             if (id == null) {
-                throw new IllegalArgumentException("missing alertRuleId in job params");
+                // Dim09-05: 使用结构化 NopException + ErrorCode 代替 raw IllegalArgumentException
+                throw new NopException(ERR_DATAV_ALERT_RULE_NOT_FOUND)
+                        .param(ARG_ALERT_RULE_ID, "(absent from job params)");
             }
             alertRuleId = String.valueOf(id);
 
@@ -204,9 +209,10 @@ public class NopDatavAlertScheduler {
             Map<String, Object> m = result.toMap();
             m.put("status", "scheduled");
             return m;
-        } catch (Throwable t) {
+        } catch (Exception e) {
             // 业务异常吞掉，记 ERROR 日志，返回正常结果（避免 LocalJobScheduler FAILED-brick）
-            Throwable reason = NopException.adapt(t);
+            // Dim14-04: catch (Exception) 而非 catch (Throwable)，允许 Error（OOM/StackOverflow）传播
+            Throwable reason = NopException.adapt(e);
             LOG.error("nop.datav.alert-scheduler.scheduled-exec-failed: alertRuleId={} error={}",
                     alertRuleId, safeMsg(reason), reason);
             return buildResult(alertRuleId, "failed", null, null, safeMsg(reason));

@@ -2,6 +2,7 @@ package io.nop.datav.service.alert;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.datav.biz.PanelDataResult;
+import io.nop.datav.service.NopDatavErrors;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -160,8 +161,10 @@ public class TestAlertAggregator {
     public void testUnsupportedAggregationFailsExplicitly() {
         PanelDataResult d = data(Collections.singletonList("v"),
                 Collections.singletonList(row("v", 100)));
-        assertThrows(IllegalArgumentException.class,
+        NopException ex = assertThrows(NopException.class,
                 () -> AlertAggregator.aggregate(d, "v", "median", RULE_ID));
+        assertEquals(NopDatavErrors.ERR_DATAV_ALERT_UNSUPPORTED_AGGREGATION.getErrorCode(), ex.getErrorCode());
+        assertNotNull(ex.getMessage());
     }
 
     // ==================== 无数据行（视为条件不满足） ====================

@@ -219,9 +219,10 @@ public class NopDatavReportScheduler {
                     reportTaskId, NopDatavReportTriggerSource.SCHEDULE, scheduledFireTime);
 
             return buildResult(reportTaskId, "scheduled", deliveryId, null);
-        } catch (Throwable t) {
+        } catch (Exception e) {
             // 业务异常吞掉，记 ERROR 日志，返回正常结果（避免 LocalJobScheduler FAILED-brick）
-            Throwable reason = NopException.adapt(t);
+            // Dim14-04: catch (Exception) 而非 catch (Throwable)，允许 Error（OOM/StackOverflow）传播
+            Throwable reason = NopException.adapt(e);
             LOG.error("nop.datav.report-scheduler.scheduled-exec-failed: reportTaskId={} error={}",
                     reportTaskId, safeMsg(reason), reason);
             return buildResult(reportTaskId, "failed", null, safeMsg(reason));

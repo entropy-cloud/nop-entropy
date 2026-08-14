@@ -1,6 +1,7 @@
 package io.nop.datav.service.alert;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.datav.service.NopDatavErrors;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -120,22 +121,28 @@ public class TestAlertThresholdComparator {
 
     @Test
     public void testUnsupportedOperatorFailsExplicitly() {
-        assertThrows(IllegalArgumentException.class,
+        NopException ex = assertThrows(NopException.class,
                 () -> AlertThresholdComparator.compare(new BigDecimal("100"), "contains",
                         new BigDecimal("1"), null, RULE_ID));
+        assertEquals(NopDatavErrors.ERR_DATAV_ALERT_UNSUPPORTED_OPERATOR.getErrorCode(), ex.getErrorCode());
+        assertNotNull(ex.getMessage());
     }
 
     @Test
     public void testNullCurrentFailsExplicitly() {
-        assertThrows(IllegalArgumentException.class,
+        NopException ex = assertThrows(NopException.class,
                 () -> AlertThresholdComparator.compare(null, "gt",
                         new BigDecimal("100"), null, RULE_ID));
+        assertEquals(NopDatavErrors.ERR_DATAV_ALERT_VALUE_REQUIRED.getErrorCode(), ex.getErrorCode());
+        assertNotNull(ex.getMessage());
     }
 
     @Test
     public void testNullThresholdFailsExplicitly() {
-        assertThrows(IllegalArgumentException.class,
+        NopException ex = assertThrows(NopException.class,
                 () -> AlertThresholdComparator.compare(new BigDecimal("100"), "gt",
                         null, null, RULE_ID));
+        assertEquals(NopDatavErrors.ERR_DATAV_ALERT_VALUE_REQUIRED.getErrorCode(), ex.getErrorCode());
+        assertNotNull(ex.getMessage());
     }
 }

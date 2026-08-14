@@ -555,6 +555,40 @@ public class TestNopDatavReportE2E extends AbstractNopDatavTest {
                 "errorMsg mentions template: " + delivery.getErrorMsg());
     }
 
+    // ==================== Dim16-03 报告导出失败容错 ====================
+
+    /**
+     * Dim16-03: report task panel dataset 指向不存在的表 → exportDashboard 抛错 →
+     * delivery FAILED + errorMsg 含失败原因（异步轮询模式）。
+     *
+     * <p>验证报告交付执行器在 PanelDataExporter.exportDashboard 抛错时的异步错误处理：
+     * delivery 记录最终达 FAILED + errorMsg 非空。使用 POLL_TIMEOUT_MS=30_000 /
+     * POLL_INTERVAL_MS=100 轮询模式（与既有测试一致）。</p>
+     */
+    @Test
+    public void testReportDeliveryExportFailureRecordsError() {
+        setupSalesData();
+        IServiceContext ctx = ownerContext("alice");
+        String dashboardId = setupDashboard("dash-dim16-03", "alice", true);
+        saveChartPanelWithDatasetCustomSql("panel-dim16-03", dashboardId, "Chart",
+                "select * from NONEXISTENT_TABLE_DIM16_03");
+        NopDatavReportTask task = seedReportTask("task-dim16-03", dashboardId, "alice",
+                "0 0 8 * * ?", "xlsx", true);
+
+        String deliveryId = reportDeliveryExecutor.executeSyncForTest(
+                task.getReportTaskId(), NopDatavReportTriggerSource.MANUAL, System.currentTimeMillis());
+        NopDatavReportDelivery delivery = pollUntilTerminal(deliveryId);
+        assertEquals(NopDatavReportDeliveryStatus.FAILED, delivery.getStatus(),
+                "export failure -> delivery failed");
+        assertNotNull(delivery.getErrorMsg(), "errorMsg recorded");
+        assertTrue(delivery.getErrorMsg().toLowerCase().contains("nonexistent")
+                        || delivery.getErrorMsg().toLowerCase().contains("not found")
+                        || delivery.getErrorMsg().toLowerCase().contains("table")
+                        || delivery.getErrorMsg().toLowerCase().contains("object")
+                        || delivery.getErrorMsg().toLowerCase().contains("failed"),
+                "errorMsg mentions table/export failure: " + delivery.getErrorMsg());
+    }
+
     // ==================== 权限（owner guard） ====================
 
     /**
@@ -745,6 +779,13 @@ public class TestNopDatavReportE2E extends AbstractNopDatavTest {
     }
 
     private NopDatavPanel saveChartPanelWithDataset(String panelId, String dashboardId, String panelName) {
+        return saveChartPanelWithDatasetCustomSql(panelId, dashboardId, panelName,
+                "select REGION as region, PRODUCT as product, AMOUNT as amount "
+                        + "from TEST_DATAV_SALES_RPT order by AMOUNT desc");
+    }
+
+    private NopDatavPanel saveChartPanelWithDatasetCustomSql(String panelId, String dashboardId,
+                                                              String panelName, String sql) {
         String refId = panelId + "-ref";
         String dsId = panelId + "-ds";
         NopReportDataset ds = new NopReportDataset();
@@ -752,8 +793,7 @@ public class TestNopDatavReportE2E extends AbstractNopDatavTest {
         ds.setDsName(dsId);
         ds.setIsSingleRow(false);
         ds.setDsType("sql");
-        ds.setDsText("select REGION as region, PRODUCT as product, AMOUNT as amount "
-                + "from TEST_DATAV_SALES_RPT order by AMOUNT desc");
+        ds.setDsText(sql);
         ds.setDsMeta("{}");
         ds.setStatus(1);
         ds.setVersion(0);

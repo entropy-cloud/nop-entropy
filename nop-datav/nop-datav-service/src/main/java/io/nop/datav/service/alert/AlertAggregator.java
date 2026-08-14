@@ -7,9 +7,11 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
+import static io.nop.datav.service.NopDatavErrors.ARG_AGGREGATION;
 import static io.nop.datav.service.NopDatavErrors.ARG_ALERT_RULE_ID;
 import static io.nop.datav.service.NopDatavErrors.ARG_CURRENT_VALUE;
 import static io.nop.datav.service.NopDatavErrors.ARG_VALUE_FIELD;
+import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_ALERT_UNSUPPORTED_AGGREGATION;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_ALERT_VALUE_FIELD_NOT_FOUND;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_ALERT_VALUE_NOT_NUMERIC;
 
@@ -134,8 +136,9 @@ public final class AlertAggregator {
             }
             default:
                 // 未知聚合方式 → 视为配置错误，抛错（非静默）
-                throw new IllegalArgumentException(
-                        "Unsupported aggregation: " + agg + " (alertRuleId=" + alertRuleId + ")");
+                throw new NopException(ERR_DATAV_ALERT_UNSUPPORTED_AGGREGATION)
+                        .param(ARG_ALERT_RULE_ID, alertRuleId)
+                        .param(ARG_AGGREGATION, agg);
         }
     }
 

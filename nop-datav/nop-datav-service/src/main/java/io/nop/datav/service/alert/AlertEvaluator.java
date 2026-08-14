@@ -146,11 +146,16 @@ public class AlertEvaluator {
         if (NopDatavAlertStateValue.isOk(oldState)) {
             if (conditionMet) {
                 // OK + 条件满足 → TRIGGERED（发告警通知）
+                // Dim14-03: 先持久化 interim state（TRIGGERED 但 lastNotifiedTime 清空），
+                // 通知成功后才置 lastNotifiedTime。通知失败时异常向上抛，lastNotifiedTime 保持 null，
+                // 下次评估（rearmSeconds > 0）可经 shouldRearm(null)=true 立即重试。
                 state.setState(NopDatavAlertStateValue.TRIGGERED.getValue());
                 state.setLastTriggeredTime(nowTs);
-                state.setLastNotifiedTime(nowTs);
+                state.setLastNotifiedTime(null);
                 saveState(state);
                 sendAlertNotification(rule, state.getState(), currentValueStr, NopDatavAlertType.TRIGGER);
+                state.setLastNotifiedTime(nowTs);
+                saveState(state);
                 return new EvalResult(ruleId, state.getState(), currentValueBigDecimal, currentValueStr,
                         true, true, null);
             } else {
@@ -163,19 +168,24 @@ public class AlertEvaluator {
             // TRIGGERED 态
             if (!conditionMet) {
                 // TRIGGERED + 条件不再满足 → OK（发恢复通知）
+                // Dim14-03: 先持久化 state=OK（正确反映条件不再满足），通知成功后才置 lastResolvedTime。
+                // 通知失败时异常向上抛，state 已为 OK（条件不再满足的客观事实），lastResolvedTime 保持旧值。
                 state.setState(NopDatavAlertStateValue.OK.getValue());
-                state.setLastResolvedTime(nowTs);
                 saveState(state);
                 sendAlertNotification(rule, state.getState(), currentValueStr, NopDatavAlertType.RECOVER);
+                state.setLastResolvedTime(nowTs);
+                saveState(state);
                 return new EvalResult(ruleId, state.getState(), currentValueBigDecimal, currentValueStr,
                         false, true, null);
             } else {
                 // TRIGGERED + 条件持续 → rearm 判定
                 int rearmSeconds = rule.getRearmSeconds() == null ? 0 : rule.getRearmSeconds();
                 if (rearmSeconds > 0 && shouldRearm(state.getLastNotifiedTime(), rearmSeconds, now)) {
+                    // Dim14-03: 先发通知，成功后才置 lastNotifiedTime。通知失败时 lastNotifiedTime 保留
+                    // 旧值（上次通知时间），下次评估 shouldRearm 仍可判定已过冷静期 → 重试。
+                    sendAlertNotification(rule, state.getState(), currentValueStr, NopDatavAlertType.TRIGGER);
                     state.setLastNotifiedTime(nowTs);
                     saveState(state);
-                    sendAlertNotification(rule, state.getState(), currentValueStr, NopDatavAlertType.TRIGGER);
                     return new EvalResult(ruleId, state.getState(), currentValueBigDecimal, currentValueStr,
                             true, true, null);
                 } else {

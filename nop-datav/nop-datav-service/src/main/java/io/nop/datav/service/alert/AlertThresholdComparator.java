@@ -8,6 +8,8 @@ import static io.nop.datav.service.NopDatavErrors.ARG_ALERT_OPERATOR;
 import static io.nop.datav.service.NopDatavErrors.ARG_ALERT_RULE_ID;
 import static io.nop.datav.service.NopDatavErrors.ARG_THRESHOLD_VALUE;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_ALERT_INVALID_THRESHOLD;
+import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_ALERT_UNSUPPORTED_OPERATOR;
+import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_ALERT_VALUE_REQUIRED;
 
 /**
  * 告警阈值比较器（D5-2，schedule-report-design.md §14）。
@@ -45,8 +47,8 @@ public final class AlertThresholdComparator {
                                   BigDecimal thresholdValue, BigDecimal thresholdValue2,
                                   String alertRuleId) {
         if (currentValue == null || thresholdValue == null) {
-            throw new IllegalArgumentException(
-                    "currentValue and thresholdValue must not be null (alertRuleId=" + alertRuleId + ")");
+            throw new NopException(ERR_DATAV_ALERT_VALUE_REQUIRED)
+                    .param(ARG_ALERT_RULE_ID, alertRuleId);
         }
         String op = operator == null ? "" : operator.toLowerCase();
         switch (op) {
@@ -72,8 +74,9 @@ public final class AlertThresholdComparator {
                         && currentValue.compareTo(thresholdValue2) <= 0;
             default:
                 // 未知 operator → 显式失败（非静默）
-                throw new IllegalArgumentException(
-                        "Unsupported operator: " + operator + " (alertRuleId=" + alertRuleId + ")");
+                throw new NopException(ERR_DATAV_ALERT_UNSUPPORTED_OPERATOR)
+                        .param(ARG_ALERT_RULE_ID, alertRuleId)
+                        .param(ARG_ALERT_OPERATOR, operator);
         }
     }
 }

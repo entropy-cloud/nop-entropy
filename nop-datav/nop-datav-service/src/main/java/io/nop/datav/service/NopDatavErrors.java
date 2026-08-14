@@ -402,6 +402,24 @@ public interface NopDatavErrors {
             ARG_ALERT_RULE_ID, ARG_THRESHOLD_VALUE
     );
 
+    ErrorCode ERR_DATAV_ALERT_VALUE_REQUIRED = define(
+            "nop.err.datav.alert-value-required",
+            "Alert evaluation requires non-null currentValue and thresholdValue (alertRule: {alertRuleId})",
+            ARG_ALERT_RULE_ID
+    );
+
+    ErrorCode ERR_DATAV_ALERT_UNSUPPORTED_OPERATOR = define(
+            "nop.err.datav.alert-unsupported-operator",
+            "Unsupported alert operator: {operator} (alertRule: {alertRuleId})",
+            ARG_ALERT_OPERATOR, ARG_ALERT_RULE_ID
+    );
+
+    ErrorCode ERR_DATAV_ALERT_UNSUPPORTED_AGGREGATION = define(
+            "nop.err.datav.alert-unsupported-aggregation",
+            "Unsupported alert aggregation: {aggregation} (alertRule: {alertRuleId})",
+            ARG_AGGREGATION, ARG_ALERT_RULE_ID
+    );
+
     ErrorCode ERR_DATAV_ALERT_TEMPLATE_NOT_FOUND = define(
             "nop.err.datav.alert-template-not-found",
             "Notice template not found for templateKey: {templateKey} (expected NopSysNoticeTemplate.name match)",

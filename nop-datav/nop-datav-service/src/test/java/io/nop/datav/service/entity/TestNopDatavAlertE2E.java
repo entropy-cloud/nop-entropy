@@ -428,6 +428,28 @@ public class TestNopDatavAlertE2E extends AbstractNopDatavTest {
         assertNotNull(result.get("error"));
     }
 
+    /**
+     * Dim14-04: catch (Exception) 不捕获 Error（StackOverflowError 向外传播）。
+     *
+     * <p>构造独立 NopDatavAlertScheduler + AlertEvaluator 子类（evaluate 抛 Error），
+     * 断言 Error 不被 catch (Exception) 捕获而传播出 executeScheduledAlert。</p>
+     */
+    @Test
+    public void testErrorPropagatesFromExecuteScheduledAlert() {
+        NopDatavAlertScheduler standaloneScheduler = new NopDatavAlertScheduler();
+        standaloneScheduler.setAlertEvaluator(new AlertEvaluator(null, null, null) {
+            @Override
+            public EvalResult evaluate(String ruleId) {
+                throw new StackOverflowError("test-error-propagation");
+            }
+        });
+        Map<String, Object> params = new java.util.HashMap<>();
+        params.put("alertRuleId", "test-rule");
+        assertThrows(StackOverflowError.class,
+                () -> standaloneScheduler.executeScheduledAlert(params),
+                "Error propagates out of catch (Exception) — not caught (Dim14-04)");
+    }
+
     // ==================== 告警通知（邮件）显式失败 ====================
 
     /**
@@ -596,6 +618,129 @@ public class TestNopDatavAlertE2E extends AbstractNopDatavTest {
         assertTrue(ex.getMessage().toLowerCase().contains("template")
                 || ex.getMessage().toLowerCase().contains("nop.sys"),
                 "errorMsg mentions template: " + ex.getMessage());
+    }
+
+    // ==================== Dim14-03 通知顺序修复 ====================
+
+    /**
+     * Dim14-03: OK→TRIGGERED 时通知失败 → 异常向上抛 + 持久化的 state 有 lastNotifiedTime==null + state==TRIGGERED。
+     *
+     * <p>验证通知顺序修复：lastNotifiedTime 在通知成功后才设置。通知失败时异常传播（合约保持），
+     * state 已持久化为 TRIGGERED（interim save）但 lastNotifiedTime 保持 null——下次评估
+     * （rearmSeconds>0）可经 shouldRearm(null)=true 立即重试。</p>
+     */
+    @Test
+    public void testTriggerNotificationFailureLeavesLastNotifiedTimeNull() {
+        setupSalesData();
+        IServiceContext ctx = ownerContext("alice");
+        String dashboardId = setupDashboard("dash-dim14-03-fail", "alice", true);
+        saveChartPanelWithDataset("panel-dim14-03-fail", dashboardId, "Sales");
+        NopDatavAlertRule rule = seedAlertRule("rule-dim14-03-fail", "panel-dim14-03-fail", dashboardId,
+                "alice", "amount", "sum", "gt", "100", null, 0, true);
+
+        mockEmailSender.setFailOnSend(new RuntimeException("simulated SMTP failure"));
+
+        RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> alertEvaluator.evaluate(rule.getAlertRuleId()));
+        assertTrue(ex.getMessage().contains("SMTP"),
+                "exception propagates from notification failure: " + ex.getMessage());
+
+        NopDatavAlertState state = loadState(rule.getAlertRuleId());
+        assertEquals(NopDatavAlertStateValue.TRIGGERED.getValue(), state.getState(),
+                "state transitioned to TRIGGERED (interim save persisted)");
+        assertNull(state.getLastNotifiedTime(),
+                "lastNotifiedTime NOT set on notification failure (Dim14-03 fix)");
+        assertNotNull(state.getLastTriggeredTime(), "lastTriggeredTime set in interim save");
+    }
+
+    /**
+     * Dim14-03: OK→TRIGGERED 时通知成功 → lastNotifiedTime 正确设置（与旧行为一致，仅代码顺序变化）。
+     */
+    @Test
+    public void testTriggerNotificationSuccessSetsLastNotifiedTime() {
+        setupSalesData();
+        IServiceContext ctx = ownerContext("alice");
+        String dashboardId = setupDashboard("dash-dim14-03-ok", "alice", true);
+        saveChartPanelWithDataset("panel-dim14-03-ok", dashboardId, "Sales");
+        NopDatavAlertRule rule = seedAlertRule("rule-dim14-03-ok", "panel-dim14-03-ok", dashboardId,
+                "alice", "amount", "sum", "gt", "100", null, 0, true);
+
+        AlertEvaluator.EvalResult result = alertEvaluator.evaluate(rule.getAlertRuleId());
+        assertTrue(result.notified, "notification sent");
+
+        NopDatavAlertState state = loadState(rule.getAlertRuleId());
+        assertEquals(NopDatavAlertStateValue.TRIGGERED.getValue(), state.getState());
+        assertNotNull(state.getLastNotifiedTime(), "lastNotifiedTime set after successful notification");
+        assertNotNull(state.getLastTriggeredTime(), "lastTriggeredTime set");
+    }
+
+    /**
+     * Dim14-03 restart safety（rearmSeconds > 0）：state=TRIGGERED + lastNotifiedTime=null + rearmSeconds=60
+     * → evaluate（条件仍满足）→ shouldRearm(null)=true → notification 重新尝试。
+     *
+     * <p>模拟 JVM 在 interim save 与 post-notification save 之间崩溃的恢复场景：
+     * state 为 TRIGGERED 但 lastNotifiedTime=null，下次评估应经 rearm 路径重新通知。</p>
+     */
+    @Test
+    public void testRestartSafetyRearmRetriesWhenLastNotifiedTimeNull() {
+        setupSalesData();
+        IServiceContext ctx = ownerContext("alice");
+        String dashboardId = setupDashboard("dash-dim14-03-restart", "alice", true);
+        saveChartPanelWithDataset("panel-dim14-03-restart", dashboardId, "Sales");
+        NopDatavAlertRule rule = seedAlertRule("rule-dim14-03-restart", "panel-dim14-03-restart",
+                dashboardId, "alice", "amount", "sum", "gt", "100", null, 60, true);
+
+        // 模拟 JVM 崩溃后恢复：state=TRIGGERED + lastNotifiedTime=null
+        NopDatavAlertState state = loadState(rule.getAlertRuleId());
+        state.setState(NopDatavAlertStateValue.TRIGGERED.getValue());
+        state.setLastNotifiedTime(null);
+        state.setLastTriggeredTime(new Timestamp(System.currentTimeMillis() - 120_000L));
+        state.setUpdatedBy("test");
+        state.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+        daoProvider.daoFor(NopDatavAlertState.class).updateEntityDirectly(state);
+
+        // 评估：条件仍满足（sum=350 > 100），shouldRearm(null, 60, now) = true → 重新通知
+        AlertEvaluator.EvalResult result = alertEvaluator.evaluate(rule.getAlertRuleId());
+        assertTrue(result.conditionMet, "condition still met (350 > 100)");
+        assertTrue(result.notified, "shouldRearm(null)=true → notification re-attempted");
+        assertEquals(NopDatavAlertStateValue.TRIGGERED.getValue(), result.newState);
+        assertEquals(1, mockEmailSender.getSendCount(), "re-arm notification sent");
+
+        NopDatavAlertState after = loadState(rule.getAlertRuleId());
+        assertNotNull(after.getLastNotifiedTime(), "lastNotifiedTime set after successful re-notification");
+    }
+
+    // ==================== Dim16-02 面板查询失败容错 ====================
+
+    /**
+     * Dim16-02: panel 存在但 queryPanelData 抛错（dataset 底层表不存在）→
+     * errorMsg 持久化 + state 保持 OK + evaluate() 正常返回（非抛异常 EvalResult）。
+     *
+     * <p>验证容错路径（AlertEvaluator:107-116 catch 块）：查询失败记 errorMsg、state 保持、
+     * 返回带 error 的 EvalResult（不抛——由调度器层决定是否吞错）。</p>
+     */
+    @Test
+    public void testPanelQueryFailureRecordsErrorAndPreservesState() {
+        IServiceContext ctx = ownerContext("alice");
+        String dashboardId = setupDashboard("dash-dim16-02", "alice", true);
+        // dataset SQL 引用不存在的表 → queryPanelData 抛错
+        saveChartPanelWithDatasetCustom("panel-dim16-02", dashboardId, "Sales",
+                "select * from NONEXISTENT_TABLE_DIM16_02");
+        NopDatavAlertRule rule = seedAlertRule("rule-dim16-02", "panel-dim16-02", dashboardId, "alice",
+                "amount", "sum", "gt", "100", null, 0, true);
+
+        AlertEvaluator.EvalResult result = alertEvaluator.evaluate(rule.getAlertRuleId());
+
+        // 容错路径：不抛异常，返回带 error 的 EvalResult
+        assertNotNull(result.errorMsg, "errorMsg recorded in EvalResult");
+        assertFalse(result.notified, "no notification on query failure");
+        assertEquals(NopDatavAlertStateValue.OK.getValue(), result.newState,
+                "state unchanged (stays OK)");
+
+        NopDatavAlertState state = loadState(rule.getAlertRuleId());
+        assertNotNull(state.getErrorMsg(), "errorMsg persisted in state");
+        assertEquals(NopDatavAlertStateValue.OK.getValue(), state.getState(),
+                "state column not flipped on query failure");
     }
 
     // ==================== 调度注册 ====================
