@@ -11,7 +11,7 @@ import io.nop.plugin.api.InstanceState;
 import io.nop.plugin.manager.impl.PluginManagerImpl;
 import io.nop.plugin.test.AgentInstanceRecorder;
 import io.nop.plugin.test.BashTool;
-import io.nop.plugin.test.ConfigReaderBean;
+import io.nop.plugin.test.IConfigReader;
 import io.nop.plugin.test.ITool;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -22,8 +22,10 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Proxy;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -33,6 +35,7 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 
 import static io.nop.plugin.api.PluginApiErrors.ERR_PLUGIN_INACTIVE;
+import static io.nop.plugin.api.PluginApiErrors.ERR_PLUGIN_MULTIPLE_INSTANCES;
 import static io.nop.plugin.manager.PluginManagerConstants.DEFAULT_INSTANCE_KEY;
 import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_ACTIVATION_FAILED;
 import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_DEFINITION_NOT_LOADED;
@@ -40,6 +43,7 @@ import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_INSTANCES_NOT
 import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_INSTANCE_EXISTS;
 import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_INSTANCE_NOT_SUPPORTED;
 import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_MULTIPLE_SERVICE_CANDIDATES;
+import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_SERVICE_PROXY_ONLY_INTERFACE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
@@ -171,8 +175,8 @@ public class TestPluginInstanceLifecycle {
         assertEquals("20", i2.getConfig().get("agent.timeout"));
 
         // 实例内 bean 各自解析实例配置域
-        assertEquals("10", i1.getService(ConfigReaderBean.class).getTimeout());
-        assertEquals("20", i2.getService(ConfigReaderBean.class).getTimeout());
+        assertEquals("10", i1.getService(IConfigReader.class).getTimeout());
+        assertEquals("20", i2.getService(IConfigReader.class).getTimeout());
 
         // 一个实例的 effect 变更不影响另一个
         i1.getScope().effect(() -> AgentInstanceRecorder.event("i1-extra"));
@@ -184,7 +188,7 @@ public class TestPluginInstanceLifecycle {
         assertEquals(InstanceState.DEACTIVATED, i1.getState());
         assertEquals(InstanceState.ACTIVATED, i2.getState());
         assertEquals(2, i2.getScope().effects().size(), "i2 的 effect 不受 i1 deactivate 影响");
-        assertEquals("20", i2.getService(ConfigReaderBean.class).getTimeout());
+        assertEquals("20", i2.getService(IConfigReader.class).getTimeout());
     }
 
     @Test
@@ -281,7 +285,7 @@ public class TestPluginInstanceLifecycle {
         IPluginInstance inst = manager.createInstance(PLUGIN_ID, "cfg",
                 Map.of("agent.timeout", "30", "agent.only-instance", "x"), null);
 
-        ConfigReaderBean reader = inst.getService(ConfigReaderBean.class);
+        IConfigReader reader = inst.getService(IConfigReader.class);
         assertEquals("30", reader.getTimeout(), "实例配置覆盖全局默认");
         assertEquals("x", reader.getOnlyInstance(), "仅实例有而全局无的键命中合并视图（非全局回落）");
         assertEquals("global-default", reader.getGlobalValue(), "无实例值的键回落全局 provider");
@@ -299,7 +303,7 @@ public class TestPluginInstanceLifecycle {
         // 定义默认 → 进实例合并视图（实例配置不覆盖 agent.mode）
         plugin.updateConfig(Map.of("agent.mode", "dev"));
         IPluginInstance inst = manager.createInstance(PLUGIN_ID, "hot", Map.of("agent.timeout", "30"), null);
-        ConfigReaderBean reader = inst.getService(ConfigReaderBean.class);
+        IConfigReader reader = inst.getService(IConfigReader.class);
         assertEquals("dev", reader.getMode());
         assertEquals("30", reader.getTimeout());
 
@@ -315,7 +319,7 @@ public class TestPluginInstanceLifecycle {
         assertEquals("prod", inst.getConfig().get("agent.mode"), "DEACTIVATED 缓存配置、下次 activate 应用");
         inst.activate();
         assertEquals("stage", inst.getConfig().get("agent.mode"));
-        assertEquals("stage", inst.getService(ConfigReaderBean.class).getMode());
+        assertEquals("stage", inst.getService(IConfigReader.class).getMode());
 
         // 全局无污染（agent.mode 只经实例配置域/定义默认流转，从未写入全局）
         assertNull(AppConfig.getConfigProvider().getConfigValue("agent.mode", null));
@@ -372,6 +376,48 @@ public class TestPluginInstanceLifecycle {
     }
 
     @Test
+    public void testGetServiceReturnsLifecycleProxy() {
+        manager.loadPlugin(PLUGIN_ID);
+        IPluginInstance inst = manager.createInstance(PLUGIN_ID, "proxy", Map.of("agent.timeout", "10"), null);
+
+        // Proxy.isProxyClass 断言：getService 返回生命周期绑定代理（非裸 bean）
+        ITool tool = inst.getService(ITool.class);
+        assertTrue(Proxy.isProxyClass(tool.getClass()), "getService 必须返回生命周期代理");
+
+        // ACTIVATED 时调用行为与真实 bean 等价（经代理路由到 primary 候选，按调用重新解析）
+        assertEquals("bash", tool.getName());
+
+        // 集合版：每个候选都是代理且行为等价
+        Collection<ITool> tools = inst.getServices(ITool.class);
+        assertEquals(2, tools.size());
+        boolean sawBash = false;
+        boolean sawSearch = false;
+        for (ITool t : tools) {
+            assertTrue(Proxy.isProxyClass(t.getClass()), "集合候选必须为代理");
+            if ("bash".equals(t.getName())) {
+                sawBash = true;
+            }
+            if ("search".equals(t.getName())) {
+                sawSearch = true;
+            }
+        }
+        assertTrue(sawBash && sawSearch, "集合代理按候选身份可调用");
+
+        // 非接口类型（具体类）明确抛错：getService 与 getServices 同规则
+        NopException concrete = assertThrows(NopException.class, () -> inst.getService(BashTool.class));
+        assertEquals(ERR_PLUGIN_SERVICE_PROXY_ONLY_INTERFACE.getErrorCode(), concrete.getErrorCode());
+        assertEquals(BashTool.class.getName(), concrete.getParam("beanType"));
+        NopException concreteCollection = assertThrows(NopException.class, () -> inst.getServices(BashTool.class));
+        assertEquals(ERR_PLUGIN_SERVICE_PROXY_ONLY_INTERFACE.getErrorCode(), concreteCollection.getErrorCode());
+
+        // deactivate 后调用代理抛 INACTIVE（快速失败，不悬空）——INACTIVE 来自代理自身检查
+        inst.deactivate();
+        NopException inactive = assertThrows(NopException.class, tool::getName);
+        assertEquals(ERR_PLUGIN_INACTIVE.getErrorCode(), inactive.getErrorCode());
+        assertEquals("proxy", inactive.getParam("instanceKey"));
+    }
+
+    @Test
     public void testInvokeCommandRoutesToInstanceContainer() {
         manager.loadPlugin(PLUGIN_ID);
         IPluginInstance inst = manager.createInstance(PLUGIN_ID, "cmd", Map.of(), null);
@@ -385,6 +431,127 @@ public class TestPluginInstanceLifecycle {
         NopException e = assertThrows(NopException.class,
                 () -> inst.invokeCommand("hello", Map.of(), null, null));
         assertEquals(ERR_PLUGIN_INACTIVE.getErrorCode(), e.getErrorCode());
+    }
+
+    @Test
+    public void testDefinitionInvokeCommandRoutesSingleInstance() {
+        IPlugin plugin = manager.loadPlugin(PLUGIN_ID);
+        manager.createInstance(PLUGIN_ID, "solo", Map.of(), null);
+
+        // 端到端：定义级 invokeCommand → 唯一实例 → 实例子容器命令 bean 执行结果返回
+        Map<String, Object> result = plugin.invokeCommand("hello", Map.of("who", "world"), null, null);
+        assertEquals("hello:world", result.get("result"));
+        assertTrue(AgentInstanceRecorder.events().contains("command:hello"));
+    }
+
+    @Test
+    public void testDefinitionInvokeCommandThrowsOnMultipleInstances() {
+        IPlugin plugin = manager.loadPlugin(PLUGIN_ID);
+        manager.createInstance(PLUGIN_ID, "agent-1", Map.of(), null);
+        manager.createInstance(PLUGIN_ID, "agent-2", Map.of(), null);
+
+        NopException async = assertThrows(NopException.class,
+                () -> plugin.invokeCommandAsync("hello", Map.of(), null, null));
+        assertEquals(ERR_PLUGIN_MULTIPLE_INSTANCES.getErrorCode(), async.getErrorCode());
+        assertTrue(async.getParam("instanceKeys").toString().contains("agent-1"));
+        assertTrue(async.getParam("instanceKeys").toString().contains("agent-2"));
+
+        NopException sync = assertThrows(NopException.class,
+                () -> plugin.invokeCommand("hello", Map.of(), null, null));
+        assertEquals(ERR_PLUGIN_MULTIPLE_INSTANCES.getErrorCode(), sync.getErrorCode());
+    }
+
+    @Test
+    public void testDefinitionInvokeCommandDeactivatedSingleInstanceDelegatesInactive() {
+        IPlugin plugin = manager.loadPlugin(PLUGIN_ID);
+        IPluginInstance inst = manager.createInstance(PLUGIN_ID, "inactive-solo", Map.of(), null);
+        inst.deactivate();
+
+        // §7.1 边界：1 个 DEACTIVATED 实例 → 定义级委托到该实例 → 实例级 INACTIVE（带实例 key）
+        NopException e = assertThrows(NopException.class,
+                () -> plugin.invokeCommand("hello", Map.of(), null, null));
+        assertEquals(ERR_PLUGIN_INACTIVE.getErrorCode(), e.getErrorCode());
+        assertEquals("inactive-solo", e.getParam("instanceKey"), "INACTIVE 来自实例级检查（带实例 key 参数）");
+    }
+
+    @Test
+    public void testGetServiceUniqueImplementationBranch() {
+        manager.loadPlugin(PLUGIN_ID);
+        IPluginInstance inst = manager.createInstance(PLUGIN_ID, "unique", Map.of("agent.timeout", "10"), null);
+
+        // 唯一实现分支（无 primary 且仅一个实现）：IConfigReader 仅 config.reader bean 实现
+        IConfigReader reader = inst.getService(IConfigReader.class);
+        assertTrue(Proxy.isProxyClass(reader.getClass()), "唯一实现分支也返回生命周期代理");
+        assertEquals("10", reader.getTimeout());
+        assertEquals(1, inst.getServices(IConfigReader.class).size());
+    }
+
+    @Test
+    public void testMultiInstanceCommandIsolation() {
+        IPlugin plugin = manager.loadPlugin(PLUGIN_ID);
+        IPluginInstance i1 = manager.createInstance(PLUGIN_ID, "agent-1", Map.of("agent.only-instance", "one"), null);
+        IPluginInstance i2 = manager.createInstance(PLUGIN_ID, "agent-2", Map.of("agent.only-instance", "two"), null);
+
+        // per-instance 命令按实例配置域解析 → 结果可区分（多实例命令隔离可观测）
+        assertEquals("one", i1.invokeCommand("isolated", Map.of(), null, null).get("tag"));
+        assertEquals("two", i2.invokeCommand("isolated", Map.of(), null, null).get("tag"));
+
+        // 定义级 invokeCommand 在 2 实例下抛多实例异常（Phase 2 规则复核）
+        NopException e = assertThrows(NopException.class,
+                () -> plugin.invokeCommand("isolated", Map.of(), null, null));
+        assertEquals(ERR_PLUGIN_MULTIPLE_INSTANCES.getErrorCode(), e.getErrorCode());
+    }
+
+    @Test
+    public void testServiceProxyLifecycleMatrix() {
+        manager.loadPlugin(PLUGIN_ID);
+        IPluginInstance inst = manager.createInstance(PLUGIN_ID, "matrix", Map.of("agent.timeout", "10"), null);
+
+        // ACTIVATED：代理可用（行为与真实 bean 等价）
+        IConfigReader reader = inst.getService(IConfigReader.class);
+        assertTrue(Proxy.isProxyClass(reader.getClass()));
+        assertEquals("10", reader.getTimeout());
+
+        // deactivate → 同一代理引用调用抛 INACTIVE（快速失败，不悬空）
+        inst.deactivate();
+        NopException inactive = assertThrows(NopException.class, reader::getTimeout);
+        assertEquals(ERR_PLUGIN_INACTIVE.getErrorCode(), inactive.getErrorCode());
+
+        // 重新 activate → 同一代理引用恢复可用（按调用重新解析语义，不捕获一次性引用）
+        inst.activate();
+        assertEquals("10", reader.getTimeout());
+
+        // getServices 集合代理：deactivate 后全部 INACTIVE，重激活后按 bean id 恢复
+        Collection<ITool> tools = inst.getServices(ITool.class);
+        assertEquals(2, tools.size());
+        assertCollectionCallable(tools, true, true);
+        inst.deactivate();
+        for (ITool t : tools) {
+            assertThrows(NopException.class, t::getName);
+        }
+        inst.activate();
+        assertCollectionCallable(tools, true, true);
+
+        // destroy 后调用抛 INACTIVE
+        inst.destroy();
+        NopException destroyed = assertThrows(NopException.class, reader::getTimeout);
+        assertEquals(ERR_PLUGIN_INACTIVE.getErrorCode(), destroyed.getErrorCode());
+    }
+
+    private static void assertCollectionCallable(Collection<ITool> tools, boolean expectBash, boolean expectSearch) {
+        boolean sawBash = false;
+        boolean sawSearch = false;
+        for (ITool t : tools) {
+            String name = t.getName();
+            if ("bash".equals(name)) {
+                sawBash = true;
+            }
+            if ("search".equals(name)) {
+                sawSearch = true;
+            }
+        }
+        assertEquals(expectBash, sawBash);
+        assertEquals(expectSearch, sawSearch);
     }
 
     @Test

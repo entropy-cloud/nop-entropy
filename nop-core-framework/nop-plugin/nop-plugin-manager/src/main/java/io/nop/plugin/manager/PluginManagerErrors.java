@@ -10,6 +10,7 @@ public interface PluginManagerErrors {
     String ARG_INSTANCE_KEY = "instanceKey";
     String ARG_INSTANCE_KEYS = "instanceKeys";
     String ARG_BEAN_TYPE = "beanType";
+    String ARG_BEAN_ID = "beanId";
     String ARG_ACTIVATOR = "activator";
 
     ErrorCode ERR_PLUGIN_MISSING_CONFIG_FILE =
@@ -87,4 +88,21 @@ public interface PluginManagerErrors {
     ErrorCode ERR_PLUGIN_MULTIPLE_SERVICE_CANDIDATES =
             define("nop.err.plugin.multiple-service-candidates", "服务类型存在多个候选且无唯一 primary:{beanType}",
                     ARG_BEAN_TYPE);
+
+    /**
+     * getService/getServices 仅支持接口类型（生命周期绑定代理只能生成接口代理；
+     * 具体类传入明确抛错，禁止静默返回裸引用/裸集合）。
+     */
+    ErrorCode ERR_PLUGIN_SERVICE_PROXY_ONLY_INTERFACE =
+            define("nop.err.plugin.service-proxy-only-interface",
+                    "服务类型必须为接口（生命周期代理仅支持接口）:{beanType}",
+                    ARG_BEAN_TYPE);
+
+    /**
+     * 服务代理重激活后按 bean id 重新解析不到候选（容器 bean 定义变更的防御性失败，不静默返回 null）。
+     */
+    ErrorCode ERR_PLUGIN_SERVICE_CANDIDATE_NOT_FOUND =
+            define("nop.err.plugin.service-candidate-not-found",
+                    "服务候选不存在:{beanType},{beanId}",
+                    ARG_BEAN_TYPE, ARG_BEAN_ID);
 }

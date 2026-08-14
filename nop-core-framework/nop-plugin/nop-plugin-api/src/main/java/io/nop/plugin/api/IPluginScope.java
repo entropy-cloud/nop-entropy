@@ -42,11 +42,15 @@ public interface IPluginScope {
      *
      * <p>多候选规则：按 primary 优先；无 primary 时按 bean id 与接口匹配的唯一实现；
      * 多候选且无 primary 时抛明确异常（不静默返回集合）。
+     *
+     * <p><b>与实例级 getService 的区别（W4 裁定）</b>：等价仅指调用语义（多候选规则相同）；
+     * scope 是激活期句柄（activator 在激活流程内调用，无失效语义需求），
+     * <b>返回真实 bean 非生命周期代理</b>——instance 级才是代理边界。
      */
     <T> T getService(Class<T> serviceType);
 
     /**
-     * 按类型获取全部实现（集合版）。
+     * 按类型获取全部实现（集合版）；同 {@link #getService(Class)}——返回真实 bean 非代理。
      */
     <T> Collection<T> getServices(Class<T> serviceType);
 }

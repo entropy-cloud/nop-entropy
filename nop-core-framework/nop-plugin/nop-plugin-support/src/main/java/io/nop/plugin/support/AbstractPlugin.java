@@ -25,14 +25,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
 import static io.nop.plugin.api.NopPluginConstants.BEAN_NOP_PLUGIN_COMMAND_PREFIX;
+import static io.nop.plugin.api.PluginApiErrors.ARG_INSTANCE_KEYS;
 import static io.nop.plugin.api.PluginApiErrors.ARG_PLUGIN_ID;
 import static io.nop.plugin.api.PluginApiErrors.ERR_PLUGIN_DEFINITION_NOT_FOUND;
 import static io.nop.plugin.api.PluginApiErrors.ERR_PLUGIN_INACTIVE;
+import static io.nop.plugin.api.PluginApiErrors.ERR_PLUGIN_MULTIPLE_INSTANCES;
 
 /**
  * 插件基类：状态机感知（{@link #isStateMachineAware()} 默认 true）双路径实现。
@@ -43,7 +46,8 @@ import static io.nop.plugin.api.PluginApiErrors.ERR_PLUGIN_INACTIVE;
  * {@link #unload()} 丢弃定义回 UNLOADED；{@code start/stop} 按设计 §7.1 语义收敛
  * （start = load + createInstance(默认 key)，stop = destroyInstance + unload）——createInstance
  * 对 uber jar 轨（本类的实例化路径）为显式 successor 项（W4/W7），start 明确失败；
- * 无 ACTIVATED 实例时 invokeCommand 抛 INACTIVE（不回退宿主容器）。
+ * 定义级 invokeCommand（§7.1，W4 落地）：实例数=1 经该实例路由 / >1 抛
+ * ERR_PLUGIN_MULTIPLE_INSTANCES / =0 抛 INACTIVE（不回退宿主容器）。
  *
  * <p><b>兼容路径</b>（子类 override {@code isStateMachineAware()} 返回 false）：保留旧 start/stop
  * 语义（{@code AppConfig.assignConfigValue} 全局写入 + doStart 子容器创建），行为与改造前等价。
@@ -237,12 +241,19 @@ public abstract class AbstractPlugin extends LifeCycleSupport implements IPlugin
                                                                    String fieldSelection,
                                                                    IPluginCancelToken cancelToken) {
         if (isStateMachineAware()) {
+            // §7.1 兼容规则（W4 落地）：0 实例抛 INACTIVE；1 实例经该实例路由（实例级检查决定
+            // DEACTIVATED 抛 INACTIVE）；多实例抛 ERR_PLUGIN_MULTIPLE_INSTANCES（无论激活状态，
+            // 须经 IPluginInstance 显式指定实例）
             List<IPluginInstance> instances = getInstances();
+            if (instances.size() > 1) {
+                throw new NopException(ERR_PLUGIN_MULTIPLE_INSTANCES)
+                        .param(ARG_PLUGIN_ID, getPluginDefinitionPath())
+                        .param(ARG_INSTANCE_KEYS, instanceKeys(instances));
+            }
             if (instances.isEmpty()) {
                 throw new NopException(ERR_PLUGIN_INACTIVE).param(ARG_PLUGIN_ID, getPluginDefinitionPath());
             }
-            throw new UnsupportedOperationException(
-                    "not yet implemented: per-instance command routing (W4)");
+            return instances.get(0).invokeCommandAsync(command, args, fieldSelection, cancelToken);
         }
 
         String beanName = BEAN_NOP_PLUGIN_COMMAND_PREFIX + command;
@@ -258,5 +269,13 @@ public abstract class AbstractPlugin extends LifeCycleSupport implements IPlugin
                                              String fieldSelection,
                                              IPluginCancelToken cancelToken) {
         return FutureHelper.syncGet(invokeCommandAsync(command, args, fieldSelection, cancelToken));
+    }
+
+    private static List<String> instanceKeys(List<IPluginInstance> instances) {
+        List<String> keys = new ArrayList<>(instances.size());
+        for (IPluginInstance instance : instances) {
+            keys.add(instance.getInstanceKey());
+        }
+        return keys;
     }
 }

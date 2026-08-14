@@ -22,6 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import static io.nop.plugin.api.PluginApiErrors.ARG_PLUGIN_ID;
 import static io.nop.plugin.api.PluginApiErrors.ERR_PLUGIN_INACTIVE;
+import static io.nop.plugin.api.PluginApiErrors.ERR_PLUGIN_MULTIPLE_INSTANCES;
 import static io.nop.plugin.manager.PluginManagerErrors.ARG_INSTANCE_KEY;
 import static io.nop.plugin.manager.PluginManagerErrors.ARG_INSTANCE_KEYS;
 import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_INSTANCES_NOT_EMPTY;
@@ -40,8 +41,8 @@ import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_INSTANCE_NOT_
  * <p>钉死行为：VFS 轨无 Maven 坐标（groupId/artifactId/version 为 null）；start/stop 已收敛为
  * §7.1 语义（start = load + createInstance(默认 key)；stop = destroyInstance + unload）；
  * P2-C 裁决：定义级 {@link #updateConfig} 更新定义默认配置——ACTIVATED 实例热应用（经委托 provider
- * 触发变更通知），DEACTIVATED 实例缓存、下次 activate 应用。LOADED 且 0 实例时 invokeCommand
- * 抛 INACTIVE（§7.1，W4 完善路由）。
+ * 触发变更通知），DEACTIVATED 实例缓存、下次 activate 应用。定义级 invokeCommand（§7.1，W4 落地）：
+ * 实例数=1 经该实例路由 / >1 抛 ERR_PLUGIN_MULTIPLE_INSTANCES / =0 抛 INACTIVE。
  */
 public class VfsPluginDefinition implements IPlugin {
     private final String pluginId;
@@ -188,18 +189,49 @@ public class VfsPluginDefinition implements IPlugin {
         }
     }
 
+    /**
+     * 定义级 invokeCommand（§7.1 兼容规则，W4 落地）：实例数=1 → 经该实例路由
+     * （路由到实例子容器命令 bean，实例级检查决定 DEACTIVATED 抛 INACTIVE）；
+     * 实例数>1 → 抛 {@code ERR_PLUGIN_MULTIPLE_INSTANCES}（无论实例激活状态，
+     * 须经 {@link IPluginInstance#invokeCommand} 显式指定实例）；
+     * 实例数=0（LOADED 无实例）→ 抛 INACTIVE。
+     */
     @Override
     public CompletionStage<Map<String, Object>> invokeCommandAsync(String command, Map<String, Object> args,
                                                                    String fieldSelection,
                                                                    IPluginCancelToken cancelToken) {
-        throw new NopException(ERR_PLUGIN_INACTIVE).param(ARG_PLUGIN_ID, pluginId);
+        List<IPluginInstance> instances = getInstances();
+        if (instances.size() > 1) {
+            throw new NopException(ERR_PLUGIN_MULTIPLE_INSTANCES).param(ARG_PLUGIN_ID, pluginId)
+                    .param(ARG_INSTANCE_KEYS, instanceKeys(instances));
+        }
+        if (instances.isEmpty()) {
+            throw new NopException(ERR_PLUGIN_INACTIVE).param(ARG_PLUGIN_ID, pluginId);
+        }
+        return instances.get(0).invokeCommandAsync(command, args, fieldSelection, cancelToken);
     }
 
     @Override
     public Map<String, Object> invokeCommand(String command, Map<String, Object> args,
                                              String fieldSelection,
                                              IPluginCancelToken cancelToken) {
-        throw new NopException(ERR_PLUGIN_INACTIVE).param(ARG_PLUGIN_ID, pluginId);
+        List<IPluginInstance> instances = getInstances();
+        if (instances.size() > 1) {
+            throw new NopException(ERR_PLUGIN_MULTIPLE_INSTANCES).param(ARG_PLUGIN_ID, pluginId)
+                    .param(ARG_INSTANCE_KEYS, instanceKeys(instances));
+        }
+        if (instances.isEmpty()) {
+            throw new NopException(ERR_PLUGIN_INACTIVE).param(ARG_PLUGIN_ID, pluginId);
+        }
+        return instances.get(0).invokeCommand(command, args, fieldSelection, cancelToken);
+    }
+
+    private static List<String> instanceKeys(List<IPluginInstance> instances) {
+        List<String> keys = new ArrayList<>(instances.size());
+        for (IPluginInstance instance : instances) {
+            keys.add(instance.getInstanceKey());
+        }
+        return keys;
     }
 
     /**

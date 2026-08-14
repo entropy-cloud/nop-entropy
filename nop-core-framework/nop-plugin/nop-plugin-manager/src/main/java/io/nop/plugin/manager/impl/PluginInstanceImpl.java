@@ -20,9 +20,11 @@ import io.nop.plugin.manager.PluginManagerConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
@@ -30,10 +32,12 @@ import static io.nop.plugin.api.NopPluginConstants.BEAN_NOP_PLUGIN_COMMAND_PREFI
 import static io.nop.plugin.api.PluginApiErrors.ARG_PLUGIN_ID;
 import static io.nop.plugin.api.PluginApiErrors.ERR_PLUGIN_INACTIVE;
 import static io.nop.plugin.manager.PluginManagerErrors.ARG_ACTIVATOR;
+import static io.nop.plugin.manager.PluginManagerErrors.ARG_BEAN_TYPE;
 import static io.nop.plugin.manager.PluginManagerErrors.ARG_INSTANCE_KEY;
 import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_ACTIVATION_FAILED;
 import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_ACTIVATOR_NOT_FOUND;
 import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_INVALID_ACTIVATOR;
+import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_SERVICE_PROXY_ONLY_INTERFACE;
 
 /**
  * 插件实例（实例级状态机，设计文档 01-architecture-baseline.md §7.2）——固定实例对象：
@@ -129,7 +133,10 @@ public class PluginInstanceImpl implements IPluginInstance {
             throw new NopException(ERR_PLUGIN_INACTIVE).param(ARG_PLUGIN_ID, getPluginId())
                     .param(ARG_INSTANCE_KEY, instanceKey);
         }
-        return s.getService(serviceType);
+        checkProxyable(serviceType);
+        // 包装时立即解析一次：多候选/无候选错误在 getService 调用点抛出（不延迟到首次代理调用）
+        s.getService(serviceType);
+        return ServiceProxy.newInstance(this, serviceType);
     }
 
     @Override
@@ -139,7 +146,27 @@ public class PluginInstanceImpl implements IPluginInstance {
             throw new NopException(ERR_PLUGIN_INACTIVE).param(ARG_PLUGIN_ID, getPluginId())
                     .param(ARG_INSTANCE_KEY, instanceKey);
         }
-        return s.getServices(serviceType);
+        checkProxyable(serviceType);
+        // 集合代理以 getBeansOfType 的 bean id 为候选键（重激活后按 id 重新解析）
+        Map<String, T> beans = s.getServiceBeans(serviceType);
+        List<T> proxies = new ArrayList<>(beans.size());
+        for (String beanId : beans.keySet()) {
+            proxies.add(ServiceProxy.newInstance(this, serviceType, beanId));
+        }
+        return proxies;
+    }
+
+    /**
+     * 生命周期代理仅支持接口类型（具体类无法生成代理）；具体类传入明确抛错，
+     * 禁止静默返回裸引用/裸集合（W4 Phase 1 裁定）。
+     */
+    private void checkProxyable(Class<?> serviceType) {
+        if (!serviceType.isInterface()) {
+            throw new NopException(ERR_PLUGIN_SERVICE_PROXY_ONLY_INTERFACE)
+                    .param(ARG_BEAN_TYPE, serviceType.getName())
+                    .param(ARG_PLUGIN_ID, getPluginId())
+                    .param(ARG_INSTANCE_KEY, instanceKey);
+        }
     }
 
     @Override

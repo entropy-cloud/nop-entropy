@@ -3,8 +3,11 @@ package io.nop.plugin.test;
 /**
  * 实例配置域读取 bean：属性经 ${var} 占位符从实例容器的 config provider 解析
  * （实例合并视图命中 / 全局回落 / 实例覆盖全局 / 仅实例键）。
+ *
+ * <p>实现 {@link IConfigReader}——W4 代理测试夹具接口（有状态 bean 保持具体类，
+ * 消费方经接口类型获取代理）。
  */
-public class ConfigReaderBean {
+public class ConfigReaderBean implements IConfigReader {
     private String timeout;
     private String mode;
     private String globalValue;

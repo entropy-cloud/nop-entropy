@@ -16,5 +16,8 @@
             <property name="onlyInstance" value="${agent.only-instance:none}"/>
         </bean>
         <bean id="nopPluginCommand_hello" class="io.nop.plugin.test.HelloCommand"/>
+        <bean id="nopPluginCommand_isolated" class="io.nop.plugin.test.IsolatedCommand">
+            <property name="tag" value="${agent.only-instance:none}"/>
+        </bean>
     </beans>
 </plugin>

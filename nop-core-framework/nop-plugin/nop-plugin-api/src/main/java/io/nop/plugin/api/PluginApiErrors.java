@@ -11,6 +11,7 @@ import static io.nop.api.core.exceptions.ErrorCode.define;
  */
 public interface PluginApiErrors {
     String ARG_PLUGIN_ID = "pluginId";
+    String ARG_INSTANCE_KEYS = "instanceKeys";
 
     /**
      * 插件没有 ACTIVATED 实例（aware 定义在 LOADED 且 0 实例时命令不可用；W4 完善实例数=1 路由）。
@@ -23,4 +24,13 @@ public interface PluginApiErrors {
      */
     ErrorCode ERR_PLUGIN_DEFINITION_NOT_FOUND =
             define("nop.err.plugin.definition-not-found", "插件定义文件不存在或不可解析:{pluginId}", ARG_PLUGIN_ID);
+
+    /**
+     * 定义级 invokeCommand 多实例歧义（§7.1：仅实例数=1 时经该实例路由；多实例须经
+     * {@link IPluginInstance#invokeCommand} 显式指定实例，避免静默路由错误）。
+     */
+    ErrorCode ERR_PLUGIN_MULTIPLE_INSTANCES =
+            define("nop.err.plugin.multiple-instances",
+                    "插件存在多个实例，invokeCommand 须经 IPluginInstance 显式指定实例:{pluginId},{instanceKeys}",
+                    ARG_PLUGIN_ID, ARG_INSTANCE_KEYS);
 }
