@@ -197,8 +197,8 @@ IM 渠道**仅发送文本/Markdown 通知**（报告摘要：reportName/dashboa
 
 `NopDatavReportScheduler.executeScheduledReport(Map<String,Object> params)`：
 - **单 `Map<String,Object>` 参数**（适配 `BeanMethodJobInvoker` 的 singleMapFn 路径，规避 `-parameters` 编译标志反射形参名依赖，与 `MetaQualityCheckpointScheduler.executeScheduledCheckpoint` 一致）。
-- **吞业务错误返回正常结果对象**：catch 所有 `Exception` → 记 delivery failed + ERROR 日志 → 返回 `Map{reportTaskId, status: "failed", error: <msg>}`。不向外抛（规避 LocalJobScheduler FAILED-brick）。
-- **仅基础设施错误（Error/RuntimeException 非业务异常）才抛**：如 `OutOfMemoryError`。业务异常（`NopException`、`RuntimeException` 含明确业务原因）一律吞。
+- **吞业务错误返回正常结果对象**：`catch (Exception)` → 记 delivery failed + ERROR 日志 → 返回 `Map{reportTaskId, status: "failed", error: <msg>}`。不向外抛（规避 LocalJobScheduler FAILED-brick）。
+- **仅基础设施错误（`Error`）才抛**：如 `OutOfMemoryError`、`StackOverflowError`。实现契约为 `catch (Exception)`（非 `catch (Throwable)`），使 `Error` 子类不被捕获而向外传播。业务异常（`NopException`、`RuntimeException` 含明确业务原因）一律吞。此约定同时适用于 `NopDatavAlertScheduler.executeScheduledAlert`（Dim14-04）。
 
 返回值结构（正常 + 业务失败均返回此结构，区别于抛异常）：
 ```
@@ -303,13 +303,21 @@ dict `datav/alert-operator`（string）：gt/gte/lt/lte/eq/neq/between。
 
 ### 转换表
 
+> **通知顺序语义（Dim14-03）**：所有含通知动作的转换均遵循「先持久化 interim state → 发通知 →
+> 成功后才回写通知时间戳」的顺序。`lastNotifiedTime` / `lastResolvedTime` 仅在通知成功后设置。
+> 通知失败时异常向上抛（由调度器层吞错返回正常结果），时间戳保持原值——下次评估可重试通知。
+
 | 当前态 | 条件 | 目标态 | 通知动作 | 时间戳更新 |
 |--------|------|--------|----------|-----------|
-| OK | 条件满足 | TRIGGERED | 发告警通知（trigger） | `lastTriggeredTime = now`，`lastNotifiedTime = now` |
-| TRIGGERED | 条件不再满足 | OK | 发恢复通知（recover） | `lastResolvedTime = now` |
-| TRIGGERED | 条件持续 + `rearmSeconds > 0` + `now - lastNotifiedTime >= rearmSeconds` | TRIGGERED | 重发告警通知（trigger，rearm） | `lastNotifiedTime = now` |
+| OK | 条件满足 | TRIGGERED | 发告警通知（trigger） | `lastTriggeredTime = now`（interim save 前置）；`lastNotifiedTime = now`（仅通知成功后设置） |
+| TRIGGERED | 条件不再满足 | OK | 发恢复通知（recover） | `lastResolvedTime = now`（仅通知成功后设置） |
+| TRIGGERED | 条件持续 + `rearmSeconds > 0` + `now - lastNotifiedTime >= rearmSeconds` | TRIGGERED | 重发告警通知（trigger，rearm） | `lastNotifiedTime = now`（仅通知成功后设置） |
 | TRIGGERED | 条件持续 + `rearmSeconds == 0` | TRIGGERED | 不重复 | （无） |
 | OK | 条件不满足 | OK | 不通知 | （无） |
+
+**重启安全（restart safety）**：若 JVM 在 interim save 与通知后 save 之间崩溃，`NopDatavAlertState`
+为 `TRIGGERED` + `lastNotifiedTime = null`。`rearmSeconds > 0` 时下次评估经 `shouldRearm(null) = true`
+重新通知；`rearmSeconds == 0` 时 `rearmSeconds > 0` guard 短路进入不重复通知分支（无重试机制，by design）。
 
 ### rearm 语义
 

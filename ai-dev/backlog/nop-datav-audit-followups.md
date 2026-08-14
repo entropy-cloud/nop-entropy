@@ -3,21 +3,22 @@
 > Status: backlog（P2-only items，不发起独立 remediation plan）
 > Sources: `ai-dev/audits/nop-datav/2026-08-10-1516-multi-audit-nop-datav.md`（multi，P2×10）、`ai-dev/audits/nop-datav/2026-08-10-1516-open-audit-nop-datav.md`（open，P2×7 + nits）
 > Rules: 每条标注 source audit 路径与 finding ID 以保持可追溯；P2 非降解项，但优先级低于 P0/P1（已进 plan）。
+> Resolved: #1 ✅ #2 ✅ #3 ✅ #6 ✅ #9 ✅ #10 ✅（plan `ai-dev/plans/nop-datav/2026-08-14-0937-2-d5-report-alert-reliability-defects.md` 已 completed 2026-08-14）
 
 ## From `2026-08-10-1516-multi-audit-nop-datav.md`
 
 | # | Finding | Source | Note |
 |---|---------|--------|------|
-| 1 | Dim14-03 — `AlertEvaluator` 持久化 TRIGGERED+lastNotifiedTime 在 `sendAlertNotification` 之前；SMTP 失败时告警被记为「已通知无错」且无通知发出（drift vs design §269-273） | `ai-dev/audits/nop-datav/2026-08-10-1516-multi-audit-nop-datav.md` §Dim14-03 | 改为通知成功后再设 lastNotifiedTime；失败设 errorMsg + 留 lastNotifiedTime=null 立即重试 |
-| 2 | Dim14-04 — 调度器 `catch (Throwable)` 含 OOM/Error，违背 design §3/§9「基础设施错误应传播」 | `…multi-audit…` §Dim14-04 | `NopDatavReportScheduler:222` / `NopDatavAlertScheduler:207` 改 `catch (Exception)`，让 `Error` 传播 |
-| 3 | Dim09-02 — `AlertThresholdComparator`/`AlertAggregator` 配置错误用裸 `IllegalArgumentException` 到达公共 `evaluateAlertNow` | `…multi-audit…` §Dim09-02 | 换 `NopException(ERR_DATAV_ALERT_INVALID_THRESHOLD)` |
+| 1 | ✅ Dim14-03 — `AlertEvaluator` 持久化 TRIGGERED+lastNotifiedTime 在 `sendAlertNotification` 之前；SMTP 失败时告警被记为「已通知无错」且无通知发出（drift vs design §269-273） | `ai-dev/audits/nop-datav/2026-08-10-1516-multi-audit-nop-datav.md` §Dim14-03 | **已修复** plan `2026-08-14-0937-2` Phase 1：通知成功后再设 lastNotifiedTime；失败留 lastNotifiedTime=null 立即重试 |
+| 2 | ✅ Dim14-04 — 调度器 `catch (Throwable)` 含 OOM/Error，违背 design §3/§9「基础设施错误应传播」 | `…multi-audit…` §Dim14-04 | **已修复** plan `2026-08-14-0937-2` Phase 2：`catch (Exception)` 让 `Error` 传播 |
+| 3 | ✅ Dim09-02 — `AlertThresholdComparator`/`AlertAggregator` 配置错误用裸 `IllegalArgumentException` 到达公共 `evaluateAlertNow` | `…multi-audit…` §Dim09-02 | **已修复** plan `2026-08-14-0937-2` Phase 3：换 `NopException(ERR_DATAV_ALERT_VALUE_REQUIRED/UNSUPPORTED_OPERATOR/UNSUPPORTED_AGGREGATION)` |
 | 4 | Dim09-03 — `createExportTask` 空 sourceType/sourceId 用 `ERR_DATAV_EXPORT_TASK_NOT_FOUND` + ARG mismatch | `…multi-audit…` §Dim09-03 | 定义 `ERR_DATAV_EXPORT_MISSING_SOURCE`；并把空源检查前移到 `validateFormat` 之前 |
 | 5 | Dim09-04 — `ERR_DATAV_EXPORT_FAILED` / `ERR_DATAV_CHATBI_TOOL_EXECUTION_FAILED` 定义但无引用 | `…multi-audit…` §Dim09-04 | 导出侧由 Plan {2}（Dim07-01）退役 `ERR_DATAV_EXPORT_FAILED`；chatbi 侧见 open-audit AR-6 |
-| 6 | Dim09-05 — 调度器缺 job 参数抛裸 `IllegalArgumentException`（被外层 catch 吞） | `…multi-audit…` §Dim09-05 | 换 `NopException(ERR_DATAV_REPORT_TASK_NOT_FOUND)` 等结构化码 |
+| 6 | ✅ Dim09-05 — 调度器缺 job 参数抛裸 `IllegalArgumentException`（被外层 catch 吞） | `…multi-audit…` §Dim09-05 | **已修复** plan `2026-08-14-0937-2` Phase 2：换 `NopException(ERR_DATAV_ALERT_RULE_NOT_FOUND).param(ARG_ALERT_RULE_ID, "(absent from job params)")` |
 | 7 | Dim04-01 — `NopDatavScreenSnapshot.snapshotContent` 缺 `mandatory="true"`（screen-design §1.3） | `…multi-audit…` §Dim04-01 | ORM 加 `mandatory="true"` |
 | 8 | Dim04-02 — `NopDatavScreenSnapshot` UK 名 `SCR_VER` 与设计 `SCREEN_VER` 不符（screen-design §84） | `…multi-audit…` §Dim04-02 | 重命名 UK 匹配设计契约 |
-| 9 | Dim16-02 — 告警「panel 存在但 queryPanelData 抛错」分支无独立测试 | `…multi-audit…` §Dim16-02 | 加一例：dataset 指向不存在表，断言 errorMsg 落库 + state 保留 |
-| 10 | Dim16-03 — 报告交付「导出中途失败」路径无测试 | `…multi-audit…` §Dim16-03 | 加一例：report 绑定面板 dataset 指向不存在表，断言 delivery 到 FAILED + errorMsg |
+| 9 | ✅ Dim16-02 — 告警「panel 存在但 queryPanelData 抛错」分支无独立测试 | `…multi-audit…` §Dim16-02 | **已修复** plan `2026-08-14-0937-2` Phase 4：testPanelQueryFailureRecordsErrorAndPreservesState |
+| 10 | ✅ Dim16-03 — 报告交付「导出中途失败」路径无测试 | `…multi-audit…` §Dim16-03 | **已修复** plan `2026-08-14-0937-2` Phase 4：testReportDeliveryExportFailureRecordsError（异步轮询） |
 
 ## From `2026-08-10-1516-open-audit-nop-datav.md`
 
