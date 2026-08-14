@@ -84,6 +84,40 @@ public class TestDatavListAndDescribeExecutors extends AbstractNopDatavTest {
         assertEquals("ds-sales-kw", datasets.get(0).get("sid"));
     }
 
+    /**
+     * #17 AR-7：keyword 过滤与 status 过滤组合——验证 status=1 下推到 SQL 后，
+     * 内存 keyword 过滤仍正确工作，且非活跃数据集（status=0）不被加载（即使其名称匹配 keyword）。
+     */
+    @Test
+    public void testListKeywordFilterCombinedWithActiveStatus() {
+        daoProvider.daoFor(NopReportDataset.class).saveEntityDirectly(
+                newReportDataset("ds-sales-active", "sql", "select 1", "Regional Sales", 1));
+        daoProvider.daoFor(NopReportDataset.class).saveEntityDirectly(
+                newReportDataset("ds-orders-active", "sql", "select 2", "Order Records", 1));
+        // 非活跃数据集（status=0）名称匹配 keyword，但不应被加载
+        daoProvider.daoFor(NopReportDataset.class).saveEntityDirectly(
+                newReportDataset("ds-sales-inactive", "sql", "select 3", "Historical Sales", 0));
+
+        DatavListDatasetsExecutor executor = new DatavListDatasetsExecutor();
+        executor.setDaoProvider(daoProvider);
+
+        AiToolCall call = new AiToolCall();
+        call.setToolName(DatavListDatasetsExecutor.TOOL_NAME);
+        call.setInput(JsonTool.stringify(Map.of("keyword", "sales")));
+
+        AiToolCallResult result = executor.executeAsync(call, new ChatBiToolExecuteContext()).toCompletableFuture().join();
+
+        assertEquals("success", result.getStatus());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> parsed = (Map<String, Object>) JsonTool.parseNonStrict(result.getOutput().getBody());
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> datasets = (List<Map<String, Object>>) parsed.get("datasets");
+        assertEquals(1, datasets.size(), "keyword 'sales' matches only 1 ACTIVE dataset (inactive excluded)");
+        assertEquals("ds-sales-active", datasets.get(0).get("sid"));
+        boolean hasInactive = datasets.stream().anyMatch(d -> "ds-sales-inactive".equals(d.get("sid")));
+        assertTrue(!hasInactive, "inactive dataset must not be loaded even if name matches keyword");
+    }
+
     @Test
     public void testDescribeReturnsFieldsAndParams() {
         String dsMeta = JsonTool.stringify(Map.of("fields", List.of(

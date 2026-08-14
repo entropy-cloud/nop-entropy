@@ -32,6 +32,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_EXPORT_CONCURRENCY_LIMIT;
+import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_EXPORT_MISSING_SOURCE;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_EXPORT_NOT_FINISHED;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_EXPORT_NOT_OWNER;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_EXPORT_TYPE_NOT_SUPPORTED;
@@ -170,6 +171,33 @@ public class TestNopDatavExportE2E extends AbstractNopDatavTest {
         NopException ex = assertThrows(NopException.class, () ->
                 exportBiz.createExportTask("dashboard", "anyDash", "csv", null, ctx));
         assertEquals(ERR_DATAV_EXPORT_TYPE_NOT_SUPPORTED.getErrorCode(), ex.getErrorCode());
+    }
+
+    /**
+     * #4 Dim09-03：空 sourceType/sourceId 抛 ERR_DATAV_EXPORT_MISSING_SOURCE（非 ERR_DATAV_EXPORT_TASK_NOT_FOUND）。
+     * 且空源检查在 validateFormat 之前：传非法 format + 空源 → 期望 missing-source（非 type-not-supported）。
+     */
+    @Test
+    public void testCreateExportTask_emptySource_throwsMissingSource() {
+        IServiceContext ctx = ownerContext("alice");
+
+        // 空源 + 合法 format → MISSING_SOURCE
+        NopException ex1 = assertThrows(NopException.class, () ->
+                exportBiz.createExportTask("", "dash-x", "csv", null, ctx));
+        assertEquals(ERR_DATAV_EXPORT_MISSING_SOURCE.getErrorCode(), ex1.getErrorCode(),
+                "empty sourceType should throw MISSING_SOURCE, got: " + ex1.getErrorCode());
+
+        NopException ex2 = assertThrows(NopException.class, () ->
+                exportBiz.createExportTask("panel", "", "csv", null, ctx));
+        assertEquals(ERR_DATAV_EXPORT_MISSING_SOURCE.getErrorCode(), ex2.getErrorCode(),
+                "empty sourceId should throw MISSING_SOURCE, got: " + ex2.getErrorCode());
+
+        // 空源 + 非法 format → 仍期望 MISSING_SOURCE（证明空源检查在 format 校验之前）
+        NopException ex3 = assertThrows(NopException.class, () ->
+                exportBiz.createExportTask("", "", "pdf", null, ctx));
+        assertEquals(ERR_DATAV_EXPORT_MISSING_SOURCE.getErrorCode(), ex3.getErrorCode(),
+                "empty source with invalid format should still throw MISSING_SOURCE (check precedes format validation), got: "
+                        + ex3.getErrorCode());
     }
 
     /**

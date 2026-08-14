@@ -17,7 +17,6 @@
     <name>nop-datav</name>
 
     <modules>
-        <module>nop-datav-chart</module>
         <module>nop-datav-api</module>
         <module>nop-datav-codegen</module>
         <module>nop-datav-dao</module>

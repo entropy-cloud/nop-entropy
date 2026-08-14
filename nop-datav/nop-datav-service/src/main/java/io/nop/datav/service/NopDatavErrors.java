@@ -230,6 +230,12 @@ public interface NopDatavErrors {
             ARG_TASK_ID
     );
 
+    ErrorCode ERR_DATAV_EXPORT_MISSING_SOURCE = define(
+            "nop.err.datav.export-missing-source",
+            "Export source is missing: sourceType={sourceType}, sourceId={sourceId}",
+            ARG_SOURCE_TYPE, ARG_SOURCE_ID
+    );
+
     ErrorCode ERR_DATAV_EXPORT_TYPE_NOT_SUPPORTED = define(
             "nop.err.datav.export-type-not-supported",
             "Export format not supported: {format}. Supported: csv, xlsx.",

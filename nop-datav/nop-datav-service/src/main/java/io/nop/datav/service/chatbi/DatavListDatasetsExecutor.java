@@ -4,6 +4,8 @@ import io.nop.ai.toolkit.api.IToolExecuteContext;
 import io.nop.ai.toolkit.api.IToolExecutor;
 import io.nop.ai.toolkit.model.AiToolCall;
 import io.nop.ai.toolkit.model.AiToolCallResult;
+import io.nop.api.core.beans.FilterBeans;
+import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IDaoProvider;
@@ -91,23 +93,24 @@ public class DatavListDatasetsExecutor implements IToolExecutor {
 
     private List<NopReportDataset> findActiveDatasets(String keyword) {
         IEntityDao<NopReportDataset> dao = daoProvider.daoFor(NopReportDataset.class);
-        // 加载全部活跃数据集后在内存过滤 keyword（数据集通常数量有限，避免拼动态 LIKE 条件）。
-        // owner RLS 由 DAO 层/查询上下文处理；这里按 status 过滤活跃项。
-        List<NopReportDataset> all = dao.findAll();
-        List<NopReportDataset> filtered = new ArrayList<>();
-        for (NopReportDataset ds : all) {
-            if (ds.getStatus() == null || ds.getStatus() != STATUS_ACTIVE) {
-                continue;
+        // status=1 过滤下推到 SQL 层，避免加载非活跃数据集行（含 dsText/dsMeta VARCHAR(131072) 大字段）。
+        // owner RLS 由 DAO 层/查询上下文处理。
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq(NopReportDataset.PROP_NAME_status, STATUS_ACTIVE));
+        @SuppressWarnings("unchecked")
+        List<NopReportDataset> active = (List<NopReportDataset>) dao.findAllByQuery(query);
+        if (keyword == null || keyword.isEmpty()) {
+            return active;
+        }
+        // keyword 过滤在内存中对已过滤的活跃集执行（数据集通常数量有限，避免拼动态 LIKE 条件）
+        String kw = keyword.toLowerCase();
+        List<NopReportDataset> filtered = new ArrayList<>(active.size());
+        for (NopReportDataset ds : active) {
+            String dsName = ds.getDsName() != null ? ds.getDsName() : "";
+            String desc = ds.getDescription() != null ? ds.getDescription() : "";
+            if (dsName.toLowerCase().contains(kw) || desc.toLowerCase().contains(kw)) {
+                filtered.add(ds);
             }
-            if (keyword != null && !keyword.isEmpty()) {
-                String dsName = ds.getDsName() != null ? ds.getDsName() : "";
-                String desc = ds.getDescription() != null ? ds.getDescription() : "";
-                String kw = keyword.toLowerCase();
-                if (!dsName.toLowerCase().contains(kw) && !desc.toLowerCase().contains(kw)) {
-                    continue;
-                }
-            }
-            filtered.add(ds);
         }
         return filtered;
     }

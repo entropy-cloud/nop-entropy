@@ -28,7 +28,7 @@
                 <col id="snapshotVersion" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--快照内容-->
-                <col id="snapshotContent" sortable="true"/>
+                <col id="snapshotContent" mandatory="true" sortable="true"/>
 
                 <!--发布人-->
                 <col id="publishedBy" sortable="true"/>

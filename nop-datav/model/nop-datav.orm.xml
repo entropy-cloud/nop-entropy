@@ -782,8 +782,8 @@
                 <column code="SNAPSHOT_VERSION" displayName="快照版本" mandatory="true" name="snapshotVersion"
                         propId="3" stdDataType="long" stdSqlType="BIGINT"
                         i18n-en:displayName="Snapshot Version"/>
-                <column code="SNAPSHOT_CONTENT" displayName="快照内容" domain="clobJson" name="snapshotContent"
-                        propId="4" stdDataType="string" stdDomain="json" stdSqlType="CLOB"
+                <column code="SNAPSHOT_CONTENT" displayName="快照内容" domain="clobJson" mandatory="true"
+                        name="snapshotContent" propId="4" stdDataType="string" stdDomain="json" stdSqlType="CLOB"
                         i18n-en:displayName="Snapshot Content"/>
                 <column code="PUBLISHED_BY" displayName="发布人" name="publishedBy" precision="50" propId="5"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Published By"/>
@@ -818,7 +818,7 @@
                 </to-one>
             </relations>
             <unique-keys>
-                <unique-key name="UK_NOP_DATAV_SCREEN_SNAPSHOT_SCR_VER" columns="screenId,snapshotVersion"
+                <unique-key name="UK_NOP_DATAV_SCREEN_SNAPSHOT_SCREEN_VER" columns="screenId,snapshotVersion"
                             i18n-en:displayName="Unique Snapshot Per Screen Version"/>
             </unique-keys>
             <indexes>

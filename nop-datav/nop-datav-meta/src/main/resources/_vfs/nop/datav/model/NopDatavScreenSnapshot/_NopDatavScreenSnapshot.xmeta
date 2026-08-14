@@ -17,7 +17,7 @@
     </x:post-extends>
 
     <keys>
-        <key name="UK_NOP_DATAV_SCREEN_SNAPSHOT_SCR_VER" props="screenId,snapshotVersion"/>
+        <key name="UK_NOP_DATAV_SCREEN_SNAPSHOT_SCREEN_VER" props="screenId,snapshotVersion"/>
     </keys>
 
     <props>
@@ -34,7 +34,7 @@
             <schema type="java.lang.Long"/>
         </prop>
         <prop name="snapshotContent" displayName="快照内容" propId="4" i18n-en:displayName="Snapshot Content"
-              queryable="true" sortable="true" insertable="true" updatable="true"
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true"
               graphql:jsonComponentProp="snapshotContentComponent">
             <schema stdDomain="json" domain="clobJson" type="java.lang.String"/>
         </prop>
@@ -84,7 +84,7 @@
             <schema type="String"/>
         </prop>
         <prop name="snapshotContentComponent" tagSet="json,pub,edit" ext:kind="component" internal="true"
-              insertable="true" updatable="true" lazy="true">
+              insertable="true" updatable="true" mandatory="true" lazy="true">
             <schema type="io.nop.orm.component.JsonOrmComponent"/>
         </prop>
     </props>

@@ -227,9 +227,10 @@ public class ChatBiToolCallingLoop {
                 return;
             }
             try {
+                Object parsedObj = JsonTool.parseNonStrict(content);
                 @SuppressWarnings("unchecked")
-                Map<String, Object> parsed = JsonTool.parseNonStrict(content) instanceof Map
-                        ? (Map<String, Object>) JsonTool.parseNonStrict(content)
+                Map<String, Object> parsed = parsedObj instanceof Map
+                        ? (Map<String, Object>) parsedObj
                         : null;
                 if (parsed == null) {
                     return;

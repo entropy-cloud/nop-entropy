@@ -61,6 +61,7 @@ import static io.nop.datav.service.NopDatavErrors.ARG_TASK_ID;
 import static io.nop.datav.service.NopDatavErrors.ARG_USER_NAME;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_DASHBOARD_NOT_FOUND;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_EXPORT_CONCURRENCY_LIMIT;
+import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_EXPORT_MISSING_SOURCE;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_EXPORT_NOT_FINISHED;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_EXPORT_NOT_OWNER;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_EXPORT_TASK_NOT_FOUND;
@@ -124,15 +125,15 @@ public class NopDatavExportTaskBizModel extends CrudBizModel<NopDatavExportTask>
     @BizMutation
     @Auth(permissions = "NopDatavExportTask:createExportTask")
     public NopDatavExportTask createExportTask(@Name("sourceType") String sourceType,
-                                               @Name("sourceId") String sourceId,
-                                               @Name("format") String format,
-                                               @Name("params") Map<String, Object> params,
-                                               IServiceContext context) {
-        validateFormat(format, sourceType);
+                                                @Name("sourceId") String sourceId,
+                                                @Name("format") String format,
+                                                @Name("params") Map<String, Object> params,
+                                                IServiceContext context) {
         if (StringHelper.isEmpty(sourceType) || StringHelper.isEmpty(sourceId)) {
-            throw new NopException(ERR_DATAV_EXPORT_TASK_NOT_FOUND)
+            throw new NopException(ERR_DATAV_EXPORT_MISSING_SOURCE)
                     .param(ARG_SOURCE_TYPE, sourceType).param(ARG_SOURCE_ID, sourceId);
         }
+        validateFormat(format, sourceType);
 
         // 来源权限：继承 D3-1 RLS（能访问看板/面板者方可发起导出）
         requireSourceAccess(sourceType, sourceId, "createExportTask", context);

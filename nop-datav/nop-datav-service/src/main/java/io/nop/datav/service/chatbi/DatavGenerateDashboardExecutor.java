@@ -264,7 +264,7 @@ public class DatavGenerateDashboardExecutor implements IToolExecutor {
         IEntityDao<NopDatavPanel> panelDao = daoProvider.daoFor(NopDatavPanel.class);
         IEntityDao<NopReportDataset> reportDao = daoProvider.daoFor(NopReportDataset.class);
 
-        String dashboardId = generateId("dash");
+        String dashboardId = generateId();
 
         // 1. Dashboard（裁定 H：DRAFT, version=0；裁定 G：createdBy=operator 手动填）
         NopDatavDashboard dashboard = dashDao.newEntity();
@@ -297,7 +297,7 @@ public class DatavGenerateDashboardExecutor implements IToolExecutor {
                 if (datasetRefId == null) {
                     NopReportDataset ds = reportDao.getEntityById(plan.datasetSid);
                     NopDatavDatasetRef ref = refDao.newEntity();
-                    String refId = generateId("ref");
+                    String refId = generateId();
                     ref.setDatasetRefId(refId);
                     ref.setDashboardId(dashboardId);
                     ref.setRefDatasetId(plan.datasetSid);
@@ -318,7 +318,7 @@ public class DatavGenerateDashboardExecutor implements IToolExecutor {
             }
 
             NopDatavPanel panel = panelDao.newEntity();
-            panel.setPanelId(generateId("panel"));
+            panel.setPanelId(generateId());
             panel.setDashboardId(dashboardId);
             panel.setPanelName(plan.title); // mandatory 列
             panel.setDisplayName(plan.title);
@@ -390,11 +390,9 @@ public class DatavGenerateDashboardExecutor implements IToolExecutor {
         return v == null ? null : v.toString();
     }
 
-    private static String generateId(String prefix) {
-        // ID 列 precision=32（VARCHAR(32)）。UUID 去横线恰好 32 字符，不再加前缀（前缀会超长）。
-        // prefix 参数保留为语义标记（调用点可读性），实际不拼接进 ID。
-        String id = UUID.randomUUID().toString().replace("-", "");
-        return id;
+    private static String generateId() {
+        // ID 列 precision=32（VARCHAR(32)）。UUID 去横线恰好 32 字符，不加前缀（前缀会超长）。
+        return UUID.randomUUID().toString().replace("-", "");
     }
 
     // ==================== 内部辅助类 ====================

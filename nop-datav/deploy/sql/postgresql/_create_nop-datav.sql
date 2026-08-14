@@ -220,7 +220,7 @@ CREATE TABLE nop_datav_screen_snapshot(
   snapshot_id VARCHAR(32) NOT NULL ,
   screen_id VARCHAR(32) NOT NULL ,
   snapshot_version INT8 NOT NULL ,
-  snapshot_content TEXT  ,
+  snapshot_content TEXT NOT NULL ,
   published_by VARCHAR(50)  ,
   published_time TIMESTAMP  ,
   del_flag INT4  ,
