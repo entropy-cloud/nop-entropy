@@ -1,6 +1,6 @@
 # 6 parent 层级 + HMR（W6）
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: nop-plugin-enhancement
 > Work Item: W6 parent 层级 + HMR
 > Last Reviewed: 2026-08-14
@@ -109,74 +109,74 @@ Exit Criteria:
 
 ### Phase 3 - loader 依赖追踪接线（变更检测）
 
-Status: in progress
+Status: completed
 Targets: `PluginManagerImpl.java`、`VfsPluginDefinition.java`（lastModified 记录）、`ResourceComponentManager` 调用点
 
 - Item Types: `Decision | Fix`
 
-- [ ] **Decision：变更检测形态**——框架核心不主动起轮询线程（避免隐式生命周期与测试耦合）；提供显式检查入口（如 `checkChangedAndReload()`：遍历 VFS 轨 LOADED 定义，用 `ResourceComponentManager.checkChanged(resourcePath, lastModified)` 检测 → 有变更调 `reloadPlugin`），宿主应用可定时调用（W7 docs 记录接线方式）。若执行期发现平台有事件式通知机制可复用，以事件式为准并记录。
-- [ ] lastModified 来源钉死：`VfsPluginDefinition` load 时记录**资源真实 `IResource.lastModified()`**（不得复用现有 `getLastChangeTime` 时钟语义——`DefaultResourceChangeChecker.checkChanged` 是 `lastModified != resource.lastModified()` 严格比对，时钟值必然误报变更）；检查入口读取当前资源 lastModified 比对。
-- [ ] **测试机制裁定**：classpath 测试资源不可写（意图上）——HMR 测试优先用 **`file:` 前缀 id 的可写临时目录**（`DefaultVirtualFileSystem` 已默认注册 `file:` 命名空间，`DefaultVirtualFileSystem.java:47`，无需自定义 VFS 注册；临时目录放项目 `_tmp/` 下），保持真实 lastModified 比对的端到端真实性；备选 `ResourceComponentManager.setChangeChecker` 注入 fake checker（`:147` setter，注意全局状态、finally 恢复）。执行时二选一（优先 file: 可写资源）。
-- [ ] 依赖方收敛验证：被 reload 的 plugin 的 requires 依赖方（其定义级条件基于实例存在性）在 reload 后经 reconcile 收敛（W5 级联评估覆盖——不新增失效表）；接线验证见 Exit Criteria。
-- [ ] 编译验证：`./mvnw compile -pl :nop-plugin-manager -am -T 1C` 通过。
+- [x] **Decision：变更检测形态**——框架核心不主动起轮询线程（避免隐式生命周期与测试耦合）；提供显式检查入口（`checkChangedAndReload()`：遍历 VFS 轨 LOADED 定义，用 `ResourceComponentManager.checkChanged(resourcePath, lastModified)` 检测 → 有变更调 `reloadPlugin`），宿主应用可定时调用（W7 docs 记录接线方式）。执行期调研：平台无更直接的资源变更事件式通知可复用（VFS 变更检测的现成原语即 `ResourceComponentManager.checkChanged` + `DefaultResourceChangeChecker`），以显式检查入口为准（已落地 `PluginManagerImpl.checkChangedAndReload()`，非接口方法——保持 IPluginManager 最小）。
+- [x] lastModified 来源钉死：`VfsPluginDefinition` load 时记录**资源真实 `IResource.lastModified()`**（`PluginManagerImpl.loadVfsDefinition` 末尾 `plugin.setLastModified(resource.lastModified())`，不得复用 `getLastChangeTime` 时钟语义——`DefaultResourceChangeChecker.checkChanged` 是 `lastModified != resource.lastModified()` 严格比对，时钟值必然误报变更）；检查入口读取当前资源 lastModified 比对。
+- [x] **测试机制裁定**：classpath 测试资源不可写（意图上）——HMR 测试用 **`file:` 前缀 id 的可写临时目录**（`DefaultVirtualFileSystem` 默认注册 `file:` 命名空间，`DefaultVirtualFileSystem.java:47`，无需自定义 VFS 注册）——`TestChangeDetection` 用 `target/plugin-change-test/`（与 `TestReloadPlugin` 的 `target/plugin-reload-test/` 同模式，mvn clean 清理；项目内可写目录）；mtime 变化显式推进（`setLastModified(recorded+2000)`）消除同 ms 写入的边界抖动。备选 `setChangeChecker` fake 注入未采用（file: 可写资源保持真实 lastModified 端到端真实性）。
+- [x] 依赖方收敛验证：`TestChangeDetection.testReloadDependentConvergesViaReconcile`——producer 定义变更后 reload（门控关闭 → 实例 pending）→ 依赖方（requires=producer）经 reconcile 级联去激活；门控打开 → pending 重建 + 依赖方恢复激活（W5 级联评估覆盖，不新增失效表）。
+- [x] 编译验证：`./mvnw compile -pl :nop-plugin-manager -am -T 1C` 通过（api/manager/support 三模块 reactor 编译 + 全测试 83/83 绿）。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] **接线验证**：修改可写资源 plugin.xml（内容变化）→ 显式检查入口 → `reloadPlugin` 被真实触发（测试断言：reload 后新定义生效，如 bean 变化可观测）。
-- [ ] 无变更时检查入口 no-op（不触发 reload，断言——lastModified 比对正确性证明）。
-- [ ] 依赖方收敛：requires 链上被 reload 定义的依赖方经 reconcile 收敛到正确状态（测试断言）。
-- [ ] **无静默跳过**：检查失败路径显式报告（日志），不吞异常。
-- [ ] No owner-doc update required（W7 docs 记录接线方式）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] **接线验证**：`TestChangeDetection.testCheckChangedAndReloadTriggersReload`——修改可写资源 plugin.xml（内容变化 + mtime 推进）→ `checkChangedAndReload()` → reloadPlugin 真实触发（新定义对象、primary 切换可观测、新 mtime 重新记录）。
+- [x] 无变更时检查入口 no-op（`testCheckChangedAndReloadNoChangeNoOp`：定义对象与实例对象均不变、pending=0——lastModified 比对正确性证明）。
+- [x] 依赖方收敛：`testReloadDependentConvergesViaReconcile`（requires 链上被 reload 定义的依赖方经 reconcile 收敛去激活/恢复激活，断言 + unresolved 报告为空）。
+- [x] **无静默跳过**：检查失败路径显式报告（`checkChangedAndReload` 捕获 RuntimeException 记录 `LOG.error` 后 continue，不吞、不中断其他定义检查）。
+- [x] No owner-doc update required（W7 docs 记录接线方式）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 4 - P2-D 裁决 + 测试补全
 
-Status: planned
+Status: completed
 Targets: `nop-plugin-manager/src/test/`
 
 - Item Types: `Decision | Proof`
 
-- [ ] **P2-D 裁决：deactivate 父实例语义（显式路径 + reconcile 路径，含跨 plan 契约）**——(1) **显式 deactivate 路径 = 守卫式**：父实例存在 ACTIVATED 子实例（经全局映射检查）时 `deactivate()` 抛明确异常（带子实例 key 参数；与 unload 守卫同构——先处理子再处理父）；destroy 仍级联（设计 §三(b) 明确）。(2) **reconcile 自动路径 = 级联式**（W5 引擎驱动，无法抛异常）：reconcile 决定 deactivate 某父实例时，**先级联 deactivate 其 ACTIVATED 子实例（保留实例对象），再 deactivate 父**——否则子实例容器 parent 指向已停容器，服务回退调用抛 `ERR_IOC_CONTAINER_NOT_STARTED`（`BeanContainerImpl.java:311,582-585`）硬失败，"服务沿链回退"契约破裂。(3) **跨 plan 契约**：此级联语义需要 W5 引擎感知父子关系——W6 在 reconcile 的实例评估前挂父链检查（父 DEACTIVATED 或链上祖先 DEACTIVATED → 子实例不激活、父实例去激活推迟到子先处理），W5 Phase 2 已预留扩展点（"W6 将把父链健康纳入激活条件"）；若 W5 已落地但未预留，W6 在 manager 的 reconcile 入口包一层父链处理（不侵入 W5 引擎）。**裁决理由**：级联 deactivate 与 W5 reconcile 自动重新激活冲突（子条件仍满足时父停即子停、reconcile 又激活）——守卫式（显式路径）与"父链抑制激活"（reconcile 路径）共同消除该冲突；裁决记录于 plan Closure。
-- [ ] **createInstance 检查顺序裁定**：父状态检查（父存在且 ACTIVATED，失败抛明确异常）**先于** W5 定义级门控（不满足返回 null）——错误优先于条件（父 DEACTIVATED 是调用错误，显式抛出；门控是定义级条件，返回 null）；**父状态检查与 W5 重复 key 检查的相对顺序钉死**：checkLoaded → 重复 key（抛 `ERR_PLUGIN_INSTANCE_EXISTS`）→ 父状态（抛父异常）→ 门控（返回 null）→ 创建（重复 key + DEACTIVATED 父的边界 = 重复 key 异常优先）；两顺序均需测试覆盖。
-- [ ] parent 链测试：两层（父→子）与三层（父→子→孙，可跨定义）服务回退、配置层叠（含父热应用传播）、级联 destroy（子先于父，递归）、父 DEACTIVATED 拒绝、环防护、P2-D 显式守卫（有 ACTIVATED 子实例时父 deactivate 抛异常）、**P2-D reconcile 路径（W5 引擎驱动父去激活 → 先级联子 deactivate 再父，子服务回退不触发 `ERR_IOC_CONTAINER_NOT_STARTED`）**、createInstance 检查顺序（父状态检查先于门控）。
-- [ ] reload 测试：快照重建（配置保留）、父子链重建、跨定义后代重建/显式错误、门控 null → pending 重试、reload 后 reconcile 收敛、jar 轨失败、失败路径（load 抛错 → 定义 UNLOADED 快照保留可重试）。
-- [ ] 变更检测测试：显式检查入口触发 reload（可写资源）；无变更 no-op；依赖方收敛。
-- [ ] **W5 落地后复核项**：确认 W5 已 completed 后，复核其三项裁定与本 plan 交互（reload 触发点调用 reconcile、pending 重建挂接 reconcile 重试点、P2-D 守卫不触发 reconcile 冲突）；若 W5 实现有偏差，本 plan 相应调整并记录。
-- [ ] `./mvnw test -pl :nop-plugin-api,:nop-plugin-manager,:nop-plugin-support -am -T 1C` 全绿。
+- [x] **P2-D 裁决：deactivate 父实例语义（显式路径 + reconcile 路径，含跨 plan 契约）**——(1) **显式 deactivate 路径 = 守卫式**：父实例存在 ACTIVATED 子实例（经实例级 children 检查）时 `deactivate()` 抛 `ERR_PLUGIN_ACTIVE_CHILDREN_EXIST`（带子实例 key 参数；与 unload 守卫同构——先处理子再处理父）；destroy 仍级联（设计 §三(b)）。(2) **reconcile 自动路径 = 级联式**（W5 引擎驱动，无法抛异常）：`doReconcile` 决定去激活某实例时经 `deactivateCascadeIfActive` **先递归级联去激活其 ACTIVATED 后代（保留实例对象），再去激活本实例**——否则子实例容器 parent 指向已停容器，服务回退调用抛 `ERR_IOC_CONTAINER_NOT_STARTED`（`BeanContainerImpl` 未启动容器回退）硬失败，"服务沿链回退"契约破裂。(3) **跨 plan 契约**：reconcile 实例评估挂父链检查（`isParentChainHealthy`：父 DEACTIVATED 或链上祖先 DEACTIVATED → 子实例不激活，ACTIVATED 则级联去激活）——父链抑制激活消除"父停即子停、reconcile 又激活"冲突。W5 引擎未内建父链感知，W6 在 manager 的 `doReconcile` 包一层（不侵入 W5 引擎的 defs 遍历与环检测，仅替换实例级决策）。**裁决理由**：级联去激活与 W5 reconcile 自动重新激活冲突（子条件仍满足时父停即子停、reconcile 又激活）——守卫式（显式路径）与"父链抑制激活"（reconcile 路径）共同消除该冲突；子先父后亦保证父实例的显式守卫在 reconcile 路径自然放行（不冲突）。**落地证据**：`TestParentHierarchy.testReconcileParentDeactivationCascadesChildrenFirst`（父门控关闭 → 子先级联去激活 → 父去激活；子 getService 快速失败 `ERR_PLUGIN_INACTIVE` 而非 `ERR_IOC_CONTAINER_NOT_STARTED`；父恢复 → 父先激活、子沿链恢复 + 服务回退恢复）。
+- [x] **createInstance 检查顺序裁定**：父状态检查（父存在且 ACTIVATED，失败抛明确异常）**先于** W5 定义级门控（不满足返回 null）——错误优先于条件；顺序钉死：checkLoaded → 重复 key（抛 `ERR_PLUGIN_INSTANCE_EXISTS`）→ 父状态（抛 `ERR_PLUGIN_PARENT_NOT_ACTIVATED`）→ 门控（返回 null）→ 创建（`VfsPluginDefinition.createInstance` 已按此序实现）。两边界测试：`testParentStateCheckPrecedesGate`（gate-closed 定义 + DEACTIVATED 父 → 父异常优先于门控 null）、`testDuplicateKeyCheckPrecedesParentState`（重复 key + DEACTIVATED 父 → 重复 key 异常优先）。
+- [x] parent 链测试：两层（父→子）与三层（父→子→孙，跨定义）服务回退、配置层叠（含父热应用传播）、级联 destroy（子先于父，递归）、父 DEACTIVATED 拒绝、环防护、P2-D 显式守卫（有 ACTIVATED 子实例时父 deactivate 抛异常）、**P2-D reconcile 路径（W5 引擎驱动父去激活 → 先级联子 deactivate 再父，子服务回退不触发 `ERR_IOC_CONTAINER_NOT_STARTED`）**、createInstance 检查顺序（父状态检查先于门控）——`TestParentHierarchy` 全 10 用例。
+- [x] reload 测试：快照重建（配置保留）、父子链重建、跨定义后代重建/显式错误、门控 null → pending 重试、reload 后 reconcile 收敛、jar 轨失败、失败路径（load 抛错 → 定义 UNLOADED 快照保留可重试）——`TestReloadPlugin` 全 5 用例（本 Phase 无新增，Phase 2 已覆盖）。
+- [x] 变更检测测试：显式检查入口触发 reload（可写资源）、无变更 no-op、依赖方收敛——`TestChangeDetection` 全 3 用例（Phase 3 落地）。
+- [x] **W5 落地后复核项**：W5 已 completed（`2026-08-14-2007-2` Plan Status: completed，commit 410464bdf）。复核三项裁定与本 plan 交互：(a) 门控 null——`createInstance` 定义级不满足返回 null，reload 重建 GATED→pending 不误判失败（`testReloadGatedInstanceBecomesPendingAndRetries`）；(b) reconcile 不自动创建——reload 后实例重建只经快照/pending 回放，reconcile 自身不创建（pending 重试挂接 reconcile 触发点是 W6 快照恢复语义，与 W5 裁定不冲突，计划已声明）；(c) loadPlugin 后自动 reconcile——reload 编排末尾显式 reconcile + 重建 createInstance 后经 manager 入口自动 reconcile（dirty 循环消费）。P2-D 守卫不触发 reconcile 冲突：显式守卫仅拦显式 `deactivate()`；reconcile 路径级联先子后父，守卫自然放行。W5 实现与本 plan 交互无偏差。
+- [x] `./mvnw test -pl :nop-plugin-api,:nop-plugin-manager,:nop-plugin-support -am -T 1C` 全绿（83/83：api 6 + manager 67 + support 10）。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 上表每类测试存在且断言真实行为（实例状态、配置值、registry 内容、异常参数）。
-- [ ] **端到端验证**：从 loadPlugin → createInstance(parent 链) → 服务回退 → 修改定义 → reloadPlugin → 快照重建 + 级联关系保持 → destroy 级联清理，完整链路有测试覆盖。
-- [ ] P2-D 裁决已记录（含 Why，无 reconcile 冲突）；W5 复核项已执行。
-- [ ] `./mvnw test -pl :nop-plugin-api,:nop-plugin-manager,:nop-plugin-support -am -T 1C` 退出码 0。
-- [ ] No owner-doc update required。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 上表每类测试存在且断言真实行为（实例状态、配置值、registry 内容、异常参数——测试断言均落在可观测状态/值/错误码，非仅无异常）。
+- [x] **端到端验证**：loadPlugin → createInstance(parent 链) → 服务回退 → 修改定义 → reloadPlugin → 快照重建 + 级联关系保持 → destroy 级联清理——`TestReloadPlugin.testReloadEndToEndSnapshotRebuild`（load→create(parent+child)→服务回退→修改→reload→重建+getParent 断言→reconcile）+ `TestParentHierarchy.testCascadeDestroyParentDestroysDescendantsAcrossDefinitions` 完整链路覆盖。
+- [x] P2-D 裁决已记录（含 Why，无 reconcile 冲突）：见本 Phase 第一条（守卫式 + 父链抑制激活 + 子先父后级联的 Why）；W5 复核项已执行（见上）。
+- [x] `./mvnw test -pl :nop-plugin-api,:nop-plugin-manager,:nop-plugin-support -am -T 1C` 退出码 0（83/83 全绿）。
+- [x] No owner-doc update required。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见 guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] parent 层级成立：服务沿链回退（含跨定义）、配置层叠（含父热应用传播）、级联 destroy（递归、跨定义）（测试证明）。
-- [ ] P2-A / P2-D 已裁决并落地（裁决记录 + 测试证明）。
-- [ ] reloadPlugin 成立：级联闭包快照重建 + pending 恢复 + reconcile 收敛（端到端测试证明）。
-- [ ] VFS 轨变更检测接线成立（真实 lastModified + 显式检查入口测试证明）。
-- [ ] 设计文档修订完成（01 §三(a)、§六；git diff 证明）。
-- [ ] W5 复核项已执行（W5 completed 后校验交互）。
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift。
-- [ ] 零依赖不变式：api 模块 grep 0 命中（`io.nop.ioc`/`io.nop.xlang`）。
-- [ ] No owner-doc update required（docs-for-ai 使用文档 W7 统一同步）。
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据。
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）reloadPlugin 调用链（变更检测 → 快照 → destroy → load → 重建 → reconcile）运行时连通（端到端测试），（b）无空方法体/静默跳过/no-op 作为正常实现。
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs 2026-08-14-2007-3-parent-hierarchy-hmr.md --strict` 退出码 0（closure 时执行）。
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-plugin-manager --severity high` 退出码 0。
-- [ ] `./mvnw compile -pl :nop-plugin-api,:nop-plugin-manager,:nop-plugin-support -am -T 1C` 通过。
-- [ ] `./mvnw test -pl :nop-plugin-api,:nop-plugin-manager,:nop-plugin-support -am -T 1C` 通过。
-- [ ] checkstyle / 代码规范检查通过。
+- [x] parent 层级成立：服务沿链回退（含跨定义）、配置层叠（含父热应用传播）、级联 destroy（递归、跨定义）（测试证明——TestParentHierarchy 10 用例）。
+- [x] P2-A / P2-D 已裁决并落地（裁决记录 + 测试证明——P2-A Phase 2 快照语义 + TestReloadPlugin；P2-D Phase 4 守卫式 + reconcile 级联式 + TestParentHierarchy）。
+- [x] reloadPlugin 成立：级联闭包快照重建 + pending 恢复 + reconcile 收敛（端到端测试证明——TestReloadPlugin 5 用例）。
+- [x] VFS 轨变更检测接线成立（真实 lastModified + 显式检查入口测试证明——TestChangeDetection 3 用例）。
+- [x] 设计文档修订完成（01 §三(a)、§六；git diff 证明——Phase 2 已落地并 commit 8ef375d06）。
+- [x] W5 复核项已执行（W5 completed 后校验交互——Phase 4 复核项记录）。
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift。
+- [x] 零依赖不变式：api 模块 grep 0 命中（`io.nop.ioc`/`io.nop.xlang`）。
+- [x] No owner-doc update required（docs-for-ai 使用文档 W7 统一同步）。
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据（见 Closure 一节）。
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）reloadPlugin 调用链（变更检测 → 快照 → destroy → load → 重建 → reconcile）运行时连通（端到端测试），（b）无空方法体/静默跳过/no-op 作为正常实现。
+- [x] `node ai-dev/tools/check-plan-checklist.mjs 2026-08-14-2007-3-parent-hierarchy-hmr.md --strict` 退出码 0（closure 时执行）。
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-plugin-manager --severity high` 退出码 0。
+- [x] `./mvnw compile -pl :nop-plugin-api,:nop-plugin-manager,:nop-plugin-support -am -T 1C` 通过。
+- [x] `./mvnw test -pl :nop-plugin-api,:nop-plugin-manager,:nop-plugin-support -am -T 1C` 通过（83/83 全绿）。
+- [x] checkstyle / 代码规范检查通过（项目无 checkstyle 通道，mission 配置以 `echo 'lint not configured'` 兜底；代码遵循仓库格式约定）。
 
 ## Deferred But Adjudicated
 
@@ -208,17 +208,18 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写>>
-Completed: YYYY-MM-DD
+Status Note: 全部 4 Phase + Closure Gates 勾选完毕；独立 closure audit 通过。
+Completed: 2026-08-15
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Evidence: <<按 guide 的 Closure Audit Evidence 清单填写>>
+- Reviewer / Agent: 独立子 agent（closure audit，task 分离）
+- Evidence: 按 guide 的 Closure Audit Evidence 清单——(a) 文本一致性：Plan Status: completed；4 Phase Status: completed；Phase 3/4 全部 checklist 勾选；(b) 代码证据：`doReconcile` P2-D 级联路径（deactivateCascadeIfActive + isParentChainHealthy）、`checkChangedAndReload` 显式入口、`setLastModified` 真实 mtime 记录，经代码走查无空实现/静默 no-op；(c) 测试证据：`./mvnw test -pl :nop-plugin-api,:nop-plugin-manager,:nop-plugin-support -am -T 1C` 83/83 全绿（TestParentHierarchy 10 + TestReloadPlugin 5 + TestChangeDetection 3 + 既有 49）；(d) 工具证据：check-plan-checklist --strict exit 0、scan-hollow-implementations exit 0；(e) 文档证据：roadmap W6 done、日志更新。
 
 Follow-up:
 
-- <<只记录 non-blocking follow-up；confirmed live defect 不得出现在这里>>
+- HMR 轮询/文件监听由宿主应用集成（框架提供显式检查入口 `checkChangedAndReload`）——W7 docs 记录接线方式。
+- 快照结构（definitionConfig + 实例列表）未来可持久化（跨重启热恢复）——当前内存态即可。
 
 ## Optional Sections
 

@@ -23,8 +23,8 @@
 - W3. 实例级生命周期 + effect + activator（createInstance/destroy/activate/deactivate、实例配置域独立 IConfigProvider、IPluginScope 实现、activate 返回值自动注册）：`done`
 - W4. getService 生命周期代理 + per-instance 命令路由（强类型代理、INACTIVE 快速失败、primary 多候选规则、invokeCommand 路由）：`done`
 - W5. coeffect + reconcile（spec 解析、定义级+实例级评估、环检测、配置订阅自动触发）：`done`
-- W6. parent 层级 + HMR（服务查找沿链回退、级联销毁、配置层叠；reloadPlugin 配置快照重建）：`planned`
-- W7. artifact SHA256 校验补齐 + 测试补全 + docs-for-ai 同步（HttpPluginResourceResolver 补校验、quiescence/多实例隔离测试、使用文档）：`todo`
+- W6. parent 层级 + HMR（服务查找沿链回退、级联销毁、配置层叠；reloadPlugin 配置快照重建）：`done`
+- W7. artifact SHA256 校验补齐 + 测试补全 + docs-for-ai 同步（HttpPluginResourceResolver 补校验、quiescence/多实例隔离测试、使用文档）：`planned`
 - ★ **Milestone: nop-plugin 增强落地**（W1-W7 全部 done）：`todo`
 
 ## Status values
