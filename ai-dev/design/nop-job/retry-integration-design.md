@@ -34,12 +34,11 @@ nop-job 的 `retryPolicyId` 是一个**声明式外键桥接点**，指向 `nop_
 | `initialIntervalMs` | 初始间隔 |
 | `maxIntervalMs` | 最大间隔 |
 | `jitterRatio` | 抖动比例 |
-| `executionTimeoutSeconds` | 单次执行超时 |
 | `deadlineTimeoutMs` | 总截止超时 |
 | `blockStrategy` | 阻塞策略（丢弃/覆盖/并行） |
-| `saveRecordStrategy` | 保存记录策略 |
 | `callbackEnabled` | 是否启用回调 |
 | `callbackTriggerType` | 回调触发类型 |
+| `callbackPolicyId` | 回调任务使用的策略 |
 
 ### 2.2 nop-retry 的执行模型
 
@@ -127,18 +126,19 @@ schedule.retryPolicyId 兜底
 
 ### 3.5 Retry 执行时的回调
 
-`NopRetryPolicy` 支持 `callbackEnabled` + `callbackTriggerType`：
+回调由 **policy 配置驱动**（不是 `IRetryTask` 上的回调字段——`withCallback` 属死 API，已随 plan 342 移除）：
 
-- `ON_SUCCESS`：重试成功时回调 nop-job 标记 fire 成功
-- `ON_FAILURE`：重试最终失败时回调 nop-job 标记 fire 最终失败
-- `ALWAYS`：两种情况都回调
+- `NopRetryPolicy.callbackEnabled` 启用回调
+- `callbackTriggerType`：`ON_SUCCESS`（重试成功时回调）/ `ON_FAILURE`（重试最终失败时回调）/ `ALWAYS`（两种情况都回调）
+- `callbackPolicyId` 指向回调目标策略（回调本身也走 retry 链路）
 
-回调通过 `IRetryTask.withCallback(serviceName, serviceMethod)` 设置：
+回调目标 = 原任务的 serviceName/serviceMethod（回调执行原业务逻辑），而非独立的"完成服务"。
 
-- `callbackService` = `"nopJobCompletionService"`（由 adapter 注册）
-- `callbackMethod` = `"onRetryComplete"`
+回调 payload（`RetryEngineImpl.triggerCallback/buildCallbackData`）包含：`recordId`、`idempotentId`、`success`、`retryCount`、`errorCode`、`errorMessage`。
 
-回调 payload 包含：`jobFireId`、`retrySuccess`、`attemptCount`、`errorCode`、`errorMessage`。
+回调任务使用新 `NopRetryRecord`，其 `idempotentId` = 原 idempotentId + `"_callback"` 后缀，避免与主任务幂等键冲突。
+
+> 2026-08-13 更新（plan 342）：删除原"回调经 `withCallback` 到 `nopJobCompletionService.onRetryComplete`"描述——该设计从未实现，实际为 policy 驱动回调原服务。bridge 保持 fire-and-forget（§3.2），回调不回写 fire 状态。
 
 ---
 
@@ -213,3 +213,33 @@ Task 执行失败时由 Worker 提交重试。
 3. adapter 模块的依赖边界
 4. 回调机制的约定
 5. 被拒绝的替代方案
+
+---
+
+## 8. 执行语义裁定（plan 342，2026-08-13）
+
+> 以下裁定将 nop-retry 执行语义与 live 实现收敛，为 retry-integration-design 之外的运行时行为提供契约。
+
+### 8.1 执行尝试追踪（NopRetryAttempt）
+
+- 每次执行尝试（含立即重试与延迟重试）写一条 `NopRetryAttempt`：attemptNo = 当前 retryCount + 1，status 迁移 WAITING→RUNNING→SUCCESS/FAILED，记录 startTime/endTime/durationMs、errorCode/errorMessage/errorStack、requestPayloadSnapshot。
+- `UK_RETRY_ATTEMPT_RECORD_NO(recordId, attemptNo)` 保证编号唯一；retryCount 单调递增，编号可能因 handleExecutionFailure 的 +1 出现间隙（如 1,2,4），不构成冲突。
+- **已知限制（watch-only）**：PARALLEL 阻塞策略下同一 record 并发执行时，attemptNo 均由 retryCount+1 派生，理论上可能撞唯一约束；PARALLEL 语义本身不保证并发安全，视为既有设计限制。
+
+### 8.2 分区赋值（partitionIndex）
+
+- `newRecord` 计算 `partitionIndex = Math.floorMod(hash(namespaceId + ":" + groupId + ":" + idempotentId), DEFAULT_PARTITION_COUNT)`（hash 采用 `String.hashCode()`），同幂等键稳定落同分区，集群模式下 scanner 按分区取数可用。
+
+### 8.3 死信后幂等键可复用（Decision）
+
+- `moveToDeadLetter` 保存死信全量快照（含 recordId/requestPayload/失败信息）后**删除原 record 行**，使同一 idempotentId 可重新提交（`findPendingRecordByIdempotentId` 只查 PENDING/RETRYING，且原行已删除，无唯一约束冲突）。
+- **副作用（已裁定）**：
+  (a) `deadLetter→record` to-one relation 悬空（两表无 FK/cascade，`deleteEntityDirectly` 不触发级联，仅关系导航为 null）；
+  (b) attempt 行成为孤儿（recordId 指向已删 record，历史明细不再可经 record 导航）；
+  (c) 管理侧行为变更：`loadRecord`/`pause`/`resume` 对死信后的 recordId 返回 not-found，`NopRetryRecord` 页面上 MAX_RETRIES 历史行消失——终态视图以死信页为准（死信行保留 recordId 字段可查）。
+- **多次失败周期**：`UK_RETRY_DL_IDEMPOTENT_ID` 已收窄为普通索引 `IDX_RETRY_DL_IDEMPOTENT_ID`（orm.xml，plan 342），同一幂等键多次失败周期可产生多条死信，二次失败不会撞约束。
+
+### 8.4 retryFromDeadLetter 语义（Decision）
+
+- `retryFromDeadLetter` = **手动单次重放**：读取死信快照，单次 `invokeAsync`（fire-and-forget，不新建 record、不改死信状态、失败无痕迹）。
+- 错误路径快速失败：死信不存在 / 缺 serviceName/serviceMethod / 缺 requestPayload，分别返回 `ERR_RETRY_DEAD_LETTER_NOT_FOUND` / `ERR_RETRY_DEAD_LETTER_INVALID_EXECUTOR` / `ERR_RETRY_DEAD_LETTER_INVALID_REQUEST`。
