@@ -252,6 +252,44 @@ class TestMfaLoginE2E {
         assertNotNull(result.getAccessToken(), "SMS login for non-MFA user must succeed");
     }
 
+    // ===================== E2E: password login → MFA_REQUIRED → sendMfaCode → mfaVerify(SMS) → accessToken =====================
+
+    @Test
+    void testPasswordLoginMfaSmsFullChain() {
+        String userId = "mfa-sms-challenge-user";
+        String phone = "13800138010";
+        setupSmsMfaUser(userId, "sms_challenge_user", phone);
+
+        // 1. password login → intercepted with MFA_REQUIRED (mfaType=sms)
+        NopException ex = assertThrows(NopException.class, () ->
+                ormTemplate.runInSession(session -> doPasswordLogin("sms_challenge_user")));
+        assertEquals(NopAuthErrors.ERR_AUTH_MFA_REQUIRED.getErrorCode(), ex.getErrorCode(),
+                "password login of sms-MFA user must be intercepted");
+        String challengeToken = (String) ex.getParam(NopAuthErrors.ARG_CHALLENGE_TOKEN);
+        assertNotNull(challengeToken, "ERR_AUTH_MFA_REQUIRED must carry challengeToken");
+        assertEquals(NopAuthConstants.MFA_TYPE_SMS, ex.getParam(NopAuthErrors.ARG_MFA_TYPE),
+                "challenge must carry mfaType=sms");
+        MfaChallenge challenge = mfaChallengeStore.peek(challengeToken);
+        assertNotNull(challenge, "challenge must exist in the store after MFA_REQUIRED");
+
+        // 2. sendMfaCode → SMS code delivered to the user's phone (mfa:userId key)
+        loginService.sendMfaCode(challengeToken, "127.0.0.1");
+        assertNotNull(smsSender.lastMessage.get(), "sendMfaCode must call ISmsSender");
+        assertEquals(phone, smsSender.lastMessage.get().getMobile());
+        String code = smsSender.lastMessage.get().getParams().get(0);
+
+        // 3. mfaVerify(challengeToken, sms code) → accessToken
+        LoginResult result = ormTemplate.runInSession(session ->
+                doMfaVerify(challengeToken, code));
+        assertNotNull(result, "mfaVerify must return a LoginResult");
+        assertNotNull(result.getAccessToken(), "password-type mfaVerify(sms) must yield accessToken");
+        assertNull(result.getAccessCode(), "password-type mfaVerify must NOT yield accessCode");
+
+        // 4. challenge consumed (one-time)
+        assertNull(mfaChallengeStore.peek(challengeToken),
+                "challenge must be consumed after successful mfaVerify(sms)");
+    }
+
     // ===================== E2E: recovery code login → accessToken + status=disabled =====================
 
     @Test
