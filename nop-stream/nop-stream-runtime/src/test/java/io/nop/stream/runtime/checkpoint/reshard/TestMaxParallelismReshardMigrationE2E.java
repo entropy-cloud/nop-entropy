@@ -22,7 +22,7 @@ import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.common.state.backend.StateSnapshot;
 import io.nop.stream.core.common.state.backend.memory.MemoryKeyedStateBackend;
-import io.nop.stream.core.common.state.backend.rocksdb.RocksDBKeyedStateBackend;
+import io.nop.stream.rocksdb.RocksDBKeyedStateBackend;
 import io.nop.stream.core.common.state.shard.KeyGroupAssignment;
 import io.nop.stream.core.common.state.shard.KeyGroupRange;
 import io.nop.stream.core.exceptions.StreamException;

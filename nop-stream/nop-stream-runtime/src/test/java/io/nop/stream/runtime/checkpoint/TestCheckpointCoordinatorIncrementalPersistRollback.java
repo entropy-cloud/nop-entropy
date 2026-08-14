@@ -23,7 +23,7 @@ import io.nop.stream.core.checkpoint.storage.LocalFileSegmentStore;
 import io.nop.stream.core.common.state.CheckpointListener;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
 import io.nop.stream.core.common.state.backend.StateSnapshot;
-import io.nop.stream.core.common.state.backend.rocksdb.RocksDBKeyedStateBackend;
+import io.nop.stream.rocksdb.RocksDBKeyedStateBackend;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
 

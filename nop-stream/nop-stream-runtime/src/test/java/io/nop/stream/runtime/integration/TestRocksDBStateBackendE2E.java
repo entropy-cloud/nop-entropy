@@ -25,7 +25,7 @@ import io.nop.stream.core.common.state.ValueStateDescriptor;
 import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
 import io.nop.stream.core.common.state.backend.StateSnapshot;
 import io.nop.stream.core.common.state.backend.memory.MemoryStateBackend;
-import io.nop.stream.core.common.state.backend.rocksdb.RocksDBStateBackend;
+import io.nop.stream.rocksdb.RocksDBStateBackend;
 import io.nop.stream.core.operators.AbstractStreamOperator;
 import io.nop.stream.core.operators.StreamMap;
 import io.nop.stream.core.operators.StreamSinkOperator;
@@ -259,8 +259,8 @@ public class TestRocksDBStateBackendE2E {
     @Test
     void testLargeStateSpillsToSstFiles() throws Exception {
         String dbPath = rocksPath("large");
-        io.nop.stream.core.common.state.backend.rocksdb.RocksDBOptionConfig smallBuffer =
-                new io.nop.stream.core.common.state.backend.rocksdb.RocksDBOptionConfig(64 * 1024L, 2);
+        io.nop.stream.rocksdb.RocksDBOptionConfig smallBuffer =
+                new io.nop.stream.rocksdb.RocksDBOptionConfig(64 * 1024L, 2);
         RocksDBStateBackend backend = new RocksDBStateBackend(dbPath, 1, smallBuffer);
         IKeyedStateBackend<String> keyedBackend = backend.createKeyedStateBackend(String.class);
 

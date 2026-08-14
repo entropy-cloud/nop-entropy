@@ -292,8 +292,8 @@ class TestE2EWindowAggregateRestore {
         // Fresh RocksDB scratch dir per run: the DB is scratch storage re-created
         // from the JSON checkpoint snapshot on restore; the SHARED checkpoint
         // storage (tempDir) is what carries state across the restart.
-        io.nop.stream.core.common.state.backend.rocksdb.RocksDBStateBackend backend =
-                new io.nop.stream.core.common.state.backend.rocksdb.RocksDBStateBackend(
+        io.nop.stream.rocksdb.RocksDBStateBackend backend =
+                new io.nop.stream.rocksdb.RocksDBStateBackend(
                         tempDir.resolve("rocksdb-run").toString());
         assertCombinedAggregateRestore(tempDir, backend, "RocksDB");
     }
@@ -305,8 +305,8 @@ class TestE2EWindowAggregateRestore {
 
     @Test
     void testWindowReduceRestoreAcrossJobRestart_rocksdbBackend() throws Exception {
-        io.nop.stream.core.common.state.backend.rocksdb.RocksDBStateBackend backend =
-                new io.nop.stream.core.common.state.backend.rocksdb.RocksDBStateBackend(
+        io.nop.stream.rocksdb.RocksDBStateBackend backend =
+                new io.nop.stream.rocksdb.RocksDBStateBackend(
                         tempDir.resolve("rocksdb-reduce-run").toString());
         assertCombinedReduceRestore(tempDir, backend, "RocksDB");
     }
