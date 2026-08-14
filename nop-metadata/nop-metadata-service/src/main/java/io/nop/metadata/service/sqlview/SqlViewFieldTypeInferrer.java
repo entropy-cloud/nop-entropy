@@ -148,8 +148,16 @@ public class SqlViewFieldTypeInferrer {
                     .param("querySpace", querySpace);
         }
 
+        // AR-11：包装前 trim + 剥尾分号。sourceSql 带尾分号（如 "SELECT a FROM t;"）时，
+        // 内层子查询 "SELECT * FROM (SELECT a FROM t;) _t LIMIT 0" 会被多数 JDBC 驱动拒绝。
+        // 循环剥离覆盖 ";;" 双分号等边角情况。
+        String trimmedSourceSql = sourceSql.trim();
+        while (trimmedSourceSql.endsWith(";")) {
+            trimmedSourceSql = trimmedSourceSql.substring(0, trimmedSourceSql.length() - 1).trim();
+        }
+
         // SELECT * FROM (<sourceSql>) _t LIMIT 0：sourceSql 作为 PreparedStatement 文本（非拼接值），不拼接标识符
-        String wrappedSql = "SELECT * FROM (" + sourceSql + ") _t LIMIT 0";
+        String wrappedSql = "SELECT * FROM (" + trimmedSourceSql + ") _t LIMIT 0";
         try (PreparedStatement st = conn.prepareStatement(wrappedSql)) {
             try (ResultSet rs = st.executeQuery()) {
                 ResultSetMetaData rsMeta = rs.getMetaData();

@@ -43,6 +43,13 @@ public class ReconciliationExecutor {
     static final String STATUS_MULTIPLE = "MULTIPLE";
     static final String STATUS_MANUAL = "MANUAL";
 
+    /**
+     * AR-13：reconciliation 候选序列化默认上限。硬编码（非 config-driven，避免 ORM Protected Area 变更）。
+     * 经 ReconciliationProcessor.reconcile 传递给 LocalReconciliationProcessor，候选序列化进 details JSON 有界，
+     * 大候选池下不会 OOM/多秒序列化。config-driven limit 移入 Non-Blocking Follow-ups。
+     */
+    static final int DEFAULT_CANDIDATE_LIMIT = 50;
+
 
     private final IReconciliationProcessor reconciliationService;
 
@@ -78,9 +85,10 @@ public class ReconciliationExecutor {
             }
             String value = raw == null ? null : String.valueOf(raw);
 
+            // AR-13：传入默认 limit=50（非 null），候选序列化有界。config-driven limit 移入 Non-Blocking Follow-ups。
             List<IReconciliationProcessor.ReconciliationCandidate> candidates =
                     reconciliationService.reconcile(value, config.getTargetEntityType(),
-                            config.getIdentifierSpace(), config.getMatchStrategy(), null);
+                            config.getIdentifierSpace(), config.getMatchStrategy(), DEFAULT_CANDIDATE_LIMIT);
 
             String status = judgeStatus(candidates, config);
             switch (status) {

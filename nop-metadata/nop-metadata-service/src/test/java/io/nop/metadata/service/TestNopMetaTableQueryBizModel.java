@@ -496,6 +496,63 @@ public class TestNopMetaTableQueryBizModel extends JunitBaseTestCase {
                 "createSqlTable with invalid sourceSql must explicitly fail (parse or LIMIT 0 exec): " + resp);
     }
 
+    // ===== AR-11：尾分号 strip（plan 1133-3）=====
+
+    /**
+     * AR-11：sourceSql 带单个尾分号时类型推断仍成功（H2 实跑验证）。
+     * 修复前：wrapped SQL "SELECT * FROM (SELECT id FROM src;) _t LIMIT 0" 被多数 JDBC 驱动拒绝。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testCreateSqlTableTrailingSemicolonInfersTypes() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_semicolon;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE semicolon_src (id INT NOT NULL, name VARCHAR(30))");
+        saveDataSource("ds-semicolon", "qs_semicolon", "jdbc", "ACTIVE", dbUrl);
+
+        // sourceSql 带单个尾分号
+        StringBuilder q = new StringBuilder("mutation { NopMetaTable__createSqlTable(sql: \"")
+                .append(escapeGraphQL("SELECT id, name FROM semicolon_src;"))
+                .append("\", tableName: \"semicolon_tab\", metaModuleId: \"")
+                .append(ensureExternalSystemModuleId())
+                .append("\", querySpace: \"qs_semicolon\") { metaTableId tableName tableType fields { name alias type } } }");
+        GraphQLResponseBean resp = execute(q.toString());
+        assertFalse(resp.hasError(), "createSqlTable with trailing semicolon should succeed: " + resp);
+        Map<String, Object> data = (Map<String, Object>) ((Map<String, Object>) resp.getData())
+                .get("NopMetaTable__createSqlTable");
+        List<Map<String, Object>> fields = (List<Map<String, Object>>) data.get("fields");
+        assertEquals(2, fields.size());
+        assertEquals("INTEGER", fields.get(0).get("type"), "id (INT) → INTEGER with trailing semicolon stripped");
+    }
+
+    /**
+     * AR-11：sourceSql 带尾分号 + 前后空白时类型推断仍成功（覆盖 trim + strip 组合）。
+     *
+     * <p>注：双分号 {@code ;;} 在 EQL 解析器层被判为多语句（{@code SqlSelectFieldExtractor} 的
+     * multi-statement guard，pre-existing 正确行为），在类型推断之前被拒绝——不影响本 AR-11 修复的正确性。
+     * 类型推断器的 {@code while} 循环对 {@code ;;} 仍做防御性剥离（若 sourceSql 经其他路径到达推断器）。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testCreateSqlTableSemicolonWithWhitespaceInfersTypes() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_ws_semi;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE ws_semi_src (id INT NOT NULL)");
+        saveDataSource("ds-ws-semi", "qs_ws_semi", "jdbc", "ACTIVE", dbUrl);
+
+        // sourceSql 带前导空白 + 尾分号 + 尾空白（"  SELECT id FROM ws_semi_src ;  "）
+        StringBuilder q = new StringBuilder("mutation { NopMetaTable__createSqlTable(sql: \"")
+                .append(escapeGraphQL("  SELECT id FROM ws_semi_src ;  "))
+                .append("\", tableName: \"ws_semi_tab\", metaModuleId: \"")
+                .append(ensureExternalSystemModuleId())
+                .append("\", querySpace: \"qs_ws_semi\") { metaTableId tableName tableType fields { name alias type } } }");
+        GraphQLResponseBean resp = execute(q.toString());
+        assertFalse(resp.hasError(), "createSqlTable with semicolon+whitespace should succeed: " + resp);
+        Map<String, Object> data = (Map<String, Object>) ((Map<String, Object>) resp.getData())
+                .get("NopMetaTable__createSqlTable");
+        List<Map<String, Object>> fields = (List<Map<String, Object>>) data.get("fields");
+        assertEquals("INTEGER", fields.get(0).get("type"),
+                "id (INT) → INTEGER with trailing semicolon+whitespace stripped");
+    }
+
     // ===== 失败路径显式失败（不静默空集，Minimum Rules #24）=====
 
     /** 表不存在 → 显式失败（不 NPE）。 */
