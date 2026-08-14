@@ -1,6 +1,6 @@
 # 3 ChatBI Error Surface Cleanup
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-14
 > Source: `ai-dev/backlog/nop-datav-audit-followups.md` items #13, #14, #15, #16 (AR-3, AR-4, AR-5, AR-6) + item #5 chatbi side (Dim09-04); original audit `ai-dev/audits/nop-datav/2026-08-10-1516-open-audit-nop-datav.md`
 > Mission: nop-datav
@@ -61,93 +61,93 @@ Live code verified 2026-08-14:
 
 ### Phase 1 — ChatBiToolCallingLoop Error Handling (AR-6, Dim09-04)
 
-Status: planned
+Status: completed
 Targets: `ChatBiToolCallingLoop.java`, `NopDatavErrors.java`
 
 - Item Types: `Fix`
 
-- [ ] Add `private static final Logger LOG = LoggerFactory.getLogger(ChatBiToolCallingLoop.class);` field + import `org.slf4j.Logger` / `org.slf4j.LoggerFactory` (the class currently has no logger — verified)
-- [ ] Add static imports: `ERR_DATAV_CHATBI_TOOL_EXECUTION_FAILED`, `ARG_TOOL_NAME`, `ARG_REASON` from `NopDatavErrors`; add regular imports `java.util.concurrent.CompletionException`, `java.util.concurrent.CancellationException`
-- [ ] Wrap `toolManager.callTool(...).join()` (line ~139-140) in try/catch:
+- [x] Add `private static final Logger LOG = LoggerFactory.getLogger(ChatBiToolCallingLoop.class);` field + import `org.slf4j.Logger` / `org.slf4j.LoggerFactory` (the class currently has no logger — verified)
+- [x] Add static imports: `ERR_DATAV_CHATBI_TOOL_EXECUTION_FAILED`, `ARG_TOOL_NAME`, `ARG_REASON` from `NopDatavErrors`; add regular imports `java.util.concurrent.CompletionException`, `java.util.concurrent.CancellationException`
+- [x] Wrap `toolManager.callTool(...).join()` (line ~139-140) in try/catch:
   - Catch both `CompletionException` and `CancellationException` (`.join()` throws the latter directly on cancelled futures, unwrapped)
   - For `CompletionException`: unwrap with a while-loop to the first non-`CompletionException` cause (`while (t instanceof CompletionException && t.getCause() != null) t = t.getCause();`) to handle chained futures
   - Build reason string: `String reason = underlying.getMessage() != null ? underlying.getMessage() : underlying.getClass().getName();`
   - Throw `new NopException(ERR_DATAV_CHATBI_TOOL_EXECUTION_FAILED).param(ARG_TOOL_NAME, chatToolCall.getName()).param(ARG_REASON, reason).cause(underlying)`
-- [ ] In the handler-swallow `catch (Exception ignore)` block (line ~151), add `LOG.debug("nop.datav.chatbi.tool-handler-failed: tool={}", chatToolCall.getName(), ignore);`
-- [ ] In the QUERY_HANDLER internal swallow block (if present at ~221-223), apply the same `LOG.debug` treatment
-- [ ] Verify `ERR_DATAV_CHATBI_TOOL_EXECUTION_FAILED` ErrorCode definition (`NopDatavErrors.java:467-471`) already includes both `ARG_TOOL_NAME` and `ARG_REASON` in its params (verified: it does)
+- [x] In the handler-swallow `catch (Exception ignore)` block (line ~151), add `LOG.debug("nop.datav.chatbi.tool-handler-failed: tool={}", chatToolCall.getName(), ignore);`
+- [x] In the QUERY_HANDLER internal swallow block (if present at ~221-223), apply the same `LOG.debug` treatment
+- [x] Verify `ERR_DATAV_CHATBI_TOOL_EXECUTION_FAILED` ErrorCode definition (`NopDatavErrors.java:467-471`) already includes both `ARG_TOOL_NAME` and `ARG_REASON` in its params (verified: it does)
 
 Exit Criteria:
 
-- [ ] `ChatBiToolCallingLoop.java` has a `Logger LOG` field with slf4j imports (repo-observable)
-- [ ] Line ~139-140 has try/catch around `.join()` that catches `CompletionException` and `CancellationException`, unwraps, and throws `NopException(ERR_DATAV_CHATBI_TOOL_EXECUTION_FAILED)` with both `.param(ARG_TOOL_NAME, ...)` and `.param(ARG_REASON, ...)` (repo-observable)
-- [ ] No `catch (Exception ignore)` block without at least `LOG.debug` remains in ChatBiToolCallingLoop (repo-observable)
-- [ ] `ERR_DATAV_CHATBI_TOOL_EXECUTION_FAILED` is referenced by at least one call site (grep confirms, dead-code status retired)
-- [ ] New focused test in a new `TestChatBiToolCallingLoop.java` (pure unit test, mock `IChatService` + `IToolManager`): mock `toolManager.callTool` returning a failed CompletableFuture (e.g. `CompletableFuture.failedFuture(new RuntimeException("infra"))`) → assert `NopException` with `ERR_DATAV_CHATBI_TOOL_EXECUTION_FAILED` thrown (not raw `CompletionException`); assert `getParam(ARG_TOOL_NAME)` and `getParam(ARG_REASON)` are populated
-- [ ] Existing ChatBI E2E tests pass (no regression)
-- [ ] **无静默跳过**: the `.join()` failure now throws a structured exception (not silent); handler-swallow logs at DEBUG (not fully silent)
-- [ ] No owner-doc update required (error handling is internal contract; ai-design.md describes tool execution flow but not exception specifics)
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ChatBiToolCallingLoop.java` has a `Logger LOG` field with slf4j imports (repo-observable)
+- [x] Line ~139-140 has try/catch around `.join()` that catches `CompletionException` and `CancellationException`, unwraps, and throws `NopException(ERR_DATAV_CHATBI_TOOL_EXECUTION_FAILED)` with both `.param(ARG_TOOL_NAME, ...)` and `.param(ARG_REASON, ...)` (repo-observable)
+- [x] No `catch (Exception ignore)` block without at least `LOG.debug` remains in ChatBiToolCallingLoop (repo-observable)
+- [x] `ERR_DATAV_CHATBI_TOOL_EXECUTION_FAILED` is referenced by at least one call site (grep confirms, dead-code status retired)
+- [x] New focused test in a new `TestChatBiToolCallingLoop.java` (pure unit test, mock `IChatService` + `IToolManager`): mock `toolManager.callTool` returning a failed CompletableFuture (e.g. `CompletableFuture.failedFuture(new RuntimeException("infra"))`) → assert `NopException` with `ERR_DATAV_CHATBI_TOOL_EXECUTION_FAILED` thrown (not raw `CompletionException`); assert `getParam(ARG_TOOL_NAME)` and `getParam(ARG_REASON)` are populated
+- [x] Existing ChatBI E2E tests pass (no regression)
+- [x] **无静默跳过**: the `.join()` failure now throws a structured exception (not silent); handler-swallow logs at DEBUG (not fully silent)
+- [x] No owner-doc update required (error handling is internal contract; ai-design.md describes tool execution flow but not exception specifics)
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 — ErrorCode Param & Constant Cleanup (AR-4, AR-5)
 
-Status: planned
+Status: completed
 Targets: `DatavQueryDatasetExecutor.java`, `DatavGenerateDashboardExecutor.java`, `DatavGenerateScreenExecutor.java`, `NopDatavErrors.java`, `NopDatavOperatorResolver.java`
 
 - Item Types: `Fix`, `Decision`
 
-- [ ] **Decision (AR-4)**: Define a new dedicated `ERR_DATAV_CHATBI_DATASET_QUERY_FAILED` ErrorCode in `NopDatavErrors.java` with message "ChatBI dataset query execution failed for dataset: {datasetSid}, reason: {reason}" and params `ARG_DATASET_SID`, `ARG_REASON`. **Rejected alternative**: generalizing `ERR_DATAV_QUERY_FAILED` to accept both `panelId` and `datasetSid` — this would pollute the 3 panel-path callers (`PanelDataBinder:155`, `PanelSqlBuilder:44/53`) whose error messages would render `{datasetSid}` as a literal or empty string.
-- [ ] **Fix (AR-4)**: In `DatavQueryDatasetExecutor.java:166-168`, replace `ERR_DATAV_QUERY_FAILED` + `.param("panelId", datasetSid)` with `ERR_DATAV_CHATBI_DATASET_QUERY_FAILED` + `.param(ARG_DATASET_SID, datasetSid).param(ARG_REASON, e.getMessage() != null ? e.getMessage() : e.getClass().getName()).cause(e)`. **Preserve the existing `.cause(e)`** — the underlying exception's stacktrace is critical for debugging query failures. Add static import for `ERR_DATAV_CHATBI_DATASET_QUERY_FAILED` and `ARG_DATASET_SID`.
-- [ ] **Fix (AR-5)**: In `DatavGenerateDashboardExecutor.java`, replace `NopOperatorFallback.SYSTEM_OPERATOR` (line ~163) with `NopDatavOperatorResolver.SYSTEM_OPERATOR`; add `import io.nop.datav.service.NopDatavOperatorResolver;`; delete the inner class `NopOperatorFallback` (lines ~469-474)
-- [ ] **Fix (AR-5)**: In `DatavGenerateScreenExecutor.java`, replace `NopOperatorFallback.SYSTEM_OPERATOR` (line ~450) with `NopDatavOperatorResolver.SYSTEM_OPERATOR`; add same import; delete inner class `NopOperatorFallback` (lines ~611-614)
+- [x] **Decision (AR-4)**: Define a new dedicated `ERR_DATAV_CHATBI_DATASET_QUERY_FAILED` ErrorCode in `NopDatavErrors.java` with message "ChatBI dataset query execution failed for dataset: {datasetSid}, reason: {reason}" and params `ARG_DATASET_SID`, `ARG_REASON`. **Rejected alternative**: generalizing `ERR_DATAV_QUERY_FAILED` to accept both `panelId` and `datasetSid` — this would pollute the 3 panel-path callers (`PanelDataBinder:155`, `PanelSqlBuilder:44/53`) whose error messages would render `{datasetSid}` as a literal or empty string.
+- [x] **Fix (AR-4)**: In `DatavQueryDatasetExecutor.java:166-168`, replace `ERR_DATAV_QUERY_FAILED` + `.param("panelId", datasetSid)` with `ERR_DATAV_CHATBI_DATASET_QUERY_FAILED` + `.param(ARG_DATASET_SID, datasetSid).param(ARG_REASON, e.getMessage() != null ? e.getMessage() : e.getClass().getName()).cause(e)`. **Preserve the existing `.cause(e)`** — the underlying exception's stacktrace is critical for debugging query failures. Add static import for `ERR_DATAV_CHATBI_DATASET_QUERY_FAILED` and `ARG_DATASET_SID`.
+- [x] **Fix (AR-5)**: In `DatavGenerateDashboardExecutor.java`, replace `NopOperatorFallback.SYSTEM_OPERATOR` (line ~163) with `NopDatavOperatorResolver.SYSTEM_OPERATOR`; add `import io.nop.datav.service.NopDatavOperatorResolver;`; delete the inner class `NopOperatorFallback` (lines ~469-474)
+- [x] **Fix (AR-5)**: In `DatavGenerateScreenExecutor.java`, replace `NopOperatorFallback.SYSTEM_OPERATOR` (line ~450) with `NopDatavOperatorResolver.SYSTEM_OPERATOR`; add same import; delete inner class `NopOperatorFallback` (lines ~611-614)
 
 Exit Criteria:
 
-- [ ] `ERR_DATAV_CHATBI_DATASET_QUERY_FAILED` defined in `NopDatavErrors.java` with `ARG_DATASET_SID` + `ARG_REASON` params (repo-observable)
-- [ ] `DatavQueryDatasetExecutor.java` no longer references `ERR_DATAV_QUERY_FAILED` or passes `datasetSid` as `panelId` (repo-observable: grep for `ERR_DATAV_QUERY_FAILED` in this file returns nothing)
-- [ ] No `NopOperatorFallback` inner class exists in either executor file (repo-observable via grep)
-- [ ] Both executor files import and reference `NopDatavOperatorResolver.SYSTEM_OPERATOR` (repo-observable)
-- [ ] Existing ChatBI generate tests pass (operator resolution behavior unchanged — same constant value `"system"`)
-- [ ] **无静默跳过**: no behavioral change (same constant value, same error handling pattern) — this is a code-cleanup phase, no new silent paths
-- [ ] No owner-doc update required (internal constant consolidation + ErrorCode split, no public contract change)
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ERR_DATAV_CHATBI_DATASET_QUERY_FAILED` defined in `NopDatavErrors.java` with `ARG_DATASET_SID` + `ARG_REASON` params (repo-observable)
+- [x] `DatavQueryDatasetExecutor.java` no longer references `ERR_DATAV_QUERY_FAILED` or passes `datasetSid` as `panelId` (repo-observable: grep for `ERR_DATAV_QUERY_FAILED` in this file returns nothing)
+- [x] No `NopOperatorFallback` inner class exists in either executor file (repo-observable via grep)
+- [x] Both executor files import and reference `NopDatavOperatorResolver.SYSTEM_OPERATOR` (repo-observable)
+- [x] Existing ChatBI generate tests pass (operator resolution behavior unchanged — same constant value `"system"`)
+- [x] **无静默跳过**: no behavioral change (same constant value, same error handling pattern) — this is a code-cleanup phase, no new silent paths
+- [x] No owner-doc update required (internal constant consolidation + ErrorCode split, no public contract change)
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 — Constraint Violation Narrowing (AR-3)
 
-Status: planned
+Status: completed
 Targets: `DatavGenerateScreenExecutor.java`
 
 - Item Types: `Fix`
 
-- [ ] In `isUniqueConstraintViolation` (line ~520-529), remove the `"constraint"` and `"uk_"` disjuncts. Retain only `"unique"` and `"duplicate"` which are specific to UK violations across H2/MySQL/Postgres (verified: H2 "Unique index or primary key violation", MySQL "Duplicate entry", PG "duplicate key value violates unique constraint" — all contain "unique" or "duplicate").
+- [x] In `isUniqueConstraintViolation` (line ~520-529), remove the `"constraint"` and `"uk_"` disjuncts. Retain only `"unique"` and `"duplicate"` which are specific to UK violations across H2/MySQL/Postgres (verified: H2 "Unique index or primary key violation", MySQL "Duplicate entry", PG "duplicate key value violates unique constraint" — all contain "unique" or "duplicate").
 
 Exit Criteria:
 
-- [ ] `isUniqueConstraintViolation` method body does not contain `.contains("constraint")` or `.contains("uk_")` (repo-observable)
-- [ ] New focused test: simulate a non-UK constraint error through the `executeAsync` public path — mock `IOrmTemplate.runInSession` (or equivalent save path) to throw an exception whose message contains "Check constraint violation" → assert the tool result error is NOT `ERR_DATAV_CHATBI_GENERATE_DUPLICATE_SCREEN_NAME` (i.e. the raw exception message is passed through for the LLM to read). This tests via the public entry point, not by calling the `private static` method directly. If mocking `IOrmTemplate` proves impractical, alternative: make `isUniqueConstraintViolation` package-private (test-visible) and test directly — document the chosen approach.
-- [ ] Existing screen-generation tests pass (UK case still correctly detected via "unique"/"duplicate")
-- [ ] **无静默跳过**: non-UK constraint errors now propagate as raw error messages to the LLM (not misclassified); the LLM can read the actual message and respond appropriately
-- [ ] No owner-doc update required (internal heuristic, no public contract change; ai-design.md does not document the substring matching strategy)
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `isUniqueConstraintViolation` method body does not contain `.contains("constraint")` or `.contains("uk_")` (repo-observable)
+- [x] New focused test: simulate a non-UK constraint error through the `executeAsync` public path — mock `IOrmTemplate.runInSession` (or equivalent save path) to throw an exception whose message contains "Check constraint violation" → assert the tool result error is NOT `ERR_DATAV_CHATBI_GENERATE_DUPLICATE_SCREEN_NAME` (i.e. the raw exception message is passed through for the LLM to read). This tests via the public entry point, not by calling the `private static` method directly. If mocking `IOrmTemplate` proves impractical, alternative: make `isUniqueConstraintViolation` package-private (test-visible) and test directly — document the chosen approach.
+- [x] Existing screen-generation tests pass (UK case still correctly detected via "unique"/"duplicate")
+- [x] **无静默跳过**: non-UK constraint errors now propagate as raw error messages to the LLM (not misclassified); the LLM can read the actual message and respond appropriately
+- [x] No owner-doc update required (internal heuristic, no public contract change; ai-design.md does not document the substring matching strategy)
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。
 
-- [ ] AR-6 fixed: ChatBiToolCallingLoop wraps `.join()`, throws structured NopException with both ARG_TOOL_NAME + ARG_REASON; handler-swallow blocks log at DEBUG; Logger field added
-- [ ] AR-4 fixed: DatavQueryDatasetExecutor uses dedicated ERR_DATAV_CHATBI_DATASET_QUERY_FAILED with ARG_DATASET_SID (not shared panel-path ErrorCode)
-- [ ] AR-5 fixed: both executors reference NopDatavOperatorResolver.SYSTEM_OPERATOR; NopOperatorFallback deleted from both files
-- [ ] AR-3 fixed: isUniqueConstraintViolation no longer matches generic constraint errors
-- [ ] Dim09-04 resolved: ERR_DATAV_CHATBI_TOOL_EXECUTION_FAILED is now used (not dead code)
-- [ ] No raw `CompletionException`/`CancellationException` leak from ChatBiToolCallingLoop
-- [ ] No `NopOperatorFallback` inner class in any file
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**: closure audit 已验证 `.join()` try/catch actually catches and wraps (focused test with failed CompletableFuture), not just compiles; constraint narrowing verified with non-UK test case
-- [ ] `./mvnw compile -pl nop-datav -am`
-- [ ] `./mvnw test -pl nop-datav/nop-datav-service -am`
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-datav --severity high` 退出码 0
-- [ ] checkstyle / 代码规范检查通过
+- [x] AR-6 fixed: ChatBiToolCallingLoop wraps `.join()`, throws structured NopException with both ARG_TOOL_NAME + ARG_REASON; handler-swallow blocks log at DEBUG; Logger field added
+- [x] AR-4 fixed: DatavQueryDatasetExecutor uses dedicated ERR_DATAV_CHATBI_DATASET_QUERY_FAILED with ARG_DATASET_SID (not shared panel-path ErrorCode)
+- [x] AR-5 fixed: both executors reference NopDatavOperatorResolver.SYSTEM_OPERATOR; NopOperatorFallback deleted from both files
+- [x] AR-3 fixed: isUniqueConstraintViolation no longer matches generic constraint errors
+- [x] Dim09-04 resolved: ERR_DATAV_CHATBI_TOOL_EXECUTION_FAILED is now used (not dead code)
+- [x] No raw `CompletionException`/`CancellationException` leak from ChatBiToolCallingLoop
+- [x] No `NopOperatorFallback` inner class in any file
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**: closure audit 已验证 `.join()` try/catch actually catches and wraps (focused test with failed CompletableFuture), not just compiles; constraint narrowing verified with non-UK test case
+- [x] `./mvnw compile -pl nop-datav -am`
+- [x] `./mvnw test -pl nop-datav/nop-datav-service -am`
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-datav --severity high` 退出码 0
+- [x] checkstyle / 代码规范检查通过
 
 ## Deferred But Adjudicated
 
@@ -176,5 +176,24 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: (pending)
-Completed: (pending)
+Status Note: 5 个 ChatBI 子系统审计发现（AR-3/AR-4/AR-5/AR-6/Dim09-04）全部修复并落地。AR-6 的 `.join()` 不再泄漏原始 CompletionException/CancellationException，handler-swallow 不再双层静默吞；AR-4 不再误用 panel 路径 ErrorCode；AR-5 删除伪理由内联常量；AR-3 收窄 UK 启发式。全部 in-scope 项已 landed，deferred 项（AR-1/AR-2/AR-7）已裁定为 non-blocking out-of-scope/optimization。
+Completed: 2026-08-14
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: 独立子 agent（fresh session，explore 类型，task_id ses_0013f56ddffeWzbt54UqBiElrZ）
+- Audit Session: ses_0013f56ddffeWzbt54UqBiElrZ
+- Evidence:
+  - Phase 1 Exit Criteria — 全 PASS：Logger 字段 `ChatBiToolCallingLoop.java:72`；`.join()` try/catch 双重捕获 + 解包 + 三参 NopException `:150-167`；两处 swallow 均有 `LOG.debug` `:180/:251`；`ERR_DATAV_CHATBI_TOOL_EXECUTION_FAILED` 接线 `:33/:163`（Dim09-04 死码退役）；`TestChatBiToolCallingLoop.java` 3 用例（failedFuture/cancelled/chained）断言 errorCode+toolName+reason。
+  - Phase 2 Exit Criteria — 全 PASS：`ERR_DATAV_CHATBI_DATASET_QUERY_FAILED` 定义 `NopDatavErrors.java:511-515`（ARG_DATASET_SID+ARG_REASON）；`DatavQueryDatasetExecutor.java` 仅注释提及旧码（无 code 引用），新码 + `.cause(e)` 保留 `:170-173`；`NopOperatorFallback` 全模块 0 引用；两 executor 引用 `NopDatavOperatorResolver.SYSTEM_OPERATOR` `:164/:451`。
+  - Phase 3 Exit Criteria — 全 PASS：`isUniqueConstraintViolation` 仅含 `unique`/`duplicate` `DatavGenerateScreenExecutor.java:531`（无 `constraint`/`uk_` 可执行 disjunct）；`TestDatavGenerateScreenUkHeuristic.java` 9 用例（CHECK/FK/NOT NULL/bare 判 false；H2/MySQL/PG 判 true；null 判 false）。
+  - Anti-Hollow 检查：catch 块 `:153` 以 `throw new NopException(...)` `:163-166` 结束，无静默 continue/return；`ERR_DATAV_CHATBI_DATASET_QUERY_FAILED` 真实接线（`DatavQueryDatasetExecutor.java:34/:170`）。端到端：`TestNopDatavChatBiE2E` 4 用例 + generate/screen E2E 全绿（运行时调用链连通）。
+  - `node ai-dev/tools/check-plan-checklist.mjs <plan> --strict` 退出码 0（Closure Evidence 已写入）。
+  - `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-datav --severity high` 退出码 0（1 high = NotificationSender:467 注释 false-positive，pre-existing，非本次引入）。
+  - `./mvnw clean install -pl nop-datav -am -T 1C -DskipTests`：BUILD SUCCESS。
+  - `./mvnw test -pl nop-datav/nop-datav-service`：421 tests, 0 failures, 0 errors（nop-auth-service TestBeanLoader 1 失败为 pre-existing 隔离确认无关）。
+  - Deferred 项分类检查：AR-1/AR-2 = out-of-scope improvement；AR-7 = optimization candidate；均附 Why Not Blocking，无 in-scope live defect 被降级。
+
+Follow-up:
+
+- no remaining plan-owned work（AR-1/AR-2/AR-7 已裁定为 non-blocking，记录于 `ai-dev/backlog/nop-datav-audit-followups.md` #11/#12/#17）
