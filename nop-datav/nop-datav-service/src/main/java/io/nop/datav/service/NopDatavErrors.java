@@ -34,6 +34,11 @@ public interface NopDatavErrors {
     String ARG_MAX_CONCURRENT = "maxConcurrent";
     String ARG_CURRENT_CONCURRENT = "currentConcurrent";
 
+    // ===== 批量面板查询（getDashboardData） =====
+    String ARG_PANEL_IDS = "panelIds";
+    String ARG_PANEL_COUNT = "panelCount";
+    String ARG_MAX_PANELS = "maxPanels";
+
     String ARG_SCREEN_ID = "screenId";
     String ARG_WIDGET_ID = "widgetId";
     String ARG_CANVAS_WIDTH = "canvasWidth";
@@ -104,6 +109,20 @@ public interface NopDatavErrors {
             "nop.err.datav.query-failed",
             "Dataset query execution failed for panel: {panelId}",
             ARG_PANEL_ID
+    );
+
+    // ===== 批量面板查询（getDashboardData，裁定见 runtime-design.md §4.8） =====
+
+    ErrorCode ERR_DATAV_PANEL_NOT_IN_DASHBOARD = define(
+            "nop.err.datav.panel-not-in-dashboard",
+            "Panel not found in dashboard: {panelId} (dashboardId: {dashboardId})",
+            ARG_PANEL_ID, ARG_DASHBOARD_ID
+    );
+
+    ErrorCode ERR_DATAV_DASHBOARD_PANEL_LIMIT_EXCEEDED = define(
+            "nop.err.datav.dashboard-panel-limit-exceeded",
+            "Dashboard panel count {panelCount} exceeds maximum {maxPanels}",
+            ARG_PANEL_COUNT, ARG_MAX_PANELS
     );
 
     ErrorCode ERR_DATAV_UNKNOWN_COMPONENT_TYPE = define(

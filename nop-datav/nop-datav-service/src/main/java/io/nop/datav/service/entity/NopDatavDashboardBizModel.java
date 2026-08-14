@@ -17,7 +17,10 @@ import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.dao.jdbc.IJdbcTemplate;
 
+import io.nop.datav.biz.DashboardDataResult;
+import io.nop.datav.biz.DashboardPanelDataItem;
 import io.nop.datav.biz.INopDatavDashboardBiz;
+import io.nop.datav.biz.PanelDataResult;
 import io.nop.datav.dao.entity.NopDatavAlertRule;
 import io.nop.datav.dao.entity.NopDatavDashboard;
 import io.nop.datav.dao.entity.NopDatavDashboardShare;
@@ -27,12 +30,14 @@ import io.nop.datav.dao.entity.NopDatavDashboardTab;
 import io.nop.datav.dao.entity.NopDatavFilterState;
 import io.nop.datav.dao.entity.NopDatavPanel;
 import io.nop.datav.dao.entity.NopDatavReportTask;
+import io.nop.datav.service.NopDatavConfigs;
 import io.nop.datav.service.NopDatavOperatorResolver;
 import io.nop.datav.service.alert.NopDatavAlertScheduler;
 import io.nop.datav.service.filter.DashboardFilterResolver;
 import io.nop.datav.service.filter.DashboardFilterUrlCodec;
 import io.nop.datav.service.filter.DashboardParamDefinition;
 import io.nop.datav.service.filter.DashboardParamParser;
+import io.nop.datav.service.query.PanelDataBinder;
 import io.nop.datav.service.report.NopDatavReportScheduler;
 import io.nop.datav.service.report.NopDatavReportTaskStatus;
 
@@ -40,12 +45,19 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
+import static io.nop.datav.service.NopDatavErrors.ARG_DASHBOARD_ID;
+import static io.nop.datav.service.NopDatavErrors.ARG_MAX_PANELS;
+import static io.nop.datav.service.NopDatavErrors.ARG_PANEL_COUNT;
+import static io.nop.datav.service.NopDatavErrors.ARG_PANEL_ID;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_DASHBOARD_NOT_FOUND;
+import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_DASHBOARD_PANEL_LIMIT_EXCEEDED;
+import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_PANEL_NOT_IN_DASHBOARD;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_SNAPSHOT_NOT_FOUND;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_SNAPSHOT_VERSION_NOT_FOUND;
 
@@ -290,6 +302,90 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
                 .getEntityById(id);
         List<DashboardParamDefinition> definitions = DashboardParamParser.parse(dashboard.getParamConfig());
         return DashboardFilterResolver.resolve(definitions, parsed);
+    }
+
+    // ==================== 批量面板查询（plan 2026-08-14-2020-2，裁定见 runtime-design.md §四） ====================
+
+    /**
+     * 批量查询看板面板数据（D1 归属：看板视角）。
+     *
+     * <p>行为（裁定见 {@code ai-dev/design/nop-datav/runtime-design.md} §4.7）：requireEntity 校验看板存活
+     * （D5：live 表 + 发布非前置）→ 看板级筛选一次求值（§4.6：与逐面板 resolveFilterValues + getPanelData
+     * 组合语义等价）→ 按 sortOrder 加载面板（D2：可选 panelIds 子集，越权引用整体显式报错，条目顺序跟随
+     * sortOrder，重复 id 去重）→ 上限校验（D4：先于任何面板查询执行）→ 顺序迭代复用 {@link PanelDataBinder}
+     * → 聚合响应（D3：面板纳入集含无数据集面板；仅 NopException 捕获为面板级失败，其余按看板级失败传播）。</p>
+     */
+    @Override
+    @BizQuery
+    @Auth(permissions = "NopDatavDashboard:getDashboardData")
+    public DashboardDataResult getDashboardData(@Name("id") String id,
+                                                @Name("params") Map<String, Object> params,
+                                                @Name("panelIds") List<String> panelIds,
+                                                IServiceContext context) {
+        NopDatavDashboard dashboard = requireEntity(id, "getDashboardData", context);
+
+        // 看板级筛选一次求值，统一应用到全部面板（resolver 是纯函数，一次求值与逐面板求值结果一致）
+        List<DashboardParamDefinition> definitions = DashboardParamParser.parse(dashboard.getParamConfig());
+        Map<String, Object> resolvedParams = DashboardFilterResolver.resolve(definitions, params);
+
+        // 面板纳入集：按 sortOrder 加载看板全部面板（对齐 exportDashboard 加载先例，但纳入语义按 D3 不排除无数据集面板）
+        List<NopDatavPanel> panels = findRelatedEntities(NopDatavPanel.class, "dashboardId", id, "sortOrder");
+        if (panelIds != null && !panelIds.isEmpty()) {
+            // 重复 id 去重（LinkedHashSet 保持首次出现顺序，仅用于越权报告的确定性）
+            Set<String> requestedIds = new LinkedHashSet<>(panelIds);
+            Set<String> unknownIds = new LinkedHashSet<>(requestedIds);
+            for (NopDatavPanel panel : panels) {
+                unknownIds.remove(panel.getPanelId());
+            }
+            if (!unknownIds.isEmpty()) {
+                // D2：不存在/不属于该看板的 id 整体显式报错，禁止静默忽略不标注
+                throw new NopException(ERR_DATAV_PANEL_NOT_IN_DASHBOARD)
+                        .param(ARG_DASHBOARD_ID, id)
+                        .param(ARG_PANEL_ID, unknownIds.iterator().next());
+            }
+            // 条目顺序跟随面板 sortOrder（不跟随 panelIds 传入顺序）
+            List<NopDatavPanel> subset = new ArrayList<>(panels.size());
+            for (NopDatavPanel panel : panels) {
+                if (requestedIds.contains(panel.getPanelId())) {
+                    subset.add(panel);
+                }
+            }
+            panels = subset;
+        }
+
+        // D4：上限校验先于任何面板查询执行（防单请求放大为海量 SQL）
+        int maxPanels = NopDatavConfigs.CFG_DATAV_DASHBOARD_QUERY_MAX_PANELS.get();
+        if (panels.size() > maxPanels) {
+            throw new NopException(ERR_DATAV_DASHBOARD_PANEL_LIMIT_EXCEEDED)
+                    .param(ARG_PANEL_COUNT, panels.size())
+                    .param(ARG_MAX_PANELS, maxPanels);
+        }
+
+        // D4：顺序迭代；D3：仅 NopException 捕获为面板级失败（PanelDataBinder 全部错误路径均抛 NopException），
+        // 非 NopException 的意外 RuntimeException 视为系统性故障按看板级失败传播（不吞掉）
+        PanelDataBinder binder = new PanelDataBinder(daoProvider(), jdbcTemplate);
+        List<DashboardPanelDataItem> items = new ArrayList<>(panels.size());
+        for (NopDatavPanel panel : panels) {
+            try {
+                PanelDataResult result = binder.queryPanelData(panel.getPanelId(), panel, resolvedParams);
+                items.add(DashboardPanelDataItem.success(result));
+            } catch (NopException e) {
+                items.add(DashboardPanelDataItem.failure(panel.getPanelId(), e.getErrorCode(), safeMsg(e)));
+            }
+        }
+        return new DashboardDataResult(id, items);
+    }
+
+    /**
+     * 面板级失败条目的错误消息（null 安全，镜像 NopDatavExportTaskBizModel.safeMsg 先例；
+     * 完整堆栈不适用于响应条目，errorCode+message 供调用方显式呈现）。
+     */
+    private static String safeMsg(Throwable t) {
+        if (t == null) {
+            return "unknown";
+        }
+        String msg = t.getMessage();
+        return msg == null ? t.getClass().getSimpleName() : msg;
     }
 
     private String serializeDashboardContent(NopDatavDashboard dashboard) {

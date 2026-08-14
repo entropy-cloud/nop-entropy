@@ -42,6 +42,12 @@
                                   roles="admin,user">
                             <permissions>NopDatavDashboard:parseFilterFromUrl</permissions>
                         </resource>
+                        <!-- 批量面板查询（plan 2026-08-14-2020-2）：角色绑定镜像 NopDatavPanel:getPanelData（admin,user） -->
+                        <resource id="FNPT:NopDatavDashboard:getDashboardData" displayName="批量查询看板数据"
+                                  i18n-en:displayName="Get Dashboard Data" orderNo="10015" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavDashboard:getDashboardData</permissions>
+                        </resource>
                     </children>
                 </resource>
                 <!-- ==================== NopDatavDashboardSnapshot ==================== -->

@@ -87,4 +87,10 @@ public interface NopDatavConfigs {
     @Description("stuck 判定阈值（分钟）。交付按 startTime、导出按 createTime 判定；仅标记超过阈值的非终态记录为 FAILED（保守高值防误杀在途记录）")
     IConfigReference<Integer> CFG_DATAV_STUCK_SCAN_TIMEOUT_MINUTES = varRef(
             s_loc, "nop.datav.stuck-scan.timeout-minutes", Integer.class, 60);
+
+    // ===== 批量面板查询（getDashboardData） =====
+
+    @Description("单次 getDashboardData 批量查询的最大面板数（纳入集超限抛 ERR_DATAV_DASHBOARD_PANEL_LIMIT_EXCEEDED，校验先于任何面板查询执行，防单请求放大为海量 SQL）")
+    IConfigReference<Integer> CFG_DATAV_DASHBOARD_QUERY_MAX_PANELS = varRef(
+            s_loc, "nop.datav.dashboard-query.max-panels", Integer.class, 50);
 }
