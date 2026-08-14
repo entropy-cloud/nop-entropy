@@ -1,8 +1,8 @@
 # nop-datav 定时报告与告警设计 (D5)
 
-> Status: **final** — D5-1（定时报告）+ D5-2（轻量告警）最终结论。
-> Last Updated: 2026-08-10
-> Owner plans: `ai-dev/plans/nop-datav/2026-08-10-1230-1-scheduled-report-generation-and-delivery.md`、`ai-dev/plans/nop-datav/2026-08-10-1230-2-lightweight-alert-threshold-rearm-notification.md`
+> Status: **final** — D5-1（定时报告）+ D5-2（轻量告警）+ IM 渠道通知接入最终结论。
+> Last Updated: 2026-08-14
+> Owner plans: `ai-dev/plans/nop-datav/2026-08-10-1230-1-scheduled-report-generation-and-delivery.md`、`ai-dev/plans/nop-datav/2026-08-10-1230-2-lightweight-alert-threshold-rearm-notification.md`、`ai-dev/plans/nop-datav/2026-08-14-0937-1-im-channel-notification-integration.md`
 
 本文档为 D5-1 定时报告 + D5-2 轻量告警的设计契约（最终结论，非 Proposed vs Current 形式）。D5-1 章节覆盖通知 provider 裁定、渲染时机、调度集成、实体契约、grace 语义、权限矩阵、模板渲染机制、取数契约、被拒方案及理由；D5-2 章节覆盖告警标量聚合、状态机、rearm、告警通知变体、告警状态独立实体、面板容错、权限矩阵。
 
@@ -16,7 +16,41 @@
 
 **邮件为端到端打通基线**：`EmailMessage(subject, from, to, cc, text, html, attachments)` 支持 `List<IResourceReference>` 附件，满足报告文件附件送达需求。
 
-**IM 渠道（飞书/钉钉/企微/webhook）裁定 deferred**：`IChannelMessageService.sendToUser` 实现在 `nop-ai-gateway`（依赖 AI engine transport + channel binding），引入成本重且需独立 channel binding 配置。本计划以邮件为端到端打通基线，IM 渠道在 `NotificationSender` 预留扩展位（notifyChannels 含 `im` 时显式抛 `UnsupportedOperationException`，非静默/空壳）。列为 `out-of-scope improvement`，successor required（见 §10）。
+**IM 渠道（飞书/钉钉/企微/webhook）已接入**：`NotificationSender` 经 `nop-integration-api` 的 `IChannelMessageService.sendToUser(userId, OutboundChannelMessage)` 发送文本/Markdown 主动通知（出站，不含文件附件）。`IChannelMessageService` 接口落 `nop-integration-api`（仅依赖 `nop-api-core`，任何业务模块可发送，不依赖 AI engine），实现 `ChannelMessageServiceImpl` 落 `nop-ai-gateway`（resolver→connector→sendOutbound 真实路径）。`NotificationSender` 仅依赖接口，bean `channelMessageService`（`ioc:default=true`）由宿主 app 装配 `nop-ai-gateway` 提供；未装配时注入 null → IM 渠道显式失败（见 §10）。IM 渠道收件人身份模型、聚合语义、附件范围见 Decision A/B/C（§1.1/§1.2/§1.3）。
+
+**部署前提（非本设计实现）**：生产环境 IM 可用要求宿主 app 装配 `nop-ai-gateway`（提供 `channelMessageService` bean）。
+
+### 1.1 Decision A — 收件人身份模型：格式检测分区（format-detection partition）
+
+`recipients`（clobJson 字符串数组）为所有渠道共享。按条目**格式**分区路由：
+
+- 匹配邮箱正则 `^\S+@\S+\.\S+$` 的条目 → **email 收件人**（email 渠道消费）。
+- 其余非空条目 → **平台 userId**（im 渠道消费，传给 `sendToUser(userId, ...)`）。
+
+实现约束（分区先于投递调用）：在 `sendReport`/`sendAlert` 入口先按上述规则把 `recipients` 分区为 `emailAddrs` / `userIds` 两组，再按渠道投递：
+
+- email 渠道：**仅当 `emailAddrs` 非空时**调用 `deliverViaEmail(emailAddrs)`；`emailAddrs` 为空 → **跳过该渠道**（不调用，从而不触发其空收件人防御性 throw），不计入 `delivered`。
+- im 渠道：对 `userIds` 中每个条目调 `sendToUser`；`userIds` 为空 → 跳过该渠道，不计入 `delivered`。
+- 若**所有**被请求渠道经分区后可寻址收件人均为 0（即 `delivered` 最终为空）→ 显式失败 `ERR_DATAV_*_ALL_NOTIFY_FAILED`。
+
+**向后兼容性**：纯邮箱任务（recipients 全为邮箱格式 + channels=["email"]）：分区后 `emailAddrs`=原列表、`userIds`=空，email 照常投递——行为完全不变。混合任务 `recipients=["a@example.com","u1","u2"]` + `channels=["email","im"]` → email 发给 a@example.com、im 发给 u1/u2。
+
+**拒绝的替代方案**：结构化 recipients `[{"channel":"email","addr":...}]`（与既有 `["a@example.com"]` 格式不向后兼容，需数据迁移）；新增 `imRecipients` 列（ORM 结构变更）；「IM 收件人恒为任务 owner」（过窄，不符合通知列表语义）。
+
+### 1.2 Decision B — SendResult 处理：渠道聚合语义（channel-aggregate）
+
+`sendToUser` 不为 NO_BINDING/UNSUPPORTED 抛异常（接口契约），IM 渠道按**渠道级聚合**判定投递结果：
+
+- 逐 userId 调 `sendToUser`，**逐用户 try/catch**：某用户发送抛异常（网络/连接器错误）→ catch `Exception`（非 `Throwable`，JVM 级 `Error` 向外传播）、WARN 日志（userId + 异常）、计为该用户非 SENT，**不中断循环**。
+- 渠道聚合结果：**≥1 用户返回 SENT → 该渠道 delivered（"im" 加入 delivered 列表）**；全部用户 NO_BINDING/UNSUPPORTED/抛异常 → 该渠道未投递（"im" 不入 delivered）。
+- 投递级判定：`delivered` 为空（无渠道成功）→ 抛 `NopException`（`ERR_DATAV_REPORT_ALL_NOTIFY_FAILED` / `ERR_DATAV_ALERT_ALL_NOTIFY_FAILED`，英文消息列出失败渠道），被 executor 捕获 → delivery FAILED。
+- channelMessageService 未注入（null）→ IM 渠道显式抛 `ERR_DATAV_*_CHANNEL_SERVICE_NOT_CONFIGURED`（非静默/非空壳）。
+
+**repo-observable 契约**："im" ∈ `delivery.deliveredChannels` ⟺ ≥1 用户 SENT；全失败 → `delivery.status=FAILED` 且 errorMsg 提及 NO_BINDING/UNSUPPORTED；单用户 NO_BINDING/UNSUPPORTED → WARN 日志（运维可见），不进 delivery 字段。
+
+### 1.3 Decision C — IM 附件：v1 不投递文件附件（out-of-scope）
+
+IM 渠道**仅发送文本/Markdown 通知**（报告摘要：reportName/dashboardName/rows/fileName；告警：ruleName/state/currentValue/threshold），**不携带生成的导出文件作为附件**。理由：`IFileRecord` 无 `getUrl()`，无可派生的外部可访问下载 URL（需下载端点 + base path + 鉴权）；`FeishuConnector` 仅消费 `Attachment.url`，忽略 `Attachment.content`(byte[])；文件经 email 渠道附件已可达（email 渠道行为不变）。列为 Deferred「IM 渠道文件附件投递」（out-of-scope improvement，successor required：下载 URL 方案落地后）。
 
 ---
 
@@ -182,13 +216,14 @@
 
 | 场景 | 行为 |
 |------|------|
-| 邮件渠道（notifyChannels 含 email） | 解析 recipients JSON 数组 → 构造 `EmailMessage` → `IEmailSender.sendEmail` |
+| 邮件渠道（notifyChannels 含 email） | 按 Decision A 分区 recipients → 仅 emailAddrs 非空时构造 `EmailMessage` → `IEmailSender.sendEmail`；emailAddrs 为空 → 跳过该渠道（不计入 delivered） |
 | 未配置邮件发件人（`CFG_DATAV_REPORT_DEFAULT_SENDER` 为空且 EmailMessage.from 未设） | 抛 `ERR_DATAV_REPORT_SENDER_NOT_CONFIGURED`（显式失败，不静默跳过） |
 | notifyChannels 为空 JSON 数组 `[]` | 抛 `ERR_DATAV_REPORT_NO_NOTIFIABLE_CHANNEL`（显式失败） |
-| IM 渠道（notifyChannels 含 im） | 抛 `UnsupportedOperationException("IM channel not yet implemented: ...")`（非静默/空壳，明确告知未实现） |
+| IM 渠道（notifyChannels 含 im） | 按 Decision A 分区 → 仅 userIds 非空时构造 `OutboundChannelMessage`（文本，无附件）→ 逐 userId `sendToUser` → 按 Decision B 渠道聚合（≥1 SENT → delivered；全失败 → 未投递）。channelMessageService 未注入 → 抛 `ERR_DATAV_*_CHANNEL_SERVICE_NOT_CONFIGURED`（显式失败）。IM 仅文本/Markdown，不带文件附件（Decision C） |
+| 所有被请求渠道经分区后零可寻址收件人 / 全失败（delivered 为空） | 抛 `ERR_DATAV_*_ALL_NOTIFY_FAILED`（英文消息列出失败渠道 + NO_BINDING 计数），被 executor 捕获 → delivery FAILED |
 | grace 超期 | 写 `status=SKIPPED` 交付记录（显式记录） |
 
-**约定（Minimum Rules #24）**：所有失败路径显式化（抛错/UnsupportedOperationException/显式状态记录），**无静默跳过/continue/空返回**。
+**约定（Minimum Rules #24）**：所有失败路径显式化（抛错/显式状态记录），**无静默跳过/continue/空返回/吞异常**。单用户 NO_BINDING/UNSUPPORTED/异常 → catch + WARN 日志（非吞掉），计入渠道聚合。
 
 ---
 
@@ -201,7 +236,10 @@
 | DB 持久化 NopJobSchedule + rpc invoker 调度形态 | 首版嵌入式 beanMethod 更轻；集群形态列 follow-up | optimization candidate |
 | 固定历史版本快照渲染 | exportDashboard 不接受 snapshotVersion；重建成本高；过度设计 | follow-up |
 | XPL 引擎渲染模板 | 简单 {var} 占位符满足需求；XPL 过重 | follow-up |
-| IM/渠道推送端到端落地 | IChannelMessageService 实现在 nop-ai-gateway 较重 + 需 channel binding | out-of-scope improvement（successor required） |
+| 结构化 recipients `[{"channel":"email","addr":...}]`（IM 收件人身份模型） | 与既有 `["a@example.com"]` 格式不向后兼容，需数据迁移 | Decision A 替代方案（拒） |
+| 新增 `imRecipients` 列（IM 收件人身份模型） | ORM 结构变更（Protected Area plan-first），v1 不必要 | Decision A 替代方案（拒） |
+| 「IM 收件人恒为任务 owner」（IM 收件人身份模型） | 过窄，不符合通知列表语义 | Decision A 替代方案（拒） |
+| IM 文件附件投递（v1） | `IFileRecord` 无 `getUrl()`，无可派生外部下载 URL；`FeishuConnector` 忽略 `Attachment.content`；文件经 email 附件已可达 | Decision C（out-of-scope improvement，successor required） |
 
 ---
 
@@ -213,10 +251,10 @@
 | `INopDatavReportTaskBiz`（dao 层接口） | action 签名 |
 | `NopDatavReportScheduler`（普通 bean） | `@PostConstruct init()` 注册 cron job；registerTask/unregisterTask；executeScheduledReport(Map) 吞业务错误 |
 | `ReportDeliveryExecutor`（普通 bean） | 插 pending 交付记录 → 异步执行（GlobalExecutors）→ session 内（runInNewSession）：取数（PanelDataExporter.exportDashboard）+ 文件落盘（IFileStore）+ 交付记录 SUCCEEDED 提交 → session 关闭后通知送达（NotificationSender，SMTP 不持 JDBC 连接，Dim14-02）→ 成功回写 deliveredChannels / 失败回补 FAILED |
-| `NotificationSender`（普通 bean） | 渲染模板（StringHelper.renderTemplate + NopSysNoticeTemplate）→ 按 notifyChannels 分发（email → IEmailSender.sendEmail 带附件；im → UnsupportedOperationException） |
+| `NotificationSender`（普通 bean） | 渲染模板（StringHelper.renderTemplate + NopSysNoticeTemplate）→ 按 notifyChannels 分发（email → IEmailSender.sendEmail 带附件；im → IChannelMessageService.sendToUser 文本/Markdown 无附件，按 Decision A 分区 + Decision B 渠道聚合）。IEmailSender/IChannelMessageService 均 @Nullable 注入，未注入时对应渠道显式失败 |
 | `NopDatavReportDeliveryRecovery`（普通 bean） | `@PostConstruct` 幂等扫描 stale running 交付记录 → failed（reason=interrupted by process restart），镜像 `NopDatavExportTaskRecovery` |
 | `NopDatavConfigs`（增配置项） | `CFG_DATAV_REPORT_DEFAULT_GRACE_MINUTES`(60) / `CFG_DATAV_REPORT_MAX_ROWS`(100000) / `CFG_DATAV_REPORT_DEFAULT_SENDER`("") / `CFG_DATAV_REPORT_DEFAULT_SUBJECT`("Report: {reportName}") |
-| `NopDatavErrors`（增错误码） | `ERR_DATAV_REPORT_TASK_NOT_FOUND` / `ERR_DATAV_REPORT_CRON_INVALID` / `ERR_DATAV_REPORT_NO_PUBLISHABLE_DASHBOARD` / `ERR_DATAV_REPORT_DELIVERY_FAILED` / `ERR_DATAV_REPORT_NO_NOTIFIABLE_CHANNEL` / `ERR_DATAV_REPORT_SENDER_NOT_CONFIGURED` / `ERR_DATAV_REPORT_TEMPLATE_NOT_FOUND` / `ERR_DATAV_REPORT_NOT_DASHBOARD_OWNER` |
+| `NopDatavErrors`（增错误码） | `ERR_DATAV_REPORT_TASK_NOT_FOUND` / `ERR_DATAV_REPORT_CRON_INVALID` / `ERR_DATAV_REPORT_NO_PUBLISHABLE_DASHBOARD` / `ERR_DATAV_REPORT_DELIVERY_FAILED` / `ERR_DATAV_REPORT_NO_NOTIFIABLE_CHANNEL` / `ERR_DATAV_REPORT_SENDER_NOT_CONFIGURED` / `ERR_DATAV_REPORT_TEMPLATE_NOT_FOUND` / `ERR_DATAV_REPORT_NOT_DASHBOARD_OWNER` / `ERR_DATAV_REPORT_CHANNEL_SERVICE_NOT_CONFIGURED`（IM service 未注入）/ `ERR_DATAV_REPORT_ALL_NOTIFY_FAILED`（全渠道零成功） |
 
 **职责分离**：`NopDatavReportScheduler.init()` 只负责重注册 cron job；`NopDatavReportDeliveryRecovery.init()` 只负责清理 stale running 交付记录；二者不混入对方职责（镜像 `NopDatavExportTaskRecovery` 独立于 BizModel 的模式）。
 
@@ -298,7 +336,7 @@ dict `datav/alert-operator`（string）：gt/gte/lt/lte/eq/neq/between。
 - 模板键：`rule.templateKey` 未配置时默认 `alert-notify`；按 `NopSysNoticeTemplate.name` 查找，缺失抛 `ERR_DATAV_ALERT_TEMPLATE_NOT_FOUND`。
 - 渲染：`StringHelper.renderTemplate` + `NopSysNoticeTemplate.content`；subject 由配置项 `CFG_DATAV_ALERT_DEFAULT_SUBJECT` 渲染（默认 `"Alert: {ruleName}"`）。
 - 模板变量：`{ruleName, panelId, state, currentValue, thresholdValue, thresholdValue2, operator, alertType}`。
-- 渠道：`email → IEmailSender.sendEmail`（无附件）；`im → UnsupportedOperationException`（非静默，沿用 D5-1 §1/§10）。
+- 渠道：`email → IEmailSender.sendEmail`（无附件）；`im → IChannelMessageService.sendToUser`（文本，无附件，按 Decision A 分区 + Decision B 渠道聚合，沿用 §1/§10）。
 
 **告警专用错误码自建**（不复用 D5-1 的 `ERR_DATAV_REPORT_*`，避免跨 plan 命名耦合与错误消息文本不匹配）：`ERR_DATAV_ALERT_SENDER_NOT_CONFIGURED` / `ERR_DATAV_ALERT_NO_NOTIFIABLE_CHANNEL` / `ERR_DATAV_ALERT_TEMPLATE_NOT_FOUND`。
 
@@ -425,9 +463,9 @@ dict `datav/alert-operator`（string）：gt/gte/lt/lte/eq/neq/between。
 | `INopDatavAlertRuleBiz`（dao 层接口） | action 签名 |
 | `NopDatavAlertScheduler`（普通 bean） | `@PostConstruct init()` 注册 cron job；registerRule/unregisterRule；executeScheduledAlert(Map) 吞业务错误 |
 | `AlertEvaluator`（普通 bean） | 取数（PanelDataBinder）→ 聚合 → operator 比较 → 状态机转换 + rearm 判定 → 通知（NotificationSender.sendAlert）→ 更新状态 |
-| `NotificationSender.sendAlert`（D5-1 bean 扩展方法） | 渲染告警模板 → IEmailSender.sendEmail 无附件；IM → UnsupportedOperationException |
+| `NotificationSender.sendAlert`（D5-1 bean 扩展方法） | 渲染告警模板 → IEmailSender.sendEmail 无附件；IM → IChannelMessageService.sendToUser 文本无附件（Decision A/B） |
 | `NopDatavConfigs`（增配置项） | `CFG_DATAV_ALERT_DEFAULT_REARM_SECONDS`(0) / `CFG_DATAV_ALERT_EVAL_MAX_ROWS`(1000) / `CFG_DATAV_ALERT_DEFAULT_SUBJECT`("Alert: {ruleName}") |
-| `NopDatavErrors`（增错误码） | `ERR_DATAV_ALERT_RULE_NOT_FOUND` / `ERR_DATAV_ALERT_VALUE_FIELD_NOT_FOUND` / `ERR_DATAV_ALERT_VALUE_NOT_NUMERIC` / `ERR_DATAV_ALERT_INVALID_THRESHOLD` / `ERR_DATAV_ALERT_TEMPLATE_NOT_FOUND` / `ERR_DATAV_ALERT_SENDER_NOT_CONFIGURED` / `ERR_DATAV_ALERT_NO_NOTIFIABLE_CHANNEL` / `ERR_DATAV_ALERT_PANEL_NOT_FOUND` / `ERR_DATAV_ALERT_NOT_OWNER` |
+| `NopDatavErrors`（增错误码） | `ERR_DATAV_ALERT_RULE_NOT_FOUND` / `ERR_DATAV_ALERT_VALUE_FIELD_NOT_FOUND` / `ERR_DATAV_ALERT_VALUE_NOT_NUMERIC` / `ERR_DATAV_ALERT_INVALID_THRESHOLD` / `ERR_DATAV_ALERT_TEMPLATE_NOT_FOUND` / `ERR_DATAV_ALERT_SENDER_NOT_CONFIGURED` / `ERR_DATAV_ALERT_NO_NOTIFIABLE_CHANNEL` / `ERR_DATAV_ALERT_PANEL_NOT_FOUND` / `ERR_DATAV_ALERT_NOT_OWNER` / `ERR_DATAV_ALERT_CHANNEL_SERVICE_NOT_CONFIGURED`（IM service 未注入）/ `ERR_DATAV_ALERT_ALL_NOTIFY_FAILED`（全渠道零成功） |
 
 **职责分离**：`NopDatavAlertScheduler` 只负责 cron job 注册/注销与吞错入口；`AlertEvaluator` 只负责评估逻辑（取数→聚合→比较→状态机→通知→更新状态）；两者不混入对方职责（镜像 D5-1 `NopDatavReportScheduler` / `ReportDeliveryExecutor` 分离）。
 
