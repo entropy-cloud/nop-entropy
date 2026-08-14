@@ -213,7 +213,7 @@ ChatBI 不经 DatasetRef（无面板上下文），直接查 `NopReportDataset`�
 | `nop.datav.chatbi.default-provider` | "" | 默认 provider |
 
 **Follow-up（不在 D6-1 scope）**：ChatBI 查询审计日志（NL 问题 + tool calls + 结果摘要）、
-多模型热切换、查询结果可视化建议、会话历史持久化。
+多模型热切换、查询结果可视化建议。会话历史持久化已由 §10 落地。
 
 ---
 
@@ -650,3 +650,149 @@ system prompt 含（可观测）：
 - 生成大屏归属 operator（`createdBy`），RLS 保护。
 - 大屏可用全部 14 类组件（含装饰类型，与看板不同——看板只能用 8 类）。
 - `chatToScreen` 经 `@BizMutation @Auth`（写操作，镜像 `chatToDashboard` 约定）。
+
+---
+
+## 10. ChatBI 多轮会话（D6-1 deferred follow-up：会话历史持久化）
+
+> 来源：plan `ai-dev/plans/nop-datav/2026-08-15-0004-1-chatbi-session-history-multi-turn.md`。
+> 把 `chatToQuery` 从无状态单轮升级为服务端持久化会话的多轮对话：同会话内后续问题可引用先前轮次
+> 上下文（如「按月份细分」），历史由服务端承载、跨请求生效。`chatToDashboard` / `chatToScreen`
+> 生成类 action 的多轮化（迭代式改稿）为显式 Non-Goal（scope 独立，留 successor）。
+
+### 10.1 关键裁定（Decision S1–S5）
+
+#### 裁定 S1：存储选型 —— datav 自有轻量会话实体，不复用 nop-ai `NopAiSession` 实体族
+
+**选择**：新增两个 datav 自有实体（仅存多轮所需最小集）：
+
+- `NopDatavChatSession`（表 `nop_datav_chat_session`）：`SESSION_ID`（PK）+ `USER_NAME`（归属，
+  index）+ `SESSION_TITLE`（可空；首轮提问后若为空则以问题截断 100 字符填充）+ 标准审计列
+  （delFlag/version/createdBy/createTime/updatedBy/updateTime）。
+- `NopDatavChatMessage`（表 `nop_datav_chat_message`）：`MESSAGE_ID`（PK）+ `SESSION_ID`
+  （to-one session，index）+ `SEQ`（int，**每会话内严格递增**，UK `(SESSION_ID, SEQ)`，镜像
+  nop-ai `NopAiSessionMessage.seq` 先例）+ `ROLE`（`user` / `assistant`，dict
+  `datav/chat-msg-role`）+ `CONTENT`（CLOB，用户问题或 assistant 最终 answer 文本）+
+  `RESULT_JSON`（CLOB json，仅 assistant 消息；`ChatBiResult` 的 columns/rows/iterations 结构化
+  留存，user 消息为 null）+ 标准审计列。
+
+**拒绝方案**：复用 nop-ai `NopAiSession`/`NopAiSessionMessage`/`NopAiSessionContext`/
+`NopAiSessionInput` 实体族——需在 nop-datav-service 新增 `nop-ai-dao` 依赖（D6-1 起刻意收窄为
+`nop-ai-api` + `nop-ai-toolkit`），且该实体族面向 nop-ai-agent 引擎会话生命周期（compaction/
+context/input 队列语义），datav 多轮对话只需「问答对 + 上界截断」，引入即承受语义耦合而无对等收益。
+
+#### 裁定 S2：多轮上下文构造策略 —— 最小集注入 + 双上界取小 + 最老优先丢弃
+
+**选择**：
+
+- **注入内容**：历史中的用户消息 + assistant 最终 answer。assistant 消息注入内容 = answer 文本 +
+  （若 `RESULT_JSON` 的 columns/rows 非空）紧凑 JSON 形式的 columns/rows 摘要追加（供「换成柱状图的
+  数据」类追问引用真实数据；空壳 JSON 不追加）。**tool-call 中间轨迹不持久化、不注入**（Out Of
+  Scope；中间轨迹对最终答案无增量价值且显著膨胀上下文）。
+- **上界形态**：双上界取小——最近 N 轮（`nop.datav.chatbi.history.max-turns`，默认 10）与字符预算
+  （`nop.datav.chatbi.history.max-chars`，默认 20000）。先按轮数取最近 N 轮，再从最新消息向最老
+  消息累计字符数，加入下一条（更老）消息会超预算即停止；若最新一条消息单独超预算，截断该消息内容
+  至预算内（保证至少一条历史存活）。
+- **截断顺序**：最老优先丢弃。
+
+**拒绝方案**：仅轮数上界（单条大结果可无限膨胀）/ 仅字符预算（无轮次感知，长答案挤占全部轮次）/
+时间窗（与轮次语义不对应）。
+
+#### 裁定 S3：API 形态与会话创建 —— `chatToQuery` 增加可选 `sessionId` 参数 + 显式 create action
+
+**选择**：
+
+- `chatToQuery` 增加**可选** `sessionId` 参数（`@Nullable`）：缺省（null）时**单轮行为与现状逐字节
+  等价**（不读不写会话表，LLM 请求仅 system prompt + 本轮问题）；携带时进入会话模式——读历史 →
+  按 S2 构造注入上下文 → 执行循环 → 本轮用户消息 + assistant 结果（answer + `RESULT_JSON`）落会话。
+- **会话创建采用 (b) 显式 create action**：新增 `createChatSession`（`@BizMutation @Auth`）创建空
+  会话并返回（含 `sessionId`）。`chatToQuery` 返回的 `ChatBiResult` 新增 `sessionId` 字段（会话模式
+  回显，单轮为 null），供客户端校验续接标识。
+- 「缺省单轮不变」与「引用不存在/已删会话显式抛错」两条约束经此方案同时成立：会话只经
+  `createChatSession` 显式产生，`chatToQuery` 携带的 `sessionId` 一律按「引用已有会话」处理——
+  不存在或已删除抛 `ERR_DATAV_CHATBI_SESSION_NOT_FOUND`，非本人抛
+  `ERR_DATAV_CHATBI_NOT_SESSION_OWNER`，**无隐式建会话、无静默降级单轮**。
+
+**拒绝方案**：(a) 客户端生成会话标识、首轮传入即创建——「首轮新建」与「引用不存在会话」在该形态下
+不可区分，要么牺牲后者显式报错、要么引入 TTL/启发式猜测，违反无静默跳过约束；(c) 首轮无参调用自动
+建会话并返回标识——直接违反「缺省参数单轮行为不变」Goal（无参调用将被隐式写入会话表）。
+
+#### 裁定 S4：会话归属与数据敏感性 —— userName 归属 + 结果行落库 + seq 序号列并发语义
+
+**选择**：
+
+- **归属**：`NopDatavChatSession.userName` = 操作者 userName（经
+  `NopDatavOperatorResolver.resolveOperator(context)`，对齐 nop-datav 既有 `createdBy`/RLS 的
+  userName 语义——注意是 userName 非 userID）。所有读写路径先校验归属。
+- **数据留存**：查询结果行数据**落库**（`RESULT_JSON`）——多轮追问（「换成柱状图的数据」）必须引用
+  先前轮次真实数据，仅存 answer 文本不足以支撑；行数已被 `nop.datav.chatbi.max-rows`（D6-1，默认
+  1000）在查询层限行。**删除语义**：`deleteChatSession` 物理删除会话及其全部消息（镜像 D3-2 删除
+  生命周期先例的子对象物理删除），删除后续接/查历史均显式报错（与 S3 一致）。
+- **同会话并发写入顺序**：`SEQ` 序号列（非时间戳——同毫秒并发不可排序），取该会话当前
+  `max(seq)+1`，UK `(SESSION_ID, SEQ)` 兜底：并发追加冲突时后写方以唯一键冲突显式失败（快速失败，
+  不静默重排/覆盖）。单会话串行使用是 ChatBI 对话的常态，不引入分布式序号分配。
+
+**拒绝方案**：时间戳排序（同毫秒并发不可排序）；UK 冲突自动重试/重排（静默吞并发的显式失败语义）；
+软删（delFlag 置位）保留数据行（业务数据留存应随会话删除即时清除，与「删除后不可续接」语义一致）。
+
+#### 裁定 S5：会话管理 action 集与权限点 —— 4 action 全自定义 + 不建 biz 接口
+
+**选择**：
+
+- 4 个会话管理 action（全部挂 `NopDatavChatBi` BizModel，权限点镜像既有 ChatBI 权限点
+  `roles="admin,user"`，`nop-datav.action-auth.xml` 增配）：
+  - `createChatSession(sessionTitle?)`：`@BizMutation`（写操作，创建实体）。
+  - `listChatSessions()`：`@BizQuery`，返回**仅本人**的会话列表（按 updateTime 降序）。
+  - `getChatSessionHistory(sessionId)`：`@BizQuery`，返回该会话全部消息（按 seq 升序，含
+    `RESULT_JSON` 留存内容）。
+  - `deleteChatSession(sessionId)`：`@BizMutation`（写操作，级联物理删除消息）。
+- **不建 biz 接口**：现状 ChatBI 三 action 均直接经 `@BizModel` 暴露（无 `INopDatavChatBiBiz`），
+  本组 action 维持该先例；无跨模块调用方，接口抽象无收益（避免 dao→service 循环依赖考量也不需要
+  结果类型上移）。
+
+**拒绝方案**：为 NopDatavChatSession/NopDatavChatMessage 开放 user 角色 CRUD（标准 query/mutation
+权限点绑 user）。ORM 管线会为全部实体自动生成 CRUD BizModel（`NopDatavChatSessionBizModel`/
+`NopDatavChatMessageBizModel`，仓库惯例保留），但其标准 query/mutation 权限点仅绑 **admin**
+（`nop-datav.action-auth.xml`，镜像 NopDatavDashboardShare/ExportTask 的 D1 裁定先例）——会话数据
+仅经 owner 校验后的自定义 action 触达，user 角色放开 CRUD 即水平越权入口；biz 接口（无第二实现
+与跨模块消费方）。
+
+### 10.2 多轮注入架构
+
+```
+chatToQuery(question, sessionId?, IServiceContext)
+   │
+   │  sessionId == null → 既有单轮路径（逐字节等价，不触碰会话表）
+   │  sessionId != null → sessionManager.requireSession(sessionId, operator)  // 不存在/已删/非本人显式抛错
+   │                      history = sessionManager.loadHistory(...)
+   │                      historyContext = sessionManager.buildHistoryContext(history, maxTurns, maxChars)  // S2
+   ▼
+ChatBiToolCallingLoop.run(msg, prompt, null, maxIters, QUERY_HANDLER, historyContext)
+   │  ChatRequest = systemPrompt + historyContext + 本轮 userMessage（+ 工具清单）
+   ▼
+ChatBiResult（sessionId 回显）
+   │
+   ▼
+sessionManager.appendTurn(session, question, result, operator)
+   │  user 消息（seq=k）+ assistant 消息（seq=k+1，RESULT_JSON=columns/rows/iterations）
+   │  会话 updateTime/sessionTitle(首轮填充) 更新；失败轮次（循环抛异常）不落库
+```
+
+### 10.3 被拒方案汇总（多轮会话增补）
+
+| 方案 | 拒绝理由 |
+|-----|---------|
+| 复用 nop-ai `NopAiSession` 实体族 | 需新增 `nop-ai-dao` 依赖 + agent 会话语义耦合（compaction/context/input 队列），datav 只需问答对 + 截断（裁定 S1） |
+| tool-call 中间轨迹全量持久化并注入 | 上下文显著膨胀且对最终答案无增量价值（裁定 S2，Out Of Scope） |
+| 客户端生成会话标识首轮传入即创建 | 「首轮新建」与「引用不存在」不可区分，违反无静默跳过约束（裁定 S3a） |
+| 首轮无参调用自动建会话 | 违反「缺省单轮行为不变」Goal（裁定 S3c） |
+| 时间戳排序消息 | 同毫秒并发不可排序（裁定 S4） |
+| 会话实体标准 CRUD 权限点绑 user | 无 RLS 实体放开 CRUD 即水平越权入口，镜像 D1 裁定先例（裁定 S5；管线生成的 CRUD BizModel 保留但仅绑 admin） |
+| 软删（delFlag 置位）保留消息数据 | 业务数据留存应随会话删除即时物理清除，与「删除后不可续接」语义一致（裁定 S4） |
+
+### 10.4 配置增补
+
+| 配置项 | 默认值 | 说明 |
+|-------|-------|------|
+| `nop.datav.chatbi.history.max-turns` | 10 | 注入历史的最大轮数（最近 N 轮） |
+| `nop.datav.chatbi.history.max-chars` | 20000 | 注入历史的字符预算（与轮数上界取小，最老优先丢弃） |
