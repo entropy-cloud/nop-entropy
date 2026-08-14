@@ -108,6 +108,8 @@ Hook 生命周期点按 Layer 分层。Layer 1 引擎必须实现所有核心点
 
 > **说明**：早期设计中 `PRE_SUMMARY`/`POST_SUMMARY` 与 `PRE_COMPACT`/`POST_COMPACT` 是同一概念的两个命名，现已统一为 `PRE_COMPACT`/`POST_COMPACT`——"compact"准确描述了 5 层渐进压缩管线的行为（不仅是摘要）。
 
+**运行时事件类型清单**：除 Hook 生命周期点外，引擎通过 `AgentEventType` 发布运行时事件（`EXECUTION_STARTED`/`FORCED_STOP`/`SESSION_PAUSED` 等，分别见对应设计文档）。上下文压缩成功时发布 `COMPACTION` 事件（见 `nop-ai-agent-context-compaction-economics.md` §3.2）：负载携带 `tokensBefore`/`tokensAfter`/`shadowedTokenCount`/`snapshotId`，发射点在 `POST_COMPACT` hook 与 COMPACTION checkpoint 写入之后，且仅真实压缩发生时发射（NoOp/未缓解不发射）。
+
 ### 5.2 Hook 设计原则
 
 1. **命名约定**：Java 代码中 Hook 常量使用 `UPPER_SNAKE_CASE`（如 `PRE_REASONING`），DSL `event` 属性匹配值使用 `snake_case`（如 `before_reasoning`）。两种写法是同一概念的两种表示

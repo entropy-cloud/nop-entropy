@@ -9,7 +9,7 @@
 ## 一、设计结论
 
 1. 本篇是 vision §4「渐进式增强」的**反向审计工具**——用一张表回答"每个扩展点当前是否闭合"
-2. 全模块共 **66 个接口**，按角色四分：核心契约 4 / 真正扩展点 52 / 回调契约 3 / NoOp-only 3 / 预留原语 1 / 未分离 NoOp（已闭合但命名不一致）若干
+2. 全模块共 **67 个接口**，按角色四分：核心契约 4 / 真正扩展点 53 / 回调契约 3 / NoOp-only 3 / 预留原语 1 / 未分离 NoOp（已闭合但命名不一致）若干
 3. 当前 **3 处半闭合** + **1 处未闭合** + **5 处命名/接线异味** 是 vision §4 落实的主要缺口
 4. 本篇与 `glossary.md`（术语层）、`nop-ai-agent-roadmap.md`（状态层）互补——glossary 列概念，roadmap 列阶段，本篇**列闭合度**
 
@@ -120,6 +120,7 @@
 | `IConflictStrategy` | conflict | 无（`FailFastStrategy` 即默认） | `FailFastStrategy` | 无（`CoordinationBusStrategy` 为 successor） | DAE, RAE | ✅ |
 | `IWriteIntentRegistry` | conflict | 无（`InMemoryWriteIntentRegistry` 即默认） | `InMemoryWriteIntentRegistry` | 无（DB 为 successor） | DAE, RAE | ✅ |
 | `ICompressionStrategy` | compact | 无 | `MicroCompressionCompactor` / `Layer2TurnPruningStrategy` / `Layer3FullSummaryStrategy` | 无 | `PipelineCompactor` | ✅ |
+| `ISpillStore` | compact | 无（`InMemorySpillStore` 即默认，session 宿主 lazy 装配，无 null-store 分支） | `InMemorySpillStore` | 无（持久化为 successor） | `AgentToolDispatcher` (写), `ReadSpillExecutor` (读) | ✅ |
 
 > **L3 注 1**：`ICircuitBreaker` ↔ `ISustainer` 是**部署层文档约束**（非运行时硬性互斥 guard，plan 212 裁定）。
 > **L3 注 2**：L3 有 5 处 **未分离 NoOp 命名**——`AlwaysClosed` / `NoRetryPolicy` / `AutoApproveGate` / `PassThroughPermissionMatrix`（L2）/ `PassThroughPostDenialGuard`。详见 §6。
@@ -176,7 +177,7 @@
 
 | 状态 | 计数 | 占比 | 含义 |
 |---|---|---|---|
-| ✅ 闭合 | 59 | 89.4% | 有消费者 + 有功能实现（含 InMemory/DB/File） |
+| ✅ 闭合 | 60 | 89.6% | 有消费者 + 有功能实现（含 InMemory/DB/File） |
 | 🟡 半闭合 | 3 | 4.5% | 有消费者 + **唯一实现是 NoOp** |
 | 🔴 未闭合 | 1 | 1.5% | **零消费者**（纯原语预留） |
 | ⚪ 回调契约 | 3 | 4.5% | 下游/插件实现，不参与闭合分析 |

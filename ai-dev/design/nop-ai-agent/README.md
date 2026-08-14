@@ -36,6 +36,10 @@ Layer 1: Core Interfaces (核心接口层)
   - 与 `glossary.md`（术语）和 `nop-ai-agent-roadmap.md`（Layer 阶段）互补
 - `nop-ai-agent-context-model.md`
   - Agent 上下文模型：组成维度、Tool 可见性、Agent-as-Subprocess 隐喻、上下文继承与 fork、内部 Agent 化
+  - §8 外部调研驱动的增量设计：引用式压缩双轨（shortRef/read-ref）、压缩前 snapshot 归档与压缩比度量
+- `nop-ai-agent-context-compaction-economics.md`
+  - 上下文压缩与计价增强（2026-08-13，来源 DeepSeek Harness 调研）：KV 前缀保持的摘要调用、阴影 token 计价（shadowedTokenCount）、Spill 溢出存储
+  - 与 `nop-ai-agent-context-model.md` §8 互补：§8 管压缩侧（引用式/归档/度量），本文管成本侧（缓存连续/遮蔽计价/入口 spill）
 - `nop-ai-agent-multi-agent.md`
   - 多 Agent 并行协同：冲突分类、文件写意图、资源声明、通信模型
 
@@ -138,17 +142,18 @@ Layer 1: Core Interfaces (核心接口层)
 
 5. `nop-ai-agent-llm-layer.md` — LLM 层接口设计
 6. `nop-ai-agent-usage-and-billing.md` — 用量追踪与按模型计费
-7. `nop-ai-agent-context-model.md` — 上下文模型
-8. `04-tool-invocation.md` — 工具调用架构
-9. `nop-ai-agent-dsl.md` → `nop-ai-agent-plan-dsl.md` → `nop-ai-tool-dsl.md` → `nop-ai-call-agent-dsl.md` — DSL 详细设计
-10. `nop-ai-agent-react-engine.md` → `nop-ai-agent-hook-skill-engine.md` → `nop-ai-agent-session-engine.md` — 引擎详细设计
-11. `nop-ai-agent-runtime-semantics.md` — DSL 到运行时的语义映射
-12. `nop-ai-agent-multi-agent.md` — 多 Agent 协同
-13. 策略层：`nop-ai-agent-session-and-storage.md`、`nop-ai-agent-security-and-permissions.md`、`nop-ai-agent-reliability.md`、`nop-ai-agent-branch-affinity-scheduling.md`、`skill-system-design.md`
+7. `nop-ai-agent-context-model.md` — 上下文模型（含 §8 引用式压缩/快照归档增量设计）
+8. `nop-ai-agent-context-compaction-economics.md` — 上下文压缩与计价增强（KV 前缀保持/阴影计价/spill）
+9. `04-tool-invocation.md` — 工具调用架构
+10. `nop-ai-agent-dsl.md` → `nop-ai-agent-plan-dsl.md` → `nop-ai-tool-dsl.md` → `nop-ai-call-agent-dsl.md` — DSL 详细设计
+11. `nop-ai-agent-react-engine.md` → `nop-ai-agent-hook-skill-engine.md` → `nop-ai-agent-session-engine.md` — 引擎详细设计
+12. `nop-ai-agent-runtime-semantics.md` — DSL 到运行时的语义映射
+13. `nop-ai-agent-multi-agent.md` — 多 Agent 协同
+14. 策略层：`nop-ai-agent-session-and-storage.md`、`nop-ai-agent-security-and-permissions.md`、`nop-ai-agent-reliability.md`、`nop-ai-agent-branch-affinity-scheduling.md`、`skill-system-design.md`
 
 **扩展方向**：
 
-14. `nop-ai-agent-actor-runtime-vision.md` — Platform Layer 组件设计
-15. `nop-ai-agent-channel-connector.md` — 外部信道连接器设计
-16. `nop-ai-agent-roadmap.md` — 分层架构与实施路线
-17. `nop-ai-agent-eval-design.md` — Agent 端到端行为评测系统
+15. `nop-ai-agent-actor-runtime-vision.md` — Platform Layer 组件设计
+16. `nop-ai-agent-channel-connector.md` — 外部信道连接器设计
+17. `nop-ai-agent-roadmap.md` — 分层架构与实施路线
+18. `nop-ai-agent-eval-design.md` — Agent 端到端行为评测系统
