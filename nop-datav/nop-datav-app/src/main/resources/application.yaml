@@ -21,7 +21,8 @@ nop:
 
     graphql:
       enable-audit: true
-      audit-mutation-patterns: NopDatavDashboard__*,NopDatavPanel__*,NopDatavFilterState__*
+      # NopDatavDashboardShare__* 分享管理操作审计（plan 2026-08-14-2020-1 Phase 4，D3-2 遗留配置补齐）
+      audit-mutation-patterns: NopDatavDashboard__*,NopDatavPanel__*,NopDatavFilterState__*,NopDatavDashboardShare__*
       audit-query-patterns: NopDatavDashboard__getPublishedDashboard
 
   web:
