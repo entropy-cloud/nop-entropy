@@ -185,6 +185,7 @@ Downstream remediation is driven by P0+P1 only (P2 recorded for backlog triage).
 - **File**: `nop-metadata/model/nop-metadata.orm.xml:111-115`
 - **Severity**: P2 — two sibling dicts (checkpoint-action-type, reconciliation-status) carry a comment explaining they are retained because Java code references their values; this one (used by `MetaQualityScorer` via `_NopMetadataCoreConstants`) lacks it and risks accidental deletion in a "remove unused dicts" sweep. *Justification: maintenance hygiene.*
 - **Recommendation**: add the matching retention comment.
+- **Adjudication (2026-08-15, plan `2026-08-14-1448-3`)**: false positive — the existing comment at `nop-metadata.orm.xml:104-105` already covers both `checkpoint-action-type` and `quality-trend-direction` ("以下两个 dict ... 保留定义"); the retention comment lives in the orm.xml XML comment, not `.dict.yaml`. No fix needed.
 
 ### API surface / docs / code hygiene
 

@@ -1,6 +1,6 @@
 # nop-metadata ORM 缺失索引补建（F10 / F11 / F12）
 
-> Plan Status: active
+> Plan Status: completed
 > > Last Reviewed: 2026-08-14
 > > Mission: nop-metadata-invariant-loop
 > > Work Item: Cycle 2 / 再审计 follow-up backlog — ORM 模型族（性能）
@@ -58,7 +58,7 @@
 
 ### Phase 1 — 缺失索引补建（F10 + F11 + F12）
 
-Status: planned
+Status: completed
 Targets: `nop-metadata/model/nop-metadata.orm.xml`（源模型，非 `_app.orm.xml` 生成产物）
 
 - Item Types: `Fix | Decision`
@@ -72,40 +72,40 @@ Targets: `nop-metadata/model/nop-metadata.orm.xml`（源模型，非 `_app.orm.x
 >
 > **索引命名**：沿用现有约定 `IX_NOP_META_<ENTITY>_<COL>`，与兄弟索引风格一致（已核实现有命名模式）。
 
-- [ ] F10：`NopMetaModelChangedEvent` 的 `IX_NOP_META_EVENT_TYPE_TIME` 列清单扩展为 `(entityType, entityId, changeTime)`
-- [ ] F11：NopMetaDomain 新增 `IX_NOP_META_DOMAIN_SOURCE_MODULE(sourceModuleId)`
-- [ ] F11：NopMetaTable 新增 `IX_NOP_META_TABLE_BASE_ENTITY(baseEntityId)`
-- [ ] F11：NopMetaTableDimension 新增 `IX_NOP_META_DIM_ENTITY_FIELD(entityFieldId)`
-- [ ] F11：NopMetaTableMeasure 新增 `IX_NOP_META_MEASURE_ENTITY_FIELD(entityFieldId)`
-- [ ] F12：NopMetaQualityResult 新增 `IX_NOP_META_QRESULT_RUN(runId, executeTime)`
-- [ ] 重新生成：`./mvnw install -pl nop-metadata -am -DskipTests`，确认 `_app.orm.xml` 含新增/扩展索引（grep 证据）
+- [x] F10：`NopMetaModelChangedEvent` 的 `IX_NOP_META_EVENT_TYPE_TIME` 列清单扩展为 `(entityType, entityId, changeTime)`
+- [x] F11：NopMetaDomain 新增 `IX_NOP_META_DOMAIN_SOURCE_MODULE(sourceModuleId)`
+- [x] F11：NopMetaTable 新增 `IX_NOP_META_TABLE_BASE_ENTITY(baseEntityId)`
+- [x] F11：NopMetaTableDimension 新增 `IX_NOP_META_DIM_ENTITY_FIELD(entityFieldId)`
+- [x] F11：NopMetaTableMeasure 新增 `IX_NOP_META_MEASURE_ENTITY_FIELD(entityFieldId)`
+- [x] F12：NopMetaQualityResult 新增 `IX_NOP_META_QRESULT_RUN(runId, executeTime)`
+- [x] 重新生成：`./mvnw install -pl nop-metadata -am -DskipTests`，确认 `_app.orm.xml` 含新增/扩展索引（grep 证据）
 
 Exit Criteria:
 
-- [ ] 源模型 `model/nop-metadata.orm.xml` 含 F10 扩展（1）+ F11 新增（4）+ F12 新增（1）= 6 处索引变更，命名遵循约定
-- [ ] 生成产物 `_app.orm.xml` 经重新生成含对应索引（非手编；`rg -n "IX_NOP_META_(EVENT_TYPE_TIME|DOMAIN_SOURCE_MODULE|TABLE_BASE_ENTITY|DIM_ENTITY_FIELD|MEASURE_ENTITY_FIELD|QRESULT_RUN)" nop-metadata/nop-metadata-dao` 命中且 EVENT_TYPE_TIME 列清单含 entityId）
-- [ ] 未手编任何 `_` 前缀文件（git diff 仅源模型 + 生成产物差异）
-- [ ] **无静默跳过**：不得用注释/TODO 代替实际索引声明；新增/扩展索引必须出现在生成 DDL
-- [ ] `./mvnw compile -pl nop-metadata -am -T 1C` 通过
-- [ ] `./mvnw test -pl nop-metadata -am -T 1C` 全绿（索引加性变更不破坏行为）
-- [ ] `node ai-dev/tools/check-orm-unique-key-constraint.mjs --module nop-metadata` → exit 0（防回退，加索引不影响 UK 完备性门禁）
-- [ ] 若索引命名/语义改变 live baseline：相关 `docs-for-ai/`（如 `03-modules/nop-metadata.md` 索引说明，若有）已同步；否则写 No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 源模型 `model/nop-metadata.orm.xml` 含 F10 扩展（1）+ F11 新增（4）+ F12 新增（1）= 6 处索引变更，命名遵循约定
+- [x] 生成产物 `_app.orm.xml` 经重新生成含对应索引（非手编；`rg -n "IX_NOP_META_(EVENT_TYPE_TIME|DOMAIN_SOURCE_MODULE|TABLE_BASE_ENTITY|DIM_ENTITY_FIELD|MEASURE_ENTITY_FIELD|QRESULT_RUN)" nop-metadata/nop-metadata-dao` 命中且 EVENT_TYPE_TIME 列清单含 entityId）
+- [x] 未手编任何 `_` 前缀文件（git diff 仅源模型 + 生成产物差异）
+- [x] **无静默跳过**：不得用注释/TODO 代替实际索引声明；新增/扩展索引必须出现在生成 DDL
+- [x] `./mvnw compile -pl nop-metadata -am -T 1C` 通过
+- [x] `./mvnw test -pl nop-metadata -am -T 1C` 全绿（索引加性变更不破坏行为）
+- [x] `node ai-dev/tools/check-orm-unique-key-constraint.mjs --module nop-metadata` → exit 0（防回退，加索引不影响 UK 完备性门禁）
+- [x] 若索引命名/语义改变 live baseline：相关 `docs-for-ai/`（如 `03-modules/nop-metadata.md` 索引说明，若有）已同步；否则写 No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > 本计划为 ORM 源模型加性索引。保留构建 + 测试 + UK 门禁验证。ORM 变更属 plan-first，执行前需人工确认（mission 授权）。
 
-- [ ] 6 处缺失索引已在源模型补建并经重新生成落到 `_app.orm.xml`（grep 证据，含 F10 扩展列清单）
-- [ ] 未手编任何 `_` 前缀生成产物（git diff 仅源模型 + 重新生成产物）
-- [ ] `./mvnw test -pl nop-metadata -am -T 1C` 全绿（0 failures）
-- [ ] `node ai-dev/tools/check-orm-unique-key-constraint.mjs --module nop-metadata` → exit 0
-- [ ] `node ai-dev/tools/check-silent-swallow.mjs --module nop-metadata` → exit 0（防回退）
-- [ ] 不存在被静默降级到 deferred 的 in-scope 项
-- [ ] 受影响 owner docs 已同步，或明确写明 No owner-doc update required
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
-- [ ] **生成产物一致性验证**：closure audit 验证新增/扩展索引确实出现在生成 DDL/`_app.orm.xml`（非仅源模型声明而未生成）；无空占位/TODO 代替索引
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
+- [x] 6 处缺失索引已在源模型补建并经重新生成落到 `_app.orm.xml`（grep 证据，含 F10 扩展列清单）
+- [x] 未手编任何 `_` 前缀生成产物（git diff 仅源模型 + 重新生成产物）
+- [x] `./mvnw test -pl nop-metadata -am -T 1C` 全绿（0 failures）
+- [x] `node ai-dev/tools/check-orm-unique-key-constraint.mjs --module nop-metadata` → exit 0
+- [x] `node ai-dev/tools/check-silent-swallow.mjs --module nop-metadata` → exit 0（防回退）
+- [x] 不存在被静默降级到 deferred 的 in-scope 项
+- [x] 受影响 owner docs 已同步，或明确写明 No owner-doc update required
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
+- [x] **生成产物一致性验证**：closure audit 验证新增/扩展索引确实出现在生成 DDL/`_app.orm.xml`（非仅源模型声明而未生成）；无空占位/TODO 代替索引
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
 
 ## Deferred But Adjudicated
 
@@ -119,10 +119,23 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写>>
-Completed: <<YYYY-MM-DD>>
+Status Note: 6 处索引变更（F10 扩展 1 + F11 新增 4 + F12 新增 1）全部落在源模型 `model/nop-metadata.orm.xml` 并经 `mvnw install` 再生成落到 `_app.orm.xml`（grep 6/6 命中，EVENT_TYPE_TIME 列清单含 entityId）；未手编任何 `_` 前缀文件（git diff 仅源模型 + 生成产物 + ai-dev 文档，各 +17 行 orm 变更）；`./mvnw test -pl nop-metadata -am -T 1C` BUILD SUCCESS（nop-metadata 1175 tests / 0 failures / 0 errors）；UK / silent-swallow / hollow 三个静态门禁 exit 0；F13 经审查裁定为 false positive 移出 scope 并在 roadmap 与审计源标注；owner-doc 裁定 No update required。独立子 agent closure audit 全项 PASS。
+Completed: 2026-08-15
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<待独立 fresh session closure audit 填写>>
-- Evidence: <<待填写>>
+- Reviewer / Agent: 独立 explore 子 agent（fresh session，task id `ses_ffd5ef30fffe895hn8NvggFER9`），非实现 session
+- Evidence:
+  - 源模型 6 处变更逐实体核对 PASS：F10 :2928-2932（entityId 位于 entityType 与 changeTime 之间）、F11 :1103-1105/:1449-1451/:1526-1528/:1609-1611、F12 :2115-2118，均在正确实体内且列存在
+  - 生成产物 `_app.orm.xml` 一致性 PASS：6 索引全部命中（:1000-1002/:1210-1212/:1388-1390/:1461-1463/:1900-1903/:2599-2603），列清单与源模型 1:1；行号与源模型发散 + `<relations>` 结构差异证明为再生成非手拷；无 TODO/占位/空索引体
+  - 无手编 PASS：git diff hunk 级核对仅 2 个 orm 文件（各 +17）+ 4 个 ai-dev 文档（audit +1 行 F13 标注 / roadmap 8 行 / log 13 行 / plan 仅勾选与状态翻转）
+  - 静态门禁 PASS：UK 37/0 hits exit 0；silent-swallow 125/0 hits exit 0；hollow 0 findings exit 0
+  - 测试证据：执行 session 记录 `./mvnw test -pl nop-metadata -am -T 1C` BUILD SUCCESS（1175/0/0，含两轮上游并发 flake 的如实记录：nop-ai-core SSE 时序 / nop-stream-rocksdb 基准 ratio，均单跑通过）；后续 `clean install -DskipTests` 删除 surefire 报告属预期
+  - Anti-Hollow PASS：6 索引均为真实 `<index>`+`<column>` XML 声明（双文件）
+  - Scope 诚实性 PASS：F13 未被实现（orm diff 不触及 dict 注释区）；Deferred 区为空；无 in-scope 项降级
+  - Roadmap/log 同步 PASS：F10/F11/F12 ✅ Fixed、F13 false positive；`ai-dev/logs/2026/08-15.md` 含本计划收口条目
+- Overall: CLOSURE_AUDIT: PASS（9/9 items PASS）
+
+Follow-up:
+
+- 无剩余 plan-owned work。Non-Blocking Follow-ups 区仅含已裁定的文档治理项（F13 false positive 标注，已完成）与独立增强方向（本批之外的软外键列索引治理）。

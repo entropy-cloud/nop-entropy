@@ -93,10 +93,10 @@ flowchart LR
 - **F9** `custom_sql` blocklist 缺 PG `DO`/`WITH`(CTE)/`PG_CATALOG`/`PG_SLEEP`。源：同上（F9） — ✅ Fixed（plan `2026-08-14-1133-1` Phase 3：补 5 关键字 + DRY 裁定 + WITH tradeoff 记录 + 对抗测试）
 
 ### ORM 模型族（性能/卫生）
-- **F10** `NopMetaModelChangedEvent` 缺 `entityId` 审计日志索引。源：同上（F10）
-- **F11** 四个软外键列未建索引（`sourceModuleId`/`baseEntityId`/`entityFieldId`×2）。源：同上（F11）
-- **F12** `NopMetaQualityResult.runId` 不在任何索引前导列。源：同上（F12）
-- **F13** `meta/quality-trend-direction` dict 缺兄弟 dict 的"retained for Java constants"注释。源：同上（F13）
+- **F10** `NopMetaModelChangedEvent` 缺 `entityId` 审计日志索引。源：同上（F10） — ✅ Fixed（plan `2026-08-14-1448-3`：`IX_NOP_META_EVENT_TYPE_TIME` 列清单扩展为 `(entityType, entityId, changeTime)`）
+- **F11** 四个软外键列未建索引（`sourceModuleId`/`baseEntityId`/`entityFieldId`×2）。源：同上（F11） — ✅ Fixed（plan `2026-08-14-1448-3`：新增 `IX_NOP_META_DOMAIN_SOURCE_MODULE` / `IX_NOP_META_TABLE_BASE_ENTITY` / `IX_NOP_META_DIM_ENTITY_FIELD` / `IX_NOP_META_MEASURE_ENTITY_FIELD`）
+- **F12** `NopMetaQualityResult.runId` 不在任何索引前导列。源：同上（F12） — ✅ Fixed（plan `2026-08-14-1448-3`：新增 `IX_NOP_META_QRESULT_RUN(runId, executeTime)`）
+- **F13** `meta/quality-trend-direction` dict 缺兄弟 dict 的"retained for Java constants"注释。源：同上（F13） — ⚠️ False positive（plan `2026-08-14-1448-3` 范围裁定：`nop-metadata.orm.xml:104-105` 注释已同时覆盖 `checkpoint-action-type` 与 `quality-trend-direction`，注释早已存在，无需修复）
 
 ### API/文档/代码卫生族
 - **F14** `KeyValueDTO` 死 DTO（零生产引用）。源：同上（F14） — ✅ Fixed（plan `2026-08-14-1448-1`：删除 KeyValueDTO.java + 测试引用，全仓 `rg -n KeyValueDTO` 零残留）
