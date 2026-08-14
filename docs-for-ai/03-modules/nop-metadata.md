@@ -159,6 +159,14 @@ mutation {
 
 **items 返回类型合理例外（P2-24）**：`queryTableData` / `queryAggregation` / `queryJoinData` 的返回 `items` 为 `List<Map<String,Object>>`（原始行 Map 列表）而非强类型 DTO——这是经裁定的合理例外：行结构由任意外部源 schema / 用户选择 Measure-Dimension 动态决定，无法预先声明固定 DTO 字段；API 契约仍以 `items` 语义（列名 → 值）对外稳定。
 
+**`selection` 参数显式 no-op（F4，plan 2026-08-14-0707-2）**：`queryTableData` / `queryJoinData` / `queryAggregation` 声明的 `FieldSelectionBean selection` 参数由 GraphQL 引擎（`ReflectionBizModelBuilder`）自动注入**响应字段选择集**（DTO 级，如 `{ tableType items }`）——它**不是**调用方显式传入的行列过滤规范。由于结果为不透明 `List<Map<String,Object>>`（GraphQL 无法对 Map 行做字段级选择），`selection` 在此三方法为**显式 no-op**：行的所有列原样返回，不做基于 selection 的 key 过滤。这与 `CrudBizModel`（结果为 ORM 实体，selection 经 `fetchResultWithSelection` 驱动字段装载）语义不同。该 no-op 地位已在方法 Javadoc 与回归测试中显式声明，不再"静默接受又丢弃"。与 P2-24 carve-out 边界：P2-24 覆盖 `items` 返回类型（List<Map>），F4 覆盖 `selection` 参数语义（no-op），两者正交。若未来需要行列裁剪，应新增显式 `fields` 参数。
+
+**SLA 契约：分数 amount 与非法值语义（AR-01/AR-02，plan 2026-08-14-0707-2）**：`MetaContractChecker.toDurationMillis` 把 SLA `{interval/value, unit}` 结构归一为毫秒——
+- **分数 amount**（AR-01）：先按 `double` 换算毫秒（`amount * unitMillis`）再取整，**不**在单位级 `(long)amount` 截断。`{"interval":0.5,"unit":"hour"}` → 1_800_000 ms（非 0）；`0.5w` → 3.5 day 的毫秒（非 0）。覆盖通用路径与 week 分支两条换算路径。
+- **非数字 amount**（AR-02）：不可解析的 amount（如非数字 String `"oops"`）映射 `nop.err.metadata.contract-sla-invalid`（带 `contractId` + 错误值），**不**逃逸裸 `NumberFormatException`。与 AR-22（未知 unit fail-fast）共同保证：未知 unit 与不可解析 amount 均显式失败，无静默跳过。
+
+**cross-DB 内存聚合 group-key 语义（AR-03，plan 2026-08-14-0707-2）**：`AggregationHelper.memoryGroupBy`（cross-DB 内存聚合）用**结构性 key**（值级 `equals`/`hashCode` 的 `List<Object>`）分组，不再用分隔符（`\u0001`）拼接 String key + null 哨兵（`\u0000`）。这消除了控制字符入参导致的分组碰撞：`("a","\u0001b")` 与 `("a\u0001","b")` 产出两个不同分组；`null` 与字面量 `"\u0000"` 不碰撞。内存路径与 SQL 路径（SQL GROUP BY 天然按值分组）对含控制字符的脏数据产出一致（R8.3 不变式）。
+
 主要 I*Biz 接口（plan 2026-07-19-1250-3 Phase 1 补齐）：
 
 - `INopMetaTableBiz` — profileTable / createSqlTable / previewSqlFields / resolveTableFields / queryTableData / queryJoinData / queryAggregation
