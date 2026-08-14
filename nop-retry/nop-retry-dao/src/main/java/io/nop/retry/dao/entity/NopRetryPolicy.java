@@ -39,12 +39,6 @@ public class NopRetryPolicy extends _NopRetryPolicy {
         return getJitterRatio() != null ? getJitterRatio() : DEFAULT_JITTER_RATIO;
     }
 
-    public long getExecutionTimeoutMsOrDefault() {
-        return getExecutionTimeoutSeconds() != null 
-            ? getExecutionTimeoutSeconds() * 1000L 
-            : DEFAULT_EXECUTION_TIMEOUT_SECONDS * 1000L;
-    }
-
     public long getDeadlineTimeoutMsOrDefault() {
         return getDeadlineTimeoutMs() != null ? getDeadlineTimeoutMs() : DEFAULT_DEADLINE_TIMEOUT_MS;
     }

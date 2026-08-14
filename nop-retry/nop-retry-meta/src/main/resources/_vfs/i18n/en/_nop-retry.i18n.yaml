@@ -4,7 +4,6 @@ entity:
     NopRetryDeadLetter: Retry Dead Letter
     NopRetryPolicy: Retry Policy
     NopRetryRecord: Retry Record
-    NopRetryTemplate: Retry Template
 prop:
   label:
     NopRetryAttempt:
@@ -36,7 +35,6 @@ prop:
       policyId: Policy ID
       recordId: Record ID
       idempotentId: Idempotent ID
-      bizNo: Business Number
       executorName: Executor Name
       requestPayload: Request Payload
       failureCode: Failure Code
@@ -59,8 +57,6 @@ prop:
       groupId: Group ID
       name: Policy Name
       status: Status
-      saveRecordStrategy: Save Record Strategy
-      saveRecordStrategy_label: null
       immediateRetryCount: Immediate Retry Count
       immediateRetryIntervalMs: Immediate Retry Interval (Milliseconds)
       maxRetryCount: Max Retry Count
@@ -69,7 +65,6 @@ prop:
       initialIntervalMs: Initial Interval (Milliseconds)
       maxIntervalMs: Max Interval (Milliseconds)
       jitterRatio: Jitter Ratio
-      executionTimeoutSeconds: Execution Timeout (Seconds)
       deadlineTimeoutMs: Deadline Timeout (Milliseconds)
       blockStrategy: Block Strategy
       blockStrategy_label: null
@@ -91,9 +86,6 @@ prop:
       groupId: Group ID
       policyId: Policy ID
       idempotentId: Idempotent ID
-      bizNo: Business Number
-      taskType: Task Type
-      taskType_label: null
       status: Status
       status_label: null
       retryCount: Retry Count
@@ -102,7 +94,6 @@ prop:
       partitionIndex: Partition Index
       executorName: Executor Name
       requestPayload: Request Payload
-      contextPayload: Context Payload
       version: Version
       createdBy: Created By
       createTime: Create Time
@@ -112,44 +103,13 @@ prop:
       serviceMethod: Service Method
       policy: Policy
       requestPayloadComponent: null
-      contextPayloadComponent: null
-    NopRetryTemplate:
-      sid: Primary Key
-      namespaceId: Namespace ID
-      groupId: Group ID
-      name: Template Name
-      status: Status
-      maxRetryCount: Max Retry Count
-      backoffStrategy: Backoff Strategy
-      backoffStrategy_label: null
-      backoffConfig: Backoff Config
-      executionTimeoutSeconds: Execution Timeout (Seconds)
-      deadlineTimeoutMs: Deadline Timeout (Milliseconds)
-      blockStrategy: Block Strategy
-      blockStrategy_label: null
-      callbackEnabled: Callback Enabled
-      callbackTriggerType: Callback Trigger Type
-      callbackTriggerType_label: null
-      callbackMaxAttempts: Callback Max Attempts
-      callbackIntervalSeconds: Callback Interval (Seconds)
-      ownerId: Owner ID
-      description: Description
-      version: Version
-      createdBy: Created By
-      createTime: Create Time
-      updatedBy: Updated By
-      updateTime: Update Time
-      records: Retry Records
-      backoffConfigComponent: null
 dict:
   label:
     retry/retry-record-status: Retry Record Status
     retry/retry-attempt-status: Retry Attempt Status
-    retry/retry-task-type: Retry Task Type
     retry/backoff-strategy: Backoff Strategy
     retry/block-strategy: Block Strategy
     retry/callback-trigger-type: Callback Trigger Type
-    retry/save-record-strategy: Save Record Strategy
 dict.option.label:
   retry/retry-record-status:
     '0': Pending
@@ -164,9 +124,6 @@ dict.option.label:
     '3': Failed
     '4': Stopped
     '5': Canceled
-  retry/retry-task-type:
-    '1': Retry
-    '2': Callback
   retry/backoff-strategy:
     '1': Fixed Interval
     '2': Exponential Backoff
@@ -178,6 +135,3 @@ dict.option.label:
     '1': On Success
     '2': On Failure
     '3': Always
-  retry/save-record-strategy:
-    '1': Before Call
-    '2': After Failure

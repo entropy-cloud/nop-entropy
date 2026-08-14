@@ -41,14 +41,6 @@ public class _NopRetryRecord extends DynamicOrmEntity{
     public static final String PROP_NAME_idempotentId = "idempotentId";
     public static final int PROP_ID_idempotentId = 5;
     
-    /* 业务号: BIZ_NO VARCHAR */
-    public static final String PROP_NAME_bizNo = "bizNo";
-    public static final int PROP_ID_bizNo = 6;
-    
-    /* 任务类型: TASK_TYPE INTEGER */
-    public static final String PROP_NAME_taskType = "taskType";
-    public static final int PROP_ID_taskType = 7;
-    
     /* 状态: STATUS INTEGER */
     public static final String PROP_NAME_status = "status";
     public static final int PROP_ID_status = 8;
@@ -76,10 +68,6 @@ public class _NopRetryRecord extends DynamicOrmEntity{
     /* 请求参数: REQUEST_PAYLOAD VARCHAR */
     public static final String PROP_NAME_requestPayload = "requestPayload";
     public static final int PROP_ID_requestPayload = 14;
-    
-    /* 上下文参数: CONTEXT_PAYLOAD VARCHAR */
-    public static final String PROP_NAME_contextPayload = "contextPayload";
-    public static final int PROP_ID_contextPayload = 15;
     
     /* 版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
@@ -119,9 +107,6 @@ public class _NopRetryRecord extends DynamicOrmEntity{
     /* component:  */
     public static final String PROP_NAME_requestPayloadComponent = "requestPayloadComponent";
     
-    /* component:  */
-    public static final String PROP_NAME_contextPayloadComponent = "contextPayloadComponent";
-    
 
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sid);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_sid};
@@ -145,12 +130,6 @@ public class _NopRetryRecord extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_idempotentId] = PROP_NAME_idempotentId;
           PROP_NAME_TO_ID.put(PROP_NAME_idempotentId, PROP_ID_idempotentId);
       
-          PROP_ID_TO_NAME[PROP_ID_bizNo] = PROP_NAME_bizNo;
-          PROP_NAME_TO_ID.put(PROP_NAME_bizNo, PROP_ID_bizNo);
-      
-          PROP_ID_TO_NAME[PROP_ID_taskType] = PROP_NAME_taskType;
-          PROP_NAME_TO_ID.put(PROP_NAME_taskType, PROP_ID_taskType);
-      
           PROP_ID_TO_NAME[PROP_ID_status] = PROP_NAME_status;
           PROP_NAME_TO_ID.put(PROP_NAME_status, PROP_ID_status);
       
@@ -171,9 +150,6 @@ public class _NopRetryRecord extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_requestPayload] = PROP_NAME_requestPayload;
           PROP_NAME_TO_ID.put(PROP_NAME_requestPayload, PROP_ID_requestPayload);
-      
-          PROP_ID_TO_NAME[PROP_ID_contextPayload] = PROP_NAME_contextPayload;
-          PROP_NAME_TO_ID.put(PROP_NAME_contextPayload, PROP_ID_contextPayload);
       
           PROP_ID_TO_NAME[PROP_ID_version] = PROP_NAME_version;
           PROP_NAME_TO_ID.put(PROP_NAME_version, PROP_ID_version);
@@ -214,12 +190,6 @@ public class _NopRetryRecord extends DynamicOrmEntity{
     /* 幂等ID: IDEMPOTENT_ID */
     private java.lang.String _idempotentId;
     
-    /* 业务号: BIZ_NO */
-    private java.lang.String _bizNo;
-    
-    /* 任务类型: TASK_TYPE */
-    private java.lang.Integer _taskType;
-    
     /* 状态: STATUS */
     private java.lang.Integer _status;
     
@@ -240,9 +210,6 @@ public class _NopRetryRecord extends DynamicOrmEntity{
     
     /* 请求参数: REQUEST_PAYLOAD */
     private java.lang.String _requestPayload;
-    
-    /* 上下文参数: CONTEXT_PAYLOAD */
-    private java.lang.String _contextPayload;
     
     /* 版本: VERSION */
     private java.lang.Integer _version;
@@ -354,12 +321,6 @@ public class _NopRetryRecord extends DynamicOrmEntity{
             case PROP_ID_idempotentId:
                return getIdempotentId();
         
-            case PROP_ID_bizNo:
-               return getBizNo();
-        
-            case PROP_ID_taskType:
-               return getTaskType();
-        
             case PROP_ID_status:
                return getStatus();
         
@@ -380,9 +341,6 @@ public class _NopRetryRecord extends DynamicOrmEntity{
         
             case PROP_ID_requestPayload:
                return getRequestPayload();
-        
-            case PROP_ID_contextPayload:
-               return getContextPayload();
         
             case PROP_ID_version:
                return getVersion();
@@ -466,26 +424,6 @@ public class _NopRetryRecord extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_bizNo:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_bizNo));
-               }
-               setBizNo(typedValue);
-               break;
-            }
-        
-            case PROP_ID_taskType:{
-               java.lang.Integer typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toInteger(value,
-                       err-> newTypeConversionError(PROP_NAME_taskType));
-               }
-               setTaskType(typedValue);
-               break;
-            }
-        
             case PROP_ID_status:{
                java.lang.Integer typedValue = null;
                if(value != null){
@@ -553,16 +491,6 @@ public class _NopRetryRecord extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_requestPayload));
                }
                setRequestPayload(typedValue);
-               break;
-            }
-        
-            case PROP_ID_contextPayload:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_contextPayload));
-               }
-               setContextPayload(typedValue);
                break;
             }
         
@@ -680,20 +608,6 @@ public class _NopRetryRecord extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_bizNo:{
-               onInitProp(propId);
-               this._bizNo = (java.lang.String)value;
-               
-               break;
-            }
-        
-            case PROP_ID_taskType:{
-               onInitProp(propId);
-               this._taskType = (java.lang.Integer)value;
-               
-               break;
-            }
-        
             case PROP_ID_status:{
                onInitProp(propId);
                this._status = (java.lang.Integer)value;
@@ -739,13 +653,6 @@ public class _NopRetryRecord extends DynamicOrmEntity{
             case PROP_ID_requestPayload:{
                onInitProp(propId);
                this._requestPayload = (java.lang.String)value;
-               
-               break;
-            }
-        
-            case PROP_ID_contextPayload:{
-               onInitProp(propId);
-               this._contextPayload = (java.lang.String)value;
                
                break;
             }
@@ -901,44 +808,6 @@ public class _NopRetryRecord extends DynamicOrmEntity{
     }
     
     /**
-     * 业务号: BIZ_NO
-     */
-    public final java.lang.String getBizNo(){
-         onPropGet(PROP_ID_bizNo);
-         return _bizNo;
-    }
-
-    /**
-     * 业务号: BIZ_NO
-     */
-    public final void setBizNo(java.lang.String value){
-        if(onPropSet(PROP_ID_bizNo,value)){
-            this._bizNo = value;
-            internalClearRefs(PROP_ID_bizNo);
-            
-        }
-    }
-    
-    /**
-     * 任务类型: TASK_TYPE
-     */
-    public final java.lang.Integer getTaskType(){
-         onPropGet(PROP_ID_taskType);
-         return _taskType;
-    }
-
-    /**
-     * 任务类型: TASK_TYPE
-     */
-    public final void setTaskType(java.lang.Integer value){
-        if(onPropSet(PROP_ID_taskType,value)){
-            this._taskType = value;
-            internalClearRefs(PROP_ID_taskType);
-            
-        }
-    }
-    
-    /**
      * 状态: STATUS
      */
     public final java.lang.Integer getStatus(){
@@ -1067,25 +936,6 @@ public class _NopRetryRecord extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_requestPayload,value)){
             this._requestPayload = value;
             internalClearRefs(PROP_ID_requestPayload);
-            
-        }
-    }
-    
-    /**
-     * 上下文参数: CONTEXT_PAYLOAD
-     */
-    public final java.lang.String getContextPayload(){
-         onPropGet(PROP_ID_contextPayload);
-         return _contextPayload;
-    }
-
-    /**
-     * 上下文参数: CONTEXT_PAYLOAD
-     */
-    public final void setContextPayload(java.lang.String value){
-        if(onPropSet(PROP_ID_contextPayload,value)){
-            this._contextPayload = value;
-            internalClearRefs(PROP_ID_contextPayload);
             
         }
     }
@@ -1261,23 +1111,6 @@ public class _NopRetryRecord extends DynamicOrmEntity{
           _requestPayloadComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_requestPayloadComponent);
       }
       return _requestPayloadComponent;
-   }
-
-   private io.nop.orm.component.JsonOrmComponent _contextPayloadComponent;
-
-   private static Map<String,Integer> COMPONENT_PROP_ID_MAP_contextPayloadComponent = new HashMap<>();
-   static{
-      
-         COMPONENT_PROP_ID_MAP_contextPayloadComponent.put(io.nop.orm.component.JsonOrmComponent.PROP_NAME__jsonText,PROP_ID_contextPayload);
-      
-   }
-
-   public final io.nop.orm.component.JsonOrmComponent getContextPayloadComponent(){
-      if(_contextPayloadComponent == null){
-          _contextPayloadComponent = new io.nop.orm.component.JsonOrmComponent();
-          _contextPayloadComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_contextPayloadComponent);
-      }
-      return _contextPayloadComponent;
    }
 
 }

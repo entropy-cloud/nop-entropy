@@ -36,9 +36,6 @@
                 <!--幂等ID-->
                 <col id="idempotentId" mandatory="true" sortable="true"/>
 
-                <!--业务号-->
-                <col id="bizNo" sortable="true"/>
-
                 <!--执行器名称-->
                 <col id="executorName" sortable="true"/>
 
@@ -85,13 +82,12 @@
  sid[主键] namespaceId[命名空间ID]
  groupId[组ID] policyId[策略ID]
  recordId[记录ID] idempotentId[幂等ID]
- bizNo[业务号] executorName[执行器名称]
- requestPayload[请求参数] failureCode[失败码]
- failureMessage[失败消息] errorStack[错误堆栈]
- finalStatus[最终状态] createdBy[创建人]
- createTime[创建时间] updatedBy[更新人]
- updateTime[更新时间] serviceName[服务名]
- serviceMethod[服务方法] 
+ executorName[执行器名称] requestPayload[请求参数]
+ failureCode[失败码] failureMessage[失败消息]
+ errorStack[错误堆栈] finalStatus[最终状态]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[更新人] updateTime[更新时间]
+ serviceName[服务名] serviceMethod[服务方法]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-重试死信" i18n-en:title="Add Retry Dead Letter" x:prototype="edit"/>
@@ -100,11 +96,10 @@
  sid[主键] namespaceId[命名空间ID]
  groupId[组ID] policyId[策略ID]
  recordId[记录ID] idempotentId[幂等ID]
- bizNo[业务号] executorName[执行器名称]
- requestPayload[请求参数] failureCode[失败码]
- failureMessage[失败消息] errorStack[错误堆栈]
- finalStatus[最终状态] serviceName[服务名]
- serviceMethod[服务方法] 
+ executorName[执行器名称] requestPayload[请求参数]
+ failureCode[失败码] failureMessage[失败消息]
+ errorStack[错误堆栈] finalStatus[最终状态]
+ serviceName[服务名] serviceMethod[服务方法]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

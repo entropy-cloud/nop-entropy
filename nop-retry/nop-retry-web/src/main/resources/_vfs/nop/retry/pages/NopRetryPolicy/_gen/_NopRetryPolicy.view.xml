@@ -33,9 +33,6 @@
                 <!--状态-->
                 <col id="status" sortable="true"/>
 
-                <!--保存记录策略-->
-                <col id="saveRecordStrategy" ui:number="true" sortable="true"/>
-
                 <!--立刻重试次数-->
                 <col id="immediateRetryCount" ui:number="true" sortable="true"/>
 
@@ -56,9 +53,6 @@
 
                 <!--抖动比例-->
                 <col id="jitterRatio" ui:number="true" sortable="true"/>
-
-                <!--执行超时(秒)-->
-                <col id="executionTimeoutSeconds" ui:number="true" sortable="true"/>
 
                 <!--截止超时(毫秒)-->
                 <col id="deadlineTimeoutMs" ui:number="true" sortable="true"/>
@@ -105,11 +99,10 @@
             <layout>
  sid[主键] namespaceId[命名空间ID]
  groupId[组ID] name[策略名称]
- status[状态] saveRecordStrategy[保存记录策略]
- immediateRetryCount[立刻重试次数] immediateRetryIntervalMs[立刻重试间隔(毫秒)]
- maxRetryCount[最大重试次数] backoffStrategy[退避策略]
- initialIntervalMs[初始间隔(毫秒)] maxIntervalMs[最大间隔(毫秒)]
- jitterRatio[抖动比例] executionTimeoutSeconds[执行超时(秒)]
+ status[状态] immediateRetryCount[立刻重试次数]
+ immediateRetryIntervalMs[立刻重试间隔(毫秒)] maxRetryCount[最大重试次数]
+ backoffStrategy[退避策略] initialIntervalMs[初始间隔(毫秒)]
+ maxIntervalMs[最大间隔(毫秒)] jitterRatio[抖动比例]
  deadlineTimeoutMs[截止超时(毫秒)] blockStrategy[阻塞策略]
  callbackEnabled[启用回调] callbackTriggerType[回调触发类型]
  callbackPolicyId[回调策略ID] ownerId[所有者ID]
@@ -123,11 +116,10 @@
             <layout>
  sid[主键] namespaceId[命名空间ID]
  groupId[组ID] name[策略名称]
- status[状态] saveRecordStrategy[保存记录策略]
- immediateRetryCount[立刻重试次数] immediateRetryIntervalMs[立刻重试间隔(毫秒)]
- maxRetryCount[最大重试次数] backoffStrategy[退避策略]
- initialIntervalMs[初始间隔(毫秒)] maxIntervalMs[最大间隔(毫秒)]
- jitterRatio[抖动比例] executionTimeoutSeconds[执行超时(秒)]
+ status[状态] immediateRetryCount[立刻重试次数]
+ immediateRetryIntervalMs[立刻重试间隔(毫秒)] maxRetryCount[最大重试次数]
+ backoffStrategy[退避策略] initialIntervalMs[初始间隔(毫秒)]
+ maxIntervalMs[最大间隔(毫秒)] jitterRatio[抖动比例]
  deadlineTimeoutMs[截止超时(毫秒)] blockStrategy[阻塞策略]
  callbackEnabled[启用回调] callbackTriggerType[回调触发类型]
  callbackPolicyId[回调策略ID] ownerId[所有者ID]

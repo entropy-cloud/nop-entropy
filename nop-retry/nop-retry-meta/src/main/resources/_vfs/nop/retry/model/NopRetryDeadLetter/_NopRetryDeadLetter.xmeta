@@ -43,10 +43,6 @@
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema domain="idempotentId" type="java.lang.String" precision="64"/>
         </prop>
-        <prop name="bizNo" displayName="业务号" propId="7" i18n-en:displayName="Business Number" queryable="true"
-              sortable="true" insertable="true" updatable="true">
-            <schema domain="bizNo" type="java.lang.String" precision="64"/>
-        </prop>
         <prop name="executorName" displayName="执行器名称" propId="8" i18n-en:displayName="Executor Name" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema domain="executorName" type="java.lang.String" precision="512"/>

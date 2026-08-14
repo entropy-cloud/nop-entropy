@@ -4,9 +4,6 @@
   "groupId": "",
   "policyId": "",
   "idempotentId": "",
-  "bizNo": "",
-  "taskType": 0,
-  "taskType_label": "",
   "status": 0,
   "status_label": "",
   "retryCount": 0,
@@ -15,7 +12,6 @@
   "partitionIndex": 0,
   "executorName": "",
   "requestPayload": "",
-  "contextPayload": "",
   "version": 0,
   "createdBy": "",
   "createTime": "2000-01-01 14:00:00",
@@ -24,6 +20,5 @@
   "serviceName": "",
   "serviceMethod": "",
   "policy": null,
-  "requestPayloadComponent": null,
-  "contextPayloadComponent": null
+  "requestPayloadComponent": null
 }

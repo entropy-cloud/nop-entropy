@@ -39,10 +39,6 @@
               insertable="true" updatable="true" defaultValue="1">
             <schema stdDomain="boolFlag" domain="boolFlag" type="java.lang.String" precision="1"/>
         </prop>
-        <prop name="saveRecordStrategy" displayName="保存记录策略" propId="6" i18n-en:displayName="Save Record Strategy"
-              queryable="true" sortable="true" insertable="true" updatable="true" defaultValue="2">
-            <schema domain="saveRecordStrategy" type="java.lang.Integer" dict="retry/save-record-strategy"/>
-        </prop>
         <prop name="immediateRetryCount" displayName="立刻重试次数" propId="7" i18n-en:displayName="Immediate Retry Count"
               queryable="true" sortable="true" insertable="true" updatable="true" defaultValue="0">
             <schema domain="immediateRetryCount" type="java.lang.Integer"/>
@@ -72,11 +68,6 @@
         <prop name="jitterRatio" displayName="抖动比例" propId="13" i18n-en:displayName="Jitter Ratio" queryable="true"
               sortable="true" insertable="true" updatable="true" defaultValue="0.5">
             <schema domain="jitterRatio" type="java.lang.Double" precision="5" scale="4"/>
-        </prop>
-        <prop name="executionTimeoutSeconds" displayName="执行超时(秒)" propId="14"
-              i18n-en:displayName="Execution Timeout (Seconds)" queryable="true" sortable="true" insertable="true"
-              updatable="true">
-            <schema domain="executionTimeoutSeconds" type="java.lang.Integer"/>
         </prop>
         <prop name="deadlineTimeoutMs" displayName="截止超时(毫秒)" propId="15"
               i18n-en:displayName="Deadline Timeout (Milliseconds)" queryable="true" sortable="true" insertable="true"

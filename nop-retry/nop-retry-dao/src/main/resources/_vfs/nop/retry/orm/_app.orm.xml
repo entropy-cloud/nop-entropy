@@ -30,10 +30,6 @@
             <option code="STOPPED" label="已停止" value="4" i18n-en:label="Stopped"/>
             <option code="CANCELED" label="已取消" value="5" i18n-en:label="Canceled"/>
         </dict>
-        <dict label="重试任务类型" name="retry/retry-task-type" valueType="int" i18n-en:label="Retry Task Type">
-            <option code="RETRY" label="业务重试" value="1" i18n-en:label="Retry"/>
-            <option code="CALLBACK" label="回调任务" value="2" i18n-en:label="Callback"/>
-        </dict>
         <dict label="退避策略" name="retry/backoff-strategy" valueType="int" i18n-en:label="Backoff Strategy">
             <option code="FIXED_INTERVAL" label="固定间隔" value="1" i18n-en:label="Fixed Interval"/>
             <option code="EXPONENTIAL_BACKOFF" label="指数退避" value="2" i18n-en:label="Exponential Backoff"/>
@@ -48,10 +44,6 @@
             <option code="ON_FAILURE" label="失败时触发" value="2" i18n-en:label="On Failure"/>
             <option code="ALWAYS" label="总是触发" value="3" i18n-en:label="Always"/>
         </dict>
-        <dict label="保存记录策略" name="retry/save-record-strategy" valueType="int" i18n-en:label="Save Record Strategy">
-            <option code="BEFORE_CALL" label="调用前保存" value="1" i18n-en:label="Before Call"/>
-            <option code="AFTER_FAILURE" label="失败后保存" value="2" i18n-en:label="After Failure"/>
-        </dict>
     </dicts>
 
     <domains>
@@ -64,7 +56,6 @@
         <domain name="groupId" precision="64" stdSqlType="VARCHAR"/>
         <domain name="policyId" precision="32" stdSqlType="VARCHAR"/>
         <domain name="idempotentId" precision="64" stdSqlType="VARCHAR"/>
-        <domain name="bizNo" precision="64" stdSqlType="VARCHAR"/>
         <domain name="executorName" precision="512" stdSqlType="VARCHAR"/>
         <domain name="json-4000" precision="4000" stdDomain="json" stdSqlType="VARCHAR"/>
         <domain name="retryCount" stdSqlType="INTEGER"/>
@@ -72,19 +63,16 @@
         <domain name="nextTriggerTime" stdSqlType="TIMESTAMP"/>
         <domain name="boolFlag" precision="1" stdDomain="boolFlag" stdSqlType="VARCHAR"/>
         <domain name="backoffStrategy" stdSqlType="INTEGER"/>
-        <domain name="saveRecordStrategy" stdSqlType="INTEGER"/>
         <domain name="immediateRetryCount" stdSqlType="INTEGER"/>
         <domain name="immediateRetryIntervalMs" stdSqlType="BIGINT"/>
         <domain name="intervalMs" stdSqlType="BIGINT"/>
         <domain name="jitterRatio" precision="5" scale="4" stdSqlType="DECIMAL"/>
-        <domain name="executionTimeoutSeconds" stdSqlType="INTEGER"/>
         <domain name="deadlineTimeoutMs" stdSqlType="BIGINT"/>
         <domain name="blockStrategy" stdSqlType="INTEGER"/>
         <domain name="callbackEnabled" precision="1" stdDomain="boolFlag" stdSqlType="VARCHAR"/>
         <domain name="callbackTriggerType" stdSqlType="INTEGER"/>
         <domain name="callbackMaxAttempts" stdSqlType="INTEGER"/>
         <domain name="callbackIntervalSeconds" stdSqlType="INTEGER"/>
-        <domain name="taskType" stdSqlType="INTEGER"/>
         <domain name="retryRecordStatus" stdSqlType="INTEGER"/>
         <domain name="partitionIndex" stdSqlType="INTEGER"/>
         <domain name="serviceName" precision="200" stdSqlType="VARCHAR"/>
@@ -114,9 +102,6 @@
                 <column code="STATUS" defaultValue="1" displayName="状态" domain="boolFlag" name="status" precision="1"
                         propId="5" stdDataType="string" stdDomain="boolFlag" stdSqlType="VARCHAR"
                         i18n-en:displayName="Status"/>
-                <column code="SAVE_RECORD_STRATEGY" defaultValue="2" displayName="保存记录策略" domain="saveRecordStrategy"
-                        name="saveRecordStrategy" propId="6" stdDataType="int" stdSqlType="INTEGER"
-                        i18n-en:displayName="Save Record Strategy" ext:dict="retry/save-record-strategy"/>
                 <column code="IMMEDIATE_RETRY_COUNT" defaultValue="0" displayName="立刻重试次数" domain="immediateRetryCount"
                         name="immediateRetryCount" propId="7" stdDataType="int" stdSqlType="INTEGER"
                         i18n-en:displayName="Immediate Retry Count"/>
@@ -138,9 +123,6 @@
                 <column code="JITTER_RATIO" defaultValue="0.5" displayName="抖动比例" domain="jitterRatio"
                         name="jitterRatio" precision="5" propId="13" scale="4" stdDataType="double" stdSqlType="DECIMAL"
                         i18n-en:displayName="Jitter Ratio"/>
-                <column code="EXECUTION_TIMEOUT_SECONDS" displayName="执行超时(秒)" domain="executionTimeoutSeconds"
-                        name="executionTimeoutSeconds" propId="14" stdDataType="int" stdSqlType="INTEGER"
-                        i18n-en:displayName="Execution Timeout (Seconds)"/>
                 <column code="DEADLINE_TIMEOUT_MS" displayName="截止超时(毫秒)" domain="deadlineTimeoutMs"
                         name="deadlineTimeoutMs" propId="15" stdDataType="long" stdSqlType="BIGINT"
                         i18n-en:displayName="Deadline Timeout (Milliseconds)"/>
@@ -194,11 +176,6 @@
                 <column code="IDEMPOTENT_ID" displayName="幂等ID" domain="idempotentId" mandatory="true"
                         name="idempotentId" precision="64" propId="5" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Idempotent ID"/>
-                <column code="BIZ_NO" displayName="业务号" domain="bizNo" name="bizNo" precision="64" propId="6"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Business Number"/>
-                <column code="TASK_TYPE" displayName="任务类型" domain="taskType" name="taskType" propId="7"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Task Type"
-                        ext:dict="retry/retry-task-type"/>
                 <column code="STATUS" displayName="状态" domain="retryRecordStatus" name="status" propId="8"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Status"
                         ext:dict="retry/retry-record-status"/>
@@ -217,9 +194,6 @@
                 <column code="REQUEST_PAYLOAD" displayName="请求参数" domain="json-4000" name="requestPayload"
                         precision="4000" propId="14" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Request Payload"/>
-                <column code="CONTEXT_PAYLOAD" displayName="上下文参数" domain="json-4000" name="contextPayload"
-                        precision="4000" propId="15" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
-                        i18n-en:displayName="Context Payload"/>
                 <column code="VERSION" displayName="版本" domain="version" name="version" propId="16" stdDataType="int"
                         stdSqlType="INTEGER" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" name="createdBy" precision="50"
@@ -350,8 +324,6 @@
                 <column code="IDEMPOTENT_ID" displayName="幂等ID" domain="idempotentId" mandatory="true"
                         name="idempotentId" precision="64" propId="6" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Idempotent ID"/>
-                <column code="BIZ_NO" displayName="业务号" domain="bizNo" name="bizNo" precision="64" propId="7"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Business Number"/>
                 <column code="EXECUTOR_NAME" displayName="执行器名称" domain="executorName" name="executorName"
                         precision="512" propId="8" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Executor Name"/>
@@ -387,7 +359,7 @@
                 <index name="IDX_RETRY_DL_RECORD" unique="false">
                     <column name="recordId"/>
                 </index>
-                <index name="UK_RETRY_DL_IDEMPOTENT_ID" unique="true">
+                <index name="IDX_RETRY_DL_IDEMPOTENT_ID" unique="false">
                     <column name="idempotentId"/>
                 </index>
                 <index name="IDX_RETRY_DL_MGMT_LOOKUP" unique="false">

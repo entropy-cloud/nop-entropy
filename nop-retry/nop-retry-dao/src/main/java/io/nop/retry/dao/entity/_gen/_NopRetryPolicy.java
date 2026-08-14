@@ -41,10 +41,6 @@ public class _NopRetryPolicy extends DynamicOrmEntity{
     public static final String PROP_NAME_status = "status";
     public static final int PROP_ID_status = 5;
     
-    /* 保存记录策略: SAVE_RECORD_STRATEGY INTEGER */
-    public static final String PROP_NAME_saveRecordStrategy = "saveRecordStrategy";
-    public static final int PROP_ID_saveRecordStrategy = 6;
-    
     /* 立刻重试次数: IMMEDIATE_RETRY_COUNT INTEGER */
     public static final String PROP_NAME_immediateRetryCount = "immediateRetryCount";
     public static final int PROP_ID_immediateRetryCount = 7;
@@ -72,10 +68,6 @@ public class _NopRetryPolicy extends DynamicOrmEntity{
     /* 抖动比例: JITTER_RATIO DECIMAL */
     public static final String PROP_NAME_jitterRatio = "jitterRatio";
     public static final int PROP_ID_jitterRatio = 13;
-    
-    /* 执行超时(秒): EXECUTION_TIMEOUT_SECONDS INTEGER */
-    public static final String PROP_NAME_executionTimeoutSeconds = "executionTimeoutSeconds";
-    public static final int PROP_ID_executionTimeoutSeconds = 14;
     
     /* 截止超时(毫秒): DEADLINE_TIMEOUT_MS BIGINT */
     public static final String PROP_NAME_deadlineTimeoutMs = "deadlineTimeoutMs";
@@ -156,9 +148,6 @@ public class _NopRetryPolicy extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_status] = PROP_NAME_status;
           PROP_NAME_TO_ID.put(PROP_NAME_status, PROP_ID_status);
       
-          PROP_ID_TO_NAME[PROP_ID_saveRecordStrategy] = PROP_NAME_saveRecordStrategy;
-          PROP_NAME_TO_ID.put(PROP_NAME_saveRecordStrategy, PROP_ID_saveRecordStrategy);
-      
           PROP_ID_TO_NAME[PROP_ID_immediateRetryCount] = PROP_NAME_immediateRetryCount;
           PROP_NAME_TO_ID.put(PROP_NAME_immediateRetryCount, PROP_ID_immediateRetryCount);
       
@@ -179,9 +168,6 @@ public class _NopRetryPolicy extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_jitterRatio] = PROP_NAME_jitterRatio;
           PROP_NAME_TO_ID.put(PROP_NAME_jitterRatio, PROP_ID_jitterRatio);
-      
-          PROP_ID_TO_NAME[PROP_ID_executionTimeoutSeconds] = PROP_NAME_executionTimeoutSeconds;
-          PROP_NAME_TO_ID.put(PROP_NAME_executionTimeoutSeconds, PROP_ID_executionTimeoutSeconds);
       
           PROP_ID_TO_NAME[PROP_ID_deadlineTimeoutMs] = PROP_NAME_deadlineTimeoutMs;
           PROP_NAME_TO_ID.put(PROP_NAME_deadlineTimeoutMs, PROP_ID_deadlineTimeoutMs);
@@ -240,9 +226,6 @@ public class _NopRetryPolicy extends DynamicOrmEntity{
     /* 状态: STATUS */
     private java.lang.String _status;
     
-    /* 保存记录策略: SAVE_RECORD_STRATEGY */
-    private java.lang.Integer _saveRecordStrategy;
-    
     /* 立刻重试次数: IMMEDIATE_RETRY_COUNT */
     private java.lang.Integer _immediateRetryCount;
     
@@ -263,9 +246,6 @@ public class _NopRetryPolicy extends DynamicOrmEntity{
     
     /* 抖动比例: JITTER_RATIO */
     private java.lang.Double _jitterRatio;
-    
-    /* 执行超时(秒): EXECUTION_TIMEOUT_SECONDS */
-    private java.lang.Integer _executionTimeoutSeconds;
     
     /* 截止超时(毫秒): DEADLINE_TIMEOUT_MS */
     private java.lang.Long _deadlineTimeoutMs;
@@ -395,9 +375,6 @@ public class _NopRetryPolicy extends DynamicOrmEntity{
             case PROP_ID_status:
                return getStatus();
         
-            case PROP_ID_saveRecordStrategy:
-               return getSaveRecordStrategy();
-        
             case PROP_ID_immediateRetryCount:
                return getImmediateRetryCount();
         
@@ -418,9 +395,6 @@ public class _NopRetryPolicy extends DynamicOrmEntity{
         
             case PROP_ID_jitterRatio:
                return getJitterRatio();
-        
-            case PROP_ID_executionTimeoutSeconds:
-               return getExecutionTimeoutSeconds();
         
             case PROP_ID_deadlineTimeoutMs:
                return getDeadlineTimeoutMs();
@@ -522,16 +496,6 @@ public class _NopRetryPolicy extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_saveRecordStrategy:{
-               java.lang.Integer typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toInteger(value,
-                       err-> newTypeConversionError(PROP_NAME_saveRecordStrategy));
-               }
-               setSaveRecordStrategy(typedValue);
-               break;
-            }
-        
             case PROP_ID_immediateRetryCount:{
                java.lang.Integer typedValue = null;
                if(value != null){
@@ -599,16 +563,6 @@ public class _NopRetryPolicy extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_jitterRatio));
                }
                setJitterRatio(typedValue);
-               break;
-            }
-        
-            case PROP_ID_executionTimeoutSeconds:{
-               java.lang.Integer typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toInteger(value,
-                       err-> newTypeConversionError(PROP_NAME_executionTimeoutSeconds));
-               }
-               setExecutionTimeoutSeconds(typedValue);
                break;
             }
         
@@ -786,13 +740,6 @@ public class _NopRetryPolicy extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_saveRecordStrategy:{
-               onInitProp(propId);
-               this._saveRecordStrategy = (java.lang.Integer)value;
-               
-               break;
-            }
-        
             case PROP_ID_immediateRetryCount:{
                onInitProp(propId);
                this._immediateRetryCount = (java.lang.Integer)value;
@@ -838,13 +785,6 @@ public class _NopRetryPolicy extends DynamicOrmEntity{
             case PROP_ID_jitterRatio:{
                onInitProp(propId);
                this._jitterRatio = (java.lang.Double)value;
-               
-               break;
-            }
-        
-            case PROP_ID_executionTimeoutSeconds:{
-               onInitProp(propId);
-               this._executionTimeoutSeconds = (java.lang.Integer)value;
                
                break;
             }
@@ -1042,25 +982,6 @@ public class _NopRetryPolicy extends DynamicOrmEntity{
     }
     
     /**
-     * 保存记录策略: SAVE_RECORD_STRATEGY
-     */
-    public final java.lang.Integer getSaveRecordStrategy(){
-         onPropGet(PROP_ID_saveRecordStrategy);
-         return _saveRecordStrategy;
-    }
-
-    /**
-     * 保存记录策略: SAVE_RECORD_STRATEGY
-     */
-    public final void setSaveRecordStrategy(java.lang.Integer value){
-        if(onPropSet(PROP_ID_saveRecordStrategy,value)){
-            this._saveRecordStrategy = value;
-            internalClearRefs(PROP_ID_saveRecordStrategy);
-            
-        }
-    }
-    
-    /**
      * 立刻重试次数: IMMEDIATE_RETRY_COUNT
      */
     public final java.lang.Integer getImmediateRetryCount(){
@@ -1189,25 +1110,6 @@ public class _NopRetryPolicy extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_jitterRatio,value)){
             this._jitterRatio = value;
             internalClearRefs(PROP_ID_jitterRatio);
-            
-        }
-    }
-    
-    /**
-     * 执行超时(秒): EXECUTION_TIMEOUT_SECONDS
-     */
-    public final java.lang.Integer getExecutionTimeoutSeconds(){
-         onPropGet(PROP_ID_executionTimeoutSeconds);
-         return _executionTimeoutSeconds;
-    }
-
-    /**
-     * 执行超时(秒): EXECUTION_TIMEOUT_SECONDS
-     */
-    public final void setExecutionTimeoutSeconds(java.lang.Integer value){
-        if(onPropSet(PROP_ID_executionTimeoutSeconds,value)){
-            this._executionTimeoutSeconds = value;
-            internalClearRefs(PROP_ID_executionTimeoutSeconds);
             
         }
     }

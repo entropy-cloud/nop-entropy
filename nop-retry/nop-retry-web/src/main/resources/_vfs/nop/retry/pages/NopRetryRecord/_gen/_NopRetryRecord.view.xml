@@ -33,12 +33,6 @@
                 <!--幂等ID-->
                 <col id="idempotentId" mandatory="true" sortable="true"/>
 
-                <!--业务号-->
-                <col id="bizNo" sortable="true"/>
-
-                <!--任务类型-->
-                <col id="taskType" ui:number="true" sortable="true"/>
-
                 <!--状态-->
                 <col id="status" ui:number="true" sortable="true"/>
 
@@ -59,9 +53,6 @@
 
                 <!--请求参数-->
                 <col id="requestPayload" sortable="true"/>
-
-                <!--上下文参数-->
-                <col id="contextPayload" sortable="true"/>
 
                 <!--创建人-->
                 <col id="createdBy" sortable="true"/>
@@ -90,15 +81,13 @@
             <layout>
  sid[主键] namespaceId[命名空间ID]
  groupId[组ID] policyId[策略ID]
- idempotentId[幂等ID] bizNo[业务号]
- taskType[任务类型] status[状态]
+ idempotentId[幂等ID] status[状态]
  retryCount[重试次数] maxRetryCount[最大重试次数]
  nextTriggerTime[下次触发时间] partitionIndex[分区索引]
  executorName[执行器名称] requestPayload[请求参数]
- contextPayload[上下文参数] createdBy[创建人]
- createTime[创建时间] updatedBy[更新人]
- updateTime[更新时间] serviceName[服务名]
- serviceMethod[服务方法] 
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[更新人] updateTime[更新时间]
+ serviceName[服务名] serviceMethod[服务方法]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-重试记录" i18n-en:title="Add Retry Record" x:prototype="edit"/>
@@ -106,13 +95,11 @@
             <layout>
  sid[主键] namespaceId[命名空间ID]
  groupId[组ID] policyId[策略ID]
- idempotentId[幂等ID] bizNo[业务号]
- taskType[任务类型] status[状态]
+ idempotentId[幂等ID] status[状态]
  retryCount[重试次数] maxRetryCount[最大重试次数]
  nextTriggerTime[下次触发时间] partitionIndex[分区索引]
  executorName[执行器名称] requestPayload[请求参数]
- contextPayload[上下文参数] serviceName[服务名]
- serviceMethod[服务方法] 
+ serviceName[服务名] serviceMethod[服务方法]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

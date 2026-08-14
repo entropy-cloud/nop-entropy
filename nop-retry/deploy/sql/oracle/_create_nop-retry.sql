@@ -5,7 +5,6 @@ CREATE TABLE nop_retry_policy(
   GROUP_ID VARCHAR2(64) NOT NULL ,
   NAME VARCHAR2(100) NOT NULL ,
   STATUS VARCHAR2(1) default '1'   ,
-  SAVE_RECORD_STRATEGY INTEGER default 2   ,
   IMMEDIATE_RETRY_COUNT INTEGER default 0   ,
   IMMEDIATE_RETRY_INTERVAL_MS NUMBER(20) default 1000   ,
   MAX_RETRY_COUNT INTEGER NOT NULL ,
@@ -13,7 +12,6 @@ CREATE TABLE nop_retry_policy(
   INITIAL_INTERVAL_MS NUMBER(20) default 5000   ,
   MAX_INTERVAL_MS NUMBER(20) default 60000   ,
   JITTER_RATIO NUMBER(5,4) default 0.5   ,
-  EXECUTION_TIMEOUT_SECONDS INTEGER  ,
   DEADLINE_TIMEOUT_MS NUMBER(20)  ,
   BLOCK_STRATEGY INTEGER  ,
   CALLBACK_ENABLED VARCHAR2(1) default '0'   ,
@@ -36,8 +34,6 @@ CREATE TABLE nop_retry_record(
   GROUP_ID VARCHAR2(64) NOT NULL ,
   POLICY_ID VARCHAR2(32)  ,
   IDEMPOTENT_ID VARCHAR2(64) NOT NULL ,
-  BIZ_NO VARCHAR2(64)  ,
-  TASK_TYPE INTEGER  ,
   STATUS INTEGER  ,
   RETRY_COUNT INTEGER  ,
   MAX_RETRY_COUNT INTEGER  ,
@@ -45,7 +41,6 @@ CREATE TABLE nop_retry_record(
   PARTITION_INDEX INTEGER  ,
   EXECUTOR_NAME VARCHAR2(512)  ,
   REQUEST_PAYLOAD VARCHAR2(4000)  ,
-  CONTEXT_PAYLOAD VARCHAR2(4000)  ,
   VERSION INTEGER  ,
   CREATED_BY VARCHAR2(50)  ,
   CREATE_TIME TIMESTAMP  ,
@@ -85,7 +80,6 @@ CREATE TABLE nop_retry_dead_letter(
   POLICY_ID VARCHAR2(32)  ,
   RECORD_ID VARCHAR2(32) NOT NULL ,
   IDEMPOTENT_ID VARCHAR2(64) NOT NULL ,
-  BIZ_NO VARCHAR2(64)  ,
   EXECUTOR_NAME VARCHAR2(512)  ,
   REQUEST_PAYLOAD VARCHAR2(4000)  ,
   FAILURE_CODE VARCHAR2(50)  ,
@@ -115,8 +109,6 @@ CREATE TABLE nop_retry_dead_letter(
                     
       COMMENT ON COLUMN nop_retry_policy.STATUS IS '状态';
                     
-      COMMENT ON COLUMN nop_retry_policy.SAVE_RECORD_STRATEGY IS '保存记录策略';
-                    
       COMMENT ON COLUMN nop_retry_policy.IMMEDIATE_RETRY_COUNT IS '立刻重试次数';
                     
       COMMENT ON COLUMN nop_retry_policy.IMMEDIATE_RETRY_INTERVAL_MS IS '立刻重试间隔(毫秒)';
@@ -130,8 +122,6 @@ CREATE TABLE nop_retry_dead_letter(
       COMMENT ON COLUMN nop_retry_policy.MAX_INTERVAL_MS IS '最大间隔(毫秒)';
                     
       COMMENT ON COLUMN nop_retry_policy.JITTER_RATIO IS '抖动比例';
-                    
-      COMMENT ON COLUMN nop_retry_policy.EXECUTION_TIMEOUT_SECONDS IS '执行超时(秒)';
                     
       COMMENT ON COLUMN nop_retry_policy.DEADLINE_TIMEOUT_MS IS '截止超时(毫秒)';
                     
@@ -171,10 +161,6 @@ CREATE TABLE nop_retry_dead_letter(
                     
       COMMENT ON COLUMN nop_retry_record.IDEMPOTENT_ID IS '幂等ID';
                     
-      COMMENT ON COLUMN nop_retry_record.BIZ_NO IS '业务号';
-                    
-      COMMENT ON COLUMN nop_retry_record.TASK_TYPE IS '任务类型';
-                    
       COMMENT ON COLUMN nop_retry_record.STATUS IS '状态';
                     
       COMMENT ON COLUMN nop_retry_record.RETRY_COUNT IS '重试次数';
@@ -188,8 +174,6 @@ CREATE TABLE nop_retry_dead_letter(
       COMMENT ON COLUMN nop_retry_record.EXECUTOR_NAME IS '执行器名称';
                     
       COMMENT ON COLUMN nop_retry_record.REQUEST_PAYLOAD IS '请求参数';
-                    
-      COMMENT ON COLUMN nop_retry_record.CONTEXT_PAYLOAD IS '上下文参数';
                     
       COMMENT ON COLUMN nop_retry_record.VERSION IS '版本';
                     
@@ -256,8 +240,6 @@ CREATE TABLE nop_retry_dead_letter(
       COMMENT ON COLUMN nop_retry_dead_letter.RECORD_ID IS '记录ID';
                     
       COMMENT ON COLUMN nop_retry_dead_letter.IDEMPOTENT_ID IS '幂等ID';
-                    
-      COMMENT ON COLUMN nop_retry_dead_letter.BIZ_NO IS '业务号';
                     
       COMMENT ON COLUMN nop_retry_dead_letter.EXECUTOR_NAME IS '执行器名称';
                     

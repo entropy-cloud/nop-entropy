@@ -45,10 +45,6 @@ public class _NopRetryDeadLetter extends DynamicOrmEntity{
     public static final String PROP_NAME_idempotentId = "idempotentId";
     public static final int PROP_ID_idempotentId = 6;
     
-    /* 业务号: BIZ_NO VARCHAR */
-    public static final String PROP_NAME_bizNo = "bizNo";
-    public static final int PROP_ID_bizNo = 7;
-    
     /* 执行器名称: EXECUTOR_NAME VARCHAR */
     public static final String PROP_NAME_executorName = "executorName";
     public static final int PROP_ID_executorName = 8;
@@ -137,9 +133,6 @@ public class _NopRetryDeadLetter extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_idempotentId] = PROP_NAME_idempotentId;
           PROP_NAME_TO_ID.put(PROP_NAME_idempotentId, PROP_ID_idempotentId);
       
-          PROP_ID_TO_NAME[PROP_ID_bizNo] = PROP_NAME_bizNo;
-          PROP_NAME_TO_ID.put(PROP_NAME_bizNo, PROP_ID_bizNo);
-      
           PROP_ID_TO_NAME[PROP_ID_executorName] = PROP_NAME_executorName;
           PROP_NAME_TO_ID.put(PROP_NAME_executorName, PROP_ID_executorName);
       
@@ -199,9 +192,6 @@ public class _NopRetryDeadLetter extends DynamicOrmEntity{
     
     /* 幂等ID: IDEMPOTENT_ID */
     private java.lang.String _idempotentId;
-    
-    /* 业务号: BIZ_NO */
-    private java.lang.String _bizNo;
     
     /* 执行器名称: EXECUTOR_NAME */
     private java.lang.String _executorName;
@@ -334,9 +324,6 @@ public class _NopRetryDeadLetter extends DynamicOrmEntity{
             case PROP_ID_idempotentId:
                return getIdempotentId();
         
-            case PROP_ID_bizNo:
-               return getBizNo();
-        
             case PROP_ID_executorName:
                return getExecutorName();
         
@@ -444,16 +431,6 @@ public class _NopRetryDeadLetter extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_idempotentId));
                }
                setIdempotentId(typedValue);
-               break;
-            }
-        
-            case PROP_ID_bizNo:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_bizNo));
-               }
-               setBizNo(typedValue);
                break;
             }
         
@@ -634,13 +611,6 @@ public class _NopRetryDeadLetter extends DynamicOrmEntity{
             case PROP_ID_idempotentId:{
                onInitProp(propId);
                this._idempotentId = (java.lang.String)value;
-               
-               break;
-            }
-        
-            case PROP_ID_bizNo:{
-               onInitProp(propId);
-               this._bizNo = (java.lang.String)value;
                
                break;
             }
@@ -852,25 +822,6 @@ public class _NopRetryDeadLetter extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_idempotentId,value)){
             this._idempotentId = value;
             internalClearRefs(PROP_ID_idempotentId);
-            
-        }
-    }
-    
-    /**
-     * 业务号: BIZ_NO
-     */
-    public final java.lang.String getBizNo(){
-         onPropGet(PROP_ID_bizNo);
-         return _bizNo;
-    }
-
-    /**
-     * 业务号: BIZ_NO
-     */
-    public final void setBizNo(java.lang.String value){
-        if(onPropSet(PROP_ID_bizNo,value)){
-            this._bizNo = value;
-            internalClearRefs(PROP_ID_bizNo);
             
         }
     }
