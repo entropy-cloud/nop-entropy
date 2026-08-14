@@ -179,20 +179,20 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] 所有 in-scope confirmed live defects 已修复（跨 task side-output 静默丢弃面 → 完整线协议转发）
-- [ ] 所有 in-scope confirmed contract drifts 已收敛（注册表/catalog/core-design/E2E 与 live 行为一致）
-- [ ] 行为结果已达成：跨 task side-output 送达 + 无消费者 fail-fast + 双路径 + checkpoint 通道状态路径
-- [ ] 必要 focused verification 已完成（codec round-trip / 入站路由 / E2E 送达 / 远程路径）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] 受影响的 owner docs 已同步（core-design.md §6.1、invariant-catalog.md #6、roadmap HG-01 条目）
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）生产端 → 线协议 → 消费端路由调用链运行时连通（E2E 送达断言），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw compile`（`-pl nop-stream -am`）
-- [ ] `./mvnw test -pl nop-stream -am -T 1C` 全绿
-- [ ] checkstyle / 代码规范检查通过（变更集零新增违规）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <本plan> --strict` exit 0
-- [ ] `node ai-dev/tools/check-nop-stream-invariants.mjs all` exit 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` exit 0
+- [x] 所有 in-scope confirmed live defects 已修复（跨 task side-output 静默丢弃面 → 完整线协议转发）
+- [x] 所有 in-scope confirmed contract drifts 已收敛（注册表/catalog/core-design/E2E 与 live 行为一致）
+- [x] 行为结果已达成：跨 task side-output 送达 + 无消费者 fail-fast + 双路径 + checkpoint 通道状态路径
+- [x] 必要 focused verification 已完成（codec round-trip / 入站路由 / E2E 送达 / 远程路径）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
+- [x] 受影响的 owner docs 已同步（core-design.md §6.1、invariant-catalog.md #6、roadmap HG-01 条目）
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）生产端 → 线协议 → 消费端路由调用链运行时连通（E2E 送达断言），（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw compile`（`-pl nop-stream -am`）
+- [x] `./mvnw test -pl nop-stream -am -T 1C` 全绿
+- [x] checkstyle / 代码规范检查通过（变更集零新增违规）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <本plan> --strict` exit 0
+- [x] `node ai-dev/tools/check-nop-stream-invariants.mjs all` exit 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` exit 0
 
 ## Deferred But Adjudicated
 
