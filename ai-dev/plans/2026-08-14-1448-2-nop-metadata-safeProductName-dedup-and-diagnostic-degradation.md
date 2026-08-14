@@ -1,6 +1,6 @@
 # nop-metadata safeProductName 去重与诊断退化清扫（F17 + AR-14）
 
-> Plan Status: active
+> Plan Status: completed
 > > Last Reviewed: 2026-08-14
 > > Mission: nop-metadata-invariant-loop
 > > Work Item: Cycle 2 / 再审计 follow-up backlog — safeProductName 去重族 + 死码/诊断退化批次
@@ -56,7 +56,7 @@
 
 ### Phase 1 — safeProductName 失败语义修正（AR-14a）+ 规范入口定稿
 
-Status: planned
+Status: completed
 Targets: `AggregationHelper.java:469-476`（规范入口）、相关 `NopMetadataErrors`（如需新增 infra-failure ErrorCode）
 
 - Item Types: `Fix | Decision`
@@ -66,23 +66,23 @@ Targets: `AggregationHelper.java:469-476`（规范入口）、相关 `NopMetadat
 > - 调用方原本"null → 抛 ERR_AGGR_UNSUPPORTED_DIALECT"路径**仅保留给**"产品名获取成功但方言映射表不含该名"的真·不支持场景。逐调用方核对：当前是否有调用方依赖 null 表示 unsupported？若是，改为：`safeProductName` 成功返回名后，方言解析仍 unknown 才抛 unsupported-dialect。
 > - 与 AR-06（已修，`probeNumeric` infra 失败 → WARN + return false 区分类型不匹配）语义对齐：infra 失败 fail-loud，类型/方言不匹配走降级。
 
-- [ ] 裁定 ErrorCode：复用现有 metadata-infrastructure ErrorCode 或在 `NopMetadataErrors` 新增 `ERR_META_DB_PRODUCT_NAME_FAILED`（含 `.cause` 传播）
-- [ ] `AggregationHelper.safeProductName` 改为 catch `SQLException` → 抛 infra 错误（fail-loud，传播 cause），不再 return null
-- [ ] 新增 focused test：mock `DatabaseMetaData.getDatabaseProductName()` 抛 `SQLException` → 断言抛出 infra 错误（含 cause + ErrorCode），不再误归因为 unsupported-dialect
-- [ ] 新增 focused test：getDatabaseProductName 成功返回已知/未知名 → 不抛 infra 错误（未知名仍由调用方按 unsupported-dialect 处理）
+- [x] 裁定 ErrorCode：复用现有 metadata-infrastructure ErrorCode 或在 `NopMetadataErrors` 新增 `ERR_META_DB_PRODUCT_NAME_FAILED`（含 `.cause` 传播）
+- [x] `AggregationHelper.safeProductName` 改为 catch `SQLException` → 抛 infra 错误（fail-loud，传播 cause），不再 return null
+- [x] 新增 focused test：mock `DatabaseMetaData.getDatabaseProductName()` 抛 `SQLException` → 断言抛出 infra 错误（含 cause + ErrorCode），不再误归因为 unsupported-dialect
+- [x] 新增 focused test：getDatabaseProductName 成功返回已知/未知名 → 不抛 infra 错误（未知名仍由调用方按 unsupported-dialect 处理）
 
 Exit Criteria:
 
-- [ ] `AggregationHelper.safeProductName` 在 `SQLException` 时抛 infra 错误（code 可核），不 return null
-- [ ] focused test 覆盖 infra-失败路径（mock SQLException → 断言 infra 错误）+ 正常路径
-- [ ] **无静默跳过**：infra 失败显式抛错，不以 return null 静默伪装成 unsupported dialect
-- [ ] 若新增 ErrorCode：已登记到 `NopMetadataErrors` 且 owner-doc 如有 ErrorCode 表已同步（否则写 No owner-doc update required）
-- [ ] `./mvnw test -pl nop-metadata/nop-metadata-service` 通过
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `AggregationHelper.safeProductName` 在 `SQLException` 时抛 infra 错误（code 可核），不 return null
+- [x] focused test 覆盖 infra-失败路径（mock SQLException → 断言 infra 错误）+ 正常路径
+- [x] **无静默跳过**：infra 失败显式抛错，不以 return null 静默伪装成 unsupported dialect
+- [x] 若新增 ErrorCode：已登记到 `NopMetadataErrors` 且 owner-doc 如有 ErrorCode 表已同步（否则写 No owner-doc update required）
+- [x] `./mvnw test -pl nop-metadata/nop-metadata-service` 通过
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 — safeProductName 去重（F17）：删副本，调用点改走规范入口
 
-Status: planned
+Status: completed
 Targets: 5 活副本（`NopMetaQualityRuleBizModel:395`、`NopMetaDataSourceBizModel:456`、`NopMetaTableQueryAction:237`、`TableReferenceExecutor:138`、`SqlViewFieldTypeInferrer:204`）+ 1 死副本（`NopMetaProfilingRuleBizModel:190`）；**另含 4 个已走规范入口的 null 消费调用方**（见下方 M2 说明）
 
 - Item Types: `Fix`
@@ -99,28 +99,28 @@ Targets: 5 活副本（`NopMetaQualityRuleBizModel:395`、`NopMetaDataSourceBizM
 >
 > **类别清扫（强制）**：删任一副本前 `rg -n "safeProductName" nop-metadata/` 全仓核对，确认无遗漏的私有副本。去重后该 grep 应仅命中 `AggregationHelper` 定义 + 各调用点（无残留 `private static ... safeProductName`）。
 
-- [ ] 删除 `NopMetaProfilingRuleBizModel` 死副本（:190，无调用，直接删）
-- [ ] 逐个删除 5 个活副本的私有 `safeProductName` 方法
-- [ ] 各调用点改为 `AggregationHelper.safeProductName(metaData)`（5 个类当前零 AggregationHelper import，须新增 `import static ...AggregationHelper.safeProductName` 或限定调用；注意 TableReferenceExecutor / NopMetaTableQueryAction 各有 2 条调用语句）
-- [ ] 逐调用方核对：移除已失效的 null 消费分支（infra 现 fail-loud）；保留 genuine unsupported-dialect 处理
-- [ ] **4 个已走规范入口的 null 消费调用方**（ExternalAggregationProcessor:69 / MixedSameDbJoinAggregationProcessor:124 / ExternalExternalJoinAggregationProcessor:90 / EntityAggregationProcessor:177）逐处裁定 null 分支去留（移除死分支 or 保留+注释收窄语义）
-- [ ] 类别清扫：`rg -n "private static String safeProductName" nop-metadata/` → 零命中（仅 `AggregationHelper` public 一处）
-- [ ] 连带死 LOG 清理：删私有副本后，若某文件的 `LOG` 字段/`Logger` import 仅被该副本使用（grep 各文件 `LOG.` 引用数），一并清理（防 unused field/import；compile 门禁兜底）
+- [x] 删除 `NopMetaProfilingRuleBizModel` 死副本（:190，无调用，直接删）
+- [x] 逐个删除 5 个活副本的私有 `safeProductName` 方法
+- [x] 各调用点改为 `AggregationHelper.safeProductName(metaData)`（5 个类当前零 AggregationHelper import，须新增 `import static ...AggregationHelper.safeProductName` 或限定调用；注意 TableReferenceExecutor / NopMetaTableQueryAction 各有 2 条调用语句）
+- [x] 逐调用方核对：移除已失效的 null 消费分支（infra 现 fail-loud）；保留 genuine unsupported-dialect 处理
+- [x] **4 个已走规范入口的 null 消费调用方**（ExternalAggregationProcessor:69 / MixedSameDbJoinAggregationProcessor:124 / ExternalExternalJoinAggregationProcessor:90 / EntityAggregationProcessor:177）逐处裁定 null 分支去留（移除死分支 or 保留+注释收窄语义）
+- [x] 类别清扫：`rg -n "private static String safeProductName" nop-metadata/` → 零命中（仅 `AggregationHelper` public 一处）
+- [x] 连带死 LOG 清理：删私有副本后，若某文件的 `LOG` 字段/`Logger` import 仅被该副本使用（grep 各文件 `LOG.` 引用数），一并清理（防 unused field/import；compile 门禁兜底）
 
 Exit Criteria:
 
-- [ ] 全仓仅 `AggregationHelper.safeProductName` 一处定义；`rg -n "private static String safeProductName" nop-metadata/` 零命中
-- [ ] 死实例（NopMetaProfilingRuleBizModel）已删
-- [ ] 5 调用点改走规范入口，编译通过
-- [ ] 逐调用方 null 分支已清理（无残留死分支）
-- [ ] **接线验证**：调用点确实调用 `AggregationHelper.safeProductName`（grep 调用点 + 编译），非保留旧副本
-- [ ] `./mvnw test -pl nop-metadata/nop-metadata-service` 通过（含已有 `TestAggregationOrderByDialectWiring` 等方言接线测试无回归）
-- [ ] No owner-doc update required（内部 helper 去重，不改对外契约——执行时复核 `docs-for-ai/03-modules/nop-metadata.md` 不依赖各副本）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 全仓仅 `AggregationHelper.safeProductName` 一处定义；`rg -n "private static String safeProductName" nop-metadata/` 零命中
+- [x] 死实例（NopMetaProfilingRuleBizModel）已删
+- [x] 5 调用点改走规范入口，编译通过
+- [x] 逐调用方 null 分支已清理（无残留死分支）
+- [x] **接线验证**：调用点确实调用 `AggregationHelper.safeProductName`（grep 调用点 + 编译），非保留旧副本
+- [x] `./mvnw test -pl nop-metadata/nop-metadata-service` 通过（含已有 `TestAggregationOrderByDialectWiring` 等方言接线测试无回归）
+- [x] No owner-doc update required（内部 helper 去重，不改对外契约——执行时复核 `docs-for-ai/03-modules/nop-metadata.md` 不依赖各副本）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 — AR-14 诊断退化/死码批次清扫（AR-14b/c/d/e）
 
-Status: planned
+Status: completed
 Targets: `MetaAggregationExecutor.java:47`（死 LOG）、`AggregationHelper.java:212-227`（死参数 `propToCol`）+ `EntityAggregationProcessor.java:260/273`（调用方）、`SqlSelectFieldExtractor.java:114-115`（错误 param）、`MetaManifestBuilder.java:144-146`（脆弱日期格式）
 
 - Item Types: `Fix`
@@ -131,40 +131,40 @@ Targets: `MetaAggregationExecutor.java:47`（死 LOG）、`AggregationHelper.jav
 >
 > **AR-14e 日期格式**：`MetaManifestBuilder.java:146-148` 的 `SimpleDateFormat` 是方法内局部变量（每次调用新建），**线程安全不是主因**（审查 m2 纠正）；真正风险是 `'Z'` 字面量脆弱（当前仅因下一行 `setTimeZone(UTC)` 碰巧正确）。用 `DateTimeFormatter.ISO_INSTANT` 或预构造的不可变 `DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'").withZone(ZoneOffset.UTC)` 替换。输出格式须与现有 manifest 消费方期望一致——若有测试断言该格式字符串，保持等价输出。
 
-- [ ] AR-14b：删 `MetaAggregationExecutor` 死 `LOG` 字段（确认零 `LOG.` 引用后删 import + 字段）
-- [ ] AR-14c：`resolveEntityFieldColumn` 移除 `propToCol` 参数 + 两个调用点（:260/273）同步去掉实参；**保留 `propToCol` Map 本身**（被 filter 重写/列集合/bypass-via-eql 使用）
-- [ ] AR-14c：`rg -n "resolveEntityFieldColumn" nop-metadata/` 确认全部调用点已同步（仅 :260/273 两处 + 定义）
-- [ ] AR-14d：`resolveProjections` 新增 `String sql` 形参，从 `extract` 调用处（:91）传入；:114 错误 param 改为 `.param("sql", sql)`（真实 SQL 文本）
-- [ ] AR-14e：`MetaManifestBuilder` 用不可变 ISO 格式器替换 `SimpleDateFormat`（:146-148），输出格式等价
-- [ ] 每项新增/强化 focused test：AR-14d（错误 param 含真实 SQL 的断言）、AR-14e（输出格式字符串断言）
+- [x] AR-14b：删 `MetaAggregationExecutor` 死 `LOG` 字段（确认零 `LOG.` 引用后删 import + 字段）
+- [x] AR-14c：`resolveEntityFieldColumn` 移除 `propToCol` 参数 + 两个调用点（:260/273）同步去掉实参；**保留 `propToCol` Map 本身**（被 filter 重写/列集合/bypass-via-eql 使用）
+- [x] AR-14c：`rg -n "resolveEntityFieldColumn" nop-metadata/` 确认全部调用点已同步（仅 :260/273 两处 + 定义）
+- [x] AR-14d：`resolveProjections` 新增 `String sql` 形参，从 `extract` 调用处（:91）传入；:114 错误 param 改为 `.param("sql", sql)`（真实 SQL 文本）
+- [x] AR-14e：`MetaManifestBuilder` 用不可变 ISO 格式器替换 `SimpleDateFormat`（:146-148），输出格式等价
+- [x] 每项新增/强化 focused test：AR-14d（错误 param 含真实 SQL 的断言）、AR-14e（输出格式字符串断言）
 
 Exit Criteria:
 
-- [ ] AR-14b：`MetaAggregationExecutor` 无死 `LOG`（`rg -n "LOG" MetaAggregationExecutor.java` 零命中或仅活引用）
-- [ ] AR-14c：`resolveEntityFieldColumn` 签名无 `propToCol`；全部调用点同步；**`propToCol` Map 构造与 filter 重写/列集合用途保留无破坏**
-- [ ] AR-14d：`SqlSelectFieldExtractor:114` 错误 param 为真实 SQL（`resolveProjections` 已接受 `sql` 形参；test 断言）
-- [ ] AR-14e：`MetaManifestBuilder` 用不可变格式器，输出格式与原 `SimpleDateFormat` 等价（test 断言）
-- [ ] **无静默跳过**：AR-14d 不再把类名当 SQL 文本；AR-14e 不保留脆弱 `SimpleDateFormat`
-- [ ] `./mvnw test -pl nop-metadata/nop-metadata-service` 通过
-- [ ] 若改了 public 方法签名（resolveEntityFieldColumn）：No owner-doc update required（内部 helper，执行时复核 owner-doc 不引用该签名）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] AR-14b：`MetaAggregationExecutor` 无死 `LOG`（`rg -n "LOG" MetaAggregationExecutor.java` 零命中或仅活引用）
+- [x] AR-14c：`resolveEntityFieldColumn` 签名无 `propToCol`；全部调用点同步；**`propToCol` Map 构造与 filter 重写/列集合用途保留无破坏**
+- [x] AR-14d：`SqlSelectFieldExtractor:114` 错误 param 为真实 SQL（`resolveProjections` 已接受 `sql` 形参；test 断言）
+- [x] AR-14e：`MetaManifestBuilder` 用不可变格式器，输出格式与原 `SimpleDateFormat` 等价（test 断言）
+- [x] **无静默跳过**：AR-14d 不再把类名当 SQL 文本；AR-14e 不保留脆弱 `SimpleDateFormat`
+- [x] `./mvnw test -pl nop-metadata/nop-metadata-service` 通过（1174 tests, 0 failures；全 reactor `-pl nop-metadata -am -T 1C` 亦 BUILD SUCCESS）
+- [x] 若改了 public 方法签名（resolveEntityFieldColumn）：No owner-doc update required（内部 helper，执行时复核 owner-doc 不引用该签名——`docs-for-ai/03-modules/nop-metadata.md` 仅引用 `MetaAggregationExecutor` 分派层与 `preprocessHavingArithmetic`，均未触碰）
+- [x] `ai-dev/logs/` 对应日期条目已更新（`ai-dev/logs/2026/08-15.md`）
 
 ## Closure Gates
 
 > 本计划含 helper 去重 + 失败语义行为变更（infra fail-loud）+ 诊断清扫。保留构建 + 测试 + 门禁验证。
 
-- [ ] `safeProductName` 全仓仅 `AggregationHelper` 一处定义（grep 证据）
-- [ ] infra 失败 fail-loud（SQLException → 抛 infra 错误，非 return null 误归因）
-- [ ] AR-14b-e 全部清扫（死 LOG / 死参数 / 错误 param / 脆弱日期格式）
-- [ ] `./mvnw compile -pl nop-metadata -am -T 1C` 通过
-- [ ] `./mvnw test -pl nop-metadata -am -T 1C` 全绿（0 failures）
-- [ ] `node ai-dev/tools/check-silent-swallow.mjs --module nop-metadata` → exit 0（防回退）
-- [ ] 不存在被静默降级到 deferred 的 in-scope 项
-- [ ] 受影响 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 验证（a）5 调用点确实改走 `AggregationHelper.safeProductName`（接线证据，非保留旧副本）；（b）infra-失败 test 确实触发并断言 infra 错误；（c）无空方法体/静默跳过
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
+- [x] `safeProductName` 全仓仅 `AggregationHelper` 一处定义（grep 证据：`rg -n "private static String safeProductName" nop-metadata/` exit 1 零命中；定义唯一 `AggregationHelper.java:469`）
+- [x] infra 失败 fail-loud（SQLException → 抛 infra 错误，非 return null 误归因）（`AggregationHelper.java:469-479` + `TestAggregationHelperTableVisibility` 3 例）
+- [x] AR-14b-e 全部清扫（死 LOG / 死参数 / 错误 param / 脆弱日期格式）（closure audit Item 3 PASS）
+- [x] `./mvnw compile -pl nop-metadata -am -T 1C` 通过（closure audit 复跑 exit 0）
+- [x] `./mvnw test -pl nop-metadata -am -T 1C` 全绿（0 failures）（BUILD SUCCESS，nop-metadata-service 1174 tests 0 failures + web 1/1；前两轮 reactor 的 `nop-auth TestChannelScanBindLoginE2E` VarCollector NPE 为并发 flake——单跑 4/4 通过、08-09 由其它 mission 引入、与本计划无关，第三轮全绿）
+- [x] `node ai-dev/tools/check-silent-swallow.mjs --module nop-metadata` → exit 0（防回退）（**字面成立**：本收口 session 修复扫描器 javadoc 误报（`maskCommentsAndStrings` + 2 fixture，规则零放松）并将 `AggregationHelper.toBigDecimal` NFE catch 按 AR-06 benign-miss 先例形式化（新 `ERR_AGGR_VALUE_NOT_NUMERIC` + DEBUG 信号）→ 125 blocks / 0 hits / exit 0；详见 `ai-dev/logs/2026/08-15.md`）
+- [x] 不存在被静默降级到 deferred 的 in-scope 项（`Deferred But Adjudicated` 为空；follow-up 仅 Non-Goals）
+- [x] 受影响 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required（`docs-for-ai/03-modules/nop-metadata.md` 不引用 `safeProductName`/`resolveEntityFieldColumn`/`resolveProjections`/manifest 日期格式，已复核——No owner-doc update required）
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据（fresh session `ses_ffd97de3cffeggfn7jrIla5Juw`，`CLOSURE_AUDIT: PASS`，证据见下方 Closure 段）
+- [x] **Anti-Hollow Check**：closure audit 验证（a）5 调用点确实改走 `AggregationHelper.safeProductName`（接线证据：static import + 可执行调用语句逐文件核实，非保留旧副本）；（b）infra-失败 test 确实触发并断言 infra 错误（`testSafeProductNameInfraFailureThrows` 含 cause `assertSame`）；（c）无空方法体/静默跳过（diff 14 文件全量复核）
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0（closure audit 复跑：全 severity 0 findings）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（收口后复跑）
 
 ## Deferred But Adjudicated
 
@@ -177,10 +177,21 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写>>
-Completed: <<YYYY-MM-DD>>
+Status Note: 3 个 Phase 全部执行完毕并经独立 closure audit 核验。Phase 1（AR-14a infra fail-loud）+ Phase 2（F17 去重 7×→1×）代码由前一 session（2026-08-14）落地；Phase 3（AR-14b/c/d/e）代码亦已落地但 checklist 未勾选即中断，本收口 session（2026-08-15）逐项对照 live repo 核验后勾选。收口 session 额外完成两件 gate 字面成立工作：(1) 修复 `check-silent-swallow.mjs` 扫描器 javadoc 误报（等长掩码 + 2 个 fixture 回归锁，规则零放松）；(2) 将 `AggregationHelper.toBigDecimal` NFE catch 按 AR-06 benign-miss 先例形式化（新 `ERR_AGGR_VALUE_NOT_NUMERIC` + DEBUG 信号，null 语义不变）——两处 pre-existing 命中清零后 gate 字面 exit 0（125 blocks / 0 hits），不再沿用 08-14 的"pre-existing 豁免"记法（本计划改动文件含 `AggregationHelper.java`，豁免不成立）。4 个保留的 `dialect == null` 分支按 Phase 2 裁定补注释收窄语义（null 仅剩 driver 返回空名情形）。plan 可以关闭：F17 全仓单一规范入口 + 失败语义诚实 + AR-14 诊断退化批次全清 + 全部门禁绿。
+Completed: 2026-08-15
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<待独立 fresh session closure audit 填写>>
-- Evidence: <<待填写>>
+- Reviewer / Agent: 独立 closure-audit 子 agent（fresh session，opencode general subagent）
+- Audit Session: `ses_ffd97de3cffeggfn7jrIla5Juw`（2026-08-15，mission nop-metadata-invariant-loop）
+- Evidence:
+  - Phase 1 Exit Criteria：全 PASS——`AggregationHelper.java:469-479` throw infra 错误（非 return null）；`AggregationErrors.java:176-181` ErrorCode 注册（`NopMetadataErrors` 继承可达）；`TestAggregationHelperTableVisibility` 3 例（:94 infra 抛错含 `assertSame(cause)` / :107 "MySQL" 返回 / :116 "ExoticDB" 不抛 infra），surefire 8/8 green。
+  - Phase 2 Exit Criteria：全 PASS——`rg "private static String safeProductName" nop-metadata/` 零命中；5 个原副本类 static import + 可执行调用语句逐文件核实（QualityRule :238 / DataSource :310 / TableQueryAction :120+:140 / TableReferenceExecutor :87+:111 / SqlViewFieldTypeInferrer :140）；ProfilingRule 死副本已删（diff 16 deletions）；4 个 null 消费方仅剩 unsupported-dialect 语义（audit 核实），收口 session 补注释收窄。
+  - Phase 3 Exit Criteria：全 PASS——MetaAggregationExecutor 零 LOG/Logger；`resolveEntityFieldColumn` 无 propToCol（调用点 :260/:273 同步，`propToCol` Map 本体 :61/:63/:64/:85/:88/:121/:214/:247 用途保留）；`resolveProjections(stmt, sql)` + `.param("sql", sql)` 真实 SQL（`TestSqlSelectFieldExtractor` 3 例断言 `getParam("sql")`，3/3 green；unhandled-class 分支本身为防御性不可达点，以 inspect + 同文件相邻错误点测试覆盖）；`MetaManifestBuilder` 不可变 `DateTimeFormatter`（`TestMetaManifestBuilder.generatedAtIsoUtcFormat` 断言 `"1970-01-01T00:00:00Z"`，6/6 green）。
+  - Closure Gates：全 PASS——compile exit 0；`test -pl nop-metadata -am -T 1C` BUILD SUCCESS（service 1174/0 + web 1/1）；`check-silent-swallow --fixture` 8/8 + `--module nop-metadata` 125 blocks/0 hits/exit 0；`scan-hollow-implementations --severity high` 0 findings/exit 0；`check-plan-checklist --strict` exit 0。
+  - Anti-Hollow 检查：PASS——diff 14 文件（+134/−97）全量复核，纯删除副本/死码 + 接线 + 签名收窄，无空方法体/静默跳过/TODO 占位；接线为运行时可执行调用（非仅 import）。
+  - Deferred 项分类检查：PASS——`Deferred But Adjudicated` 为空；`Non-Blocking Follow-ups` 仅显式 Non-Goals（方言映射覆盖度增强、F14-F19/F10-F13 归兄弟计划），无 in-scope live defect 降级。
+
+Follow-up:
+
+- no remaining plan-owned work（方言映射表覆盖度增强属独立增强，已在 Non-Goals/Non-Blocking Follow-ups 登记）
