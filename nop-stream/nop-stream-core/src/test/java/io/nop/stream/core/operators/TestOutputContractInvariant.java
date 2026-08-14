@@ -10,12 +10,15 @@ package io.nop.stream.core.operators;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.common.typeinfo.BasicTypeInfo;
+import io.nop.stream.core.execution.InputGate;
 import io.nop.stream.core.execution.RecordWriter;
 import io.nop.stream.core.execution.ResultPartition;
 import io.nop.stream.core.execution.StreamTaskInvokable;
 import io.nop.stream.core.exceptions.StreamRuntimeException;
 import io.nop.stream.core.jobgraph.OperatorChain;
 import io.nop.stream.core.streamrecord.LatencyMarker;
+import io.nop.stream.core.streamrecord.SideOutputElement;
+import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.streamrecord.watermark.WatermarkStatus;
@@ -35,6 +38,11 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -42,6 +50,7 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_OUTPUT_TAG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -357,30 +366,78 @@ public class TestOutputContractInvariant {
     }
 
     /**
-     * Pass-through TARGET SENSITIVE (migrated with the Cycle 2 / I4 interim fail-fast fix):
-     * wrapping the cross-task {@code RecordWriterOutput} (reflectively instantiated) inherits its
-     * fail-fast semantics — {@code collect(OutputTag)} must surface
-     * {@code ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER}, never silently drop. The pass-through itself
-     * never swallows; the fail-fast is the wrapped object's behavior (pre-fix the wrapped RWO was
-     * a pinned empty-body no-op, recorded against the transition pins).
+     * Pass-through TARGET SENSITIVE (HG-01, 2026-08-14): wrapping the cross-task
+     * {@code RecordWriterOutput} (reflectively instantiated) now inherits its wire-protocol
+     * forwarding — {@code collect(OutputTag)} must deliver the tagged record to the wrapped
+     * RWO (which broadcasts it through the cross-task exchange), never throw, never silently
+     * drop (review M3; pre-HG-01 the wrapped RWO failed fast with
+     * {@code ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER}).
      */
     @Test
-    void testTimestampedCollectorWrappingRecordWriterOutputFailsFast() throws Exception {
+    void testTimestampedCollectorWrappingRecordWriterOutputForwards() throws Exception {
         ResultPartition partition = new ResultPartition();
         RecordWriter<Object> writer = new RecordWriter<>(partition);
         Object rwo = instantiateNested("io.nop.stream.core.execution.StreamTaskInvokable$RecordWriterOutput",
                 RecordWriter.class, writer);
         TimestampedCollector<Object> out = new TimestampedCollector<>((Output<StreamRecord<Object>>) (Output<?>) rwo);
         OutputTag<String> tag = new OutputTag<>("cross-task-tag", BasicTypeInfo.STRING);
-        StreamRuntimeException ex = assertThrows(StreamRuntimeException.class,
-                () -> out.collect(tag, new StreamRecord<>("v", 10)),
-                "wrapping RecordWriterOutput must inherit its cross-task fail-fast behavior "
-                        + "(Cycle 2 / I4 interim fail-fast), never silently drop");
-        assertEquals(ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER.getErrorCode(), ex.getErrorCode(),
-                "pass-through target sensitive: the wrapped RWO fail-fast must surface as "
-                        + "ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER");
-        assertEquals("cross-task-tag", ex.getParam(ARG_OUTPUT_TAG),
-                "the surfaced fail-fast must carry ARG_OUTPUT_TAG with the unregistered tag id");
+        out.collect(tag, new StreamRecord<>("v", 10));
+
+        assertEquals(1, partition.size(),
+                "wrapping RecordWriterOutput must forward the tagged record into the cross-task exchange");
+        StreamElement element = partition.read();
+        assertTrue(element.isSideOutput(),
+                "the forwarded element must be a SideOutputElement (HG-01 wire protocol)");
+        assertEquals("cross-task-tag", element.asSideOutput().getOutputTagId(),
+                "the forwarded element must carry the unmodified tag id");
+        assertEquals("v", element.asSideOutput().getRecord().getValue());
+    }
+
+    /**
+     * HG-01 (2026-08-14): RWO.collect(OutputTag) forwards a tagged SideOutputElement into the
+     * writer's partitions (wire protocol), instead of the Cycle 2 / I4 interim fail-fast.
+     * Non-registry-driven green evidence for the Phase 3 intermediate state (the registry-driven
+     * parameterized test stays red until Phase 4 migrates the classification).
+     */
+    @Test
+    void testRecordWriterOutputForwardsTaggedElement() throws Exception {
+        ResultPartition partition = new ResultPartition();
+        RecordWriter<Object> writer = new RecordWriter<>(partition);
+        Object rwo = instantiateNested("io.nop.stream.core.execution.StreamTaskInvokable$RecordWriterOutput",
+                RecordWriter.class, writer);
+        invokeCollectOutputTag(rwo, "io.nop.stream.core.execution.StreamTaskInvokable$RecordWriterOutput",
+                new StreamRecord<>("payload", 3L));
+
+        assertEquals(1, partition.size(), "RWO.collect(OutputTag) must enqueue one element");
+        StreamElement element = partition.read();
+        assertTrue(element.isSideOutput(), "enqueued element must be a SideOutputElement");
+        assertEquals("pin-tag", element.asSideOutput().getOutputTagId());
+        assertEquals("payload", element.asSideOutput().getRecord().getValue());
+        assertEquals(3L, element.asSideOutput().getRecord().getTimestamp());
+    }
+
+    /**
+     * HG-01 (2026-08-14): BRWO.collect(OutputTag) fans the tagged record out to every wrapped
+     * output; each wrapped output copies the inner record (D5 — no shared element instance,
+     * no aliasing across partition queues).
+     */
+    @Test
+    void testBroadcastingRecordWriterOutputFansOutTaggedElement() throws Exception {
+        RecordingTagOutput inner1 = new RecordingTagOutput();
+        RecordingTagOutput inner2 = new RecordingTagOutput();
+        List<Output<StreamRecord<Object>>> outputs = new ArrayList<>();
+        outputs.add((Output<StreamRecord<Object>>) (Output<?>) inner1);
+        outputs.add((Output<StreamRecord<Object>>) (Output<?>) inner2);
+        Object brwo = instantiateNested(
+                "io.nop.stream.core.execution.StreamTaskInvokable$BroadcastingRecordWriterOutput",
+                List.class, outputs);
+        invokeCollectOutputTag(brwo, "io.nop.stream.core.execution.StreamTaskInvokable$BroadcastingRecordWriterOutput",
+                new StreamRecord<>("fan-value", 9L));
+
+        assertEquals(1, inner1.sideReceived.size(), "every wrapped output must receive the tagged record");
+        assertEquals("fan-value", inner1.sideReceived.get(0).getValue());
+        assertEquals(1, inner2.sideReceived.size(), "every wrapped output must receive the tagged record");
+        assertEquals("fan-value", inner2.sideReceived.get(0).getValue());
     }
 
     /**
@@ -402,6 +459,129 @@ public class TestOutputContractInvariant {
         assertEquals(1, received.size(),
                 "invokable-registered consumer must be reachable from the wireOperators() ChainingOutput");
         assertEquals("w", received.get(0).getValue());
+    }
+
+    /**
+     * HG-01 (2026-08-14): inbound routing in {@code processInputGate} (review F4 — the private
+     * while(true) loop is driven through a stub InputGate + a real SINK-role invokable). A
+     * side-output element arriving on the input gate must be delivered to the consumer
+     * registered by tag id (D4), never to the head operator.
+     */
+    @Test
+    void testInboundSideOutputRouteDeliversToRegisteredConsumer() throws Exception {
+        OutputTag<String> tag = new OutputTag<>("inbound-tag", BasicTypeInfo.STRING);
+        List<StreamRecord<String>> received = new ArrayList<>();
+        CountDownLatch delivered = new CountDownLatch(1);
+
+        StubInputGate gate = new StubInputGate();
+        StreamTaskInvokable consumer = new StreamTaskInvokable(
+                new OperatorChain(List.of((io.nop.stream.core.operators.StreamOperator<?>) new TestChainOperator())),
+                new ArrayList<RecordWriter<Object>>(), gate);
+        consumer.registerSideOutputConsumer(tag, record -> {
+            received.add((StreamRecord<String>) (StreamRecord<?>) record);
+            delivered.countDown();
+        });
+
+        AtomicReference<Exception> invokeError = new AtomicReference<>();
+        Thread taskThread = new Thread(() -> {
+            try {
+                consumer.invoke();
+            } catch (Exception e) {
+                invokeError.set(e);
+            }
+        });
+        taskThread.start();
+
+        try {
+            gate.offer(new SideOutputElement("inbound-tag", new StreamRecord<>("routed-value", 11L)));
+            assertTrue(delivered.await(10, TimeUnit.SECONDS),
+                    "registered consumer must receive the inbound side-output element");
+            assertEquals(1, received.size());
+            assertEquals("routed-value", received.get(0).getValue());
+            assertEquals(11L, received.get(0).getTimestamp());
+            assertNull(invokeError.get(), "no error expected on the routed delivery path");
+        } finally {
+            gate.markFinished();
+            taskThread.join(10_000);
+        }
+    }
+
+    /**
+     * HG-01 (2026-08-14): an inbound side-output element whose tag has no registered consumer
+     * must fail fast at the consumption-side routing point with
+     * {@code ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER} (carrying the tag id) — never silently drop.
+     */
+    @Test
+    void testInboundSideOutputRouteFailsFastWithoutConsumer() throws Exception {
+        StubInputGate gate = new StubInputGate();
+        StreamTaskInvokable consumer = new StreamTaskInvokable(
+                new OperatorChain(List.of((io.nop.stream.core.operators.StreamOperator<?>) new TestChainOperator())),
+                new ArrayList<RecordWriter<Object>>(), gate);
+
+        AtomicReference<Throwable> taskError = new AtomicReference<>();
+        Thread taskThread = new Thread(() -> {
+            try {
+                consumer.invoke();
+            } catch (Throwable t) {
+                taskError.set(t);
+            }
+        });
+        taskThread.start();
+
+        try {
+            gate.offer(new SideOutputElement("no-consumer-tag", new StreamRecord<>("orphan", 1L)));
+            long deadline = System.currentTimeMillis() + 10_000;
+            while (taskError.get() == null && System.currentTimeMillis() < deadline) {
+                Thread.sleep(50);
+            }
+            assertTrue(taskError.get() != null, "unregistered tag must fail fast, never silently drop");
+            assertTrue(taskError.get() instanceof StreamRuntimeException,
+                    "fail-fast must surface as StreamRuntimeException, got: " + taskError.get());
+            StreamRuntimeException ex = (StreamRuntimeException) taskError.get();
+            assertEquals(ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER.getErrorCode(), ex.getErrorCode(),
+                    "fail-fast must use ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER");
+            assertEquals("no-consumer-tag", ex.getParam(ARG_OUTPUT_TAG),
+                    "fail-fast must carry ARG_OUTPUT_TAG with the unregistered tag id");
+        } finally {
+            gate.markFinished();
+            taskThread.join(10_000);
+        }
+    }
+
+    /** Stub InputGate fed directly by the test (review F4: processInputGate drive mechanism). */
+    static class StubInputGate extends InputGate {
+        private final LinkedBlockingQueue<StreamElement> queue = new LinkedBlockingQueue<>();
+        private volatile boolean finished = false;
+
+        StubInputGate() {
+            // The base ctor requires >=1 channel; read()/isAllFinished() are overridden so the
+            // backing partition is never touched by the routing path under test.
+            super(List.of(new io.nop.stream.core.execution.InputChannel(new ResultPartition())));
+        }
+
+        void offer(StreamElement element) {
+            queue.offer(element);
+        }
+
+        void markFinished() {
+            finished = true;
+        }
+
+        @Override
+        public Optional<StreamElement> read() {
+            try {
+                StreamElement element = queue.poll(100, TimeUnit.MILLISECONDS);
+                return element != null ? Optional.of(element) : Optional.empty();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return Optional.empty();
+            }
+        }
+
+        @Override
+        public boolean isAllFinished() {
+            return finished && queue.isEmpty();
+        }
     }
 
     static class NoOpInput implements Input<Object> {

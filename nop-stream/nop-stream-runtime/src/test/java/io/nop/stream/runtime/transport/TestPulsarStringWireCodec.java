@@ -106,4 +106,27 @@ class TestPulsarStringWireCodec {
         assertEquals(StreamMessageEnvelope.TYPE_CONTROL, back.getType());
         assertEquals("END_OF_STREAM", back.getPayload());
     }
+
+    /**
+     * HG-01 (2026-08-14): the string-codec wire layer must carry the side-output tag id
+     * (review B1 — DataPlaneWireSupport.toWireMap is shared by all three string codecs;
+     * without it a real remote backend would always restore a null tag).
+     */
+    @Test
+    void roundTripsSideOutputEnvelope() {
+        StreamMessageEnvelope envelope = new StreamMessageEnvelope(
+                8L, StreamMessageEnvelope.TYPE_SIDE_OUTPUT_RECORD, String.class.getName(),
+                "\"wire-value\"", 33L, false);
+        envelope.setOutputTagId("pulsar-tag");
+
+        StreamMessageEnvelope back = codec.fromWire(codec.toWire(envelope));
+
+        assertNotNull(back);
+        assertEquals(StreamMessageEnvelope.TYPE_SIDE_OUTPUT_RECORD, back.getType());
+        assertEquals(String.class.getName(), back.getValueType());
+        assertEquals("\"wire-value\"", back.getPayload());
+        assertEquals(33L, back.getTimestamp());
+        assertEquals("pulsar-tag", back.getOutputTagId(),
+                "outputTagId must survive the string-codec wire round-trip");
+    }
 }

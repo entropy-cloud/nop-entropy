@@ -110,4 +110,28 @@ class TestSysDaoWireCodec {
         // Defensive: if LocalMessageService delivers a bare envelope, it passes through.
         assertEquals(envelope, codec.fromWire(envelope));
     }
+
+    /**
+     * HG-01 (2026-08-14): the string-codec wire layer must carry the side-output tag id
+     * (review B1 — DataPlaneWireSupport.toWireMap is shared by all three string codecs;
+     * without it a real remote backend would always restore a null tag).
+     */
+    @Test
+    void roundTripsSideOutputEnvelope() {
+        StreamMessageEnvelope envelope = new StreamMessageEnvelope(
+                8L, StreamMessageEnvelope.TYPE_SIDE_OUTPUT_RECORD, Integer.class.getName(),
+                "7", 5L, true);
+        envelope.setOutputTagId("sysdao-tag");
+
+        StreamMessageEnvelope back = codec.fromWire(codec.toWire(envelope));
+
+        assertNotNull(back);
+        assertEquals(StreamMessageEnvelope.TYPE_SIDE_OUTPUT_RECORD, back.getType());
+        assertEquals(Integer.class.getName(), back.getValueType());
+        assertEquals("7", back.getPayload());
+        assertTrue(back.isHasTimestamp());
+        assertEquals(5L, back.getTimestamp());
+        assertEquals("sysdao-tag", back.getOutputTagId(),
+                "outputTagId must survive the string-codec wire round-trip");
+    }
 }

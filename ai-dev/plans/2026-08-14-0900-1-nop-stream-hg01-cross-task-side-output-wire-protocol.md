@@ -128,15 +128,15 @@ Status: planned
 Targets: `StreamTaskInvokable.java`、`ResultPartition`（本地路径 + materialization 双写门）、`RemoteResultPartition`/`RemoteInputChannel`/`DataPlaneWireSupport`（远程路径）、`nop-stream-core/src/test`、`nop-stream-runtime/src/test`
 
 - Item Types: `Fix | Proof`
-- [ ] [Fix] `RecordWriterOutput.collect(OutputTag, record)`：fail-fast → 构造 side-output 元素并经 `writer.emitElement(...)`（或 Phase 1 裁决的通道选择）传递；内层 record 按 Phase 1 裁决 copy（审查 M5c）。
-- [ ] [Fix] `BroadcastingRecordWriterOutput.collect(OutputTag, record)`：向全部 writer 扇出 tagged 元素（每 writer 独立元素实例或按裁决 copy，防别名化）。
-- [ ] [Fix] `processInputGate` 新增 side-output 元素分支：按 Phase 1 裁决的查找方式（`sideOutputConsumers.keySet()` 按 `getId()` 匹配，审查 M5d）查消费者；命中 → 消费；未命中 → 抛 `ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER`（参数含 tag id + 详情）。
-- [ ] [Fix] `registerSideOutputConsumer` 语义扩展：注册的消费者同时服务 in-task 链式路径（现状）与跨 task 入站路径（新增）——map 复用，无新 API。
-- [ ] [Fix] **`DataPlaneWireSupport.toWireMap` 补 `outputTagId` 字段**（`DataPlaneWireSupport.java:38-47`，审查 B1——三个 string codec 全经此层，不补则真实远程后端 tag 恒 null）。
-- [ ] [Fix] **materialization 双写门**（`ResultPartition.java:198`，审查 M4）：按 Phase 1 裁决纳入（扩展双写条件 + 恢复路径消费 side-output）或排除（non-blocking 理由已裁决，代码不动但测试/文档注明）。
-- [ ] [Proof] 测试（core）：`TestOutputContractInvariant` 断言翻转——RWO/BRWO `collect(OutputTag)` 不再抛异常（经注入 mock writer 断言 emit 收到 tagged 元素）；**`testTimestampedCollectorWrappingRecordWriterOutputFailsFast`（:368-384）翻转**（断言改为「转发到 wrapped RWO」，审查 M3）；新增入站路由用例（注册消费者收到元素 / 未注册 fail-fast，先红后绿）。**注（复审 F4）**：`processInputGate` 是私有 while(true) 循环方法——路由用例可用 InputGate 桩 + 反射注入，或直接经 E2E（下方 runtime 项）覆盖；二选一即可，但至少一处在案。
-- [ ] [Proof] 测试（runtime）：`TestSideOutputChainingE2E` 第 4 用例断言翻转（跨 task 尾接线不再 fail-fast）；新增跨 task 送达 E2E（生产者 tail 算子经 RecordWriterOutput 发射 → 消费者 task InputGate 入站 → 注册消费者收到，含 BRWO 双 writer 扇出变体 + 多 subtask 广播语义变体）+ 无消费者 fail-fast 用例。
-- [ ] [Fix] 远程路径验证：**强制走 string codec**（`TestPulsarStringWireCodec` / `TestKafkaStringWireCodec` / `TestSysDaoWireCodec` 扩展或 focused 集成测试，审查 B1——默认 `IdentityWireCodec` by-reference 测不出 tag 丢失）；`RemoteResultPartition`/`RemoteInputChannel` envelope round-trip side-output 元素（含 wire 层 `toWireMap` round-trip）。
+- [x] [Fix] `RecordWriterOutput.collect(OutputTag, record)`：fail-fast → 构造 side-output 元素并经 `writer.emitElement(...)`（或 Phase 1 裁决的通道选择）传递；内层 record 按 Phase 1 裁决 copy（审查 M5c）。
+- [x] [Fix] `BroadcastingRecordWriterOutput.collect(OutputTag, record)`：向全部 writer 扇出 tagged 元素（每 writer 独立元素实例或按裁决 copy，防别名化）。
+- [x] [Fix] `processInputGate` 新增 side-output 元素分支：按 Phase 1 裁决的查找方式（`sideOutputConsumers.keySet()` 按 `getId()` 匹配，审查 M5d）查消费者；命中 → 消费；未命中 → 抛 `ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER`（参数含 tag id + 详情）。
+- [x] [Fix] `registerSideOutputConsumer` 语义扩展：注册的消费者同时服务 in-task 链式路径（现状）与跨 task 入站路径（新增）——map 复用，无新 API。
+- [x] [Fix] **`DataPlaneWireSupport.toWireMap` 补 `outputTagId` 字段**（`DataPlaneWireSupport.java:38-47`，审查 B1——三个 string codec 全经此层，不补则真实远程后端 tag 恒 null）。
+- [x] [Fix] **materialization 双写门**（`ResultPartition.java:198`，审查 M4）：按 Phase 1 裁决纳入（扩展双写条件 + 恢复路径消费 side-output）或排除（non-blocking 理由已裁决，代码不动但测试/文档注明）。
+- [x] [Proof] 测试（core）：`TestOutputContractInvariant` 断言翻转——RWO/BRWO `collect(OutputTag)` 不再抛异常（经注入 mock writer 断言 emit 收到 tagged 元素）；**`testTimestampedCollectorWrappingRecordWriterOutputFailsFast`（:368-384）翻转**（断言改为「转发到 wrapped RWO」，审查 M3）；新增入站路由用例（注册消费者收到元素 / 未注册 fail-fast，先红后绿）。**注（复审 F4）**：`processInputGate` 是私有 while(true) 循环方法——路由用例可用 InputGate 桩 + 反射注入，或直接经 E2E（下方 runtime 项）覆盖；二选一即可，但至少一处在案。
+- [x] [Proof] 测试（runtime）：`TestSideOutputChainingE2E` 第 4 用例断言翻转（跨 task 尾接线不再 fail-fast）；新增跨 task 送达 E2E（生产者 tail 算子经 RecordWriterOutput 发射 → 消费者 task InputGate 入站 → 注册消费者收到，含 BRWO 双 writer 扇出变体 + 多 subtask 广播语义变体）+ 无消费者 fail-fast 用例。
+- [x] [Fix] 远程路径验证：**强制走 string codec**（`TestPulsarStringWireCodec` / `TestKafkaStringWireCodec` / `TestSysDaoWireCodec` 扩展或 focused 集成测试，审查 B1——默认 `IdentityWireCodec` by-reference 测不出 tag 丢失）；`RemoteResultPartition`/`RemoteInputChannel` envelope round-trip side-output 元素（含 wire 层 `toWireMap` round-trip）。
 
 > **中间态说明（审查 M6 + 复审 F1）**：本 Phase 结束时 JUnit 断言已翻转但注册表分类仍为 `fail-fast`（Phase 4 才迁移）——`TestOutputContractInvariant` 参数化测试读注册表驱动断言，此时**门禁红是预期中间态**，不是回归；禁止提前改注册表（Phase 4 批次）。**mjs 侧同为预期中间态**：`mjs scan-output-contract` V3 behavior-drift 红（或 `classifyCollectBody` 对 emit 形态 :790 crash——mjs 分类器修复在 Phase 4）均属 Phase 3 预期，**Phase 3 不要求 mjs 全绿**，执行者不得把 mjs 红/crash 误判为回归 bug 触发错误修复。Phase 3 Exit Criteria 验证范围 = 非注册表驱动断言 + E2E 全绿。
 
@@ -144,16 +144,16 @@ Exit Criteria:
 
 - [ ] 生产端两实现类 `collect(OutputTag)` 均转发（grep/测试证据），fail-fast 文案从生产端移除
 - [ ] 消费端路由：注册消费者送达断言 + 未注册 fail-fast 断言全绿（先红后绿）
-- [ ] `registerSideOutputConsumer` 双路径（in-task + 跨 task）服务同一 map，接线断言在案
-- [ ] `DataPlaneWireSupport.toWireMap` 含 `outputTagId`（wire 层 round-trip 断言，审查 B1 证据）
-- [ ] materialization 双写路径按裁决处置（纳入 → 恢复测试；排除 → 留痕 + 测试注明）
-- [ ] **端到端验证**：跨 task 送达 E2E（生产 → 线协议 → 消费）含 BRWO 扇出变体全绿
-- [ ] **接线验证**：E2E 断言注册消费者确实被调用（非仅存在性）
-- [ ] **无静默跳过**：未注册消费者 → 抛 `ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER`（断言在案）
-- [ ] 远程路径（string codec + envelope）side-output round-trip 验证通过（非 Identity 默认路径）
-- [ ] 门禁红中间态已声明并验证（非注册表驱动断言全绿；注册表迁移留待 Phase 4）
-- [ ] core-design.md §6.1（若 Phase 3 落地与 Phase 1 定稿有出入，同步修正）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `registerSideOutputConsumer` 双路径（in-task + 跨 task）服务同一 map，接线断言在案
+- [x] `DataPlaneWireSupport.toWireMap` 含 `outputTagId`（wire 层 round-trip 断言，审查 B1 证据）
+- [x] materialization 双写路径按裁决处置（纳入 → 恢复测试；排除 → 留痕 + 测试注明）
+- [x] **端到端验证**：跨 task 送达 E2E（生产 → 线协议 → 消费）含 BRWO 扇出变体全绿
+- [x] **接线验证**：E2E 断言注册消费者确实被调用（非仅存在性）
+- [x] **无静默跳过**：未注册消费者 → 抛 `ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER`（断言在案）
+- [x] 远程路径（string codec + envelope）side-output round-trip 验证通过（非 Identity 默认路径）
+- [x] 门禁红中间态已声明并验证（非注册表驱动断言全绿；注册表迁移留待 Phase 4）
+- [x] core-design.md §6.1（若 Phase 3 落地与 Phase 1 定稿有出入，同步修正）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - 门禁同步与全量验证
 

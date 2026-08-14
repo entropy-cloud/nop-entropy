@@ -103,4 +103,28 @@ class TestKafkaStringWireCodec {
         assertEquals(StreamMessageEnvelope.TYPE_CONTROL, back.getType());
         assertEquals("END_OF_STREAM", back.getPayload());
     }
+
+    /**
+     * HG-01 (2026-08-14): the string-codec wire layer must carry the side-output tag id
+     * (review B1 — DataPlaneWireSupport.toWireMap is shared by all three string codecs;
+     * without it a real remote backend would always restore a null tag).
+     */
+    @Test
+    void roundTripsSideOutputEnvelope() {
+        StreamMessageEnvelope envelope = new StreamMessageEnvelope(
+                8L, StreamMessageEnvelope.TYPE_SIDE_OUTPUT_RECORD, Integer.class.getName(),
+                "42", 77L, true);
+        envelope.setOutputTagId("wire-tag");
+
+        StreamMessageEnvelope back = codec.fromWire(codec.toWire(envelope));
+
+        assertNotNull(back);
+        assertEquals(StreamMessageEnvelope.TYPE_SIDE_OUTPUT_RECORD, back.getType());
+        assertEquals(Integer.class.getName(), back.getValueType());
+        assertEquals("42", back.getPayload());
+        assertEquals(77L, back.getTimestamp());
+        assertTrue(back.isHasTimestamp());
+        assertEquals("wire-tag", back.getOutputTagId(),
+                "outputTagId must survive the string-codec wire round-trip");
+    }
 }

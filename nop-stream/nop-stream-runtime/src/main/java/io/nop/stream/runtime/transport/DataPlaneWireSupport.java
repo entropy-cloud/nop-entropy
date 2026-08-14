@@ -43,6 +43,9 @@ final class DataPlaneWireSupport {
         map.put("payload", normalizePayload(envelope.getPayload()));
         map.put("timestamp", envelope.getTimestamp());
         map.put("hasTimestamp", envelope.isHasTimestamp());
+        // HG-01 (2026-08-14): the string-codec wire layer must carry the side-output tag id,
+        // otherwise a real remote backend always restores a null tag (review B1).
+        map.put("outputTagId", envelope.getOutputTagId());
         return map;
     }
 

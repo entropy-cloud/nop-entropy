@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
@@ -12,6 +14,8 @@ import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.typeinfo.BasicTypeInfo;
 import io.nop.stream.core.common.typeutils.TypeSerializer;
 import io.nop.stream.core.exceptions.StreamRuntimeException;
+import io.nop.stream.core.execution.InputChannel;
+import io.nop.stream.core.execution.InputGate;
 import io.nop.stream.core.execution.RecordWriter;
 import io.nop.stream.core.execution.ResultPartition;
 import io.nop.stream.core.jobgraph.OperatorChain;
@@ -37,6 +41,8 @@ import io.nop.stream.core.execution.StreamTaskInvokable;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -165,6 +171,30 @@ public class TestSideOutputChainingE2E {
         }
     }
 
+    /** Minimal head operator for the consumer task (side-output routing never reaches headInput). */
+    static class NoopOperator extends io.nop.stream.core.operators.AbstractStreamOperator<Object>
+            implements Input<Object> {
+        @Override
+        public void processElement(StreamRecord<Object> element) {
+        }
+
+        @Override
+        public void processWatermark(Watermark mark) {
+        }
+
+        @Override
+        public void processWatermarkStatus(WatermarkStatus watermarkStatus) {
+        }
+
+        @Override
+        public void processLatencyMarker(LatencyMarker latencyMarker) {
+        }
+
+        @Override
+        public void setKeyContextElement(StreamRecord<Object> record) {
+        }
+    }
+
     private static TestableWindowOperator newWindowOperator(OutputTag<Integer> lateTag) {
         return new TestableWindowOperator(
                 TumblingEventTimeWindows.of(WINDOW_SIZE),
@@ -242,20 +272,22 @@ public class TestSideOutputChainingE2E {
     }
 
     /**
-     * Cross-task interim fail-fast (Cycle 2 / I4, WI-C2-1): the tail operator's Output is a
-     * {@code RecordWriterOutput} (single fan-out writer) or {@code BroadcastingRecordWriterOutput}
-     * (2+ fan-out writers), injected by {@link StreamTaskInvokable}'s fanOutWriters tail wiring
-     * (GraphExecutionPlan → {@code StreamTaskInvokable(chain, fanOutWriters)} →
-     * {@code wireOperators(fanOutWriters)} → {@code setOutput}). A side-output emission through
-     * that tail output must fail fast with {@code ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER} — never
-     * silently drop (plan guide Rule #22 / #23 / #24).
+     * Cross-task side-output forwarding (HG-01, 2026-08-14 — replaces the Cycle 2 / I4 interim
+     * fail-fast): the tail operator's Output is a {@code RecordWriterOutput} (single fan-out
+     * writer) or {@code BroadcastingRecordWriterOutput} (2+ fan-out writers), injected by
+     * {@link StreamTaskInvokable}'s fanOutWriters tail wiring. A side-output emission through
+     * that tail output must wrap the tagged record into a {@code SideOutputElement} and
+     * broadcast it into every downstream partition — the RWO single-writer variant covers the
+     * plain delivery path; the BRWO 2-writer variant covers the multi-subtask broadcast
+     * semantics (every partition receives its own element instance, D5 — no aliasing).
      */
     @Test
-    void testCrossTaskTailOutputFailsFastOnSideOutput() throws Exception {
+    void testCrossTaskTailOutputForwardsSideOutput() throws Exception {
         OutputTag<Integer> lateTag = new OutputTag<>("late-data", BasicTypeInfo.INT);
 
         // RWO path: a single fan-out writer wires the tail operator to RecordWriterOutput.
-        RecordWriter<Object> singleWriter = new RecordWriter<>(new ResultPartition());
+        ResultPartition rwoPartition = new ResultPartition();
+        RecordWriter<Object> singleWriter = new RecordWriter<>(rwoPartition);
         TestableWindowOperator rwoWindowOp = newWindowOperator(lateTag);
         new StreamTaskInvokable(new OperatorChain(List.of((StreamOperator<?>) rwoWindowOp)),
                 List.of(singleWriter));
@@ -263,8 +295,10 @@ public class TestSideOutputChainingE2E {
                 "tail operator must be wired to the cross-task RecordWriterOutput by wireOperators(fanOutWriters)");
 
         // BRWO path: 2 fan-out writers wire the tail operator to BroadcastingRecordWriterOutput.
-        RecordWriter<Object> writer1 = new RecordWriter<>(new ResultPartition());
-        RecordWriter<Object> writer2 = new RecordWriter<>(new ResultPartition());
+        ResultPartition p1 = new ResultPartition();
+        ResultPartition p2 = new ResultPartition();
+        RecordWriter<Object> writer1 = new RecordWriter<>(p1);
+        RecordWriter<Object> writer2 = new RecordWriter<>(p2);
         TestableWindowOperator brwoWindowOp = newWindowOperator(lateTag);
         new StreamTaskInvokable(new OperatorChain(List.of((StreamOperator<?>) brwoWindowOp)),
                 List.of(writer1, writer2));
@@ -272,28 +306,174 @@ public class TestSideOutputChainingE2E {
                 "2+ fan-out writers must wire the tail operator to the cross-task "
                         + "BroadcastingRecordWriterOutput");
 
-        assertCrossTaskSideOutputFailsFast(rwoWindowOp, lateTag, "RecordWriterOutput");
-        assertCrossTaskSideOutputFailsFast(brwoWindowOp, lateTag, "BroadcastingRecordWriterOutput");
+        assertCrossTaskSideOutputForwards(rwoWindowOp, lateTag, new ResultPartition[]{rwoPartition},
+                "RecordWriterOutput");
+        assertCrossTaskSideOutputForwards(brwoWindowOp, lateTag, new ResultPartition[]{p1, p2},
+                "BroadcastingRecordWriterOutput");
     }
 
-    private void assertCrossTaskSideOutputFailsFast(TestableWindowOperator windowOp,
-                                                    OutputTag<Integer> lateTag,
-                                                    String outputName) throws Exception {
+    private void assertCrossTaskSideOutputForwards(TestableWindowOperator windowOp,
+                                                   OutputTag<Integer> lateTag,
+                                                   ResultPartition[] partitions,
+                                                   String outputName) throws Exception {
         windowOp.open();
         try {
             windowOp.processElement(new StreamRecord<>(5, 10));
             windowOp.advanceInternalWatermark(200);
 
-            StreamRuntimeException ex = assertThrows(StreamRuntimeException.class,
-                    () -> windowOp.processElement(new StreamRecord<>(99, 50)),
-                    "cross-task " + outputName + " side-output emission must fail fast, never silently drop");
-            assertEquals(ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER.getErrorCode(), ex.getErrorCode(),
-                    "cross-task fail-fast must use ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER");
-            assertTrue(ex.getMessage().contains("late-data"),
-                    "fail-fast error must name the unregistered side-output tag, got: " + ex.getMessage());
+            windowOp.processElement(new StreamRecord<>(99, 50));
+            // The fired window's main-path record (5) also flows through the same RWO, so the
+            // partition holds the main record first, then the side-output element. Locate the
+            // side-output element instead of asserting an exact queue size.
+            java.util.List<io.nop.stream.core.streamrecord.SideOutputElement> received =
+                    new ArrayList<>();
+            int perPartitionTotal = 0;
+            for (ResultPartition partition : partitions) {
+                perPartitionTotal = 0;
+                while (partition.size() > 0) {
+                    perPartitionTotal++;
+                    io.nop.stream.core.streamrecord.StreamElement element = partition.read();
+                    if (element.isSideOutput()) {
+                        received.add(element.asSideOutput());
+                    }
+                }
+                assertEquals(2, perPartitionTotal,
+                        "cross-task " + outputName + " partition must hold main record + side-output element");
+            }
+            assertTrue(!received.isEmpty(),
+                    "cross-task " + outputName + " must enqueue at least one tagged side-output element");
+            for (io.nop.stream.core.streamrecord.SideOutputElement side : received) {
+                assertEquals("late-data", side.getOutputTagId(),
+                        "forwarded element must carry the side-output tag id");
+                assertEquals(99, side.getRecord().getValue(),
+                        "forwarded element must carry the late record value");
+            }
+            if (received.size() > 1) {
+                assertNotSame(received.get(0).getRecord(), received.get(1).getRecord(),
+                        "BRWO fan-out must not alias the inner record across partitions (D5)");
+                assertNotSame(received.get(0), received.get(1),
+                        "BRWO fan-out must not share one element instance across partitions (D5)");
+            }
         } finally {
             windowOp.close();
         }
+    }
+
+    /**
+     * End-to-end cross-task delivery (HG-01, 2026-08-14): a producer tail operator emits a late
+     * element → the tail RecordWriterOutput wraps it into a SideOutputElement and broadcasts it
+     * through the wire partition → the consumer task's InputGate reads it → processInputGate
+     * routes it to the consumer registered by tag id. Assertions on the registered consumer's
+     * receipt (not just existence) — plan guide Rule #22 (runtime connectivity).
+     */
+    @Test
+    void testCrossTaskSideOutputDeliveryReachesRegisteredConsumer() throws Exception {
+        OutputTag<Integer> lateTag = new OutputTag<>("late-data", BasicTypeInfo.INT);
+
+        ResultPartition producerPartition = new ResultPartition();
+        RecordWriter<Object> writer = new RecordWriter<>(producerPartition);
+        TestableWindowOperator producerOp = newWindowOperator(lateTag);
+        new StreamTaskInvokable(new OperatorChain(List.of((StreamOperator<?>) producerOp)),
+                List.of(writer));
+
+        List<StreamRecord<Integer>> sideReceived = new ArrayList<>();
+        CountDownLatch delivered = new CountDownLatch(1);
+        AtomicReference<Throwable> consumerError = new AtomicReference<>();
+        InputGate consumerGate = new InputGate(List.of(new InputChannel(producerPartition)), null, false);
+        StreamTaskInvokable consumer = new StreamTaskInvokable(
+                new OperatorChain(List.of((StreamOperator<?>) new NoopOperator())),
+                new ArrayList<RecordWriter<Object>>(), consumerGate);
+        consumer.registerSideOutputConsumer(lateTag, record -> {
+            sideReceived.add((StreamRecord<Integer>) (StreamRecord<?>) record);
+            delivered.countDown();
+        });
+
+        Thread consumerThread = new Thread(() -> {
+            try {
+                consumer.invoke();
+            } catch (Throwable t) {
+                consumerError.set(t);
+            }
+        });
+        consumerThread.start();
+
+        try {
+            producerOp.open();
+            producerOp.processElement(new StreamRecord<>(5, 10));
+            producerOp.advanceInternalWatermark(200);
+            producerOp.processElement(new StreamRecord<>(99, 50));
+            producerOp.close();
+        } finally {
+            // Close the producer partition so the consumer gate finishes and invoke() exits.
+            try {
+                producerPartition.close();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            consumerThread.join(10_000);
+        }
+
+        assertNull(consumerError.get(),
+                "consumer task must not fail, got: " + consumerError.get());
+        assertTrue(delivered.getCount() == 0, "consumer must receive the cross-task side-output record");
+        assertEquals(1, sideReceived.size(), "exactly one side-output record must be delivered");
+        assertEquals(99, sideReceived.get(0).getValue());
+    }
+
+    /**
+     * No-consumer fail-fast (HG-01, 2026-08-14): a side-output element arriving on the consumer
+     * task's input gate with NO registered consumer for its tag must fail the consumer task with
+     * {@code ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER} at the routing point — never silently drop
+     * (plan guide Rule #24).
+     */
+    @Test
+    void testCrossTaskSideOutputNoConsumerFailsFastOnConsumerTask() throws Exception {
+        OutputTag<Integer> lateTag = new OutputTag<>("late-data", BasicTypeInfo.INT);
+
+        ResultPartition producerPartition = new ResultPartition();
+        RecordWriter<Object> writer = new RecordWriter<>(producerPartition);
+        TestableWindowOperator producerOp = newWindowOperator(lateTag);
+        new StreamTaskInvokable(new OperatorChain(List.of((StreamOperator<?>) producerOp)),
+                List.of(writer));
+
+        InputGate consumerGate = new InputGate(List.of(new InputChannel(producerPartition)), null, false);
+        StreamTaskInvokable consumer = new StreamTaskInvokable(
+                new OperatorChain(List.of((StreamOperator<?>) new NoopOperator())),
+                new ArrayList<RecordWriter<Object>>(), consumerGate);
+        // No registerSideOutputConsumer — the tag has no consumer on this task.
+
+        AtomicReference<Throwable> consumerError = new AtomicReference<>();
+        Thread consumerThread = new Thread(() -> {
+            try {
+                consumer.invoke();
+            } catch (Throwable t) {
+                consumerError.set(t);
+            }
+        });
+        consumerThread.start();
+
+        try {
+            producerOp.open();
+            producerOp.processElement(new StreamRecord<>(5, 10));
+            producerOp.advanceInternalWatermark(200);
+            producerOp.processElement(new StreamRecord<>(99, 50));
+            producerOp.close();
+        } finally {
+            try {
+                producerPartition.close();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            consumerThread.join(10_000);
+        }
+
+        assertTrue(consumerError.get() != null,
+                "unregistered side-output tag must fail the consumer task, never silently drop");
+        assertTrue(consumerError.get() instanceof StreamRuntimeException,
+                "fail-fast must surface as StreamRuntimeException, got: " + consumerError.get());
+        StreamRuntimeException ex = (StreamRuntimeException) consumerError.get();
+        assertEquals(ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER.getErrorCode(), ex.getErrorCode(),
+                "fail-fast must use ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER");
     }
     /**
      * Wiring verification (Rule #23): a ChainingOutput created by {@link StreamTaskInvokable}

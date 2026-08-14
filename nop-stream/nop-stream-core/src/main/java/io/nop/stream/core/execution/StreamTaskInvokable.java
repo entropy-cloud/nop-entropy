@@ -38,6 +38,7 @@ import io.nop.stream.core.operators.SourceReaderOperator;
 import io.nop.stream.core.operators.TimerServiceManager;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.StreamRecord;
+import io.nop.stream.core.streamrecord.SideOutputElement;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.util.OutputTag;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
@@ -826,6 +827,27 @@ public class StreamTaskInvokable implements Invokable<Void> {
             StreamElement element = elementOpt.get();
             if (element.isRecord()) {
                 headInput.processElement((StreamRecord<Object>) (StreamRecord<?>) element.asRecord());
+            } else if (element.isSideOutput()) {
+                // HG-01 (2026-08-14): cross-task side-output routing. Look up the registered
+                // consumer by tag id (Phase 1 decision D4 — OutputTag's ctor forbids a
+                // null-typeInfo lookup key, so iterate sideOutputConsumers keySet with
+                // getId() equality). Unmatched tag = fail-fast at the consumption side.
+                io.nop.stream.core.streamrecord.SideOutputElement side = element.asSideOutput();
+                String tagId = side.getOutputTagId();
+                io.nop.stream.core.util.OutputTag<?> matched = null;
+                for (io.nop.stream.core.util.OutputTag<?> tag : sideOutputConsumers.keySet()) {
+                    if (tag.getId().equals(tagId)) {
+                        matched = tag;
+                        break;
+                    }
+                }
+                if (matched == null) {
+                    throw new StreamRuntimeException(ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER)
+                            .param(ARG_OUTPUT_TAG, tagId)
+                            .param(ARG_DETAIL, "No registered side-output consumer for tag '"
+                                    + tagId + "' on task " + getRole());
+                }
+                sideOutputConsumers.get(matched).accept(side.getRecord());
             } else if (element.isWatermark()) {
                 headInput.processWatermark(element.asWatermark());
             } else if (element.isCheckpointBarrier()) {
@@ -890,15 +912,14 @@ public class StreamTaskInvokable implements Invokable<Void> {
 
         @Override
         public <X> void collect(io.nop.stream.core.util.OutputTag<X> outputTag, StreamRecord<X> record) {
-            // Cycle 2 / I4 (WI-C2-1): interim fail-fast — side outputs have no consumer channel
-            // across task boundaries. Fail fast instead of silently dropping (plan guide #24);
-            // wire-protocol support = HG-01 human confirmation gate (enhancement).
-            throw new StreamRuntimeException(ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER)
-                    .param(ARG_OUTPUT_TAG, outputTag.getId())
-                    .param(ARG_DETAIL, "Side output '" + outputTag.getId()
-                            + "' has no consumer channel in the cross-task exchange (RecordWriterOutput); "
-                            + "side outputs are not supported across task boundaries (HG-01 wire-protocol "
-                            + "support pending human confirmation)");
+            // HG-01 (2026-08-14, I4 replacement): the cross-task wire protocol now carries
+            // side outputs — wrap the tagged record in a SideOutputElement and broadcast it
+            // through RecordWriter.emitElement to ALL downstream partitions (Phase 1
+            // decision D3). The inner record is copied so the producer's reused StreamRecord
+            // instance is never aliased by the exchange queue (D5). No-consumer fail-fast
+            // moved to the consumption-side routing point in processInputGate.
+            writer.emitElement(new SideOutputElement(outputTag.getId(),
+                    record.copy(record.getValue())));
         }
 
         @Override
@@ -958,15 +979,12 @@ public class StreamTaskInvokable implements Invokable<Void> {
 
         @Override
         public <X> void collect(io.nop.stream.core.util.OutputTag<X> outputTag, StreamRecord<X> record) {
-            // Cycle 2 / I4 (WI-C2-1): interim fail-fast — side outputs have no consumer channel
-            // across task boundaries. Fail fast instead of silently dropping (plan guide #24);
-            // wire-protocol support = HG-01 human confirmation gate (enhancement).
-            throw new StreamRuntimeException(ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER)
-                    .param(ARG_OUTPUT_TAG, outputTag.getId())
-                    .param(ARG_DETAIL, "Side output '" + outputTag.getId()
-                            + "' has no consumer channel in the cross-task exchange "
-                            + "(BroadcastingRecordWriterOutput); side outputs are not supported across "
-                            + "task boundaries (HG-01 wire-protocol support pending human confirmation)");
+            // HG-01 (2026-08-14, I4 replacement): fan the tagged record out to every wrapped
+            // output. Each RecordWriterOutput copies the inner record on construction, so no
+            // single SideOutputElement instance is shared across partition queues (D5).
+            for (Output<StreamRecord<Object>> output : outputs) {
+                output.collect(outputTag, record);
+            }
         }
 
         @Override
