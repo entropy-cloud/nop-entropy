@@ -1,0 +1,28 @@
+{
+  "name": "nop-ai-gateway-failover",
+  "description": "AI 网关透明账号切换落地（nop-ai-gateway-failover）。范围：nop-ai-core + nop-ai-gateway + nop-kernel/nop-xdefs（+ nop-ai-agent 受下沉影响）。设计已 R1-R8 八轮独立审查达成共识（ai-dev/design/nop-ai-gateway/02-account-failover-requirement.md，权威来源）。核心不变式：①复用优先——账号链/熔断（ThresholdBreaker provider:model）/双源错误分类（parseErrorResponse + LlmErrorClassifier）/凭证链（accountKey>credentialId>resolveApiKey）全部复用，不建第二套机制（closure 拒绝条件）；②网关能力级不依赖 nop-ai-agent（LLM 可靠性子集下沉 nop-ai-core，agent 引擎专用部分留原处，LlmCallCoordinator 不迁移语义沿用）；③nop-gateway 保持零 nop-ai 依赖，AiFailoverGatewayInterceptor 保留兼容不迁移；④llm.xdef（nop-kernel/nop-xdefs，protected area）变更 plan-first，_gen 生成物经 codegen 再生成禁止手编。前置决策：W1 spike 暴露 Q2（前端 model 参数语义）/Q5（RATE_LIMITED/TRANSIENT→账号链切换偏离）产品决策，Q7（流式重订阅可行性）spike 结论决定 W7 实现方式；spike 若推翻需求假设须先修订需求文档。W2（下沉）→W5（模型类路由组+选择策略）→W6/W7（两形态）为主链。授权：P0/P1 自动修复预授权（同 nop-ai-invariant-loop 先例），结构性重构（跨模块公共 API、xdef 配置面、下沉迁移）执行前人工确认。",
+  "model": "opencode-go/deepseek-v4-flash",
+  "variant": "max",
+  "roadmapPath": "ai-dev/backlog/nop-ai-gateway-failover-roadmap.md",
+  "plansDir": "ai-dev/plans",
+  "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
+  "auditsDir": "ai-dev/audits",
+  "sourceDir": ".",
+  "commands": {
+    "test": "./mvnw test -pl :nop-ai-core,:nop-ai-gateway,:nop-ai-agent -am -T 1C",
+    "build": "./mvnw clean install -DskipTests -pl :nop-ai-core,:nop-ai-gateway,:nop-ai-agent -am -T 1C",
+    "lint": "./mvnw checkstyle:check -pl :nop-ai-core,:nop-ai-gateway,:nop-ai-agent -am -q 2>/dev/null || echo 'lint not configured'",
+    "typecheck": "./mvnw compile -pl :nop-ai-core,:nop-ai-gateway,:nop-ai-agent -am -q 2>/dev/null || echo 'typecheck not configured'"
+  },
+  "prompts": {
+    "designDoc": "ai-dev/design/nop-ai-gateway/02-account-failover-requirement.md",
+    "architectureDoc": "ai-dev/design/nop-ai-gateway/01-architecture.md",
+    "reliabilityDoc": "ai-dev/design/nop-ai-agent/nop-ai-agent-reliability.md",
+    "multiAuditPrompt": "ai-dev/skills/deep-audit-prompts.md",
+    "openAuditPrompt": "ai-dev/skills/open-ended-adversarial-review-prompt.md",
+    "planReviewer": "ai-dev/skills/plan-reviewer-prompt.md",
+    "closureAudit": "ai-dev/skills/plan-closure-audit-prompt.md",
+    "crossModuleDependencyAudit": "ai-dev/skills/cross-module-dependency-audit-prompt.md"
+  },
+  "commitFormat": "feat(ai-gateway): <description>"
+}
