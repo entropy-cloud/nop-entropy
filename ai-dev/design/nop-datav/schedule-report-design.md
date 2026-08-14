@@ -1,10 +1,10 @@
 # nop-datav 定时报告与告警设计 (D5)
 
-> Status: **final** — D5-1（定时报告）+ D5-2（轻量告警）+ IM 渠道通知接入最终结论。
+> Status: **final** — D5-1（定时报告）+ D5-2（轻量告警）+ IM 渠道通知接入 + stuck-task 周期恢复最终结论。
 > Last Updated: 2026-08-14
-> Owner plans: `ai-dev/plans/nop-datav/2026-08-10-1230-1-scheduled-report-generation-and-delivery.md`、`ai-dev/plans/nop-datav/2026-08-10-1230-2-lightweight-alert-threshold-rearm-notification.md`、`ai-dev/plans/nop-datav/2026-08-14-0937-1-im-channel-notification-integration.md`
+> Owner plans: `ai-dev/plans/nop-datav/2026-08-10-1230-1-scheduled-report-generation-and-delivery.md`、`ai-dev/plans/nop-datav/2026-08-10-1230-2-lightweight-alert-threshold-rearm-notification.md`、`ai-dev/plans/nop-datav/2026-08-14-0937-1-im-channel-notification-integration.md`、`ai-dev/plans/nop-datav/2026-08-14-1510-1-periodic-stuck-task-recovery-scanner.md`
 
-本文档为 D5-1 定时报告 + D5-2 轻量告警的设计契约（最终结论，非 Proposed vs Current 形式）。D5-1 章节覆盖通知 provider 裁定、渲染时机、调度集成、实体契约、grace 语义、权限矩阵、模板渲染机制、取数契约、被拒方案及理由；D5-2 章节覆盖告警标量聚合、状态机、rearm、告警通知变体、告警状态独立实体、面板容错、权限矩阵。
+本文档为 D5-1 定时报告 + D5-2 轻量告警的设计契约（最终结论，非 Proposed vs Current 形式）。D5-1 章节覆盖通知 provider 裁定、渲染时机、调度集成、实体契约、grace 语义、权限矩阵、模板渲染机制、取数契约、被拒方案及理由；D5-2 章节覆盖告警标量聚合、状态机、rearm、告警通知变体、告警状态独立实体、面板容错、权限矩阵；§25 覆盖交付/导出记录的 stuck-task 周期恢复。
 
 ---
 
@@ -493,3 +493,38 @@ dict `datav/alert-operator`（string）：gt/gte/lt/lte/eq/neq/between。
 | 每次评估历史持久化 | 状态实体已含 `lastEvalTime`/`consecutiveEvalCount` 供审计；每次评估写历史行属过度设计 | optimization candidate |
 | 多级阈值/告警抑制/合并/升级 | 高级告警能力，当前无用例 | optimization candidate |
 | JDBC queryTimeout 超时配置 | 首版用 `CFG_DATAV_ALERT_EVAL_MAX_ROWS` 行数安全上限防 OOM；精确聚合应让 SQL 预聚合返回单行 | follow-up |
+
+---
+
+## 25. stuck-task 周期恢复（交付 + 导出）
+
+**裁定**：新增 `NopDatavStuckTaskScanner` 普通 IoC bean（`ioc:default=true`），`@Inject @Nullable IJobScheduler` + `@PostConstruct` 注册固定间隔 job（`TriggerSpec.setRepeatInterval`，间隔 `nop.datav.stuck-scan.interval-minutes` 默认 10 min，jobName=`nop-datav-stuck-task-scan`，beanMethod invoker），周期调用 `scanStuck()`——读 `nop.datav.stuck-scan.timeout-minutes`（默认 60 min）并委托 `NopDatavReportDeliveryRecovery.scanStuck(int)` 与 `NopDatavExportTaskRecovery.scanStuck(int)`，仅标记 status ∈ {PENDING, RUNNING} 且时间基准超过阈值的记录为 FAILED（reason=`stuck beyond timeout threshold (Xm)`）。配置开关 `nop.datav.stuck-scan.enabled`（默认 true）。
+
+**解决的 gap**：throwable-sweep（plan `2026-08-14-1452-1`）把交付/导出执行体的 `catch (Throwable)` 收窄为 `catch (Exception)` 后，JVM Error（OOM/StackOverflow）传播出 `GlobalExecutors.globalWorker()` worker 线程致其死亡，但进程存活（线程池可建新线程）——该记录停留在 RUNNING/PENDING 直到下次进程重启才被 `@PostConstruct` 全量恢复。周期扫描把 stuck 窗口从「直到重启」（可达数天）收敛到有界时间窗口（阈值 + 间隔，最坏 ≈ timeout + interval）。
+
+**时间基准字段裁定：交付用 `startTime`、导出用 `createTime`**（实体时间字段不一致）：
+- `NopDatavReportDelivery` 有 `startTime`（执行开始时刻，PENDING 插入时即写入）——stuck 判定精确。
+- `NopDatavExportTask` 无 startTime，只有 `createTime`（提交时刻；ORM 审计 insert 时强制填入）。提交后经 globalWorker 异步延迟执行，故 createTime = 排队等待 + 执行耗时。并发上限（max-concurrent-per-user=3）下若排队超过阈值，一条刚开始执行的导出可能被误标——保守高默认阈值（60 min）+ 低并发上限使该场景极罕见；导出量大时为导出单独调高阈值或后续补 startTime 列。
+- 两者均不用 `updateTime`：每次状态转换（touchDelivery/touchUpdate）都会刷新，任何无关写重置时钟，对 stuck 判定不可靠。
+
+**默认值裁定**：timeout=60 min（保守高值：正常报告生成/导出分钟级完成，60 min 内未终态极大概率是 stuck；同时抑制慢执行假阳性与 createTime 含排队等待的误标）、interval=10 min（stuck 最坏暴露窗口 ≈ 70 min，远优于「直到重启」；扫描为两条索引查询 + 少量更新，10 min 周期无负载顾虑）。
+
+**与重启恢复的关系（正交，不变式）**：重启 `@PostConstruct` 路径（`recoverInterruptedDeliveries()`/`recoverInterruptedTasks()`）**保持无阈值全量清理**——重启时所有非终态记录的执行体必然已丢失，全量标 FAILED 是精确的；周期 `scanStuck(int)` 是带阈值的运行时增量路径，两者是同 bean 内并存的独立方法，不合并、不替换。
+
+**与 Dim14-01 per-request 拒绝的关系**：Dim14-01 拒绝的是「请求路径无阈值全量恢复」（会把所有用户/同用户的在途任务误标 FAILED）。周期扫描以时间阈值区分「真正 stuck」与「正常在途」，不受该裁定约束；阈值内记录不动是 ①–④ 边界测试的硬契约。
+
+**与 deferred retry plan 的正交性**：retry plan（`2026-08-14-1510-2`，当前 blocked）处理 FAILED 终态记录的重新投递；本节处理 stuck 非终态记录的终态化。两者组合语义：stuck →（扫描）FAILED →（未来 retry）重投。
+
+**慢执行竞态裁定（良性，已接受）**：若记录合法执行超过阈值（如超大看板导出），扫描在阈值到达时标 FAILED，但 worker 线程仍在运行；worker 最终完成写 SUCCEEDED 时覆盖扫描的 FAILED——交付场景这是**正确终态**（报告确实送达，文件已完整生成），扫描的 FAILED 是被 worker 修正的假阳性。审计轨迹丢失该次扫描干预记录，但终态正确。不做 worker 写前状态校验（sticky-FAILED）：仅在 retry plan 落地后（FAILED 触发重试 → 可能重复送达）才成为必要，届时作为该 plan 的前置项处理（watch-only residual）。
+
+**被拒替代方案**：
+
+| 方案 | 拒用理由 | 分类 |
+|------|----------|------|
+| per-request 恢复（无阈值） | Dim14-01 已拒绝：误杀所有在途记录 | 已拒（audit 裁定） |
+| stuck 记录自动重投（FAILED → re-queue） | 依赖 retry 能力（deferred plan `2026-08-14-1510-2`）或手动；与重启恢复语义一致仅标 FAILED | deferred（successor: retry plan） |
+| sticky-FAILED worker 写前校验 | 仅 retry 落地后必要（防重复送达）；当前竞态良性（终态正确） | watch-only residual |
+| 告警记录纳入 stuck 扫描 | `NopDatavAlertState` 每次 cron tick 同步即时写回，无独立长期 RUNNING 执行体记录，不适用 | 已拒（不适用） |
+| 由 interval-minutes 合成 cron 表达式触发 | `TriggerSpec.setRepeatInterval` 固定间隔已满足需求且更简单；cron 表达式合成引入解析/校验复杂度无收益 | 已拒（简化） |
+
+**FAILED-brick 规避**：`scanStuck()` 吞业务错误返回正常结果 Map（单类扫描异常 → WARN 日志 → 继续另一类），仅 JVM Error 传播——与 §3/§9 `executeScheduledReport` 约定一致，防 LocalJobScheduler 将周期 job 永久置 FAILED。scheduler==null（宿主未注册调度器）时 INFO 日志跳过注册，重启恢复路径不受影响。
