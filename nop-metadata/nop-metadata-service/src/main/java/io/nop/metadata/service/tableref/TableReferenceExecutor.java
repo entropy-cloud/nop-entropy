@@ -11,8 +11,8 @@ import io.nop.metadata.service.connection.IMetaDataSourceConnectionProcessor;
 import io.nop.orm.IOrmTemplate;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static io.nop.metadata.service.query.AggregationHelper.safeProductName;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -34,8 +34,6 @@ import java.util.function.BiConsumer;
  * <p>无状态（依赖由构造时传入的 {@link IMetaDataSourceConnectionProcessor} + {@link IOrmTemplate}）。
  */
 public class TableReferenceExecutor {
-
-    private static final Logger LOG = LoggerFactory.getLogger(TableReferenceExecutor.class);
 
 
     private final IMetaDataSourceConnectionProcessor connectionService;
@@ -133,15 +131,6 @@ public class TableReferenceExecutor {
             throw error[0];
         }
         return (T) holder[0];
-    }
-
-    private static String safeProductName(DatabaseMetaData metaData) {
-        try {
-            return metaData.getDatabaseProductName();
-        } catch (SQLException e) {
-            LOG.warn(NopMetadataErrors.ERR_TABLEREF_PLATFORM_META_FAILED.getErrorCode() + ": getDatabaseProductName failed, product name will be absent", e);
-            return null;
-        }
     }
 
     private static String messageOf(Throwable t) {

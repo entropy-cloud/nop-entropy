@@ -8,7 +8,8 @@ import io.nop.metadata.dao.entity.NopMetaOrmModel;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
 
-import java.text.SimpleDateFormat;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedHashMap;
@@ -16,7 +17,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TimeZone;
 
 /**
  * Manifest 构建服务：从已导入的逻辑元数据聚合 nodes/sources/parentMap/childMap，生成自包含 JSON 快照。
@@ -32,6 +32,11 @@ import java.util.TimeZone;
  * </ul>
  */
 public class MetaManifestBuilder {
+
+    // AR-14e：不可变、线程安全的 ISO-8601（UTC）格式器，替换脆弱的 SimpleDateFormat（'Z' 字面量
+    // 仅因 setTimeZone(UTC) 碰巧正确；DateTimeFormatter 预绑定 ZoneOffset.UTC 无此隐患）。
+    private static final DateTimeFormatter ISO_UTC =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'").withZone(ZoneOffset.UTC);
 
     /**
      * @param module               目标模块版本（提供 moduleId/moduleVersion）
@@ -143,9 +148,7 @@ public class MetaManifestBuilder {
     private static String formatIso(Date date) {
         if (date == null)
             return null;
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-        return sdf.format(date);
+        return ISO_UTC.format(date.toInstant());
     }
 
     /**

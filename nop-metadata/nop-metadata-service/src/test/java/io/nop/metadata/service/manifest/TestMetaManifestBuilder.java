@@ -231,4 +231,47 @@ public class TestMetaManifestBuilder {
         assertEquals(1, parentMap.get(ownerUid).size());
         assertEquals(targetUid, parentMap.get(ownerUid).get(0));
     }
+
+    // ===== AR-14e：generatedAt ISO-8601（UTC）格式断言 =====
+
+    /** generatedAt 序列化为 ISO-8601 UTC 字符串（yyyy-MM-dd'T'HH:mm:ss'Z'），不可变格式器输出等价。 */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void generatedAtIsoUtcFormat() {
+        NopMetaModule mod = module("test/iso");
+        List<NopMetaEntity> entities = Collections.singletonList(
+                entity("e-iso", "io.test.Iso", "Iso"));
+        Map<String, String> classNameToModuleId = new LinkedHashMap<>();
+        classNameToModuleId.put("io.test.Iso", "test/iso");
+
+        // epoch (1970-01-01T00:00:00Z UTC)
+        java.util.Date epoch = new java.util.Date(0L);
+
+        MetaManifestBuilder.ManifestBuildResult result = builder.build(
+                mod, dummyOrmModel(), entities, Collections.emptyList(), classNameToModuleId,
+                "1.0", 1L, epoch);
+
+        Map<String, Object> content = result.getContent();
+        Map<String, Object> metadata = (Map<String, Object>) content.get("metadata");
+        String generatedAt = (String) metadata.get("generatedAt");
+
+        assertEquals("1970-01-01T00:00:00Z", generatedAt,
+                "generatedAt must be ISO-8601 UTC (yyyy-MM-dd'T'HH:mm:ss'Z')");
+    }
+
+    /** generatedAt null date → null（不抛 NPE，保持既有契约）。 */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void generatedAtNullDateReturnsNull() {
+        NopMetaModule mod = module("test/null-date");
+        List<NopMetaEntity> entities = Collections.emptyList();
+
+        MetaManifestBuilder.ManifestBuildResult result = builder.build(
+                mod, dummyOrmModel(), entities, Collections.emptyList(), new LinkedHashMap<>(),
+                "1.0", 1L, null);
+
+        Map<String, Object> content = result.getContent();
+        Map<String, Object> metadata = (Map<String, Object>) content.get("metadata");
+        assertEquals(null, metadata.get("generatedAt"), "null date must produce null generatedAt");
+    }
 }

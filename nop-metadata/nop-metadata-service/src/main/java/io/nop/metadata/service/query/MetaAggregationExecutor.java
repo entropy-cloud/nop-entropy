@@ -13,8 +13,6 @@ import io.nop.metadata.dao.entity.NopMetaTableFilter;
 import io.nop.metadata.dao.entity.NopMetaTableJoin;
 import io.nop.metadata.service.field.ExpressionMeasureValidator;
 import io.nop.metadata.service.NopMetadataException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -44,7 +42,6 @@ import java.util.regex.Pattern;
  * granularity 不约定 / 方言不支持 / expression unparseable/unsafe/dialect-unsupported/too-long / 实体未注册。
  */
 public class MetaAggregationExecutor {
-    private static final Logger LOG = LoggerFactory.getLogger(MetaAggregationExecutor.class);
 
     private final MetaJoinExecutor joinExecutor;
 

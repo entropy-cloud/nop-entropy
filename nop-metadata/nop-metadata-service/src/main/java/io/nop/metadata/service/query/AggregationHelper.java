@@ -210,7 +210,7 @@ public class AggregationHelper {
     }
 
     public static String resolveEntityFieldColumn(String entityFieldId, String name, NopMetaTable table,
-                                                   MetaQueryContext ctx, Map<String, String> propToCol) {
+                                                   MetaQueryContext ctx) {
         if (entityFieldId == null || entityFieldId.isEmpty()) {
             throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_FIELD_NOT_RESOLVED)
                     .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
@@ -470,8 +470,11 @@ public class AggregationHelper {
         try {
             return metaData.getDatabaseProductName();
         } catch (SQLException e) {
-            LOG.error(NopMetadataErrors.ERR_AGGR_TYPE_PROBE_FAILED.getErrorCode() + ": safeProductName failed: getDatabaseProductName threw", e);
-            return null;
+            // AR-14a：SQLException 来自 getDatabaseProductName()，本质是连接/驱动/基础设施失败，
+            // 非"方言不支持"。fail-loud：抛 infra 错误并传播 cause，不再 return null（否则被调用方
+            // 误归因为 ERR_AGGR_UNSUPPORTED_DIALECT，掩盖真实故障）。
+            throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_DB_PRODUCT_NAME_FAILED, e)
+                    .param(NopMetadataErrors.ARG_ERROR, messageOf(e));
         }
     }
 
@@ -559,6 +562,13 @@ public class AggregationHelper {
             try {
                 return new java.math.BigDecimal(s);
             } catch (NumberFormatException e) {
+                // INV-SILENT-SWALLOW（plan 2026-08-14-1448-2）：非数值字符串是
+                // 预期的 coercion miss（返回 null 由调用方回退非数值处理，如
+                // string stats）。DEBUG 日志携带 ErrorCode 上下文保留可见信号——
+                // 与 probeNumeric（AR-06）同类 benign-miss 形式化，不静默吞。
+                String code = NopMetadataErrors.ERR_AGGR_VALUE_NOT_NUMERIC
+                        .getErrorCode();
+                LOG.debug(code + ": toBigDecimal null (not numeric)", e);
                 return null;
             }
         }

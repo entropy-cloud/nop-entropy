@@ -174,6 +174,9 @@ public class EntityAggregationProcessor implements AggregationProcessor {
                 physicalTable, null, null, entity, entityQuerySpace, null);
 
         return ctx.tableRefExecutor().execute(ref, (conn, metaData, productName) -> {
+            // null 仅剩"driver 返回空产品名"这一罕见情形（productName 来自
+            // TableReferenceExecutor → safeProductName，infra 失败已在其中
+            // fail-loud 抛出，AR-14a），按 unsupported-dialect 处理
             if (productName == null || !SUPPORTED_DIALECTS.contains(productName)) {
                 throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_UNSUPPORTED_DIALECT)
                         .param("databaseProductName", String.valueOf(productName))
@@ -257,7 +260,7 @@ public class EntityAggregationProcessor implements AggregationProcessor {
                         ve.params, ve));
                 continue;
             }
-            String column = resolveEntityFieldColumn(m.getEntityFieldId(), m.getMeasureName(), table, ctx, propToCol);
+            String column = resolveEntityFieldColumn(m.getEntityFieldId(), m.getMeasureName(), table, ctx);
             FilterToSqlTranslator.validateIdentifier(column);
             specs.add(new MeasureSpec(safeAlias(m.getMeasureName()),
                     aggSqlOf(m.getAggFunc(), column, m.getMeasureName())));
@@ -270,7 +273,7 @@ public class EntityAggregationProcessor implements AggregationProcessor {
         List<NopMetaTableDimension> all = loadDimensions(table, names, ctx);
         List<DimensionSpec> specs = new ArrayList<>();
         for (NopMetaTableDimension d : all) {
-            String column = resolveEntityFieldColumn(d.getEntityFieldId(), d.getDimensionName(), table, ctx, propToCol);
+            String column = resolveEntityFieldColumn(d.getEntityFieldId(), d.getDimensionName(), table, ctx);
             FilterToSqlTranslator.validateIdentifier(column);
             specs.add(new DimensionSpec(safeAlias(d.getDimensionName()), column, d.getDimensionType(), d.getGranularity()));
         }

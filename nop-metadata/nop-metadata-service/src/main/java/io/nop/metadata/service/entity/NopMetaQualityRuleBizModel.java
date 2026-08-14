@@ -36,13 +36,15 @@ import io.nop.metadata.service.tableref.MetaTableReferenceResolver;
 import io.nop.metadata.service.tableref.TableReference;
 import io.nop.metadata.service.tableref.TableReferenceExecutor;
 import io.nop.metadata.service.NopMetadataException;
+
+import static io.nop.metadata.service.query.AggregationHelper.safeProductName;
+
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
-import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -372,16 +374,6 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
             dto.setDetails(judgment.getDetails());
         }
         return dto;
-    }
-
-    private static String safeProductName(DatabaseMetaData metaData) {
-        try {
-            return metaData.getDatabaseProductName();
-        } catch (SQLException e) {
-            LOG.warn("getDatabaseProductName failed, product name will be absent from details, errorCode={}",
-                    NopMetadataErrors.ERR_QUALITY_RULE_TYPE_PROBE_FAILED.getErrorCode(), e);
-            return null;
-        }
     }
 
 }

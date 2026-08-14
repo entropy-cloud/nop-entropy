@@ -87,6 +87,39 @@ public class TestAggregationHelperTableVisibility {
         assertTrue(AggregationHelper.checkTableExists(metaData, "SCH", "EMP"));
     }
 
+    // ===== AR-14a：safeProductName infra-failure fail-loud =====
+
+    /** getDatabaseProductName 抛 SQLException（infra 失败）→ 抛 infra 错误（含 cause），不再 return null。 */
+    @Test
+    public void testSafeProductNameInfraFailureThrows() throws Exception {
+        DatabaseMetaData metaData = mock(DatabaseMetaData.class);
+        SQLException cause = new SQLException("connection lost during metadata read");
+        when(metaData.getDatabaseProductName()).thenThrow(cause);
+
+        NopException ex = assertThrows(NopMetadataException.class,
+                () -> AggregationHelper.safeProductName(metaData));
+        assertEquals(NopMetadataErrors.ERR_AGGR_DB_PRODUCT_NAME_FAILED.getErrorCode(), ex.getErrorCode());
+        assertSame(cause, ex.getCause(), "original SQLException must be preserved as cause");
+    }
+
+    /** getDatabaseProductName 成功返回已知产品名 → 不抛错，原样返回（调用方按 unsupported-dialect 处理在外）。 */
+    @Test
+    public void testSafeProductNameKnownReturnsName() throws Exception {
+        DatabaseMetaData metaData = mock(DatabaseMetaData.class);
+        when(metaData.getDatabaseProductName()).thenReturn("MySQL");
+
+        assertEquals("MySQL", AggregationHelper.safeProductName(metaData));
+    }
+
+    /** getDatabaseProductName 成功返回未知产品名 → 不抛 infra 错误（未知名由调用方按 unsupported-dialect 处理）。 */
+    @Test
+    public void testSafeProductNameUnknownReturnsNameNotInfraError() throws Exception {
+        DatabaseMetaData metaData = mock(DatabaseMetaData.class);
+        when(metaData.getDatabaseProductName()).thenReturn("ExoticDB");
+
+        assertEquals("ExoticDB", AggregationHelper.safeProductName(metaData));
+    }
+
     @Test
     public void testIsEntityTableVisibleFailsFastOnFirstProbeError() throws Exception {
         DatabaseMetaData metaData = mock(DatabaseMetaData.class);

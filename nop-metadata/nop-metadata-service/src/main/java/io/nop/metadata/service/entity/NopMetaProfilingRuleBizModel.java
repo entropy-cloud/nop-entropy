@@ -35,12 +35,8 @@ import io.nop.metadata.service.tableref.TableReference;
 import io.nop.metadata.service.tableref.TableReferenceExecutor;
 import io.nop.metadata.service.NopMetadataException;
 import jakarta.inject.Inject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
@@ -58,9 +54,6 @@ import java.util.Map;
  */
 @BizModel("NopMetaProfilingRule")
 public class NopMetaProfilingRuleBizModel extends CrudBizModel<NopMetaProfilingRule> implements INopMetaProfilingRuleBiz {
-
-    private static final Logger LOG = LoggerFactory.getLogger(NopMetaProfilingRuleBizModel.class);
-
 
     @Inject
     protected IMetaDataSourceConnectionProcessor connectionService;
@@ -187,13 +180,4 @@ public class NopMetaProfilingRuleBizModel extends CrudBizModel<NopMetaProfilingR
         return dto;
     }
 
-    private static String safeProductName(DatabaseMetaData metaData) {
-        try {
-            return metaData.getDatabaseProductName();
-        } catch (SQLException e) {
-            LOG.warn("getDatabaseProductName failed, product name will be absent from tableStats, errorCode={}",
-                    NopMetadataErrors.ERR_PROFILING_RULE_OPERATION_FAILED.getErrorCode(), e);
-            return null;
-        }
-    }
 }

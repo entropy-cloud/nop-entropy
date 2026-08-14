@@ -88,7 +88,7 @@ public class SqlSelectFieldExtractor {
                     .param("statementKind", String.valueOf(stmt.getStatementKind())).param("sql", sql);
         }
 
-        List<SqlProjection> projections = resolveProjections(stmt);
+        List<SqlProjection> projections = resolveProjections(stmt, sql);
         return toFields(projections, sql);
     }
 
@@ -98,7 +98,7 @@ public class SqlSelectFieldExtractor {
      * {@link SqlSelect}（含 {@code SqlQuerySelect} / {@code SqlUnionSelect}）直接取 projections
      * （UNION 委托 firstSelect，由 AST 实现）。
      */
-    private List<SqlProjection> resolveProjections(SqlStatement stmt) {
+    private List<SqlProjection> resolveProjections(SqlStatement stmt, String sql) {
         if (stmt instanceof SqlSelectWithCte) {
             SqlSelect inner = ((SqlSelectWithCte) stmt).getSelect();
             if (inner == null || inner.getProjections() == null) {
@@ -112,7 +112,8 @@ public class SqlSelectFieldExtractor {
         }
         // getStatementKind()==SELECT 但非 SqlSelect/SqlSelectWithCte 子类——不可达，显式失败而非静默
         throw new NopMetadataException(NopMetadataErrors.ERR_SQL_VIEW_PARSE_FAILED)
-                .param("sql", "unhandled SELECT statement class: " + stmt.getClass().getName());
+                .param("sql", sql)
+                .param("reason", "unhandled SELECT statement class: " + stmt.getClass().getName());
     }
 
     /** projections → fields（alias 优先 / 列名次之 / 表达式标记 &lt;expr_N&gt;）。 */

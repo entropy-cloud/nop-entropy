@@ -66,6 +66,8 @@ public class ExternalAggregationProcessor implements AggregationProcessor {
         ctx.connectionService().withConnection(dataSource.getDatasourceType(), dataSource.getConnectionConfig(),
                 (Connection conn, DatabaseMetaData metaData) -> {
                     String dialect = safeProductName(metaData);
+                    // null 仅剩"driver 返回空产品名"这一罕见情形（infra 失败已在
+                    // safeProductName 内 fail-loud 抛出，AR-14a），按 unsupported-dialect 处理
                     if (dialect == null || !SUPPORTED_DIALECTS.contains(dialect)) {
                         throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_UNSUPPORTED_DIALECT)
                                 .param("databaseProductName", String.valueOf(dialect))
