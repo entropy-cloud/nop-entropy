@@ -2,7 +2,7 @@
 
 > **产出方法**：`ai-dev/skills/invariant-loop-audit-prompt.md`；待经独立 fresh session 审查至共识。
 > **驱动方**：`missions/nop-ai-invariant-loop.json`（范围：nop-ai 全模块组排除 MCP）
-> **先例**：nop-chaos-flux `docs/backlog/ai-invariant-loop-roadmap.md`（首个闭环先例）
+> **先例**：nop-chaos-flux 项目的 docs/backlog/ai-invariant-loop-roadmap.md（首个闭环先例，属外部项目，不在本仓库）
 > **与既有线性 roadmap 的关系**：`audit-remediation-roadmap.md`（MR1-MR4/MV/MG 全 done，50/50）为**线性管道**——MG 产出为 lessons（含 Lesson 05 overclaimed closure、Lesson 08 ToolExecutor 安全边界）。本图为**闭环飞轮**——把 lessons 中识别的模式升级为可执行 CI 门禁。
 
 ## 目的
