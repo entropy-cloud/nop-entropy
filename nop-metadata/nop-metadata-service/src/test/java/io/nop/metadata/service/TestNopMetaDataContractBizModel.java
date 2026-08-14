@@ -248,6 +248,87 @@ public class TestNopMetaDataContractBizModel extends JunitBaseTestCase {
                 "unknown unit must reuse ERR_CONTRACT_SLA_INVALID, got: " + errorCode);
     }
 
+    // ===== AR-01（plan 2026-08-14-0707-2）：SLA 分数 amount 截断修正 =====
+
+    /**
+     * 分数 interval：0.5 hour = 1_800_000 ms。catalog 10 分钟前采集 → 未过期 PASS
+     * （修复前 (long)0.5=0 → 0 ms → 10min>0 → 恒 stale → FAIL，静默错算）。
+     */
+    @Test
+    public void testCheckContractSlaFractionalHourFresh() {
+        String tableId = saveExternalTable("EXT_SLA_FRAC_HOUR");
+        long tenMinutesAgo = System.currentTimeMillis() - 10L * 60L * 1000L;
+        saveCatalog(tableId, tenMinutesAgo, null);
+
+        String id = saveContract("c-sla-frac-hour", "ACTIVE", tableId, null,
+                "{\"refreshFrequency\":{\"interval\":0.5,\"unit\":\"hour\"}}");
+        GraphQLResponseBean resp = check(id);
+        assertFalse(resp.hasError(), "check should not error: " + resp);
+        assertCheckStatus(resp, "PASS");
+        assertLatestResultContains(id, "\"slaFresh\":true");
+        assertLatestResultContains(id, "\"collectionStale\":false");
+    }
+
+    /**
+     * 分数 interval：0.5 hour = 30 分钟。catalog 40 分钟前采集 → 超期 FAIL
+     * （验证分数 amount 真实换算而非恒 0——修复前 0 ms 同样判 stale，但语义边界不可区分）。
+     */
+    @Test
+    public void testCheckContractSlaFractionalHourStale() {
+        String tableId = saveExternalTable("EXT_SLA_FRAC_HOUR_STALE");
+        long fortyMinutesAgo = System.currentTimeMillis() - 40L * 60L * 1000L;
+        saveCatalog(tableId, fortyMinutesAgo, null);
+
+        String id = saveContract("c-sla-frac-hour-stale", "ACTIVE", tableId, null,
+                "{\"refreshFrequency\":{\"interval\":0.5,\"unit\":\"hour\"}}");
+        GraphQLResponseBean resp = check(id);
+        assertFalse(resp.hasError(), "check should not error: " + resp);
+        assertCheckStatus(resp, "FAIL");
+        assertLatestResultContains(id, "\"slaFresh\":false");
+        assertLatestResultContains(id, "\"collectionStale\":true");
+    }
+
+    /**
+     * 分数 interval + week 单位：0.5 week = 3.5 day = 302_400_000 ms。catalog 2 天前采集 → 未过期 PASS
+     * （修复前 (long)0.5*7=0 → 0 ms → 恒 stale → FAIL，week 分支分数同样被截断）。
+     */
+    @Test
+    public void testCheckContractSlaFractionalWeekFresh() {
+        String tableId = saveExternalTable("EXT_SLA_FRAC_WEEK");
+        long twoDaysAgo = System.currentTimeMillis() - 2L * 24L * 60L * 60L * 1000L;
+        saveCatalog(tableId, twoDaysAgo, null);
+
+        String id = saveContract("c-sla-frac-week", "ACTIVE", tableId, null,
+                "{\"refreshFrequency\":{\"interval\":0.5,\"unit\":\"week\"}}");
+        GraphQLResponseBean resp = check(id);
+        assertFalse(resp.hasError(), "check should not error: " + resp);
+        assertCheckStatus(resp, "PASS");
+        assertLatestResultContains(id, "\"slaFresh\":true");
+        assertLatestResultContains(id, "\"collectionStale\":false");
+    }
+
+    // ===== AR-02（plan 2026-08-14-0707-2）：非数字 SLA amount 映射 ErrorCode，不逃逸 NFE =====
+
+    /**
+     * 非数字 amount（interval:"oops"）→ 显式 ERR_CONTRACT_SLA_INVALID（带 contractId + 错误值）
+     * （修复前 catch 仅捕 ClassCastException，Double.parseDouble("oops") 抛 NumberFormatException 逃逸出 check）。
+     */
+    @Test
+    public void testCheckContractSlaNonNumericAmountFailsLoud() {
+        String tableId = saveExternalTable("EXT_SLA_NON_NUMERIC");
+        saveCatalog(tableId, System.currentTimeMillis(), null);
+
+        String id = saveContract("c-sla-non-numeric", "ACTIVE", tableId, null,
+                "{\"refreshFrequency\":{\"interval\":\"oops\",\"unit\":\"min\"}}");
+        GraphQLResponseBean resp = check(id);
+        assertTrue(resp.hasError(),
+                "non-numeric sla amount must fail loudly (no NumberFormatException escape): " + resp);
+        String errorCode = resp.getErrorCode();
+        assertNotNull(errorCode, "error must carry an error code: " + resp);
+        assertTrue(errorCode.contains("nop.err.metadata.contract-sla-invalid"),
+                "non-numeric amount must map ERR_CONTRACT_SLA_INVALID, got: " + errorCode);
+    }
+
     @Test
     public void testCheckContractQualityPassSlaStaleFail() {
         String ruleId = saveQualityRule("qr-mix-1");

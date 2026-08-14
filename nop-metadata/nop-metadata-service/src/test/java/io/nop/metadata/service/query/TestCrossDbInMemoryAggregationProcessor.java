@@ -162,6 +162,58 @@ public class TestCrossDbInMemoryAggregationProcessor {
         assertEquals(2L, result.get(0).get("VAL"));
     }
 
+    // ===== AR-03（plan 2026-08-14-0707-2）：group-key 控制字符碰撞对抗测试 =====
+
+    /**
+     * 分隔符碰撞：维度值 ("a","\u0001b") 与 ("a\u0001","b") 在旧 \u0001 拼接方案下拼出相同 String key
+     * → 行被错误合并为 1 组。结构性 key（List<Object>）按元素级 equals 区分 → 2 组。
+     */
+    @Test
+    public void testMemoryGroupByControlCharDelimiterNoCollision() {
+        List<AggregationContext.CrossDbMeasureSpec> measures = new ArrayList<>();
+        measures.add(new AggregationContext.CrossDbMeasureSpec("AMT", "sum", "amount", "left"));
+        List<AggregationContext.CrossDbDimensionSpec> dims = new ArrayList<>();
+        dims.add(new AggregationContext.CrossDbDimensionSpec("D1", "dim1", "left"));
+        dims.add(new AggregationContext.CrossDbDimensionSpec("D2", "dim2", "left"));
+
+        List<Map<String, Object>> rows = new ArrayList<>();
+        rows.add(mapOf3("dim1", "a", "dim2", "\u0001b", "amount", 10));
+        rows.add(mapOf3("dim1", "a\u0001", "dim2", "b", "amount", 20));
+
+        List<Map<String, Object>> result = AggregationHelper.memoryGroupBy(rows, measures, dims);
+
+        assertEquals(2, result.size(),
+                "rows with dimension values that collide under \\u0001 delimiter must form 2 distinct groups, got: " + result);
+        // 各组 amount 独立聚合（未被错误合并）：10 与 20
+        java.util.Set<Integer> amounts = new java.util.LinkedHashSet<>();
+        for (Map<String, Object> g : result) {
+            amounts.add(((Number) g.get("AMT")).intValue());
+        }
+        assertTrue(amounts.contains(10) && amounts.contains(20),
+                "groups must keep independent sums {10,20}, got: " + amounts);
+    }
+
+    /**
+     * null 哨兵碰撞：null 与字面量 "\u0000" 在旧方案下都映射为 "\u0000" sentinel → 合并为 1 组。
+     * 结构性 key 中 null 元素与 "\u0000" String 元素 equals 返回 false → 2 组。
+     */
+    @Test
+    public void testMemoryGroupByNullVsLiteralNulCharNoCollision() {
+        List<AggregationContext.CrossDbMeasureSpec> measures = new ArrayList<>();
+        measures.add(new AggregationContext.CrossDbMeasureSpec("AMT", "sum", "amount", "left"));
+        List<AggregationContext.CrossDbDimensionSpec> dims = new ArrayList<>();
+        dims.add(new AggregationContext.CrossDbDimensionSpec("D1", "dim1", "left"));
+
+        List<Map<String, Object>> rows = new ArrayList<>();
+        rows.add(mapOf("dim1", null, "amount", 10));
+        rows.add(mapOf("dim1", "\u0000", "amount", 20));
+
+        List<Map<String, Object>> result = AggregationHelper.memoryGroupBy(rows, measures, dims);
+
+        assertEquals(2, result.size(),
+                "null and literal \"\\u0000\" must form 2 distinct groups, got: " + result);
+    }
+
     @Test
     public void testTruncateCrossDbWithNullLimitOffset() {
         List<Map<String, Object>> items = new ArrayList<>();
@@ -316,6 +368,14 @@ public class TestCrossDbInMemoryAggregationProcessor {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put(k1, v1);
         m.put(k2, v2);
+        return m;
+    }
+
+    private static Map<String, Object> mapOf3(String k1, Object v1, String k2, Object v2, String k3, Object v3) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put(k1, v1);
+        m.put(k2, v2);
+        m.put(k3, v3);
         return m;
     }
 }

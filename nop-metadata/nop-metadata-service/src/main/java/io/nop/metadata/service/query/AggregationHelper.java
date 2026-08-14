@@ -791,21 +791,21 @@ public class AggregationHelper {
     public static List<Map<String, Object>> memoryGroupBy(List<Map<String, Object>> rows,
                                                            List<AggregationContext.CrossDbMeasureSpec> measures,
                                                            List<AggregationContext.CrossDbDimensionSpec> dims) {
-        LinkedHashMap<String, Map<String, Object>> groupDims = new LinkedHashMap<>();
-        LinkedHashMap<String, AggregationContext.MemAggAccumulator[]> groupAccs = new LinkedHashMap<>();
+        // AR-03（plan 2026-08-14-0707-2）：用结构性 key（值级 equals/hashCode 的 List<Object>）替换分隔符
+        // 拼接 String——消除 "\u0001" 连接符 / "\u0000" null 哨兵导致的碰撞：
+        //   ("a","\u0001b") 与 ("a\u0001","b") 拼出相同 String key → 行被错误合并；
+        //   null 与字面量 "\u0000" 碰撞。List 元素级 equals/hashCode 天然区分这些值。
+        LinkedHashMap<List<Object>, Map<String, Object>> groupDims = new LinkedHashMap<>();
+        LinkedHashMap<List<Object>, AggregationContext.MemAggAccumulator[]> groupAccs = new LinkedHashMap<>();
 
         for (Map<String, Object> row : rows) {
-            StringBuilder keyBuilder = new StringBuilder();
             Object[] dimValues = new Object[dims.size()];
+            List<Object> groupKey = new ArrayList<>(dims.size());
             for (int i = 0; i < dims.size(); i++) {
                 Object v = getCaseInsensitiveObj(row, dims.get(i).lookupKey);
                 dimValues[i] = v;
-                if (i > 0) {
-                    keyBuilder.append('\u0001');
-                }
-                keyBuilder.append(v == null ? "\u0000" : String.valueOf(v));
+                groupKey.add(v);
             }
-            String groupKey = keyBuilder.toString();
 
             Map<String, Object> gRow = groupDims.get(groupKey);
             AggregationContext.MemAggAccumulator[] accs = groupAccs.get(groupKey);
@@ -825,7 +825,7 @@ public class AggregationHelper {
         }
 
         List<Map<String, Object>> items = new ArrayList<>(groupDims.size());
-        for (Map.Entry<String, Map<String, Object>> e : groupDims.entrySet()) {
+        for (Map.Entry<List<Object>, Map<String, Object>> e : groupDims.entrySet()) {
             Map<String, Object> item = new LinkedHashMap<>(e.getValue());
             AggregationContext.MemAggAccumulator[] accs = groupAccs.get(e.getKey());
             for (int i = 0; i < measures.size(); i++) {

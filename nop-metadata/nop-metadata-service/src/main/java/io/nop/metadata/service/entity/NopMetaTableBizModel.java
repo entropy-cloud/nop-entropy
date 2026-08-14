@@ -225,6 +225,19 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         return result;
     }
 
+    /**
+     * F4（plan 2026-08-14-0707-2）——{@code selection} 参数契约说明：
+     * <p>GraphQL 引擎（{@code ReflectionBizModelBuilder}）会将<b>响应字段选择集</b>（DTO 级，
+     * 如 {@code { tableType items }}）自动注入 {@code selection} 参数——它<b>不是</b>调用方
+     * 显式传入的行列过滤规范。由于本方法返回 {@code List<Map<String,Object>>}（Map 为不透明 JSON，
+     * GraphQL 无法对 Map 行做字段级选择），{@code selection} 在此为<b>显式 no-op</b>：
+     * 行的所有列原样返回，不做基于 selection 的 key 过滤。
+     *
+     * <p>这与 {@link CrudBizModel} 不同——CrudBizModel 的结果是 ORM 实体（有已知字段），
+     * selection 经 {@code fetchResultWithSelection} 驱动实体字段装载。nop-metadata 查询结果为
+     * 不透明 Map（列名为 JDBC/ORM 返回键），无字段级 selection 语义。该 no-op 已显式声明，
+     * 不再"静默接受又丢弃"。若未来需要行列裁剪，应新增显式的 {@code fields} 参数。
+     */
     @BizQuery
     public QueryTableDataResultDTO queryTableData(@Name("metaTableId") String metaTableId,
                                                    @Optional @Name("filter") TreeBean filter,
@@ -251,6 +264,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         return result;
     }
 
+    /** F4：{@code selection} 同 {@link #queryTableData} 的显式 no-op 契约说明（不透明 Map 结果，不做行级 key 过滤）。 */
     @BizQuery
     public QueryJoinDataResultDTO queryJoinData(@Name("metaTableId") String metaTableId,
                                                   @Name("joinId") String joinId,
@@ -276,6 +290,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         return result;
     }
 
+    /** F4：{@code selection} 同 {@link #queryTableData} 的显式 no-op 契约说明（不透明 Map 结果，不做行级 key 过滤）。 */
     @BizQuery
     public AggregationResultDTO queryAggregation(@Name("metaTableId") String metaTableId,
                                                   @Name("measures") List<String> measures,

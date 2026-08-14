@@ -2,6 +2,7 @@ package io.nop.metadata.service;
 
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.OptionalBoolean;
+import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.graphql.GraphQLRequestBean;
@@ -16,7 +17,10 @@ import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaModule;
+import io.nop.metadata.dao.entity.NopMetaTableDimension;
+import io.nop.metadata.dao.entity.NopMetaTableMeasure;
 import io.nop.metadata.biz.INopMetaTableBiz;
+import io.nop.metadata.api.dto.AggregationResultDTO;
 import io.nop.metadata.api.dto.QueryTableDataResultDTO;
 import io.nop.metadata.service.entity.NopMetaTableBizModel;
 import io.nop.metadata.dao.entity.NopMetaTable;
@@ -123,6 +127,89 @@ public class TestNopMetaTableQueryBizModel extends JunitBaseTestCase {
         assertNotNull(row0, "row with id=1 must exist");
         assertEquals(10, toInt(row0.get("AMOUNT")), "amount must match seeded data");
         assertEquals("aaa", String.valueOf(row0.get("NAME")), "name must match seeded data");
+    }
+
+    // ===== F4（plan 2026-08-14-0707-2）：selection 参数契约——显式 no-op（不再静默接受又丢弃）=====
+
+    /**
+     * F4：GraphQL 引擎会把<b>响应字段选择集</b>（DTO 级）自动注入 selection 参数。
+     * 由于结果为不透明 {@code List<Map<String,Object>>}（Map 无字段级 GraphQL 选择语义），
+     * selection 是<b>显式 no-op</b>——所有列原样返回，不做基于 selection 的行级 key 过滤。
+     *
+     * <p>本测试验证：传非 null selection（模拟 GraphQL 自动注入的 DTO 级选择集
+     * {@code { tableType items }}）时，行内所有列原样返回（未被静默清空/过滤）。
+     * 这钉死 no-op 契约：selection 参数不再"接受即丢弃"——其 no-op 地位已被显式声明与测试。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testQueryTableDataSelectionIsExplicitNoOp() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_q_sel;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE ext_sel (id INT NOT NULL, amount INT, name VARCHAR(20))",
+                "INSERT INTO ext_sel VALUES (1, 10, 'aaa')");
+        String tableId = prepareExternalTable(dbUrl, "qs_q_sel", "EXT_SEL");
+
+        // 模拟 GraphQL 引擎自动注入的 DTO 级响应选择集（含 tableType/items 等 DTO 字段名）
+        FieldSelectionBean selection = FieldSelectionBean.fromProp("tableType", "items");
+        QueryTableDataResultDTO result = nopMetaTableBizModel.queryTableData(tableId, null, null, null, selection, svcCtx);
+        assertEquals("external", result.getTableType());
+        List<Map<String, Object>> items = result.getItems();
+        assertNotNull(items, "items must not be null");
+        assertFalse(items.isEmpty(), "must return the seeded row");
+        Map<String, Object> row = items.get(0);
+        // no-op 契约：DTO 级 selection 不裁剪行内列——所有列原样返回（非空行 {}）
+        assertTrue(containsKeyIgnoreCase(row, "ID"), "id must be retained (selection is no-op for Map rows)");
+        assertTrue(containsKeyIgnoreCase(row, "AMOUNT"), "amount must be retained (selection is no-op for Map rows)");
+        assertTrue(containsKeyIgnoreCase(row, "NAME"), "name must be retained (selection is no-op for Map rows)");
+    }
+
+    /**
+     * F4 回归：queryTableData 传 null selection → 所有列原样返回。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testQueryTableDataNullSelectionKeepsAllColumns() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_q_sel_null;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE ext_sel_n (id INT NOT NULL, amount INT)",
+                "INSERT INTO ext_sel_n VALUES (1, 10)");
+        String tableId = prepareExternalTable(dbUrl, "qs_q_sel_null", "EXT_SEL_N");
+
+        QueryTableDataResultDTO result = nopMetaTableBizModel.queryTableData(tableId, null, null, null, null, svcCtx);
+        List<Map<String, Object>> items = result.getItems();
+        Map<String, Object> row = items.get(0);
+        assertTrue(containsKeyIgnoreCase(row, "ID"), "id must be present with null selection");
+        assertTrue(containsKeyIgnoreCase(row, "AMOUNT"), "amount must be present with null selection");
+    }
+
+    /**
+     * F4：queryAggregation 传非 null selection → 结果行所有字段原样返回（同 queryTableData 的 no-op 契约，
+     * 验证三方法处理一致）。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testQueryAggregationSelectionIsExplicitNoOp() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_q_sel_agg;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE EXT_SEL_AGG (CATEGORY VARCHAR(10), AMOUNT INT)",
+                "INSERT INTO EXT_SEL_AGG VALUES ('A', 10)",
+                "INSERT INTO EXT_SEL_AGG VALUES ('A', 20)");
+        String tableId = prepareExternalTable(dbUrl, "qs_q_sel_agg", "EXT_SEL_AGG");
+
+        createMeasureForTable(tableId, "total", "AMOUNT", "sum");
+        createDimensionForTable(tableId, "cat", "CATEGORY", "categorical");
+
+        // selection 非 null（模拟 GraphQL 自动注入），no-op：dimension 与 measure 字段均原样返回
+        FieldSelectionBean selection = FieldSelectionBean.fromProp("items");
+        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(
+                tableId,
+                java.util.Arrays.asList("total"), java.util.Arrays.asList("cat"),
+                null, null, null, null, null, null, selection, svcCtx);
+        List<Map<String, Object>> items = result.getItems();
+        assertNotNull(items, "items must not be null");
+        assertFalse(items.isEmpty(), "aggregation must return the group");
+        Map<String, Object> row = items.get(0);
+        assertTrue(containsKeyIgnoreCase(row, "CAT"),
+                "dimension cat must be retained (selection is no-op): " + row.keySet());
+        assertTrue(containsKeyIgnoreCase(row, "TOTAL"),
+                "measure total must be retained (selection is no-op): " + row.keySet());
     }
 
     /** external 表 + filter(amount > 15)：直接调 BizModel 传 TreeBean filter，验证 WHERE 翻译正确。 */
@@ -661,5 +748,39 @@ public class TestNopMetaTableQueryBizModel extends JunitBaseTestCase {
             return 0;
         }
         return ((Number) v).intValue();
+    }
+
+    private static boolean containsKeyIgnoreCase(Map<String, Object> row, String key) {
+        if (row == null || key == null) {
+            return false;
+        }
+        for (String k : row.keySet()) {
+            if (k != null && k.equalsIgnoreCase(key)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void createMeasureForTable(String tableId, String name, String entityFieldId, String aggFunc) {
+        IEntityDao<NopMetaTableMeasure> dao = daoProvider.daoFor(NopMetaTableMeasure.class);
+        NopMetaTableMeasure m = dao.newEntity();
+        m.setMetaTableId(tableId);
+        m.setMeasureName(name);
+        m.setEntityFieldId(entityFieldId);
+        m.setAggFunc(aggFunc);
+        m.setVersion(1L);
+        dao.saveEntity(m);
+    }
+
+    private void createDimensionForTable(String tableId, String name, String entityFieldId, String dimensionType) {
+        IEntityDao<NopMetaTableDimension> dao = daoProvider.daoFor(NopMetaTableDimension.class);
+        NopMetaTableDimension d = dao.newEntity();
+        d.setMetaTableId(tableId);
+        d.setDimensionName(name);
+        d.setEntityFieldId(entityFieldId);
+        d.setDimensionType(dimensionType);
+        d.setVersion(1L);
+        dao.saveEntity(d);
     }
 }
