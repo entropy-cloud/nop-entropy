@@ -20,6 +20,10 @@
  *
  *   i.e. "catch 后既不 rethrow 也不附加 ErrorCode 传播" = silent swallow.
  *
+ *   Catch-clause detection runs on a comment/string-masked copy of the source
+ *   (maskCommentsAndStrings): `catch (` tokens appearing only inside javadoc /
+ *   block comments are not real catch blocks and must not be scanned.
+ *
  *   This is the semantic superset of the existing ast-grep rules:
  *     - java-lint-empty-catch.yml  (empty catch body)
  *     - java-lint-getmessage-only.yml (catch only e.getMessage())
@@ -105,6 +109,90 @@ function walkJavaFiles(dir, results) {
 }
 
 /**
+ * Return a same-length, same-line-structure mask of the source where block/line
+ * comment bodies and string/char literal contents are replaced with spaces
+ * (newlines preserved). Feeding this mask into catch-clause detection and brace
+ * matching prevents false positives from tokens that appear only inside javadoc
+ * or block comments — e.g. a javadoc line like `catch (SQLException) ...` with a
+ * following `{@code 90015}` span was previously mis-detected as a real catch
+ * block (MetaTableProfiler.java:223 false positive, plan 2026-08-14-1448-2).
+ */
+function maskCommentsAndStrings(text) {
+    const chars = text.split('');
+    let state = 'code';
+    let i = 0;
+    const len = text.length;
+    while (i < len) {
+        const ch = text[i];
+        const next = i + 1 < len ? text[i + 1] : '';
+        if (state === 'code') {
+            if (ch === '/' && next === '/') {
+                state = 'lineComment';
+                chars[i] = ' ';
+                chars[i + 1] = ' ';
+                i += 2;
+            } else if (ch === '/' && next === '*') {
+                state = 'blockComment';
+                chars[i] = ' ';
+                chars[i + 1] = ' ';
+                i += 2;
+            } else if (ch === '"') {
+                state = 'string';
+                i++; // keep the quote delimiter
+            } else if (ch === "'") {
+                state = 'char';
+                i++; // keep the quote delimiter
+            } else {
+                i++;
+            }
+        } else if (state === 'string') {
+            if (ch === '\\') {
+                chars[i] = ' ';
+                if (i + 1 < len) chars[i + 1] = ' ';
+                i += 2;
+            } else if (ch === '"') {
+                state = 'code';
+                i++; // keep the closing quote delimiter
+            } else {
+                if (ch !== '\n') chars[i] = ' ';
+                i++;
+            }
+        } else if (state === 'char') {
+            if (ch === '\\') {
+                chars[i] = ' ';
+                if (i + 1 < len) chars[i + 1] = ' ';
+                i += 2;
+            } else if (ch === "'") {
+                state = 'code';
+                i++; // keep the closing quote delimiter
+            } else {
+                if (ch !== '\n') chars[i] = ' ';
+                i++;
+            }
+        } else if (state === 'lineComment') {
+            if (ch === '\n') {
+                state = 'code';
+                i++;
+            } else {
+                chars[i] = ' ';
+                i++;
+            }
+        } else if (state === 'blockComment') {
+            if (ch === '*' && next === '/') {
+                chars[i] = ' ';
+                chars[i + 1] = ' ';
+                state = 'code';
+                i += 2;
+            } else {
+                if (ch !== '\n') chars[i] = ' ';
+                i++;
+            }
+        }
+    }
+    return chars.join('');
+}
+
+/**
  * Find all catch clauses in the source and extract their brace spans.
  * Returns array of { catchLine, blockStart, blockEnd (exclusive), content }
  *
@@ -112,6 +200,9 @@ function walkJavaFiles(dir, results) {
  * 1. Find `catch` keyword followed by `(` ... `)` ... `{`
  * 2. From the opening `{`, track brace depth to find matching `}`
  * 3. Extract span content between { and }
+ *
+ * Callers must pass source pre-masked by maskCommentsAndStrings() so that
+ * `catch (` tokens inside javadoc/block comments are not detected.
  */
 function findCatchBlocks(content) {
     const blocks = [];
@@ -338,7 +429,7 @@ function hasGoodSignal(blockContent) {
 function scanFile(filePath) {
     const relPath = relativePath(filePath);
     const content = fs.readFileSync(filePath, 'utf-8');
-    const catchBlocks = findCatchBlocks(content);
+    const catchBlocks = findCatchBlocks(maskCommentsAndStrings(content));
     const hits = [];
     for (const block of catchBlocks) {
         if (!hasGoodSignal(block.content)) {
@@ -407,7 +498,7 @@ function scanAll(scanPaths) {
         const javaFiles = walkJavaFiles(scanPath, []);
         for (const f of javaFiles) {
             const content = fs.readFileSync(f, 'utf-8');
-            const catchBlocks = findCatchBlocks(content);
+            const catchBlocks = findCatchBlocks(maskCommentsAndStrings(content));
             totalCatchScanned += catchBlocks.length;
             const hits = scanFile(f);
             allHits.push(...hits);
@@ -500,14 +591,52 @@ class FixtureStringUrl {
 }
 `;
 
+// (e) `catch (` inside javadoc/block comment must NOT be detected as a catch block
+//     (regression lock for MetaTableProfiler.java:223 false positive, plan 2026-08-14-1448-2)
+const FIXTURE_JAVADOC_CATCH = `
+class FixtureJavadocCatch {
+    /**
+     * AR-06：catch (SQLException) 内区分两类失败：
+     * vendor SQLState {@code 90015}（"wrong data type"）
+     */
+    void example() {
+        try {
+            doSomething();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+}
+`;
+
+// (f) real violating catch after javadoc still detected (masking must not over-strip real code)
+const FIXTURE_JAVADOC_THEN_VIOLATION = `
+class FixtureJavadocThenViolation {
+    /**
+     * catch (SQLException) in javadoc must be ignored.
+     */
+    void example() {
+        try {
+            doSomething();
+        } catch (Exception e) {
+            LOG.warn("ignored", e);
+            return null;
+        }
+    }
+}
+`;
+
 function runFixture() {
     const results = [];
 
     const check = (label, fixture, expectedHit) => {
-        const blocks = findCatchBlocks(fixture);
+        const blocks = findCatchBlocks(maskCommentsAndStrings(fixture));
         for (const b of blocks) {
             const hit = !hasGoodSignal(b.content);
             results.push({ sample: label, expectedHit, actualHit: hit, pass: hit === expectedHit });
+        }
+        if (blocks.length === 0) {
+            results.push({ sample: label, expectedHit, actualHit: null, pass: false });
         }
     };
 
@@ -517,6 +646,8 @@ function runFixture() {
     check('comment-bypass', FIXTURE_COMMENT_BYPASS, true);
     check('throw', FIXTURE_THROW, false);
     check('string-url', FIXTURE_STRING_URL, false);
+    check('javadoc-catch', FIXTURE_JAVADOC_CATCH, false);
+    check('javadoc-then-violation', FIXTURE_JAVADOC_THEN_VIOLATION, true);
 
     const allPass = results.every(r => r.pass);
 
