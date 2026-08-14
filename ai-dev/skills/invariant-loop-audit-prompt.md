@@ -76,7 +76,7 @@ I0 盘点基线 → I1 沉淀不变式(→门禁入CI) → I2 按不变式审计
 |---|---|---|
 | 行为穷举（"每个变更型方法必须做 X"） | JUnit 5 `@ParameterizedTest` + `@MethodSource`（方法表驱动） | "每个 `Collections.synchronizedMap` 字段的迭代点必须在 `synchronized` 块内" |
 | 架构约束（"A 不能依赖 B"，**需先引入 ArchUnit 依赖**） | ArchUnit `@ArchTest`（当前 pom.xml 未配置 ArchUnit，首次使用前需在对应模块 pom.xml 添加 `com.tngtech.archunit:archunit-junit5` 依赖） | "service 层不能直接访问 dao 层的非接口类" |
-| 静态模式扫描（"不应出现 X 模式"） | `ai-dev/tools/*.mjs` Node 脚本 + ast-grep YAML 规则（`tools/rules/` 已有 3 条 Java lint 规则；新规则按同格式追加） | "catch 块不能只有 `e.getMessage()` 而不 rethrow" |
+| 静态模式扫描（"不应出现 X 模式"） | `ai-dev/tools/*.mjs` Node 脚本 + ast-grep YAML 规则（`../tools/rules/` 已有 3 条 Java lint 规则；新规则按同格式追加） | "catch 块不能只有 `e.getMessage()` 而不 rethrow" |
 | ORM/API 模型完整性 | `ai-dev/tools/check-*.mjs` 自定义检查 | "每个 `<unique-key>` 必须有 `constraint` 属性" |
 | 聚合入 CI | `ai-dev/tools/` 下聚合脚本或 Maven enforcer plugin | 所有 invariant check 统一入口 |
 

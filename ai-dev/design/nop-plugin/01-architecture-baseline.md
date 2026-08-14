@@ -202,6 +202,8 @@ context 变化（plugin load/unload、实例 create/destroy、配置变更）
 
 **环处理**：reconcile 迭代到不动点，设最大迭代次数（如 N=plugin 数）；依赖成环时（A 依赖 B、B 依赖 A）在最大迭代后报告 unresolved（不激活环内 plugin），避免死循环。
 
+> **W5 裁决注解（2026-08-14）**：(1) 实例激活状态受**定义级×实例级联合约束**——现有实例同时满足定义级（requires + 定义级 if-property 读全局配置）与实例级（实例合并视图优先、未命中回退全局配置）条件才保持 ACTIVATED，任一不满足即 deactivate；(2) 环处理落地为**静态依赖图环检测**（DFS，环成员强制门控关闭并报告 unresolved）+ **防御性迭代上限**（级联收敛通常 ≤ 2 轮）；(3) reconcile **不自动创建实例**（定义级满足但无实例的定义保持 LOADED）。
+
 **配置变更触发（责任方）**：API 层只暴露显式 `reconcile()`；实现层（manager/support）订阅配置变更并自动触发 `reconcile()`。03 §1.4 示例中"`config.agent.sandbox.enabled=true → 自动 activate`"由实现层的配置订阅保证——不依赖 API 层做任何配置监听（API 层保持零依赖）。
 
 **失败处理与同步语义**：

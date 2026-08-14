@@ -22,7 +22,7 @@
 - W2. 定义级生命周期 + 双轨来源 + 旧插件兼容（loadPlugin/unloadPlugin 分离、isStateMachineAware 双路径、AbstractPlugin 改造）：`done`
 - W3. 实例级生命周期 + effect + activator（createInstance/destroy/activate/deactivate、实例配置域独立 IConfigProvider、IPluginScope 实现、activate 返回值自动注册）：`done`
 - W4. getService 生命周期代理 + per-instance 命令路由（强类型代理、INACTIVE 快速失败、primary 多候选规则、invokeCommand 路由）：`done`
-- W5. coeffect + reconcile（spec 解析、定义级+实例级评估、环检测、配置订阅自动触发）：`planned`
+- W5. coeffect + reconcile（spec 解析、定义级+实例级评估、环检测、配置订阅自动触发）：`done`
 - W6. parent 层级 + HMR（服务查找沿链回退、级联销毁、配置层叠；reloadPlugin 配置快照重建）：`planned`
 - W7. artifact SHA256 校验补齐 + 测试补全 + docs-for-ai 同步（HttpPluginResourceResolver 补校验、quiescence/多实例隔离测试、使用文档）：`todo`
 - ★ **Milestone: nop-plugin 增强落地**（W1-W7 全部 done）：`todo`
@@ -155,7 +155,7 @@
 
 **Deliverables:**
 - coeffect spec 解析（plugin.xdef 的 requires/if-property）
-- `IPluginContextImpl.reconcile()`：定义级（能否派生实例）+ 实例级（基于 instance.getConfig()）；迭代到不动点 + 最大迭代环检测；失败置回并重试（超阈值暂停）
+- `IPluginContext.reconcile()`（由 PluginManagerImpl 实现，不另起独立 Impl 类）：定义级（能否派生实例）+ 实例级（基于 instance 配置域，实时合并视图 + 全局回退）；迭代到不动点 + 静态环检测；失败置回并重试（超阈值暂停）
 - 实现层配置订阅（subscribeChange）自动触发 reconcile（API 层只暴露显式 reconcile()）
 - activatePlugin 对应语义：createInstance 定义级不满足 no-op 返回 null
 

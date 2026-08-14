@@ -73,6 +73,11 @@ config.agent.sandbox.enabled = true
   → SandboxTool 条件满足 → 自动 activate
 ```
 
+> **W5 裁决注解（2026-08-14，消除与 01 §五的冲突）**：本示例中的"自动 activate"以 01 §五 + W5 裁定为准——
+> **reconcile 不自动创建实例**（定义级满足但无实例的定义保持 LOADED；`createInstance` 是显式调用），
+> 依赖链的激活经"显式 `createInstance` + reconcile 级联评估已有实例的激活状态"达成：
+> 父实例激活后 reconcile → 子实例（已创建）自动 activate；父 deactivate 后 reconcile → 子实例自动 deactivate。
+
 **与 build 时 `<ioc:condition>` 的区别**：`<ioc:condition>` 加载时一次性决定 bean 是否存在，不可逆；coeffect 是运行时的，条件变化可反复激活/去激活，定义（LOADED）始终在，只是实例随条件生灭。
 
 ---
