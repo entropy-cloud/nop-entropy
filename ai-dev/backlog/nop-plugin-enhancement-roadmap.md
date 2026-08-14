@@ -20,7 +20,7 @@
 
 - W1. plugin.xdef + API 接口层（plugin 专属 schema + nop-plugin-api 新接口含 IPluginContext，零依赖可编译验证）：`done`
 - W2. 定义级生命周期 + 双轨来源 + 旧插件兼容（loadPlugin/unloadPlugin 分离、isStateMachineAware 双路径、AbstractPlugin 改造）：`done`
-- W3. 实例级生命周期 + effect + activator（createInstance/destroy/activate/deactivate、实例配置域独立 IConfigProvider、IPluginScope 实现、activate 返回值自动注册）：`planned`
+- W3. 实例级生命周期 + effect + activator（createInstance/destroy/activate/deactivate、实例配置域独立 IConfigProvider、IPluginScope 实现、activate 返回值自动注册）：`done`
 - W4. getService 生命周期代理 + per-instance 命令路由（强类型代理、INACTIVE 快速失败、primary 多候选规则、invokeCommand 路由）：`todo`
 - W5. coeffect + reconcile（spec 解析、定义级+实例级评估、环检测、配置订阅自动触发）：`todo`
 - W6. parent 层级 + HMR（服务查找沿链回退、级联销毁、配置层叠；reloadPlugin 配置快照重建）：`todo`
