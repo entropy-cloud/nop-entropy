@@ -82,20 +82,6 @@
         }
 
 
-        private Integer _saveRecordStrategy;
-
-    
-        @PropMeta(propId=6)
-    
-        public Integer getSaveRecordStrategy(){
-            return _saveRecordStrategy;
-        }
-
-        public void setSaveRecordStrategy(Integer value){
-            this._saveRecordStrategy = value;
-        }
-
-
         private Integer _immediateRetryCount;
 
     
@@ -191,20 +177,6 @@
 
         public void setJitterRatio(Double value){
             this._jitterRatio = value;
-        }
-
-
-        private Integer _executionTimeoutSeconds;
-
-    
-        @PropMeta(propId=14)
-    
-        public Integer getExecutionTimeoutSeconds(){
-            return _executionTimeoutSeconds;
-        }
-
-        public void setExecutionTimeoutSeconds(Integer value){
-            this._executionTimeoutSeconds = value;
         }
 
 

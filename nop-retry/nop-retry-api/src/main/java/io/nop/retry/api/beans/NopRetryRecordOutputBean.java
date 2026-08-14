@@ -83,46 +83,6 @@
         }
 
 
-        private String _bizNo;
-
-    
-        @PropMeta(propId=6)
-    
-        public String getBizNo(){
-            return _bizNo;
-        }
-
-        public void setBizNo(String value){
-            this._bizNo = value;
-        }
-
-
-        private Integer _taskType;
-
-    
-        @PropMeta(propId=7)
-    
-        public Integer getTaskType(){
-            return _taskType;
-        }
-
-        public void setTaskType(Integer value){
-            this._taskType = value;
-        }
-
-
-        private String _taskType_label;
-
-    
-        public String getTaskType_label(){
-            return _taskType_label;
-        }
-
-        public void setTaskType_label(String value){
-            this._taskType_label = value;
-        }
-
-
         private Integer _status;
 
     
@@ -230,20 +190,6 @@
 
         public void setRequestPayload(String value){
             this._requestPayload = value;
-        }
-
-
-        private String _contextPayload;
-
-    
-        @PropMeta(propId=15)
-    
-        public String getContextPayload(){
-            return _contextPayload;
-        }
-
-        public void setContextPayload(String value){
-            this._contextPayload = value;
         }
 
 

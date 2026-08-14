@@ -96,20 +96,6 @@
         }
 
 
-        private String _bizNo;
-
-    
-        @PropMeta(propId=7)
-    
-        public String getBizNo(){
-            return _bizNo;
-        }
-
-        public void setBizNo(String value){
-            this._bizNo = value;
-        }
-
-
         private String _executorName;
 
     
