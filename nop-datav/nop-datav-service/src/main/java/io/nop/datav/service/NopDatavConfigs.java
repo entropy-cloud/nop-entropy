@@ -73,4 +73,18 @@ public interface NopDatavConfigs {
     @Description("ChatBI 默认 provider（为空时由 IChatService 实现决定 provider 默认）")
     IConfigReference<String> CFG_DATAV_CHATBI_DEFAULT_PROVIDER = varRef(
             s_loc, "nop.datav.chatbi.default-provider", String.class, "");
+
+    // ===== stuck-task 周期恢复扫描 =====
+
+    @Description("是否启用 stuck-task 周期扫描（false 时不注册周期 job，仅保留重启 @PostConstruct 恢复）")
+    IConfigReference<Boolean> CFG_DATAV_STUCK_SCAN_ENABLED = varRef(
+            s_loc, "nop.datav.stuck-scan.enabled", Boolean.class, true);
+
+    @Description("stuck-task 扫描间隔（分钟），经 TriggerSpec.repeatInterval 固定间隔周期触发")
+    IConfigReference<Integer> CFG_DATAV_STUCK_SCAN_INTERVAL_MINUTES = varRef(
+            s_loc, "nop.datav.stuck-scan.interval-minutes", Integer.class, 10);
+
+    @Description("stuck 判定阈值（分钟）。交付按 startTime、导出按 createTime 判定；仅标记超过阈值的非终态记录为 FAILED（保守高值防误杀在途记录）")
+    IConfigReference<Integer> CFG_DATAV_STUCK_SCAN_TIMEOUT_MINUTES = varRef(
+            s_loc, "nop.datav.stuck-scan.timeout-minutes", Integer.class, 60);
 }

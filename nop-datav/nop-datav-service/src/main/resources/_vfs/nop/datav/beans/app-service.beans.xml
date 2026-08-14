@@ -39,6 +39,15 @@
     <bean id="nopDatavReportDeliveryRecovery"
           class="io.nop.datav.service.report.NopDatavReportDeliveryRecovery"/>
 
+    <!-- stuck-task 周期恢复扫描器（普通 IoC bean）：@PostConstruct 注册固定间隔 job（默认 10 min），
+         委托两类 recovery 的带阈值 scanStuck(timeoutMinutes)（交付按 startTime、导出按 createTime）。
+         关闭仅进程重启才能清理 stuck 非终态记录的 gap（worker 线程因 JVM Error 死亡场景）。
+         IJobScheduler 经 @Inject @Nullable 注入：宿主未注册调度器时 INFO 跳过（不抛崩）。
+         配置：nop.datav.stuck-scan.enabled / interval-minutes / timeout-minutes（NopDatavConfigs）。
+         重启 @PostConstruct 全量恢复路径（两个 recovery bean 的 init）不受影响。 -->
+    <bean id="nopDatavStuckTaskScanner"
+          class="io.nop.datav.service.recovery.NopDatavStuckTaskScanner" ioc:default="true"/>
+
     <!-- ==================== D5-2 轻量告警 ==================== -->
 
     <!-- 告警评估器（普通 bean）：取数（PanelDataBinder）→ 聚合（AlertAggregator）→ 比较

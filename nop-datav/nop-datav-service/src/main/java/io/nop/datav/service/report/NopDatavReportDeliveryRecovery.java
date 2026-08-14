@@ -27,14 +27,20 @@ import java.util.List;
  * <p>启动时（{@link PostConstruct}）查询前先经 {@link IJdbcTemplate#existsTable} 判定表是否已建，
  * 避免在测试环境 schema 尚未建表阶段（容器 init 早于建表）误报。方法幂等。</p>
  *
- * <p><b>职责分离</b>：本 bean 只负责清理 stale running 交付记录；cron job 重注册由独立
- * {@link NopDatavReportScheduler} 负责（镜像 {@code NopDatavExportTaskRecovery} 独立于 BizModel 的模式）。</p>
+ * <p><b>职责分离</b>：本 bean 负责 stale running 交付记录的两类清理——重启恢复
+ * （{@link #recoverInterruptedDeliveries()}，无阈值全量）与周期 stuck 扫描
+ * （{@link #scanStuck(int)}，带时间阈值，由 {@code NopDatavStuckTaskScanner} 周期触发）；
+ * cron job 重注册由独立 {@link NopDatavReportScheduler} 负责（镜像
+ * {@code NopDatavExportTaskRecovery} 独立于 BizModel 的模式）。</p>
  */
 public class NopDatavReportDeliveryRecovery {
 
     private static final Logger LOG = LoggerFactory.getLogger(NopDatavReportDeliveryRecovery.class);
 
     public static final String RESTART_REASON = "interrupted by process restart";
+
+    /** stuck 扫描标记 reason 前缀（完整 reason 为 {@code stuck beyond timeout threshold (Xm)}） */
+    public static final String STUCK_REASON_PREFIX = "stuck beyond timeout threshold";
 
     private final IDaoProvider daoProvider;
     private final IOrmTemplate ormTemplate;
@@ -74,6 +80,53 @@ public class NopDatavReportDeliveryRecovery {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    /**
+     * 周期 stuck 扫描（与重启恢复正交）：仅标记 status ∈ {pending, running} 且
+     * {@code startTime < now − timeoutMinutes} 的交付记录为 failed
+     * （reason="stuck beyond timeout threshold (Xm)"）。阈值内正常在途记录不动。
+     *
+     * <p>与 {@link #recoverInterruptedDeliveries()} 的区别：后者仅在进程重启时全量清理
+     * （无时间阈值），本方法由 {@code NopDatavStuckTaskScanner} 周期调用且带时间阈值，
+     * 不会误杀阈值内的在途记录（Dim14-01 per-request 误杀裁定的周期版安全前提）。
+     * 幂等：仅影响非终态记录。表不存在时安全跳过（返回 0）。</p>
+     *
+     * @param timeoutMinutes stuck 判定阈值（分钟）
+     * @return 本次被标记为 failed 的记录数
+     */
+    public int scanStuck(int timeoutMinutes) {
+        if (!deliveryTableExists()) {
+            LOG.info("nop.datav.report.stuck-scan.table-not-exists: skip scan (table NOP_DATAV_REPORT_DELIVERY not yet created)");
+            return 0;
+        }
+        Timestamp cutoff = new Timestamp(System.currentTimeMillis() - timeoutMinutes * 60_000L);
+        return ormTemplate.runInNewSession(session -> doScanStuck(session, cutoff, timeoutMinutes));
+    }
+
+    private int doScanStuck(IOrmSession session, Timestamp cutoff, int timeoutMinutes) {
+        IEntityDao<NopDatavReportDelivery> dao = daoProvider.daoFor(NopDatavReportDelivery.class);
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.in("status", Arrays.asList(
+                NopDatavReportDeliveryStatus.PENDING, NopDatavReportDeliveryStatus.RUNNING)));
+        query.addFilter(FilterBeans.lt("startTime", cutoff));
+        @SuppressWarnings("unchecked")
+        List<NopDatavReportDelivery> stale = (List<NopDatavReportDelivery>) dao.findAllByQuery(query);
+        if (stale.isEmpty()) {
+            return 0;
+        }
+        Timestamp now = new Timestamp(System.currentTimeMillis());
+        String reason = STUCK_REASON_PREFIX + " (" + timeoutMinutes + "m)";
+        for (NopDatavReportDelivery delivery : stale) {
+            delivery.setStatus(NopDatavReportDeliveryStatus.FAILED);
+            delivery.setErrorMsg(reason);
+            delivery.setEndTime(now);
+            delivery.setUpdatedBy("system");
+            delivery.setUpdateTime(now);
+            dao.updateEntityDirectly(delivery);
+        }
+        LOG.info("nop.datav.report.stuck-scan-marked:count={} timeoutMinutes={}", stale.size(), timeoutMinutes);
+        return stale.size();
     }
 
     private Void doRecover(IOrmSession session) {

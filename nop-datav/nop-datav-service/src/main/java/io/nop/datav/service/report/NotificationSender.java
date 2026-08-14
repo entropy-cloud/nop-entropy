@@ -464,7 +464,7 @@ public class NotificationSender {
         mail.setText(tpl.body);
         mail.setHtml(false);
 
-        // 附件：从 IFileStore 重建 IResource（temp resource 在 executor 写出后即删，
+        // 附件：从 IFileStore 重建 IResource（executor 写出后临时 resource 即被删除，
         // 这里经 fileRecordId 取持久化副本作为附件源）
         if (!StringHelper.isEmpty(delivery.getGeneratedFileRecordId())) {
             IFileRecord fileRecord = fileStore.getFile(delivery.getGeneratedFileRecordId());
