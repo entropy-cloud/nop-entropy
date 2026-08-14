@@ -217,6 +217,14 @@ nop-metadata 严格遵循"无静默跳过"原则（plan 2026-07-19-1250-3 Phase 
 - **syncExternalTables 原子性契约（AR-17，R8.4b）**：`syncExternalTables` 是**部分持久化**语义（非全量原子）——每表 upsert 在 per-key 锁 + `REQUIRES_NEW` 独立事务内独立提交（R6.3 裁定，plan-2026-08-05-2157-3）：scan 中途失败或单表失败时**已同步表保持持久化**（不整体回滚），失败表记入 `errors` 且不中断整批；**scan 级失败**（`structureReader.read` 抛 / 连接中断）异常向上传播（fail-loud），且失败路径**仍发布**变更事件（`NopMetaModelChangedEvent`，changeSource=SYNC）——事件行经 `REQUIRES_NEW` 独立事务提交（沿每表 upsert 先例），不随外层事务回滚消失；事件价值是"sync 尝试发生 + 已部分持久化"的下游通知（dataSource 实体在 sync 期间不变，before/after 快照等同，非实体 diff）
 - ErrorCode 已集中到 `NopMetadataErrors.java`，命名前缀 `nop.err.metadata.*`（plan Phase 2 渐进迁移）
 
+## 安全契约（攻击面闭环）
+
+nop-metadata 对三处安全敏感路径维持 fail-closed / 默认脱敏 / fail-fast 契约：
+
+- **HAVING SQL 注入防御（F1，plan 2026-08-14-0707-1）**：`MetaAggregationExecutor.preprocessHavingArithmetic` 在递归入口对每个 having 叶子**清除**客户端可伪造的 `havingExprResolved` 标记（`TreeBean.createFromJson` 把任意 JSON key 写为 attr，故该标记可被伪造），仅经 `expr` 路径逐 token 白名单校验后重新置位。`AggregationHelper.nameResolverFor` 仅对带合法标记的叶子允许直通拼接；未带标记 / 伪造标记的原始用户 name 一律抛 `ERR_AGGR_HAVING_UNKNOWN_NAME`（fail-fast），禁止原样进入 HAVING SQL。
+- **JDBC URL 主机校验 / SSRF 防御（F2，plan 2026-08-14-0707-1）**：`MetaDataSourceConnectionProcessor.validateJdbcUrl` 对 URL 中**每一**主机（含逗号分隔多主机 `jdbc:mysql://h1,h2/db` 与 MySQL Connector/J `address=(host=...)` / `(host=...,port=...)` 形式）执行 `HostSecurityUtil.isInternalHost`，任一为内网且未加白即抛 `ERR_DATASOURCE_JDBC_URL_BLOCKED`（fail-closed 默认禁内网，覆盖 RFC1918 + link-local + loopback + IP 记法变体）。多主机路径不静默放行内网第二主机。
+- **事件快照脱敏契约（AR-04/AR-07，plan 2026-08-14-0707-1）**：`MetaModelChangedEventPublisher.buildEntitySnapshot(Object entity)` 三分支（ORM / Map / POJO）对同一敏感 key 产出一致脱敏——敏感列（ORM `tagSet=sensitive` 或兜底列名集 `connectionConfig`/`password`/`jdbcUrl` 等）返回固定 `REDACTED_VALUE`（不读取实际值）。POJO 回退分支不再以反射序列化泄露敏感字段（stringify→parse 得到 Map 后路由回 Map 分支脱敏）。
+
 ## 参考文档
 
 - 平台主文档：`docs-for-ai/03-modules/nop-metadata.md`（本文档）

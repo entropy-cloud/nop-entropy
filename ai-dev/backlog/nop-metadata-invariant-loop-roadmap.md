@@ -34,6 +34,7 @@ nop-metadata 已被审计 **5 轮 multi+open + ARM MA1-MA7（21 维）+ MR1-MR8*
 | Cycle 1 / I4. 修复执行（实例 + 类别清扫 + 测试） | 强制类别清扫（修任一 processor 的 catch 必 grep 全部 processor 的 catch）+ test-first + 门禁复跑零命中 | ✅ `done`（plan `2026-08-13-1930-4`，2026-08-13 completed；80 silent-swallow 全 formalize，gate exit 0，1081 tests 全绿；Phase 4 limit L1 按超时机制拆 successor plan） | I3 |
 | Cycle 1 / I5. 全量验证与门禁零命中 | `./mvnw test -pl nop-metadata -am -T 1C` + 门禁零命中 + full-green 记录 | ✅ `done`（plan `2026-08-13-1930-5`，2026-08-14 completed；4 门禁零命中 + 1086 tests 0 failures + 81→0 棘轮全清） | I4 |
 | Cycle 1 / I6. 循环收口与下一轮触发判定 | 统计 + 稳态判定 + 复触发条件登记；closure 独立 fresh session | ✅ `done`（plan `2026-08-13-1930-5`，2026-08-14 completed；稳态暂停 + 候选不变式 watch-only + hard-gate CI 接入 + closure audit 16/16 PASS） | I5 |
+| Cycle 2 / 再审计 remediation. 安全攻击面闭环（F1/F2/AR-04） | F1 HAVING 注入回归 + F2 多主机 SSRF 绕过 + AR-04 POJO 脱敏缺口 | ✅ `done`（plan `2026-08-14-0707-1`，2026-08-14 completed；3 confirmed live defect 全收口，对抗性测试钉死） | 再审计 |
 
 ## Phase Details
 
@@ -77,3 +78,44 @@ flowchart LR
 
 - **授权**：P0/P1 自动修复预授权；ORM/API 模型变更执行前人工确认（改源模型 `*.orm.xml` / `*.api.xml` 而非改 `_gen/` 生成产物）；新门禁入 CI 需 committed 回归测试。
 - **范围独立**：本图专注 nop-metadata 不变式沉淀与防回退，与 `nop-metadata-audit-remediation-roadmap.md`（已完成线性审计-修复）范围不重叠。
+
+## Follow-up Backlog
+
+> 来源：2026-08-14 不变式闭环再审计（multi + open）。P2 项不入独立 remediation plan，仅登记待后续清扫。每项标注源审计路径以保持可追溯。
+
+### 安全硬化族
+- **F5** `jdbcUrl` 危险参数 blocklist 缺类加载参数（`socketFactory`/`statementInterceptors`/PG `sslFactory`/`options=`）。源：`ai-dev/audits/2026-08-14-0707-multi-audit-nop-metadata-invariant-loop.md`（F5）
+- **F6** `redactJdbcUrl` 对含 `@` 的口令截断不全。源：同上（F6）
+- **F7** 空/畸形主机 fail-open（`jdbc:mysql:///db` / `jdbc:mysql://:3306/db`）。源：同上（F7）
+- **F8** `isInternalIpv6Literal` 触发 DNS（违反"不触发 DNS"类契约）。源：同上（F8）
+- **F9** `custom_sql` blocklist 缺 PG `DO`/`WITH`(CTE)/`PG_CATALOG`/`PG_SLEEP`。源：同上（F9）
+
+### ORM 模型族（性能/卫生）
+- **F10** `NopMetaModelChangedEvent` 缺 `entityId` 审计日志索引。源：同上（F10）
+- **F11** 四个软外键列未建索引（`sourceModuleId`/`baseEntityId`/`entityFieldId`×2）。源：同上（F11）
+- **F12** `NopMetaQualityResult.runId` 不在任何索引前导列。源：同上（F12）
+- **F13** `meta/quality-trend-direction` dict 缺兄弟 dict 的"retained for Java constants"注释。源：同上（F13）
+
+### API/文档/代码卫生族
+- **F14** `KeyValueDTO` 死 DTO（零生产引用）。源：同上（F14）
+- **F15** owner-doc IBiz 方法表对 5 个接口不够精确。源：同上（F15）
+- **F16** 死代码 `NopMetaQualityRuleBizModel.resolveDataSourceOrThrow`。源：同上（F16）
+- **F17** `safeProductName` 重复 7×（含 1 死实例）。源：同上（F17）
+- **F18** 空壳测试 `TestNopMetaDtoResults.testDtoJsonRoundTripAllTypes`。源：同上（F18）
+- **F19** `TestAllEntitiesHaveBizModels` 用硬编码实体清单（守卫可被绕过）。源：同上（F19）
+
+### 静默错算/精度族（建议下轮 Cycle 2 / I1 评估"silent-wrong-result"不变式）
+- **AR-05** Profiler `isNumericType` 子串匹配误分类几何/布尔列。源：`ai-dev/audits/2026-08-14-0707-open-audit-nop-metadata-invariant-loop.md`（AR-05）
+- **AR-06** Profiler `probeNumeric` 把连接/权限失败塌缩为"string stats"（MA6.2-002 同族新 site）。源：同上（AR-06）
+- **AR-10** `toBigDecimal` 对 Long>2^53 丢精度 + String 数值静默跳过。源：同上（AR-10）
+
+### lineage/manifest 正确性族
+- **AR-07** `SqlSourceTableExtractor` 按 simple name 去重 → 跨 schema 同名表塌缩。源：同上（AR-07）
+- **AR-08** `SqlSourceTableExtractor` 把 CTE 名报为物理源表（误报）。源：同上（AR-08）
+- **AR-09** `MetaManifestBuilder.addEdge` 无去重 → 重复关系产重复图边。源：同上（AR-09）
+
+### reconciliation / 方言 / 诊断 / 死码族
+- **AR-11** `SqlViewFieldTypeInferrer` 未剥尾 `;` → 误导型推断失败。源：同上（AR-11）
+- **AR-12** `LocalReconciliationProcessor.score` 默认 locale `toLowerCase`（Turkish-I 风险）。源：同上（AR-12）
+- **AR-13** `ReconciliationExecutor.execute` 忽略 candidate `limit` → 无界序列化。源：同上（AR-13）
+- **AR-14** 死码/诊断退化批次（`MetaAggregationExecutor` 死 LOG、`resolveEntityFieldColumn` 死参、`safeProductName` null→误归因、`SqlSelectFieldExtractor` 错误 param、`MetaManifestBuilder` 脆弱 `SimpleDateFormat`）。源：同上（AR-14）
