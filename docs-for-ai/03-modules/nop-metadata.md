@@ -167,6 +167,8 @@ mutation {
 
 **cross-DB 内存聚合 group-key 语义（AR-03，plan 2026-08-14-0707-2）**：`AggregationHelper.memoryGroupBy`（cross-DB 内存聚合）用**结构性 key**（值级 `equals`/`hashCode` 的 `List<Object>`）分组，不再用分隔符（`\u0001`）拼接 String key + null 哨兵（`\u0000`）。这消除了控制字符入参导致的分组碰撞：`("a","\u0001b")` 与 `("a\u0001","b")` 产出两个不同分组；`null` 与字面量 `"\u0000"` 不碰撞。内存路径与 SQL 路径（SQL GROUP BY 天然按值分组）对含控制字符的脏数据产出一致（R8.3 不变式）。
 
+**cross-DB 内存聚合数值精度语义（AR-10，plan 2026-08-14-1133-2）**：`AggregationHelper.toBigDecimal`（`SumAcc`/`AvgAcc` 累加时的统一数值归一）按入参类型分派无损精度——**整数类型**（`Long`/`Integer`/`Short`/`Byte`/`AtomicLong`/`AtomicInteger`）走 `BigDecimal.valueOf(longValue())`（Long > 2^53 经 `doubleValue()` 会丢低位）；**浮点类型**（`Float`/`Double`）保持 `doubleValue()`（小数不截断）；`BigInteger`/`BigDecimal` 原有无损分支不变。**String 数值**（部分 JDBC driver 以 String 交付数值）走 trim 后 `new BigDecimal(s)`（解析失败 → null），不再直接 return null 被 `SumAcc` 的 `if(n!=null)` 静默跳过——String 数值列 SUM/AVG 不再静默为 null。非数值 String 仍返回 null（不抛异常打断聚合）。**Non-Goal**：同级 `toBigDecimal`（`MemoryOrderByComparator`/`MemoryFilterEvaluator`）有相同 `doubleValue()` 精度模式，但属 ORDER BY/WHERE 比较路径（非 SUM/AVG 聚合），Long>2^53 精度丢失在排序/过滤上下文影响较小，留作后续 optimization candidate。
+
 主要 I*Biz 接口（plan 2026-07-19-1250-3 Phase 1 补齐）：
 
 - `INopMetaTableBiz` — profileTable / createSqlTable / previewSqlFields / resolveTableFields / queryTableData / queryJoinData / queryAggregation
