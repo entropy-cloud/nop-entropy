@@ -1,6 +1,6 @@
 # 1 跨 task side-output 线协议实现（HG-01，人工批准 2026-08-14）
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-08-14
 > Source: `ai-dev/backlog/nop-stream-invariant-loop-roadmap.md` Follow-up Backlog「跨 task side-output 线协议结构性变更（人工确认待办 `HG-01`）」
 > Related: `2026-08-12-1217-11`（Cycle 2 / I4 interim fail-fast 落地 `88bc0270c`）；`2026-08-12-1217-8`（Cycle 2 / I1 输出契约族门禁）
@@ -73,29 +73,29 @@
 
 ### Phase 1 - 设计裁决与 owner doc 更新
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/nop-stream/core-design.md` §6.1；`ai-dev/audits/nop-stream-invariants/invariant-catalog.md` #6
 
 - Item Types: `Decision | Proof`
-- [ ] [Decision] 线协议形态裁决并落档：tag 承载方式（envelope 新增 `TYPE_SIDE_OUTPUT_RECORD` + `outputTagId` 字段 vs 复用 STREAM_RECORD 加可选 tagId）、StreamElement 子类型命名与语义、消费端路由点（`processInputGate` 分支）、无消费者 fail-fast 位置与错误码复用（`ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER`）。
-- [ ] [Decision] **valueType 派生规则裁决**（审查 M2）：side-output 元素**忽略 edge 级 valueType**（`RemoteResultPartition.java:162-164` 用 `typeRegistry.getOutputTypeClassName(edgeId)` 标主输出边类型）——一律从内层 record value 派生类名（`record.getValue().getClass().getName()`）；codec 测试补「传入错误 valueType 时不被采用」反例。
-- [ ] [Decision] **生产端通道选择裁决**（审查 M5a/b）：side-output 元素经 `RecordWriter.emitElement(StreamElement)`（广播全部 partition——`RecordWriter.java:216-225`，`emit(StreamRecord)` 只收 StreamRecord 且按 partitioner 路由不可用）→ 语义 = **所有下游 subtask 都收到 side-output 元素**，任一 subtask 未注册消费者即 fail-fast（parallelism>1 时需在 E2E 中显式声明并测试此语义）；或新增 tag 路由 writer 方法（收窄广播面）。裁决必须写明选择与后果。
-- [ ] [Decision] **消费端 map 查找方式裁决**（审查 M5d）：`OutputTag` 构造器 `Guard.notNull(typeInfo)`（`OutputTag.java:63`）——不能 `new OutputTag<>(id, null)` 做查找 key；按 `sideOutputConsumers.keySet()` 遍历 `getId()` 匹配（tag id 等值语义，equals 按 id 判定）。
-- [ ] [Decision] **tagged 元素内层 record copy 裁决**（审查 M5c）：`RecordWriterOutput.collect(StreamRecord)` 有 `record.copy(...)`（:873），BRWO 扇出同一 side-output 元素到多 partition 队列——内层 record 复用别名化问题需 copy（或逐 writer 构造新元素）。
-- [ ] [Decision] **materialization 双写路径裁决**（审查 M4）：纳入或排除，附理由（见 Scope）。
-- [ ] [Proof] 裁决前 live 复核：`StreamElementCodec` 现有分支、`ChannelState` 复用路径（:145/:193 **+ :215-238 逐字段层**）、`RemoteResultPartition`/`RemoteInputChannel` 编解码点（**含 `DataPlaneWireSupport.toWireMap` :38-47**）、`ResultPartition.java:198` materialization 双写门、`processInputGate` 分支面——与本 plan Current Baseline 一致（若漂移先修 baseline）。
-- [ ] [Decision] 门禁同步方案裁决：注册表分类迁移 `fail-fast` → `forward`（带 tagged 说明）附棘轮理由；`TestOutputContractInvariant` 断言翻转范围（RWO/BRWO 两用例 + **`testTimestampedCollectorWrappingRecordWriterOutputFailsFast` 独立用例（:368-384，断言改为转发到 wrapped RWO）** + 注册表 TimestampedCollector disposition 文案修订 + 新增入站路由用例）；E2E 第 4 用例翻转 + 新增送达/无消费者用例。
-- [ ] [Decision] **mjs 分类器适配裁决**（审查 M1）：`check-nop-stream-invariants.mjs:782` `forwardRe = /(?:consumer\.accept\s*\(|\.collect\s*\(|\.accept\s*\()/` 只认 `.collect(`/`.accept(` 形态——新 RWO/BRWO body 若写 `writer.emit(...)` 会在 :790 抛 `unrecognized collect(OutputTag) method body form` crash；裁决 = 扩展 `forwardRe` 识别 emit/emitElement 转发形态 + 同步 self-test 正例夹具（:1503-1580），或锁定实现形态命中现有正则。
-- [ ] [Decision] `catalog #6` 陈述修订稿 + `core-design.md §6.1` 更新稿（**catalog :303-307 现存漂移——仍写「空体 no-op + 过渡 pin 2 条 + E2E 3 用例」，与 live（fail-fast、pin 0、E2E 4 用例）不符——列为已确认待修项**）。
+- [x] [Decision] 线协议形态裁决并落档：tag 承载方式（envelope 新增 `TYPE_SIDE_OUTPUT_RECORD` + `outputTagId` 字段 vs 复用 STREAM_RECORD 加可选 tagId）、StreamElement 子类型命名与语义、消费端路由点（`processInputGate` 分支）、无消费者 fail-fast 位置与错误码复用（`ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER`）。
+- [x] [Decision] **valueType 派生规则裁决**（审查 M2）：side-output 元素**忽略 edge 级 valueType**（`RemoteResultPartition.java:162-164` 用 `typeRegistry.getOutputTypeClassName(edgeId)` 标主输出边类型）——一律从内层 record value 派生类名（`record.getValue().getClass().getName()`）；codec 测试补「传入错误 valueType 时不被采用」反例。
+- [x] [Decision] **生产端通道选择裁决**（审查 M5a/b）：side-output 元素经 `RecordWriter.emitElement(StreamElement)`（广播全部 partition——`RecordWriter.java:216-225`，`emit(StreamRecord)` 只收 StreamRecord 且按 partitioner 路由不可用）→ 语义 = **所有下游 subtask 都收到 side-output 元素**，任一 subtask 未注册消费者即 fail-fast（parallelism>1 时需在 E2E 中显式声明并测试此语义）；或新增 tag 路由 writer 方法（收窄广播面）。裁决必须写明选择与后果。
+- [x] [Decision] **消费端 map 查找方式裁决**（审查 M5d）：`OutputTag` 构造器 `Guard.notNull(typeInfo)`（`OutputTag.java:63`）——不能 `new OutputTag<>(id, null)` 做查找 key；按 `sideOutputConsumers.keySet()` 遍历 `getId()` 匹配（tag id 等值语义，equals 按 id 判定）。
+- [x] [Decision] **tagged 元素内层 record copy 裁决**（审查 M5c）：`RecordWriterOutput.collect(StreamRecord)` 有 `record.copy(...)`（:873），BRWO 扇出同一 side-output 元素到多 partition 队列——内层 record 复用别名化问题需 copy（或逐 writer 构造新元素）。
+- [x] [Decision] **materialization 双写路径裁决**（审查 M4）：纳入或排除，附理由（见 Scope）。
+- [x] [Proof] 裁决前 live 复核：`StreamElementCodec` 现有分支、`ChannelState` 复用路径（:145/:193 **+ :215-238 逐字段层**）、`RemoteResultPartition`/`RemoteInputChannel` 编解码点（**含 `DataPlaneWireSupport.toWireMap` :38-47**）、`ResultPartition.java:198` materialization 双写门、`processInputGate` 分支面——与本 plan Current Baseline 一致（若漂移先修 baseline）。
+- [x] [Decision] 门禁同步方案裁决：注册表分类迁移 `fail-fast` → `forward`（带 tagged 说明）附棘轮理由；`TestOutputContractInvariant` 断言翻转范围（RWO/BRWO 两用例 + **`testTimestampedCollectorWrappingRecordWriterOutputFailsFast` 独立用例（:368-384，断言改为转发到 wrapped RWO）** + 注册表 TimestampedCollector disposition 文案修订 + 新增入站路由用例）；E2E 第 4 用例翻转 + 新增送达/无消费者用例。
+- [x] [Decision] **mjs 分类器适配裁决**（审查 M1）：`check-nop-stream-invariants.mjs:782` `forwardRe = /(?:consumer\.accept\s*\(|\.collect\s*\(|\.accept\s*\()/` 只认 `.collect(`/`.accept(` 形态——新 RWO/BRWO body 若写 `writer.emit(...)` 会在 :790 抛 `unrecognized collect(OutputTag) method body form` crash；裁决 = 扩展 `forwardRe` 识别 emit/emitElement 转发形态 + 同步 self-test 正例夹具（:1503-1580），或锁定实现形态命中现有正则。
+- [x] [Decision] `catalog #6` 陈述修订稿 + `core-design.md §6.1` 更新稿（**catalog :303-307 现存漂移——仍写「空体 no-op + 过渡 pin 2 条 + E2E 3 用例」，与 live（fail-fast、pin 0、E2E 4 用例）不符——列为已确认待修项**）。
 
 Exit Criteria:
 
-- [ ] 九项 Decision 全部落档 design doc / catalog / core-design（含拒绝的替代方案与理由；D8 扩 forwardRe 为唯一现实出路——RWO 无 consumer map、`writer.emit` 不匹配现有正则，「锁定实现形态」选项不可行，须选扩正则）
-- [ ] baseline 复核无漂移（或漂移已修正并留痕；catalog #6 现存漂移列为已确认在 scope 内待修）
-- [ ] 门禁同步方案定稿（注册表迁移 + JUnit 翻转 + mjs 分类器适配 + E2E 新增用例清单）
-- [ ] `ai-dev/design/nop-stream/core-design.md` §6.1 已更新
-- [ ] `ai-dev/audits/nop-stream-invariants/invariant-catalog.md` #6 已更新
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 九项 Decision 全部落档 design doc / catalog / core-design（含拒绝的替代方案与理由；D8 扩 forwardRe 为唯一现实出路——RWO 无 consumer map、`writer.emit` 不匹配现有正则，「锁定实现形态」选项不可行，须选扩正则）
+- [x] baseline 复核无漂移（或漂移已修正并留痕；catalog #6 现存漂移列为已确认在 scope 内待修）
+- [x] 门禁同步方案定稿（注册表迁移 + JUnit 翻转 + mjs 分类器适配 + E2E 新增用例清单）
+- [x] `ai-dev/design/nop-stream/core-design.md` §6.1 已更新
+- [x] `ai-dev/audits/nop-stream-invariants/invariant-catalog.md` #6 已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 线协议编码/解码与元素类型
 
