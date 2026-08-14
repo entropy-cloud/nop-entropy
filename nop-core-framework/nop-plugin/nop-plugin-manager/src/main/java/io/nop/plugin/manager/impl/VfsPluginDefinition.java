@@ -8,6 +8,7 @@ import io.nop.ioc.model.BeansModel;
 import io.nop.plugin.api.IPlugin;
 import io.nop.plugin.api.IPluginCancelToken;
 import io.nop.plugin.api.IPluginInstance;
+import io.nop.plugin.api.InstanceState;
 import io.nop.plugin.api.PluginState;
 import io.nop.plugin.manager.PluginManagerConstants;
 import io.nop.plugin.manager.PluginManagerErrors;
@@ -17,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -35,6 +37,8 @@ import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_INSTANCES_NOT
 import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_INSTANCE_EXISTS;
 import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_INSTANCE_NOT_FOUND;
 import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_INVALID_COEFFECT_SPEC;
+import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_PARENT_CHAIN_CYCLE;
+import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_PARENT_NOT_ACTIVATED;
 
 /**
  * VFS 轨（本地 *.plugin.xml）的定义持有类——manager 侧实现 {@link IPlugin}，
@@ -74,6 +78,13 @@ public class VfsPluginDefinition implements IPlugin {
     private PluginState state = PluginState.UNLOADED;
     private Timestamp lastChangeTime;
     private Timestamp loadTime;
+
+    /**
+     * 资源真实 lastModified（W6 变更检测比对源，load/reload 时由 manager 记录）——
+     * 不得复用 {@link #getLastChangeTime} 时钟语义（DefaultResourceChangeChecker 是
+     * lastModified 严格比对，时钟值必然误报变更）。
+     */
+    private volatile long lastModified;
 
     private volatile Map<String, Object> definitionConfig = new LinkedHashMap<>();
 
@@ -136,6 +147,17 @@ public class VfsPluginDefinition implements IPlugin {
      */
     public void setOnConfigChanged(Runnable onConfigChanged) {
         this.onConfigChanged = onConfigChanged;
+    }
+
+    /**
+     * 资源真实 lastModified（manager 在 load/reload 解析时记录；变更检测比对源）。
+     */
+    public void setLastModified(long lastModified) {
+        this.lastModified = lastModified;
+    }
+
+    public long getLastModified() {
+        return lastModified;
     }
 
     /**
@@ -407,6 +429,11 @@ public class VfsPluginDefinition implements IPlugin {
      * 定义级 spec（requires + 定义级 if-property）不满足 → <b>no-op 返回 null</b>（设计 §五）；
      * 重复 key 检查先于门控——门控关闭但实例已存在（先开后关场景）仍抛
      * {@code ERR_PLUGIN_INSTANCE_EXISTS}，不静默返回 null。
+     *
+     * <p>W6 parent 层级（检查顺序钉死：checkLoaded → 重复 key → 父状态（含环防护）→
+     * 门控 → 创建——错误优先于条件）：父实例存在且 ACTIVATED 才可挂靠（父 DEACTIVATED /
+     * 非本框架实现 / 父链成环均抛明确异常）；父状态检查先于门控（父 DEACTIVATED 是调用错误，
+     * 显式抛出；门控是定义级条件，返回 null）。
      */
     public IPluginInstance createInstance(String instanceKey, Map<String, Object> config, IPluginInstance parent) {
         checkLoaded();
@@ -415,6 +442,7 @@ public class VfsPluginDefinition implements IPlugin {
                     .param(ARG_PLUGIN_ID, pluginId)
                     .param(ARG_INSTANCE_KEY, instanceKey);
         }
+        checkParentChain(instanceKey, parent);
         if (!isDefinitionGateSatisfied()) {
             return null;
         }
@@ -448,6 +476,37 @@ public class VfsPluginDefinition implements IPlugin {
         if (state != PluginState.LOADED) {
             throw new NopException(PluginManagerErrors.ERR_PLUGIN_DEFINITION_NOT_LOADED)
                     .param(ARG_PLUGIN_ID, pluginId);
+        }
+    }
+
+    /**
+     * W6 parent 状态 + 环防护（createInstance 挂靠前置）：父存在且 ACTIVATED（本框架实现）
+     * 才可挂靠——父 DEACTIVATED 或不受支持显式抛 {@code ERR_PLUGIN_PARENT_NOT_ACTIVATED}；
+     * 沿 getParent() 链回溯（(pluginId, instanceKey) 对集合检测）：父链含与<b>本实例相同</b>
+     * 的 (pluginId, instanceKey) 对（自身挂靠，如 reload 重建解析到陈旧同 key 实例）或链上
+     * 出现<b>重复</b>对（链腐化/手工构造的环引用——对象环必然造成对重复）→ 抛
+     * {@code ERR_PLUGIN_PARENT_CHAIN_CYCLE}（No Silent No-Op）。错误带<b>本实例</b> key 参数。
+     */
+    private void checkParentChain(String instanceKey, IPluginInstance parent) {
+        if (parent == null) {
+            return;
+        }
+        if (!(parent instanceof PluginInstanceImpl) || parent.getState() != InstanceState.ACTIVATED) {
+            throw new NopException(PluginManagerErrors.ERR_PLUGIN_PARENT_NOT_ACTIVATED)
+                    .param(ARG_PLUGIN_ID, pluginId)
+                    .param(ARG_INSTANCE_KEY, instanceKey);
+        }
+        String selfPair = pluginId + "#" + instanceKey;
+        Set<String> seen = new HashSet<>();
+        for (IPluginInstance p = parent; p != null; p = p.getParent()) {
+            // 链节点均为本框架实例（头部已校验 instanceof；getPluginId 非 IPluginInstance 契约）
+            PluginInstanceImpl impl = (PluginInstanceImpl) p;
+            String pair = impl.getPluginId() + "#" + impl.getInstanceKey();
+            if (pair.equals(selfPair) || !seen.add(pair)) {
+                throw new NopException(PluginManagerErrors.ERR_PLUGIN_PARENT_CHAIN_CYCLE)
+                        .param(ARG_PLUGIN_ID, pluginId)
+                        .param(ARG_INSTANCE_KEY, instanceKey);
+            }
         }
     }
 

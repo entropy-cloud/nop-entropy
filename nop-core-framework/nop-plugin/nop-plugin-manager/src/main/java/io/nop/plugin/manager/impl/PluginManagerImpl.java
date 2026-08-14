@@ -9,11 +9,15 @@ import io.nop.commons.util.IoHelper;
 import io.nop.core.model.object.DynamicObject;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
+import io.nop.core.resource.component.ResourceComponentManager;
+import io.nop.core.resource.deps.IResourceChangeChecker;
+import io.nop.core.resource.deps.ResourceChangeCheckResult;
 import io.nop.plugin.api.IPlugin;
 import io.nop.plugin.api.IPluginContext;
 import io.nop.plugin.api.IPluginInstance;
 import io.nop.plugin.api.InstanceState;
 import io.nop.plugin.api.NopPluginConstants;
+import io.nop.plugin.api.PluginState;
 import io.nop.plugin.manager.IPluginConfigProvider;
 import io.nop.plugin.manager.IPluginManager;
 import io.nop.plugin.manager.classloader.PluginClassLoader;
@@ -41,6 +45,7 @@ import static io.nop.plugin.manager.PluginManagerErrors.ARG_INSTANCE_KEY;
 import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_DEFINITION_NOT_LOADED;
 import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_INSTANCE_NOT_FOUND;
 import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_INSTANCE_NOT_SUPPORTED;
+import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_RELOAD_NOT_SUPPORTED;
 
 /**
  * 双轨来源（设计文档 01-architecture-baseline.md §二）的统一编排：
@@ -74,6 +79,26 @@ public class PluginManagerImpl implements IPluginManager, IPluginContext {
      * 定义级 if-property 键的全局配置订阅（pluginId → cleanup；SimpleConfigProvider 返回 null）。
      */
     private final Map<String, Runnable> configSubscriptions = new ConcurrentHashMap<>();
+
+    /**
+     * W6 parent 层级：全局父子映射（instance → children 集合）——跨定义 parent 链
+     * （IPluginManager.createInstance 的 parent 可为任意定义实例）必须可观测：
+     * 定义持有类级索引看不见其他定义的实例（会静默降级级联）。createInstance(parent)
+     * 时登记、destroy 时移除（经 PluginInstanceImpl 的 onDestroyed 回调同步清理）。
+     */
+    private final Map<IPluginInstance, Set<IPluginInstance>> parentToChildren = new ConcurrentHashMap<>();
+
+    /**
+     * P2-A HMR 配置快照（reloadPlugin 持有）：reload 流程成功结束后失效（下次 reload 重新采集）；
+     * destroy/unload/load 段失败时保留（调用方可重试 reload）；重建段失败时未处理快照项转 pending。
+     */
+    private volatile ReloadSnapshot lastReloadSnapshot;
+
+    /**
+     * 门控未满足（W5 语义 createInstance 返回 null）暂缓重建的实例快照项（P2-A 快照恢复语义）：
+     * reconcile 触发点重试重建；父实例仍 pending / 已不存在时子项跟随 pending / 显式错误丢弃。
+     */
+    private final List<SnapshotInstance> pendingRebuilds = new ArrayList<>();
 
     private IPluginResourceResolver resourceResolver;
     private IPluginConfigProvider pluginConfigProvider;
@@ -188,6 +213,21 @@ public class PluginManagerImpl implements IPluginManager, IPluginContext {
                     .param(ARG_INSTANCE_KEY, instanceKey);
         }
         IPluginInstance instance = ((VfsPluginDefinition) plugin).createInstance(instanceKey, config, parent);
+        if (instance == null) {
+            // 门控 null（W5 语义 no-op）：无状态变化，不触发 reconcile——
+            // 否则 pending 重试路径（reconcile → retryPendingRebuilds → createInstance → reconcile）
+            // 会形成无限循环（每次重试都置 dirty）
+            return null;
+        }
+        if (instance instanceof PluginInstanceImpl) {
+            // W6 父子登记（manager 级全局映射 + 实例级 children 已在构造时登记）：
+            // onDestroyed 回调保证直接 instance.destroy() 也同步清理全局映射
+            PluginInstanceImpl impl = (PluginInstanceImpl) instance;
+            impl.setOnDestroyed(() -> unregisterParentChild(instance));
+            if (parent != null) {
+                parentToChildren.computeIfAbsent(parent, k -> ConcurrentHashMap.newKeySet()).add(instance);
+            }
+        }
         // 生命周期操作成功路径：create 后自动 reconcile（级联激活依赖本实例的下游定义实例）
         reconcile();
         return instance;
@@ -205,9 +245,58 @@ public class PluginManagerImpl implements IPluginManager, IPluginContext {
                     .param(ARG_PLUGIN_ID, pluginId)
                     .param(ARG_INSTANCE_KEY, instanceKey);
         }
-        instance.destroy();
+        // W6 级联 destroy：沿全局映射递归收集全部后代（含跨定义），先子后父（子容器
+        // parent 链随父销毁而失效，必须子先销毁）。destroySelf 不递归——闭包已含全部后代。
+        List<IPluginInstance> closure = new ArrayList<>();
+        Set<IPluginInstance> visited = new HashSet<>();
+        collectChildrenFirst(instance, closure, visited);
+        for (IPluginInstance inst : closure) {
+            if (inst instanceof PluginInstanceImpl) {
+                ((PluginInstanceImpl) inst).destroySelf();
+            } else {
+                inst.destroy();
+            }
+        }
         // 生命周期操作成功路径：destroy 后自动 reconcile（级联去激活依赖本实例的下游定义实例）
         reconcile();
+    }
+
+    /**
+     * W6 级联闭包收集（先子后父，post-order）：沿全局父子映射递归；visited 防御
+     * 手工构造的环引用。实例级 children 与全局映射同步维护（内容一致），此处以
+     * 全局映射为权威（跨定义可观测性）。
+     */
+    private void collectChildrenFirst(IPluginInstance instance, List<IPluginInstance> order,
+                                      Set<IPluginInstance> visited) {
+        if (!visited.add(instance)) {
+            return;
+        }
+        Set<IPluginInstance> children = parentToChildren.get(instance);
+        if (children != null) {
+            for (IPluginInstance child : children) {
+                collectChildrenFirst(child, order, visited);
+            }
+        }
+        order.add(instance);
+    }
+
+    /**
+     * W6 全局映射清理：实例销毁时从父实例的 children 集移除 + 移除自身作为父的键
+     * （其子实例已随级联销毁完毕）。经 PluginInstanceImpl.onDestroyed 回调调用——
+     * 直接 instance.destroy() 路径也保证同步清理。
+     */
+    private void unregisterParentChild(IPluginInstance instance) {
+        IPluginInstance p = instance.getParent();
+        if (p != null) {
+            Set<IPluginInstance> siblings = parentToChildren.get(p);
+            if (siblings != null) {
+                siblings.remove(instance);
+                if (siblings.isEmpty()) {
+                    parentToChildren.remove(p);
+                }
+            }
+        }
+        parentToChildren.remove(instance);
     }
 
     @Override
@@ -218,6 +307,378 @@ public class PluginManagerImpl implements IPluginManager, IPluginContext {
     @Override
     public void reconcileInstances() {
         reconcile();
+    }
+
+    /**
+     * 显式变更检查入口（W6 变更检测接线，设计 §六）：遍历 VFS 轨 LOADED 定义，用
+     * {@code ResourceComponentManager.checkChanged(resourcePath, lastModified)}（资源真实
+     * lastModified 严格比对）检测 → 有变更调 {@link #reloadPlugin}。框架核心不主动起
+     * 轮询线程（避免隐式生命周期与测试耦合）；宿主应用可定时调用（W7 docs 记录接线方式）。
+     *
+     * <p>检查失败显式报告（日志）不吞；检查无变更 no-op（lastModified 相等不触发 reload）。
+     */
+    public void checkChangedAndReload() {
+        List<VfsPluginDefinition> defs = collectVfsDefinitions();
+        for (VfsPluginDefinition def : defs) {
+            if (def.getState() != PluginState.LOADED) {
+                continue;
+            }
+            ResourceChangeCheckResult result;
+            try {
+                result = ((IResourceChangeChecker) ResourceComponentManager.instance())
+                        .checkChanged(def.getPluginId(), def.getLastModified());
+            } catch (RuntimeException e) {
+                LOG.error("nop.plugin.check-changed-fail:pluginId={}", def.getPluginId(), e);
+                continue;
+            }
+            if (result.isChanged()) {
+                LOG.info("nop.plugin.resource-changed:pluginId={}", def.getPluginId());
+                reloadPlugin(def.getPluginId());
+            }
+        }
+    }
+
+    /**
+     * W6 HMR 热重载（P2-A 快照语义，编排串行化于 reconcileLock——与 reconcile 互斥，
+     * synchronized 可重入，末尾显式 reconcile 不冲突）：快照采集 → destroy 全部
+     * （先子后父）→ unload → load（重解析）→ 按快照重建（父先子后）→ reconcile。
+     *
+     * <p>失败路径（No Silent No-Op）：destroy/unload 段失败 → 定义保留 LOADED（部分实例
+     * 可能已销毁，状态可观测），快照保留可重试；load 段失败 → 定义 UNLOADED，快照保留；
+     * 重建段失败 → 已建实例保留（可观测），未处理快照项转 pending（reconcile 重试）。
+     */
+    @Override
+    public void reloadPlugin(String pluginId) {
+        synchronized (reconcileLock) {
+            PluginHolder holder = plugins.get(pluginId);
+            if (holder == null) {
+                throw new NopException(ERR_PLUGIN_DEFINITION_NOT_LOADED).param(ARG_PLUGIN_ID, pluginId);
+            }
+            if (!(holder.plugin instanceof VfsPluginDefinition)) {
+                // jar 轨（uber jar 不可编辑，设计 §六 HMR 面向本地/开发场景）显式失败
+                throw new NopException(ERR_PLUGIN_RELOAD_NOT_SUPPORTED)
+                        .param(ARG_PLUGIN_ID, pluginId);
+            }            VfsPluginDefinition oldDef = (VfsPluginDefinition) holder.plugin;
+            if (oldDef.getState() != PluginState.LOADED) {
+                throw new NopException(ERR_PLUGIN_DEFINITION_NOT_LOADED).param(ARG_PLUGIN_ID, pluginId);
+            }
+
+            // 1. 快照采集（P2-A：定义级 definitionConfig + 级联闭包实例列表——闭包 = 本定义
+            //    全部实例 + 跨定义后代，先子后父序）；新 reload 取代旧 pending 状态
+            ReloadSnapshot snapshot = collectSnapshot(oldDef);
+            lastReloadSnapshot = snapshot;
+            synchronized (pendingRebuilds) {
+                pendingRebuilds.clear();
+            }
+
+            // 2. destroy 全部（先子后父；失败 → 定义保留 LOADED、快照保留，可重试 reload）
+            for (SnapshotInstance si : snapshot.destroyOrder) {
+                IPluginInstance inst = getInstance(si.pluginId, si.instanceKey);
+                if (inst != null) {
+                    destroyOne(inst);
+                }
+            }
+
+            // 3. unload（实例已清空；失败 → 快照保留）
+            oldDef.unload();
+
+            // 4. load（重解析 plugin.xml → 新定义对象；失败 → 定义 UNLOADED、快照保留、
+            //    从 map 移除（可重新 loadPlugin 恢复），不残留不可重载的陈旧 UNLOADED 定义）
+            VfsPluginDefinition newDef;
+            try {
+                newDef = loadVfsDefinition(pluginId);
+            } catch (RuntimeException e) {
+                plugins.remove(pluginId);
+                unregisterNameIndex(pluginId);
+                unsubscribeGlobalConfig(pluginId);
+                LOG.error("nop.plugin.reload-load-fail:pluginId={}", pluginId, e);
+                throw e;
+            }
+            plugins.remove(pluginId);
+            unregisterNameIndex(pluginId);
+            unsubscribeGlobalConfig(pluginId);
+            // P2-A (a) 定义级快照：取自 step 1 采集的快照（unload 已清空旧定义的 definitionConfig，
+            // 不能在 load 后读旧定义对象）
+            newDef.load(snapshot.definitionConfig);
+            registerNameIndex(newDef);
+            subscribeGlobalConfig(newDef);
+            plugins.put(pluginId, new PluginHolder(newDef, null));
+
+            // 5. 按快照重建（父先子后）：跨定义后代仅当其定义仍 LOADED 时重建（否则显式错误
+            //    记录，不静默丢失）；门控 null（W5 语义）→ pending（reconcile 触发点重试）
+            Map<String, IPluginInstance> rebuilt = new HashMap<>();
+            List<SnapshotInstance> pending = new ArrayList<>();
+            try {
+                for (SnapshotInstance si : snapshot.rebuildOrder) {
+                    RebuildResult result = rebuildOne(si, snapshot, rebuilt);
+                    switch (result.kind) {
+                        case CREATED:
+                            rebuilt.put(pair(si), result.instance);
+                            break;
+                        case GATED:
+                        case PARENT_PENDING:
+                            pending.add(si);
+                            break;
+                        case PARENT_MISSING:
+                            LOG.error(
+                                    "nop.plugin.reload-parent-missing:pluginId={},instanceKey={},parent={}#{}",
+                                    si.pluginId, si.instanceKey, si.parentPluginId, si.parentInstanceKey);
+                            break;
+                        case DEFINITION_UNAVAILABLE:
+                            LOG.error(
+                                    "nop.plugin.reload-definition-unavailable:pluginId={},instanceKey={}（定义未 LOADED，跨定义后代不重建——显式错误，不静默丢失）",
+                                    si.pluginId, si.instanceKey);
+                            break;
+                    }
+                }
+            } catch (RuntimeException e) {
+                // 重建段失败：已建实例保留（可观测），剩余快照项转 pending（reconcile 重试）
+                synchronized (pendingRebuilds) {
+                    pendingRebuilds.addAll(pending);
+                }
+                throw e;
+            }
+            synchronized (pendingRebuilds) {
+                pendingRebuilds.addAll(pending);
+            }
+
+            // 6. reconcile（状态收敛 + pending 重试；reconcileLock 可重入）
+            reconcile();
+        }
+    }
+
+    /**
+     * 最近一次 reload 的 P2-A 快照（失败保留可重试的可观测入口；非接口方法，
+     * 保持 IPluginManager 最小——测试经具体类断言）。
+     */
+    public ReloadSnapshot getLastReloadSnapshot() {
+        return lastReloadSnapshot;
+    }
+
+    /**
+     * 待重建的 pending 快照项数（W6 快照恢复语义可观测入口；非接口方法，测试经具体类断言）。
+     */
+    public int getPendingRebuildCount() {
+        synchronized (pendingRebuilds) {
+            return pendingRebuilds.size();
+        }
+    }
+
+    private void destroyOne(IPluginInstance inst) {
+        if (inst instanceof PluginInstanceImpl) {
+            ((PluginInstanceImpl) inst).destroySelf();
+        } else {
+            inst.destroy();
+        }
+    }
+
+    /**
+     * P2-A 快照采集：级联闭包（先子后父序）+ 定义级 definitionConfig + 闭包成员
+     * (pluginId, instanceKey) 对集合（父引用解析用）。闭包成员必须为本框架实例
+     * （快照需读取原始实例配置，非 IPluginInstance 契约）——否则显式失败。
+     */
+    private ReloadSnapshot collectSnapshot(VfsPluginDefinition def) {
+        List<IPluginInstance> closure = new ArrayList<>();
+        Set<IPluginInstance> visited = new HashSet<>();
+        for (IPluginInstance inst : def.getInstances()) {
+            collectChildrenFirst(inst, closure, visited);
+        }
+        List<SnapshotInstance> destroyOrder = new ArrayList<>(closure.size());
+        Set<String> pairs = new HashSet<>();
+        for (IPluginInstance inst : closure) {
+            if (!(inst instanceof PluginInstanceImpl)) {
+                throw new NopException(ERR_PLUGIN_INSTANCE_NOT_SUPPORTED)
+                        .param(ARG_PLUGIN_ID, def.getPluginId())
+                        .param(ARG_INSTANCE_KEY, inst.getInstanceKey());
+            }
+            PluginInstanceImpl impl = (PluginInstanceImpl) inst;
+            destroyOrder.add(new SnapshotInstance(impl));
+            pairs.add(pair(impl));
+        }
+        return new ReloadSnapshot(def.getDefinitionConfig(), destroyOrder, pairs);
+    }
+
+    /**
+     * 按快照重建单个实例：父引用解析 = 已重建实例（父先子后序，父必先建）→ 快照闭包内
+     * 但未重建（父被门控）→ PARENT_PENDING（子跟随 pending）→ 闭包外 → 现注册表
+     * （未被 destroy 的跨闭包父）→ 不存在 → PARENT_MISSING（显式错误）。
+     */
+    private RebuildResult rebuildOne(SnapshotInstance si, ReloadSnapshot snapshot,
+                                     Map<String, IPluginInstance> rebuilt) {
+        PluginHolder holder = plugins.get(si.pluginId);
+        if (holder == null || !(holder.plugin instanceof VfsPluginDefinition)
+                || ((VfsPluginDefinition) holder.plugin).getState() != PluginState.LOADED) {
+            return RebuildResult.definitionUnavailable();
+        }
+        IPluginInstance parent = null;
+        if (si.parentPluginId != null) {
+            parent = rebuilt.get(pair(si.parentPluginId, si.parentInstanceKey));
+            if (parent == null) {
+                if (snapshot.pairs.contains(pair(si.parentPluginId, si.parentInstanceKey))) {
+                    return RebuildResult.parentPending();
+                }
+                parent = getInstance(si.parentPluginId, si.parentInstanceKey);
+                if (parent == null) {
+                    return RebuildResult.parentMissing();
+                }
+            }
+        }
+        IPluginInstance instance = createInstance(si.pluginId, si.instanceKey, si.config, parent);
+        if (instance == null) {
+            return RebuildResult.gated();
+        }
+        return RebuildResult.created(instance);
+    }
+
+    /**
+     * pending 重试（reconcile 触发点，快照恢复语义）：按父先序重放 pending 项——门控打开
+     * （createInstance 返回实例）→ 移除；仍门控 → 保持；父仍 pending → 跟随保持；父已不存在
+     * （destroy/unload 后不可重建）→ 显式错误记录并丢弃。
+     */
+    private void retryPendingRebuilds() {
+        List<SnapshotInstance> retry;
+        synchronized (pendingRebuilds) {
+            if (pendingRebuilds.isEmpty()) {
+                return;
+            }
+            retry = new ArrayList<>(pendingRebuilds);
+        }
+        for (SnapshotInstance si : retry) {
+            if (si.parentPluginId != null) {
+                IPluginInstance parent = getInstance(si.parentPluginId, si.parentInstanceKey);
+                if (parent == null) {
+                    synchronized (pendingRebuilds) {
+                        if (containsPendingPair(si.parentPluginId, si.parentInstanceKey)) {
+                            continue; // 父仍 pending（门控未开）→ 子跟随等待
+                        }
+                        LOG.error("nop.plugin.reload-pending-drop:pluginId={},instanceKey={},parent={}#{}（父实例已不存在，快照项丢弃）",
+                                si.pluginId, si.instanceKey, si.parentPluginId, si.parentInstanceKey);
+                        pendingRebuilds.remove(si);
+                        continue;
+                    }
+                }
+            }
+            PluginHolder holder = plugins.get(si.pluginId);
+            if (holder == null || !(holder.plugin instanceof VfsPluginDefinition)
+                    || ((VfsPluginDefinition) holder.plugin).getState() != PluginState.LOADED) {
+                synchronized (pendingRebuilds) {
+                    LOG.error("nop.plugin.reload-pending-drop:pluginId={},instanceKey={}（定义未 LOADED，快照项丢弃）",
+                            si.pluginId, si.instanceKey);
+                    pendingRebuilds.remove(si);
+                }
+                continue;
+            }
+            IPluginInstance instance = createInstance(si.pluginId, si.instanceKey, si.config,
+                    si.parentPluginId == null ? null : getInstance(si.parentPluginId, si.parentInstanceKey));
+            if (instance != null) {
+                synchronized (pendingRebuilds) {
+                    pendingRebuilds.remove(si);
+                }
+            }
+        }
+    }
+
+    private boolean containsPendingPair(String pluginId, String instanceKey) {
+        for (SnapshotInstance si : pendingRebuilds) {
+            if (si.pluginId.equals(pluginId) && si.instanceKey.equals(instanceKey)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String pair(PluginInstanceImpl instance) {
+        return pair(instance.getPluginId(), instance.getInstanceKey());
+    }
+
+    private static String pair(String pluginId, String instanceKey) {
+        return pluginId + "#" + instanceKey;
+    }
+
+    private static String pair(SnapshotInstance si) {
+        return pair(si.pluginId, si.instanceKey);
+    }
+
+    /**
+     * P2-A 快照：定义级 definitionConfig + 级联闭包实例列表（destroyOrder 先子后父、
+     * rebuildOrder 父先子后）+ 闭包成员 (pluginId, instanceKey) 对集合。
+     */
+    static class ReloadSnapshot {
+        final Map<String, Object> definitionConfig;
+        final List<SnapshotInstance> destroyOrder;
+        final List<SnapshotInstance> rebuildOrder;
+        final Set<String> pairs;
+
+        ReloadSnapshot(Map<String, Object> definitionConfig, List<SnapshotInstance> destroyOrder,
+                       Set<String> pairs) {
+            this.definitionConfig = definitionConfig;
+            this.destroyOrder = destroyOrder;
+            List<SnapshotInstance> reversed = new ArrayList<>(destroyOrder);
+            Collections.reverse(reversed);
+            this.rebuildOrder = reversed;
+            this.pairs = pairs;
+        }
+    }
+
+    /**
+     * 快照实例项：instanceKey + 原始实例配置（createInstance 传入——重建按原始配置回放，
+     * 非合并视图，避免双层合并）+ parent 以 (pluginId, instanceKey) 对记录（destroy 后
+     * 父对象失效，重建时解析到新实例对象）。
+     */
+    static class SnapshotInstance {
+        final String pluginId;
+        final String instanceKey;
+        final Map<String, Object> config;
+        final String parentPluginId;
+        final String parentInstanceKey;
+
+        SnapshotInstance(PluginInstanceImpl instance) {
+            this.pluginId = instance.getPluginId();
+            this.instanceKey = instance.getInstanceKey();
+            this.config = instance.getRawInstanceConfig();
+            IPluginInstance parent = instance.getParent();
+            if (parent instanceof PluginInstanceImpl) {
+                this.parentPluginId = ((PluginInstanceImpl) parent).getPluginId();
+                this.parentInstanceKey = parent.getInstanceKey();
+            } else {
+                this.parentPluginId = null;
+                this.parentInstanceKey = null;
+            }
+        }
+    }
+
+    private static class RebuildResult {
+        enum Kind {
+            CREATED, GATED, PARENT_PENDING, PARENT_MISSING, DEFINITION_UNAVAILABLE
+        }
+
+        final Kind kind;
+        final IPluginInstance instance;
+
+        private RebuildResult(Kind kind, IPluginInstance instance) {
+            this.kind = kind;
+            this.instance = instance;
+        }
+
+        static RebuildResult created(IPluginInstance instance) {
+            return new RebuildResult(Kind.CREATED, instance);
+        }
+
+        static RebuildResult gated() {
+            return new RebuildResult(Kind.GATED, null);
+        }
+
+        static RebuildResult parentPending() {
+            return new RebuildResult(Kind.PARENT_PENDING, null);
+        }
+
+        static RebuildResult parentMissing() {
+            return new RebuildResult(Kind.PARENT_MISSING, null);
+        }
+
+        static RebuildResult definitionUnavailable() {
+            return new RebuildResult(Kind.DEFINITION_UNAVAILABLE, null);
+        }
     }
 
     /**
@@ -245,6 +706,9 @@ public class PluginManagerImpl implements IPluginManager, IPluginContext {
                 do {
                     reconcileDirty = false;
                     doReconcile();
+                    // W6 pending 重试（快照恢复语义）：门控打开后经 reconcile 触发点重建；
+                    // 重建的 createInstance 经 manager 入口会触发 reconcile（dirty），循环消费
+                    retryPendingRebuilds();
                 } while (reconcileDirty);
             } finally {
                 reconcileInFlight = false;
@@ -412,26 +876,37 @@ public class PluginManagerImpl implements IPluginManager, IPluginContext {
 
     private IPlugin loadPluginFromVfs(String pluginId) {
         return plugins.computeIfAbsent(pluginId, id -> {
-            IResource resource = VirtualFileSystem.instance().getResource(id);
-            if (!resource.exists()) {
-                throw new NopException(ERR_PLUGIN_DEFINITION_NOT_FOUND).param(ARG_PLUGIN_ID, id);
-            }
-            DynamicObject definition;
-            try {
-                definition = (DynamicObject) new DslModelParser(NopPluginConstants.PLUGIN_XDEF_PATH)
-                        .parseFromVirtualPath(id);
-            } catch (NopException e) {
-                throw e.param(ARG_PLUGIN_ID, id);
-            }
-            VfsPluginDefinition plugin = new VfsPluginDefinition(id, definition);
-            // W5 数据流缝：注入评估器回引（查其他定义实例状态 + 读全局配置）与 updateConfig 回调
-            plugin.setCoeffectEvaluator(coeffectEvaluator);
-            plugin.setOnConfigChanged(this::reconcile);
+            VfsPluginDefinition plugin = loadVfsDefinition(id);
             plugin.load(Collections.emptyMap());
             registerNameIndex(plugin);
             subscribeGlobalConfig(plugin);
             return new PluginHolder(plugin, null);
         }).plugin;
+    }
+
+    /**
+     * 解析 plugin.xml 为定义对象（load/reload 共用）：DslModelParser 管线 + W5 评估器回引
+     * + updateConfig 回调 + W6 资源真实 lastModified 记录（变更检测比对源，非 getLastChangeTime
+     * 时钟语义——DefaultResourceChangeChecker 是 lastModified 严格比对）。
+     */
+    private VfsPluginDefinition loadVfsDefinition(String pluginId) {
+        IResource resource = VirtualFileSystem.instance().getResource(pluginId);
+        if (!resource.exists()) {
+            throw new NopException(ERR_PLUGIN_DEFINITION_NOT_FOUND).param(ARG_PLUGIN_ID, pluginId);
+        }
+        DynamicObject definition;
+        try {
+            definition = (DynamicObject) new DslModelParser(NopPluginConstants.PLUGIN_XDEF_PATH)
+                    .parseFromVirtualPath(pluginId);
+        } catch (NopException e) {
+            throw e.param(ARG_PLUGIN_ID, pluginId);
+        }
+        VfsPluginDefinition plugin = new VfsPluginDefinition(pluginId, definition);
+        // W5 数据流缝：注入评估器回引（查其他定义实例状态 + 读全局配置）与 updateConfig 回调
+        plugin.setCoeffectEvaluator(coeffectEvaluator);
+        plugin.setOnConfigChanged(this::reconcile);
+        plugin.setLastModified(resource.lastModified());
+        return plugin;
     }
 
     private void registerNameIndex(VfsPluginDefinition plugin) {

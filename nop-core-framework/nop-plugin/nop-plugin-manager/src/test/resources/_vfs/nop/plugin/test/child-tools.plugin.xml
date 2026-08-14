@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin name="child-tools"
+        x:schema="/nop/schema/plugin/plugin.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <beans>
+        <bean id="config.reader" class="io.nop.plugin.test.ConfigReaderBean">
+            <property name="timeout" value="${agent.timeout}"/>
+            <property name="mode" value="${agent.mode:quiet}"/>
+            <property name="globalValue" value="${test.plugin.global.var}"/>
+            <property name="onlyInstance" value="${agent.only-instance:none}"/>
+        </bean>
+    </beans>
+</plugin>

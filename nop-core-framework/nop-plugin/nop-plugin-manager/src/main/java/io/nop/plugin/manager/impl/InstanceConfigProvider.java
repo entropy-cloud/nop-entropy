@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -113,7 +114,9 @@ public class InstanceConfigProvider implements IConfigProvider {
         }
         for (IConfigChangeListener listener : matched) {
             try {
-                listener.onConfigChange(this, Map.of(varName, oldValue));
+                // 旧值为 null（新键出现/键被移除）合法——Map.of 拒绝 null 值（W6 配置层叠
+                // 传播首键必触发），singletonMap 允许 null 值
+                listener.onConfigChange(this, Collections.singletonMap(varName, oldValue));
             } catch (Exception e) {
                 LOG.error("nop.plugin.config-listener-fail:var={}", varName, e);
             }

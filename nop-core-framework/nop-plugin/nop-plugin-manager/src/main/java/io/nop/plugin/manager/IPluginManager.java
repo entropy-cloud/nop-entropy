@@ -85,4 +85,17 @@ public interface IPluginManager {
      * 实例由 {@link #createInstance}（显式调用）创建。
      */
     void reconcileInstances();
+
+    /**
+     * HMR 热重载（§六，W6 落地）：VFS 轨定义变更 → 快照采集（级联闭包）→ destroy 全部实例 →
+     * unload → load（重解析 plugin.xml，新定义对象）→ 按快照重建（父先建子后建）→ reconcile。
+     *
+     * <p>P2-A 快照语义：快照（定义级 definitionConfig + 级联闭包内全部实例的
+     * (instanceKey, config, parent 对)——parent 以 (pluginId, instanceKey) 对记录，
+     * 重建时解析到新实例对象）由 manager 持有，reload 流程成功结束后失效（下次 reload
+     * 重新采集），失败路径保留（调用方可重试）。定义级 coeffect 门控不满足的实例记录为
+     * pending（reconcile 触发点重试重建，不误判为失败）。jar 轨（uber jar 不可编辑，
+     * 设计 §六 HMR 面向本地/开发场景）显式抛 {@code ERR_PLUGIN_RELOAD_NOT_SUPPORTED}。
+     */
+    void reloadPlugin(String pluginId);
 }

@@ -115,4 +115,41 @@ public interface PluginManagerErrors {
             define("nop.err.plugin.invalid-coeffect-spec",
                     "coeffect spec 格式非法:{pluginId},{specAttr}",
                     io.nop.plugin.api.PluginApiErrors.ARG_PLUGIN_ID, ARG_SPEC_ATTR);
+
+    /**
+     * createInstance(parent) 父实例状态检查（W6）：父存在且 ACTIVATED 才可挂靠——
+     * 父 DEACTIVATED（或非本框架实现的父实例，无法接线 parent 容器）显式失败，
+     * 禁止挂到已停/未知容器（服务沿链回退会抛 ERR_IOC_CONTAINER_NOT_STARTED 硬失败）。
+     */
+    ErrorCode ERR_PLUGIN_PARENT_NOT_ACTIVATED =
+            define("nop.err.plugin.parent-not-activated",
+                    "父实例未激活或不受支持，禁止挂靠:{pluginId},{instanceKey}",
+                    io.nop.plugin.api.PluginApiErrors.ARG_PLUGIN_ID, ARG_INSTANCE_KEY);
+
+    /**
+     * createInstance(parent) 父链成环防护（W6）：沿 getParent() 链回溯到重复实例
+     * （手工构造的环引用）时显式失败，禁止父链成环。
+     */
+    ErrorCode ERR_PLUGIN_PARENT_CHAIN_CYCLE =
+            define("nop.err.plugin.parent-chain-cycle",
+                    "父实例链成环，禁止挂靠:{pluginId},{instanceKey}",
+                    io.nop.plugin.api.PluginApiErrors.ARG_PLUGIN_ID, ARG_INSTANCE_KEY);
+
+    /**
+     * P2-D 显式 deactivate 守卫（W6）：父实例存在 ACTIVATED 子实例时 deactivate() 抛明确异常
+     * （与 unload 守卫同构——先处理子再处理父）；destroy 仍级联（设计 §三(b)）。
+     */
+    ErrorCode ERR_PLUGIN_ACTIVE_CHILDREN_EXIST =
+            define("nop.err.plugin.active-children-exist",
+                    "父实例存在 ACTIVATED 子实例，禁止直接 deactivate:{pluginId},{instanceKey},{instanceKeys}",
+                    io.nop.plugin.api.PluginApiErrors.ARG_PLUGIN_ID, ARG_INSTANCE_KEY, ARG_INSTANCE_KEYS);
+
+    /**
+     * reloadPlugin 对 uber jar 轨显式失败（W6）：设计 §六 HMR 面向本地/开发场景，
+     * 远程 uber jar 不可编辑（与 W4 实例化裁决同构——不支持即显式失败，不静默 no-op）。
+     */
+    ErrorCode ERR_PLUGIN_RELOAD_NOT_SUPPORTED =
+            define("nop.err.plugin.reload-not-supported",
+                    "插件不支持热重载:{pluginId}（uber jar 轨 HMR 为 successor 项）",
+                    io.nop.plugin.api.PluginApiErrors.ARG_PLUGIN_ID);
 }
