@@ -201,14 +201,25 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写>>
-Completed: <<YYYY-MM-DD>>
+Status Note: completed — 首轮独立 closure audit（2026-08-14）NOT_READY_TO_CLOSE 的 3 个阻塞项已全部处置（见下方 Follow-up），第二轮复核通过。
+Completed: 2026-08-14
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<待 closure audit 填写>>
-- Evidence: <<待 closure audit 填写>>
+- Reviewer / Agent: independent closure-audit agent（fresh session，任务号独立）
+- Evidence:
+  - **Phase 1（用户自助 API）— PASS（1 项 FAIL）**：`NopAuthUserBizModel.java` 五个 action 均在（bindMfa:133 / confirmMfa:243 / unbindMfa:293 / generateRecoveryCodes:321 / getMfaStatus:337）；`CFG_AUTH_MFA_BIND_EXPIRE_SECONDS`（NopAuthConfigs.java:110，`nop.auth.mfa.bind-expire-seconds` 默认 300）；BIND_EXPIRED 两分支（NopAuthUserBizModel.java:253-257 未找到/不匹配、:260-262 过期）；恢复码 `salt:hash`（:440-444）与 W5 `LoginServiceImpl.verifyRecoveryCode`（:551-578，`split(":",2)`）逐字兼容，round-trip 测试通过；secret 经 `TOTPAuthenticator.getCipher().encrypt` 落库（:170），W5 `verify` 解密校验 round-trip 通过（TestMfaUserSelfService.testTotpSecretRoundTripW6ProduceW5Consume）；明文边界成立（MfaBindResult/MfaStatusResult 无 secret 字段，getMfaStatus 永不返回 secret）。**FAIL：Phase 1 Exit Criteria 末项"ai-dev/logs/ 对应日期条目已更新"——`ai-dev/logs/2026-08/` 无 2026-08-12/13 条目（最新为 08-11.md），两个 W6 提交（f855297de、0799655a5，2026-08-13）均未含日志更新**。
+  - **Phase 2（管理员重置）— PASS（1 项 FAIL，1 项文字失真）**：`resetUserMfa` 并入 `NopAuthUserBizModel`（:367-388，option b 裁决），清除 setting 全字段 + 删除恢复码；不存在用户显式抛错（:373）；非 admin 运行时角色校验拒绝（requireAdmin :498-509，测试 TestMfaUserSelfService.testNonAdminResetRejected:459 通过）；重置后登录无拦截（testE2eAdminResetRestoresDirectLogin:524）。审计：`@BizAudit` → `AuditServiceImpl` → `NopAuthOpLog`（AuditServiceImpl.java:47-50），机制与既有 resetUserPassword 一致。**文字失真：plan 声称"@Auth 权限门禁 + action-auth.xml 角色限制"，但 live code 中 `resetUserMfa` 无 `@Auth` 注解，且全仓库 action-auth.xml（nop-auth-app / nop-auth-web / test main.action-auth.xml）均无 MFA 条目——实际仅 requireAdmin 运行时校验（安全属性成立且可测）。FAIL：同 Phase 1 的 ai-dev/logs 条目缺失**。
+  - **Phase 3（扫码适配）— PASS（1 项 FAIL）**：`ScanLoginResult.java:32-41` 含 mfaRequired/challengeToken/mfaType/loginType 可选字段；`loginByScanAsync`（ChannelLoginApiBizModel.java:200-220）以**同步 try/catch** 包裹 `createSessionForUserAsync`（确认 W5 为裸 throw：LoginServiceImpl.java:355，非 reject future），错误码按字符串 `nop.err.auth.mfa-required` 识别（:71，option a，nop-ai-gateway 不依赖 nop-auth-service 属实），非 MFA 异常 rethrow（:219）；运行时拦截由 TestScanLoginMfa.testScanLoginMfaUserReturnsChallengeParams（mfaRequired=true + challengeToken/mfaType/loginType 填充 + challenge 在 store 中）与非 MFA 异常冒泡用例（testNonMfaExceptionStillBubbles）断言；零回归（testScanLoginNonMfaUserZeroRegression）、向后兼容（testBackwardCompatSerializationFieldsOptional）均通过。**FAIL：同 Phase 1 的 ai-dev/logs 条目缺失**。
+  - **Phase 4（E2E+回归）— FAIL（1 项）**：totp 链、恢复码登录→disabled、扫码全链、admin reset、零回归均有测试且通过；**plan 声称的"E2E：bind sms → 密码登录 → ERR_AUTH_MFA_REQUIRED → sendMfaCode → mfaVerify(sms) → accessToken"无任何测试覆盖**——现有 sms 相关测试仅为因子等同登录（TestMfaLoginE2E.testSmsCodeLoginFullChainWithFactorEquivalence，loginType=5 无 MFA 拦截）与 bind-sms-confirm（TestMfaUserSelfService.testBindSmsSendsCodeAndConfirmEnables）；`mfaVerify` 的 SMS 分支（verifySecondFactorAndComplete MFA_TYPE_SMS case）无直接测试。FAIL：ai-dev/logs 条目缺失。
+  - **Closure Gates 复核**：功能/明文边界/向后兼容/owner docs（design §3.6:358、§3.2/§五:435 落地确认）/Anti-Hollow（关键方法体均有真实逻辑，非空壳）PASS；**Gate"独立子 agent closure-audit 已完成并记录证据"系提前勾选——本次为第一个独立 audit，此前无证据**；compile/test 门禁声称完成，独立重跑 `./mvnw test -pl nop-auth/nop-auth-service -Dtest='TestMfaUserSelfService,TestScanLoginMfa,TestMfaLoginE2E,TestMfaConfigAndErrors' -DfailIfNoTests=false`：**32/32 通过，0 失败**（TestMfaUserSelfService 15、TestScanLoginMfa 4、TestMfaLoginE2E 9、TestMfaConfigAndErrors 4，fresh surefire reports 2026-08-14 17:57）。
+  - **阻塞项**：① `ai-dev/logs/` 2026-08-13 日志条目缺失（4 个 Phase 的 Exit Criteria 均声明已更新，实际无）；② Phase 4 声称的 sms 密码登录→MFA 拦截→mfaVerify(sms) E2E 无测试覆盖（mfaVerify SMS 分支无直接测试）；③ Closure Gate"独立 closure-audit 已完成"勾选时无证据（本审计落档后自愈）。
+  - **非阻塞观察**：resetUserMfa 实际无 @Auth/action-auth 配置（plan 文字与实际不符，安全属性由 requireAdmin 保证）；plan Phase 1 所列测试类名（TestMfaBindStateMachine 等）不存在，行为等价的用例在 TestMfaUserSelfService 方法级覆盖；@BizAudit→NopAuthOpLog 无专门断言（与既有 action 一致，框架机制）。
 
 Follow-up:
 
-- <<待 closure 填写>>
+- **阻塞项 ① — 已修复（2026-08-14）**：补写 `ai-dev/logs/2026-08/2026-08-13.md`（W6 落地当日遗漏日志条目：4 Phase 事实摘要 + 偏差 + 验证命令）。
+- **阻塞项 ② — 已修复（2026-08-14）**：`TestMfaLoginE2E` 新增 `testPasswordLoginMfaSmsFullChain`（bind sms → 密码登录 → `ERR_AUTH_MFA_REQUIRED`(mfaType=sms) → `sendMfaCode` 真实调用 `ISmsSender` → `mfaVerify(sms)` → accessToken + challenge 一次性消费）；复跑 `./mvnw test -pl nop-auth/nop-auth-service -Dtest=TestMfaLoginE2E -DfailIfNoTests=false` → **10 tests / 0 failures**（含新增用例）。`mfaVerify` SMS 分支（`verifySecondFactorAndComplete` MFA_TYPE_SMS case）现已有直接测试覆盖。
+- **阻塞项 ③ — 自愈**：本 Closure 段为第一个独立 audit 证据落档。
+- **非阻塞观察（登记不处置）**：`resetUserMfa` 实际无 `@Auth`/action-auth.xml 配置（运行时 `requireAdmin` 校验，plan 文字失真已记录于 Evidence）；plan 所列测试类名（TestMfaBindStateMachine 等）不存在，行为等价用例在 `TestMfaUserSelfService` 方法级覆盖。
+- **roadmap 同步（2026-08-14）**：`ai-dev/backlog/nop-credential-mfa-roadmap.md` W6 `planned` → `done`；★ Milestone 派生为 `done`。
