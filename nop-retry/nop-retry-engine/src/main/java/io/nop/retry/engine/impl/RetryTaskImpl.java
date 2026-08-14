@@ -20,11 +20,9 @@ public class RetryTaskImpl implements IRetryTask {
     private final String serviceName;
     private final String serviceMethod;
 
-    private String executorId;
+    private String executorName;
     private String policyId;
     private String idempotentId;
-    private String callbackService;
-    private String callbackMethod;
     private String namespaceId;
     private String groupId;
     public RetryTaskImpl(RetryEngineImpl retryEngine, String serviceName, String serviceMethod) {
@@ -44,13 +42,13 @@ public class RetryTaskImpl implements IRetryTask {
     }
 
     @Override
-    public String getExecutorId() {
-        return executorId;
+    public String getExecutorName() {
+        return executorName;
     }
 
     @Override
-    public IRetryTask withExecutorId(String executorId) {
-        this.executorId = executorId;
+    public IRetryTask withExecutorName(String executorName) {
+        this.executorName = executorName;
         return this;
     }
 
@@ -73,23 +71,6 @@ public class RetryTaskImpl implements IRetryTask {
     @Override
     public IRetryTask withIdempotentId(String idempotentId) {
         this.idempotentId = idempotentId;
-        return this;
-    }
-
-    @Override
-    public String getCallbackService() {
-        return callbackService;
-    }
-
-    @Override
-    public String getCallbackMethod() {
-        return callbackMethod;
-    }
-
-    @Override
-    public IRetryTask withCallback(String callbackService, String callbackMethod) {
-        this.callbackService = callbackService;
-        this.callbackMethod = callbackMethod;
         return this;
     }
 

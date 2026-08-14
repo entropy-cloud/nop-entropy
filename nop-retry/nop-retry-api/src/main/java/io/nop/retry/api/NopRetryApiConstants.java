@@ -20,7 +20,6 @@ public interface NopRetryApiConstants {
     long DEFAULT_MAX_INTERVAL_MS = 60000L;
     double DEFAULT_JITTER_RATIO = 0.5;
 
-    int DEFAULT_EXECUTION_TIMEOUT_SECONDS = 60;
     long DEFAULT_DEADLINE_TIMEOUT_MS = 24 * 60 * 60 * 1000L;
 
     int DEFAULT_IMMEDIATE_RETRY_COUNT = 0;

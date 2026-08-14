@@ -15,9 +15,9 @@ public interface IRetryTask extends IRpcCall {
 
     String getServiceMethod();
 
-    String getExecutorId();
+    String getExecutorName();
 
-    IRetryTask withExecutorId(String executorId);
+    IRetryTask withExecutorName(String executorName);
 
     String getPolicyId();
 
@@ -26,12 +26,6 @@ public interface IRetryTask extends IRpcCall {
     String getIdempotentId();
 
     IRetryTask withIdempotentId(String idempotentId);
-
-    String getCallbackService();
-
-    String getCallbackMethod();
-
-    IRetryTask withCallback(String callbackService, String callbackMethod);
 
     /**
      * 获取命名空间ID，用于多租户隔离

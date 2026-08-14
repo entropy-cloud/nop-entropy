@@ -122,11 +122,9 @@ public class TestNopRetryJobRetryBridge {
         final String serviceMethod;
         final MockRetryEngine engine;
 
-        String executorId;
+        String executorName;
         String policyId;
         String idempotentId;
-        String callbackService;
-        String callbackMethod;
         String namespaceId;
         String groupId;
         ApiRequest<?> lastRequest;
@@ -139,15 +137,12 @@ public class TestNopRetryJobRetryBridge {
 
         @Override public String getServiceName() { return serviceName; }
         @Override public String getServiceMethod() { return serviceMethod; }
-        @Override public String getExecutorId() { return executorId; }
-        @Override public IRetryTask withExecutorId(String executorId) { this.executorId = executorId; return this; }
+        @Override public String getExecutorName() { return executorName; }
+        @Override public IRetryTask withExecutorName(String executorName) { this.executorName = executorName; return this; }
         @Override public String getPolicyId() { return policyId; }
         @Override public IRetryTask withPolicyId(String policyId) { this.policyId = policyId; return this; }
         @Override public String getIdempotentId() { return idempotentId; }
         @Override public IRetryTask withIdempotentId(String idempotentId) { this.idempotentId = idempotentId; return this; }
-        @Override public String getCallbackService() { return callbackService; }
-        @Override public String getCallbackMethod() { return callbackMethod; }
-        @Override public IRetryTask withCallback(String callbackService, String callbackMethod) { this.callbackService = callbackService; this.callbackMethod = callbackMethod; return this; }
         @Override public String getNamespaceId() { return namespaceId; }
         @Override public IRetryTask withNamespaceId(String namespaceId) { this.namespaceId = namespaceId; return this; }
         @Override public String getGroupId() { return groupId; }
