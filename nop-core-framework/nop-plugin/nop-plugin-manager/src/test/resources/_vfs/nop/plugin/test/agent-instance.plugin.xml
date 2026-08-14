@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin name="agent-instance"
+        requires="model-provider"
+        if-property="agent.tools.enabled|true"
+        activator="agentInstanceActivator"
+        x:schema="/nop/schema/plugin/plugin.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <beans>
+        <bean id="agentInstanceActivator" class="io.nop.plugin.test.AgentInstanceActivator"/>
+        <bean id="tool.bash" class="io.nop.plugin.test.BashTool" primary="true"/>
+        <bean id="tool.search" class="io.nop.plugin.test.SearchTool"/>
+        <bean id="recording.bean" class="io.nop.plugin.test.RecordingBean" destroy-method="onDestroy"/>
+        <bean id="config.reader" class="io.nop.plugin.test.ConfigReaderBean">
+            <property name="timeout" value="${agent.timeout}"/>
+            <property name="mode" value="${agent.mode:quiet}"/>
+            <property name="globalValue" value="${test.plugin.global.var}"/>
+            <property name="onlyInstance" value="${agent.only-instance:none}"/>
+        </bean>
+        <bean id="nopPluginCommand_hello" class="io.nop.plugin.test.HelloCommand"/>
+    </beans>
+</plugin>

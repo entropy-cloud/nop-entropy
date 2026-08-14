@@ -20,9 +20,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * {@link AbstractPlugin} 双路径行为测试（W2 Phase 2）：
+ * {@link AbstractPlugin} 双路径行为测试（W2 Phase 2 + W3 收敛）：
  * aware 路径 load 只到 LOADED 且不建子容器、定义缺失显式失败、unload 回 UNLOADED、
- * aware start/stop 显式失败、无实例 invokeCommand 抛 INACTIVE；
+ * aware start 对 jar 轨实例化显式失败（successor 项）、aware stop 收敛为 unload、
+ * 无实例 invokeCommand 抛 INACTIVE；
  * 兼容路径（非 aware 子类）保留旧 start/stop 语义、getState 保守值 LOADED。
  */
 public class TestAbstractPlugin {
@@ -110,11 +111,25 @@ public class TestAbstractPlugin {
     }
 
     @Test
-    public void testAwareStartStopFailExplicitly() {
+    public void testAwareStartFailsExplicitlyOnJarTrackInstanceCreation() {
+        // W3 收敛：start = load + createInstance(默认 key)。AbstractPlugin 为 uber jar 轨持有类，
+        // jar 轨实例化路径是显式 successor 项（W4/W7）——load 落地后 createInstance 明确失败
         AwarePlugin plugin = new AwarePlugin(TEST_DEF_PATH);
         assertThrows(UnsupportedOperationException.class,
                 () -> plugin.start("g", "a", "1.0", Collections.emptyMap()));
-        assertThrows(UnsupportedOperationException.class, plugin::stop);
+        assertEquals(PluginState.LOADED, plugin.getState(), "start 失败前 load 已落地");
+    }
+
+    @Test
+    public void testAwareStopConvergesToUnload() {
+        // W3 收敛：stop = destroyInstance + unload；jar 轨无实例（createInstance 为 successor 项），
+        // destroyInstance 空操作，unload 落地——不再抛临时失败异常
+        AwarePlugin plugin = new AwarePlugin(TEST_DEF_PATH);
+        plugin.load(Collections.emptyMap());
+        plugin.stop();
+
+        assertEquals(PluginState.UNLOADED, plugin.getState(), "aware stop 收敛为 unload");
+        assertNull(plugin.getPluginDefinition());
     }
 
     @Test

@@ -40,9 +40,10 @@ import static io.nop.plugin.api.PluginApiErrors.ERR_PLUGIN_INACTIVE;
  * <p><b>aware 路径</b>（默认）：{@link #load(Map)} 从 VFS 约定路径（{@link #getPluginDefinitionPath()}，
  * 默认 {@link NopPluginConstants#PLUGIN_DEFINITION_FILE}）经 plugin.xdef 解析静态定义并持有，
  * 状态到 {@link PluginState#LOADED}——<b>不创建子容器</b>（子容器创建移入 W3 createInstance）；
- * {@link #unload()} 丢弃定义回 UNLOADED；{@code start/stop} 按设计 §7.1 语义
- * （start = load + createInstance，stop = destroyInstance + unload）在 createInstance/destroyInstance
- * 未落地（W3）前显式失败；无 ACTIVATED 实例时 invokeCommand 抛 INACTIVE（不回退宿主容器）。
+ * {@link #unload()} 丢弃定义回 UNLOADED；{@code start/stop} 按设计 §7.1 语义收敛
+ * （start = load + createInstance(默认 key)，stop = destroyInstance + unload）——createInstance
+ * 对 uber jar 轨（本类的实例化路径）为显式 successor 项（W4/W7），start 明确失败；
+ * 无 ACTIVATED 实例时 invokeCommand 抛 INACTIVE（不回退宿主容器）。
  *
  * <p><b>兼容路径</b>（子类 override {@code isStateMachineAware()} 返回 false）：保留旧 start/stop
  * 语义（{@code AppConfig.assignConfigValue} 全局写入 + doStart 子容器创建），行为与改造前等价。
@@ -157,8 +158,14 @@ public abstract class AbstractPlugin extends LifeCycleSupport implements IPlugin
     public void start(String pluginGroupId, String pluginArtifactId, String pluginVersion,
                       Map<String, Object> config) {
         if (isStateMachineAware()) {
+            // §7.1 收敛：start = load + createInstance(默认 key)。load 落地；
+            // createInstance 对 uber jar 轨（plugin.json 定义，无 plugin.xdef/activator 载体）
+            // 为显式 successor 项（W4/W7 评估）——明确失败（No Silent No-Op），
+            // VFS 轨的默认 key 实例化已由 W3 定义持有类（VfsPluginDefinition）落地。
+            load(config);
             throw new UnsupportedOperationException(
-                    "start is not supported for state-machine-aware plugin before createInstance is implemented (W3); use load(config) instead");
+                    "jar-track (plugin.json) instance creation is a successor item (W4/W7); "
+                            + "start = load + createInstance(default key) is fully landed for the VFS track");
         }
 
         this.pluginGroupId = pluginGroupId;
@@ -175,8 +182,10 @@ public abstract class AbstractPlugin extends LifeCycleSupport implements IPlugin
     @Override
     public void stop() {
         if (isStateMachineAware()) {
-            throw new UnsupportedOperationException(
-                    "stop is not supported for state-machine-aware plugin before destroyInstance is implemented (W3); use unload() instead");
+            // §7.1 收敛：stop = destroyInstance + unload；jar 轨无实例（createInstance 为
+            // successor 项），destroyInstance 空操作，unload 落地
+            unload();
+            return;
         }
         super.stop();
     }

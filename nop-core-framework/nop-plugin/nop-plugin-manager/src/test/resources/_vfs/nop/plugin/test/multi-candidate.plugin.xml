@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin name="multi-candidate"
+        x:schema="/nop/schema/plugin/plugin.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <beans>
+        <bean id="tool.a" class="io.nop.plugin.test.BashTool"/>
+        <bean id="tool.b" class="io.nop.plugin.test.SearchTool"/>
+    </beans>
+</plugin>

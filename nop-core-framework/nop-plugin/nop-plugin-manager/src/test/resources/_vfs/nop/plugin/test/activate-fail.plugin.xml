@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin name="activate-fail"
+        activator="failActivator"
+        x:schema="/nop/schema/plugin/plugin.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <beans>
+        <bean id="failActivator" class="io.nop.plugin.test.FailActivator"/>
+    </beans>
+</plugin>

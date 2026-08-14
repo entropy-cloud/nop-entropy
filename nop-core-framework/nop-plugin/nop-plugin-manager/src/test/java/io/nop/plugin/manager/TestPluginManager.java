@@ -3,6 +3,8 @@ package io.nop.plugin.manager;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.plugin.api.IPlugin;
+import io.nop.plugin.api.IPluginInstance;
+import io.nop.plugin.api.InstanceState;
 import io.nop.plugin.api.PluginState;
 import io.nop.plugin.manager.impl.PluginManagerImpl;
 import io.nop.plugin.test.MockPluginRecorder;
@@ -23,6 +25,7 @@ import java.util.jar.JarOutputStream;
 
 import static io.nop.plugin.api.PluginApiErrors.ERR_PLUGIN_DEFINITION_NOT_FOUND;
 import static io.nop.plugin.api.PluginApiErrors.ERR_PLUGIN_INACTIVE;
+import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_ACTIVATOR_NOT_FOUND;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -149,9 +152,18 @@ public class TestPluginManager {
         assertNotNull(plugin.getLoadTime(), "load 时记录真实 loadTime");
         assertNotNull(plugin.getLastChangeTime());
 
-        assertThrows(UnsupportedOperationException.class,
-                () -> plugin.start("g", "a", "1.0", Collections.emptyMap()),
-                "定义持有类 start 在 W3 前显式失败");
+        // W3 收敛：start = load + createInstance(默认 key)。agent-tools 定义声明了
+        // activator="agentToolsActivator" 但 beans 中未声明该 bean → 激活失败（错误带 key 参数），
+        // 实例回退 DEACTIVATED 留在 registry（不残留半激活实例）
+        NopException startErr = assertThrows(NopException.class,
+                () -> plugin.start("g", "a", "1.0", Collections.emptyMap()));
+        assertEquals(ERR_PLUGIN_ACTIVATOR_NOT_FOUND.getErrorCode(), startErr.getErrorCode());
+        assertEquals(PluginManagerConstants.DEFAULT_INSTANCE_KEY, startErr.getParam("instanceKey"));
+        IPluginInstance failed = manager.getInstance(VFS_PLUGIN_ID, PluginManagerConstants.DEFAULT_INSTANCE_KEY);
+        assertNotNull(failed, "激活失败实例仍注册在 registry（DEACTIVATED）");
+        assertEquals(InstanceState.DEACTIVATED, failed.getState());
+        manager.destroyInstance(VFS_PLUGIN_ID, PluginManagerConstants.DEFAULT_INSTANCE_KEY);
+        assertNull(manager.getInstance(VFS_PLUGIN_ID, PluginManagerConstants.DEFAULT_INSTANCE_KEY));
 
         NopException inactive = assertThrows(NopException.class,
                 () -> plugin.invokeCommand("cmd", Collections.emptyMap(), null, null));

@@ -5,6 +5,7 @@ import io.nop.plugin.api.IPlugin;
 import io.nop.plugin.api.IPluginInstance;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 每一个plugin对应于一个uber jar，通过远程仓库下载，并使用独立的ClassLoader加载
@@ -26,7 +27,7 @@ public interface IPluginManager {
     IPlugin loadPlugin(String pluginId);
 
     /**
-     * 卸载插件定义：aware → unload()（丢弃定义）；非 aware → stop()（旧语义）。
+     * 卸载插件定义：aware → unload()（须先 destroy 全部实例，有实例抛异常）；非 aware → stop()（旧语义）。
      */
     void unloadPlugin(String pluginId);
 
@@ -45,12 +46,28 @@ public interface IPluginManager {
     }
 
     /**
-     * 按 instanceKey 查询已加载定义的实例；定义未加载或实例不存在返回 null（W3 实例落地前恒 null）。
+     * 为已 LOADED 的定义派生一个激活实例（§7.3）：实例 registry 注册 → 立即激活
+     * （子容器 + activator + effect）。同 key 重复创建抛明确异常；激活失败抛明确异常
+     * （错误带实例 key 参数，实例回退 DEACTIVATED 留在 registry）。
+     *
+     * <p>parent 为层级实例化（subagent）预留（W6 落地，本阶段传 null）。
+     * uber jar 轨定义的实例化路径为 successor 项（W4/W7 评估），调用时抛明确异常。
+     */
+    IPluginInstance createInstance(String pluginId, String instanceKey, Map<String, Object> config,
+                                   IPluginInstance parent);
+
+    /**
+     * 销毁指定实例（回退 effect、从定义移除）；实例不存在抛明确异常。
+     */
+    void destroyInstance(String pluginId, String instanceKey);
+
+    /**
+     * 按 instanceKey 查询已加载定义的实例；定义未加载或实例不存在返回 null。
      */
     IPluginInstance getInstance(String pluginId, String instanceKey);
 
     /**
-     * 已加载定义的全部实例（W3 实例落地前恒为空列表）。
+     * 已加载定义的全部实例。
      */
     List<IPluginInstance> getInstances(String pluginId);
 

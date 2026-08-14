@@ -25,6 +25,10 @@ import java.util.stream.Collectors;
 
 import static io.nop.plugin.api.PluginApiErrors.ARG_PLUGIN_ID;
 import static io.nop.plugin.api.PluginApiErrors.ERR_PLUGIN_DEFINITION_NOT_FOUND;
+import static io.nop.plugin.manager.PluginManagerErrors.ARG_INSTANCE_KEY;
+import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_DEFINITION_NOT_LOADED;
+import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_INSTANCE_NOT_FOUND;
+import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_INSTANCE_NOT_SUPPORTED;
 
 /**
  * 双轨来源（设计文档 01-architecture-baseline.md §二）的统一编排：
@@ -75,14 +79,16 @@ public class PluginManagerImpl implements IPluginManager {
 
     @Override
     public void unloadPlugin(String pluginId) {
-        PluginHolder holder = plugins.remove(pluginId);
+        PluginHolder holder = plugins.get(pluginId);
         if (holder != null) {
             try {
                 if (holder.plugin.isStateMachineAware()) {
+                    // unload 守卫：有实例时抛异常（定义保留在 map，可先 destroyInstance 再重试 unload）
                     holder.plugin.unload();
                 } else {
                     holder.plugin.stop();
                 }
+                plugins.remove(pluginId);
             } finally {
                 IoHelper.safeCloseObject(holder.classLoader);
             }
@@ -99,6 +105,40 @@ public class PluginManagerImpl implements IPluginManager {
     public List<IPluginInstance> getInstances(String pluginId) {
         PluginHolder holder = plugins.get(pluginId);
         return holder == null ? Collections.emptyList() : holder.plugin.getInstances();
+    }
+
+    @Override
+    public IPluginInstance createInstance(String pluginId, String instanceKey, Map<String, Object> config,
+                                          IPluginInstance parent) {
+        PluginHolder holder = plugins.get(pluginId);
+        if (holder == null) {
+            // 定义级 LOADED 校验：未加载的定义 createInstance 明确失败
+            throw new NopException(ERR_PLUGIN_DEFINITION_NOT_LOADED).param(ARG_PLUGIN_ID, pluginId);
+        }
+        IPlugin plugin = holder.plugin;
+        if (!(plugin instanceof VfsPluginDefinition)) {
+            // uber jar 轨边界裁定：plugin.json 定义无 plugin.xdef/activator 载体，
+            // 实例化路径为显式 successor 项（W4/W7），明确失败（No Silent No-Op），不返回半成品实例
+            throw new NopException(ERR_PLUGIN_INSTANCE_NOT_SUPPORTED)
+                    .param(ARG_PLUGIN_ID, pluginId)
+                    .param(ARG_INSTANCE_KEY, instanceKey);
+        }
+        return ((VfsPluginDefinition) plugin).createInstance(instanceKey, config, parent);
+    }
+
+    @Override
+    public void destroyInstance(String pluginId, String instanceKey) {
+        PluginHolder holder = plugins.get(pluginId);
+        if (holder == null) {
+            throw new NopException(ERR_PLUGIN_DEFINITION_NOT_LOADED).param(ARG_PLUGIN_ID, pluginId);
+        }
+        IPluginInstance instance = holder.plugin.getInstance(instanceKey);
+        if (instance == null) {
+            throw new NopException(ERR_PLUGIN_INSTANCE_NOT_FOUND)
+                    .param(ARG_PLUGIN_ID, pluginId)
+                    .param(ARG_INSTANCE_KEY, instanceKey);
+        }
+        instance.destroy();
     }
 
     @Override
