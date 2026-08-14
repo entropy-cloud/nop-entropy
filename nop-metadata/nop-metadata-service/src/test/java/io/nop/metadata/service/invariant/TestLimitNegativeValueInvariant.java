@@ -23,14 +23,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  * {@link io.nop.api.core.exceptions.ErrorCode} (explicit reject), not silently accept
  * the negative value.
  *
- * <p><b>Default surefire exclusion</b>: this class is excluded from the default
- * {@code ./mvnw test} run via {@code pom.xml} surefire {@code <excludes>}, so the
- * default build stays green. It is invoked by a separate documented command:
- * <pre>
- *   ./mvnw test -pl nop-metadata-service -Dtest=TestLimitNegativeValueInvariant
- * </pre>
- * Non-zero exit = at least one limit-taking method silently accepts negative limit
- * = the limit-component of the initial red list.
+ * <p><b>Default surefire inclusion</b>: this class runs in the default
+ * {@code ./mvnw test -pl nop-metadata -am} run (defense-in-depth: both local dev and
+ * CI expose any reintroduction of {@code limit < 0 ? 0 : limit} / {@code Math.abs(limit)}).
+ * The CI {@code invariant-gate} job also invokes it explicitly via
+ * {@code ai-dev/tools/run-nop-metadata-invariants.sh} as a second layer. Non-zero exit /
+ * test failure = at least one limit-taking method silently accepts negative limit.
  *
  * <p>Method table source: I0 {@code audit-target-set.md} §1.4 — 4 limit-taking public
  * methods. Table completeness is independently verified by

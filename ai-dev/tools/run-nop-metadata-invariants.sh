@@ -43,7 +43,9 @@ echo "==> [3/4] INV-SENSITIVE: check-sensitive-literal-leak.mjs"
 node "$SCRIPT_DIR/check-sensitive-literal-leak.mjs" --module nop-metadata
 
 echo "==> [4/4] INV-LIMIT: TestLimitNegativeValueInvariant"
-# INV-LIMIT is excluded from default surefire (pom.xml <excludes>); invoked explicitly here.
+# INV-LIMIT also runs in the default surefire (build job). Re-invoking it here is an
+# intentional defense-in-depth second layer: this aggregator is the fail-fast CI gate
+# (run on every push/PR via the invariant-gate job), independent of the build job result.
 "$MVN" test -pl nop-metadata/nop-metadata-service \
   -Dtest=TestLimitNegativeValueInvariant \
   -Dsurefire.failIfNoSpecifiedTests=false \

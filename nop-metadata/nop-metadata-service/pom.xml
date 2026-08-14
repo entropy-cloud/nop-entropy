@@ -136,18 +136,6 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <configuration>
-                    <!-- plan 2026-08-13-1930-2 Workstream B: limit 守卫测试类默认从 surefire 排除，
-                         由单独命令调用产出 limit red list（非零退出码 = 存在未 reject 负值的方法）。
-                         该排除为持久配置，确保默认构建恒绿；TestLimitTargetSetCompleteness 仍在默认集合中运行。 -->
-                    <excludes>
-                        <exclude>**/invariant/TestLimitNegativeValueInvariant.java</exclude>
-                    </excludes>
-                </configuration>
-            </plugin>
-            <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
             </plugin>
