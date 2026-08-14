@@ -98,7 +98,7 @@
 
 **Deliverables:**
 - `credential-type.xdef` 元模型 + register-model.xml（xdsl-loader fileType="credential-type.xml"）+ 示例类型实例文件（`_vfs/nop/credential/types/`）
-- ORM 实体：`NopCredential`（data 加密列、status/deleted/usageScope/lastUsedAt/expireAt/testResult 等）+ `NopCredentialUsage`（credentialId + consumerRef 唯一约束）；model-first（`model/nop-credential.orm.xml` 源 → codegen → DDL 迁移，**禁止手编 `_gen/` 与 `_` 前缀文件**）
+- ORM 实体：`NopCredential`（data 加密列、status/deleted/usageScope/lastUsedAt/expireAt/testResult 等）+ `NopCredentialUsage`（credentialId + consumerRef 唯一约束）；model-first（ORM 源文件 `nop-credential.orm.xml` 放 model/ 目录 → codegen → DDL 迁移，**禁止手编 `_gen/` 与 `_` 前缀文件**）
 - `ICredentialProvider` SPI（接口在 api，实现+唯一解密点在 service）：getCredential/getCredentialData/testCredential/mask/registerUsage/unregisterUsage
 - 软删除语义（fail-closed）+ 引用计数（registerUsage/unregisterUsage）
 - xmeta：`data` 列 `published="false"`（明文边界结构性强制）
@@ -186,7 +186,7 @@
 **Deliverables:**
 - `NopAiModel` 增加可选 `credentialId` 字段（关联凭证库），apiKey 列保留兼容；迁移工具/脚本 + 迁移文档
 - nop-integration 静态密钥改用 `@sec:` 加密的说明文档（立即可做项）
-- `docs-for-ai/03-modules/nop-auth.md` 补充 MFA 章节；`docs-for-ai/02-core-guides/auth-and-permissions.md` 补充两阶段登录说明；新增 `docs-for-ai/03-modules/nop-credential.md`
+- `docs-for-ai/03-modules/nop-auth.md` 补充 MFA 章节；`docs-for-ai/02-core-guides/auth-and-permissions.md` 补充两阶段登录说明；新增 docs-for-ai/03-modules 下的 nop-credential 模块文档（nop-credential.md）
 - 设计文档收口（Open Questions 全部关闭）+ `ai-dev/design/README.md` 索引更新
 - `docs-for-ai/04-reference/source-anchors.md` 更新（若锚点变化）
 
