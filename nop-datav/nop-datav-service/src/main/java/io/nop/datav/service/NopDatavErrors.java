@@ -224,6 +224,12 @@ public interface NopDatavErrors {
             ARG_SHARE_TOKEN
     );
 
+    ErrorCode ERR_DATAV_SHARE_DASHBOARD_NOT_FOUND = define(
+            "nop.err.datav.share-dashboard-not-found",
+            "Dashboard of share link has been deleted: {shareToken} (dashboardId: {dashboardId})",
+            ARG_SHARE_TOKEN, ARG_DASHBOARD_ID
+    );
+
     ErrorCode ERR_DATAV_EXPORT_TASK_NOT_FOUND = define(
             "nop.err.datav.export-task-not-found",
             "Export task not found: {taskId}",

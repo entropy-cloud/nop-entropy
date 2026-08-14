@@ -14,6 +14,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.datav.biz.INopDatavDashboardShareBiz;
+import io.nop.datav.dao.entity.NopDatavDashboard;
 import io.nop.datav.dao.entity.NopDatavDashboardShare;
 import io.nop.datav.dao.entity.NopDatavDashboardSnapshot;
 import io.nop.datav.service.NopDatavDashboardOwnerGuard;
@@ -27,6 +28,7 @@ import java.util.List;
 import static io.nop.datav.service.NopDatavErrors.ARG_DASHBOARD_ID;
 import static io.nop.datav.service.NopDatavErrors.ARG_SHARE_ID;
 import static io.nop.datav.service.NopDatavErrors.ARG_SHARE_TOKEN;
+import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_SHARE_DASHBOARD_NOT_FOUND;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_SHARE_DISABLED;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_SHARE_EXPIRED;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_SHARE_NOT_FOUND;
@@ -158,6 +160,7 @@ public class NopDatavDashboardShareBizModel extends CrudBizModel<NopDatavDashboa
             throw new NopException(ERR_DATAV_SHARE_EXPIRED).param(ARG_SHARE_TOKEN, shareToken);
         }
         verifySharePassword(share, password);
+        requireDashboardAlive(share);
         return readLatestSnapshot(share.getDashboardId());
     }
 
@@ -223,6 +226,22 @@ public class NopDatavDashboardShareBizModel extends CrudBizModel<NopDatavDashboa
             }
         }
         throw new NopException(ERR_DATAV_SHARE_TOKEN_GENERATE_FAILED);
+    }
+
+    /**
+     * 看板存活防御（defense-in-depth，plan 2026-08-14-2020-1）：token/enabled/expire/password 校验
+     * 通过后、读取快照前，经 DAO 校验看板主表行存活。看板已删（级联吊销之外的任何残留路径）时显式拒绝
+     * {@link NopDatavErrors#ERR_DATAV_SHARE_DASHBOARD_NOT_FOUND}，不得静默返回旧快照。经 DAO 直读，
+     * 不经 requireEntity/RLS（匿名上下文不适用，与 readLatestSnapshot 同约定）。
+     */
+    private void requireDashboardAlive(NopDatavDashboardShare share) {
+        NopDatavDashboard dashboard = daoProvider().daoFor(NopDatavDashboard.class)
+                .getEntityById(share.getDashboardId());
+        if (dashboard == null) {
+            throw new NopException(ERR_DATAV_SHARE_DASHBOARD_NOT_FOUND)
+                    .param(ARG_SHARE_TOKEN, share.getShareToken())
+                    .param(ARG_DASHBOARD_ID, share.getDashboardId());
+        }
     }
 
     /**

@@ -24,6 +24,8 @@ import io.nop.datav.service.report.NopDatavReportTaskStatus;
 
 import jakarta.inject.Inject;
 import java.sql.Timestamp;
+import java.util.Set;
+import java.util.function.BiConsumer;
 
 import static io.nop.datav.service.NopDatavErrors.ARG_ALERT_RULE_ID;
 import static io.nop.datav.service.NopDatavErrors.ARG_DASHBOARD_ID;
@@ -42,7 +44,10 @@ import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_PANEL_NOT_FOUND;
  * action 经 {@code @Auth} + 看板 owner 校验（规则经 panelId → panel.dashboardId → dashboard 间接归属）。</p>
  *
  * <p><b>调度注册联动</b>：save（status=ENABLED）/enableAlertRule 调 {@link NopDatavAlertScheduler#registerRule}；
- * disableAlertRule/delete 调 {@link NopDatavAlertScheduler#unregisterRule}。</p>
+ * disableAlertRule 调 {@link NopDatavAlertScheduler#unregisterRule}；<b>delete 经覆写
+ * {@code doDeleteEntity} 调 {@link NopDatavAlertScheduler#unregisterRule}</b>（Gap #3 修复：标准
+ * {@code delete(id)} 路径只调 2 参 deprecated {@code afterEntityChange}，3 参覆写在该路径不触发，
+ * 故删除注销必须挂在 {@code doDeleteEntity}，见 schedule-report-design.md §26）。</p>
  *
  * <p><b>状态初始化</b>：规则创建时同步初始化 {@link NopDatavAlertState}（{@code state=OK}）。</p>
  *
@@ -81,6 +86,22 @@ public class NopDatavAlertRuleBizModel extends CrudBizModel<NopDatavAlertRule>
             } else {
                 alertScheduler.unregisterRule(entity.getAlertRuleId());
             }
+        }
+    }
+
+    /**
+     * Gap #3 修复（plan 2026-08-14-2020-1）：标准 {@code delete(id)} / {@code batchDelete} /
+     * {@code deleteByQuery} 均虚分派到本方法；删除后即时注销 cron job（原先 3 参
+     * {@code afterEntityChange} 覆写在 delete 路径不触发，job 进程内残留直至重启）。
+     */
+    @Override
+    protected void doDeleteEntity(@Name("entity") NopDatavAlertRule entity,
+                                  @Name("refNamesToCheck") Set<String> refNamesToCheck,
+                                  @Name("prepareDelete") BiConsumer<NopDatavAlertRule, IServiceContext> prepareDelete,
+                                  IServiceContext context) {
+        super.doDeleteEntity(entity, refNamesToCheck, prepareDelete, context);
+        if (alertScheduler != null) {
+            alertScheduler.unregisterRule(entity.getAlertRuleId());
         }
     }
 

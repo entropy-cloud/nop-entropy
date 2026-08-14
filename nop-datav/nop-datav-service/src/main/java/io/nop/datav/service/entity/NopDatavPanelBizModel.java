@@ -5,32 +5,89 @@ import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.directive.Auth;
+import io.nop.api.core.beans.FilterBeans;
+import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.core.context.IServiceContext;
 import io.nop.dao.api.IDaoProvider;
+import io.nop.dao.api.IEntityDao;
 import io.nop.dao.jdbc.IJdbcTemplate;
 
 import io.nop.datav.biz.INopDatavPanelBiz;
 import io.nop.datav.biz.JumpResult;
 import io.nop.datav.biz.LinkageResult;
 import io.nop.datav.biz.PanelDataResult;
+import io.nop.datav.dao.entity.NopDatavAlertRule;
 import io.nop.datav.dao.entity.NopDatavPanel;
+import io.nop.datav.service.NopDatavOperatorResolver;
+import io.nop.datav.service.alert.NopDatavAlertScheduler;
 import io.nop.datav.service.linkage.LinkageExecutor;
 import io.nop.datav.service.query.PanelDataBinder;
+import io.nop.datav.service.report.NopDatavReportTaskStatus;
 
+import java.sql.Timestamp;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.BiConsumer;
 
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_PANEL_NOT_FOUND;
 
+/**
+ * 面板 BizModel。
+ *
+ * <p><b>删除生命周期（plan 2026-08-14-2020-1，D3/D5 裁定）</b>：标准 {@code delete(id)} 路径
+ * （含 batchDelete/deleteByQuery 收敛的 {@code doDeleteEntity}）在主表行删除后，把按 {@code panelId}
+ * 关联的 AlertRule 置 {@code status=DISABLED}（先落库）并即时 {@code unregisterRule}（事务边界见
+ * schedule-report-design.md §26）。任一子步骤失败显式抛错。</p>
+ */
 @BizModel("NopDatavPanel")
 public class NopDatavPanelBizModel extends CrudBizModel<NopDatavPanel> implements INopDatavPanelBiz {
 
     @jakarta.inject.Inject
     protected IJdbcTemplate jdbcTemplate;
 
+    @jakarta.inject.Inject
+    protected NopDatavAlertScheduler alertScheduler;
+
     public NopDatavPanelBizModel() {
         setEntityName(NopDatavPanel.class.getName());
+    }
+
+    // ==================== 删除生命周期联动（plan 2026-08-14-2020-1） ====================
+
+    /**
+     * 标准删除路径级联挂接点（D5 裁定）：{@code delete(id)} / {@code batchDelete} / {@code deleteByQuery}
+     * 均虚分派到本方法；级联在 {@code super} 之后执行（权限校验通过后才产生调度注销副作用）。
+     */
+    @Override
+    protected void doDeleteEntity(@Name("entity") NopDatavPanel entity,
+                                  @Name("refNamesToCheck") Set<String> refNamesToCheck,
+                                  @Name("prepareDelete") BiConsumer<NopDatavPanel, IServiceContext> prepareDelete,
+                                  IServiceContext context) {
+        super.doDeleteEntity(entity, refNamesToCheck, prepareDelete, context);
+        disableAlertRulesForPanel(entity.getPanelId(), context);
+    }
+
+    /**
+     * 按 panelId 停用关联 AlertRule（status=DISABLED 先落库）并即时 unregisterRule（D3 双动作）。
+     */
+    private void disableAlertRulesForPanel(String panelId, IServiceContext context) {
+        IEntityDao<NopDatavAlertRule> dao = daoProvider().daoFor(NopDatavAlertRule.class);
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq("panelId", panelId));
+        String operator = NopDatavOperatorResolver.resolveOperator(context);
+        for (NopDatavAlertRule rule : dao.findAllByQuery(query)) {
+            if (rule.getStatus() == null || rule.getStatus() != NopDatavReportTaskStatus.DISABLED) {
+                rule.setStatus(NopDatavReportTaskStatus.DISABLED);
+                rule.setUpdatedBy(operator);
+                rule.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+                dao.updateEntityDirectly(rule);
+            }
+            if (alertScheduler != null) {
+                alertScheduler.unregisterRule(rule.getAlertRuleId());
+            }
+        }
     }
 
     @Override

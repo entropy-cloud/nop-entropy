@@ -13,20 +13,28 @@ import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.api.IDaoEntity;
+import io.nop.dao.api.IDaoProvider;
+import io.nop.dao.api.IEntityDao;
 import io.nop.dao.jdbc.IJdbcTemplate;
-import io.nop.orm.dao.IOrmEntityDao;
 
 import io.nop.datav.biz.INopDatavDashboardBiz;
+import io.nop.datav.dao.entity.NopDatavAlertRule;
 import io.nop.datav.dao.entity.NopDatavDashboard;
+import io.nop.datav.dao.entity.NopDatavDashboardShare;
 import io.nop.datav.dao.entity.NopDatavDashboardSnapshot;
 import io.nop.datav.dao.entity.NopDatavDatasetRef;
 import io.nop.datav.dao.entity.NopDatavDashboardTab;
+import io.nop.datav.dao.entity.NopDatavFilterState;
 import io.nop.datav.dao.entity.NopDatavPanel;
+import io.nop.datav.dao.entity.NopDatavReportTask;
 import io.nop.datav.service.NopDatavOperatorResolver;
+import io.nop.datav.service.alert.NopDatavAlertScheduler;
 import io.nop.datav.service.filter.DashboardFilterResolver;
 import io.nop.datav.service.filter.DashboardFilterUrlCodec;
 import io.nop.datav.service.filter.DashboardParamDefinition;
 import io.nop.datav.service.filter.DashboardParamParser;
+import io.nop.datav.service.report.NopDatavReportScheduler;
+import io.nop.datav.service.report.NopDatavReportTaskStatus;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -34,11 +42,21 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.BiConsumer;
 
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_DASHBOARD_NOT_FOUND;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_SNAPSHOT_NOT_FOUND;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_SNAPSHOT_VERSION_NOT_FOUND;
 
+/**
+ * 看板 BizModel。
+ *
+ * <p><b>删除生命周期（plan 2026-08-14-2020-1，裁定见 permission-sharing-design.md「删除生命周期与分享吊销」）
+ * </b>：标准 {@code delete(id)} 路径（含 batchDelete/deleteByQuery 收敛的 {@code doDeleteEntity}）在主表行
+ * 删除后级联处理：关联 ReportTask/AlertRule 置 {@code DISABLED} 并即时注销 cron job、该看板全部分享置
+ * {@code enabled=0}、子对象（Panel/Tab/DatasetRef/FilterState）与发布快照物理删除。任一子步骤失败显式抛错。</p>
+ */
 @BizModel("NopDatavDashboard")
 public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
         implements INopDatavDashboardBiz {
@@ -46,11 +64,134 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
     public static final int PUBLISH_STATUS_DRAFT = 0;
     public static final int PUBLISH_STATUS_PUBLISHED = 10;
 
+    /**
+     * 分享启用标记（domain boolFlag）：1=启用，0=禁用（D2 逻辑吊销值）。
+     */
+    private static final byte SHARE_ENABLED_TRUE = 1;
+
     @jakarta.inject.Inject
     protected IJdbcTemplate jdbcTemplate;
 
+    @jakarta.inject.Inject
+    protected NopDatavAlertScheduler alertScheduler;
+
+    @jakarta.inject.Inject
+    protected NopDatavReportScheduler reportScheduler;
+
     public NopDatavDashboardBizModel() {
         setEntityName(NopDatavDashboard.class.getName());
+    }
+
+    // ==================== 删除生命周期级联（plan 2026-08-14-2020-1） ====================
+
+    /**
+     * 标准删除路径级联挂接点（D5 裁定）：{@code delete(id)} / {@code batchDelete} / {@code deleteByQuery}
+     * 均虚分派到本方法。级联在 {@code super} 之后执行——权限校验（checkMetaFilter/checkDataAuth）通过后
+     * 才产生调度注销等非事务性副作用。任一子步骤失败异常传播（无静默跳过）。
+     */
+    @Override
+    protected void doDeleteEntity(@Name("entity") NopDatavDashboard entity,
+                                  @Name("refNamesToCheck") Set<String> refNamesToCheck,
+                                  @Name("prepareDelete") BiConsumer<NopDatavDashboard, IServiceContext> prepareDelete,
+                                  IServiceContext context) {
+        super.doDeleteEntity(entity, refNamesToCheck, prepareDelete, context);
+        handleDeleteCascade(entity, context);
+    }
+
+    private void handleDeleteCascade(NopDatavDashboard dashboard, IServiceContext context) {
+        String dashboardId = dashboard.getDashboardId();
+        IDaoProvider daoProvider = daoProvider();
+        String operator = NopDatavOperatorResolver.resolveOperator(context);
+
+        // AlertRule 经 panelId 定位，必须先于 Panel 行删除读取面板清单
+        List<NopDatavPanel> panels = findRelatedEntities(NopDatavPanel.class, "dashboardId", dashboardId, null);
+
+        disableReportTasksForDashboard(daoProvider, dashboardId, operator);
+        disableAlertRulesForPanels(daoProvider, panels, operator);
+        revokeSharesForDashboard(daoProvider, dashboardId, operator);
+
+        deleteAllByDashboard(daoProvider, NopDatavFilterState.class, dashboardId);
+        deleteAllByDashboard(daoProvider, NopDatavDatasetRef.class, dashboardId);
+        deleteAllByDashboard(daoProvider, NopDatavDashboardTab.class, dashboardId);
+        deleteAllByDashboard(daoProvider, NopDatavPanel.class, dashboardId);
+        deleteAllByDashboard(daoProvider, NopDatavDashboardSnapshot.class, dashboardId);
+    }
+
+    /**
+     * 关联 ReportTask（按 dashboardId）：置 status=DISABLED（先落库）并即时 unregisterTask（D3 双动作，
+     * 事务边界见 schedule-report-design.md §26——注销失败异常传播回滚整个删除）。
+     */
+    private void disableReportTasksForDashboard(IDaoProvider daoProvider, String dashboardId, String operator) {
+        IEntityDao<NopDatavReportTask> dao = daoProvider.daoFor(NopDatavReportTask.class);
+        for (NopDatavReportTask task : findAllByField(dao, "dashboardId", dashboardId)) {
+            if (task.getStatus() == null || task.getStatus() != NopDatavReportTaskStatus.DISABLED) {
+                task.setStatus(NopDatavReportTaskStatus.DISABLED);
+                task.setUpdatedBy(operator);
+                task.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+                dao.updateEntityDirectly(task);
+            }
+            if (reportScheduler != null) {
+                reportScheduler.unregisterTask(task.getReportTaskId());
+            }
+        }
+    }
+
+    /**
+     * 关联 AlertRule（经 panel.dashboardId 定位）：置 status=DISABLED 并即时 unregisterRule。
+     */
+    private void disableAlertRulesForPanels(IDaoProvider daoProvider, List<NopDatavPanel> panels, String operator) {
+        if (panels.isEmpty()) {
+            return;
+        }
+        List<String> panelIds = new ArrayList<>(panels.size());
+        for (NopDatavPanel panel : panels) {
+            panelIds.add(panel.getPanelId());
+        }
+        IEntityDao<NopDatavAlertRule> dao = daoProvider.daoFor(NopDatavAlertRule.class);
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.in("panelId", panelIds));
+        for (NopDatavAlertRule rule : dao.findAllByQuery(query)) {
+            if (rule.getStatus() == null || rule.getStatus() != NopDatavReportTaskStatus.DISABLED) {
+                rule.setStatus(NopDatavReportTaskStatus.DISABLED);
+                rule.setUpdatedBy(operator);
+                rule.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+                dao.updateEntityDirectly(rule);
+            }
+            if (alertScheduler != null) {
+                alertScheduler.unregisterRule(rule.getAlertRuleId());
+            }
+        }
+    }
+
+    /**
+     * 该看板全部分享逻辑吊销（D2：enabled=0，保留行可审计；已禁用行不动避免版本扰动）。
+     */
+    private void revokeSharesForDashboard(IDaoProvider daoProvider, String dashboardId, String operator) {
+        IEntityDao<NopDatavDashboardShare> dao = daoProvider.daoFor(NopDatavDashboardShare.class);
+        for (NopDatavDashboardShare share : findAllByField(dao, "dashboardId", dashboardId)) {
+            if (share.getEnabled() != null && share.getEnabled() == SHARE_ENABLED_TRUE) {
+                share.setEnabled((byte) 0);
+                share.setUpdatedBy(operator);
+                share.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+                dao.updateEntityDirectly(share);
+            }
+        }
+    }
+
+    /**
+     * 按 dashboardId 物理删除子表全部行（D1：Panel/Tab/DatasetRef/FilterState/Snapshot 级联）。
+     */
+    private void deleteAllByDashboard(IDaoProvider daoProvider, Class<? extends IDaoEntity> entityClass,
+                                      String dashboardId) {
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq("dashboardId", dashboardId));
+        daoProvider.daoFor(entityClass).deleteByQuery(query);
+    }
+
+    private static <T extends IDaoEntity> List<T> findAllByField(IEntityDao<T> dao, String field, String value) {
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq(field, value));
+        return dao.findAllByQuery(query);
     }
 
     @Override

@@ -55,7 +55,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         testConfigFile = "classpath:nop-datav-auth-test.yaml")
 @NopTestProperty(name = "nop.auth.graphql.enable-audit", value = "true")
 @NopTestProperty(name = "nop.auth.graphql.audit-mutation-patterns",
-        value = "NopDatavDashboard__*,NopDatavPanel__*,NopDatavFilterState__*")
+        value = "NopDatavDashboard__*,NopDatavPanel__*,NopDatavFilterState__*,NopDatavDashboardShare__*")
 @NopTestProperty(name = "nop.auth.graphql.audit-query-patterns",
         value = "NopDatavDashboard__getPublishedDashboard")
 public class TestNopDatavAuditLog extends AbstractNopDatavAuthTest {
@@ -154,6 +154,35 @@ public class TestNopDatavAuditLog extends AbstractNopDatavAuthTest {
         // No record should exist because findPage doesn't match audit patterns
         assertTrue(log == null || !containsOperation(log, "NopDatavDashboard__findPage"),
                 "findPage should NOT be audited (not in audit patterns)");
+    }
+
+    /**
+     * Share management mutation audit (plan 2026-08-14-2020-1 Phase 4): {@code NopDatavDashboardShare__*}
+     * in audit-mutation-patterns → revokeShare (owner-guarded management mutation) 真实产生审计记录。
+     * 防 pattern 拼写/顺序错误静默失效（application.yaml 与本测试 patterns 保持一致）。
+     */
+    @Test
+    public void testAuditLog_shareManagementMutation() {
+        NopDatavDashboard dashboard = saveDashboard("dash-audit-share", "audit-share");
+        io.nop.datav.dao.entity.NopDatavDashboardShare share = seedShare("share-audit-1", dashboard.getDashboardId());
+        setUserContext("admin-user", "admin");
+
+        long beginTime = CoreMetrics.currentTimeMillis();
+        Map<String, Object> data = new HashMap<>();
+        data.put("shareId", share.getShareId());
+        ApiRequest<Map<String, Object>> request = new ApiRequest<>();
+        request.setData(data);
+        IGraphQLExecutionContext ctx = graphQLEngine.newRpcContext(
+                GraphQLOperationType.mutation, "NopDatavDashboardShare__revokeShare", request);
+        ApiResponse<?> result = FutureHelper.syncGet(graphQLEngine.executeRpcAsync(ctx));
+        assertEquals(0, result.getStatus(), "revokeShare should succeed: " + result);
+
+        graphQLLogger.onRpcExecute(ctx, beginTime, result, null);
+        flushAudit();
+
+        NopAuthOpLog log = findLogByOperation("NopDatavDashboardShare__revokeShare");
+        assertNotNull(log, "share management mutation should be audited (NopDatavDashboardShare__* pattern)");
+        assertEquals(0, log.getResultStatus(), "resultStatus should be 0 for successful revokeShare");
     }
 
     /**
@@ -296,5 +325,22 @@ public class TestNopDatavAuditLog extends AbstractNopDatavAuthTest {
         d.setUpdateTime(new Timestamp(now));
         daoProvider.daoFor(NopDatavDashboard.class).saveEntityDirectly(d);
         return d;
+    }
+
+    private io.nop.datav.dao.entity.NopDatavDashboardShare seedShare(String shareId, String dashboardId) {
+        long now = System.currentTimeMillis();
+        io.nop.datav.dao.entity.NopDatavDashboardShare share =
+                new io.nop.datav.dao.entity.NopDatavDashboardShare();
+        share.setShareId(shareId);
+        share.setShareToken("token-" + shareId);
+        share.setDashboardId(dashboardId);
+        share.setEnabled((byte) 1);
+        share.setVersion(0L);
+        share.setCreatedBy("admin-user");
+        share.setCreateTime(new Timestamp(now));
+        share.setUpdatedBy("admin-user");
+        share.setUpdateTime(new Timestamp(now));
+        daoProvider.daoFor(io.nop.datav.dao.entity.NopDatavDashboardShare.class).saveEntityDirectly(share);
+        return share;
     }
 }

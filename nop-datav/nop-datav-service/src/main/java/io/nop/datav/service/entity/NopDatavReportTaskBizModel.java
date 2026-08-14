@@ -26,6 +26,8 @@ import io.nop.datav.service.report.ReportDeliveryExecutor;
 import jakarta.inject.Inject;
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.Set;
+import java.util.function.BiConsumer;
 
 import static io.nop.datav.service.NopDatavErrors.ARG_CRON_EXPR;
 import static io.nop.datav.service.NopDatavErrors.ARG_REPORT_TASK_ID;
@@ -41,7 +43,10 @@ import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_REPORT_TASK_NOT_FOUN
  * 报告任务属看板 owner 可管理对象（schedule-report-design.md §8）。</p>
  *
  * <p><b>调度注册联动</b>：save（status=ENABLED）/enableReportTask 调 {@link NopDatavReportScheduler#registerTask}；
- * disableReportTask/delete 调 {@link NopDatavReportScheduler#unregisterTask}。使配置变更即时生效（无需重启）。</p>
+ * disableReportTask 调 {@link NopDatavReportScheduler#unregisterTask}；<b>delete 经覆写
+ * {@code doDeleteEntity} 调 {@link NopDatavReportScheduler#unregisterTask}</b>（Gap #3 修复：标准
+ * {@code delete(id)} 路径只调 2 参 deprecated {@code afterEntityChange}，3 参覆写在该路径不触发，
+ * 见 schedule-report-design.md §26）。使配置变更即时生效（无需重启）。</p>
  *
  * <p><b>手动触发</b>：{@link #triggerReportNow} 直接调 {@link ReportDeliveryExecutor#execute}
  * （triggerSource=manual），不依赖 cron 触发。</p>
@@ -71,6 +76,22 @@ public class NopDatavReportTaskBizModel extends CrudBizModel<NopDatavReportTask>
             } else {
                 reportScheduler.unregisterTask(entity.getReportTaskId());
             }
+        }
+    }
+
+    /**
+     * Gap #3 修复（plan 2026-08-14-2020-1）：标准 {@code delete(id)} / {@code batchDelete} /
+     * {@code deleteByQuery} 均虚分派到本方法；删除后即时注销 cron job（原先 3 参
+     * {@code afterEntityChange} 覆写在 delete 路径不触发，job 进程内残留直至重启）。
+     */
+    @Override
+    protected void doDeleteEntity(@Name("entity") NopDatavReportTask entity,
+                                  @Name("refNamesToCheck") Set<String> refNamesToCheck,
+                                  @Name("prepareDelete") BiConsumer<NopDatavReportTask, IServiceContext> prepareDelete,
+                                  IServiceContext context) {
+        super.doDeleteEntity(entity, refNamesToCheck, prepareDelete, context);
+        if (reportScheduler != null) {
+            reportScheduler.unregisterTask(entity.getReportTaskId());
         }
     }
 

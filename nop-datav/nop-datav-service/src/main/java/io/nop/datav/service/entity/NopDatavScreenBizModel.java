@@ -13,6 +13,7 @@ import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.api.IDaoEntity;
+import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.datav.biz.INopDatavScreenBiz;
 import io.nop.datav.biz.PanelComponentMeta;
@@ -31,6 +32,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.BiConsumer;
 
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_SCREEN_NOT_FOUND;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_SCREEN_SNAPSHOT_NOT_FOUND;
@@ -42,6 +45,11 @@ import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_SCREEN_SNAPSHOT_VERS
  * <p>标准 CRUD（继承 CrudBizModel）+ publish/getPublished/rollback（复用 D0 主表+快照表模式，操作
  * {@link NopDatavScreenSnapshot}）+ {@code getScreenLayout}（按 Phase 1 契约读已发布快照并返回
  * 解析后的 {@link ScreenLayoutConfig} + 适配配置）。</p>
+ *
+ * <p><b>删除生命周期（plan 2026-08-14-2020-1，D1/D4/D5 裁定）</b>：标准 {@code delete(id)} 路径
+ * （含 batchDelete/deleteByQuery 收敛的 {@code doDeleteEntity}）在主表行删除后级联物理删除
+ * ScreenWidget 与 ScreenSnapshot（快照处置裁定见 permission-sharing-design.md「删除生命周期与分享吊销」）。
+ * 任一子步骤失败显式抛错。ScreenWidget 无 alert/share/report 关联实体（D4），无调度停用联动。</p>
  *
  * <p>action 经 {@code requireEntity → checkDataAuth}；权限点 + 角色绑定定义于
  * {@code nop-datav-web/.../nop/datav/auth/nop-datav.action-auth.xml}，
@@ -65,6 +73,33 @@ public class NopDatavScreenBizModel extends CrudBizModel<NopDatavScreen>
         setEntityName(NopDatavScreen.class.getName());
         // 直接引用 PanelComponentRegistry 单例（D1-1 注册表，代码构建自包含，不依赖 IoC 注入）
         this.layoutParser = new ScreenLayoutParser(PanelComponentRegistry.getInstance());
+    }
+
+    // ==================== 删除生命周期级联（plan 2026-08-14-2020-1） ====================
+
+    /**
+     * 标准删除路径级联挂接点（D5 裁定）：{@code delete(id)} / {@code batchDelete} / {@code deleteByQuery}
+     * 均虚分派到本方法；级联在 {@code super} 之后执行（权限校验通过后才产生副作用）。
+     */
+    @Override
+    protected void doDeleteEntity(@Name("entity") NopDatavScreen entity,
+                                  @Name("refNamesToCheck") Set<String> refNamesToCheck,
+                                  @Name("prepareDelete") BiConsumer<NopDatavScreen, IServiceContext> prepareDelete,
+                                  IServiceContext context) {
+        super.doDeleteEntity(entity, refNamesToCheck, prepareDelete, context);
+        String screenId = entity.getScreenId();
+        deleteAllByScreen(daoProvider(), NopDatavScreenWidget.class, screenId);
+        deleteAllByScreen(daoProvider(), NopDatavScreenSnapshot.class, screenId);
+    }
+
+    /**
+     * 按 screenId 物理删除子表全部行（D1：ScreenWidget / ScreenSnapshot 级联删除）。
+     */
+    private void deleteAllByScreen(IDaoProvider daoProvider, Class<? extends IDaoEntity> entityClass,
+                                   String screenId) {
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq("screenId", screenId));
+        daoProvider.daoFor(entityClass).deleteByQuery(query);
     }
 
     @Override
