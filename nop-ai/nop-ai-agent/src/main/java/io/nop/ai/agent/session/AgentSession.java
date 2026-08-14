@@ -1,6 +1,8 @@
 package io.nop.ai.agent.session;
 
+import io.nop.ai.agent.compact.InMemorySpillStore;
 import io.nop.ai.agent.compact.InSessionCompactionArchive;
+import io.nop.ai.agent.compact.ISpillStore;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.api.chat.messages.ChatMessage;
@@ -75,6 +77,20 @@ public class AgentSession {
      * {@link #compactionArchive} (per-event addressing vs per-content hash).
      */
     private ICompactionSnapshotArchive compactionSnapshotArchive;
+
+    /**
+     * Per-session spill store for oversized tool results (design §3.3).
+     * Lazily initialised on first access — the write side
+     * ({@code AgentToolDispatcher} via {@code sessionStore.get(sessionId)})
+     * and the read side ({@code read-spill} tool via
+     * {@code AgentToolExecuteContext.getSession()}) both reach this same
+     * instance through the session, so spill→preview→read-back shares one
+     * host. Default-assembled with {@link InMemorySpillStore} (there is no
+     * null-store branch). {@code null} until the first spill; the session
+     * holds the only reference so the store is reclaimed when the session
+     * ends.
+     */
+    private ISpillStore spillStore;
 
     private AgentSession(String sessionId, String agentName, long createdAt) {
         this.sessionId = sessionId;
@@ -343,6 +359,42 @@ public class AgentSession {
      */
     public void setCompactionArchive(ICompactionArchive compactionArchive) {
         this.compactionArchive = compactionArchive;
+    }
+
+    /**
+     * Return the per-session spill store, lazily initialising it on first
+     * access (design §3.3). The write side ({@code AgentToolDispatcher})
+     * reaches this instance to PUT oversized tool results; the read side
+     * ({@code read-spill} tool) reads them back through the same instance.
+     * Default-assembled with {@link InMemorySpillStore} — always present.
+     *
+     * @return the per-session spill store; never null after this call
+     */
+    public ISpillStore getOrCreateSpillStore() {
+        if (spillStore == null) {
+            spillStore = new InMemorySpillStore(sessionId);
+        }
+        return spillStore;
+    }
+
+    /**
+     * Return the existing per-session spill store, or {@code null} when no
+     * spill has occurred yet (no store materialised). Used by read-only paths
+     * that must not force materialisation.
+     *
+     * @return the per-session spill store, or {@code null} if none materialised
+     */
+    public ISpillStore getSpillStore() {
+        return spillStore;
+    }
+
+    /**
+     * Test/diagnostics hook for directly inspecting the spill store.
+     * Production code should prefer {@link #getOrCreateSpillStore()} (write
+     * side) or {@link #getSpillStore()} (read side).
+     */
+    public void setSpillStore(ISpillStore spillStore) {
+        this.spillStore = spillStore;
     }
 
     /**

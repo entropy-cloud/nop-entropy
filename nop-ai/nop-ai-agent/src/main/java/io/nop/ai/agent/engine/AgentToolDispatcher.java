@@ -308,10 +308,7 @@ if (!allowedCalls.isEmpty()) {
         if ("success".equals(toolResult.getStatus()) && toolResult.getError() == null) {
             String resultText = toolResult.getOutput() != null ? toolResult.getOutput().getBody() : "";
             resultText = resultText != null ? resultText : "";
-            resultText = ToolResultTruncator.truncateIfAllowed(
-                    resultText,
-                    ToolResultTruncator.DEFAULT_TRUNCATION_THRESHOLD_CHARS,
-                    toolName);
+            resultText = spillIfOversized(sessionId, resultText, toolName);
             toolResponse = ChatToolResponseMessage.fromToolCall(chatToolCall, resultText);
             toolStatus = "success";
         } else {
@@ -451,6 +448,66 @@ if (!allowedCalls.isEmpty()) {
                     + "(iteration={}). session={}",
                     steeringMessages.size(), ctx.getCurrentIteration(), sessionId);
         }
+    }
+
+    /**
+     * Spill-to-store path for oversized successful tool results (design §3.3).
+     * <p>
+     * When the result exceeds the inline threshold AND the tool is
+     * spillable (not in {@link ToolResultTruncator#NON_TRUNCATABLE_TOOLS}),
+     * the full text is PUT into the session's spill store and the inline
+     * content becomes a bounded preview + {@code [SPILL_REF id=...]} marker.
+     * <p>
+     * Degradation semantics (design §3.3 adjudication):
+     * <ul>
+     *   <li><b>put failure</b> (memory/capacity) → fall back to plain
+     *       truncation and LOG.warn (tool name + reason + bytes) — never
+     *       silently drop.</li>
+     *   <li><b>null-session</b> (session not registered in the store, e.g.
+     *       direct-builder test wiring) → silent truncation, no warn — the
+     *       unassembled case is not a failure.</li>
+     *   <li><b>NON_TRUNCATABLE_TOOLS</b> (ask-oracle/ask-human) → exempt,
+     *       full text stays inline.</li>
+     * </ul>
+     *
+     * @param sessionId the current session id, used to resolve the session's
+     *                  spill store; may be {@code null} (unassembled wiring)
+     * @param resultText the successful tool result text to inspect
+     * @param toolName  the tool that produced the result (exemption check)
+     * @return the text to keep inline: the original when below the threshold
+     *         or exempt, the preview + {@code [SPILL_REF id=...]} marker when
+     *         spilled, or a plain truncation on any degraded path
+     */
+    private String spillIfOversized(final String sessionId, final String resultText,
+                                    final String toolName) {
+        if (resultText.length() <= ToolResultTruncator.DEFAULT_TRUNCATION_THRESHOLD_CHARS) {
+            return resultText;
+        }
+        if (toolName != null
+                && ToolResultTruncator.NON_TRUNCATABLE_TOOLS.contains(toolName)) {
+            return resultText;
+        }
+        if (sessionStore != null && sessionId != null) {
+            AgentSession session = sessionStore.get(sessionId);
+            if (session != null) {
+                try {
+                    String spillId = session.getOrCreateSpillStore().put(resultText);
+                    String preview = ToolResultTruncator.truncate(resultText,
+                            ToolResultTruncator.DEFAULT_TRUNCATION_THRESHOLD_CHARS);
+                    LOG.debug("Tool result spilled: tool={}, bytes={}, spillId={}, session={}",
+                            toolName, resultText.length(), spillId, sessionId);
+                    return preview + "\n\n[SPILL_REF id=" + spillId
+                            + "] Full result stored; use read-spill to retrieve.";
+                } catch (Exception e) {
+                    LOG.warn("Spill failed for tool {} ({} bytes, session={}), "
+                                    + "degrading to truncation: {}",
+                            toolName, resultText.length(), sessionId, e.toString());
+                }
+            }
+            // null-session: unassembled wiring, not a failure — silent truncation.
+        }
+        return ToolResultTruncator.truncateIfAllowed(resultText,
+                ToolResultTruncator.DEFAULT_TRUNCATION_THRESHOLD_CHARS, toolName);
     }
 
 }

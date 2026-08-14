@@ -20,6 +20,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Context-compaction orchestration for the ReAct loop (extracted from
@@ -153,6 +155,7 @@ public class AgentCompactionCoordinator {
                         + " (ratio " + ratio(result.getTokensAfter(), result.getTokensBefore()) + ")"
                         + ", messages " + result.getOriginalSize() + "->" + result.getCompactedSize()
                         + " (ratio " + ratio(result.getCompactedSize(), result.getOriginalSize()) + ")"
+                        + ", shadowed=" + result.getShadowedTokenCount()
                         + ", snapshotId=" + snapshotId;
                 String compactionSessionId = ctx.getSessionId();
                 long compactExecStart = ctx.getStartTimeMs();
@@ -171,6 +174,20 @@ public class AgentCompactionCoordinator {
                         ctx.getMessages().size(),
                         ctx.getTokensUsed()));
                 checkpointSeq[0]++;
+
+                // Design §3.2: publish the COMPACTION event AFTER the
+                // POST_COMPACT hook and AFTER the COMPACTION checkpoint was
+                // written, so subscribers observe the final compacted state.
+                // Payload values share the same source as the checkpoint's
+                // compactSummary (tokensBefore/tokensAfter/shadowedTokenCount/
+                // snapshotId). Emitted only on real compaction success.
+                Map<String, Object> compactionPayload = new HashMap<>();
+                compactionPayload.put("tokensBefore", result.getTokensBefore());
+                compactionPayload.put("tokensAfter", result.getTokensAfter());
+                compactionPayload.put("shadowedTokenCount", result.getShadowedTokenCount());
+                compactionPayload.put("snapshotId", snapshotId);
+                hookInvoker.publishEvent(AgentEventType.COMPACTION,
+                        compactionSessionId, agentName, compactionPayload);
 
                 // The persisted session holds the pre-compaction message
                 // list, so the persisted session must be re-synchronized.

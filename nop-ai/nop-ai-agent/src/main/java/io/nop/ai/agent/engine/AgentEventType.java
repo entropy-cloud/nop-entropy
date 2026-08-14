@@ -104,5 +104,25 @@ public enum AgentEventType {
      * (no denial reset). The event payload carries {@code sessionId} and
      * {@code agentName} for audit trail.
      */
-    SESSION_WOKE
+    SESSION_WOKE,
+
+    /**
+     * Context compaction executed (design
+     * {@code ai-dev/design/nop-ai-agent/nop-ai-agent-context-compaction-economics.md}
+     * §3.2): the compaction pipeline actually reduced the context
+     * ({@code compactedMessages} replaced the history, tokens dropped below
+     * the pre-compaction level). Published by the
+     * {@code AgentCompactionCoordinator} after the POST_COMPACT hook and after
+     * the COMPACTION checkpoint was written, so subscribers observe the final
+     * compacted state. The event payload carries {@code tokensBefore},
+     * {@code tokensAfter}, {@code shadowedTokenCount} (prompt tokens removed
+     * from the visible context, design §3.2), and {@code snapshotId} (null
+     * when no snapshot archive was available) for audit trail — values are
+     * the same source as the COMPACTION checkpoint's compactSummary.
+     * <p>
+     * Semantically distinct from {@link #FORCED_STOP} (context overflow hard
+     * stop with best-effort final summary): COMPACTION reports a successful
+     * mid-loop context reduction, not a terminal stop.
+     */
+    COMPACTION
 }

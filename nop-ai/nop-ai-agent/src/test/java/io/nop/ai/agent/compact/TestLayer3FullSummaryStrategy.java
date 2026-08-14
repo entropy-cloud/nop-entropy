@@ -6,6 +6,7 @@ import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.agent.session.CompactionResult;
 import io.nop.ai.agent.session.CompactConfig;
 import io.nop.ai.agent.support.ChatResponseFixtures;
+import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;
@@ -34,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestLayer3FullSummaryStrategy {
@@ -50,6 +52,46 @@ public class TestLayer3FullSummaryStrategy {
         m.setName("test-agent");
         AgentExecutionContext execCtx = new AgentExecutionContext(m);
         return new CompactionContext(messages, config(0.15, 5), "s1", "agent1", execCtx, null);
+    }
+
+    private CompactionContext ctxWith(List<ChatMessage> messages, IChatService chatService,
+                                      ITokenEstimator estimator, int maxTokens) {
+        AgentModel m = new AgentModel();
+        m.setName("test-agent");
+        AgentExecutionContext execCtx = new AgentExecutionContext(m);
+        if (maxTokens > 0) {
+            ChatOptions chatOptions = new ChatOptions();
+            chatOptions.setMaxTokens(maxTokens);
+            execCtx.setChatOptions(chatOptions);
+        }
+        return new CompactionContext(messages, config(0.15, 5), "s1", "agent1", execCtx, estimator);
+    }
+
+    private ITokenEstimator fixedPerMessageEstimator(long tokensPerMessage) {
+        return new ITokenEstimator() {
+            @Override
+            public long estimateTokens(List<ChatMessage> messages) {
+                return tokensPerMessage * messages.size();
+            }
+
+            @Override
+            public void record(List<ChatMessage> messagesSent, int actualPromptTokens) {
+            }
+        };
+    }
+
+    private int countMiddleMessages(String middleContent) {
+        return middleContent.split("\\[(assistant|tool|user)\\]").length - 1;
+    }
+
+    private int findInstructionIndex(List<ChatMessage> requestMessages) {
+        for (int i = 0; i < requestMessages.size(); i++) {
+            String content = requestMessages.get(i).getContent();
+            if (content != null && content.startsWith("You are a conversation summarizer")) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     private void assistantWithToolCalls(List<ChatMessage> messages, String... ids) {
@@ -149,12 +191,12 @@ public class TestLayer3FullSummaryStrategy {
             messages.add(toolResponse(id, "result-" + i + "-" + "X".repeat(30)));
         }
 
-        AtomicReference<String> capturedPrompt = new AtomicReference<>();
+        AtomicReference<ChatRequest> capturedRequest = new AtomicReference<>();
 
         IChatService chatService = new IChatService() {
             @Override
             public CompletionStage<ChatResponse> callAsync(ChatRequest request, ICancelToken cancelToken) {
-                capturedPrompt.set(request.getLastUserPrompt());
+                capturedRequest.set(request);
                 return CompletableFuture.completedFuture(
                         ChatResponse.success(new ChatAssistantMessage("## Goal\nupdated goal")));
             }
@@ -170,14 +212,23 @@ public class TestLayer3FullSummaryStrategy {
 
         strategy.compact(ctx);
 
-        String prompt = capturedPrompt.get();
-        assertNotNull(prompt);
-        assertTrue(prompt.contains("<previous-summary>"),
-                "Incremental update must pass the previous summary into the prompt");
-        assertTrue(prompt.contains("old goal"),
-                "Previous summary content must be present in the prompt");
-        assertTrue(prompt.contains("Update the previous summary incrementally"),
-                "Prompt must instruct incremental update");
+        ChatRequest request = capturedRequest.get();
+        assertNotNull(request, "Summary request must be captured");
+        String instruction = null;
+        for (ChatMessage msg : request.getMessages()) {
+            if (msg instanceof ChatUserMessage && msg.getContent() != null
+                    && msg.getContent().startsWith("You are a conversation summarizer")) {
+                instruction = msg.getContent();
+                break;
+            }
+        }
+        assertNotNull(instruction, "Instruction message must be present in the summary request");
+        assertTrue(instruction.contains("<previous-summary>"),
+                "Incremental update must pass the previous summary into the instruction");
+        assertTrue(instruction.contains("old goal"),
+                "Previous summary content must be present in the instruction");
+        assertTrue(instruction.contains("Update the previous summary incrementally"),
+                "Instruction must request incremental update");
     }
 
     @Test
@@ -357,5 +408,175 @@ public class TestLayer3FullSummaryStrategy {
 
         assertTrue(summaryCalls.get() >= 1, "Wiring: pipeline must invoke the Layer 3 IChatService at runtime");
         assertNotNull(result.getCompactedMessages());
+    }
+
+    @Test
+    void headAnchorsPrefixedAsReusedObjects() {
+        List<ChatMessage> messages = buildLongConversation(40);
+        AtomicReference<ChatRequest> capturedRequest = new AtomicReference<>();
+
+        IChatService chatService = new IChatService() {
+            @Override
+            public CompletionStage<ChatResponse> callAsync(ChatRequest request, ICancelToken cancelToken) {
+                capturedRequest.set(request);
+                return CompletableFuture.completedFuture(
+                        ChatResponse.success(new ChatAssistantMessage("## Goal\nsummary")));
+            }
+
+            @Override
+            public Flow.Publisher<ChatStreamChunk> callStream(ChatRequest request, ICancelToken cancelToken) {
+                return subscriber -> {};
+            }
+        };
+
+        Layer3FullSummaryStrategy strategy = new Layer3FullSummaryStrategy(chatService);
+        CompactionContext ctx = ctxWith(messages, chatService, fixedPerMessageEstimator(10), -1);
+
+        CompactionResult result = strategy.compact(ctx);
+        assertNotNull(result.getCompactedMessages());
+
+        ChatRequest request = capturedRequest.get();
+        List<ChatMessage> requestMessages = request.getMessages();
+        int instructionIndex = findInstructionIndex(requestMessages);
+        assertTrue(instructionIndex > 0, "Instruction must follow the head prefix");
+        assertEquals(2, instructionIndex, "Head prefix must be system + first user goal");
+        assertSame(messages.get(0), requestMessages.get(0), "System message object must be reused (KV prefix)");
+        assertSame(messages.get(1), requestMessages.get(1), "First user goal object must be reused (KV prefix)");
+
+        ChatMessage last = requestMessages.get(requestMessages.size() - 1);
+        assertTrue(last instanceof ChatUserMessage && last.getContent() != null
+                        && last.getContent().startsWith("Conversation to summarize:"),
+                "Middle content must be the final user message");
+        assertEquals(66, countMiddleMessages(last.getContent()),
+                "Middle window must carry all messages between head and tail when the budget is not binding "
+                        + "(82 total - 2 head - 14 tail)");
+    }
+
+    @Test
+    void explicitCompressionPromptBudgetTrimsHeadAndMiddleOneToOne() {
+        List<ChatMessage> messages = buildLongConversation(40);
+        AtomicReference<ChatRequest> capturedRequest = new AtomicReference<>();
+
+        IChatService chatService = new IChatService() {
+            @Override
+            public CompletionStage<ChatResponse> callAsync(ChatRequest request, ICancelToken cancelToken) {
+                capturedRequest.set(request);
+                return CompletableFuture.completedFuture(
+                        ChatResponse.success(new ChatAssistantMessage("## Goal\nsummary")));
+            }
+
+            @Override
+            public Flow.Publisher<ChatStreamChunk> callStream(ChatRequest request, ICancelToken cancelToken) {
+                return subscriber -> {};
+            }
+        };
+
+        CompactConfig config = new CompactConfig(0, null, true,
+                CompactConfig.DEFAULT_MAX_RECENT_TOOL_RESULTS,
+                CompactConfig.DEFAULT_TRUNCATION_THRESHOLD_CHARS,
+                0.05, 0.9, 0.15, 5, "", 100);
+
+        AgentModel m = new AgentModel();
+        m.setName("test-agent");
+        AgentExecutionContext execCtx = new AgentExecutionContext(m);
+        CompactionContext ctx = new CompactionContext(messages, config, "s1", "agent1", execCtx,
+                fixedPerMessageEstimator(10));
+
+        Layer3FullSummaryStrategy strategy = new Layer3FullSummaryStrategy(chatService);
+        strategy.compact(ctx);
+
+        ChatRequest request = capturedRequest.get();
+        List<ChatMessage> requestMessages = request.getMessages();
+        int instructionIndex = findInstructionIndex(requestMessages);
+        assertTrue(instructionIndex > 0, "Instruction must be present");
+        for (int i = 0; i < instructionIndex; i++) {
+            assertSame(messages.get(i), requestMessages.get(i),
+                    "Head prefix must reuse original objects and stay untrimmed under its 50% share");
+        }
+        ChatMessage last = requestMessages.get(requestMessages.size() - 1);
+        assertTrue(last.getContent().startsWith("Conversation to summarize:"),
+                "Middle content must be the final user message");
+        int middleMessages = countMiddleMessages(last.getContent());
+        assertTrue(middleMessages > 0 && middleMessages <= 4,
+                "Middle window must be trimmed to its 50% share (budget 100 -> middle budget 40 -> <=4 msgs), got "
+                        + middleMessages);
+    }
+
+    @Test
+    void tinyCompressionPromptBudgetDegradesToLayer2() {
+        List<ChatMessage> messages = buildLongConversation(40);
+        AtomicInteger callCount = new AtomicInteger(0);
+
+        IChatService chatService = new IChatService() {
+            @Override
+            public CompletionStage<ChatResponse> callAsync(ChatRequest request, ICancelToken cancelToken) {
+                callCount.incrementAndGet();
+                return CompletableFuture.completedFuture(
+                        ChatResponse.success(new ChatAssistantMessage("## Goal\nsummary")));
+            }
+
+            @Override
+            public Flow.Publisher<ChatStreamChunk> callStream(ChatRequest request, ICancelToken cancelToken) {
+                return subscriber -> {};
+            }
+        };
+
+        CompactConfig config = new CompactConfig(0, null, true,
+                CompactConfig.DEFAULT_MAX_RECENT_TOOL_RESULTS,
+                CompactConfig.DEFAULT_TRUNCATION_THRESHOLD_CHARS,
+                0.05, 0.9, 0.15, 5, "", 30);
+
+        AgentModel m = new AgentModel();
+        m.setName("test-agent");
+        AgentExecutionContext execCtx = new AgentExecutionContext(m);
+        CompactionContext ctx = new CompactionContext(messages, config, "s1", "agent1", execCtx,
+                fixedPerMessageEstimator(10));
+
+        Layer3FullSummaryStrategy strategy = new Layer3FullSummaryStrategy(chatService);
+        CompactionResult result = strategy.compact(ctx);
+
+        assertEquals(0, callCount.get(),
+                "Budget too small to fit instruction + any middle message: no LLM call may happen");
+        assertNotNull(result, "Tiny budget must degrade, not fail");
+        assertTrue(result.getCompactedMessages() == null
+                        || result.getTokensAfter() <= result.getTokensBefore(),
+                "Degraded result must not increase tokens");
+    }
+
+    @Test
+    void dynamicBudgetFromTriggerWatermark() {
+        List<ChatMessage> messages = buildLongConversation(40);
+        AtomicReference<ChatRequest> capturedRequest = new AtomicReference<>();
+
+        IChatService chatService = new IChatService() {
+            @Override
+            public CompletionStage<ChatResponse> callAsync(ChatRequest request, ICancelToken cancelToken) {
+                capturedRequest.set(request);
+                return CompletableFuture.completedFuture(
+                        ChatResponse.success(new ChatAssistantMessage("## Goal\nsummary")));
+            }
+
+            @Override
+            public Flow.Publisher<ChatStreamChunk> callStream(ChatRequest request, ICancelToken cancelToken) {
+                return subscriber -> {};
+            }
+        };
+
+        Layer3FullSummaryStrategy strategy = new Layer3FullSummaryStrategy(chatService);
+
+        AgentModel m = new AgentModel();
+        m.setName("test-agent");
+        AgentExecutionContext execCtx = new AgentExecutionContext(m);
+        ChatOptions chatOptions = new ChatOptions();
+        chatOptions.setMaxTokens(1000);
+        execCtx.setChatOptions(chatOptions);
+        CompactionContext ctx = new CompactionContext(messages, config(0.15, 5), "s1", "agent1", execCtx,
+                fixedPerMessageEstimator(10));
+
+        strategy.compact(ctx);
+
+        assertNull(capturedRequest.get(),
+                "Watermark 1000*0.05/2=25 tokens: head gets 12 (1 group), middle gets 3 -> empty -> Layer 2 fallback, "
+                        + "no LLM call");
     }
 }

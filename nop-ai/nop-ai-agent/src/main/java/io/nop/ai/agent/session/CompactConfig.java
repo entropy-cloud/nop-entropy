@@ -11,6 +11,7 @@ public class CompactConfig {
     public static final double DEFAULT_KEEP_TAIL_PERCENT = 0.15;
     public static final int DEFAULT_TRIGGER_MAX_MESSAGES = 30;
     public static final String DEFAULT_COMPRESSION_MODEL = "";
+    public static final int DEFAULT_COMPRESSION_PROMPT_BUDGET = -1;
 
     private final int targetTokens;
     private final String strategy;
@@ -22,6 +23,7 @@ public class CompactConfig {
     private final double keepTailPercent;
     private final int triggerMaxMessages;
     private final String compressionModel;
+    private final int compressionPromptBudget;
 
     public CompactConfig(int targetTokens, String strategy, boolean preserveSystemMessages) {
         this(targetTokens, strategy, preserveSystemMessages,
@@ -33,13 +35,26 @@ public class CompactConfig {
         this(targetTokens, strategy, preserveSystemMessages,
                 maxRecentToolResults, truncationThresholdChars,
                 DEFAULT_TRIGGER_TOKEN_PERCENT, DEFAULT_FORCED_STOP_PERCENT,
-                DEFAULT_KEEP_TAIL_PERCENT, DEFAULT_TRIGGER_MAX_MESSAGES, DEFAULT_COMPRESSION_MODEL);
+                DEFAULT_KEEP_TAIL_PERCENT, DEFAULT_TRIGGER_MAX_MESSAGES, DEFAULT_COMPRESSION_MODEL,
+                DEFAULT_COMPRESSION_PROMPT_BUDGET);
     }
 
     public CompactConfig(int targetTokens, String strategy, boolean preserveSystemMessages,
                          int maxRecentToolResults, int truncationThresholdChars,
                          double triggerTokenPercent, double forcedStopPercent,
                          double keepTailPercent, int triggerMaxMessages, String compressionModel) {
+        this(targetTokens, strategy, preserveSystemMessages,
+                maxRecentToolResults, truncationThresholdChars,
+                triggerTokenPercent, forcedStopPercent,
+                keepTailPercent, triggerMaxMessages, compressionModel,
+                DEFAULT_COMPRESSION_PROMPT_BUDGET);
+    }
+
+    public CompactConfig(int targetTokens, String strategy, boolean preserveSystemMessages,
+                         int maxRecentToolResults, int truncationThresholdChars,
+                         double triggerTokenPercent, double forcedStopPercent,
+                         double keepTailPercent, int triggerMaxMessages, String compressionModel,
+                         int compressionPromptBudget) {
         this.targetTokens = targetTokens;
         this.strategy = strategy;
         this.preserveSystemMessages = preserveSystemMessages;
@@ -50,6 +65,7 @@ public class CompactConfig {
         this.keepTailPercent = keepTailPercent;
         this.triggerMaxMessages = triggerMaxMessages;
         this.compressionModel = compressionModel != null ? compressionModel : DEFAULT_COMPRESSION_MODEL;
+        this.compressionPromptBudget = compressionPromptBudget;
     }
 
     public static CompactConfig defaults() {
@@ -97,6 +113,16 @@ public class CompactConfig {
         return compressionModel;
     }
 
+    /**
+     * Explicit token budget for the Layer 3 summarization prompt. Negative
+     * sentinel ({@link #DEFAULT_COMPRESSION_PROMPT_BUDGET}) means the budget is
+     * derived dynamically: half of the compression trigger watermark
+     * ({@code maxContextTokens * triggerTokenPercent / 2}).
+     */
+    public int getCompressionPromptBudget() {
+        return compressionPromptBudget;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -110,6 +136,7 @@ public class CompactConfig {
                 && Double.compare(that.forcedStopPercent, forcedStopPercent) == 0
                 && Double.compare(that.keepTailPercent, keepTailPercent) == 0
                 && triggerMaxMessages == that.triggerMaxMessages
+                && compressionPromptBudget == that.compressionPromptBudget
                 && Objects.equals(strategy, that.strategy)
                 && Objects.equals(compressionModel, that.compressionModel);
     }
@@ -119,7 +146,7 @@ public class CompactConfig {
         return Objects.hash(targetTokens, strategy, preserveSystemMessages,
                 maxRecentToolResults, truncationThresholdChars,
                 triggerTokenPercent, forcedStopPercent, keepTailPercent,
-                triggerMaxMessages, compressionModel);
+                triggerMaxMessages, compressionModel, compressionPromptBudget);
     }
 
     @Override
@@ -135,6 +162,7 @@ public class CompactConfig {
                 ", keepTailPercent=" + keepTailPercent +
                 ", triggerMaxMessages=" + triggerMaxMessages +
                 ", compressionModel='" + compressionModel + '\'' +
+                ", compressionPromptBudget=" + compressionPromptBudget +
                 '}';
     }
 }

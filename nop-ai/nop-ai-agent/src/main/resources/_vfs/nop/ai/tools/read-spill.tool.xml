@@ -1,0 +1,20 @@
+<tool x:schema="/nop/schema/ai/tool/tool.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+      name="read-spill" meta="true">
+
+    <schema>
+        <read-spill>
+            <id>!string</id>
+        </read-spill>
+    </schema>
+
+    <description><![CDATA[Reads back the full text of an oversized tool result that was spilled to the session spill store (design §3.3). Use when a tool result contains a [SPILL_REF id=...] marker: the inline preview is truncated but the full content is retrievable.
+
+**Parameters**:
+- `id`: the spill id from the [SPILL_REF id=...] marker in the inline preview (e.g. "sess-1-spill-1-xxxx").
+
+**Semantics**:
+- Returns the full spilled tool-result text as a normal tool result (may itself be spilled/truncated again if oversized; SPILL_REF nesting is allowed).
+- An unknown or expired id returns an explicit error — the id is session-scoped and in-memory; it becomes invalid after a crash/restart (re-run the tool that produced it).
+- Not subject to activeTags filtering (meta tool).]]></description>
+
+</tool>

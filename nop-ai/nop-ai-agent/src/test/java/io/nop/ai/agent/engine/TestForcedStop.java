@@ -278,6 +278,17 @@ public class TestForcedStop {
 
     @Test
     void endToEndPipelineEscalationThenForcedStop() {
+        // maxTokens=10000 keeps the compression prompt budget (10000*0.8/2)
+        // large enough for the instruction + at least one middle group, while
+        // the proportional estimator still crosses the forced-stop watermark
+        // (122 messages * 100 > 10000 * 0.9). Under the KV prefix-preserving
+        // Layer 3 design, an exhausted budget degrades to Layer 2 instead of
+        // issuing a summarization call — this scenario asserts the callable
+        // branch.
+        ChatOptionsModel opts = new ChatOptionsModel();
+        opts.setMaxTokens(10000);
+        agentModel.setChatOptions(opts);
+
         DefaultAgentEventPublisher publisher = new DefaultAgentEventPublisher();
         List<AgentEvent> events = new ArrayList<>();
         publisher.addSubscriber(events::add);
@@ -286,12 +297,25 @@ public class TestForcedStop {
         AtomicInteger summaryCalls = new AtomicInteger(0);
         AtomicReference<String> capturedSummaryRequest = new AtomicReference<>();
 
+        ITokenEstimator proportionalEstimator = new ITokenEstimator() {
+            @Override
+            public long estimateTokens(List<ChatMessage> messages) {
+                return messages.size() * 500L;
+            }
+
+            @Override
+            public void record(List<ChatMessage> messagesSent, int actualPromptTokens) {
+            }
+        };
+
         // chatService serves both main reasoning (returns tool calls) and Layer 3 summary calls.
         IChatService chatService = new IChatService() {
             @Override
             public CompletionStage<ChatResponse> callAsync(ChatRequest request, ICancelToken cancelToken) {
-                String systemPrompt = request.getSystemPrompt();
-                if (systemPrompt != null && systemPrompt.contains("conversation summarizer")) {
+                boolean isSummary = request.getMessages().stream()
+                        .anyMatch(m -> m.getContent() != null
+                                && m.getContent().startsWith("You are a conversation summarizer"));
+                if (isSummary) {
                     summaryCalls.incrementAndGet();
                     capturedSummaryRequest.set(request.getLastUserPrompt());
                     return CompletableFuture.completedFuture(
@@ -315,14 +339,12 @@ public class TestForcedStop {
                 new Layer3FullSummaryStrategy(chatService)
         );
 
-        FixedEstimator estimator = new FixedEstimator(950);
-
         ReActAgentExecutor executor = ReActAgentExecutor.builder()
                 .chatService(chatService)
                 .toolManager(trackingToolManager(toolCalls))
                 .eventPublisher(publisher)
                 .contextCompactor(pipeline)
-                .tokenEstimator(estimator)
+                .tokenEstimator(proportionalEstimator)
                 .build();
 
         AgentExecutionContext ctx = buildContext();
@@ -342,6 +364,8 @@ public class TestForcedStop {
         // The pipeline (Layer 3) must have run during the forced-stop final summary
         assertTrue(summaryCalls.get() >= 1,
                 "End-to-end: the Layer 3 summarization IChatService must be invoked during forced stop");
+        assertNotNull(capturedSummaryRequest.get(),
+                "End-to-end: the summary request must carry a middle window prompt");
 
         // No tool calls after forced stop
         assertEquals(0, toolCalls.get(),

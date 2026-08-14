@@ -10,11 +10,14 @@ import io.nop.ai.agent.hook.HookResult;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.agent.session.CompactionResult;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.api.chat.messages.ChatMessage;
+import io.nop.ai.api.chat.messages.ChatToolCall;
+import io.nop.ai.api.chat.messages.ChatToolResponseMessage;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
 import io.nop.ai.api.chat.stream.ChatStreamChunk;
 import io.nop.ai.core.model.ChatOptionsModel;
@@ -43,6 +46,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestCompactionInReActLoop {
@@ -330,5 +334,71 @@ public class TestCompactionInReActLoop {
 
         AgentExecutionResult result = executor.execute(ctx).toCompletableFuture().join();
         assertEquals(AgentExecStatus.completed, result.getStatus());
+    }
+
+    @Test
+    void layer3SummaryRequestDistinctFromMainLoopRequests() {
+        AtomicInteger summaryCalls = new AtomicInteger(0);
+        AtomicInteger mainLoopCalls = new AtomicInteger(0);
+        AtomicReference<ChatRequest> lastSummaryRequest = new AtomicReference<>();
+        List<ChatRequest> allRequests = Collections.synchronizedList(new ArrayList<>());
+
+        IChatService chatService = new IChatService() {
+            @Override
+            public CompletionStage<ChatResponse> callAsync(ChatRequest request, ICancelToken cancelToken) {
+                allRequests.add(request);
+                boolean isSummary = request.getMessages().stream()
+                        .anyMatch(m -> m.getContent() != null
+                                && m.getContent().startsWith("You are a conversation summarizer"));
+                if (isSummary) {
+                    summaryCalls.incrementAndGet();
+                    lastSummaryRequest.set(request);
+                    return CompletableFuture.completedFuture(successResponse("## Goal\nsummary"));
+                }
+                mainLoopCalls.incrementAndGet();
+                return CompletableFuture.completedFuture(successResponse("done"));
+            }
+
+            @Override
+            public Flow.Publisher<ChatStreamChunk> callStream(ChatRequest request, ICancelToken cancelToken) {
+                return subscriber -> {};
+            }
+        };
+
+        PipelineCompactor pipeline = new PipelineCompactor(new Layer3FullSummaryStrategy(chatService));
+        ReActAgentExecutor executor = ReActAgentExecutor.builder()
+                .chatService(chatService).toolManager(simpleToolManager())
+                .contextCompactor(pipeline).build();
+
+        AgentExecutionContext ctx = buildContext();
+        ctx.addMessage(new ChatUserMessage("initial goal"));
+        for (int i = 0; i < 20; i++) {
+            String id = "tc-" + i;
+            ChatToolCall toolCall = new ChatToolCall();
+            toolCall.setId(id);
+            toolCall.setName("test-tool");
+            ChatResponseFixtures.foldedAssistantWithToolCalls(null, toolCall).forEach(ctx::addMessage);
+            ctx.addMessage(new ChatToolResponseMessage(id, "test-tool", "X".repeat(5000)));
+        }
+
+        AgentExecutionResult result = executor.execute(ctx).toCompletableFuture().join();
+        assertEquals(AgentExecStatus.completed, result.getStatus());
+        assertTrue(summaryCalls.get() >= 1, "Layer 3 summary request must be issued during the ReAct loop");
+        assertTrue(mainLoopCalls.get() >= 1, "Main loop requests must still be issued");
+
+        ChatRequest summaryRequest = lastSummaryRequest.get();
+        assertNotNull(summaryRequest);
+        int instructionIndex = -1;
+        for (int i = 0; i < summaryRequest.getMessages().size(); i++) {
+            String content = summaryRequest.getMessages().get(i).getContent();
+            if (content != null && content.startsWith("You are a conversation summarizer")) {
+                instructionIndex = i;
+                break;
+            }
+        }
+        assertTrue(instructionIndex >= 1,
+                "Summary request must prefix head anchors before the instruction (KV prefix reuse)");
+        assertEquals(summaryCalls.get() + mainLoopCalls.get(), allRequests.size(),
+                "Every request must be classified as either summary or main loop");
     }
 }

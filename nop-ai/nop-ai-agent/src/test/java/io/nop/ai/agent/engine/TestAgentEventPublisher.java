@@ -1,5 +1,6 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
 import io.nop.ai.api.exceptions.NopAiException;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.model.AgentModel;
@@ -8,6 +9,8 @@ import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.api.chat.messages.ChatToolCall;
+import io.nop.ai.api.chat.messages.ChatToolResponseMessage;
+import io.nop.ai.api.chat.messages.ChatUserMessage;
 import io.nop.ai.api.chat.stream.ChatStreamChunk;
 import io.nop.ai.toolkit.api.IToolExecuteContext;
 import io.nop.ai.toolkit.api.IToolManager;
@@ -229,6 +232,56 @@ public class TestAgentEventPublisher {
         int toolStartedIdx = indexOf(events, AgentEventType.TOOL_CALL_STARTED);
         int toolCompletedIdx = indexOf(events, AgentEventType.TOOL_CALL_COMPLETED);
         assertTrue(toolStartedIdx < toolCompletedIdx);
+    }
+
+    @Test
+    void testCompactionEventPublishedWithShadowedCount() {
+        AgentModel model = new AgentModel();
+        model.setTools(Collections.singleton("bash"));
+        AgentExecutionContext ctx = AgentExecutionContext.create(model, "compact-event-session");
+        ctx.addMessage(new ChatUserMessage("hello"));
+        for (int i = 0; i < 20; i++) {
+            String id = "tc-" + i;
+            ChatToolCall toolCall = new ChatToolCall();
+            toolCall.setId(id);
+            toolCall.setName("bash");
+            ChatResponseFixtures.foldedAssistantWithToolCalls(null, toolCall).forEach(ctx::addMessage);
+            ctx.addMessage(new ChatToolResponseMessage(id, "bash", "X".repeat(5000)));
+        }
+
+        ChatAssistantMessage doneMsg = new ChatAssistantMessage();
+        doneMsg.setContent("done");
+        IChatService chatService = createChatService(ChatResponse.success(doneMsg));
+        IToolManager toolManager = new NoOpToolManager();
+
+        DefaultAgentEventPublisher publisher = new DefaultAgentEventPublisher();
+        List<AgentEvent> events = Collections.synchronizedList(new ArrayList<>());
+        publisher.addSubscriber(events::add);
+
+        ReActAgentExecutor executor = ReActAgentExecutor.builder()
+                .chatService(chatService)
+                .toolManager(toolManager)
+                .eventPublisher(publisher)
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        AgentExecutionResult result = executor.execute(ctx).toCompletableFuture().join();
+        assertEquals(AgentExecStatus.completed, result.getStatus());
+
+        AgentEvent compaction = events.stream()
+                .filter(e -> e.getEventType() == AgentEventType.COMPACTION)
+                .findFirst().orElse(null);
+        assertNotNull(compaction, "COMPACTION event must be published when real compaction occurs");
+        assertNull(compaction.getError());
+
+        Map<String, Object> payload = compaction.getPayload();
+        assertNotNull(payload);
+        long before = ((Number) payload.get("tokensBefore")).longValue();
+        long after = ((Number) payload.get("tokensAfter")).longValue();
+        long shadowed = ((Number) payload.get("shadowedTokenCount")).longValue();
+        assertTrue(before > after, "Real compaction must reduce tokens");
+        assertEquals(Math.max(0, before - after), shadowed,
+                "shadowedTokenCount must equal tokensBefore - tokensAfter (same source as checkpoint)");
+        assertNull(payload.get("snapshotId"), "No session store wired -> snapshotId stays null");
     }
 
     @Test

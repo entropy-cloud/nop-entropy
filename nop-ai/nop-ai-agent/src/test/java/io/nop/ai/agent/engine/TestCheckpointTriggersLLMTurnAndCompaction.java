@@ -554,6 +554,8 @@ public class TestCheckpointTriggersLLMTurnAndCompaction {
         assertNull(compactionCp.getCallId(), "COMPACTION callId must be null");
         assertNotNull(compactionCp.getOutputSummary(),
                 "COMPACTION outputSummary must capture compaction metadata");
+        assertTrue(compactionCp.getOutputSummary().contains("shadowed="),
+                "COMPACTION outputSummary must carry the shadowed token count (design §3.2)");
         assertTrue(compactionCp.getMessageCount() > 0,
                 "COMPACTION messageCount must reflect the post-compaction message list");
         assertTrue(compactionCp.getSeq() >= 0);

@@ -28,6 +28,14 @@ public class CompactionResult {
      * constructed via the legacy 5/6-param constructors.
      */
     private final int compactedSize;
+    /**
+     * Shadowed token count — the number of prompt tokens that were silently
+     * removed from the visible context by compaction (design
+     * {@code ai-dev/design/nop-ai-agent/nop-ai-agent-context-compaction-economics.md}
+     * §3.2). A derived convenience dimension ({@code max(0, tokensBefore -
+     * tokensAfter)}); not an independently audited measure.
+     */
+    private final long shadowedTokenCount;
 
     public CompactionResult(String sessionId, long tokensBefore, long tokensAfter,
                             int retainedMessageCount, String snapshotId) {
@@ -60,6 +68,25 @@ public class CompactionResult {
                             int retainedMessageCount, String snapshotId,
                             List<ChatMessage> compactedMessages,
                             int originalSize, int compactedSize) {
+        this(sessionId, tokensBefore, tokensAfter, retainedMessageCount, snapshotId,
+                compactedMessages, originalSize, compactedSize,
+                Math.max(0, tokensBefore - tokensAfter));
+    }
+
+    /**
+     * Full constructor additionally carrying the shadowed token count (design
+     * §3.2). Legacy 5/6/8-param constructors default the shadowed count to
+     * {@code max(0, tokensBefore - tokensAfter)}.
+     *
+     * @param originalSize       message count before compaction
+     * @param compactedSize      message count after compaction
+     * @param shadowedTokenCount prompt tokens removed from the visible context
+     */
+    public CompactionResult(String sessionId, long tokensBefore, long tokensAfter,
+                            int retainedMessageCount, String snapshotId,
+                            List<ChatMessage> compactedMessages,
+                            int originalSize, int compactedSize,
+                            long shadowedTokenCount) {
         this.sessionId = sessionId;
         this.tokensBefore = tokensBefore;
         this.tokensAfter = tokensAfter;
@@ -68,6 +95,7 @@ public class CompactionResult {
         this.compactedMessages = compactedMessages;
         this.originalSize = originalSize;
         this.compactedSize = compactedSize;
+        this.shadowedTokenCount = shadowedTokenCount;
     }
 
     public String getSessionId() {
@@ -110,6 +138,14 @@ public class CompactionResult {
         return compactedSize;
     }
 
+    /**
+     * @return shadowed token count — prompt tokens removed from the visible
+     *         context by compaction (derived convenience dimension, design §3.2)
+     */
+    public long getShadowedTokenCount() {
+        return shadowedTokenCount;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -120,6 +156,7 @@ public class CompactionResult {
                 && retainedMessageCount == that.retainedMessageCount
                 && originalSize == that.originalSize
                 && compactedSize == that.compactedSize
+                && shadowedTokenCount == that.shadowedTokenCount
                 && Objects.equals(sessionId, that.sessionId)
                 && Objects.equals(snapshotId, that.snapshotId)
                 && Objects.equals(compactedMessages, that.compactedMessages);
@@ -128,7 +165,7 @@ public class CompactionResult {
     @Override
     public int hashCode() {
         return Objects.hash(sessionId, tokensBefore, tokensAfter, retainedMessageCount,
-                snapshotId, compactedMessages, originalSize, compactedSize);
+                snapshotId, compactedMessages, originalSize, compactedSize, shadowedTokenCount);
     }
 
     @Override
@@ -140,6 +177,7 @@ public class CompactionResult {
                 ", retainedMessageCount=" + retainedMessageCount +
                 ", originalSize=" + originalSize +
                 ", compactedSize=" + compactedSize +
+                ", shadowedTokenCount=" + shadowedTokenCount +
                 ", snapshotId='" + snapshotId + '\'' +
                 ", compactedMessages=" + (compactedMessages != null ? compactedMessages.size() + " messages" : "null") +
                 '}';

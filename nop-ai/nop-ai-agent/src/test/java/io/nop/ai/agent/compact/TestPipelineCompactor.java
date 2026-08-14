@@ -276,6 +276,22 @@ public class TestPipelineCompactor {
         assertNotNull(captured.get(), "Wiring: orchestrator must pass messages to the composed strategy");
         assertNotNull(result.getCompactedMessages());
         assertTrue(result.getTokensAfter() < result.getTokensBefore());
+        assertEquals(Math.max(0, result.getTokensBefore() - result.getTokensAfter()),
+                result.getShadowedTokenCount(),
+                "Pipeline single final construction point must fill the shadowed count with the real difference");
+    }
+
+    @Test
+    void legacyConstructorDefaultsShadowedToTokenDifference() {
+        CompactionResult legacy = new CompactionResult("s1", 1000, 300, 10, null);
+        assertEquals(700, legacy.getShadowedTokenCount(),
+                "Legacy 5-param constructor must default shadowed to max(0, tokensBefore - tokensAfter)");
+        assertEquals(700, new CompactionResult("s1", 1000, 300, 10, null, null).getShadowedTokenCount(),
+                "Legacy 6-param constructor must default shadowed the same way");
+        assertEquals(0, new CompactionResult("s1", 300, 500, 10, null, null).getShadowedTokenCount(),
+                "Legacy constructor must clamp negative shadowed counts to zero");
+        assertEquals(700, new CompactionResult("s1", 1000, 300, 10, null, null, 10, 5).getShadowedTokenCount(),
+                "Legacy 8-param constructor must default shadowed the same way");
     }
 
     @Test

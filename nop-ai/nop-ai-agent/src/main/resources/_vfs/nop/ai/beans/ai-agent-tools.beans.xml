@@ -41,4 +41,10 @@
          to the LLM regardless of activeTags filtering. -->
     <bean id="ai-agent-tools:set-active-tags" class="io.nop.ai.agent.tool.SetActiveTagsExecutor"/>
 
+    <!-- Design §3.3 (spill): read-side tool for oversized spilled tool results.
+         Reads the same per-session ISpillStore instance as the dispatcher
+         write side via AgentToolExecuteContext.getSession(). Same auto-collect
+         path. -->
+    <bean id="ai-agent-tools:read-spill" class="io.nop.ai.agent.tool.ReadSpillExecutor"/>
+
 </beans>
