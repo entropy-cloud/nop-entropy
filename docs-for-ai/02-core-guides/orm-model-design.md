@@ -27,6 +27,8 @@ Nop ORM 的列类型系统有两个独立维度：
 
 框架会自动完成 String ↔ Integer 的双向转换。
 
+> **强制规则：BIGINT 主键/外键必须显式声明 `stdDataType="string"`**。原因（JavaScript long 精度问题）与完整说明见「主键设计」节。
+
 ### stdSqlType 到 stdDataType 的默认映射
 
 每个 `stdSqlType` 枚举值都有固定的 `stdDataType` 默认值：
@@ -185,21 +187,30 @@ ORM 初始化时 `OrmModelInitializer.syncDomains()` 按以下规则把 domain �
 
 ```xml
 <column name="id" code="ID" displayName="主键" mandatory="true" primary="true"
-        propId="1" stdDataType="long" stdSqlType="BIGINT"
+        propId="1" stdDataType="string" stdSqlType="BIGINT"
         tagSet="seq-default" ui:show="X"/>
 ```
 
 关键要素：
-- `stdSqlType="BIGINT"`
-- `stdDataType="long"`
+- `stdSqlType="BIGINT"` — 数据库列保持 bigint
+- `stdDataType="string"` — **必须显式指定**，原因见下方「强制规则」
 - `tagSet="seq-default"` — 使用平台默认序列号生成器（`ISequenceGenerator.generateLong(key, useDefault=true)`，底层含 snowflake 等；**不是数据库原生自增**，见下文「为什么不用数据库自增」）
+
+> **强制规则：BIGINT 主键/外键必须显式声明 `stdDataType="string"`**
+>
+> JavaScript 的 Number 无法精确表示全部 64 位 long（安全精度约 2^53）。若依赖默认映射（BIGINT→`Long`），ID 经 GraphQL/JSON 序列化返回到前端后会**静默截断**，列表勾选、详情跳转、关联查询拿到的 ID 与数据库不一致。
+>
+> 显式 `stdDataType="string"` 后 Java 属性、GraphQL 类型、前端值全程为 String，且不影响任何平台机制：
+> - 主键生成：`OrmEntityIdGenerator.genSeq` 按 **DB 类型**（`stdSqlType` 的 stdDataType）决定生成方式，BIGINT 仍走 `generateLong` 序列号引擎；
+> - 类型转换：生成的 Entity setter 自动把 Long 序列值 `ConvertHelper.toString` 转为 String；
+> - 关联 join、读写、查询均以 DB 层 bigint 语义执行，与 Java 类型无关。
 
 ### 选择建议
 
 | 场景 | 推荐方案 | 理由 |
 |------|----------|------|
 | 分布式部署、多节点 | VARCHAR(36) + `tagSet="seq"` | UUID 全局唯一，无冲突 |
-| 单机部署、简单应用 | BIGINT + `tagSet="seq-default"` | 性能更好，存储更省 |
+| 单机部署、简单应用 | BIGINT + `tagSet="seq-default"`（必须配 `stdDataType="string"`） | 性能更好，存储更省 |
 | 需要跨系统合并数据 | VARCHAR(36) + `tagSet="seq"` | 字符串 ID 便于迁移 |
 | 已有数据库表结构 | 按现有结构选择 | 兼容性优先 |
 
@@ -669,13 +680,13 @@ _vfs/_init-data/
 引用 ErpMdEmployee 的 FK 列——**仅当员工记录本身是业务数据时**（用工合同、薪资、考勤、休假、绩效、部门归属等 HR 实体）：
 
 ```xml
-<column name="employeeId" stdDataType="long" stdSqlType="BIGINT"/>
+<column name="employeeId" stdDataType="string" stdSqlType="BIGINT"/>
 <to-one name="employee" refEntityName="app.erp.md.dao.entity.ErpMdEmployee">
     <join><on leftProp="employeeId" rightProp="id"/></join>
 </to-one>
 ```
 
-- 员工主键是 `id`（BIGINT），不是 String UUID
+- 员工主键是 `id`（BIGINT，Java 类型为 String，见「主键设计」强制规则）
 - **不要加 `stdDomain="userId"`**
 - 需要 `<to-one>` 关联到 `ErpMdEmployee`（主数据，本模块或跨模块均可）
 - **操作人字段（pickerId/handlerId/operatorId/…）不要用员工引用**——见上节"操作人/责任人/归属列"
@@ -688,8 +699,8 @@ _vfs/_init-data/
 |------|------|-----|------|
 | 操作人/责任人/归属（ownerId, approverId, operatorId, assignedToId, teamLeaderId, pickerId, handlerId, requesterId, managerId, approvedBy, postedBy, closedBy） | `VARCHAR(36)` | `stdDomain="userId"` | 无 to-one |
 | 被动审计（createdBy, updatedBy） | `VARCHAR(50)` | `domain="createdBy"`（惯例） | 无 to-one |
-| HR 主体实体员工引用（合同/薪资/考勤/绩效上的 employeeId） | `BIGINT` | 无 | `<to-one>` → ErpMdEmployee |
-| 一般业务 FK | `BIGINT` | 无 | `<to-one>` → 业务实体 |
+| HR 主体实体员工引用（合同/薪资/考勤/绩效上的 employeeId） | `BIGINT` + `stdDataType="string"` | 无 | `<to-one>` → ErpMdEmployee |
+| 一般业务 FK | `BIGINT` + `stdDataType="string"` | 无 | `<to-one>` → 业务实体 |
 
 :::tip
 用户 ID 在 Nop 平台中是 String UUID（如 `nop_auth_user.userId`），不是 Long。因此引用用户的 FK 列必须用 `VARCHAR(36)`。如果在 ORM 中错误声明为 `BIGINT`，编译生成的 Java 代码会因类型不匹配（`getId()` vs `getUserId()`）而失败。

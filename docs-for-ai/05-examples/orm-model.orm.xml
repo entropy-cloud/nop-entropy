@@ -7,7 +7,7 @@
     - <orm> 根元素的完整属性集（x:schema / xmlns:x / ext:appName / ext:basePackageName / ext:entityPackageName / ext:mavenGroupId 等）
     - <domains> 公共字段域复用（delVersion / version / createTime / createdBy 等）
     - <dicts> 字典定义（含 i18n-en 多语言）
-    - <entity> 实体：主键策略（BIGINT + tagSet="seq-default"）、stdSqlType + stdDataType 分离、
+    - <entity> 实体：主键策略（BIGINT + stdDataType="string" + tagSet="seq-default"）、stdSqlType + stdDataType 分离、
       useLogicalDelete、versionProp/createTimeProp 等审计字段配置、tagSet="gid" 全局可见
     - <relations>：to-one（tagSet="pub"）、to-many（tagSet="pub,cascade-delete,insertable,updatable"）
     - <indexes> 与 <unique-keys>
@@ -75,8 +75,8 @@
                 versionProp="version" createTimeProp="createTime" createrProp="createdBy"
                 updateTimeProp="updateTime" updaterProp="updatedBy">
             <columns>
-                <!-- 主键：BIGINT + tagSet="seq-default"（平台 Sequence 生成，分布式安全） -->
-                <column name="id" code="ID" displayName="ID" propId="1" stdSqlType="BIGINT" stdDataType="long"
+                <!-- 主键：BIGINT + stdDataType="string"（强制，避免 JS long 精度问题）+ tagSet="seq-default"（平台 Sequence 生成，分布式安全） -->
+                <column name="id" code="ID" displayName="ID" propId="1" stdSqlType="BIGINT" stdDataType="string"
                         primary="true" mandatory="true" tagSet="seq-default" i18n-en:displayName='ID'/>
                 <!-- tagSet="var" 标记业务可变编码字段，会进入前端列表的搜索条件 -->
                 <column name="code" code="CODE" displayName="编码" propId="2" domain="code" mandatory="true"
@@ -147,11 +147,11 @@
                 versionProp="version" createTimeProp="createTime" createrProp="createdBy"
                 updateTimeProp="updateTime" updaterProp="updatedBy">
             <columns>
-                <column name="id" code="ID" displayName="ID" propId="1" stdSqlType="BIGINT" stdDataType="long"
+                <column name="id" code="ID" displayName="ID" propId="1" stdSqlType="BIGINT" stdDataType="string"
                         primary="true" mandatory="true" tagSet="seq-default" i18n-en:displayName='ID'/>
-                <!-- 外键字段：BIGINT + stdDataType="long"，命名 {refPropName}Id -->
+                <!-- 外键字段：BIGINT + stdDataType="string"（强制，与主键一致，见 orm-model-design.md 主键设计节），命名 {refPropName}Id -->
                 <column name="partnerId" code="PARTNER_ID" displayName="往来单位" propId="2" stdSqlType="BIGINT"
-                        stdDataType="long" mandatory="true" i18n-en:displayName='Partner'/>
+                        stdDataType="string" mandatory="true" i18n-en:displayName='Partner'/>
                 <column name="addressType" code="ADDRESS_TYPE" displayName="地址类型" propId="3" stdSqlType="VARCHAR"
                         precision="20" stdDataType="string" mandatory="true"
                         i18n-en:displayName='Address Type'/>
