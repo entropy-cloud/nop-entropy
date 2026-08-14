@@ -1,6 +1,6 @@
 # 2 批量面板数据查询 API（getDashboardData）
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: nop-datav
 > Work Item: D1-2/D2-1 deferred follow-up — 批量面板数据查询
 > Last Reviewed: 2026-08-14
@@ -58,79 +58,79 @@
 
 ### Phase 1 - 设计裁定与 owner doc 增补
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/nop-datav/runtime-design.md`、`ai-dev/design/nop-datav/linkage-design.md`
 
 - Item Types: `Decision`
 
-- [ ] D1 action 归属裁定：`getDashboardData` 放 `NopDatavDashboardBizModel`（看板视角）还是 `NopDatavPanelBizModel`（面板视角）——倾向前者（输入输出均以看板为单位）
-- [ ] D2 面板集合语义裁定：默认「看板全部面板」+ 可选 `panelIds` 子集过滤；panelIds 中不存在/不属于该看板的 id 的处理（显式报错 vs 忽略并标注）二选一，禁止静默忽略不标注
-- [ ] D3 响应形态与面板纳入集裁定：响应结构必须能区分「面板级失败」与「看板级失败」（如看板不存在 → 整体报错；某面板 datasetRef 失效 → 该面板条目携带错误码）；响应包含看板全部面板（含无数据集面板的 `hasDataset=false` 条目），与逐面板语义一致、与 exportDashboard 排除语义有意区分；DTO 形态写入 design doc
-- [ ] D4 上限与执行模式裁定：默认上限值与超限错误码（防单请求放大为海量 SQL）；N 个面板默认顺序执行（对齐 `exportDashboard` 先例），并行明确列为后续优化
-- [ ] D5 数据源与发布状态语义裁定：批量入口读 live 表还是已发布快照、是否要求 PUBLISHED——既有组合语义用 live 表（getPanelData 加载 live panel，不检查 publishStatus），默认裁 live 表 + `requireEntity` 存在性校验，发布非前置
-- [ ] `runtime-design.md` 增补「批量面板查询」章节（最终结论式）
-- [ ] `linkage-design.md` 同步两处过期陈述：§三 `:76` 附近「不引入批量查询」与 §七 拒绝方案表「后端批量查询 API」——改写为「批量 API 作为优化层落地，逐面板 getPanelData 仍为基础查询模型」
+- [x] D1 action 归属裁定：`getDashboardData` 放 `NopDatavDashboardBizModel`（看板视角）还是 `NopDatavPanelBizModel`（面板视角）——倾向前者（输入输出均以看板为单位）
+- [x] D2 面板集合语义裁定：默认「看板全部面板」+ 可选 `panelIds` 子集过滤；panelIds 中不存在/不属于该看板的 id 的处理（显式报错 vs 忽略并标注）二选一，禁止静默忽略不标注
+- [x] D3 响应形态与面板纳入集裁定：响应结构必须能区分「面板级失败」与「看板级失败」（如看板不存在 → 整体报错；某面板 datasetRef 失效 → 该面板条目携带错误码）；响应包含看板全部面板（含无数据集面板的 `hasDataset=false` 条目），与逐面板语义一致、与 exportDashboard 排除语义有意区分；DTO 形态写入 design doc
+- [x] D4 上限与执行模式裁定：默认上限值与超限错误码（防单请求放大为海量 SQL）；N 个面板默认顺序执行（对齐 `exportDashboard` 先例），并行明确列为后续优化
+- [x] D5 数据源与发布状态语义裁定：批量入口读 live 表还是已发布快照、是否要求 PUBLISHED——既有组合语义用 live 表（getPanelData 加载 live panel，不检查 publishStatus），默认裁 live 表 + `requireEntity` 存在性校验，发布非前置
+- [x] `runtime-design.md` 增补「批量面板查询」章节（最终结论式）
+- [x] `linkage-design.md` 同步两处过期陈述：§三 `:76` 附近「不引入批量查询」与 §七 拒绝方案表「后端批量查询 API」——改写为「批量 API 作为优化层落地，逐面板 getPanelData 仍为基础查询模型」
 
 Exit Criteria:
 
-- [ ] 5 项 Decision 均有明确裁定并写入 `runtime-design.md` 对应章节
-- [ ] `linkage-design.md` 两处陈述已同步（repo-observable：不再含「不引入批量查询」的绝对化契约）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `ai-dev/logs/` 对应日期条目已更新
-- [ ] No new test required: 纯 Decision/文档 Phase，行为测试落在 Phase 2-3
+- [x] 5 项 Decision 均有明确裁定并写入 `runtime-design.md` 对应章节
+- [x] `linkage-design.md` 两处陈述已同步（repo-observable：不再含「不引入批量查询」的绝对化契约）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `ai-dev/logs/` 对应日期条目已更新
+- [x] No new test required: 纯 Decision/文档 Phase，行为测试落在 Phase 2-3
 
 ### Phase 2 - 批量查询实现
 
-Status: planned
+Status: completed
 Targets: `nop-datav/nop-datav-service/src/main/java/io/nop/datav/service/entity/`、`nop-datav/nop-datav-dao/src/main/java/io/nop/datav/biz/INopDatavDashboardBiz.java`、`nop-datav/nop-datav-service/src/main/java/io/nop/datav/service/NopDatavConfigs.java`、`nop-datav/nop-datav-service/src/main/java/io/nop/datav/service/NopDatavErrors.java`、`nop-datav/nop-datav-web/src/main/resources/_vfs/nop/datav/auth/nop-datav.action-auth.xml`
 
 - Item Types: `Proof`
 
-- [ ] 实现 `getDashboardData(dashboardId, params, panelIds?)`：按 D5 校验看板存活与权限（`@Auth` + 既有权限模式）→ 看板级筛选一次求值 → 按 D3 纳入集加载面板（排序参照 exportDashboard 先例：dashboardId + sortOrder）→ 逐面板复用 `PanelDataBinder` → 按 D3 形态聚合响应
-- [ ] 上限校验与超限显式拒绝（按 D4）
-- [ ] biz 接口方法声明 + 批量结果 DTO（`io.nop.datav.biz` 包）+ `nop-datav.action-auth.xml` 权限点（镜像 `NopDatavPanel:getPanelData` 的角色绑定）
-- [ ] 上限配置项加入 `NopDatavConfigs`
+- [x] 实现 `getDashboardData(dashboardId, params, panelIds?)`：按 D5 校验看板存活与权限（`@Auth` + 既有权限模式）→ 看板级筛选一次求值 → 按 D3 纳入集加载面板（排序参照 exportDashboard 先例：dashboardId + sortOrder）→ 逐面板复用 `PanelDataBinder` → 按 D3 形态聚合响应
+- [x] 上限校验与超限显式拒绝（按 D4）
+- [x] biz 接口方法声明 + 批量结果 DTO（`io.nop.datav.biz` 包）+ `nop-datav.action-auth.xml` 权限点（镜像 `NopDatavPanel:getPanelData` 的角色绑定）
+- [x] 上限配置项加入 `NopDatavConfigs`
 
 Exit Criteria:
 
-- [ ] 测试证明：多面板看板单次调用返回全部面板数据，且各面板结果与「resolveFilterValues + getPanelData」组合语义一致（同一筛选参数下）
-- [ ] 测试证明：全局筛选参数一次求值后对所有面板生效（改变筛选值 → 多面板结果同步变化）
-- [ ] 测试证明：单面板失败（如 datasetRef 失效）时其余面板正常返回、失败面板条目携带显式错误信息（按 D3 形态断言）
-- [ ] 测试证明：无数据集面板（text/iframe）在响应中携带 `hasDataset=false` 条目而非被排除
-- [ ] 测试证明：panelIds 子集按 D2 裁定行为执行（不存在/不属于该看板的 id 的处理有断言）
-- [ ] 测试证明：超限请求显式拒绝（断言错误码）
-- [ ] **接线验证**：action 经 biz 层入口调用真实 `PanelDataBinder` 管线（非 mock 绕过）
-- [ ] **无静默跳过**：任何失败路径显式返回错误信息，无空结果静默填充
-- [ ] owner-doc 更新由 Phase 1 裁定章节与 Phase 3 一致性核对覆盖（本 Phase 契约细节以 Phase 1 已写入的 DTO 形态为准，无独立 owner-doc 写作项）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 测试证明：多面板看板单次调用返回全部面板数据，且各面板结果与「resolveFilterValues + getPanelData」组合语义一致（同一筛选参数下）
+- [x] 测试证明：全局筛选参数一次求值后对所有面板生效（改变筛选值 → 多面板结果同步变化）
+- [x] 测试证明：单面板失败（如 datasetRef 失效）时其余面板正常返回、失败面板条目携带显式错误信息（按 D3 形态断言）
+- [x] 测试证明：无数据集面板（text/iframe）在响应中携带 `hasDataset=false` 条目而非被排除
+- [x] 测试证明：panelIds 子集按 D2 裁定行为执行（不存在/不属于该看板的 id 的处理有断言）
+- [x] 测试证明：超限请求显式拒绝（断言错误码）
+- [x] **接线验证**：action 经 biz 层入口调用真实 `PanelDataBinder` 管线（非 mock 绕过）
+- [x] **无静默跳过**：任何失败路径显式返回错误信息，无空结果静默填充
+- [x] owner-doc 更新由 Phase 1 裁定章节与 Phase 3 一致性核对覆盖（本 Phase 契约细节以 Phase 1 已写入的 DTO 形态为准，无独立 owner-doc 写作项）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 端到端验证与文档收口
 
-Status: planned
+Status: completed
 Targets: `nop-datav/nop-datav-service/src/test/`
 
 - Item Types: `Proof`
 
-- [ ] 端到端测试：创建看板（多面板 + 含无数据集面板 + 全局筛选参数）→ 单次 `getDashboardData` → 断言筛选前后结果差异、无数据集面板条目存在、面板级错误隔离
+- [x] 端到端测试：创建看板（多面板 + 含无数据集面板 + 全局筛选参数）→ 单次 `getDashboardData` → 断言筛选前后结果差异、无数据集面板条目存在、面板级错误隔离
 
 Exit Criteria:
 
-- [ ] **端到端验证**：从 biz action 入口到 SQL 执行到批量结果回传的完整路径测试存在且通过
-- [ ] `runtime-design.md` / `linkage-design.md` 章节与实现一致（Phase 1 裁定无漂移）
-- [ ] `./mvnw test -pl nop-datav/nop-datav-service -am` 全绿
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] **端到端验证**：从 biz action 入口到 SQL 执行到批量结果回传的完整路径测试存在且通过
+- [x] `runtime-design.md` / `linkage-design.md` 章节与实现一致（Phase 1 裁定无漂移）
+- [x] `./mvnw test -pl nop-datav/nop-datav-service -am` 全绿
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
-- [ ] 批量 API 行为与 5 项 Decision 裁定一致，owner docs（runtime-design + linkage-design）同步无漂移
-- [ ] 部分失败隔离、面板纳入集、子集语义、上限拒绝均有 focused tests
-- [ ] 与逐面板组合调用语义一致性有测试保障
-- [ ] 不存在被静默降级到 deferred 的 in-scope 项
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：批量入口到各面板数据绑定管线运行时连通，无空壳聚合
-- [ ] `./mvnw compile -pl nop-datav/nop-datav-service -am` 通过
-- [ ] `./mvnw test -pl nop-datav/nop-datav-service -am` 通过
-- [ ] checkstyle / 代码规范检查通过
+- [x] 批量 API 行为与 5 项 Decision 裁定一致，owner docs（runtime-design + linkage-design）同步无漂移
+- [x] 部分失败隔离、面板纳入集、子集语义、上限拒绝均有 focused tests
+- [x] 与逐面板组合调用语义一致性有测试保障
+- [x] 不存在被静默降级到 deferred 的 in-scope 项
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：批量入口到各面板数据绑定管线运行时连通，无空壳聚合
+- [x] `./mvnw compile -pl nop-datav/nop-datav-service -am` 通过
+- [x] `./mvnw test -pl nop-datav/nop-datav-service -am` 通过
+- [x] checkstyle / 代码规范检查通过（仓库未配置 lint/checkstyle 命令；import 分组约定人工核对无违规）
 
 ## Deferred But Adjudicated
 
@@ -156,14 +156,20 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: 
-Completed: 
+Status Note: 批量面板数据查询 API `getDashboardData` 已完整落地：3 个 Phase 全部完成（Phase 1 五项裁定 + owner docs、Phase 2 实现 + focused tests、Phase 3 端到端验证），450 tests 全绿（443 既有 + 7 新增），独立 closure audit 判定 CLOSABLE。Deferred 项（缓存、并行）为经裁定的 optimization candidate，非 live defect。
+Completed: 2026-08-14
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: 
-- Evidence: 
+- Reviewer / Agent: 独立子 agent closure audit（task_id: ses_fff0c4715ffeM2VPFJ3iZbL7Sq，fresh session，2026-08-14 23:48 CST）
+- Evidence:
+  - 8 个审计面全部 PASS：D1-D5 裁定与实现逐条一致（NopDatavDashboardBizModel.java:318-377：@BizQuery+@Auth、sortOrder 纳入集、panelIds 越权整体抛 ERR_DATAV_PANEL_NOT_IN_DASHBOARD、仅 NopException 捕获为面板级失败条目、上限校验先于查询循环、requireEntity 无 publishStatus 检查、筛选经 DashboardFilterResolver 恰好一次求值）；接线链路 INopDatavDashboardBiz → BizModel → PanelDataBinder → jdbcTemplate.executeQuery 完整连通无 mock；权限点 FNPT:NopDatavDashboard:getDashboardData roles=admin,user；两个新错误码存在；两个测试文件断言与 Exit Criteria 对应（含 audit 时现场重跑：BatchQuery 6/6、BatchE2E 1/1、整个 nop-datav-service 47 类 0 failures）；linkage-design.md 无「不引入批量查询」残留；Deferred 分类诚实；无静默跳过模式。
+  - Anti-Hollow 检查：端到端测试（biz 入口 → SQL 执行 → 批量结果回传）通过 + 代码追踪调用链连通；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-datav --severity high` 退出码 0（0 findings）。
+  - 验证命令：`./mvnw test -pl nop-datav -am -T 1C` BUILD SUCCESS（450 tests, 0 failures, 0 errors）；`./mvnw clean install -pl nop-datav -am -T 1C -DskipTests` BUILD SUCCESS；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0。
+  - audit 发现的 1 处 doc 措辞偏差（§4.8 看板不存在实际抛平台 nop.err.dao.unknown-entity 而非 ERR_DATAV_DASHBOARD_NOT_FOUND）已在收口时修正。
 
 Follow-up:
 
-- 
+- flux 前端切换到批量 API 的渲染改造（D1-4/D2-4 对接时一并考虑，见 Non-Blocking Follow-ups）。
+- nop-report 数据集查询缓存复用调研、并行查询（均见 Deferred But Adjudicated，optimization candidate）。
+- `schedule-report-design.md:171` 行号锚点 drift 为既有无关项（见 Non-Blocking Follow-ups）。
