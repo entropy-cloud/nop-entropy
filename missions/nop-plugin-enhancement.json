@@ -1,0 +1,30 @@
+{
+  "name": "nop-plugin-enhancement",
+  "description": "nop-plugin 增强落地：plugin 框架与 IoC 解耦（api 零依赖）、加载/激活两态分离、IPluginScope effect 自管理（LIFO/quiescence）、coeffect 定义级+实例级条件激活、多实例（instanceKey/parent 层级/实例配置域）、getService 强类型生命周期代理、per-instance 命令路由、HMR、plugin 专属 plugin.xdef（不改 beans.xdef）、artifact SHA256 校验补齐。设计已七轮独立审查达成共识（ai-dev/design/nop-plugin/ 00-05），16 轮设计修正过程（含 11 条用户纠正）见 ai-dev/discussions/2026-08/2026-08-14-nop-plugin-design-revision.md。核心不变式：①nop-plugin-api 零依赖 IoC 类型；②IoC 仅实现层（公开接口不出现 IBeanContainer/BeansModel）；③activator 参数传递 activate(scope, config) 返回 Disposable（对齐 dsh apply(ctx, config)）；④effect 自管理不观测 IoC 内部；⑤存量第三方 IPlugin 实现兼容（isStateMachineAware 双路径）。待裁决点（第七轮放行条件）：P2-A HMR 配置快照（W6）、P2-C updateConfig×实例合并视图（W3/W5）、P2-D deactivate 父实例语义（W6）。",
+  "model": "opencode-go/deepseek-v4-flash",
+  "variant": "max",
+  "roadmapPath": "ai-dev/backlog/nop-plugin-enhancement-roadmap.md",
+  "plansDir": "ai-dev/plans",
+  "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
+  "auditsDir": "ai-dev/audits",
+  "sourceDir": ".",
+  "commands": {
+    "test": "./mvnw test -pl :nop-plugin-api,:nop-plugin-manager,:nop-plugin-support -am -T 1C",
+    "build": "./mvnw clean install -DskipTests -pl :nop-plugin-api,:nop-plugin-manager,:nop-plugin-support -am -T 1C",
+    "lint": "./mvnw checkstyle:check -pl :nop-plugin-api,:nop-plugin-manager,:nop-plugin-support -am -q 2>/dev/null || echo 'lint not configured'",
+    "typecheck": "./mvnw compile -pl :nop-plugin-api,:nop-plugin-manager,:nop-plugin-support -am -q 2>/dev/null || echo 'typecheck not configured'"
+  },
+  "prompts": {
+    "designDoc": "ai-dev/design/nop-plugin/01-architecture-baseline.md",
+    "visionDoc": "ai-dev/design/nop-plugin/00-vision.md",
+    "coverageDoc": "ai-dev/design/nop-plugin/02-dsh-usage-coverage.md",
+    "coeffectExampleDoc": "ai-dev/design/nop-plugin/03-coeffect-and-agent-example.md",
+    "dshComparisonDoc": "ai-dev/design/nop-plugin/04-interface-comparison.md",
+    "artifactLoadingDoc": "ai-dev/design/nop-plugin/05-artifact-loading-design.md",
+    "multiAuditPrompt": "ai-dev/skills/deep-audit-prompts.md",
+    "openAuditPrompt": "ai-dev/skills/open-ended-adversarial-review-prompt.md",
+    "planReviewer": "ai-dev/skills/plan-reviewer-prompt.md",
+    "closureAudit": "ai-dev/skills/plan-closure-audit-prompt.md"
+  },
+  "commitFormat": "feat(plugin): <description>"
+}

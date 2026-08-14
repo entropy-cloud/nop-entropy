@@ -17,6 +17,9 @@
 | `00-vision.md` | Vision | 增强目标、不可违反约束、non-goals、成功标准 |
 | `01-architecture-baseline.md` | Architecture Baseline | 状态模型、effect 系统化、coeffect 条件激活、HMR、核心接口契约、模块边界 |
 | `02-dsh-usage-coverage.md` | 评估 | 对照 dsh plugin 用法，评估 nop-plugin 覆盖度（支持/差距/Nop 优势） |
+| `03-coeffect-and-agent-example.md` | 使用示例 | coeffect 具体用法 + agent 场景完整组装示例（创建/激活/多实例/effect/coeffect/getService/层级/销毁）+ dsh 同场景对照（Cordis Service/cordis.yml/scope/fiber） |
+| `04-interface-comparison.md` | 接口对比 | nop-plugin 与 dsh 接口设计逐项对比（apply(ctx)/activator、ctx.<key>/getService、ctx.effect/scope.effect、fiber/createInstance、inject/coeffect 等） |
+| `05-artifact-loading-design.md` | artifact 加载 | 类加载模型（parent=平台、plugin 类从 jar）+ 加载器接口（URL 下载到本地 repository + SHA256 校验，缺省 IHttpClient 实现） |
 
 ## 阅读顺序
 

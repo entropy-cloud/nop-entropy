@@ -1,6 +1,6 @@
 # dsh plugin 用法在 nop-plugin 中的支持度评估
 
-**日期**：2026-08-14
+**日期**：2026-08-14（经独立审查第一轮修订）
 **范围**：对照 DeepSeek Harness（dsh/Cordis）对 plugin 的用法，评估 `nop-plugin` 设计（`00-vision` + `01-architecture-baseline`）的覆盖度
 **状态**：active
 
@@ -8,7 +8,7 @@
 
 ## 一、评估范围界定
 
-**plugin 核心职责（本评估范围）**：生命周期（加载/激活/卸载/多实例）、可逆副作用（effect）、配置层叠（Delta）、服务获取与隔离。
+**plugin 核心职责（本评估范围）**：生命周期（加载/激活/卸载）、可逆副作用（effect）、配置层叠（Delta）、服务获取与隔离。
 
 **不属于 plugin 评估范围**（独立基础设施 / agent 框架层，不误算为 plugin 差距）：
 - **事件总线**（emit/waterfall/parallel/serial）——独立基础设施，与 IoC 同级。dsh plugin 用它通信，但事件总线本身不是 plugin 职责。Nop 若需要，是独立设计。
@@ -18,15 +18,17 @@
 
 | # | dsh 用法 | dsh 机制（源） |
 |---|---|---|
-| A | 一切皆插件，无特权核心 | "everything is a plugin... no privileged core to patch"（architecture.md）；model adapter / tool registry / session log / agent loop 都是 plugin |
+| A | 一切皆插件，无特权核心 | "everything is a plugin... no privileged core to patch"（architecture.md） |
 | B | 注册即副作用，卸载 unwind | "registrations are effects that unwind when their plugin unloads"；`ctx.effect()`/`ctx.on()` 返回 disposer（AGENTS.md） |
 | C | 层叠配置组合 | profile → bundle → `cordis.patch.yml` → `--patch` 有序叠加（architecture.md / app-boot README） |
-| D | 能力接缝（三角色） | capability seam = Service Definition + Provider + Consumer，一个 provider swap 改变整个产品（glossary.md） |
+| D | 能力接缝（三角色） | capability seam = Service Definition + Provider + Consumer（glossary.md） |
 | E | per-agent 作用域 + shadowing | scope：per-agent 注册；shadowing：most-specific-wins 同名覆盖（glossary.md） |
-| F | 声明依赖、等服务可用 | `inject`：命名所需服务，等服务存在才加载，加载顺序由服务需求决定（cordis-primer.md） |
-| G | 热更新 | `watchUserPatches`：监听 patch 文件变化，事务性重组（app-boot README） |
-| H | 隔离域 | `isolate` realm：provider+consumer 共享一个 realm；realm table 让两个 fiber 解析同 key 到不同值（architecture.md / glossary.md） |
+| F | 声明依赖、等服务可用 | `inject`：命名所需服务，等服务存在才加载；服务变更则卸载重跑（cordis-primer.md / cordis-api registry） |
+| G | 热更新 | `watchUserPatches`：监听 patch 文件变化，事务性重组 patch 列表（app-boot README） |
+| H | 隔离域 | `ctx.isolate`：服务名级隔离（reads/writes of the service name resolve against the new label） |
 | I | 多实例（fiber） | 一个 component 多次实例化，各携带独立生命周期（论文 §4.1） |
+| J | 注册原语全集（服务 4 种 + 事件 5 种） | 服务：`Service` 子类自注册 / `ctx.provide(name, value)` / `ctx.accessor(name,{get,set})` / `ctx.set(name, value)`；事件：`ctx.on/emit/waterfall/parallel/serial`（事件总线，独立基础设施） |
+| K | **apply(ctx, config) 参数传递**（主通道） | plugin 是函数/类/对象，ctx **作为参数传入** `apply(ctx, config)`；ctx 是 plugin 的 fiber context（继承父 context） |
 
 ## 三、逐项评估
 
@@ -34,17 +36,17 @@
 
 | | dsh | nop-plugin |
 |---|---|---|
-| 机制 | 每个 part 是 plugin，挂载到 shared context，无特权核心 | plugin 定义（beans.xml）+ 实例（IPluginInstance）承载任意 bean；通过 `createInstance` 挂载 |
+| 机制 | 每个 part 是 plugin，挂载到 shared context，无特权核心 | plugin 定义（beans.xml）+ 激活实例（IPluginInstance）承载任意 bean |
 
-**如何支持**：dsh 的 "model adapter / tool registry / agent loop 都是 plugin" 在 Nop 里就是"这些组件都是 plugin 子容器中的 bean"。plugin 定义声明了哪些 bean（服务），激活后实例化。没有特权核心——宿主只是一个 parent 容器，plugin 子容器可覆盖（IoC 子容器查找回退到父，子可覆盖父）。
+**如何支持**：dsh 的 "model adapter / tool registry / agent loop 都是 plugin" 在 Nop 里就是"这些组件都是 plugin 实例中的 bean"。plugin 定义声明了哪些 bean（服务），激活后实例化。没有特权核心——宿主只提供定义加载与实例管理。
 
 ### B. 注册即副作用，卸载 unwind —— ✅ 支持
 
 | | dsh | nop-plugin |
 |---|---|---|
-| 机制 | `ctx.effect()`/`ctx.on()` 注册，返回 disposer，卸载 unwind | `IPluginScope.effect(disposable)` 注册；实例 deactivate/destroy → 子容器 stop → `singletonScope.close()` 遍历 destroyBean + subscription cancel + LIFO 回退 effect |
+| 机制 | `ctx.effect()`/`ctx.on()` 注册，返回 disposer，卸载 unwind | `IPluginScope.effect(disposable)` 注册；实例 deactivate → `close()` LIFO 回退全部 |
 
-**如何支持**：dsh 的 "registrations are effects that unwind" 直接对应 `IPluginScope`（§四 architecture-baseline）。三源 effect（bean destroy / subscription cancel / 手动 effect）统一聚合，LIFO 回退，`effects()` 可观测、可断言 quiescence。
+**如何支持**：dsh 的 "registrations are effects that unwind" 直接对应 `IPluginScope`（`01` §四）。`IPluginScope` 管理 **plugin 框架自己的** effect（手动注册列表），LIFO 回退、`effects()` 可观测、可断言 quiescence。**不承诺观测 IoC 内部**（实现层子容器 stop 触发的 bean destroy 是实现细节，非 API 契约）。
 
 **Nop 优势**：dsh 的 effect 是过程式 disposer；Nop 额外把结构层（beans.xml）的逆操作（`x:override=remove`）也纳入可逆——结构层 + 运行时层双可逆。
 
@@ -62,90 +64,98 @@
 
 | | dsh | nop-plugin |
 |---|---|---|
-| 机制 | Service Definition（抽象类/registry）+ Provider（实现）+ Consumer（注入） | bean 接口（Definition）+ 多 bean 实现（Provider）+ `@Inject`/`getService`（Consumer） |
+| 机制 | Service Definition（抽象类/registry）+ Provider（实现）+ Consumer（注入） | bean 接口（Definition）+ 多 bean 实现（Provider）+ `getService`/`getServices`（Consumer） |
 
-**如何支持**：dsh 的 capability seam 在 Nop 里就是标准的 IoC 接口 + 多实现 + 注入。"一个 provider swap 改变整个产品" = 替换子容器中某个接口的 bean 实现（Delta 覆盖）。`<ioc:collect-beans by-type>` 还支持按接口收集全部实现。
+**如何支持**：dsh 的 capability seam 在 Nop 里就是标准的接口 + 多实现 + 服务获取。"一个 provider swap 改变整个产品" = 替换实例中某个接口的 bean 实现（Delta 覆盖）。
 
-### E. per-agent 作用域 + shadowing —— △ 部分（shadowing 待明确）
-
-| | dsh | nop-plugin |
-|---|---|---|
-| scope（per-agent 注册） | agent.ctx，per-agent 注册 | ✅ IPluginInstance（per-agent/per-tenant 实例，独立子容器+scope） |
-| shadowing（同名覆盖） | most-specific-wins：scoped tool/section 替换全局同名 | △ 子容器可覆盖父 bean（IoC 天然），但"同名 tool/prompt shadowing"的语义未在 plugin 层显式建模 |
-
-**差距**：dsh 的 shadowing 是"per-agent scope 内的同名注册覆盖全局"。Nop 的子容器天然支持子覆盖父 bean（IoC 查找回退），机制上可达。但若要精确语义（如 tool schema 的 shadowing、prompt section 的 shadowing），属于**消费侧（tool registry / prompt assembly）**的职责，不是 plugin 通用层——plugin 只提供"独立子容器"这个隔离基座，shadowing 的具体规则由在子容器里注册的服务（tool registry 等）定义。
-
-**结论**：隔离基座（IPluginInstance 子容器）✅ 支持；shadowing 的精确语义是消费侧职责，plugin 不需要内置。
-
-### F. 声明依赖、等服务可用 —— △ 部分（运行时动态依赖待增强）
+### E. per-agent 作用域 —— ✅ 支持（多实例派生）
 
 | | dsh | nop-plugin |
 |---|---|---|
-| 机制 | `inject`：命名所需服务，**等服务存在才加载**；加载顺序由服务需求决定（非手工编排） | `<ioc:condition on-bean>`（build 时条件）+ coeffect 条件激活（运行时） |
+| 机制 | agent.ctx，per-agent 注册 | IPluginInstance 多实例派生（`createInstance("agent-1")` / `("agent-2")`，每实例独立 scope/effect/配置域） |
 
-**差距**：dsh 的 `inject` 是**加载时动态等待**——plugin 声明依赖，loader 等服务可用才激活该 plugin。Nop 的 `<ioc:condition on-bean>` 是 build 时（一次性），coeffect 条件激活是运行时（activating/deactivating）。
+**说明**：dsh 的 per-agent scope 对应 Nop 的"实例隔离"——每个 agent 一个独立实例（独立 scope/effect/配置域），互不干扰。多实例是 plugin 框架接口层面概念，与 IoC 内部实现无关（解耦原则）。
 
-**如何弥补**：coeffect 条件激活（§五 architecture-baseline）覆盖了"运行时依赖满足才激活"——plugin 声明依赖的其他 plugin 已 ACTIVATED 作为 coeffect spec，`reconcile` 时按依赖图批量激活。这等价于 dsh 的"等服务可用才加载"，只是时机从"加载时"移到"激活时"（加载/激活两态分离后的自然结果）。
+**关于 shadowing**：dsh 的 shadowing 是**运行时注册级**同名覆盖（per-scope 内注册替换全局同名注册）。Nop 侧没有直接对应（子容器覆盖父 bean 是**定义级静态**覆盖，机制不同）。shadowing 的精确语义属于**消费侧**（tool registry / prompt assembly）职责，不是 plugin 通用层——plugin 只提供"独立实例"这个隔离基座。
 
-**结论**：支持，通过 coeffect 条件激活实现"依赖满足才激活"。
+### F. 声明依赖、等服务可用 —— ✅ 支持（coeffect 定义级条件激活）
+
+| | dsh | nop-plugin |
+|---|---|---|
+| 机制 | `inject`：命名所需服务，等服务存在才加载；服务变更则卸载重跑 | coeffect spec（依赖其他 plugin 已激活）+ `reconcile()` 运行时评估 |
+
+**说明**：dsh 的 `inject` 是"依赖未就绪则不激活（PENDING 态），依赖变更则重跑"。Nop 的 coeffect 条件激活覆盖同一语义——plugin 声明依赖的其他 plugin 已 ACTIVATED 作为 coeffect spec，`reconcile` 时按依赖图批量激活/去激活。区别：dsh 的激活仍是加载流程的一部分（inject 驱动）；Nop 的激活是独立 `activate` 阶段（加载/激活两态分离）。
 
 ### G. 热更新 —— ✅ 支持
 
 | | dsh | nop-plugin |
 |---|---|---|
-| 机制 | `watchUserPatches`：监听 patch 变化，事务性重组全树 | `reloadPlugin`：beans.xml 变更 → loader 依赖失效 → 重算 BeansModel → unload+load+重建实例 |
+| 机制 | `watchUserPatches`：监听 patch 文件变化，事务性重组 **patch 列表** 并通过 compose 闭包重挂 | `reloadPlugin`：定义变更 → loader 依赖失效 → 重算 → unload+load+条件激活 |
 
-**如何支持**：`reloadPlugin`（§六 architecture-baseline）覆盖 dsh 的 HMR。
+**如何支持**：`reloadPlugin`（`01` §六）覆盖 dsh 的 HMR。
 
-**Nop 优势**：dsh 的 HMR 重组须重新激活整棵插件树（活资源 teardown）；Nop 因加载/激活分离 + 实例独立，reload 只重建该 plugin 的实例，其他 plugin 不受影响（子容器隔离）。
+**Nop 优势**：dsh 的 HMR 重挂涉及整棵配置树重组与活资源处理；Nop 因加载/激活分离，reload 只重建该 plugin 的实例，其他 plugin 不受影响（实例隔离）。**注**：远程下载的 uber jar（发布场景）不可编辑，HMR 主要针对本地/开发文件场景。
 
-### H. 隔离域（realm/isolate） —— △ 部分
+### H. 隔离域（isolate） —— △ 机制不同
 
 | | dsh | nop-plugin |
 |---|---|---|
-| 机制 | isolate realm：provider+consumer 共享 realm；realm table 让两 fiber 解析同 key 到不同值 | 子容器隔离（每实例独立容器）+ `resolveKey(key, realm)` |
+| 机制 | `ctx.isolate(name)`：**服务名级**隔离——reads/writes of the service name resolve against the new label（服务实现选择） | 实例级隔离（每实例独立 scope/effect） |
 
-**如何支持**：dsh 的 realm 是"同一 key 在不同 fiber 解析到不同值"。Nop 的多实例（IPluginInstance）天然隔离（各自子容器），但跨实例的"按 realm 解析共享 key"需要 `IPluginContext.resolveKey(key, realm)`（§七 architecture-baseline）。
-
-**差距**：`resolveKey` 的具体 realm 语义（realm 表如何组织、key 如何按 realm 隔离）尚未细化。但这是共享数据层的设计，可在实现时按需定义。
+**说明**：dsh 的 `ctx.isolate` 隔离的是**服务实现选择**（同一服务名在不同 label 解析到不同实现），不是"共享数据 key 解析"。Nop 的实例隔离（独立 scope）覆盖"不同实例不同实现"的需求；共享数据层（`resolveKey`）**不引入**（`00-vision` non-goals 6）——那是与 Cordis isolate 无关的新发明。
 
 ### I. 多实例（fiber） —— ✅ 支持
 
 | | dsh | nop-plugin |
 |---|---|---|
-| 机制 | 一个 component 多次实例化，各独立生命周期、identity、parent | IPlugin 定义 + IPluginInstance 实例（=fiber）；`createInstance` ×N；instanceKey + parent |
+| 机制 | 一个 component 多次实例化，各独立生命周期、identity、parent | IPlugin 定义 + IPluginInstance（=fiber）；`createInstance` 派生 N 实例；`instanceKey` + `parent` 层级 |
 
-**如何支持**：IPluginInstance（§七 architecture-baseline）显式建模多实例，对应 Cordis fiber。支持 instanceKey（tenant/agent/session）+ parent（层级实例化）。
+**如何支持**：多实例是 plugin 框架接口层面概念——`createInstance(pluginId, instanceKey, config, parent)` 派生独立实例，每实例独立 scope/effect/配置域（`instance.getConfig()`）；实例级 coeffect 基于实例配置域差异化激活；subagent 经 `parent` 层级实例化。与 IoC 内部实现无关（解耦原则）。
+
+### J. 注册原语全集 —— ✅ 支持（映射为 plugin 层能力）
+
+| dsh 原语 | Nop 对应 |
+|---|---|
+| `Service` 子类 `super(ctx,name)` 自注册 | beans.xml bean 定义，实例激活时注册（声明式） |
+| `ctx.provide(name, value)` 注册服务 | 裁决：scope 不提供动态注册（静态装配下无法被同容器消费）；activator 经 `scope.getService()` 取 bean 后做外部注册 |
+| `ctx.accessor(name, {get,set})` 计算属性 | bean 属性（声明式） |
+| `ctx.set(name, value)` 覆盖已提供服务 | Delta 覆盖（`x:override`） |
+| `ctx.on/emit/waterfall/parallel/serial` 事件 | **独立基础设施**（事件总线），不属 plugin 范围（§一） |
+
+### K. apply(ctx) 参数传递 —— ✅ 支持（IPluginActivator 同构）
+
+dsh 的 plugin 主通道是 `apply(ctx, config)`——ctx **作为参数传入**。Nop 的 `IPluginActivator.activate(scope, config)` 完全同构：scope + config 参数传入（01 §四）。这是"参数传递 vs 字段注入"的架构选择：与 Cordis `apply(ctx)`、NopBatch `setup(context)` 一致，**避免 SpringBatch 的成员变量保存 context 坏设计**（`docs/theory/why-springbatch-is-bad.md` §3.1：context 应参数传递而非保存为类成员；Hooks 类比：闭包传参优于 this 指针）。
 
 ## 四、差距总结
 
 | 差距项 | 严重度 | 说明 |
 |---|---|---|
-| shadowing 精确语义 | 低 | 隔离基座（子容器）已支持；精确 shadowing 规则是消费侧（tool registry 等）职责，非 plugin 通用层 |
-| realm 共享数据语义 | 中 | `resolveKey(key,realm)` 已设计接口；realm 表组织/隔离规则待实现时细化 |
-| 加载时动态等待依赖 | 低 | 已由 coeffect 条件激活覆盖（激活时等依赖满足）；语义等价 |
+| shadowing 精确语义 | 低 | 消费侧职责（tool registry 等），非 plugin 通用层 |
+| 服务名级隔离（isolate 语义） | 低 | 实例级隔离覆盖主要需求；不引入共享数据层 |
 
-**无 P0 级差距**：dsh 对 plugin 的核心用法（插件化/可逆/层叠/接缝/多实例/HMR/隔离）在 nop-plugin 设计中均有对应机制。
+**无 P0 级差距**：dsh 对 plugin 的核心用法（插件化/可逆/层叠/接缝/作用域/HMR/隔离）在 nop-plugin 设计中均有对应机制。
 
 ## 五、Nop 相对 dsh 的优势
 
 1. **结构层节点级 Delta**：beans.xml 是完整 XDSL，`x:override=merge/remove` 节点级定制 + 结构化逆元；dsh patch 是配置行级、无 deep-merge/remove。
 2. **结构层 + 运行时层双可逆**：结构层 Delta 逆元（`x:override`）+ 运行时层 effect 逆元（IPluginScope）；dsh 只有运行时层 effect 逆元。
-3. **加载/激活分离 + loader 被动模式**：结构变更自动失效重算静态 model，运行时独立；dsh 加载与激活耦合，HMR 须重激活整树。
-4. **不改 IoC**：plugin 可逆性通过子容器 create/stop 实现，IoC 核心不可变；dsh 的可逆绑在运行时 context 生命周期。
+3. **加载/激活分离 + loader 被动模式**：结构变更自动失效重算静态定义，运行时独立；dsh 激活仍嵌在加载流程（inject 驱动）。
+4. **服务获取类型安全**：`getService(Class<T>)` 强类型 + 生命周期绑定代理（deactivate 后快速失败）；dsh `ctx.<key>` 弱类型。
 
 ## 六、结论
 
 dsh 对 plugin 的核心用法在 nop-plugin 设计中**均可支持**，无 P0 差距。对应关系清晰：
 
-- 插件化/可替换 → plugin 子容器 bean + IoC 父子回退
-- 可逆副作用 → IPluginScope + 子容器 stop
+- 插件化/可替换 → plugin 定义 + 激活实例
+- 可逆副作用 → IPluginScope（plugin 框架自己的 effect）
 - 层叠配置 → beans.xml Delta（更细）
-- 能力接缝 → IoC 接口+多实现+注入
-- per-agent 作用域 → IPluginInstance 多实例
-- 依赖声明 → coeffect 条件激活
+- 能力接缝 → 接口 + 多实现 + getService
+- per-agent 作用域 → IPluginInstance 多实例派生（createInstance/instanceKey）
+- 依赖声明 → coeffect 定义级条件激活
 - HMR → reloadPlugin
-- 隔离 → 子容器 + resolveKey(realm)
-- 多实例 → IPluginInstance = fiber
+- 隔离 → 实例级 scope/effect 隔离
+- 多实例 → IPluginInstance（createInstance/instanceKey/parent 层级）
+- 注册原语全集（provide/accessor/set）→ beans.xml 声明式 bean + activator（声明式对应）
+- apply(ctx, config) 参数传递 → IPluginActivator.activate(scope, config)（同构，参数传递非字段注入）
 
 事件总线、session/turn/inject 等 dsh 能力是**独立基础设施或 agent 框架层**，不属于 plugin 评估范围，不构成 plugin 差距。
