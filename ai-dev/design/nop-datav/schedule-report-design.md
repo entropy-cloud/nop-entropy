@@ -198,7 +198,7 @@ IM 渠道**仅发送文本/Markdown 通知**（报告摘要：reportName/dashboa
 `NopDatavReportScheduler.executeScheduledReport(Map<String,Object> params)`：
 - **单 `Map<String,Object>` 参数**（适配 `BeanMethodJobInvoker` 的 singleMapFn 路径，规避 `-parameters` 编译标志反射形参名依赖，与 `MetaQualityCheckpointScheduler.executeScheduledCheckpoint` 一致）。
 - **吞业务错误返回正常结果对象**：`catch (Exception)` → 记 delivery failed + ERROR 日志 → 返回 `Map{reportTaskId, status: "failed", error: <msg>}`。不向外抛（规避 LocalJobScheduler FAILED-brick）。
-- **仅基础设施错误（`Error`）才抛**：如 `OutOfMemoryError`、`StackOverflowError`。实现契约为 `catch (Exception)`（非 `catch (Throwable)`），使 `Error` 子类不被捕获而向外传播。业务异常（`NopException`、`RuntimeException` 含明确业务原因）一律吞。此约定同时适用于 `NopDatavAlertScheduler.executeScheduledAlert`（Dim14-04）。
+- **仅基础设施错误（`Error`）才抛**：如 `OutOfMemoryError`、`StackOverflowError`。实现契约为 `catch (Exception)`（非 `catch (Throwable)`），使 `Error` 子类不被捕获而向外传播。业务异常（`NopException`、`RuntimeException` 含明确业务原因）一律吞。此约定同时适用于 `NopDatavAlertScheduler.executeScheduledAlert`（Dim14-04），以及交付执行器与导出执行器：`ReportDeliveryExecutor`（`execute` 异步 submit 边界、`runDeliveryInSession`、`sendNotificationOutOfSession`、`executeSyncForTest`）和 `NopDatavExportTaskBizModel`（`submitExecution` 异步 submit 边界、`executeTask`）。异步 submit 边界 Error 传播后，交付/导出任务记录可能停留在 SCHEDULED/RUNNING——此类为 JVM 级严重故障（OOM/StackOverflow），需人工介入，不通过 catch(Throwable) 掩盖。
 
 返回值结构（正常 + 业务失败均返回此结构，区别于抛异常）：
 ```
