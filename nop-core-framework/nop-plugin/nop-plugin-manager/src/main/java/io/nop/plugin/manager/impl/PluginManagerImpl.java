@@ -739,13 +739,16 @@ public class PluginManagerImpl implements IPluginManager, IPluginContext {
                 boolean gate = !cycleMembers.contains(def.getPluginId()) && def.isDefinitionGateSatisfied();
                 for (IPluginInstance instance : def.getInstances()) {
                     if (!gate) {
-                        changed |= deactivateIfActive(def, instance);
+                        // P2-D reconcile 路径级联式：先级联去激活后代（先子后父），再去激活本实例
+                        changed |= deactivateCascadeIfActive(def, instance);
                         continue;
                     }
-                    if (evaluateInstanceCondition(def, instance)) {
+                    // 父链健康（P2-D 跨 plan 契约）：祖先 DEACTIVATED → 子实例不激活
+                    // （父链抑制激活，与显式守卫共同消除"父停即子停、reconcile 又激活"冲突）
+                    if (evaluateInstanceCondition(def, instance) && isParentChainHealthy(instance)) {
                         changed |= activateIfInactive(def, instance);
                     } else {
-                        changed |= deactivateIfActive(def, instance);
+                        changed |= deactivateCascadeIfActive(def, instance);
                     }
                 }
             }
@@ -753,6 +756,35 @@ public class PluginManagerImpl implements IPluginManager, IPluginContext {
                 break;
             }
         }
+    }
+
+    /**
+     * P2-D reconcile 路径级联去激活（W6，设计 §三(b) 级联语义）：reconcile 决定去激活某父实例时
+     * <b>先递归去激活其 ACTIVATED 后代（保留实例对象，可重新激活），再去激活本实例</b>——
+     * 否则子实例容器 parent 指向已停容器，服务回退调用抛 ERR_IOC_CONTAINER_NOT_STARTED 硬失败
+     * （"服务沿链回退"契约破裂）。子先父后亦保证父实例的显式守卫
+     * （ERR_PLUGIN_ACTIVE_CHILDREN_EXIST）在 reconcile 路径自然放行（不冲突）。
+     */
+    private boolean deactivateCascadeIfActive(VfsPluginDefinition def, IPluginInstance instance) {
+        boolean changed = false;
+        if (instance instanceof PluginInstanceImpl) {
+            for (PluginInstanceImpl child : ((PluginInstanceImpl) instance).getChildren()) {
+                if (child.getState() == InstanceState.ACTIVATED) {
+                    changed |= deactivateCascadeIfActive(def, child);
+                }
+            }
+        }
+        return changed | deactivateIfActive(def, instance);
+    }
+
+    /**
+     * 父链健康检查（P2-D reconcile 路径）：沿 getParent() 链回溯，任一祖先非 ACTIVATED
+     * 即不健康（父 DEACTIVATED 时子实例不激活——父链抑制激活，防止 reconcile 反复尝试
+     * 激活子实例造成冲突）。
+     */
+    private boolean isParentChainHealthy(IPluginInstance instance) {
+        return !(instance instanceof PluginInstanceImpl)
+                || ((PluginInstanceImpl) instance).isParentChainHealthy();
     }
 
     private List<VfsPluginDefinition> collectVfsDefinitions() {
