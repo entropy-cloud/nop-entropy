@@ -26,10 +26,19 @@ public class MockEmailSender implements IEmailSender {
     /** 可选：非 null 时 sendEmail 抛出此异常（模拟 SMTP 失败，供回补 FAILED 测试）。 */
     private RuntimeException failOnSend;
 
+    /**
+     * 可选：非 null 时 sendEmail 抛出此 Error（模拟 JVM 级严重故障如 OOM/StackOverflowError），
+     * 供验证 catch(Exception) 允许 Error 传播的行为测试。检查先于 failOnSend。
+     */
+    private Error failOnError;
+
     @Override
     public void sendEmail(EmailMessage mail) {
         if (onSend != null) {
             onSend.run();
+        }
+        if (failOnError != null) {
+            throw failOnError;
         }
         if (failOnSend != null) {
             throw failOnSend;
@@ -55,9 +64,14 @@ public class MockEmailSender implements IEmailSender {
         this.failOnSend = failOnSend;
     }
 
+    public void setFailOnError(Error failOnError) {
+        this.failOnError = failOnError;
+    }
+
     public void reset() {
         sentMails.clear();
         onSend = null;
         failOnSend = null;
+        failOnError = null;
     }
 }

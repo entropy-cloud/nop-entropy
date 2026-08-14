@@ -128,10 +128,10 @@ public class ReportDeliveryExecutor {
             try {
                 // SMTP 送达在 session 关闭后执行（Dim14-02：不在持有 JDBC 连接的 ORM session 内做远程调用）
                 runDelivery(reportTaskId, deliveryId, triggerSource, scheduledFireTime);
-            } catch (Throwable t) {
+            } catch (Exception e) {
                 LOG.error("nop.datav.report.session-fail:reportTaskId={} deliveryId={}",
-                        reportTaskId, deliveryId, t);
-                markFailedSafe(deliveryId, "async session error: " + safeMsg(t));
+                        reportTaskId, deliveryId, e);
+                markFailedSafe(deliveryId, "async session error: " + safeMsg(e));
             }
             return null;
         });
@@ -226,8 +226,8 @@ public class ReportDeliveryExecutor {
             touchTask(taskDao, task, NopDatavReportDeliveryStatus.SUCCEEDED, null, delivery.getEndTime());
 
             return new PreparedDelivery(task, delivery);
-        } catch (Throwable t) {
-            Throwable reason = NopException.adapt(t);
+        } catch (Exception e) {
+            Throwable reason = NopException.adapt(e);
             String errMsg = safeMsg(reason);
             delivery.setStatus(NopDatavReportDeliveryStatus.FAILED);
             delivery.setErrorMsg(errMsg);
@@ -249,8 +249,8 @@ public class ReportDeliveryExecutor {
         List<String> delivered;
         try {
             delivered = notificationSender.sendReport(prepared.task, prepared.delivery, null);
-        } catch (Throwable t) {
-            Throwable reason = NopException.adapt(t);
+        } catch (Exception e) {
+            Throwable reason = NopException.adapt(e);
             String errMsg = safeMsg(reason);
             LOG.warn("nop.datav.report.notify-failed:reportTaskId={} deliveryId={} error={}",
                     reportTaskId, deliveryId, errMsg, reason);
@@ -464,8 +464,8 @@ public class ReportDeliveryExecutor {
 
             try {
                 runDelivery(reportTaskId, delivery.getDeliveryId(), triggerSource, scheduledFireTime);
-            } catch (Throwable t) {
-                markFailedSafe(delivery.getDeliveryId(), "sync session error: " + safeMsg(t));
+            } catch (Exception e) {
+                markFailedSafe(delivery.getDeliveryId(), "sync session error: " + safeMsg(e));
             }
             return delivery.getDeliveryId();
         }

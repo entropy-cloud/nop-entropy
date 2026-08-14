@@ -204,10 +204,10 @@ public class NopDatavExportTaskBizModel extends CrudBizModel<NopDatavExportTask>
         GlobalExecutors.globalWorker().submit(() -> {
             try {
                 ormTemplate.runInNewSession(session -> executeTask(session, taskId, operator));
-            } catch (Throwable t) {
+            } catch (Exception e) {
                 // executeTask 内部已捕获业务异常并落库 failed；此处仅兜底处理 session 基础设施故障
-                LOG_EXPORT_FAILURE.error("nop.datav.export.session-fail:taskId={}", taskId, t);
-                markFailedSafe(taskId, "async session error: " + safeMsg(t));
+                LOG_EXPORT_FAILURE.error("nop.datav.export.session-fail:taskId={}", taskId, e);
+                markFailedSafe(taskId, "async session error: " + safeMsg(e));
             }
             return null;
         });
@@ -273,8 +273,8 @@ public class NopDatavExportTaskBizModel extends CrudBizModel<NopDatavExportTask>
             task.setErrorMsg(null);
             touchUpdate(task, operator);
             dao.updateEntityDirectly(task);
-        } catch (Throwable t) {
-            Throwable reason = NopException.adapt(t);
+        } catch (Exception e) {
+            Throwable reason = NopException.adapt(e);
             // D2 §312：catch 分流必须在 setStatus(FAILED) 之前判定 cancelFlags
             if (Boolean.TRUE.equals(cancelFlags.get(taskId))) {
                 // cancel 命中：status 已由 cancel 线程写为 CANCELLED，执行体不覆盖、不写 FAILED；

@@ -50,6 +50,19 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 取数（PanelDataBinder.queryPanelData）真正发生、IFileStore.saveFile 落库 NopFileRecord、
  * 文件内容与 getPanelData 同源。覆盖 csv/xlsx、看板级多 sheet、限额、owner 校验、
  * 状态机（succeeded/failed/cancelled）、重启清理。</p>
+ *
+ * <p><b>Error 传播说明（catch Throwable → Exception 分类扫描，Site #5）</b>：
+ * {@code NopDatavExportTaskBizModel.submitExecution} 的异步 submit lambda 中
+ * {@code catch(Throwable) → catch(Exception)} 的变更与 {@code ReportDeliveryExecutor.execute}
+ * （Site #1）和 {@code executeSyncForTest}（Site #4）机械性完全一致——Error 不再被吞，传播至
+ * {@code GlobalExecutors} 线程的 {@code UncaughtExceptionHandler}。此处不新增自动化测试，因为：
+ * (1) {@code executeTask} 为 private，无 {@code executeSyncForTest} 等价同步入口；
+ * (2) 异步 {@code GlobalExecutors.globalWorker().submit(...)} 路径的 Error 由线程级
+ * {@code UncaughtExceptionHandler} 接收，测试无法同步断言其终态（不同于 report 路径有
+ * {@code executeSyncForTest} 同步入口可 assertThrows）；
+ * (3) 该变更已被 report 路径的 {@code testErrorPropagatesFromDeliverySyncPath}（TestNopDatavReportE2E）
+ * 覆盖了相同的 Error 传播语义。Error 传播行为经代码审查确认：catch 类型从 Throwable 收窄为 Exception，
+ * 其余逻辑不变。</p>
  */
 @NopTestProperty(name = "nop.file.store-dir", value = "target/test-file-store")
 public class TestNopDatavExportE2E extends AbstractNopDatavTest {

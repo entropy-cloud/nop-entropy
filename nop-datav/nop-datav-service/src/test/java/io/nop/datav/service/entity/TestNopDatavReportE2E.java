@@ -694,6 +694,36 @@ public class TestNopDatavReportE2E extends AbstractNopDatavTest {
                 refreshedTask.getLastRunStatus(), "task lastRunStatus rolled back to failed");
     }
 
+    // ==================== Error 传播验证（catch Exception vs Throwable 分类扫描） ====================
+
+    /**
+     * JVM 级 Error（StackOverflowError）从 sendNotificationOutOfSession → sendReport → sendEmail
+     * 抛出后，经 runDelivery → executeSyncForTest 路径传播到测试调用方（不被 catch(Exception) 吞掉）。
+     *
+     * <p>验证 Site #4（ReportDeliveryExecutor.executeSyncForTest）的 catch(Throwable) → catch(Exception)
+     * 行为变更：修复前 Error 被 catch(Throwable) 捕获并经 markFailedSafe 静默吞掉；
+     * 修复后 Error 不被 catch(Exception) 捕获，传播到调用方。</p>
+     *
+     * <p>同时间接验证 Site #3（sendNotificationOutOfSession）：catch(Exception) 不拦截 Error，
+     * Error 传播出 runDelivery 到达 executeSyncForTest 的 catch 块。</p>
+     */
+    @Test
+    public void testErrorPropagatesFromDeliverySyncPath() {
+        setupSalesData();
+        IServiceContext ctx = ownerContext("alice");
+        String dashboardId = setupDashboard("dash-error-prop", "alice", true);
+        saveChartPanelWithDataset("panel-error-prop", dashboardId, "Chart");
+        NopDatavReportTask task = seedReportTask("task-error-prop", dashboardId, "alice",
+                "0 0 8 * * ?", "xlsx", true);
+
+        mockEmailSender.setFailOnError(new StackOverflowError("test-jvm-error"));
+
+        assertThrows(StackOverflowError.class, () ->
+                reportDeliveryExecutor.executeSyncForTest(
+                        task.getReportTaskId(), NopDatavReportTriggerSource.MANUAL,
+                        System.currentTimeMillis()));
+    }
+
     // ==================== Helpers ====================
 
     private NopDatavReportDelivery pollUntilTerminal(String deliveryId) {
