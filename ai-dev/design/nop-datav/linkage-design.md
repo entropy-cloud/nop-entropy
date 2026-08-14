@@ -1,7 +1,7 @@
 # nop-datav 筛选与联动设计 (D2)
 
 > Status: **final**（覆盖 D2-1 + D2-2 + D2-3 全部后端决策）
-> Last Reviewed: 2026-08-10
+> Last Reviewed: 2026-08-14
 
 ## 概述
 
@@ -73,7 +73,7 @@ paramMapping 的 `source` 字段引用这些扁平 key（如 `{"start_date": {"s
 4. 过滤未定义参数：不在参数定义中的传入 key 被丢弃（避免 SQL 注入面扩大）。
 5. 返回扁平化生效参数值 Map。
 
-调用方（前端或测试）将生效参数值传入 `getPanelData` 的 `requestParams`，经既有 paramMapping 求值后注入 SQL。**不重建查询逻辑，不引入批量查询**（前端逐面板调用 `getPanelData`）。
+调用方（前端或测试）将生效参数值传入 `getPanelData` 的 `requestParams`，经既有 paramMapping 求值后注入 SQL。**不重建查询逻辑**——逐面板 `getPanelData` 是基础查询模型；批量查询作为优化层由 `getDashboardData` 提供（一次调用取回全部面板数据，筛选一次求值后统一映射到各面板，见 `runtime-design.md` §四 批量面板查询）。
 
 ### API 契约（D2-1）
 
@@ -117,12 +117,12 @@ paramMapping 的 `source` 字段引用这些扁平 key（如 `{"start_date": {"s
 | 方案 C：复用 Dashboard 现有 `layoutConfig` JSON 存储参数定义 | 零 ORM 变更，但布局与参数配置耦合，职责不清，且 layoutConfig 已有 `json-4000` 长度限制 |
 | **采用：方案 A，Dashboard 新增 `paramConfig` JSON 列（clobJson）** | 最小 ORM 变更（仅加一列），与既有 config 模式一致；clobJson 避免长度限制（参数定义含显示配置可能较长）；发布/快照序列化复用既有模式 |
 
-### 全局筛选查询：后端批量 vs 前端逐面板
+### 全局筛选查询：前端逐面板（基础模型）+ 后端批量（优化层）
 
-| 方案 | 拒绝理由 |
-|------|---------|
-| 后端批量查询 API（一次查所有面板） | 优化项，非 D2-1 必需；增加后端复杂度且与 D1 逐面板查询模型不一致 |
-| **采用：前端逐面板调用 getPanelData** | 复用 D1 既有管线，无新查询逻辑；resolveFilterValues 输出直接作为各面板 getPanelData 的 requestParams |
+| 方案 | 裁定 |
+|------|------|
+| 前端逐面板调用 getPanelData | **基础查询模型（采用）**：复用 D1 既有管线，无新查询逻辑；resolveFilterValues 输出直接作为各面板 getPanelData 的 requestParams |
+| 后端批量查询 API（一次查所有面板） | **优化层（采用，2026-08-14 落地）**：`getDashboardData` 消除 N 次往返开销，筛选一次求值统一映射；与逐面板模型共用同一 PanelDataBinder 管线，不构成独立的查询语义（决策与形态见 `runtime-design.md` §四 批量面板查询） |
 
 ### 参数定义校验：严格 vs 宽松
 
@@ -277,7 +277,7 @@ filter_state 按 `userName + dashboardId` 隔离：不同用户的 filter_state 
 - 跨看板联动（用跳转实现跨看板场景）
 - filter_state 实时推送/WebSocket（按需 API 调用）
 - 多看板 filter_state 聚合（以单个看板为粒度）
-- 批量面板查询 API（优化项）
+- 批量查询的并行执行/结果缓存（`getDashboardData` 本体已落地；并行与缓存为独立优化项）
 - nop-metadata 维度/度量字段映射元数据运行时解析（D1 deferred）
 - 参数定义与 paramMapping source 的严格匹配校验（宽松兼容）
 - 联动配置的可视化编辑 API（前端 D2-4 范围）

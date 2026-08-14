@@ -1,11 +1,11 @@
 # nop-datav 运行时设计 (D1)
 
 > Status: **final**
-> Last Reviewed: 2026-08-10
+> Last Reviewed: 2026-08-14
 
 ## 概述
 
-本文记录 nop-datav 看板运行时（D1）后端三项能力的架构决策：面板渲染协议（D1-1）、数据绑定管线（D1-2）、刷新机制（D1-3）。前端集成（D1-4）依赖 nop-chaos-flux 控件族，flux 侧未落地前为 out-of-scope。本模块只做模型侧解析 + 查询委托/回传，不做前端渲染、不重建数据源/数据集管理（复用 nop-report）、不重建维度/度量建模（复用 nop-metadata）。
+本文记录 nop-datav 看板运行时（D1）后端能力的架构决策：面板渲染协议（D1-1）、数据绑定管线（D1-2）、刷新机制（D1-3）、批量面板查询（D1-2/D2-1 deferred follow-up）。前端集成（D1-4）依赖 nop-chaos-flux 控件族，flux 侧未落地前为 out-of-scope。本模块只做模型侧解析 + 查询委托/回传，不做前端渲染、不重建数据源/数据集管理（复用 nop-report）、不重建维度/度量建模（复用 nop-metadata）。
 
 ## 一、面板渲染协议（D1-1）
 
@@ -163,7 +163,82 @@ API getPanelData(panelId, requestParams)
 - panelConfig 为空或无 `refresh` 区域：返回 `enabled=false, intervalSeconds=0`（明确默认值，非静默忽略）
 - panelConfig JSON 解析失败：抛 `NopException`（`ERR_DATAV_INVALID_PANEL_CONFIG`），不静默降级
 
-## 四、拒绝的替代方案
+## 四、批量面板查询 getDashboardData（D1-2/D2-1 deferred follow-up）
+
+单次调用取回整个看板（或指定 panelIds 子集）各面板数据的批量查询 API，消除「N 个面板 = N 次 GraphQL 往返」的渲染路径开销。逐面板 `getPanelData` 仍为基础查询模型，本 API 是其上层优化——两者共用同一 `PanelDataBinder` 数据绑定管线，不重复实现查询逻辑。
+
+### 4.1 action 归属（D1 裁定）
+
+**选择：放 `NopDatavDashboardBizModel`（看板视角），不放 `NopDatavPanelBizModel`。**
+
+- 输入（dashboardId + 可选 panelIds）与输出（按看板聚合的面板结果列表）均以看板为单位
+- 看板级筛选一次求值发生在看板上下文（paramConfig 挂在 Dashboard 主表），归属看板 BizModel 语义最直接
+- 权限点 `NopDatavDashboard:getDashboardData`，角色绑定镜像 `NopDatavPanel:getPanelData`（admin,user）
+
+### 4.2 面板集合语义（D2 裁定）
+
+- 默认纳入**看板全部面板**（按 `sortOrder` 排序加载，与 `exportDashboard` 的加载先例一致）
+- 可选 `panelIds` 参数过滤为子集；返回条目顺序跟随面板 `sortOrder`（不跟随 panelIds 传入顺序），`panelIds` 内重复 id 去重
+- **panelIds 中不存在或不属于该看板的 id → 整体显式报错**（`ERR_DATAV_PANEL_NOT_IN_DASHBOARD`），禁止静默忽略不标注
+
+### 4.3 响应形态与面板纳入集（D3 裁定）
+
+两级失败语义必须可区分：
+
+| 失败级别 | 场景 | 行为 |
+|---------|------|------|
+| 看板级失败 | 看板不存在 / panelIds 越权引用 / 面板数超上限 / 筛选参数类型不匹配 | 整体抛 `NopException`（请求前段 fail-fast，不产出部分响应） |
+| 面板级失败 | datasetRef 失效 / nop-report 数据集不存在 / dsType 非 sql / SQL 执行失败 / 未知组件类型 | 该面板条目携带 `success=false` + `errorCode` + `errorMessage`，其余面板正常返回 |
+
+- **仅 `NopException` 被捕获为面板级失败**（`PanelDataBinder` 全部错误路径均抛 NopException，含包装后的 `ERR_DATAV_QUERY_FAILED`）；非 NopException 的意外 RuntimeException 视为系统性故障按看板级失败传播（不吞掉）
+- 响应包含看板全部面板，**含无数据集面板**（text/iframe 等返回 `hasDataset=false` 条目）——与逐面板语义一致，与 `exportDashboard` 的排除语义**有意区分**（导出无数据集面板无意义，批量查询需要前端拿到完整面板清单）
+
+响应 DTO 形态（落 `nop-datav-dao` 的 `io.nop.datav.biz` 包，镜像 `PanelDataResult`/`LinkageResult` 先例，仅用 nop-datav 自有类型与平台基础类型）：
+
+```
+DashboardDataResult
+  ├─ dashboardId: String
+  └─ panels: List<DashboardPanelDataItem>
+        ├─ panelId: String
+        ├─ componentType: String
+        ├─ success: boolean            // 面板级失败标志（看板级失败不会走到这里）
+        ├─ hasDataset: boolean         // success=true 时有意义；无数据集面板恒 false
+        ├─ columns: List<String>       // success=true 且 hasDataset=true 时有意义，否则空列表
+        ├─ rows: List<Map<String,Object>>
+        ├─ errorCode: String           // success=false 时为 NopException 错误码字符串，否则 null
+        └─ errorMessage: String        // success=false 时为异常消息，否则 null
+```
+
+### 4.4 上限与执行模式（D4 裁定）
+
+- 面板数量上限：配置项 `nop.datav.dashboard-query.max-panels`（`NopDatavConfigs.CFG_DATAV_DASHBOARD_QUERY_MAX_PANELS`，默认 50）。纳入集面板数超上限 → 显式拒绝（`ERR_DATAV_DASHBOARD_PANEL_LIMIT_EXCEEDED`），且校验发生在任何面板查询执行之前（防单请求放大为海量 SQL）
+- 执行模式：**N 个面板顺序执行**（对齐 `exportDashboard` 先例）。并行查询（线程池化）列为后续优化（连接池占用与并发语义是独立风险面）
+
+### 4.5 数据源与发布状态（D5 裁定）
+
+- 批量入口读 **live 表**（getPanelData 加载 live panel，不检查 publishStatus；组合语义锚定 live 表），`requireEntity` 做看板存在性校验
+- 发布（PUBLISHED）不是前置条件；读已发布快照的批量查询不属于本 API（如需另立）
+
+### 4.6 筛选参数语义
+
+`getDashboardData(dashboardId, params, panelIds?)` 的 `params` 即原始扁平 key 筛选值 Map（与 `resolveFilterValues` 的 `filterValues` 入参同构）。API 内部：`DashboardParamParser.parse(paramConfig)` → `DashboardFilterResolver.resolve(definitions, params)` **一次求值** → 生效参数统一作为每个面板 `PanelDataBinder.queryPanelData` 的 requestParams。与「逐面板 `resolveFilterValues` + `getPanelData` 组合」在参数流上结构等价（resolver 是纯函数，一次求值与 N 次求值结果一致）。
+
+### 4.7 API 契约
+
+| Action | 类型 | 行为 |
+|--------|------|------|
+| `getDashboardData(id, params, panelIds?, context)` | `@BizQuery` | 校验看板存活（requireEntity）→ 筛选一次求值 → 按 §4.2 纳入集加载面板（含上限校验）→ 逐面板复用 `PanelDataBinder` → 按 §4.3 形态聚合响应 |
+
+### 4.8 错误路径（批量层新增）
+
+| 场景 | 错误码 |
+|------|--------|
+| panelIds 引用不存在/不属于该看板的面板 | `ERR_DATAV_PANEL_NOT_IN_DASHBOARD` |
+| 纳入集面板数超过 max-panels 上限 | `ERR_DATAV_DASHBOARD_PANEL_LIMIT_EXCEEDED` |
+
+看板不存在由 `requireEntity` 抛平台实体缺失错误（`nop.err.dao.unknown-entity`，与既有 `getPanelData` 等 action 同模式）；筛选类型不匹配复用 `ERR_DATAV_PARAM_TYPE_MISMATCH`；面板级失败复用 `PanelDataBinder` 既有错误码（以条目内 `errorCode` 回传，不抛出）。
+
+## 五、拒绝的替代方案
 
 ### 查询执行方式
 
@@ -172,6 +247,13 @@ API getPanelData(panelId, requestParams)
 | 集成 nop-report-core 的 XPT 引擎 / IReportEngine | 绑定 xpt 模板渲染，不是 standalone 数据集查询；引入庞大依赖且执行路径不直白 |
 | 新建独立的 `IDataSetExecutor` 抽象层 + 多种执行器（sql/json/http） | 过度工程：D1 scope 内仅 sql 类型有需求，非 sql 类型显式拒绝即可（后续按需扩展） |
 | **采用：直接读 `NopReportDataset.dsText` + `IJdbcTemplate`** | 复用已注入的 IJdbcTemplate；查询路径简短；dsType 非 sql 时快速失败 |
+
+### 批量查询：并行执行 vs 顺序执行
+
+| 方案 | 拒绝理由 |
+|------|---------|
+| 并行执行（线程池化面板查询） | 消除的是往返开销，顺序执行已满足 Purpose；并行引入连接池占用与并发语义新风险面，独立评估 |
+| **采用：顺序迭代（对齐 exportDashboard 先例）** | 语义与逐面板调用完全一致；实现简单；无并发副作用 |
 
 ### 组件注册表方案
 
@@ -189,7 +271,7 @@ API getPanelData(panelId, requestParams)
 | 改 panelType 为 string 类型 | ORM 列类型变更需迁移；现有数据兼容性差 |
 | **采用：panelType 保持 int + dict 扩展** | 通过新增 dict 选项扩展类型集；int → 组件类型标识的映射在代码层 |
 
-## 五、与 nop-report / nop-metadata 的边界
+## 六、与 nop-report / nop-metadata 的边界
 
 | 模块 | 关系 | 边界 |
 |------|------|------|
@@ -197,7 +279,7 @@ API getPanelData(panelId, requestParams)
 | nop-metadata | 不直接依赖；维度/度量字段映射元数据运行时解析 | D1 不实现字段映射元数据解析（Non-Goal），数据绑定管线直接返回数据集原始字段 |
 | nop-chaos-flux | 不依赖；前端控件族与本设计互不感知 | 本设计仅做模型侧配置 + 数据供给；渲染走 flux renderers |
 
-## 六、Non-Goals
+## 七、Non-Goals
 
 - 多数据源路由（D1 假设走默认 querySpace；多数据源支持留待后续 enhancement）
 - 前端渲染（chart/pivot-table/stat-tile/map 的渲染走 nop-chaos-flux renderers）
