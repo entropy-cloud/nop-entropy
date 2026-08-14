@@ -93,7 +93,9 @@ stateDiagram-v2
 - **unload 定义前必须先 destroy 全部实例**（有实例时 unload 抛异常）。
 - 实例间隔离：独立 `IPluginScope`（effect 互不干扰）、独立配置域（`instance.getConfig()`，plugin 框架自己管理，**不写全局配置**）。
 - **异步生命周期串行化**：per-instance 生命周期**串行**——同一实例的 `activate()/deactivate()` 不并发执行（in-flight transition 单飞，类似 dsh `fiber.inertia`）；并发重复 activate 幂等返回既有实例；HMR 与 reconcile 触发的转换经同一串行化入口，无竞争。
-- **parent 层级继承语义**（subagent，对应 dsh `ctx.extend` 三重机制）：(a) **服务查找沿链回退**——子实例子容器 parent = 父实例容器 → 宿主，子实例 `getService` 可见父实例服务（与 dsh `this.ctx = parent.extend(...)` 对应）；(b) **生命周期挂靠**——destroy 父实例时**级联 destroy** 子实例（与 dsh `parent.fiber.effect(...)` 级联 dispose 对应）；(c) **配置层叠**——子实例配置域 = 父配置 + 子配置的合并视图（子覆盖父）。
+- **parent 层级继承语义**（subagent，对应 dsh `ctx.extend` 三重机制）：(a) **服务查找沿链回退**——子实例子容器 parent = 父实例容器，子实例 `getService` 可见父实例服务（与 dsh `this.ctx = parent.extend(...)` 对应）；(b) **生命周期挂靠**——destroy 父实例时**级联 destroy** 子实例（与 dsh `parent.fiber.effect(...)` 级联 dispose 对应）；(c) **配置层叠**——子实例配置域 = 父配置 + 子配置的合并视图（子覆盖父）。
+
+> **W6 裁决注解（2026-08-14）**：(a) 的"→ 宿主"部分**不扩展**——顶层实例容器 parent 保持 null（实例服务解析不扩大到宿主容器，避免实例级 getService 可解析宿主 bean 导致隔离面扩大；子链回退的终点即顶层实例容器）；"服务查找沿链回退"的链 = 实例容器链（子容器 → 父容器 → …… → 顶层容器），**跨定义 parent 链**（createInstance 的 parent 可为任意定义实例）由 manager 级全局父子映射保证可观测；(b) 级联 destroy 沿全局映射递归收集后代（含跨定义），**先子后父**；父实例存在 ACTIVATED 子实例时**显式 deactivate() 抛明确异常**（P2-D 裁决：显式路径守卫式——先处理子再处理父；reconcile 自动路径级联式——先级联 deactivate 子再 deactivate 父，且父链健康纳入实例激活条件，消除"父停即子停、reconcile 又激活"冲突）；(c) 配置层叠 = 父合并视图 + 定义默认 + 子实例配置（子覆盖父），父配置热应用（updateConfig）**递归传播到全部后代**（子重算合并视图 + 触发各自 provider 变更）。
 
 ## 四、Revertible Effects 系统化
 
@@ -216,20 +218,25 @@ context 变化（plugin load/unload、实例 create/destroy、配置变更）
 ## 六、HMR
 
 ```
-plugin 定义变更
-    │ loader 依赖追踪（ResourceComponentManager 已有能力）
+plugin 定义变更（*.plugin.xml 资源 lastModified 变化）
+    │ loader 依赖追踪（ResourceComponentManager 已有能力：checkChanged(resourcePath, lastModified)）
     ▼
-静态定义缓存失效 → 重算
-    │
-    ▼
-reloadPlugin:
-    若 ACTIVATED: deactivate()          // 回退 effect
+reloadPlugin(pluginId)：
+    [P2-A] 快照采集 = 定义级 definitionConfig（updateConfig 累积值）
+             + 级联闭包内全部实例（本定义全部实例 + 跨定义后代）的
+               (instanceKey, 原始实例配置, parent 以 (pluginId, instanceKey) 对记录)
+            快照由 manager 持有；reload 成功结束后失效（下次重新采集），失败路径保留可重试
+    destroy 全部（级联闭包，先子后父）    // 回退 effect
     unload()                            // 丢弃旧定义
-    load()                              // 加载新定义
-    若 coeffect 条件满足: activate()     // 重新激活
+    load()                              // 重解析 plugin.xml，新定义对象
+    按快照重建（父先建子后建；parent 解析到新实例对象；
+      定义级 coeffect 门控不满足 → 记录 pending，reconcile 触发点重试——快照恢复语义）
+    reconcile()                         // 状态收敛
 ```
 
-**决策理由**：HMR 复用 loader 的依赖追踪失效（被动模式），plugin 层只补"检测变更 → reload 编排"。宿主与其他 plugin 不受影响（实例隔离）。**注**：远程下载的 uber jar（发布场景）不可编辑，HMR 主要针对本地/开发文件场景。
+**决策理由**：HMR 复用 loader 的依赖追踪失效（被动模式），plugin 层只补"检测变更 → reload 编排"。宿主与其他 plugin 不受影响（实例隔离）。**注**：远程下载的 uber jar（发布场景）不可编辑，HMR 主要针对本地/开发文件场景——jar 轨 `reloadPlugin` 显式失败（`ERR_PLUGIN_RELOAD_NOT_SUPPORTED`）。
+
+> **W6 裁决注解（2026-08-14）**：§六 原伪代码（单实例 deactivate→unload→load→activate）更新为**多实例快照重建流程**（P2-A 语义）：快照由 manager 持有（含跨定义后代的 parent 对引用）；变更检测用**资源真实 lastModified**（不得复用 `getLastChangeTime` 时钟语义——`DefaultResourceChangeChecker` 是 lastModified 严格比对）；框架核心不主动起轮询线程，提供**显式检查入口**（宿主应用可定时调用，W7 docs 记录接线方式）。
 
 ## 七、核心接口契约
 

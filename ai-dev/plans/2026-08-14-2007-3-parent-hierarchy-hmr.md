@@ -59,57 +59,57 @@
 
 ### Phase 1 - parent 层级实例化
 
-Status: planned
+Status: completed
 Targets: `PluginInstanceImpl.java`、`PluginManagerImpl.java`（全局父子映射）、`VfsPluginDefinition.java`
 
 - Item Types: `Fix | Decision`
 
-- [ ] **Decision：子容器 parent 链接线**——子实例容器创建改为 `new BeanContainerBuilder(classLoader, parentContainer)`，parentContainer = 父实例的 ACTIVATED 容器；父 DEACTIVATED 时 createInstance(parent) 抛明确异常（禁止挂到已停容器）。先验证 builder 路径下 `setConfigProvider`（实例 provider，W3 注入顺序：build → cast BeanContainerImpl → setConfigProvider → start）与 parent 链可同时成立（reviewer 已核对字段独立，实现时以测试证实）；若验证失败，回退方案 = 子容器不设 parent、服务回退由 `PluginScopeImpl` 手工沿 `getParent()` 链查找（API 语义不变）。
-- [ ] **Decision：父子索引归属**——级联关系放 **manager 级全局映射**（`PluginManagerImpl` 持有 instance → children 集合，createInstance(parent) 时登记、destroy 时移除；**实例亦持 children 引用**——父热应用传播（见下）与 P2-D 守卫需要实例级访问）：跨定义 parent 链（`IPluginManager.createInstance` 的 parent 可为任意定义实例，设计 01 §三(a) 不限定同定义）必须可观测，定义持有类级索引看不见其他定义的实例（会静默降级级联）。级联 destroy：递归收集后代（沿全局映射），**先子后父**；destroy 时从映射移除。
-- [ ] **Decision：顶层实例的宿主回退**——顶层实例容器 parent 保持 null（W3 现状不变，实例服务解析不扩大到宿主容器）；设计 01 §三(a) "子容器 parent = 父实例容器 → 宿主"的"→ 宿主"部分**不扩展**（避免实例级 getService 可解析宿主 bean 导致隔离面扩大），01 文档同步修订（Phase 2 设计修订项）。parent 链成环防护：createInstance(parent) 时沿 `getParent()` 链回溯校验 parent 不是自身/后代（抛明确异常）。
-- [ ] 配置层叠：`newMergedView()` 改为 = 父实例 `getConfig()`（父合并视图）+ 定义默认 + 子实例配置（子覆盖父）；**父配置热应用对子传播（传播路径钉死，防空心接线）**：父实例 `onDefinitionConfigChanged`（P2-C 路径，`PluginInstanceImpl.java:191-203`）更新自身合并视图后，**经其 children 集合递归调用子实例的同名重算方法**（子重算合并视图 + 触发各自 provider 变更）；该链路的末端验收见 Exit Criteria（不得只改父而子持陈旧快照）。
-- [ ] 编译验证：`./mvnw compile -pl :nop-plugin-manager -am -T 1C` 通过。
+- [x] **Decision：子容器 parent 链接线**——子实例容器创建改为 `new BeanContainerBuilder(classLoader, parentContainer)`，parentContainer = 父实例的 ACTIVATED 容器；父 DEACTIVATED 时 createInstance(parent) 抛明确异常（禁止挂到已停容器）。先验证 builder 路径下 `setConfigProvider`（实例 provider，W3 注入顺序：build → cast BeanContainerImpl → setConfigProvider → start）与 parent 链可同时成立（reviewer 已核对字段独立，实现时以测试证实）；若验证失败，回退方案 = 子容器不设 parent、服务回退由 `PluginScopeImpl` 手工沿 `getParent()` 链查找（API 语义不变）。
+- [x] **Decision：父子索引归属**——级联关系放 **manager 级全局映射**（`PluginManagerImpl` 持有 instance → children 集合，createInstance(parent) 时登记、destroy 时移除；**实例亦持 children 引用**——父热应用传播（见下）与 P2-D 守卫需要实例级访问）：跨定义 parent 链（`IPluginManager.createInstance` 的 parent 可为任意定义实例，设计 01 §三(a) 不限定同定义）必须可观测，定义持有类级索引看不见其他定义的实例（会静默降级级联）。级联 destroy：递归收集后代（沿全局映射），**先子后父**；destroy 时从映射移除。
+- [x] **Decision：顶层实例的宿主回退**——顶层实例容器 parent 保持 null（W3 现状不变，实例服务解析不扩大到宿主容器）；设计 01 §三(a) "子容器 parent = 父实例容器 → 宿主"的"→ 宿主"部分**不扩展**（避免实例级 getService 可解析宿主 bean 导致隔离面扩大），01 文档同步修订（Phase 2 设计修订项）。parent 链成环防护：createInstance(parent) 时沿 `getParent()` 链回溯校验 parent 不是自身/后代（抛明确异常）。
+- [x] 配置层叠：`newMergedView()` 改为 = 父实例 `getConfig()`（父合并视图）+ 定义默认 + 子实例配置（子覆盖父）；**父配置热应用对子传播（传播路径钉死，防空心接线）**：父实例 `onDefinitionConfigChanged`（P2-C 路径，`PluginInstanceImpl.java:191-203`）更新自身合并视图后，**经其 children 集合递归调用子实例的同名重算方法**（子重算合并视图 + 触发各自 provider 变更）；该链路的末端验收见 Exit Criteria（不得只改父而子持陈旧快照）。
+- [x] 编译验证：`./mvnw compile -pl :nop-plugin-manager -am -T 1C` 通过。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] **接线验证**：子实例 `getService(T)` 未命中本容器时回退到父实例容器并返回父实例服务（测试断言：子容器无 bean T，父容器有，子 getService 命中；含**跨定义 parent 链**用例）。
-- [ ] 配置层叠：子覆盖父键 + 父独有键继承（测试断言 `getConfig()` 合并视图值）；父 `updateConfig` 热应用后子 `getConfig()` 反映新值（测试断言，验收"父热应用传播"）。
-- [ ] 级联 destroy：destroy 父 → 子（及孙，跨定义）实例从 registry 移除（测试断言）；父 DEACTIVATED 时 createInstance(parent) 抛明确异常、parent 环创建抛明确异常（测试断言）。
-- [ ] **无静默跳过**：跨定义级联真实发生（全局映射驱动，非定义持有类索引）；所有异常路径显式抛出。
-- [ ] No owner-doc update required（设计文档修订集中在 Phase 2 执行项）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] **接线验证**：子实例 `getService(T)` 未命中本容器时回退到父实例容器并返回父实例服务（测试断言：子容器无 bean T，父容器有，子 getService 命中；含**跨定义 parent 链**用例）。
+- [x] 配置层叠：子覆盖父键 + 父独有键继承（测试断言 `getConfig()` 合并视图值）；父 `updateConfig` 热应用后子 `getConfig()` 反映新值（测试断言，验收"父热应用传播"）。
+- [x] 级联 destroy：destroy 父 → 子（及孙，跨定义）实例从 registry 移除（测试断言）；父 DEACTIVATED 时 createInstance(parent) 抛明确异常、parent 环创建抛明确异常（测试断言）。
+- [x] **无静默跳过**：跨定义级联真实发生（全局映射驱动，非定义持有类索引）；所有异常路径显式抛出。
+- [x] No owner-doc update required（设计文档修订集中在 Phase 2 执行项）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 2 - reloadPlugin + P2-A 快照（含设计文档修订）
 
-Status: planned
+Status: completed
 Targets: `IPluginManager.java`（新增 reloadPlugin）、`PluginManagerImpl.java`、`ai-dev/design/nop-plugin/01-architecture-baseline.md`（修订）
 
 - Item Types: `Decision | Fix`
 
-- [ ] **P2-A 裁决：HMR 配置快照归属**——快照由 manager 持有：reloadPlugin 前采集 (a) 定义级 definitionConfig（updateConfig 累积值）+ (b) **级联闭包内全部实例**的 (instanceKey, config, **parent 引用以 (pluginId, instanceKey) 对形式记录**——父实例对象在 destroy 后失效，重建时必须按 id 对解析到新实例) 列表——闭包 = 本次将被级联 destroy 的全部实例（含**跨定义后代**，经 Phase 1 全局映射收集）；快照生命周期：reload 流程结束后失效（下次 reload 重新采集），不长期保留。
-- [ ] `reloadPlugin(pluginId)` 编排（VFS 轨）：快照采集 → destroy 全部（级联，Phase 1 链路）→ unload → load（重解析 plugin.xml，新定义对象）→ 按快照重建（**父先建子后建**，重建的 parent = 新父实例对象；跨定义后代仅当其定义仍 LOADED 时重建，否则记录显式错误——不静默丢失）→ reconcile（W5 引擎）。
-- [ ] **重建 × W5 门控交互**：重建时 `createInstance` 返回 null（定义级条件不满足，W5 语义）不是错误——记录"条件未满足暂缓重建"并**保留该实例的快照项为 pending**（manager 挂 pending 列表，reconcile 触发点重试重建；这是"快照恢复语义"，与 W5"reconcile 不自动创建"裁决不冲突）；null 以外的异常按失败处理。
-- [ ] **失败路径钉死（No Silent No-Op）**：destroy/unload 段失败 → 定义保留 LOADED（部分实例可能已销毁，状态可观测），**快照不丢弃**（调用方可重试 reload）；load 段失败 → 定义 UNLOADED，快照保留；重建段失败 → 已建实例保留（可观测），pending 项可重试。所有失败路径显式报告（日志/异常），不吞。
-- [ ] jar 轨 reloadPlugin：抛明确异常（复用或新增错误码，语义"jar 轨不支持 HMR"），不静默 no-op。
-- [ ] **设计文档修订（owner doc，本 plan in-scope）**：(a) 01 §三(a) 追加"宿主回退不扩展"裁决注解；(b) 01 §六 HMR 伪代码（单实例 deactivate→unload→load→activate）更新为多实例快照重建流程（P2-A 语义）。修订以裁决记录形式写入 01（设计文档是权威来源，与实现冲突时必须同步）。
-- [ ] 编译验证：`./mvnw compile -pl :nop-plugin-manager -am -T 1C` 通过。
+- [x] **P2-A 裁决：HMR 配置快照归属**——快照由 manager 持有：reloadPlugin 前采集 (a) 定义级 definitionConfig（updateConfig 累积值）+ (b) **级联闭包内全部实例**的 (instanceKey, config, **parent 引用以 (pluginId, instanceKey) 对形式记录**——父实例对象在 destroy 后失效，重建时必须按 id 对解析到新实例) 列表——闭包 = 本次将被级联 destroy 的全部实例（含**跨定义后代**，经 Phase 1 全局映射收集）；快照生命周期：reload 流程结束后失效（下次 reload 重新采集），不长期保留。
+- [x] `reloadPlugin(pluginId)` 编排（VFS 轨）：快照采集 → destroy 全部（级联，Phase 1 链路）→ unload → load（重解析 plugin.xml，新定义对象）→ 按快照重建（**父先建子后建**，重建的 parent = 新父实例对象；跨定义后代仅当其定义仍 LOADED 时重建，否则记录显式错误——不静默丢失）→ reconcile（W5 引擎）。
+- [x] **重建 × W5 门控交互**：重建时 `createInstance` 返回 null（定义级条件不满足，W5 语义）不是错误——记录"条件未满足暂缓重建"并**保留该实例的快照项为 pending**（manager 挂 pending 列表，reconcile 触发点重试重建；这是"快照恢复语义"，与 W5"reconcile 不自动创建"裁决不冲突）；null 以外的异常按失败处理。
+- [x] **失败路径钉死（No Silent No-Op）**：destroy/unload 段失败 → 定义保留 LOADED（部分实例可能已销毁，状态可观测），**快照不丢弃**（调用方可重试 reload）；load 段失败 → 定义 UNLOADED，快照保留；重建段失败 → 已建实例保留（可观测），pending 项可重试。所有失败路径显式报告（日志/异常），不吞。
+- [x] jar 轨 reloadPlugin：抛明确异常（复用或新增错误码，语义"jar 轨不支持 HMR"），不静默 no-op。
+- [x] **设计文档修订（owner doc，本 plan in-scope）**：(a) 01 §三(a) 追加"宿主回退不扩展"裁决注解；(b) 01 §六 HMR 伪代码（单实例 deactivate→unload→load→activate）更新为多实例快照重建流程（P2-A 语义）。修订以裁决记录形式写入 01（设计文档是权威来源，与实现冲突时必须同步）。
+- [x] 编译验证：`./mvnw compile -pl :nop-plugin-manager -am -T 1C` 通过。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] **端到端验证**：loadPlugin → createInstance（带实例配置 + 父子链）→ 修改定义（更新 plugin.xml 内容）→ reloadPlugin → 新实例存在、快照配置保留（getConfig 断言）、父子链重建（getParent 断言）、reconcile 后状态正确。
-- [ ] 跨定义后代在 reload 后不静默丢失：定义仍 LOADED 则重建（断言）；定义未 LOADED 则显式错误记录（断言日志/状态）。
-- [ ] 门控 null（W5 语义）→ pending 重建路径有测试（不误判为失败）。
-- [ ] jar 轨 reload 显式失败（测试断言）。
-- [ ] 01 §三(a) / §六 修订已落地（git diff 断言）；P2-A 裁决已记录。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] **端到端验证**：loadPlugin → createInstance（带实例配置 + 父子链）→ 修改定义（更新 plugin.xml 内容）→ reloadPlugin → 新实例存在、快照配置保留（getConfig 断言）、父子链重建（getParent 断言）、reconcile 后状态正确。
+- [x] 跨定义后代在 reload 后不静默丢失：定义仍 LOADED 则重建（断言）；定义未 LOADED 则显式错误记录（断言日志/状态）。
+- [x] 门控 null（W5 语义）→ pending 重建路径有测试（不误判为失败）。
+- [x] jar 轨 reload 显式失败（测试断言）。
+- [x] 01 §三(a) / §六 修订已落地（git diff 断言）；P2-A 裁决已记录。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 3 - loader 依赖追踪接线（变更检测）
 
-Status: planned
+Status: in progress
 Targets: `PluginManagerImpl.java`、`VfsPluginDefinition.java`（lastModified 记录）、`ResourceComponentManager` 调用点
 
 - Item Types: `Decision | Fix`
