@@ -1,6 +1,7 @@
 # 3 实例级生命周期 + effect + activator（W3）
 
-> Plan Status: active
+> Plan Status: skip
+> Skip Reason: 本 plan 属 nop-plugin-enhancement mission（master 分支执行中），credential-mfa 二期 worktree 不执行
 > Mission: nop-plugin-enhancement
 > Work Item: W3 实例级生命周期 + effect + activator
 > Last Reviewed: 2026-08-14

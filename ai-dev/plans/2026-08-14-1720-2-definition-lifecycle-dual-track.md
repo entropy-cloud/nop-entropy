@@ -1,6 +1,7 @@
 # 2 定义级生命周期 + 双轨来源 + 旧插件兼容（W2）
 
-> Plan Status: active
+> Plan Status: skip
+> Skip Reason: 本 plan 属 nop-plugin-enhancement mission（master 分支执行中），credential-mfa 二期 worktree 不执行
 > Mission: nop-plugin-enhancement
 > Work Item: W2 定义级生命周期 + 双轨来源 + 旧插件兼容
 > Last Reviewed: 2026-08-14
