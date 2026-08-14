@@ -14,6 +14,7 @@ import io.nop.orm.IOrmTemplate;
 import io.nop.datav.biz.ScreenThemeConfig;
 import io.nop.datav.dao.entity.NopDatavScreen;
 import io.nop.datav.dao.entity.NopDatavScreenWidget;
+import io.nop.datav.service.NopDatavOperatorResolver;
 import io.nop.datav.service.component.PanelComponentRegistry;
 import io.nop.datav.service.screen.ScreenThemeParser;
 import io.nop.report.dao.entity.NopReportDataset;
@@ -447,7 +448,7 @@ public class DatavGenerateScreenExecutor implements IToolExecutor {
                 return op;
             }
         }
-        return NopOperatorFallback.SYSTEM_OPERATOR;
+        return NopDatavOperatorResolver.SYSTEM_OPERATOR;
     }
 
     /**
@@ -517,15 +518,17 @@ public class DatavGenerateScreenExecutor implements IToolExecutor {
         return UUID.randomUUID().toString().replace("-", "");
     }
 
-    private static boolean isUniqueConstraintViolation(Exception e) {
+    static boolean isUniqueConstraintViolation(Exception e) {
         String msg = e.getMessage();
         if (msg == null) {
             return false;
         }
         String lower = msg.toLowerCase();
-        // H2 / common JDBC UK violation patterns
-        return lower.contains("unique") || lower.contains("duplicate")
-                || lower.contains("uk_") || lower.contains("constraint");
+        // AR-3: 只匹配 UK 特有子串。H2 "Unique index or primary key violation"、
+        // MySQL "Duplicate entry"、PG "duplicate key value violates unique constraint" 均命中。
+        // 不再用 "constraint"/"uk_"，否则会把 CHECK/FK/NOT NULL 等非 UK 约束违错误报为重名，
+        // 触发 LLM 无意义的 rename-retry 循环。
+        return lower.contains("unique") || lower.contains("duplicate");
     }
 
     // ==================== 内部辅助类 ====================
@@ -607,9 +610,5 @@ public class DatavGenerateScreenExecutor implements IToolExecutor {
             this.h = h;
             this.z = z;
         }
-    }
-
-    private static final class NopOperatorFallback {
-        static final String SYSTEM_OPERATOR = "system";
     }
 }

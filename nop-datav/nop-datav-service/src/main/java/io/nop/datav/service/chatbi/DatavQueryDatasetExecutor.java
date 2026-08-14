@@ -27,9 +27,11 @@ import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
 import static io.nop.datav.service.NopDatavConfigs.CFG_DATAV_CHATBI_MAX_ROWS;
+import static io.nop.datav.service.NopDatavErrors.ARG_DATASET_SID;
+import static io.nop.datav.service.NopDatavErrors.ARG_REASON;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_DATASET_NOT_FOUND;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_DATASET_NOT_SQL;
-import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_QUERY_FAILED;
+import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_DATASET_QUERY_FAILED;
 
 /**
  * ChatBI 工具：按数据集 sid + 参数 Map 执行查询，返回 columns + rows。
@@ -163,8 +165,11 @@ public class DatavQueryDatasetExecutor implements IToolExecutor {
         } catch (NopException e) {
             throw e;
         } catch (Exception e) {
-            throw new NopException(ERR_DATAV_QUERY_FAILED)
-                    .param("panelId", datasetSid)
+            // AR-4: 使用 ChatBI dataset-query 专用 ErrorCode + ARG_DATASET_SID（不再误用 panel 路径共享的
+            // ERR_DATAV_QUERY_FAILED，后者的 message 绑定 {panelId}，对 dataset 路径语义错误）。
+            throw new NopException(ERR_DATAV_CHATBI_DATASET_QUERY_FAILED)
+                    .param(ARG_DATASET_SID, datasetSid)
+                    .param(ARG_REASON, e.getMessage() != null ? e.getMessage() : e.getClass().getName())
                     .cause(e);
         }
     }

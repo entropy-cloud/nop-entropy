@@ -14,6 +14,7 @@ import io.nop.orm.IOrmTemplate;
 import io.nop.datav.dao.entity.NopDatavDashboard;
 import io.nop.datav.dao.entity.NopDatavDatasetRef;
 import io.nop.datav.dao.entity.NopDatavPanel;
+import io.nop.datav.service.NopDatavOperatorResolver;
 import io.nop.datav.service.component.PanelComponentRegistry;
 import io.nop.datav.service.component.PanelTypeMapping;
 import io.nop.report.dao.entity.NopReportDataset;
@@ -160,7 +161,7 @@ public class DatavGenerateDashboardExecutor implements IToolExecutor {
                 return op;
             }
         }
-        return NopOperatorFallback.SYSTEM_OPERATOR;
+        return NopDatavOperatorResolver.SYSTEM_OPERATOR;
     }
 
     @SuppressWarnings("unchecked")
@@ -464,12 +465,5 @@ public class DatavGenerateDashboardExecutor implements IToolExecutor {
             this.datasetRefId = datasetRefId;
             this.refDatasetId = refDatasetId;
         }
-    }
-
-    /**
-     * operator fallback 常量（避免循环依赖 NopDatavOperatorResolver，本 executor 内联同值）。
-     */
-    private static final class NopOperatorFallback {
-        static final String SYSTEM_OPERATOR = "system";
     }
 }

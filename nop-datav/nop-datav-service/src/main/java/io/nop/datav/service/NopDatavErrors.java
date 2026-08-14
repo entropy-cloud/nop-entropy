@@ -506,6 +506,14 @@ public interface NopDatavErrors {
             ARG_DATASET_SID
     );
 
+    // AR-4: ChatBI dataset-query 专用 ErrorCode（不复用 panel 路径共享的 ERR_DATAV_QUERY_FAILED，
+    // 后者 message 绑定 {panelId}，被 PanelDataBinder/PanelSqlBuilder 等 3 处看板路径调用）。
+    ErrorCode ERR_DATAV_CHATBI_DATASET_QUERY_FAILED = define(
+            "nop.err.datav.chatbi-dataset-query-failed",
+            "ChatBI dataset query execution failed for dataset: {datasetSid}, reason: {reason}",
+            ARG_DATASET_SID, ARG_REASON
+    );
+
     // ===== D6-1b ChatBI 看板生成 =====
 
     String ARG_DASHBOARD_NAME = "dashboardName";

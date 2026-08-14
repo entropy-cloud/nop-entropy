@@ -18,11 +18,19 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.core.lang.json.JsonTool;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletionException;
 
+import static io.nop.datav.service.NopDatavErrors.ARG_REASON;
+import static io.nop.datav.service.NopDatavErrors.ARG_TOOL_NAME;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_MAX_ITERATIONS_EXCEEDED;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_NO_RESULT;
+import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_TOOL_EXECUTION_FAILED;
 
 /**
  * ChatBI 轻量自建 tool-calling 循环（裁定 A + 裁定 L 泛化）。
@@ -60,6 +68,8 @@ import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_NO_RESULT;
  * </p>
  */
 public class ChatBiToolCallingLoop {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ChatBiToolCallingLoop.class);
 
     private final IChatService chatService;
     private final IToolManager toolManager;
@@ -136,8 +146,25 @@ public class ChatBiToolCallingLoop {
             // 执行每个 tool call，结果回喂
             for (ChatToolCall chatToolCall : toolCalls) {
                 AiToolCall aiToolCall = ChatBiTypeConverter.toAiToolCall(chatToolCall);
-                AiToolCallResult toolResult = toolManager.callTool(
-                        chatToolCall.getName(), aiToolCall, context).join();
+                AiToolCallResult toolResult;
+                try {
+                    toolResult = toolManager.callTool(
+                            chatToolCall.getName(), aiToolCall, context).join();
+                } catch (CompletionException | CancellationException e) {
+                    // AR-6: .join() 把 executor 失败包成 CompletionException，取消则抛 CancellationException。
+                    // 解包到首个非 CompletionException cause，抛结构化 NopException（不再让原始异常泄漏到
+                    // 公共 GraphQL action chatToQuery/chatToDashboard/chatToScreen）。
+                    Throwable underlying = e;
+                    while (underlying instanceof CompletionException && underlying.getCause() != null) {
+                        underlying = underlying.getCause();
+                    }
+                    String reason = underlying.getMessage() != null
+                            ? underlying.getMessage() : underlying.getClass().getName();
+                    throw new NopException(ERR_DATAV_CHATBI_TOOL_EXECUTION_FAILED)
+                            .param(ARG_TOOL_NAME, chatToolCall.getName())
+                            .param(ARG_REASON, reason)
+                            .cause(underlying);
+                }
 
                 ChatToolResponseMessage toolResponse =
                         ChatBiTypeConverter.toChatToolResponseMessage(chatToolCall, toolResult);
@@ -149,7 +176,8 @@ public class ChatBiToolCallingLoop {
                     try {
                         resultHandler.handle(chatToolCall.getName(), toolResult, toolResponseContent, accumulator);
                     } catch (Exception ignore) {
-                        // handler 失败不影响循环（与 D6-1 query 解析失败容忍一致）
+                        // handler 失败不影响循环（与 D6-1 query 解析失败容忍一致），但记录 DEBUG 以便追踪
+                        LOG.debug("nop.datav.chatbi.tool-handler-failed: tool={}", chatToolCall.getName(), ignore);
                     }
                 }
 
@@ -219,7 +247,8 @@ public class ChatBiToolCallingLoop {
                     accumulator.setRows(rowList);
                 }
             } catch (Exception ignore) {
-                // 解析失败不影响循环，保留前一次快照
+                // 解析失败不影响循环，保留前一次快照；记录 DEBUG 以便追踪
+                LOG.debug("nop.datav.chatbi.query-result-parse-failed: tool={}", toolName, ignore);
             }
         };
 
