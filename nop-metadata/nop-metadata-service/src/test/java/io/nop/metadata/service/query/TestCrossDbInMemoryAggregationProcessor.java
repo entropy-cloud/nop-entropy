@@ -342,6 +342,115 @@ public class TestCrossDbInMemoryAggregationProcessor {
         assertEquals("V_123", AggregationHelper.safeAlias("123"));
     }
 
+    // ===== AR-10（plan 2026-08-14-1133-2）：toBigDecimal 精度无损 + String 数值覆盖 =====
+
+    /**
+     * AR-10：Long > 2^53 经 toBigDecimal 不丢精度。旧实现统一 doubleValue()，
+     * Long.MAX_VALUE（2^63-1）经 double 会丢低位。
+     */
+    @Test
+    public void testToBigDecimalLongPrecisionAbove2Pow53() {
+        long bigLong = Long.MAX_VALUE; // 2^63 - 1 > 2^53
+        java.math.BigDecimal bd = AggregationHelper.toBigDecimal(bigLong);
+        assertNotNull(bd, "Long must convert to non-null BigDecimal");
+        assertEquals(java.math.BigDecimal.valueOf(bigLong), bd,
+                "Long > 2^53 must convert losslessly via longValue()");
+        assertEquals(bigLong, bd.longValueExact(),
+                "round-trip longValueExact must equal original Long");
+
+        // 另一个 > 2^53 但 < Long.MAX 的值，验证非边界
+        long mid = (1L << 60) + 12345L;
+        assertEquals(java.math.BigDecimal.valueOf(mid), AggregationHelper.toBigDecimal(mid),
+                "Long (2^60 + 12345) must convert losslessly");
+
+        // AtomicLong 同样无损
+        assertEquals(java.math.BigDecimal.valueOf(bigLong),
+                AggregationHelper.toBigDecimal(new java.util.concurrent.atomic.AtomicLong(bigLong)),
+                "AtomicLong > 2^53 must convert losslessly via longValue()");
+    }
+
+    /**
+     * AR-10：Double 小数经 toBigDecimal 不被 longValue 截断。浮点类型保持 doubleValue()。
+     */
+    @Test
+    public void testToBigDecimalDoubleKeepsFraction() {
+        java.math.BigDecimal bd = AggregationHelper.toBigDecimal(1.5);
+        assertNotNull(bd);
+        assertEquals(1.5, bd.doubleValue(), 1e-9,
+                "Double fraction must be preserved (not truncated by longValue)");
+        assertEquals(0, new java.math.BigDecimal("1.5").compareTo(bd),
+                "1.5 must round-trip as 1.5");
+
+        // Float 同样走 doubleValue 分支
+        assertNotNull(AggregationHelper.toBigDecimal(2.5f));
+    }
+
+    /**
+     * AR-10：String 数值经 toBigDecimal 正确解析（不再直接 return null 被静默跳过）。
+     * 部分 JDBC driver 以 String 交付数值，旧实现直接 return null → SumAcc 静默跳过 → 列 SUM/AVG 为 null。
+     */
+    @Test
+    public void testToBigDecimalParsesNumericString() {
+        assertEquals(0, new java.math.BigDecimal("123.45").compareTo(AggregationHelper.toBigDecimal("123.45")),
+                "numeric String '123.45' must parse to BigDecimal(123.45)");
+        assertEquals(0, new java.math.BigDecimal("123.45")
+                        .compareTo(AggregationHelper.toBigDecimal("  123.45  ")),
+                "numeric String with whitespace must trim-then-parse");
+        assertEquals(java.math.BigDecimal.valueOf(42L), AggregationHelper.toBigDecimal("42"),
+                "integer String must parse");
+    }
+
+    /** AR-10：非数值 String 仍返回 null（不抛异常打断聚合）。 */
+    @Test
+    public void testToBigDecimalNonNumericStringReturnsNull() {
+        assertNull(AggregationHelper.toBigDecimal("abc"), "non-numeric String must return null");
+        assertNull(AggregationHelper.toBigDecimal(""), "empty String must return null");
+        assertNull(AggregationHelper.toBigDecimal("   "), "blank String must return null");
+    }
+
+    /** AR-10：BigInteger 已有无损分支，保持不变。BigDecimal 原样返回。 */
+    @Test
+    public void testToBigDecimalBigIntegerAndBigDecimalUnchanged() {
+        assertEquals(new java.math.BigDecimal(java.math.BigInteger.TEN),
+                AggregationHelper.toBigDecimal(java.math.BigInteger.TEN),
+                "BigInteger must convert losslessly (existing branch unchanged)");
+        java.math.BigDecimal orig = new java.math.BigDecimal("99999999999999999999.999");
+        assertSame(orig, AggregationHelper.toBigDecimal(orig),
+                "BigDecimal must return as-is");
+    }
+
+    /**
+     * AR-10 接线验证：toBigDecimal 经 SumAcc.accumulate 在 cross-DB 内存聚合路径被调用——
+     * Long.MAX_VALUE SUM 结果精确（不再因 doubleValue 丢精度）；String 数值不再被静默跳过。
+     */
+    @Test
+    public void testSumAccPrecisionAndStringCoverageWired() {
+        // Long > 2^53 经 SumAcc 累加精确
+        AggregationContext.MemAggAccumulator accLong = AggregationContext.MemAggAccumulator.forFunc("sum", "m");
+        accLong.accumulate(Long.MAX_VALUE);
+        accLong.accumulate(Long.MAX_VALUE);
+        java.math.BigDecimal twoMax = java.math.BigDecimal.valueOf(Long.MAX_VALUE)
+                .multiply(java.math.BigDecimal.valueOf(2));
+        assertEquals(0, twoMax.compareTo((java.math.BigDecimal) accLong.result()),
+                "SumAcc of 2 * Long.MAX_VALUE must be lossless (2^63-1 * 2 exact)");
+
+        // String 数值经 SumAcc 不再被静默跳过
+        AggregationContext.MemAggAccumulator accStr = AggregationContext.MemAggAccumulator.forFunc("sum", "m");
+        accStr.accumulate("123.45");
+        accStr.accumulate("76.55");
+        java.math.BigDecimal strSum = (java.math.BigDecimal) accStr.result();
+        assertNotNull(strSum, "String numeric values must NOT be silently skipped (was null before AR-10)");
+        assertEquals(0, new java.math.BigDecimal("200.00").compareTo(strSum),
+                "String '123.45' + '76.55' must sum to 200.00");
+
+        // String 非数值仍被跳过（不污染聚合）
+        AggregationContext.MemAggAccumulator accMixed = AggregationContext.MemAggAccumulator.forFunc("sum", "m");
+        accMixed.accumulate("abc");
+        accMixed.accumulate(10);
+        assertEquals(java.math.BigDecimal.valueOf(10), accMixed.result(),
+                "non-numeric String must be skipped, numeric values still aggregated");
+    }
+
     @Test
     public void testBuildResult() {
         List<Map<String, Object>> items = new ArrayList<>();

@@ -68,9 +68,16 @@ public class MetaTableProfiler {
     /** topValues 默认取前 N 个值。 */
     private static final int DEFAULT_TOP_VALUES_LIMIT = 10;
 
-    /** 数值类 JDBC 类型名关键字（大写），用于列类型适配（contains 匹配，兼容 "DOUBLE PRECISION" 等）。 */
-    private static final List<String> NUMERIC_KEYWORDS = Arrays.asList(
-            "INT", "DOUBLE", "FLOAT", "REAL", "DECIMAL", "NUMERIC", "NUMBER", "BIT", "BOOLEAN");
+    /**
+     * 数值类 JDBC 类型名集合（大写 exact-match）。AR-05：替代旧的 substring contains 匹配——
+     * substring 无法区分 POINT（含子串 INT）与真正的 *INT 类型，且误纳 BOOLEAN/BIT。
+     * exact-match 仅识别真正的数值类型，几何/布尔/位域列正确回退 string stats 而非产出非法 SUM。
+     * "DOUBLE PRECISION"（PG/SQL 标准的空格复合名）作为完整词条纳入。
+     */
+    private static final Set<String> NUMERIC_TYPE_NAMES = Set.of(
+            "INT", "INTEGER", "TINYINT", "SMALLINT", "MEDIUMINT", "BIGINT",
+            "DECIMAL", "NUMERIC", "NUMBER", "DOUBLE", "DOUBLE PRECISION",
+            "FLOAT", "REAL");
 
     /** 字符串类 JDBC 类型名关键字（大写）。 */
     private static final List<String> STRING_KEYWORDS = Arrays.asList(
@@ -210,15 +217,69 @@ public class MetaTableProfiler {
         return cs;
     }
 
-    /** 运行时探测列是否为数值类型（dataType=null 时）：试 SUM(col)，成功则视为数值列。 */
+    /**
+     * 运行时探测列是否为数值类型（dataType=null 或未知类型时）：试 SUM(col)，成功则视为数值列。
+     *
+     * <p>AR-06：catch (SQLException) 内区分两类失败：
+     * <ul>
+     *   <li><b>类型不匹配</b>（良性，如 SUM(text_col)）——预期行为，DEBUG 日志 + return false
+     *       （列正确回退 string stats）。H2 此类失败用 vendor SQLState {@code 90015}（"wrong data type"），
+     *       非 SQL 标准 {@code 22*}，故不能用 "22*" 前缀单判。</li>
+     *   <li><b>基础设施失败</b>（连接断开 {@code 08*} / 授权 {@code 28*} / 表或列不存在 + 权限 {@code 42*}
+     *       含 PG {@code 42501} / 消息含 connection/permission/denied/closed 等线索）——不得静默塌缩为
+     *       "非数值列"，至少 WARN 日志 + 上下文（仍 return false 保持剖析不中断），留下可见信号</li>
+     * </ul>
+     * 裁定：只对**可识别的基础设施信号**判为 infra（WARN）；其余（含 {@code 22*}、H2 {@code 90015}、
+     * 未知 SQLState）一律视为良性类型不匹配（DEBUG）。理由：probeNumeric 仅对未知类型列触发，若对每个
+     * 良性类型不匹配都 WARN 会淹没真实基础设施失败信号（违背 AR-06 初衷）。
+     */
     private boolean probeNumeric(Connection conn, String fromClause, String col) {
         try {
             queryNullableDouble(conn, "SELECT SUM(" + col + ") FROM " + fromClause);
             return true;
         } catch (SQLException e) {
-            LOG.debug(NopMetadataErrors.ERR_PROFILING_TYPE_PROBE_FAILED.getErrorCode() + ": probeNumeric failed", e);
+            if (isInfrastructureFailure(e)) {
+                LOG.warn(NopMetadataErrors.ERR_PROFILING_TYPE_PROBE_FAILED.getErrorCode()
+                        + ": probeNumeric infrastructure failure (connection/permission/table-missing, "
+                        + "not a benign type mismatch): col={}", col, e);
+            } else {
+                LOG.debug(NopMetadataErrors.ERR_PROFILING_TYPE_PROBE_FAILED.getErrorCode()
+                        + ": probeNumeric type mismatch (expected for non-numeric columns): col={}", col, e);
+            }
             return false;
         }
+    }
+
+    /**
+     * AR-06：判断 SQLException 是否为基础设施失败（连接/权限/表不存在）而非良性"类型不匹配"。
+     *
+     * <p>只识别**明确的基础设施信号**为 infra；无法识别的归为良性类型不匹配（避免 WARN 淹没真实失败）：
+     * <ul>
+     *   <li>SQLState {@code 08*}：连接异常 → infra</li>
+     *   <li>SQLState {@code 28*}：授权异常 → infra</li>
+     *   <li>SQLState {@code 42*}：表/列不存在 + PG 权限不足 {@code 42501}（前缀 42）→ infra</li>
+     *   <li>消息含 connection/permission/denied/closed/timeout/communication 等 → infra</li>
+     *   <li>其余（{@code 22*} data exception、H2 {@code 90015} wrong data type、null）→ 良性类型不匹配</li>
+     * </ul>
+     */
+    static boolean isInfrastructureFailure(SQLException e) {
+        String sqlState = e.getSQLState();
+        if (sqlState != null && sqlState.length() >= 2) {
+            String prefix = sqlState.substring(0, 2);
+            if ("08".equals(prefix) || "28".equals(prefix) || "42".equals(prefix)) {
+                return true;
+            }
+        }
+        String msg = e.getMessage();
+        if (msg != null) {
+            String lower = msg.toLowerCase();
+            if (lower.contains("connection") || lower.contains("permission") || lower.contains("denied")
+                    || lower.contains("closed") || lower.contains("timeout")
+                    || lower.contains("communication") || lower.contains("does not exist")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** 数值列统计：min/max/mean/stddev（便携 SQL）+ median/percentiles/distribution（in-app 排序）。 */
@@ -491,13 +552,10 @@ public class MetaTableProfiler {
         if (typeName == null) {
             return false;
         }
-        String upper = typeName.toUpperCase();
-        for (String kw : NUMERIC_KEYWORDS) {
-            if (upper.contains(kw)) {
-                return true;
-            }
-        }
-        return false;
+        // AR-05：exact-match 替代 substring contains——POINT 不再因子串 "INT" 误匹配，
+        // BOOLEAN/BIT 不再被误归数值（保守回退 string stats / probeNumeric，不产非法 SUM）
+        String upper = typeName.toUpperCase().trim();
+        return NUMERIC_TYPE_NAMES.contains(upper);
     }
 
     static boolean isStringType(String typeName) {

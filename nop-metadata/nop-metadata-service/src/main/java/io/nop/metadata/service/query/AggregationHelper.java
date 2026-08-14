@@ -539,7 +539,28 @@ public class AggregationHelper {
             return new java.math.BigDecimal((java.math.BigInteger) v);
         }
         if (v instanceof Number) {
-            return java.math.BigDecimal.valueOf(((Number) v).doubleValue());
+            Number n = (Number) v;
+            // AR-10：整数类型用 longValue() 无损转换——Long > 2^53 经 doubleValue() 会丢低位；
+            // AtomicLong/AtomicInteger 同为整数子类型（不继承 Long/Integer，需显式判断）
+            if (n instanceof Long || n instanceof Integer || n instanceof Short || n instanceof Byte
+                    || n instanceof java.util.concurrent.atomic.AtomicLong
+                    || n instanceof java.util.concurrent.atomic.AtomicInteger) {
+                return java.math.BigDecimal.valueOf(n.longValue());
+            }
+            // Float/Double 及其它 Number 子类型保持 doubleValue()（小数不截断）
+            return java.math.BigDecimal.valueOf(n.doubleValue());
+        }
+        // AR-10：String 类型数值（部分 JDBC driver 交付方式）尝试解析，不再静默 return null
+        if (v instanceof String) {
+            String s = ((String) v).trim();
+            if (s.isEmpty()) {
+                return null;
+            }
+            try {
+                return new java.math.BigDecimal(s);
+            } catch (NumberFormatException e) {
+                return null;
+            }
         }
         return null;
     }
