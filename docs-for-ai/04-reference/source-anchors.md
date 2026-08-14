@@ -172,6 +172,20 @@
 | `META-004` | `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/lineage/SqlColumnLineageExtractor.java` (`extract` + `resolveTransformType`) | SQL AST 列级血缘抽取：解析 SELECT 列表达式 → 追溯到源表源列；产出列级 `NopMetaLineageEdge`（含 transformType: direct/derived/aggregated——direct 直接列引用 / derived 派生表达式 / aggregated 聚合函数，与 `_NopMetadataCoreConstants.LINEAGE_TRANSFORM_*` 及 `nop-metadata/nop-metadata-meta/src/main/resources/_vfs/dict/meta/lineage-transform.dict.yaml` 一致）；同包 `SqlSourceTableExtractor` 抽取表级血缘 |
 | `META-005` | `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/quality/MetaQualityCheckpointScheduler.java` (`init` + `registerCheckpoint` + `executeScheduledCheckpoint`) | cron 调度器：启动 scanner 全量注册 ACTIVE 检查点的 cron job（D4）；运行时增量（save/delete override 调用 register/unregister）；BeanMethodJobInvoker 反射调用 `executeScheduledCheckpoint` 委托 raw impl `NopMetaQualityCheckpointBizModel.executeCheckpoint`（D3 path b，绕过 BizProxy 事务隔离问题） |
 
+## nop-plugin 锚点
+
+| 规则 ID | 锚点 | 说明 |
+|---------|------|------|
+| `PLG-001` | `nop-core-framework/nop-plugin/nop-plugin-api/src/main/java/io/nop/plugin/api/IPlugin.java` | 插件定义级状态机契约：`load/unload/getState/getInstance/getInstances/isStateMachineAware` 等 default 方法 + 兼容路径语义 |
+| `PLG-002` | `nop-core-framework/nop-plugin/nop-plugin-api/src/main/java/io/nop/plugin/api/IPluginInstance.java` | 实例级状态机契约：`getService`（生命周期代理/多候选 primary 规则/INACTIVE 快速失败）、`invokeCommand` per-instance 路由、`getParent`/`getConfig` |
+| `PLG-003` | `nop-core-framework/nop-plugin/nop-plugin-api/src/main/java/io/nop/plugin/api/IPluginScope.java` | effect 自管理契约：`effect(Disposable)`/`effects()`（LIFO 回退 quiescence）；激活期 `getService` 返回真实 bean |
+| `PLG-004` | `nop-core-framework/nop-plugin/nop-plugin-api/src/main/java/io/nop/plugin/api/IPluginActivator.java` | 激活器双参数契约：`activate(scope, config)`（返回值非 null 自动注册 effect） |
+| `PLG-005` | `nop-core-framework/nop-plugin/nop-plugin-manager/src/main/java/io/nop/plugin/manager/IPluginManager.java` | manager 契约：双轨路由（坐标→uber jar / 路径→VFS `*.plugin.xml`）、`createInstance`（门控 null/重复 key 异常/parent）、`reconcileInstances`、`reloadPlugin`（HMR 快照重建，jar 轨显式失败） |
+| `PLG-006` | `nop-core-framework/nop-plugin/nop-plugin-manager/src/main/java/io/nop/plugin/manager/impl/PluginManagerImpl.java` (`checkChangedAndReload:320`) | HMR 显式检查入口（宿主定时调用；框架不起轮询线程）；`ResourceComponentManager.checkChanged` 严格 lastModified 比对 |
+| `PLG-007` | `nop-core-framework/nop-plugin/nop-plugin-manager/src/main/java/io/nop/plugin/manager/resolver/HttpPluginResourceResolver.java` | artifact 下载 + SHA256 校验：hash 来源优先级 header → `{url}.sha256` → `expectedHashes` map；fail-fast（`ERR_PLUGIN_SHA256_MISMATCH`/`ERR_PLUGIN_CHECKSUM_NOT_AVAILABLE`）；缓存重验/遗留重下载/`nop.plugin.skip-cache-verify` |
+| `PLG-008` | `nop-core-framework/nop-plugin/nop-plugin-api/src/main/resources/_vfs/nop/schema/plugin/plugin.xdef` | 插件定义 schema：`requires`（csv-set）/`if-property`（`propName\|expectedValue`）/`activator`（bean-name）/`<beans>`（复用 beans.xdef） |
+| `PLG-009` | `nop-core-framework/nop-plugin/nop-plugin-support/src/main/java/io/nop/plugin/support/AbstractPlugin.java` | 兼容基类：`start/stop` 收敛为 `load+createInstance` / `destroyInstance+unload`；非 aware 插件走旧语义 |
+
 ## 当前最重要的校准点
 
 1. 不要把 `gen-service.xgen` / `gen-web.xgen` 写成当前仓库的通用生成链路。

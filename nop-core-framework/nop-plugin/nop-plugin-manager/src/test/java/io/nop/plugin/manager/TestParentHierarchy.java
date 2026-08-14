@@ -1,5 +1,6 @@
 package io.nop.plugin.manager;
 
+import io.nop.api.core.ApiErrors;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.concurrent.Callable;
 
 import static io.nop.plugin.api.PluginApiErrors.ERR_PLUGIN_INACTIVE;
 import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_ACTIVE_CHILDREN_EXIST;
@@ -313,6 +315,24 @@ public class TestParentHierarchy {
                 () -> manager.createInstance(GATE_CLOSED_ID, "g1", Map.of(), p1));
         assertEquals(ERR_PLUGIN_PARENT_NOT_ACTIVATED.getErrorCode(), e.getErrorCode(),
                 "父状态检查先于定义级门控（错误优先于条件）");
+    }
+
+    /**
+     * W6 移交项裁定（W7，watch-only residual 钉死）：父链服务查找总未命中（子容器 +
+     * 父链沿途 + 顶层均无候选，顶层 parentContainer 为 null 不扩展宿主）→ 显式抛容器标准
+     * 错误 ERR_IOC_UNKNOWN_BEAN_FOR_TYPE（错误码完整、带 beanType 参数）——不静默返回 null、
+     * 不翻译错误码（透传）。观察实证：BeanContainerImpl.getBeanByType 未命中即抛该码。
+     */
+    @Test
+    public void testParentChainTotalMissThrowsExplicitError() {
+        IPluginInstance p1 = manager.createInstance(PARENT_ID, "p1", Map.of(), null);
+        IPluginInstance c1 = manager.createInstance(CHILD_ID, "c1", Map.of(), p1);
+
+        NopException e = assertThrows(NopException.class, () -> c1.getService(Callable.class));
+        assertEquals(ApiErrors.ERR_IOC_UNKNOWN_BEAN_FOR_TYPE.getErrorCode(), e.getErrorCode(),
+                "父链总未命中 → 容器标准显式错误（透传，不静默返回 null）");
+        assertEquals(Callable.class.toString(), e.getParam("beanType"), "错误带 beanType 参数（容器标准格式）");
+        assertNull(p1.getParent(), "顶层实例 parentContainer 为 null（不扩展宿主链）");
     }
 
     /**

@@ -9,7 +9,7 @@ AI 不需要一开始记住所有模块名，但必须知道应该先去哪个�
 | 分组 | 主要路径 | 作用 |
 |------|---------|------|
 | 基础内核 | `nop-kernel/` | 代码生成、XLang、核心 API、基础工具 |
-| 核心框架 | `nop-core-framework/` | IoC、Config、Boot、Plugin、Security、Log |
+| 核心框架 | `nop-core-framework/` | IoC、Config、Boot、Plugin、Security、Log。Plugin 子模块组：`nop-plugin-api`（插件实现者契约 `IPlugin`/`IPluginInstance`/`IPluginScope`/`IPluginActivator` + `plugin.xdef`，零依赖）、`nop-plugin-manager`（双轨加载 + 实例生命周期 + coeffect/reconcile + HMR + `HttpPluginResourceResolver` artifact 下载与 SHA256 校验）、`nop-plugin-support`（`AbstractPlugin` 兼容基类）。使用文档见 `03-modules/nop-plugin.md` |
 | 持久化 | `nop-persistence/` | DAO、ORM、DB Migration、DBTool |
 | 服务框架 | `nop-service-framework/` | BizModel、GraphQL、Gateway |
 | 典型业务模块 | `nop-auth/`、`nop-job/`、`nop-task/`、`nop-wf/` | 最标准的业务骨架样板 |

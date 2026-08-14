@@ -11,7 +11,7 @@
 
 1. **类加载模型**：plugin 的 ClassLoader **parent = Nop 平台 classloader**——plugin 可直接使用底层 Nop 平台的全部类；plugin **自己的类**通过 plugin id 从加载器下载的 jar 中加载（`PluginClassLoader`）。
 2. **加载器接口**：`IPluginResourceResolver`（现有接口，契约增强）——通过 plugin id（`ArtifactCoordinates`）经 http/https 之类 URL **下载到本地 repository**，返回本地 jar URL。
-3. **hash 校验**：下载 jar 须做 **SHA256 校验**（hash 来源：随 jar 的 `.sha256` 文件或元数据服务）；校验失败 fail-fast（删除损坏文件、抛异常），不使用未校验的 jar。**现状缺口**：现有 `HttpPluginResourceResolver` 的 Javadoc 声称"完整性有SHA256校验码保证"，但**代码未实现校验**——本设计补齐。
+3. **hash 校验**：下载 jar 须做 **SHA256 校验**（hash 来源：响应 header `X-Checksum-Sha256`、`{url}.sha256` 文件或配置 expected-hash map）；校验失败 fail-fast（删除损坏文件、抛异常），不使用未校验的 jar（**已落地**：W7 补齐，含缓存重验/遗留缓存重下载/无 hash 来源显式失败）。
 4. **缺省实现**：`HttpPluginResourceResolver`（基于 `IHttpClient`，`io.nop.http.api.client.IHttpClient`），通过模板 URL（`nop.plugin.service-url`，groupId/artifactId/version 变量）下载。
 
 ## 二、类加载模型
@@ -55,14 +55,18 @@ public interface IPluginResourceResolver {
 | 布局 | Maven 风格：`{repo}/{groupId路径}/{artifactId}/{version}/{artifactId}-{version}.jar`（`ArtifactCoordinates.getJarFilePath()` 已提供） |
 | 校验文件 | 同目录 `{jar}.sha256` |
 | 缓存语义 | jar 存在且 sha256 匹配 → 直接使用；否则重新下载 |
+
+> **修订注解（W7，2026-08-15）**：缓存篡改语义按 W7 Decision 裁定为 **fail-fast**——缓存 jar 重验发现与 `.sha256` 不匹配（篡改/损坏）时抛 `ERR_PLUGIN_SHA256_MISMATCH`（报警而非静默重下载，与"绝不使用未通过校验的 jar"一致）；缓存 jar 但 `.sha256` 缺失（pre-W7 遗留缓存）→ **重新下载并校验**（不静默使用未校验缓存）；`nop.plugin.skip-cache-verify=true` 时同时跳过重验与遗留重下载（启动优化逃生门，声明式显式行为）。
 | 原子性 | 下载到临时文件（`.tmp`）→ 校验 → 原子 move 到目标（现状已有 tmp+move，补校验后再 move） |
 
 ## 五、SHA256 校验（补齐现状缺口）
 
-- **算法**：SHA256（`Sha256` 工具，nop-commons 已有）。
+- **算法**：SHA256（`HashHelper`，nop-commons 已有；文件摘要 helper 为 resolver 私有静态方法，不新增 nop-commons 公共 API——见 §六 修订注解）。
 - **hash 来源**（按优先级）：
   1. **元数据服务**：随下载服务提供的 hash（如响应 header `X-Checksum-Sha256` 或 `{url}.sha256` 文件请求）；
   2. **配置显式指定**：调用方在 plugin id 元数据中携带预期 hash。
+
+> **修订注解（W7，2026-08-15）**：§五.2 的"plugin id 元数据携带预期 hash"载体裁定为 **resolver 级 expected-hash map**——`ArtifactCoordinates`（nop-api-core 公共 API）无 hash 字段、新增字段属公共 API 变更（§八 拒绝 API 面扩大），resolver 接口 `resolvePluginResource(coordinates)` 无额外元数据通道；`HttpPluginResourceResolver` 新增 setter 注入 `Map<String,String>`（key = `groupId:artifactId:version`，value = hex hash，宿主应用经 beans.xml 配置），优先级 header → `.sha256` 请求 → 该 map。全无 hash 来源 → 显式失败 `ERR_PLUGIN_CHECKSUM_NOT_AVAILABLE`（不允许静默降级为无校验下载）。
 - **校验时机**：下载完成、**move 之前**（临时文件上校验；失败则删除临时文件，不留损坏产物）。
 - **失败处理**：fail-fast——删除临时文件 + 抛 `NopException`（明确错误码与参数：pluginId、期望/实际 hash）；**绝不使用未通过校验的 jar**。
 - **已缓存校验**：再次 resolve 时对本地 jar 重算 hash 与 `.sha256` 比对（防篡改/损坏；可配置跳过以优化启动）。
@@ -73,14 +77,17 @@ public interface IPluginResourceResolver {
 
 ```
 download(coordinates, jarFile):
-  tmp = createTempFile
-  httpClient.download(request(url), tmp)                    // 现状已有
-  expectedSha256 = fetchChecksum(url + ".sha256" 或 header) // 补
-  actualSha256 = ShaHelper.digest(tmp)                      // 补
-  if (!match) { delete(tmp); throw NopException(...) }      // 补：fail-fast
-  move(tmp, jarFile)                                        // 现状已有（校验后才 move）
-  writeChecksumFile(jarFile, actualSha256)                  // 补
+  tmp = createTempFile                                        // 前置 assureParent（Maven 风格子目录）
+  httpClient.download(request(url), tmp)                      // 现状已有
+  expectedSha256 = fetchChecksum(header → url + ".sha256" → 配置 map) // 补（优先级钉死）
+  actualSha256 = 私有文件摘要 helper（HashHelper 只接受 byte[]）      // 补：不新增 nop-commons 公共 API
+  if (!match) { delete(tmp); throw NopException(...) }        // 补：fail-fast
+  delete(jarFile)                                             // 补：遗留缓存先删（moveFile 无 REPLACE_EXISTING）
+  move(tmp, jarFile)                                          // 现状已有（校验后才 move）
+  writeChecksumFile(jarFile, actualSha256)                    // 补（写失败 → 删已 move 的 jar + 抛异常）
 ```
+
+> **修订注解（W7，2026-08-15）**：`resolvePluginResource` 缓存命中路径同步补重验（含 `nop.plugin.skip-cache-verify` 跳过配置）；遗留缓存（jar 在、`.sha256` 缺失）走重新下载。SHA256 文件摘要 helper 为 resolver 私有静态方法（`FileHelper.calculateMD5` 同款先例），不新增 nop-commons 公共 API（避免公共面 + 独立测试负担）。
 
 ## 七、加载链路（与 PluginManager 的关系）
 
@@ -105,7 +112,7 @@ loadPlugin(ArtifactCoordinates id)
 | 锚点 | 位置 | 说明 |
 |---|---|---|
 | `IPluginResourceResolver` | `nop-plugin-manager/.../resolver/IPluginResourceResolver.java` | 加载器接口（契约增强：校验语义） |
-| `HttpPluginResourceResolver` | `.../resolver/HttpPluginResourceResolver.java` | 缺省实现（IHttpClient + cacheDir + URL 模板；**需补 SHA256 校验**——Javadoc 已声称、代码缺失） |
+| `HttpPluginResourceResolver` | `.../resolver/HttpPluginResourceResolver.java` | 缺省实现（IHttpClient + cacheDir + URL 模板 + SHA256 校验：下载后 move 前校验、缓存重验、expected-hash map setter、`nop.plugin.skip-cache-verify` 跳过配置） |
 | `PluginClassLoader` | `.../classloader/PluginClassLoader.java` | parent=平台 classloader（plugin 用平台全部类，自己类从 jar） |
 | `PluginManagerImpl.loadPlugin` | `.../impl/PluginManagerImpl.java:45` | 加载链路入口（resolver → classloader → ServiceLoader → start） |
 | `IHttpClient` | `io.nop.http.api.client.IHttpClient`（nop-http-api） | http 下载抽象（缺省实现依赖） |

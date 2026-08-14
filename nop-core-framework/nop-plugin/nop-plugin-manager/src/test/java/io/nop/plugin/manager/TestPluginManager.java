@@ -81,7 +81,7 @@ public class TestPluginManager {
      * 构建测试 uber jar：内含 /nop/plugin.json（声明 pluginClassName + importPackages 路由
      * 宿主 classpath 的 io.nop.plugin.test 包）+ 指定类的 .class 字节（从测试 classpath 拷贝）。
      */
-    private static URL buildPluginJar(String... classNames) throws IOException {
+    static URL buildPluginJar(String... classNames) throws IOException {
         File dir = new File("target/plugin-test/").getAbsoluteFile();
         dir.mkdirs();
         File jarFile = File.createTempFile("plugin-test-", ".jar", dir);
