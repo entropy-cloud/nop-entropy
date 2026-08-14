@@ -112,12 +112,12 @@ flowchart LR
 - **AR-10** `toBigDecimal` 对 Long>2^53 丢精度 + String 数值静默跳过。源：同上（AR-10） — ✅ Fixed（plan `2026-08-14-1133-2` Phase 3：整数 longValue 无损 / 浮点 doubleValue / String 解析；`TestCrossDbInMemoryAggregationProcessor` +7 例含 SumAcc 精度+String 接线）
 
 ### lineage/manifest 正确性族
-- **AR-07** `SqlSourceTableExtractor` 按 simple name 去重 → 跨 schema 同名表塌缩。源：同上（AR-07）
-- **AR-08** `SqlSourceTableExtractor` 把 CTE 名报为物理源表（误报）。源：同上（AR-08）
-- **AR-09** `MetaManifestBuilder.addEdge` 无去重 → 重复关系产重复图边。源：同上（AR-09）
+- **AR-07** `SqlSourceTableExtractor` 按 simple name 去重 → 跨 schema 同名表塌缩。源：同上（AR-07） — ✅ Fixed（plan `2026-08-14-1133-3` Phase 1：去重 key 由 `simple` 改为 `full`（schema-qualified 名）；`TestSqlSourceTableExtractor` 4 例跨 schema 去重）
+- **AR-08** `SqlSourceTableExtractor` 把 CTE 名报为物理源表（误报）。源：同上（AR-08） — ✅ Fixed（plan `2026-08-14-1133-3` Phase 1：`collectCteNames` 预遍历收集 CTE 名并排除；`TestSqlSourceTableExtractor` 9 例 CTE 排除含遮蔽/大小写不敏感）
+- **AR-09** `MetaManifestBuilder.addEdge` 无去重 → 重复关系产重复图边。源：同上（AR-09） — ✅ Fixed（plan `2026-08-14-1133-3` Phase 2：`addEdge` 去重 + 自环过滤，childMap 统一经 `addEdge`；`TestMetaManifestBuilder` 4 例含 parentMap/childMap 双向验证）
 
 ### reconciliation / 方言 / 诊断 / 死码族
-- **AR-11** `SqlViewFieldTypeInferrer` 未剥尾 `;` → 误导型推断失败。源：同上（AR-11）
-- **AR-12** `LocalReconciliationProcessor.score` 默认 locale `toLowerCase`（Turkish-I 风险）。源：同上（AR-12）
-- **AR-13** `ReconciliationExecutor.execute` 忽略 candidate `limit` → 无界序列化。源：同上（AR-13）
+- **AR-11** `SqlViewFieldTypeInferrer` 未剥尾 `;` → 误导型推断失败。源：同上（AR-11） — ✅ Fixed（plan `2026-08-14-1133-3` Phase 3：包装前 `trim()` + `while` 循环剥尾分号；H2 实跑 2 例）
+- **AR-12** `LocalReconciliationProcessor.score` 默认 locale `toLowerCase`（Turkish-I 风险）。源：同上（AR-12） — ✅ Fixed（plan `2026-08-14-1133-3` Phase 3：`toLowerCase(Locale.ROOT)`；`TestLocalReconciliationProcessorLocale` 3 例含 tr-TR locale 验证）
+- **AR-13** `ReconciliationExecutor.execute` 忽略 candidate `limit` → 无界序列化。源：同上（AR-13） — ✅ Fixed（plan `2026-08-14-1133-3` Phase 3：传入 `DEFAULT_CANDIDATE_LIMIT=50`（非 null）；`TestReconciliationExecutorLimit` 3 例含大候选池有界验证）
 - **AR-14** 死码/诊断退化批次（`MetaAggregationExecutor` 死 LOG、`resolveEntityFieldColumn` 死参、`safeProductName` null→误归因、`SqlSelectFieldExtractor` 错误 param、`MetaManifestBuilder` 脆弱 `SimpleDateFormat`）。源：同上（AR-14）

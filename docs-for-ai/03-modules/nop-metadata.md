@@ -169,6 +169,14 @@ mutation {
 
 **cross-DB 内存聚合数值精度语义（AR-10，plan 2026-08-14-1133-2）**：`AggregationHelper.toBigDecimal`（`SumAcc`/`AvgAcc` 累加时的统一数值归一）按入参类型分派无损精度——**整数类型**（`Long`/`Integer`/`Short`/`Byte`/`AtomicLong`/`AtomicInteger`）走 `BigDecimal.valueOf(longValue())`（Long > 2^53 经 `doubleValue()` 会丢低位）；**浮点类型**（`Float`/`Double`）保持 `doubleValue()`（小数不截断）；`BigInteger`/`BigDecimal` 原有无损分支不变。**String 数值**（部分 JDBC driver 以 String 交付数值）走 trim 后 `new BigDecimal(s)`（解析失败 → null），不再直接 return null 被 `SumAcc` 的 `if(n!=null)` 静默跳过——String 数值列 SUM/AVG 不再静默为 null。非数值 String 仍返回 null（不抛异常打断聚合）。**Non-Goal**：同级 `toBigDecimal`（`MemoryOrderByComparator`/`MemoryFilterEvaluator`）有相同 `doubleValue()` 精度模式，但属 ORDER BY/WHERE 比较路径（非 SUM/AVG 聚合），Long>2^53 精度丢失在排序/过滤上下文影响较小，留作后续 optimization candidate。
 
+**lineage/manifest/reconciliation 正确性语义（AR-07/08/09/11/12/13，plan 2026-08-14-1133-3）**：
+- **AR-07 血缘源表按 full 去重**：`SqlSourceTableExtractor.extract` 按 `fullName`（schema-qualified 名）去重——跨 schema 同名表（`dbo.users` 与 `sales.users`）的 fullName 不同，各自独立产出一条边，不再因 simpleName 相同而塌缩。残留歧义：同一 fullName 经不同别名引用仍为一条边（语义正确——指向同一物理表）。
+- **AR-08 CTE 名排除**：WITH 子句声明的 CTE 名被预收集并排除——匹配 CTE 名的 `SqlSingleTableSource` 不作为物理源表上报（符合 SQL 作用域语义：CTE 名遮蔽同名物理表时，CTE 名被排除，物理表引用不补回）。CTE 体内部的源表仍被正常收集。
+- **AR-09 manifest 邻接表去重 + 自环过滤**：`MetaManifestBuilder` 的 `addEdge` 追加前检查 `!list.contains(value)`（重复关系不产重复邻居）+ 自环过滤（`key.equals(value)` 即 owner==target 不追加）。`parentMap` 与 `childMap` 双向邻接表均去重 + 自环过滤——重复 `NopMetaEntityRelation` 行不再膨胀图度数。
+- **AR-11 视图推断尾分号处理**：`SqlViewFieldTypeInferrer.inferWithinConnection` 包装前 `trim()` + 循环剥尾分号（`while (endsWith(";")) strip+trim`）——sourceSql 带尾分号（`SELECT a FROM t;`）时内层子查询 `SELECT * FROM (SELECT a FROM t) _t LIMIT 0` 不再被 JDBC 驱动拒绝。
+- **AR-12 reconciliation locale-insensitive**：`LocalReconciliationProcessor.levenshteinSimilarity` 使用 `toLowerCase(Locale.ROOT)`——默认 locale（如 tr-TR）下 `"I".toLowerCase()` → `"ı"` 不再导致同一数据在不同 JVM locale 下匹配结果不同。与精确路径（`equalsIgnoreCase` 天然 locale-insensitive）一致。
+- **AR-13 reconciliation 候选有界**：`ReconciliationExecutor.execute` 传入默认 `DEFAULT_CANDIDATE_LIMIT = 50`（非 null）——所有 fuzzy 候选（score > 阈值）经 `LocalReconciliationProcessor.reconcile` 截断为 ≤50，details JSON 候选序列化有界，大候选池下不会 OOM/多秒序列化。config-driven limit（extConfig JSON 键或新增 ORM 列）为 Non-Blocking Follow-up（含 ORM Protected Area 风险）。
+
 主要 I*Biz 接口（plan 2026-07-19-1250-3 Phase 1 补齐）：
 
 - `INopMetaTableBiz` — profileTable / createSqlTable / previewSqlFields / resolveTableFields / queryTableData / queryJoinData / queryAggregation
