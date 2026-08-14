@@ -1,9 +1,10 @@
 # 3 实例级生命周期 + effect + activator（W3）
 
-> Plan Status: draft
+> Plan Status: active
 > Mission: nop-plugin-enhancement
 > Work Item: W3 实例级生命周期 + effect + activator
 > Last Reviewed: 2026-08-14
+> Review Consensus: 2026-08-14（独立 reviewer 审查达成共识：无 Blocker，advisory 已全部并入）
 > Source: `ai-dev/design/nop-plugin/01-architecture-baseline.md`（§三 实例级状态机、§四 IPluginScope、§7.2/§7.4/§7.5）；`ai-dev/design/nop-plugin/03-coeffect-and-agent-example.md`（agent 组装示例）；`ai-dev/backlog/nop-plugin-enhancement-roadmap.md`（Stage 3 + Cross-cutting 待裁决点 P2-C）
 > Related: `ai-dev/plans/2026-08-14-1720-2-definition-lifecycle-dual-track.md`（前置，提供定义级状态机）
 
@@ -16,7 +17,7 @@
 - W1 产出：`IPluginInstance`/`IPluginScope`/`IPluginActivator`/`IPluginContext`/`Disposable`/`InstanceState` API 契约（javadoc 语义即设计 §7.2/§7.4/§7.5/§7.6）。
 - W2 产出：定义级状态机（LOADED 持有静态定义）、双轨来源路由、`isStateMachineAware` 双路径、`AbstractPlugin` 兼容路径保留旧 start/stop、aware 路径 load 不建子容器（子容器创建移入本 plan）。
 - 平台已有实现载体：`BeanContainerImpl.setConfigProvider`（per-instance 独立 `IConfigProvider` 注入）、`AppBeanContainerLoader.loadFromResource(id, resource, parent)`/`BeanContainerImpl.buildNewInstance`、`@PostConstruct`/`ILifeCycle`/`<ioc:destroy>` 清理链（roadmap "Framework / platform reuse" 表）。
-- 现状无任何实例对象：`IPluginManager` 无 createInstance/destroyInstance；`AbstractPlugin.doStart` 的容器创建是 start 时一次性（W2 已剥离到本 plan 接管）。
+- `IPluginManager` 无 createInstance/destroyInstance；`AbstractPlugin.doStart` 的容器创建是 start 时一次性（W2 已剥离到本 plan 接管）。
 - 待裁决点 P2-C（updateConfig × 实例合并视图刷新）在 W3/W5 裁定，本 plan 处理实例侧部分。
 
 ## Goals
@@ -34,7 +35,7 @@
 - coeffect spec 求值 + `IPluginContext.reconcile()`——W5（本 plan 只落地实例 registry；`IPluginContext` 的 reconcile 语义在 W5 实现前不提供空壳实现，详见 Deferred 节）。
 - parent 层级实例化（createInstance(parent) 的服务查找沿链回退/级联 destroy/配置层叠）——W6。
 - HMR reloadPlugin——W6。
-- `instanceKey` 以外的命令路由语义变更（per-instance invokeCommand 路由到本实例子容器，复用现有命令 bean 分发）。
+- per-instance invokeCommand 路由之外**不存在其他命令路由语义变更**（路由到本实例子容器并复用现有命令 bean 分发是本 plan 的 in-scope 实现，非 W4 移交项——roadmap Stage 4 的 W4 交付物以 getService 代理为主，W4 plan 不再重复实现 per-instance 命令路由）。
 - `PluginClassLoader` 类隔离改动。
 
 ## Scope
@@ -64,8 +65,10 @@ Targets: `nop-plugin-manager`（实现层）
 - Item Types: `Fix | Decision`
 
 - [ ] 实现实例配置域：per-instance `IConfigProvider`（全局配置 + 实例配置的合并视图）；实例子容器经 `BeanContainerImpl.setConfigProvider` 注入该 provider；全程不调用 `AppConfig.assignConfigValue`（兼容路径 W2 已隔离）。
+- [ ] **容器接线方式钉死**（避免 provider 静默丢失）：实例子容器经 `AppBeanContainerLoader.loadFromResource(...)` 创建（返回可转 `BeanContainerImpl` 的实例），**转 `BeanContainerImpl` 后先 `setConfigProvider(instanceProvider)` 再 `start()`**；**禁止用 `buildNewInstance` 派生实例容器**（`BeanContainerImpl.buildNewInstance` 不传播自定义 provider，会静默回落到全局 `AppConfig.getConfigProvider()`——配置域空洞陷阱；该 API 仓内零调用方）。
+- [ ] 实例 provider 形态钉死：**委托包装器**（读路径 + `subscribeChange` 委托全局 provider，实例键覆盖全局值），不得直接用 `SimpleConfigProvider`/`AbstractConfigProvider` 子类（其 `subscribeChange` 返回 null，实例容器内 `@r-cfg` 式响应式 bean 装配会触发空订阅清理）。
 - [ ] `instance.getConfig()`：返回实例合并视图快照（或等价可读形式），ACTIVATED/DEACTIVATED 均可读（实例级 coeffect 依赖此语义，W5 消费）。
-- [ ] P2-C 裁决：定义级 `updateConfig(config)` 语义定案——(a) DEACTIVATED 实例缓存配置、下次 activate 应用；(b) ACTIVATED 实例热应用（刷新合并视图，定义默认部分）；裁决结果记录于 plan 的 Closure 或 daily log。
+- [ ] P2-C 裁决：定义级 `updateConfig(config)` 语义定案——(a) DEACTIVATED 实例缓存配置、下次 activate 应用；(b) ACTIVATED 实例热应用（刷新合并视图定义默认部分，且经委托 provider 触发变更通知，非仅改快照）；裁决结果记录于 plan 的 Closure 或 daily log。
 - [ ] 编译验证：`./mvnw compile -pl :nop-plugin-manager -am -T 1C` 通过。
 
 Exit Criteria:
@@ -74,8 +77,8 @@ Exit Criteria:
 
 - [ ] 实例子容器持有独立 config provider（测试断言：实例内配置读取命中合并视图值；全局 `AppConfig` 未被写入——配置值不出现在全局 config）。
 - [ ] `getConfig()` 在 DEACTIVATED 态仍可读（Phase 5 测试断言；本 phase 至少完成代码路径）。
-- [ ] P2-C 裁决已记录。
-- [ ] **无静默跳过**：updateConfig 的 ACTIVATED 热应用 / DEACTIVATED 缓存路径均有真实实现（无空分支）。
+- [ ] P2-C 裁决已记录；ACTIVATED 热应用路径经委托 provider 真实触发变更（非仅改快照）。
+- [ ] **无静默跳过**：updateConfig 的 ACTIVATED 热应用 / DEACTIVATED 缓存路径均有真实实现（无空分支）；实例容器 provider 为委托包装器（subscribeChange 非 null）。
 - [ ] No owner-doc update required。
 - [ ] `ai-dev/logs/` 对应日期条目已更新。
 
@@ -103,14 +106,16 @@ Exit Criteria:
 ### Phase 3 - PluginInstanceImpl 生命周期 + manager 实例管理
 
 Status: planned
-Targets: `nop-plugin-manager`（实现层）、`manager/IPluginManager.java`（§7.3 方法扩展）
+Targets: `nop-plugin-manager`（实现层）、`../../nop-core-framework/nop-plugin/nop-plugin-manager/src/main/java/io/nop/plugin/manager/IPluginManager.java`（§7.3 方法扩展）
 
 - Item Types: `Fix`
 
 - [ ] `IPluginInstance` 实现：`getInstanceKey`/`getState`/`getScope`（仅 ACTIVATED 返回、否则 null）/`activate`/`deactivate`/`destroy`/`invokeCommand`(Async)（路由到本实例子容器命令 bean，复用现有分发）。
 - [ ] 生命周期语义：activate = 实例化子容器 + 注册 effect；deactivate = **先 `scope.close()`（LIFO 回退）再子容器 stop**，实例对象保留；destroy = 回退 + 从定义移除；重复 createInstance 同 key 抛明确异常；per-instance in-flight 单飞串行化（同实例 activate/deactivate 不并发；并发重复 activate 幂等返回既有实例）。
-- [ ] `IPluginManager` 扩展：`createInstance(pluginId, instanceKey, config, parent)`（本 plan parent 传 null 亦可）、`destroyInstance(pluginId, instanceKey)`、`getInstance(pluginId, instanceKey)`、`getInstances(pluginId)`（§7.3）；实例 registry 由 manager/定义持有（IPluginContext 实现整体归 W5）。
+- [ ] `IPluginManager` 扩展：`createInstance(pluginId, instanceKey, config, parent)`（本 plan parent 传 null 亦可）、`destroyInstance(pluginId, instanceKey)`、`getInstance(pluginId, instanceKey)`、`getInstances(pluginId)`（§7.3）；**实例 registry 的唯一持有者 = 定义持有类**（W2 已在其上建 registry 骨架；W5 的 `IPluginContextImpl` 以同一 registry 为数据源，不许另起第二份 registry）。
+- [ ] **W2 移交处置**：W2 阶段定义持有类的 `start/stop` 为显式失败（createInstance 未落地）；本 plan 落地 createInstance 后，定义持有类与 `AbstractPlugin` 的 `start/stop` 收敛为 §7.1 语义（start = load + createInstance(默认 key)；stop = destroyInstance + unload），不再抛临时失败异常——测试覆盖 start 的默认 key 实例化。
 - [ ] unload 守卫：unload 定义前检查 `getInstances()` 非空 → 抛明确异常（含实例 key 参数）；registry 空 → 正常 unload（W2 行为保留）。
+- [ ] **uber jar 轨 createInstance 的边界裁定**：本 plan 的实例链路（子容器/activator/scope）以 VFS 轨（plugin.xdef 定义，含 activator 载体）为测试覆盖对象；uber jar 轨（plugin.json 定义，无 plugin.xdef/activator 载体）的实例化路径记为显式 successor 项（W4/W7 评估），不在本 plan 静默承诺——`createInstance` 对 jar 轨定义若被调用而路径未就绪，抛明确异常（No Silent No-Op），不得返回半成品实例。
 - [ ] 编译验证：`./mvnw compile -pl :nop-plugin-manager -am -T 1C` 通过。
 
 Exit Criteria:
@@ -132,7 +137,8 @@ Targets: `nop-plugin-manager`（实现层）
 - Item Types: `Fix`
 
 - [ ] activate 流程：实例化子容器 → 按定义声明的 `activator`（bean-name）定位 activator bean → `activator.activate(scope, config)`（scope + 合并视图 config 双参数传入，禁止字段注入 scope）→ 返回值非 null 自动 `scope.effect(returned)`。
-- [ ] 重激活语义：deactivate 后 activate 重新执行 activator（scope 已 close，effect 需重新注册）；并发重复 activate 幂等（in-flight 单飞，不重跑）。
+- [ ] **scope 生命周期定案**：每次 activate 使用**全新的 scope 实例**（close 后 `effect()` 抛异常，旧 scope 不可复用——设计 §7.4 "激活期作用域句柄"支持 per-activation 新实例）；deactivate 关闭该次激活的 scope。
+- [ ] 重激活语义：deactivate 后 activate 重新执行 activator（scope 全新，effect 需重新注册）；并发重复 activate 幂等（in-flight 单飞，不重跑）。
 - [ ] 激活失败处理：实例化/activator 抛错 → 实例回退到 DEACTIVATED 并记录错误（不残留半激活实例）；错误带实例 key 参数。
 - [ ] 编译验证：`./mvnw compile -pl :nop-plugin-manager -am -T 1C` 通过。
 
@@ -158,7 +164,7 @@ Targets: `nop-plugin-manager/src/test/`、`nop-plugin-support/src/test/`（如�
 - [ ] 生命周期状态测试：ACTIVATED→DEACTIVATED→ACTIVATED 往返（deactivate 后实例对象保留、activate 重跑 activator）；destroy 从 registry 移除。
 - [ ] 重复 key / unload 守卫 / 未加载定义 createInstance 的异常测试（断言错误码/消息含 key 参数）。
 - [ ] activator 参数传递测试：scope + config 合并视图正确传入；返回值 disposer 自动注册。
-- [ ] 配置域合并视图测试：实例配置覆盖全局（合并视图值断言）；`AppConfig` 全局无污染断言。
+- [ ] 配置域合并视图测试：实例配置覆盖全局（合并视图值断言，含**仅实例有而全局无的键**——证明 provider 非全局回落）；`AppConfig` 全局无污染断言。
 - [ ] 并发重复 activate 幂等测试（in-flight 单飞）。
 - [ ] `./mvnw test -pl :nop-plugin-api,:nop-plugin-manager,:nop-plugin-support -am -T 1C` 全绿。
 
