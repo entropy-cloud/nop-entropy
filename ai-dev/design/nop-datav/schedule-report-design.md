@@ -528,3 +528,36 @@ dict `datav/alert-operator`（string）：gt/gte/lt/lte/eq/neq/between。
 | 由 interval-minutes 合成 cron 表达式触发 | `TriggerSpec.setRepeatInterval` 固定间隔已满足需求且更简单；cron 表达式合成引入解析/校验复杂度无收益 | 已拒（简化） |
 
 **FAILED-brick 规避**：`scanStuck()` 吞业务错误返回正常结果 Map（单类扫描异常 → WARN 日志 → 继续另一类），仅 JVM Error 传播——与 §3/§9 `executeScheduledReport` 约定一致，防 LocalJobScheduler 将周期 job 永久置 FAILED。scheduler==null（宿主未注册调度器）时 INFO 日志跳过注册，重启恢复路径不受影响。
+
+## 26. 删除联动停用与即时注销
+
+> 来源：plan `ai-dev/plans/nop-datav/2026-08-14-2020-1-dashboard-screen-delete-cascade-lifecycle.md`（D3 裁定 + Gap #3 修复结论落地）。
+
+### 调度消费者停用语义裁定（D3）
+
+删除看板（连带面板）/ 删除面板时，关联调度消费者处置为「**双动作**」：
+
+1. **置 `status=DISABLED`**（dict `datav/report-task-status` 既有值 `DISABLED=0`，AlertRule.status 复用同一 dict，无 ORM 变更）——持久化停用，重启后 init scanner 只装载 `status=ENABLED`，自然不再注册。
+2. **即时注销**：复用既有运行时增量 API `NopDatavReportScheduler.unregisterTask(reportTaskId)` / `NopDatavAlertScheduler.unregisterRule(alertRuleId)`（内部即 `scheduler.removeJob(jobName(id))`），使停用**即时生效**（无需重启）。
+
+关联定位规则：ReportTask 按 `dashboardId` 直接定位；AlertRule 经 `panel.dashboardId`（删看板）或 `panelId`（删面板）定位。
+
+### 事务边界与注销失败处理
+
+级联在 biz 层 `delete(id)` 的事务内执行（挂接机制裁定见 `permission-sharing-design.md`「D5 级联挂接机制裁定」）：
+
+- **执行顺序**：先持久化 `status=DISABLED`（参与 ORM session/事务），再调 `unregister*`（非事务性内存操作）。
+- **注销失败 → 回滚整个删除**：`removeJob` 抛错时异常向上传播，删除事务回滚（fail-fast，无静默跳过）。不允许「删了主表但 job 还在触发」的中间态。
+- **反方向不对称是安全的**：若 DB 停用落库后、注销前进程崩溃，残留的内存 job 至多触发到 `requirePublishableDashboard` 失败（报告，`LAST_RUN_ERROR` 噪音）或 AlertEvaluator 容错路径（面板缺失记 errorMsg），且进程重启后 scanner 只装载 ENABLED，残留 job 自愈。若注销后、事务提交前崩溃，job 已不在内存，行仍是 ENABLED——下次 save/enable 或重启 scanner 会重新注册，无丢失执行。
+- `scheduler == null`（宿主未注册 IJobScheduler）时注销为 no-op（既有 `unregister*` 行为），停用语义仍完整成立。
+
+### Gap #3 修复结论：删除规则/任务的标准 delete 路径即时注销
+
+历史缺陷：`NopDatavAlertRuleBizModel`/`NopDatavReportTaskBizModel` 仅覆写 3 参 `afterEntityChange(entity, action, context)`，而标准 `delete(id)` 路径只调 2 参 deprecated `afterEntityChange(entity, context)`（`CrudBizModel.java:1211`，默认空实现）——删除规则/任务**不触发注销**，cron job 进程内残留触发直至重启，与类 javadoc「delete 调 unregister*」声明不符。
+
+修复结论：两个 BizModel 覆写 4 参 `doDeleteEntity`，在 `super` 之后调用对应 `unregister*`；save/update 路径的注册联动（3 参 `afterEntityChange`）保持不变。javadoc 同步修正为实际行为。回归契约：直接 `delete(id)` 后调度器注册表（`getRegisteredJobNames()`）不含该 job。
+
+### 保留与不级联对象
+
+- 删除 ReportTask：`NopDatavReportDelivery` 交付历史**保留**（一次性执行历史记录，类比 `NopDatavExportTask`，见 plan Non-Goals）。
+- 删除 AlertRule：`NopDatavAlertState` 生命周期跟随规则存续（规则被直接删除时状态行保留为历史记录；看板/面板级联路径只停用不删规则，状态行自然保留）。

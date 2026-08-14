@@ -407,3 +407,59 @@ PDF/PNG 图像导出依赖前端或无头浏览器渲染器（nop-chaos-flux 未
 - owner/权限：非 owner 下载拒绝、下载未完成任务拒绝。
 - 状态机：failed 路径（构造查询失败）、cancelled 路径。
 - 异步轮询用带超时 poll（`awaitility` 风格的手写 poll 循环 + 超时断言），不用 `Thread.sleep` 盲等。
+
+## 删除生命周期与分享吊销
+
+> 来源：plan `ai-dev/plans/nop-datav/2026-08-14-2020-1-dashboard-screen-delete-cascade-lifecycle.md`（D1/D2/D4/D5 裁定落地）。
+
+### D1 级联深度与删除形态裁定
+
+nop-datav 全实体保持**物理删除**语义（不引入 `useLogicalDelete`，是否迁移逻辑删除是独立 ORM 契约级变更，见该 plan Deferred）。删除聚合根时子对象处置：
+
+| 聚合根 | 级联对象 | 处置 |
+|--------|----------|------|
+| Dashboard | Panel / DashboardTab / DatasetRef / FilterState | 物理删除（与主表同语义，不留 dangling 行） |
+| Dashboard | DashboardSnapshot | **物理删除（级联）** |
+| Screen | ScreenWidget | 物理删除 |
+| Screen | ScreenSnapshot | **物理删除（级联）** |
+
+快照级联删除的理由：(1) 快照是已发布业务数据的完整序列化，聚合根删除后快照行失去唯一访问控制锚点（owner/RLS 均挂在主表），残留即无主敏感数据；(2) 快照随主表删除后不存在任何 API 访问路径（管理/公共访问均需主表存活），保留仅产生死数据；(3) 操作级审计在 `NopAuthOpLog`，不依赖快照行；(4) 与模块物理删除现状一致。
+
+### D2 分享吊销形态裁定
+
+删除看板时对该看板**全部分享行置 `enabled=0`（逻辑吊销）**，不删分享行。理由：(1) 保留吊销痕迹可审计（谁在何时创建/被吊销）；(2) 与既有 `revokeShare`/`toggleShare` 的 `enabled=false` 软禁用语义一致，公共访问统一走 `ERR_DATAV_SHARE_DISABLED` 拒绝路径。
+
+### D4 面板 × 大屏 widget 边界
+
+`NopDatavScreenWidget` 无 alert/share/report 关联实体（无任何实体的外键引用 `widgetId`），大屏删除仅需处理 widget + snapshot。调度消费者联动只发生在 **Panel 侧**：AlertRule 经 `panelId` 引用 Panel，故「删面板 / 删看板（连带面板）」均需停用关联 AlertRule。
+
+### D5 级联挂接机制裁定
+
+级联逻辑挂在 **BizModel 覆写 4 参 `doDeleteEntity(entity, refNamesToCheck, prepareDelete, context)`、在 `super` 调用之后执行**。该机制在标准删除路径必然执行的依据：标准 `delete(id)` mutation → `doDelete(id,…)` → 虚方法分派到 4 参 `doDeleteEntity`（`CrudBizModel.java:1066→1197`）；`batchDelete`（逐 id 调 `delete`）与 `deleteByQuery`（→`doDeleteMulti`→逐实体调 4 参 `doDeleteEntity`）同样收敛于此。
+
+选择 `super` 之后执行的理由：`super.doDeleteEntity` 内先完成 `checkMetaFilter`/`checkDataAuth`/引用检查，级联副作用（尤其调度器 `removeJob` 这类**非事务性内存操作**）只在权限校验通过后才发生，未授权删除请求不会泄漏调度注销副作用。
+
+被拒替代方案：
+
+| 方案 | 拒绝理由 |
+|------|----------|
+| 3 参 `afterEntityChange(entity, action, context)` | 标准 delete(id) 路径只调 2 参 deprecated 版本（`CrudBizModel.java:1211`），3 参覆写在 delete 路径**不触发**（历史缺陷 Gap #3 根因） |
+| 2 参 deprecated `afterEntityChange(entity, context)` | 已 `@Deprecated`；且被 3 参默认实现反向委托，覆写后 save/update/delete 分派易纠缠 |
+| ORM/xmeta cascade-delete | nop-datav 关系全部定义在子实体侧（to-one），聚合根无 to-many 关系定义；且 cascade-delete 无法表达「停用 + 调度器即时注销」副作用 |
+
+### 删除看板的完整生命周期语义
+
+经 biz 层 `delete(dashboardId)` 删除看板时，按序：
+
+1. 主表行删除（标准 CRUD 路径，含权限校验）。
+2. 关联 ReportTask（按 `dashboardId`）：置 `status=DISABLED`（dict `datav/report-task-status` 已有值，无 ORM 变更）并即时 `unregisterTask`。
+3. 关联 AlertRule（经 panel.dashboardId 定位）：置 `status=DISABLED` 并即时 `unregisterRule`。
+4. 该看板全部分享置 `enabled=0`（D2）。
+5. 子对象物理删除：FilterState / DatasetRef / DashboardTab / Panel（D1）。
+6. DashboardSnapshot 级联物理删除（D1）。
+
+级联中任一子步骤失败**显式抛错**（无吞错继续）；步骤 2/3 的事务边界与注销失败处理见 `schedule-report-design.md`「删除联动停用与即时注销」。
+
+### `getSharedDashboard` 看板存活防御（defense-in-depth）
+
+`getSharedDashboard` 在 token/enabled/expire/password 校验通过后、读取快照前，**先校验看板主表行存活**（按 `dashboardId` 经 DAO 查 `NopDatavDashboard`）；看板已删 → 显式拒绝，错误码 `ERR_DATAV_SHARE_DASHBOARD_NOT_FOUND`（`nop.err.datav.share-dashboard-not-found`）。该防御独立于级联吊销生效：即使分享行因任何路径未被吊销（如构造数据、历史残留），已删看板的快照也不可经公共访问读出。
