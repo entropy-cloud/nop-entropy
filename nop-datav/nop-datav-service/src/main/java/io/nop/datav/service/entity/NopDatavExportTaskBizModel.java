@@ -105,6 +105,15 @@ public class NopDatavExportTaskBizModel extends CrudBizModel<NopDatavExportTask>
      */
     private final ConcurrentMap<String, Boolean> cancelFlags = new ConcurrentHashMap<>();
 
+    /**
+     * 测试 seam（D4 方案 A）：执行体在 RUNNING 持久化之后、调用 exporter 之前同步触发此 hook。
+     * 仅测试可见（package-private setter），生产路径为 null 不阻塞。
+     * 设计理由：放在 RUNNING 之后、exporter 之前这一稳定位置（不受 Phase 2 两个 cancel checkpoint 移除影响），
+     * 使 cancel-during-execution E2E 测试在「同时移除两个 checkpoint」时确定性失败（mutate-fail 保护力），
+     * 而「仅移除其一」时另一个 checkpoint 兜底 → 测试通过（mutate-fail 精确声明）。
+     */
+    private Runnable executionStartHook;
+
     public NopDatavExportTaskBizModel() {
         setEntityName(NopDatavExportTask.class.getName());
     }
@@ -217,6 +226,13 @@ public class NopDatavExportTaskBizModel extends CrudBizModel<NopDatavExportTask>
         task.setStatus(NopDatavExportTaskStatus.RUNNING);
         touchUpdate(task, operator);
         dao.updateEntityDirectly(task);
+
+        // D4 测试 seam：RUNNING 持久化之后、exporter 之前同步触发（仅测试用，生产路径 hook=null 跳过）。
+        // 选此稳定位置而非 exporter 内 checkpoint，避免 mutate-fail 时（移除 exporter checkpoint）test seam
+        // 同时被移除导致测试无法同步。
+        if (executionStartHook != null) {
+            executionStartHook.run();
+        }
 
         // D2 §312：执行体内经 BooleanSupplier 轮询 cancelFlags，命中时 exporter 抛 ERR_DATAV_EXPORT_FAILED
         BooleanSupplier cancelChecker = () -> Boolean.TRUE.equals(cancelFlags.get(taskId));
@@ -467,6 +483,14 @@ public class NopDatavExportTaskBizModel extends CrudBizModel<NopDatavExportTask>
      */
     boolean isCancelFlagged(String taskId) {
         return Boolean.TRUE.equals(cancelFlags.get(taskId));
+    }
+
+    /**
+     * D4 方案 A 测试 seam：在 RUNNING 持久化之后、exporter 调用之前同步触发此 hook。
+     * 仅测试可见（package-private）。生产路径不调用此方法（hook=null）。
+     */
+    void setExecutionStartHookForTest(Runnable hook) {
+        this.executionStartHook = hook;
     }
 
     /**

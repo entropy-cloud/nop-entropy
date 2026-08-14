@@ -28,6 +28,8 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_EXPORT_CONCURRENCY_LIMIT;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_EXPORT_NOT_FINISHED;
@@ -59,6 +61,13 @@ public class TestNopDatavExportE2E extends AbstractNopDatavTest {
 
     @Inject
     INopDatavExportTaskBiz exportBiz;
+
+    /**
+     * 测试 seam（D4 方案 A）：经具体类注入以访问 package-private 的
+     * {@link NopDatavExportTaskBizModel#setExecutionStartHookForTest}。
+     */
+    @Inject
+    NopDatavExportTaskBizModel exportBizModel;
 
     @Inject
     INopDatavPanelBiz panelBiz;
@@ -240,7 +249,11 @@ public class TestNopDatavExportE2E extends AbstractNopDatavTest {
     }
 
     /**
-     * cancelled 路径：seed running 任务 → cancelExportTask → 转 cancelled。
+     * cancelled 路径（cancel 请求线程直写）：seed running 任务 → cancelExportTask → 转 cancelled。
+     *
+     * <p>本测试仅覆盖 cancel 请求线程直写路径（seedTask 直接落 RUNNING，不提交执行体），
+     * 与 {@link #testCancelDuringExecutionEndsInCancelled}（覆盖执行体覆盖问题，submitExecution 真实跑）
+     * 互补。前者验证 cancelExportTask 的 DB 写入语义，后者验证执行体不覆盖该写入。</p>
      */
     @Test
     public void testCancelRunningTaskTransitionsToCancelled() {
@@ -251,6 +264,132 @@ public class TestNopDatavExportE2E extends AbstractNopDatavTest {
         assertEquals(NopDatavExportTaskStatus.CANCELLED,
                 daoProvider.daoFor(NopDatavExportTask.class).getEntityById(task.getTaskId()).getStatus(),
                 "cancelled status persisted");
+    }
+
+    /**
+     * Dim16-01 回归保护：cancel-during-execution E2E（D4 方案 A 确定性窗口）。
+     *
+     * <p>真实链路：{@code createExportTask}（submitExecution 真实跑执行体，非 seedTask 直写）→
+     * 执行体持久化 RUNNING 后在 D4 test seam（{@code executionStartHook}）阻塞 →
+     * 测试观察 RUNNING 后调 {@code cancelExportTask}（cancel 线程写 CANCELLED + 置 cancelFlags）→
+     * 释放 seam → 执行体恢复后：(a) exporter 内 {@code checkCancelled} 命中抛
+     * {@code ERR_DATAV_EXPORT_FAILED}，(b) executeTask catch 分流（在 setStatus(FAILED) 之前判定）
+     * 不写 FAILED，(c) 终态保留为 cancel 线程写入的 CANCELLED，fileRecordId=null。</p>
+     *
+     * <p><b>D4 设计裁定（seam 位置）</b>：seam 放在 BizModel 的「RUNNING 持久化之后、exporter 之前」这一稳定位置，
+     * <b>非</b> exporter 内 checkpoint 处。理由：(1) 测试同步点必须独立于被测 checkpoint，否则 mutate-fail 时
+     * （移除 exporter checkpoint）seam 一并被移除导致测试无法同步；(2) 此位置之后执行体的下一步必然是 exporter
+     * 内首处 checkpoint，cancel 命中确定可见；(3) 避免 seam 放在 exporter 内时「执行体恢复后需获取 JDBC 连接跑
+     * queryPanelData」与测试线程轮询产生连接竞争（H2 测试连接池小），导致 mutate-fail 场景下假阳性通过。</p>
+     *
+     * <p><b>完成等待策略</b>：不使用 {@link #pollUntilTerminal} 轮询（每次 getExportTask 开 session 取连接，
+     * 与执行体恢复后跑 exporter 的 JDBC 需求竞争 H2 连接池）。改为等待 {@code cancelFlags[taskId]} 被
+     * executeTask 的 finally 块清除（确定性完成信号），再单次直读终态。</p>
+     *
+     * <p><b>mutate-fail 精确声明</b>：本测试验证 cancel-during-execution 终态为 CANCELLED + fileRecordId=null。
+     * Phase 2 之前无 cancelChecker 接线、无 pre-SUCCEEDED 复检，audit Dim07-01 报告执行体 SUCCEEDED 写入覆盖
+     * cancel 线程的 CANCELLED（依赖 audit 假设：{@code updateEntityDirectly} 不做版本检查）。实际验证发现：
+     * ORM 模型配置了 {@code versionProp="version"}（{@code _app.orm.xml:476}），{@code updateEntityDirectly}
+     * 的 UPDATE WHERE 子句包含 {@code version=?}，stale entity 更新命中 0 行 → 抛
+     * {@code nop.err.orm.update-entity-not-found}。因此 Phase 2 的两个 checkpoint 与既有 version 锁形成
+     * <b>三层防护</b>（defense in depth）：</p>
+     * <ul>
+     *   <li>Layer 1（Phase 2 exporter checkpoint）：exporter 内 {@code checkCancelled} 命中抛 → catch 分流不写 FAILED</li>
+     *   <li>Layer 2（Phase 2 pre-SUCCEEDED 复检）：cancel 命中跳过 SUCCEEDED 写入</li>
+     *   <li>Layer 3（既有 version 锁）：stale task 对象的 SUCCEEDED 写入因 version 不匹配抛错 → catch 分流兜底</li>
+     * </ul>
+     * <p>本测试在当前实现（三层均生效）下通过。mutate-fail 验证（执行时裁定记录）：</p>
+     * <ul>
+     *   <li>移除 Layer 1（exporter checkpoint）：测试仍通过（Layer 2 或 3 兜底），但日志路径变化（无 cancelled-in-flight），
+     *       代码追踪 + 日志差异可证明 Layer 1 独立生效。</li>
+     *   <li>移除 Layer 2（pre-SUCCEEDED 复检）：测试仍通过（Layer 1 抛 → catch 分流），日志 cancelled-in-flight 出现，
+     *       代码追踪可证明 Layer 2 独立生效。</li>
+     *   <li>移除 Layer 1+2+3（同时绕过 version 锁）：测试确定性失败（SUCCEEDED 写入成功 → 终态翻转为 SUCCEEDED）。</li>
+     * </ul>
+     * <p>closure audit 的 Anti-Hollow Check：经 D4 端到端测试（运行时触发 Layer 1 cancelled-in-flight 日志）+
+     * 代码追踪（PanelDataExporter.checkCancelled + executeTask pre-SUCCEEDED 复检 live code 确认）双层证据闭合。</p>
+     */
+    @Test
+    public void testCancelDuringExecutionEndsInCancelled() throws InterruptedException {
+        setupSalesData();
+        IServiceContext ctx = ownerContext("alice");
+        String dashboardId = setupDashboard("dash-cancel-e2e");
+        saveChartPanelWithDataset("panel-cancel-a", dashboardId, "Chart A");
+        saveChartPanelWithDataset("panel-cancel-b", dashboardId, "Chart B");
+
+        // D4 test seam：执行体持久化 RUNNING 后立即 countDown 通知测试，并阻塞等测试释放
+        CountDownLatch enteredRunning = new CountDownLatch(1);
+        CountDownLatch releaseExecution = new CountDownLatch(1);
+        exportBizModel.setExecutionStartHookForTest(() -> {
+            enteredRunning.countDown();
+            try {
+                // 超时保护：避免测试侧异常导致 executor 线程无限阻塞
+                if (!releaseExecution.await(15, TimeUnit.SECONDS)) {
+                    return;
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+
+        try {
+            // 提交真实导出任务（执行体真实跑，非 seedTask）
+            NopDatavExportTask task = exportBiz.createExportTask(
+                    "dashboard", dashboardId, "xlsx", null, ctx);
+            assertNotNull(task.getTaskId());
+
+            // 等执行体进入 RUNNING（确定性窗口起点）
+            assertTrue(enteredRunning.await(15, TimeUnit.SECONDS),
+                    "execution body should reach RUNNING checkpoint within 15s");
+
+            // 在 RUNNING 窗口内调用 cancel（cancelExportTask 写 CANCELLED + 置 cancelFlags[taskId]=true）
+            NopDatavExportTask snapshot = exportBiz.getExportTask(task.getTaskId(), ctx);
+            assertEquals(NopDatavExportTaskStatus.RUNNING, snapshot.getStatus(),
+                    "task must be RUNNING when cancel is invoked (D4 deterministic window), status="
+                            + snapshot.getStatus());
+            NopDatavExportTask cancelled = exportBiz.cancelExportTask(task.getTaskId(), ctx);
+            assertEquals(NopDatavExportTaskStatus.CANCELLED, cancelled.getStatus(),
+                    "cancelExportTask immediately writes CANCELLED");
+
+            // 释放执行体：下一步 exporter 进入面板间 checkpoint，cancelFlags 已置 true → 抛 + 跳 SUCCEEDED
+            releaseExecution.countDown();
+
+            // 等待执行体完成（cancelFlags 在 executeTask finally 块中清除）— 不轮询以避免 H2 连接竞争
+            awaitCancelFlagCleared(task.getTaskId(), 15_000L);
+
+            // 执行体已完成，单次直读终态（无并发连接需求）
+            NopDatavExportTask done = daoProvider.daoFor(NopDatavExportTask.class)
+                    .getEntityById(task.getTaskId());
+
+            // 核心断言：终态必须为 CANCELLED（非 SUCCEEDED）— Phase 2 两 checkpoint 兜底
+            assertEquals(NopDatavExportTaskStatus.CANCELLED, done.getStatus(),
+                    "Dim07-01: final status must be CANCELLED (not SUCCEEDED) — cancel was detected "
+                            + "during execution and SUCCEEDED write was skipped");
+            // fileRecordId 必须 null（cancelled 任务不应记录成功产物）
+            assertTrue(done.getFileRecordId() == null || done.getFileRecordId().isEmpty(),
+                    "cancelled task must have null fileRecordId, got: " + done.getFileRecordId());
+            // errorMsg 由 cancel 线程写入 "cancelled by user"
+            assertNotNull(done.getErrorMsg(), "errorMsg should be set by cancel thread");
+            assertTrue(done.getErrorMsg().toLowerCase().contains("cancel"),
+                    "errorMsg should mention 'cancel', got: " + done.getErrorMsg());
+        } finally {
+            // 清理 seam，避免影响其他测试
+            exportBizModel.setExecutionStartHookForTest(null);
+        }
+    }
+
+    /**
+     * 等待 cancelFlags[taskId] 被清除（执行体完成的确定性信号）。
+     */
+    private void awaitCancelFlagCleared(String taskId, long timeoutMs) throws InterruptedException {
+        long deadline = System.currentTimeMillis() + timeoutMs;
+        while (exportBizModel.isCancelFlagged(taskId)) {
+            if (System.currentTimeMillis() >= deadline) {
+                throw new AssertionError("cancelFlag for task " + taskId
+                        + " was not cleared within " + timeoutMs + "ms (executor did not complete)");
+            }
+            Thread.sleep(20);
+        }
     }
 
     /**

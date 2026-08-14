@@ -24,8 +24,10 @@ import java.util.List;
  * 附 reason="interrupted by process restart"，不静默挂起。</p>
  *
  * <p>启动时（{@link PostConstruct}）查询前先经 {@link IJdbcTemplate#existsTable} 判定表是否已建，
- * 避免在测试环境 schema 尚未建表阶段（容器 init 早于建表）误报。方法幂等，BizModel 在每次发起导出前
- * 也会调用一次以覆盖「重启后未触发 init 即有导出请求」的场景。</p>
+ * 避免在测试环境 schema 尚未建表阶段（容器 init 早于建表）误报。方法幂等。恢复仅由容器启动期的
+ * {@link PostConstruct} 执行一次；请求路径不再调用（audit Dim14-01：per-request 调用会把所有其他
+ * 用户/同用户的在途任务误标 FAILED）。{@link io.nop.datav.service.entity.NopDatavExportTaskBizModel}
+ * 保留 public {@code recoverInterruptedTasks()} 委托仅供测试/管理直接触发。</p>
  */
 public class NopDatavExportTaskRecovery {
 
