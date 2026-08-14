@@ -26,7 +26,11 @@ import io.nop.datav.service.report.NopDatavReportTaskStatus;
 import io.nop.datav.service.report.NopDatavReportTriggerSource;
 import io.nop.datav.service.report.NotificationSender;
 import io.nop.datav.service.report.ReportDeliveryExecutor;
+import io.nop.datav.service.mock.MockChannelMessageService;
 import io.nop.file.dao.entity.NopFileRecord;
+import io.nop.integration.api.channel.IChannelMessageService;
+import io.nop.integration.api.channel.OutboundChannelMessage;
+import io.nop.integration.api.channel.SendResult;
 import io.nop.integration.api.email.EmailMessage;
 import io.nop.report.dao.entity.NopReportDataset;
 import io.nop.sys.dao.entity.NopSysNoticeTemplate;
@@ -96,7 +100,14 @@ public class TestNopDatavReportE2E extends AbstractNopDatavTest {
     @Inject
     io.nop.integration.api.email.IEmailSender emailSender;
 
+    @Inject
+    IChannelMessageService channelMessageService;
+
+    @Inject
+    io.nop.file.core.IFileStore fileStore;
+
     private MockEmailSender mockEmailSender;
+    private MockChannelMessageService mockChannelMsgService;
 
     @Override
     @BeforeEach
@@ -104,6 +115,8 @@ public class TestNopDatavReportE2E extends AbstractNopDatavTest {
         super.init(testInfo);
         mockEmailSender = (MockEmailSender) emailSender;
         mockEmailSender.reset();
+        mockChannelMsgService = (MockChannelMessageService) channelMessageService;
+        mockChannelMsgService.reset();
     }
 
     // ==================== 主线端到端 ====================
@@ -305,26 +318,140 @@ public class TestNopDatavReportE2E extends AbstractNopDatavTest {
     }
 
     /**
-     * IM 渠道（notifyChannels 含 im）→ delivery failed（UnsupportedOperationException 被 executor 吞为 failed，非静默跳过）。
+     * IM 渠道经 IChannelMessageService.sendToUser 真实发送（Decision A/B）：
+     * recipients 含 userId（非邮箱格式）→ 分区到 userIds → 逐 userId sendToUser（mock 返回 SENT）
+     * → deliveredChannels 含 "im"。
+     *
+     * <p><b>接线验证（rule #23）</b>：mock verify sendToUser 在运行时被调用（含次数 + userId 参数 + message.text 含报告摘要）。</p>
+     *
+     * <p>注意：recipients 必须含至少一个非邮箱格式条目（userId），否则按 Decision A 分区后 im 无可寻址收件人。</p>
      */
     @Test
-    public void testImChannelThrowsUnsupported() {
+    public void testImChannelSendsViaChannelMessageService() {
         setupSalesData();
         IServiceContext ctx = ownerContext("alice");
         String dashboardId = setupDashboard("dash-im", "alice", true);
         saveChartPanelWithDataset("panel-im", dashboardId, "Chart");
         NopDatavReportTask task = seedReportTaskWithChannels("task-im", dashboardId, "alice",
-                "0 0 8 * * ?", "xlsx", true, "[\"a@example.com\"]", "[\"im\"]");
+                "0 0 8 * * ?", "xlsx", true, "[\"u1\",\"u2\"]", "[\"im\"]");
+
+        String deliveryId = reportDeliveryExecutor.executeSyncForTest(
+                task.getReportTaskId(), NopDatavReportTriggerSource.MANUAL, System.currentTimeMillis());
+        NopDatavReportDelivery delivery = pollUntilTerminal(deliveryId);
+        assertEquals(NopDatavReportDeliveryStatus.SUCCEEDED, delivery.getStatus(),
+                "IM channel -> delivery succeeded (sendToUser SENT)");
+        assertEquals("im", delivery.getDeliveredChannels(), "deliveredChannels contains im");
+
+        // 接线验证：sendToUser 在运行时被调用（2 次，userId=u1/u2）
+        assertEquals(2, mockChannelMsgService.getSendCount(), "sendToUser called once per userId");
+        List<MockChannelMessageService.CallRecord> calls = mockChannelMsgService.getCalls();
+        assertEquals("u1", calls.get(0).userId, "first userId");
+        assertEquals("u2", calls.get(1).userId, "second userId");
+        // message.text 含报告摘要（subject + body，body 含 reportName/dashboardName/fileName/rowCount）
+        String text = calls.get(0).message.getText();
+        assertNotNull(text, "message text populated");
+        assertTrue(text.contains("task-im-name"), "message text contains report name: " + text);
+        assertTrue(text.contains("Rows:"), "message text contains row count: " + text);
+        // Decision C：无附件
+        assertTrue(calls.get(0).message.getAttachments().isEmpty(), "no attachments (Decision C)");
+        // email 未被调用（channels 只含 im）
+        assertEquals(0, mockEmailSender.getSendCount(), "email not invoked");
+    }
+
+    /**
+     * IM 全 NO_BINDING → delivery FAILED + errorMsg 提及（Decision B 渠道聚合零成功）。
+     */
+    @Test
+    public void testImChannelAllNoBindingFailsExplicitly() {
+        setupSalesData();
+        IServiceContext ctx = ownerContext("alice");
+        String dashboardId = setupDashboard("dash-im-nb", "alice", true);
+        saveChartPanelWithDataset("panel-im-nb", dashboardId, "Chart");
+        NopDatavReportTask task = seedReportTaskWithChannels("task-im-nb", dashboardId, "alice",
+                "0 0 8 * * ?", "xlsx", true, "[\"u1\",\"u2\"]", "[\"im\"]");
+        mockChannelMsgService.setResultToSend(SendResult.NO_BINDING);
 
         String deliveryId = reportDeliveryExecutor.executeSyncForTest(
                 task.getReportTaskId(), NopDatavReportTriggerSource.MANUAL, System.currentTimeMillis());
         NopDatavReportDelivery delivery = pollUntilTerminal(deliveryId);
         assertEquals(NopDatavReportDeliveryStatus.FAILED, delivery.getStatus(),
-                "IM channel -> delivery failed (UnsupportedOperationException swallowed by executor)");
-        assertNotNull(delivery.getErrorMsg());
-        assertTrue(delivery.getErrorMsg().toLowerCase().contains("im")
-                        || delivery.getErrorMsg().toLowerCase().contains("channel"),
-                "errorMsg mentions IM channel: " + delivery.getErrorMsg());
+                "all NO_BINDING -> delivery failed");
+        assertNotNull(delivery.getErrorMsg(), "errorMsg recorded");
+        assertTrue(delivery.getErrorMsg().toLowerCase().contains("notify")
+                        || delivery.getErrorMsg().toLowerCase().contains("channel")
+                        || delivery.getErrorMsg().toLowerCase().contains("failed"),
+                "errorMsg mentions notify/channel failure: " + delivery.getErrorMsg());
+        // sendToUser 仍被调用（逐用户尝试），但全部 NO_BINDING
+        assertEquals(2, mockChannelMsgService.getSendCount(), "sendToUser attempted for all userIds");
+    }
+
+    /**
+     * channelMessageService 未注入 → IM 渠道显式失败 ERR_DATAV_REPORT_CHANNEL_SERVICE_NOT_CONFIGURED。
+     *
+     * <p>构造一个未注入 channelMessageService 的 NotificationSender（直接 new，不经 IoC），
+     * 断言 IM 渠道抛 NopException（非静默/非空壳）。</p>
+     */
+    @Test
+    public void testImChannelServiceNotConfiguredFailsExplicitly() {
+        setupSalesData();
+        IServiceContext ctx = ownerContext("alice");
+        String dashboardId = setupDashboard("dash-im-nosvc", "alice", true);
+        saveChartPanelWithDataset("panel-im-nosvc", dashboardId, "Chart");
+        NopDatavReportTask task = seedReportTaskWithChannels("task-im-nosvc", dashboardId, "alice",
+                "0 0 8 * * ?", "xlsx", true, "[\"u1\"]", "[\"im\"]");
+
+        // 未注入 channelMessageService 的 sender（emailSender 也未注入，但 im 渠道先判 service==null）
+        NotificationSender bareSender = new NotificationSender(daoProvider, fileStore);
+        bareSender.setEmailSender(emailSender);
+        // 不调 setChannelMessageService → channelMessageService == null
+
+        NopDatavReportDelivery delivery = new NopDatavReportDelivery();
+        delivery.setGeneratedFileRecordId("");
+        delivery.setRowCount(0L);
+        delivery.setStatus(NopDatavReportDeliveryStatus.SUCCEEDED);
+
+        NopException ex = assertThrows(NopException.class,
+                () -> bareSender.sendReport(task, delivery, ctx));
+        assertTrue(ex.getMessage().toLowerCase().contains("channel")
+                        || ex.getMessage().toLowerCase().contains("not configured"),
+                "errorMsg mentions channel service not configured: " + ex.getMessage());
+    }
+
+    /**
+     * 混合渠道 email + im（recipients 含邮箱 + userId）→ 两渠道各投递（Decision A 分区）。
+     *
+     * <p>recipients=["a@example.com","u1"]，channels=["email","im"]：
+     * email 发给 a@example.com（emailAddrs），im 发给 u1（userIds）。
+     * deliveredChannels 含 "email,im"。</p>
+     */
+    @Test
+    public void testMixedEmailAndImChannelsPartitionedDelivery() {
+        setupSalesData();
+        IServiceContext ctx = ownerContext("alice");
+        String dashboardId = setupDashboard("dash-mixed", "alice", true);
+        saveChartPanelWithDataset("panel-mixed", dashboardId, "Chart");
+        NopDatavReportTask task = seedReportTaskWithChannels("task-mixed", dashboardId, "alice",
+                "0 0 8 * * ?", "xlsx", true,
+                "[\"a@example.com\",\"u1\"]", "[\"email\",\"im\"]");
+
+        String deliveryId = reportDeliveryExecutor.executeSyncForTest(
+                task.getReportTaskId(), NopDatavReportTriggerSource.MANUAL, System.currentTimeMillis());
+        NopDatavReportDelivery delivery = pollUntilTerminal(deliveryId);
+        assertEquals(NopDatavReportDeliveryStatus.SUCCEEDED, delivery.getStatus(),
+                "mixed channels -> delivery succeeded");
+
+        // 两渠道各投递
+        assertEquals(1, mockEmailSender.getSendCount(), "email sent to emailAddrs partition");
+        assertEquals(Arrays.asList("a@example.com"), mockEmailSender.getSentMails().get(0).getTo(),
+                "email recipients = emailAddrs partition only");
+        assertEquals(1, mockChannelMsgService.getSendCount(), "sendToUser called for userIds partition");
+        assertEquals("u1", mockChannelMsgService.getCalls().get(0).userId, "im userId = userIds partition");
+
+        // deliveredChannels 含 email 与 im（CSV 顺序按 channels 迭代顺序）
+        String channels = delivery.getDeliveredChannels();
+        assertNotNull(channels);
+        assertTrue(channels.contains("email"), "deliveredChannels contains email: " + channels);
+        assertTrue(channels.contains("im"), "deliveredChannels contains im: " + channels);
     }
 
     /**

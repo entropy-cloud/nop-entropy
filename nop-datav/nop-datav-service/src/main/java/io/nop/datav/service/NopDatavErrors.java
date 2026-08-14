@@ -47,6 +47,8 @@ public interface NopDatavErrors {
     String ARG_TEMPLATE_KEY = "templateKey";
     String ARG_RECIPIENTS = "recipients";
     String ARG_NOTIFY_CHANNELS = "notifyChannels";
+    String ARG_FAILED_CHANNELS = "failedChannels";
+    String ARG_NO_BINDING_COUNT = "noBindingCount";
 
     // ===== D5-2 轻量告警 =====
     String ARG_ALERT_RULE_ID = "alertRuleId";
@@ -362,6 +364,18 @@ public interface NopDatavErrors {
             ARG_USER_NAME, ARG_DASHBOARD_ID
     );
 
+    ErrorCode ERR_DATAV_REPORT_CHANNEL_SERVICE_NOT_CONFIGURED = define(
+            "nop.err.datav.report-channel-service-not-configured",
+            "Channel message service (IChannelMessageService) is not configured, cannot send IM notification for report task: {reportTaskId}",
+            ARG_REPORT_TASK_ID
+    );
+
+    ErrorCode ERR_DATAV_REPORT_ALL_NOTIFY_FAILED = define(
+            "nop.err.datav.report-all-notify-failed",
+            "All notification channels failed for report task: {reportTaskId} (notifyChannels={notifyChannels}, noBindingCount={noBindingCount})",
+            ARG_REPORT_TASK_ID, ARG_NOTIFY_CHANNELS, ARG_NO_BINDING_COUNT
+    );
+
     // ===== D5-2 轻量告警 =====
 
     ErrorCode ERR_DATAV_ALERT_RULE_NOT_FOUND = define(
@@ -416,6 +430,18 @@ public interface NopDatavErrors {
             "nop.err.datav.alert-not-owner",
             "User {userName} is not the owner of alert rule: {alertRuleId}",
             ARG_USER_NAME, ARG_ALERT_RULE_ID
+    );
+
+    ErrorCode ERR_DATAV_ALERT_CHANNEL_SERVICE_NOT_CONFIGURED = define(
+            "nop.err.datav.alert-channel-service-not-configured",
+            "Channel message service (IChannelMessageService) is not configured, cannot send IM notification for alert rule: {alertRuleId}",
+            ARG_ALERT_RULE_ID
+    );
+
+    ErrorCode ERR_DATAV_ALERT_ALL_NOTIFY_FAILED = define(
+            "nop.err.datav.alert-all-notify-failed",
+            "All notification channels failed for alert rule: {alertRuleId} (notifyChannels={notifyChannels}, noBindingCount={noBindingCount})",
+            ARG_ALERT_RULE_ID, ARG_NOTIFY_CHANNELS, ARG_NO_BINDING_COUNT
     );
 
     // ===== D6-1 ChatBI =====

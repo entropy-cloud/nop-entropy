@@ -18,9 +18,11 @@ import io.nop.datav.dao.entity.NopDatavPanel;
 import io.nop.datav.service.alert.AlertEvaluator;
 import io.nop.datav.service.alert.NopDatavAlertScheduler;
 import io.nop.datav.service.alert.NopDatavAlertStateValue;
+import io.nop.datav.service.mock.MockChannelMessageService;
 import io.nop.datav.service.mock.MockEmailSender;
 import io.nop.datav.service.report.NopDatavReportTaskStatus;
 import io.nop.datav.service.report.NotificationSender;
+import io.nop.integration.api.channel.IChannelMessageService;
 import io.nop.integration.api.email.EmailMessage;
 import io.nop.report.dao.entity.NopReportDataset;
 import io.nop.sys.dao.entity.NopSysNoticeTemplate;
@@ -74,7 +76,11 @@ public class TestNopDatavAlertE2E extends AbstractNopDatavTest {
     @Inject
     io.nop.integration.api.email.IEmailSender emailSender;
 
+    @Inject
+    IChannelMessageService channelMessageService;
+
     private MockEmailSender mockEmailSender;
+    private MockChannelMessageService mockChannelMsgService;
 
     @Override
     @BeforeEach
@@ -82,6 +88,8 @@ public class TestNopDatavAlertE2E extends AbstractNopDatavTest {
         super.init(testInfo);
         mockEmailSender = (MockEmailSender) emailSender;
         mockEmailSender.reset();
+        mockChannelMsgService = (MockChannelMessageService) channelMessageService;
+        mockChannelMsgService.reset();
     }
 
     // ==================== 聚合求值 ====================
@@ -466,20 +474,108 @@ public class TestNopDatavAlertE2E extends AbstractNopDatavTest {
     }
 
     /**
-     * IM 渠道 → UnsupportedOperationException（非静默）。
+     * IM 渠道经 IChannelMessageService.sendToUser 真实发送（Decision A/B）：
+     * recipients 含 userId（非邮箱格式）→ 分区到 userIds → 评估触发 → sendToUser（mock 返回 SENT）。
+     *
+     * <p><b>接线验证（rule #23）</b>：mock verify sendToUser 被调用（userId 参数 + message.text 含告警语义字段）。</p>
      */
     @Test
-    public void testImChannelThrowsUnsupported() {
+    public void testImChannelSendsViaChannelMessageService() {
         setupSalesData();
         IServiceContext ctx = ownerContext("alice");
         String dashboardId = setupDashboard("dash-im-alert", "alice", true);
         saveChartPanelWithDataset("panel-im-alert", dashboardId, "Sales");
         NopDatavAlertRule rule = seedAlertRuleWithChannels("rule-im-alert", "panel-im-alert",
                 dashboardId, "alice", "amount", "sum", "gt", "100", null, 0, true,
-                "[\"im\"]", "[\"a@example.com\"]");
+                "[\"im\"]", "[\"u1\",\"u2\"]");
 
-        assertThrows(UnsupportedOperationException.class,
-                () -> alertEvaluator.evaluate(rule.getAlertRuleId()));
+        AlertEvaluator.EvalResult result = alertEvaluator.evaluate(rule.getAlertRuleId());
+        assertTrue(result.conditionMet, "sum=350 > 100");
+        assertEquals(NopDatavAlertStateValue.TRIGGERED.getValue(), result.newState);
+        assertTrue(result.notified, "trigger notified via IM");
+
+        // 接线验证：sendToUser 被调用（2 次，userId=u1/u2）
+        assertEquals(2, mockChannelMsgService.getSendCount(), "sendToUser called per userId");
+        List<MockChannelMessageService.CallRecord> calls = mockChannelMsgService.getCalls();
+        assertEquals("u1", calls.get(0).userId, "first userId");
+        assertEquals("u2", calls.get(1).userId, "second userId");
+        // message.text 含告警语义字段（ruleName/state/currentValue/threshold）
+        String text = calls.get(0).message.getText();
+        assertNotNull(text);
+        assertTrue(text.contains("rule-im-alert-name"), "text contains rule name: " + text);
+        assertTrue(text.contains("TRIGGERED") || text.contains("State:"),
+                "text contains state: " + text);
+        assertTrue(text.contains("350"), "text contains current value: " + text);
+        // email 未被调用（channels 只含 im）
+        assertEquals(0, mockEmailSender.getSendCount(), "email not invoked");
+    }
+
+    /**
+     * 告警 trigger + recover 两通知均经 sendToUser 发送（Decision A/B）：
+     * trigger（OK→TRIGGERED）+ recover（TRIGGERED→OK）各调一次 sendToUser。
+     */
+    @Test
+    public void testAlertTriggerAndRecoverViaIm() {
+        setupSalesData();
+        IServiceContext ctx = ownerContext("alice");
+        String dashboardId = setupDashboard("dash-im-alert-tr", "alice", true);
+        saveChartPanelWithDataset("panel-im-alert-tr", dashboardId, "Sales");
+        NopDatavAlertRule rule = seedAlertRuleWithChannels("rule-im-alert-tr", "panel-im-alert-tr",
+                dashboardId, "alice", "amount", "sum", "gt", "300", null, 0, true,
+                "[\"im\"]", "[\"u1\"]");
+
+        // trigger（350 > 300）
+        AlertEvaluator.EvalResult r1 = alertEvaluator.evaluate(rule.getAlertRuleId());
+        assertTrue(r1.notified, "trigger notified via IM");
+        assertEquals(1, mockChannelMsgService.getSendCount(), "trigger sendToUser");
+        assertTrue(mockChannelMsgService.getCalls().get(0).message.getText().contains("350"),
+                "trigger text contains current value");
+
+        // recover（350 < 1000）
+        rule.setThresholdValue(new BigDecimal("1000"));
+        rule.setUpdatedBy("alice");
+        rule.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+        daoProvider.daoFor(NopDatavAlertRule.class).updateEntityDirectly(rule);
+
+        AlertEvaluator.EvalResult r2 = alertEvaluator.evaluate(rule.getAlertRuleId());
+        assertTrue(r2.notified, "recover notified via IM");
+        assertEquals(2, mockChannelMsgService.getSendCount(), "trigger + recover sendToUser");
+        assertTrue(mockChannelMsgService.getCalls().get(1).message.getText().contains("OK")
+                        || mockChannelMsgService.getCalls().get(1).message.getText().contains("recover"),
+                "recover text contains OK/recover state");
+    }
+
+    /**
+     * 告警端到端（rule #22）：scheduler 入口 → AlertEvaluator 评估 → 状态机转换 → sendAlert → sendToUser SENT
+     * 全链路（IM 渠道，断言 sendToUser 被调用 + 参数含当前值/阈值）。
+     */
+    @Test
+    public void testE2eAlertTriggerViaImChannel() {
+        setupSalesData();
+        IServiceContext ctx = ownerContext("alice");
+        String dashboardId = setupDashboard("dash-im-e2e", "alice", true);
+        saveChartPanelWithDataset("panel-im-e2e", dashboardId, "Sales");
+        seedNoticeTemplate("alert-notify",
+                "Alert {ruleName} state={state} currentValue={currentValue} type={alertType}");
+
+        NopDatavAlertRule rule = seedAlertRuleWithChannels("rule-im-e2e", "panel-im-e2e",
+                dashboardId, "alice", "amount", "sum", "gt", "300", null, 0, true,
+                "[\"im\"]", "[\"u1\"]");
+
+        // 经 scheduler 入口验证接线
+        Map<String, Object> r1 = alertScheduler.fireScheduledForTest(rule.getAlertRuleId());
+        assertEquals("scheduled", r1.get("status"));
+        assertEquals(NopDatavAlertStateValue.TRIGGERED.getValue(), r1.get("state"));
+        assertEquals(Boolean.TRUE, r1.get("notified"), "trigger notified via IM");
+
+        // 接线验证：sendToUser 在运行时被调用（含 userId + 告警语义字段）
+        assertEquals(1, mockChannelMsgService.getSendCount(), "e2e trigger sendToUser");
+        MockChannelMessageService.CallRecord call = mockChannelMsgService.getCalls().get(0);
+        assertEquals("u1", call.userId, "e2e userId");
+        assertTrue(call.message.getText().contains("rule-im-e2e-name"),
+                "e2e text contains rule name: " + call.message.getText());
+        assertTrue(call.message.getText().contains("350"),
+                "e2e text contains current value: " + call.message.getText());
     }
 
     /**

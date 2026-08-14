@@ -7,4 +7,10 @@
     <bean id="testMockEmailSender" class="io.nop.datav.service.mock.MockEmailSender"
           ioc:type="io.nop.integration.api.email.IEmailSender" primary="true"/>
 
+    <!-- Mock IChannelMessageService for IM channel notification tests (records sendToUser calls).
+         primary=true overrides any default IChannelMessageService impl.
+         可编程返回 SENT/NO_BINDING/抛异常，供报告交付与告警 IM 渠道端到端测试断言。 -->
+    <bean id="testMockChannelMessageService" class="io.nop.datav.service.mock.MockChannelMessageService"
+          ioc:type="io.nop.integration.api.channel.IChannelMessageService" primary="true"/>
+
 </beans>
