@@ -1,7 +1,7 @@
 # 加密凭证库 + 多因子验证 Roadmap（nop-credential + nop-auth MFA）
 
 > Status: active
-> Last updated: 2026-08-10
+> Last updated: 2026-08-14（W6 closure audit 通过 → 同步 W6 done + W7 gate 解锁 + Milestone done；新增二期工作项 W9-W16 + A1-A3 + 二期 milestone）
 > Sources（设计已达成共识，实施前必读）：
 > - `ai-dev/design/nop-credential/00-vision.md` + `01-architecture-baseline.md`（凭证库，三期审查达成共识）
 > - `ai-dev/design/nop-auth/00-vision.md` + `01-architecture-baseline.md`（MFA，五期审查达成共识）
@@ -18,11 +18,41 @@
 - W3. nop-credential 管理 API + 明文边界 + Web 动态表单：`done` — plan: `ai-dev/plans/2026-08-12-0615-3-nop-credential-management-api-plaintext-boundary-web.md`
 - W4. MFA 数据模型 + TOTP 验证器 + 存储组件（MfaChallengeStore/SmsCodeStore）：`done` — plan: `ai-dev/plans/2026-08-12-1229-1-mfa-data-model-totp-stores.md`
 - W5. MFA 登录流程两阶段改造 + 短信验证码登录（loginType=5 + dict 修复）：`done` — plan: `ai-dev/plans/2026-08-12-1229-2-mfa-login-two-stage-sms-login.md`
-- W6. MFA 用户自助/管理员 API + nop-ai-gateway 扫码适配：`planned` — plan: `ai-dev/plans/2026-08-13-1118-1-mfa-user-admin-api-scan-adaptation.md`
-- W7. 存量迁移（NopAiModel.apiKey）+ docs-for-ai 同步：`done` — plan: `ai-dev/plans/2026-08-13-1118-2-legacy-migration-docs-sync.md`（Phase 1 仅依赖 W2 可先行；Phase 2/3 docs 引用 W6 live 产物，含 repo-observable W6 gate）
+- W6. MFA 用户自助/管理员 API + nop-ai-gateway 扫码适配：`done` — plan: `ai-dev/plans/2026-08-13-1118-1-mfa-user-admin-api-scan-adaptation.md`（4 Phase 全部落地：`NopAuthUserBizModel` bindMfa/confirmMfa/unbindMfa/generateRecoveryCodes/getMfaStatus + `resetUserMfa`（requireAdmin 运行时校验 + NopAuthOpLog 审计）；`ScanLoginResult` 新增 mfaRequired/challengeToken/mfaType/loginType 可选字段（向后兼容），`loginByScanAsync` 同步 try/catch 捕获 `ERR_AUTH_MFA_REQUIRED`；独立 closure audit 两轮收口——首轮 3 阻塞项（补日志 + 补 `TestMfaLoginE2E.testPasswordLoginMfaSmsFullChain` SMS 全链用例）处置后复核通过，证据见 plan Closure 段）
+- W7. 存量迁移（NopAiModel.apiKey）+ docs-for-ai 同步：`done` — plan: `ai-dev/plans/2026-08-13-1118-2-legacy-migration-docs-sync.md`（Phase 1 仅依赖 W2 可先行；Phase 2/3 docs 引用 W6 live 产物，含 repo-observable W6 gate——**gate 已满足（2026-08-14 W6 closure 通过）**）
 - W7-successor. NopAiModel.credentialId 运行时消费读取切换（credentialId → ICredentialProvider）+ 集成点裁决：`done` — plan: `ai-dev/plans/2026-08-13-1118-3-nop-ai-model-credential-runtime-consumption.md`（W7 deferred 项的最后一公里接线：IAiModelCredentialResolver SPI + AiModelCredentialResolverImpl + ChatServiceImpl 钩点，优先级链 accountKey > credentialId > resolveApiKey，强 fail-closed，引用计数 ai:NopAiModel:<id>）
 - W8. **MFA 存储数据库实现 + store-type 默认 db**：`done` — plan: `ai-dev/plans/2026-08-13-0900-1-mfa-db-store-and-default-db.md`（用户 2026-08-13 裁决：缺省不使用 Redis；所有存储必须有基于数据库的实现——新增 `DbMfaChallengeStore`/`DbSmsCodeStore` 两 ORM 实体表 `nop_auth_mfa_challenge`/`nop_auth_sms_code`；默认 `store-type` 由 `local` 改 `db`；`MfaStoreProvider` 改 collect-beans name-prefix 声明式装配 + 条件式 Redis 注册守住类加载安全不变式 ai-dev/lessons/15）
-- ★ **Milestone: 安全能力一期落地**（W1-W7 全部 done）：`todo`
+- ★ **Milestone: 安全能力一期落地**（W1-W8 + W7-successor 全部 done）：`done`（2026-08-14，W6 closure audit 通过后 W1-W8 + W7-successor 全部 done，派生状态自动满足）
+
+---
+
+## 二期工作项（设计 → 实现交错，审计穿插；状态同为唯一动态状态块，2026-08-14 新增）
+
+> 二期边界来源：`ai-dev/design/nop-credential/00-vision.md` §三/§四（RBAC/OAuth/KMS）、`ai-dev/design/nop-auth/00-vision.md` §三 + `01-architecture-baseline.md` §四（操作级 MFA/角色级策略/WebAuthn/邮件码/可信设备）、一期各 W out-of-scope、W6 plan Non-Blocking Follow-ups。执行规则：每个 design 工作项先产出设计文档并 review，再进入对应 impl；**取第一个 `todo` 优先，组间交错仅在满足依赖下作为可选策略**（凭证库组 → MFA 组 → 迁移组），组内顺序执行；审计工作项在组内 impl 全部 done 后启动。范围说明：W6 plan 遗留的"绑定流程 provisioning URI 二维码生成"已裁定属前端业务层（`Successor Required: no`），不在本 roadmap 二期范围。
+
+### 凭证库二期组（nop-credential）
+
+- W9-design. 凭证库二期设计文档（OAuth 流程引擎 + 外部 KMS/HSM + RBAC 授权/租户隔离 三主题合一设计，落 `ai-dev/design/nop-credential/02-phase2-design.md`）：`todo` — 依赖：W1-W3 done（模块现状基线）。**粒度约束：文档按主题分节，每节独立 review 门槛；若执行时预估超出单 plan 规模（5-15 文件/200-500 行/1-4 phases），先行拆分裁定（plan-first），不硬撑单文件**
+- W9-impl. OAuth 流程引擎实现（授权码换取/刷新闭环/自动续期，复用 `nop-auth-sso` `OAuthLoginServiceImpl` 既有 OAuth 客户端能力）：`todo` — 依赖：W9-design
+- W10-impl. 外部 KMS/HSM 集成实现（`ICredentialKeyProvider` 扩展 SPI：Vault/云 KMS 主密钥来源，本地文件/环境变量路径保留为默认实现）：`todo` — 依赖：W9-design
+- W11-impl. RBAC 细粒度授权 + 租户隔离实现（凭证级授权策略"谁可以用哪个凭证"+ 租户维度隔离，`ICredentialProvider` 消费侧校验）：`todo` — 依赖：W9-design
+- A1-audit. 凭证库二期安全审计（明文边界回归/密钥轮换/多 key 并存/KMS 故障路径 fail-closed/授权绕过对抗探查）：`todo` — 依赖：W9-impl, W10-impl, W11-impl
+
+### MFA 二期组（nop-auth）
+
+- W12-design. MFA 二期设计文档（操作级 MFA + 角色级强制策略 + 因子扩展（WebAuthn/邮件码/外部服务）+ 可信设备 四主题合一设计，落 `ai-dev/design/nop-auth/02-mfa-phase2-design.md`）：`todo` — 依赖：W4/W5/W6/W8 done（MFA 现状基线，W8 的 store 装配/默认 db 与操作级 challenge 扩展相关）。**粒度约束：文档按主题分节，每节独立 review 门槛；若执行时预估超出单 plan 规模，先行拆分裁定（plan-first），不硬撑单文件**
+- W12-impl. 操作级 MFA 实现（会话内敏感操作二次验证，请求级钩子；登录级 `mfaVerify` 链路复用）：`todo` — 依赖：W12-design
+- W13-impl. 角色级 MFA 强制策略引擎实现（策略模型：存储/继承/评估，角色 → 强制因子映射；一期全局开关 + 用户级启用保留兼容）：`todo` — 依赖：W12-design
+- W14-impl. WebAuthn/FIDO2 实现（MfaType 扩展位——live 为 `NopAuthMfaSetting.mfaType` VARCHAR 列 + `NopAuthConstants.MFA_TYPE_*` 字符串常量，非枚举，白名单校验点随 W12-design 清单更新；术语/枚举化裁决留 W12-design；外部 MFA 服务 Authy/Duo 评估后并入或显式 deferred）：`todo` — 依赖：W12-design
+- W15-impl. 邮件验证码 + 可信设备实现（复用既有 `nop-integration-api` `IEmailSender`（腾讯实现已在）+ `TencentEmailSender`；可信设备/记住此设备：设备指纹 + 会话策略）：`todo` — 依赖：W12-design
+- A2-audit. MFA 二期安全审计（因子强度/防重放/恢复通道/策略一致性/操作级钩子全路径覆盖）：`todo` — 依赖：W12-impl, W13-impl, W14-impl, W15-impl
+
+### 迁移二期组（credentialId 深化）
+
+- W16-design. nop-integration / nop-metadata credentialId 深度迁移设计（渠道密钥 / 数据源密码接入凭证库，参照 W7-successor 先例链）：`todo` — 依赖：W2, W7, W7-successor done
+- W16-impl. nop-integration / nop-metadata 深度迁移实现：`todo` — 依赖：W16-design
+- A3-audit. 二期收口全量验证 + 独立 closure audit（全量 build/test + 零明文回归断言 + 一期功能零回归）：`todo` — 依赖：全部二期 impl + A1/A2 done
+- ★ **Milestone: 安全能力二期落地**（W9-W16 全部 done + A1/A2/A3 通过）：`todo` — 派生：W9-W16 + A1-A3
 
 ## Status values
 
@@ -32,7 +62,7 @@
 | `planned` | 有计划，通过独立 draft review |
 | `done` | 完成，通过独立 closure audit |
 
-> Milestone 状态是派生的：W1-W7 全部 done 时自动 done。
+> Milestone 状态是派生的：一期 = W1-W8 + W7-successor 全部 done 时自动 done；二期 = W9-W16 + A1-A3 全部 done 时自动 done。
 
 ## Framework / platform reuse
 
@@ -43,6 +73,8 @@
 | Redis 基础设施 | `nop-nosql`（INosqlKeyValueOperations/NosqlCache/INosqlRateLimiter/INosqlCounter） | MfaChallengeStore/SmsCodeStore 的 Redis 后端复用；原子计数用 INosqlCounter（设计 §3.3 裁决方案 A 默认） |
 | 类型注册机制 | register-model.xml + xdsl-loader + `*.credential-type.xml` 实例文件 | 参照 `nop-ai-toolkit` 的 `ai-tool.register-model.xml` 惯例 |
 | 短信发送 | `nop-integration-api` `ISmsSender`（腾讯/云片已有实现） | 短信验证码发送通道 |
+| 邮件发送 | `nop-integration-api` `IEmailSender`（腾讯实现已有，`TencentEmailSender`） | 二期邮件验证码通道（无需新抽象） |
+| OAuth 客户端 | `nop-auth-sso` `OAuthLoginServiceImpl`（授权码换取/Token 解析已实现） | 二期 OAuth 流程引擎复用，不重复造轮子 |
 | 密码哈希 | `IPasswordEncoder`（BCrypt 加盐） | MFA 恢复码哈希存储 |
 | 错误码/审计 | `NopAuthErrors` + `NopAuthOpLog` 机制 | MFA 登录/挑战审计 |
 | BizModel/GraphQL | `CrudBizModel` + xmeta（`published=false` 明文边界） | 管理 API 与明文不暴露 |
@@ -72,7 +104,22 @@
 | 5 | MFA 登录流程两阶段改造 + 短信登录 | plan W5 | W4 | **Yes** | ISmsSender/IUserContextCache |
 | 6 | MFA 用户自助/管理员 API + 扫码适配 | plan W6 | W5 | Yes | BizModel/ISessionBootstrap |
 | 7 | 存量迁移 + docs-for-ai 同步 | plan W7 | W2 + W5 | No | — |
-| ★ | 安全能力一期落地（milestone） | — | W1-W7 done | — | — |
+| ★ | 安全能力一期落地（milestone） | — | W1-W8 + W7-successor done | — | — |
+| 8 | 凭证库二期设计（OAuth/KMS/RBAC 三主题设计文档） | W9-design | W1-W3 done | — | nop-auth-sso OAuth 客户端 |
+| 9 | OAuth 流程引擎实现 | W9-impl | W9-design | — | nop-auth-sso |
+| 10 | 外部 KMS/HSM 集成实现 | W10-impl | W9-design | — | — |
+| 11 | RBAC 授权 + 租户隔离实现 | W11-impl | W9-design | — | nop-auth RBAC 先例 |
+| 12 | 凭证库二期安全审计 | A1-audit | W9-11 impl done | — | — |
+| 13 | MFA 二期设计（操作级/角色策略/因子扩展/可信设备四主题设计文档） | W12-design | W4-W8 done | — | — |
+| 14 | 操作级 MFA 实现 | W12-impl | W12-design | — | — |
+| 15 | 角色级 MFA 强制策略引擎实现 | W13-impl | W12-design | — | — |
+| 16 | WebAuthn/FIDO2 实现 | W14-impl | W12-design | — | — |
+| 17 | 邮件验证码 + 可信设备实现 | W15-impl | W12-design | — | IEmailSender 既有实现 |
+| 18 | MFA 二期安全审计 | A2-audit | W12-15 impl done | — | — |
+| 19 | 深度迁移设计（nop-integration/nop-metadata） | W16-design | W2/W7/W7-successor | — | W7-successor 先例链 |
+| 20 | 深度迁移实现 | W16-impl | W16-design | — | — |
+| 21 | 二期收口全量验证 + 独立 closure audit | A3-audit | 二期全 done | — | — |
+| ★★ | 安全能力二期落地（milestone） | — | W9-W16 + A1-A3 | — | — |
 
 ## Stage details
 
@@ -196,6 +243,91 @@
 
 **Module / area:** `nop-ai`（model/dao）、`docs-for-ai/`、`ai-dev/`
 
+### 8. 凭证库二期设计（W9-design）
+
+> Status: see Work Items above
+
+**Goal:** 一份设计文档收敛三个二期主题（OAuth 流程引擎 / 外部 KMS / RBAC 授权 + 租户隔离），裁定各主题的实现边界与复用路径，供 W9-impl/W10-impl/W11-impl 执行。**分节产出：每主题独立小节 + 独立 review 门槛；预估超单 plan 规模时先行拆分裁定（plan-first）。**
+
+**Deliverables:**
+- `ai-dev/design/nop-credential/02-phase2-design.md`：OAuth 流程引擎（授权码换取/刷新闭环/自动续期；复用 `nop-auth-sso` `OAuthLoginServiceImpl` 的 OAuth 客户端能力；Token 加密存储语义不变）；外部 KMS/HSM 集成 SPI（`ICredentialKeyProvider` 扩展：Vault/云 KMS 主密钥来源，本地实现保留为默认，轮换/fail-closed 语义）；RBAC 细粒度授权 + 租户隔离（凭证级授权模型、消费侧校验点、与 nop-auth RBAC 复用边界）
+- 各主题 out-of-scope / deferred 裁定 + 与一期密文格式 `cv1:` 的兼容性确认
+
+**Module / area:** `ai-dev/design/nop-credential/`
+
+### 9-11. 凭证库二期实现（W9-impl / W10-impl / W11-impl）
+
+> Status: see Work Items above
+
+**Goal:** 按 W9-design 落地三个主题的实现，每个 impl 工作项 = 一个 execution plan。
+
+**Deliverables:**
+- W9-impl：OAuth 流程引擎（凭证类型声明 OAuth 认证方式 → 授权码换取 → 刷新闭环 → Token 自动续期入库）
+- W10-impl：外部 KMS/HSM 集成（新 `ICredentialKeyProvider` 实现类 + 配置切换 + KMS 故障 fail-closed 测试）
+- W11-impl：RBAC 授权 + 租户隔离（授权策略落点 + `ICredentialProvider` 消费侧校验 + 隔离测试）
+
+**Module / area:** `nop-credential/`（api/service）
+
+### 12. 凭证库二期安全审计（A1-audit）
+
+> Status: see Work Items above
+
+**Goal:** 独立审计三个实现的安全属性与一期契约回归。
+
+**Deliverables:** 明文边界回归、密钥轮换/多 key 并存、KMS 故障路径 fail-closed、授权绕过对抗探查、密文格式兼容性；finding 裁决表零悬挂。
+
+### 13. MFA 二期设计（W12-design）
+
+> Status: see Work Items above
+
+**Goal:** 一份设计文档收敛四个二期主题（操作级 MFA / 角色级强制策略 / 因子扩展（WebAuthn + 邮件码 + 外部服务）/ 可信设备），供 W12-impl ~ W15-impl 执行。**分节产出：每主题独立小节 + 独立 review 门槛；预估超单 plan 规模时先行拆分裁定（plan-first）。**
+
+**Deliverables:**
+- `ai-dev/design/nop-auth/02-mfa-phase2-design.md`：操作级 MFA（请求级钩子、敏感操作清单、会话内二次验证与登录级链路复用）；角色级强制策略（策略模型：存储/继承/评估；与全局开关 + 用户级启用兼容）；因子扩展（MfaType 扩展/枚举化裁决（live 为 VARCHAR 列 + 字符串常量）、WebAuthn 挑战/断言、邮件码走既有 `IEmailSender`、外部服务 Authy/Duo 评估）；可信设备（设备指纹 + 会话策略、绑定入口）
+- 各主题 out-of-scope / deferred 裁定 + 与 W4-W8 落地契约的兼容性确认
+
+**Module / area:** `ai-dev/design/nop-auth/`
+
+### 14-17. MFA 二期实现（W12-impl ~ W15-impl）
+
+> Status: see Work Items above
+
+**Goal:** 按 W12-design 落地四个主题，每个 impl 工作项 = 一个 execution plan。
+
+**Deliverables:**
+- W12-impl：操作级 MFA（请求级钩子接线 + 敏感操作清单 + E2E）
+- W13-impl：角色级强制策略引擎（策略模型 + 评估 + 强制拦截 + 兼容测试）
+- W14-impl：WebAuthn/FIDO2（挑战/断言验证 + 绑定/登录链路；外部服务评估结论并入或显式 deferred）
+- W15-impl：邮件验证码（`IEmailSender` 接线 + 邮件码 store）+ 可信设备（指纹 + 会话策略）
+
+**Module / area:** `nop-auth`（service/biz）+ `nop-integration-api`（复用）
+
+### 18. MFA 二期安全审计（A2-audit）
+
+> Status: see Work Items above
+
+**Goal:** 独立审计四个实现的安全属性与一期契约回归。
+
+**Deliverables:** 因子强度评估、防重放、恢复通道、策略一致性、操作级钩子全路径覆盖、登录级链路零回归；finding 裁决表零悬挂。
+
+### 19-20. 深度迁移二期（W16-design / W16-impl）
+
+> Status: see Work Items above
+
+**Goal:** nop-integration 渠道密钥与 nop-metadata 数据源密码接入凭证库（一期只迁移了 `NopAiModel.apiKey`）。
+
+**Deliverables:**
+- W16-design：迁移方案（引用点枚举、优先级链、fail-closed、回滚路径；参照 W7-successor `IAiModelCredentialResolver` 先例链）
+- W16-impl：两模块接线实现 + 迁移工具 + 文档同步
+
+**Module / area:** `nop-integration/`、`nop-metadata/`、`nop-credential/`
+
+### 21. 二期收口验证（A3-audit）
+
+> Status: see Work Items above
+
+**Goal:** 二期全量收口：全量 build/test、零明文回归断言、一期功能零回归、二期 milestone 派生判定；独立 fresh session closure audit。
+
 ## Dependency graph
 
 ```mermaid
@@ -207,6 +339,8 @@ graph TD
     W5["W5 登录两阶段+短信登录"]
     W6["W6 用户/管理API+扫码适配"]
     W7["W7 迁移+文档同步"]
+    W8["W8 存储DB实现+默认db"]
+    W7S["W7-successor 运行时消费切换"]
     M["★ 安全能力一期落地"]
     W1 --> W2 --> W3
     W4 --> W5 --> W6
@@ -215,6 +349,53 @@ graph TD
     W3 --> M
     W6 --> M
     W7 --> M
+    W8 --> M
+    W7S --> M
+
+    D9["W9-design 凭证库二期设计"]
+    I9["W9-impl OAuth 流程引擎"]
+    I10["W10-impl 外部 KMS/HSM"]
+    I11["W11-impl RBAC+租户隔离"]
+    A1["A1 凭证库二期安全审计"]
+    D12["W12-design MFA 二期设计"]
+    I12["W12-impl 操作级 MFA"]
+    I13["W13-impl 角色级策略引擎"]
+    I14["W14-impl WebAuthn/FIDO2"]
+    I15["W15-impl 邮件码+可信设备"]
+    A2["A2 MFA 二期安全审计"]
+    D16["W16-design 深度迁移设计"]
+    I16["W16-impl 深度迁移"]
+    A3["A3 二期收口验证"]
+    M2["★★ 安全能力二期落地"]
+    W1 --> D9
+    W2 --> D9
+    W3 --> D9
+    D9 --> I9
+    D9 --> I10
+    D9 --> I11
+    I9 --> A1
+    I10 --> A1
+    I11 --> A1
+    W4 --> D12
+    W5 --> D12
+    W6 --> D12
+    W8 --> D12
+    D12 --> I12
+    D12 --> I13
+    D12 --> I14
+    D12 --> I15
+    I12 --> A2
+    I13 --> A2
+    I14 --> A2
+    I15 --> A2
+    W2 --> D16
+    W7 --> D16
+    W7S --> D16
+    D16 --> I16
+    A1 --> A3
+    A2 --> A3
+    I16 --> A3
+    A3 --> M2
 ```
 
 ## Cross-cutting concerns
@@ -227,11 +408,14 @@ graph TD
 | 兼容性 | 未启用 MFA 用户登录流程零感知；凭证库不破坏既有 `@sec:` 配置加密 |
 | 验证命令 | W1 落地前 `nop-credential` 模块不存在，`-pl nop-credential` 会失败——W1 计划实施后需更新 mission commands 加入 `nop-credential`；test 范围 `nop-auth,nop-ai-gateway,nop-nosql -am` 覆盖 MFA 全链 |
 | 设计引用 | 实施前完整读取两份设计文档（W1-W3 读 nop-credential、W4-W6 读 nop-auth）——设计含实施裁决点（Redis 原子计数方案 A/B、动态表单字段枚举等），以设计文档为准 |
+| 二期跨模块公共 API / ORM | W9-impl（OAuth 引擎）/ W12-impl（请求级钩子）/ W13-impl（角色→因子策略新 ORM 实体）/ W14-impl（MfaType 扩展）/ W15-impl（可信设备指纹新实体/列）/ W16-impl（nop-integration/nop-metadata 接线）均可能触碰跨模块公共 API 或 ORM 模型（Protected Area），实施前 plan-first + migration note（同 W6 `ScanLoginResult` 先例） |
+| 二期审计门禁 | A1/A2/A3 审计工作项走独立 fresh session；finding 裁决表零悬挂；P0/P1 不静默降级 |
 
 ## Rules
 
 - 本文件是状态索引与粗分解，不是执行计划；每个 `planned` 条目由其 execution plan 所有
-- 状态只在 Work Items 块更新；milestone 是派生的（W1-W7 全部 done 才 done）
+- 状态只在 Work Items 块更新；milestone 是派生的（一期 = W1-W8 + W7-successor 全 done；二期 = W9-W16 + A1-A3 全 done）
 - 每个 W 的规模 = 一个 execution plan 可完成（5-15 文件、200-500 行、1-4 phases）
 - AI 取第一个 `todo`，不跳序、不重新仲裁优先级；closure audit 未过不标 done
 - 禁止在 stage details 中放 checkbox 或实现步骤
+- 二期规则：design 工作项先行（产出设计文档 + review 通过后才标 done）；**默认取第一个 `todo` 顺序执行，组间交错仅在满足依赖下作为可选策略**；impl 按组内顺序执行；审计工作项（A1/A2/A3）在对应 impl 全部 done 后启动，closure audit 通过前对应里程碑不标记 done
