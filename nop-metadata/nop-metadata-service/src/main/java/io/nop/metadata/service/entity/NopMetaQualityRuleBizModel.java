@@ -309,24 +309,6 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
         return table.getMetaSchema();
     }
 
-    /** 解析目标表对应数据源：table.querySpace → NopMetaDataSource；不存在/DISABLED 显式失败。 */
-    private NopMetaDataSource resolveDataSourceOrThrow(NopMetaQualityRule rule, NopMetaTable table) {
-        IEntityDao<NopMetaDataSource> dsDao = daoFor(NopMetaDataSource.class);
-        QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq(NopMetaDataSource.PROP_NAME_querySpace, table.getQuerySpace()));
-        NopMetaDataSource dataSource = dsDao.findFirstByQuery(q);
-        if (dataSource == null) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_QUALITY_NO_DATASOURCE)
-                    .param("qualityRuleId", rule.getQualityRuleId())
-                    .param("querySpace", table.getQuerySpace());
-        }
-        if (_NopMetadataCoreConstants.DATASOURCE_STATUS_DISABLED.equals(dataSource.getStatus())) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_QUALITY_DATASOURCE_DISABLED)
-                    .param("dataSourceId", dataSource.getDataSourceId());
-        }
-        return dataSource;
-    }
-
     /** 查找该 querySpace 下所有 external 类型逻辑表（按 tableType=external 限定）。 */
     private List<NopMetaTable> findExternalTables(String querySpace) {
         IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);

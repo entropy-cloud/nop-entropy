@@ -1,67 +1,61 @@
 package io.nop.metadata.service;
 
-import io.nop.metadata.dao.entity.NopMetaBusinessDomain;
-import io.nop.metadata.dao.entity.NopMetaCatalog;
-import io.nop.metadata.dao.entity.NopMetaClassification;
-import io.nop.metadata.dao.entity.NopMetaDataContract;
-import io.nop.metadata.dao.entity.NopMetaDataProduct;
-import io.nop.metadata.dao.entity.NopMetaDataSource;
-import io.nop.metadata.dao.entity.NopMetaDict;
-import io.nop.metadata.dao.entity.NopMetaDictItem;
-import io.nop.metadata.dao.entity.NopMetaDomain;
-import io.nop.metadata.dao.entity.NopMetaEntity;
-import io.nop.metadata.dao.entity.NopMetaEntityField;
-import io.nop.metadata.dao.entity.NopMetaEntityIndex;
-import io.nop.metadata.dao.entity.NopMetaEntityRelation;
-import io.nop.metadata.dao.entity.NopMetaEntityUniqueKey;
-import io.nop.metadata.dao.entity.NopMetaGlossary;
-import io.nop.metadata.dao.entity.NopMetaGlossaryTerm;
-import io.nop.metadata.dao.entity.NopMetaLineageEdge;
-import io.nop.metadata.dao.entity.NopMetaManifest;
-import io.nop.metadata.dao.entity.NopMetaModelChangedEvent;
-import io.nop.metadata.dao.entity.NopMetaModule;
-import io.nop.metadata.dao.entity.NopMetaOrmModel;
-import io.nop.metadata.dao.entity.NopMetaPipeline;
-import io.nop.metadata.dao.entity.NopMetaProfilingResult;
-import io.nop.metadata.dao.entity.NopMetaProfilingRule;
-import io.nop.metadata.dao.entity.NopMetaQualityCheckpoint;
-import io.nop.metadata.dao.entity.NopMetaQualityResult;
-import io.nop.metadata.dao.entity.NopMetaQualityRule;
-import io.nop.metadata.dao.entity.NopMetaQualityScore;
-import io.nop.metadata.dao.entity.NopMetaReconciliationConfig;
-import io.nop.metadata.dao.entity.NopMetaReconciliationEntity;
-import io.nop.metadata.dao.entity.NopMetaReconciliationResult;
-import io.nop.metadata.dao.entity.NopMetaSemanticType;
-import io.nop.metadata.dao.entity.NopMetaTable;
-import io.nop.metadata.dao.entity.NopMetaTableDimension;
-import io.nop.metadata.dao.entity.NopMetaTableFilter;
-import io.nop.metadata.dao.entity.NopMetaTableJoin;
-import io.nop.metadata.dao.entity.NopMetaTableMeasure;
-import io.nop.metadata.dao.entity.NopMetaTag;
-import io.nop.metadata.dao.entity.NopMetaTagLabel;
+import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.core.OptionalBoolean;
+import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.orm.IOrmTemplate;
+import io.nop.orm.model.IEntityModel;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * 验证每个实体类都有对应的 BizModel 类。
- * 作为 CRUD API codegen 的替代验证：不需要启用 codegen，
- * 只需保证手工编写的 BizModel 覆盖全部实体。
+ *
+ * <p>F19（plan 2026-08-14-1448-1）：实体清单从 ORM 模型运行时注册表动态发现
+ * （{@link IOrmTemplate#getOrmModel()} + {@link IEntityModel}），替代原手写硬编码 list。
+ * 新增 ORM entity 后无需手工编辑此测试即被自动覆盖——守卫不可被"忘记在此追加"绕过。
+ *
+ * <p>Anti-Hollow 接线验证：发现机制读取真实 ORM 注册表（非固定 list）——
+ * (1) 过滤限定到 {@code io.nop.metadata.dao.entity} 包（排除框架/其他模块 entity）；
+ * (2) 过滤掉 {@code _gen} 子包下划线前缀生成基类（非 entity、无 BizModel，否则误报 missing）；
+ * (3) sanity 断言发现实体数 ≥ 已知基线 39，防止动态发现静默返回空集。
  */
-public class TestAllEntitiesHaveBizModels {
+@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
+public class TestAllEntitiesHaveBizModels extends JunitBaseTestCase {
+
+    /** 已知 ORM entity 基线数（{@code nop-metadata/model/nop-metadata.orm.xml}）。新增 entity 时同步上调。 */
+    private static final int KNOWN_ENTITY_BASELINE = 39;
+
+    private static final String ENTITY_PACKAGE = "io.nop.metadata.dao.entity.";
+
+    private static final String BIZMODEL_PACKAGE = "io.nop.metadata.service.entity.";
+
+    @Inject
+    IOrmTemplate orm;
 
     @Test
     public void testAllEntitiesHaveBizModels() {
-        List<Class<?>> entities = allEntities();
+        List<Class<?>> entities = discoverEntities();
+
+        // Sanity：动态发现非空集且 ≥ 已知基线（防止注册表读取接线断裂导致守卫静默失效）
+        assertTrue(entities.size() >= KNOWN_ENTITY_BASELINE,
+                "Dynamic discovery must find >= " + KNOWN_ENTITY_BASELINE
+                        + " nop-metadata entities, but found " + entities.size()
+                        + " — discovery wiring is broken (returned empty/partial set)");
+        assertFalse(entities.isEmpty(), "Discovered entity set must not be empty");
+
         List<String> missing = new ArrayList<>();
         for (Class<?> entityClass : entities) {
-            String bizClassName = entityClass.getSimpleName() + "BizModel";
+            String bizClassName = BIZMODEL_PACKAGE + entityClass.getSimpleName() + "BizModel";
             try {
-                Class<?> bizClass = Class.forName(
-                        "io.nop.metadata.service.entity." + bizClassName);
+                Class<?> bizClass = Class.forName(bizClassName);
                 assertNotNull(bizClass, "BizModel class must exist for entity: " + entityClass.getSimpleName());
             } catch (ClassNotFoundException e) {
                 missing.add(entityClass.getSimpleName());
@@ -72,47 +66,40 @@ public class TestAllEntitiesHaveBizModels {
         }
     }
 
-    private List<Class<?>> allEntities() {
-        List<Class<?>> list = new ArrayList<>();
-        list.add(NopMetaBusinessDomain.class);
-        list.add(NopMetaCatalog.class);
-        list.add(NopMetaClassification.class);
-        list.add(NopMetaDataContract.class);
-        list.add(NopMetaDataProduct.class);
-        list.add(NopMetaDataSource.class);
-        list.add(NopMetaDict.class);
-        list.add(NopMetaDictItem.class);
-        list.add(NopMetaDomain.class);
-        list.add(NopMetaEntity.class);
-        list.add(NopMetaEntityField.class);
-        list.add(NopMetaEntityIndex.class);
-        list.add(NopMetaEntityRelation.class);
-        list.add(NopMetaEntityUniqueKey.class);
-        list.add(NopMetaGlossary.class);
-        list.add(NopMetaGlossaryTerm.class);
-        list.add(NopMetaLineageEdge.class);
-        list.add(NopMetaManifest.class);
-        list.add(NopMetaModelChangedEvent.class);
-        list.add(NopMetaModule.class);
-        list.add(NopMetaOrmModel.class);
-        list.add(NopMetaPipeline.class);
-        list.add(NopMetaProfilingResult.class);
-        list.add(NopMetaProfilingRule.class);
-        list.add(NopMetaQualityCheckpoint.class);
-        list.add(NopMetaQualityResult.class);
-        list.add(NopMetaQualityRule.class);
-        list.add(NopMetaQualityScore.class);
-        list.add(NopMetaReconciliationConfig.class);
-        list.add(NopMetaReconciliationEntity.class);
-        list.add(NopMetaReconciliationResult.class);
-        list.add(NopMetaSemanticType.class);
-        list.add(NopMetaTable.class);
-        list.add(NopMetaTableDimension.class);
-        list.add(NopMetaTableFilter.class);
-        list.add(NopMetaTableJoin.class);
-        list.add(NopMetaTableMeasure.class);
-        list.add(NopMetaTag.class);
-        list.add(NopMetaTagLabel.class);
-        return list;
+    /**
+     * 从 ORM 模型运行时注册表动态发现 nop-metadata 实体类。
+     *
+     * <p>过滤规则：(1) 仅 {@code io.nop.metadata.dao.entity} 直接包（排除框架/其他模块 entity）；
+     * (2) 排除 {@code _gen} 子包生成基类（{@code io.nop.metadata.dao.entity._gen._NopMetaXxx}，
+     * 下划线前缀，非 ORM entity、无对应 BizModel）；
+     * (3) defensive 跳过任何下划线前缀类（覆盖生成基类漏网场景）。
+     */
+    private List<Class<?>> discoverEntities() {
+        List<Class<?>> entities = new ArrayList<>();
+        for (IEntityModel em : orm.getOrmModel().getEntityModels()) {
+            String name = em.getName();
+            if (name == null || !name.startsWith(ENTITY_PACKAGE)) {
+                continue;
+            }
+            // 排除 _gen 子包生成基类
+            if (name.contains("._gen.")) {
+                continue;
+            }
+            String className = em.getClassName();
+            if (className == null) {
+                continue;
+            }
+            try {
+                Class<?> clazz = Class.forName(className);
+                // Defensive：跳过任何下划线前缀生成基类（_NopMeta*）
+                if (clazz.getSimpleName().startsWith("_")) {
+                    continue;
+                }
+                entities.add(clazz);
+            } catch (ClassNotFoundException e) {
+                throw new AssertionError("Entity class not on classpath: " + className, e);
+            }
+        }
+        return entities;
     }
 }
