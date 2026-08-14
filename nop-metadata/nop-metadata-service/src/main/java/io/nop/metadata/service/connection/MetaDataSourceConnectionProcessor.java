@@ -16,15 +16,18 @@ import org.slf4j.LoggerFactory;
 import javax.sql.DataSource;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -237,12 +240,14 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
             }
         }
         // (3) 主机白名单：默认禁内网（RFC1918 + link-local + loopback + 0.0.0.0/8 + IP 记法变体归一化）
-        String host = extractHost(jdbcUrl);
-        if (host != null && !host.isEmpty() && HostSecurityUtil.isInternalHost(host)
-                && !resolveAllowedInternalHosts().contains(host.toLowerCase())) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED)
-                    .param("jdbcUrl", redactJdbcUrl(jdbcUrl))
-                    .param("reason", "internal/link-local/loopback host not in allowed-hosts: " + host);
+        // F2（plan 2026-08-14-0707-1）：对 JDBC URL 中**每一**主机执行校验，关闭多主机 SSRF 绕过。
+        for (String host : extractHosts(jdbcUrl)) {
+            if (HostSecurityUtil.isInternalHost(host)
+                    && !resolveAllowedInternalHosts().contains(host.toLowerCase())) {
+                throw new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED)
+                        .param("jdbcUrl", redactJdbcUrl(jdbcUrl))
+                        .param("reason", "internal/link-local/loopback host not in allowed-hosts: " + host);
+            }
         }
     }
 
@@ -260,30 +265,129 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
     }
 
     /**
-     * 从 jdbcUrl 粗提取 host（jdbc:h2:mem / jdbc:h2:file 不返回 host，跳过内网校验）。
+     * 从 jdbcUrl 提取**所有**主机（F2 修复，plan 2026-08-14-0707-1）。
      *
-     * <p>MA7.2-01 修复：(a) 剥离 userinfo（{@code user:pass@host} 取最后一个 {@code @} 之后），
-     * 防止把用户名当 host；(b) 支持 IPv6 字面量 {@code [::1]} / {@code [::ffff:127.0.0.1]}，
-     * IPv4-mapped 形式归一化为 IPv4 段供内网校验。
+     * <p>原 {@code extractHost} 仅在第一个逗号处截断 authority，只校验第一主机，导致多主机 URL
+     * （MySQL Connector/J / PostgreSQL JDBC 官方支持的逗号分隔与 {@code address=(host=...)} 形式）
+     * 的第二（及以后）主机未经内网校验，构成 SSRF 绕过。
+     *
+     * <p>本方法覆盖三种 MySQL/PG 多主机 URL 语法（对照 MySQL Connector/J 官方 URL 语法）：
+     * <ul>
+     *   <li>逗号分隔：{@code jdbc:mysql://h1,h2:port/db}（主要场景）</li>
+     *   <li>{@code address=} 形式：{@code jdbc:mysql://address=(host=h1)(port=3306),address=(host=h2)(port=3306)/db}</li>
+     *   <li>key-value 形式：{@code jdbc:mysql://(host=h1,port=3306),(host=h2,port=3306)/db}</li>
+     * </ul>
+     *
+     * <p>jdbc:h2:mem / jdbc:h2:file 不返回 host（跳过内网校验，本地内存/文件）。
+     *
+     * <p>MA7.2-01 兼容：(a) 剥离 userinfo（{@code user:pass@host} 取最后一个 {@code @} 之后）；
+     * (b) 支持 IPv6 字面量 {@code [::1]} / {@code [::ffff:127.0.0.1]}，IPv4-mapped 形式归一化为 IPv4 段。
      */
-    private static String extractHost(String jdbcUrl) {
+    private static List<String> extractHosts(String jdbcUrl) {
         // jdbc:mysql://host:port/db  |  jdbc:postgresql://host:port/db
         int schemeEnd = jdbcUrl.indexOf("://");
         if (schemeEnd < 0) {
             // jdbc:h2:mem:xxx / jdbc:h2:file:xxx → 不做 host 检查（本地内存/文件）
-            return null;
+            return Collections.emptyList();
         }
         String rest = jdbcUrl.substring(schemeEnd + 3);
         int slash = rest.indexOf('/');
-        int comma = rest.indexOf(',');
         int q = rest.indexOf('?');
-        int end = minPositive(minPositive(slash, comma), q);
-        String hostPort = end > 0 ? rest.substring(0, end) : rest;
+        int end = minPositive(slash, q);
+        String authority = end > 0 ? rest.substring(0, end) : rest;
         // 剥离 userinfo：user:pass@host 形式取最后一个 @ 之后（用户名/密码可能含 @ 编码变体）
-        int lastAt = hostPort.lastIndexOf('@');
+        int lastAt = authority.lastIndexOf('@');
         if (lastAt >= 0) {
-            hostPort = hostPort.substring(lastAt + 1);
+            authority = authority.substring(lastAt + 1);
         }
+        // F2：按顶层逗号（paren-depth=0）切分为多主机段——不切分括号内的逗号（如 (host=h1,port=3306)）
+        List<String> hosts = new ArrayList<>();
+        for (String segment : splitTopLevelCommas(authority)) {
+            String host = extractSingleHost(segment);
+            if (host != null && !host.isEmpty()) {
+                hosts.add(host);
+            }
+        }
+        return hosts;
+    }
+
+    /**
+     * 按 paren-depth=0 处的逗号切分（不切分括号内的逗号）。
+     * 例：{@code h1,(host=h2,port=3306),h3} → {@code ["h1", "(host=h2,port=3306)", "h3"]}。
+     */
+    private static List<String> splitTopLevelCommas(String s) {
+        List<String> result = new ArrayList<>();
+        int depth = 0;
+        int start = 0;
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c == '(') {
+                depth++;
+            } else if (c == ')') {
+                if (depth > 0) {
+                    depth--;
+                }
+            } else if (c == ',' && depth == 0) {
+                result.add(s.substring(start, i));
+                start = i + 1;
+            }
+        }
+        result.add(s.substring(start));
+        return result;
+    }
+
+    /**
+     * 从单个主机段提取主机名。覆盖：
+     * <ul>
+     *   <li>MySQL Connector/J key-value/address 形式（含 {@code host=} 键）→ 取 {@code host=} 的值</li>
+     *   <li>普通 host / [ipv6] / host:port → 复用既有 IPv6/端口剥离逻辑</li>
+     * </ul>
+     */
+    private static String extractSingleHost(String rawSegment) {
+        if (rawSegment == null) {
+            return null;
+        }
+        String segment = rawSegment.trim();
+        if (segment.isEmpty()) {
+            return null;
+        }
+        // F2：key-value/address 形式（host=X）。hostname 不含 '='，故 host= 是 key-value 形式的可靠标志。
+        String kvHost = extractHostKeyValue(segment);
+        if (kvHost != null) {
+            return kvHost;
+        }
+        return extractPlainHost(segment);
+    }
+
+    /**
+     * 从 key-value/address 段中提取 {@code host=VALUE} 的值（MySQL Connector/J 多主机 URL 语法）。
+     * VALUE 终止于 {@code )} 或 {@code ,} 或段尾；支持 {@code [ipv6]} 括号形式归一化。
+     */
+    private static final Pattern HOST_KEY_VALUE_PATTERN =
+            Pattern.compile("host\\s*=\\s*(\\[[^\\]]*\\]|[^\\s),]+)");
+
+    private static String extractHostKeyValue(String segment) {
+        Matcher m = HOST_KEY_VALUE_PATTERN.matcher(segment);
+        if (!m.find()) {
+            return null;
+        }
+        String val = m.group(1);
+        // 括号 IPv6 形式：host=[::ffff:127.0.0.1] → 归一化
+        if (val.startsWith("[")) {
+            int closeBracket = val.indexOf(']');
+            if (closeBracket > 0) {
+                return normalizeIpv4MappedHost(val.substring(1, closeBracket));
+            }
+            return null;
+        }
+        return val;
+    }
+
+    /**
+     * 从普通主机段（无 {@code host=} 键）提取主机名：剥离端口，处理 IPv6 字面量。
+     * 与 MA7.2-01 既有单主机语义一致（无括号 IPv6 + 端口判定保留）。
+     */
+    private static String extractPlainHost(String hostPort) {
         // IPv6 字面量形如 [::1] 或 [::ffff:127.0.0.1]:3306
         if (hostPort.startsWith("[")) {
             int closeBracket = hostPort.indexOf(']');
@@ -395,12 +499,6 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
         if (a < 0) return b;
         if (b < 0) return a;
         return Math.min(a, b);
-    }
-
-    /** 是否内网/保留段主机（RFC1918 + RFC3927 link-local + loopback + 0.0.0.0/8 + IP 记法变体）。
-     *  统一委托 {@link HostSecurityUtil}（与 webhook 校验共享同一实现，语义与 JDK 解析一致）。 */
-    private static boolean isInternalHost(String host) {
-        return HostSecurityUtil.isInternalHost(host);
     }
 
     /** AR-02: driverClassName 必须在白名单内（防任意类加载攻击）。 */

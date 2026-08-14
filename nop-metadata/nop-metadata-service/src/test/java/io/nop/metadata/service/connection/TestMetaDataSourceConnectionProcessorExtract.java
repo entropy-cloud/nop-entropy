@@ -38,7 +38,7 @@ public class TestMetaDataSourceConnectionProcessorExtract {
     }
 
     /** allowlist 语义核对（互补面）：归一化后的 host 与配置项不一致时仍拒绝
-     * （allowed-hosts 配 "::1:3306" 整体串不匹配归一化后的 "::1" → 拒绝，比较发生在归一化之后）。 */
+      * （allowed-hosts 配 "::1:3306" 整体串不匹配归一化后的 "::1" → 拒绝，比较发生在归一化之后）。 */
     @Test
     public void testAllowlistMismatchStillRejected() {
         service.allowedInternalHostsCsv = "::1:3306";
@@ -48,5 +48,31 @@ public class TestMetaDataSourceConnectionProcessorExtract {
         assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(), ex.getErrorCode());
         assertTrue(String.valueOf(ex.getParam("reason")).contains("host"),
                 "reason must mention host: " + ex.getParam("reason"));
+    }
+
+    // ===== F2（plan 2026-08-14-0707-1 Phase 2）：多主机放行语义（不误伤合法外网多主机）=====
+
+    /** <b>F2 反例（不误伤）</b>：多主机全外网（逗号分隔）→ host 校验通过。 */
+    @Test
+    public void testMultiHostAllExternalPassesHostCheck() {
+        assertDoesNotThrow(() -> service.validateJdbcUrl(
+                        "jdbc:mysql://good.com:3306,example.com:3306/db"),
+                "multi-host URL with all-external hosts must pass host check");
+    }
+
+    /** <b>F2 反例（不误伤）</b>：address-list 形式全外网 → host 校验通过。 */
+    @Test
+    public void testAddressListAllExternalPassesHostCheck() {
+        assertDoesNotThrow(() -> service.validateJdbcUrl(
+                        "jdbc:mysql://address=(host=good.com)(port=3306),address=(host=example.com)(port=3306)/db"),
+                "address-list URL with all-external hosts must pass host check");
+    }
+
+    /** <b>F2 反例（不误伤）</b>：key-value 形式全外网 → host 校验通过（验证 paren-depth 逗号切分）。 */
+    @Test
+    public void testKeyValueMultiHostAllExternalPassesHostCheck() {
+        assertDoesNotThrow(() -> service.validateJdbcUrl(
+                        "jdbc:mysql://(host=good.com,port=3306),(host=example.com,port=3306)/db"),
+                "key-value multi-host URL with all-external hosts must pass host check");
     }
 }

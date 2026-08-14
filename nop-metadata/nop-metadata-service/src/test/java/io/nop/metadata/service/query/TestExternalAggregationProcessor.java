@@ -316,6 +316,34 @@ public class TestExternalAggregationProcessor {
                 "expr-arithmetic leaf must still be inlined into HAVING: " + sql);
     }
 
+    /**
+     * <b>F1（plan 2026-08-14-0707-1）live-path adversarial：伪造 havingExprResolved 标记 + SQL payload
+     * 经真实 {@code buildExternalAggregationSql} 路径（preprocessHavingArithmetic 清除伪造标记 →
+     * nameResolverFor 拒绝未标记叶子）必须 fail-fast {@code ERR_AGGR_HAVING_UNKNOWN_NAME}。</b>
+     *
+     * <p>活载荷验证（硬门禁）：本测试构造到达 HAVING SQL 拼接的真实运行时路径——客户端可经
+     * TreeBean.createFromJson 把 havingExprResolved 写为 attr（伪造凭证），载荷 name 为恶意 SQL。
+     * 修复前 nameResolverFor 信任伪造标记并把 payload 原文回填 HAVING；修复后 preprocess 递归入口
+     * 清除伪造标记，nameResolverFor 走 ERR_AGGR_HAVING_UNKNOWN_NAME 分支拒绝。
+     */
+    @Test
+    public void testForgedResolvedMarkerSqlPayloadRejectedOnLivePath() {
+        // 构造伪造载荷：name 为 SQL payload（子查询），并伪造 havingExprResolved=true（客户端可控的 attr）
+        TreeBean having = new TreeBean("gt");
+        having.setAttr(FilterBeanConstants.FILTER_ATTR_NAME,
+                "(SELECT COUNT(*) FROM mysql.user WHERE user='root')");
+        having.setAttr(FilterBeanConstants.FILTER_ATTR_VALUE, 1);
+        having.setAttr(MetaAggregationExecutor.HAVING_EXPR_RESOLVED_ATTR, Boolean.TRUE);
+        NopException ex = assertThrows(NopException.class, () ->
+                buildExternalAggregationSql(externalTable(), Collections.emptyList(), Collections.emptyList(),
+                        null, having, Collections.emptyList(), Collections.emptyMap(),
+                        Collections.emptyList(), Collections.emptyList(), null, null, "mysql", testCtx()),
+                "F1: forged havingExprResolved marker + SQL payload must be rejected on live path");
+        assertEquals(NopMetadataErrors.ERR_AGGR_HAVING_UNKNOWN_NAME.getErrorCode(), ex.getErrorCode(),
+                "F1: forged marker must be cleared so payload fails with ERR_AGGR_HAVING_UNKNOWN_NAME, "
+                        + "not inlined into HAVING: " + ex.getMessage());
+    }
+
     // ===== AR-20a（plan 2026-08-06-1228-1 Phase 1）：外部 JDBC 聚合路径 MySQL 上 NULLS FIRST/LAST =====
 
     private static List<io.nop.api.core.beans.query.OrderFieldBean> orderByWithNulls(String name, boolean desc,

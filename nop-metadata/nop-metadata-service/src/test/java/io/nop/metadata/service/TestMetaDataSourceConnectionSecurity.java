@@ -296,6 +296,70 @@ public class TestMetaDataSourceConnectionSecurity {
         assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(), ex.getErrorCode());
     }
 
+    // ===== F2（plan 2026-08-14-0707-1 Phase 2）：多主机 JDBC URL SSRF 绕过 =====
+
+    /**
+     * <b>F2 adversarial：逗号分隔多主机，第二主机为内网（169.254.169.254）必须被拒绝。</b>
+     *
+     * <p>修复前 extractHost 在第一个逗号处截断，只校验 good.com（外网放行），内网第二主机
+     * 未经校验——MySQL Connector/J 支持逗号分隔多主机故障转移，驱动会连到未校验的内网主机。
+     */
+    @Test
+    public void testCommaSeparatedMultiHostInternalSecondHostRejected() {
+        NopException ex = assertThrows(NopException.class,
+                () -> service.testConnect("jdbc",
+                        "{\"jdbcUrl\":\"jdbc:mysql://good.com,169.254.169.254:3306/db\"," + BASE_CFG + "}"),
+                "F2: comma-separated multi-host URL with internal second host must be rejected");
+        assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(), ex.getErrorCode());
+        assertTrue(String.valueOf(ex.getParam("reason")).contains("169.254.169.254"),
+                "F2: reason must identify the internal second host: " + ex.getParam("reason"));
+    }
+
+    /**
+     * <b>F2 adversarial：{@code address=} 形式多主机，第二主机为内网（127.0.0.1）必须被拒绝。</b>
+     *
+     * <p>MySQL Connector/J 官方 address-list 语法：{@code address=(host=h1)(port=p1),address=(host=h2)(port=p2)}。
+     */
+    @Test
+    public void testAddressListMultiHostInternalSecondHostRejected() {
+        NopException ex = assertThrows(NopException.class,
+                () -> service.testConnect("jdbc",
+                        "{\"jdbcUrl\":\"jdbc:mysql://address=(host=good.com)(port=3306),address=(host=127.0.0.1)(port=3306)/db\","
+                                + BASE_CFG + "}"),
+                "F2: address-list multi-host URL with internal second host must be rejected");
+        assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(), ex.getErrorCode());
+        assertTrue(String.valueOf(ex.getParam("reason")).contains("127.0.0.1"),
+                "F2: reason must identify the internal host from host= key: " + ex.getParam("reason"));
+    }
+
+    /**
+     * <b>F2 adversarial：key-value 形式（无 {@code address=} 前缀），第二主机为内网必须被拒绝。</b>
+     *
+     * <p>MySQL Connector/J 等价语法：{@code (host=h1,port=p1),(host=h2,port=p2)}。括号内含逗号，
+     * 顶层逗号切分必须正确（paren-depth 跟踪）。
+     */
+    @Test
+    public void testKeyValueMultiHostInternalSecondHostRejected() {
+        NopException ex = assertThrows(NopException.class,
+                () -> service.testConnect("jdbc",
+                        "{\"jdbcUrl\":\"jdbc:mysql://(host=good.com,port=3306),(host=10.0.0.1,port=3306)/db\","
+                                + BASE_CFG + "}"),
+                "F2: key-value multi-host URL with internal second host must be rejected");
+        assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(), ex.getErrorCode());
+        assertTrue(String.valueOf(ex.getParam("reason")).contains("10.0.0.1"),
+                "F2: reason must identify the internal host: " + ex.getParam("reason"));
+    }
+
+    /** <b>F2：第一主机为内网</b>（逗号分隔）→ 仍被既有逻辑拒绝（回归：不因多主机改动而放行第一主机）。 */
+    @Test
+    public void testCommaSeparatedInternalFirstHostRejected() {
+        NopException ex = assertThrows(NopException.class,
+                () -> service.testConnect("jdbc",
+                        "{\"jdbcUrl\":\"jdbc:mysql://10.0.0.1,good.com:3306/db\"," + BASE_CFG + "}"),
+                "internal first host must still be rejected");
+        assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(), ex.getErrorCode());
+    }
+
     // ===== driverClassName 白名单 =====
 
     /** 非白名单 driverClassName（任意类加载攻击）必须失败。 */

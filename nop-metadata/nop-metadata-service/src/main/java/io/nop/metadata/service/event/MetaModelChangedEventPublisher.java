@@ -175,6 +175,10 @@ public class MetaModelChangedEventPublisher {
      * 从实体模型列构建快照 Map。非 ORM 实体时回退为 stringify→parse 取 Map。
      *
      * <p>AR-07：对 sensitive 列（经 ORM tagSet 标记或硬编码兜底）返回固定 {@link #REDACTED_VALUE}。
+     *
+     * <p><b>AR-04（plan 2026-08-14-0707-1）</b>：POJO 回退分支与 ORM/Map 分支享有同等脱敏——
+     * stringify→parse 得到 Map 后路由回 {@link #redactSensitiveKeys(Map)}，不再以反射序列化泄露敏感字段。
+     * 三分支对同一敏感 key 产出一致脱敏。
      */
     @SuppressWarnings("unchecked")
     Map<String, Object> buildEntitySnapshot(Object entity) {
@@ -205,20 +209,29 @@ public class MetaModelChangedEventPublisher {
             // 语义裁定：大小写敏感、与 ORM 分支对齐（SENSITIVE_COLUMN_FALLBACK.contains(key) 精确匹配，
             // 复用 isSensitiveColumn(null, key) 同一判定路径，不引入大小写不敏感语义——避免两分支脱敏语义分叉）；
             // Map 无 column model，仅 fallback 列名集可应用。
-            Map<String, Object> map = new LinkedHashMap<>();
-            for (Map.Entry<String, Object> entry : ((Map<String, Object>) entity).entrySet()) {
-                String key = entry.getKey();
-                if (isSensitiveColumn(null, key)) {
-                    map.put(key, REDACTED_VALUE);
-                } else {
-                    map.put(key, entry.getValue());
-                }
-            }
-            return map;
+            return redactSensitiveKeys((Map<String, Object>) entity);
         }
-        // 非 ORM 实体（POJO）：stringify→parse 取 Map（防御路径，本 helper 实际只接收 ORM 实体）
+        // AR-04（plan 2026-08-14-0707-1）：非 ORM 实体（POJO）——stringify→parse 取 Map 后路由回 Map 分支脱敏，
+        // 不再以反射序列化泄露敏感字段（与 ORM/Map 分支享有同等脱敏契约）。
         Object parsed = JsonTool.parse(JsonTool.stringify(entity));
-        return parsed instanceof Map ? (Map<String, Object>) parsed : new LinkedHashMap<>();
+        return parsed instanceof Map ? redactSensitiveKeys((Map<String, Object>) parsed) : new LinkedHashMap<>();
+    }
+
+    /**
+     * 对 Map 中的敏感 key 应用 {@link #REDACTED_VALUE} 脱敏（Map/POJO 分支共享，AR-04 三分支一致脱敏）。
+     * 无 column model，仅 {@link #SENSITIVE_COLUMN_FALLBACK} 列名集可应用，大小写敏感（与 ORM 分支对齐）。
+     */
+    private static Map<String, Object> redactSensitiveKeys(Map<String, Object> source) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        for (Map.Entry<String, Object> entry : source.entrySet()) {
+            String key = entry.getKey();
+            if (isSensitiveColumn(null, key)) {
+                map.put(key, REDACTED_VALUE);
+            } else {
+                map.put(key, entry.getValue());
+            }
+        }
+        return map;
     }
 
     /**
