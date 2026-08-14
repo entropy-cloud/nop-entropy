@@ -94,9 +94,14 @@
           class="io.nop.datav.service.chatbi.DatavGenerateScreenExecutor" ioc:default="true"/>
 
     <!-- ChatBI BizModel（@BizModel，经 GraphQL 暴露 chatToQuery action）。
-         @Nullable 注入 IChatService/IToolManager（nop-ai 缺席时 action 显式抛 ERR_DATAV_CHATBI_AI_NOT_AVAILABLE）。
-         ioc:default=true 保证宿主未自定义时本实现生效。 -->
+          @Nullable 注入 IChatService/IToolManager（nop-ai 缺席时 action 显式抛 ERR_DATAV_CHATBI_AI_NOT_AVAILABLE）。
+          ioc:default=true 保证宿主未自定义时本实现生效。 -->
     <bean id="nopDatavChatBiBizModel"
           class="io.nop.datav.service.entity.NopDatavChatBiBizModel" ioc:default="true"/>
+
+    <!-- ChatBI 多轮会话管理器（D6-1 follow-up，裁定 S1–S4）：会话 CRUD + 历史注入上下文构造 + 归属校验，
+          经真实持久层（IDaoProvider）。被 NopDatavChatBiBizModel 注入（会话模式 chatToQuery + 4 个管理 action）。 -->
+    <bean id="chatBiSessionManager"
+          class="io.nop.datav.service.chatbi.ChatBiSessionManager" ioc:default="true"/>
 
 </beans>

@@ -601,4 +601,20 @@ public interface NopDatavErrors {
             "ChatBI generate-screen received an invalid backgroundConfig that cannot be parsed as screen theme: {reason}",
             ARG_REASON
     );
+
+    // ===== ChatBI 多轮会话（D6-1 follow-up，ai-design.md §10） =====
+
+    String ARG_SESSION_ID = "sessionId";
+
+    ErrorCode ERR_DATAV_CHATBI_SESSION_NOT_FOUND = define(
+            "nop.err.datav.chatbi-session-not-found",
+            "ChatBI session not found or deleted: {sessionId}",
+            ARG_SESSION_ID
+    );
+
+    ErrorCode ERR_DATAV_CHATBI_NOT_SESSION_OWNER = define(
+            "nop.err.datav.chatbi-not-session-owner",
+            "User {userName} is not the owner of ChatBI session: {sessionId}",
+            ARG_USER_NAME, ARG_SESSION_ID
+    );
 }

@@ -276,6 +276,45 @@
                                   roles="admin,user">
                             <permissions>NopDatavChatBi:chatToScreen</permissions>
                         </resource>
+                        <!-- D6-1 follow-up 多轮会话管理（裁定 S5，镜像既有 ChatBI 权限点；内均 requireSession owner 校验） -->
+                        <resource id="FNPT:NopDatavChatBi:createChatSession" displayName="创建ChatBI会话"
+                                  i18n-en:displayName="Create ChatBI Session" orderNo="10073" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavChatBi:createChatSession</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavChatBi:listChatSessions" displayName="查询ChatBI会话列表"
+                                  i18n-en:displayName="List ChatBI Sessions" orderNo="10074" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavChatBi:listChatSessions</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavChatBi:getChatSessionHistory" displayName="查询ChatBI会话历史"
+                                  i18n-en:displayName="Get ChatBI Session History" orderNo="10075" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavChatBi:getChatSessionHistory</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavChatBi:deleteChatSession" displayName="删除ChatBI会话"
+                                  i18n-en:displayName="Delete ChatBI Session" orderNo="10076" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavChatBi:deleteChatSession</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <!-- ==================== NopDatavChatSession / NopDatavChatMessage（D6-1 follow-up ChatBI 多轮会话）==================== -->
+                <!--
+                    裁定 S5（plan 2026-08-15-0004-1）：会话实体无 RLS，继承 CRUD query/mutation 仅绑 admin
+                    （不绑 user），与 NopDatavDashboardShare/NopDatavExportTask 的 D1 裁定先例对称。
+                    user 角色只能经 owner 校验过的 NopDatavChatBi 自定义管理 action 触达会话数据。
+                -->
+                <resource id="NopDatavChatSession-main">
+                    <children>
+                        <resource id="FNPT:NopDatavChatSession:query" roles="admin"/>
+                        <resource id="FNPT:NopDatavChatSession:mutation" roles="admin"/>
+                    </children>
+                </resource>
+                <resource id="NopDatavChatMessage-main">
+                    <children>
+                        <resource id="FNPT:NopDatavChatMessage:query" roles="admin"/>
+                        <resource id="FNPT:NopDatavChatMessage:mutation" roles="admin"/>
                     </children>
                 </resource>
                 <!-- ==================== NopDatavDashboardShare（D3-2 公共分享链接）==================== -->

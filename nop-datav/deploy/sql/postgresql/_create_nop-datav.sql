@@ -65,6 +65,20 @@ CREATE TABLE nop_datav_screen(
   constraint PK_nop_datav_screen primary key (screen_id)
 );
 
+CREATE TABLE nop_datav_chat_session(
+  session_id VARCHAR(32) NOT NULL ,
+  user_name VARCHAR(50) NOT NULL ,
+  session_title VARCHAR(200)  ,
+  del_flag INT4  ,
+  version INT8 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint PK_nop_datav_chat_session primary key (session_id)
+);
+
 CREATE TABLE nop_datav_panel(
   panel_id VARCHAR(32) NOT NULL ,
   dashboard_id VARCHAR(32) NOT NULL ,
@@ -231,6 +245,23 @@ CREATE TABLE nop_datav_screen_snapshot(
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
   constraint PK_nop_datav_screen_snapshot primary key (snapshot_id)
+);
+
+CREATE TABLE nop_datav_chat_message(
+  message_id VARCHAR(32) NOT NULL ,
+  session_id VARCHAR(32) NOT NULL ,
+  seq INT4 NOT NULL ,
+  role VARCHAR(20) NOT NULL ,
+  content TEXT NOT NULL ,
+  result_json TEXT  ,
+  del_flag INT4  ,
+  version INT8 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint PK_nop_datav_chat_message primary key (message_id)
 );
 
 CREATE TABLE nop_datav_alert_rule(
@@ -415,6 +446,28 @@ CREATE TABLE nop_datav_alert_state(
       COMMENT ON COLUMN nop_datav_screen.remark IS '备注';
                     
       COMMENT ON COLUMN nop_datav_screen.thumbnail IS '缩略图';
+                    
+      COMMENT ON TABLE nop_datav_chat_session IS 'ChatBI会话';
+                
+      COMMENT ON COLUMN nop_datav_chat_session.session_id IS '会话ID';
+                    
+      COMMENT ON COLUMN nop_datav_chat_session.user_name IS '用户名';
+                    
+      COMMENT ON COLUMN nop_datav_chat_session.session_title IS '会话标题';
+                    
+      COMMENT ON COLUMN nop_datav_chat_session.del_flag IS '删除标记';
+                    
+      COMMENT ON COLUMN nop_datav_chat_session.version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_datav_chat_session.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_datav_chat_session.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_datav_chat_session.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_datav_chat_session.update_time IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_datav_chat_session.remark IS '备注';
                     
       COMMENT ON TABLE nop_datav_panel IS '面板';
                 
@@ -697,6 +750,34 @@ CREATE TABLE nop_datav_alert_state(
       COMMENT ON COLUMN nop_datav_screen_snapshot.update_time IS '修改时间';
                     
       COMMENT ON COLUMN nop_datav_screen_snapshot.remark IS '备注';
+                    
+      COMMENT ON TABLE nop_datav_chat_message IS 'ChatBI会话消息';
+                
+      COMMENT ON COLUMN nop_datav_chat_message.message_id IS '消息ID';
+                    
+      COMMENT ON COLUMN nop_datav_chat_message.session_id IS '会话ID';
+                    
+      COMMENT ON COLUMN nop_datav_chat_message.seq IS '消息序号';
+                    
+      COMMENT ON COLUMN nop_datav_chat_message.role IS '消息角色';
+                    
+      COMMENT ON COLUMN nop_datav_chat_message.content IS '消息内容';
+                    
+      COMMENT ON COLUMN nop_datav_chat_message.result_json IS '结构化结果JSON';
+                    
+      COMMENT ON COLUMN nop_datav_chat_message.del_flag IS '删除标记';
+                    
+      COMMENT ON COLUMN nop_datav_chat_message.version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_datav_chat_message.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_datav_chat_message.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_datav_chat_message.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_datav_chat_message.update_time IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_datav_chat_message.remark IS '备注';
                     
       COMMENT ON TABLE nop_datav_alert_rule IS '告警规则';
                 

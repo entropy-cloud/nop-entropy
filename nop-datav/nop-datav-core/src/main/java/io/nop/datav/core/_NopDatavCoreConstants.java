@@ -258,4 +258,14 @@ public interface _NopDatavCoreConstants {
      */
     String ALERT_STATE_TRIGGERED = "TRIGGERED";
                     
+    /**
+     * 会话消息角色: 用户 
+     */
+    String CHAT_MSG_ROLE_USER = "user";
+                    
+    /**
+     * 会话消息角色: 助手 
+     */
+    String CHAT_MSG_ROLE_ASSISTANT = "assistant";
+                    
 }

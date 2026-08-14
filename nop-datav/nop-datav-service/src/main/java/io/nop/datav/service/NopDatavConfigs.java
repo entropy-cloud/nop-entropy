@@ -74,6 +74,16 @@ public interface NopDatavConfigs {
     IConfigReference<String> CFG_DATAV_CHATBI_DEFAULT_PROVIDER = varRef(
             s_loc, "nop.datav.chatbi.default-provider", String.class, "");
 
+    // ===== ChatBI 多轮会话（D6-1 follow-up，ai-design.md §10） =====
+
+    @Description("ChatBI 多轮会话注入历史的最大轮数（最近 N 轮，与字符预算取小，最老优先丢弃）")
+    IConfigReference<Integer> CFG_DATAV_CHATBI_HISTORY_MAX_TURNS = varRef(
+            s_loc, "nop.datav.chatbi.history.max-turns", Integer.class, 10);
+
+    @Description("ChatBI 多轮会话注入历史的字符预算（与最大轮数取小；最新单条超预算时截断该条，保证至少一条历史存活）")
+    IConfigReference<Integer> CFG_DATAV_CHATBI_HISTORY_MAX_CHARS = varRef(
+            s_loc, "nop.datav.chatbi.history.max-chars", Integer.class, 20000);
+
     // ===== stuck-task 周期恢复扫描 =====
 
     @Description("是否启用 stuck-task 周期扫描（false 时不注册周期 job，仅保留重启 @PostConstruct 恢复）")

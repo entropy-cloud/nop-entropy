@@ -2,6 +2,8 @@ entity:
   label:
     NopDatavAlertRule: 告警规则
     NopDatavAlertState: 告警状态
+    NopDatavChatMessage: ChatBI会话消息
+    NopDatavChatSession: ChatBI会话
     NopDatavDashboard: 看板
     NopDatavDashboardShare: 看板分享
     NopDatavDashboardSnapshot: 发布快照
@@ -68,6 +70,35 @@ prop:
       state_label: 告警状态
       updateTime: 修改时间
       updatedBy: 修改人
+      version: 数据版本
+    NopDatavChatMessage:
+      content: 消息内容
+      createTime: 创建时间
+      createdBy: 创建人
+      delFlag: 删除标记
+      messageId: 消息ID
+      remark: 备注
+      resultJson: 结构化结果JSON
+      resultJsonComponent: null
+      role: 消息角色
+      role_label: 消息角色
+      seq: 消息序号
+      session: 会话
+      sessionId: 会话ID
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopDatavChatSession:
+      createTime: 创建时间
+      createdBy: 创建人
+      delFlag: 删除标记
+      messages: 消息列表
+      remark: 备注
+      sessionId: 会话ID
+      sessionTitle: 会话标题
+      updateTime: 修改时间
+      updatedBy: 修改人
+      userName: 用户名
       version: 数据版本
     NopDatavDashboard:
       createTime: 创建时间

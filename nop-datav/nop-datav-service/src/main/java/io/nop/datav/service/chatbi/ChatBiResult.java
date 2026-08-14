@@ -30,6 +30,11 @@ public class ChatBiResult {
      */
     private String createdEntityId;
 
+    /**
+     * 多轮会话模式下的会话标识回显（裁定 S3）；单轮模式保持 null。
+     */
+    private String sessionId;
+
     private int iterations;
 
     public String getAnswer() {
@@ -62,6 +67,14 @@ public class ChatBiResult {
 
     public void setCreatedEntityId(String createdEntityId) {
         this.createdEntityId = createdEntityId;
+    }
+
+    public String getSessionId() {
+        return sessionId;
+    }
+
+    public void setSessionId(String sessionId) {
+        this.sessionId = sessionId;
     }
 
     public int getIterations() {

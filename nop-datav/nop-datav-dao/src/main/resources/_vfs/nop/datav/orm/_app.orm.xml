@@ -94,6 +94,10 @@
             <option code="OK" label="正常" value="OK" i18n-en:label="OK"/>
             <option code="TRIGGERED" label="已触发" value="TRIGGERED" i18n-en:label="Triggered"/>
         </dict>
+        <dict label="会话消息角色" name="datav/chat-msg-role" valueType="string" i18n-en:label="Chat Message Role">
+            <option code="USER" label="用户" value="user" i18n-en:label="User"/>
+            <option code="ASSISTANT" label="助手" value="assistant" i18n-en:label="Assistant"/>
+        </dict>
     </dicts>
 
     <domains>
@@ -972,6 +976,105 @@
             <unique-keys>
                 <unique-key columns="alertRuleId" name="UQ_NOP_DATAV_ALERT_STATE_RULE"
                             i18n-en:displayName="Unique Alert Rule"/>
+            </unique-keys>
+        </entity>
+        <entity className="io.nop.datav.dao.entity.NopDatavChatSession" createTimeProp="createTime"
+                createrProp="createdBy" displayName="ChatBI会话" name="io.nop.datav.dao.entity.NopDatavChatSession"
+                registerShortName="true" tableName="nop_datav_chat_session" updateTimeProp="updateTime"
+                updaterProp="updatedBy" versionProp="version" ext:icon="message-circle"
+                i18n-en:displayName="ChatBI Session">
+            <columns>
+                <column code="SESSION_ID" displayName="会话ID" mandatory="true" name="sessionId" precision="32"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        i18n-en:displayName="Session Id"/>
+                <column code="USER_NAME" displayName="用户名" mandatory="true" name="userName" precision="50" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="User Name"/>
+                <column code="SESSION_TITLE" displayName="会话标题" name="sessionTitle" precision="200" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Session Title"/>
+                <column code="DEL_FLAG" displayName="删除标记" domain="delFlag" name="delFlag" propId="4" stdDataType="byte"
+                        stdDomain="boolFlag" stdSqlType="TINYINT" i18n-en:displayName="Del Flag"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="5"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="6" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="7" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="8" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="9" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="10"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+            </columns>
+            <indexes>
+                <index name="IX_NOP_DATAV_CHAT_SESSION_USER" unique="false">
+                    <column name="userName"/>
+                </index>
+            </indexes>
+            <relations>
+                <to-many displayName="消息列表" name="messages" refEntityName="io.nop.datav.dao.entity.NopDatavChatMessage"
+                         refPropName="session" i18n-en:displayName="Messages">
+                    <join>
+                        <on leftProp="sessionId" rightProp="sessionId"/>
+                    </join>
+                </to-many>
+            </relations>
+        </entity>
+        <entity className="io.nop.datav.dao.entity.NopDatavChatMessage" createTimeProp="createTime"
+                createrProp="createdBy" displayName="ChatBI会话消息" name="io.nop.datav.dao.entity.NopDatavChatMessage"
+                registerShortName="true" tableName="nop_datav_chat_message" updateTimeProp="updateTime"
+                updaterProp="updatedBy" versionProp="version" ext:icon="message-square"
+                i18n-en:displayName="ChatBI Session Message">
+            <columns>
+                <column code="MESSAGE_ID" displayName="消息ID" mandatory="true" name="messageId" precision="32"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        i18n-en:displayName="Message Id"/>
+                <column code="SESSION_ID" displayName="会话ID" mandatory="true" name="sessionId" precision="32" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Session Id"/>
+                <column code="SEQ" comment="消息序号，会话内严格递增" displayName="消息序号" mandatory="true" name="seq" propId="3"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Seq"/>
+                <column code="ROLE" displayName="消息角色" mandatory="true" name="role" precision="20" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR" ext:dict="datav/chat-msg-role"
+                        i18n-en:displayName="Role"/>
+                <column code="CONTENT" displayName="消息内容" mandatory="true" name="content" propId="5"
+                        stdDataType="string" stdSqlType="CLOB" i18n-en:displayName="Content"/>
+                <column code="RESULT_JSON" displayName="结构化结果JSON" domain="clobJson" name="resultJson" propId="6"
+                        stdDataType="string" stdDomain="json" stdSqlType="CLOB" i18n-en:displayName="Result Json"/>
+                <column code="DEL_FLAG" displayName="删除标记" domain="delFlag" name="delFlag" propId="7" stdDataType="byte"
+                        stdDomain="boolFlag" stdSqlType="TINYINT" i18n-en:displayName="Del Flag"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="8"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="9" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="10" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="11" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="12" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="13"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+            </columns>
+            <indexes>
+                <index name="IX_NOP_DATAV_CHAT_MSG_SESSION" unique="false">
+                    <column name="sessionId"/>
+                </index>
+            </indexes>
+            <relations>
+                <to-one displayName="会话" name="session" refEntityName="io.nop.datav.dao.entity.NopDatavChatSession"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Session">
+                    <join>
+                        <on leftProp="sessionId" rightProp="sessionId"/>
+                    </join>
+                </to-one>
+            </relations>
+            <unique-keys>
+                <unique-key columns="sessionId,seq" name="UK_NOP_DATAV_CHAT_MSG_SESSION_SEQ"
+                            i18n-en:displayName="Unique Session And Seq"/>
             </unique-keys>
         </entity>
     </entities>

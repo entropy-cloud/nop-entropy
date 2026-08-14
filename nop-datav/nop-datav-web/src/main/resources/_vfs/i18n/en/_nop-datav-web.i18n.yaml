@@ -22,6 +22,22 @@ site:
       displayName: ChatBI Query
     FNPT:NopDatavChatBi:chatToScreen:
       displayName: ChatBI Screen Generation
+    FNPT:NopDatavChatBi:createChatSession:
+      displayName: Create ChatBI Session
+    FNPT:NopDatavChatBi:deleteChatSession:
+      displayName: Delete ChatBI Session
+    FNPT:NopDatavChatBi:getChatSessionHistory:
+      displayName: Get ChatBI Session History
+    FNPT:NopDatavChatBi:listChatSessions:
+      displayName: List ChatBI Sessions
+    FNPT:NopDatavChatMessage:mutation:
+      displayName: Modify ChatBI Session Message
+    FNPT:NopDatavChatMessage:query:
+      displayName: Query ChatBI Session Message
+    FNPT:NopDatavChatSession:mutation:
+      displayName: Modify ChatBI Session
+    FNPT:NopDatavChatSession:query:
+      displayName: Query ChatBI Session
     FNPT:NopDatavDashboard:getDashboardData:
       displayName: Get Dashboard Data
     FNPT:NopDatavDashboard:getPublishedDashboard:
@@ -146,6 +162,10 @@ site:
       displayName: Alert State
     NopDatavChatBi-main:
       displayName: ''
+    NopDatavChatMessage-main:
+      displayName: ChatBI Session Message
+    NopDatavChatSession-main:
+      displayName: ChatBI Session
     NopDatavDashboard-main:
       displayName: Dashboard
     NopDatavDashboardShare-main:

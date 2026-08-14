@@ -1,6 +1,7 @@
 package io.nop.datav.service.entity;
 
 import io.nop.ai.api.chat.IChatService;
+import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.toolkit.api.IToolManager;
 import io.nop.ai.toolkit.model.AiToolCallResult;
 import io.nop.api.core.annotations.biz.BizModel;
@@ -11,7 +12,10 @@ import io.nop.api.core.annotations.directive.Auth;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
+import io.nop.datav.dao.entity.NopDatavChatMessage;
+import io.nop.datav.dao.entity.NopDatavChatSession;
 import io.nop.datav.service.chatbi.ChatBiResult;
+import io.nop.datav.service.chatbi.ChatBiSessionManager;
 import io.nop.datav.service.chatbi.ChatBiSystemPrompt;
 import io.nop.datav.service.chatbi.ChatBiToolCallingLoop;
 import io.nop.datav.service.chatbi.DatavGenerateDashboardExecutor;
@@ -21,30 +25,36 @@ import io.nop.datav.service.NopDatavOperatorResolver;
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
 
+import java.util.List;
 import java.util.Map;
 
+import static io.nop.datav.service.NopDatavConfigs.CFG_DATAV_CHATBI_HISTORY_MAX_CHARS;
+import static io.nop.datav.service.NopDatavConfigs.CFG_DATAV_CHATBI_HISTORY_MAX_TURNS;
 import static io.nop.datav.service.NopDatavConfigs.CFG_DATAV_CHATBI_MAX_ITERATIONS;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_AI_NOT_AVAILABLE;
 
 /**
- * ChatBI BizModel（D6-1 查询 + D6-1b 看板生成 + D6-2 大屏生成）。
+ * ChatBI BizModel（D6-1 查询 + D6-1b 看板生成 + D6-2 大屏生成 + D6-1 follow-up 多轮会话）。
  *
- * <p>经 GraphQL 暴露三个 action：
+ * <p>经 GraphQL 暴露 7 个 action：
  * <ul>
- *   <li>{@code chatToQuery}（{@code @BizQuery}）：NL → tool-calling → 数据集查询 → 结构化结果。</li>
- *   <li>{@code chatToDashboard}（{@code @BizMutation @Auth}，D6-1b）：NL → tool-calling → 看板生成 →
- *       草稿看板 dashboardId。写操作（创建实体），故用 {@code @BizMutation} 非 {@code @BizQuery}，
- *       镜像 {@code publishDashboard(@BizMutation)} 约定。</li>
- *   <li>{@code chatToScreen}（{@code @BizMutation @Auth}，D6-2）：NL → tool-calling → 大屏生成 →
- *       草稿大屏 screenId。写操作（创建 Screen/ScreenWidget 实体），镜像 {@code chatToDashboard} 约定。</li>
+ *   <li>{@code chatToQuery}（{@code @BizQuery}）：NL → tool-calling → 数据集查询 → 结构化结果。
+ *       可选 {@code sessionId} 参数（裁定 S3）：缺省单轮（行为与 D6-1 逐字节等价）；携带时进入多轮会话
+ *       模式（读历史注入 → 执行 → 本轮问答落会话）。</li>
+ *   <li>{@code chatToDashboard}（{@code @BizMutation @Auth}，D6-1b）与 {@code chatToScreen}
+ *       （{@code @BizMutation @Auth}，D6-2）：生成路径，单轮，多轮化为显式 Non-Goal。</li>
+ *   <li>多轮会话管理（裁定 S5，全部 owner 校验后触达）：{@code createChatSession}（{@code @BizMutation}）、
+ *       {@code listChatSessions}（{@code @BizQuery}）、{@code getChatSessionHistory}（{@code @BizQuery}）、
+ *       {@code deleteChatSession}（{@code @BizMutation}）。</li>
  * </ul>
  * </p>
  *
  * <p>{@link IChatService} / {@link IToolManager} 经 {@code @Nullable} 注入（镜像 D5-1 {@code IJobScheduler}
  * 范式）。nop-ai 缺席时 action **显式抛 {@code ERR_DATAV_CHATBI_AI_NOT_AVAILABLE}**（非静默返回 null，
- * 见 Minimum Rules #24）。</p>
+ * 见 Minimum Rules #24）。{@link ChatBiSessionManager} 为本模块自有 bean（经真实持久层），
+ * 由 IoC 容器保证注入。</p>
  *
- * <p>设计契约：{@code ai-dev/design/nop-datav/ai-design.md}（§1–7 D6-1，§8 D6-1b，§9 D6-2）。</p>
+ * <p>设计契约：{@code ai-dev/design/nop-datav/ai-design.md}（§1–7 D6-1，§8 D6-1b，§9 D6-2，§10 多轮会话）。</p>
  */
 @BizModel("NopDatavChatBi")
 public class NopDatavChatBiBizModel {
@@ -54,6 +64,8 @@ public class NopDatavChatBiBizModel {
 
     @Nullable
     private IToolManager toolManager;
+
+    private ChatBiSessionManager sessionManager;
 
     /**
      * 注入 {@link IChatService}（{@code @Nullable}——宿主未注册 nop-ai chat 实现时不注入）。
@@ -74,17 +86,32 @@ public class NopDatavChatBiBizModel {
     }
 
     /**
-     * ChatBI 查询 action：自然语言 → tool-calling → 数据集查询 → 结构化结果（D6-1）。
+     * 注入多轮会话管理器（本模块自有 bean，经真实持久层；裁定 S1–S4）。
+     */
+    @Inject
+    public void setSessionManager(ChatBiSessionManager sessionManager) {
+        this.sessionManager = sessionManager;
+    }
+
+    /**
+     * ChatBI 查询 action：自然语言 → tool-calling → 数据集查询 → 结构化结果（D6-1 + 多轮会话裁定 S3）。
      *
-     * <p>迁移到泛化循环（裁定 L）后行为不变：传入查询专用 system prompt + null operator（查询不写实体）+
-     * 查询结果提取 handler。回归测试保护既有查询行为。</p>
+     * <p>{@code sessionId} 缺省（null/空）时单轮行为与 D6-1 完全一致（不触碰会话表，LLM 请求仅
+     * system prompt + 本轮问题）。携带时进入会话模式：会话必须存在且属当前操作者（不存在/已删抛
+     * {@code ERR_DATAV_CHATBI_SESSION_NOT_FOUND}，非本人抛 {@code ERR_DATAV_CHATBI_NOT_SESSION_OWNER}，
+     * 无静默降级单轮）→ 按 S2 构造历史注入上下文（双上界取小、最老优先丢弃）→ 执行循环 →
+     * 本轮 user 消息 + assistant 结果落会话。失败轮次（循环抛异常）不落库。</p>
      *
-     * @param question 自然语言问题（必填）
-     * @return ChatBI 结果（answer + columns + rows + iterations）
+     * @param question  自然语言问题（必填）
+     * @param sessionId 可选会话标识（null = 单轮；引用已有会话续接多轮）
+     * @param context   服务上下文（会话模式解析 operator/归属）
+     * @return ChatBI 结果（answer + columns + rows + iterations；会话模式回显 sessionId）
      */
     @BizQuery
     @Auth(permissions = "NopDatavChatBi:chatToQuery")
-    public ChatBiResult chatToQuery(@Name("question") String question) {
+    public ChatBiResult chatToQuery(@Name("question") String question,
+                                     @Name("sessionId") @Nullable String sessionId,
+                                     IServiceContext context) {
         if (chatService == null || toolManager == null) {
             throw new NopException(ERR_DATAV_CHATBI_AI_NOT_AVAILABLE)
                     .param("question", question);
@@ -92,9 +119,76 @@ public class NopDatavChatBiBizModel {
 
         int maxIterations = CFG_DATAV_CHATBI_MAX_ITERATIONS.get();
 
+        // 单轮路径（缺省参数）：与 D6-1 行为逐字节等价（回归保护）
+        if (sessionId == null || sessionId.isEmpty()) {
+            ChatBiToolCallingLoop loop = new ChatBiToolCallingLoop(chatService, toolManager);
+            return loop.run(question, ChatBiSystemPrompt.buildSystemPrompt(), null,
+                    maxIterations, ChatBiToolCallingLoop.ChatBiQueryResultHandlers.QUERY_HANDLER, null);
+        }
+
+        // 多轮会话路径（裁定 S3/S4）：归属校验 → 历史注入 → 执行 → 落库
+        String operator = NopDatavOperatorResolver.resolveOperator(context);
+        NopDatavChatSession session = sessionManager.requireSession(sessionId, operator);
+        List<NopDatavChatMessage> history = sessionManager.loadMessages(sessionId);
+        List<ChatMessage> historyContext = sessionManager.buildHistoryContext(history,
+                CFG_DATAV_CHATBI_HISTORY_MAX_TURNS.get(), CFG_DATAV_CHATBI_HISTORY_MAX_CHARS.get());
+
         ChatBiToolCallingLoop loop = new ChatBiToolCallingLoop(chatService, toolManager);
-        return loop.run(question, ChatBiSystemPrompt.buildSystemPrompt(), null,
-                maxIterations, ChatBiToolCallingLoop.ChatBiQueryResultHandlers.QUERY_HANDLER);
+        ChatBiResult result = loop.run(question, ChatBiSystemPrompt.buildSystemPrompt(), null,
+                maxIterations, ChatBiToolCallingLoop.ChatBiQueryResultHandlers.QUERY_HANDLER, historyContext);
+        result.setSessionId(sessionId);
+        sessionManager.appendTurn(session, question, result, operator);
+        return result;
+    }
+
+    // ==================== 多轮会话管理 action（裁定 S5） ====================
+
+    /**
+     * 创建空会话（裁定 S3：显式 create 语义；拒绝客户端生成 id 与首轮无参自动建会话）。
+     *
+     * @param sessionTitle 可选会话标题（空则首轮提问后以问题截断回填，裁定 S1）
+     * @param context      服务上下文（归属 userName）
+     * @return 新建会话（含 sessionId，供后续 chatToQuery 续接）
+     */
+    @BizMutation
+    @Auth(permissions = "NopDatavChatBi:createChatSession")
+    public NopDatavChatSession createChatSession(@Name("sessionTitle") @Nullable String sessionTitle,
+                                                  IServiceContext context) {
+        String operator = NopDatavOperatorResolver.resolveOperator(context);
+        return sessionManager.createSession(sessionTitle, operator);
+    }
+
+    /**
+     * 列出本人的会话（按 updateTime 降序；仅含本人会话，裁定 S4 归属隔离）。
+     */
+    @BizQuery
+    @Auth(permissions = "NopDatavChatBi:listChatSessions")
+    public List<NopDatavChatSession> listChatSessions(IServiceContext context) {
+        String operator = NopDatavOperatorResolver.resolveOperator(context);
+        return sessionManager.listSessions(operator);
+    }
+
+    /**
+     * 取回某会话的历史消息（按 seq 升序，含 RESULT_JSON 留存内容，裁定 S4 数据留存）。
+     * 不存在/已删/非本人显式抛错（与 chatToQuery 续接同一组错误码）。
+     */
+    @BizQuery
+    @Auth(permissions = "NopDatavChatBi:getChatSessionHistory")
+    public List<NopDatavChatMessage> getChatSessionHistory(@Name("sessionId") String sessionId,
+                                                            IServiceContext context) {
+        String operator = NopDatavOperatorResolver.resolveOperator(context);
+        sessionManager.requireSession(sessionId, operator);
+        return sessionManager.loadMessages(sessionId);
+    }
+
+    /**
+     * 删除会话及其全部消息（物理删除，裁定 S4 删除语义）。删除后续接/查历史均显式报错。
+     */
+    @BizMutation
+    @Auth(permissions = "NopDatavChatBi:deleteChatSession")
+    public void deleteChatSession(@Name("sessionId") String sessionId, IServiceContext context) {
+        String operator = NopDatavOperatorResolver.resolveOperator(context);
+        sessionManager.deleteSession(sessionId, operator);
     }
 
     /**

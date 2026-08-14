@@ -2,6 +2,8 @@ entity:
   label:
     NopDatavAlertRule: Alert Rule
     NopDatavAlertState: Alert State
+    NopDatavChatMessage: ChatBI Session Message
+    NopDatavChatSession: ChatBI Session
     NopDatavDashboard: Dashboard
     NopDatavDashboardShare: Dashboard Share
     NopDatavDashboardSnapshot: Dashboard Snapshot
@@ -69,6 +71,35 @@ prop:
       remark: Remark
       alertRule: Alert Rule
       alertRule.displayName: Alert Rule
+    NopDatavChatMessage:
+      messageId: Message Id
+      sessionId: Session Id
+      seq: Seq
+      role: Role
+      role_label: null
+      content: Content
+      resultJson: Result Json
+      delFlag: Del Flag
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      session: Session
+      resultJsonComponent: null
+    NopDatavChatSession:
+      sessionId: Session Id
+      userName: User Name
+      sessionTitle: Session Title
+      delFlag: Del Flag
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      messages: Messages
     NopDatavDashboard:
       dashboardId: Dashboard Id
       dashboardName: Dashboard Name
@@ -347,6 +378,7 @@ dict:
     datav/alert-operator: Alert Operator
     datav/alert-aggregation: Alert Aggregation
     datav/alert-state: Alert State
+    datav/chat-msg-role: Chat Message Role
 dict.option.label:
   datav/dashboard-type:
     '0': Dashboard
@@ -413,3 +445,6 @@ dict.option.label:
   datav/alert-state:
     OK: OK
     TRIGGERED: Triggered
+  datav/chat-msg-role:
+    user: User
+    assistant: Assistant

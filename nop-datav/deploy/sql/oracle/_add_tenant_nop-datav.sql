@@ -5,6 +5,8 @@ alter table nop_datav_export_task add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT
 
 alter table nop_datav_screen add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
 
+alter table nop_datav_chat_session add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
+
 alter table nop_datav_panel add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
 
 alter table nop_datav_tab add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
@@ -23,6 +25,8 @@ alter table nop_datav_screen_widget add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' N
 
 alter table nop_datav_screen_snapshot add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
 
+alter table nop_datav_chat_message add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
+
 alter table nop_datav_alert_rule add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
 
 alter table nop_datav_report_delivery add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
@@ -37,6 +41,9 @@ alter table nop_datav_export_task add constraint PK_nop_datav_export_task primar
 
 alter table nop_datav_screen drop constraint PK_nop_datav_screen;
 alter table nop_datav_screen add constraint PK_nop_datav_screen primary key (NOP_TENANT_ID, SCREEN_ID);
+
+alter table nop_datav_chat_session drop constraint PK_nop_datav_chat_session;
+alter table nop_datav_chat_session add constraint PK_nop_datav_chat_session primary key (NOP_TENANT_ID, SESSION_ID);
 
 alter table nop_datav_panel drop constraint PK_nop_datav_panel;
 alter table nop_datav_panel add constraint PK_nop_datav_panel primary key (NOP_TENANT_ID, PANEL_ID);
@@ -64,6 +71,9 @@ alter table nop_datav_screen_widget add constraint PK_nop_datav_screen_widget pr
 
 alter table nop_datav_screen_snapshot drop constraint PK_nop_datav_screen_snapshot;
 alter table nop_datav_screen_snapshot add constraint PK_nop_datav_screen_snapshot primary key (NOP_TENANT_ID, SNAPSHOT_ID);
+
+alter table nop_datav_chat_message drop constraint PK_nop_datav_chat_message;
+alter table nop_datav_chat_message add constraint PK_nop_datav_chat_message primary key (NOP_TENANT_ID, MESSAGE_ID);
 
 alter table nop_datav_alert_rule drop constraint PK_nop_datav_alert_rule;
 alter table nop_datav_alert_rule add constraint PK_nop_datav_alert_rule primary key (NOP_TENANT_ID, ALERT_RULE_ID);

@@ -65,6 +65,20 @@ CREATE TABLE nop_datav_screen(
   constraint PK_nop_datav_screen primary key (SCREEN_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+CREATE TABLE nop_datav_chat_session(
+  SESSION_ID VARCHAR(32) NOT NULL    COMMENT '会话ID',
+  USER_NAME VARCHAR(50) NOT NULL    COMMENT '用户名',
+  SESSION_TITLE VARCHAR(200) NULL    COMMENT '会话标题',
+  DEL_FLAG TINYINT NULL    COMMENT '删除标记',
+  VERSION BIGINT NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
+  REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint PK_nop_datav_chat_session primary key (SESSION_ID)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
 CREATE TABLE nop_datav_panel(
   PANEL_ID VARCHAR(32) NOT NULL    COMMENT '面板ID',
   DASHBOARD_ID VARCHAR(32) NOT NULL    COMMENT '看板ID',
@@ -233,6 +247,23 @@ CREATE TABLE nop_datav_screen_snapshot(
   constraint PK_nop_datav_screen_snapshot primary key (SNAPSHOT_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+CREATE TABLE nop_datav_chat_message(
+  MESSAGE_ID VARCHAR(32) NOT NULL    COMMENT '消息ID',
+  SESSION_ID VARCHAR(32) NOT NULL    COMMENT '会话ID',
+  SEQ INTEGER NOT NULL    COMMENT '消息序号',
+  ROLE VARCHAR(20) NOT NULL    COMMENT '消息角色',
+  CONTENT LONGTEXT NOT NULL    COMMENT '消息内容',
+  RESULT_JSON LONGTEXT NULL    COMMENT '结构化结果JSON',
+  DEL_FLAG TINYINT NULL    COMMENT '删除标记',
+  VERSION BIGINT NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
+  REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint PK_nop_datav_chat_message primary key (MESSAGE_ID)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
 CREATE TABLE nop_datav_alert_rule(
   ALERT_RULE_ID VARCHAR(32) NOT NULL    COMMENT '告警规则ID',
   RULE_NAME VARCHAR(100) NOT NULL    COMMENT '规则名',
@@ -308,6 +339,8 @@ CREATE TABLE nop_datav_alert_state(
                 
    ALTER TABLE nop_datav_screen COMMENT '大屏';
                 
+   ALTER TABLE nop_datav_chat_session COMMENT 'ChatBI会话';
+                
    ALTER TABLE nop_datav_panel COMMENT '面板';
                 
    ALTER TABLE nop_datav_tab COMMENT '页签';
@@ -325,6 +358,8 @@ CREATE TABLE nop_datav_alert_state(
    ALTER TABLE nop_datav_screen_widget COMMENT '大屏组件';
                 
    ALTER TABLE nop_datav_screen_snapshot COMMENT '大屏快照';
+                
+   ALTER TABLE nop_datav_chat_message COMMENT 'ChatBI会话消息';
                 
    ALTER TABLE nop_datav_alert_rule COMMENT '告警规则';
                 

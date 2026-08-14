@@ -129,6 +129,57 @@
                         </resource>
                     </children>
                 </resource>
+                <!-- plan 2026-08-15-0004-1 裁定 S5：ChatBI 会话管理自定义 action（镜像 production nop-datav.action-auth.xml） -->
+                <resource id="NopDatavChatBi-main" displayName="ChatBI" resourceType="SUBM" orderNo="10008">
+                    <children>
+                        <resource id="FNPT:NopDatavChatBi:chatToQuery" displayName="ChatBI自然语言查询"
+                                  resourceType="FNPT" roles="admin,user">
+                            <permissions>NopDatavChatBi:chatToQuery</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavChatBi:createChatSession" displayName="创建ChatBI会话"
+                                  resourceType="FNPT" roles="admin,user">
+                            <permissions>NopDatavChatBi:createChatSession</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavChatBi:listChatSessions" displayName="查询ChatBI会话列表"
+                                  resourceType="FNPT" roles="admin,user">
+                            <permissions>NopDatavChatBi:listChatSessions</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavChatBi:getChatSessionHistory" displayName="查询ChatBI会话历史"
+                                  resourceType="FNPT" roles="admin,user">
+                            <permissions>NopDatavChatBi:getChatSessionHistory</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavChatBi:deleteChatSession" displayName="删除ChatBI会话"
+                                  resourceType="FNPT" roles="admin,user">
+                            <permissions>NopDatavChatBi:deleteChatSession</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <!-- plan 2026-08-15-0004-1 裁定 S5：会话实体 CRUD query/mutation 仅绑 admin，
+                     与 NopDatavDashboardShare/NopDatavExportTask 的 D1 裁定先例对称 -->
+                <resource id="NopDatavChatSession-main" displayName="ChatBI会话" resourceType="SUBM" orderNo="10009">
+                    <children>
+                        <resource id="FNPT:NopDatavChatSession:query" displayName="查询ChatBI会话" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavChatSession:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavChatSession:mutation" displayName="修改ChatBI会话" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavChatSession:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDatavChatMessage-main" displayName="ChatBI会话消息" resourceType="SUBM" orderNo="10010">
+                    <children>
+                        <resource id="FNPT:NopDatavChatMessage:query" displayName="查询ChatBI会话消息" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavChatMessage:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavChatMessage:mutation" displayName="修改ChatBI会话消息" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavChatMessage:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
                 <!-- plan {1}：NopDatavDashboardShare-main 与 production nop-datav.action-auth.xml 对称 -->
                 <resource id="NopDatavDashboardShare-main" displayName="看板分享" resourceType="SUBM" orderNo="10007">
                     <children>

@@ -28,6 +28,14 @@
         <property name="bizObjName" value="NopDatavScreen"/>
     </bean>
 
+    <bean id="io.nop.datav.service.entity.NopDatavChatSessionBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopDatavChatSession" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.datav.biz.INopDatavChatSessionBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopDatavChatSession"/>
+    </bean>
+
     <bean id="io.nop.datav.service.entity.NopDatavPanelBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="biz_NopDatavPanel" class="io.nop.biz.proxy.BizProxyFactoryBean"
@@ -97,6 +105,14 @@
           ioc:type="io.nop.datav.biz.INopDatavScreenSnapshotBiz" ioc:force-lazy-property="true" lazy-init="true"
           primary="true">
         <property name="bizObjName" value="NopDatavScreenSnapshot"/>
+    </bean>
+
+    <bean id="io.nop.datav.service.entity.NopDatavChatMessageBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopDatavChatMessage" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.datav.biz.INopDatavChatMessageBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopDatavChatMessage"/>
     </bean>
 
     <bean id="io.nop.datav.service.entity.NopDatavAlertRuleBizModel" ioc:type="@bean:id" ioc:default="true"/>

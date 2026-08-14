@@ -89,7 +89,7 @@ public class TestNopDatavChatBiE2E extends AbstractNopDatavTest {
         bizModel.setChatService(mockChat);
         bizModel.setToolManager(toolManager);
 
-        ChatBiResult result = bizModel.chatToQuery("查询 north 地区的销售额");
+        ChatBiResult result = bizModel.chatToQuery("查询 north 地区的销售额", null, null);
 
         // Anti-Hollow (a): IChatService.call 被调用 ≥ 1 次
         assertTrue(llmCallCount.get() >= 1, "IChatService.call must be invoked at least once");
@@ -118,7 +118,7 @@ public class TestNopDatavChatBiE2E extends AbstractNopDatavTest {
         bizModel.setToolManager(null);
 
         NopException ex = assertThrows(NopException.class, () ->
-                bizModel.chatToQuery("any question"));
+                bizModel.chatToQuery("any question", null, null));
 
         assertEquals("nop.err.datav.chatbi-ai-not-available", ex.getErrorCode());
     }
@@ -149,7 +149,7 @@ public class TestNopDatavChatBiE2E extends AbstractNopDatavTest {
 
         // maxIterations 默认 5（CFG_DATAV_CHATBI_MAX_ITERATIONS），mock 永远返回 tool call → 超限
         NopException ex = assertThrows(NopException.class, () ->
-                bizModel.chatToQuery("loop question"));
+                bizModel.chatToQuery("loop question", null, null));
 
         assertEquals("nop.err.datav.chatbi-max-iterations-exceeded", ex.getErrorCode());
         assertTrue(toolCallCount.get() >= 1, "at least one tool call before exceeding max iterations");
@@ -178,7 +178,7 @@ public class TestNopDatavChatBiE2E extends AbstractNopDatavTest {
         bizModel.setChatService(mockChat);
         bizModel.setToolManager(toolManager);
 
-        ChatBiResult result = bizModel.chatToQuery("查一个不存在的数据集");
+        ChatBiResult result = bizModel.chatToQuery("查一个不存在的数据集", null, null);
 
         // executor 返回错误（status=failure），但循环不抛——错误作为 tool response 回喂 LLM，
         // LLM 给出最终文本答案（无静默跳过）

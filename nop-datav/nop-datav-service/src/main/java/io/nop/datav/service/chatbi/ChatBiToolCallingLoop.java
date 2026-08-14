@@ -97,26 +97,47 @@ public class ChatBiToolCallingLoop {
      */
     public ChatBiResult run(String question, int maxIterations) {
         return run(question, ChatBiSystemPrompt.buildSystemPrompt(), null, maxIterations,
-                ChatBiQueryResultHandlers.QUERY_HANDLER);
+                ChatBiQueryResultHandlers.QUERY_HANDLER, null);
+    }
+
+    /**
+     * 泛化循环入口（5 参重载，回归兼容）：等价于 6 参入口传入 null 历史（单轮）。
+     */
+    public ChatBiResult run(String userMessage, String systemPrompt, String operator,
+                             int maxIterations, ToolResultHandler resultHandler) {
+        return run(userMessage, systemPrompt, operator, maxIterations, resultHandler, null);
     }
 
     /**
      * 泛化循环入口（裁定 L）。供查询路径与生成路径共用。
      *
-     * @param userMessage    用户消息（查询路径为问题，生成路径为看板描述）
-     * @param systemPrompt   system prompt（注入式，裁定 L 泛化点 1）
-     * @param operator       当前调用者身份（查询路径可 null，生成路径必传，裁定 L 泛化点 4 + 裁定 G）
-     * @param maxIterations  tool-calling 轮次上限
-     * @param resultHandler  可插拔结果提取回调（裁定 L 泛化点 2）
+     * <p>多轮会话历史注入点（裁定 S2）：{@code historyMessages} 为 null 时行为与既有单轮完全一致
+     * （回归兼容）；非 null 时在 system prompt 之后、本轮用户消息之前按序注入历史消息。</p>
+     *
+     * @param userMessage     用户消息（查询路径为问题，生成路径为看板描述）
+     * @param systemPrompt    system prompt（注入式，裁定 L 泛化点 1）
+     * @param operator        当前调用者身份（查询路径可 null，生成路径必传，裁定 L 泛化点 4 + 裁定 G）
+     * @param maxIterations   tool-calling 轮次上限
+     * @param resultHandler   可插拔结果提取回调（裁定 L 泛化点 2）
+     * @param historyMessages 多轮会话历史消息（null = 单轮，不注入；裁定 S2）
      * @return ChatBI 结果（answer + handler 累加字段 + iterations）
      */
     public ChatBiResult run(String userMessage, String systemPrompt, String operator,
-                             int maxIterations, ToolResultHandler resultHandler) {
+                             int maxIterations, ToolResultHandler resultHandler,
+                             List<ChatMessage> historyMessages) {
         List<AiToolModel> toolModels = toolManager.listTools();
         List<ChatToolDefinition> tools = ChatBiTypeConverter.toChatToolDefinitions(toolModels);
 
         ChatRequest request = new ChatRequest();
         request.setSystemPrompt(systemPrompt);
+        // 裁定 S2：历史消息插在 system prompt 与本轮用户消息之间（null 时逐字节等价于既有单轮构造）
+        if (historyMessages != null) {
+            for (ChatMessage msg : historyMessages) {
+                if (msg != null && !(msg instanceof ChatSystemMessage)) {
+                    request.addMessage(msg);
+                }
+            }
+        }
         request.addMessage(new ChatUserMessage(userMessage));
         request.setTools(tools);
 
