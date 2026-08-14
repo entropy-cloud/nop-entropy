@@ -212,7 +212,7 @@
 | `NopDatavReportTaskBizModel`（`@BizModel`） | CRUD + enable/disable/triggerNow/getDeliveryHistory action，经 `@Auth` + owner RLS |
 | `INopDatavReportTaskBiz`（dao 层接口） | action 签名 |
 | `NopDatavReportScheduler`（普通 bean） | `@PostConstruct init()` 注册 cron job；registerTask/unregisterTask；executeScheduledReport(Map) 吞业务错误 |
-| `ReportDeliveryExecutor`（普通 bean） | 插 pending 交付记录 → 异步执行（GlobalExecutors + runInNewSession）→ 取数（PanelDataExporter.exportDashboard）→ 文件落盘（IFileStore）→ 通知送达（NotificationSender）→ 更新交付记录 |
+| `ReportDeliveryExecutor`（普通 bean） | 插 pending 交付记录 → 异步执行（GlobalExecutors）→ session 内（runInNewSession）：取数（PanelDataExporter.exportDashboard）+ 文件落盘（IFileStore）+ 交付记录 SUCCEEDED 提交 → session 关闭后通知送达（NotificationSender，SMTP 不持 JDBC 连接，Dim14-02）→ 成功回写 deliveredChannels / 失败回补 FAILED |
 | `NotificationSender`（普通 bean） | 渲染模板（StringHelper.renderTemplate + NopSysNoticeTemplate）→ 按 notifyChannels 分发（email → IEmailSender.sendEmail 带附件；im → UnsupportedOperationException） |
 | `NopDatavReportDeliveryRecovery`（普通 bean） | `@PostConstruct` 幂等扫描 stale running 交付记录 → failed（reason=interrupted by process restart），镜像 `NopDatavExportTaskRecovery` |
 | `NopDatavConfigs`（增配置项） | `CFG_DATAV_REPORT_DEFAULT_GRACE_MINUTES`(60) / `CFG_DATAV_REPORT_MAX_ROWS`(100000) / `CFG_DATAV_REPORT_DEFAULT_SENDER`("") / `CFG_DATAV_REPORT_DEFAULT_SUBJECT`("Report: {reportName}") |

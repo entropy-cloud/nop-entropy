@@ -1,7 +1,7 @@
-> Audit Status: planned
+> Audit Status: closed
 > Audit Type: multi-dimensional
 > Mission: nop-datav
-> Remediation: P0+P1 findings drafted into plans `ai-dev/plans/nop-datav/2026-08-10-2025-1-share-export-rbac-and-credential-protection.md`（Dim08-01, Dim13-01）✅ done 2026-08-11、`2026-08-10-2025-2-export-task-state-machine-correctness.md`（Dim14-01, Dim07-01, Dim16-01）、`2026-08-10-2025-3-service-layer-contract-correctness.md`（Dim09-01, Dim14-02）。P2 findings triaged to `ai-dev/backlog/nop-datav-audit-followups.md`。
+> Remediation: P0+P1 findings drafted into plans `ai-dev/plans/nop-datav/2026-08-10-2025-1-share-export-rbac-and-credential-protection.md`（Dim08-01, Dim13-01）✅ done 2026-08-11、`2026-08-10-2025-2-export-task-state-machine-correctness.md`（Dim14-01, Dim07-01, Dim16-01）✅ done 2026-08-14、`2026-08-10-2025-3-service-layer-contract-correctness.md`（Dim09-01, Dim14-02）✅ done 2026-08-14。全部 P1 闭合（3 plan × 6 dim）。P2 findings triaged to `ai-dev/backlog/nop-datav-audit-followups.md`。
 
 # nop-datav Multi-Dimensional Audit Report
 

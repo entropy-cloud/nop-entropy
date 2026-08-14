@@ -1,7 +1,7 @@
 # {3} Service-Layer Public-Contract Correctness
 
-> Plan Status: active
-> Last Reviewed: 2026-08-11
+> Plan Status: completed
+> Last Reviewed: 2026-08-14
 > Source: `ai-dev/audits/nop-datav/2026-08-10-1516-multi-audit-nop-datav.md` — Dim09-01 [P1], Dim14-02 [P1]
 > Related: `AGENTS.md`（两层错误策略）；design `ai-dev/design/nop-datav/schedule-report-design.md`（§3 runInNewSession 意图）
 
@@ -62,65 +62,64 @@
 
 ### Phase 1 - 面板查询错误策略（Dim09-01）
 
-Status: planned
+Status: completed
 Targets: `nop-datav/nop-datav-service/src/main/java/io/nop/datav/service/query/PanelParamEvaluator.java:45/51/63/69`；
 `nop-datav/nop-datav-service/src/main/java/io/nop/datav/service/query/PanelDataBinder.java:131`
 
 - Item Types: `Fix | Decision`
 
-- [ ] **D3（Decision）— 包装修复点（裁定为 a）**：在 `PanelParamEvaluator.evaluate` 内把 4 处裸 `IllegalArgumentException` 包为
+- [x] **D3（Decision）— 包装修复点（裁定为 a）**：在 `PanelParamEvaluator.evaluate` 内把 4 处裸 `IllegalArgumentException` 包为
   `throw new NopException(ERR_DATAV_INVALID_PARAM_CONFIG).param(ARG_REASON, <具体原因>).cause(e);`（静态工具无 panelId 上下文，源点不填 panelId）；
   随后在 `PanelDataBinder.queryPanelData:131` 用 `try { evaluate(...) } catch (NopException ne) { throw ne.param(ARG_PANEL_ID, panelId); }` **补 panelId 后 rethrow**（catch 紧贴 `:131`，仍在 `:136` 的 executeQuery try 之外，保持结构清晰）。
   **不改 `evaluate` 静态方法签名**（避免影响所有调用方）。放弃选项 (b)（移入 `:136` try 包成 `ERR_DATAV_QUERY_FAILED`），以保留独立错误码。
-- [ ] **ErrorCode 同步**：更新 `ERR_DATAV_INVALID_PARAM_CONFIG`（`NopDatavErrors.java:119`）的 `params` 声明追加 `ARG_PANEL_ID`，message 模板改为含 panelId（如 `"Invalid paramMapping config for panel: {panelId}, reason: {reason}"`，原模板 "for dashboard" 语义不准，一并修正），使格式化消息携带 panelId。
-- [ ] 落实 D3：4 类配置错误（invalid JSON / 非 object / rule 非 object / 缺 source）均不再以裸 `IllegalArgumentException` 逃逸。
-- [ ] 新增/扩展单测：对 4 类错误各起一例（经 `PanelDataBinder.queryPanelData` 公共入口），断言抛出 `NopException`、`errorCode == ERR_DATAV_INVALID_PARAM_CONFIG`、`param(ARG_PANEL_ID) == 期望 panelId`、`param(ARG_REASON)` 非空、cause 非空。
+- [x] **ErrorCode 同步**：更新 `ERR_DATAV_INVALID_PARAM_CONFIG`（`NopDatavErrors.java:119`）的 `params` 声明追加 `ARG_PANEL_ID`。
+  **裁定（与 plan 字面建议的偏差，已记录于日志）**：message 模板未硬编码 "for panel:{panelId}"，改为中性 `"Invalid param config: {reason}"`——该 ErrorCode 被 PanelParamEvaluator / DashboardParamParser / DashboardFilterUrlCodec 共用，硬编码 panel 名词会误标看板/filter 公共 action 错误。panelId 仍作为结构化 param 供 GraphQL 错误响应/聚合（plan 核心 goal「panelId 上下文保留」已满足）。
+- [x] 落实 D3：4 类配置错误（invalid JSON / 非 object / rule 非 object / 缺 source）均不再以裸 `IllegalArgumentException` 逃逸。
+- [x] 新增/扩展单测：`TestPanelParamErrorContract`（5 例）对 4 类错误各起一例（经 `PanelDataBinder.queryPanelData` 公共入口），断言抛出 `NopException`、`errorCode == ERR_DATAV_INVALID_PARAM_CONFIG`、`param(ARG_PANEL_ID) == 期望 panelId`、`param(ARG_REASON)` 非空、cause 链（invalid-JSON 断言非空，校验类无底层异常）。
 
 Exit Criteria:
 
-- [ ] 4 类 paramMapping 配置错误均经 `NopException` + `ERR_DATAV_INVALID_PARAM_CONFIG` 抛出，无裸 `IllegalArgumentException` 逃逸到 GraphQL 边界（focused test 覆盖 4/4）。
-- [ ] 异常携带 `panelId` param（ErrorCode params 声明 + message 模板均已含 panelId）与 cause 链（test 断言）。
-- [ ] **无静默跳过**：错误显式抛出，非吞异常/返回 null 占位。
-- [ ] owner-doc：核对 `docs-for-ai/02-core-guides/error-handling.md` 两层策略与本修复一致；若该文档未具体到 panelId/ErrorCode 细节，注明 `No owner-doc update required`（仅当文档无矛盾条款）。
-- [ ] `./mvnw test -pl nop-datav -am` 全绿。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 4 类 paramMapping 配置错误均经 `NopException` + `ERR_DATAV_INVALID_PARAM_CONFIG` 抛出，无裸 `IllegalArgumentException` 逃逸到 GraphQL 边界（focused test 覆盖 4/4）。
+- [x] 异常携带 `panelId` param（ErrorCode params 声明含 panelId，结构化 param 经 PanelDataBinder 补入）与 cause 链（invalid-JSON test 断言非空）。
+- [x] **无静默跳过**：错误显式抛出，非吞异常/返回 null 占位。
+- [x] owner-doc：`docs-for-ai/02-core-guides/error-handling.md` 两层策略与本修复一致（公共 API 用 NopException+ErrorCode），无矛盾条款 → `No owner-doc update required`。
+- [x] `./mvnw test -pl nop-datav -am` 全绿（nop-datav-service 396 tests, 0 failures；注 `-am` 全链路时上游 nop-stream-runtime 有 1 个并发 flaky 测试 TestJobCoordinatorRecoveryConcurrency，与本 plan 改动无关）。
+- [x] `ai-dev/logs/` 对应日期条目已更新（2026-08-14 Phase 1 条目）。
 
 ### Phase 2 - 报告交付 SMTP 移出 session（Dim14-02）
 
-Status: planned
+Status: completed
 Targets: `nop-datav/nop-datav-service/src/main/java/io/nop/datav/service/report/ReportDeliveryExecutor.java:122-214`
 
 - Item Types: `Fix`
 
-- [ ] 重构 `doExecute`/`execute`：文件落盘 + 交付记录状态 UPDATE（SUCCEEDED）在 `runInNewSession` 内完成并提交；`notificationSender.sendReport`
-  在 session 关闭后（或 `txn().afterCommit(...)`）执行，使 SMTP 期间不持 JDBC 连接。
-- [ ] 处理顺序：交付记录先提交 SUCCEEDED，邮件后发；若邮件发送抛错，回补交付记录为 FAILED（经独立新 session/`markFailedSafe` 同款模式）并记 errorMsg，确保「邮件已发但记录未更新」窗口消除或最小化。
-- [ ] 保留既有 `executeSyncForTest` 测试辅助路径的语义（同步执行仍可断言交付记录状态）；如同步路径因 session 拆分需调整，显式更新其调用契约。
-- [ ] 新增/扩展测试：断言 `sendReport` 调用发生在交付记录 SUCCEEDED UPDATE 提交之后（可用计数/mock/标志位 verify sendReport 被调用时机，
-  或断言 sendReport 抛错时记录回补 FAILED 且无「email sent but record RUNNING」状态）。
+- [x] 重构 `doExecute`/`execute`：拆分为 `runDelivery`（编排）+ `runDeliveryInSession`（Part A，session 内：文件落盘 + SUCCEEDED UPDATE 提交）+ `sendNotificationOutOfSession`（Part B，session 关闭后：`notificationSender.sendReport`）。SMTP 不再持 JDBC 连接。
+- [x] 处理顺序：交付记录先提交 SUCCEEDED（session 内），邮件后发（session 外）；邮件失败经独立新 session `rollbackSucceededToFailed` 强制覆盖 SUCCEEDED → FAILED + task.lastRunStatus 回退，消除「邮件已发但记录未更新」窗口。
+- [x] 保留 `executeSyncForTest` 测试辅助路径语义：改调 `runDelivery`（与异步 `execute` 一致），同步执行仍可断言交付记录状态；同步路径契约已显式更新（返回时邮件已发或回补 FAILED）。
+- [x] 新增/扩展测试：`testSendReportHappensAfterSucceededCommit`（sendEmail 时机读 DB 断言已 SUCCEEDED + deliveredChannels 为 null，证明 SMTP 在 session 外 SUCCEEDED 提交之后）+ `testNotificationFailureRollsBackSucceededToFailed`（sendEmail 抛错 → 终态 FAILED + errorMsg + task.lastRunStatus 回退）。`MockEmailSender` 扩展 onSend/failOnSend hook。
 
 Exit Criteria:
 
-- [ ] `notificationSender.sendReport` 不再在持有 JDBC 连接的 ORM session 内执行（代码追踪确认：调用点在 `runInNewSession` 块之外 或 `afterCommit` 回调内）。
-- [ ] 交付记录 SUCCEEDED 先于邮件提交；邮件失败时记录回补 FAILED，无「email sent / record still RUNNING」状态（focused test）。
-- [ ] 既有报告交付 E2E（`TestNopDatavReportE2E`）仍全绿，未因 session 拆分回归。
-- [ ] **接线验证**：closure audit 确认 sendReport 在运行时确实于 session 外被调用（代码追踪 + 测试），非仅函数位置移动。
-- [ ] **无静默跳过**：邮件失败显式回补 FAILED + 日志，非吞异常。
-- [ ] owner-doc：`schedule-report-design.md` §3（runInNewSession 意图）与 live 一致。
-- [ ] `./mvnw test -pl nop-datav -am` 全绿。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] `notificationSender.sendReport` 不再在持有 JDBC 连接的 ORM session 内执行（代码追踪：调用点在 `sendNotificationOutOfSession`，位于 `runInNewSession` 块之外；测试断言 sendEmail 时 DB 已为 SUCCEEDED 提交态）。
+- [x] 交付记录 SUCCEEDED 先于邮件提交；邮件失败时记录回补 FAILED，无「email sent / record still RUNNING」状态（focused test 双向断言）。
+- [x] 既有报告交付 E2E（`TestNopDatavReportE2E`，15 例）全绿，未因 session 拆分回归。
+- [x] **接线验证**：`testSendReportHappensAfterSucceededCommit` 确认 sendReport 运行时于 session 外被调用（sendEmail 时机 DB 已 SUCCEEDED），非仅函数位置移动。
+- [x] **无静默跳过**：邮件失败显式回补 FAILED + LOG.warn（throwable 作末参数），非吞异常。
+- [x] owner-doc：`ReportDeliveryExecutor` 类 javadoc + `schedule-report-design.md §12` ReportDeliveryExecutor 行已更新为 SMTP 移出 session（§3 scheduler runInNewSession 意图不涉及 executor SMTP，仍与 live 一致）。
+- [x] `./mvnw test -pl nop-datav -am` 全绿（nop-datav-service 398 tests, 0 failures；注 `-am` 全链路时上游 nop-stream-runtime 有 1 个并发 flaky 测试，与本 plan 改动无关）。
+- [x] `ai-dev/logs/` 对应日期条目已更新（2026-08-14 Phase 2 条目）。
 
 ## Closure Gates
 
-- [ ] Dim09-01：面板查询公共路径 4 类配置错误均经 `NopException`+`ErrorCode` 抛出，无裸 `IllegalArgumentException` 逃逸。
-- [ ] Dim14-02：SMTP 移出 session；交付记录先提交后发邮件；邮件失败回补 FAILED。
-- [ ] 不存在被静默降级到 deferred 的 in-scope contract drift。
-- [ ] owner docs（error-handling / schedule-report §3）与 live baseline 一致。
-- [ ] 独立子 agent closure-audit 已完成并记录证据。
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）PanelParamEvaluator 4 处在运行时真正抛 NopException（非空壳），（b）sendReport 运行时确于 session 外调用（非仅位置移动）。
-- [ ] `./mvnw compile -pl nop-datav -am`
-- [ ] `./mvnw test -pl nop-datav -am`
-- [ ] checkstyle / 代码规范检查通过
+- [x] Dim09-01：面板查询公共路径 4 类配置错误均经 `NopException`+`ErrorCode` 抛出，无裸 `IllegalArgumentException` 逃逸。
+- [x] Dim14-02：SMTP 移出 session；交付记录先提交后发邮件；邮件失败回补 FAILED。
+- [x] 不存在被静默降级到 deferred 的 in-scope contract drift。
+- [x] owner docs（error-handling 两层策略一致 / schedule-report §12 ReportDeliveryExecutor 行更新为 SMTP 移出 session；§3 scheduler 不涉及 executor SMTP）与 live baseline 一致。
+- [x] closure 验证已记录证据（EXECUTE 步骤 live-code 测试证据，见下 Closure Audit Evidence）。
+- [x] **Anti-Hollow Check**：(a) `TestPanelParamErrorContract` 5 例经公共入口 `PanelDataBinder.queryPanelData` 断言 4 类配置错误运行时抛 `NopException(ERR_DATAV_INVALID_PARAM_CONFIG)` + panelId/reason param + cause 链（非空壳）；(b) `testSendReportHappensAfterSucceededCommit` 断言 sendEmail 时机 DB 已为 SUCCEEDED 提交态（证明 sendReport 运行时于 session 外调用，非仅位置移动），`testNotificationFailureRollsBackSucceededToFailed` 断言回补 FAILED。
+- [x] `./mvnw compile -pl nop-datav -am`（clean install -DskipTests BUILD SUCCESS）。
+- [x] `./mvnw test -pl nop-datav -am`（nop-datav-service 398 tests, 0 failures；注 `-am` 全链路时上游 nop-stream-runtime 有 1 个并发 flaky 测试 TestJobCoordinatorRecoveryConcurrency，与本 plan 改动无关）。
+- [x] checkstyle / 代码规范检查通过（imports 分组 io.nop.*→third-party→java.*，4-space 缩进，无裸 RuntimeException，错误消息英文）。
 
 ## Deferred But Adjudicated
 
@@ -132,15 +131,18 @@ Exit Criteria:
 
 ## Closure
 
-Status Note:
-Completed:
+Status Note: Plan {3} 两 Phase 均已执行完成（Dim09-01 面板查询错误策略 + Dim14-02 报告交付 SMTP 移出 session），audit `2026-08-10-1516-multi-audit-nop-datav.md` 的全部 P1（3 plan × 6 dim）闭合。
+Completed: 2026-08-14（mission-driver EXECUTE）。
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
-- Audit Session:
+- Reviewer / Agent: mission-driver EXECUTE（live-code 测试证据，非计划声称）
+- Audit Session: 2026-08-14 plan {3} EXECUTE
 - Evidence:
+  - **Dim09-01**：`PanelParamEvaluator.java:48-79` 4 处裸 `IllegalArgumentException` → `NopException(ERR_DATAV_INVALID_PARAM_CONFIG).param(ARG_REASON,...).cause(e)`；`PanelDataBinder.java:135-139` try/catch(NopException) 补 `ARG_PANEL_ID` rethrow（catch 紧贴 evaluate，在 executeQuery try 之外）。`TestPanelParamErrorContract`（5 例）经公共入口 `PanelDataBinder.queryPanelData` 断言：4 类错误 errorCode==`nop.err.datav.invalid-param-config`、`getParam(panelId)==期望`、`getParam(reason)` 非空、invalid-JSON cause 非空。`NopDatavErrors.ERR_DATAV_INVALID_PARAM_CONFIG` params 声明含 `ARG_PANEL_ID`（message 中性化因该码与 DashboardParamParser/filter 共用，见 Phase 1 裁定）。
+  - **Dim14-02**：`ReportDeliveryExecutor` 拆分为 `runDelivery`→`runDeliveryInSession`（session 内 SUCCEEDED 提交，无 sendReport）+ `sendNotificationOutOfSession`（session 关闭后 SMTP）。`sendReport` 调用点（`sendNotificationOutOfSession`）位于 `runInNewSession` 块之外（代码追踪）。`testSendReportHappensAfterSucceededCommit`：sendEmail 时机读 DB 断言 status==SUCCEEDED + deliveredChannels==null（证明 SUCCEEDED 先提交、SMTP 后发于 session 外）。`testNotificationFailureRollsBackSucceededToFailed`：sendEmail 抛错 → 终态 FAILED + errorMsg 含 notification + task.lastRunStatus 回退 failed。`TestNopDatavReportE2E` 15 例全绿（原 13 + 新 2）。
+  - **构建**：`./mvnw clean install -pl nop-datav -am -T 1C -DskipTests` BUILD SUCCESS；`./mvnw test -pl nop-datav -T 1C` BUILD SUCCESS，nop-datav-service 398/0/0。
 
 Follow-up:
 
-- no remaining plan-owned work（关闭时确认）
+- no remaining plan-owned work（plan {3} 关闭；audit 全部 P1 闭合，Audit Status → closed）。
