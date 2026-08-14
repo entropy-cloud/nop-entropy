@@ -57,6 +57,14 @@ public class PluginClassLoader extends URLClassLoader {
     PluginConfig loadPluginConfig() {
         URL url = getResource(NopPluginConstants.PLUGIN_CONFIG_FILE);
         if (url == null) {
+            // URLClassLoader 的 getResource 对以 "/" 开头的资源名在 jar/dir 中无法解析，
+            // 回退到去掉前导 "/" 的变体（classpath 资源名是包相对路径）。
+            String path = NopPluginConstants.PLUGIN_CONFIG_FILE;
+            if (path.startsWith("/"))
+                path = path.substring(1);
+            url = getResource(path);
+        }
+        if (url == null) {
             PluginConfig config = new PluginConfig();
             config.setPluginClassName(getClass().getName());
             return config;

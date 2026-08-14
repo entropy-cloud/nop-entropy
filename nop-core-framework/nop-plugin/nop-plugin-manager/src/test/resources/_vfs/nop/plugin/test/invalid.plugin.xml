@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin name="invalid" unknown-attr="x"
+        x:schema="/nop/schema/plugin/plugin.xdef" xmlns:x="/nop/schema/xdsl.xdef"/>

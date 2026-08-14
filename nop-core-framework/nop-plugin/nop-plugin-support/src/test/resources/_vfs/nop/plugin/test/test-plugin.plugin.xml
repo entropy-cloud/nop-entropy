@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin name="test-plugin"
+        requires="model-provider"
+        if-property="test.plugin.enabled|true"
+        activator="testPluginActivator"
+        x:schema="/nop/schema/plugin/plugin.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <beans>
+        <bean id="tool.bash" class="io.nop.plugin.test.BashTool" primary="true"/>
+    </beans>
+</plugin>
