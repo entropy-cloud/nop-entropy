@@ -141,6 +141,13 @@ public class ChannelState implements Serializable {
                     if (v != null) {
                         valueType = v.getClass().getName();
                     }
+                } else if (element.isSideOutput()) {
+                    // HG-01 (2026-08-14): side-output valueType derived from the inner
+                    // record value class (edge-level valueType ignored, Phase 1 decision).
+                    Object v = element.asSideOutput().getRecord().getValue();
+                    if (v != null) {
+                        valueType = v.getClass().getName();
+                    }
                 }
                 StreamMessageEnvelope env = StreamElementCodec.encode(element, valueType, 0L);
                 envelopeList.add(envelopeToMap(env));
@@ -220,6 +227,9 @@ public class ChannelState implements Serializable {
         m.put("payload", env.getPayload());
         m.put("timestamp", env.getTimestamp());
         m.put("hasTimestamp", env.isHasTimestamp());
+        // HG-01 (2026-08-14): side-output tag id must survive the checkpoint snapshot
+        // round-trip (the field-enumeration layer below ChannelState's codec call sites).
+        m.put("outputTagId", env.getOutputTagId());
         return m;
     }
 
@@ -234,6 +244,8 @@ public class ChannelState implements Serializable {
         env.setTimestamp(ts instanceof Number ? ((Number) ts).longValue() : 0L);
         Object ht = m.get("hasTimestamp");
         env.setHasTimestamp(Boolean.TRUE.equals(ht));
+        Object tagId = m.get("outputTagId");
+        env.setOutputTagId(tagId instanceof String ? (String) tagId : null);
         return env;
     }
 }

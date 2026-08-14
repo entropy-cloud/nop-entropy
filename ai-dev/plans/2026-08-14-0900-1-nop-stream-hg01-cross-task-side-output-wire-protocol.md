@@ -99,28 +99,28 @@ Exit Criteria:
 
 ### Phase 2 - 线协议编码/解码与元素类型
 
-Status: planned
+Status: completed
 Targets: `StreamMessageEnvelope`、`StreamElementCodec`、`StreamElement`、`ChannelState`（含 :215-238 逐字段层）、`nop-stream-core/src/test`
 
 - Item Types: `Fix | Proof`
-- [ ] [Fix] `StreamMessageEnvelope` 新增 side-output 类型常量 + `outputTagId` 字段（默认 null，向后兼容既有 5 类型零改动）。
-- [ ] [Fix] `StreamElement` 新增 side-output 子类型（携带 OutputTag id + StreamRecord；`isRecord()`/`isWatermark()` 等既有判定不受影响；新增 `isSideOutput()`）。
-- [ ] [Fix] `StreamElementCodec` encode/decode 支持 side-output 元素（tag id 编解码 + valueType 派生 + payload JSON round-trip）；未知类型仍抛 `ERR_STREAM_INVALID_STATE`（无静默跳过）。
-- [ ] [Fix] `ChannelState.envelopeToMap` / `mapToEnvelope`（:215-238）同步 `outputTagId` 字段（快照逐字段层，审查 B2——只改 :145/:193 的 codec 调用点不够，恢复路径 tag 会丢）。
-- [ ] [Fix] `ChannelState` 快照/恢复路径覆盖 side-output 元素（:145 encode / :193 decode 复用 codec + map 层字段同步，验证 round-trip）。
-- [ ] [Proof] 测试：`TestStreamElementCodec`（或新建侧）新增 side-output 元素 encode/decode round-trip 参数化用例（含 null payload、hasTimestamp 双态、tag id 特殊字符、**错误 valueType 反例——side-output 忽略 edge 级 valueType 派生（审查 M2）**）；`ChannelState` map 层 round-trip 用例（断言 outputTagId 保留）。
+- [x] [Fix] `StreamMessageEnvelope` 新增 side-output 类型常量 + `outputTagId` 字段（默认 null，向后兼容既有 5 类型零改动）。
+- [x] [Fix] `StreamElement` 新增 side-output 子类型（携带 OutputTag id + StreamRecord；`isRecord()`/`isWatermark()` 等既有判定不受影响；新增 `isSideOutput()`）。
+- [x] [Fix] `StreamElementCodec` encode/decode 支持 side-output 元素（tag id 编解码 + valueType 派生 + payload JSON round-trip）；未知类型仍抛 `ERR_STREAM_INVALID_STATE`（无静默跳过）。
+- [x] [Fix] `ChannelState.envelopeToMap` / `mapToEnvelope`（:215-238）同步 `outputTagId` 字段（快照逐字段层，审查 B2——只改 :145/:193 的 codec 调用点不够，恢复路径 tag 会丢）。
+- [x] [Fix] `ChannelState` 快照/恢复路径覆盖 side-output 元素（:145 encode / :193 decode 复用 codec + map 层字段同步，验证 round-trip）。
+- [x] [Proof] 测试：`TestStreamElementCodec`（或新建侧）新增 side-output 元素 encode/decode round-trip 参数化用例（含 null payload、hasTimestamp 双态、tag id 特殊字符、**错误 valueType 反例——side-output 忽略 edge 级 valueType 派生（审查 M2）**）；`ChannelState` map 层 round-trip 用例（断言 outputTagId 保留）。
 
 Exit Criteria:
 
-- [ ] 新增类型与字段编译通过（core 模块）
-- [ ] side-output 元素 5+ 参数化 round-trip 用例全绿（先红后绿证据：codec 不支持时抛 `ERR_STREAM_INVALID_STATE` → 支持后全绿）
-- [ ] `ChannelState` map 层 round-trip 用例断言 `outputTagId` 保留（审查 B2 证据）
-- [ ] 错误 valueType 反例全绿（side-output 忽略 edge 级 valueType，审查 M2 证据）
-- [ ] 既有 5 类型编解码零回归（既有用例全绿）
-- [ ] **端到端验证**（本 Phase 组件级）：codec → envelope → decode 全链 round-trip 已覆盖
-- [ ] **无静默跳过**：未知类型仍抛异常（断言在案）
-- [ ] 若 Phase 改变 live baseline：`No owner-doc update required`（Phase 1 已裁决设计并更新文档）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 新增类型与字段编译通过（core 模块）
+- [x] side-output 元素 5+ 参数化 round-trip 用例全绿（先红后绿证据：codec 不支持时抛 `ERR_STREAM_INVALID_STATE` → 支持后全绿）
+- [x] `ChannelState` map 层 round-trip 用例断言 `outputTagId` 保留（审查 B2 证据）
+- [x] 错误 valueType 反例全绿（side-output 忽略 edge 级 valueType，审查 M2 证据）
+- [x] 既有 5 类型编解码零回归（既有用例全绿）
+- [x] **端到端验证**（本 Phase 组件级）：codec → envelope → decode 全链 round-trip 已覆盖
+- [x] **无静默跳过**：未知类型仍抛异常（断言在案）
+- [x] 若 Phase 改变 live baseline：`No owner-doc update required`（Phase 1 已裁决设计并更新文档）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 生产端转发与消费端路由
 
