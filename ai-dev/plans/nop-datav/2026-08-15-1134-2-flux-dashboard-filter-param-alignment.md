@@ -1,6 +1,6 @@
 # 2 D2-4 flux dashboard-filter 约定与 nop-datav 参数模型对齐
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-15
 > Draft Review: 三轮独立子 agent 对抗性审查（含想象性分析）通过——round1 修复 2 Major（preset 值形态核实、options 来源裁定）；round2 修复 date-range 钉死范围收窄（手工 relative 初始值仅 display 解析的 nuance 进契约）；round3 确认按其处方完成局部修订即可放行（原话「完成该修订后……plan 可转 active 进入执行」，修订已按处方落地，第四轮全文复审经 reviewer 预先豁免）
 > Source: roadmap `ai-dev/backlog/nop-datav-roadmap.md` D2-4（「flux dashboard-filter 约定与 nop-datav 参数模型对齐」）；flux 侧 dashboard-filter 编排约定已落地（nop-chaos-flux `nop-chaos-flux:docs/components/dashboard-filter/design.md`，走查单测 `dashboard-filter-walkthrough.test.tsx` 4 条全绿）
@@ -58,82 +58,82 @@
 
 ### Phase 1 - 对齐契约定稿
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/nop-datav/linkage-design.md`
 
 - Item Types: `Decision`
 
-- [ ] 裁定**筛选定义产出形态**：完整 flux form schema（后端生成表单结构）vs 参数描述符数组（flux 组装）——判据：flux dashboard-filter 约定（`valuesPath:'filter'` + 字段控件）消费成本最小化 + 后端不生成超出参数模型的 UI 细节；连带裁定与 D1-4 布局对齐（plan `2026-08-15-1134-1`）的边界（预期结论：筛选定义仅经本计划 action 产出、不经 D1-4 布局导出物携带——裁定记录含拒绝的替代方案）
-- [ ] 裁定 **date-range 值形态转换归属**：preset 选中值为 delimited 绝对字符串（见 baseline）；裁定其与 nop-datav 扁平 `name.start`/`name.end` 的转换归属（后端产出定义时规定字段拆分/合并规则，或 `resolveFilterValues` 增设接受形态），并**钉死 delimiter 与 valueFormat 约定**（delimited 字符串的拆分符与日期格式须进契约，避免 datetime 类 valueFormat 与 `YYYY-MM-DD` 假设不符）；核实并显式记录「nop-datav 不需接受 relative 语义值」（本计划产出定义所控制的初始值为绝对形态；flux 手工配置的 relative 初始值仅 display 解析、不写回发布值，显式排除在 D2-4 消费契约外）；选定后两侧契约钉死，杜绝双形态漂移
-- [ ] 裁定 **widget 词表映射**：`paramConfig.widget`（dropdown/date-picker 等）↔ flux 字段控件（select/date-range/input-\*）映射表（核对来源：flux `nop-chaos-flux:docs/components/` 各控件文档，防凭通配草率收窄）；未声明的 widget 缺省行为；无法映射 widget 显式报错或回退规则（不得静默渲染错误控件）；连带裁定 **dropdown 候选值（options）来源**（`paramConfig` 扩展 / flux 页面 schema 自供 / 数据集推导——即使裁定「定义产出不含 options」也要显式记录，杜绝产出定义 flux 侧实际不可消费）
-- [ ] 裁定 **URL 同步语义**：flux 筛选状态 ↔ `parseFilterFromUrl` 扁平 key 的对应约定（date-range 在 URL 中的 key 形态与 §二 扁平 key 一致性）
-- [ ] 契约章节写入 `linkage-design.md`（含每项裁定拒绝的替代方案及理由），并**同步修订受影响的既有章节**：§一中「`widget` 供前端消费，后端不解析」的表述（widget 词表落地后该行为变更）、概述/§十中对 D2-4「纯前端、不影响后端」的框架性描述
+- [x] 裁定**筛选定义产出形态**：完整 flux form schema（后端生成表单结构）vs 参数描述符数组（flux 组装）——判据：flux dashboard-filter 约定（`valuesPath:'filter'` + 字段控件）消费成本最小化 + 后端不生成超出参数模型的 UI 细节；连带裁定与 D1-4 布局对齐（plan `2026-08-15-1134-1`）的边界（预期结论：筛选定义仅经本计划 action 产出、不经 D1-4 布局导出物携带——裁定记录含拒绝的替代方案）
+- [x] 裁定 **date-range 值形态转换归属**：preset 选中值为 delimited 绝对字符串（见 baseline）；裁定其与 nop-datav 扁平 `name.start`/`name.end` 的转换归属（后端产出定义时规定字段拆分/合并规则，或 `resolveFilterValues` 增设接受形态），并**钉死 delimiter 与 valueFormat 约定**（delimited 字符串的拆分符与日期格式须进契约，避免 datetime 类 valueFormat 与 `YYYY-MM-DD` 假设不符）；核实并显式记录「nop-datav 不需接受 relative 语义值」（本计划产出定义所控制的初始值为绝对形态；flux 手工配置的 relative 初始值仅 display 解析、不写回发布值，显式排除在 D2-4 消费契约外）；选定后两侧契约钉死，杜绝双形态漂移
+- [x] 裁定 **widget 词表映射**：`paramConfig.widget`（dropdown/date-picker 等）↔ flux 字段控件（select/date-range/input-\*）映射表（核对来源：flux `nop-chaos-flux:docs/components/` 各控件文档，防凭通配草率收窄）；未声明的 widget 缺省行为；无法映射 widget 显式报错或回退规则（不得静默渲染错误控件）；连带裁定 **dropdown 候选值（options）来源**（`paramConfig` 扩展 / flux 页面 schema 自供 / 数据集推导——即使裁定「定义产出不含 options」也要显式记录，杜绝产出定义 flux 侧实际不可消费）
+- [x] 裁定 **URL 同步语义**：flux 筛选状态 ↔ `parseFilterFromUrl` 扁平 key 的对应约定（date-range 在 URL 中的 key 形态与 §二 扁平 key 一致性）
+- [x] 契约章节写入 `linkage-design.md`（含每项裁定拒绝的替代方案及理由），并**同步修订受影响的既有章节**：§一中「`widget` 供前端消费，后端不解析」的表述（widget 词表落地后该行为变更）、概述/§十中对 D2-4「纯前端、不影响后端」的框架性描述
 
 Exit Criteria:
 
-- [ ] `linkage-design.md` 含 D2-4 对齐契约章节，覆盖上述全部裁定项（含 date-range 转换归属 + delimiter/valueFormat 钉死 + options 来源裁定 + relative 值不需支持的核实记录）
-- [ ] date-range 裁定后，`paramConfig` 既有扁平 key 契约（§二）与新裁定无矛盾（如修订既有章节，显式标注修订）
-- [ ] 每项裁定附拒绝的替代方案及理由
-- [ ] `ai-dev/logs/` 对应日期条目已更新
-- [ ] No owner-doc update required beyond上述（nop-datav 设计契约归属 `ai-dev/design/nop-datav/`）
-- [ ] No new test required: 纯 Decision/文档 phase，契约的可验证性由 Phase 2/3 测试承载
+- [x] `linkage-design.md` 含 D2-4 对齐契约章节，覆盖上述全部裁定项（含 date-range 转换归属 + delimiter/valueFormat 钉死 + options 来源裁定 + relative 值不需支持的核实记录）
+- [x] date-range 裁定后，`paramConfig` 既有扁平 key 契约（§二）与新裁定无矛盾（如修订既有章节，显式标注修订）
+- [x] 每项裁定附拒绝的替代方案及理由
+- [x] `ai-dev/logs/` 对应日期条目已更新
+- [x] No owner-doc update required beyond上述（nop-datav 设计契约归属 `ai-dev/design/nop-datav/`）
+- [x] No new test required: 纯 Decision/文档 phase，契约的可验证性由 Phase 2/3 测试承载
 
 ### Phase 2 - 筛选定义产出 API 与形态映射
 
-Status: planned
+Status: completed
 Targets: `nop-datav/nop-datav-service`（BizModel action + 映射实现）、`nop-datav/nop-datav-web/src/main/resources/_vfs/nop/datav/auth/nop-datav.action-auth.xml`、`nop-datav/nop-datav-service/src/test/resources/_vfs/test/datav/auth/app.action-auth.xml`
 
 - Item Types: `Fix | Proof`
 
-- [ ] 实现筛选定义产出 action（`@BizQuery` + `@Auth`，权限点同步登记 action-auth 源文件与测试侧 auth 资源）：读取 `paramConfig`，按契约产出 flux 可消费定义
-- [ ] 实现类型/widget 映射：四类参数类型（string/number/date/date-range）+ widget 词表按契约落地；非法/未声明 widget 按契约（缺省或显式报错）；options 按契约裁定落地
-- [ ] date-range 适配按契约落地（如裁定涉及 `resolveFilterValues`/`parseFilterFromUrl` 适配，保证既有扁平 key 行为向后兼容）
-- [ ] 测试：四类参数各产出正确 / defaultValue/label 透传 / 空参数（无 paramConfig 看板产出空定义）/ 非法参数定义显式报错 / date-range delimited 字符串按契约转换（含 delimiter/valueFormat 边界用例）/ options 按裁定出现或显式不含
+- [x] 实现筛选定义产出 action（`@BizQuery` + `@Auth`，权限点同步登记 action-auth 源文件与测试侧 auth 资源）：读取 `paramConfig`，按契约产出 flux 可消费定义
+- [x] 实现类型/widget 映射：四类参数类型（string/number/date/date-range）+ widget 词表按契约落地；非法/未声明 widget 按契约（缺省或显式报错）；options 按契约裁定落地
+- [x] date-range 适配按契约落地（如裁定涉及 `resolveFilterValues`/`parseFilterFromUrl` 适配，保证既有扁平 key 行为向后兼容）
+- [x] 测试：四类参数各产出正确 / defaultValue/label 透传 / 空参数（无 paramConfig 看板产出空定义）/ 非法参数定义显式报错 / date-range delimited 字符串按契约转换（含 delimiter/valueFormat 边界用例）/ options 按裁定出现或显式不含
 
 Exit Criteria:
 
-- [ ] action 存在且经 `@Auth` 保护，权限点已在 action-auth 源文件与测试侧 auth 资源登记
-- [ ] 产出定义与契约章节逐字段一致（定向断言，非仅「不抛错」）
-- [ ] `resolveFilterValues`/`parseFilterFromUrl` 既有测试不回归；新增行为有新测试
-- [ ] 无静默跳过：非法定义/不可映射 widget 显式失败
-- [ ] 新增测试显式列出并全绿
-- [ ] No owner-doc update required in this Phase（契约章节已在 Phase 1 定稿含既有章节修订；如实现与契约偏差，回写 `linkage-design.md` 属 Phase 3 终稿校对项）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] action 存在且经 `@Auth` 保护，权限点已在 action-auth 源文件与测试侧 auth 资源登记
+- [x] 产出定义与契约章节逐字段一致（定向断言，非仅「不抛错」）
+- [x] `resolveFilterValues`/`parseFilterFromUrl` 既有测试不回归；新增行为有新测试
+- [x] 无静默跳过：非法定义/不可映射 widget 显式失败
+- [x] 新增测试显式列出并全绿
+- [x] No owner-doc update required in this Phase（契约章节已在 Phase 1 定稿含既有章节修订；如实现与契约偏差，回写 `linkage-design.md` 属 Phase 3 终稿校对项）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 闭环 E2E 与收尾
 
-Status: planned
+Status: completed
 Targets: `nop-datav/nop-datav-service`（E2E 测试）、`linkage-design.md`（终稿校对）
 
 - Item Types: `Proof`
 
-- [ ] E2E：`paramConfig`（含全部四类参数）→ 产出筛选定义 → 按定义模拟 flux 筛选值提交（含 date-range delimited 字符串契约形态）→ `resolveFilterValues` 校验/默认值 → `getDashboardData` 参数注入，断言查询携带正确筛选值
-- [ ] 接线验证：`getDashboardData` 结果断言筛选值实际影响查询（如不同筛选值产出不同数据），非仅参数透传
+- [x] E2E：`paramConfig`（含全部四类参数）→ 产出筛选定义 → 按定义模拟 flux 筛选值提交（含 date-range delimited 字符串契约形态）→ `resolveFilterValues` 校验/默认值 → `getDashboardData` 参数注入，断言查询携带正确筛选值
+- [x] 接线验证：`getDashboardData` 结果断言筛选值实际影响查询（如不同筛选值产出不同数据），非仅参数透传
 
 Exit Criteria:
 
-- [ ] **端到端验证**：参数定义 → 筛选定义 → 模拟筛选值 → 校验 → 数据查询注入完整链路单测全绿（Minimum Rules #22）
-- [ ] **接线验证**：筛选值改变查询结果的断言存在且全绿（Minimum Rules #23）
-- [ ] 既有测试全绿（无回归）
-- [ ] `linkage-design.md` 契约与实现终态一致
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] **端到端验证**：参数定义 → 筛选定义 → 模拟筛选值 → 校验 → 数据查询注入完整链路单测全绿（Minimum Rules #22）
+- [x] **接线验证**：筛选值改变查询结果的断言存在且全绿（Minimum Rules #23）
+- [x] 既有测试全绿（无回归）
+- [x] `linkage-design.md` 契约与实现终态一致
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
-- [ ] D2-4 对齐契约定稿且与 live 实现一致（产出 API/映射/错误码可对上）
-- [ ] date-range 双形态漂移已消除（单一契约形态 + 转换归属明确）
-- [ ] 闭环 E2E（定义 → 值 → 校验 → 查询注入）落地并有定向测试
-- [ ] 既有 `resolveFilterValues`/`parseFilterFromUrl`/`getDashboardData` 行为无未声明回归
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] `linkage-design.md` 已同步；flux 侧消费工作显式标注为外部后续（非本计划 debt）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 已验证产出 action 被测试实际调用、映射逻辑无空实现/静默跳过
-- [ ] `./mvnw compile -pl nop-datav/nop-datav-service,nop-datav/nop-datav-web -am` 通过
-- [ ] `./mvnw test -pl nop-datav/nop-datav-service -am` 全绿
-- [ ] checkstyle / 代码规范检查通过
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-datav --severity high` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（本计划修改 `ai-dev/design/` 与 `ai-dev/plans/` 文件）
+- [x] D2-4 对齐契约定稿且与 live 实现一致（产出 API/映射/错误码可对上）
+- [x] date-range 双形态漂移已消除（单一契约形态 + 转换归属明确）
+- [x] 闭环 E2E（定义 → 值 → 校验 → 查询注入）落地并有定向测试
+- [x] 既有 `resolveFilterValues`/`parseFilterFromUrl`/`getDashboardData` 行为无未声明回归
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
+- [x] `linkage-design.md` 已同步；flux 侧消费工作显式标注为外部后续（非本计划 debt）
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 已验证产出 action 被测试实际调用、映射逻辑无空实现/静默跳过
+- [x] `./mvnw compile -pl nop-datav/nop-datav-service,nop-datav/nop-datav-web -am` 通过
+- [x] `./mvnw test -pl nop-datav/nop-datav-service -am` 全绿
+- [x] checkstyle / 代码规范检查通过
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-datav --severity high` 退出码 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（本计划修改 `ai-dev/design/` 与 `ai-dev/plans/` 文件）
 
 ## Deferred But Adjudicated
 
@@ -150,14 +150,22 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写>>
-Completed: <<YYYY-MM-DD>>
+Status Note: D2-4 收口——三个 Phase 全部落地：契约定稿（linkage-design.md §十一 11.1–11.7，含全部裁定与拒绝方案）、筛选定义产出 API（`exportDashboardFilter` @BizQuery + @Auth + 双侧权限登记 + 2 个新错误码）、形态映射实现（widget 词表封闭映射显式报错不静默回退；date-range delimiter=`,`/valueFormat=yyyy-MM-dd 双侧钉死，resolver 增设 delimited 接受形态且扁平 key 向后兼容）与闭环 E2E（定义 → 模拟 flux 提交 → 校验 → SQL 注入，557/0/0 全绿）。独立 closure audit 判定无 Blocker/Major，可关闭。
+Completed: 2026-08-15
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Evidence: <<task id / daily log link / findings 摘要>>
+- Reviewer / Agent: 独立子 agent closure audit（opencode task `ses_ffacc7521ffeDjRARm0WA4794a`，fresh session，research-only）
+- Evidence:
+  - Phase 1 Exit Criteria（6 项）：全 PASS——§十一 11.1–11.7 覆盖全部裁定项（linkage-design.md:291-414）；§一:51/§二:62/§三:68/§四:97 既有章节修订显式标注且与 §11.4 无矛盾（扁平 key 仍 canonical）；拒绝方案表 11.1:307-313、11.3:364-368、11.7:406-414
+  - Phase 2 Exit Criteria（7 项）：全 PASS——action `NopDatavDashboardBizModel.java:327-334`（@BizQuery + @Auth）+ 权限双侧登记（`nop-datav.action-auth.xml:63-67` roles admin,user；测试侧 `app.action-auth.xml:50-53`）+ i18n 源→生成链路正确；产出工件逐字段与 §11.2 一致（12 单测 + biz 代理级断言定向核对）；词表外/组合非法/非法默认值均显式报错（`ERR_DATAV_FILTER_DEF_UNKNOWN_WIDGET`/`ERR_DATAV_FILTER_DEF_WIDGET_TYPE_MISMATCH`/`ERR_DATAV_INVALID_PARAM_CONFIG`），无静默回退；无 options 键有定向断言
+  - Phase 3 Exit Criteria（5 项）：全 PASS——E2E `TestNopDatavDashboardFilterDefE2E.testFluxDefinitionToDashboardDataClosedLoop`（exportDashboardFilter:65 → resolveFilterValues:95 → getDashboardData:103/115 单链贯通，四类参数全注入 SQL）；接线验证 `testFilterValuesChangeDashboardDataResults`（同看板三种提交 → 2/4/1 行 + 行内容跟随筛选值，非透传）
+  - Anti-Hollow 检查：PASS——`@Inject INopDatavDashboardBiz` 解析真实 BizProxyFactoryBean → `NopDatavDashboardBizModel`（`_service.beans.xml:8-12`），H2 真实 DDL + SQL `${region}/${minAmount}/${afterDate}/${pStart}/${pEnd}` 真实插值，测试零 mock，透传不可能产出 2/4/1 行集；`scan-hollow-implementations.mjs --module nop-datav --severity high` 退出码 0（0 findings）
+  - Closure Gates 命令：`./mvnw test -pl nop-datav/nop-datav-service -am` 全链 BUILD SUCCESS（2026-08-15 19:30，上游 nop-stream 两个 timing 敏感测试偶发 flaky、隔离复跑通过，与本计划无关——本计划仅改 nop-datav + ai-dev 文件）；收口复跑 `./mvnw test -pl nop-datav/nop-datav-service` **557/0/0**（surefire XML 留盘：FilterDefE2E 2/2、FilterDefExporter 12/12、ParamParserAndResolver 29/29、FilterApi 14/14）；compile 门（service+web `-am`）exit 0；`./mvnw clean install -pl nop-datav -am -T 1C -DskipTests` BUILD SUCCESS；checkstyle 插件于根构建为注释禁用态（沿用 plan 2026-08-15-1134-1 裁定），代码规范按 AGENTS.md 人工核验（import 分组 io.nop.*→第三方→java.*、静态导入最后、英文错误消息）；`check-doc-links.mjs --strict` 退出码 0
+  - Deferred 项分类检查：PASS——唯一 deferred 项为 flux 仓库侧渲染/对接（out-of-scope improvement，Successor Required: yes），无 in-scope live defect 降级
+- Audit Findings（非阻塞观察项，无需动作）：widget 词表封闭性仅在产出路径强制，存量 paramConfig 词表外 widget 经 `resolveFilterValues`/`getDashboardData` 仍可消费（与 §一:51/§11.6 契约表述一致，向后兼容取舍）
 
 Follow-up:
 
-- <<只记录 non-blocking follow-up；confirmed live defect 不得出现在这里>>
+- flux 仓库侧 dashboard-filter ↔ nop-datav 对接（外部跟踪，见 Deferred But Adjudicated，非本仓库 debt）
+- no remaining plan-owned work
