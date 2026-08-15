@@ -8,6 +8,7 @@ import io.nop.metadata.service.field.ResolvedTableField;
 import io.nop.metadata.service.tableref.TableReference;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
+import io.nop.metadata.service.quality.MetaQualityRuleExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -481,7 +482,11 @@ public class MetaTableProfiler {
     }
 
     private static long queryLong(Connection conn, String sql) throws SQLException {
-        LOG.info("profileTable SQL: {}", sql);
+        // P1-8（plan 2026-08-15-1913-1，AR-16 形态）：sql 路径 SQL 内嵌 sourceSql
+        // 全文（可含敏感字面量），INFO 只记 sqlHash
+        LOG.info("profileTable SQL executed: sqlHash={}",
+                MetaQualityRuleExecutor.sqlHashOf(sql));
+        LOG.debug("profileTable SQL: {}", sql);
         try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery(sql)) {
             if (!rs.next()) {
                 // 维度09-08：不可能发生的逻辑断言用 NopException + ErrorCode，不混用 SQLException 控制流
@@ -492,7 +497,10 @@ public class MetaTableProfiler {
     }
 
     private static Double queryNullableDouble(Connection conn, String sql) throws SQLException {
-        LOG.info("profileTable SQL: {}", sql);
+        // P1-8（plan 2026-08-15-1913-1，AR-16 形态）：同 queryLong 脱敏语义
+        LOG.info("profileTable SQL executed: sqlHash={}",
+                MetaQualityRuleExecutor.sqlHashOf(sql));
+        LOG.debug("profileTable SQL: {}", sql);
         try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery(sql)) {
             if (!rs.next()) {
                 return null;
@@ -512,7 +520,10 @@ public class MetaTableProfiler {
     }
 
     private static Long queryNullableLong(Connection conn, String sql) throws SQLException {
-        LOG.info("profileTable SQL: {}", sql);
+        // P1-8（plan 2026-08-15-1913-1，AR-16 形态）：同 queryLong 脱敏语义
+        LOG.info("profileTable SQL executed: sqlHash={}",
+                MetaQualityRuleExecutor.sqlHashOf(sql));
+        LOG.debug("profileTable SQL: {}", sql);
         try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery(sql)) {
             if (!rs.next()) {
                 return null;
@@ -531,7 +542,10 @@ public class MetaTableProfiler {
     }
 
     private static String queryString(Connection conn, String sql) throws SQLException {
-        LOG.info("profileTable SQL: {}", sql);
+        // P1-8（plan 2026-08-15-1913-1，AR-16 形态）：同 queryLong 脱敏语义
+        LOG.info("profileTable SQL executed: sqlHash={}",
+                MetaQualityRuleExecutor.sqlHashOf(sql));
+        LOG.debug("profileTable SQL: {}", sql);
         try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery(sql)) {
             if (!rs.next()) {
                 return null;

@@ -2,10 +2,11 @@ package io.nop.metadata.service.query;
 
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.metadata.service.query.FilterToSqlTranslator;
-import io.nop.metadata.service.query.SqlPagination;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
+import io.nop.metadata.service.quality.MetaQualityRuleExecutor;
+import io.nop.metadata.service.query.FilterToSqlTranslator;
+import io.nop.metadata.service.query.SqlPagination;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -97,7 +98,11 @@ public final class MetaTableQueryExecutor {
      */
     public static List<Map<String, Object>> executeQuery(Connection conn, String sql, List<Object> filterParams,
                                                           Long limit, Long offset) {
-        LOG.info("MetaTableQueryExecutor SQL: {}", sql);
+        // P1-8（plan 2026-08-15-1913-1，AR-16 形态）：sql 路径 SQL 内嵌 sourceSql
+        // 全文（可含敏感字面量），INFO 只记 sqlHash，全文降 DEBUG
+        LOG.info("MetaTableQueryExecutor SQL executed: sqlHash={}",
+                MetaQualityRuleExecutor.sqlHashOf(sql));
+        LOG.debug("MetaTableQueryExecutor SQL: {}", sql);
         List<Map<String, Object>> rows = new ArrayList<>();
         try (PreparedStatement st = conn.prepareStatement(sql)) {
             int idx = 1;

@@ -13,6 +13,7 @@ import io.nop.metadata.dao.entity.NopMetaTableJoin;
 import io.nop.metadata.service.field.ExpressionMeasureValidator;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
+import io.nop.metadata.service.quality.MetaQualityRuleExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -122,7 +123,12 @@ public class ExternalExternalJoinAggregationProcessor implements AggregationProc
                     // AggregationHelper.executeJdbcQuery 统一绑定（此处【不得】params.add(limit/offset)，
                     // 否则占位符数 < 绑定数必然抛 SQLException；对照先例 ExternalAggregationProcessor :83-85）。
                     final String sqlText = sql.toString();
-                    LOG.info("queryAggregation external<->external JOIN SQL: {}", sqlText);
+                    // P1-8（plan 2026-08-15-1913-1，AR-16 形态）：sql 路径 SQL 内嵌
+                    // sourceSql 全文，INFO 只记 sqlHash
+                    LOG.info("queryAggregation external<->external sqlHash={}",
+                            MetaQualityRuleExecutor.sqlHashOf(sqlText));
+                    LOG.debug("queryAggregation external<->external SQL: {}",
+                            sqlText);
                     holder[0] = executeJdbcQuery(conn, sqlText, params, limit, offset, table.getMetaTableId());
                 });
         return holder[0] == null ? new ArrayList<>() : holder[0];

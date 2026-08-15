@@ -24,6 +24,7 @@ import io.nop.orm.dao.IOrmEntityDao;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.metadata.service.NopMetadataException;
+import io.nop.metadata.service.quality.MetaQualityRuleExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -297,7 +298,11 @@ public class MetaJoinExecutor {
         }
 
         String sqlText = sql.toString();
-        LOG.info("queryJoinData same-DB entity-entity SQL: {}", sqlText);
+        // P1-8（plan 2026-08-15-1913-1，AR-16 形态对齐）：entity 路径形态统一
+        // （白名单标识符，无泄漏面变更）
+        LOG.info("queryJoinData same-DB entity-entity sqlHash={}",
+                MetaQualityRuleExecutor.sqlHashOf(sqlText));
+        LOG.debug("queryJoinData same-DB entity-entity SQL: {}", sqlText);
         // entity 表 querySpace 由 ORM 管理 → 经 orm().executeQuery（物理表+物理列，allowUnderscoreName）
         SQL sqlObj = SQL.begin().allowUnderscoreName(true).sql(sqlText, params.toArray()).end();
         return ctx.orm().executeQuery(sqlObj, null, this::collectRows);
@@ -359,7 +364,11 @@ public class MetaJoinExecutor {
         SqlPagination.appendLimitOffset(sql, limit, offset, null);
 
         final String sqlText = sql.toString();
-        LOG.info("queryJoinData same-DB table-table SQL: {}", sqlText);
+        // P1-8（plan 2026-08-15-1913-1，AR-16 形态）：sql 路径 SQL 经 tableFromForJoin
+        // 内嵌 sourceSql 全文，INFO 只记 sqlHash
+        LOG.info("queryJoinData same-DB table-table sqlHash={}",
+                MetaQualityRuleExecutor.sqlHashOf(sqlText));
+        LOG.debug("queryJoinData same-DB table-table SQL: {}", sqlText);
         final List<Map<String, Object>>[] holder = newArrayHolder();
         ctx.connectionService().withConnection(dataSource.getDatasourceType(), dataSource.getConnectionConfig(),
                 (Connection conn, DatabaseMetaData metaData) -> {
@@ -658,8 +667,12 @@ public class MetaJoinExecutor {
 
     /** 执行 JDBC 查询（filter 参数 + limit/offset 按序绑定），返回行列表（每行为列名→值 Map）。 */
     private List<Map<String, Object>> executeJdbcQuery(Connection conn, String sql, List<Object> filterParams,
-                                                       Long limit, Long offset, String joinId, String side) {
-        LOG.info("queryJoinData table-endpoint SQL [side={}]: {}", side, sql);
+                                                        Long limit, Long offset, String joinId, String side) {
+        // P1-8（plan 2026-08-15-1913-1，AR-16 形态）：sql 路径 SQL 经
+        // buildTableFromClause 内嵌 sourceSql 全文，INFO 只记 sqlHash
+        LOG.info("queryJoinData table-endpoint SQL [side={}] sqlHash={}", side,
+                MetaQualityRuleExecutor.sqlHashOf(sql));
+        LOG.debug("queryJoinData table-endpoint SQL [side={}]: {}", side, sql);
         List<Map<String, Object>> rows = new ArrayList<>();
         try (PreparedStatement st = conn.prepareStatement(sql)) {
             int idx = 1;

@@ -14,6 +14,7 @@ import io.nop.metadata.dao.entity.NopMetaTableMeasure;
 import io.nop.metadata.service.field.ExpressionMeasureValidator;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
+import io.nop.metadata.service.quality.MetaQualityRuleExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,7 +82,11 @@ public class ExternalAggregationProcessor implements AggregationProcessor {
                     }
                     String sqlText = buildExternalAggregationSql(table, _measures, _dims, filter, having, orderBy,
                             _nameToExpr, measureNames, dimensionNames, limit, offset, dialect, ctx);
-                    LOG.info("queryAggregation external/sql SQL: {}", sqlText);
+                    // P1-8（plan 2026-08-15-1913-1，AR-16 形态）：sql 路径 SQL 内嵌
+                    // sourceSql 全文，INFO 只记 sqlHash
+                    LOG.info("queryAggregation external/sql sqlHash={}",
+                            MetaQualityRuleExecutor.sqlHashOf(sqlText));
+                    LOG.debug("queryAggregation external/sql SQL: {}", sqlText);
                     holder[0] = executeJdbcQuery(conn, sqlText, collectBindParams(_measures, _dims, filter, having,
                             _nameToExpr, ctx, table, measureNames, dimensionNames),
                             limit, offset, table.getMetaTableId());
