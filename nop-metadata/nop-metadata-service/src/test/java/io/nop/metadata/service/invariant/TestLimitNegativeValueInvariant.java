@@ -13,6 +13,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.stream.Stream;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
@@ -44,7 +45,7 @@ public class TestLimitNegativeValueInvariant {
 
     /**
      * Method table: every public entry method that accepts a {@code @Name("limit")} parameter.
-     * Format: {class#method, limit-handler-type}
+     * Format: {class#method, limit-handler-type, expectedErrorCode}
      *
      * <p>limit-handler-type:
      * <ul>
@@ -52,22 +53,37 @@ public class TestLimitNegativeValueInvariant {
      *   <li>{@code normalizeJoinQueryLimit} — NopMetaTableBizModel private method (queryJoinData/queryAggregation)</li>
      *   <li>{@code inline-searchMetadata} — NopMetaSearchBizModel public method (searchMetadata)</li>
      * </ul>
+     *
+     * <p>expectedErrorCode: exact error-code string pinned per row (P1-9,
+     * plan 2026-08-15-1913-3——修复前 inline 行只断言 {@code assertThrows(NopException.class)}，
+     * 对"移除负 limit 检查"变异假绿：limit=-1 时分支顺序保证必抛
+     * {@code nop.err.metadata.search-limit-invalid}（limit 检查在 searchEngine==null 检查之前，
+     * 直接 new BizModel 下可行），精确断言使该变异变红）。
      */
     static Stream<Arguments> limitTakingMethods() {
         return Stream.of(
-                Arguments.of("NopMetaTableBizModel#queryTableData", "normalizeQueryLimit"),
-                Arguments.of("NopMetaTableBizModel#queryJoinData", "normalizeJoinQueryLimit"),
-                Arguments.of("NopMetaTableBizModel#queryAggregation", "normalizeJoinQueryLimit"),
-                Arguments.of("NopMetaSearchBizModel#searchMetadata", "inline-searchMetadata")
+                Arguments.of("NopMetaTableBizModel#queryTableData", "normalizeQueryLimit",
+                        "nop.err.metadata.pagination-limit-invalid"),
+                Arguments.of("NopMetaTableBizModel#queryJoinData", "normalizeJoinQueryLimit",
+                        "nop.err.metadata.pagination-limit-invalid"),
+                Arguments.of("NopMetaTableBizModel#queryAggregation", "normalizeJoinQueryLimit",
+                        "nop.err.metadata.pagination-limit-invalid"),
+                Arguments.of("NopMetaSearchBizModel#searchMetadata", "inline-searchMetadata",
+                        "nop.err.metadata.search-limit-invalid")
         );
     }
 
     @ParameterizedTest(name = "{0}: negative limit must be rejected with ErrorCode")
     @MethodSource("limitTakingMethods")
-    void negativeLimitMustBeRejected(String methodLabel, String limitHandler) throws Throwable {
-        assertThrows(NopException.class,
+    void negativeLimitMustBeRejected(String methodLabel, String limitHandler,
+                                     String expectedErrorCode) throws Throwable {
+        NopException ex = assertThrows(NopException.class,
                 () -> invokeLimitHandler(limitHandler),
                 methodLabel + " must throw ErrorCode exception for negative limit, not silently accept");
+        // P1-9：全部 4 行钉精确错误码——移除任一 limit 检查后异常码漂移（或消失），断言变红
+        assertEquals(expectedErrorCode, ex.getErrorCode(),
+                methodLabel + " must throw the exact limit-reject error code (P1-9 exact-code pinning), got: "
+                        + ex.getErrorCode());
     }
 
     /**
