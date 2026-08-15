@@ -1,9 +1,14 @@
 <llm x:schema="/nop/schema/ai/llm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-     apiStyle="openai" supportToolCalls="true">
+     apiStyle="openai" supportToolCalls="true" concurrencyLimit="10">
 
     <!--
-    测试用 provider：声明 3 个有序备用账号（含 baseUrl 覆盖 + 额度元数据）。
+    测试用 provider：声明 3 个有序备用账号（含 baseUrl 覆盖 + 额度元数据 + 并发上限混合配置）。
     主账号 = config 变量 nop.ai.llm.test-accounts.api-key（未在 <accounts> 内）。
+    并发上限语义（plan 2026-08-15-0604-3，设计 §3.4）：
+      - 根元素 concurrencyLimit="10" = provider 级缺省（主账号 + 未配置账号回退此值）；
+      - backup-1 未配置 → 回退 10；
+      - backup-2 显式 3 → 账号级覆盖；
+      - backup-3 显式 0 = 显式不限制（不回退 provider 缺省）。
     -->
     <chatUrl>/v1/chat/completions</chatUrl>
 
@@ -15,10 +20,12 @@
     <accounts>
         <account id="backup-1" apiKey="key-backup-1"
                  baseUrl="https://backup1.example.com"/>
-        <account id="backup-2" apiKey="key-backup-2"/>
+        <account id="backup-2" apiKey="key-backup-2"
+                 concurrencyLimit="3"/>
         <account id="backup-3" apiKey="key-backup-3"
                  baseUrl="https://backup3.example.com"
-                 quotaLimit="1000000" renewAt="2026-09-01"/>
+                 quotaLimit="1000000" renewAt="2026-09-01"
+                 concurrencyLimit="0"/>
     </accounts>
 
 </llm>

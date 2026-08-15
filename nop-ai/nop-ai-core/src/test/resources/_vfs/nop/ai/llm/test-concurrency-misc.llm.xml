@@ -1,0 +1,22 @@
+<llm x:schema="/nop/schema/ai/llm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     apiStyle="openai" supportToolCalls="true">
+
+    <!--
+    测试用 provider：并发上限配置面"缺省"与"负数"语义（plan 2026-08-15-0604-3，设计 §3.4）：
+      - 根元素未配置 concurrencyLimit → provider 级缺省 = null = 不限制；
+      - misc-1 未配置 → 账号解析回退 provider 缺省 = null（均未配置 = 不限制）；
+      - misc-2 显式 -1 = 显式不限制（负数，不回退 provider 缺省）。
+    -->
+    <chatUrl>/v1/chat/completions</chatUrl>
+
+    <response contentPath="choices.0.message.content"
+              rolePath="choices.0.message.role"
+              errorPath="error"
+    />
+
+    <accounts>
+        <account id="misc-1" apiKey="key-misc-1"/>
+        <account id="misc-2" apiKey="key-misc-2" concurrencyLimit="-1"/>
+    </accounts>
+
+</llm>

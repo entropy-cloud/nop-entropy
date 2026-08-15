@@ -32,6 +32,13 @@ public abstract class _LlmAccountModel extends io.nop.core.resource.component.Ab
     
     /**
      *  
+     * xml name: concurrencyLimit
+     * 
+     */
+    private java.lang.Integer _concurrencyLimit ;
+    
+    /**
+     *  
      * xml name: id
      * 
      */
@@ -85,6 +92,25 @@ public abstract class _LlmAccountModel extends io.nop.core.resource.component.Ab
         checkAllowChange();
         
         this._baseUrl = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: concurrencyLimit
+     *  
+     */
+    
+    public java.lang.Integer getConcurrencyLimit(){
+      return _concurrencyLimit;
+    }
+
+    
+    public void setConcurrencyLimit(java.lang.Integer value){
+        checkAllowChange();
+        
+        this._concurrencyLimit = value;
            
     }
 
@@ -163,6 +189,7 @@ public abstract class _LlmAccountModel extends io.nop.core.resource.component.Ab
         
         out.putNotNull("apiKey",this.getApiKey());
         out.putNotNull("baseUrl",this.getBaseUrl());
+        out.putNotNull("concurrencyLimit",this.getConcurrencyLimit());
         out.putNotNull("id",this.getId());
         out.putNotNull("quotaLimit",this.getQuotaLimit());
         out.putNotNull("renewAt",this.getRenewAt());
@@ -179,6 +206,7 @@ public abstract class _LlmAccountModel extends io.nop.core.resource.component.Ab
         
         instance.setApiKey(this.getApiKey());
         instance.setBaseUrl(this.getBaseUrl());
+        instance.setConcurrencyLimit(this.getConcurrencyLimit());
         instance.setId(this.getId());
         instance.setQuotaLimit(this.getQuotaLimit());
         instance.setRenewAt(this.getRenewAt());

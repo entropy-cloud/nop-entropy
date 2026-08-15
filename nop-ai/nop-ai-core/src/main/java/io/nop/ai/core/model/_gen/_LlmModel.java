@@ -81,6 +81,16 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
     
     /**
      *  
+     * xml name: concurrencyLimit
+     * provider 级账号并发上限缺省（in-flight 请求数，plan 2026-08-15-0604-3，设计 §3.4）。
+     * 与 rateLimit（每秒 QPS，排队语义）不同：达到上限时请求发出前切换账号（跳过语义），两者并存不互斥。
+     * 非 mandatory（缺失 = null = 不限制）。<accounts> 账号未配置 concurrencyLimit 时回退本值；
+     * 显式配置 0/负数 = 显式不限制（不回退）。主账号（无 <account> 实例）限流值取本值。
+     */
+    private java.lang.Integer _concurrencyLimit ;
+    
+    /**
+     *  
      * xml name: defaultModel
      * 
      */
@@ -378,6 +388,28 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
         checkAllowChange();
         
         this._classifyError = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: concurrencyLimit
+     *  provider 级账号并发上限缺省（in-flight 请求数，plan 2026-08-15-0604-3，设计 §3.4）。
+     * 与 rateLimit（每秒 QPS，排队语义）不同：达到上限时请求发出前切换账号（跳过语义），两者并存不互斥。
+     * 非 mandatory（缺失 = null = 不限制）。<accounts> 账号未配置 concurrencyLimit 时回退本值；
+     * 显式配置 0/负数 = 显式不限制（不回退）。主账号（无 <account> 实例）限流值取本值。
+     */
+    
+    public java.lang.Integer getConcurrencyLimit(){
+      return _concurrencyLimit;
+    }
+
+    
+    public void setConcurrencyLimit(java.lang.Integer value){
+        checkAllowChange();
+        
+        this._concurrencyLimit = value;
            
     }
 
@@ -751,6 +783,7 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
         out.putNotNull("buildHttpRequest",this.getBuildHttpRequest());
         out.putNotNull("chatUrl",this.getChatUrl());
         out.putNotNull("classifyError",this.getClassifyError());
+        out.putNotNull("concurrencyLimit",this.getConcurrencyLimit());
         out.putNotNull("defaultModel",this.getDefaultModel());
         out.putNotNull("defaultRequestTimeout",this.getDefaultRequestTimeout());
         out.putNotNull("embedUrl",this.getEmbedUrl());
@@ -784,6 +817,7 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
         instance.setBuildHttpRequest(this.getBuildHttpRequest());
         instance.setChatUrl(this.getChatUrl());
         instance.setClassifyError(this.getClassifyError());
+        instance.setConcurrencyLimit(this.getConcurrencyLimit());
         instance.setDefaultModel(this.getDefaultModel());
         instance.setDefaultRequestTimeout(this.getDefaultRequestTimeout());
         instance.setEmbedUrl(this.getEmbedUrl());

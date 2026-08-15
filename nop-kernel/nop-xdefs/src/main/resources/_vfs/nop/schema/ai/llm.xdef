@@ -2,6 +2,10 @@
 
 <!--
 @rateLimit 为避免调用服务过于频繁，通过rateLimit指定每秒最多允许多少次请求。如果超过则会排队等待。
+@concurrencyLimit provider 级账号并发上限缺省（in-flight 请求数，plan 2026-08-15-0604-3，设计 §3.4）。
+ 与 rateLimit（每秒 QPS，排队语义）不同：达到上限时请求发出前切换账号（跳过语义），两者并存不互斥。
+ 非 mandatory（缺失 = null = 不限制）。<accounts> 账号未配置 concurrencyLimit 时回退本值；
+ 显式配置 0/负数 = 显式不限制（不回退）。主账号（无 <account> 实例）限流值取本值。
 @logMessage 如果设置为true，则会打印出所有请求和响应消息
 -->
 <llm x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
@@ -11,6 +15,7 @@
      defaultModel="string" logMessage="!boolean=true"
      rateLimit="double" defaultRequestTimeout="long"
      supportToolCalls="!boolean" apiKeyHeader="string"
+     concurrencyLimit="int"
 >
 
     <!--
@@ -42,6 +47,9 @@
     @baseUrl     可选 per-account baseUrl 覆盖（如不同账号对应不同代理/区域 endpoint）
     @quotaLimit  可选额度上限（诊断/声明用，不做主动熔断）
     @renewAt     可选额度续费时间（诊断/声明用）
+    @concurrencyLimit 账号级并发上限覆盖（in-flight 请求数，plan 2026-08-15-0604-3，设计 §3.4）。
+    未配置 = 回退 provider 级缺省（根元素 concurrencyLimit）；provider 级也未配置 = 不限制。
+    显式配置 0/负数 = 显式不限制（不回退 provider 缺省）。
     -->
     <accounts xdef:body-type="list" xdef:key-attr="id">
         <account id="!string" xdef:name="LlmAccountModel"
@@ -49,6 +57,7 @@
                  baseUrl="string"
                  quotaLimit="long"
                  renewAt="string"
+                 concurrencyLimit="int"
         />
     </accounts>
 

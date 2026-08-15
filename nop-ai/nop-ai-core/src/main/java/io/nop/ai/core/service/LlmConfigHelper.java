@@ -171,6 +171,42 @@ public class LlmConfigHelper {
     }
 
     /**
+     * 解析 provider 级并发上限缺省值（plan 2026-08-15-0604-3，设计 §3.4）。
+     * <p>
+     * 返回 {@code {provider}.llm.xml} 根元素 {@code concurrencyLimit} 的值（in-flight 并发上限，
+     * 跳过语义——达到上限时请求发出前切换账号，与 rateLimit 的排队语义并存不互斥）：
+     * <ul>
+     *   <li>未配置（null）= 不限制（零回归缺省）。</li>
+     *   <li>显式配置 0/负数 = 显式不限制（返回非 null，调用方按 ≤0 判"不限制"，不回退）。</li>
+     * </ul>
+     * 主账号（无 {@link LlmAccountModel} 实例）的限流值取本值（
+     * {@link #resolveConcurrencyLimit(String, LlmAccountModel)} 传 null account 同义）。
+     * 本方法 + {@link #resolveConcurrencyLimit(String, LlmAccountModel)} 是并发限流配置面的读取入口，
+     * 供并发限流运行时（W5/W6/W7）消费。
+     */
+    public static Integer resolveConcurrencyLimit(String provider) {
+        LlmModel config = loadConfig(provider);
+        return config.getConcurrencyLimit();
+    }
+
+    /**
+     * 解析账号的并发上限（plan 2026-08-15-0604-3，设计 §3.4），层级语义：
+     * <ul>
+     *   <li>账号级显式配置（{@code <account concurrencyLimit="...">}，含 0/负数）→ 返回账号值（不回退）。</li>
+     *   <li>账号未配置（null）→ 回退 provider 级缺省（{@link #resolveConcurrencyLimit(String)}）。</li>
+     *   <li>provider 级也未配置 → 返回 null = 不限制。</li>
+     * </ul>
+     * 主账号路径：{@code account} 传 null（主账号无 {@link LlmAccountModel} 实例）→ 取 provider 级缺省。
+     * 返回 null = 不限制；返回非 null（含 0/负数）= 显式配置（≤0 为显式不限制）。
+     */
+    public static Integer resolveConcurrencyLimit(String provider, LlmAccountModel account) {
+        if (account != null && account.getConcurrencyLimit() != null) {
+            return account.getConcurrencyLimit();
+        }
+        return resolveConcurrencyLimit(provider);
+    }
+
+    /**
      * 跨 provider 有序故障转移声明的默认配置路径（plan 2026-08-01-1905-3，设计 §13.4 裁定 A）。
      * opt-in：该文件缺省（不存在）= 无 provider 链 = 零回归 fail-loud（账号链耗尽仍按今日行为）。
      */
