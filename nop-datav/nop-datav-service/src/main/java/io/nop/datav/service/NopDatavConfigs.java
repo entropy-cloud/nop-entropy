@@ -103,4 +103,26 @@ public interface NopDatavConfigs {
     @Description("单次 getDashboardData 批量查询的最大面板数（纳入集超限抛 ERR_DATAV_DASHBOARD_PANEL_LIMIT_EXCEEDED，校验先于任何面板查询执行，防单请求放大为海量 SQL）")
     IConfigReference<Integer> CFG_DATAV_DASHBOARD_QUERY_MAX_PANELS = varRef(
             s_loc, "nop.datav.dashboard-query.max-panels", Integer.class, 50);
+
+    // ===== 分享访问加固（限流，裁定见 permission-sharing-design.md「访问限流与访问统计」） =====
+
+    @Description("匿名分享访问限流总开关（false 时 getSharedDashboard 行为与加固前逐字节等价：零检查零记账）")
+    IConfigReference<Boolean> CFG_DATAV_SHARE_RATE_LIMIT_ENABLED = varRef(
+            s_loc, "nop.datav.share.rate-limit.enabled", Boolean.class, true);
+
+    @Description("同一 (shareToken, 来源IP) 窗口内密码失败锁定阈值：达到后该键密码尝试被拒（即使密码正确），窗口过后自动恢复；成功验证重置失败计数；0 或负值禁用该层")
+    IConfigReference<Integer> CFG_DATAV_SHARE_RATE_LIMIT_MAX_PASSWORD_FAILURES = varRef(
+            s_loc, "nop.datav.share.rate-limit.max-password-failures", Integer.class, 5);
+
+    @Description("同一 (shareToken, 来源IP) 每窗口总请求上限（尝试即计数，含失败与被拒请求），超限抛 ERR_DATAV_SHARE_RATE_LIMITED；0 或负值禁用该层")
+    IConfigReference<Integer> CFG_DATAV_SHARE_RATE_LIMIT_MAX_ACCESS_PER_WINDOW = varRef(
+            s_loc, "nop.datav.share.rate-limit.max-access-per-window", Integer.class, 60);
+
+    @Description("限流窗口与密码锁定时长（秒），两级共用")
+    IConfigReference<Integer> CFG_DATAV_SHARE_RATE_LIMIT_WINDOW_SECONDS = varRef(
+            s_loc, "nop.datav.share.rate-limit.window-seconds", Integer.class, 600);
+
+    @Description("per-key 限流状态表容量上界（LocalCache 驱逐，防内存无界增长；单节点语义，集群限流归网关层）")
+    IConfigReference<Integer> CFG_DATAV_SHARE_RATE_LIMIT_MAX_KEYS = varRef(
+            s_loc, "nop.datav.share.rate-limit.max-keys", Integer.class, 10000);
 }

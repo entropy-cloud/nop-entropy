@@ -6,6 +6,12 @@
 
     <import resource="_service.beans.xml"/>
 
+    <!-- 分享访问两级限流 guard（plan 2026-08-15-0004-2）：固定窗口计数 + 密码锁定状态机（R6），
+         LocalCache 容量上界（R2，max-keys 配置），时钟 seam（setClock，测试 fake 时钟推进窗口）。
+         被 NopDatavDashboardShareBizModel 注入（getSharedDashboard 访问路径接线）。 -->
+    <bean id="nopDatavShareAccessGuard"
+          class="io.nop.datav.service.share.NopDatavShareAccessGuard" ioc:default="true"/>
+
     <!-- 引入 nop-file-dao beans：注册 nopFileStore（DaoResourceFileStore，ioc:default=true），
          供 D3-3 数据导出文件落盘（IFileStore）与下载（IFileRecord）使用。 -->
     <import resource="/nop/file/beans/app-file-dao.beans.xml"/>

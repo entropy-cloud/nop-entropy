@@ -249,6 +249,22 @@ public interface NopDatavErrors {
             ARG_SHARE_TOKEN, ARG_DASHBOARD_ID
     );
 
+    // ===== 分享访问限流（plan 2026-08-15-0004-2，裁定见 permission-sharing-design.md「访问限流与访问统计」） =====
+
+    String ARG_RETRY_AFTER_SECONDS = "retryAfterSeconds";
+
+    ErrorCode ERR_DATAV_SHARE_RATE_LIMITED = define(
+            "nop.err.datav.share-rate-limited",
+            "Too many requests for share link: {shareToken}, retry after {retryAfterSeconds} seconds",
+            ARG_SHARE_TOKEN, ARG_RETRY_AFTER_SECONDS
+    );
+
+    ErrorCode ERR_DATAV_SHARE_PASSWORD_LOCKED = define(
+            "nop.err.datav.share-password-locked",
+            "Share link is temporarily locked due to repeated password failures: {shareToken}, retry after {retryAfterSeconds} seconds",
+            ARG_SHARE_TOKEN, ARG_RETRY_AFTER_SECONDS
+    );
+
     ErrorCode ERR_DATAV_EXPORT_TASK_NOT_FOUND = define(
             "nop.err.datav.export-task-not-found",
             "Export task not found: {taskId}",
