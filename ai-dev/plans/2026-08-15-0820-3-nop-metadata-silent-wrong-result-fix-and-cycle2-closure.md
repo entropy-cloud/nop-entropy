@@ -1,6 +1,6 @@
 # Cycle 2 / I4+I5+I6 — nop-metadata silent-wrong-result 类别清扫修复、全量验证与循环收口
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-15
 > Mission: nop-metadata-invariant-loop
 > Work Item: Cycle 2 / I4（修复执行：实例 + 类别清扫）+ I5（全量验证与门禁零命中）+ I6（循环收口与下一轮触发判定）
@@ -105,41 +105,41 @@ Exit Criteria:
 
 ### Phase 3 — I6' 循环收口与稳态判定
 
-Status: planned
+Status: completed
 Targets: `ai-dev/backlog/nop-metadata-invariant-loop-roadmap.md`、`ai-dev/audits/nop-metadata-invariants/invariant-catalog.md`（如需）、本 plan Closure 节
 
 - Item Types: `Decision` | `Proof`
 
-- [ ] **C1 统计**：Cycle 2 门禁数（4+N）/ red list 数 / 修复数 / 新族数，来源可追溯（formal-red-list + adjudication-table + 本 plan）
-- [ ] **C2 稳态判定**：按 roadmap Loop Rule 判定（全部门禁零命中 + 零新族 → 稳态暂停；有新族 → 登记 Cycle 3 触发）
-- [ ] **C3 复触发条件登记**：CI 变红 / 新增或重命名 processor / bizmodel / ORM entity / 周期复探——更新至 roadmap（如措辞已存在则核对仍准确）
-- [ ] **C4 roadmap 同步**：Work Item Status 表新增 "Cycle 2 / I1'–I6'（invariant-loop 第二轮）" 行并标状态——**消歧声明**：与既有三行 "Cycle 2 / 再审计 remediation"（2026-08-14 审计修复系列）为不同系列，行名须带 "invariant-loop" 标注或表头注明两系列关系；Follow-up Backlog 核对无未标注残留
-- [ ] **C5 独立 closure audit**：fresh-session 子 agent 按 Closure Gates 逐项核验 live repo（含 Anti-Hollow：修复在运行时路径被真实调用、端到端测试真实走通、无空壳/静默跳过），证据写入本 plan Closure 节
+- [x] **C1 统计**：Cycle 2 门禁数（4+N）/ red list 数 / 修复数 / 新族数，来源可追溯（formal-red-list + adjudication-table + 本 plan） → **门禁 5**（Cycle 1 四条 + gate 5 silent-wrong-result 单门禁×5 规则，聚合入口/CI 生效）；**red list 67**（formal-red-list-cycle2 §汇总：40/0/19/6/2）；**修复 46**（本 plan Phase 1，adjudication-table §10 移交清单全收）；**新族 0**（adjudication-table §7 显式 0，对抗探查 10 方向）；终态命中 21（全豁免驻留）
+- [x] **C2 稳态判定**：按 roadmap Loop Rule 判定（全部门禁零命中 + 零新族 → 稳态暂停；有新族 → 登记 Cycle 3 触发） → **稳态暂停**：门禁 1-4 零命中；gate 5 终态 = 命中集 ⊆ 已批准豁免清单（21 FP 驻留，0820-1 关键约束 B 预声明终态机制内的合法驻留——"零命中"准确语义见 invariant-guards.md 终态条）；新族 0 → 不派发 Cycle 3 / I1
+- [x] **C3 复触发条件登记**：CI 变红 / 新增或重命名 processor / bizmodel / ORM entity / 周期复探——更新至 roadmap（如措辞已存在则核对仍准确） → 核对 `docs-for-ai/02-core-guides/invariant-guards.md` §复触发条件（三条件措辞含模式 b 语义"baseline 外新命中"）与 roadmap Loop Rule（结构变更触发条件 = 新增/重命名 processor / bizmodel / ORM entity）**仍准确**，无需改写；Cycle 3 / I1 新族门禁实现不触发（0 新族）
+- [x] **C4 roadmap 同步**：Work Item Status 表新增 "Cycle 2 / I1'–I6'（invariant-loop 第二轮）" 行并标状态——**消歧声明**：与既有三行 "Cycle 2 / 再审计 remediation"（2026-08-14 审计修复系列）为不同系列，行名须带 "invariant-loop" 标注或表头注明两系列关系；Follow-up Backlog 核对无未标注残留 → 新增行 "Cycle 2 / I4+I5+I6（invariant-loop）. 修复执行 + 全量验证 + 循环收口" ✅ done（行名带 invariant-loop 标注，与既有 "Cycle 2 / I2+I3（invariant-loop）" 行同约定——与三行 "Cycle 2 / 再审计 remediation" 系列消歧）；Follow-up Backlog 核对：全部条目带 ✅ Fixed / ⚠️ False positive / ⚠️ watch-only 标注，无未标注残留
+- [x] **C5 独立 closure audit**：fresh-session 子 agent 按 Closure Gates 逐项核验 live repo（含 Anti-Hollow：修复在运行时路径被真实调用、端到端测试真实走通、无空壳/静默跳过），证据写入本 plan Closure 节 → 独立 closure auditor 子 agent（fresh session `ses_ffc56693effemooCIKleNl6BNR`，review-only 零文件修改）**verdict approved，0 Blocker / 0 Major / 3 Minor**（Minor 均为非本计划引入的既有观察：其他 mission 的 doc-links 基线错误、MDCP:114 既有非静默 SecurityException catch、surefire 报告时间戳一致性观察）；逐项 15/15 PASS + Anti-Hollow (a)(b)(c)(d) PASS（证据全文见 Closure 节）
 
 Exit Criteria:
 
-- [ ] 统计四元组记录且来源可追溯
-- [ ] 稳态判定有结论 + 依据；复触发条件在 roadmap 中最新
-- [ ] roadmap Work Item Status 表与实际状态一致（无完成项未标、无未完成项虚标）
-- [ ] 独立 closure audit 完成，证据写入 plan 文件（Reviewer/session ID + 逐条 PASS/FAIL）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 对本次修改文件 0 新增 broken link
-- [ ] `ai-dev/logs/` 对应日期条目已更新（含 Cycle 2 收口记录）
+- [x] 统计四元组记录且来源可追溯 → C1（门禁 5 / red list 67 / 修复 46 / 新族 0，三源可溯）
+- [x] 稳态判定有结论 + 依据；复触发条件在 roadmap 中最新 → C2 稳态暂停（依据：gate 1-4 零命中 + gate 5 终态 ⊆ 豁免清单 + 0 新族）；C3 复触发条件核对仍准确（invariant-guards.md §复触发条件 + roadmap Loop Rule）
+- [x] roadmap Work Item Status 表与实际状态一致（无完成项未标、无未完成项虚标） → C4 新增 "Cycle 2 / I4+I5+I6（invariant-loop）" ✅ done 行（invariant-loop 标注消歧）；closure audit spot-check PASS（roadmap.md:42）
+- [x] 独立 closure audit 完成，证据写入 plan 文件（Reviewer/session ID + 逐条 PASS/FAIL） → session `ses_ffc56693effemooCIKleNl6BNR` verdict approved，证据见 Closure 节
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0 → 收口后复跑 exit 0（见 Closure 节证据）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 对本次修改文件 0 新增 broken link → 16 errors 全部为其他 mission 文件的既有基线错误，本次修改文件（red lists / roadmap / plan / invariant-guards.md / nop-metadata.md / 08-15.md）0 命中（closure audit 独立复核一致）
+- [x] `ai-dev/logs/` 对应日期条目已更新（含 Cycle 2 收口记录） → `ai-dev/logs/2026/08-15.md` Phase 3 小节
 
 ## Closure Gates
 
-- [ ] Phase 1~3 全部 Exit Criteria 勾选，各 Phase Status = completed
-- [ ] I3' 裁决表 P1 集零残留（修复 / 显式 successor 拆分，无第三态）
-- [ ] 类别清扫恒等式成立（权威分母 = 裁决表；每族：裁决条数 = 修复 + FP 已处置 + 豁免 + successor 拆分）
-- [ ] 模块全绿 + 4+N 门禁终态达成（按模式归属表：零命中或 ⊆ 已批准豁免清单）+ 棘轮记录可复核
-- [ ] Cycle 2 统计与稳态判定完成，复触发条件已登记
-- [ ] 无 confirmed live defect 被降级（deferred 区仅有已裁定 non-blocking 项）
-- [ ] 受影响 owner-doc（含 `invariant-guards.md`）已同步或逐项裁定 No update required
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 验证 (a) 修复在运行时路径被真实调用（非仅编译通过），(b) 端到端测试从入口到输出走通（P1 非空时），(c) 无空方法体/静默跳过/no-op
-- [ ] `./mvnw test -pl nop-metadata -am -T 1C` 全绿
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0
+- [x] Phase 1~3 全部 Exit Criteria 勾选，各 Phase Status = completed
+- [x] I3' 裁决表 P1 集零残留（修复 / 显式 successor 拆分，无第三态） → 46/46 修复零 successor；closure audit check #2 PASS（scanner 终态 locale 0 / bigdec 0，命中 21 全 FP ⊆ 豁免清单）
+- [x] 类别清扫恒等式成立（权威分母 = 裁决表；每族：裁决条数 = 修复 + FP 已处置 + 豁免 + successor 拆分） → closure audit check #2 PASS（67 = 46 修复 + 21 驻留 + 0 successor ≡ 裁决表 §1 恒等式）
+- [x] 模块全绿 + 4+N 门禁终态达成（按模式归属表：零命中或 ⊆ 已批准豁免清单）+ 棘轮记录可复核 → 1207/0 + 聚合入口 exit 0（closure audit check #5/#9 独立复跑 PASS）+ formal-red-list-cycle2 §棘轮终态记录
+- [x] Cycle 2 统计与稳态判定完成，复触发条件已登记 → C1/C2/C3
+- [x] 无 confirmed live defect 被降级（deferred 区仅有已裁定 non-blocking 项） → Deferred But Adjudicated 为空；closure audit check #7 PASS
+- [x] 受影响 owner-doc（含 `invariant-guards.md`）已同步或逐项裁定 No update required → closure audit check #6a/#6b PASS
+- [x] 独立子 agent closure-audit 已完成并记录证据 → session `ses_ffc56693effemooCIKleNl6BNR` verdict approved（0 Blocker / 0 Major）
+- [x] **Anti-Hollow Check**：closure audit 验证 (a) 修复在运行时路径被真实调用（非仅编译通过），(b) 端到端测试从入口到输出走通（P1 非空时），(c) 无空方法体/静默跳过/no-op → audit Anti-Hollow (a) validateJdbcUrl←buildDataSource←withConnection/testConnect、BizModel @BizMutation L121-140 委派固定后的 QueryAction、validateCustomSqlShell:323 调用链确认；(b) e2e 测试真实驱动 GraphQL mutation + tr locale + finally 恢复 + 落库断言确认；(c) 46 修复 diff 区域逐一抽读无空壳/静默模式 + 全仓残余裸 toLowerCase 仅 javadoc 伪站点；(d) `scan-hollow-implementations --severity high` exit 0
+- [x] `./mvnw test -pl nop-metadata -am -T 1C` 全绿 → BUILD SUCCESS（145 模块 reactor 全绿；service 1207/0/0；一次 -T 1C 并行运行曾现 nop-metadata 之外的上游瞬时失败，完整复跑 145/145 SUCCESS——如实记录不掩盖，nop-metadata 全模块两次运行均 SUCCESS）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0 → 收口后复跑 exit 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0 → 0 findings（closure audit 独立复跑一致）
 
 ## Deferred But Adjudicated
 
@@ -152,14 +152,24 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成时填写>>
-Completed: <<YYYY-MM-DD>>
+Status Note: Cycle 2 不变式闭环全链收口——裁决表 46 P1 全量修复（locale 40 → Locale.ROOT 含 2 处安全语义缺陷、C8 exact-match、D1/D5/D6 结构性键、E1/E2 AR-10 路由）+ 21 FP 按 B1b 方式 (a) baseline 驻留；门禁终态达成（gate 1-4 零命中 + gate 5 命中集 ⊆ 已批准豁免清单 21 命中/16 键，保持模式 b，hard-gate 注入 proof 双向）；棘轮 67 = 修复 46 + 驻留 21 + successor 0 可复核；模块 1207 tests / 0 failures；Cycle 2 统计（门禁 5 / red list 67 / 修复 46 / 新族 0）与稳态判定（稳态暂停，0 新族不派 Cycle 3）完成，复触发条件核对最新；roadmap Work Item 表同步（invariant-loop 消歧行）。silent-wrong-result 族与 Cycle 1 四族一致处于"门禁防回退"稳态。
+Completed: 2026-08-15
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Evidence: <<task id / 每条 Exit Criterion 与 Closure Gate 的验证结果 / Anti-Hollow 检查结果 / deferred 分类检查>>
+- Reviewer / Agent: 独立 closure auditor 子 agent（fresh session，review-only 零文件修改），session `ses_ffc56693effemooCIKleNl6BNR`
+- Evidence:
+  - **Verdict: approved，0 Blocker / 0 Major / 3 Minor**（Minor 均非本计划引入：① doc-links 16 errors 全为其他 mission 文件既有基线；② MDCP:114 既有 SecurityException catch（非静默，plan 前已存在）；③ surefire 报告时间戳一致性观察）
+  - Phase 1 Exit Criteria 6/6 PASS（audit check #1 文本一致性 + #3a-#3f 修复 spot-check 六处逐一 live code 证实：MDCP 5 站点 Locale.ROOT L71/129/232/266/496、MQRE sandbox L388 + regexp L809、MTP isStringType exact-match L569-575 + STRING_KEYWORDS 全仓零残留、NMLEQA `Set<List<String>>`/`Map<List<String>,…>` L258/263/479/492 且 `+ "|" +` 零匹配、MFE/MOBC 委托 AggregationHelper L353-354/L130-131、ACP warnKey L148）
+  - Phase 2 Exit Criteria 7/7 PASS（audit check #2/#5/#6a/#6b：scanner baseline 对账 exit 0、逐族 0/0/18/3/0=21 ⊆ 16 键、聚合入口独立复跑 exit 0 "All 5 guards passed"、CI maven.yml invariant-gate 调用同一聚合入口且无 continue-on-error/|| true、invariant-guards.md 终态条 L68、nop-metadata.md AR-10 段 E1/E2 对齐无遗留 deferral）
+  - Phase 3 Exit Criteria 7/7 PASS（audit check #1/#6c/#7/#8：C1-C4 勾选一致、roadmap.md:42 新行 ✅、Deferred 空 + Follow-ups 仅 Cycle 3 条件项与全仓扩展、check-plan-checklist 收口前状态 = 预期（20 未勾 = C5+EC+Gates+占位）、doc-links 16 errors 与基线一致且本次修改文件 0 命中）
+  - Closure Gates 12/12 PASS（含本 audit 自身；恒等式 67=46+21+0 与裁决表 §1 逐项对齐；1207/0/0 surefire 131 份报告聚合）
+  - **Anti-Hollow 检查 PASS**：(a) 运行时调用链确认——`validateJdbcUrl` L230 ← `buildDataSource` L198 ← `withConnection`/`testConnect`（真实建连路径）；`extractLineageFromSql`/`extractColumnLineageFromSql` 为 `NopMetaLineageEdgeBizModel` @BizMutation GraphQL 暴露方法（L121-140）委派修复后的 QueryAction；`validateCustomSqlSandbox` 于 MetaQualityRuleExecutor:323 custom SQL 执行前真实调用；(b) 端到端测试真实走通——`TestNopMetaLineageEdgeLocaleAndKeys`（@NopTestConfig localDb）4 例 GraphQL mutation 驱动 + 测试内 tr locale + finally 恢复 + edgeCount/落库双断言（含引号 pipe 列两边界 + 幂等重抽）；(c) 46 修复 diff 区域逐一抽读无空方法体/吞异常/no-op（结构键接真实 batchSave/batchUpdate L264-285、warn 去重接真实 LOG.warn L148-153）；(d) `scan-hollow-implementations --module nop-metadata --severity high` exit 0（0 findings）
+  - `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 收口后复跑退出码 0（无未勾选项 + Closure Evidence 已写入）
+  - Deferred 项分类检查：Deferred But Adjudicated 为空；Non-Blocking Follow-ups 仅 Cycle 3 条件触发项（0 新族未触发）与全仓扩展（归各 mission）——无 in-scope live defect 被降级（裁决表 §9 亦零 deferred）
 
 Follow-up:
 
-- <<只记录 non-blocking follow-up；confirmed live defect 不得出现在这里>>
+- Cycle 3 / I1 新族门禁实现——仅当复触发条件满足（CI 变红 / 新增或重命名 processor/bizmodel/ORM entity / 周期复探）时启动，非本计划拥有（本轮 0 新族未触发）。
+- 全仓门禁扩展（nop-metadata 之外）—— 归各自 mission。
+- 无剩余 plan-owned work。
