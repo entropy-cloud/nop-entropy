@@ -1,0 +1,49 @@
+<rule ruleName="rule-selection/preferred" ruleVersion="1"
+      x:schema="/nop/schema/rule.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <!--
+    W5b test rule (plan 2026-08-15-1116-1, Phase 3): selects candidate index 1
+    via a COMPUTED input (preferredProvider = candidates[1].provider) + a plain
+    filter-op predicate over the derived helper variable.
+
+    EMPIRICAL contract finding (execution 2026-08-15): the <expr> filter op is
+    NOT usable in XML rule files — its body text is never compiled into the
+    value attr (FilterBeanToPredicateTransformer.visitUnknown reads
+    filter.getAttr("value") cast to Expression; the raw XML node carries no
+    value attr → compile-time NPE). XML rule files MUST use the computed-input
+    pattern (computed="true" + <defaultExpr>); the <expr> op only works for
+    programmatically built filter beans (ExpressionToFilterBeanTransformer).
+
+    Declaration order matters: the computed input must be declared AFTER the
+    inputs it reads (scope locals are set in declaration order).
+    -->
+
+    <input name="model"/>
+    <input name="provider"/>
+    <input name="candidates"/>
+    <input name="health"/>
+    <input name="attempted"/>
+    <input name="preferredProvider" computed="true">
+        <defaultExpr>candidates[1] == null ? null : candidates[1].provider</defaultExpr>
+    </input>
+
+    <output name="selectedIndex" type="int"/>
+
+    <decisionTree>
+        <children>
+            <child id="select-1" label="computed preferred provider matches">
+                <predicate>
+                    <eq name="preferredProvider" value="test-accounts"/>
+                </predicate>
+                <output name="selectedIndex">
+                    <valueExpr>1</valueExpr>
+                </output>
+            </child>
+            <child id="default" label="fallback index 0">
+                <output name="selectedIndex">
+                    <valueExpr>0</valueExpr>
+                </output>
+            </child>
+        </children>
+    </decisionTree>
+</rule>

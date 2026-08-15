@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- W5b IoC wiring test (mode: no rule engine): does NOT import
+     rule-defaults.beans.xml, and mirrors the PRODUCTION bean definition from
+     ai-gateway-defaults.beans.xml verbatim (ioc:optional ref) — so
+     nopRuleManager is ABSENT and the optional ref must resolve to null while
+     the container still starts. This verifies the deployment semantics: a
+     classpath without nop-rule-core starts normally; the strategy fails fast
+     on first use (ERR_AI_AGENT_INVALID_ARG), no silent fallback. -->
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns:ioc="ioc">
+
+    <bean id="nopAiRuleBasedSelectionStrategy"
+          class="io.nop.ai.core.routing.RuleBasedSelectionStrategy"
+          ioc:type="io.nop.ai.core.routing.ISelectionStrategy">
+        <property name="ruleManager">
+            <ref bean="nopRuleManager" ioc:optional="true"/>
+        </property>
+        <property name="ruleName" value="rule-selection/preferred"/>
+    </bean>
+</beans>

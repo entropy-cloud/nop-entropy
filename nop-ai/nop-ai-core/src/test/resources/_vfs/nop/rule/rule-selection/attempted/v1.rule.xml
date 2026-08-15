@@ -1,0 +1,32 @@
+<rule ruleName="rule-selection/attempted" ruleVersion="1"
+      x:schema="/nop/schema/rule.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <!--
+    W5b test rule (plan 2026-08-15-1116-1, Phase 3): ALWAYS selects index 0.
+    When candidate 0 is already in the attempted set, the strategy must fail
+    loud (ERR_AI_AGENT_INVALID_ARG) — the interface contract forbids re-returning
+    an attempted candidate and the rule author is responsible for consuming the
+    attempted input.
+    -->
+
+    <input name="model"/>
+    <input name="provider"/>
+    <input name="candidates"/>
+    <input name="health"/>
+    <input name="attempted"/>
+
+    <output name="selectedIndex" type="int"/>
+
+    <decisionTree>
+        <children>
+            <child id="select-0" label="always index 0">
+                <predicate>
+                    <alwaysTrue/>
+                </predicate>
+                <output name="selectedIndex">
+                    <valueExpr>0</valueExpr>
+                </output>
+            </child>
+        </children>
+    </decisionTree>
+</rule>

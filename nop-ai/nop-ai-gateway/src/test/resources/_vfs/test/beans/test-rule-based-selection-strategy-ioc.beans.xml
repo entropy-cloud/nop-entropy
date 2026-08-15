@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- W5b IoC wiring test (mode: rule engine present): imports the REAL platform
+     rule-defaults.beans.xml so the nopRuleManager bean exists, and mirrors the
+     production nopAiRuleBasedSelectionStrategy bean definition from
+     ai-gateway-defaults.beans.xml (same class, same ioc:type, same optional
+     ref) — but with ruleName/ruleVersion wired to the nop-ai-core test rules
+     (rule-selection/preferred/v1 under the test classpath). Verifies the
+     strategy bean resolves and ruleManager is injected non-null. -->
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns:ioc="ioc">
+
+    <import resource="/nop/rule/beans/rule-defaults.beans.xml"/>
+
+    <bean id="nopAiRuleBasedSelectionStrategy"
+          class="io.nop.ai.core.routing.RuleBasedSelectionStrategy"
+          ioc:type="io.nop.ai.core.routing.ISelectionStrategy">
+        <property name="ruleManager">
+            <ref bean="nopRuleManager"/>
+        </property>
+        <property name="ruleName" value="rule-selection/gateway"/>
+        <property name="ruleVersion" value="1"/>
+    </bean>
+</beans>

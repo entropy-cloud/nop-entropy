@@ -38,6 +38,15 @@
             <artifactId>nop-xlang</artifactId>
         </dependency>
 
+        <!-- Rule-based selection strategy (W5b, plan 2026-08-15-1116-1): the
+             RuleBasedSelectionStrategy consumes IRuleManager (nop-rule-core)
+             to run platform rule.xdef decision trees. Acyclic: nop-rule-core
+             depends only on nop-rule-api/nop-xlang/nop-ooxml-xlsx. -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-rule-core</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-markdown</artifactId>

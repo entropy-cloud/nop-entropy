@@ -1,0 +1,25 @@
+<rule ruleName="rule-selection/missing-input" ruleVersion="1"
+      x:schema="/nop/schema/rule.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <!--
+    W5b test rule (plan 2026-08-15-1116-1, Phase 3): deliberately declares ONLY
+    the model input. The strategy sets the full contract input set; the platform
+    hard constraint NormalizeInputExecutableRule rejects undeclared inputs with
+    ERR_RULE_UNKNOWN_INPUT_VAR — verifying the contract's input-declaration
+    requirement is enforced by the platform (test asserts the error code).
+    -->
+
+    <input name="model"/>
+
+    <output name="selectedIndex" type="int"/>
+
+    <decisionTree>
+        <children>
+            <child id="default" label="fallback index 0">
+                <output name="selectedIndex">
+                    <valueExpr>0</valueExpr>
+                </output>
+            </child>
+        </children>
+    </decisionTree>
+</rule>

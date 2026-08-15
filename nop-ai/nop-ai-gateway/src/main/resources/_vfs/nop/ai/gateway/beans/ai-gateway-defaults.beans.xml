@@ -105,4 +105,27 @@
         </property>
     </bean>
 
+    <!-- Rule-based selection strategy (W5b, plan 2026-08-15-1116-1): an
+         ISelectionStrategy implementation that runs a platform rule.xdef
+         decision tree (nop-rule) to pick a ModelClassCandidate. Deployment
+         opt-in: the bean exists but is NOT the default (DefaultSelectionStrategy
+         remains the default in ModelClassRouter); W6/W7 orchestration chooses
+         which strategy bean to inject. The ruleManager ref is ioc:optional —
+         a gateway deployment without nop-rule-core still starts; calling
+         select() without the wired manager fails fast with
+         ERR_AI_AGENT_INVALID_ARG (no silent fallback). ruleName/ruleVersion
+         are deployment-level config (rule files live under /nop/rule). -->
+    <bean id="nopAiRuleBasedSelectionStrategy"
+          class="io.nop.ai.core.routing.RuleBasedSelectionStrategy"
+          ioc:type="io.nop.ai.core.routing.ISelectionStrategy">
+        <property name="ruleManager">
+            <ref bean="nopRuleManager" ioc:optional="true"/>
+        </property>
+        <!-- Deployment-level rule identity (rule files live under /nop/rule);
+             the empty default means "not configured yet" → select() fails fast
+             on first use until a deployment assigns the config value. -->
+        <property name="ruleName" value="@cfg:nop.ai.gateway.rule-selection.rule-name|"/>
+        <!-- ruleVersion omitted: null = latest version of the rule -->
+    </bean>
+
 </beans>

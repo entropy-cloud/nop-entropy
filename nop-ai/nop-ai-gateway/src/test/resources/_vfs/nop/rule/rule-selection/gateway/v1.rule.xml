@@ -1,0 +1,40 @@
+<rule ruleName="rule-selection/gateway" ruleVersion="1"
+      x:schema="/nop/schema/rule.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <!--
+    W5b IoC wiring test rule (plan 2026-08-15-1116-1, Phase 3): lives in the
+    nop-ai-gateway TEST classpath (nop-ai-core's rule files are test resources
+    of nop-ai-core and are not visible here). Computed-input pattern per the
+    empirical contract finding: preferredProvider = candidates[1].provider →
+    <eq> predicate → selectedIndex 1.
+    -->
+
+    <input name="model"/>
+    <input name="provider"/>
+    <input name="candidates"/>
+    <input name="health"/>
+    <input name="attempted"/>
+    <input name="preferredProvider" computed="true">
+        <defaultExpr>candidates[1] == null ? null : candidates[1].provider</defaultExpr>
+    </input>
+
+    <output name="selectedIndex" type="int"/>
+
+    <decisionTree>
+        <children>
+            <child id="select-1" label="computed preferred provider matches">
+                <predicate>
+                    <eq name="preferredProvider" value="test-accounts"/>
+                </predicate>
+                <output name="selectedIndex">
+                    <valueExpr>1</valueExpr>
+                </output>
+            </child>
+            <child id="default" label="fallback index 0">
+                <output name="selectedIndex">
+                    <valueExpr>0</valueExpr>
+                </output>
+            </child>
+        </children>
+    </decisionTree>
+</rule>

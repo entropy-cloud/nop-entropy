@@ -1,0 +1,31 @@
+<rule ruleName="rule-selection/outofbounds" ruleVersion="1"
+      x:schema="/nop/schema/rule.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <!--
+    W5b test rule (plan 2026-08-15-1116-1, Phase 3): always selects index 99 —
+    out of bounds for any realistic candidate list. Semantic branch 3 of the
+    strategy: matched + selectedIndex out of bounds → fail-loud
+    (ERR_AI_AGENT_INVALID_ARG, rule config error — no silent fallback).
+    -->
+
+    <input name="model"/>
+    <input name="provider"/>
+    <input name="candidates"/>
+    <input name="health"/>
+    <input name="attempted"/>
+
+    <output name="selectedIndex" type="int"/>
+
+    <decisionTree>
+        <children>
+            <child id="select-99" label="always out of bounds">
+                <predicate>
+                    <alwaysTrue/>
+                </predicate>
+                <output name="selectedIndex">
+                    <valueExpr>99</valueExpr>
+                </output>
+            </child>
+        </children>
+    </decisionTree>
+</rule>

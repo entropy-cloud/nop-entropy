@@ -1,0 +1,29 @@
+<rule ruleName="rule-selection/noselect" ruleVersion="1"
+      x:schema="/nop/schema/rule.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <!--
+    W5b test rule (plan 2026-08-15-1116-1, Phase 3): MATCHES (predicate true)
+    but produces NO selectedIndex output. Semantic branch 2 of the strategy:
+    rule matched but output map has no selectedIndex → strategy returns null
+    (same as no-match; NOT a loud failure — the contract treats "no selection
+    decision" as "no available candidate").
+    -->
+
+    <input name="model"/>
+    <input name="provider"/>
+    <input name="candidates"/>
+    <input name="health"/>
+    <input name="attempted"/>
+
+    <output name="selectedIndex" type="int"/>
+
+    <decisionTree>
+        <children>
+            <child id="matches-no-output" label="matches but no output">
+                <predicate>
+                    <alwaysTrue/>
+                </predicate>
+            </child>
+        </children>
+    </decisionTree>
+</rule>

@@ -1,0 +1,46 @@
+<rule ruleName="rule-selection/computed" ruleVersion="1"
+      x:schema="/nop/schema/rule.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <!--
+    W5b test rule (plan 2026-08-15-1116-1, Phase 3): selects candidate index 1
+    via a COMPUTED input deriving a helper variable from the HEALTH input
+    (secondAvailable = health[1].available), then a filter-op predicate over it.
+    Demonstrates that the health view (Integer-keyed map) is consumed by rules.
+
+    EMPIRICAL contract finding (execution 2026-08-15): the <expr> filter op is
+    NOT usable in XML rule files (body text never compiled into the value attr
+    → compile-time NPE); XML rule files MUST use the computed-input pattern.
+
+    Declaration order matters: computed inputs must be declared AFTER the
+    inputs they read (scope locals are set in declaration order).
+    -->
+
+    <input name="model"/>
+    <input name="provider"/>
+    <input name="candidates"/>
+    <input name="health"/>
+    <input name="attempted"/>
+    <input name="secondAvailable" computed="true">
+        <defaultExpr>health[1] == null ? false : health[1].available</defaultExpr>
+    </input>
+
+    <output name="selectedIndex" type="int"/>
+
+    <decisionTree>
+        <children>
+            <child id="select-1" label="candidate 1 healthy">
+                <predicate>
+                    <eq name="secondAvailable" value="true"/>
+                </predicate>
+                <output name="selectedIndex">
+                    <valueExpr>1</valueExpr>
+                </output>
+            </child>
+            <child id="default" label="fallback index 0">
+                <output name="selectedIndex">
+                    <valueExpr>0</valueExpr>
+                </output>
+            </child>
+        </children>
+    </decisionTree>
+</rule>
