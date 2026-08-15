@@ -218,12 +218,12 @@ mutation {
 
 | 子模块 | 用途 |
 |--------|------|
-| `nop-metadata-api` | DTO 类（`io.nop.metadata.api.dto.*`，31 个 `@DataBean`），供 Biz 接口和跨模块调用契约引用 |
+| `nop-metadata-api` | DTO 类（`io.nop.metadata.api.dto.*`，30 个 `@DataBean`），供 Biz 接口和跨模块调用契约引用 |
 | `nop-metadata-core` | 共享常量（`_NopMetadataCoreConstants`，125 个表/数据源/血缘/质量等枚举常量）——**无 dto 包** |
 | `nop-metadata-dao` | ORM 实体 + BizModel 接口（`INopMeta*Biz`）—— Biz 接口因引用 dao.entity.* 类型而驻留在此，不迁至 api |
 | `nop-metadata-codegen` | Codegen 生成入口（`nop-metadata/nop-metadata-codegen/src/test/java/io/nop/metadata/codegen/NopMetadataCodeGen.java`）；实际模板在 `nop-metadata-meta/_templates/` |
 | `nop-metadata-meta` | xmeta（`_vfs/nop/metadata/model/*/`，78 个）+ dict（`dict/meta/*.dict.yaml`）+ i18n + codegen xgen 脚本（precompile/postcompile）+ `_templates/` |
-| `nop-metadata-service` | BizModel 实现 + Executor / Processor / Helper + 全部 xbiz（`_vfs/nop/metadata/model/<Entity>/*.xbiz`） |
+| `nop-metadata-service` | BizModel 实现 + Executor / Processor / Helper + 全部 xbiz（`_vfs/nop/metadata/model/<Entity>/*.xbiz`）+ NopMetaSearch xmeta（`_vfs/nop/metadata/model/NopMetaSearch/NopMetaSearch.xmeta`——Pseudo-BizModel 无对应 ORM 实体，live 无 NopMetaSearch.xwf）+ 3 个审批流定义（`_vfs/nop/wf/metaDataContractApproval/v1.xwf` / `_vfs/nop/wf/qualityBreachApproval/v1.xwf` / `_vfs/nop/wf/tagLabelConfirmApproval/v1.xwf`，分别为 DataContract / QualityBreach / TagLabelConfirm 提审审批） |
 | `nop-metadata-web` | 页面（view.xml/page.yaml）+ action-auth + i18n + `_module` 标记（无 beans.xml/xbiz；GraphQL 注册由 service 模块 beans + @BizModel 驱动） |
 | `nop-metadata-app` | Quarkus 启动入口（demo 应用） |
 
@@ -239,7 +239,7 @@ mutation {
 | `nop-metadata-web` | `nop-metadata-service` + Web 入口 |
 | `nop-metadata-app` | `nop-metadata-web` + Quarkus 启动器 |
 
-**test-scope 基建依赖（P2-26）**：上表只列 compile 依赖；`nop-metadata-service` 还以 `test` scope 引入基建依赖——`nop-metadata-codegen`（DDL/codegen 验证）、`nop-search-core`（搜索测试）、`nop-job-local`（cron 调度 AutoTest，生产环境由宿主应用提供调度器）、`nop-autotest-junit`（Nop AutoTest）、junit-jupiter(+params)、H2/MySQL 驱动（`localDb` 测试）与 mockito-core。这些依赖不参与运行时装配，仅为测试支撑。
+**test-scope 基建依赖（P2-26 + P2-35 裁定）**：上表只列 compile 依赖；`nop-metadata-service` 还以 `test` scope 引入基建依赖——`nop-metadata-codegen`（DDL/codegen 验证）、`nop-search-core`（搜索测试）、`nop-search-lucene`（搜索测试的默认 impl，经运行时 SPI 到达；main 代码只依赖 `io.nop.search.api` 抽象，零 lucene import——**生产部署需要搜索功能时由宿主应用显式引入 `nop-search-lucene` 或替换为其他 `nop-search-*` impl**，模块自身不传递任何搜索实现）、`nop-job-local`（cron 调度 AutoTest，生产环境由宿主应用提供调度器）、`nop-autotest-junit`（Nop AutoTest）、junit-jupiter(+params)、H2/MySQL 驱动（`localDb` 测试）与 mockito-core。这些依赖不参与运行时装配，仅为测试支撑。
 
 `INopMeta*Biz` 接口驻留在 `nop-metadata-dao` 而非 `nop-metadata-api`，因为这些接口的类型参数引用 `dao.entity.*` 实体类，移入 api 会导致循环依赖（api → dao → api）。
 
@@ -277,7 +277,7 @@ nop-metadata 对三处安全敏感路径维持 fail-closed / 默认脱敏 / fail
 
 - 平台主文档：`docs-for-ai/03-modules/nop-metadata.md`（本文档）
 - I*Biz 接口契约（`nop-metadata-dao` 模块 `io.nop.metadata.biz` 包 `INopMeta*Biz.java`）：每个 BizModel 都有对应接口声明全部自定义方法签名（唯一例外：NopMetaSearchBizModel Pseudo-BizModel 无接口，见上「API 契约」段）
-- DTO 规格（`nop-metadata-api/.../dto/`）：31 个 `@DataBean` DTO 类承载 API 返回值强类型契约
+- DTO 规格（`nop-metadata-api/.../dto/`）：30 个 `@DataBean` DTO 类承载 API 返回值强类型契约
 - ErrorCode 集中化（`nop-metadata-service/.../NopMetadataErrors.java`）：跨文件去重 + ARG_* 参数常量
 - 模块级异常（`NopMetadataException`）：替代 `IllegalArgumentException` / `UnsupportedOperationException` / 裸 `RuntimeException`
 
