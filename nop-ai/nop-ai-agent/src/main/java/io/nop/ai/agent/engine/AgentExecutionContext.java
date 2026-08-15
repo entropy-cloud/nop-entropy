@@ -1,6 +1,5 @@
 package io.nop.ai.agent.engine;
 
-import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.budget.BudgetSnapshot;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.model.AgentConstraintsModel;
@@ -11,6 +10,7 @@ import io.nop.ai.agent.security.ChannelKind;
 import io.nop.ai.agent.security.Principal;
 import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.api.chat.messages.ChatMessage;
+import io.nop.ai.core.NopAiCoreErrors;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -296,8 +296,8 @@ public class AgentExecutionContext {
      */
     public void enqueueSteering(ChatMessage message) {
         if (message == null) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
-                    .param(NopAiAgentErrors.ARG_MSG, "enqueueSteering: message must not be null");
+            throw new NopAiAgentException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiCoreErrors.ARG_MSG, "enqueueSteering: message must not be null");
         }
         steeringQueue.add(message);
     }

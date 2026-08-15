@@ -1,7 +1,7 @@
-package io.nop.ai.agent.reliability;
+package io.nop.ai.core.reliability;
 
-import io.nop.ai.agent.NopAiAgentErrors;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.core.NopAiCoreErrors;
+import io.nop.ai.core.NopAiCoreException;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.CountDownLatch;
@@ -29,10 +29,10 @@ public class TestThresholdBreaker {
 
     @Test
     void constructorRejectsInvalidThreshold() {
-        assertThrows(NopAiAgentException.class,
+        assertThrows(NopAiCoreException.class,
                 () -> new ThresholdBreaker(0, 1000L),
                 "failureThreshold must be >= 1");
-        assertThrows(NopAiAgentException.class,
+        assertThrows(NopAiCoreException.class,
                 () -> new ThresholdBreaker(-1, 1000L),
                 "failureThreshold must be >= 1");
     }
@@ -44,18 +44,18 @@ public class TestThresholdBreaker {
      */
     @Test
     void validationFailureCarriesErrorCodeAndVerbatimMessage() {
-        NopAiAgentException e = assertThrows(NopAiAgentException.class,
+        NopAiCoreException e = assertThrows(NopAiCoreException.class,
                 () -> new ThresholdBreaker(0, 1000L));
-        assertEquals(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG.getErrorCode(),
+        assertEquals(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG.getErrorCode(),
                 e.getErrorCode());
         assertEquals("ThresholdBreaker failureThreshold must be >= 1: 0",
-                e.getParams().get(NopAiAgentErrors.ARG_MSG));
+                e.getParams().get(NopAiCoreErrors.ARG_MSG));
         assertTrue(e.getMessage().contains("ThresholdBreaker failureThreshold must be >= 1: 0"));
     }
 
     @Test
     void constructorRejectsNegativeCooldown() {
-        assertThrows(NopAiAgentException.class,
+        assertThrows(NopAiCoreException.class,
                 () -> new ThresholdBreaker(3, -1L),
                 "cooldownMs must be >= 0");
     }
@@ -70,10 +70,10 @@ public class TestThresholdBreaker {
     @Test
     void nullModelKeyRejected() {
         ThresholdBreaker b = new ThresholdBreaker();
-        assertThrows(NopAiAgentException.class, () -> b.allowCall(null));
-        assertThrows(NopAiAgentException.class, () -> b.getState(null));
-        assertThrows(NopAiAgentException.class, () -> b.recordSuccess(null));
-        assertThrows(NopAiAgentException.class, () -> b.recordFailure(null));
+        assertThrows(NopAiCoreException.class, () -> b.allowCall(null));
+        assertThrows(NopAiCoreException.class, () -> b.getState(null));
+        assertThrows(NopAiCoreException.class, () -> b.recordSuccess(null));
+        assertThrows(NopAiCoreException.class, () -> b.recordFailure(null));
     }
 
     // ========================================================================

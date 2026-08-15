@@ -1,6 +1,5 @@
 package io.nop.ai.agent.team.flow;
 
-import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.engine.IAgentEngine;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.team.IMemberSpawner;
@@ -8,6 +7,7 @@ import io.nop.ai.agent.team.ITeamTaskStore;
 import io.nop.ai.agent.team.Team;
 import io.nop.ai.agent.team.TeamTask;
 import io.nop.ai.agent.team.TeamTaskStatus;
+import io.nop.ai.core.NopAiCoreErrors;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskStepReturn;
 import io.nop.task.step.AbstractTaskStep;
@@ -88,7 +88,7 @@ public class MixedMemberFanOutStep extends AbstractTaskStep {
         this.reductionStrategy = reductionStrategy;
         this.memberExecTimeoutMs = memberExecTimeoutMs;
         if (this.targets.size() < 2) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG,
+            throw new NopAiAgentException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiCoreErrors.ARG_MSG,
                     "MixedMemberFanOutStep is for plans mixing bound and spawn targets with size >= 2; "
                             + "got size=" + this.targets.size() + " (use the single-target step or a same-kind fan-out step)");
         }
@@ -100,12 +100,12 @@ public class MixedMemberFanOutStep extends AbstractTaskStep {
             } else if (t.isSpawn()) {
                 hasSpawn = true;
             } else {
-                throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG,
+                throw new NopAiAgentException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiCoreErrors.ARG_MSG,
                         "MixedMemberFanOutStep accepts only BOUND or SPAWN targets; got " + t.getKind());
             }
         }
         if (!(hasBound && hasSpawn)) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG,
+            throw new NopAiAgentException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiCoreErrors.ARG_MSG,
                     "MixedMemberFanOutStep requires both BOUND and SPAWN targets; got hasBound=" + hasBound
                             + ", hasSpawn=" + hasSpawn + " (use the same-kind fan-out step for a uniform plan)");
         }

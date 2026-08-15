@@ -1,10 +1,6 @@
 package io.nop.ai.agent.engine;
 
 import io.nop.ai.agent.model.AgentExecStatus;
-import io.nop.ai.agent.reliability.AccountChain;
-import io.nop.ai.agent.reliability.AlwaysClosed;
-import io.nop.ai.agent.reliability.IAccountChainResolver;
-import io.nop.ai.agent.reliability.StandardRetryPolicy;
 import io.nop.ai.agent.router.PassThroughModelRouter;
 import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.api.chat.ChatRequest;
@@ -14,6 +10,10 @@ import io.nop.ai.api.chat.IChatService;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.stream.ChatStreamChunk;
 import io.nop.ai.core.model.LlmAccountModel;
+import io.nop.ai.core.reliability.AccountChain;
+import io.nop.ai.core.reliability.AlwaysClosed;
+import io.nop.ai.core.reliability.IAccountChainResolver;
+import io.nop.ai.core.reliability.StandardRetryPolicy;
 import io.nop.api.core.util.ICancelToken;
 import org.junit.jupiter.api.Test;
 
@@ -198,7 +198,7 @@ public class TestAccountFallbackChain {
     // ========================================================================
 
     private static LlmCallCoordinator newCoordinator(IChatService chat,
-                                                      io.nop.ai.agent.reliability.IRetryPolicy policy,
+                                                      io.nop.ai.core.reliability.IRetryPolicy policy,
                                                       IAccountChainResolver resolver) {
         AgentHookInvoker invoker = new AgentHookInvoker(
                 new io.nop.ai.agent.hook.DefaultHookRegistry(), null);

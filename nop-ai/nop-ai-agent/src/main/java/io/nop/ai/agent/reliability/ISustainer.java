@@ -1,5 +1,7 @@
 package io.nop.ai.agent.reliability;
 
+import io.nop.ai.core.reliability.ICircuitBreaker;
+
 /**
  * Layer 3 extension point for the "never give up" (Sisyphean) elasticity
  * philosophy — the structural opposite of {@link ICircuitBreaker}'s fail-fast

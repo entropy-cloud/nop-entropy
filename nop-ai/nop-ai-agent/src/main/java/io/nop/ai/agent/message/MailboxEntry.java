@@ -1,7 +1,7 @@
 package io.nop.ai.agent.message;
 
-import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.core.NopAiCoreErrors;
 
 import java.util.Objects;
 
@@ -34,8 +34,8 @@ public final class MailboxEntry {
     public MailboxEntry(long deliveryId, int deliveryCount, MailboxDeliveryState state,
                         AgentMessageEnvelope envelope, long offeredAt, long polledAt) {
         if (state == null) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
-                    .param(NopAiAgentErrors.ARG_MSG, "MailboxEntry: state must not be null");
+            throw new NopAiAgentException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiCoreErrors.ARG_MSG, "MailboxEntry: state must not be null");
         }
         this.deliveryId = deliveryId;
         this.deliveryCount = deliveryCount;

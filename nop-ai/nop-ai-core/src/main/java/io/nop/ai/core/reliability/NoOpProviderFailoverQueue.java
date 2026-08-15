@@ -1,4 +1,4 @@
-package io.nop.ai.agent.reliability;
+package io.nop.ai.core.reliability;
 
 /**
  * Pass-through {@link IProviderFailoverQueue} used as the shipped default when no

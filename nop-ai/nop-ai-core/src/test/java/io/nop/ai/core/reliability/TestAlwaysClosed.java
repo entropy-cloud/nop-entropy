@@ -1,4 +1,4 @@
-package io.nop.ai.agent.reliability;
+package io.nop.ai.core.reliability;
 
 import org.junit.jupiter.api.Test;
 

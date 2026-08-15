@@ -1,4 +1,4 @@
-package io.nop.ai.agent.reliability;
+package io.nop.ai.core.reliability;
 
 import io.nop.ai.api.chat.ErrorClassification;
 import io.nop.ai.core.NopAiCoreErrors;

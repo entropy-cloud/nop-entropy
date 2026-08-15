@@ -1,7 +1,7 @@
-package io.nop.ai.agent.reliability;
+package io.nop.ai.core.reliability;
 
 import io.nop.ai.api.chat.ErrorClassification;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.core.NopAiCoreException;
 import io.nop.api.core.exceptions.NopTimeoutException;
 import org.junit.jupiter.api.Test;
 
@@ -48,7 +48,7 @@ public class TestNoRetryPolicy {
 
     @Test
     void noRetryAlwaysStopsForNonTransient() {
-        NopAiAgentException paramError = new NopAiAgentException("400 bad request");
+        NopAiCoreException paramError = new NopAiCoreException("400 bad request");
         RetryContext ctx = new RetryContext(
                 0, paramError, ErrorClassification.NON_TRANSIENT, false);
         RetryOutcome outcome = NoRetryPolicy.noRetry().shouldRetry(ctx);

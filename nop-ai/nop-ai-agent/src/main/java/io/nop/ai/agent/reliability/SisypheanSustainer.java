@@ -1,7 +1,9 @@
 package io.nop.ai.agent.reliability;
 
-import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.core.NopAiCoreErrors;
+import io.nop.ai.core.reliability.StandardRetryPolicy;
+import io.nop.ai.core.reliability.ThresholdBreaker;
 
 /**
  * Functional {@link ISustainer} implementing the "never give up" (Sisyphean)
@@ -93,7 +95,7 @@ public final class SisypheanSustainer implements ISustainer {
      */
     public SisypheanSustainer(int maxSustainCount) {
         if (maxSustainCount < 0) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG,
+            throw new NopAiAgentException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiCoreErrors.ARG_MSG,
                     "SisypheanSustainer maxSustainCount must not be negative: " + maxSustainCount);
         }
         this.maxSustainCount = maxSustainCount;
@@ -109,8 +111,8 @@ public final class SisypheanSustainer implements ISustainer {
     @Override
     public SustainDecision onStop(SustainContext context) {
         if (context == null) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
-                    .param(NopAiAgentErrors.ARG_MSG, "SustainContext must not be null");
+            throw new NopAiAgentException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiCoreErrors.ARG_MSG, "SustainContext must not be null");
         }
         // Non-sustainable exit point (defensive — plan 212 first version only
         // ever receives MAX_ITERATIONS from the engine). Respect the original

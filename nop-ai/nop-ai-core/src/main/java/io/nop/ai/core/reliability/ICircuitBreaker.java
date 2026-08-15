@@ -1,4 +1,4 @@
-package io.nop.ai.agent.reliability;
+package io.nop.ai.core.reliability;
 
 /**
  * Layer 3 extension point for circuit-breaking a model/provider that is
@@ -12,7 +12,7 @@ package io.nop.ai.agent.reliability;
  *       asked whether the <i>primary</i> model (the one
  *       {@code IModelRouter.route()} returned for this iteration) may be
  *       called. A {@code false} return means the circuit is OPEN and the
- *       ReAct loop fails fast with a {@code NopAiAgentException} (no silent
+ *       ReAct loop fails fast with a {@code NopAiCoreException} (no silent
  *       skip — Minimum Rules #24). Circuit-breaking and retry are orthogonal:
  *       retry handles transient failures within a single call cycle; the
  *       breaker handles consecutive-failure patterns that span call cycles.</li>
@@ -28,7 +28,7 @@ package io.nop.ai.agent.reliability;
  *
  * <p>The breaker tracks state per <i>model identity</i> — the
  * {@code provider:model} composite key built by
- * {@code LlmCallCoordinator.buildModelKey(ChatOptions)}. A breaker tripping
+ * {@code ModelKeys.buildModelKey(ChatOptions)}. A breaker tripping
  * on model A does not prevent calls to a healthy model B (the fallback-chain
  * scenario), so the key parameter is mandatory on every method.
  *

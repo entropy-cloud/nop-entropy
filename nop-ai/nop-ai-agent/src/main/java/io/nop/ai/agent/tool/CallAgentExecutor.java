@@ -1,6 +1,5 @@
 package io.nop.ai.agent.tool;
 
-import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.AgentToolExecuteContext;
@@ -17,6 +16,7 @@ import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.security.ParentPermissionConstraint;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.api.chat.messages.ChatMessage;
+import io.nop.ai.core.NopAiCoreErrors;
 import io.nop.ai.toolkit.api.IToolExecuteContext;
 import io.nop.ai.toolkit.api.IToolExecutor;
 import io.nop.ai.toolkit.model.AiAgentCallResult;
@@ -125,8 +125,8 @@ public class CallAgentExecutor implements IToolExecutor {
      */
     public void setMaxDelegationDepth(int maxDelegationDepth) {
         if (maxDelegationDepth < 1) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
-                    .param(NopAiAgentErrors.ARG_MSG, "maxDelegationDepth must be >= 1, got: " + maxDelegationDepth);
+            throw new NopAiAgentException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiCoreErrors.ARG_MSG, "maxDelegationDepth must be >= 1, got: " + maxDelegationDepth);
         }
         this.maxDelegationDepth = maxDelegationDepth;
     }

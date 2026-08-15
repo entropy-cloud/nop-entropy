@@ -1,7 +1,7 @@
-package io.nop.ai.agent.reliability;
+package io.nop.ai.core.reliability;
 
 import io.nop.ai.api.chat.ErrorClassification;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.core.NopAiCoreException;
 import io.nop.api.core.exceptions.NopTimeoutException;
 import org.junit.jupiter.api.Test;
 
@@ -25,19 +25,19 @@ public class TestStandardRetryPolicy {
 
     @Test
     void rejectsMaxAttemptsLessThanOne() {
-        assertThrows(NopAiAgentException.class,
+        assertThrows(NopAiCoreException.class,
                 () -> new StandardRetryPolicy(0, 100L, 1000L));
     }
 
     @Test
     void rejectsNegativeBaseDelay() {
-        assertThrows(NopAiAgentException.class,
+        assertThrows(NopAiCoreException.class,
                 () -> new StandardRetryPolicy(3, -1L, 1000L));
     }
 
     @Test
     void rejectsMaxDelayBelowBaseDelay() {
-        assertThrows(NopAiAgentException.class,
+        assertThrows(NopAiCoreException.class,
                 () -> new StandardRetryPolicy(3, 1000L, 100L));
     }
 

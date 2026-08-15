@@ -8,9 +8,6 @@ import io.nop.ai.agent.middleware.ExecutionPoint;
 import io.nop.ai.agent.middleware.IAgentMiddleware;
 import io.nop.ai.agent.middleware.MiddlewareChain;
 import io.nop.ai.agent.model.AgentExecStatus;
-import io.nop.ai.agent.reliability.AlwaysClosed;
-import io.nop.ai.agent.reliability.NoRetryPolicy;
-import io.nop.ai.agent.reliability.StandardRetryPolicy;
 import io.nop.ai.agent.router.PassThroughModelRouter;
 import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.api.chat.ChatRequest;
@@ -18,6 +15,9 @@ import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.ErrorClassification;
 import io.nop.ai.api.chat.IChatService;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
+import io.nop.ai.core.reliability.AlwaysClosed;
+import io.nop.ai.core.reliability.NoRetryPolicy;
+import io.nop.ai.core.reliability.StandardRetryPolicy;
 import io.nop.api.core.util.ICancelToken;
 import org.junit.jupiter.api.Test;
 
@@ -144,7 +144,7 @@ public class TestExecutionMiddlewareLlmRetry {
 
     private static LlmCallCoordinator coordinatorWith(DefaultHookRegistry registry,
                                                        IChatService chat,
-                                                       io.nop.ai.agent.reliability.IRetryPolicy policy) {
+                                                       io.nop.ai.core.reliability.IRetryPolicy policy) {
         AgentHookInvoker invoker = new AgentHookInvoker(registry, null);
         return new LlmCallCoordinator(
                 chat, policy, AlwaysClosed.alwaysClosed(),
@@ -287,8 +287,8 @@ public class TestExecutionMiddlewareLlmRetry {
         // A policy that ALWAYS retries (even NON_TRANSIENT) — would loop forever without the cap.
         // We emulate by a policy with high maxAttempts; NON_TRANSIENT default-stops in StandardRetryPolicy,
         // so use TRANSIENT-flavoured behaviour via a custom policy that always returns RETRY.
-        io.nop.ai.agent.reliability.IRetryPolicy alwaysRetry = retryCtx ->
-                io.nop.ai.agent.reliability.RetryOutcome.retryAfter(0L);
+        io.nop.ai.core.reliability.IRetryPolicy alwaysRetry = retryCtx ->
+                io.nop.ai.core.reliability.RetryOutcome.retryAfter(0L);
         LlmCallCoordinator coordinator = coordinatorWith(registry, chat, alwaysRetry);
 
         // The veto cap (MAX_EXECUTION_VETOES = 3) must force fail-loud.
@@ -308,7 +308,7 @@ public class TestExecutionMiddlewareLlmRetry {
         registry.registerExecutionMiddleware(ExecutionPoint.PRE_LLM_ATTEMPT, new VetoOnAttempt(ExecutionPoint.PRE_LLM_ATTEMPT, -1));
 
         // A circuit breaker that throws if recordFailure is ever called, so we can detect it.
-        io.nop.ai.agent.reliability.ICircuitBreaker detector = new io.nop.ai.agent.reliability.ICircuitBreaker() {
+        io.nop.ai.core.reliability.ICircuitBreaker detector = new io.nop.ai.core.reliability.ICircuitBreaker() {
             @Override
             public boolean allowCall(String modelKey) {
                 return true;
@@ -324,8 +324,8 @@ public class TestExecutionMiddlewareLlmRetry {
             }
 
             @Override
-            public io.nop.ai.agent.reliability.CircuitState getState(String modelKey) {
-                return io.nop.ai.agent.reliability.CircuitState.CLOSED;
+            public io.nop.ai.core.reliability.CircuitState getState(String modelKey) {
+                return io.nop.ai.core.reliability.CircuitState.CLOSED;
             }
         };
         AgentHookInvoker invoker = new AgentHookInvoker(registry, null);

@@ -1,4 +1,4 @@
-package io.nop.ai.agent.reliability;
+package io.nop.ai.core.reliability;
 
 /**
  * 跨 provider failover 链解析策略（plan 2026-08-01-1905-3，设计 §13.4 裁定 A）。

@@ -1,21 +1,9 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.hook.HookResult;
 import io.nop.ai.agent.middleware.AttemptContext;
 import io.nop.ai.agent.middleware.ExecutionPoint;
-import io.nop.ai.agent.hook.HookResult;
 import io.nop.ai.agent.model.AgentExecStatus;
-import io.nop.ai.agent.reliability.AccountChain;
-import io.nop.ai.agent.reliability.CircuitState;
-import io.nop.ai.agent.reliability.IAccountChainResolver;
-import io.nop.ai.agent.reliability.ICircuitBreaker;
-import io.nop.ai.agent.reliability.IProviderFailoverChainResolver;
-import io.nop.ai.agent.reliability.IProviderFailoverQueue;
-import io.nop.ai.agent.reliability.IRetryPolicy;
-import io.nop.ai.agent.reliability.LlmErrorClassifier;
-import io.nop.ai.agent.reliability.NoOpProviderFailoverQueue;
-import io.nop.ai.agent.reliability.ProviderFailoverChain;
-import io.nop.ai.agent.reliability.RetryContext;
-import io.nop.ai.agent.reliability.RetryOutcome;
 import io.nop.ai.agent.router.IModelRouter;
 import io.nop.ai.agent.router.RoutingResult;
 import io.nop.ai.api.chat.ChatOptions;
@@ -26,6 +14,19 @@ import io.nop.ai.api.chat.IChatService;
 import io.nop.ai.api.chat.messages.ChatToolCall;
 import io.nop.ai.core.model.LlmAccountModel;
 import io.nop.ai.core.model.LlmFailoverProviderModel;
+import io.nop.ai.core.reliability.AccountChain;
+import io.nop.ai.core.reliability.CircuitState;
+import io.nop.ai.core.reliability.IAccountChainResolver;
+import io.nop.ai.core.reliability.ICircuitBreaker;
+import io.nop.ai.core.reliability.IProviderFailoverChainResolver;
+import io.nop.ai.core.reliability.IProviderFailoverQueue;
+import io.nop.ai.core.reliability.IRetryPolicy;
+import io.nop.ai.core.reliability.LlmErrorClassifier;
+import io.nop.ai.core.reliability.ModelKeys;
+import io.nop.ai.core.reliability.NoOpProviderFailoverQueue;
+import io.nop.ai.core.reliability.ProviderFailoverChain;
+import io.nop.ai.core.reliability.RetryContext;
+import io.nop.ai.core.reliability.RetryOutcome;
 import io.nop.ai.core.service.LlmConfigHelper;
 import io.nop.ai.toolkit.model.AiToolCallResult;
 
@@ -157,7 +158,7 @@ public class LlmCallCoordinator {
                                              String sessionId,
                                              String agentName,
                                              ChatOptions routedOptions) {
-        String primaryModelKey = buildModelKey(routedOptions);
+        String primaryModelKey = ModelKeys.buildModelKey(routedOptions);
         if (!circuitBreaker.allowCall(primaryModelKey)) {
             CircuitState rejectedState = circuitBreaker.getState(primaryModelKey);
             LOG.warn("Circuit breaker rejected LLM call for model {} (state={}); "
@@ -248,7 +249,7 @@ public class LlmCallCoordinator {
                     // 读分类进入重试决策——不再像旧实现那样一律终止。
                     // W3-1: veto 路径（skipCall=true）跳过 circuit 记录（veto ≠ 模型失败）。
                     if (!skipCall) {
-                        circuitBreaker.recordFailure(buildModelKey(routedOptions));
+                        circuitBreaker.recordFailure(ModelKeys.buildModelKey(routedOptions));
                     }
                     ErrorClassification classification = attemptResponse.getErrorClassification();
                     if (classification == null) {
@@ -298,7 +299,7 @@ public class LlmCallCoordinator {
                                 if (nextProvider != null) {
                                     // 切到下一 provider：重置 accountChain（新 provider 有自己的 <accounts>）
                                     // + routedOptions（改 provider/model，清 accountKey，裁定 E）+ 新 circuit key
-                                    // （buildModelKey 改变）+ 重置 attempt（嵌套循环内层重置，裁定 C）。
+                                    // （ModelKeys.buildModelKey 改变）+ 重置 attempt（嵌套循环内层重置，裁定 C）。
                                     routedOptions = nextProvider;
                                     accountChain = null;
                                     attempt = 0;
@@ -332,7 +333,7 @@ public class LlmCallCoordinator {
                     // 传输级错误（无 HTTP 响应）：仍走 LlmErrorClassifier 启发式。
                     // 注意分类来源不对称（设计 §6.1）：启发式从不产 QUOTA/AUTH，故传输级
                     // FALLBACK 恒走模型 tier（账号链路由只在响应级路径可达）。
-                    circuitBreaker.recordFailure(buildModelKey(routedOptions));
+                    circuitBreaker.recordFailure(ModelKeys.buildModelKey(routedOptions));
                     lastError = ex;
                     ErrorClassification classification = LlmErrorClassifier.classify(ex);
                     lastClassification = classification; // W3-1: 供下次 attempt 的 AttemptContext
@@ -392,7 +393,7 @@ public class LlmCallCoordinator {
             return new LlmCallResult(response, routedOptions, llmCallStart, false);
         }
 
-        circuitBreaker.recordSuccess(buildModelKey(routedOptions));
+        circuitBreaker.recordSuccess(ModelKeys.buildModelKey(routedOptions));
         // 跨 provider failover 成功（或 primary 直接成功）：记录 provider 级成功，重置其失败计数
         // （去重维度，裁定 D——成功说明该 provider 恢复健康，后续调用不应跳过它）。
         providerFailoverQueue.recordProviderSuccess(routedOptions.getProvider());
@@ -475,7 +476,7 @@ public class LlmCallCoordinator {
         LOG.warn("LLM call FALLBACK (classification={}, attempt={}): cross-provider failover "
                         + "{} -> {} (model={}, attempt reset to 0)",
                 classification, attempt,
-                buildModelKey(routedOptions), buildModelKey(switched),
+                ModelKeys.buildModelKey(routedOptions), ModelKeys.buildModelKey(switched),
                 next.getModel() != null ? next.getModel() : "(target default)");
         return switched;
     }
@@ -498,14 +499,14 @@ public class LlmCallCoordinator {
             return null; // 调用方 fail-loud
         }
         int failedAttempt = attempt;
-        String prevModelKey = buildModelKey(routedOptions);
+        String prevModelKey = ModelKeys.buildModelKey(routedOptions);
         ChatOptions next = fallbackOptions;
         request.setOptions(next);
         LOG.warn("LLM call FALLBACK after attempt={} "
                         + "(classification={}): switching model {} -> {} "
                         + "(attempt reset to 0) and retrying",
                 failedAttempt, classification, prevModelKey,
-                buildModelKey(next));
+                ModelKeys.buildModelKey(next));
         return next;
     }
 
@@ -572,18 +573,6 @@ public class LlmCallCoordinator {
         }
 
         boolean isSuccess() { return success; }
-    }
-    /**
-     * Build the composite model identity key ({@code provider:model}) from a
-     * {@link ChatOptions} instance, as returned by {@code RoutingResult.getOptions()}.
-     * Null provider/model are normalized to empty strings so the key is always
-     * non-null and comparable (plan 205 / L2-21). This is the model identity
-     * used to detect switches between ReAct iterations.
-     */
-    public static String buildModelKey(ChatOptions options) {
-        String provider = options.getProvider() != null ? options.getProvider() : "";
-        String model = options.getModel() != null ? options.getModel() : "";
-        return provider + ":" + model;
     }
     /**
      * Plan 271 (finding 14-03): invoke {@link IChatService#call} with a
@@ -707,7 +696,7 @@ public class LlmCallCoordinator {
      *         all circuit-rejected (fail fast — no silent skip)
      */
     public ChatOptions resolveCircuitAware(ChatOptions routedOptions, String sessionId) {
-        String primaryKey = buildModelKey(routedOptions);
+        String primaryKey = ModelKeys.buildModelKey(routedOptions);
         if (circuitBreaker.allowCall(primaryKey)) {
             // Zero-overhead path: primary model is circuit-closed. With the
             // shipped AlwaysClosed default this branch is always taken, so
@@ -729,7 +718,7 @@ public class LlmCallCoordinator {
                 // Chain exhausted without a circuit-allowed model.
                 break;
             }
-            String fallbackKey = buildModelKey(fallback);
+            String fallbackKey = ModelKeys.buildModelKey(fallback);
             if (circuitBreaker.allowCall(fallbackKey)) {
                 LOG.warn("Circuit-aware routing switched model {} -> {} "
                                 + "(primary {} circuit={}). session={}",

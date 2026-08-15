@@ -1,4 +1,4 @@
-package io.nop.ai.agent.reliability;
+package io.nop.ai.core.reliability;
 
 /**
  * 账号链解析策略（plan 2026-08-01-1505-1，设计 §3.6）。

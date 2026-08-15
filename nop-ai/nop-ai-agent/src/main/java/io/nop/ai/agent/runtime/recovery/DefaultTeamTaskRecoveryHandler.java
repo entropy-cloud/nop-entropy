@@ -1,13 +1,13 @@
 package io.nop.ai.agent.runtime.recovery;
 
-import io.nop.ai.api.secure.SecureDefault;
-import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.security.ITenantResolver;
 import io.nop.ai.agent.security.NullTenantResolver;
 import io.nop.ai.agent.security.TenantSql;
 import io.nop.ai.agent.team.AiAgentTeamTaskTable;
 import io.nop.ai.agent.team.TeamTaskStatus;
+import io.nop.ai.api.secure.SecureDefault;
+import io.nop.ai.core.NopAiCoreErrors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -147,19 +147,19 @@ public class DefaultTeamTaskRecoveryHandler implements ITeamTaskRecoveryHandler 
                                           ITenantResolver tenantResolver) {
         this.dataSource = Objects.requireNonNull(dataSource, "dataSource must not be null");
         if (taskTimeoutSeconds <= 0) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG,
+            throw new NopAiAgentException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiCoreErrors.ARG_MSG,
                     "DefaultTeamTaskRecoveryHandler: taskTimeoutSeconds must be > 0 (got "
                             + taskTimeoutSeconds + ")");
         }
         if (defaultAction == null) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG,
+            throw new NopAiAgentException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiCoreErrors.ARG_MSG,
                     "DefaultTeamTaskRecoveryHandler: defaultAction must not be null");
         }
         if (defaultAction == TeamTaskRecoveryAction.SKIP) {
             // SKIP integrators should use NoOpTeamTaskRecoveryHandler directly
             // (it performs zero DB access). Constructing this handler with
             // SKIP would be a misuse signal — fail-fast (Minimum Rules #24).
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG,
+            throw new NopAiAgentException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiCoreErrors.ARG_MSG,
                     "DefaultTeamTaskRecoveryHandler: defaultAction=SKIP is not allowed "
                             + "(use NoOpTeamTaskRecoveryHandler directly for observe-only)");
         }

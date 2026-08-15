@@ -1,7 +1,8 @@
 package io.nop.ai.agent.reliability;
 
-import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.core.NopAiCoreErrors;
+import io.nop.ai.core.reliability.RetryContext;
 
 import java.util.List;
 
@@ -42,12 +43,12 @@ public final class IterationSnapshot {
 
     public IterationSnapshot(int iteration, List<String> toolCallSignatures) {
         if (iteration < 0) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
-                    .param(NopAiAgentErrors.ARG_MSG, "IterationSnapshot iteration must not be negative: " + iteration);
+            throw new NopAiAgentException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiCoreErrors.ARG_MSG, "IterationSnapshot iteration must not be negative: " + iteration);
         }
         if (toolCallSignatures == null) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
-                    .param(NopAiAgentErrors.ARG_MSG, "IterationSnapshot toolCallSignatures must not be null");
+            throw new NopAiAgentException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiCoreErrors.ARG_MSG, "IterationSnapshot toolCallSignatures must not be null");
         }
         this.iteration = iteration;
         this.toolCallSignatures = List.copyOf(toolCallSignatures);

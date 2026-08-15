@@ -1,8 +1,8 @@
-package io.nop.ai.agent.reliability;
+package io.nop.ai.core.reliability;
 
 import io.nop.ai.api.chat.ErrorClassification;
-import io.nop.ai.agent.NopAiAgentErrors;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.core.NopAiCoreErrors;
+import io.nop.ai.core.NopAiCoreException;
 
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -80,15 +80,15 @@ public final class StandardRetryPolicy implements IRetryPolicy {
      */
     public StandardRetryPolicy(int maxAttempts, long baseDelayMs, long maxDelayMs) {
         if (maxAttempts < 1) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG,
+            throw new NopAiCoreException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiCoreErrors.ARG_MSG,
                     "StandardRetryPolicy maxAttempts must be >= 1: " + maxAttempts);
         }
         if (baseDelayMs < 0) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG,
+            throw new NopAiCoreException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiCoreErrors.ARG_MSG,
                     "StandardRetryPolicy baseDelayMs must be >= 0: " + baseDelayMs);
         }
         if (maxDelayMs < baseDelayMs) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG,
+            throw new NopAiCoreException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiCoreErrors.ARG_MSG,
                     "StandardRetryPolicy maxDelayMs must be >= baseDelayMs: maxDelayMs="
                             + maxDelayMs + ", baseDelayMs=" + baseDelayMs);
         }

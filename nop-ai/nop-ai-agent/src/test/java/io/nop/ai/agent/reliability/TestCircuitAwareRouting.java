@@ -57,6 +57,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.nop.ai.agent.support.ChatResponseFixtures;
+import io.nop.ai.core.reliability.AlwaysClosed;
+import io.nop.ai.core.reliability.CircuitState;
+import io.nop.ai.core.reliability.ICircuitBreaker;
+import io.nop.ai.core.reliability.ThresholdBreaker;
 
 /**
  * Plan 213 (circuit-aware-routing) tests: the circuit-aware routing resolution

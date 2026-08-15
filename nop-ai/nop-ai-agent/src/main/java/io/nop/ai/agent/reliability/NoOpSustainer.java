@@ -1,5 +1,8 @@
 package io.nop.ai.agent.reliability;
 
+import io.nop.ai.core.reliability.AlwaysClosed;
+import io.nop.ai.core.reliability.NoRetryPolicy;
+
 /**
  * Pass-through {@link ISustainer} used as the shipped default when no
  * functional sustainer is registered (design

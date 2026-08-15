@@ -1,11 +1,11 @@
 package io.nop.ai.agent.team.scheduler;
 
-import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.engine.DefaultAgentEngineConfig;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.team.Team;
 import io.nop.ai.agent.team.TeamMemberSpec;
 import io.nop.ai.agent.team.TeamTask;
+import io.nop.ai.core.NopAiCoreErrors;
 
 import java.util.Objects;
 
@@ -128,12 +128,12 @@ public final class SpawnMemberRequest {
         this.task = Objects.requireNonNull(task, "task");
         Objects.requireNonNull(daemonSessionId, "daemonSessionId");
         if (daemonSessionId.isBlank()) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
-                    .param(NopAiAgentErrors.ARG_MSG, "daemonSessionId must not be blank");
+            throw new NopAiAgentException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiCoreErrors.ARG_MSG, "daemonSessionId must not be blank");
         }
         if (memberExecTimeoutMs <= 0) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
-                    .param(NopAiAgentErrors.ARG_MSG,
+            throw new NopAiAgentException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiCoreErrors.ARG_MSG,
                             "memberExecTimeoutMs must be positive, got: " + memberExecTimeoutMs);
         }
         this.daemonSessionId = daemonSessionId;

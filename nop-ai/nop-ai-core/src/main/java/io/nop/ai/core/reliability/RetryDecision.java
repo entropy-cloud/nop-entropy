@@ -1,4 +1,4 @@
-package io.nop.ai.agent.reliability;
+package io.nop.ai.core.reliability;
 
 /**
  * Retry decision returned by {@link IRetryPolicy#shouldRetry(RetryContext)}

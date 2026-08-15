@@ -1,5 +1,7 @@
 package io.nop.ai.agent.reliability;
 
+import io.nop.ai.core.reliability.ICircuitBreaker;
+
 /**
  * @apiNote The shipped implementation ({@link SessionGoalTracker}) is a
  *          basic session-level tracker — not production-grade. Production

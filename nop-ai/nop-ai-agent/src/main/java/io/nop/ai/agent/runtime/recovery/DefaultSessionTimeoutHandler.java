@@ -1,7 +1,5 @@
 package io.nop.ai.agent.runtime.recovery;
 
-import io.nop.ai.api.secure.SecureDefault;
-import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.engine.IAgentEngine;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.model.AgentExecStatus;
@@ -10,6 +8,8 @@ import io.nop.ai.agent.security.ITenantResolver;
 import io.nop.ai.agent.security.NullTenantResolver;
 import io.nop.ai.agent.security.TenantSql;
 import io.nop.ai.agent.session.AiAgentSessionTable;
+import io.nop.ai.api.secure.SecureDefault;
+import io.nop.ai.core.NopAiCoreErrors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -139,7 +139,7 @@ public class DefaultSessionTimeoutHandler implements ISessionTimeoutHandler {
                                         DataSource dataSource, String instanceId,
                                         ITenantResolver tenantResolver) {
         if (timeoutSeconds <= 0) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG,
+            throw new NopAiAgentException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiCoreErrors.ARG_MSG,
                     "DefaultSessionTimeoutHandler: timeoutSeconds must be > 0 (got " + timeoutSeconds + ")");
         }
         this.timeoutSeconds = timeoutSeconds;

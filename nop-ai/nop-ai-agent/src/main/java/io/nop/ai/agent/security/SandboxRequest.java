@@ -1,7 +1,7 @@
 package io.nop.ai.agent.security;
 
-import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.core.NopAiCoreErrors;
 
 import java.util.Collections;
 import java.util.List;
@@ -39,8 +39,8 @@ public final class SandboxRequest {
         this.command = List.copyOf(Objects.requireNonNull(b.command,
                 "command list must not be null"));
         if (this.command.isEmpty()) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
-                    .param(NopAiAgentErrors.ARG_MSG, "command list must not be empty");
+            throw new NopAiAgentException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiCoreErrors.ARG_MSG, "command list must not be empty");
         }
         for (String arg : this.command) {
             Objects.requireNonNull(arg, "command list must not contain null elements");

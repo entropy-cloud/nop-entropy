@@ -1,7 +1,8 @@
 package io.nop.ai.agent.reliability;
 
-import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.core.NopAiCoreErrors;
+import io.nop.ai.core.reliability.ThresholdBreaker;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -73,11 +74,11 @@ public final class SessionGoalTracker implements IGoalTracker {
      */
     public SessionGoalTracker(int windowSize, int stuckThreshold) {
         if (windowSize < 1) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG,
+            throw new NopAiAgentException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiCoreErrors.ARG_MSG,
                     "SessionGoalTracker windowSize must be >= 1: " + windowSize);
         }
         if (stuckThreshold < 1) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG,
+            throw new NopAiAgentException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiCoreErrors.ARG_MSG,
                     "SessionGoalTracker stuckThreshold must be >= 1: " + stuckThreshold);
         }
         this.windowSize = windowSize;

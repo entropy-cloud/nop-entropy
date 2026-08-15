@@ -1,35 +1,36 @@
 package io.nop.ai.agent.engine;
 
-import io.nop.ai.agent.hook.AgentLifecyclePoint;
-import io.nop.ai.agent.hook.HookContext;
-import io.nop.ai.agent.hook.HookResult;
-import io.nop.ai.agent.hook.IAgentLifecycleHook;
-import io.nop.ai.agent.hook.DefaultHookRegistry;
-import io.nop.ai.agent.hook.IHookRegistry;
-import io.nop.ai.agent.middleware.IAgentMiddleware;
-import io.nop.ai.agent.middleware.MiddlewareChain;
-import io.nop.ai.agent.message.IAgentMessenger;
 import io.nop.ai.agent.compact.NoOpContextCompactor;
-import io.nop.ai.agent.model.AgentExecStatus;
-import io.nop.ai.agent.reliability.NoOpCheckpoint;
-import io.nop.ai.agent.reliability.StandardRetryPolicy;
-import io.nop.ai.agent.reliability.ThresholdBreaker;
-import io.nop.ai.agent.router.PassThroughModelRouter;
-import io.nop.ai.agent.security.DefaultDenialLedger;
-import io.nop.ai.api.chat.IChatService;
-import io.nop.ai.api.chat.ChatRequest;
-import io.nop.ai.api.chat.ChatResponse;
-import io.nop.ai.api.chat.ChatOptions;
-import io.nop.ai.toolkit.api.IToolManager;
-import io.nop.ai.toolkit.model.AiToolCall;
-import io.nop.ai.toolkit.model.AiToolCallResult;
-import io.nop.ai.toolkit.model.AiToolModel;
-import io.nop.api.core.util.ICancelToken;
 import io.nop.ai.agent.engine.AgentEvent;
 import io.nop.ai.agent.engine.AgentEventType;
 import io.nop.ai.agent.engine.DefaultAgentEventPublisher;
 import io.nop.ai.agent.engine.IAgentEventPublisher;
 import io.nop.ai.agent.engine.IAgentEventSubscriber;
+import io.nop.ai.agent.hook.AgentLifecyclePoint;
+import io.nop.ai.agent.hook.DefaultHookRegistry;
+import io.nop.ai.agent.hook.HookContext;
+import io.nop.ai.agent.hook.HookResult;
+import io.nop.ai.agent.hook.IAgentLifecycleHook;
+import io.nop.ai.agent.hook.IHookRegistry;
+import io.nop.ai.agent.message.IAgentMessenger;
+import io.nop.ai.agent.middleware.IAgentMiddleware;
+import io.nop.ai.agent.middleware.MiddlewareChain;
+import io.nop.ai.agent.model.AgentExecStatus;
+import io.nop.ai.agent.reliability.NoOpCheckpoint;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.security.DefaultDenialLedger;
+import io.nop.ai.api.chat.ChatOptions;
+import io.nop.ai.api.chat.ChatRequest;
+import io.nop.ai.api.chat.ChatResponse;
+import io.nop.ai.api.chat.IChatService;
+import io.nop.ai.core.reliability.ModelKeys;
+import io.nop.ai.core.reliability.StandardRetryPolicy;
+import io.nop.ai.core.reliability.ThresholdBreaker;
+import io.nop.ai.toolkit.api.IToolManager;
+import io.nop.ai.toolkit.model.AiToolCall;
+import io.nop.ai.toolkit.model.AiToolCallResult;
+import io.nop.ai.toolkit.model.AiToolModel;
+import io.nop.api.core.util.ICancelToken;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -181,10 +182,10 @@ public class TestEngineExtractedCoordinators {
     @Test
     void buildModelKeyNormalizesNulls() {
         ChatOptions o = new ChatOptions();
-        assertEquals(":", LlmCallCoordinator.buildModelKey(o));
+        assertEquals(":", ModelKeys.buildModelKey(o));
         o.setProvider("openai");
         o.setModel("gpt-4o");
-        assertEquals("openai:gpt-4o", LlmCallCoordinator.buildModelKey(o));
+        assertEquals("openai:gpt-4o", ModelKeys.buildModelKey(o));
     }
 
     @Test
@@ -200,7 +201,7 @@ public class TestEngineExtractedCoordinators {
         chat.error = new IllegalStateException("fatal");
         AgentHookInvoker invoker = invokerWith(null, null);
         LlmCallCoordinator coordinator = new LlmCallCoordinator(
-                chat, io.nop.ai.agent.reliability.NoRetryPolicy.noRetry(),
+                chat, io.nop.ai.core.reliability.NoRetryPolicy.noRetry(),
                 new ThresholdBreaker(), PassThroughModelRouter.passThrough(),
                 0, null, invoker);
         AgentExecutionContext c = ctx();

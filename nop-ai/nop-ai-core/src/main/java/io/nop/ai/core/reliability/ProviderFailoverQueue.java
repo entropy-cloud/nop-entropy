@@ -1,7 +1,7 @@
-package io.nop.ai.agent.reliability;
+package io.nop.ai.core.reliability;
 
-import io.nop.ai.agent.engine.NopAiAgentException;
-import io.nop.ai.agent.NopAiAgentErrors;
+import io.nop.ai.core.NopAiCoreErrors;
+import io.nop.ai.core.NopAiCoreException;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -49,11 +49,11 @@ public final class ProviderFailoverQueue implements IProviderFailoverQueue {
      */
     public ProviderFailoverQueue(long cooldownMs, LongSupplier nowMs) {
         if (cooldownMs < 0) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG,
+            throw new NopAiCoreException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiCoreErrors.ARG_MSG,
                     "ProviderFailoverQueue cooldownMs must be >= 0: " + cooldownMs);
         }
         if (nowMs == null) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG,
+            throw new NopAiCoreException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiCoreErrors.ARG_MSG,
                     "ProviderFailoverQueue nowMs must not be null");
         }
         this.cooldownMs = cooldownMs;
@@ -121,7 +121,7 @@ public final class ProviderFailoverQueue implements IProviderFailoverQueue {
 
     private static void requireProvider(String provider) {
         if (provider == null) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG,
+            throw new NopAiCoreException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiCoreErrors.ARG_MSG,
                     "provider must not be null");
         }
     }

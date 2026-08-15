@@ -1,6 +1,5 @@
 package io.nop.ai.agent.runtime;
 
-import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.message.IMailbox;
 import io.nop.ai.agent.message.MailboxEntry;
@@ -12,6 +11,7 @@ import io.nop.ai.agent.security.ITenantResolver;
 import io.nop.ai.agent.security.NullTenantResolver;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
+import io.nop.ai.core.NopAiCoreErrors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -224,12 +224,12 @@ public final class InMemoryActorRuntime implements IActorRuntime {
     @Override
     public AgentActor createActor(String sessionId, String agentName) {
         if (sessionId == null || sessionId.isEmpty()) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
-                    .param(NopAiAgentErrors.ARG_MSG, "createActor: sessionId must not be null or empty");
+            throw new NopAiAgentException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiCoreErrors.ARG_MSG, "createActor: sessionId must not be null or empty");
         }
         if (agentName == null || agentName.isEmpty()) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
-                    .param(NopAiAgentErrors.ARG_MSG, "createActor: agentName must not be null or empty");
+            throw new NopAiAgentException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiCoreErrors.ARG_MSG, "createActor: agentName must not be null or empty");
         }
 
         // Idempotent: return existing active actor for the same session.

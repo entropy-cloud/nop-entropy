@@ -48,8 +48,28 @@ public interface NopAiCoreErrors {
 
     String ARG_SESSION_ID = "sessionId";
 
+    /**
+     * Migrated verbatim from {@code io.nop.ai.agent.NopAiAgentErrors}
+     * (W2 reliability sink-down, plan 2026-08-15-0604-2). The error code ID
+     * {@code nop.err.ai.agent.invalid-arg} is deliberately preserved: it is a
+     * persisted/logged error-code ID, renaming it would change behavior. Only
+     * the holder class moves to nop-ai-core; the remaining agent-specific
+     * codes stay in {@code NopAiAgentErrors}.
+     */
+    String ARG_MSG = "msg";
+
     ErrorCode ERR_AI_SERVICE_NO_DEFAULT_LLMS =
             define("nop.err.ai.service.no-default-llms", "没有指定调用的大语言模型，也没有配置nop.ai.service.default-llm来指定缺省的大语言模型");
+
+    /**
+     * Migrated verbatim from {@code io.nop.ai.agent.NopAiAgentErrors} (W2
+     * reliability sink-down, plan 2026-08-15-0604-2): used by the migrated
+     * reliability classes (ThresholdBreaker / ProviderFailoverQueue /
+     * StandardRetryPolicy / RetryContext / RetryOutcome). Error code ID
+     * preserved; only the holder class moves to nop-ai-core.
+     */
+    ErrorCode ERR_AI_AGENT_INVALID_ARG =
+            define("nop.err.ai.agent.invalid-arg", "invalid argument: {msg}", ARG_MSG);
 
     ErrorCode ERR_AI_SERVICE_NO_BASE_URL =
             define("nop.err.ai.service.no-base-url", "大语言模型{llmName}没有指定baseUrl配置", ARG_LLM_NAME);

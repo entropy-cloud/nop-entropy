@@ -1,7 +1,8 @@
 package io.nop.ai.agent.reliability;
 
-import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.core.NopAiCoreErrors;
+import io.nop.ai.core.reliability.RetryContext;
 
 /**
  * Reliability-local data carrier passed to
@@ -52,16 +53,16 @@ public final class SustainContext {
                           int currentIteration,
                           int sustainCountSoFar) {
         if (stopReason == null) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
-                    .param(NopAiAgentErrors.ARG_MSG, "SustainContext stopReason must not be null");
+            throw new NopAiAgentException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiCoreErrors.ARG_MSG, "SustainContext stopReason must not be null");
         }
         if (currentIteration < 0) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
-                    .param(NopAiAgentErrors.ARG_MSG, "SustainContext currentIteration must not be negative: " + currentIteration);
+            throw new NopAiAgentException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiCoreErrors.ARG_MSG, "SustainContext currentIteration must not be negative: " + currentIteration);
         }
         if (sustainCountSoFar < 0) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
-                    .param(NopAiAgentErrors.ARG_MSG, "SustainContext sustainCountSoFar must not be negative: " + sustainCountSoFar);
+            throw new NopAiAgentException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiCoreErrors.ARG_MSG, "SustainContext sustainCountSoFar must not be negative: " + sustainCountSoFar);
         }
         this.sessionId = sessionId;
         this.stopReason = stopReason;

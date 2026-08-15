@@ -1,6 +1,6 @@
-package io.nop.ai.agent.reliability;
+package io.nop.ai.core.reliability;
 
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.core.NopAiCoreException;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.atomic.AtomicLong;
@@ -157,18 +157,18 @@ public class TestProviderFailoverQueue {
     @Test
     void nullProviderRejected() {
         ProviderFailoverQueue q = new ProviderFailoverQueue();
-        assertThrows(NopAiAgentException.class, () -> q.recordProviderFailure(null));
-        assertThrows(NopAiAgentException.class, () -> q.isProviderAvailable(null));
-        assertThrows(NopAiAgentException.class, () -> q.recordProviderSuccess(null));
+        assertThrows(NopAiCoreException.class, () -> q.recordProviderFailure(null));
+        assertThrows(NopAiCoreException.class, () -> q.isProviderAvailable(null));
+        assertThrows(NopAiCoreException.class, () -> q.recordProviderSuccess(null));
     }
 
     @Test
     void invalidCooldownRejected() {
-        assertThrows(NopAiAgentException.class, () -> new ProviderFailoverQueue(-1L, System::currentTimeMillis));
+        assertThrows(NopAiCoreException.class, () -> new ProviderFailoverQueue(-1L, System::currentTimeMillis));
     }
 
     @Test
     void nullClockRejected() {
-        assertThrows(NopAiAgentException.class, () -> new ProviderFailoverQueue(60_000L, null));
+        assertThrows(NopAiCoreException.class, () -> new ProviderFailoverQueue(60_000L, null));
     }
 }

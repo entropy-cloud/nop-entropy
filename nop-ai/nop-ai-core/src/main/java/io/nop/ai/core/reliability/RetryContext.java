@@ -1,8 +1,8 @@
-package io.nop.ai.agent.reliability;
+package io.nop.ai.core.reliability;
 
 import io.nop.ai.api.chat.ErrorClassification;
-import io.nop.ai.agent.NopAiAgentErrors;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.core.NopAiCoreErrors;
+import io.nop.ai.core.NopAiCoreException;
 
 /**
  * Retry context passed to {@link IRetryPolicy#shouldRetry(RetryContext)}
@@ -65,12 +65,12 @@ public final class RetryContext {
                         boolean hasStreamedContent,
                         Long retryAfterMs) {
         if (attempt < 0) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
-                    .param(NopAiAgentErrors.ARG_MSG, "RetryContext attempt must not be negative: " + attempt);
+            throw new NopAiCoreException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiCoreErrors.ARG_MSG, "RetryContext attempt must not be negative: " + attempt);
         }
         if (errorClassification == null) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
-                    .param(NopAiAgentErrors.ARG_MSG, "RetryContext errorClassification must not be null");
+            throw new NopAiCoreException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiCoreErrors.ARG_MSG, "RetryContext errorClassification must not be null");
         }
         this.attempt = attempt;
         this.lastError = lastError;

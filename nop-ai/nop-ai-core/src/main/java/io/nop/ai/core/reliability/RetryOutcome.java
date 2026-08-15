@@ -1,7 +1,7 @@
-package io.nop.ai.agent.reliability;
+package io.nop.ai.core.reliability;
 
-import io.nop.ai.agent.NopAiAgentErrors;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.core.NopAiCoreErrors;
+import io.nop.ai.core.NopAiCoreException;
 
 /**
  * Immutable outcome of {@link IRetryPolicy#shouldRetry(RetryContext)}
@@ -27,12 +27,12 @@ public final class RetryOutcome {
 
     public RetryOutcome(RetryDecision decision, long delayMs) {
         if (decision == null) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
-                    .param(NopAiAgentErrors.ARG_MSG, "RetryOutcome decision must not be null");
+            throw new NopAiCoreException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiCoreErrors.ARG_MSG, "RetryOutcome decision must not be null");
         }
         if (delayMs < 0) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
-                    .param(NopAiAgentErrors.ARG_MSG, "RetryOutcome delayMs must not be negative: " + delayMs);
+            throw new NopAiCoreException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiCoreErrors.ARG_MSG, "RetryOutcome delayMs must not be negative: " + delayMs);
         }
         this.decision = decision;
         this.delayMs = delayMs;

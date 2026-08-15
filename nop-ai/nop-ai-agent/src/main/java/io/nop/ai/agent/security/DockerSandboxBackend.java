@@ -1,7 +1,7 @@
 package io.nop.ai.agent.security;
 
-import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.core.NopAiCoreErrors;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -181,7 +181,7 @@ public final class DockerSandboxBackend implements ISandboxBackend {
         this.dockerImage = Objects.requireNonNull(dockerImage,
                 "dockerImage must not be null");
         if (dockerImage.isEmpty()) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG, "dockerImage must not be empty");
+            throw new NopAiAgentException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiCoreErrors.ARG_MSG, "dockerImage must not be empty");
         }
         this.defaultConfig = defaultConfig != null ? defaultConfig : SandboxConfig.defaults();
         this.allowedBaseDirs = List.copyOf(Objects.requireNonNull(allowedBaseDirs,

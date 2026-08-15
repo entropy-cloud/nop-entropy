@@ -1,8 +1,8 @@
 package io.nop.ai.agent.security;
 
-import io.nop.ai.api.secure.SecureDefault;
-import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.api.secure.SecureDefault;
+import io.nop.ai.core.NopAiCoreErrors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,8 +54,8 @@ public final class DefaultDenialLedger implements IDenialLedger {
 
     public DefaultDenialLedger(int denialThreshold) {
         if (denialThreshold <= 0) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
-                    .param(NopAiAgentErrors.ARG_MSG, "denialThreshold must be positive, got: " + denialThreshold);
+            throw new NopAiAgentException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiCoreErrors.ARG_MSG, "denialThreshold must be positive, got: " + denialThreshold);
         }
         this.denialThreshold = denialThreshold;
     }
@@ -67,7 +67,7 @@ public final class DefaultDenialLedger implements IDenialLedger {
     @Override
     public DenialRecordOutcome recordDenial(DenialRecord record) {
         if (record == null) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG, "DenialRecord must not be null");
+            throw new NopAiAgentException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiCoreErrors.ARG_MSG, "DenialRecord must not be null");
         }
         String sessionId = record.getSessionId();
         if (sessionId == null) {

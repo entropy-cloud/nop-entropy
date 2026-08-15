@@ -1,7 +1,7 @@
-package io.nop.ai.agent.reliability;
+package io.nop.ai.core.reliability;
 
-import io.nop.ai.agent.NopAiAgentErrors;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.core.NopAiCoreErrors;
+import io.nop.ai.core.NopAiCoreException;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -12,7 +12,7 @@ import java.util.concurrent.ConcurrentMap;
  * {@code nop-ai-agent-reliability.md} §5.1 / plan 210 / L3-1).
  *
  * <p>Per model identity (the {@code provider:model} composite key built by
- * {@code LlmCallCoordinator.buildModelKey}) the breaker maintains an
+ * {@code ModelKeys.buildModelKey}) the breaker maintains an
  * independent state machine:
  * <ul>
  *   <li><b>CLOSED</b> (initial) — all calls allowed. Each recorded failure
@@ -86,11 +86,11 @@ public final class ThresholdBreaker implements ICircuitBreaker {
      */
     public ThresholdBreaker(int failureThreshold, long cooldownMs) {
         if (failureThreshold < 1) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG,
+            throw new NopAiCoreException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiCoreErrors.ARG_MSG,
                     "ThresholdBreaker failureThreshold must be >= 1: " + failureThreshold);
         }
         if (cooldownMs < 0) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG,
+            throw new NopAiCoreException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiCoreErrors.ARG_MSG,
                     "ThresholdBreaker cooldownMs must be >= 0: " + cooldownMs);
         }
         this.failureThreshold = failureThreshold;
@@ -108,7 +108,7 @@ public final class ThresholdBreaker implements ICircuitBreaker {
     @Override
     public boolean allowCall(String modelKey) {
         if (modelKey == null) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG, "modelKey must not be null");
+            throw new NopAiCoreException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiCoreErrors.ARG_MSG, "modelKey must not be null");
         }
         BreakerEntry entry = entries.computeIfAbsent(modelKey, k -> new BreakerEntry());
         synchronized (entry) {
@@ -142,7 +142,7 @@ public final class ThresholdBreaker implements ICircuitBreaker {
     @Override
     public CircuitState getState(String modelKey) {
         if (modelKey == null) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG, "modelKey must not be null");
+            throw new NopAiCoreException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiCoreErrors.ARG_MSG, "modelKey must not be null");
         }
         BreakerEntry entry = entries.get(modelKey);
         // An untracked model-key has never recorded any outcome → CLOSED.
@@ -152,7 +152,7 @@ public final class ThresholdBreaker implements ICircuitBreaker {
     @Override
     public void recordSuccess(String modelKey) {
         if (modelKey == null) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG, "modelKey must not be null");
+            throw new NopAiCoreException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiCoreErrors.ARG_MSG, "modelKey must not be null");
         }
         BreakerEntry entry = entries.get(modelKey);
         if (entry == null) {
@@ -187,7 +187,7 @@ public final class ThresholdBreaker implements ICircuitBreaker {
     @Override
     public void recordFailure(String modelKey) {
         if (modelKey == null) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG, "modelKey must not be null");
+            throw new NopAiCoreException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiCoreErrors.ARG_MSG, "modelKey must not be null");
         }
         BreakerEntry entry = entries.computeIfAbsent(modelKey, k -> new BreakerEntry());
         long now = System.currentTimeMillis();

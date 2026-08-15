@@ -1,9 +1,9 @@
 package io.nop.ai.agent.contribution;
 
-import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.hook.AgentLifecyclePoint;
 import io.nop.ai.agent.hook.IAgentLifecycleHook;
+import io.nop.ai.core.NopAiCoreErrors;
 
 import java.util.Objects;
 
@@ -24,12 +24,12 @@ public final class HookPayload {
 
     public HookPayload(AgentLifecyclePoint point, IAgentLifecycleHook hook) {
         if (point == null) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
-                    .param(NopAiAgentErrors.ARG_MSG, "HookPayload: point must not be null");
+            throw new NopAiAgentException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiCoreErrors.ARG_MSG, "HookPayload: point must not be null");
         }
         if (hook == null) {
-            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
-                    .param(NopAiAgentErrors.ARG_MSG, "HookPayload: hook must not be null");
+            throw new NopAiAgentException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiCoreErrors.ARG_MSG, "HookPayload: hook must not be null");
         }
         this.point = point;
         this.hook = hook;

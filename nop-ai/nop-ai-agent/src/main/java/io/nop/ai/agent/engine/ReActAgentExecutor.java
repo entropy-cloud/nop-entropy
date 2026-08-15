@@ -30,9 +30,7 @@ import io.nop.ai.agent.reliability.Checkpoint;
 import io.nop.ai.agent.reliability.CheckpointType;
 import io.nop.ai.agent.reliability.GoalAssessment;
 import io.nop.ai.agent.reliability.ICheckpointManager;
-import io.nop.ai.agent.reliability.ICircuitBreaker;
 import io.nop.ai.agent.reliability.IGoalTracker;
-import io.nop.ai.agent.reliability.IRetryPolicy;
 import io.nop.ai.agent.reliability.ISustainer;
 import io.nop.ai.agent.reliability.IWaitCoordinator;
 import io.nop.ai.agent.reliability.IterationSnapshot;
@@ -40,12 +38,9 @@ import io.nop.ai.agent.reliability.NoOpCheckpoint;
 import io.nop.ai.agent.reliability.NoOpGoalTracker;
 import io.nop.ai.agent.reliability.NoOpSustainer;
 import io.nop.ai.agent.reliability.NoOpWaitCoordinator;
-import io.nop.ai.agent.reliability.RetryContext;
-import io.nop.ai.agent.reliability.StandardRetryPolicy;
 import io.nop.ai.agent.reliability.SustainContext;
 import io.nop.ai.agent.reliability.SustainDecision;
 import io.nop.ai.agent.reliability.SustainStopReason;
-import io.nop.ai.agent.reliability.ThresholdBreaker;
 import io.nop.ai.agent.reliability.WaitCondition;
 import io.nop.ai.agent.reliability.WaitDecision;
 import io.nop.ai.agent.repair.IToolCallRepairer;
@@ -95,6 +90,12 @@ import io.nop.ai.api.chat.messages.ChatToolCall;
 import io.nop.ai.api.chat.messages.ChatToolCallMessage;
 import io.nop.ai.api.chat.messages.ChatToolDefinition;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
+import io.nop.ai.core.reliability.ICircuitBreaker;
+import io.nop.ai.core.reliability.IRetryPolicy;
+import io.nop.ai.core.reliability.ModelKeys;
+import io.nop.ai.core.reliability.RetryContext;
+import io.nop.ai.core.reliability.StandardRetryPolicy;
+import io.nop.ai.core.reliability.ThresholdBreaker;
 import io.nop.ai.toolkit.api.IToolManager;
 import io.nop.api.core.json.JSON;
 
@@ -610,7 +611,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 // is an audit record persisted to nop_ai_session_message — it is
                 // NOT added to ctx.getMessages() and therefore never injected
                 // into the LLM reasoning context.
-                String currentModelKey = llmCoordinator.buildModelKey(routedOptions);
+                String currentModelKey = ModelKeys.buildModelKey(routedOptions);
                 if (lastModelKey != null && !currentModelKey.equals(lastModelKey)
                         && sessionId != null) {
                     messageSeq[0]++;
