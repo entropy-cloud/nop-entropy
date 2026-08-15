@@ -4,14 +4,22 @@
 
     <!--
         AR-07 + 维度13-01: connectionConfig 持有明文 JDBC 凭据，标记为敏感字段：
-          - published="false"：屏蔽 GraphQL 出口（findPage/findList/get 不返回该字段）
+          - published="false"：屏蔽 GraphQL 出口（findPage/findList/get 不返回该字段）——凭证脱敏契约只压在这里
           - tagSet 包含 "sensitive"：从 nop-metadata.orm.xml column 上继承，
             供 MetaModelChangedEventPublisher.buildEntitySnapshot 读取 IColumnModel.getTagSet() 后
             对该列返回 "***REDACTED***"，避免凭据在变更事件表里二次落盘。
-        前端 add/edit 表单字段通过 NopMetaDataSource.view.xml 留存层（非 _gen）独立配置（不在本 plan 范围）。
+        写路径（plan 2026-08-15-1913-2 P1-1，沿 NopAuthUser.password 先例裁定）：
+          - insertable="true" + updatable="true"：save/update 可写入 connectionConfig（受控写路径，
+            updatable=true 支持凭据轮换——edit 表单不含该字段，表单提交体无该 key，
+           OrmEntityCopier 只拷贝提交体中存在的 key，已存配置不会被误清空；仅显式经 API 提交该键时更新）。
+          - queryable/sortable 保持 false：不允许以 connectionConfig 作为过滤/排序条件探测凭据。
+          - connectionConfigComponent 维持锁死：惰性 JSON 解析组件（internal），无独立写路径需求。
+        前端表单字段经 NopMetaDataSource.view.xml 留存层配置（仅 add 表单；edit 表单不显示该字段——
+        published=false 使字段不在 GraphQL 查询输出类型中，edit 页 initApi 的 {@formSelection}
+        会因选中 schema 不存在的字段而破坏编辑对话框）。
     -->
     <props>
-        <prop name="connectionConfig" published="false" insertable="false" updatable="false" queryable="false" sortable="false"/>
+        <prop name="connectionConfig" published="false" insertable="true" updatable="true" queryable="false" sortable="false"/>
         <prop name="connectionConfigComponent" published="false" insertable="false" updatable="false"/>
     </props>
 

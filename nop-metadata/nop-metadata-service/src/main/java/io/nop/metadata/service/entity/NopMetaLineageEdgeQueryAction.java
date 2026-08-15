@@ -31,6 +31,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -197,7 +198,8 @@ public class NopMetaLineageEdgeQueryAction {
         if (!newEdges.isEmpty()) {
             dao.batchSaveEntities(newEdges);
         }
-        return new LineageExtractResult(candidateSourceIds.size(), unresolved, errors);
+        return new LineageExtractResult(candidateSourceIds.size(),
+                dedupPreservingOrder(candidateSourceIds), unresolved, errors);
     }
 
     public LineageExtractResult extractColumnLineageFromSql(String metaTableId,
@@ -283,7 +285,7 @@ public class NopMetaLineageEdgeQueryAction {
         if (!toUpdate.isEmpty()) {
             dao.batchUpdateEntities(toUpdate);
         }
-        return new LineageExtractResult(extracted, unresolved, errors);
+        return new LineageExtractResult(extracted, dedupPreservingOrder(resolvedSourceIds), unresolved, errors);
     }
 
     public LineageExtractResult extractMeasureLineage(String metaTableId,
@@ -355,7 +357,12 @@ public class NopMetaLineageEdgeQueryAction {
         if (!toSave.isEmpty()) {
             dao.batchSaveEntities(toSave);
         }
-        return new LineageExtractResult(extracted, unresolved, errors);
+        // 指标级语义裁定（P1-3）：measure 边全部为自环（sourceTableId=targetId），无独立 resolved 计算——
+        // sourceTables = 宿主表自身 [metaTableId]（与边语义一致）；产出 0 条边时为空列表（不伪造源）。
+        List<String> measureSourceTables = extracted > 0
+                ? Collections.singletonList(targetId)
+                : Collections.emptyList();
+        return new LineageExtractResult(extracted, measureSourceTables, unresolved, errors);
     }
 
     // ============================================================
@@ -522,6 +529,12 @@ public class NopMetaLineageEdgeQueryAction {
         return err;
     }
 
+    /** 去重保序（跨 schema 同 simpleName 可解析到同一 metaTable ID，sourceTables 语义为"源表集"）。 */
+    private static List<String> dedupPreservingOrder(List<String> ids) {
+        if (ids.isEmpty()) return Collections.emptyList();
+        return new ArrayList<>(new LinkedHashSet<>(ids));
+    }
+
     public static final class LineageGraph {
         public final Map<String, List<String>> forward;
         public final Map<String, List<String>> reverse;
@@ -538,11 +551,20 @@ public class NopMetaLineageEdgeQueryAction {
 
     public static final class LineageExtractResult {
         public final int edgeCount;
+        /**
+         * 已解析源表标识（metaTable ID 集，去重保序）。
+         * 表级 = nameToId 命中的 candidateSourceIds；列级 = 命中的 resolvedSourceIds；
+         * 指标级 = 宿主表自身（自环边语义，仅当产出 ≥1 条边，否则空列表）。
+         * 与 unresolved（完整名/诊断串）异质并存，语义见 owner doc。
+         */
+        public final List<String> resolvedSourceTables;
         public final List<String> unresolved;
         public final List<Map<String, Object>> errors;
 
-        public LineageExtractResult(int edgeCount, List<String> unresolved, List<Map<String, Object>> errors) {
+        public LineageExtractResult(int edgeCount, List<String> resolvedSourceTables,
+                                    List<String> unresolved, List<Map<String, Object>> errors) {
             this.edgeCount = edgeCount;
+            this.resolvedSourceTables = resolvedSourceTables;
             this.unresolved = unresolved;
             this.errors = errors;
         }

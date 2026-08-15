@@ -127,7 +127,8 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
         LineageExtractResultDTO dto = new LineageExtractResultDTO();
         dto.setMetaTableId(metaTableId);
         dto.setEdgeCount(r.edgeCount);
-        dto.setSourceTables(r.unresolved);
+        // P1-3：sourceTables = 已解析源表 metaTable ID（此前误植 r.unresolved——解析失败名单混入源表集）
+        dto.setSourceTables(r.resolvedSourceTables);
         dto.setUnresolved(r.unresolved);
         dto.setErrors(r.errors);
         return dto;
@@ -135,13 +136,15 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
 
     @BizMutation
     public LineageExtractResultDTO extractColumnLineageFromSql(@Name("metaTableId") String metaTableId,
-                                                                IServiceContext context) {
+                                                                 IServiceContext context) {
         NopMetaLineageEdgeQueryAction.LineageExtractResult r =
                 queryAction().extractColumnLineageFromSql(metaTableId, daoProvider(), dao());
         checkNoParseErrors(r, metaTableId, NopMetadataErrors.ERR_COL_LINEAGE_SQL_PARSE_FAILED);
         LineageExtractResultDTO dto = new LineageExtractResultDTO();
         dto.setMetaTableId(metaTableId);
         dto.setEdgeCount(r.edgeCount);
+        // P1-3：列级路径此前从不填充 sourceTables（恒空）——上浮已计算的 resolvedSourceIds
+        dto.setSourceTables(r.resolvedSourceTables);
         dto.setUnresolved(r.unresolved);
         dto.setErrors(r.errors);
         return dto;
@@ -149,12 +152,14 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
 
     @BizMutation
     public LineageExtractResultDTO extractMeasureLineage(@Name("metaTableId") String metaTableId,
-                                                          IServiceContext context) {
+                                                           IServiceContext context) {
         NopMetaLineageEdgeQueryAction.LineageExtractResult r =
                 queryAction().extractMeasureLineage(metaTableId, daoProvider(), dao());
         LineageExtractResultDTO dto = new LineageExtractResultDTO();
         dto.setMetaTableId(metaTableId);
         dto.setEdgeCount(r.edgeCount);
+        // P1-3 裁定：指标级 sourceTables = 宿主表自身（自环边语义；0 条边时空列表）
+        dto.setSourceTables(r.resolvedSourceTables);
         dto.setUnresolved(r.unresolved);
         dto.setErrors(r.errors);
         return dto;
