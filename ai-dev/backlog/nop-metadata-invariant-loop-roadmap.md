@@ -38,6 +38,7 @@ nop-metadata 已被审计 **5 轮 multi+open + ARM MA1-MA7（21 维）+ MR1-MR8*
 | Cycle 2 / 再审计 remediation. 静默错算与契约缺口闭环（AR-01/AR-02/AR-03/F4） | AR-01 SLA 分数截断 + AR-02 SLA NFE 逃逸 + AR-03 内存 group-key 控制字符碰撞 + F4 `selection` 参数契约（显式 no-op） | ✅ `done`（plan `2026-08-14-0707-2`，2026-08-14 completed；4 confirmed live defect/contract drift 全收口，回归/对抗测试钉死，1103 tests 全绿） | 再审计 |
 | Cycle 2 / 再审计 remediation. INV-LIMIT 默认 surefire 防御纵深（F3） | F3 残留：移除 `TestLimitNegativeValueInvariant` 的默认 surefire `<excludes>`（陈旧前提已失效——底层 limit 缺陷已修），使其回归默认 surefire，与 CI `invariant-gate` job 形成 defense-in-depth 双重运行 | ✅ `done`（plan `2026-08-14-0707-3`，2026-08-14 completed；排除清理 + 测试 Javadoc/脚本注释/owner-doc 同步双重运行，1106 tests 全绿，Anti-Hollow 验证默认 surefire 实跑 4 tests 0 failures） | 再审计 |
 | Cycle 2 / I1. silent-wrong-result 不变式沉淀（门禁入 CI） | 5 子族评估裁定（locale / narrowing-cast / contains-分类 / 分隔符-key / Number→BigDecimal 精度）→ 可执行门禁 `check-silent-wrong-result.mjs`（1 扫描器 × 5 规则 + baseline 对账 + 放行注释）+ 初始 red list 快照（`initial-red-list-cycle2.md` + `baseline-cycle2/`）+ 聚合入口 4→5 门禁 CI 棘轮扩展 | ✅ `done`（plan `2026-08-15-0820-1`，2026-08-15 completed；5/5 子族裁定静态扫描可机械化 + 2 watch-only 候选维持；快照 67 命中/61 键（40/0/19/6/2）；模式 b 接入聚合入口与 CI；closure audit approved 0 Blocker/0 Major） | Cycle 2 再审计 |
+| Cycle 2 / I2+I3（invariant-loop）. 不变式驱动审计与裁决 | gate 5 正式运行 → 正式 red list（`formal-red-list-cycle2`，与 I1' 快照漂移核对）+ 对抗探查（watch-only 族专属方向 + 候选清单全覆盖）+ 零悬挂裁决（`adjudication-table-cycle2`：P1/FP/优化候选重裁/新族四态） | ✅ `done`（plan `2026-08-15-0820-2`，2026-08-15 completed；正式 red list 67 命中零漂移；对抗探查 10 方向 0 新族；裁决 67 = 46 P1 + 21 FP + 0 维持 + 0 新族，优化候选旧裁定 2 条推翻转 P1；FP 标注方式 (a) baseline 驻留） | I1' |
 
 ## Phase Details
 
@@ -108,6 +109,8 @@ flowchart LR
 - **F19** `TestAllEntitiesHaveBizModels` 用硬编码实体清单（守卫可被绕过）。源：同上（F19） — ✅ Fixed（plan `2026-08-14-1448-1`：硬编码 list 改为 ORM 注册表动态发现（IOrmTemplate.getEntityModels + 包过滤 + `_gen` 基类过滤）+ ≥39 sanity 断言）
 
 ### 静默错算/精度族（建议下轮 Cycle 2 / I1 评估"silent-wrong-result"不变式）
+
+
 - **AR-05** Profiler `isNumericType` 子串匹配误分类几何/布尔列。源：`ai-dev/audits/2026-08-14-0707-open-audit-nop-metadata-invariant-loop.md`（AR-05） — ✅ Fixed（plan `2026-08-14-1133-2` Phase 1：`NUMERIC_TYPE_NAMES` exact-match `Set.of` 替代 substring contains；移除 BOOLEAN/BIT；`TestMetaTableProfilerClassification` 9 例）
 - **AR-06** Profiler `probeNumeric` 把连接/权限失败塌缩为"string stats"（MA6.2-002 同族新 site）。源：同上（AR-06） — ✅ Fixed（plan `2026-08-14-1133-2` Phase 2：`isInfrastructureFailure` 区分 infra(08*/28*/42*+消息线索→WARN) 与类型不匹配(→DEBUG)，仍 return false；`TestMetaTableProfilerProbeNumeric` 5 例含 08006 代理 WARN 断言）
 - **AR-10** `toBigDecimal` 对 Long>2^53 丢精度 + String 数值静默跳过。源：同上（AR-10） — ✅ Fixed（plan `2026-08-14-1133-2` Phase 3：整数 longValue 无损 / 浮点 doubleValue / String 解析；`TestCrossDbInMemoryAggregationProcessor` +7 例含 SumAcc 精度+String 接线）
@@ -122,3 +125,6 @@ flowchart LR
 - **AR-12** `LocalReconciliationProcessor.score` 默认 locale `toLowerCase`（Turkish-I 风险）。源：同上（AR-12） — ✅ Fixed（plan `2026-08-14-1133-3` Phase 3：`toLowerCase(Locale.ROOT)`；`TestLocalReconciliationProcessorLocale` 3 例含 tr-TR locale 验证）
 - **AR-13** `ReconciliationExecutor.execute` 忽略 candidate `limit` → 无界序列化。源：同上（AR-13） — ✅ Fixed（plan `2026-08-14-1133-3` Phase 3：传入 `DEFAULT_CANDIDATE_LIMIT=50`（非 null）；`TestReconciliationExecutorLimit` 3 例含大候选池有界验证）
 - **AR-14** 死码/诊断退化批次（`MetaAggregationExecutor` 死 LOG、`resolveEntityFieldColumn` 死参、`safeProductName` null→误归因、`SqlSelectFieldExtractor` 错误 param、`MetaManifestBuilder` 脆弱 `SimpleDateFormat`）。源：同上（AR-14） — ✅ Fixed（plan `2026-08-14-1448-2`：死 LOG 删除；`propToCol` 死参移除（Map 本体保留）；safeProductName SQLException → infra fail-loud（新 `ERR_AGGR_DB_PRODUCT_NAME_FAILED`，不再误归因 unsupported-dialect）；`resolveProjections` 增 `sql` 形参、错误 param 为真实 SQL 文本；`SimpleDateFormat` → 不可变 `DateTimeFormatter`（UTC）输出等价）
+
+### Cycle 2 / I2' 对抗探查观察（watch-only，非缺陷）
+- **OBS-01** `MetaTableProfiler.toLong:548` latent-form（`s == null ? 0L : Long.parseLong(s.trim())` 的 null→0 伪造形态 + parseLong 裸 NFE 逃逸形态；调用面 `queryLong` 5 个调用点全为 COUNT 族 → 两风险路径当前均不可达）。源：`ai-dev/audits/nop-metadata-invariants/adversarial-probing-notes-cycle2.md`（方向 6） — ⚠️ watch-only（Why Not Blocking：COUNT 语义下结果恒非 null 恒整数，无 live 缺陷；约束条件 = `queryLong` 接入可空/非整数聚合（SUM/MIN/MAX）前必须先 ErrorCode 化该回退路径）
