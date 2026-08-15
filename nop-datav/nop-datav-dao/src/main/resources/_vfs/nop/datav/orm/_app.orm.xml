@@ -455,6 +455,10 @@
                         propId="12" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="13"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+                <column code="VISIT_COUNT" defaultValue="0" displayName="访问计数" name="visitCount" propId="14"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Visit Count"/>
+                <column code="LAST_VISIT_TIME" displayName="最近访问时间" name="lastVisitTime" propId="15"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Last Visit Time"/>
             </columns>
             <indexes>
                 <index name="IX_NOP_DATAV_SHARE_DASHBOARD" unique="false">

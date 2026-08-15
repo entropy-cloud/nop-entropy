@@ -178,6 +178,8 @@ CREATE TABLE nop_datav_share(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  visit_count INT8 default 0   ,
+  last_visit_time TIMESTAMP  ,
   constraint PK_nop_datav_share primary key (share_id)
 );
 
@@ -636,6 +638,10 @@ CREATE TABLE nop_datav_alert_state(
       COMMENT ON COLUMN nop_datav_share.update_time IS '修改时间';
                     
       COMMENT ON COLUMN nop_datav_share.remark IS '备注';
+                    
+      COMMENT ON COLUMN nop_datav_share.visit_count IS '访问计数';
+                    
+      COMMENT ON COLUMN nop_datav_share.last_visit_time IS '最近访问时间';
                     
       COMMENT ON TABLE nop_datav_report_task IS '定时报告任务';
                 

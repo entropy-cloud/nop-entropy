@@ -137,6 +137,8 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+      visitCount: Visit Count
+      lastVisitTime: Last Visit Time
       dashboard: Dashboard
       dashboard.displayName: Dashboard
     NopDatavDashboardSnapshot:

@@ -536,6 +536,14 @@
                         i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="13"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+                <!-- 访问统计聚合列（plan 2026-08-15-0004-2 R4：仅成功访问计数；定向 SQL 原子自增，
+                     不走实体 update → 无 version bump、不触碰审计列 -->
+                <column code="VISIT_COUNT" displayName="访问计数" defaultValue="0" name="visitCount"
+                        propId="14" stdDataType="long" stdSqlType="BIGINT"
+                        i18n-en:displayName="Visit Count"/>
+                <column code="LAST_VISIT_TIME" displayName="最近访问时间" name="lastVisitTime" propId="15"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP"
+                        i18n-en:displayName="Last Visit Time"/>
             </columns>
             <relations>
                 <to-one displayName="看板" name="dashboard"

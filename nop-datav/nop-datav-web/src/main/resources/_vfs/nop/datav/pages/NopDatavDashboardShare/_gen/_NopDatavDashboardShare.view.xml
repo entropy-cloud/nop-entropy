@@ -50,6 +50,12 @@
 
                 <!--备注-->
                 <col id="remark" sortable="true"/>
+
+                <!--访问计数-->
+                <col id="visitCount" ui:number="true" sortable="true"/>
+
+                <!--最近访问时间-->
+                <col id="lastVisitTime" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -63,7 +69,8 @@
  enabled[启用标记] delFlag[删除标记]
  createdBy[创建人] createTime[创建时间]
  updatedBy[修改人] updateTime[修改时间]
- remark[备注] 
+ remark[备注] visitCount[访问计数]
+ lastVisitTime[最近访问时间] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-看板分享" i18n-en:title="Add Dashboard Share" x:prototype="edit"/>
@@ -76,6 +83,8 @@
  enabled[启用标记]
  delFlag[删除标记]
  remark[备注]
+ visitCount[访问计数]
+ lastVisitTime[最近访问时间]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

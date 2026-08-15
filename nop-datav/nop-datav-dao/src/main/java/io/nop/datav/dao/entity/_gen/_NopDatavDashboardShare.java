@@ -73,8 +73,16 @@ public class _NopDatavDashboardShare extends DynamicOrmEntity{
     public static final String PROP_NAME_remark = "remark";
     public static final int PROP_ID_remark = 13;
     
+    /* 访问计数: VISIT_COUNT BIGINT */
+    public static final String PROP_NAME_visitCount = "visitCount";
+    public static final int PROP_ID_visitCount = 14;
+    
+    /* 最近访问时间: LAST_VISIT_TIME TIMESTAMP */
+    public static final String PROP_NAME_lastVisitTime = "lastVisitTime";
+    public static final int PROP_ID_lastVisitTime = 15;
+    
 
-    private static int _PROP_ID_BOUND = 14;
+    private static int _PROP_ID_BOUND = 16;
 
     
     /* relation: 看板 */
@@ -84,7 +92,7 @@ public class _NopDatavDashboardShare extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_shareId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_shareId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[14];
+    private static final String[] PROP_ID_TO_NAME = new String[16];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -127,6 +135,12 @@ public class _NopDatavDashboardShare extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_remark] = PROP_NAME_remark;
           PROP_NAME_TO_ID.put(PROP_NAME_remark, PROP_ID_remark);
       
+          PROP_ID_TO_NAME[PROP_ID_visitCount] = PROP_NAME_visitCount;
+          PROP_NAME_TO_ID.put(PROP_NAME_visitCount, PROP_ID_visitCount);
+      
+          PROP_ID_TO_NAME[PROP_ID_lastVisitTime] = PROP_NAME_lastVisitTime;
+          PROP_NAME_TO_ID.put(PROP_NAME_lastVisitTime, PROP_ID_lastVisitTime);
+      
     }
 
     
@@ -168,6 +182,12 @@ public class _NopDatavDashboardShare extends DynamicOrmEntity{
     
     /* 备注: REMARK */
     private java.lang.String _remark;
+    
+    /* 访问计数: VISIT_COUNT */
+    private java.lang.Long _visitCount;
+    
+    /* 最近访问时间: LAST_VISIT_TIME */
+    private java.sql.Timestamp _lastVisitTime;
     
 
     public _NopDatavDashboardShare(){
@@ -281,6 +301,12 @@ public class _NopDatavDashboardShare extends DynamicOrmEntity{
         
             case PROP_ID_remark:
                return getRemark();
+        
+            case PROP_ID_visitCount:
+               return getVisitCount();
+        
+            case PROP_ID_lastVisitTime:
+               return getLastVisitTime();
         
            default:
               return super.orm_propValue(propId);
@@ -423,6 +449,26 @@ public class _NopDatavDashboardShare extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_visitCount:{
+               java.lang.Long typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toLong(value,
+                       err-> newTypeConversionError(PROP_NAME_visitCount));
+               }
+               setVisitCount(typedValue);
+               break;
+            }
+        
+            case PROP_ID_lastVisitTime:{
+               java.sql.Timestamp typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toTimestamp(value,
+                       err-> newTypeConversionError(PROP_NAME_lastVisitTime));
+               }
+               setLastVisitTime(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -519,6 +565,20 @@ public class _NopDatavDashboardShare extends DynamicOrmEntity{
             case PROP_ID_remark:{
                onInitProp(propId);
                this._remark = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_visitCount:{
+               onInitProp(propId);
+               this._visitCount = (java.lang.Long)value;
+               
+               break;
+            }
+        
+            case PROP_ID_lastVisitTime:{
+               onInitProp(propId);
+               this._lastVisitTime = (java.sql.Timestamp)value;
                
                break;
             }
@@ -772,6 +832,44 @@ public class _NopDatavDashboardShare extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);
+            
+        }
+    }
+    
+    /**
+     * 访问计数: VISIT_COUNT
+     */
+    public final java.lang.Long getVisitCount(){
+         onPropGet(PROP_ID_visitCount);
+         return _visitCount;
+    }
+
+    /**
+     * 访问计数: VISIT_COUNT
+     */
+    public final void setVisitCount(java.lang.Long value){
+        if(onPropSet(PROP_ID_visitCount,value)){
+            this._visitCount = value;
+            internalClearRefs(PROP_ID_visitCount);
+            
+        }
+    }
+    
+    /**
+     * 最近访问时间: LAST_VISIT_TIME
+     */
+    public final java.sql.Timestamp getLastVisitTime(){
+         onPropGet(PROP_ID_lastVisitTime);
+         return _lastVisitTime;
+    }
+
+    /**
+     * 最近访问时间: LAST_VISIT_TIME
+     */
+    public final void setLastVisitTime(java.sql.Timestamp value){
+        if(onPropSet(PROP_ID_lastVisitTime,value)){
+            this._lastVisitTime = value;
+            internalClearRefs(PROP_ID_lastVisitTime);
             
         }
     }

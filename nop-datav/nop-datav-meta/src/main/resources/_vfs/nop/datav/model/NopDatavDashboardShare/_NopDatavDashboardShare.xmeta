@@ -73,6 +73,14 @@
               insertable="true" updatable="true">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>
+        <prop name="visitCount" displayName="访问计数" propId="14" i18n-en:displayName="Visit Count" queryable="true"
+              sortable="true" insertable="true" updatable="true" defaultValue="0">
+            <schema type="java.lang.Long"/>
+        </prop>
+        <prop name="lastVisitTime" displayName="最近访问时间" propId="15" i18n-en:displayName="Last Visit Time"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
         <prop name="dashboard" displayName="看板" i18n-en:displayName="Dashboard" tagSet="pub,ref-pub" ext:kind="to-one"
               internal="true" queryable="true" ext:joinLeftProp="dashboardId" ext:joinRightProp="dashboardId"
               ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" mandatory="true" lazy="true">

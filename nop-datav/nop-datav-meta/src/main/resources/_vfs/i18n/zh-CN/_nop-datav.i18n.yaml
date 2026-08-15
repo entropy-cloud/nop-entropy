@@ -132,6 +132,7 @@ prop:
       delFlag: 删除标记
       enabled: 启用标记
       expireTime: 过期时间
+      lastVisitTime: 最近访问时间
       passwordHash: 密码哈希
       remark: 备注
       shareId: 分享ID
@@ -139,6 +140,7 @@ prop:
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本
+      visitCount: 访问计数
     NopDatavDashboardSnapshot:
       createTime: 创建时间
       createdBy: 创建人
