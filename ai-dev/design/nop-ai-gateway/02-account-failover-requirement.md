@@ -81,6 +81,8 @@
 
 **语义裁决（偏离 coordinator 处显式声明）**：`LlmCallCoordinator` 只对 QUOTA/AUTH 走账号链，TRANSIENT 走模型 tier 回退、RATE_LIMITED 走原地退避重试。本需求（用户目标：**限流/连接中断也换账号**）要求 RATE_LIMITED/TRANSIENT 在网关/适配器语义下同样触发账号切换（先账号链、账号链耗尽后 provider 链，见 §4.3）。此偏离是产品决策（用户明确要求），不属于复用缺陷。
 
+**落地状态（2026-08-15，W6，plan `2026-08-15-1116-2`）**：本节动作表在本地形态已落地——`ChatServiceFailoverAdapter`（nop-ai-gateway `io.nop.ai.gateway.failover`）实现双源合并分类（响应级 `ChatResponse.errorClassification` 优先 + 传输异常级 `LlmErrorClassifier`）与动作表（QUOTA_EXCEEDED/AUTH_INVALID/RATE_LIMITED/TRANSIENT → 切换 + 熔断记账 + 重试预算；NON_TRANSIENT → 不切换直接失败不耗预算；CACHE_STATE_LOST → 原地重发同一候选一次，防御分支）；流式路径经 onError 异常的 `NopException` ARG_HTTP_STATUS/ARG_BODY 调 `dialect.parseErrorResponse` 恢复响应级分类（AUTH_INVALID/QUOTA_EXCEEDED 可达），`parseErrorResponse` 自身异常回退 `LlmErrorClassifier`。Q5 语义偏离沿用 spike 推荐默认（确认偏离 = RATE_LIMITED/TRANSIENT 触发账号链切换），人工裁决正式回填归 W8 OBS-04。
+
 > 边界：本需求只处理**上游失败**。入站限流（请求进入网关后被 `AiRateLimitGatewayInterceptor` 拒绝）属另一能力，不在本需求范围。
 
 ### 3.2 切换语义
@@ -92,6 +94,8 @@
   - 为实现"可透明重试"窗口，引入**首段缓冲**：前 N 个元素（或 T 毫秒）先缓冲不转发，确认上游稳定后再转发。缓冲参数待定（接受首包延迟代价）。
   - **重订阅次数受重试预算约束**：每次重订阅（从头重试）消耗一次重试预算，预算耗尽即断流报错（熔断键 OPEN 兜底，见 §3.3）。
   - **形态差异**：本地形态的流是 `IChatService.callStream` 返回的 `Flow.Publisher<ChatStreamChunk>`（背压/取消语义，`cancelToken`），缓冲/切换发生在 chunk 流层（重订阅）；网关形态的流是 SSE 字节流（`StreamingResponse` + `IGatewayContext`），缓冲/切换发生在字节流层。两者的首段缓冲语义一致，实现位置不同（需分别在两种形态验证）。
+
+**落地状态（2026-08-15，W6，plan `2026-08-15-1116-2`）**：本地形态流式缓冲/重订阅已落地——`FailoverStreamFlow`（nop-ai-gateway `io.nop.ai.gateway.failover`）：首段缓冲窗口默认 N=10 元素 / T=1000ms（可配置，先到者越窗）；**窗口内/外判定 = 是否已向订阅者转发任何数据**（"尚未转发 → 窗口内可重订阅；已转发 → 断流报错"，需求原文语义；N/T 只决定缓冲转透传时点）；窗口内失败 → 分类 + 熔断记账 + 重选（含 provider 链扩展）+ 重订阅（新 `ChatOptions` 重调 `callStream`，消耗重试预算，默认 2 次）；**已缓冲元素在重订阅时丢弃**（attempt1 前缀不得进入最终输出）；重订阅/首次调用同步异常（`checkRateLimit` ERR_AI_RATE_LIMITED 等）按流式路径错误语义（onError 信号）决策；成功路径 `recordSuccess`（探活成功 → CLOSED 恢复）；取消顺序契约 = 先 cancel 内部订阅（唤醒阻塞 submit）→ 再 cancel attempt token（断 HTTP）；per-attempt 独立取消令牌（调用方取消传播到当前 attempt，绝不直接取消调用方 token）。
 
 ### 3.3 路由与熔断（模型类路由组 + 动态选择 + 复用既有熔断）
 
@@ -127,6 +131,18 @@
 候选集游走 + 并发记账 + 全池饱和 fail-loud（`ModelClassRouter`/`ConcurrencyRegistry`，
 `io.nop.ai.core.routing` 包，错误码 `ERR_AI_MODEL_CLASS_SATURATED`）。其中 in-core 交付的是**游走原语**（纯选择机制——
 router 不记熔断失败，失败记账归编排层）；网关切换/缓冲/重试编排归 W6/W7 消费（见 §4.1 归属解读）。
+
+**编排层落地状态（2026-08-15，W6，plan `2026-08-15-1116-2`）**：本地形态编排已落地于
+`ChatServiceFailoverAdapter`——熔断记账归属 = 编排层对已失败尝试的候选逐个
+`ThresholdBreaker.recordFailure(modelKey)`（同一模型类内多账号连续失败跨账号累计）、成功路径
+`recordSuccess`（非流式成功响应 / 流式 onComplete）；并发计数 = 非流式 callAsync 与流式
+`callStream` 调用时刻均 +1、全终止路径（成功/切换/NON_TRANSIENT/同步异常/取消）配对 -1
+（per-attempt 一次释放守卫）；**acquire 后复查**（新计数 vs 候选 `concurrencyLimit`，超限 →
+release + 视为饱和跳过重选，保证请求发出前任一账号不超并发）；无路由组直通路径不计数；
+**熔断探活恢复** = 全池饱和时对健康视图 OPEN 的候选显式 `allowCall`（冷却期满 → HALF_OPEN
+放行探活，探活成功 recordSuccess → CLOSED 恢复；候选池 = 类内 + provider 链扩展候选）；
+主动切换（并发饱和跳过）不记熔断、不耗重试预算；breaker/registry 为进程共享单例 bean
+（`nopFailoverCircuitBreaker`/`nopFailoverConcurrencyRegistry`）。
 
 ### 3.4 账号配置（复用既有解析链）
 
@@ -318,6 +334,13 @@ flowchart LR
       缓冲窗口内切换与重订阅消耗重试预算）
 ```
 
+**本地形态数据流核对（2026-08-15，W6，plan `2026-08-15-1116-2`）**：§4.4 本地形态两条伪代码
+（非流式 callAsync / 流式 callStream）已由 `ChatServiceFailoverAdapter` + `FailoverStreamFlow`
+逐条落地并测试断言（`TestChatServiceFailoverAdapterNonStreaming` 17 用例 +
+`TestChatServiceFailoverAdapterStreaming` 15 用例，nop-ai-gateway）：选择 → 熔断/并发检查 →
+四字段下沉 → 委托 → 分类/记账/重选/预算；流式缓冲 → 窗口内重订阅 → 窗口外断流 → 并发
++1/-1 配对，与伪代码语义一致，无偏差。
+
 ## 五、开放问题（待确认）
 
 | # | 问题 | 影响 |
@@ -333,6 +356,11 @@ flowchart LR
 | 9 | ~~动态选择策略默认策略细节~~ **已决（§3.3，W5 已落地）**：默认策略 = 健康度 + 并发感知 + 声明序，不含权重/成本（成本/权重委托规则策略）——`DefaultSelectionStrategy` 已落地；剩余：规则策略 DSL 形态（并入 Q10） | — |
 | 10 | ~~规则配置策略的 DSL 形态（XLang 规则）与绑定方式（IoC bean 注入）~~ **已决并落地（W5b，plan `2026-08-15-1116-1`）**：DSL 形态 = 平台既有 `rule.xdef`（原 W5 裁定拆 successor，由 W5b 收口）；IoC 绑定 = 规则策略 bean 注册于 nop-ai-gateway `ai-gateway-defaults.beans.xml`（`nopAiRuleBasedSelectionStrategy`，`ruleManager` ref `nopRuleManager` 带 `ioc:optional`——未部署 nop-rule 的容器可启动、首用 fail-fast；ruleName/ruleVersion bean 属性）；模块归属 = nop-ai-core `io.nop.ai.core.routing`（§4.1 归属表一致），nop-ai-core 新增 nop-rule-core 编译依赖（nop-rule-core 不依赖 nop-ai-core = 无环）。**规则契约（W5b 落档）**：输入 = model/provider/candidates/health/attempted（**不含 accountKey**——备用账号 apiKey 明文安全裁定；health 键 = Integer 候选 index）；输出 = `selectedIndex`（int，**不得 mandatory**——`NormalizeOutputExecutableRule` 未命中也校验输出）；XML 规则文件访问列表/映射元素须用 **computed 输入**派生辅助变量（`<expr>` filter op 在 XML 中不可用——body 不编译进 value attr，执行期实证）；未命中/无输出 → null（调用方 fail-loud），越界/命中已尝试 → `ERR_AI_AGENT_INVALID_ARG` fail-loud；单例 stateless（每 select 新建 ruleRt）。落地证据：`RuleBasedSelectionStrategy` + 13 策略用例 + 2 IoC 用例 + 接线/端到端测试（全绿） | 可扩展性 |
 | 11 | LLM 可靠性子集下沉的迁移兼容：`NopAiAgentException`/`NopAiAgentErrors` → nop-ai-core 等价物、`buildModelKey` 移入、既有 nop-ai-agent 测试/API 调用方迁移影响面 | 重构风险 |
+
+**Q2/Q3/Q5 处置记录（2026-08-15，W6，plan `2026-08-15-1116-2` Phase 1/4）**：
+- **Q2**：沿用 spike 推荐默认 **（a）路由覆盖 model**——本地形态经 `ModelClassRouter.toChatOptions` 四字段下沉（含 model）落地；未接人工裁决，正式裁决回填归 W8 OBS-04。
+- **Q3**：**W6 执行期已裁定**——首段缓冲 N=10 元素 / T=1000ms（先到者越窗，可配置 `nop.ai.gateway.failover.buffer-size|buffer-time-ms`）、重试预算 = 2 次重订阅/重发（可配置 `nop.ai.gateway.failover.retry-budget`）、总延迟上限默认 null（仅次数预算，`optimization candidate` deferred）。
+- **Q5**：沿用 spike 推荐默认 **（确认偏离）RATE_LIMITED/TRANSIENT → 账号链切换**——W6 动作表已按此落地（§3.1 落地状态）；未接人工裁决，正式裁决回填归 W8 OBS-04。
 
 ## 六、拒绝了什么
 

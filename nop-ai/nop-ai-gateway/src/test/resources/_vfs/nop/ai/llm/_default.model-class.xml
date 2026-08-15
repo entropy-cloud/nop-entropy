@@ -1,0 +1,35 @@
+<modelClass x:schema="/nop/schema/ai/model-class.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <!--
+    W6 本地适配器测试用模型类路由组声明（plan 2026-08-15-1116-2 Phase 4 测试夹具，
+    nop-ai-gateway 本地 fixtures——nop-ai-core 的 test 资源不在本模块 test classpath）。
+    候选展开语义（LlmConfigHelper.resolveModelClassCandidates）：
+      - tier-gw 候选 1（gw-test/gw-model-1）= 主账号 + gw-test 账号链（gw-backup-a/b，主账号在前）；
+      - tier-gw 候选 2（gw-test2/gw-model-2）= 主账号 + 空账号链；
+      - tier-gw-sat 候选（gw-sat/gw-sat-model）= 主账号 + gw-sat 账号链（s1/s2）——饱和/探活测试；
+      - tier-gw-rl 候选（gw-rl/gw-rl-model）= 主账号 + 空账号链——本地限流（rateLimit）同步抛测试。
+    -->
+
+    <modelClasses>
+        <modelClass id="tier-gw" members="gw-model-1,gw-model-2">
+            <candidates>
+                <candidate provider="gw-test" model="gw-model-1"/>
+                <candidate provider="gw-test2" model="gw-model-2"/>
+            </candidates>
+        </modelClass>
+
+        <modelClass id="tier-gw-sat" members="gw-sat-model">
+            <candidates>
+                <candidate provider="gw-sat" model="gw-sat-model"/>
+            </candidates>
+        </modelClass>
+
+        <modelClass id="tier-gw-rl" members="gw-rl-model">
+            <candidates>
+                <candidate provider="gw-rl" model="gw-rl-model"/>
+                <candidate provider="gw-rl" model="gw-rl-model" accountRef="gw-rl-b1"/>
+            </candidates>
+        </modelClass>
+    </modelClasses>
+
+</modelClass>

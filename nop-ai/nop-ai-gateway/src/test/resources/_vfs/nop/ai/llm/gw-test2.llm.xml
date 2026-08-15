@@ -1,0 +1,10 @@
+<llm x:schema="/nop/schema/ai/llm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     x:extends="default.llm.xml" apiStyle="openai" supportToolCalls="true"
+     defaultModel="gw-model-2" concurrencyLimit="2">
+
+    <!-- W6 测试用 provider：无 <accounts>（仅主账号）。 -->
+
+    <baseUrl>https://gw-test2.example.com</baseUrl>
+    <chatUrl>/v1/chat/completions</chatUrl>
+
+</llm>

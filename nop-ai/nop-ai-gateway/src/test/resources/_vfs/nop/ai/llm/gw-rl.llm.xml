@@ -1,0 +1,21 @@
+<llm x:schema="/nop/schema/ai/llm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     x:extends="default.llm.xml" apiStyle="openai" supportToolCalls="true"
+     defaultModel="gw-rl-model" rateLimit="0.001" concurrencyLimit="2">
+
+    <!--
+    W6 测试用 provider：本地限流（ChatServiceImpl.checkRateLimit，per-provider 键）——
+    rateLimit 0.001 QPS + 测试内配置 nop.ai.service.rate-limit-acquire-timeout=0。
+    Guava RateLimiter 实证语义：fresh limiter 首次 tryAcquire 恒成功（canAcquire 只看
+    nextFreeTicket），第二次（nextFreeTicket 前移 stableInterval）立即失败 →
+    同 provider 内第二个候选（gw-rl-b1，同一限流器）同步抛 ERR_AI_RATE_LIMITED
+    （Minor-2 落档边界：本地限流下"限流换账号"不保证生效）。
+    -->
+
+    <baseUrl>https://gw-rl.example.com</baseUrl>
+    <chatUrl>/v1/chat/completions</chatUrl>
+
+    <accounts>
+        <account id="gw-rl-b1" apiKey="key-rl-b1" concurrencyLimit="1"/>
+    </accounts>
+
+</llm>

@@ -1,0 +1,16 @@
+<llmFailover x:schema="/nop/schema/ai/llm-failover.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <!--
+    W6 测试用跨 provider 有序故障转移表（plan 2026-08-15-1116-2 Phase 4 测试夹具）。
+    primary → 链（其后有序子表）：
+      gw-test → [gw-test2, gw-rl, gw-sat]；gw-rl → [gw-sat]；gw-sat → []。
+    -->
+
+    <providers>
+        <provider provider="gw-test"/>
+        <provider provider="gw-test2"/>
+        <provider provider="gw-rl"/>
+        <provider provider="gw-sat"/>
+    </providers>
+
+</llmFailover>

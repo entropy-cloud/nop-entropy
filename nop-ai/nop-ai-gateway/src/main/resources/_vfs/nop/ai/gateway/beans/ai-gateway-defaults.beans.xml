@@ -128,4 +128,40 @@
         <!-- ruleVersion omitted: null = latest version of the rule -->
     </bean>
 
+    <!-- W6 local failover adapter (plan 2026-08-15-1116-2): process-shared
+         circuit breaker + concurrency registry singletons (Phase 1 D8/M-5 —
+         the adapter MUST inject shared singletons, never let ModelClassRouter
+         construct per-call defaults, or breaker state and concurrency counts
+         silently degrade to per-call locality) and the IChatService adapter
+         itself. The adapter is a NON-default bean (ioc:default stays on
+         nopChatService in nop-ai-core) so existing by-type IChatService
+         consumers (e.g. nop-wf-ai WfAiHelper) keep their zero-regression
+         behavior; deployments switch by wiring their injection target to
+         nopChatServiceFailoverAdapter (W8 documents the usage). -->
+    <bean id="nopFailoverCircuitBreaker"
+          class="io.nop.ai.core.reliability.ThresholdBreaker"/>
+
+    <bean id="nopFailoverConcurrencyRegistry"
+          class="io.nop.ai.core.routing.ConcurrencyRegistry"/>
+
+    <bean id="nopChatServiceFailoverAdapter"
+          class="io.nop.ai.gateway.failover.ChatServiceFailoverAdapter"
+          ioc:type="io.nop.ai.api.chat.IChatService">
+        <property name="delegate">
+            <ref bean="nopChatService"/>
+        </property>
+        <property name="breaker">
+            <ref bean="nopFailoverCircuitBreaker"/>
+        </property>
+        <property name="registry">
+            <ref bean="nopFailoverConcurrencyRegistry"/>
+        </property>
+        <!-- strategy omitted: null = DefaultSelectionStrategy (deployments that
+             want rule-based selection wire nopAiRuleBasedSelectionStrategy here;
+             a deployment-level choice, not the gateway default) -->
+        <property name="bufferSize" value="@cfg:nop.ai.gateway.failover.buffer-size|10"/>
+        <property name="bufferTimeMs" value="@cfg:nop.ai.gateway.failover.buffer-time-ms|1000"/>
+        <property name="retryBudget" value="@cfg:nop.ai.gateway.failover.retry-budget|2"/>
+    </bean>
+
 </beans>
