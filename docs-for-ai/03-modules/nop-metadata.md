@@ -99,6 +99,7 @@ mutation {
   NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: "t-1") {
     edgeCount
     sourceTables
+    unresolved
   }
 }
 
@@ -106,6 +107,8 @@ query {
   NopMetaLineageEdge__getImpactAnalysis(metaTableId: "t-1", columnName: "AMOUNT")
 }
 ```
+
+**返回字段语义（P1-3，plan 2026-08-15-1913-2）**：`sourceTables` = **已解析**源表的 **metaTable ID** 集（去重保序；表级/列级为目录命中的源表，指标级 = 宿主表自身 `[metaTableId]`——measure 边为自环，仅当产出 ≥1 条边，0 条边时空列表）；`unresolved` = 未解析引用描述（**异质**：表级为完整表名，列级/指标级为 `"target <- source (reason)"` 诊断串）。两列表互不串入（修复前表级把 unresolved 误植进 sourceTables、列级/指标级恒空）。
 
 ### 4. 质量检查点批量执行（含 cron 调度）
 
@@ -178,7 +181,7 @@ mutation {
 - **INV-LOCALE 机器比较语义全量 locale-insensitive（Cycle 2 / I4'，plan 2026-08-15-0820-3）**：模块内全部机器比较用途的 case-mapping（registry/集合键归一化、白名单/blocklist token 比对、类型/方言分类、配置 token 匹配、结构化 extras token）统一 `Locale.ROOT`（40 处类别清扫，含 2 处安全语义缺陷：JDBC URL 危险参数 blocklist 与 custom_sql sandbox 关键字扫描在 tr-TR 默认 locale 下的注入探测绕过）。防回退门禁：`check-silent-wrong-result.mjs --rule locale`（零命中阻断）。同批：`MetaTableProfiler.isStringType` 改 exact-match `Set.of`（沿 AR-05 形态，消除与 `isNumericType` 的同族双标准）；列级血缘边去重键 / existing-edge map 键与 auto-classification warn 去重键改结构性 `List` 键（沿 AR-03 形态，不依赖列名/正则 pattern 不含分隔符的格式假设）。
 - **AR-13 reconciliation 候选有界**：`ReconciliationExecutor.execute` 传入默认 `DEFAULT_CANDIDATE_LIMIT = 50`（非 null）——所有 fuzzy 候选（score > 阈值）经 `LocalReconciliationProcessor.reconcile` 截断为 ≤50，details JSON 候选序列化有界，大候选池下不会 OOM/多秒序列化。config-driven limit（extConfig JSON 键或新增 ORM 列）为 Non-Blocking Follow-up（含 ORM Protected Area 风险）。
 
-主要 I*Biz 接口（plan 2026-07-19-1250-3 Phase 1 补齐）：
+全部 14 个非空 I*Biz 接口（plan 2026-07-19-1250-3 Phase 1 补齐 9 个；P1-2（plan 2026-08-15-1913-2）补齐其余 5 个——与 `nop-metadata-dao` `io.nop.metadata.biz` 包 live 接口逐一核对）：
 
 - `INopMetaTableBiz` — profileTable / createSqlTable / previewSqlFields / resolveTableFields / queryTableData / queryJoinData / queryAggregation
 - `INopMetaDataSourceBiz` — testConnection / syncExternalTables / collectCatalog / collectCatalogForTable
@@ -189,6 +192,15 @@ mutation {
 - `INopMetaQualityScoreBiz` — computeQualityScore
 - `INopMetaDataContractBiz` — checkContract / checkContractReadOnly
 - `INopMetaProfilingRuleBiz` — executeProfilingRule
+- `INopMetaDataProductBiz` — linkAsset / unlinkAsset / getLinkedAssets
+- `INopMetaQualityResultBiz` — approve / reject
+- `INopMetaReconciliationConfigBiz` — executeReconciliation
+- `INopMetaReconciliationResultBiz` — confirmMatch / batchConfirmMatches
+- `INopMetaTagLabelBiz` — propagateTags / suggestTags
+
+**DataProduct 挂链语义（P1-4/P1-5，plan 2026-08-15-1913-2）**：`linkAsset`/`unlinkAsset` 入口对 `dataProductId` 做 `requireEntity` 聚合根校验——不存在/伪造 ID 抛 `nop.err.dao.unknown-entity`（聚合根层），与"存在产品但无标签"的 `nop.err.metadata.link-asset-not-found`（标签层）语义区分；`entityId` 由 `LINKABLE_ASSET_TYPES` 白名单治理 entityType、保持不透明资产引用（TagLabel 通用标注语义）。`linkAsset` 跨聚合创建走 TagLabel 属主 save 管线（`bizObject invoke("save")`，沿 GlossaryTerm 传播先例）——Automated 标签 `state=Suggested` + 自动提审（`wf:wfName=tagLabelConfirmApproval`，fail-loud，匿名上下文显式失败）。
+
+**`NopMetaTagLabel.xbiz` approve/reject XPL 事实源**：`INopMetaTagLabelBiz` 接口只声明 Java 侧自定义方法（propagateTags/suggestTags）；approve / reject / submitForApproval / withdrawApproval 由 `NopMetaTagLabel.xbiz`（extends `/nop/wf/base/approval-support.xbiz`）以 XPL 脚本提供，是该 biz 对象 GraphQL mutation 的事实源（不在 Java BizModel / I*Biz 接口中）。
 
 ## 关键内部组件（source anchors）
 
@@ -253,6 +265,7 @@ nop-metadata 对三处安全敏感路径维持 fail-closed / 默认脱敏 / fail
 - **IPv6 字面量判定不触发 DNS（F8，plan 2026-08-14-1133-1）**：`HostSecurityUtil.isInternalIpv6Literal` 入口增加 charset 前置过滤——仅"字符集 ⊆ [0-9a-fA-F:.] 且 ≥2 冒号"的输入才调用 `InetAddress.getByName`；否则视为非字面量直接 return false（不触发 DNS）。修复前含 `:` 但含非 hex 字母（g-z）的串（如 `gzzz::1`）路由到本方法后直接调 `getByName` 触发 DNS 查找，违反类 javadoc "纯确定性解析，不触发 DNS" 契约。过滤逻辑与 `isIpLiteral` 的 charset 检查逐项一致。
 - **custom_sql blocklist PG 关键字补全（F9，plan 2026-08-14-1133-1）**：`MetaQualityRuleExecutor.CUSTOM_SQL_FORBIDDEN_WORDS` 补全 PG 脚本执行/时序攻击/系统目录族——`DO`（执行匿名 PL/pgSQL 代码块，RCE 等价面）、`PG_SLEEP`（时序盲注/DoS）、`PG_CATALOG`（系统目录 schema）、`PG_STAT_USER_TABLES`（系统统计视图，信息泄漏），以及 `WITH`（CTE 递归）。**`WITH` 的 CTE false-positive tradeoff**：合法分析型 CTE 查询（`WITH t AS (...) SELECT ...`）会被阻断——与既有 over-block 哲学一致（custom_sql 面向受限 SQL 场景，已含 `SET` 等常见关键字，宁可误拒不放过）；合法 CTE 需求应改用子查询或专用 measure 表达式通道（经 `ExpressionMeasureValidator` 校验）。**DRY 裁定**：与 `ExpressionMeasureValidator.KEYWORD_BLACKLIST`/`FUNCTION_BLACKLIST` 保持分离（不抽取共享常量）——两者语义域（整条 SQL 文本 vs SELECT 片段表达式）、分词与匹配机制（token 精确匹配 + fail-closed vs word-boundary + 字符串字面量先抽取）、演进路径均不同；重叠项的"恰好同名"是语义域交集的自然结果，非 DRY 缺陷。
 - **事件快照脱敏契约（AR-04/AR-07，plan 2026-08-14-0707-1）**：`MetaModelChangedEventPublisher.buildEntitySnapshot(Object entity)` 三分支（ORM / Map / POJO）对同一敏感 key 产出一致脱敏——敏感列（ORM `tagSet=sensitive` 或兜底列名集 `connectionConfig`/`password`/`jdbcUrl` 等）返回固定 `REDACTED_VALUE`（不读取实际值）。POJO 回退分支不再以反射序列化泄露敏感字段（stringify→parse 得到 Map 后路由回 Map 分支脱敏）。
+- **connectionConfig 受控写路径与读脱敏（P1-1，plan 2026-08-15-1913-2）**：`NopMetaDataSource.connectionConfig` 持有明文 JDBC 凭据，契约分两面——**读出口脱敏**：`published="false"` 使该字段不在 GraphQL 查询输出类型中（findPage/findList/get 永不返回）；**受控写路径**：`insertable="true" updatable="true"`，`NopMetaDataSource__save` 可写入该字段，`__update` 在提交体显式含该键时更新（凭据轮换）；update 提交体不含该键时**不触碰已存配置**（`OrmEntityCopier` 只拷贝提交体中存在的 key——edit 表单不含该字段，表单提交永不清空配置）。`queryable/sortable="false"`：不允许以该字段作为过滤/排序条件探测凭据。表单字段落点：**仅 add 表单**（留存层 `NopMetaDataSource.view.xml`，textarea 控件，沿 `NopAuthUser.password` 先例）；edit/view 表单不显示（`published=false` 使字段不在查询输出类型，edit 页 `initApi` 的 `{@formSelection}` 选中该字段会报错）。`connectionConfigComponent`（惰性 JSON 解析组件，`internal="true"`）保持锁死、无写路径。`testConnection` / `syncExternalTables` / `collectCatalog` 均消费 save 写入的配置（写路径端到端可达，回归测试钉死）。
 
 ## 参考文档
 
