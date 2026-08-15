@@ -5,7 +5,7 @@
 
 ## 概述
 
-本文记录 nop-datav 看板运行时（D1）后端能力的架构决策：面板渲染协议（D1-1）、数据绑定管线（D1-2）、刷新机制（D1-3）、批量面板查询（D1-2/D2-1 deferred follow-up）。前端集成（D1-4）依赖 nop-chaos-flux 控件族，flux 侧未落地前为 out-of-scope。本模块只做模型侧解析 + 查询委托/回传，不做前端渲染、不重建数据源/数据集管理（复用 nop-report）、不重建维度/度量建模（复用 nop-metadata）。
+本文记录 nop-datav 看板运行时（D1）后端能力的架构决策：面板渲染协议（D1-1）、数据绑定管线（D1-2）、刷新机制（D1-3）、批量面板查询（D1-2/D2-1 deferred follow-up）、flux 布局对齐（D1-4，§九）。前端集成（D1-4）依赖 nop-chaos-flux 控件族；flux 侧 dashboard editor 已落地（外部仓库 `nop-chaos-flux:packages/flux-renderers-dashboard`），本仓库交付后端对齐契约与 API（§九），flux 侧编辑器对接为外部 successor。本模块只做模型侧解析 + 查询委托/回传，不做前端渲染、不重建数据源/数据集管理（复用 nop-report）、不重建维度/度量建模（复用 nop-metadata）。
 
 ## 一、面板渲染协议（D1-1）
 
@@ -358,3 +358,138 @@ DashboardDataResult
 | single-flight 同键并发 miss 去重 | 会把 SQL 执行纳入缓存加载函数、同键串行化、异常传播语义复杂化；并发重复 miss 已受 parallelism 约束，代价可接受 |
 | 截断超限结果入缓存 | 缓存返回截断数据 = 返回错误数据；正确性优先（裁定为超限不缓存而非截断） |
 | 分布式缓存（Redis 等进程外缓存） | Non-Goal（引入部署依赖；单节点 TTL 语义已覆盖 Purpose） |
+
+## 九、flux 布局对齐：导出与保存回写（D1-4，plan `2026-08-15-1134-1`）
+
+flux dashboard editor（外部仓库 `nop-chaos-flux:packages/flux-renderers-dashboard`）的布局 schema `DashboardLayoutSchema`（`{type:'dashboard', panels:[{id,type,title,x,y,w,h,props?,source?}], cols, rowHeight, gap, height?}`，网格坐标编辑态/运行态同构）与 nop-datav 归一化看板模型（`NopDatavDashboard` + `NopDatavPanel`/`NopDatavDashboardTab`/`NopDatavDatasetRef` 行）的双向对齐契约。两个 action 均作用于**编辑态 live 表**（D0 发布/快照/回滚语义不变；`layoutConfig` 随快照整体序列化/恢复的既有行为自动携带新结构）。
+
+### 9.1 action 命名与权限
+
+| Action | 类型 | 权限点 | 角色绑定 |
+|--------|------|--------|---------|
+| `exportDashboardLayout(id)` | `@BizQuery` | `NopDatavDashboard:exportDashboardLayout` | admin,user（读操作，镜像 `getDashboardData`） |
+| `saveDashboardLayout(id, layout)` | `@BizMutation` | `NopDatavDashboard:saveDashboardLayout` | admin（写操作，镜像 mutation/publishDashboard） |
+
+导出返回布局 JSON 对象；保存返回**再导出的布局 JSON**（含服务端为新建面板生成的 id，编辑器以响应重同步面板身份锚点）。
+
+### 9.2 面板身份映射与名字列派生
+
+**身份**：导出 flux panel `id` = 服务端 `panelId`。保存按 `id` 对齐：命中本看板既有 `panelId` → 更新该行；未命中任何面板 → 新建行，`panelId` 由服务端生成（UUID 去横线 32 字符，`DatavGenerateDashboardExecutor.generateId` 先例），载荷 `id` 丢弃（仅编辑器内部 diff 锚点）。存活面板 id 跨保存稳定。
+
+**名字列**：
+
+- 导出 `title` ← `displayName` 非空取 `displayName`，否则 `panelName`
+- 保存既有面板：`displayName` ← 载荷 `title`，`panelName` 不动（稳定系统名）
+- 保存新建面板：`panelName` ← `title` 截断至 100 字符；`title` 空/缺省时取 `panel-{数组下标+1}`；`displayName` ← `title`（可 null）
+- `sortOrder` ← 载荷面板数组下标（0 基）；导出面板顺序 = `sortOrder` 序
+
+**身份冲突（显式报错，非静默）**：载荷内重复 `id` → `ERR_DATAV_LAYOUT_DUPLICATE_PANEL_ID`；`id` 命中**其他看板**的面板行 → `ERR_DATAV_LAYOUT_FOREIGN_PANEL_ID`。
+
+**保存删除的面板若被 AlertRule 引用**：该规则置 `DISABLED` 并即时注销 cron（镜像看板删除级联先例，防止悬空规则持续评估失败）。
+
+### 9.3 类型词表映射
+
+flux palette 字符串 ↔ registry 字符串为**恒等映射**（`chart`/`table`/`stat-tile`/`iframe`/`text`），dict int 腿复用既有 `PanelTypeMapping`（不重建）。`pivot-table`/`map`/`container` 按恒等字符串透传——flux palette 无此类新增入口，但布局 schema `type` 字段容忍既有值（编辑器可改几何，不可新增）。导出 `panelType`(int) → `type`(string)；保存 `type` → `panelType`(int)。
+
+双向缺口处置：
+
+- flux `html`：保存**显式拒绝**（`ERR_DATAV_UNKNOWN_COMPONENT_TYPE`）——nop-datav 无对应组件与查询语义；扩展注册表+字典裁定为 rejected（§9.12）。导出不产出（归一化模型不存在该类型）。
+- registry 6 类装饰/媒体类型（decorative-border/scroll-text/time-clock/video/stream/carousel-tab）：`panelType` dict 不含，导出**不可达**；保存收到时经 `PanelTypeMapping.toPanelTypeInt` fail-fast（同一错误码）。
+
+### 9.4 几何与网格参数存放（layoutConfig 结构钉死）
+
+`layoutConfig`（json-4000）自本节起为后端契约钉死结构：
+
+```json
+{
+  "cols": 12, "rowHeight": 40, "gap": 8, "height": 1234,
+  "panels": { "<panelId>": {"x": 0, "y": 0, "w": 6, "h": 4} }
+}
+```
+
+- 几何（x/y/w/h）**只存 layoutConfig**，不入 `panelConfig`（§一 区域约定刻意无几何区，维持）
+- 保存重建 layoutConfig：已知键（`cols`/`rowHeight`/`gap`/`height`/`panels`）按 §9.7/§9.2 规则写回；**未知遗留顶层键保留**（存量自由数据不破坏；本契约为增量钉死而非清场）
+- 容量判据（json-4000）：每面板条目 ≈ 58 字符（32 字符 id + 定界 JSON），`max-panels=50` 时几何区 ≈ 2.9KB + 网格头 < 4000；超限**显式报错** `ERR_DATAV_LAYOUT_CONFIG_OVERFLOW`（length/maxLength 参数），不截断。`panelConfig` 超限同理 `ERR_DATAV_PANEL_CONFIG_OVERFLOW`
+- 校验界：`x≥0, y≥0, w≥1, h≥1`（整数）；`cols≥1, rowHeight≥1, gap≥0, height≥0`（height 可缺省）
+
+### 9.5 存量无几何看板的导出（默认布局合成）
+
+面板不在 `layoutConfig.panels`（存量看板未经 flux 保存 / CRUD 后新增面板）→ **默认布局合成**：`x=0, w=cols, h=4`，`y=堆叠游标`（初值 = 有几何面板的 `max(y+h)`，无则 0），按 `sortOrder` 依次堆叠（每面板游标 +4）。网格参数缺省值 `cols=12, rowHeight=40, gap=8`（flux 缺省值）；`height` 仅在存储存在时导出。首次 flux 保存后合成几何固化为存储几何。
+
+存量 `layoutConfig` JSON 解析失败或网格键类型非法 → `ERR_DATAV_INVALID_LAYOUT`（显式，非静默降级）。存量自由结构（无 `panels` 键）→ 视为无几何，全量合成。
+
+### 9.6 面板配置区（props ↔ panelConfig）
+
+- 导出：`props` = `panelConfig` 解析对象**去除 `dataBinding` 区域**（绑定走 §9.9 一等描述）；`panelConfig` 空 → 省略 `props`
+- 保存（载荷面板含 `props` 对象时）：`panelConfig` := `props`（去除 `dataBinding`）∪ 既有 `panelConfig.dataBinding`（若有）。**`dataBinding` 为唯一保护区**——不可经布局保存写入、改写或丢失；`fieldMapping`/`styleOptions`/`refresh`/`content`/`title` 区域编辑器可写（`props` 存在即为权威**全量替换**：缺失区域被移除，保证 roundtrip 无损）
+- 保存（`props` 缺省/null）：`panelConfig` 整体不动
+
+### 9.7 保存载荷形态
+
+载荷 = 布局对象：
+
+```json
+{"panels": [{"id","type","title","x","y","w","h","props"?,"source"?}], "cols"?, "rowHeight"?, "gap"?, "height"?}
+```
+
+- `panels` 必填（可为空数组 = 清空全部面板）；顶层 `type` 标记如出现则忽略
+- 网格参数：**含则校验并更新**；**缺省则保留** layoutConfig 既有值不动（编辑器保存不含网格参数 → 保留路径）
+- `source` 为只读回显字段（§9.9），结构上容忍存在但永不消费
+
+### 9.8 tabs 语义（v1 平铺单页）
+
+- 导出纳入**全部面板**（不按 `tabId` 过滤，序 = `sortOrder`）；保存不创建/修改/删除 tab 行
+- 既有面板 `tabId` 保留；新建面板 `tabId = null`
+- 多 tab 看板**不拒绝**：tab 分组对 flux v1 不可见（编辑器平铺呈现），但 tab 行与面板归属数据不丢失；`getDashboardData` 运行时亦不按 tab 过滤（§4.2），语义一致
+
+### 9.9 数据绑定描述与保护
+
+- 导出：有绑定面板 `source` = `"datasetRef:<datasetRefId>"`；无绑定省略 `source`
+- 保存：**`source` 与 `props.dataBinding` 均为只读回显字段，永不消费**——绑定不可经布局保存建立、改写或丢失。既有面板 `datasetRefId` 原样保留（悬空引用不重新校验，交由 `getDashboardData` 面板级失败条目既有语义）；新建面板恒无绑定（绑定编辑为 Non-Goal，走 DatasetRef CRUD）
+- roundtrip 中绑定保持的证明 = 再导出 `source` 相等（§9.11 谓词第 5 条）
+
+### 9.10 面板数量上界
+
+独立配置 `nop.datav.dashboard-layout.max-panels`（`NopDatavConfigs.CFG_DATAV_DASHBOARD_LAYOUT_MAX_PANELS`，默认 50），保存路径面板数超限 → `ERR_DATAV_DASHBOARD_PANEL_LIMIT_EXCEEDED`（复用既有码：语义即「看板面板数上界」，与 §4.4 查询上界独立配置）。
+
+### 9.11 roundtrip 等价判据（E2E 断言直接输入）
+
+比较对象为两次**服务端产出**的导出布局（L1 = 编辑前导出、L2 = 保存响应或再导出）。等价谓词：
+
+1. 网格参数相等（`cols`/`rowHeight`/`gap`；`height` 两方均含时相等）
+2. `panels` 数组长度与顺序相等（序 = `sortOrder`）
+3. 按下标配对：`id`/`type`/`title`/`x`/`y`/`w`/`h` 相等
+4. `props` 深度相等（`dataBinding` 永不出现于 props，天然豁免比较）
+5. `source` 相等（绑定保留证明）
+
+id 稳定性：存活面板 id 不变；新建面板以 L2 的服务端 id 为准（不比较载荷 id）。**no-op roundtrip**（导出→不改→保存→再导出）必须 L2 ≡ L1（含存量合成几何固化为存储几何、title 回写 `displayName` 后导出语义不变）。
+
+### 9.12 错误路径与拒绝的替代方案
+
+错误路径：
+
+| 场景 | 错误码 |
+|------|--------|
+| 载荷结构非法（非对象 / `panels` 缺失或非数组 / 面板字段缺失或类型错 / 几何或网格参数越界 / `title` 超 200 字符 / 存量 `layoutConfig` 解析失败或网格键类型非法） | `ERR_DATAV_INVALID_LAYOUT` |
+| 面板类型不可映射（含 flux `html` 与 6 类装饰/媒体类型） | `ERR_DATAV_UNKNOWN_COMPONENT_TYPE` |
+| 载荷内重复面板 id | `ERR_DATAV_LAYOUT_DUPLICATE_PANEL_ID` |
+| 面板 id 属于其他看板 | `ERR_DATAV_LAYOUT_FOREIGN_PANEL_ID` |
+| 保存面板数超 `dashboard-layout.max-panels` | `ERR_DATAV_DASHBOARD_PANEL_LIMIT_EXCEEDED` |
+| `layoutConfig` 序列化超 4000 字符 | `ERR_DATAV_LAYOUT_CONFIG_OVERFLOW` |
+| `panelConfig` 序列化超 4000 字符 | `ERR_DATAV_PANEL_CONFIG_OVERFLOW` |
+| 看板不存在 | `requireEntity` 平台实体缺失错误（同既有 action 模式） |
+
+拒绝的替代方案：
+
+| 方案 | 拒绝理由 |
+|------|---------|
+| action 命名 `exportDashboard` / `saveDashboard` | 与 D3-3 数据导出任务 `exportDashboard` 语义冲突（`NopDatavExportTaskBizModel` 已占用） |
+| 面板身份沿用编辑器客户端 id | `panelId` 为服务端主键（seq 列，32 字符），客户端 id 空间不可控、冲突面大；服务端生成 + 保存响应重同步已满足编辑器 diff 锚点需求 |
+| 扩展注册表 + dict 支持 flux `html` | nop-datav 无 html 组件消费路径（注册表驱动查询语义，§一）；ORM dict 变更波及生成物；出现真实渲染需求时再作 successor 扩展 |
+| 几何分散存 `panelConfig` | 网格参数（看板级）无自然归属；§一 区域约定刻意无几何区；layoutConfig 集中存放使导出单点读取、容量单点校验 |
+| `layoutConfig` 存完整 flux schema（含面板数组） | 与归一化面板行构成双源真身，reconcile 漂移面大；仅存几何图 + 网格头使面板语义单一来源 |
+| 保存载荷 = 裸面板数组（编辑器 serialize 原生输出） | 无网格参数承载位（编辑器保存载荷本就不含网格），网格将不可经本 API 更新；flux 侧对接（successor）负责把数组包装为布局对象 |
+| 拒绝多 tab 看板导出/编辑 | 阻断存量看板进入 flux 编辑；平铺不丢数据（tab 行与面板归属保留），运行时亦不按 tab 消费 |
+| 保存消费 `source` / `props.dataBinding` 改写绑定 | 绑定编辑为 D1-4 Non-Goal（仅保留/透传）；消费引入越权绑定改写面 |
+| 复用 `dashboard-query.max-panels` 作保存上界 | 查询性能界（防 SQL 放大）与保存存储容量界（json-4000）语义不同；独立配置避免调参互相惊吓 |
+| 截断超限 JSON 入库 | 截断 = 损坏数据；显式报错让调用方收敛面板数或配置区体积 |
