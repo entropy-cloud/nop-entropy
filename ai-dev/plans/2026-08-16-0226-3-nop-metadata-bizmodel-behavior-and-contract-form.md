@@ -1,6 +1,6 @@
 # nop-metadata BizModel 行为与契约形态清扫（P2-18 / P2-19 / P2-21 / P2-22 / P2-24 / P2-25）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-16
 > Mission: nop-metadata-invariant-loop
 > Work Item: 2026-08-15 multi-audit Follow-up Backlog — BizModel 行为/契约形态族（P2 批次清扫）
@@ -58,147 +58,147 @@
 
 ### Phase 1 — DataProduct metadata JSON JsonTool 化（P2-21）
 
-Status: planned
+Status: completed
 Targets: `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/NopMetaDataProductBizModel.java`（:58/:99/:122）；测试 `TestNopMetaDataProduct*`（1913-2 落地的 linkAsset 测试族）
 
 - Item Types: `Fix | Proof`
 
-- [ ] 三处拼接（:58/:99/:122）替换为 `JsonTool.stringify(Map.of("dataProductId", dataProductId))`（或等价 JsonTool 入口；Map key 形态保持 `"dataProductId"` 与现契约一致）
-- [ ] 核对三个方法对 metadata 的 eq 匹配消费面（:63/:105/:126，含 getLinkedAssets :126 的存量行查询）在正常 ID 下行为等价（JsonTool 紧凑输出与手工拼接逐字节一致——已预验证，执行时复测）
-- [ ] 对抗测试：dataProductId 含 `"`、`\`、控制字符（如 `\n`）时——metadata 生成合法 JSON、可 parse 回、linkAsset 写入的行可被 unlinkAsset 的 eq 匹配删除（含 getLinkedAssets 查询形态）
-- [ ] 存量坏行裁定：旧代码写入的对抗 ID 损坏 metadata 行升级后 unlink 不到——一行裁定记录（平台生成 ID 不含坏字符，影响面≈0，不做数据迁移）
+- [x] 三处拼接（:58/:99/:122）替换为 `JsonTool.stringify(Map.of("dataProductId", dataProductId))`（或等价 JsonTool 入口；Map key 形态保持 `"dataProductId"` 与现契约一致）
+- [x] 核对三个方法对 metadata 的 eq 匹配消费面（:63/:105/:126，含 getLinkedAssets :126 的存量行查询）在正常 ID 下行为等价（JsonTool 紧凑输出与手工拼接逐字节一致——已预验证，执行时复测）
+- [x] 对抗测试：dataProductId 含 `"`、`\`、控制字符（如 `\n`）时——metadata 生成合法 JSON、可 parse 回、linkAsset 写入的行可被 unlinkAsset 的 eq 匹配删除（含 getLinkedAssets 查询形态）
+- [x] 存量坏行裁定：旧代码写入的对抗 ID 损坏 metadata 行升级后 unlink 不到——一行裁定记录（平台生成 ID 不含坏字符，影响面≈0，不做数据迁移）
 
 Exit Criteria:
 
-- [ ] `rg -n '\\"dataProductId' nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/NopMetaDataProductBizModel.java` 零命中（三处手工拼接全替换）
-- [ ] 对抗测试通过：坏字符 ID 不再产生损坏 JSON；正常 ID 输出逐字节等价（存量行兼容）
-- [ ] 1913-2 落地的 linkAsset/unlinkAsset 测试族全绿（无回归）
-- [ ] **接线验证**：linkAsset → metadata JSON 写入 → unlinkAsset 匹配删除链路在对抗 ID 下完整走通（端到端）
-- [ ] No owner-doc update required（metadata 字段内部形态不变，仍为含 dataProductId 键的 JSON——执行时复核 owner doc DataProduct 段无拼接表述引用）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `rg -n '\\"dataProductId' nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/NopMetaDataProductBizModel.java` 零命中（三处手工拼接全替换）
+- [x] 对抗测试通过：坏字符 ID 不再产生损坏 JSON；正常 ID 输出逐字节等价（存量行兼容）
+- [x] 1913-2 落地的 linkAsset/unlinkAsset 测试族全绿（无回归）
+- [x] **接线验证**：linkAsset → metadata JSON 写入 → unlinkAsset 匹配删除链路在对抗 ID 下完整走通（端到端）
+- [x] No owner-doc update required（metadata 字段内部形态不变，仍为含 dataProductId 键的 JSON——执行时复核 owner doc DataProduct 段无拼接表述引用）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 — save override null-data 防护（P2-19）
 
-Status: planned
+Status: completed
 Targets: 6 个 override（前置复核定稿：audit 清单 + live 重扫；已核实 5 处 + `NopMetaTagLabelBizModel` save 面）
 
 - Item Types: `Fix | Proof`
 
 > 前置复核：`rg -n -A2 'public .* save\(' nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/` 重扫全部 override，按"是否在 super.save 前解引用 data"定界清单（基线 6 处，独立重扫已逐处吻合）。**防护形态统一裁定为"提前委托"**：`if (CollectionHelper.isEmptyMap(data)) return super.save(data, context);` 置于方法首行——null 与 empty 都直落基类 `ERR_BIZ_EMPTY_DATA_FOR_SAVE`。不采用既有 `data == null ? null : ...` 三元形态（只防 null 不防 empty，无法满足 empty-map 断言；Module/Table 两个既有防护 override 可在本批一并统一为提前委托形态——如不改，需在 daily log 记录"两种形态并存"的容忍理由）。
 
-- [ ] 重扫清单写入 daily log（6 处定稿 + 各处解引用点行号）
-- [ ] 逐处加提前委托防护（6 处形态统一）：null/empty data 不再 NPE，统一抛基类 `ERR_BIZ_EMPTY_DATA_FOR_SAVE`
-- [ ] focused tests：每处 override 以 null data 与 empty map 各调 save → 断言 `ERR_BIZ_EMPTY_DATA_FOR_SAVE`（非 NPE、非各 override 前置业务校验错误码）；null 场景经 Java 直调或 `bizObject.invoke`（GraphQL 入口 data 必传 map 无法表达 null——提前委托分支不触 dao 依赖，直调可行）
-- [ ] 对照断言：3 个已有防护 override 行为不变（同测试覆盖）
+- [x] 重扫清单写入 daily log（6 处定稿 + 各处解引用点行号）
+- [x] 逐处加提前委托防护（6 处形态统一）：null/empty data 不再 NPE，统一抛基类 `ERR_BIZ_EMPTY_DATA_FOR_SAVE`
+- [x] focused tests：每处 override 以 null data 与 empty map 各调 save → 断言 `ERR_BIZ_EMPTY_DATA_FOR_SAVE`（非 NPE、非各 override 前置业务校验错误码）；null 场景经 Java 直调或 `bizObject.invoke`（GraphQL 入口 data 必传 map 无法表达 null——提前委托分支不触 dao 依赖，直调可行）
+- [x] 对照断言：3 个已有防护 override 行为不变（同测试覆盖）
 
 Exit Criteria:
 
-- [ ] 6 处 override 的 null-data 测试全部通过（错误码精确断言，非仅异常类型）
-- [ ] `./mvnw test -pl nop-metadata/nop-metadata-service -am -T 1C` 全绿（正常路径无回归）
-- [ ] **无静默跳过**：防护分支显式委托基类错误语义，非吞掉返回
-- [ ] No owner-doc update required（错误语义对齐模块既有基类契约——执行时复核）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 6 处 override 的 null-data 测试全部通过（错误码精确断言，非仅异常类型）
+- [x] `./mvnw test -pl nop-metadata/nop-metadata-service -am -T 1C` 全绿（正常路径无回归）
+- [x] **无静默跳过**：防护分支显式委托基类错误语义，非吞掉返回
+- [x] No owner-doc update required（错误语义对齐模块既有基类契约——执行时复核）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 — computeQualityScore 恢复 defaultPrepareSave 定制点（P2-24）
 
-Status: planned
+Status: completed
 Targets: `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/NopMetaQualityScoreBizModel.java`（:52）
 
 - Item Types: `Fix | Proof`
 
-- [ ] `(entityData, ctx) -> {}` 替换为 `this::invokeDefaultPrepareSave`（CrudBizModel:1911，protected 可达；与基类 save:527 同形态）
-- [ ] 接线测试（**必须经容器/xbiz 分发路径，禁止测试子类直调**——`getThisObj()` 按 bizObjName 查容器注册 bean，非 this 动态分发）：首选形态 = 测试 resources 经 **delta 路径** `_vfs/_delta/default/nop/metadata/model/NopMetaQualityScore/NopMetaQualityScore.xbiz` 覆盖（**用 `<action>` 标签**声明 defaultPrepareSave——xbiz.xdef 的 action 元素覆盖 @BizAction 级方法；main classpath 已有同路径空壳 xbiz，直放同路径会资源冲突，必须走 delta；模块内活先例 NopMetaTagLabel.xbiz + 测试 delta 先例 nop-auth NopAuthUser.xbiz）；副作用标记选既有断言不依赖的实体真实 DB 列（delta 对模块内全部测试全局生效，勿扰动 TestNopMetaQualityScoreBizModel 既有断言面）→ 经 GraphQL 入口调 computeQualityScore → 断言副作用生效；备选形态 = 容器 bean 覆盖注册测试子类。评分行保存结果与既有断言不变
-- [ ] 核对 computeQualityScore 全部调用面（cron 调度链 + 可能的手动入口）无依赖"空 prepareSave"的隐含假设
+- [x] `(entityData, ctx) -> {}` 替换为 `this::invokeDefaultPrepareSave`（CrudBizModel:1911，protected 可达；与基类 save:527 同形态）
+- [x] 接线测试（**必须经容器/xbiz 分发路径，禁止测试子类直调**——`getThisObj()` 按 bizObjName 查容器注册 bean，非 this 动态分发）：首选形态 = 测试 resources 经 **delta 路径** `_vfs/_delta/default/nop/metadata/model/NopMetaQualityScore/NopMetaQualityScore.xbiz` 覆盖（**用 `<action>` 标签**声明 defaultPrepareSave——xbiz.xdef 的 action 元素覆盖 @BizAction 级方法；main classpath 已有同路径空壳 xbiz，直放同路径会资源冲突，必须走 delta；模块内活先例 NopMetaTagLabel.xbiz + 测试 delta 先例 nop-auth NopAuthUser.xbiz）；副作用标记选既有断言不依赖的实体真实 DB 列（delta 对模块内全部测试全局生效，勿扰动 TestNopMetaQualityScoreBizModel 既有断言面）→ 经 GraphQL 入口调 computeQualityScore → 断言副作用生效；备选形态 = 容器 bean 覆盖注册测试子类。评分行保存结果与既有断言不变
+- [x] 核对 computeQualityScore 全部调用面（cron 调度链 + 可能的手动入口）无依赖"空 prepareSave"的隐含假设
 
 Exit Criteria:
 
-- [ ] `rg -n '\(entityData, ctx\) -> \{\}' nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/NopMetaQualityScoreBizModel.java` 零命中
-- [ ] 接线测试通过：xbiz 覆盖的 defaultPrepareSave 在 computeQualityScore 链路经 getThisObj 分发被真实调用（副作用断言）
-- [ ] 既有评分测试全绿（评分行为不变）
-- [ ] **接线验证**：本 Phase 即接线验证本体（xbiz 副作用断言，经容器分发而非直调）
-- [ ] No owner-doc update required（恢复基类定制点语义，非新契约——执行时复核 owner doc 评分段如提及管线语义则同步）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `rg -n '\(entityData, ctx\) -> \{\}' nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/NopMetaQualityScoreBizModel.java` 零命中
+- [x] 接线测试通过：xbiz 覆盖的 defaultPrepareSave 在 computeQualityScore 链路经 getThisObj 分发被真实调用（副作用断言）
+- [x] 既有评分测试全绿（评分行为不变）
+- [x] **接线验证**：本 Phase 即接线验证本体（xbiz 副作用断言，经容器分发而非直调）
+- [x] No owner-doc update required（恢复基类定制点语义，非新契约——执行时复核 owner doc 评分段如提及管线语义则同步）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 — testConnection 注解语义修正（P2-18）
 
-Status: planned
+Status: completed
 Targets: `INopMetaDataSourceBiz.java`（dao，:25）、`NopMetaDataSourceBizModel.java`（:119）；引用面清点与同步
 
 - Item Types: `Fix | Decision`
 
 > 兼容性影响（Decision 记录）：(1) GraphQL operation 类型 mutation→query 翻转（ReflectionBizModelBuilder 按注解归类）——仓库内引用面同步更新，对外不做迁移承诺；(2) **action-auth 授权类目变化**——注解决定 action 的授权类目（mutation 型 vs query 型条目），`testConnection` 是 SSRF P0 审计点名的攻击入口（"可登录用户即可触发"语境）：翻转后需核对 query 类 action 的默认授权策略是否比 mutation 类更宽（若更宽 = SSRF 触发面扩大，须记录并评估是否需配套权限建议）、已部署环境的功能点授权条目失配影响。
 
-- [ ] 前置清点：`rg -n 'testConnection' -g '!target'` 仓库级引用（Java 测试/xmeta/view/page/e2e/docs）清单写入 daily log（已知：`TestNopMetaDataSourceBizModel` 5 处 mutation 调用（:64/:79/:92/:102/:113）、`TestNopMetaDataSourceConnectionConfigWritePath:66` 第 6 处 mutation 调用、owner doc :187/:269）
-- [ ] 授权面影响核对：query vs mutation 类 action-auth 的默认策略差异（读平台 action-auth 机制源码/文档）+ SSRF 触发面影响裁定记录（含是否需在 owner doc 提示部署侧权限条目同步）
-- [ ] 接口 + 实现 `@BizMutation` → `@BizQuery`（双面一致）
-- [ ] 引用面同步（`TestNopMetaDataSourceBizModel` 等测试的 mutation→query 调用形态、文档示例）
-- [ ] 测试：testConnection 经 BizModel/GraphQL 入口可调（@BizQuery 形态），既有安全测试（TestMetaDataSourceConnectionSecurity）全绿
-- [ ] 兼容性影响（operation 翻转 + 授权条目）写入 owner doc 数据源 API 段
+- [x] 前置清点：`rg -n 'testConnection' -g '!target'` 仓库级引用（Java 测试/xmeta/view/page/e2e/docs）清单写入 daily log（已知：`TestNopMetaDataSourceBizModel` 5 处 mutation 调用（:64/:79/:92/:102/:113）、`TestNopMetaDataSourceConnectionConfigWritePath:66` 第 6 处 mutation 调用、owner doc :187/:269）
+- [x] 授权面影响核对：query vs mutation 类 action-auth 的默认策略差异（读平台 action-auth 机制源码/文档）+ SSRF 触发面影响裁定记录（含是否需在 owner doc 提示部署侧权限条目同步）
+- [x] 接口 + 实现 `@BizMutation` → `@BizQuery`（双面一致）
+- [x] 引用面同步（`TestNopMetaDataSourceBizModel` 等测试的 mutation→query 调用形态、文档示例）
+- [x] 测试：testConnection 经 BizModel/GraphQL 入口可调（@BizQuery 形态），既有安全测试（TestMetaDataSourceConnectionSecurity）全绿
+- [x] 兼容性影响（operation 翻转 + 授权条目）写入 owner doc 数据源 API 段
 
 Exit Criteria:
 
-- [ ] `rg -n -A2 '@BizMutation' -g '*.java' nop-metadata/ | rg testConnection` 零命中（限定 Java 文件，避免 ai-dev 文档行恒命中）；@BizQuery 双面一致
-- [ ] 仓库内无残留 mutation 形态的 testConnection 调用（清点清单核对）
-- [ ] 授权面影响有书面核对结论与裁定记录（SSRF 触发面不因翻转而无人知情地扩大）
-- [ ] 数据源相关测试全绿
-- [ ] owner doc 已同步（注解语义 + 兼容性 + 授权面结论）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `rg -n -A2 '@BizMutation' -g '*.java' nop-metadata/ | rg testConnection` 零命中（限定 Java 文件，避免 ai-dev 文档行恒命中）；@BizQuery 双面一致
+- [x] 仓库内无残留 mutation 形态的 testConnection 调用（清点清单核对）
+- [x] 授权面影响有书面核对结论与裁定记录（SSRF 触发面不因翻转而无人知情地扩大）
+- [x] 数据源相关测试全绿
+- [x] owner doc 已同步（注解语义 + 兼容性 + 授权面结论）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 5 — approve 语义诚实化（P2-22）
 
-Status: planned
+Status: completed
 Targets: `NopMetaQualityResultBizModel.java`（:19-31）；工作流侧事实核对（`qualityBreachApproval` xwf / `QualityAlertWorkflowProcessor`）
 
 - Item Types: `Fix | Decision`
 
 > 前置核对（Decision 依据）：追踪 `qualityBreachApproval` agree 路径确认 re-judge 时序（c:script reJudge 发生在 notifyResult 回调 approve **之前/之后/无条件**），据此定 approve 的诚实语义。两个允许终态：(a) javadoc 改为真值（"notifyResult 回调入口，无字段变更；re-judge 由工作流 agree 路径完成"）+ 若 updateEntity 无可论证目的（无乐观锁/时间戳诉求）则删除该无效果调用，方法返回 requireEntity 结果；(b) 若核对发现 approve 应承担 re-judge（工作流侧没做），则显式接线并测试——**以 live 工作流事实为准，禁止臆断**。
 
-- [ ] 工作流路径核对结论写入 daily log（reJudge 调用时序证据：文件/行号）
-- [ ] 按核对结论落地终态 (a) 或 (b)；javadoc 与行为一致
-- [ ] 测试：approve 路径（mock 或集成）断言语义与 javadoc 声明一致（(a) 断言无副作用返回实体 / (b) 断言 re-judge 触发）
-- [ ] reject 同族核对：其 `setIsFalsePositive(1)` 有真实字段变更，不在本项范围（确认即可）
+- [x] 工作流路径核对结论写入 daily log（reJudge 调用时序证据：文件/行号）
+- [x] 按核对结论落地终态 (a) 或 (b)；javadoc 与行为一致
+- [x] 测试：approve 路径（mock 或集成）断言语义与 javadoc 声明一致（(a) 断言无副作用返回实体 / (b) 断言 re-judge 触发）
+- [x] reject 同族核对：其 `setIsFalsePositive(1)` 有真实字段变更，不在本项范围（确认即可）
 
 Exit Criteria:
 
-- [ ] javadoc 与 live 行为一致（无"声称重判实则 no-op"的自相矛盾）
-- [ ] 终态有核对证据支撑（非猜测）；测试钉死所选语义
-- [ ] 审批流相关测试全绿
-- [ ] owner doc 质量结果审批段（如提及 approve 语义）同步
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] javadoc 与 live 行为一致（无"声称重判实则 no-op"的自相矛盾）
+- [x] 终态有核对证据支撑（非猜测）；测试钉死所选语义
+- [x] 审批流相关测试全绿
+- [x] owner doc 质量结果审批段（如提及 approve 语义）同步
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 6 — queryJoinData/queryAggregation @RequestBean 例外裁定落档（P2-25）
 
-Status: planned
+Status: completed
 Targets: `docs-for-ai/03-modules/nop-metadata.md`（API 契约段）
 
 - Item Types: `Decision`
 
-- [ ] owner doc API 契约段补裁定：两方法超参签名（6 参 / 10 参）为 AR-09/F4 显式裁定契约（limit/having/orderBy 拒绝点固定 BizModel 入口），不迁移 @RequestBean；理由 = 对外 GraphQL 契约稳定性
-- [ ] 复核 `docs-for-ai` 内 5 参数规则的 owner 文档（api-and-graphql.md / service-layer.md）是否已有"裁定例外"表述机制；优先在其既有机制内登记，无机制则在 nop-metadata.md 局部登记并留链接
+- [x] owner doc API 契约段补裁定：两方法超参签名（6 参 / 10 参）为 AR-09/F4 显式裁定契约（limit/having/orderBy 拒绝点固定 BizModel 入口），不迁移 @RequestBean；理由 = 对外 GraphQL 契约稳定性
+- [x] 复核 `docs-for-ai` 内 5 参数规则的 owner 文档（api-and-graphql.md / service-layer.md）是否已有"裁定例外"表述机制；优先在其既有机制内登记，无机制则在 nop-metadata.md 局部登记并留链接
 
 Exit Criteria:
 
-- [ ] `docs-for-ai/03-modules/nop-metadata.md` 含两方法例外裁定表述（可定位章节 + 方法名）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict`：改动前后各跑一次，error 数不增（pre-existing 基线计数与 0 新增结论写入 daily log——`--strict` 对 pre-existing error 会 exit 1，以计数 diff 为判据）
-- [ ] 纯文档 Phase：No new test required: documentation-only adjudication
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `docs-for-ai/03-modules/nop-metadata.md` 含两方法例外裁定表述（可定位章节 + 方法名）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict`：改动前后各跑一次，error 数不增（pre-existing 基线计数与 0 新增结论写入 daily log——`--strict` 对 pre-existing error 会 exit 1，以计数 diff 为判据）
+- [x] 纯文档 Phase：No new test required: documentation-only adjudication
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > 本计划含一项对外契约面变更（P2-18 注解翻转，演进期模块 + 引用面同步 + 影响记录）与多项行为形态统一。
 
-- [ ] P2-18/P2-19/P2-21/P2-22/P2-24 五项落地；P2-25 裁定落档
-- [ ] `./mvnw compile -pl nop-metadata -am -T 1C` 通过
-- [ ] `./mvnw test -pl nop-metadata -am -T 1C` 全绿（0 failures）
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0
-- [ ] `node ai-dev/tools/check-silent-swallow.mjs --module nop-metadata` 0 新增命中
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict`：改动前后各跑一次，error 数不增（pre-existing 基线计数与 0 新增结论写入 daily log——`--strict` 对 pre-existing error 会 exit 1，以计数 diff 为判据）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
-- [ ] 不存在被静默降级到 deferred 的 in-scope 项
-- [ ] 受影响 owner docs（数据源 API 段 / 审批语义段 / @RequestBean 例外）已同步
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 验证（a）P2-24 接线测试真实经过 getThisObj 分发（非直调私有方法）；（b）P2-21 端到端链路（linkAsset→匹配→unlinkAsset）在对抗 ID 下走通；（c）P2-22 终态与工作流 live 事实一致
-- [ ] roadmap Follow-up Backlog 对应条目标注处置结果
+- [x] P2-18/P2-19/P2-21/P2-22/P2-24 五项落地；P2-25 裁定落档
+- [x] `./mvnw compile -pl nop-metadata -am -T 1C` 通过
+- [x] `./mvnw test -pl nop-metadata -am -T 1C` 全绿（0 failures）
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0
+- [x] `node ai-dev/tools/check-silent-swallow.mjs --module nop-metadata` 0 新增命中
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict`：改动前后各跑一次，error 数不增（pre-existing 基线计数与 0 新增结论写入 daily log——`--strict` 对 pre-existing error 会 exit 1，以计数 diff 为判据）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
+- [x] 不存在被静默降级到 deferred 的 in-scope 项
+- [x] 受影响 owner docs（数据源 API 段 / 审批语义段 / @RequestBean 例外）已同步
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 验证（a）P2-24 接线测试真实经过 getThisObj 分发（非直调私有方法）；（b）P2-21 端到端链路（linkAsset→匹配→unlinkAsset）在对抗 ID 下走通；（c）P2-22 终态与工作流 live 事实一致
+- [x] roadmap Follow-up Backlog 对应条目标注处置结果
 
 ## Deferred But Adjudicated
 
@@ -211,14 +211,24 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （待收口时填写）
-Completed: （待收口时填写）
+Status Note: 6 Phase（P2-21/P2-19/P2-24/P2-18/P2-22/P2-25）全部落地并经独立 closure audit（fresh session review-only）approved：5 项 Fix + 1 项文档裁定；8 个新增测试（对抗 round-trip 3 + 防护 2 + 接线 1 + approve 2）+ 2 组变异验证（P2-24 回退空 lambda 即红；P2-22 行为等价实证）；Anti-Hollow 三链（getThisObj 容器分发、link→match→unlink 对抗端到端、approve 与 xwf live 事实一致）file:line 级证实；无 in-scope 项降级（P2-20 为 Non-Goal 显式移出至后续批次）。
+Completed: 2026-08-16
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待收口时填写）
-- Evidence: （待收口时填写）
+- Reviewer / Agent: 独立 closure audit subagent（fresh session `ses_ff8a85ab9ffe5bn0HfAB9b7Hwe`，review-only 零文件修改）
+- Evidence:
+  - **22/22 检查全 PASS，verdict `CLOSURE_AUDIT: approved`**。逐条 live 证据（审计报告摘录）：
+  - Phase 1（PASS）：`rg '\\"dataProductId'` 零命中；三处 `JsonTool.stringify`（:59/:101/:125）；对抗 ID `"dp-"ad\v\nx"` 端到端 link（:136-139）→ getLinkedAssets eq 命中（:151-155）→ unlinkAsset eq 删除（:158-162）+ 正常 ID 逐字节等价断言（:170-176）；审计者独立复跑 3/3 绿。
+  - Phase 2（PASS）：9 处 override 全部首行提前委托（Dimension :62 / EntityField :33 / Join :70 / Measure :65 / Filter :62 / TagLabel :73 / Module :124 / Table :104 / Tag :34），零三元/`!=null` 残留；`TestSaveOverrideNullDataGuard` 9 模型 × null/empty × 错误码精确断言（= BizErrors.java:138 `nop.err.biz.empty-data-for-save`）；审计者独立复跑绿。
+  - Phase 3（PASS）：空 lambda 零命中；`this::invokeDefaultPrepareSave`（NopMetaQualityScoreBizModel:57）→ CrudBizModel:1913 `getThisObj().invoke` → 容器 bean → delta xbiz `<action name="defaultPrepareSave">`（NopMetaQualityScore.xbiz:9，remark 哨兵 :14）——分发链 file:line 级证实（非直调）；GraphQL 入口（:58）+ 哨兵断言（:67）；审计者独立复跑绿。
+  - Phase 4（PASS）：`@BizQuery` 双面（INopMetaDataSourceBiz:29 / NopMetaDataSourceBizModel:124）；6 处测试调用全 `query {` 形态、仓库零残留（审计后执行者把接口注释措辞由 "@BizMutation" 字面量改为"变更类"，rg 门禁恢复字面零命中并复跑 datasource 测试 9/9 绿）；owner doc :274 P2-18 bullet（注解语义 + operation 翻转兼容性 + 默认权限串与 SSRF 授权面裁定）。
+  - Phase 5（PASS）：approve 方法体 = `return requireEntity(...)`（:36）无 updateEntity；javadoc :23-32 与 xwf live 事实逐条一致（verify 步骤 :59 reJudgeFailClosed 先于流程结束；listeners :75-96 仅 onDisagree、无 notifyResult）；reject 保留真实变更（:46-47）；测试断言行零变更（含 version 列）+ reject 对照；审计者独立复跑绿。
+  - Phase 6（PASS）：owner doc :167 P2-25 裁定段（queryJoinData 6 参 / queryAggregation 10 参例外、签名不迁移）。
+  - Closure Gates：service surefire 聚合 **1259/0/0**（审计者核对 + 抽跑 4 新测试类 8/8 绿 BUILD SUCCESS）；scan-hollow exit 0；check-silent-swallow 125 catch 0 命中；doc-links --strict 恰 17（= pre-existing 基线）；roadmap 6 条目全 ✅ Fixed；daily log 6 Phase 条目齐备。
+  - Anti-Hollow：(a) P2-24 经 getThisObj 容器分发（哨兵仅可由 xbiz 脚本写入）；(b) P2-21 对抗 ID link→匹配→unlink 端到端；(c) P2-22 终态与工作流 live 事实一致——三链均 PASS。
+  - Deferred 诚实性：`Deferred But Adjudicated` 空（:205）；Non-Blocking Follow-ups 仅 P2-20 + 后续批次 Non-Goal（:209-210）——无 in-scope live defect 降级。
 
 Follow-up:
 
-- （待收口时填写）
+- 无 plan-owned 剩余工作。P2-20（CheckpointExecutionResultDTO List<Map> 类型化）归后续测试/DTO 卫生族批次（roadmap 已登记）；ORM/IoC/文档测试卫生族 P2 项归后续批次清扫计划。

@@ -162,14 +162,14 @@ flowchart LR
 - **P2-14** 并发拒绝降级 WARN 未把异常对象作为 logger 末参数（内容合规，仅形式违约） — ✅ Fixed（plan `2026-08-16-0226-2` Phase 4：WARN 追加 `, e` 末参；新增 `testP214ConcurrentRejectionWarnCarriesThrowable`（阻塞 webhook 钉锁 harness + ListAppender 断言 `getThrowableProxy() != null` 且不误升 ERROR））
 
 **BizModel 行为 / 契约形态族**
-- **P2-18** `testConnection` 只读探测标注 `@BizMutation`（接口+实现一致错；同模块同类探测均正确用 @BizQuery）
-- **P2-19** 6 个 save override 缺 null-data 防护，NPE 抢先于基类 `ERR_BIZ_EMPTY_DATA_FOR_SAVE`（两种行为并存）
+- **P2-18** `testConnection` 只读探测标注 `@BizMutation`（接口+实现一致错；同模块同类探测均正确用 @BizQuery） — ✅ Fixed（plan `2026-08-16-0226-3` Phase 4：接口+实现双面 `@BizMutation`→`@BizQuery`；6 处测试 mutation→query 同步（`rg '@BizMutation'.testConnection` Java 零命中）；授权面核对裁定入档——`ReflectionBizModelBuilder:334` 默认权限串 `:mutation`→`:query` 兜底翻转，仅授 `:query` 的只读角色新获权（SSRF 触发面部署侧须知），建议配细粒度功能点；operation 翻转兼容性+授权面结论写入 owner doc 安全契约段；datasource 族 67/67 绿）
+- **P2-19** 6 个 save override 缺 null-data 防护，NPE 抢先于基类 `ERR_BIZ_EMPTY_DATA_FOR_SAVE`（两种行为并存） — ✅ Fixed（plan `2026-08-16-0226-3` Phase 2：6 处先解引用 override + Module/Table/Tag 三处既有防护**全部统一提前委托形态**（`isEmptyMap → super.save` 首行），12 个 save override 单一形态；`TestSaveOverrideNullDataGuard` 9 override × null/empty 两场景错误码精确断言）
 - **P2-20** CheckpointExecutionResultDTO.executionResults/executionErrors 为 List<Map> 且与 ruleResults 数据重复（类型化版本已并存）
-- **P2-21** DataProduct 三方法手工字符串拼接 JSON（无转义，非常规 ID 导致 JSON 损坏；应统一 JsonTool）
-- **P2-22** NopMetaQualityResultBizModel.approve 为无字段变更的 no-op updateEntity（javadoc 声称重新判定；真实 re-judge 在工作流侧）
+- **P2-21** DataProduct 三方法手工字符串拼接 JSON（无转义，非常规 ID 导致 JSON 损坏；应统一 JsonTool） — ✅ Fixed（plan `2026-08-16-0226-3` Phase 1：三处换 `JsonTool.stringify(Map.of("dataProductId", …))`；对抗测试 3 例（坏字符 ID 端到端 round-trip + 正常 ID 逐字节等价 + 幂等）；存量坏行裁定≈0 影响面不迁移）
+- **P2-22** NopMetaQualityResultBizModel.approve 为无字段变更的 no-op updateEntity（javadoc 声称重新判定；真实 re-judge 在工作流侧） — ✅ Fixed（plan `2026-08-16-0226-3` Phase 5：终态 (a)——工作流 live 事实核対（re-judge 在 verify 步骤 c:script 无条件先于流程结束；xwf 未挂 notifyResult listener，approve 为挂点保留）；无效果 updateEntity 删除 + javadoc 真值化；`TestNopMetaQualityResultApprove` 2 例钉死（approve 零副作用 + reject 真实变更对照））
 - **P2-23** NopMetaReconciliationResultBizModel 死代码 toInt/toStr + 死错误码分支（类型化 DTO 遗留） — ✅ Fixed（plan `2026-08-16-0226-2` Phase 4：toInt/toStr + 不可达 throw 删除，2 处 `invariant-ok: dead code P2-23` 豁免随之消除；连带 `ERR_RECON_INVALID_SELECTION` 定义（删后零引用留证）+ 孤儿 `ARG_VALUE` 常量一并删除；define 数量净变化 -8 = 7 个 define 面死码 + 1 个连带死码）
-- **P2-24** computeQualityScore 以空 lambda 调 doSave，绕过 xbiz 可覆盖的 defaultPrepareSave（cron 自动评分链路绕过宿主定制）
-- **P2-25** queryJoinData（6 参）/queryAggregation（10 参）超出 5 参数规则未用 @RequestBean（签名为 AR-09/F4 裁定契约，应为文档裁定例外）
+- **P2-24** computeQualityScore 以空 lambda 调 doSave，绕过 xbiz 可覆盖的 defaultPrepareSave（cron 自动评分链路绕过宿主定制） — ✅ Fixed（plan `2026-08-16-0226-3` Phase 3：换 `this::invokeDefaultPrepareSave`（与基类 save 同形态）；接线测试经测试 delta xbiz `<action>` 覆盖 + GraphQL 入口 + remark 哨兵副作用断言（变异验证区分力实证：回退空 lambda 即红））
+- **P2-25** queryJoinData（6 参）/queryAggregation（10 参）超出 5 参数规则未用 @RequestBean（签名为 AR-09/F4 裁定契约，应为文档裁定例外） — ✅ Fixed（plan `2026-08-16-0226-3` Phase 6：owner doc API 契约段例外裁定落档（沿既有"例外裁定"表述先例）；service-layer.md 无例外登记机制 → 模块 owner doc 局部登记；签名不迁移，理由=对外 GraphQL 契约稳定性；doc-links 17→17 零新增）
 
 **IoC / 架构债务族**
 - **P2-02** NopMetaQualityCheckpointBizModel ↔ MetaQualityCheckpointScheduler 双向 @Inject 真循环（默认 allow-cycle 下零故障，仅未来严格模式爆炸——架构债务）
