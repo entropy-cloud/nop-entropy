@@ -347,7 +347,8 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
             LOG.warn("parseDeltaModel failed for resource {}, fail-fast (no delta=full fallback)",
                     resource.getPath(), e);
             throw new NopMetadataException(NopMetadataErrors.ERR_MODEL_DELTA_PARSE_FAILED, e)
-                    .param(NopMetadataErrors.ARG_PATH, resource.getPath());
+                    .param(NopMetadataErrors.ARG_PATH, resource.getPath())
+                    .param(NopMetadataErrors.ARG_ERROR, NopMetadataHelper.toErrorMessage(e));
         }
         throw new NopMetadataException(NopMetadataErrors.ERR_MODEL_DELTA_PARSE_FAILED)
                 .param(NopMetadataErrors.ARG_PATH, resource.getPath())
@@ -545,7 +546,7 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
      *
      * <p>快速失败（不静默返回空 Manifest）：
      * <ul>
-     *   <li>metaModuleId 不存在 → 抛 {@link #NopMetadataErrors.ERR_MODULE_NOT_FOUND}</li>
+     *   <li>metaModuleId 不存在 → {@code requireEntity} 抛平台标准 not-found 错误</li>
      *   <li>模块无 full ORM 模型（isDelta=false） → 抛 {@link #NopMetadataErrors.ERR_MODULE_FULL_MODEL_NOT_FOUND}</li>
      * </ul>
      *
@@ -686,7 +687,9 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
         try (InputStream in = resource.getInputStream()) {
             return new String(in.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_ORM_RESOURCE_READ_FAILED, e).param("path", resource.getPath());
+            throw new NopMetadataException(NopMetadataErrors.ERR_ORM_RESOURCE_READ_FAILED, e)
+                    .param(NopMetadataErrors.ARG_PATH, resource.getPath())
+                    .param(NopMetadataErrors.ARG_ERROR, NopMetadataHelper.toErrorMessage(e));
         }
     }
 

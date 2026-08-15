@@ -57,16 +57,16 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * <p>执行机制（D2）：BizModel action + P2-1 {@code withConnection} callback（不选 nop-batch）。
  *
- * <p>执行范围（D1）：首版仅 external 类型 NopMetaTable 上挂载的规则（entityType=table 或 field，
- * field 规则 entityId 指向 external NopMetaTable.metaTableId，物理列名取自 params.column）。
- * entity/sql 类型表执行 deferred；entityType=database 首版 SKIP（带 details 标记）。
+ * <p>执行范围（D1 → D4 扩展）：external/entity/sql 任意 tableType 的逻辑表上挂载的 table/field 级规则均可执行
+ * （field 规则 entityId 指向逻辑表，物理列名取自 params.column）。
+ * entityType=database 首版 SKIP（带 details 标记）。
  *
  * <p>失败/不可执行路径均显式（不静默通过、不吞异常、不伪造值）：
  * <ul>
  *   <li>规则不存在 → 抛 {@link #NopMetadataErrors.ERR_QUALITY_RULE_NOT_FOUND}（不 NPE）</li>
  *   <li>目标表不存在 → 抛 {@link #NopMetadataErrors.ERR_QUALITY_TABLE_NOT_FOUND}</li>
- *   <li>目标表非 external（首版） → 抛 {@link #NopMetadataErrors.ERR_QUALITY_TABLE_NOT_EXTERNAL}</li>
- *   <li>无注册数据源 → 抛 {@link #NopMetadataErrors.ERR_QUALITY_NO_DATASOURCE}</li>
+ *   <li>表引用解析失败（未知 tableType / baseEntityId 为空 / 无注册数据源等） → 由
+ *       {@code MetaTableReferenceResolver} 抛 ERR_TABLEREF_* 系列错误码</li>
  *   <li>DISABLED 数据源 → 抛 {@link #NopMetadataErrors.ERR_QUALITY_DATASOURCE_DISABLED}</li>
  *   <li>非 jdbc 类型 → 由 {@code withConnection} 抛 NopException</li>
  *   <li>缺 timestampColumn(freshness)/custom_sql 不返回单值 → 写 ERROR 结果行</li>

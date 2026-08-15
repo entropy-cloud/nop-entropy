@@ -126,12 +126,6 @@ interface MiscErrors extends NopMetadataArgs {
                     "Entity type not recognized as a linkable asset: {entityType}",
                     ARG_ENTITY_TYPE);
 
-    // ===== Checkpoint (checkpoint biz) =====
-
-    ErrorCode ERR_CHECKPOINT_NOT_FOUND =
-            ErrorCode.define("nop.err.metadata.checkpoint-not-found",
-                    "Quality checkpoint not found: {checkpointId}", ARG_CHECKPOINT_ID);
-
     // ===== Event =====
 
     ErrorCode ERR_EVENT_SNAPSHOT_SERIALIZE_FAILED =
@@ -212,8 +206,4 @@ interface MiscErrors extends NopMetadataArgs {
                     "Automation processing failed (isolated, batch continues): entityType={entityType} "
                             + "entityId={entityId} -- {error}",
                     ARG_ENTITY_TYPE, ARG_ENTITY_ID, ARG_ERROR);
-    ErrorCode ERR_PROFILING_RULE_OPERATION_FAILED =
-            ErrorCode.define("nop.err.metadata.profiling-rule-operation-failed",
-                    "Profiling rule operation failed: profilingRuleId={profilingRuleId} -- {error}",
-                    ARG_PROFILING_RULE_ID, ARG_ERROR);
 }

@@ -4,9 +4,6 @@ import io.nop.api.core.exceptions.ErrorCode;
 
 interface ModuleErrors extends NopMetadataArgs {
 
-    ErrorCode ERR_MODULE_NOT_FOUND =
-            ErrorCode.define("nop.err.metadata.module-not-found",
-                    "Module not found: {metaModuleId}", ARG_META_MODULE_ID);
     ErrorCode ERR_MODULE_NOT_DRAFTING =
             ErrorCode.define("nop.err.metadata.module-not-drafting",
                     "Module is not in drafting status: {status}", ARG_STATUS);
@@ -26,11 +23,11 @@ interface ModuleErrors extends NopMetadataArgs {
                             + "overrides): {path} -- {error}", ARG_PATH, ARG_ERROR);
     ErrorCode ERR_MANIFEST_MODULE_NULL =
             ErrorCode.define("nop.err.metadata.manifest-module-null",
-                    "MetaManifest build failed: module is null",
+                    "MetaManifest build failed: module is null, metaModuleId={metaModuleId}",
                     ARG_META_MODULE_ID);
     ErrorCode ERR_MANIFEST_ORM_MODEL_NULL =
             ErrorCode.define("nop.err.metadata.manifest-orm-model-null",
-                    "MetaManifest build failed: full ORM model is null",
+                    "MetaManifest build failed: full ORM model is null: metaModuleId={metaModuleId}",
                     ARG_META_MODULE_ID);
 
     // ===== Module operation isolation (clause-b formalize) =====

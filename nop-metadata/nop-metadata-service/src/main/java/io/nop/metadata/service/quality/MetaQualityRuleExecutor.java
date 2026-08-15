@@ -551,7 +551,15 @@ public class MetaQualityRuleExecutor {
             }
             try (ResultSet rs = st.executeQuery()) {
                 if (!rs.next()) {
-                    throw new SQLException("range COUNT(*) returned no row");
+                    // P2-13：COUNT(*) 无行是可预期业务分支（表空），非 SQL 故障——显式建模为 ERROR 判定，
+                    // 不再以哨兵 SQLException 作方法内控制流信号（judgment 输出与原 catch 路径逐字段等价）。
+                    LOG.error("range SQL execution failed: errorCode={}",
+                            NopMetadataErrors.ERR_QUALITY_RULE_EXEC_ISOLATED.getErrorCode());
+                    j.setStatus("ERROR");
+                    j.setMessage("range SQL execution failed: ["
+                            + NopMetadataErrors.ERR_QUALITY_RULE_EXEC_ISOLATED.getErrorCode()
+                            + "] range COUNT(*) returned no row");
+                    return j;
                 }
                 outOfRange = rs.getLong(1);
             }
@@ -596,7 +604,15 @@ public class MetaQualityRuleExecutor {
             st.setString(1, pattern);
             try (ResultSet rs = st.executeQuery()) {
                 if (!rs.next()) {
-                    throw new SQLException("regex COUNT(*) returned no row");
+                    // P2-13：COUNT(*) 无行是可预期业务分支（表空），非 SQL 故障——显式建模为 ERROR 判定，
+                    // 不再以哨兵 SQLException 作方法内控制流信号（judgment 输出与原 catch 路径逐字段等价）。
+                    LOG.error("regex SQL execution failed: errorCode={}",
+                            NopMetadataErrors.ERR_QUALITY_RULE_EXEC_ISOLATED.getErrorCode());
+                    j.setStatus("ERROR");
+                    j.setMessage("regex SQL execution failed: ["
+                            + NopMetadataErrors.ERR_QUALITY_RULE_EXEC_ISOLATED.getErrorCode()
+                            + "] regex COUNT(*) returned no row");
+                    return j;
                 }
                 notMatching = rs.getLong(1);
             }

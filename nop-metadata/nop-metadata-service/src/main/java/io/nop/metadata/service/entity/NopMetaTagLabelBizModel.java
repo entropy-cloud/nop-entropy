@@ -9,6 +9,7 @@ import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
+import io.nop.metadata.service.NopMetadataHelper;
 
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.biz.crud.CrudBizModel;
@@ -29,6 +30,7 @@ import java.util.UUID;
 
 import static io.nop.metadata.service.NopMetadataErrors.ERR_TAG_LABEL_INVALID_LABEL_TYPE;
 import static io.nop.metadata.service.NopMetadataErrors.ERR_TAG_LABEL_SUBMIT_APPROVAL_FAILED;
+import static io.nop.metadata.service.NopMetadataErrors.ARG_ERROR;
 import static io.nop.metadata.service.NopMetadataErrors.ARG_LABEL_TYPE;
 import static io.nop.metadata.service.NopMetadataErrors.ARG_TAG_LABEL_ID;
 
@@ -136,7 +138,8 @@ public class NopMetaTagLabelBizModel extends CrudBizModel<NopMetaTagLabel> imple
             LOG.warn("submitForApproval failed for TagLabel {}, fail-loud (no silent skip)",
                     entity.getTagLabelId(), e);
             throw new NopMetadataException(ERR_TAG_LABEL_SUBMIT_APPROVAL_FAILED, e)
-                    .param(ARG_TAG_LABEL_ID, entity.getTagLabelId());
+                    .param(ARG_TAG_LABEL_ID, entity.getTagLabelId())
+                    .param(ARG_ERROR, NopMetadataHelper.toErrorMessage(e));
         }
     }
 

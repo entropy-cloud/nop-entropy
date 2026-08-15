@@ -212,14 +212,10 @@ public class TestSilentSwallowFormalization {
                 // Reconciliation (LocalReconciliationProcessor 1 catch)
                 Arguments.of("ERR_RECON_PROCESS_ISOLATED", NopMetadataErrors.ERR_RECON_PROCESS_ISOLATED),
 
-                // Profiling (MetaTableProfiler 6 catches, MetaContractChecker 1, NopMetaProfilingRuleBizModel 1)
+                // Profiling (MetaTableProfiler 6 catches, MetaContractChecker 1)
                 Arguments.of("ERR_PROFILING_COLUMN_PROFILE_ISOLATED", NopMetadataErrors.ERR_PROFILING_COLUMN_PROFILE_ISOLATED),
                 Arguments.of("ERR_PROFILING_TYPE_PROBE_FAILED", NopMetadataErrors.ERR_PROFILING_TYPE_PROBE_FAILED),
                 Arguments.of("ERR_CONTRACT_TYPE_PROBE_FAILED", NopMetadataErrors.ERR_CONTRACT_TYPE_PROBE_FAILED),
-                Arguments.of("ERR_PROFILING_RULE_OPERATION_FAILED", NopMetadataErrors.ERR_PROFILING_RULE_OPERATION_FAILED),
-
-                // Aggregation type probe (AggregationHelper 1 catch)
-                Arguments.of("ERR_AGGR_TYPE_PROBE_FAILED", NopMetadataErrors.ERR_AGGR_TYPE_PROBE_FAILED),
 
                 // Join resolve (JoinMixedSideResolver 1 catch)
                 Arguments.of("ERR_JOIN_RESOLVE_ISOLATED", NopMetadataErrors.ERR_JOIN_RESOLVE_ISOLATED)

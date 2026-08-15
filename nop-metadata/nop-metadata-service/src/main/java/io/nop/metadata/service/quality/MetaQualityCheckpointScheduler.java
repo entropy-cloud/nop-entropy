@@ -220,8 +220,9 @@ public class MetaQualityCheckpointScheduler {
             if (isConcurrentRunRejection(e)) {
                 // R4.3（Minor-8）：cron tick 与手动执行并发被运行标记 fail-fast 拒绝——预期运维噪音，降级 WARN
                 // （区别于真实故障的 ERROR，避免 MA7.5-01 catch-all 转 ERROR 造成运维误读）
+                // P2-14：WARN 补异常末参（对齐同文件 ERROR 分支形态，保留并发拒绝原因的堆栈可诊断性）
                 LOG.warn("nop.meta.checkpoint-scheduler.scheduled-exec-skipped: checkpointId={} "
-                        + "(already running, concurrent execution rejected fail-fast)", checkpointId);
+                        + "(already running, concurrent execution rejected fail-fast)", checkpointId, e);
             } else {
                 LOG.error("nop.meta.checkpoint-scheduler.scheduled-exec-failed: errorCode={} checkpointId={} error={}",
                         NopMetadataErrors.ERR_CHECKPOINT_SCHEDULE_FAILED.getErrorCode(), checkpointId,

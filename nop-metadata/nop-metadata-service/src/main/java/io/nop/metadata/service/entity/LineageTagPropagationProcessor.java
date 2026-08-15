@@ -6,6 +6,7 @@ import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
+import io.nop.metadata.service.NopMetadataHelper;
 import io.nop.biz.api.IBizObjectManager;
 import io.nop.core.context.IServiceContext;
 import io.nop.dao.api.IDaoProvider;
@@ -26,6 +27,7 @@ import java.util.UUID;
 
 import static io.nop.metadata.service.NopMetadataErrors.ARG_ENTITY_ID;
 import static io.nop.metadata.service.NopMetadataErrors.ARG_ENTITY_TYPE;
+import static io.nop.metadata.service.NopMetadataErrors.ARG_ERROR;
 import static io.nop.metadata.service.NopMetadataErrors.ARG_TAG_ID;
 import static io.nop.metadata.service.NopMetadataErrors.ERR_PROPAGATE_UNSUPPORTED_ENTITY_TYPE;
 import static io.nop.metadata.service.NopMetadataErrors.ERR_TAG_LABEL_SAVE_FAILED;
@@ -204,7 +206,8 @@ public class LineageTagPropagationProcessor {
             throw new NopMetadataException(ERR_TAG_LABEL_SAVE_FAILED, e)
                     .param(ARG_ENTITY_TYPE, ENTITY_TYPE_NOP_META_TABLE)
                     .param(ARG_ENTITY_ID, targetEntityId)
-                    .param(ARG_TAG_ID, tagId);
+                    .param(ARG_TAG_ID, tagId)
+                    .param(ARG_ERROR, NopMetadataHelper.toErrorMessage(e));
         }
     }
 

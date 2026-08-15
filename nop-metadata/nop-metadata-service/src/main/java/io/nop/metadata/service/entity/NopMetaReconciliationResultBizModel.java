@@ -150,29 +150,4 @@ public class NopMetaReconciliationResultBizModel extends CrudBizModel<NopMetaRec
                     .param(NopMetadataErrors.ARG_DETAILS_SIZE, detailsSize);
         }
     }
-
-    private static int toInt(Object v) {
-        if (v instanceof Number) {
-            return ((Number) v).intValue();
-        }
-        if (v == null) {
-            // P2-23 dead code（toInt main 零调用、throw 不可达）——不补参数（对不可达
-            // 代码补参无用户可见收益）；死码删除后豁免随之消除（plan 2026-08-15-1913-3）
-            // invariant-ok: dead code P2-23, unreachable throw
-            throw new NopMetadataException(NopMetadataErrors.ERR_RECON_INVALID_SELECTION)
-                    .param(NopMetadataErrors.ARG_VALUE, "null");
-        }
-        try {
-            return Integer.parseInt(String.valueOf(v));
-        } catch (NumberFormatException e) {
-            // P2-23 dead code（同上，throw 不可达）
-            // invariant-ok: dead code P2-23, unreachable throw
-            throw new NopMetadataException(NopMetadataErrors.ERR_RECON_INVALID_SELECTION)
-                    .param(NopMetadataErrors.ARG_VALUE, String.valueOf(v));
-        }
-    }
-
-    private static String toStr(Object v) {
-        return v == null ? null : String.valueOf(v);
-    }
 }

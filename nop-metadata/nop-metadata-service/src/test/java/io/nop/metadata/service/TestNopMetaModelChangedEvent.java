@@ -309,6 +309,31 @@ public class TestNopMetaModelChangedEvent extends JunitBaseTestCase {
         assertNotNull(ex.getMessage());
     }
 
+    /**
+     * P2-09（plan 2026-08-16-0226-2 Phase 2）：序列化失败路径补 `.param(ARG_ERROR, …)` 后——
+     * error 参数携带真实异常消息（非 null 空壳）、消息无字面 `{error}` 残留、
+     * entityType/entityId 身份值照常渲染。
+     */
+    @Test
+    public void testP209SerializationFailureRendersRealErrorParam() {
+        Map<String, Object> cyclic = new HashMap<>();
+        List<Object> self = new ArrayList<>();
+        self.add(self);
+        cyclic.put("loop", self);
+
+        NopException ex = assertThrows(NopException.class,
+                () -> eventPublisher.buildSnapshot(cyclic, "P209Entity", "p209-id"));
+
+        Object errorParam = ex.getParam("error");
+        assertNotNull(errorParam, "error param must be present (P2-09), got params: " + ex.getParams());
+        assertFalse(String.valueOf(errorParam).isEmpty(),
+                "error param must be a non-empty real value, not a null shell");
+        assertFalse(ex.getMessage().contains("{error}"),
+                "no literal {error} placeholder may remain (P2-09), got: " + ex.getMessage());
+        assertTrue(ex.getMessage().contains("P209Entity") && ex.getMessage().contains("p209-id"),
+                "entityType/entityId identities must still render, got: " + ex.getMessage());
+    }
+
     // ============================================================
     // helpers
     // ============================================================

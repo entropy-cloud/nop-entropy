@@ -542,7 +542,8 @@ public class AggregationHelper {
                     schema, tableName, e);
             throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_TABLE_VISIBILITY_CHECK_FAILED, e)
                     .param(NopMetadataErrors.ARG_SCHEMA, schema)
-                    .param(NopMetadataErrors.ARG_TABLE_NAME, tableName);
+                    .param(NopMetadataErrors.ARG_TABLE_NAME, tableName)
+                    .param(NopMetadataErrors.ARG_ERROR, messageOf(e));
         }
         return false;
     }

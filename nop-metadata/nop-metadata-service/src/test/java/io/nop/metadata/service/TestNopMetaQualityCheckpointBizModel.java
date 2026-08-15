@@ -677,6 +677,72 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
         assertEquals(2, mockHttpClient.fetchCallCount, "sequential execution dispatches again");
     }
 
+    /**
+     * P2-14（plan 2026-08-16-0226-2 Phase 4）回归：cron tick 与手动执行并发被 fail-fast 拒绝时，
+     * scheduler 的并发拒绝降级 WARN 必须携带异常末参（对齐同文件 ERROR 分支形态）——
+     * ListAppender 断言 WARN 事件的 throwable 存在（R6.5 先例形态），且不误升 ERROR。
+     */
+    @Test
+    public void testP214ConcurrentRejectionWarnCarriesThrowable() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_cp_p214;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE ext_p214 (id INT NOT NULL)", "INSERT INTO ext_p214 VALUES (1)");
+        PreparedEnv env = prepare(dbUrl, "qs_cp_p214");
+        String tableId = env.tableId("EXT_P214");
+
+        saveRule("r-p214-vol", "volume", "table", tableId, null, null, "{\"minRows\":1}");
+        saveCheckpoint("cp-p214", "ACTIVE",
+                "[{\"tableIds\":[\"" + tableId + "\"]}]",
+                "[{\"actionType\":\"webhook\",\"enabled\":true,\"config\":{\"url\":\"http://mock-hook/p214\"}}]");
+
+        // 阻塞 webhook：把第一请求钉在 dispatchActions 窗口（运行标记持有中）
+        mockHttpClient.blockLatch = new CountDownLatch(1);
+
+        ch.qos.logback.classic.Logger logger =
+                (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(MetaQualityCheckpointScheduler.class);
+        ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent> appender =
+                new ch.qos.logback.core.read.ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        ExecutorService pool = Executors.newFixedThreadPool(1);
+        try {
+            pool.submit(() -> {
+                exec("cp-p214");
+                return null;
+            });
+            awaitTrue(() -> mockHttpClient.fetchCallCount == 1, 10_000,
+                    "first request must reach webhook fetch (run marker held)");
+
+            // cron 入口（executeScheduledCheckpoint）并发到达 → 运行标记命中 → WARN 分支（非异常上抛，job 存活）
+            io.nop.metadata.api.dto.CheckpointExecutionResultDTO scheduled =
+                    checkpointScheduler.executeScheduledCheckpoint(Map.of("checkpointId", "cp-p214"));
+            assertTrue(scheduled != null,
+                    "concurrent rejection must return an error result, not propagate (MA7.5-01 job survival)");
+
+            ch.qos.logback.classic.spi.ILoggingEvent warnEvent = appender.list.stream()
+                    .filter(e -> e.getLevel() == ch.qos.logback.classic.Level.WARN
+                            && e.getFormattedMessage().contains("scheduled-exec-skipped")
+                            && e.getFormattedMessage().contains("cp-p214"))
+                    .findFirst().orElse(null);
+            assertTrue(warnEvent != null,
+                    "concurrent rejection must be logged as WARN with checkpointId (R4.3), got: "
+                            + appender.list.stream().map(ch.qos.logback.classic.spi.ILoggingEvent::getFormattedMessage)
+                            .collect(java.util.stream.Collectors.toList()));
+            assertNotNull(warnEvent.getThrowableProxy(),
+                    "P2-14: the rejection WARN event must carry the rejection exception as last logger arg");
+            boolean errorLogged = appender.list.stream().anyMatch(e ->
+                    e.getLevel() == ch.qos.logback.classic.Level.ERROR
+                            && e.getFormattedMessage().contains("scheduled-exec-failed"));
+            assertFalse(errorLogged,
+                    "concurrent rejection is expected ops noise and must stay WARN, not escalate to ERROR (R4.3)");
+        } finally {
+            logger.detachAppender(appender);
+            mockHttpClient.blockLatch.countDown();
+            pool.shutdown();
+            assertTrue(pool.awaitTermination(10, java.util.concurrent.TimeUnit.SECONDS),
+                    "first request must finish after latch release");
+        }
+    }
+
     // ===== D4：webhook 动作（post-commit dispatch）=====
 
     /**

@@ -91,8 +91,8 @@ public class TestNopMetadataErrorsCentralized {
     @Test
     public void testNopMetadataExceptionConstructors() {
         // (ErrorCode)
-        NopMetadataException e3 = new NopMetadataException(NopMetadataErrors.ERR_MODULE_NOT_FOUND);
-        assertEquals(NopMetadataErrors.ERR_MODULE_NOT_FOUND.getErrorCode(), e3.getErrorCode());
+        NopMetadataException e3 = new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_NOT_FOUND);
+        assertEquals(NopMetadataErrors.ERR_DATASOURCE_NOT_FOUND.getErrorCode(), e3.getErrorCode());
 
         // (ErrorCode, Throwable)
         NopMetadataException e4 = new NopMetadataException(

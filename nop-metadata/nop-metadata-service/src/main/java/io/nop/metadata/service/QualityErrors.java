@@ -107,14 +107,6 @@ interface QualityErrors extends NopMetadataArgs {
             ErrorCode.define("nop.err.metadata.quality-table-not-found",
                     "Quality rule target table not found (entityId does not refer to an existing NopMetaTable): "
                             + "{qualityRuleId} entityId={entityId}", ARG_QUALITY_RULE_ID, ARG_ENTITY_ID);
-    ErrorCode ERR_QUALITY_TABLE_NOT_EXTERNAL =
-            ErrorCode.define("nop.err.metadata.quality-table-not-external",
-                    "Quality rule target table is not external (first version supports external-only execution): "
-                            + "{qualityRuleId} tableType={tableType}", ARG_QUALITY_RULE_ID, ARG_TABLE_TYPE);
-    ErrorCode ERR_QUALITY_NO_DATASOURCE =
-            ErrorCode.define("nop.err.metadata.quality-no-datasource",
-                    "No registered MetaDataSource for querySpace of target table: "
-                            + "{qualityRuleId} querySpace={querySpace}", ARG_QUALITY_RULE_ID, ARG_QUERY_SPACE);
     ErrorCode ERR_QUALITY_DATASOURCE_DISABLED =
             ErrorCode.define("nop.err.metadata.quality-datasource-disabled",
                     "MetaDataSource is disabled, cannot execute quality rule: {dataSourceId}", ARG_DATA_SOURCE_ID);

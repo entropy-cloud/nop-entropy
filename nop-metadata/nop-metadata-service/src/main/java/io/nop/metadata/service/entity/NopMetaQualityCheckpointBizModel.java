@@ -57,7 +57,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * {@code clearSession} 失败隔离（对齐既有 per-rule 隔离模式），失败记入摘要 errors 不中断其他表评分、不回滚
  * 已落盘的 checkpoint store。受 {@code extConfig.autoScore} 控制（默认开启；关闭时跳过且摘要标注 skipped）。
  *
- * <p>失败路径显式化：检查点不存在 → 抛 {@link #NopMetadataErrors.ERR_CHECKPOINT_NOT_FOUND}；其余不可执行路径（非 ACTIVE 状态 /
+ * <p>失败路径显式化：检查点不存在 → {@code requireEntity} 抛平台标准 not-found 错误；其余不可执行路径（非 ACTIVE 状态 /
  * 未知动作 / 空规则集 / 单规则执行异常）由 executor 显式处理（详见 {@link MetaQualityCheckpointExecutor}）。
  */
 @BizModel("NopMetaQualityCheckpoint")

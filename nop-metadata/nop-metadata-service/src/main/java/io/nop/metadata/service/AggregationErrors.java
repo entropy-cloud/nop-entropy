@@ -165,12 +165,6 @@ interface AggregationErrors extends NopMetadataArgs {
                             + "{granularity} dimensionName={dimensionName}",
                     ARG_GRANULARITY, ARG_DIMENSION_NAME);
 
-    // ===== Aggregation type probe (clause-b formalize) =====
-
-    ErrorCode ERR_AGGR_TYPE_PROBE_FAILED =
-            ErrorCode.define("nop.err.metadata.aggr-type-probe-failed",
-                    "Aggregation column type probe failed (fallback applied): {error}", ARG_ERROR);
-
     // ===== Database product name read (AR-14a: infra failure fail-loud) =====
 
     ErrorCode ERR_AGGR_DB_PRODUCT_NAME_FAILED =
