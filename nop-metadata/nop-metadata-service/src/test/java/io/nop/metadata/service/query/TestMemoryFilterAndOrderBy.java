@@ -482,4 +482,90 @@ public class TestMemoryFilterAndOrderBy {
                 Arrays.asList(OrderFieldBean.asc("unknown")), names, table(),
                 Arrays.asList("total"), Arrays.asList()));
     }
+
+    // ============ Cycle 2 / P1-E（adjudication-table-cycle2 §6 E1/E2）：AR-10 路由形态对齐 ============
+    //
+    // 修复前两处私有 toBigDecimal 拷贝均经 ((Number) v).doubleValue() 转换——Long > 2^53 丢低位，
+    // 且 String 数值静默 return null（回退字符串比较）。修复沿 AR-10 形态：整数 longValue 无损路由 /
+    // 浮点 doubleValue / String 解析（与 AggregationHelper.toBigDecimal 规范实现一致）。
+
+    /** 两个仅在第 54 位后不同的 Long（> 2^53）经 WHERE eq 过滤不得塌缩相等。 */
+    @Test
+    public void testEqLongBeyondDoublePrecisionNotCollapsed() {
+        Map<String, String> names = nameToAlias("total", "TOTAL");
+        long base = 9223372036854775807L;   // Long.MAX_VALUE
+        long near = 9223372036854775806L;   // 与 base 仅末位不同，doubleValue() 后同为 9.223372036854776E18
+        // base != near 必须判 false（旧 doubleValue 塌缩相等 → 误判 true）
+        assertFalse(MemoryFilterEvaluator.evaluateForTest(
+                FilterBeans.eq("total", near), names, table(), Arrays.asList("total"), Arrays.asList(),
+                row("TOTAL", base)),
+                "two Longs differing beyond double precision must NOT be equal (old doubleValue collapsed them)");
+        assertTrue(MemoryFilterEvaluator.evaluateForTest(
+                FilterBeans.eq("total", base), names, table(), Arrays.asList("total"), Arrays.asList(),
+                row("TOTAL", base)),
+                "identical Longs must be equal");
+        // gt/ge 同族：base > near 必须成立（旧塌缩相等 → gt 误 false）
+        assertTrue(MemoryFilterEvaluator.evaluateForTest(
+                FilterBeans.gt("total", near), names, table(), Arrays.asList("total"), Arrays.asList(),
+                row("TOTAL", base)),
+                "Long.MAX_VALUE must compare greater than Long.MAX_VALUE-1 (old doubleValue made them equal)");
+    }
+
+    /** WHERE eq 的 String 数值字面量必须按数值接线比较（旧实现 String 静默 null → 回退字符串比较）。 */
+    @Test
+    public void testEqStringNumericLiteralNumericWiring() {
+        Map<String, String> names = nameToAlias("total", "TOTAL");
+        // 行值 Long 123456789012345，字面量 String "123456789012345" → 数值相等（旧实现回退字符串比较恰好也真，
+        // 但数值语义由以下大小关系用例区分）
+        assertTrue(MemoryFilterEvaluator.evaluateForTest(
+                FilterBeans.eq("total", "123456789012345"), names, table(), Arrays.asList("total"), Arrays.asList(),
+                row("TOTAL", 123456789012345L)),
+                "String numeric literal must compare numerically equal to Long row value");
+        // 数值上 999 < 1000，但字符串序 "999" > "1000"——旧回退字符串比较会把 gt 判反
+        assertTrue(MemoryFilterEvaluator.evaluateForTest(
+                FilterBeans.gt("total", "999"), names, table(), Arrays.asList("total"), Arrays.asList(),
+                row("TOTAL", 1000L)),
+                "String literal '999' must compare numerically less than 1000 (string fallback said '999'>'1000')");
+        assertFalse(MemoryFilterEvaluator.evaluateForTest(
+                FilterBeans.eq("total", "123456789012346"), names, table(), Arrays.asList("total"), Arrays.asList(),
+                row("TOTAL", 123456789012345L)),
+                "String literal off-by-one must not equal");
+        // 非数值 String 字面量：回退字符串比较（既有语义保持）
+        assertTrue(MemoryFilterEvaluator.evaluateForTest(
+                FilterBeans.eq("cat", "A"), nameToAlias("cat", "CAT"), table(), Arrays.asList(), Arrays.asList("cat"),
+                row("CAT", "A")),
+                "non-numeric String literal must still compare as string");
+    }
+
+    /** ORDER BY 两个超精度 Long 必须严格分序（旧 doubleValue 塌缩相等 → 错序/并列）。 */
+    @Test
+    public void testSortLongBeyondDoublePrecisionStrictOrder() {
+        Map<String, String> names = nameToAlias("total", "TOTAL");
+        long a = 9007199254740993L;   // 2^53 + 1
+        long b = 9007199254740992L;   // 2^53（与 a 的 double 表示塌缩相等）
+        List<Map<String, Object>> rows = Arrays.asList(
+                row("TOTAL", a),
+                row("TOTAL", b));
+        List<Map<String, Object>> sorted = MemoryOrderByComparator.sortForTest(
+                rows, Arrays.asList(OrderFieldBean.asc("total")), names, table(),
+                Arrays.asList("total"), Arrays.asList());
+        assertEquals(b, ((Number) sorted.get(0).get("TOTAL")).longValue(),
+                "2^53 must sort before 2^53+1 (old doubleValue collapsed them into a tie)");
+        assertEquals(a, ((Number) sorted.get(1).get("TOTAL")).longValue());
+    }
+
+    /** ORDER BY 的 String 数值行值按数值参与比较（旧实现 String 静默 null → 整行列回退字符串比较）。 */
+    @Test
+    public void testSortStringNumericValuesNumericWiring() {
+        Map<String, String> names = nameToAlias("total", "TOTAL");
+        List<Map<String, Object>> rows = Arrays.asList(
+                row("TOTAL", "1000"),
+                row("TOTAL", 999L));
+        List<Map<String, Object>> sorted = MemoryOrderByComparator.sortForTest(
+                rows, Arrays.asList(OrderFieldBean.asc("total")), names, table(),
+                Arrays.asList("total"), Arrays.asList());
+        assertEquals(999L, ((Number) sorted.get(0).get("TOTAL")).longValue(),
+                "999 must sort before '1000' numerically (string order says '1000' < '999')");
+        assertEquals("1000", sorted.get(1).get("TOTAL"));
+    }
 }

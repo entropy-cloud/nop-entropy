@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -124,7 +125,7 @@ public class CheckpointActionDispatcher {
         }
         Set<String> set = new HashSet<>();
         for (String token : webhookAllowedHostsCsv.split(",")) {
-            String trimmed = token.trim().toLowerCase();
+            String trimmed = token.trim().toLowerCase(Locale.ROOT);
             if (!trimmed.isEmpty()) {
                 set.add(trimmed);
             }
@@ -229,7 +230,7 @@ public class CheckpointActionDispatcher {
         // 维度13-04：URL 协议 + 主机白名单 + method 白名单
         validateWebhookUrl(cp, url);
         String method = (config != null && config.get("method") != null)
-                ? String.valueOf(config.get("method")).trim().toUpperCase()
+                ? String.valueOf(config.get("method")).trim().toUpperCase(Locale.ROOT)
                 : "POST";
         validateWebhookMethod(cp, method);
 
@@ -281,7 +282,7 @@ public class CheckpointActionDispatcher {
      * </ol>
      */
     void validateWebhookUrl(NopMetaQualityCheckpoint cp, String url) {
-        String lower = url.toLowerCase();
+        String lower = url.toLowerCase(Locale.ROOT);
         boolean protocolOk = false;
         for (String proto : ALLOWED_WEBHOOK_PROTOCOLS) {
             if (lower.startsWith(proto)) {
@@ -297,7 +298,7 @@ public class CheckpointActionDispatcher {
         }
         String host = extractWebhookHost(url);
         if (host != null && !host.isEmpty() && isInternalHost(host)
-                && !resolveAllowedWebhookHosts().contains(host.toLowerCase())) {
+                && !resolveAllowedWebhookHosts().contains(host.toLowerCase(Locale.ROOT))) {
             throw new NopMetadataException(NopMetadataErrors.ERR_CHECKPOINT_WEBHOOK_URL_BLOCKED)
                     .param("checkpointId", cp.getCheckpointId())
                     .param("url", url)

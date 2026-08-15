@@ -2,6 +2,8 @@ package io.nop.metadata.service.profiling;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.Locale;
+
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -106,5 +108,83 @@ public class TestMetaTableProfilerClassification {
         assertTrue(MetaTableProfiler.isStringType("CHAR"));
         assertTrue(MetaTableProfiler.isStringType("TEXT"));
         assertTrue(MetaTableProfiler.isStringType("CLOB"));
+    }
+
+    // ===== Cycle 2 / C8（adjudication-table-cycle2 §4 C8）：isStringType exact-match（沿 AR-05 形态）=====
+
+    /**
+     * isStringType 改 exact-match 后，标准字符串类型族全量收录（防过度收缩）：
+     * 修复前 substring contains 命中的合法名称（VARCHAR/TINYTEXT 等含 CHAR/TEXT 子串）修复后必须仍命中。
+     */
+    @Test
+    public void testStringTypeExactMatchStandardFamily() {
+        assertTrue(MetaTableProfiler.isStringType("CHAR"));
+        assertTrue(MetaTableProfiler.isStringType("NCHAR"));
+        assertTrue(MetaTableProfiler.isStringType("CHARACTER"));
+        assertTrue(MetaTableProfiler.isStringType("VARCHAR"));
+        assertTrue(MetaTableProfiler.isStringType("NVARCHAR"));
+        assertTrue(MetaTableProfiler.isStringType("VARCHAR2"));
+        assertTrue(MetaTableProfiler.isStringType("NVARCHAR2"));
+        assertTrue(MetaTableProfiler.isStringType("LONGVARCHAR"));
+        assertTrue(MetaTableProfiler.isStringType("TEXT"));
+        assertTrue(MetaTableProfiler.isStringType("TINYTEXT"));
+        assertTrue(MetaTableProfiler.isStringType("MEDIUMTEXT"));
+        assertTrue(MetaTableProfiler.isStringType("LONGTEXT"));
+        assertTrue(MetaTableProfiler.isStringType("CLOB"));
+        assertTrue(MetaTableProfiler.isStringType("NCLOB"));
+        assertTrue(MetaTableProfiler.isStringType("STRING"));
+    }
+
+    /**
+     * exact-match 消除子串误分类：含 CHAR/TEXT/STRING 子串的非标准词条不再被误归字符串列
+     * （对齐 AR-05 isNumericType 的 POINT⊃INT 修复语义——未知复合类型正确回退 probeNumeric 运行时探测，
+     * 而非子串误路由）。旧 substring 实现下这些词条会被误判 true。
+     */
+    @Test
+    public void testStringTypeSubstringCompositesNotClassified() {
+        assertFalse(MetaTableProfiler.isStringType("XCHARTHING"),
+                "unknown composite containing 'CHAR' must not be classified string (exact-match)");
+        assertFalse(MetaTableProfiler.isStringType("CONTEXT_ID_TYPE"),
+                "unknown composite containing 'TEXT' must not be classified string (exact-match)");
+        assertFalse(MetaTableProfiler.isStringType("SUPERSTRINGIFIER"),
+                "unknown composite containing 'STRING' must not be classified string (exact-match)");
+        assertFalse(MetaTableProfiler.isStringType(null));
+        assertFalse(MetaTableProfiler.isStringType(""));
+        assertFalse(MetaTableProfiler.isStringType("   "));
+    }
+
+    /** isStringType 大小写/前后空白不敏感（与 isNumericType 对齐）。 */
+    @Test
+    public void testStringTypeCaseAndWhitespaceInsensitive() {
+        assertTrue(MetaTableProfiler.isStringType("varchar"));
+        assertTrue(MetaTableProfiler.isStringType("  Clob  "));
+        assertTrue(MetaTableProfiler.isStringType("longText"));
+        assertFalse(MetaTableProfiler.isStringType("  xcharthing  "));
+    }
+
+    // ===== Cycle 2 / P1-B（adjudication-table-cycle2 §2 #28/#29）：分类归一化 tr-TR 回归 =====
+
+    /**
+     * tr-TR 默认 locale 下小写类型名归一化必须仍正确分类：
+     * 修复前默认 locale {@code toUpperCase()} 把小写 {@code i} 映射为带点 {@code İ}——
+     * {@code "tinyint"} → {@code "TİNYINT"} ≠ {@code TINYINT}、{@code "varchar"} →
+     * {@code "VARCHAR"}（无 i 恰好不受影响），{@code "int"} → {@code "İNT"} ≠ {@code INT}。
+     */
+    @Test
+    public void turkishLocaleLowercaseTypeNamesStillClassified() {
+        Locale original = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr"));
+            assertTrue(MetaTableProfiler.isNumericType("tinyint"),
+                    "lowercase 'tinyint' must classify numeric under tr-TR (old default-locale uppercase mapped i to İ)");
+            assertTrue(MetaTableProfiler.isNumericType("int"));
+            assertTrue(MetaTableProfiler.isNumericType("bigint"));
+            assertTrue(MetaTableProfiler.isNumericType("decimal"));
+            assertTrue(MetaTableProfiler.isStringType("varchar"),
+                    "lowercase 'varchar' must classify string under tr-TR");
+            assertTrue(MetaTableProfiler.isStringType("character varying"));
+        } finally {
+            Locale.setDefault(original);
+        }
     }
 }

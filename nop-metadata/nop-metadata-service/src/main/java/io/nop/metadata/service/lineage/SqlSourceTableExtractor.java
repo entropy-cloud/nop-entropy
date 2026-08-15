@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -86,7 +87,7 @@ public class SqlSourceTableExtractor {
                     return;
                 }
                 // CTE 名排除（AR-08）：匹配 CTE 名的引用不上报为物理源表
-                if (cteNames.contains(simple.toLowerCase())) {
+                if (cteNames.contains(simple.toLowerCase(Locale.ROOT))) {
                     return;
                 }
                 String full = tableName.getFullName();
@@ -115,7 +116,7 @@ public class SqlSourceTableExtractor {
                 if (ctes != null) {
                     for (SqlCteStatement cte : ctes) {
                         if (cte != null && cte.getName() != null) {
-                            cteNames.add(cte.getName().toLowerCase());
+                            cteNames.add(cte.getName().toLowerCase(Locale.ROOT));
                         }
                     }
                 }

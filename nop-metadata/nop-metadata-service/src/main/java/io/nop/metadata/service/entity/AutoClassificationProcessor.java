@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -125,7 +126,10 @@ public class AutoClassificationProcessor {
         List<MatchResult> matches = new ArrayList<>();
         // 同一非法 pattern 位于 field×rule 双层循环内会对每个字段重复命中——按
         // (classificationId, pattern) 在单次调用内去重，避免日志刷屏（P2-02）。
-        Set<String> warnedInvalidPatterns = new HashSet<>();
+        // D1（Cycle 2，adjudication-table-cycle2 §5）：去重键为结构性 List（值级 equals/hashCode），
+        // 非 "|" 拼接 String——pattern 是用户配置的正则表达式，常态含 "|"（alternation），
+        // 拼接键的正确性依赖 classificationId 格式永不含 "|" 的脆弱假设（沿 AR-03 结构性键先例）。
+        Set<List<String>> warnedInvalidPatterns = new HashSet<>();
         for (NopMetaEntityField field : fields) {
             String fieldName = field.getFieldName();
             String stdDataType = field.getStdDataType();
@@ -141,7 +145,7 @@ public class AutoClassificationProcessor {
                 try {
                     compiled = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
                 } catch (Exception e) {
-                    String warnKey = classification.getClassificationId() + "|" + pattern;
+                    List<String> warnKey = Arrays.asList(classification.getClassificationId(), pattern);
                     if (warnedInvalidPatterns.add(warnKey)) {
                         LOG.warn("Invalid auto-classification rule pattern pattern={} classificationId={} ruleIndex={}, errorCode={}",
                                 pattern, classification.getClassificationId(), i,

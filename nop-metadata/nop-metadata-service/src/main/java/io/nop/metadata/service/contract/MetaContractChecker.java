@@ -22,6 +22,7 @@ import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -318,7 +319,7 @@ public class MetaContractChecker {
      * @param unitKey     单位键名（统一 "unit"）
      */
     @SuppressWarnings("unchecked")
-    private Long toDurationMillis(String contractId, Object durationMap, String amountKey, String unitKey) {
+    Long toDurationMillis(String contractId, Object durationMap, String amountKey, String unitKey) {
         if (durationMap == null) {
             return null;
         }
@@ -349,7 +350,7 @@ public class MetaContractChecker {
                     .param("contractId", contractId)
                     .param("error", "duration amount is not a number: " + amountObj);
         }
-        String unit = String.valueOf(unitObj).toLowerCase();
+        String unit = String.valueOf(unitObj).toLowerCase(Locale.ROOT);
         TimeUnit tu;
         switch (unit) {
             case "millisecond":

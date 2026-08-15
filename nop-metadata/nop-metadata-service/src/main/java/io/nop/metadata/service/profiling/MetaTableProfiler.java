@@ -17,9 +17,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -79,9 +79,17 @@ public class MetaTableProfiler {
             "DECIMAL", "NUMERIC", "NUMBER", "DOUBLE", "DOUBLE PRECISION",
             "FLOAT", "REAL");
 
-    /** 字符串类 JDBC 类型名关键字（大写）。 */
-    private static final List<String> STRING_KEYWORDS = Arrays.asList(
-            "CHAR", "TEXT", "CLOB", "STRING");
+    /**
+     * 字符串类 JDBC 类型名集合（大写 exact-match）。Cycle 2 / C8（adjudication-table-cycle2 §4 C8）：
+     * 替代旧的 substring contains 关键字匹配——与同文件 {@link #NUMERIC_TYPE_NAMES}（AR-05）对齐，
+     * 消除同族分类判定双标准；含 CHAR/TEXT/STRING 子串的未知复合类型不再被误归字符串列，
+     * 正确回退 probeNumeric 运行时探测。"DOUBLE PRECISION" 同款空格复合词条（标准 SQL
+     * {@code CHARACTER VARYING}）与 H2 {@code VARCHAR_IGNORECASE} 作为完整词条纳入。
+     */
+    private static final Set<String> STRING_TYPE_NAMES = Set.of(
+            "CHAR", "NCHAR", "CHARACTER", "VARCHAR", "NVARCHAR", "VARCHAR2", "NVARCHAR2",
+            "LONGVARCHAR", "CHARACTER VARYING", "TEXT", "TINYTEXT", "MEDIUMTEXT", "LONGTEXT",
+            "CLOB", "NCLOB", "STRING", "VARCHAR_IGNORECASE");
 
     /**
      * 剖析单表，返回结构化快照（消费 {@link TableReference}，架构基线 §4.4.3 D3）。
@@ -115,7 +123,7 @@ public class MetaTableProfiler {
         if (productName != null) {
             snapshot.getTableExtras().put("databaseProductName", productName);
         }
-        snapshot.getTableExtras().put("tableType", ref.getKind().name().toLowerCase());
+        snapshot.getTableExtras().put("tableType", ref.getKind().name().toLowerCase(Locale.ROOT));
 
         try {
             String fromClause = buildFromClause(ref, normalizedSchema);
@@ -272,7 +280,7 @@ public class MetaTableProfiler {
         }
         String msg = e.getMessage();
         if (msg != null) {
-            String lower = msg.toLowerCase();
+            String lower = msg.toLowerCase(Locale.ROOT);
             if (lower.contains("connection") || lower.contains("permission") || lower.contains("denied")
                     || lower.contains("closed") || lower.contains("timeout")
                     || lower.contains("communication") || lower.contains("does not exist")) {
@@ -458,7 +466,7 @@ public class MetaTableProfiler {
                 if (name == null) {
                     continue;
                 }
-                if (filter != null && !filter.isEmpty() && !filter.contains(name.toUpperCase())) {
+                if (filter != null && !filter.isEmpty() && !filter.contains(name.toUpperCase(Locale.ROOT))) {
                     continue;
                 }
                 columns.add(new ColumnMeta(name, type));
@@ -554,7 +562,7 @@ public class MetaTableProfiler {
         }
         // AR-05：exact-match 替代 substring contains——POINT 不再因子串 "INT" 误匹配，
         // BOOLEAN/BIT 不再被误归数值（保守回退 string stats / probeNumeric，不产非法 SUM）
-        String upper = typeName.toUpperCase().trim();
+        String upper = typeName.toUpperCase(Locale.ROOT).trim();
         return NUMERIC_TYPE_NAMES.contains(upper);
     }
 
@@ -562,13 +570,9 @@ public class MetaTableProfiler {
         if (typeName == null) {
             return false;
         }
-        String upper = typeName.toUpperCase();
-        for (String kw : STRING_KEYWORDS) {
-            if (upper.contains(kw)) {
-                return true;
-            }
-        }
-        return false;
+        // C8（Cycle 2）：exact-match 集合替代 substring contains（沿 AR-05 形态）；归一化 Locale.ROOT
+        String upper = typeName.toUpperCase(Locale.ROOT).trim();
+        return STRING_TYPE_NAMES.contains(upper);
     }
 
     /** schema 限定：<schema>.<tableName>；schema 为空时用 <tableName>（依赖连接默认 schema）。与 Catalog/质量执行器一致。 */
@@ -602,7 +606,7 @@ public class MetaTableProfiler {
             if (f.getName() == null) {
                 continue;
             }
-            if (filter != null && !filter.isEmpty() && !filter.contains(f.getName().toUpperCase())) {
+            if (filter != null && !filter.isEmpty() && !filter.contains(f.getName().toUpperCase(Locale.ROOT))) {
                 continue;
             }
             columns.add(new ColumnMeta(f.getName(), f.getDataType()));
@@ -629,7 +633,7 @@ public class MetaTableProfiler {
         for (String p : columnsFilter.split(",")) {
             String t = p.trim();
             if (!t.isEmpty()) {
-                set.add(t.toUpperCase());
+                set.add(t.toUpperCase(Locale.ROOT));
             }
         }
         return set;

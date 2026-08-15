@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -160,7 +161,7 @@ public class MetaQualityRuleExecutor {
         j.getDetails().put("ruleType", ruleType);
         j.getDetails().put("entityType", entityType);
         j.getDetails().put("tableName", displayTable);
-        j.getDetails().put("tableType", ref.getKind().name().toLowerCase());
+        j.getDetails().put("tableType", ref.getKind().name().toLowerCase(Locale.ROOT));
         if (threshold != null) {
             j.getDetails().put("threshold", threshold);
         }
@@ -384,7 +385,7 @@ public class MetaQualityRuleExecutor {
         if (sql == null) {
             return;
         }
-        String upper = sql.trim().toUpperCase();
+        String upper = sql.trim().toUpperCase(Locale.ROOT);
         if (upper.contains(";")) {
             throw customSqlBlocked("forbidden keyword present: ;", ruleKey, sqlHash);
         }
@@ -747,7 +748,7 @@ public class MetaQualityRuleExecutor {
     }
 
     private static boolean evalExpectPassWhen(String expectPassWhen, double value, String ruleKey) {
-        String s = expectPassWhen.trim().toLowerCase();
+        String s = expectPassWhen.trim().toLowerCase(Locale.ROOT);
         try {
             if ("true".equals(s) || "eq 1".equals(s) || "eq1".equals(s)) {
                 return value == 1.0;
@@ -805,7 +806,7 @@ public class MetaQualityRuleExecutor {
         if (msg == null) {
             return false;
         }
-        String lower = msg.toLowerCase();
+        String lower = msg.toLowerCase(Locale.ROOT);
         for (String signature : REGEXP_UNSUPPORTED_SIGNATURES) {
             if (lower.contains(signature)) {
                 return true;

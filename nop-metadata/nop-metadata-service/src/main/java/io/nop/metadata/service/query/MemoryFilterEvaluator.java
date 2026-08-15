@@ -344,18 +344,14 @@ final class MemoryFilterEvaluator {
         return "\\.[]{}()<>*+-=!?^$|".indexOf(c) >= 0;
     }
 
-    /** 值→BigDecimal 转换（Integer/Long/Double/Float/BigDecimal/BigInteger 等）。非数值返回 null。 */
+    /**
+     * 值→BigDecimal 转换。E1（Cycle 2 / P1-E，adjudication-table-cycle2 §6）：委托
+     * {@link AggregationHelper#toBigDecimal}（AR-10 规范实现）——整数 longValue 无损路由
+     * （Long &gt; 2^53 等值过滤不再因 doubleValue 塌缩而错配结果行）、浮点 doubleValue、
+     * String 数值解析（不再静默 return null 回退字符串比较）。
+     */
     private static BigDecimal toBigDecimal(Object v) {
-        if (v instanceof BigDecimal) {
-            return (BigDecimal) v;
-        }
-        if (v instanceof java.math.BigInteger) {
-            return new BigDecimal((java.math.BigInteger) v);
-        }
-        if (v instanceof Number) {
-            return BigDecimal.valueOf(((Number) v).doubleValue());
-        }
-        return null;
+        return AggregationHelper.toBigDecimal(v);
     }
 
     /** 测试可访问的求值入口（仅用于单元测试，避免直接构造内部类）。返回三值结果（null = UNKNOWN）。 */

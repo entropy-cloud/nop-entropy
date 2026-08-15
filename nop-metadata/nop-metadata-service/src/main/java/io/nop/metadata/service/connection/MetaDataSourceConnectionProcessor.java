@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -67,7 +68,7 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
      * 透传命令行风格选项，可绕过应用层约束）。{@code driverClassName} 白名单缓解但不能替代 URL 参数侧的 fail-closed。
      */
     private static final Set<String> DANGEROUS_URL_TOKENS = new HashSet<>(Arrays.asList(
-            "allowLoadLocalInfile".toLowerCase(),
+            "allowLoadLocalInfile".toLowerCase(Locale.ROOT),
             "allowmultiqueries",
             "allowurlinlocalinfile",
             "autoddeserialize",
@@ -125,7 +126,7 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
         }
         Set<String> set = new HashSet<>();
         for (String token : allowedInternalHostsCsv.split(",")) {
-            String trimmed = token.trim().toLowerCase();
+            String trimmed = token.trim().toLowerCase(Locale.ROOT);
             if (!trimmed.isEmpty()) {
                 set.add(trimmed);
             }
@@ -228,7 +229,7 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
      */
     void validateJdbcUrl(String jdbcUrl) {
         // (1) 协议白名单
-        String lower = jdbcUrl.toLowerCase();
+        String lower = jdbcUrl.toLowerCase(Locale.ROOT);
         boolean protocolOk = false;
         for (String proto : ALLOWED_JDBC_PROTOCOLS) {
             if (lower.startsWith(proto)) {
@@ -262,7 +263,7 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
                         .param("reason", "host unparseable: " + host);
             }
             if (HostSecurityUtil.isInternalHost(host)
-                    && !resolveAllowedInternalHosts().contains(host.toLowerCase())) {
+                    && !resolveAllowedInternalHosts().contains(host.toLowerCase(Locale.ROOT))) {
                 throw new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED)
                         .param("jdbcUrl", redactJdbcUrl(jdbcUrl))
                         .param("reason", "internal/link-local/loopback host not in allowed-hosts: " + host);
@@ -492,7 +493,7 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
 
     /** IPv4-mapped IPv6（{@code ::ffff:a.b.c.d}）→ IPv4 段；其余形式原样返回。 */
     private static String normalizeIpv4MappedHost(String host) {
-        String h = host.toLowerCase();
+        String h = host.toLowerCase(Locale.ROOT);
         int idx = h.lastIndexOf("::ffff:");
         if (idx < 0) {
             return host;

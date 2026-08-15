@@ -14,6 +14,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * 从外部 jdbc 数据源扫描物理表结构（表 + 列），返回结构化快照。
@@ -144,7 +145,7 @@ public class ExternalTableStructureReader {
 
     /** 方言白名单判断（包级可见以便单元测试）。 */
     static boolean isSupportedDialect(String productName) {
-        String p = productName.toLowerCase();
+        String p = productName.toLowerCase(Locale.ROOT);
         return p.contains("mysql") || p.contains("postgresql") || p.equals("h2");
     }
 
