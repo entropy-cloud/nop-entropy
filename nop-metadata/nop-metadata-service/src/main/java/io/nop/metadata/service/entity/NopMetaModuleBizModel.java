@@ -9,6 +9,7 @@ import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.api.core.beans.DictBean;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.QueryBean;
@@ -118,7 +119,12 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
      */
     @Override
     public NopMetaModule save(@Name("data") Map<String, Object> data, IServiceContext context) {
-        String id = data == null ? null : NopMetadataHelper.stringOf(data, NopMetaModule.PROP_NAME_metaModuleId);
+        // P2-19（plan 2026-08-16-0226-3）：null/empty data 提前委托基类
+        // （形态统一，此前三元形态只防 null），统一抛 ERR_BIZ_EMPTY_DATA_FOR_SAVE
+        if (CollectionHelper.isEmptyMap(data)) {
+            return super.save(data, context);
+        }
+        String id = NopMetadataHelper.stringOf(data, NopMetaModule.PROP_NAME_metaModuleId);
         NopMetaModule before = id != null ? dao().getEntityById(id) : null;
         NopMetaModule saved = super.save(data, context);
         String entityType = EVENT_ENTITY_TYPE;

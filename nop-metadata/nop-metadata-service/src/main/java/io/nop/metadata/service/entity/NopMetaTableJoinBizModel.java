@@ -8,6 +8,7 @@ import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.crud.CrudBizModel;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaTableJoinBiz;
@@ -63,6 +64,12 @@ public class NopMetaTableJoinBizModel extends CrudBizModel<NopMetaTableJoin> imp
      */
     @Override
     public NopMetaTableJoin save(@Name("data") Map<String, Object> data, IServiceContext context) {
+        // P2-19（plan 2026-08-16-0226-3）：null/empty data 提前委托基类，
+        // 统一抛 ERR_BIZ_EMPTY_DATA_FOR_SAVE
+        // （不 NPE 抢先——validateJoin 内 stringOf 会先解引用 data）
+        if (CollectionHelper.isEmptyMap(data)) {
+            return super.save(data, context);
+        }
         validateJoin(data);
         return super.save(data, context);
     }

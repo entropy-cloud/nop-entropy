@@ -63,7 +63,7 @@ public class TestNopMetaDataSourceConnectionConfigWritePath extends JunitBaseTes
 
         // 端到端：testConnection 消费 save 写入的配置（真实 H2 建连）
         GraphQLResponseBean testResp = execute(
-                "mutation { NopMetaDataSource__testConnection(dataSourceId: \"ds-write-e2e\")"
+                "query { NopMetaDataSource__testConnection(dataSourceId: \"ds-write-e2e\")"
                         + " { connected databaseProductName } }");
         assertFalse(testResp.hasError(), "testConnection on save product must not error: " + testResp);
         String data = String.valueOf(testResp.getData());

@@ -7,6 +7,7 @@ import java.util.Set;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.biz.crud.CrudBizModel;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.metadata.biz.INopMetaTagBiz;
 import io.nop.metadata.dao.entity.NopMetaClassification;
@@ -28,7 +29,12 @@ public class NopMetaTagBizModel extends CrudBizModel<NopMetaTag> implements INop
 
     @Override
     public NopMetaTag save(@Name("data") Map<String, Object> data, IServiceContext context) {
-        if (data != null && data.get(NopMetaTag.PROP_NAME_fullyQualifiedName) == null) {
+        // P2-19（plan 2026-08-16-0226-3）：null/empty data 提前委托基类（形态统一），统一抛
+        // ERR_BIZ_EMPTY_DATA_FOR_SAVE；此后 data 非空，条件内不再需要 null 判
+        if (CollectionHelper.isEmptyMap(data)) {
+            return super.save(data, context);
+        }
+        if (data.get(NopMetaTag.PROP_NAME_fullyQualifiedName) == null) {
             String tagName = (String) data.get(NopMetaTag.PROP_NAME_name);
             String classificationId = (String) data.get(NopMetaTag.PROP_NAME_classificationId);
             String parentTagId = (String) data.get(NopMetaTag.PROP_NAME_parentTagId);

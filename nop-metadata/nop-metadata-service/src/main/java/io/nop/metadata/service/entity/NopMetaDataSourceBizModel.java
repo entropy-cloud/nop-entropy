@@ -5,6 +5,7 @@ package io.nop.metadata.service.entity;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
+import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.annotations.txn.TransactionPropagation;
@@ -115,8 +116,12 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
      * </ul>
      *
      * <p>设计决策 D3：成功时从 DatabaseMetaData 识别的产品名放入返回 Map，不写回任何 ORM 列。
+     *
+     * <p>P2-18（plan 2026-08-16-0226-3）：注解从 @BizMutation 修正为 @BizQuery
+     * （只读探测，无写操作，对齐同模块 judgeByRuleId / checkContractReadOnly 先例）
+     * ——GraphQL operation 类型随之 mutation→query。
      */
-    @BizMutation
+    @BizQuery
     public TestConnectionResultDTO testConnection(@Name("dataSourceId") String dataSourceId, IServiceContext context) {
         NopMetaDataSource dataSource = requireEntity(dataSourceId, "testConnection", context);
 

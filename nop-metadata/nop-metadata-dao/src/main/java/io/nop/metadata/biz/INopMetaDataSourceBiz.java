@@ -2,6 +2,7 @@
 package io.nop.metadata.biz;
 
 import io.nop.api.core.annotations.biz.BizMutation;
+import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
 import io.nop.core.context.IServiceContext;
@@ -22,7 +23,10 @@ import io.nop.orm.biz.ICrudBiz;
  */
 public interface INopMetaDataSourceBiz extends ICrudBiz<NopMetaDataSource> {
 
-    @BizMutation
+    // P2-18（plan 2026-08-16-0226-3）：只读探测（无任何写操作），注解由变更类修正为查询类
+    // （对齐同模块 judgeByRuleId / checkContractReadOnly 同类探测）；语义说明见
+    // 实现类同名方法 javadoc 与 owner doc 安全契约段。
+    @BizQuery
     TestConnectionResultDTO testConnection(@Name("dataSourceId") String dataSourceId, IServiceContext context);
 
     @BizMutation

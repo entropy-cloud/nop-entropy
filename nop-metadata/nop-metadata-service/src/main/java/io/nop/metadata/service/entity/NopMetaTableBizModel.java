@@ -13,6 +13,7 @@ import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.crud.CrudBizModel;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IEntityDao;
@@ -98,7 +99,12 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
 
     @Override
     public NopMetaTable save(@Name("data") Map<String, Object> data, IServiceContext context) {
-        String id = data == null ? null : NopMetadataHelper.stringOf(data, NopMetaTable.PROP_NAME_metaTableId);
+        // P2-19（plan 2026-08-16-0226-3）：null/empty data 提前委托基类
+        // （形态统一，此前三元形态只防 null），统一抛 ERR_BIZ_EMPTY_DATA_FOR_SAVE
+        if (CollectionHelper.isEmptyMap(data)) {
+            return super.save(data, context);
+        }
+        String id = NopMetadataHelper.stringOf(data, NopMetaTable.PROP_NAME_metaTableId);
         NopMetaTable before = id != null ? dao().getEntityById(id) : null;
         NopMetaTable saved = super.save(data, context);
         String eventType = before == null

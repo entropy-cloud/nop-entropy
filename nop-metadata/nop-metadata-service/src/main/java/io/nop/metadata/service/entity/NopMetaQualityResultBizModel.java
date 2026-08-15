@@ -20,15 +20,20 @@ public class NopMetaQualityResultBizModel extends CrudBizModel<NopMetaQualityRes
     }
 
     /**
-     * 同意"已修复"场景：重新执行规则判定。
-     * 当前被 {@code qualityBreachApproval} 工作流的 agree 路径通过 c:script 直接调用
-     * QualityAlertWorkflowProcessor.reJudge() 处理，此方法保留作为 wf-approval:notifyResult 的回调入口。
+     * 同意（"已修复"）回调入口：**无字段变更、不做 re-judge**——仅 requireEntity 加载并返回实体。
+     *
+     * <p>P2-22（plan 2026-08-16-0226-3）语义诚实化：真实的 re-judge 由
+     * {@code qualityBreachApproval} 工作流 agree 路径的 verify 步骤完成
+     * （v1.xwf c:script 调 {@code QualityAlertWorkflowProcessor.reJudgeFailClosed}，
+     * 先于流程结束）；本方法仅作为 wf-approval:notifyResult 约定的 approve 回调挂点保留
+     * （qualityBreachApproval v1.xwf 当前未挂 notifyResult listener，agree 结束路径不
+     * 触发本方法；disagree 路径由 onDisagree listener 直改实体标记误报）。此前方法体中
+     * 无字段变更的 {@code updateEntity} 调用已删除（无可论证目的——无乐观锁/时间戳诉求，
+     * 实体未变更）。
      */
     @BizMutation
     public NopMetaQualityResult approve(@Name("id") String id, IServiceContext context) {
-        NopMetaQualityResult entity = requireEntity(id, "approve", context);
-        dao().updateEntity(entity);
-        return entity;
+        return requireEntity(id, "approve", context);
     }
 
     /**

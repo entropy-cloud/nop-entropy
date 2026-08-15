@@ -9,6 +9,7 @@ import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.core.context.IServiceContext;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaDataProductBiz;
 import io.nop.metadata.dao.entity.NopMetaDataProduct;
@@ -55,7 +56,8 @@ public class NopMetaDataProductBizModel extends CrudBizModel<NopMetaDataProduct>
         // 属标注域通用语义；linkAsset 侧由 LINKABLE_ASSET_TYPES 白名单治理 entityType，
         // entityId 保持不透明引用（与既有模块行为一致，裁定记录 daily log）。
         IEntityDao<NopMetaTagLabel> labelDao = daoFor(NopMetaTagLabel.class);
-        String metadata = "{\"dataProductId\":\"" + dataProductId + "\"}";
+        String metadata = JsonTool.stringify(
+                Map.of("dataProductId", dataProductId));
         QueryBean q = new QueryBean();
         q.addFilter(FilterBeans.eq(NopMetaTagLabel.PROP_NAME_entityType, entityType));
         q.addFilter(FilterBeans.eq(NopMetaTagLabel.PROP_NAME_entityId, entityId));
@@ -96,7 +98,8 @@ public class NopMetaDataProductBizModel extends CrudBizModel<NopMetaDataProduct>
         // 场景错误码保持不变。
         requireEntity(dataProductId, "unlinkAsset", context);
 
-        String metadata = "{\"dataProductId\":\"" + dataProductId + "\"}";
+        String metadata = JsonTool.stringify(
+                Map.of("dataProductId", dataProductId));
         IEntityDao<NopMetaTagLabel> labelDao = daoFor(NopMetaTagLabel.class);
         QueryBean q = new QueryBean();
         q.addFilter(FilterBeans.eq(NopMetaTagLabel.PROP_NAME_entityType, entityType));
@@ -119,7 +122,8 @@ public class NopMetaDataProductBizModel extends CrudBizModel<NopMetaDataProduct>
     @BizQuery
     public List<NopMetaTagLabel> getLinkedAssets(@Name("dataProductId") String dataProductId,
                                                   IServiceContext context) {
-        String metadata = "{\"dataProductId\":\"" + dataProductId + "\"}";
+        String metadata = JsonTool.stringify(
+                Map.of("dataProductId", dataProductId));
         IEntityDao<NopMetaTagLabel> labelDao = daoFor(NopMetaTagLabel.class);
         QueryBean q = new QueryBean();
         q.addFilter(FilterBeans.eq(NopMetaTagLabel.PROP_NAME_labelType, "Automated"));

@@ -8,6 +8,7 @@ import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.crud.CrudBizModel;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaTableMeasureBiz;
@@ -59,6 +60,11 @@ public class NopMetaTableMeasureBizModel extends CrudBizModel<NopMetaTableMeasur
      */
     @Override
     public NopMetaTableMeasure save(@Name("data") Map<String, Object> data, IServiceContext context) {
+        // P2-19（plan 2026-08-16-0226-3）：null/empty data 提前委托基类，
+        // 统一抛 ERR_BIZ_EMPTY_DATA_FOR_SAVE
+        if (CollectionHelper.isEmptyMap(data)) {
+            return super.save(data, context);
+        }
         String metaTableId = NopMetadataHelper.stringOf(data, NopMetaTableMeasure.PROP_NAME_metaTableId);
         String entityFieldId = NopMetadataHelper.stringOf(data, NopMetaTableMeasure.PROP_NAME_entityFieldId);
         String measureName = NopMetadataHelper.stringOf(data, NopMetaTableMeasure.PROP_NAME_measureName);
