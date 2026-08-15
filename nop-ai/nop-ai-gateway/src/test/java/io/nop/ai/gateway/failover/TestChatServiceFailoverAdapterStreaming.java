@@ -81,12 +81,16 @@ class TestChatServiceFailoverAdapterStreaming {
         adapter.setRegistry(registry);
         io.nop.api.core.config.AppConfig.getConfigProvider().assignConfigValue(
                 "nop.ai.llm.gw-test.api-key", "key-gw-main");
+        io.nop.api.core.config.AppConfig.getConfigProvider().assignConfigValue(
+                "nop.ai.llm.gw-cache.api-key", "key-gw-main");
     }
 
     @AfterEach
     void tearDown() {
         io.nop.api.core.config.AppConfig.getConfigProvider().assignConfigValue(
                 "nop.ai.llm.gw-test.api-key", null);
+        io.nop.api.core.config.AppConfig.getConfigProvider().assignConfigValue(
+                "nop.ai.llm.gw-cache.api-key", null);
         LlmConfigHelper.reset();
     }
 
@@ -159,6 +163,108 @@ class TestChatServiceFailoverAdapterStreaming {
         assertEquals(2, fake.streamCallCount(), "AUTH_INVALID must trigger account switch");
         assertBearer(fake.requests.get(1), "key-gw-a");
         assertEquals(0, registry.currentCount("gw-test", null));
+    }
+
+    // ======================= 窗口内 TRANSIENT（503）→ 切换（W8 OBS-02 补缺） =======================
+
+    @Test
+    void streamTransientFailureSwitchesAccount() {
+        // 503 响应级 server_error → parseErrorResponse → TRANSIENT → 切换重订阅（新账号）。
+        fake.queueStream(StreamScenario.failing(
+                        FailoverTestSupport.streamError(503, FailoverTestSupport.serverErrorBody())))
+                .queueStream(StreamScenario.success(FailoverTestSupport.streamChunkJson("ok")));
+
+        CollectingSubscriber sub = new CollectingSubscriber();
+        adapter.callStream(FailoverTestSupport.request("gw-test", "gw-model-1", true), null).subscribe(sub);
+
+        sub.awaitAndAssertSuccess("ok");
+        assertEquals(2, fake.streamCallCount(), "TRANSIENT must trigger account switch");
+        assertBearer(fake.requests.get(1), "key-gw-a");
+        assertEquals(0, registry.currentCount("gw-test", null));
+    }
+
+    // ======================= 窗口内 NON_TRANSIENT → 断流不切换（W8 OBS-02 补缺） =======================
+
+    @Test
+    void streamNonTransientDeliversErrorWithoutSwitch() {
+        // 400 → parseErrorResponse → NON_TRANSIENT → 不切换直接断流报错（不耗预算、不记熔断）。
+        fake.queueStream(StreamScenario.failing(
+                FailoverTestSupport.streamError(400, FailoverTestSupport.nonTransientBody())));
+
+        CollectingSubscriber sub = new CollectingSubscriber();
+        adapter.callStream(FailoverTestSupport.request("gw-test", "gw-model-1", true), null).subscribe(sub);
+
+        sub.await();
+        assertNotNull(sub.error, "NON_TRANSIENT must surface as stream error");
+        assertEquals(1, fake.streamCallCount(), "NON_TRANSIENT must not switch");
+        assertEquals(CircuitState.CLOSED, breaker.getState("gw-test:gw-model-1"),
+                "NON_TRANSIENT must not record breaker failure");
+        assertEquals(0, registry.currentCount("gw-test", null));
+    }
+
+    // ======================= 窗口内 CACHE_STATE_LOST → 同候选原地重发（W8 OBS-02 防御分支） =======================
+
+    @Test
+    void streamCacheStateLostResubscribesSameCandidate() {
+        // CACHE_STATE_LOST（经 gw-cache.llm.xml errorMappings 由 classifyStreamError 可达）：
+        // 不触发账号切换，重发同一候选一次（预算计数）；成功 → 无熔断记账（CLOSED）。
+        fake.queueStream(StreamScenario.failing(
+                        FailoverTestSupport.streamError(409, FailoverTestSupport.cacheLostBody())))
+                .queueStream(StreamScenario.success(FailoverTestSupport.streamChunkJson("ok")));
+
+        CollectingSubscriber sub = new CollectingSubscriber();
+        adapter.callStream(FailoverTestSupport.request("gw-cache", "gw-cache-model", true), null).subscribe(sub);
+
+        sub.awaitAndAssertSuccess("ok");
+        assertEquals(2, fake.streamCallCount(), "CACHE_STATE_LOST must resend the same candidate once");
+        assertBearer(fake.requests.get(1), "key-gw-main",
+                "in-place resend must keep the same account (no account switch)");
+        assertEquals(fake.requests.get(0).getUrl(), fake.requests.get(1).getUrl(),
+                "in-place resend must hit the same provider URL");
+        assertEquals(CircuitState.CLOSED, breaker.getState("gw-cache:gw-cache-model"),
+                "CACHE_STATE_LOST must not record breaker failure");
+        assertEquals(0, registry.currentCount("gw-cache", null));
+    }
+
+    // ======================= 全池健康度饱和 fail-loud（流式，W8 OBS-02 补缺） =======================
+
+    @Test
+    void streamingFullPoolHealthSaturationFailsLoud() {
+        // 健康度饱和（tier-gw-sat 单候选熔断 OPEN）且冷却未期满 → 探活不放行 → 流式路径
+        // onError(ERR_AI_MODEL_CLASS_SATURATED) fail-loud（与本地非流式同款 selectNextWithProbe）。
+        ThresholdBreaker longCooldown = new ThresholdBreaker(3, 60_000L);
+        adapter.setBreaker(longCooldown);
+        for (int i = 0; i < 3; i++) {
+            longCooldown.recordFailure("gw-sat:gw-sat-model");
+        }
+
+        CollectingSubscriber sub = new CollectingSubscriber();
+        adapter.callStream(FailoverTestSupport.request("gw-sat", "gw-sat-model", true), null).subscribe(sub);
+
+        sub.await();
+        assertNotNull(sub.error, "health-saturated pool must fail loud on the stream path");
+        assertTrue(sub.error instanceof NopException);
+        assertEquals(NopAiCoreErrors.ERR_AI_MODEL_CLASS_SATURATED.getErrorCode(),
+                ((NopException) sub.error).getErrorCode());
+        assertEquals(0, fake.streamCallCount(), "no fetch when the pool is health-saturated");
+        assertEquals(0, registry.currentCount("gw-sat", null));
+    }
+
+    // ======================= 无路由组流式直通（W8 OBS-02 补缺） =======================
+
+    @Test
+    void streamingNoRoutingGroupPassthrough() {
+        fake.queueStream(StreamScenario.success(FailoverTestSupport.streamChunkJson("a1"),
+                FailoverTestSupport.streamChunkJson("a2")));
+
+        CollectingSubscriber sub = new CollectingSubscriber();
+        adapter.callStream(FailoverTestSupport.request("gw-test", "no-such-model", true), null).subscribe(sub);
+
+        sub.awaitAndAssertSuccess("a1", "a2");
+        assertEquals(1, fake.streamCallCount(), "no routing group → single passthrough stream");
+        assertEquals(0, registry.currentCount("gw-test", null),
+                "no-routing-group passthrough must not count");
+        assertEquals(CircuitState.CLOSED, breaker.getState("gw-test:no-such-model"));
     }
 
     // ======================= 预算耗尽断流（fail-loud） + 记账 =======================

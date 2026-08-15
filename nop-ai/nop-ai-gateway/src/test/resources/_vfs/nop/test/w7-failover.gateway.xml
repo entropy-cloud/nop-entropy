@@ -10,6 +10,10 @@
       - /chat/stream-nobuffer  流式 failover（缓冲关——生命周期计数仍触发）
       - /chat/stream-disabled  streaming.enabled=false → 按非流式路径执行（F2 判定同构）
       - /chat/nonstream        非流式 failover（converter 经 backendMessageConverter 声明）
+      - /chat/nonstream-raw    非流式 failover（无 converter——上游 4xx 响应体原样返回，
+        W8 OBS-02：classifyResponseStatus 响应级分类（401→AUTH_INVALID / 400→NON_TRANSIENT）
+        仅在无 converter 路由可达——converter 路由经 toFrontendResponse 把非 2xx 归一化为
+        ApiResponse.success（status=0 = isOk()=true，上游 401/400 视为成功直通）。
     -->
 
     <interceptors>
@@ -47,6 +51,11 @@
 
         <route id="w7-nonstream" unwrapResponse="false" backendMessageConverter="AI_DIALECT">
             <match path="/chat/nonstream" httpMethod="POST"/>
+            <invoke url="${(svcCtx.request.getStringProperty('nop.gateway.streaming.baseUrl') ?? 'https://gw-test.example.com') + '/v1/chat/completions'}"/>
+        </route>
+
+        <route id="w7-nonstream-raw" unwrapResponse="false">
+            <match path="/chat/nonstream-raw" httpMethod="POST"/>
             <invoke url="${(svcCtx.request.getStringProperty('nop.gateway.streaming.baseUrl') ?? 'https://gw-test.example.com') + '/v1/chat/completions'}"/>
         </route>
     </routes>

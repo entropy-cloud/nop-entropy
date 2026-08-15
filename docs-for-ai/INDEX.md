@@ -183,6 +183,7 @@
 | 理解 nop-batch（批处理） | `03-modules/nop-batch.md` + `02-core-guides/batch-dsl.md`（DSL 配置参考）+ `04-reference/xdefs/batch.xdef`（DSL 权威定义） |
 | 理解 nop-job（定时任务：本地模式 + 分布式模式） | `03-modules/nop-job.md` |
 | 理解 nop-ai（AI 集成/LLM/Agent/RAG） | `03-modules/nop-ai.md` |
+| **AI 网关 + 透明账号切换（failover：两种形态配置/模型类路由/规则策略/指标）** | **`03-modules/nop-ai-gateway.md`** |
 | 理解 nop-credential（加密凭证库/行级敏感数据加密/ICredentialProvider） | `03-modules/nop-credential.md`（与 `@sec:` 配置加密的边界见 `02-core-guides/ioc-and-config.md`） |
 | 理解 nop-dyn（动态表单/实体） | `03-modules/nop-dyn.md` |
 | 理解 nop-file（文件上传下载与存储机制） | `03-modules/nop-file.md` |

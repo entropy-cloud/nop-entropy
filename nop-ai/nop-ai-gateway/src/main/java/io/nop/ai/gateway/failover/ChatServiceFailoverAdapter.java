@@ -286,6 +286,21 @@ public class ChatServiceFailoverAdapter implements IChatService {
         if (cls == ErrorClassification.CACHE_STATE_LOST) {
             // 原地重试语义：不触发账号切换，重发同一候选一次，预算同样计数（防御分支）。
             if (attempt + 1 <= retryBudget) {
+                // 原地重发必须重新 acquire（callAsyncWithOptions 的 whenComplete 恒 release
+                // 配对——W8 OBS-02 实测：缺失 acquire 导致 release 下溢异常被 whenComplete 吞掉、
+                // future 永不完成）。并发复查（M-6a）语义与 invokeNonStreamingAttempt 一致。
+                int count = registry.acquire(candidate.getProvider(), candidate.getAccountKey());
+                if (metrics != null) {
+                    metrics.onConcurrencyAcquire(candidate.getProvider(), candidate.getAccountKey());
+                }
+                if (isOverConcurrencyLimit(candidate, count)) {
+                    registry.release(candidate.getProvider(), candidate.getAccountKey());
+                    if (metrics != null) {
+                        metrics.onConcurrencyRelease(candidate.getProvider(), candidate.getAccountKey());
+                    }
+                    completeNonStreamFailure(future, response, error);
+                    return;
+                }
                 callAsyncWithOptions(request, router, cancelToken, attempt + 1, candidate, sunk)
                         .whenComplete((r, e) -> completeRelay(future, r, e));
             } else {

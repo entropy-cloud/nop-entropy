@@ -7,6 +7,7 @@
 - **LLM Chat**：多模型聊天接口
 - **Prompt 模板管理**：版本化 Prompt 模板
 - **AI Agent**：Agent 框架
+- **AI 网关 / 透明账号切换（failover）**：`nop-ai-gateway`——详见 `nop-ai-gateway.md`
 - **RAG**：检索增强生成
 - **AI Coder**：AI 辅助编码
 - **MCP Server**：Model Context Protocol 服务端
@@ -37,6 +38,7 @@
 | `nop-ai-core` | AI 核心接口（含 LLM 集成） |
 | `nop-ai-agent` | Agent 框架 |
 | `nop-ai-rag` | RAG 实现落点模块——空占位（P3-MA3-003 裁定保留）：`IVectorStore` / `IEmbeddingModel` 为 nop-ai-core 的 SPI 扩展点契约（P1-MA5-003），无生产实现属设计意图；未来实现放本模块 |
+| `nop-ai-gateway` | AI 网关：路由格式转换 + 透明账号切换（failover）——两种形态（网关拦截器 / 本地 `IChatService` 适配器）+ 流式重订阅 + 并发限流 + 模型类路由 + 选择策略 + 指标。**使用文档见 `nop-ai-gateway.md`** |
 | `nop-ai-skills` | AI 技能 |
 | `nop-ai-tools` | AI 工具 |
 | `nop-ai-toolkit` | 工具包 |

@@ -1,0 +1,22 @@
+<llm x:schema="/nop/schema/ai/llm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     x:extends="default.llm.xml" apiStyle="openai" supportToolCalls="true"
+     defaultModel="gw-cache-model">
+
+    <!--
+    W8 OBS-02 测试用 provider（plan 2026-08-15-1615-2 Phase 1）：CACHE_STATE_LOST 防御分支
+    的可达性配置——本地 classifier（LlmErrorClassifier）正常不产该分类，仅响应级
+    parseErrorResponse 经 errorMappings 可达。本 provider 增加一条 errorCodes=cache_state_lost
+    的映射（ErrorClassification javadoc：CACHE_STATE_LOST = 409 本地推理缓存丢失；default.llm.xml
+    的映射均不命中该 code，first-match-wins 顺序安全），使 CACHE_STATE_LOST 分类在响应级
+    （本地非流式）与流式 classifyStreamError 路径真实可达。
+    -->
+
+    <baseUrl>https://gw-cache.example.com</baseUrl>
+    <chatUrl>/v1/chat/completions</chatUrl>
+
+    <errorMappings>
+        <errorMapping id="cache-state-lost" classification="CACHE_STATE_LOST" httpStatus="409"
+                      errorCodes="cache_state_lost"/>
+    </errorMappings>
+
+</llm>

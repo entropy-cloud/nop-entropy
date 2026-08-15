@@ -434,6 +434,24 @@ public class AiGatewayFailoverInterceptor implements IGatewayInterceptor {
         return requireConverter().toFrontendStreamChunk((Map<String, Object>) element, request);
     }
 
+    /**
+     * 流式成功路径熔断恢复（W8 OBS-02 补缺——probe 恢复契约 §3.3 在网关流式路径的缺口）：
+     * 缓冲层正常终止（onComplete）时对当前 attempt 候选 {@code recordSuccess}——HALF_OPEN
+     * 探活放行的流成功 → CLOSED 恢复（与本地形态 {@code FailoverStreamFlow.handleStreamComplete}
+     * 对齐）。仅接管请求生效（未接管零回归）；不记录 request-success 指标——OBS-01 契约表
+     * 明确网关流式成功路径不在指标触发事件内（与既有指标测试断言一致）。
+     */
+    @Override
+    public void onStreamComplete(IGatewayContext svcCtx) {
+        ApiRequest<?> request = svcCtx != null ? svcCtx.getRequest() : null;
+        if (request == null || !isActive(request)) {
+            return;
+        }
+        ModelClassCandidate candidate = GatewayStreamingRetryCallback.currentCandidate(request);
+        CircuitObservation.recordSuccess(metrics, breaker, candidate.getProvider(), candidate.getModel(),
+                candidate.getModelKey());
+    }
+
     // ======================= 共享辅助 =======================
 
     /**

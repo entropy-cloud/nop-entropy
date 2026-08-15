@@ -75,12 +75,16 @@ class TestChatServiceFailoverAdapterNonStreaming {
         adapter.setRegistry(registry);
         io.nop.api.core.config.AppConfig.getConfigProvider().assignConfigValue(
                 "nop.ai.llm.gw-test.api-key", "key-gw-main");
+        io.nop.api.core.config.AppConfig.getConfigProvider().assignConfigValue(
+                "nop.ai.llm.gw-cache.api-key", "key-gw-main");
     }
 
     @AfterEach
     void tearDown() {
         io.nop.api.core.config.AppConfig.getConfigProvider().assignConfigValue(
                 "nop.ai.llm.gw-test.api-key", null);
+        io.nop.api.core.config.AppConfig.getConfigProvider().assignConfigValue(
+                "nop.ai.llm.gw-cache.api-key", null);
         LlmConfigHelper.reset();
     }
 
@@ -187,6 +191,47 @@ class TestChatServiceFailoverAdapterNonStreaming {
         assertEquals(CircuitState.OPEN, breaker.getState("gw-test:gw-model-1"),
                 "3 consecutive failures on provider:model key must trip the breaker");
         assertEquals(0, registry.currentCount("gw-test", "key-gw-b"), "every terminal path releases (M-2)");
+    }
+
+    // ======================= CACHE_STATE_LOST 原地重发（W8 OBS-02 防御分支） =======================
+
+    @Test
+    void cacheStateLostRetriesSameCandidateInPlace() throws Exception {
+        // CACHE_STATE_LOST（响应级 errorClassification，经 gw-cache.llm.xml errorMappings 可达）：
+        // 不触发账号切换，重发同一候选一次（预算计数）；成功 → 无熔断记账（CLOSED）。
+        fake.queueResponse(response(409, FailoverTestSupport.cacheLostBody()))
+                .queueResponse(response(200, FailoverTestSupport.successBody()));
+
+        ChatResponse resp = syncGet(adapter.callAsync(
+                FailoverTestSupport.request("gw-cache", "gw-cache-model", false), null));
+
+        assertTrue(resp.isSuccess(), "in-place resend must succeed: " + resp.getError());
+        assertEquals(2, fake.requests.size(), "CACHE_STATE_LOST must resend the same candidate once");
+        assertBearer(fake.requests.get(1), "key-gw-main",
+                "in-place resend must keep the same account (no account switch)");
+        assertEquals(fake.requests.get(0).getUrl(), fake.requests.get(1).getUrl(),
+                "in-place resend must hit the same provider URL");
+        assertEquals(CircuitState.CLOSED, breaker.getState("gw-cache:gw-cache-model"),
+                "CACHE_STATE_LOST must not record breaker failure");
+        assertEquals(0, registry.currentCount("gw-cache", null), "every terminal path releases (M-2)");
+    }
+
+    @Test
+    void cacheStateLostBudgetExhaustedFailsLoud() throws Exception {
+        adapter.setRetryBudget(1);
+        fake.queueResponse(response(409, FailoverTestSupport.cacheLostBody()))
+                .queueResponse(response(409, FailoverTestSupport.cacheLostBody()));
+
+        ChatResponse resp = syncGet(adapter.callAsync(
+                FailoverTestSupport.request("gw-cache", "gw-cache-model", false), null));
+
+        assertFalseSuccess(resp);
+        assertEquals(ErrorClassification.CACHE_STATE_LOST, resp.getErrorClassification());
+        assertEquals(2, fake.requests.size(), "budget 1 = 1 initial + 1 in-place resend, then fail-loud");
+        assertBearer(fake.requests.get(1), "key-gw-main", "in-place resend must stay on the same account");
+        assertEquals(CircuitState.CLOSED, breaker.getState("gw-cache:gw-cache-model"),
+                "CACHE_STATE_LOST budget exhaustion must not trip the breaker");
+        assertEquals(0, registry.currentCount("gw-cache", null));
     }
 
     // ======================= 无路由组直通零回归 =======================

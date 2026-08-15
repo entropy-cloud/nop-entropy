@@ -1,5 +1,6 @@
 package io.nop.ai.gateway.failover;
 
+import io.nop.ai.core.reliability.CircuitState;
 import io.nop.ai.core.reliability.ThresholdBreaker;
 import io.nop.ai.core.routing.ConcurrencyRegistry;
 import io.nop.ai.core.service.LlmConfigHelper;
@@ -90,7 +91,9 @@ class TestAiGatewayFailoverInterceptorNonStreaming {
      * 非流式响应 fake：InvokeProcessor 经 getBodyAsBean(ApiResponse.class) 解析 body——
      * FailoverTestSupport.FakeHttpResponse 不支持该调用（W6 仅流式/本地形态使用）。
      * ApiResponse 反序列化严格（unknown-bean-prop）——仿真实 HTTP client 的宽松行为：
-     * data = 完整 body map（converter 的 toFrontendResponse 再经 parseResponse 解析）。
+     * data = 完整 body map（converter 的 toFrontendResponse 再经 parseResponse 解析），
+     * 并抽取 body 中的 status/code/msg 字段（W8 OBS-02：Nop 风格错误体 —— 非 2xx 响应只有
+     * status != 0 时才被拦截器判定为失败响应，OpenAI 风格 body 无 status = 视为成功直通）。
      */
     private static IHttpResponse httpResponse(int status, String body) {
         return new io.nop.http.api.client.IHttpResponse() {
@@ -123,8 +126,22 @@ class TestAiGatewayFailoverInterceptorNonStreaming {
             @SuppressWarnings("unchecked")
             public <T> T getBodyAsBean(Class<T> beanClass) {
                 if (beanClass == io.nop.api.core.beans.ApiResponse.class) {
+                    Map<String, Object> parsed = body != null
+                            ? io.nop.core.lang.json.JsonTool.parseMap(body) : new LinkedHashMap<>();
                     io.nop.api.core.beans.ApiResponse<Object> resp = new io.nop.api.core.beans.ApiResponse<>();
-                    resp.setData(io.nop.core.lang.json.JsonTool.parseMap(body));
+                    resp.setData(parsed);
+                    Object statusVal = parsed.get("status");
+                    if (statusVal instanceof Number) {
+                        resp.setStatus(((Number) statusVal).intValue());
+                    }
+                    Object code = parsed.get("code");
+                    if (code != null) {
+                        resp.setCode(code.toString());
+                    }
+                    Object msg = parsed.get("msg");
+                    if (msg != null) {
+                        resp.setMsg(msg.toString());
+                    }
                     return (T) resp;
                 }
                 throw new UnsupportedOperationException("getBodyAsBean: " + beanClass);
@@ -144,6 +161,12 @@ class TestAiGatewayFailoverInterceptorNonStreaming {
 
     private static RuntimeException networkError() {
         return new RuntimeException("connection refused");
+    }
+
+    private void tripOpen(String modelKey) {
+        for (int i = 0; i < 3; i++) {
+            breaker.recordFailure(modelKey);
+        }
     }
 
     // ======================= 端到端全链：网络错误 → TRANSIENT → 账号链切换 → 成功 =======================
@@ -194,6 +217,102 @@ class TestAiGatewayFailoverInterceptorNonStreaming {
                 fake.requests.get(2).getHeader(io.nop.http.api.HttpApiConstants.HEADER_AUTHORIZATION));
         assertEquals(0, registry.currentCount("gw-test", null));
         assertEquals(0, registry.currentCount("gw-test", "key-gw-b"));
+    }
+
+    // ======================= 端到端全链：429 → RATE_LIMITED → 账号链切换（W8 OBS-02 补缺） =======================
+
+    @Test
+    void nonStreamingRateLimited429SwitchesAccount() {
+        // InvokeProcessor 对 429 内置 3 次退避重试（2s/4s/8s + jitter）后才抛 NopException
+        // （ERR_GATEWAY_UPSTREAM_429，httpStatus=429）→ classifyStreamError（body 键不匹配
+        // ARG_BODY → parseErrorResponse 不可达）→ LlmErrorClassifier(429) → RATE_LIMITED → 切换。
+        // 4×429 耗尽内置重试，第 5 个响应 = attempt 2 成功。
+        fake.queueResponse(httpResponse(429, "{\"error\":{\"message\":\"slow down\"}}"))
+                .queueResponse(httpResponse(429, "{\"error\":{\"message\":\"slow down\"}}"))
+                .queueResponse(httpResponse(429, "{\"error\":{\"message\":\"slow down\"}}"))
+                .queueResponse(httpResponse(429, "{\"error\":{\"message\":\"slow down\"}}"))
+                .queueResponse(okResponse());
+
+        ApiRequest<Object> request = W7GatewayTestSupport.aiRequest("gw-model-1", "hello");
+        IGatewayContext ctx = W7GatewayTestSupport.context(request, "/chat/nonstream");
+        CompletionStage<ApiResponse<?>> future = handler.handle(request, ctx);
+        ApiResponse<?> response = future.toCompletableFuture().join();
+
+        assertTrue(response.isOk(), "429 → RATE_LIMITED → switch must recover: " + response.getMsg());
+        assertEquals(5, fake.requests.size(),
+                "4×429 exhaust InvokeProcessor internal retries, then 1 switch attempt");
+        assertEquals("Bearer key-gw-a",
+                fake.requests.get(4).getHeader(io.nop.http.api.HttpApiConstants.HEADER_AUTHORIZATION),
+                "switch must sink the backup account apiKey");
+        assertEquals(0, registry.currentCount("gw-test", null));
+        assertEquals(0, registry.currentCount("gw-test", "key-gw-a"));
+    }
+
+    // ======================= 端到端全链：401 → AUTH_INVALID → 账号链切换（W8 OBS-02 补缺） =======================
+
+    @Test
+    void nonStreamingAuthInvalidResponseSwitchesAccount() {
+        // 401 非 429/5xx → InvokeProcessor 原样返回 ApiResponse（Nop 风格 body status=401）→
+        // isOk()=false → classifyResponseStatus(401) → AUTH_INVALID → 切换 → 成功。
+        // 注：converter 路由（/chat/nonstream）经 toFrontendResponse 把非 2xx 归一化为
+        // ApiResponse.success（status=0 = isOk()=true）——响应级分类仅在本无 converter 路由可达。
+        fake.queueResponse(httpResponse(401, "{\"status\":401,\"code\":\"auth_error\",\"msg\":\"bad key\"}"))
+                .queueResponse(okResponse());
+
+        ApiRequest<Object> request = W7GatewayTestSupport.aiRequest("gw-model-1", "hello");
+        IGatewayContext ctx = W7GatewayTestSupport.context(request, "/chat/nonstream-raw");
+        CompletionStage<ApiResponse<?>> future = handler.handle(request, ctx);
+        ApiResponse<?> response = future.toCompletableFuture().join();
+
+        assertTrue(response.isOk());
+        assertEquals(2, fake.requests.size(), "AUTH_INVALID must trigger account switch");
+        assertEquals("Bearer key-gw-a",
+                fake.requests.get(1).getHeader(io.nop.http.api.HttpApiConstants.HEADER_AUTHORIZATION));
+        assertEquals(0, registry.currentCount("gw-test", null));
+        assertEquals(0, registry.currentCount("gw-test", "key-gw-a"));
+    }
+
+    // ======================= 端到端全链：400 → NON_TRANSIENT → 不切换（W8 OBS-02 补缺） =======================
+
+    @Test
+    void nonStreamingNonTransientFailsWithoutSwitch() {
+        // 400 → 原样返回 ApiResponse（status=400）→ classifyResponseStatus → NON_TRANSIENT →
+        // 不切换直接失败（不耗预算、不记熔断）。
+        fake.queueResponse(httpResponse(400, "{\"status\":400,\"code\":\"bad_request\",\"msg\":\"bad request\"}"));
+
+        ApiRequest<Object> request = W7GatewayTestSupport.aiRequest("gw-model-1", "hello");
+        IGatewayContext ctx = W7GatewayTestSupport.context(request, "/chat/nonstream-raw");
+        CompletionStage<ApiResponse<?>> future = handler.handle(request, ctx);
+        ApiResponse<?> response = future.toCompletableFuture().join();
+
+        assertFalse(response.isOk(), "NON_TRANSIENT must fail directly");
+        assertEquals(1, fake.requests.size(), "NON_TRANSIENT must not switch");
+        assertEquals(0, registry.currentCount("gw-test", null));
+    }
+
+    // ======================= 熔断探活恢复（网关非流式，W8 OBS-02 补缺） =======================
+
+    @Test
+    void nonStreamingProbeRecoveryRestoresCircuitClosed() throws Exception {
+        // 全池 OPEN（冷却 0）→ 探活遍历 allowCall → HALF_OPEN 放行 → 调用成功 → recordSuccess
+        // → CLOSED 恢复（与本地形态同款 FailoverProbeSupport 语义）。
+        tripOpen("gw-test:gw-model-1");
+        tripOpen("gw-test2:gw-model-2");
+
+        fake.queueResponse(okResponse());
+
+        ApiRequest<Object> request = W7GatewayTestSupport.aiRequest("gw-model-1", "hello");
+        IGatewayContext ctx = W7GatewayTestSupport.context(request, "/chat/nonstream");
+        CompletionStage<ApiResponse<?>> future = handler.handle(request, ctx);
+        ApiResponse<?> response = future.toCompletableFuture().join();
+
+        assertTrue(response.isOk(), "probe-admitted account must be callable again");
+        assertEquals(1, fake.requests.size());
+        assertEquals(CircuitState.CLOSED, breaker.getState("gw-test:gw-model-1"),
+                "probe success (recordSuccess) must restore CLOSED");
+        assertEquals(CircuitState.HALF_OPEN, breaker.getState("gw-test2:gw-model-2"),
+                "probed-but-not-called candidate stays HALF_OPEN");
+        assertEquals(0, registry.currentCount("gw-test", null));
     }
 
     // ======================= B-8 无双重转换（F2 判定同构） =======================

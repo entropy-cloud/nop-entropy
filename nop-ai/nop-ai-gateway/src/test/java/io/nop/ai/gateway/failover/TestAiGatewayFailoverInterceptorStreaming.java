@@ -2,6 +2,7 @@ package io.nop.ai.gateway.failover;
 
 import io.nop.ai.gateway.AiDialectBackendMessageConverter;
 import io.nop.ai.core.NopAiCoreErrors;
+import io.nop.ai.core.reliability.CircuitState;
 import io.nop.ai.core.reliability.ThresholdBreaker;
 import io.nop.ai.core.routing.ConcurrencyRegistry;
 import io.nop.ai.core.service.LlmConfigHelper;
@@ -80,17 +81,25 @@ class TestAiGatewayFailoverInterceptorStreaming {
         W7GatewayTestSupport.BEANS.put("nopBackendMessageConverter_AI_DIALECT", () -> converter);
         handler = W7GatewayTestSupport.buildHandler(fake);
         AppConfig.getConfigProvider().assignConfigValue("nop.ai.llm.gw-test.api-key", "key-gw-main");
+        AppConfig.getConfigProvider().assignConfigValue("nop.ai.llm.gw-cache.api-key", "key-gw-main");
     }
 
     @AfterEach
     void tearDown() {
         AppConfig.getConfigProvider().assignConfigValue("nop.ai.llm.gw-test.api-key", null);
+        AppConfig.getConfigProvider().assignConfigValue("nop.ai.llm.gw-cache.api-key", null);
         LlmConfigHelper.reset();
     }
 
     private static String anthropicChunk(String text) {
         return "{\"type\":\"content_block_delta\",\"index\":0,"
                 + "\"delta\":{\"type\":\"text_delta\",\"text\":\"" + text + "\"}}";
+    }
+
+    private void tripOpen(String modelKey) {
+        for (int i = 0; i < 3; i++) {
+            breaker.recordFailure(modelKey);
+        }
     }
 
     // ======================= 端到端全链（Minimum Rules #22）+ B-10 + B-12 + B-14 =======================
@@ -143,6 +152,128 @@ class TestAiGatewayFailoverInterceptorStreaming {
         // 并发计数 +1/-1 配对（B-2）：全终止路径释放
         assertEquals(0, registry.currentCount("gw-test2", null));
         assertEquals(0, registry.currentCount("gw-anthropic", null));
+    }
+
+    // ======================= 窗口内 TRANSIENT（503）→ 跨 dialect 重订阅（W8 OBS-02 补缺） =======================
+
+    @Test
+    void streamingTransientFailureSwitchesAccount() {
+        // attempt 1（gw-test2, openai）503 server_error → parseErrorResponse → TRANSIENT →
+        // 重执行回调被动重选 → attempt 2（gw-anthropic）成功。
+        fake.queueStream(StreamScenario.failing(streamError(503, FailoverTestSupport.serverErrorBody())))
+                .queueStream(StreamScenario.success(anthropicChunk("hi")));
+
+        ApiRequest<Object> request = W7GatewayTestSupport.aiRequest("gw-switch-model", "hello");
+        IGatewayContext ctx = W7GatewayTestSupport.context(request, "/chat/stream");
+        handler.handle(request, ctx).toCompletableFuture().join();
+
+        StreamingResponse streamingResponse = (StreamingResponse) ctx.getAttribute(StreamingResponse.class.getName());
+        StreamCollector collector = new StreamCollector();
+        streamingResponse.getPublisher().subscribe(collector);
+        collector.await();
+
+        assertEquals(2, fake.requests.size(), "TRANSIENT must trigger resubscribe to the next candidate");
+        assertEquals("https://gw-anthropic.example.com/v1/messages", fake.requests.get(1).getUrl());
+        assertTrue(collector.completed);
+        assertNull(collector.error);
+        assertEquals(List.of("hi"), collector.texts);
+        assertEquals(0, registry.currentCount("gw-test2", null));
+        assertEquals(0, registry.currentCount("gw-anthropic", null));
+    }
+
+    // ======================= 窗口内 AUTH_INVALID → 跨 dialect 重订阅（W8 OBS-02 补缺） =======================
+
+    @Test
+    void streamingAuthInvalidFailureSwitchesAccount() {
+        // attempt 1（gw-test2）401 invalid_api_key → parseErrorResponse → AUTH_INVALID →
+        // 重执行回调被动重选 → attempt 2（gw-anthropic）成功。
+        fake.queueStream(StreamScenario.failing(streamError(401, FailoverTestSupport.authBody())))
+                .queueStream(StreamScenario.success(anthropicChunk("ok")));
+
+        ApiRequest<Object> request = W7GatewayTestSupport.aiRequest("gw-switch-model", "hello");
+        IGatewayContext ctx = W7GatewayTestSupport.context(request, "/chat/stream");
+        handler.handle(request, ctx).toCompletableFuture().join();
+
+        StreamingResponse streamingResponse = (StreamingResponse) ctx.getAttribute(StreamingResponse.class.getName());
+        StreamCollector collector = new StreamCollector();
+        streamingResponse.getPublisher().subscribe(collector);
+        collector.await();
+
+        assertEquals(2, fake.requests.size(), "AUTH_INVALID must trigger account switch");
+        assertEquals("https://gw-anthropic.example.com/v1/messages", fake.requests.get(1).getUrl());
+        assertTrue(collector.completed);
+        assertNull(collector.error);
+        assertEquals(List.of("ok"), collector.texts);
+        assertEquals(0, registry.currentCount("gw-test2", null));
+    }
+
+    // ======================= 窗口内 CACHE_STATE_LOST → 同候选原地重发（W8 OBS-02 防御分支） =======================
+
+    @Test
+    void streamingCacheStateLostResubscribesSameCandidate() {
+        // attempt 1（gw-cache）409 cache_state_lost → classifyStreamError 经 gw-cache.llm.xml
+        // errorMappings 恢复 CACHE_STATE_LOST → 重执行回调原地重发同一候选（不切换、不记熔断）。
+        // URL 语义（B-14）：首次 fetch 走路由 URL 表达式（baseUrl property 未设 → 表达式兜底
+        // gw-test2）；原地重发走 dialect.buildUrl(config.baseUrl)（gw-cache）——同账号断言
+        // 以认证头为准（两请求均 key-gw-main）。
+        fake.queueStream(StreamScenario.failing(streamError(409, FailoverTestSupport.cacheLostBody())))
+                .queueStream(StreamScenario.success(FailoverTestSupport.streamChunkJson("ok")));
+
+        ApiRequest<Object> request = W7GatewayTestSupport.aiRequest("gw-cache-model", "hello");
+        IGatewayContext ctx = W7GatewayTestSupport.context(request, "/chat/stream");
+        handler.handle(request, ctx).toCompletableFuture().join();
+
+        StreamingResponse streamingResponse = (StreamingResponse) ctx.getAttribute(StreamingResponse.class.getName());
+        StreamCollector collector = new StreamCollector();
+        streamingResponse.getPublisher().subscribe(collector);
+        collector.await();
+
+        assertEquals(2, fake.requests.size(), "CACHE_STATE_LOST must resend the same candidate once");
+        assertEquals("https://gw-cache.example.com/v1/chat/completions", fake.requests.get(1).getUrl(),
+                "in-place resend URL = dialect.buildUrl(provider base, chatUrl, apiKey)");
+        assertEquals("Bearer key-gw-main",
+                fake.requests.get(1).getHeader(io.nop.http.api.HttpApiConstants.HEADER_AUTHORIZATION),
+                "in-place resend must keep the same account (no account switch)");
+        assertEquals("Bearer key-gw-main",
+                fake.requests.get(0).getHeader(io.nop.http.api.HttpApiConstants.HEADER_AUTHORIZATION),
+                "first fetch also uses the main account key");
+        assertEquals(CircuitState.CLOSED, breaker.getState("gw-cache:gw-cache-model"),
+                "CACHE_STATE_LOST must not record breaker failure");
+        assertTrue(collector.completed);
+        assertNull(collector.error);
+        assertEquals(List.of("ok"), collector.texts);
+        assertEquals(0, registry.currentCount("gw-cache", null));
+    }
+
+    // ======================= 熔断探活恢复（网关流式，W8 OBS-02 补缺） =======================
+
+    @Test
+    void streamingProbeRecoveryRestoresClosed() {
+        // 全池 OPEN（冷却 0）→ onRequest 探活遍历 allowCall → HALF_OPEN 放行 → 选中主候选 →
+        // 流成功 recordSuccess → CLOSED 恢复。
+        tripOpen("gw-test2:gw-model-2");
+        tripOpen("gw-anthropic:gw-claude-model");
+
+        fake.queueStream(StreamScenario.success(streamChunkJson("probe-ok")));
+
+        ApiRequest<Object> request = W7GatewayTestSupport.aiRequest("gw-switch-model", "hello");
+        IGatewayContext ctx = W7GatewayTestSupport.context(request, "/chat/stream");
+        handler.handle(request, ctx).toCompletableFuture().join();
+
+        StreamingResponse streamingResponse = (StreamingResponse) ctx.getAttribute(StreamingResponse.class.getName());
+        StreamCollector collector = new StreamCollector();
+        streamingResponse.getPublisher().subscribe(collector);
+        collector.await();
+
+        assertEquals(1, fake.requests.size(), "probe must admit the primary candidate directly");
+        assertEquals(CircuitState.CLOSED, breaker.getState("gw-test2:gw-model-2"),
+                "probe success (recordSuccess) must restore CLOSED");
+        assertEquals(CircuitState.HALF_OPEN, breaker.getState("gw-anthropic:gw-claude-model"),
+                "probed-but-not-called candidate stays HALF_OPEN");
+        assertTrue(collector.completed);
+        assertNull(collector.error);
+        assertEquals(List.of("probe-ok"), collector.texts);
+        assertEquals(0, registry.currentCount("gw-test2", null));
     }
 
     // ======================= 缓冲关闭仍计数（计数与缓冲解耦） =======================

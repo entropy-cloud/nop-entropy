@@ -40,6 +40,12 @@
                 <candidate provider="gw-anthropic" model="gw-claude-model"/>
             </candidates>
         </modelClass>
+
+        <modelClass id="tier-gw-cache" members="gw-cache-model">
+            <candidates>
+                <candidate provider="gw-cache" model="gw-cache-model"/>
+            </candidates>
+        </modelClass>
     </modelClasses>
 
 </modelClass>

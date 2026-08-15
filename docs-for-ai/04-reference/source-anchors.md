@@ -172,6 +172,20 @@
 | `META-004` | `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/lineage/SqlColumnLineageExtractor.java` (`extract` + `resolveTransformType`) | SQL AST 列级血缘抽取：解析 SELECT 列表达式 → 追溯到源表源列；产出列级 `NopMetaLineageEdge`（含 transformType: direct/derived/aggregated——direct 直接列引用 / derived 派生表达式 / aggregated 聚合函数，与 `_NopMetadataCoreConstants.LINEAGE_TRANSFORM_*` 及 `nop-metadata/nop-metadata-meta/src/main/resources/_vfs/dict/meta/lineage-transform.dict.yaml` 一致）；同包 `SqlSourceTableExtractor` 抽取表级血缘 |
 | `META-005` | `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/quality/MetaQualityCheckpointScheduler.java` (`init` + `registerCheckpoint` + `executeScheduledCheckpoint`) | cron 调度器：启动 scanner 全量注册 ACTIVE 检查点的 cron job（D4）；运行时增量（save/delete override 调用 register/unregister）；BeanMethodJobInvoker 反射调用 `executeScheduledCheckpoint` 委托 raw impl `NopMetaQualityCheckpointBizModel.executeCheckpoint`（D3 path b，绕过 BizProxy 事务隔离问题） |
 
+## AI 网关 failover 锚点
+
+| 规则 ID | 锚点 | 说明 |
+|---------|------|------|
+| `AIGW-001` | `nop-ai/nop-ai-gateway/src/main/java/io/nop/ai/gateway/failover/ChatServiceFailoverAdapter.java` | 本地形态透明账号切换适配器（`IChatService` 包装 `nopChatService`）：非流式切换链（分类 → 熔断记账 → 重选 → 预算 → fail-loud）+ 并发 acquire/复查 + CACHE_STATE_LOST 原地重发；bean `nopChatServiceFailoverAdapter`（非默认，部署方显式切换注入目标） |
+| `AIGW-002` | `nop-ai/nop-ai-gateway/src/main/java/io/nop/ai/gateway/failover/FailoverStreamFlow.java` | 本地形态流式缓冲/重订阅：首段缓冲窗口（N/T 可配置）→ 窗口内失败重订阅（消耗预算）→ 窗口外断流；并发 +1/-1 配对；per-attempt token + 取消顺序契约 |
+| `AIGW-003` | `nop-ai/nop-ai-gateway/src/main/java/io/nop/ai/gateway/failover/AiGatewayFailoverInterceptor.java` | 网关形态拦截器（`IGatewayInterceptor`）：onRequest 接管 + converter 转换 + properties 下沉；invoke 非流式切换/重试；onError 分类（rethrow/降级终止）；onStreamElement per-attempt 反向转换；onStreamComplete 流式成功熔断恢复 |
+| `AIGW-004` | `nop-ai/nop-ai-gateway/src/main/java/io/nop/ai/gateway/failover/GatewayStreamingRetryCallback.java` + `GatewayStreamingLifecycleListener.java` | 网关流式重执行回调（窗口内失败 → 新 `HttpRequest`，null = 断流）+ 生命周期监听器（fetch 发起 +1 / 流终止 -1，重订阅配对）；经 `IGatewayContext` attribute 注入（挂载契约见 `docs-for-ai/03-modules/nop-ai-gateway.md`） |
+| `AIGW-005` | `nop-service-framework/nop-gateway/src/main/java/io/nop/gateway/core/executor/BufferedStreamingPublisher.java` | nop-gateway 缓冲/重订阅层（零 nop-ai 依赖）：`bufferEnabled`/`bufferSize`/`bufferTimeMs`（gateway.xdef `streaming`）；`IStreamingRetryCallback`/`IStreamingLifecycleListener` 通用扩展点 |
+| `AIGW-006` | `nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/routing/ModelClassRouter.java` + `ISelectionStrategy.java` + `RuleBasedSelectionStrategy.java` + `ConcurrencyRegistry.java` | 模型类路由组游走原语 + 选择策略接口/默认/规则实现 + 并发注册表（nop-ai-core，编排层消费；全池饱和 `ERR_AI_MODEL_CLASS_SATURATED` fail-loud） |
+| `AIGW-007` | `nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/reliability/ThresholdBreaker.java` + `LlmErrorClassifier.java` | 熔断三态（CLOSED/OPEN/HALF_OPEN + 冷却 + 探活，粒度 `provider:model`）+ 传输异常级错误分类（复用机制，不新建判定） |
+| `AIGW-008` | `nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/ai/model-class.xdef` + `llm.xdef` + `gateway.xdef` | 配置面：模型类路由组（`_default.model-class.xml` opt-in）、`<accounts>` + `concurrencyLimit`（provider 级缺省 + 账号级覆盖）、gateway `streaming` 缓冲参数 |
+| `AIGW-009` | `nop-ai/nop-ai-gateway/src/main/java/io/nop/ai/gateway/failover/IFailoverMetrics.java` + `FailoverMetricsImpl.java` | 指标契约接口 + micrometer 默认实现（bean `nopAiFailoverMetrics`，`ioc:default="true"`）；指标族 `nop.ai.gateway.failover.*` 完整契约（维度/单位/语义/触发事件/近似语义）见需求规格文档 §3.6 |
+
 ## nop-plugin 锚点
 
 | 规则 ID | 锚点 | 说明 |

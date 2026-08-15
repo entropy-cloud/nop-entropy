@@ -83,6 +83,11 @@ final class FailoverTestSupport {
         return "{\"error\":{\"code\":\"invalid_request_error\",\"type\":\"invalid_request_error\",\"message\":\"bad request\"}}";
     }
 
+    /** W8 OBS-02：命中 gw-cache.llm.xml errorMappings → CACHE_STATE_LOST 分类（防御分支可达）。 */
+    static String cacheLostBody() {
+        return "{\"error\":{\"code\":\"cache_state_lost\",\"type\":\"api_error\",\"message\":\"cache state lost\"}}";
+    }
+
     static String serverErrorBody() {
         return "{\"error\":{\"type\":\"server_error\",\"message\":\"unavailable\"}}";
     }
