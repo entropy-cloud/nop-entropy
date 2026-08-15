@@ -232,21 +232,21 @@ public interface ILlmDialect {
 
     /**
      * Parse provider-specific request body into standard ChatRequest (reverse of buildBody).
-     * Only OpenAiDialect implements this method. Anthropic/Gemini/Ollama dialects do not
-     * support bidirectional gateway conversion (one-way OpenAI→Provider only).
+     * All five dialects (openai/anthropic/gemini/ollama/responses) implement this method.
+     * The default throws UnsupportedOperationException so that a future dialect that has not
+     * implemented the reverse direction fails fast instead of silently skipping conversion.
      *
      * @see io.nop.ai.gateway.AiDialectBackendMessageConverter
      */
     default ChatRequest parseRequestBody(Map<String, Object> body) {
         throw new UnsupportedOperationException(
-                "parseRequestBody is only implemented for OpenAI dialect. "
-                        + "Anthropic, Gemini, and Ollama dialects do not support bidirectional "
-                        + "gateway conversion. Current gateway supports one-way OpenAI→Provider only.");
+                "parseRequestBody is not implemented for this dialect: " + getName());
     }
 
     /**
      * Build provider-specific response Map from standard ChatResponse (reverse of parseResponse).
-     * Default implementation produces OpenAI format (the universal gateway format).
+     * Default implementation produces OpenAI format (the universal gateway format). OpenAI inherits
+     * the default; Anthropic/Gemini/Ollama/Responses override to produce their native formats.
      */
     default Map<String, Object> buildResponse(ChatResponse response) {
         Map<String, Object> result = new HashMap<>();
@@ -276,7 +276,8 @@ public interface ILlmDialect {
     /**
      * Build provider-specific stream chunk Map from standard ChatStreamChunk (reverse of parseStreamChunk).
      * Default implementation produces OpenAI delta format, driven by the item increment model
-     * ({@link StreamItemType} / {@link StreamItemPhase}).
+     * ({@link StreamItemType} / {@link StreamItemPhase}). OpenAI inherits the default;
+     * Anthropic/Gemini/Ollama/Responses override to produce their native delta structures.
      */
     default Map<String, Object> buildStreamChunk(ChatStreamChunk chunk) {
         Map<String, Object> result = new HashMap<>();

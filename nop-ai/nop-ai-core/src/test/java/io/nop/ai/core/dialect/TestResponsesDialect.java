@@ -343,11 +343,58 @@ public class TestResponsesDialect extends JunitBaseTestCase {
         assertEquals("responses", d.getName());
     }
 
-    // ==================== No silent skip (parseRequestBody front-end not supported) ====================
+    // ==================== parseRequestBody（请求方向 reverse） ====================
 
     @Test
-    void testParseRequestBodyThrowsUnsupported() {
-        assertThrowsUOE(() -> dialect.parseRequestBody(new LinkedHashMap<>()));
+    void testParseRequestBodyPlainText() {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("instructions", "You are a helpful assistant.");
+        Map<String, Object> userItem = new LinkedHashMap<>();
+        userItem.put("type", "message");
+        userItem.put("role", "user");
+        userItem.put("content", List.of(Map.of("type", "input_text", "text", "Hello!")));
+        body.put("input", List.of(userItem));
+
+        ChatRequest request = dialect.parseRequestBody(body);
+
+        assertNotNull(request.getMessages());
+        assertEquals(2, request.getMessages().size());
+        assertTrue(request.getMessages().get(0) instanceof ChatSystemMessage,
+                "instructions must fold back to a ChatSystemMessage at front");
+        assertEquals("You are a helpful assistant.", request.getMessages().get(0).getContent());
+        assertTrue(request.getMessages().get(1) instanceof ChatUserMessage);
+        assertEquals("Hello!", request.getMessages().get(1).getContent());
+    }
+
+    @Test
+    void testParseRequestBodyTypedItems() {
+        Map<String, Object> body = new LinkedHashMap<>();
+        Map<String, Object> reasoningItem = new LinkedHashMap<>();
+        reasoningItem.put("type", "reasoning");
+        reasoningItem.put("summary", List.of(Map.of("type", "summary_text", "text", "let me think")));
+        Map<String, Object> assistantItem = new LinkedHashMap<>();
+        assistantItem.put("type", "message");
+        assistantItem.put("role", "assistant");
+        assistantItem.put("content", List.of(Map.of("type", "output_text", "text", "answer")));
+        Map<String, Object> functionCallItem = new LinkedHashMap<>();
+        functionCallItem.put("type", "function_call");
+        functionCallItem.put("call_id", "call_abc");
+        functionCallItem.put("name", "get_weather");
+        functionCallItem.put("arguments", "{\"city\":\"SF\"}");
+        body.put("input", List.of(reasoningItem, assistantItem, functionCallItem));
+
+        ChatRequest request = dialect.parseRequestBody(body);
+
+        assertNotNull(request.getMessages());
+        assertEquals(3, request.getMessages().size());
+        assertTrue(request.getMessages().get(0) instanceof ChatReasoningMessage);
+        assertEquals("let me think", request.getMessages().get(0).getContent());
+        assertTrue(request.getMessages().get(1) instanceof ChatAssistantMessage);
+        assertEquals("answer", request.getMessages().get(1).getContent());
+        ChatToolCallMessage tcm = (ChatToolCallMessage) request.getMessages().get(2);
+        assertEquals("call_abc", tcm.getCallId());
+        assertEquals("get_weather", tcm.getName());
+        assertEquals("SF", tcm.getArguments().get("city"));
     }
 
     // ==================== parseStreamChunk（流式方向） ====================
@@ -533,14 +580,5 @@ public class TestResponsesDialect extends JunitBaseTestCase {
         assertEquals(1, parts.size());
         assertEquals(expectedType, parts.get(0).get("type"));
         assertEquals(expectedText, parts.get(0).get("text"));
-    }
-
-    private static void assertThrowsUOE(Runnable r) {
-        try {
-            r.run();
-        } catch (UnsupportedOperationException e) {
-            return;
-        }
-        throw new AssertionError("Expected UnsupportedOperationException");
     }
 }

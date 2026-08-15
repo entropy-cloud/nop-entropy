@@ -6,10 +6,12 @@ import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatReasoningMessage;
+import io.nop.ai.api.chat.messages.ChatSystemMessage;
 import io.nop.ai.api.chat.messages.ChatToolCall;
 import io.nop.ai.api.chat.messages.ChatToolCallMessage;
 import io.nop.ai.api.chat.messages.ChatToolDefinition;
 import io.nop.ai.api.chat.messages.ChatToolResponseMessage;
+import io.nop.ai.api.chat.messages.ChatUserMessage;
 import io.nop.ai.api.chat.messages.ChatUsage;
 import io.nop.ai.core.model.LlmModel;
 import io.nop.ai.core.model.LlmModelModel;
@@ -64,6 +66,199 @@ public class GeminiDialect extends AbstractLlmDialect implements ILlmDialect {
     @Override
     public String getName() {
         return "gemini";
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public ChatRequest parseRequestBody(Map<String, Object> body) {
+        ChatRequest request = new ChatRequest();
+        List<ChatMessage> messages = new ArrayList<>();
+
+        // systemInstruction.parts[].text → 首位 ChatSystemMessage
+        Object systemObj = body.get("systemInstruction");
+        if (systemObj instanceof Map) {
+            Map<String, Object> systemMap = (Map<String, Object>) systemObj;
+            Object partsObj = systemMap.get("parts");
+            if (partsObj instanceof List) {
+                StringBuilder systemText = new StringBuilder();
+                for (Object part : (List<?>) partsObj) {
+                    if (part instanceof Map && ((Map<?, ?>) part).get("text") != null) {
+                        if (systemText.length() > 0) {
+                            systemText.append("\n");
+                        }
+                        systemText.append(((Map<?, ?>) part).get("text").toString());
+                    }
+                }
+                if (systemText.length() > 0) {
+                    messages.add(new ChatSystemMessage(systemText.toString()));
+                }
+            }
+        }
+
+        // contents[] → messages（parts 按语义产出 message/reasoning/tool_call/tool_output）
+        List<Map<String, Object>> rawContents = (List<Map<String, Object>>) body.get("contents");
+        if (rawContents != null) {
+            for (Map<String, Object> raw : rawContents) {
+                String role = (String) raw.get("role");
+                Object partsObj = raw.get("parts");
+                if (!(partsObj instanceof List)) {
+                    continue;
+                }
+                for (Object part : (List<?>) partsObj) {
+                    if (!(part instanceof Map)) {
+                        continue;
+                    }
+                    Map<String, Object> partMap = (Map<String, Object>) part;
+                    Object functionCall = partMap.get("functionCall");
+                    Object functionResponse = partMap.get("functionResponse");
+                    if (functionCall instanceof Map) {
+                        Map<String, Object> fc = (Map<String, Object>) functionCall;
+                        ChatToolCallMessage toolCallMsg = new ChatToolCallMessage();
+                        toolCallMsg.setName((String) fc.get("name"));
+                        if (fc.get("args") instanceof Map) {
+                            toolCallMsg.setArguments((Map<String, Object>) fc.get("args"));
+                        }
+                        messages.add(toolCallMsg);
+                    } else if (functionResponse instanceof Map) {
+                        Map<String, Object> fr = (Map<String, Object>) functionResponse;
+                        Object responseObj = fr.get("response");
+                        String resultText = null;
+                        if (responseObj instanceof Map) {
+                            Object result = ((Map<?, ?>) responseObj).get("result");
+                            if (result != null) {
+                                resultText = result.toString();
+                            }
+                        }
+                        messages.add(new ChatToolResponseMessage(null, (String) fr.get("name"), resultText));
+                    } else {
+                        Object textObj = partMap.get("text");
+                        if (textObj == null) {
+                            continue;
+                        }
+                        String text = textObj.toString();
+                        // convertMessage 伪影检测：ChatToolCallMessage.getContent()=arguments JSON、
+                        // ChatToolResponseMessage.content=result 文本，与 function part 同发的
+                        // 文本 part 若等于对应 payload 的序列化则丢弃
+                        if (isToolPartArtifact(partsObj, partMap, text)) {
+                            continue;
+                        }
+                        // convertMessage 将推理消息包装为 <thinking>...</thinking> 文本 part（逆向剥离）
+                        String reasoning = stripThinkingWrapper(text);
+                        if (reasoning != null) {
+                            messages.add(new ChatReasoningMessage(reasoning));
+                        } else if ("model".equals(role)) {
+                            messages.add(new ChatAssistantMessage(text));
+                        } else {
+                            messages.add(new ChatUserMessage(text));
+                        }
+                    }
+                }
+            }
+        }
+        if (!messages.isEmpty()) {
+            request.setMessages(messages);
+        }
+
+        // generationConfig → options
+        ChatOptions options = new ChatOptions();
+        Object generationConfigObj = body.get("generationConfig");
+        if (generationConfigObj instanceof Map) {
+            Map<String, Object> generationConfig = (Map<String, Object>) generationConfigObj;
+            if (generationConfig.get("temperature") instanceof Number) {
+                options.setTemperature(((Number) generationConfig.get("temperature")).floatValue());
+            }
+            if (generationConfig.get("maxOutputTokens") instanceof Number) {
+                options.setMaxTokens(((Number) generationConfig.get("maxOutputTokens")).intValue());
+            }
+            if (generationConfig.get("topP") instanceof Number) {
+                options.setTopP(((Number) generationConfig.get("topP")).floatValue());
+            }
+            if (generationConfig.get("topK") instanceof Number) {
+                options.setTopK(((Number) generationConfig.get("topK")).intValue());
+            }
+            if (generationConfig.get("stopSequences") instanceof List) {
+                options.setStop((List<String>) generationConfig.get("stopSequences"));
+            }
+        }
+        request.setOptions(options);
+
+        // tools：Gemini 形态 [{functionDeclarations: [...]}]
+        List<Map<String, Object>> rawTools = (List<Map<String, Object>>) body.get("tools");
+        if (rawTools != null) {
+            List<ChatToolDefinition> tools = new ArrayList<>();
+            for (Map<String, Object> raw : rawTools) {
+                Object declsObj = raw.get("functionDeclarations");
+                if (!(declsObj instanceof List)) {
+                    continue;
+                }
+                for (Object decl : (List<?>) declsObj) {
+                    if (!(decl instanceof Map)) {
+                        continue;
+                    }
+                    Map<String, Object> declMap = (Map<String, Object>) decl;
+                    ChatToolDefinition def = new ChatToolDefinition();
+                    def.setName((String) declMap.get("name"));
+                    def.setDescription((String) declMap.get("description"));
+                    if (declMap.get("parameters") instanceof Map) {
+                        def.setParameters((Map<String, Object>) declMap.get("parameters"));
+                    }
+                    tools.add(def);
+                }
+            }
+            if (!tools.isEmpty()) {
+                request.setTools(tools);
+            }
+        }
+        return request;
+    }
+
+    private static String stripThinkingWrapper(String text) {
+        if (text == null) {
+            return null;
+        }
+        String trimmed = text.trim();
+        if (trimmed.startsWith("<thinking>") && trimmed.endsWith("</thinking>")
+                && trimmed.length() > "<thinking></thinking>".length()) {
+            return trimmed.substring("<thinking>".length(), trimmed.length() - "</thinking>".length());
+        }
+        return null;
+    }
+
+    /**
+     * convertMessage 伪影判定：同一 contents 条目内若含 functionCall/functionResponse part，
+     * 且本文本 part 等于对应 payload 的序列化（ChatToolCallMessage.getContent()=arguments JSON
+     * / ChatToolResponseMessage.content=result 文本），则该文本 part 是 convertMessage 的副作用产物。
+     */
+    @SuppressWarnings("unchecked")
+    private static boolean isToolPartArtifact(Object partsObj, Map<String, Object> textPart, String text) {
+        for (Object part : (List<?>) partsObj) {
+            if (!(part instanceof Map)) {
+                continue;
+            }
+            Map<String, Object> partMap = (Map<String, Object>) part;
+            if (partMap == textPart) {
+                continue;
+            }
+            Object functionCall = partMap.get("functionCall");
+            if (functionCall instanceof Map) {
+                Object args = ((Map<String, Object>) functionCall).get("args");
+                if (args instanceof Map && JSON.stringify(args).equals(text)) {
+                    return true;
+                }
+                return args == null && (text == null || text.isEmpty());
+            }
+            Object functionResponse = partMap.get("functionResponse");
+            if (functionResponse instanceof Map) {
+                Object responseObj = ((Map<String, Object>) functionResponse).get("response");
+                if (responseObj instanceof Map) {
+                    Object result = ((Map<?, ?>) responseObj).get("result");
+                    if (result != null && result.toString().equals(text)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     @Override
@@ -408,6 +603,135 @@ public class GeminiDialect extends AbstractLlmDialect implements ILlmDialect {
                 funcDecl.put("parameters", tool.getParameters());
             }
             result.add(funcDecl);
+        }
+        return result;
+    }
+
+    // ==================== 反向转换：ChatResponse → Provider 响应 Map ====================
+
+    @Override
+    public Map<String, Object> buildResponse(ChatResponse response) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        if (response.getModel() != null) {
+            result.put("model", response.getModel());
+        }
+
+        // messages 序列 → candidates[0].content.parts（reasoning→thought:true / text / functionCall）
+        List<Map<String, Object>> parts = new ArrayList<>();
+        if (response.getMessages() != null) {
+            for (ChatMessage msg : response.getMessages()) {
+                if (msg instanceof ChatReasoningMessage) {
+                    Map<String, Object> part = new LinkedHashMap<>();
+                    part.put("text", msg.getContent());
+                    part.put("thought", true);
+                    parts.add(part);
+                } else if (msg instanceof ChatToolCallMessage) {
+                    ChatToolCallMessage tcm = (ChatToolCallMessage) msg;
+                    Map<String, Object> functionCall = new LinkedHashMap<>();
+                    functionCall.put("name", tcm.getName());
+                    if (tcm.getArguments() != null) {
+                        functionCall.put("args", tcm.getArguments());
+                    }
+                    Map<String, Object> part = new LinkedHashMap<>();
+                    part.put("functionCall", functionCall);
+                    parts.add(part);
+                } else if (msg instanceof ChatAssistantMessage && msg.getContent() != null) {
+                    Map<String, Object> part = new LinkedHashMap<>();
+                    part.put("text", msg.getContent());
+                    parts.add(part);
+                }
+            }
+        }
+        Map<String, Object> content = new LinkedHashMap<>();
+        content.put("role", "model");
+        content.put("parts", parts);
+
+        Map<String, Object> candidate = new LinkedHashMap<>();
+        candidate.put("content", content);
+        if (response.getFinishReason() != null) {
+            candidate.put("finishReason", reverseFinishReason(response.getFinishReason()));
+        }
+        result.put("candidates", List.of(candidate));
+
+        // usage → usageMetadata
+        if (response.getUsage() != null) {
+            Map<String, Object> usage = new LinkedHashMap<>();
+            if (response.getUsage().getPromptTokens() != null) {
+                usage.put("promptTokenCount", response.getUsage().getPromptTokens());
+            }
+            if (response.getUsage().getCompletionTokens() != null) {
+                usage.put("candidatesTokenCount", response.getUsage().getCompletionTokens());
+            }
+            if (response.getUsage().getTotalTokens() != null) {
+                usage.put("totalTokenCount", response.getUsage().getTotalTokens());
+            }
+            result.put("usageMetadata", usage);
+        }
+        return result;
+    }
+
+    /**
+     * 归一化 finish_reason → Gemini 原生 finishReason（normalizeFinishReason 的逆映射）。
+     * 归一化有损点 (a) 裁定：roundtrip 样本仅使用归一化目标值；未知值原样透传。
+     */
+    private String reverseFinishReason(String reason) {
+        switch (reason) {
+            case "stop":
+            case "tool_calls":
+                return "STOP";
+            case "length":
+                return "MAX_TOKENS";
+            case "content_filter":
+                return "SAFETY";
+            default:
+                return reason;
+        }
+    }
+
+    @Override
+    public Map<String, Object> buildStreamChunk(ChatStreamChunk chunk) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        if (chunk.getModel() != null) {
+            result.put("model", chunk.getModel());
+        }
+
+        if (chunk.getPhase() == StreamItemPhase.DONE) {
+            // 终止信号 → candidates[0].finishReason
+            Map<String, Object> candidate = new LinkedHashMap<>();
+            if (chunk.getFinishReason() != null) {
+                candidate.put("finishReason", reverseFinishReason(chunk.getFinishReason()));
+            }
+            result.put("candidates", List.of(candidate));
+            return result;
+        }
+
+        StreamItemType type = chunk.getItemType();
+        if (type != null) {
+            List<Map<String, Object>> parts = new ArrayList<>();
+            if (type == StreamItemType.reasoning) {
+                Map<String, Object> part = new LinkedHashMap<>();
+                part.put("text", chunk.getDelta());
+                part.put("thought", true);
+                parts.add(part);
+            } else if (type == StreamItemType.tool_call) {
+                Map<String, Object> functionCall = new LinkedHashMap<>();
+                functionCall.put("name", chunk.getDelta());
+                Map<String, Object> part = new LinkedHashMap<>();
+                part.put("functionCall", functionCall);
+                parts.add(part);
+            } else {
+                Map<String, Object> part = new LinkedHashMap<>();
+                if (chunk.getDelta() != null) {
+                    part.put("text", chunk.getDelta());
+                }
+                parts.add(part);
+            }
+            Map<String, Object> content = new LinkedHashMap<>();
+            content.put("role", "model");
+            content.put("parts", parts);
+            Map<String, Object> candidate = new LinkedHashMap<>();
+            candidate.put("content", content);
+            result.put("candidates", List.of(candidate));
         }
         return result;
     }

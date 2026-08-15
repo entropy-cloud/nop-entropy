@@ -58,6 +58,92 @@ public class ResponsesDialect extends AbstractLlmDialect implements ILlmDialect 
         return "responses";
     }
 
+    // ==================== parseRequestBody（请求方向 reverse） ====================
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public ChatRequest parseRequestBody(Map<String, Object> body) {
+        ChatRequest request = new ChatRequest();
+        List<ChatMessage> messages = new ArrayList<>();
+
+        // 顶层 instructions → 首位 ChatSystemMessage（buildBody 的 system→instructions 逆向）
+        Object instructions = body.get("instructions");
+        if (instructions != null) {
+            messages.add(new ChatSystemMessage(instructions.toString()));
+        }
+
+        // input[] typed items → messages
+        List<Map<String, Object>> inputItems = (List<Map<String, Object>>) body.get("input");
+        if (inputItems != null) {
+            for (Map<String, Object> item : inputItems) {
+                String itemType = (String) item.get("type");
+                if ("message".equals(itemType)) {
+                    String role = (String) item.get("role");
+                    String text = extractContentText(item, "content");
+                    if ("assistant".equals(role)) {
+                        messages.add(new ChatAssistantMessage(text));
+                    } else {
+                        messages.add(new ChatUserMessage(text));
+                    }
+                } else if ("reasoning".equals(itemType)) {
+                    messages.add(new ChatReasoningMessage(extractContentText(item, "summary")));
+                } else if ("function_call".equals(itemType)) {
+                    String callId = (String) item.get("call_id");
+                    String name = (String) item.get("name");
+                    Object argsObj = item.get("arguments");
+                    Map<String, Object> argsMap = null;
+                    if (argsObj instanceof Map) {
+                        argsMap = (Map<String, Object>) argsObj;
+                    } else if (argsObj instanceof String) {
+                        argsMap = parseArguments((String) argsObj);
+                    }
+                    messages.add(new ChatToolCallMessage(callId, name, argsMap));
+                } else if ("function_call_output".equals(itemType)) {
+                    String callId = (String) item.get("call_id");
+                    Object output = item.get("output");
+                    messages.add(new ChatToolResponseMessage(callId, null,
+                            output != null ? output.toString() : null));
+                }
+            }
+        }
+        if (!messages.isEmpty()) {
+            request.setMessages(messages);
+        }
+
+        // options：temperature/top_p/max_output_tokens/tool_choice
+        ChatOptions options = new ChatOptions();
+        if (body.get("temperature") instanceof Number) {
+            options.setTemperature(((Number) body.get("temperature")).floatValue());
+        }
+        if (body.get("top_p") instanceof Number) {
+            options.setTopP(((Number) body.get("top_p")).floatValue());
+        }
+        if (body.get("max_output_tokens") instanceof Number) {
+            options.setMaxTokens(((Number) body.get("max_output_tokens")).intValue());
+        }
+        if (body.get("tool_choice") != null) {
+            options.setToolChoice(body.get("tool_choice").toString());
+        }
+        request.setOptions(options);
+
+        // tools：Responses 扁平格式（type/name/description/parameters 平铺）
+        List<Map<String, Object>> rawTools = (List<Map<String, Object>>) body.get("tools");
+        if (rawTools != null && !rawTools.isEmpty()) {
+            List<ChatToolDefinition> tools = new ArrayList<>();
+            for (Map<String, Object> raw : rawTools) {
+                ChatToolDefinition def = new ChatToolDefinition();
+                def.setName((String) raw.get("name"));
+                def.setDescription((String) raw.get("description"));
+                if (raw.get("parameters") instanceof Map) {
+                    def.setParameters((Map<String, Object>) raw.get("parameters"));
+                }
+                tools.add(def);
+            }
+            request.setTools(tools);
+        }
+        return request;
+    }
+
     @Override
     public String buildUrl(String baseUrl, String chatUrl, String apiKey) {
         return StringHelper.appendPath(baseUrl, chatUrl);
@@ -483,6 +569,179 @@ public class ResponsesDialect extends AbstractLlmDialect implements ILlmDialect 
             default:
                 return null;
         }
+    }
+
+    // ==================== 反向转换：ChatResponse → Provider 响应 Map ====================
+
+    @Override
+    public Map<String, Object> buildResponse(ChatResponse response) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        if (response.getId() != null) {
+            result.put("id", response.getId());
+        }
+        if (response.getModel() != null) {
+            result.put("model", response.getModel());
+        }
+
+        // messages 序列 → output[] typed items
+        List<Map<String, Object>> output = new ArrayList<>();
+        if (response.getMessages() != null) {
+            for (ChatMessage msg : response.getMessages()) {
+                if (msg instanceof ChatReasoningMessage) {
+                    Map<String, Object> item = new LinkedHashMap<>();
+                    item.put("type", "reasoning");
+                    item.put("summary", buildContentParts("summary_text", msg.getContent()));
+                    output.add(item);
+                } else if (msg instanceof ChatToolCallMessage) {
+                    ChatToolCallMessage tcm = (ChatToolCallMessage) msg;
+                    Map<String, Object> item = new LinkedHashMap<>();
+                    item.put("type", "function_call");
+                    if (tcm.getCallId() != null) {
+                        item.put("call_id", tcm.getCallId());
+                    }
+                    item.put("name", tcm.getName());
+                    item.put("arguments", tcm.getArgumentsText() != null ? tcm.getArgumentsText() : "");
+                    output.add(item);
+                } else if (msg instanceof ChatAssistantMessage && msg.getContent() != null) {
+                    Map<String, Object> item = new LinkedHashMap<>();
+                    item.put("type", "message");
+                    item.put("role", "assistant");
+                    item.put("content", buildContentParts("output_text", msg.getContent()));
+                    output.add(item);
+                }
+            }
+        }
+        result.put("output", output);
+
+        // 归一化 finish_reason → Responses status（normalizeFinishReason 的逆映射）
+        if (response.getFinishReason() != null) {
+            result.put("status", reverseStatus(response.getFinishReason()));
+        }
+
+        // usage → input_tokens/output_tokens/total_tokens
+        if (response.getUsage() != null) {
+            Map<String, Object> usage = new LinkedHashMap<>();
+            if (response.getUsage().getPromptTokens() != null) {
+                usage.put("input_tokens", response.getUsage().getPromptTokens());
+            }
+            if (response.getUsage().getCompletionTokens() != null) {
+                usage.put("output_tokens", response.getUsage().getCompletionTokens());
+            }
+            if (response.getUsage().getTotalTokens() != null) {
+                usage.put("total_tokens", response.getUsage().getTotalTokens());
+            }
+            result.put("usage", usage);
+        }
+        return result;
+    }
+
+    /**
+     * 归一化 finish_reason → Responses 原生 status（parseResponse 中 normalizeFinishReason(status) 的逆映射）。
+     * 归一化有损点 (a) 裁定：roundtrip 样本仅使用归一化目标值；未知值原样透传。
+     */
+    private String reverseStatus(String reason) {
+        switch (reason) {
+            case "stop":
+            case "tool_calls":
+                return "completed";
+            case "length":
+                return "incomplete";
+            case "content_filter":
+                return "failed";
+            default:
+                return reason;
+        }
+    }
+
+    @Override
+    public Map<String, Object> buildStreamChunk(ChatStreamChunk chunk) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        Integer index = chunk.getItemIndex();
+
+        if (chunk.getPhase() == StreamItemPhase.DONE) {
+            // 终止信号 → response.completed（status + usage）
+            Map<String, Object> response = new LinkedHashMap<>();
+            if (chunk.getId() != null) {
+                response.put("id", chunk.getId());
+            }
+            if (chunk.getModel() != null) {
+                response.put("model", chunk.getModel());
+            }
+            if (chunk.getFinishReason() != null) {
+                response.put("status", reverseStatus(chunk.getFinishReason()));
+            }
+            if (chunk.getUsage() != null) {
+                Map<String, Object> usage = new LinkedHashMap<>();
+                if (chunk.getUsage().getPromptTokens() != null) {
+                    usage.put("input_tokens", chunk.getUsage().getPromptTokens());
+                }
+                if (chunk.getUsage().getCompletionTokens() != null) {
+                    usage.put("output_tokens", chunk.getUsage().getCompletionTokens());
+                }
+                if (chunk.getUsage().getTotalTokens() != null) {
+                    usage.put("total_tokens", chunk.getUsage().getTotalTokens());
+                }
+                response.put("usage", usage);
+            }
+            result.put("type", EVENT_RESPONSE_COMPLETED);
+            result.put("response", response);
+            return result;
+        }
+
+        StreamItemType type = chunk.getItemType();
+        if (type == null) {
+            // 无 item 载荷（id/model 元数据块）→ response.created
+            Map<String, Object> response = new LinkedHashMap<>();
+            if (chunk.getId() != null) {
+                response.put("id", chunk.getId());
+            }
+            if (chunk.getModel() != null) {
+                response.put("model", chunk.getModel());
+            }
+            result.put("type", EVENT_RESPONSE_CREATED);
+            result.put("response", response);
+            return result;
+        }
+
+        if (chunk.getPhase() == StreamItemPhase.ADDED) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            if (type == StreamItemType.reasoning) {
+                item.put("type", "reasoning");
+                item.put("summary", new ArrayList<>());
+                result.put("type", EVENT_OUTPUT_ITEM_ADDED);
+            } else if (type == StreamItemType.tool_call) {
+                item.put("type", "function_call");
+                if (chunk.getCallId() != null) {
+                    item.put("call_id", chunk.getCallId());
+                }
+                item.put("name", chunk.getDelta());
+                item.put("arguments", "");
+                result.put("type", EVENT_OUTPUT_ITEM_ADDED);
+            } else {
+                item.put("type", "message");
+                item.put("role", "assistant");
+                item.put("content", new ArrayList<>());
+                result.put("type", EVENT_OUTPUT_ITEM_ADDED);
+            }
+            if (index != null) {
+                result.put("output_index", index);
+            }
+            result.put("item", item);
+        } else {
+            // DELTA 增量事件
+            if (type == StreamItemType.reasoning) {
+                result.put("type", EVENT_REASONING_SUMMARY_DELTA);
+            } else if (type == StreamItemType.tool_call) {
+                result.put("type", EVENT_FUNCTION_CALL_ARGS_DELTA);
+            } else {
+                result.put("type", EVENT_OUTPUT_TEXT_DELTA);
+            }
+            if (index != null) {
+                result.put("output_index", index);
+            }
+            result.put("delta", chunk.getDelta());
+        }
+        return result;
     }
 
     private Integer toInt(Object value) {

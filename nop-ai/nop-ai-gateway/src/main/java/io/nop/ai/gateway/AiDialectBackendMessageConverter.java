@@ -23,8 +23,9 @@ import java.util.Map;
  * frontendLlm = ApiStyle.openai    （客户端发送的格式，默认 OpenAI）
  * backendLlm  = ApiStyle.anthropic （后端 Provider 使用的格式）
  * </pre>
- * 前端始终使用 OpenAI 消息结构（messages/tools/temperature 等）作为统一入口，
- * 后端通过 backendLlm 选择对应的 ILlmDialect 完成格式转换。
+ * 前端可为任意 dialect（openai/anthropic/gemini/ollama/responses）：请求方向经
+ * frontendLlm 对应 dialect 的 {@link ILlmDialect#parseRequestBody} 解析为 ChatRequest，
+ * 后端经 backendLlm 对应 dialect 完成格式转换；响应/流式方向反向同理。
  */
 public class AiDialectBackendMessageConverter implements IBackendMessageConverter {
 

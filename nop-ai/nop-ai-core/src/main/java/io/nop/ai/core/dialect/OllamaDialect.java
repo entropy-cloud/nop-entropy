@@ -8,7 +8,9 @@ import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatReasoningMessage;
 import io.nop.ai.api.chat.messages.ChatToolCall;
 import io.nop.ai.api.chat.messages.ChatToolCallMessage;
+import io.nop.ai.api.chat.messages.ChatToolDefinition;
 import io.nop.ai.api.chat.messages.ChatToolResponseMessage;
+import io.nop.ai.api.chat.messages.ChatUserMessage;
 import io.nop.ai.core.model.LlmModel;
 import io.nop.ai.core.model.LlmModelModel;
 import io.nop.ai.core.model.LlmResponseModel;
@@ -55,6 +57,112 @@ public class OllamaDialect extends AbstractLlmDialect implements ILlmDialect {
     @Override
     public String getName() {
         return "ollama";
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public ChatRequest parseRequestBody(Map<String, Object> body) {
+        ChatRequest request = new ChatRequest();
+
+        // messages：OpenAI 风格（role/content/thinking/tool_calls/tool_call_id）
+        List<Map<String, Object>> rawMessages = (List<Map<String, Object>>) body.get("messages");
+        if (rawMessages != null) {
+            List<ChatMessage> messages = new ArrayList<>();
+            for (Map<String, Object> raw : rawMessages) {
+                String role = (String) raw.get("role");
+                String content = raw.get("content") != null ? raw.get("content").toString() : "";
+                String thinking = raw.get("thinking") != null ? raw.get("thinking").toString() : null;
+                if ("assistant".equals(role)) {
+                    // tool_calls 同发时 content 为 arguments 序列化伪影（convertMessage 副作用），
+                    // 不再产出 assistant 文本消息（roundtrip 落档：样本不含文本+tool_calls 同发）
+                    List<Map<String, Object>> tcs = (List<Map<String, Object>>) raw.get("tool_calls");
+                    if (tcs != null && !tcs.isEmpty()) {
+                        for (Map<String, Object> tc : tcs) {
+                            ChatToolCall c = new ChatToolCall();
+                            c.setId((String) tc.get("id"));
+                            Object funcObj = tc.get("function");
+                            if (funcObj instanceof Map) {
+                                Map<String, Object> func = (Map<String, Object>) funcObj;
+                                c.setName((String) func.get("name"));
+                                Object argsObj = func.get("arguments");
+                                if (argsObj instanceof Map) {
+                                    c.setArguments((Map<String, Object>) argsObj);
+                                } else if (argsObj instanceof String) {
+                                    // arguments 可能是 JSON 字符串（与 parseResponse 同款降级）
+                                    try {
+                                        Object parsed = JSON.parse((String) argsObj);
+                                        if (parsed instanceof Map) {
+                                            c.setArguments((Map<String, Object>) parsed);
+                                        }
+                                    } catch (Exception ignored) {
+                                        // 容忍模型返回的畸形 arguments JSON：留空由调用方处理
+                                    }
+                                }
+                            }
+                            messages.add(ChatToolCallMessage.fromChatToolCall(c));
+                        }
+                    } else {
+                        if (thinking != null && !thinking.isEmpty()) {
+                            messages.add(new ChatReasoningMessage(thinking));
+                        }
+                        messages.add(new ChatAssistantMessage(content));
+                    }
+                } else if ("tool".equals(role)) {
+                    messages.add(new ChatToolResponseMessage(
+                            (String) raw.get("tool_call_id"), (String) raw.get("name"), content));
+                } else {
+                    if (thinking != null && !thinking.isEmpty()) {
+                        messages.add(new ChatReasoningMessage(thinking));
+                    }
+                    messages.add(new ChatUserMessage(content));
+                }
+            }
+            request.setMessages(messages);
+        }
+
+        // options：temperature/num_predict/top_p/top_k/stop
+        ChatOptions options = new ChatOptions();
+        Object optionsObj = body.get("options");
+        if (optionsObj instanceof Map) {
+            Map<String, Object> ollamaOptions = (Map<String, Object>) optionsObj;
+            if (ollamaOptions.get("temperature") instanceof Number) {
+                options.setTemperature(((Number) ollamaOptions.get("temperature")).floatValue());
+            }
+            if (ollamaOptions.get("num_predict") instanceof Number) {
+                options.setMaxTokens(((Number) ollamaOptions.get("num_predict")).intValue());
+            }
+            if (ollamaOptions.get("top_p") instanceof Number) {
+                options.setTopP(((Number) ollamaOptions.get("top_p")).floatValue());
+            }
+            if (ollamaOptions.get("top_k") instanceof Number) {
+                options.setTopK(((Number) ollamaOptions.get("top_k")).intValue());
+            }
+            if (ollamaOptions.get("stop") instanceof List) {
+                options.setStop((List<String>) ollamaOptions.get("stop"));
+            }
+        }
+        request.setOptions(options);
+
+        // tools：OpenAI 嵌套格式（type/function.{name,description,parameters}）
+        List<Map<String, Object>> rawTools = (List<Map<String, Object>>) body.get("tools");
+        if (rawTools != null && !rawTools.isEmpty()) {
+            List<ChatToolDefinition> tools = new ArrayList<>();
+            for (Map<String, Object> raw : rawTools) {
+                Map<String, Object> func = (Map<String, Object>) raw.get("function");
+                if (func == null) {
+                    continue;
+                }
+                ChatToolDefinition def = new ChatToolDefinition();
+                def.setName((String) func.get("name"));
+                def.setDescription((String) func.get("description"));
+                if (func.get("parameters") instanceof Map) {
+                    def.setParameters((Map<String, Object>) func.get("parameters"));
+                }
+                tools.add(def);
+            }
+            request.setTools(tools);
+        }
+        return request;
     }
 
     @Override
@@ -310,6 +418,115 @@ public class OllamaDialect extends AbstractLlmDialect implements ILlmDialect {
     }
 
     // Ollama 使用默认的 convertToolDefinitions 实现（与 OpenAI 相同）
+
+    // ==================== 反向转换：ChatResponse → Provider 响应 Map ====================
+
+    @Override
+    public Map<String, Object> buildResponse(ChatResponse response) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        if (response.getModel() != null) {
+            result.put("model", response.getModel());
+        }
+
+        // messages 序列 → message（content + thinking + tool_calls）
+        Map<String, Object> message = new LinkedHashMap<>();
+        message.put("role", "assistant");
+        StringBuilder content = new StringBuilder();
+        StringBuilder thinking = new StringBuilder();
+        List<Map<String, Object>> toolCalls = new ArrayList<>();
+        if (response.getMessages() != null) {
+            for (ChatMessage msg : response.getMessages()) {
+                if (msg instanceof ChatReasoningMessage) {
+                    if (msg.getContent() != null) {
+                        if (thinking.length() > 0) {
+                            thinking.append("\n");
+                        }
+                        thinking.append(msg.getContent());
+                    }
+                } else if (msg instanceof ChatToolCallMessage) {
+                    ChatToolCallMessage tcm = (ChatToolCallMessage) msg;
+                    Map<String, Object> tc = new LinkedHashMap<>();
+                    tc.put("id", tcm.getCallId());
+                    tc.put("type", "function");
+                    Map<String, Object> func = new LinkedHashMap<>();
+                    func.put("name", tcm.getName());
+                    if (tcm.getArguments() != null) {
+                        func.put("arguments", tcm.getArguments());
+                    }
+                    tc.put("function", func);
+                    toolCalls.add(tc);
+                } else if (msg instanceof ChatAssistantMessage && msg.getContent() != null) {
+                    if (content.length() > 0) {
+                        content.append("\n");
+                    }
+                    content.append(msg.getContent());
+                }
+            }
+        }
+        if (content.length() > 0) {
+            message.put("content", content.toString());
+        }
+        if (thinking.length() > 0) {
+            message.put("thinking", thinking.toString());
+        }
+        if (!toolCalls.isEmpty()) {
+            message.put("tool_calls", toolCalls);
+        }
+        result.put("message", message);
+
+        // 归一化 finish_reason 与 Ollama done_reason 原生词汇重合（stop/length），直接透传
+        if (response.getFinishReason() != null) {
+            result.put("done_reason", response.getFinishReason());
+        }
+
+        // usage → prompt_eval_count/eval_count
+        if (response.getUsage() != null) {
+            if (response.getUsage().getPromptTokens() != null) {
+                result.put("prompt_eval_count", response.getUsage().getPromptTokens());
+            }
+            if (response.getUsage().getCompletionTokens() != null) {
+                result.put("eval_count", response.getUsage().getCompletionTokens());
+            }
+        }
+        return result;
+    }
+
+    @Override
+    public Map<String, Object> buildStreamChunk(ChatStreamChunk chunk) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        if (chunk.getModel() != null) {
+            result.put("model", chunk.getModel());
+        }
+
+        if (chunk.getPhase() == StreamItemPhase.DONE) {
+            // 终止信号 → done_reason
+            if (chunk.getFinishReason() != null) {
+                result.put("done_reason", chunk.getFinishReason());
+            }
+            return result;
+        }
+
+        StreamItemType type = chunk.getItemType();
+        if (type != null) {
+            Map<String, Object> message = new LinkedHashMap<>();
+            message.put("role", "assistant");
+            if (type == StreamItemType.reasoning) {
+                message.put("thinking", chunk.getDelta());
+            } else if (type == StreamItemType.tool_call) {
+                Map<String, Object> tc = new LinkedHashMap<>();
+                tc.put("id", chunk.getCallId());
+                tc.put("type", "function");
+                Map<String, Object> func = new LinkedHashMap<>();
+                func.put("name", chunk.getDelta());
+                tc.put("function", func);
+                message.put("tool_calls", List.of(tc));
+            } else {
+                message.put("content", chunk.getDelta());
+            }
+            result.put("message", message);
+        }
+        return result;
+    }
 
     // ==================== 私有辅助方法 ====================
 

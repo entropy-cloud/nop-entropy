@@ -6,10 +6,12 @@ import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatReasoningMessage;
+import io.nop.ai.api.chat.messages.ChatSystemMessage;
 import io.nop.ai.api.chat.messages.ChatToolCall;
 import io.nop.ai.api.chat.messages.ChatToolCallMessage;
 import io.nop.ai.api.chat.messages.ChatToolResponseMessage;
 import io.nop.ai.api.chat.messages.ChatToolDefinition;
+import io.nop.ai.api.chat.messages.ChatUserMessage;
 import io.nop.ai.api.chat.messages.ChatUsage;
 import io.nop.ai.core.model.LlmModel;
 import io.nop.ai.core.model.LlmModelModel;
@@ -60,6 +62,160 @@ public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect 
     @Override
     public String getName() {
         return "anthropic";
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public ChatRequest parseRequestBody(Map<String, Object> body) {
+        ChatRequest request = new ChatRequest();
+        List<ChatMessage> messages = new ArrayList<>();
+
+        // 顶层 system 字段 → 首位 ChatSystemMessage（与 buildBody 的 system 分离逆向）
+        Object system = body.get("system");
+        if (system != null) {
+            messages.add(new ChatSystemMessage(system.toString()));
+        }
+
+        List<Map<String, Object>> rawMessages = (List<Map<String, Object>>) body.get("messages");
+        if (rawMessages != null) {
+            for (Map<String, Object> raw : rawMessages) {
+                String role = (String) raw.get("role");
+                List<Map<String, Object>> blocks = (List<Map<String, Object>>) raw.get("content");
+                if (blocks == null) {
+                    // 极简格式：content 为纯文本（部分兼容实现）
+                    if ("assistant".equals(role) || "model".equals(role)) {
+                        messages.add(new ChatAssistantMessage(raw.get("content") != null
+                                ? raw.get("content").toString() : null));
+                    } else {
+                        messages.add(new ChatUserMessage(raw.get("content") != null
+                                ? raw.get("content").toString() : null));
+                    }
+                    continue;
+                }
+                // content blocks：text/thinking/tool_use/tool_result
+                StringBuilder textBuilder = new StringBuilder();
+                String reasoning = null;
+                List<ChatToolCall> toolUses = new ArrayList<>();
+                String toolResultId = null;
+                StringBuilder toolResultContent = new StringBuilder();
+                boolean hasToolResult = false;
+                for (Map<String, Object> block : blocks) {
+                    if (!(block instanceof Map)) {
+                        continue;
+                    }
+                    String type = (String) block.get("type");
+                    if ("text".equals(type)) {
+                        String text = block.get("text") != null ? block.get("text").toString() : null;
+                        if (text != null) {
+                            if (textBuilder.length() > 0) {
+                                textBuilder.append("\n");
+                            }
+                            textBuilder.append(text);
+                        }
+                    } else if ("thinking".equals(type)) {
+                        if (block.get("thinking") != null) {
+                            if (reasoning == null) {
+                                reasoning = block.get("thinking").toString();
+                            } else {
+                                reasoning += "\n" + block.get("thinking");
+                            }
+                        }
+                    } else if ("tool_use".equals(type)) {
+                        ChatToolCall call = new ChatToolCall();
+                        call.setId((String) block.get("id"));
+                        call.setName((String) block.get("name"));
+                        Object input = block.get("input");
+                        if (input instanceof Map) {
+                            call.setArguments((Map<String, Object>) input);
+                        } else if (input instanceof String) {
+                            // 字符串形态（部分兼容实现）→ 解析为 Map，畸形时 fail-fast
+                            call.setArguments(parseToolInput(input));
+                        }
+                        toolUses.add(call);
+                    } else if ("tool_result".equals(type)) {
+                        hasToolResult = true;
+                        toolResultId = (String) block.get("tool_use_id");
+                        Object content = block.get("content");
+                        if (content != null) {
+                            if (toolResultContent.length() > 0) {
+                                toolResultContent.append("\n");
+                            }
+                            toolResultContent.append(content.toString());
+                        }
+                    }
+                }
+                if (hasToolResult) {
+                    // tool_result 是 user 角色的工具结果消息
+                    messages.add(new ChatToolResponseMessage(toolResultId, null, toolResultContent.toString()));
+                } else {
+                    if (reasoning != null) {
+                        messages.add(new ChatReasoningMessage(reasoning));
+                    }
+                    if ("assistant".equals(role) || "model".equals(role)) {
+                        // convertMessage 伪影检测：ChatToolCallMessage.getContent()=arguments JSON，
+                        // 与 tool_use 同发的 text block 若等于某 tool_use input 的 JSON 序列化则丢弃
+                        boolean textIsToolCallArtifact = false;
+                        if (textBuilder.length() > 0 && !toolUses.isEmpty()) {
+                            String text = textBuilder.toString();
+                            for (ChatToolCall call : toolUses) {
+                                if (call.getArgumentsText() != null && call.getArgumentsText().equals(text)) {
+                                    textIsToolCallArtifact = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (!textIsToolCallArtifact && (toolUses.isEmpty() || textBuilder.length() > 0)) {
+                            messages.add(new ChatAssistantMessage(
+                                    textBuilder.length() > 0 ? textBuilder.toString() : null));
+                        }
+                        for (ChatToolCall call : toolUses) {
+                            messages.add(ChatToolCallMessage.fromChatToolCall(call));
+                        }
+                    } else {
+                        messages.add(new ChatUserMessage(textBuilder.length() > 0 ? textBuilder.toString() : null));
+                    }
+                }
+            }
+        }
+        if (!messages.isEmpty()) {
+            request.setMessages(messages);
+        }
+
+        // 顶层 options：max_tokens/temperature/top_p/top_k/stop_sequences
+        ChatOptions options = new ChatOptions();
+        if (body.get("max_tokens") instanceof Number) {
+            options.setMaxTokens(((Number) body.get("max_tokens")).intValue());
+        }
+        if (body.get("temperature") instanceof Number) {
+            options.setTemperature(((Number) body.get("temperature")).floatValue());
+        }
+        if (body.get("top_p") instanceof Number) {
+            options.setTopP(((Number) body.get("top_p")).floatValue());
+        }
+        if (body.get("top_k") instanceof Number) {
+            options.setTopK(((Number) body.get("top_k")).intValue());
+        }
+        if (body.get("stop_sequences") instanceof List) {
+            options.setStop((List<String>) body.get("stop_sequences"));
+        }
+        request.setOptions(options);
+
+        // tools：Anthropic 扁平格式（name/description/input_schema）
+        List<Map<String, Object>> rawTools = (List<Map<String, Object>>) body.get("tools");
+        if (rawTools != null && !rawTools.isEmpty()) {
+            List<ChatToolDefinition> tools = new ArrayList<>();
+            for (Map<String, Object> raw : rawTools) {
+                ChatToolDefinition def = new ChatToolDefinition();
+                def.setName((String) raw.get("name"));
+                def.setDescription((String) raw.get("description"));
+                if (raw.get("input_schema") instanceof Map) {
+                    def.setParameters((Map<String, Object>) raw.get("input_schema"));
+                }
+                tools.add(def);
+            }
+            request.setTools(tools);
+        }
+        return request;
     }
 
     @Override
@@ -504,6 +660,194 @@ public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect 
                 toolMap.put("input_schema", tool.getParameters());
             }
             result.add(toolMap);
+        }
+        return result;
+    }
+
+    // ==================== 反向转换：ChatResponse → Provider 响应 Map ====================
+
+    @Override
+    public Map<String, Object> buildResponse(ChatResponse response) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        if (response.getId() != null) {
+            result.put("id", response.getId());
+        }
+        if (response.getModel() != null) {
+            result.put("model", response.getModel());
+        }
+        result.put("role", "assistant");
+
+        // messages 序列 → content blocks（reasoning→thinking / assistant→text / tool_call→tool_use）
+        List<Map<String, Object>> blocks = new ArrayList<>();
+        if (response.getMessages() != null) {
+            for (ChatMessage msg : response.getMessages()) {
+                if (msg instanceof ChatReasoningMessage) {
+                    Map<String, Object> block = new LinkedHashMap<>();
+                    block.put("type", "thinking");
+                    block.put("thinking", msg.getContent());
+                    blocks.add(block);
+                } else if (msg instanceof ChatToolCallMessage) {
+                    ChatToolCallMessage tcm = (ChatToolCallMessage) msg;
+                    Map<String, Object> block = new LinkedHashMap<>();
+                    block.put("type", "tool_use");
+                    if (tcm.getCallId() != null) {
+                        block.put("id", tcm.getCallId());
+                    }
+                    block.put("name", tcm.getName());
+                    if (tcm.getArguments() != null) {
+                        block.put("input", tcm.getArguments());
+                    }
+                    blocks.add(block);
+                } else if (msg instanceof ChatAssistantMessage && msg.getContent() != null) {
+                    Map<String, Object> block = new LinkedHashMap<>();
+                    block.put("type", "text");
+                    block.put("text", msg.getContent());
+                    blocks.add(block);
+                }
+            }
+        }
+        result.put("content", blocks);
+
+        // finish_reason（归一化值）→ Anthropic 原生 stop_reason
+        if (response.getFinishReason() != null) {
+            result.put("stop_reason", reverseFinishReason(response.getFinishReason()));
+        }
+
+        // usage → Anthropic usage（含 cache 字段）
+        if (response.getUsage() != null) {
+            Map<String, Object> usage = new LinkedHashMap<>();
+            if (response.getUsage().getPromptTokens() != null) {
+                usage.put("input_tokens", response.getUsage().getPromptTokens());
+            }
+            if (response.getUsage().getCompletionTokens() != null) {
+                usage.put("output_tokens", response.getUsage().getCompletionTokens());
+            }
+            if (response.getUsage().getCacheCreationTokens() != null) {
+                usage.put("cache_creation_input_tokens", response.getUsage().getCacheCreationTokens());
+            }
+            if (response.getUsage().getCacheHitTokens() != null) {
+                usage.put("cache_read_input_tokens", response.getUsage().getCacheHitTokens());
+            }
+            result.put("usage", usage);
+        }
+        return result;
+    }
+
+    /**
+     * 归一化 finish_reason → Anthropic 原生 stop_reason（normalizeFinishReason 的逆映射）。
+     * 归一化有损点 (a) 裁定：roundtrip 样本仅使用归一化目标值；未知值原样透传。
+     */
+    private String reverseFinishReason(String reason) {
+        switch (reason) {
+            case "stop":
+                return "end_turn";
+            case "length":
+                return "max_tokens";
+            case "tool_calls":
+                return "tool_use";
+            default:
+                return reason;
+        }
+    }
+
+    @Override
+    public Map<String, Object> buildStreamChunk(ChatStreamChunk chunk) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        Integer index = chunk.getItemIndex() != null ? chunk.getItemIndex() : 0;
+
+        StreamItemType type = chunk.getItemType();
+        if (type == StreamItemType.text) {
+            if (chunk.getPhase() == StreamItemPhase.ADDED) {
+                Map<String, Object> block = new LinkedHashMap<>();
+                block.put("type", "text");
+                block.put("text", chunk.getDelta());
+                result.put("type", "content_block_start");
+                result.put("index", index);
+                result.put("content_block", block);
+            } else {
+                Map<String, Object> delta = new LinkedHashMap<>();
+                delta.put("type", "text_delta");
+                if (chunk.getDelta() != null) {
+                    delta.put("text", chunk.getDelta());
+                }
+                result.put("type", "content_block_delta");
+                result.put("index", index);
+                result.put("delta", delta);
+            }
+        } else if (type == StreamItemType.reasoning) {
+            if (chunk.getPhase() == StreamItemPhase.ADDED) {
+                Map<String, Object> block = new LinkedHashMap<>();
+                block.put("type", "thinking");
+                block.put("thinking", chunk.getDelta());
+                result.put("type", "content_block_start");
+                result.put("index", index);
+                result.put("content_block", block);
+            } else {
+                Map<String, Object> delta = new LinkedHashMap<>();
+                delta.put("type", "thinking_delta");
+                if (chunk.getDelta() != null) {
+                    delta.put("thinking", chunk.getDelta());
+                }
+                result.put("type", "content_block_delta");
+                result.put("index", index);
+                result.put("delta", delta);
+            }
+        } else if (type == StreamItemType.tool_call) {
+            if (chunk.getPhase() == StreamItemPhase.ADDED) {
+                Map<String, Object> block = new LinkedHashMap<>();
+                block.put("type", "tool_use");
+                if (chunk.getCallId() != null) {
+                    block.put("id", chunk.getCallId());
+                }
+                block.put("name", chunk.getDelta());
+                result.put("type", "content_block_start");
+                result.put("index", index);
+                result.put("content_block", block);
+            } else {
+                Map<String, Object> delta = new LinkedHashMap<>();
+                delta.put("type", "input_json_delta");
+                if (chunk.getDelta() != null) {
+                    delta.put("partial_json", chunk.getDelta());
+                }
+                result.put("type", "content_block_delta");
+                result.put("index", index);
+                result.put("delta", delta);
+            }
+        } else if (chunk.getPhase() == StreamItemPhase.DONE) {
+            // 终止信号 → message_delta（stop_reason + usage）
+            Map<String, Object> delta = new LinkedHashMap<>();
+            if (chunk.getFinishReason() != null) {
+                delta.put("stop_reason", reverseFinishReason(chunk.getFinishReason()));
+            }
+            result.put("type", "message_delta");
+            result.put("delta", delta);
+            if (chunk.getUsage() != null) {
+                Map<String, Object> usage = new LinkedHashMap<>();
+                if (chunk.getUsage().getPromptTokens() != null) {
+                    usage.put("input_tokens", chunk.getUsage().getPromptTokens());
+                }
+                if (chunk.getUsage().getCompletionTokens() != null) {
+                    usage.put("output_tokens", chunk.getUsage().getCompletionTokens());
+                }
+                if (chunk.getUsage().getCacheHitTokens() != null) {
+                    usage.put("cache_read_input_tokens", chunk.getUsage().getCacheHitTokens());
+                }
+                if (chunk.getUsage().getCacheCreationTokens() != null) {
+                    usage.put("cache_creation_input_tokens", chunk.getUsage().getCacheCreationTokens());
+                }
+                result.put("usage", usage);
+            }
+        } else {
+            // 无 item 载荷（id/model 元数据块）→ message_start
+            Map<String, Object> message = new LinkedHashMap<>();
+            if (chunk.getId() != null) {
+                message.put("id", chunk.getId());
+            }
+            if (chunk.getModel() != null) {
+                message.put("model", chunk.getModel());
+            }
+            result.put("type", "message_start");
+            result.put("message", message);
         }
         return result;
     }

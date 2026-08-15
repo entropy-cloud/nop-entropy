@@ -162,6 +162,266 @@ class AiDialectBackendMessageConverterTest {
         }
     }
 
+    // ===== toBackendRequest（非 OpenAI 前端：经新 parseRequestBody 分发） =====
+
+    @Test
+    void toBackendRequest_anthropicToOpenAI() {
+        var converter = createConverter(ApiStyle.anthropic, ApiStyle.openai);
+        Map<String, Object> data = new java.util.HashMap<>();
+        data.put("model", "claude-sonnet-4");
+        data.put("system", "You are a helpful assistant.");
+        data.put("messages", List.of(Map.of(
+                "role", "user",
+                "content", List.of(Map.of("type", "text", "text", "Hello")))));
+        ApiRequest<Map<String, Object>> req = ApiRequest.build(data);
+
+        ApiRequest<?> result = converter.toBackendRequest(req);
+
+        assertNotNull(result);
+        Map<?, ?> body = (Map<?, ?>) result.getData();
+        // Anthropic 前端 → OpenAI 后端：messages 扁平 role/content
+        List<?> messages = (List<?>) body.get("messages");
+        assertEquals(2, messages.size(), "system folds back into messages for OpenAI backend");
+        assertEquals("system", ((Map<?, ?>) messages.get(0)).get("role"));
+        assertEquals("You are a helpful assistant.", ((Map<?, ?>) messages.get(0)).get("content"));
+        assertEquals("user", ((Map<?, ?>) messages.get(1)).get("role"));
+        assertEquals("Hello", ((Map<?, ?>) messages.get(1)).get("content"));
+    }
+
+    @Test
+    void toBackendRequest_geminiToOpenAI() {
+        var converter = createConverter(ApiStyle.gemini, ApiStyle.openai);
+        Map<String, Object> data = new java.util.HashMap<>();
+        data.put("model", "gemini-pro");
+        data.put("contents", List.of(Map.of(
+                "role", "user",
+                "parts", List.of(Map.of("text", "Hello")))));
+        ApiRequest<Map<String, Object>> req = ApiRequest.build(data);
+
+        ApiRequest<?> result = converter.toBackendRequest(req);
+
+        assertNotNull(result);
+        Map<?, ?> body = (Map<?, ?>) result.getData();
+        List<?> messages = (List<?>) body.get("messages");
+        assertEquals(1, messages.size());
+        assertEquals("user", ((Map<?, ?>) messages.get(0)).get("role"));
+        assertEquals("Hello", ((Map<?, ?>) messages.get(0)).get("content"));
+    }
+
+    @Test
+    void toBackendRequest_ollamaToOpenAI() {
+        var converter = createConverter(ApiStyle.ollama, ApiStyle.openai);
+        Map<String, Object> data = new java.util.HashMap<>();
+        data.put("model", "llama2");
+        data.put("messages", List.of(Map.of("role", "user", "content", "Hello")));
+        data.put("options", Map.of("temperature", 0.7, "num_predict", 512));
+        ApiRequest<Map<String, Object>> req = ApiRequest.build(data);
+
+        ApiRequest<?> result = converter.toBackendRequest(req);
+
+        assertNotNull(result);
+        Map<?, ?> body = (Map<?, ?>) result.getData();
+        List<?> messages = (List<?>) body.get("messages");
+        assertEquals(1, messages.size());
+        assertEquals("Hello", ((Map<?, ?>) messages.get(0)).get("content"));
+        // Ollama options.num_predict → OpenAI max_tokens
+        assertEquals(512, ((Number) body.get("max_tokens")).intValue());
+    }
+
+    @Test
+    void toBackendRequest_responsesToOpenAI() {
+        var converter = createConverter(ApiStyle.responses, ApiStyle.openai);
+        Map<String, Object> data = new java.util.HashMap<>();
+        data.put("model", "gpt-4o");
+        data.put("instructions", "You are a helpful assistant.");
+        data.put("input", List.of(Map.of(
+                "type", "message",
+                "role", "user",
+                "content", List.of(Map.of("type", "input_text", "text", "Hello")))));
+        ApiRequest<Map<String, Object>> req = ApiRequest.build(data);
+
+        ApiRequest<?> result = converter.toBackendRequest(req);
+
+        assertNotNull(result);
+        Map<?, ?> body = (Map<?, ?>) result.getData();
+        List<?> messages = (List<?>) body.get("messages");
+        assertEquals(2, messages.size(), "instructions fold back into system message for OpenAI backend");
+        assertEquals("system", ((Map<?, ?>) messages.get(0)).get("role"));
+        assertEquals("user", ((Map<?, ?>) messages.get(1)).get("role"));
+        assertEquals("Hello", ((Map<?, ?>) messages.get(1)).get("content"));
+    }
+
+    // ===== toFrontendResponse（非 OpenAI 前端：经新 buildResponse 分发） =====
+
+    @Test
+    void toFrontendResponse_openaiToAnthropic() {
+        var converter = createConverter(ApiStyle.anthropic, ApiStyle.openai);
+        Map<String, Object> openaiResp = Map.of(
+                "choices", List.of(Map.of(
+                        "message", Map.of("role", "assistant", "content", "Hi"),
+                        "finish_reason", "stop",
+                        "index", 0
+                ))
+        );
+        ApiRequest<Map<String, Object>> req = buildOpenAIReq("gpt-4", "Hello");
+        ApiResponse<?> backendResp = ApiResponse.success(openaiResp);
+
+        var result = converter.toFrontendResponse(backendResp, req);
+
+        assertNotNull(result);
+        Map<?, ?> data = (Map<?, ?>) result.getData();
+        // Anthropic 前端格式：content blocks + stop_reason（非 OpenAI choices）
+        assertTrue(data.containsKey("content"), "anthropic frontend response must use content blocks");
+        assertFalse(data.containsKey("choices"), "anthropic frontend must not produce OpenAI choices");
+        assertEquals("end_turn", data.get("stop_reason"));
+        Map<?, ?> block = (Map<?, ?>) ((List<?>) data.get("content")).get(0);
+        assertEquals("text", block.get("type"));
+        assertEquals("Hi", block.get("text"));
+    }
+
+    @Test
+    void toFrontendResponse_openaiToGemini() {
+        var converter = createConverter(ApiStyle.gemini, ApiStyle.openai);
+        Map<String, Object> openaiResp = Map.of(
+                "choices", List.of(Map.of(
+                        "message", Map.of("role", "assistant", "content", "Hi"),
+                        "finish_reason", "stop",
+                        "index", 0
+                ))
+        );
+        ApiRequest<Map<String, Object>> req = buildOpenAIReq("gpt-4", "Hello");
+        ApiResponse<?> backendResp = ApiResponse.success(openaiResp);
+
+        var result = converter.toFrontendResponse(backendResp, req);
+
+        assertNotNull(result);
+        Map<?, ?> data = (Map<?, ?>) result.getData();
+        assertTrue(data.containsKey("candidates"), "gemini frontend response must use candidates");
+        Map<?, ?> candidate = (Map<?, ?>) ((List<?>) data.get("candidates")).get(0);
+        assertEquals("STOP", candidate.get("finishReason"));
+        Map<?, ?> content = (Map<?, ?>) candidate.get("content");
+        Map<?, ?> part = (Map<?, ?>) ((List<?>) content.get("parts")).get(0);
+        assertEquals("Hi", part.get("text"));
+    }
+
+    @Test
+    void toFrontendResponse_openaiToOllama() {
+        var converter = createConverter(ApiStyle.ollama, ApiStyle.openai);
+        Map<String, Object> openaiResp = Map.of(
+                "choices", List.of(Map.of(
+                        "message", Map.of("role", "assistant", "content", "Hi"),
+                        "finish_reason", "stop",
+                        "index", 0
+                ))
+        );
+        ApiRequest<Map<String, Object>> req = buildOpenAIReq("gpt-4", "Hello");
+        ApiResponse<?> backendResp = ApiResponse.success(openaiResp);
+
+        var result = converter.toFrontendResponse(backendResp, req);
+
+        assertNotNull(result);
+        Map<?, ?> data = (Map<?, ?>) result.getData();
+        assertEquals("Hi", ((Map<?, ?>) data.get("message")).get("content"));
+        assertEquals("stop", data.get("done_reason"));
+    }
+
+    @Test
+    void toFrontendResponse_openaiToResponses() {
+        var converter = createConverter(ApiStyle.responses, ApiStyle.openai);
+        Map<String, Object> openaiResp = Map.of(
+                "choices", List.of(Map.of(
+                        "message", Map.of("role", "assistant", "content", "Hi"),
+                        "finish_reason", "stop",
+                        "index", 0
+                ))
+        );
+        ApiRequest<Map<String, Object>> req = buildOpenAIReq("gpt-4", "Hello");
+        ApiResponse<?> backendResp = ApiResponse.success(openaiResp);
+
+        var result = converter.toFrontendResponse(backendResp, req);
+
+        assertNotNull(result);
+        Map<?, ?> data = (Map<?, ?>) result.getData();
+        assertEquals("completed", data.get("status"));
+        Map<?, ?> item = (Map<?, ?>) ((List<?>) data.get("output")).get(0);
+        assertEquals("message", item.get("type"));
+        assertEquals("Hi", ((Map<?, ?>) ((List<?>) item.get("content")).get(0)).get("text"));
+    }
+
+    // ===== toFrontendStreamChunk（非 OpenAI 前端：经新 buildStreamChunk 分发） =====
+
+    @Test
+    void toFrontendStreamChunk_openaiToAnthropic() {
+        var converter = createConverter(ApiStyle.anthropic, ApiStyle.openai);
+        Map<String, Object> delta = Map.of(
+                "choices", List.of(Map.of(
+                        "delta", Map.of("content", "Hello"),
+                        "index", 0
+                ))
+        );
+        ApiRequest<Map<String, Object>> req = buildOpenAIReq("gpt-4", "Hi");
+
+        var result = converter.toFrontendStreamChunk(delta, req);
+
+        assertNotNull(result);
+        assertEquals("content_block_delta", result.get("type"));
+        assertEquals("Hello", ((Map<?, ?>) result.get("delta")).get("text"));
+    }
+
+    @Test
+    void toFrontendStreamChunk_openaiToGemini() {
+        var converter = createConverter(ApiStyle.gemini, ApiStyle.openai);
+        Map<String, Object> delta = Map.of(
+                "choices", List.of(Map.of(
+                        "delta", Map.of("content", "Hello"),
+                        "index", 0
+                ))
+        );
+        ApiRequest<Map<String, Object>> req = buildOpenAIReq("gpt-4", "Hi");
+
+        var result = converter.toFrontendStreamChunk(delta, req);
+
+        assertNotNull(result);
+        Map<?, ?> candidate = (Map<?, ?>) ((List<?>) result.get("candidates")).get(0);
+        Map<?, ?> part = (Map<?, ?>) ((List<?>) ((Map<?, ?>) candidate.get("content")).get("parts")).get(0);
+        assertEquals("Hello", part.get("text"));
+    }
+
+    @Test
+    void toFrontendStreamChunk_openaiToOllama() {
+        var converter = createConverter(ApiStyle.ollama, ApiStyle.openai);
+        Map<String, Object> delta = Map.of(
+                "choices", List.of(Map.of(
+                        "delta", Map.of("content", "Hello"),
+                        "index", 0
+                ))
+        );
+        ApiRequest<Map<String, Object>> req = buildOpenAIReq("gpt-4", "Hi");
+
+        var result = converter.toFrontendStreamChunk(delta, req);
+
+        assertNotNull(result);
+        assertEquals("Hello", ((Map<?, ?>) result.get("message")).get("content"));
+    }
+
+    @Test
+    void toFrontendStreamChunk_openaiToResponses() {
+        var converter = createConverter(ApiStyle.responses, ApiStyle.openai);
+        Map<String, Object> delta = Map.of(
+                "choices", List.of(Map.of(
+                        "delta", Map.of("content", "Hello"),
+                        "index", 0
+                ))
+        );
+        ApiRequest<Map<String, Object>> req = buildOpenAIReq("gpt-4", "Hi");
+
+        var result = converter.toFrontendStreamChunk(delta, req);
+
+        assertNotNull(result);
+        assertEquals("response.output_text.delta", result.get("type"));
+        assertEquals("Hello", result.get("delta"));
+    }
+
     // ===== config =====
 
     @Test
