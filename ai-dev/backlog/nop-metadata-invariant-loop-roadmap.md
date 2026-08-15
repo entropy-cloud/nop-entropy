@@ -40,6 +40,9 @@ nop-metadata 已被审计 **5 轮 multi+open + ARM MA1-MA7（21 维）+ MR1-MR8*
 | Cycle 2 / I1. silent-wrong-result 不变式沉淀（门禁入 CI） | 5 子族评估裁定（locale / narrowing-cast / contains-分类 / 分隔符-key / Number→BigDecimal 精度）→ 可执行门禁 `check-silent-wrong-result.mjs`（1 扫描器 × 5 规则 + baseline 对账 + 放行注释）+ 初始 red list 快照（`initial-red-list-cycle2.md` + `baseline-cycle2/`）+ 聚合入口 4→5 门禁 CI 棘轮扩展 | ✅ `done`（plan `2026-08-15-0820-1`，2026-08-15 completed；5/5 子族裁定静态扫描可机械化 + 2 watch-only 候选维持；快照 67 命中/61 键（40/0/19/6/2）；模式 b 接入聚合入口与 CI；closure audit approved 0 Blocker/0 Major） | Cycle 2 再审计 |
 | Cycle 2 / I2+I3（invariant-loop）. 不变式驱动审计与裁决 | gate 5 正式运行 → 正式 red list（`formal-red-list-cycle2`，与 I1' 快照漂移核对）+ 对抗探查（watch-only 族专属方向 + 候选清单全覆盖）+ 零悬挂裁决（`adjudication-table-cycle2`：P1/FP/优化候选重裁/新族四态） | ✅ `done`（plan `2026-08-15-0820-2`，2026-08-15 completed；正式 red list 67 命中零漂移；对抗探查 10 方向 0 新族；裁决 67 = 46 P1 + 21 FP + 0 维持 + 0 新族，优化候选旧裁定 2 条推翻转 P1；FP 标注方式 (a) baseline 驻留） | I1' |
 | Cycle 2 / I4+I5+I6（invariant-loop）. 修复执行 + 全量验证 + 循环收口 | P1 类别清扫修复（test-first + 权威分母核对）+ FP 处置落地 + 门禁终态（baseline 重写为已批准豁免清单）+ 棘轮记录 + Cycle 2 统计/稳态判定/复触发登记/独立 closure audit | ✅ `done`（plan `2026-08-15-0820-3`，2026-08-15 completed；46/46 P1 修复（locale 40 Locale.ROOT 含 2 安全缺陷、C8 exact-match、D1/D5/D6 结构性键、E1/E2 AR-10 路由）+ 31 例新增测试（10 断言修复前红实证 + tr-TR GraphQL e2e）；1207 tests 0 failures；baseline 终态 21 FP 命中/16 键豁免清单（保持模式 b）+ hard-gate 注入 proof；棘轮 67 = 修复 46 + 驻留 21 + successor 0；稳态暂停（0 新族），复触发条件已核对） | I2'+I3' |
+| Cycle 3 / 再审计 remediation. SSRF 主机提取 + sql 日志脱敏（P0 + P1-8） | F2 双绕过向量（MySQL hostless 属性组隐式 localhost + PG query `host=` 覆盖）fail-closed + 4 实机向量回归 + sql 路径 8 处 INFO sqlHash 化 | ✅ `done`（plan `2026-08-15-1913-1`，2026-08-15 completed；hostless 哨兵+validateJdbcUrl 集中抛出 + query host=/hostaddr= 提取校验（pgjdbc 语义：percent-decode/大小写不敏感/多值逐校验）；对抗回归 +4 例（4 实机向量+9 变体+3 不误伤）；sql 路径 11 处 INFO sqlHash 化（8 确认+2 profiler 同源+1 形态统一，rg 门禁零命中）+ `TestSqlPathLogRedaction` 双入口；1211 tests 0 failures；closure audit approved 12/12） | 2026-08-15 multi-audit |
+| Cycle 3 / 再审计 remediation. API 写路径与契约语义（P1-1/3/4/5/2） | connectionConfig 受控写路径恢复 + lineage sourceTables 契约修正 + DataProduct linkAsset 聚合根校验与属主管线 + owner 文档 I*Biz 清单补齐 | 🔄 `active`（plan `2026-08-15-1913-2`，draft review 两轮 consensus） | 2026-08-15 multi-audit |
+| Cycle 3 / 再审计 remediation. 错误码参数与守卫测试（P1-6/7/9） | 11 处识别性参数补齐 + 方言门禁键错配修正 + INV-LIMIT 假绿行修复 + INV-ERROR-PARAM 门禁沉淀 | 🔄 `active`（plan `2026-08-15-1913-3`，draft review 两轮 consensus） | 2026-08-15 multi-audit |
 
 ## Phase Details
 
@@ -129,3 +132,54 @@ flowchart LR
 
 ### Cycle 2 / I2' 对抗探查观察（watch-only，非缺陷）
 - **OBS-01** `MetaTableProfiler.toLong:548` latent-form（`s == null ? 0L : Long.parseLong(s.trim())` 的 null→0 伪造形态 + parseLong 裸 NFE 逃逸形态；调用面 `queryLong` 5 个调用点全为 COUNT 族 → 两风险路径当前均不可达）。源：`ai-dev/audits/nop-metadata-invariants/adversarial-probing-notes-cycle2.md`（方向 6） — ⚠️ watch-only（Why Not Blocking：COUNT 语义下结果恒非 null 恒整数，无 live 缺陷；约束条件 = `queryLong` 接入可空/非整数聚合（SUM/MIN/MAX）前必须先 ErrorCode 化该回退路径）
+
+### 2026-08-15 multi-audit P2 遗留（35 项，不入独立 remediation plan）
+
+> 源：`ai-dev/audits/2026-08-15-0559-multi-audit-nop-metadata-invariant-loop.md`（下述 P2-xx 编号均指该文件「P2 发现」表；其中 P2-01/02/03 为初审 P1 经复核降级项，P2-05 等含裁定需求项建议下轮派生时优先裁决）。
+
+**数据完整性 / ORM 族**
+- **P2-01** TagLabel UK `(entityType,entityId,tagId,source)` 缺 glossaryTermId，GLOSSARY 来源行 NULL 互异不受唯一约束（限脏数据累积，非核心不变式失效）
+- **P2-26** `NopMetaQualityResult.checkpointId` 无关系弱引用，checkpoint 删除产生孤儿结果行（与 rule→results 级联不对称，是否保留历史需裁定）
+- **P2-27** `NopMetaTableJoin` 源模型注释陈旧：描述已被 D1 裁定推翻的行级互斥不变式（`nop-metadata.orm.xml:1687-1693`，注释被 codegen 读者持续消费）
+- **P2-28** `NopMetaBusinessDomain` UK (parentDomainId,name) 对根域重名不生效（NULL-distinct，仅根域失守）
+- **P2-29** `NopMetaGlossaryTerm`/`NopMetaTag` 双重 UK 冗余（全局 FQN UK 已蕴含 per-parent UK，冗余索引+语义漂移陷阱）
+- **P2-34** 2 个 dict 声明零引用（quality-trend-direction/checkpoint-action-type，语义载体是 JSON 列无法挂载，死元数据）
+
+**安全 / 脱敏 / 防御纵深族**
+- **P2-04** KEYWORD_BLACKLIST 对函数调用形态（`REPLACE(`/`TRUNCATE(`）跳过关键字检查（hardening 项非漏洞）
+- **P2-05** NopMetaTable 等元数据实体无行级数据权限，外部数据可达性依赖 ORM 条件装配隐式过滤（8 实体白名单为显式裁定；边界待产品级裁定）
+- **P2-06** webhook 侧主机提取无 F7 同款形状校验，null/畸形主机静默跳过（lucky fail-closed，防御纵深不对称）
+- **P2-07** custom_sql 全文写入 QualityResult.details 落库，与 AR-16 日志脱敏语义不一致（持久化面 vs 日志面分歧）
+- **P2-08** SQLException 原始消息未过滤进 error param，驱动回显可击穿 jdbcUrl 脱敏（低概率条件泄漏）
+- **P2-33** 审批流/状态机字段未收紧 updatable，标准 update 可绕过保留层守卫（TagLabel/DataContract/QualityResult 三处同族；与平台基线一致，应显式裁定）
+
+**错误处理 / 诊断族**
+- **P2-09** 6 个 throw 点缺 `{error}` 附注参数，描述尾部渲染字面 `-- {error}`（识别性参数齐备，仅附注性缺失）
+- **P2-10** 17 个 ErrorCode define 声明参数与描述占位符不一致 + 2 个死错误码（运行时未断裂，声明面契约漂移）
+- **P2-11** `.param()` 键 454 处字面量 vs 199 处 ARG_* 常量双轨混用（当前键值一致，是 P1-6/P2-10 潜伏的结构土壤）
+- **P2-12** ErrorCode 描述全英文且 i18n 零覆盖，与 error-handling.md「define 描述用中文」规则冲突（需 ask-first 裁定后单向收敛）
+- **P2-13** `throw new SQLException` 作方法内控制流哨兵，与模块自身裁定惯例相悖（无泄漏无静默，形态一致性）
+- **P2-14** 并发拒绝降级 WARN 未把异常对象作为 logger 末参数（内容合规，仅形式违约）
+
+**BizModel 行为 / 契约形态族**
+- **P2-18** `testConnection` 只读探测标注 `@BizMutation`（接口+实现一致错；同模块同类探测均正确用 @BizQuery）
+- **P2-19** 6 个 save override 缺 null-data 防护，NPE 抢先于基类 `ERR_BIZ_EMPTY_DATA_FOR_SAVE`（两种行为并存）
+- **P2-20** CheckpointExecutionResultDTO.executionResults/executionErrors 为 List<Map> 且与 ruleResults 数据重复（类型化版本已并存）
+- **P2-21** DataProduct 三方法手工字符串拼接 JSON（无转义，非常规 ID 导致 JSON 损坏；应统一 JsonTool）
+- **P2-22** NopMetaQualityResultBizModel.approve 为无字段变更的 no-op updateEntity（javadoc 声称重新判定；真实 re-judge 在工作流侧）
+- **P2-23** NopMetaReconciliationResultBizModel 死代码 toInt/toStr + 死错误码分支（类型化 DTO 遗留）
+- **P2-24** computeQualityScore 以空 lambda 调 doSave，绕过 xbiz 可覆盖的 defaultPrepareSave（cron 自动评分链路绕过宿主定制）
+- **P2-25** queryJoinData（6 参）/queryAggregation（10 参）超出 5 参数规则未用 @RequestBean（签名为 AR-09/F4 裁定契约，应为文档裁定例外）
+
+**IoC / 架构债务族**
+- **P2-02** NopMetaQualityCheckpointBizModel ↔ MetaQualityCheckpointScheduler 双向 @Inject 真循环（默认 allow-cycle 下零故障，仅未来严格模式爆炸——架构债务）
+- **P2-03** OrmModelImporter（253 行模型映射）驻留 dao 模块（nop-auth-dao/nop-wf-dao 先例充分；真实缺口是 owner 文档模块结构表漏列 model/ 子包）
+- **P2-30** save override Javadoc 与实际注入方式自相矛盾（声称 tryGetBean 懒查找避环，实为直接 @Inject，误导 P2-02 修复决策）
+- **P2-31** Scheduler BEAN_NAME 注释引用不存在的 beans 文件（实际注册于 app-service.beans.xml）
+
+**文档 / 元数据 / 测试卫生族**
+- **P2-15** owner 文档 DTO 计数漂移：两处宣称 31 个 @DataBean，实际 30 个（`docs-for-ai/03-modules/nop-metadata.md:207,259`）
+- **P2-16** `_templates/README.md:7`（nop-metadata-meta）文件计数 32 vs 实际 39（实体扩容后说明未同步）
+- **P2-17** TestNopMetaBizInterfaceCompleteness 覆盖 12/14 非空接口且断言强度不足（当前无实际漂移，程序化强校验通过）
+- **P2-32** NopMetaSearch.xmeta 使用未声明的 i18n-en 命名空间前缀 + 无 i18n 抽取配套（运行时可加载但按 XML 规范畸形）
+- **P2-35** 杂项聚合（AggregationHelper 938 行混装、nop-search-lucene compile+optional 应为 test、io.nop.wf.api 未显式声明 nop-wf-api、NopMetaSearch.xmeta/.xwf 未入 owner 文档模块结构表、source-anchors META-001 行数 268→274、TestAggregationHelper 无 @Test 虚增计数、TestLimitTargetSetCompleteness 计数正则单一形态、TestCoreMetricsUsage 注释剥离正则假阴性洞、TestNopMetadataErrorsCentralized 镜像断言、testCrossDbAliasOf 仅 assertNotNull、TestNopMetaDtoResults 首方法无 parse-back）
