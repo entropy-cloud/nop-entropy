@@ -211,4 +211,90 @@ public class TestDashboardParamParserAndResolver {
         Map<String, Object> out = DashboardFilterResolver.resolve(List.of(def), Map.of());
         assertFalse(out.containsKey("region"));
     }
+
+    // ==================== date-range delimited 接受形态（D2-4，§11.4） ====================
+
+    @Test
+    public void testResolveDateRangeDelimitedStringAccepted() {
+        DashboardParamDefinition def = new DashboardParamDefinition(
+                "period", DashboardParamDefinition.TYPE_DATE_RANGE, null, null, null);
+        Map<String, Object> out = DashboardFilterResolver.resolve(List.of(def),
+                Map.of("period", "2024-01-01,2024-06-30"));
+        assertEquals("2024-01-01", out.get("period.start"), "delimited scalar split into flat start key");
+        assertEquals("2024-06-30", out.get("period.end"), "delimited scalar split into flat end key");
+        assertFalse(out.containsKey("period"), "output is always flat-key form (canonical)");
+    }
+
+    @Test
+    public void testResolveDateRangeFlatKeysTakePrecedenceOverDelimitedScalar() {
+        DashboardParamDefinition def = new DashboardParamDefinition(
+                "period", DashboardParamDefinition.TYPE_DATE_RANGE, null, null, null);
+        Map<String, Object> out = DashboardFilterResolver.resolve(List.of(def),
+                Map.of("period", "2024-01-01,2024-06-30",
+                        "period.start", "2024-02-01",
+                        "period.end", "2024-03-31"));
+        assertEquals("2024-02-01", out.get("period.start"), "flat keys win when both forms provided");
+        assertEquals("2024-03-31", out.get("period.end"));
+    }
+
+    @Test
+    public void testResolveDateRangeDelimitedNoDelimiterThrows() {
+        DashboardParamDefinition def = new DashboardParamDefinition(
+                "period", DashboardParamDefinition.TYPE_DATE_RANGE, null, null, null);
+        NopException ex = assertThrows(NopException.class,
+                () -> DashboardFilterResolver.resolve(List.of(def), Map.of("period", "2024-01-01")));
+        assertEquals(ERR_DATAV_PARAM_TYPE_MISMATCH.getErrorCode(), ex.getErrorCode());
+    }
+
+    @Test
+    public void testResolveDateRangeDelimitedThreeSegmentsThrows() {
+        DashboardParamDefinition def = new DashboardParamDefinition(
+                "period", DashboardParamDefinition.TYPE_DATE_RANGE, null, null, null);
+        NopException ex = assertThrows(NopException.class,
+                () -> DashboardFilterResolver.resolve(List.of(def),
+                        Map.of("period", "2024-01-01,2024-06-30,2024-12-31")));
+        assertEquals(ERR_DATAV_PARAM_TYPE_MISMATCH.getErrorCode(), ex.getErrorCode());
+    }
+
+    @Test
+    public void testResolveDateRangeDelimitedRelativeTokenRejected() {
+        // §11.4 核实记录：relative 语义值（如 'today,today'）显式不支持
+        DashboardParamDefinition def = new DashboardParamDefinition(
+                "period", DashboardParamDefinition.TYPE_DATE_RANGE, null, null, null);
+        NopException ex = assertThrows(NopException.class,
+                () -> DashboardFilterResolver.resolve(List.of(def), Map.of("period", "today,today")));
+        assertEquals(ERR_DATAV_PARAM_TYPE_MISMATCH.getErrorCode(), ex.getErrorCode());
+    }
+
+    @Test
+    public void testResolveDateRangeDelimitedNonDatePartsThrows() {
+        DashboardParamDefinition def = new DashboardParamDefinition(
+                "period", DashboardParamDefinition.TYPE_DATE_RANGE, null, null, null);
+        NopException ex = assertThrows(NopException.class,
+                () -> DashboardFilterResolver.resolve(List.of(def), Map.of("period", "bogus,2024-12-31")));
+        assertEquals(ERR_DATAV_PARAM_TYPE_MISMATCH.getErrorCode(), ex.getErrorCode());
+    }
+
+    @Test
+    public void testResolveDateRangeArrayFormRejected() {
+        // §11.4：数组形态显式拒绝（flux 发布的是字符串，不引入第二提交形态）
+        DashboardParamDefinition def = new DashboardParamDefinition(
+                "period", DashboardParamDefinition.TYPE_DATE_RANGE, null, null, null);
+        NopException ex = assertThrows(NopException.class,
+                () -> DashboardFilterResolver.resolve(List.of(def),
+                        Map.of("period", List.of("2024-01-01", "2024-12-31"))));
+        assertEquals(ERR_DATAV_PARAM_TYPE_MISMATCH.getErrorCode(), ex.getErrorCode());
+    }
+
+    @Test
+    public void testResolveDateRangeDelimitedScalarIgnoredWhenOneFlatKeyPresent() {
+        // 优先级细则：delimited 标量仅在两个扁平 key 均缺省时被消费
+        DashboardParamDefinition def = new DashboardParamDefinition(
+                "period", DashboardParamDefinition.TYPE_DATE_RANGE,
+                Map.of("start", "2024-01-01", "end", "2024-12-31"), null, null);
+        Map<String, Object> out = DashboardFilterResolver.resolve(List.of(def),
+                Map.of("period", "2024-01-01,2024-06-30", "period.start", "2024-03-01"));
+        assertEquals("2024-03-01", out.get("period.start"));
+        assertEquals("2024-12-31", out.get("period.end"), "end falls back to default, scalar not consumed");
+    }
 }

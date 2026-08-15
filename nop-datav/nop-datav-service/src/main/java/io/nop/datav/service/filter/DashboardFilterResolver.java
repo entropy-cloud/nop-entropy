@@ -79,6 +79,16 @@ public final class DashboardFilterResolver {
         Object startValue = input.get(startKey);
         Object endValue = input.get(endKey);
 
+        // §11.4 delimited 接受形态：两个扁平 key 均缺省时，paramName 标量按 'start,end' 拆分（扁平 key 优先）
+        if (startValue == null && endValue == null) {
+            Object scalar = input.get(name);
+            if (scalar != null) {
+                String[] parts = splitDelimitedDateRange(def, scalar);
+                startValue = parts[0];
+                endValue = parts[1];
+            }
+        }
+
         if (startValue == null || endValue == null) {
             Object defaultValue = def.getDefaultValue();
             if (defaultValue instanceof Map) {
@@ -100,6 +110,27 @@ public final class DashboardFilterResolver {
             validateDate(def, "end", endValue);
             result.put(endKey, endValue.toString());
         }
+    }
+
+    /**
+     * 拆分 delimited date-range 提交值（§11.4 契约形态）：须为字符串、恰好含一个 delimiter。
+     * 日期段合法性由 {@link #validateDate} 逐段校验（含 relative token 显式拒绝）。数组形态显式拒绝。
+     */
+    private static String[] splitDelimitedDateRange(DashboardParamDefinition def, Object scalar) {
+        String expected = "date-range delimited string '"
+                + DashboardParamDefinition.DATE_RANGE_VALUE_FORMAT
+                + DashboardParamDefinition.DATE_RANGE_DELIMITER
+                + DashboardParamDefinition.DATE_RANGE_VALUE_FORMAT + "'";
+        if (!(scalar instanceof String)) {
+            throw typeMismatch(def.getName(), scalar, expected);
+        }
+        String s = (String) scalar;
+        String delimiter = DashboardParamDefinition.DATE_RANGE_DELIMITER;
+        int first = s.indexOf(delimiter);
+        if (first < 0 || first != s.lastIndexOf(delimiter)) {
+            throw typeMismatch(def.getName(), scalar, expected);
+        }
+        return new String[]{s.substring(0, first), s.substring(first + delimiter.length())};
     }
 
     private static void validateSimpleType(DashboardParamDefinition def, Object value) {
@@ -137,7 +168,7 @@ public final class DashboardFilterResolver {
         return value;
     }
 
-    private static boolean isNumber(Object value) {
+    static boolean isNumber(Object value) {
         if (value instanceof Number) {
             return true;
         }
@@ -153,7 +184,7 @@ public final class DashboardFilterResolver {
         }
     }
 
-    private static boolean isParsableDate(Object value) {
+    static boolean isParsableDate(Object value) {
         if (value == null) {
             return false;
         }

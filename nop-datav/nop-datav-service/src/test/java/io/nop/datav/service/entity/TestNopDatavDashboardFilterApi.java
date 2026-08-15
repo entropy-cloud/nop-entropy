@@ -16,6 +16,7 @@ import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 
+import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_FILTER_DEF_UNKNOWN_WIDGET;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_PARAM_TYPE_MISMATCH;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -183,6 +184,111 @@ public class TestNopDatavDashboardFilterApi extends AbstractNopDatavTest {
         Map<String, Object> parsed = DashboardFilterUrlCodec.parseQueryString(url);
         assertEquals("North", parsed.get("region"));
         assertEquals("100", parsed.get("limit"));
+    }
+
+    // ==================== exportDashboardFilter（D2-4 wiring + behavior） ====================
+
+    /**
+     * 接线验证：注入的 BizModel 代理调用 exportDashboardFilter 返回完整筛选定义工件，
+     * 证明 Dashboard BizModel → DashboardParamParser → DashboardFilterDefExporter 调用链在运行时连通。
+     */
+    @Test
+    public void testExportDashboardFilterViaBizProxy() {
+        String paramConfig = JsonTool.stringify(List.of(
+                Map.of("name", "region", "type", "string", "defaultValue", "all",
+                        "label", "区域", "widget", "dropdown"),
+                Map.of("name", "limit", "type", "number", "defaultValue", 10),
+                Map.of("name", "saleDate", "type", "date"),
+                Map.of("name", "period", "type", "date-range",
+                        "defaultValue", Map.of("start", "2024-01-01", "end", "2024-12-31"))
+        ));
+        NopDatavDashboard dashboard = saveDashboardWithParamConfig("dash-export-filter", paramConfig);
+        IServiceContext context = newContext("tester");
+
+        Map<String, Object> def = dashboardBiz.exportDashboardFilter(dashboard.getDashboardId(), context);
+
+        assertEquals(dashboard.getDashboardId(), def.get("dashboardId"));
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> fields = (List<Map<String, Object>>) def.get("fields");
+        assertEquals(4, fields.size());
+
+        Map<String, Object> region = fields.get(0);
+        assertEquals("区域", region.get("label"));
+        assertEquals("select", region.get("control"));
+        assertEquals("all", region.get("initialValue"));
+
+        assertEquals("input-number", fields.get(1).get("control"));
+        assertEquals("input-date", fields.get(2).get("control"));
+
+        Map<String, Object> period = fields.get(3);
+        assertEquals("date-range", period.get("control"));
+        assertEquals("2024-01-01,2024-12-31", period.get("initialValue"),
+                "date-range initialValue is delimited absolute date string");
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> dateRangeValue = (Map<String, Object>) def.get("dateRangeValue");
+        assertEquals(",", dateRangeValue.get("delimiter"));
+        assertEquals("yyyy-MM-dd", dateRangeValue.get("valueFormat"));
+    }
+
+    @Test
+    public void testExportDashboardFilterEmptyParamConfigProducesEmptyDefinition() {
+        NopDatavDashboard dashboard = saveDashboardWithParamConfig("dash-export-filter-empty", null);
+        IServiceContext context = newContext("tester");
+
+        Map<String, Object> def = dashboardBiz.exportDashboardFilter(dashboard.getDashboardId(), context);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> fields = (List<Map<String, Object>>) def.get("fields");
+        assertTrue(fields.isEmpty(), "no-paramConfig dashboard exports empty definition");
+    }
+
+    @Test
+    public void testExportDashboardFilterUnknownWidgetThrowsViaBizProxy() {
+        String paramConfig = JsonTool.stringify(List.of(
+                Map.of("name", "region", "type", "string", "widget", "bogus")));
+        NopDatavDashboard dashboard = saveDashboardWithParamConfig("dash-export-filter-bad", paramConfig);
+        IServiceContext context = newContext("tester");
+
+        NopException ex = assertThrows(NopException.class,
+                () -> dashboardBiz.exportDashboardFilter(dashboard.getDashboardId(), context));
+        assertEquals(ERR_DATAV_FILTER_DEF_UNKNOWN_WIDGET.getErrorCode(), ex.getErrorCode());
+    }
+
+    // ==================== date-range delimited 接受形态（D2-4，§11.4 API 级） ====================
+
+    @Test
+    public void testResolveFilterValuesDelimitedFormViaBizProxy() {
+        String paramConfig = JsonTool.stringify(List.of(
+                Map.of("name", "period", "type", "date-range",
+                        "defaultValue", Map.of("start", "2024-01-01", "end", "2024-12-31"))
+        ));
+        NopDatavDashboard dashboard = saveDashboardWithParamConfig("dash-resolve-delimited", paramConfig);
+        IServiceContext context = newContext("tester");
+
+        Map<String, Object> out = dashboardBiz.resolveFilterValues(dashboard.getDashboardId(),
+                Map.of("period", "2024-02-01,2024-06-30"), context);
+        assertEquals("2024-02-01", out.get("period.start"));
+        assertEquals("2024-06-30", out.get("period.end"));
+        assertFalse(out.containsKey("period"));
+    }
+
+    @Test
+    public void testParseFilterFromUrlDelimitedFormAccepted() {
+        // §11.5：URL canonical = 扁平 key；delimited 形态兼容接受（经 resolver delimited 路径拆分）
+        String paramConfig = JsonTool.stringify(List.of(
+                Map.of("name", "region", "type", "string", "defaultValue", "all"),
+                Map.of("name", "period", "type", "date-range")
+        ));
+        NopDatavDashboard dashboard = saveDashboardWithParamConfig("dash-url-delimited", paramConfig);
+        IServiceContext context = newContext("tester");
+
+        Map<String, Object> fromUrl = dashboardBiz.parseFilterFromUrl(
+                dashboard.getDashboardId(),
+                "https://host/dash/" + dashboard.getDashboardId() + "?region=East&period=2024-01-01,2024-06-30",
+                context);
+        assertEquals("East", fromUrl.get("region"));
+        assertEquals("2024-01-01", fromUrl.get("period.start"));
+        assertEquals("2024-06-30", fromUrl.get("period.end"));
     }
 
     // ==================== Helpers ====================

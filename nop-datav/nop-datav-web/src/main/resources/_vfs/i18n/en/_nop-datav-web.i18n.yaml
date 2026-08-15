@@ -38,6 +38,8 @@ site:
       displayName: Modify ChatBI Session
     FNPT:NopDatavChatSession:query:
       displayName: Query ChatBI Session
+    FNPT:NopDatavDashboard:exportDashboardFilter:
+      displayName: Export Dashboard Filter
     FNPT:NopDatavDashboard:exportDashboardLayout:
       displayName: Export Dashboard Layout
     FNPT:NopDatavDashboard:getDashboardData:

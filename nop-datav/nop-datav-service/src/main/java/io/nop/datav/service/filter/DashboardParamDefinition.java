@@ -15,6 +15,27 @@ public final class DashboardParamDefinition {
     public static final String TYPE_DATE = "date";
     public static final String TYPE_DATE_RANGE = "date-range";
 
+    /**
+     * paramConfig widget 词表（封闭，§11.3）：词表外取值由筛选定义产出显式报错。
+     */
+    public static final String WIDGET_DROPDOWN = "dropdown";
+    public static final String WIDGET_DATE_PICKER = "date-picker";
+
+    /**
+     * 筛选定义产出 control 词表（封闭，§11.3）：select / input-text / input-number / input-date / date-range。
+     */
+    public static final String CONTROL_SELECT = "select";
+    public static final String CONTROL_INPUT_TEXT = "input-text";
+    public static final String CONTROL_INPUT_NUMBER = "input-number";
+    public static final String CONTROL_INPUT_DATE = "input-date";
+    public static final String CONTROL_DATE_RANGE = "date-range";
+
+    /**
+     * date-range delimited 值形态契约（§11.4 钉死）：delimiter 与 valueFormat 两侧唯一。
+     */
+    public static final String DATE_RANGE_DELIMITER = ",";
+    public static final String DATE_RANGE_VALUE_FORMAT = "yyyy-MM-dd";
+
     private final String name;
     private final String type;
     private final Object defaultValue;

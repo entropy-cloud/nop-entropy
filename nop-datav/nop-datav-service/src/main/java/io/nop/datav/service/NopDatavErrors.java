@@ -194,6 +194,22 @@ public interface NopDatavErrors {
             ARG_PARAM_NAME, ARG_VALUE, ARG_EXPECTED_TYPE
     );
 
+    // ===== D2-4 flux dashboard-filter 对齐（裁定见 linkage-design.md §11.6） =====
+
+    String ARG_WIDGET = "widget";
+
+    ErrorCode ERR_DATAV_FILTER_DEF_UNKNOWN_WIDGET = define(
+            "nop.err.datav.filter-def-unknown-widget",
+            "Unknown filter widget '{widget}' for parameter '{paramName}' (supported: dropdown, date-picker)",
+            ARG_WIDGET, ARG_PARAM_NAME
+    );
+
+    ErrorCode ERR_DATAV_FILTER_DEF_WIDGET_TYPE_MISMATCH = define(
+            "nop.err.datav.filter-def-widget-type-mismatch",
+            "Filter widget '{widget}' is not applicable to parameter types {expectedType} (parameter: {paramName})",
+            ARG_WIDGET, ARG_EXPECTED_TYPE, ARG_PARAM_NAME
+    );
+
     ErrorCode ERR_DATAV_INVALID_LINKAGE_CONFIG = define(
             "nop.err.datav.invalid-linkage-config",
             "Invalid linkage config JSON for panel: {panelId}, reason: {reason}",

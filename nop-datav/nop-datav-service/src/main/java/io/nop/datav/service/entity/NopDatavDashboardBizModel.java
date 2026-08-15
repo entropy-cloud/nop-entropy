@@ -36,6 +36,7 @@ import io.nop.datav.dao.entity.NopDatavReportTask;
 import io.nop.datav.service.NopDatavConfigs;
 import io.nop.datav.service.NopDatavOperatorResolver;
 import io.nop.datav.service.alert.NopDatavAlertScheduler;
+import io.nop.datav.service.filter.DashboardFilterDefExporter;
 import io.nop.datav.service.filter.DashboardFilterResolver;
 import io.nop.datav.service.filter.DashboardFilterUrlCodec;
 import io.nop.datav.service.filter.DashboardParamDefinition;
@@ -313,6 +314,23 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
                 .getEntityById(id);
         List<DashboardParamDefinition> definitions = DashboardParamParser.parse(dashboard.getParamConfig());
         return DashboardFilterResolver.resolve(definitions, parsed);
+    }
+
+    // ==================== flux dashboard-filter 筛选定义产出（plan 2026-08-15-1134-2，裁定见 linkage-design.md §十一） ====================
+
+    /**
+     * 导出 flux dashboard-filter 约定可消费的筛选定义（参数描述符数组，§11.2 产出契约）。
+     *
+     * <p>type/widget 按封闭词表映射（§11.3，词表外/组合非法显式报错不静默回退）；date-range
+     * initialValue 以 delimited 绝对日期串产出（§11.4）；无参数看板产出空 fields；不含 options。</p>
+     */
+    @Override
+    @BizQuery
+    @Auth(permissions = "NopDatavDashboard:exportDashboardFilter")
+    public Map<String, Object> exportDashboardFilter(@Name("id") String id, IServiceContext context) {
+        NopDatavDashboard dashboard = requireEntity(id, "exportDashboardFilter", context);
+        List<DashboardParamDefinition> definitions = DashboardParamParser.parse(dashboard.getParamConfig());
+        return DashboardFilterDefExporter.export(dashboard.getDashboardId(), definitions);
     }
 
     // ==================== 批量面板查询（plan 2026-08-14-2020-2，裁定见 runtime-design.md §四；并行执行与结果缓存 plan 2026-08-15-0004-3，裁定见 §八） ====================

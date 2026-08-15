@@ -59,6 +59,12 @@
                                   roles="admin">
                             <permissions>NopDatavDashboard:saveDashboardLayout</permissions>
                         </resource>
+                        <!-- D2-4 flux dashboard-filter 对齐（plan 2026-08-15-1134-2，linkage-design.md §11.2）：查询类，镜像 exportDashboardLayout（admin,user） -->
+                        <resource id="FNPT:NopDatavDashboard:exportDashboardFilter" displayName="导出看板筛选定义"
+                                  i18n-en:displayName="Export Dashboard Filter" orderNo="10018" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavDashboard:exportDashboardFilter</permissions>
+                        </resource>
                     </children>
                 </resource>
                 <!-- ==================== NopDatavDashboardSnapshot ==================== -->

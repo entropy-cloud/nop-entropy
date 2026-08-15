@@ -35,6 +35,22 @@ public interface INopDatavDashboardBiz extends ICrudBiz<NopDatavDashboard>{
                                            IServiceContext context);
 
     /**
+     * 导出 flux dashboard-filter 约定可消费的筛选定义（参数描述符数组工件）。
+     *
+     * <p>参见 {@code ai-dev/design/nop-datav/linkage-design.md} §十一 D2-4 对齐契约。</p>
+     *
+     * <p>行为：读取编辑态 live {@code paramConfig} → 参数定义解析 → type/widget 按词表映射
+     * （词表外/组合非法显式报错，不静默回退）→ date-range initialValue 以 delimited 绝对日期串
+     * 产出（delimiter ','、格式 yyyy-MM-dd）→ 返回 {@code {dashboardId, fields[], dateRangeValue}}。
+     * 无参数看板产出空 fields（非报错）；定义不含 options（候选值由 flux 页面 schema 自供，§11.3）。</p>
+     *
+     * @param id      看板 ID（dashboardId）
+     * @param context 服务上下文
+     */
+    @BizQuery("exportDashboardFilter")
+    Map<String, Object> exportDashboardFilter(@Name("id") String id, IServiceContext context);
+
+    /**
      * 批量查询看板面板数据。单次调用返回该看板（或指定 panelIds 子集）各面板的数据条目。
      *
      * <p>参见 {@code ai-dev/design/nop-datav/runtime-design.md} §四 批量面板查询。</p>
