@@ -1,9 +1,9 @@
 # nop-metadata 审计目标集（Audit Target Set）
 
-> 产出方：plan `2026-08-13-1930-1`（Cycle 1 / I0 — 不变式盘点与基线，Phase 1）
-> 实测日期：2026-08-13（live repo，非记忆）
-> 上游 roadmap：`ai-dev/backlog/nop-metadata-invariant-loop-roadmap.md`（I0）
-> 消费者：I1（表完备性门禁基准）、I2（按不变式审计的全集）、invariant-catalog（覆盖率回填）
+> 产出方：plan `2026-08-13-1930-1`（Cycle 1 / I0 — 不变式盘点与基线，Phase 1）；Cycle 2 / I1' 增补：plan `2026-08-15-0820-1`（§5 silent-wrong-result 目标集 + §1.3 计数漂移校正）
+> 实测日期：2026-08-13（Cycle 1）/ 2026-08-15（Cycle 2 增补与校正，live repo，非记忆）
+> 上游 roadmap：`ai-dev/backlog/nop-metadata-invariant-loop-roadmap.md`（I0 / Cycle 2 I1'）
+> 消费者：I1（表完备性门禁基准）、I2（按不变式审计的全集）、invariant-catalog（覆盖率回填）、Cycle 2 I2'/I3'（red list 裁决全集）
 
 ## 目的
 
@@ -98,35 +98,36 @@
 
 ### 1.3 「是否含 catch」— catch 块目标集（静默吞异常族穷举面）
 
-> 静默吞异常族的扫描面 = **全部 catch 块**（130 个，分布在 46 个文件），而非仅入口方法。下表为逐文件 catch 块分布（穷举目标集）。入口方法自身的 catch 由其所在文件的计数覆盖。
+> 静默吞异常族的扫描面 = **全部 catch 块**（**125 个，分布在 45 个文件**，2026-08-15 live 重测），而非仅入口方法。下表为逐文件 catch 块分布（穷举目标集）。入口方法自身的 catch 由其所在文件的计数覆盖。
+>
+> **2026-08-15 计数漂移校正（plan `2026-08-15-0820-1` Phase 1 D3）**：2026-08-13 基线为 130 catch / 46 文件，live 重测 = **125 / 45**（漂移 −5）。原因：2026-08-14 死码/诊断退化清扫批次删除了带 catch 的死方法/死分支——F16 死方法 `NopMetaQualityRuleBizModel.resolveDataSourceOrThrow`（3→2）、F14/AR-14 批次（`TableReferenceExecutor` 6→5、`NopMetaDataSourceBizModel` 5→4、`SqlViewFieldTypeInferrer` 3→2、`NopMetaProfilingRuleBizModel` 1→0，commit `08b1ef556` 等）。**以 live 125 为准，不照抄旧值 130**。注意口径：rg 原始计数 126 含 1 处 javadoc 伪站点（`MetaTableProfiler.java:223` 注释内 `catch (SQLException)` 文字），门禁扫描器剥离注释后实扫 125。
 
 | 文件（service 相对路径） | catch 块数 |
 |---|---|
 | search/NopMetaIndexBuilder.java | 11 |
 | quality/MetaQualityRuleExecutor.java | 9 |
 | quality/MetaQualityCheckpointScheduler.java | 7 |
-| profiling/MetaTableProfiler.java | 7 |
-| tableref/TableReferenceExecutor.java | 6 |
+| profiling/MetaTableProfiler.java | 7（rg 原始 8，含 1 javadoc 伪站点） |
 | entity/NopMetaModuleBizModel.java | 6 |
 | connection/MetaDataSourceConnectionProcessor.java | 6 |
+| tableref/TableReferenceExecutor.java | 5 |
+| query/AggregationHelper.java | 5 |
 | entity/NopMetaQualityCheckpointBizModel.java | 5 |
-| entity/NopMetaDataSourceBizModel.java | 5 |
-| query/AggregationHelper.java | 4 |
 | quality/MetaQualityCheckpointExecutor.java | 4 |
+| entity/NopMetaDataSourceBizModel.java | 4 |
 | entity/AutoClassificationProcessor.java | 4 |
 | contract/MetaContractChecker.java | 4 |
-| sqlview/SqlViewFieldTypeInferrer.java | 3 |
 | security/HostSecurityUtil.java | 3 |
 | quality/CheckpointActionDispatcher.java | 3 |
 | entity/NopMetaTagLabelBizModel.java | 3 |
-| entity/NopMetaQualityRuleBizModel.java | 3 |
 | entity/NopMetaLineageEdgeQueryAction.java | 3 |
 | entity/LineageTagPropagationProcessor.java | 3 |
 | sync/ExternalTableStructureReader.java | 2 |
+| sqlview/SqlViewFieldTypeInferrer.java | 2 |
 | search/NopMetaSearchProcessor.java | 2 |
 | query/MetaJoinExecutor.java | 2 |
-| entity/NopMetaTableQueryAction.java | 2 |
 | entity/NopMetaTableFilterBizModel.java | 2 |
+| entity/NopMetaQualityRuleBizModel.java | 2 |
 | tableref/MetaTableReferenceResolver.java | 1 |
 | sqlview/SqlSelectFieldExtractor.java | 1 |
 | reconciliation/LocalReconciliationProcessor.java | 1 |
@@ -143,14 +144,14 @@
 | lineage/SqlColumnLineageExtractor.java | 1 |
 | field/MetaTableFieldResolver.java | 1 |
 | event/MetaModelChangedEventPublisher.java | 1 |
+| entity/NopMetaTableQueryAction.java | 1 |
 | entity/NopMetaReconciliationResultBizModel.java | 1 |
 | entity/NopMetaReconciliationConfigBizModel.java | 1 |
-| entity/NopMetaProfilingRuleBizModel.java | 1 |
 | entity/NopMetaGlossaryTermBizModel.java | 1 |
 | entity/NopMetaEntityBizModel.java | 1 |
-| **合计** | **130（46 文件）** |
+| **合计** | **125（45 文件）** |
 
-复现：`rg -c "catch\s*\(" nop-metadata/nop-metadata-service/src/main/java | sort -t: -k2 -nr`
+复现：`rg -c "catch\s*\(" nop-metadata/nop-metadata-service/src/main/java | sort -t: -k2 -nr`（原始口径 126 = 125 真实 + 1 javadoc 伪站点）
 
 ### 1.4 limit 引用面（limit 负值校验族穷举面）
 
@@ -282,9 +283,109 @@ console.log("missing constraint or columns:", missing);
 
 ---
 
+## §5 Cycle 2 silent-wrong-result 目标集（plan `2026-08-15-0820-1` Phase 1 D3）
+
+> 2026-08-15 live 实测。目标面 = `nop-metadata-service/src/main/java` 全部 main 代码（与 INV-SILENT-SWALLOW 同面）。权威计数以门禁扫描器 `check-silent-wrong-result.mjs` 为准（注释/字符串剥离）；rg 命令为辅助复核（不剥离注释，含伪站点——逐节注明差异）。
+
+### 5.1 INV-LOCALE — 默认 locale case-mapping 站点
+
+**live 计数 = 40 站点 / 10 文件**（扫描器口径；rg 原始 41 含 1 处 javadoc 伪站点 `LocalReconciliationProcessor.java:124`）。
+
+| 文件（service 相对路径） | 站点数 |
+|---|---|
+| lineage/SqlColumnLineageExtractor.java | 10 |
+| profiling/MetaTableProfiler.java | 7 |
+| connection/MetaDataSourceConnectionProcessor.java | 5 |
+| entity/NopMetaLineageEdgeQueryAction.java | 5 |
+| quality/CheckpointActionDispatcher.java | 4 |
+| quality/MetaQualityRuleExecutor.java | 4 |
+| lineage/SqlSourceTableExtractor.java | 2 |
+| catalog/MetaCatalogCollector.java | 1 |
+| contract/MetaContractChecker.java | 1 |
+| sync/ExternalTableStructureReader.java | 1 |
+| **合计** | **40（10 文件）** |
+
+复现（rg 原始口径 41）：`rg '\.(toLowerCase|toUpperCase)\(\)' nop-metadata --glob '*.java' -g '!*_gen/*' -g '!*Test*' | wc -l`
+复现（扫描器口径 40，权威）：`node ai-dev/tools/check-silent-wrong-result.mjs --module nop-metadata --rule locale --format json | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>console.log(JSON.parse(d).hitCount))'`
+
+### 5.2 INV-NARROW — narrowing-cast 站点（防回退，预期零）
+
+**live 计数 = 0**（防回退零点）。live 仅存 2 处 `(long)` 强转（`MetaContractChecker.java:384/:395`）均为 AR-01 修复后的正确形态（操作数加括号、先乘后取整），不命中；`(long) from + limit` 等 widening 场景（int/long 操作数）不命中。
+
+复现（候选面，需人工区分 widening）：`rg -n '\((?:long|int|short)\)\s*[A-Za-z_$][A-Za-z0-9_$.]*\s*(?:\*|/|%|\+|-)' nop-metadata --glob '*.java' -g '!*_gen/*' -g '!*Test*'`
+复现（扫描器口径 0，权威）：`node ai-dev/tools/check-silent-wrong-result.mjs --module nop-metadata --rule narrowing-cast`
+
+### 5.3 INV-CONTAINS-CLASSIFY — String-receiver `.contains(` 站点
+
+**live 计数 = 19 站点（14 行）/ 6 文件**。
+
+| 文件（service 相对路径） | 站点数 | 语义初判（终判归 I3'） |
+|---|---|---|
+| profiling/MetaTableProfiler.java | 9（:276×3/:277×2/:278×2 AR-06 消息线索；:567 `isStringType` 子串分类——AR-05 兄弟残留；:595 派生列名标记） | 混合 |
+| sync/ExternalTableStructureReader.java | 2（:148 方言分类 `p.contains("mysql")`） | 分类 |
+| field/ExpressionMeasureValidator.java | 2（:223/:237 限定名判定 `ident.contains(".")`） | 解析 |
+| quality/MetaQualityRuleExecutor.java | 4（:388/:391 sandbox 探测；:646 派生列名标记；:810 消息线索） | 混合 |
+| connection/MetaDataSourceConnectionProcessor.java | 1（:246 危险参数 blocklist `lower.contains(dangerous)`） | 安全探测 |
+| entity/NopMetaModuleBizModel.java | 1（:358 delta 判定 `sourceContent.contains("x:extends")`） | 结构探测 |
+| **合计** | **19（6 文件）** | |
+
+> 检测边界（诚实声明）：receiver 为方法调用（如 `resolveAllowedWebhookHosts().contains(...)`、`:326` 集合 receiver）不命中——静态不可判定其元素语义；集合类型 receiver（`Set/List` 声明）全等查询不命中。
+
+复现（粗筛 `.contains(` 全量 58 处，含集合 receiver）：`rg -n '\.contains\(' nop-metadata/nop-metadata-service/src/main/java --glob '*.java' | wc -l`
+复现（扫描器口径 19，权威）：`node ai-dev/tools/check-silent-wrong-result.mjs --module nop-metadata --rule contains-classify`
+
+### 5.4 INV-DELIM-KEY — 分隔符拼接复合键站点
+
+**live 计数 = 6 站点 / 3 文件**（2026-08-15 扫描器实测；初测 rg 粗筛 3 处为引用转义遗漏，以扫描器为准）。
+
+| 文件:行 | 形态 |
+|---|---|
+| entity/LineageTagPropagationProcessor.java:85 | `visited.add(entityType + "#" + entityId)` —— 内联拼接直接作 Set 键 |
+| entity/LineageTagPropagationProcessor.java:136 | `String visitKey = ENTITY_TYPE_NOP_META_TABLE + "#" + targetId` —— *Key 变量拼接 |
+| entity/LineageTagPropagationProcessor.java:152 | `visited.contains(ENTITY_TYPE_NOP_META_TABLE + "#" + ...)` —— 成员查询内联拼接 |
+| entity/AutoClassificationProcessor.java:144 | `String warnKey = getClassificationId() + "\|" + pattern` —— *Key 变量拼接 |
+| entity/NopMetaLineageEdgeQueryAction.java:258 | `String key = sourceId + "\|" + sourceColumn + "\|" + targetColumn` —— 三段 *Key 变量拼接 |
+| entity/NopMetaLineageEdgeQueryAction.java:487 | `map.put(sourceTableId + "\|" + sourceColumn + "\|" + targetColumn, e)` —— 三段内联拼接直接作 map 键 |
+
+> AR-03 修复点（group-key 改结构性键）不命中。检测边界：lambda key extractor 内联拼接需流分析，不命中（watch 边界）。
+
+复现（rg 转义注意，`|` 须双转义）：`rg -n '\+ "\\\|" \+' nop-metadata/nop-metadata-service/src/main/java --glob '*.java'`
+复现（扫描器口径 6，权威）：`node ai-dev/tools/check-silent-wrong-result.mjs --module nop-metadata --rule delim-key`
+
+复现（拼接形态粗筛）：`rg -n '\+ "(\\||:|;|,|#|@)" \+' nop-metadata/nop-metadata-service/src/main/java`
+复现（扫描器口径 6，权威）：`node ai-dev/tools/check-silent-wrong-result.mjs --module nop-metadata --rule delim-key`
+
+### 5.5 INV-BIGDEC — Number→BigDecimal 经 double 站点
+
+**live 计数 = 2 站点 / 2 文件**。
+
+| 文件:行 | 形态 |
+|---|---|
+| query/MemoryOrderByComparator.java:132 | `BigDecimal.valueOf(((Number) v).doubleValue())` —— 无整数路由 + String 静默返回 null |
+| query/MemoryFilterEvaluator.java:356 | 同上（私有拷贝） |
+
+> **受保护正确形态（不命中）**：`query/AggregationHelper.java:554` `java.math.BigDecimal.valueOf(n.doubleValue())` —— 所在 `toBigDecimal` 方法体含 `.longValue()` 整数路由信号（`:551`，AR-10 修复形态）。朴素 pattern 扫描（命中 3 处）与基线 2 处的矛盾由此消除：检测规则按「方法体含 longValue 路由信号」显式排除。
+
+复现（`BigDecimal.valueOf` 全量 5 处，含受保护形态）：`rg -n 'BigDecimal\.valueOf' nop-metadata --glob '*.java' -g '!*_gen/*' -g '!*Test*'`
+复现（扫描器口径 2，权威）：`node ai-dev/tools/check-silent-wrong-result.mjs --module nop-metadata --rule bigdec-precision`
+
+### 5.6 汇总
+
+| 子族 | live 站点 | 文件数 | 门禁规则 |
+|---|---|---|---|
+| locale | 40 | 10 | `locale` |
+| narrowing-cast | 0（防回退） | 0 | `narrowing-cast` |
+| contains-classify | 19 | 6 | `contains-classify` |
+| delim-key | 6 | 3 | `delim-key` |
+| bigdec-precision | 2 | 2 | `bigdec-precision` |
+| **合计** | **67** | 16（去重） | 单门禁 5 规则 |
+
+---
+
 ## 引用
 
 - `ai-dev/audits/arm-index-nop-metadata.md`（nop-metadata 审计索引，全部 finding-ID 可定位）
 - `ai-dev/lessons/09-ddl-unique-key-silent-absence.md`（unique-key constraint 族 lesson）
 - `nop-metadata/model/nop-metadata.orm.xml`（ORM 全集 source of truth）
 - `nop-metadata/nop-metadata-service/src/main/java/`（方法全集 source of truth）
+- `initial-red-list-cycle2.md` + `baseline-cycle2/`（Cycle 2 初始快照与对账基线，plan `2026-08-15-0820-1` Phase 2 交付）

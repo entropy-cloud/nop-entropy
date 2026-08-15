@@ -1,10 +1,10 @@
 # nop-metadata 不变式目录（Invariant Catalog）
 
-> 产出方：plan `2026-08-13-1930-1`（Cycle 1 / I0 — 不变式盘点与基线，Phase 2）
-> 实测日期：2026-08-13（live repo，非记忆）
-> 上游 roadmap：`ai-dev/backlog/nop-metadata-invariant-loop-roadmap.md`（I0 / I1）
+> 产出方：plan `2026-08-13-1930-1`（Cycle 1 / I0 — 不变式盘点与基线，Phase 2）；Cycle 2 / I1' 增补：plan `2026-08-15-0820-1`（silent-wrong-result 5 子族，见「Cycle 2 增补」节）
+> 实测日期：2026-08-13（Cycle 1）/ 2026-08-15（Cycle 2 增补，live repo，非记忆）
+> 上游 roadmap：`ai-dev/backlog/nop-metadata-invariant-loop-roadmap.md`（I0 / I1 / Cycle 2 I1'）
 > 方法论：`ai-dev/skills/invariant-loop-audit-prompt.md`（关键机制 #1 不变式=可执行门禁入CI、#2 门禁集合单调棘轮）
-> 配套：`audit-target-set.md`（目标集与覆盖率基准）
+> 配套：`audit-target-set.md`（目标集与覆盖率基准）、`initial-red-list-cycle2.md` + `baseline-cycle2/`（Cycle 2 快照与对账基线）
 
 ## 目的
 
@@ -128,12 +128,103 @@
 
 ---
 
+## Cycle 2 增补 — silent-wrong-result 族（plan `2026-08-15-0820-1` Phase 1）
+
+> 5 个子族全部裁定为**静态扫描可机械化**，落地为单门禁 `ai-dev/tools/check-silent-wrong-result.mjs`（1 个扫描器 × 5 条规则，与 Cycle 1 `check-*.mjs` 同风格；子族标签区分命中），以模式 b（baseline 快照对账）接入 CI。裁定依据逐族见各 INV 条目；watch-only 候选重估见「候选不变式」节。
+
+### INV-LOCALE — 默认 locale case-mapping 族
+
+**① 陈述**：service/processor 层的字符串大小写转换若用于**机器比较语义**（registry 键、关键字/标识符匹配、集合归一化等影响匹配与查找结果的路径），必须使用 locale-insensitive 形式（`toLowerCase(Locale.ROOT)` / `toUpperCase(Locale.ROOT)`，或天然 locale-insensitive 的 `equalsIgnoreCase`），**禁止**默认 locale 的无参 `.toLowerCase()` / `.toUpperCase()`——tr-TR 下 `"I".toLowerCase()` → `"ı"`，同一数据在不同 JVM locale 得到不同匹配结果（silent-wrong-result）。display-only（人类可读文案）语义不在此列。**门禁口径**：静态扫描无法区分机器比较与 display-only 语义 → 全量报告无参调用点，由裁决表（I3'）逐条裁定；display-only 裁定终态 = `// invariant-ok: <裁决引用>` 放行注释（不驻留 baseline）或驻留 baseline（方式 a），两种终态机制均由门禁预实现。
+
+**② 覆盖的失败族**：silent-wrong-result / locale 族。
+
+**③ 历史 audit-finding-ID 证据**：
+
+- AR-12（`LocalReconciliationProcessor.score` 默认 locale `toLowerCase`，Turkish-I 风险；plan 2026-08-14-1133-3 Phase 3 修复为 `Locale.ROOT`；`ai-dev/audits/2026-08-14-0707-open-audit-nop-metadata-invariant-loop.md` AR-12）
+- 类残留实证：修复只落了报到的 1 处，live repo 同族 40 站点（扫描器口径，见 ④）——「修实例不修类别」的直接证据，也是本条不变式立项动机。
+
+**④ 检测方法**：`ai-dev/tools/check-silent-wrong-result.mjs` 规则 `locale`——注释/字符串剥离后扫描无参 `.toLowerCase()` / `.toUpperCase()` 调用点（带 `Locale.` 参数的形态天然不命中）。**边界**：无法静态区分机器比较与 display-only——全量报告 + 裁决表消化（不引入恒 exit 0 的报告型形态）。
+
+**目标集覆盖率**：40 站点 / 11 文件（2026-08-15 live 实测，见 `audit-target-set.md` §5.1；rg 原始口径 41 含 1 处 javadoc 伪站点 `LocalReconciliationProcessor.java:124`）。
+
+---
+
+### INV-NARROW — narrowing-cast 截断族（防回退）
+
+**① 陈述**：`(long|int|short)` 强转**不得直接作用于浮点类型操作数后再参与算术运算**——截断先于算术 = 静默错算（`(long) amount * unit` 把 0.5 截成 0 再乘，≠ `(long)(amount * unit)` 的正确取整）。正确形态：先完成浮点算术、再对完整表达式取整（操作数加括号），或用 `Math.round/floor/ceil` 显式取整语义。
+
+**② 覆盖的失败族**：silent-wrong-result / narrowing-cast 族。
+
+**③ 历史 audit-finding-ID 证据**：
+
+- AR-01（`MetaContractChecker` SLA 分数 amount 先 `(long)` 截断后乘 → `{"interval":0.5,"unit":"w"}` 算成 0ms 恒判过期；plan 2026-08-14-0707-2 修复为 `(long) (amount * unit)`；`ai-dev/audits/2026-08-14-0707-multi-audit-nop-metadata-invariant-loop.md` AR-01）
+
+**④ 检测方法**：`check-silent-wrong-result.mjs` 规则 `narrowing-cast`——`(long|int|short)` 强转 + **未加括号的标识符操作数** + 紧随二元算术运算符（`+ - * / %`），且该操作数在同文件有 `double/Double/float/Float` 声明 → 命中。int/long 操作数的 widening 场景（如 `(long) from + limit`）与修复形态 `(long) (amount * x)`（操作数加括号）均不命中。**边界（显式声明）**：操作数为浮点返回值的方法调用（无本地 double 声明可静态判定）不在检测范围内——watch 边界，由周期对抗探查覆盖。
+
+**目标集覆盖率**：live 0 命中（防回退零点；仅存的 2 处 `(long)` 站点 `MetaContractChecker.java:384/:395` 均为修复后的正确形态）。
+
+---
+
+### INV-CONTAINS-CLASSIFY — 子串匹配用作类型/类别分类族
+
+**① 陈述**：类型/类别判定**不得使用 `String.contains` 子串匹配**——`"POINT"` 含子串 `"INT"` 式误分类会把值路由到错误统计/处理路径（silent-wrong-result）。分类判定必须用 exact-match（`Set.of(...)` 全等）或显式前缀/后缀语义（`startsWith`/`endsWith`）。集合元素全等查询（`Set/List.contains`）不在此列。**门禁口径**：报告全部 String-receiver 的 `.contains(` 站点（receiver 类型可静态判定者）；message 线索探测（infra 错误消息 substring 线索）等非分类用途由裁决表裁定。
+
+**② 覆盖的失败族**：silent-wrong-result / contains-分类族。
+
+**③ 历史 audit-finding-ID 证据**：
+
+- AR-05（`MetaTableProfiler.isNumericType` 子串匹配：POINT 误归数值、BOOLEAN/BIT 误归数值 → 非法 SUM；plan 2026-08-14-1133-2 Phase 1 修复为 `NUMERIC_TYPE_NAMES` exact-match `Set.of`；`ai-dev/audits/2026-08-14-0707-open-audit-nop-metadata-invariant-loop.md` AR-05）
+- 类残留实证（本次扫描发现，交 I3' 裁决）：同文件 `isStringType` 仍为 `upper.contains(kw)` 子串循环——AR-05 只修了 `isNumericType`，兄弟方法未随修。
+
+**④ 检测方法**：`check-silent-wrong-result.mjs` 规则 `contains-classify`——`.contains(` 且 receiver 为 String 类型（同文件存在 `String <id>` 声明，或 receiver 为 `toLowerCase()/toUpperCase()/trim()` 等 String 变换调用链尾）；receiver 为集合类型（`Set/List/Collection/Map/Iterable` 声明）不命中；声明不可判定的 receiver（跨方法返回值等）不命中（watch 边界）。
+
+**目标集覆盖率**：live 10 站点（2026-08-15，见 `audit-target-set.md` §5.3）。
+
+---
+
+### INV-DELIM-KEY — 分隔符拼接复合键族
+
+**① 陈述**：map/set 的复合键**不得用分隔符拼接字符串**（`a + "|" + b`）——任一分量含分隔符（或空串边界）即产生键碰撞 → 错误分组/错误去重/错误 visited 判定（silent-wrong-result）。复合键必须用结构性键（record / 不可变对象 equals+hashCode）或显式防碰撞编码。
+
+**② 覆盖的失败族**：silent-wrong-result / 分隔符-key 族。
+
+**③ 历史 audit-finding-ID 证据**：
+
+- AR-03（内存聚合 group-key `colId + "|" + aggType` 控制字符碰撞 → 错误分组；plan 2026-08-14-0707-2 修复改结构性 key；`ai-dev/audits/2026-08-14-0707-multi-audit-nop-metadata-invariant-loop.md` AR-03）
+- 类残留实证（本次扫描发现，交 I3' 裁决）：6 处分隔符拼接访问键——`LineageTagPropagationProcessor` `entityType + "#" + entityId` ×3（`:85`/`:136`/`:152`）、`AutoClassificationProcessor:144` `warnKey`、`NopMetaLineageEdgeQueryAction:258` `key`、`NopMetaLineageEdgeQueryAction:487` `map.put(a + "|" + b + "|" + c, e)`（三段 `|` 拼接直接作 map 键，AR-03 同形）。
+
+**④ 检测方法**：`check-silent-wrong-result.mjs` 规则 `delim-key`——① 集合成员/存取方法（`get/put/add/contains/computeIfAbsent/putIfAbsent/getOrDefault/merge/remove/containsKey`）实参跨度内的分隔符拼接 `+ "<sep>" +`（sep ∈ `| : ; # @ ~ $ % ^ & ,`）；② `String <name含Key> = <分隔符拼接 或 String.join("<sep>", ...)>` 赋值。**边界**：lambda key extractor 内联拼接（如 `groupingBy(e -> a + "|" + b)`）需流分析才能定位消费点，不在静态检测范围——watch 边界。
+
+**目标集覆盖率**：live 6 站点 / 3 文件（2026-08-15，见 `audit-target-set.md` §5.4）。
+
+---
+
+### INV-BIGDEC — Number→BigDecimal 经 double 丢精度族
+
+**① 陈述**：`Number` 值转 `BigDecimal` **不得经 `doubleValue()` 中转**——`Long > 2^53` 经 double 丢低位（silent-wrong-result）。必须先路由整数子类型 `longValue()`（`Long/Integer/Short/Byte/AtomicLong/AtomicInteger`），仅浮点子类型（`Float/Double`）走 `doubleValue()`；`new BigDecimal(<double>)` 同族禁止（引入二进制展开噪声）；`String` 数值不得静默跳过（解析或显式裁定）。
+
+**② 覆盖的失败族**：silent-wrong-result / 精度族。
+
+**③ 历史 audit-finding-ID 证据**：
+
+- AR-10（`AggregationHelper.toBigDecimal` 经 double 丢精度 + String 静默跳过；plan 2026-08-14-1133-2 Phase 3 修复：整数 longValue 无损路由 + String 解析；`ai-dev/audits/2026-08-14-0707-open-audit-nop-metadata-invariant-loop.md` AR-10）
+- **受保护正确形态（检测规则必须排除）**：`AggregationHelper.java:554` 的 `java.math.BigDecimal.valueOf(n.doubleValue())`——位于整数类型已先行路由 `longValue()`（`:551`）之后的剩余浮点分支，属合法浮点路径。朴素 pattern 扫描会把它与 2 处真违规一起命中（3 处）而与基线矛盾。
+- 类残留实证（本次扫描发现，交 I3' 裁决）：`MemoryOrderByComparator.toBigDecimal`（`:132`）/ `MemoryFilterEvaluator.toBigDecimal`（`:356`）两个私有拷贝仍为缺陷形态（无整数路由 + String 静默跳过）。
+
+**④ 检测方法**：`check-silent-wrong-result.mjs` 规则 `bigdec-precision`——`BigDecimal.valueOf(...)` / `new BigDecimal(...)` 实参含 `.doubleValue()`，且**所在方法体不含 `.longValue()` 整数路由信号** → 命中；含路由信号（AR-10 修复形态）不命中（受保护形态显式排除，不靠文件名白名单）。
+
+**目标集覆盖率**：live 2 站点（2026-08-15，见 `audit-target-set.md` §5.5）。
+
+---
+
 ## 候选不变式（Non-Blocking Follow-up，留待 I6 裁定）
 
 > Phase 1 枚举未发现超出首批 4 族的高频复发模式需立即沉淀。以下为低频观察，不展开，留待 I6 统计后裁定是否派生 Cycle 2 / I1。
+>
+> **2026-08-15 重估（plan `2026-08-15-0820-1` Phase 1 D2）**：两条候选经重估均**维持 watch-only**，裁定与理由如下——
 
-- **类型/方言兼容性族**（AR-20 NULLS FIRST/LAST、AR-23⑧）：单点命中，未见同族兄弟复发，暂不沉淀为不变式。
-- **并发竞态/UK 幂等族**（P2-MA3-03 upsertExternalTable、2026-07-20 RACE）：已裁定 watch-only residual，DB UK 已 fail-loud 兜底，非静默缺陷，暂不沉淀。
+- **类型/方言兼容性族**（AR-20 NULLS FIRST/LAST、AR-23⑧）：**维持 watch-only**。理由：① 复发证据——2026-08-13 至 2026-08-15（含 Cycle 2 再审计 0707/1133 两轮 + 本计划 Phase 1 全量站点扫描）未见新的同族兄弟命中，仍为单点命中且均已修复，未形成先例链；② 可机械化性——方言能力差异检测需运行时 DB 元数据（`DatabaseMetaData` / 版本探测），静态扫描不可机械化，JUnit 穷举需逐方言活库夹具（非确定性、维护成本高）；③ 替代防护——既有 `SUPPORTED_DIALECTS` exact-set 检查（`EntityAggregationProcessor` 等）已是门禁式 fail-fast，新增方言不入表即拒绝；周期对抗探查复探兜底。
+- **并发竞态/UK 幂等族**（P2-MA3-03 upsertExternalTable、2026-07-20 RACE）：**维持 watch-only**。理由：① 复发证据——2026-08-13 至今零新竞态发现；② 兜底现状——DB unique-key 已 fail-loud 兜底（约束冲突显式报错非静默错算），且 INV-UK 门禁守护 constraint 完备性（新增 UK 缺 `constraint` 即 CI 红）；③ 可机械化性——竞态穷举需并发压力夹具，结果非确定性，静态扫描与 JUnit 穷举均不可机械化。
 
 ---
 
