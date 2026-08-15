@@ -51,12 +51,18 @@ final class GatewayStreamingRetryCallback implements IStreamingRetryCallback {
                              IGatewayContext context) {
         ModelClassCandidate failedCandidate = currentCandidate(request);
         ErrorClassification cls = ChatServiceFailoverAdapter.classifyStreamError(error, failedCandidate);
+        IFailoverMetrics metrics = interceptor.getMetrics();
         int attempt = request.getIntProperty(PROP_ATTEMPT, 1);
         if (cls == ErrorClassification.CACHE_STATE_LOST) {
             // 原地重试语义：不触发账号切换，重发同一候选一次，预算同样计数（防御分支）。
             if (attempt <= interceptor.getRetryBudget()) {
                 request.setProperty(PROP_ATTEMPT, attempt + 1);
-                return buildHttpRequest(request, failedCandidate);
+                HttpRequest retryRequest = buildHttpRequest(request, failedCandidate);
+                if (metrics != null) {
+                    metrics.onResubscribe(failedCandidate.getProvider(), failedCandidate.getModel(),
+                            failedCandidate.getAccountKey());
+                }
+                return retryRequest;
             }
             return null;
         }
@@ -65,7 +71,8 @@ final class GatewayStreamingRetryCallback implements IStreamingRetryCallback {
             return null;
         }
         // 切换类：熔断记账（编排层对已尝试候选逐个 recordFailure——D6）+ 预算检查。
-        interceptor.getBreaker().recordFailure(failedCandidate.getModelKey());
+        CircuitObservation.recordFailure(metrics, interceptor.getBreaker(),
+                failedCandidate.getProvider(), failedCandidate.getModel(), failedCandidate.getModelKey());
         if (attempt > interceptor.getRetryBudget()) {
             // 预算耗尽 → null = 断流报错（fail-loud，不静默）。
             return null;
@@ -74,7 +81,7 @@ final class GatewayStreamingRetryCallback implements IStreamingRetryCallback {
         ModelClassCandidate next;
         try {
             next = FailoverProbeSupport.selectNextWithProbe(interceptor.getBreaker(), interceptor.getRegistry(),
-                    router, false, interceptor.resolvePrimaryProvider());
+                    router, false, interceptor.resolvePrimaryProvider(), metrics);
         } catch (NopException e) {
             // 全池饱和：不重试（原错误信号断流，fail-loud）。
             return null;
@@ -82,6 +89,11 @@ final class GatewayStreamingRetryCallback implements IStreamingRetryCallback {
         // B-10 per-attempt 状态传播：sinkCandidate 同步更新 properties（新 apiStyle/model）供
         // onStreamElement 反向转换 + 首次 base 覆盖读取。
         interceptor.sinkCandidate(request, next, attempt + 1);
+        if (metrics != null) {
+            // 切换计数（新候选）+ 重订阅计数（重执行回调返回非 null = 重订阅发生）。
+            metrics.onSwitchAttempt(next.getProvider(), next.getModel(), next.getAccountKey());
+            metrics.onResubscribe(next.getProvider(), next.getModel(), next.getAccountKey());
+        }
         return buildHttpRequest(request, next);
     }
 

@@ -22,13 +22,16 @@ final class GatewayStreamingLifecycleListener implements IStreamingLifecycleList
 
     private final ConcurrencyRegistry registry;
     private final ApiRequest<?> request;
+    private final IFailoverMetrics metrics;
     private String acquiredProvider;    // guarded by this
     private String acquiredAccountKey;  // guarded by this
     private boolean released;           // guarded by this
 
-    GatewayStreamingLifecycleListener(ConcurrencyRegistry registry, ApiRequest<?> request) {
+    GatewayStreamingLifecycleListener(ConcurrencyRegistry registry, ApiRequest<?> request,
+                                      IFailoverMetrics metrics) {
         this.registry = registry;
         this.request = request;
+        this.metrics = metrics;
     }
 
     @Override
@@ -42,6 +45,10 @@ final class GatewayStreamingLifecycleListener implements IStreamingLifecycleList
         acquiredProvider = provider;
         acquiredAccountKey = accountKey;
         released = false;
+        if (metrics != null) {
+            // 流建立 = 并发计数 acquire（配对观测）。
+            metrics.onConcurrencyAcquire(provider, accountKey);
+        }
     }
 
     @Override
@@ -50,11 +57,17 @@ final class GatewayStreamingLifecycleListener implements IStreamingLifecycleList
     }
 
     private void releaseAcquired() {
-        if (acquiredProvider != null && !released) {
-            registry.release(acquiredProvider, acquiredAccountKey);
+        String provider = acquiredProvider;
+        String accountKey = acquiredAccountKey;
+        if (provider != null && !released) {
+            registry.release(provider, accountKey);
             released = true;
             acquiredProvider = null;
             acquiredAccountKey = null;
+            if (metrics != null) {
+                // 流终止 = 并发计数 release（配对观测）。
+                metrics.onConcurrencyRelease(provider, accountKey);
+            }
         }
     }
 }

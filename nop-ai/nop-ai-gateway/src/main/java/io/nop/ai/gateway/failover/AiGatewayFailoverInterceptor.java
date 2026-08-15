@@ -76,6 +76,7 @@ public class AiGatewayFailoverInterceptor implements IGatewayInterceptor {
     private ThresholdBreaker breaker;
     private ConcurrencyRegistry registry;
     private IBackendMessageConverter converter;
+    private IFailoverMetrics metrics;
     private int retryBudget = ChatServiceFailoverAdapter.DEFAULT_RETRY_BUDGET;
     private String primaryProvider;
 
@@ -107,6 +108,14 @@ public class AiGatewayFailoverInterceptor implements IGatewayInterceptor {
      */
     public void setConverter(IBackendMessageConverter converter) {
         this.converter = converter;
+    }
+
+    /**
+     * 可观测性指标服务（W8 OBS-01；null = 观测 no-op——Phase 1 null-object/fail-fast
+     * 裁定：标准部署经 beans.xml 非 optional ref fail-fast，null 仅测试/手工构造形态）。
+     */
+    public void setMetrics(IFailoverMetrics metrics) {
+        this.metrics = metrics;
     }
 
     /**
@@ -144,6 +153,10 @@ public class AiGatewayFailoverInterceptor implements IGatewayInterceptor {
         return converter;
     }
 
+    public IFailoverMetrics getMetrics() {
+        return metrics;
+    }
+
     public int getRetryBudget() {
         return retryBudget;
     }
@@ -168,8 +181,12 @@ public class AiGatewayFailoverInterceptor implements IGatewayInterceptor {
             return request;
         }
         ModelClassCandidate candidate = FailoverProbeSupport.selectNextWithProbe(
-                breaker, registry, router, true, resolvePrimaryProvider());
+                breaker, registry, router, true, resolvePrimaryProvider(), metrics);
         sinkCandidate(request, candidate, 1);
+        if (metrics != null) {
+            // 接管计数（流式首次候选下沉）。
+            metrics.onTakeover(candidate.getProvider(), candidate.getModel(), candidate.getAccountKey());
+        }
         request.setProperty(PROP_STREAM, true);
         // 请求体转换（仅流式路径——RouteExecutor:74 返回的 request 传入 executeStreaming）
         ApiRequest<?> converted = requireConverter().toBackendRequest(request);
@@ -179,7 +196,7 @@ public class AiGatewayFailoverInterceptor implements IGatewayInterceptor {
         svcCtx.setAttribute(GatewayStreamingConstants.ATTR_RETRY_CALLBACK,
                 new GatewayStreamingRetryCallback(this));
         svcCtx.setAttribute(GatewayStreamingConstants.ATTR_LIFECYCLE_LISTENER,
-                new GatewayStreamingLifecycleListener(registry, request));
+                new GatewayStreamingLifecycleListener(registry, request, metrics));
         svcCtx.setAttribute(ATTR_ROUTER, router);
         // F1：原地修改并返回同一实例（流式 failover 路由不配置 requestMapping/onRequest xpl）。
         return request;
@@ -214,7 +231,7 @@ public class AiGatewayFailoverInterceptor implements IGatewayInterceptor {
         } else {
             try {
                 candidate = FailoverProbeSupport.selectNextWithProbe(
-                        breaker, registry, router, attempt == 0, resolvePrimaryProvider());
+                        breaker, registry, router, attempt == 0, resolvePrimaryProvider(), metrics);
             } catch (NopException e) {
                 // 全池饱和 fail-loud（主动路径不记熔断、不耗预算——W6 D5b/D6）。
                 return FutureHelper.reject(e);
@@ -222,32 +239,57 @@ public class AiGatewayFailoverInterceptor implements IGatewayInterceptor {
         }
         // 并发计数 acquire（发起时）+ 复查（M-6a）：超限 → release + 视为饱和跳过 → 重选。
         int count = registry.acquire(candidate.getProvider(), candidate.getAccountKey());
+        if (metrics != null) {
+            metrics.onConcurrencyAcquire(candidate.getProvider(), candidate.getAccountKey());
+        }
         if (FailoverProbeSupport.isConcurrencySaturated(registry, candidate)) {
             registry.release(candidate.getProvider(), candidate.getAccountKey());
+            if (metrics != null) {
+                metrics.onConcurrencyRelease(candidate.getProvider(), candidate.getAccountKey());
+            }
             return invokeNonStreamingAttempt(invocation, request, svcCtx, router, attempt, null);
         }
+        if (attempt > 0 && fixedCandidate == null && metrics != null) {
+            // attempt > 0 且非 CACHE_STATE_LOST 原地重发（fixedCandidate 非 null）→ 已切换至新候选。
+            metrics.onSwitchAttempt(candidate.getProvider(), candidate.getModel(), candidate.getAccountKey());
+        }
         sinkCandidate(request, candidate, attempt + 1);
+        long startNanos = System.nanoTime();
         CompletionStage<ApiResponse<?>> stage;
         try {
             stage = invocation.proceedInvoke(request, svcCtx);
         } catch (Throwable t) {
             registry.release(candidate.getProvider(), candidate.getAccountKey());
+            if (metrics != null) {
+                metrics.onConcurrencyRelease(candidate.getProvider(), candidate.getAccountKey());
+            }
             CompletableFuture<ApiResponse<?>> future = new CompletableFuture<>();
-            decideNonStreamFailure(future, invocation, request, svcCtx, router, attempt, candidate, null, t);
+            decideNonStreamFailure(future, invocation, request, svcCtx, router, attempt, candidate, null, t,
+                    startNanos);
             return future;
         }
         CompletableFuture<ApiResponse<?>> future = new CompletableFuture<>();
         stage.whenComplete((resp, err) -> {
             // 全终止路径 release（M-2）：成功、失败切换、NON_TRANSIENT、async 异常。
             registry.release(candidate.getProvider(), candidate.getAccountKey());
+            if (metrics != null) {
+                metrics.onConcurrencyRelease(candidate.getProvider(), candidate.getAccountKey());
+            }
             if (err != null) {
-                decideNonStreamFailure(future, invocation, request, svcCtx, router, attempt, candidate, null, err);
+                decideNonStreamFailure(future, invocation, request, svcCtx, router, attempt, candidate, null, err,
+                        startNanos);
             } else if (resp != null && resp.isOk()) {
                 // 成功路径：recordSuccess（D6；HALF_OPEN 探活成功 → CLOSED 恢复）。
-                breaker.recordSuccess(candidate.getModelKey());
+                CircuitObservation.recordSuccess(metrics, breaker, candidate.getProvider(), candidate.getModel(),
+                        candidate.getModelKey());
+                if (metrics != null) {
+                    metrics.onRequestSuccess(candidate.getProvider(), candidate.getModel(), candidate.getAccountKey(),
+                            (System.nanoTime() - startNanos) / 1_000_000L);
+                }
                 future.complete(resp);
             } else if (resp != null) {
-                decideNonStreamFailure(future, invocation, request, svcCtx, router, attempt, candidate, resp, null);
+                decideNonStreamFailure(future, invocation, request, svcCtx, router, attempt, candidate, resp, null,
+                        startNanos);
             } else {
                 future.completeExceptionally(new NopAiCoreException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG)
                         .param(NopAiCoreErrors.ARG_MSG,
@@ -265,7 +307,12 @@ public class AiGatewayFailoverInterceptor implements IGatewayInterceptor {
     private void decideNonStreamFailure(CompletableFuture<ApiResponse<?>> future, IGatewayInvocation invocation,
                                         ApiRequest<?> request, IGatewayContext svcCtx, ModelClassRouter router,
                                         int attempt, ModelClassCandidate candidate,
-                                        ApiResponse<?> response, Throwable error) {
+                                        ApiResponse<?> response, Throwable error, long startNanos) {
+        if (metrics != null) {
+            // 每次 attempt 失败均计数（切换类 / NON_TRANSIENT / CACHE_STATE_LOST / 预算耗尽）。
+            metrics.onRequestFailure(candidate.getProvider(), candidate.getModel(), candidate.getAccountKey(),
+                    (System.nanoTime() - startNanos) / 1_000_000L);
+        }
         ErrorClassification cls = error != null
                 ? ChatServiceFailoverAdapter.classifyStreamError(error, candidate)
                 : classifyResponseStatus(response);
@@ -282,7 +329,8 @@ public class AiGatewayFailoverInterceptor implements IGatewayInterceptor {
             completeNonStreamFailure(future, response, error);
             return;
         }
-        breaker.recordFailure(candidate.getModelKey());
+        CircuitObservation.recordFailure(metrics, breaker, candidate.getProvider(), candidate.getModel(),
+                candidate.getModelKey());
         if (attempt + 1 > retryBudget) {
             completeNonStreamFailure(future, response, error);
             return;
@@ -354,10 +402,14 @@ public class AiGatewayFailoverInterceptor implements IGatewayInterceptor {
         // 流式路径（B-17 契约）：可重试（QUOTA/AUTH/RATE_LIMITED/TRANSIENT）与 CACHE_STATE_LOST
         // （回调原地重发）一律 rethrow（重试决策唯一归属缓冲层/重执行回调）；
         // 仅 NON_TRANSIENT 族返回降级终止响应。
-        ErrorClassification cls = ChatServiceFailoverAdapter.classifyStreamError(
-                exception, GatewayStreamingRetryCallback.currentCandidate(requestOf(svcCtx)));
+        ModelClassCandidate candidate = GatewayStreamingRetryCallback.currentCandidate(requestOf(svcCtx));
+        ErrorClassification cls = ChatServiceFailoverAdapter.classifyStreamError(exception, candidate);
         if (ChatServiceFailoverAdapter.isSwitchable(cls) || cls == ErrorClassification.CACHE_STATE_LOST) {
             throw NopException.adapt(exception);
+        }
+        if (metrics != null) {
+            // 降级终止计数（流式 NON_TRANSIENT 族 → 降级响应，不重试不切换）。
+            metrics.onDegradedTermination(candidate.getProvider(), candidate.getModel(), candidate.getAccountKey());
         }
         return degradedErrorResponse(exception);
     }
@@ -375,6 +427,10 @@ public class AiGatewayFailoverInterceptor implements IGatewayInterceptor {
         }
         // per-attempt 反向转换（B-10）：每次从 svcCtx.getRequest() 读当前 properties——
         // attempt 2 用 attempt 2 的 backend dialect（重执行回调已同步更新）。
+        if (metrics != null) {
+            metrics.onStreamElementConverted(request.getStringProperty(PROP_PROVIDER),
+                    request.getStringProperty(PROP_MODEL), request.getStringProperty(PROP_ACCOUNT_KEY));
+        }
         return requireConverter().toFrontendStreamChunk((Map<String, Object>) element, request);
     }
 

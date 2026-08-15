@@ -128,6 +128,19 @@
         <!-- ruleVersion omitted: null = latest version of the rule -->
     </bean>
 
+    <!-- W8 failover observability metrics (plan 2026-08-15-1615-1, OBS-01): default
+         IFailoverMetrics implementation over micrometer (GlobalMeterRegistry, nop-job
+         IJobWorkerMetrics precedent). Contract table lives in
+         02-account-failover-requirement.md §3.6. ioc:default=true — a deployment that
+         registers its own IFailoverMetrics wins. The refs below are NON-optional
+         (Phase 1 adjudication: deployment side fails fast at container start if the
+         bean is missing; code-side null setter = observation no-op only in
+         tests/manual construction). -->
+    <bean id="nopAiFailoverMetrics"
+          class="io.nop.ai.gateway.failover.FailoverMetricsImpl"
+          ioc:type="io.nop.ai.gateway.failover.IFailoverMetrics"
+          ioc:default="true"/>
+
     <!-- W6 local failover adapter (plan 2026-08-15-1116-2): process-shared
          circuit breaker + concurrency registry singletons (Phase 1 D8/M-5 —
          the adapter MUST inject shared singletons, never let ModelClassRouter
@@ -155,6 +168,9 @@
         </property>
         <property name="registry">
             <ref bean="nopFailoverConcurrencyRegistry"/>
+        </property>
+        <property name="metrics">
+            <ref bean="nopAiFailoverMetrics"/>
         </property>
         <!-- strategy omitted: null = DefaultSelectionStrategy (deployments that
              want rule-based selection wire nopAiRuleBasedSelectionStrategy here;
@@ -186,6 +202,9 @@
         </property>
         <property name="converter">
             <ref bean="nopBackendMessageConverter_AI_DIALECT"/>
+        </property>
+        <property name="metrics">
+            <ref bean="nopAiFailoverMetrics"/>
         </property>
         <!-- strategy omitted: null = DefaultSelectionStrategy (deployments that
              want rule-based selection wire nopAiRuleBasedSelectionStrategy here) -->

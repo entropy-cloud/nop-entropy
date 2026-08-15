@@ -70,6 +70,7 @@ public class ChatServiceFailoverAdapter implements IChatService {
     private ISelectionStrategy strategy;
     private ThresholdBreaker breaker;
     private ConcurrencyRegistry registry;
+    private IFailoverMetrics metrics;
     private int bufferSize = DEFAULT_BUFFER_SIZE;
     private long bufferTimeMs = DEFAULT_BUFFER_TIME_MS;
     private int retryBudget = DEFAULT_RETRY_BUDGET;
@@ -97,6 +98,14 @@ public class ChatServiceFailoverAdapter implements IChatService {
      */
     public void setRegistry(ConcurrencyRegistry registry) {
         this.registry = registry;
+    }
+
+    /**
+     * 可观测性指标服务（W8 OBS-01；null = 观测 no-op——Phase 1 null-object/fail-fast
+     * 裁定：标准部署经 beans.xml 非 optional ref fail-fast，null 仅测试/手工构造形态）。
+     */
+    public void setMetrics(IFailoverMetrics metrics) {
+        this.metrics = metrics;
     }
 
     /**
@@ -144,6 +153,10 @@ public class ChatServiceFailoverAdapter implements IChatService {
         return registry;
     }
 
+    public IFailoverMetrics getMetrics() {
+        return metrics;
+    }
+
     public int getBufferSize() {
         return bufferSize;
     }
@@ -184,9 +197,20 @@ public class ChatServiceFailoverAdapter implements IChatService {
         }
         // 并发计数 acquire（发起时）+ 复查（M-6a）：超限 → release + 视为饱和跳过 → 重选。
         int count = registry.acquire(candidate.getProvider(), candidate.getAccountKey());
+        if (metrics != null) {
+            metrics.onConcurrencyAcquire(candidate.getProvider(), candidate.getAccountKey());
+        }
         if (isOverConcurrencyLimit(candidate, count)) {
             registry.release(candidate.getProvider(), candidate.getAccountKey());
+            if (metrics != null) {
+                metrics.onConcurrencyRelease(candidate.getProvider(), candidate.getAccountKey());
+            }
             return callAsyncAttempt(request, router, cancelToken, attempt);
+        }
+        if (attempt > 0 && metrics != null) {
+            // attempt > 0 且非 CACHE_STATE_LOST 原地重发（该路径不经本方法）→ 已切换至新候选。
+            // 超限重选递归保留原 attempt 值，此处仅对最终确认的候选计一次。
+            metrics.onSwitchAttempt(candidate.getProvider(), candidate.getModel(), candidate.getAccountKey());
         }
         ChatOptions sunk = router.toChatOptions(request.getOptions(), candidate);
         return callAsyncWithOptions(request, router, cancelToken, attempt, candidate, sunk);
@@ -195,6 +219,7 @@ public class ChatServiceFailoverAdapter implements IChatService {
     private CompletionStage<ChatResponse> callAsyncWithOptions(ChatRequest request, ModelClassRouter router,
                                                                ICancelToken cancelToken, int attempt,
                                                                ModelClassCandidate candidate, ChatOptions sunk) {
+        long startNanos = System.nanoTime();
         ChatRequest attemptRequest = attemptRequest(request, sunk);
         CompletionStage<ChatResponse> stage;
         try {
@@ -202,27 +227,41 @@ public class ChatServiceFailoverAdapter implements IChatService {
         } catch (Throwable t) {
             // 委托同步抛异常（checkRateLimit 等）：release 配对 + 按传输异常级决策。
             registry.release(candidate.getProvider(), candidate.getAccountKey());
+            if (metrics != null) {
+                metrics.onConcurrencyRelease(candidate.getProvider(), candidate.getAccountKey());
+            }
             CompletableFuture<ChatResponse> future = new CompletableFuture<>();
-            decideNonStreamFailure(future, request, router, cancelToken, attempt, candidate, sunk, null, t);
+            decideNonStreamFailure(future, request, router, cancelToken, attempt, candidate, sunk, null, t, startNanos);
             return future;
         }
         CompletableFuture<ChatResponse> future = new CompletableFuture<>();
         stage.whenComplete((resp, err) -> {
             // 全终止路径 release（M-2）：成功、失败切换、NON_TRANSIENT、async 异常。
             registry.release(candidate.getProvider(), candidate.getAccountKey());
+            if (metrics != null) {
+                metrics.onConcurrencyRelease(candidate.getProvider(), candidate.getAccountKey());
+            }
             if (err != null) {
-                decideNonStreamFailure(future, request, router, cancelToken, attempt, candidate, sunk, null, err);
+                decideNonStreamFailure(future, request, router, cancelToken, attempt, candidate, sunk, null, err,
+                        startNanos);
             } else if (resp != null && resp.isSuccess()) {
                 // 成功路径：recordSuccess（D6；HALF_OPEN 探活成功 → CLOSED 恢复）。
-                breaker.recordSuccess(candidate.getModelKey());
+                CircuitObservation.recordSuccess(metrics, breaker, candidate.getProvider(), candidate.getModel(),
+                        candidate.getModelKey());
+                if (metrics != null) {
+                    metrics.onRequestSuccess(candidate.getProvider(), candidate.getModel(), candidate.getAccountKey(),
+                            (System.nanoTime() - startNanos) / 1_000_000L);
+                }
                 future.complete(resp);
             } else if (resp != null) {
                 // 响应级错误（errorClassification 优先；无分类时按 httpStatus 启发式，防御分支）。
-                decideNonStreamFailure(future, request, router, cancelToken, attempt, candidate, sunk, resp, null);
+                decideNonStreamFailure(future, request, router, cancelToken, attempt, candidate, sunk, resp, null,
+                        startNanos);
             } else {
                 decideNonStreamFailure(future, request, router, cancelToken, attempt, candidate, sunk, null,
                         new NopException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG)
-                                .param(NopAiCoreErrors.ARG_MSG, "delegate callAsync returned null response"));
+                                .param(NopAiCoreErrors.ARG_MSG, "delegate callAsync returned null response"),
+                        startNanos);
             }
         });
         return future;
@@ -234,7 +273,13 @@ public class ChatServiceFailoverAdapter implements IChatService {
     private void decideNonStreamFailure(CompletableFuture<ChatResponse> future, ChatRequest request,
                                         ModelClassRouter router, ICancelToken cancelToken, int attempt,
                                         ModelClassCandidate candidate, ChatOptions sunk,
-                                        ChatResponse response, Throwable error) {
+                                        ChatResponse response, Throwable error, long startNanos) {
+        if (metrics != null) {
+            // 每次 attempt 失败均计数（切换类 / NON_TRANSIENT / CACHE_STATE_LOST / 预算耗尽），
+            // 取消路径不经过本方法。
+            metrics.onRequestFailure(candidate.getProvider(), candidate.getModel(), candidate.getAccountKey(),
+                    (System.nanoTime() - startNanos) / 1_000_000L);
+        }
         ErrorClassification cls = error != null
                 ? LlmErrorClassifier.classify(error)
                 : classifyResponse(response);
@@ -254,7 +299,8 @@ public class ChatServiceFailoverAdapter implements IChatService {
             return;
         }
         // 切换类：熔断记账（编排层对已尝试候选逐个 recordFailure——D6）+ 预算计数。
-        breaker.recordFailure(candidate.getModelKey());
+        CircuitObservation.recordFailure(metrics, breaker, candidate.getProvider(), candidate.getModel(),
+                candidate.getModelKey());
         if (attempt + 1 > retryBudget) {
             // 预算耗尽 → fail-loud（返回末次错误响应 / 传播末次异常）。
             completeNonStreamFailure(future, response, error);
@@ -341,6 +387,11 @@ public class ChatServiceFailoverAdapter implements IChatService {
             if (probeBrokenCandidates(router, request)) {
                 return active ? router.selectNext() : router.selectNextAfterFailure();
             }
+            // 全池饱和 fail-loud（§3.3 饱和指标；探活未放行任何候选）。
+            if (metrics != null) {
+                metrics.onSaturation(request != null ? LlmConfigHelper.getProvider(request.getOptions()) : null,
+                        router.getModelClassId());
+            }
             throw e;
         }
     }
@@ -367,7 +418,8 @@ public class ChatServiceFailoverAdapter implements IChatService {
             if (isConcurrencySaturated(candidate)) {
                 continue;
             }
-            if (breaker.allowCall(candidate.getModelKey())) {
+            if (CircuitObservation.allowCall(metrics, breaker, candidate.getProvider(), candidate.getModel(),
+                    candidate.getModelKey())) {
                 probed = true;
             }
         }

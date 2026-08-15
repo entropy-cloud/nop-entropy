@@ -28,15 +28,20 @@ final class FailoverProbeSupport {
     }
 
     static ModelClassCandidate selectNextWithProbe(ThresholdBreaker breaker, ConcurrencyRegistry registry,
-                                                   ModelClassRouter router, boolean active, String primaryProvider) {
+                                                   ModelClassRouter router, boolean active, String primaryProvider,
+                                                   IFailoverMetrics metrics) {
         try {
             return active ? router.selectNext() : router.selectNextAfterFailure();
         } catch (NopException e) {
             if (!NopAiCoreErrors.ERR_AI_MODEL_CLASS_SATURATED.getErrorCode().equals(e.getErrorCode())) {
                 throw e;
             }
-            if (probeBrokenCandidates(breaker, registry, router, primaryProvider)) {
+            if (probeBrokenCandidates(breaker, registry, router, primaryProvider, metrics)) {
                 return active ? router.selectNext() : router.selectNextAfterFailure();
+            }
+            // 全池饱和 fail-loud（§3.3 饱和指标；探活未放行任何候选）。
+            if (metrics != null) {
+                metrics.onSaturation(primaryProvider, router.getModelClassId());
             }
             throw e;
         }
@@ -54,7 +59,8 @@ final class FailoverProbeSupport {
      * @return true 当至少一个候选被放行探活（HALF_OPEN）
      */
     private static boolean probeBrokenCandidates(ThresholdBreaker breaker, ConcurrencyRegistry registry,
-                                                 ModelClassRouter router, String primaryProvider) {
+                                                 ModelClassRouter router, String primaryProvider,
+                                                 IFailoverMetrics metrics) {
         boolean probed = false;
         List<ModelClassCandidate> pool = new ArrayList<>(router.getInClassCandidates());
         pool.addAll(LlmConfigHelper.resolveProviderChainCandidates(primaryProvider));
@@ -68,7 +74,8 @@ final class FailoverProbeSupport {
             if (isConcurrencySaturated(registry, candidate)) {
                 continue;
             }
-            if (breaker.allowCall(candidate.getModelKey())) {
+            if (CircuitObservation.allowCall(metrics, breaker, candidate.getProvider(), candidate.getModel(),
+                    candidate.getModelKey())) {
                 probed = true;
             }
         }

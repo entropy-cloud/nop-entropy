@@ -4,7 +4,6 @@ import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ErrorClassification;
 import io.nop.ai.api.chat.stream.ChatStreamChunk;
-import io.nop.ai.core.NopAiCoreErrors;
 import io.nop.ai.core.routing.ModelClassCandidate;
 import io.nop.ai.core.routing.ModelClassRouter;
 import io.nop.api.core.exceptions.NopException;
@@ -260,12 +259,29 @@ final class FailoverStreamFlow implements Flow.Publisher<ChatStreamChunk> {
             // 并发计数 +1（delegate callStream 调用时刻）+ acquire 后复查（M-6a）：超限 →
             // release + 视为饱和跳过 → 重选。
             int count = adapter.getRegistry().acquire(candidate.getProvider(), candidate.getAccountKey());
+            IFailoverMetrics metrics = adapter.getMetrics();
+            if (metrics != null) {
+                metrics.onConcurrencyAcquire(candidate.getProvider(), candidate.getAccountKey());
+            }
             if (adapter.isOverConcurrencyLimit(candidate, count)) {
                 adapter.getRegistry().release(candidate.getProvider(), candidate.getAccountKey());
+                if (metrics != null) {
+                    metrics.onConcurrencyRelease(candidate.getProvider(), candidate.getAccountKey());
+                }
                 startAttemptWithOptions(null, null);
                 return;
             }
             attemptsStarted++;
+            if (attemptsStarted >= 2) {
+                // 第二次及以后的 attempt = 流式重订阅（含 CACHE_STATE_LOST 同候选原地重发）；
+                // 换候选重订阅（fixedCandidate == null，经被动路径重选）同时计入切换。
+                if (metrics != null) {
+                    metrics.onResubscribe(candidate.getProvider(), candidate.getModel(), candidate.getAccountKey());
+                    if (fixedCandidate == null) {
+                        metrics.onSwitchAttempt(candidate.getProvider(), candidate.getModel(), candidate.getAccountKey());
+                    }
+                }
+            }
             AttemptState state = new AttemptState(attemptsStarted, candidate, sunk, new AttemptCancelToken());
             attempt = state;
             try {
@@ -318,6 +334,10 @@ final class FailoverStreamFlow implements Flow.Publisher<ChatStreamChunk> {
         private void releaseAttempt(AttemptState state) {
             if (state.released.compareAndSet(false, true)) {
                 adapter.getRegistry().release(state.candidate.getProvider(), state.candidate.getAccountKey());
+                IFailoverMetrics metrics = adapter.getMetrics();
+                if (metrics != null) {
+                    metrics.onConcurrencyRelease(state.candidate.getProvider(), state.candidate.getAccountKey());
+                }
             }
         }
 
@@ -394,6 +414,13 @@ final class FailoverStreamFlow implements Flow.Publisher<ChatStreamChunk> {
                 inWindow = !state.forwarded;
             }
             releaseAttempt(state);
+            IFailoverMetrics metrics = adapter.getMetrics();
+            if (metrics != null) {
+                // attempt 失败（切换类 / NON_TRANSIENT / 窗口外断流）；取消路径不经过本方法。
+                metrics.onRequestFailure(state.candidate.getProvider(), state.candidate.getModel(),
+                        state.candidate.getAccountKey(),
+                        System.currentTimeMillis() - state.windowStart);
+            }
             if (!inWindow) {
                 // 窗口外失败：不切换。先交付剩余缓冲元素（受 demand 约束），再断流报错。
                 synchronized (this) {
@@ -422,7 +449,8 @@ final class FailoverStreamFlow implements Flow.Publisher<ChatStreamChunk> {
                 deliverError(throwable);
                 return;
             }
-            adapter.getBreaker().recordFailure(state.candidate.getModelKey());
+            CircuitObservation.recordFailure(adapter.getMetrics(), adapter.getBreaker(),
+                    state.candidate.getProvider(), state.candidate.getModel(), state.candidate.getModelKey());
             if (state.index > adapter.getRetryBudget()) {
                 // 预算耗尽 → 断流报错（fail-loud，不静默）。
                 deliverError(throwable);
@@ -439,7 +467,13 @@ final class FailoverStreamFlow implements Flow.Publisher<ChatStreamChunk> {
                 }
                 releaseAttempt(state);
                 // 流式成功路径 recordSuccess 挂钩（Minor-2）：HALF_OPEN 探活成功 → CLOSED 恢复。
-                adapter.getBreaker().recordSuccess(state.candidate.getModelKey());
+                CircuitObservation.recordSuccess(adapter.getMetrics(), adapter.getBreaker(),
+                        state.candidate.getProvider(), state.candidate.getModel(), state.candidate.getModelKey());
+                IFailoverMetrics metrics = adapter.getMetrics();
+                if (metrics != null) {
+                    metrics.onRequestSuccess(state.candidate.getProvider(), state.candidate.getModel(),
+                            state.candidate.getAccountKey(), System.currentTimeMillis() - state.windowStart);
+                }
                 // 窗口期成功终止：缓冲元素必须全部交付（窗口语义只延迟转发，不吞数据）。
                 flushAll(state);
                 subscriber.onComplete();
