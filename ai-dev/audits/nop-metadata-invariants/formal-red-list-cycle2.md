@@ -198,6 +198,23 @@ node ai-dev/tools/check-silent-wrong-result.mjs --fixture   # 18/18 PASS
 > - I5' 终态 = 命中集 ⊆ 已批准豁免清单（FP 驻留 / 放行条目）或清空。
 > - 已沉淀不变式只增不减（棘轮规则）；baseline 只能随裁决终态或修复落地收缩。
 
+## §棘轮终态记录（I5' 收口，plan 2026-08-15-0820-3 Phase 2 V3，2026-08-15）
+
+> **初始 → 终态对比（可复现计数，恒等式可复核）**
+
+| 族 | 初始命中（I1'/I2' 快照） | 修复清零（P1） | 豁免驻留（FP baseline） | 终态命中 | 复现命令 |
+|----|------------------------|----------------|------------------------|----------|----------|
+| locale（INV-LOCALE） | 40 | **40** | 0 | **0** | `--rule locale` |
+| narrowing-cast（INV-NARROW） | 0 | —（防回退零点） | 0 | **0** | `--rule narrowing-cast` |
+| contains-classify（INV-CONTAINS-CLASSIFY） | 19 | **1**（C8 isStringType exact-match） | **18**（C1-C7/C9-C14 方式 (a) 驻留） | **18** | `--rule contains-classify` |
+| delim-key（INV-DELIM-KEY） | 6 | **3**（D1/D5/D6 结构性键） | **3**（D2-D4 方式 (a) 驻留） | **3** | `--rule delim-key` |
+| bigdec-precision（INV-BIGDEC） | 2 | **2**（E1/E2 AR-10 路由形态） | 0 | **0** | `--rule bigdec-precision` |
+| **合计** | **67** | **46** | **21** | **21** | 无 baseline 形态 exit 1（21 FP 命中） |
+
+**恒等式复核**：初始 67 = 修复清零 46 + 豁免驻留 21 + successor 拆分 0 ✓（与裁决表 §1 `67 = 46 P1 + 21 FP + 0 维持 + 0 新族` 逐项对齐；优化候选维持 = 0——旧裁定 2 条经 I3' 重裁推翻转 P1 并已修复）。
+
+**终态机制（0820-1 Phase 3 关键约束 B 预声明的两种形态之一）**：baseline 由 61 键（快照零点）**重写为已批准豁免清单**（21 FP 命中 / 16 计数感知键：contains 18 命中 13 键 + delim 3 命中 3 键），**保持模式 b**（豁免驻留非空 → 不升级模式 a）；红线语义不变：任何新增命中键或计数增长即红。聚合入口 `run-nop-metadata-invariants.sh` 终态整体 exit 0（模式 b 豁免驻留下，含 gate 5 对账 16 键内 0 超出）；hard-gate 注入 proof（2026-08-15 实测）：baseline 外注入 `s.toLowerCase()` → scanner exit 1（EXCESS: new key not in baseline）+ 聚合 exit 1（set -e 传播，CI 将红）→ 还原 → exit 0，产品树 `git status --porcelain -- nop-metadata/` 净零。
+
 ---
 
 ## 引用

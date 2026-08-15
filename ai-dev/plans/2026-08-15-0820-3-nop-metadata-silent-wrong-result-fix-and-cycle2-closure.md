@@ -83,25 +83,25 @@ Exit Criteria:
 
 ### Phase 2 — I5' 全量验证与门禁棘轮收口
 
-Status: planned
+Status: completed
 Targets: `ai-dev/tools/run-nop-metadata-invariants.sh`、`.github/workflows/maven.yml`（如需模式升级）、baseline 文件、`formal-red-list-cycle2`（.md，新建于 `ai-dev/audits/nop-metadata-invariants/`）（棘轮记录）、`docs-for-ai/02-core-guides/invariant-guards.md`
 
 - Item Types: `Proof`
 
-- [ ] **V1 模块全量**：`./mvnw test -pl nop-metadata -am -T 1C` 全绿（0 failures；上游模块 flaky 如实记录，不掩盖）
-- [ ] **V2 门禁收口（按 0820-1 模式归属表逐门禁执行）**：修复后 codebase 上 4+N 门禁达到终态——Cycle 1 四门禁保持零命中；模式 a 新门禁零命中；**模式 b 新门禁完成 baseline 终态重写**（baseline = 已批准豁免清单 = 方式 a FP 条目 + 优化候选维持条目，或清空）。baseline 清空且无放行注释 → 升级模式 a（零命中阻断式）并**同步更新模式归属表**（升级后归属表仍与 CI 接线一致）；baseline 仅剩已批准豁免条目 → 保持模式 b ⊆ 对账（新增命中即红）。升级/重写后做 hard-gate proof（注入 baseline 外违规样例 → 门禁红 → 还原 → 绿，Cycle 1 I5 先例）；**终态 codebase 上聚合入口 `run-nop-metadata-invariants.sh` 整体退出码 0（含模式 b 豁免驻留时）并留证**
-- [ ] **V3 棘轮记录**：`formal-red-list-cycle2` 记录 Cycle 2 棘轮（初始命中数 → 终态：P1 修复数清零 + successor 拆分数 + 豁免驻留数（FP baseline 驻留/放行注释 + 优化候选维持）），恒等式可复核
-- [ ] **V4 owner-doc 同步**：`docs-for-ai/02-core-guides/invariant-guards.md` 同步 Cycle 2 门禁集合、模式 b 语义与终态（该文档描述"非零即阻断"的既有叙事须与新终态一致）；CI workflow 与本地聚合入口行为一致（如模式升级，workflow 同步且无静默放行）
+- [x] **V1 模块全量**：`./mvnw test -pl nop-metadata -am -T 1C` 全绿（0 failures；上游模块 flaky 如实记录，不掩盖） → **BUILD SUCCESS，service 模块 1207 tests / 0 failures / 0 errors**（web 模块 1/1 绿；基线 1175 → +32），全 8 子模块 reactor SUCCESS，无 flaky
+- [x] **V2 门禁收口（按 0820-1 模式归属表逐门禁执行）**：修复后 codebase 上 4+N 门禁达到终态——Cycle 1 四门禁保持零命中；模式 a 新门禁零命中；**模式 b 新门禁完成 baseline 终态重写**（baseline = 已批准豁免清单 = 方式 a FP 条目 + 优化候选维持条目，或清空）。baseline 清空且无放行注释 → 升级模式 a（零命中阻断式）并**同步更新模式归属表**（升级后归属表仍与 CI 接线一致）；baseline 仅剩已批准豁免条目 → 保持模式 b ⊆ 对账（新增命中即红）。升级/重写后做 hard-gate proof（注入 baseline 外违规样例 → 门禁红 → 还原 → 绿，Cycle 1 I5 先例）；**终态 codebase 上聚合入口 `run-nop-metadata-invariants.sh` 整体退出码 0（含模式 b 豁免驻留时）并留证** → Cycle 1 四门禁零命中（聚合输出 [1/5]-[4/5] 全绿）；gate 5 **baseline 终态重写为已批准豁免清单**（61 键零点 → 21 FP 命中/16 计数感知键 = contains 18/13 + delim 3/3；`--emit-baseline` 于修复后 codebase 生成 + note 记终态语义）；优化候选维持条目 = 0（I3' 推翻旧裁定）→ **豁免驻留非空，保持模式 b**（无模式升级，workflow 零变更）；hard-gate proof：注入 baseline 外 `s.toLowerCase()` → scanner exit 1（EXCESS: new key not in baseline）+ 聚合 exit 1 → `git checkout` 还原 → 聚合 exit 0，`git status --porcelain -- nop-metadata/` 净零；终态聚合入口整体 exit 0 实测（"All 5 nop-metadata invariant guards passed (guards 1-4 zero hits; guard 5 within baseline)"）；`initial-red-list-cycle2.md` 模式归属表同步（baseline 状态列 + 终态仍模式 b 说明）
+- [x] **V3 棘轮记录**：`formal-red-list-cycle2` 记录 Cycle 2 棘轮（初始命中数 → 终态：P1 修复数清零 + successor 拆分数 + 豁免驻留数（FP baseline 驻留/放行注释 + 优化候选维持）），恒等式可复核 → 新增 §棘轮终态记录：逐族表（locale 40→0 修40 / narrowing 0→0 / contains 19→18 修1驻18 / delim 6→3 修3驻3 / bigdec 2→0 修2；合计 67→21 = 修复 46 + 驻留 21 + successor 0）与裁决表 §1 恒等式逐项对齐；终态机制与注入 proof 记录在内
+- [x] **V4 owner-doc 同步**：`docs-for-ai/02-core-guides/invariant-guards.md` 同步 Cycle 2 门禁集合、模式 b 语义与终态（该文档描述"非零即阻断"的既有叙事须与新终态一致）；CI workflow 与本地聚合入口行为一致（如模式升级，workflow 同步且无静默放行） → 门禁表 gate 5 行更新（终态 live 0/0/18/3/0 = 21 全豁免 + 46 P1 已修说明）；模式 b 专节新增"终态已达（Cycle 2 / I5'）"条（46 修复形态、21/16 豁免清单、保持模式 b、"零命中"准确语义 = ⊆ 豁免清单）；CI 零变更核实（`invariant-gate` job :45 直接调用聚合入口 :73，rg 证实无 continue-on-error / || true，与本地聚合行为一致——无模式升级故 workflow 无需变更）
 
 Exit Criteria:
 
-- [ ] V1 命令输出 BUILD SUCCESS 且 0 failures（记录测试总数）
-- [ ] V2 终态达成且与模式归属表一致（含升级场景下归属表同步更新）：无 P1 残留命中（命中集 ⊆ 已批准豁免清单或为空）；聚合入口终态整体退出码 0 已留证；注入/还原 proof 有证据
-- [ ] **接线验证**：CI `invariant-gate` job 与本地聚合入口行为一致（模式 a 阻断式 / 模式 b baseline 对账式与归属表一致，无静默放行配置）
-- [ ] 棘轮记录含可复现计数（初始 → 终态对比，含豁免处置清单与 successor 拆分）
-- [ ] `invariant-guards.md` 已同步（或显式记录无需更新的理由）
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] V1 命令输出 BUILD SUCCESS 且 0 failures（记录测试总数） → 1207 tests / 0 failures（service）
+- [x] V2 终态达成且与模式归属表一致（含升级场景下归属表同步更新）：无 P1 残留命中（命中集 ⊆ 已批准豁免清单或为空）；聚合入口终态整体退出码 0 已留证；注入/还原 proof 有证据 → 命中集 21 = 豁免清单（无 P1 残留）；聚合 exit 0 ×2（clean + restored 等价双跑）；注入 proof EXCESS→exit 1→还原 exit 0 证据在 V2 与 formal-red-list-cycle2 §棘轮终态记录
+- [x] **接线验证**：CI `invariant-gate` job 与本地聚合入口行为一致（模式 a 阻断式 / 模式 b baseline 对账式与归属表一致，无静默放行配置） → job 调用同一聚合入口脚本（MVN=mvn），gate 5 经聚合入口以 `--baseline` 模式 b 调用 = 归属表一致；无静默放行配置（rg 证实）
+- [x] 棘轮记录含可复现计数（初始 → 终态对比，含豁免处置清单与 successor 拆分） → formal-red-list-cycle2 §棘轮终态记录（逐族复现命令 + 恒等式 67 = 46 修复 + 21 驻留 + 0 successor）
+- [x] `invariant-guards.md` 已同步（或显式记录无需更新的理由） → 已同步（两处：门禁表 + 模式 b 终态条）
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0 → exit 0（无 high/critical 发现）
+- [x] `ai-dev/logs/` 对应日期条目已更新 → `ai-dev/logs/2026/08-15.md` Phase 2 小节
 
 ### Phase 3 — I6' 循环收口与稳态判定
 

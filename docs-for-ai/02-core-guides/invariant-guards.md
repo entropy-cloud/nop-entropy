@@ -14,7 +14,7 @@ Nop 平台用**可执行不变式门禁**取代"修实例不修类别"的反应�
 | `check-orm-unique-key-constraint.mjs` | INV-UK | XML-aware 静态扫描 | 37 `<unique-key>` / 39 entity | `<unique-key>` 缺 `constraint=` 或 `columns=`（DDL 静默跳过唯一约束） |
 | `check-sensitive-literal-leak.mjs` | INV-SENSITIVE | Node 静态扫描 | `.param(...)` / `LOG.*(...)` 字面量入参 | error/log message 含 raw JDBC URL（`jdbc:` + `@`）/ 内嵌 SQL 原文 / 已知凭据哨兵 |
 | `TestLimitNegativeValueInvariant` | INV-LIMIT | JUnit 5 `@ParameterizedTest` + `@MethodSource` | 4 limit-taking public 入口方法 | 接受 `limit` 入参的 public 方法未显式拒绝负值（`limit = -1` 必须抛带 ErrorCode 的异常） |
-| `check-silent-wrong-result.mjs` | INV-LOCALE / INV-NARROW / INV-CONTAINS-CLASSIFY / INV-DELIM-KEY / INV-BIGDEC（Cycle 2，silent-wrong-result 族） | Node 静态扫描（1 扫描器 × 5 规则，注释剥离） | service src/main 全量（2026-08-15 live：40 locale / 0 narrow / 19 contains / 6 delim / 2 bigdec） | **模式 b（baseline 快照对账）**：任何 baseline 外新命中键、或同键命中数超过 baseline 计数即红。子族：默认 locale case-mapping（机器比较语义）；`(long|int|short)` 截断先于算术；String 子串匹配用作分类；分隔符拼接复合键；Number→BigDecimal 经 `doubleValue()` 丢精度（无 `longValue()` 整数路由） |
+| `check-silent-wrong-result.mjs` | INV-LOCALE / INV-NARROW / INV-CONTAINS-CLASSIFY / INV-DELIM-KEY / INV-BIGDEC（Cycle 2，silent-wrong-result 族） | Node 静态扫描（1 扫描器 × 5 规则，注释剥离） | service src/main 全量（**终态 live 2026-08-15**：0 locale / 0 narrow / 18 contains / 3 delim / 0 bigdec = 21 命中，**全部为已批准豁免条目**；Cycle 2 初始 67 命中中 46 P1 已全量修复） | **模式 b（baseline 快照对账）**：任何 baseline 外新命中键、或同键命中数超过 baseline 计数即红。子族：默认 locale case-mapping（机器比较语义）；`(long|int|short)` 截断先于算术；String 子串匹配用作分类；分隔符拼接复合键；Number→BigDecimal 经 `doubleValue()` 丢精度（无 `longValue()` 整数路由） |
 
 > 每条不变式的完整定义（陈述 / 覆盖失败族 / 历史 audit-finding-ID 证据 / 检测方法）记录在不变式目录（invariant-catalog，位于仓库审计目录）。silent-wrong-result 族的初始 red list 人读层与机器可读 baseline 快照同样位于仓库审计目录（nop-metadata-invariants 下的 initial-red-list-cycle2 与 baseline-cycle2/silent-wrong-result.json，非链接引用——以仓库实际路径为准）。
 
@@ -65,6 +65,7 @@ silent-wrong-result 门禁初始 red list 非空（2026-08-15 快照 67 命中 /
 - **baseline 收缩**：只能随裁决终态或修复落地而收缩（每笔收缩须可追溯到裁决表或修复 commit）；禁止无依据扩张（扩张 = 新命中被"合法化"，属棘轮倒退）。
 - **放行注释**：行内 `// invariant-ok: <裁决引用>` 把该行命中移出违规集与对账输入（终态 = 放行注释的条目不驻留 baseline）；放行条目在扫描器输出中显式列入 Allowed 节，不产生静默盲区。
 - **终态**：全部条目修复或裁定后，baseline 重写为"已批准豁免清单"（FP 驻留 + 优化候选维持）或清空；baseline 清空且无放行注释 → 该门禁升级为模式 a（零命中阻断式）。
+- **终态已达（Cycle 2 / I5'，2026-08-15）**：46 P1 命中全量修复（locale 40 → `Locale.ROOT`、contains 1 → exact-match、delim 3 → 结构性键、bigdec 2 → AR-10 路由形态）后，baseline 已重写为**已批准豁免清单**（21 FP 命中 / 16 计数感知键：contains 18 + delim 3，均为经裁决的 false-positive 驻留条目；优化候选维持 = 0）。**豁免驻留非空 → 保持模式 b**，红线语义不变：任何新增命中键（含已修 P1 形态复发）或计数增长即红。豁免条目是 baseline 的合法驻留项，不是终态异常——"门禁零命中"的准确语义 = 命中集 ⊆ 已批准豁免清单。
 
 ### CI
 

@@ -21,9 +21,9 @@
 
 | 门禁 | 不变式 | 接入模式 | 判定依据（确定性规则：快照空→a，非空→b） | baseline 状态 |
 |------|--------|----------|------------------------------------------|----------------|
-| `check-silent-wrong-result.mjs` | INV-LOCALE + INV-NARROW + INV-CONTAINS-CLASSIFY + INV-DELIM-KEY + INV-BIGDEC | **b（快照对账）** | P3 快照非空（67 命中） | `baseline-cycle2/silent-wrong-result.json`（61 键 / 67 命中，2026-08-15 零点） |
+| `check-silent-wrong-result.mjs` | INV-LOCALE + INV-NARROW + INV-CONTAINS-CLASSIFY + INV-DELIM-KEY + INV-BIGDEC | **b（快照对账）** | P3 快照非空（67 命中） | `baseline-cycle2/silent-wrong-result.json`——**I5' 终态已重写为已批准豁免清单**（21 FP 命中 / 16 计数感知键 = contains 18/13 + delim 3/3；原 61 键 / 67 命中零点经 I4' 46 P1 修复 + B1b 方式 (a) FP 驻留收敛，见 `formal-red-list-cycle2.md` §棘轮终态记录） |
 
-> 聚合入口与 CI 以 `--baseline ai-dev/audits/nop-metadata-invariants/baseline-cycle2/silent-wrong-result.json` 形式调用（模式 b）；对账语义 = 逐键计数 current ≤ baseline（子集，计数版），新增键或超计数即红。narrowing-cast 子族当前零命中，随门禁整体以模式 b 接入（任何未来命中 = baseline 外新键 = 红，防回退语义不受影响）。
+> 聚合入口与 CI 以 `--baseline ai-dev/audits/nop-metadata-invariants/baseline-cycle2/silent-wrong-result.json` 形式调用（模式 b）；对账语义 = 逐键计数 current ≤ baseline（子集，计数版），新增键或超计数即红。narrowing-cast 子族当前零命中，随门禁整体以模式 b 接入（任何未来命中 = baseline 外新键 = 红，防回退语义不受影响）。**终态仍为模式 b**（豁免驻留非空 → 按预声明终态机制不升级模式 a；46 P1 键已从命中集消失，任何 P1 形态复发 = 新键 = 红）。
 
 ---
 
