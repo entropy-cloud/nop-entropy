@@ -1,7 +1,7 @@
 # nop-datav 权限/分享/导出设计 (D3)
 
-> Status: **final**（D3-1/D3-4/D3-2/D3-3 全部）
-> Last Reviewed: 2026-08-10
+> Status: **final**（D3-1/D3-4/D3-2/D3-3 全部 + 分享访问加固）
+> Last Reviewed: 2026-08-15
 
 ## 概述
 
@@ -195,7 +195,7 @@ D3-4 为纯配置启用：`GraphQLAuditLogger`（`IGraphQLLogger`）→ `IAuditS
 
 ### 公共访问 action 契约
 
-`getSharedDashboard(shareToken, password)`（`@BizQuery` + `@Auth(publicAccess=true)`）。行为：
+`getSharedDashboard(shareToken, password)`（`@BizQuery` + `@Auth(publicAccess=true)`）。行为（加固前基础语义，限流/统计前置步骤见「访问限流与访问统计」章节）：
 
 1. 按 `shareToken` 经 DAO 唯一键加载 share（**不调 `requireEntity`/不经 RLS**——share 实体无行级规则）。
 2. 校验 `enabled`（false → `ERR_DATAV_SHARE_DISABLED`）。
@@ -463,3 +463,99 @@ nop-datav 全实体保持**物理删除**语义（不引入 `useLogicalDelete`�
 ### `getSharedDashboard` 看板存活防御（defense-in-depth）
 
 `getSharedDashboard` 在 token/enabled/expire/password 校验通过后、读取快照前，**先校验看板主表行存活**（按 `dashboardId` 经 DAO 查 `NopDatavDashboard`）；看板已删 → 显式拒绝，错误码 `ERR_DATAV_SHARE_DASHBOARD_NOT_FOUND`（`nop.err.datav.share-dashboard-not-found`）。该防御独立于级联吊销生效：即使分享行因任何路径未被吊销（如构造数据、历史残留），已删看板的快照也不可经公共访问读出。
+
+## 访问限流与访问统计（分享访问安全加固）
+
+> 来源：plan `ai-dev/plans/nop-datav/2026-08-15-0004-2-share-access-hardening-rate-limit-stats.md`（D3-2 deferred follow-up 收口：删除生命周期 plan 的「分享访问速率限制」+ 分享 plan 的「分享访问点击统计/审计」）。
+>
+> `getSharedDashboard` 是 nop-datav 唯一 `publicAccess=true` 匿名入口。本章为其补齐生产级防护（两级限流）与可观测性（访问统计聚合列），全部行为可配置且默认保守安全。
+
+### R1 限流键与来源识别
+
+**裁定：组合键 `shareToken + 来源IP`**（同一 token 不同来源互不误伤）。
+
+- 来源 IP 途径：`IServiceContext.getRequestClientIp()`——读 `nop-client-addr` 头（`ApiConstants.HEADER_CLIENT_ADDR`），生产环境由网关注入，service 层可达。web 层 `DefaultClientIpFetcher` 的 `X-Forwarded-For` 解析仅 HTTP 层可达（BizModel 层拿不到），不采信。
+- 信任边界：`nop-client-addr` 仅在网关链路下可信；直连部署可伪造。限流是防御纵深而非认证——伪造头者只影响自己键的配额，无提权面，可接受。
+- **降级**：取不到来源 IP（无网关注入/单机测试）→ 退化为 token 单维（IP 段记常量占位）。显式记录退化语义：同一 token 的全部来源共享限流配额与密码锁定（攻击者可拖累其他访问者）——无更可信来源时的可接受残余，非静默行为。
+- 拒绝纯 token 单维键：攻击者可恶意打满某热门 token 的配额，DoS 该链接的全部合法访问者；组合键把攻击面隔离到 (token, 来源IP) 对。
+
+### R2 限流存储与生命周期
+
+**裁定：进程内 per-key 状态表**，平台 `LocalCache`（命名 cache + 容量上界 + 自动驱逐，先例：`TaskFlowManagerImpl` 的 globalRateLimiters）；容量经 `nop.datav.share.rate-limit.max-keys` 配置（默认 10000），超界按 LocalCache 驱逐策略回收（被驱逐键的限流状态归零，等效于窗口重开——容量上界防内存无界增长）。
+
+- **单节点语义（部署边界，显式记录）**：限流状态在进程内存，多节点部署各节点独立计数（实际配额 ≈ N × 配置值）。集群级限流归属网关/负载均衡层，本仓不实现（Non-Goal）；宿主 app 多节点部署时须在网关层叠加限流。
+- **可测试性硬要求**：时钟经可替换 supplier 注入（默认系统时钟；测试注入 fake 时钟推进窗口，**禁止 `Thread.sleep` 盲等式窗口恢复测试**）。限流状态组件经独立 bean 装配（镜像 nop-ai `ChatServiceImpl.createRateLimiter` protected 工厂的 seam 思想）。
+
+### R3 两级阈值与配置
+
+**两级独立计数器（裁定：失败专用计数，不与成功访问共用）**——失败计数驱动锁定、总速率计数驱动限速，语义不同；共用会让正常浏览耗尽密码预算（或爆破消耗浏览配额反向掩盖）。
+
+| 层 | 语义 | 默认阈值 |
+|----|------|----------|
+| 密码失败级 | 同一 (token, ip) 窗口内密码验证失败达阈值 → 锁定该键的密码尝试（锁定时长 = 窗口）；**锁定期间即使密码正确也被拒**；成功验证重置失败计数 | 5 次 / 窗口 |
+| 总速率级 | 同一 (token, ip) 每窗口总请求数上限（尝试即计数，含失败与被拒请求——攻击期持续保持键热度，窗口滚动自然恢复） | 60 次 / 窗口 |
+
+窗口统一配置（两级共用窗口参数）：默认 600 秒（10 分钟）。
+
+配置项（`NopDatavConfigs`）：
+
+| 配置项 | 默认值 | 说明 |
+|--------|--------|------|
+| `nop.datav.share.rate-limit.enabled` | `true` | 总开关；`false` 时行为与加固前逐字节等价（零检查零记账） |
+| `nop.datav.share.rate-limit.max-password-failures` | `5` | 窗口内密码失败锁定阈值（0 或负值视为禁用该层） |
+| `nop.datav.share.rate-limit.max-access-per-window` | `60` | 窗口内总请求上限（0 或负值视为禁用该层） |
+| `nop.datav.share.rate-limit.window-seconds` | `600` | 窗口与锁定时长（秒） |
+| `nop.datav.share.rate-limit.max-keys` | `10000` | per-key 状态表容量上界 |
+
+超限错误码（与既有 `ERR_DATAV_SHARE_*` 命名对齐，仅携带 token 与重试提示，不含密码相关敏感信息）：
+
+- `ERR_DATAV_SHARE_RATE_LIMITED`（`nop.err.datav.share-rate-limited`）：总速率超限，param `shareToken` + `retryAfterSeconds`。
+- `ERR_DATAV_SHARE_PASSWORD_LOCKED`（`nop.err.datav.share-password-locked`）：密码失败锁定，param `shareToken` + `retryAfterSeconds`。
+
+被限流请求**快速失败**（即时拒绝、零等待、不触发任何查询），无静默返回空快照/降级数据。
+
+### R6 失败锁定语义到限流原语的映射
+
+**裁定：自定义轻量 per-key 状态机**（固定窗口计数器 + 锁定时间戳；先例：`AiRateLimitGatewayInterceptor` 手写 TokenBucket——平台原语无所需语义时的自建先例）。
+
+- 拒绝裸用平台 `DefaultRateLimiter`（包装 Guava `RateLimiter`）：平滑 permits/sec 速率语义**无失败计数、无锁定状态**，「达到失败阈值后即使密码正确也被拒 + 窗口过后恢复」无法由裸 `tryAcquire` 表达。且 `DefaultRateLimiter.getAcquireFailCount()` 现返回 `acquireSuccessCount`（平台复制粘贴缺陷），stats 不可作为断言或观测依据。
+- 所选原语真实语义（显式记录）：**固定窗口计数**——窗口边界可能突发至 2× 上限（固定窗口固有边界效应，单链接访问场景接受，不引入滑动窗口复杂度）；总速率超限即时拒绝不排队等待。
+- 窗口推进仅依赖时钟读取（fake 时钟可确定性驱动），无后台线程、无过期清理任务（惰性淘汰：窗口滚动在下次访问时重算；键级淘汰靠容量上界）。
+
+### R4 访问统计形态
+
+**裁定：share 实体聚合列** `visitCount`（LONG）/ `lastVisitTime`（TIMESTAMP），ORM 加列经源模型 + 再生成管线（本 plan 为 plan-first 凭证）。
+
+- **「一行配置得明细留痕」替代方案**（`GraphQLAuditLogger` 兼容匿名请求 userName="-"，把 `NopDatavDashboardShare__getSharedDashboard` 加入 `audit-query-patterns` 即得每次访问留痕）考虑后**拒绝作为统计主形态**：(1) `listShares` 需要聚合 count + 最近访问时间，从 `NopAuthOpLog` 聚合要跨模块查询平台审计表、聚合口径不被 nop-datav 拥有；(2) 审计表归 retention/运维清理管辖，统计值随清理漂移；(3) 每访问一行的写放大大于单行计数器更新。明细流水维持 Non-Goal（运营期合规需求出现时该一行配置仍可得，见 plan Non-Blocking Follow-ups）。
+- **写放大与并发策略**：每次成功访问一条定向 SQL（`UPDATE nop_datav_share SET VISIT_COUNT = VISIT_COUNT + 1, LAST_VISIT_TIME = ? WHERE SHARE_ID = ?`）——数据库端原子自增，并发访问零丢失更新；不走实体 update 路径 → 无乐观锁 version bump、无审计列改写（`version`/`updatedBy`/`updateTime` 语义保留给管理操作，匿名统计不冒充管理操作者）。
+- **匿名统计写入的操作者身份**：定向 SQL 不触碰审计列（`createdBy`/`updatedBy` 保持管理操作时的值），审计列 mandatory 约束与匿名上下文解耦。
+- **统计口径**：仅成功访问计数（全链路校验通过且快照返回）；密码失败/被限流/被拒访问不计数（失败信息由限流状态与专用错误码表达）。
+- **统计写失败降级**：记 WARN 日志、不阻断访问返回（辅助遥测 fail-open——显式裁定并留痕，非静默跳过）。
+- `listShares` 暴露：新列随实体/GraphQL 输出类型自动暴露（owner 已有 `requireDashboardOwnership` 前置，不新增权限面；`passwordHash` 屏蔽不变）。
+
+### R5 限流检查次序
+
+**裁定：限流先于 token 查库**。加固后完整次序：
+
+1. （开关开启时）总速率检查 → 超限抛 `ERR_DATAV_SHARE_RATE_LIMITED`【零 DB】
+2. （开关开启时）密码锁定检查 → 锁定中抛 `ERR_DATAV_SHARE_PASSWORD_LOCKED`【零 DB】
+3. token 查库（不存在 → `ERR_DATAV_SHARE_TOKEN_NOT_FOUND`）
+4. `enabled` / `expireTime` 校验（原语义不变）
+5. 密码校验：不匹配 → 失败记账（达阈值即置锁）后抛 `ERR_DATAV_SHARE_PASSWORD_MISMATCH`；匹配 → 成功清账；缺密码（`ERR_DATAV_SHARE_PASSWORD_REQUIRED`）不计失败（未消耗一次猜测）
+6. 看板存活防御（原语义不变）
+7. 快照读取（原语义不变）
+8. 访问统计记账（成功访问）
+
+理由：(1) 被限流请求（含不存在 token 的探测洪水）**零 DB 消耗**——满足「限流拒绝快于快照读取」；(2) 错误语义可区分——不存在 token 的前 M 次探测得 `TOKEN_NOT_FOUND`、超限后统一 `RATE_LIMITED`，探测洪水中后期的限流拒绝正是防护目标本身；(3) 拒绝「先查库后限流」：区分「token 不存在」与「被限流」的收益仅存在于攻击者的前 M 次请求，代价是所有被拒请求持续消耗查询资源。
+
+开关关闭时步骤 1/2/5 记账与 8 记账中限流相关行为全部跳过，其余行为与加固前逐字节等价（R3 配置表）。
+
+### 测试策略
+
+- 限流测试全部经 fake 时钟推进窗口（guard bean 的可替换时钟 supplier），无 `Thread.sleep` 盲等。
+- 密码爆破截断：达到失败阈值后**正确密码也被拒**（防爆破有效性断言，非仅计数断言）；窗口推进后自动恢复。
+- 限流拒绝零查询：被拒请求错误码为限流专用码（而非快照/查询错误码），次序由 R5 固化。
+- 不存在 token 探测：超限后错误码从 `TOKEN_NOT_FOUND` 翻转为 `RATE_LIMITED`。
+- 同 token 不同来源（不同 `nop-client-addr`）互不误伤；默认配置下正常访问路径（浏览 + 正确密码）零误伤。
+- 统计：两次成功访问后 `listShares` 计数为 2、`lastVisitTime` 非空且晚于访问前；密码失败/被限流访问不计数；并发访问计数零丢失（原子自增断言）。
+- E2E：创建带密码分享 → 匿名正确密码访问成功且统计可见 → 连续错误密码至阈值 → 被限流（正确密码也被拒）→ 窗口推进后恢复 → 撤销分享后访问被拒。
