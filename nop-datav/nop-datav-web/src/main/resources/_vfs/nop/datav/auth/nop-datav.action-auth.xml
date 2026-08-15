@@ -48,6 +48,17 @@
                                   roles="admin,user">
                             <permissions>NopDatavDashboard:getDashboardData</permissions>
                         </resource>
+                        <!-- flux 布局对齐（plan 2026-08-15-1134-1，runtime-design.md §9.1） -->
+                        <resource id="FNPT:NopDatavDashboard:exportDashboardLayout" displayName="导出看板布局"
+                                  i18n-en:displayName="Export Dashboard Layout" orderNo="10016" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavDashboard:exportDashboardLayout</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDashboard:saveDashboardLayout" displayName="保存看板布局"
+                                  i18n-en:displayName="Save Dashboard Layout" orderNo="10017" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavDashboard:saveDashboardLayout</permissions>
+                        </resource>
                     </children>
                 </resource>
                 <!-- ==================== NopDatavDashboardSnapshot ==================== -->

@@ -37,6 +37,15 @@
                                   resourceType="FNPT" roles="admin,user">
                             <permissions>NopDatavDashboard:parseFilterFromUrl</permissions>
                         </resource>
+                        <!-- flux 布局对齐（plan 2026-08-15-1134-1，runtime-design.md §9.1） -->
+                        <resource id="FNPT:NopDatavDashboard:exportDashboardLayout" displayName="导出看板布局"
+                                  resourceType="FNPT" roles="admin,user">
+                            <permissions>NopDatavDashboard:exportDashboardLayout</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDashboard:saveDashboardLayout" displayName="保存看板布局"
+                                  resourceType="FNPT" roles="admin">
+                            <permissions>NopDatavDashboard:saveDashboardLayout</permissions>
+                        </resource>
                     </children>
                 </resource>
                 <resource id="NopDatavPanel-main" displayName="面板" resourceType="SUBM" orderNo="10002">

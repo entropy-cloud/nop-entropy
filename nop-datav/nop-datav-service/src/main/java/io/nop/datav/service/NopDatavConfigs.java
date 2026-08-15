@@ -128,6 +128,12 @@ public interface NopDatavConfigs {
     IConfigReference<Integer> CFG_DATAV_DASHBOARD_QUERY_CACHE_MAX_ROWS_PER_ENTRY = varRef(
             s_loc, "nop.datav.dashboard-query.cache.max-rows-per-entry", Integer.class, 1000);
 
+    // ===== flux 布局对齐（D1-4，裁定见 runtime-design.md §9.10） =====
+
+    @Description("saveDashboardLayout 单次保存的最大面板数（超限抛 ERR_DATAV_DASHBOARD_PANEL_LIMIT_EXCEEDED。与 dashboard-query.max-panels 独立配置：查询上界是性能界（防 SQL 放大），保存上界是存储容量界（layoutConfig json-4000））")
+    IConfigReference<Integer> CFG_DATAV_DASHBOARD_LAYOUT_MAX_PANELS = varRef(
+            s_loc, "nop.datav.dashboard-layout.max-panels", Integer.class, 50);
+
     // ===== 分享访问加固（限流，裁定见 permission-sharing-design.md「访问限流与访问统计」） =====
 
     @Description("匿名分享访问限流总开关（false 时 getSharedDashboard 行为与加固前逐字节等价：零检查零记账）")

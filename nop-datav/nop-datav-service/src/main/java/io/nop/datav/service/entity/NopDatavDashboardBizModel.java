@@ -40,6 +40,7 @@ import io.nop.datav.service.filter.DashboardFilterResolver;
 import io.nop.datav.service.filter.DashboardFilterUrlCodec;
 import io.nop.datav.service.filter.DashboardParamDefinition;
 import io.nop.datav.service.filter.DashboardParamParser;
+import io.nop.datav.service.layout.DashboardLayoutCodec;
 import io.nop.datav.service.query.DashboardPanelQueryCache;
 import io.nop.datav.service.query.PanelDataBinder;
 import io.nop.datav.service.report.NopDatavReportScheduler;
@@ -648,6 +649,175 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
         }
         String msg = t.getMessage();
         return msg == null ? t.getClass().getSimpleName() : msg;
+    }
+
+    // ==================== flux 布局对齐（plan 2026-08-15-1134-1，裁定见 runtime-design.md §九） ====================
+
+    /**
+     * 导出看板布局 JSON（flux DashboardLayoutSchema 形态，编辑态 live 数据）。
+     *
+     * <p>契约（runtime-design.md §9）：几何读 layoutConfig（无几何面板默认布局合成 §9.5）；
+     * 类型经 {@link PanelTypeMapping} 映射（未知显式报错 §9.3）；props 去 dataBinding 保护区（§9.6）；
+     * 绑定面板 source=datasetRef:&lt;id&gt;（§9.9）。</p>
+     */
+    @Override
+    @BizQuery
+    @Auth(permissions = "NopDatavDashboard:exportDashboardLayout")
+    public Map<String, Object> exportDashboardLayout(@Name("id") String id, IServiceContext context) {
+        NopDatavDashboard dashboard = requireEntity(id, "exportDashboardLayout", context);
+        List<NopDatavPanel> panels = findRelatedEntities(NopDatavPanel.class, "dashboardId", id, "sortOrder");
+        return DashboardLayoutCodec.buildExportLayout(dashboard.getLayoutConfig(), panels);
+    }
+
+    /**
+     * 保存 flux 编辑器产出的布局 JSON，reconcile 回归一化面板行（§9）。
+     *
+     * <p>阶段 A（纯校验/纯计算，先于任何写入——校验失败零落库）：载荷结构校验 → 上界校验 →
+     * 身份对齐（既有/新建/重复/跨看板 id）→ layoutConfig 重建 + panelConfig 合并 + panelName 派生。
+     * 阶段 B（写入）：删除（含 AlertRule 置 DISABLED + 注销 cron，镜像删除级联先例）→ 更新/新建 →
+     * 主表 layoutConfig 更新。响应为再导出的布局 JSON（新建面板携带服务端 id，编辑器重同步）。</p>
+     */
+    @Override
+    @BizMutation
+    @Auth(permissions = "NopDatavDashboard:saveDashboardLayout")
+    public Map<String, Object> saveDashboardLayout(@Name("id") String id,
+                                                   @Name("layout") Map<String, Object> layout,
+                                                   IServiceContext context) {
+        NopDatavDashboard dashboard = requireEntity(id, "saveDashboardLayout", context);
+
+        // ===== 阶段 A：纯校验与计算（无任何写入） =====
+        DashboardLayoutCodec.SaveLayoutSpec spec = DashboardLayoutCodec.parseSavePayload(layout);
+
+        int maxPanels = NopDatavConfigs.CFG_DATAV_DASHBOARD_LAYOUT_MAX_PANELS.get();
+        if (spec.getPanels().size() > maxPanels) {
+            throw new NopException(ERR_DATAV_DASHBOARD_PANEL_LIMIT_EXCEEDED)
+                    .param(ARG_PANEL_COUNT, spec.getPanels().size())
+                    .param(ARG_MAX_PANELS, maxPanels);
+        }
+
+        List<NopDatavPanel> existingPanels = findRelatedEntities(NopDatavPanel.class, "dashboardId", id, "sortOrder");
+        Map<String, NopDatavPanel> existingById = new LinkedHashMap<>();
+        for (NopDatavPanel panel : existingPanels) {
+            existingById.put(panel.getPanelId(), panel);
+        }
+
+        // 身份对齐：命中既有 panelId → 更新；未命中 → 服务端新建（跨看板 id 显式报错）
+        List<String> unknownIds = new ArrayList<>();
+        for (DashboardLayoutCodec.PanelSpec panelSpec : spec.getPanels()) {
+            if (!existingById.containsKey(panelSpec.getId())) {
+                unknownIds.add(panelSpec.getId());
+            }
+        }
+        checkForeignPanelIds(unknownIds, id);
+
+        // 最终 panelId（既有 id 或服务端生成）与每面板持久化预计算（容量校验在写入前完成）
+        List<String> finalPanelIds = new ArrayList<>(spec.getPanels().size());
+        List<String> mergedPanelConfigs = new ArrayList<>(spec.getPanels().size());
+        List<String> panelNames = new ArrayList<>(spec.getPanels().size());
+        for (int i = 0; i < spec.getPanels().size(); i++) {
+            DashboardLayoutCodec.PanelSpec panelSpec = spec.getPanels().get(i);
+            NopDatavPanel existing = existingById.get(panelSpec.getId());
+            String finalId = existing != null ? existing.getPanelId() : generateLayoutPanelId();
+            String existingConfig = existing != null ? existing.getPanelConfig() : null;
+            finalPanelIds.add(finalId);
+            mergedPanelConfigs.add(DashboardLayoutCodec.mergePanelConfig(
+                    existingConfig, panelSpec.getProps(), finalId));
+            panelNames.add(existing != null ? existing.getPanelName()
+                    : DashboardLayoutCodec.derivePanelName(panelSpec.getTitle(), i));
+        }
+        String layoutConfigJson = DashboardLayoutCodec.buildLayoutConfigJson(
+                dashboard.getLayoutConfig(), spec, finalPanelIds);
+
+        // ===== 阶段 B：写入（校验全部通过后执行） =====
+        Timestamp now = new Timestamp(System.currentTimeMillis());
+        String operator = NopDatavOperatorResolver.resolveOperator(context);
+        IEntityDao<NopDatavPanel> panelDao = daoProvider().daoFor(NopDatavPanel.class);
+
+        // 删除：既有行不在载荷 id 集 → 物理删除；其 AlertRule 置 DISABLED 并注销 cron（§9.2）
+        Set<String> payloadIds = new LinkedHashSet<>();
+        for (DashboardLayoutCodec.PanelSpec panelSpec : spec.getPanels()) {
+            payloadIds.add(panelSpec.getId());
+        }
+        List<NopDatavPanel> removedPanels = new ArrayList<>();
+        for (NopDatavPanel panel : existingPanels) {
+            if (!payloadIds.contains(panel.getPanelId())) {
+                removedPanels.add(panel);
+            }
+        }
+        if (!removedPanels.isEmpty()) {
+            disableAlertRulesForPanels(daoProvider(), removedPanels, operator);
+            QueryBean deleteQuery = new QueryBean();
+            List<String> removedIds = new ArrayList<>(removedPanels.size());
+            for (NopDatavPanel panel : removedPanels) {
+                removedIds.add(panel.getPanelId());
+            }
+            deleteQuery.addFilter(FilterBeans.in("panelId", removedIds));
+            panelDao.deleteByQuery(deleteQuery);
+        }
+
+        // 更新/新建：sortOrder=数组下标；绑定/tabId 保留（§9.8/9.9）；displayName←title（§9.2）
+        for (int i = 0; i < spec.getPanels().size(); i++) {
+            DashboardLayoutCodec.PanelSpec panelSpec = spec.getPanels().get(i);
+            NopDatavPanel existing = existingById.get(panelSpec.getId());
+            if (existing != null) {
+                existing.setDisplayName(panelSpec.getTitle());
+                existing.setPanelType(panelSpec.getPanelTypeInt());
+                existing.setSortOrder(i);
+                existing.setPanelConfig(mergedPanelConfigs.get(i));
+                existing.setUpdatedBy(operator);
+                existing.setUpdateTime(now);
+                panelDao.updateEntityDirectly(existing);
+            } else {
+                NopDatavPanel created = panelDao.newEntity();
+                created.setPanelId(finalPanelIds.get(i));
+                created.setDashboardId(dashboard.getDashboardId());
+                created.setPanelName(panelNames.get(i));
+                created.setDisplayName(panelSpec.getTitle());
+                created.setPanelType(panelSpec.getPanelTypeInt());
+                created.setSortOrder(i);
+                created.setPanelConfig(mergedPanelConfigs.get(i));
+                created.setDelFlag((byte) 0);
+                created.setVersion(0L);
+                created.setCreatedBy(operator);
+                created.setCreateTime(now);
+                created.setUpdatedBy(operator);
+                created.setUpdateTime(now);
+                panelDao.saveEntityDirectly(created);
+            }
+        }
+
+        dashboard.setLayoutConfig(layoutConfigJson);
+        dashboard.setUpdatedBy(operator);
+        dashboard.setUpdateTime(now);
+        daoProvider().daoFor(NopDatavDashboard.class).updateEntityDirectly(dashboard);
+
+        afterEntityChange(dashboard, "saveDashboardLayout", context);
+
+        // 响应 = 再导出（新建面板携带服务端 id，编辑器重同步身份锚点）
+        List<NopDatavPanel> savedPanels = findRelatedEntities(
+                NopDatavPanel.class, "dashboardId", id, "sortOrder");
+        return DashboardLayoutCodec.buildExportLayout(dashboard.getLayoutConfig(), savedPanels);
+    }
+
+    /**
+     * 跨看板面板 id 显式报错（§9.2）：载荷 id 未命中本看板面板时，全局查 panelId 归属，
+     * 命中其他看板的面板行即抛 ERR_DATAV_LAYOUT_FOREIGN_PANEL_ID（未命中任何行 = 新建，合法）。
+     */
+    private void checkForeignPanelIds(List<String> unknownIds, String dashboardId) {
+        if (unknownIds.isEmpty()) {
+            return;
+        }
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.in("panelId", unknownIds));
+        List<NopDatavPanel> found = daoProvider().daoFor(NopDatavPanel.class).findAllByQuery(query);
+        if (!found.isEmpty()) {
+            throw DashboardLayoutCodec.foreignPanelId(found.get(0).getPanelId(), dashboardId);
+        }
+    }
+
+    /** 布局保存新建面板 id：UUID 去横线 32 字符（panelId VARCHAR(32)，DatavGenerateDashboardExecutor 先例）。 */
+    private static String generateLayoutPanelId() {
+        return java.util.UUID.randomUUID().toString().replace("-", "");
     }
 
     private String serializeDashboardContent(NopDatavDashboard dashboard) {

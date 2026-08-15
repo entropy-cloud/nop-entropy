@@ -38,6 +38,8 @@ site:
       displayName: Modify ChatBI Session
     FNPT:NopDatavChatSession:query:
       displayName: Query ChatBI Session
+    FNPT:NopDatavDashboard:exportDashboardLayout:
+      displayName: Export Dashboard Layout
     FNPT:NopDatavDashboard:getDashboardData:
       displayName: Get Dashboard Data
     FNPT:NopDatavDashboard:getPublishedDashboard:
@@ -54,6 +56,8 @@ site:
       displayName: Resolve Filter Values
     FNPT:NopDatavDashboard:rollbackDashboard:
       displayName: Rollback Dashboard
+    FNPT:NopDatavDashboard:saveDashboardLayout:
+      displayName: Save Dashboard Layout
     FNPT:NopDatavDashboardShare:createShare:
       displayName: Create Share
     FNPT:NopDatavDashboardShare:listShares:

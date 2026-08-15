@@ -137,6 +137,41 @@ public interface NopDatavErrors {
             ARG_PANEL_ID
     );
 
+    // ===== flux 布局对齐（D1-4，裁定见 runtime-design.md §9.12） =====
+
+    String ARG_LENGTH = "length";
+    String ARG_MAX_LENGTH = "maxLength";
+
+    ErrorCode ERR_DATAV_INVALID_LAYOUT = define(
+            "nop.err.datav.invalid-layout",
+            "Invalid dashboard layout: {reason}",
+            ARG_REASON
+    );
+
+    ErrorCode ERR_DATAV_LAYOUT_DUPLICATE_PANEL_ID = define(
+            "nop.err.datav.layout-duplicate-panel-id",
+            "Duplicate panel id in layout payload: {panelId}",
+            ARG_PANEL_ID
+    );
+
+    ErrorCode ERR_DATAV_LAYOUT_FOREIGN_PANEL_ID = define(
+            "nop.err.datav.layout-foreign-panel-id",
+            "Panel id belongs to another dashboard: {panelId} (dashboardId: {dashboardId})",
+            ARG_PANEL_ID, ARG_DASHBOARD_ID
+    );
+
+    ErrorCode ERR_DATAV_LAYOUT_CONFIG_OVERFLOW = define(
+            "nop.err.datav.layout-config-overflow",
+            "Serialized layoutConfig length {length} exceeds column maximum {maxLength}",
+            ARG_LENGTH, ARG_MAX_LENGTH
+    );
+
+    ErrorCode ERR_DATAV_PANEL_CONFIG_OVERFLOW = define(
+            "nop.err.datav.panel-config-overflow",
+            "Serialized panelConfig for panel {panelId} length {length} exceeds column maximum {maxLength}",
+            ARG_PANEL_ID, ARG_LENGTH, ARG_MAX_LENGTH
+    );
+
     // 注：此 ErrorCode 由 PanelParamEvaluator（面板 paramMapping）、DashboardParamParser（看板 paramConfig）、
     // DashboardFilterUrlCodec/Resolver（filter）共用。message 保持中性（不绑定单一实体名词），
     // 面板路径经 PanelDataBinder 补 ARG_PANEL_ID 作为结构化 param（供 GraphQL 错误响应/聚合），
