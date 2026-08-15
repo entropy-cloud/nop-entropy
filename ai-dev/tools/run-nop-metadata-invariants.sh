@@ -19,11 +19,17 @@
 #                            count. Baseline shrinks only via I3' adjudication terminal
 #                            states or I4' fixes; any new hit key or count increase = red.
 #   6. INV-ERROR-PARAM     — check-error-param-consistency.mjs (Cycle 3, plan
-#                            2026-08-15-1913-3 P1-6/P1-7). Zero-hit hard gate:
+#                            2026-08-15-1913-3 P1-6/P1-7; define-face rules added
+#                            by plan 2026-08-16-0226-2 P2-10). Zero-hit hard gate:
 #                            every ErrorCode description placeholder of a
 #                            `new NopMetadataException(...)` throw site must have a
-#                            matching `.param()` key ({error} exempt, P2-09); variable-
-#                            form error codes require `// invariant-ok:` adjudication.
+#                            matching `.param()` key ({error} exemption CLOSED
+#                            2026-08-16 by P2-09 — missing error param now hits);
+#                            every `ErrorCode.define` must declare exactly its
+#                            description placeholders (ARG-value symmetric diff)
+#                            and have a production consumer (dead / test-only
+#                            defines are violations); variable-form error codes
+#                            require `// invariant-ok:` adjudication.
 #
 # Usage:
 #   ./run-nop-metadata-invariants.sh            # local (uses ./mvnw)

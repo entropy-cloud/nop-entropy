@@ -18,7 +18,29 @@
  *      (Aggregation/DataSource/Field/Join/Lineage/Misc/Module/Quality/Recon/Sql).
  *      Each `ErrorCode ERR_X = ErrorCode.define("code", "desc " + "...", ARG_..)`
  *      entry yields the set of `{placeholder}` tokens extracted from the
- *      concatenated description string literals.
+ *      concatenated description string literals, plus the tail ARG_* names
+ *      declared after the description literal (define-face rule, P2-10).
+ *   1b. Define-face consistency (P2-10) — for every registry define, the set of
+ *      declared ARG_* VALUES (resolved through the args registry; constant
+ *      NAMES are UPPER_SNAKE, values are the camelCase keys) must equal the
+ *      set of `{placeholder}` tokens in the description (symmetric difference
+ *      must be empty). A declared-but-unrendered key and a rendered-but-
+ *      undeclared placeholder are both violations: at render time the first
+ *      silently drops an identity the throw site passed, the second renders a
+ *      literal `{xxx}` unless the throw site happens to pass the key (which
+ *      only the throw-site scan would notice). Unresolvable ARG_* tail names
+ *      and non-ARG ALL_CAPS tail params are violations too.
+ *   1c. Dead-define detection (P2-10) — a registry define with zero
+ *      references in the module's src/main (comment-stripped corpus,
+ *      excluding the *Errors.java definition files themselves) is dead.
+ *      Two sub-kinds: `dead` (zero references anywhere incl. tests and the
+ *      rest of the repo) and `test-only` (kept alive only by test mirrors —
+ *      production has no consumer). Both are violations. A define referenced
+ *      from another module's code stays alive (NopMetadataErrors is public).
+ *      Known blind spot, documented rather than hidden: a test-mirror entry
+ *      that references the constant only inside a STRING (not as an identifier)
+ *      would evade the corpus regex; the mirrors in this module reference the
+ *      constants directly, so the blind spot is empty as of 2026-08-16.
  *   2. Throw-site scan — for every `new NopMetadataException(` in src/main
  *      (comment-stripped text, string literals preserved):
  *        - resolve the first constructor argument (error code reference):
@@ -38,11 +60,18 @@
  *       never hit: this scanner only inspects `new NopMetadataException(`
  *       sites — parameter augmentation of an existing exception is out of
  *       scope (the upstream throw site owns the placeholder coverage).
- *   (b) `{error}` placeholders are EXEMPT (P2-09 annotation-only params;
- *       identity params are complete, cause chain preserved — separate
- *       backlog item, not this invariant's closure face).
+ *   (b) `{error}` placeholders are NO LONGER EXEMPT (P2-09 closed 2026-08-16,
+ *       plan 2026-08-16-0226-2 Phase 2): all 7 annotation-family throw sites
+ *       pass `.param(ARG_ERROR, NopMetadataHelper.toErrorMessage(e))` (or the
+ *       file-local messageOf equivalent), so the `-- {error}` suffix family is
+ *       under full hard-gate coverage — a missing error param renders the
+ *       literal `{error}` and is a violation like any identity placeholder.
  *   (c) dead-code throw sites are exempted via `// invariant-ok:` annotation
  *       (P2-23 dead-code deletion will remove the exemption with the code).
+ *       Define-face violations (1b/1c) use the same `// invariant-ok:`
+ *       annotation mechanism on the `ErrorCode ERR_X =` line (exemption list
+ *       form, mirroring the baseline precedent of check-silent-wrong-result:
+ *       exempted entries stay visible under "Allowed (adjudicated)").
  *   (d) variable-form error codes (error code is a method parameter / local
  *       variable — live: MetaTableFieldResolver.java:214/223/234
  *       `errOnInvalid`, NopMetaLineageEdgeBizModel.java:115 `errorCode`) are
@@ -60,9 +89,11 @@
  *   blind spot is created.
  *
  * Exit mode (adjudicated in plan Phase 1): ZERO-HIT HARD GATE —
- *   0 = no violations AND no unannotated UNRESOLVED sites
+ *   0 = no violations AND no unannotated UNRESOLVED sites AND no
+ *       unexempted define-face / dead-define findings
  *   1 = violations found (missing placeholders, unresolvable .param keys,
- *       or unannotated variable-form throw sites)
+ *       unannotated variable-form throw sites, define-face drift, dead or
+ *       test-only defines)
  *   2 = internal error
  *
  * Usage:
@@ -74,7 +105,9 @@
 import fs from 'fs';
 import path from 'path';
 
-const EXEMPT_PLACEHOLDERS = new Set(['error']); // (b) P2-09 annotation-only family
+const EXEMPT_PLACEHOLDERS = new Set(); // (b) P2-09 {error} exemption CLOSED 2026-08-16:
+// every `-- {error}` annotation family throw site now passes
+// .param(ARG_ERROR, ...) — missing-error-param renders literally and is a HIT.
 const EXCEPTION_CTORS = ['NopMetadataException'];
 
 function parseArgs(argv) {
@@ -336,13 +369,31 @@ function placeholdersOf(description) {
 }
 
 /**
+ * Identifiers between the last description string literal and the define's
+ * closing paren — the declared tail params (live form: `ARG_X, ARG_Y`).
+ */
+function parseDefineTailIds(spanText) {
+    const lastQuote = spanText.lastIndexOf('"');
+    const closeParen = spanText.lastIndexOf(')');
+    if (lastQuote === -1 || closeParen === -1 || closeParen < lastQuote) return [];
+    const tail = spanText.substring(lastQuote + 1, closeParen);
+    const ids = [];
+    const re = /[A-Za-z_$][\w$]*/g;
+    let m;
+    while ((m = re.exec(tail)) !== null) ids.push(m[0]);
+    return ids;
+}
+
+/**
  * Parse `ErrorCode ERR_X = ErrorCode.define("code", "desc" + "...", ARG_..);`
  * entries from an *Errors.java file. Description = concatenation of all string
- * literals after the first (the code string).
+ * literals after the first (the code string). Tail ARG_* names are recorded
+ * for the define-face symmetric-difference rule (P2-10).
  */
-function parseErrorRegistry(fileContentRaw) {
+function parseErrorRegistry(fileContentRaw, filePath) {
     const map = new Map();
     const fileContent = stripCommentsOnly(fileContentRaw);
+    const relPath = relativePath(filePath);
     const startRe = /ErrorCode\s+(ERR_[A-Z0-9_]+)\s*=/g;
     let m;
     while ((m = startRe.exec(fileContent)) !== null) {
@@ -359,6 +410,9 @@ function parseErrorRegistry(fileContentRaw) {
             code: literals[0],
             description,
             placeholders: placeholdersOf(description),
+            tailIds: parseDefineTailIds(spanText),
+            file: relPath,
+            line: lineOfOffset(fileContent, m.index),
         });
     }
     return map;
@@ -373,7 +427,10 @@ function buildRegistry(javaFiles) {
         if (base === 'NopMetadataArgs.java') {
             for (const [k, v] of parseArgsRegistry(content)) argsMap.set(k, v);
         } else if (/^[A-Za-z]+Errors\.java$/.test(base)) {
-            for (const [k, v] of parseErrorRegistry(content)) errorMap.set(k, v);
+            // local ARG_* declarations inside Errors files resolve first
+            // (they extend NopMetadataArgs but may add their own constants)
+            for (const [k, v] of parseArgsRegistry(content)) argsMap.set(k, v);
+            for (const [k, v] of parseErrorRegistry(content, f)) errorMap.set(k, v);
         }
     }
     return { argsMap, errorMap };
@@ -543,6 +600,139 @@ function scanFile(filePath, registry) {
 }
 
 // ============================================================
+// Define-face consistency + dead-define detection (P2-10)
+// ============================================================
+
+function isDefinitionFile(base) {
+    return base === 'NopMetadataErrors.java' || base === 'NopMetadataArgs.java'
+        || /^[A-Za-z]+Errors\.java$/.test(base);
+}
+
+function concatStrippedCorpus(files) {
+    let s = '';
+    for (const f of files) {
+        s += stripCommentsOnly(fs.readFileSync(f, 'utf-8'));
+        s += '\n';
+    }
+    return s;
+}
+
+function walkAllJavaFiles(dir, results, excludeDirs) {
+    if (!fs.existsSync(dir)) return results;
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+            if (['node_modules', '.git', 'target', '_gen'].includes(entry.name)) continue;
+            if (excludeDirs && excludeDirs.some((d) => fullPath === d || fullPath.startsWith(d + path.sep))) continue;
+            walkAllJavaFiles(fullPath, results, excludeDirs);
+        } else if (entry.isFile() && entry.name.endsWith('.java')) {
+            results.push(fullPath);
+        }
+    }
+    return results;
+}
+
+/**
+ * Symmetric difference: declared ARG_* VALUES vs description placeholders.
+ * Constant NAMES are UPPER_SNAKE (`ARG_META_TABLE_ID`), VALUES are the
+ * camelCase keys (`metaTableId`) — comparison happens on values.
+ */
+function checkDefineFace(registry) {
+    const violations = [];
+    for (const [name, def] of registry.errorMap) {
+        if (!def.tailIds) continue; // legacy fixture entries without tail info
+        const declaredValues = new Set();
+        const argProblems = [];
+        for (const id of def.tailIds) {
+            if (registry.argsMap.has(id)) {
+                declaredValues.add(registry.argsMap.get(id));
+            } else if (id.startsWith('ARG_')) {
+                argProblems.push(`unresolvable ARG constant ${id} (no String value declaration)`);
+            } else if (/^[A-Z][A-Z0-9_]*$/.test(id)) {
+                argProblems.push(`non-ARG ALL_CAPS tail param ${id}`);
+            }
+        }
+        const missingDecl = [...def.placeholders].filter((p) => !declaredValues.has(p));
+        const missingPh = [...declaredValues].filter((v) => !def.placeholders.has(v));
+        if (missingDecl.length > 0 || missingPh.length > 0 || argProblems.length > 0) {
+            const parts = [];
+            if (missingDecl.length > 0) {
+                parts.push(`desc placeholder(s) {${missingDecl.join('}, {')}} not declared by any tail ARG`);
+            }
+            if (missingPh.length > 0) {
+                parts.push(`declared key(s) {${missingPh.join('}, {')}} have no desc placeholder (param passed at throw site is never rendered)`);
+            }
+            parts.push(...argProblems);
+            violations.push({
+                file: def.file, line: def.line, kind: 'define-face',
+                name, missing: [...missingDecl, ...missingPh], keyProblems: argProblems,
+                snippet: def.description,
+                rule: `define-face drift on ${name}: ${parts.join('; ')} (INV-ERROR-PARAM/define)`,
+            });
+        }
+    }
+    return violations;
+}
+
+/**
+ * Dead defines: zero references in module src/main (stripped corpus, excluding
+ * the definition files). `dead` = zero refs anywhere (when the repo corpus is
+ * provided); `test-only` = kept alive only by test mirrors. Runs in two
+ * phases: without the repo corpus the findings are provisional (module-local
+ * view); the caller re-runs with the repo corpus to confirm — a candidate
+ * referenced anywhere else in the repo is production-alive and dropped.
+ * Exemption: `// invariant-ok:` on the define line.
+ */
+function checkDeadDefines(registry, corpora) {
+    const violations = [];
+    for (const [name, def] of registry.errorMap) {
+        if (!def.file) continue; // legacy fixture entries without source info
+        const re = new RegExp(`\\b${name}\\b`);
+        if (re.test(corpora.moduleMain)) continue; // production-alive
+        if (corpora.repoAll !== '' && re.test(corpora.repoAll)) continue; // alive elsewhere
+        const testOnly = corpora.moduleTest !== '' && re.test(corpora.moduleTest);
+        violations.push({
+            file: def.file, line: def.line,
+            kind: testOnly ? 'test-only-define' : 'dead-define',
+            name, missing: [], keyProblems: [],
+            snippet: def.description,
+            rule: testOnly
+                ? `test-only define ${name}: referenced from tests only, no src/main consumer (INV-ERROR-PARAM/define)`
+                : `dead define ${name}: zero references in src/main, tests, and the rest of the repo (INV-ERROR-PARAM/define)`,
+        });
+    }
+    return violations;
+}
+
+function buildDeadCheckCorpora(repoRoot, scanPaths, module) {
+    const moduleRoot = module
+        ? (fs.existsSync(path.join(repoRoot, module, module + '-service'))
+            ? path.join(repoRoot, module, module + '-service')
+            : path.join(repoRoot, module))
+        : null;
+    const corpusFiles = (dir) => walkAllJavaFiles(dir, [])
+        .filter((f) => !isDefinitionFile(path.basename(f)));
+    const moduleMainFiles = moduleRoot ? corpusFiles(path.join(moduleRoot, 'src', 'main', 'java')) : scanPaths.flatMap((p) => corpusFiles(p));
+    const moduleTestDir = moduleRoot ? path.join(moduleRoot, 'src', 'test', 'java') : null;
+    const moduleTestFiles = moduleTestDir ? corpusFiles(moduleTestDir) : [];
+    return {
+        moduleMain: concatStrippedCorpus(moduleMainFiles),
+        moduleTest: concatStrippedCorpus(moduleTestFiles),
+        // lazy repo corpus: the repo-wide confirmation must NOT re-count the
+        // module's own test references (they are already classified as
+        // test-only), so the module test dir is excluded from the walk
+        repoAll: '',
+        _buildRepoCorpus: () => {
+            const excludeDirs = moduleTestDir ? [moduleTestDir] : [];
+            const all = walkAllJavaFiles(repoRoot, [], excludeDirs)
+                .filter((f) => !isDefinitionFile(path.basename(f)));
+            return concatStrippedCorpus(all);
+        },
+    };
+}
+
+// ============================================================
 // Allowed-comment split + summary
 // ============================================================
 
@@ -560,14 +750,16 @@ function splitAllowed(entries, rawTextByFile) {
     return { violations, allowed };
 }
 
-function generateSummary(hits, hitAllowed, unresolvedViolations, unresolvedAllowed) {
+function generateSummary(hits, hitAllowed, unresolvedViolations, unresolvedAllowed,
+    defineViolations, defineAllowed) {
     const lines = [];
     lines.push('# Error Param Consistency Scan Report (INV-ERROR-PARAM)');
     lines.push(`Generated: ${new Date().toISOString().split('T')[0]}`);
     lines.push('');
     lines.push(`Missing-placeholder violations: ${hits.length}`);
     lines.push(`Unannotated UNRESOLVED (variable-form) throw sites: ${unresolvedViolations.length}`);
-    lines.push(`Allowed via // invariant-ok: hits=${hitAllowed.length}, unresolved=${unresolvedAllowed.length}`);
+    lines.push(`Define-face violations (P2-10): ${defineViolations.length}`);
+    lines.push(`Allowed via // invariant-ok: hits=${hitAllowed.length}, unresolved=${unresolvedAllowed.length}, define-face=${defineAllowed.length}`);
     lines.push('');
     if (hits.length > 0) {
         lines.push('## Violations — identity placeholders without .param key');
@@ -582,6 +774,16 @@ function generateSummary(hits, hitAllowed, unresolvedViolations, unresolvedAllow
         });
         lines.push('');
     }
+    if (defineViolations.length > 0) {
+        lines.push('## Define-face violations — declared ARG values XOR description placeholders / dead defines');
+        lines.push('');
+        lines.push('| # | File:Line | Kind | Finding |');
+        lines.push('|---|-----------|------|---------|');
+        defineViolations.forEach((d, i) => {
+            lines.push(`| ${i + 1} | \`${d.file}:${d.line}\` | ${d.kind} | ${d.rule} |`);
+        });
+        lines.push('');
+    }
     if (unresolvedViolations.length > 0) {
         lines.push('## UNRESOLVED throw sites requiring adjudication (variable-form error code)');
         lines.push('');
@@ -593,7 +795,7 @@ function generateSummary(hits, hitAllowed, unresolvedViolations, unresolvedAllow
         }
         lines.push('');
     }
-    if (hitAllowed.length > 0 || unresolvedAllowed.length > 0) {
+    if (hitAllowed.length > 0 || unresolvedAllowed.length > 0 || defineAllowed.length > 0) {
         lines.push('## Allowed (adjudicated via // invariant-ok — NOT counted, listed to avoid silent blind spots)');
         lines.push('');
         for (const a of hitAllowed) {
@@ -602,10 +804,14 @@ function generateSummary(hits, hitAllowed, unresolvedViolations, unresolvedAllow
         for (const a of unresolvedAllowed) {
             lines.push(`- \`${a.file}:${a.line}\` variable-form \`${a.detail}\` — \`${a.snippet}\``);
         }
+        for (const a of defineAllowed) {
+            lines.push(`- \`${a.file}:${a.line}\` ${a.kind} \`${a.name}\` — \`${a.rule}\``);
+        }
         lines.push('');
     }
-    if (hits.length === 0 && unresolvedViolations.length === 0) {
-        lines.push('No violations: every declared identity placeholder has a .param key; every variable-form site adjudicated.');
+    if (hits.length === 0 && unresolvedViolations.length === 0 && defineViolations.length === 0) {
+        lines.push('No violations: every declared identity placeholder has a .param key; every variable-form site adjudicated;');
+        lines.push('every define declares exactly its description placeholders and has a production consumer.');
     }
     return lines.join('\n');
 }
@@ -681,12 +887,14 @@ const FX_SAMPLES = [
         expectHits: 1, expectUnresolved: 0,
     },
     {
-        label: 'error-placeholder-exempt',
+        // P2-09 exemption closed: a missing {error} param now hits like any
+        // identity placeholder (renders literally at runtime)
+        label: 'error-placeholder-missing-param (P2-09 closed)',
         source: `class FxF { void m(String op, String name) {
     throw new NopMetadataException(NopMetadataErrors.ERR_FX_OP_UNSUPPORTED)
             .param("op", op).param("name", name);
 } }`,
-        expectHits: 0, expectUnresolved: 0,
+        expectHits: 1, expectUnresolved: 0,
     },
     {
         label: 'string-ctor-skipped',
@@ -802,8 +1010,53 @@ function runFixture() {
     const split4 = splitAllowed(scanRes4.hits, rawByFile4);
     const allowedWrappedPass = split4.violations.length === 0 && split4.allowed.length === 1;
 
+    // Define-face rule (P2-10): declared ARG values must equal desc placeholders.
+    const FX_DEFINE_REGISTRY = {
+        argsMap: FX_REGISTRY.argsMap,
+        errorMap: new Map([
+            ['ERR_FX_DEF_OK', {
+                code: 'nop.err.metadata.fx-def-ok', description: 'ok {tableId}',
+                placeholders: new Set(['tableId']), tailIds: ['ARG_TABLE_ID'],
+                file: 'fixture/DefineFx.java', line: 3,
+            }],
+            ['ERR_FX_DEF_MISSING_DECL', {
+                code: 'nop.err.metadata.fx-def-missing-decl', description: 'needs {tableId} {error}',
+                placeholders: new Set(['tableId', 'error']), tailIds: [],
+                file: 'fixture/DefineFx.java', line: 4,
+            }],
+            ['ERR_FX_DEF_MISSING_PH', {
+                code: 'nop.err.metadata.fx-def-missing-ph', description: 'none here',
+                placeholders: new Set(), tailIds: ['ARG_TABLE_ID'],
+                file: 'fixture/DefineFx.java', line: 5,
+            }],
+            ['ERR_FX_DEF_UNRESOLVED_ARG', {
+                code: 'nop.err.metadata.fx-def-unresolved-arg', description: 'x {tableId}',
+                placeholders: new Set(['tableId']), tailIds: ['ARG_TABLE_ID', 'ARG_NOPE'],
+                file: 'fixture/DefineFx.java', line: 6,
+            }],
+        ]),
+    };
+    const defineFaceRes = checkDefineFace(FX_DEFINE_REGISTRY);
+    const defineFacePass = defineFaceRes.length === 3
+        && defineFaceRes.some((v) => v.name === 'ERR_FX_DEF_MISSING_DECL' && v.missing.includes('tableId'))
+        && defineFaceRes.some((v) => v.name === 'ERR_FX_DEF_MISSING_PH' && v.missing.includes('tableId'))
+        && defineFaceRes.some((v) => v.name === 'ERR_FX_DEF_UNRESOLVED_ARG');
+
+    // Dead-define rule (P2-10): dead / test-only / alive classification.
+    const deadCorpora = {
+        moduleMain: 'class C { Object a = NopMetadataErrors.ERR_FX_DEF_OK;'
+            + ' Object c = NopMetadataErrors.ERR_FX_DEF_UNRESOLVED_ARG; }',
+        moduleTest: 'class T { Object b = NopMetadataErrors.ERR_FX_DEF_MISSING_PH; }',
+        repoAll: '',
+    };
+    const deadRes = checkDeadDefines(FX_DEFINE_REGISTRY, deadCorpora);
+    const deadPass = deadRes.length === 2
+        && deadRes.some((v) => v.name === 'ERR_FX_DEF_MISSING_DECL' && v.kind === 'dead-define')
+        && deadRes.some((v) => v.name === 'ERR_FX_DEF_MISSING_PH' && v.kind === 'test-only-define')
+        && !deadRes.some((v) => v.name === 'ERR_FX_DEF_OK');
+
     const allPass = results.every(r => r.pass) && allowedPass && allowedAbovePass && noLeakPass
-        && allowedWrappedPass;
+        && allowedWrappedPass && defineFacePass && deadPass;
     console.log('Self-verification fixture: ' + (allPass ? 'PASS' : 'FAIL'));
     console.log('');
     for (const r of results) {
@@ -814,6 +1067,8 @@ function runFixture() {
     console.log(`  [${allowedAbovePass ? 'OK' : 'FAIL'}] allowed-comment preceding-line: violation=${split2.violations.length}, allowed=${split2.allowed.length} (expect 0/1)`);
     console.log(`  [${noLeakPass ? 'OK' : 'FAIL'}] preceding-line no-leak: violation=${split3.violations.length}, allowed=${split3.allowed.length} (expect 1/1 — second throw NOT exempted)`);
     console.log(`  [${allowedWrappedPass ? 'OK' : 'FAIL'}] allowed-comment wrapped-block: violation=${split4.violations.length}, allowed=${split4.allowed.length} (expect 0/1)`);
+    console.log(`  [${defineFacePass ? 'OK' : 'FAIL'}] define-face symmetric diff: violations=${defineFaceRes.length} (expect 3: missing-decl, missing-ph, unresolved-arg)`);
+    console.log(`  [${deadPass ? 'OK' : 'FAIL'}] dead-define classification: findings=${deadRes.length} (expect 2: dead + test-only; alive skipped)`);
     console.log('');
     if (!allPass) {
         console.log('FIXTURE FAILED: scanner cannot distinguish violation from compliant sample.');
@@ -867,6 +1122,24 @@ function main() {
         allUnresolved.push(...r.unresolved);
     }
 
+    // Define-face + dead-define rules (P2-10). Errors files' raw text is
+    // already in rawTextByFile (they are part of the walked module files).
+    const corpora = buildDeadCheckCorpora(repoRoot, scanPaths, args.module);
+    let defineViolations = checkDefineFace(registry);
+    let deadFindings = checkDeadDefines(registry, corpora);
+    // provisional findings need repo-wide confirmation (a candidate with no
+    // module-main refs could still be referenced by another module's code);
+    // only build the repo corpus when candidates exist (keeps it fast)
+    if (deadFindings.length > 0) {
+        corpora.repoAll = corpora._buildRepoCorpus();
+        deadFindings = checkDeadDefines(registry, corpora);
+    }
+    defineViolations = defineViolations.concat(deadFindings);
+    const defineSplit = splitAllowed(defineViolations, rawTextByFile);
+    defineViolations = defineSplit.violations;
+    const defineAllowedEntries = defineSplit.allowed;
+    defineViolations.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line);
+
     const hitSplit = splitAllowed(allHits, rawTextByFile);
     const unresolvedSplit = splitAllowed(allUnresolved, rawTextByFile);
     allHits = hitSplit.violations;
@@ -883,16 +1156,19 @@ function main() {
                 registrySize: { errorCodes: registry.errorMap.size, args: registry.argsMap.size },
                 violationCount: allHits.length,
                 unresolvedCount: allUnresolved.length,
+                defineFaceViolationCount: defineViolations.length,
                 violations: allHits,
                 unresolved: allUnresolved,
-                allowed: [...hitSplit.allowed, ...unresolvedSplit.allowed],
+                defineFace: defineViolations,
+                allowed: [...hitSplit.allowed, ...unresolvedSplit.allowed, ...defineAllowedEntries],
             }, null, 2));
             break;
         default:
-            console.log(generateSummary(allHits, hitSplit.allowed, allUnresolved, unresolvedSplit.allowed));
+            console.log(generateSummary(allHits, hitSplit.allowed, allUnresolved, unresolvedSplit.allowed,
+                defineViolations, defineAllowedEntries));
     }
 
-    process.exit((allHits.length + allUnresolved.length) > 0 ? 1 : 0);
+    process.exit((allHits.length + allUnresolved.length + defineViolations.length) > 0 ? 1 : 0);
 }
 
 main();
