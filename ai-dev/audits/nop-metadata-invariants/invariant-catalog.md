@@ -245,6 +245,12 @@ INV-LIMIT 门禁自身的守卫测试曾存在区分力为零的假绿行：`inl
 
 ---
 
+### KEYWORD_BLACKLIST 函数形态豁免裁定（P2-04，plan `2026-08-16-0226-1` Phase 4）
+
+`ExpressionMeasureValidator.scanBlacklist` 对 FUNCTION_CALL token **只查 FUNCTION_BLACKLIST**（不查 KEYWORD_BLACKLIST）是**有意设计非漏洞**：KEYWORD_BLACKLIST 26 条目逐条枚举核对（2026-08-16 live），存在 callable 函数同形词的仅 `REPLACE`（字符串替换）/ `TRUNCATE`（数值截断）/ `INSERT`（MySQL 字符串函数）三项，其余 23 条目均为纯语句/子句/锁关键字（函数形态的 GET_LOCK/RELEASE_LOCK 是不同名条目，已在 FUNCTION_BLACKLIST）；三项同形词的函数调用形态是 SELECT 表达式合法用法（表达式上下文无 DML/DDL 逃逸路径：聚合包裹、`;`/注释在 tokenize 显式拒绝、字面量参数化完整），语句形态（`REPLACE INTO`/`TRUNCATE TABLE`/`INSERT INTO`）以 IDENTIFIER token 命中 KEYWORD_BLACKLIST 被拒。钉死测试：`TestExpressionMeasureValidator#testP204FunctionHomographsAllowed`（3 函数过）/ `#testP204StatementFormsStillRejected`（3 语句拒）/ `#testP204FunctionBlacklistStillRejected`（FUNCTION_BLACKLIST 拒 3）——防未来"修复"破坏合法用法（over-block 误伤）或审计者重复误报；勿在 scanBlacklist 添加 FUNCTION_CALL × KEYWORD_BLACKLIST 交叉检查。裁定全文见 `ExpressionMeasureValidator.KEYWORD_BLACKLIST` javadoc。
+
+---
+
 ## 候选不变式（Non-Blocking Follow-up，留待 I6 裁定）
 
 > Phase 1 枚举未发现超出首批 4 族的高频复发模式需立即沉淀。以下为低频观察，不展开，留待 I6 统计后裁定是否派生 Cycle 2 / I1。

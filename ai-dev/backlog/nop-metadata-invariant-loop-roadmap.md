@@ -146,11 +146,11 @@ flowchart LR
 - **P2-34** 2 个 dict 声明零引用（quality-trend-direction/checkpoint-action-type，语义载体是 JSON 列无法挂载，死元数据）
 
 **安全 / 脱敏 / 防御纵深族**
-- **P2-04** KEYWORD_BLACKLIST 对函数调用形态（`REPLACE(`/`TRUNCATE(`）跳过关键字检查（hardening 项非漏洞）
+- **P2-04** KEYWORD_BLACKLIST 对函数调用形态（`REPLACE(`/`TRUNCATE(`）跳过关键字检查（hardening 项非漏洞） — ✅ Fixed（plan `2026-08-16-0226-1` Phase 4：26 条目枚举核对——函数同形词仅 REPLACE/TRUNCATE/INSERT；裁定显式化入 KEYWORD_BLACKLIST/scanBlacklist javadoc + invariant-catalog 增补注记 + 钉死测试 3 例 9 向量（函数过/语句拒/FUNCTION_BLACKLIST 拒），走 validateStatic 生产入口；黑名单与扫描逻辑零改动）
 - **P2-05** NopMetaTable 等元数据实体无行级数据权限，外部数据可达性依赖 ORM 条件装配隐式过滤（8 实体白名单为显式裁定；边界待产品级裁定）
-- **P2-06** webhook 侧主机提取无 F7 同款形状校验，null/畸形主机静默跳过（lucky fail-closed，防御纵深不对称）
-- **P2-07** custom_sql 全文写入 QualityResult.details 落库，与 AR-16 日志脱敏语义不一致（持久化面 vs 日志面分歧）
-- **P2-08** SQLException 原始消息未过滤进 error param，驱动回显可击穿 jdbcUrl 脱敏（低概率条件泄漏）
+- **P2-06** webhook 侧主机提取无 F7 同款形状校验，null/畸形主机静默跳过（lucky fail-closed，防御纵深不对称） — ✅ Fixed（plan `2026-08-16-0226-1` Phase 1：`validateWebhookUrl` 新增 `isPlausibleWebhookHostShape` 形状校验 fail-closed（null/空/`/`前缀/纯端口/`(`/`%` 全拒，reason="implausible host shape"）；对抗测试 6 畸形向量 + 5 合法向量零误伤，`TestCheckpointActionDispatcher*` 39/39）
+- **P2-07** custom_sql 全文写入 QualityResult.details 落库，与 AR-16 日志脱敏语义不一致（持久化面 vs 日志面分歧） — ✅ Fixed（plan `2026-08-16-0226-1` Phase 3：删除 details.sql 持久化（全文权威源在规则本体 sqlExpression/params.sql），details 只留 sqlHash 与 AR-16 日志面同口径；PASS/FAIL/ERROR 三路径"details 无原文"+对账断言 5 例；`rg 'put\("sql"'` main 零命中）
+- **P2-08** SQLException 原始消息未过滤进 error param，驱动回显可击穿 jdbcUrl 脱敏（低概率条件泄漏） — ✅ Fixed（plan `2026-08-16-0226-1` Phase 2：新增 `redactJdbcUrlsInText`（jdbc:\S+ 匹配+尾标点剥离+redactJdbcUrl 回填）接入 newNopConnectException/MetaQualityRuleExecutor.messageOf（6 面）；parseConnectionConfig 实测 Nop 解析器回显无锚定片段改抑制+cause；24 站点枚举裁定清单入 daily log；F6 边界（query 口令/Oracle thin）钉死防复发；新增测试 11 例）
 - **P2-33** 审批流/状态机字段未收紧 updatable，标准 update 可绕过保留层守卫（TagLabel/DataContract/QualityResult 三处同族；与平台基线一致，应显式裁定）
 
 **错误处理 / 诊断族**
