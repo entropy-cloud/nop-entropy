@@ -121,7 +121,7 @@
 
 ### 3.4 账号配置（复用既有解析链）
 
-- 账号描述**沿用 `{provider}.llm.xml` `<accounts>` 既有结构**（`id` / `apiKey` / `baseUrl` / `quotaLimit` / `renewAt`），`LlmConfigHelper` 解析为有序备用链。`quotaLimit`/`renewAt` 为诊断元数据，本期不做主动配额感知（见 §3.6）。
+- 账号描述**沿用 `{provider}.llm.xml` `<accounts>` 既有结构**（`id` / `apiKey` / `baseUrl` / `quotaLimit` / `renewAt` / `concurrencyLimit`），`LlmConfigHelper` 解析为有序备用链。`quotaLimit`/`renewAt` 为诊断元数据，本期不做主动配额感知（见 §3.6）；`concurrencyLimit` 层级语义：账号级未配置回退 provider 级缺省（根元素 `concurrencyLimit`），均未配置 = 不限制，显式 0/负数 = 显式不限制不回退（落地 plan `2026-08-15-0604-3`）。
 - **配置面扩展（新增工作项）**：并发上限 `concurrencyLimit` 为**本期必须新增**的字段（`_LlmAccountModel` 无此字段）。`llm.xdef` 位于 **nop-kernel/nop-xdefs**（跨模块足迹，属 protected area，需 plan-first）；`_LlmAccountModel` 为 xdef 生成物，**经 codegen 再生成，禁止手编**。配置粒度：**provider 级缺省 + 账号级覆盖**（`{provider}.llm.xml` 根元素提供缺省值，`<accounts>` 账号可覆盖；主账号无 `LlmAccountModel` 实例，限流值取 provider 级缺省）。缺省 = 不限制 → 既有 `<accounts>` 配置与 `TestLlmConfigHelperAccountChain` 等测试零回归。权重 / 按账号覆盖 `model` 若需求确认则一并列入（默认不扩展）。
   - **与既有 `rateLimit` 的关系**：`llm.xdef` 根元素已有 `rateLimit`（每秒 QPS，`ChatServiceImpl.checkRateLimit` 排队等待语义）；新增 `concurrencyLimit` 是 in-flight 并发计数（**跳过**语义——超限换账号）。两者语义不同（排队 vs 跳过），并行共存，不互斥。
 - **模型类分组配置（新增工作项）**：模型类（级别）→ 候选集（模型 + 账号组合）的声明，形态待定（选项：① 扩展 `llm.xdef`/`llm-failover.xdef` 增加 model-class 分组；② 新 `model-class.xdef` 配置面）。候选可引用 `{provider}.llm.xml` `<accounts>` 与 `llm-failover.xdef` provider 链。

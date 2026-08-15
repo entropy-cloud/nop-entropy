@@ -251,7 +251,7 @@ doLlmCallWithRetry:
 
 **账号链持久化形态裁定（plan `2026-08-01-1505-1` 落地）**：
 
-- **纯配置文件**（`{provider}.llm.xml` 的 `<accounts>` 有序列表）。每个账号 = `apiKey`（直配值，生产经 Nop config 变量替换/secret 注入，与现有 `baseUrl` 字段同源模式）+ 可选 `baseUrl`（per-account 覆盖）+ 可选额度元数据（`quotaLimit`/`renewAt`，**仅声明/诊断用，不做主动熔断**——本计划 Non-Goal）。`<accounts>` 用 `xdef:key-attr="id"`（合并时按 id 区分条目，保序，与 `<errorMappings>` 同款）。
+- **纯配置文件**（`{provider}.llm.xml` 的 `<accounts>` 有序列表）。每个账号 = `apiKey`（直配值，生产经 Nop config 变量替换/secret 注入，与现有 `baseUrl` 字段同源模式）+ 可选 `baseUrl`（per-account 覆盖）+ 可选额度元数据（`quotaLimit`/`renewAt`，**仅声明/诊断用，不做主动熔断**——本计划 Non-Goal）+ 可选并发上限 `concurrencyLimit`（账号级覆盖；未配置回退 provider 级缺省（`{provider}.llm.xml` 根元素 `concurrencyLimit`），均未配置 = 不限制；显式配置 0/负数 = 显式不限制不回退——层级语义与需求 §3.4 一致，落地 plan `2026-08-15-0604-3`）。`<accounts>` 用 `xdef:key-attr="id"`（合并时按 id 区分条目，保序，与 `<errorMappings>` 同款）。
 - **拒绝 DB-backed**：`NopAiModel.apiKey` 列虽存在但**不被 live call path 使用**（仅 DB 存储模型配置，且从所有 xmeta 层 scrub）；ORM 结构变更属 protected area（plan-first）；账号链是 per-provider 运行时配置，无必要的外部 DB 依赖。跨实例共享账号清单的需求由部署层配置注入解决，不引入 DB 表。
 - **链语义**：`<accounts>` 是**备用账号链**（不含主账号）。主账号 = 现有单个 `LlmConfigHelper.resolveApiKey(provider)`（config 变量 `nop.ai.llm.{provider}.api-key` 或 secret 文件），与今日完全一致（零回归）。首次调用用主账号；QUOTA/AUTH 触发后从 `<accounts>[0]` 开始依次切换，链耗尽 fail-loud。
 

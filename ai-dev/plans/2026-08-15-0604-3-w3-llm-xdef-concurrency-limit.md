@@ -1,6 +1,6 @@
 # W3 llm.xdef 并发上限（concurrencyLimit）配置面扩展
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-15
 > Source: `ai-dev/backlog/nop-ai-gateway-failover-roadmap.md`（W3）、`ai-dev/design/nop-ai-gateway/02-account-failover-requirement.md`（§3.3/§3.4/§五 Q6）
 > Related: `ai-dev/design/nop-ai-gateway/01-architecture.md`
@@ -53,61 +53,61 @@
 
 ### Phase 1 - llm.xdef 扩展 + codegen 再生成 + helper 读取（XDEF-01 + XDEF-02）
 
-Status: planned
+Status: completed
 Targets: `nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/ai/llm.xdef`、`nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/model/_gen/_LlmAccountModel.java` + `_LlmModel.java`（生成物）、`nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/service/LlmConfigHelper.java`、`ai-dev/design/nop-ai-agent/nop-ai-llm-error-normalization-design.md`（字段集描述同步）
 
 - Item Types: `Fix | Decision | Follow-up`
 
-- [ ] 类型裁定：`concurrencyLimit` 字段类型 = `int`，**非 mandatory（无 `!` 前缀，缺失即 null = 不限制）**——禁止写成 `!int`（否则既有 `{provider}.llm.xml` 全部校验失败，零回归灾难）。语义：账号显式配 `0` 或负数 = 显式"不限制"（不回退 provider 缺省）；未配置 = null = 回退 provider 级缺省；provider 级也未配置 = 不限制。记录裁定到 plan。
-- [ ] `llm.xdef` 修改：provider 根元素新增 `concurrencyLimit` 属性（缺省语义 = 不限制）；`<accounts><account>` 元素新增 `concurrencyLimit`（账号级覆盖）。javadoc 注释写明语义（in-flight 并发上限、跳过语义、与 rateLimit 排队的区别、provider 缺省与账号覆盖关系、显式 0 = 不限制、非 mandatory）。
-- [ ] codegen 再生成：`./mvnw install -pl nop-kernel/nop-xdefs -am -DskipTests` → nop-ai-core 构建触发 exec-maven-plugin codegen（`precompile/gen-ai-xdsl.xgen` 渲染 `/nop/schema/ai/llm.xdef`），`_LlmAccountModel` **与 `_LlmModel`** 再生成含新字段（零手编）；`git diff` 核对再生 diff 仅含新字段（模板漂移检查——若出现无关改动，还原生成物并排查模板来源）。
-- [ ] `LlmConfigHelper` 读取支持：账号级 `concurrencyLimit`（从 `LlmAccountModel`）+ provider 级缺省（从 `loadConfig(provider)` 返回的根模型，`config.getConcurrencyLimit()`，有 `checkRateLimit` 的 `config.getRateLimit()` 先例 `ChatServiceImpl.java:342-349`）的解析入口；**语义契约落档目的地 = helper javadoc（行为契约权威）** + 同步写一行到 `nop-ai-llm-error-normalization-design.md` 账号字段集描述（未配置 = 回退/不限制、显式 0/负数 = 不限制）；主账号（无 `LlmAccountModel` 实例）路径 = 取 provider 级缺省。
-- [ ] 文档同步（Follow-up）：`ai-dev/design/nop-ai-agent/nop-ai-llm-error-normalization-design.md` 账号字段集描述（约 :254 列出 apiKey/baseUrl/quotaLimit/renewAt）补 `concurrencyLimit` + 层级语义一行；`02-account-failover-requirement.md` §3.4"既有结构（id/apiKey/baseUrl/quotaLimit/renewAt）"清单补 `concurrencyLimit`（一行）。
+- [x] 类型裁定：`concurrencyLimit` 字段类型 = `int`，**非 mandatory（无 `!` 前缀，缺失即 null = 不限制）**——禁止写成 `!int`（否则既有 `{provider}.llm.xml` 全部校验失败，零回归灾难）。语义：账号显式配 `0` 或负数 = 显式"不限制"（不回退 provider 缺省）；未配置 = null = 回退 provider 级缺省；provider 级也未配置 = 不限制。记录裁定到 plan。
+- [x] `llm.xdef` 修改：provider 根元素新增 `concurrencyLimit` 属性（缺省语义 = 不限制）；`<accounts><account>` 元素新增 `concurrencyLimit`（账号级覆盖）。javadoc 注释写明语义（in-flight 并发上限、跳过语义、与 rateLimit 排队的区别、provider 缺省与账号覆盖关系、显式 0 = 不限制、非 mandatory）。
+- [x] codegen 再生成：`./mvnw install -pl nop-kernel/nop-xdefs -am -DskipTests` → nop-ai-core 构建触发 exec-maven-plugin codegen（`precompile/gen-ai-xdsl.xgen` 渲染 `/nop/schema/ai/llm.xdef`），`_LlmAccountModel` **与 `_LlmModel`** 再生成含新字段（零手编）；`git diff` 核对再生 diff 仅含新字段（模板漂移检查——若出现无关改动，还原生成物并排查模板来源）。
+- [x] `LlmConfigHelper` 读取支持：账号级 `concurrencyLimit`（从 `LlmAccountModel`）+ provider 级缺省（从 `loadConfig(provider)` 返回的根模型，`config.getConcurrencyLimit()`，有 `checkRateLimit` 的 `config.getRateLimit()` 先例 `ChatServiceImpl.java:342-349`）的解析入口；**语义契约落档目的地 = helper javadoc（行为契约权威）** + 同步写一行到 `nop-ai-llm-error-normalization-design.md` 账号字段集描述（未配置 = 回退/不限制、显式 0/负数 = 不限制）；主账号（无 `LlmAccountModel` 实例）路径 = 取 provider 级缺省。
+- [x] 文档同步（Follow-up）：`ai-dev/design/nop-ai-agent/nop-ai-llm-error-normalization-design.md` 账号字段集描述（约 :254 列出 apiKey/baseUrl/quotaLimit/renewAt）补 `concurrencyLimit` + 层级语义一行；`02-account-failover-requirement.md` §3.4"既有结构（id/apiKey/baseUrl/quotaLimit/renewAt）"清单补 `concurrencyLimit`（一行）。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] `llm.xdef` 新字段就位且 javadoc 语义完整（非 mandatory、显式 0、provider/账号覆盖关系——grep/read 实证）。
-- [ ] `_LlmAccountModel` 与 `_LlmModel` 生成物均含 `concurrencyLimit`（read 实证），且非手编；`git diff` 显示再生 diff 仅含新增字段（模板漂移检查通过）。
-- [ ] `LlmConfigHelper` 新读取入口可编译可调用（`./mvnw compile -pl :nop-ai-core -am` 通过）；主账号（null account）路径语义已落档（helper javadoc）。**Rule #25 拆分说明**：新读取入口的单元测试于 Phase 2 编写（Phase 1 仅编译门禁；Phase 2 五态矩阵完整覆盖）。
-- [ ] `nop-ai-llm-error-normalization-design.md` 账号字段集描述已同步（含 concurrencyLimit + 层级语义）；`02-account-failover-requirement.md` §3.4 字段清单已同步——两处均不得静默跳过。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] `llm.xdef` 新字段就位且 javadoc 语义完整（非 mandatory、显式 0、provider/账号覆盖关系——grep/read 实证）。
+- [x] `_LlmAccountModel` 与 `_LlmModel` 生成物均含 `concurrencyLimit`（read 实证），且非手编；`git diff` 显示再生 diff 仅含新增字段（模板漂移检查通过）。
+- [x] `LlmConfigHelper` 新读取入口可编译可调用（`./mvnw compile -pl :nop-ai-core -am` 通过）；主账号（null account）路径语义已落档（helper javadoc）。**Rule #25 拆分说明**：新读取入口的单元测试于 Phase 2 编写（Phase 1 仅编译门禁；Phase 2 五态矩阵完整覆盖）。
+- [x] `nop-ai-llm-error-normalization-design.md` 账号字段集描述已同步（含 concurrencyLimit + 层级语义）；`02-account-failover-requirement.md` §3.4 字段清单已同步——两处均不得静默跳过。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 2 - 新字段测试 + 零回归（XDEF-03）
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-core/src/test/java/io/nop/ai/core/service/`（TestLlmConfigHelperAccountChain / TestLlmConfigHelper 或新增测试类）、`nop-ai/nop-ai-core/src/test/resources/_vfs/nop/ai/llm/`（测试 provider 配置数据：test-accounts.llm.xml 扩展或新增文件——root 级 concurrencyLimit + 各 account 混合设置 + 一个全无配置的 provider）
 
 - Item Types: `Fix | Proof`
 
-- [ ] 新字段读取测试（四态 + 主账号路径）：账号级覆盖生效（配置了账号级值时返回账号值）、账号未配置时回退 provider 级缺省、均未配置 = 不限制、**显式配置 0/负数 = 显式不限制（不回退 provider 缺省）**、**主账号路径（无 `LlmAccountModel` 实例）取 provider 级缺省**。
-- [ ] 零回归：`TestLlmConfigHelperAccountChain` / `TestLlmConfigHelper` 全绿（未配置 `concurrencyLimit` 的既有 `<accounts>` 配置行为不变）。
+- [x] 新字段读取测试（四态 + 主账号路径）：账号级覆盖生效（配置了账号级值时返回账号值）、账号未配置时回退 provider 级缺省、均未配置 = 不限制、**显式配置 0/负数 = 显式不限制（不回退 provider 缺省）**、**主账号路径（无 `LlmAccountModel` 实例）取 provider 级缺省**。
+- [x] 零回归：`TestLlmConfigHelperAccountChain` / `TestLlmConfigHelper` 全绿（未配置 `concurrencyLimit` 的既有 `<accounts>` 配置行为不变）。
 
 Exit Criteria:
 
-- [ ] 新字段五态读取测试全绿（账号覆盖 / provider 缺省回退 / 不限制缺省 / 显式 0 / 主账号回退 provider 缺省）。
-- [ ] `./mvnw test -pl :nop-ai-core,:nop-ai-gateway,:nop-ai-agent -am -T 1C` BUILD SUCCESS（mission 三模块验证基线），既有测试零回归。
-- [ ] **接线验证**（Minimum Rules #23）：`LlmConfigHelper` 读取入口确实从配置模型（`LlmAccountModel` 新字段 + provider 根属性）取值（测试断言 + 代码路径实证），非 stub。
-- [ ] **无静默跳过**（Minimum Rules #24）：未配置 `concurrencyLimit` 的语义是明确的"不限制"契约（测试钉死），非静默忽略。
-- [ ] `No owner-doc update required`（文档同步已含于 Phase 1）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 新字段五态读取测试全绿（账号覆盖 / provider 缺省回退 / 不限制缺省 / 显式 0 / 主账号回退 provider 缺省）。
+- [x] `./mvnw test -pl :nop-ai-core,:nop-ai-gateway,:nop-ai-agent -am -T 1C` BUILD SUCCESS（mission 三模块验证基线），既有测试零回归。
+- [x] **接线验证**（Minimum Rules #23）：`LlmConfigHelper` 读取入口确实从配置模型（`LlmAccountModel` 新字段 + provider 根属性）取值（测试断言 + 代码路径实证），非 stub。
+- [x] **无静默跳过**（Minimum Rules #24）：未配置 `concurrencyLimit` 的语义是明确的"不限制"契约（测试钉死），非静默忽略。
+- [x] `No owner-doc update required`（文档同步已含于 Phase 1）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。
 
-- [ ] `concurrencyLimit` 配置面完整落地（xdef + 生成物 + helper 读取 + 三态测试）。
-- [ ] 零回归验证完成（既有账号链配置/测试全绿）。
-- [ ] 生成物经 codegen 再生成、无手编（生成物检查实证）。
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope 项。
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据（audit 验证：xdef 语义、生成物来源、读取路径接线、零回归）。
-- [ ] **Anti-Hollow Check**：closure audit 已验证 helper 读取路径确实从配置取值（测试断言），无空壳/no-op。
-- [ ] `./mvnw compile -pl :nop-ai-core -am`
-- [ ] `./mvnw test -pl :nop-ai-core,:nop-ai-gateway,:nop-ai-agent -am -T 1C`
-- [ ] checkstyle / 代码规范检查通过（或按 mission lint 兜底通道判定）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（关闭时执行）
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-ai-core --severity high` 退出码 0（关闭时执行——新 helper 方法无运行时调用方属空壳高危面）
+- [x] `concurrencyLimit` 配置面完整落地（xdef + 生成物 + helper 读取 + 五态读取测试，实际 8 用例含负数态）。
+- [x] 零回归验证完成（既有账号链配置/测试全绿）。
+- [x] 生成物经 codegen 再生成、无手编（生成物检查实证）。
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope 项。
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据（audit 验证：xdef 语义、生成物来源、读取路径接线、零回归）。
+- [x] **Anti-Hollow Check**：closure audit 已验证 helper 读取路径确实从配置取值（测试断言），无空壳/no-op。
+- [x] `./mvnw compile -pl :nop-ai-core -am`
+- [x] `./mvnw test -pl :nop-ai-core,:nop-ai-gateway,:nop-ai-agent -am -T 1C`
+- [x] checkstyle / 代码规范检查通过（或按 mission lint 兜底通道判定）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（关闭时执行）
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-ai-core --severity high` 退出码 0（关闭时执行——新 helper 方法无运行时调用方属空壳高危面）
 
 ## Deferred But Adjudicated
 
@@ -129,14 +129,32 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （关闭时填写）
-Completed: （关闭时填写）
+Status Note: W3 配置面完整落地——`llm.xdef` 新增 `concurrencyLimit`（provider 缺省 + 账号覆盖，int 非 mandatory），生成物经 codegen 再生成（git diff 仅新增字段，71 insertions / 0 deletions，零模板漂移），`LlmConfigHelper` 双读取入口 + javadoc 语义契约，8 用例五态+负数+接线测试全绿，既有账号链测试零回归，两处 design 文档同步。独立 closure audit 全 PASS（closure-approve）。deferred 两项分类诚实（optimization candidate / out-of-scope improvement，均非 in-scope live defect）。
+Completed: 2026-08-15
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （关闭时填写）
-- Evidence: （关闭时填写）
+- Reviewer / Agent: 独立 general subagent（fresh session，read-only）
+- Audit Session: `ses_ffd2d5f90ffeSth8wHeOmZT0LB`
+- Evidence:
+  - 每条 Exit Criterion 验证结果（9 项全 PASS）：
+    - E1 xdef 语义 PASS：`llm.xdef:18` root `concurrencyLimit="int"` 非 mandatory；javadoc `:5-8`（in-flight/跳过语义/rateLimit 区别/provider-账号覆盖/显式 0/主账号路径）；account `:60` + javadoc `:50-52`；既有属性零改动（`:16`, `:55-59`）
+    - E2 生成物 PASS：`_LlmAccountModel.java`/`_LlmModel.java` 均含 `Integer concurrencyLimit`（字段+getter+setter+outputJson+copyTo）；git diff 71 insertions/0 deletions 仅新增字段；_gen 模板形态 + javadoc 从 xdef 传播 → codegen 来源实证
+    - E3 接线 PASS：`LlmConfigHelper.java:187-189` provider 读取 `loadConfig().getConcurrencyLimit()`；`:202-206` 账号版本非 null 即返（含 0/负数无 >0 过滤）否则回退 provider；null account → provider 缺省；javadoc `:173-186`/`:191-201` 契约完整
+    - E4 五态+负数测试 PASS：`TestLlmConfigHelperConcurrencyLimit` 8 用例（`:32,38,45,52,59,67,77,86`），真实配置数据（test-accounts.llm.xml:2/21-28、test-concurrency-misc.llm.xml:19），assertNull 显式钉死"不限制"（无静默跳过）
+    - E5 零回归 PASS：`TestLlmConfigHelperAccountChain`（3）/`TestLlmConfigHelper`（9）git diff 为空（未触碰）；test-accounts 仍 3 账号
+    - E6 构建 PASS（audit 复跑）：`./mvnw test -pl :nop-ai-core,:nop-ai-gateway,:nop-ai-agent -am -T 1C` BUILD SUCCESS；surefire 8/3/9 用例 0 failures/0 errors；`./mvnw compile -pl :nop-ai-core -am` BUILD SUCCESS
+    - E7 文档同步 PASS：error-normalization-design.md:254 + 02-account-failover-requirement.md §3.4:124 均含 concurrencyLimit + 层级语义；daily log 08-15.md Phase 1/2 条目在
+    - E8 deferred 分类 PASS：两项均 legitimately non-blocking（optimization candidate / out-of-scope improvement）
+    - E9 文本一致性 PASS（pre-flip 预期项已在本轮补完）：Phase 1/2 Status completed、全部 items/exit criteria/gates `[x]`
+  - 每条 Closure Gate 验证结果（11/11 PASS，evidence 同上）：
+    - `./mvnw compile -pl :nop-ai-core -am` PASS；`./mvnw test -pl :nop-ai-core,:nop-ai-gateway,:nop-ai-agent -am -T 1C` PASS（BUILD SUCCESS）
+    - checkstyle：无有效门禁（仓库既有 9164 条 nop-api-core 遗留基线；touched 文件违规全为同基线规则类，mission lint 兜底通道判定，与 W2 记录一致）
+    - `check-plan-checklist.mjs --strict` 退出码 0（本轮最终复跑：29/29 勾选 + evidence 落档）
+    - `scan-hollow-implementations.mjs --module nop-ai-core --severity high` 退出码 0（0 findings，新 helper 无运行时调用方的空壳风险解除——W5/W6/W7 为消费方）
+  - Anti-Hollow 检查结果：读取路径从配置模型真实取值（helper 代码 + 8 用例断言实证），无空方法体/静默跳过/no-op；scan-hollow 退出码 0
+  - Deferred 项分类检查：无 in-scope live defect 被降级（两项均 non-blocking 分类 + 理由）
 
 Follow-up:
 
-- （关闭时填写）
+- no remaining plan-owned work（并发运行时消费为 W5/W6/W7 的独立计划职责）
