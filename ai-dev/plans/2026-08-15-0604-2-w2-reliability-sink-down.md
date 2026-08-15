@@ -1,6 +1,6 @@
 # W2 LLM 可靠性子集下沉 nop-ai-core
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-15
 > Source: `ai-dev/backlog/nop-ai-gateway-failover-roadmap.md`（W2）、`ai-dev/design/nop-ai-gateway/02-account-failover-requirement.md`（§4.1/§五 Q11）
 > Related: `ai-dev/design/nop-ai-agent/nop-ai-agent-reliability.md`、`ai-dev/design/nop-ai-agent/nop-ai-llm-error-normalization-design.md`
@@ -60,116 +60,115 @@
 
 ### Phase 1 - 影响面盘点与裁定（SINK-02 前置裁决）
 
-Status: planned
-Targets: `nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/reliability/`、`nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/NopAiAgentErrors.java`、`nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/engine/NopAiAgentException.java`、`nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/`（只读盘点）
+Status: completed
 
 - Item Types: `Decision | Proof`
 
-- [ ] 逐类盘点：对 18 个待迁类逐一核对 (a) 包内互依赖、(b) 对外部模块/agent 包依赖（除 5 类已知 agent 异常引用外有无其他 agent 引擎依赖）、(c) 留驻类（Checkpoint*/GoalTracker/Sustainer/WaitCoordinator/CompactionAwareTruncation 等）反向依赖待迁类清单（已预知 8 个 main 类，见 Baseline）——裁定处理方式（补 import 即可，方向合法）。
-- [ ] 包名裁定：`io.nop.ai.core.reliability`（与 `io.nop.ai.agent.reliability` 同构），记录裁定理由。
-- [ ] **异常/错误码迁移策略裁定（预裁定，执行时复核确认）**：新增 `io.nop.ai.core.NopAiCoreException extends NopException`（构造器对齐 `NopAiAgentException` 四件套）；`NopAiAgentErrors` 中被迁移类使用的**仅 2 项**（`ERR_AI_AGENT_INVALID_ARG` + `ARG_MSG`）并入 `NopAiCoreErrors`；**`NopAiAgentErrors`（其余 30 码 + 7 ARG 常量）与 `NopAiAgentException` 保留在 nop-ai-agent**（30 码为 agent 专用，agent 内部 115+ 调用方继续使用）。理由：a) 可靠性子集依赖消除是硬约束，全量删除 agent 异常类不是；b) 全部 31 码迁入 core 造成 agent 专用码污染核心层；c) 保留 `NopAiAgentException` 同时保住 `nop-task-dao:69` 反射注册串契约。此裁定与需求文档 SINK-02 字面措辞的关系在 Phase 4 记录（等价物已建立，agent 类保留的偏差说明）。
-- [ ] 错误码迁移映射表（含 **ARG_*** 常量）：被迁移 2 项 → core 等价码；**错误码 ID 保持原样**（`nop.err.ai.agent.invalid-arg` 是持久化/日志错误码 ID，重命名即行为变更——Phase 1 直接裁定 ID 保留，仅换持有类）；`NopAiAgentErrors` 剩余码清单确认（30 码 + 7 ARG 常量）；grep 实证被迁移 2 项在 agent 侧的使用点清单（main ~34 文件 + 留驻类 `SisypheanSustainer`/`SessionGoalTracker`/`SustainContext`/`IterationSnapshot` 各含 2-4 处，精确计数）。
-- [ ] `buildModelKey` 落点裁定：新增 `io.nop.ai.core.reliability.ModelKeys`（或同类小工具类，final + private 构造器 + static 方法，语义与 `LlmCallCoordinator.buildModelKey` 逐字一致）；**`LlmCallCoordinator.buildModelKey` 原方法去留裁定（推荐：删除，调用方含留守测试 `TestEngineExtractedCoordinators:182-187` 全部改引用新位置；或保留委托——二选一落档）**；`LlmCallCoordinator`/`ReActAgentExecutor` 调用方与 `ICircuitBreaker`/`ThresholdBreaker` javadoc 引用同步。
-- [ ] 跨模块反射契约核实（Proof）：`nop-task-dao TaskExceptionRegistry.java:69` 注册串 `"io.nop.ai.agent.engine.NopAiAgentException"` 在"异常类保留"裁定下持续有效（无需改动）；`nop-task-ext TestTaskExceptionRegistry` 断言不变——结论记录。
-- [ ] 测试迁移裁定：逐测试类裁定"随迁 nop-ai-core / 留 nop-ai-agent（更新 import）"，依据 = 是否直接测试被迁移类语义（随迁）vs 测试 agent 装配/端到端链路（留守）；reliability 包外引用已迁类的 ~16 个测试文件纳入"留 nop-ai-agent + 补 import"清单。
+- [x] 逐类盘点：对 18 个待迁类逐一核对 (a) 包内互依赖、(b) 对外部模块/agent 包依赖（除 5 类已知 agent 异常引用外有无其他 agent 引擎依赖）、(c) 留驻类（Checkpoint*/GoalTracker/Sustainer/WaitCoordinator/CompactionAwareTruncation 等）反向依赖待迁类清单（已预知 8 个 main 类，见 Baseline）——裁定处理方式（补 import 即可，方向合法）。
+- [x] 包名裁定：`io.nop.ai.core.reliability`（与 `io.nop.ai.agent.reliability` 同构），记录裁定理由。
+- [x] **异常/错误码迁移策略裁定（预裁定，执行时复核确认）**：新增 `io.nop.ai.core.NopAiCoreException extends NopException`（构造器对齐 `NopAiAgentException` 四件套）；`NopAiAgentErrors` 中被迁移类使用的**仅 2 项**（`ERR_AI_AGENT_INVALID_ARG` + `ARG_MSG`）并入 `NopAiCoreErrors`；**`NopAiAgentErrors`（其余 30 码 + 7 ARG 常量）与 `NopAiAgentException` 保留在 nop-ai-agent**（30 码为 agent 专用，agent 内部 115+ 调用方继续使用）。理由：a) 可靠性子集依赖消除是硬约束，全量删除 agent 异常类不是；b) 全部 31 码迁入 core 造成 agent 专用码污染核心层；c) 保留 `NopAiAgentException` 同时保住 `nop-task-dao:69` 反射注册串契约。此裁定与需求文档 SINK-02 字面措辞的关系在 Phase 4 记录（等价物已建立，agent 类保留的偏差说明）。
+- [x] 错误码迁移映射表（含 **ARG_*** 常量）：被迁移 2 项 → core 等价码；**错误码 ID 保持原样**（`nop.err.ai.agent.invalid-arg` 是持久化/日志错误码 ID，重命名即行为变更——Phase 1 直接裁定 ID 保留，仅换持有类）；`NopAiAgentErrors` 剩余码清单确认（30 码 + 7 ARG 常量）；grep 实证被迁移 2 项在 agent 侧的使用点清单（main ~34 文件 + 留驻类 `SisypheanSustainer`/`SessionGoalTracker`/`SustainContext`/`IterationSnapshot` 各含 2-4 处，精确计数）。
+- [x] `buildModelKey` 落点裁定：新增 `io.nop.ai.core.reliability.ModelKeys`（或同类小工具类，final + private 构造器 + static 方法，语义与 `LlmCallCoordinator.buildModelKey` 逐字一致）；**`LlmCallCoordinator.buildModelKey` 原方法去留裁定（推荐：删除，调用方含留守测试 `TestEngineExtractedCoordinators:182-187` 全部改引用新位置；或保留委托——二选一落档）**；`LlmCallCoordinator`/`ReActAgentExecutor` 调用方与 `ICircuitBreaker`/`ThresholdBreaker` javadoc 引用同步。
+- [x] 跨模块反射契约核实（Proof）：`nop-task-dao TaskExceptionRegistry.java:69` 注册串 `"io.nop.ai.agent.engine.NopAiAgentException"` 在"异常类保留"裁定下持续有效（无需改动）；`nop-task-ext TestTaskExceptionRegistry` 断言不变——结论记录。
+- [x] 测试迁移裁定：逐测试类裁定"随迁 nop-ai-core / 留 nop-ai-agent（更新 import）"，依据 = 是否直接测试被迁移类语义（随迁）vs 测试 agent 装配/端到端链路（留守）；reliability 包外引用已迁类的 ~16 个测试文件纳入"留 nop-ai-agent + 补 import"清单。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 盘点结果落档：18 类依赖矩阵 + 留驻类反向依赖结论（8 个 main 类清单核对，无隐藏依赖）。
-- [ ] 包名/异常策略（含保留裁定）/错误码映射（含 ARG_*）/buildModelKey 落点/测试迁移五项裁定已写入 plan 或 design 文档，无未决项。
-- [ ] 错误码映射表完整覆盖被迁移错误码（含 ARG_* 常量），grep 实证使用点清单精确。
-- [ ] nop-task 反射契约核实结论记录（注册串持续有效）。
-- [ ] 测试迁移清单完整（reliability 包内 31 类 + 包外 ~16 类逐项归类）。
-- [ ] 本 Phase 为纯文档裁定，`No owner-doc update required`（design 文档同步在 Phase 4）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 盘点结果落档：18 类依赖矩阵 + 留驻类反向依赖结论（8 个 main 类清单核对，无隐藏依赖）。
+- [x] 包名/异常策略（含保留裁定）/错误码映射（含 ARG_*）/buildModelKey 落点/测试迁移五项裁定已写入 plan 或 design 文档，无未决项。
+- [x] 错误码映射表完整覆盖被迁移错误码（含 ARG_* 常量），grep 实证使用点清单精确。
+- [x] nop-task 反射契约核实结论记录（注册串持续有效）。
+- [x] 测试迁移清单完整（reliability 包内 31 类 + 包外 ~16 类逐项归类）。
+- [x] 本 Phase 为纯文档裁定，`No owner-doc update required`（design 文档同步在 Phase 4）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 2 - 代码迁移（SINK-01 + SINK-02）
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/reliability/**`（新建）、`nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/NopAiCoreException.java`（新建）、`nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/NopAiCoreErrors.java`（扩展）
 
 - Item Types: `Fix`
 
-- [ ] 18 类机械迁移至 `io.nop.ai.core.reliability`（package 声明 + import 更新；git mv 保历史）。
-- [ ] `NopAiCoreException` 新建（构造器对齐 `NopAiAgentException` 四件套）；`NopAiCoreErrors` 并入 `ERR_AI_AGENT_INVALID_ARG` + `ARG_MSG` 的 core 等价码（按 Phase 1 映射表）。
-- [ ] 迁移类内 5 类共 16 处 `NopAiAgentException`/`NopAiAgentErrors` 使用点（ThresholdBreaker 6 / ProviderFailoverQueue 3 / StandardRetryPolicy 3 / RetryContext 2 / RetryOutcome 2）替换为 `NopAiCoreException` + core 错误码。
-- [ ] **留驻类同步**：8 个反向引用已迁类的 main 留驻类补 `io.nop.ai.core.reliability.*` import（实测 `{@link}` javadoc 引用 7 处——`IGoalTracker`/`ISustainer`×2/`IterationSnapshot`/`SustainContext`/`NoOpSustainer`——必须补以保链接；`{@code}` 文本引用 6 处——`NoOpGoalTracker`×2/`SessionGoalTracker`/`SisypheanSustainer`×3——建议同步）；其中 4 个留驻类（`SisypheanSustainer`/`SessionGoalTracker`/`SustainContext`/`IterationSnapshot`）的 `ERR_AI_AGENT_INVALID_ARG`+`ARG_MSG` 使用点改为 core 码（异常类可继续用 `NopAiAgentException`）。
-- [ ] `buildModelKey` 移入 `io.nop.ai.core.reliability.ModelKeys`（Phase 1 裁定落点），`LlmCallCoordinator`/`ReActAgentExecutor` 调用方**按 Phase 1 裁定执行**（裁定删除时：调用方 + 留守测试 `TestEngineExtractedCoordinators:182-187` 改引用新位置；裁定委托时：调用方零改动，仅新位置就位）；`ICircuitBreaker`/`ThresholdBreaker` javadoc 引用同步。
-- [ ] `NopAiAgentErrors` 中被迁移的 2 项移除（其余 30 码 + 7 ARG 常量保留），agent 侧使用点（~35 文件精确清单）更新为 core 等价码；`NopAiAgentException` 保留不动（agent 内部继续使用）。
-- [ ] nop-ai-agent 对 18 个已迁类的 import 全量更新（`DefaultAgentEngineConfig` / `ReActAgentExecutorBuilder` / `ReActAgentExecutor` / `LlmCallCoordinator` 等 + 其他引用方）。
+- [x] 18 类机械迁移至 `io.nop.ai.core.reliability`（package 声明 + import 更新；git mv 保历史）。
+- [x] `NopAiCoreException` 新建（构造器对齐 `NopAiAgentException` 四件套）；`NopAiCoreErrors` 并入 `ERR_AI_AGENT_INVALID_ARG` + `ARG_MSG` 的 core 等价码（按 Phase 1 映射表）。
+- [x] 迁移类内 5 类共 16 处 `NopAiAgentException`/`NopAiAgentErrors` 使用点（ThresholdBreaker 6 / ProviderFailoverQueue 3 / StandardRetryPolicy 3 / RetryContext 2 / RetryOutcome 2）替换为 `NopAiCoreException` + core 错误码。
+- [x] **留驻类同步**：8 个反向引用已迁类的 main 留驻类补 `io.nop.ai.core.reliability.*` import（实测 `{@link}` javadoc 引用 7 处——`IGoalTracker`/`ISustainer`×2/`IterationSnapshot`/`SustainContext`/`NoOpSustainer`——必须补以保链接；`{@code}` 文本引用 6 处——`NoOpGoalTracker`×2/`SessionGoalTracker`/`SisypheanSustainer`×3——建议同步）；其中 4 个留驻类（`SisypheanSustainer`/`SessionGoalTracker`/`SustainContext`/`IterationSnapshot`）的 `ERR_AI_AGENT_INVALID_ARG`+`ARG_MSG` 使用点改为 core 码（异常类可继续用 `NopAiAgentException`）。
+- [x] `buildModelKey` 移入 `io.nop.ai.core.reliability.ModelKeys`（Phase 1 裁定落点），`LlmCallCoordinator`/`ReActAgentExecutor` 调用方**按 Phase 1 裁定执行**（裁定删除时：调用方 + 留守测试 `TestEngineExtractedCoordinators:182-187` 改引用新位置；裁定委托时：调用方零改动，仅新位置就位）；`ICircuitBreaker`/`ThresholdBreaker` javadoc 引用同步。
+- [x] `NopAiAgentErrors` 中被迁移的 2 项移除（其余 30 码 + 7 ARG 常量保留），agent 侧使用点（~35 文件精确清单）更新为 core 等价码；`NopAiAgentException` 保留不动（agent 内部继续使用）。
+- [x] nop-ai-agent 对 18 个已迁类的 import 全量更新（`DefaultAgentEngineConfig` / `ReActAgentExecutorBuilder` / `ReActAgentExecutor` / `LlmCallCoordinator` 等 + 其他引用方）。
 
 Exit Criteria:
 
-- [ ] `./mvnw compile -pl :nop-ai-core,:nop-ai-agent -am` 通过（先于测试运行）。
-- [ ] grep 实证：nop-ai-agent 源码对 `io.nop.ai.agent.reliability` 已迁类的引用零残留（排除测试，测试在 Phase 3 处理）；`NopAiAgentErrors` 中被迁移 2 项零残留。
-- [ ] nop-ai-core 对 `io.nop.ai.agent` 的 import 零残留（模块方向纪律，grep 实证）。
-- [ ] 迁移类行为语义零变更（git diff 仅 package/import/异常类型行，抽查代表类：`ThresholdBreaker`/`AccountChain`/`StandardRetryPolicy`）。
-- [ ] **无静默跳过**（Minimum Rules #24）：迁移后无新空方法体/无 swallow；`buildModelKey` 新位置被真实调用（grep 调用点）。
-- [ ] `No owner-doc update required`（文档同步在 Phase 4）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] `./mvnw compile -pl :nop-ai-core,:nop-ai-agent -am` 通过（先于测试运行）。
+- [x] grep 实证：nop-ai-agent 源码对 `io.nop.ai.agent.reliability` 已迁类的引用零残留（排除测试，测试在 Phase 3 处理）；`NopAiAgentErrors` 中被迁移 2 项零残留。
+- [x] nop-ai-core 对 `io.nop.ai.agent` 的 import 零残留（模块方向纪律，grep 实证）。
+- [x] 迁移类行为语义零变更（git diff 仅 package/import/异常类型行，抽查代表类：`ThresholdBreaker`/`AccountChain`/`StandardRetryPolicy`）。
+- [x] **无静默跳过**（Minimum Rules #24）：迁移后无新空方法体/无 swallow；`buildModelKey` 新位置被真实调用（grep 调用点）。
+- [x] `No owner-doc update required`（文档同步在 Phase 4）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 3 - 测试迁移 + 全量回归（SINK-03）
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-core/src/test/java/io/nop/ai/core/reliability/**`（随迁测试）、`nop-ai/nop-ai-agent/src/test/java/**`（留守测试：reliability 包内装配/E2E + 包外引用已迁类的 ~16 个文件）
 
 - Item Types: `Fix | Proof`
 
-- [ ] 按 Phase 1 清单迁移纯单元测试至 nop-ai-core（package/import 更新；**断言异常类型适配为预期改动**：`assertThrows(NopAiAgentException.class)` → `NopAiCoreException`、`ERR_AI_AGENT_INVALID_ARG` → core 码、`TestNoRetryPolicy.java:51` 的异常输入换类——**语义断言零改动**；随迁测试不得 import `io.nop.ai.agent.*`，违反则编译失败）。
-- [ ] 留守 nop-ai-agent 的装配/E2E 测试更新 import/引用。
-- [ ] reliability 包外引用已迁类的 5 个测试文件（`TestAccountFallbackChain` / `TestEngineExtractedCoordinators` / `TestExecutionMiddlewareLlmRetry` / `TestProviderFailoverChain` / `TestSmartModelRouterFallback`）补 import（`TestCheckpointDispatchPathWiring` 无需改动——仅 import 留守类）。
-- [ ] 留守类单测（`TestSessionGoalTracker` / `TestSisypheanSustainer` / `TestDBCheckpointManager` / `TestFileBackedCheckpointManager` / `TestCheckpointJournalSnapshotFormat` 等）若引用已迁类则补 import（引用 `NopAiAgentException` 的无需改——异常类保留）。
-- [ ] 双模块全量回归：`./mvnw test -pl :nop-ai-core,:nop-ai-agent -am -T 1C` 零失败；记录迁移前后测试计数（迁移前 nop-ai-agent 测试总数 vs 迁移后 core+agent 合计，证明无测试丢失）。
-- [ ] 新公共类型测试（Minimum Rules #25）：`ModelKeys.buildModelKey` 随迁后必须有其语义测试（将 `TestEngineExtractedCoordinators:182-187` 的断言随迁/复制至 nop-ai-core 新位置，或等价的 `ModelKeys` 单元测试）；`NopAiCoreException` 构造器四件套由随迁测试断言覆盖（`assertThrows(NopAiCoreException.class)` 即验证）。
-- [ ] 端到端链路保持：`TestThresholdBreakerEndToEnd`/`TestStandardRetryPolicyEndToEnd`（留守 agent）验证迁移后熔断/重试在 ReAct 执行链仍生效（Anti-Hollow：下沉类被 agent 引擎运行时消费，非仅类型存在；`TestThresholdBreakerEndToEnd` 仅断言 `getError()` 文本与 CircuitState，不依赖异常类型——兼容确认）。
+- [x] 按 Phase 1 清单迁移纯单元测试至 nop-ai-core（package/import 更新；**断言异常类型适配为预期改动**：`assertThrows(NopAiAgentException.class)` → `NopAiCoreException`、`ERR_AI_AGENT_INVALID_ARG` → core 码、`TestNoRetryPolicy.java:51` 的异常输入换类——**语义断言零改动**；随迁测试不得 import `io.nop.ai.agent.*`，违反则编译失败）。
+- [x] 留守 nop-ai-agent 的装配/E2E 测试更新 import/引用。
+- [x] reliability 包外引用已迁类的 5 个测试文件（`TestAccountFallbackChain` / `TestEngineExtractedCoordinators` / `TestExecutionMiddlewareLlmRetry` / `TestProviderFailoverChain` / `TestSmartModelRouterFallback`）补 import（`TestCheckpointDispatchPathWiring` 无需改动——仅 import 留守类）。
+- [x] 留守类单测（`TestSessionGoalTracker` / `TestSisypheanSustainer` / `TestDBCheckpointManager` / `TestFileBackedCheckpointManager` / `TestCheckpointJournalSnapshotFormat` 等）若引用已迁类则补 import（引用 `NopAiAgentException` 的无需改——异常类保留）。
+- [x] 双模块全量回归：`./mvnw test -pl :nop-ai-core,:nop-ai-agent -am -T 1C` 零失败；记录迁移前后测试计数（迁移前 nop-ai-agent 测试总数 vs 迁移后 core+agent 合计，证明无测试丢失）。
+- [x] 新公共类型测试（Minimum Rules #25）：`ModelKeys.buildModelKey` 随迁后必须有其语义测试（将 `TestEngineExtractedCoordinators:182-187` 的断言随迁/复制至 nop-ai-core 新位置，或等价的 `ModelKeys` 单元测试）；`NopAiCoreException` 构造器四件套由随迁测试断言覆盖（`assertThrows(NopAiCoreException.class)` 即验证）。
+- [x] 端到端链路保持：`TestThresholdBreakerEndToEnd`/`TestStandardRetryPolicyEndToEnd`（留守 agent）验证迁移后熔断/重试在 ReAct 执行链仍生效（Anti-Hollow：下沉类被 agent 引擎运行时消费，非仅类型存在；`TestThresholdBreakerEndToEnd` 仅断言 `getError()` 文本与 CircuitState，不依赖异常类型——兼容确认）。
 
 Exit Criteria:
 
-- [ ] `./mvnw test -pl :nop-ai-core,:nop-ai-agent -am -T 1C` BUILD SUCCESS，0 failures / 0 errors。
-- [ ] 测试计数核对：迁移前（agent）+ 迁移后（core + agent）测试总数一致（或差异已逐项说明）。
-- [ ] 端到端测试（留守 agent 的 EndToEnd 用例）全绿——证明下沉类在 agent 引擎链路仍被运行时调用。
-- [ ] `No owner-doc update required`（文档同步在 Phase 4）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] `./mvnw test -pl :nop-ai-core,:nop-ai-agent -am -T 1C` BUILD SUCCESS，0 failures / 0 errors。
+- [x] 测试计数核对：迁移前（agent）+ 迁移后（core + agent）测试总数一致（或差异已逐项说明）。
+- [x] 端到端测试（留守 agent 的 EndToEnd 用例）全绿——证明下沉类在 agent 引擎链路仍被运行时调用。
+- [x] `No owner-doc update required`（文档同步在 Phase 4）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 4 - 文档同步（SINK-04）
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/nop-ai-agent/nop-ai-agent-reliability.md`、`ai-dev/design/nop-ai-agent/nop-ai-llm-error-normalization-design.md`（如涉）、`ai-dev/design/nop-ai-gateway/02-account-failover-requirement.md`（§四.1 归属表 + SINK-02 偏差说明）、`docs-for-ai/02-core-guides/error-handling.md`（核查）、`ai-dev/backlog/nop-ai-gateway-failover-roadmap.md`（W2 状态）
 
 - Item Types: `Follow-up`
 
-- [ ] `nop-ai-agent-reliability.md` 模块归属同步：可靠性子集（18 类 + `NopAiCoreException`/core 错误码 + `ModelKeys.buildModelKey`）标注归属 nop-ai-core；agent 引擎专用部分（Checkpoint*/GoalTracker/Sustainer/WaitCoordinator/CompactionAwareTruncation）明确标注留在 nop-ai-agent；`LlmCallCoordinator` 不迁移标注。
-- [ ] 需求文档 §4.1 归属表核对；**SINK-02 偏差说明**：记录"`NopAiAgentErrors`/`NopAiAgentException` 保留在 agent（30 码 agent 专用 + nop-task 反射契约），core 等价物 = `NopAiCoreException` + 并入的 2 项错误码"裁定（与 roadmap 字面的偏差 + 理由）。
-- [ ] `nop-ai-llm-error-normalization-design.md` 归属同步：`LlmErrorClassifier`/`IRetryPolicy` 与账号链消费的模块归属描述（文档范围声明行 + Layer 3 归属节）→ nop-ai-core。
-- [ ] `docs-for-ai/02-core-guides/error-handling.md` 核查：`NopAiAgentErrors`（nop-ai-agent）与 `NopAiCoreErrors`（nop-ai-core）条目在异常类保留裁定下仍然准确；**被迁移英文码 `ERR_AI_AGENT_INVALID_ARG`（"invalid argument: {msg}"）并入 `NopAiCoreErrors` 后，该文档"英文转换码例外以模块为粒度"的分界表述需复核**——给出明确结论（更新例外归属表述或记录无需改动及理由）。
-- [ ] roadmap W2 状态：`todo` → `planned`（draft review 通过时）→ `done`（独立 closure audit 通过后）。
+- [x] `nop-ai-agent-reliability.md` 模块归属同步：可靠性子集（18 类 + `NopAiCoreException`/core 错误码 + `ModelKeys.buildModelKey`）标注归属 nop-ai-core；agent 引擎专用部分（Checkpoint*/GoalTracker/Sustainer/WaitCoordinator/CompactionAwareTruncation）明确标注留在 nop-ai-agent；`LlmCallCoordinator` 不迁移标注。
+- [x] 需求文档 §4.1 归属表核对；**SINK-02 偏差说明**：记录"`NopAiAgentErrors`/`NopAiAgentException` 保留在 agent（30 码 agent 专用 + nop-task 反射契约），core 等价物 = `NopAiCoreException` + 并入的 2 项错误码"裁定（与 roadmap 字面的偏差 + 理由）。
+- [x] `nop-ai-llm-error-normalization-design.md` 归属同步：`LlmErrorClassifier`/`IRetryPolicy` 与账号链消费的模块归属描述（文档范围声明行 + Layer 3 归属节）→ nop-ai-core。
+- [x] `docs-for-ai/02-core-guides/error-handling.md` 核查：`NopAiAgentErrors`（nop-ai-agent）与 `NopAiCoreErrors`（nop-ai-core）条目在异常类保留裁定下仍然准确；**被迁移英文码 `ERR_AI_AGENT_INVALID_ARG`（"invalid argument: {msg}"）并入 `NopAiCoreErrors` 后，该文档"英文转换码例外以模块为粒度"的分界表述需复核**——给出明确结论（更新例外归属表述或记录无需改动及理由）。
+- [x] roadmap W2 状态：`todo` → `planned`（draft review 通过时）→ `done`（独立 closure audit 通过后）。
 
 Exit Criteria:
 
-- [ ] 上述文档同步全部完成，grep 抽查无"reliability 子集属 nop-ai-agent"残留表述。
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 上述文档同步全部完成，grep 抽查无"reliability 子集属 nop-ai-agent"残留表述。
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。
 
-- [ ] 18 类 + `NopAiCoreException`/core 错误码 + `ModelKeys.buildModelKey` 迁移完成，nop-ai-core 对 nop-ai-agent 零依赖保持（grep 实证）。
-- [ ] 已迁类对 nop-ai-agent 零引用；`NopAiAgentErrors` 被迁移 2 项在 agent 侧零残留（grep 实证，含测试）。
-- [ ] nop-task 反射契约核实：注册串 `"io.nop.ai.agent.engine.NopAiAgentException"` 持续有效（类保留），`nop-task-ext` 测试零改动零回归。
-- [ ] 双模块全量回归零失败，测试计数无丢失。
-- [ ] 行为语义零变更（git diff 抽查代表类仅机械差异）。
-- [ ] `nop-ai-agent-reliability.md` 等 owner docs 已同步到 live baseline（含 SINK-02 偏差说明）。
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope 迁移残留项。
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据（audit 验证：迁移完整性 grep、模块依赖方向、行为零变更抽查、端到端链路运行时消费、nop-task 契约）。
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）下沉类被 nop-ai-agent 引擎在运行时确实调用（EndToEnd 测试绿 + 代码追踪），（b）无空方法体/静默跳过/no-op 作为正常实现。
-- [ ] `./mvnw compile -pl :nop-ai-core,:nop-ai-agent -am`
-- [ ] `./mvnw test -pl :nop-ai-core,:nop-ai-agent -am -T 1C`
-- [ ] checkstyle：仓库根 pom 的 checkstyle 插件配置整体注释、`-Pqa` profile `failOnViolation=false`（违规不失败）——**无有效 checkstyle 门禁**，本 plan 以 compile/test 门禁 + grep 零残留作为代码规范验证（记录此裁定，不虚构门禁）。
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（关闭时执行）
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-ai-core --severity high` 退出码 0（关闭时执行）
+- [x] 18 类 + `NopAiCoreException`/core 错误码 + `ModelKeys.buildModelKey` 迁移完成，nop-ai-core 对 nop-ai-agent 零依赖保持（grep 实证）。
+- [x] 已迁类对 nop-ai-agent 零引用；`NopAiAgentErrors` 被迁移 2 项在 agent 侧零残留（grep 实证，含测试）。
+- [x] nop-task 反射契约核实：注册串 `"io.nop.ai.agent.engine.NopAiAgentException"` 持续有效（类保留），`nop-task-ext` 测试零改动零回归。
+- [x] 双模块全量回归零失败，测试计数无丢失。
+- [x] 行为语义零变更（git diff 抽查代表类仅机械差异）。
+- [x] `nop-ai-agent-reliability.md` 等 owner docs 已同步到 live baseline（含 SINK-02 偏差说明）。
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope 迁移残留项。
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据（audit 验证：迁移完整性 grep、模块依赖方向、行为零变更抽查、端到端链路运行时消费、nop-task 契约）。
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）下沉类被 nop-ai-agent 引擎在运行时确实调用（EndToEnd 测试绿 + 代码追踪），（b）无空方法体/静默跳过/no-op 作为正常实现。
+- [x] `./mvnw compile -pl :nop-ai-core,:nop-ai-agent -am`
+- [x] `./mvnw test -pl :nop-ai-core,:nop-ai-agent -am -T 1C`
+- [x] checkstyle：仓库根 pom 的 checkstyle 插件配置整体注释、`-Pqa` profile `failOnViolation=false`（违规不失败）——**无有效 checkstyle 门禁**，本 plan 以 compile/test 门禁 + grep 零残留作为代码规范验证（记录此裁定，不虚构门禁）。
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（关闭时执行）
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-ai-core --severity high` 退出码 0（关闭时执行）
 
 ## Deferred But Adjudicated
 
@@ -179,20 +178,72 @@ Exit Criteria:
 - Why Not Blocking Closure: 31 个错误码中 30 个为 agent 专用（filter/recipe/session/memory/hook 系列），迁入 core 是设计污染；`NopAiAgentException` 保留同时保住 `nop-task-dao:69` 反射注册串契约（若删除，任务异常精确重建能力将静默降级为 generic `NopException`）。可靠性子集"不依赖 nop-ai-agent"的硬约束通过"已迁类零 agent 引用"满足，与保留裁定不冲突。此裁定已在 Phase 1 落档并将在 Phase 4 写入需求文档偏差说明。
 - Successor Required: `no`
 
+## Phase 1 Adjudications（执行时落档，2026-08-15）
+
+> 以下裁定全部经 live 实证复核（执行当日 grep/read 核实），作为 Phase 2/3 的执行依据。
+
+### A. 逐类盘点结论（18 类）
+
+- 18 类 import 面干净（仅 `io.nop.ai.core.model.*` / `io.nop.ai.api.chat.*` / `io.nop.api.core.*` / java.util + 5 类 agent 异常引用），无隐藏 agent 引擎类型依赖——迁移可行。
+- 5 类引用 `NopAiAgentErrors`/`NopAiAgentException`（精确使用点数）：`ThresholdBreaker` 6、`ProviderFailoverQueue` 3、`StandardRetryPolicy` 3、`RetryContext` 2、`RetryOutcome` 2（合计 16 处 throw 站点）。
+- 留驻 main 类反向引用（8 类，均为 javadoc 引用，无代码级依赖）：
+  - `{@link}` 7 处（必须补 import 保链接）：`IGoalTracker:35`→`ICircuitBreaker`；`ISustainer:5,72`→`ICircuitBreaker`；`IterationSnapshot:17`→`RetryContext`；`SustainContext:15`→`RetryContext`；`NoOpSustainer:21`→`AlwaysClosed`+`NoRetryPolicy`。
+  - `{@code}` 6 处（建议同步补 import）：`NoOpGoalTracker:21`→`AlwaysClosed`+`NoRetryPolicy`；`SessionGoalTracker:45`→`ThresholdBreaker`；`SisypheanSustainer:10,60`→`ThresholdBreaker`、`:60`→`StandardRetryPolicy`。
+  - `IModelRouter`/`SmartModelRouter` 仅 `{@code RetryDecision.FALLBACK}` javadoc 文本（无链接语义）——不补 import，落档为无需改动。
+- 包外 main 引用已迁类的 8 个 engine 文件：`DefaultAgentEngine`/`DefaultAgentEngineConfig`/`ReActAgentExecutor`/`ReActAgentExecutorBuilder`/`LlmCallCoordinator`（代码级引用）+ `AgentCompactionCoordinator`/`AgentSessionLifecycle`/`AgentToolDispatcher`（仅 Checkpoint* 留驻类，无需改动）。
+- 全仓（含 nop-ai-gateway 等）无其他模块引用 `io.nop.ai.agent.reliability` 已迁类（仅 `ai-dev/audits/evidence/` 历史基线拷贝，非 live 代码）。
+
+### B. 包名裁定
+
+`io.nop.ai.core.reliability`（与 `io.nop.ai.agent.reliability` 同构；nop-ai-core 既有无 `reliability` 包，无冲突）。
+
+### C. 异常/错误码迁移策略裁定（预裁定复核确认）
+
+- 新增 `io.nop.ai.core.NopAiCoreException extends NopException`，构造器对齐 `NopAiAgentException` 四件套：(String)/(String, Throwable)/(ErrorCode)/(ErrorCode, Throwable)。
+- `NopAiAgentErrors` 中仅 2 项并入 `NopAiCoreErrors`：`ERR_AI_AGENT_INVALID_ARG` + `ARG_MSG`。**错误码 ID 保持原样**（`nop.err.ai.agent.invalid-arg`，持久化/日志 ID，重命名即行为变更）；常量名保持 `ERR_AI_AGENT_INVALID_ARG`（仅换持有类，diff 最小机械化）。
+- `NopAiAgentErrors` 其余 30 码 + 7 ARG 常量（ARG_MODE/ARG_FILTER_ID/ARG_POINT/ARG_IMPL/ARG_RECIPE_REF/ARG_PARAM_NAME/ARG_HOOK_ID）与 `NopAiAgentException` 保留在 nop-ai-agent。理由：a) 可靠性子集依赖消除是硬约束，全量删除 agent 异常类不是；b) 30 码为 agent 专用（filter/recipe/session/memory/hook 系列），迁入 core 是设计污染；c) 保留 `NopAiAgentException` 保住 `nop-task-dao TaskExceptionRegistry.java:69` 反射注册串 `"io.nop.ai.agent.engine.NopAiAgentException"` 契约。
+- 与需求文档 SINK-02 字面措辞（"`NopAiAgentException`/`NopAiAgentErrors` → nop-ai-core 等价物"）的偏差说明：core 等价物已建立（`NopAiCoreException` + 并入 2 项错误码），agent 类保留的偏差将在 Phase 4 写入需求文档。
+
+### D. 错误码映射表（被迁移 2 项）
+
+| Agent 侧（移除） | Core 侧（并入） | 错误码 ID | 使用点实证 |
+|---|---|---|---|
+| `NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG` | `NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG` | `nop.err.ai.agent.invalid-arg`（不变） | main 31 文件 / 67 处（其中 reliability 包 9 文件：5 迁 4 留；包外 22 文件）；test 仅 `TestThresholdBreaker` |
+| `NopAiAgentErrors.ARG_MSG` | `NopAiCoreErrors.ARG_MSG` | —（`"msg"` 值不变） | main 66 处（与 ERR_AI_AGENT_INVALID_ARG 同文件——已核实无 ARG_MSG 单飞使用文件） |
+
+- 剩余码确认：`NopAiAgentErrors` 保留 30 码 + 7 ARG 常量（live 核实：8 ARG 常量中仅 ARG_MSG 迁出）。
+
+### E. buildModelKey 落点裁定
+
+- 新增 `io.nop.ai.core.reliability.ModelKeys`（final + private 构造器 + `public static String buildModelKey(ChatOptions)`，语义与 `LlmCallCoordinator.buildModelKey` 逐字一致）。
+- **`LlmCallCoordinator.buildModelKey` 原方法裁定：删除**（单一事实来源；10 处同内调用 + `ReActAgentExecutor.java:613` 实例限定调用 + 留守测试 `TestEngineExtractedCoordinators:182-187` 静态调用全部改引用 `ModelKeys.buildModelKey`；javadoc 引用 `ICircuitBreaker:31,46` / `ThresholdBreaker:15` 同步为 `ModelKeys.buildModelKey`）。
+
+### F. 跨模块反射契约核实（Proof）
+
+- `nop-task/nop-task-dao/.../store/TaskExceptionRegistry.java:69` `registerReflective("io.nop.ai.agent.engine.NopAiAgentException")` 在"异常类保留"裁定下持续有效，无需改动；`nop-task-ext TestTaskExceptionRegistry` 断言不变。
+
+### G. 测试迁移裁定（31 包内 + 包外 5 个）
+
+- **随迁 nop-ai-core（6 个纯单元测试）**：`TestThresholdBreaker` / `TestStandardRetryPolicy` / `TestNoRetryPolicy` / `TestAlwaysClosed` / `TestLlmErrorClassifier` / `TestProviderFailoverQueue`（直接测试被迁移类语义；断言异常类型改为 `NopAiCoreException` + core 码为预期改动，语义断言零改动）。
+- **留 nop-ai-agent 补 import（reliability 包内 6 个装配/E2E）**：`TestCircuitAwareRouting` / `TestCircuitBreakerWiring` / `TestLlmCallCoordinatorErrorResponse` / `TestRetryPolicyWiring` / `TestStandardRetryPolicyEndToEnd` / `TestThresholdBreakerEndToEnd`。
+- **留 nop-ai-agent 补 import（包外 5 个）**：`TestAccountFallbackChain` / `TestEngineExtractedCoordinators`（含 buildModelKey 静态断言 2 处） / `TestExecutionMiddlewareLlmRetry` / `TestProviderFailoverChain` / `TestSmartModelRouterFallback`。
+- **无需改动**：`TestCheckpointDispatchPathWiring` 等其余包外测试（仅 import 留驻类）；包内留驻类测试（`TestSessionGoalTracker` / `TestSisypheanSustainer` / `TestDBCheckpointManager` / `TestFileBackedCheckpointManager` 等，引用 `NopAiAgentException` 的无需改——异常类保留）。
+- 4 个 test 文件（`TestRestoreSession` 等）使用 `NopAiAgentErrors` 但仅 agent 专用码（非 `ERR_AI_AGENT_INVALID_ARG`）——不动。
+
 ## Non-Blocking Follow-ups
 
 - 无（迁移类语义增强、性能优化等不属本 plan）。
 
 ## Closure
 
-Status Note: （关闭时填写）
-Completed: （关闭时填写）
+Status Note: 独立 closure audit（fresh general subagent `ses_ffd4ae94affeqUVzzmxqGjN0Yw`）8/8 PASS，verdict closure-approve——迁移完整性（18 类 + ModelKeys 零残留）、模块方向纪律（core 零 agent import）、行为零变更抽查（AccountChain/ThresholdBreaker/StandardRetryPolicy 仅 package/import/异常类 token 差异）、运行时消费（engine 4 文件引用 + EndToEnd 全绿）、nop-task 反射契约（TaskExceptionRegistry:69 注册串有效）、测试计数（73 随迁 1:1 + 2 新）、文档同步（4 文档 + roadmap）全部实证通过。
+Completed: 2026-08-15（Plan Status → completed；roadmap W2 → done）
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （关闭时填写）
-- Evidence: （关闭时填写）
+- Reviewer / Agent: fresh general subagent `ses_ffd4ae94affeqUVzzmxqGjN0Yw`（独立 audit，非执行 agent）
+- Evidence: 8 项检查全 PASS——(1) 迁移完整性：18 类 + ModelKeys 就位，agent 侧已迁类 import 0 残留、`NopAiAgentErrors.(ERR_AI_AGENT_INVALID_ARG|ARG_MSG)` 0 残留、core main/test 对 agent 0 import；(2) `NopAiAgentErrors` 30 码 + 7 ARG 保留、`NopAiCoreErrors` 含 ID `nop.err.ai.agent.invalid-arg` 等价码；(3) buildModelKey 原方法删除（agent 0 声明）、LlmCallCoordinator 10 调用点 + ReActAgentExecutor:614 改 `ModelKeys.buildModelKey`、TestModelKeys 新建；(4) 行为零变更：三代表类 git diff 仅 package/import/异常类 token（消息文本、阈值、错误码 ID 不变）；(5) Anti-Hollow：engine 4 文件运行时引用 + TestThresholdBreakerEndToEnd 3/3 + TestStandardRetryPolicyEndToEnd 4/4 绿；(6) nop-task 反射契约：TaskExceptionRegistry:69 注册串 + 异常类保留；(7) 测试迁移：6 纯单元测试随迁（73 用例 1:1）+ TestModelKeys 2 新；(8) 构建：`./mvnw test -pl :nop-ai-core,:nop-ai-gateway,:nop-ai-agent -am -T 1C` BUILD SUCCESS（agent 3387 + core 292 + gateway 84，0 failures/0 errors）、`check-doc-links.mjs --strict` exit 0、`check-plan-checklist.mjs --strict` exit 0、`scan-hollow-implementations.mjs --module nop-ai-core --severity high` exit 0。
 
 Follow-up:
 
-- （关闭时填写）
+- 无（Non-Blocking Follow-ups 为空；`NopAiAgentErrors`/`NopAiAgentException` 保留 = 已裁定 watch-only residual，非未完成项）

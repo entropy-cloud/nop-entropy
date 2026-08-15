@@ -1,7 +1,7 @@
 # LLM 错误规范化与配额感知恢复设计
 
 **日期**：2026-08-01（R1 审查修订）
-**范围**：`nop-ai-core`（`llm.xdef` + `ChatServiceImpl`）+ `nop-ai-agent`（`LlmErrorClassifier` / `IRetryPolicy` / `IModelRouter`）+ `nop-http`（`ServerEventPublisher` 头传递）
+**范围**：`nop-ai-core`（`llm.xdef` + `ChatServiceImpl` + **LLM 可靠性子集**（W2 下沉后：`LlmErrorClassifier` / `IRetryPolicy` / 账号链，见 §3.8））+ `nop-ai-agent`（`LlmCallCoordinator` / `IModelRouter`）+ `nop-http`（`ServerEventPublisher` 头传递）
 **状态**：草案（待 plan 落地）
 **前置文档**：`nop-ai-agent-llm-layer.md`（§6.5 回退错误分类、§7 重试策略、§7.6 Retry-After 多源解析均为本篇补齐的显式 Non-Goal）
 **可行性验证**：`ai-dev/analysis/2026-08/2026-08-01-llm-error-mapping-feasibility-analysis.md`（主流 API 真实错误格式 + 4 个参考实现调研，证实配置方案 ~90% 可达）
@@ -289,13 +289,16 @@ Layer 0 (nop-ai-api):   ErrorClassification(纯词汇，io.nop.ai.api.chat.Error
                         ChatResponse（携带 errorClassification / retryAfterMs / httpStatus）
 Layer 1 (nop-ai-core):  llm.xdef 配置 + ChatServiceImpl（I/O 规范化：成功经 parseResponse，错误经 parseErrorResponse，结果都在 ChatResponse）
                         ILlmDialect（新增 parseErrorResponse，消费 <errorMappings>）
+                        LLM 可靠性子集（W2 下沉，plan 2026-08-15-0604-2 ✅）：LlmErrorClassifier(传输异常级分类) + IRetryPolicy(恢复决策)
                                 ↓ 返回带 errorClassification 的 ChatResponse
 Layer 3 (nop-ai-agent): LlmCallCoordinator 重试循环读 ChatResponse.errorClassification（!isSuccess() 进入重试决策）
-                        + IRetryPolicy(恢复决策) + 账号链消费；传输异常仍走 LlmErrorClassifier 启发式
+                        + 账号链消费（AccountChain 游走器已随 W2 下沉 nop-ai-core，LlmCallCoordinator 保留在 agent）
 Layer -1 (nop-http):    ServerEventPublisher 头传递（前置改动，见 §3.4）
 ```
 
 **类型归属裁定（plan 2026-08-01-1440-1）**：`ErrorClassification` 已从 `nop-ai-core` 迁到 `nop-ai-api`（`io.nop.ai.api.chat.ErrorClassification`）。依赖图核实：`nop-ai-api` 仅依赖 `nop-api-core`（最低层）；`nop-ai-core` → `nop-ai-api`；`nop-ai-agent` → `nop-ai-core` → `nop-ai-api`——nop-ai-api 是 `ChatResponse`(api)、core 生产者、agent 消费者三方共同可见的唯一层。留在 nop-ai-core 会让 `ChatResponse` 无法引用它（循环依赖），故迁移是依赖图唯一正确解。迁移后信号通路全程同一类型（core 规范化产出 → ChatResponse 携带 → agent 消费），无任何按名/按类型转换；agent 侧旧 `reliability.ErrorClassification` 桥接已删除（双类型收口）。错误规范化逻辑（`AbstractLlmDialect.parseErrorResponse`）归属 `nop-ai-core`（与成功解析同模块同层），依赖方向不变。
+
+**W2 下沉后归属修订（plan 2026-08-15-0604-2 ✅）**：`LlmErrorClassifier` / `IRetryPolicy` / `StandardRetryPolicy` / `NoRetryPolicy` / `RetryContext` / `RetryDecision` / `RetryOutcome` / `AccountChain` / `IAccountChainResolver` 已从 Layer 3（nop-ai-agent）下沉至 Layer 1（nop-ai-core，包 `io.nop.ai.core.reliability`），传输异常分类与恢复决策在 core 层产出、agent 引擎（`LlmCallCoordinator`，仍属 Layer 3）与网关能力级（W5-W7）共同消费；依赖方向 `nop-ai-agent → nop-ai-core` 不变。本篇 §范围声明行与 §3.8 归属节同步更新。
 
 ---
 

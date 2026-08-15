@@ -12,6 +12,19 @@ Agent runtime 稳定之后，系统会进入第二类问题：
 
 本篇定义 `nop-ai-agent` 的可靠性增强层，目标是让系统在真实环境中更可控，而不是在设计阶段一次性实现全部复杂能力。
 
+### 0.1 模块归属总览（W2 可靠性子集下沉后，plan 2026-08-15-0604-2 ✅）
+
+**LLM 可靠性子集已下沉 nop-ai-core**（包 `io.nop.ai.core.reliability`），agent 引擎专用部分留在 nop-ai-agent（包 `io.nop.ai.agent.reliability`）：
+
+| 归属 | 类型 | 包 |
+| --- | --- | --- |
+| **nop-ai-core**（下沉，W2） | `ThresholdBreaker` / `ICircuitBreaker` / `CircuitState` / `AlwaysClosed` / `AccountChain` / `IAccountChainResolver` / `ProviderFailoverChain` / `ProviderFailoverQueue` / `IProviderFailoverQueue` / `IProviderFailoverChainResolver` / `NoOpProviderFailoverQueue` / `LlmErrorClassifier` / `IRetryPolicy` / `StandardRetryPolicy` / `NoRetryPolicy` / `RetryContext` / `RetryDecision` / `RetryOutcome` + `ModelKeys.buildModelKey` | `io.nop.ai.core.reliability` |
+| **nop-ai-core**（异常/错误码等价物） | `NopAiCoreException`（`NopAiAgentException` 的 core 等价物，构造器四件套对齐）；`NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG`（错误码 ID `nop.err.ai.agent.invalid-arg` 保留）+ `ARG_MSG` | `io.nop.ai.core` |
+| **nop-ai-agent**（引擎专用，留原处） | `Checkpoint*` / `ICheckpointManager` / `DBCheckpointManager` / `FileBackedCheckpointManager` / `AiAgentCheckpointTable` / `GoalAssessment` / `IGoalTracker` / `NoOpGoalTracker` / `SessionGoalTracker` / `IterationSnapshot` / `ISustainer` / `NoOpSustainer` / `SisypheanSustainer` / `SustainContext` / `SustainDecision` / `SustainStopReason` / `IWaitCoordinator` / `Wait*` / `DefaultWaitCoordinator` / `NoOpWaitCoordinator` / `CompactionAwareTruncation` | `io.nop.ai.agent.reliability` |
+| **nop-ai-agent**（不迁移） | `LlmCallCoordinator`（强耦合 agent 引擎，多通道分流语义沿用）；`NopAiAgentException` / `NopAiAgentErrors`（30 码 agent 专用，**保留**——含 nop-task 反射注册串契约） | `io.nop.ai.agent.engine` / `io.nop.ai.agent` |
+
+> W2 裁定（plan 2026-08-15-0604-2 Phase 1）：下沉仅移动位置与命名空间（包名/异常类），**可靠性类行为语义零变更**。网关能力级（W5-W7）依赖 `io.nop.ai.core.reliability`，不依赖 nop-ai-agent。
+
 ### 1.1 恢复模型
 
 Agent 执行过程中的详细历史自动持久化（消息历史、工具调用及结果、Plan 状态）。崩溃后恢复策略：
@@ -257,7 +270,7 @@ LLM 输出的工具调用 JSON 经常存在参数丢失、JSON 截断、重复�
 
 但这类能力更适合在 runtime 稳定后再引入，因为阈值和冷却时间需要真实运行数据校准。
 
-**实现状态（plan 210 ✅ 已落地 — 三态状态机）**：`ThresholdBreaker`（`io.nop.ai.agent.reliability` 包，opt-in）实现 per-model-key（`provider:model` 复合键）三态状态机：CLOSED 连续失败计数达 `failureThreshold`（默认 3，构造器可配）→ OPEN；OPEN 经 `cooldownMs`（默认 60000ms，构造器可配）后 lazy 转 HALF_OPEN（无后台线程，下次 `allowCall` 时检查）；HALF_OPEN 单 probe 原子占位（首个 caller 放行作 probe，并发 caller 拒绝视为仍 OPEN），probe 成功→CLOSED 复位计数，probe 失败→OPEN 重启冷却。线程安全 via `ConcurrentHashMap` + per-entry `synchronized` + `volatile state`。状态 in-memory per-breaker-instance（跨 execute() 调用累积，持久化/跨进程共享是 Non-Goal successor）。circuit OPEN 时抛 `NopAiAgentException`（含 model-key + state + 指引），不静默返回。动态阈值校准（滑动窗口失败率）是独立 successor（设计本节原注"阈值和冷却时间需要真实运行数据校准"——首版交付静态可配置阈值）。
+**实现状态（plan 210 ✅ 已落地 — 三态状态机；W2 下沉 nop-ai-core，plan 2026-08-15-0604-2 ✅）**：`ThresholdBreaker`（`io.nop.ai.core.reliability` 包，opt-in）实现 per-model-key（`provider:model` 复合键）三态状态机：CLOSED 连续失败计数达 `failureThreshold`（默认 3，构造器可配）→ OPEN；OPEN 经 `cooldownMs`（默认 60000ms，构造器可配）后 lazy 转 HALF_OPEN（无后台线程，下次 `allowCall` 时检查）；HALF_OPEN 单 probe 原子占位（首个 caller 放行作 probe，并发 caller 拒绝视为仍 OPEN），probe 成功→CLOSED 复位计数，probe 失败→OPEN 重启冷却。线程安全 via `ConcurrentHashMap` + per-entry `synchronized` + `volatile state`。状态 in-memory per-breaker-instance（跨 execute() 调用累积，持久化/跨进程共享是 Non-Goal successor）。circuit OPEN 时抛 `NopAiCoreException`（含 model-key + state + 指引，W2 前为 `NopAiAgentException`），不静默返回。动态阈值校准（滑动窗口失败率）是独立 successor（设计本节原注"阈值和冷却时间需要真实运行数据校准"——首版交付静态可配置阈值）。
 
 ### 5.1a 弹性策略选择（Sisyphean vs Fast-fail）
 
@@ -272,7 +285,7 @@ LLM 输出的工具调用 JSON 经常存在参数丢失、JSON 截断、重复�
 
 **实现状态（plan 210 ✅ fail-fast 已落地 + plan 212 ✅ Sisyphean 已落地）**：
 
-- **fail-fast 哲学（plan 210 ✅）**：`ICircuitBreaker` 为默认弹性策略（契约见 §3.3，功能性 `ThresholdBreaker` 见 §5.1）。断路检查接线到 ReAct 循环单次 LLM 调用块（retry 循环外层），circuit OPEN 时抛 `NopAiAgentException` 拒绝调用（快速失败，不浪费 token）。
+- **fail-fast 哲学（plan 210 ✅）**：`ICircuitBreaker` 为默认弹性策略（契约见 §3.3，功能性 `ThresholdBreaker` 见 §5.1，W2 下沉 nop-ai-core 后 `allowCall` 拒绝抛 `NopAiCoreException`）。断路检查接线到 ReAct 循环单次 LLM 调用块（retry 循环外层），circuit OPEN 时抛 `NopAiCoreException` 拒绝调用（快速失败，不浪费 token）。
 - **"永不放弃"哲学（plan 212 ✅ 契约 + 默认 + 功能实现）**：`ISustainer` 契约（`onStop(SustainContext)` 返回 `SustainDecision`(CONTINUE/STOP)）+ `SustainContext` reliability-local 数据载体（sessionId / stopReason / currentIteration / sustainCountSoFar，不引用 engine 类型，对称 `IterationSnapshot`）+ `SustainStopReason` 枚举（首版仅 `MAX_ITERATIONS`）+ `NoOpSustainer` shipped 默认（恒返回 STOP、`onStop` 为显式 no-op 决策、singleton）+ `SisypheanSustainer` 功能实现（**stateless**：仅持 `final int maxSustainCount`（默认 3，构造器可配），无 per-session 可变状态——per-execution sustain 计数由 executor 持有并经 `SustainContext.sustainCountSoFar` 传入，因此并发 execute() 天然隔离，无需并发原语或 per-session map）已全部落地于 `io.nop.ai.agent.reliability` 包。`SisypheanSustainer` 的 at-least-once 语义：被迭代预算截断的执行至少获得 `maxSustainCount` 次额外续跑机会（每次扩展原始 `maxIterations` 的预算）以确保任务完成，达上限后放行 STOP（fail-safe，非无限循环）。接线到 `ReActAgentExecutor` 的退出决策点（reactLoop 自然退出 + status 仍为 running = MAX_ITERATIONS 截断 → 咨询 sustainer；CONTINUE 扩展预算重入 reactLoop 顶部检查链，STOP 走 post-loop 终态变更）。`DefaultAgentEngine` 通过 field + setter（null-safe 兜底 `NoOpSustainer`）+ `resolveExecutor` 装配。
 - **互斥执行机制裁定（plan 212 裁定）**：design §11a 原文"设计为互斥配置选项，由部署场景决定"明确把决定权交给部署。裁定为**部署层文档约束**（非运行时 guard）：`ICircuitBreaker` 与 `ISustainer` 作为**独立 opt-in 扩展点**共存（各自 NoOp/Always shipped 默认），引擎**不**在 setter/构造器抛互斥异常。两者处于不同层（breaker 在 model-call 层、sustainer 在 task-exit 层），集成商按部署场景二选一（交互式/成本敏感 → fail-fast + breaker；无人值守长执行 → Sisyphean + sustainer）。运行时硬性互斥 guard 是独立 successor（Non-Goal）。
 - **可持续退出点清单（plan 212 裁定，首版）**：首版只 sustain **MAX_ITERATIONS 截断**（reactLoop while 条件为假导致循环自然退出——最客观的"被截断、任务尚未完成"信号）。以下退出点**不** sustainable（尊重原行为，不咨询 sustainer）：completion-judge `isComplete`（自愿完成）、`isEscalate`（自愿升级）、`shouldForceStop`（上下文溢出，sustain 会立刻再溢出）、cancel / denial-ledger pause（governance/用户发起）。sustain 其他退出点是独立 successor。

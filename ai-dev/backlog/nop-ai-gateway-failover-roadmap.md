@@ -20,7 +20,7 @@
 > 人工设定条目与顺序；AI 取第一个 `todo`，起草/执行计划，closure audit 通过后标 `done`。
 
 - W1. 前置 spike：流式重订阅可行性验证 + 决策暴露（Q7：网关字节流层"缓冲 + 替换式重订阅"与 `StreamingProcessor`/`StreamingResponse` 路由期绑定的耦合验证；同时将 Q2（前端 model 参数语义）、Q5（RATE_LIMITED/TRANSIENT → 账号链切换偏离确认）暴露为人机决策点）：`done`
-- W2. LLM 可靠性子集下沉 nop-ai-core（ThresholdBreaker/ICircuitBreaker/CircuitState/AccountChain/IAccountChainResolver/ProviderFailoverChain/ProviderFailoverQueue/IProviderFailoverQueue/IProviderFailoverChainResolver/LlmErrorClassifier/IRetryPolicy/StandardRetryPolicy/NoRetryPolicy/RetryContext/RetryDecision/RetryOutcome/AlwaysClosed/NoOpProviderFailoverQueue + NopAiAgentErrors/NopAiAgentException 迁移 + buildModelKey 移入；nop-ai-agent 调用方适配；既有测试迁移；nop-ai-agent-reliability.md 模块归属同步）：`todo`
+- W2. LLM 可靠性子集下沉 nop-ai-core（ThresholdBreaker/ICircuitBreaker/CircuitState/AccountChain/IAccountChainResolver/ProviderFailoverChain/ProviderFailoverQueue/IProviderFailoverQueue/IProviderFailoverChainResolver/LlmErrorClassifier/IRetryPolicy/StandardRetryPolicy/NoRetryPolicy/RetryContext/RetryDecision/RetryOutcome/AlwaysClosed/NoOpProviderFailoverQueue + NopAiAgentErrors/NopAiAgentException 迁移 + buildModelKey 移入；nop-ai-agent 调用方适配；既有测试迁移；nop-ai-agent-reliability.md 模块归属同步）：`done`
 - W3. llm.xdef 配置面扩展（`concurrencyLimit` 字段：provider 级缺省 + 账号级覆盖，缺省不限制零回归；protected area plan-first + codegen 再生成）：`todo`
 - W4. ILlmDialect 双向转换补全（parseRequestBody 补全 Anthropic/Gemini/Ollama/Responses 五 dialect + buildResponse/buildStreamChunk 逐 dialect + javadoc/UOE 消息更新 + 双向转换测试）：`todo`
 - W5. 模型类路由组 + 动态选择策略（nop-ai-core：model-class 数据结构与解析 + 选择策略接口 + 默认策略（健康度+并发感知+声明序）+ 规则策略（XLang 可选）；配置形态按 Q8 在 plan 阶段裁决；**粒度约束：若预估超出单 plan 规模（数据结构/接口/默认策略 与 游走/并发记账/规则策略 为两组可拆工作），plan-first 先行拆分裁定，不硬撑单文件**）：`todo`
