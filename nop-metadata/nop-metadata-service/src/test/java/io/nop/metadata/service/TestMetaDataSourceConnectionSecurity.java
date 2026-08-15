@@ -454,6 +454,110 @@ public class TestMetaDataSourceConnectionSecurity {
                 "valid external host must pass shape check + host check");
     }
 
+    // ===== F2 再审计（plan 2026-08-15-1913-1）：hostless 属性组 + query 参数主机（P0 驱动语义级绕过）=====
+
+    /**
+     * <b>F2 再审计 adversarial：hostless 属性组（驱动隐式 localhost）必须被拒绝。</b>
+     *
+     * <p>修复前 {@code (port=3306)} / {@code address=(port=3306)} 段不含 {@code host=} 键，
+     * 整段按"主机名"原样返回，{@code isPlausibleHostShape} 首字符 {@code (} 不在拒绝分支 → 放行。
+     * MySQL Connector/J 9.2.0 对 hostless 属性组默认连接 localhost——SSRF 语义等价内网主机。
+     */
+    @Test
+    public void testHostlessAttributeGroupRejected() {
+        String[] vectors = {
+                "jdbc:mysql://(port=3306)/db",
+                "jdbc:mysql://address=(port=3306)/db"
+        };
+        for (String url : vectors) {
+            NopException ex = assertThrows(NopException.class,
+                    () -> service.testConnect("jdbc",
+                            "{\"jdbcUrl\":\"" + url + "\"," + BASE_CFG + "}"),
+                    "F2 re-audit: hostless attribute group (implicit localhost) must be rejected: " + url);
+            assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(), ex.getErrorCode(),
+                    "hostless attribute group must fail with ERR_DATASOURCE_JDBC_URL_BLOCKED: " + url);
+            assertTrue(String.valueOf(ex.getParam("reason")).contains("hostless"),
+                    "reason must flag hostless attribute group: " + ex.getParam("reason"));
+        }
+    }
+
+    /**
+     * <b>F2 再审计 adversarial：query 中的 {@code host=} 完全覆盖 authority 主机（pgjdbc
+     * Driver.parseURL 语义，实机验证）必须纳入逐主机内网校验。</b>
+     *
+     * <p>修复前 {@code extractHosts} 的 authority 截断于首个 {@code ?}——query string 完全不参与
+     * 主机提取，{@code jdbc:postgresql://public.example.com/db?host=169.254.169.254} 校验层只见
+     * public.example.com（放行），驱动实际连接 169.254.169.254（云元数据端点直连）。
+     */
+    @Test
+    public void testQueryHostOverridesAuthorityRejected() {
+        String[][] vectors = {
+                {"127.0.0.1", "jdbc:postgresql://public.example.com/db?host=127.0.0.1"},
+                {"169.254.169.254", "jdbc:postgresql://public.example.com:5432/db?host=169.254.169.254"}
+        };
+        for (String[] v : vectors) {
+            NopException ex = assertThrows(NopException.class,
+                    () -> service.testConnect("jdbc",
+                            "{\"jdbcUrl\":\"" + v[1] + "\"," + BASE_CFG + "}"),
+                    "F2 re-audit: query host= override must be validated per-host: " + v[1]);
+            assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(), ex.getErrorCode(),
+                    "query internal host must fail with ERR_DATASOURCE_JDBC_URL_BLOCKED: " + v[1]);
+            assertTrue(String.valueOf(ex.getParam("reason")).contains(v[0]),
+                    "reason must identify the internal query host: " + ex.getParam("reason"));
+        }
+    }
+
+    /**
+     * <b>F2 再审计 adversarial 变体：percent-decode / 参数名大小写不敏感 / 多值逐校验 /
+     * {@code hostaddr=} / 裸 token / 空值 / percent 编码参数名。</b>
+     *
+     * <p>对齐 pgjdbc 解析语义：(a) 值 percent-decode 后校验；(b) 参数名大小写不敏感；(c) 重复参数
+     * 逐值校验；(d) {@code hostaddr=} 同 {@code host=}；空值/裸 token = 驱动回落默认主机（localhost）。
+     */
+    @Test
+    public void testQueryHostVariantsRejected() {
+        String[] vectors = {
+                "jdbc:postgresql://public.example.com/db?host=%31%32%37%2e%30%2e%30%2e%31", // decode → 127.0.0.1
+                "jdbc:postgresql://public.example.com/db?Host=10.0.0.1",                    // 大小写不敏感
+                "jdbc:postgresql://public.example.com/db?HOST=192.168.1.1",                 // 全大写
+                "jdbc:postgresql://public.example.com/db?host=169.254.169.254&host=x",      // 多值逐校验
+                "jdbc:postgresql://public.example.com/db?hostaddr=127.0.0.1",               // hostaddr 同 host
+                "jdbc:postgresql://public.example.com/db?host",                             // 裸 token → hostless
+                "jdbc:postgresql://public.example.com/db?host=",                            // 空值 → hostless
+                "jdbc:postgresql://public.example.com/db?%68ost=127.0.0.1",                 // 编码参数名 → host
+                "jdbc:postgresql://public.example.com/db?host=127.0.0.1:5432"               // 值带端口剥离后校验
+        };
+        for (String url : vectors) {
+            NopException ex = assertThrows(NopException.class,
+                    () -> service.testConnect("jdbc",
+                            "{\"jdbcUrl\":\"" + url + "\"," + BASE_CFG + "}"),
+                    "F2 re-audit: query host variant must be rejected: " + url);
+            assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(), ex.getErrorCode(),
+                    "query host variant must fail with ERR_DATASOURCE_JDBC_URL_BLOCKED: " + url);
+        }
+    }
+
+    /**
+     * <b>F2 再审计不误伤：良性 query 参数与合法外网 query 主机放行。</b>
+     *
+     * <p>{@code connectTimeout} / {@code applicationName} 不触发主机提取（参数名精确匹配 host/hostaddr）；
+     * {@code ?host=public.example.com}（合法外网 query 主机）逐主机校验通过。不使用 {@code useSSL=false}
+     * 作向量——该 token 已在 DANGEROUS_URL_TOKENS 中被 F5 时代有意拒绝。
+     */
+    @Test
+    public void testBenignQueryParamsAndExternalQueryHostNotBlocked() {
+        String[] urls = {
+                "jdbc:mysql://public.example.com/db?connectTimeout=10000",
+                "jdbc:postgresql://public.example.com/db?applicationName=x",
+                "jdbc:postgresql://public.example.com/db?host=public.example.com"
+        };
+        for (String url : urls) {
+            assertDoesNotThrow(() -> service.testConnect("jdbc",
+                            "{\"jdbcUrl\":\"" + url + "\"," + BASE_CFG + "}"),
+                    "benign query param / external query host must not be blocked: " + url);
+        }
+    }
+
     // ===== driverClassName 白名单 =====
 
     /** 非白名单 driverClassName（任意类加载攻击）必须失败。 */

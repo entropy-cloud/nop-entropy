@@ -15,7 +15,9 @@ import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.net.InetAddress;
+import java.net.URLDecoder;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.sql.Connection;
@@ -95,6 +97,18 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
             "com.mysql.cj.jdbc.Driver",
             "com.mysql.jdbc.Driver",
             "org.postgresql.Driver"));
+
+    /**
+     * F2 re-audit hostless attribute-group sentinel (plan 2026-08-15-1913-1).
+     *
+     * <p>{@code extractSingleHost} 对含 {@code =}/{@code (}/{@code )} 却无
+     * {@code host=} 键命中的属性组段返回本哨兵，由 {@code validateJdbcUrl} 统一抛
+     * {@code ERR_DATASOURCE_JDBC_URL_BLOCKED}——static 提取链路无 jdbcUrl 上下文，
+     * 哨兵 + 集中抛出是避免错误参数丢失脱敏的最小方案。取非主机形状串
+     * {@code "("}，即使漏过哨兵等值判断也会被 {@code isPlausibleHostShape}
+     * 拒绝（纵深）。
+     */
+    private static final String HOSTLESS_ATTRIBUTE_GROUP = "(";
 
     /** AR-02: 默认建连超时秒数（{@link SimpleDataSource#setLoginTimeout} 是 no-op，实际靠 {@link DriverManager#setLoginTimeout}）。 */
     public static final int DEFAULT_LOGIN_TIMEOUT_SECONDS = 5;
@@ -252,7 +266,17 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
         }
         // (3) 主机白名单：默认禁内网（RFC1918 + link-local + loopback + 0.0.0.0/8 + IP 记法变体归一化）
         // F2（plan 2026-08-14-0707-1）：对 JDBC URL 中**每一**主机执行校验，关闭多主机 SSRF 绕过。
+        // F2 再审计（plan 2026-08-15-1913-1）：主机集合同时覆盖 authority 段与 query 中
+        // host=/hostaddr= 参数主机（extractHosts 内合并），驱动语义级绕过（pgjdbc query
+        // host= 完全覆盖 authority 主机）在校验层不再可达。
         for (String host : extractHosts(jdbcUrl)) {
+            // F2 再审计：hostless 属性组（如 (port=3306)、address=(port=3306)，无 host= 键）
+            // ——驱动取隐式 localhost（MySQL Connector/J hostless 属性组默认 localhost），
+            // SSRF 语义等价内网主机，fail-closed 拒绝。
+            if (HOSTLESS_ATTRIBUTE_GROUP.equals(host)) {
+                throw blocked(jdbcUrl, "hostless attribute group"
+                        + " (driver implicit localhost) not allowed");
+            }
             // F7（plan 2026-08-14-1133-1）：空/畸形主机 fail-closed。extractHosts 对 jdbc:mysql:///db
             // （空主机）和 jdbc:mysql://:3306/db（空主机带端口）会返回非主机形状串（"/db" / ":3306"），
             // HostSecurityUtil 判其为外部 → 静默放行（当前无害——驱动拒绝空主机——但属 "lucky fail-closed"
@@ -272,10 +296,27 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
     }
 
     /**
+     * Build blocked-url exception with redacted jdbcUrl.
+     *
+     * @param jdbcUrl raw JDBC URL（脱敏后入 error param）
+     * @param reason  拒绝原因
+     * @return 已附加 jdbcUrl/reason 参数的异常实例
+     */
+    private static NopException blocked(String jdbcUrl, String reason) {
+        NopMetadataException e = new NopMetadataException(
+                NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED);
+        return e.param("jdbcUrl", redactJdbcUrl(jdbcUrl)).param("reason", reason);
+    }
+
+    /**
      * F7：判断提取出的 host 段是否为合理的主机形状。拒绝：
      * <ul>
      *   <li>空串/null（{@code jdbc:mysql:///db}）</li>
      *   <li>以 {@code /} 开头（authority 解析出 path 片段）</li>
+     *   <li>以 {@code (} 开头（属性组片段，非主机形状——F2 再审计纵深：hostless 哨兵
+     *       正常路径先行拦截）</li>
+     *   <li>含 {@code %}（percent 编码残片：query host 值解码失败原样保留 /
+     *       authority 字面 {@code %}，均非驱动可解析主机名，fail-closed）</li>
      *   <li>以 {@code :} 开头且无第二个冒号——纯端口，无主机（{@code jdbc:mysql://:3306/db}）</li>
      * </ul>
      * 合法主机：以字母/数字开头，或以 {@code :} 开头但含第二个冒号（无括号 IPv6 字面量如 {@code ::1}，
@@ -291,7 +332,14 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
             // path 片段，非主机形状
             return false;
         }
-        if (c == ':') {
+        if (c == '(') {
+            // 属性组片段（如 (port=3306)），非主机形状
+            return false;
+        }
+        if (host.indexOf('%') >= 0) {
+            // percent 编码残片，非驱动可解析主机名（fail-closed：解码失败不得静默放行）
+            return false;
+        }        if (c == ':') {
             // 纯端口（:3306）非主机形状；无括号 IPv6 字面量（::1）含第二个冒号 → 合法主机
             return host.indexOf(':', 1) >= 0;
         }
@@ -386,7 +434,101 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
                 hosts.add(host);
             }
         }
+        // F2 再审计（plan 2026-08-15-1913-1）：query 中的 host=/hostaddr= 参数主机
+        // 同样纳入逐主机校验（pgjdbc Driver.parseURL 语义：query host= 完全覆盖
+        // authority 主机——不提取即整层校验被绕过）
+        hosts.addAll(extractQueryHosts(jdbcUrl));
         return hosts;
+    }
+
+    /**
+     * Extract hosts from URL query host= / hostaddr= parameters.
+     *
+     * <p>F2 再审计（plan 2026-08-15-1913-1），按 pgjdbc {@code Driver.parseURL}
+     * 语义对齐：
+     * <ul>
+     *   <li>参数名与参数值均做 percent-decode 后匹配/校验
+     *       （{@code ?host=%31%32%37...} 解码后校验）；</li>
+     *   <li>参数名大小写不敏感（{@code Host=} / {@code HOST=} 同
+     *       {@code host=}）；</li>
+     *   <li>重复参数逐值校验（{@code ?host=a&host=b} 两个值都提取），单值内
+     *       逗号分隔（pgjdbc 多主机语法）同样逐值提取；</li>
+     *   <li>{@code hostaddr=} 同 {@code host=} 处置（pgjdbc 中二者等价指定
+     *       连接目标主机）；</li>
+     *   <li>空值（{@code ?host=} / 裸 {@code ?host}）= 驱动回落默认主机
+     *       （localhost）→ hostless 哨兵 fail-closed；</li>
+     *   <li>percent-decode 失败的值原样保留（含 {@code %}，由
+     *       {@code isPlausibleHostShape} 拒绝，不静默放行）；值含
+     *       {@code =}/{@code (} 等属性组字符由 {@code extractSingleHost}
+     *       哨兵拒绝。</li>
+     * </ul>
+     *
+     * @param jdbcUrl 完整 JDBC URL
+     * @return query 部分提取到的主机列表（可能含 hostless 哨兵）
+     */
+    private static List<String> extractQueryHosts(final String jdbcUrl) {
+        int schemeEnd = jdbcUrl.indexOf("://");
+        if (schemeEnd < 0) {
+            return Collections.emptyList();
+        }
+        // "://" 内不含 '?'，从 schemeEnd 起扫描与从 schemeEnd+3 起等价
+        int q = jdbcUrl.indexOf('?', schemeEnd);
+        if (q < 0) {
+            return Collections.emptyList();
+        }
+        List<String> hosts = new ArrayList<>();
+        for (String param : jdbcUrl.substring(q + 1).split("&")) {
+            int eq = param.indexOf('=');
+            String rawName = eq >= 0 ? param.substring(0, eq) : param;
+            String name = percentDecode(rawName);
+            if (name == null) {
+                // 参数名解码失败：驱动同样无法识别该参数（不构成主机指定），跳过
+                continue;
+            }
+            String lowerName = name.toLowerCase(Locale.ROOT);
+            if (!"host".equals(lowerName) && !"hostaddr".equals(lowerName)) {
+                continue;
+            }
+            if (eq < 0) {
+                // 裸 host/hostaddr token（无 =）：pgjdbc 语义下值为空 → 默认主机
+                hosts.add(HOSTLESS_ATTRIBUTE_GROUP);
+                continue;
+            }
+            String rawValue = param.substring(eq + 1);
+            String value = percentDecode(rawValue);
+            if (value == null) {
+                value = rawValue;
+            }
+            if (value.isEmpty()) {
+                // 空值 = 驱动回落默认主机（localhost），fail-closed
+                hosts.add(HOSTLESS_ATTRIBUTE_GROUP);
+                continue;
+            }
+            for (String part : value.split(",")) {
+                String host = extractSingleHost(part);
+                if (host != null && !host.isEmpty()) {
+                    hosts.add(host);
+                }
+            }
+        }
+        return hosts;
+    }
+
+    /**
+     * percent-decode（UTF-8）.
+     *
+     * @param s 待解码串
+     * @return 不含 {@code %} 时原样返回；非法转义返回 null（由调用方 fail-closed 处理）
+     */
+    private static String percentDecode(final String s) {
+        if (s.indexOf('%') < 0) {
+            return s;
+        }
+        try {
+            return URLDecoder.decode(s, StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     /**
@@ -418,6 +560,13 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
      * 从单个主机段提取主机名。覆盖：
      * <ul>
      *   <li>MySQL Connector/J key-value/address 形式（含 {@code host=} 键）→ 取 {@code host=} 的值</li>
+     *   <li>hostless 属性组（含 {@code =}/{@code (}/{@code )} 但无 {@code host=} 键命中，
+     *       如 {@code (port=3306)}、{@code address=(port=3306)}）→ 返回
+     *       {@link #HOSTLESS_ATTRIBUTE_GROUP} 哨兵（F2 再审计：驱动对 hostless
+     *       属性组取隐式 localhost，fail-closed 拒绝。键匹配
+     *       {@code HOST_KEY_VALUE_PATTERN} 大小写敏感，{@code (HOST=...)} 段
+     *       无键命中同样按 hostless 拒绝——驱动侧键大小写不敏感，fail-closed
+     *       方向安全，误伤面接受并在 owner doc 记载）</li>
      *   <li>普通 host / [ipv6] / host:port → 复用既有 IPv6/端口剥离逻辑</li>
      * </ul>
      */
@@ -433,6 +582,12 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
         String kvHost = extractHostKeyValue(segment);
         if (kvHost != null) {
             return kvHost;
+        }
+        // F2 再审计：属性组字符（= / 括号）却无 host= 键命中 → hostless 属性组
+        // 哨兵（驱动隐式 localhost）
+        if (segment.indexOf('=') >= 0 || segment.indexOf('(') >= 0
+                || segment.indexOf(')') >= 0) {
+            return HOSTLESS_ATTRIBUTE_GROUP;
         }
         return extractPlainHost(segment);
     }
