@@ -154,12 +154,12 @@ flowchart LR
 - **P2-33** 审批流/状态机字段未收紧 updatable，标准 update 可绕过保留层守卫（TagLabel/DataContract/QualityResult 三处同族；与平台基线一致，应显式裁定）
 
 **错误处理 / 诊断族**
-- **P2-09** 6 个 throw 点缺 `{error}` 附注参数，描述尾部渲染字面 `-- {error}`（识别性参数齐备，仅附注性缺失）
-- **P2-10** 17 个 ErrorCode define 声明参数与描述占位符不一致 + 2 个死错误码（运行时未断裂，声明面契约漂移）
-- **P2-11** `.param()` 键 454 处字面量 vs 199 处 ARG_* 常量双轨混用（当前键值一致，是 P1-6/P2-10 潜伏的结构土壤）
+- **P2-09** 6 个 throw 点缺 `{error}` 附注参数，描述尾部渲染字面 `-- {error}`（识别性参数齐备，仅附注性缺失） — ✅ Fixed（plan `2026-08-16-0226-2` Phase 2：live 重扫 7 处全部补齐 `.param(ARG_ERROR, NopMetadataHelper.toErrorMessage(e))`（或文件内 messageOf 等价）；门禁 `EXEMPT_PLACEHOLDERS` 豁免收口（`{error}` 形态进 hard-gate）+ fixture 期望翻转；focused 测试 2 例（checkTableExists 代表点 + buildSnapshot 触发路径），其余点静态守护）
+- **P2-10** 17 个 ErrorCode define 声明参数与描述占位符不一致 + 2 个死错误码（运行时未断裂，声明面契约漂移） — ✅ Fixed（plan `2026-08-16-0226-2` Phase 1：门禁新增 define 面两规则（ARG 值对称差 + 死码 dead/test-only 分类，fixture 钉死）；重扫 17 对称差（throw 点实传键 → 描述补占位符）+ 7 死码删除（重扫超出基线 5 个，Javadoc `{@link}` 陈旧引用一并如实化）；规则零命中入聚合链）
+- **P2-11** `.param()` 键 454 处字面量 vs 199 处 ARG_* 常量双轨混用（当前键值一致，是 P1-6/P2-10 潜伏的结构土壤） — ⚖️ 已裁定 deferred（plan `2026-08-16-0226-2` Phase 5：classification = optimization candidate；键值一致性由 INV-ERROR-PARAM hard-gate 守护（键值错配即红，fixture key-mismatch 钉死区分力），双轨零用户可见行为差异；收口时点实测 580 字面量 / 226 ARG（qualified 208 + bare 18）；全量常量化 ~580 处机械改写 churn 大行为收益零，Successor = no（如需要可从本条目派生 codemod 计划））
 - **P2-12** ErrorCode 描述全英文且 i18n 零覆盖，与 error-handling.md「define 描述用中文」规则冲突（需 ask-first 裁定后单向收敛）
-- **P2-13** `throw new SQLException` 作方法内控制流哨兵，与模块自身裁定惯例相悖（无泄漏无静默，形态一致性）
-- **P2-14** 并发拒绝降级 WARN 未把异常对象作为 logger 末参数（内容合规，仅形式违约）
+- **P2-13** `throw new SQLException` 作方法内控制流哨兵，与模块自身裁定惯例相悖（无泄漏无静默，形态一致性） — ✅ Fixed（plan `2026-08-16-0226-2` Phase 3：judgeRange/judgeRegex 2 处哨兵删除，no-row 改内联显式 ERROR 判定 + 无 throwable 显式 ERROR 日志；judgment 逐字段等价对照记录入 daily log；新增 `TestMetaQualityRuleExecutorNoRowBranch` 2 例（此前无直接覆盖）；`rg 'throw new SQLException'` main 零命中）
+- **P2-14** 并发拒绝降级 WARN 未把异常对象作为 logger 末参数（内容合规，仅形式违约） — ✅ Fixed（plan `2026-08-16-0226-2` Phase 4：WARN 追加 `, e` 末参；新增 `testP214ConcurrentRejectionWarnCarriesThrowable`（阻塞 webhook 钉锁 harness + ListAppender 断言 `getThrowableProxy() != null` 且不误升 ERROR））
 
 **BizModel 行为 / 契约形态族**
 - **P2-18** `testConnection` 只读探测标注 `@BizMutation`（接口+实现一致错；同模块同类探测均正确用 @BizQuery）
@@ -167,7 +167,7 @@ flowchart LR
 - **P2-20** CheckpointExecutionResultDTO.executionResults/executionErrors 为 List<Map> 且与 ruleResults 数据重复（类型化版本已并存）
 - **P2-21** DataProduct 三方法手工字符串拼接 JSON（无转义，非常规 ID 导致 JSON 损坏；应统一 JsonTool）
 - **P2-22** NopMetaQualityResultBizModel.approve 为无字段变更的 no-op updateEntity（javadoc 声称重新判定；真实 re-judge 在工作流侧）
-- **P2-23** NopMetaReconciliationResultBizModel 死代码 toInt/toStr + 死错误码分支（类型化 DTO 遗留）
+- **P2-23** NopMetaReconciliationResultBizModel 死代码 toInt/toStr + 死错误码分支（类型化 DTO 遗留） — ✅ Fixed（plan `2026-08-16-0226-2` Phase 4：toInt/toStr + 不可达 throw 删除，2 处 `invariant-ok: dead code P2-23` 豁免随之消除；连带 `ERR_RECON_INVALID_SELECTION` 定义（删后零引用留证）+ 孤儿 `ARG_VALUE` 常量一并删除；define 数量净变化 -8 = 7 个 define 面死码 + 1 个连带死码）
 - **P2-24** computeQualityScore 以空 lambda 调 doSave，绕过 xbiz 可覆盖的 defaultPrepareSave（cron 自动评分链路绕过宿主定制）
 - **P2-25** queryJoinData（6 参）/queryAggregation（10 参）超出 5 参数规则未用 @RequestBean（签名为 AR-09/F4 裁定契约，应为文档裁定例外）
 

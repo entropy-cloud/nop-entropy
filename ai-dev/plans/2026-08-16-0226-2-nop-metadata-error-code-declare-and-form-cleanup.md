@@ -1,6 +1,6 @@
 # nop-metadata 错误码声明面与诊断形态清扫（P2-09 / P2-10 / P2-13 / P2-14 / P2-23 + P2-11 裁定）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-16
 > Mission: nop-metadata-invariant-loop
 > Work Item: 2026-08-15 multi-audit Follow-up Backlog — 错误处理/诊断族（P2 批次清扫）
@@ -58,7 +58,7 @@
 
 ### Phase 1 — define 声明面一致性清单与修复（P2-10）
 
-Status: planned
+Status: completed
 Targets: `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/{Aggregation,DataSource,Field,Join,Lineage,Misc,Module,Quality,Recon,Sql}Errors.java`；测试引用同步
 
 - Item Types: `Fix | Proof`
@@ -69,46 +69,46 @@ Targets: `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/servic
 >
 > 修复取向：现场真实值优先——throw 点实际传的键是什么，声明面就收敛成什么（补 ARG 声明或描述占位符对齐）；两侧都无消费的（死码）删除。死码删除前 `rg` 全仓引用（含测试），引用同步更新。
 
-- [ ] 门禁扩展：`check-error-param-consistency.mjs` 新增 define 面规则（ARG 值解析 + 对称差；死码经基线/豁免清单机制管理，沿 check-silent-wrong-result 的 baseline 先例形态）
-- [ ] 重扫清单：以扩展后门禁产出 live 不一致全集（基线 17 处 + 2 死码；1913-3 后可能漂移，以重扫为准），写入 daily log
-- [ ] 逐处修复：声明补 ARG / 描述占位符对齐 / 死码删除（`ERR_AGGR_TYPE_PROBE_FAILED`/`ERR_PROFILING_RULE_OPERATION_FAILED` + `TestSilentSwallowFormalization` 引用同步；如重扫发现其他死码一并处理）
-- [ ] 每处修复记录修复取向依据（throw 点真实键 vs 描述文案，二者取一的理由）
-- [ ] 如实核对：是否存在"描述占位符 + 声明 ARG 都有但键值不同"的第三形态，一并收敛
+- [x] 门禁扩展：`check-error-param-consistency.mjs` 新增 define 面规则（ARG 值解析 + 对称差；死码经基线/豁免清单机制管理，沿 check-silent-wrong-result 的 baseline 先例形态）
+- [x] 重扫清单：以扩展后门禁产出 live 不一致全集（基线 17 处 + 2 死码；1913-3 后可能漂移，以重扫为准），写入 daily log
+- [x] 逐处修复：声明补 ARG / 描述占位符对齐 / 死码删除（`ERR_AGGR_TYPE_PROBE_FAILED`/`ERR_PROFILING_RULE_OPERATION_FAILED` + `TestSilentSwallowFormalization` 引用同步；如重扫发现其他死码一并处理）
+- [x] 每处修复记录修复取向依据（throw 点真实键 vs 描述文案，二者取一的理由）
+- [x] 如实核对：是否存在"描述占位符 + 声明 ARG 都有但键值不同"的第三形态，一并收敛
 
 Exit Criteria:
 
-- [ ] 扩展后门禁 define 面规则零命中（死码删除后全量复跑）
-- [ ] `TestNopMetadataErrorsCentralized` / `TestSilentSwallowFormalization` 等错误码镜像测试全绿
-- [ ] `./mvnw compile -pl nop-metadata -am -T 1C` 通过
-- [ ] **无静默跳过**：不允许"改脚本让它不报"式收敛；每处修复有取向记录
-- [ ] No owner-doc update required（声明面内部一致性，不改对外契约语义——执行时复核 owner doc 错误处理段是否引用被删死码，如引用则同步）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 扩展后门禁 define 面规则零命中（死码删除后全量复跑）
+- [x] `TestNopMetadataErrorsCentralized` / `TestSilentSwallowFormalization` 等错误码镜像测试全绿
+- [x] `./mvnw compile -pl nop-metadata -am -T 1C` 通过
+- [x] **无静默跳过**：不允许"改脚本让它不报"式收敛；每处修复有取向记录
+- [x] No owner-doc update required（声明面内部一致性，不改对外契约语义——执行时复核 owner doc 错误处理段是否引用被删死码，如引用则同步）（复核零命中；门禁规则表述已同步 invariant-catalog + nop-metadata.md）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 — `{error}` 附注参数补齐与门禁豁免收口（P2-09）
 
-Status: planned
+Status: completed
 Targets: 7 处 throw 点（live 重扫全集为准：AutoClassificationProcessor:290、LineageTagPropagationProcessor:204、NopMetaModuleBizModel:349/:689、NopMetaTagLabelBizModel:138、MetaModelChangedEventPublisher:167、AggregationHelper:543）；`ai-dev/tools/check-error-param-consistency.mjs`（:77 `EXEMPT_PLACEHOLDERS` 收口）
 
 - Item Types: `Fix`
 
 > 豁免根因已在 Current Baseline 定位（门禁 :77 硬编码豁免 `{error}`）。主路径 = 补齐全部缺参点 → 移除 `EXEMPT_PLACEHOLDERS` 中的 `error` → 门禁零命中（独立复核证实 7 处均有 in-scope cause `e`，补参可行）。若个别点复核后确无 in-scope throwable（与现测不符），该点显式裁定：描述删 `-- {error}` 尾（诊断价值损失记录），不允许保留豁免。
 
-- [ ] live 重扫全集（`rg -- '-- \{error\}'` + 门禁去掉豁免试跑），定稿清单写入 daily log
-- [ ] 全部缺参点补齐 `.param(ARG_ERROR, NopMetadataHelper.toErrorMessage(e))`（或等价；无 throwable 的点按上述裁定改描述）
-- [ ] 移除门禁 `EXEMPT_PLACEHOLDERS` 中对 `error` 的豁免；同步改写门禁头注释豁免面 (b) 的表述（"hard requirements from the plan"记载随之更新）
-- [ ] 同步门禁自检 fixture 样例 `error-placeholder-exempt`（:684-690）：其 `expectHits: 0` 依赖豁免，移除后改期望为 1（样例语义随之改为"豁免已收口、缺参即命中"），`node ai-dev/tools/check-error-param-consistency.mjs --fixture` 自检全绿
-- [ ] 测试：补参后各点异常消息渲染含真实 error 值（无字面 `{error}` 残留）——按 1913-3 先例用断言错误码 + param 的 focused test（覆盖 7 处中可触发路径）
+- [x] live 重扫全集（`rg -- '-- \{error\}'` + 门禁去掉豁免试跑），定稿清单写入 daily log
+- [x] 全部缺参点补齐 `.param(ARG_ERROR, NopMetadataHelper.toErrorMessage(e))`（或等价；无 throwable 的点按上述裁定改描述）
+- [x] 移除门禁 `EXEMPT_PLACEHOLDERS` 中对 `error` 的豁免；同步改写门禁头注释豁免面 (b) 的表述（"hard requirements from the plan"记载随之更新）
+- [x] 同步门禁自检 fixture 样例 `error-placeholder-exempt`（:684-690）：其 `expectHits: 0` 依赖豁免，移除后改期望为 1（样例语义随之改为"豁免已收口、缺参即命中"），`node ai-dev/tools/check-error-param-consistency.mjs --fixture` 自检全绿
+- [x] 测试：补参后各点异常消息渲染含真实 error 值（无字面 `{error}` 残留）——按 1913-3 先例用断言错误码 + param 的 focused test（覆盖 7 处中可触发路径）
 
 Exit Criteria:
 
-- [ ] live grep：`-- {error}` 描述对应的全部 throw 链渲染端无字面 `{error}` 残留（测试断言覆盖可触发路径）
-- [ ] 门禁豁免已移除且 `node ai-dev/tools/check-error-param-consistency.mjs --module nop-metadata` exit 0（`{error}` 形态进入 hard-gate 覆盖）
-- [ ] `./mvnw test -pl nop-metadata/nop-metadata-service -am -T 1C` 全绿
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] live grep：`-- {error}` 描述对应的全部 throw 链渲染端无字面 `{error}` 残留（测试断言覆盖可触发路径）
+- [x] 门禁豁免已移除且 `node ai-dev/tools/check-error-param-consistency.mjs --module nop-metadata` exit 0（`{error}` 形态进入 hard-gate 覆盖）
+- [x] `./mvnw test -pl nop-metadata/nop-metadata-service -am -T 1C` 全绿
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 — SQLException 哨兵消除（P2-13）
 
-Status: planned
+Status: completed
 Targets: `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/quality/MetaQualityRuleExecutor.java`（:545-600 区域 range/regex no-row 分支）
 
 - Item Types: `Fix`
@@ -117,71 +117,71 @@ Targets: `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/servic
 >
 > **行为等价的明确定义**（消除歧义）：(1) judgment 输出（status/message/details 字段值）逐字段不变——硬约束；(2) 日志等价 = 同 logger、同级别（ERROR）、同消息模板，message 语义保持 "range/regex SQL execution failed: [code] COUNT(*) returned no row" 可诊断；**堆栈消失是预期变化**（现状堆栈来自哨兵异常对象本身，重构后不存在该对象，不伪造异常）——no-row 分支保留一条无 throwable 的显式 ERROR 日志即可。对照记录按此标准逐项核验。
 
-- [ ] 查询路径改造：no-row 显式返回信号，删除 2 处 `throw new SQLException` 哨兵（:551/:596）
-- [ ] no-row 分支直接构造 ERROR 判定 + 一条无 throwable 的显式 ERROR 日志（按上述等价标准）
-- [ ] 行为等价验证：按明确定义逐项对照重构前后输出（judgment 字段逐字段 + 日志 logger/级别/模板/消息），对照记录写入 daily log；no-row 路径 focused test（现状无直接覆盖，新增）
+- [x] 查询路径改造：no-row 显式返回信号，删除 2 处 `throw new SQLException` 哨兵（:551/:596）
+- [x] no-row 分支直接构造 ERROR 判定 + 一条无 throwable 的显式 ERROR 日志（按上述等价标准）
+- [x] 行为等价验证：按明确定义逐项对照重构前后输出（judgment 字段逐字段 + 日志 logger/级别/模板/消息），对照记录写入 daily log；no-row 路径 focused test（现状无直接覆盖，新增）
 
 Exit Criteria:
 
-- [ ] `rg -n 'throw new SQLException' nop-metadata/nop-metadata-service/src/main` 零命中
-- [ ] no-row 路径 focused test 通过且对照记录符合上述等价标准（堆栈消失为预期，其余逐项等价）
-- [ ] **无静默跳过**：no-row 分支产出显式 ERROR 判定，非降级 PASS/SKIP
-- [ ] `./mvnw test -pl nop-metadata/nop-metadata-service -Dtest='TestMetaQualityRuleExecutor*' -Dsurefire.failIfNoSpecifiedTests=false` 通过
-- [ ] No owner-doc update required（内部形态重构，判定输出不变——执行时复核 owner doc 质量规则段无哨兵表述引用）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `rg -n 'throw new SQLException' nop-metadata/nop-metadata-service/src/main` 零命中
+- [x] no-row 路径 focused test 通过且对照记录符合上述等价标准（堆栈消失为预期，其余逐项等价）
+- [x] **无静默跳过**：no-row 分支产出显式 ERROR 判定，非降级 PASS/SKIP
+- [x] `./mvnw test -pl nop-metadata/nop-metadata-service -Dtest='TestMetaQualityRuleExecutor*' -Dsurefire.failIfNoSpecifiedTests=false` 通过
+- [x] No owner-doc update required（内部形态重构，判定输出不变——执行时复核 owner doc 质量规则段无哨兵表述引用）（复核零命中）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 — WARN 异常末参 + 死码删除（P2-14 + P2-23）
 
-Status: planned
+Status: completed
 Targets: `MetaQualityCheckpointScheduler.java`（:223-224）；`NopMetaReconciliationResultBizModel.java`（:154-177）；`ReconErrors.java`（`ERR_RECON_INVALID_SELECTION` 定义 :45）
 
 - Item Types: `Fix`
 
-- [ ] P2-14：并发拒绝 `LOG.warn(...)` 追加 `, e` 末参（对齐同文件 :226-228 ERROR 分支与 R4.3 形态）
-- [ ] P2-23：删除 `toInt`/`toStr` 死方法（:154-177）+ 不可达 throw 分支；删除 2 处 `// invariant-ok: dead code P2-23` 豁免注释
-- [ ] P2-23 连带处置：`ERR_RECON_INVALID_SELECTION` 删除 toInt 后零引用（独立复核已证实无其余活点）——定义随死码一并删除；核对 `ARG_VALUE` 常量是否随之孤儿（无其他消费者则一并删除，有则保留并留证）；删除前 `rg` 全仓引用留证（预期仅定义 + 死码内 2 处）
-- [ ] `TestSilentSwallowFormalization` 等测试引用同步（如引用被删错误码）
+- [x] P2-14：并发拒绝 `LOG.warn(...)` 追加 `, e` 末参（对齐同文件 :226-228 ERROR 分支与 R4.3 形态）
+- [x] P2-23：删除 `toInt`/`toStr` 死方法（:154-177）+ 不可达 throw 分支；删除 2 处 `// invariant-ok: dead code P2-23` 豁免注释
+- [x] P2-23 连带处置：`ERR_RECON_INVALID_SELECTION` 删除 toInt 后零引用（独立复核已证实无其余活点）——定义随死码一并删除；核对 `ARG_VALUE` 常量是否随之孤儿（无其他消费者则一并删除，有则保留并留证）；删除前 `rg` 全仓引用留证（预期仅定义 + 死码内 2 处）（实测：删码后仅定义残留 → 定义 + ARG_VALUE 一并删除）
+- [x] `TestSilentSwallowFormalization` 等测试引用同步（如引用被删错误码）（核对：无测试引用被删码/方法）
 
 Exit Criteria:
 
-- [ ] `rg -n 'invariant-ok: dead code P2-23' nop-metadata/` 零命中；`toInt`/`toStr` 定义与引用零残留；`ERR_RECON_INVALID_SELECTION` 在 `nop-metadata/` 代码范围（`-g '*.java'`）零残留——ai-dev 文档中的历史记载不算（或代码保留时有留证的明确理由）
-- [ ] 并发拒绝路径测试通过（如既有测试未断言 throwable 末参，补 ListAppender 断言异常对象出现在 WARN 事件——按 R6.5 先例形态）
-- [ ] `node ai-dev/tools/check-error-param-consistency.mjs --module nop-metadata` exit 0（豁免消除 + define 面规则 + 死码删除后仍零命中）
-- [ ] `./mvnw test -pl nop-metadata/nop-metadata-service -Dtest='TestNopMetaReconciliation*,TestMetaQualityCheckpointScheduler*,TestSilentSwallowFormalization' -Dsurefire.failIfNoSpecifiedTests=false` 通过
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `rg -n 'invariant-ok: dead code P2-23' nop-metadata/` 零命中；`toInt`/`toStr` 定义与引用零残留；`ERR_RECON_INVALID_SELECTION` 在 `nop-metadata/` 代码范围（`-g '*.java'`）零残留——ai-dev 文档中的历史记载不算（或代码保留时有留证的明确理由）
+- [x] 并发拒绝路径测试通过（如既有测试未断言 throwable 末参，补 ListAppender 断言异常对象出现在 WARN 事件——按 R6.5 先例形态）（新增 `testP214ConcurrentRejectionWarnCarriesThrowable`）
+- [x] `node ai-dev/tools/check-error-param-consistency.mjs --module nop-metadata` exit 0（豁免消除 + define 面规则 + 死码删除后仍零命中）
+- [x] `./mvnw test -pl nop-metadata/nop-metadata-service -Dtest='TestNopMetaReconciliation*,TestMetaQualityCheckpointScheduler*,TestSilentSwallowFormalization' -Dsurefire.failIfNoSpecifiedTests=false` 通过（连同 P2-14 harness 所在类共 95/95）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 5 — P2-11 双轨制显式裁定（Decision，无代码变更）
 
-Status: planned
+Status: completed
 Targets: 本 plan `Deferred But Adjudicated` 段 + roadmap backlog 条目更新
 
 - Item Types: `Decision`
 
-- [ ] 复核实测计数（字面量 vs ARG 常量）写入裁定记录；确认 INV-ERROR-PARAM 门禁覆盖 throw 点占位符一致性（键值错配会被捕获）
-- [ ] 裁定写入本 plan Deferred 段（classification = optimization candidate + Why Not Blocking）+ roadmap P2-11 条目标注裁定结果
+- [x] 复核实测计数（字面量 vs ARG 常量）写入裁定记录；确认 INV-ERROR-PARAM 门禁覆盖 throw 点占位符一致性（键值错配会被捕获）（实测 580/226；fixture `key-mismatch` 钉死键值错配区分力）
+- [x] 裁定写入本 plan Deferred 段（classification = optimization candidate + Why Not Blocking）+ roadmap P2-11 条目标注裁定结果
 
 Exit Criteria:
 
-- [ ] 裁定记录完整（分类、理由、successor 路径）；roadmap 条目已标注
-- [ ] 无代码变更（本 Phase 纯裁定）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 裁定记录完整（分类、理由、successor 路径）；roadmap 条目已标注
+- [x] 无代码变更（本 Phase 纯裁定）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > 本计划为错误处理/诊断形态清扫（define 面一致性 + 形态统一 + 死码），不改对外 API 契约（消息渲染补齐 `{error}` 真实值属诊断增强）。
 
-- [ ] P2-09/P2-10/P2-13/P2-14/P2-23 五项落地；P2-11 裁定记录完整
-- [ ] `./mvnw compile -pl nop-metadata -am -T 1C` 通过
-- [ ] `./mvnw test -pl nop-metadata -am -T 1C` 全绿（0 failures）
-- [ ] `node ai-dev/tools/check-error-param-consistency.mjs --module nop-metadata` exit 0（含新增 define 面规则 + `{error}` 豁免移除后的 throw 点全覆盖）
-- [ ] `node ai-dev/tools/check-silent-swallow.mjs --module nop-metadata` 0 新增命中
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
-- [ ] 不存在被静默降级到 deferred 的 in-scope live defect（P2-11 裁定须满足 Allowed Deferred 分类）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 验证（a）P2-13 重构后 no-row 路径真实产出 ERROR 判定（跑测试非读签名）；（b）P2-09 补参后消息端到渲染真实值；（c）死码删除后豁免清单不残留；（d）门禁 define 面规则真实存在且非空转（构造临时不一致 fixture 验证会红——沿 1913-3 门禁沉淀的 fixture 验证先例）
-- [ ] 门禁脚本变更已同步其头注释与 owner doc（invariant catalog / nop-metadata.md 门禁清单——沿 1913-3 的 6-guard 聚合链记录形态）
-- [ ] roadmap Follow-up Backlog 对应条目标注处置结果
+- [x] P2-09/P2-10/P2-13/P2-14/P2-23 五项落地；P2-11 裁定记录完整
+- [x] `./mvnw compile -pl nop-metadata -am -T 1C` 通过
+- [x] `./mvnw test -pl nop-metadata -am -T 1C` 全绿（0 failures）（service 1251/0/0 + web 1/0/0，BUILD SUCCESS）
+- [x] `node ai-dev/tools/check-error-param-consistency.mjs --module nop-metadata` exit 0（含新增 define 面规则 + `{error}` 豁免移除后的 throw 点全覆盖）
+- [x] `node ai-dev/tools/check-silent-swallow.mjs --module nop-metadata` 0 新增命中（125 catch 块 0 命中）
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
+- [x] 不存在被静默降级到 deferred 的 in-scope live defect（P2-11 裁定须满足 Allowed Deferred 分类）（P2-11 = optimization candidate + 明确 non-blocking 理由，唯一 deferred 项）
+- [x] 独立子 agent closure-audit 已完成并记录证据（fresh session `ses_ff8e879f2ffeovVN46STUAjznb`，20/20 PASS，approved；证据见 Closure 段）
+- [x] **Anti-Hollow Check**：closure audit 验证（a）P2-13 重构后 no-row 路径真实产出 ERROR 判定（跑测试非读签名）；（b）P2-09 补参后消息端到渲染真实值；（c）死码删除后豁免清单不残留；（d）门禁 define 面规则真实存在且非空转（构造临时不一致 fixture 验证会红——沿 1913-3 门禁沉淀的 fixture 验证先例）（执行者已完成注毒双向验证：临时注入"desc 去 {sql} 占位符 + 死 define"→ 门禁 exit 1 且两 define-face 命中 + 1 dead-define 命中；恢复 → exit 0；closure audit 复核）
+- [x] 门禁脚本变更已同步其头注释与 owner doc（invariant catalog / nop-metadata.md 门禁清单——沿 1913-3 的 6-guard 聚合链记录形态）（+ run-nop-metadata-invariants.sh guard 6 头注释同步）
+- [x] roadmap Follow-up Backlog 对应条目标注处置结果（P2-09/10/13/14/23 ✅ Fixed + P2-11 ⚖️ 已裁定 deferred）
 
 ## Deferred But Adjudicated
 
@@ -190,6 +190,7 @@ Exit Criteria:
 - Classification: `optimization candidate`
 - Why Not Blocking Closure: 当前键值一致零错配（INV-ERROR-PARAM hard-gate 在 CI 守护 throw 点占位符覆盖，任何键值漂移即红）；双轨是形态不一不是行为缺陷，用户可见行为零差异。全量常量化 = ~578 处机械改写，churn 大、行为收益为零。
 - Successor Required: `no`（如未来某轮需要，可从 roadmap backlog P2-11 条目派生机械 codemod 计划）
+- 复核实测（2026-08-16 收口时点，Phases 1-4 落地后 live）：字面量键 580 处 vs ARG 常量键 226 处（qualified 208 + bare 18，`-o` 单行匹配口径；总 `.param(` 站点 808，差值 2 为跨行键形态——门禁语句级解析全覆盖，非盲区）。门禁键值覆盖复核：`resolveKeyExpr` 对字面量与 ARG 常量统一解析为键值后与占位符比对，键值错配即命中（fixture `key-mismatch` 样例钉死该区分力，expectHits=1）。Phase 2 顺带的 7 处新 `.param` 全部走 ARG 常量形态（含 1 处字面量 `path` 升格 `ARG_PATH`），增量零恶化。
 
 ## Non-Blocking Follow-ups
 
@@ -198,14 +199,27 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （待收口时填写）
-Completed: （待收口时填写）
+Status Note: 5 Phase 全部落地并逐项验证：P2-10（门禁 define 面两规则沉淀 + 17 对称差收敛 + 7 死码删除，重扫超出基线的 5 个死码按计划"一并处理"条款处置）、P2-09（7 处补参 + 门禁豁免收口，`{error}` 形态进 hard-gate）、P2-13（2 处哨兵消除，judgment 逐字段等价 + 新增 no-row focused test）、P2-14（WARN 末参 + ListAppender 断言）、P2-23（死码/豁免/连带 define + 孤儿 ARG 一并消除）、P2-11（optimization candidate 裁定记录 + roadmap 标注）。错误码三方（define 声明 ↔ 描述占位符 ↔ throw 点参数）一致，诊断形态统一；全量测试 1251/0/0 绿。plan 关闭无剩余 plan-owned work。
+Completed: 2026-08-16
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待收口时填写）
-- Evidence: （待收口时填写）
+- Reviewer / Agent: 独立子 agent closure-audit（fresh session `ses_ff8e879f2ffeovVN46STUAjznb`，review-only 零文件修改）
+- Evidence:
+  - 20/20 检查全 PASS（逐项 live 命令/文件复核，非采信 plan 文本）：
+    - Phase 1：门禁 exit 0 + fixture PASS；checkDefineFace/checkDeadDefines 真实接线（:641/:687/:1128-1137）；17 处 define 逐点抽查（LineageErrors `{sql}`/`ARG_EDGES`、SqlErrors `querySpace`、ModuleErrors `metaModuleId`）；8 个死码全仓 rg 零命中；测试引用同步零残留
+    - Phase 2：7 处补参逐点核对（AutoClassificationProcessor:292-296 等 7 处 file:line）；`EXEMPT_PLACEHOLDERS` 空（script:108）；focused 测试 11 绿（1+8+2）
+    - Phase 3：`throw new SQLException` main 零命中；no-row 分支显式 ERROR（:553-563/:606-616）+ catch 保留 `, e)`
+    - Phase 4：WARN `, e);`（scheduler:224-225）；P2-23 三项 grep 零残留；TestNopMetaQualityCheckpointBizModel 29/29 且 `testP214ConcurrentRejectionWarnCarriesThrowable` surefire 记录 passed（0.159s）
+    - Phase 5：Deferred 段完整（580/226 实测）+ roadmap:159 标注
+    - Closure Gates：silent-swallow exit 0、hollow exit 0、fixture define-face/dead-define 段可红可绿（区分力实证）、roadmap 5 条 ✅ Fixed、owner docs 同步、daily log 5 Phase 齐全
+  - Anti-Hollow：(a) no-row ERROR 判定经 `TestMetaQualityRuleExecutorNoRowBranch` 运行验证（2/2）；(b) `{error}` 真实值渲染经 `TestAggregationHelperErrorParam` + `testP209SerializationFailureRendersRealErrorParam` 断言；(c) 死码豁免零残留（grep）；(d) 门禁规则注毒双向验证（执行者：临时注入 desc 去占位符 + 死 define → exit 1 三命中，恢复 → exit 0；审计者：fixture 钉死样本区分力复核）
+  - `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（收口后复跑确认）
+  - Deferred 项分类检查：唯一 deferred = P2-11（optimization candidate，non-blocking 理由明确，Successor=no），无 in-scope live defect 降级
+- 附注：执行者注毒验证使用 `_tmp/` 临时副本 + 恢复，未留临时改动；`_tmp/analyze-define-face.mjs`、`_tmp/LineageErrors.java.bak`、`_tmp/poison-out.txt`、`_tmp/gate-silent.txt`、`_tmp/doclinks.txt`、`_tmp/phase2-gate.txt` 为过程留痕（`_tmp/` 约定位置，不入库语义）
 
 Follow-up:
 
-- （待收口时填写）
+- P2-12（ErrorCode 描述 i18n）—— ask-first 裁定项，留待裁定轮（Non-Goal，未降级任何 live defect）
+- 其余 P2 族（安全族已由 0226-1 收口；BizModel 行为族归 0226-3；ORM/IoC/文档测试卫生族归后续批次）
+- no remaining plan-owned work

@@ -223,7 +223,7 @@
 
 ### INV-ERROR-PARAM — 错误消息识别性参数占位符↔调用点一致性族
 
-**① 陈述**（通用）：`NopMetadataException`（及同族 `NopException`）throw 点所用 ErrorCode 描述中声明的**识别性占位符** `{xxx}`，必须在同一构造语句链（含 builder 变量形态 `X e = new ...; e.param(...)`）上有对应 `.param()` 键——键可为字面量 / `NopMetadataErrors.ARG_X` / 裸 `ARG_X` 常量。违反时运行时（`ErrorMessageManager`）把占位符渲染为字面 `{xxx}`——失败对象的身份信息对最终用户丢失。**禁止**：传 null 凑键覆盖（渲染空串 = 空壳修复）；错误码为变量（方法参数/局部变量）时不经人工归类静默放过（UNRESOLVED 清单强制裁定或 `// invariant-ok:` 标注）。豁免面仅 `{error}`（P2-09 附注族）+ `// invariant-ok:` 显式裁定。
+**① 陈述**（通用）：`NopMetadataException`（及同族 `NopException`）throw 点所用 ErrorCode 描述中声明的**识别性占位符** `{xxx}`，必须在同一构造语句链（含 builder 变量形态 `X e = new ...; e.param(...)`）上有对应 `.param()` 键——键可为字面量 / `NopMetadataErrors.ARG_X` / 裸 `ARG_X` 常量。违反时运行时（`ErrorMessageManager`）把占位符渲染为字面 `{xxx}`——失败对象的身份信息对最终用户丢失。**禁止**：传 null 凑键覆盖（渲染空串 = 空壳修复）；错误码为变量（方法参数/局部变量）时不经人工归类静默放过（UNRESOLVED 清单强制裁定或 `// invariant-ok:` 标注）。豁免面（2026-08-16 起）仅 `// invariant-ok:` 显式裁定——原 `{error}` 附注族豁免已随 P2-09 收口（7 处 throw 点补齐 `.param(ARG_ERROR, NopMetadataHelper.toErrorMessage(e))` 或文件内 messageOf 等价形态）。
 
 **② 覆盖的失败族**：error-param 族——P1-6 识别性参数漂移家族（11 活点跨 9 文件）→ P1-7 方言白名单参数键错配（`{datasourceType}` 声明 vs `databaseProductName` 键，被拒产品名永不渲染）。
 
@@ -231,11 +231,12 @@
 
 - P1-6（2026-08-15 multi-audit confirmed live defect，fixed 2026-08-16）：11 活点三轨收口——轨 1 补齐（JoinBizModel:164 update 路径 joinId 下沉 / FieldResolver:383 elementIndex 下标循环 / MemoryFilterEvaluator:86 name 键）、轨 2 穿参（MetaTableQueryExecutor / AggregationHelper.requireName / CrossDbJoinMerger.firstNonNullKeyType 静态工具签名 +metaTableId/+joinId）、轨 3 换码（null 防御/值语义不存在分支新增 5 个无必需占位符错误码；削既有码占位符被"其他点位已传齐"裁定禁止）（`ai-dev/audits/2026-08-15-0559-multi-audit-nop-metadata-invariant-loop.md` P1-6）
 - P1-7（同 audit confirmed contract drift，fixed 2026-08-16 方案 A：改传 `ARG_DATASOURCE_TYPE` 键 + 被拒产品名，错误码标识不变；`MetaDataSourceConnectionProcessor:216` 正确用法为先例）
-- 防复发土壤：P2-10（17 个 define 声明与描述占位符漂移）+ P2-11（`.param()` 键 454 字面量 vs 199 ARG_* 双轨）——本门禁以"throw 点 ↔ 占位符"一致性为权威分母先行收口，define 面治理留 backlog。
+- 防复发土壤：~~P2-10（17 个 define 声明与描述占位符漂移）~~（fixed 2026-08-16，plan `2026-08-16-0226-2` Phase 1：17 处对称差收敛 + 7 死码删除，define 面规则沉淀入 guard 6）+ P2-11（`.param()` 键字面量 vs ARG_* 双轨，已裁定 optimization candidate deferred）。
 
 **④ 检测方法**：`ai-dev/tools/check-error-param-consistency.mjs`——解析 10 个 `*Errors.java`（经 `NopMetadataErrors` 组合）+ `NopMetadataArgs.java` 构建注册表；对 main 范围全部 `new NopMetadataException(` throw 点（含内联 `ErrorCode.define` 与 builder 变量形态）做占位符↔键交叉核对；catch 块 `e.param(...)` 重抛增补天然不命中（仅扫构造点）；变量形态错误码输出 UNRESOLVED 清单强制人工归类（未标注即红）。注毒自验：删除已知修点的 `.param` → 红；恢复 → 绿（2026-08-16 live 实测）。
+**define 面扩展（P2-10，plan `2026-08-16-0226-2` Phase 1，2026-08-16 落地）**：新增两条规则——(1b) define 声明面对称差：每个 define 尾部声明的 ARG_* 常量**值**（经注册表解析，常量名 UPPER_SNAKE vs 值 camelCase，禁止名字比对）必须与描述占位符集合完全一致（对称差为空）；声明键无占位符 = throw 点传的参数永不渲染，占位符无声明 = define 面空洞。(1c) 死码检测：define 在模块 src/main（注释剥离语料，排除定义文件自身）零引用即红（`dead` = 全仓零引用；`test-only` = 仅测试镜像保活）；豁免走 define 行 `// invariant-ok:`（豁免清单形态，沿 check-silent-wrong-result baseline 先例），豁免面在输出中显式列出。fixture 自检覆盖对称差三形态（漏声明/漏占位符/不可解析 ARG）+ 死码三分类（dead/test-only/alive）。
 
-**目标集覆盖率**：342 throw 点 / 226 ErrorCode define（2026-08-16 首跑）；修复后零命中、豁免面 6 条（2 死点 P2-23 + 4 变量形态人工归类）全部显式列出。
+**目标集覆盖率**：342 throw 点 / 226 ErrorCode define（2026-08-16 首跑）；修复后零命中、豁免面 6 条（2 死点 P2-23 + 4 变量形态人工归类）全部显式列出。define 面扩展首跑（2026-08-16）：17 对称差 + 7 死码（4 dead + 3 test-only）→ 全部修复/删除后零命中。
 
 ---
 
