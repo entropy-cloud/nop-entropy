@@ -7,8 +7,11 @@ import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.directive.Auth;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.context.ContextProvider;
+import io.nop.api.core.context.IContext;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.crud.CrudBizModel;
+import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.sql.SQL;
@@ -37,6 +40,7 @@ import io.nop.datav.service.filter.DashboardFilterResolver;
 import io.nop.datav.service.filter.DashboardFilterUrlCodec;
 import io.nop.datav.service.filter.DashboardParamDefinition;
 import io.nop.datav.service.filter.DashboardParamParser;
+import io.nop.datav.service.query.DashboardPanelQueryCache;
 import io.nop.datav.service.query.PanelDataBinder;
 import io.nop.datav.service.report.NopDatavReportScheduler;
 import io.nop.datav.service.report.NopDatavReportTaskStatus;
@@ -49,6 +53,9 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.Semaphore;
 import java.util.function.BiConsumer;
 
 import static io.nop.datav.service.NopDatavErrors.ARG_DASHBOARD_ID;
@@ -83,6 +90,9 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
 
     @jakarta.inject.Inject
     protected IJdbcTemplate jdbcTemplate;
+
+    @jakarta.inject.Inject
+    protected io.nop.orm.IOrmTemplate ormTemplate;
 
     @jakarta.inject.Inject
     protected NopDatavAlertScheduler alertScheduler;
@@ -304,7 +314,51 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
         return DashboardFilterResolver.resolve(definitions, parsed);
     }
 
-    // ==================== 批量面板查询（plan 2026-08-14-2020-2，裁定见 runtime-design.md §四） ====================
+    // ==================== 批量面板查询（plan 2026-08-14-2020-2，裁定见 runtime-design.md §四；并行执行与结果缓存 plan 2026-08-15-0004-3，裁定见 §八） ====================
+
+    /**
+     * 面板查询单元任务：执行一个面板的查询并返回结果条目（NopException 已在任务内归集为面板级失败条目）。
+     */
+    @FunctionalInterface
+    public interface PanelQueryTask {
+        DashboardPanelDataItem call() throws Exception;
+    }
+
+    /**
+     * 测试可观测 seam（P1 裁定，runtime-design.md §8.1）：面板任务装饰器，生产恒 null。
+     * 测试注入 latch/并发计数器等，对「并发执行证明」「并行度上界不被突破」做确定性断言。
+     */
+    @FunctionalInterface
+    public interface PanelQueryTaskDecorator {
+        PanelQueryTask decorate(NopDatavPanel panel, PanelQueryTask task);
+    }
+
+    /**
+     * 测试可观测 seam（P1 裁定）：面板任务装饰器。仅测试注入；生产路径恒 null（零开销直通）。
+     */
+    private volatile PanelQueryTaskDecorator panelQueryTaskDecorator;
+
+    /**
+     * 测试可观测 seam（P1 裁定）：面板查询执行器覆盖。默认 null → {@link #getPanelQueryExecutor()}
+     * 返回共享 {@code GlobalExecutors.globalWorker()}（跨请求复用，无每请求新建/关闭）。
+     */
+    private volatile java.util.concurrent.Executor panelQueryExecutorOverride;
+
+    /** 测试 seam：注入面板任务装饰器（确定性断言用）。 */
+    public void setPanelQueryTaskDecorator(PanelQueryTaskDecorator decorator) {
+        this.panelQueryTaskDecorator = decorator;
+    }
+
+    /** 测试可观测 seam：面板查询执行器（默认共享 globalWorker；identity 断言证明跨请求复用）。 */
+    public java.util.concurrent.Executor getPanelQueryExecutor() {
+        java.util.concurrent.Executor override = panelQueryExecutorOverride;
+        return override != null ? override : GlobalExecutors.globalWorker();
+    }
+
+    /** 测试 seam：覆盖面板查询执行器（仅测试注入）。 */
+    public void setPanelQueryExecutor(java.util.concurrent.Executor executor) {
+        this.panelQueryExecutorOverride = executor;
+    }
 
     /**
      * 批量查询看板面板数据（D1 归属：看板视角）。
@@ -312,8 +366,9 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
      * <p>行为（裁定见 {@code ai-dev/design/nop-datav/runtime-design.md} §4.7）：requireEntity 校验看板存活
      * （D5：live 表 + 发布非前置）→ 看板级筛选一次求值（§4.6：与逐面板 resolveFilterValues + getPanelData
      * 组合语义等价）→ 按 sortOrder 加载面板（D2：可选 panelIds 子集，越权引用整体显式报错，条目顺序跟随
-     * sortOrder，重复 id 去重）→ 上限校验（D4：先于任何面板查询执行）→ 顺序迭代复用 {@link PanelDataBinder}
-     * → 聚合响应（D3：面板纳入集含无数据集面板；仅 NopException 捕获为面板级失败，其余按看板级失败传播）。</p>
+     * sortOrder，重复 id 去重）→ 上限校验（D4：先于任何面板查询执行）→ 面板查询（§8.1：默认有界并行，
+     * 开关关闭或面板数 ≤1 走顺序路径）复用 {@link PanelDataBinder} → 聚合响应（D3：面板纳入集含无数据集
+     * 面板；仅 NopException 捕获为面板级失败，其余按看板级失败传播——两种执行模式下逐条等价）。</p>
      */
     @Override
     @BizQuery
@@ -353,7 +408,7 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
             panels = subset;
         }
 
-        // D4：上限校验先于任何面板查询执行（防单请求放大为海量 SQL）
+        // D4：上限校验先于任何面板查询执行（防单请求放大为海量 SQL；并行模式下同样先于任何任务提交）
         int maxPanels = NopDatavConfigs.CFG_DATAV_DASHBOARD_QUERY_MAX_PANELS.get();
         if (panels.size() > maxPanels) {
             throw new NopException(ERR_DATAV_DASHBOARD_PANEL_LIMIT_EXCEEDED)
@@ -361,19 +416,226 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
                     .param(ARG_MAX_PANELS, maxPanels);
         }
 
-        // D4：顺序迭代；D3：仅 NopException 捕获为面板级失败（PanelDataBinder 全部错误路径均抛 NopException），
-        // 非 NopException 的意外 RuntimeException 视为系统性故障按看板级失败传播（不吞掉）
-        PanelDataBinder binder = new PanelDataBinder(daoProvider(), jdbcTemplate);
-        List<DashboardPanelDataItem> items = new ArrayList<>(panels.size());
-        for (NopDatavPanel panel : panels) {
-            try {
-                PanelDataResult result = binder.queryPanelData(panel.getPanelId(), panel, resolvedParams);
-                items.add(DashboardPanelDataItem.success(result));
-            } catch (NopException e) {
-                items.add(DashboardPanelDataItem.failure(panel.getPanelId(), e.getErrorCode(), safeMsg(e)));
+        // §8.1：默认有界并行；开关关闭或单面板走原顺序路径（与并行前行为逐条等价）
+        boolean parallel = NopDatavConfigs.CFG_DATAV_DASHBOARD_QUERY_PARALLEL_ENABLED.get() && panels.size() > 1;
+        List<DashboardPanelDataItem> items = parallel
+                ? executePanelQueriesInParallel(panels, resolvedParams, context)
+                : executePanelQueriesSequentially(panels, resolvedParams);
+        return new DashboardDataResult(id, items);
+    }
+
+    /**
+     * 查询结果缓存实例（§8.3：进程内 LocalCache，单节点语义）。惰性构建（首次启用时），容量/TTL/准入
+     * 上界在构建时读配置——配置变更在缓存实例重建后生效（进程重启或测试重置钩子）；启用开关按请求判定。
+     */
+    private volatile DashboardPanelQueryCache queryResultCache;
+
+    /** 获取（惰性构建）查询结果缓存实例。 */
+    private DashboardPanelQueryCache getQueryResultCache() {
+        DashboardPanelQueryCache cache = queryResultCache;
+        if (cache == null) {
+            synchronized (this) {
+                if (queryResultCache == null) {
+                    queryResultCache = DashboardPanelQueryCache.fromConfigs();
+                }
+                cache = queryResultCache;
             }
         }
-        return new DashboardDataResult(id, items);
+        return cache;
+    }
+
+    /** 测试可观测 seam：当前缓存实例（未构建时以当前配置构建；命中/未命中计数断言用）。 */
+    public DashboardPanelQueryCache getQueryResultCacheForTest() {
+        return getQueryResultCache();
+    }
+
+    /** 测试 hygiene：重建缓存实例（清空条目并以当前配置重建，TTL/容量配置变更后生效）。 */
+    public void resetQueryResultCacheForTest() {
+        synchronized (this) {
+            queryResultCache = null;
+        }
+    }
+
+    /**
+     * 顺序执行面板查询（并行前原路径，行为逐条保持）。
+     *
+     * <p>D3：仅 NopException 捕获为面板级失败（PanelDataBinder 全部错误路径均抛 NopException），
+     * 非 NopException 的意外 RuntimeException 视为系统性故障按看板级失败传播（不吞掉）。</p>
+     */
+    private List<DashboardPanelDataItem> executePanelQueriesSequentially(List<NopDatavPanel> panels,
+                                                                         Map<String, Object> resolvedParams) {
+        PanelDataBinder binder = newPanelDataBinder();
+        DashboardPanelQueryCache cache = resolveQueryResultCache();
+        List<DashboardPanelDataItem> items = new ArrayList<>(panels.size());
+        for (NopDatavPanel panel : panels) {
+            PanelQueryTask task = newPanelQueryTask(panel, binder, resolvedParams, cache);
+            PanelQueryTaskDecorator decorator = panelQueryTaskDecorator;
+            if (decorator != null) {
+                task = decorator.decorate(panel, task);
+            }
+            items.add(runPanelQueryTask(task, panel));
+        }
+        return items;
+    }
+
+    /**
+     * 有界并行执行面板查询（§8.1 裁定：共享 globalWorker + 请求内 Semaphore 并行度）。
+     *
+     * <p>错误归集（D3 在并发下保持）：NopException 在任务内归集为面板级失败条目；非 NopException 的任务
+     * 异常在 join 全部任务后按面板顺序重抛第一个（看板级失败传播，确定性）；执行器拒绝/中断显式传播，
+     * 无任务静默丢弃。结果按面板下标归位，条目顺序恒等于顺序版（sortOrder）。worker 线程经
+     * {@code IContext.executeWithContext} 绑定调用方上下文（§8.2：tenant/locale/callExpireTime 语义一致）。</p>
+     */
+    private List<DashboardPanelDataItem> executePanelQueriesInParallel(List<NopDatavPanel> panels,
+                                                                       Map<String, Object> resolvedParams,
+                                                                       IServiceContext context) {
+        PanelDataBinder binder = newPanelDataBinder();
+        DashboardPanelQueryCache cache = resolveQueryResultCache();
+        // §8.2：捕获调用方 IContext，worker 任务绑定执行（dao 层消费 currentTenantId/callExpireTime）
+        IContext callerContext = context != null && context.getContext() != null
+                ? context.getContext() : ContextProvider.currentContext();
+        Semaphore permits = new Semaphore(Math.max(1, NopDatavConfigs.CFG_DATAV_DASHBOARD_QUERY_PARALLELISM.get()));
+        java.util.concurrent.Executor executor = getPanelQueryExecutor();
+
+        List<CompletableFuture<DashboardPanelDataItem>> futures = new ArrayList<>(panels.size());
+        for (NopDatavPanel panel : panels) {
+            PanelQueryTask task = newPanelQueryTask(panel, binder, resolvedParams, cache);
+            PanelQueryTaskDecorator decorator = panelQueryTaskDecorator;
+            if (decorator != null) {
+                task = decorator.decorate(panel, task);
+            }
+            PanelQueryTask decorated = task;
+            Semaphore semaphore = permits;
+            futures.add(CompletableFuture.supplyAsync(
+                    () -> runPanelQueryTaskBounded(decorated, callerContext, semaphore), executor));
+        }
+        // join 全部任务（无静默丢弃）；失败任务按面板顺序取第一个重抛
+        RuntimeException dashboardFailure = null;
+        List<DashboardPanelDataItem> items = new ArrayList<>(futures.size());
+        for (CompletableFuture<DashboardPanelDataItem> future : futures) {
+            DashboardPanelDataItem item = null;
+            try {
+                item = future.join();
+            } catch (CompletionException ce) {
+                Throwable cause = ce.getCause() != null ? ce.getCause() : ce;
+                if (cause instanceof Error) {
+                    // Error（OOM 等）立即传播，不与业务失败归集排序
+                    throw (Error) cause;
+                }
+                if (dashboardFailure == null) {
+                    dashboardFailure = cause instanceof RuntimeException
+                            ? (RuntimeException) cause : new IllegalStateException("panel query task failed", cause);
+                }
+            }
+            items.add(item);
+        }
+        if (dashboardFailure != null) {
+            // D3 并行保持：非 NopException 按看板级失败传播（首个，按面板顺序，确定性）
+            throw dashboardFailure;
+        }
+        return items;
+    }
+
+    /** 面板工厂 seam（P3 缓存接入点预留）：批量路径的 PanelDataBinder 构造。 */
+    protected PanelDataBinder newPanelDataBinder() {
+        return new PanelDataBinder(daoProvider(), jdbcTemplate);
+    }
+
+    /** 按请求判定缓存接入（§8.5：开关默认关；关闭时返回 null → binder 缓存链路零触达，与缓存前等价）。 */
+    private DashboardPanelQueryCache resolveQueryResultCache() {
+        return NopDatavConfigs.CFG_DATAV_DASHBOARD_QUERY_CACHE_ENABLED.get() ? getQueryResultCache() : null;
+    }
+
+    /**
+     * 单面板查询单元任务：执行查询并归集条目（NopException → 面板级失败条目；其余异常原样传播）。
+     * 缓存透传 binder（仅批量路径接入，§8.3；null = 不缓存）。
+     */
+    private PanelQueryTask newPanelQueryTask(NopDatavPanel panel, PanelDataBinder binder,
+                                             Map<String, Object> resolvedParams,
+                                             DashboardPanelQueryCache cache) {
+        return () -> {
+            try {
+                PanelDataResult result = binder.queryPanelData(panel.getPanelId(), panel, resolvedParams, null, cache);
+                return DashboardPanelDataItem.success(result);
+            } catch (NopException e) {
+                return DashboardPanelDataItem.failure(panel.getPanelId(), e.getErrorCode(), safeMsg(e));
+            }
+        };
+    }
+
+    /** 同步执行单个面板任务（顺序路径复用；异常语义与并行路径一致）。 */
+    private DashboardPanelDataItem runPanelQueryTask(PanelQueryTask task, NopDatavPanel panel) {
+        try {
+            return task.call();
+        } catch (NopException e) {
+            // 任务内已归集 NopException 为失败条目；此处 NopException 仅可能来自任务包装层，
+            // 按看板级失败语义原样传播（与并行前顺序路径的隐式传播一致）
+            throw e;
+        } catch (Exception e) {
+            if (e instanceof RuntimeException) {
+                throw (RuntimeException) e;
+            }
+            throw new IllegalStateException("panel query task failed for panel " + panel.getPanelId(), e);
+        }
+    }
+
+    /**
+     * 并行路径的 worker 执行体：Semaphore 许可 + 任务专属上下文 + 新 ORM session。
+     *
+     * <p>上下文形态（§8.2 修订）：**每任务新建 context 并从调用方 context 拷贝 tenant/locale 等属性**
+     * （{@code ContextProvider.propagateContext}），经 {@code executeWithContext} 绑定——禁止多 worker
+     * 共享调用方同一 context 对象：平台 {@code TransactionRegistry} 挂在 context 上
+     * （{@code TransactionRegistry.instance()} 经 {@code getOrCreateContext()} 定位），并发共享同一
+     * context 会导致事务注册表交错损坏（平台对同 context 并发执行有显式 WARN）。</p>
+     *
+     * <p>新 ORM session：平台 worker 线程 DB 访问先例（{@code NopDatavExportTaskBizModel.submitExecution} /
+     * {@code ReportDeliveryExecutor.execute} 均以 {@code ormTemplate.runInNewSession} 包裹 globalWorker
+     * 任务）——session 与其事务注册随任务开闭，任务内全部 dao/jdbcTemplate 调用复用同一 session。</p>
+     */
+    private DashboardPanelDataItem runPanelQueryTaskBounded(PanelQueryTask task, IContext callerContext,
+                                                            Semaphore permits) {
+        try {
+            permits.acquire();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("panel query task interrupted while awaiting parallelism permit", e);
+        }
+        try {
+            IContext taskContext = newTaskContext(callerContext);
+            if (taskContext == null) {
+                return executePanelQueryTaskInNewSession(task);
+            }
+            return taskContext.executeWithContext(() -> executePanelQueryTaskInNewSession(task));
+        } catch (RuntimeException e) {
+            // NopException（含任务未归集的面板级错误）与框架层异常原样传播，由聚合层分级处理
+            throw e;
+        } catch (Exception e) {
+            throw new IllegalStateException("panel query task failed", e);
+        } finally {
+            permits.release();
+        }
+    }
+
+    /** 每任务新建 context（不共享调用方对象，防事务注册表并发损坏）并拷贝 tenant/locale 等属性。 */
+    private static IContext newTaskContext(IContext callerContext) {
+        if (callerContext == null) {
+            return null;
+        }
+        IContext taskContext = ContextProvider.newContext(false);
+        ContextProvider.propagateContext(taskContext, callerContext, false);
+        return taskContext;
+    }
+
+    private DashboardPanelDataItem executePanelQueryTaskInNewSession(PanelQueryTask task) {
+        return ormTemplate.runInNewSession(session -> {
+            try {
+                return task.call();
+            } catch (RuntimeException e) {
+                throw e;
+            } catch (Exception e) {
+                throw new IllegalStateException("panel query task failed", e);
+            }
+        });
     }
 
     /**

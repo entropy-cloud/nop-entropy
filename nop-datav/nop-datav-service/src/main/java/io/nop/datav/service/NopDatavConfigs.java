@@ -104,6 +104,30 @@ public interface NopDatavConfigs {
     IConfigReference<Integer> CFG_DATAV_DASHBOARD_QUERY_MAX_PANELS = varRef(
             s_loc, "nop.datav.dashboard-query.max-panels", Integer.class, 50);
 
+    @Description("getDashboardData 面板查询并行执行开关（runtime-design.md §8.1；false 或面板数 ≤1 时走顺序路径，与并行前行为逐条等价）")
+    IConfigReference<Boolean> CFG_DATAV_DASHBOARD_QUERY_PARALLEL_ENABLED = varRef(
+            s_loc, "nop.datav.dashboard-query.parallel.enabled", Boolean.class, true);
+
+    @Description("getDashboardData 请求内并行度上界（面板查询任务执行前经 Semaphore 获取许可，排队任务不占许可；<1 视为 1。单请求在飞查询上界=该值，全局并发另受 nop.commons.concurrent.global-worker.maxPoolSize 约束）")
+    IConfigReference<Integer> CFG_DATAV_DASHBOARD_QUERY_PARALLELISM = varRef(
+            s_loc, "nop.datav.dashboard-query.parallelism", Integer.class, 4);
+
+    @Description("getDashboardData 查询结果缓存开关（runtime-design.md §8.3/§8.4；保守默认关：TTL 缓存引入用户可见 staleness（TTL 窗口内数据集/业务数据变更不可见），是否接受属部署决策。关闭时每次直查 SQL，与缓存前行为逐条等价）")
+    IConfigReference<Boolean> CFG_DATAV_DASHBOARD_QUERY_CACHE_ENABLED = varRef(
+            s_loc, "nop.datav.dashboard-query.cache.enabled", Boolean.class, false);
+
+    @Description("查询结果缓存 TTL 秒数（TTL-only 失效，staleness 上界；进程内单节点语义，每节点独立计时）")
+    IConfigReference<Integer> CFG_DATAV_DASHBOARD_QUERY_CACHE_TTL_SECONDS = varRef(
+            s_loc, "nop.datav.dashboard-query.cache.ttl-seconds", Integer.class, 30);
+
+    @Description("查询结果缓存条目容量上界（容量驱逐，防内存无界增长；进程重启或缓存实例重建后生效）")
+    IConfigReference<Integer> CFG_DATAV_DASHBOARD_QUERY_CACHE_MAX_ENTRIES = varRef(
+            s_loc, "nop.datav.dashboard-query.cache.max-entries", Integer.class, 200);
+
+    @Description("单缓存条目行数准入上界：查询结果行数超过该值不缓存（每次直查），不截断——绝不从缓存返回截断数据。内存上界 = max-entries × max-rows-per-entry × 行体量")
+    IConfigReference<Integer> CFG_DATAV_DASHBOARD_QUERY_CACHE_MAX_ROWS_PER_ENTRY = varRef(
+            s_loc, "nop.datav.dashboard-query.cache.max-rows-per-entry", Integer.class, 1000);
+
     // ===== 分享访问加固（限流，裁定见 permission-sharing-design.md「访问限流与访问统计」） =====
 
     @Description("匿名分享访问限流总开关（false 时 getSharedDashboard 行为与加固前逐字节等价：零检查零记账）")

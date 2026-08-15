@@ -82,6 +82,24 @@ public class PanelDataBinder {
      */
     public PanelDataResult queryPanelData(String panelId, NopDatavPanel panel,
                                           Map<String, Object> requestParams, Integer rowLimit) {
+        return queryPanelData(panelId, panel, requestParams, rowLimit, null);
+    }
+
+    /**
+     * 查询面板数据（可选查询结果缓存，plan 2026-08-15-0004-3，裁定见 runtime-design.md §8.3/§8.4）。
+     *
+     * <p>缓存接入点固定为 {@code getDashboardData} 批量路径：仅该调用方传入非 null 缓存；既有调用方
+     * （getPanelData/refreshPanel/exportDashboard/AlertEvaluator）经 2/4 参重载委托本方法传 null，
+     * 行为逐字节等价（缓存全链路零触达）。缓存键在参数求值之后构造（本方法内，不复制求值逻辑）；
+     * 无数据集条目在本方法缓存判定点之前返回（不缓存）；面板级失败抛 NopException（不产生可缓存值）。
+     * 命中时以当前面板的 panelId/componentType 重建响应字段，rows/columns 复用缓存实例
+     * （{@link PanelDataResult} 按不可变契约对待，§8.4）。</p>
+     *
+     * @param resultCache 查询结果缓存；null 表示不缓存（既有调用方全部为 null）
+     */
+    public PanelDataResult queryPanelData(String panelId, NopDatavPanel panel,
+                                          Map<String, Object> requestParams, Integer rowLimit,
+                                          DashboardPanelQueryCache resultCache) {
         if (panel == null) {
             throw new NopException(ERR_DATAV_PANEL_NOT_FOUND).param("panelId", panelId);
         }
@@ -90,7 +108,7 @@ public class PanelDataBinder {
         IPanelComponent component = componentRegistry.requireComponent(componentType);
         PanelComponentMeta meta = component.getMetadata();
 
-        // 无数据集组件（text/iframe/container）：返回明确标识，不报错也不静默跳过
+        // 无数据集组件（text/iframe/container）：返回明确标识，不报错也不静默跳过（不经缓存：零成本重建）
         if (!meta.isNeedsDataset()) {
             return new PanelDataResult(panelId, componentType, false,
                     Collections.emptyList(), Collections.emptyList());
@@ -138,17 +156,33 @@ public class PanelDataBinder {
             throw ne.param(ARG_PANEL_ID, panelId);
         }
 
+        // 查询结果缓存（仅批量路径传入非 null）：键=数据集身份+求值后参数+行数约束（求值完成后构键，不复制求值逻辑）
+        String cacheKey = null;
+        if (resultCache != null) {
+            cacheKey = DashboardPanelQueryCache.buildKey(refDatasetId, params, rowLimit);
+            PanelDataResult cached = resultCache.get(cacheKey);
+            if (cached != null) {
+                return new PanelDataResult(panelId, componentType, cached.isHasDataset(),
+                        cached.getColumns(), cached.getRows());
+            }
+        }
+
         SQL sql = PanelSqlBuilder.build(dsText, params, panelId);
 
         // 使用 executeQuery 同时拿到 meta + rows；导出路径经 LongRangeBean 在数据集层限行（防 OOM）
         try {
-            return jdbcTemplate.executeQuery(sql,
+            PanelDataResult result = jdbcTemplate.executeQuery(sql,
                     rowLimit == null ? null : LongRangeBean.longRange(0, rowLimit.longValue()),
                     ds -> {
                         List<String> columns = extractColumnNames(ds.getMeta());
                         List<Map<String, Object>> rows = extractRows(ds);
                         return new PanelDataResult(panelId, componentType, true, columns, rows);
                     });
+            if (resultCache != null) {
+                // 成功结果回填（行数超准入上界不缓存；失败路径不到达此处——面板级失败以 NopException 抛出）
+                resultCache.tryPut(cacheKey, result);
+            }
+            return result;
         } catch (NopException e) {
             throw e;
         } catch (Exception e) {
