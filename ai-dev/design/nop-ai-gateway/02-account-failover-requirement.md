@@ -97,6 +97,8 @@
 
 **落地状态（2026-08-15，W6，plan `2026-08-15-1116-2`）**：本地形态流式缓冲/重订阅已落地——`FailoverStreamFlow`（nop-ai-gateway `io.nop.ai.gateway.failover`）：首段缓冲窗口默认 N=10 元素 / T=1000ms（可配置，先到者越窗）；**窗口内/外判定 = 是否已向订阅者转发任何数据**（"尚未转发 → 窗口内可重订阅；已转发 → 断流报错"，需求原文语义；N/T 只决定缓冲转透传时点）；窗口内失败 → 分类 + 熔断记账 + 重选（含 provider 链扩展）+ 重订阅（新 `ChatOptions` 重调 `callStream`，消耗重试预算，默认 2 次）；**已缓冲元素在重订阅时丢弃**（attempt1 前缀不得进入最终输出）；重订阅/首次调用同步异常（`checkRateLimit` ERR_AI_RATE_LIMITED 等）按流式路径错误语义（onError 信号）决策；成功路径 `recordSuccess`（探活成功 → CLOSED 恢复）；取消顺序契约 = 先 cancel 内部订阅（唤醒阻塞 submit）→ 再 cancel attempt token（断 HTTP）；per-attempt 独立取消令牌（调用方取消传播到当前 attempt，绝不直接取消调用方 token）。
 
+**落地状态（2026-08-15，W7，plan `2026-08-15-1116-3`）**：网关形态流式缓冲/重订阅已落地——nop-gateway **最小通用改动**（机制 A，零 nop-ai 依赖）：`BufferedStreamingPublisher`（`io.nop.gateway.core.executor`）缓冲/重订阅层 + 通用扩展点 `IStreamingRetryCallback`（错误 + 上下文 → 新 `HttpRequest`，null = 不重试）/`IStreamingLifecycleListener`（`onFetchStarted`/`onStreamTerminated`，并发计数通道）经 `IGatewayContext` attribute 注入（拦截器 `onRequest` 写入）；`gateway.xdef` streaming 新增 `bufferEnabled`（缺省 false = 零回归）/`bufferSize`（缺省 10）/`bufferTimeMs`（缺省 1000）；nop-ai-gateway 拦截器 `AiGatewayFailoverInterceptor` 编排（语义同 W6）：窗口内失败 → 双源分类 → 熔断记账 → 被动重选（含 provider 链扩展 + 探活恢复）→ 重订阅（新 `HttpRequest`：converter 转换产物 + `dialect.buildUrl(base, chatUrl, apiKey)` base 替换语义 URL + 目标账号 apiKey）；窗口外失败 → 断流报错；重试预算（默认 2 次）耗尽断流；全池饱和 fail-loud（`ERR_AI_MODEL_CLASS_SATURATED`）；per-attempt 反向转换（`onStreamElement` 读 request properties 当前 dialect）。
+
 ### 3.3 路由与熔断（模型类路由组 + 动态选择 + 复用既有熔断）
 
 **模型类路由组（新增机制）**：
@@ -143,6 +145,15 @@ release + 视为饱和跳过重选，保证请求发出前任一账号不超并�
 放行探活，探活成功 recordSuccess → CLOSED 恢复；候选池 = 类内 + provider 链扩展候选）；
 主动切换（并发饱和跳过）不记熔断、不耗重试预算；breaker/registry 为进程共享单例 bean
 （`nopFailoverCircuitBreaker`/`nopFailoverConcurrencyRegistry`）。
+
+**网关形态编排落地状态（2026-08-15，W7，plan `2026-08-15-1116-3`）**：
+`AiGatewayFailoverInterceptor` 编排语义与 W6 一致（选择/切换/重试/记账/预算/fail-loud，
+复用 W5 游走原语 + W2 可靠性机制，进程共享单例 breaker/registry 同 W6 bean）；**并发计数经
+nop-gateway 缓冲层生命周期回调**（`onFetchStarted` +1 / `onStreamTerminated` -1——挂钩 fetch
+发起/流终止（含静默取消经 wrapper），重订阅 -1 旧 attempt +1 新 attempt，缓冲关闭仍计数，
+W1 spike §6.4 契约）；**选择期饱和检查 = 预检语义**（B-13 裁定：检查为尽力而为预检、计数为
+记账语义，并发窗口下可能短暂超限，不承诺硬上限——显式契约边界，W8 指标审计可追溯）；
+非流式 invoke 内 acquire 后复查（窗口更窄）；全池饱和 fail-loud（并发 + 健康度双形态）。
 
 ### 3.4 账号配置（复用既有解析链）
 
@@ -298,7 +309,7 @@ flowchart LR
 | 跨 provider 切换（`ProviderFailoverChain` + `llm-failover.xdef`） | **复用**（下沉后） | 作为模型类候选集内的跨 provider 通道；不合并为单一账号池 |
 | 模型类路由组（级别 → 候选集） | **新增**（数据结构 + 解析入 nop-ai-core，§4.1） | 现状无（llm-failover 是 provider 级，非模型类级）；配置形态待定（§3.4，Q8） |
 | 动态选择策略接口 + 默认策略 + 规则策略 | **新增**（接口与实现入 nop-ai-core，§4.1） | 现状仅固定顺序 `AccountChain` 游标；规则配置（可选）为策略接口的另一种实现 |
-| 网关格式转换 `AiDialectBackendMessageConverter` | **复用 + 扩展** | 需新增：① 流式支持（stream=true 请求体生成）；② **per-request 动态 dialect 解析**——候选集含不同 `apiStyle` 的候选，切换后 backendLlm 须按目标账号的 apiStyle 经 `LlmDialectFactory` 动态解析（当前 `frontendLlm/backendLlm` 为固定 bean 属性）；③ **目标 provider 的真实 `LlmModel` config**——apiStyle 取自 `{provider}.llm.xml` 根属性，切换后加载目标 provider 的完整配置（errorMappings 等），替换现 converter 的 `new LlmModel()` 空配置 |
+| 网关格式转换 `AiDialectBackendMessageConverter` | **复用 + 扩展** | 需新增：① 流式支持（stream=true 请求体生成）；② **per-request 动态 dialect 解析**——候选集含不同 `apiStyle` 的候选，切换后 backendLlm 须按目标账号的 apiStyle 经 `LlmDialectFactory` 动态解析（当前 `frontendLlm/backendLlm` 为固定 bean 属性）；③ **目标 provider 的真实 `LlmModel` config**——apiStyle 取自 `{provider}.llm.xml` 根属性，切换后加载目标 provider 的完整配置（errorMappings 等），替换现 converter 的 `new LlmModel()` 空配置。**（落地状态 2026-08-15，W7，plan `2026-08-15-1116-3` Phase 3：①②③ 全部落地——per-request 通道 = `ApiRequest.properties`（@JsonIgnore，客户端不可注入/不转发给 provider）；`apiStyle` 优先 → provider 配置 apiStyle → bean 属性兜底；`model` 覆盖（Q2 路由覆盖）；`provider` → `LlmConfigHelper.loadConfig` 真实 config；`stream` 标志 → stream=true 请求体；非法值/缺失配置 fail-loud；测试：既有 19 用例零回归 + 新增 10 用例）** |
 | `ILlmDialect` 双向转换补全（parseRequestBody + buildResponse/buildStreamChunk） | **新增**（nop-ai-core 改动） | 仅 OpenAI 请求方向 + 恒 OpenAI 响应方向；双向闭环的前提（§3.7）；parseRequestBody 是 dialect 自身反向转换能力，非网关概念，"nop-ai-core 不感知网关"决策不受影响 |
 | 账号并发限流（并发计数 + `concurrencyLimit` 字段） | **新增** | `_LlmAccountModel` 无并发字段；xdef 扩展（§3.3/§3.4） |
 | 账号字段扩展（权重 / 按账号覆盖 model） | **待定，默认不扩展** | 非既有 `_LlmAccountModel` 字段；若需求确认则与 `concurrencyLimit` 一并扩展 |
@@ -341,6 +352,20 @@ flowchart LR
 四字段下沉 → 委托 → 分类/记账/重选/预算；流式缓冲 → 窗口内重订阅 → 窗口外断流 → 并发
 +1/-1 配对，与伪代码语义一致，无偏差。
 
+**网关形态数据流核对（2026-08-15，W7，plan `2026-08-15-1116-3`）**：§4.4 网关形态伪代码已
+由 `AiGatewayFailoverInterceptor` + nop-gateway 缓冲层（`BufferedStreamingPublisher`）逐条落地
+并测试断言（`TestAiGatewayFailoverInterceptorStreaming` 8 用例 + `TestAiGatewayFailoverInterceptorNonStreaming`
+5 用例，端到端从路由入口到客户端输出）：① 流式路径 onRequest 首次选择 + converter 转换
+（stream=true，动态 dialect/真实 config 经 properties）→ 缓冲层（context attribute 注入回调/
+监听器，B-12 运行时接线断言）→ 窗口内失败 → 重执行回调被缓冲层调用（接线断言）→ 重订阅
+（base 替换语义 URL + 新账号 apiKey）→ 越窗转发（per-attempt 反向转换，B-10）→ 客户端输出；
+② 非流式路径 invoke 内选择/切换/重试（每次 attempt 下沉 properties 供 converter 动态
+dialect 与 route URL 表达式 baseUrl 覆盖消费）；③ 并发计数经生命周期回调 +1/-1 配对；
+④ 全池饱和 fail-loud。与伪代码语义一致（差异落档：非流式响应路径分类 = httpStatus 启发式
+（429→RATE_LIMITED、401/403→AUTH_INVALID、5xx→TRANSIENT、其他 4xx→NON_TRANSIENT）——
+InvokeProcessor 仅对 429/5xx 抛异常且原始 body 已解析丢失，响应级 parseErrorResponse 不可达；
+429/5xx 异常路径经 classifyStreamError 恢复响应级分类）。
+
 ## 五、开放问题（待确认）
 
 | # | 问题 | 影响 |
@@ -351,8 +376,7 @@ flowchart LR
 | 4 | 可观测性指标契约（指标名、维度）在实现时定，是否需先行文档化 | 运维契约 |
 | 5 | §3.1 语义偏离确认（产品决策）：RATE_LIMITED/TRANSIENT → 账号链切换（与 coordinator 仅 QUOTA/AUTH 走账号链不同） | 行为契约 |
 | 6 | ~~账号并发上限默认值~~ **已决（§3.4）**：provider 级缺省 + 账号级覆盖，缺省 = 不限制（零回归）；剩余：各 provider 是否需要显式配非零缺省值 | — |
-| 7 | **流式重订阅可行性**：网关形态字节流层"缓冲 + 重订阅替换 publisher"与 `StreamingProcessor`（`StreamingResponse` 在路由执行期已建立）的耦合——需在实现计划前确认机制可行（缓冲层持 publisher 引用、替换式重订阅） | 流式 failover 核心机制 |
-| 8 | ~~模型类分组配置形态~~ **已决（W5，plan `2026-08-15-0849-2` Phase 1）**：**新建 `model-class.xdef` 配置面**（选项②）——模型类候选集是跨 provider 全局语义，与 `llm.xdef` per-provider 结构、`llm-failover.xdef` provider 级链语义不同层；新 xdef 保持既有 xdef 零改动、零回归面最小。opt-in 文件 `/nop/ai/llm/_default.model-class.xml`，归属 = 显式成员声明（members，model 名全局匹配，首个声明命中） | 配置面结构 |
+| 7 | ~~**流式重订阅可行性**~~ **已决（W1 spike，plan `2026-08-15-0604-1`；W7 落地，plan `2026-08-15-1116-3`）**：网关字节流层"缓冲 + 重订阅"可行但需**最小 nop-gateway 通用改动**（机制 A：缓冲/重订阅层插在 `createMappedPublisher` 与 `StreamingResponse` 之间 + 通用重执行扩展点，经 `IGatewayContext` attribute 注入；`StreamingResponse.publisher` 保持 final 不替换、`RouteExecutor` 不改；零 nop-ai 依赖保持）；机制 C（拦截器侧替换）不可行（attribute 写后无钩子）、机制 B（onStream* 钩子）仅能观测/降级终止 | 流式 failover 核心机制 || 8 | ~~模型类分组配置形态~~ **已决（W5，plan `2026-08-15-0849-2` Phase 1）**：**新建 `model-class.xdef` 配置面**（选项②）——模型类候选集是跨 provider 全局语义，与 `llm.xdef` per-provider 结构、`llm-failover.xdef` provider 级链语义不同层；新 xdef 保持既有 xdef 零改动、零回归面最小。opt-in 文件 `/nop/ai/llm/_default.model-class.xml`，归属 = 显式成员声明（members，model 名全局匹配，首个声明命中） | 配置面结构 |
 | 9 | ~~动态选择策略默认策略细节~~ **已决（§3.3，W5 已落地）**：默认策略 = 健康度 + 并发感知 + 声明序，不含权重/成本（成本/权重委托规则策略）——`DefaultSelectionStrategy` 已落地；剩余：规则策略 DSL 形态（并入 Q10） | — |
 | 10 | ~~规则配置策略的 DSL 形态（XLang 规则）与绑定方式（IoC bean 注入）~~ **已决并落地（W5b，plan `2026-08-15-1116-1`）**：DSL 形态 = 平台既有 `rule.xdef`（原 W5 裁定拆 successor，由 W5b 收口）；IoC 绑定 = 规则策略 bean 注册于 nop-ai-gateway `ai-gateway-defaults.beans.xml`（`nopAiRuleBasedSelectionStrategy`，`ruleManager` ref `nopRuleManager` 带 `ioc:optional`——未部署 nop-rule 的容器可启动、首用 fail-fast；ruleName/ruleVersion bean 属性）；模块归属 = nop-ai-core `io.nop.ai.core.routing`（§4.1 归属表一致），nop-ai-core 新增 nop-rule-core 编译依赖（nop-rule-core 不依赖 nop-ai-core = 无环）。**规则契约（W5b 落档）**：输入 = model/provider/candidates/health/attempted（**不含 accountKey**——备用账号 apiKey 明文安全裁定；health 键 = Integer 候选 index）；输出 = `selectedIndex`（int，**不得 mandatory**——`NormalizeOutputExecutableRule` 未命中也校验输出）；XML 规则文件访问列表/映射元素须用 **computed 输入**派生辅助变量（`<expr>` filter op 在 XML 中不可用——body 不编译进 value attr，执行期实证）；未命中/无输出 → null（调用方 fail-loud），越界/命中已尝试 → `ERR_AI_AGENT_INVALID_ARG` fail-loud；单例 stateless（每 select 新建 ruleRt）。落地证据：`RuleBasedSelectionStrategy` + 13 策略用例 + 2 IoC 用例 + 接线/端到端测试（全绿） | 可扩展性 |
 | 11 | LLM 可靠性子集下沉的迁移兼容：`NopAiAgentException`/`NopAiAgentErrors` → nop-ai-core 等价物、`buildModelKey` 移入、既有 nop-ai-agent 测试/API 调用方迁移影响面 | 重构风险 |
@@ -361,6 +385,12 @@ flowchart LR
 - **Q2**：沿用 spike 推荐默认 **（a）路由覆盖 model**——本地形态经 `ModelClassRouter.toChatOptions` 四字段下沉（含 model）落地；未接人工裁决，正式裁决回填归 W8 OBS-04。
 - **Q3**：**W6 执行期已裁定**——首段缓冲 N=10 元素 / T=1000ms（先到者越窗，可配置 `nop.ai.gateway.failover.buffer-size|buffer-time-ms`）、重试预算 = 2 次重订阅/重发（可配置 `nop.ai.gateway.failover.retry-budget`）、总延迟上限默认 null（仅次数预算，`optimization candidate` deferred）。
 - **Q5**：沿用 spike 推荐默认 **（确认偏离）RATE_LIMITED/TRANSIENT → 账号链切换**——W6 动作表已按此落地（§3.1 落地状态）；未接人工裁决，正式裁决回填归 W8 OBS-04。
+
+**Q2/Q3/Q5/Q7 网关形态处置记录（2026-08-15，W7，plan `2026-08-15-1116-3` Phase 1/4/5）**：
+- **Q2**：路由覆盖 model 在网关形态落地——拦截器 `sinkCandidate` 将选中候选 model 写入 request properties（converter 读之覆盖请求体 model，Q2 路由覆盖语义）。
+- **Q3**：网关形态参数与 W6 一致——首段缓冲 `gateway.xdef` streaming `bufferSize`/`bufferTimeMs`（缺省 10/1000）+ `bufferEnabled`（缺省 false）；重试预算 `retryBudget`（拦截器 bean 属性 @cfg 缺省 2）；总延迟上限默认 null。
+- **Q5**：RATE_LIMITED/TRANSIENT → 账号链切换在网关形态动作表同样生效（`isSwitchable` 同 W6）。
+- **Q7**：**spike 结论回填（SPIKE-01）**——网关字节流层缓冲/重订阅可行但需最小 nop-gateway 通用改动（机制 A：`BufferedStreamingPublisher` 链内缓冲 + 通用重执行扩展点，`StreamingResponse.publisher` 保持 final 不替换——A1 链内层不需要；`RouteExecutor` 不改）；机制 C（拦截器侧替换）不可行、机制 B 仅降级终止；nop-gateway 零 nop-ai 依赖保持（grep 实证）。roadmap W7 module/area 表述已同步（`2026-08-15-w1-streaming-resubscribe-spike.md` SPIKE-04）。
 
 ## 六、拒绝了什么
 

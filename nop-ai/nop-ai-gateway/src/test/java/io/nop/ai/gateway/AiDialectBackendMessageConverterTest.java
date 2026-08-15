@@ -1,8 +1,11 @@
 package io.nop.ai.gateway;
 
+import io.nop.ai.core.NopAiCoreErrors;
+import io.nop.ai.core.NopAiCoreException;
 import io.nop.ai.core.model.ApiStyle;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.core.initialize.CoreInitialization;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -11,6 +14,10 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
 
+import static io.nop.ai.gateway.failover.FailoverConstants.PROP_API_STYLE;
+import static io.nop.ai.gateway.failover.FailoverConstants.PROP_MODEL;
+import static io.nop.ai.gateway.failover.FailoverConstants.PROP_PROVIDER;
+import static io.nop.ai.gateway.failover.FailoverConstants.PROP_STREAM;
 import static org.junit.jupiter.api.Assertions.*;
 
 class AiDialectBackendMessageConverterTest {
@@ -430,6 +437,128 @@ class AiDialectBackendMessageConverterTest {
         ApiRequest<Map<String, Object>> req = buildOpenAIReq("unknown-model", "test");
         // 默认 backendLlm=openai，应正常透传
         assertDoesNotThrow(() -> c.toBackendRequest(req));
+    }
+
+    // ===== W7 Phase 3：stream=true / per-request 动态 dialect / 真实 config（plan 2026-08-15-1116-3） =====
+
+    @Test
+    void toBackendRequest_streamTrueBody() {
+        var converter = createConverter(ApiStyle.openai, ApiStyle.openai);
+        ApiRequest<Map<String, Object>> req = buildOpenAIReq("gpt-4", "Hello");
+        req.setProperty(PROP_STREAM, true);
+
+        ApiRequest<?> result = converter.toBackendRequest(req);
+        Map<?, ?> body = (Map<?, ?>) result.getData();
+        assertEquals(Boolean.TRUE, body.get("stream"), "stream=true 请求体生成（W7 Phase 3）");
+    }
+
+    @Test
+    void toBackendRequest_streamFalseByDefault() {
+        var converter = createConverter(ApiStyle.openai, ApiStyle.openai);
+        ApiRequest<Map<String, Object>> req = buildOpenAIReq("gpt-4", "Hello");
+
+        ApiRequest<?> result = converter.toBackendRequest(req);
+        Map<?, ?> body = (Map<?, ?>) result.getData();
+        assertEquals(Boolean.FALSE, body.get("stream"), "无 per-request stream 信息 = 既有 stream=false（零回归）");
+    }
+
+    @Test
+    void toBackendRequest_dynamicDialectFromProperties() {
+        var converter = createConverter(ApiStyle.openai, ApiStyle.openai);
+        ApiRequest<Map<String, Object>> req = buildOpenAIReq("claude-sonnet-4", "Hello");
+        req.setProperty(PROP_API_STYLE, "anthropic");
+
+        ApiRequest<?> result = converter.toBackendRequest(req);
+        Map<?, ?> body = (Map<?, ?>) result.getData();
+        // per-request apiStyle 覆盖 bean backendLlm=openai → anthropic 格式
+        List<?> messages = (List<?>) body.get("messages");
+        assertFalse(messages.isEmpty());
+        Object content0 = ((Map<?, ?>) messages.get(0)).get("content");
+        assertTrue(content0 instanceof List, "anthropic content 应为数组，got: " + content0);
+    }
+
+    @Test
+    void toBackendRequest_dynamicModelFromProperties() {
+        var converter = createConverter(ApiStyle.openai, ApiStyle.openai);
+        ApiRequest<Map<String, Object>> req = buildOpenAIReq("gpt-4", "Hello");
+        req.setProperty(PROP_MODEL, "gw-model-1");
+
+        ApiRequest<?> result = converter.toBackendRequest(req);
+        Map<?, ?> body = (Map<?, ?>) result.getData();
+        assertEquals("gw-model-1", body.get("model"), "Q2 路由覆盖语义：properties model 覆盖请求体 model");
+    }
+
+    @Test
+    void toBackendRequest_realConfigApiStyle() {
+        var converter = createConverter(ApiStyle.openai, ApiStyle.openai);
+        ApiRequest<Map<String, Object>> req = buildOpenAIReq("gw-claude", "Hello");
+        // 仅 provider property：dialect 经 LlmConfigHelper.loadConfig(provider).getApiStyle() 解析
+        // （gw-anthropic.llm.xml apiStyle=anthropic，真实 config 加载观测面）
+        req.setProperty(PROP_PROVIDER, "gw-anthropic");
+
+        ApiRequest<?> result = converter.toBackendRequest(req);
+        Map<?, ?> body = (Map<?, ?>) result.getData();
+        List<?> messages = (List<?>) body.get("messages");
+        Object content0 = ((Map<?, ?>) messages.get(0)).get("content");
+        assertTrue(content0 instanceof List, "provider config apiStyle 必须生效（anthropic 格式），got: " + content0);
+    }
+
+    @Test
+    void toBackendRequest_missingProviderConfigFailsLoud() {
+        var converter = createConverter(ApiStyle.openai, ApiStyle.openai);
+        ApiRequest<Map<String, Object>> req = buildOpenAIReq("gpt-4", "Hello");
+        req.setProperty(PROP_PROVIDER, "no-such-provider");
+
+        // loadConfig 对缺失 provider 抛 ERR_PARSE_MISSING_RESOURCE（fail-loud，不静默吞）
+        assertThrows(NopException.class, () -> converter.toBackendRequest(req));
+    }
+
+    @Test
+    void toBackendRequest_invalidApiStyleFailsLoud() {
+        var converter = createConverter(ApiStyle.openai, ApiStyle.openai);
+        ApiRequest<Map<String, Object>> req = buildOpenAIReq("gpt-4", "Hello");
+        req.setProperty(PROP_API_STYLE, "not-a-style");
+
+        assertThrows(NopAiCoreException.class, () -> converter.toBackendRequest(req),
+                "非法 apiStyle 必须 fail-loud（不静默回退）");
+    }
+
+    @Test
+    void toFrontendResponse_dynamicDialectFromProperties() {
+        var converter = createConverter(ApiStyle.openai, ApiStyle.openai);
+        Map<String, Object> anthropicResp = Map.of(
+                "content", List.of(Map.of("type", "text", "text", "Hi back")),
+                "role", "assistant"
+        );
+        ApiRequest<Map<String, Object>> req = buildOpenAIReq("claude-sonnet-4", "Hello");
+        req.setProperty(PROP_API_STYLE, "anthropic");
+
+        var result = converter.toFrontendResponse(ApiResponse.success(anthropicResp), req);
+
+        Map<?, ?> data = (Map<?, ?>) result.getData();
+        Map<?, ?> choice = (Map<?, ?>) ((List<?>) data.get("choices")).get(0);
+        assertEquals("Hi back", ((Map<?, ?>) choice.get("message")).get("content"),
+                "per-request apiStyle 必须作用于响应方向（anthropic → openai 前端）");
+    }
+
+    @Test
+    void toFrontendStreamChunk_perAttemptDialectFromProperties() {
+        var converter = createConverter(ApiStyle.openai, ApiStyle.openai);
+        // anthropic 格式 delta（per-attempt 反向转换，B-10：attempt 2 用 attempt 2 的 dialect）
+        Map<String, Object> anthropicDelta = Map.of(
+                "type", "content_block_delta",
+                "index", 0,
+                "delta", Map.of("type", "text_delta", "text", "Hello")
+        );
+        ApiRequest<Map<String, Object>> req = buildOpenAIReq("claude-sonnet-4", "Hi");
+        req.setProperty(PROP_API_STYLE, "anthropic");
+
+        var result = converter.toFrontendStreamChunk(anthropicDelta, req);
+
+        assertNotNull(result);
+        Map<?, ?> choice = (Map<?, ?>) ((List<?>) result.get("choices")).get(0);
+        assertEquals("Hello", ((Map<?, ?>) choice.get("delta")).get("content"),
+                "chunk 反向转换必须用 per-attempt backend dialect");
     }
 
     // ===== helpers =====

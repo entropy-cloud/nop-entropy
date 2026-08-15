@@ -12,8 +12,12 @@ import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.json.JSON;
 import io.nop.api.core.util.FutureHelper;
+import io.nop.commons.util.StringHelper;
 import io.nop.gateway.core.context.IGatewayContext;
 import io.nop.gateway.core.interceptor.IGatewayInvocation;
+import io.nop.gateway.core.streaming.GatewayStreamingConstants;
+import io.nop.gateway.core.streaming.IStreamingLifecycleListener;
+import io.nop.gateway.core.streaming.IStreamingRetryCallback;
 import io.nop.gateway.core.streaming.StreamingResponse;
 import io.nop.gateway.model.GatewayRouteModel;
 import io.nop.gateway.model.GatewayStreamingModel;
@@ -73,14 +77,35 @@ public class StreamingProcessor {
             // 2. 构建流式HTTP请求
             HttpRequest httpRequest = buildStreamingHttpRequest(route, request, context);
 
-            // 3. 获取Flow.Publisher
-            Flow.Publisher<IServerEventResponse> eventPublisher = httpClient.fetchServerEventFlow(httpRequest, context);
+            // 2a. 缓冲/重执行扩展点（W7 机制 A，plan 2026-08-15-1116-3）：重执行回调 + 生命周期
+            //     监听器经 IGatewayContext attribute 注入（Phase 1 GW-A6/B-12，拦截器 onRequest
+            //     写入；缺省 null = 不重订阅/不计数，零回归）。缓冲层 engage 条件 = 回调/监听器
+            //     任一存在或 streaming 配置开启缓冲（缓冲关闭时生命周期回调仍触发——计数与
+            //     缓冲解耦）。
+            IStreamingRetryCallback retryCallback = (IStreamingRetryCallback) context.getAttribute(
+                    GatewayStreamingConstants.ATTR_RETRY_CALLBACK);
+            IStreamingLifecycleListener lifecycle = (IStreamingLifecycleListener) context.getAttribute(
+                    GatewayStreamingConstants.ATTR_LIFECYCLE_LISTENER);
+            boolean bufferEngaged = retryCallback != null || lifecycle != null
+                    || Boolean.TRUE.equals(streaming.getBufferEnabled());
 
-            // 4. 创建流式响应包装器
-            Flow.Publisher<Object> mappedPublisher = createMappedPublisher(
-                    eventPublisher, streaming, invocation, context);
+            Flow.Publisher<Object> mappedPublisher;
+            if (bufferEngaged) {
+                // 3. 缓冲 + 重订阅层（fetch + 映射链重跑留在本层内部；回调只产出新 HttpRequest）
+                mappedPublisher = new BufferedStreamingPublisher(
+                        httpClient, route, request, context, streaming, retryCallback, lifecycle,
+                        eventPublisher -> createMappedPublisher(eventPublisher, streaming, invocation, context),
+                        httpRequest);
+            } else {
+                // 4. 获取Flow.Publisher
+                Flow.Publisher<IServerEventResponse> eventPublisher =
+                        httpClient.fetchServerEventFlow(httpRequest, context);
 
-            // 5. 创建StreamingResponse并存储到context中
+                // 5. 创建流式响应包装器
+                mappedPublisher = createMappedPublisher(eventPublisher, streaming, invocation, context);
+            }
+
+            // 6. 创建StreamingResponse并存储到context中
             String contentType = streaming.getContentType() != null
                     ? streaming.getContentType()
                     : "text/event-stream";
@@ -185,6 +210,13 @@ public class StreamingProcessor {
         }
 
         String url = urlObj.toString();
+
+        // base 替换语义（W7 Phase 1 GW-A7/B-14）：request properties 中的 base-url 覆盖
+        // （拦截器写入目标候选 accountBaseUrl）替换求值 URL 的 scheme://authority 之后的部分
+        // （保留 path+query）；缺省 = 既有表达式求值，零回归。与 dialect.buildUrl(base, chatUrl,
+        // apiKey) 组合一致（重试回调按同一语义构造 HttpRequest）。
+        url = applyBaseOverride(url, request);
+
         HttpRequest httpRequest = new HttpRequest();
         httpRequest.setUrl(url);
         httpRequest.setMethod(context.getHttpMethod());
@@ -200,5 +232,27 @@ public class StreamingProcessor {
         httpRequest.setBody(request.getData());
 
         return httpRequest;
+    }
+
+    /**
+     * base 替换（GW-A7/B-14）：{@code baseOverride} 非空时，以 baseOverride 替换 {@code url} 的
+     * base 部分（scheme://authority 之后的一切，含 path+query），保持 path+query 不变。
+     */
+    static String applyBaseOverride(String url, ApiRequest<?> request) {
+        String baseOverride = request != null
+                ? request.getStringProperty(GatewayStreamingConstants.PROP_BASE_URL) : null;
+        if (StringHelper.isEmpty(baseOverride)) {
+            return url;
+        }
+        int schemeIdx = url.indexOf("://");
+        if (schemeIdx < 0) {
+            // 非 http(s) URL（表达式产物异常）：显式回退既有 URL（不静默吞覆盖意图——日志可查）。
+            return url;
+        }
+        String base = baseOverride.endsWith("/")
+                ? baseOverride.substring(0, baseOverride.length() - 1) : baseOverride;
+        int pathIdx = url.indexOf('/', schemeIdx + 3);
+        String rest = pathIdx >= 0 ? url.substring(pathIdx) : "";
+        return base + rest;
     }
 }

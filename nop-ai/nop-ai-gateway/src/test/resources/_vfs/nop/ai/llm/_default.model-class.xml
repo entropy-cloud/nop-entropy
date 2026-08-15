@@ -8,6 +8,9 @@
       - tier-gw 候选 2（gw-test2/gw-model-2）= 主账号 + 空账号链；
       - tier-gw-sat 候选（gw-sat/gw-sat-model）= 主账号 + gw-sat 账号链（s1/s2）——饱和/探活测试；
       - tier-gw-rl 候选（gw-rl/gw-rl-model）= 主账号 + 空账号链——本地限流（rateLimit）同步抛测试。
+      - tier-gw-switch（W7，plan 2026-08-15-1116-3 Phase 5 测试夹具）= gw-test2 主账号（openai）
+        + gw-anthropic 主账号（anthropic）——跨 dialect 重订阅（B-10）断言；
+        gw-test2 无账号链 → 首次失败后被动重选直接落在 gw-anthropic。
     -->
 
     <modelClasses>
@@ -28,6 +31,13 @@
             <candidates>
                 <candidate provider="gw-rl" model="gw-rl-model"/>
                 <candidate provider="gw-rl" model="gw-rl-model" accountRef="gw-rl-b1"/>
+            </candidates>
+        </modelClass>
+
+        <modelClass id="tier-gw-switch" members="gw-switch-model">
+            <candidates>
+                <candidate provider="gw-test2" model="gw-model-2"/>
+                <candidate provider="gw-anthropic" model="gw-claude-model"/>
             </candidates>
         </modelClass>
     </modelClasses>

@@ -164,4 +164,34 @@
         <property name="retryBudget" value="@cfg:nop.ai.gateway.failover.retry-budget|2"/>
     </bean>
 
+    <!-- W7 gateway-form failover interceptor (plan 2026-08-15-1116-3 Phase 4, GW-01):
+         IGatewayInterceptor implementation for the standalone nop-gateway form. MOUNT
+         CONTRACT (M-7): beans.xml registration alone does NOT mount it on routes — the
+         deployment must reference the bean from gateway.xml
+         <interceptors><interceptor id=... bean="nopAiGatewayFailoverInterceptor"/></interceptors>
+         (GatewayInterceptorModel.getOrCreateInterceptor resolves the bean by name). Shares
+         the process-shared breaker/registry singletons with the W6 adapter (D8/M-5 — state
+         accumulates across both forms). converter = the same AI_DIALECT converter bean that
+         route-level backendMessageConverter="AI_DIALECT" resolves (non-streaming path uses
+         executeRouteLogic's own converter call; streaming path uses this injected one — same
+         bean, B-8 no double conversion). -->
+    <bean id="nopAiGatewayFailoverInterceptor"
+          class="io.nop.ai.gateway.failover.AiGatewayFailoverInterceptor"
+          ioc:type="io.nop.gateway.core.interceptor.IGatewayInterceptor">
+        <property name="breaker">
+            <ref bean="nopFailoverCircuitBreaker"/>
+        </property>
+        <property name="registry">
+            <ref bean="nopFailoverConcurrencyRegistry"/>
+        </property>
+        <property name="converter">
+            <ref bean="nopBackendMessageConverter_AI_DIALECT"/>
+        </property>
+        <!-- strategy omitted: null = DefaultSelectionStrategy (deployments that
+             want rule-based selection wire nopAiRuleBasedSelectionStrategy here) -->
+        <property name="retryBudget" value="@cfg:nop.ai.gateway.failover.retry-budget|2"/>
+        <!-- primary provider for provider-chain extension; default = nop.ai.service.default-llm -->
+        <property name="primaryProvider" value="@cfg:nop.ai.gateway.failover.primary-provider|"/>
+    </bean>
+
 </beans>

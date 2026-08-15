@@ -73,8 +73,16 @@
                如果onRequest/invoke失败，整体没有进入流式传输，则仍然使用上面的配置
 
               @contentType SSE场景为 text/event-stream，JSON Lines 则为 application/x-ndjson
+
+              @bufferEnabled 首段缓冲开关（W7 机制 A 落地，plan 2026-08-15-1116-3）：开启后
+                 StreamingProcessor 缓冲层在前 N 个元素（bufferSize）或 T 毫秒（bufferTimeMs，
+                 先到者越窗）内不向下游转发；窗口内上游失败 → 经重执行回调（拦截器经
+                 IGatewayContext attribute 注入）重订阅；缺省 false = 既有零缓冲直通（零回归）
+              @bufferSize 首段缓冲窗口元素数 N（>=1；缺省 10）
+              @bufferTimeMs 首段缓冲窗口时长 T 毫秒（>=0；缺省 1000）
              -->
-            <streaming xdef:name="GatewayStreamingModel" enabled="t-expr" contentType="string" elementMapping="string">
+            <streaming xdef:name="GatewayStreamingModel" enabled="t-expr" contentType="string" elementMapping="string"
+                       bufferEnabled="boolean" bufferSize="int" bufferTimeMs="long">
                 <onStreamStart>xpl-fn:(request, svcCtx)=>void</onStreamStart>
 
                 <onStreamElement>xpl-fn:(element,svcCtx)=>any</onStreamElement>

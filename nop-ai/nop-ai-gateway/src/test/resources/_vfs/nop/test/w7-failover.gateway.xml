@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<gateway x:schema="/nop/schema/gateway.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <!--
+    W7 Phase 5 网关形态测试路由（plan 2026-08-15-1116-3）：拦截器经
+    <interceptors><interceptor bean=...> 挂载（M-7 挂载契约）；流式 failover 路由遵守
+    F1 契约（不配置 requestMapping/onRequest xpl——请求实例一致性）与 B-18 前提
+    （无 route 级 onError 吞错者）。
+      - /chat/stream           流式 failover（缓冲开）
+      - /chat/stream-nobuffer  流式 failover（缓冲关——生命周期计数仍触发）
+      - /chat/stream-disabled  streaming.enabled=false → 按非流式路径执行（F2 判定同构）
+      - /chat/nonstream        非流式 failover（converter 经 backendMessageConverter 声明）
+    -->
+
+    <interceptors>
+        <interceptor id="w7-ai-failover" bean="nopAiGatewayFailoverInterceptor">
+            <match path="/{*path}"/>
+        </interceptor>
+    </interceptors>
+
+    <routes>
+        <route id="w7-stream" unwrapResponse="false">
+            <match path="/chat/stream" httpMethod="POST"/>
+            <invoke url="${'https://gw-test2.example.com' + '/v1/chat/completions'}"/>
+            <streaming enabled="true" contentType="text/event-stream"
+                       bufferEnabled="true" bufferSize="10" bufferTimeMs="1000"/>
+        </route>
+
+        <route id="w7-stream-window1" unwrapResponse="false">
+            <match path="/chat/stream-window1" httpMethod="POST"/>
+            <invoke url="${'https://gw-test2.example.com' + '/v1/chat/completions'}"/>
+            <streaming enabled="true" contentType="text/event-stream"
+                       bufferEnabled="true" bufferSize="1" bufferTimeMs="1000"/>
+        </route>
+
+        <route id="w7-stream-nobuffer" unwrapResponse="false">
+            <match path="/chat/stream-nobuffer" httpMethod="POST"/>
+            <invoke url="${'https://gw-test2.example.com' + '/v1/chat/completions'}"/>
+            <streaming enabled="true" contentType="text/event-stream"/>
+        </route>
+
+        <route id="w7-stream-disabled" unwrapResponse="false" backendMessageConverter="AI_DIALECT">
+            <match path="/chat/stream-disabled" httpMethod="POST"/>
+            <invoke url="'https://gw-test2.example.com' + '/v1/chat/completions'"/>
+            <streaming enabled="false" contentType="text/event-stream"/>
+        </route>
+
+        <route id="w7-nonstream" unwrapResponse="false" backendMessageConverter="AI_DIALECT">
+            <match path="/chat/nonstream" httpMethod="POST"/>
+            <invoke url="${(svcCtx.request.getStringProperty('nop.gateway.streaming.baseUrl') ?? 'https://gw-test.example.com') + '/v1/chat/completions'}"/>
+        </route>
+    </routes>
+
+</gateway>

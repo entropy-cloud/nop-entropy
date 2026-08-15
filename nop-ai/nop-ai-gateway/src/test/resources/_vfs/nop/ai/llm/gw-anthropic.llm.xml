@@ -1,0 +1,15 @@
+<llm x:schema="/nop/schema/ai/llm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     x:extends="default.llm.xml" apiStyle="anthropic" defaultModel="gw-claude"
+     supportToolCalls="true">
+
+    <!--
+    W7 Phase 3 测试用 provider（plan 2026-08-15-1116-3）：apiStyle = anthropic——
+    converter "真实 config 加载断言"的观测面（provider property → config.getApiStyle() →
+    LlmDialectFactory 分发 → anthropic 格式请求体）。errorMappings 经 x:extends 继承
+    default.llm.xml（classification 链在 Phase 5 全链测试断言）。
+    -->
+
+    <baseUrl>https://gw-anthropic.example.com</baseUrl>
+    <chatUrl>/v1/messages</chatUrl>
+
+</llm>
