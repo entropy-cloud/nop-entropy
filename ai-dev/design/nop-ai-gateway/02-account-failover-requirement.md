@@ -118,13 +118,23 @@
   - **主动路径不走 provider 链**（决策）：主动路径是**预检语义**（未发生失败事件），跨 provider 决策留给被动失败路径——避免无失败证据的 provider 级乒乓；且并发饱和是**瞬态资源状态**（进行中请求会释放）。故主动路径仅在**候选集内**游走；被动失败路径（候选耗尽）才经 provider 链扩展候选集（§4.3）。"所有候选"指当前模型类内全部候选。
 - 账号池**健康状态为进程内状态**（多实例一致性为显式 non-goal，见 §3.6）。
 
+**落地状态（2026-08-15，W5 收口，plan `2026-08-15-0849-2`）**：本节机制已全部落地 nop-ai-core——
+模型类路由组（`model-class.xdef` 配置面 + `LlmConfigHelper.resolveModelClass`/
+`resolveModelClassCandidates`，Q8 裁定 = 新建配置面）、动态选择机制（`ISelectionStrategy` +
+`DefaultSelectionStrategy`，规则策略拆 successor plan，见 §五 Q10）、候选集游走 + 并发记账 +
+全池饱和 fail-loud（`ModelClassRouter`/`ConcurrencyRegistry`，`io.nop.ai.core.routing` 包，
+错误码 `ERR_AI_MODEL_CLASS_SATURATED`）。其中 in-core 交付的是**游走原语**（纯选择机制——
+router 不记熔断失败，失败记账归编排层）；网关切换/缓冲/重试编排归 W6/W7 消费（见 §4.1 归属解读）。
+
 ### 3.4 账号配置（复用既有解析链）
 
 - 账号描述**沿用 `{provider}.llm.xml` `<accounts>` 既有结构**（`id` / `apiKey` / `baseUrl` / `quotaLimit` / `renewAt` / `concurrencyLimit`），`LlmConfigHelper` 解析为有序备用链。`quotaLimit`/`renewAt` 为诊断元数据，本期不做主动配额感知（见 §3.6）；`concurrencyLimit` 层级语义：账号级未配置回退 provider 级缺省（根元素 `concurrencyLimit`），均未配置 = 不限制，显式 0/负数 = 显式不限制不回退（落地 plan `2026-08-15-0604-3`）。
 - **配置面扩展（新增工作项）**：并发上限 `concurrencyLimit` 为**本期必须新增**的字段（`_LlmAccountModel` 无此字段）。`llm.xdef` 位于 **nop-kernel/nop-xdefs**（跨模块足迹，属 protected area，需 plan-first）；`_LlmAccountModel` 为 xdef 生成物，**经 codegen 再生成，禁止手编**。配置粒度：**provider 级缺省 + 账号级覆盖**（`{provider}.llm.xml` 根元素提供缺省值，`<accounts>` 账号可覆盖；主账号无 `LlmAccountModel` 实例，限流值取 provider 级缺省）。缺省 = 不限制 → 既有 `<accounts>` 配置与 `TestLlmConfigHelperAccountChain` 等测试零回归。权重 / 按账号覆盖 `model` 若需求确认则一并列入（默认不扩展）。
   - **与既有 `rateLimit` 的关系**：`llm.xdef` 根元素已有 `rateLimit`（每秒 QPS，`ChatServiceImpl.checkRateLimit` 排队等待语义）；新增 `concurrencyLimit` 是 in-flight 并发计数（**跳过**语义——超限换账号）。两者语义不同（排队 vs 跳过），并行共存，不互斥。
 - **模型类分组配置（新增工作项）**：模型类（级别）→ 候选集（模型 + 账号组合）的声明，形态待定（选项：① 扩展 `llm.xdef`/`llm-failover.xdef` 增加 model-class 分组；② 新 `model-class.xdef` 配置面）。候选可引用 `{provider}.llm.xml` `<accounts>` 与 `llm-failover.xdef` provider 链。
+  - **落地状态（2026-08-15，W5，plan `2026-08-15-0849-2`）**：**Q8 裁定 = 选项②新建 `model-class.xdef` 配置面**（模型类候选集是跨 provider 全局语义，与 `llm.xdef` per-provider 结构、`llm-failover.xdef` provider 级链语义不同层；新 xdef 保持既有 xdef 零改动）。配置面 = `nop-kernel/nop-xdefs/.../ai/model-class.xdef`（`xdef:name="ModelClassConfig"`，bean 包 `io.nop.ai.core.model`）+ opt-in 文件 `/nop/ai/llm/_default.model-class.xml`；候选 = provider（必填）+ model（可选 = provider defaultModel）+ accountRef（可选 = 单账号；缺省 = 主账号 + 有序账号链）；归属 = 显式成员声明（members 清单，model 名全局匹配，首个声明命中胜出）；未归属 = 无路由组零回归。
 - **动态选择策略配置（新增工作项）**：选择策略为策略接口，默认策略无需配置；规则配置（XLang 规则 DSL）为可选实现，规则文件经 IoC bean 绑定到网关/适配器。
+  - **落地状态（2026-08-15，W5，plan `2026-08-15-0849-2`）**：策略接口 + 默认策略已落地（`ISelectionStrategy`/`DefaultSelectionStrategy`，健康度 + 并发感知 + 声明序）；**规则策略（Q10）裁定拆至 successor plan**（策略接口即扩展点，无需额外预留；见 §五 Q10 与 roadmap/backlog 登记）。
 - 密钥路径区分（既有行为）：
   - **主账号**：`accountKey > credentialId > resolveApiKey`（nop-credential 可接入）。
   - **备用账号**：`<accounts>` 中的 `apiKey` 直接下沉为 `accountKey`（优先级最高），凭证链不作用于备用账号；密钥保护依赖配置级 `@sec:` 加密注入。**不在新位置引入明文 apiKey**。
@@ -197,6 +207,16 @@ ollama, responses}）全绿；`ILlmDialect` javadoc/UOE 消息已同步（"one-w
 > **SINK-02 偏差说明（落地裁定，plan 2026-08-15-0604-2 Phase 1）**：本节字面"`NopAiAgentException`/`NopAiAgentErrors` → nop-ai-core 等价物"的落地方式为**等价物建立 + agent 类保留**：core 等价物 = `NopAiCoreException`（构造器四件套对齐）+ `NopAiCoreErrors` 并入 `ERR_AI_AGENT_INVALID_ARG`（错误码 ID `nop.err.ai.agent.invalid-arg` 保留）+ `ARG_MSG`；`NopAiAgentErrors` 其余 30 码（agent 专用：filter/recipe/session/memory/hook 系列）与 `NopAiAgentException` **保留在 nop-ai-agent**。理由：a) "已迁类零 agent 引用"满足"能力级不依赖 nop-ai-agent"硬约束，与保留裁定不冲突；b) 31 码全量迁入 core 造成 agent 专用码污染核心层；c) 保留 `NopAiAgentException` 保住 `nop-task-dao TaskExceptionRegistry` 反射注册串 `"io.nop.ai.agent.engine.NopAiAgentException"` 契约（任务异常精确重建能力）。
 
 **既有 channel 依赖不受影响**：nop-ai-gateway 当前 pom 对 nop-ai-agent 的依赖来自 channel 功能（`FeishuConnector`/`ChannelConnectorContext` 等，与 failover 无关），维持不变；本需求满足**能力级**不依赖 nop-ai-agent（新能力全部落在 nop-ai-core + nop-ai-gateway 已有依赖之内）。
+
+> **W5 归属解读记录（plan `2026-08-15-0849-2`，roadmap W5 module area = nop-ai-core 绑定支持）**：
+> 本节"网关游走/切换/缓冲/重试编排 | nop-ai-gateway"与 W5 交付物（`ModelClassRouter` 在 nop-ai-core）
+> 的边界解读显式落档如下——**in-core 交付的是游走原语（纯选择机制）**：router 提供候选集游走/
+> provider 链扩展/全池饱和 fail-loud 语义，但**不在内部记熔断失败**（失败记账 `recordFailure` 归编排层）、
+> 不挂钩并发 acquire/release 到真实调用路径、不落地任何切换/缓冲/重试编排（编排 = 调用
+> `selectNext`/`selectNextAfterFailure`/`toChatOptions` 并处理结果的动作序列，归 W6/W7）。因此
+> "网关游走/切换/缓冲/重试编排归 nop-ai-gateway"与"模型类候选集 + 选择策略 + 游走原语归 nop-ai-core"
+> 两行不冲突：W5 落地的是后者（原语），前者（编排）由 W6/W7 消费原语实现。W6/W7 审计时不得将
+> "router 未编排调用"误判为归属矛盾。
 
 ### 4.2 分层
 
@@ -300,9 +320,9 @@ flowchart LR
 | 5 | §3.1 语义偏离确认（产品决策）：RATE_LIMITED/TRANSIENT → 账号链切换（与 coordinator 仅 QUOTA/AUTH 走账号链不同） | 行为契约 |
 | 6 | ~~账号并发上限默认值~~ **已决（§3.4）**：provider 级缺省 + 账号级覆盖，缺省 = 不限制（零回归）；剩余：各 provider 是否需要显式配非零缺省值 | — |
 | 7 | **流式重订阅可行性**：网关形态字节流层"缓冲 + 重订阅替换 publisher"与 `StreamingProcessor`（`StreamingResponse` 在路由执行期已建立）的耦合——需在实现计划前确认机制可行（缓冲层持 publisher 引用、替换式重订阅） | 流式 failover 核心机制 |
-| 8 | 模型类分组配置形态：扩展 `llm.xdef`/`llm-failover.xdef` vs 新 `model-class.xdef` 配置面 | 配置面结构 |
-| 9 | ~~动态选择策略默认策略细节~~ **已决（§3.3）**：默认策略 = 健康度 + 并发感知 + 声明序，不含权重/成本（成本/权重委托规则策略）；剩余：规则策略 DSL 形态（并入 Q10） | — |
-| 10 | 规则配置策略的 DSL 形态（XLang 规则）与绑定方式（IoC bean 注入） | 可扩展性 |
+| 8 | ~~模型类分组配置形态~~ **已决（W5，plan `2026-08-15-0849-2` Phase 1）**：**新建 `model-class.xdef` 配置面**（选项②）——模型类候选集是跨 provider 全局语义，与 `llm.xdef` per-provider 结构、`llm-failover.xdef` provider 级链语义不同层；新 xdef 保持既有 xdef 零改动、零回归面最小。opt-in 文件 `/nop/ai/llm/_default.model-class.xml`，归属 = 显式成员声明（members，model 名全局匹配，首个声明命中） | 配置面结构 |
+| 9 | ~~动态选择策略默认策略细节~~ **已决（§3.3，W5 已落地）**：默认策略 = 健康度 + 并发感知 + 声明序，不含权重/成本（成本/权重委托规则策略）——`DefaultSelectionStrategy` 已落地；剩余：规则策略 DSL 形态（并入 Q10） | — |
+| 10 | ~~规则配置策略的 DSL 形态（XLang 规则）与绑定方式（IoC bean 注入）~~ **已决（W5，plan `2026-08-15-0849-2` Phase 1）**：**拆至 successor plan**（out-of-scope improvement——roadmap ROUTE-03 标注"可选实现"）；`ISelectionStrategy` 接口即扩展点（规则策略 = 同一接口的另一种实现），无需额外预留；IoC bean 绑定方式留 successor。roadmap/backlog 已登记（Q10 successor） | 可扩展性 |
 | 11 | LLM 可靠性子集下沉的迁移兼容：`NopAiAgentException`/`NopAiAgentErrors` → nop-ai-core 等价物、`buildModelKey` 移入、既有 nop-ai-agent 测试/API 调用方迁移影响面 | 重构风险 |
 
 ## 六、拒绝了什么
