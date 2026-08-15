@@ -1,0 +1,16 @@
+<llm x:schema="/nop/schema/ai/llm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     apiStyle="openai" supportToolCalls="true" defaultModel="failover-model" concurrencyLimit="2">
+
+    <!--
+    测试用 provider：provider 链（llm-failover）扩展目标——无 <accounts>（仅主账号）+ 有 defaultModel。
+    用于被动路径 provider 链扩展测试：扩展候选 = 主账号 + 空账号链，model 取 defaultModel。
+    -->
+
+    <chatUrl>/v1/chat/completions</chatUrl>
+
+    <response contentPath="choices.0.message.content"
+              rolePath="choices.0.message.role"
+              errorPath="error"
+    />
+
+</llm>

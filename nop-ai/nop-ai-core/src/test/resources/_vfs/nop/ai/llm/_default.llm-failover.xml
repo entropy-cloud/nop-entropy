@@ -1,0 +1,16 @@
+<llmFailover x:schema="/nop/schema/ai/llm-failover.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <!--
+    测试用跨 provider 有序故障转移表（plan 2026-08-15-0849-2 Phase 4 测试夹具）：
+    primary = test-accounts → 链 [test-sat, test-failover]；
+    primary = test-sat → 链 [test-failover]。
+    用于被动路径 provider 链扩展测试（resolveFailoverChain + resolveProviderChainCandidates）。
+    -->
+
+    <providers>
+        <provider provider="test-accounts"/>
+        <provider provider="test-sat"/>
+        <provider provider="test-failover"/>
+    </providers>
+
+</llmFailover>

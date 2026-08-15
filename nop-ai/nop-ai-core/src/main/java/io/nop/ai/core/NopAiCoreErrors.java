@@ -48,6 +48,8 @@ public interface NopAiCoreErrors {
 
     String ARG_SESSION_ID = "sessionId";
 
+    String ARG_MODEL_CLASS = "modelClass";
+
     /**
      * Migrated verbatim from {@code io.nop.ai.agent.NopAiAgentErrors}
      * (W2 reliability sink-down, plan 2026-08-15-0604-2). The error code ID
@@ -217,4 +219,19 @@ public interface NopAiCoreErrors {
             define("nop.err.ai.session-id-invalid",
                     "sessionId contains invalid characters; only [A-Za-z0-9_-] are allowed (path-traversal guard): sessionId={sessionId}",
                     ARG_SESSION_ID);
+
+    /**
+     * Model-class routing pool saturation (plan 2026-08-15-0849-2, design §3.3
+     * Q8/Q10 adjudication, Phase 1): thrown by {@code ModelClassRouter} when no
+     * candidate in the current model class is available. The saturation
+     * semantic covers BOTH concurrency saturation (every candidate has reached
+     * its concurrency limit) and health saturation (every candidate's circuit
+     * is OPEN / otherwise unavailable) — one code, semantic = "no available
+     * candidate", with the triggering model class carried as a parameter.
+     * English description by plan adjudication (cross-module consumed by
+     * W6/W7 orchestration; not subject to i18n rewriting).
+     */
+    ErrorCode ERR_AI_MODEL_CLASS_SATURATED =
+            define("nop.err.ai.model-class.saturated",
+                    "No candidate is currently available for model class: {modelClass}", ARG_MODEL_CLASS);
 }

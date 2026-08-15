@@ -1,0 +1,15 @@
+<llm x:schema="/nop/schema/ai/llm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     apiStyle="openai" supportToolCalls="true" defaultModel="test-model-1">
+
+    <!--
+    测试用 provider：无 <accounts> 配置 + 有 defaultModel。
+    用于模型类候选展开测试的"纯 provider 候选（model 缺省取 defaultModel）"与"主账号 + 空账号链"路径。
+    -->
+    <chatUrl>/v1/chat/completions</chatUrl>
+
+    <response contentPath="choices.0.message.content"
+              rolePath="choices.0.message.role"
+              errorPath="error"
+    />
+
+</llm>

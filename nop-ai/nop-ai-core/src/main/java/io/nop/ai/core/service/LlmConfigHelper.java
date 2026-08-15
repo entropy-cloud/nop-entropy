@@ -6,6 +6,10 @@ import io.nop.ai.core.model.LlmFailoverConfig;
 import io.nop.ai.core.model.LlmFailoverProviderModel;
 import io.nop.ai.core.model.LlmModel;
 import io.nop.ai.core.model.LlmModelModel;
+import io.nop.ai.core.model.ModelClassCandidateModel;
+import io.nop.ai.core.model.ModelClassConfig;
+import io.nop.ai.core.model.ModelClassModel;
+import io.nop.ai.core.routing.ModelClassCandidate;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.cache.ICache;
@@ -24,6 +28,9 @@ import static io.nop.ai.core.AiCoreConfigs.CFG_AI_SERVICE_DEFAULT_LLM;
 import static io.nop.ai.core.AiCoreConstants.CONFIG_VAR_LLM_API_KEY;
 import static io.nop.ai.core.AiCoreConstants.PLACE_HOLDER_LLM_NAME;
 import static io.nop.ai.core.NopAiCoreErrors.ARG_LLM_NAME;
+import static io.nop.ai.core.NopAiCoreErrors.ARG_MODEL_CLASS;
+import static io.nop.ai.core.NopAiCoreErrors.ARG_MSG;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG;
 import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_SERVICE_NO_DEFAULT_LLMS;
 
 /**
@@ -260,5 +267,173 @@ public class LlmConfigHelper {
             return Collections.emptyList();
         }
         return Collections.unmodifiableList(new ArrayList<>(providers.subList(idx + 1, providers.size())));
+    }
+
+    /**
+     * 模型类路由组声明的默认配置路径（plan 2026-08-15-0849-2，设计 §3.3，Q8 裁定：新建配置面）。
+     * opt-in：该文件缺省（不存在）= 无路由组 = 零回归（沿用既有单 provider 行为）。
+     */
+    public static final String MODEL_CLASS_CONFIG_PATH = "/nop/ai/llm/_default.model-class.xml";
+
+    /**
+     * 解析请求 {@code model} 所属的模型类（plan 2026-08-15-0849-2，设计 §3.3）。
+     * <p>
+     * 归属机制 = 显式成员声明（每个模型类的 {@code members} 清单，model 名全局匹配）；
+     * 首个声明命中（模型类声明顺序）胜出——同 model 名跨 provider 的歧义由声明顺序消解。
+     * <p>
+     * 零回归语义：
+     * <ul>
+     *   <li>配置路径不存在（无 model-class 文件）→ 返回 <b>null</b>（无路由组，调用方沿用既有行为）。</li>
+     *   <li>model 为空 / 未归属任何类 → 返回 <b>null</b>（无路由组）。</li>
+     *   <li>VFS 未初始化（如单元测试直构造未经引擎初始化）→ 返回 <b>null</b>（同
+     *       {@link #resolveFailoverChain(String)} 零回归守卫模式）。</li>
+     * </ul>
+     */
+    public static ModelClassModel resolveModelClass(String modelName) {
+        if (StringHelper.isEmpty(modelName)) {
+            return null;
+        }
+        if (!VirtualFileSystem.isInitialized()) {
+            return null;
+        }
+        // opt-in：文件缺省 = 无路由组 = 零回归（非异常——合法状态）。
+        if (!VirtualFileSystem.instance().getResource(MODEL_CLASS_CONFIG_PATH).exists()) {
+            return null;
+        }
+        ModelClassConfig config = (ModelClassConfig) ResourceComponentManager.instance()
+                .loadComponentModel(MODEL_CLASS_CONFIG_PATH);
+        List<ModelClassModel> classes = config.getModelClasses();
+        if (classes == null || classes.isEmpty()) {
+            return null;
+        }
+        // 首个声明命中（声明顺序 = KeyedList 保持的插入序）。
+        for (ModelClassModel modelClass : classes) {
+            if (modelClass.getMembers() != null && modelClass.getMembers().contains(modelName)) {
+                return modelClass;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 解析模型类的候选集（展开，plan 2026-08-15-0849-2，设计 §3.3 数据结构裁定）。
+     * <p>
+     * 把模型类声明的候选条目（{@code provider} + 可选 {@code model} + 可选 {@code accountRef}）
+     * 展开为具体候选 {@link ModelClassCandidate}：
+     * <ul>
+     *   <li>{@code accountRef} 缺省 → 展开为"主账号 + 该 provider 有序账号链"（主账号在前，
+     *       与账号链语义一致：首次调用用主账号，QUOTA/AUTH 触发后按声明序切换）。</li>
+     *   <li>{@code accountRef} 配置 → 只展开为该账号（未知 id <b>解析期 fail-fast</b>，
+     *       {@code ERR_AI_AGENT_INVALID_ARG}——不静默吞，Minimum Rules #24）。</li>
+     *   <li>{@code model} 缺省 → 取 provider 的 defaultModel（无 defaultModel 解析期 fail-fast）。</li>
+     * </ul>
+     * 候选声明顺序保留（默认策略的声明序基础）。
+     * <p>
+     * 返回的是不可变视图（防御性拷贝），调用方可安全持有。
+     *
+     * @param modelClass 已解析的模型类（来自 {@link #resolveModelClass(String)}）；null 返回空列表
+     */
+    public static List<ModelClassCandidate> resolveModelClassCandidates(ModelClassModel modelClass) {
+        if (modelClass == null || modelClass.getCandidates() == null || modelClass.getCandidates().isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<ModelClassCandidate> result = new ArrayList<>();
+        for (ModelClassCandidateModel declared : modelClass.getCandidates()) {
+            String provider = declared.getProvider();
+            assertProviderExists(provider, modelClass.getId());
+
+            LlmModel config = loadConfig(provider);
+            String model = declared.getModel();
+            if (StringHelper.isEmpty(model)) {
+                model = config.getDefaultModel();
+            }
+            if (StringHelper.isEmpty(model)) {
+                throw new NopException(ERR_AI_SERVICE_NO_DEFAULT_LLMS)
+                        .param(ARG_LLM_NAME, provider)
+                        .param(ARG_MODEL_CLASS, modelClass.getId());
+            }
+
+            if (!StringHelper.isEmpty(declared.getAccountRef())) {
+                // 单账号展开：引用 {provider}.llm.xml <accounts> 中账号 id；未知 id 解析期 fail-fast。
+                LlmAccountModel account = resolveAccount(provider, modelClass.getId(), declared.getAccountRef());
+                result.add(candidateFor(provider, model, account));
+            } else {
+                // 主账号 + 该 provider 有序账号链（主账号在前）。
+                result.add(candidateFor(provider, model, null));
+                for (LlmAccountModel account : resolveAccountChain(provider)) {
+                    result.add(candidateFor(provider, model, account));
+                }
+            }
+        }
+        return Collections.unmodifiableList(result);
+    }
+
+    /**
+     * 解析 {@code primaryProvider} 的跨 provider failover 链候选（plan 2026-08-15-0849-2，
+     * Phase 1 裁定：primary 键 = 请求目标 provider）。
+     * <p>
+     * 对 {@link #resolveFailoverChain(String)} 返回的每个 failover provider 展开为
+     * "主账号 + 该 provider 有序账号链"（model = provider 声明覆盖或 defaultModel，
+     * 并发上限按 W3 层级语义解析）。无 failover 链（无配置/未知 primary/表尾）= 空列表
+     * （零回归 fail-loud）。
+     * <p>
+     * 返回的是不可变视图。
+     */
+    public static List<ModelClassCandidate> resolveProviderChainCandidates(String primaryProvider) {
+        List<LlmFailoverProviderModel> chain = resolveFailoverChain(primaryProvider);
+        if (chain.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<ModelClassCandidate> result = new ArrayList<>();
+        for (LlmFailoverProviderModel failover : chain) {
+            String provider = failover.getProvider();
+            assertProviderExists(provider, "failover-chain(" + primaryProvider + ")");
+            LlmModel config = loadConfig(provider);
+            String model = failover.getModel();
+            if (StringHelper.isEmpty(model)) {
+                model = config.getDefaultModel();
+            }
+            if (StringHelper.isEmpty(model)) {
+                throw new NopException(ERR_AI_SERVICE_NO_DEFAULT_LLMS)
+                        .param(ARG_LLM_NAME, provider)
+                        .param(ARG_MODEL_CLASS, "failover-chain(" + primaryProvider + ")");
+            }
+            result.add(candidateFor(provider, model, null));
+            for (LlmAccountModel account : resolveAccountChain(provider)) {
+                result.add(candidateFor(provider, model, account));
+            }
+        }
+        return Collections.unmodifiableList(result);
+    }
+
+    private static ModelClassCandidate candidateFor(String provider, String model, LlmAccountModel account) {
+        return new ModelClassCandidate(provider, model,
+                account != null ? account.getApiKey() : null,
+                account != null ? account.getBaseUrl() : null,
+                resolveConcurrencyLimit(provider, account));
+    }
+
+    private static void assertProviderExists(String provider, String modelClassId) {
+        if (!VirtualFileSystem.isInitialized()) {
+            throw new NopException(ERR_AI_AGENT_INVALID_ARG)
+                    .param(ARG_MSG, "model class " + modelClassId + " references provider but VFS is not initialized: "
+                            + provider);
+        }
+        String path = "/nop/ai/llm/" + provider + ".llm.xml";
+        if (!VirtualFileSystem.instance().getResource(path).exists()) {
+            throw new NopException(ERR_AI_AGENT_INVALID_ARG)
+                    .param(ARG_MSG, "model class " + modelClassId + " references unknown provider: " + provider);
+        }
+    }
+
+    private static LlmAccountModel resolveAccount(String provider, String modelClassId, String accountRef) {
+        for (LlmAccountModel account : resolveAccountChain(provider)) {
+            if (accountRef.equals(account.getId())) {
+                return account;
+            }
+        }
+        throw new NopException(ERR_AI_AGENT_INVALID_ARG)
+                .param(ARG_MSG, "model class " + modelClassId + " references unknown accountRef: "
+                        + accountRef + " (provider " + provider + ")");
     }
 }

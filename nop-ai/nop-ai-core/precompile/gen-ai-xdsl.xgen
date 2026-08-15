@@ -3,4 +3,5 @@
     codeGenerator.renderModel('/nop/schema/ai/chat-options.xdef','/nop/templates/xdsl', '/',$scope);
     codeGenerator.renderModel('/nop/schema/ai/llm.xdef','/nop/templates/xdsl', '/',$scope);
     codeGenerator.renderModel('/nop/schema/ai/llm-failover.xdef','/nop/templates/xdsl', '/',$scope);
+    codeGenerator.renderModel('/nop/schema/ai/model-class.xdef','/nop/templates/xdsl', '/',$scope);
 </c:script>

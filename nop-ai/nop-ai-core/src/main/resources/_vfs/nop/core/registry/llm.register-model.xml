@@ -3,6 +3,14 @@
 
     <loaders>
         <xdsl-loader fileType="llm.xml" schemaPath="/nop/schema/ai/llm.xdef"/>
+        <!--
+        [跨 provider 故障转移声明（plan 2026-08-01-1905-3）+ 模型类路由组声明（plan 2026-08-15-0849-2）]
+        两个 opt-in 全局配置文件：_default.llm-failover.xml / _default.model-class.xml。
+        llm-failover.xml 注册补上了 W1/W2 时代未登记的 fileType（无文件 = 零回归，不影响既有行为）；
+        model-class.xml 为 W5 新配置面（Q8 裁定）。
+        -->
+        <xdsl-loader fileType="llm-failover.xml" schemaPath="/nop/schema/ai/llm-failover.xdef"/>
+        <xdsl-loader fileType="model-class.xml" schemaPath="/nop/schema/ai/model-class.xdef"/>
     </loaders>
 
 </model>

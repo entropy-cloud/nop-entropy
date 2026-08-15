@@ -1,0 +1,21 @@
+<llm x:schema="/nop/schema/ai/llm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     apiStyle="openai" supportToolCalls="true" defaultModel="sat-model" concurrencyLimit="2">
+
+    <!--
+    测试用 provider：饱和场景专用——provider 级缺省并发上限 2（主账号回退此值）+
+    两个备用账号各显式 limit 1。全候选饱和 = 主账号 ×2 + backup-s1 ×1 + backup-s2 ×1。
+    -->
+
+    <chatUrl>/v1/chat/completions</chatUrl>
+
+    <response contentPath="choices.0.message.content"
+              rolePath="choices.0.message.role"
+              errorPath="error"
+    />
+
+    <accounts>
+        <account id="backup-s1" apiKey="key-s1" concurrencyLimit="1"/>
+        <account id="backup-s2" apiKey="key-s2" concurrencyLimit="1"/>
+    </accounts>
+
+</llm>
