@@ -113,6 +113,20 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
     /** AR-02: 默认建连超时秒数（{@link SimpleDataSource#setLoginTimeout} 是 no-op，实际靠 {@link DriverManager#setLoginTimeout}）。 */
     public static final int DEFAULT_LOGIN_TIMEOUT_SECONDS = 5;
 
+    /**
+     * P2-08（plan 2026-08-16-0226-1）：自由文本中 jdbc: URL 形态子串的匹配模式（大小写不敏感）。
+     * 驱动/底层异常消息可回显完整 JDBC URL（如 MySQL Connector/J 建连失败消息），
+     * 该模式用于定位消息中的 URL 段落做脱敏回填。
+     */
+    private static final Pattern JDBC_URL_IN_TEXT_PATTERN =
+            Pattern.compile("jdbc:\\S+", Pattern.CASE_INSENSITIVE);
+
+    /**
+     * P2-08：URL 匹配段尾部紧随的收尾标点——剥离后再脱敏、脱敏后回填，避免 {@code \S+}
+     * 贪婪匹配吞掉句号/右括号/引号等句子成分。
+     */
+    private static final String URL_TRAILING_PUNCTUATION = ".,;!?)]}'\":}";
+
     public MetaDataSourceConnectionProcessor() {
         setGlobalLoginTimeout();
     }
@@ -388,6 +402,42 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
         }
         // 剥离 userinfo 段：authority 起点 到 最后一个 '@'（含 '@'）
         return jdbcUrl.substring(0, authorityStart) + jdbcUrl.substring(authorityStart + lastAt + 1);
+    }
+
+    /**
+     * P2-08（plan 2026-08-16-0226-1）：对消息文本中出现的每个 {@code jdbc:} URL 形态子串做脱敏回填。
+     *
+     * <p>驱动/底层异常消息可回显完整 JDBC URL（userinfo 形态含口令，如 MySQL Connector/J
+     * 建连失败消息），原样放入 error param 会击穿 {@link #redactJdbcUrl} 对 jdbcUrl 参数的脱敏。
+     * 本方法按 {@code jdbc:\S+} 匹配，先剥离尾部收尾标点（避免吞句号/右括号/引号）再经
+     * {@link #redactJdbcUrl} 脱敏后回填；无命中原样返回（不丢诊断信息）。null/空串原样返回。
+     *
+     * <p><b>已知边界（F6 既有裁定语义，非本方法扩展面）</b>：{@code redactJdbcUrl} 只剥
+     * authority userinfo——query 形态口令（{@code ?user=x&password=y}）与无 {@code ://} 的
+     * Oracle thin 形态（{@code jdbc:oracle:thin:@...}）不在脱敏范围。
+     */
+    public static String redactJdbcUrlsInText(String text) {
+        if (text == null || text.isEmpty()) {
+            return text;
+        }
+        Matcher m = JDBC_URL_IN_TEXT_PATTERN.matcher(text);
+        if (!m.find()) {
+            return text;
+        }
+        m.reset();
+        StringBuilder sb = new StringBuilder();
+        while (m.find()) {
+            String candidate = m.group();
+            int end = candidate.length();
+            while (end > 0 && URL_TRAILING_PUNCTUATION.indexOf(candidate.charAt(end - 1)) >= 0) {
+                end--;
+            }
+            String url = candidate.substring(0, end);
+            String tail = candidate.substring(end);
+            m.appendReplacement(sb, Matcher.quoteReplacement(redactJdbcUrl(url) + tail));
+        }
+        m.appendTail(sb);
+        return sb.toString();
     }
 
     /**
@@ -756,7 +806,12 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
         try {
             parsed = JsonTool.parseBeanFromText(connectionConfig, Object.class);
         } catch (Exception e) {
-            throw newNopConfigInvalidException(datasourceType, "connectionConfig is not valid JSON: " + e.getMessage());
+            // P2-08（plan 2026-08-16-0226-1）：JSON 解析异常消息引用原始输入片段——Nop 解析器
+            // readerState 上下文窗回显输入文本（实测含 jdbcUrl/凭据中段片段，无 jdbc: 前缀锚定，
+            // jdbc: 形态过滤不可覆盖）。connectionConfig 是凭据载体，其解析错误不回显解析器消息；
+            // 原始异常经 cause 链保留供日志侧诊断（pos/errorCode 完整可溯）。
+            throw newNopConfigInvalidException(datasourceType,
+                    "connectionConfig is not valid JSON (parser message suppressed: input may embed credentials)", e);
         }
         if (!(parsed instanceof Map)) {
             throw newNopConfigInvalidException(datasourceType, "connectionConfig must be a JSON object");
@@ -786,15 +841,22 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
     }
 
     private static NopException newNopConfigInvalidException(String datasourceType, String reason) {
-        return new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_CONFIG_INVALID)
+        return newNopConfigInvalidException(datasourceType, reason, null);
+    }
+
+    /** P2-08：带 cause 的变体——凭据载体输入的解析失败保留原始异常链供日志诊断，reason 不回显原始消息。 */
+    private static NopException newNopConfigInvalidException(String datasourceType, String reason, Throwable cause) {
+        return new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_CONFIG_INVALID, cause)
                 .param("datasourceType", datasourceType)
                 .param("reason", reason);
     }
 
     private static NopException newNopConnectException(String datasourceType, SQLException e) {
         String msg = e.getMessage();
+        // P2-08（plan 2026-08-16-0226-1）：建连点驱动消息可回显完整 JDBC URL（userinfo 形态含口令），
+        // 进 error param 前统一 URL 脱敏；null 消息回退类名的既有语义保持不变
         return new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_CONNECT_FAILED, e)
                 .param("datasourceType", datasourceType)
-                .param("error", msg != null ? msg : e.getClass().getName());
+                .param("error", msg != null ? redactJdbcUrlsInText(msg) : e.getClass().getName());
     }
 }

@@ -351,6 +351,85 @@ public class TestExpressionMeasureValidator {
     }
 
     // ============================================================
+    // P2-04（plan 2026-08-16-0226-1）：KEYWORD_BLACKLIST 函数形态豁免裁定钉死
+    // ============================================================
+
+    /**
+     * <b>P2-04 裁定钉死（3 函数过）</b>：KEYWORD_BLACKLIST 中 REPLACE/TRUNCATE/INSERT 存在合法
+     * callable 函数同形词（MySQL/Oracle 字符串/数值函数），其**函数调用形态**（FUNCTION_CALL token）
+     * 是 SELECT 表达式合法用法——scanBlacklist 对 FUNCTION_CALL 只查 FUNCTION_BLACKLIST 是有意
+     * 设计，非漏洞（表达式上下文无 DML/DDL 逃逸路径：聚合包裹、;}/注释已禁、参数化完整）。
+     * 本测试钉死合法用法，防止未来"修复"把函数形态也拒掉（over-block 误伤）。
+     */
+    @Test
+    public void testP204FunctionHomographsAllowed() {
+        // REPLACE(str,from,to) 字符串替换
+        ExpressionMeasureValidator.ValidatedExpression r1 =
+                ExpressionMeasureValidator.validateStatic("REPLACE(name,'a','b')",
+                        ExpressionMeasureValidator.ValidationOptions.saveTimeLoose(), MT, MN);
+        assertTrue(r1.functions.contains("REPLACE"), "REPLACE function-call form is legal: " + r1.functions);
+
+        // TRUNCATE(n,d) 数值截断
+        ExpressionMeasureValidator.ValidatedExpression r2 =
+                ExpressionMeasureValidator.validateStatic("TRUNCATE(1.23,1)",
+                        ExpressionMeasureValidator.ValidationOptions.saveTimeLoose(), MT, MN);
+        assertTrue(r2.functions.contains("TRUNCATE"), "TRUNCATE function-call form is legal: " + r2.functions);
+
+        // INSERT(str,pos,len,newstr) MySQL 字符串函数
+        ExpressionMeasureValidator.ValidatedExpression r3 =
+                ExpressionMeasureValidator.validateStatic("INSERT(name,1,2,'x')",
+                        ExpressionMeasureValidator.ValidationOptions.saveTimeLoose(), MT, MN);
+        assertTrue(r3.functions.contains("INSERT"), "INSERT function-call form is legal: " + r3.functions);
+    }
+
+    /**
+     * <b>P2-04 裁定钉死（3 语句拒）</b>：同形词的**语句形态**（REPLACE INTO / TRUNCATE TABLE /
+     * INSERT INTO）token 类型为 IDENTIFIER，命中 KEYWORD_BLACKLIST 被拒——语句形态覆盖不因
+     * 函数形态豁免而丢失。
+     */
+    @Test
+    public void testP204StatementFormsStillRejected() {
+        String[] statementForms = {
+                "REPLACE INTO t VALUES (1)",
+                "TRUNCATE TABLE t",
+                "INSERT INTO t VALUES (1)"
+        };
+        for (String expr : statementForms) {
+            NopException ex = assertThrows(NopException.class,
+                    () -> ExpressionMeasureValidator.validateStatic(expr,
+                            ExpressionMeasureValidator.ValidationOptions.saveTimeLoose(), MT, MN),
+                    "statement form must be rejected (keyword hit): " + expr);
+            assertEquals(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNSAFE.getErrorCode(), ex.getErrorCode());
+            String reason = String.valueOf(ex.getParam("reason"));
+            assertTrue(reason.contains("forbidden keyword"),
+                    "reason must identify keyword hit: " + reason + " (expr=" + expr + ")");
+        }
+    }
+
+    /**
+     * <b>P2-04 裁定钉死（FUNCTION_BLACKLIST 拒 3）</b>：函数面真正的黑名单仍然生效——
+     * SLEEP/BENCHMARK/LOAD_FILE 等副作用函数调用形态被拒（reason 标识 forbidden function）。
+     */
+    @Test
+    public void testP204FunctionBlacklistStillRejected() {
+        String[] functionPayloads = {
+                "SLEEP(1)",
+                "BENCHMARK(1000000, MD5('x'))",
+                "LOAD_FILE('/etc/passwd')"
+        };
+        for (String expr : functionPayloads) {
+            NopException ex = assertThrows(NopException.class,
+                    () -> ExpressionMeasureValidator.validateStatic(expr,
+                            ExpressionMeasureValidator.ValidationOptions.saveTimeLoose(), MT, MN),
+                    "FUNCTION_BLACKLIST hit must be rejected: " + expr);
+            assertEquals(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNSAFE.getErrorCode(), ex.getErrorCode());
+            String reason = String.valueOf(ex.getParam("reason"));
+            assertTrue(reason.contains("forbidden function"),
+                    "reason must identify function hit: " + reason + " (expr=" + expr + ")");
+        }
+    }
+
+    // ============================================================
     // 失败路径：too-long（> 1000 字符）
     // ============================================================
 

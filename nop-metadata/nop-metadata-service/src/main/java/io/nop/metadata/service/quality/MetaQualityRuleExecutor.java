@@ -7,6 +7,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
+import io.nop.metadata.service.connection.MetaDataSourceConnectionProcessor;
 import io.nop.metadata.service.tableref.TableReference;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
@@ -321,8 +322,10 @@ public class MetaQualityRuleExecutor {
         j.getDetails().put("sqlHash", sqlHash);
         // 沙箱校验在执行前；custom_sql 为用户显式提供（已知显式风险，§2.7.1 D3），白名单是其唯一防御
         validateCustomSqlSandbox(sql, ruleKey, sqlHash);
-        // custom_sql 为用户显式提供（已知显式风险，§2.7.1 D3），直接执行不解析不改写
-        j.getDetails().put("sql", sql);
+        // P2-07（plan 2026-08-16-0226-1）：QualityResult.details 不再持久化 SQL 全文——权威存储
+        // 在规则本体（NopMetaQualityRule.sqlExpression 列优先 / params.sql JSON），details.sql 属
+        // 每结果行重复落盘；details 只保留 sqlHash（:321 已写入）供审计追溯，与 AR-16 裁定的
+        // 日志面"只记 sqlHash"语义对齐（持久化面/日志面同数据族同脱敏口径）
 
         Double value;
         try {
@@ -881,9 +884,20 @@ public class MetaQualityRuleExecutor {
         }
     }
 
-    /** 提取异常消息（null 时回退类名）；集中调用避免 catch 块内直接 e.getMessage() 丢失堆栈。 */
+    /**
+     * 提取异常消息（null 时回退类名）；集中调用避免 catch 块内直接 e.getMessage() 丢失堆栈。
+     *
+     * <p>P2-08（plan 2026-08-16-0226-1）：消息进 judgment message / error param 前统一经
+     * jdbc: URL 脱敏过滤（{@link MetaDataSourceConnectionProcessor#redactJdbcUrlsInText}）——
+     * 单点覆盖本文件全部 messageOf 面（judgeCustomSql ERROR / judgeRange ERROR /
+     * judgeRegex SKIP+ERROR / queryLong / queryTimestamp）。驱动消息可回显 userinfo 形态
+     * 含口令的 URL，未过滤会击穿 jdbcUrl 侧 redactJdbcUrl 脱敏；无 jdbc: 命中时原样返回
+     * （诊断信息不丢）。query 形态口令与无 {@code ://} 的 Oracle thin 形态不在脱敏范围
+     * （F6 既有裁定语义边界）。
+     */
     private static String messageOf(Throwable t) {
         String m = t.getMessage();
-        return m != null ? m : t.getClass().getName();
+        return m != null ? MetaDataSourceConnectionProcessor.redactJdbcUrlsInText(m)
+                : t.getClass().getName();
     }
 }
