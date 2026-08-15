@@ -1,0 +1,372 @@
+{
+  "invariant": "INV-SILENT-WRONG-RESULT",
+  "note": "Ratchet baseline (mode b). Shrinks only via I3' adjudication terminal states or I4' fixes; never expands without traceable justification.",
+  "entries": [
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/catalog/MetaCatalogCollector.java",
+      "family": "locale",
+      "text": "stats.getExtras().put(\"tableType\", ref.getKind().name().toLowerCase());",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/connection/MetaDataSourceConnectionProcessor.java",
+      "family": "contains-classify",
+      "text": "if (lower.contains(dangerous)) {",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/connection/MetaDataSourceConnectionProcessor.java",
+      "family": "locale",
+      "text": "\"allowLoadLocalInfile\".toLowerCase(),",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/connection/MetaDataSourceConnectionProcessor.java",
+      "family": "locale",
+      "text": "&& !resolveAllowedInternalHosts().contains(host.toLowerCase())) {",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/connection/MetaDataSourceConnectionProcessor.java",
+      "family": "locale",
+      "text": "String h = host.toLowerCase();",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/connection/MetaDataSourceConnectionProcessor.java",
+      "family": "locale",
+      "text": "String lower = jdbcUrl.toLowerCase();",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/connection/MetaDataSourceConnectionProcessor.java",
+      "family": "locale",
+      "text": "String trimmed = token.trim().toLowerCase();",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/contract/MetaContractChecker.java",
+      "family": "locale",
+      "text": "String unit = String.valueOf(unitObj).toLowerCase();",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/AutoClassificationProcessor.java",
+      "family": "delim-key",
+      "text": "String warnKey = classification.getClassificationId() + \"|\" + pattern;",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/LineageTagPropagationProcessor.java",
+      "family": "delim-key",
+      "text": "if (visited.contains(ENTITY_TYPE_NOP_META_TABLE + \"#\" + nextEdge.getTargetTableId())) {",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/LineageTagPropagationProcessor.java",
+      "family": "delim-key",
+      "text": "String visitKey = ENTITY_TYPE_NOP_META_TABLE + \"#\" + targetId;",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/LineageTagPropagationProcessor.java",
+      "family": "delim-key",
+      "text": "visited.add(entityType + \"#\" + entityId);",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/NopMetaLineageEdgeQueryAction.java",
+      "family": "delim-key",
+      "text": "map.put(e.getSourceTableId() + \"|\" + e.getSourceColumn() + \"|\" + e.getTargetColumn(), e);",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/NopMetaLineageEdgeQueryAction.java",
+      "family": "delim-key",
+      "text": "String key = sourceId + \"|\" + c.getSourceColumn() + \"|\" + c.getTargetColumn();",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/NopMetaLineageEdgeQueryAction.java",
+      "family": "locale",
+      "text": "if (!fieldNamesLower.contains(ident.toLowerCase())) {",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/NopMetaLineageEdgeQueryAction.java",
+      "family": "locale",
+      "text": "if (n != null) fieldNamesLower.add(n.toLowerCase());",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/NopMetaLineageEdgeQueryAction.java",
+      "family": "locale",
+      "text": "map.putIfAbsent(t.getTableName().toLowerCase(), t.getMetaTableId());",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/NopMetaLineageEdgeQueryAction.java",
+      "family": "locale",
+      "text": "String sourceId = nameToId.get(c.getSourceTableName().toLowerCase());",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/NopMetaLineageEdgeQueryAction.java",
+      "family": "locale",
+      "text": "String sourceId = nameToId.get(ref.getSimpleName().toLowerCase());",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/NopMetaModuleBizModel.java",
+      "family": "contains-classify",
+      "text": "return sourceContent != null && sourceContent.contains(\"x:extends\");",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/field/ExpressionMeasureValidator.java",
+      "family": "contains-classify",
+      "text": "if (!ident.contains(\".\")) {",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/field/ExpressionMeasureValidator.java",
+      "family": "contains-classify",
+      "text": "if (ident.contains(\".\")) {",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/lineage/SqlColumnLineageExtractor.java",
+      "family": "locale",
+      "text": "aliasMap.putIfAbsent(scopeName.toLowerCase(), simple);",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/lineage/SqlColumnLineageExtractor.java",
+      "family": "locale",
+      "text": "derivedAliases.putIfAbsent(alias.toLowerCase(), m);",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/lineage/SqlColumnLineageExtractor.java",
+      "family": "locale",
+      "text": "List<SourceRef> refs = namedMap.outputs.get(colName.toLowerCase());",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/lineage/SqlColumnLineageExtractor.java",
+      "family": "locale",
+      "text": "List<SourceRef> refs = namedMap.outputs.get(sourceColumn.toLowerCase());",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/lineage/SqlColumnLineageExtractor.java",
+      "family": "locale",
+      "text": "NamedSourceMap cte = cteRegistry.get(simpleTable.toLowerCase());",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/lineage/SqlColumnLineageExtractor.java",
+      "family": "locale",
+      "text": "NamedSourceMap cte = cteRegistry.get(sourceTable.toLowerCase());",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/lineage/SqlColumnLineageExtractor.java",
+      "family": "locale",
+      "text": "String cteNameLower = cte.getName().toLowerCase();",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/lineage/SqlColumnLineageExtractor.java",
+      "family": "locale",
+      "text": "String outColLower = outCol.toLowerCase();",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/lineage/SqlColumnLineageExtractor.java",
+      "family": "locale",
+      "text": "String ownerLower = owner.toLowerCase();",
+      "count": 2
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/lineage/SqlSourceTableExtractor.java",
+      "family": "locale",
+      "text": "cteNames.add(cte.getName().toLowerCase());",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/lineage/SqlSourceTableExtractor.java",
+      "family": "locale",
+      "text": "if (cteNames.contains(simple.toLowerCase())) {",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/profiling/MetaTableProfiler.java",
+      "family": "contains-classify",
+      "text": "|| lower.contains(\"closed\") || lower.contains(\"timeout\")",
+      "count": 2
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/profiling/MetaTableProfiler.java",
+      "family": "contains-classify",
+      "text": "|| lower.contains(\"communication\") || lower.contains(\"does not exist\")) {",
+      "count": 2
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/profiling/MetaTableProfiler.java",
+      "family": "contains-classify",
+      "text": "if (lower.contains(\"connection\") || lower.contains(\"permission\") || lower.contains(\"denied\")",
+      "count": 3
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/profiling/MetaTableProfiler.java",
+      "family": "contains-classify",
+      "text": "if (upper.contains(kw)) {",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/profiling/MetaTableProfiler.java",
+      "family": "contains-classify",
+      "text": "return col != null && col.startsWith(\"<\") && col.contains(\"expr\");",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/profiling/MetaTableProfiler.java",
+      "family": "locale",
+      "text": "if (filter != null && !filter.isEmpty() && !filter.contains(f.getName().toUpperCase())) {",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/profiling/MetaTableProfiler.java",
+      "family": "locale",
+      "text": "if (filter != null && !filter.isEmpty() && !filter.contains(name.toUpperCase())) {",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/profiling/MetaTableProfiler.java",
+      "family": "locale",
+      "text": "set.add(t.toUpperCase());",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/profiling/MetaTableProfiler.java",
+      "family": "locale",
+      "text": "snapshot.getTableExtras().put(\"tableType\", ref.getKind().name().toLowerCase());",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/profiling/MetaTableProfiler.java",
+      "family": "locale",
+      "text": "String lower = msg.toLowerCase();",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/profiling/MetaTableProfiler.java",
+      "family": "locale",
+      "text": "String upper = typeName.toUpperCase();",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/profiling/MetaTableProfiler.java",
+      "family": "locale",
+      "text": "String upper = typeName.toUpperCase().trim();",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/quality/CheckpointActionDispatcher.java",
+      "family": "locale",
+      "text": "? String.valueOf(config.get(\"method\")).trim().toUpperCase()",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/quality/CheckpointActionDispatcher.java",
+      "family": "locale",
+      "text": "&& !resolveAllowedWebhookHosts().contains(host.toLowerCase())) {",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/quality/CheckpointActionDispatcher.java",
+      "family": "locale",
+      "text": "String lower = url.toLowerCase();",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/quality/CheckpointActionDispatcher.java",
+      "family": "locale",
+      "text": "String trimmed = token.trim().toLowerCase();",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/quality/MetaQualityRuleExecutor.java",
+      "family": "contains-classify",
+      "text": "if (lower.contains(signature)) {",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/quality/MetaQualityRuleExecutor.java",
+      "family": "contains-classify",
+      "text": "if (upper.contains(\";\")) {",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/quality/MetaQualityRuleExecutor.java",
+      "family": "contains-classify",
+      "text": "if (upper.contains(\"/*!\")) {",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/quality/MetaQualityRuleExecutor.java",
+      "family": "contains-classify",
+      "text": "return col != null && col.startsWith(\"<\") && col.contains(\"expr\");",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/quality/MetaQualityRuleExecutor.java",
+      "family": "locale",
+      "text": "j.getDetails().put(\"tableType\", ref.getKind().name().toLowerCase());",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/quality/MetaQualityRuleExecutor.java",
+      "family": "locale",
+      "text": "String lower = msg.toLowerCase();",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/quality/MetaQualityRuleExecutor.java",
+      "family": "locale",
+      "text": "String s = expectPassWhen.trim().toLowerCase();",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/quality/MetaQualityRuleExecutor.java",
+      "family": "locale",
+      "text": "String upper = sql.trim().toUpperCase();",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/query/MemoryFilterEvaluator.java",
+      "family": "bigdec-precision",
+      "text": "return BigDecimal.valueOf(((Number) v).doubleValue());",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/query/MemoryOrderByComparator.java",
+      "family": "bigdec-precision",
+      "text": "return BigDecimal.valueOf(((Number) v).doubleValue());",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/sync/ExternalTableStructureReader.java",
+      "family": "contains-classify",
+      "text": "return p.contains(\"mysql\") || p.contains(\"postgresql\") || p.equals(\"h2\");",
+      "count": 2
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/sync/ExternalTableStructureReader.java",
+      "family": "locale",
+      "text": "String p = productName.toLowerCase();",
+      "count": 1
+    }
+  ]
+}
