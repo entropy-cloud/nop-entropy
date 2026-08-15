@@ -106,6 +106,14 @@ public class TestExternalTableStructureReader {
         NopException ex = assertThrows(NopException.class, () -> reader.read(null, metaData, null));
         assertEquals(NopMetadataErrors.ERR_DATASOURCE_TYPE_NOT_SUPPORTED.getErrorCode(), ex.getErrorCode(),
                 "dialect gate must keep its own error code (not misclassified as scan failure)");
+        // P1-7（plan 2026-08-15-1913-3 方案 A）：被拒产品名必须经 {datasourceType} 键真实渲染
+        // ——修复前传 ARG_DATABASE_PRODUCT_NAME 键（错配），渲染消息含字面 {datasourceType}
+        assertEquals("Oracle", String.valueOf(ex.getParam(NopMetadataErrors.ARG_DATASOURCE_TYPE)),
+                "rejected product name must be carried under the datasourceType key (P1-7)");
+        assertTrue(ex.getMessage().contains("Oracle"),
+                "rendered message must contain the rejected product name, got: " + ex.getMessage());
+        assertFalse(ex.getMessage().contains("{datasourceType}"),
+                "no literal {datasourceType} placeholder may remain, got: " + ex.getMessage());
     }
 
     /** COLUMN_SIZE / DECIMAL_DIGITS 为 NULL → precision/scale 保留 null（不再归 0）；ORDINAL_POSITION 保持 int。 */

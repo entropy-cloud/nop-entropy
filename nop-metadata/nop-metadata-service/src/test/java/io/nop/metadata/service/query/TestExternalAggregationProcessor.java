@@ -220,20 +220,20 @@ public class TestExternalAggregationProcessor {
 
     @Test
     public void testRequireNameValid() {
-        assertEquals("valid", requireName("valid", "test"));
+        assertEquals("valid", requireName("valid", "test", "meta-table-req"));
     }
 
     @Test
     public void testRequireNameEmptyThrows() {
         NopException ex = assertThrows(NopException.class,
-                () -> requireName("", "test"));
+                () -> requireName("", "test", "meta-table-req"));
         assertEquals(NopMetadataErrors.ERR_AGGR_EXEC_FAILED.getErrorCode(), ex.getErrorCode());
     }
 
     @Test
     public void testRequireNameNullThrows() {
         NopException ex = assertThrows(NopException.class,
-                () -> requireName(null, "test"));
+                () -> requireName(null, "test", "meta-table-req"));
         assertEquals(NopMetadataErrors.ERR_AGGR_EXEC_FAILED.getErrorCode(), ex.getErrorCode());
     }
 

@@ -56,8 +56,10 @@ public class EntityEntityJoinAggregationProcessor implements AggregationProcesso
                     .param("joinId", joinId).param("entityId", leftEntity.getMetaEntityId());
         }
 
-        String leftPhysical = requireName(leftEntity.getTableName(), "leftTableName");
-        String rightPhysical = requireName(rightEntity.getTableName(), "rightTableName");
+        String leftPhysical = requireName(leftEntity.getTableName(), "leftTableName",
+                table.getMetaTableId());
+        String rightPhysical = requireName(rightEntity.getTableName(), "rightTableName",
+                table.getMetaTableId());
         FilterToSqlTranslator.validateIdentifier(leftPhysical);
         FilterToSqlTranslator.validateIdentifier(rightPhysical);
         Map<String, String> leftPropToCol = resolveEntityColumns(leftEntity, ctx);

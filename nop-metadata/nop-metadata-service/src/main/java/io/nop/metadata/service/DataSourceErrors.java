@@ -52,6 +52,14 @@ interface DataSourceErrors extends NopMetadataArgs {
             ErrorCode.define("nop.err.metadata.tableref-unknown-table-type",
                     "Unknown tableType for table-reference resolution: {metaTableId} tableType={tableType}",
                     ARG_META_TABLE_ID, ARG_TABLE_TYPE);
+    /**
+     * P1-6（plan 2026-08-15-1913-3 轨 3）：table 实体为 null 的防御分支无身份值可传，
+     * 换零占位符码（ERR_TABLEREF_UNKNOWN_TABLE_TYPE 的占位符在未知 tableType 点位传齐，禁削）。
+     */
+    ErrorCode ERR_TABLEREF_TABLE_NULL =
+            ErrorCode.define("nop.err.metadata.tableref-table-null",
+                    "MetaTable entity is null, cannot resolve table reference "
+                            + "(no identity available)");
     ErrorCode ERR_TABLEREF_ENTITY_BASE_NULL =
             ErrorCode.define("nop.err.metadata.tableref-entity-base-null",
                     "Cannot resolve entity table: baseEntityId is null (dangling reference): {metaTableId}",

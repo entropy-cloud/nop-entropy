@@ -55,7 +55,8 @@ public class EntityAggregationProcessor implements AggregationProcessor {
                     .param("metaTableId", table.getMetaTableId())
                     .param("entityName", entity == null ? null : entity.getEntityName());
         }
-        String physicalTable = requireName(entity.getTableName(), "tableName");
+        String physicalTable = requireName(entity.getTableName(), "tableName",
+                table.getMetaTableId());
         FilterToSqlTranslator.validateIdentifier(physicalTable);
 
         Map<String, String> propToCol = resolveEntityColumns(entity, ctx);

@@ -81,7 +81,11 @@ public class MetaTableFieldResolver {
      */
     public List<ResolvedTableField> resolve(NopMetaTable table, IEntityDao<NopMetaEntityField> fieldDao) {
         if (table == null) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_FIELD_RESOLVE_TABLE_NOT_FOUND);
+            // P1-6 轨 3（plan 2026-08-15-1913-3）：table 为 null 时无 metaTableId
+            // 可传——换零占位符码（ERR_FIELD_RESOLVE_TABLE_NOT_FOUND 的
+            // {metaTableId} 在端点表不存在点位传齐，禁削占位符）
+            throw new NopMetadataException(
+                    NopMetadataErrors.ERR_FIELD_RESOLVE_TABLE_NULL);
         }
         String tableType = table.getTableType();
         if (_NopMetadataCoreConstants.TABLE_TYPE_ENTITY.equals(tableType)) {
@@ -103,7 +107,11 @@ public class MetaTableFieldResolver {
     public List<ResolvedTableField> resolveEntityFieldsByEntityId(String metaEntityId,
                                                                    IEntityDao<NopMetaEntityField> fieldDao) {
         if (metaEntityId == null || metaEntityId.isEmpty()) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_FIELD_RESOLVE_BASE_ENTITY_NULL);
+            // P1-6 轨 3（plan 2026-08-15-1913-3）：失败条件即 metaEntityId 为空——
+            // 无身份值可传，换零占位符码（ERR_FIELD_RESOLVE_BASE_ENTITY_NULL 的
+            // {metaTableId} 在 resolveAllowedEntityIds 点位传齐，禁削）
+            throw new NopMetadataException(
+                    NopMetadataErrors.ERR_FIELD_RESOLVE_ENTITY_ID_NULL);
         }
         List<NopMetaEntityField> entityFields = findEntityFields(metaEntityId, fieldDao);
         if (entityFields.isEmpty()) {
@@ -211,31 +219,50 @@ public class MetaTableFieldResolver {
             // entity 表：entityFieldId 为 NopMetaEntityField 主键，按 PK 加载并校验归属（跨表可达集合）
             NopMetaEntityField field = fieldDao.getEntityById(entityFieldId);
             if (field == null) {
+                // P1-6（plan 2026-08-15-1913-3）：errOnInvalid define 声明 5 占位符
+                // ——补 allowedEntityIds（entity 分支适用集，实时解析）；
+                // availableFields 对 PK 归属校验不适用，显式传空集
+                // （渲染 "[]" 非 null 空壳）。
+                // invariant-ok: variable-form errOnInvalid
+                // （ERR_MEASURE/DIMENSION_FIELD_NOT_FOUND 5 占位符）——
+                // 5/5 参数已传齐，调用方映射核对完毕（plan 2026-08-15-1913-3）
                 throw new NopMetadataException(errOnInvalid)
                         .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
                         .param(NopMetadataErrors.ARG_ENTITY_FIELD_ID, entityFieldId)
-                        .param(NopMetadataErrors.ARG_REF_KIND, refKind);
+                        .param(NopMetadataErrors.ARG_REF_KIND, refKind)
+                        .param(NopMetadataErrors.ARG_ALLOWED_ENTITY_IDS,
+                                resolveAllowedEntityIds(table, joinDao))
+                        .param(NopMetadataErrors.ARG_AVAILABLE_FIELDS, Set.of());
             }
             // 跨表校验（§2.5.2 D3）：field.metaEntityId 须 ∈ {baseEntity ∪ join 直连可达 rightEntity}
             Set<String> allowedEntityIds = resolveAllowedEntityIds(table, joinDao);
             if (!allowedEntityIds.contains(field.getMetaEntityId())) {
                 // 悬空跨表引用（metaEntityId 不在可达集合）——显式失败（不静默存入悬空引用）
+                // P1-6：availableFields 对 PK 归属校验不适用，显式传空集（同上）
+                // invariant-ok: variable-form errOnInvalid——5/5 参数已传齐
+                // （plan 2026-08-15-1913-3）
                 throw new NopMetadataException(errOnInvalid)
                         .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
                         .param(NopMetadataErrors.ARG_ENTITY_FIELD_ID, entityFieldId)
                         .param(NopMetadataErrors.ARG_REF_KIND, refKind)
-                        .param(NopMetadataErrors.ARG_ALLOWED_ENTITY_IDS, allowedEntityIds);
+                        .param(NopMetadataErrors.ARG_ALLOWED_ENTITY_IDS,
+                                allowedEntityIds)
+                        .param(NopMetadataErrors.ARG_AVAILABLE_FIELDS, Set.of());
             }
             return true;
         }
         // external / sql 表（§2.5.2 D4）：entityFieldId 为字段名，校验属于 name-based 可达列名集合
         Set<String> names = resolveAllowedFieldNames(table, fieldDao, joinDao, tableDao);
         if (!names.contains(entityFieldId)) {
+            // P1-6：allowedEntityIds（PK 归属语义）对 name-based 校验不适用，显式传空集
+            // invariant-ok: variable-form errOnInvalid——5/5 参数已传齐
+            // （plan 2026-08-15-1913-3）
             throw new NopMetadataException(errOnInvalid)
                     .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
                     .param(NopMetadataErrors.ARG_ENTITY_FIELD_ID, entityFieldId)
                     .param(NopMetadataErrors.ARG_REF_KIND, refKind)
-                    .param(NopMetadataErrors.ARG_AVAILABLE_FIELDS, names);
+                    .param(NopMetadataErrors.ARG_AVAILABLE_FIELDS, names)
+                    .param(NopMetadataErrors.ARG_ALLOWED_ENTITY_IDS, Set.of());
         }
         return true;
     }
@@ -345,18 +372,23 @@ public class MetaTableFieldResolver {
     private List<ResolvedTableField> resolveExternalFields(NopMetaTable table) {
         String buildSql = table.getBuildSql();
         if (buildSql == null || buildSql.trim().isEmpty()) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_FIELD_RESOLVE_EXTERNAL_BUILD_SQL_INVALID)
+            // P1-6 轨 3（plan 2026-08-15-1913-3）：null/空分支无元素下标可传
+            // ——换无 elementIndex 占位符码（元素级点位传齐，禁削占位符）
+            throw new NopMetadataException(
+                    NopMetadataErrors.ERR_FIELD_RESOLVE_EXTERNAL_BUILD_SQL_UNPARSEABLE)
                     .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId());
         }
         Object parsed;
         try {
             parsed = JsonTool.parse(buildSql);
         } catch (Exception e) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_FIELD_RESOLVE_EXTERNAL_BUILD_SQL_INVALID, e)
+            throw new NopMetadataException(
+                    NopMetadataErrors.ERR_FIELD_RESOLVE_EXTERNAL_BUILD_SQL_UNPARSEABLE, e)
                     .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId());
         }
         if (!(parsed instanceof List)) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_FIELD_RESOLVE_EXTERNAL_BUILD_SQL_INVALID)
+            throw new NopMetadataException(
+                    NopMetadataErrors.ERR_FIELD_RESOLVE_EXTERNAL_BUILD_SQL_UNPARSEABLE)
                     .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId());
         }
         List<?> rawList = (List<?>) parsed;
@@ -364,7 +396,8 @@ public class MetaTableFieldResolver {
         for (int i = 0; i < rawList.size(); i++) {
             Object el = rawList.get(i);
             if (!(el instanceof Map)) {
-                throw new NopMetadataException(NopMetadataErrors.ERR_FIELD_RESOLVE_EXTERNAL_BUILD_SQL_INVALID)
+                throw new NopMetadataException(
+                        NopMetadataErrors.ERR_FIELD_RESOLVE_EXTERNAL_BUILD_SQL_INVALID)
                         .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
                         .param(NopMetadataErrors.ARG_ELEMENT_INDEX, i);
             }
@@ -373,15 +406,21 @@ public class MetaTableFieldResolver {
         if (columnList.isEmpty()) {
             throw new NopMetadataException(NopMetadataErrors.ERR_FIELD_RESOLVE_NO_FIELDS)
                     .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
-                    .param(NopMetadataErrors.ARG_TABLE_TYPE, _NopMetadataCoreConstants.TABLE_TYPE_EXTERNAL);
+                    .param(NopMetadataErrors.ARG_TABLE_TYPE,
+                            _NopMetadataCoreConstants.TABLE_TYPE_EXTERNAL);
         }
         List<ResolvedTableField> fields = new ArrayList<>(columnList.size());
-        for (Map<String, Object> col : columnList) {
+        for (int i = 0; i < columnList.size(); i++) {
+            Map<String, Object> col = columnList.get(i);
             Object nameObj = col.get("columnName");
             if (nameObj == null || nameObj.toString().isEmpty()) {
-                // 列描述缺 columnName——显式失败（不静默跳过）
-                throw new NopMetadataException(NopMetadataErrors.ERR_FIELD_RESOLVE_EXTERNAL_BUILD_SQL_INVALID)
-                        .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId());
+                // 列描述缺 columnName——显式失败（不静默跳过）；
+                // P1-6：增强 for 改下标循环以传元素下标
+                throw new NopMetadataException(
+                        NopMetadataErrors.ERR_FIELD_RESOLVE_EXTERNAL_BUILD_SQL_INVALID)
+                        .param(NopMetadataErrors.ARG_META_TABLE_ID,
+                                table.getMetaTableId())
+                        .param(NopMetadataErrors.ARG_ELEMENT_INDEX, i);
             }
             Object typeObj = col.get("dataType");
             fields.add(new ResolvedTableField(nameObj.toString(),

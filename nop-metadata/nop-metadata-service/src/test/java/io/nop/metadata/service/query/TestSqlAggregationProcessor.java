@@ -165,20 +165,20 @@ public class TestSqlAggregationProcessor {
 
     @Test
     public void testRequireNameNonNull() {
-        assertEquals("hello", requireName("hello", "test"));
+        assertEquals("hello", requireName("hello", "test", "meta-table-reqname"));
     }
 
     @Test
     public void testRequireNameEmptyThrows() {
         NopException ex = assertThrows(NopException.class,
-                () -> requireName("", "test"));
+                () -> requireName("", "test", "meta-table-reqname"));
         assertEquals(NopMetadataErrors.ERR_AGGR_EXEC_FAILED.getErrorCode(), ex.getErrorCode());
     }
 
     @Test
     public void testRequireNameNullThrows() {
         NopException ex = assertThrows(NopException.class,
-                () -> requireName(null, "test"));
+                () -> requireName(null, "test", "meta-table-reqname"));
         assertEquals(NopMetadataErrors.ERR_AGGR_EXEC_FAILED.getErrorCode(), ex.getErrorCode());
     }
 

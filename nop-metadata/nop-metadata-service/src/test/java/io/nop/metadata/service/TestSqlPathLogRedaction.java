@@ -58,7 +58,7 @@ public class TestSqlPathLogRedaction {
 
         LogCapture capture = new LogCapture(MetaTableQueryExecutor.class);
         try {
-            List<Map<String, Object>> rows = MetaTableQueryExecutor.executeQuery(conn, sql, null, null, null);
+            List<Map<String, Object>> rows = MetaTableQueryExecutor.executeQuery(conn, sql, null, null, null, "meta-table-log-redaction");
             assertTrue(rows.isEmpty(), "mock JDBC with 0 columns must return empty rows");
         } finally {
             capture.restore();

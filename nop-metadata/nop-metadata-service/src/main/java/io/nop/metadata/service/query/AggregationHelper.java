@@ -130,9 +130,22 @@ public class AggregationHelper {
         return rows;
     }
 
-    public static String requireName(String value, String what) {
+    /**
+     * 非空名称守卫（空/null 显式失败，非静默返回）。
+     *
+     * @param value       待检值
+     * @param what        值语义描述（进错误消息 error 参数）
+     * @param metaTableId 目标逻辑表 ID（P1-6 plan 2026-08-15-1913-3 轨 2 穿参：静态工具
+     *                    方法无身份值，由调用方传入——{metaTableId} 占位符真实渲染）
+     * @return 原值（非空非空白）
+     */
+    public static String requireName(String value, String what,
+                                      final String metaTableId) {
         if (value == null || value.trim().isEmpty()) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_EXEC_FAILED).param(NopMetadataErrors.ARG_ERROR, what + " is empty");
+            throw new NopMetadataException(
+                    NopMetadataErrors.ERR_AGGR_EXEC_FAILED)
+                    .param(NopMetadataErrors.ARG_META_TABLE_ID, metaTableId)
+                    .param(NopMetadataErrors.ARG_ERROR, what + " is empty");
         }
         return value;
     }

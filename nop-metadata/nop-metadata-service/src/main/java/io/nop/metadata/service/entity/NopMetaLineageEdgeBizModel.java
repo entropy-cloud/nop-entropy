@@ -112,6 +112,11 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
                                     String metaTableId, ErrorCode errorCode) {
         if (r.errors != null && !r.errors.isEmpty()) {
             Object detail = r.errors.get(0).get("error");
+            // P1-6（plan 2026-08-15-1913-3）变量形态人工归类：两调用方传
+            // ERR_LINEAGE_SQL_PARSE_FAILED / ERR_COL_LINEAGE_SQL_PARSE_FAILED，
+            // 两 define 描述零占位符（无必需识别性参数）——误报，映射核对完毕。
+            // invariant-ok: variable-form errorCode——call-site codes declare
+            // no description 占位符 (plan 2026-08-15-1913-3)
             throw new NopMetadataException(errorCode)
                     .param("metaTableId", metaTableId)
                     .param("error", detail != null ? detail : "");

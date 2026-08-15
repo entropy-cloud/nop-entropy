@@ -83,8 +83,13 @@ final class MemoryFilterEvaluator {
         }
         String op = node.getTagName();
         if (op == null) {
+            // P1-6（plan 2026-08-15-1913-3 轨 1 补齐）：define 声明
+            // {op} name={name}——补 name 键（同方法 default 分支已示范
+            // node.getAttr(FILTER_ATTR_NAME) 取法）
             throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_HAVING_UNSUPPORTED_OP)
-                    .param("op", String.valueOf(op));
+                    .param("op", String.valueOf(op))
+                    .param("name", String.valueOf(
+                            node.getAttr(FilterBeanConstants.FILTER_ATTR_NAME)));
         }
         switch (op) {
             case FilterBeanConstants.FILTER_OP_AND:

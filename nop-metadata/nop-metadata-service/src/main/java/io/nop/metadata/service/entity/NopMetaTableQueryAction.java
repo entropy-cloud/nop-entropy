@@ -121,7 +121,9 @@ public class NopMetaTableQueryAction {
                     requireSupportedDialect(productName, table.getMetaTableId());
                     FilterToSqlTranslator.TranslatedFilter tf = filterTranslator.translate(filter);
                     String sql = MetaTableQueryExecutor.buildExternalSelectSql(table.getTableName(), columns, tf.getSql(), limit, offset, productName);
-                    holder[0] = MetaTableQueryExecutor.executeQuery(conn, sql, tf.getParams(), limit, offset);
+                    holder[0] = MetaTableQueryExecutor.executeQuery(conn, sql,
+                            tf.getParams(), limit, offset,
+                            table.getMetaTableId());
                 });
         return holder[0];
     }
@@ -141,7 +143,9 @@ public class NopMetaTableQueryAction {
                     requireSupportedDialect(productName, table.getMetaTableId());
                     FilterToSqlTranslator.TranslatedFilter tf = filterTranslator.translate(filter);
                     String sql = MetaTableQueryExecutor.buildSqlSelectSql(sourceSql, tf.getSql(), limit, offset, productName);
-                    holder[0] = MetaTableQueryExecutor.executeQuery(conn, sql, tf.getParams(), limit, offset);
+                    holder[0] = MetaTableQueryExecutor.executeQuery(conn, sql,
+                            tf.getParams(), limit, offset,
+                            table.getMetaTableId());
                 });
         return holder[0];
     }
