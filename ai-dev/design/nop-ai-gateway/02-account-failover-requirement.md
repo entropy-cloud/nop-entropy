@@ -189,6 +189,31 @@ W1 spike §6.4 契约）；**选择期饱和检查 = 预检语义**（B-13 裁�
 | 手动运维 | 手动摘除/恢复账号 | **显式 non-goal**（本期） |
 | 计费/配额感知 | 不实现主动余额/配额查询（`quotaLimit`/`renewAt` 仅诊断元数据）；**账号级并发上限管理为本期要求**（§3.3），两者不同 | **显式 non-goal**（余额感知部分） |
 
+**指标契约（2026-08-15，W8，plan `2026-08-15-1615-1`（OBS-01）落地）**：本契约即 §五 Q4"指标契约是否先行文档化"的**先行文档化落地**。指标经平台既有 micrometer 设施（nop-commons `GlobalMeterRegistry.instance()`）暴露，命名族 `nop.ai.gateway.failover.*`，实现 = `IFailoverMetrics` 接口 + micrometer 默认实现（nop-job `IJobWorkerMetrics`/`JobWorkerMetricsImpl` 先例模式），bean `nopAiFailoverMetrics`（`ioc:default="true"`）注册于 nop-ai-gateway `ai-gateway-defaults.beans.xml`，**缺省启用、零行为影响**（观测面独立于控制面：指标异常不外泄为业务错误，捕获必记日志）。
+
+**契约表**（指标名 / 类型 / 维度 / 单位 / 语义 / 触发事件；类型 = micrometer 度量类型）：
+
+| 类别 | 指标名 | 类型 | 维度 | 单位 | 语义 | 触发事件（live 代码点） |
+|------|--------|------|------|------|------|------------------------|
+| 切换 | `nop.ai.gateway.failover.switch.total` | Counter | provider, model, account | count | 失败后重发至**新候选**（账号切换）次数；流式换候选重订阅亦计入 | 本地 `ChatServiceFailoverAdapter.callAsyncAttempt`（attempt>0 非固定候选）；网关 `AiGatewayFailoverInterceptor.invokeNonStreamingAttempt`（attempt>0 非固定候选）+ `GatewayStreamingRetryCallback.retry` 切换分支 |
+| 重订阅 | `nop.ai.gateway.failover.resubscribe.total` | Counter | provider, model, account | count | 流式重订阅次数（含同候选 CACHE_STATE_LOST 原地重发） | 本地 `FailoverStreamFlow.startAttemptWithOptions`（已有 attempt 时）；网关 `GatewayStreamingRetryCallback.retry` 返回非 null |
+| 熔断迁移 | `nop.ai.gateway.failover.circuit-transition.total` | Counter | provider, model, to-state | count | 熔断器状态迁移次数。**近似观测**——`ThresholdBreaker.getState` 为无锁读（类 javadoc 明确），编排层 before/after 对比在并发交错下可能对同一次迁移重复计数或错误归因；**禁止将精确语义写进本指标** | 编排层 `recordFailure`/`recordSuccess`/`allowCall` 调用点前后 `getState` 对比（core 原语零改动） |
+| 冷却期 | `nop.ai.gateway.failover.cooldown.total` | Counter | provider, model, type | count | 冷却期事件：`started` = 迁移至 OPEN（冷却计时启动）；`rejected` = OPEN 下 `allowCall` 未期满拒绝；`probe-rejected` = HALF_OPEN 探活占用拒绝。三事件均可达（非"永不触发"） | 同熔断迁移观察点（迁移 to OPEN / `allowCall` 返回 false 时按观察前状态归类） |
+| 成功率 | `nop.ai.gateway.failover.request-success.total` | Counter | provider, model, account | count | attempt 成功次数（成功率 = success/(success+failure)） | 本地 `callAsyncWithOptions` 成功分支 / `FailoverStreamFlow.handleStreamComplete`；网关 `invokeNonStreamingAttempt` 成功分支 |
+| 成功率 | `nop.ai.gateway.failover.request-failure.total` | Counter | provider, model, account | count | attempt 失败次数（含切换类 / NON_TRANSIENT / 预算耗尽，不含取消） | 本地 `ChatServiceFailoverAdapter.decideNonStreamFailure` / `FailoverStreamFlow.handleStreamFailure`；网关 `AiGatewayFailoverInterceptor.decideNonStreamFailure` |
+| 延迟 | `nop.ai.gateway.failover.request.duration` | Timer | provider, model, account, outcome | ms | attempt 耗时（outcome ∈ success/failure），从 attempt 发起至终止 | 同上成功/失败终止点（本地 attempt 起始 = 委托调用时刻；网关 = acquire 后 invoke 时刻） |
+| 饱和 | `nop.ai.gateway.failover.saturation.total` | Counter | provider, model-class | count | 全池饱和 fail-loud 次数（§3.3"产出饱和指标"） | 本地 `ChatServiceFailoverAdapter.selectNextWithProbe` 探活未恢复后原样 rethrow；网关 `FailoverProbeSupport.selectNextWithProbe` 同路径（fail-loud） |
+| 并发配对 | `nop.ai.gateway.failover.concurrency-acquire.total` / `nop.ai.gateway.failover.concurrency-release.total` | Counter | provider, account | count | 并发计数 acquire/release 配对观测（配对路径健康信号；泄漏时可跨指标比对） | `ConcurrencyRegistry.acquire/release` 的全部编排层调用点（本地适配器 / `FailoverStreamFlow` / 网关拦截器 / `GatewayStreamingLifecycleListener`） |
+| 接管 | `nop.ai.gateway.failover.takeover.total` | Counter | provider, model, account | count | 网关拦截器接管请求次数（流式路径首次候选下沉） | `AiGatewayFailoverInterceptor.onRequest` 流式接管分支 |
+| 降级终止 | `nop.ai.gateway.failover.degraded.total` | Counter | provider, model, account | count | 流式 NON_TRANSIENT 降级终止响应次数 | `AiGatewayFailoverInterceptor.onError` NON_TRANSIENT 分支（返回降级响应） |
+| 反向转换 | `nop.ai.gateway.failover.stream-element.total` | Counter | provider, model, account | count | `onStreamElement` per-attempt 反向转换元素数 | `AiGatewayFailoverInterceptor.onStreamElement`（实际执行转换时） |
+
+**契约裁定（W8 Phase 1，plan `2026-08-15-1615-1`）**：
+
+- **并发近似语义**：熔断迁移计数为近似观测（契约表熔断迁移行语义列已显式写明）。观察机制 = 编排层调用点派生（`recordFailure`/`recordSuccess`/`allowCall` 前后 `getState` 对比），`ThresholdBreaker`/`ConcurrencyRegistry`/`ModelClassRouter` 内部状态机与公共方法语义零改动（nop-ai-core 原语零改动）。
+- **冷却期事件定义**：三候选**全映射且均可达**——OPEN 迁移（CLOSED→OPEN 或 HALF_OPEN→OPEN）= 冷却启动（`started`）；OPEN 下 `allowCall` 返回 false = 未期满拒绝（`rejected`，经全池饱和探活路径触发）；HALF_OPEN 下 `allowCall` 返回 false = 探活占用拒绝（`probe-rejected`）。不得选择"永不触发"的定义。
+- **配置形态**：指标采集**不引入开关，缺省恒定启用**（计数器开销恒定可忽略；观测面零行为影响）。**null-object / fail-fast 边界**：部署面 fail-fast + 代码面 no-op 降级——`nopAiFailoverMetrics` bean 恒注册于 `ai-gateway-defaults.beans.xml`，适配器/拦截器对它的 `<ref>` 为**非 optional**（bean 缺失 = 容器启动失败，配置错误显式暴露）；代码面 `IFailoverMetrics` setter 可注入 null（测试/手工构造场景），null = 观测 no-op，此降级**仅**发生在注入侧缺装配这一错误形态（缺省 beans.xml 使该形态在标准部署不可达），与"指标服务无空壳"（接口所有方法有真实实现）不矛盾。
+
 ### 3.7 协议双向转换（补全工作项，请求 + 响应方向）
 
 **现状（R3 审查核实）**：`ILlmDialect.parseRequestBody` 仅 OpenAI 前端实现（`OpenAiDialect.java:62` 覆写；其余 dialect 的 default 抛 `UnsupportedOperationException`，`ILlmDialect.java:240-242`）；`buildResponse`/`buildStreamChunk` **仅 default**（恒产出 OpenAI 格式），无任何 dialect 覆写。
