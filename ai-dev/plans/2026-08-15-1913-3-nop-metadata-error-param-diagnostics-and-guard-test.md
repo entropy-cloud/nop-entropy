@@ -1,7 +1,7 @@
 # nop-metadata 错误码识别性参数收口 + INV-LIMIT 守卫修复（2026-08-15 multi-audit P1-6/7/9）
 
-> Plan Status: active
-> Last Reviewed: 2026-08-15
+> Plan Status: completed
+> Last Reviewed: 2026-08-16
 > Mission: nop-metadata-invariant-loop
 > Work Item: Cycle 3 / 再审计 remediation（执行顺序 3/3）
 > Source: `ai-dev/audits/2026-08-15-0559-multi-audit-nop-metadata-invariant-loop.md`（P1-6 错误码识别性参数漂移家族、P1-7 方言白名单参数键错配、P1-9 INV-LIMIT 守卫测试假绿）
@@ -62,87 +62,87 @@
 
 ### Phase 1 - INV-ERROR-PARAM 扫描器先行（权威分母 + 口径裁定）
 
-Status: planned
+Status: completed
 Targets: `ai-dev/tools/` 下新建 `check-error-param-consistency.mjs`
 
 - Item Types: `Proof | Decision`
 
-- [ ] **[Proof]** 新扫描器落地：对 nop-metadata main 范围内 `new NopMetadataException(...)` throw 点与其后同语句链的 `.param(...)` 键，交叉 ErrorCode define 描述占位符，"识别性占位符无对应 `.param` 键" → 命中。实现要求：
+- [x] **[Proof]** 新扫描器落地：对 nop-metadata main 范围内 `new NopMetadataException(...)` throw 点与其后同语句链的 `.param(...)` 键，交叉 ErrorCode define 描述占位符，"识别性占位符无对应 `.param` 键" → 命中。实现要求：
   - `.param()` 键解析支持三种形态：字面量字符串、限定常量（`NopMetadataErrors.ARG_X`）、非限定常量（裸 `ARG_X`/裸 ErrorCode 常量引用）；
   - ErrorCode define 解析覆盖 10 个子接口（`*Errors.java`）经 `NopMetadataErrors` 组合的占位符描述（含 `{xxx}` 提取）；
   - 沿 `check-silent-wrong-result.mjs` 的注释剥离与 `// invariant-ok:` 豁免机制、`check-sensitive-literal-leak.mjs` 的文件遍历与 `--fixture` 自验模式；
   - **假阳性/盲区口径（硬要求）**：(a) `catch` 块内 `e.param(...)` 重抛增补形态（live 实测 5 处，如 `AggregationHelper.java:170`、`ExternalAggregationProcessor.java:52`）不命中——上游已带参数的重抛不是缺参点；(b) `{error}` 占位符**显式豁免**（P2-09 附注性参数，Non-Goal）；(c) 死代码点位经豁免标注处理（见 Phase 2）；(d) **变量形态错误码**（错误码为方法参数/局部变量，共 4 处：`MetaTableFieldResolver.java:214/223/234`、`NopMetaLineageEdgeBizModel.java:115`）静态不可解析——扫描器输出 **UNRESOLVED 清单**强制人工归类（经调用方错误码映射核对是否缺参），不得静默跳过；其中 3 处疑似真实缺缺点（见 Current Baseline）须并入 red list 分母。
-- [ ] **[Proof]** 全量首跑：输出全模块 red list + 变量形态 UNRESOLVED 清单（预期含 P1-6 的 11 活点 + 3 疑似变量形态点 + 可能的清扫增量），UNRESOLVED 逐点人工归类后并入分母，全部记录于 daily log。
-- [ ] **[Proof]** 注毒自验：对 1 个已知历史形态（如临时在测试 fixture 中构造缺参 throw）扫描器变红（anti-hollow，非空壳脚本）。
-- [ ] **[Decision]** 退出模式裁定：修复后若零命中（豁免仅 `{error}` + `// invariant-ok:` 标注 + 死点）→ 零命中 hard-gate；若存在不可消除的已裁定豁免点 → mode b 基线棘轮（沿 Cycle 2 先例）。裁定记 daily log。
+- [x] **[Proof]** 全量首跑：输出全模块 red list + 变量形态 UNRESOLVED 清单（预期含 P1-6 的 11 活点 + 3 疑似变量形态点 + 可能的清扫增量），UNRESOLVED 逐点人工归类后并入分母，全部记录于 daily log。
+- [x] **[Proof]** 注毒自验：对 1 个已知历史形态（如临时在测试 fixture 中构造缺参 throw）扫描器变红（anti-hollow，非空壳脚本）。
+- [x] **[Decision]** 退出模式裁定：修复后若零命中（豁免仅 `{error}` + `// invariant-ok:` 标注 + 死点）→ 零命中 hard-gate；若存在不可消除的已裁定豁免点 → mode b 基线棘轮（沿 Cycle 2 先例）。裁定记 daily log。
 
 Exit Criteria:
 
-- [ ] 扫描器存在且 `node ai-dev/tools/check-error-param-consistency.mjs` 可运行，`--fixture` 自验通过（注毒变红/修复变绿）。
-- [ ] 全量首跑 red list 已记录（daily log），至少覆盖 audit 列示 11 活点。
-- [ ] 假阳性/盲区口径（catch 增补/`{error}` 豁免/死点豁免/变量形态 UNRESOLVED 清单）在脚本 README 或头部注释中写明。
-- [ ] `ai-dev/logs/` 对应日期条目已更新；No owner-doc update required: 工具脚本不影响 owner 行为（catalog 登记在 Phase 3）。
+- [x] 扫描器存在且 `node ai-dev/tools/check-error-param-consistency.mjs` 可运行，`--fixture` 自验通过（注毒变红/修复变绿）。
+- [x] 全量首跑 red list 已记录（daily log），至少覆盖 audit 列示 11 活点。
+- [x] 假阳性/盲区口径（catch 增补/`{error}` 豁免/死点豁免/变量形态 UNRESOLVED 清单）在脚本 README 或头部注释中写明。
+- [x] `ai-dev/logs/` 对应日期条目已更新；No owner-doc update required: 工具脚本不影响 owner 行为（catalog 登记在 Phase 3）。
 
 ### Phase 2 - P1-6 + P1-7：识别性参数收口（三轨修法，扫描器驱动）
 
-Status: planned
+Status: completed
 Targets: Current Baseline 分类的 13 点所在文件 + `ExternalTableStructureReader.java` +（清扫增量）
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] **[Fix]** 按 Phase 1 red list（权威分母 = audit 11 活点 ∪ 清扫增量）三轨修复，每点归类记录（daily log）：
+- [x] **[Fix]** 按 Phase 1 red list（权威分母 = audit 11 活点 ∪ 清扫增量）三轨修复，每点归类记录（daily log）：
   - **轨 1 补齐**（上下文有值）：直接补 `.param()`；`NopMetaTableJoinBizModel:164` 的 `{joinId}` 需从 `save` 的 data map 下沉穿参（update 路径可用）；create 路径 joinId 尚不存在时：**禁止传 null**（渲染空串 = 空壳修复），**预裁定换用无 joinId 必需占位符的错误码而非调整该码占位符**——`ERR_JOIN_TABLE_TYPE_NOT_ALLOWED` 有第二个 throw 点 `MetaJoinExecutor.java:209`（joinId 传齐），定点削占位符会使 :209 的 joinId 不再渲染、在另一点重引入本族缺陷；若执行时推翻预裁定须记录 :209 影响面分析；
   - **轨 2 穿参**（静态工具方法多跳签名）：`MetaTableQueryExecutor`/`AggregationHelper`/`CrossDbJoinMerger` 三处经调用链把身份值传入（调用方均持有 metaTableId/joinId）；
   - **轨 3 换码**（null 防御分支或值语义不存在）：`MetaTableFieldResolver:84`、`MetaTableReferenceResolver:87`、`MetaTableFieldResolver:348/355/359/383`、create 路径的 `NopMetaTableJoinBizModel:164`（如轨 1 下沉不可行）——换用无必需占位符的错误码；定点调整既有错误码占位符仅在该码**无其他已传齐 throw 点**时允许（与 Non-Goal 边界一致：定点、记录裁定、非批量治理）。
-- [ ] **[Decision]** 死点裁定：`NopMetaReconciliationResultBizModel:159/165`（`toInt/toStr` 死代码，throw 不可达）**不补参数**（对不可达代码补参无用户可见收益），经 `// invariant-ok:` 豁免标注 + 理由（P2-23 死码删除后豁免随之消除）；裁定记 daily log。
-- [ ] **[Fix]** P1-7（预裁定方案 A）：`requireSupportedProductName` 改传与 `{datasourceType}` 一致的键且值为被拒产品名（`.param("datasourceType", productName)` 或 ARG_DATASOURCE_TYPE）——不换错误码（方案 B 会打破 `TestExternalTableStructureReader` 3+ 处断言并变更客户端可见错误码标识，成本高收益同）；若执行时推翻预裁定须记录完整理由。
-- [ ] **[Proof]** 回归测试：至少 3 个代表点（`NopMetaTableJoinBizModel:164`、`requireSupportedProductName`、`MetaTableFieldResolver` elementIndex 族）断言最终渲染消息含真实身份值、不含字面 `{placeholder}`（沿 `TestMetaQualityRuleExecutorErrorParams.java:36-50` 既有模式）；`MetaDataSourceConnectionProcessor.java:216` 正确用法不回退。
-- [ ] **[Proof]** Phase 1 扫描器复跑：修复 + 豁免标注后退出码 0（活点零命中；豁免面 = `{error}` + 死点 `// invariant-ok:` + 已裁定项）。
+- [x] **[Decision]** 死点裁定：`NopMetaReconciliationResultBizModel:159/165`（`toInt/toStr` 死代码，throw 不可达）**不补参数**（对不可达代码补参无用户可见收益），经 `// invariant-ok:` 豁免标注 + 理由（P2-23 死码删除后豁免随之消除）；裁定记 daily log。
+- [x] **[Fix]** P1-7（预裁定方案 A）：`requireSupportedProductName` 改传与 `{datasourceType}` 一致的键且值为被拒产品名（`.param("datasourceType", productName)` 或 ARG_DATASOURCE_TYPE）——不换错误码（方案 B 会打破 `TestExternalTableStructureReader` 3+ 处断言并变更客户端可见错误码标识，成本高收益同）；若执行时推翻预裁定须记录完整理由。
+- [x] **[Proof]** 回归测试：至少 3 个代表点（`NopMetaTableJoinBizModel:164`、`requireSupportedProductName`、`MetaTableFieldResolver` elementIndex 族）断言最终渲染消息含真实身份值、不含字面 `{placeholder}`（沿 `TestMetaQualityRuleExecutorErrorParams.java:36-50` 既有模式）；`MetaDataSourceConnectionProcessor.java:216` 正确用法不回退。
+- [x] **[Proof]** Phase 1 扫描器复跑：修复 + 豁免标注后退出码 0（活点零命中；豁免面 = `{error}` + 死点 `// invariant-ok:` + 已裁定项）。
 
 Exit Criteria:
 
-- [ ] red list 全部点位归入三轨之一或死点裁定，无一悬挂；分类清单记录于 daily log。
-- [ ] P1-7 被拒产品名在渲染消息中可见（方案 A 落地或推翻预裁定有完整记录）。
-- [ ] 代表点回归测试全绿；无"传 null 凑键覆盖"的空壳修复（代码审查项）。
-- [ ] `node ai-dev/tools/check-error-param-consistency.mjs` 退出码 0。
-- [ ] `ai-dev/logs/` 对应日期条目已更新（含分类清单）。
-- [ ] owner-doc 裁定：错误处理约定如 owner 文档涉及（`docs-for-ai/03-modules/nop-metadata.md` 错误处理叙述），定点换码项同步；否则显式记录 No owner-doc update required。
+- [x] red list 全部点位归入三轨之一或死点裁定，无一悬挂；分类清单记录于 daily log。
+- [x] P1-7 被拒产品名在渲染消息中可见（方案 A 落地或推翻预裁定有完整记录）。
+- [x] 代表点回归测试全绿；无"传 null 凑键覆盖"的空壳修复（代码审查项）。
+- [x] `node ai-dev/tools/check-error-param-consistency.mjs` 退出码 0。
+- [x] `ai-dev/logs/` 对应日期条目已更新（含分类清单）。
+- [x] owner-doc 裁定：错误处理约定如 owner 文档涉及（`docs-for-ai/03-modules/nop-metadata.md` 错误处理叙述），定点换码项同步；否则显式记录 No owner-doc update required。
 
 ### Phase 3 - P1-9 守卫修复 + 门禁接入聚合链
 
-Status: planned
+Status: completed
 Targets: `TestLimitNegativeValueInvariant.java`、`run-nop-metadata-invariants.sh`、`invariant-catalog.md`
 
 - Item Types: `Fix | Proof`
 
-- [ ] **[Fix]** `inline-searchMetadata` 行改为精确错误码断言（断言 `ERR_SEARCH_LIMIT_INVALID`/`nop.err.metadata.search-limit-invalid`；R1 已核实分支顺序保证 limit=-1 必抛此码且直接 new 下可行）。实现注意：:68 的 `assertThrows` 为 4 行共享，需重构为仅 searchMetadata 行钉精确码（另 3 行错误码不同，保持现有宽断言或各自钉码，取实施成本低者）。
-- [ ] **[Proof]** 变异验证（手工 Proof，记录于 daily log）：临时移除 `NopMetaSearchBizModel` 的负 limit 检查 → 该测试行变红；恢复后全绿。其余 3 行（normalizeQueryLimit/normalizeJoinQueryLimit 反射路径）确认不受影响。
-- [ ] **[Proof]** `check-error-param-consistency.mjs` 接入 `run-nop-metadata-invariants.sh` 为第 6 个 guard（fail-fast 链追加，更新脚本头注释 guards 清单；核对 `.github/workflows/maven.yml` 是否有 guard 枚举需同步）。
-- [ ] **[Proof]** `invariant-catalog.md` 登记 INV-ERROR-PARAM 条目（陈述 / 覆盖失败族 = 2026-08-15 P1-6+P1-7 / 历史 audit-finding-ID 证据 / 检测方法，沿既有条目格式）。
+- [x] **[Fix]** `inline-searchMetadata` 行改为精确错误码断言（断言 `ERR_SEARCH_LIMIT_INVALID`/`nop.err.metadata.search-limit-invalid`；R1 已核实分支顺序保证 limit=-1 必抛此码且直接 new 下可行）。实现注意：:68 的 `assertThrows` 为 4 行共享，需重构为仅 searchMetadata 行钉精确码（另 3 行错误码不同，保持现有宽断言或各自钉码，取实施成本低者）。
+- [x] **[Proof]** 变异验证（手工 Proof，记录于 daily log）：临时移除 `NopMetaSearchBizModel` 的负 limit 检查 → 该测试行变红；恢复后全绿。其余 3 行（normalizeQueryLimit/normalizeJoinQueryLimit 反射路径）确认不受影响。
+- [x] **[Proof]** `check-error-param-consistency.mjs` 接入 `run-nop-metadata-invariants.sh` 为第 6 个 guard（fail-fast 链追加，更新脚本头注释 guards 清单；核对 `.github/workflows/maven.yml` 是否有 guard 枚举需同步）。
+- [x] **[Proof]** `invariant-catalog.md` 登记 INV-ERROR-PARAM 条目（陈述 / 覆盖失败族 = 2026-08-15 P1-6+P1-7 / 历史 audit-finding-ID 证据 / 检测方法，沿既有条目格式）。
 
 Exit Criteria:
 
-- [ ] 该测试行对"移除负 limit 检查"变异变红（变异验证记录存在）。
-- [ ] `./mvnw test -pl nop-metadata/nop-metadata-service -Dtest=TestLimitNegativeValueInvariant` 全绿。
-- [ ] `run-nop-metadata-invariants.sh` 全链（6 guards）退出码 0；guard 清单注释同步。
-- [ ] `invariant-catalog.md` 新条目存在且引用源 audit 路径。
-- [ ] `ai-dev/logs/` 对应日期条目已更新；No owner-doc update required: 守卫与工具变更不影响 owner 契约叙述（catalog 属审计工件）。
+- [x] 该测试行对"移除负 limit 检查"变异变红（变异验证记录存在）。
+- [x] `./mvnw test -pl nop-metadata/nop-metadata-service -Dtest=TestLimitNegativeValueInvariant` 全绿。
+- [x] `run-nop-metadata-invariants.sh` 全链（6 guards）退出码 0；guard 清单注释同步。
+- [x] `invariant-catalog.md` 新条目存在且引用源 audit 路径。
+- [x] `ai-dev/logs/` 对应日期条目已更新；No owner-doc update required: 守卫与工具变更不影响 owner 契约叙述（catalog 属审计工件）。
 
 ## Closure Gates
 
 > 本计划含代码与工具变更，构建验证条目适用。
 
-- [ ] P1-6：11 活点 + 清扫增量按三轨收口，渲染消息无字面 `{placeholder}`、无 null 空壳修复（confirmed live defect 已修复）；2 死点有显式裁定
-- [ ] P1-7：被拒产品名真实渲染（confirmed contract drift 已收敛）
-- [ ] P1-9：INV-LIMIT 假绿行修复且有变异验证证据（confirmed 无效负面测试已修复）
-- [ ] INV-ERROR-PARAM 门禁存在、注毒自验通过、修复后退出码 0、入聚合链、入 catalog
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 已验证扫描器注毒变红（非空壳脚本）+ 代表点渲染断言测试真实存在且非恒真
-- [ ] `./mvnw test -pl nop-metadata -am -T 1C` 全绿
-- [ ] checkstyle 对本计划改动文件零新增违规（上游 `nop-api-core` pre-existing 基线，整体 `checkstyle:check` 历史性 exit 1——以改动文件零新增为基准）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0
+- [x] P1-6：11 活点 + 清扫增量按三轨收口，渲染消息无字面 `{placeholder}`、无 null 空壳修复（confirmed live defect 已修复）；2 死点有显式裁定
+- [x] P1-7：被拒产品名真实渲染（confirmed contract drift 已收敛）
+- [x] P1-9：INV-LIMIT 假绿行修复且有变异验证证据（confirmed 无效负面测试已修复）
+- [x] INV-ERROR-PARAM 门禁存在、注毒自验通过、修复后退出码 0、入聚合链、入 catalog
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 已验证扫描器注毒变红（非空壳脚本）+ 代表点渲染断言测试真实存在且非恒真
+- [x] `./mvnw test -pl nop-metadata -am -T 1C` 全绿
+- [x] checkstyle 对本计划改动文件零新增违规（上游 `nop-api-core` pre-existing 基线，整体 `checkstyle:check` 历史性 exit 1——以改动文件零新增为基准）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0
 
 ## Deferred But Adjudicated
 
@@ -166,10 +166,22 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<关闭时填写>>
-Completed: <<YYYY-MM-DD>>
+Status Note: 3 Phase 全部完成且经独立 closure audit approved——P1-6 的 11 活点 + 1 清扫增量 + 3 变量形态真实缺参点全部按三轨收口（渲染消息真实呈现身份值、零 null 空壳、零占位符削除），P1-7 方言门禁键错配修正（方案 A，错误码标识不变），P1-9 守卫假绿行修复（4 行全钉精确错误码 + 变异验证）；INV-ERROR-PARAM 零命中 hard-gate 沉淀入 6-guard 聚合链与 catalog；豁免面 6 条（2 死点 P2-23 + 4 变量形态人工归类）全部显式列出无静默盲区。
+Completed: 2026-08-16
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Evidence: <<task id / daily log link / findings 摘要>>
+- Reviewer / Agent: 独立子 agent（fresh session，review-only 零文件修改）`ses_ff9667230ffefnp26Et6dzLiWD`
+- Evidence:
+  - Phase 1（3/3 PASS）：扫描器存在 + `--fixture` exit 0（16 样例）+ `--module` exit 0；四项口径（catch 增补排除/`{error}` 豁免/死点豁免/UNRESOLVED 强制归类）头注释 :34-54 在位；注毒自验（fixture violation 样例命中 + live 删参变红记录）非空壳。
+  - Phase 2（3/3 PASS）：11 活点 + 增量逐点 live 核对（NopMetaTableJoinBizModel:183-192 双路径换码/下沉、MetaTableFieldResolver 5 处 + 3 变量形态 5/5 参数、MetaTableQueryExecutor/AggregationHelper/CrossDbJoinMerger/MemoryFilterEvaluator/MetaTableReferenceResolver/ExternalTableStructureReader 全部到位，`Set.of()` 非 null）；MetaJoinExecutor:210-212 joinId 传齐不回退（预裁定约束成立）；代表点测试 3+6+8 例全绿（正断言含真实值 + 负断言无字面占位符，非恒真）。
+  - Phase 3（3/3 PASS）：TestLimitNegativeValueInvariant 4 行精确码 `assertEquals` + 4/4 绿；6-guard 聚合链 live 复跑 exit 0；invariant-catalog INV-ERROR-PARAM 条目引用源 audit 路径。
+  - Deferred 诚实性：P2-09/P2-10/P2-11/P2-23 均为计划内 Non-Goal/预裁定项，无 in-scope defect 降级。
+  - `./mvnw test -pl nop-metadata -am -T 1C` BUILD SUCCESS（service 1227/0/0；一次 nop-stream 时序基准测试负载竞态 flake 与本计划无关——0 个 nop-stream 文件被改动，复跑绿）。
+  - `check-plan-checklist.mjs --strict` 退出码 0（本 Closure Evidence 写入后复跑）；`scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0。
+  - checkstyle：仓库权威 qa 配置（`checkstyle.xml` + `-Pqa`）逐条比对，16 个改动 main 文件 HEAD vs now 违规条目完全一致 + 新增测试文件零违规 = 零新增。
+  - 附注（非阻塞）：源审计 `2026-08-15-0559-multi-audit`（Audit Status: planned）的两个后继计划（1913-2/1913-3）现均 completed，其收口留待 mission 审计收口流程处理（本计划 front matter 无 `> Source Audits:` 行，按 mission 约定不在此改动）；Phase 3 首跑全链时暴露并修复先在 guard 1 红点（`MetaDataSourceConnectionProcessor.percentDecode`，plan 1913-1 提交引入，benign-miss 形式化修复，daily log 留痕）。
+
+Follow-up:
+
+- 无剩余 plan-owned work。Non-blocking：P2-09（`{error}` 附注参数 6 处）、P2-10/P2-11（define 面漂移与双轨治理）、P2-23（ReconciliationResultBizModel 死码删除——删除后 2 处 `// invariant-ok:` 豁免自然消除）、P2-12（错误码 i18n，ask-first）均已在 roadmap Follow-up Backlog 登记。
