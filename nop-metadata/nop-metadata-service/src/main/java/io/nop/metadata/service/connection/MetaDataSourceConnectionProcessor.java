@@ -527,6 +527,11 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
         try {
             return URLDecoder.decode(s, StandardCharsets.UTF_8);
         } catch (IllegalArgumentException e) {
+            // INV-SILENT-SWALLOW（plan 2026-08-14-1448-2 benign-miss 形式化，沿
+            // AggregationHelper.toBigDecimal 先例）：非法 percent 转义是预期解码 miss——
+            // null 返回值即文档化 fail-closed 信号（调用方拒收），DEBUG 日志保留可见信号不静默吞
+            String code = NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode();
+            LOG.debug(code + ": percentDecode null (illegal percent escape, caller fails closed)", e);
             return null;
         }
     }

@@ -217,6 +217,34 @@
 
 ---
 
+## Cycle 3 增补 — error-param 族（plan `2026-08-15-1913-3` Phase 1/3）
+
+> P1-6（识别性占位符漏传 11 活点）+ P1-7（方言白名单键错配）+ P1-9（INV-LIMIT 假绿行）修复后沉淀，落地为零命中 hard-gate `ai-dev/tools/check-error-param-consistency.mjs`（guard 6，2026-08-16 起 15 violations + 4 UNRESOLVED → 0 + 豁免面显式列出）。
+
+### INV-ERROR-PARAM — 错误消息识别性参数占位符↔调用点一致性族
+
+**① 陈述**（通用）：`NopMetadataException`（及同族 `NopException`）throw 点所用 ErrorCode 描述中声明的**识别性占位符** `{xxx}`，必须在同一构造语句链（含 builder 变量形态 `X e = new ...; e.param(...)`）上有对应 `.param()` 键——键可为字面量 / `NopMetadataErrors.ARG_X` / 裸 `ARG_X` 常量。违反时运行时（`ErrorMessageManager`）把占位符渲染为字面 `{xxx}`——失败对象的身份信息对最终用户丢失。**禁止**：传 null 凑键覆盖（渲染空串 = 空壳修复）；错误码为变量（方法参数/局部变量）时不经人工归类静默放过（UNRESOLVED 清单强制裁定或 `// invariant-ok:` 标注）。豁免面仅 `{error}`（P2-09 附注族）+ `// invariant-ok:` 显式裁定。
+
+**② 覆盖的失败族**：error-param 族——P1-6 识别性参数漂移家族（11 活点跨 9 文件）→ P1-7 方言白名单参数键错配（`{datasourceType}` 声明 vs `databaseProductName` 键，被拒产品名永不渲染）。
+
+**③ 历史 audit-finding-ID 证据**：
+
+- P1-6（2026-08-15 multi-audit confirmed live defect，fixed 2026-08-16）：11 活点三轨收口——轨 1 补齐（JoinBizModel:164 update 路径 joinId 下沉 / FieldResolver:383 elementIndex 下标循环 / MemoryFilterEvaluator:86 name 键）、轨 2 穿参（MetaTableQueryExecutor / AggregationHelper.requireName / CrossDbJoinMerger.firstNonNullKeyType 静态工具签名 +metaTableId/+joinId）、轨 3 换码（null 防御/值语义不存在分支新增 5 个无必需占位符错误码；削既有码占位符被"其他点位已传齐"裁定禁止）（`ai-dev/audits/2026-08-15-0559-multi-audit-nop-metadata-invariant-loop.md` P1-6）
+- P1-7（同 audit confirmed contract drift，fixed 2026-08-16 方案 A：改传 `ARG_DATASOURCE_TYPE` 键 + 被拒产品名，错误码标识不变；`MetaDataSourceConnectionProcessor:216` 正确用法为先例）
+- 防复发土壤：P2-10（17 个 define 声明与描述占位符漂移）+ P2-11（`.param()` 键 454 字面量 vs 199 ARG_* 双轨）——本门禁以"throw 点 ↔ 占位符"一致性为权威分母先行收口，define 面治理留 backlog。
+
+**④ 检测方法**：`ai-dev/tools/check-error-param-consistency.mjs`——解析 10 个 `*Errors.java`（经 `NopMetadataErrors` 组合）+ `NopMetadataArgs.java` 构建注册表；对 main 范围全部 `new NopMetadataException(` throw 点（含内联 `ErrorCode.define` 与 builder 变量形态）做占位符↔键交叉核对；catch 块 `e.param(...)` 重抛增补天然不命中（仅扫构造点）；变量形态错误码输出 UNRESOLVED 清单强制人工归类（未标注即红）。注毒自验：删除已知修点的 `.param` → 红；恢复 → 绿（2026-08-16 live 实测）。
+
+**目标集覆盖率**：342 throw 点 / 226 ErrorCode define（2026-08-16 首跑）；修复后零命中、豁免面 6 条（2 死点 P2-23 + 4 变量形态人工归类）全部显式列出。
+
+---
+
+### INV-LIMIT 增补注记（P1-9 假绿行修复，plan `2026-08-15-1913-3` Phase 3）
+
+INV-LIMIT 门禁自身的守卫测试曾存在区分力为零的假绿行：`inline-searchMetadata` 行只断言 `assertThrows(NopException.class)`——移除 `NopMetaSearchBizModel` 负 limit 检查后异常变为 `ERR_SEARCH_ENGINE_UNAVAILABLE`，宽断言仍绿。修复（2026-08-16）：4 行全部钉精确错误码（`nop.err.metadata.search-limit-invalid` / `nop.err.metadata.pagination-limit-invalid`），变异验证实证——临时移除负 limit 检查 → 该行变红（`expected: <search-limit-invalid> but was: <search-engine-unavailable>`），其余 3 行不受影响；恢复后全绿。教训入本目录：**守卫测试自身须按"移除被守卫检查后必须变红"标准变异验证，宽断言（仅类型）对错误码漂移零区分力**。
+
+---
+
 ## 候选不变式（Non-Blocking Follow-up，留待 I6 裁定）
 
 > Phase 1 枚举未发现超出首批 4 族的高频复发模式需立即沉淀。以下为低频观察，不展开，留待 I6 统计后裁定是否派生 Cycle 2 / I1。
