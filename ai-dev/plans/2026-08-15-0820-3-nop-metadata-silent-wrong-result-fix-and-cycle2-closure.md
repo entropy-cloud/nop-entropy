@@ -61,25 +61,25 @@
 
 ### Phase 1 — I4' 类别清扫修复（test-first）
 
-Status: planned
+Status: completed
 Targets: `nop-metadata/nop-metadata-service/src/main/java/...`（I3' 裁决 P1 站点）、对应 `src/test/java/...` 回归测试、false-positive 标注
 
 - Item Types: `Fix`
 
-- [ ] **F1 test-first**：每个 P1 子族先落回归/对抗测试（如 locale 族：tr-TR 默认 locale 下 lineage registry 键不漂移的测试，**locale 切换机制钉死为测试内 `Locale.setDefault(Locale.forLanguageTag("tr"))` + `finally` 恢复**——先例 `TestLocalReconciliationProcessorLocale`；端到端先例 `TestNopMetaLineageEdgeBizModel`（@NopTestConfig + GraphQL 路径）；不使用 `-Duser.language` argLine 全局注入），确认对当前实现红或以"现状基线断言 + 修复后翻转"双段记录
-- [ ] **F2 类别清扫修复**：按同族已修先例形态修复全部 P1 站点（locale 族 → `Locale.ROOT`（机器比较语义）或按裁决的其他处置；精度族 → 沿 AR-10 无损转换先例）；每修一个子族即以**裁决表（权威分母）**核对全部同族站点处置状态（已修 / FP 已按 B1b 裁定处置 / 裁决表豁免理由 / successor 拆分），rg 命中裁决表未收录站点时显式上报归因（见 Current Baseline 权威分母条）
-- [ ] **F3 false-positive 处置落地**：按 I3' B1b 裁定方式落地——方式 (a) baseline 驻留：FP 条目保留在 baseline（不删条目，I5' 时 baseline 重写为该清单）；方式 (b) 放行注释：加 `// invariant-ok: <裁决引用>`（扫描器识别能力由 0820-1 Phase 2 预实现，本计划仅使用该机制）。**P1 集为空时 F1/F2/F4 跳过，F3 仍须按 B1b 执行（如存在 FP 条目）**。保证后续审计可追溯
-- [ ] **F4 超时保护**：单个 P1 项修复若超时/受阻，按 Cycle 1 I4 先例拆 successor plan 并在裁决表标注归属，不阻塞其余项
+- [x] **F1 test-first**：每个 P1 子族先落回归/对抗测试（如 locale 族：tr-TR 默认 locale 下 lineage registry 键不漂移的测试，**locale 切换机制钉死为测试内 `Locale.setDefault(Locale.forLanguageTag("tr"))` + `finally` 恢复**——先例 `TestLocalReconciliationProcessorLocale`；端到端先例 `TestNopMetaLineageEdgeBizModel`（@NopTestConfig + GraphQL 路径）；不使用 `-Duser.language` argLine 全局注入），确认对当前实现红或以"现状基线断言 + 修复后翻转"双段记录 → **修复前红实测 10 项断言失败**（P1-A 安全 2 处：`allowloadlocalinfile` 全小写变体绕过不抛异常、`insert into` 小写不被 sandbox 拦截；allowed-hosts 混合大小写误拒 ×2；AR-06 消息线索 CONNECTION 失配；CTE 名 I/i 失配误报物理表；SLA 单位 `unknown sla time unit: mınute`（错误消息可见无点 ı）；isStringType 子串误分类 ×2 + `tinyint` tr 归一化失配；e2e `{edgeCount=0, unresolved=[big_item]}` 静默 lineage 缺失）；新增测试清单（Exit Criteria 第 5 条逐项列出）
+- [x] **F2 类别清扫修复**：按同族已修先例形态修复全部 P1 站点（locale 族 → `Locale.ROOT`（机器比较语义）或按裁决的其他处置；精度族 → 沿 AR-10 无损转换先例）；每修一个子族即以**裁决表（权威分母）**核对全部同族站点处置状态（已修 / FP 已按 B1b 裁定处置 / 裁决表豁免理由 / successor 拆分），rg 命中裁决表未收录站点时显式上报归因（见 Current Baseline 权威分母条） → **46/46 修复**：locale 40 → `Locale.ROOT`（10 文件）；C8 `isStringType` → exact-match `Set.of`（沿 AR-05 形态，STRING_TYPE_NAMES 17 词条含 `CHARACTER VARYING`/`VARCHAR_IGNORECASE` 复合词条）；D1/D5/D6 → 结构性 `List` 键（沿 AR-03 形态：`AutoClassificationProcessor` warn 去重键、`NopMetaLineageEdgeQueryAction` seenKeys + existingEdgeMap 键类型 `Map/List<String>`）；E1/E2 → 委托 `AggregationHelper.toBigDecimal`（AR-10 路由形态）。**类别清扫核对（权威分母 = 裁决表）**：locale 40 = 修复 40 + FP 0 + 豁免 0 + successor 0 ✓；contains 19 = 修复 1（C8）+ FP 已处置 18 ✓；delim 6 = 修复 3（D1/D5/D6）+ FP 已处置 3（D2-D4）✓；bigdec 2 = 修复 2 ✓；恒等式 67 = 46 修复 + 21 FP ✓。rg 辅助复扫：残余原始 `.toLowerCase()/.toUpperCase()` 仅 `LocalReconciliationProcessor.java:124` javadoc 伪站点（裁决表/计划已收录归因——注释非代码，扫描器剥离）——**零未收录站点**。D1 探查注记：单一 classificationId 单次调用内拼接键碰撞数学不可达（碰撞需 cid 含 `|`，sys ID 格式排除）——修复依据为类别立场（格式假设依赖 = AR-03 同机理），行为由结构性键保持等价
+- [x] **F3 false-positive 处置落地**：按 I3' B1b 裁定方式落地——方式 (a) baseline 驻留：FP 条目保留在 baseline（不删条目，I5' 时 baseline 重写为该清单）；方式 (b) 放行注释：加 `// invariant-ok: <裁决引用>`（扫描器识别能力由 0820-1 Phase 2 预实现，本计划仅使用该机制）。**P1 集为空时 F1/F2/F4 跳过，F3 仍须按 B1b 执行（如存在 FP 条目）**。保证后续审计可追溯 → **方式 (a) 落地零源码扰动**：修复后 live 命中集 = 21 条（contains 18 + delim 3，均 ⊆ 既有 baseline 61 键，对账 exit 0）；21 键与裁决表 §4/§5 FP 清单一一对应（Phase 2 V2 将 baseline 重写为该 21 键豁免清单）
+- [x] **F4 超时保护**：单个 P1 项修复若超时/受阻，按 Cycle 1 I4 先例拆 successor plan 并在裁决表标注归属，不阻塞其余项 → **机制未触发**：46/46 项全部当批修复落地，零 successor 拆分、零超时
 
 Exit Criteria:
 
-- [ ] I3' 裁决表 P1 集内每项：已修复（含回归测试）或已显式拆 successor（超时机制，附理由）——零第三态；P1 集为空时显式记录 "No P1 items"（F3 如有 FP 条目仍执行，F1/F2/F4 跳过，不作废 plan）
-- [ ] 每个被修子族有类别清扫核对记录（**权威分母 = 裁决表清单**，恒等式：裁决表该族条数 = 修复数 + FP 已处置数 + 豁免数 + successor 拆分数；rg 辅助发现的未收录站点已上报归因）
-- [ ] **端到端验证**（P1 集非空时适用；P1 集为空时显式标注 N/A）：至少一条测试从用户可见入口（BizModel/GraphQL 路径）到受影响输出走通修复语义（如 lineage 生成在测试内 tr-TR 默认 locale 下端到端正确）——组件级单测不能替代
-- [ ] **无静默跳过**：修复不得以吞异常/空实现/静默钳制替代显式失败语义；新增分支未实现时抛异常而非返回默认值
-- [ ] **新功能测试规则**：每个修复项对应的新增测试逐项列出（测试类名 + 验证的行为）；纯标注/处置类 FP 项注明 "No new test required: 标注不改行为"
-- [ ] 受影响 owner-doc（`docs-for-ai/03-modules/nop-metadata.md` 等）同步，或显式写 No owner-doc update required（逐 Phase 裁定）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] I3' 裁决表 P1 集内每项：已修复（含回归测试）或已显式拆 successor（超时机制，附理由）——零第三态；P1 集为空时显式记录 "No P1 items"（F3 如有 FP 条目仍执行，F1/F2/F4 跳过，不作废 plan） → 46/46 修复 + 回归测试，零第三态（修复清单见 F2）
+- [x] 每个被修子族有类别清扫核对记录（**权威分母 = 裁决表清单**，恒等式：裁决表该族条数 = 修复数 + FP 已处置数 + 豁免数 + successor 拆分数；rg 辅助发现的未收录站点已上报归因） → 见 F2 条（逐族恒等式 + rg 零未收录）
+- [x] **端到端验证**（P1 集非空时适用；P1 集为空时显式标注 N/A）：至少一条测试从用户可见入口（BizModel/GraphQL 路径）到受影响输出走通修复语义（如 lineage 生成在测试内 tr-TR 默认 locale 下端到端正确）——组件级单测不能替代 → `TestNopMetaLineageEdgeLocaleAndKeys`（@NopTestConfig localDb）4 例：tr-TR 下 GraphQL mutation `extractLineageFromSql`（`BIG_ITEM` 表 + 小写 SQL 引用 → 修复前 `{edgeCount=0, unresolved=[big_item]}`，修复后 edgeCount=1 + 落库断言）、tr-TR 列级抽取归属、D5 引号 pipe 列名两边各自落库（解析器保引号归一化实测）、D6 重复抽取幂等
+- [x] **无静默跳过**：修复不得以吞异常/空实现/静默钳制替代显式失败语义；新增分支未实现时抛异常而非返回默认值 → 修复均为变换/键形态替换（Locale.ROOT / exact-match 集合 / 结构性键 / 规范实现委托），无新增未实现分支、无吞异常、无默认值占位
+- [x] **新功能测试规则**：每个修复项对应的新增测试逐项列出（测试类名 + 验证的行为）；纯标注/处置类 FP 项注明 "No new test required: 标注不改行为" → ① `TestMetaDataSourceConnectionProcessorLocale`（4）：tr-TR blocklist 大小写变体绕过拦截（P1-A #2/#4）、allowed-hosts 混合大小写匹配（#3/#5）、IPv4-mapped 内网判定路径（#6 latent 钉住）、默认 locale 基线；② `TestMetaQualityRuleExecutorSandboxLocale`（3）：tr-TR 小写 `insert into` sandbox 拦截（P1-A #37）、良性 SELECT 不误拦、默认 locale 基线；③ `TestCheckpointActionDispatcherLocale`（2）：tr-TR webhook allowed-hosts（#32/#35）、默认基线；④ `TestMetaTableProfilerLocale`（3）：tr-TR 全大写消息 CONNECTION/PERMISSION/COMMUNICATION 线索仍判 infra（#26，AR-06 分类漂移防回退）、良性不误报、SQLState 码路径回归；⑤ `TestMetaTableProfilerClassification`（+4）：isStringType exact-match 标准族全量（防过度收缩）、子串复合词条不误分类（C8）、大小写/空白不敏感、tr-TR 小写类型名归一化（#28/#29）；⑥ `TestSqlExtractorsLocale`（3）：tr-TR CTE 名大写声明+小写引用仍排除（#23/#24 + 列级 #13-#22 机制代表）、tr-TR 列级抽取归属、默认基线；⑦ `TestMetaContractCheckerSlaUnitLocale`（2）：tr-TR `MINUTE`/`HOUR`/`DAY`/`Minute` 单位 token 解析（#7；配套 `toDurationMillis` private → package-private 可见性放宽，先例 AR-12 package-private access）、默认基线；⑧ `TestExternalTableStructureReaderLocale`（2）：tr-TR 方言路由不漂移（#40 latent 钉住）；⑨ `TestMemoryFilterAndOrderBy`（+4）：Long>2^53 等值/大于不塌缩（E1）、String 数值字面量数值接线（E1）、排序超精度严格分序（E2）、排序 String 数值接线（E2）；⑩ `TestNopMetaLineageEdgeLocaleAndKeys`（4，端到端）：见上条。**FP 处置 21 项：No new test required: 标注不改行为（方式 (a) baseline 驻留，零源码变更）**。合计新增 31 tests（1175 → 1207 断言级 32 处含分类测试既有重计数）
+- [x] 受影响 owner-doc（`docs-for-ai/03-modules/nop-metadata.md` 等）同步，或显式写 No owner-doc update required（逐 Phase 裁定） → `nop-metadata.md` 两处：① AR-10 段 Non-Goal（比较路径留作 optimization candidate）改写为 E1/E2 已对齐段落（旧裁定被推翻的事实同步）；② AR-12 条后新增 INV-LOCALE 全量 locale-insensitive 段（40 处清扫 + 2 处安全缺陷 + C8 exact-match + D1/D5/D6 结构性键，防回退门禁指路）
+- [x] `ai-dev/logs/` 对应日期条目已更新 → `ai-dev/logs/2026/08-15.md` Phase 1 小节
 
 ### Phase 2 — I5' 全量验证与门禁棘轮收口
 
