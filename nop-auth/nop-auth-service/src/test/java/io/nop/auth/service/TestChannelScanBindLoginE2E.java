@@ -31,6 +31,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.CoreConstants;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.sql.SQL;
+import io.nop.core.unittest.VarCollector;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.dao.jdbc.IJdbcTemplate;
@@ -150,6 +151,13 @@ class TestChannelScanBindLoginE2E {
 
     @BeforeEach
     void setUp() {
+        // Other test classes in the same surefire fork (forkCount=1C, parallel=classes)
+        // run the AutoTest lifecycle, whose complete() resets the shared static
+        // VarCollector to null. The real LoginApiBizModel.buildLoginResult calls
+        // VarCollector.instance().collectVar(...), so restore the production default
+        // here to keep this self-wired E2E independent of fork scheduling order.
+        if (VarCollector.instance() == null)
+            VarCollector.registerInstance(new VarCollector());
         buildH2Stack();
         wireRealBeans();
     }
