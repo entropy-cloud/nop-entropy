@@ -106,6 +106,7 @@
 - 组内候选的选择顺序**不固定**，由**可插拔选择策略**（策略接口，归属 nop-ai-core，§4.1）决定。策略输入：请求、候选集、各候选健康状态（熔断/并发/冷却）、**本轮已尝试的候选集**；输出：选中候选。
 - **默认策略**：健康度 + 并发感知的有序回退（熔断 OPEN / 并发饱和的候选跳过，其余按声明顺序）——与既有 `AccountChain` 语义一致。
 - **规则配置（可选实现）**：选择策略可通过规则配置（XLang 规则 DSL）自定义，如按成本/权重/时段/请求属性选择候选；规则策略与默认策略为同一接口的两种实现，可替换。
+  - **落地状态（2026-08-15，W5b，plan `2026-08-15-1116-1`）**：规则策略已落地——`RuleBasedSelectionStrategy`（`io.nop.ai.core.routing`，消费 `IRuleManager` 执行 `rule.xdef` 决策树），规则输入/输出契约与语义分支见 §五 Q10；IoC bean 注册于 nop-ai-gateway（部署面 opt-in，不覆盖默认策略）。
 - 熔断、冷却、探活**复用下沉后的既有机制**，不新建：
   - `ThresholdBreaker` 既有语义：CLOSED（连续失败达阈值 → OPEN）→ OPEN（拒绝调用，冷却期满 → HALF_OPEN）→ HALF_OPEN（放行一个探活调用，成功 → CLOSED 并清零失败计数，失败 → 回到 OPEN 并重启冷却）。
   - **熔断粒度：`provider:model` 复合键**（既有实现，`buildModelKey`）。同一模型类内多账号连续失败记账跨账号累计；此行为沿用既有语义，不扩展熔断键维度。
@@ -118,12 +119,13 @@
   - **主动路径不走 provider 链**（决策）：主动路径是**预检语义**（未发生失败事件），跨 provider 决策留给被动失败路径——避免无失败证据的 provider 级乒乓；且并发饱和是**瞬态资源状态**（进行中请求会释放）。故主动路径仅在**候选集内**游走；被动失败路径（候选耗尽）才经 provider 链扩展候选集（§4.3）。"所有候选"指当前模型类内全部候选。
 - 账号池**健康状态为进程内状态**（多实例一致性为显式 non-goal，见 §3.6）。
 
-**落地状态（2026-08-15，W5 收口，plan `2026-08-15-0849-2`）**：本节机制已全部落地 nop-ai-core——
-模型类路由组（`model-class.xdef` 配置面 + `LlmConfigHelper.resolveModelClass`/
-`resolveModelClassCandidates`，Q8 裁定 = 新建配置面）、动态选择机制（`ISelectionStrategy` +
-`DefaultSelectionStrategy`，规则策略拆 successor plan，见 §五 Q10）、候选集游走 + 并发记账 +
-全池饱和 fail-loud（`ModelClassRouter`/`ConcurrencyRegistry`，`io.nop.ai.core.routing` 包，
-错误码 `ERR_AI_MODEL_CLASS_SATURATED`）。其中 in-core 交付的是**游走原语**（纯选择机制——
+**落地状态（2026-08-15，W5 收口，plan `2026-08-15-0849-2`；W5b 收口，plan `2026-08-15-1116-1`）**：
+本节机制已全部落地 nop-ai-core——模型类路由组（`model-class.xdef` 配置面 +
+`LlmConfigHelper.resolveModelClass`/`resolveModelClassCandidates`，Q8 裁定 = 新建配置面）、
+动态选择机制（`ISelectionStrategy` + `DefaultSelectionStrategy` 落地；**规则策略
+`RuleBasedSelectionStrategy` 由 W5b 收口**——rule.xdef DSL + IoC bean 绑定，见 §五 Q10）、
+候选集游走 + 并发记账 + 全池饱和 fail-loud（`ModelClassRouter`/`ConcurrencyRegistry`，
+`io.nop.ai.core.routing` 包，错误码 `ERR_AI_MODEL_CLASS_SATURATED`）。其中 in-core 交付的是**游走原语**（纯选择机制——
 router 不记熔断失败，失败记账归编排层）；网关切换/缓冲/重试编排归 W6/W7 消费（见 §4.1 归属解读）。
 
 ### 3.4 账号配置（复用既有解析链）
@@ -134,7 +136,7 @@ router 不记熔断失败，失败记账归编排层）；网关切换/缓冲/�
 - **模型类分组配置（新增工作项）**：模型类（级别）→ 候选集（模型 + 账号组合）的声明，形态待定（选项：① 扩展 `llm.xdef`/`llm-failover.xdef` 增加 model-class 分组；② 新 `model-class.xdef` 配置面）。候选可引用 `{provider}.llm.xml` `<accounts>` 与 `llm-failover.xdef` provider 链。
   - **落地状态（2026-08-15，W5，plan `2026-08-15-0849-2`）**：**Q8 裁定 = 选项②新建 `model-class.xdef` 配置面**（模型类候选集是跨 provider 全局语义，与 `llm.xdef` per-provider 结构、`llm-failover.xdef` provider 级链语义不同层；新 xdef 保持既有 xdef 零改动）。配置面 = `nop-kernel/nop-xdefs/.../ai/model-class.xdef`（`xdef:name="ModelClassConfig"`，bean 包 `io.nop.ai.core.model`）+ opt-in 文件 `/nop/ai/llm/_default.model-class.xml`；候选 = provider（必填）+ model（可选 = provider defaultModel）+ accountRef（可选 = 单账号；缺省 = 主账号 + 有序账号链）；归属 = 显式成员声明（members 清单，model 名全局匹配，首个声明命中胜出）；未归属 = 无路由组零回归。
 - **动态选择策略配置（新增工作项）**：选择策略为策略接口，默认策略无需配置；规则配置（XLang 规则 DSL）为可选实现，规则文件经 IoC bean 绑定到网关/适配器。
-  - **落地状态（2026-08-15，W5，plan `2026-08-15-0849-2`）**：策略接口 + 默认策略已落地（`ISelectionStrategy`/`DefaultSelectionStrategy`，健康度 + 并发感知 + 声明序）；**规则策略（Q10）裁定拆至 successor plan**（策略接口即扩展点，无需额外预留；见 §五 Q10 与 roadmap/backlog 登记）。
+  - **落地状态（2026-08-15，W5，plan `2026-08-15-0849-2`；W5b，plan `2026-08-15-1116-1`）**：策略接口 + 默认策略已落地（`ISelectionStrategy`/`DefaultSelectionStrategy`，健康度 + 并发感知 + 声明序）；**规则策略 W5b 收口**——`RuleBasedSelectionStrategy`（rule.xdef DSL + `IRuleManager` 消费）+ bean 注册（nop-ai-gateway `ai-gateway-defaults.beans.xml`，`ruleManager` ref `nopRuleManager` `ioc:optional` + ruleName/ruleVersion 属性）；规则输入/输出契约与语义分支见 §五 Q10。
 - 密钥路径区分（既有行为）：
   - **主账号**：`accountKey > credentialId > resolveApiKey`（nop-credential 可接入）。
   - **备用账号**：`<accounts>` 中的 `apiKey` 直接下沉为 `accountKey`（优先级最高），凭证链不作用于备用账号；密钥保护依赖配置级 `@sec:` 加密注入。**不在新位置引入明文 apiKey**。
@@ -217,6 +219,13 @@ ollama, responses}）全绿；`ILlmDialect` javadoc/UOE 消息已同步（"one-w
 > "网关游走/切换/缓冲/重试编排归 nop-ai-gateway"与"模型类候选集 + 选择策略 + 游走原语归 nop-ai-core"
 > 两行不冲突：W5 落地的是后者（原语），前者（编排）由 W6/W7 消费原语实现。W6/W7 审计时不得将
 > "router 未编排调用"误判为归属矛盾。
+>
+> **W5b 归属核查记录（plan `2026-08-15-1116-1`）**：归属表"选择策略接口 + 默认/规则策略 | nop-ai-core"
+> 与 W5b 交付核查一致——规则策略类（`RuleBasedSelectionStrategy`）落 nop-ai-core
+> `io.nop.ai.core.routing`（通用 LLM 选择能力，服务网关/适配器/agent 引擎所有形态），nop-ai-core
+> 新增 `nop-rule-core` 编译依赖（nop-rule-core 依赖链 = nop-rule-api/nop-xlang/nop-ooxml-xlsx，
+> 无任何 nop-ai 引用 = 无环，实证）；策略 bean 注册在 nop-ai-gateway（部署面 opt-in，ioc:optional
+> ref 不强制容器具备规则引擎）。归属表无需修订。
 
 ### 4.2 分层
 
@@ -322,7 +331,7 @@ flowchart LR
 | 7 | **流式重订阅可行性**：网关形态字节流层"缓冲 + 重订阅替换 publisher"与 `StreamingProcessor`（`StreamingResponse` 在路由执行期已建立）的耦合——需在实现计划前确认机制可行（缓冲层持 publisher 引用、替换式重订阅） | 流式 failover 核心机制 |
 | 8 | ~~模型类分组配置形态~~ **已决（W5，plan `2026-08-15-0849-2` Phase 1）**：**新建 `model-class.xdef` 配置面**（选项②）——模型类候选集是跨 provider 全局语义，与 `llm.xdef` per-provider 结构、`llm-failover.xdef` provider 级链语义不同层；新 xdef 保持既有 xdef 零改动、零回归面最小。opt-in 文件 `/nop/ai/llm/_default.model-class.xml`，归属 = 显式成员声明（members，model 名全局匹配，首个声明命中） | 配置面结构 |
 | 9 | ~~动态选择策略默认策略细节~~ **已决（§3.3，W5 已落地）**：默认策略 = 健康度 + 并发感知 + 声明序，不含权重/成本（成本/权重委托规则策略）——`DefaultSelectionStrategy` 已落地；剩余：规则策略 DSL 形态（并入 Q10） | — |
-| 10 | ~~规则配置策略的 DSL 形态（XLang 规则）与绑定方式（IoC bean 注入）~~ **已决（W5，plan `2026-08-15-0849-2` Phase 1）**：**拆至 successor plan**（out-of-scope improvement——roadmap ROUTE-03 标注"可选实现"）；`ISelectionStrategy` 接口即扩展点（规则策略 = 同一接口的另一种实现），无需额外预留；IoC bean 绑定方式留 successor。roadmap/backlog 已登记（Q10 successor） | 可扩展性 |
+| 10 | ~~规则配置策略的 DSL 形态（XLang 规则）与绑定方式（IoC bean 注入）~~ **已决并落地（W5b，plan `2026-08-15-1116-1`）**：DSL 形态 = 平台既有 `rule.xdef`（原 W5 裁定拆 successor，由 W5b 收口）；IoC 绑定 = 规则策略 bean 注册于 nop-ai-gateway `ai-gateway-defaults.beans.xml`（`nopAiRuleBasedSelectionStrategy`，`ruleManager` ref `nopRuleManager` 带 `ioc:optional`——未部署 nop-rule 的容器可启动、首用 fail-fast；ruleName/ruleVersion bean 属性）；模块归属 = nop-ai-core `io.nop.ai.core.routing`（§4.1 归属表一致），nop-ai-core 新增 nop-rule-core 编译依赖（nop-rule-core 不依赖 nop-ai-core = 无环）。**规则契约（W5b 落档）**：输入 = model/provider/candidates/health/attempted（**不含 accountKey**——备用账号 apiKey 明文安全裁定；health 键 = Integer 候选 index）；输出 = `selectedIndex`（int，**不得 mandatory**——`NormalizeOutputExecutableRule` 未命中也校验输出）；XML 规则文件访问列表/映射元素须用 **computed 输入**派生辅助变量（`<expr>` filter op 在 XML 中不可用——body 不编译进 value attr，执行期实证）；未命中/无输出 → null（调用方 fail-loud），越界/命中已尝试 → `ERR_AI_AGENT_INVALID_ARG` fail-loud；单例 stateless（每 select 新建 ruleRt）。落地证据：`RuleBasedSelectionStrategy` + 13 策略用例 + 2 IoC 用例 + 接线/端到端测试（全绿） | 可扩展性 |
 | 11 | LLM 可靠性子集下沉的迁移兼容：`NopAiAgentException`/`NopAiAgentErrors` → nop-ai-core 等价物、`buildModelKey` 移入、既有 nop-ai-agent 测试/API 调用方迁移影响面 | 重构风险 |
 
 ## 六、拒绝了什么
