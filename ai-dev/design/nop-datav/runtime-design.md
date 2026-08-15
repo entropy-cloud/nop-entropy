@@ -1,7 +1,7 @@
 # nop-datav 运行时设计 (D1)
 
 > Status: **final**
-> Last Reviewed: 2026-08-14
+> Last Reviewed: 2026-08-15
 
 ## 概述
 
@@ -212,7 +212,7 @@ DashboardDataResult
 ### 4.4 上限与执行模式（D4 裁定）
 
 - 面板数量上限：配置项 `nop.datav.dashboard-query.max-panels`（`NopDatavConfigs.CFG_DATAV_DASHBOARD_QUERY_MAX_PANELS`，默认 50）。纳入集面板数超上限 → 显式拒绝（`ERR_DATAV_DASHBOARD_PANEL_LIMIT_EXCEEDED`），且校验发生在任何面板查询执行之前（防单请求放大为海量 SQL）
-- 执行模式：**N 个面板顺序执行**（对齐 `exportDashboard` 先例）。并行查询（线程池化）列为后续优化（连接池占用与并发语义是独立风险面）
+- 执行模式：原裁定「N 个面板顺序执行」**已被 §八 supersede**（plan `2026-08-15-0004-3` 落地有界并行）——现行行为：默认有界并行执行（`nop.datav.dashboard-query.parallel.enabled`，默认 true，详见 §8.1），开关关闭或面板数 ≤1 时回落本节顺序路径。两种模式下 D3/D4 语义不变式逐条等价（仅 NopException 为面板级失败、条目顺序跟随 sortOrder、无数据集面板条目保留、上限校验先于任何查询）
 
 ### 4.5 数据源与发布状态（D5 裁定）
 
@@ -249,6 +249,10 @@ DashboardDataResult
 | **采用：直接读 `NopReportDataset.dsText` + `IJdbcTemplate`** | 复用已注入的 IJdbcTemplate；查询路径简短；dsType 非 sql 时快速失败 |
 
 ### 批量查询：并行执行 vs 顺序执行
+
+> **Supersession**：下表为批量查询 plan（2026-08-14-2020-2）时点的裁定。并行执行已由 §八
+> （plan `2026-08-15-0004-3`）落地，本表「拒绝并行」结论**不再有效**，保留仅为决策历史索引。
+> 现行终局裁定：默认有界并行执行（§8.1），连接池占用与并发语义风险面已由 §8.2 安全边界裁定收敛。
 
 | 方案 | 拒绝理由 |
 |------|---------|
@@ -292,3 +296,65 @@ DashboardDataResult
 - 重建维度/度量建模（复用 nop-metadata）
 - DatasetRef 与 nop-metadata 维度/度量的字段映射元数据运行时解析（预留扩展点，后续 enhancement）
 - 自动定时刷新调度（前端按 interval 调用刷新 API 即可；服务端调度归 D5）
+
+## 八、并行执行与结果缓存（D1-2 deferred follow-up；supersede §4.4 顺序执行裁定与 §五并行拒绝裁定）
+
+对 §四 批量查询 API `getDashboardData` 的性能收口：面板查询从「N 面板 = N 次串行 SQL」升级为有界并行执行，并对重复查询（相同数据集 + 相同求值参数 + 相同行数约束）引入进程内结果缓存。两项均由批量查询 plan（2026-08-14-2020-2）显式 defer 至本节。语义不变式（D3/D4）在并行与缓存下保持：仅 NopException 为面板级失败条目、条目顺序跟随 sortOrder、无数据集面板条目保留、上限校验先于任何查询。
+
+### 8.1 并行执行模型（P1 裁定）
+
+- 执行器：复用平台共享工作线程池 `GlobalExecutors.globalWorker()`（daemon 线程、平台统一生命周期管理、容量由 `nop.commons.concurrent.global-worker.maxPoolSize` 约束，默认 30）。不为本功能新建线程池——先例 `NopDatavExportTaskBizModel` / `ReportDeliveryExecutor` 的异步执行均提交 globalWorker。无每请求 executor 创建/销毁，无线程泄漏面。
+- 请求内并行度：`nop.datav.dashboard-query.parallelism`（默认 4）为请求内信号量许可数；任务在执行体内进入查询前获取许可、finally 释放——排队任务不占许可，单请求同时在飞查询上界 = parallelism。
+- 错误归集（并发下保持 D3 两级失败语义）：面板任务内捕获 NopException → 面板级失败条目（与顺序版同构）；非 NopException → 任务以异常完成，请求线程 join 全部任务后按面板顺序（sortOrder）重抛第一个非 NopException 异常（看板级失败传播，确定性）。执行器拒绝任务（RejectedExecutionException）与 join 中断均显式传播，无任务静默丢弃导致的条目缺失。
+- 结果重排：任务结果按面板下标归位，响应条目顺序恒等于顺序版（sortOrder）。
+- 测试可观测 seam（支撑确定性断言，非计时推断）：
+  - 面板任务装饰器 hook（可设置，生产恒空）：测试注入 latch/并发计数器，证明 ≥2 面板查询重叠执行且最大在飞数 ≤ parallelism
+  - 执行器 getter（默认返回 `GlobalExecutors.globalWorker()`）：跨请求 identity 断言证明共享复用，无每请求新建/关闭
+- 开关：`nop.datav.dashboard-query.parallel.enabled`（默认 true）。关闭（或面板数 ≤1）时走原顺序路径，与现状逐条等价。
+
+### 8.2 并行安全边界（P2 裁定）
+
+- `PanelDataBinder` 每请求单实例、全面板任务共享：字段全 final、无可变实例状态，并发调用安全；`PanelComponentRegistry` / `PanelTypeMapping` 静态初始化后只读（不可变 Map），线程安全。
+- dao 读路径在 worker 线程安全：面板查询链路仅含读操作（DatasetRef / NopReportDataset 的 `getEntityById` + `jdbcTemplate.executeQuery`，无 session 写）。**worker 任务整体以 `ormTemplate.runInNewSession` 包裹**——平台 worker 线程 DB 访问先例（`NopDatavExportTaskBizModel.submitExecution` / `ReportDeliveryExecutor.execute`）：session 及其事务注册随任务开闭，杜绝 worker 线程残留事务状态；任务内全部 dao/jdbcTemplate 调用复用同一 session（避免逐 dao 调用反复开闭 session）。
+- thread-local 上下文传播（必须）：dao 层消费 `ContextProvider.currentTenantId()`（`GenSqlHelper` 租户列过滤、`TenantAwareOrmModelProvider`、`TenantOrmSessionEntityCache`），`JdbcHelper.getQueryTimeout` 消费 callExpireTime（`JdbcHelper.java:250`）。裁定：**每面板任务新建 context 并从调用方 context 拷贝 tenant/locale 等属性**（`ContextProvider.propagateContext`），经 `IContext.executeWithContext`（`IContext.java:132`）绑定执行——tenant/locale/超时语义与顺序版一致；**禁止多 worker 共享调用方同一 context 对象**：平台 `TransactionRegistry` 挂在 context 上（`TransactionRegistry.instance()` 经 `getOrCreateContext()` 定位），并发共享同一 context 会导致事务注册表交错损坏（平台对同 context 并发执行有显式 WARN `nop.warn.context.concurrent-execute-with-same-context`）。
+- 资源上界：单请求并发连接占用 = parallelism（默认 4）× 并发请求数，且受 globalWorker 容量（默认 30）总约束；`max-panels`（默认 50）约束任务总数（排队任务不占连接/许可）。
+
+### 8.3 查询结果缓存形态（P3 裁定）
+
+- 事实：nop-report 无数据集查询缓存抽象（全 nop-report 仅有 `XptRuntime` 公式缓存，与数据集查询无关，已核实）；nop-datav-service 依赖集刻意收窄为 nop-report-dao。roadmap 原「数据集查询缓存复用 nop-report」为空洞前提，已纠正为：nop-datav 批量路径查询结果缓存按 nop 标准缓存抽象（`io.nop.commons.cache`）实现，不复用也不重建 nop-report 缓存内核。
+- 形态：平台 `LocalCache` + `CacheConfig`（进程内、Caffeine 内核、单节点语义；模块先例 `NopDatavShareAccessGuard`）。缓存组件位于 nop-datav-service 查询包，容量/TTL/准入由 §8.5 配置驱动。
+- 接入点：固定为 `getDashboardData` 批量路径。实现为 `PanelDataBinder` 增加「可选缓存参数」重载（不传 = 不缓存），既有调用方（getPanelData / refreshPanel / exportDashboard / AlertEvaluator）不传缓存、行为逐字节等价；缓存键在 binder 参数求值之后构造，不复制求值逻辑（与 §四「共用同一 PanelDataBinder 管线」契约一致）。
+- 集群边界：进程内缓存为单节点语义——每节点独立缓存与 TTL 计时，无跨节点失效/一致性；集群部署下 staleness 上界仍为各节点本地 TTL。分布式缓存为 Non-Goal。
+
+### 8.4 缓存键与失效契约（P4 裁定）
+
+- 键组成 = `refDatasetId`（数据集身份）+ 求值后参数（paramMapping × 请求参数的求值终值，含 defaultValue 展开）+ rowLimit（行数约束；批量路径恒为不限制）。求值结果 Map 顺序由 paramMapping 决定 → 序列化确定，无键碰撞；componentType / panelId 不入键（SQL 结果与面板呈现无关；命中后以当前面板的 panelId/componentType 重建响应字段，rows/columns 复用缓存实例）。同看板多面板共享同数据集同参数 → 命中同一缓存条目（请求内去重为预期特性而非碰撞）。
+- 失效策略 = TTL-only（expireAfterWrite）。nop-report 侧无数据集实体变更事件机制（已核实，平台亦无现成跨模块事件先例）→ 显式降级为 TTL 契约：**数据集配置（SQL 文本等）与业务数据在 TTL 窗口内的变更对 `getDashboardData` 不可见，staleness 上界 = TTL（默认 30s）**。
+- 无数据集面板条目：不缓存（零成本重建，每次重算）。面板级失败条目：不缓存——缓存失败会把瞬时 SQL 故障在 TTL 内固化（可用性劣化）；失败面板每次直查，故障恢复即自愈，与「缓存永远不让错误固化」取向一致（失败路径 binder 抛 NopException，本就不产生可缓存值，缓存仅在成功路径写入）。
+- 缓存读写异常：缓存基础设施故障显式 WARN 记录并降级直查——绝不因缓存故障返回错误数据（正确性优先于可用性增益，非吞异常）。
+- 缓存值共享语义：`PanelDataResult` 按不可变契约对待（columns/rows 为 unmodifiable 包装，仓库内调用方仅序列化消费、不变更），命中返回共享实例不做深拷贝。
+
+### 8.5 配置项与默认值（P5 裁定）
+
+| 配置项 | 默认 | 语义 |
+|--------|------|------|
+| `nop.datav.dashboard-query.parallel.enabled` | true | 并行开关；关闭时走原顺序路径，与现状逐条等价 |
+| `nop.datav.dashboard-query.parallelism` | 4 | 请求内并行度上界（<1 视为 1） |
+| `nop.datav.dashboard-query.cache.enabled` | false | 缓存开关（保守默认关：TTL 缓存引入用户可见 staleness，是否接受属部署决策，opt-in） |
+| `nop.datav.dashboard-query.cache.ttl-seconds` | 30 | 缓存 TTL（staleness 上界） |
+| `nop.datav.dashboard-query.cache.max-entries` | 200 | 缓存条目容量上界（容量驱逐） |
+| `nop.datav.dashboard-query.cache.max-rows-per-entry` | 1000 | 单条目行数准入上界：结果超限不缓存（每次直查），不截断——绝不从缓存返回截断数据 |
+
+- 单条目体量上界：运行时批量路径 rowLimit=null 行数无界 → 以 max-rows-per-entry 为缓存准入门槛，内存上界 = max-entries × max-rows-per-entry × 行体量，显式有界（默认配置约 200×1000 行量级，几十 MB 量级 worst case）。
+- 默认值取向：并行默认开（语义等价性有 focused tests 证明，无行为差异，直取 Purpose 收益）；缓存默认关（staleness 为用户可见语义变化，保守 opt-in）。TTL / max-entries / max-rows-per-entry 变更在缓存实例重建后生效（进程重启或测试重置钩子）。
+
+### 8.6 拒绝的替代方案
+
+| 方案 | 拒绝理由 |
+|------|---------|
+| 每请求/全局新建专用线程池 | 引入线程生命周期管理面；平台 globalWorker 已有界且被既有异步路径复用（先例 NopDatavExportTaskBizModel / ReportDeliveryExecutor） |
+| 复用 nop-report 缓存抽象 | 不存在（nop-report 仅有 XPT 公式缓存，与数据集查询无关，已核实）；重建 nop-report 缓存内核为 roadmap 禁止项 |
+| 缓存接入 PanelDataBinder 全路径（含 getPanelData/refreshPanel/exportDashboard/AlertEvaluator） | 改变告警路径查询语义——告警的缓存 staleness 是正确性问题而非优化（plan Non-Goal 显式排除） |
+| single-flight 同键并发 miss 去重 | 会把 SQL 执行纳入缓存加载函数、同键串行化、异常传播语义复杂化；并发重复 miss 已受 parallelism 约束，代价可接受 |
+| 截断超限结果入缓存 | 缓存返回截断数据 = 返回错误数据；正确性优先（裁定为超限不缓存而非截断） |
+| 分布式缓存（Redis 等进程外缓存） | Non-Goal（引入部署依赖；单节点 TTL 语义已覆盖 Purpose） |
