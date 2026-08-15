@@ -37,8 +37,7 @@
 | 跨 provider 故障转移声明（有序 provider 优先级表，opt-in） | `nop-kernel/nop-xdefs/.../ai/llm-failover.xdef` | 已实现（provider 级链，含 model 覆盖） |
 | 网关级非流式 URL fallback | nop-gateway `AiFailoverGatewayInterceptor` | 已实现，仅非流式、URL 级 |
 | 网关级格式转换 | nop-ai-gateway `AiDialectBackendMessageConverter` | 已实现，**非流式**（stream=false 硬编码，`AiDialectBackendMessageConverter.java:53`） |
-| `ILlmDialect.parseRequestBody` 双向转换 | nop-ai-core `ILlmDialect`（仅 `OpenAiDialect.java:62` 实现，其余 dialect 的 default 抛 `UnsupportedOperationException`，`ILlmDialect.java:240-242`） | **不完整**，仅 OpenAI 前端 |
-| 账号级并发限流 | 无 | **不存在**（`_LlmAccountModel` 无并发字段） |
+| `ILlmDialect.parseRequestBody` 双向转换 | nop-ai-core `ILlmDialect`（仅 `OpenAiDialect.java:62` 实现，其余 dialect 的 default 抛 `UnsupportedOperationException`，`ILlmDialect.java:240-242`） | **不完整**，仅 OpenAI 前端 || 账号级并发限流 | 无 | **不存在**（`_LlmAccountModel` 无并发字段） |
 | 模型类路由组（级别 → 候选集） | 无（`llm-failover.xdef` 是 provider 级链，非模型类级） | **不存在** |
 | 动态选择策略（规则可配置） | 无（仅固定顺序 `AccountChain` 游标） | **不存在** |
 
@@ -164,9 +163,19 @@
 
 两方向均属 nop-ai-core 的 `ILlmDialect` 改动，列入 §四.3 裁决为新增工作项（非"沿用"）。
 
+**落地状态（2026-08-15，W4 收口，plan `2026-08-15-0849-1`）**：本节要求已全部补全——
+5 个 dialect（openai/anthropic/gemini/ollama/responses）的 `parseRequestBody` 全部可用
+（Anthropic/Gemini/Ollama/Responses 4 个为新增实现，OpenAI 既有）；`buildResponse`/
+`buildStreamChunk` 由 Anthropic/Gemini/Ollama/Responses 逐 dialect 覆写产出 Provider 原生格式，
+OpenAI 继承 default（default 即 OpenAI 格式，通用网关兜底）。双向转换参数化测试
+（`TestDialectBidirectionalConversion`，5 dialect × 请求/响应/流式方向 + roundtrip + E2E 闭环）、
+converter 接线测试（`AiDialectBackendMessageConverterTest` frontendLlm ∈ {anthropic, gemini,
+ollama, responses}）全绿；`ILlmDialect` javadoc/UOE 消息已同步（"one-way OpenAI→Provider only"
+表述移除）。
+
 **与 `01-architecture.md` 的偏离声明**：该文档与 converter 的既有假设是"前端恒为 OpenAI 格式"（`AiDialectBackendMessageConverter` javadoc："frontendLlm = ApiStyle.openai（客户端发送的格式，默认 OpenAI）"）。本需求将前端格式放开为任意 dialect，是对该假设的**显式偏离**，需同步更新 `01-architecture.md` 相关表述。
 
-**附带改动**：`ILlmDialect.parseRequestBody` 的 javadoc 与 UOE 消息文本（"Current gateway supports one-way OpenAI→Provider only"）需同步更新，避免误导。
+**附带改动（已落地）**：`ILlmDialect.parseRequestBody` 的 javadoc 与 UOE 消息文本（原 "Current gateway supports one-way OpenAI→Provider only" 表述）已同步更新为通用语义（"not implemented for this dialect: " + getName()），避免误导。
 
 ## 四、核心设计（初步架构）
 

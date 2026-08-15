@@ -22,8 +22,8 @@
 - W1. 前置 spike：流式重订阅可行性验证 + 决策暴露（Q7：网关字节流层"缓冲 + 替换式重订阅"与 `StreamingProcessor`/`StreamingResponse` 路由期绑定的耦合验证；同时将 Q2（前端 model 参数语义）、Q5（RATE_LIMITED/TRANSIENT → 账号链切换偏离确认）暴露为人机决策点）：`done`
 - W2. LLM 可靠性子集下沉 nop-ai-core（ThresholdBreaker/ICircuitBreaker/CircuitState/AccountChain/IAccountChainResolver/ProviderFailoverChain/ProviderFailoverQueue/IProviderFailoverQueue/IProviderFailoverChainResolver/LlmErrorClassifier/IRetryPolicy/StandardRetryPolicy/NoRetryPolicy/RetryContext/RetryDecision/RetryOutcome/AlwaysClosed/NoOpProviderFailoverQueue + NopAiAgentErrors/NopAiAgentException 迁移 + buildModelKey 移入；nop-ai-agent 调用方适配；既有测试迁移；nop-ai-agent-reliability.md 模块归属同步）：`done`
 - W3. llm.xdef 配置面扩展（`concurrencyLimit` 字段：provider 级缺省 + 账号级覆盖，缺省不限制零回归；protected area plan-first + codegen 再生成）：`done`
-- W4. ILlmDialect 双向转换补全（parseRequestBody 补全 Anthropic/Gemini/Ollama/Responses 五 dialect + buildResponse/buildStreamChunk 逐 dialect + javadoc/UOE 消息更新 + 双向转换测试）：`todo`
-- W5. 模型类路由组 + 动态选择策略（nop-ai-core：model-class 数据结构与解析 + 选择策略接口 + 默认策略（健康度+并发感知+声明序）+ 规则策略（XLang 可选）；配置形态按 Q8 在 plan 阶段裁决；**粒度约束：若预估超出单 plan 规模（数据结构/接口/默认策略 与 游走/并发记账/规则策略 为两组可拆工作），plan-first 先行拆分裁定，不硬撑单文件**）：`todo`
+- W4. ILlmDialect 双向转换补全（parseRequestBody 补全 Anthropic/Gemini/Ollama/Responses 五 dialect + buildResponse/buildStreamChunk 逐 dialect + javadoc/UOE 消息更新 + 双向转换测试）：`done`（plan `2026-08-15-0849-1`，2026-08-15 独立 closure audit closure-approve：12 新方法 + 20 参数化双向转换测试（roundtrip/E2E 三方向闭环）+ 12 converter 接线测试（frontendLlm 4 dialect）+ 文档同步）
+- W5. 模型类路由组 + 动态选择策略（nop-ai-core：model-class 数据结构与解析 + 选择策略接口 + 默认策略（健康度+并发感知+声明序）+ 规则策略（XLang 可选）；配置形态按 Q8 在 plan 阶段裁决；**粒度约束：若预估超出单 plan 规模（数据结构/接口/默认策略 与 游走/并发记账/规则策略 为两组可拆工作），plan-first 先行拆分裁定，不硬撑单文件**）：`planned`
 - W6. 本地 IChatService 适配器 + 流式 failover（nop-ai-gateway：包装 ChatServiceImpl + accountKey/accountBaseUrl/model 下沉 + chunk 流层首段缓冲/重订阅）：`todo`
 - W7. 网关形态：拦截器 + converter 扩展（nop-ai-gateway：IGatewayInterceptor 实现 + AiDialectBackendMessageConverter 流式扩展（stream=true）/per-request 动态 dialect/目标 provider LlmModel config + 字节流层缓冲/重订阅，依赖 W1 spike 结论）：`todo`
 - W8. 可观测性指标 + 回归测试收口 + docs-for-ai 同步（切换次数/熔断状态/冷却/饱和指标契约；全链测试；使用文档）：`todo`

@@ -38,16 +38,20 @@ nop-ai-core (ILlmDialect, LlmDialectFactory, ApiStyle, ChatServiceImpl)
 
 ```
 buildBody(ChatRequest) → Map         ← ChatRequest → Provider请求体（已有）
-parseRequestBody(Map) → ChatRequest  ← Provider请求体 → ChatRequest（新增）
+parseRequestBody(Map) → ChatRequest  ← Provider请求体 → ChatRequest（已补全）
 
 parseResponse(String) → ChatResponse  ← Provider响应 → ChatResponse（已有）
-buildResponse(ChatResponse) → Map     ← ChatResponse → 前端响应（新增）
+buildResponse(ChatResponse) → Map     ← ChatResponse → 前端响应（已补全）
 
 parseStreamChunk(String) → Chunk     ← Provider流 → ChatStreamChunk（已有）
-buildStreamChunk(Chunk) → Map        ← ChatStreamChunk → 前端delta（新增）
+buildStreamChunk(Chunk) → Map        ← ChatStreamChunk → 前端delta（已补全）
 ```
 
-默认的 `buildResponse`/`buildStreamChunk` 产生 OpenAI 格式（通用网关前端格式）。
+**双向转换状态（W4 落地后）**：5 个 dialect（openai/anthropic/gemini/ollama/responses）的 `parseRequestBody`
+全部可用（OpenAI 既有 + Anthropic/Gemini/Ollama/Responses 4 个补全）；`buildResponse`/`buildStreamChunk`
+由 Anthropic/Gemini/Ollama/Responses 逐 dialect 覆写产出 Provider 原生格式，OpenAI 继承 default
+（default 即 OpenAI 格式，作为通用网关兜底）。"任意前端格式 ↔ 任意 Provider 后端格式"在请求和响应
+两个方向闭环。设计偏离声明见 `02-account-failover-requirement.md` §3.7（"前端恒 OpenAI" 假设已放开）。
 
 ### AiDialectBackendMessageConverter 数据流
 
@@ -70,13 +74,16 @@ toFrontendStreamChunk():
 
 ### 配置方式
 
-通过 IoC bean 属性配置 `frontendLlm` 和 `backendLlm`，支持任意两端格式：
+通过 IoC bean 属性配置 `frontendLlm` 和 `backendLlm`，支持任意两端格式（前端可为任意 dialect，
+不限于 OpenAI——W4 起 `parseRequestBody`/`buildResponse`/`buildStreamChunk` 全部 dialect 可用）：
 
 | 场景 | frontendLlm | backendLlm | 效果 |
 |------|-------------|------------|------|
 | 客户端OpenAI→后端Anthropic | openai | anthropic | OpenAI请求→Anthropic请求，响应自动反转 |
 | 客户端OpenAI→后端Gemini | openai | gemini | OpenAI请求→Gemini请求 |
 | 客户端OpenAI→后端Ollama | openai | ollama | OpenAI请求→Ollama请求 |
+| 客户端Anthropic→后端OpenAI | anthropic | openai | Anthropic请求→OpenAI请求，响应自动反转 |
+| 客户端Responses→后端OpenAI | responses | openai | Responses请求→OpenAI请求，响应自动反转 |
 | 透传 | openai | openai | 不转换，直接透传 |
 
 ### AiDialectBackendMessageConverter 注册路径
