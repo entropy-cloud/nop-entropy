@@ -4,11 +4,13 @@ import io.nop.ai.toolkit.api.IToolExecuteContext;
 import io.nop.ai.toolkit.api.IToolExecutor;
 import io.nop.ai.toolkit.model.AiToolCall;
 import io.nop.ai.toolkit.model.AiToolCallResult;
+import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
+import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.orm.IOrmSession;
 import io.nop.orm.IOrmTemplate;
 import io.nop.datav.dao.entity.NopDatavDashboard;
@@ -31,6 +33,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 
 import static io.nop.datav.service.NopDatavErrors.ARG_COMPONENT_TYPE;
 import static io.nop.datav.service.NopDatavErrors.ARG_DATASET_SID;
@@ -77,6 +80,7 @@ public class DatavGenerateDashboardExecutor implements IToolExecutor {
 
     private IDaoProvider daoProvider;
     private IOrmTemplate ormTemplate;
+    private ITransactionTemplate transactionTemplate;
 
     @Inject
     public void setDaoProvider(IDaoProvider daoProvider) {
@@ -86,6 +90,15 @@ public class DatavGenerateDashboardExecutor implements IToolExecutor {
     @Inject
     public void setOrmTemplate(IOrmTemplate ormTemplate) {
         this.ormTemplate = ormTemplate;
+    }
+
+    /**
+     * P1-05：注入事务模板（bean {@code nopTransactionTemplate}），创建阶段包独立短事务（见
+     * {@link #runCreationInShortTransaction}）。未注入（直调单测）时回退旧行为。
+     */
+    @Inject
+    public void setTransactionTemplate(ITransactionTemplate transactionTemplate) {
+        this.transactionTemplate = transactionTemplate;
     }
 
     @Override
@@ -140,8 +153,9 @@ public class DatavGenerateDashboardExecutor implements IToolExecutor {
                 plans.add(buildPanelPlan(panelSpec, i));
             }
 
-            // 创建阶段（裁定 O，事务包裹）
-            CreationResult created = ormTemplate.runInSession(session ->
+            // 创建阶段（裁定 O，事务包裹；P1-05：无 ambient 事务时开独立短事务即时提交，
+            // 有 ambient 事务时加入（与修复前行为一致））
+            CreationResult created = runCreationInShortTransaction(session ->
                     doCreate(dashboardName, str(spec.get("description")), plans, operator, session));
 
             String json = JsonTool.stringify(buildResultJson(created));
@@ -162,6 +176,22 @@ public class DatavGenerateDashboardExecutor implements IToolExecutor {
             }
         }
         return NopDatavOperatorResolver.SYSTEM_OPERATOR;
+    }
+
+    /**
+     * P1-05 修复（plan 2026-08-15-2146-2 Phase 3）：创建阶段包独立短事务——
+     * ChatBI 循环移出事务后（BizModel 经 runWithoutTransaction 挂起 ambient 事务），本 executor 的
+     * 多表写（Dashboard + DatasetRef + Panel）若无事务则以逐语句 auto-commit 落库，失去原子性
+     * （半成品看板风险，裁定 O 前提被破坏）。REQUIRED 传播：无 ambient 事务时新开短事务
+     * （创建即提交，dashboardId 对后续轮次可读），有 ambient 事务时加入（与修复前行为一致）。
+     * {@code transactionTemplate} 未注入（直调单测）时回退 {@code runInSession}（回归兼容）。
+     */
+    private CreationResult runCreationInShortTransaction(Function<IOrmSession, CreationResult> body) {
+        if (transactionTemplate == null) {
+            return ormTemplate.runInSession(body);
+        }
+        return transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRED,
+                txn -> ormTemplate.runInSession(body));
     }
 
     @SuppressWarnings("unchecked")

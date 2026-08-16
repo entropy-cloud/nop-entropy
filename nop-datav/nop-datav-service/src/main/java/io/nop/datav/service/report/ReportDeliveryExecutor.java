@@ -10,6 +10,7 @@ import io.nop.core.resource.IResource;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.dao.jdbc.IJdbcTemplate;
+import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.file.core.IFileStore;
 import io.nop.file.core.UploadRequestBean;
 import io.nop.orm.IOrmSession;
@@ -25,6 +26,7 @@ import java.io.InputStream;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.nop.datav.service.NopDatavConfigs.CFG_DATAV_EXPORT_FILE_MAX_LENGTH;
 import static io.nop.datav.service.NopDatavConfigs.CFG_DATAV_REPORT_DEFAULT_GRACE_MINUTES;
@@ -63,6 +65,12 @@ import org.slf4j.LoggerFactory;
  * <p><b>异步执行模式</b>：镜像 {@code NopDatavExportTaskBizModel.submitExecution} ——
  * {@code GlobalExecutors.globalWorker().submit(...)}；session 内执行体捕获业务异常并落库 failed；
  * 外层仅兜底 session 基础设施故障。</p>
+ *
+ * <p><b>AR-2 异步提交时序（plan 2026-08-15-2146-2 Phase 2）</b>：事务上下文内（{@code triggerReportNow}
+ * 的 @BizMutation 经 GraphQL 事务装饰器）worker 提交经 {@code ITransactionTemplate.afterCommit} 注册，
+ * pending 交付行 commit 后才被消费；无事务上下文（cron 路径）保持立即提交（注册前
+ * {@code isTransactionOpened} 守护）。worker 首查 null 分支带短退避重查，重查后仍缺行则 ERROR 日志 +
+ * {@code markFailedSafe} 显式失败（禁止静默 no-op）。</p>
  */
 public class ReportDeliveryExecutor {
 
@@ -70,21 +78,35 @@ public class ReportDeliveryExecutor {
 
     private static final String BIZ_OBJ_NAME = "nopDatavReportTask";
 
+    /** AR-2 短退避重查参数：最多 3 次 × 200ms（与 NopDatavExportTaskBizModel 对称）。 */
+    private static final int DELIVERY_ROW_MAX_RETRIES = 3;
+    private static final long DELIVERY_ROW_RETRY_INTERVAL_MS = 200L;
+
     private final IDaoProvider daoProvider;
     private final IOrmTemplate ormTemplate;
     private final IJdbcTemplate jdbcTemplate;
     private final IFileStore fileStore;
     private final NotificationSender notificationSender;
+    private final ITransactionTemplate transactionTemplate;
+
+    /**
+     * AR-2 测试 seam：异步执行提交（globalWorker().submit 前置）实际触发次数。
+     * 断言「事务内注册未触发 / commit 后触发 / 回滚不触发 / 无事务立即提交」的时序锚点
+     * （package-private getter，仅测试可见）。
+     */
+    private final AtomicInteger submitExecutionInvokedCount = new AtomicInteger();
 
     @Inject
     public ReportDeliveryExecutor(IDaoProvider daoProvider, IOrmTemplate ormTemplate,
                                   IJdbcTemplate jdbcTemplate, IFileStore fileStore,
-                                  NotificationSender notificationSender) {
+                                  NotificationSender notificationSender,
+                                  ITransactionTemplate transactionTemplate) {
         this.daoProvider = daoProvider;
         this.ormTemplate = ormTemplate;
         this.jdbcTemplate = jdbcTemplate;
         this.fileStore = fileStore;
         this.notificationSender = notificationSender;
+        this.transactionTemplate = transactionTemplate;
     }
 
     /**
@@ -122,8 +144,33 @@ public class ReportDeliveryExecutor {
         delivery.setUpdateTime(now);
         daoProvider.daoFor(NopDatavReportDelivery.class).saveEntityDirectly(delivery);
 
-        // 异步执行
+        // 异步执行（AR-2：事务上下文内经 afterCommit 注册，commit 后 worker 才消费 pending 行）
         String deliveryId = delivery.getDeliveryId();
+        submitExecutionAfterCommit(reportTaskId, deliveryId, triggerSource, scheduledFireTime);
+
+        return deliveryId;
+    }
+
+    /**
+     * AR-2 修复：异步提交时序——事务上下文内（{@code triggerReportNow} 为 @BizMutation，经 GraphQL
+     * 事务装饰器持有 REQUIRED 事务）经 {@code afterCommit} 注册 worker 提交，pending 交付行 commit 后
+     * 才被消费，消除 READ_COMMITTED 下「worker 新 session 首查 null → 静默 return」竞态（交付静默不执行）；
+     * 事务回滚时 onAfterCommit 不触发（语义恰好正确：回滚则不提交异步任务）。无事务上下文
+     * （cron 路径 {@code NopDatavReportScheduler.executeScheduledReport}）保持立即提交——注册前经
+     * {@code isTransactionOpened} 守护，避免 {@code ERR_TXN_NOT_IN_TRANSACTION}。
+     */
+    private void submitExecutionAfterCommit(String reportTaskId, String deliveryId,
+                                            String triggerSource, long scheduledFireTime) {
+        if (transactionTemplate != null && transactionTemplate.isTransactionOpened(null)) {
+            transactionTemplate.afterCommit(null,
+                    () -> submitExecution(reportTaskId, deliveryId, triggerSource, scheduledFireTime));
+        } else {
+            submitExecution(reportTaskId, deliveryId, triggerSource, scheduledFireTime);
+        }
+    }
+
+    private void submitExecution(String reportTaskId, String deliveryId, String triggerSource, long scheduledFireTime) {
+        submitExecutionInvokedCount.incrementAndGet();
         GlobalExecutors.globalWorker().submit(() -> {
             try {
                 // SMTP 送达在 session 关闭后执行（Dim14-02：不在持有 JDBC 连接的 ORM session 内做远程调用）
@@ -135,8 +182,6 @@ public class ReportDeliveryExecutor {
             }
             return null;
         });
-
-        return deliveryId;
     }
 
     // ============================================================
@@ -170,8 +215,13 @@ public class ReportDeliveryExecutor {
                                                   String triggerSource, long scheduledFireTime) {
         IEntityDao<NopDatavReportDelivery> deliveryDao = daoProvider.daoFor(NopDatavReportDelivery.class);
         IEntityDao<NopDatavReportTask> taskDao = daoProvider.daoFor(NopDatavReportTask.class);
-        NopDatavReportDelivery delivery = deliveryDao.getEntityById(deliveryId);
+        NopDatavReportDelivery delivery = waitForDeliveryRow(deliveryDao, deliveryId);
         if (delivery == null) {
+            // AR-2 可观测性：禁止静默 no-op。正常情况下 afterCommit 时序保证行必然可见；
+            // 此分支只剩基础设施异常（如读副本延迟）——短退避重查后仍缺行则显式失败。
+            LOG.error("nop.datav.report.delivery-row-not-visible-after-retries:reportTaskId={} deliveryId={}"
+                    + " (worker cannot load pending row)", reportTaskId, deliveryId);
+            markFailedSafe(deliveryId, "report delivery row not visible to worker after retries");
             return null;
         }
         NopDatavReportTask task = taskDao.getEntityById(reportTaskId);
@@ -384,6 +434,26 @@ public class ReportDeliveryExecutor {
         dao.updateEntityDirectly(delivery);
     }
 
+    /**
+     * AR-2 短退避重查：worker 新 session 首查 miss 时按 {@link #DELIVERY_ROW_RETRY_INTERVAL_MS}
+     * 间隔重查至多 {@link #DELIVERY_ROW_MAX_RETRIES} 次（与 {@code NopDatavExportTaskBizModel.waitForTaskRow}
+     * 对称）。dao 的 miss 不落 session 缓存，每次重查都直达数据库。
+     */
+    private static NopDatavReportDelivery waitForDeliveryRow(IEntityDao<NopDatavReportDelivery> dao,
+                                                              String deliveryId) {
+        NopDatavReportDelivery delivery = dao.getEntityById(deliveryId);
+        for (int i = 0; i < DELIVERY_ROW_MAX_RETRIES && delivery == null; i++) {
+            try {
+                Thread.sleep(DELIVERY_ROW_RETRY_INTERVAL_MS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+            delivery = dao.getEntityById(deliveryId);
+        }
+        return delivery;
+    }
+
     private void markFailed(IEntityDao<NopDatavReportDelivery> dao, NopDatavReportDelivery delivery, String reason) {
         delivery.setStatus(NopDatavReportDeliveryStatus.FAILED);
         delivery.setErrorMsg(reason);
@@ -473,5 +543,13 @@ public class ReportDeliveryExecutor {
     /** 测试辅助：暴露 IOrmTemplate（断言新 session 路径） */
     public IOrmTemplate getOrmTemplate() {
         return ormTemplate;
+    }
+
+    /**
+     * AR-2 测试 seam 读取：worker 提交（globalWorker().submit 前置）实际触发次数
+     * （测试辅助，与 {@link #getOrmTemplate()} 同可见性约定）。
+     */
+    public int getSubmitExecutionInvokedCountForTest() {
+        return submitExecutionInvokedCount.get();
     }
 }

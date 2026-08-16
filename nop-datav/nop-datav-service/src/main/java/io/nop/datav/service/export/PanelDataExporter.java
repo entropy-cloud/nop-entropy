@@ -31,11 +31,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BooleanSupplier;
 
+import static io.nop.datav.service.NopDatavConfigs.CFG_DATAV_DASHBOARD_QUERY_MAX_PANELS;
 import static io.nop.datav.service.NopDatavErrors.ARG_DASHBOARD_ID;
 import static io.nop.datav.service.NopDatavErrors.ARG_FORMAT;
 import static io.nop.datav.service.NopDatavErrors.ARG_MAX_ROWS;
+import static io.nop.datav.service.NopDatavErrors.ARG_PANEL_COUNT;
+import static io.nop.datav.service.NopDatavErrors.ARG_MAX_PANELS;
 import static io.nop.datav.service.NopDatavErrors.ARG_REASON;
 import static io.nop.datav.service.NopDatavErrors.ARG_ROW_COUNT;
+import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_DASHBOARD_PANEL_LIMIT_EXCEEDED;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_EXPORT_FAILED;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_EXPORT_NO_EXPORTABLE_PANELS;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_EXPORT_ROW_LIMIT_EXCEEDED;
@@ -51,6 +55,11 @@ import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_EXPORT_TYPE_NOT_SUPP
  *
  * <p>看板级导出：遍历 needsDataset 面板，多 sheet xlsx（每面板一 sheet）。csv 仅支持单面板
  * （看板级 csv 请求在 BizModel 层显式拒绝）。</p>
+ *
+ * <p><b>AR-3 面板数上界（plan 2026-08-15-2146-2 Phase 4）</b>：exportDashboard 入口对 needsDataset
+ * 面板数做前置上限校验（复用 {@code CFG_DATAV_DASHBOARD_QUERY_MAX_PANELS}，默认 50），超限抛
+ * {@code ERR_DATAV_DASHBOARD_PANEL_LIMIT_EXCEEDED}（显式失败，非静默截断），校验先于任何面板
+ * 取数——与 getDashboardData / saveDashboardLayout 路径防护对称（裁定见 runtime-design.md §4.4/§十）。</p>
  */
 public class PanelDataExporter {
 
@@ -164,6 +173,17 @@ public class PanelDataExporter {
         }
         if (exportable.isEmpty()) {
             throw new NopException(ERR_DATAV_EXPORT_NO_EXPORTABLE_PANELS).param(ARG_DASHBOARD_ID, dashboardId);
+        }
+
+        // AR-3 修复（plan 2026-08-15-2146-2 Phase 4）：导出路径面板数前置上限——复用
+        // CFG_DATAV_DASHBOARD_QUERY_MAX_PANELS（同为性能界：防单请求放大为海量 SQL；导出每面板
+        // 1 条 SQL + maxRows 行取数 + 全量内存 workbook，与 getDashboardData 防护对称）。超限
+        // 结构化失败（显式报错，非静默截断），校验先于任何面板取数执行。
+        int maxPanels = CFG_DATAV_DASHBOARD_QUERY_MAX_PANELS.get();
+        if (maxPanels > 0 && exportable.size() > maxPanels) {
+            throw new NopException(ERR_DATAV_DASHBOARD_PANEL_LIMIT_EXCEEDED)
+                    .param(ARG_PANEL_COUNT, exportable.size())
+                    .param(ARG_MAX_PANELS, maxPanels);
         }
 
         ExcelWorkbook workbook = new ExcelWorkbook();

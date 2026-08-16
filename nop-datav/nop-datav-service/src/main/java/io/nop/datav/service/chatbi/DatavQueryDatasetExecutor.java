@@ -45,7 +45,10 @@ import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_DATASET_QUERY
  *       key 匹配 dsText 中的 {@code ${paramName}} 占位符，经 {@code ?} 参数化绑定（非字符串拼接）防注入。
  *       <b>不复用 {@code PanelParamEvaluator}</b>，因其依赖 DatasetRef.paramMapping（ChatBI 直接查
  *       NopReportDataset，无 DatasetRef 上下文）。</li>
- *   <li>maxRows 经 {@link LongRangeBean} 在数据集层限行（跨方言 dialect paging，防 OOM）。</li>
+ *   <li>maxRows 经 {@link LongRangeBean} 在数据集层限行（跨方言 dialect paging，防 OOM）。
+ *       <b>P1-04 服务端硬钳制</b>：入参钳制到 {@code [1, CFG_DATAV_CHATBI_MAX_ROWS]}（null/&lt;=0 落
+ *       配置缺省，&gt;0 取 min）——LLM 入参不可绕过服务端上界；工具 schema 的 maximum 仅为 LLM
+ *       提示（缺省快照），运行时以配置钳制为准。</li>
  * </ul>
  *
  * <p>数据集不存在 / 不可见（P1-03 裁定 D4：非 owner 且非 admin）/ 非 SQL 类型时返回显式错误 JSON
@@ -115,11 +118,12 @@ public class DatavQueryDatasetExecutor implements IToolExecutor {
             Object paramsVal = input.get("params");
             Map<String, Object> params = toParamsMap(paramsVal);
 
-            Integer maxRows = input.get("maxRows") instanceof Number
-                    ? ((Number) input.get("maxRows")).intValue()
-                    : CFG_DATAV_CHATBI_MAX_ROWS.get();
+            // P1-04 修复（plan 2026-08-15-2146-2 Phase 4）：maxRows 服务端硬钳制——
+            // 入参 null/<=0 落配置缺省 CFG_DATAV_CHATBI_MAX_ROWS；>0 取 min(入参, 配置)。
+            // LLM 入参不可绕过服务端上界（schemaJson 的 maximum 仅为 LLM 提示，非强制防线）。
+            int effectiveMaxRows = clampMaxRows(input.get("maxRows"));
 
-            QueryResult qr = doQuery(ds, params, maxRows, datasetSid);
+            QueryResult qr = doQuery(ds, params, effectiveMaxRows, datasetSid);
 
             Map<String, Object> result = new LinkedHashMap<>();
             result.put("columns", qr.columns);
@@ -163,14 +167,31 @@ public class DatavQueryDatasetExecutor implements IToolExecutor {
         return Collections.emptyMap();
     }
 
+    /**
+     * P1-04：maxRows 服务端钳制到 {@code [1, CFG_DATAV_CHATBI_MAX_ROWS]}——null/<=0（含 0/负数/
+     * 非数值）落配置缺省，>0 取 min(入参, 配置)。返回值恒 >0，查询路径恒有限行（range 恒非 null，
+     * 不再有「传 0/负数 → range=null 全表物化」的绕过面）。
+     */
+    private static int clampMaxRows(Object requested) {
+        int cap = CFG_DATAV_CHATBI_MAX_ROWS.get();
+        if (!(requested instanceof Number)) {
+            return cap;
+        }
+        int requestedInt = ((Number) requested).intValue();
+        if (requestedInt <= 0) {
+            return cap;
+        }
+        return Math.min(requestedInt, cap);
+    }
+
     private QueryResult doQuery(NopReportDataset ds, Map<String, Object> params,
-                                 Integer maxRows, String datasetSid) {
+                                 int maxRows, String datasetSid) {
         String dsText = ds.getDsText();
         SQL sql = PanelSqlBuilder.build(dsText, params, datasetSid);
 
         try {
             return jdbcTemplate.executeQuery(sql,
-                    maxRows != null && maxRows > 0 ? LongRangeBean.longRange(0, maxRows.longValue()) : null,
+                    LongRangeBean.longRange(0, (long) maxRows),
                     dset -> {
                         List<String> columns = extractColumnNames(dset.getMeta());
                         List<Map<String, Object>> rows = extractRows(dset);

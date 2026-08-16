@@ -125,8 +125,7 @@ public class NopDatavDashboardShareBizModel extends CrudBizModel<NopDatavDashboa
         share.setUpdateTime(now);
 
         daoProvider().daoFor(NopDatavDashboardShare.class).saveEntityDirectly(share);
-        share.setPasswordHash(null);
-        return share;
+        return toSanitizedView(share);
     }
 
     @Override
@@ -145,8 +144,7 @@ public class NopDatavDashboardShareBizModel extends CrudBizModel<NopDatavDashboa
 
         List<NopDatavDashboardShare> sanitized = new ArrayList<>(shares.size());
         for (NopDatavDashboardShare share : shares) {
-            share.setPasswordHash(null);
-            sanitized.add(share);
+            sanitized.add(toSanitizedView(share));
         }
         return sanitized;
     }
@@ -275,8 +273,35 @@ public class NopDatavDashboardShareBizModel extends CrudBizModel<NopDatavDashboa
         share.setUpdatedBy(operator);
         share.setUpdateTime(new Timestamp(System.currentTimeMillis()));
         daoProvider.daoFor(NopDatavDashboardShare.class).updateEntityDirectly(share);
-        share.setPasswordHash(null);
-        return share;
+        return toSanitizedView(share);
+    }
+
+    /**
+     * AR-1 修复（plan 2026-08-15-2146-2 Phase 1）：出参改写 attached 实体会在 @BizMutation 事务
+     * commit 时触发 {@code OrmTransactionListener.onBeforeCommit → flushSession} 对重新变脏的
+     * MANAGED 实体补发 {@code UPDATE ... SET PASSWORD_HASH=NULL}，物理抹除分享密码哈希。
+     *
+     * <p>安全路径 = detached 副本：new 一个仅携带可暴露字段的实体副本（不挂 session、不影响持久层），
+     * passwordHash 刻意不复制（mask-on-return 语义保留——响应永不包含哈希）。实体本体的 passwordHash
+     * 不动，消除对「saveDirectly 不挂 session 缓存」「查询无 flush」两处平台实现细节的隐式依赖。</p>
+     */
+    private static NopDatavDashboardShare toSanitizedView(NopDatavDashboardShare share) {
+        NopDatavDashboardShare view = new NopDatavDashboardShare();
+        view.setShareId(share.getShareId());
+        view.setShareToken(share.getShareToken());
+        view.setDashboardId(share.getDashboardId());
+        view.setExpireTime(share.getExpireTime());
+        view.setEnabled(share.getEnabled());
+        view.setDelFlag(share.getDelFlag());
+        view.setVersion(share.getVersion());
+        view.setCreatedBy(share.getCreatedBy());
+        view.setCreateTime(share.getCreateTime());
+        view.setUpdatedBy(share.getUpdatedBy());
+        view.setUpdateTime(share.getUpdateTime());
+        view.setRemark(share.getRemark());
+        view.setVisitCount(share.getVisitCount());
+        view.setLastVisitTime(share.getLastVisitTime());
+        return view;
     }
 
     private NopDatavDashboardShare findShareByToken(String shareToken) {

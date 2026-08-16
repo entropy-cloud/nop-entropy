@@ -24,7 +24,9 @@
     },
     "maxRows": {
       "type": "integer",
-      "description": "Maximum number of rows to return. Defaults to the platform config (nop.datav.chatbi.max-rows, default 1000)."
+      "minimum": 1,
+      "maximum": 1000,
+      "description": "Maximum number of rows to return. Server-side hard clamp applies: null or non-positive values fall back to the platform config (nop.datav.chatbi.max-rows, default 1000); values above the config are clamped down to it. The maximum here is a default snapshot hint for the LLM only — the runtime config is authoritative."
     }
   },
   "required": ["datasetSid"]
@@ -40,7 +42,7 @@ Returns JSON with:
 
 Safety constraints:
 - Only pre-registered datasets can be queried; LLM cannot generate arbitrary SQL.
-- maxRows caps the result size (OOM protection, enforced via dataset-level row ranging).
+- maxRows caps the result size (OOM protection, enforced via dataset-level row ranging). The schemaJson maximum is a default-snapshot hint only; the server clamps maxRows to [1, nop.datav.chatbi.max-rows] at runtime regardless of what the caller sends.
 
 If the dataset does not exist or is not a SQL dataset, returns a JSON error object.]]></description>
 

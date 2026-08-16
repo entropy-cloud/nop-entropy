@@ -9,12 +9,24 @@ import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.directive.Auth;
+import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.api.core.auth.IUserContext;
+import io.nop.api.core.beans.FilterBeans;
+import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
+import io.nop.dao.api.IDaoProvider;
+import io.nop.dao.api.IEntityDao;
+import io.nop.dao.txn.ITransactionTemplate;
+import io.nop.orm.IOrmTemplate;
 import io.nop.datav.dao.entity.NopDatavChatMessage;
 import io.nop.datav.dao.entity.NopDatavChatSession;
+import io.nop.datav.dao.entity.NopDatavDashboard;
+import io.nop.datav.dao.entity.NopDatavDatasetRef;
+import io.nop.datav.dao.entity.NopDatavPanel;
+import io.nop.datav.dao.entity.NopDatavScreen;
+import io.nop.datav.dao.entity.NopDatavScreenWidget;
 import io.nop.datav.service.NopDatavDashboardOwnerGuard;
 import io.nop.datav.service.chatbi.ChatBiResult;
 import io.nop.datav.service.chatbi.ChatBiSessionManager;
@@ -26,9 +38,13 @@ import io.nop.datav.service.chatbi.ToolResultHandler;
 import io.nop.datav.service.NopDatavOperatorResolver;
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import static io.nop.datav.service.NopDatavConfigs.CFG_DATAV_CHATBI_HISTORY_MAX_CHARS;
 import static io.nop.datav.service.NopDatavConfigs.CFG_DATAV_CHATBI_HISTORY_MAX_TURNS;
@@ -61,6 +77,8 @@ import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_AI_NOT_AVAILA
 @BizModel("NopDatavChatBi")
 public class NopDatavChatBiBizModel {
 
+    private static final Logger LOG = LoggerFactory.getLogger(NopDatavChatBiBizModel.class);
+
     @Nullable
     private IChatService chatService;
 
@@ -68,6 +86,27 @@ public class NopDatavChatBiBizModel {
     private IToolManager toolManager;
 
     private ChatBiSessionManager sessionManager;
+
+    /**
+     * P1-05 修复（plan 2026-08-15-2146-2 Phase 3）：事务模板——生成路径的 LLM tool-calling 循环
+     * 经 {@code runWithoutTransaction} 挂起 ambient 事务（远程 LLM 调用不进事务），循环结束后恢复。
+     * 未注入（直调单测 {@code new} 构造）时循环按原方式执行（无挂起需求——本就无事务）。
+     */
+    @Nullable
+    private ITransactionTemplate transactionTemplate;
+
+    /**
+     * P1-05：生成工具失败补偿（循环异常时删除本轮已生成实体）所需 DAO 提供者。未注入时补偿
+     * 显式 ERROR 日志（不静默吞）。
+     */
+    @Nullable
+    private IDaoProvider daoProvider;
+
+    /**
+     * P1-05：补偿删除在独立短事务 + 新 session 中执行（多子行删除原子性）。
+     */
+    @Nullable
+    private IOrmTemplate ormTemplate;
 
     /**
      * 注入 {@link IChatService}（{@code @Nullable}——宿主未注册 nop-ai chat 实现时不注入）。
@@ -93,6 +132,126 @@ public class NopDatavChatBiBizModel {
     @Inject
     public void setSessionManager(ChatBiSessionManager sessionManager) {
         this.sessionManager = sessionManager;
+    }
+
+    /**
+     * P1-05：注入事务模板（bean {@code nopTransactionTemplate}）——生成路径 LLM 循环挂起 ambient
+     * 事务（远程调用不进事务）。未注入（直调单测）时无挂起（本就无事务），行为回归兼容。
+     */
+    @Inject
+    public void setTransactionTemplate(@Nullable ITransactionTemplate transactionTemplate) {
+        this.transactionTemplate = transactionTemplate;
+    }
+
+    /**
+     * P1-05：注入 DAO 提供者与 ORM 模板——循环失败补偿删除（本轮已生成 Dashboard/Panel/DatasetRef
+     * 与 Screen/ScreenWidget）在独立短事务 + 新 session 中执行。未注入时补偿显式 ERROR（不静默吞）。
+     */
+    @Inject
+    public void setDaoProvider(@Nullable IDaoProvider daoProvider) {
+        this.daoProvider = daoProvider;
+    }
+
+    @Inject
+    public void setOrmTemplate(@Nullable IOrmTemplate ormTemplate) {
+        this.ormTemplate = ormTemplate;
+    }
+
+    // ==================== P1-05：LLM 循环事务边界（远程调用不进事务） ====================
+
+    /**
+     * P1-05 修复核心：LLM tool-calling 循环在挂起 ambient 事务的状态下执行——
+     * {@code chatToDashboard}/{@code chatToScreen} 为 @BizMutation（GraphQL 事务装饰器 REQUIRED 事务），
+     * 修复前整个循环（单轮 LLM 远程调用可达数十秒 × maxIterations 轮 + 工具落库）全程持事务，
+     * 并发请求可耗尽连接池。{@code runWithoutTransaction} 在循环期间注销线程事务注册（循环内
+     * 工具写经各自短事务即时提交），循环结束恢复注册，外层事务正常 commit（空事务）。
+     *
+     * <p>无 ambient 事务（直调单测 / @BizQuery 路径）或模板未注入时原样执行。</p>
+     */
+    private <T> T runLoopOutsideTransaction(Supplier<T> loopBody) {
+        if (transactionTemplate == null) {
+            return loopBody.get();
+        }
+        return transactionTemplate.runWithoutTransaction(null, loopBody::get);
+    }
+    /** P1-05：补偿删除本轮生成的看板（Panel + DatasetRef + Dashboard），独立短事务 + 新 session。 */
+    private void compensateGeneratedDashboards(List<String> dashboardIds) {
+        for (String dashboardId : dashboardIds) {
+            try {
+                runCompensationInShortTransaction(() -> {
+                    IEntityDao<NopDatavPanel> panelDao = daoProvider.daoFor(NopDatavPanel.class);
+                    QueryBean pq = new QueryBean();
+                    pq.addFilter(FilterBeans.eq("dashboardId", dashboardId));
+                    for (NopDatavPanel panel : (List<NopDatavPanel>) panelDao.findAllByQuery(pq)) {
+                        panelDao.deleteEntityDirectly(panel);
+                    }
+                    IEntityDao<NopDatavDatasetRef> refDao = daoProvider.daoFor(NopDatavDatasetRef.class);
+                    QueryBean rq = new QueryBean();
+                    rq.addFilter(FilterBeans.eq("dashboardId", dashboardId));
+                    for (NopDatavDatasetRef ref : (List<NopDatavDatasetRef>) refDao.findAllByQuery(rq)) {
+                        refDao.deleteEntityDirectly(ref);
+                    }
+                    IEntityDao<NopDatavDashboard> dashDao = daoProvider.daoFor(NopDatavDashboard.class);
+                    NopDatavDashboard dash = dashDao.getEntityById(dashboardId);
+                    if (dash != null) {
+                        dashDao.deleteEntityDirectly(dash);
+                    }
+                });
+                LOG.warn("nop.datav.chatbi.compensated-generated-dashboard:dashboardId={} "
+                        + "(generation loop failed, no-partial-artifact contract)", dashboardId);
+            } catch (Exception e) {
+                LOG.error("nop.datav.chatbi.compensate-failed:dashboardId={} (manual cleanup required)",
+                        dashboardId, e);
+            }
+        }
+    }
+
+    /** P1-05：补偿删除本轮生成的大屏（ScreenWidget + Screen），独立短事务 + 新 session。 */
+    private void compensateGeneratedScreens(List<String> screenIds) {
+        for (String screenId : screenIds) {
+            try {
+                runCompensationInShortTransaction(() -> {
+                    IEntityDao<NopDatavScreenWidget> widgetDao = daoProvider.daoFor(NopDatavScreenWidget.class);
+                    QueryBean wq = new QueryBean();
+                    wq.addFilter(FilterBeans.eq("screenId", screenId));
+                    for (NopDatavScreenWidget widget : (List<NopDatavScreenWidget>) widgetDao.findAllByQuery(wq)) {
+                        widgetDao.deleteEntityDirectly(widget);
+                    }
+                    IEntityDao<NopDatavScreen> screenDao = daoProvider.daoFor(NopDatavScreen.class);
+                    NopDatavScreen screen = screenDao.getEntityById(screenId);
+                    if (screen != null) {
+                        screenDao.deleteEntityDirectly(screen);
+                    }
+                });
+                LOG.warn("nop.datav.chatbi.compensated-generated-screen:screenId={} "
+                        + "(generation loop failed, no-partial-artifact contract)", screenId);
+            } catch (Exception e) {
+                LOG.error("nop.datav.chatbi.compensate-failed:screenId={} (manual cleanup required)",
+                        screenId, e);
+            }
+        }
+    }
+
+    /**
+     * P1-05：补偿体执行形态——独立短事务（REQUIRES_NEW：异常上抛路径下 ambient 事务已被
+     * {@code runWithoutTransaction} 恢复注册且注定回滚，REQUIRED 加入会使补偿删除随之回滚——
+     * 生成物复活，违反失败不落库承诺）+ 新 session。模板/ormTemplate 未注入（直调单测）时
+     * 降级直接执行（仍逐 id try/catch，不静默吞）。
+     */
+    private void runCompensationInShortTransaction(Runnable body) {
+        if (daoProvider == null) {
+            LOG.error("nop.datav.chatbi.compensate-unavailable:daoProvider not injected, cannot compensate");
+            return;
+        }
+        if (transactionTemplate == null || ormTemplate == null) {
+            body.run();
+            return;
+        }
+        transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRES_NEW,
+                txn -> ormTemplate.runInNewSession(session -> {
+                    body.run();
+                    return null;
+                }));
     }
 
     /**
@@ -215,6 +374,11 @@ public class NopDatavChatBiBizModel {
      * 镜像 {@code publishDashboard(@BizMutation)} 约定。经泛化循环（裁定 L）+ 看板生成专用 system prompt +
      * operator 传递（裁定 G）+ 看板生成结果提取 handler。</p>
      *
+     * <p><b>P1-05 事务边界（plan 2026-08-15-2146-2 Phase 3）</b>：LLM tool-calling 循环（远程调用）
+     * 经 {@link #runLoopOutsideTransaction} 挂起 ambient 事务执行（远程调用不进事务）；循环内生成工具
+     * 经独立短事务即时落库并向 LLM 返回 dashboardId；循环异常时补偿删除本轮全部生成物（失败不落库
+     * 承诺保持，见 {@link #compensateGeneratedDashboards}）。</p>
+     *
      * <p>nop-ai 缺席时显式抛 {@code ERR_DATAV_CHATBI_AI_NOT_AVAILABLE}（复用 D6-1 @Nullable 范式）。
      * 生成的看板为 DRAFT（不自动发布，裁定 H），用户须手动 {@code publishDashboard} 审阅发布。</p>
      *
@@ -236,43 +400,61 @@ public class NopDatavChatBiBizModel {
 
         int maxIterations = CFG_DATAV_CHATBI_MAX_ITERATIONS.get();
 
+        // P1-05：记录本轮生成的 dashboardId（补偿删除清单）；循环挂起事务执行，异常时补偿后原样上抛
+        List<String> createdDashboardIds = new ArrayList<>();
         ChatBiToolCallingLoop loop = new ChatBiToolCallingLoop(chatService, toolManager);
-        return loop.run(description, ChatBiSystemPrompt.buildDashboardSystemPrompt(), operator, admin,
-                maxIterations, DASHBOARD_RESULT_HANDLER);
+        try {
+            return runLoopOutsideTransaction(() -> loop.run(description,
+                    ChatBiSystemPrompt.buildDashboardSystemPrompt(), operator, admin,
+                    maxIterations, newDashboardResultHandler(createdDashboardIds)));
+        } catch (RuntimeException e) {
+            compensateGeneratedDashboards(createdDashboardIds);
+            throw e;
+        }
     }
 
     /**
-     * 看板生成路径结果提取 handler（裁定 K + 裁定 L 泛化点 2）。
+     * 看板生成路径结果提取 handler 工厂（裁定 K + 裁定 L 泛化点 2 + P1-05 补偿清单）。
      *
      * <p>当 {@code datav-generate-dashboard} 成功执行时，从返回 JSON 解析 dashboardId 累加进
-     * {@link ChatBiResult#setCreatedEntityId}。</p>
+     * {@link ChatBiResult#setCreatedEntityId}，并记录进 {@code createdDashboardIdsSink}（循环失败的
+     * 补偿删除清单）。sink 为 null 时退化为纯结果提取（回归兼容）。</p>
      */
-    private static final ToolResultHandler DASHBOARD_RESULT_HANDLER = (toolName, result, content, accumulator) -> {
-        if (!DatavGenerateDashboardExecutor.TOOL_NAME.equals(toolName)) {
-            return;
-        }
-        if (!"success".equals(result.getStatus()) || result.getError() != null || content == null) {
-            return;
-        }
-        try {
-            Object parsed = JsonTool.parseNonStrict(content);
-            if (parsed instanceof Map) {
-                @SuppressWarnings("unchecked")
-                Object dashboardId = ((Map<String, Object>) parsed).get("dashboardId");
-                if (dashboardId != null) {
-                    accumulator.setCreatedEntityId(dashboardId.toString());
-                }
+    private static ToolResultHandler newDashboardResultHandler(List<String> createdDashboardIdsSink) {
+        return (toolName, result, content, accumulator) -> {
+            if (!DatavGenerateDashboardExecutor.TOOL_NAME.equals(toolName)) {
+                return;
             }
-        } catch (Exception ignore) {
-            // 解析失败不影响循环（与 query handler 容忍一致）
-        }
-    };
+            if (!"success".equals(result.getStatus()) || result.getError() != null || content == null) {
+                return;
+            }
+            try {
+                Object parsed = JsonTool.parseNonStrict(content);
+                if (parsed instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Object dashboardId = ((Map<String, Object>) parsed).get("dashboardId");
+                    if (dashboardId != null) {
+                        accumulator.setCreatedEntityId(dashboardId.toString());
+                        if (createdDashboardIdsSink != null) {
+                            createdDashboardIdsSink.add(dashboardId.toString());
+                        }
+                    }
+                }
+            } catch (Exception ignore) {
+                // 解析失败不影响循环（与 query handler 容忍一致）
+            }
+        };
+    }
 
     /**
      * ChatBI 大屏生成 action（D6-2）：自然语言描述 → tool-calling → 草稿大屏生成 → screenId。
      *
      * <p>写操作（创建 Screen/ScreenWidget 实体），故用 {@code @BizMutation}（镜像 {@code chatToDashboard} 约定）。
      * 经泛化循环（裁定 L）+ 大屏生成专用 system prompt + operator 传递（裁定 G）+ 大屏生成结果提取 handler。</p>
+     *
+     * <p><b>P1-05 事务边界（plan 2026-08-15-2146-2 Phase 3）</b>：与 {@code chatToDashboard} 对称——
+     * LLM 循环挂起 ambient 事务执行，循环内生成工具独立短事务落库，循环异常补偿删除（见
+     * {@link #compensateGeneratedScreens}）。</p>
      *
      * <p>nop-ai 缺席时显式抛 {@code ERR_DATAV_CHATBI_AI_NOT_AVAILABLE}（复用 D6-1 @Nullable 范式）。
      * 生成的大屏为 DRAFT（不自动发布，沿用裁定 H），用户须手动 {@code publishScreen} 审阅发布。</p>
@@ -295,35 +477,49 @@ public class NopDatavChatBiBizModel {
 
         int maxIterations = CFG_DATAV_CHATBI_MAX_ITERATIONS.get();
 
+        // P1-05：记录本轮生成的 screenId（补偿删除清单）；循环挂起事务执行，异常时补偿后原样上抛
+        List<String> createdScreenIds = new ArrayList<>();
         ChatBiToolCallingLoop loop = new ChatBiToolCallingLoop(chatService, toolManager);
-        return loop.run(description, ChatBiSystemPrompt.buildScreenSystemPrompt(), operator, admin,
-                maxIterations, SCREEN_RESULT_HANDLER);
+        try {
+            return runLoopOutsideTransaction(() -> loop.run(description,
+                    ChatBiSystemPrompt.buildScreenSystemPrompt(), operator, admin,
+                    maxIterations, newScreenResultHandler(createdScreenIds)));
+        } catch (RuntimeException e) {
+            compensateGeneratedScreens(createdScreenIds);
+            throw e;
+        }
     }
 
     /**
-     * 大屏生成路径结果提取 handler（D6-2，裁定 K + 裁定 L 泛化点 2）。
+     * 大屏生成路径结果提取 handler 工厂（D6-2，裁定 K + 裁定 L 泛化点 2 + P1-05 补偿清单）。
      *
      * <p>当 {@code datav-generate-screen} 成功执行时，从返回 JSON 解析 screenId 累加进
-     * {@link ChatBiResult#setCreatedEntityId}。</p>
+     * {@link ChatBiResult#setCreatedEntityId}，并记录进 {@code createdScreenIdsSink}（循环失败的
+     * 补偿删除清单）。sink 为 null 时退化为纯结果提取（回归兼容）。</p>
      */
-    private static final ToolResultHandler SCREEN_RESULT_HANDLER = (toolName, result, content, accumulator) -> {
-        if (!DatavGenerateScreenExecutor.TOOL_NAME.equals(toolName)) {
-            return;
-        }
-        if (!"success".equals(result.getStatus()) || result.getError() != null || content == null) {
-            return;
-        }
-        try {
-            Object parsed = JsonTool.parseNonStrict(content);
-            if (parsed instanceof Map) {
-                @SuppressWarnings("unchecked")
-                Object screenId = ((Map<String, Object>) parsed).get("screenId");
-                if (screenId != null) {
-                    accumulator.setCreatedEntityId(screenId.toString());
-                }
+    private static ToolResultHandler newScreenResultHandler(List<String> createdScreenIdsSink) {
+        return (toolName, result, content, accumulator) -> {
+            if (!DatavGenerateScreenExecutor.TOOL_NAME.equals(toolName)) {
+                return;
             }
-        } catch (Exception ignore) {
-            // 解析失败不影响循环（与 query/dashboard handler 容忍一致）
-        }
-    };
+            if (!"success".equals(result.getStatus()) || result.getError() != null || content == null) {
+                return;
+            }
+            try {
+                Object parsed = JsonTool.parseNonStrict(content);
+                if (parsed instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Object screenId = ((Map<String, Object>) parsed).get("screenId");
+                    if (screenId != null) {
+                        accumulator.setCreatedEntityId(screenId.toString());
+                        if (createdScreenIdsSink != null) {
+                            createdScreenIdsSink.add(screenId.toString());
+                        }
+                    }
+                }
+            } catch (Exception ignore) {
+                // 解析失败不影响循环（与 query/dashboard handler 容忍一致）
+            }
+        };
+    }
 }

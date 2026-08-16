@@ -62,7 +62,7 @@ public interface NopDatavConfigs {
     IConfigReference<Integer> CFG_DATAV_CHATBI_MAX_ITERATIONS = varRef(
             s_loc, "nop.datav.chatbi.max-iterations", Integer.class, 5);
 
-    @Description("ChatBI 单次数据集查询最大返回行数（经 LongRangeBean 在数据集层限行，跨方言防 OOM）")
+    @Description("ChatBI 单次数据集查询最大返回行数硬上限（P1-04：服务端钳制到 [1, 此值]——LLM 入参 null/<=0 落此缺省，>0 取 min(入参, 此值)；经 LongRangeBean 在数据集层限行，跨方言防 OOM。datav-query-dataset.tool.xml schemaJson 中的 maximum 仅为缺省快照提示，运行时以此配置为准）")
     IConfigReference<Integer> CFG_DATAV_CHATBI_MAX_ROWS = varRef(
             s_loc, "nop.datav.chatbi.max-rows", Integer.class, 1000);
 

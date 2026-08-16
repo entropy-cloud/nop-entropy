@@ -13,6 +13,7 @@ import io.nop.core.resource.IResource;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.dao.jdbc.IJdbcTemplate;
+import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.file.core.IFileRecord;
 import io.nop.file.core.IFileStore;
 import io.nop.file.core.UploadRequestBean;
@@ -44,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
 
 import static io.nop.datav.service.NopDatavConfigs.CFG_DATAV_EXPORT_FILE_MAX_LENGTH;
@@ -101,10 +103,29 @@ public class NopDatavExportTaskBizModel extends CrudBizModel<NopDatavExportTask>
     protected NopDatavExportTaskRecovery recovery;
 
     /**
+     * AR-2 修复（plan 2026-08-15-2146-2 Phase 2）：事务模板复用基类 {@code CrudBizModel}
+     * 已注入的 {@code transactionTemplate}（经 {@link #txn()} 访问，不重复声明字段——子类重复声明
+     * 会被 NopIoC 经基类 setter 注入绕过，留下 null 影子字段）。事务上下文内异步提交经
+     * {@code afterCommit} 注册（worker 消费时 pending 行必然已提交可见）；无事务上下文
+     * （cron/恢复/裸调用路径）保持立即提交。注册前经 {@code isTransactionOpened} 守护——
+     * 无事务时注册 listener 直接抛 {@code ERR_TXN_NOT_IN_TRANSACTION}。
+     */
+
+    /**
      * per-task cancel 标志位：taskId → true（已请求取消）。执行体在取数/写出循环中轮询此 map。
      * 进程重启后丢失（由 {@link NopDatavExportTaskRecovery} 清理对应任务为 failed）。
      */
     private final ConcurrentMap<String, Boolean> cancelFlags = new ConcurrentHashMap<>();
+
+    /** AR-2 短退避重查参数：最多 3 次 × 200ms。 */
+    private static final int TASK_ROW_MAX_RETRIES = 3;
+    private static final long TASK_ROW_RETRY_INTERVAL_MS = 200L;
+
+    /**
+     * AR-2 测试 seam：{@link #submitExecution} 实际触发次数（afterCommit 回调内递增）。
+     * 断言「提交仅在事务 commit 后触发 / 回滚不触发」的时序锚点（package-private，仅测试可见）。
+     */
+    private final AtomicInteger submitExecutionInvokedCount = new AtomicInteger();
 
     /**
      * 测试 seam（D4 方案 A）：执行体在 RUNNING 持久化之后、调用 exporter 之前同步触发此 hook。
@@ -151,10 +172,38 @@ public class NopDatavExportTaskBizModel extends CrudBizModel<NopDatavExportTask>
         NopDatavExportTask task = newTaskEntity(sourceType, sourceId, format, params, operator);
         daoProvider().daoFor(NopDatavExportTask.class).saveEntityDirectly(task);
 
-        // 提交异步执行
-        submitExecution(task.getTaskId(), operator);
+        // 提交异步执行（AR-2：事务上下文内经 afterCommit 注册，commit 后 worker 才消费）
+        submitExecutionAfterCommit(task.getTaskId(), operator);
 
-        return task;
+        // AR-2 配套：返回 detached 副本（镜像 Phase 1 share 模式）。afterCommit 语义下 worker 在
+        // commit 后立即开跑（RUNNING/SUCCEEDED 连续推高 version），mutation 返回 attached 实体时
+        // GraphQL 响应装载会对 stale version 实体重组装并触发 entity-version-changed；
+        // detached 副本不挂 session，响应字段与修复前一致。
+        return toCreatedTaskView(task);
+    }
+
+    /**
+     * AR-2 配套：{@link #createExportTask} 出参 detached 副本（不挂 session、不影响持久层）。
+     * 字段全集复制（无 mask 需求——导出任务无敏感字段），实体本体不动。
+     */
+    private static NopDatavExportTask toCreatedTaskView(NopDatavExportTask task) {
+        NopDatavExportTask view = new NopDatavExportTask();
+        view.setTaskId(task.getTaskId());
+        view.setSourceType(task.getSourceType());
+        view.setSourceId(task.getSourceId());
+        view.setFormat(task.getFormat());
+        view.setStatus(task.getStatus());
+        view.setParams(task.getParams());
+        view.setFileRecordId(task.getFileRecordId());
+        view.setRowCount(task.getRowCount());
+        view.setErrorMsg(task.getErrorMsg());
+        view.setDelFlag(task.getDelFlag());
+        view.setVersion(task.getVersion());
+        view.setCreatedBy(task.getCreatedBy());
+        view.setCreateTime(task.getCreateTime());
+        view.setUpdatedBy(task.getUpdatedBy());
+        view.setUpdateTime(task.getUpdateTime());
+        return view;
     }
 
     @Override
@@ -200,7 +249,25 @@ public class NopDatavExportTaskBizModel extends CrudBizModel<NopDatavExportTask>
 
     // ==================== 异步执行 ====================
 
+    /**
+     * AR-2 修复：异步提交时序——事务上下文内（{@code @BizMutation} 经 GraphQL 事务装饰器）
+     * 经 {@code afterCommit} 注册 {@link #submitExecution}，pending 行 commit 后 worker 才消费，
+     * 消除 READ_COMMITTED 下「worker 首查 null → 静默 return」竞态；事务回滚时 onAfterCommit
+     * 不触发（语义恰好正确：回滚则不提交异步任务）。无事务上下文（cron/恢复/裸调用）保持
+     * 立即提交——注册前经 {@code isTransactionOpened} 守护，避免
+     * {@code ERR_TXN_NOT_IN_TRANSACTION}。
+     */
+    private void submitExecutionAfterCommit(String taskId, String operator) {
+        ITransactionTemplate transactionTemplate = txn();
+        if (transactionTemplate != null && transactionTemplate.isTransactionOpened(null)) {
+            transactionTemplate.afterCommit(null, () -> submitExecution(taskId, operator));
+        } else {
+            submitExecution(taskId, operator);
+        }
+    }
+
     private void submitExecution(String taskId, String operator) {
+        submitExecutionInvokedCount.incrementAndGet();
         GlobalExecutors.globalWorker().submit(() -> {
             try {
                 ormTemplate.runInNewSession(session -> executeTask(session, taskId, operator));
@@ -215,8 +282,14 @@ public class NopDatavExportTaskBizModel extends CrudBizModel<NopDatavExportTask>
 
     private Void executeTask(IOrmSession session, String taskId, String operator) {
         IEntityDao<NopDatavExportTask> dao = daoProvider().daoFor(NopDatavExportTask.class);
-        NopDatavExportTask task = dao.getEntityById(taskId);
+        NopDatavExportTask task = waitForTaskRow(dao, taskId);
         if (task == null) {
+            // AR-2 可观测性：禁止静默 no-op。正常情况下 afterCommit 时序保证行必然可见；
+            // 此分支只剩基础设施异常（如读副本延迟）——短退避重查后仍缺行则显式失败。
+            LOG_EXPORT_FAILURE.error(
+                    "nop.datav.export.task-row-not-visible-after-retries:taskId={} (worker cannot load pending row)",
+                    taskId);
+            markFailedSafe(taskId, "export task row not visible to worker after retries");
             return null;
         }
         // pending → running
@@ -293,6 +366,25 @@ public class NopDatavExportTaskBizModel extends CrudBizModel<NopDatavExportTask>
             cancelFlags.remove(taskId);
         }
         return null;
+    }
+
+    /**
+     * AR-2 短退避重查：worker 新 session 首查 miss 时按 {@link #TASK_ROW_RETRY_INTERVAL_MS}
+     * 间隔重查至多 {@link #TASK_ROW_MAX_RETRIES} 次。dao 的 miss 不落 session 缓存，
+     * 每次重查都直达数据库。
+     */
+    private static NopDatavExportTask waitForTaskRow(IEntityDao<NopDatavExportTask> dao, String taskId) {
+        NopDatavExportTask task = dao.getEntityById(taskId);
+        for (int i = 0; i < TASK_ROW_MAX_RETRIES && task == null; i++) {
+            try {
+                Thread.sleep(TASK_ROW_RETRY_INTERVAL_MS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+            task = dao.getEntityById(taskId);
+        }
+        return task;
     }
 
     private String saveExportFile(PanelDataExporter.ExportFile file, String taskId) {
@@ -492,6 +584,14 @@ public class NopDatavExportTaskBizModel extends CrudBizModel<NopDatavExportTask>
      */
     void setExecutionStartHookForTest(Runnable hook) {
         this.executionStartHook = hook;
+    }
+
+    /**
+     * AR-2 测试 seam 读取：{@link #submitExecution} 实际触发次数（afterCommit 回调内递增）。
+     * 断言「注册后未触发（事务内）/ commit 后触发 / 回滚不触发」的时序锚点（package-private，仅测试可见）。
+     */
+    int getSubmitExecutionInvokedCountForTest() {
+        return submitExecutionInvokedCount.get();
     }
 
     /**

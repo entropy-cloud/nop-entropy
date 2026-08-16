@@ -4,11 +4,13 @@ import io.nop.ai.toolkit.api.IToolExecuteContext;
 import io.nop.ai.toolkit.api.IToolExecutor;
 import io.nop.ai.toolkit.model.AiToolCall;
 import io.nop.ai.toolkit.model.AiToolCallResult;
+import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
+import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.orm.IOrmSession;
 import io.nop.orm.IOrmTemplate;
 import io.nop.datav.biz.ScreenThemeConfig;
@@ -83,6 +85,7 @@ public class DatavGenerateScreenExecutor implements IToolExecutor {
 
     private IDaoProvider daoProvider;
     private IOrmTemplate ormTemplate;
+    private ITransactionTemplate transactionTemplate;
 
     @Inject
     public void setDaoProvider(IDaoProvider daoProvider) {
@@ -92,6 +95,15 @@ public class DatavGenerateScreenExecutor implements IToolExecutor {
     @Inject
     public void setOrmTemplate(IOrmTemplate ormTemplate) {
         this.ormTemplate = ormTemplate;
+    }
+
+    /**
+     * P1-05（plan 2026-08-15-2146-2 Phase 3）：注入事务模板（bean {@code nopTransactionTemplate}），
+     * 创建阶段包独立短事务（见 {@link #runCreationInShortTransaction}）。未注入（直调单测）时回退旧行为。
+     */
+    @Inject
+    public void setTransactionTemplate(ITransactionTemplate transactionTemplate) {
+        this.transactionTemplate = transactionTemplate;
     }
 
     @Override
@@ -215,13 +227,14 @@ public class DatavGenerateScreenExecutor implements IToolExecutor {
                         ARG_SCREEN_NAME, screenName)));
             }
 
-            // 3. 创建阶段（裁定 O，事务包裹）
+            // 3. 创建阶段（裁定 O，事务包裹；P1-05：无 ambient 事务时开独立短事务即时提交，
+            // 有 ambient 事务时加入（与修复前行为一致））
             final String fDisplayName = displayName;
             final int fAdaptorMode = adaptorMode;
             final Map<String, Object> fBackgroundConfig = backgroundConfig;
             final String fScreenName = screenName;
             try {
-                CreationResult created = ormTemplate.runInSession(session ->
+                CreationResult created = runCreationInShortTransaction(session ->
                         doCreate(fScreenName, fDisplayName, screenWidth, screenHeight, fAdaptorMode,
                                 fBackgroundConfig, plans, operator, session));
 
@@ -344,6 +357,21 @@ public class DatavGenerateScreenExecutor implements IToolExecutor {
         plan.z = toIntOrDefault(widgetSpec.get("z"), 0);
         plan.widgetName = "widget-" + index;
         return plan;
+    }
+
+    /**
+     * P1-05 修复（plan 2026-08-15-2146-2 Phase 3，镜像 DatavGenerateDashboardExecutor）：创建阶段包
+     * 独立短事务——ChatBI 循环移出事务后，多表写（Screen + ScreenWidget）若无事务则逐语句 auto-commit
+     * 失去原子性（半成品大屏风险）。REQUIRED 传播：无 ambient 事务时新开短事务（创建即提交，screenId
+     * 对后续轮次可读），有 ambient 事务时加入（与修复前行为一致）。{@code transactionTemplate} 未注入
+     * （直调单测）时回退 {@code runInSession}（回归兼容）。
+     */
+    private CreationResult runCreationInShortTransaction(java.util.function.Function<IOrmSession, CreationResult> body) {
+        if (transactionTemplate == null) {
+            return ormTemplate.runInSession(body);
+        }
+        return transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRED,
+                txn -> ormTemplate.runInSession(body));
     }
 
     private CreationResult doCreate(String screenName, String displayName, int screenWidth, int screenHeight,
