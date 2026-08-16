@@ -1,0 +1,24 @@
+{
+  "name": "xlang-execution-optimization",
+  "description": "XLang 优化执行双后端：新增 nop-kernel/nop-xlang-java（构建期 Executable→Java 源码转译，编译期可确定资源零解释执行，native image 唯一提速路线）与 nop-kernel/nop-xlang-truffle（运行时 Truffle 后端，GraalVM 下经 partial evaluation 获得 JIT，多线程=Context 池+共享 Engine+ContextPolicy.SHARED）。流程硬约束：先写设计文档（execution 统一架构 + 两模块设计），设计须至少两轮独立子agent 审查至 PASS 共识；再按定稿设计回填实现 work items（W3-supplement）；再独立审核 roadmap workitem（W4-audit）；通过后才允许实现类 plan 执行。正确性基准：同一 Executable 树在解释器/Java/Truffle 三后端执行结果一致（对拍）。模块依赖方向：新模块→nop-xlang→nop-core，Truffle 依赖不得泄漏进内核其他模块。",
+  "roadmapPath": "ai-dev/backlog/xlang-execution-optimization-roadmap.md",
+  "plansDir": "ai-dev/plans/xlang-execution-optimization",
+  "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
+  "auditsDir": "ai-dev/audits/xlang-execution-optimization",
+  "sourceDir": ".",
+  "commands": {
+    "test": "./mvnw test -pl :nop-xlang -am -T 1C",
+    "build": "./mvnw clean install -DskipTests -pl :nop-xlang -am -T 1C",
+    "lint": "./mvnw checkstyle:check -pl :nop-xlang -am -q 2>/dev/null || echo 'lint not configured'",
+    "typecheck": "./mvnw compile -pl :nop-xlang -am -q 2>/dev/null || echo 'typecheck not configured'"
+  },
+  "prompts": {
+    "designKnowledge": "ai-dev/design/xlang-truffle/01-truffle-knowledge.md",
+    "ecosystemAnalysis": "ai-dev/analysis/2026-08/2026-08-16-truffle-graalvm-ecosystem-research.md",
+    "multiAuditPrompt": "ai-dev/skills/deep-audit-prompts.md",
+    "openAuditPrompt": "ai-dev/skills/open-ended-adversarial-review-prompt.md",
+    "planReviewer": "ai-dev/skills/plan-reviewer-prompt.md",
+    "closureAudit": "ai-dev/skills/plan-closure-audit-prompt.md"
+  },
+  "commitFormat": "feat(xlang): <description>"
+}

@@ -53,6 +53,7 @@ Each subsystem directory contains architecture decisions and usage contracts for
 | `nop-credential/` | 加密凭证库（Credential Vault） | [README](nop-credential/README.md) | active — 独立可复用模块（api/dao/meta/service/web）；复用 `nop-commons` `AESTextCipher`（AES-256-GCM + PBKDF2 + 版本化密文 `v1:`）包装为 `cv1:{keyId}:{v1密文}` 多密钥格式；类型注册表（`*.credential-type.xml`）+ 实例加密存储；`ICredentialProvider` 服务端唯一解密点 SPI（明文边界结构性强制）；配置加密复用既有 `@sec:`（拒绝 `@credential:` resolver，见 baseline §4）；一期不做 RBAC/OAuth/KMS |
 | `nop-auth/` | MFA 多因子验证（短信登录 + TOTP） | [README](nop-auth/README.md) | active — 不新增模块，改造 nop-auth 登录流程；两阶段 challenge（第一因子→第二因子）；loginType=5 短信验证码登录；TOTP（RFC 6238）+ 恢复码；secret 用 AESTextCipher 加密；复用 IUserContextCache/ISmsSender |
 | `nop-plugin/` | Plugin System Enhancement（吸收 Cordis 思想） | [README](nop-plugin/README.md) | 草案 — 加载/激活两态分离 + revertible effects 系统化（IPluginScope）+ reactive coeffect 条件激活 + HMR；不改 nop-ioc，复用子容器模式 |
+| `xlang-truffle/` | XLang Truffle 执行后端（JVM 部署形态提速，多线程） | [README](xlang-truffle/README.md) | 知识准备 — 01-truffle-knowledge（Truffle 框架深度知识：执行模型/多线程/DSL/SL 源码地图/XLang 映射草案）；Vision 与 Architecture Baseline 待设计启动时创建 |
 
 ## Precedence Model
 
