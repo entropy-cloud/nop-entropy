@@ -198,14 +198,32 @@ ChatBI 不经 DatasetRef（无面板上下文），直接查 `NopReportDataset`�
 
 - ChatBI action 经 `@Auth(permissions = "NopDatavChatBi:chatToQuery")`，在
   `nop-datav.action-auth.xml` 增配权限点（roles="admin,user"）。
-- **数据集可见性（P1-03 修复，plan 2026-08-15-2146-1 裁定 D4 选项 B；取代本节旧文
-  「复用既有 owner RLS」的不实陈述——nop-report 数据集无 DAO 层 RLS）**：
-  - `datav-list-datasets` 枚举与 `datav-describe-dataset`/`datav-query-dataset` 执行/描述前实施
-    `NopReportDataset.createdBy`/admin 可见性：admin 全量；非 admin 仅 `createdBy == 当前用户`。
-    `createdBy` 为空的历史数据集对非 admin 不可见（fail-closed，由 admin 重新保存认领）。
-  - 语义分工：list 侧静默过滤（枚举不泄露存在性）；describe/query 侧显式拒绝
-    （`ERR_DATAV_CHATBI_DATASET_NO_ACCESS`，携带 datasetSid + userName）。无身份（operator 空且
-    非 admin）fail-closed（list 空 / describe、query 拒绝）。
+- **数据集可见性（P1-03 修复，plan 2026-08-15-2146-1 裁定 D4 选项 B + AR-1 修复 plan
+  `2026-08-16-2137-1` 补接 generate 两工具；取代本节旧文「复用既有 owner RLS」的不实陈述——
+  nop-report 数据集无 DAO 层 RLS）**：
+  - ChatBI 全部 6 个数据集消费工具——`datav-list-datasets`（枚举）、`datav-describe-dataset`/
+    `datav-query-dataset`（执行/描述）、`datav-generate-dashboard`/`datav-generate-screen`
+    （生成绑定，AR-1 接线）——在接受任何 `datasetSid` 前实施 `NopReportDataset.createdBy`/admin
+    可见性：admin 全量；非 admin 仅 `createdBy == 当前用户`。`createdBy` 为空的历史数据集对
+    非 admin 不可见（fail-closed，由 admin 重新保存认领）。
+  - 语义分工：list 侧静默过滤（枚举不泄露存在性）；describe/query/generate 侧显式拒绝
+    （`ERR_DATAV_CHATBI_DATASET_NO_ACCESS`，携带 datasetSid + userName）；generate 侧不存在/非活跃
+    仍走 `ERR_DATAV_CHATBI_GENERATE_DATASET_NOT_FOUND` 分工。无身份（operator 空且非 admin）
+    fail-closed（list 空 / describe、query、generate 拒绝）。generate executor 的可见性身份取
+    `ChatBiDatasetVisibility.resolveOperator/resolveAdmin`（fail-closed），**不**复用 executor 内
+    落 createdBy 用的带 `SYSTEM_OPERATOR` 回退的 `resolveOperator`。
+  - **数据集 sid 全部消费面固定清单（audit 2026-08-16-0719 总评方向 1 落档）**——新增任何
+    数据消费工具时必须对照本清单补可见性接线并复核 `permission-sharing-design.md` §D4 的
+    PanelDataBinder 排除论证前提：
+    1. ChatBI 6 工具：`datav-list-datasets`（静默过滤）/ `datav-describe-dataset` /
+       `datav-query-dataset` / `datav-generate-dashboard` / `datav-generate-screen`（以上四者
+       显式拒绝 NO_ACCESS）+ `datav-list-component-types`（不消费数据集，无 sid 面）；
+    2. `PanelDataBinder` 面板查询路径（经 DatasetRef/直存 sid 消费数据集 SQL）：不做 per-user
+       数据集可见性检查，授权经 Dashboard RLS 传递（裁定 D4 排除，前提由 generate 接线恢复成立，
+       详见 `permission-sharing-design.md` §D4）；
+    3. 快照序列化 `datasetRefs[].refDatasetId`（`getPublishedDashboard`/`getSharedDashboard`
+       等分享面对外暴露数据集 sid 清单）：暴露面而非消费面，是否收敛独立裁定中（backlog #72，
+       `ai-dev/backlog/nop-datav-audit-followups.md`）。
   - 身份传递：`ChatBiToolExecuteContext`（operator + admin 标志，镜像裁定 G 强转耦合契约），
     由 `NopDatavChatBiBizModel` 从 `IServiceContext` 解析（admin 判定回退线程级 `IUserContext`），
     经 `ChatBiToolCallingLoop` 注入；executor 不读线程变量（单一事实来源，判定逻辑集中在
@@ -492,7 +510,9 @@ dashboardId（写入 ChatBiResult.createdEntityId）
 
 ### 8.5 D6-1b 安全边界
 
-- 生成工具只能引用**已有数据集**（`NopReportDataset` status=1）+ **映射已有字段**（dsMeta 内），
+- 生成工具只能引用**已有数据集**（`NopReportDataset` status=1）且**对当前用户可见**（AR-1 修复
+  plan `2026-08-16-2137-1`：非 admin 仅 createdBy 匹配，不可见拒绝
+  `ERR_DATAV_CHATBI_DATASET_NO_ACCESS`，见 §6 消费面清单）+ **映射已有字段**（dsMeta 内），
   不能凭空造数据集/字段。
 - 生成的看板为 **DRAFT**，不自动发布（裁定 H）。
 - 生成看板归属 operator（`createdBy`），RLS 保护。
@@ -680,7 +700,9 @@ system prompt 含（可观测）：
 
 ### 9.7 D6-2 安全边界
 
-- 生成工具只能引用**已有数据集**（`NopReportDataset` status=1）+ **映射已有字段**（dsMeta 内），不能凭空造数据集/字段。
+- 生成工具只能引用**已有数据集**（`NopReportDataset` status=1）且**对当前用户可见**（AR-1 修复
+  plan `2026-08-16-2137-1`：非 admin 仅 createdBy 匹配，不可见拒绝
+  `ERR_DATAV_CHATBI_DATASET_NO_ACCESS`，见 §6 消费面清单）+ **映射已有字段**（dsMeta 内），不能凭空造数据集/字段。
 - 生成的大屏为 **DRAFT**（publishStatus=0），不自动发布（裁定 H）。
 - 生成大屏归属 operator（`createdBy`），RLS 保护。
 - 大屏可用全部 14 类组件（含装饰类型，与看板不同——看板只能用 8 类）。

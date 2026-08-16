@@ -1,7 +1,7 @@
 # nop-datav Audit Follow-up Backlog (P2)
 
 > Status: backlog（P2-only items，不发起独立 remediation plan）
-> Sources: `ai-dev/audits/nop-datav/2026-08-10-1516-multi-audit-nop-datav.md`（multi，P2×10）、`ai-dev/audits/nop-datav/2026-08-10-1516-open-audit-nop-datav.md`（open，P2×7 + nits）、`ai-dev/audits/nop-datav/2026-08-15-1913-multi-audit-nop-datav.md`（multi，P2×48，#18-65）、`ai-dev/audits/nop-datav/2026-08-15-1913-open-audit-nop-datav.md`（open，P2×4，#66-69）
+> Sources: `ai-dev/audits/nop-datav/2026-08-10-1516-multi-audit-nop-datav.md`（multi，P2×10）、`ai-dev/audits/nop-datav/2026-08-10-1516-open-audit-nop-datav.md`（open，P2×7 + nits）、`ai-dev/audits/nop-datav/2026-08-15-1913-multi-audit-nop-datav.md`（multi，P2×48，#18-65）、`ai-dev/audits/nop-datav/2026-08-15-1913-open-audit-nop-datav.md`（open，P2×4，#66-69）、`ai-dev/audits/nop-datav/2026-08-16-0719-open-audit-nop-datav.md`（open，P2×2 + 裁定项×1，#70-72）
 > Rules: 每条标注 source audit 路径与 finding ID 以保持可追溯；P2 非降解项，但优先级低于 P0/P1（已进 plan）。
 > Resolved: #1 ✅ #2 ✅ #3 ✅ #4 ✅ #5 ✅ #6 ✅ #7 ✅ #8 ✅ #9 ✅ #10 ✅ #11 ✅ #12 ✅ #13 ✅ #14 ✅ #15 ✅ #16 ✅ #17 ✅（plan `ai-dev/plans/nop-datav/2026-08-14-0950-1-p2-audit-backlog-cleanup.md` 已 completed 2026-08-14）
 
@@ -140,3 +140,13 @@
 | 67 | AR-5 — 多轮 chatToQuery @BizQuery 三段写库无事务原子性 + 写路径逃过 mutation 审计（`NopDatavChatBiBizModel.java:110-142`、`ChatBiSessionManager.java:137-159`） | 同上 §AR-5 | appendTurn 包单事务 + 审计 pattern 评估 |
 | 68 | AR-6 — 审计 mutation pattern 覆盖不对称：Screen/ChatBI 生成/ReportTask/AlertRule/ExportTask 全缺位（`nop-datav-app/application.yaml:25-26`） | 同上 §AR-6 | 补 `NopDatavScreen__*` 等 pattern |
 | 69 | AR-7 — DashboardPanelQueryCache 缓存键无用户维度：当前正确，但与 plan 1 P1-03 修复形成定时耦合（`query/DashboardPanelQueryCache.java:57-61`） | 同上 §AR-7 | **已作为 plan 1 Phase 4 Exit Criteria 的强制裁定项登记**；键前提 javadoc 锚点仍待补 |
+
+## From `ai-dev/audits/nop-datav/2026-08-16-0719-open-audit-nop-datav.md`（2026-08-16 批次，P2×2 + 裁定项×1）
+
+> AR-1（P0）已入 plan `ai-dev/plans/nop-datav/2026-08-16-2137-1-chatbi-generate-dataset-visibility-closure.md`。以下为 P2 backlog 与独立裁定项。
+
+| # | Finding | Source | Note |
+|---|---------|--------|------|
+| 70 | AR-2 — `setScreenThumbnail` 生产路径（事务装饰器 ambient session）返回 session 缓存 stale 实体，javadoc「返回最新主表行」不成立；测试直调 bean 无 ambient session 故全绿（`entity/NopDatavScreenBizModel.java:287-305`） | `ai-dev/audits/nop-datav/2026-08-16-0719-open-audit-nop-datav.md` §AR-2 | detached 副本或 JDBC 更新后同步 setter（镜像 `toSanitizedView` 先例）+ graphQLEngine mutation 路径回归 |
+| 71 | AR-3 — 生成路径补偿清单登记依赖 handler 端 JSON 解析成功：executor 已落库但回执解析失败时 id 不进清单，循环失败补偿漏删（幽灵草稿 + dashboardName UK 冲突）；解析失败仅 DEBUG 双层吞（`entity/NopDatavChatBiBizModel.java:423-447,500-524`） | 同上 §AR-3 | 补偿登记与结果提取解耦（executor 成功落库后直接写清单，如经 context 传递 sink）或显式记入 ai-design §11 契约已知例外；至少 WARN |
+| 72 | AR-1 建议 4（待裁定）— 快照序列化 `datasetRefs[].refDatasetId` 明文携带数据集 sid：登录用户经 `getPublishedDashboard`、匿名经 `getSharedDashboard` 可读他人看板所用数据集 sid 清单（`NopDatavDashboardBizModel.java:893-894`） | 同上 §AR-1 建议 4 | 审计明示「独立裁定，不与本修复绑定」；评估分享面 sid 暴露是否需要收敛（sid 为人类可读业务键，可枚举猜测） |
