@@ -493,3 +493,59 @@ id 稳定性：存活面板 id 不变；新建面板以 L2 的服务端 id 为�
 | 保存消费 `source` / `props.dataBinding` 改写绑定 | 绑定编辑为 D1-4 Non-Goal（仅保留/透传）；消费引入越权绑定改写面 |
 | 复用 `dashboard-query.max-panels` 作保存上界 | 查询性能界（防 SQL 放大）与保存存储容量界（json-4000）语义不同；独立配置避免调参互相惊吓 |
 | 截断超限 JSON 入库 | 截断 = 损坏数据；显式报错让调用方收敛面板数或配置区体积 |
+
+---
+
+## 十、导出异步任务提交事务边界（AR-2，plan `2026-08-15-2146-2` Phase 2）
+
+**裁定**：异步执行提交必须发生在**事务提交之后**。`NopDatavExportTaskBizModel.createExportTask`
+（@BizMutation，经 GraphQL 事务装饰器持 REQUIRED 事务）在 INSERT pending 任务后经
+`ITransactionTemplate.afterCommit`（复用 `CrudBizModel` 已注入的 `txn()`，不重复声明字段）注册
+`submitExecution`——worker 消费时 pending 行必然已提交可见，消除 READ_COMMITTED 下
+「worker 新 session 首查 null → 静默 `return null`」竞态（导出永停 PENDING、占并发配额、被
+stuck 扫描器误标 FAILED）。
+
+| 路径 | 行为 |
+|------|------|
+| 事务上下文内（@BizMutation） | `isTransactionOpened` 为 true → `afterCommit` 注册；事务回滚时 onAfterCommit 不触发（回滚则不提交异步任务，语义恰好正确） |
+| 无事务上下文（cron/恢复/裸调用） | 保持立即提交（守护分支，不因注册 listener 抛 `ERR_TXN_NOT_IN_TRANSACTION`） |
+| worker 首查 null | 短退避重查（3 次 × 200ms）后仍缺行 → ERROR 日志 + `markFailedSafe` 显式失败（禁止静默 no-op；该分支只剩基础设施异常如读副本延迟） |
+
+**配套出参契约**：`createExportTask` 返回 **detached 副本**（镜像 share 模式 Phase 1「出参副本」
+裁定）。afterCommit 语义下 worker 在 commit 后立即开跑（RUNNING/SUCCEEDED 连续推高 version），
+mutation 返回 attached 实体会使 GraphQL 响应装载对 stale version 实体重组装并触发
+`entity-version-changed`；副本不挂 session，响应字段不变。
+
+**拒绝的替代方案**：
+
+| 方案 | 拒用理由 |
+|------|---------|
+| `REQUIRES_NEW` 内提交异步任务 | pending 行仍在外层事务未提交，worker 竞态不变 |
+| worker 无限重试等待行可见 | 掩盖时序缺陷；占 worker 线程；上界退避 + 显式失败更可观测 |
+| `getExportTask`/`cancelExportTask` 出参同步副本化 | 读取路径无 worker 竞态写手（cancel 有 version 锁三层防护），本 plan 不扩大改造面 |
+
+---
+
+## 十一、导出面板数上界（AR-3，plan `2026-08-15-2146-2` Phase 4）
+
+**裁定**：`PanelDataExporter.exportDashboard` 入口对 needsDataset 面板数做前置上限校验——**复用
+`CFG_DATAV_DASHBOARD_QUERY_MAX_PANELS`**（`nop.datav.dashboard-query.max-panels`，默认 50）。超限抛
+`ERR_DATAV_DASHBOARD_PANEL_LIMIT_EXCEEDED`（携带 panelCount/maxPanels，结构化失败，非静默截断），
+校验先于任何面板取数执行（防单请求放大为海量 SQL：每面板 1 条 SQL + maxRows=100000 行取数 +
+全量内存 workbook）。报告交付路径（`ReportDeliveryExecutor` 复用 `exportDashboard`）自动获得
+同保护。
+
+**拒绝的替代方案**：新增独立 export 侧配置——查询上界与导出上界同为性能界（防 SQL 放大），
+语义相同故共用一闸（对照 layout 上界因存储容量界语义而独立，§9.10）；超限静默截断——违反
+显式失败约定。
+
+**四路径防护对称性**（导出补齐后）：
+
+| 路径 | 上界 | 错误码 |
+|------|------|--------|
+| getDashboardData 批量查询（§4.4） | `dashboard-query.max-panels`(50) | `ERR_DATAV_DASHBOARD_PANEL_LIMIT_EXCEEDED` |
+| saveDashboardLayout（§9.10，存储容量界独立配置） | `dashboard-layout.max-panels`(50) | `ERR_DATAV_DASHBOARD_PANEL_LIMIT_EXCEEDED` |
+| exportDashboard（导出 + 报告交付，本节新增） | `dashboard-query.max-panels`(50) | `ERR_DATAV_DASHBOARD_PANEL_LIMIT_EXCEEDED` |
+| ChatBI datav-query-dataset（单数据集查询） | `chatbi.max-rows`(1000) 行数界 | 服务端钳制（ai-design.md §7.1，非面板数界） |
+
+**语义锚定**：`TestPanelDataExporterPanelCap`（超限结构化错误 + 边界值 =上限 放行）。

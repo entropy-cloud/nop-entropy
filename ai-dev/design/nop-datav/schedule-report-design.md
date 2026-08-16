@@ -260,6 +260,67 @@ IM 渠道**仅发送文本/Markdown 通知**（报告摘要：reportName/dashboa
 
 ---
 
+## 12b. 报告异步提交事务边界（AR-2，plan `2026-08-15-2146-2` Phase 2）
+
+**裁定**：`ReportDeliveryExecutor.execute` 的 worker 提交与导出路径对称——事务上下文内
+（`triggerReportNow` 为 @BizMutation，经 GraphQL 事务装饰器持 REQUIRED 事务）经
+`ITransactionTemplate.afterCommit` 注册 `globalWorker().submit`，pending 交付行 commit 后才被消费；
+无事务上下文（cron 路径 `NopDatavReportScheduler.executeScheduledReport`，`BeanMethodJobInvoker`
+纯反射无事务装饰）保持立即提交（`isTransactionOpened` 守护分支，不抛
+`ERR_TXN_NOT_IN_TRANSACTION`）；事务回滚时 onAfterCommit 不触发（回滚则不提交异步任务）。
+
+worker 首查 null 分支（`runDeliveryInSession`）从静默 `return null` 改为：短退避重查
+（3 次 × 200ms）后仍缺行 → ERROR 日志（含 reportTaskId/deliveryId）+ `markFailedSafe`
+显式失败（No Silent No-Op；正常情况下 afterCommit 时序保证行必然可见，该分支只剩基础设施异常）。
+
+时序回归锚定：`TestNopDatavAsyncSubmitTransactionPath`（afterCommit 注册语义 seam 断言 +
+graphQLEngine mutation 真实事务路径 E2E）。
+
+---
+
+## 12c. 告警通知事务边界（P1-06，plan `2026-08-15-2146-2` Phase 3，裁定主案 (a)）
+
+**缺陷**：`evaluateAlertNow`（@BizMutation，user 可调）链路内 `AlertEvaluator.evaluate` 的
+`sendAlertNotification` 同步 SMTP/IM 远程发送（典型 30-60s 超时）+ 多次状态写全程运行在数据库
+事务内。cron 路径不受影响（`BeanMethodJobInvoker` 纯反射无事务装饰）。
+
+**裁定（主案 (a)，与 rearm 契约不冲突的形态）**：
+
+- **事务内**：写 interim 状态（TRIGGERED/OK 状态转换 + lastTriggeredTime/consecutiveEvalCount 等
+  审计列，**不含** lastNotifiedTime/lastResolvedTime）并随事务提交；
+- **commit 后**（`ITransactionTemplate.afterCommit`）：发送通知（远程调用不进事务）；
+- **发送成功后**：**REQUIRES_NEW 独立短事务**重载状态行回写 lastNotifiedTime/lastResolvedTime
+  （事务内的 attached 实体 commit 后已失效，不作回写载体）。REQUIRES_NEW 而非 REQUIRED：afterCommit
+  listener 执行期间外层事务仍在线程注册表（其 cleanup 在 `commit()` 返回后才执行），REQUIRED 会
+  「加入已提交的外层事务」导致回写 SQL 悬空丢失（实现期实证捕获）；
+- **发送失败**：实现内显式 **ERROR 日志**（不静默吞——平台 `invokeListener(ignoreError=true)` 会吞
+  listener 异常仅打通用日志，可观测锚定由实现内 ERROR 兑现）且**不回写**：lastNotifiedTime 保持
+  null/旧值 → rearm 契约保持（仅通知成功后写入；失败留 null 立即重试）。
+
+**语义微调（显式落档）**：
+
+| 面 | 修复前 | 修复后（主案 (a)） |
+|----|--------|-------------------|
+| 事务内通知发送失败 | 异常上抛 → mutation 整体回滚（状态不变，用户见 GraphQL 错误） | commit 后发送失败：interim 状态已提交（客观事实），ERROR 日志，调用方无异常；rearm 下次重试 |
+| `evaluateAlertNow` 同步返回值 | 通知已发送后的终态（lastNotifiedTime 已写） | 通知发送前的中间态（lastNotifiedTime 尚未回写，异步补写） |
+| `EvalResult.notified`（事务路径） | 已送达 | 「已注册待发」（该结果仅 cron 路径消费，cron 路径语义不变） |
+| cron 路径（无事务） | 同步发送 + 成功后立即回写 | **不变**（逐条等价，`TestNopDatavAlertE2E` 全量锚定） |
+
+**语义锚定**：`TestNopDatavAlertNotifyTransactionBoundary`——事务内未发送 + interim 状态可见 +
+commit 后发送与回写（TRIGGER/RECOVER 双路径）；发送失败不回写 + rearm 重试闭环；无事务路径同步
+（守护回归）。
+
+**拒绝的替代方案**：
+
+| 方案 | 拒绝理由 |
+|------|---------|
+| (b) 发送移独立异步线程（不等 commit） | 交付记录（此处为状态行）未提交时发送可能引用将回滚的数据；且仍需两段状态写，复杂度高于 (a) 无额外收益 |
+| (c) 维持现状 | P1-06 为已确认缺陷（远程调用进事务），不可接受 |
+| 回写用 REQUIRED 短事务 | afterCommit 期间外层事务仍注册，REQUIRED 加入已提交事务 → 回写丢失（实证） |
+| 发送失败时反向补偿（回滚 interim 状态） | interim 状态是客观事实（条件确已满足/恢复）；回滚会伪造历史；rearm 重试语义已足够 |
+
+---
+
 # D5-2 轻量告警设计
 
 ## 13. 标量聚合契约

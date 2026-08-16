@@ -40,7 +40,7 @@
 
 ## From `ai-dev/audits/nop-datav/2026-08-15-1913-multi-audit-nop-datav.md`（2026-08-15 批次，P2×48）
 
-> P0/P1 已入 remediation plans `ai-dev/plans/nop-datav/2026-08-15-2146-1-panel-subentity-auth-rbac-closure.md`（P0-01/02、P1-01/02/03/10，**已 completed 2026-08-16**）、`2026-08-15-2146-2-transaction-boundary-async-resource-bounds.md`（P1-04/05/06 对应项）、`2026-08-15-2146-3-ddl-integrity-cascade-hygiene.md`（P0-03、P1-07/08/09/11/12）。以下为 P2 backlog。
+> P0/P1 已入 remediation plans `ai-dev/plans/nop-datav/2026-08-15-2146-1-panel-subentity-auth-rbac-closure.md`（P0-01/02、P1-01/02/03/10，**已 completed 2026-08-16**）、`2026-08-15-2146-2-transaction-boundary-async-resource-bounds.md`（P1-04/05/06 对应项，**已 completed 2026-08-16**）、`2026-08-15-2146-3-ddl-integrity-cascade-hygiene.md`（P0-03、P1-07/08/09/11/12）。以下为 P2 backlog。
 
 ### 结构与构建
 
@@ -132,7 +132,7 @@
 
 ## From `ai-dev/audits/nop-datav/2026-08-15-1913-open-audit-nop-datav.md`（2026-08-15 批次，P2×4）
 
-> AR-1（P0）/AR-2/AR-3（P1）已入 plan `2026-08-15-2146-2-transaction-boundary-async-resource-bounds.md`。以下为 P2 backlog。
+> AR-1（P0）/AR-2/AR-3（P1）已入 plan `2026-08-15-2146-2-transaction-boundary-async-resource-bounds.md`（**已 completed 2026-08-16**）。以下为 P2 backlog。
 
 | # | Finding | Source | Note |
 |---|---------|--------|------|

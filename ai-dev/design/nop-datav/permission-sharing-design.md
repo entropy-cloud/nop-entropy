@@ -252,6 +252,7 @@ D3-4 为纯配置启用：`GraphQLAuditLogger`（`IGraphQLLogger`）→ `IAuditS
 - 密码可选：`passwordHash = null` 表示无需密码；存储仅哈希，校验经 `IPasswordEncoder.passwordMatches` 比对，非明文。
 - **分享密码绕过 `nopPasswordPolicy`**：该 policy（`DefaultPasswordPolicy`，`minLength=12` + 大小写/数字/特殊字符）面向用户账号强密码，不适合分享短密码。直接调 `IPasswordEncoder.encodePassword`，不经 `IUserStore`/policy 校验。
 - 注入：`@Inject IPasswordEncoder`（按类型注入，bean `nopPasswordEncoder` 为 `ioc:default="true"` 的 `CompositePasswordEncoder`；`nopBCryptPasswordEncoder` 的 `autowire-candidate="false"` 故不可直接按类型注入它）。
+- **出参副本契约（AR-1 修复，plan 2026-08-15-2146-2 Phase 1）**：`createShare`/`listShares`/`toggleShare`/`revokeShare` 的 mask-on-return 经 **detached 副本**实现（new 一个仅携带可暴露字段的实体副本、`passwordHash` 刻意不复制），**禁止改写 attached（MANAGED）实体**——对 attached 实体的 setter 改写会在 `@BizMutation` 事务 commit 时经 `OrmTransactionListener.onBeforeCommit → flushSession` 补发 `UPDATE ... SET PASSWORD_HASH=NULL`，物理抹除哈希并使 `verifySharePassword` 放行（缺陷不再回归的锚定测试：`TestNopDatavShareToggleTransactionPath`，经 graphQLEngine mutation 真实事务路径 + 裸 JDBC 断言持久层哈希不变）。
 
 ### 吊销 vs 软删语义
 

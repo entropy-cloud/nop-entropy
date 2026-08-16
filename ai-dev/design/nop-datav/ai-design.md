@@ -228,9 +228,24 @@ ChatBI 不经 DatasetRef（无面板上下文），直接查 `NopReportDataset`�
 | 配置项 | 默认值 | 说明 |
 |-------|-------|------|
 | `nop.datav.chatbi.max-iterations` | 5 | tool-calling 轮次上限 |
-| `nop.datav.chatbi.max-rows` | 1000 | 单次查询行数上限 |
+| `nop.datav.chatbi.max-rows` | 1000 | 单次查询行数**硬上限**（P1-04：服务端钳制到 [1, 此值]，见下） |
 | `nop.datav.chatbi.default-model` | "" | 默认 LLM model |
 | `nop.datav.chatbi.default-provider` | "" | 默认 provider |
+
+### 7.1 maxRows 服务端硬钳制（P1-04，plan `2026-08-15-2146-2` Phase 4）
+
+**缺陷**：修复前 maxRows 由 LLM 入参直取（配置只是缺省值而非上限），且 `maxRows > 0` 才限行——
+传 0/负数时 range=null 全表物化；schemaJson 无 maximum。
+
+**裁定**：入参钳制到 `[1, nop.datav.chatbi.max-rows]`——null/<=0 落配置缺省，>0 取 min(入参, 配置)。
+返回值恒 >0，查询路径恒有限行（range 恒非 null，消除「传 0/负数 → 全表物化」绕过面）。
+
+**schemaJson 与运行时配置的漂移裁定**：schema 对 LLM 仅为提示（非强制），**服务端钳制才是硬
+防线**——`datav-query-dataset.tool.xml` 的 `maximum`（1000）为缺省快照，运行时以配置钳制为准
+（配置变更后 schema 数值不随之变更不构成契约漂移；tool 描述与配置 Description 已显式声明该关系）。
+
+**语义锚定**：`TestDatavQueryDatasetMaxRowsClamp`（0/负数/巨值/缺失四态 → 配置值；=上限放行；
+低于上限按入参）。
 
 **Follow-up（不在 D6-1 scope）**：ChatBI 查询审计日志（NL 问题 + tool calls + 结果摘要）、
 多模型热切换、查询结果可视化建议。会话历史持久化已由 §10 落地。
@@ -816,3 +831,46 @@ sessionManager.appendTurn(session, question, result, operator)
 |-------|-------|------|
 | `nop.datav.chatbi.history.max-turns` | 10 | 注入历史的最大轮数（最近 N 轮） |
 | `nop.datav.chatbi.history.max-chars` | 20000 | 注入历史的字符预算（与轮数上界取小，最老优先丢弃） |
+
+---
+
+## 11. 生成路径事务边界（P1-05，plan `2026-08-15-2146-2` Phase 3）
+
+**缺陷**：`chatToDashboard`/`chatToScreen` 为 @BizMutation（GraphQL 事务装饰器 REQUIRED 事务），
+修复前整个 tool-calling 循环（单轮 LLM 远程调用可达数十秒 × maxIterations 轮 + 工具落库）全程
+运行在事务内——并发请求可耗尽连接池。
+
+**裁定（三个设计决策点）**：
+
+1. **多轮间可读性（决策点 a）**：ChatBI 工具集（list/describe/query-dataset、generate-dashboard、
+   generate-screen、list-component-types）中**无任何工具回读已生成的看板/大屏**——dashboardId/
+   screenId 只流向最终 `ChatBiResult.createdEntityId`。故「循环移出事务 + 每工具即时提交」不破坏
+   多轮语义；即时提交反而使 id 在后续轮次可查（能力超需求但无害）。
+2. **失败语义（决策点 b）**：选定「每工具独立短事务 + 失败补偿删除」。修复前的「失败不落库」
+   承诺由单 REQUIRED 事务整体回滚兑现；移出事务后由**补偿删除**兑现：循环异常时删除本轮生成的
+   全部实体（Dashboard+Panel+DatasetRef / Screen+ScreenWidget，REQUIRES_NEW 独立短事务——异常上抛
+   路径下 ambient 事务已被 `runWithoutTransaction` 恢复注册且注定回滚，REQUIRED 加入会使补偿随之
+   回滚、生成物复活）。补偿失败（如 DB 故障）ERROR 日志（含实体 id，供人工清理）——非静默吞，
+   异常原样上抛。
+3. **原子性（决策点 c）**：生成工具 executor（DatavGenerateDashboard/ScreenExecutor）创建阶段包
+   **REQUIRED 短事务**：无 ambient 事务时新开（多表写原子性保持，创建即提交）；有 ambient 事务时
+   加入（与修复前行为一致——未来宿主 agent 循环在事务内调用工具时语义不变）。SUPPORTS/无事务
+   直写方案被拒：多表写退化为逐语句 auto-commit，半成品看板/大屏风险。
+
+**实现形态**：`chatToDashboard`/`chatToScreen` 方法体内经 `ITransactionTemplate.runWithoutTransaction`
+挂起 ambient 事务执行 LLM 循环（机制锚定：每次 LLM 调用时线程事务注册为空），循环结束恢复注册，
+外层事务正常 commit（空事务）。`chatToQuery` 为 @BizQuery（本无事务）不动。结果提取 handler 改为
+工厂方法（同时把成功生成的实体 id 记入补偿清单）。
+
+**语义锚定**：`TestNopDatavChatBiTransactionBoundary`——(a) LLM 调用时事务标志全 false +
+外层事务内生成物已可见（短事务即时提交）；(b) 循环失败补偿删除（直调 + ambient 事务内双场景，
+后者锚定 REQUIRES_NEW 不随外层回滚）；(c) 成功路径生成物保留。
+
+**拒绝的替代方案**：
+
+| 方案 | 拒绝理由 |
+|------|---------|
+| 循环整体留在单事务、仅消除远程等待 | 远程调用即循环本体（LLM call + tool join），不可消除——该候选自相矛盾 |
+| 「先跑循环缓冲 spec、成功后统一落库」 | 生成工具须向 LLM 返回真实 dashboardId/screenId（工具协议），缓冲 spec 无 id 可返；重构面大且改变工具契约 |
+| 接受部分落库并显式标注 | 降低「失败不落库」承诺为 best-effort；补偿删除成本可控且语义与修复前等价 |
+| 补偿删除用 REQUIRED | 异常路径下加入注定回滚的 ambient 事务 → 补偿被回滚、生成物复活（实现期实证捕获） |

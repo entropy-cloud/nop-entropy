@@ -1,6 +1,6 @@
 # 2 nop-datav 事务边界、异步正确性与资源上界收口
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: nop-datav
 > Execution Order: 2 of 3（本批 3 份 remediation plan；权限面先行（plan 1），本 plan 收口「生产事务装饰器路径」系统性缺陷与资源上界缺口）
 > Last Reviewed: 2026-08-15
@@ -61,98 +61,98 @@
 
 ### Phase 1 - 分享密码哈希 dirty-flush 修复（AR-1）
 
-Status: planned
+Status: completed
 Targets: `NopDatavDashboardShareBizModel.java`、新增事务路径回归测试
 
 - Item Types: `Fix | Proof`
 
-- [ ] Fix：`doToggleShare`（toggleShare/revokeShare）、`createShare`、`listShares` 出参不再改写 attached 实体——**安全路径=detached 副本**：new 一个仅携带可暴露字段的实体副本（不挂 session、不影响持久层）返回，接口 `INopDatavDashboardShareBiz` 返回实体类型无需变更；注意引入全新 DTO 类型会改变 GraphQL 出参 schema（与「API 响应字段不变」冲突），除非 Phase 内核实 schema 影响可控否则不采用；实体本体的 passwordHash 不动；消除对「saveDirectly 不挂缓存」「查询无 flush」两处平台实现细节的隐式依赖
-- [ ] Proof：新增回归测试——经 `IGraphQLEngine` 以 mutation 调用 `toggleShare`（真实事务装饰器路径），事务提交后以裸 JDBC/新 session 断言 `NOP_DATAV_SHARE.PASSWORD_HASH` 仍为原 BCrypt 哈希；随后 `getSharedDashboard` 错误密码仍被拒、正确密码放行
-- [ ] 回归：既有 share 测试套件（TestNopDatavSharePasswordHashMasking/TestNopDatavShareManagementBizModel/TestNopDatavShareE2E 等）全绿；出参 DTO 化后 API 响应字段不变（mask 语义保留——响应不含哈希）
+- [x] Fix：`doToggleShare`（toggleShare/revokeShare）、`createShare`、`listShares` 出参不再改写 attached 实体——**安全路径=detached 副本**：new 一个仅携带可暴露字段的实体副本（不挂 session、不影响持久层）返回，接口 `INopDatavDashboardShareBiz` 返回实体类型无需变更；注意引入全新 DTO 类型会改变 GraphQL 出参 schema（与「API 响应字段不变」冲突），除非 Phase 内核实 schema 影响可控否则不采用；实体本体的 passwordHash 不动；消除对「saveDirectly 不挂缓存」「查询无 flush」两处平台实现细节的隐式依赖
+- [x] Proof：新增回归测试——经 `IGraphQLEngine` 以 mutation 调用 `toggleShare`（真实事务装饰器路径），事务提交后以裸 JDBC/新 session 断言 `NOP_DATAV_SHARE.PASSWORD_HASH` 仍为原 BCrypt 哈希；随后 `getSharedDashboard` 错误密码仍被拒、正确密码放行
+- [x] 回归：既有 share 测试套件（TestNopDatavSharePasswordHashMasking/TestNopDatavShareManagementBizModel/TestNopDatavShareE2E 等）全绿；出参 DTO 化后 API 响应字段不变（mask 语义保留——响应不含哈希）
 
 Exit Criteria:
 
-- [ ] `doToggleShare/createShare/listShares` 无任何对 attached 实体 mask 字段的 setter 改写（代码级可核查）
-- [ ] 事务路径回归测试存在且断言持久层 PASSWORD_HASH 不变 + 密码校验语义不变（测试名可引用）
-- [ ] 既有 share 测试全绿；`./mvnw test -pl nop-datav -am` 通过
-- [ ] **接线验证**：回归测试经 graphQLEngine mutation（真实事务装饰器）而非裸 bean 直调
-- [ ] owner-doc 裁定：若 `runtime-design.md` 等记载 mask-on-return 机制则同步更新；否则显式记录 No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `doToggleShare/createShare/listShares` 无任何对 attached 实体 mask 字段的 setter 改写（代码级可核查）
+- [x] 事务路径回归测试存在且断言持久层 PASSWORD_HASH 不变 + 密码校验语义不变（测试名可引用）
+- [x] 既有 share 测试全绿；`./mvnw test -pl nop-datav -am` 通过
+- [x] **接线验证**：回归测试经 graphQLEngine mutation（真实事务装饰器）而非裸 bean 直调
+- [x] owner-doc 裁定：若 `runtime-design.md` 等记载 mask-on-return 机制则同步更新；否则显式记录 No owner-doc update required（裁定：`permission-sharing-design.md`「密码哈希策略」增补出参副本契约）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 异步提交时序与可观测性（AR-2）
 
-Status: planned
+Status: completed
 Targets: `NopDatavExportTaskBizModel.java`、`ReportDeliveryExecutor.java`、新增竞态回归测试
 
 - Item Types: `Fix | Proof`
 
-- [ ] Fix：`createExportTask` 与 `triggerReportNow`→`ReportDeliveryExecutor` 的异步提交改为事务提交后执行——注入 `ITransactionTemplate`（bean `nopTransactionTemplate`），`isTransactionOpened()` 时 `afterCommit(...)` 注册 `submitExecution`，无事务上下文（cron/恢复路径）保持立即提交（注册前守护，避免 `ERR_TXN_NOT_IN_TRANSACTION`；形态见 Baseline API 事实）
-- [ ] Fix：worker 首查 null 分支（`executeTask` 与 `ReportDeliveryExecutor.runDelivery` 两侧）从静默 `return null` 改为可观测：ERROR 日志（含 taskId/deliveryId）+ `markFailedSafe` 或裁定采用的短退避重查后仍 null 才判定失败——禁止静默 no-op
-- [ ] Proof：新增回归测试，断言采用可观察口径（graphQLEngine mutation 返回时事务已提交、worker 消费时行必然可见——「可见性」本身无法构成缺陷锚定）：(a) afterCommit 注册语义断言——经 mutation 路径调用后 `submitExecution` 仅在事务提交后被触发（测试 seam/计数器验证注册与触发时序）；或 (b) 受控延迟提交的竞态 seam 测试（在提交前阻塞 worker 首查）；或 (c) 无事务守护分支回归——直接调用（无事务上下文）不抛 `ERR_TXN_NOT_IN_TRANSACTION` 且任务正常推进。三选一或组合，测试设计落档
-- [ ] 回归：既有导出/报告 E2E 测试全绿；stuck 扫描器行为不变
+- [x] Fix：`createExportTask` 与 `triggerReportNow`→`ReportDeliveryExecutor` 的异步提交改为事务提交后执行——注入 `ITransactionTemplate`（bean `nopTransactionTemplate`），`isTransactionOpened()` 时 `afterCommit(...)` 注册 `submitExecution`，无事务上下文（cron/恢复路径）保持立即提交（注册前守护，避免 `ERR_TXN_NOT_IN_TRANSACTION`；形态见 Baseline API 事实）
+- [x] Fix：worker 首查 null 分支（`executeTask` 与 `ReportDeliveryExecutor.runDelivery` 两侧）从静默 `return null` 改为可观测：ERROR 日志（含 taskId/deliveryId）+ `markFailedSafe` 或裁定采用的短退避重查后仍 null 才判定失败——禁止静默 no-op
+- [x] Proof：新增回归测试，断言采用可观察口径（graphQLEngine mutation 返回时事务已提交、worker 消费时行必然可见——「可见性」本身无法构成缺陷锚定）：(a) afterCommit 注册语义断言——经 mutation 路径调用后 `submitExecution` 仅在事务提交后被触发（测试 seam/计数器验证注册与触发时序）；或 (b) 受控延迟提交的竞态 seam 测试（在提交前阻塞 worker 首查）；或 (c) 无事务守护分支回归——直接调用（无事务上下文）不抛 `ERR_TXN_NOT_IN_TRANSACTION` 且任务正常推进。三选一或组合，测试设计落档
+- [x] 回归：既有导出/报告 E2E 测试全绿；stuck 扫描器行为不变
 
 Exit Criteria:
 
-- [ ] 两处异步提交均发生在事务提交之后（或裁定等价机制），代码级可核查；cron/无事务路径行为不变且有守护分支（不因注册 listener 抛错）
-- [ ] 两处 null 分支有 ERROR 级日志与失败标记路径，无静默返回（No Silent No-Op 规则）
-- [ ] 回归测试采用可观察断言口径（afterCommit 注册/触发时序 seam、受控延迟竞态、或无事务守护分支——三选一或组合，测试设计已落档），非「mutation 后行可见」这类修复前也全绿的断言
-- [ ] `./mvnw test -pl nop-datav -am` 通过
-- [ ] **若改变行为契约**：`ai-dev/design/nop-datav/runtime-design.md`（导出）/ `schedule-report-design.md`（报告）事务边界小节已增补；否则明确 No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 两处异步提交均发生在事务提交之后（或裁定等价机制），代码级可核查；cron/无事务路径行为不变且有守护分支（不因注册 listener 抛错）
+- [x] 两处 null 分支有 ERROR 级日志与失败标记路径，无静默返回（No Silent No-Op 规则）
+- [x] 回归测试采用可观察断言口径（afterCommit 注册/触发时序 seam、受控延迟竞态、或无事务守护分支——三选一或组合，测试设计已落档），非「mutation 后行可见」这类修复前也全绿的断言
+- [x] `./mvnw test -pl nop-datav -am` 通过
+- [x] **若改变行为契约**：`ai-dev/design/nop-datav/runtime-design.md`（导出）/ `schedule-report-design.md`（报告）事务边界小节已增补；否则明确 No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 长事务收敛（P1-05 + P1-06）
 
-Status: planned
+Status: completed
 Targets: `NopDatavChatBiBizModel.java`、`NopDatavAlertRuleBizModel.java`、`AlertEvaluator.java`、owner docs
 
 - Item Types: `Decision | Fix`
 
-- [ ] Decision P1-06（先行裁定，修复方案不可与 rearm 契约冲突）：现状契约（plan 2026-08-14-0937-2 Dim14-03 修复）是「`saveState(interim)` → 同步发送 → **通知成功后**才写 `lastNotifiedTime`（失败留 null 立即重试）」——`lastNotifiedTime` 只在通知成功后写是 rearm 重试语义的核心。**「通知移出事务」与「状态写在事务内不变」不可同时字面成立**（事务内代码无法感知 commit 后发送的成败），必须三选一并落档：(a) 主案：事务内写 interim 状态（不含 lastNotifiedTime）→ afterCommit 发送 → 发送成功后**新短事务**回写 lastNotifiedTime（契约保持：失败则 null 待重试；`evaluateAlertNow` 同步返回值为通知发送前的中间态——接受的语义微调须显式落档）；(b) 发送移独立异步线程（不等 commit，但脱离调用方事务），配合 (a) 的两段状态写；(c) 维持现状并记录不修的理由（默认不可接受，P1-06 是已确认缺陷）。裁定需评估 `evaluateAlertNow` 返回值消费方与 cron 路径（cron 无事务装饰，行为不变）
-- [ ] Decision P1-05（先行裁定，三个真正的设计决策点）：(a) 工具 `DatavGenerateDashboardExecutor` 在循环**内**即时落库（dashboard+refs+panels 多实体）并向 LLM 返回 dashboardId——循环移出事务后，多轮（maxIterations>1）间前一轮 dashboardId 是否需对后续轮可读/可查；(b) 当前 REQUIRED 事务使循环任何一轮异常全部回滚（「失败不落库」承诺）——重构成「先跑循环、落库收敛到独立短事务」隐含把 executor 从即时写改为缓冲 spec，多轮工具间原子性丢失后失败语义如何兑现（全量补偿删除 / 接受部分落库并显式标注 / 每工具独立短事务+失败补偿）；(c) 备选 SUPPORTS/无事务方案下工具内多实体写失去原子性（半成品 dashboard 风险），且无事务上下文时 dao 直写行为需核实。三点评定后选定重构形态（含「结构拆分」「传播行为调整」「最小改动=仅把整个循环+落库留在单事务但消除循环内远程等待」等候选均可考虑，以「远程调用不进事务 + 失败语义明确」为验收）
-- [ ] Fix P1-05：按裁定实现——AI tool-calling 循环（远程 LLM 调用）不再运行于 REQUIRED 事务内；对外行为（入参、ChatBiResult、成功路径生成落库结果）不变；失败路径语义按裁定结论显式化（不得静默部分落库）
-- [ ] Fix P1-06：按裁定实现——`AlertEvaluator` 手动触发路径的通知发送不在事务内；rearm 契约（lastNotifiedTime 仅在通知成功后写入）保持；cron 路径行为不变；通知失败不被静默吞（失败语义沿用既有 lastNotifiedTime 契约）
-- [ ] 回归：ChatBI 生成路径既有测试 + 告警手动触发/cron 既有测试全绿；按裁定补充语义断言（如 afterCommit 回写后 lastNotifiedTime 正确、失败路径 null 待重试、ChatBI 失败路径不残留半成品——按裁定结论选定）
-- [ ] 事务边界契约落档：触及的 owner doc（`ai-dev/design/nop-datav/ai-design.md`、`schedule-report-design.md`）增补「远程调用不进事务」裁定与两项语义裁定结论
+- [x] Decision P1-06（先行裁定，修复方案不可与 rearm 契约冲突）：现状契约（plan 2026-08-14-0937-2 Dim14-03 修复）是「`saveState(interim)` → 同步发送 → **通知成功后**才写 `lastNotifiedTime`（失败留 null 立即重试）」——`lastNotifiedTime` 只在通知成功后写是 rearm 重试语义的核心。**「通知移出事务」与「状态写在事务内不变」不可同时字面成立**（事务内代码无法感知 commit 后发送的成败），必须三选一并落档：(a) 主案：事务内写 interim 状态（不含 lastNotifiedTime）→ afterCommit 发送 → 发送成功后**新短事务**回写 lastNotifiedTime（契约保持：失败则 null 待重试；`evaluateAlertNow` 同步返回值为通知发送前的中间态——接受的语义微调须显式落档）；(b) 发送移独立异步线程（不等 commit，但脱离调用方事务），配合 (a) 的两段状态写；(c) 维持现状并记录不修的理由（默认不可接受，P1-06 是已确认缺陷）。裁定需评估 `evaluateAlertNow` 返回值消费方与 cron 路径（cron 无事务装饰，行为不变）
+- [x] Decision P1-05（先行裁定，三个真正的设计决策点）：(a) 工具 `DatavGenerateDashboardExecutor` 在循环**内**即时落库（dashboard+refs+panels 多实体）并向 LLM 返回 dashboardId——循环移出事务后，多轮（maxIterations>1）间前一轮 dashboardId 是否需对后续轮可读/可查；(b) 当前 REQUIRED 事务使循环任何一轮异常全部回滚（「失败不落库」承诺）——重构成「先跑循环、落库收敛到独立短事务」隐含把 executor 从即时写改为缓冲 spec，多轮工具间原子性丢失后失败语义如何兑现（全量补偿删除 / 接受部分落库并显式标注 / 每工具独立短事务+失败补偿）；(c) 备选 SUPPORTS/无事务方案下工具内多实体写失去原子性（半成品 dashboard 风险），且无事务上下文时 dao 直写行为需核实。三点评定后选定重构形态（含「结构拆分」「传播行为调整」「最小改动=仅把整个循环+落库留在单事务但消除循环内远程等待」等候选均可考虑，以「远程调用不进事务 + 失败语义明确」为验收）
+- [x] Fix P1-05：按裁定实现——AI tool-calling 循环（远程 LLM 调用）不再运行于 REQUIRED 事务内；对外行为（入参、ChatBiResult、成功路径生成落库结果）不变；失败路径语义按裁定结论显式化（不得静默部分落库）
+- [x] Fix P1-06：按裁定实现——`AlertEvaluator` 手动触发路径的通知发送不在事务内；rearm 契约（lastNotifiedTime 仅在通知成功后写入）保持；cron 路径行为不变；通知失败不被静默吞（失败语义沿用既有 lastNotifiedTime 契约）
+- [x] 回归：ChatBI 生成路径既有测试 + 告警手动触发/cron 既有测试全绿；按裁定补充语义断言（如 afterCommit 回写后 lastNotifiedTime 正确、失败路径 null 待重试、ChatBI 失败路径不残留半成品——按裁定结论选定）
+- [x] 事务边界契约落档：触及的 owner doc（`ai-dev/design/nop-datav/ai-design.md`、`schedule-report-design.md`）增补「远程调用不进事务」裁定与两项语义裁定结论
 
 Exit Criteria:
 
-- [ ] chatToDashboard/chatToScreen 循环内无数据库事务持有（机制可核查：方法注解/传播行为/结构拆分）；成功路径行为与修复前等价（既有测试+新增断言）；失败路径语义按裁定显式化且被测试锚定，无静默部分落库
-- [ ] evaluateAlertNow 链路中远程发送不在事务内；rearm 契约保持（lastNotifiedTime 仅在通知成功后写入，测试锚定）；`evaluateAlertNow` 返回值语义变化（如裁定为主案 (a)）已落档；cron 路径不回归
-- [ ] afterCommit 回调内的失败路径有 ERROR 级可观测锚定（平台 `invokeListener(ignoreError=true)` 会吞 listener 异常且仅打通用日志——「通知失败不被静默吞」必须由 fix 实现内的显式 ERROR 日志/回写失败记录兑现，非依赖异常传播）
-- [ ] 两项 Decision 的裁定结论连同拒绝方案已落档 owner doc（无未声明的设计悬空）
-- [ ] `./mvnw test -pl nop-datav -am` 通过
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] chatToDashboard/chatToScreen 循环内无数据库事务持有（机制可核查：方法注解/传播行为/结构拆分）；成功路径行为与修复前等价（既有测试+新增断言）；失败路径语义按裁定显式化且被测试锚定，无静默部分落库
+- [x] evaluateAlertNow 链路中远程发送不在事务内；rearm 契约保持（lastNotifiedTime 仅在通知成功后写入，测试锚定）；`evaluateAlertNow` 返回值语义变化（如裁定为主案 (a)）已落档；cron 路径不回归
+- [x] afterCommit 回调内的失败路径有 ERROR 级可观测锚定（平台 `invokeListener(ignoreError=true)` 会吞 listener 异常且仅打通用日志——「通知失败不被静默吞」必须由 fix 实现内的显式 ERROR 日志/回写失败记录兑现，非依赖异常传播）
+- [x] 两项 Decision 的裁定结论连同拒绝方案已落档 owner doc（无未声明的设计悬空）
+- [x] `./mvnw test -pl nop-datav -am` 通过
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - 资源上界补齐（P1-04 + AR-3）
 
-Status: planned
+Status: completed
 Targets: `DatavQueryDatasetExecutor.java`、`datav-query-dataset.tool.xml`、`PanelDataExporter.java`、（按裁定）`NopDatavConfigs.java`
 
 - Item Types: `Fix`
 
-- [ ] Fix P1-04：maxRows 服务端钳制——入参 null/<=0 落 `CFG_DATAV_CHATBI_MAX_ROWS` 缺省，>0 取 `min(入参, 配置)`；`datav-query-dataset.tool.xml` schemaJson 补 `maximum`（与配置缺省一致）与合理 `minimum`；注释与 tool 描述同步（配置语义从「缺省值」明确为「硬上限」）。**schemaJson 与运行时配置的漂移裁定**：schema 对 LLM 仅为提示（非强制），服务端钳制才是硬防线——在 tool.xml 或 owner doc 显式声明「schema 值为缺省快照，运行时以配置钳制为准」，防止配置变更后 schema 静默漂移被误当契约
-- [ ] Fix AR-3：`exportDashboard` 入口面板数前置上限——复用 `CFG_DATAV_DASHBOARD_QUERY_MAX_PANELS` 或新增独立 export 侧配置（裁定后落档）；超限抛结构化错误（显式失败，非静默截断）
-- [ ] 回归：maxRows 传 0/负数/巨值 → 实际限行 = 配置值（断言 LongRangeBean 参数或结果行数）；exportDashboard 超限面板数 → 结构化错误；边界值（=上限）放行
-- [ ] 既有导出/ChatBI 测试全绿
+- [x] Fix P1-04：maxRows 服务端钳制——入参 null/<=0 落 `CFG_DATAV_CHATBI_MAX_ROWS` 缺省，>0 取 `min(入参, 配置)`；`datav-query-dataset.tool.xml` schemaJson 补 `maximum`（与配置缺省一致）与合理 `minimum`；注释与 tool 描述同步（配置语义从「缺省值」明确为「硬上限」）。**schemaJson 与运行时配置的漂移裁定**：schema 对 LLM 仅为提示（非强制），服务端钳制才是硬防线——在 tool.xml 或 owner doc 显式声明「schema 值为缺省快照，运行时以配置钳制为准」，防止配置变更后 schema 静默漂移被误当契约
+- [x] Fix AR-3：`exportDashboard` 入口面板数前置上限——复用 `CFG_DATAV_DASHBOARD_QUERY_MAX_PANELS` 或新增独立 export 侧配置（裁定后落档）；超限抛结构化错误（显式失败，非静默截断）
+- [x] 回归：maxRows 传 0/负数/巨值 → 实际限行 = 配置值（断言 LongRangeBean 参数或结果行数）；exportDashboard 超限面板数 → 结构化错误；边界值（=上限）放行
+- [x] 既有导出/ChatBI 测试全绿
 
 Exit Criteria:
 
-- [ ] ChatBI 查询路径的行数上限不可被 LLM 入参绕过（测试锚定 0/负数/巨值三态）
-- [ ] 导出路径面板数有显式上限校验，超限结构化失败；与其他三路径（查询/布局/ChatBI 生成）防护对称性落档 owner doc（runtime-design.md）
-- [ ] `./mvnw test -pl nop-datav -am` 通过
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] ChatBI 查询路径的行数上限不可被 LLM 入参绕过（测试锚定 0/负数/巨值三态）
+- [x] 导出路径面板数有显式上限校验，超限结构化失败；与其他三路径（查询/布局/ChatBI 生成）防护对称性落档 owner doc（runtime-design.md）
+- [x] `./mvnw test -pl nop-datav -am` 通过
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
-- [ ] AR-1/AR-2/AR-3/P1-04/P1-05/P1-06 六项 live defect 全部修复且各有事务路径/行为回归锚定
-- [ ] 至少 2 条常驻「graphQLEngine mutation 真实事务路径 + 持久层副作用断言」回归测试（AR-1、AR-2 各一）
-- [ ] 全部修复行为语义与修复前等价（除缺陷行为本身），既有测试套件全绿
-- [ ] 无任何静默 no-op 分支被引入或保留在修复面内（null 分支可观测化）
-- [ ] owner docs（runtime-design/schedule-report-design/ai-design）事务边界与上界契约已同步
-- [ ] 独立子 agent closure audit 已完成并写入 Closure 段落（含 Anti-Hollow 检查：afterCommit/事务边界重构真实生效而非注解摆设）
-- [ ] `./mvnw test -pl nop-datav -am` 通过
-- [ ] `./mvnw clean install -pl nop-datav -am -DskipTests` 通过
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] AR-1/AR-2/AR-3/P1-04/P1-05/P1-06 六项 live defect 全部修复且各有事务路径/行为回归锚定
+- [x] 至少 2 条常驻「graphQLEngine mutation 真实事务路径 + 持久层副作用断言」回归测试（AR-1、AR-2 各一）
+- [x] 全部修复行为语义与修复前等价（除缺陷行为本身），既有测试套件全绿
+- [x] 无任何静默 no-op 分支被引入或保留在修复面内（null 分支可观测化）
+- [x] owner docs（runtime-design/schedule-report-design/ai-design）事务边界与上界契约已同步
+- [x] 独立子 agent closure audit 已完成并写入 Closure 段落（含 Anti-Hollow 检查：afterCommit/事务边界重构真实生效而非注解摆设）
+- [x] `./mvnw test -pl nop-datav -am` 通过
+- [x] `./mvnw clean install -pl nop-datav -am -DskipTests` 通过
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
 
 ## Deferred But Adjudicated
 
@@ -162,17 +162,27 @@ Exit Criteria:
 
 - AR-2 竞态的「人为延迟 commit」确定性复现基建若成本过高，允许以 afterCommit 注册时序断言替代（Phase 2 已列），完整竞态基建 → `ai-dev/backlog/nop-datav-audit-followups.md`。
 - AR-4/AR-5/AR-6/AR-7（open-audit P2）→ follow-up backlog。
+- Closure audit Minor 观察（非缺陷，无行动项）：ChatBI 结果提取 handler 对 content 解析失败沿用既有容忍语义（content 为本模块 executor 自产 JSON，实际不可达失败）。
 
 ## Closure
 
-Status Note: <<待关闭时填写>>
-Completed: <<待关闭时填写>>
+Status Note: 六项缺陷（AR-1 P0 / AR-2 P1 / AR-3 P1 / P1-04 / P1-05 / P1-06）全部修复并各有事务路径/行为回归锚定；两项先行裁定（P1-05 三决策点、P1-06 主案 (a)）连同拒绝方案落档 owner docs；「graphQLEngine mutation 真实事务路径 + 持久层副作用断言」测试资产沉淀 2 条（AR-1 toggleShare / AR-2 createExportTask）；实现期捕获两项平台机制事实（afterCommit listener 期间外层事务仍注册 → 回写/补偿必须 REQUIRES_NEW；子类 shadowing @Inject 字段被基类 setter 注入绕过）已随修复落档。
+Completed: 2026-08-16
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<待关闭时填写>>
-- Evidence: <<待关闭时填写>>
+- Reviewer / Agent: 独立子 agent（fresh session，research-only）task_id `ses_ff754b301ffewfjGhKGvEm4oMH`
+- Evidence:
+  - **Phase 1（AR-1）9/9 项 PASS**：`NopDatavDashboardShareBizModel.java:263-277`（doToggleShare 仅业务列写入 + `toSanitizedView` detached 副本返回；createShare :128 / listShares :145-149 同款）；`TestNopDatavShareToggleTransactionPath.java:90-124`（裸 JDBC BCrypt 字节相等断言 + 错误密码拒绝/正确密码放行）；mutation 接线经 `GraphQLTransactionOperationInvoker`（:29-30）实证；`permission-sharing-design.md:255` 出参副本契约落档。
+  - **Phase 2（AR-2）7/7 项 PASS**：`NopDatavExportTaskBizModel.java:260-267`（`txn()` 复用 CrudBizModel 注入、无影子字段）+ `:286-293`（null 分支 ERROR+markFailedSafe）+ `:376-388`（短退避）；`ReportDeliveryExecutor.java:162-170/:219-225/:442-455` 对称；`TestNopDatavAsyncSubmitTransactionPath.java`：事务内 seam==0 / commit 后 +1 / 回滚不触发（export :117-165 + report :200-246）、无事务立即提交 + SUCCEEDED（:174-189）、graphQLEngine mutation E2E 裸 JDBC 轮询至 SUCCEEDED（:255-289）。
+  - **Phase 3（P1-05+P1-06）6/6 项 PASS**：`NopDatavChatBiBizModel.java:171-176`（runWithoutTransaction 挂起）+ :406-413/:483-490（try/catch → 补偿 → 原样上抛）；executor 短事务包裹（Dashboard :189-195 / Screen :369-375）；`AlertEvaluator.java:128/:313-335/:342-369`（defer 判定 / afterCommit 发送失败 ERROR 不回写 / REQUIRES_NEW 重载回写）；cron 路径零事务机械（rg 实证）；Anti-Hollow 测试断言 (i)-(iv) 逐条核对（`TestNopDatavChatBiTransactionBoundary.java:112-121/:136-227/:233-254`）；`TestNopDatavAlertNotifyTransactionBoundary.java:101-190/:200-212`。
+  - **Phase 4（P1-04+AR-3）5/5 项 PASS**：`DatavQueryDatasetExecutor.java:175-185`（clampMaxRows）+ `:194`（range 恒非 null）；tool.xml schemaJson minimum/maximum + 漂移措辞（XML well-formed 实证）；`PanelDataExporter.java:178-187`（上界先于任何面板取数，:192-195 为取数循环）；`runtime-design.md` §十一 四路径对称表；钳制/上界测试（0/负/巨/缺省 + 边界）全数断言。
+  - **Closure Gates 8/9 PASS + audit 本项**：599/0/0（`./mvnw test -pl nop-datav -am` BUILD SUCCESS）；`./mvnw clean install -pl nop-datav -am -T 1C -DskipTests` BUILD SUCCESS；`check-doc-links.mjs --strict` 退出码 0（0 errors，6 条均为无关 plan 338 的既有 warning）；`scan-hollow-implementations.mjs --module nop-datav --severity high` 退出码 0（0 findings）。
+  - **Anti-Hollow 检查结论 GENUINE**：四条调用链（createExportTask→afterCommit、triggerReportNow→execute→afterCommit、evaluateAlertNow→evaluate→afterCommit→REQUIRES_NEW 回写、chatToDashboard/chatToScreen→runWithoutTransaction→补偿删除）全链路 live 追踪连通，且有 seam/计数器/裸 JDBC 断言证明运行时真实触发（非注解摆设）。
+  - **生成物零触碰**：`git status` 无 `/_gen/`、`_*.xml`、`_app.orm.xml` 等生成物路径（仅 nop-datav src/main+test、ai-dev docs/plans/logs、手写 `_vfs/nop/ai/tools/datav-query-dataset.tool.xml` 源文件）。
+  - Findings：Blocker 0 / Major 0 / Minor 2（测试文件目录-包不一致已当场修复迁移；handler 解析容忍为既有语义观察项，无行动）。
+  - `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（本 Closure 段填写后复跑确认）。
 
 Follow-up:
 
-- <<待关闭时填写>>
+- no remaining plan-owned work（Non-Blocking Follow-ups 所列三项均为已裁定 backlog/观察项，非本 plan 残留）
