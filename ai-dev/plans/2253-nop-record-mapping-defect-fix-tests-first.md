@@ -130,37 +130,37 @@ Exit Criteria:
 
 ### Phase 3 - P3 缺陷修复（B9-B12）+ D7
 
-Status: planned
+Status: completed
 Targets: `record-mapping.xdef`（nop-xdefs）, `_gen` 重生成（codegen）, `MappingBasedMarkdownParser.java`, `RecordMappingTool.java`, `RecordPatternFieldConfig.java`, 测试
 
 - Item Types: `Fix | Proof | Decision`
 
-- [ ] **Procedural**（codegen 前置，审查 Major M2）：xdef 属 `nop-xdefs` 模块，codegen 从 classpath 读 xdef —— 先 `./mvnw install -pl nop-kernel/nop-xdefs -DskipTests -T 1C` 使新属性可见；再运行 `nop-kernel/nop-codegen` 的 `CodeGen.main`（对 28 模块幂等重生成）；`git diff` 应仅出现 nop-record-mapping 的 `_gen` 变更，若其他模块出现生成物 diff（基线 xdef 漂移）则回滚该批产物并单独重跑，不得混入无关生成物。
-- [ ] **Decision**（B9）：mapping 根新增可选属性 `ignoreUnknownFields="!boolean=false"`——默认 false 保持现有严格契约（未知条目报错），true 时 md parser 跳过未知列表项/子章节。
-- [ ] **Fix**（B9）：xdef `<mapping>` 根加 `ignoreUnknownFields` 属性（经 Procedural 项重生成 `_RecordMappingConfig.java`）→ parser 的 `mapListItems`/`mapSectionChildren` 在 `requireFieldByFrom` 前检查 flag：flag=true 时改用非抛错查找 `RecordMappingConfig.getFieldByFrom()`（审查 Blocker 修复——`getFieldByFrom` 成为 B9 新使用方，D3 不再删除，见 Phase 4）跳过未知条目。
-- [ ] **Proof**（B9）：测试——默认（flag=false）未知条目仍抛 `ERR_RECORD_UNKNOWN_FROM_FIELD`；flag=true 时未知列表项/子章节被跳过、其余字段正常映射。先运行确认当前 FAIL（flag 不生效）。
-- [ ] **Proof**（B10）：测试——pattern 映射后，ctx eval scope 中 `sourceFieldName`/`targetFieldName`/pattern 捕获变量恢复原值（无泄漏）。先运行确认当前 FAIL（变量残留）。
-- [ ] **Fix**（B10）：`processPatternFields`/`evaluateToExpression` 对写入的变量（`VAR_SOURCE`/`VAR_TARGET`/`VAR_SOURCE_FIELD_NAME`/`VAR_TARGET_FIELD_NAME`/pattern 捕获变量）做 save/restore（action 执行前保存旧值、执行后恢复）。
-- [ ] **Proof**（B11）：测试——patternField 配 `defaultValue`，源字段值 null → 目标得到 defaultValue。先运行确认当前 FAIL（得到 null）。
-- [ ] **Fix**（B11）：xdef patternField 增加 `defaultValue="string"`（经 Procedural 项重生成 `_RecordPatternFieldConfig`）→ `RecordPatternFieldConfig.init` 按 type 转换计算 `normalizedDefaultValue`（与 `RecordFieldMappingConfig.init` 同逻辑）→ `createFieldConfigFromPattern`（RecordMappingTool.java:606-639）复制 defaultValue/normalizedDefaultValue。
-- [ ] **Proof**（B12）：测试——bean 源（含子对象 `sub`），显式字段 `from="sub.field2"` + patternField `fromPattern="sub*"` → pattern 不再处理 `sub`（不产生重复映射）。先运行确认当前 FAIL（sub 被 pattern 重复映射）。
-- [ ] **Fix**（B12）：`executeForEachField0`（RecordMappingTool.java:109-111）标记 processedFields 时同时标记 from 的首段路径名（`.` 之前的部分）。
-- [ ] **Proof**（D7）：测试——(a) 直接 `mapping.map(source, target, ctx)`（三参签名，审查 Minor 4）→ 映射后 `ctx.getSourceRoot()==source` 且 `ctx.getTargetRoot()!=null`；(b) 预置 `ctx.setSourceRoot(x)` 后 map → `targetRoot` 仍被设置。先运行确认当前 FAIL（(b) 中 targetRoot 为 null）。
-- [ ] **Fix**（D7）：`executeForObject`（RecordMappingTool.java:84-87）改为 sourceRoot / targetRoot **分别**判空设置。
-- [ ] Phase 3 全量回归（含 codegen 后模块构建）。
+- [x] **Procedural**（codegen 前置，审查 Major M2）：xdef 属 `nop-xdefs` 模块，codegen 从 classpath 读 xdef —— 先 `./mvnw install -pl nop-kernel/nop-xdefs -DskipTests -T 1C` 使新属性可见；再运行 `nop-kernel/nop-codegen` 的 `CodeGen.main`（对 28 模块幂等重生成）；`git diff` 应仅出现 nop-record-mapping 的 `_gen` 变更，若其他模块出现生成物 diff（基线 xdef 漂移）则回滚该批产物并单独重跑，不得混入无关生成物。
+- [x] **Decision**（B9）：mapping 根新增可选属性 `ignoreUnknownFields="!boolean=false"`——默认 false 保持现有严格契约（未知条目报错），true 时 md parser 跳过未知列表项/子章节。
+- [x] **Fix**（B9）：xdef `<mapping>` 根加 `ignoreUnknownFields` 属性（经 Procedural 项重生成 `_RecordMappingConfig.java`）→ parser 的 `mapListItems`/`mapSectionChildren` 在 `requireFieldByFrom` 前检查 flag：flag=true 时改用非抛错查找 `RecordMappingConfig.getFieldByFrom()`（审查 Blocker 修复——`getFieldByFrom` 成为 B9 新使用方，D3 不再删除，见 Phase 4）跳过未知条目。
+- [x] **Proof**（B9）：测试——默认（flag=false）未知条目仍抛 `ERR_RECORD_UNKNOWN_FROM_FIELD`；flag=true 时未知列表项/子章节被跳过、其余字段正常映射。先运行确认当前 FAIL（flag 不生效）。
+- [x] **Proof**（B10）：测试——pattern 映射后，ctx eval scope 中 `sourceFieldName`/`targetFieldName`/pattern 捕获变量恢复原值（无泄漏）。先运行确认当前 FAIL（变量残留）。
+- [x] **Fix**（B10）：`processPatternFields`/`evaluateToExpression` 对写入的变量（`VAR_SOURCE`/`VAR_TARGET`/`VAR_SOURCE_FIELD_NAME`/`VAR_TARGET_FIELD_NAME`/pattern 捕获变量）做 save/restore（action 执行前保存旧值、执行后恢复）。
+- [x] **Proof**（B11）：测试——patternField 配 `defaultValue`，源字段值 null → 目标得到 defaultValue。先运行确认当前 FAIL（得到 null）。
+- [x] **Fix**（B11）：xdef patternField 增加 `defaultValue="string"`（经 Procedural 项重生成 `_RecordPatternFieldConfig`）→ `RecordPatternFieldConfig.init` 按 type 转换计算 `normalizedDefaultValue`（与 `RecordFieldMappingConfig.init` 同逻辑）→ `createFieldConfigFromPattern`（RecordMappingTool.java:606-639）复制 defaultValue/normalizedDefaultValue。
+- [x] **Proof**（B12）：测试——bean 源（含子对象 `sub`），显式字段 `from="sub.field2"` + patternField `fromPattern="sub*"` → pattern 不再处理 `sub`（不产生重复映射）。先运行确认当前 FAIL（sub 被 pattern 重复映射）。
+- [x] **Fix**（B12）：`executeForEachField0`（RecordMappingTool.java:109-111）标记 processedFields 时同时标记 from 的首段路径名（`.` 之前的部分）。
+- [x] **Proof**（D7）：测试——(a) 直接 `mapping.map(source, target, ctx)`（三参签名，审查 Minor 4）→ 映射后 `ctx.getSourceRoot()==source` 且 `ctx.getTargetRoot()!=null`；(b) 预置 `ctx.setSourceRoot(x)` 后 map → `targetRoot` 仍被设置。先运行确认当前 FAIL（(b) 中 targetRoot 为 null）。
+- [x] **Fix**（D7）：`executeForObject`（RecordMappingTool.java:84-87）改为 sourceRoot / targetRoot **分别**判空设置。
+- [x] Phase 3 全量回归（含 codegen 后模块构建）。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] B9：新属性默认行为不变；flag=true 时未知条目跳过（测试双路径覆盖）
-- [ ] B10：pattern 处理后无上下文变量残留（测试断言恢复原值）
-- [ ] B11：patternField 的 defaultValue 生效（null → default）
-- [ ] B12：复杂路径 from + pattern 不产生重复映射
-- [ ] D7：直接 map 与 gateway 预置 sourceRoot 两种入口下 root 变量均正确
-- [ ] `_gen` 文件由 codegen 生成（git diff 不出现手改痕迹）；`./mvnw test -pl nop-kernel/nop-record-mapping -am` 全绿
-- [ ] `docs-for-ai/02-core-guides/record-mapping.md` 更新（B9/B11 新属性、B10/B12 行为说明）
-- [ ] `ai-dev/logs/` 对应日期条目已更新（红→绿证据）
+- [x] B9：新属性默认行为不变；flag=true 时未知条目跳过（测试双路径覆盖）
+- [x] B10：pattern 处理后无上下文变量残留（测试断言恢复原值）
+- [x] B11：patternField 的 defaultValue 生效（null → default）
+- [x] B12：复杂路径 from + pattern 不产生重复映射
+- [x] D7：直接 map 与 gateway 预置 sourceRoot 两种入口下 root 变量均正确
+- [x] `_gen` 文件由 codegen 生成（git diff 不出现手改痕迹）；`./mvnw test -pl nop-kernel/nop-record-mapping -am` 全绿
+- [ ] `docs-for-ai/02-core-guides/record-mapping.md` 更新（B9/B11 新属性、B10/B12 行为说明）——推迟到 Phase 4 统一文档同步
+- [x] `ai-dev/logs/` 对应日期条目已更新（红→绿证据）
 
 ### Phase 4 - 设计层清理（D3、D4、D6）
 
@@ -247,8 +247,8 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: 已通过独立对抗性审查（`ses_ff7471533ffemAX2QcmkXVJk9S`，conditional-approve，1 Blocker + 3 Major + 7 Minor 已全部修复落盘），已 promoted 为 active，尚未开始执行
-Completed: 未完成
+Status Note: 已通过独立对抗性审查（`ses_ff7471533ffemAX2QcmkXVJk9S`，conditional-approve，1 Blocker + 3 Major + 7 Minor 已全部修复落盘），已 promoted 为 active。Phase 1（B1/B2）、Phase 2（B3-B8）、Phase 3（B9-B12+D7）已 completed（commit `8cc220084`/`a8481880e`/Phase 3 待提交），Phase 4（D3/D4/D6）+ 文档同步待执行
+Completed: 未完成（Phase 4 待执行）
 
 Closure Audit Evidence:
 

@@ -22,10 +22,15 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static io.nop.record_mapping.RecordMappingConstants.VAR_SOURCE;
+import static io.nop.record_mapping.RecordMappingConstants.VAR_SOURCE_FIELD_NAME;
+import static io.nop.record_mapping.RecordMappingConstants.VAR_TARGET;
+import static io.nop.record_mapping.RecordMappingConstants.VAR_TARGET_FIELD_NAME;
 import static io.nop.record_mapping.RecordMappingErrors.ERR_RECORD_FIELD_IS_MANDATORY;
 import static io.nop.record_mapping.RecordMappingErrors.ERR_RECORD_FIELD_VALUE_NOT_IN_DICT;
 import static io.nop.record_mapping.RecordMappingErrors.ERR_RECORD_MAPPING_NOT_FOUND;
 import static io.nop.record_mapping.RecordMappingErrors.ERR_RECORD_MD_MISSING_FIELD;
+import static io.nop.record_mapping.RecordMappingErrors.ERR_RECORD_UNKNOWN_FROM_FIELD;
 
 /**
  * nop-record-mapping 缺陷回归测试（plan 2253）
@@ -243,5 +248,119 @@ public class TestRecordMappingRegression extends BaseTestCase {
         NopException e = Assertions.assertThrows(NopException.class,
                 () -> new MappingBasedMarkdownParser(config).map(doc.getRootSection(), target, new RecordMappingContext()));
         Assertions.assertEquals(ERR_RECORD_FIELD_IS_MANDATORY.getErrorCode(), e.getErrorCode());
+    }
+
+    @Test
+    public void testMdUnknownFieldStillErrorsByDefault() {
+        // B9 control: 默认（ignoreUnknownFields=false）未知条目仍抛 ERR_RECORD_UNKNOWN_FROM_FIELD
+        RecordMappingConfig config = RecordMappingManager.instance().getRecordMappingConfig("test.demo.MdIgnoreUnknownTest");
+        MarkdownDocument doc = MarkdownTool.instance().parseFromText(SourceLocation.fromPath("test.md"),
+                "- name: abc\n- unknownKey: x");
+
+        Map<String, Object> target = new LinkedHashMap<>();
+        NopException e = Assertions.assertThrows(NopException.class,
+                () -> new MappingBasedMarkdownParser(config).map(doc.getRootSection(), target, new RecordMappingContext()));
+        Assertions.assertEquals(ERR_RECORD_UNKNOWN_FROM_FIELD.getErrorCode(), e.getErrorCode());
+    }
+
+    @Test
+    public void testMdIgnoreUnknownFieldsSkipsUnknown() {
+        // B9: ignoreUnknownFields=true 时未知列表项被跳过、其余字段正常映射
+        RecordMappingConfig config = RecordMappingManager.instance().getRecordMappingConfig("test.demo.MdIgnoreUnknownTestLoose");
+        MarkdownDocument doc = MarkdownTool.instance().parseFromText(SourceLocation.fromPath("test.md"),
+                "- name: abc\n- unknownKey: x");
+
+        Map<String, Object> target = new LinkedHashMap<>();
+        new MappingBasedMarkdownParser(config).map(doc.getRootSection(), target, new RecordMappingContext());
+
+        Assertions.assertEquals("abc", target.get("name"));
+        Assertions.assertNull(target.get("unknownKey"));
+    }
+
+    @Test
+    public void testPatternLeavesNoContextVarResidue() {
+        // B10: pattern 映射后 context 变量（sourceFieldName/targetFieldName/source/target/捕获变量）恢复原值
+        IRecordMapping mapping = RecordMappingManager.instance().getRecordMapping("test.demo.PatternFieldTest");
+        RecordMappingContext ctx = new RecordMappingContext();
+        Object presetSource = new Object();
+        Object presetTarget = new Object();
+        ctx.setValue(VAR_SOURCE, presetSource);
+        ctx.setValue(VAR_TARGET, presetTarget);
+        ctx.setValue(VAR_SOURCE_FIELD_NAME, "preSourceField");
+        ctx.setValue(VAR_TARGET_FIELD_NAME, "preTargetField");
+        ctx.setValue("name", "preName");
+
+        Map<String, Object> source = new LinkedHashMap<>();
+        source.put("user_age", 10);
+        source.put("user_john", "x");
+        Map<String, Object> target = new LinkedHashMap<>();
+        mapping.map(source, target, ctx);
+
+        Assertions.assertSame(presetSource, ctx.getValue(VAR_SOURCE));
+        Assertions.assertSame(presetTarget, ctx.getValue(VAR_TARGET));
+        Assertions.assertEquals("preSourceField", ctx.getValue(VAR_SOURCE_FIELD_NAME));
+        Assertions.assertEquals("preTargetField", ctx.getValue(VAR_TARGET_FIELD_NAME));
+        Assertions.assertEquals("preName", ctx.getValue("name"));
+    }
+
+    @Test
+    public void testPatternFieldDefaultValue() {
+        // B11: patternField 配 defaultValue，源字段值 null → 目标得到 defaultValue
+        IRecordMapping mapping = RecordMappingManager.instance().getRecordMapping("test.demo.PatternFieldDefaultTest");
+        Map<String, Object> source = new LinkedHashMap<>();
+        source.put("user_age", null);
+
+        Map<String, Object> target = new LinkedHashMap<>();
+        mapping.map(source, target, new RecordMappingContext());
+
+        Assertions.assertEquals(0, target.get("age"));
+    }
+
+    @Test
+    public void testPatternDoesNotReprocessPathField() {
+        // B12: 显式字段 from="sub.field2" + patternField fromPattern="sub*" → pattern 不重复处理 sub
+        IRecordMapping mapping = RecordMappingManager.instance().getRecordMapping("test.demo.PatternWithPathFieldTest");
+        Map<String, Object> sub = new LinkedHashMap<>();
+        sub.put("field2", "v2");
+        Map<String, Object> source = new LinkedHashMap<>();
+        source.put("sub", sub);
+
+        Map<String, Object> target = new LinkedHashMap<>();
+        mapping.map(source, target, new RecordMappingContext());
+
+        Assertions.assertEquals("v2", ((Map<?, ?>) target.get("ext")).get("name2"));
+        Assertions.assertFalse(target.containsKey("anyField"));
+    }
+
+    @Test
+    public void testMapSetsRootVars() {
+        // D7 control: 直接 map(source, target, ctx) → sourceRoot/targetRoot 均被设置
+        IRecordMapping mapping = RecordMappingManager.instance().getRecordMapping("test.demo.ItemPass_to_Test");
+        Map<String, Object> source = new LinkedHashMap<>();
+        source.put("c", "x");
+        Map<String, Object> target = new LinkedHashMap<>();
+
+        RecordMappingContext ctx = new RecordMappingContext();
+        mapping.map(source, target, ctx);
+
+        Assertions.assertSame(source, ctx.getSourceRoot());
+        Assertions.assertSame(target, ctx.getTargetRoot());
+    }
+
+    @Test
+    public void testMapKeepsPresetSourceRoot() {
+        // D7: 预置 sourceRoot 后 map → sourceRoot 保留、targetRoot 仍被设置
+        IRecordMapping mapping = RecordMappingManager.instance().getRecordMapping("test.demo.ItemPass_to_Test");
+        Map<String, Object> source = new LinkedHashMap<>();
+        source.put("c", "x");
+        Map<String, Object> target = new LinkedHashMap<>();
+
+        RecordMappingContext ctx = new RecordMappingContext();
+        Object preset = new Object();
+        ctx.setSourceRoot(preset);
+        mapping.map(source, target, ctx);
+
+        Assertions.assertSame(preset, ctx.getSourceRoot());
+        Assertions.assertSame(target, ctx.getTargetRoot());
     }
 }

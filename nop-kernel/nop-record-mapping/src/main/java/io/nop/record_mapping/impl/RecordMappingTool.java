@@ -83,6 +83,8 @@ public class RecordMappingTool {
 
         if (ctx.getSourceRoot() == null) {
             ctx.setSourceRoot(source);
+        }
+        if (ctx.getTargetRoot() == null) {
             ctx.setTargetRoot(target);
         }
 
@@ -108,6 +110,10 @@ public class RecordMappingTool {
                 action.accept(field);
                 if (field.getFrom() != null) {
                     processedFields.add(field.getFrom());
+                    int pos = field.getFrom().indexOf('.');
+                    if (pos > 0) {
+                        processedFields.add(field.getFrom().substring(0, pos));
+                    }
                 }
             }
 
@@ -513,8 +519,10 @@ public class RecordMappingTool {
             ICompiledPathMatcher matcher = patternField.getCompiledPattern();
             if(matcher == null){
                 //  不需要匹配来源，完全是动态生成
+                java.util.Map<String, Object> savedVars = saveContextVars(ctx, null);
                 String targetFieldName = evaluateToExpression(patternField.getTo(), patternField.getCompiledPattern(), null, source, target, ctx);
                 if (targetFieldName == null) {
+                    restoreContextVars(ctx, savedVars);
                     continue;
                 }
 
@@ -523,6 +531,7 @@ public class RecordMappingTool {
 
                 RecordFieldMappingConfig fieldConfig = createFieldConfigFromPattern(patternField, targetFieldName, null);
                 action.accept(fieldConfig);
+                restoreContextVars(ctx, savedVars);
                 continue;
             }
 
@@ -537,8 +546,11 @@ public class RecordMappingTool {
                         continue;
                     }
 
+                    java.util.Map<String, Object> savedVars = saveContextVars(ctx,
+                            extractVariablesFromPattern(patternField.getCompiledPattern(), fieldName));
                     String targetFieldName = evaluateToExpression(patternField.getTo(), patternField.getCompiledPattern(), fieldName, source, target, ctx);
                     if (targetFieldName == null) {
+                        restoreContextVars(ctx, savedVars);
                         continue;
                     }
 
@@ -547,9 +559,35 @@ public class RecordMappingTool {
 
                     RecordFieldMappingConfig fieldConfig = createFieldConfigFromPattern(patternField, targetFieldName, fieldName);
                     action.accept(fieldConfig);
+                    restoreContextVars(ctx, savedVars);
                     processedFields.add(fieldName);
                 }
             }
+        }
+    }
+
+    protected java.util.Map<String, Object> saveContextVars(RecordMappingContext ctx,
+                                                            java.util.Map<String, String> captureVars) {
+        java.util.Map<String, Object> saved = new LinkedHashMap<>();
+        saveContextVar(ctx, saved, VAR_SOURCE);
+        saveContextVar(ctx, saved, VAR_TARGET);
+        saveContextVar(ctx, saved, VAR_SOURCE_FIELD_NAME);
+        saveContextVar(ctx, saved, VAR_TARGET_FIELD_NAME);
+        if (captureVars != null) {
+            for (String name : captureVars.keySet()) {
+                saveContextVar(ctx, saved, name);
+            }
+        }
+        return saved;
+    }
+
+    protected void saveContextVar(RecordMappingContext ctx, java.util.Map<String, Object> saved, String name) {
+        saved.put(name, ctx.getValue(name));
+    }
+
+    protected void restoreContextVars(RecordMappingContext ctx, java.util.Map<String, Object> saved) {
+        for (java.util.Map.Entry<String, Object> entry : saved.entrySet()) {
+            ctx.setValue(entry.getKey(), entry.getValue());
         }
     }
 
@@ -636,6 +674,8 @@ public class RecordMappingTool {
         fieldConfig.setOptional(patternField.isOptional());
         fieldConfig.setVarName(patternField.getVarName());
         fieldConfig.setVirtual(patternField.isVirtual());
+        fieldConfig.setDefaultValue(patternField.getDefaultValue());
+        fieldConfig.setNormalizedDefaultValue(patternField.getNormalizedDefaultValue());
         return fieldConfig;
     }
 

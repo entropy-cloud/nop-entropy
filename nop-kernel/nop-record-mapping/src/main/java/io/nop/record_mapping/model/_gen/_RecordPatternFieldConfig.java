@@ -39,6 +39,13 @@ public abstract class _RecordPatternFieldConfig extends io.nop.core.resource.com
     
     /**
      *  
+     * xml name: defaultValue
+     * 
+     */
+    private java.lang.String _defaultValue ;
+    
+    /**
+     *  
      * xml name: disableFromPropPath
      * 
      */
@@ -266,6 +273,25 @@ public abstract class _RecordPatternFieldConfig extends io.nop.core.resource.com
         checkAllowChange();
         
         this._computeExpr = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: defaultValue
+     *  
+     */
+    
+    public java.lang.String getDefaultValue(){
+      return _defaultValue;
+    }
+
+    
+    public void setDefaultValue(java.lang.String value){
+        checkAllowChange();
+        
+        this._defaultValue = value;
            
     }
 
@@ -766,6 +792,7 @@ public abstract class _RecordPatternFieldConfig extends io.nop.core.resource.com
         out.putNotNull("afterFieldMapping",this.getAfterFieldMapping());
         out.putNotNull("beforeFieldMapping",this.getBeforeFieldMapping());
         out.putNotNull("computeExpr",this.getComputeExpr());
+        out.putNotNull("defaultValue",this.getDefaultValue());
         out.putNotNull("disableFromPropPath",this.isDisableFromPropPath());
         out.putNotNull("disableToPropPath",this.isDisableToPropPath());
         out.putNotNull("flattenFrom",this.isFlattenFrom());
@@ -805,6 +832,7 @@ public abstract class _RecordPatternFieldConfig extends io.nop.core.resource.com
         instance.setAfterFieldMapping(this.getAfterFieldMapping());
         instance.setBeforeFieldMapping(this.getBeforeFieldMapping());
         instance.setComputeExpr(this.getComputeExpr());
+        instance.setDefaultValue(this.getDefaultValue());
         instance.setDisableFromPropPath(this.isDisableFromPropPath());
         instance.setDisableToPropPath(this.isDisableToPropPath());
         instance.setFlattenFrom(this.isFlattenFrom());

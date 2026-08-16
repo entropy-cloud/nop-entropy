@@ -17,13 +17,14 @@ public class RecordPatternFieldConfig extends _RecordPatternFieldConfig implemen
     private IClassModel itemClassModel;
     private IClassModel classModel;
     private ICompiledPathMatcher compiledPattern;
+    private Object normalizedDefaultValue;
 
     public RecordPatternFieldConfig() {
 
     }
 
     public Object getNormalizedDefaultValue() {
-        return null;
+        return normalizedDefaultValue;
     }
 
     public RecordMappingConfig getResolvedMapping() {
@@ -88,6 +89,9 @@ public class RecordPatternFieldConfig extends _RecordPatternFieldConfig implemen
                 }
             }
             classModel = ReflectionManager.instance().getClassModelForType(type);
+
+            if (getDefaultValue() != null)
+                this.normalizedDefaultValue = type.getStdDataType().convert(getDefaultValue());
         }
 
         if (getFromPattern() != null)

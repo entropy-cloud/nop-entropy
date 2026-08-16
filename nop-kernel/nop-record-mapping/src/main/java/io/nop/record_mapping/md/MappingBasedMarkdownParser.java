@@ -108,7 +108,12 @@ public class MappingBasedMarkdownParser implements IRecordMapping {
             String fromName = pair.getKey();
 
             // 查找匹配的字段配置
-            RecordFieldMappingConfig field = mapping.requireFieldByFrom(item.getLocation(), fromName);
+            RecordFieldMappingConfig field = mapping.getFieldByFrom(fromName);
+            if (field == null) {
+                if (mapping.isIgnoreUnknownFields())
+                    continue;
+                field = mapping.requireFieldByFrom(item.getLocation(), fromName);
+            }
             processedFields.add(field.getName());
             tool.executeForField(mapping, field, item, target, ctx, f -> {
                 mapListItemField(mapping, f, item, pair, target, ctx);
@@ -210,7 +215,12 @@ public class MappingBasedMarkdownParser implements IRecordMapping {
             String key = decodeKey(child.getTitle());
 
             // 查找匹配的字段配置
-            RecordFieldMappingConfig field = mapping.requireFieldByFrom(child.getLocation(), key);
+            RecordFieldMappingConfig field = mapping.getFieldByFrom(key);
+            if (field == null) {
+                if (mapping.isIgnoreUnknownFields())
+                    continue;
+                field = mapping.requireFieldByFrom(child.getLocation(), key);
+            }
             processedFields.add(field.getName());
             tool.executeForField(mapping, field, child, target, ctx, f -> {
                 mapSectionField(mapping, f, child, target, ctx);

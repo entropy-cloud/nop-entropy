@@ -67,6 +67,13 @@ public abstract class _RecordMappingConfig extends io.nop.core.resource.componen
     
     /**
      *  
+     * xml name: ignoreUnknownFields
+     * 
+     */
+    private boolean _ignoreUnknownFields  = false;
+    
+    /**
+     *  
      * xml name: name
      * 
      */
@@ -254,6 +261,25 @@ public abstract class _RecordMappingConfig extends io.nop.core.resource.componen
     
     /**
      * 
+     * xml name: ignoreUnknownFields
+     *  
+     */
+    
+    public boolean isIgnoreUnknownFields(){
+      return _ignoreUnknownFields;
+    }
+
+    
+    public void setIgnoreUnknownFields(boolean value){
+        checkAllowChange();
+        
+        this._ignoreUnknownFields = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: name
      *  
      */
@@ -380,6 +406,7 @@ public abstract class _RecordMappingConfig extends io.nop.core.resource.componen
         out.putNotNull("displayName",this.getDisplayName());
         out.putNotNull("fields",this.getFields());
         out.putNotNull("fromClass",this.getFromClass());
+        out.putNotNull("ignoreUnknownFields",this.isIgnoreUnknownFields());
         out.putNotNull("name",this.getName());
         out.putNotNull("patternFields",this.getPatternFields());
         out.putNotNull("tagSet",this.getTagSet());
@@ -402,6 +429,7 @@ public abstract class _RecordMappingConfig extends io.nop.core.resource.componen
         instance.setDisplayName(this.getDisplayName());
         instance.setFields(this.getFields());
         instance.setFromClass(this.getFromClass());
+        instance.setIgnoreUnknownFields(this.isIgnoreUnknownFields());
         instance.setName(this.getName());
         instance.setPatternFields(this.getPatternFields());
         instance.setTagSet(this.getTagSet());

@@ -51,6 +51,10 @@ public class RecordFieldMappingConfig extends _RecordFieldMappingConfig implemen
         return normalizedDefaultValue;
     }
 
+    public void setNormalizedDefaultValue(Object normalizedDefaultValue) {
+        this.normalizedDefaultValue = normalizedDefaultValue;
+    }
+
     public String getFromOrName() {
         String from = getFrom();
         if (from != null)

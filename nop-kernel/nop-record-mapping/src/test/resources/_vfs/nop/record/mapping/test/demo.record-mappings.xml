@@ -171,4 +171,37 @@
         </fields>
     </mapping>
 
+    <mapping name="MdIgnoreUnknownTest">
+        <fields>
+            <field from="name" mandatory="true" name="name">
+                <schema/>
+            </field>
+        </fields>
+    </mapping>
+
+    <mapping name="MdIgnoreUnknownTestLoose" ignoreUnknownFields="true">
+        <fields>
+            <field from="name" mandatory="true" name="name">
+                <schema/>
+            </field>
+        </fields>
+    </mapping>
+
+    <mapping name="PatternFieldDefaultTest">
+        <patternFields>
+            <patternField defaultValue="0" fromPattern="user_age" id="user_age_pattern_default" to="age" type="Integer"/>
+        </patternFields>
+    </mapping>
+
+    <mapping name="PatternWithPathFieldTest">
+        <fields>
+            <field from="sub.field2" mandatory="true" name="ext.name2">
+                <schema/>
+            </field>
+        </fields>
+        <patternFields>
+            <patternField fromPattern="sub*" id="sub_pattern" to="anyField"/>
+        </patternFields>
+    </mapping>
+
 </definitions>

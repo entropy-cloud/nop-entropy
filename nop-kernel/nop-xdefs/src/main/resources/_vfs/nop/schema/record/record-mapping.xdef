@@ -7,7 +7,8 @@
          xmlns:x="/nop/schema/xdsl.xdef" xmlns:md="md"
          xmlns:xdef="/nop/schema/xdef.xdef"
          xdef:name="RecordMappingConfig" xdef:bean-package="io.nop.record_mapping.model"
-         baseMapping="var-name" fromClass="class-name" toClass="class-name">
+         baseMapping="var-name" fromClass="class-name" toClass="class-name"
+         ignoreUnknownFields="!boolean=false">
 
     <description>string</description>
 
@@ -71,7 +72,7 @@
                       mapping="var-name" virtual="!boolean=false"
                       type="generic-type" mandatory="!boolean=false" itemMapping="var-name" optional="!boolean=false"
                       ignoreWhenEmpty="!boolean=false" flattenFrom="!boolean=false" flattenTo="!boolean=false"
-                      keyProp="xml-name"
+                      keyProp="xml-name" defaultValue="string"
                       varName="var-name" disableFromPropPath="!boolean=false" disableToPropPath="!boolean=false"
                       xdef:name="RecordPatternFieldConfig">
             <when>xpl-fn:(source,target,ctx)=>boolean</when>
