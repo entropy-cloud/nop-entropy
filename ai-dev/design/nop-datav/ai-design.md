@@ -1,6 +1,7 @@
 # nop-datav AI/ChatBI 设计 (D6)
 
-> Status: **final**（D6-1 数据集查询 + D6-1b 看板生成 + D6-2 大屏生成能力交付，
+> Status: **final**（D6-1 数据集查询 + D6-1b 看板生成 + D6-2 大屏生成能力交付 + P1-03 数据集可见性收口
+> `ai-dev/plans/nop-datav/2026-08-15-2146-1-panel-subentity-auth-rbac-closure.md` §6）。
 > plans `ai-dev/plans/nop-datav/2026-08-10-1300-1-chatbi-nl-dataset-query.md` +
 > `ai-dev/plans/nop-datav/2026-08-10-1516-1-nl-dashboard-panel-generation.md` +
 > `ai-dev/plans/nop-datav/2026-08-10-1516-2-ai-screen-generation.md`）。
@@ -197,7 +198,26 @@ ChatBI 不经 DatasetRef（无面板上下文），直接查 `NopReportDataset`�
 
 - ChatBI action 经 `@Auth(permissions = "NopDatavChatBi:chatToQuery")`，在
   `nop-datav.action-auth.xml` 增配权限点（roles="admin,user"）。
-- list executor 按 `status=1`（活跃）过滤，复用既有 owner RLS（细粒度 ChatBI 可见性控制为 follow-up）。
+- **数据集可见性（P1-03 修复，plan 2026-08-15-2146-1 裁定 D4 选项 B；取代本节旧文
+  「复用既有 owner RLS」的不实陈述——nop-report 数据集无 DAO 层 RLS）**：
+  - `datav-list-datasets` 枚举与 `datav-describe-dataset`/`datav-query-dataset` 执行/描述前实施
+    `NopReportDataset.createdBy`/admin 可见性：admin 全量；非 admin 仅 `createdBy == 当前用户`。
+    `createdBy` 为空的历史数据集对非 admin 不可见（fail-closed，由 admin 重新保存认领）。
+  - 语义分工：list 侧静默过滤（枚举不泄露存在性）；describe/query 侧显式拒绝
+    （`ERR_DATAV_CHATBI_DATASET_NO_ACCESS`，携带 datasetSid + userName）。无身份（operator 空且
+    非 admin）fail-closed（list 空 / describe、query 拒绝）。
+  - 身份传递：`ChatBiToolExecuteContext`（operator + admin 标志，镜像裁定 G 强转耦合契约），
+    由 `NopDatavChatBiBizModel` 从 `IServiceContext` 解析（admin 判定回退线程级 `IUserContext`），
+    经 `ChatBiToolCallingLoop` 注入；executor 不读线程变量（单一事实来源，判定逻辑集中在
+    `ChatBiDatasetVisibility`）。
+  - 面板路径（`PanelDataBinder`）**不做** per-user 数据集可见性检查：授权经 Dashboard RLS 传递
+    （面板 action 归属校验 + `getDashboardData` 的 `requireEntity(Dashboard)`），发布即领域显式
+    共享语义；详见 `permission-sharing-design.md` §D4。
+  - **缓存键耦合（open-audit AR-7 硬约束提醒）**：`DashboardPanelQueryCache` 键为
+    refDatasetId+params+rowLimit（无用户维度）。当前可见性仅作用于 ChatBI executor 路径（不触该
+    缓存），面板路径授权锚点为 Dashboard RLS（owner/发布态，非 per-user 数据集可见性），故缓存键
+    **无需**按用户失效。**若未来把 per-user 数据集可见性引入面板路径，必须同时按用户失效或绕过该
+    缓存**（否则跨用户命中他人可见性约束下产生的缓存条目）。
 - query executor 的 maxRows 经 `LongRangeBean` 在数据集层限行（防 OOM）。
 - system prompt 含"禁止生成 SQL"约束（LLM 只能调用工具，不能产出 SQL 文本）。
 

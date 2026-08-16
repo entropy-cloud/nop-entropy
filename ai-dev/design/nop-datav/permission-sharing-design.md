@@ -1,7 +1,7 @@
 # nop-datav 权限/分享/导出设计 (D3)
 
-> Status: **final**（D3-1/D3-4/D3-2/D3-3 全部 + 分享访问加固）
-> Last Reviewed: 2026-08-15
+> Status: **final**（D3-1/D3-4/D3-2/D3-3 全部 + 分享访问加固 + 权限收口 2026-08-15-2146-1）
+> Last Reviewed: 2026-08-16
 
 ## 概述
 
@@ -48,9 +48,13 @@ nop-datav 的权限体系**全程复用 nop-auth 既有机制**（roadmap §Fram
 
 CRUD action（findPage/findList/get/save/update/delete）沿用平台默认权限 `{BizObj}:query` / `{BizObj}:mutation`，已在 `_nop-datav.action-auth.xml` 生成物中注册，无需额外注解。
 
-> **plan {1} D1 偏离裁定**：`NopDatavDashboardShare` 与 `NopDatavExportTask` 的继承 CRUD `query`/`mutation` 偏离平台默认（其他 14 实体为 query→`admin,user` / mutation→`admin`），改为 **`admin`-only**。理由：闭合 §223 未覆盖的继承 CRUD 越权 + passwordHash 泄漏入口（share/export 实体无 RLS，user 角色放开 CRUD 后水平越权即刻生效）。其余 14 实体不变。两个实体的各自定义 action（4+4 个）均绑 `admin,user`，内部经 owner 校验（Share 经 `requireDashboardOwnership`；ExportTask 经 `task.createdBy == 当前用户`）。详见 §222（Share 自定义 action 角色表）与 §370-377（ExportTask action 角色表）。
+> **plan {1} D1 偏离裁定**：`NopDatavDashboardShare` 与 `NopDatavExportTask` 的继承 CRUD `query`/`mutation` 偏离平台默认，改为 **`admin`-only**。理由：闭合 §223 未覆盖的继承 CRUD 越权 + passwordHash 泄漏入口（share/export 实体无 RLS，user 角色放开 CRUD 后水平越权即刻生效）。两个实体的各自定义 action（4+4 个）均绑 `admin,user`，内部经 owner 校验（Share 经 `requireDashboardOwnership`；ExportTask 经 `task.createdBy == 当前用户`）。详见 §222（Share 自定义 action 角色表）与 §370-377（ExportTask action 角色表）。
+>
+> **plan 2026-08-15-2146-1 增补**：Panel、5 个只读子实体（DashboardSnapshot/DashboardTab/DatasetRef/ScreenWidget/ScreenSnapshot）与 FilterState 随后同模式收口（详见 §「权限收口裁定与最终权限矩阵」）。除上列实体外，其余 12 实体维持 query→`admin,user` / mutation→`admin` 平台默认。
 
 ### 自定义 action 行级校验清单（是否经 requireEntity → checkDataAuth）
+
+> **owner-doc drift 纠正（plan 2026-08-15-2146-1，P0-02）**：本表 Panel 各行原文声称「Panel 实体 checkDataAuth 已覆盖行级校验」——该陈述与 live 行为不符：`NopDatavPanel` 在 `data-auth.xml` 无 obj 条目，`DefaultDataAuthChecker` 对 `objAuth == null` 恒放行，故 `requireEntity(Panel)` 的 checkDataAuth **实际不产生任何行级约束**。正确机制为四个面板 action 在 `requireEntity(Panel)` 之后追加 **panel→Dashboard 归属校验**（`requirePanelDashboardAccess`，锚定 `NopDatavDashboard` 的 RLS 规则，镜像 `NopDatavExportTaskBizModel.requireSourceAccess` 先例）：非 owner 且看板未发布 → `ERR_AUTH_NO_DATA_AUTH`。
 
 | BizObj | Action | 调用 requireEntity | 行级校验来源 | 裁定 |
 |--------|--------|-------------------|-------------|------|
@@ -59,14 +63,15 @@ CRUD action（findPage/findList/get/save/update/delete）沿用平台默认权�
 | NopDatavDashboard | rollbackDashboard | ✅ `requireEntity(id, "rollbackDashboard", ctx)` | Dashboard 实体 checkDataAuth | 已覆盖 |
 | NopDatavDashboard | resolveFilterValues | ✅ `requireEntity(id, "resolveFilterValues", ctx)` | Dashboard 实体 checkDataAuth | 已覆盖 |
 | NopDatavDashboard | parseFilterFromUrl | ✅ `requireEntity(id, "parseFilterFromUrl", ctx)` | Dashboard 实体 checkDataAuth | 已覆盖 |
-| NopDatavPanel | getPanelData | ✅ `requireEntity(id, "getPanelData", ctx)` | Panel 实体 checkDataAuth | 已覆盖 |
-| NopDatavPanel | refreshPanel | ✅ `requireEntity(id, "refreshPanel", ctx)` | Panel 实体 checkDataAuth | 已覆盖 |
-| NopDatavPanel | resolveLinkage | ✅ `requireEntity(id, "resolveLinkage", ctx)` | Panel 实体 checkDataAuth | 已覆盖 |
-| NopDatavPanel | resolveJump | ✅ `requireEntity(id, "resolveJump", ctx)` | Panel 实体 checkDataAuth | 已覆盖 |
+| NopDatavDashboard | getDashboardData | ✅ `requireEntity(id, "getDashboardData", ctx)` | Dashboard 实体 checkDataAuth | 已覆盖（批量面板路径的正确锚点） |
+| NopDatavPanel | getPanelData | ✅ `requireEntity(id, "getPanelData", ctx)` | Panel 实体 checkDataAuth（无 obj 条目，恒放行）+ **panel→Dashboard 归属校验** | 已覆盖（归属校验为实际约束来源） |
+| NopDatavPanel | refreshPanel | ✅ `requireEntity(id, "refreshPanel", ctx)` | 同上 | 已覆盖（同上） |
+| NopDatavPanel | resolveLinkage | ✅ `requireEntity(id, "resolveLinkage", ctx)` | 同上 | 已覆盖（同上） |
+| NopDatavPanel | resolveJump | ✅ `requireEntity(id, "resolveJump", ctx)` | 同上 | 已覆盖（同上） |
 | NopDatavFilterState | saveFilterState | ❌ 直接用 DAO 按 userName + dashboardId 查询 | userName 隔离（FilterState.userName = 当前用户） | 不经实体级 checkDataAuth，靠 userName 隔离收口 |
 | NopDatavFilterState | getFilterState | ❌ 直接用 DAO 按 userName + dashboardId 查询 | userName 隔离 | 同上；返回 null（无保存记录）是合法分支，非 fail-closed |
 
-**裁定**：所有 Dashboard/Panel 自定义 action 已通过 `requireEntity` → `CrudBizModel.getEntity` → `checkDataAuth(action, entity, ctx)` 覆盖行级校验，无需补显式 `checkDataAuth`。FilterState 通过 `userName` 列隔离（仅查询/更新自己的记录），不依赖实体级 RLS。
+**裁定**：Dashboard 自定义 action 经 `requireEntity` → `CrudBizModel.getEntity` → `checkDataAuth(action, entity, ctx)` 覆盖行级校验（Dashboard 有 RLS obj 条目，校验真实生效）。Panel 四个自定义 action 的行级约束来自 **panel→Dashboard 归属校验**（owner 或已发布放行，否则 `ERR_AUTH_NO_DATA_AUTH`），Panel 自身无实体级 RLS。FilterState 通过 `userName` 列隔离（仅查询/更新自己的记录），不依赖实体级 RLS。Screen 侧全部自定义 action 均锚定 `NopDatavScreen`（有 RLS），无 widget 锚点的对称入口。
 
 ### 原生 SQL 路径与 RLS 覆盖
 
@@ -121,17 +126,78 @@ CRUD action（findPage/findList/get/save/update/delete）沿用平台默认权�
 
 ### 子资源行级裁定
 
+> **owner-doc drift 纠正（plan 2026-08-15-2146-1，P1-01/P1-02）**：下表原文对 Panel/Tab/DatasetRef/Snapshot 声称「经 Dashboard 归属隐式覆盖」——不实：这四个实体在 `data-auth.xml` 均无 obj 条目，继承 CRUD `query` 绑定 `admin,user` 且无任何行级过滤，他人**草稿**内容（panelConfig/tabConfig/refDatasetId/snapshotContent）可被任意 user 读取。2026-08-15-2146-1 起按「收敛 admin」收口（裁定 D1/D2，见 §「权限收口裁定与最终权限矩阵」）。
+
 | 子资源 | 是否需要独立 RLS | 理由 |
 |-------|-----------------|------|
-| NopDatavPanel | 否 | 通过 Panel 实体的 checkDataAuth 经 `requireEntity` 校验（Panel 归属 Dashboard） |
-| NopDatavDashboardTab | 否 | 纯 CRUD，经 Dashboard 归属隐式覆盖 |
-| NopDatavDatasetRef | 否 | 纯 CRUD，经 Dashboard 归属隐式覆盖 |
-| NopDatavDashboardSnapshot | 否 | 纯 CRUD + 经 Dashboard `publishDashboard`/`getPublishedDashboard` 入口校验 |
-| NopDatavFilterState | 否 | 已有 `userName` 列隔离（仅查/改自己的记录） |
+| NopDatavPanel | 否（query/mutation 收敛 `admin`，D1） | 继承 CRUD 收敛 admin；user 侧数据消费走自定义 action（归属校验）与 getDashboardData（Dashboard RLS 锚点） |
+| NopDatavDashboardTab | 否（query 收敛 `admin`，D2） | 继承 CRUD 收敛 admin；运行时读取经快照/DAO 内部路径，不走继承 query |
+| NopDatavDatasetRef | 否（query 收敛 `admin`，D2） | 同上 |
+| NopDatavDashboardSnapshot | 否（query 收敛 `admin`，D2；mutation 面显式拒绝，D5） | 继承 CRUD 收敛 admin；公共访问经 `getSharedDashboard` DAO 直读 |
+| NopDatavScreenWidget | 否（query 收敛 `admin`，D2） | 继承 CRUD 收敛 admin；运行时读取经快照/DAO 内部路径 |
+| NopDatavScreenSnapshot | 否（query 收敛 `admin`，D2；mutation 面显式拒绝，D5） | 同 DashboardSnapshot |
+| NopDatavFilterState | 否（query 保留 `admin,user` + data-auth `eq userName`；mutation 收敛 `admin`，D3） | userName 行级隔离落地到 data-auth；用户写路径经自定义 `saveFilterState`（userName 隔离） |
 
 ### DB 驱动规则
 
 启用 `nop.auth.use-data-auth-table=true`，允许运行时经 `NopAuthRoleDataAuth` 管理面增配行级规则（与静态 data-auth.xml 合并，`DefaultDataAuthChecker.loadDataAuthModel` :97-100）。灵活性最高。
+
+## 权限收口裁定与最终权限矩阵（plan 2026-08-15-2146-1）
+
+> 来源：`ai-dev/plans/nop-datav/2026-08-15-2146-1-panel-subentity-auth-rbac-closure.md`（audit P0-01/P0-02/P1-01/P1-02/P1-03/P1-10 收口）。本节为最终权限矩阵的单一事实来源；与前文历史表述冲突时以本节为准。
+
+### D1 Panel 继承 CRUD query/mutation 收敛 `admin`
+
+- **裁定**：`FNPT:NopDatavPanel:query` 与 `FNPT:NopDatavPanel:mutation` 均仅绑 `admin`。
+- **理由（live 事实核实）**：(1) P0-02 的枚举向量根因是 `Panel__findPage` 无过滤全量可读他人 panelConfig（含 jump 外链、datasetRefId 等草稿内容），与 P1-01 同类泄露，仅收敛 mutation 不闭合读取面；(2) 运行时读路径不依赖 `Panel__findPage/__get`——`getDashboardData` 经 DAO `findAllByQuery` 内部加载（Dashboard RLS 已锚定）、`getPublishedDashboard` 消费快照序列化内容、四个面板自定义 action 是独立 FNPT 权限点（`NopDatavPanel:getPanelData` 等，绑 `admin,user`）不受 CRUD query 绑定影响；(3) 生成 pages（nop-datav-web `_gen` 管理页）为 admin 控制台消费面；(4) 「保留 + 间接 RLS」分支不可行：全仓 data-auth.xml 无跨实体嵌套过滤先例（filter 仅引用本 obj 列），Panel 无 `publishStatus` 列无法表达「父表已发布」语义，BizModel prepareQuery 覆写为无先例模式且引入更大定制面。
+- **用户侧替代路径**：面板数据消费走 `getPanelData/refreshPanel/resolveLinkage/resolveJump`（`admin,user` + 归属校验）与 `getDashboardData`（`admin,user` + Dashboard RLS）。
+
+### D2 五个只读子实体 query 收敛 `admin`
+
+- **裁定**：`NopDatavDashboardSnapshot/DashboardTab/DatasetRef/ScreenWidget/ScreenSnapshot` 的 `FNPT:...:query` 均仅绑 `admin`（镜像 Share/ExportTask D1 先例）。
+- **理由**：逐实体核实无 user 侧 GraphQL 消费（生成 xbiz/xmeta 暴露面仅被 `_gen` 管理页消费；运行时看板/大屏加载走 `getDashboardData`（DAO 内部加载）与快照路径（`getPublishedDashboard`/`getPublishedScreen`/`getScreenLayout*`/`getSharedDashboard`，均 DAO 直读不经继承 query））。间接 RLS 分支因 D1 同理的机制不可行被拒（无跨实体嵌套过滤先例）。
+
+### D3 FilterState 收口组合
+
+- **裁定**：query 保留 `admin,user` + `data-auth.xml` 新增 obj（admin 无 filter；user `eq userName ${$context.userName}`）；mutation 收敛 `admin`。
+- **理由**：设计 §69「仅查询/更新自己的记录」语义经 data-auth 落地（继承 `__findPage/__get` 行级隔离）；用户写路径已由自定义 `saveFilterState`（userName 隔离）覆盖，继承 `__save/__delete` 无合法 user 消费（生成管理页为 admin 面），收敛 admin 后无功能损失。
+
+### D4 ChatBI 数据集可见性模型（选项 B）
+
+- **裁定**：`datav-list-datasets` 枚举与 `datav-query-dataset`/`datav-describe-dataset` 执行/描述前接入 `NopReportDataset.createdBy`/admin 可见性：admin 全量；非 admin 仅 `createdBy == 当前用户`（list 侧 SQL 过滤 + describe/query 侧显式拒绝 `ERR_DATAV_CHATBI_DATASET_NO_ACCESS`）。`createdBy` 为空的历史数据集对非 admin 不可见（fail-closed；由 admin 重新保存认领）。身份经 `ChatBiToolExecuteContext`（operator + admin 标志）显式传递（镜像裁定 G 耦合契约），由 `NopDatavChatBiBizModel` 从 `IServiceContext` 解析。
+- **选项 A（消费 `NopReportDatasetAuth` ACL）被拒**：`NopReportDatasetAuth` 实体已不在现行 `nop-report/model/nop-report.orm.xml`（仅存生成残骸：无表、无 DDL、无 beans.xml 注册、无消费方），恢复需 nop-report 跨模块变更（ORM 实体 + DDL + codegen），不在本 plan scope。如未来立项按 nop-report 侧 successor 处理。
+- **`PanelDataBinder` 数据集可达性检查点：排除（definitive）**。论证（对照审计 P1-03「datav 全部查询路径」口径）：面板查询路径的授权经 **Dashboard RLS 传递成立**——Phase 2 修复后 `getPanelData/refreshPanel/resolveLinkage/resolveJump` 有 panel→Dashboard 归属校验（非 owner 且未发布即拒绝），`getDashboardData` 经 `requireEntity(Dashboard)` RLS；「发布看板」是领域显式的数据视图共享行为（`getPublishedDashboard` 同样把含数据的看板内容开放给全部登录用户），面板执行其 DatasetRef 绑定的数据集 SQL 属于该共享语义之内，不构成越权面。D2 收敛后 DatasetRef 的绑定与篡改面仅 admin 可达，非 admin 无法构造「引用他人数据集的看板」。
+- **缓存键耦合（open-audit AR-7）**：可见性按用户生效的路径仅为 ChatBI tool executor（不触 `DashboardPanelQueryCache`）；被排除的 `PanelDataBinder` 路径授权锚点是 Dashboard RLS（owner/发布态）而非 per-user 数据集可见性，同一快照对全部可见者语义一致，故 `DashboardPanelQueryCache` 键（refDatasetId+params+rowLimit）**无需**按用户失效。若未来把 per-user 数据集可见性引入面板路径，必须同时按用户失效或绕过该缓存（此为硬约束提醒）。
+
+### D5 快照表/AlertState mutation 面裁剪（方案 c）
+
+- **裁定**：三个 BizModel（`NopDatavDashboardSnapshotBizModel`/`NopDatavScreenSnapshotBizModel`/`NopDatavAlertStateBizModel`）经共享基类覆写全部 13 个标准 mutation 入口（save/saveOrUpdate/copyForNew/update/batchUpdate/updateByQuery/batchModify/delete/batchDelete/deleteByQuery/addManyToManyRelations/removeManyToManyRelations/updateManyToManyRelations），一律抛结构化 `NopException`（快照类 `ERR_DATAV_SNAPSHOT_STD_MUTATION_NOT_ALLOWED`；AlertState `ERR_DATAV_ALERT_STATE_STD_MUTATION_NOT_ALLOWED`）——显式拒绝而非静默移除（plan guide 规则 24 标准做法）。
+- **方案 (a) xbiz `x:override="remove"` 与方案 (b) xmeta 禁写被拒**：全仓均无先例，机制有效性未经验证（无法验证 GraphQL operation 面真实移除）；方案 (c) 的「显式拒绝」满足 plan 的 schema 层不可达证据要求（负向测试经 `IGraphQLEngine` 全链断言结构化错误码）。
+- **核实依据**：领域唯一写入点全部经 DAO 直写（`publishDashboard`/`rollbackDashboard`/`publishScreen`/`rollbackScreen` 经 `saveEntityDirectly`/JDBC 直更，`AlertEvaluator` 经 `saveEntityDirectly/updateEntityDirectly`），不经 BizModel mutation action；生成管理页的 mutation 按钮自本裁定起收到的即为结构化拒绝（页面本身不删，属可接受的 admin 控制台冗余）。快照 append-only；AlertState 状态机唯一写入点为 AlertEvaluator。
+
+### 最终权限矩阵（17 实体）
+
+| 实体 | query | mutation | 行级规则（user 角色） | 备注 |
+|------|-------|----------|----------------------|------|
+| NopDatavDashboard | admin,user | admin | `createdBy == userName OR publishStatus=10` | 聚合根，RLS 锚点 |
+| NopDatavScreen | admin,user | admin | `createdBy == userName OR publishStatus=10` | 聚合根，RLS 锚点 |
+| NopDatavPanel | **admin**（D1） | **admin**（D1/P0-01） | 无（归属校验在面板 action 内锚定 Dashboard） | user 走自定义 action |
+| NopDatavDashboardTab | **admin**（D2） | admin | 无 | |
+| NopDatavDatasetRef | **admin**（D2） | admin | 无 | |
+| NopDatavDashboardSnapshot | **admin**（D2） | admin + **显式拒绝**（D5） | 无 | 公共访问经 getSharedDashboard DAO 直读 |
+| NopDatavScreenWidget | **admin**（D2） | admin | 无 | |
+| NopDatavScreenSnapshot | **admin**（D2） | admin + **显式拒绝**（D5） | 无 | |
+| NopDatavFilterState | admin,user | **admin**（D3/P1-02） | `eq userName ${$context.userName}`（D3 新增） | user 读写走 saveFilterState/getFilterState |
+| NopDatavReportTask | admin,user | admin | `createdBy == userName` | |
+| NopDatavReportDelivery | admin,user | admin | `createdBy == userName` | |
+| NopDatavAlertRule | admin,user | admin | `createdBy == userName` | |
+| NopDatavAlertState | admin,user | admin + **显式拒绝**（D5） | `createdBy == userName` | 唯一写入点 AlertEvaluator |
+| NopDatavChatSession | admin | admin | 无 | owner 校验在 ChatBi 管理 action 内 |
+| NopDatavChatMessage | admin | admin | 无 | 同上 |
+| NopDatavDashboardShare | admin | admin | 无 | owner 校验在 Share 管理 action 内 |
+| NopDatavExportTask | admin | admin | 无 | owner 校验在 ExportTask 管理 action 内 |
+
+ChatBI 数据集可见性（D4）：`NopReportDataset`（nop-report 实体）在 ChatBI list/describe/query 工具路径上对非 admin 仅 `createdBy == 当前用户` 可见；面板路径授权经 Dashboard RLS 传递（见 D4）。
 
 ## D3-4 操作审计日志
 
