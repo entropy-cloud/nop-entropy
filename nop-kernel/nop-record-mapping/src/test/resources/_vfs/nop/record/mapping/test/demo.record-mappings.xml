@@ -204,4 +204,26 @@
         </patternFields>
     </mapping>
 
+    <mapping name="RevGenTestSource_to_RevGenTestTarget">
+        <fields>
+            <field from="flatIn" flattenFrom="true" itemMapping="ItemPass_to_Test" name="flatOut">
+                <schema/>
+            </field>
+            <field defaultValue="123" from="plain" keyProp="name" name="mapped" type="Integer" varName="v" virtual="true">
+                <schema/>
+            </field>
+            <field flattenTo="true" from="deep" itemMapping="ItemPass_to_Test" name="deepOut">
+                <schema/>
+            </field>
+        </fields>
+    </mapping>
+
+    <mapping name="MdSectionSetTest">
+        <fields>
+            <field from="items" itemMapping="ItemPass_to_Test" name="items">
+                <schema/>
+            </field>
+        </fields>
+    </mapping>
+
 </definitions>

@@ -1,0 +1,24 @@
+<definitions x:schema="/nop/schema/record/record-mappings.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:dump="true">
+
+    <x:post-extends>
+        <record-mapping-gen:GenReverseMappings
+                xpl:lib="/nop/record/xlib/record-mapping-gen.xlib"/>
+    </x:post-extends>
+
+    <mapping name="BothA_to_BothB">
+        <fields>
+            <field from="fa" mandatory="true" name="fb">
+                <schema/>
+            </field>
+        </fields>
+    </mapping>
+
+    <mapping name="BothB_to_BothA">
+        <fields>
+            <field from="markerField" mandatory="true" name="explicitMarker">
+                <schema/>
+            </field>
+        </fields>
+    </mapping>
+
+</definitions>

@@ -73,10 +73,6 @@ public class RecordMappingConfig extends _RecordMappingConfig {
         return getFields().stream().map(RecordFieldMappingConfig::getName).collect(Collectors.toSet());
     }
 
-    public Set<String> getFieldFroms() {
-        return fromFields.keySet();
-    }
-
     public RecordFieldMappingConfig requireField(String name) {
         RecordFieldMappingConfig field = getField(name);
         if (field == null)

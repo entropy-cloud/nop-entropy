@@ -22,7 +22,6 @@ public class RecordFieldMappingConfig extends _RecordFieldMappingConfig implemen
     private RecordMappingConfig resolvedItemMapping;
     private IClassModel itemClassModel;
     private IClassModel classModel;
-    private String objName;
 
     private Object normalizedDefaultValue;
 

@@ -90,7 +90,7 @@ Exit Criteria:
 - [x] B1：null/空串不再抛 dict 错误；非空非法值仍抛；`mandatory` 语义不受影响（mandatory dict 字段空值仍由 `validateMandatoryField` 报错——`processFieldValue` 中 validateValue→validateMandatoryField 顺序保证）
 - [x] B2：flattenTo 输出在 target 上、前缀为 from、source 不变；flattenFrom↔flattenTo round-trip 一致（测试名：`testFlattenToWritesToTarget`/`testFlattenRoundTrip`）
 - [x] `./mvnw test -pl nop-kernel/nop-record-mapping -am` 全绿（既有 19 + 新增 5 = 24）
-- [ ] `docs-for-ai/02-core-guides/record-mapping.md` 更新（flattenTo 语义落文档；dict 空值行为说明）——推迟到 Phase 4 统一文档同步
+- [x] `docs-for-ai/02-core-guides/record-mapping.md` 更新（flattenTo 语义落文档；dict 空值行为说明）——Phase 4 统一文档同步时完成
 - [x] `ai-dev/logs/` 对应日期条目已更新（含红→绿证据）
 
 ### Phase 2 - P2 缺陷修复（B3-B8）
@@ -125,7 +125,7 @@ Exit Criteria:
 - [x] B7：when=false + mandatory 不报错；缺字段仍报 missing-field
 - [x] B8：null 简单字段不再从 md 静默消失；mandatory-null round-trip 报明确字段错误
 - [x] `./mvnw test -pl nop-kernel/nop-record-mapping -am` 全绿（33/33）
-- [ ] `docs-for-ai/02-core-guides/record-mapping.md` 更新（如 B7 行为说明与文档一致则 `No owner-doc update required` 并写明）——推迟到 Phase 4 统一文档同步
+- [x] `docs-for-ai/02-core-guides/record-mapping.md` 更新（如 B7 行为说明与文档一致则 `No owner-doc update required` 并写明）——Phase 4 统一文档同步时完成
 - [x] `ai-dev/logs/` 对应日期条目已更新（红→绿证据）
 
 ### Phase 3 - P3 缺陷修复（B9-B12）+ D7
@@ -164,31 +164,31 @@ Exit Criteria:
 
 ### Phase 4 - 设计层清理（D3、D4、D6）
 
-Status: planned
+Status: completed
 Targets: `RecordMappingTool.java`, `RecordMappingConfig.java`, `RecordFieldMappingConfig.java`, `record-mapping-gen.xlib`, `MappingBasedMarkdownGenerator.java`, 测试资源与测试类
 
 - Item Types: `Fix | Proof | Decision`
 
-- [ ] **Decision**（D3）：删除 `RecordMappingTool.PATH_MATCHER`/`PATTERN_CACHE`（私有字段，无引用）、`RecordFieldMappingConfig.objName`（私有字段，无读写）、`RecordMappingConfig.getFieldFroms()`（public 方法，仓库内零调用，SNAPSHOT 版本，删除无兼容负担）。**`getFieldByFrom()` 不删除**（审查 Blocker 修复——B9 的 ignoreUnknownFields 跳过机制以它为非抛错查找，成为新使用方）。保留 `requireFieldByFrom`（md parser 使用）。
-- [ ] **Proof**（D3）：grep 断言 4 个死代码符号（PATH_MATCHER/PATTERN_CACHE/objName/getFieldFroms）零引用 + 模块编译通过。行为级测试不适用死代码删除，按指南标注 `No new test required: dead code removal`（审查 Minor 1），以删除前 grep 命中清单 + 删除后编译/测试全绿作为验证。
-- [ ] **Fix**（D3）：删除上述死代码。
-- [ ] **Proof**（D4）：新增测试资源 `demo-both-directions.record-mappings.xml`（显式定义 `A_to_B` 与 `B_to_A`，后者带 marker 字段）——加载后 `B_to_A` 是显式版（无重复定义报错/无自动生成版覆盖）；扩展 demo 使反向映射字段携带 defaultValue/varName/keyProp，断言自动生成的反映射保留这些属性；**并增加 flatten 字段反向断言**（审查 Major M1）：原字段 flattenFrom=true 的反映射应为 flattenTo=true（反向互换），flattenTo=true 的反映射应为 flattenFrom=true。先运行确认当前 FAIL（重复定义或属性丢失或 flatten 方向未互换）。
-- [ ] **Fix**（D4）：`record-mapping-gen.xlib`——(a) 反向名已显式定义时跳过自动生成；(b) `split('_to_')` 长度≠2 时跳过（不产生 `name="${null}"`）；(c) 反向字段复制属性时 **flattenFrom/flattenTo 反向互换**（原 flattenFrom→反向 flattenTo，原 flattenTo→反向 flattenFrom，审查 Major M1；原因：反向字段的 from/name 已互换，展平方向必须随之翻转），其余补复制 defaultValue/varName/virtual/keyProp/itemFilterExpr/newInstanceExpr/newItemExpr/ignoreWhenEmpty/disableFromPropPath/disableToPropPath（表达式类属性 when/computeExpr/valueExpr/valueMapper/before/after 不复制——反向语义不明，文档注明）。
-- [ ] **Proof**（D6）：测试——md generator 对值为 Set 的 itemMapping 字段抛 `NopException`（明确错误）而非 `ClassCastException`。先运行确认当前 FAIL（ClassCastException）。
-- [ ] **Fix**（D6）：`generateListAsSections`（MappingBasedMarkdownGenerator.java:175）先 `instanceof List` 检查，非 List 抛 `NopException`（带字段名）。
-- [ ] Phase 4 全量验证（含 ai-agent 反向映射场景回归：`./mvnw test -pl nop-ai/nop-ai-agent -am` 中 `TestAgentPlanRecordMapping`/`TestAgentPlanMarkdownLoader` 不受影响）。
+- [x] **Decision**（D3）：删除 `RecordMappingTool.PATH_MATCHER`/`PATTERN_CACHE`（私有字段，无引用）、`RecordFieldMappingConfig.objName`（私有字段，无读写）、`RecordMappingConfig.getFieldFroms()`（public 方法，仓库内零调用，SNAPSHOT 版本，删除无兼容负担）。**`getFieldByFrom()` 不删除**（审查 Blocker 修复——B9 的 ignoreUnknownFields 跳过机制以它为非抛错查找，成为新使用方）。保留 `requireFieldByFrom`（md parser 使用）。
+- [x] **Proof**（D3）：grep 断言 4 个死代码符号（PATH_MATCHER/PATTERN_CACHE/objName/getFieldFroms）零引用 + 模块编译通过。行为级测试不适用死代码删除，按指南标注 `No new test required: dead code removal`（审查 Minor 1），以删除前 grep 命中清单 + 删除后编译/测试全绿作为验证。
+- [x] **Fix**（D3）：删除上述死代码。
+- [x] **Proof**（D4）：新增测试资源 `demo-both-directions.record-mappings.xml`（显式定义 `A_to_B` 与 `B_to_A`，后者带 marker 字段）——加载后 `B_to_A` 是显式版（无重复定义报错/无自动生成版覆盖）；扩展 demo 使反向映射字段携带 defaultValue/varName/keyProp，断言自动生成的反映射保留这些属性；**并增加 flatten 字段反向断言**（审查 Major M1）：原字段 flattenFrom=true 的反映射应为 flattenTo=true（反向互换），flattenTo=true 的反映射应为 flattenFrom=true。先运行确认当前 FAIL（重复定义或属性丢失或 flatten 方向未互换）。
+- [x] **Fix**（D4）：`record-mapping-gen.xlib`——(a) 反向名已显式定义时跳过自动生成；(b) `split('_to_')` 长度≠2 时跳过（不产生 `name="${null}"`）；(c) 反向字段复制属性时 **flattenFrom/flattenTo 反向互换**（原 flattenFrom→反向 flattenTo，原 flattenTo→反向 flattenFrom，审查 Major M1；原因：反向字段的 from/name 已互换，展平方向必须随之翻转），其余补复制 defaultValue/varName/virtual/keyProp/ignoreWhenEmpty/disableFromPropPath/disableToPropPath（表达式类属性 when/computeExpr/valueExpr/valueMapper/before/after 不复制——反向语义不明，文档注明；newItemExpr/newInstanceExpr/itemFilterExpr 以子元素复制）。
+- [x] **Proof**（D6）：测试——md generator 对值为 Set 的 itemMapping 字段抛 `NopException`（明确错误）而非 `ClassCastException`。先运行确认当前 FAIL（ClassCastException）。
+- [x] **Fix**（D6）：`generateListAsSections`（MappingBasedMarkdownGenerator.java:175）先 `instanceof List` 检查，非 List 抛 `NopException`（带字段名）。
+- [x] Phase 4 全量验证（含 ai-agent 反向映射场景回归：`./mvnw test -pl nop-ai/nop-ai-agent -am` 中 `TestAgentPlanRecordMapping`/`TestAgentPlanMarkdownLoader` 不受影响）。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] D3：死代码删除后模块编译通过、既有测试全绿
-- [ ] D4：双向显式定义无重复/显式版生效；反向映射保留结构性属性（defaultValue/varName/keyProp 断言）；ai-agent 的 `TestAgentPlanRecordMapping` 通过
-- [ ] D6：非 List Collection 值得到 `NopException` 而非 `ClassCastException`
-- [ ] `./mvnw clean install -pl nop-kernel/nop-record-mapping -am -T 1C` 全绿；`./mvnw test -pl nop-ai/nop-ai-agent -am` 全绿
-- [ ] checkstyle / 代码规范检查通过
-- [ ] `docs-for-ai/02-core-guides/record-mapping.md` 更新（D4 反向生成属性保真说明）或明确 `No owner-doc update required`
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] D3：死代码删除后模块编译通过、既有测试全绿
+- [x] D4：双向显式定义无重复/显式版生效；反向映射保留结构性属性（defaultValue/varName/keyProp 断言）；ai-agent 的 `TestAgentPlanRecordMapping` 通过
+- [x] D6：非 List Collection 值得到 `NopException` 而非 `ClassCastException`
+- [x] `./mvnw clean install -pl nop-kernel/nop-record-mapping -am -T 1C` 全绿；`./mvnw test -pl nop-ai/nop-ai-agent -am` 全绿
+- [x] checkstyle / 代码规范检查通过
+- [x] `docs-for-ai/02-core-guides/record-mapping.md` 更新（D4 反向生成属性保真说明）或明确 `No owner-doc update required`
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
@@ -247,8 +247,8 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: 已通过独立对抗性审查（`ses_ff7471533ffemAX2QcmkXVJk9S`，conditional-approve，1 Blocker + 3 Major + 7 Minor 已全部修复落盘），已 promoted 为 active。Phase 1（B1/B2）、Phase 2（B3-B8）、Phase 3（B9-B12+D7）已 completed（commit `8cc220084`/`a8481880e`/Phase 3 待提交），Phase 4（D3/D4/D6）+ 文档同步待执行
-Completed: 未完成（Phase 4 待执行）
+Status Note: 已通过独立对抗性审查（`ses_ff7471533ffemAX2QcmkXVJk9S`，conditional-approve，1 Blocker + 3 Major + 7 Minor 已全部修复落盘），已 promoted 为 active。Phase 1（B1/B2，commit `8cc220084`）、Phase 2（B3-B8，commit `a8481880e`）、Phase 3（B9-B12+D7，commit `1d60420bd`）已 completed；Phase 4（D3/D4/D6）+ 文档同步已 completed（待 commit），剩余 Closure Gates（含独立 closure audit）
+Completed: 未完成（Closure Gates 待执行）
 
 Closure Audit Evidence:
 

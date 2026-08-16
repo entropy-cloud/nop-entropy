@@ -22,6 +22,9 @@ import java.util.Set;
 
 import static io.nop.record_mapping.RecordMappingConstants.FORMAT_CODE;
 import static io.nop.record_mapping.RecordMappingConstants.FORMAT_TABLE;
+import static io.nop.record_mapping.RecordMappingErrors.ARG_FIELD_NAME;
+import static io.nop.record_mapping.RecordMappingErrors.ARG_VALUE;
+import static io.nop.record_mapping.RecordMappingErrors.ERR_RECORD_FIELD_NOT_COLLECTION_TYPE;
 import static io.nop.record_mapping.RecordMappingConstants.VAR_MD_FORMAT;
 import static io.nop.record_mapping.RecordMappingConstants.VAR_MD_TITLE_FIELD;
 
@@ -170,6 +173,11 @@ public class MappingBasedMarkdownGenerator implements ITextTemplateOutput {
                             generateObject(out, value, field.getResolvedMapping(), levelCounters);
                         } else if (field.getResolvedItemMapping() != null) {
                             // 对象列表 → 子章节列表
+                            if (!(value instanceof List)) {
+                                throw new NopException(ERR_RECORD_FIELD_NOT_COLLECTION_TYPE)
+                                        .param(ARG_FIELD_NAME, field.getName())
+                                        .param(ARG_VALUE, value);
+                            }
                             generateListAsSections(out, field.getResolvedItemMapping(), (List<Object>) value, levelCounters);
                         }
                     } catch (IOException e) {

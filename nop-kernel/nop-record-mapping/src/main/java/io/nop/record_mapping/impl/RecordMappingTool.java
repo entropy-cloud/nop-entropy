@@ -45,8 +45,6 @@ import static io.nop.record_mapping.RecordMappingErrors.*;
 public class RecordMappingTool {
     private static final Logger LOG = LoggerFactory.getLogger(RecordMappingTool.class);
     public static final RecordMappingTool DEFAULT = new RecordMappingTool();
-    private static final io.nop.commons.path.IPathMatcher PATH_MATCHER = new io.nop.commons.path.AntPathMatcher();
-    private static final java.util.Map<String, io.nop.commons.path.IPathMatcher> PATTERN_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
 
     // ========== 字段条件检查 ==========
     public boolean checkFieldCondition(RecordFieldMappingConfig field,

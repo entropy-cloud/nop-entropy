@@ -3,21 +3,29 @@ package io.nop.record_mapping;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.initialize.CoreInitialization;
+import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
+import io.nop.core.resource.IResourceDslNodeLoader;
 import io.nop.core.resource.VirtualFileSystem;
+import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.markdown.model.MarkdownDocument;
 import io.nop.markdown.utils.MarkdownTool;
 import io.nop.record_mapping.md.MappingBasedMarkdownGenerator;
 import io.nop.record_mapping.md.MappingBasedMarkdownParser;
+import io.nop.record_mapping.model.RecordFieldMappingConfig;
 import io.nop.record_mapping.model.RecordMappingConfig;
+import io.nop.record_mapping.model.RecordMappingDefinitions;
 import io.nop.xlang.api.XLang;
+import io.nop.xlang.xdsl.DslNodeLoader;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.io.StringWriter;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +35,7 @@ import static io.nop.record_mapping.RecordMappingConstants.VAR_SOURCE_FIELD_NAME
 import static io.nop.record_mapping.RecordMappingConstants.VAR_TARGET;
 import static io.nop.record_mapping.RecordMappingConstants.VAR_TARGET_FIELD_NAME;
 import static io.nop.record_mapping.RecordMappingErrors.ERR_RECORD_FIELD_IS_MANDATORY;
+import static io.nop.record_mapping.RecordMappingErrors.ERR_RECORD_FIELD_NOT_COLLECTION_TYPE;
 import static io.nop.record_mapping.RecordMappingErrors.ERR_RECORD_FIELD_VALUE_NOT_IN_DICT;
 import static io.nop.record_mapping.RecordMappingErrors.ERR_RECORD_MAPPING_NOT_FOUND;
 import static io.nop.record_mapping.RecordMappingErrors.ERR_RECORD_MD_MISSING_FIELD;
@@ -362,5 +371,63 @@ public class TestRecordMappingRegression extends BaseTestCase {
 
         Assertions.assertSame(preset, ctx.getSourceRoot());
         Assertions.assertSame(target, ctx.getTargetRoot());
+    }
+
+    @Test
+    public void testReverseMappingPreservesFieldAttributes() {
+        // D4: 反向自动生成保留 defaultValue/varName/virtual/keyProp；flattenFrom↔flattenTo 互换
+        RecordMappingConfig reverse = RecordMappingManager.instance().getRecordMappingConfig("test.demo.RevGenTestTarget_to_RevGenTestSource");
+        Assertions.assertNotNull(reverse);
+
+        RecordFieldMappingConfig flatIn = reverse.getField("flatIn"); // 原 flattenFrom → 反向 flattenTo
+        Assertions.assertNotNull(flatIn);
+        Assertions.assertEquals("flatOut", flatIn.getFrom());
+        Assertions.assertTrue(flatIn.isFlattenTo());
+        Assertions.assertFalse(flatIn.isFlattenFrom());
+
+        RecordFieldMappingConfig deep = reverse.getField("deep"); // 原 flattenTo → 反向 flattenFrom
+        Assertions.assertNotNull(deep);
+        Assertions.assertEquals("deepOut", deep.getFrom());
+        Assertions.assertTrue(deep.isFlattenFrom());
+        Assertions.assertFalse(deep.isFlattenTo());
+
+        RecordFieldMappingConfig plain = reverse.getField("plain"); // 原 from=plain name=mapped
+        Assertions.assertNotNull(plain);
+        Assertions.assertEquals("mapped", plain.getFrom());
+        Assertions.assertEquals("123", plain.getDefaultValue());
+        Assertions.assertEquals("name", plain.getKeyProp());
+        Assertions.assertEquals("v", plain.getVarName());
+        Assertions.assertTrue(plain.isVirtual());
+    }
+
+    @Test
+    public void testBothDirectionsExplicitNoDuplicate() {
+        // D4: 双向显式定义 → 显式版保留且不被自动生成版合并（无 fa 字段混入）；marker 字段存在
+        // 注：post-extends 输出按 key 合并（XDefMerge），重复定义会"混入"而非报错——fa 是仅自动生成版才有的字段
+        RecordMappingDefinitions defs = (RecordMappingDefinitions) ResourceComponentManager.instance()
+                .loadComponentModel("resolve-record-mappings:test/demoBoth");
+        RecordMappingConfig both = defs.getMapping("BothB_to_BothA");
+        Assertions.assertNotNull(both);
+        Assertions.assertNull(both.getField("fa"));
+        RecordFieldMappingConfig marker = both.getField("explicitMarker");
+        Assertions.assertNotNull(marker);
+        Assertions.assertEquals("markerField", marker.getFrom());
+    }
+
+    @Test
+    public void testGeneratorRejectsNonListCollection() {
+        // D6: itemMapping 字段值为 Set → NopException 而非 ClassCastException
+        RecordMappingConfig config = RecordMappingManager.instance().getRecordMappingConfig("test.demo.MdSectionSetTest");
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("c", "x");
+        item.put("d", "y");
+        Map<String, Object> source = new LinkedHashMap<>();
+        source.put("items", Collections.singleton(item));
+
+        StringWriter out = new StringWriter();
+        NopException e = Assertions.assertThrows(NopException.class,
+                () -> new MappingBasedMarkdownGenerator(config, source, new RecordMappingContext().getEvalScope())
+                        .generateToWriter(out, new RecordMappingContext()));
+        Assertions.assertEquals(ERR_RECORD_FIELD_NOT_COLLECTION_TYPE.getErrorCode(), e.getErrorCode());
     }
 }

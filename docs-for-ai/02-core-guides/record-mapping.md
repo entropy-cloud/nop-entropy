@@ -103,6 +103,7 @@
 
 - 对普通字段：空值会直接报错。
 - 对 `itemMapping` 字段：如果整个集合 / Map 值为 `null`，也会报错。
+- 对嵌套 `mapping` 字段：即使配了 `ignoreWhenEmpty="true"`，空值仍报错（ignoreWhenEmpty 在 mandatory 检查之后，不能替代 mandatory）。
 
 如果你的规则是"某条件下才 mandatory"，不要写两套 message model，直接配合 `when`。
 
@@ -126,6 +127,8 @@
 ```
 
 注意：这里的 `schema` 主要是**字段级**能力。对于嵌套对象或集合，默认还是靠 `mapping` / `itemMapping` 递归处理，而不是靠一个外层 `<schema/>` 自动做完整业务树校验。
+
+dict 校验对空值宽容：值为 `null` 或空串时跳过 dict 校验（非 mandatory 字段空值映射成功）；非空非法值仍抛 `ERR_RECORD_FIELD_VALUE_NOT_IN_DICT`。mandatory 的 dict 字段空值由 mandatory 检查报 `ERR_RECORD_FIELD_IS_MANDATORY`。
 
 ### `optional`
 
@@ -182,6 +185,16 @@
 
 如果集合里的每个元素也有条件，可用 `itemFilterExpr` 过滤条目。
 
+### `flattenFrom` / `flattenTo`
+
+`flattenFrom` 把来源中 `{from}-{index}-{fieldName}` 形式的键整理为列表后按 `itemMapping` 映射；`flattenTo` 与之对称，把映射得到的列表按 `{from}-{index}-{fieldName}` 展平写入 **target**（前缀取 `from`，与 flattenFrom 对称，round-trip 一致），而不是设置到 target 属性上。
+
+```xml
+<field from="listB" name="listA" flattenTo="true" itemMapping="Item_to_Test"/>
+```
+
+注意：`flattenTo` 不会修改 source，展平结果只出现在 target 上。
+
 ## `patternField`
 
 当来源字段名本身是动态的，使用 `patternField`，其余语义和 `field` 基本一致，包括：
@@ -191,12 +204,33 @@
 - `schema`
 - `itemMapping`
 - `beforeFieldMapping` / `afterFieldMapping`
+- `defaultValue`（源字段值为 null 时落到目标上的默认值，需配合 `type` 做类型转换）
 
 适合：
 
 1. 扁平键值输入
 2. 动态列名
 3. 需要根据命名模式生成目标属性名
+
+`patternField` 执行时写入 context 的变量（`sourceFieldName`/`targetFieldName`/`source`/`target`/命名捕获变量）会在该 pattern 处理完后**自动恢复原值**，不会泄漏到后续字段或复用同一 ctx 的调用方（如 gateway 的 eval scope）。
+
+## Markdown 解析 / 生成（md DSL）
+
+`record-mapping` 支持以 Markdown 作为交换格式（`ai-agent` 的 agentPlan 等场景通过 `MappingBasedMarkdownParser` / `MappingBasedMarkdownGenerator` 使用）：
+
+- `when=false` 的 mandatory 字段在文档中存在该条目时正常解析，不会误报 `ERR_RECORD_MD_MISSING_FIELD`；文档缺条目时仍报错。
+- 值为 null 的简单字段会输出 `- {key}: ` 空值行（round-trip 不丢字段）；mandatory 字段值为 null 时 parse 报 `ERR_RECORD_FIELD_IS_MANDATORY`（指明字段）。
+- `<mapping ignoreUnknownFields="true">`：md 解析遇到未在 fields 中定义的列表项/子章节时跳过而不是报 `ERR_RECORD_UNKNOWN_FROM_FIELD`。默认 `false` 保持严格契约。
+- itemMapping 字段的值必须是 `List`；其他 Collection 类型（如 `Set`）会抛 `ERR_RECORD_FIELD_NOT_COLLECTION_TYPE` 而不是 `ClassCastException`。
+
+## 反向映射自动生成（`GenReverseMappings`）
+
+通过 `x:post-extends` 调用 `record-mapping-gen:GenReverseMappings` 可为一向定义的 mapping 自动生成反向 mapping（`A_to_B` → `B_to_A`）：
+
+- 双向都已显式定义时，以显式版为准，不会自动生成重复定义。
+- 名字不含 `_to_` 或含多个 `_to_`（如 `A_to_B_to_C`）的 mapping 不参与反向生成。
+- 反向字段保留 `defaultValue`/`varName`/`virtual`/`keyProp`/`ignoreWhenEmpty`/`disableFromPropPath`/`disableToPropPath` 等结构性属性，并复制 `newItemExpr`/`newInstanceExpr`/`itemFilterExpr` 子元素；`flattenFrom`/`flattenTo` **互换**（原 flattenFrom → 反向 flattenTo，反之亦然）。
+- 表达式类属性（`when`/`computeExpr`/`valueExpr`/`valueMapper`/`before`/`after`）不复制——反向语义不明，需要时在反向 mapping 中显式定义。
 
 ## Gateway 中怎么用
 
