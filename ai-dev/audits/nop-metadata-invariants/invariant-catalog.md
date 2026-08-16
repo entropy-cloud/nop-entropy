@@ -17,7 +17,7 @@
 实证先例（arm-index `ai-dev/audits/arm-index-nop-metadata.md:129` / `:72`）：
 
 - **AR-06（R3.14 虚假关闭）**：commit `9b769490e` 标注 `"MA7.6-05：slaFresh=false"`，声称已修复。但 git 逐行核对 `MetaContractChecker.java` 的 diff **real diff lines = 0**（仅删 7 行版权头）——修复从未落地。直到 R7.3（plan-2026-08-06-0553-3 Phase 2）才实际补做。
-- **unique-key constraint（本目录 INV-UK 实测）**：plan baseline 沿用旧值「1 个缺失」，但 live XML-aware 核对显示 37/37 全带 `constraint`（见 `audit-target-set.md` 基线校正记录）。以 live 0 为准。
+- **unique-key constraint（本目录 INV-UK 实测）**：plan baseline 沿用旧值「1 个缺失」，但 live XML-aware 核对显示全部 UK 带 `constraint`（见 `audit-target-set.md` 基线校正记录；2026-08-16 P2-29 删 2 个冗余 per-scope FQN UK 后 = 35/35 全带）。以 live 0 为准。
 
 推论：I2 跑门禁产出 red list 时，每一条违规必须由可复现的 `rg`/扫描器/测试输出支撑；「声称已修」不抹除违规。这与 roadmap 的反模式「基线节凭记忆写"X 未修"」双向呼应——既不凭记忆写"未修"，也不凭记忆写"已修"。
 
@@ -88,7 +88,7 @@
 
 **④ 检测方法**：`ai-dev/tools/check-orm-unique-key-constraint.mjs`（XML-aware，逐 `<unique-key>` 元素核对 `constraint` + `columns`，跨行元素须整体匹配——见 `audit-target-set.md` §3 复现脚本）。
 
-**目标集覆盖率**：37 unique-key / 39 entity（见 `audit-target-set.md` §2.2）。**当前 red list = 0**（live 实测 37/37 全带属性，DDL 已物化——见 `audit-target-set.md` §2.3 + 基线校正记录）。本不变式当前为**防回退门禁**：保护「新增 unique-key 必带 constraint」不再复发，而非修现存违规。
+**目标集覆盖率**：35 unique-key / 39 entity（见 `audit-target-set.md` §2.2；2026-08-16 plan-2026-08-16-0920-1 P2-29 删除 2 个冗余 per-scope FQN UK——全局 FQN UK 逻辑蕴含 per-scope，约束语义不变——清单 37 → 35）。**当前 red list = 0**（live 实测 35/35 全带属性，DDL 已物化——见 `audit-target-set.md` §2.3 + 基线校正记录）。本不变式当前为**防回退门禁**：保护「新增 unique-key 必带 constraint」不再复发，而非修现存违规。
 
 ---
 

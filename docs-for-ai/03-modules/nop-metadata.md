@@ -145,6 +145,14 @@ mutation {
 - **4 列 UK**：`NopMetaTable` 唯一键 `UK_NOP_META_TABLE_MODULE_NAME = (metaModuleId, tableName, isDelta, metaSchema)`（`nop-metadata.orm.xml` `NopMetaTable` unique-key，R4.2 在 R3.19 三列基础上扩展 schema 维度）。租户部署的 UK 变体 `(NOP_TENANT_ID, META_MODULE_ID, TABLE_NAME, IS_DELTA, META_SCHEMA)` 由 xgen 从模型派生再生成（`_add_tenant_nop-metadata.sql`，禁止手编）。
 - **存量部署升级 SQL**：非租户存量库（R4.2 前 3 列 UK）需执行 `deploy/sql/{mysql,postgresql,oracle}/upgrade-nop-meta-table-uk.sql`（drop + add 4 列 UK，三方言）。**前置条件**：R3.19 前零 UK 时代建库可能存在 `(metaModuleId, tableName, isDelta)` 重复行，须先去重，否则 `add constraint` 显式失败（fail-fast by design）。新装库由 `_create_nop-metadata.sql` 覆盖，无需 upgrade 脚本。
 
+## 语义层 FQN 唯一性与 NULL-distinct 守卫（plan 2026-08-16-0920-1）
+
+**FQN 全局唯一（P2-29 裁定）**：`NopMetaGlossaryTerm` / `NopMetaTag` 的 `fullyQualifiedName` 各自只有**全局 UK**（`UK_NOP_META_GLOSSARY_TERM_FQN` / `UK_NOP_META_TAG_FQN`）——非 NULL FQN 全局唯一蕴含 per-scope 唯一，原 per-scope UK（`..._G_FQN` / `..._CLS_FQN`）为逻辑被蕴含的冗余约束，已删除（行为零变化：删除前被拒的写入删除后仍被拒）。GlossaryTerm FQN 可空（多行 NULL FQN 共存，NULL-distinct）；Tag FQN mandatory 且自动构建带 scope 前缀（`NopMetaTagBizModel.save` 仅在 null 时填充，手填非空 FQN 可绕过前缀但仍受全局唯一约束）。**存量库升级**：执行 `deploy/sql/{mysql,postgresql,oracle}/upgrade-nop-meta-fqn-uk.sql`（DROP 2 个 per-scope 约束，无数据前置条件）。
+
+**TagLabel GLOSSARY 查重守卫（P2-01 裁定选项 ii）**：`UK_NOP_META_TAG_LABEL (entityType,entityId,tagId,source)` 对 `source=Glossary && tagId=NULL` 的行不生效（复合 UK 任一列 NULL 即豁免）。`NopMetaTagLabelBizModel` 在 save/update 之后按 `(entityType, entityId, source, glossaryTermId, tagId IS NULL)` 查重（自排除），命中抛 `nop.err.metadata.tag-label-duplicate-glossary-term` 并回滚；tagId 非 NULL 的行（含 GLOSSARY source）继续由 DB UK 拒绝。UK 保持不变（裸扩列与哨兵方案经 NULL-distinct/Oracle ''≡NULL 分析否决，见 plan 裁决表）。
+
+**BusinessDomain 根域重名守卫（P2-28 裁定）**：`UK_NOP_META_BUSINESS_DOMAIN_PARENT_NAME (parentDomainId,name)` 对根域（parentDomainId NULL）不生效。`NopMetaBusinessDomainBizModel` 在 save/update 之后对根域按 `(parentDomainId IS NULL, name)` 查重（自排除），命中抛 `nop.err.metadata.business-domain-duplicate-root-name` 并回滚；非根域由 DB UK 拒绝。UK 与列语义均不变（sentinel 改造否决理由见 plan 裁决表）。
+
 ## API 契约（I*Biz 接口）
 
 每个 BizModel 都实现了对应的 `INopMeta*Biz` 接口（位于 `nop-metadata-dao` 模块的 `io.nop.metadata.biz` 包），声明全部自定义 `@BizQuery` / `@BizMutation` 方法签名。跨模块 `@Inject INopMeta*Biz` 可直接调用接口方法，避免依赖具体实现类。

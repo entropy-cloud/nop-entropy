@@ -10,7 +10,7 @@
 为 I1/I2 提供「全集」基准：
 
 1. **方法全集** = nop-metadata 全部变更型入口面（`@BizQuery` / `@BizMutation` 注解方法 + 显式接受 `limit` 入参的 public 方法）。**不**是全部 `public` 符号（service 下实测 723 个 `public`，多为 helper/getter，不属审计目标面）。
-2. **ORM 全集** = 39 entity × 37 unique-key，逐条标注是否带 `constraint` 属性。
+2. **ORM 全集** = 39 entity × 35 unique-key（2026-08-16 P2-29 删 2 个冗余 per-scope FQN UK 前为 37），逐条标注是否带 `constraint` 属性。
 3. 提供可由独立 `rg`/`grep` 复现的命令，使任何计数声明都可被复核。
 
 ## 基线校正记录（重要 — 虚假关闭教训实证）
@@ -21,7 +21,7 @@
 |---|---|---|---|
 | unique-key 缺 `constraint` 数 | plan baseline 称「1 个缺失」 | **0 个缺失**（37/37 全带 `constraint` + `columns`） | `node -e '…'`（见 §3 复现脚本） |
 
-**说明**：plan `Current Baseline`（line 19）与 Phase 1 Exit Criteria（line 76）均沿用旧值「1 missing」，但 live XML-aware 核对（逐 `<unique-key>` 元素，含跨行）显示 **37/37 全部带 `constraint=` 与 `columns=`**。Lesson 09 记录的「36 缺 constraint」已于 R3.19（plan-2026-08-05-0746-2 Phase 4）补齐，此后模型新增的第 37 个 unique-key 也已带属性。**以 live 0 为准，不以旧文档 1 为准。** 这正是闭环入口要钉死的事实基线：unique-key 族当前 red list = 0（不变式仍需沉淀以防回退，但 I2 不会从此族产出违规项）。
+**说明**：plan `Current Baseline`（line 19）与 Phase 1 Exit Criteria（line 76）均沿用旧值「1 missing」，但 live XML-aware 核对（逐 `<unique-key>` 元素，含跨行）显示**全部 UK 带 `constraint=` 与 `columns=`**（I0 轮实测口径 37/37；2026-08-16 plan-2026-08-16-0920-1 P2-29 删 2 个冗余 per-scope FQN UK 后为 35/35，见 §2.2 注记）。Lesson 09 记录的「36 缺 constraint」已于 R3.19（plan-2026-08-05-0746-2 Phase 4）补齐，此后模型新增的 unique-key 也已带属性。**以 live 0 为准，不以旧文档 1 为准。** 这正是闭环入口要钉死的事实基线：unique-key 族当前 red list = 0（不变式仍需沉淀以防回退，但 I2 不会从此族产出违规项）。
 
 ---
 
@@ -173,7 +173,7 @@
 
 ---
 
-## §2 ORM 全集（39 entity × 37 unique-key）
+## §2 ORM 全集（39 entity × 35 unique-key，P2-29 后）
 
 ### 2.1 39 entity 清单
 
@@ -182,10 +182,16 @@
 
 NopMetaModule, NopMetaDataSource, NopMetaOrmModel, NopMetaSemanticType, NopMetaEntity, NopMetaEntityField, NopMetaEntityRelation, NopMetaEntityUniqueKey, NopMetaEntityIndex, NopMetaDomain, NopMetaDict, NopMetaDictItem, NopMetaTable, NopMetaTableDimension, NopMetaTableMeasure, NopMetaTableFilter, NopMetaTableJoin, NopMetaPipeline, NopMetaLineageEdge, NopMetaQualityRule, NopMetaQualityResult, NopMetaQualityCheckpoint, NopMetaManifest, NopMetaCatalog, NopMetaProfilingRule, NopMetaProfilingResult, NopMetaDataContract, NopMetaReconciliationConfig, NopMetaReconciliationResult, NopMetaReconciliationEntity, NopMetaQualityScore, NopMetaModelChangedEvent, NopMetaGlossary, NopMetaGlossaryTerm, NopMetaClassification, NopMetaTag, NopMetaTagLabel, NopMetaBusinessDomain, NopMetaDataProduct.
 
-### 2.2 37 unique-key 清单（全部带 `constraint` + `columns`，0 缺失）
+### 2.2 35 unique-key 清单（全部带 `constraint` + `columns`，0 缺失）
 
-> 复现（计数）：`rg -c '<unique-key name=' nop-metadata/model/nop-metadata.orm.xml`（= 37）
+> 复现（计数）：`rg -c '<unique-key name=' nop-metadata/model/nop-metadata.orm.xml`（= 35）
 > 复现（完整性，XML-aware，逐元素核对 constraint + columns）：见 §3 复现脚本 → 输出 `missing constraint or columns: 0`
+>
+> 2026-08-16（plan-2026-08-16-0920-1 P2-29 裁定）：删除 2 个冗余 per-scope FQN UK
+> `UK_NOP_META_GLOSSARY_TERM_G_FQN (glossaryId,fullyQualifiedName)` 与
+> `UK_NOP_META_TAG_CLS_FQN (classificationId,fullyQualifiedName)`——非 NULL FQN 行全局
+> `(fullyQualifiedName)` UK 逻辑蕴含 per-scope UK，删除后约束集语义不变（行为零变化）；
+> 清单 37 → 35，下表已同步终态（被删行见本注记，表内不再保留）。
 
 | unique-key name | columns | constraint | 所属 entity |
 |---|---|---|---|
@@ -219,10 +225,8 @@ NopMetaModule, NopMetaDataSource, NopMetaOrmModel, NopMetaSemanticType, NopMetaE
 | UK_NOP_META_RECONCILIATION_ENTITY_ID | entityId,entityType | ✓ | NopMetaReconciliationEntity |
 | UK_NOP_META_GLOSSARY_NAME | name | ✓ | NopMetaGlossary |
 | UK_NOP_META_GLOSSARY_TERM_FQN | fullyQualifiedName | ✓ | NopMetaGlossaryTerm |
-| UK_NOP_META_GLOSSARY_TERM_G_FQN | glossaryId,fullyQualifiedName | ✓ | NopMetaGlossaryTerm |
 | UK_NOP_META_CLASSIFICATION_NAME | name | ✓ | NopMetaClassification |
 | UK_NOP_META_TAG_FQN | fullyQualifiedName | ✓ | NopMetaTag |
-| UK_NOP_META_TAG_CLS_FQN | classificationId,fullyQualifiedName | ✓ | NopMetaTag |
 | UK_NOP_META_TAG_LABEL | entityType,entityId,tagId,source | ✓ | NopMetaTagLabel |
 | UK_NOP_META_BUSINESS_DOMAIN_PARENT_NAME | parentDomainId,name | ✓ | NopMetaBusinessDomain |
 | UK_NOP_META_DATA_PRODUCT_DOMAIN_NAME | businessDomainId,name | ✓ | NopMetaDataProduct |
@@ -231,7 +235,7 @@ NopMetaModule, NopMetaDataSource, NopMetaOrmModel, NopMetaSemanticType, NopMetaE
 
 ### 2.3 DDL 物化旁证
 
-`nop-metadata/deploy/sql/{mysql,oracle,postgresql}/_create_nop-metadata.sql` 三方言均发射 `UNIQUE` 约束（mysql `_create` 含 42 处 `unique`、`_add_tenant` 含 41 处）。复现：`rg -ci 'unique' nop-metadata/deploy/sql/mysql/_create_nop-metadata.sql`。这印证 37/37 constraint 属性已穿过 DDL 发射门（`ddl.xlib:81-82`）物化为部署层约束。
+`nop-metadata/deploy/sql/{mysql,oracle,postgresql}/_create_nop-metadata.sql` 三方言均发射 `UNIQUE` 约束（2026-08-16 P2-29 后 live 计数：mysql `_create` 含 40 处 `unique`、`_add_tenant` 含 39 处；删除 2 个 per-scope FQN UK 前为 42/41）。复现：`rg -ci 'unique' nop-metadata/deploy/sql/mysql/_create_nop-metadata.sql`。这印证 35/35 constraint 属性已穿过 DDL 发射门（`ddl.xlib:81-82`）物化为部署层约束。
 
 ---
 
@@ -253,7 +257,7 @@ for (const b of blocks) {
 }
 console.log("missing constraint or columns:", missing);
 '
-# 预期输出: matched 37, missing 0
+# 预期输出: matched 35, missing 0（P2-29 删 2 个 per-scope FQN UK 前为 37）
 ```
 
 ---

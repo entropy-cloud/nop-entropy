@@ -138,11 +138,11 @@ flowchart LR
 > 源：`ai-dev/audits/2026-08-15-0559-multi-audit-nop-metadata-invariant-loop.md`（下述 P2-xx 编号均指该文件「P2 发现」表；其中 P2-01/02/03 为初审 P1 经复核降级项，P2-05 等含裁定需求项建议下轮派生时优先裁决）。
 
 **数据完整性 / ORM 族**
-- **P2-01** TagLabel UK `(entityType,entityId,tagId,source)` 缺 glossaryTermId，GLOSSARY 来源行 NULL 互异不受唯一约束（限脏数据累积，非核心不变式失效）
+- **P2-01** TagLabel UK `(entityType,entityId,tagId,source)` 缺 glossaryTermId，GLOSSARY 来源行 NULL 互异不受唯一约束（限脏数据累积，非核心不变式失效） — ✅ Fixed（plan `2026-08-16-0920-1` 裁决选项 ii：保留现 UK + `NopMetaTagLabelBizModel` save/update 双入口应用层查重守卫（source=Glossary && tagId NULL && glossaryTermId 非 NULL 按 `(entityType,entityId,source,glossaryTermId,tagId IS NULL)` 查重，自排除，fail-loud `nop.err.metadata.tag-label-duplicate-glossary-term`）；裸扩列 NULL-distinct 双输排除、哨兵方案排除（''/NULL 双键反面裁定 + update 绕过 + Oracle ''≡NULL）；零 DDL 变更不交付升级 SQL；测试 5 例先红后绿）
 - **P2-26** `NopMetaQualityResult.checkpointId` 无关系弱引用，checkpoint 删除产生孤儿结果行（与 rule→results 级联不对称，是否保留历史需裁定）
 - **P2-27** `NopMetaTableJoin` 源模型注释陈旧：描述已被 D1 裁定推翻的行级互斥不变式（`nop-metadata.orm.xml:1687-1693`，注释被 codegen 读者持续消费）
-- **P2-28** `NopMetaBusinessDomain` UK (parentDomainId,name) 对根域重名不生效（NULL-distinct，仅根域失守）
-- **P2-29** `NopMetaGlossaryTerm`/`NopMetaTag` 双重 UK 冗余（全局 FQN UK 已蕴含 per-parent UK，冗余索引+语义漂移陷阱）
+- **P2-28** `NopMetaBusinessDomain` UK (parentDomainId,name) 对根域重名不生效（NULL-distinct，仅根域失守） — ✅ Fixed（plan `2026-08-16-0920-1`：不改 UK + `NopMetaBusinessDomainBizModel` save/update 根域重名守卫（`(parentDomainId IS NULL, name)` 查重，自排除，fail-loud `nop.err.metadata.business-domain-duplicate-root-name`）+ 模型注释文档化 NULL-distinct 限制；sentinel UK 改造经影响面评估否决（IS NULL 消费面迁移+存量 UPDATE+Oracle ''≡NULL）；测试 4 例先红后绿）
+- **P2-29** `NopMetaGlossaryTerm`/`NopMetaTag` 双重 UK 冗余（全局 FQN UK 已蕴含 per-parent UK，冗余索引+语义漂移陷阱） — ✅ Fixed（plan `2026-08-16-0920-1`：删冗余 per-scope UK `UK_NOP_META_GLOSSARY_TERM_G_FQN`/`UK_NOP_META_TAG_CLS_FQN`，保留全局 FQN UK——非 NULL FQN 全局唯一蕴含 per-scope 唯一，行为零变化；消费者 `findTagByFQN` 结果集恒同、scope 查询由既有 IX 承载；再生三方言 `_create_`/`_add_tenant_` 一致（unique 计数 42→40 / 41→39）+ 三方言 `upgrade-nop-meta-fqn-uk.sql`（DROP ×2 无数据前置）；测试 = DDL 发射新 UK 集 + H2 全局 FQN 重复仍拒 + NULL FQN 共存 4 例）
 - **P2-34** 2 个 dict 声明零引用（quality-trend-direction/checkpoint-action-type，语义载体是 JSON 列无法挂载，死元数据）
 
 **安全 / 脱敏 / 防御纵深族**

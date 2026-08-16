@@ -19,7 +19,7 @@
 # 1. INV-SILENT-SWALLOW: 静默吞异常扫描（130 catch 块）
 node ai-dev/tools/check-silent-swallow.mjs --module nop-metadata        # 退出码 1 = 有命中
 
-# 2. INV-UK: unique-key constraint 完备性扫描（37 unique-key）
+# 2. INV-UK: unique-key constraint 完备性扫描（35 unique-key；2026-08-16 P2-29 删 2 个冗余 per-scope FQN UK 前为 37，见 §INV-UK 当前命中注记）
 node ai-dev/tools/check-orm-unique-key-constraint.mjs --module nop-metadata   # 退出码 0 = 零命中
 
 # 3. INV-SENSITIVE: 敏感字面量脱敏扫描
@@ -178,7 +178,7 @@ node ai-dev/tools/check-sensitive-literal-leak.mjs --module nop-metadata      # 
 >
 > **历史同族 finding-ID**：MA7.3-01 / P2-MA6.6-001 / R3.19（已修复，Lesson 09）。
 >
-> **当前命中 = 0**（live 实测 37/37 全带 `constraint=` + `columns=`，DDL 三方言已物化 UNIQUE —— 见 `audit-target-set.md` §2.3）。本门禁为**防回退门禁**，本族 red list 分量 = 0，无 I3 裁决条目。
+> **当前命中 = 0**（live 实测全带 `constraint=` + `columns=`——I0 轮口径 37/37，2026-08-16 plan-2026-08-16-0920-1 P2-29 删 2 个冗余 per-scope FQN UK 后为 35/35；DDL 三方言已物化 UNIQUE —— 见 `audit-target-set.md` §2.3）。本门禁为**防回退门禁**，本族 red list 分量 = 0，无 I3 裁决条目。
 
 ---
 
