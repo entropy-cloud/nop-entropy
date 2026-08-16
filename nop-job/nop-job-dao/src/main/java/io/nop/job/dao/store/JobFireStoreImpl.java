@@ -26,9 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -222,15 +220,7 @@ public class JobFireStoreImpl implements IJobFireStore {
         if (fireIds == null || fireIds.isEmpty()) {
             return Collections.emptyMap();
         }
-
-        QueryBean query = new QueryBean();
-        query.addFilter(FilterBeans.in(PROP_NAME_jobFireId, new ArrayList<>(fireIds)));
-        List<NopJobFire> fires = fireDao().findAllByQuery(query);
-        Map<String, NopJobFire> result = new HashMap<>(fires.size());
-        for (NopJobFire fire : fires) {
-            result.put(fire.getJobFireId(), fire);
-        }
-        return result;
+        return (Map) fireDao().batchGetEntityMapByIds(fireIds);
     }
 
     @Override

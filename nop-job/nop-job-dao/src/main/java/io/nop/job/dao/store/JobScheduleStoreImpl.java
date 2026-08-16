@@ -23,9 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -314,15 +312,7 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
         if (scheduleIds == null || scheduleIds.isEmpty()) {
             return Collections.emptyMap();
         }
-
-        QueryBean query = new QueryBean();
-        query.addFilter(FilterBeans.in(PROP_NAME_jobScheduleId, new ArrayList<>(scheduleIds)));
-        List<NopJobSchedule> schedules = scheduleDao().findAllByQuery(query);
-        Map<String, NopJobSchedule> result = new HashMap<>(schedules.size());
-        for (NopJobSchedule schedule : schedules) {
-            result.put(schedule.getJobScheduleId(), schedule);
-        }
-        return result;
+        return (Map) scheduleDao().batchGetEntityMapByIds(scheduleIds);
     }
 
     @Override
