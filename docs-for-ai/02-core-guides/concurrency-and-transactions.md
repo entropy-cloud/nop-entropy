@@ -175,6 +175,7 @@ Nop ORM 的 Session 维护一级缓存（按 `entityName + id` 索引）。**一
 | `dao.getEntityById(id)` / `requireEntityById(id)` | 返回缓存实体 | 若实体已在 Session 中，直接返回，不查 DB |
 | `dao.findAllByQuery(query)` | 返回缓存实体（不覆盖已初始化字段） | SQL 查询结果经 `internalAssemble` 组装，但已初始化字段不被覆盖 |
 | `dao.batchGetEntitiesByIds(ids)` / `tryBatchGetEntitiesByIds(ids)` | 返回缓存实体 | 内部用 `session.load()` 检查缓存 |
+| `dao.batchGetEntityMapByIds(ids)` / `batchRequireEntityMapByIds(ids)` | 返回缓存实体 | 返回 `Map<id, entity>`；`batchGet...` 跳过缺失实体，`batchRequire...` 任一缺失抛 `UnknownEntityException` |
 | `dao.loadEntityById(id)` | 返回 proxy 或缓存实体 | proxy 是未加载的占位对象 |
 
 > **关键结论**：`findAllByQuery` 和 `tryBatchGetEntitiesByIds` 在缓存行为上**没有区别**。两者都不会刷新 Session 中已存在实体的字段值。不要认为 `findAllByQuery` 比 `getEntityById` "更新鲜"。
