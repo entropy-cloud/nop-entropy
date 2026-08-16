@@ -316,9 +316,11 @@ public class TestNopDatavChatBiScreenAction extends AbstractNopDatavTest {
         ds.setDsMeta(dsMeta != null ? dsMeta : "{}");
         ds.setStatus(1);
         ds.setVersion(0);
-        ds.setCreatedBy("test");
+        // AR-1 迁移（plan 2026-08-16-2137-1）：正向用例经 BizModel 以 OPERATOR（非 admin）调用，
+        // fixture createdBy 必须与 OPERATOR 对齐（预期内迁移，非回归）
+        ds.setCreatedBy(OPERATOR);
         ds.setCreateTime(new Timestamp(now));
-        ds.setUpdatedBy("test");
+        ds.setUpdatedBy(OPERATOR);
         ds.setUpdateTime(new Timestamp(now));
         return ds;
     }

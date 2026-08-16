@@ -40,6 +40,7 @@ import static io.nop.datav.service.NopDatavErrors.ARG_COMPONENT_TYPE;
 import static io.nop.datav.service.NopDatavErrors.ARG_DATASET_SID;
 import static io.nop.datav.service.NopDatavErrors.ARG_REASON;
 import static io.nop.datav.service.NopDatavErrors.ARG_SCREEN_NAME;
+import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_DATASET_NO_ACCESS;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_GENERATE_DATASET_NOT_FOUND;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_GENERATE_DUPLICATE_SCREEN_NAME;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_GENERATE_INVALID_BACKGROUND_CONFIG;
@@ -62,7 +63,9 @@ import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_GENERATE_WIDG
  *       不创建 NopDatavDatasetRef 行，不涉及 ORM 变更。</li>
  *   <li><b>定位校验</b>（裁定 L）：x/y 非负 + w/h > 0 → INVALID_POSITION；越界 → OUT_OF_BOUNDS（mandatory throw，
  *       对齐 screen-design §7.1，确保生成草稿经 getScreenDraftLayout 解析不抛异常）；重叠不校验（watch-only）。</li>
- *   <li><b>装饰组件 datasetSid</b>（裁定 M）：needsDataset=false 组件忽略 datasetSid；needsDataset=true 必填。</li>
+ *   <li><b>装饰组件 datasetSid</b>（裁定 M）：needsDataset=false 组件忽略 datasetSid；needsDataset=true 必填，
+ *       且数据集须 status=1 且对当前身份（{@link ChatBiDatasetVisibility}，AR-1 修复 plan
+ *       2026-08-16-2137-1）可见——不可见显式拒绝 {@code ERR_DATAV_CHATBI_DATASET_NO_ACCESS}。</li>
  *   <li><b>displayName 回退</b>（裁定 P）：displayName 为空时回退 screenName。</li>
  *   <li><b>screenName UK 冲突</b>（裁定 Q）：捕获 UK 冲突 → DUPLICATE_SCREEN_NAME。</li>
  *   <li><b>事务</b>（裁定 O，复用 1516-1）：{@link IOrmTemplate#runInSession} 包裹；校验全部在创建前先发生（fail-fast）。</li>
@@ -116,6 +119,11 @@ public class DatavGenerateScreenExecutor implements IToolExecutor {
         try {
             String operator = resolveOperator(context);
 
+            // AR-1（plan 2026-08-16-2137-1）：数据集可见性身份取 ChatBiDatasetVisibility（fail-closed，
+            // 无 SYSTEM_OPERATOR 回退）——与本类 resolveOperator（仅用于落 createdBy，回退 "system"）分离。
+            String visOperator = ChatBiDatasetVisibility.resolveOperator(context);
+            boolean visAdmin = ChatBiDatasetVisibility.resolveAdmin(context);
+
             Map<String, Object> spec = parseSpec(call);
 
             // 1. 基础字段校验
@@ -161,7 +169,9 @@ public class DatavGenerateScreenExecutor implements IToolExecutor {
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> widgets = (List<Map<String, Object>>) (List<?>) widgetsSpec;
 
-            // 预加载已引用的 dataset sid → NopReportDataset（裁定 N：直存 sid，但需校验存在 + 活跃）
+            // 预加载已引用的 dataset sid → NopReportDataset（裁定 N：直存 sid，但需校验存在 + 活跃；
+            // 可见性判定统一收口在 validateAndPlanWidget——预加载 cache 命中与补查两来源均流经该判定点，
+            // 不在预加载侧静默过滤，避免「加载成功 + 活跃 + 不可见 → 放行」旁路与 NOT_FOUND 误报）
             Set<String> datasetSidsToCheck = new HashSet<>();
             for (Map<String, Object> widgetSpec : widgets) {
                 String componentType = str(widgetSpec.get("componentType"));
@@ -190,7 +200,8 @@ public class DatavGenerateScreenExecutor implements IToolExecutor {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> widgetSpec = (Map<String, Object>) item;
 
-                ValidationError ve = validateAndPlanWidget(widgetSpec, i, screenWidth, screenHeight, datasetCache);
+                ValidationError ve = validateAndPlanWidget(widgetSpec, i, screenWidth, screenHeight,
+                        datasetCache, visOperator, visAdmin);
                 if (ve != null) {
                     return FutureHelper.success(errorResult(call, ve));
                 }
@@ -265,7 +276,8 @@ public class DatavGenerateScreenExecutor implements IToolExecutor {
 
     private ValidationError validateAndPlanWidget(Map<String, Object> widgetSpec, int index,
                                                     int canvasWidth, int canvasHeight,
-                                                    Map<String, NopReportDataset> datasetCache) {
+                                                    Map<String, NopReportDataset> datasetCache,
+                                                    String visOperator, boolean visAdmin) {
         String componentType = str(widgetSpec.get("componentType"));
         if (componentType == null || componentType.isEmpty()) {
             return new ValidationError(ERR_DATAV_CHATBI_GENERATE_INVALID_SPEC,
@@ -297,6 +309,13 @@ public class DatavGenerateScreenExecutor implements IToolExecutor {
             if (ds == null || ds.getStatus() == null || ds.getStatus() != STATUS_ACTIVE) {
                 return new ValidationError(ERR_DATAV_CHATBI_GENERATE_DATASET_NOT_FOUND,
                         ARG_DATASET_SID, datasetSid);
+            }
+            // AR-1 修复（plan 2026-08-16-2137-1）：可见性判定收口点——预加载 cache 命中与「补查一次」
+            // 两来源统一在此判定（无旁路）。nop-report 数据集无 DAO 层 RLS，可见性由本 executor 显式
+            // 实施（P1-03 裁定 D4 选项 B）：admin 全量；非 admin 仅 createdBy 匹配；无身份 fail-closed。
+            // 不可见显式拒绝（非静默、非 NOT_FOUND 误报），与既有 NOT_FOUND 分工一致。
+            if (!ChatBiDatasetVisibility.isVisible(ds, visOperator, visAdmin)) {
+                return ValidationError.datasetNoAccess(datasetSid, visOperator);
             }
             // 裁定 N：fieldMapping 字段名校验
             Object fmVal = widgetSpec.get("fieldMapping");
@@ -516,6 +535,7 @@ public class DatavGenerateScreenExecutor implements IToolExecutor {
                 + " (componentType=" + error.componentType
                 + ", datasetSid=" + error.datasetSid
                 + ", screenName=" + error.screenName
+                + ", userName=" + error.userName
                 + ", reason=" + error.reason + ")";
     }
 
@@ -567,6 +587,11 @@ public class DatavGenerateScreenExecutor implements IToolExecutor {
         final String datasetSid;
         final String screenName;
         final String reason;
+        /**
+         * AR-1（plan 2026-08-16-2137-1）：仅 NO_ACCESS 错误填充（镜像 describe/query 先例的错误体三要素
+         * errorCode + datasetSid + userName），其余错误保持 null。
+         */
+        String userName;
 
         ValidationError(io.nop.api.core.exceptions.ErrorCode code, String key, String value) {
             this.code = code;
@@ -591,6 +616,14 @@ public class DatavGenerateScreenExecutor implements IToolExecutor {
                 this.screenName = null;
                 this.reason = value;
             }
+        }
+
+        /** AR-1：不可见拒绝错误体（三要素：errorCode + datasetSid + userName，userName 空时 "<null>"）。 */
+        static ValidationError datasetNoAccess(String datasetSid, String userName) {
+            ValidationError error = new ValidationError(ERR_DATAV_CHATBI_DATASET_NO_ACCESS,
+                    ARG_DATASET_SID, datasetSid);
+            error.userName = userName != null ? userName : "<null>";
+            return error;
         }
     }
 

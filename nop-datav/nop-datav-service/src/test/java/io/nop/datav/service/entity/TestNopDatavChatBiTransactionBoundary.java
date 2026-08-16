@@ -384,9 +384,11 @@ public class TestNopDatavChatBiTransactionBoundary extends AbstractNopDatavTest 
         ds.setDsMeta(dsMeta != null ? dsMeta : "{}");
         ds.setStatus(1);
         ds.setVersion(0);
-        ds.setCreatedBy("test");
+        // AR-1 迁移（plan 2026-08-16-2137-1）：生成路径经 BizModel 以 CALLER（非 admin）调用，
+        // fixture createdBy 必须与 CALLER 对齐（预期内迁移，非回归）
+        ds.setCreatedBy(CALLER);
         ds.setCreateTime(new Timestamp(System.currentTimeMillis()));
-        ds.setUpdatedBy("test");
+        ds.setUpdatedBy(CALLER);
         ds.setUpdateTime(new Timestamp(System.currentTimeMillis()));
         daoProvider.daoFor(NopReportDataset.class).saveEntityDirectly(ds);
     }

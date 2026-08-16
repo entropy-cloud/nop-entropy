@@ -62,7 +62,7 @@
           },
           "datasetSid": {
             "type": "string",
-            "description": "The nop-report dataset ID (sid) to bind this widget to. Required for chart/table/stat-tile/pivot-table/map (needsDataset=true). Omit/ignored for text/iframe/container and all decorative/media types (needsDataset=false). Stored directly as the logical datasetRefId (no DatasetRef row created)."
+            "description": "The nop-report dataset ID (sid) to bind this widget to. Required for chart/table/stat-tile/pivot-table/map (needsDataset=true). Omit/ignored for text/iframe/container and all decorative/media types (needsDataset=false). The dataset MUST be active (status=1) AND visible to the current user (created by the current user, or you are acting as admin); a non-existent/inactive dataset returns ERR_DATAV_CHATBI_GENERATE_DATASET_NOT_FOUND, an existing active dataset that is NOT visible to the current user returns ERR_DATAV_CHATBI_DATASET_NO_ACCESS. Stored directly as the logical datasetRefId (no DatasetRef row created)."
           },
           "fieldMapping": {
             "type": "object",
@@ -107,7 +107,7 @@ Creates:
 
 Validation (failures return explicit errors, the loop will feed them back so you can correct and retry):
 - componentType MUST be a registered type (all 14 types allowed for screens, including decorative/media). Unknown types return ERR_DATAV_CHATBI_GENERATE_UNKNOWN_COMPONENT.
-- For needsDataset=true components (chart/table/stat-tile/pivot-table/map), datasetSid is REQUIRED and must reference an existing active (status=1) dataset; otherwise ERR_DATAV_CHATBI_GENERATE_DATASET_NOT_FOUND.
+- For needsDataset=true components (chart/table/stat-tile/pivot-table/map), datasetSid is REQUIRED and must reference an existing active (status=1) dataset that is also visible to the current user (created by the current user, or the caller is admin). A non-existent/inactive dataset returns ERR_DATAV_CHATBI_GENERATE_DATASET_NOT_FOUND; an existing active dataset that is NOT visible to the current user returns ERR_DATAV_CHATBI_DATASET_NO_ACCESS.
 - For needsDataset=false components, datasetSid is IGNORED (not stored).
 - Widget position validation:
   - x/y must be >= 0 and w/h must be > 0, otherwise ERR_DATAV_CHATBI_GENERATE_INVALID_WIDGET_POSITION.

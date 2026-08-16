@@ -384,6 +384,110 @@ public class TestDatavGenerateScreenExecutor extends AbstractNopDatavTest {
         assertEquals(2, widgets.size(), "both widgets created from nested array");
     }
 
+    // ==================== 数据集可见性（AR-1 / P1-03 裁定 D4 选项 B，plan 2026-08-16-2137-1） ====================
+
+    /**
+     * AR-1: 非 owner 非 admin（alice）经 datav-generate-screen 绑定他人数据集（createdBy=bob）→
+     * 显式拒绝（携带 ERR_DATAV_CHATBI_DATASET_NO_ACCESS 结构化错误码三要素），且不落库
+     * （无 Screen/ScreenWidget 残留）。预加载路径与补查路径统一收口在 validateAndPlanWidget 判定点。
+     */
+    @Test
+    public void testGenerateInvisibleDatasetRejectedForNonOwner() {
+        NopReportDataset ds = newActiveSqlDataset("ds-vis-bob-screen",
+                "select 1 as one", fieldsMeta("one"));
+        ds.setCreatedBy("bob");
+        ds.setUpdatedBy("bob");
+        daoProvider.daoFor(NopReportDataset.class).saveEntityDirectly(ds);
+
+        long screenBefore = daoProvider.daoFor(NopDatavScreen.class).findAll().size();
+        long widgetBefore = daoProvider.daoFor(NopDatavScreenWidget.class).findAll().size();
+
+        Map<String, Object> spec = baseSpec("Vis Reject Screen", 1920, 1080,
+                Collections.singletonList(
+                        widget("chart", "ds-vis-bob-screen", null, 0, 0, 100, 50, 0)));
+        AiToolCallResult result = runExecutor(spec, new ChatBiToolExecuteContext(null, "alice", false));
+
+        assertFailure(result, "nop.err.datav.chatbi-dataset-no-access",
+                "non-owner generate-screen binding another user's dataset must be rejected");
+        // 错误体三要素（镜像 describe/query 先例）：errorCode + datasetSid + userName
+        String body = result.getError().getBody();
+        assertTrue(body.contains("ds-vis-bob-screen"), "error body must carry datasetSid: " + body);
+        assertTrue(body.contains("alice"), "error body must carry userName: " + body);
+
+        // 不落库：拒绝后无 Screen/ScreenWidget 残留
+        assertEquals(screenBefore, daoProvider.daoFor(NopDatavScreen.class).findAll().size(),
+                "no Screen row left after visibility rejection");
+        assertEquals(widgetBefore, daoProvider.daoFor(NopDatavScreenWidget.class).findAll().size(),
+                "no ScreenWidget row left after visibility rejection");
+    }
+
+    /**
+     * AR-1: owner（fixture createdBy=调用 operator，非 admin）对自己数据集正常生成（无过度限制）。
+     */
+    @Test
+    public void testGenerateVisibleForOwnerOwnDataset() {
+        NopReportDataset ds = newActiveSqlDataset("ds-vis-owner-screen",
+                "select 1 as one", fieldsMeta("one"));
+        daoProvider.daoFor(NopReportDataset.class).saveEntityDirectly(ds);
+
+        Map<String, Object> spec = baseSpec("Vis Owner Screen", 1920, 1080,
+                Collections.singletonList(
+                        widget("chart", "ds-vis-owner-screen", null, 0, 0, 100, 50, 0)));
+        AiToolCallResult result = runExecutor(spec, new ChatBiToolExecuteContext(null, OPERATOR, false));
+
+        assertEquals("success", result.getStatus(), "owner must generate against own dataset");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> parsed = (Map<String, Object>) JsonTool.parseNonStrict(result.getOutput().getBody());
+        assertNotNull(daoProvider.daoFor(NopDatavScreen.class).getEntityById(parsed.get("screenId").toString()),
+                "owner-generated screen is a real DB row");
+    }
+
+    /**
+     * AR-1: admin 跨 createdBy 正常生成（回归：无过度限制，镜像 testQueryVisibleForAdminAcrossCreators）。
+     */
+    @Test
+    public void testGenerateVisibleForAdminAcrossCreators() {
+        NopReportDataset ds = newActiveSqlDataset("ds-vis-admin-screen",
+                "select 1 as one", fieldsMeta("one"));
+        ds.setCreatedBy("bob");
+        ds.setUpdatedBy("bob");
+        daoProvider.daoFor(NopReportDataset.class).saveEntityDirectly(ds);
+
+        Map<String, Object> spec = baseSpec("Vis Admin Screen", 1920, 1080,
+                Collections.singletonList(
+                        widget("chart", "ds-vis-admin-screen", null, 0, 0, 100, 50, 0)));
+        AiToolCallResult result = runExecutor(spec, new ChatBiToolExecuteContext(null, "admin-user", true));
+
+        assertEquals("success", result.getStatus(), "admin must generate across creators");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> parsed = (Map<String, Object>) JsonTool.parseNonStrict(result.getOutput().getBody());
+        assertNotNull(daoProvider.daoFor(NopDatavScreen.class).getEntityById(parsed.get("screenId").toString()),
+                "admin-generated screen is a real DB row");
+    }
+
+    /**
+     * AR-1: 无身份 context（operator=null 且非 admin，fail-closed）绑定任何活跃数据集 → 同样拒绝
+     * NO_ACCESS（不走 SYSTEM_OPERATOR 回退）。
+     */
+    @Test
+    public void testGenerateNoIdentityContextRejected() {
+        NopReportDataset ds = newActiveSqlDataset("ds-vis-noidentity-screen",
+                "select 1 as one", fieldsMeta("one"));
+        daoProvider.daoFor(NopReportDataset.class).saveEntityDirectly(ds);
+
+        long screenBefore = daoProvider.daoFor(NopDatavScreen.class).findAll().size();
+
+        Map<String, Object> spec = baseSpec("Vis NoIdentity Screen", 1920, 1080,
+                Collections.singletonList(
+                        widget("chart", "ds-vis-noidentity-screen", null, 0, 0, 100, 50, 0)));
+        AiToolCallResult result = runExecutor(spec, new ChatBiToolExecuteContext());
+
+        assertFailure(result, "nop.err.datav.chatbi-dataset-no-access",
+                "no-identity context must be rejected (fail-closed)");
+        assertEquals(screenBefore, daoProvider.daoFor(NopDatavScreen.class).findAll().size(),
+                "no Screen row left after fail-closed rejection");
+    }
+
     // ==================== Helpers ====================
 
     private DatavGenerateScreenExecutor newExecutor() {
@@ -400,11 +504,15 @@ public class TestDatavGenerateScreenExecutor extends AbstractNopDatavTest {
     }
 
     private AiToolCallResult runExecutor(Map<String, Object> spec) {
+        return runExecutor(spec, new ChatBiToolExecuteContext(null, OPERATOR));
+    }
+
+    private AiToolCallResult runExecutor(Map<String, Object> spec, ChatBiToolExecuteContext context) {
         DatavGenerateScreenExecutor exec = newExecutor();
         AiToolCall call = new AiToolCall();
         call.setToolName(DatavGenerateScreenExecutor.TOOL_NAME);
         call.setInput(JsonTool.stringify(spec));
-        return exec.executeAsync(call, new ChatBiToolExecuteContext(null, OPERATOR))
+        return exec.executeAsync(call, context)
                 .toCompletableFuture().join();
     }
 
@@ -481,9 +589,11 @@ public class TestDatavGenerateScreenExecutor extends AbstractNopDatavTest {
         ds.setDsMeta(dsMeta != null ? dsMeta : "{}");
         ds.setStatus(1);
         ds.setVersion(0);
-        ds.setCreatedBy("test");
+        // AR-1 迁移（plan 2026-08-16-2137-1）：正向用例以 OPERATOR（非 admin）调用，fixture createdBy
+        // 必须与调用 operator 对齐，否则被可见性判定拒绝（预期内迁移，非回归）
+        ds.setCreatedBy(OPERATOR);
         ds.setCreateTime(new Timestamp(now));
-        ds.setUpdatedBy("test");
+        ds.setUpdatedBy(OPERATOR);
         ds.setUpdateTime(new Timestamp(now));
         return ds;
     }

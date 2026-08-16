@@ -39,6 +39,7 @@ import static io.nop.datav.service.NopDatavErrors.ARG_COMPONENT_TYPE;
 import static io.nop.datav.service.NopDatavErrors.ARG_DASHBOARD_NAME;
 import static io.nop.datav.service.NopDatavErrors.ARG_DATASET_SID;
 import static io.nop.datav.service.NopDatavErrors.ARG_REASON;
+import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_DATASET_NO_ACCESS;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_GENERATE_DATASET_NOT_FOUND;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_GENERATE_DUPLICATE_DASHBOARD_NAME;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_GENERATE_INVALID_SPEC;
@@ -57,8 +58,10 @@ import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_GENERATE_UNSU
  *       {@link ChatBiToolExecuteContext} 读取 operator，手动填充实体审计列
  *       （{@code createdBy}/{@code updatedBy}）。tool executor 无 BizModel 用户上下文，
  *       审计列必须手动填充，否则 {@code createdBy} 为 null。</li>
- *   <li><b>校验</b>（裁定 J/M/N）：componentType 属 8 类可生成类型；needsDataset=true 组件 datasetSid
- *       必填且指向 status=1 的 NopReportDataset；fieldMapping 引用字段 ∈ dsMeta 字段名集合。</li>
+ *   <li><b>校验</b>（裁定 J/M/N + AR-1 可见性）：componentType 属 8 类可生成类型；needsDataset=true 组件 datasetSid
+ *       必填且指向 status=1 的 NopReportDataset，且对当前身份（{@link ChatBiDatasetVisibility}，AR-1 修复
+ *       plan 2026-08-16-2137-1）可见——admin 全量，非 admin 仅 createdBy 匹配，不可见显式拒绝
+ *       {@code ERR_DATAV_CHATBI_DATASET_NO_ACCESS}；fieldMapping 引用字段 ∈ dsMeta 字段名集合。</li>
  *   <li><b>DatasetRef 去重</b>（裁定 I）：同 dashboard 内同 refDatasetId 复用一个 DatasetRef，
  *       paramMapping 初值 {@code {}}。</li>
  *   <li><b>事务</b>（裁定 O）：{@link IOrmTemplate#runInSession} 包裹多表创建；校验全部在创建前先发生
@@ -113,6 +116,12 @@ public class DatavGenerateDashboardExecutor implements IToolExecutor {
         try {
             String operator = resolveOperator(context);
 
+            // AR-1（plan 2026-08-16-2137-1）：数据集可见性身份取 ChatBiDatasetVisibility（fail-closed，
+            // 无 SYSTEM_OPERATOR 回退）——与本类 resolveOperator（仅用于落 createdBy，回退 "system"）分离，
+            // 否则 createdBy="system" 的数据集会对所有人可见。
+            String visOperator = ChatBiDatasetVisibility.resolveOperator(context);
+            boolean visAdmin = ChatBiDatasetVisibility.resolveAdmin(context);
+
             Map<String, Object> spec = parseSpec(call);
             List<ValidationError> errors = new ArrayList<>();
 
@@ -148,7 +157,8 @@ public class DatavGenerateDashboardExecutor implements IToolExecutor {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> panelSpec = (Map<String, Object>) item;
 
-                ValidationError ve = validateAndPlanPanel(panelSpec, i, daoProvider, seenDatasetSids);
+                ValidationError ve = validateAndPlanPanel(panelSpec, i, daoProvider, seenDatasetSids,
+                        visOperator, visAdmin);
                 if (ve != null) {
                     return FutureHelper.success(errorResult(call, ve));
                 }
@@ -235,7 +245,8 @@ public class DatavGenerateDashboardExecutor implements IToolExecutor {
     }
 
     private ValidationError validateAndPlanPanel(Map<String, Object> panelSpec, int index,
-                                                  IDaoProvider dp, Set<String> seenDatasetSidsCache) {
+                                                  IDaoProvider dp, Set<String> seenDatasetSidsCache,
+                                                  String visOperator, boolean visAdmin) {
         String title = str(panelSpec.get("title"));
         if (title == null || title.isEmpty()) {
             return new ValidationError(ERR_DATAV_CHATBI_GENERATE_INVALID_SPEC,
@@ -272,11 +283,18 @@ public class DatavGenerateDashboardExecutor implements IToolExecutor {
                         ARG_REASON, "panels[" + index + "] componentType=" + componentType
                                 + " needs a dataset but datasetSid is missing");
             }
-            // 加载 + 校验 status=1（活跃）。按 RLS 由 DAO 处理；此处显式判 status。
+            // AR-1 修复（plan 2026-08-16-2137-1，镜像 describe/query 先例）：加载 + 校验 status=1（活跃）
+            // + 可见性（P1-03 裁定 D4 选项 B）。nop-report 数据集无 DAO 层 RLS（nop-report data-auth 为空），
+            // 可见性由本 executor 显式实施：admin 全量；非 admin 仅 createdBy 匹配当前 operator；
+            // 无身份（operator 空且非 admin）fail-closed 同样不可见。不可见显式拒绝（非静默、非 NOT_FOUND
+            // 误报），与既有 NOT_FOUND 分工：不存在/非活跃 → GENERATE_DATASET_NOT_FOUND。
             NopReportDataset ds = dp.daoFor(NopReportDataset.class).getEntityById(datasetSid);
             if (ds == null || ds.getStatus() == null || ds.getStatus() != STATUS_ACTIVE) {
                 return new ValidationError(ERR_DATAV_CHATBI_GENERATE_DATASET_NOT_FOUND,
                         ARG_DATASET_SID, datasetSid);
+            }
+            if (!ChatBiDatasetVisibility.isVisible(ds, visOperator, visAdmin)) {
+                return ValidationError.datasetNoAccess(datasetSid, visOperator);
             }
             // 裁定 N：fieldMapping 字段名校验
             Object fmVal = panelSpec.get("fieldMapping");
@@ -441,6 +459,7 @@ public class DatavGenerateDashboardExecutor implements IToolExecutor {
                 + " (componentType=" + error.componentType
                 + ", datasetSid=" + error.datasetSid
                 + ", dashboardName=" + error.dashboardName
+                + ", userName=" + error.userName
                 + ", reason=" + error.reason + ")";
     }
 
@@ -471,6 +490,11 @@ public class DatavGenerateDashboardExecutor implements IToolExecutor {
         final String datasetSid;
         final String dashboardName;
         final String reason;
+        /**
+         * AR-1（plan 2026-08-16-2137-1）：仅 NO_ACCESS 错误填充（镜像 describe/query 先例的错误体三要素
+         * errorCode + datasetSid + userName），其余错误保持 null。
+         */
+        String userName;
 
         ValidationError(io.nop.api.core.exceptions.ErrorCode code, String key, String value) {
             this.code = code;
@@ -495,6 +519,14 @@ public class DatavGenerateDashboardExecutor implements IToolExecutor {
                 this.dashboardName = null;
                 this.reason = value;
             }
+        }
+
+        /** AR-1：不可见拒绝错误体（三要素：errorCode + datasetSid + userName，userName 空时 "<null>"）。 */
+        static ValidationError datasetNoAccess(String datasetSid, String userName) {
+            ValidationError error = new ValidationError(ERR_DATAV_CHATBI_DATASET_NO_ACCESS,
+                    ARG_DATASET_SID, datasetSid);
+            error.userName = userName != null ? userName : "<null>";
+            return error;
         }
     }
 
