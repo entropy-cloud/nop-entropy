@@ -8,6 +8,8 @@ import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.core.context.IServiceContext;
+import io.nop.core.context.ServiceContextImpl;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.graphql.core.IGraphQLExecutionContext;
@@ -25,6 +27,7 @@ import io.nop.metadata.service.mock.MockMessageService;
 import io.nop.metadata.service.quality.MetaQualityCheckpointExecutor;
 import io.nop.metadata.service.quality.MetaQualityCheckpointScheduler;
 import io.nop.job.api.IJobScheduler;
+import io.nop.orm.IOrmTemplate;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,6 +49,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -101,6 +105,9 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
 
     @Inject
     MetaQualityCheckpointScheduler checkpointScheduler;
+
+    @Inject
+    IOrmTemplate orm;
 
     // ===== (a)+(b) 混合规则集执行 + 摘要计数 =====
 
@@ -1056,8 +1063,9 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
     /**
      * AR-23① 判别性测试（Mockito spy 注入点 = {@code doDelete} + 真实 LocalJobScheduler 观察 job 存留）：
      * <ul>
-     *   <li><b>接线前置断言</b>：BizModel 的 {@code scheduler} 字段非 null（防空心——若调度器未注入，
-     *       "job 保留"断言恒真无判别力）</li>
+     *   <li><b>接线前置断言</b>（P2-02 断环后重写，强度不降反升）：懒解析 seam（{@code lookupScheduler()}）
+     *       解析到容器内真实 scheduler bean（原 getDeclaredField("scheduler") 仅断"字段存在"，现断
+     *       "接线生效"——seam 恒 null 时下方 job 断言恒真无判别力）</li>
      *   <li>(i) {@code doThrow().when(spy).doDelete(...)}（<b>不打在 delete 本身上</b>——否则真实 override
      *       方法体不执行，两版本都不调 unregister，空心）→ {@code spy.delete} 真实 override 体先
      *       {@code super.delete} → doDelete 抛错 → 异常传播（fail-loud）+ {@code notifySchedulerUnregister}
@@ -1068,12 +1076,10 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
     @Test
     @SuppressWarnings({"unchecked", "rawtypes"})
     public void testDeleteFailureKeepsSchedule() throws Exception {
-        // 接线前置断言：BizModel 的 scheduler 确实被 IoC 注入（否则 unregister 恒 no-op，断言空心）
-        java.lang.reflect.Field schedulerField =
-                NopMetaQualityCheckpointBizModel.class.getDeclaredField("scheduler");
-        schedulerField.setAccessible(true);
-        assertNotNull(schedulerField.get(checkpointBizModel),
-                "checkpointBizModel must have scheduler wired (anti-hollow precondition)");
+        // 接线前置断言（P2-02 断环后重写，强度不降反升）：懒解析 seam 解析到容器内真实 scheduler bean
+        // ——unregister 经 seam 真实可达；若 seam 恒 null，下方 "job 保留/移除" 断言将空心恒真
+        assertSame(checkpointScheduler, checkpointBizModel.lookupScheduler(),
+                "lazy lookup seam must resolve the container's real scheduler bean (anti-hollow precondition)");
 
         saveCheckpointWithSchedule("cp-del-fail", "ACTIVE",
                 "[{\"ruleIds\":[\"__any__\"]}]", null, "0 0/5 * * * ?");
@@ -1104,6 +1110,96 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
                 "job must be unregistered after successful delete: " + scheduler.getJobNames());
         assertNull(daoProvider.daoFor(NopMetaQualityCheckpoint.class).getEntityById("cp-del-fail"),
                 "checkpoint row must be gone after successful delete");
+    }
+
+    // ===== P2-02（plan 2026-08-16-0549-3 Phase 1）：断环后接线验证（双态） =====
+
+    /**
+     * 接线测试 (a)——scheduler bean 存在态（Minimum Rules #23）：save/delete 经 GraphQL 真实入口触发
+     * BizModel override → notifySchedulerRegister/Unregister → 懒解析 seam 命中容器内真实 bean →
+     * register/unregister 真实执行。断言用真实 LocalJobScheduler 的可观察效果（job 出现/消失）——
+     * job 只能经 registerCheckpoint → doRegister → addJob 进入调度器，无旁路写入（比计数器 mock 更强）。
+     *
+     * <p>变异区分力（daily log 留证）：lookup seam 恒返回 null 时本测试红（save 后 job 不出现）。
+     */
+    @Test
+    public void testSaveDeleteWiringSchedulerBeanPresent() {
+        IJobScheduler jobScheduler = checkpointScheduler.getScheduler();
+        String jobName = MetaQualityCheckpointScheduler.jobName("cp-wire-present");
+        assertFalse(jobScheduler.getJobNames().contains(jobName), "precondition: job not registered yet");
+
+        // save 经 GraphQL 真实入口（真实 context）→ save override → seam 解析真实 bean → registerCheckpoint
+        GraphQLResponseBean saveResp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
+                "mutation { NopMetaQualityCheckpoint__save(data: {"
+                        + "checkpointId: \"cp-wire-present\", checkpointName: \"cp-wire-present\", "
+                        + "displayName: \"cp-wire-present\", status: \"ACTIVE\", "
+                        + "validations: \"" + escapeGraphql("[{\"ruleIds\":[\"__any__\"]}]") + "\", "
+                        + "extConfig: \"" + escapeGraphql("{\"schedule\":\"0 0/5 * * * ?\"}")
+                        + "\" }) { checkpointId } }")));
+        assertFalse(saveResp.hasError(), "save via GraphQL should succeed: " + saveResp);
+        assertTrue(jobScheduler.getJobNames().contains(jobName),
+                "save override must register cron job via lazy-resolved real scheduler bean: "
+                        + jobScheduler.getJobNames());
+
+        // delete 经 GraphQL 真实入口 → delete override → seam → unregisterCheckpoint → job 移除
+        GraphQLResponseBean delResp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
+                "mutation { NopMetaQualityCheckpoint__delete(id: \"cp-wire-present\") }")));
+        assertFalse(delResp.hasError(), "delete via GraphQL should succeed: " + delResp);
+        assertFalse(jobScheduler.getJobNames().contains(jobName),
+                "delete override must unregister cron job via lazy-resolved real scheduler bean: "
+                        + jobScheduler.getJobNames());
+        assertNull(daoProvider.daoFor(NopMetaQualityCheckpoint.class).getEntityById("cp-wire-present"),
+                "checkpoint row must be gone after delete");
+    }
+
+    /**
+     * 接线测试 (b)——scheduler bean 缺失态（旁路容错语义钉死，Minimum Rules #23/#24）：Mockito spy
+     * 覆写懒解析 seam 返回 null（运行时子类形态，先例 = {@link #testDeleteFailureKeepsSchedule} 对
+     * checkpointBizModel 的 spy；不注册/注销全局 provider，无 surefire 同 JVM 状态串扰）。断言：
+     * <ul>
+     *   <li>save/delete 主路径正常完成（行落盘 / 删除成功，不抛——bean 缺失跳过是显式设计语义，
+     *       非吞异常、非 catch-empty）</li>
+     *   <li>register/unregister 被跳过（job 集合零变化——旁路不产生半调用）</li>
+     * </ul>
+     */
+    @Test
+    public void testSchedulerBeanMissingSkipsRegisterWithoutError() {
+        IJobScheduler jobScheduler = checkpointScheduler.getScheduler();
+        assertFalse(jobScheduler.getJobNames().contains(
+                        MetaQualityCheckpointScheduler.jobName("cp-wire-null")),
+                "precondition: no job registered");
+
+        // 预置一行可删除的检查点（dao 直写，不经 save override）
+        saveCheckpointWithSchedule("cp-wire-null", "ACTIVE",
+                "[{\"ruleIds\":[\"__any__\"]}]", null, "0 0/5 * * * ?");
+
+        NopMetaQualityCheckpointBizModel bizModelSpy = Mockito.spy(checkpointBizModel);
+        Mockito.doReturn(null).when(bizModelSpy).lookupScheduler();
+
+        // save 路径：seam null → 跳过 register 不抛（save 主路径正常落盘）。直调无 ambient session，
+        // 跨 dao 调用会各开新 session（load/delete 实体跨 session 即 entity-not-in-session）——
+        // 以 orm.runInSession 提供请求级 session（沿 TestMetaQualityCheckpointScheduler 直调先例，
+        // 对齐生产"每个 GraphQL 请求一个 session"语义）
+        Map<String, Object> data = new java.util.LinkedHashMap<>();
+        data.put("checkpointId", "cp-wire-null-new");
+        data.put("checkpointName", "cp-wire-null-new");
+        data.put("displayName", "cp-wire-null-new");
+        data.put("status", "ACTIVE");
+        data.put("validations", "[{\"ruleIds\":[\"__any__\"]}]");
+        data.put("extConfig", "{\"schedule\":\"0 0/5 * * * ?\"}");
+        NopMetaQualityCheckpoint saved = orm.runInSession(session -> bizModelSpy.save(data, newServiceContext()));
+        assertNotNull(saved, "save must complete normally when scheduler bean is missing");
+        assertNotNull(daoProvider.daoFor(NopMetaQualityCheckpoint.class).getEntityById("cp-wire-null-new"),
+                "row must be persisted (scheduler skip does not affect main path)");
+        assertFalse(jobScheduler.getJobNames().contains(
+                        MetaQualityCheckpointScheduler.jobName("cp-wire-null-new")),
+                "register must be skipped (no job) when seam resolves null");
+
+        // delete 路径：seam null → 跳过 unregister 不抛（删除正常完成）
+        boolean deleted = orm.runInSession(session -> bizModelSpy.delete("cp-wire-null", newServiceContext()));
+        assertTrue(deleted, "delete must complete normally when scheduler bean is missing");
+        assertNull(daoProvider.daoFor(NopMetaQualityCheckpoint.class).getEntityById("cp-wire-null"),
+                "row must be deleted (scheduler skip does not affect main path)");
     }
 
     // ===== helpers =====
@@ -1149,6 +1245,21 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
         GraphQLRequestBean request = new GraphQLRequestBean();
         request.setQuery(query);
         return request;
+    }
+
+    /** GraphQL 字符串字面量转义（嵌套 JSON 入参；沿 TestBiSemanticFilterSave.escapeGraphQL 先例形态）。 */
+    private static String escapeGraphql(String s) {
+        return s.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    /** 直调 BizModel 方法用的最小服务上下文（沿 TestNopMetaDataProductLinkAssetAggregateRoot 先例）。 */
+    private IServiceContext newServiceContext() {
+        ServiceContextImpl ctx = new ServiceContextImpl();
+        io.nop.auth.core.login.UserContextImpl userContext = new io.nop.auth.core.login.UserContextImpl();
+        userContext.setUserId("autotest");
+        userContext.setUserName("cp-wiring-autotest");
+        ctx.setUserContext(userContext);
+        return ctx;
     }
 
     private PreparedEnv prepare(String dbUrl, String querySpace) {

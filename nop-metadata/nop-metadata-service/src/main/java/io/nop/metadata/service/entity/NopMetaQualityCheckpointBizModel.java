@@ -10,6 +10,7 @@ import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.ioc.BeanContainer;
 import io.nop.api.core.message.IMessageService;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.commons.util.StringHelper;
@@ -83,13 +84,21 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
     protected NopMetaQualityScoreBizModel scoreBizModel;
 
     /**
-     * 注入 {@link MetaQualityCheckpointScheduler}（NopIoC bean，{@code @Nullable}——未配置调度器时不注入）。
-     * 取代 BeanContainer.tryGetBean() 服务定位器反模式，通过 IoC 注入获得调度器实例。
-     * 用于 save 后 register / delete 前 unregister cron job（旁路能力，失败不影响主路径）。
+     * 调度器懒解析 seam（P2-02 断环，plan 2026-08-16-0549-3 Phase 1）：按
+     * {@link MetaQualityCheckpointScheduler#BEAN_NAME} 经 {@link BeanContainer#tryGetBean} 懒查找，
+     * 本 BizModel <b>不</b>{@code @Inject} 调度器——与 {@link MetaQualityCheckpointScheduler}（setter
+     * {@code @Inject} 注入本 BizModel）的双向注入环由此收敛为 scheduler→bizmodel 单向（调度器的
+     * checkpoint 执行是核心路径，维持 IoC 注入；BizModel→Scheduler 是旁路能力，懒解析代价最小）。
+     *
+     * <p>bean 缺失（宿主未注册调度器）时 tryGetBean 返回 null，调用方跳过（旁路容错语义，失败不影响
+     * 主路径）——与 {@code @Nullable @Inject} 的 null-on-missing 语义无损对齐（NopIoC optional 注入
+     * 同为 null）。public 可覆写（plan 原文 protected——测试包跨包不可编译访问，public 语义等同）：
+     * 测试经 Mockito spy/doReturn 覆写注入"bean 缺失"态（接线测试先例）。非 {@code @BizQuery}/
+     * {@code @BizMutation}，不进 GraphQL 面。
      */
-    @Inject
-    @Nullable
-    protected MetaQualityCheckpointScheduler scheduler;
+    public MetaQualityCheckpointScheduler lookupScheduler() {
+        return (MetaQualityCheckpointScheduler) BeanContainer.tryGetBean(MetaQualityCheckpointScheduler.BEAN_NAME);
+    }
 
     /**
      * 注入 {@link IHttpClient}（NopIoC bean，{@code @Nullable}——宿主未拉 HTTP client impl 时不注入）。
@@ -263,9 +272,10 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
     /**
      * save override（§2.7.3.1 D4 运行时增量）：持久化后通知调度器重新注册该检查点的 cron job。
      *
-     * <p>调度器经 {@link BeanContainer#tryGetBean} 懒查找（非 {@code @Inject}），避免与
-     * {@link MetaQualityCheckpointScheduler}（注入本 BizModel）构成构造期循环依赖。调度器 bean 缺失
-     * （宿主未注册 {@code IJobScheduler}）时 tryGetBean 返回 null，跳过（不抛崩）。
+     * <p>调度器经 {@link #lookupScheduler()} 懒解析（按 {@link MetaQualityCheckpointScheduler#BEAN_NAME}
+     * {@code tryGetBean}，非 {@code @Inject}——本 BizModel 不持有调度器字段，与 scheduler→bizmodel 的
+     * setter {@code @Inject} 构成的双向注入环已收敛为单向，P2-02）。调度器 bean 缺失（宿主未注册
+     * {@code IJobScheduler}）时懒解析返回 null，跳过（不抛崩）。
      */
     @Override
     public NopMetaQualityCheckpoint save(@Name("data") Map<String, Object> data, IServiceContext context) {
@@ -292,6 +302,7 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
     }
 
     private void notifySchedulerRegister(String checkpointId) {
+        MetaQualityCheckpointScheduler scheduler = lookupScheduler();
         if (scheduler == null) {
             return;
         }
@@ -305,6 +316,7 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
     }
 
     private void notifySchedulerUnregister(String checkpointId) {
+        MetaQualityCheckpointScheduler scheduler = lookupScheduler();
         if (scheduler == null) {
             return;
         }
