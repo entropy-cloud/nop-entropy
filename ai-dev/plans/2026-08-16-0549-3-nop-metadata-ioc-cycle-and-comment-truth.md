@@ -1,6 +1,6 @@
 # 2026-08-16-0549-3 nop-metadata IoC 装配债务与注释真值化族批次清扫（P2-02/P2-30/P2-31/P2-03）
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: nop-metadata-invariant-loop
 > Work Item: 2026-08-15 multi-audit Follow-up Backlog — IoC / 架构债务族（P2 批次清扫）
 > Last Reviewed: 2026-08-16
@@ -52,73 +52,73 @@
 
 ### Phase 1 - 注入环消除与 javadoc 真值化（P2-02 + P2-30）
 
-Status: planned
+Status: completed
 Targets: `NopMetaQualityCheckpointBizModel.java`, `TestNopMetaQualityCheckpointBizModel.java`
 
 - Item Types: `Fix`
 
-- [ ] 断环方向裁定（默认方案）：`NopMetaQualityCheckpointBizModel` 侧移除 `@Inject @Nullable MetaQualityCheckpointScheduler` 字段，改为**按 `MetaQualityCheckpointScheduler.BEAN_NAME` 懒解析**；懒解析以 **protected 可覆写解析方法**（lookup seam）承载，`notifySchedulerRegister`/`notifySchedulerUnregister` 经 seam 获取实例，未注册时返回 null 跳过（保留旁路容错语义：失败不影响主路径）。`MetaQualityCheckpointScheduler → BizModel` 的 setter `@Inject` 保留（调度器的 checkpoint 执行是核心路径，维持 IoC 注入）。理由：BizModel→Scheduler 是旁路能力，懒解析代价最小；核心路径不引入服务定位器；seam 使"bean 缺失"态在测试中可注入（见接线测试 (b)）
-- [ ] 全仓注入面清点：`rg -l "MetaQualityCheckpointScheduler" nop-metadata -g '*.java' -g '!**/target/**'`——确认除 BizModel 与 scheduler 自身外无其他注入点（如有，一并按同规则处理或登记）
-- [ ] P2-30：两处 javadoc（:84-88 与 :262-264）收敛为与代码一致的单一真值表述（懒解析 + 断环理由），消除互相矛盾
-- [ ] 既有反射断言重写：`testDeleteFailureKeepsSchedule`（:1053-1059）的 `getDeclaredField("scheduler")` 前置断言改为断**懒解析接线**（seam 返回真实 bean 时 register 真实被调用）——断言强度不降（从"字段存在"升级为"接线生效"）
-- [ ] 新增接线测试（Minimum Rules #23，机制已钉死，不动全局容器状态）：(a) scheduler bean 存在时——经容器/注入实例走 save/delete 路径，断言 register/unregister 真实触发（计数器或标志位）；(b) scheduler bean 缺失时——**既有 harness + Mockito spy/doReturn 覆写 lookup seam 返回 null**（运行时子类形态，先例即 `testDeleteFailureKeepsSchedule` 自身 :1069 对 `checkpointBizModel` 的 spy；直调子类不可行——save/delete 先经 super 走容器依赖；不注册/注销全局 provider，无 surefire 同 JVM 状态串扰），断言跳过不抛（旁路容错语义钉死）
+- [x] 断环方向裁定（默认方案）：`NopMetaQualityCheckpointBizModel` 侧移除 `@Inject @Nullable MetaQualityCheckpointScheduler` 字段，改为**按 `MetaQualityCheckpointScheduler.BEAN_NAME` 懒解析**；懒解析以 **protected 可覆写解析方法**（lookup seam）承载，`notifySchedulerRegister`/`notifySchedulerUnregister` 经 seam 获取实例，未注册时返回 null 跳过（保留旁路容错语义：失败不影响主路径）。`MetaQualityCheckpointScheduler → BizModel` 的 setter `@Inject` 保留（调度器的 checkpoint 执行是核心路径，维持 IoC 注入）。理由：BizModel→Scheduler 是旁路能力，懒解析代价最小；核心路径不引入服务定位器；seam 使"bean 缺失"态在测试中可注入（见接线测试 (b)）。**执行注记**：seam 落地为 public（非 protected）——测试包 `io.nop.metadata.service` 对 `...service.entity` 的 protected 成员无编译期访问权（JLS 跨包），spy/doReturn stub 不可编译；public 同样可覆写、非 `@BizQuery/@BizMutation` 不进 GraphQL 面（偏差记录入 daily log）
+- [x] 全仓注入面清点：`rg -l "MetaQualityCheckpointScheduler" nop-metadata -g '*.java' -g '!**/target/**'`——确认除 BizModel 与 scheduler 自身外无其他注入点（如有，一并按同规则处理或登记）
+- [x] P2-30：两处 javadoc（:84-88 与 :262-264）收敛为与代码一致的单一真值表述（懒解析 + 断环理由），消除互相矛盾
+- [x] 既有反射断言重写：`testDeleteFailureKeepsSchedule`（:1053-1059）的 `getDeclaredField("scheduler")` 前置断言改为断**懒解析接线**（seam 返回真实 bean 时 register 真实被调用）——断言强度不降（从"字段存在"升级为"接线生效"）
+- [x] 新增接线测试（Minimum Rules #23，机制已钉死，不动全局容器状态）：(a) scheduler bean 存在时——经容器/注入实例走 save/delete 路径，断言 register/unregister 真实触发（计数器或标志位）；(b) scheduler bean 缺失时——**既有 harness + Mockito spy/doReturn 覆写 lookup seam 返回 null**（运行时子类形态，先例即 `testDeleteFailureKeepsSchedule` 自身 :1069 对 `checkpointBizModel` 的 spy；直调子类不可行——save/delete 先经 super 走容器依赖；不注册/注销全局 provider，无 surefire 同 JVM 状态串扰），断言跳过不抛（旁路容错语义钉死）
 
 Exit Criteria:
 
-- [ ] `rg -n "@Inject" nop-metadata-service/src/main/java/io/nop/metadata/service/entity/NopMetaQualityCheckpointBizModel.java` 不再命中 scheduler 注入；环的 `@Inject` 方向仅剩 scheduler→bizmodel 单向（rg 证据入 daily log）
-- [ ] **接线验证**：接线测试 (a)/(b) 双态绿，且变异验证——**将 lookup seam 临时改为恒返回 null** → 测试 (a) 红（区分力实证，记录入 daily log；注：恢复双向 `@Inject` 不是有效变异——allow-cycle 下字段注入照常工作、(a) 仍绿，不具区分力）
-- [ ] 既有测试零回归（其中 `testDeleteFailureKeepsSchedule` 前置断言按断环终态同步重写，重写后断言强度不降——从字段存在升级为接线生效，重写说明入 daily log）：`TestNopMetaQualityCheckpointBizModel`（例数基线以执行时点 live 实数为准，当前 29；0549-2 Phase 2 可能已重写该文件部分断言）+ `TestMetaQualityCheckpointScheduler*` 全族全绿；`./mvnw test -pl nop-metadata/nop-metadata-service -am` BUILD SUCCESS
-- [ ] javadoc 两处与 live 代码一致（无"tryGetBean 懒查找"与"@Inject"并存矛盾）
-- [ ] **无静默跳过**：懒解析未命中 bean 时为显式设计语义（旁路跳过 + 已有日志），非吞异常——复核该路径无新增 catch-empty
-- [ ] owner doc 模块装配段如提及该注入关系则同步；否则 `No owner-doc update required`
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `rg -n "@Inject" nop-metadata-service/src/main/java/io/nop/metadata/service/entity/NopMetaQualityCheckpointBizModel.java` 不再命中 scheduler 注入；环的 `@Inject` 方向仅剩 scheduler→bizmodel 单向（rg 证据入 daily log）
+- [x] **接线验证**：接线测试 (a)/(b) 双态绿，且变异验证——**将 lookup seam 临时改为恒返回 null** → 测试 (a) 红（区分力实证，记录入 daily log；注：恢复双向 `@Inject` 不是有效变异——allow-cycle 下字段注入照常工作、(a) 仍绿，不具区分力）
+- [x] 既有测试零回归（其中 `testDeleteFailureKeepsSchedule` 前置断言按断环终态同步重写，重写后断言强度不降——从字段存在升级为接线生效，重写说明入 daily log）：`TestNopMetaQualityCheckpointBizModel`（例数基线以执行时点 live 实数为准，当前 29；0549-2 Phase 2 可能已重写该文件部分断言）+ `TestMetaQualityCheckpointScheduler*` 全族全绿；`./mvnw test -pl nop-metadata/nop-metadata-service -am` BUILD SUCCESS
+- [x] javadoc 两处与 live 代码一致（无"tryGetBean 懒查找"与"@Inject"并存矛盾）
+- [x] **无静默跳过**：懒解析未命中 bean 时为显式设计语义（旁路跳过 + 已有日志），非吞异常——复核该路径无新增 catch-empty
+- [x] owner doc 模块装配段如提及该注入关系则同步；否则 `No owner-doc update required`
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 注释真值化（P2-31）
 
-Status: planned
+Status: completed
 Targets: `MetaQualityCheckpointScheduler.java:83`
 
 - Item Types: `Fix`
 
-- [ ] BEAN_NAME 注释指向真实注册文件 `app-service.beans.xml`（live 唯一注册点 :40；如宿主可覆盖注册为 live 语义则一并注明）
+- [x] BEAN_NAME 注释指向真实注册文件 `app-service.beans.xml`（live 唯一注册点 :40；如宿主可覆盖注册为 live 语义则一并注明）
 
 Exit Criteria:
 
-- [ ] `rg -n "app-quality-scheduler.beans.xml" nop-metadata -g '*.java' -g '!**/target/**'` 零命中；注释指向的文件 live 存在
-- [ ] `./mvnw compile -pl nop-metadata -am -T 1C` 通过（注释变更不破坏构建）
-- [ ] **No new test required**: comment-only 变更，无行为面
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `rg -n "app-quality-scheduler.beans.xml" nop-metadata -g '*.java' -g '!**/target/**'` 零命中；注释指向的文件 live 存在
+- [x] `./mvnw compile -pl nop-metadata -am -T 1C` 通过（注释变更不破坏构建）
+- [x] **No new test required**: comment-only 变更，无行为面
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - OrmModelImporter 驻留裁定与模块结构表补全（P2-03）
 
-Status: planned
+Status: completed
 Targets: `docs-for-ai/03-modules/nop-metadata.md`
 
 - Item Types: `Decision`
 
-- [ ] 裁定落档：OrmModelImporter 维持 dao 驻留——依赖方向论据（service 依赖 dao，模型映射属 dao 载入域；先例引用 `nop-wf-dao` 的 `DaoWorkflowModelLoader`（模型载入器驻留 dao）；不引用 `nop-auth-dao` 作同形先例——其无严格同形物）
-- [ ] owner doc 模块结构表 dao 行补 `model/` 子包（OrmModelImporter 一行：职责 + 驻留理由引用）
+- [x] 裁定落档：OrmModelImporter 维持 dao 驻留——依赖方向论据（service 依赖 dao，模型映射属 dao 载入域；先例引用 `nop-wf-dao` 的 `DaoWorkflowModelLoader`（模型载入器驻留 dao）；不引用 `nop-auth-dao` 作同形先例——其无严格同形物）
+- [x] owner doc 模块结构表 dao 行补 `model/` 子包（OrmModelImporter 一行：职责 + 驻留理由引用）
 
 Exit Criteria:
 
-- [ ] 模块结构表含 dao `model/` 子包行且与 live 路径一致；`node ai-dev/tools/check-doc-links.mjs --strict` error 数不增（**裁定沿用 0226-1/0226-2/0226-3 收口先例**：17 errors 全部为其他 mission 归属文件的 pre-existing 基线，本计划改动文件 0 新增——AGENTS.md 0-error 规则与跨 mission 基线的冲突已按该先例显式裁定并记录，非静默降级）
-- [ ] 裁定（维持驻留 + 先例引用，含 nop-auth-dao 不作同形先例的说明）可在 owner doc 或本 plan 中找到
-- [ ] **No new test required**: documentation-only adjudication
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 模块结构表含 dao `model/` 子包行且与 live 路径一致；`node ai-dev/tools/check-doc-links.mjs --strict` error 数不增（**裁定沿用 0226-1/0226-2/0226-3 收口先例**：17 errors 全部为其他 mission 归属文件的 pre-existing 基线，本计划改动文件 0 新增——AGENTS.md 0-error 规则与跨 mission 基线的冲突已按该先例显式裁定并记录，非静默降级）
+- [x] 裁定（维持驻留 + 先例引用，含 nop-auth-dao 不作同形先例的说明）可在 owner doc 或本 plan 中找到
+- [x] **No new test required**: documentation-only adjudication
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
-- [ ] P2-02 环消除且仅剩单向 `@Inject`（rg 证据）+ 接线测试双态绿 + seam-null 变异验证证据
-- [ ] P2-30/P2-31 注释与 live 事实一致
-- [ ] P2-03 裁定 + 模块结构表补全
-- [ ] `./mvnw compile -pl nop-metadata -am -T 1C` 通过
-- [ ] `./mvnw test -pl nop-metadata -am -T 1C` BUILD SUCCESS（0 failures）
-- [ ] checkstyle / 代码规范检查通过（Java 改动沿所在文件既有风格）
-- [ ] 门禁链复跑零命中（`run-nop-metadata-invariants.sh` 6-guard 全链——沿 1913-3 教训"守卫链应在每个 plan 收口时复跑"）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0
-- [ ] roadmap Follow-up Backlog 对应条目（P2-02/P2-03/P2-30/P2-31）标注处置结果
-- [ ] 独立子 agent closure-audit 已完成并记录证据
+- [x] P2-02 环消除且仅剩单向 `@Inject`（rg 证据）+ 接线测试双态绿 + seam-null 变异验证证据
+- [x] P2-30/P2-31 注释与 live 事实一致
+- [x] P2-03 裁定 + 模块结构表补全
+- [x] `./mvnw compile -pl nop-metadata -am -T 1C` 通过
+- [x] `./mvnw test -pl nop-metadata -am -T 1C` BUILD SUCCESS（0 failures）
+- [x] checkstyle / 代码规范检查通过（Java 改动沿所在文件既有风格）
+- [x] 门禁链复跑零命中（`run-nop-metadata-invariants.sh` 6-guard 全链——沿 1913-3 教训"守卫链应在每个 plan 收口时复跑"）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0
+- [x] roadmap Follow-up Backlog 对应条目（P2-02/P2-03/P2-30/P2-31）标注处置结果
+- [x] 独立子 agent closure-audit 已完成并记录证据
 
 ## Deferred But Adjudicated
 
@@ -131,14 +131,25 @@ Exit Criteria:
 
 ## Closure
 
-Status Note:
-Completed:
+Status Note: 3 Phase 全部落地并逐条勾选：P2-02 双向注入环消除（BizModel 侧懒解析 seam + scheduler→bizmodel 单向 `@Inject` 保留，行为零变化——接线双态测试 + 变异验证区分力实证）；P2-30 两处矛盾 javadoc 收敛单一真值；P2-31 BEAN_NAME 注释指向 live 注册文件；P2-03 OrmModelImporter 驻留裁定落档 + owner doc 模块结构表补全。全量门禁链绿、独立 closure audit approved、roadmap 四条目标注 ✅。
+Completed: 2026-08-16
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: 独立子 agent（fresh session，review-only 零文件修改）
+- Audit Session: ses_ff7edee29ffetApoLGOajsvBHL
 - Evidence:
+  - Phase 1 Exit Criteria：全 PASS——`rg @Inject` BizModel 仅 4 字段注入（connectionService/scoreBizModel/httpClient/messageService）无 scheduler；scheduler `setCheckpointBizModel` `@Inject` 保留（:111-112）；seam `lookupScheduler()`（:99-101）经 `BeanContainer.tryGetBean(BEAN_NAME)`；接线测试 (a) `testSaveDeleteWiringSchedulerBeanPresent`（GraphQL 真实入口 + 真实 job 断言）、(b) `testSchedulerBeanMissingSkipsRegisterWithoutError`（spy + doReturn(null) 覆写 seam）；既有反射断言重写为 assertSame（无 getDeclaredField("scheduler")）；变异验证（seam 恒 null → (a) + 前置断言双红，证据入 daily log）；surefire `TestNopMetaQualityCheckpointBizModel` 31/0/0（审计者独立复跑二次确认）
+  - Phase 2 Exit Criteria：PASS——`rg app-quality-scheduler.beans.xml` 零命中；注释指向 `app-service.beans.xml`（bean 注册 :40）；compile BUILD SUCCESS
+  - Phase 3 Exit Criteria：PASS——模块结构表 dao 行含 `dao/model/OrmModelImporter`（live 路径一致）；裁定段落（维持驻留 + DaoWorkflowModelLoader 先例 + nop-auth-dao 不作同形先例）；`nop-wf-dao/.../DaoWorkflowModelLoader.java` live 存在；doc-links 17 = pre-existing 基线，本计划改动 0 新增（注：17 中 1 条为 nop-metadata.md:263 既有 BOUNDARY 提示，非本计划 diff 行——plan 措辞"全部为其他 mission 归属文件"以此为准确化）
+  - Closure Gates：全 PASS——`./mvnw compile -pl nop-metadata -am -T 1C` 通过；`./mvnw test -pl nop-metadata -am -T 1C` BUILD SUCCESS（service **1264/0/0** = 0549-2 基线 1262 + 净 2）；checkstyle = 既有全仓未接入门禁基线（上游 nop-api-core 9164 条，与本计划改动文件交集 0，沿 0549-1/0226-2 收口记录）；`run-nop-metadata-invariants.sh` 6-guard 全链 exit 0（guards 1-4 零命中、5 基线内、6 零命中）；`check-plan-checklist --strict` exit 0；`scan-hollow --severity high` exit 0（0 findings）；roadmap P2-02/P2-03/P2-30/P2-31 ✅ Fixed（:175-178）
+  - Anti-Hollow 检查：PASS——运行时链 save override → notifySchedulerRegister → lookupScheduler → registerCheckpoint → 真实 LocalJobScheduler 追踪连通（非类型系统/非 stub）；新测试断言真实可观察效果（job names + dao 行），非仅"无异常"
+  - Deferred 项分类检查：无 in-scope live defect 被降级——Deferred But Adjudicated 为空；Non-Blocking Follow-ups 仅含 P2-27（显式移出至 ORM 族人工确认门，mission 授权约束）与裁定需求项（P2-05/P2-33/P2-12，均非本 plan scope）
+  - Non-Goals 核对：无 `*.orm.xml` / `_gen/` / `_`-prefixed 生成文件改动；app-service.beans.xml 零改动（断环经 Java 侧达成）
+- Verdict: `CLOSURE_AUDIT: approved`（10/10 检查 PASS；4 条 Minor 均为非阻塞——doc-links 工具 exit 1 属已裁定跨 mission 基线、plan 未收口状态为本审计前置态、plan 措辞精确化已在本段落注明、nop-format `.rels` EOL-only 零内容差异与本计划无关）
 
 Follow-up:
 
-- 待 closure 时填写
+- P2-27（orm.xml :1684-1694 陈旧注释）→ 随 ORM 结构族轮次（P2-01/26/28/29/34）人工确认门内处理（Non-Goals 显式移出，真值归属已考证）
+- 裁定需求项（P2-05 行级权限边界 / P2-33 updatable 收紧 / P2-12 i18n ask-first）→ 后续轮次派生时优先裁决
+- 本 plan 无剩余 plan-owned work

@@ -226,7 +226,7 @@ mutation {
 |--------|------|
 | `nop-metadata-api` | DTO 类（`io.nop.metadata.api.dto.*`，30 个 `@DataBean`），供 Biz 接口和跨模块调用契约引用 |
 | `nop-metadata-core` | 共享常量（`_NopMetadataCoreConstants`，125 个表/数据源/血缘/质量等枚举常量）——**无 dto 包** |
-| `nop-metadata-dao` | ORM 实体 + BizModel 接口（`INopMeta*Biz`）—— Biz 接口因引用 dao.entity.* 类型而驻留在此，不迁至 api |
+| `nop-metadata-dao` | ORM 实体 + BizModel 接口（`INopMeta*Biz`）+ 模型载入/映射（`dao/model/OrmModelImporter`——ORM 模型导入映射器，驻留裁定见下）—— Biz 接口因引用 dao.entity.* 类型而驻留在此，不迁至 api |
 | `nop-metadata-codegen` | Codegen 生成入口（`nop-metadata/nop-metadata-codegen/src/test/java/io/nop/metadata/codegen/NopMetadataCodeGen.java`）；实际模板在 `nop-metadata-meta/_templates/` |
 | `nop-metadata-meta` | xmeta（`_vfs/nop/metadata/model/*/`，78 个）+ dict（`dict/meta/*.dict.yaml`）+ i18n + codegen xgen 脚本（precompile/postcompile）+ `_templates/` |
 | `nop-metadata-service` | BizModel 实现 + Executor / Processor / Helper + 全部 xbiz（`_vfs/nop/metadata/model/<Entity>/*.xbiz`）+ NopMetaSearch xmeta（`_vfs/nop/metadata/model/NopMetaSearch/NopMetaSearch.xmeta`——Pseudo-BizModel 无对应 ORM 实体，live 无 NopMetaSearch.xwf）+ 3 个审批流定义（`_vfs/nop/wf/metaDataContractApproval/v1.xwf` / `_vfs/nop/wf/qualityBreachApproval/v1.xwf` / `_vfs/nop/wf/tagLabelConfirmApproval/v1.xwf`，分别为 DataContract / QualityBreach / TagLabelConfirm 提审审批） |
@@ -248,6 +248,8 @@ mutation {
 **test-scope 基建依赖（P2-26 + P2-35 裁定）**：上表只列 compile 依赖；`nop-metadata-service` 还以 `test` scope 引入基建依赖——`nop-metadata-codegen`（DDL/codegen 验证）、`nop-search-core`（搜索测试）、`nop-search-lucene`（搜索测试的默认 impl，经运行时 SPI 到达；main 代码只依赖 `io.nop.search.api` 抽象，零 lucene import——**生产部署需要搜索功能时由宿主应用显式引入 `nop-search-lucene` 或替换为其他 `nop-search-*` impl**，模块自身不传递任何搜索实现）、`nop-job-local`（cron 调度 AutoTest，生产环境由宿主应用提供调度器）、`nop-autotest-junit`（Nop AutoTest）、junit-jupiter(+params)、H2/MySQL 驱动（`localDb` 测试）与 mockito-core。这些依赖不参与运行时装配，仅为测试支撑。
 
 `INopMeta*Biz` 接口驻留在 `nop-metadata-dao` 而非 `nop-metadata-api`，因为这些接口的类型参数引用 `dao.entity.*` 实体类，移入 api 会导致循环依赖（api → dao → api）。
+
+**`OrmModelImporter` 驻留 dao 裁定（P2-03，plan 2026-08-16-0549-3 Phase 3）**：`nop-metadata-dao` 的 `dao/model/OrmModelImporter`（ORM 模型 → 元数据行的映射器）**维持 dao 驻留**。依赖方向论据：service 依赖 dao，模型载入/映射属 dao 载入域——载入器驻留 dao 的同形先例 = `nop-wf-dao` 的 `dao/store/DaoWorkflowModelLoader`（工作流模型载入器驻留 dao）；`nop-auth-dao` 不作同形先例引用（无严格同形物，最近邻仅为 `dao/mapper` 的 SqlLibMapper 空接口）。审计发现的真实缺口为文档侧（模块结构表此前漏列 `model/` 子包），非代码迁移需求。
 
 ## 失败路径显式化
 

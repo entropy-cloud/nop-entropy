@@ -172,10 +172,10 @@ flowchart LR
 - **P2-25** queryJoinData（6 参）/queryAggregation（10 参）超出 5 参数规则未用 @RequestBean（签名为 AR-09/F4 裁定契约，应为文档裁定例外） — ✅ Fixed（plan `2026-08-16-0226-3` Phase 6：owner doc API 契约段例外裁定落档（沿既有"例外裁定"表述先例）；service-layer.md 无例外登记机制 → 模块 owner doc 局部登记；签名不迁移，理由=对外 GraphQL 契约稳定性；doc-links 17→17 零新增）
 
 **IoC / 架构债务族**
-- **P2-02** NopMetaQualityCheckpointBizModel ↔ MetaQualityCheckpointScheduler 双向 @Inject 真循环（默认 allow-cycle 下零故障，仅未来严格模式爆炸——架构债务）
-- **P2-03** OrmModelImporter（253 行模型映射）驻留 dao 模块（nop-auth-dao/nop-wf-dao 先例充分；真实缺口是 owner 文档模块结构表漏列 model/ 子包）
-- **P2-30** save override Javadoc 与实际注入方式自相矛盾（声称 tryGetBean 懒查找避环，实为直接 @Inject，误导 P2-02 修复决策）
-- **P2-31** Scheduler BEAN_NAME 注释引用不存在的 beans 文件（实际注册于 app-service.beans.xml）
+- **P2-02** NopMetaQualityCheckpointBizModel ↔ MetaQualityCheckpointScheduler 双向 @Inject 真循环（默认 allow-cycle 下零故障，仅未来严格模式爆炸——架构债务） — ✅ Fixed（plan `2026-08-16-0549-3` Phase 1：BizModel 侧移除 scheduler `@Inject` 字段，改懒解析 seam `lookupScheduler()`（按 BEAN_NAME 经 `BeanContainer.tryGetBean`，null-on-missing 与 @Nullable 注入语义无损对齐）；scheduler→bizmodel setter `@Inject` 保留——环收敛单向；接线测试双态新增（GraphQL 真实入口 job 出现/消失 + spy 覆写 seam null 跳过不抛），变异验证 seam 恒 null → 测试红（区分力实证）；既有反射前置断言重写为 assertSame 接线断言（强度不降反升）；service 1264/0/0）
+- **P2-03** OrmModelImporter（253 行模型映射）驻留 dao 模块（nop-auth-dao/nop-wf-dao 先例充分；真实缺口是 owner 文档模块结构表漏列 model/ 子包） — ✅ Fixed（plan `2026-08-16-0549-3` Phase 3：裁定落档 owner doc——维持 dao 驻留（依赖方向论据 + 同形先例 `nop-wf-dao` `DaoWorkflowModelLoader`；`nop-auth-dao` 不作同形先例——无严格同形物）；模块结构表 dao 行补 `dao/model/OrmModelImporter`；doc-links 17 = pre-existing 基线零新增）
+- **P2-30** save override Javadoc 与实际注入方式自相矛盾（声称 tryGetBean 懒查找避环，实为直接 @Inject，误导 P2-02 修复决策） — ✅ Fixed（plan `2026-08-16-0549-3` Phase 1：两处矛盾 javadoc 收敛单一真值——字段 javadoc（原称"取代 tryGetBean 反模式、IoC 注入"）随字段移除改写为 seam javadoc（懒解析 + 断环理由）；save override javadoc 改为与终态一致的 `lookupScheduler()` 表述；文件内 tryGetBean 表述全部与 live 代码一致）
+- **P2-31** Scheduler BEAN_NAME 注释引用不存在的 beans 文件（实际注册于 app-service.beans.xml） — ✅ Fixed（plan `2026-08-16-0549-3` Phase 2：注释指向 live 唯一注册点 `app-service.beans.xml` 的 `metaQualityCheckpointScheduler`（:40）+ `ioc:default="true"` 宿主可覆盖语义注明；`rg app-quality-scheduler.beans.xml` 零命中；compile 通过）
 
 **文档 / 元数据 / 测试卫生族**
 - **P2-15** owner 文档 DTO 计数漂移：两处宣称 31 个 @DataBean，实际 30 个（`docs-for-ai/03-modules/nop-metadata.md:207,259`） — ✅ Fixed（plan `2026-08-16-0549-1` Phase 1：live 重扫 `rg -l "@DataBean" …/api/dto/ | wc -l` = 30，owner doc 两处 31→30）
