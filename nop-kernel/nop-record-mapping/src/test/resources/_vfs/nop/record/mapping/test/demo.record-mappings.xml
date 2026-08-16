@@ -81,4 +81,39 @@
         </fields>
     </mapping>
 
+    <mapping name="ItemPass_to_Test">
+        <fields>
+            <field from="c" name="c">
+                <schema/>
+            </field>
+            <field from="d" name="d">
+                <schema/>
+            </field>
+        </fields>
+    </mapping>
+
+    <mapping name="DictFieldTest">
+        <fields>
+            <field from="status" name="status">
+                <schema dict="test-status"/>
+            </field>
+        </fields>
+    </mapping>
+
+    <mapping name="FlattenToTest">
+        <fields>
+            <field from="listB" flattenTo="true" itemMapping="Item_to_Test" name="listA">
+                <schema/>
+            </field>
+        </fields>
+    </mapping>
+
+    <mapping name="FlattenRoundTripTest">
+        <fields>
+            <field from="items" flattenFrom="true" flattenTo="true" itemMapping="ItemPass_to_Test" name="items">
+                <schema/>
+            </field>
+        </fields>
+    </mapping>
+
 </definitions>

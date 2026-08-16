@@ -1,0 +1,11 @@
+label: 测试状态
+locale: zh-CN
+valueType: string
+description: record-mapping 回归测试用字典
+options:
+
+  - label: 启用
+    value: "1"
+
+  - label: 禁用
+    value: "2"

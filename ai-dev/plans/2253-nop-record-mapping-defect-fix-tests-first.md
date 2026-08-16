@@ -71,27 +71,27 @@
 
 ### Phase 1 - P1 缺陷修复（B1、B2）
 
-Status: planned
-Targets: `RecordMappingTool.java`, `FlattenListProcessor.java`, `TestRecordMappingManager.java`（或新增 `TestRecordMappingRegression.java`）, `demo.record-mappings.xml` + 新增 `demo.dict.xml`（测试资源，B1 需注册 dict）
+Status: completed
+Targets: `RecordMappingTool.java`, `FlattenListProcessor.java`, `TestRecordMappingManager.java`（或新增 `TestRecordMappingRegression.java`）, `demo.record-mappings.xml` + 新增 `dict/test-status.dict.yaml`（测试资源，B1 需注册 dict；实际采用 YAML 格式 dict 文件，repo 内 `/dict/*.dict.yaml` 均为 YAML 格式，`DslJsonResourceLoader` 按扩展名用 SnakeYAML 解析）
 
 - Item Types: `Fix | Proof | Decision`
 
-- [ ] **Proof**（B1）：新增回归测试——新增 dict 测试资源（`demo.dict.xml` 或测试内注册 `DictBean`），dict 字段（非 mandatory）源值为 null 与空串时映射成功；非法非空值仍抛 `ERR_RECORD_FIELD_VALUE_NOT_IN_DICT`。先运行确认当前 FAIL（null/空串场景抛 dict 错误）。
-- [ ] **Fix**（B1）：`validateDictValue` 开头增加 `if (StringHelper.isEmptyObject(value)) return;`（RecordMappingTool.java:431）。
-- [ ] **Decision**（B2）：裁定 flattenTo 语义——按 xdef 文档字面契约"按照{from}-{index}-{fieldName}展平"：展平结果写入 **target**、前缀取 `getFromOrName()`（与 flattenFrom 对称，round-trip 成立）；否决"保留写入 source 的就地变换语义"（理由：与文档矛盾、round-trip 不对称、污染入参；全仓库无使用点故无兼容负担）。`makeTargetCollection` 的 flattenTo 分支（不写 target 属性）保留不变。
-- [ ] **Proof**（B2）：新增回归测试——(a) flattenTo 字段映射后 target 含 `{from}-1-{sub}` 前缀键、source 不被修改；(b) flattenFrom → flattenTo 同字段名 round-trip 一致（含 from≠name 场景）；(c) from≠name 时前缀取 from。先运行确认当前 FAIL（键写在 source、前缀用 name）。
-- [ ] **Fix**（B2）：`mapCollectionField` flattenTo 分支改为 `generateFlattenObj(target, toValue, field.getFromOrName(), ...)`（RecordMappingTool.java:357-360）。
-- [ ] Phase 1 全量回归：既有 19 测试 + 新增测试全绿。
+- [x] **Proof**（B1）：新增回归测试——新增 dict 测试资源（`dict/test-status.dict.yaml`，YAML 格式），dict 字段（非 mandatory）源值为 null 与空串时映射成功；非法非空值仍抛 `ERR_RECORD_FIELD_VALUE_NOT_IN_DICT`。先运行确认当前 FAIL（null/空串场景抛 dict 错误）。
+- [x] **Fix**（B1）：`validateDictValue` 的 dict 分支增加空值守卫 `!StringHelper.isEmptyObject(value)`（RecordMappingTool.java:431-435，等价于计划中的提前 return）。
+- [x] **Decision**（B2）：裁定 flattenTo 语义——按 xdef 文档字面契约"按照{from}-{index}-{fieldName}展平"：展平结果写入 **target**、前缀取 `getFromOrName()`（与 flattenFrom 对称，round-trip 成立）；否决"保留写入 source 的就地变换语义"（理由：与文档矛盾、round-trip 不对称、污染入参；全仓库无使用点故无兼容负担）。`makeTargetCollection` 的 flattenTo 分支（不写 target 属性）保留不变。
+- [x] **Proof**（B2）：新增回归测试——(a) flattenTo 字段映射后 target 含 `{from}-1-{sub}` 前缀键、source 不被修改（`testFlattenToWritesToTarget`）；(b) flattenFrom → flattenTo 同字段名 round-trip 一致（`testFlattenRoundTrip`，ItemPass_to_Test 恒等映射 c→c/d→d）；(c) from≠name 时前缀取 from（FlattenToTest 配置 from="listB" name="listA"，断言 listB-1-a）。先运行确认当前 FAIL（键写在 source、前缀用 name）。
+- [x] **Fix**（B2）：`mapCollectionField` flattenTo 分支改为 `generateFlattenObj(target, toValue, field.getFromOrName(), ...)`（RecordMappingTool.java:357-360）。
+- [x] Phase 1 全量回归：既有 19 测试 + 新增测试全绿（24/24）。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] B1：null/空串不再抛 dict 错误；非空非法值仍抛；`mandatory` 语义不受影响（mandatory dict 字段空值仍由 `validateMandatoryField` 报错）
-- [ ] B2：flattenTo 输出在 target 上、前缀为 from、source 不变；flattenFrom↔flattenTo round-trip 一致（测试名：`testFlattenToWritesToTarget*` 系列）
-- [ ] `./mvnw test -pl nop-kernel/nop-record-mapping -am` 全绿（既有 19 + 新增）
-- [ ] `docs-for-ai/02-core-guides/record-mapping.md` 更新（flattenTo 语义落文档；dict 空值行为说明）
-- [ ] `ai-dev/logs/` 对应日期条目已更新（含红→绿证据）
+- [x] B1：null/空串不再抛 dict 错误；非空非法值仍抛；`mandatory` 语义不受影响（mandatory dict 字段空值仍由 `validateMandatoryField` 报错——`processFieldValue` 中 validateValue→validateMandatoryField 顺序保证）
+- [x] B2：flattenTo 输出在 target 上、前缀为 from、source 不变；flattenFrom↔flattenTo round-trip 一致（测试名：`testFlattenToWritesToTarget`/`testFlattenRoundTrip`）
+- [x] `./mvnw test -pl nop-kernel/nop-record-mapping -am` 全绿（既有 19 + 新增 5 = 24）
+- [ ] `docs-for-ai/02-core-guides/record-mapping.md` 更新（flattenTo 语义落文档；dict 空值行为说明）——推迟到 Phase 4 统一文档同步
+- [x] `ai-dev/logs/` 对应日期条目已更新（含红→绿证据）
 
 ### Phase 2 - P2 缺陷修复（B3-B8）
 

@@ -355,7 +355,7 @@ public class RecordMappingTool {
         }
 
         if (field.isFlattenTo()) {
-            FlattenListProcessor.instance().generateFlattenObj(source, toValue, field.getName(), field.isDisableToPropPath(),
+            FlattenListProcessor.instance().generateFlattenObj(target, toValue, field.getFromOrName(), field.isDisableToPropPath(),
                     row -> getRowValues(row, field.getResolvedItemMapping()));
         }
         return toValue;
@@ -432,7 +432,7 @@ public class RecordMappingTool {
                                      IRecordFieldMappingConfig field, String fieldName,
                                      Object value, RecordMappingContext ctx) {
         String dictName = schema.getDict();
-        if (dictName != null) {
+        if (dictName != null && !StringHelper.isEmptyObject(value)) {
             DictBean dictBean = DictProvider.instance().requireDict(ContextProvider.currentLocale(), dictName,
                     ctx.getCache(), ctx);
             DictOptionBean option = dictBean.getOptionByValue(value);
