@@ -296,6 +296,16 @@ public interface GraphQLErrors {
             "对象[{bizObjName}]的业务方法[{operationName}]上定义的tryMethod[{cancelMethod}]不存在", ARG_OPERATION_NAME,
             ARG_BIZ_OBJ_NAME, ARG_CANCEL_METHOD);
 
+    ErrorCode ERR_GRAPHQL_MFA_REQUIRED_NOT_ALLOWED_ON_SUBSCRIPTION = define(
+            "nop.err.graphql.mfa-required-not-allowed-on-subscription",
+            "对象[{bizObjName}]的业务方法[{operationName}]标注了@MfaRequired，不允许用于subscription方法（订阅路径无请求-响应语义，静默绕过等于fail-open）",
+            ARG_BIZ_OBJ_NAME, ARG_OPERATION_NAME);
+
+    ErrorCode ERR_GRAPHQL_MFA_REQUIRED_NOT_ALLOWED_FOR_PUBLIC_ACCESS = define(
+            "nop.err.graphql.mfa-required-not-allowed-for-public-access",
+            "对象[{bizObjName}]的业务方法[{operationName}]标注了@MfaRequired，不允许与@Auth(publicAccess=true)同用（匿名方法无会话可验）",
+            ARG_BIZ_OBJ_NAME, ARG_OPERATION_NAME);
+
     ErrorCode ERR_GRAPHQL_MULTI_BIZ_FILE_FOR_BIZ_OBJ =
             define("nop.err.graphql.multi-biz-file-for-biz-obj",
                     "存在多个biz文件对应于同一个对象[{bizObjName}]:pathA={pathA},pathB={pathB}",

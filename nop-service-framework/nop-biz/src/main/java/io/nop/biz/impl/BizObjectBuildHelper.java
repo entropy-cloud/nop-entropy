@@ -70,6 +70,8 @@ public class BizObjectBuildHelper {
                     op.setAuth(action.getAuth());
                 if(op.getMakerCheckerMeta() == null)
                     op.setMakerCheckerMeta(action.getMakerCheckerMeta());
+                if(op.getMfaRequiredMeta() == null)
+                    op.setMfaRequiredMeta(action.getMfaRequiredMeta());
                 if(op.getLazy() == null)
                     op.setLazy(action.getLazy());
             }

@@ -12,6 +12,7 @@ import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
+import io.nop.auth.api.mfa.IOperationMfaChecker;
 import io.nop.commons.functional.IAsyncFunctionInvoker;
 import io.nop.graphql.core.IDataFetcher;
 import io.nop.graphql.core.IGraphQLExecutionContext;
@@ -19,6 +20,7 @@ import io.nop.graphql.core.IGraphQLHook;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
 import io.nop.graphql.core.ast.GraphQLFieldSelection;
 import io.nop.graphql.core.ast.GraphQLFragmentSelection;
+import io.nop.graphql.core.ast.GraphQLOperation;
 import io.nop.graphql.core.ast.GraphQLSelection;
 import io.nop.graphql.core.ast.GraphQLSelectionSet;
 import io.nop.graphql.core.fetcher.BeanPropertyFetcher;
@@ -62,6 +64,7 @@ public class GraphQLExecutor implements IGraphQLExecutor {
     @Override
     public CompletionStage<Object> executeOneAsync(IGraphQLExecutionContext context) {
         GraphQLActionAuthChecker.INSTANCE.check(context);
+        checkOperationMfa(context);
         GraphQLArgumentValidator.INSTANCE.validate(context);
 
         DataFetchingEnvironment env = new DataFetchingEnvironment();
@@ -144,6 +147,7 @@ public class GraphQLExecutor implements IGraphQLExecutor {
 
 
         GraphQLActionAuthChecker.INSTANCE.check(context);
+        checkOperationMfa(context);
         GraphQLArgumentValidator.INSTANCE.validate(context);
 
         Map<String, Object> response = new LinkedHashMap<>();
@@ -174,6 +178,32 @@ public class GraphQLExecutor implements IGraphQLExecutor {
         CompletionStage<Void> promise = context.dispatchAll();
         if (promise != null) {
             promise.thenAccept(v -> this.dispatchAll(context));
+        }
+    }
+
+    /**
+     * 操作级 MFA 检查点（设计 §3.1/§3.3）：对声明了 @MfaRequired 的顶层 operation 调用
+     * {@link IOperationMfaChecker}。checker 为 null（未注册实现）时零介入；
+     * 批量请求中含敏感操作时该 operation 单独报错（GraphQL 逐 field error 原生语义）。
+     * 订阅路径（GraphQLEngine.subscribeGraphQL/subscribeRpc）刻意不接本检查——构建期
+     * 约束校验已拒绝 @MfaRequired + @BizSubscription 组合。
+     */
+    void checkOperationMfa(IGraphQLExecutionContext context) {
+        IOperationMfaChecker checker = context.getOperationMfaChecker();
+        if (checker == null)
+            return;
+
+        GraphQLOperation op = context.getOperation();
+        if (op == null || op.getSelectionSet() == null)
+            return;
+
+        for (GraphQLSelection selection : op.getSelectionSet().getSelections()) {
+            if (!(selection instanceof GraphQLFieldSelection))
+                continue;
+            GraphQLFieldDefinition fieldDef = ((GraphQLFieldSelection) selection).getFieldDefinition();
+            if (fieldDef == null || fieldDef.getMfaRequiredMeta() == null)
+                continue;
+            checker.check(fieldDef.getOperationName(), context.getUserContext(), context.getRequestHeaders());
         }
     }
 

@@ -13,6 +13,7 @@ import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.context.IContext;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.auth.api.mfa.IOperationMfaChecker;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.graphql.core.ast.GraphQLOperation;
@@ -37,6 +38,14 @@ public interface IGraphQLExecutionContext {
     boolean isMakerCheckerEnabled();
 
     void setMakerCheckerEnabled(boolean makerCheckerEnabled);
+
+    /**
+     * 操作级 MFA 判定 SPI（由 GraphQLEngine 经 {@code newGraphQLContextFromContext} 透出，
+     * makerCheckerEnabled 字段同型）。null 表示未注册实现，executor 检查点零介入。
+     */
+    IOperationMfaChecker getOperationMfaChecker();
+
+    void setOperationMfaChecker(IOperationMfaChecker operationMfaChecker);
 
     String getExecutionId();
 

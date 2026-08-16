@@ -9,10 +9,12 @@ package io.nop.biz.impl;
 
 import io.nop.api.core.annotations.biz.BizLoader;
 import io.nop.api.core.annotations.biz.BizModel;
+import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizObjName;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.biz.ContextSource;
 import io.nop.api.core.annotations.core.Name;
+import io.nop.auth.api.mfa.MfaRequired;
 
 @BizModel("MyObject")
 public class MyObjectBizModel {
@@ -21,6 +23,12 @@ public class MyObjectBizModel {
         MyObject ret = new MyObject();
         ret.setName("ret_" + id);
         return ret;
+    }
+
+    @BizMutation
+    @MfaRequired
+    public String sensitiveMutation(@Name("id") String id) {
+        return "sensitive_" + id;
     }
 
     @BizLoader

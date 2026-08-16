@@ -19,6 +19,7 @@ import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.auth.api.mfa.IOperationMfaChecker;
 import io.nop.commons.cache.GlobalCacheRegistry;
 import io.nop.commons.cache.LocalCache;
 import io.nop.commons.functional.IAsyncFunctionInvoker;
@@ -113,6 +114,13 @@ public class GraphQLEngine implements IGraphQLEngine {
 
     private IActionAuthChecker actionAuthChecker;
 
+    /**
+     * 操作级 MFA 判定 SPI（可选注入，setActionAuthChecker 模式）：nop-auth-service 提供
+     * 实现 bean；未注册时保持 null，executor 检查点零介入（框架独立可用性不变）。
+     * 经 {@code newGraphQLContextFromContext} 透出到执行上下文供 executor 读取。
+     */
+    private IOperationMfaChecker operationMfaChecker;
+
     private IFlowControlRunner flowControlRunner;
 
     private final CancelTokenManager cancelTokenManager = new CancelTokenManager();
@@ -147,6 +155,15 @@ public class GraphQLEngine implements IGraphQLEngine {
     @Inject
     public void setActionAuthChecker(@Nullable IActionAuthChecker actionAuthChecker) {
         this.actionAuthChecker = actionAuthChecker;
+    }
+
+    @Inject
+    public void setOperationMfaChecker(@Nullable IOperationMfaChecker operationMfaChecker) {
+        this.operationMfaChecker = operationMfaChecker;
+    }
+
+    public IOperationMfaChecker getOperationMfaChecker() {
+        return operationMfaChecker;
     }
 
     @Inject
@@ -352,6 +369,12 @@ public class GraphQLEngine implements IGraphQLEngine {
             if (context.getDataAuthChecker() == null) {
                 context.setDataAuthChecker(dataAuthChecker);
             }
+        }
+
+        // 操作级 MFA checker 透出（makerCheckerEnabled 字段模式）：引擎侧注入点 → 执行上下文，
+        // executor 两检查点经 IGraphQLExecutionContext 读取。未注册实现时为 null，零介入。
+        if (operationMfaChecker != null && context.getOperationMfaChecker() == null) {
+            context.setOperationMfaChecker(operationMfaChecker);
         }
         return context;
     }
