@@ -46,6 +46,7 @@ import io.nop.auth.dao.entity.NopAuthRole;
 import io.nop.auth.dao.entity.NopAuthTenant;
 import io.nop.auth.dao.entity.NopAuthUser;
 import io.nop.auth.service.NopAuthConstants;
+import io.nop.auth.service.mfa.MfaFactorVerifier;
 import io.nop.commons.util.DateHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.i18n.I18nMessageManager;
@@ -148,11 +149,20 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
     protected SmsCodeStore smsCodeStore;
 
     /**
-     * TOTP 验证器（W4）。mfaVerify 的 TOTP 分支调用。由 beans 装配（auth-service.beans.xml）。
+     * TOTP 验证器（W4）。由 beans 装配（auth-service.beans.xml）。
+     * 因子校验逻辑已收敛至 {@link MfaFactorVerifier}（W12-impl）。
      */
     @Inject
     @Nullable
     protected TOTPAuthenticator totpAuthenticator;
+
+    /**
+     * 共享因子校验组件（W12-impl，设计 §3.1 结论 5）：登录级/绑定级/操作级三处因子
+     * 校验收敛；TOTP 窗口统一推进内聚于组件（调用方不可选）。
+     */
+    @Inject
+    @Nullable
+    protected MfaFactorVerifier mfaFactorVerifier;
 
     /**
      * 短信发送器（nop-integration-api）。sendSmsCode/sendMfaCode 调用。
@@ -456,28 +466,22 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
 
     /**
      * TOTP / SMS 第二因子验证 + completeLogin（设计 §3.2 mfaVerify 流程）。
+     * 因子校验收敛至 {@link MfaFactorVerifier}（W12-impl 等价重构：SMS EXPIRED 抛错/
+     * TOTP 窗口推进内聚组件；失败计数与错误码留在本调用方）。
      */
     protected CompletionStage<IUserContext> verifySecondFactorAndComplete(MfaVerifyRequest request,
                                                                            MfaChallenge challenge,
                                                                            NopAuthUser user,
                                                                            NopAuthMfaSetting setting) {
-        boolean ok;
-        if (MFA_TYPE_TOTP.equals(challenge.getMfaType())) {
-            ok = verifyTotp(setting, request.getCode());
-        } else if (MFA_TYPE_SMS.equals(challenge.getMfaType())) {
-            CodeVerifyResult r = smsCodeStore == null ? CodeVerifyResult.EXPIRED
-                    : smsCodeStore.verify(SMS_KEY_MFA + challenge.getUserId(), request.getCode());
-            if (r == CodeVerifyResult.EXPIRED) {
-                throw new NopException(ERR_AUTH_SMS_CODE_EXPIRED);
-            }
-            ok = r == CodeVerifyResult.VALID;
-        } else {
+        String mfaType = challenge.getMfaType();
+        if (!MFA_TYPE_TOTP.equals(mfaType) && !MFA_TYPE_SMS.equals(mfaType)) {
             // 未知 mfaType：fail-closed，作废 challenge
             mfaChallengeStore.consume(request.getChallengeToken());
             throw new NopException(ERR_AUTH_MFA_CHALLENGE_EXPIRED)
                     .param(ARG_CHALLENGE_TOKEN, request.getChallengeToken());
         }
 
+        boolean ok = mfaFactorVerifier.verify(setting, mfaType, request.getCode());
         if (!ok) {
             // 失败计数（peek 阶段，未消费 challenge）
             incrFailCountOrDiscard(request.getChallengeToken());
@@ -486,28 +490,6 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
 
         mfaChallengeStore.consume(request.getChallengeToken());
         return completeMfaLogin(user, challenge.getLoginType());
-    }
-
-    /**
-     * TOTP 校验（含防重放）。成功时更新 setting.lastVerifiedWindow / lastVerifiedAt。
-     */
-    protected boolean verifyTotp(NopAuthMfaSetting setting, String code) {
-        if (totpAuthenticator == null || StringHelper.isEmpty(setting.getSecret())) {
-            incrFailCountOrDiscard(setting.getUserId());
-            throw new NopException(ERR_AUTH_MFA_FAIL).param(ARG_CHALLENGE_TOKEN, setting.getUserId());
-        }
-        // 确保 skew 与配置一致
-        totpAuthenticator.setSkew(CFG_AUTH_MFA_TOTP_WINDOW_SKEW.get());
-        long lastWindow = setting.getLastVerifiedWindow() == null ? -1L : setting.getLastVerifiedWindow();
-        long window = totpAuthenticator.verify(setting.getSecret(), code, lastWindow);
-        if (window < 0) {
-            return false;
-        }
-        // 防重放：更新 lastVerifiedWindow（当前窗口严格大于历史才通过，已由 verify 保证）
-        setting.setLastVerifiedWindow(window);
-        setting.setLastVerifiedAt(new Timestamp(CoreMetrics.currentTimeMillis()));
-        daoProvider.daoFor(NopAuthMfaSetting.class).updateEntityDirectly(setting);
-        return true;
     }
 
     /**

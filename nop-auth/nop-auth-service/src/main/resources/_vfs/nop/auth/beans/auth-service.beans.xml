@@ -23,6 +23,8 @@
          nopSmsCodeStore_ 之内，否则会被收集器误纳入 typed map 导致装配失败。 -->
     <bean id="nopMfaChallengeConfig" class="io.nop.auth.core.mfa.store.MfaChallengeStoreConfig">
         <property name="expireSeconds" value="@cfg:nop.auth.mfa.challenge-expire-seconds|300"/>
+        <!-- 操作级票窗口（设计 §3.3）：三 store 实现共用同一配置 bean -->
+        <property name="opTicketExpireSeconds" value="@cfg:nop.auth.operation-mfa.op-ticket-expire-seconds|60"/>
     </bean>
     <bean id="nopSmsCodeConfig" class="io.nop.auth.core.mfa.store.SmsCodeStoreConfig">
         <property name="expireSeconds" value="@cfg:nop.auth.sms-code.expire-seconds|300"/>
@@ -39,6 +41,7 @@
     </bean>
     <bean id="nopMfaChallengeStore_redis" class="io.nop.auth.service.mfa.store.RedisMfaChallengeStore"
           autowire-candidate="false" lazy-init="true">
+        <property name="config" ref="nopMfaChallengeConfig"/>
         <ioc:condition>
             <if-property name="nop.auth.mfa.store-type" value="redis"/>
             <on-class>io.nop.nosql.core.INosqlService</on-class>
@@ -80,6 +83,17 @@
     <bean id="nopTotpAuthenticator" class="io.nop.auth.core.totp.TOTPAuthenticator">
         <property name="skew" value="@cfg:nop.auth.mfa.totp-window-skew|1"/>
     </bean>
+
+    <!-- 共享因子校验组件（W12-impl 设计 §3.1 结论 5）：登录级/绑定级/操作级三处因子校验
+         收敛；TOTP 防重放窗口统一推进内聚组件内。注入 LoginServiceImpl/NopAuthUserBizModel/
+         LoginApiBizModel。 -->
+    <bean id="nopMfaFactorVerifier" class="io.nop.auth.service.mfa.MfaFactorVerifier" ioc:default="true"/>
+
+    <!-- 操作级 MFA 判定（W12-impl 设计 §3.3）：IOperationMfaChecker SPI 实现，经
+         GraphQLEngine @Inject @Nullable setOperationMfaChecker 按类型注入（未部署
+         nop-auth-service 的环境无此 bean → 引擎零介入）。ioc:default 允许应用覆盖。 -->
+    <bean id="nopOperationMfaChecker" class="io.nop.auth.service.mfa.OperationMfaCheckerImpl"
+          ioc:type="io.nop.auth.api.mfa.IOperationMfaChecker" ioc:default="true"/>
 
     <bean id="nopLoginSessionStore" class="io.nop.auth.service.login.DaoLoginSessionStore" ioc:default="true">
 

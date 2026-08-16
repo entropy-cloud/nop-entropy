@@ -13,8 +13,12 @@ import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.biz.RequestBean;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.directive.Auth;
+import io.nop.api.core.audit.AuditRequest;
+import io.nop.api.core.audit.IAuditService;
 import io.nop.api.core.auth.IUserContext;
+import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.auth.api.AuthApiConstants;
 import io.nop.auth.api.messages.AccessCodeRequest;
 import io.nop.auth.api.messages.AccessTokenRequest;
@@ -22,19 +26,38 @@ import io.nop.auth.api.messages.LoginRequest;
 import io.nop.auth.api.messages.LoginResult;
 import io.nop.auth.api.messages.LoginUserInfo;
 import io.nop.auth.api.messages.LogoutRequest;
+import io.nop.auth.api.messages.MfaVerifyOperationRequest;
 import io.nop.auth.api.messages.MfaVerifyRequest;
 import io.nop.auth.api.messages.RefreshTokenRequest;
 import io.nop.auth.core.login.AuthToken;
 import io.nop.auth.core.login.ILoginService;
 import io.nop.auth.core.spi.ILoginSpi;
+import io.nop.auth.core.mfa.store.MfaChallenge;
+import io.nop.auth.core.mfa.store.MfaChallengeStore;
+import io.nop.auth.dao.entity.NopAuthMfaSetting;
+import io.nop.auth.service.NopAuthConstants;
 import io.nop.auth.service.NopAuthErrors;
 import io.nop.auth.service.login.LoginServiceImpl;
+import io.nop.auth.service.mfa.MfaFactorVerifier;
+import io.nop.auth.service.mfa.OperationMfaCheckerImpl;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.core.unittest.VarCollector;
+import io.nop.dao.api.IDaoProvider;
+import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
 
+import java.sql.Timestamp;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
+
+import static io.nop.auth.core.AuthCoreErrors.ERR_AUTH_USER_NOT_LOGIN;
+import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_MFA_MAX_ATTEMPTS;
+import static io.nop.auth.service.NopAuthErrors.ARG_CHALLENGE_TOKEN;
+import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_MFA_CHALLENGE_EXPIRED;
+import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_MFA_FAIL;
 
 /**
  * 两种访问方式: 1. GraphQL : LoginApi__login 2. REST: /r/LoginApi__login
@@ -44,6 +67,26 @@ public class LoginApiBizModel implements ILoginSpi {
 
     @Inject
     ILoginService loginService;
+
+    /**
+     * MFA challenge store（操作级 mfaVerifyOperation 用）。仅 {@code nop.auth.operation-mfa.enabled=true}
+     * 时被访问；与 LoginServiceImpl 共享同一装配（nopActiveMfaChallengeStore）。
+     */
+    @Inject
+    @Nullable
+    MfaChallengeStore mfaChallengeStore;
+
+    /** 共享因子校验组件（W12-impl：操作级验证经组件，TOTP 窗口统一推进）。 */
+    @Inject
+    @Nullable
+    MfaFactorVerifier mfaFactorVerifier;
+
+    @Inject
+    IDaoProvider daoProvider;
+
+    @Inject
+    @Nullable
+    IAuditService auditService;
 
     @BizMutation("login")
     @Auth(publicAccess = true)
@@ -132,6 +175,117 @@ public class LoginApiBizModel implements ILoginSpi {
             // 密码类 loginType：normal path（签发 accessToken）
             return buildLoginResult(ctx);
         });
+    }
+
+    /**
+     * 操作级 MFA 第二因子验证（设计 §3.3 验证端点，W12-impl）。
+     * <p>
+     * <b>需登录态</b>（本 BizModel 首个非 publicAccess action——省略 @Auth 即默认 permission，
+     * 登录会话内可达）：操作级 challenge 产生自登录会话内，验证必须同会话（防跨会话重放）。
+     * <p>
+     * 流程：peek + scene==operation + 同会话校验 + 已验证票拒绝重复验证（票不续命）+
+     * setting 复核（runWithTenant 内 status==enabled 且 mfaType 一致）+ 因子校验（共享
+     * {@link MfaFactorVerifier}，失败计数超限作废）+ {@code markVerified} 一次性迁移
+     * （失败按过期处理=并发已验证）。
+     * <p>
+     * <b>成功不签发任何凭证</b>（无 accessToken/无 completeLogin/无会话变更）——与登录级
+     * {@code mfaVerify}（成功 = completeLogin）的本质区别；客户端凭同一 challengeToken
+     * 携 {@code X-Nop-Op-Mfa-Token} 头重试原操作。不接受恢复码（{@link MfaVerifyOperationRequest}
+     * 无 recoveryCode 字段，恢复码是登录恢复通道）。
+     */
+    @BizMutation
+    public void mfaVerifyOperation(@RequestBean MfaVerifyOperationRequest request, IServiceContext context) {
+        String challengeToken = request.getChallengeToken();
+        if (StringHelper.isEmpty(challengeToken))
+            throw new NopException(ERR_AUTH_MFA_CHALLENGE_EXPIRED).param(ARG_CHALLENGE_TOKEN, challengeToken);
+
+        IUserContext userContext = context.getUserContext();
+        if (userContext == null || StringHelper.isEmpty(userContext.getUserId()))
+            throw new NopException(ERR_AUTH_USER_NOT_LOGIN);
+
+        // 1. peek + scene 校验（不消费、不刷新 TTL）
+        MfaChallenge c = mfaChallengeStore == null ? null : mfaChallengeStore.peek(challengeToken);
+        if (c == null || !MfaChallenge.SCENE_OPERATION.equals(c.getScene()))
+            throw new NopException(ERR_AUTH_MFA_CHALLENGE_EXPIRED).param(ARG_CHALLENGE_TOKEN, challengeToken);
+
+        // 2. 同会话校验（票与验证都绑定发起会话，防跨会话重放）
+        String payloadSessionId = payloadSessionId(c);
+        if (payloadSessionId == null || !payloadSessionId.equals(userContext.getSessionId()))
+            throw new NopException(ERR_AUTH_MFA_CHALLENGE_EXPIRED).param(ARG_CHALLENGE_TOKEN, challengeToken);
+
+        // 3. 已是票：拒绝重复验证（票不续命）
+        if (c.getVerifiedAt() != null)
+            throw new NopException(ERR_AUTH_MFA_CHALLENGE_EXPIRED).param(ARG_CHALLENGE_TOKEN, challengeToken);
+
+        // 4. setting 复核（runWithTenant 镜像登录级复核语义：换绑必经 disabled 态，
+        //    状态复核即作废换绑前签发的 challenge；mfaType 硬校验防状态机演进破坏隐式依赖）
+        NopAuthMfaSetting setting = ContextProvider.runWithTenant(c.getTenantId(), () ->
+                daoProvider.daoFor(NopAuthMfaSetting.class).getEntityById(c.getUserId()));
+        if (setting == null || !NopAuthConstants.MFA_STATUS_ENABLED.equals(setting.getStatus())) {
+            throw new NopException(ERR_AUTH_MFA_CHALLENGE_EXPIRED).param(ARG_CHALLENGE_TOKEN, challengeToken);
+        }
+        // mfaType 硬校验（防未来状态机演进破坏"状态复核即作废旧票"的隐式依赖）
+        if (!StringHelper.isEmpty(c.getMfaType()) && !c.getMfaType().equals(setting.getMfaType())) {
+            throw new NopException(ERR_AUTH_MFA_CHALLENGE_EXPIRED).param(ARG_CHALLENGE_TOKEN, challengeToken);
+        }
+
+        // 5. 因子校验（共享组件：TOTP 窗口统一推进；失败计数超限作废 challenge）
+        boolean ok;
+        try {
+            ok = mfaFactorVerifier.verify(setting, c.getMfaType(), request.getCode());
+        } catch (NopException e) {
+            auditOperationVerify(operationOf(c), userContext, false);
+            throw e;
+        }
+        if (!ok) {
+            int failCount = mfaChallengeStore.incrFailCount(challengeToken);
+            if (failCount >= CFG_AUTH_MFA_MAX_ATTEMPTS.get()) {
+                mfaChallengeStore.consume(challengeToken);
+            }
+            auditOperationVerify(operationOf(c), userContext, false);
+            throw new NopException(ERR_AUTH_MFA_FAIL).param(ARG_CHALLENGE_TOKEN, challengeToken);
+        }
+
+        // 6. 一次性状态迁移（失败=并发已验证，按过期处理；票不续命）
+        if (!mfaChallengeStore.markVerified(challengeToken)) {
+            throw new NopException(ERR_AUTH_MFA_CHALLENGE_EXPIRED).param(ARG_CHALLENGE_TOKEN, challengeToken);
+        }
+
+        auditOperationVerify(operationOf(c), userContext, true);
+        // 成功出口不签发任何凭证（无 completeLogin/无 token/无会话变更）
+    }
+
+    private static String payloadSessionId(MfaChallenge c) {
+        if (StringHelper.isEmpty(c.getPayload()))
+            return null;
+        Map<String, Object> payload = JsonTool.parseMap(c.getPayload());
+        Object sessionId = payload == null ? null : payload.get(OperationMfaCheckerImpl.PAYLOAD_SESSION_ID);
+        return sessionId == null ? null : sessionId.toString();
+    }
+
+    private static String operationOf(MfaChallenge c) {
+        if (StringHelper.isEmpty(c.getPayload()))
+            return null;
+        Map<String, Object> payload = JsonTool.parseMap(c.getPayload());
+        Object operation = payload == null ? null : payload.get(OperationMfaCheckerImpl.PAYLOAD_OPERATION);
+        return operation == null ? null : operation.toString();
+    }
+
+    /** 审计事件（操作级验证成功/失败），记录 operation 与 sessionId。 */
+    private void auditOperationVerify(String operation, IUserContext userContext, boolean success) {
+        if (auditService == null)
+            return;
+        AuditRequest audit = new AuditRequest();
+        audit.setOperation(operation);
+        audit.setDescription(success ? "operation-mfa:verify-ok" : "operation-mfa:verify-fail");
+        audit.setActionTime(new Timestamp(CoreMetrics.currentTimeMillis()));
+        audit.setUserId(userContext.getUserId());
+        audit.setUserName(userContext.getUserName());
+        audit.setSessionId(userContext.getSessionId());
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("event", success ? "op-mfa-verify-success" : "op-mfa-verify-fail");
+        audit.setRequestData(JsonTool.stringify(data));
+        auditService.saveAudit(audit);
     }
 
     /**

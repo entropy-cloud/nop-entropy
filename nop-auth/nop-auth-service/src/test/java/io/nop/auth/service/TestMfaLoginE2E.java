@@ -684,6 +684,12 @@ class TestMfaLoginE2E {
         setField(loginService, "smsCodeStore", smsCodeStore);
         setField(loginService, "totpAuthenticator", totpAuthenticator);
         setField(loginService, "smsSender", smsSender);
+        // W12-impl：因子校验收敛至 MfaFactorVerifier（等价重构 wiring，断言零修改）
+        io.nop.auth.service.mfa.MfaFactorVerifier mfaFactorVerifier = new io.nop.auth.service.mfa.MfaFactorVerifier();
+        setField(mfaFactorVerifier, "totpAuthenticator", totpAuthenticator);
+        setField(mfaFactorVerifier, "smsCodeStore", smsCodeStore);
+        setField(mfaFactorVerifier, "daoProvider", daoProvider);
+        setField(loginService, "mfaFactorVerifier", mfaFactorVerifier);
         loginService.setReturnDeptName(false);
 
         loginApiBizModel = new LoginApiBizModel();

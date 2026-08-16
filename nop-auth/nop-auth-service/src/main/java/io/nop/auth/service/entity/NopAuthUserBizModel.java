@@ -20,11 +20,11 @@ import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.auth.api.AuthApiConstants;
+import io.nop.auth.api.mfa.MfaRequired;
 import io.nop.auth.biz.INopAuthUserBiz;
+import io.nop.auth.core.mfa.store.SmsCodeStore;
 import io.nop.auth.core.password.IPasswordEncoder;
 import io.nop.auth.core.password.IPasswordPolicy;
-import io.nop.auth.core.mfa.store.CodeVerifyResult;
-import io.nop.auth.core.mfa.store.SmsCodeStore;
 import io.nop.auth.core.totp.TOTPAuthenticator;
 import io.nop.auth.dao.entity.NopAuthMfaRecoveryCode;
 import io.nop.auth.dao.entity.NopAuthMfaSetting;
@@ -33,6 +33,7 @@ import io.nop.auth.dao.generator.IUserIdGenerator;
 import io.nop.auth.service.NopAuthConstants;
 import io.nop.auth.service.biz.dto.MfaBindResult;
 import io.nop.auth.service.biz.dto.MfaStatusResult;
+import io.nop.auth.service.mfa.MfaFactorVerifier;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.biz.crud.EntityData;
 import io.nop.commons.util.MathHelper;
@@ -111,6 +112,14 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
     @Inject
     @Nullable
     protected ISmsSender smsSender;
+
+    /**
+     * 共享因子校验组件（W12-impl，设计 §3.1 结论 5）：confirmMfa/unbindMfa 的因子校验
+     * 收敛于此（TOTP 窗口推进内聚组件，confirmMfa 不再重复验证）。
+     */
+    @Inject
+    @Nullable
+    protected MfaFactorVerifier mfaFactorVerifier;
 
     public NopAuthUserBizModel() {
         setEntityName(NopAuthUser.class.getName());
@@ -261,8 +270,9 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
             throw new NopException(ERR_AUTH_MFA_BIND_EXPIRED).param(ARG_USER_ID, userId);
         }
 
-        // 校验第二因子（用 pending 记录的 secret）
-        boolean ok = verifyFactorForBind(setting, code);
+        // 校验第二因子（用 pending 记录的 secret；W12-impl 收敛至 MfaFactorVerifier——
+        // TOTP 成功即内聚推进 lastVerifiedWindow/lastVerifiedAt，此处不再重复验证窗口）
+        boolean ok = mfaFactorVerifier.verify(setting, setting.getMfaType(), code);
         if (!ok) {
             throw new NopException(ERR_AUTH_MFA_FAIL).param(ARG_USER_ID, userId);
         }
@@ -270,15 +280,6 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
         // 成功 → enabled + 清 bindToken（换绑原子性：仅成功才置生效）
         setting.setStatus(MFA_STATUS_ENABLED);
         setting.setBindToken(null);
-        // totp：更新 lastVerifiedWindow 防重放（与 W5 verifyTotp 口径一致）
-        if (MFA_TYPE_TOTP.equals(setting.getMfaType()) && totpAuthenticator != null) {
-            long lastWindow = setting.getLastVerifiedWindow() == null ? -1L : setting.getLastVerifiedWindow();
-            long window = totpAuthenticator.verify(setting.getSecret(), code, lastWindow);
-            if (window >= 0) {
-                setting.setLastVerifiedWindow(window);
-                setting.setLastVerifiedAt(new Timestamp(CoreMetrics.currentTimeMillis()));
-            }
-        }
 
         // 生成恢复码（作废旧码）
         return regenerateRecoveryCodes(userId);
@@ -286,10 +287,13 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
 
     /**
      * 解绑 MFA（设计 §3.6）。需验证当前第二因子通过才可解绑；成功 → status=disabled + 删除全部恢复码。
+     * <p>
+     * 敏感操作（W12-impl 首批标注：修改认证因子类）。
      */
     @Description("解绑MFA")
     @BizMutation
     @BizAudit
+    @MfaRequired
     public void unbindMfa(@Name("code") String code, IServiceContext context) {
         String userId = requireCurrentUserId(context);
         IEntityDao<NopAuthMfaSetting> settingDao = daoFor(NopAuthMfaSetting.class);
@@ -300,8 +304,8 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
             throw new NopException(ERR_AUTH_MFA_NOT_ENABLED).param(ARG_USER_ID, userId);
         }
 
-        // 验证当前因子（totp/sms）
-        boolean ok = verifyFactorForBind(setting, code);
+        // 验证当前因子（totp/sms；W12-impl 收敛至 MfaFactorVerifier）
+        boolean ok = mfaFactorVerifier.verify(setting, setting.getMfaType(), code);
         if (!ok) {
             throw new NopException(ERR_AUTH_MFA_FAIL).param(ARG_USER_ID, userId);
         }
@@ -314,10 +318,13 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
     /**
      * 生成/重置恢复码（设计 §3.4 / §3.6）。仅 enabled 状态可调；重置 = 作废旧码 + 生成新码（10 个一次性，
      * BCrypt 加盐哈希存 codeHash，明文一次性返回）。
+     * <p>
+     * 敏感操作（W12-impl 首批标注：恢复通道重置类——作废旧码）。
      */
     @Description("重置MFA恢复码")
     @BizMutation
     @BizAudit
+    @MfaRequired
     public List<String> generateRecoveryCodes(IServiceContext context) {
         String userId = requireCurrentUserId(context);
         IEntityDao<NopAuthMfaSetting> settingDao = daoFor(NopAuthMfaSetting.class);
@@ -360,10 +367,13 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
      * 运行时角色校验（defense-in-depth，可测试）双重保障。
      * <p>
      * 对不存在用户：显式抛错（不静默成功）。
+     * <p>
+     * 敏感操作（W12-impl 首批标注：管理员重置类）。
      */
     @Description("管理员重置用户MFA")
     @BizMutation
     @BizAudit(logRequestFields = "userId")
+    @MfaRequired
     public void resetUserMfa(@Name("userId") String userId, IServiceContext context) {
         requireAdmin(context);
 
@@ -389,30 +399,9 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
 
     // ===================== MFA 内部辅助 =====================
 
-    /**
-     * 绑定/解绑时的因子校验（totp 经 TOTPAuthenticator.verify 解密校验；sms 经 SmsCodeStore.verify 原子消费）。
-     */
-    private boolean verifyFactorForBind(NopAuthMfaSetting setting, String code) {
-        if (MFA_TYPE_TOTP.equals(setting.getMfaType())) {
-            if (totpAuthenticator == null || StringHelper.isEmpty(setting.getSecret())) {
-                return false;
-            }
-            totpAuthenticator.setSkew(io.nop.auth.service.NopAuthConfigs.CFG_AUTH_MFA_TOTP_WINDOW_SKEW.get());
-            long lastWindow = setting.getLastVerifiedWindow() == null ? -1L : setting.getLastVerifiedWindow();
-            return totpAuthenticator.verify(setting.getSecret(), code, lastWindow) >= 0;
-        }
-        if (MFA_TYPE_SMS.equals(setting.getMfaType())) {
-            if (smsCodeStore == null) {
-                return false;
-            }
-            CodeVerifyResult r = smsCodeStore.verify(SMS_KEY_MFA + setting.getUserId(), code);
-            if (r == CodeVerifyResult.EXPIRED) {
-                throw new NopException(ERR_AUTH_SMS_CODE_EXPIRED);
-            }
-            return r == CodeVerifyResult.VALID;
-        }
-        return false;
-    }
+    // 绑定/解绑的因子校验已收敛至 MfaFactorVerifier（W12-impl；原 verifyFactorForBind
+    // 的 totp/sms 分支语义逐条迁入组件：totp 解密校验+窗口推进 / sms 原子消费+EXPIRED 抛错 /
+    // 未知 mfaType 返回 false fail-closed）。
 
     /**
      * bindToken 过期判定（Phase 1 裁决 option a）：复用 pending 记录 updateTime + 配置 bind-expire-seconds。
@@ -549,6 +538,7 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
     @Description("@i18n:common.resetUserPassword")
     @BizMutation
     @BizAudit(logRequestFields = "userId")
+    @MfaRequired
     public void resetUserPassword(@Name("userId") String userId,
                                   @Name("password") String password,
                                   IServiceContext context) {
@@ -564,6 +554,7 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
     @Description("修改自己的密码")
     @BizMutation
     @BizAudit
+    @MfaRequired
     public void changeSelfPassword(@Name("oldPassword") String oldPassword,
                                    @Name("newPassword") String newPassword, IServiceContext context) {
         IUserContext userContext = context.getUserContext();
