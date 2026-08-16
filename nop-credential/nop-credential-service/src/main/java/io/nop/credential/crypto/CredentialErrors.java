@@ -84,6 +84,19 @@ public interface CredentialErrors {
             "凭证重新加密失败",
             ARG_CREDENTIAL_ID);
 
+    // ==================== W10 外部 KMS 集成（default-bean 守卫） ====================
+
+    String ARG_KEY_PROVIDER = "keyProvider";
+
+    ErrorCode ERR_CREDENTIAL_KEY_PROVIDER_MODULE_MISSING = define(
+            "nop.err.credential.key-provider-module-missing",
+            "nop.credential.key-provider 指向外部 KMS 实现但对应模块未部署（default bean 守卫拦截，fail-closed 拒绝回退 local）",
+            ARG_KEY_PROVIDER);
+
+    ErrorCode ERR_CREDENTIAL_MASTER_KEYS_RESIDUAL = define(
+            "nop.err.credential.master-keys-residual",
+            "密钥来源混合：key-provider 已激活外部 KMS 但 nop.credential.master-keys 非空（本地材料只允许存在于迁移残余列表，须清空）");
+
     // ==================== W9 OAuth 流程引擎 ====================
 
     String ARG_FIELD_NAMES = "fieldNames";

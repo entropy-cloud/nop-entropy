@@ -15,6 +15,7 @@ import io.nop.api.core.annotations.core.Locale;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.annotations.graphql.GraphQLReturn;
+import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.PageBean;
 import io.nop.api.core.beans.FilterBeans;
@@ -357,9 +358,28 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
     // ==================== 批量重新加密（密钥轮换） ====================
 
     /**
+     * reencryptAll 分页页大小。由配置项 {@code nop.credential.reencrypt-page-size} 指定
+     * （缺省 1000，保持一期单页语义），可注入缩小以便测试超批量场景。
+     * 字段为 protected 以兼容 NopIoC 字段注入。
+     */
+    protected int reencryptPageSize = 1000;
+
+    @InjectValue("@cfg:nop.credential.reencrypt-page-size|1000")
+    public void setReencryptPageSize(int reencryptPageSize) {
+        this.reencryptPageSize = reencryptPageSize;
+    }
+
+    /**
      * 批量重新加密所有未删除的凭证，使用 active key。
      *
+     * <p><b>W10 分页完备性修复</b>：一期实现单页查询（limit=1000、无翻页循环），
+     * 凭证量超出页大小时单次执行不保证全覆盖——KMS 迁移关窗所依赖的"全部密文
+     * 已切换到新 key 集"完备性不成立。本实现改为确定性排序（orderBy credentialId）
+     * + 游标（keyset）翻页循环直至取尽：无排序的 offset 分页会漏行/重行，恰是
+     * 完备性缺陷的变形，故强制排序 + 游标而非裸 offset。
+     *
      * <p>幂等：若凭证密文中的 keyId 已等于 active keyId，则跳过（避免不必要的重新加密）。
+     * 逐条提交可重跑（单条失败抛错中止，重跑从断点语义继续——已处理条目幂等跳过）。
      * 失败 fail-closed（解密/加密异常抛出，不静默跳过）。
      *
      * @return 实际重新加密的凭证数量
@@ -370,35 +390,56 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
         IEntityDao<NopCredential> dao = dao();
         String activeKeyId = keyProvider.getActiveKeyId();
 
+        int updated = 0;
+        String cursor = null;
+        List<NopCredential> page;
+        do {
+            QueryBean query = buildReencryptQuery();
+            query.setCursor(cursor);
+            page = dao.findPageByQuery(query);
+
+            for (NopCredential entity : page) {
+                String data = entity.getData();
+                if (StringHelper.isEmpty(data) || !data.startsWith(CredentialCipher.CV1_MARKER)) {
+                    continue;
+                }
+
+                String currentKeyId = extractKeyId(data);
+                if (activeKeyId.equals(currentKeyId)) {
+                    continue; // idempotent skip
+                }
+
+                try {
+                    String json = credentialCipher.decrypt(data);
+                    String newData = credentialCipher.encrypt(json);
+                    entity.setData(newData);
+                    dao.updateEntityDirectly(entity);
+                    updated++;
+                } catch (NopException e) {
+                    throw new NopException(CredentialErrors.ERR_CREDENTIAL_REENCRYPT_FAILED, e)
+                            .param(CredentialErrors.ARG_CREDENTIAL_ID, entity.getCredentialId());
+                }
+            }
+
+            // 游标推进到本页最后一条（keyset：orderBy credentialId + cursor 语义上
+            // 恒取"该 id 之后"的下一页，处理中不改 id 故不漏不重）
+            if (!page.isEmpty()) {
+                cursor = page.get(page.size() - 1).orm_idString();
+            }
+        } while (page.size() == reencryptPageSize);
+        return updated;
+    }
+
+    /**
+     * 构造 reencryptAll 的分页查询：强制 orderBy credentialId（确定性排序——keyset
+     * 翻页完备性的前提）+ delFlag 过滤 + 可注入页大小。包私有以供测试断言排序确定性。
+     */
+    QueryBean buildReencryptQuery() {
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.eq("delFlag", 0));
-        query.setLimit(1000);
-        List<NopCredential> all = dao.findPageByQuery(query);
-
-        int updated = 0;
-        for (NopCredential entity : all) {
-            String data = entity.getData();
-            if (StringHelper.isEmpty(data) || !data.startsWith(CredentialCipher.CV1_MARKER)) {
-                continue;
-            }
-
-            String currentKeyId = extractKeyId(data);
-            if (activeKeyId.equals(currentKeyId)) {
-                continue; // idempotent skip
-            }
-
-            try {
-                String json = credentialCipher.decrypt(data);
-                String newData = credentialCipher.encrypt(json);
-                entity.setData(newData);
-                dao.updateEntityDirectly(entity);
-                updated++;
-            } catch (NopException e) {
-                throw new NopException(CredentialErrors.ERR_CREDENTIAL_REENCRYPT_FAILED, e)
-                        .param(CredentialErrors.ARG_CREDENTIAL_ID, entity.getCredentialId());
-            }
-        }
-        return updated;
+        query.addOrderField("credentialId", false);
+        query.setLimit(reencryptPageSize);
+        return query;
     }
 
     /**

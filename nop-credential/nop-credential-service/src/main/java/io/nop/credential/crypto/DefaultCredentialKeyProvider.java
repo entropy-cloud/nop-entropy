@@ -11,6 +11,7 @@ import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.crypto.ITextCipher;
 import io.nop.commons.crypto.impl.AESTextCipher;
+import io.nop.commons.util.StringHelper;
 import io.nop.credential.api.crypto.ICredentialKeyProvider;
 import jakarta.annotation.PostConstruct;
 
@@ -48,6 +49,12 @@ public class DefaultCredentialKeyProvider implements ICredentialKeyProvider {
      */
     protected String activeKeyId;
 
+    /**
+     * 主密钥来源选择。由配置项 {@code nop.credential.key-provider} 指定
+     * （缺省 {@code local}）。字段为 protected 以兼容 NopIoC 字段注入。
+     */
+    protected String keyProvider;
+
     private Map<String, ITextCipher> keyMap = Collections.emptyMap();
     private Set<String> keyIds = Collections.emptySet();
 
@@ -61,8 +68,29 @@ public class DefaultCredentialKeyProvider implements ICredentialKeyProvider {
         this.activeKeyId = activeKeyId;
     }
 
+    @InjectValue("@cfg:nop.credential.key-provider|local")
+    public void setKeyProvider(String keyProvider) {
+        this.keyProvider = keyProvider;
+    }
+
     @PostConstruct
     public void init() {
+        // W10 default-bean 守卫（修正设计 §4.3 "模块缺失即启动失败"前提的平台机制落地）：
+        // NopIoC 的 ioc:default bean 是无条件兜底（$DEFAULT$ 前缀 + missing-bean 条件，
+        // 与配置项取值无关）——KMS 模块未部署时本 bean 会照常注册并回退 local，
+        // 正是设计要防的假安全。守卫在本 bean 实际构造时拦截：
+        // - keyProvider 非 local → 启动失败（配置指向 KMS 而模块缺失）；
+        // - 非 local 且 master-keys 非空 → 来源混合，启动失败（本地材料只允许存在于
+        //   KMS 实现配置中的迁移残余列表；此检查置于守卫使模块缺失场景下也可达）。
+        // key-provider=local/未配置时守卫零触发（一期行为不变）。
+        if (!StringHelper.isEmpty(keyProvider) && !"local".equals(keyProvider)) {
+            if (masterKeys != null && !masterKeys.isEmpty()) {
+                throw new NopException(CredentialErrors.ERR_CREDENTIAL_MASTER_KEYS_RESIDUAL);
+            }
+            throw new NopException(CredentialErrors.ERR_CREDENTIAL_KEY_PROVIDER_MODULE_MISSING)
+                    .param(CredentialErrors.ARG_KEY_PROVIDER, keyProvider);
+        }
+
         if (masterKeys == null || masterKeys.isEmpty()) {
             throw new NopException(CredentialErrors.ERR_CREDENTIAL_NO_MASTER_KEY_CONFIGURED);
         }

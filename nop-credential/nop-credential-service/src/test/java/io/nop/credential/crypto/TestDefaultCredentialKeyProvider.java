@@ -172,4 +172,69 @@ public class TestDefaultCredentialKeyProvider {
         assertTrue(ct.startsWith("cv1:keyB:v1:"));
         assertEquals(plain, cipher.decrypt(ct));
     }
+
+    // ==================== W10 default-bean 守卫（key-provider 门控） ====================
+
+    /**
+     * key-provider 未配置（缺省 local）：守卫零触发，一期行为不变。
+     */
+    @Test
+    public void guardInertWhenKeyProviderUnset() {
+        DefaultCredentialKeyProvider p = newProvider(Collections.singletonList("keyA:pass-a"));
+        p.init();
+        assertEquals("keyA", p.getActiveKeyId());
+    }
+
+    /**
+     * key-provider=local 显式配置：守卫零触发。
+     */
+    @Test
+    public void guardInertWhenKeyProviderLocal() {
+        DefaultCredentialKeyProvider p = newProvider(Collections.singletonList("keyA:pass-a"));
+        p.setKeyProvider("local");
+        p.init();
+        assertEquals("keyA", p.getActiveKeyId());
+    }
+
+    /**
+     * key-provider=vault 而实现模块未部署（default bean 兜底到此）：init 抛
+     * ERR_CREDENTIAL_KEY_PROVIDER_MODULE_MISSING（fail-closed，堵死假安全回退）。
+     * master-keys 为空（该分支的部署形态：KMS 配置已切换、本地材料已清空）。
+     */
+    @Test
+    public void initThrowsWhenKeyProviderPointsToMissingKmsModule() {
+        DefaultCredentialKeyProvider p = newProvider(Collections.emptyList());
+        p.setKeyProvider("vault");
+        NopException ex = assertThrows(NopException.class, p::init);
+        assertEquals("nop.err.credential.key-provider-module-missing", ex.getErrorCode());
+
+        DefaultCredentialKeyProvider p2 = newProvider(null);
+        p2.setKeyProvider("vault");
+        NopException ex2 = assertThrows(NopException.class, p2::init);
+        assertEquals("nop.err.credential.key-provider-module-missing", ex2.getErrorCode());
+    }
+
+    /**
+     * key-provider=vault 且 master-keys 残留：init 抛 ERR_CREDENTIAL_MASTER_KEYS_RESIDUAL
+     * （密钥来源混合拒绝；该检查置于守卫使模块缺失场景下也可达）。
+     */
+    @Test
+    public void initThrowsWhenKmsActiveAndMasterKeysResidual() {
+        DefaultCredentialKeyProvider p = newProvider(Arrays.asList("keyA:pass-a", "keyB:pass-b"));
+        p.setKeyProvider("vault");
+        NopException ex = assertThrows(NopException.class, p::init);
+        assertEquals("nop.err.credential.master-keys-residual", ex.getErrorCode());
+    }
+
+    /**
+     * key-provider 指向其他 KMS 标识（如 aws）而模块未部署：同样被守卫拦截
+     * （守卫对一切非 local 取值 fail-closed，不限于 vault）。
+     */
+    @Test
+    public void initThrowsForArbitraryNonLocalKeyProvider() {
+        DefaultCredentialKeyProvider p = newProvider(Collections.emptyList());
+        p.setKeyProvider("aws");
+        NopException ex = assertThrows(NopException.class, p::init);
+        assertEquals("nop.err.credential.key-provider-module-missing", ex.getErrorCode());
+    }
 }
