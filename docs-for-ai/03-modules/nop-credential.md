@@ -10,6 +10,7 @@
 - **多密钥与轮换**：`ICredentialKeyProvider` 支持多 key 并存，`reencryptAll` 批量重加密（确定性排序 + 游标翻页全覆盖）
 - **外部 KMS/HSM 集成**（W10）：主密钥材料托管于 Vault KV v2（材料交付模式），独立可选模块 `nop-credential-kms-vault`
 - **归属统一**（W11）：`scope=system|user` + `ownerId`（归属不可变；明文出口 user 级 owner 唯一、管理面 owner+管理员；BizModel 结构性读过滤 + 写分级两层防御）
+- **RBAC 细粒度授权**（W11 Part B）：`NopCredentialAuth`（角色↔凭证实例二值 use 授权表）——默认开放、可选收紧，仅作用于 system 级明文出口；admin-only grant/revoke 管理面（幂等契约）
 - **唯一解密点**：`ICredentialProvider` 实现位于 service 层，明文不跨出服务进程
 - **明文边界结构性强制**：xmeta `data` 列 `published=false`，BizModel 层恒置空，展示用 `maskList` 脱敏值
 - **引用计数删除拦截**：删除凭证前检查 `NopCredentialUsage` 引用计数，>0 拒绝删除
@@ -32,6 +33,7 @@
 |------|------|------|
 | NopCredential | `nop_credential` | 加密凭证实例（data 列存 `cv1:` 密文 JSON；scope/ownerId 归属列，见下"凭证归属"章节） |
 | NopCredentialUsage | `nop_credential_usage` | 凭证引用登记（credentialId + consumerRef 唯一约束；查询面限管理员） |
+| NopCredentialAuth | `nop_credential_auth` | 凭证取用授权（credentialId + roleId 唯一约束；物理删除；凭证删除时物理级联清理，见下"RBAC 细粒度授权"章节） |
 | NopCredentialOauthState | `nop_credential_oauth_state` | OAuth state 绑定（一次性消费 + TTL 过期 + 惰性清理，引擎内部存储） |
 
 > 凭证类型（`*.credential-type.xml`）无 DB 表，经平台 register-model 机制声明式加载。
@@ -144,7 +146,7 @@ keyId 密文按一期语义 fail-closed（`getKey` 抛错）。
 
 | 方法 | scope=system（含 NULL） | scope=user |
 |------|------------------------|------------|
-| `getCredential` / `getCredentialData`（明文出口） | 放行（一期行为不变） | **owner 唯一**——无用户上下文（后台任务/服务间调用）或 `userId != ownerId` 一律拒绝（`owner-only`，管理员不例外：最小权限，管理面 mask/test 足以完成管理职责） |
+| `getCredential` / `getCredentialData`（明文出口） | 放行（一期行为不变；存在授权记录时叠加 RBAC 收紧判定，见下"RBAC 细粒度授权"矩阵） | **owner 唯一**——无用户上下文（后台任务/服务间调用）或 `userId != ownerId` 一律拒绝（`owner-only`，管理员不例外：最小权限，管理面 mask/test 足以完成管理职责） |
 | `mask` / `testCredential`（管理面） | 放行 | owner 或管理员（`owner-or-admin`） |
 
 一期消费链（用户请求线程内上下文可达）对 system 级零感知；后台批处理（job/wf）无用户上下文，天然只能消费 system 级。
@@ -182,7 +184,47 @@ keyId 密文按一期语义 fail-closed（`getKey` 抛错）。
 
 ### DDL 迁移
 
-新建部署由 codegen 产物 `_create_nop-credential.sql` 覆盖（含 SCOPE/OWNER_ID 列，无默认值）；存量部署执行手写增量 `deploy/sql/{mysql,postgresql,oracle}/_add_scope_owner_nop-credential.sql`（循 `_add_tenant_`/`_add_oauth_state_` 先例；scope 不加 DDL 默认值——存量行 NULL 由校验/过滤侧视同 system 的语义等价裁定）。
+新建部署由 codegen 产物 `_create_nop-credential.sql` 覆盖（含 SCOPE/OWNER_ID 列，无默认值）；存量部署执行手写增量 `deploy/sql/{mysql,postgresql,oracle}/_add_scope_owner_nop-credential.sql`（循 `_add_tenant_`/`_add_oauth_state_` 先例；scope 不加 DDL 默认值——存量行 NULL 由校验/过滤侧视同 system 的语义等价裁定）。`nop_credential_auth` 表同理由 `_create_` 覆盖 / 增量脚本 `_add_credential_auth_nop-credential.sql`（CREATE TABLE 型）。
+
+## RBAC 细粒度授权（W11 Part B，凭证级"谁可以使用哪个凭证"）
+
+角色 ↔ 单个凭证实例的 **use 授权**（明文取用），弥补平台 RBAC（biz 操作级 + bizObj 行级过滤）在业务数据实例级的空白。**默认开放、可选收紧**：无授权记录的凭证 = 任何服务端调用可取（一期行为完全不变）；配置了授权记录 = 收紧为"命中授权角色（有用户上下文时）"。授权粒度仅单凭证（分组授权无需求实证，deferred）。
+
+### 授权数据模型与幂等契约
+
+- `NopCredentialAuth`：credentialId + roleId（(credentialId, roleId) 唯一约束）+ createTime/createdBy 审计列；**物理删除、无软删除列**（revoke→re-grant 循环靠物理删除与唯一约束天然成立）；授权变更审计走平台 ChangeLog（`tagSet="audit"`）。
+- **幂等契约**（对齐 `registerUsage`/`unregisterUsage` 先例）：grant 已存在的 (credentialId, roleId) = no-op 成功（唯一约束兜底并发竞态）；revoke 不存在的记录 = no-op 成功。
+- **入参校验**：grant 拒绝 scope≠system 的凭证（user 级不叠加角色授权——owner 唯一明文出口，不产生永不生效的授权记录，`auth-not-system-scope`）；凭证不存在/已删归一 NOT_FOUND/DELETED；roleId 仅非空校验（**不做存在性校验**——跨模块校验破坏 nop-credential 对 nop-auth 的依赖边界；死 roleId 求交永不命中，无害，管理面原样展示）。
+
+### 消费侧判定矩阵（provider 明文出口，解密之前）
+
+前置（先序，任意 scope/上下文/记录）：delFlag fail-closed（一期语义）；已删凭证一律拒绝，不进入下表。授权检查串联于 `getCredential`/`getCredentialData`（归属校验之后、解密之前）；`mask`/`testCredential` 管理面动作与 OAuth 发起写动作**不做凭证级授权**（分属 §5.3 管理面/写分级矩阵）。
+
+| # | scope | 用户上下文 | 授权记录 | 结果 |
+|---|---|---|---|---|
+| 2 | user | 非 owner（含 admin）/ 无上下文 | — | 拒绝（归属矩阵，`owner-only`；授权记录不参与 user 级判定） |
+| 3 | user | owner | — | 放行（归属即授权） |
+| 4 | system（含 NULL） | 任意 | 无 | **放行（一期行为不变——增量兼容基线）** |
+| 5 | system | 无用户上下文（后台任务/服务间） | 有 | 放行（**服务级信任**：SPI 是服务端边界，收紧针对"人"的冒用，不针对服务代码） |
+| 6 | system | 有 | 有 | 用户角色 ∩ 授权角色 ≠ ∅ → 放行；否则拒绝（`role-not-granted`，含 credentialId/roleIds 参数；**admin 不自动豁免**——管理员的管理权不等于取用权，需要时 grant 自己的角色） |
+
+- **角色快照时效**：用户角色集合为登录时快照（nop-auth 填充会话上下文，含一级复合角色展开）；授权记录（grant/revoke）**即时生效**（校验为 DB 点查，唯一键最左前缀，无 join/远程调用）；用户侧角色回收对存量会话的生效时点 = 该用户下次登录。roleId 按**字面**参与求交（不展开子角色）。
+- **信任边界（矩阵第 5 行推论）**：判定输入（`IUserContext` 有无）由消费链路决定——以用户名义发起的消费链必须保持上下文传播，链路丢失上下文即事实绕过第 6 行收紧（退化为第 5 行放行）；此为设计接受的信任边界（服务端代码不在防范对象内），上下文丢失告警审计归 A1-audit 评估。
+- **引擎内部通道豁免**（impl 裁定）：`engineGetDecryptedFields`/`engineUpdateTokenFields`/`engineUpdateInLock` 不查授权记录——明文不外泄（`beginOAuthFlow` 只返回授权 URL、publicAccess 回调返回跳转页不含 token、`saveCredential` 有写分级门控）、入口动作已被归属/管理员判定门控、与第 5 行服务级信任边界一致。两个用户上下文可达调用点（`beginOAuthFlow`→`OAuthFlowService`、`saveCredential` oauth2 分组写）为裁定显式覆盖对象（可达性事实，非"GraphQL 不可达"）。`getCredential` 内惰性刷新发生在检查通过之后。
+- **无记录路径性能语义**：与一期等价（单次按 credentialId 的索引查询）；有记录路径增加一次点查。撤销全部记录 → 回到第 4 行开放态（默认开放的对称性）。
+
+### 授权管理面（admin-only + 幂等）
+
+- **载体 = 独立 `NopCredentialAuthBizModel`**（impl 裁定：对齐 usage 查询面先例，避免膨胀 `NopCredentialBizModel`）；查询动作（findPage/findList/findFirst/findCount/get/batchGet）运行时 admin-only（无登录态同样拒绝）；action-auth delta `NopCredentialAuth:query`/`mutation` 收紧 `roles="admin"`（双层防御）。
+- **`grant(credentialId, roleId)` / `revoke(credentialId, roleId)`**：admin-only + 幂等契约（见上）；revoke 为授权行唯一删除通道。
+- **标准 mutation 旁路收口**（对齐 Part A 六动作同口径）：`save`/`update`/`delete`/`batchDelete`/`updateByQuery`/`deleteByQuery`/`copyForNew` 全部禁用（抛 `UnsupportedOperationException`；`update`/`updateByQuery` 另因授权行不可变——grant=insert、revoke=物理删除，无更新路径）。
+- **级联清理**：凭证删除时其授权行**物理级联清理**（`auths` 关系 `cascadeDelete="true"`；实现于父侧删除回调内 dao 显式清理——`cascade-delete` biz 级联 tag 的平台机制经子 BizModel delete 动作逐行调用，与子 delete 禁用互斥）；删除被 usage 引用计数拦截时授权行与凭证同存属正常语义（授权与引用正交）。
+- **收紧运维语义**：对已登记引用（`NopCredentialUsage`）的凭证做授权收紧会切断对应消费链路（"已绑定但不可用"）；凭证详情页同时可见授权列表与引用列表供收紧前核对（不自动告警）。
+- **管理员判定复用** `nop.credential.admin-roles`（缺省 `admin,nop-admin`）——与归属分级/usage 查询面同一配置口径；凭证库不依赖 nop-auth 模块（角色经 `IUserContext` 会话上下文传播，roleId 字符串软引用）。
+
+### Web 授权编辑（凭证详情页最小面）
+
+`NopCredential.view.xml` 详情页（view）afterForm 挂"取用授权（RBAC 收紧）"子表：`@query:NopCredentialAuth__findPage?filter_credentialId=...` 列表 + revoke 撤销（确认文案提示收紧语义）+ grant 新增对话框（角色选择器 source `@query:NopAuthRole__findList/value:roleId,label:roleName` + 手工输入兜底）。**共部署语义**：standalone `nop-credential-app` 无 NopAuthRole GraphQL 服务时选择器为空源、手工输入 roleId 为主通道（后端仅校验非空）；详情页同屏展示 usage 引用子表（收紧前核对）。
 
 ## 子模块
 
@@ -209,8 +251,8 @@ keyId 密文按一期语义 fail-closed（`getKey` 抛错）。
 
 | 方法 | 语义 |
 |------|------|
-| `getCredential(credentialId)` | 返回全部解密字段（明文，仅服务端 Java 可调；user 级 owner 唯一，见"凭证归属"矩阵） |
-| `getCredentialData(credentialId, field)` | 取单个字段（如 apiKey；user 级 owner 唯一） |
+| `getCredential(credentialId)` | 返回全部解密字段（明文，仅服务端 Java 可调；user 级 owner 唯一、system 级可被授权记录收紧，见"凭证归属"/"RBAC 细粒度授权"矩阵） |
+| `getCredentialData(credentialId, field)` | 取单个字段（如 apiKey；同上判定矩阵） |
 | `testCredential(credentialId)` | 连通性测试（user 级 owner+管理员） |
 | `mask(credentialId)` | 脱敏视图（REST/GraphQL 层用；user 级 owner+管理员） |
 | `registerUsage(credentialId, consumerRef)` | 消费方绑定凭证时登记引用（幂等） |
@@ -243,6 +285,8 @@ GraphQL/REST 管理 CRUD，明文结构性不可达：
 
 禁用动作（抛 `UnsupportedOperationException`）：标准 `save`/`update`/`batchDelete`/`updateByQuery`/`deleteByQuery`/`copyForNew`（收口原因见上"凭证归属"章节六动作表）；`batchGet` 走可见性过滤语义。
 
+授权管理 API 面（`NopCredentialAuthBizModel`，W11 Part B，全部限管理员 + 幂等契约见上"RBAC 细粒度授权"章节）：`grant(credentialId, roleId)` / `revoke(credentialId, roleId)` mutation；查询动作（findPage/findList/findFirst/findCount/get/batchGet）同 admin-only（`NopCredentialAuth` 实体管理信息）；标准 `save`/`update`/`delete`/`batchDelete`/`updateByQuery`/`deleteByQuery`/`copyForNew` 禁用（授权行经 grant/revoke 唯一通道维护）。
+
 OAuth 流程 API 面（`CredentialOAuthApiBizModel`）：`beginOAuthFlow(credentialId)` mutation（登录态，返回授权 URL）；`oauthCallback(code, state)` query（publicAccess 单一公开回调，返回 HTML 跳转页）。
 
 ## 明文边界（结构性强制，非约定）
@@ -263,7 +307,7 @@ OAuth 流程 API 面（`CredentialOAuthApiBizModel`）：`beginOAuthFlow(credent
 | Vault KMS | `nop.credential.vault.*`（见上"外部 KMS/HSM 集成"配置项表） |
 | 重加密分页 | `nop.credential.reencrypt-page-size`（缺省 1000） |
 | OAuth 引擎 | `nop.credential.oauth.*`（见上"OAuth 配置项"表） |
-| 凭证库管理员角色 | `nop.credential.admin-roles`（CSV，缺省 `admin,nop-admin`；归属分级/usage 查询面/reencryptAll 的 admin 判定依据） |
+| 凭证库管理员角色 | `nop.credential.admin-roles`（CSV，缺省 `admin,nop-admin`；归属分级/usage 查询面/reencryptAll/RBAC 授权管理面（grant/revoke/查询）的 admin 判定依据） |
 
 ## 源码锚点
 
@@ -281,6 +325,7 @@ OAuth 流程 API 面（`CredentialOAuthApiBizModel`）：`beginOAuthFlow(credent
 | 管理 BizModel | `nop-credential/nop-credential-service/src/main/java/io/nop/credential/service/entity/NopCredentialBizModel.java` |
 | 归属判定工具 | `nop-credential/nop-credential-service/src/main/java/io/nop/credential/service/CredentialOwnership.java`（scope 语义/admin 判定/可见性/写分级） |
 | usage 查询面 BizModel | `nop-credential/nop-credential-service/src/main/java/io/nop/credential/service/entity/NopCredentialUsageBizModel.java`（admin 限定） |
+| RBAC 授权管理面 BizModel | `nop-credential/nop-credential-service/src/main/java/io/nop/credential/service/entity/NopCredentialAuthBizModel.java`（grant/revoke 幂等 + admin-only 查询面 + 七旁路禁用；provider 侧判定矩阵在 `CredentialProviderImpl.assertRoleAuthForPlaintext`） |
 | ORM 模型 | `nop-credential/model/nop-credential.orm.xml` |
 | 类型元模型 | `nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/credential/credential-type.xdef` |
 | 底层加密原语 | `nop-kernel/nop-commons/src/main/java/io/nop/commons/crypto/impl/AESTextCipher.java`（复用，不修改） |
