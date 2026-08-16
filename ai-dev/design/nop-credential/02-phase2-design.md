@@ -205,6 +205,7 @@
 **字段语义与默认值**：
 
 - `scope`：`system | user`，缺省 `system`。缺省值保证存量数据与既有调用（不传 scope 的 saveCredential）行为零迁移——一期凭证天然是系统级共享。**存量行的 NULL 语义**：新列对存量行为 NULL，NULL 视同 `system`（校验侧 NULL 容忍）；新写入恒写显式值；不做存量回填 DDL（DDL 层加列默认值由 W11-impl 裁定，语义等价）。
+  > **W11-impl 裁定标注（2026-08-16 回写）**：DDL 加列**不设默认值**（`_create_` 与三方言增量 `_add_scope_owner_nop-credential.sql` 均为 `SCOPE VARCHAR(20) NULL`）——存量行 NULL 由校验/过滤侧视同 system（`CredentialOwnership.isUserScope` 仅识别显式 `user`，NULL/`system` 同路径），读写矩阵在 NULL 分支有专项测试；避免 DDL 默认值造成的"缺省值 ≠ 应用层语义"双源维护。
 - `ownerId`：scope=user 时必填（saveCredential 层校验），scope=system 时强制空（传入即拒绝）。字符串 userId，与 nop-auth 用户标识同构，不做外键/跨模块 join（凭证库不依赖 nop-auth，见 §六 依赖边界）。**owner 消亡为显式接受后果**：owner 用户被删除/停用后其 user 级凭证永久不可取用（fail-closed），仅管理员可见/可删；不做"owner 不存在则放行"类补丁。
 - 归属不可变：update 路径不接受 scope/ownerId 变更（传入与存量不符即拒绝）；"转让"语义 = 删除旧凭证 + 新建（引用计数删除拦截天然保护消费方）。
 - **管理员代建**：允许管理员创建 user 级凭证并指定他人为 owner（运维代录入场景）；创建者与 owner 不一致记入审计。
@@ -223,6 +224,7 @@
 - **provider 层归属校验为纵深防御**（见上）：BizModel 面被绕过时第二道 fail-closed。
 - `saveCredential`：新增可选输入 scope/ownerId；普通用户创建 user 级凭证时 ownerId **强制等于当前登录用户**（不可指定他人）；创建 system 级凭证限管理员；缺省不传 = system（一期行为不变）。
 - **继承动作面收口**：标准 `update`/`batchDelete` 禁用（与标准 `save` 同理——绕过加密、归属不可变与引用拦截的旁路）；`findList`/`findFirst` 等继承查询动作应用与 `findPage` 相同的结构性过滤；`reencryptAll` 限管理员（进程内重加密不出明文，但属全量敏感操作）；usage 记录查询面（`NopCredentialUsageBizModel`）限管理员（引用关系属管理信息；消费方登记走 SPI `registerUsage`/`unregisterUsage` 不受影响）。
+  > **W11-impl 裁定标注（2026-08-16 回写）**：收口面按 draft review 核定扩展为**六个旁路动作**——`update`/`batchDelete`/`updateByQuery`（基类 prepareQuery 传 null 绕过读过滤）/`deleteByQuery`（经 `doDeleteMulti → doDelete` 不经过本类 `delete` 的引用计数拦截，破坏一期契约）/`copyForNew`（在 saveCredential 之外复制密文行）全部禁用（抛 `UnsupportedOperationException`，与标准 `save` 同口径）；`batchGet`（`dao.batchGetEntitiesByIds` 直取绕过读过滤）收口裁定为**改走行级可见性过滤语义**而非禁用（UI 批量取数合法场景保留，不可见行剔除）。写类分级对**无登录态的内部调用**：system 级按一期行为放行（GraphQL 入口生产由 action-auth 管角色，BizModel 为第二层）、user 级拒绝（owner 无法判定）；usage 查询面无登录态同样拒绝（唯一合法消费方为管理员管理面）。`beginOAuthFlow` 发起动作归属校验（W9 回补）按 §5.1 结论 5 写类矩阵落地：system=管理员、user=owner+管理员（plan 措辞"user=owner"为简写，以其自引的 §5.3 矩阵为准——admin 本就可经 saveCredential 更新 user 级凭证，不扩大权限面）。
 - 拒绝把归属过滤建模为 `NopAuthRoleDataAuth` 类可配置数据权限规则：归属是凭证模型的结构语义（创建时确定、不可变更），做成可配置规则会引入"配置错误即越权/丢访问"的治理面，收益为零。
 
 **与一期管理 API 的兼容输入**：既有调用（不传 scope/ownerId）= 创建/查询 system 级，与一期完全一致。

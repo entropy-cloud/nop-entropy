@@ -1,6 +1,6 @@
 # W11-impl(A) 凭证归属统一（scope=system|user + ownerId）
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: nop-credential-mfa
 > Work Item: W11-impl（Part A：归属统一；Part B：RBAC 授权为 successor plan，见"拆分裁定"）
 > Last Reviewed: 2026-08-16
@@ -73,83 +73,83 @@ W11-impl 交付面（归属 + RBAC 两主题）经独立 draft review 估算约 
 
 ### Phase 1 - ORM 归属字段 + provider 归属校验
 
-Status: planned
+Status: completed
 Targets: `nop-credential/model/nop-credential.orm.xml`、`deploy/sql/*`、`CredentialProviderImpl`、`io/nop/credential/crypto/CredentialErrors`、`config/CredentialConfigs`
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] **Fix**：ORM——`NopCredential` 新增 `scope`（VARCHAR，**不加 DDL 默认值**：存量行 NULL 由校验/过滤侧视同 system，语义等价裁定记录于此；新写入恒显式值）与 `ownerId`（VARCHAR，可空）；`usageScope` 列保留但注释标注 deprecated；`usages` relation 收紧：`tagSet` 去掉 `pub`（usage 管理信息经 admin 限定的 `NopCredentialUsageBizModel` 查询面访问，堵 GraphQL selection 绕过——实施时若去 pub 破坏既有合法引用则回写替代裁定）。codegen 重生成（禁止手编 `_gen`/`_` 前缀生成物）+ `_create_` 再生成 + 存量部署手写增量 alter 脚本（循 `_add_tenant_` 先例，非 codegen 产物），三方言齐备。
-- [ ] **Fix**：`CredentialProviderImpl` 归属校验（§5.3 per-method 矩阵，解密之前、fail-closed，先序 delFlag）——`getCredential`/`getCredentialData`：scope=user 时无用户上下文或 `userId != ownerId` → 拒绝（admin 不例外）；`mask`/`testCredential`：user 级 owner 或管理员放行；scope=system（**含 NULL**）放行。新错误码入 `crypto/CredentialErrors`（归属不符，`nop.err.credential.*`），不返回 null/空；已删凭证维持一期 `ERR_CREDENTIAL_DELETED` 语义（先序 delFlag、不进入归属判定）。
-- [ ] **Fix**：管理员判定——`nop.credential.admin-roles`（CSV，缺省 `admin,nop-admin`）入 `config/CredentialConfigs` + `IUserContext.isUserInAnyRole` 运行时判定工具方法。
-- [ ] **Decision**：无用户上下文场景语义确认——后台任务/服务间调用取 user 级凭证一律拒绝（owner 消亡同 fail-closed，仅管理员可见/可删），测试固化该语义；一期消费链（W7-successor，用户请求线程内上下文可达）对 system 级零感知。
-- [ ] **Proof**：单测——user 级 owner 取明文成功 / 非 owner（含 admin）拒绝 / 无上下文拒绝 / system 级（含存量 NULL scope）零变化（一期回归）/ mask/test owner+admin 放行、他人拒绝 / delFlag 先于归属（已删凭证报 ERR_CREDENTIAL_DELETED，不泄露归属）。
+- [x] **Fix**：ORM——`NopCredential` 新增 `scope`（VARCHAR，**不加 DDL 默认值**：存量行 NULL 由校验/过滤侧视同 system，语义等价裁定记录于此；新写入恒显式值）与 `ownerId`（VARCHAR，可空）；`usageScope` 列保留但注释标注 deprecated；`usages` relation 收紧：`tagSet` 去掉 `pub`（usage 管理信息经 admin 限定的 `NopCredentialUsageBizModel` 查询面访问，堵 GraphQL selection 绕过——实施时若去 pub 破坏既有合法引用则回写替代裁定）。codegen 重生成（禁止手编 `_gen`/`_` 前缀生成物）+ `_create_` 再生成 + 存量部署手写增量 alter 脚本（循 `_add_tenant_` 先例，非 codegen 产物），三方言齐备。
+- [x] **Fix**：`CredentialProviderImpl` 归属校验（§5.3 per-method 矩阵，解密之前、fail-closed，先序 delFlag）——`getCredential`/`getCredentialData`：scope=user 时无用户上下文或 `userId != ownerId` → 拒绝（admin 不例外）；`mask`/`testCredential`：user 级 owner 或管理员放行；scope=system（**含 NULL**）放行。新错误码入 `crypto/CredentialErrors`（归属不符，`nop.err.credential.*`），不返回 null/空；已删凭证维持一期 `ERR_CREDENTIAL_DELETED` 语义（先序 delFlag、不进入归属判定）。
+- [x] **Fix**：管理员判定——`nop.credential.admin-roles`（CSV，缺省 `admin,nop-admin`）入 `config/CredentialConfigs` + `IUserContext.isUserInAnyRole` 运行时判定工具方法。
+- [x] **Decision**：无用户上下文场景语义确认——后台任务/服务间调用取 user 级凭证一律拒绝（owner 消亡同 fail-closed，仅管理员可见/可删），测试固化该语义；一期消费链（W7-successor，用户请求线程内上下文可达）对 system 级零感知。
+- [x] **Proof**：单测——user 级 owner 取明文成功 / 非 owner（含 admin）拒绝 / 无上下文拒绝 / system 级（含存量 NULL scope）零变化（一期回归）/ mask/test owner+admin 放行、他人拒绝 / delFlag 先于归属（已删凭证报 ERR_CREDENTIAL_DELETED，不泄露归属）。
 
 Exit Criteria:
 
-- [ ] `./mvnw clean install -pl nop-credential -am -T 1C` 绿；`_create_` 再生成 + 三方言增量 alter 脚本齐备。
-- [ ] **端到端验证**：模拟用户请求上下文（`ContextProvider` 注入 `IUserContext`）从 `ICredentialProvider.getCredential` 入口到明文/拒绝出口全路径测试；W7-successor 消费链回归：`./mvnw test -pl nop-ai -am` 绿（system 级凭证经 resolver 取用不变——注意 `-pl nop-credential -am` 覆盖不到 nop-ai）。
-- [ ] **无静默跳过**：所有拒绝分支显式抛错（测试覆盖矩阵每格）。
-- [ ] **新功能测试**：列出归属矩阵测试类与用例名。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] `./mvnw clean install -pl nop-credential -am -T 1C` 绿；`_create_` 再生成 + 三方言增量 alter 脚本齐备。
+- [x] **端到端验证**：模拟用户请求上下文（`ContextProvider` 注入 `IUserContext`）从 `ICredentialProvider.getCredential` 入口到明文/拒绝出口全路径测试；W7-successor 消费链回归：`./mvnw test -pl nop-ai -am` 绿（system 级凭证经 resolver 取用不变——注意 `-pl nop-credential -am` 覆盖不到 nop-ai）。
+- [x] **无静默跳过**：所有拒绝分支显式抛错（测试覆盖矩阵每格）。
+- [x] **新功能测试**：列出归属矩阵测试类与用例名。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 2 - BizModel 归属过滤 + 写分级 + 继承动作面收口 + action-auth + W9 回补
 
-Status: planned
+Status: completed
 Targets: `NopCredentialBizModel`、`NopCredentialUsageBizModel`、W9-impl `beginOAuthFlow`、`nop-credential-web/.../auth/nop-credential.action-auth.xml`、`nop-credential-web/.../pages/NopCredential/*`（scope/ownerId 最小展示/选择面）
 
 - Item Types: `Fix | Proof`
 
-- [ ] **Fix**：`saveCredential` 新增可选输入 `scope`/`ownerId`——缺省不传 = system（一期行为不变）；**update 路径缺省不传 = 保持不变**（仅显式传入且与存量不符才拒）；普通用户建 user 级强制 ownerId=当前登录用户；管理员可代建（指定他人 owner，审计载体 = 行内 `createdBy ≠ ownerId` 自证 + 平台 ChangeLog，注意 ChangeLog 对插入需 `audit-save` tag 的事实）；建 system 级限管理员；scope=user 且 ownerId 空 / scope=system 且 ownerId 非空 → 拒绝；归属不可变（显式传变更值即拒）。
-- [ ] **Fix**：读类结构性过滤——覆盖 `defaultPrepareQuery` 注入条件：非管理员登录用户 **`scope=system ∨ scope IS NULL ∨ (scope=user ∧ ownerId=本人)`**（NULL 分支防存量行从普通用户视野消失）；管理员不加过滤；`get`/`maskList`/`test` 单条越权归一"不存在"语义（覆盖 `get` 抛 `UnknownEntityException` 与软删除同口径；**maskList/test 在 BizModel 层先做行级可见性预检、不可见即按 NOT_FOUND 归一**，再调 provider——否则 provider 的显式归属错误码会泄露归属存在性）；`typeList` 返回类型注册表、与行过滤无关（不在过滤面）。
-- [ ] **Fix**：写类分级——`saveCredential` 修改路径：system 级限管理员、user 级限 owner+管理员；`delete` 同级；标准 `update`/`batchDelete` **禁用**（抛 `UnsupportedOperationException`，与标准 `save` 同口径）；**`updateByQuery`/`deleteByQuery`/`batchGet`/`copyForNew` 四动作收口**（禁用或强制走过滤+分级语义，逐个裁定记录：`deleteByQuery` 必须禁用——绕过引用计数拦截破坏一期契约；`updateByQuery` 禁用——prepareQuery 旁路；`batchGet` 改走过滤语义或禁用；`copyForNew` 禁用——在 saveCredential 外复制密文行）；`reencryptAll` 限管理员。
-- [ ] **Fix**：`NopCredentialUsageBizModel` 查询面限管理员（action-auth 收紧 + BizModel 运行时判定双层）。
-- [ ] **Fix**：action-auth delta——`NopCredential:saveCredential`/`test` 对登录用户开放（角色分级由 BizModel 运行时判定执行，避免 action 层提前 403 使 user 级功能不可达）；usage query 资源收紧 admin。
-- [ ] **Fix**：**W9 回补**——oauth2 `beginOAuthFlow` 发起动作归属校验：system 级限管理员、user 级限 owner（与 §5.3 CRUD 矩阵一致）。
-- [ ] **Fix**：Web 最小面——`NopCredential` 列表/详情只读展示 scope/ownerId，创建表单增可选归属选择（scope + ownerId，输入契约与 `saveCredential` 分级校验一致：普通用户选 user 级时 ownerId 固定为本人；usage 页面无改动面）。
-- [ ] **Proof**：单测——普通用户 CRUD 可见性边界（见 system+NULL/不见他人 user 级）、越权单条归一（get/maskList/test）、六动作收口（update/batchDelete/updateByQuery/deleteByQuery/batchGet/copyForNew 均不可绕过）、归属不可变、管理员代建 `createdBy≠ownerId`、W9 发起动作归属两分支。
-- [ ] **Proof（GraphQL 级端到端）**：经 GraphQL 引擎（`graphQLEngine.newRpcContext` 先例）验证普通登录用户可建 user 级凭证、可见集正确、越权 id 归一——绕过 BizModel 直调的单测不能替代入口级验证。
+- [x] **Fix**：`saveCredential` 新增可选输入 `scope`/`ownerId`——缺省不传 = system（一期行为不变）；**update 路径缺省不传 = 保持不变**（仅显式传入且与存量不符才拒）；普通用户建 user 级强制 ownerId=当前登录用户；管理员可代建（指定他人 owner，审计载体 = 行内 `createdBy ≠ ownerId` 自证 + 平台 ChangeLog，注意 ChangeLog 对插入需 `audit-save` tag 的事实）；建 system 级限管理员；scope=user 且 ownerId 空 / scope=system 且 ownerId 非空 → 拒绝；归属不可变（显式传变更值即拒）。
+- [x] **Fix**：读类结构性过滤——覆盖 `defaultPrepareQuery` 注入条件：非管理员登录用户 **`scope=system ∨ scope IS NULL ∨ (scope=user ∧ ownerId=本人)`**（NULL 分支防存量行从普通用户视野消失）；管理员不加过滤；`get`/`maskList`/`test` 单条越权归一"不存在"语义（覆盖 `get` 抛 `UnknownEntityException` 与软删除同口径；**maskList/test 在 BizModel 层先做行级可见性预检、不可见即按 NOT_FOUND 归一**，再调 provider——否则 provider 的显式归属错误码会泄露归属存在性）；`typeList` 返回类型注册表、与行过滤无关（不在过滤面）。
+- [x] **Fix**：写类分级——`saveCredential` 修改路径：system 级限管理员、user 级限 owner+管理员；`delete` 同级；标准 `update`/`batchDelete` **禁用**（抛 `UnsupportedOperationException`，与标准 `save` 同口径）；**`updateByQuery`/`deleteByQuery`/`batchGet`/`copyForNew` 四动作收口**（禁用或强制走过滤+分级语义，逐个裁定记录：`deleteByQuery` 必须禁用——绕过引用计数拦截破坏一期契约；`updateByQuery` 禁用——prepareQuery 旁路；`batchGet` 改走过滤语义或禁用；`copyForNew` 禁用——在 saveCredential 外复制密文行）；`reencryptAll` 限管理员。
+- [x] **Fix**：`NopCredentialUsageBizModel` 查询面限管理员（action-auth 收紧 + BizModel 运行时判定双层）。
+- [x] **Fix**：action-auth delta——`NopCredential:saveCredential`/`test` 对登录用户开放（角色分级由 BizModel 运行时判定执行，避免 action 层提前 403 使 user 级功能不可达）；usage query 资源收紧 admin。
+- [x] **Fix**：**W9 回补**——oauth2 `beginOAuthFlow` 发起动作归属校验：system 级限管理员、user 级限 owner（与 §5.3 CRUD 矩阵一致）。〔实施裁定：plan 措辞 "user=owner" 与其自引的 §5.3 写类矩阵（user 级限 owner+管理员）冲突，按设计文档（Source of truth）落地 owner+管理员，测试固化两分支+admin 分支；W9 既有测试用户提升为 admin 角色以维持 system 级发起闭环〕
+- [x] **Fix**：Web 最小面——`NopCredential` 列表/详情只读展示 scope/ownerId，创建表单增可选归属选择（scope + ownerId，输入契约与 `saveCredential` 分级校验一致：普通用户选 user 级时 ownerId 固定为本人；usage 页面无改动面）。
+- [x] **Proof**：单测——普通用户 CRUD 可见性边界（见 system+NULL/不见他人 user 级）、越权单条归一（get/maskList/test）、六动作收口（update/batchDelete/updateByQuery/deleteByQuery/batchGet/copyForNew 均不可绕过）、归属不可变、管理员代建 `createdBy≠ownerId`、W9 发起动作归属两分支。
+- [x] **Proof（GraphQL 级端到端）**：经 GraphQL 引擎（`graphQLEngine.newRpcContext` 先例）验证普通登录用户可建 user 级凭证、可见集正确、越权 id 归一——绕过 BizModel 直调的单测不能替代入口级验证。
 
 Exit Criteria:
 
-- [ ] 两层防御均落地：BizModel 过滤绕过时 provider 层仍拦截（测试模拟直接调 provider）。
-- [ ] Web 最小面已落地：`NopCredential/main.page.yaml` 展示列与创建表单归属选择与 `saveCredential` 输入契约一致（页面文件核对 + 模块构建绿）。
-- [ ] 一期零回归：不传 scope/ownerId 的既有调用、非管理员对 system 级（含 NULL）凭证的既有可见性、W7-successor 消费链、W9 oauth 闭环（回补后）全部既有测试绿（含 `./mvnw test -pl nop-ai -am`）。
-- [ ] **新功能测试**：列出测试类与用例名（含 GraphQL 级用例）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 两层防御均落地：BizModel 过滤绕过时 provider 层仍拦截（测试模拟直接调 provider）。
+- [x] Web 最小面已落地：`NopCredential/main.page.yaml` 展示列与创建表单归属选择与 `saveCredential` 输入契约一致（页面文件核对 + 模块构建绿）。
+- [x] 一期零回归：不传 scope/ownerId 的既有调用、非管理员对 system 级（含 NULL）凭证的既有可见性、W7-successor 消费链、W9 oauth 闭环（回补后）全部既有测试绿（含 `./mvnw test -pl nop-ai -am`）。
+- [x] **新功能测试**：列出测试类与用例名（含 GraphQL 级用例）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 3 - 文档同步 + 收口验证
 
-Status: planned
+Status: completed
 Targets: `docs-for-ai/03-modules/nop-credential.md`、`ai-dev/design/nop-credential/02-phase2-design.md`（仅追加 impl 裁定标注）、`ai-dev/backlog/nop-credential-mfa-roadmap.md`
 
 - Item Types: `Follow-up | Proof`
 
-- [ ] **Follow-up**：`docs-for-ai/03-modules/nop-credential.md` 补归属章节（scope/ownerId 语义与不可变规则、per-method 矩阵、NULL 视同 system、admin-roles 配置、单条归一语义、六个收口动作清单、usageScope 废弃说明、action-auth 变更说明）。
-- [ ] **Proof**：全模块验证 `./mvnw test -pl nop-credential -am` + `./mvnw test -pl nop-ai -am`；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-credential --severity high` **本 plan 触碰文件中 0 条 NEW high/critical 发现**（区分 pre-existing：live 已知 pre-existing = `NopCredentialBizModel.java:105` 标准 save 禁用抛 UnsupportedOperationException，为一期有意模式；本 plan 新增的同类禁用动作属同模式，附完整扫描输出对照裁定）。
-- [ ] **Follow-up**：roadmap W11-impl 条目更新——本 plan 收口时在 roadmap 登记 Part B（RBAC successor）待办标注（防 Part A 收口后 W11-impl 被误标 done）；W11-impl 的 `done` 以 Part A/Part B 双 plan 全部 closure audit 通过后为准（本 plan 不代劳标 done）。
+- [x] **Follow-up**：`docs-for-ai/03-modules/nop-credential.md` 补归属章节（scope/ownerId 语义与不可变规则、per-method 矩阵、NULL 视同 system、admin-roles 配置、单条归一语义、六个收口动作清单、usageScope 废弃说明、action-auth 变更说明）。
+- [x] **Proof**：全模块验证 `./mvnw test -pl nop-credential -am` + `./mvnw test -pl nop-ai -am`；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-credential --severity high` **本 plan 触碰文件中 0 条 NEW high/critical 发现**（区分 pre-existing：live 已知 pre-existing = `NopCredentialBizModel.java:105` 标准 save 禁用抛 UnsupportedOperationException，为一期有意模式；本 plan 新增的同类禁用动作属同模式，附完整扫描输出对照裁定）。〔裁定：全量 6 条 high 均为 P1 UnsupportedOperationException——1 条 pre-existing（标准 save，行号漂移至 127）+ 5 条本 plan 新增（update/batchDelete/updateByQuery/deleteByQuery/copyForNew 五个旁路动作的有意禁用，Phase 2 明确交付物），每条均带原因的显式消息 + javadoc + 收口测试断言路径 fail-closed，属 plan 预裁定的同模式，非空壳实现〕
+- [x] **Follow-up**：roadmap W11-impl 条目更新——本 plan 收口时在 roadmap 登记 Part B（RBAC successor）待办标注（防 Part A 收口后 W11-impl 被误标 done）；W11-impl 的 `done` 以 Part A/Part B 双 plan 全部 closure audit 通过后为准（本 plan 不代劳标 done）。
 
 Exit Criteria:
 
-- [ ] 文档矩阵/配置项/收口动作清单与 live 实现一致（可对号）。
-- [ ] 验证命令通过（scan-hollow 按 NEW 发现口径，附输出）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 文档矩阵/配置项/收口动作清单与 live 实现一致（可对号）。
+- [x] 验证命令通过（scan-hollow 按 NEW 发现口径，附输出）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
 
-- [ ] 归属判定矩阵（§5.3 per-method）全格测试通过；NULL scope 分支有专项测试。
-- [ ] 一期零回归：不传归属输入的 CRUD、非管理员对 system/NULL 凭证可见性、W7-successor 消费链、W9 oauth 闭环全部既有测试绿。
-- [ ] 两层防御成立（BizModel 过滤 + provider 纵深校验，绕过面测试）。
-- [ ] 继承动作面六个旁路（update/batchDelete/updateByQuery/deleteByQuery/batchGet/copyForNew）全部收口，引用计数拦截无绕过路径。
-- [ ] 依赖边界守住：nop-credential 全模块 `mvn dependency:tree` 无 nop-auth 依赖引入。
-- [ ] ORM 变更经 model-first（源 → codegen → DDL），无手编生成物。
-- [ ] GraphQL 入口级端到端验证通过（非仅 BizModel 直调单测）。
-- [ ] 无空壳/静默跳过（scan-hollow NEW 发现为 0 + 矩阵分支测试覆盖）。
-- [ ] 受影响 owner docs 已同步。
-- [ ] 独立子 agent closure-audit 已完成并记录证据（含 Anti-Hollow Check：BizModel 过滤 → provider 校验 → 解密出口调用链追踪）。
-- [ ] `./mvnw clean install -pl nop-credential -am -T 1C` 绿。
-- [ ] `./mvnw test -pl nop-credential -am` + `./mvnw test -pl nop-ai -am` 绿。
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（checklist 全勾选 + Closure Evidence 已写入）。
-- [ ] checkstyle / 代码规范检查通过。
+- [x] 归属判定矩阵（§5.3 per-method）全格测试通过；NULL scope 分支有专项测试。
+- [x] 一期零回归：不传归属输入的 CRUD、非管理员对 system/NULL 凭证可见性、W7-successor 消费链、W9 oauth 闭环全部既有测试绿。
+- [x] 两层防御成立（BizModel 过滤 + provider 纵深校验，绕过面测试）。
+- [x] 继承动作面六个旁路（update/batchDelete/updateByQuery/deleteByQuery/batchGet/copyForNew）全部收口，引用计数拦截无绕过路径。
+- [x] 依赖边界守住：nop-credential 全模块 `mvn dependency:tree` 无 nop-auth 依赖引入（7 模块逐一心查 0 引用；触碰 Java 文件 `import io.nop.auth` 零匹配）。
+- [x] ORM 变更经 model-first（源 → codegen → DDL），无手编生成物。
+- [x] GraphQL 入口级端到端验证通过（非仅 BizModel 直调单测）。
+- [x] 无空壳/静默跳过（scan-hollow NEW 发现为 0 + 矩阵分支测试覆盖；6 条 high 全量 = 1 pre-existing + 5 条 plan 预裁定同模式有意禁用，见 Phase 3 裁定）。
+- [x] 受影响 owner docs 已同步。
+- [x] 独立子 agent closure-audit 已完成并记录证据（含 Anti-Hollow Check：BizModel 过滤 → provider 校验 → 解密出口调用链追踪）。
+- [x] `./mvnw clean install -pl nop-credential -am -T 1C` 绿。
+- [x] `./mvnw test -pl nop-credential -am` + `./mvnw test -pl nop-ai -am` 绿。
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（checklist 全勾选 + Closure Evidence 已写入）。
+- [x] checkstyle / 代码规范检查通过（`./mvnw checkstyle:check -pl nop-credential -Pqa` exit 0；默认 checkstyle 配置对上游模块有 9164 条 pre-existing 违规，非项目门禁）。
 
 ## Deferred But Adjudicated
 
@@ -179,10 +179,21 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: (待收口时填写；注意：本 plan 收口 ≠ W11-impl 工作项 done——Part B successor plan 须一并收口)
-Completed: (未完成)
+Status Note: Part A（归属统一）三个 Phase 全部执行完毕并经独立 closure audit 复核（0 Blocker/0 Major）。注意：本 plan 收口 ≠ W11-impl 工作项 done——Part B（RBAC successor）待办已在 roadmap 登记（W11-impl 保持 `doing`，`done` 以双 plan closure audit 通过为准）。
+Completed: 2026-08-16
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: (待独立 closure audit)
-- Evidence: (待记录)
+- Reviewer / Agent: 独立子 agent closure audit（opencode general subagent，task id `ses_ff511b504ffewORq0n1odh3Wq4`，2026-08-16）
+- Evidence:
+  - 逐项 PASS（file:line 实证）：ORM（scope/ownerId 无 DDL 默认值 + `_create_`/`_add_scope_owner_` 三方言齐备 + usages 去 pub → xmeta `published=false`）/ provider 矩阵（`assertOwnershipForPlaintext:492` owner-only、`assertOwnershipForMaskOrTest` owner+admin、先序 delFlag 后解密）/ CredentialOwnership（admin-roles CSV→isUserInAnyRole、writeDenialReason 分级）/ BizModel（saveCredential 归属输入与分级、`defaultPrepareQuery:385` 结构性过滤、get 归一 UnknownEntityException、maskList/test 预检归一 NOT_FOUND、写分级、六旁路收口 `:712/:723/:735/:747/:759` + batchGet 过滤 `:783`、reencryptAll admin）/ usage 查询面 admin / W9 回补（`assertBeginOwnership:128`）/ action-auth delta / 测试非空壳（12+20+6 用例，surefire 12/0/0、20/0/0、25/0/0，时间戳后于源码 mtime）/ 文档-roadmap-设计标注一致 / 依赖边界零 nop-auth。
+  - Anti-Hollow 检查：(a) `invokeDefaultPrepareQuery` 经 `getThisObj().invoke` 派发至子类覆盖（CrudBizModel `findCount:281`/`findPage:310`/`findFirst:479`/`findList:1543` 全部传入）+ GraphQL 级过滤测试行为实证；(b) provider 调用链 `loadActiveCredential(delFlag) → assertOwnership* → decryptToData` 顺序确认；(c) 触碰文件无空方法体/静默跳过（两处 `catch (NopException ignored)` 为文档化的保守脱敏/类型容忍语义）；`scan-hollow --severity high` 复跑 = 6 条（1 pre-existing + 5 plan 预裁定有意禁用），与 Phase 3 裁定逐字一致。
+  - Deferred 项分类检查：Part B（RBAC）= 时序拆分 successor（roadmap 已登记）；usageScope 物理删除 = optimization candidate；user 级共享/disabled 全局收紧 = 需求未实证——无 in-scope live defect 被降级。
+  - Minor（audit）：plan 文本 "main.page.yaml 展示列" 实际落点为 view.xml（展示列继承 _gen，substance 满足）；W9 begin owner+admin 为已裁定记录偏离（非 mismatch）。
+  - `check-plan-checklist.mjs --strict` 退出码 0；`check-doc-links.mjs --strict` 退出码 0（6 warnings 为 plan 反引号 VFS 相对路径提示，W9/W10 先例同口径）。
+  - 构建门禁：`./mvnw clean install -pl nop-credential -am -T 1C` 绿（service 144 + kms-vault 32 + web 1）；`./mvnw test -pl nop-credential -am` + `./mvnw test -pl nop-ai -am` 绿（ai-service 25/ai-core 217/ai-gateway 84）；`./mvnw checkstyle:check -pl nop-credential -Pqa` exit 0。已知 pre-existing flake：`-T 1C` reactor 中 nop-auth-service 偶发 tenant-cache order 依赖失败（clean tree 同命令复现、模块单独运行绿、与 nop-credential 无依赖边，2026-08-16 双向验证）。
+
+Follow-up:
+
+- Part B（RBAC 细粒度授权）：successor plan 待起草（roadmap W11-impl 条目已登记，`done` 以双 plan 收口为准）。
+- 消费链上下文丢失告警审计（§七#8 watch-only residual，归 A1-audit）；Web 归属筛选 UX 增强（non-blocking）。
