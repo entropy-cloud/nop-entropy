@@ -350,6 +350,19 @@ public class OrmEntityDao<T extends IOrmEntity> implements IOrmEntityDao<T> {
     }
 
     @Override
+    public Map<Object, T> batchRequireEntityMapByIds(Collection<?> ids) {
+        List<T> ret = batchRequireEntitiesByIds(ids);
+        if (ret.isEmpty())
+            return Collections.emptyMap();
+        Map<Object, T> map = new HashMap<>();
+
+        for (T entity : ret) {
+            map.put(entity.get_id(), entity);
+        }
+        return map;
+    }
+
+    @Override
     public List<T> batchGetEntitiesByProp(String propName, Collection<?> propValues) {
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.in(propName, propValues));

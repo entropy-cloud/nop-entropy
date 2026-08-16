@@ -15,6 +15,7 @@ import io.nop.app.SimsClass;
 import io.nop.app.SimsCollege;
 import io.nop.app.SimsMajor;
 import io.nop.dao.api.IEntityDao;
+import io.nop.dao.exceptions.UnknownEntityException;
 import io.nop.orm.AbstractOrmTestCase;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmEntitySet;
@@ -33,6 +34,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestEntityDao extends AbstractOrmTestCase {
@@ -205,6 +207,26 @@ public class TestEntityDao extends AbstractOrmTestCase {
         for (SimsCollege college : list) {
             assertEquals(OrmEntityState.MISSING, college.orm_state());
         }
+    }
+
+    @Test
+    public void testBatchRequireEntityMapByIds() {
+        List<Integer> ids = insertColleges(100, 102);
+        IEntityDao<SimsCollege> dao = daoProvider().daoFor(SimsCollege.class);
+
+        // 不存在的id会被忽略
+        Map<Object, SimsCollege> map = dao.batchGetEntityMapByIds(Arrays.asList(100, 102, 999));
+        assertEquals(2, map.size());
+
+        // 所有id都存在时返回完整映射
+        Map<Object, SimsCollege> required = dao.batchRequireEntityMapByIds(ids);
+        assertEquals(3, required.size());
+        assertNotNull(required.get("100"));
+        assertEquals("College100", required.get("100").getCollegeName());
+
+        // 存在不存在的id时抛出UnknownEntityException
+        assertThrows(UnknownEntityException.class,
+                () -> dao.batchRequireEntityMapByIds(Arrays.asList(100, 999)));
     }
 
     @Test

@@ -174,6 +174,14 @@ public interface IEntityDao<T extends IDaoEntity> {
      */
     Map<Object, T> batchGetEntityMapByIds(Collection<?> ids);
 
+    /**
+     * 根据主键加载实体，返回主键到实体对象的映射集合。如果某个主键对应的实体不存在，则抛出UnknownEntityException异常。
+     *
+     * @param ids 主键列表。
+     * @return 主键到实体对象的映射集合，包含所有输入主键对应的实体
+     */
+    Map<Object, T> batchRequireEntityMapByIds(Collection<?> ids);
+
     List<T> batchGetEntitiesByProp(String propName, Collection<?> propValues);
 
     List<T> batchRequireEntitiesByProp(String propName, Collection<?> propValues);
