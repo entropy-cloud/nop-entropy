@@ -1,0 +1,19 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 大屏适配模式
+locale: zh-CN
+valueType: int
+description: 
+options:
+
+  - label: 高度优先
+    value: 0
+    description: 
+  
+  - label: 整体铺满
+    value: 10
+    description: 
+  
+  - label: 保持原始
+    value: 20
+    description: 
+  

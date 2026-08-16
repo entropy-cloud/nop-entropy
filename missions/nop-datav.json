@@ -1,0 +1,22 @@
+{
+  "name": "nop-datav",
+  "description": "Drive nop-datav from empty shell to full BI dashboard/screen platform: model foundation + dashboard/panel CRUD (D0), panel runtime rendering + data binding + refresh (D1), global filter & linkage (D2), permission/share/export (D3), free-canvas screen + decorator components + carousel/fit (D4), scheduled report & lightweight alerting (D5), AI/ChatBI integration via nop-ai (D6). Reuses nop-report datasets, nop-metadata semantic layer, nop-auth permission model, nop-job scheduling, nop-message notifications.",
+  "agent": "build",
+  "roadmapPath": "ai-dev/backlog/nop-datav-roadmap.md",
+  "plansDir": "ai-dev/plans/nop-datav",
+  "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
+  "auditsDir": "ai-dev/audits/nop-datav",
+  "contextDir": "docs-for-ai/00-start-here",
+  "moduleDir": "nop-datav",
+  "prompts": {
+    "multiAudit": "ai-dev/skills/deep-audit-prompts.md",
+    "openAudit": "ai-dev/skills/open-ended-adversarial-review-prompt.md"
+  },
+  "commands": {
+    "test": "./mvnw test -pl nop-datav -am -T 1C",
+    "build": "./mvnw clean install -pl nop-datav -am -T 1C -DskipTests",
+    "lint": "echo 'lint not configured'",
+    "typecheck": "echo 'typecheck not configured'"
+  },
+  "commitFormat": "feat(nop-datav): <description>"
+}

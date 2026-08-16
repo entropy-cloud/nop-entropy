@@ -1,0 +1,3 @@
+
+x:gen-extends: |
+    <web:GenPage view="NopDatavChatSession.view.xml" page="picker" xpl:lib="/nop/web/xlib/web.xlib" />

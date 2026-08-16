@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" ext:model="orm" ext:icon="download" ext:web-renderer="" xmlns:c="c" xmlns:graphql="graphql"
+      xmlns:meta-gen="meta-gen" xmlns:biz="biz" displayName="导出任务" i18n-en:displayName="Export Task" xmlns:ui="ui"
+      xmlns:orm="orm">
+
+    <entityName>io.nop.datav.dao.entity.NopDatavExportTask</entityName>
+
+    <primaryKey>taskId</primaryKey>
+
+    <x:gen-extends>
+        <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:post-extends>
+
+    <keys/>
+
+    <props>
+        <prop name="taskId" displayName="任务ID" propId="1" i18n-en:displayName="Task Id" tagSet="seq" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="sourceType" displayName="来源类型" propId="2" i18n-en:displayName="Source Type" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="20" dict="datav/export-source"/>
+        </prop>
+        <prop name="sourceId" displayName="来源ID" propId="3" i18n-en:displayName="Source Id" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="format" displayName="导出格式" propId="4" i18n-en:displayName="Format" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="10" dict="datav/export-format"/>
+        </prop>
+        <prop name="status" displayName="任务状态" propId="5" i18n-en:displayName="Status" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Integer" dict="datav/export-status"/>
+        </prop>
+        <prop name="params" displayName="导出参数" propId="6" i18n-en:displayName="Params" queryable="true" sortable="true"
+              insertable="true" updatable="true" graphql:jsonComponentProp="paramsComponent">
+            <schema stdDomain="json" domain="clobJson" type="java.lang.String"/>
+        </prop>
+        <prop name="fileRecordId" displayName="文件记录ID" propId="7" i18n-en:displayName="File Record Id" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="64"/>
+        </prop>
+        <prop name="rowCount" displayName="导出行数" propId="8" i18n-en:displayName="Row Count" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Long"/>
+        </prop>
+        <prop name="errorMsg" displayName="错误信息" propId="9" i18n-en:displayName="Error Msg" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="1000"/>
+        </prop>
+        <prop name="delFlag" displayName="删除标记" propId="10" i18n-en:displayName="Del Flag" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema stdDomain="boolFlag" domain="delFlag" type="java.lang.Byte"/>
+        </prop>
+        <prop name="version" displayName="数据版本" propId="11" i18n-en:displayName="Version" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false" internal="true">
+            <schema domain="version" type="java.lang.Long"/>
+        </prop>
+        <prop name="createdBy" displayName="创建人" propId="12" i18n-en:displayName="Created By" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="createdBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="createTime" displayName="创建时间" propId="13" i18n-en:displayName="Create Time" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="createTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="updatedBy" displayName="修改人" propId="14" i18n-en:displayName="Updated By" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="updatedBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="updateTime" displayName="修改时间" propId="15" i18n-en:displayName="Update Time" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="updateTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="remark" displayName="备注" propId="16" i18n-en:displayName="Remark" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema domain="remark" type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="paramsComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"
+              updatable="true" lazy="true">
+            <schema type="io.nop.orm.component.JsonOrmComponent"/>
+        </prop>
+    </props>
+</meta>

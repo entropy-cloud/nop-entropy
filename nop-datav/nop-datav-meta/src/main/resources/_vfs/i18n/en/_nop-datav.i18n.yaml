@@ -1,0 +1,452 @@
+entity:
+  label:
+    NopDatavAlertRule: Alert Rule
+    NopDatavAlertState: Alert State
+    NopDatavChatMessage: ChatBI Session Message
+    NopDatavChatSession: ChatBI Session
+    NopDatavDashboard: Dashboard
+    NopDatavDashboardShare: Dashboard Share
+    NopDatavDashboardSnapshot: Dashboard Snapshot
+    NopDatavDashboardTab: Dashboard Tab
+    NopDatavDatasetRef: Dataset Ref
+    NopDatavExportTask: Export Task
+    NopDatavFilterState: Filter State
+    NopDatavPanel: Panel
+    NopDatavReportDelivery: Report Delivery
+    NopDatavReportTask: Report Task
+    NopDatavScreen: Screen
+    NopDatavScreenSnapshot: Screen Snapshot
+    NopDatavScreenWidget: Screen Widget
+prop:
+  label:
+    NopDatavAlertRule:
+      alertRuleId: Alert Rule Id
+      ruleName: Rule Name
+      displayName: Display Name
+      panelId: Panel Id
+      valueField: Value Field
+      aggregation: Aggregation
+      aggregation_label: null
+      operator: Operator
+      operator_label: null
+      thresholdValue: Threshold Value
+      thresholdValue2: Threshold Value2
+      rearmSeconds: Rearm Seconds
+      notifyChannels: Notify Channels
+      recipients: Recipients
+      cronExpr: Cron Expr
+      params: Params
+      templateKey: Template Key
+      status: Status
+      status_label: null
+      delFlag: Del Flag
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      panel: Panel
+      panel.displayName: Panel
+      notifyChannelsComponent: null
+      recipientsComponent: null
+      paramsComponent: null
+    NopDatavAlertState:
+      alertStateId: Alert State Id
+      alertRuleId: Alert Rule Id
+      state: State
+      state_label: null
+      lastEvalTime: Last Eval Time
+      lastTriggeredTime: Last Triggered Time
+      lastResolvedTime: Last Resolved Time
+      lastNotifiedTime: Last Notified Time
+      consecutiveEvalCount: Consecutive Eval Count
+      errorMsg: Error Msg
+      delFlag: Del Flag
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      alertRule: Alert Rule
+      alertRule.displayName: Alert Rule
+    NopDatavChatMessage:
+      messageId: Message Id
+      sessionId: Session Id
+      seq: Seq
+      role: Role
+      role_label: null
+      content: Content
+      resultJson: Result Json
+      delFlag: Del Flag
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      session: Session
+      resultJsonComponent: null
+    NopDatavChatSession:
+      sessionId: Session Id
+      userName: User Name
+      sessionTitle: Session Title
+      delFlag: Del Flag
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      messages: Messages
+    NopDatavDashboard:
+      dashboardId: Dashboard Id
+      dashboardName: Dashboard Name
+      displayName: Display Name
+      description: Description
+      dashboardType: Dashboard Type
+      dashboardType_label: null
+      publishStatus: Publish Status
+      publishStatus_label: null
+      publishedVersion: Published Version
+      publishedBy: Published By
+      publishedTime: Published Time
+      layoutConfig: Layout Config
+      delFlag: Del Flag
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      paramConfig: Param Config
+      layoutConfigComponent: null
+      paramConfigComponent: null
+    NopDatavDashboardShare:
+      shareId: Share Id
+      shareToken: Share Token
+      dashboardId: Dashboard Id
+      passwordHash: Password Hash
+      expireTime: Expire Time
+      enabled: Enabled
+      delFlag: Del Flag
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      visitCount: Visit Count
+      lastVisitTime: Last Visit Time
+      dashboard: Dashboard
+      dashboard.displayName: Dashboard
+    NopDatavDashboardSnapshot:
+      snapshotId: Snapshot Id
+      dashboardId: Dashboard Id
+      snapshotVersion: Snapshot Version
+      snapshotContent: Snapshot Content
+      publishedBy: Published By
+      publishedTime: Published Time
+      delFlag: Del Flag
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      dashboard: Dashboard
+      dashboard.displayName: Dashboard
+      snapshotContentComponent: null
+    NopDatavDashboardTab:
+      tabId: Tab Id
+      dashboardId: Dashboard Id
+      tabName: Tab Name
+      displayName: Display Name
+      sortOrder: Sort Order
+      tabConfig: Tab Config
+      delFlag: Del Flag
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      dashboard: Dashboard
+      dashboard.displayName: Dashboard
+      tabConfigComponent: null
+    NopDatavDatasetRef:
+      datasetRefId: Dataset Ref Id
+      dashboardId: Dashboard Id
+      refDatasetId: Ref Dataset Id
+      refDatasetName: Ref Dataset Name
+      paramMapping: Param Mapping
+      delFlag: Del Flag
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      dashboard: Dashboard
+      dashboard.displayName: Dashboard
+      paramMappingComponent: null
+    NopDatavExportTask:
+      taskId: Task Id
+      sourceType: Source Type
+      sourceType_label: null
+      sourceId: Source Id
+      format: Format
+      format_label: null
+      status: Status
+      status_label: null
+      params: Params
+      fileRecordId: File Record Id
+      rowCount: Row Count
+      errorMsg: Error Msg
+      delFlag: Del Flag
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      paramsComponent: null
+    NopDatavFilterState:
+      stateId: State Id
+      userName: User Name
+      dashboardId: Dashboard Id
+      stateContent: State Content
+      delFlag: Del Flag
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      dashboard: Dashboard
+      dashboard.displayName: Dashboard
+      stateContentComponent: null
+    NopDatavPanel:
+      panelId: Panel Id
+      dashboardId: Dashboard Id
+      panelName: Panel Name
+      displayName: Display Name
+      panelType: Panel Type
+      panelType_label: null
+      datasetRefId: Dataset Ref Id
+      tabId: Tab Id
+      sortOrder: Sort Order
+      panelConfig: Panel Config
+      delFlag: Del Flag
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      dashboard: Dashboard
+      dashboard.displayName: Dashboard
+      panelConfigComponent: null
+    NopDatavReportDelivery:
+      deliveryId: Delivery Id
+      reportTaskId: Report Task Id
+      status: Status
+      status_label: null
+      generatedFileRecordId: Generated File Record Id
+      deliveredChannels: Delivered Channels
+      rowCount: Row Count
+      errorMsg: Error Msg
+      triggeredBy: Triggered By
+      triggeredBy_label: null
+      startTime: Start Time
+      endTime: End Time
+      delFlag: Del Flag
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      reportTask: Report Task
+      reportTask.displayName: Report Task
+    NopDatavReportTask:
+      reportTaskId: Report Task Id
+      taskName: Task Name
+      displayName: Display Name
+      dashboardId: Dashboard Id
+      cronExpr: Cron Expr
+      format: Format
+      format_label: null
+      recipients: Recipients
+      notifyChannels: Notify Channels
+      params: Params
+      status: Status
+      status_label: null
+      graceMinutes: Grace Minutes
+      templateKey: Template Key
+      lastRunTime: Last Run Time
+      lastRunStatus: Last Run Status
+      lastRunError: Last Run Error
+      delFlag: Del Flag
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      dashboard: Dashboard
+      dashboard.displayName: Dashboard
+      recipientsComponent: null
+      notifyChannelsComponent: null
+      paramsComponent: null
+    NopDatavScreen:
+      screenId: Screen Id
+      screenName: Screen Name
+      displayName: Display Name
+      description: Description
+      screenWidth: Screen Width
+      screenHeight: Screen Height
+      adaptorMode: Adaptor Mode
+      adaptorMode_label: null
+      backgroundConfig: Background Config
+      publishStatus: Publish Status
+      publishStatus_label: null
+      publishedVersion: Published Version
+      publishedBy: Published By
+      publishedTime: Published Time
+      delFlag: Del Flag
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      thumbnail: Thumbnail
+      backgroundConfigComponent: null
+    NopDatavScreenSnapshot:
+      snapshotId: Snapshot Id
+      screenId: Screen Id
+      snapshotVersion: Snapshot Version
+      snapshotContent: Snapshot Content
+      publishedBy: Published By
+      publishedTime: Published Time
+      delFlag: Del Flag
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      screen: Screen
+      screen.displayName: Screen
+      snapshotContentComponent: null
+    NopDatavScreenWidget:
+      widgetId: Widget Id
+      screenId: Screen Id
+      widgetName: Widget Name
+      displayName: Display Name
+      componentType: Component Type
+      datasetRefId: Dataset Ref Id
+      x: X
+      y: Y
+      w: Width
+      h: Height
+      z: Z-Index
+      widgetConfig: Widget Config
+      delFlag: Del Flag
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      screen: Screen
+      screen.displayName: Screen
+      widgetConfigComponent: null
+dict:
+  label:
+    datav/dashboard-type: Dashboard Type
+    datav/publish-status: Publish Status
+    datav/panel-type: Panel Type
+    datav/export-source: Export Source
+    datav/export-format: Export Format
+    datav/export-status: Export Status
+    datav/screen-adaptor: Screen Adaptor
+    datav/report-task-status: Report Task Status
+    datav/delivery-status: Delivery Status
+    datav/report-trigger-source: Report Trigger Source
+    datav/notify-channel: Notify Channel
+    datav/alert-operator: Alert Operator
+    datav/alert-aggregation: Alert Aggregation
+    datav/alert-state: Alert State
+    datav/chat-msg-role: Chat Message Role
+dict.option.label:
+  datav/dashboard-type:
+    '0': Dashboard
+    '10': Report
+  datav/publish-status:
+    '0': Draft
+    '10': Published
+  datav/panel-type:
+    '0': Chart
+    '10': Table
+    '20': Metric
+    '30': Text
+    '40': Container
+    '50': Pivot Table
+    '60': Map
+    '70': IFrame
+  datav/export-source:
+    panel: Panel
+    dashboard: Dashboard
+  datav/export-format:
+    csv: CSV
+    xlsx: Excel
+  datav/export-status:
+    '0': Pending
+    '10': Running
+    '20': Succeeded
+    '30': Failed
+    '40': Cancelled
+  datav/screen-adaptor:
+    '0': Height First
+    '10': Full
+    '20': Keep
+  datav/report-task-status:
+    '0': Disabled
+    '10': Enabled
+  datav/delivery-status:
+    '0': Pending
+    '10': Running
+    '20': Succeeded
+    '30': Failed
+    '40': Skipped
+  datav/report-trigger-source:
+    schedule: Schedule
+    manual: Manual
+  datav/notify-channel:
+    email: Email
+    im: IM
+  datav/alert-operator:
+    gt: Greater Than
+    gte: Greater Than or Equal
+    lt: Less Than
+    lte: Less Than or Equal
+    eq: Equal
+    neq: Not Equal
+    between: Between
+  datav/alert-aggregation:
+    none: None
+    first: First
+    sum: Sum
+    avg: Average
+    min: Min
+    max: Max
+    count: Count
+  datav/alert-state:
+    OK: OK
+    TRIGGERED: Triggered
+  datav/chat-msg-role:
+    user: User
+    assistant: Assistant

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- Test-specific data-auth.xml for nop-datav-service auth integration tests.
+     Declares row-level rules:
+     - NopDatavDashboard: admin (no filter) / user (owner + published)
+     - NopDatavDashboardSnapshot: admin only (used for fail-closed test:
+       a non-admin user has no matching rule → ERR_AUTH_NO_DATA_AUTH) -->
+<data-auth x:schema="/nop/schema/data-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <objs>
+        <obj name="NopDatavDashboard">
+            <role-auths>
+                <role-auth id="admin" roleIds="admin">
+                </role-auth>
+                <role-auth id="user" roleIds="user">
+                    <filter>
+                        <or>
+                            <eq name="createdBy" value="${$context.userName}"/>
+                            <eq name="publishStatus" value="10"/>
+                        </or>
+                    </filter>
+                </role-auth>
+            </role-auths>
+        </obj>
+        <obj name="NopDatavScreen">
+            <role-auths>
+                <role-auth id="admin" roleIds="admin">
+                </role-auth>
+                <role-auth id="user" roleIds="user">
+                    <filter>
+                        <or>
+                            <eq name="createdBy" value="${$context.userName}"/>
+                            <eq name="publishStatus" value="10"/>
+                        </or>
+                    </filter>
+                </role-auth>
+            </role-auths>
+        </obj>
+        <obj name="NopDatavDashboardSnapshot">
+            <role-auths>
+                <role-auth id="admin" roleIds="admin">
+                </role-auth>
+            </role-auths>
+        </obj>
+        <!-- 裁定 D3/P1-02（plan 2026-08-15-2146-1）：FilterState userName 行级隔离，镜像 production -->
+        <obj name="NopDatavFilterState">
+            <role-auths>
+                <role-auth id="admin" roleIds="admin">
+                </role-auth>
+                <role-auth id="user" roleIds="user">
+                    <filter>
+                        <eq name="userName" value="${$context.userName}"/>
+                    </filter>
+                </role-auth>
+            </role-auths>
+        </obj>
+    </objs>
+</data-auth>

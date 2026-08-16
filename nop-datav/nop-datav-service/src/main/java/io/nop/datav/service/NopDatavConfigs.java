@@ -1,0 +1,158 @@
+package io.nop.datav.service;
+
+import io.nop.api.core.annotations.core.Description;
+import io.nop.api.core.annotations.core.Locale;
+import io.nop.api.core.config.IConfigReference;
+import io.nop.api.core.util.SourceLocation;
+
+import static io.nop.api.core.config.AppConfig.varRef;
+
+@Locale("zh-CN")
+public interface NopDatavConfigs {
+
+    SourceLocation s_loc = SourceLocation.fromClass(NopDatavConfigs.class);
+
+    @Description("单任务最大导出行数（超出抛 ERR_DATAV_EXPORT_ROW_LIMIT_EXCEEDED，防 OOM）")
+    IConfigReference<Integer> CFG_DATAV_EXPORT_MAX_ROWS = varRef(
+            s_loc, "nop.datav.export.max-rows", Integer.class, 100000);
+
+    @Description("单用户并发导出任务数上限（pending+running，超出抛 ERR_DATAV_EXPORT_CONCURRENCY_LIMIT）")
+    IConfigReference<Integer> CFG_DATAV_EXPORT_MAX_CONCURRENT_PER_USER = varRef(
+            s_loc, "nop.datav.export.max-concurrent-per-user", Integer.class, 3);
+
+    @Description("导出文件最大字节数（传给 IFileStore.saveFile 的 maxLength 上限）")
+    IConfigReference<Long> CFG_DATAV_EXPORT_FILE_MAX_LENGTH = varRef(
+            s_loc, "nop.datav.export.file-max-length", Long.class, 104857600L);
+
+    // ===== D5-1 定时报告 =====
+
+    @Description("定时报告默认 grace 期（分钟）。距预定时间超过 grace 则跳过本轮并写 skipped 交付记录（misfire 兜底）")
+    IConfigReference<Integer> CFG_DATAV_REPORT_DEFAULT_GRACE_MINUTES = varRef(
+            s_loc, "nop.datav.report.default-grace-minutes", Integer.class, 60);
+
+    @Description("定时报告单任务最大导出行数（透传给 PanelDataExporter.exportDashboard 的 maxRows，复用 D3-3 取数阶段限额防 OOM）")
+    IConfigReference<Integer> CFG_DATAV_REPORT_MAX_ROWS = varRef(
+            s_loc, "nop.datav.report.max-rows", Integer.class, 100000);
+
+    @Description("定时报告邮件发件人默认地址（为空时邮件渠道显式失败 ERR_DATAV_REPORT_SENDER_NOT_CONFIGURED，不静默跳过）")
+    IConfigReference<String> CFG_DATAV_REPORT_DEFAULT_SENDER = varRef(
+            s_loc, "nop.datav.report.default-sender", String.class, "");
+
+    @Description("定时报告邮件主题模板（{reportName} 占位符替换，渲染用 StringHelper.renderTemplate）")
+    IConfigReference<String> CFG_DATAV_REPORT_DEFAULT_SUBJECT = varRef(
+            s_loc, "nop.datav.report.default-subject", String.class, "Report: {reportName}");
+
+    // ===== D5-2 轻量告警 =====
+
+    @Description("告警默认冷静期秒数。0=仅状态转换时通知（OK→TRIGGERED 或 TRIGGERED→OK）；>0 时 TRIGGERED 持续满足距上次通知超过该秒数才重发")
+    IConfigReference<Integer> CFG_DATAV_ALERT_DEFAULT_REARM_SECONDS = varRef(
+            s_loc, "nop.datav.alert.default-rearm-seconds", Integer.class, 0);
+
+    @Description("告警评估单面板最大查询行数（透传给 PanelDataBinder.queryPanelData 的 rowLimit，跨方言防 OOM）。聚合 sum/avg/min/max 基于返回行近似计算，精确聚合应让数据集 SQL 预聚合返回单行")
+    IConfigReference<Integer> CFG_DATAV_ALERT_EVAL_MAX_ROWS = varRef(
+            s_loc, "nop.datav.alert.eval-max-rows", Integer.class, 1000);
+
+    @Description("告警通知邮件主题模板（{ruleName} 占位符替换，渲染用 StringHelper.renderTemplate）")
+    IConfigReference<String> CFG_DATAV_ALERT_DEFAULT_SUBJECT = varRef(
+            s_loc, "nop.datav.alert.default-subject", String.class, "Alert: {ruleName}");
+
+    // ===== D6-1 ChatBI =====
+
+    @Description("ChatBI tool-calling 循环最大轮次（超出抛 ERR_DATAV_CHATBI_MAX_ITERATIONS_EXCEEDED）")
+    IConfigReference<Integer> CFG_DATAV_CHATBI_MAX_ITERATIONS = varRef(
+            s_loc, "nop.datav.chatbi.max-iterations", Integer.class, 5);
+
+    @Description("ChatBI 单次数据集查询最大返回行数硬上限（P1-04：服务端钳制到 [1, 此值]——LLM 入参 null/<=0 落此缺省，>0 取 min(入参, 此值)；经 LongRangeBean 在数据集层限行，跨方言防 OOM。datav-query-dataset.tool.xml schemaJson 中的 maximum 仅为缺省快照提示，运行时以此配置为准）")
+    IConfigReference<Integer> CFG_DATAV_CHATBI_MAX_ROWS = varRef(
+            s_loc, "nop.datav.chatbi.max-rows", Integer.class, 1000);
+
+    @Description("ChatBI 默认 LLM model（为空时由 IChatService 实现决定 provider 默认）")
+    IConfigReference<String> CFG_DATAV_CHATBI_DEFAULT_MODEL = varRef(
+            s_loc, "nop.datav.chatbi.default-model", String.class, "");
+
+    @Description("ChatBI 默认 provider（为空时由 IChatService 实现决定 provider 默认）")
+    IConfigReference<String> CFG_DATAV_CHATBI_DEFAULT_PROVIDER = varRef(
+            s_loc, "nop.datav.chatbi.default-provider", String.class, "");
+
+    // ===== ChatBI 多轮会话（D6-1 follow-up，ai-design.md §10） =====
+
+    @Description("ChatBI 多轮会话注入历史的最大轮数（最近 N 轮，与字符预算取小，最老优先丢弃）")
+    IConfigReference<Integer> CFG_DATAV_CHATBI_HISTORY_MAX_TURNS = varRef(
+            s_loc, "nop.datav.chatbi.history.max-turns", Integer.class, 10);
+
+    @Description("ChatBI 多轮会话注入历史的字符预算（与最大轮数取小；最新单条超预算时截断该条，保证至少一条历史存活）")
+    IConfigReference<Integer> CFG_DATAV_CHATBI_HISTORY_MAX_CHARS = varRef(
+            s_loc, "nop.datav.chatbi.history.max-chars", Integer.class, 20000);
+
+    // ===== stuck-task 周期恢复扫描 =====
+
+    @Description("是否启用 stuck-task 周期扫描（false 时不注册周期 job，仅保留重启 @PostConstruct 恢复）")
+    IConfigReference<Boolean> CFG_DATAV_STUCK_SCAN_ENABLED = varRef(
+            s_loc, "nop.datav.stuck-scan.enabled", Boolean.class, true);
+
+    @Description("stuck-task 扫描间隔（分钟），经 TriggerSpec.repeatInterval 固定间隔周期触发")
+    IConfigReference<Integer> CFG_DATAV_STUCK_SCAN_INTERVAL_MINUTES = varRef(
+            s_loc, "nop.datav.stuck-scan.interval-minutes", Integer.class, 10);
+
+    @Description("stuck 判定阈值（分钟）。交付按 startTime、导出按 createTime 判定；仅标记超过阈值的非终态记录为 FAILED（保守高值防误杀在途记录）")
+    IConfigReference<Integer> CFG_DATAV_STUCK_SCAN_TIMEOUT_MINUTES = varRef(
+            s_loc, "nop.datav.stuck-scan.timeout-minutes", Integer.class, 60);
+
+    // ===== 批量面板查询（getDashboardData） =====
+
+    @Description("单次 getDashboardData 批量查询的最大面板数（纳入集超限抛 ERR_DATAV_DASHBOARD_PANEL_LIMIT_EXCEEDED，校验先于任何面板查询执行，防单请求放大为海量 SQL）")
+    IConfigReference<Integer> CFG_DATAV_DASHBOARD_QUERY_MAX_PANELS = varRef(
+            s_loc, "nop.datav.dashboard-query.max-panels", Integer.class, 50);
+
+    @Description("getDashboardData 面板查询并行执行开关（runtime-design.md §8.1；false 或面板数 ≤1 时走顺序路径，与并行前行为逐条等价）")
+    IConfigReference<Boolean> CFG_DATAV_DASHBOARD_QUERY_PARALLEL_ENABLED = varRef(
+            s_loc, "nop.datav.dashboard-query.parallel.enabled", Boolean.class, true);
+
+    @Description("getDashboardData 请求内并行度上界（面板查询任务执行前经 Semaphore 获取许可，排队任务不占许可；<1 视为 1。单请求在飞查询上界=该值，全局并发另受 nop.commons.concurrent.global-worker.maxPoolSize 约束）")
+    IConfigReference<Integer> CFG_DATAV_DASHBOARD_QUERY_PARALLELISM = varRef(
+            s_loc, "nop.datav.dashboard-query.parallelism", Integer.class, 4);
+
+    @Description("getDashboardData 查询结果缓存开关（runtime-design.md §8.3/§8.4；保守默认关：TTL 缓存引入用户可见 staleness（TTL 窗口内数据集/业务数据变更不可见），是否接受属部署决策。关闭时每次直查 SQL，与缓存前行为逐条等价）")
+    IConfigReference<Boolean> CFG_DATAV_DASHBOARD_QUERY_CACHE_ENABLED = varRef(
+            s_loc, "nop.datav.dashboard-query.cache.enabled", Boolean.class, false);
+
+    @Description("查询结果缓存 TTL 秒数（TTL-only 失效，staleness 上界；进程内单节点语义，每节点独立计时）")
+    IConfigReference<Integer> CFG_DATAV_DASHBOARD_QUERY_CACHE_TTL_SECONDS = varRef(
+            s_loc, "nop.datav.dashboard-query.cache.ttl-seconds", Integer.class, 30);
+
+    @Description("查询结果缓存条目容量上界（容量驱逐，防内存无界增长；进程重启或缓存实例重建后生效）")
+    IConfigReference<Integer> CFG_DATAV_DASHBOARD_QUERY_CACHE_MAX_ENTRIES = varRef(
+            s_loc, "nop.datav.dashboard-query.cache.max-entries", Integer.class, 200);
+
+    @Description("单缓存条目行数准入上界：查询结果行数超过该值不缓存（每次直查），不截断——绝不从缓存返回截断数据。内存上界 = max-entries × max-rows-per-entry × 行体量")
+    IConfigReference<Integer> CFG_DATAV_DASHBOARD_QUERY_CACHE_MAX_ROWS_PER_ENTRY = varRef(
+            s_loc, "nop.datav.dashboard-query.cache.max-rows-per-entry", Integer.class, 1000);
+
+    // ===== flux 布局对齐（D1-4，裁定见 runtime-design.md §9.10） =====
+
+    @Description("saveDashboardLayout 单次保存的最大面板数（超限抛 ERR_DATAV_DASHBOARD_PANEL_LIMIT_EXCEEDED。与 dashboard-query.max-panels 独立配置：查询上界是性能界（防 SQL 放大），保存上界是存储容量界（layoutConfig json-4000））")
+    IConfigReference<Integer> CFG_DATAV_DASHBOARD_LAYOUT_MAX_PANELS = varRef(
+            s_loc, "nop.datav.dashboard-layout.max-panels", Integer.class, 50);
+
+    // ===== 分享访问加固（限流，裁定见 permission-sharing-design.md「访问限流与访问统计」） =====
+
+    @Description("匿名分享访问限流总开关（false 时 getSharedDashboard 行为与加固前逐字节等价：零检查零记账）")
+    IConfigReference<Boolean> CFG_DATAV_SHARE_RATE_LIMIT_ENABLED = varRef(
+            s_loc, "nop.datav.share.rate-limit.enabled", Boolean.class, true);
+
+    @Description("同一 (shareToken, 来源IP) 窗口内密码失败锁定阈值：达到后该键密码尝试被拒（即使密码正确），窗口过后自动恢复；成功验证重置失败计数；0 或负值禁用该层")
+    IConfigReference<Integer> CFG_DATAV_SHARE_RATE_LIMIT_MAX_PASSWORD_FAILURES = varRef(
+            s_loc, "nop.datav.share.rate-limit.max-password-failures", Integer.class, 5);
+
+    @Description("同一 (shareToken, 来源IP) 每窗口总请求上限（尝试即计数，含失败与被拒请求），超限抛 ERR_DATAV_SHARE_RATE_LIMITED；0 或负值禁用该层")
+    IConfigReference<Integer> CFG_DATAV_SHARE_RATE_LIMIT_MAX_ACCESS_PER_WINDOW = varRef(
+            s_loc, "nop.datav.share.rate-limit.max-access-per-window", Integer.class, 60);
+
+    @Description("限流窗口与密码锁定时长（秒），两级共用")
+    IConfigReference<Integer> CFG_DATAV_SHARE_RATE_LIMIT_WINDOW_SECONDS = varRef(
+            s_loc, "nop.datav.share.rate-limit.window-seconds", Integer.class, 600);
+
+    @Description("per-key 限流状态表容量上界（LocalCache 驱逐，防内存无界增长；单节点语义，集群限流归网关层）")
+    IConfigReference<Integer> CFG_DATAV_SHARE_RATE_LIMIT_MAX_KEYS = varRef(
+            s_loc, "nop.datav.share.rate-limit.max-keys", Integer.class, 10000);
+}

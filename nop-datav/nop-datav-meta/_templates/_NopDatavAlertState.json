@@ -1,0 +1,21 @@
+{
+  "alertStateId": "",
+  "alertRuleId": "",
+  "state": "",
+  "state_label": "",
+  "lastEvalTime": "2000-01-01 14:00:00",
+  "lastTriggeredTime": "2000-01-01 14:00:00",
+  "lastResolvedTime": "2000-01-01 14:00:00",
+  "lastNotifiedTime": "2000-01-01 14:00:00",
+  "consecutiveEvalCount": 0,
+  "errorMsg": "",
+  "delFlag": 0,
+  "version": 0,
+  "createdBy": "",
+  "createTime": "2000-01-01 14:00:00",
+  "updatedBy": "",
+  "updateTime": "2000-01-01 14:00:00",
+  "remark": "",
+  "alertRule": null,
+  "alertRule.displayName": ""
+}

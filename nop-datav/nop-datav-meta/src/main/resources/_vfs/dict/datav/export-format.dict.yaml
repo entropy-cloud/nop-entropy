@@ -1,0 +1,15 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 导出格式
+locale: zh-CN
+valueType: string
+description: 
+options:
+
+  - label: CSV
+    value: csv
+    description: 
+  
+  - label: Excel
+    value: xlsx
+    description: 
+  

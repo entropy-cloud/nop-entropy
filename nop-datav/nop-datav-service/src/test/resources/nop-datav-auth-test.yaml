@@ -1,0 +1,5 @@
+nop:
+  auth:
+    site-map:
+      static-config-path: /test/datav/auth/app.action-auth.xml
+    data-auth-config-path: /test/datav/auth/app.data-auth.xml

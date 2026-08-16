@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" ext:model="orm" ext:icon="monitor" ext:web-renderer="" xmlns:c="c" xmlns:graphql="graphql"
+      xmlns:meta-gen="meta-gen" xmlns:biz="biz" displayName="大屏" i18n-en:displayName="Screen" xmlns:ui="ui"
+      xmlns:orm="orm">
+
+    <entityName>io.nop.datav.dao.entity.NopDatavScreen</entityName>
+
+    <primaryKey>screenId</primaryKey>
+
+    <displayProp>displayName</displayProp>
+
+    <x:gen-extends>
+        <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:post-extends>
+
+    <keys>
+        <key name="UK_NOP_DATAV_SCREEN_NAME" props="screenName"/>
+    </keys>
+
+    <props>
+        <prop name="screenId" displayName="大屏ID" propId="1" i18n-en:displayName="Screen Id" tagSet="seq"
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="false">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="screenName" displayName="大屏名" propId="2" i18n-en:displayName="Screen Name" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="displayName" displayName="显示名" propId="3" i18n-en:displayName="Display Name" tagSet="disp"
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="description" displayName="描述" propId="4" i18n-en:displayName="Description" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="4000"/>
+        </prop>
+        <prop name="screenWidth" displayName="画布宽度" propId="5" i18n-en:displayName="Screen Width" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="screenHeight" displayName="画布高度" propId="6" i18n-en:displayName="Screen Height" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="adaptorMode" displayName="适配模式" propId="7" i18n-en:displayName="Adaptor Mode" queryable="true"
+              sortable="true" insertable="true" updatable="true" defaultValue="10">
+            <schema type="java.lang.Integer" dict="datav/screen-adaptor"/>
+        </prop>
+        <prop name="backgroundConfig" displayName="背景配置" propId="8" i18n-en:displayName="Background Config"
+              queryable="true" sortable="true" insertable="true" updatable="true"
+              graphql:jsonComponentProp="backgroundConfigComponent">
+            <schema stdDomain="json" domain="json-4000" type="java.lang.String" precision="4000"/>
+        </prop>
+        <prop name="publishStatus" displayName="发布状态" propId="9" i18n-en:displayName="Publish Status" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Integer" dict="datav/publish-status"/>
+        </prop>
+        <prop name="publishedVersion" displayName="已发布版本" propId="10" i18n-en:displayName="Published Version"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Long"/>
+        </prop>
+        <prop name="publishedBy" displayName="发布人" propId="11" i18n-en:displayName="Published By" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="publishedTime" displayName="发布时间" propId="12" i18n-en:displayName="Published Time" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="delFlag" displayName="删除标记" propId="13" i18n-en:displayName="Del Flag" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema stdDomain="boolFlag" domain="delFlag" type="java.lang.Byte"/>
+        </prop>
+        <prop name="version" displayName="数据版本" propId="14" i18n-en:displayName="Version" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false" internal="true">
+            <schema domain="version" type="java.lang.Long"/>
+        </prop>
+        <prop name="createdBy" displayName="创建人" propId="15" i18n-en:displayName="Created By" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="createdBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="createTime" displayName="创建时间" propId="16" i18n-en:displayName="Create Time" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="createTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="updatedBy" displayName="修改人" propId="17" i18n-en:displayName="Updated By" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="updatedBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="updateTime" displayName="修改时间" propId="18" i18n-en:displayName="Update Time" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="updateTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="remark" displayName="备注" propId="19" i18n-en:displayName="Remark" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema domain="remark" type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="thumbnail" displayName="缩略图" propId="20" i18n-en:displayName="Thumbnail" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="4000"/>
+        </prop>
+        <prop name="backgroundConfigComponent" tagSet="json,pub,edit" ext:kind="component" internal="true"
+              insertable="true" updatable="true" lazy="true">
+            <schema type="io.nop.orm.component.JsonOrmComponent"/>
+        </prop>
+    </props>
+</meta>

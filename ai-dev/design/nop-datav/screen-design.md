@@ -1,0 +1,586 @@
+# nop-datav 大屏设计 (D4)
+
+> Status: **final**
+> Last Reviewed: 2026-08-10
+> Scope owner: D4-1（自由画布 + 屏幕适配）+ D4-2（装饰/媒体组件族）+ D4-3（主题：色板 + 背景）+ D4-4（发布生命周期：历史 + 缩略图 + 草稿预览）。
+
+## 概述
+
+nop-datav 的「大屏」（Screen）是与「看板」（Dashboard）并列的可视化容器形态。看板采用网格布局（panel 按 sortOrder/tabId 组织），大屏采用**自由画布**（widget 按 x/y/w/h/z 绝对定位）+ **屏幕尺寸定义**（设计稿基准宽高）+ **屏幕适配模式**（`heightFirst` / `full` / `keep`，参考 DataEase `screenAdaptor`）。
+
+本设计文档定义 D4-1 与 D4-2 的最终架构决策：
+
+- 独立三实体模型（不复用 Dashboard/Panel）
+- 自由画布布局 JSON schema
+- 屏幕适配语义与缩放基准
+- `getScreenLayout` API 契约（读已发布快照 → 结构化解析结果）
+- 发布/快照语义（独立表，与 D0 同模式）
+- 权限模式（沿用 D3-1 action `@Auth` + owner 行级 RLS）
+- widget 越界/重叠运行时校验
+- 装饰/媒体组件族（D4-2）：6 类组件 + 配置区域描述符 + 元信息查询 API
+- 主题模型（D4-3）：色板（palette）+ 背景（background）+ 主题解析与 widget 命名引用回退
+
+本文档为最终结论（无 "Proposed vs Current"）。被拒替代方案及理由在每一节末尾给出。
+
+## 1. 实体模型
+
+**决策：独立三实体 `NopDatavScreen` + `NopDatavScreenWidget` + `NopDatavScreenSnapshot`，不复用 Dashboard/Panel。**
+
+### 1.1 NopDatavScreen（控制面聚合根）
+
+主表，管权限/元数据/发布状态/屏幕尺寸/适配模式/背景配置位，不存已发布内容。
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| screenId | string(32) PK | 主键，seq |
+| screenName | string(100) mandatory, UK | 大屏标识名 |
+| displayName | string(200) | 显示名 |
+| description | string(4000) | 描述 |
+| screenWidth | int mandatory | 画布基准宽度（如 1920） |
+| screenHeight | int mandatory | 画布基准高度（如 1080） |
+| adaptorMode | int, dict `datav/screen-adaptor` | 屏幕适配模式（0/10/20，默认 10） |
+| backgroundConfig | json-4000 | 背景配置位（主题扩展位；D4-3 §11 定义其内容结构 `{palette, background}`；legacy 自由格式向后兼容，见 §11.2） |
+| publishStatus | int, dict `datav/publish-status` | 发布状态（D0 复用） |
+| publishedVersion | long | 已发布版本 |
+| publishedBy | string(50) | 发布人 |
+| publishedTime | timestamp | 发布时间 |
+| 标准审计列 | — | delFlag/version/createdBy/createTime/updatedBy/updateTime/remark |
+| thumbnail | string(4000) | 缩略图（D4-4 §12.3；存文件记录引用 ID 或 data URL；仅由 `setScreenThumbnail` 写入） |
+
+### 1.2 NopDatavScreenWidget（大屏组件，自由画布定位）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| widgetId | string(32) PK | 主键，seq |
+| screenId | string(32) mandatory, FK→Screen | 归属大屏 |
+| widgetName | string(100) | widget 名 |
+| displayName | string(200) | 显示名 |
+| componentType | string(50) mandatory | 组件类型标识（如 "chart"），经 `PanelComponentRegistry.requireComponent` 校验 |
+| datasetRefId | string(32) | 数据集引用ID（**逻辑引用，非 FK 约束**，与 Panel.datasetRefId 同语义；可复用 nop-report 数据集或看板侧 DatasetRef） |
+| x | int mandatory | 画布 X 坐标（像素，相对画布左上角） |
+| y | int mandatory | 画布 Y 坐标 |
+| w | int mandatory | widget 宽度（像素） |
+| h | int mandatory | widget 高度（像素） |
+| z | int | Z 层级（默认 0；越大越靠上） |
+| widgetConfig | json-4000 | 组件配置（透传给组件，由 componentType 决定 schema） |
+| 标准审计列 | — | delFlag/version/createdBy/createTime/updatedBy/updateTime/remark |
+
+relations：`to-one screen → NopDatavScreen`（via screenId）。indexes：`IX_NOP_DATAV_SCREEN_WIDGET_SCREEN(screenId)`。
+
+### 1.3 NopDatavScreenSnapshot（独立发布快照表）
+
+与 D0 `NopDatavDashboardSnapshot` 同模式但独立：发布时将大屏编辑内容（screen 基本信息 + 画布尺寸/适配/背景 + widget 列表）序列化为 JSON 写入快照表，主表更新发布状态/版本。
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| snapshotId | string(32) PK | 主键，seq |
+| screenId | string(32) mandatory, FK→Screen | 归属大屏 |
+| snapshotVersion | long mandatory | 快照版本（每次发布 +1） |
+| snapshotContent | clobJson mandatory | 序列化的发布内容 JSON |
+| publishedBy | string(50) | 发布人 |
+| publishedTime | timestamp | 发布时间 |
+| 标准审计列 | — | delFlag/version/createdBy/createTime/updatedBy/updateTime/remark |
+
+unique-key：`UK_NOP_DATAV_SCREEN_SNAPSHOT_SCREEN_VER(screenId, snapshotVersion)`。indexes：`IX_NOP_DATAV_SCREEN_SNAPSHOT_SCREEN(screenId)`。
+
+### 1.4 dict `datav/screen-adaptor`
+
+`valueType=int`，与仓库既有 dict 惯例（`datav/panel-type`/`datav/publish-status` 等 valueType=int）一致。
+
+| code | label | value |
+|------|-------|-------|
+| HEIGHT_FIRST | 高度优先 | 0 |
+| FULL | 整体铺满 | 10 |
+| KEEP | 保持原始 | 20 |
+
+### 1.5 被拒替代方案
+
+- **复用 Dashboard + layoutMode=free**：拒绝。理由：(1) 大屏的 screenWidth/screenHeight/adaptorMode/backgroundConfig 是看板没有的概念，复用需在 Dashboard 新增 nullable 列或 JSON 字段，主表查询/权限过滤复杂化；(2) 自由画布绝对定位与看板网格布局语义不同，混用 layoutMode 增加运行时分支；(3) DataEase 仪表板/大屏分离已成业界惯例。→ 独立实体更清晰。
+
+- **复用 NopDatavPanel 作 widget**：拒绝。理由：当前 `NopDatavPanel`（`nop-datav.orm.xml`）**无 x/y/w/h/z 定位字段**；复用需在已 done 的 D0 ORM 新增列（跨已-done-plan 结构变更，触发 plan-first + 看板面板/大屏 widget 双重身份耦合，查询/权限按 dashboardId vs screenId 双归属区分复杂）。→ `NopDatavScreenWidget` 独立实体，自带定位 + 组件类型标识。
+
+- **泛化/多态快照（ownerType+ownerId）**：拒绝。引用 `model-design.md` §拒绝的替代方案：多态关联增加查询复杂度、FK 难表达、权限管理复杂化。→ 大屏独立快照表（screenId + snapshotVersion UK），与 Dashboard 同模式但独立。
+
+## 2. 画布布局 JSON schema
+
+**决策：画布尺寸存于 Screen 实体列（screenWidth/screenHeight/adaptorMode），widget 定位存于 ScreenWidget 实体列；布局整体快照序列化为 JSON 存 ScreenSnapshot.snapshotContent。后端不强制单一「布局 JSON 文档」格式，因为实体归一化已表达编辑态，快照 JSON 仅是发布产物。**
+
+### 2.1 编辑态（实体归一化）
+
+- Screen 行：含 screenWidth/screenHeight/adaptorMode/backgroundConfig
+- ScreenWidget 行集合：每行含 componentType/datasetRefId/x/y/w/h/z/widgetConfig
+
+### 2.2 快照 JSON schema（ScreenSnapshot.snapshotContent）
+
+```json
+{
+  "screenName": "...",
+  "displayName": "...",
+  "description": "...",
+  "screenWidth": 1920,
+  "screenHeight": 1080,
+  "adaptorMode": 10,
+  "backgroundConfig": { ... },
+  "widgets": [
+    {
+      "widgetId": "...",
+      "widgetName": "...",
+      "displayName": "...",
+      "componentType": "chart",
+      "datasetRefId": "...",
+      "x": 100, "y": 200, "w": 600, "h": 400, "z": 0,
+      "widgetConfig": { ... }
+    }
+  ]
+}
+```
+
+### 2.3 被拒替代方案
+
+- **画布布局整体存为单一 JSON 列（Dashboard.layoutConfig 式）**：拒绝。理由：(1) 归一化多表支持 widget 独立 CRUD，编辑时修改单个 widget 不需重写整 JSON；(2) FK/索引在归一化表上更有效；(3) 与 D0 Panel 归一化模式一致。→ widget 独立表。
+
+## 3. 屏幕适配语义
+
+**决策：后端给出「画布基准尺寸 + 适配模式」，前端据此计算 transform；后端不做像素级渲染计算。**
+
+| adaptorMode（int） | code | 语义 | 前端缩放算法（参考） |
+|----|------|------|---------------------|
+| 0 | HEIGHT_FIRST | 高度优先等比缩放（宽度可滚动） | scale = viewportHeight / screenHeight；width 按 scale 计算，超出视口横向滚动 |
+| 10 | FULL | 整体等比铺满视口 | scale = min(viewportWidth/screenWidth, viewportHeight/screenHeight)；居中 |
+| 20 | KEEP | 保持原始尺寸不缩放 | scale = 1；超出视口滚动 |
+
+后端 `getScreenLayout` 返回的适配配置仅含 `{baseWidth, baseHeight, adaptorMode}`，前端按上表自行计算（前端实现走 nop-chaos-flux，不在本 plan 范围）。
+
+三种模式输出必须可区分：`adaptorMode` 值不同即不同模式，后端不做归一化/降级。
+
+## 4. `getScreenLayout` API 契约
+
+**决策：新建 API（非 D0 复用），`@BizQuery`，读已发布快照，返回结构化的 `ScreenLayoutConfig` + 适配配置。**
+
+| 项 | 值 |
+|----|----|
+| action | `NopDatavScreen.getScreenLayout(id, context)` |
+| 类型 | `@BizQuery` |
+| 权限 | `@Auth(permissions = "NopDatavScreen:getScreenLayout")` |
+| 输入 | `id: string`（screenId） |
+| 行级权限 | `requireEntity(id, "getScreenLayout", context)` → `checkDataAuth`（owner 或 admin 可读编辑态；本 action 读已发布快照，已发布内容对所有登录用户可见——与 Dashboard.getPublishedDashboard 同语义，admin/owner 始终可读，user 经发布状态过滤后也可读已发布） |
+| 数据源 | 已发布快照（`NopDatavScreenSnapshot` 最新版本）；无快照抛 `ERR_DATAV_SCREEN_SNAPSHOT_NOT_FOUND` |
+| 返回 | `ScreenLayoutConfig`（解析后） |
+
+### 4.1 `ScreenLayoutConfig` 返回结构
+
+```json
+{
+  "screenId": "...",
+  "screenName": "...",
+  "displayName": "...",
+  "canvas": {
+    "width": 1920,
+    "height": 1080,
+    "adaptorMode": 10,
+    "backgroundConfig": { ... }
+  },
+  "adaptation": {
+    "baseWidth": 1920,
+    "baseHeight": 1080,
+    "adaptorMode": 10
+  },
+  "widgets": [
+    {
+      "widgetId": "...",
+      "componentType": "chart",
+      "datasetRefId": "...",
+      "x": 100, "y": 200, "w": 600, "h": 400, "z": 0,
+      "widgetConfig": { ... }
+    }
+  ],
+  "snapshotVersion": 3
+}
+```
+
+`canvas` 与 `adaptation` 字段值相同但语义不同：`canvas` 描述画布定义，`adaptation` 描述适配基准。分离便于前端不同模块消费（画布渲染器 vs 适配器），且未来 D4-3 主题可在 `adaptation` 扩展而不影响画布定义。
+
+### 4.2 与 `getPublishedScreen` 的职责区分
+
+| API | 返回 | 用途 |
+|-----|------|------|
+| `getPublishedScreen(id, context)` | `NopDatavScreenSnapshot` 实体原文（snapshotContent 为 JSON 字符串） | 原始发布产物，管理/审计用 |
+| `getScreenLayout(id, context)` | `ScreenLayoutConfig`（结构化解析 + 适配配置 + widget 越界/未知组件校验） | 前端渲染消费，含运行时校验 |
+
+两者职责区分：前者返回原文，后者返回解析结果 + 校验。前端默认用 `getScreenLayout`；需要原文（如导出）用 `getPublishedScreen`。
+
+## 5. 发布/快照
+
+**决策：`NopDatavScreenSnapshot` 独立表，publish/getPublished/rollback 与 D0 Dashboard 模式一致。**
+
+### 5.1 Biz Action 契约
+
+| Action | 类型 | 主表读写 | 快照表读写 |
+|--------|------|----------|------------|
+| publishScreen | @BizMutation | 更新 publishStatus/publishedVersion/publishedBy/publishedTime | INSERT 新快照行 |
+| getPublishedScreen | @BizQuery | 仅读 | 查询最新快照 |
+| rollbackScreen | @BizMutation | 从快照内容恢复 screenWidth/screenHeight/adaptorMode/backgroundConfig/publishStatus/publishedVersion/publishedBy/publishedTime | 查询指定版本快照 |
+
+版本号生成策略：当前大屏最大快照版本 + 1（从快照表查询，非主表 publishedVersion 字段），与 D0 一致。
+
+### 5.2 被拒替代方案
+
+见 §1.5（泛化/多态快照已拒）。
+
+## 6. 权限
+
+**决策：大屏 CRUD/发布沿用 D3-1 action `@Auth` + owner（`createdBy`）行级 RLS，与 Dashboard 同模式。**
+
+### 6.1 action 权限点（`nop-datav-web/.../nop/datav/auth/nop-datav.action-auth.xml`）
+
+新增权限点 + 默认角色绑定（roles 属性）：
+
+- `NopDatavScreen:query`（query 类）→ admin,user
+- `NopDatavScreen:mutation`（mutation 类）→ admin
+- `NopDatavScreen:publishScreen` → admin
+- `NopDatavScreen:getPublishedScreen` → admin,user
+- `NopDatavScreen:rollbackScreen` → admin
+- `NopDatavScreen:getScreenLayout` → admin,user
+- `NopDatavScreenWidget:query/mutation` → admin,user / admin
+- `NopDatavScreenSnapshot:query/mutation` → admin,user / admin
+
+### 6.2 行级 RLS（`nop-datav-service/.../nop/datav/auth/nop-datav.data-auth.xml`）
+
+`NopDatavScreen`：admin 无 filter；user `createdBy == $context.userName OR publishStatus == 10`（与 Dashboard 同语义）。
+
+### 6.3 被拒替代方案
+
+- 细粒度 widget 级 RLS：拒绝。widget 是大屏内部组成，权限应在大屏级收口（与大屏同可见性）；widget 级 RLS 增加复杂度且无独立用例。
+
+## 7. widget 越界/重叠校验
+
+**决策：运行时校验，在 `ScreenLayoutConfig` 解析时执行；越界抛异常（非降级），重叠仅告警（不阻断，因合法场景如装饰层叠）。**
+
+### 7.1 校验规则
+
+| 规则 | 失败动作 | 错误码 |
+|------|----------|--------|
+| widget `x + w ≤ canvas.width` | 抛异常 | `ERR_DATAV_SCREEN_WIDGET_OUT_OF_BOUNDS` |
+| widget `y + h ≤ canvas.height` | 抛异常 | `ERR_DATAV_SCREEN_WIDGET_OUT_OF_BOUNDS` |
+| widget `x ≥ 0 && y ≥ 0 && w > 0 && h > 0` | 抛异常 | `ERR_DATAV_SCREEN_WIDGET_OUT_OF_BOUNDS` |
+| widget `componentType` 未在 `PanelComponentRegistry` 注册 | 抛异常 | `ERR_DATAV_SCREEN_WIDGET_UNKNOWN_COMPONENT` |
+| 画布/widget JSON 非法（解析失败） | 抛异常 | `ERR_DATAV_INVALID_SCREEN_LAYOUT` |
+| widget 重叠 | **不阻断**（仅告警；装饰层叠合法） | — |
+
+### 7.2 校验时机
+
+- **运行时**：`getScreenLayout` 解析已发布快照时执行（前端消费前保证一致）。
+- **配置时**（编辑器保存）：本 plan 不实现配置时校验；编辑器走 flux，未产出。配置时校验为 Non-Blocking Follow-up。
+
+### 7.3 被拒替代方案
+
+- **重叠也抛异常**：拒绝。理由：大屏装饰组件（D4-2）合法场景含层叠（如边框叠加在 chart 上）；强制无重叠会阻断合法设计。→ 仅告警。
+
+## 8. 与既有模型/组件的关系
+
+| 既有资产 | 复用方式 |
+|---------|----------|
+| `datav/publish-status` dict | 直接复用（DRAFT=0/PUBLISHED=10） |
+| `datav/panel-type` dict | **不复用**——widget.componentType 用字符串标识（"chart" 等），与 `PanelComponentRegistry` 类型标识一致（D1-1），不经 dict int 映射（widget 无 panelType int 列，直接存字符串） |
+| `PanelComponentRegistry.requireComponent` | 直接复用（D1-1），校验 widget.componentType |
+| `NopDatavDatasetRef` | **不直接 FK 引用**——widget.datasetRefId 是逻辑引用（与 Panel.datasetRefId 同语义），可指向任一 DatasetRef 行或外部 nop-report 数据集标识；本 plan 不验证 datasetRefId 存在性（运行时取数在 D1，不在本 plan 范围） |
+| D0 主表+快照表模式 | 直接复用模式（独立实体独立建表） |
+| D3-1 action `@Auth` + owner RLS | 直接复用模式 |
+| domains（json-4000/clobJson/version/createdBy 等） | 直接复用 |
+
+## 9. 模块结构
+
+实体 ORM 源模型编辑于 `nop-datav/model/nop-datav.orm.xml`，codegen 经 `nop-datav-codegen/postcompile/gen-orm.xgen` 生成 dao/entity/meta/beans 到既有 8 件套模块。BizModel 位于 `nop-datav-service/.../service/entity/NopDatavScreenBizModel.java`，布局协议/适配解析位于 `nop-datav-service/.../service/screen/`（新建子包）。包名约定 `io.nop.datav`，与既有实体一致。
+
+## 10. 装饰/媒体组件族（D4-2）
+
+**决策：在既有 `PanelComponentRegistry`（D1-1）登记 6 类装饰/媒体组件，均为 `needsDataset=false`；扩展 `PanelComponentMeta` 携带命名配置区域描述符；通过 `NopDatavScreenBizModel.getComponentTypes` 暴露元信息查询。**
+
+本节是 D4-2 的最终结论。D4-1 已建立自由画布布局协议并将 `widget.componentType` 经 `PanelComponentRegistry.requireComponent` 校验；本节在该注册表上登记装饰/媒体类型并定义其配置 schema 描述符。模型层交付（注册表登记 + 配置 schema + 元信息暴露），不含前端渲染（走 nop-chaos-flux，未产出），不含媒体代理/流后端实现。
+
+### 10.1 组件族清单
+
+6 类装饰/媒体组件，类型标识稳定不变，均 `needsDataset=false`（纯展示/媒体，不绑定数据集；轮询 Tab 是容器式组件，承载其他 widget，但其自身不取数）：
+
+| 类型标识 | 显示名 | 用途 | 配置区域 |
+|---------|--------|------|---------|
+| `decorative-border` | Decorative Border | 装饰边框（大屏视觉装饰，可叠加在 chart 上，§7.3 装饰层叠合法） | `variant`（边框样式变体，必填）+ `color`（边框颜色） |
+| `scroll-text` | Scroll Text | 滚动文字（公告/跑马灯） | `text`（滚动文本内容，必填）+ `speed`（滚动速度）+ `direction`（滚动方向） |
+| `time-clock` | Time Clock | 时间时钟（实时显示当前时间） | `format`（时间格式模板，如 `yyyy-MM-dd HH:mm:ss`）+ `timezone`（时区） |
+| `video` | Video | 视频（点播/静态视频源） | `src`（视频源 URL，必填）+ `autoplay`（是否自动播放）+ `loop`（是否循环）+ `controls`（是否显示控件） |
+| `stream` | Stream | 流媒体（直播/实时流） | `src`（流源 URL，必填）+ `protocol`（流协议，如 hls/rtmp） |
+| `carousel-tab` | Carousel Tab | 轮播 Tab（按间隔切换显示内嵌 widget 组） | `tabs`（Tab 定义列表，必填）+ `interval`（切换间隔秒数） |
+
+以上类型标识集中在 `PanelComponentTypes`；登记在 `PanelComponentRegistry` 静态初始化块，保留既有重复检测（`IllegalStateException` on duplicate type）与未知类型拒绝（`ERR_DATAV_UNKNOWN_COMPONENT_TYPE`，不静默降级）。
+
+### 10.2 元信息描述符方案
+
+**决策：扩展 `PanelComponentMeta` 使其可携带命名配置区域描述符（机器可读）。**
+
+描述符结构（每个区域）：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `name` | String | 配置区域名称（如 `src` / `autoplay`） |
+| `description` | String | 用途说明（如 "视频源 URL"） |
+| `required` | boolean | 是否必填 |
+
+向后兼容：既有 8 类组件（D1-1，无描述符）在扩展后的元信息中按「空配置区域列表」处理（即「该类型目前未声明命名配置区域」），不破坏现有注册与测试。新增的 6 类装饰/媒体组件携带非空描述符列表。
+
+**被拒替代方案：仅文档约定、无运行时描述符。** 拒绝。理由：配置 schema 是 D4-2 的显式交付物；纯文档无法被 `getComponentTypes` API 消费，也无法在测试中断言，等于「注册表只回答哪些类型存在，不回答每种类型接受什么配置」，与 D4-2 交付目标不符。
+
+### 10.3 不做硬 JSON Schema 校验
+
+**决策：配置 schema 为描述符 + 向前兼容约定，注册表与 `getScreenLayout` 不强制拒绝含未声明区域的 `widgetConfig`。**
+
+`PanelComponentMeta.configAreas` 是描述性的（供前端/测试消费），不是运行时校验器。校验 `widgetConfig` JSON Schema 与否属组件实现层细节，由 nop-chaos-flux 控件族落地时决定；后端 `ScreenLayoutParser` 仅校验 `componentType` 是否注册（D4-1 既有行为不变）。
+
+**理由**：(1) 与 D1-1 「panelConfig 区域约定、字段级细节由 flux 定稿」哲学一致；(2) 强制 JSON Schema 校验会在 flux 控件 schema 未定稿时阻断合法配置演进。强制校验为 Non-Goal。
+
+### 10.4 复用 PanelComponentRegistry
+
+**决策：装饰/媒体组件登记进既有 `PanelComponentRegistry`，不新建独立 `ScreenComponentRegistry`。**
+
+D4-1 已复用该注册表校验大屏 widget（`ScreenLayoutParser.validateComponentType` / `parseWidget`）。新建独立注册表会割裂组件类型空间、增加 `ScreenLayoutParser` 分发分支。
+
+**被拒替代方案：独立 `ScreenComponentRegistry`。** 拒绝。理由：(1) 同一类型空间更简单，看板面板因无对应 `panelType` dict 项天然不会误引用装饰组件；(2) `widget.componentType` 是 string（非 dict int），不经 `panelType` dict 映射，无需为新类型新增 dict 选项；(3) D4-1 已验证复用模式可行。
+
+### 10.5 与看板面板的边界
+
+装饰/媒体组件是大屏专用，看板面板不引用：
+
+| 路径 | 组件类型空间 | 映射方式 |
+|------|-------------|---------|
+| 看板面板（`NopDatavPanel.panelType` int） | 经 `PanelTypeMapping` ↔ `PanelComponentTypes` | dict `datav/panel-type` 8 个 int 值（0/10/20/30/40/50/60/70），装饰/媒体组件不在此 dict |
+| 大屏 widget（`NopDatavScreenWidget.componentType` string） | 直接字符串标识，经 `PanelComponentRegistry.requireComponent` 校验 | 无 dict int 映射 |
+
+`PanelTypeMapping` 不为装饰/媒体类型新增 int 映射——看板面板（int 映射）天然不会引用装饰组件。
+
+### 10.6 组件元信息查询 API
+
+**决策：在 `NopDatavScreenBizModel` 新增 `getComponentTypes()`（`@BizQuery`，无 screenId 参数），返回全部已注册组件的类型标识 + 显示名 + needsDataset + 配置区域描述符。**
+
+| 项 | 值 |
+|----|----|
+| action | `NopDatavScreen.getComponentTypes()` |
+| 类型 | `@BizQuery` |
+| 权限 | `@Auth(permissions = "NopDatavScreen:getComponentTypes")` |
+| 输入 | 无（全局查询，不绑定特定大屏） |
+| 返回 | `List<PanelComponentMeta>`（含 D4-1 既有 8 类 + D4-2 新增 6 类，共 14 类） |
+
+**裁定：放在 `NopDatavScreenBizModel`（大屏是组件注册表的主要消费方），不新建 entity-less BizModel。** 避免新增 `_service.beans.xml` bean 定义与独立 action-auth 命名空间；与既有 4 个 screen action 同模式（接口声明 + action-auth 权限点）。权限点 `NopDatavScreen:getComponentTypes` 在 `nop-datav.action-auth.xml` 增配，默认 `admin,user` 可读（与 `getScreenLayout` 同语义，元信息对所有可读大屏的角色可见）。
+
+## 11. 主题模型：色板 + 背景（D4-3）
+
+**决策：主题配置复用 D4-1 预留的 `backgroundConfig` 列，定义其内容结构为 `{palette: {命名色}, background: {type, value}}`，不新增 ORM 列；主题解析在 `getScreenLayout` 读取期发生，将结构化主题经 `ScreenLayoutConfig` 新增的 `theme` 字段暴露（additive，非破坏）。**
+
+D4-1 已在大屏实体预留 `backgroundConfig`（json-4000）作为主题扩展占位，`serializeScreenContent`/`restoreScreenFromSnapshot` 原样序列化/回填。D4-3 填充该占位的内部结构与解析逻辑。本节是模型层交付（配置 schema + 解析 + 元信息暴露），不含前端渲染（走 nop-chaos-flux，未产出）。
+
+### 11.1 backgroundConfig 内容结构
+
+推荐结构（含 palette + background 两区域）：
+
+```json
+{
+  "palette": {
+    "primary": "#1890FF",
+    "secondary": "#13C2C2",
+    "accent": "#722ED1",
+    "success": "#52C41A",
+    "warning": "#FAAD14",
+    "danger": "#F5222D",
+    "info": "#1890FF",
+    "text": "#FFFFFF",
+    "textSecondary": "#BFBFBF",
+    "background": "#131A2E"
+  },
+  "background": {
+    "type": "color",
+    "value": "#131A2E"
+  }
+}
+```
+
+- `palette`：命名语义色集合（name → hex 色值字符串）。name 取自下方 §11.3 固定清单，缺省项按 §11.3 填充默认值。
+- `background`：背景定义。
+  - `type`：`color`（缺省）| `image` | `gradient`。
+  - `value`：依 type 而定——
+    - `color`：hex 色值字符串（如 `"#131A2E"`）；缺省取 `palette.background`。
+    - `image`：图片 URL 字符串（如 `"https://..."`）。
+    - `gradient`：渐变描述对象（如 `{"angle": 90, "stops": [{"color":"#1890FF","offset":0}, ...]}`）或 CSS 渐变字符串。
+
+**被拒替代方案：新增 `themeConfig` ORM 列。** 拒绝。理由：(1) D4-1 已预留 `backgroundConfig` 占位，复用避免 ORM 变更（plan-first 区域）+ 快照序列化/回滚已覆盖 backgroundConfig 原样流转；(2) 主题与背景本就是同一"视觉外观"概念，分两列割裂语义。→ 复用 backgroundConfig。
+
+### 11.2 向后兼容裁定（关键）
+
+**决策：解析 backgroundConfig 时区分"含主题键"与"legacy 自由格式"，legacy 不报错。**
+
+| backgroundConfig 形态 | 解析动作 | 是否报错 |
+|----------------------|----------|----------|
+| 缺省 / 空 / null | `theme` 用缺省 palette + 缺省 background（color type，value 取 palette.background） | 否 |
+| 不含 `palette`/`background` 键（legacy 自由格式，如 `{"color":"#123456"}`） | `theme` 用缺省 palette + 缺省 background；**backgroundConfig 原始 Map 原样透传**（`Canvas.backgroundConfig` 不变） | 否 |
+| 含 `palette` 或 `background` 键且值结构合法 | 按 §11.1 结构解析，缺省项填充 | 否 |
+| 含 `palette`/`background` 键但值结构非法（如 `palette` 非 object、`background` 非 object） | 抛 `ERR_DATAV_INVALID_THEME_CONFIG` | **是** |
+
+**理由**：(1) 既有测试 `TestNopDatavScreenBizModel`（`{"color":"#123456"}` 断言透传）与 `TestScreenLayoutParser`（`{"color":"#000"}`）依赖 backgroundConfig 原样透传，legacy 不报错保证不回归；(2) "含主题键即声明使用新结构"是明确的语义边界，结构非法显式失败避免静默降级（rule #24）。
+
+### 11.3 palette 命名色清单 + 缺省值
+
+固定命名语义色集合（参考 JimuReport sysDefColor + Ant Design 语义色，面向大屏深色场景取默认值）：
+
+| 命名色 | 语义 | 缺省值 |
+|--------|------|--------|
+| `primary` | 主色 / 品牌色 | `#1890FF` |
+| `secondary` | 辅色 | `#13C2C2` |
+| `accent` | 强调色 | `#722ED1` |
+| `success` | 成功 / 正向 | `#52C41A` |
+| `warning` | 警告 / 注意 | `#FAAD14` |
+| `danger` | 危险 / 错误 | `#F5222D` |
+| `info` | 信息 | `#1890FF` |
+| `text` | 主文字色 | `#FFFFFF` |
+| `textSecondary` | 次要文字色 | `#BFBFBF` |
+| `background` | 背景基色（background.value 缺省取此） | `#131A2E` |
+
+解析时：用户在 `palette` 中指定的色覆盖默认；未指定的命名色按上表填充默认值（非 null）。palette 值非 hex 字符串时不阻断（向前兼容，仅约定），但解析后的 `theme.palette` 中命名色值均为字符串。
+
+palette 内允许出现上表之外的命名色（向前兼容，如未来 series 色序列），原样保留进 `theme.palette`，不强制拒绝未声明键（与 §10.3 配置 schema 不做硬 JSON Schema 校验哲学一致）。
+
+### 11.4 返回结构非破坏裁定
+
+**决策：`Canvas.backgroundConfig` 保持 `Map<String,Object>` 原样透传（D4-1 公共契约不变）；解析后的结构化主题放入 `ScreenLayoutConfig` 新增的 `theme` 字段（additive）。**
+
+`getScreenLayout` 返回的 `ScreenLayoutConfig` 新增 `theme` 字段（`ScreenThemeConfig` 类型），含：
+
+```json
+{
+  "theme": {
+    "palette": { "primary": "#1890FF", "...": "...", "background": "#131A2E" },
+    "background": { "type": "color", "value": "#131A2E" }
+  }
+}
+```
+
+- `theme.palette`：解析后的命名色 Map（缺省值已填充），`Map<String,String>`（name → hex）。
+- `theme.background`：解析后的背景定义（`type` 缺省 `color`，`value` 缺省取 `palette.background`）。
+
+既有 `Canvas.backgroundConfig`（`Map<String,Object>`，D4-1 公共契约）**类型与透传语义不变**——既有 `getBackgroundConfig().get("color")` 断言继续成立。
+
+**被拒替代方案：将 `Canvas.backgroundConfig` 字段类型改为结构化对象。** 拒绝。理由：(1) 破坏 D4-1 公共契约 + dao 模块 POJO + 既有消费者（TestNopDatavScreenBizModel/TestScreenLayoutParser 的透传断言）；(2) 主题与原始 backgroundConfig 透传是两个关注点（一个是结构化解析产物，一个是原始配置透传），混在一个字段增加耦合。→ 新增独立 `theme` 字段。
+
+### 11.5 widget 主题命名引用裁定
+
+**决策：widget 可在 `widgetConfig.theme` 区域用命名引用（如 `{"color":"primary","backgroundColor":"background"}`）引用屏幕级 palette；解析期将命名引用替换为 palette 实际色值，放入 widget 解析结果的新增 `resolvedTheme` 字段。**
+
+解析规则：
+
+- widget.widgetConfig 含 `theme` 键（值为 Map）→ 对该 Map 每个条目：若 value 是 String 且是 palette 中的命名色名 → 替换为 palette 实际色值；否则原样保留。
+- 解析结果放入 `Widget.resolvedTheme`（`Map<String,Object>`，name → 解析后值）。
+- **widgetConfig 本身不被改写**——`Widget.widgetConfig` 原样透传，含原始命名引用；styleOptions（D1-1 §1.3）更不被自动改写。
+
+**不对 D1-1 `styleOptions` 的任意颜色键做自动 palette 回退。** styleOptions 键到 palette 名的映射无定义、不可测。widget 主题引用范围明确收窄为 `widgetConfig.theme` 区域的命名引用。
+
+**被拒替代方案：styleOptions 任意颜色键自动 palette 回退。** 拒绝。理由：(1) styleOptions 键到 palette 名的映射无定义（哪个 styleOptions 键对应 primary？），不可测；(2) 自动改写 styleOptions 会破坏 D1-1 透传语义。→ 收窄为 `widgetConfig.theme` 命名引用，可测且范围明确。
+
+### 11.6 per-screen 主题裁定
+
+**决策：每屏独立主题配置，不做可复用主题库实体。**
+
+**被拒替代方案：新建 `NopDatavTheme` 可复用主题库实体（CRUD + 引用关系）。** 拒绝。理由：(1) 需 CRUD + 引用关系，scope 过宽；(2) 当前无跨屏共享主题用例，per-screen 配置已满足"色板 + 背景"需求。→ 列为 Non-Blocking Follow-up（无 successor 要求）。
+
+### 11.7 主题解析时机与存储不变
+
+**决策：主题解析只发生在 `getScreenLayout` 读取期（解析已发布快照），不改变存储格式。**
+
+- `serializeScreenContent`/`restoreScreenFromSnapshot` 仍原样流转 backgroundConfig（主题解析不写入快照，快照存原始 backgroundConfig）。
+- 主题解析是读取期的派生计算，结果（`theme` 字段）不持久化。
+- 这样保证：快照可回滚到任意历史版本且主题按该版本的 backgroundConfig 重新解析，无迁移负担。
+
+## 12. 发布生命周期增强（D4-4）：历史 + 缩略图 + 草稿预览
+
+**决策：在 D4-1 已落地的 publish/getPublished/rollback/getScreenLayout 基础上，补齐三项能力——快照历史浏览、缩略图存储、草稿预览。新增 4 个 action（`getScreenSnapshotHistory` / `getScreenLayoutByVersion` / `getScreenDraftLayout` / `setScreenThumbnail`）+ 主表新增 `thumbnail` 列 + `ScreenLayoutParser` 增 content overload（草稿预览复用既有解析路径，不新建第二套）。**
+
+本节是 D4-4 的最终结论。被拒替代方案及理由在每一节末尾给出。
+
+### 12.1 快照历史浏览契约
+
+**决策：`getScreenSnapshotHistory(screenId)` 返回某大屏全部快照的版本元信息列表（不含 snapshotContent），按版本号倒序。**
+
+返回结构：每条 = `{snapshotVersion, publishedBy, publishedTime}`（不含 snapshotId/snapshotContent/审计列——列表场景只需"谁/何时发布了哪个版本"）。
+
+查看具体历史版本的布局用 `getScreenLayoutByVersion`（§12.2）。
+
+**被拒替代方案：列表直接返回全量 snapshotContent。** 拒绝。理由：快照 snapshotContent 是 CLOB（完整画布 + widget 列表 JSON），列表场景全量返回浪费带宽、影响列表页渲染性能；用户浏览历史时通常先看版本/时间摘要，再按需展开单个版本。→ 列表只返元信息，内容按需单条取。
+
+### 12.2 指定版本布局查看契约
+
+**决策：`getScreenLayoutByVersion(screenId, snapshotVersion)` 读指定版本快照 → 经 `ScreenLayoutParser` 解析为 `ScreenLayoutConfig`（与 `getScreenLayout` 同解析路径，只是数据源从"最新快照"改为"指定版本快照"）。**
+
+- 指定版本的快照不存在 → 抛 `ERR_DATAV_SCREEN_SNAPSHOT_VERSION_NOT_FOUND`（不返回 null/空，rule #24 无静默跳过）。
+- 复用 `ScreenLayoutParser.parse`，不新建第二套解析路径（与 §12.4 草稿预览同复用哲学）。
+
+### 12.3 缩略图存储裁定
+
+**决策：主表 `NopDatavScreen` 新增 `thumbnail` 列（string，存文件记录引用 ID 或 data URL），不存于快照表；`thumbnail` 列仅由 `setScreenThumbnail` 写入，`publishScreen` 不改动 thumbnail 列。**
+
+存储位 + 设置 API 落地；缩略图图像生成（截图/渲染）走前端（nop-chaos-flux，未产出），前端截图后调用 `setScreenThumbnail` 写入主表。
+
+**thumbnail 写入唯一性裁定（确定性）：**
+- `thumbnail` 主表列**仅**由 `setScreenThumbnail(screenId, thumbnail)` 写入（前端截图后调用，单一写入点）。
+- `publishScreen` **不**改动 thumbnail 列（保持 publish 单一职责，避免副作用）。`publishScreen` 仅更新 `publishStatus/publishedVersion/publishedBy/publishedTime` 四列（D4-1 既有行为不变）。
+- `serializeScreenContent` 在序列化快照 JSON 时**只读**附带当前 thumbnail 值（在 snapshotContent JSON 中加 `thumbnail` 字段，供历史版本附带视觉预览），不回写主表。
+
+**权限：** `setScreenThumbnail` = owner/admin（与编辑权限一致，编辑态语义）；与已发布内容的 admin/user 可读（§12.6 权限矩阵）区分。
+
+**被拒替代方案：**
+
+- **每快照一行缩略图（snapshot 表新增 thumbnail 列）。** 拒绝。理由：列表页（`NopDatavScreen` 列表）只需"当前缩略图"（最近一次手动设置），无需每版本一行缩略图；历史版本的视觉预览可在 snapshotContent JSON 内附带 thumbnail 值（只读），无需独立列。→ 主表单列 + 快照 JSON 内附带，最小存储位。
+
+- **publish 自动生成/回填缩略图。** 拒绝。理由：缩略图生成需渲染（截图/转图片），渲染属前端能力（flux 未产出）；publish 应保持单一职责（"序列化编辑态 → 写快照行 → 更新发布状态"），自动触发渲染会引入 publish 与渲染的耦合 + 在渲染能力缺失时阻塞 publish。→ thumbnail 单独由 `setScreenThumbnail` 写入，publish 不触碰 thumbnail。
+
+### 12.4 草稿预览复用契约
+
+**决策：`getScreenDraftLayout(screenId)` 从当前编辑态构建 `ScreenLayoutConfig`，无需先 publish；实现 = `serializeScreenContent(screen)` 产出内容字符串 → `ScreenLayoutParser.parse(screenId, content)` 新 overload 解析（不经快照表落盘）。**
+
+复用既有路径，不新建独立草稿布局构建：
+- `serializeScreenContent`（D4-1 既有，私有）已能从编辑态（screen 主表行 + widget 行集合）构建内容 JSON 字符串。
+- `ScreenLayoutParser` 新增 overload `parse(String screenId, String snapshotContent)`（解析 JSON 内容字符串），既有 `parse(String screenId, NopDatavScreenSnapshot)` 改为委托新 overload（提取 snapshotContent + snapshotVersion）。草稿预览无 snapshotVersion（编辑态未发布），新 overload 不设置 snapshotVersion（或设为 0/默认，标记"草稿"语义）。
+- 从未 publish 的大屏也能预览（草稿预览不读快照表，直接从主表 + widget 行构建）。
+
+**被拒替代方案：为草稿单独写第二套布局构建逻辑。** 拒绝。理由：(1) 复用 `serializeScreenContent` + `ScreenLayoutParser.parse` 避免双路径漂移（编辑态预览 vs 已发布布局用同一套序列化 + 解析，保证一致性）；(2) D4-3 主题解析已接入 `ScreenLayoutParser.parse`，草稿预览经同一 overload 自动获得主题解析能力，无需重复实现。→ 单一解析路径，草稿/已发布共用。
+
+### 12.5 ScreenLayoutParser overload 裁定
+
+**决策：`ScreenLayoutParser` 增 `parse(String screenId, String snapshotContent)` overload；既有 `parse(String screenId, NopDatavScreenSnapshot)` 委托新 overload（提取 snapshotContent + snapshotVersion）。**
+
+overload 签名：
+- `parse(String screenId, NopDatavScreenSnapshot snapshot)`（既有）：从 snapshot 取 snapshotContent + snapshotVersion，委托下一 overload。
+- `parse(String screenId, String snapshotContent)`（新增，草稿预览用）：解析 JSON 内容字符串，snapshotVersion 不设置（草稿无版本）。
+
+解析逻辑（JSON 解析 / 画布校验 / widget 越界/未知组件校验 / 主题解析）全部在 overload 内，不重复。
+
+### 12.6 权限矩阵
+
+| Action | 类型 | 角色 | 语义 |
+|--------|------|------|------|
+| `getScreenSnapshotHistory` | @BizQuery | admin,user | 已发布内容的历史元信息，与 `getPublishedScreen` 同语义（已发布内容对所有有读权限的用户可见） |
+| `getScreenLayoutByVersion` | @BizQuery | admin,user | 已发布内容的指定版本布局，与 `getScreenLayout` 同语义 |
+| `getScreenDraftLayout` | @BizQuery | admin | 草稿预览，编辑态语义，仅 owner/admin 可预览（与编辑权限一致；区别于已发布内容的 admin/user 可读） |
+| `setScreenThumbnail` | @BizMutation | admin | 缩略图设置，编辑态语义，仅 owner/admin 可设置 |
+
+行级权限：4 个新 action 均经 `requireEntity(id, action, context)` → `checkDataAuth`（沿用 D4-1 模式）。草稿预览/缩略图设置的 owner/admin 语义通过 `@Auth` + 既有 RLS（user 行级 filter `createdBy == $context.userName OR publishStatus == 10`）+ 角色绑定（仅 admin）共同收口。
+
+### 12.7 serializeScreenContent 附带 thumbnail（只读）
+
+**决策：`serializeScreenContent` 序列化快照 JSON 时只读附带当前主表 thumbnail 值（在 snapshotContent JSON 中加 `thumbnail` 字段），不回写主表。**
+
+- 快照 JSON schema（§2.2）增 `thumbnail` 字段（可选，存当时的缩略图引用）。历史版本布局查看（§12.2）解析时该字段原样透传进 `ScreenLayoutConfig`（供前端展示历史版本视觉预览）。
+- 主表 thumbnail 列仅由 `setScreenThumbnail` 写入；publish 时 serialize 只读 current thumbnail 写入快照 JSON，不触发主表 thumbnail 列更新。
+
+### 12.8 错误码
+
+复用既有：
+- 快照版本不存在：`ERR_DATAV_SCREEN_SNAPSHOT_VERSION_NOT_FOUND`（D4-1 已定义）。
+- 大屏不存在：`ERR_DATAV_SCREEN_NOT_FOUND`（D4-1 已定义）。
+- 布局非法：`ERR_DATAV_INVALID_SCREEN_LAYOUT`（D4-1 已定义）。
+
+无需新增错误码。

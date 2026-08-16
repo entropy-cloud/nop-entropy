@@ -1,0 +1,18 @@
+{
+  "messageId": "",
+  "sessionId": "",
+  "seq": 0,
+  "role": "",
+  "role_label": "",
+  "content": "",
+  "resultJson": "",
+  "delFlag": 0,
+  "version": 0,
+  "createdBy": "",
+  "createTime": "2000-01-01 14:00:00",
+  "updatedBy": "",
+  "updateTime": "2000-01-01 14:00:00",
+  "remark": "",
+  "session": null,
+  "resultJsonComponent": null
+}

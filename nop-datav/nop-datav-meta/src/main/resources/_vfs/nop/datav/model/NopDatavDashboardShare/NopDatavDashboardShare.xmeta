@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopDatavDashboardShare.xmeta">
+
+    <props>
+        <!-- Restrict passwordHash: credential field, not exposed in queries/sorts or
+             GraphQL output (published=false excludes it from output type).
+             Same mechanism as NopAuthUser.password and NopAiModel.apiKey. -->
+        <prop name="passwordHash" x:override="merge" published="false" queryable="false" sortable="false"/>
+    </props>
+</meta>

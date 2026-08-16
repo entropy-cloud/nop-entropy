@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" ext:model="orm" ext:icon="filter" ext:web-renderer="" xmlns:c="c" xmlns:graphql="graphql"
+      xmlns:meta-gen="meta-gen" xmlns:biz="biz" displayName="筛选状态" i18n-en:displayName="Filter State" xmlns:ui="ui"
+      xmlns:orm="orm">
+
+    <entityName>io.nop.datav.dao.entity.NopDatavFilterState</entityName>
+
+    <primaryKey>stateId</primaryKey>
+
+    <x:gen-extends>
+        <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:post-extends>
+
+    <keys>
+        <key name="UK_NOP_DATAV_FILTER_STATE_USER_DASH" props="userName,dashboardId"/>
+    </keys>
+
+    <props>
+        <prop name="stateId" displayName="状态ID" propId="1" i18n-en:displayName="State Id" tagSet="seq" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="userName" displayName="用户名" propId="2" i18n-en:displayName="User Name" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="dashboardId" displayName="看板ID" propId="3" i18n-en:displayName="Dashboard Id" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="dashboard">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="stateContent" displayName="状态内容" propId="4" i18n-en:displayName="State Content" queryable="true"
+              sortable="true" insertable="true" updatable="true" graphql:jsonComponentProp="stateContentComponent">
+            <schema stdDomain="json" domain="clobJson" type="java.lang.String"/>
+        </prop>
+        <prop name="delFlag" displayName="删除标记" propId="5" i18n-en:displayName="Del Flag" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema stdDomain="boolFlag" domain="delFlag" type="java.lang.Byte"/>
+        </prop>
+        <prop name="version" displayName="数据版本" propId="6" i18n-en:displayName="Version" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false" internal="true">
+            <schema domain="version" type="java.lang.Long"/>
+        </prop>
+        <prop name="createdBy" displayName="创建人" propId="7" i18n-en:displayName="Created By" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="createdBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="createTime" displayName="创建时间" propId="8" i18n-en:displayName="Create Time" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="createTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="updatedBy" displayName="修改人" propId="9" i18n-en:displayName="Updated By" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="updatedBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="updateTime" displayName="修改时间" propId="10" i18n-en:displayName="Update Time" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="updateTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="remark" displayName="备注" propId="11" i18n-en:displayName="Remark" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema domain="remark" type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="dashboard" displayName="看板" i18n-en:displayName="Dashboard" tagSet="pub,ref-pub" ext:kind="to-one"
+              internal="true" queryable="true" ext:joinLeftProp="dashboardId" ext:joinRightProp="dashboardId"
+              ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" mandatory="true" lazy="true">
+            <schema bizObjName="NopDatavDashboard"/>
+        </prop>
+        <prop name="dashboard.displayName" displayName="看板" i18n-en:displayName="Dashboard" internal="true"
+              queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="stateContentComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"
+              updatable="true" lazy="true">
+            <schema type="io.nop.orm.component.JsonOrmComponent"/>
+        </prop>
+    </props>
+</meta>

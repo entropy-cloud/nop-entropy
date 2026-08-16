@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- Test beans override for nop-datav auth integration tests.
+     Imports the original nop-datav-service beans and overrides nopSequenceGenerator
+     back to UuidSequenceGenerator (nop-sys-dao's SysSequenceGenerator queries
+     NOP_SYS_SEQUENCE table which doesn't exist during test setup). -->
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc">
+
+    <import resource="/nop/datav/beans/app-service.beans.xml"/>
+
+    <bean id="nopSequenceGenerator" class="io.nop.dao.seq.UuidSequenceGenerator" ioc:default="true"/>
+
+</beans>

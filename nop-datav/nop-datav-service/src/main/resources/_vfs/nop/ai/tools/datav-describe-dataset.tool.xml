@@ -1,0 +1,53 @@
+<tool x:schema="/nop/schema/ai/tool/tool.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      name="datav-describe-dataset">
+
+    <schema>
+        <datav-describe-dataset id="!int" explanation="!string" timeoutMs="int"
+                                datasetSid="!string"/>
+    </schema>
+
+    <schemaJson>{
+  "type": "object",
+  "properties": {
+    "datasetSid": {
+      "type": "string",
+      "description": "The dataset ID (sid) to describe. Obtain from datav-list-datasets."
+    }
+  },
+  "required": ["datasetSid"]
+}</schemaJson>
+
+    <description><![CDATA[Describe a dataset's fields and input parameters.
+
+Returns JSON with:
+- sid / dsName / description / dsType
+- fields: array of field metadata parsed from dsMeta (name, type, label when available)
+- params: array of input parameter definitions parsed from dsConfig (name, type, required, defaultValue when available)
+
+Use this after datav-list-datasets to learn which fields the dataset returns and which params the SQL expects (as ${paramName} placeholders) before calling datav-query-dataset. If the dataset does not exist, returns a JSON error object.]]></description>
+
+    <examples>
+        <example index="1">
+            <call-tools>
+                <datav-describe-dataset id="1" explanation="Describe sales dataset" datasetSid="ds-sales"/>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="1" status="success">
+                    <output><![CDATA[{
+  "sid": "ds-sales",
+  "dsName": "Sales Dataset",
+  "dsType": "sql",
+  "fields": [
+    {"name": "region", "type": "string"},
+    {"name": "amount", "type": "number"}
+  ],
+  "params": [
+    {"name": "region", "type": "string", "required": false}
+  ]
+}]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+    </examples>
+
+</tool>

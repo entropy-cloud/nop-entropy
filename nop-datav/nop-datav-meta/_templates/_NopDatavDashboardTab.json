@@ -1,0 +1,18 @@
+{
+  "tabId": "",
+  "dashboardId": "",
+  "tabName": "",
+  "displayName": "",
+  "sortOrder": 0,
+  "tabConfig": "",
+  "delFlag": 0,
+  "version": 0,
+  "createdBy": "",
+  "createTime": "2000-01-01 14:00:00",
+  "updatedBy": "",
+  "updateTime": "2000-01-01 14:00:00",
+  "remark": "",
+  "dashboard": null,
+  "dashboard.displayName": "",
+  "tabConfigComponent": null
+}

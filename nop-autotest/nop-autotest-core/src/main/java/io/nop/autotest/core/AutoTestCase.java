@@ -227,6 +227,8 @@ public class AutoTestCase extends BaseTestCase {
     public void complete(boolean success) {
         try {
             AutoTestVars.dumpVars();
+            // 恢复为no-op收集器而不是null，避免同JVM中后续非autotest测试通过
+            // VarCollector.instance().collectVar(...) 触发NPE（例如直接调用LoginApiBizModel的普通测试）
             VarCollector.registerInstance(new VarCollector());
 
             if (sessionFactory != null && ormHook != null) {

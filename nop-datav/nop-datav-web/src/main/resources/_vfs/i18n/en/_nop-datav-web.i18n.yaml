@@ -1,0 +1,202 @@
+site:
+  resource:
+    FNPT:NopDatavAlertRule:disableAlertRule:
+      displayName: Disable Alert Rule
+    FNPT:NopDatavAlertRule:enableAlertRule:
+      displayName: Enable Alert Rule
+    FNPT:NopDatavAlertRule:evaluateAlertNow:
+      displayName: Evaluate Alert Now
+    FNPT:NopDatavAlertRule:getAlertState:
+      displayName: Get Alert State
+    FNPT:NopDatavAlertRule:mutation:
+      displayName: Modify Alert Rule
+    FNPT:NopDatavAlertRule:query:
+      displayName: Query Alert Rule
+    FNPT:NopDatavAlertState:mutation:
+      displayName: Modify Alert State
+    FNPT:NopDatavAlertState:query:
+      displayName: Query Alert State
+    FNPT:NopDatavChatBi:chatToDashboard:
+      displayName: ChatBI Dashboard Generation
+    FNPT:NopDatavChatBi:chatToQuery:
+      displayName: ChatBI Query
+    FNPT:NopDatavChatBi:chatToScreen:
+      displayName: ChatBI Screen Generation
+    FNPT:NopDatavChatBi:createChatSession:
+      displayName: Create ChatBI Session
+    FNPT:NopDatavChatBi:deleteChatSession:
+      displayName: Delete ChatBI Session
+    FNPT:NopDatavChatBi:getChatSessionHistory:
+      displayName: Get ChatBI Session History
+    FNPT:NopDatavChatBi:listChatSessions:
+      displayName: List ChatBI Sessions
+    FNPT:NopDatavChatMessage:mutation:
+      displayName: Modify ChatBI Session Message
+    FNPT:NopDatavChatMessage:query:
+      displayName: Query ChatBI Session Message
+    FNPT:NopDatavChatSession:mutation:
+      displayName: Modify ChatBI Session
+    FNPT:NopDatavChatSession:query:
+      displayName: Query ChatBI Session
+    FNPT:NopDatavDashboard:exportDashboardFilter:
+      displayName: Export Dashboard Filter
+    FNPT:NopDatavDashboard:exportDashboardLayout:
+      displayName: Export Dashboard Layout
+    FNPT:NopDatavDashboard:getDashboardData:
+      displayName: Get Dashboard Data
+    FNPT:NopDatavDashboard:getPublishedDashboard:
+      displayName: Get Published Dashboard
+    FNPT:NopDatavDashboard:mutation:
+      displayName: Modify Dashboard
+    FNPT:NopDatavDashboard:parseFilterFromUrl:
+      displayName: Parse Filter From URL
+    FNPT:NopDatavDashboard:publishDashboard:
+      displayName: Publish Dashboard
+    FNPT:NopDatavDashboard:query:
+      displayName: Query Dashboard
+    FNPT:NopDatavDashboard:resolveFilterValues:
+      displayName: Resolve Filter Values
+    FNPT:NopDatavDashboard:rollbackDashboard:
+      displayName: Rollback Dashboard
+    FNPT:NopDatavDashboard:saveDashboardLayout:
+      displayName: Save Dashboard Layout
+    FNPT:NopDatavDashboardShare:createShare:
+      displayName: Create Share
+    FNPT:NopDatavDashboardShare:listShares:
+      displayName: List Shares
+    FNPT:NopDatavDashboardShare:mutation:
+      displayName: Modify Dashboard Share
+    FNPT:NopDatavDashboardShare:query:
+      displayName: Query Dashboard Share
+    FNPT:NopDatavDashboardShare:revokeShare:
+      displayName: Revoke Share
+    FNPT:NopDatavDashboardShare:toggleShare:
+      displayName: Toggle Share
+    FNPT:NopDatavDashboardSnapshot:mutation:
+      displayName: Modify Dashboard Snapshot
+    FNPT:NopDatavDashboardSnapshot:query:
+      displayName: Query Dashboard Snapshot
+    FNPT:NopDatavDashboardTab:mutation:
+      displayName: Modify Dashboard Tab
+    FNPT:NopDatavDashboardTab:query:
+      displayName: Query Dashboard Tab
+    FNPT:NopDatavDatasetRef:mutation:
+      displayName: Modify Dataset Ref
+    FNPT:NopDatavDatasetRef:query:
+      displayName: Query Dataset Ref
+    FNPT:NopDatavExportTask:cancelExportTask:
+      displayName: Cancel Export Task
+    FNPT:NopDatavExportTask:createExportTask:
+      displayName: Create Export Task
+    FNPT:NopDatavExportTask:downloadExportFile:
+      displayName: Download Export File
+    FNPT:NopDatavExportTask:getExportTask:
+      displayName: Get Export Task
+    FNPT:NopDatavExportTask:mutation:
+      displayName: Modify Export Task
+    FNPT:NopDatavExportTask:query:
+      displayName: Query Export Task
+    FNPT:NopDatavFilterState:getFilterState:
+      displayName: Get Filter State
+    FNPT:NopDatavFilterState:mutation:
+      displayName: Modify Filter State
+    FNPT:NopDatavFilterState:query:
+      displayName: Query Filter State
+    FNPT:NopDatavFilterState:saveFilterState:
+      displayName: Save Filter State
+    FNPT:NopDatavPanel:getPanelData:
+      displayName: Get Panel Data
+    FNPT:NopDatavPanel:mutation:
+      displayName: Modify Panel
+    FNPT:NopDatavPanel:query:
+      displayName: Query Panel
+    FNPT:NopDatavPanel:refreshPanel:
+      displayName: Refresh Panel
+    FNPT:NopDatavPanel:resolveJump:
+      displayName: Resolve Jump
+    FNPT:NopDatavPanel:resolveLinkage:
+      displayName: Resolve Linkage
+    FNPT:NopDatavReportDelivery:mutation:
+      displayName: Modify Report Delivery
+    FNPT:NopDatavReportDelivery:query:
+      displayName: Query Report Delivery
+    FNPT:NopDatavReportTask:disableReportTask:
+      displayName: Disable Report Task
+    FNPT:NopDatavReportTask:enableReportTask:
+      displayName: Enable Report Task
+    FNPT:NopDatavReportTask:getReportDeliveryHistory:
+      displayName: Get Report Delivery History
+    FNPT:NopDatavReportTask:mutation:
+      displayName: Modify Report Task
+    FNPT:NopDatavReportTask:query:
+      displayName: Query Report Task
+    FNPT:NopDatavReportTask:triggerReportNow:
+      displayName: Trigger Report Now
+    FNPT:NopDatavScreen:getComponentTypes:
+      displayName: Get Component Types
+    FNPT:NopDatavScreen:getPublishedScreen:
+      displayName: Get Published Screen
+    FNPT:NopDatavScreen:getScreenDraftLayout:
+      displayName: Get Screen Draft Layout
+    FNPT:NopDatavScreen:getScreenLayout:
+      displayName: Get Screen Layout
+    FNPT:NopDatavScreen:getScreenLayoutByVersion:
+      displayName: Get Screen Layout By Version
+    FNPT:NopDatavScreen:getScreenSnapshotHistory:
+      displayName: Get Screen Snapshot History
+    FNPT:NopDatavScreen:mutation:
+      displayName: Modify Screen
+    FNPT:NopDatavScreen:publishScreen:
+      displayName: Publish Screen
+    FNPT:NopDatavScreen:query:
+      displayName: Query Screen
+    FNPT:NopDatavScreen:rollbackScreen:
+      displayName: Rollback Screen
+    FNPT:NopDatavScreen:setScreenThumbnail:
+      displayName: Set Screen Thumbnail
+    FNPT:NopDatavScreenSnapshot:mutation:
+      displayName: Modify Screen Snapshot
+    FNPT:NopDatavScreenSnapshot:query:
+      displayName: Query Screen Snapshot
+    FNPT:NopDatavScreenWidget:mutation:
+      displayName: Modify Screen Widget
+    FNPT:NopDatavScreenWidget:query:
+      displayName: Query Screen Widget
+    NopDatavAlertRule-main:
+      displayName: Alert Rule
+    NopDatavAlertState-main:
+      displayName: Alert State
+    NopDatavChatBi-main:
+      displayName: ''
+    NopDatavChatMessage-main:
+      displayName: ChatBI Session Message
+    NopDatavChatSession-main:
+      displayName: ChatBI Session
+    NopDatavDashboard-main:
+      displayName: Dashboard
+    NopDatavDashboardShare-main:
+      displayName: Dashboard Share
+    NopDatavDashboardSnapshot-main:
+      displayName: Dashboard Snapshot
+    NopDatavDashboardTab-main:
+      displayName: Dashboard Tab
+    NopDatavDatasetRef-main:
+      displayName: Dataset Ref
+    NopDatavExportTask-main:
+      displayName: Export Task
+    NopDatavFilterState-main:
+      displayName: Filter State
+    NopDatavPanel-main:
+      displayName: Panel
+    NopDatavReportDelivery-main:
+      displayName: Report Delivery
+    NopDatavReportTask-main:
+      displayName: Report Task
+    NopDatavScreen-main:
+      displayName: Screen
+    NopDatavScreenSnapshot-main:
+      displayName: Screen Snapshot
+    NopDatavScreenWidget-main:
+      displayName: Screen Widget
+    test-orm-nop-datav:
+      displayName: Test nop-datav

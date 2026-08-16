@@ -1,0 +1,242 @@
+package io.nop.datav.service.chatbi;
+
+import io.nop.ai.toolkit.api.IToolExecuteContext;
+import io.nop.ai.toolkit.api.IToolExecutor;
+import io.nop.ai.toolkit.model.AiToolCall;
+import io.nop.ai.toolkit.model.AiToolCallResult;
+import io.nop.api.core.beans.LongRangeBean;
+import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.FutureHelper;
+import io.nop.core.lang.json.JsonTool;
+import io.nop.core.lang.sql.SQL;
+import io.nop.dao.api.IDaoProvider;
+import io.nop.dao.api.IEntityDao;
+import io.nop.dao.jdbc.IJdbcTemplate;
+import io.nop.dataset.IDataSet;
+import io.nop.dataset.IDataSetMeta;
+import io.nop.dataset.IDataRow;
+import io.nop.datav.service.query.PanelSqlBuilder;
+import io.nop.report.dao.entity.NopReportDataset;
+import jakarta.inject.Inject;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletionStage;
+
+import static io.nop.datav.service.NopDatavConfigs.CFG_DATAV_CHATBI_MAX_ROWS;
+import static io.nop.datav.service.NopDatavErrors.ARG_DATASET_SID;
+import static io.nop.datav.service.NopDatavErrors.ARG_REASON;
+import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_DATASET_NOT_FOUND;
+import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_DATASET_NO_ACCESS;
+import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_DATASET_NOT_SQL;
+import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_DATASET_QUERY_FAILED;
+
+/**
+ * ChatBI 工具：按数据集 sid + 参数 Map 执行查询，返回 columns + rows。
+ *
+ * <p>对应工具定义 {@code datav-query-dataset.tool.xml}。核心查询语义（与
+ * {@code ai-dev/design/nop-datav/ai-design.md} §4 数据流一致）：</p>
+ *
+ * <ul>
+ *   <li>LLM 提供的 params Map <b>直接作为 {@link PanelSqlBuilder#build} 的 params 参数</b>，
+ *       key 匹配 dsText 中的 {@code ${paramName}} 占位符，经 {@code ?} 参数化绑定（非字符串拼接）防注入。
+ *       <b>不复用 {@code PanelParamEvaluator}</b>，因其依赖 DatasetRef.paramMapping（ChatBI 直接查
+ *       NopReportDataset，无 DatasetRef 上下文）。</li>
+ *   <li>maxRows 经 {@link LongRangeBean} 在数据集层限行（跨方言 dialect paging，防 OOM）。
+ *       <b>P1-04 服务端硬钳制</b>：入参钳制到 {@code [1, CFG_DATAV_CHATBI_MAX_ROWS]}（null/&lt;=0 落
+ *       配置缺省，&gt;0 取 min）——LLM 入参不可绕过服务端上界；工具 schema 的 maximum 仅为 LLM
+ *       提示（缺省快照），运行时以配置钳制为准。</li>
+ * </ul>
+ *
+ * <p>数据集不存在 / 不可见（P1-03 裁定 D4：非 owner 且非 admin）/ 非 SQL 类型时返回显式错误 JSON
+ * （非 null/空静默返回，见 Minimum Rules #24）。</p>
+ */
+public class DatavQueryDatasetExecutor implements IToolExecutor {
+
+    public static final String TOOL_NAME = "datav-query-dataset";
+    public static final String DS_TYPE_SQL = "sql";
+
+    private IDaoProvider daoProvider;
+    private IJdbcTemplate jdbcTemplate;
+
+    @Inject
+    public void setDaoProvider(IDaoProvider daoProvider) {
+        this.daoProvider = daoProvider;
+    }
+
+    @Inject
+    public void setJdbcTemplate(IJdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
+    @Override
+    public String getToolName() {
+        return TOOL_NAME;
+    }
+
+    @Override
+    public CompletionStage<AiToolCallResult> executeAsync(AiToolCall call, IToolExecuteContext context) {
+        try {
+            Map<String, Object> input = parseInput(call);
+            String datasetSid = input.get("datasetSid") != null ? String.valueOf(input.get("datasetSid")) : null;
+
+            if (datasetSid == null || datasetSid.isEmpty()) {
+                return FutureHelper.success(AiToolCallResult.errorResult(call.getId(),
+                        "datasetSid is required"));
+            }
+
+            IEntityDao<NopReportDataset> dao = daoProvider.daoFor(NopReportDataset.class);
+            NopReportDataset ds = dao.getEntityById(datasetSid);
+            if (ds == null) {
+                return FutureHelper.success(AiToolCallResult.errorResult(call.getId(),
+                        "Dataset not found: " + datasetSid
+                                + " (errorCode=" + ERR_DATAV_CHATBI_DATASET_NOT_FOUND.getErrorCode() + ")"));
+            }
+
+            // P1-03 修复（裁定 D4 选项 B）：执行前校验数据集可达性——admin 全量；非 admin 仅
+            // createdBy 匹配当前 operator。不可达显式拒绝（非静默空结果），list 侧不过枚举出的
+            // 数据集在此不可绕过（query 侧拒绝语义）。
+            String operator = ChatBiDatasetVisibility.resolveOperator(context);
+            boolean admin = ChatBiDatasetVisibility.resolveAdmin(context);
+            if (!ChatBiDatasetVisibility.isVisible(ds, operator, admin)) {
+                return FutureHelper.success(AiToolCallResult.errorResult(call.getId(),
+                        "Dataset is not visible to the current user: " + datasetSid
+                                + " (errorCode=" + ERR_DATAV_CHATBI_DATASET_NO_ACCESS.getErrorCode()
+                                + ", userName=" + (operator != null ? operator : "<null>") + ")"));
+            }
+
+            String dsType = ds.getDsType();
+            if (!DS_TYPE_SQL.equalsIgnoreCase(dsType)) {
+                return FutureHelper.success(AiToolCallResult.errorResult(call.getId(),
+                        "Dataset is not a SQL dataset (dsType=" + dsType + "): " + datasetSid
+                                + " (errorCode=" + ERR_DATAV_CHATBI_DATASET_NOT_SQL.getErrorCode() + ")"));
+            }
+
+            Object paramsVal = input.get("params");
+            Map<String, Object> params = toParamsMap(paramsVal);
+
+            // P1-04 修复（plan 2026-08-15-2146-2 Phase 4）：maxRows 服务端硬钳制——
+            // 入参 null/<=0 落配置缺省 CFG_DATAV_CHATBI_MAX_ROWS；>0 取 min(入参, 配置)。
+            // LLM 入参不可绕过服务端上界（schemaJson 的 maximum 仅为 LLM 提示，非强制防线）。
+            int effectiveMaxRows = clampMaxRows(input.get("maxRows"));
+
+            QueryResult qr = doQuery(ds, params, effectiveMaxRows, datasetSid);
+
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("columns", qr.columns);
+            result.put("rows", qr.rows);
+
+            String json = JsonTool.stringify(result);
+            return FutureHelper.success(AiToolCallResult.successResult(call.getId(), json));
+        } catch (Exception e) {
+            return FutureHelper.success(AiToolCallResult.errorResult(call.getId(), e.toString()));
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> parseInput(AiToolCall call) {
+        String inputText = call.getInput();
+        if (inputText == null || inputText.isEmpty()) {
+            return new LinkedHashMap<>();
+        }
+        Object parsed = JsonTool.parseNonStrict(inputText);
+        if (parsed instanceof Map) {
+            return (Map<String, Object>) parsed;
+        }
+        return new LinkedHashMap<>();
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> toParamsMap(Object paramsVal) {
+        if (paramsVal instanceof Map) {
+            return (Map<String, Object>) paramsVal;
+        }
+        if (paramsVal instanceof String) {
+            String s = ((String) paramsVal).trim();
+            if (s.isEmpty() || "{}".equals(s)) {
+                return Collections.emptyMap();
+            }
+            Object parsed = JsonTool.parseNonStrict(s);
+            if (parsed instanceof Map) {
+                return (Map<String, Object>) parsed;
+            }
+        }
+        return Collections.emptyMap();
+    }
+
+    /**
+     * P1-04：maxRows 服务端钳制到 {@code [1, CFG_DATAV_CHATBI_MAX_ROWS]}——null/<=0（含 0/负数/
+     * 非数值）落配置缺省，>0 取 min(入参, 配置)。返回值恒 >0，查询路径恒有限行（range 恒非 null，
+     * 不再有「传 0/负数 → range=null 全表物化」的绕过面）。
+     */
+    private static int clampMaxRows(Object requested) {
+        int cap = CFG_DATAV_CHATBI_MAX_ROWS.get();
+        if (!(requested instanceof Number)) {
+            return cap;
+        }
+        int requestedInt = ((Number) requested).intValue();
+        if (requestedInt <= 0) {
+            return cap;
+        }
+        return Math.min(requestedInt, cap);
+    }
+
+    private QueryResult doQuery(NopReportDataset ds, Map<String, Object> params,
+                                 int maxRows, String datasetSid) {
+        String dsText = ds.getDsText();
+        SQL sql = PanelSqlBuilder.build(dsText, params, datasetSid);
+
+        try {
+            return jdbcTemplate.executeQuery(sql,
+                    LongRangeBean.longRange(0, (long) maxRows),
+                    dset -> {
+                        List<String> columns = extractColumnNames(dset.getMeta());
+                        List<Map<String, Object>> rows = extractRows(dset);
+                        return new QueryResult(columns, rows);
+                    });
+        } catch (NopException e) {
+            throw e;
+        } catch (Exception e) {
+            // AR-4: 使用 ChatBI dataset-query 专用 ErrorCode + ARG_DATASET_SID（不再误用 panel 路径共享的
+            // ERR_DATAV_QUERY_FAILED，后者的 message 绑定 {panelId}，对 dataset 路径语义错误）。
+            throw new NopException(ERR_DATAV_CHATBI_DATASET_QUERY_FAILED)
+                    .param(ARG_DATASET_SID, datasetSid)
+                    .param(ARG_REASON, e.getMessage() != null ? e.getMessage() : e.getClass().getName())
+                    .cause(e);
+        }
+    }
+
+    private static List<String> extractColumnNames(IDataSetMeta meta) {
+        int count = meta.getFieldCount();
+        if (count == 0) {
+            return Collections.emptyList();
+        }
+        List<String> columns = new ArrayList<>(count);
+        for (int i = 0; i < count; i++) {
+            columns.add(meta.getFieldName(i));
+        }
+        return Collections.unmodifiableList(columns);
+    }
+
+    private static List<Map<String, Object>> extractRows(IDataSet ds) {
+        List<Map<String, Object>> rows = new ArrayList<>();
+        while (ds.hasNext()) {
+            IDataRow row = ds.next();
+            rows.add(row.toMap());
+        }
+        return Collections.unmodifiableList(rows);
+    }
+
+    private static class QueryResult {
+        final List<String> columns;
+        final List<Map<String, Object>> rows;
+
+        QueryResult(List<String> columns, List<Map<String, Object>> rows) {
+            this.columns = columns;
+            this.rows = rows;
+        }
+    }
+}

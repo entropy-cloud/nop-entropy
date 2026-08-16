@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en"
+      xmlns:auth-gen="auth-gen" xmlns:xpl="xpl">
+
+    <x:post-extends>
+        <auth-gen:DefaultActionAuthPostExtends xpl:lib="/nop/auth/xlib/auth-gen.xlib"/>
+    </x:post-extends>
+
+    <site id="main">
+        <resource id="test-orm-nop-datav" displayName="测试nop-datav" i18n-en:displayName="Test nop-datav"
+                  icon="layout-dashboard" resourceType="TOPM" orderNo="10000" routePath="/test-orm-nop-datav"
+                  component="layouts/default/index">
+            <children>
+                <resource id="NopDatavAlertRule-main" displayName="告警规则" orderNo="10001"
+                          i18n-en:displayName="Alert Rule" icon="bell" component="AMIS" resourceType="SUBM"
+                          url="/nop/datav/pages/NopDatavAlertRule/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopDatavAlertRule:query" displayName="查询告警规则"
+                                  i18n-en:displayName="Query Alert Rule" orderNo="10002" resourceType="FNPT">
+                            <permissions>NopDatavAlertRule:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavAlertRule:mutation" displayName="修改告警规则"
+                                  i18n-en:displayName="Modify Alert Rule" orderNo="10003" resourceType="FNPT">
+                            <permissions>NopDatavAlertRule:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDatavAlertState-main" displayName="告警状态" orderNo="10004"
+                          i18n-en:displayName="Alert State" icon="activity" component="AMIS" resourceType="SUBM"
+                          url="/nop/datav/pages/NopDatavAlertState/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopDatavAlertState:query" displayName="查询告警状态"
+                                  i18n-en:displayName="Query Alert State" orderNo="10005" resourceType="FNPT">
+                            <permissions>NopDatavAlertState:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavAlertState:mutation" displayName="修改告警状态"
+                                  i18n-en:displayName="Modify Alert State" orderNo="10006" resourceType="FNPT">
+                            <permissions>NopDatavAlertState:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDatavChatMessage-main" displayName="ChatBI会话消息" orderNo="10007"
+                          i18n-en:displayName="ChatBI Session Message" icon="message-square" component="AMIS"
+                          resourceType="SUBM" url="/nop/datav/pages/NopDatavChatMessage/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopDatavChatMessage:query" displayName="查询ChatBI会话消息"
+                                  i18n-en:displayName="Query ChatBI Session Message" orderNo="10008" resourceType="FNPT">
+                            <permissions>NopDatavChatMessage:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavChatMessage:mutation" displayName="修改ChatBI会话消息"
+                                  i18n-en:displayName="Modify ChatBI Session Message" orderNo="10009"
+                                  resourceType="FNPT">
+                            <permissions>NopDatavChatMessage:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDatavChatSession-main" displayName="ChatBI会话" orderNo="10010"
+                          i18n-en:displayName="ChatBI Session" icon="message-circle" component="AMIS"
+                          resourceType="SUBM" url="/nop/datav/pages/NopDatavChatSession/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopDatavChatSession:query" displayName="查询ChatBI会话"
+                                  i18n-en:displayName="Query ChatBI Session" orderNo="10011" resourceType="FNPT">
+                            <permissions>NopDatavChatSession:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavChatSession:mutation" displayName="修改ChatBI会话"
+                                  i18n-en:displayName="Modify ChatBI Session" orderNo="10012" resourceType="FNPT">
+                            <permissions>NopDatavChatSession:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDatavDashboard-main" displayName="看板" orderNo="10013" i18n-en:displayName="Dashboard"
+                          icon="layout-dashboard" component="AMIS" resourceType="SUBM"
+                          url="/nop/datav/pages/NopDatavDashboard/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopDatavDashboard:query" displayName="查询看板"
+                                  i18n-en:displayName="Query Dashboard" orderNo="10014" resourceType="FNPT">
+                            <permissions>NopDatavDashboard:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDashboard:mutation" displayName="修改看板"
+                                  i18n-en:displayName="Modify Dashboard" orderNo="10015" resourceType="FNPT">
+                            <permissions>NopDatavDashboard:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDatavDashboardShare-main" displayName="看板分享" orderNo="10016"
+                          i18n-en:displayName="Dashboard Share" icon="share-2" component="AMIS" resourceType="SUBM"
+                          url="/nop/datav/pages/NopDatavDashboardShare/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopDatavDashboardShare:query" displayName="查询看板分享"
+                                  i18n-en:displayName="Query Dashboard Share" orderNo="10017" resourceType="FNPT">
+                            <permissions>NopDatavDashboardShare:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDashboardShare:mutation" displayName="修改看板分享"
+                                  i18n-en:displayName="Modify Dashboard Share" orderNo="10018" resourceType="FNPT">
+                            <permissions>NopDatavDashboardShare:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDatavDashboardSnapshot-main" displayName="发布快照" orderNo="10019"
+                          i18n-en:displayName="Dashboard Snapshot" icon="git-commit-horizontal" component="AMIS"
+                          resourceType="SUBM" url="/nop/datav/pages/NopDatavDashboardSnapshot/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopDatavDashboardSnapshot:query" displayName="查询发布快照"
+                                  i18n-en:displayName="Query Dashboard Snapshot" orderNo="10020" resourceType="FNPT">
+                            <permissions>NopDatavDashboardSnapshot:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDashboardSnapshot:mutation" displayName="修改发布快照"
+                                  i18n-en:displayName="Modify Dashboard Snapshot" orderNo="10021" resourceType="FNPT">
+                            <permissions>NopDatavDashboardSnapshot:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDatavDashboardTab-main" displayName="页签" orderNo="10022"
+                          i18n-en:displayName="Dashboard Tab" icon="tabs" component="AMIS" resourceType="SUBM"
+                          url="/nop/datav/pages/NopDatavDashboardTab/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopDatavDashboardTab:query" displayName="查询页签"
+                                  i18n-en:displayName="Query Dashboard Tab" orderNo="10023" resourceType="FNPT">
+                            <permissions>NopDatavDashboardTab:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDashboardTab:mutation" displayName="修改页签"
+                                  i18n-en:displayName="Modify Dashboard Tab" orderNo="10024" resourceType="FNPT">
+                            <permissions>NopDatavDashboardTab:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDatavDatasetRef-main" displayName="数据集引用" orderNo="10025"
+                          i18n-en:displayName="Dataset Ref" icon="database" component="AMIS" resourceType="SUBM"
+                          url="/nop/datav/pages/NopDatavDatasetRef/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopDatavDatasetRef:query" displayName="查询数据集引用"
+                                  i18n-en:displayName="Query Dataset Ref" orderNo="10026" resourceType="FNPT">
+                            <permissions>NopDatavDatasetRef:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDatasetRef:mutation" displayName="修改数据集引用"
+                                  i18n-en:displayName="Modify Dataset Ref" orderNo="10027" resourceType="FNPT">
+                            <permissions>NopDatavDatasetRef:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDatavExportTask-main" displayName="导出任务" orderNo="10028"
+                          i18n-en:displayName="Export Task" icon="download" component="AMIS" resourceType="SUBM"
+                          url="/nop/datav/pages/NopDatavExportTask/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopDatavExportTask:query" displayName="查询导出任务"
+                                  i18n-en:displayName="Query Export Task" orderNo="10029" resourceType="FNPT">
+                            <permissions>NopDatavExportTask:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavExportTask:mutation" displayName="修改导出任务"
+                                  i18n-en:displayName="Modify Export Task" orderNo="10030" resourceType="FNPT">
+                            <permissions>NopDatavExportTask:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDatavFilterState-main" displayName="筛选状态" orderNo="10031"
+                          i18n-en:displayName="Filter State" icon="filter" component="AMIS" resourceType="SUBM"
+                          url="/nop/datav/pages/NopDatavFilterState/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopDatavFilterState:query" displayName="查询筛选状态"
+                                  i18n-en:displayName="Query Filter State" orderNo="10032" resourceType="FNPT">
+                            <permissions>NopDatavFilterState:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavFilterState:mutation" displayName="修改筛选状态"
+                                  i18n-en:displayName="Modify Filter State" orderNo="10033" resourceType="FNPT">
+                            <permissions>NopDatavFilterState:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDatavPanel-main" displayName="面板" orderNo="10034" i18n-en:displayName="Panel"
+                          icon="panels-top-left" component="AMIS" resourceType="SUBM"
+                          url="/nop/datav/pages/NopDatavPanel/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopDatavPanel:query" displayName="查询面板" i18n-en:displayName="Query Panel"
+                                  orderNo="10035" resourceType="FNPT">
+                            <permissions>NopDatavPanel:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavPanel:mutation" displayName="修改面板" i18n-en:displayName="Modify Panel"
+                                  orderNo="10036" resourceType="FNPT">
+                            <permissions>NopDatavPanel:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDatavReportDelivery-main" displayName="报告交付历史" orderNo="10037"
+                          i18n-en:displayName="Report Delivery" icon="send" component="AMIS" resourceType="SUBM"
+                          url="/nop/datav/pages/NopDatavReportDelivery/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopDatavReportDelivery:query" displayName="查询报告交付历史"
+                                  i18n-en:displayName="Query Report Delivery" orderNo="10038" resourceType="FNPT">
+                            <permissions>NopDatavReportDelivery:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavReportDelivery:mutation" displayName="修改报告交付历史"
+                                  i18n-en:displayName="Modify Report Delivery" orderNo="10039" resourceType="FNPT">
+                            <permissions>NopDatavReportDelivery:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDatavReportTask-main" displayName="定时报告任务" orderNo="10040"
+                          i18n-en:displayName="Report Task" icon="calendar-clock" component="AMIS" resourceType="SUBM"
+                          url="/nop/datav/pages/NopDatavReportTask/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopDatavReportTask:query" displayName="查询定时报告任务"
+                                  i18n-en:displayName="Query Report Task" orderNo="10041" resourceType="FNPT">
+                            <permissions>NopDatavReportTask:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavReportTask:mutation" displayName="修改定时报告任务"
+                                  i18n-en:displayName="Modify Report Task" orderNo="10042" resourceType="FNPT">
+                            <permissions>NopDatavReportTask:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDatavScreen-main" displayName="大屏" orderNo="10043" i18n-en:displayName="Screen"
+                          icon="monitor" component="AMIS" resourceType="SUBM"
+                          url="/nop/datav/pages/NopDatavScreen/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopDatavScreen:query" displayName="查询大屏" i18n-en:displayName="Query Screen"
+                                  orderNo="10044" resourceType="FNPT">
+                            <permissions>NopDatavScreen:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavScreen:mutation" displayName="修改大屏"
+                                  i18n-en:displayName="Modify Screen" orderNo="10045" resourceType="FNPT">
+                            <permissions>NopDatavScreen:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDatavScreenSnapshot-main" displayName="大屏快照" orderNo="10046"
+                          i18n-en:displayName="Screen Snapshot" icon="git-commit-horizontal" component="AMIS"
+                          resourceType="SUBM" url="/nop/datav/pages/NopDatavScreenSnapshot/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopDatavScreenSnapshot:query" displayName="查询大屏快照"
+                                  i18n-en:displayName="Query Screen Snapshot" orderNo="10047" resourceType="FNPT">
+                            <permissions>NopDatavScreenSnapshot:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavScreenSnapshot:mutation" displayName="修改大屏快照"
+                                  i18n-en:displayName="Modify Screen Snapshot" orderNo="10048" resourceType="FNPT">
+                            <permissions>NopDatavScreenSnapshot:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDatavScreenWidget-main" displayName="大屏组件" orderNo="10049"
+                          i18n-en:displayName="Screen Widget" icon="square" component="AMIS" resourceType="SUBM"
+                          url="/nop/datav/pages/NopDatavScreenWidget/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopDatavScreenWidget:query" displayName="查询大屏组件"
+                                  i18n-en:displayName="Query Screen Widget" orderNo="10050" resourceType="FNPT">
+                            <permissions>NopDatavScreenWidget:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavScreenWidget:mutation" displayName="修改大屏组件"
+                                  i18n-en:displayName="Modify Screen Widget" orderNo="10051" resourceType="FNPT">
+                            <permissions>NopDatavScreenWidget:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+            </children>
+        </resource>
+    </site>
+</auth>

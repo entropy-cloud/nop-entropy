@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<orm x:schema="/nop/schema/orm/orm.xdef" x:extends="_app.orm.xml" xmlns:x="/nop/schema/xdsl.xdef"
+     xmlns:xpl="/nop/schema/xpl.xdef">
+
+    <entities/>
+</orm>

@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopDatavReportTask" xmlns:i18n-en="i18n-en"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:c="c" xmlns:gql="gql" xmlns:view-gen="view-gen" xmlns:xpl="xpl">
+
+    <objMeta>/nop/datav/model/NopDatavReportTask/NopDatavReportTask.xmeta</objMeta>
+
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <x:gen-extends>
+        <view-gen:DefaultViewGenExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <view-gen:DefaultViewPostExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:post-extends>
+
+    <grids>
+        <grid id="list" x:abstract="true">
+            <cols>
+
+                <!--报告任务ID-->
+                <col id="reportTaskId" mandatory="true" sortable="true"/>
+
+                <!--任务名-->
+                <col id="taskName" mandatory="true" sortable="true"/>
+
+                <!--显示名-->
+                <col id="displayName" sortable="true"/>
+
+                <!--看板ID-->
+                <col id="dashboardId" mandatory="true" sortable="true"/>
+
+                <!--cron表达式-->
+                <col id="cronExpr" mandatory="true" sortable="true"/>
+
+                <!--导出格式-->
+                <col id="format" mandatory="true" sortable="true"/>
+
+                <!--收件人-->
+                <col id="recipients" sortable="true"/>
+
+                <!--通知渠道-->
+                <col id="notifyChannels" sortable="true"/>
+
+                <!--报告参数-->
+                <col id="params" sortable="true"/>
+
+                <!--任务状态-->
+                <col id="status" mandatory="true" ui:number="true" sortable="true"/>
+
+                <!--grace期(分钟)-->
+                <col id="graceMinutes" ui:number="true" sortable="true"/>
+
+                <!--模板键-->
+                <col id="templateKey" sortable="true"/>
+
+                <!--最后执行时间-->
+                <col id="lastRunTime" sortable="true"/>
+
+                <!--最后执行状态-->
+                <col id="lastRunStatus" sortable="true"/>
+
+                <!--最后执行错误-->
+                <col id="lastRunError" sortable="true"/>
+
+                <!--删除标记-->
+                <col id="delFlag" sortable="true"/>
+
+                <!--创建人-->
+                <col id="createdBy" mandatory="true" sortable="true"/>
+
+                <!--创建时间-->
+                <col id="createTime" mandatory="true" sortable="true"/>
+
+                <!--修改人-->
+                <col id="updatedBy" mandatory="true" sortable="true"/>
+
+                <!--修改时间-->
+                <col id="updateTime" mandatory="true" sortable="true"/>
+
+                <!--备注-->
+                <col id="remark" sortable="true"/>
+            </cols>
+        </grid>
+        <grid id="pick-list" x:prototype="list" x:abstract="true"/>
+    </grids>
+
+    <forms>
+        <form id="view" editMode="view" title="查看-定时报告任务" i18n-en:title="View Report Task">
+            <layout>
+ reportTaskId[报告任务ID] taskName[任务名]
+ displayName[显示名] dashboardId[看板ID]
+ cronExpr[cron表达式] format[导出格式]
+ recipients[收件人] notifyChannels[通知渠道]
+ params[报告参数] status[任务状态]
+ graceMinutes[grace期(分钟)] templateKey[模板键]
+ lastRunTime[最后执行时间] lastRunStatus[最后执行状态]
+ lastRunError[最后执行错误] delFlag[删除标记]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[修改人] updateTime[修改时间]
+ remark[备注] 
+</layout>
+        </form>
+        <form id="add" editMode="add" title="新增-定时报告任务" i18n-en:title="Add Report Task" x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-定时报告任务" i18n-en:title="Edit Report Task">
+            <layout>
+ reportTaskId[报告任务ID] taskName[任务名]
+ displayName[显示名] dashboardId[看板ID]
+ cronExpr[cron表达式] format[导出格式]
+ recipients[收件人] notifyChannels[通知渠道]
+ params[报告参数] status[任务状态]
+ graceMinutes[grace期(分钟)] templateKey[模板键]
+ lastRunTime[最后执行时间] lastRunStatus[最后执行状态]
+ lastRunError[最后执行错误] delFlag[删除标记]
+ remark[备注] 
+</layout>
+        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true"/>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-定时报告任务" i18n-en:title="Update Report Task"/>
+    </forms>
+
+    <pages>
+        <crud name="view-list" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopDatavReportTask__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </crud>
+        <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopDatavReportTask__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+            <listActions>
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
+                    <api url="@mutation:NopDatavReportTask__batchDelete?ids=${ids}"/>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                </action>
+                <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">
+                    <dialog page="add"/>
+                </action>
+            </listActions>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="@i18n:common.view">
+                    <dialog page="view"/>
+                </action>
+                <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                    <dialog page="update"/>
+                </action>
+                <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
+                    <api url="@mutation:NopDatavReportTask__delete?id=${id}"/>
+                    <confirmText>@i18n:common.confirmDelete</confirmText>
+                </action>
+                <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
+                    <action id="row-update-button" label="@i18n:common.edit">
+                        <dialog page="update"/>
+                    </action>
+                    <action id="row-delete-button" label="@i18n:common.delete">
+                        <api url="@mutation:NopDatavReportTask__delete?id=${id}"/>
+                        <confirmText>@i18n:common.confirmDelete</confirmText>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+        <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table noOperations="true">
+                <api url="@query:NopDatavReportTask__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </picker>
+        <simple name="add" form="add">
+            <api url="@mutation:NopDatavReportTask__save/id"/>
+        </simple>
+        <simple name="view" form="view">
+            <initApi url="@query:NopDatavReportTask__get?id=${id}" gql:selection="{@formSelection}"/>
+        </simple>
+        <simple name="update" form="edit">
+            <initApi url="@query:NopDatavReportTask__get?id=${id}" gql:selection="{@formSelection}"/>
+            <api url="@mutation:NopDatavReportTask__update/id?id=${id}" withFormData="true"/>
+        </simple>
+    </pages>
+</view>

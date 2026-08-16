@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
+
+    <import resource="_service.beans.xml"/>
+
+    <!-- 分享访问两级限流 guard（plan 2026-08-15-0004-2）：固定窗口计数 + 密码锁定状态机（R6），
+         LocalCache 容量上界（R2，max-keys 配置），时钟 seam（setClock，测试 fake 时钟推进窗口）。
+         被 NopDatavDashboardShareBizModel 注入（getSharedDashboard 访问路径接线）。 -->
+    <bean id="nopDatavShareAccessGuard"
+          class="io.nop.datav.service.share.NopDatavShareAccessGuard" ioc:default="true"/>
+
+    <!-- 引入 nop-file-dao beans：注册 nopFileStore（DaoResourceFileStore，ioc:default=true），
+         供 D3-3 数据导出文件落盘（IFileStore）与下载（IFileRecord）使用。 -->
+    <import resource="/nop/file/beans/app-file-dao.beans.xml"/>
+
+    <!-- D3-3 导出任务重启清理：非 lazy，IoC 启动后触发 @PostConstruct 扫描中断任务转 failed。
+         供 NopDatavExportTaskBizModel 注入，且在每次发起导出前幂等调用一次。 -->
+    <bean id="nopDatavExportTaskRecovery" class="io.nop.datav.service.export.NopDatavExportTaskRecovery"/>
+
+    <!-- ==================== D5-1 定时报告 ==================== -->
+
+    <!-- 定时报告通知发送器（普通 bean）：渲染 NopSysNoticeTemplate → IEmailSender.sendEmail 带附件送达。
+         IEmailSender 经 @Nullable 注入（宿主未提供 IEmailSender 实现时为 null，
+         邮件渠道显式失败 ERR_DATAV_REPORT_SENDER_NOT_CONFIGURED，非静默跳过）。 -->
+    <bean id="notificationSender" class="io.nop.datav.service.report.NotificationSender" ioc:default="true"/>
+
+    <!-- 定时报告交付执行器（普通 bean）：异步取数（PanelDataExporter.exportDashboard）+ 文件落盘
+         （IFileStore.saveFile）+ 通知送达（NotificationSender）+ 更新交付记录。
+         镜像 NopDatavExportTaskBizModel.submitExecution 的 GlobalExecutors + runInNewSession 模式。 -->
+    <bean id="reportDeliveryExecutor" class="io.nop.datav.service.report.ReportDeliveryExecutor" ioc:default="true"/>
+
+    <!-- 定时报告 cron 调度器（普通 IoC bean 非 BizModel，镜像 MetaQualityCheckpointScheduler）。
+         启动 scanner 全量注册 ENABLED 报告任务的 cron job + 运行时增量（save/enable/disable/delete 调用）。
+         IJobScheduler 经 @Inject @Nullable 注入：宿主未注册调度器时为 null，scanner 跳过（不抛崩），
+         手动 triggerReportNow 仍可用。 -->
+    <bean id="nopDatavReportScheduler"
+          class="io.nop.datav.service.report.NopDatavReportScheduler" ioc:default="true"/>
+
+    <!-- 定时报告交付记录重启清理（独立 bean，职责分离，镜像 NopDatavExportTaskRecovery）：
+         IoC 启动后触发 @PostConstruct 扫描 stale running 交付记录转 failed。
+         NopDatavReportScheduler.init 只负责重注册 cron job，不混入 stale 清理。 -->
+    <bean id="nopDatavReportDeliveryRecovery"
+          class="io.nop.datav.service.report.NopDatavReportDeliveryRecovery"/>
+
+    <!-- stuck-task 周期恢复扫描器（普通 IoC bean）：@PostConstruct 注册固定间隔 job（默认 10 min），
+         委托两类 recovery 的带阈值 scanStuck(timeoutMinutes)（交付按 startTime、导出按 createTime）。
+         关闭仅进程重启才能清理 stuck 非终态记录的 gap（worker 线程因 JVM Error 死亡场景）。
+         IJobScheduler 经 @Inject @Nullable 注入：宿主未注册调度器时 INFO 跳过（不抛崩）。
+         配置：nop.datav.stuck-scan.enabled / interval-minutes / timeout-minutes（NopDatavConfigs）。
+         重启 @PostConstruct 全量恢复路径（两个 recovery bean 的 init）不受影响。 -->
+    <bean id="nopDatavStuckTaskScanner"
+          class="io.nop.datav.service.recovery.NopDatavStuckTaskScanner" ioc:default="true"/>
+
+    <!-- ==================== D5-2 轻量告警 ==================== -->
+
+    <!-- 告警评估器（普通 bean）：取数（PanelDataBinder）→ 聚合（AlertAggregator）→ 比较
+         （AlertThresholdComparator）→ 状态机转换 + rearm 判定 → 通知（NotificationSender.sendAlert）
+         → 更新 NopDatavAlertState。PanelDataBinder 非 bean，本评估器注入 IDaoProvider+IJdbcTemplate
+         后 new PanelDataBinder(...) 构造（与 NopDatavPanelBizModel:47 同模式）。 -->
+    <bean id="alertEvaluator" class="io.nop.datav.service.alert.AlertEvaluator" ioc:default="true"/>
+
+    <!-- 告警 cron 调度器（普通 IoC bean 非 BizModel，与 NopDatavReportScheduler 同模式）。
+         启动 scanner 全量注册 ENABLED 告警规则的 cron job + 运行时增量（save/enable/disable/delete 调用）。
+         IJobScheduler 经 @Inject @Nullable 注入：宿主未注册调度器时为 null，scanner 跳过（不抛崩），
+         手动 evaluateAlertNow 仍可用。调度器分离裁定见 schedule-report-design.md §20。 -->
+    <bean id="nopDatavAlertScheduler"
+          class="io.nop.datav.service.alert.NopDatavAlertScheduler" ioc:default="true"/>
+
+    <!-- ==================== D6-1 ChatBI ==================== -->
+
+    <!-- ChatBI 数据集查询工具 executor（3 个）。被 nopToolExecutorProvider（nop-ai-toolkit 的
+         ai-tools-defaults.beans.xml 提供）的 <ioc:collect-beans by-type="...IToolExecutor"/> 自动收集。
+         工具定义位于 _vfs/nop/ai/tools/*.tool.xml，IToolManager.listTools() 从此目录发现。 -->
+    <bean id="ai-tools:datav-list-datasets"
+          class="io.nop.datav.service.chatbi.DatavListDatasetsExecutor" ioc:default="true"/>
+    <bean id="ai-tools:datav-describe-dataset"
+          class="io.nop.datav.service.chatbi.DatavDescribeDatasetExecutor" ioc:default="true"/>
+    <bean id="ai-tools:datav-query-dataset"
+          class="io.nop.datav.service.chatbi.DatavQueryDatasetExecutor" ioc:default="true"/>
+
+    <!-- D6-1b ChatBI 看板生成工具 executor。被 nopToolExecutorProvider 的
+         <ioc:collect-beans by-type="...IToolExecutor"/> 自动收集。
+         注入 IOrmTemplate 用于多表事务性创建（裁定 O）。工具定义位于
+         _vfs/nop/ai/tools/datav-generate-dashboard.tool.xml。 -->
+    <bean id="ai-tools:datav-generate-dashboard"
+          class="io.nop.datav.service.chatbi.DatavGenerateDashboardExecutor" ioc:default="true"/>
+
+    <!-- D6-2 ChatBI 大屏生成工具 executors。被 nopToolExecutorProvider 的
+         <ioc:collect-beans by-type="...IToolExecutor"/> 自动收集。
+         组件发现工具（裁定 O：独立 executor，不经 BizModel，直接读 PanelComponentRegistry）。
+         大屏创作工具（注入 IOrmTemplate 用于 Screen+ScreenWidget 事务性创建，裁定 O）。
+         工具定义位于 _vfs/nop/ai/tools/datav-list-component-types.tool.xml +
+         datav-generate-screen.tool.xml。 -->
+    <bean id="ai-tools:datav-list-component-types"
+          class="io.nop.datav.service.chatbi.DatavListComponentTypesExecutor" ioc:default="true"/>
+    <bean id="ai-tools:datav-generate-screen"
+          class="io.nop.datav.service.chatbi.DatavGenerateScreenExecutor" ioc:default="true"/>
+
+    <!-- ChatBI BizModel（@BizModel，经 GraphQL 暴露 chatToQuery action）。
+          @Nullable 注入 IChatService/IToolManager（nop-ai 缺席时 action 显式抛 ERR_DATAV_CHATBI_AI_NOT_AVAILABLE）。
+          ioc:default=true 保证宿主未自定义时本实现生效。 -->
+    <bean id="nopDatavChatBiBizModel"
+          class="io.nop.datav.service.entity.NopDatavChatBiBizModel" ioc:default="true"/>
+
+    <!-- ChatBI 多轮会话管理器（D6-1 follow-up，裁定 S1–S4）：会话 CRUD + 历史注入上下文构造 + 归属校验，
+          经真实持久层（IDaoProvider）。被 NopDatavChatBiBizModel 注入（会话模式 chatToQuery + 4 个管理 action）。 -->
+    <bean id="chatBiSessionManager"
+          class="io.nop.datav.service.chatbi.ChatBiSessionManager" ioc:default="true"/>
+
+</beans>

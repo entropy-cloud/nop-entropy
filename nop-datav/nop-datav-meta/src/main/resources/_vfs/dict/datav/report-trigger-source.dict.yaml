@@ -1,0 +1,15 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 报告触发来源
+locale: zh-CN
+valueType: string
+description: 
+options:
+
+  - label: 定时触发
+    value: schedule
+    description: 
+  
+  - label: 手动触发
+    value: manual
+    description: 
+  

@@ -1,0 +1,429 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<auth x:extends="_nop-datav.action-auth.xml" x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      xmlns:i18n-en="i18n-en">
+
+    <!--
+        在生成物 _nop-datav.action-auth.xml 的基础上补充：
+        1. 各 FNPT 权限点资源的默认角色绑定（admin 全量；user 查询类 + 面板操作类）
+        2. 自定义 action 的 FNPT 权限点（生成物仅含 CRUD 的 query/mutation 两类）
+        roles 属性提供静态角色绑定，管理员亦可通过 NopAuthRoleResource 表运行时调整。
+    -->
+    <site id="main">
+        <resource id="test-orm-nop-datav">
+            <children>
+                <!-- ==================== NopDatavDashboard ==================== -->
+                <resource id="NopDatavDashboard-main">
+                    <children>
+                        <resource id="FNPT:NopDatavDashboard:query" roles="admin,user"/>
+                        <resource id="FNPT:NopDatavDashboard:mutation" roles="admin"/>
+                        <!-- 自定义 action 权限点 -->
+                        <resource id="FNPT:NopDatavDashboard:publishDashboard" displayName="发布看板"
+                                  i18n-en:displayName="Publish Dashboard" orderNo="10010" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavDashboard:publishDashboard</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDashboard:getPublishedDashboard" displayName="查看已发布看板"
+                                  i18n-en:displayName="Get Published Dashboard" orderNo="10011" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavDashboard:getPublishedDashboard</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDashboard:rollbackDashboard" displayName="回滚看板"
+                                  i18n-en:displayName="Rollback Dashboard" orderNo="10012" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavDashboard:rollbackDashboard</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDashboard:resolveFilterValues" displayName="解析筛选值"
+                                  i18n-en:displayName="Resolve Filter Values" orderNo="10013" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavDashboard:resolveFilterValues</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDashboard:parseFilterFromUrl" displayName="URL筛选解析"
+                                  i18n-en:displayName="Parse Filter From URL" orderNo="10014" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavDashboard:parseFilterFromUrl</permissions>
+                        </resource>
+                        <!-- 批量面板查询（plan 2026-08-14-2020-2）：角色绑定镜像 NopDatavPanel:getPanelData（admin,user） -->
+                        <resource id="FNPT:NopDatavDashboard:getDashboardData" displayName="批量查询看板数据"
+                                  i18n-en:displayName="Get Dashboard Data" orderNo="10015" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavDashboard:getDashboardData</permissions>
+                        </resource>
+                        <!-- flux 布局对齐（plan 2026-08-15-1134-1，runtime-design.md §9.1） -->
+                        <resource id="FNPT:NopDatavDashboard:exportDashboardLayout" displayName="导出看板布局"
+                                  i18n-en:displayName="Export Dashboard Layout" orderNo="10016" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavDashboard:exportDashboardLayout</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDashboard:saveDashboardLayout" displayName="保存看板布局"
+                                  i18n-en:displayName="Save Dashboard Layout" orderNo="10017" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavDashboard:saveDashboardLayout</permissions>
+                        </resource>
+                        <!-- D2-4 flux dashboard-filter 对齐（plan 2026-08-15-1134-2，linkage-design.md §11.2）：查询类，镜像 exportDashboardLayout（admin,user） -->
+                        <resource id="FNPT:NopDatavDashboard:exportDashboardFilter" displayName="导出看板筛选定义"
+                                  i18n-en:displayName="Export Dashboard Filter" orderNo="10018" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavDashboard:exportDashboardFilter</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <!-- ==================== NopDatavDashboardSnapshot ==================== -->
+                <!--
+                    裁定 D2/D5（plan 2026-08-15-2146-1）：query 收敛 admin（子实体无 RLS，user 可读他人草稿
+                    snapshotContent）；mutation 面经 BizModel 覆写显式拒绝（快照 append-only，唯一写入点 publish/rollback）。
+                -->
+                <resource id="NopDatavDashboardSnapshot-main">
+                    <children>
+                        <resource id="FNPT:NopDatavDashboardSnapshot:query" roles="admin"/>
+                        <resource id="FNPT:NopDatavDashboardSnapshot:mutation" roles="admin"/>
+                    </children>
+                </resource>
+                <!-- ==================== NopDatavDashboardTab ==================== -->
+                <!-- 裁定 D2（plan 2026-08-15-2146-1）：query 收敛 admin（tabConfig 草稿泄露面）。 -->
+                <resource id="NopDatavDashboardTab-main">
+                    <children>
+                        <resource id="FNPT:NopDatavDashboardTab:query" roles="admin"/>
+                        <resource id="FNPT:NopDatavDashboardTab:mutation" roles="admin"/>
+                    </children>
+                </resource>
+                <!-- ==================== NopDatavDatasetRef ==================== -->
+                <!-- 裁定 D2（plan 2026-08-15-2146-1）：query 收敛 admin（refDatasetId/paramMapping 草稿泄露面）。 -->
+                <resource id="NopDatavDatasetRef-main">
+                    <children>
+                        <resource id="FNPT:NopDatavDatasetRef:query" roles="admin"/>
+                        <resource id="FNPT:NopDatavDatasetRef:mutation" roles="admin"/>
+                    </children>
+                </resource>
+                <!-- ==================== NopDatavFilterState ==================== -->
+                <!--
+                    裁定 D3/P1-02（plan 2026-08-15-2146-1）：query 保留 admin,user + data-auth userName 行级隔离
+                    （设计 §69「仅查询/更新自己的记录」落地）；mutation 收敛 admin（用户写路径经自定义
+                    saveFilterState，其内部按 userName 隔离）。
+                -->
+                <resource id="NopDatavFilterState-main">
+                    <children>
+                        <resource id="FNPT:NopDatavFilterState:query" roles="admin,user"/>
+                        <resource id="FNPT:NopDatavFilterState:mutation" roles="admin"/>
+                        <!-- 自定义 action 权限点 -->
+                        <resource id="FNPT:NopDatavFilterState:saveFilterState" displayName="保存筛选状态"
+                                  i18n-en:displayName="Save Filter State" orderNo="10020" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavFilterState:saveFilterState</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavFilterState:getFilterState" displayName="获取筛选状态"
+                                  i18n-en:displayName="Get Filter State" orderNo="10021" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavFilterState:getFilterState</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <!-- ==================== NopDatavPanel ==================== -->
+                <!--
+                    裁定 D1/P0-01（plan 2026-08-15-2146-1）：继承 CRUD query/mutation 仅绑 admin（不绑 user），
+                    与 NopDatavDashboardShare/NopDatavExportTask 的 D1 先例对称。理由：Panel 无 RLS，
+                    __findPage 全量可读他人 panelConfig（枚举向量）+ user 可写删任意面板（越权面）。
+                    user 角色的面板数据消费走下方自定义 action（getPanelData 等，内部 panel→Dashboard 归属校验）
+                    与 NopDatavDashboard:getDashboardData（Dashboard RLS 锚点）。
+                -->
+                <resource id="NopDatavPanel-main">
+                    <children>
+                        <resource id="FNPT:NopDatavPanel:query" roles="admin"/>
+                        <resource id="FNPT:NopDatavPanel:mutation" roles="admin"/>
+                        <!-- 自定义 action 权限点 -->
+                        <resource id="FNPT:NopDatavPanel:getPanelData" displayName="查询面板数据"
+                                  i18n-en:displayName="Get Panel Data" orderNo="10030" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavPanel:getPanelData</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavPanel:refreshPanel" displayName="刷新面板数据"
+                                  i18n-en:displayName="Refresh Panel" orderNo="10031" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavPanel:refreshPanel</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavPanel:resolveLinkage" displayName="图表联动"
+                                  i18n-en:displayName="Resolve Linkage" orderNo="10032" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavPanel:resolveLinkage</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavPanel:resolveJump" displayName="图表跳转"
+                                  i18n-en:displayName="Resolve Jump" orderNo="10033" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavPanel:resolveJump</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <!-- ==================== NopDatavScreen（D4-1 大屏）==================== -->
+                <resource id="NopDatavScreen-main">
+                    <children>
+                        <resource id="FNPT:NopDatavScreen:query" roles="admin,user"/>
+                        <resource id="FNPT:NopDatavScreen:mutation" roles="admin"/>
+                        <!-- 自定义 action 权限点 -->
+                        <resource id="FNPT:NopDatavScreen:publishScreen" displayName="发布大屏"
+                                  i18n-en:displayName="Publish Screen" orderNo="10040" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavScreen:publishScreen</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavScreen:getPublishedScreen" displayName="查看已发布大屏"
+                                  i18n-en:displayName="Get Published Screen" orderNo="10041" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavScreen:getPublishedScreen</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavScreen:rollbackScreen" displayName="回滚大屏"
+                                  i18n-en:displayName="Rollback Screen" orderNo="10042" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavScreen:rollbackScreen</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavScreen:getScreenLayout" displayName="获取大屏布局"
+                                  i18n-en:displayName="Get Screen Layout" orderNo="10043" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavScreen:getScreenLayout</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavScreen:getComponentTypes" displayName="查询组件类型"
+                                  i18n-en:displayName="Get Component Types" orderNo="10044" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavScreen:getComponentTypes</permissions>
+                        </resource>
+                        <!-- D4-4 发布生命周期增强 -->
+                        <resource id="FNPT:NopDatavScreen:getScreenSnapshotHistory" displayName="大屏发布历史"
+                                  i18n-en:displayName="Get Screen Snapshot History" orderNo="10045" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavScreen:getScreenSnapshotHistory</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavScreen:getScreenLayoutByVersion" displayName="查看历史版本布局"
+                                  i18n-en:displayName="Get Screen Layout By Version" orderNo="10046" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavScreen:getScreenLayoutByVersion</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavScreen:getScreenDraftLayout" displayName="草稿预览"
+                                  i18n-en:displayName="Get Screen Draft Layout" orderNo="10047" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavScreen:getScreenDraftLayout</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavScreen:setScreenThumbnail" displayName="设置大屏缩略图"
+                                  i18n-en:displayName="Set Screen Thumbnail" orderNo="10048" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavScreen:setScreenThumbnail</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <!-- ==================== NopDatavScreenWidget（D4-1）==================== -->
+                <!-- 裁定 D2（plan 2026-08-15-2146-1）：query 收敛 admin（widgetConfig 草稿泄露面）。 -->
+                <resource id="NopDatavScreenWidget-main">
+                    <children>
+                        <resource id="FNPT:NopDatavScreenWidget:query" roles="admin"/>
+                        <resource id="FNPT:NopDatavScreenWidget:mutation" roles="admin"/>
+                    </children>
+                </resource>
+                <!-- ==================== NopDatavScreenSnapshot（D4-1）==================== -->
+                <!--
+                    裁定 D2/D5（plan 2026-08-15-2146-1）：query 收敛 admin；mutation 面经 BizModel 覆写显式拒绝
+                    （快照 append-only，唯一写入点 publishScreen/rollbackScreen）。
+                -->
+                <resource id="NopDatavScreenSnapshot-main">
+                    <children>
+                        <resource id="FNPT:NopDatavScreenSnapshot:query" roles="admin"/>
+                        <resource id="FNPT:NopDatavScreenSnapshot:mutation" roles="admin"/>
+                    </children>
+                </resource>
+                <!-- ==================== NopDatavReportTask（D5-1 定时报告任务）==================== -->
+                <resource id="NopDatavReportTask-main">
+                    <children>
+                        <resource id="FNPT:NopDatavReportTask:query" roles="admin,user"/>
+                        <resource id="FNPT:NopDatavReportTask:mutation" roles="admin"/>
+                        <!-- 自定义 action 权限点 -->
+                        <resource id="FNPT:NopDatavReportTask:enableReportTask" displayName="启用报告任务"
+                                  i18n-en:displayName="Enable Report Task" orderNo="10050" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavReportTask:enableReportTask</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavReportTask:disableReportTask" displayName="禁用报告任务"
+                                  i18n-en:displayName="Disable Report Task" orderNo="10051" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavReportTask:disableReportTask</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavReportTask:triggerReportNow" displayName="手动触发报告"
+                                  i18n-en:displayName="Trigger Report Now" orderNo="10052" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavReportTask:triggerReportNow</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavReportTask:getReportDeliveryHistory" displayName="查询交付历史"
+                                  i18n-en:displayName="Get Report Delivery History" orderNo="10053" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavReportTask:getReportDeliveryHistory</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <!-- ==================== NopDatavReportDelivery（D5-1 报告交付历史）==================== -->
+                <resource id="NopDatavReportDelivery-main">
+                    <children>
+                        <resource id="FNPT:NopDatavReportDelivery:query" roles="admin,user"/>
+                        <resource id="FNPT:NopDatavReportDelivery:mutation" roles="admin"/>
+                    </children>
+                </resource>
+                <!-- ==================== NopDatavAlertRule（D5-2 轻量告警规则）==================== -->
+                <resource id="NopDatavAlertRule-main">
+                    <children>
+                        <resource id="FNPT:NopDatavAlertRule:query" roles="admin,user"/>
+                        <resource id="FNPT:NopDatavAlertRule:mutation" roles="admin"/>
+                        <!-- 自定义 action 权限点 -->
+                        <resource id="FNPT:NopDatavAlertRule:enableAlertRule" displayName="启用告警规则"
+                                  i18n-en:displayName="Enable Alert Rule" orderNo="10060" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavAlertRule:enableAlertRule</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavAlertRule:disableAlertRule" displayName="禁用告警规则"
+                                  i18n-en:displayName="Disable Alert Rule" orderNo="10061" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavAlertRule:disableAlertRule</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavAlertRule:evaluateAlertNow" displayName="手动评估告警"
+                                  i18n-en:displayName="Evaluate Alert Now" orderNo="10062" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavAlertRule:evaluateAlertNow</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavAlertRule:getAlertState" displayName="查询告警状态"
+                                  i18n-en:displayName="Get Alert State" orderNo="10063" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavAlertRule:getAlertState</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <!-- ==================== NopDatavAlertState（D5-2 告警状态）==================== -->
+                <resource id="NopDatavAlertState-main">
+                    <children>
+                        <resource id="FNPT:NopDatavAlertState:query" roles="admin,user"/>
+                        <resource id="FNPT:NopDatavAlertState:mutation" roles="admin"/>
+                    </children>
+                </resource>
+                <!-- ==================== NopDatavChatBi（D6-1 ChatBI 自然语言查询 + D6-1b 看板生成）==================== -->
+                <resource id="NopDatavChatBi-main">
+                    <children>
+                        <!-- 自定义 action 权限点 -->
+                        <resource id="FNPT:NopDatavChatBi:chatToQuery" displayName="ChatBI自然语言查询"
+                                  i18n-en:displayName="ChatBI Query" orderNo="10070" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavChatBi:chatToQuery</permissions>
+                        </resource>
+                        <!-- D6-1b ChatBI 看板生成（写操作：创建草稿看板，用 @BizMutation，roles=user 可创作，admin 全量） -->
+                        <resource id="FNPT:NopDatavChatBi:chatToDashboard" displayName="ChatBI看板生成"
+                                  i18n-en:displayName="ChatBI Dashboard Generation" orderNo="10071" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavChatBi:chatToDashboard</permissions>
+                        </resource>
+                        <!-- D6-2 ChatBI 大屏生成（写操作：创建草稿大屏，用 @BizMutation，roles=user 可创作，admin 全量） -->
+                        <resource id="FNPT:NopDatavChatBi:chatToScreen" displayName="ChatBI大屏生成"
+                                  i18n-en:displayName="ChatBI Screen Generation" orderNo="10072" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavChatBi:chatToScreen</permissions>
+                        </resource>
+                        <!-- D6-1 follow-up 多轮会话管理（裁定 S5，镜像既有 ChatBI 权限点；内均 requireSession owner 校验） -->
+                        <resource id="FNPT:NopDatavChatBi:createChatSession" displayName="创建ChatBI会话"
+                                  i18n-en:displayName="Create ChatBI Session" orderNo="10073" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavChatBi:createChatSession</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavChatBi:listChatSessions" displayName="查询ChatBI会话列表"
+                                  i18n-en:displayName="List ChatBI Sessions" orderNo="10074" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavChatBi:listChatSessions</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavChatBi:getChatSessionHistory" displayName="查询ChatBI会话历史"
+                                  i18n-en:displayName="Get ChatBI Session History" orderNo="10075" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavChatBi:getChatSessionHistory</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavChatBi:deleteChatSession" displayName="删除ChatBI会话"
+                                  i18n-en:displayName="Delete ChatBI Session" orderNo="10076" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavChatBi:deleteChatSession</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <!-- ==================== NopDatavChatSession / NopDatavChatMessage（D6-1 follow-up ChatBI 多轮会话）==================== -->
+                <!--
+                    裁定 S5（plan 2026-08-15-0004-1）：会话实体无 RLS，继承 CRUD query/mutation 仅绑 admin
+                    （不绑 user），与 NopDatavDashboardShare/NopDatavExportTask 的 D1 裁定先例对称。
+                    user 角色只能经 owner 校验过的 NopDatavChatBi 自定义管理 action 触达会话数据。
+                -->
+                <resource id="NopDatavChatSession-main">
+                    <children>
+                        <resource id="FNPT:NopDatavChatSession:query" roles="admin"/>
+                        <resource id="FNPT:NopDatavChatSession:mutation" roles="admin"/>
+                    </children>
+                </resource>
+                <resource id="NopDatavChatMessage-main">
+                    <children>
+                        <resource id="FNPT:NopDatavChatMessage:query" roles="admin"/>
+                        <resource id="FNPT:NopDatavChatMessage:mutation" roles="admin"/>
+                    </children>
+                </resource>
+                <!-- ==================== NopDatavDashboardShare（D3-2 公共分享链接）==================== -->
+                <!--
+                    D1 裁定（plan {1}）：继承 CRUD query/mutation 仅绑 admin（不绑 user），与 NopDatavExportTask 对称。
+                    理由：share 实体无 RLS，user 角色放开 CRUD 后水平越权 + passwordHash 泄漏入口即刻生效。
+                    user 角色只能经 owner 校验过的自定义管理 action 触达 share 数据。
+                -->
+                <resource id="NopDatavDashboardShare-main">
+                    <children>
+                        <resource id="FNPT:NopDatavDashboardShare:query" roles="admin"/>
+                        <resource id="FNPT:NopDatavDashboardShare:mutation" roles="admin"/>
+                        <!-- 自定义 action 权限点（内均 requireDashboardOwnership owner 校验） -->
+                        <resource id="FNPT:NopDatavDashboardShare:createShare" displayName="创建分享"
+                                  i18n-en:displayName="Create Share" orderNo="10080" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavDashboardShare:createShare</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDashboardShare:listShares" displayName="查询分享列表"
+                                  i18n-en:displayName="List Shares" orderNo="10081" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavDashboardShare:listShares</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDashboardShare:revokeShare" displayName="吊销分享"
+                                  i18n-en:displayName="Revoke Share" orderNo="10082" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavDashboardShare:revokeShare</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDashboardShare:toggleShare" displayName="切换分享启用"
+                                  i18n-en:displayName="Toggle Share" orderNo="10083" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavDashboardShare:toggleShare</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <!-- ==================== NopDatavExportTask（D3-3 数据导出）==================== -->
+                <!--
+                    D1 裁定（plan {1}）：继承 CRUD query/mutation 仅绑 admin（不绑 user），与 NopDatavDashboardShare 对称。
+                    理由：export task 实体无 RLS，user 角色放开 CRUD 后水平越权入口即刻生效。
+                    user 角色只能经 owner 校验过的自定义 action 触达 export task 数据。
+                -->
+                <resource id="NopDatavExportTask-main">
+                    <children>
+                        <resource id="FNPT:NopDatavExportTask:query" roles="admin"/>
+                        <resource id="FNPT:NopDatavExportTask:mutation" roles="admin"/>
+                        <!-- 自定义 action 权限点（内均做 owner 校验：task.createdBy == 当前用户） -->
+                        <resource id="FNPT:NopDatavExportTask:createExportTask" displayName="创建导出任务"
+                                  i18n-en:displayName="Create Export Task" orderNo="10090" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavExportTask:createExportTask</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavExportTask:getExportTask" displayName="查询导出任务"
+                                  i18n-en:displayName="Get Export Task" orderNo="10091" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavExportTask:getExportTask</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavExportTask:cancelExportTask" displayName="取消导出任务"
+                                  i18n-en:displayName="Cancel Export Task" orderNo="10092" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavExportTask:cancelExportTask</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavExportTask:downloadExportFile" displayName="下载导出文件"
+                                  i18n-en:displayName="Download Export File" orderNo="10093" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavExportTask:downloadExportFile</permissions>
+                        </resource>
+                    </children>
+                </resource>
+            </children>
+        </resource>
+    </site>
+</auth>

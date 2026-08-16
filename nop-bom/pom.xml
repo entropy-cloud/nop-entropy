@@ -296,6 +296,41 @@
                 <version>${nop-entropy.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-datav-api</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-datav-codegen</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-datav-dao</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-datav-meta</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-datav-service</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-datav-web</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>

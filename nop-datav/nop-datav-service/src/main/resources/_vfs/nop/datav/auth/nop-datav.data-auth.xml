@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<data-auth x:schema="/nop/schema/data-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <objs>
+        <obj name="NopDatavDashboard">
+            <role-auths>
+                <role-auth id="admin" roleIds="admin">
+                </role-auth>
+                <role-auth id="user" roleIds="user">
+                    <filter>
+                        <or>
+                            <eq name="createdBy" value="${$context.userName}"/>
+                            <eq name="publishStatus" value="10"/>
+                        </or>
+                    </filter>
+                </role-auth>
+            </role-auths>
+        </obj>
+        <obj name="NopDatavScreen">
+            <role-auths>
+                <role-auth id="admin" roleIds="admin">
+                </role-auth>
+                <role-auth id="user" roleIds="user">
+                    <filter>
+                        <or>
+                            <eq name="createdBy" value="${$context.userName}"/>
+                            <eq name="publishStatus" value="10"/>
+                        </or>
+                    </filter>
+                </role-auth>
+            </role-auths>
+        </obj>
+        <!-- D5-1 定时报告任务：报告任务属看板 owner 可管理对象（沿用 D3 owner RLS 模式）。
+             admin 全量；user 限 createdBy == userName（owner）。交付历史经 reportTaskId → reportTask.createdBy
+             间接归属（BizModel 层 requireTaskWithOwnership 显式校验）。 -->
+        <obj name="NopDatavReportTask">
+            <role-auths>
+                <role-auth id="admin" roleIds="admin">
+                </role-auth>
+                <role-auth id="user" roleIds="user">
+                    <filter>
+                        <eq name="createdBy" value="${$context.userName}"/>
+                    </filter>
+                </role-auth>
+            </role-auths>
+        </obj>
+        <obj name="NopDatavReportDelivery">
+            <role-auths>
+                <role-auth id="admin" roleIds="admin">
+                </role-auth>
+                <role-auth id="user" roleIds="user">
+                    <filter>
+                        <eq name="createdBy" value="${$context.userName}"/>
+                    </filter>
+                </role-auth>
+            </role-auths>
+        </obj>
+        <!-- D5-2 轻量告警：规则经 panelId → dashboard 间接归属看板 owner；状态经 alertRuleId → rule.createdBy 间接归属。
+             admin 全量；user 限 createdBy == userName（owner）。BizModel 层 requireRuleWithOwnership 显式校验
+             panelId → dashboard 链路归属（schedule-report-design.md §21）。 -->
+        <obj name="NopDatavAlertRule">
+            <role-auths>
+                <role-auth id="admin" roleIds="admin">
+                </role-auth>
+                <role-auth id="user" roleIds="user">
+                    <filter>
+                        <eq name="createdBy" value="${$context.userName}"/>
+                    </filter>
+                </role-auth>
+            </role-auths>
+        </obj>
+        <obj name="NopDatavAlertState">
+            <role-auths>
+                <role-auth id="admin" roleIds="admin">
+                </role-auth>
+                <role-auth id="user" roleIds="user">
+                    <filter>
+                        <eq name="createdBy" value="${$context.userName}"/>
+                    </filter>
+                </role-auth>
+            </role-auths>
+        </obj>
+        <!-- D3/P1-02（plan 2026-08-15-2146-1）：FilterState 继承 query（admin,user）的行级隔离落地——
+             设计 §69「仅查询/更新自己的记录」语义。用户写路径经自定义 saveFilterState（内部按 userName
+             + dashboardId 定位，不经继承 CRUD）；继承 mutation 已收敛 admin（action-auth.xml）。 -->
+        <obj name="NopDatavFilterState">
+            <role-auths>
+                <role-auth id="admin" roleIds="admin">
+                </role-auth>
+                <role-auth id="user" roleIds="user">
+                    <filter>
+                        <eq name="userName" value="${$context.userName}"/>
+                    </filter>
+                </role-auth>
+            </role-auths>
+        </obj>
+    </objs>
+</data-auth>

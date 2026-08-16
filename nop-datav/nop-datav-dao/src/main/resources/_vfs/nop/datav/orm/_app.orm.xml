@@ -1,0 +1,1085 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<orm ext:registerShortName="true" ext:appName="nop-datav" ext:icon="layout-dashboard"
+     ext:entityPackageName="io.nop.datav.dao.entity" ext:basePackageName="io.nop.datav"
+     ext:mavenGroupId="io.github.entropy-cloud" ext:mavenArtifactId="nop-datav" ext:mavenVersion="2.0.0-SNAPSHOT"
+     ext:platformVersion="2.0.0-SNAPSHOT" ext:dialect="mysql,oracle,postgresql" ext:useCoreModule="true"
+     x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en"
+     xmlns:ref-i18n-en="ref-i18n-en" xmlns:ext="ext" xmlns:orm-gen="orm-gen" xmlns:xpl="xpl" xmlns:ui="ui">
+
+    <x:post-extends x:override="replace">
+        <orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
+    </x:post-extends>
+
+    <x:gen-extends x:override="replace">
+        <orm-gen:DefaultGenExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
+    </x:gen-extends>
+
+    <dicts>
+        <dict label="看板类型" name="datav/dashboard-type" valueType="int" i18n-en:label="Dashboard Type">
+            <option code="DASHBOARD" label="看板" value="0" i18n-en:label="Dashboard"/>
+            <option code="REPORT" label="报表" value="10" i18n-en:label="Report"/>
+        </dict>
+        <dict label="发布状态" name="datav/publish-status" valueType="int" i18n-en:label="Publish Status">
+            <option code="DRAFT" label="草稿" value="0" i18n-en:label="Draft"/>
+            <option code="PUBLISHED" label="已发布" value="10" i18n-en:label="Published"/>
+        </dict>
+        <dict label="面板类型" name="datav/panel-type" valueType="int" i18n-en:label="Panel Type">
+            <option code="CHART" label="图表" value="0" i18n-en:label="Chart"/>
+            <option code="TABLE" label="表格" value="10" i18n-en:label="Table"/>
+            <option code="METRIC" label="指标" value="20" i18n-en:label="Metric"/>
+            <option code="TEXT" label="文本" value="30" i18n-en:label="Text"/>
+            <option code="CONTAINER" label="容器" value="40" i18n-en:label="Container"/>
+            <option code="PIVOT_TABLE" label="透视表" value="50" i18n-en:label="Pivot Table"/>
+            <option code="MAP" label="地图" value="60" i18n-en:label="Map"/>
+            <option code="IFRAME" label="内嵌页面" value="70" i18n-en:label="IFrame"/>
+        </dict>
+        <dict label="导出来源" name="datav/export-source" valueType="string" i18n-en:label="Export Source">
+            <option code="PANEL" label="面板" value="panel" i18n-en:label="Panel"/>
+            <option code="DASHBOARD" label="看板" value="dashboard" i18n-en:label="Dashboard"/>
+        </dict>
+        <dict label="导出格式" name="datav/export-format" valueType="string" i18n-en:label="Export Format">
+            <option code="CSV" label="CSV" value="csv" i18n-en:label="CSV"/>
+            <option code="XLSX" label="Excel" value="xlsx" i18n-en:label="Excel"/>
+        </dict>
+        <dict label="导出任务状态" name="datav/export-status" valueType="int" i18n-en:label="Export Status">
+            <option code="PENDING" label="待执行" value="0" i18n-en:label="Pending"/>
+            <option code="RUNNING" label="执行中" value="10" i18n-en:label="Running"/>
+            <option code="SUCCEEDED" label="成功" value="20" i18n-en:label="Succeeded"/>
+            <option code="FAILED" label="失败" value="30" i18n-en:label="Failed"/>
+            <option code="CANCELLED" label="已取消" value="40" i18n-en:label="Cancelled"/>
+        </dict>
+        <dict label="大屏适配模式" name="datav/screen-adaptor" valueType="int" i18n-en:label="Screen Adaptor">
+            <option code="HEIGHT_FIRST" label="高度优先" value="0" i18n-en:label="Height First"/>
+            <option code="FULL" label="整体铺满" value="10" i18n-en:label="Full"/>
+            <option code="KEEP" label="保持原始" value="20" i18n-en:label="Keep"/>
+        </dict>
+        <dict label="报告任务状态" name="datav/report-task-status" valueType="int" i18n-en:label="Report Task Status">
+            <option code="DISABLED" label="已禁用" value="0" i18n-en:label="Disabled"/>
+            <option code="ENABLED" label="已启用" value="10" i18n-en:label="Enabled"/>
+        </dict>
+        <dict label="报告交付状态" name="datav/delivery-status" valueType="int" i18n-en:label="Delivery Status">
+            <option code="PENDING" label="待执行" value="0" i18n-en:label="Pending"/>
+            <option code="RUNNING" label="执行中" value="10" i18n-en:label="Running"/>
+            <option code="SUCCEEDED" label="成功" value="20" i18n-en:label="Succeeded"/>
+            <option code="FAILED" label="失败" value="30" i18n-en:label="Failed"/>
+            <option code="SKIPPED" label="已跳过" value="40" i18n-en:label="Skipped"/>
+        </dict>
+        <dict label="报告触发来源" name="datav/report-trigger-source" valueType="string" i18n-en:label="Report Trigger Source">
+            <option code="SCHEDULE" label="定时触发" value="schedule" i18n-en:label="Schedule"/>
+            <option code="MANUAL" label="手动触发" value="manual" i18n-en:label="Manual"/>
+        </dict>
+        <dict label="通知渠道" name="datav/notify-channel" valueType="string" i18n-en:label="Notify Channel">
+            <option code="EMAIL" label="邮件" value="email" i18n-en:label="Email"/>
+            <option code="IM" label="即时消息" value="im" i18n-en:label="IM"/>
+        </dict>
+        <dict label="告警操作符" name="datav/alert-operator" valueType="string" i18n-en:label="Alert Operator">
+            <option code="GT" label="大于" value="gt" i18n-en:label="Greater Than"/>
+            <option code="GTE" label="大于等于" value="gte" i18n-en:label="Greater Than or Equal"/>
+            <option code="LT" label="小于" value="lt" i18n-en:label="Less Than"/>
+            <option code="LTE" label="小于等于" value="lte" i18n-en:label="Less Than or Equal"/>
+            <option code="EQ" label="等于" value="eq" i18n-en:label="Equal"/>
+            <option code="NEQ" label="不等于" value="neq" i18n-en:label="Not Equal"/>
+            <option code="BETWEEN" label="介于" value="between" i18n-en:label="Between"/>
+        </dict>
+        <dict label="告警聚合方式" name="datav/alert-aggregation" valueType="string" i18n-en:label="Alert Aggregation">
+            <option code="NONE" label="无" value="none" i18n-en:label="None"/>
+            <option code="FIRST" label="首行" value="first" i18n-en:label="First"/>
+            <option code="SUM" label="求和" value="sum" i18n-en:label="Sum"/>
+            <option code="AVG" label="平均" value="avg" i18n-en:label="Average"/>
+            <option code="MIN" label="最小" value="min" i18n-en:label="Min"/>
+            <option code="MAX" label="最大" value="max" i18n-en:label="Max"/>
+            <option code="COUNT" label="计数" value="count" i18n-en:label="Count"/>
+        </dict>
+        <dict label="告警状态" name="datav/alert-state" valueType="string" i18n-en:label="Alert State">
+            <option code="OK" label="正常" value="OK" i18n-en:label="OK"/>
+            <option code="TRIGGERED" label="已触发" value="TRIGGERED" i18n-en:label="Triggered"/>
+        </dict>
+        <dict label="会话消息角色" name="datav/chat-msg-role" valueType="string" i18n-en:label="Chat Message Role">
+            <option code="USER" label="用户" value="user" i18n-en:label="User"/>
+            <option code="ASSISTANT" label="助手" value="assistant" i18n-en:label="Assistant"/>
+        </dict>
+    </dicts>
+
+    <domains>
+        <domain name="boolFlag" stdSqlType="TINYINT"/>
+        <domain name="json-1000" precision="1000" stdDomain="json" stdSqlType="VARCHAR"/>
+        <domain name="json-4000" precision="4000" stdDomain="json" stdSqlType="VARCHAR"/>
+        <domain name="remark" precision="1000" stdSqlType="VARCHAR"/>
+        <domain name="version" stdSqlType="BIGINT"/>
+        <domain name="createTime" stdSqlType="TIMESTAMP"/>
+        <domain name="createdBy" precision="50" stdSqlType="VARCHAR"/>
+        <domain name="updateTime" stdSqlType="TIMESTAMP"/>
+        <domain name="updatedBy" precision="50" stdSqlType="VARCHAR"/>
+        <domain name="delFlag" stdDomain="boolFlag" stdSqlType="TINYINT"/>
+        <domain name="clobJson" stdDomain="json" stdSqlType="CLOB"/>
+    </domains>
+
+    <entities>
+        <entity className="io.nop.datav.dao.entity.NopDatavDashboard" createTimeProp="createTime"
+                createrProp="createdBy" displayName="看板" name="io.nop.datav.dao.entity.NopDatavDashboard"
+                registerShortName="true" tableName="nop_datav_dashboard" updateTimeProp="updateTime"
+                updaterProp="updatedBy" versionProp="version" ext:icon="layout-dashboard"
+                i18n-en:displayName="Dashboard">
+            <columns>
+                <column code="DASHBOARD_ID" displayName="看板ID" mandatory="true" name="dashboardId" precision="32"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        i18n-en:displayName="Dashboard Id"/>
+                <column code="DASHBOARD_NAME" displayName="看板名" mandatory="true" name="dashboardName" precision="100"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Dashboard Name"/>
+                <column code="DISPLAY_NAME" displayName="显示名" mandatory="true" name="displayName" precision="200"
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR" tagSet="disp"
+                        i18n-en:displayName="Display Name"/>
+                <column code="DESCRIPTION" displayName="描述" name="description" precision="4000" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Description"/>
+                <column code="DASHBOARD_TYPE" displayName="看板类型" name="dashboardType" propId="5" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Dashboard Type" ext:dict="datav/dashboard-type"/>
+                <column code="PUBLISH_STATUS" displayName="发布状态" name="publishStatus" propId="6" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Publish Status" ext:dict="datav/publish-status"/>
+                <column code="PUBLISHED_VERSION" displayName="已发布版本" name="publishedVersion" propId="7"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Published Version"/>
+                <column code="PUBLISHED_BY" displayName="发布人" name="publishedBy" precision="50" propId="8"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Published By"/>
+                <column code="PUBLISHED_TIME" displayName="发布时间" name="publishedTime" propId="9" stdDataType="timestamp"
+                        stdSqlType="TIMESTAMP" i18n-en:displayName="Published Time"/>
+                <column code="LAYOUT_CONFIG" displayName="布局配置" domain="json-4000" name="layoutConfig" precision="4000"
+                        propId="10" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Layout Config"/>
+                <column code="DEL_FLAG" displayName="删除标记" domain="delFlag" name="delFlag" propId="11"
+                        stdDataType="byte" stdDomain="boolFlag" stdSqlType="TINYINT" i18n-en:displayName="Del Flag"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="12"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="13" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="14" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="15" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="16" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="17"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+                <column code="PARAM_CONFIG" displayName="参数定义" domain="clobJson" name="paramConfig" propId="18"
+                        stdDataType="string" stdDomain="json" stdSqlType="CLOB" i18n-en:displayName="Param Config"/>
+            </columns>
+            <unique-keys>
+                <unique-key columns="dashboardName" constraint="UK_NOP_DATAV_DASHBOARD_NAME"
+                            name="UK_NOP_DATAV_DASHBOARD_NAME" i18n-en:displayName="Unique Dashboard Name"/>
+            </unique-keys>
+        </entity>
+        <entity className="io.nop.datav.dao.entity.NopDatavPanel" createTimeProp="createTime" createrProp="createdBy"
+                displayName="面板" name="io.nop.datav.dao.entity.NopDatavPanel" registerShortName="true"
+                tableName="nop_datav_panel" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
+                ext:icon="panels-top-left" i18n-en:displayName="Panel">
+            <columns>
+                <column code="PANEL_ID" displayName="面板ID" mandatory="true" name="panelId" precision="32" primary="true"
+                        propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="Panel Id"/>
+                <column code="DASHBOARD_ID" displayName="看板ID" mandatory="true" name="dashboardId" precision="32"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Dashboard Id"/>
+                <column code="PANEL_NAME" displayName="面板名" mandatory="true" name="panelName" precision="100" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Panel Name"/>
+                <column code="DISPLAY_NAME" displayName="显示名" name="displayName" precision="200" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Display Name"/>
+                <column code="PANEL_TYPE" displayName="面板类型" name="panelType" propId="5" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Panel Type" ext:dict="datav/panel-type"/>
+                <column code="DATASET_REF_ID" displayName="数据集引用ID" name="datasetRefId" precision="32" propId="6"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Dataset Ref Id"/>
+                <column code="TAB_ID" displayName="页签ID" name="tabId" precision="32" propId="7" stdDataType="string"
+                        stdSqlType="VARCHAR" i18n-en:displayName="Tab Id"/>
+                <column code="SORT_ORDER" defaultValue="0" displayName="排序" name="sortOrder" propId="8"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Sort Order"/>
+                <column code="PANEL_CONFIG" displayName="面板配置" domain="json-4000" name="panelConfig" precision="4000"
+                        propId="9" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Panel Config"/>
+                <column code="DEL_FLAG" displayName="删除标记" domain="delFlag" name="delFlag" propId="10"
+                        stdDataType="byte" stdDomain="boolFlag" stdSqlType="TINYINT" i18n-en:displayName="Del Flag"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="11"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="12" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="13" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="14" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="15" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="16"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+            </columns>
+            <indexes>
+                <index name="IX_NOP_DATAV_PANEL_DASHBOARD" unique="false">
+                    <column name="dashboardId"/>
+                </index>
+            </indexes>
+            <relations>
+                <to-one displayName="看板" name="dashboard" refEntityName="io.nop.datav.dao.entity.NopDatavDashboard"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Dashboard">
+                    <join>
+                        <on leftProp="dashboardId" rightProp="dashboardId"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+        <entity className="io.nop.datav.dao.entity.NopDatavDashboardTab" createTimeProp="createTime"
+                createrProp="createdBy" displayName="页签" name="io.nop.datav.dao.entity.NopDatavDashboardTab"
+                registerShortName="true" tableName="nop_datav_tab" updateTimeProp="updateTime" updaterProp="updatedBy"
+                versionProp="version" ext:icon="tabs" i18n-en:displayName="Dashboard Tab">
+            <columns>
+                <column code="TAB_ID" displayName="页签ID" mandatory="true" name="tabId" precision="32" primary="true"
+                        propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="Tab Id"/>
+                <column code="DASHBOARD_ID" displayName="看板ID" mandatory="true" name="dashboardId" precision="32"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Dashboard Id"/>
+                <column code="TAB_NAME" displayName="页签名" mandatory="true" name="tabName" precision="100" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Tab Name"/>
+                <column code="DISPLAY_NAME" displayName="显示名" name="displayName" precision="200" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Display Name"/>
+                <column code="SORT_ORDER" defaultValue="0" displayName="排序" name="sortOrder" propId="5"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Sort Order"/>
+                <column code="TAB_CONFIG" displayName="页签配置" domain="json-4000" name="tabConfig" precision="4000"
+                        propId="6" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Tab Config"/>
+                <column code="DEL_FLAG" displayName="删除标记" domain="delFlag" name="delFlag" propId="7" stdDataType="byte"
+                        stdDomain="boolFlag" stdSqlType="TINYINT" i18n-en:displayName="Del Flag"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="8"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="9" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="10" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="11" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="12" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="13"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+            </columns>
+            <indexes>
+                <index name="IX_NOP_DATAV_TAB_DASHBOARD" unique="false">
+                    <column name="dashboardId"/>
+                </index>
+            </indexes>
+            <relations>
+                <to-one displayName="看板" name="dashboard" refEntityName="io.nop.datav.dao.entity.NopDatavDashboard"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Dashboard">
+                    <join>
+                        <on leftProp="dashboardId" rightProp="dashboardId"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+        <entity className="io.nop.datav.dao.entity.NopDatavDatasetRef" createTimeProp="createTime"
+                createrProp="createdBy" displayName="数据集引用" name="io.nop.datav.dao.entity.NopDatavDatasetRef"
+                registerShortName="true" tableName="nop_datav_dataset_ref" updateTimeProp="updateTime"
+                updaterProp="updatedBy" versionProp="version" ext:icon="database" i18n-en:displayName="Dataset Ref">
+            <columns>
+                <column code="DATASET_REF_ID" displayName="数据集引用ID" mandatory="true" name="datasetRefId" precision="32"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        i18n-en:displayName="Dataset Ref Id"/>
+                <column code="DASHBOARD_ID" displayName="看板ID" mandatory="true" name="dashboardId" precision="32"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Dashboard Id"/>
+                <column code="REF_DATASET_ID" displayName="引用数据集ID" mandatory="true" name="refDatasetId" precision="100"
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Ref Dataset Id"/>
+                <column code="REF_DATASET_NAME" displayName="引用数据集名" name="refDatasetName" precision="200" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Ref Dataset Name"/>
+                <column code="PARAM_MAPPING" displayName="参数映射" domain="json-4000" name="paramMapping" precision="4000"
+                        propId="5" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Param Mapping"/>
+                <column code="DEL_FLAG" displayName="删除标记" domain="delFlag" name="delFlag" propId="6" stdDataType="byte"
+                        stdDomain="boolFlag" stdSqlType="TINYINT" i18n-en:displayName="Del Flag"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="7"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="8" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="9" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="10" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="11" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="12"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+            </columns>
+            <indexes>
+                <index name="IX_NOP_DATAV_DATASET_REF_DASHBOARD" unique="false">
+                    <column name="dashboardId"/>
+                </index>
+            </indexes>
+            <relations>
+                <to-one displayName="看板" name="dashboard" refEntityName="io.nop.datav.dao.entity.NopDatavDashboard"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Dashboard">
+                    <join>
+                        <on leftProp="dashboardId" rightProp="dashboardId"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+        <entity className="io.nop.datav.dao.entity.NopDatavDashboardSnapshot" createTimeProp="createTime"
+                createrProp="createdBy" displayName="发布快照" name="io.nop.datav.dao.entity.NopDatavDashboardSnapshot"
+                registerShortName="true" tableName="nop_datav_snapshot" updateTimeProp="updateTime"
+                updaterProp="updatedBy" versionProp="version" ext:icon="git-commit-horizontal"
+                i18n-en:displayName="Dashboard Snapshot">
+            <columns>
+                <column code="SNAPSHOT_ID" displayName="快照ID" mandatory="true" name="snapshotId" precision="32"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        i18n-en:displayName="Snapshot Id"/>
+                <column code="DASHBOARD_ID" displayName="看板ID" mandatory="true" name="dashboardId" precision="32"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Dashboard Id"/>
+                <column code="SNAPSHOT_VERSION" displayName="快照版本" mandatory="true" name="snapshotVersion" propId="3"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Snapshot Version"/>
+                <column code="SNAPSHOT_CONTENT" displayName="快照内容" domain="clobJson" name="snapshotContent" propId="4"
+                        stdDataType="string" stdDomain="json" stdSqlType="CLOB" i18n-en:displayName="Snapshot Content"/>
+                <column code="PUBLISHED_BY" displayName="发布人" name="publishedBy" precision="50" propId="5"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Published By"/>
+                <column code="PUBLISHED_TIME" displayName="发布时间" name="publishedTime" propId="6" stdDataType="timestamp"
+                        stdSqlType="TIMESTAMP" i18n-en:displayName="Published Time"/>
+                <column code="DEL_FLAG" displayName="删除标记" domain="delFlag" name="delFlag" propId="7" stdDataType="byte"
+                        stdDomain="boolFlag" stdSqlType="TINYINT" i18n-en:displayName="Del Flag"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="8"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="9" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="10" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="11" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="12" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="13"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+            </columns>
+            <indexes>
+                <index name="IX_NOP_DATAV_SNAPSHOT_DASHBOARD" unique="false">
+                    <column name="dashboardId"/>
+                </index>
+            </indexes>
+            <relations>
+                <to-one displayName="看板" name="dashboard" refEntityName="io.nop.datav.dao.entity.NopDatavDashboard"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Dashboard">
+                    <join>
+                        <on leftProp="dashboardId" rightProp="dashboardId"/>
+                    </join>
+                </to-one>
+            </relations>
+            <unique-keys>
+                <unique-key columns="dashboardId,snapshotVersion" constraint="UK_NOP_DATAV_SNAPSHOT_DASH_VER"
+                            name="UK_NOP_DATAV_SNAPSHOT_DASH_VER"
+                            i18n-en:displayName="Unique Snapshot Per Dashboard Version"/>
+            </unique-keys>
+        </entity>
+        <entity className="io.nop.datav.dao.entity.NopDatavFilterState" createTimeProp="createTime"
+                createrProp="createdBy" displayName="筛选状态" name="io.nop.datav.dao.entity.NopDatavFilterState"
+                registerShortName="true" tableName="nop_datav_filter_state" updateTimeProp="updateTime"
+                updaterProp="updatedBy" versionProp="version" ext:icon="filter" i18n-en:displayName="Filter State">
+            <columns>
+                <column code="STATE_ID" displayName="状态ID" mandatory="true" name="stateId" precision="32" primary="true"
+                        propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="State Id"/>
+                <column code="USER_NAME" displayName="用户名" mandatory="true" name="userName" precision="50" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="User Name"/>
+                <column code="DASHBOARD_ID" displayName="看板ID" mandatory="true" name="dashboardId" precision="32"
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Dashboard Id"/>
+                <column code="STATE_CONTENT" displayName="状态内容" domain="clobJson" name="stateContent" propId="4"
+                        stdDataType="string" stdDomain="json" stdSqlType="CLOB" i18n-en:displayName="State Content"/>
+                <column code="DEL_FLAG" displayName="删除标记" domain="delFlag" name="delFlag" propId="5" stdDataType="byte"
+                        stdDomain="boolFlag" stdSqlType="TINYINT" i18n-en:displayName="Del Flag"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="6"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="7" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="8" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="9" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="10" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="11"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+            </columns>
+            <indexes>
+                <index name="IX_NOP_DATAV_FILTER_STATE_DASHBOARD" unique="false">
+                    <column name="dashboardId"/>
+                </index>
+            </indexes>
+            <relations>
+                <to-one displayName="看板" name="dashboard" refEntityName="io.nop.datav.dao.entity.NopDatavDashboard"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Dashboard">
+                    <join>
+                        <on leftProp="dashboardId" rightProp="dashboardId"/>
+                    </join>
+                </to-one>
+            </relations>
+            <unique-keys>
+                <unique-key columns="userName,dashboardId" constraint="UK_NOP_DATAV_FILTER_STATE_USER_DASH"
+                            name="UK_NOP_DATAV_FILTER_STATE_USER_DASH"
+                            i18n-en:displayName="Unique Filter State Per User And Dashboard"/>
+            </unique-keys>
+        </entity>
+        <entity className="io.nop.datav.dao.entity.NopDatavDashboardShare" createTimeProp="createTime"
+                createrProp="createdBy" displayName="看板分享" name="io.nop.datav.dao.entity.NopDatavDashboardShare"
+                registerShortName="true" tableName="nop_datav_share" updateTimeProp="updateTime" updaterProp="updatedBy"
+                versionProp="version" ext:icon="share-2" i18n-en:displayName="Dashboard Share">
+            <columns>
+                <column code="SHARE_ID" displayName="分享ID" mandatory="true" name="shareId" precision="32" primary="true"
+                        propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="Share Id"/>
+                <column code="SHARE_TOKEN" displayName="分享令牌" mandatory="true" name="shareToken" precision="64"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Share Token"/>
+                <column code="DASHBOARD_ID" displayName="看板ID" mandatory="true" name="dashboardId" precision="32"
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Dashboard Id"/>
+                <column code="PASSWORD_HASH" displayName="密码哈希" name="passwordHash" precision="200" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Password Hash"/>
+                <column code="EXPIRE_TIME" displayName="过期时间" name="expireTime" propId="5" stdDataType="timestamp"
+                        stdSqlType="TIMESTAMP" i18n-en:displayName="Expire Time"/>
+                <column code="ENABLED" defaultValue="1" displayName="启用标记" domain="boolFlag" name="enabled" propId="6"
+                        stdDataType="byte" stdSqlType="TINYINT" i18n-en:displayName="Enabled"/>
+                <column code="DEL_FLAG" displayName="删除标记" domain="delFlag" name="delFlag" propId="7" stdDataType="byte"
+                        stdDomain="boolFlag" stdSqlType="TINYINT" i18n-en:displayName="Del Flag"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="8"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="9" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="10" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="11" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="12" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="13"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+                <column code="VISIT_COUNT" defaultValue="0" displayName="访问计数" name="visitCount" propId="14"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Visit Count"/>
+                <column code="LAST_VISIT_TIME" displayName="最近访问时间" name="lastVisitTime" propId="15"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Last Visit Time"/>
+            </columns>
+            <indexes>
+                <index name="IX_NOP_DATAV_SHARE_DASHBOARD" unique="false">
+                    <column name="dashboardId"/>
+                </index>
+            </indexes>
+            <relations>
+                <to-one displayName="看板" name="dashboard" refEntityName="io.nop.datav.dao.entity.NopDatavDashboard"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Dashboard">
+                    <join>
+                        <on leftProp="dashboardId" rightProp="dashboardId"/>
+                    </join>
+                </to-one>
+            </relations>
+            <unique-keys>
+                <unique-key columns="shareToken" constraint="UK_NOP_DATAV_SHARE_TOKEN" name="UK_NOP_DATAV_SHARE_TOKEN"
+                            i18n-en:displayName="Unique Share Token"/>
+            </unique-keys>
+        </entity>
+        <entity className="io.nop.datav.dao.entity.NopDatavExportTask" createTimeProp="createTime"
+                createrProp="createdBy" displayName="导出任务" name="io.nop.datav.dao.entity.NopDatavExportTask"
+                registerShortName="true" tableName="nop_datav_export_task" updateTimeProp="updateTime"
+                updaterProp="updatedBy" versionProp="version" ext:icon="download" i18n-en:displayName="Export Task">
+            <columns>
+                <column code="TASK_ID" displayName="任务ID" mandatory="true" name="taskId" precision="32" primary="true"
+                        propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="Task Id"/>
+                <column code="SOURCE_TYPE" displayName="来源类型" mandatory="true" name="sourceType" precision="20"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR" ext:dict="datav/export-source"
+                        i18n-en:displayName="Source Type"/>
+                <column code="SOURCE_ID" displayName="来源ID" mandatory="true" name="sourceId" precision="32" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Source Id"/>
+                <column code="FORMAT" displayName="导出格式" mandatory="true" name="format" precision="10" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR" ext:dict="datav/export-format"
+                        i18n-en:displayName="Format"/>
+                <column code="STATUS" displayName="任务状态" mandatory="true" name="status" propId="5" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Status" ext:dict="datav/export-status"/>
+                <column code="PARAMS" displayName="导出参数" domain="clobJson" name="params" propId="6" stdDataType="string"
+                        stdDomain="json" stdSqlType="CLOB" i18n-en:displayName="Params"/>
+                <column code="FILE_RECORD_ID" displayName="文件记录ID" name="fileRecordId" precision="64" propId="7"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="File Record Id"/>
+                <column code="ROW_COUNT" displayName="导出行数" name="rowCount" propId="8" stdDataType="long"
+                        stdSqlType="BIGINT" i18n-en:displayName="Row Count"/>
+                <column code="ERROR_MSG" displayName="错误信息" name="errorMsg" precision="1000" propId="9"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Error Msg"/>
+                <column code="DEL_FLAG" displayName="删除标记" domain="delFlag" name="delFlag" propId="10"
+                        stdDataType="byte" stdDomain="boolFlag" stdSqlType="TINYINT" i18n-en:displayName="Del Flag"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="11"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="12" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="13" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="14" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="15" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="16"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+            </columns>
+            <indexes>
+                <index name="IX_NOP_DATAV_EXPORT_TASK_OWNER" unique="false">
+                    <column name="createdBy"/>
+                </index>
+                <index name="IX_NOP_DATAV_EXPORT_TASK_STATUS" unique="false">
+                    <column name="status"/>
+                </index>
+            </indexes>
+        </entity>
+        <entity className="io.nop.datav.dao.entity.NopDatavScreen" createTimeProp="createTime" createrProp="createdBy"
+                displayName="大屏" name="io.nop.datav.dao.entity.NopDatavScreen" registerShortName="true"
+                tableName="nop_datav_screen" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
+                ext:icon="monitor" i18n-en:displayName="Screen">
+            <columns>
+                <column code="SCREEN_ID" displayName="大屏ID" mandatory="true" name="screenId" precision="32"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        i18n-en:displayName="Screen Id"/>
+                <column code="SCREEN_NAME" displayName="大屏名" mandatory="true" name="screenName" precision="100"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Screen Name"/>
+                <column code="DISPLAY_NAME" displayName="显示名" mandatory="true" name="displayName" precision="200"
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR" tagSet="disp"
+                        i18n-en:displayName="Display Name"/>
+                <column code="DESCRIPTION" displayName="描述" name="description" precision="4000" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Description"/>
+                <column code="SCREEN_WIDTH" displayName="画布宽度" mandatory="true" name="screenWidth" propId="5"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Screen Width"/>
+                <column code="SCREEN_HEIGHT" displayName="画布高度" mandatory="true" name="screenHeight" propId="6"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Screen Height"/>
+                <column code="ADAPTOR_MODE" defaultValue="10" displayName="适配模式" name="adaptorMode" propId="7"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Adaptor Mode"
+                        ext:dict="datav/screen-adaptor"/>
+                <column code="BACKGROUND_CONFIG" displayName="背景配置" domain="json-4000" name="backgroundConfig"
+                        precision="4000" propId="8" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Background Config"/>
+                <column code="PUBLISH_STATUS" displayName="发布状态" name="publishStatus" propId="9" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Publish Status" ext:dict="datav/publish-status"/>
+                <column code="PUBLISHED_VERSION" displayName="已发布版本" name="publishedVersion" propId="10"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Published Version"/>
+                <column code="PUBLISHED_BY" displayName="发布人" name="publishedBy" precision="50" propId="11"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Published By"/>
+                <column code="PUBLISHED_TIME" displayName="发布时间" name="publishedTime" propId="12"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Published Time"/>
+                <column code="DEL_FLAG" displayName="删除标记" domain="delFlag" name="delFlag" propId="13"
+                        stdDataType="byte" stdDomain="boolFlag" stdSqlType="TINYINT" i18n-en:displayName="Del Flag"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="14"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="15" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="16" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="17" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="18" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="19"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+                <column code="THUMBNAIL" displayName="缩略图" name="thumbnail" precision="4000" propId="20"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Thumbnail"/>
+            </columns>
+            <unique-keys>
+                <unique-key columns="screenName" constraint="UK_NOP_DATAV_SCREEN_NAME" name="UK_NOP_DATAV_SCREEN_NAME"
+                            i18n-en:displayName="Unique Screen Name"/>
+            </unique-keys>
+        </entity>
+        <entity className="io.nop.datav.dao.entity.NopDatavScreenWidget" createTimeProp="createTime"
+                createrProp="createdBy" displayName="大屏组件" name="io.nop.datav.dao.entity.NopDatavScreenWidget"
+                registerShortName="true" tableName="nop_datav_screen_widget" updateTimeProp="updateTime"
+                updaterProp="updatedBy" versionProp="version" ext:icon="square" i18n-en:displayName="Screen Widget">
+            <columns>
+                <column code="WIDGET_ID" displayName="组件ID" mandatory="true" name="widgetId" precision="32"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        i18n-en:displayName="Widget Id"/>
+                <column code="SCREEN_ID" displayName="大屏ID" mandatory="true" name="screenId" precision="32" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Screen Id"/>
+                <column code="WIDGET_NAME" displayName="组件名" name="widgetName" precision="100" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Widget Name"/>
+                <column code="DISPLAY_NAME" displayName="显示名" name="displayName" precision="200" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Display Name"/>
+                <column code="COMPONENT_TYPE" displayName="组件类型" mandatory="true" name="componentType" precision="50"
+                        propId="5" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Component Type"/>
+                <column code="DATASET_REF_ID" displayName="数据集引用ID" name="datasetRefId" precision="32" propId="6"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Dataset Ref Id"/>
+                <column code="X" defaultValue="0" displayName="X坐标" mandatory="true" name="x" propId="7"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="X"/>
+                <column code="Y" defaultValue="0" displayName="Y坐标" mandatory="true" name="y" propId="8"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Y"/>
+                <column code="W" displayName="宽度" mandatory="true" name="w" propId="9" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Width"/>
+                <column code="H" displayName="高度" mandatory="true" name="h" propId="10" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Height"/>
+                <column code="Z" defaultValue="0" displayName="层级" name="z" propId="11" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Z-Index"/>
+                <column code="WIDGET_CONFIG" displayName="组件配置" domain="json-4000" name="widgetConfig" precision="4000"
+                        propId="12" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Widget Config"/>
+                <column code="DEL_FLAG" displayName="删除标记" domain="delFlag" name="delFlag" propId="13"
+                        stdDataType="byte" stdDomain="boolFlag" stdSqlType="TINYINT" i18n-en:displayName="Del Flag"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="14"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="15" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="16" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="17" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="18" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="19"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+            </columns>
+            <indexes>
+                <index name="IX_NOP_DATAV_SCREEN_WIDGET_SCREEN" unique="false">
+                    <column name="screenId"/>
+                </index>
+            </indexes>
+            <relations>
+                <to-one displayName="大屏" name="screen" refEntityName="io.nop.datav.dao.entity.NopDatavScreen"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Screen">
+                    <join>
+                        <on leftProp="screenId" rightProp="screenId"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+        <entity className="io.nop.datav.dao.entity.NopDatavScreenSnapshot" createTimeProp="createTime"
+                createrProp="createdBy" displayName="大屏快照" name="io.nop.datav.dao.entity.NopDatavScreenSnapshot"
+                registerShortName="true" tableName="nop_datav_screen_snapshot" updateTimeProp="updateTime"
+                updaterProp="updatedBy" versionProp="version" ext:icon="git-commit-horizontal"
+                i18n-en:displayName="Screen Snapshot">
+            <columns>
+                <column code="SNAPSHOT_ID" displayName="快照ID" mandatory="true" name="snapshotId" precision="32"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        i18n-en:displayName="Snapshot Id"/>
+                <column code="SCREEN_ID" displayName="大屏ID" mandatory="true" name="screenId" precision="32" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Screen Id"/>
+                <column code="SNAPSHOT_VERSION" displayName="快照版本" mandatory="true" name="snapshotVersion" propId="3"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Snapshot Version"/>
+                <column code="SNAPSHOT_CONTENT" displayName="快照内容" domain="clobJson" mandatory="true"
+                        name="snapshotContent" propId="4" stdDataType="string" stdDomain="json" stdSqlType="CLOB"
+                        i18n-en:displayName="Snapshot Content"/>
+                <column code="PUBLISHED_BY" displayName="发布人" name="publishedBy" precision="50" propId="5"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Published By"/>
+                <column code="PUBLISHED_TIME" displayName="发布时间" name="publishedTime" propId="6" stdDataType="timestamp"
+                        stdSqlType="TIMESTAMP" i18n-en:displayName="Published Time"/>
+                <column code="DEL_FLAG" displayName="删除标记" domain="delFlag" name="delFlag" propId="7" stdDataType="byte"
+                        stdDomain="boolFlag" stdSqlType="TINYINT" i18n-en:displayName="Del Flag"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="8"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="9" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="10" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="11" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="12" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="13"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+            </columns>
+            <indexes>
+                <index name="IX_NOP_DATAV_SCREEN_SNAPSHOT_SCREEN" unique="false">
+                    <column name="screenId"/>
+                </index>
+            </indexes>
+            <relations>
+                <to-one displayName="大屏" name="screen" refEntityName="io.nop.datav.dao.entity.NopDatavScreen"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Screen">
+                    <join>
+                        <on leftProp="screenId" rightProp="screenId"/>
+                    </join>
+                </to-one>
+            </relations>
+            <unique-keys>
+                <unique-key columns="screenId,snapshotVersion" constraint="UK_NOP_DATAV_SCREEN_SNAPSHOT_SCREEN_VER"
+                            name="UK_NOP_DATAV_SCREEN_SNAPSHOT_SCREEN_VER"
+                            i18n-en:displayName="Unique Snapshot Per Screen Version"/>
+            </unique-keys>
+        </entity>
+        <entity className="io.nop.datav.dao.entity.NopDatavReportTask" createTimeProp="createTime"
+                createrProp="createdBy" displayName="定时报告任务" name="io.nop.datav.dao.entity.NopDatavReportTask"
+                registerShortName="true" tableName="nop_datav_report_task" updateTimeProp="updateTime"
+                updaterProp="updatedBy" versionProp="version" ext:icon="calendar-clock"
+                i18n-en:displayName="Report Task">
+            <columns>
+                <column code="REPORT_TASK_ID" displayName="报告任务ID" mandatory="true" name="reportTaskId" precision="32"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        i18n-en:displayName="Report Task Id"/>
+                <column code="TASK_NAME" displayName="任务名" mandatory="true" name="taskName" precision="100" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Task Name"/>
+                <column code="DISPLAY_NAME" displayName="显示名" name="displayName" precision="200" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Display Name"/>
+                <column code="DASHBOARD_ID" displayName="看板ID" mandatory="true" name="dashboardId" precision="32"
+                        propId="4" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Dashboard Id"/>
+                <column code="CRON_EXPR" displayName="cron表达式" mandatory="true" name="cronExpr" precision="100"
+                        propId="5" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Cron Expr"/>
+                <column code="FORMAT" displayName="导出格式" mandatory="true" name="format" precision="10" propId="6"
+                        stdDataType="string" stdSqlType="VARCHAR" ext:dict="datav/export-format"
+                        i18n-en:displayName="Format"/>
+                <column code="RECIPIENTS" displayName="收件人" domain="clobJson" name="recipients" propId="7"
+                        stdDataType="string" stdDomain="json" stdSqlType="CLOB" i18n-en:displayName="Recipients"/>
+                <column code="NOTIFY_CHANNELS" displayName="通知渠道" domain="clobJson" name="notifyChannels" propId="8"
+                        stdDataType="string" stdDomain="json" stdSqlType="CLOB" i18n-en:displayName="Notify Channels"/>
+                <column code="PARAMS" displayName="报告参数" domain="clobJson" name="params" propId="9" stdDataType="string"
+                        stdDomain="json" stdSqlType="CLOB" i18n-en:displayName="Params"/>
+                <column code="STATUS" displayName="任务状态" mandatory="true" name="status" propId="10" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Status" ext:dict="datav/report-task-status"/>
+                <column code="GRACE_MINUTES" defaultValue="60" displayName="grace期(分钟)" name="graceMinutes" propId="11"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Grace Minutes"/>
+                <column code="TEMPLATE_KEY" displayName="模板键" name="templateKey" precision="100" propId="12"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Template Key"/>
+                <column code="LAST_RUN_TIME" displayName="最后执行时间" name="lastRunTime" propId="13" stdDataType="timestamp"
+                        stdSqlType="TIMESTAMP" i18n-en:displayName="Last Run Time"/>
+                <column code="LAST_RUN_STATUS" displayName="最后执行状态" name="lastRunStatus" precision="20" propId="14"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Last Run Status"/>
+                <column code="LAST_RUN_ERROR" displayName="最后执行错误" name="lastRunError" precision="1000" propId="15"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Last Run Error"/>
+                <column code="DEL_FLAG" displayName="删除标记" domain="delFlag" name="delFlag" propId="16"
+                        stdDataType="byte" stdDomain="boolFlag" stdSqlType="TINYINT" i18n-en:displayName="Del Flag"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="17"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="18" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="19" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="20" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="21" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="22"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+            </columns>
+            <indexes>
+                <index name="IX_NOP_DATAV_REPORT_TASK_DASHBOARD" unique="false">
+                    <column name="dashboardId"/>
+                </index>
+                <index name="IX_NOP_DATAV_REPORT_TASK_OWNER" unique="false">
+                    <column name="createdBy"/>
+                </index>
+                <index name="IX_NOP_DATAV_REPORT_TASK_STATUS" unique="false">
+                    <column name="status"/>
+                </index>
+            </indexes>
+            <relations>
+                <to-one displayName="看板" name="dashboard" refEntityName="io.nop.datav.dao.entity.NopDatavDashboard"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Dashboard">
+                    <join>
+                        <on leftProp="dashboardId" rightProp="dashboardId"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+        <entity className="io.nop.datav.dao.entity.NopDatavReportDelivery" createTimeProp="createTime"
+                createrProp="createdBy" displayName="报告交付历史" name="io.nop.datav.dao.entity.NopDatavReportDelivery"
+                registerShortName="true" tableName="nop_datav_report_delivery" updateTimeProp="updateTime"
+                updaterProp="updatedBy" versionProp="version" ext:icon="send" i18n-en:displayName="Report Delivery">
+            <columns>
+                <column code="DELIVERY_ID" displayName="交付ID" mandatory="true" name="deliveryId" precision="32"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        i18n-en:displayName="Delivery Id"/>
+                <column code="REPORT_TASK_ID" displayName="报告任务ID" mandatory="true" name="reportTaskId" precision="32"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Report Task Id"/>
+                <column code="STATUS" displayName="交付状态" mandatory="true" name="status" propId="3" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Status" ext:dict="datav/delivery-status"/>
+                <column code="GENERATED_FILE_RECORD_ID" displayName="生成文件记录ID" name="generatedFileRecordId"
+                        precision="64" propId="4" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Generated File Record Id"/>
+                <column code="DELIVERED_CHANNELS" displayName="已送达渠道" name="deliveredChannels" precision="200"
+                        propId="5" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Delivered Channels"/>
+                <column code="ROW_COUNT" displayName="导出行数" name="rowCount" propId="6" stdDataType="long"
+                        stdSqlType="BIGINT" i18n-en:displayName="Row Count"/>
+                <column code="ERROR_MSG" displayName="错误信息" name="errorMsg" precision="1000" propId="7"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Error Msg"/>
+                <column code="TRIGGERED_BY" displayName="触发来源" mandatory="true" name="triggeredBy" precision="20"
+                        propId="8" stdDataType="string" stdSqlType="VARCHAR" ext:dict="datav/report-trigger-source"
+                        i18n-en:displayName="Triggered By"/>
+                <column code="START_TIME" displayName="开始时间" name="startTime" propId="9" stdDataType="timestamp"
+                        stdSqlType="TIMESTAMP" i18n-en:displayName="Start Time"/>
+                <column code="END_TIME" displayName="结束时间" name="endTime" propId="10" stdDataType="timestamp"
+                        stdSqlType="TIMESTAMP" i18n-en:displayName="End Time"/>
+                <column code="DEL_FLAG" displayName="删除标记" domain="delFlag" name="delFlag" propId="11"
+                        stdDataType="byte" stdDomain="boolFlag" stdSqlType="TINYINT" i18n-en:displayName="Del Flag"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="12"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="13" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="14" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="15" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="16" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="17"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+            </columns>
+            <indexes>
+                <index name="IX_NOP_DATAV_REPORT_DELIVERY_TASK" unique="false">
+                    <column name="reportTaskId"/>
+                </index>
+                <index name="IX_NOP_DATAV_REPORT_DELIVERY_STATUS" unique="false">
+                    <column name="status"/>
+                </index>
+            </indexes>
+            <relations>
+                <to-one displayName="报告任务" name="reportTask" refEntityName="io.nop.datav.dao.entity.NopDatavReportTask"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Report Task">
+                    <join>
+                        <on leftProp="reportTaskId" rightProp="reportTaskId"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+        <entity className="io.nop.datav.dao.entity.NopDatavAlertRule" createTimeProp="createTime"
+                createrProp="createdBy" displayName="告警规则" name="io.nop.datav.dao.entity.NopDatavAlertRule"
+                registerShortName="true" tableName="nop_datav_alert_rule" updateTimeProp="updateTime"
+                updaterProp="updatedBy" versionProp="version" ext:icon="bell" i18n-en:displayName="Alert Rule">
+            <columns>
+                <column code="ALERT_RULE_ID" displayName="告警规则ID" mandatory="true" name="alertRuleId" precision="32"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        i18n-en:displayName="Alert Rule Id"/>
+                <column code="RULE_NAME" displayName="规则名" mandatory="true" name="ruleName" precision="100" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Rule Name"/>
+                <column code="DISPLAY_NAME" displayName="显示名" name="displayName" precision="200" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Display Name"/>
+                <column code="PANEL_ID" displayName="面板ID" mandatory="true" name="panelId" precision="32" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Panel Id"/>
+                <column code="VALUE_FIELD" displayName="取值字段" mandatory="true" name="valueField" precision="100"
+                        propId="5" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Value Field"/>
+                <column code="AGGREGATION" displayName="聚合方式" mandatory="true" name="aggregation" precision="20"
+                        propId="6" stdDataType="string" stdSqlType="VARCHAR" ext:dict="datav/alert-aggregation"
+                        i18n-en:displayName="Aggregation"/>
+                <column code="OPERATOR" displayName="比较运算符" mandatory="true" name="operator" precision="20" propId="7"
+                        stdDataType="string" stdSqlType="VARCHAR" ext:dict="datav/alert-operator"
+                        i18n-en:displayName="Operator"/>
+                <column code="THRESHOLD_VALUE" displayName="阈值" mandatory="true" name="thresholdValue" precision="20"
+                        propId="8" scale="4" stdDataType="decimal" stdSqlType="DECIMAL"
+                        i18n-en:displayName="Threshold Value"/>
+                <column code="THRESHOLD_VALUE2" displayName="阈值上限" name="thresholdValue2" precision="20" propId="9"
+                        scale="4" stdDataType="decimal" stdSqlType="DECIMAL" i18n-en:displayName="Threshold Value2"/>
+                <column code="REARM_SECONDS" defaultValue="0" displayName="冷静期秒数" name="rearmSeconds" propId="10"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Rearm Seconds"/>
+                <column code="NOTIFY_CHANNELS" displayName="通知渠道" domain="clobJson" name="notifyChannels" propId="11"
+                        stdDataType="string" stdDomain="json" stdSqlType="CLOB" i18n-en:displayName="Notify Channels"/>
+                <column code="RECIPIENTS" displayName="收件人" domain="clobJson" name="recipients" propId="12"
+                        stdDataType="string" stdDomain="json" stdSqlType="CLOB" i18n-en:displayName="Recipients"/>
+                <column code="CRON_EXPR" displayName="cron表达式" mandatory="true" name="cronExpr" precision="100"
+                        propId="13" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Cron Expr"/>
+                <column code="PARAMS" displayName="查询参数" domain="clobJson" name="params" propId="14"
+                        stdDataType="string" stdDomain="json" stdSqlType="CLOB" i18n-en:displayName="Params"/>
+                <column code="TEMPLATE_KEY" displayName="模板键" name="templateKey" precision="100" propId="15"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Template Key"/>
+                <column code="STATUS" displayName="规则状态" mandatory="true" name="status" propId="16" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Status" ext:dict="datav/report-task-status"/>
+                <column code="DEL_FLAG" displayName="删除标记" domain="delFlag" name="delFlag" propId="17"
+                        stdDataType="byte" stdDomain="boolFlag" stdSqlType="TINYINT" i18n-en:displayName="Del Flag"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="18"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="19" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="20" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="21" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="22" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="23"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+            </columns>
+            <indexes>
+                <index name="IX_NOP_DATAV_ALERT_RULE_PANEL" unique="false">
+                    <column name="panelId"/>
+                </index>
+                <index name="IX_NOP_DATAV_ALERT_RULE_OWNER" unique="false">
+                    <column name="createdBy"/>
+                </index>
+                <index name="IX_NOP_DATAV_ALERT_RULE_STATUS" unique="false">
+                    <column name="status"/>
+                </index>
+            </indexes>
+            <relations>
+                <to-one displayName="面板" name="panel" refEntityName="io.nop.datav.dao.entity.NopDatavPanel"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Panel">
+                    <join>
+                        <on leftProp="panelId" rightProp="panelId"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+        <entity className="io.nop.datav.dao.entity.NopDatavAlertState" createTimeProp="createTime"
+                createrProp="createdBy" displayName="告警状态" name="io.nop.datav.dao.entity.NopDatavAlertState"
+                registerShortName="true" tableName="nop_datav_alert_state" updateTimeProp="updateTime"
+                updaterProp="updatedBy" versionProp="version" ext:icon="activity" i18n-en:displayName="Alert State">
+            <columns>
+                <column code="ALERT_STATE_ID" displayName="状态ID" mandatory="true" name="alertStateId" precision="32"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        i18n-en:displayName="Alert State Id"/>
+                <column code="ALERT_RULE_ID" displayName="告警规则ID" mandatory="true" name="alertRuleId" precision="32"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Alert Rule Id"/>
+                <column code="STATE" displayName="告警状态" mandatory="true" name="state" precision="20" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR" ext:dict="datav/alert-state"
+                        i18n-en:displayName="State"/>
+                <column code="LAST_EVAL_TIME" displayName="最后评估时间" name="lastEvalTime" propId="4"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Last Eval Time"/>
+                <column code="LAST_TRIGGERED_TIME" displayName="最后触发时间" name="lastTriggeredTime" propId="5"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Last Triggered Time"/>
+                <column code="LAST_RESOLVED_TIME" displayName="最后恢复时间" name="lastResolvedTime" propId="6"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Last Resolved Time"/>
+                <column code="LAST_NOTIFIED_TIME" displayName="最后通知时间" name="lastNotifiedTime" propId="7"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Last Notified Time"/>
+                <column code="CONSECUTIVE_EVAL_COUNT" defaultValue="0" displayName="连续评估满足次数"
+                        name="consecutiveEvalCount" propId="8" stdDataType="int" stdSqlType="INTEGER"
+                        i18n-en:displayName="Consecutive Eval Count"/>
+                <column code="ERROR_MSG" displayName="错误信息" name="errorMsg" precision="1000" propId="9"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Error Msg"/>
+                <column code="DEL_FLAG" displayName="删除标记" domain="delFlag" name="delFlag" propId="10"
+                        stdDataType="byte" stdDomain="boolFlag" stdSqlType="TINYINT" i18n-en:displayName="Del Flag"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="11"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="12" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="13" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="14" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="15" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="16"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+            </columns>
+            <indexes>
+                <index name="IX_NOP_DATAV_ALERT_STATE_STATE" unique="false">
+                    <column name="state"/>
+                </index>
+            </indexes>
+            <relations>
+                <to-one displayName="告警规则" name="alertRule" refEntityName="io.nop.datav.dao.entity.NopDatavAlertRule"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Alert Rule">
+                    <join>
+                        <on leftProp="alertRuleId" rightProp="alertRuleId"/>
+                    </join>
+                </to-one>
+            </relations>
+            <unique-keys>
+                <unique-key columns="alertRuleId" constraint="UK_NOP_DATAV_ALERT_STATE_RULE"
+                            name="UK_NOP_DATAV_ALERT_STATE_RULE" i18n-en:displayName="Unique Alert Rule"/>
+            </unique-keys>
+        </entity>
+        <entity className="io.nop.datav.dao.entity.NopDatavChatSession" createTimeProp="createTime"
+                createrProp="createdBy" displayName="ChatBI会话" name="io.nop.datav.dao.entity.NopDatavChatSession"
+                registerShortName="true" tableName="nop_datav_chat_session" updateTimeProp="updateTime"
+                updaterProp="updatedBy" versionProp="version" ext:icon="message-circle"
+                i18n-en:displayName="ChatBI Session">
+            <columns>
+                <column code="SESSION_ID" displayName="会话ID" mandatory="true" name="sessionId" precision="32"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        i18n-en:displayName="Session Id"/>
+                <column code="USER_NAME" displayName="用户名" mandatory="true" name="userName" precision="50" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="User Name"/>
+                <column code="SESSION_TITLE" displayName="会话标题" name="sessionTitle" precision="200" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Session Title"/>
+                <column code="DEL_FLAG" displayName="删除标记" domain="delFlag" name="delFlag" propId="4" stdDataType="byte"
+                        stdDomain="boolFlag" stdSqlType="TINYINT" i18n-en:displayName="Del Flag"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="5"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="6" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="7" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="8" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="9" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="10"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+            </columns>
+            <indexes>
+                <index name="IX_NOP_DATAV_CHAT_SESSION_USER" unique="false">
+                    <column name="userName"/>
+                </index>
+            </indexes>
+            <relations>
+                <to-many displayName="消息列表" name="messages" refEntityName="io.nop.datav.dao.entity.NopDatavChatMessage"
+                         refPropName="session" i18n-en:displayName="Messages">
+                    <join>
+                        <on leftProp="sessionId" rightProp="sessionId"/>
+                    </join>
+                </to-many>
+            </relations>
+        </entity>
+        <entity className="io.nop.datav.dao.entity.NopDatavChatMessage" createTimeProp="createTime"
+                createrProp="createdBy" displayName="ChatBI会话消息" name="io.nop.datav.dao.entity.NopDatavChatMessage"
+                registerShortName="true" tableName="nop_datav_chat_message" updateTimeProp="updateTime"
+                updaterProp="updatedBy" versionProp="version" ext:icon="message-square"
+                i18n-en:displayName="ChatBI Session Message">
+            <columns>
+                <column code="MESSAGE_ID" displayName="消息ID" mandatory="true" name="messageId" precision="32"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        i18n-en:displayName="Message Id"/>
+                <column code="SESSION_ID" displayName="会话ID" mandatory="true" name="sessionId" precision="32" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Session Id"/>
+                <column code="SEQ" comment="消息序号，会话内严格递增" displayName="消息序号" mandatory="true" name="seq" propId="3"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Seq"/>
+                <column code="ROLE" displayName="消息角色" mandatory="true" name="role" precision="20" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR" ext:dict="datav/chat-msg-role"
+                        i18n-en:displayName="Role"/>
+                <column code="CONTENT" displayName="消息内容" mandatory="true" name="content" propId="5"
+                        stdDataType="string" stdSqlType="CLOB" i18n-en:displayName="Content"/>
+                <column code="RESULT_JSON" displayName="结构化结果JSON" domain="clobJson" name="resultJson" propId="6"
+                        stdDataType="string" stdDomain="json" stdSqlType="CLOB" i18n-en:displayName="Result Json"/>
+                <column code="DEL_FLAG" displayName="删除标记" domain="delFlag" name="delFlag" propId="7" stdDataType="byte"
+                        stdDomain="boolFlag" stdSqlType="TINYINT" i18n-en:displayName="Del Flag"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="8"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="9" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="10" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="11" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="12" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="13"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+            </columns>
+            <indexes>
+                <index name="IX_NOP_DATAV_CHAT_MSG_SESSION" unique="false">
+                    <column name="sessionId"/>
+                </index>
+            </indexes>
+            <relations>
+                <to-one displayName="会话" name="session" refEntityName="io.nop.datav.dao.entity.NopDatavChatSession"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Session">
+                    <join>
+                        <on leftProp="sessionId" rightProp="sessionId"/>
+                    </join>
+                </to-one>
+            </relations>
+            <unique-keys>
+                <unique-key columns="sessionId,seq" constraint="UK_NOP_DATAV_CHAT_MSG_SESSION_SEQ"
+                            name="UK_NOP_DATAV_CHAT_MSG_SESSION_SEQ" i18n-en:displayName="Unique Session And Seq"/>
+            </unique-keys>
+        </entity>
+    </entities>
+</orm>

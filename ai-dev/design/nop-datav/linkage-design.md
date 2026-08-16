@@ -1,0 +1,414 @@
+# nop-datav 筛选与联动设计 (D2)
+
+> Status: **final**（覆盖 D2-1 + D2-2 + D2-3 + D2-4 全部后端决策）
+> Last Reviewed: 2026-08-15
+
+## 概述
+
+本文记录 nop-datav 筛选与联动（D2）后端能力的架构决策。D2-1（全局筛选参数）、D2-2（图表联动三件套）、D2-3（联动状态服务）、D2-4（flux dashboard-filter 筛选定义对齐）四块均在本文件定稿（D2-4 见 §十一）。flux 侧筛选栏渲染/对接依赖 nop-chaos-flux 前端控件族（其 dashboard-filter 编排约定已在外部仓库落地），渲染实现属 flux 仓库 scope（外部后续，非本模块 debt）。
+
+D2 整体目标：看板可声明命名/类型化的全局筛选参数（D2-1）；面板数据点点击可触发其他面板筛选（联动）、跳转到其他看板/外部 URL（跳转）、从外部接收参数注入（外部参数注入，D2-2）；当前筛选+联动状态可保存/恢复（D2-3）；nop-datav 参数模型产出 flux 筛选栏可直接消费的筛选定义并与 flux 值形态对齐（D2-4）。本模块只做参数定义层 + 校验层 + URL 序列化层 + 联动配置层 + 状态持久化层 + 筛选定义产出层，**不重建查询引擎**（复用 D1 `getPanelData` + `PanelDataBinder` + `PanelParamEvaluator`）、不做前端渲染（D2-4 后端契约见 §十一，渲染属 flux 仓库 scope）。
+
+## 一、参数定义存储方案（D2-1）
+
+### 选择：NopDatavDashboard 新增 `paramConfig` JSON 列（方案 A）
+
+**选择：在 Dashboard 主表新增 `paramConfig` 列，存储参数定义 JSON 数组。** 使用 `clobJson` domain（CLOB JSON），与 DashboardSnapshot 的 `snapshotContent` 同 domain。
+
+参数定义是一个 JSON 数组，每个元素描述一个全局筛选参数。不新增独立实体（不新建 `NopDatavDashboardParam` 表）。
+
+### 参数定义结构约定
+
+`paramConfig` JSON 结构裁定（数组，每个元素为一个参数定义）：
+
+```json
+[
+  {
+    "name": "region",
+    "type": "string",
+    "defaultValue": "all",
+    "label": "区域",
+    "widget": "dropdown"
+  },
+  {
+    "name": "dateRange",
+    "type": "date-range",
+    "defaultValue": { "start": "2024-01-01", "end": "2024-12-31" },
+    "label": "日期范围",
+    "widget": "date-picker"
+  }
+]
+```
+
+每个参数定义包含以下配置区域（字段名约定）：
+
+| 区域 | 用途 | 必填 | 说明 |
+|------|------|------|------|
+| `name` | 参数唯一标识 | 是 | 非空字符串，在同一 paramConfig 内唯一 |
+| `type` | 参数类型 | 是 | 取值：`string` / `number` / `date` / `date-range` |
+| `defaultValue` | 默认值 | 否 | 缺省为 null。date-range 类型使用 `{start,end}` 对象；其余类型为标量 |
+| `label` | 显示标签 | 否 | 供前端消费的显示文案 |
+| `widget` | 前端控件类型 | 否 | 取值限于词表 `dropdown` / `date-picker`（词表外取值显式报错）；由筛选定义产出（§十一.3）解析并映射为 flux 控件。**（D2-4 修订）** 本字段不再是「后端不解析」的纯透传字段；缺省时按参数类型走缺省控件映射 |
+
+字段级 JSON schema 不在本文定义（源码解析类是唯一事实）；上表是约定，运行时按此约定解析与校验。
+
+## 二、参数值表示约定（D2-1 → D1 集成契约）
+
+**核心裁定：全局筛选的输入和输出均使用「扁平 key」Map，与既有 `PanelParamEvaluator.evaluate()` 的 `Map.get(sourceKey)` 查找方式完全兼容。**
+
+- **简单类型**（string / number / date）：key = 参数名，value = 标量值。如 `{"region": "East"}`。
+- **复合类型**（date-range）：参数定义声明其有 `start`/`end` 子键；**输入和输出均使用扁平化 key** `paramName.start` / `paramName.end`。如 `{"dateRange.start": "2024-01-01", "dateRange.end": "2024-12-31"}`。
+
+**`resolveFilterValues` 不做 nested→flat 转换**——输入已是扁平 key Map，resolver 仅做：按参数定义校验类型 / 填充默认值 / 过滤未定义参数。（D2-4 修订见下方：date-range 输入增设 delimited 标量接受形态。）
+
+paramMapping 的 `source` 字段引用这些扁平 key（如 `{"start_date": {"source": "dateRange.start"}}`），因此 `PanelParamEvaluator` 无需修改即可消费复合类型参数。此约定确保 `resolveFilterValues` 输出可直接作为 `getPanelData` 的 `requestParams` 使用，无需中间转换层。
+
+## 三、全局筛选应用流程（D2-1）
+
+> **修订（D2-4）**：resolver 对 date-range 输入增设 delimited 标量接受形态（§十一.4）；产出筛选定义的新 action `exportDashboardFilter` 见 §十一.2。
+
+后端 API（`resolveFilterValues`，`@BizQuery` action）接收原始扁平 key 筛选值 Map，按参数定义：
+
+1. 加载 Dashboard 的 `paramConfig`，解析出参数定义列表。
+2. 校验类型：按参数定义声明的类型（string/number/date/date-range）校验传入值。类型不匹配显式失败（抛 `NopException` + 错误码），不静默强转。
+3. 填充默认值：未传入的参数使用参数定义的 `defaultValue`（date-range 默认值 `{start,end}` 展平为 `paramName.start`/`paramName.end`）。
+4. 过滤未定义参数：不在参数定义中的传入 key 被丢弃（避免 SQL 注入面扩大）。
+5. 返回扁平化生效参数值 Map。
+
+调用方（前端或测试）将生效参数值传入 `getPanelData` 的 `requestParams`，经既有 paramMapping 求值后注入 SQL。**不重建查询逻辑**——逐面板 `getPanelData` 是基础查询模型；批量查询作为优化层由 `getDashboardData` 提供（一次调用取回全部面板数据，筛选一次求值后统一映射到各面板，见 `runtime-design.md` §四 批量面板查询）。
+
+### API 契约（D2-1）
+
+| Action | 类型 | 行为 |
+|--------|------|------|
+| `resolveFilterValues(dashboardId, filterValues)` | `@BizQuery` | 加载参数定义 → 校验/归一化/填充默认值 → 返回扁平化生效参数 Map |
+| `parseFilterFromUrl(dashboardId, url)` | `@BizQuery` | 从 URL query string 反序列化为扁平参数 Map（再经 resolveFilterValues 校验） |
+| `exportDashboardFilter(dashboardId)` | `@BizQuery` | 从 paramConfig 产出 flux dashboard-filter 可消费的筛选定义（参数描述符数组，D2-4 契约见 §十一.2） |
+
+## 四、URL 参数同步策略（D2-1）
+
+**选择：URL 编码使用与扁平 key 一致的格式。**
+
+- 简单参数：`?paramName=value`
+- 复合参数：`?paramName.start=v1&paramName.end=v2`（与扁平 key 命名一致，确保 URL → Map 反序列化后 key 与 `resolveFilterValues` 输出兼容）
+
+序列化规则：仅序列化有值且非默认值的参数（减少 URL 长度）。反序列化：URL query string 的每个参数对解析为扁平 key Map，调用方可再传入 `resolveFilterValues` 做类型校验/默认值填充。
+
+> **修订（D2-4，§十一.5）**：URL 中 date-range 的 canonical 形态仍为扁平 key（本节不变，序列化恒输出扁平 key）；由于 resolver 增设 delimited 接受形态，URL 中以 `?paramName=start,end` 出现的值亦可被 `parseFilterFromUrl` 正确消费（兼容形态，经 resolver delimited 路径拆分）。
+
+## 五、与 D1 paramMapping 的关系
+
+全局参数定义是 paramMapping `source` 的上游——`source` 指向的参数名应对应看板参数定义中的某个参数名（含扁平化复合 key 如 `dateRange.start`）。
+
+**宽松兼容约定**：本设计不强制要求 paramMapping source 与参数定义严格匹配——允许 paramMapping 引用未定义的 ad-hoc 参数以保持向后兼容（D1 已落地的面板可在无参数定义的情况下继续工作）。推荐用法是 paramMapping source 指向已定义参数，但不作为硬约束。
+
+## 六、错误路径（D2-1）
+
+| 场景 | 错误码 |
+|------|--------|
+| paramConfig JSON 格式错误 | `ERR_DATAV_INVALID_PARAM_CONFIG` |
+| 传入未知参数名（已过滤，不报错） | — （过滤而非报错，宽松兼容） |
+| 参数值类型不匹配（如 number 类型传非数字） | `ERR_DATAV_PARAM_TYPE_MISMATCH` |
+
+均抛 `NopException` + `.param(...)`，不返回 null/空 Map/placeholder（rule #24 无静默跳过）。参数定义格式错误（JSON 解析失败、结构非数组）显式失败。
+
+## 七、拒绝的替代方案
+
+### 参数定义存储：独立实体 vs JSON 列
+
+| 方案 | 拒绝理由 |
+|------|---------|
+| 方案 B：新建 `NopDatavDashboardParam` 独立实体（normalized，一行一参数） | ORM 变更更大（新实体 + BizModel + IBiz + codegen）；参数定义通常整体读取/整体写入，无独立 CRUD 查询需求；与既有 JSON config 模式不一致 |
+| 方案 C：复用 Dashboard 现有 `layoutConfig` JSON 存储参数定义 | 零 ORM 变更，但布局与参数配置耦合，职责不清，且 layoutConfig 已有 `json-4000` 长度限制 |
+| **采用：方案 A，Dashboard 新增 `paramConfig` JSON 列（clobJson）** | 最小 ORM 变更（仅加一列），与既有 config 模式一致；clobJson 避免长度限制（参数定义含显示配置可能较长）；发布/快照序列化复用既有模式 |
+
+### 全局筛选查询：前端逐面板（基础模型）+ 后端批量（优化层）
+
+| 方案 | 裁定 |
+|------|------|
+| 前端逐面板调用 getPanelData | **基础查询模型（采用）**：复用 D1 既有管线，无新查询逻辑；resolveFilterValues 输出直接作为各面板 getPanelData 的 requestParams |
+| 后端批量查询 API（一次查所有面板） | **优化层（采用，2026-08-14 落地）**：`getDashboardData` 消除 N 次往返开销，筛选一次求值统一映射；与逐面板模型共用同一 PanelDataBinder 管线，不构成独立的查询语义（决策与形态见 `runtime-design.md` §四 批量面板查询） |
+
+### 参数定义校验：严格 vs 宽松
+
+| 方案 | 拒绝理由 |
+|------|---------|
+| 严格校验：paramMapping source 必须与参数定义匹配 | 破坏 D1 向后兼容（已落地面板无参数定义）；强制耦合两个配置层 |
+| **采用：宽松兼容** | 类型校验在 resolveFilterValues 入口做（强约束类型安全）；paramMapping source 允许引用未定义参数（保持 D1 兼容） |
+
+### paramConfig domain：json-4000 vs clobJson
+
+| 方案 | 拒绝理由 |
+|------|---------|
+| json-4000（VARCHAR 4000） | 与 layoutConfig/panelConfig 一致，但参数定义含 label/widget/默认值等显示配置，数量较多时可能超长截断 |
+| **采用：clobJson（CLOB）** | 与 DashboardSnapshot.snapshotContent 同 domain；避免长度限制；参数定义是看板级配置，整体读写，CLOB 无性能影响 |
+
+## 八、D2-2 图表联动三件套
+
+### 8.1 联动配置存储方案
+
+**选择：联动规则存储在源 Panel 的 `panelConfig` JSON 中（`linkage` 区域），跳转规则存储在 `jump` 区域（方案 A）。**
+
+与 D1 refresh 配置、D2-1 组件配置模式一致，零 ORM 变更。联动规则数量通常有限（一个面板通常只对少数字段配置联动目标），JSON 存储足够。`panelConfig` 当前为 `json-4000`；如执行中发现长度溢出，最小 ORM 变更是将 `panelConfig` 列从 `json-4000` 升级为 `clobJson`，仍属本设计 scope。
+
+### 8.2 联动配置结构约定
+
+`panelConfig` JSON 的 `linkage` 区域是一个联动规则数组。每条联动规则描述「源字段 → 目标面板 + 目标参数」的映射：
+
+| 区域 | 用途 | 必填 | 说明 |
+|------|------|------|------|
+| `sourceField` | 源字段名 | 是 | 被点击的数据点对应的列名/维度名（SQL select alias） |
+| `targetPanelId` | 目标面板 ID | 是 | 联动触发的目标面板（必须与源面板属于同一 dashboardId） |
+| `targetParam` | 目标参数名 | 是 | 注入到目标面板的筛选参数名（对应 paramMapping 的 source key） |
+
+联动规则匹配：用户点击源面板的某个数据点时，前端携带被点击的字段名 + 值调用联动解析 API；后端按 `sourceField` 匹配联动规则，将值注入到 `targetParam`，返回目标面板 + 应用的筛选参数 Map。调用方（前端）拿到结果后对目标面板调用 `getPanelData` 传入筛选参数（复用 D1 查询管线）。
+
+**仅支持同一看板内联动**：源面板与目标面板必须属于同一 dashboardId。跨看板场景使用「跳转」实现。
+
+### 8.3 跳转配置结构约定
+
+`panelConfig` JSON 的 `jump` 区域是一个跳转规则数组。每条跳转规则描述「源字段 → 目标 dashboard 或外部 URL + 参数映射」：
+
+| 区域 | 用途 | 必填 | 说明 |
+|------|------|------|------|
+| `sourceField` | 源字段名 | 是 | 被点击的数据点对应的列名/维度名 |
+| `targetType` | 目标类型 | 是 | 取值：`dashboard` / `external-url` |
+| `targetId` | 目标标识 | 是 | `dashboard` 类型为目标看板 ID；`external-url` 类型为 URL 模板 |
+| `params` | 参数映射 | 否 | 注入到目标的参数 Map（key = 目标参数名，value = 源字段名引用 `${sourceField}`） |
+
+**URL 模板语法**：使用 `${paramName}` 占位符（与 nop 平台 SQL 命名参数语法一致），如 `https://example.com/report?region=${region}`。跳转解析时将点击上下文中的字段值替换到模板占位符。对 `dashboard` 类型，`targetId` 为常量看板 ID（不替换），`params` 中可用 `${sourceField}` 引用源字段值。
+
+跳转返回结构包含 `targetType`（dashboard/external-url）、`targetId`（dashboardId 或解析后 URL）、`params`（注入的参数 Map）。
+
+### 8.4 外部参数注入策略
+
+**外部参数即「由 URL/embed/API 传入的全局筛选参数」**——不引入独立的「外部参数」概念。外部源（嵌入 URL 参数、API 调用方）通过 API 请求参数传入值，与 D2-1 全局筛选参数同通道，参与 `resolveFilterValues` 的求值（校验/默认值填充/过滤）。复用 D2-1 URL 同步能力做嵌入场景的参数注入。
+
+**此子项为文档约定 + 复用，不新增独立代码**：外部参数注入没有独立的 API action，调用方直接复用 `resolveFilterValues`。
+
+### 8.5 API 契约（D2-2）
+
+| Action | 类型 | 行为 |
+|--------|------|------|
+| `resolveLinkage(panelId, clickContext, context)` | `@BizQuery` | 加载源面板联动配置 → 按 `sourceField` 匹配规则 → 返回目标面板 ID + 应用的筛选参数 Map（参数值注入到 paramMapping 的 source key） |
+| `resolveJump(panelId, clickContext, context)` | `@BizQuery` | 加载跳转配置 → 匹配跳转规则 → 返回跳转目标（targetType + targetId + params） |
+
+`clickContext` 是一个 Map，至少包含 `field`（被点击的字段名）和 `value`（字段值）。返回的筛选参数 Map 格式与 `resolveFilterValues` 输出兼容，可直接作为 `getPanelData` 的 `requestParams`。
+
+### 8.6 错误路径（D2-2）
+
+| 场景 | 错误码 |
+|------|--------|
+| panelConfig JSON 格式错误（linkage/jump 区域） | `ERR_DATAV_INVALID_LINKAGE_CONFIG` / `ERR_DATAV_INVALID_JUMP_CONFIG` |
+| 联动目标面板不存在 | `ERR_DATAV_LINKAGE_TARGET_PANEL_NOT_FOUND` |
+| 跳转目标无效（targetType 非法、targetId 缺失） | `ERR_DATAV_INVALID_JUMP_TARGET` |
+| 源字段不匹配任何规则 | 不报错，返回 null（前端据此判断无联动/跳转可应用，属正常分支） |
+
+均抛 `NopException` + `.param(...)`，不返回 null/placeholder 作为「正常实现」（rule #24）。「无规则匹配」是合法的运行时分支（用户点击未配置联动的字段），返回 null 让前端处理。
+
+### 8.7 拒绝的替代方案（D2-2 联动/跳转存储）
+
+| 方案 | 拒绝理由 |
+|------|---------|
+| 方案 B：新建 `NopDatavPanelLinkage` 独立实体（normalized，一行一规则） | ORM 变更更大（新实体 + BizModel + IBiz + codegen）；联动规则数量有限，JSON 存储足够；与既有 panelConfig config 模式不一致 |
+| 方案 C：联动规则放在看板级 layoutConfig JSON | 联动规则是面板级属性，放在看板级 layoutConfig 会导致归属混乱 |
+| **采用：方案 A，联动规则存储在源 Panel 的 panelConfig JSON** | 零 ORM 变更，与 D1 refresh + 组件配置模式一致；源面板到目标面板的联动关系是面板级配置 |
+
+## 九、D2-3 联动状态服务
+
+### 9.1 filter_state 存储方案
+
+**选择：新建 `NopDatavFilterState` 独立实体（方案 A）。**
+
+理由：
+1. **平台经审查不存在 user-preference / key-value 存储机制**——`grep -r "userPreference\|UserPreference\|user_preference\|IUserPreference"` 平台模块仅在 `nop-migration` 的 Ofbiz 迁移测试资源中有遗留引用，非平台 API。方案 B（平台 key-value）已排除。
+2. **roadmap D2-3 验收参考 Superset filter_state API（后端持久化语义）**，需要后端保存/恢复能力；纯前端 localStorage 方案（方案 C）无法跨设备同步、无法服务端渲染。
+3. **独立实体支持按 用户 + 看板 查询/删除/覆盖**，语义最直接。
+
+### 9.2 NopDatavFilterState 实体约定
+
+| 列名 | 用途 | 类型 |
+|------|------|------|
+| `stateId` | 主键 | VARCHAR（uuid） |
+| `userName` | 用户标识 | VARCHAR（来自 `IServiceContext.getUserContext().getUserName()`，**不是数字 userId**——平台约定） |
+| `dashboardId` | 看板 ID | VARCHAR |
+| `stateContent` | 状态内容 JSON | CLOB（`clobJson`） |
+| 标准审计列 | created/updated by/time/version/delFlag/remark | 同其他实体 |
+
+唯一键：`(userName, dashboardId)`——一个用户一个看板对应一条 filter_state 记录（保存时覆盖旧记录）。
+
+### 9.3 filter_state 内容契约
+
+`stateContent` JSON 结构（行为规格）：
+
+| 区域 | 用途 | 说明 |
+|------|------|------|
+| `globalFilters` | 全局筛选值 | 对象，key = 看板参数名（含扁平化复合 key 如 `dateRange.start`），value = 参数值。与 D2-1 `resolveFilterValues` 输出格式一致 |
+| `panelSelections` | 面板联动选择 | 对象，key = 源面板 ID（联动选择的发起者），value = `{field, value}` 对象（被点击的字段名 + 值，支持单个字段+值） |
+| `urlState` | URL 序列化形式 | 字符串，当前筛选状态的 URL 序列化（D2-1 URL 同步输出），用于快速分享/恢复 |
+
+序列化/反序列化保持契约结构一致（往返一致）。filter_state 以单个看板为粒度保存/恢复。
+
+### 9.4 API 契约（D2-3）
+
+| Action | 类型 | 行为 |
+|--------|------|------|
+| `saveFilterState(dashboardId, globalFilters, panelSelections, urlState, context)` | `@BizMutation` | 按当前用户 userName + dashboardId 隔离保存/覆盖；BizModel 内部按内容契约序列化为 stateContent JSON 存储 |
+| `getFilterState(dashboardId, context)` | `@BizQuery` | 按当前用户 userName + dashboardId 恢复；返回反序列化后的结构化 filter_state；**若该用户+看板无保存记录，返回 null**（调用方据此判断无已保存状态，非静默返回空对象） |
+
+### 9.5 用户隔离
+
+filter_state 按 `userName + dashboardId` 隔离：不同用户的 filter_state 互不干扰。当前用户 userName 从 `IServiceContext.getUserContext().getUserName()` 获取（平台约定，已核实 `NopDatavDashboardBizModel.resolveOperator` 使用 getUserName）。
+
+### 9.6 错误路径（D2-3）
+
+| 场景 | 错误码 |
+|------|--------|
+| filter_state 内容格式错误（JSON 解析失败、结构非对象） | `ERR_DATAV_INVALID_FILTER_STATE` |
+
+均抛 `NopException` + `.param(...)`。「无保存记录」是合法分支（`getFilterState` 返回 null，不报错）。
+
+### 9.7 拒绝的替代方案（D2-3 filter_state 存储）
+
+| 方案 | 拒绝理由 |
+|------|---------|
+| 方案 B：复用平台 user-preference / key-value 存储机制 | 平台经审查不存在此类机制（grep 仅命中 nop-migration Ofbiz 迁移测试资源中的遗留引用），方案无对象 |
+| 方案 C：前端 localStorage 持久化 | 无法跨设备同步、无法服务端渲染；与 Superset filter_state API 后端持久化语义不一致 |
+| **采用：方案 A，新建 NopDatavFilterState 独立实体** | 支持 per-userName+dashboardId 查询/覆盖；语义最直接；与既有审计列模式一致 |
+
+## 十、Non-Goals（D2 全阶段）
+
+- 前端筛选控件渲染、联动交互控件渲染（D2-4 后端契约见 §十一；渲染依赖 nop-chaos-flux，flux 仓库 scope 外部后续）
+- 跨看板联动（用跳转实现跨看板场景）
+- filter_state 实时推送/WebSocket（按需 API 调用）
+- 多看板 filter_state 聚合（以单个看板为粒度）
+- 批量查询的并行执行/结果缓存（`getDashboardData` 本体已落地；并行与缓存为独立优化项）
+- nop-metadata 维度/度量字段映射元数据运行时解析（D1 deferred）
+- 参数定义与 paramMapping source 的严格匹配校验（宽松兼容）
+- 联动配置的可视化编辑 API（前端 D2-4 范围）
+- 联动规则的全局配置时校验（当前为运行时校验）
+
+## 十一、D2-4 flux dashboard-filter 筛选定义对齐
+
+> 来源 plan `2026-08-15-1134-2`。flux 侧事实基线：dashboard-filter 是编排约定（非新控件，外部仓库 `nop-chaos-flux:docs/components/dashboard-filter/design.md`，走查单测 4 条全绿）——筛选表单用普通 `form` 且 `valuesPath:'filter'`，把字段值持续发布到共享 page scope `filter.*`；消费端（data-source/chart/table/stat-tile）经 `${filter?.xxx}` null-safe 表达式引用并自动重载；reset 发布空值等价未筛。flux date-range preset 选中值运行期解析为 delimited 绝对日期字符串（`nop-chaos-flux:docs/components/date-range/design.md` §4.1，delimiter 默认 `,`，格式由 `valueFormat` 决定）。本节钉死 nop-datav 参数模型与该约定的对齐契约。
+
+### 11.1 筛选定义产出形态：参数描述符数组（裁定）
+
+**选择：后端产出「参数描述符数组」（字段级描述符），flux 页面轻组装筛选表单。**
+
+判据（plan Goals：flux 侧零/轻转换可用 + 后端不越界生成 UI 细节）：
+
+- flux dashboard-filter 约定中筛选表单本身是页面编排物（普通 form + 字段配置）；nop-datav 参数模型只拥有「参数身份/类型/默认值/标签/控件偏好」，不拥有表单布局（列数/按钮/分组等 UI 细节）。
+- 每个字段描述符直接对应 form 的一个字段配置（name/label/控件/初始值），flux 侧零/轻转换可用；页面仅需补充自有配置（options、布局）。
+- 与 D1-4 布局导出同理的后端职责边界：产出数据契约工件，不生成 UI。
+
+**与 D1-4 布局对齐的边界（裁定）**：筛选定义**仅经本节 action（`exportDashboardFilter`）产出，不经 `exportDashboardLayout` 布局导出物携带**。布局导出物是「面板几何 + props」的编辑器重同步载荷（`runtime-design.md` §九），筛选定义是「参数模型 → 筛选表单」的运行时配置；两者消费时机与消费者不同，混入布局导出物会耦合两条演进线。
+
+拒绝的替代方案：
+
+| 方案 | 拒绝理由 |
+|------|---------|
+| 完整 flux form schema（后端生成整个表单结构） | 后端越界生成 UI 细节（布局/按钮/分组）；耦合 flux form schema 版本；参数模型无此信息来源 |
+| 筛选定义并入 `exportDashboardLayout` 导出物 | 消费时机/消费者不同（编辑器重同步 vs 运行时筛选栏装配），耦合两条演进线 |
+| 不产出定义，flux 直接消费裸 `paramConfig` | 表单组装规则无契约（D2-4 gap #1），widget/初值形态两侧漂移无可对齐锚点 |
+
+### 11.2 产出契约
+
+Action：`exportDashboardFilter(dashboardId)`（`@BizQuery` + `@Auth NopDatavDashboard:exportDashboardFilter`，admin/user——查询类，镜像 `exportDashboardLayout`）。读取编辑态 live `paramConfig`，按本节契约产出。
+
+产出结构（JSON 对象，字段级描述符数组）：
+
+```json
+{
+  "dashboardId": "dash-1",
+  "fields": [
+    { "name": "region", "label": "区域", "type": "string", "control": "select", "initialValue": "all" },
+    { "name": "period", "label": "日期范围", "type": "date-range", "control": "date-range", "initialValue": "2024-01-01,2024-12-31" }
+  ],
+  "dateRangeValue": { "delimiter": ",", "valueFormat": "yyyy-MM-dd" }
+}
+```
+
+| 区域 | 用途 | 说明 |
+|------|------|------|
+| `dashboardId` | 看板标识 | 请求的看板 ID |
+| `fields` | 参数描述符数组 | 顺序 = `paramConfig` 声明顺序；**无参数看板产出空数组（非报错）** |
+| `fields[].name` | 字段名 | = 参数名 = flux 字段名（发布到 `filter.<name>`） |
+| `fields[].label` | 显示标签 | paramConfig `label` 透传；未声明时缺省为 `name` |
+| `fields[].type` | 参数类型 | string / number / date / date-range（§一词表） |
+| `fields[].control` | flux 控件 | 封闭词表（11.3），由 type + widget 映射 |
+| `fields[].initialValue` | 初始值 | flux 可直接消费形态；参数无 defaultValue 时**省略该键**。date-range 为 delimited 绝对日期串（11.4；defaultValue 仅含单侧子键时同样省略——半开默认值无法以 delimited 形态表达，flux 字段空起步、后端 resolve 仍按段填充默认） |
+| `dateRangeValue` | date-range 值形态契约元数据 | `delimiter` / `valueFormat` 钉死值（11.4），随工件下发防双形态漂移 |
+
+定义工件**不含 options 字段**（11.3 裁定）。
+
+### 11.3 widget 词表映射与 options 来源（裁定）
+
+**widget 词表（paramConfig 接受集，封闭）**：`dropdown` / `date-picker`。词表外取值 → 显式报错 `ERR_DATAV_FILTER_DEF_UNKNOWN_WIDGET`；词表内但与 type 组合非法 → `ERR_DATAV_FILTER_DEF_WIDGET_TYPE_MISMATCH`。**不静默回退**（不得静默渲染错误控件）。未声明 `widget` → 按类型缺省映射（不报错）。
+
+**control 词表（产出封闭集）**：`select` / `input-text` / `input-number` / `input-date` / `date-range`。
+
+**映射表**：
+
+| 参数 type | widget 缺省 | widget=`dropdown` | widget=`date-picker` |
+|-----------|------------|-------------------|----------------------|
+| string | `input-text` | `select` | 显式报错（组合非法） |
+| number | `input-number` | `select` | 显式报错 |
+| date | `input-date` | 显式报错 | `input-date`（显式同义） |
+| date-range | `date-range` | 显式报错 | `date-range`（显式同义） |
+
+与 flux 字段控件的对接：`select` / `date-range` 恒等；`input-text` / `input-number` / `input-date` 对应 flux input-\* 族的文本/数值/日期变体（flux 页面按 control 选择具体控件）。
+
+**options 来源（裁定）：产出定义不含 options；dropdown 候选值由 flux 页面 schema 自供。**
+
+| 方案 | 裁定 |
+|------|------|
+| `paramConfig` 扩展 options 区域 | 拒绝：候选值是展示层配置且常需动态来源（如数据集 distinct 值）；塞入后端权威参数定义会把 UI 数据与参数语义耦合，并引出「候选值动态推导」的额外语义（`paramConfig` 结构扩展亦非零变更） |
+| 数据集推导（后端从绑定数据集推导 distinct 候选值） | 拒绝：需新增「哪个数据集/哪个字段/何种过滤」的推导语义与查询成本/权限语义，超出参数模型职责 |
+| **采用：flux 页面 schema 自供** | 与 flux 编排约定一致（form 字段配置属页面 schema）；零后端变更；页面可静态枚举或自行动态拉取。页面自行保证 `initialValue ∈ options`（页面级一致性，flux 侧职责） |
+
+即使裁定为「不含 options」，此处显式记录裁定与理由（杜绝产出定义 flux 侧实际不可消费的悬空裁定）。
+
+### 11.4 date-range 值形态与转换归属（裁定）
+
+**契约形态钉死**：nop-datav 产出的 date-range 值为 **delimited 绝对日期字符串**——`delimiter=','`、`valueFormat='yyyy-MM-dd'`（ISO 日历日期），如 `'2024-01-01,2024-12-31'`。与 flux date-range preset 运行期解析形态一致（delimiter 默认 `,`）。两侧契约经工件 `dateRangeValue` 元数据 + resolver 校验双保险钉死，杜绝双形态漂移。
+
+**转换归属（裁定）：nop-datav 侧拥有双向转换，flux 页面零拆分接线。**
+
+- **产出向**（定义 → flux）：`exportDashboardFilter` 将 `{start,end}` defaultValue 合并为 delimited 串（`initialValue`），flux 零转换用作字段初始值。
+- **提交向**（flux → nop-datav）：`resolveFilterValues`（及委托其求值的 `getDashboardData` / `parseFilterFromUrl`）**增设 delimited 标量接受形态**——date-range 参数允许以 `paramName='start,end'` 标量传入，resolver 拆分为扁平 `paramName.start` / `paramName.end`。flux 页面把 `filter.<name>`（delimited 串）原样传入即完成闭环。
+- **canonical 形态与优先级**：扁平 key 仍是 canonical（**输出恒为扁平 key**，§二不变）；输入同时提供两种形态时**扁平 key 优先**（delimited 标量仅在两个扁平 key 均缺省时被消费）。
+- **校验**：delimited 串须为字符串且恰好含一个 delimiter、两段均为合法 `yyyy-MM-dd` 日期；违反任一 → 显式 `ERR_DATAV_PARAM_TYPE_MISMATCH`。数组形态（如 `['a','b']`）显式拒绝（flux 发布的是字符串，不引入第二提交形态）。
+
+**relative 语义核实记录（显式）**：nop-datav **不接受 relative 语义值**（如 `'today,today'`）——resolver 日期校验（ISO_LOCAL_DATE 逐段解析）对 relative token 显式失败。flux 页面若手工配置 relative 形态初始值，其解析仅用于本地 display、不写回发布值（flux 侧行为，见 baseline）；发布值恒为绝对形态。relative 初始值属页面配置、显式排除在 D2-4 消费契约之外；本计划产出定义所控制的初始值恒为绝对形态。
+
+**datetime 类 valueFormat**：paramConfig type 词表无 datetime（§一），date-range 值格式恒为 `yyyy-MM-dd`；flux 字段若配置 datetime 类 valueFormat，其发布值（含时间部分）不能通过 resolver 校验（显式失败而非静默截断）——datetime 筛选为未来扩展，不在 D2-4 契约内。
+
+### 11.5 URL 同步语义（裁定）
+
+**canonical URL 形态 = 扁平 key（§四不变）**：date-range 在 URL 中为 `?paramName.start=v1&paramName.end=v2`；序列化（`toQueryString`）恒输出扁平 key（resolver 输出即扁平 key，天然一致）。
+
+**兼容接受**：由于 resolver 增设 delimited 接受形态，URL 中以 `?paramName=start,end` 形态出现的值也能被 `parseFilterFromUrl` 正确消费（query pair 解析为标量后走 resolver delimited 路径拆分为扁平 key）。canonical 与兼容形态并存，反序列化产物与 §二 扁平 key 契约一致。
+
+### 11.6 错误路径（D2-4）
+
+| 场景 | 错误码 |
+|------|--------|
+| paramConfig widget 词表外取值 | `ERR_DATAV_FILTER_DEF_UNKNOWN_WIDGET` |
+| widget 与 type 组合非法（如 `dropdown` × date-range） | `ERR_DATAV_FILTER_DEF_WIDGET_TYPE_MISMATCH` |
+| defaultValue 与声明类型/契约形态不符（date-range 日期段非法、date 类型非日期、number 类型非数值）——产出侧校验，定义工件不携带非法初值 | `ERR_DATAV_INVALID_PARAM_CONFIG` |
+| delimited 提交值形态非法（非字符串 / 段数≠2 / 日期段非法 / 数组形态） | `ERR_DATAV_PARAM_TYPE_MISMATCH` |
+
+均抛 `NopException` + `.param(...)`，不返回 null/placeholder（rule #24 无静默跳过）。
+
+### 11.7 拒绝的替代方案（D2-4 汇总）
+
+| 方案 | 拒绝理由 |
+|------|---------|
+| 完整 form schema 产出 | 见 11.1 |
+| 定义并入 D1-4 布局导出物 | 见 11.1 |
+| flux 侧拆分 delimited → 扁平 key（resolver 不增设接受形态） | 违背零/轻转换判据：页面需逐字段配置拆分接线，拆分规则漂移面留在前端；转换归属单一化（后端）杜绝两侧各自实现漂移 |
+| date-range 接受数组形态 `['start','end']` | flux 发布的是 delimited 字符串；引入第二提交形态无消费者，徒增契约面 |
+| 接受 relative 语义值（resolver 解析 `today`/`last-week` 等） | nop-datav 无「当前时间」权威锚点（服务端/浏览器时区漂移）；flux relative 仅 display 语义不写回发布值；绝对形态单一契约杜绝漂移 |
+| delimiter/valueFormat 不钉死（由 flux 字段配置自由决定） | datetime 类 valueFormat 与 `yyyy-MM-dd` 假设不符时静默失配（拒绝「防凭通配草率收窄」反面亦然：不钉死即漂移）；钉死 + 工件元数据 + resolver 校验三重保险 |
+| paramConfig options 扩展 / 数据集推导 | 见 11.3 |

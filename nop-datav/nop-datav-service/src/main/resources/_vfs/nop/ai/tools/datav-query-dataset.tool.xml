@@ -1,0 +1,72 @@
+<tool x:schema="/nop/schema/ai/tool/tool.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      name="datav-query-dataset">
+
+    <schema>
+        <datav-query-dataset id="!int" explanation="!string" timeoutMs="int"
+                             datasetSid="!string" maxRows="int">
+            <params>
+                <param name="!string" value="string"/>*
+            </params>
+        </datav-query-dataset>
+    </schema>
+
+    <schemaJson>{
+  "type": "object",
+  "properties": {
+    "datasetSid": {
+      "type": "string",
+      "description": "The dataset ID (sid) to query. Obtain from datav-list-datasets."
+    },
+    "params": {
+      "type": "object",
+      "description": "Query parameters as a JSON object. Each key must match a ${paramName} placeholder in the dataset SQL. Values are bound as parameterized SQL variables (NOT string concatenation), preventing SQL injection.",
+      "additionalProperties": true
+    },
+    "maxRows": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000,
+      "description": "Maximum number of rows to return. Server-side hard clamp applies: null or non-positive values fall back to the platform config (nop.datav.chatbi.max-rows, default 1000); values above the config are clamped down to it. The maximum here is a default snapshot hint for the LLM only — the runtime config is authoritative."
+    }
+  },
+  "required": ["datasetSid"]
+}</schemaJson>
+
+    <description><![CDATA[Execute a dataset query and return tabular results.
+
+The dataset must be a pre-registered SQL dataset (dsType=sql). The params object supplies values for ${paramName} placeholders in the dataset's SQL text; values are bound as parameterized SQL variables (NOT concatenated), so SQL injection is prevented by construction.
+
+Returns JSON with:
+- columns: array of column names (in result order)
+- rows: array of row objects (each row is column-name -> value)
+
+Safety constraints:
+- Only pre-registered datasets can be queried; LLM cannot generate arbitrary SQL.
+- maxRows caps the result size (OOM protection, enforced via dataset-level row ranging). The schemaJson maximum is a default-snapshot hint only; the server clamps maxRows to [1, nop.datav.chatbi.max-rows] at runtime regardless of what the caller sends.
+
+If the dataset does not exist or is not a SQL dataset, returns a JSON error object.]]></description>
+
+    <examples>
+        <example index="1">
+            <call-tools>
+                <datav-query-dataset id="1" explanation="Query north region sales" datasetSid="ds-sales" maxRows="100">
+                    <params>
+                        <param name="region" value="north"/>
+                    </params>
+                </datav-query-dataset>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="1" status="success">
+                    <output><![CDATA[{
+  "columns": ["region", "amount"],
+  "rows": [
+    {"region": "north", "amount": 200},
+    {"region": "north", "amount": 100}
+  ]
+}]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+    </examples>
+
+</tool>
