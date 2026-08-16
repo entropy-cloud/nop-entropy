@@ -1,0 +1,14 @@
+nop:
+  debug: true
+  datasource:
+    driver-class-name: org.h2.Driver
+    jdbc-url: jdbc:h2:mem:test
+    username: sa
+    password:
+
+  orm:
+    init-database-schema: true
+
+  # 注意：不在此设置 nop.credential.key-provider 与 master-keys —— 各测试类经
+  # @NopTestProperties 按场景注入（vault 门控 / local 缺省 / 守卫触发），
+  # 避免类间配置串扰（NopJunitExtension 每类重置配置后应用类级覆盖）。
