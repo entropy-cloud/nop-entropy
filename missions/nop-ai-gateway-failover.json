@@ -18,8 +18,8 @@
     "designDoc": "ai-dev/design/nop-ai-gateway/02-account-failover-requirement.md",
     "architectureDoc": "ai-dev/design/nop-ai-gateway/01-architecture.md",
     "reliabilityDoc": "ai-dev/design/nop-ai-agent/nop-ai-agent-reliability.md",
-    "multiAuditPrompt": "ai-dev/skills/deep-audit-prompts.md",
-    "openAuditPrompt": "ai-dev/skills/open-ended-adversarial-review-prompt.md",
+    "multiAudit": "ai-dev/skills/deep-audit-prompts.md",
+    "openAudit": "ai-dev/skills/open-ended-adversarial-review-prompt.md",
     "planReviewer": "ai-dev/skills/plan-reviewer-prompt.md",
     "closureAudit": "ai-dev/skills/plan-closure-audit-prompt.md",
     "crossModuleDependencyAudit": "ai-dev/skills/cross-module-dependency-audit-prompt.md"
