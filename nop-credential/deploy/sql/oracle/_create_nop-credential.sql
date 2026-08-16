@@ -41,6 +41,16 @@ CREATE TABLE nop_credential_usage(
   constraint PK_nop_credential_usage primary key (USAGE_ID)
 );
 
+CREATE TABLE nop_credential_auth(
+  AUTH_ID VARCHAR2(50) NOT NULL ,
+  CREDENTIAL_ID VARCHAR2(50) NOT NULL ,
+  ROLE_ID VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  constraint UK_NOP_CREDENTIAL_AUTH_CRED_ROLE unique (CREDENTIAL_ID,ROLE_ID),
+  constraint PK_nop_credential_auth primary key (AUTH_ID)
+);
+
 
       COMMENT ON TABLE nop_credential IS '加密凭证';
                 
@@ -105,4 +115,16 @@ CREATE TABLE nop_credential_usage(
       COMMENT ON COLUMN nop_credential_usage.CONSUMER_REF IS '消费者引用';
                     
       COMMENT ON COLUMN nop_credential_usage.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON TABLE nop_credential_auth IS '凭证取用授权';
+                
+      COMMENT ON COLUMN nop_credential_auth.AUTH_ID IS '授权ID';
+                    
+      COMMENT ON COLUMN nop_credential_auth.CREDENTIAL_ID IS '凭证ID';
+                    
+      COMMENT ON COLUMN nop_credential_auth.ROLE_ID IS '角色ID';
+                    
+      COMMENT ON COLUMN nop_credential_auth.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_credential_auth.CREATED_BY IS '创建人';
                     

@@ -100,6 +100,9 @@ public class _NopCredential extends DynamicOrmEntity{
     /* relation: 凭证使用记录 */
     public static final String PROP_NAME_usages = "usages";
     
+    /* relation: 凭证取用授权 */
+    public static final String PROP_NAME_auths = "auths";
+    
 
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_credentialId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_credentialId};
@@ -1029,6 +1032,16 @@ public class _NopCredential extends DynamicOrmEntity{
      */
     public final IOrmEntitySet<io.nop.credential.dao.entity.NopCredentialUsage> getUsages(){
        return _usages;
+    }
+       
+    private final OrmEntitySet<io.nop.credential.dao.entity.NopCredentialAuth> _auths = new OrmEntitySet<>(this, PROP_NAME_auths,
+        io.nop.credential.dao.entity.NopCredentialAuth.PROP_NAME_credential, null,io.nop.credential.dao.entity.NopCredentialAuth.class);
+
+    /**
+     * 凭证取用授权。 refPropName: credential, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.credential.dao.entity.NopCredentialAuth> getAuths(){
+       return _auths;
     }
        
 }

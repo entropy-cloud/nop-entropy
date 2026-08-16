@@ -37,6 +37,7 @@ import io.nop.credential.biz.INopCredentialBiz;
 import io.nop.credential.crypto.CredentialCipher;
 import io.nop.credential.crypto.CredentialErrors;
 import io.nop.credential.dao.entity.NopCredential;
+import io.nop.credential.dao.entity.NopCredentialAuth;
 import io.nop.credential.dao.entity.NopCredentialUsage;
 import io.nop.credential.service.CredentialOwnership;
 import io.nop.credential.service.CredentialProviderImpl;
@@ -681,7 +682,11 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
     /**
      * 删除前置回调：(1) 查询 {@link NopCredentialUsage} 按 {@code credentialId} 的活跃引用数，
      * 若 &gt; 0 抛出 {@link CredentialErrors#ERR_CREDENTIAL_HAS_ACTIVE_USAGE}（fail-closed）；
-     * (2) 业务级禁用——置 {@code status=disabled}（ORM 软删除 {@code delFlag} 由 dao 自动处理）。
+     * (2) W11 Part B 授权行物理级联清理——凭证删除时其 {@link NopCredentialAuth} 授权行
+     * 一并物理删除（子 BizModel 的 delete 动作已禁用——revoke 为唯一删除通道，故不走
+     * biz 级联 tag，改在本回调内经 dao 显式清理，语义与 to-many cascadeDelete 声明一致；
+     * 在 usage 检查之后执行——删除被拦截时授权行与凭证同存属正常语义）；
+     * (3) 业务级禁用——置 {@code status=disabled}（ORM 软删除 {@code delFlag} 由 dao 自动处理）。
      */
     private void prepareDeleteWithUsageCheck(NopCredential entity, IServiceContext context) {
         IEntityDao<NopCredentialUsage> usageDao = daoFor(NopCredentialUsage.class);
@@ -693,6 +698,14 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
             throw new NopException(CredentialErrors.ERR_CREDENTIAL_HAS_ACTIVE_USAGE)
                     .param(CredentialErrors.ARG_CREDENTIAL_ID, entity.getCredentialId())
                     .param(CredentialErrors.ARG_USAGE_COUNT, count);
+        }
+        // W11 Part B：授权行随凭证删除物理级联清理（在 usage 拦截之后）
+        IEntityDao<NopCredentialAuth> authDao = daoFor(NopCredentialAuth.class);
+        QueryBean authQuery = new QueryBean();
+        authQuery.addFilter(FilterBeans.eq(NopCredentialAuth.PROP_NAME_credentialId,
+                entity.getCredentialId()));
+        for (NopCredentialAuth auth : authDao.findAllByQuery(authQuery)) {
+            authDao.deleteEntityDirectly(auth);
         }
         // 业务级禁用（ORM useLogicalDelete 会同时设置 delFlag=true）
         entity.setStatus("disabled");

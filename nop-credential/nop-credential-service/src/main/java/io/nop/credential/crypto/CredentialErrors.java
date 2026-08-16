@@ -210,4 +210,23 @@ public interface CredentialErrors {
             "nop.err.credential.ownership-immutable",
             "凭证归属不可变更（scope/ownerId 创建后固定；需要换人=删除旧凭证后新建）",
             ARG_CREDENTIAL_ID, ARG_SCOPE, ARG_OWNER_ID);
+
+    // ==================== W11 Part B RBAC 细粒度授权（凭证级 use 授权） ====================
+
+    String ARG_ROLE_IDS = "roleIds";
+
+    ErrorCode ERR_CREDENTIAL_ROLE_NOT_GRANTED = define(
+            "nop.err.credential.role-not-granted",
+            "凭证已配置取用授权（RBAC 收紧），当前用户角色未命中授权角色集（admin 不自动豁免；无用户上下文的服务端调用不受收紧约束）",
+            ARG_CREDENTIAL_ID, ARG_ROLE_IDS);
+
+    ErrorCode ERR_CREDENTIAL_AUTH_NOT_SYSTEM_SCOPE = define(
+            "nop.err.credential.auth-not-system-scope",
+            "凭证级取用授权仅适用于 system 级凭证（user 级不叠加角色授权，明文出口 owner 唯一）",
+            ARG_CREDENTIAL_ID, ARG_SCOPE, ARG_OWNER_ID);
+
+    ErrorCode ERR_CREDENTIAL_ROLE_ID_REQUIRED = define(
+            "nop.err.credential.role-id-required",
+            "授权/撤销操作要求 roleId 非空（字符串软引用角色，不做跨模块存在性校验）",
+            ARG_CREDENTIAL_ID);
 }

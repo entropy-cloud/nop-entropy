@@ -41,10 +41,22 @@ CREATE TABLE nop_credential_usage(
   constraint PK_nop_credential_usage primary key (USAGE_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+CREATE TABLE nop_credential_auth(
+  AUTH_ID VARCHAR(50) NOT NULL    COMMENT '授权ID',
+  CREDENTIAL_ID VARCHAR(50) NOT NULL    COMMENT '凭证ID',
+  ROLE_ID VARCHAR(50) NOT NULL    COMMENT '角色ID',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  constraint UK_NOP_CREDENTIAL_AUTH_CRED_ROLE unique (CREDENTIAL_ID,ROLE_ID),
+  constraint PK_nop_credential_auth primary key (AUTH_ID)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
 
    ALTER TABLE nop_credential COMMENT '加密凭证';
                 
    ALTER TABLE nop_credential_oauth_state COMMENT 'OAuth授权State绑定';
                 
    ALTER TABLE nop_credential_usage COMMENT '凭证使用记录';
+                
+   ALTER TABLE nop_credential_auth COMMENT '凭证取用授权';
                 

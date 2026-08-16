@@ -25,6 +25,7 @@ import io.nop.credential.config.CredentialConfigs;
 import io.nop.credential.crypto.CredentialCipher;
 import io.nop.credential.crypto.CredentialErrors;
 import io.nop.credential.dao.entity.NopCredential;
+import io.nop.credential.dao.entity.NopCredentialAuth;
 import io.nop.credential.dao.entity.NopCredentialUsage;
 import io.nop.credential.service.oauth.OAuthTokenClient;
 import io.nop.credential.service.oauth.OAuthTokenResponse;
@@ -36,8 +37,10 @@ import jakarta.inject.Inject;
 
 import java.sql.Timestamp;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
@@ -51,6 +54,8 @@ import java.util.function.Function;
  *   <li>凭证已软删除 → 抛 {@code ERR_CREDENTIAL_DELETED}（getCredential/getCredentialData/mask，先序归属判定）</li>
  *   <li>W11 归属不符 → 抛 {@code ERR_CREDENTIAL_OWNER_ONLY}（明文出口，owner 唯一）或
  *       {@code ERR_CREDENTIAL_OWNER_OR_ADMIN}（mask/test，owner+管理员）；scope=system（含 NULL）放行</li>
+ *   <li>W11 Part B RBAC 收紧不符 → 抛 {@code ERR_CREDENTIAL_ROLE_NOT_GRANTED}（system 级 + 存在授权记录
+ *       + 有用户上下文 + 角色求交为空；无授权记录 = 一期行为不变；admin 不自动豁免）</li>
  *   <li>解密失败 → 由 {@link CredentialCipher} 抛出（篡改/未知 keyId）</li>
  * </ul>
  *
@@ -119,6 +124,8 @@ public class CredentialProviderImpl implements ICredentialProvider {
         NopCredential entity = loadActiveCredential(credentialId);
         // W11 归属校验（设计 §5.3 per-method 矩阵，解密之前、fail-closed，先序 delFlag）
         assertOwnershipForPlaintext(entity);
+        // W11 Part B RBAC 收紧（设计 §6.3 判定矩阵第 4/5/6 行，归属校验之后、解密之前）
+        assertRoleAuthForPlaintext(entity);
         Map<String, Object> fields = decryptToData(entity).getFields();
 
         // W9 惰性刷新：oauth2 类型 accessToken 临期 → 行锁互斥下先刷新再返回明文（设计 §3.3）
@@ -516,6 +523,69 @@ public class CredentialProviderImpl implements ICredentialProvider {
                     .param(CredentialErrors.ARG_CREDENTIAL_ID, entity.getCredentialId())
                     .param(CredentialErrors.ARG_OWNER_ID, entity.getOwnerId());
         }
+    }
+
+    // ==================== W11 Part B RBAC 收紧（设计 §6.3 判定矩阵） ====================
+
+    /**
+     * 明文出口（getCredential/getCredentialData）RBAC 授权收紧，默认开放、可选收紧：
+     * <ul>
+     *   <li>仅 system 级（含存量 NULL）实行——user 级不叠加角色授权（owner 唯一明文出口，§5.3 归属矩阵已裁定）</li>
+     *   <li>无授权记录 → 放行（矩阵第 4 行，一期行为不变——增量兼容基线）</li>
+     *   <li>有记录 + 无用户上下文 → 放行（第 5 行，服务级信任：SPI 是服务端边界，收紧针对"人"的冒用）</li>
+     *   <li>有记录 + 有用户上下文 → 登录角色快照与授权 roleId 集合求交，非空放行、空集拒绝
+     *       （第 6 行，<b>admin 不自动豁免</b>——管理员的管理权不等于取用权，需要时经授权管理面 grant 自己的角色）</li>
+     * </ul>
+     *
+     * <p>无记录路径与一期等价：单次按 credentialId 的索引查询（唯一键最左前缀），无 join/远程调用。
+     * 拒绝 fail-closed 抛 {@code ERR_CREDENTIAL_ROLE_NOT_GRANTED}（含 credentialId 与授权角色集参数），
+     * 不返回 null/空。角色快照时效：用户角色集合为登录时快照（nop-auth 填充，含一级复合角色展开）；
+     * 授权记录（grant/revoke）即时生效（DB 点查）。roleId 按字面求交，不展开子角色。
+     *
+     * <p><b>引擎内部通道豁免裁定</b>（plan 2026-08-16-2321-1 Phase 1 Decision）：
+     * {@link #engineGetDecryptedFields}/{@link #engineUpdateTokenFields}/{@link #engineUpdateInLock}
+     * 不做授权记录检查——(a) 明文不外泄（beginOAuthFlow 只返回授权 URL、publicAccess 回调返回跳转页
+     * 不含 token、saveCredential 路径有写分级门控）；(b) 入口动作已被 W11 归属/管理员判定门控；
+     * (c) 与矩阵第 5 行服务级信任边界一致。{@code getCredential} 内的惰性刷新发生在本检查通过之后。
+     */
+    private void assertRoleAuthForPlaintext(NopCredential entity) {
+        if (CredentialOwnership.isUserScope(entity.getScope())) {
+            return;
+        }
+        Set<String> grantedRoleIds = findGrantedRoleIds(entity.getCredentialId());
+        if (grantedRoleIds.isEmpty()) {
+            return;
+        }
+        IUserContext userContext = IUserContext.get();
+        if (!CredentialOwnership.hasLoginUser(userContext)) {
+            return;
+        }
+        Set<String> userRoles = userContext.getRoles();
+        if (userRoles != null) {
+            for (String role : userRoles) {
+                if (grantedRoleIds.contains(role)) {
+                    return;
+                }
+            }
+        }
+        throw new NopException(CredentialErrors.ERR_CREDENTIAL_ROLE_NOT_GRANTED)
+                .param(CredentialErrors.ARG_CREDENTIAL_ID, entity.getCredentialId())
+                .param(CredentialErrors.ARG_ROLE_IDS, String.join(",", grantedRoleIds));
+    }
+
+    /**
+     * 按 credentialId 查授权 roleId 集合（(credentialId, roleId) 唯一键最左前缀索引点查）。
+     */
+    private Set<String> findGrantedRoleIds(String credentialId) {
+        IEntityDao<NopCredentialAuth> dao = daoProvider.daoFor(NopCredentialAuth.class);
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq(NopCredentialAuth.PROP_NAME_credentialId, credentialId));
+        List<NopCredentialAuth> grants = dao.findAllByQuery(query);
+        Set<String> roleIds = new LinkedHashSet<>();
+        for (NopCredentialAuth grant : grants) {
+            roleIds.add(grant.getRoleId());
+        }
+        return roleIds;
     }
 
     @SuppressWarnings("unchecked")
