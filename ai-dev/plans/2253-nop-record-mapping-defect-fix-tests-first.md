@@ -1,6 +1,6 @@
 # 2253 nop-record-mapping 缺陷修复（tests-first）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-16
 > Source: `ai-dev/analysis/2026-08/2026-08-16-nop-record-mapping-design-review.md`
 > Related: `275-nop-ai-agent-record-mapping-scope-fix.md`（completed，scope 问题已收口，与本文不重叠）
@@ -72,11 +72,11 @@
 ### Phase 1 - P1 缺陷修复（B1、B2）
 
 Status: completed
-Targets: `RecordMappingTool.java`, `FlattenListProcessor.java`, `TestRecordMappingManager.java`（或新增 `TestRecordMappingRegression.java`）, `demo.record-mappings.xml` + 新增 `dict/test-status.dict.yaml`（测试资源，B1 需注册 dict；实际采用 YAML 格式 dict 文件，repo 内 `/dict/*.dict.yaml` 均为 YAML 格式，`DslJsonResourceLoader` 按扩展名用 SnakeYAML 解析）
+Targets: `RecordMappingTool.java`, `FlattenListProcessor.java`, `TestRecordMappingManager.java`（或新增 `TestRecordMappingRegression.java`）, `demo.record-mappings.xml` + 新增 `nop-kernel/nop-record-mapping/src/test/resources/_vfs/dict/test-status.dict.yaml`（测试资源，B1 需注册 dict；实际采用 YAML 格式 dict 文件，repo 内 `/dict/*.dict.yaml` 均为 YAML 格式，`DslJsonResourceLoader` 按扩展名用 SnakeYAML 解析）
 
 - Item Types: `Fix | Proof | Decision`
 
-- [x] **Proof**（B1）：新增回归测试——新增 dict 测试资源（`dict/test-status.dict.yaml`，YAML 格式），dict 字段（非 mandatory）源值为 null 与空串时映射成功；非法非空值仍抛 `ERR_RECORD_FIELD_VALUE_NOT_IN_DICT`。先运行确认当前 FAIL（null/空串场景抛 dict 错误）。
+- [x] **Proof**（B1）：新增回归测试——新增 dict 测试资源（`nop-kernel/nop-record-mapping/src/test/resources/_vfs/dict/test-status.dict.yaml`，YAML 格式），dict 字段（非 mandatory）源值为 null 与空串时映射成功；非法非空值仍抛 `ERR_RECORD_FIELD_VALUE_NOT_IN_DICT`。先运行确认当前 FAIL（null/空串场景抛 dict 错误）。
 - [x] **Fix**（B1）：`validateDictValue` 的 dict 分支增加空值守卫 `!StringHelper.isEmptyObject(value)`（RecordMappingTool.java:431-435，等价于计划中的提前 return）。
 - [x] **Decision**（B2）：裁定 flattenTo 语义——按 xdef 文档字面契约"按照{from}-{index}-{fieldName}展平"：展平结果写入 **target**、前缀取 `getFromOrName()`（与 flattenFrom 对称，round-trip 成立）；否决"保留写入 source 的就地变换语义"（理由：与文档矛盾、round-trip 不对称、污染入参；全仓库无使用点故无兼容负担）。`makeTargetCollection` 的 flattenTo 分支（不写 target 属性）保留不变。
 - [x] **Proof**（B2）：新增回归测试——(a) flattenTo 字段映射后 target 含 `{from}-1-{sub}` 前缀键、source 不被修改（`testFlattenToWritesToTarget`）；(b) flattenFrom → flattenTo 同字段名 round-trip 一致（`testFlattenRoundTrip`，ItemPass_to_Test 恒等映射 c→c/d→d）；(c) from≠name 时前缀取 from（FlattenToTest 配置 from="listB" name="listA"，断言 listB-1-a）。先运行确认当前 FAIL（键写在 source、前缀用 name）。
@@ -159,7 +159,7 @@ Exit Criteria:
 - [x] B12：复杂路径 from + pattern 不产生重复映射
 - [x] D7：直接 map 与 gateway 预置 sourceRoot 两种入口下 root 变量均正确
 - [x] `_gen` 文件由 codegen 生成（git diff 不出现手改痕迹）；`./mvnw test -pl nop-kernel/nop-record-mapping -am` 全绿
-- [ ] `docs-for-ai/02-core-guides/record-mapping.md` 更新（B9/B11 新属性、B10/B12 行为说明）——推迟到 Phase 4 统一文档同步
+- [x] `docs-for-ai/02-core-guides/record-mapping.md` 更新（B9/B11 新属性、B10/B12 行为说明）——Phase 4 统一文档同步时完成（commit `ada831e90`）
 - [x] `ai-dev/logs/` 对应日期条目已更新（红→绿证据）
 
 ### Phase 4 - 设计层清理（D3、D4、D6）
@@ -194,18 +194,18 @@ Exit Criteria:
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。
 
-- [ ] B1-B12 与 D3/D4/D6/D7 全部修复，每个 defect 的回归测试先红后绿（红→绿证据在 `ai-dev/logs/`）
-- [ ] 既有 19 个测试 + 全部新增回归测试全绿（`./mvnw test -pl nop-kernel/nop-record-mapping -am`）
-- [ ] `nop-ai/nop-ai-agent`（md 接线）与 `nop-gateway`（bodyMapping 接线）相关测试不受影响
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect
-- [ ] `docs-for-ai/02-core-guides/record-mapping.md` 已与 live 行为同步（或逐项写明 `No owner-doc update required`）
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）修复后的调用链运行时连通（flattenTo 写 target、newItemExpr 传 target、pattern 变量隔离等均有行为级断言），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw compile -pl nop-kernel/nop-record-mapping -am`
-- [ ] `./mvnw test -pl nop-kernel/nop-record-mapping -am`
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs 2253-nop-record-mapping-defect-fix-tests-first.md --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-record-mapping --severity high` 退出码 0
-- [ ] checkstyle / 代码规范检查通过
+- [x] B1-B12 与 D3/D4/D6/D7 全部修复，每个 defect 的回归测试先红后绿（红→绿证据在 `ai-dev/logs/`）
+- [x] 既有 19 个测试 + 全部新增回归测试全绿（`./mvnw test -pl nop-kernel/nop-record-mapping -am`）
+- [x] `nop-ai/nop-ai-agent`（md 接线）与 `nop-gateway`（bodyMapping 接线）相关测试不受影响
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect
+- [x] `docs-for-ai/02-core-guides/record-mapping.md` 已与 live 行为同步（或逐项写明 `No owner-doc update required`）
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）修复后的调用链运行时连通（flattenTo 写 target、newItemExpr 传 target、pattern 变量隔离等均有行为级断言），（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw compile -pl nop-kernel/nop-record-mapping -am`
+- [x] `./mvnw test -pl nop-kernel/nop-record-mapping -am`
+- [x] `node ai-dev/tools/check-plan-checklist.mjs 2253-nop-record-mapping-defect-fix-tests-first.md --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-record-mapping --severity high` 退出码 0
+- [x] checkstyle / 代码规范检查通过
 
 ## Deferred But Adjudicated
 
@@ -247,16 +247,19 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: 已通过独立对抗性审查（`ses_ff7471533ffemAX2QcmkXVJk9S`，conditional-approve，1 Blocker + 3 Major + 7 Minor 已全部修复落盘），已 promoted 为 active。Phase 1（B1/B2，commit `8cc220084`）、Phase 2（B3-B8，commit `a8481880e`）、Phase 3（B9-B12+D7，commit `1d60420bd`）已 completed；Phase 4（D3/D4/D6）+ 文档同步已 completed（待 commit），剩余 Closure Gates（含独立 closure audit）
-Completed: 未完成（Closure Gates 待执行）
+Status Note: 已通过独立对抗性审查（`ses_ff7471533ffemAX2QcmkXVJk9S`，conditional-approve，1 Blocker + 3 Major + 7 Minor 已全部修复落盘），已 promoted 为 active。Phase 1（B1/B2，commit `8cc220084`）、Phase 2（B3-B8，commit `a8481880e`）、Phase 3（B9-B12+D7，commit `1d60420bd`）、Phase 4（D3/D4/D6 + 文档同步，commit `ada831e90`）全部 completed；独立 closure audit（`ses_ff6fae3b8ffe149uskdISKuUPi`）verdict **approve-closure**（16 缺陷全部实证修复、红→绿证据与 live 回跑一致、gate 工具全绿、无 in-scope 缺陷静默降级；残留项仅为簿记：Phase 3 文档 checkbox 已勾并交叉引用、Closure Gates 已勾选、plan 内 dict 资源相对路径已改为仓库绝对路径消除 BROKEN_LINK 警告、checkstyle 非构建强制）
+Completed: 2026-08-16（closure audit approve-closure）
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: 待执行后由独立子 agent（fresh session）执行并记录
+- Reviewer / Agent: 独立子 agent（fresh session `ses_ff6fae3b8ffe149uskdISKuUPi`），2026-08-16
+- Verdict: **approve-closure**
+- Gate 结果（逐项实证）：GATE1 defects-in-live-code PASS（B1-B12/D3/D4/D6/D7 全部 file:line 证据）；GATE2 tests PASS（24 回归测试逐缺陷映射 + demo/demoBoth 资源）；GATE3 red→green PASS（log 四 Phase 红/绿计数与 live 回跑 43/43、24/24、7/7 一致）；GATE4 exit criteria PASS（Phase 3 文档项经 Phase 4 交叉完成）；GATE5 gate tools PASS（check-plan-checklist exit 0、scan-hollow 0 findings、git 仅无关 session 文件）；GATE6 sanity run PASS（regression 24/24）
+- Anti-Hollow：审计确认修复调用链运行时连通（行为级断言），无空方法/no-op 伪装实现
 
 Follow-up:
 
-- 待执行
+- 无（D1/D2 为 successor 架构 plan；D5/D8 watch-only；xlsx 集成测试 optimization candidate——均已判定不在本计划 scope）
 
 ## Optional Sections
 
