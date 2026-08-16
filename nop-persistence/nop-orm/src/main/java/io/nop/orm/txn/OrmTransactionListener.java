@@ -27,11 +27,17 @@ public class OrmTransactionListener implements ITransactionListener {
 
     @Override
     public void onBeforeCommit(ITransaction txn) {
-        ormTemplate.flushSession();
+        // ormTemplate 为 ioc:lazy-property（规避事务管理器/监听器/OrmTemplate 循环依赖）。
+        // 容器 bean 创建阶段（如 DataInitInitializer 执行 _init-data/*.sql 时）lazy 属性尚未赋值，
+        // 此时事务为纯 JDBC 原始 SQL，无 ORM session 绑定，跳过 flush 与已装配后行为等价。
+        if (ormTemplate != null)
+            ormTemplate.flushSession();
     }
 
     @Override
     public void onAfterCompletion(ITransaction txn, CompleteStatus status, Throwable exception) {
+        if (ormTemplate == null)
+            return;
         if (status != CompleteStatus.COMMIT) {
             IOrmSession session = ormTemplate.currentSession();
             // 如果执行过程中出现异常，则清空session缓存。这个行为与Spring+Hibernate类似。
