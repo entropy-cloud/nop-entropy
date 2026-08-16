@@ -119,13 +119,19 @@ mutation {
     totalRuleCount
     executedRuleCount
     skipCount
-    ruleResults { qualityRuleId status message }
-    errors { code message }
+    ruleResults { qualityRuleId ruleName status actualValue expectedValue message }
+    errors { code message detail source refType refValue }
   }
 }
 ```
 
-**执行结果 DTO（AR-14，R8.1）**：检查点路径填充 `totalRuleCount`（= 解析后规则集大小，含异常/SKIP 规则）、`skipCount`（显式 SKIP 计数）与 `ruleResults`（每条规则一个条目，含异常规则补写的 ERROR 条目——`ruleResults` 条目数 = `totalRuleCount`，计数可对账；条目字段为 qualityRuleId + status + message；resultCount/passCount/failCount/errors 为单规则执行路径语义，检查点路径保持默认值）。
+**执行结果 DTO（AR-14，R8.1）**：检查点路径填充 `totalRuleCount`（= 解析后规则集大小，含异常/SKIP 规则）、`skipCount`（显式 SKIP 计数）与 `ruleResults`（每条规则一个条目，含异常规则补写的 ERROR 条目——`ruleResults` 条目数 = `totalRuleCount`，计数可对账；resultCount/passCount/failCount/errors 为单规则执行路径语义，检查点路径保持默认值）。
+
+**executeCheckpoint 返回值字段清单（P2-20 裁决，plan 2026-08-16-0549-2）**：`CheckpointExecutionResultDTO` 终态字段 = `checkpointId / runId / totalRuleCount / executedRuleCount / passCount / failCount / errorCount / skipCount / affectedTableIds / ruleResults / errors / autoScore / scoreSkipped`。裁决 = **移除**规则结果明细/执行错误明细的两个冗余 `List<Map<String,Object>>` 字段（原形态与类型化字段并存且只写不读），前提为全键类型化承接：
+
+- `ruleResults`（`QualityRuleResultDTO`）增补 `ruleName / actualValue / expectedValue`（承接原 Map 条目的 6 键：qualityRuleId / ruleName / status / actualValue / expectedValue / message——P2-20 前仅 3 键有损投影）；
+- `errors`（`ErrorDTO`）增补 `source / refType / refValue`；错误条目四族逐键承接：execution（规则执行异常：source→source、qualityRuleId→code、ruleName→detail、error→message）、resolution（引用解析失败：refType/refValue 同名承接）、autoScore（评分失败：metaTableId→code）、scheduler（调度入口失败：`MetaQualityCheckpointScheduler.buildErrorResult` 直接构造）。`code` 的"错误所涉标识符"语义沿 `NopMetaQualityRuleBizModel`（code=qualityRuleId, detail=ruleName）既有惯例；
+- **迁移面结论（显式记录）**：全仓消费面清点 = 零外部消费（web / e2e / xmeta / view / page 零命中，rg 全仓核对 2026-08-16），无可迁移面；GraphQL schema 运行时生成，无静态 schema 文件需同步。契约变更（移除两字段 + DTO 增补承接字段）经字段级等价/损失对照表逐键裁定（对照表见当日 daily log），无未经裁定的信息损失。
 
 **运行期（concurrent）幂等（R4.3）**：每次执行生成唯一 `runId`（UUID），结果行写入 `checkpointId`/`runId` 列（`NopMetaQualityResult` 复合 UK `(checkpointId, runId, qualityRuleId)` 兜底拒绝同 runId 重复写行，可空列 NULL 不参与冲突判定——单规则执行路径两列保持 null）。执行入口有 per-checkpoint 运行标记（进程内锁，覆盖 executor + autoScore + dispatchActions 全程）：**同一检查点并发/重复触发时第二次执行显式 fail-fast**（错误码 `checkpoint-already-running`），不静默重复执行、不重复投递 webhook/notify。保留的时序语义：顺序重复执行（间隔超过单次耗时）合法，每次执行 = 新 runId = 新结果行。cron 与手动并发时 cron 侧被拒绝仅记 WARN 日志。跨进程分布式锁不做（单实例 supported baseline）。
 
@@ -183,7 +189,7 @@ mutation {
 - **INV-LOCALE 机器比较语义全量 locale-insensitive（Cycle 2 / I4'，plan 2026-08-15-0820-3）**：模块内全部机器比较用途的 case-mapping（registry/集合键归一化、白名单/blocklist token 比对、类型/方言分类、配置 token 匹配、结构化 extras token）统一 `Locale.ROOT`（40 处类别清扫，含 2 处安全语义缺陷：JDBC URL 危险参数 blocklist 与 custom_sql sandbox 关键字扫描在 tr-TR 默认 locale 下的注入探测绕过）。防回退门禁：`check-silent-wrong-result.mjs --rule locale`（零命中阻断）。同批：`MetaTableProfiler.isStringType` 改 exact-match `Set.of`（沿 AR-05 形态，消除与 `isNumericType` 的同族双标准）；列级血缘边去重键 / existing-edge map 键与 auto-classification warn 去重键改结构性 `List` 键（沿 AR-03 形态，不依赖列名/正则 pattern 不含分隔符的格式假设）。
 - **AR-13 reconciliation 候选有界**：`ReconciliationExecutor.execute` 传入默认 `DEFAULT_CANDIDATE_LIMIT = 50`（非 null）——所有 fuzzy 候选（score > 阈值）经 `LocalReconciliationProcessor.reconcile` 截断为 ≤50，details JSON 候选序列化有界，大候选池下不会 OOM/多秒序列化。config-driven limit（extConfig JSON 键或新增 ORM 列）为 Non-Blocking Follow-up（含 ORM Protected Area 风险）。
 
-全部 14 个非空 I*Biz 接口（plan 2026-07-19-1250-3 Phase 1 补齐 9 个；P1-2（plan 2026-08-15-1913-2）补齐其余 5 个——与 `nop-metadata-dao` `io.nop.metadata.biz` 包 live 接口逐一核对）：
+全部 14 个非空 I*Biz 接口（plan 2026-07-19-1250-3 Phase 1 补齐 9 个；P1-2（plan 2026-08-15-1913-2）补齐其余 5 个——与 `nop-metadata-dao` `io.nop.metadata.biz` 包 live 接口逐一核对；P2-17（plan 2026-08-16-0549-2）起本清单由 `TestNopMetaBizInterfaceCompleteness` 程序化全集守卫钉死——文件系统扫描 biz 包源目录 + 反射比对方法集，新增非空接口/新增自定义方法未登记即红；守卫只覆盖驻留本包的 I*Biz，接口移包属结构性变更需同步守卫）：
 
 - `INopMetaTableBiz` — profileTable / createSqlTable / previewSqlFields / resolveTableFields / queryTableData / queryJoinData / queryAggregation
 - `INopMetaDataSourceBiz` — testConnection / syncExternalTables / collectCatalog / collectCatalogForTable

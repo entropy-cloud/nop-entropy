@@ -1,6 +1,6 @@
 # 2026-08-16-0549-2 nop-metadata 测试断言强度与 DTO 契约形态族批次清扫（P2-17/P2-20 + P2-35 测试子项）
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: nop-metadata-invariant-loop
 > Work Item: 2026-08-15 multi-audit Follow-up Backlog — 测试/DTO 卫生族（P2 批次清扫）
 > Last Reviewed: 2026-08-16
@@ -24,7 +24,7 @@
   - 该字段暴露于 GraphQL 响应（biz mutation 返回值，schema 运行时生成、无静态 schema 文件），移除属对外契约变更——**决策必须先有字段级等价/损失对照表**（见 Phase 2 步骤重排）。
 - **P2-35 测试子项**（live 文件确认存在，断言/正则缺陷执行时逐项复核）：
   1. `TestAggregationHelper.java` 无 `@Test` 方法——**命名与行为不符**（surefire 按 `Test*` 发现该类但运行 0 例，"虚增计数"实为命名误导 + helper 被误放入测试类命名空间；被 3 个测试类实例化使用），非计数膨胀
-  2. `invariant/TestLimitTargetSetCompleteness.java` 计数正则单一形态（字面 `@Name\("limit"\)`，漏匹配 `@Name(value="limit")`/空白变体/`@RequestBean` 内 limit 形态 → 守卫盲区；live 4 处命中全为规范形态，洞为假阴性型）
+  2. `nop-metadata/nop-metadata-service/src/test/java/io/nop/metadata/service/invariant/TestLimitTargetSetCompleteness.java` 计数正则单一形态（字面 `@Name("limit")`，漏匹配 `@Name(value="limit")`/空白变体/`@RequestBean` 内 limit 形态 → 守卫盲区；live 4 处命中全为规范形态，洞为假阴性型）
   3. `TestCoreMetricsUsage.java` 注释剥离正则（`//[^\n]*` + 无 DOTALL 的 `/\*.*?\*/`）假阴性洞：多行注释剥离不全、字符串字面量内 `//` 误剥 → 用量统计失真
   4. `TestNopMetadataErrorsCentralized.java` 镜像断言（`assertEquals(字面量, Constant.getErrorCode())` 与被测物同源）；且 `testAllErrorsUseNopErrPrefix` 枚举**硬编码 10 个 `*Errors` 接口清单**——新增 `*Errors` 接口静默逃逸（F19 同族盲区）
   5. `TestCrossDbInMemoryAggregationProcessor.testCrossDbAliasOf` 仅 `assertNotNull`（被测 `crossDbAliasOf` 返回 alias-or-`"right"`，值断言可直接构造期望）
@@ -60,80 +60,80 @@
 
 ### Phase 1 - 接口完备性守卫强化（P2-17）
 
-Status: planned
+Status: completed
 Targets: `TestNopMetaBizInterfaceCompleteness.java`
 
 - Item Types: `Fix | Proof`
 
-- [ ] live 重扫全部 `INopMeta*Biz` 接口非空集（执行时定稿；当前 14），补未覆盖 2 接口的方法断言（ReconciliationConfig 1 方法 / ReconciliationResult 2 方法，以重扫为准）
-- [ ] 增加程序化全集守卫——**发现机制钉死为文件系统扫描**：扫描 `nop-metadata-dao/src/main/java/io/nop/metadata/biz` 目录全部 `INopMeta*Biz.java` 源文件（沿 `TestLimitTargetSetCompleteness` 目录行走 + 路径回退先例；Node 侧 `ai-dev/tools/check-ibiz-interfaces.mjs` 为源码扫描可行性先例），解析"自定义方法"=接口声明的方法集；断言测试覆盖清单与扫描结果一致 + ≥N sanity 断言（N=当前实数）——新增接口或新增自定义方法若未登记即红。**盲区契约**：本守卫只覆盖驻留在该包的 I*Biz（包约定 + owner doc F15 IBiz 表背书）；接口移包即视为结构性变更需同步守卫
-- [ ] 保留既有逐方法签名断言（参数个数级）作为精度层
+- [x] live 重扫全部 `INopMeta*Biz` 接口非空集（执行时定稿；当前 14），补未覆盖 2 接口的方法断言（ReconciliationConfig 1 方法 / ReconciliationResult 2 方法，以重扫为准）
+- [x] 增加程序化全集守卫——**发现机制钉死为文件系统扫描**：扫描 `nop-metadata-dao/src/main/java/io/nop/metadata/biz` 目录全部 `INopMeta*Biz.java` 源文件（沿 `TestLimitTargetSetCompleteness` 目录行走 + 路径回退先例；Node 侧 `ai-dev/tools/check-ibiz-interfaces.mjs` 为源码扫描可行性先例），解析"自定义方法"=接口声明的方法集；断言测试覆盖清单与扫描结果一致 + ≥N sanity 断言（N=当前实数）——新增接口或新增自定义方法若未登记即红。**盲区契约**：本守卫只覆盖驻留在该包的 I*Biz（包约定 + owner doc F15 IBiz 表背书）；接口移包即视为结构性变更需同步守卫
+- [x] 保留既有逐方法签名断言（参数个数级）作为精度层
 
 Exit Criteria:
 
-- [ ] 测试覆盖数 = live 重扫非空接口数（重扫命令与输出入 daily log）；Reconciliation 两接口的方法断言可验证（方法名/参数个数与 live 接口一致）
-- [ ] **接线验证（守卫区分力）**：临时向任一 I*Biz 接口加一个假想方法名（或注释掉覆盖清单中一项）→ 测试红；恢复 → 绿（变异验证记录入 daily log）
-- [ ] `TestNopMetaBizInterfaceCompleteness` 全绿；不引入对 `_gen` 代码的结构耦合
-- [ ] owner doc 测试段如提及该守卫的覆盖数则同步；否则 `No owner-doc update required`
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 测试覆盖数 = live 重扫非空接口数（重扫命令与输出入 daily log）；Reconciliation 两接口的方法断言可验证（方法名/参数个数与 live 接口一致）
+- [x] **接线验证（守卫区分力）**：临时向任一 I*Biz 接口加一个假想方法名（或注释掉覆盖清单中一项）→ 测试红；恢复 → 绿（变异验证记录入 daily log）
+- [x] `TestNopMetaBizInterfaceCompleteness` 全绿；不引入对 `_gen` 代码的结构耦合
+- [x] owner doc 测试段如提及该守卫的覆盖数则同步；否则 `No owner-doc update required`
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - CheckpointExecutionResultDTO 冗余字段处置（P2-20）
 
-Status: planned
+Status: completed
 Targets: `CheckpointExecutionResultDTO.java`, `NopMetaQualityCheckpointBizModel`, `MetaQualityCheckpointScheduler`, 相关测试, owner doc
 
 - Item Types: `Decision | Fix`
 
-- [ ] 步骤 1（消费面终审清单，执行时 live 复核）：Java main/test 全量（含注释提及点：`MetaQualityCheckpointScheduler.java:201/:246` javadoc）、xmeta、view/page、e2e、`nop-metadata-web`、docs——`executionResults`/`executionErrors` 逐面命中/不命中记录入 daily log
-- [ ] 步骤 2（**字段级等价/损失对照表，先于决策**）：逐键对照——`executionResults` 条目的 6 键（`qualityRuleId/ruleName/status/actualValue/expectedValue/message`）在 `QualityRuleResultDTO` 中何者有承接字段；`executionErrors` 的错误条目键（BizModel 侧与 Scheduler `buildErrorResult` 侧两族）在 `ErrorDTO` 中何者有承接字段；输出"等价 / 可类型化承接 / 无承接（信息损失）"三态表入 daily log
-- [ ] 步骤 3（裁决，**以对照表为据**）：仅当每个键都有类型化承接（或损失经显式裁定可接受）才允许移除；否则在 in-scope 变体中先补承接再移除：(a) 生产者填充类型化 `errors`（现状从不填充）；(b) `QualityRuleResultDTO` 增补 `ruleName/actualValue/expectedValue` 承接字段；(c) `ErrorDTO` 增补错误条目键承接字段（现仅 `code/message/detail`，对 `source/refType/refValue` 等键）。禁止在信息损失未裁定的情况下删除字段
-- [ ] 步骤 4（实施）：按裁决终态同步 DTO / 生产者 / Scheduler 写入点 / 测试断言（`TestNopMetaQualityCheckpointBizModel` :333/:334/:361 经 `executionErrors` 的场景断言与 :1097-1101 GraphQL 查询列，重写为类型化字段断言且断言强度不降——逐场景保留原期望值语义）
-- [ ] 步骤 5（落档）：裁决 + 字段清单 + 契约变更写入 owner doc（API 契约段：executeCheckpoint 返回值字段清单）；**迁移面结论显式记录**："全仓消费面清点 = 零外部消费（web/e2e/xmeta 零命中），无可迁移面"（AGENTS.md 跨模块 API plan-first 的 migration 要求以此为显式结论）；GraphQL schema 运行时生成，无静态 schema 文件需同步
-- [ ] 交叉引用：本 Phase 重写 `TestNopMetaQualityCheckpointBizModel` 部分断言——`2026-08-16-0549-3` Phase 1 基线以执行时点 live 实数为准（见其 Related）
+- [x] 步骤 1（消费面终审清单，执行时 live 复核）：Java main/test 全量（含注释提及点：`MetaQualityCheckpointScheduler.java:201/:246` javadoc）、xmeta、view/page、e2e、`nop-metadata-web`、docs——`executionResults`/`executionErrors` 逐面命中/不命中记录入 daily log
+- [x] 步骤 2（**字段级等价/损失对照表，先于决策**）：逐键对照——`executionResults` 条目的 6 键（`qualityRuleId/ruleName/status/actualValue/expectedValue/message`）在 `QualityRuleResultDTO` 中何者有承接字段；`executionErrors` 的错误条目键（BizModel 侧与 Scheduler `buildErrorResult` 侧两族）在 `ErrorDTO` 中何者有承接字段；输出"等价 / 可类型化承接 / 无承接（信息损失）"三态表入 daily log
+- [x] 步骤 3（裁决，**以对照表为据**）：仅当每个键都有类型化承接（或损失经显式裁定可接受）才允许移除；否则在 in-scope 变体中先补承接再移除：(a) 生产者填充类型化 `errors`（现状从不填充）；(b) `QualityRuleResultDTO` 增补 `ruleName/actualValue/expectedValue` 承接字段；(c) `ErrorDTO` 增补错误条目键承接字段（现仅 `code/message/detail`，对 `source/refType/refValue` 等键）。禁止在信息损失未裁定的情况下删除字段
+- [x] 步骤 4（实施）：按裁决终态同步 DTO / 生产者 / Scheduler 写入点 / 测试断言（`TestNopMetaQualityCheckpointBizModel` :333/:334/:361 经 `executionErrors` 的场景断言与 :1097-1101 GraphQL 查询列，重写为类型化字段断言且断言强度不降——逐场景保留原期望值语义）
+- [x] 步骤 5（落档）：裁决 + 字段清单 + 契约变更写入 owner doc（API 契约段：executeCheckpoint 返回值字段清单）；**迁移面结论显式记录**："全仓消费面清点 = 零外部消费（web/e2e/xmeta 零命中），无可迁移面"（AGENTS.md 跨模块 API plan-first 的 migration 要求以此为显式结论）；GraphQL schema 运行时生成，无静态 schema 文件需同步
+- [x] 交叉引用：本 Phase 重写 `TestNopMetaQualityCheckpointBizModel` 部分断言——`2026-08-16-0549-3` Phase 1 基线以执行时点 live 实数为准（见其 Related）
 
 Exit Criteria:
 
-- [ ] 消费面清单 + 字段级等价/损失对照表落档（daily log）；裁决及理由（含所选变体）写入 plan 完成记录
-- [ ] 若移除：`rg -ln "executionResults|executionErrors" nop-metadata -g '!**/target/**' -g '*.java'` main/test 代码零命中（含 javadoc/注释提及点一并如实化）；DTO 字段清单与 owner doc 一致
-- [ ] Scheduler 行为等价：其 `buildErrorResult` 错误条目在终态下的去向逐项对照（对照表入 daily log）；`TestMetaQualityCheckpointScheduler*` + `TestNopMetaQualityCheckpointBizModel` 全绿，断言重写后逐场景期望值语义保留（断言强度不降的逐条说明入 daily log）
-- [ ] `./mvnw test -pl nop-metadata -am -T 1C` BUILD SUCCESS
-- [ ] owner doc API 契约段已更新（字段清单/裁决记录/迁移面结论）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 消费面清单 + 字段级等价/损失对照表落档（daily log）；裁决及理由（含所选变体）写入 plan 完成记录
+- [x] 若移除：`rg -ln "executionResults|executionErrors" nop-metadata -g '!**/target/**' -g '*.java'` main/test 代码零命中（含 javadoc/注释提及点一并如实化）；DTO 字段清单与 owner doc 一致
+- [x] Scheduler 行为等价：其 `buildErrorResult` 错误条目在终态下的去向逐项对照（对照表入 daily log）；`TestMetaQualityCheckpointScheduler*` + `TestNopMetaQualityCheckpointBizModel` 全绿，断言重写后逐场景期望值语义保留（断言强度不降的逐条说明入 daily log）
+- [x] `./mvnw test -pl nop-metadata -am -T 1C` BUILD SUCCESS
+- [x] owner doc API 契约段已更新（字段清单/裁决记录/迁移面结论）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 测试卫生六项修复（P2-35 测试子项）
 
-Status: planned
+Status: completed
 Targets: 上列六个测试文件
 
 - Item Types: `Fix`
 
-- [ ] 项 1（TestAggregationHelper 无 @Test）：live 复核——若确无 `@Test`：要么补充真实断言用例使其名副其实，要么更名/合并为普通 helper（消除 `Test*` 命名误导——注意实为命名与行为不符而非计数膨胀，登记时用准确表述）；二选一裁定记录入 daily log
-- [ ] 项 2（TestLimitTargetSetCompleteness 正则单一形态）：live 复核正则漏匹配形态，扩展为覆盖全部合法调用形态（或改语义解析）；**证据形态（假阴性洞）**：新增样例单测钉死正则形态——样例单测修复前红/修复后绿；守卫对样例从漏计变计入（构造 `@Name(value="limit")` 等漏匹配样例证明）
-- [ ] 项 3（TestCoreMetricsUsage 注释剥离假阴性）：复核剥离正则，构造多行注释/字符串内 `//` 样例单测钉死剥离行为（样例单测修复前红/修复后绿同项 2 形态）
-- [ ] 项 4（TestNopMetadataErrorsCentralized 镜像断言 + 硬编码接口清单）：(a) 镜像断言改独立真值断言（抽样与 `NopMetadataErrors` 常量逐一核对 + 死码面既有门禁衔接，不与被测物互为镜像）；(b) `testAllErrorsUseNopErrPrefix` 硬编码 10 接口清单改源码目录动态枚举（或 ≥N sanity + 新增即红），封 F19 族盲区
-- [ ] 项 5（testCrossDbAliasOf 仅 assertNotNull）：补值断言（`crossDbAliasOf` alias-or-`"right"` 语义的两态期望值）
-- [ ] 项 6（TestNopMetaDtoResults 首方法无 parse-back）：`testDtoJsonRoundTrip` 补 parse-back 循环断言（F18 形态：stringify → parse → 关键字段相等）
+- [x] 项 1（TestAggregationHelper 无 @Test）：live 复核——若确无 `@Test`：要么补充真实断言用例使其名副其实，要么更名/合并为普通 helper（消除 `Test*` 命名误导——注意实为命名与行为不符而非计数膨胀，登记时用准确表述）；二选一裁定记录入 daily log
+- [x] 项 2（TestLimitTargetSetCompleteness 正则单一形态）：live 复核正则漏匹配形态，扩展为覆盖全部合法调用形态（或改语义解析）；**证据形态（假阴性洞）**：新增样例单测钉死正则形态——样例单测修复前红/修复后绿；守卫对样例从漏计变计入（构造 `@Name(value="limit")` 等漏匹配样例证明）
+- [x] 项 3（TestCoreMetricsUsage 注释剥离假阴性）：复核剥离正则，构造多行注释/字符串内 `//` 样例单测钉死剥离行为（样例单测修复前红/修复后绿同项 2 形态）
+- [x] 项 4（TestNopMetadataErrorsCentralized 镜像断言 + 硬编码接口清单）：(a) 镜像断言改独立真值断言（抽样与 `NopMetadataErrors` 常量逐一核对 + 死码面既有门禁衔接，不与被测物互为镜像）；(b) `testAllErrorsUseNopErrPrefix` 硬编码 10 接口清单改源码目录动态枚举（或 ≥N sanity + 新增即红），封 F19 族盲区
+- [x] 项 5（testCrossDbAliasOf 仅 assertNotNull）：补值断言（`crossDbAliasOf` alias-or-`"right"` 语义的两态期望值）
+- [x] 项 6（TestNopMetaDtoResults 首方法无 parse-back）：`testDtoJsonRoundTrip` 补 parse-back 循环断言（F18 形态：stringify → parse → 关键字段相等）
 
 Exit Criteria:
 
-- [ ] 六项逐一完成且每项在 daily log 记录"修复前断言强度 → 修复后断言强度"（含项 2/3 的样例单测红→绿证明、项 5/6 的具体新断言）
-- [ ] 若任一项 live 复核发现审计描述与实际不符（已是强断言/正则已覆盖）：如实登记为 false positive 并标注证据，不强行改写
-- [ ] `./mvnw test -pl nop-metadata/nop-metadata-service -am` BUILD SUCCESS；不因断言增强引入非确定性
-- [ ] default surefire 全绿 + 门禁脚本复跑不红（注：项 2/3/4 所属测试**不在** 6-guard 聚合链内，真实信号以 surefire 全绿为准；门禁复跑为防意外回归）
-- [ ] `No owner-doc update required`（纯测试变更；如项 1 选择更名则同步 owner doc 测试段提及处）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 六项逐一完成且每项在 daily log 记录"修复前断言强度 → 修复后断言强度"（含项 2/3 的样例单测红→绿证明、项 5/6 的具体新断言）
+- [x] 若任一项 live 复核发现审计描述与实际不符（已是强断言/正则已覆盖）：如实登记为 false positive 并标注证据，不强行改写
+- [x] `./mvnw test -pl nop-metadata/nop-metadata-service -am` BUILD SUCCESS；不因断言增强引入非确定性
+- [x] default surefire 全绿 + 门禁脚本复跑不红（注：项 2/3/4 所属测试**不在** 6-guard 聚合链内，真实信号以 surefire 全绿为准；门禁复跑为防意外回归）
+- [x] `No owner-doc update required`（纯测试变更；如项 1 选择更名则同步 owner doc 测试段提及处）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
-- [ ] P2-17 守卫 14/14（或重扫实数）全覆盖 + 动态全集守卫含变异验证证据
-- [ ] P2-20 消费面清单 + 裁决落档；移除路径下 main/test 零残留
-- [ ] P2-35 六项测试子项修复（或如实 FP 登记）且每项有强度对照记录
-- [ ] `./mvnw test -pl nop-metadata -am -T 1C` BUILD SUCCESS（0 failures）
-- [ ] checkstyle / 代码规范检查通过（改动均为测试/DTO，无 main 行为变更——P2-20 生产者/消费者同步除外，其等价性有对照表）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0
-- [ ] roadmap Follow-up Backlog 对应条目（P2-17/P2-20 + P2-35 测试子项）标注处置结果
-- [ ] 独立子 agent closure-audit 已完成并记录证据
+- [x] P2-17 守卫 14/14（或重扫实数）全覆盖 + 动态全集守卫含变异验证证据
+- [x] P2-20 消费面清单 + 裁决落档；移除路径下 main/test 零残留
+- [x] P2-35 六项测试子项修复（或如实 FP 登记）且每项有强度对照记录
+- [x] `./mvnw test -pl nop-metadata -am -T 1C` BUILD SUCCESS（0 failures）
+- [x] checkstyle / 代码规范检查通过（改动均为测试/DTO，无 main 行为变更——P2-20 生产者/消费者同步除外，其等价性有对照表）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0
+- [x] roadmap Follow-up Backlog 对应条目（P2-17/P2-20 + P2-35 测试子项）标注处置结果
+- [x] 独立子 agent closure-audit 已完成并记录证据
 
 ## Deferred But Adjudicated
 
@@ -146,14 +146,21 @@ Exit Criteria:
 
 ## Closure
 
-Status Note:
-Completed:
+Status Note: 三个 Phase 全部落地并经独立 closure audit（20/20 PASS）——P2-17 接口完备性守卫扩至 14/14 全集 + 文件系统扫描程序化守卫（变异验证红→绿双向实证）；P2-20 经消费面清单 + 字段级等价/损失对照表逐键裁定后以变体 (a)+(b)+(c) 全键类型化承接并移除两个 List<Map> 冗余字段（零未裁定信息损失，迁移面 = 零外部消费）；P2-35 六项测试子项逐一修复且各有"修复前→修复后断言强度"对照（项 2/3 含样例单测红→绿证明）。无 in-scope live defect 被降级 deferred。
+Completed: 2026-08-16
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: 独立子 agent（fresh session `ses_ff8284916ffekAvK9RMIPU1Fi6`，review-only 零文件修改）
 - Evidence:
+  - 逐条 Exit Criterion / 检查点 20/20 全 PASS（Phase 1：:133-135 新接口断言 + :149-185 全集守卫 + 独立重扫 14 非空接口与 COVERAGE 键集逐一相符 + owner doc :192 守卫表述；Phase 2：DTO :21-33 字段清单精确 13 字 + `rg executionResults|executionErrors` 零命中（exit 1）+ QualityRuleResultDTO/ErrorDTO 增补字段与访问器 + mapRuleResults :414-437 六键 / mapErrorEntries :449-470 四族全键 + Scheduler :253-261 source=scheduler + 测试类型化断言（resolution :337-344 / execution :375-378 / scheduler CronReadFailure :105-112）+ owner doc §4 :130-134 裁决与迁移面结论；Phase 3：更名清理 / 正则与样例单测 / 状态机剥离器 / 字面量真值 + 动态枚举 / 三态值断言 / parse-back 全键）；verdict `CLOSURE_AUDIT: approved`
+  - 变异验证（执行者，Phase 1 守卫区分力）：新增未登记接口 → 红（`Scan only: [INopMetaMutationProbeBiz]`）；COVERAGE 删方法 → 红（`Scan only: [batchConfirmMatches]`）；恢复 → 绿（daily log 2026/08-16）
+  - 样例单测红→绿（执行者，Phase 3 项 2/3）：limit 正则旧 1/4 → 新 4/4；注释剥离多行块注释旧残留 → 新完整剥离（daily log 同条目）
+  - `./mvnw test -pl nop-metadata -am -T 1C` BUILD SUCCESS（service **1262/0/0** = 0549-1 收口基线 1259 + 净 3 新测试）；门禁聚合链 `run-nop-metadata-invariants.sh` 全绿 exit 0
+  - `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0（0 findings）；`node ai-dev/tools/check-doc-links.mjs --strict` 17 errors = 既有跨 mission 基线（本计划文件自身 1 处断裂链接已顺手修复；改动文件 0 新增）；checkstyle 直跑 9164 条 = 既有全仓未接入门禁基线（与本计划改动文件交集 = 0，逐文件名比对）；import-order 检查改动文件 0 命中
+  - Deferred 项分类检查：Non-Blocking Follow-ups 仅含 ORM 结构族（人工确认门授权外）与 IoC 族（显式移交 0549-3），无 in-scope live defect 降级
+  - `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（收口时复跑确认）
 
 Follow-up:
 
-- 待 closure 时填写
+- 无 plan-owned 剩余工作（IoC 族 + P2-27 已显式移交 `2026-08-16-0549-3`；ORM 结构族按 mission 授权人工确认门另行轮次）
