@@ -115,6 +115,7 @@
 3. **fail-closed = 全部发生在启动期**：托管端不可达/认证失败/材料缺失/配置矛盾 → 实现 bean 初始化抛错 → **应用拒绝启动**。运行期不存在托管端交互，`getKey` 失败仅剩一期"未知 keyId"语义。**绝不回退本地密钥**、不存在降级启动。
 4. **密钥来源不混合**：同一部署的全部密钥材料必须经由**同一个** key provider bean（全本地或全某 KMS）；本地材料的唯一合法存在形态是 KMS 实现配置中的**迁移残余列表**（见 §4.3 迁移路径，禁止含 active key），任何其他本地材料痕迹（如 local 配置未清空）= 启动拒绝。
 5. KMS 适配实现为**独立可选 Maven 模块**（含对应厂商 SDK 依赖，按需部署），`nop-credential-service` 主模块零第三方 KMS SDK 依赖（模块命名与拆分粒度 W10-impl 裁定）。
+   > **W10-impl 裁定标注（2026-08-16 回写）**：参照实现 `nop-credential-kms-vault`（HashiCorp Vault KV v2）**经 `IHttpClient` 直接调用 HTTP API、零 Vault SDK 依赖**——"含厂商 SDK 依赖"的显式细化偏离。理由：材料交付模式只需启动期一次性 GET（`/v1/{mount}/data/{path}` + `X-Vault-Token`），SDK 依赖树污染违背"独立可选模块轻量"初衷；协议面极小（一个 GET + 嵌套 JSON 取字段），HTTP 实现维护成本低于 SDK 版本耦合；`nop-http-api` 为平台自带 api 模块。操作约束（独立可选模块 + 主模块零厂商依赖）被更好满足。
 6. **keyId → 材料不变式**：同一 keyId 在仍有 `cv1:{keyId}` 密文存续期间材料不可变。KMS 侧轮换必须以**新 keyId**（新资源/新映射）进行；厂商"同名原地升版本"式轮换（AWS KMS 自动轮换、Vault Transit rotate）与 `cv1:` keyId 路由不兼容，属配置禁区。
 
 ### 4.2 背景与动机
@@ -134,11 +135,13 @@
 - local 缺省路径：`credential-defaults.beans.xml` 中 `nopCredentialKeyProvider` bean（`ioc:default="true"`）装配 `DefaultCredentialKeyProvider`，一期不变。
 - KMS 路径：KMS 模块的 beans.xml 定义**同名 bean** `nopCredentialKeyProvider`（覆盖缺省 bean），并以其配置门控（仅当 `nop.credential.key-provider` 等于该实现标识时注册）。约定：KMS 实现 bean **必须复用同一 bean id**、禁止新增第二个 `ICredentialKeyProvider` 类型的独立 bean（同名覆盖 + 单值配置项即"只能装配一个 provider"的结构性执法）。
 - 配置指向某 KMS 实现但对应模块未部署 → 无 bean 满足 → 启动失败（fail-closed，防"配置了 KMS 实际跑本地"的假安全）。未引入 KMS 模块的部署零感知（local 默认路径完全不变）。
+  > **W10-impl 前提修正标注（2026-08-16 回写）**：NopIoC 的 `ioc:default` 语义是**无条件兜底**（default bean id 改写为 `$DEFAULT$<id>` 并附加 `missing-bean(<id>)` 条件，与任何配置项取值无关）——模块未部署时 default bean **照常注册并回退 local**，"无 bean 满足 → 启动失败"不会自然发生。该假安全场景由 **default-bean 守卫**达成：`DefaultCredentialKeyProvider` 的 `@PostConstruct` 守卫对一切非 local 的 `nop.credential.key-provider` 取值显式抛错（含 master-keys 残留检查），使模块缺失时启动结构性失败。
 
 **多 key 并存与轮换的托管映射**：
 
 - 轮换流程与一期本地轮换同构：托管端新增 key（**新 keyId/新资源**，遵守结论 6 不变式）→ 实现类配置新增 keyId 映射并切换 active → 新写入用新 key；旧密文按 `cv1:` 中 keyId 路由，旧 key 在托管端保持可解密期 = 多 key 并存窗口 → `reencryptAll` 批量重加密 → 托管端退役旧 key。
 - `reencryptAll` 语义不变（active key 重加密、幂等跳过、逐条提交可重跑）。**一期已知限制**：live 实现单批查询存在分页上限（单页 1000 条、无翻页循环），凭证量超出时单次执行不保证全覆盖——KMS 迁移关窗与旧 key 退役所依赖的"密文 keyId 全部属于新 key 集合"完备性验证是 W10-impl 的显式交付物（分页完备性修复或密文 keyId 分布查询，二选一由 impl 裁定），本设计不以其单次执行为关窗担保。
+  > **W10-impl 裁定标注（2026-08-16 回写）**：完备性交付物走**分页完备性修复**路径——`reencryptAll` 强制 `orderBy credentialId`（确定性排序）+ keyset 游标翻页循环（页大小 `nop.credential.reencrypt-page-size` 缺省 1000），超批量单次执行全覆盖（测试：7 条/页 3）；不建密文 keyId 分布查询管理面（观测辅助，关窗判定依赖重加密执行完毕本身，二阶价值低）。
 
 **fail-closed 细则（全部启动期）**：
 

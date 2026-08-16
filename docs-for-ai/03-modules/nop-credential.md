@@ -7,7 +7,8 @@
 - **类型化凭证**：声明式类型注册（`*.credential-type.xml`），定义字段结构（apiKey/secret/用户名密码等）
 - **OAuth 流程引擎**（W9）：`authType=oauth2` 类型的授权码闭环（发起 → 单一公开回调 → token 加密回写）+ 取用时惰性刷新（DB 行级锁跨副本互斥）
 - **加密存储**：`cv1:{keyId}:{v1密文}` 版本化密文格式，复用 `nop-commons` 的 `AESTextCipher`（AES-256-GCM + PBKDF2-SHA256）
-- **多密钥与轮换**：`ICredentialKeyProvider` 支持多 key 并存，`reencryptAll` 批量重加密
+- **多密钥与轮换**：`ICredentialKeyProvider` 支持多 key 并存，`reencryptAll` 批量重加密（确定性排序 + 游标翻页全覆盖）
+- **外部 KMS/HSM 集成**（W10）：主密钥材料托管于 Vault KV v2（材料交付模式），独立可选模块 `nop-credential-kms-vault`
 - **唯一解密点**：`ICredentialProvider` 实现位于 service 层，明文不跨出服务进程
 - **明文边界结构性强制**：xmeta `data` 列 `published=false`，BizModel 层恒置空，展示用 `maskList` 脱敏值
 - **引用计数删除拦截**：删除凭证前检查 `NopCredentialUsage` 引用计数，>0 拒绝删除
@@ -68,6 +69,62 @@
 
 > 示例类型：`generic-oauth2.credential-type.xml`（clientId/clientSecret 人工字段 + 端点元数据）。运行时需在部署中引入 raw HTTP client 实现模块（如 `nop-http-client-jdk`）以装配 `IHttpClient`。
 
+## 外部 KMS/HSM 集成（W10，主密钥材料交付模式）
+
+主密钥材料可托管于外部系统（企业合规：材料不落盘/访问审计/独立轮换）。参照实现为
+HashiCorp Vault KV v2（`nop-credential-kms-vault` 独立可选模块）；其他厂商（AWS
+Secrets Manager/云 KMS/材料可交付 HSM）由使用方按 `ICredentialKeyProvider` SPI 自行扩展。
+
+**集成模式 = 密钥材料交付（material delivery）**：启动期经 `IHttpClient` 调用
+Vault KV v2 HTTP API（`GET /v1/{mount}/data/{path}` + `X-Vault-Token` 头，**零
+Vault SDK 依赖**）一次性读取全部配置 keyId 的材料并物化为 `AESTextCipher` 集合；
+**运行期零托管端调用**（`getKey` 纯内存查找）；材料仅存进程内存。
+
+### 配置项
+
+| 配置项 | 缺省 | 说明 |
+|--------|------|------|
+| `nop.credential.key-provider` | `local` | 主密钥来源选择：`local`（一期配置文件/环境变量路径）/ `vault` |
+| `nop.credential.vault.address` | 无（vault 时必填） | Vault 服务基础地址（如 `http://127.0.0.1:8200`） |
+| `nop.credential.vault.token` | 无（vault 时必填） | Vault 访问令牌（`X-Vault-Token` 头） |
+| `nop.credential.vault.keys` | 无（vault 时必填） | keyId → secret 路径映射列表，每条 `keyId:{mount}/data/{path}`（路径为 `/v1/` 之后部分，如 `secret/data/credential/keyA`）；secret 内材料字段名固定 `passphrase`（与一期 passphrase 同构） |
+| `nop.credential.vault.active-key-id` | 映射首项 | active key 的 keyId（不得指向迁移残余 key） |
+| `nop.credential.vault.migration-keys` | 空 | 迁移残余列表（`keyId:passphrase`，与一期 master-keys 条目同构）；残余 key 只解不加密、禁含 active key、每次启动 WARN 审计 |
+| `nop.credential.reencrypt-page-size` | 1000 | `reencryptAll` 翻页页大小（确定性排序 + keyset 游标翻页，超批量单次执行全覆盖） |
+
+### 装配模型（同名 bean 覆盖 + 配置门控 + default-bean 守卫）
+
+- KMS 模块 beans 文件 `app-kms-vault.beans.xml`（位于 KMS 模块资源的 `_vfs/nop/credential/beans/` 共享模块命名空间、app- 前缀 → `AppBeanContainerLoader` 自动装载），定义**同名 bean** `nopCredentialKeyProvider` 装配 `VaultCredentialKeyProvider`，`ioc:condition <if-property name="nop.credential.key-provider" value="vault"/>` 精确匹配门控。不新增第二个 `ICredentialKeyProvider` 独立 bean id。
+- `key-provider` 未配置/`local`：门控不命中 → `credential-defaults.beans.xml` 的 default bean 生效，`DefaultCredentialKeyProvider` 行为与一期完全一致（模块在场零感知）。
+- `key-provider=vault` 且模块部署：门控命中 → Vault bean 注册 → default bean 的 `missing-bean(nopCredentialKeyProvider)` 条件不满足被排除。
+- **`key-provider=vault` 而模块未部署 → 启动失败**（`nop.err.credential.key-provider-module-missing`）：NopIoC 的 `ioc:default` 是无条件兜底（与配置项取值无关），模块缺失时 default bean 会照常回退 local——`DefaultCredentialKeyProvider` 的 `@PostConstruct` 守卫对一切非 local 取值显式抛错，结构性堵死"配置了 KMS 实际跑 local"的假安全。
+
+### fail-closed 语义（全部启动期，无本地降级）
+
+托管端不可达（`vault.unreachable`）/认证失败 401/403（`vault.auth-failed`）/配置的
+keyId 在托管端缺失 404（`vault.key-not-found`）/材料非法（`vault.material-invalid`：
+空 body/缺 `data.data.passphrase`/非字符串/空串/坏 JSON）/配置矛盾
+（`vault.master-keys-residual`、`vault.migration-key-active`、
+`vault.unknown-active-key` 等）→ bean 初始化抛错 → **应用拒绝启动**。任何托管端
+故障都不触发本地密钥回退（降级路径 = 攻击路径）。运行期不存在托管端交互；未知
+keyId 密文按一期语义 fail-closed（`getKey` 抛错）。
+
+### 本地 → Vault 迁移路径（唯一允许的材料混合窗口）
+
+1. **切换与轮换解耦**：切换 provider 时 active keyId 及其材料不变（旧 passphrase 原样导入 Vault 同 keyId）——滚动发布窗口内新旧副本密钥能力对称。切换完成后再独立执行"Vault 新增 key + 切 active + `reencryptAll`"的轮换步骤。
+2. **迁移窗口开启**：`nop.credential.vault.migration-keys` 声明残余 key（`keyId:passphrase`）——只用于解密旧密文，禁含 active key；每次启动 WARN 审计（列出残余 keyId 提示收尾）。
+3. **关窗前置条件**：全部密文的 keyId 属于 Vault key 集合（执行 `reencryptAll`——分页完备性已保证单次执行全覆盖）+ 清空 `nop.credential.master-keys`。
+4. **关窗后**：残余列表为空（正常态）；若存量密文仍引用残余 keyId（未完成迁移即清配置的部署失误），`getKey` 按一期"未知 keyId"fail-closed。
+5. **反向回退天然可行**：材料交付模式下材料可从 Vault 导出重建 local 配置（keyId 不变 → 密文零迁移）。
+
+### keyId → 材料不变式与配置禁区
+
+同一 keyId 在仍有 `cv1:{keyId}` 密文存续期间材料不可变。Vault 侧轮换必须以
+**新 keyId**（新 secret 路径 + 映射新增条目）进行；厂商"同名原地升版本"式轮换
+（KV v2 同路径删旧写新、AWS KMS 自动轮换、Vault Transit rotate 类）会使存量
+`cv1:{keyId}` 密文全部不可解，属配置禁区。密钥来源不混合：KMS 激活时
+`nop.credential.master-keys` 非空 = 启动拒绝（本地材料唯一合法存在形态 = 迁移残余列表）。
+
 ## 子模块
 
 | 子模块 | 职责 |
@@ -76,15 +133,16 @@
 | `nop-credential-dao` | ORM 实体与 DAO |
 | `nop-credential-meta` | xmeta 定义（`data` 列 `published=false` 明文边界） |
 | `nop-credential-service` | `ICredentialProvider` 实现（唯一解密点）+ `NopCredentialBizModel` + 凭证类型注册表 + `CredentialCipher` + OAuth 流程引擎（`service.oauth`：`OAuthFlowService`/`OAuthTokenClient`/`NopCredentialOauthStateStore`/`CredentialOAuthApiBizModel`） |
+| `nop-credential-kms-vault` | 外部 KMS 参照实现（可选部署）：`VaultCredentialKeyProvider`（Vault KV v2 材料交付，compile 依赖仅 api + `nop-http-api`，零 Vault SDK）；运行时需引入 raw HTTP client 模块（如 `nop-http-client-jdk`） |
 | `nop-credential-web` | AMIS 管理页面（动态表单） |
 
 ## 加密方案
 
 - **复用**：`AESTextCipher`（`nop-commons`）作为每个密钥的单钥加密器——AES/GCM/NoPadding、随机 12B IV、PBKDF2-SHA256(65536) 派生、`v1:` 输出。
 - **凭证库层包装**：`CredentialCipher`（`nop-credential-service`）输出 `cv1:{keyId}:{v1密文}`，解析 keyId 后委托对应 `AESTextCipher` 解内层 `v1:` 密文。
-- **主密钥来源**：环境变量/独立配置文件（不放入 application.yaml 明文），如 `NOP_CREDENTIAL_MASTER_KEYS` 或 `credential-keys.yaml`，格式为 `keyId:passphrase` 列表。
+- **主密钥来源**：环境变量/独立配置文件（不放入 application.yaml 明文），如 `NOP_CREDENTIAL_MASTER_KEYS` 或 `credential-keys.yaml`，格式为 `keyId:passphrase` 列表；或外部 KMS（`nop.credential.key-provider`，见上"外部 KMS/HSM 集成"章节）。
 - **keyId 约束**：只允许 `[A-Za-z0-9_-]`（`cv1:` 按冒号 split 无歧义的前提）。
-- **轮换**：新增 key 后 active key 指向新 key，新写入用新 key；旧密文按 `cv1:` 中的 keyId 仍可用旧 key 解密；`reencryptAll` 批量重加密（断点续跑，仅 admin）。
+- **轮换**：新增 key 后 active key 指向新 key，新写入用新 key；旧密文按 `cv1:` 中的 keyId 仍可用旧 key 解密；`reencryptAll` 批量重加密（确定性排序 orderBy credentialId + keyset 游标翻页，超批量单次执行全覆盖；页大小 `nop.credential.reencrypt-page-size` 缺省 1000；仅 admin）。
 
 ## 消费 SPI（ICredentialProvider）
 
@@ -140,6 +198,9 @@ OAuth 流程 API 面（`CredentialOAuthApiBizModel`）：`beginOAuthFlow(credent
 | 配置项 | 说明 |
 |--------|------|
 | 主密钥 | 环境变量 `NOP_CREDENTIAL_MASTER_KEYS` 或 `credential-keys.yaml`（`keyId:passphrase`，不放入 application.yaml 明文） |
+| 密钥来源选择 | `nop.credential.key-provider`（`local` 缺省 / `vault`） |
+| Vault KMS | `nop.credential.vault.*`（见上"外部 KMS/HSM 集成"配置项表） |
+| 重加密分页 | `nop.credential.reencrypt-page-size`（缺省 1000） |
 | OAuth 引擎 | `nop.credential.oauth.*`（见上"OAuth 配置项"表） |
 
 ## 源码锚点
@@ -152,6 +213,9 @@ OAuth 流程 API 面（`CredentialOAuthApiBizModel`）：`beginOAuthFlow(credent
 | OAuth 令牌端点客户端 | `nop-credential/nop-credential-service/src/main/java/io/nop/credential/service/oauth/OAuthTokenClient.java` |
 | OAuth 回调 API 面 | `nop-credential/nop-credential-service/src/main/java/io/nop/credential/service/oauth/CredentialOAuthApiBizModel.java` |
 | cv1 加解密 | `nop-credential/nop-credential-service/src/main/java/io/nop/credential/crypto/CredentialCipher.java` |
+| 主密钥 SPI | `nop-credential/nop-credential-api/src/main/java/io/nop/credential/api/crypto/ICredentialKeyProvider.java` |
+| 主密钥缺省实现（含 key-provider 守卫） | `nop-credential/nop-credential-service/src/main/java/io/nop/credential/crypto/DefaultCredentialKeyProvider.java` |
+| Vault KMS 参照实现 | `nop-credential/nop-credential-kms-vault/src/main/java/io/nop/credential/kms/vault/VaultCredentialKeyProvider.java`（装配 beans 文件：KMS 模块资源 `_vfs/nop/credential/beans/` 下的 `app-kms-vault.beans.xml`） |
 | 管理 BizModel | `nop-credential/nop-credential-service/src/main/java/io/nop/credential/service/entity/NopCredentialBizModel.java` |
 | ORM 模型 | `nop-credential/model/nop-credential.orm.xml` |
 | 类型元模型 | `nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/credential/credential-type.xdef` |
