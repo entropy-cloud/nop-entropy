@@ -239,12 +239,19 @@ public class TestOAuthFlowService extends JunitBaseTestCase {
         };
     }
 
-    /** 最小 IUserContext 实现（nop-credential 不依赖 nop-auth，无法用 UserContextImpl）。 */
+    /** 最小 IUserContext 实现（nop-credential 不依赖 nop-auth，无法用 UserContextImpl）。
+     *  W11 回补后发起动作对 system 级凭证要求管理员——默认测试用户带 admin 角色。 */
     private static final class TestUserContext implements IUserContext, IDirtyFlagSupport {
         private final String userId;
+        private final Set<String> roles;
 
         private TestUserContext(String userId) {
+            this(userId, Set.of("admin"));
+        }
+
+        private TestUserContext(String userId, Set<String> roles) {
             this.userId = userId;
+            this.roles = roles;
         }
 
         @Override
@@ -259,17 +266,22 @@ public class TestOAuthFlowService extends JunitBaseTestCase {
 
         @Override
         public boolean isUserInRole(String roleId) {
-            return false;
+            return roles.contains(roleId);
         }
 
         @Override
         public boolean isUserInAnyRole(Collection<String> roleIds) {
+            for (String role : roleIds) {
+                if (roles.contains(role)) {
+                    return true;
+                }
+            }
             return false;
         }
 
         @Override
         public Set<String> getRoles() {
-            return Collections.emptySet();
+            return roles;
         }
 
         @Override
@@ -381,6 +393,11 @@ public class TestOAuthFlowService extends JunitBaseTestCase {
     }
 
     private String saveCredentialRow(String id, String typeName, Map<String, Object> fields, String status) {
+        return saveCredentialRow(id, typeName, fields, status, null, null);
+    }
+
+    private String saveCredentialRow(String id, String typeName, Map<String, Object> fields, String status,
+                                     String scope, String ownerId) {
         IEntityDao<NopCredential> dao = daoProvider.daoFor(NopCredential.class);
         NopCredential entity = dao.newEntity();
         entity.setCredentialId(id);
@@ -389,6 +406,8 @@ public class TestOAuthFlowService extends JunitBaseTestCase {
         entity.setStatus(status != null ? status : "enabled");
         entity.setDelFlag((byte) 0);
         entity.setVersion(1);
+        entity.setScope(scope);
+        entity.setOwnerId(ownerId);
         entity.setData(credentialCipher.encrypt(JsonTool.stringify(fields)));
         dao.saveEntityDirectly(entity);
         return id;
@@ -766,5 +785,76 @@ public class TestOAuthFlowService extends JunitBaseTestCase {
                 () -> containerApiBizModel.beginOAuthFlow("no-such-credential-id", null));
         assertEquals(CredentialErrors.ERR_CREDENTIAL_NOT_FOUND.getErrorCode(), e.getErrorCode(),
                 "container-wired begin must fail closed on unknown credential");
+    }
+
+    // ==================== W11 回补：发起动作归属校验（§5.3 写类矩阵） ====================
+
+    @Test
+    public void beginOnSystemScopeByNonAdminRejected() {
+        String id = saveCredentialRow("cred-oauth-sys-nonadmin", TYPE_NAME, oauth2ManualFields(), "enabled",
+                "system", null);
+        IUserContext.set(new TestUserContext(TEST_USER_ID, Collections.emptySet()));
+
+        NopException ex = assertThrows(NopException.class, () -> flowService.beginOAuthFlow(id));
+        assertEquals("nop.err.credential.admin-required", ex.getErrorCode(),
+                "system-scope begin requires admin role");
+        assertEquals(0, stateStoreAllCount(), "no state binding must be persisted on denial");
+    }
+
+    @Test
+    public void beginOnSystemScopeByAdminAllowed() {
+        String id = saveCredentialRow("cred-oauth-sys-admin", TYPE_NAME, oauth2ManualFields(), "enabled",
+                "system", null);
+        IUserContext.set(new TestUserContext("admin-user", Set.of("admin")));
+
+        String authUrl = flowService.beginOAuthFlow(id);
+        assertNotNull(authUrl, "admin must be able to begin oauth flow for system-scope credential");
+    }
+
+    @Test
+    public void beginOnUserScopeByOwnerAllowed() {
+        String id = saveCredentialRow("cred-oauth-user-owner", TYPE_NAME, oauth2ManualFields(), "enabled",
+                "user", TEST_USER_ID);
+        IUserContext.set(new TestUserContext(TEST_USER_ID, Collections.emptySet()));
+
+        String authUrl = flowService.beginOAuthFlow(id);
+        assertNotNull(authUrl, "owner must be able to begin oauth flow for own user-scope credential");
+    }
+
+    @Test
+    public void beginOnUserScopeByOtherRejected() {
+        String id = saveCredentialRow("cred-oauth-user-other", TYPE_NAME, oauth2ManualFields(), "enabled",
+                "user", "someone-else");
+        IUserContext.set(new TestUserContext(TEST_USER_ID, Collections.emptySet()));
+
+        NopException ex = assertThrows(NopException.class, () -> flowService.beginOAuthFlow(id));
+        assertEquals("nop.err.credential.owner-or-admin", ex.getErrorCode(),
+                "non-owner non-admin must not begin oauth flow for others' user-scope credential");
+    }
+
+    @Test
+    public void beginOnUserScopeByAdminAllowed() {
+        String id = saveCredentialRow("cred-oauth-user-admin", TYPE_NAME, oauth2ManualFields(), "enabled",
+                "user", "someone-else");
+        IUserContext.set(new TestUserContext("admin-user", Set.of("admin")));
+
+        String authUrl = flowService.beginOAuthFlow(id);
+        assertNotNull(authUrl, "admin must be able to begin oauth flow for user-scope credential (§5.3 write matrix)");
+    }
+
+    @Test
+    public void beginOnNullScopeLegacyRowByNonAdminRejected() {
+        // 存量 NULL scope 行视同 system：非管理员发起同样拒绝（NULL 视同 system 的写面语义）
+        String id = saveCredentialRow("cred-oauth-null-nonadmin", TYPE_NAME, oauth2ManualFields(), "enabled");
+        IUserContext.set(new TestUserContext(TEST_USER_ID, Collections.emptySet()));
+
+        NopException ex = assertThrows(NopException.class, () -> flowService.beginOAuthFlow(id));
+        assertEquals("nop.err.credential.admin-required", ex.getErrorCode(),
+                "NULL-scope legacy row is treated as system: begin requires admin");
+    }
+
+    private long stateStoreAllCount() {
+        IEntityDao<NopCredentialOauthState> dao = daoProvider.daoFor(NopCredentialOauthState.class);
+        return dao.findAllByQuery(new io.nop.api.core.beans.query.QueryBean()).size();
     }
 }

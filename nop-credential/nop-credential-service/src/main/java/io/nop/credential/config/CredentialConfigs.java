@@ -69,4 +69,15 @@ public interface CredentialConfigs {
     @Description("OAuth 授权结果前端页 URL（回调跳转目标，可选）")
     IConfigReference<String> CFG_CREDENTIAL_OAUTH_RESULT_PAGE_URL = varRef(
             s_loc, "nop.credential.oauth.result-page-url", String.class, null);
+
+    // ==================== W11 凭证归属统一（nop.credential.admin-roles） ====================
+
+    /**
+     * 凭证库管理员角色 CSV（设计 §5.1 结论 8：与 nop-auth 事实管理员角色名对齐，缺省
+     * {@code admin,nop-admin}）。运行时经 {@code IUserContext.isUserInAnyRole} 判定；
+     * 凭证库不依赖 nop-auth 模块，角色名以本配置自持。
+     */
+    @Description("凭证库管理员角色 CSV（运行时 admin 判定依据，缺省 admin,nop-admin）")
+    IConfigReference<String> CFG_CREDENTIAL_ADMIN_ROLES = varRef(
+            s_loc, "nop.credential.admin-roles", String.class, "admin,nop-admin");
 }

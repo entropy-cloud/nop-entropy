@@ -8,6 +8,7 @@
 package io.nop.credential.service;
 
 import io.nop.api.core.annotations.txn.TransactionPropagation;
+import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
@@ -47,7 +48,9 @@ import java.util.function.Function;
  * <p>失败语义全部 fail-closed（Rule #24）：
  * <ul>
  *   <li>凭证不存在 → 抛 {@code ERR_CREDENTIAL_NOT_FOUND}</li>
- *   <li>凭证已软删除 → 抛 {@code ERR_CREDENTIAL_DELETED}（getCredential/getCredentialData/mask）</li>
+ *   <li>凭证已软删除 → 抛 {@code ERR_CREDENTIAL_DELETED}（getCredential/getCredentialData/mask，先序归属判定）</li>
+ *   <li>W11 归属不符 → 抛 {@code ERR_CREDENTIAL_OWNER_ONLY}（明文出口，owner 唯一）或
+ *       {@code ERR_CREDENTIAL_OWNER_OR_ADMIN}（mask/test，owner+管理员）；scope=system（含 NULL）放行</li>
  *   <li>解密失败 → 由 {@link CredentialCipher} 抛出（篡改/未知 keyId）</li>
  * </ul>
  *
@@ -114,6 +117,8 @@ public class CredentialProviderImpl implements ICredentialProvider {
     @Override
     public CredentialData getCredential(String credentialId) {
         NopCredential entity = loadActiveCredential(credentialId);
+        // W11 归属校验（设计 §5.3 per-method 矩阵，解密之前、fail-closed，先序 delFlag）
+        assertOwnershipForPlaintext(entity);
         Map<String, Object> fields = decryptToData(entity).getFields();
 
         // W9 惰性刷新：oauth2 类型 accessToken 临期 → 行锁互斥下先刷新再返回明文（设计 §3.3）
@@ -133,6 +138,8 @@ public class CredentialProviderImpl implements ICredentialProvider {
     @Override
     public TestResult testCredential(String credentialId) {
         NopCredential entity = loadActiveCredential(credentialId);
+        // W11 归属校验：user 级 owner+admin（进程内解密只回结果，属管理面动作）
+        assertOwnershipForMaskOrTest(entity);
 
         TestResult result = new TestResult(false,
                 "test not implemented for this credential type",
@@ -148,6 +155,8 @@ public class CredentialProviderImpl implements ICredentialProvider {
     @Override
     public MaskedCredential mask(String credentialId) {
         NopCredential entity = loadActiveCredential(credentialId);
+        // W11 归属校验：user 级 owner+admin（脱敏视图属管理面动作）
+        assertOwnershipForMaskOrTest(entity);
         CredentialData data = decryptToData(entity);
 
         Map<String, String> masked = new LinkedHashMap<>();
@@ -468,6 +477,45 @@ public class CredentialProviderImpl implements ICredentialProvider {
     private boolean isDeleted(NopCredential entity) {
         Byte delFlag = entity.getDelFlag();
         return delFlag != null && delFlag != 0;
+    }
+
+    // ==================== W11 归属校验（设计 §5.3 per-method 矩阵，解密之前） ====================
+
+    /**
+     * 明文出口（getCredential/getCredentialData）归属校验：scope=user 时 owner 唯一——
+     * 无用户上下文（后台任务/服务间调用）或 {@code userId != ownerId} 一律拒绝，
+     * <b>管理员不例外</b>（最小权限：管理面 mask/test 足以完成管理职责）。
+     *
+     * <p>scope=system（含存量 NULL）放行（一期行为不变）。调用序在 {@link #loadActiveCredential}
+     * 之后：delFlag 先序，已删凭证报 {@code ERR_CREDENTIAL_DELETED}，不进入归属判定、不泄露归属。
+     */
+    private void assertOwnershipForPlaintext(NopCredential entity) {
+        if (!CredentialOwnership.isUserScope(entity.getScope())) {
+            return;
+        }
+        IUserContext userContext = IUserContext.get();
+        if (!CredentialOwnership.isOwner(userContext, entity.getOwnerId())) {
+            throw new NopException(CredentialErrors.ERR_CREDENTIAL_OWNER_ONLY)
+                    .param(CredentialErrors.ARG_CREDENTIAL_ID, entity.getCredentialId())
+                    .param(CredentialErrors.ARG_OWNER_ID, entity.getOwnerId());
+        }
+    }
+
+    /**
+     * 管理面出口（mask/testCredential）归属校验：scope=user 时 owner 或管理员放行，
+     * 其余（含无用户上下文）拒绝。
+     */
+    private void assertOwnershipForMaskOrTest(NopCredential entity) {
+        if (!CredentialOwnership.isUserScope(entity.getScope())) {
+            return;
+        }
+        IUserContext userContext = IUserContext.get();
+        if (!CredentialOwnership.isOwner(userContext, entity.getOwnerId())
+                && !CredentialOwnership.isAdmin(userContext)) {
+            throw new NopException(CredentialErrors.ERR_CREDENTIAL_OWNER_OR_ADMIN)
+                    .param(CredentialErrors.ARG_CREDENTIAL_ID, entity.getCredentialId())
+                    .param(CredentialErrors.ARG_OWNER_ID, entity.getOwnerId());
+        }
     }
 
     @SuppressWarnings("unchecked")

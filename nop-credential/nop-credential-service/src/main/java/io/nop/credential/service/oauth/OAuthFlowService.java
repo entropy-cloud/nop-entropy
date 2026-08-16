@@ -18,6 +18,7 @@ import io.nop.credential.config.CredentialConfigs;
 import io.nop.credential.crypto.CredentialErrors;
 import io.nop.credential.dao.entity.NopCredential;
 import io.nop.credential.dao.entity.NopCredentialOauthState;
+import io.nop.credential.service.CredentialOwnership;
 import io.nop.credential.service.CredentialProviderImpl;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
@@ -96,7 +97,7 @@ public class OAuthFlowService {
      * 校验链：实例存在/未删/未禁用 → 类型为 oauth2。（登录态要求仅发起路径有——回调路径无
      * 登录态，以 state 绑定的发起人身份语义执行，见设计 §3.3 回调数据通道联合裁定。）
      */
-    private CredentialType requireOauth2Credential(String credentialId) {
+    private NopCredential requireOauth2Credential(String credentialId) {
         NopCredential entity = credentialDao().getEntityById(credentialId);
         if (entity == null) {
             throw new NopException(CredentialErrors.ERR_CREDENTIAL_NOT_FOUND)
@@ -116,7 +117,28 @@ public class OAuthFlowService {
             throw new NopException(CredentialErrors.ERR_CREDENTIAL_DISABLED)
                     .param(CredentialErrors.ARG_CREDENTIAL_ID, credentialId);
         }
-        return type;
+        return entity;
+    }
+
+    /**
+     * W11 回补：发起动作归属校验（设计 §5.3 写类矩阵，plan Phase 2）——scope=system 限管理员
+     * （无登录态不可能到达本方法：发起路径要求登录态）；scope=user 限 owner+管理员。
+     * 回调路径无登录态，以 state bearer capability 语义执行（归属校验已在发起时完成）。
+     */
+    private void assertBeginOwnership(NopCredential entity, IUserContext userContext) {
+        String denial = CredentialOwnership.writeDenialReason(userContext, entity.getScope(), entity.getOwnerId());
+        if (denial == null) {
+            return;
+        }
+        if ("admin-required".equals(denial)) {
+            throw new NopException(CredentialErrors.ERR_CREDENTIAL_ADMIN_REQUIRED)
+                    .param(CredentialErrors.ARG_CREDENTIAL_ID, entity.getCredentialId())
+                    .param(CredentialErrors.ARG_REQUIRED_ROLES,
+                            CredentialOwnership.adminRolesAsString(CredentialOwnership.adminRoles()));
+        }
+        throw new NopException(CredentialErrors.ERR_CREDENTIAL_OWNER_OR_ADMIN)
+                .param(CredentialErrors.ARG_CREDENTIAL_ID, entity.getCredentialId())
+                .param(CredentialErrors.ARG_OWNER_ID, entity.getOwnerId());
     }
 
     private IUserContext requireUserContext() {
@@ -142,11 +164,15 @@ public class OAuthFlowService {
      * 发起授权（登录态）：校验链通过后生成不可预测一次性 state、持久化绑定
      * （credentialId + 发起人 + TTL，创建时惰性清理过期行），返回授权 URL
      * （授权端点 + client_id + redirect_uri + scope + state + response_type=code）。
+     *
+     * <p>W11 回补：发起动作归属校验（system=管理员 / user=owner+管理员，设计 §5.3 写类矩阵）。
      */
     public String beginOAuthFlow(String credentialId) {
         IUserContext userContext = requireUserContext();
-        CredentialType type = requireOauth2Credential(credentialId);
+        NopCredential entity = requireOauth2Credential(credentialId);
+        assertBeginOwnership(entity, userContext);
 
+        CredentialType type = credentialTypeRegistry.getType(entity.getTypeName());
         Map<String, Object> fields = credentialProvider.engineGetDecryptedFields(credentialId);
         String clientId = (String) fields.get(FIELD_CLIENT_ID);
         String clientSecret = (String) fields.get(FIELD_CLIENT_SECRET);
@@ -197,7 +223,8 @@ public class OAuthFlowService {
         }
 
         String credentialId = binding.getCredentialId();
-        CredentialType type = requireOauth2Credential(credentialId);
+        NopCredential entity = requireOauth2Credential(credentialId);
+        CredentialType type = credentialTypeRegistry.getType(entity.getTypeName());
 
         Map<String, Object> fields = credentialProvider.engineGetDecryptedFields(credentialId);
         String clientId = (String) fields.get(FIELD_CLIENT_ID);

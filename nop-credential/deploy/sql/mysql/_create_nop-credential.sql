@@ -16,6 +16,8 @@ CREATE TABLE nop_credential(
   UPDATE_TIME DATETIME(3) NULL    COMMENT '更新时间',
   UPDATED_BY VARCHAR(50) NULL    COMMENT '更新人',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
+  SCOPE VARCHAR(20) NULL    COMMENT '凭证归属',
+  OWNER_ID VARCHAR(50) NULL    COMMENT '归属用户',
   constraint PK_nop_credential primary key (CREDENTIAL_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 

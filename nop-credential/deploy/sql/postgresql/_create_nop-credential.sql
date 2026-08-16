@@ -16,6 +16,8 @@ CREATE TABLE nop_credential(
   update_time TIMESTAMP  ,
   updated_by VARCHAR(50)  ,
   remark VARCHAR(200)  ,
+  scope VARCHAR(20)  ,
+  owner_id VARCHAR(50)  ,
   constraint PK_nop_credential primary key (credential_id)
 );
 
@@ -73,6 +75,10 @@ CREATE TABLE nop_credential_usage(
       COMMENT ON COLUMN nop_credential.updated_by IS '更新人';
                     
       COMMENT ON COLUMN nop_credential.remark IS '备注';
+                    
+      COMMENT ON COLUMN nop_credential.scope IS '凭证归属';
+                    
+      COMMENT ON COLUMN nop_credential.owner_id IS '归属用户';
                     
       COMMENT ON TABLE nop_credential_oauth_state IS 'OAuth授权State绑定';
                 

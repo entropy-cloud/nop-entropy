@@ -171,4 +171,43 @@ public interface CredentialErrors {
             "nop.err.credential.reserved-field-input",
             "saveCredential 输入包含 OAuth 引擎保留字段名（token 集只能由引擎写入）",
             ARG_FIELD_NAMES);
+
+    // ==================== W11 凭证归属统一（scope=system|user + ownerId） ====================
+
+    String ARG_SCOPE = "scope";
+    String ARG_OWNER_ID = "ownerId";
+    String ARG_REQUIRED_ROLES = "requiredRoles";
+
+    ErrorCode ERR_CREDENTIAL_OWNER_ONLY = define(
+            "nop.err.credential.owner-only",
+            "user 级凭证明文取用仅限 owner 本人（无用户上下文/非 owner 一律拒绝，管理员不例外）",
+            ARG_CREDENTIAL_ID, ARG_OWNER_ID);
+
+    ErrorCode ERR_CREDENTIAL_OWNER_OR_ADMIN = define(
+            "nop.err.credential.owner-or-admin",
+            "user 级凭证该操作仅限 owner 或管理员",
+            ARG_CREDENTIAL_ID, ARG_OWNER_ID);
+
+    ErrorCode ERR_CREDENTIAL_ADMIN_REQUIRED = define(
+            "nop.err.credential.admin-required",
+            "该操作要求凭证库管理员角色（nop.credential.admin-roles）",
+            ARG_CREDENTIAL_ID, ARG_REQUIRED_ROLES);
+
+    ErrorCode ERR_CREDENTIAL_INVALID_SCOPE = define(
+            "nop.err.credential.invalid-scope",
+            "scope 取值非法（合法值 system|user）", ARG_SCOPE);
+
+    ErrorCode ERR_CREDENTIAL_OWNER_REQUIRED = define(
+            "nop.err.credential.owner-required",
+            "scope=user 时 ownerId 必填（普通用户缺省为本人，管理员代建须显式指定）",
+            ARG_CREDENTIAL_ID);
+
+    ErrorCode ERR_CREDENTIAL_OWNER_NOT_ALLOWED = define(
+            "nop.err.credential.owner-not-allowed",
+            "scope=system 时 ownerId 必须为空", ARG_CREDENTIAL_ID);
+
+    ErrorCode ERR_CREDENTIAL_OWNERSHIP_IMMUTABLE = define(
+            "nop.err.credential.ownership-immutable",
+            "凭证归属不可变更（scope/ownerId 创建后固定；需要换人=删除旧凭证后新建）",
+            ARG_CREDENTIAL_ID, ARG_SCOPE, ARG_OWNER_ID);
 }

@@ -16,11 +16,13 @@ import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.annotations.graphql.GraphQLReturn;
 import io.nop.api.core.annotations.ioc.InjectValue;
+import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.PageBean;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.dao.exceptions.UnknownEntityException;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
@@ -36,15 +38,18 @@ import io.nop.credential.crypto.CredentialCipher;
 import io.nop.credential.crypto.CredentialErrors;
 import io.nop.credential.dao.entity.NopCredential;
 import io.nop.credential.dao.entity.NopCredentialUsage;
+import io.nop.credential.service.CredentialOwnership;
 import io.nop.credential.service.CredentialProviderImpl;
 import io.nop.dao.api.IEntityDao;
 import jakarta.inject.Inject;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static io.nop.biz.BizConstants.BIZ_OBJ_NAME_THIS_OBJ;
@@ -59,6 +64,17 @@ import static io.nop.biz.BizConstants.BIZ_OBJ_NAME_THIS_OBJ;
  *   <li>{@link #get} / {@link #findPage} 在返回前强制 {@code entity.setData(null)}（即使 xmeta 边界被绕过也无密文）</li>
  *   <li>{@link #saveCredential} 内部加密后持久化，返回的实体 {@code data} 已置 null</li>
  * </ol>
+ *
+ * <p><b>W11 归属两层防御</b>（设计 §5.3）：读类动作经 {@link #defaultPrepareQuery} 注入结构性过滤
+ * （非管理员可见「system 级（含存量 NULL）∨ 自己的 user 级」）；写类动作（saveCredential 修改路径/
+ * delete）前置分级（system=管理员，user=owner+管理员；无登录态的内部调用按一期行为放行 system 级、
+ * 拒绝 user 级）；单条越权访问（get/maskList/test）归一"不存在"语义（防 credentialId 枚举探测归属）。
+ * provider 层 per-method 归属校验为纵深防御（BizModel 面被绕过时第二道 fail-closed）。
+ *
+ * <p><b>继承动作面收口（W11）</b>：标准 {@code update}/{@code batchDelete}/{@code updateByQuery}/
+ * {@code deleteByQuery}/{@code copyForNew} 禁用（抛 {@link UnsupportedOperationException}，与标准
+ * {@code save} 同口径——分别堵直写密文/批量绕过/prepareQuery 旁路/引用计数绕过/复制密文行）；
+ * {@code batchGet} 改走行级可见性过滤语义。{@code reencryptAll} 限管理员。
  *
  * <p>其他自定义 action：{@link #maskList}、{@link #typeList}、{@link #test}、{@link #reencryptAll}。
  */
@@ -123,12 +139,21 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
      * token 破坏刷新状态机）。更新路径与惰性刷新共用同一行锁串行化入口（互斥覆盖
      * "刷新 vs 人工保存"）。非 oauth2 类型维持一期整包覆盖语义（零变更）。
      *
+     * <p><b>W11 归属输入（设计 §5.3，可选参数）</b>：{@code scope}/{@code ownerId} 均可不传——
+     * 创建缺省 = system（一期行为不变）；更新缺省 = 保持不变。规则：scope 取值 system|user；
+     * system 级 ownerId 强制空、创建限管理员（无登录态内部调用按一期行为放行）；user 级
+     * ownerId 必填——普通用户强制等于当前登录用户（不可指定他人），管理员可代建（指定他人
+     * owner，审计载体 = 行内 createdBy ≠ ownerId）；归属不可变（显式传入与存量不符即拒，
+     * "转让" = 删旧建新）。写分级：system 级限管理员、user 级限 owner+管理员。
+     *
      * <p>返回的实体 {@code data} 已置 null（不向调用方暴露密文）。
      *
      * @param typeName 凭证类型名（必须已注册，否则 fail-closed）
      * @param name     凭证显示名
      * @param fields   明文字段 map（必填、非空）
      * @param id       可选；提供则更新已存在凭证，不提供则新建
+     * @param scope    可选；凭证归属 system|user（创建缺省 system，更新缺省保持不变）
+     * @param ownerId  可选；user 级归属用户 userId（system 级必须为空）
      */
     @Description("保存凭证（明文输入路径，内部加密后持久化）")
     @BizMutation
@@ -138,6 +163,8 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
             @Name("name") String name,
             @Name("fields") Map<String, Object> fields,
             @Optional @Name("id") String id,
+            @Optional @Name("scope") String scope,
+            @Optional @Name("ownerId") String ownerId,
             IServiceContext context) {
 
         // fail-closed: 类型必须已知
@@ -155,6 +182,14 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
         if (fields == null || fields.isEmpty()) {
             throw new NopException(CredentialErrors.ERR_CREDENTIAL_FIELDS_REQUIRED)
                     .param(CredentialErrors.ARG_TYPE_NAME, typeName);
+        }
+
+        // W11 归属输入归一化：空串视同未传（一期调用不传 scope/ownerId = system，零迁移）
+        scope = CredentialOwnership.normalizeEmptyToNull(scope);
+        ownerId = CredentialOwnership.normalizeEmptyToNull(ownerId);
+        if (scope != null && !CredentialOwnership.isValidScope(scope)) {
+            throw new NopException(CredentialErrors.ERR_CREDENTIAL_INVALID_SCOPE)
+                    .param(CredentialErrors.ARG_SCOPE, scope);
         }
 
         // W9: oauth2 类型保留字段名拒绝（token 集只能由引擎写入，防伪造破坏刷新状态机）
@@ -175,11 +210,50 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
         NopCredential entity;
         boolean isNew = StringHelper.isEmpty(id);
         if (isNew) {
+            // W11 创建路径归属裁定（设计 §5.3）
+            String effectiveScope = scope == null ? CredentialOwnership.SCOPE_SYSTEM : scope;
+            String effectiveOwnerId = null;
+            IUserContext userContext = IUserContext.get();
+            boolean hasLogin = CredentialOwnership.hasLoginUser(userContext);
+            boolean admin = CredentialOwnership.isAdmin(userContext);
+            if (CredentialOwnership.SCOPE_USER.equals(effectiveScope)) {
+                if (!hasLogin) {
+                    // 无登录态（后台任务/服务间调用）无法确定 owner：拒绝创建 user 级
+                    throw new NopException(CredentialErrors.ERR_CREDENTIAL_OWNER_REQUIRED)
+                            .param(CredentialErrors.ARG_CREDENTIAL_ID, "");
+                }
+                if (admin) {
+                    // 管理员代建：ownerId 必填（可指定他人；审计载体 = 行内 createdBy ≠ ownerId）
+                    if (ownerId == null) {
+                        throw new NopException(CredentialErrors.ERR_CREDENTIAL_OWNER_REQUIRED)
+                                .param(CredentialErrors.ARG_CREDENTIAL_ID, "");
+                    }
+                    effectiveOwnerId = ownerId;
+                } else {
+                    // 普通用户建 user 级：ownerId 强制等于当前登录用户（不可指定他人）
+                    effectiveOwnerId = userContext.getUserId();
+                }
+            } else {
+                if (ownerId != null) {
+                    throw new NopException(CredentialErrors.ERR_CREDENTIAL_OWNER_NOT_ALLOWED)
+                            .param(CredentialErrors.ARG_CREDENTIAL_ID, "");
+                }
+                if (hasLogin && !admin) {
+                    throw new NopException(CredentialErrors.ERR_CREDENTIAL_ADMIN_REQUIRED)
+                            .param(CredentialErrors.ARG_CREDENTIAL_ID, "")
+                            .param(CredentialErrors.ARG_REQUIRED_ROLES,
+                                    CredentialOwnership.adminRolesAsString(CredentialOwnership.adminRoles()));
+                }
+                // 无登录态内部调用：维持一期行为（system 级可建）
+            }
+
             entity = dao.newEntity();
             entity.setCredentialId(StringHelper.generateUUID());
             entity.setDelFlag((byte) 0);
             entity.setVersion(1);
             entity.setCreateTime(new Timestamp(System.currentTimeMillis()));
+            entity.setScope(effectiveScope);
+            entity.setOwnerId(effectiveOwnerId);
 
             // 新建：保留字段已被拒绝出现，直接整包加密（一期路径不变）
             entity.setData(credentialCipher.encrypt(JsonTool.stringify(fields)));
@@ -189,6 +263,12 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
                 throw new NopException(CredentialErrors.ERR_CREDENTIAL_NOT_FOUND)
                     .param(CredentialErrors.ARG_CREDENTIAL_ID, id);
             }
+
+            // W11 写分级：system 级限管理员（无登录态内部调用按一期行为放行）、user 级限 owner+管理员
+            assertWriteAllowed(entity);
+
+            // W11 归属不可变：显式传入且与存量不符即拒（缺省不传 = 保持不变）
+            applyImmutableOwnershipInput(entity, scope, ownerId);
 
             // W9 分组写（oauth2）：元数据与 data 在同一行锁 UPDATE 内提交（锁下从当前 data
             // 解出保留字段合并，人工字段整包替换；与惰性刷新互斥串行化，无两步乐观锁竞争）
@@ -248,7 +328,7 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
         return entity;
     }
 
-    // ==================== 明文边界：get / findPage 强制清空 data ====================
+    // ==================== 明文边界 + 归属可见性：get / findPage ====================
 
     @Description("@i18n:biz.get|根据id获取单条数据")
     @BizQuery
@@ -259,6 +339,14 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
                              IServiceContext context) {
         NopCredential entity = super.get(id, ignoreUnknown, context);
         if (entity != null) {
+            // W11 单条越权归一"不存在"（与软删除同口径，防 credentialId 枚举探测归属）
+            IUserContext userContext = IUserContext.get();
+            if (!CredentialOwnership.canSee(userContext, entity.getScope(), entity.getOwnerId())) {
+                if (ignoreUnknown) {
+                    return null;
+                }
+                throw new UnknownEntityException(getEntityName(), id);
+            }
             // 防御性驱逐：避免 setData(null) 被事务 flush 回写数据库
             orm().requireSession().evict(entity);
             entity.setData(null);
@@ -284,11 +372,99 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
         return page;
     }
 
+    // ==================== W11 归属过滤与分级（设计 §5.3） ====================
+
+    /**
+     * 读类结构性过滤（{@code findPage}/{@code findList}/{@code findFirst}/{@code findCount} 统一经
+     * {@code invokeDefaultPrepareQuery} 调用本方法）：非管理员登录用户限定
+     * 「scope=system ∨ scope IS NULL ∨ (scope=user ∧ ownerId=本人)」（NULL 分支防存量行从普通
+     * 用户视野消失）；管理员不加过滤；无登录态（内部调用）不过滤（一期行为，provider 层仍
+     * fail-closed 明文出口）。归属过滤为结构性规则（硬编码语义），不做可配置数据权限。
+     */
+    @Override
+    protected void defaultPrepareQuery(QueryBean query, IServiceContext context) {
+        IUserContext userContext = IUserContext.get();
+        if (!CredentialOwnership.hasLoginUser(userContext) || CredentialOwnership.isAdmin(userContext)) {
+            return;
+        }
+        String userId = userContext.getUserId();
+        query.addFilter(FilterBeans.or(
+                FilterBeans.or(
+                        FilterBeans.eq(NopCredential.PROP_NAME_scope, CredentialOwnership.SCOPE_SYSTEM),
+                        FilterBeans.isNull(NopCredential.PROP_NAME_scope)),
+                FilterBeans.and(
+                        FilterBeans.eq(NopCredential.PROP_NAME_scope, CredentialOwnership.SCOPE_USER),
+                        FilterBeans.eq(NopCredential.PROP_NAME_ownerId, userId))));
+    }
+
+    /**
+     * 写分级（设计 §5.3 写类矩阵）：system 级限管理员（无登录态的内部调用按一期行为放行——
+     * GraphQL 入口在生产由 action-auth 管角色，此处为第二层）；user 级限 owner+管理员
+     * （无登录态拒绝——owner 无法判定）。
+     */
+    private void assertWriteAllowed(NopCredential entity) {
+        IUserContext userContext = IUserContext.get();
+        String denial = CredentialOwnership.writeDenialReason(userContext, entity.getScope(), entity.getOwnerId());
+        if (denial == null) {
+            return;
+        }
+        if ("admin-required".equals(denial)) {
+            throw new NopException(CredentialErrors.ERR_CREDENTIAL_ADMIN_REQUIRED)
+                    .param(CredentialErrors.ARG_CREDENTIAL_ID, entity.getCredentialId())
+                    .param(CredentialErrors.ARG_REQUIRED_ROLES,
+                            CredentialOwnership.adminRolesAsString(CredentialOwnership.adminRoles()));
+        }
+        throw new NopException(CredentialErrors.ERR_CREDENTIAL_OWNER_OR_ADMIN)
+                .param(CredentialErrors.ARG_CREDENTIAL_ID, entity.getCredentialId())
+                .param(CredentialErrors.ARG_OWNER_ID, entity.getOwnerId());
+    }
+
+    /**
+     * 归属不可变（设计 §5.3）：update 路径 scope/ownerId 缺省不传 = 保持不变；显式传入且与
+     * 存量不符即拒（存量 NULL scope 视同 system，传入 system 视为等值——顺带把 NULL 规范化为
+     * 显式 'system'，"新写入恒显式值"）。"转让"语义 = 删除旧凭证 + 新建（引用计数拦截保护消费方）。
+     */
+    private void applyImmutableOwnershipInput(NopCredential entity, String scope, String ownerId) {
+        if (scope != null) {
+            String storedScope = entity.getScope() == null ? CredentialOwnership.SCOPE_SYSTEM : entity.getScope();
+            if (!scope.equals(storedScope)) {
+                throw new NopException(CredentialErrors.ERR_CREDENTIAL_OWNERSHIP_IMMUTABLE)
+                        .param(CredentialErrors.ARG_CREDENTIAL_ID, entity.getCredentialId())
+                        .param(CredentialErrors.ARG_SCOPE, scope)
+                        .param(CredentialErrors.ARG_OWNER_ID, entity.getOwnerId());
+            }
+            entity.setScope(scope); // NULL → 显式 system 的等值规范化
+        }
+        if (ownerId != null && !ownerId.equals(entity.getOwnerId())) {
+            throw new NopException(CredentialErrors.ERR_CREDENTIAL_OWNERSHIP_IMMUTABLE)
+                    .param(CredentialErrors.ARG_CREDENTIAL_ID, entity.getCredentialId())
+                    .param(CredentialErrors.ARG_SCOPE, entity.getScope())
+                    .param(CredentialErrors.ARG_OWNER_ID, ownerId);
+        }
+    }
+
+    /**
+     * 单条访问可见性预检（maskList/test 用）：不可见（含不存在）一律按 {@code ERR_CREDENTIAL_NOT_FOUND}
+     * 归一——先于 provider 调用，避免 provider 的显式归属错误码泄露归属存在性（设计 §5.3）。
+     */
+    private void requireVisibleForSingleAccess(String credentialId) {
+        IUserContext userContext = IUserContext.get();
+        NopCredential entity = dao().getEntityById(credentialId);
+        if (entity == null || !CredentialOwnership.canSee(userContext, entity.getScope(), entity.getOwnerId())) {
+            throw new NopException(CredentialErrors.ERR_CREDENTIAL_NOT_FOUND)
+                    .param(CredentialErrors.ARG_CREDENTIAL_ID, credentialId);
+        }
+    }
+
     // ==================== 自定义查询 action ====================
 
     /**
      * 批量返回凭证的脱敏视图（敏感字段→{@code ****}，非敏感字段截断）。
      * 用于 UI 展示，不暴露明文。
+     *
+     * <p>W11：BizModel 层先做行级可见性预检（不可见即按 NOT_FOUND 归一，再调 provider——
+     * 否则 provider 的显式归属错误码会泄露归属存在性）；provider 层 mask 归属校验
+     * （user 级 owner+admin）为纵深防御。
      */
     @Description("批量获取凭证脱敏视图")
     @BizQuery
@@ -298,6 +474,7 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
         }
         List<MaskedCredential> result = new ArrayList<>(ids.size());
         for (String id : ids) {
+            requireVisibleForSingleAccess(id);
             result.add(credentialProvider.mask(id));
         }
         return result;
@@ -339,10 +516,14 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
 
     /**
      * 触发凭证连通性测试，更新实体的 {@code testResult} 和 {@code lastUsedAt}。
+     *
+     * <p>W11：BizModel 层先做行级可见性预检（不可见即按 NOT_FOUND 归一，防归属探测）；
+     * provider 层 testCredential 归属校验（user 级 owner+admin）为纵深防御。
      */
     @Description("测试凭证连通性")
     @BizMutation
     public TestResult test(@Name("id") String credentialId) {
+        requireVisibleForSingleAccess(credentialId);
         TestResult result = credentialProvider.testCredential(credentialId);
 
         // 额外更新 lastUsedAt（testCredential 只更新 testResult）
@@ -387,6 +568,16 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
     @Description("批量重新加密所有凭证（密钥轮换）")
     @BizMutation
     public int reencryptAll() {
+        // W11：全量敏感操作限管理员（进程内重加密不出明文，但触及全部密文；无登录态内部
+        // 调用按一期行为放行——KMS 迁移等运维通道）
+        IUserContext userContext = IUserContext.get();
+        if (CredentialOwnership.hasLoginUser(userContext) && !CredentialOwnership.isAdmin(userContext)) {
+            throw new NopException(CredentialErrors.ERR_CREDENTIAL_ADMIN_REQUIRED)
+                    .param(CredentialErrors.ARG_CREDENTIAL_ID, "")
+                    .param(CredentialErrors.ARG_REQUIRED_ROLES,
+                            CredentialOwnership.adminRolesAsString(CredentialOwnership.adminRoles()));
+        }
+
         IEntityDao<NopCredential> dao = dao();
         String activeKeyId = keyProvider.getActiveKeyId();
 
@@ -454,11 +645,15 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
         return rest.substring(0, colonIdx);
     }
 
-    // ==================== 删除引用计数拦截 ====================
+    // ==================== 删除引用计数拦截 + W11 写分级 ====================
 
     /**
-     * 覆盖标准 {@code delete}：在 ORM 删除前先做引用计数检查，活跃引用存在时 fail-closed
-     * （遵循 Plan Phase 2 + Rule #24 禁止静默跳过）。
+     * 覆盖标准 {@code delete}：删除前先做 W11 写分级与可见性归一，再做引用计数检查，活跃引用
+     * 存在时 fail-closed（遵循 Plan Phase 2 + Rule #24 禁止静默跳过）。
+     *
+     * <p>W11：不可见目标（非管理员访问他人 user 级）归一"不存在"（UnknownEntityException，
+     * 与 {@code get} 同口径）；可见目标的写分级 = system 级限管理员（无登录态内部调用按一期
+     * 行为放行）、user 级限 owner+管理员。
      *
      * <p>委托给 {@link CrudBizModel#doDelete}，通过 {@code prepareDelete} 回调插入引用检查与
      * 业务级禁用。ORM 的 {@code useLogicalDelete} 会自动设置 {@code delFlag=true}，
@@ -470,6 +665,16 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
     @BizMutation
     @Override
     public boolean delete(@Name("id") String id, IServiceContext context) {
+        NopCredential entity = dao().getEntityById(id);
+        if (entity == null) {
+            return true; // 与基类 doDelete 的幂等语义一致
+        }
+        IUserContext userContext = IUserContext.get();
+        if (!CredentialOwnership.canSee(userContext, entity.getScope(), entity.getOwnerId())) {
+            // 单条越权归一"不存在"（防 credentialId 枚举探测归属）
+            throw new UnknownEntityException(getEntityName(), id);
+        }
+        assertWriteAllowed(entity);
         return super.doDelete(id, null, this::prepareDeleteWithUsageCheck, context);
     }
 
@@ -491,5 +696,92 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
         }
         // 业务级禁用（ORM useLogicalDelete 会同时设置 delFlag=true）
         entity.setStatus("disabled");
+    }
+
+    // ==================== W11 继承动作面收口（六个旁路，设计 §5.3） ====================
+
+    /**
+     * 禁用标准 {@code update}（与标准 {@code save} 同口径）：绕过加密（data 直写）、归属不可变
+     * 与写分级校验的旁路，更新必须走 {@link #saveCredential}。
+     */
+    @Description("禁用标准 update，请使用 saveCredential")
+    @BizMutation
+    @Override
+    @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
+    public NopCredential update(@Name("data") Map<String, Object> data, IServiceContext context) {
+        throw new UnsupportedOperationException("use saveCredential action instead: standard update bypasses encryption/ownership checks");
+    }
+
+    /**
+     * 禁用标准 {@code batchDelete}：绕过逐条写分级与归属不可变语义；删除必须逐条走
+     * {@link #delete}（引用计数拦截 + 写分级）。
+     */
+    @Description("禁用标准 batchDelete，请逐条使用 delete")
+    @BizMutation
+    @Override
+    public Set<String> batchDelete(@Name("ids") Set<String> ids, IServiceContext context) {
+        throw new UnsupportedOperationException("standard batchDelete is disabled for credentials: use delete action per id");
+    }
+
+    /**
+     * 禁用 {@code updateByQuery}：基类实现 {@code prepareQuery} 传 null，绕过读类结构性过滤
+     * 批量改元数据（归属列也在元数据面）。
+     */
+    @Description("禁用 updateByQuery（绕过归属过滤的旁路）")
+    @BizMutation
+    @Override
+    public int updateByQuery(@Name("query") QueryBean query, @Name("data") Map<String, Object> data,
+                             IServiceContext context) {
+        throw new UnsupportedOperationException("updateByQuery is disabled for credentials: it bypasses the ownership read filter");
+    }
+
+    /**
+     * 禁用 {@code deleteByQuery}：基类实现经 {@code doDeleteByQuery → doDeleteMulti → doDelete}
+     * 调用 {@code invokeDefaultPrepareDelete}，不经过本类覆盖的 {@code delete}/引用计数拦截，
+     * 破坏一期"活跃引用存在时拒绝删除"契约，必须禁用。
+     */
+    @Description("禁用 deleteByQuery（绕过引用计数拦截，破坏一期契约）")
+    @BizMutation
+    @Override
+    public int deleteByQuery(@Name("query") QueryBean query, IServiceContext context) {
+        throw new UnsupportedOperationException("deleteByQuery is disabled for credentials: it bypasses the usage-reference-count interception");
+    }
+
+    /**
+     * 禁用 {@code copyForNew}：读源实体克隆保存在 {@code saveCredential} 之外复制凭证行
+     * （含密文 data），绕过加密入口与归属创建规则。
+     */
+    @Description("禁用 copyForNew（在 saveCredential 之外复制密文行）")
+    @BizMutation
+    @Override
+    @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
+    public NopCredential copyForNew(@Name("data") Map<String, Object> data, IServiceContext context) {
+        throw new UnsupportedOperationException("copyForNew is disabled for credentials: it duplicates the ciphertext row outside saveCredential");
+    }
+
+    /**
+     * {@code batchGet} 改走行级可见性过滤语义（W11 收口裁定：过滤而非禁用——UI 批量取数合法
+     * 场景保留）：不可见行从结果中剔除（与 {@code get} 的"归一不存在"同口径的批量形式）。
+     * （{@code batchUpdate}/{@code batchModify}/{@code saveOrUpdate} 内部委托已禁用的
+     * {@code update}/{@code save}，禁用后自动失效。）
+     */
+    @Description("@i18n:biz.batchGet|根据主键批量获取对象")
+    @BizQuery
+    @Override
+    @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
+    public List<NopCredential> batchGet(@Name("ids") Collection<String> ids,
+                                        @Optional @Name("ignoreUnknown") boolean ignoreUnknown,
+                                        IServiceContext context) {
+        List<NopCredential> list = super.batchGet(ids, ignoreUnknown, context);
+        if (list.isEmpty()) {
+            return list;
+        }
+        IUserContext userContext = IUserContext.get();
+        if (!CredentialOwnership.hasLoginUser(userContext) || CredentialOwnership.isAdmin(userContext)) {
+            return list;
+        }
+        return list.stream()
+                .filter(entity -> CredentialOwnership.canSee(userContext, entity.getScope(), entity.getOwnerId()))
+                .collect(Collectors.toList());
     }
 }
