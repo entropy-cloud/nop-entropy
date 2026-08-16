@@ -170,7 +170,7 @@ Targets: `RecordMappingTool.java`, `RecordMappingConfig.java`, `RecordFieldMappi
 - Item Types: `Fix | Proof | Decision`
 
 - [ ] **Decision**（D3）：删除 `RecordMappingTool.PATH_MATCHER`/`PATTERN_CACHE`（私有字段，无引用）、`RecordFieldMappingConfig.objName`（私有字段，无读写）、`RecordMappingConfig.getFieldFroms()`（public 方法，仓库内零调用，SNAPSHOT 版本，删除无兼容负担）。**`getFieldByFrom()` 不删除**（审查 Blocker 修复——B9 的 ignoreUnknownFields 跳过机制以它为非抛错查找，成为新使用方）。保留 `requireFieldByFrom`（md parser 使用）。
-- [ ] **Proof**（D3）：grep 断言 3 处死代码（PATH_MATCHER/PATTERN_CACHE/objName/getFieldFroms）零引用 + 模块编译通过。行为级测试不适用死代码删除，按指南标注 `No new test required: dead code removal`（审查 Minor 1），以删除前 grep 命中清单 + 删除后编译/测试全绿作为验证。
+- [ ] **Proof**（D3）：grep 断言 4 个死代码符号（PATH_MATCHER/PATTERN_CACHE/objName/getFieldFroms）零引用 + 模块编译通过。行为级测试不适用死代码删除，按指南标注 `No new test required: dead code removal`（审查 Minor 1），以删除前 grep 命中清单 + 删除后编译/测试全绿作为验证。
 - [ ] **Fix**（D3）：删除上述死代码。
 - [ ] **Proof**（D4）：新增测试资源 `demo-both-directions.record-mappings.xml`（显式定义 `A_to_B` 与 `B_to_A`，后者带 marker 字段）——加载后 `B_to_A` 是显式版（无重复定义报错/无自动生成版覆盖）；扩展 demo 使反向映射字段携带 defaultValue/varName/keyProp，断言自动生成的反映射保留这些属性；**并增加 flatten 字段反向断言**（审查 Major M1）：原字段 flattenFrom=true 的反映射应为 flattenTo=true（反向互换），flattenTo=true 的反映射应为 flattenFrom=true。先运行确认当前 FAIL（重复定义或属性丢失或 flatten 方向未互换）。
 - [ ] **Fix**（D4）：`record-mapping-gen.xlib`——(a) 反向名已显式定义时跳过自动生成；(b) `split('_to_')` 长度≠2 时跳过（不产生 `name="${null}"`）；(c) 反向字段复制属性时 **flattenFrom/flattenTo 反向互换**（原 flattenFrom→反向 flattenTo，原 flattenTo→反向 flattenFrom，审查 Major M1；原因：反向字段的 from/name 已互换，展平方向必须随之翻转），其余补复制 defaultValue/varName/virtual/keyProp/itemFilterExpr/newInstanceExpr/newItemExpr/ignoreWhenEmpty/disableFromPropPath/disableToPropPath（表达式类属性 when/computeExpr/valueExpr/valueMapper/before/after 不复制——反向语义不明，文档注明）。
