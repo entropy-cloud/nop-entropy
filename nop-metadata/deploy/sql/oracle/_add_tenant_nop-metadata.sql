@@ -242,14 +242,8 @@ alter table nop_meta_quality_result add constraint UK_NOP_META_QUALITY_RESULT_CP
                 alter table nop_meta_glossary_term drop constraint UK_NOP_META_GLOSSARY_TERM_FQN;
 alter table nop_meta_glossary_term add constraint UK_NOP_META_GLOSSARY_TERM_FQN unique (NOP_TENANT_ID,FULLY_QUALIFIED_NAME);
 
-                alter table nop_meta_glossary_term drop constraint UK_NOP_META_GLOSSARY_TERM_G_FQN;
-alter table nop_meta_glossary_term add constraint UK_NOP_META_GLOSSARY_TERM_G_FQN unique (NOP_TENANT_ID,GLOSSARY_ID,FULLY_QUALIFIED_NAME);
-
                 alter table nop_meta_tag drop constraint UK_NOP_META_TAG_FQN;
 alter table nop_meta_tag add constraint UK_NOP_META_TAG_FQN unique (NOP_TENANT_ID,FULLY_QUALIFIED_NAME);
-
-                alter table nop_meta_tag drop constraint UK_NOP_META_TAG_CLS_FQN;
-alter table nop_meta_tag add constraint UK_NOP_META_TAG_CLS_FQN unique (NOP_TENANT_ID,CLASSIFICATION_ID,FULLY_QUALIFIED_NAME);
 
                 alter table nop_meta_data_product drop constraint UK_NOP_META_DATA_PRODUCT_DOMAIN_NAME;
 alter table nop_meta_data_product add constraint UK_NOP_META_DATA_PRODUCT_DOMAIN_NAME unique (NOP_TENANT_ID,BUSINESS_DOMAIN_ID,NAME);

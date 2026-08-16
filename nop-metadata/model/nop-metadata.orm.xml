@@ -3071,10 +3071,14 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
             </columns>
             <unique-keys>
+                <!-- P2-29 裁决（plan 2026-08-16-0920-1）：删除冗余 per-scope UK NOP_META_GLOSSARY_TERM_G_FQN
+                     (glossaryId,fullyQualifiedName)。蕴含关系：非 NULL FQN 行全局 (fullyQualifiedName)
+                     唯一 ⇒ (glossaryId,fullyQualifiedName) 唯一，删除后约束集语义不变（行为零变化）；
+                     NULL FQN 行在两个 UK 形态下均豁免（NULL-distinct）。glossary 维度查询由
+                     IX_NOP_META_GLOSSARY_TERM_GLOSSARY 承载。FQN=全局唯一身份语义（seed "BuiltIn." 前缀
+                     约定），跨 glossary 同名 FQN 仍被本全局 UK 拒绝。 -->
                 <unique-key name="UK_NOP_META_GLOSSARY_TERM_FQN" columns="fullyQualifiedName" constraint="UK_NOP_META_GLOSSARY_TERM_FQN"
                             i18n-en:displayName="Unique Term Fully Qualified Name"/>
-                <unique-key name="UK_NOP_META_GLOSSARY_TERM_G_FQN" columns="glossaryId,fullyQualifiedName" constraint="UK_NOP_META_GLOSSARY_TERM_G_FQN"
-                            i18n-en:displayName="Unique Term Per Glossary"/>
             </unique-keys>
             <relations>
                 <to-one displayName="所属词汇表" name="glossary"
@@ -3237,10 +3241,15 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
             </columns>
             <unique-keys>
+                <!-- P2-29 裁决（plan 2026-08-16-0920-1）：删除冗余 per-scope UK NOP_META_TAG_CLS_FQN
+                     (classificationId,fullyQualifiedName)。蕴含关系：非 NULL FQN 行（Tag FQN mandatory）
+                     全局 (fullyQualifiedName) 唯一 ⇒ (classificationId,fullyQualifiedName) 唯一，删除后
+                     约束集语义不变（行为零变化）。classification 维度查询由 IX_NOP_META_TAG_CLASSIFICATION
+                     承载；findTagByFQN（FQN+classificationId 过滤）结果集在全局唯一语义下恒同。
+                     FQN=全局唯一身份语义（自动构建 classification 名前缀），跨 classification 同名 FQN
+                     仍被本全局 UK 拒绝。 -->
                 <unique-key name="UK_NOP_META_TAG_FQN" columns="fullyQualifiedName" constraint="UK_NOP_META_TAG_FQN"
                             i18n-en:displayName="Unique Tag Fully Qualified Name"/>
-                <unique-key name="UK_NOP_META_TAG_CLS_FQN" columns="classificationId,fullyQualifiedName" constraint="UK_NOP_META_TAG_CLS_FQN"
-                            i18n-en:displayName="Unique Tag Per Classification"/>
             </unique-keys>
             <relations>
                 <to-one displayName="所属分类" name="classification"
@@ -3441,6 +3450,12 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
             </columns>
             <unique-keys>
+                <!-- P2-28 裁决（plan 2026-08-16-0920-1）：本 UK 对根域（parentDomainId NULL）不生效——
+                     标准 SQL NULL-distinct 语义：复合 UK 任一列 NULL 即豁免唯一性。根域重名由
+                     NopMetaBusinessDomainBizModel 应用层守卫防护（save/update 按
+                     (parentDomainId IS NULL, name) 查重，fail-loud）；非根域由本 UK 数据库级拒绝。
+                     sentinel 结构改造（根域 parentDomainId 写哨兵值）经影响面评估否决：IS NULL 消费面
+                     迁移 + 存量数据 UPDATE + Oracle ''≡NULL 不可移植，收益不抵成本（见 plan 裁决表）。 -->
                 <unique-key name="UK_NOP_META_BUSINESS_DOMAIN_PARENT_NAME" constraint="UK_NOP_META_BUSINESS_DOMAIN_PARENT_NAME"
                             columns="parentDomainId,name"
                             i18n-en:displayName="Unique Domain Name Per Parent"/>

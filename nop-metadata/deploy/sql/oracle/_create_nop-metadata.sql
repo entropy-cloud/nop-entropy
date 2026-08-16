@@ -326,7 +326,6 @@ CREATE TABLE nop_meta_glossary_term(
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR2(200)  ,
   constraint UK_NOP_META_GLOSSARY_TERM_FQN unique (FULLY_QUALIFIED_NAME),
-  constraint UK_NOP_META_GLOSSARY_TERM_G_FQN unique (GLOSSARY_ID,FULLY_QUALIFIED_NAME),
   constraint PK_nop_meta_glossary_term primary key (GLOSSARY_TERM_ID)
 );
 
@@ -348,7 +347,6 @@ CREATE TABLE nop_meta_tag(
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR2(200)  ,
   constraint UK_NOP_META_TAG_FQN unique (FULLY_QUALIFIED_NAME),
-  constraint UK_NOP_META_TAG_CLS_FQN unique (CLASSIFICATION_ID,FULLY_QUALIFIED_NAME),
   constraint PK_nop_meta_tag primary key (TAG_ID)
 );
 

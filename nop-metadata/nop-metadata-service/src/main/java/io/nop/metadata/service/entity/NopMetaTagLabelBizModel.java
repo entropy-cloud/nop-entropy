@@ -9,6 +9,7 @@ import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
+import io.nop.metadata.service.NopMetadataArgs;
 import io.nop.metadata.service.NopMetadataHelper;
 
 import io.nop.api.core.time.CoreMetrics;
@@ -86,6 +87,13 @@ public class NopMetaTagLabelBizModel extends CrudBizModel<NopMetaTagLabel> imple
 
         NopMetaTagLabel saved = super.save(effectiveData, context);
 
+        // P2-01（plan 2026-08-16-0920-1，裁决选项 ii）：GLOSSARY 来源、tagId=NULL 的行不被
+        // UK_NOP_META_TAG_LABEL 约束（复合 UK 任一列 NULL 即豁免唯一性，NULL-distinct），
+        // 显式客户端 save/update 可累积重复行。守卫在 super.save 之后对最终实体状态查重
+        // （部分字段 update 形态经基类合并后才可见完整列值），命中 fail-loud 抛出，
+        // mutation 事务整体回滚（与 P2-09 trySubmitForApproval 失败回滚同语义）。
+        rejectDuplicateGlossaryTermLabel(saved);
+
         if ("Glossary".equals(saved.getSource()) && saved.getGlossaryTermId() != null) {
             propagateFromGlossaryTerm(saved, context);
         }
@@ -93,6 +101,44 @@ public class NopMetaTagLabelBizModel extends CrudBizModel<NopMetaTagLabel> imple
         triggerApprovalIfNeeded(saved, context);
 
         return saved;
+    }
+
+    @Override
+    public NopMetaTagLabel update(@Name("data") Map<String, Object> data, IServiceContext context) {
+        NopMetaTagLabel updated = super.update(data, context);
+        // P2-01：update 写入面对称防护（改 entityId/glossaryTermId 撞向既有 GLOSSARY null-tag 行
+        // 与重复 save 同族），与 save 共用同一守卫与查重键。
+        rejectDuplicateGlossaryTermLabel(updated);
+        return updated;
+    }
+
+    /**
+     * P2-01 查重守卫：仅覆盖 DB UK 的 NULL-distinct 豁免面（source=Glossary 且 tagId=NULL
+     * 且 glossaryTermId 非 NULL）。查重键与 UK_NOP_META_TAG_LABEL 对齐扩展：
+     * (entityType, entityId, source, glossaryTermId, tagId IS NULL)，save/update 带自身
+     * id 时排除自身（幂等自更新不误伤）。tagId 非 NULL 的行（含 GLOSSARY source）继续由
+     * DB UK 数据库级拒绝，守卫不接管。沿 existingPropagatedLabel（Derived 预检）与
+     * ERR_SQL_VIEW_TABLE_EXISTS（find-or-fail）先例。
+     */
+    private void rejectDuplicateGlossaryTermLabel(NopMetaTagLabel label) {
+        if (label == null || !"Glossary".equals(label.getSource())
+                || label.getTagId() != null || label.getGlossaryTermId() == null) {
+            return;
+        }
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq(NopMetaTagLabel.PROP_NAME_entityType, label.getEntityType()));
+        q.addFilter(FilterBeans.eq(NopMetaTagLabel.PROP_NAME_entityId, label.getEntityId()));
+        q.addFilter(FilterBeans.eq(NopMetaTagLabel.PROP_NAME_source, label.getSource()));
+        q.addFilter(FilterBeans.eq(NopMetaTagLabel.PROP_NAME_glossaryTermId, label.getGlossaryTermId()));
+        q.addFilter(FilterBeans.isNull(NopMetaTagLabel.PROP_NAME_tagId));
+        boolean hasOther = dao().findAllByQuery(q).stream()
+                .anyMatch(row -> !row.getTagLabelId().equals(label.getTagLabelId()));
+        if (hasOther) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_TAG_LABEL_DUPLICATE_GLOSSARY_TERM)
+                    .param(NopMetadataArgs.ARG_ENTITY_TYPE, label.getEntityType())
+                    .param(NopMetadataArgs.ARG_ENTITY_ID, label.getEntityId())
+                    .param(NopMetadataArgs.ARG_GLOSSARY_TERM_ID, label.getGlossaryTermId());
+        }
     }
 
     private void triggerApprovalIfNeeded(NopMetaTagLabel entity, IServiceContext context) {

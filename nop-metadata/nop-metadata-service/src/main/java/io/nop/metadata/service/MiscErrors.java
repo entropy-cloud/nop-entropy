@@ -95,6 +95,26 @@ interface MiscErrors extends NopMetadataArgs {
                     "TagLabel save failed (automated/propagated label could not be persisted, failing loudly "
                             + "instead of silent drop): {entityType} entityId={entityId} tagId={tagId} -- {error}",
                     ARG_ENTITY_TYPE, ARG_ENTITY_ID, ARG_TAG_ID, ARG_ERROR);
+    // P2-01（plan 2026-08-16-0920-1，裁决选项 ii）：GLOSSARY 来源、tagId=NULL 的标注行不被
+    // UK_NOP_META_TAG_LABEL 约束（复合 UK 任一列 NULL 即豁免唯一性），显式客户端 save 可累积重复行。
+    // 应用层查重守卫 fail-loud 拒绝（沿 existingPropagatedLabel / ERR_SQL_VIEW_TABLE_EXISTS 先例），UK 保持不变。
+    ErrorCode ERR_TAG_LABEL_DUPLICATE_GLOSSARY_TERM =
+            ErrorCode.define("nop.err.metadata.tag-label-duplicate-glossary-term",
+                    "Duplicate glossary term tag label rejected (source=Glossary rows with null tagId are not "
+                            + "covered by UK_NOP_META_TAG_LABEL due to NULL-distinct semantics): "
+                            + "entityType={entityType} entityId={entityId} glossaryTermId={glossaryTermId}",
+                    ARG_ENTITY_TYPE, ARG_ENTITY_ID, ARG_GLOSSARY_TERM_ID);
+
+    // ===== BusinessDomain =====
+
+    // P2-28（plan 2026-08-16-0920-1）：UK_NOP_META_BUSINESS_DOMAIN_PARENT_NAME 对根域
+    // （parentDomainId NULL）不生效（NULL-distinct），应用层根域重名守卫 fail-loud 拒绝，UK 保持不变。
+    ErrorCode ERR_BUSINESS_DOMAIN_DUPLICATE_ROOT_NAME =
+            ErrorCode.define("nop.err.metadata.business-domain-duplicate-root-name",
+                    "Duplicate root business domain name rejected (root domains with null parentDomainId are not "
+                            + "covered by UK_NOP_META_BUSINESS_DOMAIN_PARENT_NAME due to NULL-distinct semantics): "
+                            + "name={name}",
+                    ARG_NAME);
 
     // ===== Propagation =====
 

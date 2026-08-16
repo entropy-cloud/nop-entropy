@@ -102,6 +102,8 @@ public interface NopMetadataArgs {
     String ARG_ENTITY_TYPE = "entityType";
     String ARG_TAG_ID = "tagId";
     String ARG_TAG_LABEL_ID = "tagLabelId";
+    String ARG_GLOSSARY_TERM_ID = "glossaryTermId";
+    String ARG_BUSINESS_DOMAIN_ID = "businessDomainId";
     String ARG_LABEL_TYPE = "labelType";
     String ARG_DATA_PRODUCT_ID = "dataProductId";
     String ARG_LENGTH = "length";

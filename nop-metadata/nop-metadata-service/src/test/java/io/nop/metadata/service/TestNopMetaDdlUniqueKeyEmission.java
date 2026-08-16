@@ -11,6 +11,7 @@ import io.nop.orm.model.OrmUniqueKeyModel;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -135,8 +136,58 @@ public class TestNopMetaDdlUniqueKeyEmission extends JunitBaseTestCase {
         }
     }
 
+    /**
+     * P2-29（plan-2026-08-16-0920-1）：删除冗余 per-scope FQN UK
+     * （UK_NOP_META_GLOSSARY_TERM_G_FQN / UK_NOP_META_TAG_CLS_FQN）——非 NULL FQN 行
+     * 全局 (fullyQualifiedName) UK 逻辑蕴含 per-scope UK，删除后约束语义不变。
+     * 断言：模型 UK 集 = 仅全局 FQN UK；三方言 DDL 发射全局 UK 且不再发射 per-scope 名
+     * （防止删除后生成物残留或全局 UK 误删）。
+     */
+    @Test
+    public void testFqnUniqueKeySetAfterP229Adjudication() {
+        OrmEntityModel term = entityModel("io.nop.metadata.dao.entity.NopMetaGlossaryTerm");
+        assertNotNull(term, "NopMetaGlossaryTerm model must be loaded");
+        assertTrue(hasUniqueKey(term, "UK_NOP_META_GLOSSARY_TERM_FQN"),
+                "global FQN UK must be kept on NopMetaGlossaryTerm");
+        assertFalse(hasUniqueKey(term, "UK_NOP_META_GLOSSARY_TERM_G_FQN"),
+                "redundant per-glossary FQN UK must be removed (P2-29)");
+
+        OrmEntityModel tag = entityModel("io.nop.metadata.dao.entity.NopMetaTag");
+        assertNotNull(tag, "NopMetaTag model must be loaded");
+        assertTrue(hasUniqueKey(tag, "UK_NOP_META_TAG_FQN"),
+                "global FQN UK must be kept on NopMetaTag");
+        assertFalse(hasUniqueKey(tag, "UK_NOP_META_TAG_CLS_FQN"),
+                "redundant per-classification FQN UK must be removed (P2-29)");
+
+        for (String dialect : new String[]{"mysql", "oracle", "postgresql"}) {
+            String termSql = DdlSqlCreator.forDialect(dialect).createTable(term, false);
+            assertTrue(termSql.contains("UK_NOP_META_GLOSSARY_TERM_FQN"),
+                    dialect + " DDL must emit global FQN UK for glossary term, actual: " + termSql);
+            assertTrue(!termSql.contains("UK_NOP_META_GLOSSARY_TERM_G_FQN"),
+                    dialect + " DDL must not emit removed per-glossary FQN UK, actual: " + termSql);
+
+            String tagSql = DdlSqlCreator.forDialect(dialect).createTable(tag, false);
+            assertTrue(tagSql.contains("UK_NOP_META_TAG_FQN"),
+                    dialect + " DDL must emit global FQN UK for tag, actual: " + tagSql);
+            assertTrue(!tagSql.contains("UK_NOP_META_TAG_CLS_FQN"),
+                    dialect + " DDL must not emit removed per-classification FQN UK, actual: " + tagSql);
+        }
+    }
+
     private OrmEntityModel entityModel(String name) {
         return (OrmEntityModel) orm.getOrmModel().getEntityModel(name);
+    }
+
+    private static boolean hasUniqueKey(OrmEntityModel model, String ukName) {
+        if (model == null || model.getUniqueKeys() == null) {
+            return false;
+        }
+        for (OrmUniqueKeyModel uk : model.getUniqueKeys()) {
+            if (ukName.equals(uk.getName())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean hasUniqueKeyColumn(OrmEntityModel model, String ukName, String columnCode) {

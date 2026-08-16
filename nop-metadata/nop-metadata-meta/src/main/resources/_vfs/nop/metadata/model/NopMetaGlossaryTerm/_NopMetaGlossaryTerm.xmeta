@@ -20,7 +20,6 @@
 
     <keys>
         <key name="UK_NOP_META_GLOSSARY_TERM_FQN" props="fullyQualifiedName"/>
-        <key name="UK_NOP_META_GLOSSARY_TERM_G_FQN" props="glossaryId,fullyQualifiedName"/>
     </keys>
 
     <props>

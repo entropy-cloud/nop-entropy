@@ -2,6 +2,7 @@ package io.nop.metadata.service;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.BizErrors;
+import io.nop.metadata.service.entity.NopMetaBusinessDomainBizModel;
 import io.nop.metadata.service.entity.NopMetaEntityFieldBizModel;
 import io.nop.metadata.service.entity.NopMetaModuleBizModel;
 import io.nop.metadata.service.entity.NopMetaTableBizModel;
@@ -56,6 +57,10 @@ public class TestSaveOverrideNullDataGuard {
                 "NopMetaTableFilter.save(null)");
         assertEmptyDataForSave(d -> new NopMetaTagLabelBizModel().save(d, null), null,
                 "NopMetaTagLabel.save(null)");
+        // P2-28 新增 override（plan 2026-08-16-0920-1）：守卫在 super.save 之后运行，
+        // null/empty data 直落基类错误（同单一形态）
+        assertEmptyDataForSave(d -> new NopMetaBusinessDomainBizModel().save(d, null), null,
+                "NopMetaBusinessDomain.save(null)");
         // 既有防护 override 对照断言：行为不变（null 同样落基类错误，且不 NPE）
         assertEmptyDataForSave(d -> new NopMetaModuleBizModel().save(d, null), null,
                 "NopMetaModule.save(null)");
@@ -80,6 +85,8 @@ public class TestSaveOverrideNullDataGuard {
                 "NopMetaTableFilter.save({})");
         assertEmptyDataForSave(d -> new NopMetaTagLabelBizModel().save(d, null), new HashMap<>(),
                 "NopMetaTagLabel.save({})");
+        assertEmptyDataForSave(d -> new NopMetaBusinessDomainBizModel().save(d, null), new HashMap<>(),
+                "NopMetaBusinessDomain.save({})");
         assertEmptyDataForSave(d -> new NopMetaModuleBizModel().save(d, null), new HashMap<>(),
                 "NopMetaModule.save({})");
         assertEmptyDataForSave(d -> new NopMetaTableBizModel().save(d, null), new HashMap<>(),

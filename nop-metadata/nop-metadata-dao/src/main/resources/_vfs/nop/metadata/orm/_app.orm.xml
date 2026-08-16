@@ -2763,8 +2763,6 @@
             <unique-keys>
                 <unique-key columns="fullyQualifiedName" constraint="UK_NOP_META_GLOSSARY_TERM_FQN"
                             name="UK_NOP_META_GLOSSARY_TERM_FQN" i18n-en:displayName="Unique Term Fully Qualified Name"/>
-                <unique-key columns="glossaryId,fullyQualifiedName" constraint="UK_NOP_META_GLOSSARY_TERM_G_FQN"
-                            name="UK_NOP_META_GLOSSARY_TERM_G_FQN" i18n-en:displayName="Unique Term Per Glossary"/>
             </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaClassification" createTimeProp="createTime"
@@ -2908,8 +2906,6 @@
             <unique-keys>
                 <unique-key columns="fullyQualifiedName" constraint="UK_NOP_META_TAG_FQN" name="UK_NOP_META_TAG_FQN"
                             i18n-en:displayName="Unique Tag Fully Qualified Name"/>
-                <unique-key columns="classificationId,fullyQualifiedName" constraint="UK_NOP_META_TAG_CLS_FQN"
-                            name="UK_NOP_META_TAG_CLS_FQN" i18n-en:displayName="Unique Tag Per Classification"/>
             </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaTagLabel" createTimeProp="createTime"
