@@ -43,6 +43,9 @@ public class RecordMappingManagerImpl implements IRecordMappingManager {
         Guard.checkArgument(StringHelper.isValidClassName(mappingName));
 
         int pos = mappingName.lastIndexOf('.');
+        if (pos < 0)
+            throw new NopException(ERR_RECORD_MAPPING_NOT_FOUND).param(ARG_MAPPING_NAME, mappingName);
+
         String prefix = mappingName.substring(0, pos).replace('.', '/');
         return "resolve-record-mappings:" + prefix;
     }

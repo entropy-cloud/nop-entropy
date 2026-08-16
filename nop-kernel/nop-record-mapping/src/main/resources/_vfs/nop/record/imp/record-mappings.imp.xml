@@ -3,7 +3,7 @@
 <imp x:schema="/nop/schema/excel/imp.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c" xmlns:xpt="xpt"
      x:extends="/nop/excel/imp/dict-support.imp.xml"
      resultType="io.nop.record_mapping.model.RecordMappingDefinitions"
-     templatePath="template.record-mapping.xlsx" xdef="/nop/schema/record/record-mapping.xdef" defaultStripText="true">
+     templatePath="template.record-mappings.xlsx" xdef="/nop/schema/record/record-mapping.xdef" defaultStripText="true">
     <sheets>
         <sheet name="目录" ignore="true"/>
 
@@ -44,7 +44,7 @@
                     <schema stdDomain="xpl-fn" stdDomainOptions="(source,target,ctx)=>void"/>
                 </field>
 
-                <field name="fields" displayName="字段映射列表" list="true" keyProp="to">
+                <field name="fields" displayName="字段映射列表" list="true" keyProp="name">
                     <fields>
                         <field name="mandatory" displayName="非空" xpt:formatExpr="cell.value ? 'M': ''">
                             <schema stdDomain="boolean"/>

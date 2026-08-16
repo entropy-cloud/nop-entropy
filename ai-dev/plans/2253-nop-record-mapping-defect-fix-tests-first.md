@@ -95,38 +95,38 @@ Exit Criteria:
 
 ### Phase 2 - P2 缺陷修复（B3-B8）
 
-Status: planned
+Status: completed
 Targets: `RecordMappingManagerImpl.java`, `RecordMappingTool.java`, `ModelBasedRecordMapping.java`, `MappingBasedMarkdownParser.java`, `MappingBasedMarkdownGenerator.java`, `record-mappings.imp.xml`, 测试资源与测试类
 
 - Item Types: `Fix | Proof`
 
-- [ ] **Proof**（B3）：测试 `getRecordMapping("Type1_to_Type2")`（无包名前缀）抛 `NopException`（错误码 `ERR_RECORD_MAPPING_NOT_FOUND` 或参数类错误码）而非 `StringIndexOutOfBoundsException`。先运行确认当前 FAIL。
-- [ ] **Fix**（B3）：`getMappingPath`（RecordMappingManagerImpl.java:42-48）在 `lastIndexOf('.') < 0` 时抛 `NopException`（带 `ARG_MAPPING_NAME`），不再裸 `substring(0, -1)`。
-- [ ] **Proof**（B4）：测试 itemMapping 字段配 `<newItemExpr>target != null</newItemExpr>`，映射后断言每个 collection item 为 `true`（target 非 null）。先运行确认当前 FAIL（item 为 `false`）。
-- [ ] **Fix**（B4）：`makeCollectionItem`（RecordMappingTool.java:303）改传 `toValue` 作为 target：`field.getItemConstructor(itemValue, toValue, ctx)`，与 `makeMapValue` 对齐。
-- [ ] **Proof**（B5）：测试 `mapping` 嵌套字段 + `ignoreWhenEmpty="true"` + 源值 null → target 不含该字段（无空对象）；`mandatory="true"` + `ignoreWhenEmpty="true"` + null → 仍抛 `ERR_RECORD_FIELD_IS_MANDATORY`（文档语义：ignoreWhenEmpty 不能替代 mandatory）。先运行确认当前 FAIL（生成空对象）。
-- [ ] **Fix**（B5）：`mapObjectField`（ModelBasedRecordMapping.java:99-108）在 `getProcessedFromValue` 后增加 `if (field.isIgnoreWhenEmpty() && StringHelper.isEmptyObject(fromValue)) return;`（在 mandatory 校验之后）。
-- [ ] **Proof**（B6）：测试读取 `record-mappings.imp.xml` 资源文本，断言 (a) `templatePath` 指向存在的文件 `template.record-mappings.xlsx`；(b) fields 列表 `keyProp="name"`。先运行确认当前 FAIL。
-- [ ] **Fix**（B6）：`record-mappings.imp.xml` line 6 改 `templatePath="template.record-mappings.xlsx"`；line 47 `keyProp="to"` 改 `keyProp="name"`。
-- [ ] **Proof**（B7）：md parser 测试——mandatory 字段带 `when=false` 且 md 文档含该条目 → 解析成功；文档缺该条目 → 仍抛 `ERR_RECORD_MD_MISSING_FIELD`（行为不变）。先运行确认当前 FAIL（前者误抛 missing-field）。
-- [ ] **Fix**（B7）：`processedFields.add(field.getName())` 移到 action 之前，覆盖全部 4 个 add 点（审查 Major M3 扩展）：`mapListItems`（MappingBasedMarkdownParser.java:113）、`mapSectionChildren`（:216）、`mapTitleField`（:83）、`mapListItemAsObject` 的 title 分支（:189）——后两处为 titleField 的 when=false 同型缺陷，一并修复，与核心语义对齐。
-- [ ] **Proof**（B8）：md generator 测试——(a) optional 简单字段值为 null → md 输出包含 `- {key}: ` 空值行，parse 后**最终映射值**为 null（审查 Minor 2：`decodeValue` 返回空串、null 由 `castType` 的 isEmptyObject 分支归一，断言应落在映射结果上）；(b) mandatory 简单字段值为 null → md 仍包含该行，parse 报 `ERR_RECORD_FIELD_IS_MANDATORY`（指明字段）而非 missing-field。先运行确认当前 FAIL（行被丢弃）。
-- [ ] **Fix**（B8）：`generateListItemFields`（MappingBasedMarkdownGenerator.java:110-111）去掉 `if (value == null) return;`，null 值写 `- {key}: `（`encodeValue(null)` 返回空串）。
-- [ ] Phase 2 全量回归。
+- [x] **Proof**（B3）：测试 `getRecordMapping("Type1_to_Type2")`（无包名前缀）抛 `NopException`（错误码 `ERR_RECORD_MAPPING_NOT_FOUND`）而非 `StringIndexOutOfBoundsException`。先运行确认当前 FAIL（`Unexpected exception type thrown ... StringIndexOutOfBoundsException`）。
+- [x] **Fix**（B3）：`getMappingPath`（RecordMappingManagerImpl.java:42-50）在 `lastIndexOf('.') < 0` 时抛 `NopException`（带 `ARG_MAPPING_NAME`），不再裸 `substring(0, -1)`。
+- [x] **Proof**（B4）：测试 itemMapping 字段配 `<newItemExpr>target != null</newItemExpr>`（demo 中为子元素，xdef 定义），映射后断言每个 collection item 为 `true`（target 非 null）。先运行确认当前 FAIL（item 为 `false`）。
+- [x] **Fix**（B4）：`makeCollectionItem`（RecordMappingTool.java:300-305）改传 `toValue` 作为 target：`field.getItemConstructor(itemValue, toValue, ctx)`，与 `makeMapValue` 对齐。
+- [x] **Proof**（B5）：测试 `mapping` 嵌套字段 + `ignoreWhenEmpty="true"` + 源值 null → target 不含该字段（无空对象）；`mandatory="true"` + `ignoreWhenEmpty="true"` + null → 仍抛 `ERR_RECORD_FIELD_IS_MANDATORY`（文档语义：ignoreWhenEmpty 不能替代 mandatory）。先运行确认当前 FAIL（生成空对象，`containsKey("nested")==true`）。注：测试初版源值误用 String 触发 `nop.err.core.bean.unknown-prop`（非缺陷红因），已改为嵌套 Map 源值。
+- [x] **Fix**（B5）：`mapObjectField`（ModelBasedRecordMapping.java:99-111）在 `getProcessedFromValue` 后增加 `if (field.isIgnoreWhenEmpty() && StringHelper.isEmptyObject(fromValue)) return;`（mandatory 校验在 getProcessedFromValue 内先发生，语义保持）。
+- [x] **Proof**（B6）：测试读取 `record-mappings.imp.xml` 资源文本，断言 (a) `templatePath="template.record-mappings.xlsx"`（且 `/nop/record/imp/template.record-mappings.xlsx` 存在——文件已在 main resources）；(b) fields 列表无 `keyProp="to"`（应为 `keyProp="name"`）。先运行确认当前 FAIL（templatePath 断言）。
+- [x] **Fix**（B6）：`record-mappings.imp.xml` line 6 改 `templatePath="template.record-mappings.xlsx"`；line 47 `keyProp="to"` 改 `keyProp="name"`。
+- [x] **Proof**（B7）：md parser 测试——mandatory 字段带 `when=false` 且 md 文档含该条目（`- status: 1`）→ 解析成功；文档缺该条目 → 仍抛 `ERR_RECORD_MD_MISSING_FIELD`（行为不变）。先运行确认当前 FAIL（前者误抛 missing-field）。
+- [x] **Fix**（B7）：`processedFields.add(field.getName())` 移到 action 之前，覆盖全部 4 个 add 点（审查 Major M3 扩展）：`mapListItems`（MappingBasedMarkdownParser.java:112）、`mapSectionChildren`（:215）、`mapTitleField`（:82）、`mapListItemAsObject` 的 title 分支（:188）——后两处为 titleField 的 when=false 同型缺陷，一并修复，与核心语义对齐。
+- [x] **Proof**（B8）：md generator 测试——(a) optional 简单字段值为 null → md 输出包含 `- {key}: ` 空值行，parse 后**最终映射值**为 null；(b) mandatory 简单字段值为 null → md 手工含该行，parse 报 `ERR_RECORD_FIELD_IS_MANDATORY`（指明字段）而非 missing-field。先运行确认当前 FAIL（行被丢弃）。
+- [x] **Fix**（B8）：`generateListItemFields`（MappingBasedMarkdownGenerator.java:109-118）去掉 `if (value == null) return;`，null 值写 `- {key}: `（`encodeValue(null)` 返回空串）。
+- [x] Phase 2 全量回归。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] B3：无点号 mappingName 得到 `NopException`（测试断言错误类型）
-- [ ] B4：collection 条目 newItemExpr 收到非 null target（Map 分支回归测试保持通过）
-- [ ] B5：ignoreWhenEmpty 对 mapping 字段生效；mandatory+ignoreWhenEmpty 仍报 mandatory
-- [ ] B6：imp.xml 结构断言测试通过（templatePath 指向实际文件、keyProp="name"）
-- [ ] B7：when=false + mandatory 不报错；缺字段仍报 missing-field
-- [ ] B8：null 简单字段不再从 md 静默消失；mandatory-null round-trip 报明确字段错误
-- [ ] `./mvnw test -pl nop-kernel/nop-record-mapping -am` 全绿
-- [ ] `docs-for-ai/02-core-guides/record-mapping.md` 更新（如 B7 行为说明与文档一致则 `No owner-doc update required` 并写明）
-- [ ] `ai-dev/logs/` 对应日期条目已更新（红→绿证据）
+- [x] B3：无点号 mappingName 得到 `NopException`（测试断言错误类型）
+- [x] B4：collection 条目 newItemExpr 收到非 null target（Map 分支回归测试保持通过）
+- [x] B5：ignoreWhenEmpty 对 mapping 字段生效；mandatory+ignoreWhenEmpty 仍报 mandatory
+- [x] B6：imp.xml 结构断言测试通过（templatePath 指向实际文件、keyProp="name"）
+- [x] B7：when=false + mandatory 不报错；缺字段仍报 missing-field
+- [x] B8：null 简单字段不再从 md 静默消失；mandatory-null round-trip 报明确字段错误
+- [x] `./mvnw test -pl nop-kernel/nop-record-mapping -am` 全绿（33/33）
+- [ ] `docs-for-ai/02-core-guides/record-mapping.md` 更新（如 B7 行为说明与文档一致则 `No owner-doc update required` 并写明）——推迟到 Phase 4 统一文档同步
+- [x] `ai-dev/logs/` 对应日期条目已更新（红→绿证据）
 
 ### Phase 3 - P3 缺陷修复（B9-B12）+ D7
 

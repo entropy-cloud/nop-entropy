@@ -300,7 +300,7 @@ public class RecordMappingTool {
     public Object makeCollectionItem(RecordFieldMappingConfig field,
                                      Object itemValue,
                                      Object toValue, RecordMappingContext ctx) {
-        Object toItemValue = field.getItemConstructor(itemValue, null, ctx).get();
+        Object toItemValue = field.getItemConstructor(itemValue, toValue, ctx).get();
         return toItemValue;
     }
 

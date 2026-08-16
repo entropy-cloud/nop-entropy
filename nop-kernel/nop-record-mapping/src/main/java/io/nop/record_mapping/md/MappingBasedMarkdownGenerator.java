@@ -107,8 +107,6 @@ public class MappingBasedMarkdownGenerator implements ITextTemplateOutput {
 
                 tool.executeForField(mapping, field, obj, out, ctx, f -> {
                     Object value = getObjProp(mapping, field, obj, out);
-                    if (value == null)
-                        return;
 
                     hasListItems.set(true);
                     try {

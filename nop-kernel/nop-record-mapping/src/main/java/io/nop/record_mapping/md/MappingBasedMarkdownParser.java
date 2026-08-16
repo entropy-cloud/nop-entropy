@@ -74,13 +74,13 @@ public class MappingBasedMarkdownParser implements IRecordMapping {
                                  Object target, RecordMappingContext ctx, Set<String> processedFields) {
         RecordFieldMappingConfig titleField = getTitleField(mapping);
         if (titleField != null) {
+            processedFields.add(titleField.getName());
             tool.executeForField(mapping, titleField, section, target, ctx, field -> {
                 Object titleValue = tool.processFieldValue(mapping, field, field.getName(), section.getTitle(), ctx);
                 if (target instanceof JObject)
                     titleValue = ValueWithLocation.of(section.getLocation(), titleValue);
 
                 tool.setTargetValue(field, target, field.getName(), titleValue, ctx);
-                processedFields.add(titleField.getName());
             });
         }
     }
@@ -109,8 +109,8 @@ public class MappingBasedMarkdownParser implements IRecordMapping {
 
             // 查找匹配的字段配置
             RecordFieldMappingConfig field = mapping.requireFieldByFrom(item.getLocation(), fromName);
+            processedFields.add(field.getName());
             tool.executeForField(mapping, field, item, target, ctx, f -> {
-                processedFields.add(field.getName());
                 mapListItemField(mapping, f, item, pair, target, ctx);
             });
         }
@@ -185,8 +185,8 @@ public class MappingBasedMarkdownParser implements IRecordMapping {
             // 设置标题字段
             RecordFieldMappingConfig titleField = getTitleField(itemMapping);
             if (titleField != null) {
+                processedFields.add(titleField.getName());
                 tool.executeForField(itemMapping, titleField, item, target, ctx, field -> {
-                    processedFields.add(titleField.getName());
                     Object titleValue = tool.processFieldValue(itemMapping, field, field.getName(), item.getContent(), ctx);
 
                     if (target instanceof JObject)
@@ -211,9 +211,8 @@ public class MappingBasedMarkdownParser implements IRecordMapping {
 
             // 查找匹配的字段配置
             RecordFieldMappingConfig field = mapping.requireFieldByFrom(child.getLocation(), key);
-
+            processedFields.add(field.getName());
             tool.executeForField(mapping, field, child, target, ctx, f -> {
-                processedFields.add(field.getName());
                 mapSectionField(mapping, f, child, target, ctx);
             });
         }

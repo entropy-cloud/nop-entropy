@@ -101,6 +101,9 @@ public class ModelBasedRecordMapping implements IRecordMapping {
             mapObject(field.getResolvedMapping(), source, target, ctx);
         } else {
             Object fromValue = tool.getProcessedFromValue(field.getResolvedMapping(), field, source, target, ctx);
+            if (field.isIgnoreWhenEmpty() && StringHelper.isEmptyObject(fromValue))
+                return;
+
             Object toValue = tool.makeTargetObject(field, source, target, ctx);
 
             mapObject(field.getResolvedMapping(), fromValue, toValue, ctx);

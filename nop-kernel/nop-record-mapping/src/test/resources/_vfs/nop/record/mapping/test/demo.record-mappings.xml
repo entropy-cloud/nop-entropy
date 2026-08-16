@@ -116,4 +116,59 @@
         </fields>
     </mapping>
 
+    <mapping name="NewItemExprTest">
+        <fields>
+            <field from="items" itemMapping="EmptyItemMapping" name="items">
+                <schema/>
+                <newItemExpr>target != null</newItemExpr>
+            </field>
+        </fields>
+    </mapping>
+
+    <mapping name="EmptyItemMapping">
+        <fields/>
+    </mapping>
+
+    <mapping name="IgnoreWhenEmptyNestedTest">
+        <fields>
+            <field from="nested" ignoreWhenEmpty="true" mapping="NestedMapping" name="nested">
+                <schema/>
+            </field>
+            <field from="mandatoryNested" ignoreWhenEmpty="true" mandatory="true" mapping="NestedMapping" name="mandatoryNested">
+                <schema/>
+            </field>
+        </fields>
+    </mapping>
+
+    <mapping name="NestedMapping">
+        <fields>
+            <field from="x" name="x">
+                <schema/>
+            </field>
+        </fields>
+    </mapping>
+
+    <mapping name="MdWhenFalseTest">
+        <fields>
+            <field from="name" mandatory="true" name="name">
+                <schema/>
+            </field>
+            <field from="status" mandatory="true" name="status">
+                <schema/>
+                <when>false</when>
+            </field>
+        </fields>
+    </mapping>
+
+    <mapping name="MdNullFieldTest">
+        <fields>
+            <field from="name" mandatory="true" name="name">
+                <schema/>
+            </field>
+            <field from="desc" name="desc">
+                <schema/>
+            </field>
+        </fields>
+    </mapping>
+
 </definitions>
