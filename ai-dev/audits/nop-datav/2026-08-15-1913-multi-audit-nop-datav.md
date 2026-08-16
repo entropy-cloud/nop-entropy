@@ -1,7 +1,7 @@
-> Audit Status: planned
+> Audit Status: closed
 > Audit Type: multi-dimensional
 > Mission: nop-datav
-> Remediation: P0+P1 findings drafted into plans `ai-dev/plans/nop-datav/2026-08-15-2146-1-panel-subentity-auth-rbac-closure.md`（P0-01, P0-02, P1-01, P1-02, P1-03, P1-10）、`ai-dev/plans/nop-datav/2026-08-15-2146-2-transaction-boundary-async-resource-bounds.md`（P1-04, P1-05, P1-06）、`ai-dev/plans/nop-datav/2026-08-15-2146-3-ddl-integrity-cascade-hygiene.md`（P0-03, P1-07, P1-08, P1-09, P1-11, P1-12）。前置决策 P2-14 随 plan 3 Phase 1（D1）消化；P2-11 随 plan 3 Phase 2 收敛。其余 P2 findings triaged to `ai-dev/backlog/nop-datav-audit-followups.md`（#18-65）。
+> Remediation: P0+P1 findings drafted into plans `ai-dev/plans/nop-datav/2026-08-15-2146-1-panel-subentity-auth-rbac-closure.md`（P0-01, P0-02, P1-01, P1-02, P1-03, P1-10）、`ai-dev/plans/nop-datav/2026-08-15-2146-2-transaction-boundary-async-resource-bounds.md`（P1-04, P1-05, P1-06）、`ai-dev/plans/nop-datav/2026-08-15-2146-3-ddl-integrity-cascade-hygiene.md`（P0-03, P1-07, P1-08, P1-09, P1-11, P1-12）——三 plan 均已 completed 2026-08-16（各经独立 closure audit CLOSABLE）。前置决策 P2-14 随 plan 3 Phase 1（D1）消化；P2-11 随 plan 3 Phase 2 收敛。其余 P2 findings triaged to `ai-dev/backlog/nop-datav-audit-followups.md`（#18-65）。
 
 # nop-datav 多维度深度审计报告
 

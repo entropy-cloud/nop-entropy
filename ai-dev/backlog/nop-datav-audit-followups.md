@@ -40,7 +40,7 @@
 
 ## From `ai-dev/audits/nop-datav/2026-08-15-1913-multi-audit-nop-datav.md`（2026-08-15 批次，P2×48）
 
-> P0/P1 已入 remediation plans `ai-dev/plans/nop-datav/2026-08-15-2146-1-panel-subentity-auth-rbac-closure.md`（P0-01/02、P1-01/02/03/10，**已 completed 2026-08-16**）、`2026-08-15-2146-2-transaction-boundary-async-resource-bounds.md`（P1-04/05/06 对应项，**已 completed 2026-08-16**）、`2026-08-15-2146-3-ddl-integrity-cascade-hygiene.md`（P0-03、P1-07/08/09/11/12）。以下为 P2 backlog。
+> P0/P1 已入 remediation plans `ai-dev/plans/nop-datav/2026-08-15-2146-1-panel-subentity-auth-rbac-closure.md`（P0-01/02、P1-01/02/03/10，**已 completed 2026-08-16**）、`2026-08-15-2146-2-transaction-boundary-async-resource-bounds.md`（P1-04/05/06 对应项，**已 completed 2026-08-16**）、`2026-08-15-2146-3-ddl-integrity-cascade-hygiene.md`（P0-03、P1-07/08/09/11/12，**已 completed 2026-08-16**）。以下为 P2 backlog。
 
 ### 结构与构建
 
@@ -66,10 +66,10 @@
 | # | Finding | Source | Note |
 |---|---------|--------|------|
 | 27 | P2-10 — 三个外键列无 relation 定义（Panel.tabId、Panel.datasetRefId、ScreenWidget.datasetRefId；`model/nop-datav.orm.xml:201-205,727-729`） | 同上 §P2-10 | 后者跨聚合，Dashboard 删 DatasetRef 时悬挂 |
-| 28 | P2-11 — AlertState 冗余索引 + UK 命名前缀不一致（UQ_ vs UK_；`orm.xml:1183-1193`） | 同上 §P2-11 | **随 plan `2026-08-15-2146-3` Phase 2（D3）顺手收敛**，非独立 backlog 处理 |
+| 28 | ✅ P2-11 — AlertState 冗余索引 + UK 命名前缀不一致（UQ_ vs UK_；`orm.xml:1183-1193`） | 同上 §P2-11 | **已消化** plan `2026-08-15-2146-3` Phase 2（D3）：`IX_NOP_DATAV_ALERT_STATE_RULE` 删除（与 UK 物化物理重复）、`UQ_` 前缀统一为 `UK_`，裁定落档 model-design.md |
 | 29 | P2-12 — 快照内容列 mandatory 不一致（DashboardSnapshot 可空 vs ScreenSnapshot 非空；`orm.xml:387-389` vs `798-800`） | 同上 §P2-12 | |
 | 30 | P2-13 — 17 实体全量声明 delFlag 列但均未接线 deleteFlagProp | 同上 §P2-13 | 物理删除策略下形同虚设 |
-| 31 | P2-14 — dashboardName/screenName 全局唯一键作用域待裁定（`orm.xml:171-174,695-698`） | 同上 §P2-14 | **随 plan `2026-08-15-2146-3` Phase 1（D1）作为 P0-03 前置裁定消化**，非独立 backlog 处理 |
+| 31 | ✅ P2-14 — dashboardName/screenName 全局唯一键作用域待裁定（`orm.xml:171-174,695-698`） | 同上 §P2-14 | **已消化** plan `2026-08-15-2146-3` Phase 1（D1）：裁定全表唯一（tenant 部署经 `_add_tenant` 重建 NOP_TENANT_ID 前缀；组合键不可表达降为不可选），Phase 2 物化 + dashboard 侧重名兜底入 scope 实施，裁定落档 model-design.md |
 
 ### 错误处理/类型卫生
 
