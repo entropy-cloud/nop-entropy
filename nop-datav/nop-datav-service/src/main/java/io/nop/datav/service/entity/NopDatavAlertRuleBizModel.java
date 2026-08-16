@@ -103,6 +103,11 @@ public class NopDatavAlertRuleBizModel extends CrudBizModel<NopDatavAlertRule>
         if (alertScheduler != null) {
             alertScheduler.unregisterRule(entity.getAlertRuleId());
         }
+        // P1-09（plan 2026-08-15-2146-3 Phase 3）：级联物理删除 AlertState 子行（unregisterRule 保持；
+        // deleteByQuery 批量物理删除，与 Dashboard/Screen 级联模式一致；失败异常传播无静默跳过）
+        QueryBean stateQuery = new QueryBean();
+        stateQuery.addFilter(FilterBeans.eq(NopDatavAlertState.PROP_NAME_alertRuleId, entity.getAlertRuleId()));
+        daoProvider().daoFor(NopDatavAlertState.class).deleteByQuery(stateQuery);
     }
 
     private void initializeStateIfAbsent(NopDatavAlertRule rule) {

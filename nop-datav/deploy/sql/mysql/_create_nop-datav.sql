@@ -18,6 +18,7 @@ CREATE TABLE nop_datav_dashboard(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   PARAM_CONFIG LONGTEXT NULL    COMMENT '参数定义',
+  constraint UK_NOP_DATAV_DASHBOARD_NAME unique (DASHBOARD_NAME),
   constraint PK_nop_datav_dashboard primary key (DASHBOARD_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
@@ -62,6 +63,7 @@ CREATE TABLE nop_datav_screen(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   THUMBNAIL VARCHAR(4000) NULL    COMMENT '缩略图',
+  constraint UK_NOP_DATAV_SCREEN_NAME unique (SCREEN_NAME),
   constraint PK_nop_datav_screen primary key (SCREEN_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
@@ -146,6 +148,7 @@ CREATE TABLE nop_datav_snapshot(
   UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint UK_NOP_DATAV_SNAPSHOT_DASH_VER unique (DASHBOARD_ID,SNAPSHOT_VERSION),
   constraint PK_nop_datav_snapshot primary key (SNAPSHOT_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
@@ -161,6 +164,7 @@ CREATE TABLE nop_datav_filter_state(
   UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint UK_NOP_DATAV_FILTER_STATE_USER_DASH unique (USER_NAME,DASHBOARD_ID),
   constraint PK_nop_datav_filter_state primary key (STATE_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
@@ -180,6 +184,7 @@ CREATE TABLE nop_datav_share(
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   VISIT_COUNT BIGINT default 0  NULL    COMMENT '访问计数',
   LAST_VISIT_TIME DATETIME(3) NULL    COMMENT '最近访问时间',
+  constraint UK_NOP_DATAV_SHARE_TOKEN unique (SHARE_TOKEN),
   constraint PK_nop_datav_share primary key (SHARE_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
@@ -246,6 +251,7 @@ CREATE TABLE nop_datav_screen_snapshot(
   UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint UK_NOP_DATAV_SCREEN_SNAPSHOT_SCREEN_VER unique (SCREEN_ID,SNAPSHOT_VERSION),
   constraint PK_nop_datav_screen_snapshot primary key (SNAPSHOT_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
@@ -263,6 +269,7 @@ CREATE TABLE nop_datav_chat_message(
   UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint UK_NOP_DATAV_CHAT_MSG_SESSION_SEQ unique (SESSION_ID,SEQ),
   constraint PK_nop_datav_chat_message primary key (MESSAGE_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
@@ -331,6 +338,7 @@ CREATE TABLE nop_datav_alert_state(
   UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint UK_NOP_DATAV_ALERT_STATE_RULE unique (ALERT_RULE_ID),
   constraint PK_nop_datav_alert_state primary key (ALERT_STATE_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 

@@ -169,7 +169,7 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
             </columns>
             <unique-keys>
-                <unique-key name="UK_NOP_DATAV_DASHBOARD_NAME" columns="dashboardName"
+                <unique-key name="UK_NOP_DATAV_DASHBOARD_NAME" columns="dashboardName" constraint="UK_NOP_DATAV_DASHBOARD_NAME"
                             i18n-en:displayName="Unique Dashboard Name"/>
             </unique-keys>
         </entity>
@@ -420,7 +420,7 @@
                 </to-one>
             </relations>
             <unique-keys>
-                <unique-key name="UK_NOP_DATAV_SNAPSHOT_DASH_VER" columns="dashboardId,snapshotVersion"
+                <unique-key name="UK_NOP_DATAV_SNAPSHOT_DASH_VER" columns="dashboardId,snapshotVersion" constraint="UK_NOP_DATAV_SNAPSHOT_DASH_VER"
                             i18n-en:displayName="Unique Snapshot Per Dashboard Version"/>
             </unique-keys>
             <indexes>
@@ -482,7 +482,7 @@
                 </to-one>
             </relations>
             <unique-keys>
-                <unique-key name="UK_NOP_DATAV_FILTER_STATE_USER_DASH" columns="userName,dashboardId"
+                <unique-key name="UK_NOP_DATAV_FILTER_STATE_USER_DASH" columns="userName,dashboardId" constraint="UK_NOP_DATAV_FILTER_STATE_USER_DASH"
                             i18n-en:displayName="Unique Filter State Per User And Dashboard"/>
             </unique-keys>
             <indexes>
@@ -555,7 +555,7 @@
                 </to-one>
             </relations>
             <unique-keys>
-                <unique-key name="UK_NOP_DATAV_SHARE_TOKEN" columns="shareToken"
+                <unique-key name="UK_NOP_DATAV_SHARE_TOKEN" columns="shareToken" constraint="UK_NOP_DATAV_SHARE_TOKEN"
                             i18n-en:displayName="Unique Share Token"/>
             </unique-keys>
             <indexes>
@@ -693,7 +693,7 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Thumbnail"/>
             </columns>
             <unique-keys>
-                <unique-key name="UK_NOP_DATAV_SCREEN_NAME" columns="screenName"
+                <unique-key name="UK_NOP_DATAV_SCREEN_NAME" columns="screenName" constraint="UK_NOP_DATAV_SCREEN_NAME"
                             i18n-en:displayName="Unique Screen Name"/>
             </unique-keys>
         </entity>
@@ -831,7 +831,7 @@
                 </to-one>
             </relations>
             <unique-keys>
-                <unique-key name="UK_NOP_DATAV_SCREEN_SNAPSHOT_SCREEN_VER" columns="screenId,snapshotVersion"
+                <unique-key name="UK_NOP_DATAV_SCREEN_SNAPSHOT_SCREEN_VER" columns="screenId,snapshotVersion" constraint="UK_NOP_DATAV_SCREEN_SNAPSHOT_SCREEN_VER"
                             i18n-en:displayName="Unique Snapshot Per Screen Version"/>
             </unique-keys>
             <indexes>
@@ -1181,13 +1181,13 @@
                 </to-one>
             </relations>
             <unique-keys>
-                <unique-key name="UQ_NOP_DATAV_ALERT_STATE_RULE" columns="alertRuleId"
+                <unique-key name="UK_NOP_DATAV_ALERT_STATE_RULE" columns="alertRuleId" constraint="UK_NOP_DATAV_ALERT_STATE_RULE"
                             i18n-en:displayName="Unique Alert Rule"/>
             </unique-keys>
+            <!-- P2-11 收敛（plan 2026-08-15-2146-3 D3）：IX_NOP_DATAV_ALERT_STATE_RULE 与
+                 UK_NOP_DATAV_ALERT_STATE_RULE 唯一约束物理重复（单列 alertRuleId），删除普通索引，
+                 UK 前缀 UQ_ 统一为 UK_（模型 8 键单一惯例，nop-auth/nop-metadata 先例同） -->
             <indexes>
-                <index name="IX_NOP_DATAV_ALERT_STATE_RULE" unique="false">
-                    <column name="alertRuleId"/>
-                </index>
                 <index name="IX_NOP_DATAV_ALERT_STATE_STATE" unique="false">
                     <column name="state"/>
                 </index>
@@ -1303,7 +1303,7 @@
                 </to-one>
             </relations>
             <unique-keys>
-                <unique-key name="UK_NOP_DATAV_CHAT_MSG_SESSION_SEQ" columns="sessionId,seq"
+                <unique-key name="UK_NOP_DATAV_CHAT_MSG_SESSION_SEQ" columns="sessionId,seq" constraint="UK_NOP_DATAV_CHAT_MSG_SESSION_SEQ"
                             i18n-en:displayName="Unique Session And Seq"/>
             </unique-keys>
             <indexes>

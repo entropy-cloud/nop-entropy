@@ -18,6 +18,7 @@ CREATE TABLE nop_datav_dashboard(
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
   param_config TEXT  ,
+  constraint UK_NOP_DATAV_DASHBOARD_NAME unique (dashboard_name),
   constraint PK_nop_datav_dashboard primary key (dashboard_id)
 );
 
@@ -62,6 +63,7 @@ CREATE TABLE nop_datav_screen(
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
   thumbnail VARCHAR(4000)  ,
+  constraint UK_NOP_DATAV_SCREEN_NAME unique (screen_name),
   constraint PK_nop_datav_screen primary key (screen_id)
 );
 
@@ -146,6 +148,7 @@ CREATE TABLE nop_datav_snapshot(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  constraint UK_NOP_DATAV_SNAPSHOT_DASH_VER unique (dashboard_id,snapshot_version),
   constraint PK_nop_datav_snapshot primary key (snapshot_id)
 );
 
@@ -161,6 +164,7 @@ CREATE TABLE nop_datav_filter_state(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  constraint UK_NOP_DATAV_FILTER_STATE_USER_DASH unique (user_name,dashboard_id),
   constraint PK_nop_datav_filter_state primary key (state_id)
 );
 
@@ -180,6 +184,7 @@ CREATE TABLE nop_datav_share(
   remark VARCHAR(200)  ,
   visit_count INT8 default 0   ,
   last_visit_time TIMESTAMP  ,
+  constraint UK_NOP_DATAV_SHARE_TOKEN unique (share_token),
   constraint PK_nop_datav_share primary key (share_id)
 );
 
@@ -246,6 +251,7 @@ CREATE TABLE nop_datav_screen_snapshot(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  constraint UK_NOP_DATAV_SCREEN_SNAPSHOT_SCREEN_VER unique (screen_id,snapshot_version),
   constraint PK_nop_datav_screen_snapshot primary key (snapshot_id)
 );
 
@@ -263,6 +269,7 @@ CREATE TABLE nop_datav_chat_message(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  constraint UK_NOP_DATAV_CHAT_MSG_SESSION_SEQ unique (session_id,seq),
   constraint PK_nop_datav_chat_message primary key (message_id)
 );
 
@@ -331,6 +338,7 @@ CREATE TABLE nop_datav_alert_state(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  constraint UK_NOP_DATAV_ALERT_STATE_RULE unique (alert_rule_id),
   constraint PK_nop_datav_alert_state primary key (alert_state_id)
 );
 

@@ -111,6 +111,25 @@ public class TestDatavGenerateDashboardExecutor extends AbstractNopDatavTest {
 
     // ==================== DatasetRef 去重（裁定 I） ====================
 
+    /**
+     * D1(b)（plan 2026-08-15-2146-3 Phase 2，镜像 Screen executor 裁定 Q 先例）：
+     * dashboardName UK 物化后的重名兜底——预检查命中 → DUPLICATE_DASHBOARD_NAME 结构化错误
+     * （非裸 DB 异常），LLM 收到错误可 rename-retry。
+     */
+    @Test
+    public void testDuplicateDashboardNameRejectedWithStructuredError() {
+        Map<String, Object> spec = new LinkedHashMap<>();
+        spec.put("dashboardName", "dup-gen-dashboard");
+        spec.put("panels", Collections.singletonList(panel("Chart", "text", null, null, 0)));
+
+        AiToolCallResult first = runExecutor(spec);
+        assertEquals("success", first.getStatus(), "first creation should succeed");
+
+        AiToolCallResult second = runExecutor(spec);
+        assertFailure(second, "nop.err.datav.chatbi-generate-duplicate-dashboard-name",
+                "duplicate dashboardName must be rejected as DUPLICATE_DASHBOARD_NAME (D1b)");
+    }
+
     @Test
     public void testDatasetRefDeduplicationForSameDatasetSid() {
         NopReportDataset ds = newActiveSqlDataset("ds-dedup",

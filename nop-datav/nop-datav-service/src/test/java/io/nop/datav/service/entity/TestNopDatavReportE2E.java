@@ -386,6 +386,39 @@ public class TestNopDatavReportE2E extends AbstractNopDatavTest {
     }
 
     /**
+     * P1-11（plan 2026-08-15-2146-3 Phase 5）：IM <b>部分成功</b>分支——anySent 渠道聚合语义锚定。
+     *
+     * <p>recipients=["u1","u2"]，u1 编程为 {@link SendResult#NO_BINDING}（mock
+     * {@code setNoBindingUsers}），u2 正常 SENT → 交付 SUCCEEDED 且 deliveredChannels 含 "im"
+     * （≥1 用户 SENT 即渠道送达；此前该分支零测试，改错 anySent 实现测试仍绿）。对照：
+     * 全 NO_BINDING（{@link #testImChannelAllNoBindingFailsExplicitly}）交付 FAILED。</p>
+     */
+    @Test
+    public void testImChannelPartialNoBindingAnySentDelivered() {
+        setupSalesData();
+        IServiceContext ctx = ownerContext("alice");
+        String dashboardId = setupDashboard("dash-im-partial", "alice", true);
+        saveChartPanelWithDataset("panel-im-partial", dashboardId, "Chart");
+        NopDatavReportTask task = seedReportTaskWithChannels("task-im-partial", dashboardId, "alice",
+                "0 0 8 * * ?", "xlsx", true, "[\"u1\",\"u2\"]", "[\"im\"]");
+        mockChannelMsgService.setNoBindingUsers(java.util.Set.of("u1"));
+
+        String deliveryId = reportDeliveryExecutor.executeSyncForTest(
+                task.getReportTaskId(), NopDatavReportTriggerSource.MANUAL, System.currentTimeMillis());
+        NopDatavReportDelivery delivery = pollUntilTerminal(deliveryId);
+        assertEquals(NopDatavReportDeliveryStatus.SUCCEEDED, delivery.getStatus(),
+                "partial success (u1 NO_BINDING + u2 SENT) -> delivery succeeded (anySent aggregation)");
+        assertEquals("im", delivery.getDeliveredChannels(),
+                "deliveredChannels contains im when >=1 user SENT");
+
+        // 接线验证：逐 userId 尝试（u1 也被尝试——NO_BINDING 不中断循环）
+        assertEquals(2, mockChannelMsgService.getSendCount(), "sendToUser attempted for all userIds");
+        List<String> calledUsers = mockChannelMsgService.getCalls().stream()
+                .map(c -> c.userId).sorted().collect(java.util.stream.Collectors.toList());
+        assertEquals(java.util.List.of("u1", "u2"), calledUsers, "both u1 (NO_BINDING) and u2 (SENT) attempted");
+    }
+
+    /**
      * channelMessageService 未注入 → IM 渠道显式失败 ERR_DATAV_REPORT_CHANNEL_SERVICE_NOT_CONFIGURED。
      *
      * <p>构造一个未注入 channelMessageService 的 NotificationSender（直接 new，不经 IoC），

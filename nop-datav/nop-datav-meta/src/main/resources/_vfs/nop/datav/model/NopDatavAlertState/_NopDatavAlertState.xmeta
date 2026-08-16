@@ -17,7 +17,7 @@
     </x:post-extends>
 
     <keys>
-        <key name="UQ_NOP_DATAV_ALERT_STATE_RULE" props="alertRuleId"/>
+        <key name="UK_NOP_DATAV_ALERT_STATE_RULE" props="alertRuleId"/>
     </keys>
 
     <props>

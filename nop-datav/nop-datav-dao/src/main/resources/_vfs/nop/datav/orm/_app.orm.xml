@@ -164,8 +164,8 @@
                         stdDataType="string" stdDomain="json" stdSqlType="CLOB" i18n-en:displayName="Param Config"/>
             </columns>
             <unique-keys>
-                <unique-key columns="dashboardName" name="UK_NOP_DATAV_DASHBOARD_NAME"
-                            i18n-en:displayName="Unique Dashboard Name"/>
+                <unique-key columns="dashboardName" constraint="UK_NOP_DATAV_DASHBOARD_NAME"
+                            name="UK_NOP_DATAV_DASHBOARD_NAME" i18n-en:displayName="Unique Dashboard Name"/>
             </unique-keys>
         </entity>
         <entity className="io.nop.datav.dao.entity.NopDatavPanel" createTimeProp="createTime" createrProp="createdBy"
@@ -370,7 +370,8 @@
                 </to-one>
             </relations>
             <unique-keys>
-                <unique-key columns="dashboardId,snapshotVersion" name="UK_NOP_DATAV_SNAPSHOT_DASH_VER"
+                <unique-key columns="dashboardId,snapshotVersion" constraint="UK_NOP_DATAV_SNAPSHOT_DASH_VER"
+                            name="UK_NOP_DATAV_SNAPSHOT_DASH_VER"
                             i18n-en:displayName="Unique Snapshot Per Dashboard Version"/>
             </unique-keys>
         </entity>
@@ -418,7 +419,8 @@
                 </to-one>
             </relations>
             <unique-keys>
-                <unique-key columns="userName,dashboardId" name="UK_NOP_DATAV_FILTER_STATE_USER_DASH"
+                <unique-key columns="userName,dashboardId" constraint="UK_NOP_DATAV_FILTER_STATE_USER_DASH"
+                            name="UK_NOP_DATAV_FILTER_STATE_USER_DASH"
                             i18n-en:displayName="Unique Filter State Per User And Dashboard"/>
             </unique-keys>
         </entity>
@@ -474,7 +476,7 @@
                 </to-one>
             </relations>
             <unique-keys>
-                <unique-key columns="shareToken" name="UK_NOP_DATAV_SHARE_TOKEN"
+                <unique-key columns="shareToken" constraint="UK_NOP_DATAV_SHARE_TOKEN" name="UK_NOP_DATAV_SHARE_TOKEN"
                             i18n-en:displayName="Unique Share Token"/>
             </unique-keys>
         </entity>
@@ -582,7 +584,7 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Thumbnail"/>
             </columns>
             <unique-keys>
-                <unique-key columns="screenName" name="UK_NOP_DATAV_SCREEN_NAME"
+                <unique-key columns="screenName" constraint="UK_NOP_DATAV_SCREEN_NAME" name="UK_NOP_DATAV_SCREEN_NAME"
                             i18n-en:displayName="Unique Screen Name"/>
             </unique-keys>
         </entity>
@@ -699,7 +701,8 @@
                 </to-one>
             </relations>
             <unique-keys>
-                <unique-key columns="screenId,snapshotVersion" name="UK_NOP_DATAV_SCREEN_SNAPSHOT_SCREEN_VER"
+                <unique-key columns="screenId,snapshotVersion" constraint="UK_NOP_DATAV_SCREEN_SNAPSHOT_SCREEN_VER"
+                            name="UK_NOP_DATAV_SCREEN_SNAPSHOT_SCREEN_VER"
                             i18n-en:displayName="Unique Snapshot Per Screen Version"/>
             </unique-keys>
         </entity>
@@ -962,9 +965,6 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
             </columns>
             <indexes>
-                <index name="IX_NOP_DATAV_ALERT_STATE_RULE" unique="false">
-                    <column name="alertRuleId"/>
-                </index>
                 <index name="IX_NOP_DATAV_ALERT_STATE_STATE" unique="false">
                     <column name="state"/>
                 </index>
@@ -978,8 +978,8 @@
                 </to-one>
             </relations>
             <unique-keys>
-                <unique-key columns="alertRuleId" name="UQ_NOP_DATAV_ALERT_STATE_RULE"
-                            i18n-en:displayName="Unique Alert Rule"/>
+                <unique-key columns="alertRuleId" constraint="UK_NOP_DATAV_ALERT_STATE_RULE"
+                            name="UK_NOP_DATAV_ALERT_STATE_RULE" i18n-en:displayName="Unique Alert Rule"/>
             </unique-keys>
         </entity>
         <entity className="io.nop.datav.dao.entity.NopDatavChatSession" createTimeProp="createTime"
@@ -1077,8 +1077,8 @@
                 </to-one>
             </relations>
             <unique-keys>
-                <unique-key columns="sessionId,seq" name="UK_NOP_DATAV_CHAT_MSG_SESSION_SEQ"
-                            i18n-en:displayName="Unique Session And Seq"/>
+                <unique-key columns="sessionId,seq" constraint="UK_NOP_DATAV_CHAT_MSG_SESSION_SEQ"
+                            name="UK_NOP_DATAV_CHAT_MSG_SESSION_SEQ" i18n-en:displayName="Unique Session And Seq"/>
             </unique-keys>
         </entity>
     </entities>

@@ -36,9 +36,11 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 import static io.nop.datav.service.NopDatavErrors.ARG_COMPONENT_TYPE;
+import static io.nop.datav.service.NopDatavErrors.ARG_DASHBOARD_NAME;
 import static io.nop.datav.service.NopDatavErrors.ARG_DATASET_SID;
 import static io.nop.datav.service.NopDatavErrors.ARG_REASON;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_GENERATE_DATASET_NOT_FOUND;
+import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_GENERATE_DUPLICATE_DASHBOARD_NAME;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_GENERATE_INVALID_SPEC;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_GENERATE_UNKNOWN_COMPONENT;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_GENERATE_UNSUPPORTED_COMPONENT;
@@ -153,13 +155,38 @@ public class DatavGenerateDashboardExecutor implements IToolExecutor {
                 plans.add(buildPanelPlan(panelSpec, i));
             }
 
+            // D1(b)（plan 2026-08-15-2146-3 Phase 2，镜像 Screen executor 裁定 Q）：dashboardName UK
+            // 冲突预检查（查询优先，比依赖 DB UK 异常更健壮；预查在任何环境下一致工作）
+            if (existsDashboardByName(dashboardName)) {
+                return FutureHelper.success(errorResult(call, new ValidationError(
+                        ERR_DATAV_CHATBI_GENERATE_DUPLICATE_DASHBOARD_NAME,
+                        ARG_DASHBOARD_NAME, dashboardName)));
+            }
+
             // 创建阶段（裁定 O，事务包裹；P1-05：无 ambient 事务时开独立短事务即时提交，
             // 有 ambient 事务时加入（与修复前行为一致））
-            CreationResult created = runCreationInShortTransaction(session ->
-                    doCreate(dashboardName, str(spec.get("description")), plans, operator, session));
+            try {
+                CreationResult created = runCreationInShortTransaction(session ->
+                        doCreate(dashboardName, str(spec.get("description")), plans, operator, session));
 
-            String json = JsonTool.stringify(buildResultJson(created));
-            return FutureHelper.success(AiToolCallResult.successResult(call.getId(), json));
+                String json = JsonTool.stringify(buildResultJson(created));
+                return FutureHelper.success(AiToolCallResult.successResult(call.getId(), json));
+            } catch (NopException e) {
+                if (ERR_DATAV_CHATBI_GENERATE_DUPLICATE_DASHBOARD_NAME.getErrorCode().equals(e.getErrorCode())) {
+                    return FutureHelper.success(errorResult(call, new ValidationError(
+                            ERR_DATAV_CHATBI_GENERATE_DUPLICATE_DASHBOARD_NAME,
+                            ARG_DASHBOARD_NAME, dashboardName)));
+                }
+                return FutureHelper.success(errorResultFromException(call, e));
+            } catch (Exception e) {
+                // 捕获底层 UK 冲突（预查与插入之间的并发窗口；判定逻辑与 Screen executor 共用）
+                if (DatavGenerateScreenExecutor.isUniqueConstraintViolation(e)) {
+                    return FutureHelper.success(errorResult(call, new ValidationError(
+                            ERR_DATAV_CHATBI_GENERATE_DUPLICATE_DASHBOARD_NAME,
+                            ARG_DASHBOARD_NAME, dashboardName)));
+                }
+                return FutureHelper.success(AiToolCallResult.errorResult(call.getId(), e.toString()));
+            }
         } catch (NopException e) {
             return FutureHelper.success(errorResultFromException(call, e));
         } catch (Exception e) {
@@ -413,7 +440,18 @@ public class DatavGenerateDashboardExecutor implements IToolExecutor {
         return "Error: " + error.code.getErrorCode()
                 + " (componentType=" + error.componentType
                 + ", datasetSid=" + error.datasetSid
+                + ", dashboardName=" + error.dashboardName
                 + ", reason=" + error.reason + ")";
+    }
+
+    /**
+     * D1(b)：检查同名看板是否已存在（预查，比依赖 DB UK 异常更健壮；镜像 Screen executor 裁定 Q）。
+     */
+    private boolean existsDashboardByName(String dashboardName) {
+        io.nop.api.core.beans.query.QueryBean query = new io.nop.api.core.beans.query.QueryBean();
+        query.addFilter(io.nop.api.core.beans.FilterBeans.eq("dashboardName", dashboardName));
+        query.setLimit(1);
+        return daoProvider.daoFor(NopDatavDashboard.class).findFirstByQuery(query) != null;
     }
 
     private static String str(Object v) {
@@ -431,6 +469,7 @@ public class DatavGenerateDashboardExecutor implements IToolExecutor {
         final io.nop.api.core.exceptions.ErrorCode code;
         final String componentType;
         final String datasetSid;
+        final String dashboardName;
         final String reason;
 
         ValidationError(io.nop.api.core.exceptions.ErrorCode code, String key, String value) {
@@ -438,14 +477,22 @@ public class DatavGenerateDashboardExecutor implements IToolExecutor {
             if (ARG_COMPONENT_TYPE.equals(key)) {
                 this.componentType = value;
                 this.datasetSid = null;
+                this.dashboardName = null;
                 this.reason = null;
             } else if (ARG_DATASET_SID.equals(key)) {
                 this.componentType = null;
                 this.datasetSid = value;
+                this.dashboardName = null;
+                this.reason = null;
+            } else if (ARG_DASHBOARD_NAME.equals(key)) {
+                this.componentType = null;
+                this.datasetSid = null;
+                this.dashboardName = value;
                 this.reason = null;
             } else {
                 this.componentType = null;
                 this.datasetSid = null;
+                this.dashboardName = null;
                 this.reason = value;
             }
         }

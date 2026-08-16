@@ -84,4 +84,28 @@ alter table nop_datav_report_delivery add constraint PK_nop_datav_report_deliver
 alter table nop_datav_alert_state drop constraint PK_nop_datav_alert_state;
 alter table nop_datav_alert_state add constraint PK_nop_datav_alert_state primary key (NOP_TENANT_ID, ALERT_STATE_ID);
 
+alter table nop_datav_dashboard drop constraint UK_NOP_DATAV_DASHBOARD_NAME;
+alter table nop_datav_dashboard add constraint UK_NOP_DATAV_DASHBOARD_NAME unique (NOP_TENANT_ID,DASHBOARD_NAME);
 
+                alter table nop_datav_screen drop constraint UK_NOP_DATAV_SCREEN_NAME;
+alter table nop_datav_screen add constraint UK_NOP_DATAV_SCREEN_NAME unique (NOP_TENANT_ID,SCREEN_NAME);
+
+                alter table nop_datav_snapshot drop constraint UK_NOP_DATAV_SNAPSHOT_DASH_VER;
+alter table nop_datav_snapshot add constraint UK_NOP_DATAV_SNAPSHOT_DASH_VER unique (NOP_TENANT_ID,DASHBOARD_ID,SNAPSHOT_VERSION);
+
+                alter table nop_datav_filter_state drop constraint UK_NOP_DATAV_FILTER_STATE_USER_DASH;
+alter table nop_datav_filter_state add constraint UK_NOP_DATAV_FILTER_STATE_USER_DASH unique (NOP_TENANT_ID,USER_NAME,DASHBOARD_ID);
+
+                alter table nop_datav_share drop constraint UK_NOP_DATAV_SHARE_TOKEN;
+alter table nop_datav_share add constraint UK_NOP_DATAV_SHARE_TOKEN unique (NOP_TENANT_ID,SHARE_TOKEN);
+
+                alter table nop_datav_screen_snapshot drop constraint UK_NOP_DATAV_SCREEN_SNAPSHOT_SCREEN_VER;
+alter table nop_datav_screen_snapshot add constraint UK_NOP_DATAV_SCREEN_SNAPSHOT_SCREEN_VER unique (NOP_TENANT_ID,SCREEN_ID,SNAPSHOT_VERSION);
+
+                alter table nop_datav_chat_message drop constraint UK_NOP_DATAV_CHAT_MSG_SESSION_SEQ;
+alter table nop_datav_chat_message add constraint UK_NOP_DATAV_CHAT_MSG_SESSION_SEQ unique (NOP_TENANT_ID,SESSION_ID,SEQ);
+
+                alter table nop_datav_alert_state drop constraint UK_NOP_DATAV_ALERT_STATE_RULE;
+alter table nop_datav_alert_state add constraint UK_NOP_DATAV_ALERT_STATE_RULE unique (NOP_TENANT_ID,ALERT_RULE_ID);
+
+                

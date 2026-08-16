@@ -83,6 +83,10 @@ public class NopDatavReportTaskBizModel extends CrudBizModel<NopDatavReportTask>
      * Gap #3 修复（plan 2026-08-14-2020-1）：标准 {@code delete(id)} / {@code batchDelete} /
      * {@code deleteByQuery} 均虚分派到本方法；删除后即时注销 cron job（原先 3 参
      * {@code afterEntityChange} 覆写在 delete 路径不触发，job 进程内残留直至重启）。
+     *
+     * <p>P1-09（plan 2026-08-15-2146-3 Phase 3）：级联物理删除 ReportDelivery 子行
+     * （先注销调度再删子行，与 Dashboard/Screen 级联模式一致——deleteByQuery 批量物理删除，
+     * 避免跨 ORM session 的实体归属问题）。任一步骤失败异常传播（无静默跳过）。</p>
      */
     @Override
     protected void doDeleteEntity(@Name("entity") NopDatavReportTask entity,
@@ -93,6 +97,9 @@ public class NopDatavReportTaskBizModel extends CrudBizModel<NopDatavReportTask>
         if (reportScheduler != null) {
             reportScheduler.unregisterTask(entity.getReportTaskId());
         }
+        QueryBean deliveryQuery = new QueryBean();
+        deliveryQuery.addFilter(FilterBeans.eq("reportTaskId", entity.getReportTaskId()));
+        daoProvider().daoFor(NopDatavReportDelivery.class).deleteByQuery(deliveryQuery);
     }
 
     // ==================== 自定义 action ====================
