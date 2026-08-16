@@ -1,7 +1,7 @@
 # 更新日志
 
 ## 特性 2026-08-16
-* nop-credential 新增 OAuth 流程引擎（W9，`authType=oauth2` 出站 OAuth 2.0 客户端）(commit: 待回填)
+* nop-credential 新增 OAuth 流程引擎（W9，`authType=oauth2` 出站 OAuth 2.0 客户端）(commits: 385aa44ea, e18a87982)
   - `credential-type.xdef` `authType` 收敛为枚举 `none|apiKey|basic|oauth2`；oauth2 类型声明 `<oauth2>` 元数据（authorizationEndpoint/tokenEndpoint 必填，scopes/refreshWindowSeconds 可选），registry 加载期校验 fail-closed
   - 引擎保留字段契约：`accessToken`/`refreshToken`/`expiresAt`/`tokenType`/`scope` 归引擎独占，类型文件占用与 `saveCredential` 输入均拒绝
   - 授权码闭环：`CredentialOAuthApi__beginOAuthFlow`（登录态）→ 单一公开回调 `GET /r/CredentialOAuthApi__oauthCallback`（publicAccess，返回 HTML 跳转页，不携带 token 明文）→ token 集加密回写
