@@ -204,9 +204,9 @@
                        forkCount: 这是关键！它定义了要启动多少个JVM进程来运行测试。
                        你可以使用一个固定的数字，比如 '4'。
                        或者，更灵活的方式是使用类似 '2C' 的表达式，表示“每个CPU核心启动2个JVM进程”。
-                       这里我们用 '2C' 作为示例，它会根据你机器的CPU核心数动态调整。
+                       固定为 '4'：最多并行 4 个测试 JVM，避免在多核机器上占满全部 CPU。
                    -->
-                    <forkCount>1C</forkCount>
+                    <forkCount>4</forkCount>
 
                     <!--
                         reuseForks: 设置为 'true'。
