@@ -9,14 +9,14 @@
 
 ## 一、一页结论
 
-1. Truffle 的性能来自**自修改 AST 解释器 + partial evaluation (PE)**：节点首次执行时做类型画像并"自我改写"为特化节点，热点 CallTarget 被运行时 Graal 编译器内联展开成机器码。**只有跑在 GraalVM 上才有 JIT**；stock JVM 上纯解释执行。
+1. Truffle 的性能来自**自修改 AST 解释器 + partial evaluation (PE)**：节点首次执行时做类型画像并"自我改写"为特化节点，热点 CallTarget 被运行时 Graal 编译器内联展开成机器码。**只有跑在 GraalVM 系运行时上才有 JIT**；stock JVM 上纯解释执行。**native image 形态**：Truffle guest 代码的运行时 JIT 在 GraalVM 25 为默认（优化运行时编入镜像），宿主 Java 代码则无运行时 JIT（详见 `ai-dev/analysis/2026-08/2026-08-16-truffle-graalvm-ecosystem-research.md` §6）。
 2. 实现一门 Truffle 语言 = 实现一组 `Node` + 一个 `TruffleLanguage` 子类。没有 parser 也可行（`Source` 可为合成源或直接程序化构造 AST）——**nop-xlang 已有自己的编译前端（宏/标签全部编译期展开为 Executable 树），Truffle 层只承担"执行后端"职责**。
 3. 多线程的正确打开方式有两条路：
    - **路 A（推荐起步）**：host 侧每线程一个 `polyglot.Context`，显式共享同一个 `Engine` → 编译代码与 parse 缓存跨线程复用，语言实现无需支持并发 AST 访问；
    - **路 B（进阶）**：单 Context 多线程并发执行，要求语言覆写 `isThreadAccessAllowed` 返回 true 并保证节点线程安全，且**该 Context 内所有已初始化语言**都允许（混合语言时易踩坑）。
 4. 语言上下文共享策略由 `ContextPolicy` 决定（EXCLUSIVE → REUSE → SHARED，共享程度递增）。**注意 REUSE ≠ 池化共享**：REUSE 是"context 销毁后回收复用 language 实例"，同一时刻一个实例只服务一个存活 context（TruffleLanguage.java:4306-4310）；**多个同时存活的 Context 要共享 AST/parse 缓存/JIT，只有 SHARED 一条路**（AOTOverview.md:32-34）。官方建议手写语言从 EXCLUSIVE 起步、成熟后升 SHARED（SLLanguage.java:552；SL 本身已是 SHARED，L226）。**xlang 的翻译 AST 来自无状态 Executable 树**（纯数据、宏全展开、不含运行时值），context-independent 准则大部分可由翻译器设计自动满足——但准则 2（两级内联缓存）需显式设计、准则 4（节点不存 context 数据）靠翻译纪律保证（SL 也做了真实适配），见 §4.3 准则清单，仍是 SHARED 起步的好候选。
 5. 依赖形态：`org.graalvm.truffle:truffle-api` + 注解处理器 `truffle-dsl-processor`（编译期生成特化子类与 provider 注册文件），嵌入侧用 `org.graalvm.polyglot:polyglot`。语言注册**不依赖注解扫描**——DSL 处理器在编译期生成 `META-INF/services/...TruffleLanguageProvider`（SL 源码 META-INF 下无手写 services 文件，只有 native-image.properties）。
-6. Native image 内**不能**运行 Truffle 语言（无运行时 JIT，且官方不支持该组合）——本知识库服务的场景是 **JVM 部署形态下的 XLang 提速**，与 native image 路线（构建期转译 Java）互斥互补。
+6. Native image 内**可以**嵌入 Truffle 语言：官方 23.1+ 无需特殊配置，GraalVM 25 起优化运行时（guest 代码运行时 JIT）为默认（构建期传 `-Dtruffle.UseFallbackRuntime=true` 才退回纯解释）。但本知识库服务的场景仍是 **JVM 部署形态下的 XLang 提速**：XLang 是宿主 Java 代码，native image 内无宿主 JIT，Truffle 后端无法为 native 形态的 XLang 提速（native 路线走构建期转译 Java，两者互斥互补）；native 内动态加载字节码走 Espresso（见 ecosystem research §7）。
 
 ---
 
@@ -241,7 +241,7 @@ fn.execute(args);
 ### 7.3 明确的非目标
 
 - 不做 xlang parser/宏的 Truffle 化（上游 XplCompiler 保持不变）；
-- 不支持 native image 内跑 Truffle 后端（native 路线走构建期 Java 转译，两者互补）；
+- 不做 native image 形态的 XLang Truffle 后端（native 形态 XLang 提速走构建期 Java 转译，两者互补；Truffle 后端只服务 JVM 部署形态）；
 - 一期不做 instrumentation/debugger 集成（`ExecutionEventListener` 留作二期，接入 nop 的链路追踪）。
 
 ---
