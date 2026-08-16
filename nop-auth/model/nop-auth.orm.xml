@@ -1213,6 +1213,15 @@
                 <column code="FAIL_COUNT" comment="失败计数（SQL 原子递增，对齐 Redis INCRBY）" defaultValue="0"
                         displayName="失败计数" name="failCount" propId="8" stdDataType="int" stdSqlType="INTEGER"
                         ui:show="X" i18n-en:displayName="Fail Count"/>
+                <column code="SCENE" comment="challenge 场景：login（缺省）/operation（操作级，验证后转一次性短 TTL 票）"
+                        displayName="场景" name="scene" precision="20" propId="13" stdDataType="string"
+                        stdSqlType="VARCHAR" ui:show="X" i18n-en:displayName="Scene"/>
+                <column code="PAYLOAD" comment="场景数据（JSON 字符串，一次写入只读；operation 场景含 operation/sessionId）"
+                        displayName="场景数据" name="payload" precision="500" propId="14" stdDataType="string"
+                        stdSqlType="VARCHAR" tagSet="not-pub" ui:show="X" i18n-en:displayName="Payload"/>
+                <column code="VERIFIED_AT" comment="操作级票验证时间戳（epoch 毫秒，null=未验证；一次性状态迁移）"
+                        displayName="验证时间" name="verifiedAt" propId="15" stdDataType="long" stdSqlType="BIGINT"
+                        ui:show="X" i18n-en:displayName="Verified At"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="9" stdDataType="string" stdSqlType="VARCHAR" ui:show="X"
                         i18n-en:displayName="Created By"/>

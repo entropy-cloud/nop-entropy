@@ -14,6 +14,7 @@ import io.nop.auth.core.mfa.store.SmsCodeStoreConfig;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -133,6 +134,110 @@ public class TestRedisStoreWiring {
         store.verify("login:13800000000", "000000"); // mismatch, reads entry
         assertEquals(0, nosql.callCount("getExAsync"), "verify must NOT invoke getExAsync");
         assertTrue(nosql.callCount("get") >= 1, "verify must invoke get");
+    }
+
+    // ===================== W12-impl Phase 2：场景化 + markVerified 派生票键（设计 §3.3） =====================
+
+    @Test
+    public void testSceneCreateOverloadPinsSceneAndPayloadRedis() {
+        FakeNosqlService nosql = new FakeNosqlService();
+        RedisMfaChallengeStore store = new RedisMfaChallengeStore(nosql, cfg(60));
+        String payload = "{\"operation\":\"NopAuthUser__resetUserMfa\",\"sessionId\":\"sess-1\"}";
+        String token = store.create(MfaChallenge.SCENE_OPERATION, "op-user", "totp", 1, "t0", null, payload);
+
+        MfaChallenge peeked = store.peek(token);
+        assertNotNull(peeked, "scene=operation challenge must be creatable and peekable (Redis)");
+        assertEquals(MfaChallenge.SCENE_OPERATION, peeked.getScene(), "scene must be carried in stored JSON");
+        assertEquals(payload, peeked.getPayload(), "payload must be carried in stored JSON");
+        assertNull(peeked.getVerifiedAt(), "freshly created challenge must be unverified");
+    }
+
+    @Test
+    public void testLegacyFiveArgDelegatesToLoginSceneRedis() {
+        FakeNosqlService nosql = new FakeNosqlService();
+        RedisMfaChallengeStore store = new RedisMfaChallengeStore(nosql, cfg(60));
+        String token = store.create("legacy-user", "totp", 1, "t0", null);
+
+        MfaChallenge peeked = store.peek(token);
+        assertNotNull(peeked);
+        assertEquals(MfaChallenge.SCENE_LOGIN, peeked.getScene(), "old 5-arg delegates scene=login (Redis)");
+        assertNull(peeked.getPayload(), "old 5-arg delegates payload=null (Redis)");
+    }
+
+    @Test
+    public void testMarkVerifiedSetnxTicketKeyExactlyOnce() {
+        FakeNosqlService nosql = new FakeNosqlService();
+        RedisMfaChallengeStore store = new RedisMfaChallengeStore(nosql, cfg(60));
+        String token = store.create(MfaChallenge.SCENE_OPERATION, "mv-user", "totp", 1, "t0", null, "{}");
+
+        assertTrue(nosql.callCount("putIfAbsentExAsync") == 0, "no ticket write before markVerified");
+        assertTrue(store.markVerified(token), "first markVerified must succeed (SETNX ticket key)");
+        assertTrue(nosql.callCount("putIfAbsentExAsync") >= 1, "markVerified must invoke putIfAbsentExAsync");
+
+        MfaChallenge peeked = store.peek(token);
+        assertNotNull(peeked);
+        assertNotNull(peeked.getVerifiedAt(),
+                "peek must map ticket key existence to verifiedAt (Redis, invariant: non-null ⇒ in window)");
+
+        assertFalse(store.markVerified(token), "second markVerified must return false (SETNX fails, 票不续命)");
+        assertFalse(store.markVerified("no-such-token"), "missing token returns false");
+    }
+
+    @Test
+    public void testTicketKeyExpiryDropsVerifiedAtRedis() throws InterruptedException {
+        MfaChallengeStoreConfig c = new MfaChallengeStoreConfig();
+        c.setExpireSeconds(60);
+        c.setOpTicketExpireSeconds(1);
+        FakeNosqlService nosql = new FakeNosqlService();
+        RedisMfaChallengeStore store = new RedisMfaChallengeStore(nosql, c);
+        String token = store.create(MfaChallenge.SCENE_OPERATION, "win-user", "totp", 1, "t0", null, "{}");
+
+        assertTrue(store.markVerified(token));
+        assertNotNull(store.peek(token).getVerifiedAt());
+        Thread.sleep(1200L);
+        // 票键 TTL 到期：peek 不再报 verifiedAt（票失效；challenge 自身仍在其 TTL 内）
+        MfaChallenge after = store.peek(token);
+        assertNotNull(after, "challenge itself survives its own TTL (Redis)");
+        assertNull(after.getVerifiedAt(), "expired ticket must not surface verifiedAt (票不续命)");
+    }
+
+    @Test
+    public void testConsumeUsesStoredObjectForCasAfterPeekMutationRedis() {
+        FakeNosqlService nosql = new FakeNosqlService();
+        RedisMfaChallengeStore store = new RedisMfaChallengeStore(nosql, cfg(60));
+        String token = store.create(MfaChallenge.SCENE_OPERATION, "cas-user", "totp", 1, "t0", null, "{}");
+        assertTrue(store.markVerified(token));
+
+        // peek 会把 verifiedAt 写进返回对象；consume 不得复用该修饰对象做 CAS 比对
+        MfaChallenge peeked = store.peek(token);
+        assertNotNull(peeked.getVerifiedAt());
+
+        MfaChallenge consumed = store.consume(token);
+        assertNotNull(consumed,
+                "consume must succeed even after peek decorated a copy with verifiedAt (CAS uses stored object)");
+        assertNull(store.peek(token), "challenge gone after consume (Redis)");
+        assertFalse(store.markVerified(token), "markVerified after consume returns false");
+    }
+
+    @Test
+    public void testConsumeOneTimeNotAffectedByMarkVerifiedRedis() {
+        FakeNosqlService nosql = new FakeNosqlService();
+        RedisMfaChallengeStore store = new RedisMfaChallengeStore(nosql, cfg(60));
+        String token = store.create(MfaChallenge.SCENE_OPERATION, "c-user", "totp", 1, "t0", null, "{}");
+
+        assertTrue(store.markVerified(token));
+        MfaChallenge consumed = store.consume(token);
+        assertNotNull(consumed, "consume after markVerified must still return the challenge (Redis one-time unchanged)");
+        assertNull(store.consume(token), "second consume returns null (Redis one-time)");
+    }
+
+    @Test
+    public void testMarkVerifiedOnExpiredChallengeReturnsFalseRedis() throws InterruptedException {
+        FakeNosqlService nosql = new FakeNosqlService();
+        RedisMfaChallengeStore store = new RedisMfaChallengeStore(nosql, cfg(1));
+        String token = store.create(MfaChallenge.SCENE_OPERATION, "exp-user", "totp", 1, "t0", null, "{}");
+        Thread.sleep(1100L);
+        assertFalse(store.markVerified(token), "markVerified on expired challenge must return false (Redis)");
     }
 
     private static MfaChallengeStoreConfig cfg(int expireSeconds) {

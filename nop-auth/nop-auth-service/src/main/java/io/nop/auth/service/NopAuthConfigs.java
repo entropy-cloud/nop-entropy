@@ -110,6 +110,16 @@ public interface NopAuthConfigs {
     IConfigReference<Integer> CFG_AUTH_MFA_BIND_EXPIRE_SECONDS = varRef(s_loc, "nop.auth.mfa.bind-expire-seconds",
             Integer.class, 300);
 
+    // ===== 操作级 MFA 配置（设计 §3.1 结论 8 / §3.7） =====
+
+    @Description("操作级 MFA 总开关（会话内敏感操作二次验证）。缺省 false：关闭时拦截器零介入，一期零回归")
+    IConfigReference<Boolean> CFG_AUTH_OPERATION_MFA_ENABLED = varRef(s_loc, "nop.auth.operation-mfa.enabled",
+            Boolean.class, false);
+
+    @Description("操作级票窗口（秒）：mfaVerifyOperation 验证后允许重试原操作的时间（票绑定 operation+sessionId+单次消费）")
+    IConfigReference<Integer> CFG_AUTH_OPERATION_MFA_OP_TICKET_EXPIRE_SECONDS = varRef(s_loc,
+            "nop.auth.operation-mfa.op-ticket-expire-seconds", Integer.class, 60);
+
     // ===== 短信验证码配置（设计 §3.7） =====
 
     @Description("短信验证码登录开关")

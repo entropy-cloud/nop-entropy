@@ -130,11 +130,14 @@ prop:
       failCount: 失败计数
       loginType: 登录方式
       mfaType: MFA类型
+      payload: 场景数据
       phone: 手机号
+      scene: 场景
       tenantId: 租户ID
       updateTime: 修改时间
       updatedBy: 修改人
       userId: 用户ID
+      verifiedAt: 验证时间
     NopAuthMfaRecoveryCode:
       codeHash: 恢复码哈希
       createTime: 创建时间

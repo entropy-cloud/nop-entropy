@@ -19,6 +19,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -148,5 +149,121 @@ public class TestLocalMfaChallengeStore {
         // 超限后调用方应 consume/丢弃（store 仍可继续计数，但调用方不会再调）
         store.consume(token);
         assertNull(store.peek(token));
+    }
+
+    // ===================== W12-impl Phase 2：场景化 + markVerified（设计 §3.3） =====================
+
+    @Test
+    public void testSceneCreateOverloadPinsSceneAndPayload() {
+        LocalMfaChallengeStore store = new LocalMfaChallengeStore();
+        String payload = "{\"operation\":\"NopAuthUser__resetUserMfa\",\"sessionId\":\"sess-1\"}";
+        String token = store.create(MfaChallenge.SCENE_OPERATION, "op-user", "totp", 1, "t0", null, payload);
+
+        MfaChallenge peeked = store.peek(token);
+        assertNotNull(peeked, "scene=operation challenge must be creatable and peekable");
+        assertEquals(MfaChallenge.SCENE_OPERATION, peeked.getScene(), "scene must be pinned by overload");
+        assertEquals(payload, peeked.getPayload(), "payload must be pinned by overload");
+        assertNull(peeked.getVerifiedAt(), "freshly created challenge must be unverified");
+    }
+
+    @Test
+    public void testLegacyFiveArgDelegatesToLoginScene() {
+        LocalMfaChallengeStore store = new LocalMfaChallengeStore();
+        String token = store.create("legacy-user", "totp", 1, "t0", "13800000000");
+
+        MfaChallenge peeked = store.peek(token);
+        assertNotNull(peeked);
+        assertEquals(MfaChallenge.SCENE_LOGIN, peeked.getScene(), "old 5-arg create delegates scene=login");
+        assertNull(peeked.getPayload(), "old 5-arg create delegates payload=null");
+    }
+
+    @Test
+    public void testMarkVerifiedExactlyOnce() {
+        LocalMfaChallengeStore store = new LocalMfaChallengeStore();
+        String token = store.create(MfaChallenge.SCENE_OPERATION, "mv-user", "totp", 1, "t0", null, "{}");
+
+        assertTrue(store.markVerified(token), "first markVerified must succeed");
+        assertNotNull(store.peek(token).getVerifiedAt(), "peek must expose verifiedAt after markVerified");
+        assertFalse(store.markVerified(token), "second markVerified must return false (ticket not renewed)");
+        assertFalse(store.markVerified(token), "repeated markVerified keeps returning false");
+        assertFalse(store.markVerified("no-such-token"), "missing token returns false");
+    }
+
+    @Test
+    public void testMarkVerifiedConcurrentExactlyOneWinner() throws Exception {
+        LocalMfaChallengeStore store = new LocalMfaChallengeStore();
+        String token = store.create(MfaChallenge.SCENE_OPERATION, "conc-user", "totp", 1, "t0", null, "{}");
+
+        int threads = 16;
+        ExecutorService pool = Executors.newFixedThreadPool(threads);
+        CountDownLatch start = new CountDownLatch(1);
+        AtomicInteger winners = new AtomicInteger();
+        List<Future<?>> futures = new ArrayList<>();
+        for (int i = 0; i < threads; i++) {
+            futures.add(pool.submit(() -> {
+                start.await();
+                if (store.markVerified(token))
+                    winners.incrementAndGet();
+                return null;
+            }));
+        }
+        start.countDown();
+        for (Future<?> f : futures)
+            f.get();
+        pool.shutdown();
+        assertTrue(pool.awaitTermination(10, TimeUnit.SECONDS));
+
+        assertEquals(1, winners.get(), "concurrent markVerified must have exactly one winner (JVM atomic compute)");
+    }
+
+    @Test
+    public void testTicketWindowVisibleOnlyWithinOpTicketExpire() {
+        MfaChallengeStoreConfig cfg = new MfaChallengeStoreConfig();
+        cfg.setExpireSeconds(60); // challenge 自身 TTL 足够长
+        cfg.setOpTicketExpireSeconds(SHORT_TTL); // 票窗口 1s
+        LocalMfaChallengeStore store = new LocalMfaChallengeStore(cfg);
+        String token = store.create(MfaChallenge.SCENE_OPERATION, "win-user", "totp", 1, "t0", null, "{}");
+
+        assertTrue(store.markVerified(token));
+        assertNotNull(store.peek(token), "within ticket window, peek must see the challenge");
+        assertNotNull(store.peek(token).getVerifiedAt(),
+                "within ticket window, peek().verifiedAt must be non-null (invariant: non-null ⇒ in window)");
+    }
+
+    @Test
+    public void testTicketWindowExpiryInvalidatesChallenge() throws InterruptedException {
+        MfaChallengeStoreConfig cfg = new MfaChallengeStoreConfig();
+        cfg.setExpireSeconds(60);
+        cfg.setOpTicketExpireSeconds(SHORT_TTL);
+        LocalMfaChallengeStore store = new LocalMfaChallengeStore(cfg);
+        String token = store.create(MfaChallenge.SCENE_OPERATION, "win2-user", "totp", 1, "t0", null, "{}");
+
+        assertTrue(store.markVerified(token));
+        Thread.sleep(SHORT_TTL * 1000L + 200L);
+        assertNull(store.peek(token), "after ticket window, ticket (and challenge) must be invalid (票不续命)");
+        assertFalse(store.markVerified(token), "markVerified after ticket expiry returns false");
+    }
+
+    @Test
+    public void testConsumeOneTimeNotAffectedByMarkVerified() {
+        LocalMfaChallengeStore store = new LocalMfaChallengeStore();
+        String token = store.create(MfaChallenge.SCENE_OPERATION, "c-user", "totp", 1, "t0", null, "{}");
+
+        assertTrue(store.markVerified(token), "markVerified must succeed");
+        MfaChallenge consumed = store.consume(token);
+        assertNotNull(consumed, "consume after markVerified must still return the challenge (one-time unchanged)");
+        assertNotNull(consumed.getVerifiedAt(), "consumed challenge carries verifiedAt");
+        assertNull(store.consume(token), "second consume returns null (one-time)");
+        assertNull(store.peek(token), "peek after consume returns null");
+    }
+
+    @Test
+    public void testMarkVerifiedOnExpiredChallengeReturnsFalse() throws InterruptedException {
+        MfaChallengeStoreConfig cfg = new MfaChallengeStoreConfig();
+        cfg.setExpireSeconds(SHORT_TTL);
+        LocalMfaChallengeStore store = new LocalMfaChallengeStore(cfg);
+        String token = store.create(MfaChallenge.SCENE_OPERATION, "exp-user", "totp", 1, "t0", null, "{}");
+        Thread.sleep(SHORT_TTL * 1000L + 200L);
+        assertFalse(store.markVerified(token), "markVerified on expired challenge must return false");
     }
 }

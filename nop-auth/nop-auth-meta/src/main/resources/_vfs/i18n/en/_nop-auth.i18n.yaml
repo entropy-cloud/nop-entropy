@@ -135,6 +135,9 @@ prop:
       createTime: Create Time
       updatedBy: Updated By
       updateTime: Update Time
+      scene: Scene
+      payload: Payload
+      verifiedAt: Verified At
     NopAuthMfaRecoveryCode:
       sid: SID
       userId: User ID

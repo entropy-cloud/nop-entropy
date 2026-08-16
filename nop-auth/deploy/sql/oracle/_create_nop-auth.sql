@@ -112,6 +112,9 @@ CREATE TABLE nop_auth_mfa_challenge(
   CREATE_TIME TIMESTAMP NOT NULL ,
   UPDATED_BY VARCHAR2(50)  ,
   UPDATE_TIME TIMESTAMP  ,
+  SCENE VARCHAR2(20)  ,
+  PAYLOAD VARCHAR2(500)  ,
+  VERIFIED_AT NUMBER(20)  ,
   constraint PK_nop_auth_mfa_challenge primary key (CHALLENGE_TOKEN)
 );
 
@@ -569,6 +572,12 @@ CREATE TABLE nop_auth_mfa_recovery_code(
       COMMENT ON COLUMN nop_auth_mfa_challenge.UPDATED_BY IS '修改人';
                     
       COMMENT ON COLUMN nop_auth_mfa_challenge.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_challenge.SCENE IS '场景';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_challenge.PAYLOAD IS '场景数据';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_challenge.VERIFIED_AT IS '验证时间';
                     
       COMMENT ON TABLE nop_auth_sms_code IS '短信验证码';
                 

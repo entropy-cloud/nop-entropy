@@ -41,6 +41,9 @@ public interface NopAuthErrors {
     String ARG_LOGIN_TYPE = "loginType";
     String ARG_PHONE = "phone";
 
+    /** 操作名（{@link #ERR_AUTH_OPERATION_MFA_REQUIRED} 的 errorParams 携带，bizObjName__action 全名）。 */
+    String ARG_OPERATION = "operation";
+
     ErrorCode ERR_AUTH_INVALID_LOGIN_REQUEST = define(API_STATUS_BAD_REQUEST, "nop.err.auth.invalid-login-request",
             "登录请求参数不合法");
 
@@ -80,6 +83,15 @@ public interface NopAuthErrors {
             "需要多因子验证", ARG_CHALLENGE_TOKEN, ARG_MFA_TYPE, ARG_LOGIN_TYPE);
 
     ErrorCode ERR_AUTH_MFA_FAIL = define("nop.err.auth.mfa-fail", "多因子验证失败");
+
+    /**
+     * 操作级 MFA 拦截（会话内敏感操作二次验证，设计 §3.3）：errorParams 携带
+     * challengeToken/mfaType/operation——客户端凭 challengeToken 调 mfaVerifyOperation
+     * 验证后携票重试。与一期 {@link #ERR_AUTH_MFA_REQUIRED}（登录期）编码区分，前端可
+     * 区分"登录期"与"会话期"弹窗。
+     */
+    ErrorCode ERR_AUTH_OPERATION_MFA_REQUIRED = define(API_STATUS_BAD_REQUEST, "nop.err.auth.operation-mfa-required",
+            "敏感操作需要二次验证", ARG_CHALLENGE_TOKEN, ARG_MFA_TYPE, ARG_OPERATION);
 
     ErrorCode ERR_AUTH_MFA_CHALLENGE_EXPIRED = define("nop.err.auth.mfa-challenge-expired",
             "多因子验证已过期或已失效，请重新登录");

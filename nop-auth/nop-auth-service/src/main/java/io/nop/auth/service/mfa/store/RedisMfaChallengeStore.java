@@ -42,7 +42,7 @@ public class RedisMfaChallengeStore implements MfaChallengeStore {
     private static final String FAIL_PREFIX = "mfa:fail:";
 
     private final INosqlService nosql;
-    private final MfaChallengeStoreConfig config;
+    private MfaChallengeStoreConfig config;
 
     @Inject
     public RedisMfaChallengeStore(INosqlService nosql) {
@@ -54,8 +54,18 @@ public class RedisMfaChallengeStore implements MfaChallengeStore {
         this.config = config;
     }
 
+    /** beans 装配用（nopMfaChallengeConfig 同一配置 bean，对齐 local/db 实现）。 */
+    public void setConfig(MfaChallengeStoreConfig config) {
+        this.config = config;
+    }
+
     private String challengeKey(String token) {
         return CHALLENGE_PREFIX + token;
+    }
+
+    /** 操作级票派生键（SETNX 承载一次性，独立 TTL=op-ticket-expire，设计 §3.3）。 */
+    private String ticketKey(String token) {
+        return CHALLENGE_PREFIX + token + ":v";
     }
 
     private String failKey(String token) {
@@ -66,11 +76,18 @@ public class RedisMfaChallengeStore implements MfaChallengeStore {
         return config.getExpireSeconds() * 1000L;
     }
 
+    private long opTicketMillis() {
+        return config.getOpTicketExpireSeconds() * 1000L;
+    }
+
     @Override
-    public String create(String userId, String mfaType, int loginType, String tenantId, String phone) {
+    public String create(String scene, String userId, String mfaType, int loginType, String tenantId, String phone,
+                         String payload) {
         long now = System.currentTimeMillis();
         String token = StringHelper.generateUUID();
         MfaChallenge c = new MfaChallenge(token, userId, mfaType, loginType, tenantId, phone, now, now + ttlMillis());
+        c.setScene(scene);
+        c.setPayload(payload);
         // 写一律 putExAsync（psetex，TTL 在此设定），sync 确保返回 token 前已持久化
         FutureHelper.syncGet(nosql.putExAsync(challengeKey(token), c, ttlMillis()));
         return token;
@@ -91,6 +108,16 @@ public class RedisMfaChallengeStore implements MfaChallengeStore {
         if (c.getExpireAt() <= System.currentTimeMillis()) {
             nosql.remove(challengeKey(challengeToken));
             return null;
+        }
+        // 票键存在 ⇒ 已验证且在票窗口内（键 TTL=op-ticket-expire 由 SETNX 设定，过期即失效）；
+        // 票键不存在 ⇒ verifiedAt=null（未验证，或票已过期的 challenge 自身仍存活）。
+        // 显式赋值（含清 null）：peek 对同一对象的重复调用幂等，不残留旧票状态。
+        // 对调用方不变式：peek().verifiedAt 非空 ⇒ 票在窗口内（三实现一致）
+        Object ticket = nosql.get(ticketKey(challengeToken));
+        if (ticket instanceof Number) {
+            c.setVerifiedAt(((Number) ticket).longValue());
+        } else {
+            c.setVerifiedAt(null);
         }
         return c;
     }
@@ -114,6 +141,8 @@ public class RedisMfaChallengeStore implements MfaChallengeStore {
         if (StringHelper.isEmpty(challengeToken))
             return null;
         String key = challengeKey(challengeToken);
+        // 必须以本次 get 读到的存储原对象做 CAS 比对值（不得复用 peek 修饰过的对象——
+        // peek 可能已写入 verifiedAt，序列化值与存储值不一致导致 removeIfMatch 永不命中）
         Object obj = nosql.get(key);
         if (obj == null)
             return null;
@@ -127,6 +156,30 @@ public class RedisMfaChallengeStore implements MfaChallengeStore {
         }
         // 原子 CAS 删除：仅当值仍匹配时删除（一次性语义）
         boolean removed = nosql.removeIfMatch(key, c);
-        return removed ? c : null;
+        if (removed) {
+            // 票键随 challenge 消费一并清理（best-effort；键自身短 TTL 兜底）
+            nosql.remove(ticketKey(challengeToken));
+            return c;
+        }
+        return null;
+    }
+
+    @Override
+    public boolean markVerified(String challengeToken) {
+        if (StringHelper.isEmpty(challengeToken))
+            return false;
+        // challenge 必须存在且未过期（票不脱离 challenge 单独存在）
+        Object obj = nosql.get(challengeKey(challengeToken));
+        if (!(obj instanceof MfaChallenge))
+            return false;
+        if (((MfaChallenge) obj).getExpireAt() <= System.currentTimeMillis()) {
+            nosql.remove(challengeKey(challengeToken));
+            return false;
+        }
+        // 派生票键 SETNX（putIfAbsentExAsync → SETNX+PX 原子）：恰首个调用者成功；
+        // 重复调用键已存在返回 false（票不续命）。键值=验证时刻（peek 映射为 verifiedAt）。
+        Boolean ok = FutureHelper.syncGet(
+                nosql.putIfAbsentExAsync(ticketKey(challengeToken), System.currentTimeMillis(), opTicketMillis()));
+        return Boolean.TRUE.equals(ok);
     }
 }

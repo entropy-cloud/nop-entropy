@@ -7,6 +7,8 @@
  */
 package io.nop.auth.core.mfa.store;
 
+import io.nop.api.core.annotations.data.DataBean;
+
 import java.io.Serializable;
 
 /**
@@ -18,10 +20,23 @@ import java.io.Serializable;
  * <p>
  * challenge 自身只负责一次性与失败计数（{@link MfaChallengeStore#incrFailCount}），
  * 不承担 TOTP 窗口防重放（防重放是 per-user 的，见 TOTP 组件 + 实体 lastVerifiedWindow）。
+ * <p>
+ * 场景化扩展（设计 §3.1 结论 4 / §3.3）：{@code scene}（缺省 login）/{@code payload}
+ * （场景数据 JSON 字符串，一次写入只读）/{@code verifiedAt}（操作级票状态）。三字段均为
+ * 可空简单类型 + 无参默认——Redis 滚动升级时老进程写的新 JSON 增量 key 与新进程读的老
+ * JSON（缺新 key）互不破坏（unknown-prop 容忍由 JsonTool 反序列化配置保证，测试钉定）。
+ * scene==null 语义等同 {@link #SCENE_LOGIN}（一期存量数据兼容口径）。
  */
+@DataBean
 public class MfaChallenge implements Serializable {
 
     private static final long serialVersionUID = 1L;
+
+    /** 登录级 challenge（一期唯一场景，缺省值）。 */
+    public static final String SCENE_LOGIN = "login";
+
+    /** 操作级 challenge（会话内敏感操作二次验证，验证后转一次性短 TTL 票）。 */
+    public static final String SCENE_OPERATION = "operation";
 
     private String challengeToken;
     private String userId;
@@ -31,6 +46,9 @@ public class MfaChallenge implements Serializable {
     private String phone;
     private long createdAt;
     private long expireAt;
+    private String scene;
+    private String payload;
+    private Long verifiedAt;
 
     public MfaChallenge() {
     }
@@ -109,5 +127,29 @@ public class MfaChallenge implements Serializable {
 
     public void setExpireAt(long expireAt) {
         this.expireAt = expireAt;
+    }
+
+    public String getScene() {
+        return scene;
+    }
+
+    public void setScene(String scene) {
+        this.scene = scene;
+    }
+
+    public String getPayload() {
+        return payload;
+    }
+
+    public void setPayload(String payload) {
+        this.payload = payload;
+    }
+
+    public Long getVerifiedAt() {
+        return verifiedAt;
+    }
+
+    public void setVerifiedAt(Long verifiedAt) {
+        this.verifiedAt = verifiedAt;
     }
 }

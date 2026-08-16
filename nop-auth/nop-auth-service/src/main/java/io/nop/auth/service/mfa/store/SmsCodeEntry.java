@@ -7,12 +7,20 @@
  */
 package io.nop.auth.service.mfa.store;
 
+import io.nop.api.core.annotations.data.DataBean;
+
 import java.io.Serializable;
 
 /**
  * Redis 端存储的短信验证码条目（nop-nosql PrefixTextCodec 要求可 JSON 序列化 POJO）。
  * expireAtMillis 作为 Local/Redis 一致的过期判定来源；Redis 自身的 putExAsync TTL 是兜底。
+ * <p>
+ * {@code @DataBean}（W12-impl Phase 2 修复）：平台 JSON 序列化缺省仅允许 DataBean
+ * （{@code nop.core.json.serialize-only-data-bean=true}，安全缺省）——此前缺失该标记时
+ * 经真实 PrefixTextCodec 的 Redis 写路径会抛 only-data-bean-is-serializable（FakeNosql
+ * 绕过序列化故未暴露）。
  */
+@DataBean
 public class SmsCodeEntry implements Serializable {
 
     private static final long serialVersionUID = 1L;
