@@ -75,6 +75,10 @@ public class TestNopDatavChatBiSessionE2E extends AbstractNopDatavTest {
         NopReportDataset ds = newReportDataset("ds-session-e2e", "sql",
                 "select REGION as region, AMOUNT as amount "
                         + "from TEST_DATAV_SALES where REGION = ${region} order by AMOUNT desc");
+        // P1-03（裁定 D4）：会话 owner alice 同时是数据集 owner（chatToQuery 会话路径传递 alice 身份，
+        // 非 owner 数据集经可见性过滤不可查）
+        ds.setCreatedBy("alice");
+        ds.setUpdatedBy("alice");
         daoProvider.daoFor(NopReportDataset.class).saveEntityDirectly(ds);
 
         NopDatavChatBiBizModel bizModel = new NopDatavChatBiBizModel();

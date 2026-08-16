@@ -15,6 +15,7 @@ import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.datav.dao.entity.NopDatavDashboard;
+import io.nop.datav.dao.entity.NopDatavPanel;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -131,6 +132,124 @@ public class TestNopDatavRbacAuth extends AbstractNopDatavAuthTest {
                 "user role should be denied rollbackDashboard (admin-only), got: " + response);
     }
 
+    /**
+     * Negative: 'user' role does NOT have NopDatavPanel:mutation permission
+     * (P0-01 fix, plan 2026-08-15-2146-1: FNPT:NopDatavPanel:mutation collapsed to admin).
+     * The standard CRUD mutation is rejected with ERR_AUTH_NO_PERMISSION.
+     */
+    @Test
+    public void testUserWithoutPanelMutationPermissionIsRejected() {
+        savePanel("panel-rbac-user-deny", saveDashboard("dash-panel-rbac-deny", "panel-rbac").getDashboardId());
+
+        setUserContext("regular-user", "user");
+
+        ApiResponse<?> response = executeGraphQLOperation(GraphQLOperationType.mutation,
+                "NopDatavPanel__update", Map.of("data", Map.of(
+                        "id", "panel-rbac-user-deny",
+                        "panelName", "hijacked-name",
+                        "displayName", "hijacked")));
+        assertNotNull(response);
+        assertEquals(AuthApiErrors.ERR_AUTH_NO_PERMISSION.getErrorCode(), response.getCode(),
+                "user role should be denied NopDatavPanel__update (mutation collapsed to admin), got: " + response);
+    }
+
+    /**
+     * Negative: 'user' role does NOT have NopDatavPanel:query permission either
+     * (D1 adjudication: query collapsed together with mutation — Panel__findPage was the
+     * enumeration vector reading other users' panelConfig without any filter).
+     */
+    @Test
+    public void testUserWithoutPanelQueryPermissionIsRejected() {
+        setUserContext("regular-user", "user");
+
+        ApiResponse<?> response = executeGraphQLOperation(GraphQLOperationType.query,
+                "NopDatavPanel__findPage", new HashMap<>());
+        assertNotNull(response);
+        assertEquals(AuthApiErrors.ERR_AUTH_NO_PERMISSION.getErrorCode(), response.getCode(),
+                "user role should be denied NopDatavPanel__findPage (query collapsed to admin), got: " + response);
+    }
+
+    /**
+     * Positive: admin role keeps NopDatavPanel:mutation permission — the standard CRUD
+     * mutation still works for admin after the collapse (regression: no over-restriction).
+     */
+    @Test
+    public void testAdminCanUpdatePanel() {
+        savePanel("panel-rbac-admin", saveDashboard("dash-panel-rbac-admin", "panel-rbac-admin").getDashboardId());
+
+        setUserContext("admin-user", "admin");
+
+        ApiResponse<?> response = executeGraphQLOperation(GraphQLOperationType.mutation,
+                "NopDatavPanel__update", Map.of("data", Map.of(
+                        "id", "panel-rbac-admin",
+                        "panelName", "renamed-by-admin",
+                        "displayName", "renamed-by-admin")));
+        assertNotNull(response);
+        assertEquals(0, response.getStatus(),
+                "admin should succeed NopDatavPanel__update after collapse, got: " + response);
+    }
+
+    /**
+     * Negative: 'user' role does NOT have query permission for the 5 read-only sub-entities
+     * (P1-01 fix, plan 2026-08-15-2146-1 / D2: query collapsed to admin — sub-entity rows have
+     * no RLS, other users' draft content (tabConfig/DatasetRef/widgetConfig/snapshotContent)
+     * must not be enumerable). All five inherited findPage ops are rejected with ERR_AUTH_NO_PERMISSION.
+     */
+    @Test
+    public void testUserDeniedSubEntityQuery() {
+        setUserContext("regular-user", "user");
+
+        for (String operation : new String[]{
+                "NopDatavDashboardSnapshot__findPage", "NopDatavDashboardTab__findPage",
+                "NopDatavDatasetRef__findPage", "NopDatavScreenWidget__findPage",
+                "NopDatavScreenSnapshot__findPage"}) {
+            ApiResponse<?> response = executeGraphQLOperation(GraphQLOperationType.query,
+                    operation, new HashMap<>());
+            assertNotNull(response);
+            assertEquals(AuthApiErrors.ERR_AUTH_NO_PERMISSION.getErrorCode(), response.getCode(),
+                    operation + " should be denied for user role (D2 collapse), got: " + response);
+        }
+    }
+
+    /**
+     * Positive: admin role keeps query permission for the 5 sub-entities after the D2 collapse
+     * (regression: no over-restriction of the admin console read path).
+     */
+    @Test
+    public void testAdminCanQuerySubEntities() {
+        setUserContext("admin-user", "admin");
+
+        for (String operation : new String[]{
+                "NopDatavDashboardSnapshot__findPage", "NopDatavDashboardTab__findPage",
+                "NopDatavDatasetRef__findPage", "NopDatavScreenWidget__findPage",
+                "NopDatavScreenSnapshot__findPage"}) {
+            ApiResponse<?> response = executeGraphQLOperation(GraphQLOperationType.query,
+                    operation, new HashMap<>());
+            assertNotNull(response);
+            assertEquals(0, response.getStatus(),
+                    operation + " should succeed for admin after D2 collapse, got: " + response);
+        }
+    }
+
+    /**
+     * Negative: 'user' role does NOT have NopDatavFilterState:mutation permission
+     * (P1-02 fix, plan 2026-08-15-2146-1 / D3: mutation collapsed to admin; the user write path
+     * is the custom saveFilterState action which isolates by userName internally).
+     */
+    @Test
+    public void testUserDeniedFilterStateMutation() {
+        setUserContext("regular-user", "user");
+
+        ApiResponse<?> response = executeGraphQLOperation(GraphQLOperationType.mutation,
+                "NopDatavFilterState__save", Map.of("data", Map.of(
+                        "dashboardId", "dash-fs-rbac",
+                        "userName", "regular-user",
+                        "stateContent", "{}")));
+        assertNotNull(response);
+        assertEquals(AuthApiErrors.ERR_AUTH_NO_PERMISSION.getErrorCode(), response.getCode(),
+                "user role should be denied NopDatavFilterState__save (mutation collapsed to admin), got: " + response);
+    }
+
     // ==================== Helpers ====================
 
     private void setUserContext(String userId, String... roles) {
@@ -139,6 +258,15 @@ public class TestNopDatavRbacAuth extends AbstractNopDatavAuthTest {
         userContext.setUserName(userId);
         userContext.setRoles(CollectionHelper.buildImmutableSet(roles));
         IUserContext.set(userContext);
+    }
+
+    private ApiResponse<?> executeGraphQLOperation(GraphQLOperationType operationType, String operationName,
+                                                   Map<String, Object> data) {
+        ApiRequest<Map<String, Object>> request = new ApiRequest<>();
+        request.setData(data);
+
+        IGraphQLExecutionContext context = graphQLEngine.newRpcContext(operationType, operationName, request);
+        return FutureHelper.syncGet(graphQLEngine.executeRpcAsync(context));
     }
 
     private ApiResponse<?> executePublishDashboard(String dashboardId) {
@@ -198,5 +326,23 @@ public class TestNopDatavRbacAuth extends AbstractNopDatavAuthTest {
         d.setUpdateTime(new Timestamp(now));
         daoProvider.daoFor(NopDatavDashboard.class).saveEntityDirectly(d);
         return d;
+    }
+
+    private NopDatavPanel savePanel(String panelId, String dashboardId) {
+        long now = System.currentTimeMillis();
+        NopDatavPanel p = new NopDatavPanel();
+        p.setPanelId(panelId);
+        p.setDashboardId(dashboardId);
+        p.setPanelName(panelId);
+        p.setDisplayName(panelId);
+        p.setPanelType(io.nop.datav.service.component.PanelTypeMapping.TYPE_TEXT);
+        p.setSortOrder(0);
+        p.setVersion(0L);
+        p.setCreatedBy("test");
+        p.setCreateTime(new Timestamp(now));
+        p.setUpdatedBy("test");
+        p.setUpdateTime(new Timestamp(now));
+        daoProvider.daoFor(NopDatavPanel.class).saveEntityDirectly(p);
+        return p;
     }
 }

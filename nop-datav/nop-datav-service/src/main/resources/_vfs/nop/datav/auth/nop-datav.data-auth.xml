@@ -80,5 +80,19 @@
                 </role-auth>
             </role-auths>
         </obj>
+        <!-- D3/P1-02（plan 2026-08-15-2146-1）：FilterState 继承 query（admin,user）的行级隔离落地——
+             设计 §69「仅查询/更新自己的记录」语义。用户写路径经自定义 saveFilterState（内部按 userName
+             + dashboardId 定位，不经继承 CRUD）；继承 mutation 已收敛 admin（action-auth.xml）。 -->
+        <obj name="NopDatavFilterState">
+            <role-auths>
+                <role-auth id="admin" roleIds="admin">
+                </role-auth>
+                <role-auth id="user" roleIds="user">
+                    <filter>
+                        <eq name="userName" value="${$context.userName}"/>
+                    </filter>
+                </role-auth>
+            </role-auths>
+        </obj>
     </objs>
 </data-auth>

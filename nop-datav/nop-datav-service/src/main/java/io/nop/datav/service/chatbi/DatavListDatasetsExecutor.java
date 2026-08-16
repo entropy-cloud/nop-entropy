@@ -20,11 +20,15 @@ import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
 /**
- * ChatBI 工具：列出可用数据集（仅 status=活跃）。
+ * ChatBI 工具：列出可用数据集（仅 status=活跃 且当前用户可见）。
  *
  * <p>对应工具定义 {@code datav-list-datasets.tool.xml}。输入经 ChatBI tool-calling 路径以 JSON 字符串形式
  * 承载于 {@link AiToolCall#getInput()}（LLM arguments 的 JSON 序列化），executor 用 {@link JsonTool#parseMap}
  * 解析可选 {@code keyword} 过滤参数。</p>
+ *
+ * <p>可见性（P1-03 修复，plan 2026-08-15-2146-1 裁定 D4 选项 B）：admin 全量；非 admin 仅
+ * {@code createdBy == 当前 operator}（身份经 {@link ChatBiToolExecuteContext} 传递）。list 侧为
+ * 静默过滤语义（枚举不泄露他人数据集的存在性）。</p>
  *
  * <p>返回 JSON：{@code {"datasets": [{"sid","dsName","description","dsType"}, ...]}}。
  * 数据集不存在/无匹配均返回空数组（非 null），无静默跳过。</p>
@@ -56,7 +60,11 @@ public class DatavListDatasetsExecutor implements IToolExecutor {
             Map<String, Object> input = parseInput(call);
             String keyword = input.get("keyword") != null ? String.valueOf(input.get("keyword")) : null;
 
-            List<NopReportDataset> datasets = findActiveDatasets(keyword);
+            // P1-03 裁定 D4 选项 B：数据集可见性（admin 全量；非 admin 仅 createdBy 匹配 operator）
+            String operator = ChatBiDatasetVisibility.resolveOperator(context);
+            boolean admin = ChatBiDatasetVisibility.resolveAdmin(context);
+
+            List<NopReportDataset> datasets = findActiveDatasets(keyword, operator, admin);
 
             List<Map<String, Object>> datasetList = new ArrayList<>(datasets.size());
             for (NopReportDataset ds : datasets) {
@@ -91,12 +99,26 @@ public class DatavListDatasetsExecutor implements IToolExecutor {
         return new LinkedHashMap<>();
     }
 
-    private List<NopReportDataset> findActiveDatasets(String keyword) {
+    /**
+     * 查询活跃数据集（P1-03 修复，裁定 D4 选项 B）。
+     *
+     * <p>可见性过滤与 status 过滤一同下推到 SQL：admin 不加 createdBy 条件（全量）；非 admin 追加
+     * {@code createdBy = operator}（枚举不泄露他人数据集的存在性，list 侧为静默过滤语义）。
+     * 无身份（operator 空且非 admin）fail-closed 返回空列表——nop-report 数据集无 DAO 层 RLS
+     * （nop-report data-auth 为空），可见性由本 executor 显式实施。</p>
+     */
+    private List<NopReportDataset> findActiveDatasets(String keyword, String operator, boolean admin) {
+        if (!ChatBiDatasetVisibility.hasIdentity(operator, admin)) {
+            // fail-closed：无身份（直调无 context 且未设置 operator）时不可见任何数据集
+            return new ArrayList<>();
+        }
         IEntityDao<NopReportDataset> dao = daoProvider.daoFor(NopReportDataset.class);
-        // status=1 过滤下推到 SQL 层，避免加载非活跃数据集行（含 dsText/dsMeta VARCHAR(131072) 大字段）。
-        // owner RLS 由 DAO 层/查询上下文处理。
+        // status=1 与 createdBy 过滤下推到 SQL 层，避免加载非活跃/不可见数据集行（含 dsText/dsMeta VARCHAR(131072) 大字段）。
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.eq(NopReportDataset.PROP_NAME_status, STATUS_ACTIVE));
+        if (!admin) {
+            query.addFilter(FilterBeans.eq(NopReportDataset.PROP_NAME_createdBy, operator));
+        }
         @SuppressWarnings("unchecked")
         List<NopReportDataset> active = (List<NopReportDataset>) dao.findAllByQuery(query);
         if (keyword == null || keyword.isEmpty()) {

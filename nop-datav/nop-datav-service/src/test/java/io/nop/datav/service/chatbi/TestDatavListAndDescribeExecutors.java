@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -47,7 +48,7 @@ public class TestDatavListAndDescribeExecutors extends AbstractNopDatavTest {
         call.setToolName(DatavListDatasetsExecutor.TOOL_NAME);
         call.setInput("{}");
 
-        AiToolCallResult result = executor.executeAsync(call, new ChatBiToolExecuteContext()).toCompletableFuture().join();
+        AiToolCallResult result = executor.executeAsync(call, new ChatBiToolExecuteContext(null, "test", false)).toCompletableFuture().join();
 
         assertEquals("success", result.getStatus());
         @SuppressWarnings("unchecked")
@@ -73,7 +74,7 @@ public class TestDatavListAndDescribeExecutors extends AbstractNopDatavTest {
         call.setToolName(DatavListDatasetsExecutor.TOOL_NAME);
         call.setInput(JsonTool.stringify(Map.of("keyword", "sales")));
 
-        AiToolCallResult result = executor.executeAsync(call, new ChatBiToolExecuteContext()).toCompletableFuture().join();
+        AiToolCallResult result = executor.executeAsync(call, new ChatBiToolExecuteContext(null, "test", false)).toCompletableFuture().join();
 
         assertEquals("success", result.getStatus());
         @SuppressWarnings("unchecked")
@@ -105,7 +106,7 @@ public class TestDatavListAndDescribeExecutors extends AbstractNopDatavTest {
         call.setToolName(DatavListDatasetsExecutor.TOOL_NAME);
         call.setInput(JsonTool.stringify(Map.of("keyword", "sales")));
 
-        AiToolCallResult result = executor.executeAsync(call, new ChatBiToolExecuteContext()).toCompletableFuture().join();
+        AiToolCallResult result = executor.executeAsync(call, new ChatBiToolExecuteContext(null, "test", false)).toCompletableFuture().join();
 
         assertEquals("success", result.getStatus());
         @SuppressWarnings("unchecked")
@@ -138,7 +139,7 @@ public class TestDatavListAndDescribeExecutors extends AbstractNopDatavTest {
         call.setToolName(DatavDescribeDatasetExecutor.TOOL_NAME);
         call.setInput(JsonTool.stringify(Map.of("datasetSid", "ds-describe")));
 
-        AiToolCallResult result = executor.executeAsync(call, new ChatBiToolExecuteContext()).toCompletableFuture().join();
+        AiToolCallResult result = executor.executeAsync(call, new ChatBiToolExecuteContext(null, "test", false)).toCompletableFuture().join();
 
         assertEquals("success", result.getStatus());
         @SuppressWarnings("unchecked")
@@ -165,7 +166,7 @@ public class TestDatavListAndDescribeExecutors extends AbstractNopDatavTest {
         call.setToolName(DatavDescribeDatasetExecutor.TOOL_NAME);
         call.setInput(JsonTool.stringify(Map.of("datasetSid", "no-such-ds")));
 
-        AiToolCallResult result = executor.executeAsync(call, new ChatBiToolExecuteContext()).toCompletableFuture().join();
+        AiToolCallResult result = executor.executeAsync(call, new ChatBiToolExecuteContext(null, "test", false)).toCompletableFuture().join();
 
         // 无静默跳过：数据集不存在时返回显式错误
         assertEquals("failure", result.getStatus());
@@ -182,15 +183,108 @@ public class TestDatavListAndDescribeExecutors extends AbstractNopDatavTest {
         call.setToolName(DatavDescribeDatasetExecutor.TOOL_NAME);
         call.setInput("{}");
 
-        AiToolCallResult result = executor.executeAsync(call, new ChatBiToolExecuteContext()).toCompletableFuture().join();
+        AiToolCallResult result = executor.executeAsync(call, new ChatBiToolExecuteContext(null, "test", false)).toCompletableFuture().join();
 
         assertEquals("failure", result.getStatus());
         assertTrue(result.getError().getBody().contains("datasetSid is required"));
     }
 
+    // ==================== 数据集可见性（P1-03 / 裁定 D4 选项 B，plan 2026-08-15-2146-1） ====================
+
+    /**
+     * P1-03: list 枚举按 createdBy/admin 可见性过滤——alice 仅见自己的活跃数据集（bob 的不可见，
+     * 静默过滤语义：不泄露存在性）；admin 全量；无身份 fail-closed 返回空。
+     */
+    @Test
+    public void testListFiltersByDatasetVisibility() {
+        daoProvider.daoFor(NopReportDataset.class).saveEntityDirectly(
+                newReportDataset("ds-vis-alice", "sql", "select 1", "Alice DS", 1, "alice"));
+        daoProvider.daoFor(NopReportDataset.class).saveEntityDirectly(
+                newReportDataset("ds-vis-bob", "sql", "select 2", "Bob DS", 1, "bob"));
+
+        DatavListDatasetsExecutor executor = new DatavListDatasetsExecutor();
+        executor.setDaoProvider(daoProvider);
+
+        AiToolCall call = new AiToolCall();
+        call.setToolName(DatavListDatasetsExecutor.TOOL_NAME);
+        call.setInput("{}");
+
+        // alice（非 admin）：仅自己的数据集
+        AiToolCallResult aliceResult = executor.executeAsync(call,
+                new ChatBiToolExecuteContext(null, "alice", false)).toCompletableFuture().join();
+        assertEquals("success", aliceResult.getStatus());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> parsed = (Map<String, Object>) JsonTool.parseNonStrict(aliceResult.getOutput().getBody());
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> aliceDatasets = (List<Map<String, Object>>) parsed.get("datasets");
+        assertTrue(aliceDatasets.stream().anyMatch(d -> "ds-vis-alice".equals(d.get("sid"))),
+                "alice sees her own dataset");
+        assertFalse(aliceDatasets.stream().anyMatch(d -> "ds-vis-bob".equals(d.get("sid"))),
+                "alice must NOT see bob's dataset (visibility filter)");
+
+        // admin：全量
+        AiToolCallResult adminResult = executor.executeAsync(call,
+                new ChatBiToolExecuteContext(null, "admin-user", true)).toCompletableFuture().join();
+        assertEquals("success", adminResult.getStatus());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> adminParsed = (Map<String, Object>) JsonTool.parseNonStrict(adminResult.getOutput().getBody());
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> adminDatasets = (List<Map<String, Object>>) adminParsed.get("datasets");
+        assertTrue(adminDatasets.stream().anyMatch(d -> "ds-vis-alice".equals(d.get("sid")))
+                        && adminDatasets.stream().anyMatch(d -> "ds-vis-bob".equals(d.get("sid"))),
+                "admin sees all datasets");
+
+        // 无身份（operator=null 且非 admin）：fail-closed 空列表
+        AiToolCallResult noIdentityResult = executor.executeAsync(call,
+                new ChatBiToolExecuteContext()).toCompletableFuture().join();
+        assertEquals("success", noIdentityResult.getStatus());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> noIdentityParsed = (Map<String, Object>) JsonTool.parseNonStrict(noIdentityResult.getOutput().getBody());
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> noIdentityDatasets = (List<Map<String, Object>>) noIdentityParsed.get("datasets");
+        assertTrue(noIdentityDatasets.isEmpty(), "no-identity invocation must see no datasets (fail-closed)");
+    }
+
+    /**
+     * P1-03: describe 对不可见数据集显式拒绝（ERR_DATAV_CHATBI_DATASET_NO_ACCESS 错误码），
+     * owner 照常可描述（无过度限制）。
+     */
+    @Test
+    public void testDescribeInvisibleDatasetReturnsExplicitError() {
+        NopReportDataset ds = newReportDataset("ds-desc-vis", "sql", "select * from T", "Bob Secret", 1, "bob");
+        daoProvider.daoFor(NopReportDataset.class).saveEntityDirectly(ds);
+
+        DatavDescribeDatasetExecutor executor = new DatavDescribeDatasetExecutor();
+        executor.setDaoProvider(daoProvider);
+
+        AiToolCall call = new AiToolCall();
+        call.setToolName(DatavDescribeDatasetExecutor.TOOL_NAME);
+        call.setInput(JsonTool.stringify(Map.of("datasetSid", "ds-desc-vis")));
+
+        AiToolCallResult denied = executor.executeAsync(call,
+                new ChatBiToolExecuteContext(null, "alice", false)).toCompletableFuture().join();
+        assertEquals("failure", denied.getStatus(), "non-owner describe must be rejected");
+        assertNotNull(denied.getError());
+        assertTrue(denied.getError().getBody().contains("nop.err.datav.chatbi-dataset-no-access"),
+                "rejection must carry the structured no-access errorCode, got: " + denied.getError().getBody());
+
+        AiToolCallResult owner = executor.executeAsync(call,
+                new ChatBiToolExecuteContext(null, "bob", false)).toCompletableFuture().join();
+        assertEquals("success", owner.getStatus(), "owner describe still works");
+
+        AiToolCallResult admin = executor.executeAsync(call,
+                new ChatBiToolExecuteContext(null, "admin-user", true)).toCompletableFuture().join();
+        assertEquals("success", admin.getStatus(), "admin describe works across creators");
+    }
+
     // ==================== Helpers ====================
 
     private NopReportDataset newReportDataset(String sid, String dsType, String dsText, String dsName, int status) {
+        return newReportDataset(sid, dsType, dsText, dsName, status, "test");
+    }
+
+    private NopReportDataset newReportDataset(String sid, String dsType, String dsText, String dsName,
+                                              int status, String createdBy) {
         long now = System.currentTimeMillis();
         NopReportDataset ds = new NopReportDataset();
         ds.setSid(sid);
@@ -201,9 +295,9 @@ public class TestDatavListAndDescribeExecutors extends AbstractNopDatavTest {
         ds.setDsMeta("{}");
         ds.setStatus(status);
         ds.setVersion(0);
-        ds.setCreatedBy("test");
+        ds.setCreatedBy(createdBy);
         ds.setCreateTime(new Timestamp(now));
-        ds.setUpdatedBy("test");
+        ds.setUpdatedBy(createdBy);
         ds.setUpdateTime(new Timestamp(now));
         return ds;
     }

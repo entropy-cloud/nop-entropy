@@ -23,18 +23,24 @@ import java.util.Map;
  * {@link DatavGenerateDashboardExecutor} 经强转读取并手动填充实体的 {@code createdBy}/{@code updatedBy}
  * 审计列。operator 是 ChatBI 循环在 {@code run()} 入参中接收、构建 context 时写入的（per-request），
  * 本 context 是 per-call 新建的，故线程安全。</p>
+ *
+ * <p><b>P1-03 扩展（plan 2026-08-15-2146-1，裁定 D4 选项 B）</b>：新增 {@code admin} 标志，携带
+ * 当前调用者是否 admin 角色，供 datav-list/describe/query executor 经同一强转耦合契约读取，做数据集
+ * 可见性判定（admin 全量；非 admin 仅 createdBy 匹配）。身份由 {@code NopDatavChatBiBizModel} 从
+ * {@code IServiceContext} 解析后经循环传入（单一事实来源，executor 不读线程变量）。</p>
  */
 public class ChatBiToolExecuteContext implements IToolExecuteContext {
 
     private final ICancelToken cancelToken;
     private final String operator;
+    private final boolean admin;
 
     public ChatBiToolExecuteContext() {
-        this(null, null);
+        this(null, null, false);
     }
 
     public ChatBiToolExecuteContext(ICancelToken cancelToken) {
-        this(cancelToken, null);
+        this(cancelToken, null, false);
     }
 
     /**
@@ -42,8 +48,18 @@ public class ChatBiToolExecuteContext implements IToolExecuteContext {
      * @param operator    当前调用者身份（裁定 G；查询路径可传 null，生成路径必传以填充 createdBy）
      */
     public ChatBiToolExecuteContext(ICancelToken cancelToken, String operator) {
+        this(cancelToken, operator, false);
+    }
+
+    /**
+     * @param cancelToken 取消令牌
+     * @param operator    当前调用者身份（裁定 G）
+     * @param admin       当前调用者是否 admin 角色（P1-03 裁定 D4：数据集可见性旁路标志）
+     */
+    public ChatBiToolExecuteContext(ICancelToken cancelToken, String operator, boolean admin) {
         this.cancelToken = cancelToken;
         this.operator = operator;
+        this.admin = admin;
     }
 
     /**
@@ -53,6 +69,16 @@ public class ChatBiToolExecuteContext implements IToolExecuteContext {
      */
     public String getOperator() {
         return operator;
+    }
+
+    /**
+     * 返回当前调用者是否 admin 角色（P1-03 裁定 D4 选项 B）。list/describe/query executor 经强转
+     * 读取此值做数据集可见性判定。
+     *
+     * @return true 表示 admin（数据集全量可见）
+     */
+    public boolean isAdmin() {
+        return admin;
     }
 
     @Override

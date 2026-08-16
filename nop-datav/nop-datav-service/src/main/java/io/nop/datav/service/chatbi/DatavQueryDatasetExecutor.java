@@ -30,6 +30,7 @@ import static io.nop.datav.service.NopDatavConfigs.CFG_DATAV_CHATBI_MAX_ROWS;
 import static io.nop.datav.service.NopDatavErrors.ARG_DATASET_SID;
 import static io.nop.datav.service.NopDatavErrors.ARG_REASON;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_DATASET_NOT_FOUND;
+import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_DATASET_NO_ACCESS;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_DATASET_NOT_SQL;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_DATASET_QUERY_FAILED;
 
@@ -47,7 +48,8 @@ import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_DATASET_QUERY
  *   <li>maxRows 经 {@link LongRangeBean} 在数据集层限行（跨方言 dialect paging，防 OOM）。</li>
  * </ul>
  *
- * <p>数据集不存在 / 非 SQL 类型时返回显式错误 JSON（非 null/空静默返回，见 Minimum Rules #24）。</p>
+ * <p>数据集不存在 / 不可见（P1-03 裁定 D4：非 owner 且非 admin）/ 非 SQL 类型时返回显式错误 JSON
+ * （非 null/空静默返回，见 Minimum Rules #24）。</p>
  */
 public class DatavQueryDatasetExecutor implements IToolExecutor {
 
@@ -89,6 +91,18 @@ public class DatavQueryDatasetExecutor implements IToolExecutor {
                 return FutureHelper.success(AiToolCallResult.errorResult(call.getId(),
                         "Dataset not found: " + datasetSid
                                 + " (errorCode=" + ERR_DATAV_CHATBI_DATASET_NOT_FOUND.getErrorCode() + ")"));
+            }
+
+            // P1-03 修复（裁定 D4 选项 B）：执行前校验数据集可达性——admin 全量；非 admin 仅
+            // createdBy 匹配当前 operator。不可达显式拒绝（非静默空结果），list 侧不过枚举出的
+            // 数据集在此不可绕过（query 侧拒绝语义）。
+            String operator = ChatBiDatasetVisibility.resolveOperator(context);
+            boolean admin = ChatBiDatasetVisibility.resolveAdmin(context);
+            if (!ChatBiDatasetVisibility.isVisible(ds, operator, admin)) {
+                return FutureHelper.success(AiToolCallResult.errorResult(call.getId(),
+                        "Dataset is not visible to the current user: " + datasetSid
+                                + " (errorCode=" + ERR_DATAV_CHATBI_DATASET_NO_ACCESS.getErrorCode()
+                                + ", userName=" + (operator != null ? operator : "<null>") + ")"));
             }
 
             String dsType = ds.getDsType();

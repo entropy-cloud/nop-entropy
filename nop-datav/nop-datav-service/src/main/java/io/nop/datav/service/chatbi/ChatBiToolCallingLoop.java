@@ -104,12 +104,30 @@ public class ChatBiToolCallingLoop {
      * 泛化循环入口（5 参重载，回归兼容）：等价于 6 参入口传入 null 历史（单轮）。
      */
     public ChatBiResult run(String userMessage, String systemPrompt, String operator,
-                             int maxIterations, ToolResultHandler resultHandler) {
+                              int maxIterations, ToolResultHandler resultHandler) {
         return run(userMessage, systemPrompt, operator, maxIterations, resultHandler, null);
     }
 
     /**
-     * 泛化循环入口（裁定 L）。供查询路径与生成路径共用。
+     * 泛化循环入口（6 参重载，回归兼容）：等价于 7 参入口传入 admin=false（生成路径不消费 admin）。
+     */
+    public ChatBiResult run(String userMessage, String systemPrompt, String operator,
+                              int maxIterations, ToolResultHandler resultHandler,
+                              List<ChatMessage> historyMessages) {
+        return run(userMessage, systemPrompt, operator, false, maxIterations, resultHandler, historyMessages);
+    }
+
+    /**
+     * 泛化循环入口（6 参 + admin，P1-03 裁定 D4）：等价于 7 参入口传入 null 历史（单轮）。
+     * 生成路径（chatToDashboard/chatToScreen）使用本重载传递身份。
+     */
+    public ChatBiResult run(String userMessage, String systemPrompt, String operator, boolean admin,
+                              int maxIterations, ToolResultHandler resultHandler) {
+        return run(userMessage, systemPrompt, operator, admin, maxIterations, resultHandler, null);
+    }
+
+    /**
+     * 泛化循环入口（裁定 L + P1-03 裁定 D4）。供查询路径与生成路径共用。
      *
      * <p>多轮会话历史注入点（裁定 S2）：{@code historyMessages} 为 null 时行为与既有单轮完全一致
      * （回归兼容）；非 null 时在 system prompt 之后、本轮用户消息之前按序注入历史消息。</p>
@@ -117,14 +135,16 @@ public class ChatBiToolCallingLoop {
      * @param userMessage     用户消息（查询路径为问题，生成路径为看板描述）
      * @param systemPrompt    system prompt（注入式，裁定 L 泛化点 1）
      * @param operator        当前调用者身份（查询路径可 null，生成路径必传，裁定 L 泛化点 4 + 裁定 G）
+     * @param admin           当前调用者是否 admin 角色（P1-03 裁定 D4 选项 B：随 context 传递给
+     *                        datav-list/describe/query executor 做数据集可见性判定）
      * @param maxIterations   tool-calling 轮次上限
      * @param resultHandler   可插拔结果提取回调（裁定 L 泛化点 2）
      * @param historyMessages 多轮会话历史消息（null = 单轮，不注入；裁定 S2）
      * @return ChatBI 结果（answer + handler 累加字段 + iterations）
      */
-    public ChatBiResult run(String userMessage, String systemPrompt, String operator,
-                             int maxIterations, ToolResultHandler resultHandler,
-                             List<ChatMessage> historyMessages) {
+    public ChatBiResult run(String userMessage, String systemPrompt, String operator, boolean admin,
+                              int maxIterations, ToolResultHandler resultHandler,
+                              List<ChatMessage> historyMessages) {
         List<AiToolModel> toolModels = toolManager.listTools();
         List<ChatToolDefinition> tools = ChatBiTypeConverter.toChatToolDefinitions(toolModels);
 
@@ -141,8 +161,8 @@ public class ChatBiToolCallingLoop {
         request.addMessage(new ChatUserMessage(userMessage));
         request.setTools(tools);
 
-        // 裁定 L 泛化点 4 + 裁定 G：构建携带 operator 的 context
-        IToolExecuteContext context = new ChatBiToolExecuteContext(cancelToken, operator);
+        // 裁定 L 泛化点 4 + 裁定 G + P1-03 裁定 D4：构建携带 operator + admin 的 context
+        IToolExecuteContext context = new ChatBiToolExecuteContext(cancelToken, operator, admin);
 
         ChatBiResult accumulator = new ChatBiResult();
 

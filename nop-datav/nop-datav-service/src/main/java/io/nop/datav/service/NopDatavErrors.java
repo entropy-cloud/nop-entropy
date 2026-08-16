@@ -604,12 +604,38 @@ public interface NopDatavErrors {
             ARG_DATASET_SID
     );
 
+    // P1-03（plan 2026-08-15-2146-1，裁定 D4 选项 B）：ChatBI 数据集可见性（createdBy/admin）拒绝码。
+    // list 侧静默过滤（枚举不泄露存在性），describe/query 侧显式拒绝（携带该码）。
+    ErrorCode ERR_DATAV_CHATBI_DATASET_NO_ACCESS = define(
+            "nop.err.datav.chatbi-dataset-no-access",
+            "ChatBI dataset is not visible to the current user: {datasetSid} (userName: {userName})",
+            ARG_DATASET_SID, ARG_USER_NAME
+    );
+
     // AR-4: ChatBI dataset-query 专用 ErrorCode（不复用 panel 路径共享的 ERR_DATAV_QUERY_FAILED，
     // 后者 message 绑定 {panelId}，被 PanelDataBinder/PanelSqlBuilder 等 3 处看板路径调用）。
     ErrorCode ERR_DATAV_CHATBI_DATASET_QUERY_FAILED = define(
             "nop.err.datav.chatbi-dataset-query-failed",
             "ChatBI dataset query execution failed for dataset: {datasetSid}, reason: {reason}",
             ARG_DATASET_SID, ARG_REASON
+    );
+
+    // ===== P1-10（plan 2026-08-15-2146-1，裁定 D5 方案 c）：快照/告警状态标准 mutation 面显式拒绝 =====
+
+    String ARG_ACTION = "action";
+
+    ErrorCode ERR_DATAV_SNAPSHOT_STD_MUTATION_NOT_ALLOWED = define(
+            "nop.err.datav.snapshot-std-mutation-not-allowed",
+            "Standard CRUD mutation is not allowed for snapshot entities (action: {action}); "
+                    + "snapshots are append-only and publish/rollback actions are the only write points",
+            ARG_ACTION
+    );
+
+    ErrorCode ERR_DATAV_ALERT_STATE_STD_MUTATION_NOT_ALLOWED = define(
+            "nop.err.datav.alert-state-std-mutation-not-allowed",
+            "Standard CRUD mutation is not allowed for alert state (action: {action}); "
+                    + "the alert evaluator is the only writer",
+            ARG_ACTION
     );
 
     // ===== D6-1b ChatBI 看板生成 =====

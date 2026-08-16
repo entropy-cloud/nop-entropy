@@ -41,5 +41,17 @@
                 </role-auth>
             </role-auths>
         </obj>
+        <!-- 裁定 D3/P1-02（plan 2026-08-15-2146-1）：FilterState userName 行级隔离，镜像 production -->
+        <obj name="NopDatavFilterState">
+            <role-auths>
+                <role-auth id="admin" roleIds="admin">
+                </role-auth>
+                <role-auth id="user" roleIds="user">
+                    <filter>
+                        <eq name="userName" value="${$context.userName}"/>
+                    </filter>
+                </role-auth>
+            </role-auths>
+        </obj>
     </objs>
 </data-auth>

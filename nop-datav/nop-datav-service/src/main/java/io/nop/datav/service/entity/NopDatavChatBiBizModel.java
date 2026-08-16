@@ -9,11 +9,13 @@ import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.directive.Auth;
+import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.datav.dao.entity.NopDatavChatMessage;
 import io.nop.datav.dao.entity.NopDatavChatSession;
+import io.nop.datav.service.NopDatavDashboardOwnerGuard;
 import io.nop.datav.service.chatbi.ChatBiResult;
 import io.nop.datav.service.chatbi.ChatBiSessionManager;
 import io.nop.datav.service.chatbi.ChatBiSystemPrompt;
@@ -119,26 +121,41 @@ public class NopDatavChatBiBizModel {
 
         int maxIterations = CFG_DATAV_CHATBI_MAX_ITERATIONS.get();
 
+        // P1-03 裁定 D4：身份（operator + admin）随循环传递到 tool executor，做数据集可见性判定
+        String operator = NopDatavOperatorResolver.resolveOperator(context);
+        boolean admin = isAdminContext(context);
+
         // 单轮路径（缺省参数）：与 D6-1 行为逐字节等价（回归保护）
         if (sessionId == null || sessionId.isEmpty()) {
             ChatBiToolCallingLoop loop = new ChatBiToolCallingLoop(chatService, toolManager);
-            return loop.run(question, ChatBiSystemPrompt.buildSystemPrompt(), null,
+            return loop.run(question, ChatBiSystemPrompt.buildSystemPrompt(), operator, admin,
                     maxIterations, ChatBiToolCallingLoop.ChatBiQueryResultHandlers.QUERY_HANDLER, null);
         }
 
         // 多轮会话路径（裁定 S3/S4）：归属校验 → 历史注入 → 执行 → 落库
-        String operator = NopDatavOperatorResolver.resolveOperator(context);
         NopDatavChatSession session = sessionManager.requireSession(sessionId, operator);
         List<NopDatavChatMessage> history = sessionManager.loadMessages(sessionId);
         List<ChatMessage> historyContext = sessionManager.buildHistoryContext(history,
                 CFG_DATAV_CHATBI_HISTORY_MAX_TURNS.get(), CFG_DATAV_CHATBI_HISTORY_MAX_CHARS.get());
 
         ChatBiToolCallingLoop loop = new ChatBiToolCallingLoop(chatService, toolManager);
-        ChatBiResult result = loop.run(question, ChatBiSystemPrompt.buildSystemPrompt(), null,
+        ChatBiResult result = loop.run(question, ChatBiSystemPrompt.buildSystemPrompt(), operator, admin,
                 maxIterations, ChatBiToolCallingLoop.ChatBiQueryResultHandlers.QUERY_HANDLER, historyContext);
         result.setSessionId(sessionId);
         sessionManager.appendTurn(session, question, result, operator);
         return result;
+    }
+
+    /**
+     * 当前调用者是否 admin 角色（P1-03 裁定 D4）。优先 {@code IServiceContext.getUserContext()}，
+     * 缺席时回退线程级 {@code IUserContext.get()}（生产链路两者同源；直调单测场景由测试显式设置）。
+     */
+    private static boolean isAdminContext(IServiceContext context) {
+        IUserContext userContext = context != null && context.getUserContext() != null
+                ? context.getUserContext()
+                : IUserContext.get();
+        return userContext != null && userContext.getRoles() != null
+                && userContext.getRoles().contains(NopDatavDashboardOwnerGuard.ROLE_ADMIN);
     }
 
     // ==================== 多轮会话管理 action（裁定 S5） ====================
@@ -215,11 +232,12 @@ public class NopDatavChatBiBizModel {
 
         // 裁定 G：从 IServiceContext 解析 operator，传入泛化循环 → 生成 executor 读取 → 手动填充 createdBy
         String operator = NopDatavOperatorResolver.resolveOperator(context);
+        boolean admin = isAdminContext(context);
 
         int maxIterations = CFG_DATAV_CHATBI_MAX_ITERATIONS.get();
 
         ChatBiToolCallingLoop loop = new ChatBiToolCallingLoop(chatService, toolManager);
-        return loop.run(description, ChatBiSystemPrompt.buildDashboardSystemPrompt(), operator,
+        return loop.run(description, ChatBiSystemPrompt.buildDashboardSystemPrompt(), operator, admin,
                 maxIterations, DASHBOARD_RESULT_HANDLER);
     }
 
@@ -273,11 +291,12 @@ public class NopDatavChatBiBizModel {
 
         // 裁定 G：从 IServiceContext 解析 operator，传入泛化循环 → 生成 executor 读取 → 手动填充 createdBy
         String operator = NopDatavOperatorResolver.resolveOperator(context);
+        boolean admin = isAdminContext(context);
 
         int maxIterations = CFG_DATAV_CHATBI_MAX_ITERATIONS.get();
 
         ChatBiToolCallingLoop loop = new ChatBiToolCallingLoop(chatService, toolManager);
-        return loop.run(description, ChatBiSystemPrompt.buildScreenSystemPrompt(), operator,
+        return loop.run(description, ChatBiSystemPrompt.buildScreenSystemPrompt(), operator, admin,
                 maxIterations, SCREEN_RESULT_HANDLER);
     }
 

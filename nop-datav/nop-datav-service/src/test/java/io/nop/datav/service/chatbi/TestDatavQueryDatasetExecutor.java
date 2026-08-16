@@ -51,7 +51,7 @@ public class TestDatavQueryDatasetExecutor extends AbstractNopDatavTest {
         call.setToolName(DatavQueryDatasetExecutor.TOOL_NAME);
         call.setInput(JsonTool.stringify(Map.of("datasetSid", "ds-test-query", "params", Map.of("region", "north"))));
 
-        AiToolCallResult result = executor.executeAsync(call, new ChatBiToolExecuteContext()).toCompletableFuture().join();
+        AiToolCallResult result = executor.executeAsync(call, new ChatBiToolExecuteContext(null, "test", false)).toCompletableFuture().join();
 
         assertEquals("success", result.getStatus());
         assertNotNull(result.getOutput());
@@ -86,7 +86,7 @@ public class TestDatavQueryDatasetExecutor extends AbstractNopDatavTest {
         call.setToolName(DatavQueryDatasetExecutor.TOOL_NAME);
         call.setInput(JsonTool.stringify(Map.of("datasetSid", "nonexistent-ds")));
 
-        AiToolCallResult result = executor.executeAsync(call, new ChatBiToolExecuteContext()).toCompletableFuture().join();
+        AiToolCallResult result = executor.executeAsync(call, new ChatBiToolExecuteContext(null, "test", false)).toCompletableFuture().join();
 
         // 无静默跳过：数据集不存在时返回显式错误（status=failure）
         assertEquals("failure", result.getStatus(), "dataset-not-found must return explicit error");
@@ -117,7 +117,7 @@ public class TestDatavQueryDatasetExecutor extends AbstractNopDatavTest {
                 "params", Map.of("region", "east"),
                 "maxRows", 2)));
 
-        AiToolCallResult result = executor.executeAsync(call, new ChatBiToolExecuteContext()).toCompletableFuture().join();
+        AiToolCallResult result = executor.executeAsync(call, new ChatBiToolExecuteContext(null, "test", false)).toCompletableFuture().join();
 
         assertEquals("success", result.getStatus());
         @SuppressWarnings("unchecked")
@@ -141,10 +141,76 @@ public class TestDatavQueryDatasetExecutor extends AbstractNopDatavTest {
         call.setToolName(DatavQueryDatasetExecutor.TOOL_NAME);
         call.setInput(JsonTool.stringify(Map.of("datasetSid", "ds-test-non-sql")));
 
-        AiToolCallResult result = executor.executeAsync(call, new ChatBiToolExecuteContext()).toCompletableFuture().join();
+        AiToolCallResult result = executor.executeAsync(call, new ChatBiToolExecuteContext(null, "test", false)).toCompletableFuture().join();
 
         assertEquals("failure", result.getStatus());
         assertTrue(result.getError().getBody().contains("not a SQL dataset"));
+    }
+
+    // ==================== 数据集可见性（P1-03 / 裁定 D4 选项 B，plan 2026-08-15-2146-1） ====================
+
+    /**
+     * P1-03: user 对无权限数据集 datav-query-dataset → 显式拒绝（携带
+     * ERR_DATAV_CHATBI_DATASET_NO_ACCESS 结构化错误码，非静默空结果）。
+     */
+    @Test
+    public void testQueryInvisibleDatasetReturnsExplicitError() {
+        NopReportDataset ds = newReportDataset("ds-vis-bob-query", "sql",
+                "select REGION as region from TEST_DATAV_SALES where REGION = ${region}");
+        ds.setCreatedBy("bob");
+        ds.setUpdatedBy("bob");
+        daoProvider.daoFor(NopReportDataset.class).saveEntityDirectly(ds);
+
+        DatavQueryDatasetExecutor executor = new DatavQueryDatasetExecutor();
+        executor.setDaoProvider(daoProvider);
+        executor.setJdbcTemplate(jdbcTemplate);
+
+        AiToolCall call = new AiToolCall();
+        call.setToolName(DatavQueryDatasetExecutor.TOOL_NAME);
+        call.setInput(JsonTool.stringify(Map.of("datasetSid", "ds-vis-bob-query",
+                "params", Map.of("region", "north"))));
+
+        AiToolCallResult result = executor.executeAsync(call,
+                new ChatBiToolExecuteContext(null, "alice", false)).toCompletableFuture().join();
+
+        assertEquals("failure", result.getStatus(), "non-owner query must be rejected");
+        assertNotNull(result.getError());
+        assertTrue(result.getError().getBody().contains("nop.err.datav.chatbi-dataset-no-access"),
+                "rejection must carry the structured no-access errorCode, got: " + result.getError().getBody());
+    }
+
+    /**
+     * P1-03: admin 全量可见——跨 createdBy 查询照常返回真实数据（回归：无过度限制）。
+     */
+    @Test
+    public void testQueryVisibleForAdminAcrossCreators() {
+        createSalesTable();
+        insertSalesRow("north", "widget", 100);
+
+        NopReportDataset ds = newReportDataset("ds-vis-admin-query", "sql",
+                "select REGION as region from TEST_DATAV_SALES where REGION = ${region}");
+        ds.setCreatedBy("bob");
+        ds.setUpdatedBy("bob");
+        daoProvider.daoFor(NopReportDataset.class).saveEntityDirectly(ds);
+
+        DatavQueryDatasetExecutor executor = new DatavQueryDatasetExecutor();
+        executor.setDaoProvider(daoProvider);
+        executor.setJdbcTemplate(jdbcTemplate);
+
+        AiToolCall call = new AiToolCall();
+        call.setToolName(DatavQueryDatasetExecutor.TOOL_NAME);
+        call.setInput(JsonTool.stringify(Map.of("datasetSid", "ds-vis-admin-query",
+                "params", Map.of("region", "north"))));
+
+        AiToolCallResult result = executor.executeAsync(call,
+                new ChatBiToolExecuteContext(null, "admin-user", true)).toCompletableFuture().join();
+
+        assertEquals("success", result.getStatus(), "admin must query datasets across creators");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> parsed = (Map<String, Object>) JsonTool.parseNonStrict(result.getOutput().getBody());
+        @SuppressWarnings("unchecked")
+        java.util.List<?> rows = (java.util.List<?>) parsed.get("rows");
+        assertEquals(1, rows.size(), "real DB row returned for admin");
     }
 
     // ==================== Helpers ====================

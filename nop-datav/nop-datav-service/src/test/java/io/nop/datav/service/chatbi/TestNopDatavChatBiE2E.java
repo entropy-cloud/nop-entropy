@@ -66,7 +66,13 @@ public class TestNopDatavChatBiE2E extends AbstractNopDatavTest {
         NopReportDataset ds = newReportDataset("ds-e2e-chatbi", "sql",
                 "select REGION as region, AMOUNT as amount "
                         + "from TEST_DATAV_SALES where REGION = ${region} order by AMOUNT desc");
+        ds.setCreatedBy("e2e-admin");
+        ds.setUpdatedBy("e2e-admin");
         daoProvider.daoFor(NopReportDataset.class).saveEntityDirectly(ds);
+
+        // P1-03（裁定 D4）：chatToQuery(null context) 时身份回退 IUserContext 线程变量——
+        // 显式设置 admin 身份，验证可见性放行路径走通（数据集 owner 亦可）
+        setUserContextAdmin("e2e-admin");
 
         // mock LLM 调用计数器
         AtomicInteger llmCallCount = new AtomicInteger(0);
@@ -89,7 +95,12 @@ public class TestNopDatavChatBiE2E extends AbstractNopDatavTest {
         bizModel.setChatService(mockChat);
         bizModel.setToolManager(toolManager);
 
-        ChatBiResult result = bizModel.chatToQuery("查询 north 地区的销售额", null, null);
+        ChatBiResult result;
+        try {
+            result = bizModel.chatToQuery("查询 north 地区的销售额", null, null);
+        } finally {
+            io.nop.api.core.auth.IUserContext.set(null);
+        }
 
         // Anti-Hollow (a): IChatService.call 被调用 ≥ 1 次
         assertTrue(llmCallCount.get() >= 1, "IChatService.call must be invoked at least once");
@@ -132,27 +143,34 @@ public class TestNopDatavChatBiE2E extends AbstractNopDatavTest {
                 "select 1 as one from TEST_DATAV_SALES where REGION = ${region}");
         daoProvider.daoFor(NopReportDataset.class).saveEntityDirectly(ds);
 
-        // mock LLM 永远返回 tool call → 永不给出最终答案 → 超限
-        AtomicInteger toolCallCount = new AtomicInteger(0);
-        MockChatService alwaysToolCall = new MockChatService(Collections.singletonList(
-                buildToolCallResponse("call-loop", "datav-query-dataset", Map.of(
-                        "datasetSid", "ds-maxiter",
-                        "params", Map.of("region", "north")))
-        ));
-        alwaysToolCall.repeatLast = true;
+        // P1-03（裁定 D4）：显式 admin 身份（数据集 createdBy="test"，非 owner 会被可见性拒绝，
+        // 但 mock 循环仍会超限——设置 admin 保证该测试聚焦 max-iterations 语义本身）
+        setUserContextAdmin("e2e-admin");
+        try {
+            // mock LLM 永远返回 tool call → 永不给出最终答案 → 超限
+            AtomicInteger toolCallCount = new AtomicInteger(0);
+            MockChatService alwaysToolCall = new MockChatService(Collections.singletonList(
+                    buildToolCallResponse("call-loop", "datav-query-dataset", Map.of(
+                            "datasetSid", "ds-maxiter",
+                            "params", Map.of("region", "north")))
+            ));
+            alwaysToolCall.repeatLast = true;
 
-        IToolManager toolManager = buildToolManagerWithCounters(toolCallCount);
+            IToolManager toolManager = buildToolManagerWithCounters(toolCallCount);
 
-        NopDatavChatBiBizModel bizModel = new NopDatavChatBiBizModel();
-        bizModel.setChatService(alwaysToolCall);
-        bizModel.setToolManager(toolManager);
+            NopDatavChatBiBizModel bizModel = new NopDatavChatBiBizModel();
+            bizModel.setChatService(alwaysToolCall);
+            bizModel.setToolManager(toolManager);
 
-        // maxIterations 默认 5（CFG_DATAV_CHATBI_MAX_ITERATIONS），mock 永远返回 tool call → 超限
-        NopException ex = assertThrows(NopException.class, () ->
-                bizModel.chatToQuery("loop question", null, null));
+            // maxIterations 默认 5（CFG_DATAV_CHATBI_MAX_ITERATIONS），mock 永远返回 tool call → 超限
+            NopException ex = assertThrows(NopException.class, () ->
+                    bizModel.chatToQuery("loop question", null, null));
 
-        assertEquals("nop.err.datav.chatbi-max-iterations-exceeded", ex.getErrorCode());
-        assertTrue(toolCallCount.get() >= 1, "at least one tool call before exceeding max iterations");
+            assertEquals("nop.err.datav.chatbi-max-iterations-exceeded", ex.getErrorCode());
+            assertTrue(toolCallCount.get() >= 1, "at least one tool call before exceeding max iterations");
+        } finally {
+            io.nop.api.core.auth.IUserContext.set(null);
+        }
     }
 
     // ==================== tool-error 分支：错误透传到 LLM ====================
@@ -189,6 +207,18 @@ public class TestNopDatavChatBiE2E extends AbstractNopDatavTest {
     }
 
     // ==================== Helpers ====================
+
+    /**
+     * P1-03（裁定 D4）：直调 BizModel（context=null）场景显式设置 admin 身份（线程级 IUserContext，
+     * BizModel 的 isAdminContext 回退读取点）。调用方负责在 finally 中清理。
+     */
+    private static void setUserContextAdmin(String userName) {
+        io.nop.auth.core.login.UserContextImpl userContext = new io.nop.auth.core.login.UserContextImpl();
+        userContext.setUserId(userName);
+        userContext.setUserName(userName);
+        userContext.setRoles(io.nop.commons.util.CollectionHelper.buildImmutableSet("admin"));
+        io.nop.api.core.auth.IUserContext.set(userContext);
+    }
 
     private IToolManager buildToolManagerWithCounters(AtomicInteger toolCallCount) {
         DatavListDatasetsExecutor listExec = new DatavListDatasetsExecutor();

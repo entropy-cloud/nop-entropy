@@ -68,31 +68,42 @@
                     </children>
                 </resource>
                 <!-- ==================== NopDatavDashboardSnapshot ==================== -->
+                <!--
+                    裁定 D2/D5（plan 2026-08-15-2146-1）：query 收敛 admin（子实体无 RLS，user 可读他人草稿
+                    snapshotContent）；mutation 面经 BizModel 覆写显式拒绝（快照 append-only，唯一写入点 publish/rollback）。
+                -->
                 <resource id="NopDatavDashboardSnapshot-main">
                     <children>
-                        <resource id="FNPT:NopDatavDashboardSnapshot:query" roles="admin,user"/>
+                        <resource id="FNPT:NopDatavDashboardSnapshot:query" roles="admin"/>
                         <resource id="FNPT:NopDatavDashboardSnapshot:mutation" roles="admin"/>
                     </children>
                 </resource>
                 <!-- ==================== NopDatavDashboardTab ==================== -->
+                <!-- 裁定 D2（plan 2026-08-15-2146-1）：query 收敛 admin（tabConfig 草稿泄露面）。 -->
                 <resource id="NopDatavDashboardTab-main">
                     <children>
-                        <resource id="FNPT:NopDatavDashboardTab:query" roles="admin,user"/>
+                        <resource id="FNPT:NopDatavDashboardTab:query" roles="admin"/>
                         <resource id="FNPT:NopDatavDashboardTab:mutation" roles="admin"/>
                     </children>
                 </resource>
                 <!-- ==================== NopDatavDatasetRef ==================== -->
+                <!-- 裁定 D2（plan 2026-08-15-2146-1）：query 收敛 admin（refDatasetId/paramMapping 草稿泄露面）。 -->
                 <resource id="NopDatavDatasetRef-main">
                     <children>
-                        <resource id="FNPT:NopDatavDatasetRef:query" roles="admin,user"/>
+                        <resource id="FNPT:NopDatavDatasetRef:query" roles="admin"/>
                         <resource id="FNPT:NopDatavDatasetRef:mutation" roles="admin"/>
                     </children>
                 </resource>
                 <!-- ==================== NopDatavFilterState ==================== -->
+                <!--
+                    裁定 D3/P1-02（plan 2026-08-15-2146-1）：query 保留 admin,user + data-auth userName 行级隔离
+                    （设计 §69「仅查询/更新自己的记录」落地）；mutation 收敛 admin（用户写路径经自定义
+                    saveFilterState，其内部按 userName 隔离）。
+                -->
                 <resource id="NopDatavFilterState-main">
                     <children>
                         <resource id="FNPT:NopDatavFilterState:query" roles="admin,user"/>
-                        <resource id="FNPT:NopDatavFilterState:mutation" roles="admin,user"/>
+                        <resource id="FNPT:NopDatavFilterState:mutation" roles="admin"/>
                         <!-- 自定义 action 权限点 -->
                         <resource id="FNPT:NopDatavFilterState:saveFilterState" displayName="保存筛选状态"
                                   i18n-en:displayName="Save Filter State" orderNo="10020" resourceType="FNPT"
@@ -107,10 +118,17 @@
                     </children>
                 </resource>
                 <!-- ==================== NopDatavPanel ==================== -->
+                <!--
+                    裁定 D1/P0-01（plan 2026-08-15-2146-1）：继承 CRUD query/mutation 仅绑 admin（不绑 user），
+                    与 NopDatavDashboardShare/NopDatavExportTask 的 D1 先例对称。理由：Panel 无 RLS，
+                    __findPage 全量可读他人 panelConfig（枚举向量）+ user 可写删任意面板（越权面）。
+                    user 角色的面板数据消费走下方自定义 action（getPanelData 等，内部 panel→Dashboard 归属校验）
+                    与 NopDatavDashboard:getDashboardData（Dashboard RLS 锚点）。
+                -->
                 <resource id="NopDatavPanel-main">
                     <children>
-                        <resource id="FNPT:NopDatavPanel:query" roles="admin,user"/>
-                        <resource id="FNPT:NopDatavPanel:mutation" roles="admin,user"/>
+                        <resource id="FNPT:NopDatavPanel:query" roles="admin"/>
+                        <resource id="FNPT:NopDatavPanel:mutation" roles="admin"/>
                         <!-- 自定义 action 权限点 -->
                         <resource id="FNPT:NopDatavPanel:getPanelData" displayName="查询面板数据"
                                   i18n-en:displayName="Get Panel Data" orderNo="10030" resourceType="FNPT"
@@ -189,16 +207,21 @@
                     </children>
                 </resource>
                 <!-- ==================== NopDatavScreenWidget（D4-1）==================== -->
+                <!-- 裁定 D2（plan 2026-08-15-2146-1）：query 收敛 admin（widgetConfig 草稿泄露面）。 -->
                 <resource id="NopDatavScreenWidget-main">
                     <children>
-                        <resource id="FNPT:NopDatavScreenWidget:query" roles="admin,user"/>
+                        <resource id="FNPT:NopDatavScreenWidget:query" roles="admin"/>
                         <resource id="FNPT:NopDatavScreenWidget:mutation" roles="admin"/>
                     </children>
                 </resource>
                 <!-- ==================== NopDatavScreenSnapshot（D4-1）==================== -->
+                <!--
+                    裁定 D2/D5（plan 2026-08-15-2146-1）：query 收敛 admin；mutation 面经 BizModel 覆写显式拒绝
+                    （快照 append-only，唯一写入点 publishScreen/rollbackScreen）。
+                -->
                 <resource id="NopDatavScreenSnapshot-main">
                     <children>
-                        <resource id="FNPT:NopDatavScreenSnapshot:query" roles="admin,user"/>
+                        <resource id="FNPT:NopDatavScreenSnapshot:query" roles="admin"/>
                         <resource id="FNPT:NopDatavScreenSnapshot:mutation" roles="admin"/>
                     </children>
                 </resource>

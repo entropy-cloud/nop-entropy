@@ -55,12 +55,13 @@
                 </resource>
                 <resource id="NopDatavPanel-main" displayName="面板" resourceType="SUBM" orderNo="10002">
                     <children>
+                        <!-- 裁定 D1/P0-01（plan 2026-08-15-2146-1）：CRUD query/mutation 仅绑 admin，镜像 production -->
                         <resource id="FNPT:NopDatavPanel:query" displayName="查询面板" resourceType="FNPT"
-                                  roles="admin,user">
+                                  roles="admin">
                             <permissions>NopDatavPanel:query</permissions>
                         </resource>
                         <resource id="FNPT:NopDatavPanel:mutation" displayName="修改面板" resourceType="FNPT"
-                                  roles="admin,user">
+                                  roles="admin">
                             <permissions>NopDatavPanel:mutation</permissions>
                         </resource>
                         <resource id="FNPT:NopDatavPanel:getPanelData" displayName="查询面板数据" resourceType="FNPT"
@@ -87,8 +88,9 @@
                                   roles="admin,user">
                             <permissions>NopDatavFilterState:query</permissions>
                         </resource>
+                        <!-- 裁定 D3/P1-02（plan 2026-08-15-2146-1）：mutation 收敛 admin，镜像 production -->
                         <resource id="FNPT:NopDatavFilterState:mutation" displayName="修改筛选状态" resourceType="FNPT"
-                                  roles="admin,user">
+                                  roles="admin">
                             <permissions>NopDatavFilterState:mutation</permissions>
                         </resource>
                         <resource id="FNPT:NopDatavFilterState:saveFilterState" displayName="保存筛选状态"
@@ -103,13 +105,76 @@
                 </resource>
                 <resource id="NopDatavDashboardSnapshot-main" displayName="发布快照" resourceType="SUBM" orderNo="10004">
                     <children>
+                        <!-- 裁定 D2（plan 2026-08-15-2146-1）：query 收敛 admin，镜像 production -->
                         <resource id="FNPT:NopDatavDashboardSnapshot:query" displayName="查询发布快照" resourceType="FNPT"
-                                  roles="admin,user">
+                                  roles="admin">
                             <permissions>NopDatavDashboardSnapshot:query</permissions>
                         </resource>
                         <resource id="FNPT:NopDatavDashboardSnapshot:mutation" displayName="修改发布快照" resourceType="FNPT"
                                   roles="admin">
                             <permissions>NopDatavDashboardSnapshot:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <!-- 裁定 D2（plan 2026-08-15-2146-1）：4 个只读子实体 query 收敛 admin，镜像 production -->
+                <resource id="NopDatavDashboardTab-main" displayName="看板页签" resourceType="SUBM" orderNo="10011">
+                    <children>
+                        <resource id="FNPT:NopDatavDashboardTab:query" displayName="查询看板页签" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavDashboardTab:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDashboardTab:mutation" displayName="修改看板页签" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavDashboardTab:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDatavDatasetRef-main" displayName="数据集引用" resourceType="SUBM" orderNo="10012">
+                    <children>
+                        <resource id="FNPT:NopDatavDatasetRef:query" displayName="查询数据集引用" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavDatasetRef:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavDatasetRef:mutation" displayName="修改数据集引用" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavDatasetRef:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDatavScreenWidget-main" displayName="大屏组件" resourceType="SUBM" orderNo="10013">
+                    <children>
+                        <resource id="FNPT:NopDatavScreenWidget:query" displayName="查询大屏组件" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavScreenWidget:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavScreenWidget:mutation" displayName="修改大屏组件" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavScreenWidget:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDatavScreenSnapshot-main" displayName="大屏发布快照" resourceType="SUBM" orderNo="10014">
+                    <children>
+                        <resource id="FNPT:NopDatavScreenSnapshot:query" displayName="查询大屏发布快照" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavScreenSnapshot:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavScreenSnapshot:mutation" displayName="修改大屏发布快照" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavScreenSnapshot:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <!-- 裁定 D5（plan 2026-08-15-2146-1）：AlertState mutation 面显式拒绝测试所需的 FNPT（镜像 production） -->
+                <resource id="NopDatavAlertState-main" displayName="告警状态" resourceType="SUBM" orderNo="10015">
+                    <children>
+                        <resource id="FNPT:NopDatavAlertState:query" displayName="查询告警状态" resourceType="FNPT"
+                                  roles="admin,user">
+                            <permissions>NopDatavAlertState:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDatavAlertState:mutation" displayName="修改告警状态" resourceType="FNPT"
+                                  roles="admin">
+                            <permissions>NopDatavAlertState:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
