@@ -5,6 +5,7 @@
 为平台提供**行级敏感数据**（DB 中动态写入的密钥/连接参数）的类型化加密存储与统一解密入口，弥补 `@sec:` 配置加密只能处理"配置文件静态值"的不足。
 
 - **类型化凭证**：声明式类型注册（`*.credential-type.xml`），定义字段结构（apiKey/secret/用户名密码等）
+- **OAuth 流程引擎**（W9）：`authType=oauth2` 类型的授权码闭环（发起 → 单一公开回调 → token 加密回写）+ 取用时惰性刷新（DB 行级锁跨副本互斥）
 - **加密存储**：`cv1:{keyId}:{v1密文}` 版本化密文格式，复用 `nop-commons` 的 `AESTextCipher`（AES-256-GCM + PBKDF2-SHA256）
 - **多密钥与轮换**：`ICredentialKeyProvider` 支持多 key 并存，`reencryptAll` 批量重加密
 - **唯一解密点**：`ICredentialProvider` 实现位于 service 层，明文不跨出服务进程
@@ -29,17 +30,52 @@
 |------|------|------|
 | NopCredential | `nop_credential` | 加密凭证实例（data 列存 `cv1:` 密文 JSON） |
 | NopCredentialUsage | `nop_credential_usage` | 凭证引用登记（credentialId + consumerRef 唯一约束） |
+| NopCredentialOauthState | `nop_credential_oauth_state` | OAuth state 绑定（一次性消费 + TTL 过期 + 惰性清理，引擎内部存储） |
 
 > 凭证类型（`*.credential-type.xml`）无 DB 表，经平台 register-model 机制声明式加载。
+
+## OAuth 流程引擎（W9，authType=oauth2）
+
+出站 OAuth 2.0 客户端：授权码换取闭环（发起 → 单一公开回调 → token 加密回写）+ 取用时惰性刷新。
+协议实现仅协议级参照 `nop-auth-sso`（不引入该依赖）。
+
+### 凭证类型声明与校验规则
+
+- `authType` 取值域：`none | apiKey | basic | oauth2`（xdef 内联枚举 + registry 双保险，域外拒绝）。
+- `authType="oauth2"` 时类型文件必须声明 `<oauth2>` 元数据：`authorizationEndpoint`/`tokenEndpoint` 必填，`scopes`/`refreshWindowSeconds` 可选；缺端点在 registry 加载期拒绝（fail-closed，无静默跳过）。
+- 非 oauth2 类型声明 `<oauth2>` 元数据 → 拒绝（配置错位显式暴露）。
+- **引擎保留字段名**：`accessToken`/`refreshToken`/`expiresAt`/`tokenType`/scope 五个名字归引擎独占——类型文件 fields 占用拒绝；`saveCredential` 输入出现拒绝（防伪造 token 破坏刷新状态机）；token 集只能由授权码闭环与惰性刷新写入。
+- `expiresAt` 为 epoch 毫秒（服务器时钟绝对时刻 = 换取/刷新时的 now + 响应 `expires_in` 秒）。
+
+### 发起 / 回调 / 惰性刷新语义
+
+- **发起**（`CredentialOAuthApi__beginOAuthFlow` mutation，登录态）：校验 实例存在/未删/未禁用/类型 oauth2/clientSecret 已录入 → 生成安全随机 128bit 一次性 state（DB 绑定 credentialId + 发起人 + TTL）→ 返回授权 URL（`response_type=code` + `client_id` + `redirect_uri` + `scope` + `state`）。发起时惰性清理 state 表过期行（无后台任务）。
+- **回调**（`GET /r/CredentialOAuthApi__oauthCallback?code=..&state=..`，`@Auth(publicAccess=true)` 单一公开端点）：state 校验与一次性消费原子（条件 UPDATE + affected-row 判定，并发双回调恰一个成功；未命中/过期/重放统一拒绝不区分细节防探测）→ 经 provider 引擎内部通道解密 clientSecret → 令牌端点换取 token 集（form：grant_type/code/client_id/client_secret/redirect_uri）→ 只写保留字段回写 → 返回 **`WebContentBean` HTML 跳转页**（200 + meta-refresh/JS location 到配置的结果页；biz 层无 30x 原语，语义等价：浏览器落结果页、token 明文不出现在任何响应体）。
+- **惰性刷新**（`getCredential` 出口，SPI 签名零变更）：oauth2 类型 accessToken 临期（now 距 expiresAt < 刷新窗口）→ DB 行级锁（SELECT FOR UPDATE）互斥下锁内双重检查 → refreshToken 刷新 → 回写 → 返回新明文。跨副本/多线程并发取用同一凭证刷新收敛为一次；刷新失败（invalid_grant 等）fail-closed；过期且无 refreshToken → fail-closed（提示重新授权）。非临期取用不持锁可并发。
+- **写路径串行化**：惰性刷新与 `saveCredential` 分组写共用同一行锁入口（"刷新 vs 刷新"与"刷新 vs 人工保存"互斥，无双写丢失）。
+- **saveCredential 分组写**（oauth2 类型）：人工字段整包替换（未传即删）不变 + 保留字段锁下原样保留；`typeList` 对 oauth2 类型裁剪保留字段（表单只出人工字段）。
+- **disabled 全路径拒绝**（显式增量）：oauth2 类型 `status=disabled` 在发起/回调/刷新/取用全路径 fail-closed；非 OAuth 类型取用维持一期语义（仅 delFlag）。
+- **唯一解密点不变式**：OAuth 引擎类不持有 `CredentialCipher`，clientSecret 读取与 token 回写经 `CredentialProviderImpl` 引擎内部通道（`engineGetDecryptedFields`/`engineUpdateTokenFields`/`engineUpdateInLock`）。
+
+### OAuth 配置项
+
+| 配置项 | 缺省 | 说明 |
+|--------|------|------|
+| `nop.credential.oauth.callback-base-url` | 无（必配） | 回调端点对外基础地址（部署方配置外部可达地址）；`redirect_uri = {base}/r/CredentialOAuthApi__oauthCallback`，token 交换回传同值。未配置时发起授权 fail-closed |
+| `nop.credential.oauth.result-page-url` | 无 | 授权结果前端页 URL（回调跳转目标）；未配置时回调页输出内置静态完成提示 |
+| `nop.credential.oauth.state-ttl-seconds` | 600 | state 绑定 TTL（秒） |
+| `nop.credential.oauth.refresh-window-seconds` | 300 | 惰性刷新窗口（秒）；类型 oauth2 元数据 `refreshWindowSeconds` 可按类型覆盖 |
+
+> 示例类型：`generic-oauth2.credential-type.xml`（clientId/clientSecret 人工字段 + 端点元数据）。运行时需在部署中引入 raw HTTP client 实现模块（如 `nop-http-client-jdk`）以装配 `IHttpClient`。
 
 ## 子模块
 
 | 子模块 | 职责 |
 |--------|------|
-| `nop-credential-api` | SPI/接口/DTO（零业务依赖：`ICredentialProvider`、`CredentialData`、`MaskedCredential`、`TestResult`） |
+| `nop-credential-api` | SPI/接口/DTO（零业务依赖：`ICredentialProvider`、`CredentialData`、`MaskedCredential`、`TestResult`、`CredentialType`（含 OAuth 元数据与保留字段名契约）） |
 | `nop-credential-dao` | ORM 实体与 DAO |
 | `nop-credential-meta` | xmeta 定义（`data` 列 `published=false` 明文边界） |
-| `nop-credential-service` | `ICredentialProvider` 实现（唯一解密点）+ `NopCredentialBizModel` + 凭证类型注册表 + `CredentialCipher` |
+| `nop-credential-service` | `ICredentialProvider` 实现（唯一解密点）+ `NopCredentialBizModel` + 凭证类型注册表 + `CredentialCipher` + OAuth 流程引擎（`service.oauth`：`OAuthFlowService`/`OAuthTokenClient`/`NopCredentialOauthStateStore`/`CredentialOAuthApiBizModel`） |
 | `nop-credential-web` | AMIS 管理页面（动态表单） |
 
 ## 加密方案
@@ -80,13 +116,15 @@ GraphQL/REST 管理 CRUD，明文结构性不可达：
 
 | 方法 | 语义 |
 |------|------|
-| `saveCredential(typeName, name, fields, ...)` | 保存凭证（**明文唯一入口**，加密后落库） |
+| `saveCredential(typeName, name, fields, ...)` | 保存凭证（**明文唯一入口**，加密后落库；oauth2 类型分组写 + 保留字段拒绝） |
 | `get` / `findPage` | 查询（返回的 `data` 恒为 null——BizModel 层强制置空） |
 | `maskList(ids)` | 返回脱敏视图（敏感字段替换为 ****） |
-| `typeList()` | 返回类型字段 schema（Web 动态表单用） |
+| `typeList()` | 返回类型字段 schema（Web 动态表单用；oauth2 类型裁剪保留字段） |
 | `test(id)` | 触发连通性测试 |
 | `reencryptAll()` | 主密钥轮换后批量重加密（仅 admin） |
 | `delete(id)` | 删除（软删除；前置检查 `NopCredentialUsage` 引用计数，>0 拒绝） |
+
+OAuth 流程 API 面（`CredentialOAuthApiBizModel`）：`beginOAuthFlow(credentialId)` mutation（登录态，返回授权 URL）；`oauthCallback(code, state)` query（publicAccess 单一公开回调，返回 HTML 跳转页）。
 
 ## 明文边界（结构性强制，非约定）
 
@@ -102,6 +140,7 @@ GraphQL/REST 管理 CRUD，明文结构性不可达：
 | 配置项 | 说明 |
 |--------|------|
 | 主密钥 | 环境变量 `NOP_CREDENTIAL_MASTER_KEYS` 或 `credential-keys.yaml`（`keyId:passphrase`，不放入 application.yaml 明文） |
+| OAuth 引擎 | `nop.credential.oauth.*`（见上"OAuth 配置项"表） |
 
 ## 源码锚点
 
@@ -109,6 +148,9 @@ GraphQL/REST 管理 CRUD，明文结构性不可达：
 |------|------|
 | 消费 SPI 接口 | `nop-credential/nop-credential-api/src/main/java/io/nop/credential/api/ICredentialProvider.java` |
 | 唯一解密点实现 | `nop-credential/nop-credential-service/src/main/java/io/nop/credential/service/CredentialProviderImpl.java` |
+| OAuth 流程引擎 | `nop-credential/nop-credential-service/src/main/java/io/nop/credential/service/oauth/OAuthFlowService.java` |
+| OAuth 令牌端点客户端 | `nop-credential/nop-credential-service/src/main/java/io/nop/credential/service/oauth/OAuthTokenClient.java` |
+| OAuth 回调 API 面 | `nop-credential/nop-credential-service/src/main/java/io/nop/credential/service/oauth/CredentialOAuthApiBizModel.java` |
 | cv1 加解密 | `nop-credential/nop-credential-service/src/main/java/io/nop/credential/crypto/CredentialCipher.java` |
 | 管理 BizModel | `nop-credential/nop-credential-service/src/main/java/io/nop/credential/service/entity/NopCredentialBizModel.java` |
 | ORM 模型 | `nop-credential/model/nop-credential.orm.xml` |

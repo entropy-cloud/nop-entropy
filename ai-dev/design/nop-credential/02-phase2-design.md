@@ -64,6 +64,7 @@
 1. **先建实例、再发起授权**：`authType=oauth2` 的凭证实例必须先经 `saveCredential` 人工录入 clientId/clientSecret 等人工字段（归属/命名在创建时即确定）；**发起 action 的入参必须含目标 credentialId**（校验：实例存在、未删除、未禁用、类型为 oauth2、已录入 clientSecret——发起时 biz action 有登录态，此处完成发起人与凭证归属的校验）。不提供"边授权边新建"路径。
 2. **发起**：引擎生成不可预测的一次性 `state`，服务端持久化 state 绑定（目标 credentialId + 发起人（审计用）+ 过期时间，TTL 缺省 10 分钟、可配置）→ 返回授权 URL（授权端点 + client_id + redirect_uri + scope + state），由前端跳转第三方。`redirect_uri` 为本平台对外基础地址配置（需部署方配置外部可达地址）派生的单一回调端点 URL，token 交换时回传同值。
 3. **回调**（单一公开端点，`@Auth(publicAccess=true)`，浏览器顶层 30x 重定向流）：接收 `code` + `state` → 校验 state（存在、未过期、未消费；校验通过**立即作废**——一次性消费）→ 以 code + **该实例 data 中解密出的 clientSecret** 在令牌端点换取 token 集 → token 集加密**回写该实例**（只写引擎保留字段）→ 30x 重定向到前端结果页（不返回 token 明文）。state 未命中/过期/重放一律 fail-closed（拒绝并作废）。
+   > **W9-impl 裁定标注（2026-08-16 回写）**：**回调响应载体落地为 `WebContentBean` HTML 跳转页（HTTP 200 + meta-refresh/JS `location` 跳转到配置的前端结果页），非服务端 30x**。理由：平台 biz 层无 30x 原语（biz action 只能返回响应体；`IHttpServerContext.sendRedirect` 仅 HTTP filter 层可达，注册 filter 并处理与 auth filter 顺序的复杂度与收益不成比例）。语义等价性成立：浏览器最终落在前端结果页、token 明文不出现在任何响应体——与"30x 重定向"条文的差异为显式偏离记录，不改设计结论。
    - **回调的数据通道（与 §五 归属模型的联合裁定）**：state 绑定记录发起人 userId；回调路径无登录态，其 clientSecret 读取与 token 回写**以 state 记录的发起人身份**经 provider 的引擎内部通道执行（语义等价于 owner 本人在场发起写入）。**"唯一解密点"不变式不破**：OAuth 引擎不得直接持有密文编解码器解用户数据，一切解密经 `CredentialProviderImpl`（引擎内部通道是 provider 的非公开内部方法，不是 SPI 面扩展）。user 级凭证的授权闭环因此成立（发起=owner 登录态校验；回调=state bearer capability 携带 owner 身份）。
    - **发起授权的权限矩阵**：发起动作对凭证 data 产生写效果，属"修改"类操作——system 级凭证限管理员发起，user 级凭证限 owner 发起（与 §5.3 CRUD 矩阵一致；W9-impl 时点归属字段未落，先实现登录态 + 实例存在/未删/未禁用 + 类型校验，归属校验由 W11-impl 回补，见 §八）。
 4. **state 的安全模型是 bearer capability**：回调端点无登录态，state 本身（不可预测 + 一次性 + 短 TTL）即防 CSRF/注入的边界；发起人信息记录于 state 绑定仅用于审计，回调时不做用户会话校验（公开回调无法可靠携带会话）。
@@ -364,6 +365,8 @@
 - **交付面**：`credential-type.xdef` 扩展（`authType` 取值域收敛 + `oauth2` 元数据声明位）+ 类型实例校验（保留字段名占用拒绝）；发起 action（`beginOAuthFlow` 语义）+ 单一公开回调端点；state 绑定持久化（跨副本可读，载体 impl 裁定）+ 一次性消费；token 集加密回写（引擎保留字段）+ `saveCredential` 分组写/保留字段拒绝 + `typeList` 表单裁剪；惰性刷新（跨副本互斥载体 impl 裁定）；oauth2 类型 `status=disabled` 全路径拒绝。
 - **Protected Area（plan-first）**：`nop-kernel/nop-xdefs` 的 `credential-type.xdef` 变更；新增 publicAccess REST 面（公开攻击面，plan 内需安全审查项）。
 - **不触碰**：ORM 模型（scope/ownerId/NopCredentialAuth 均归 W11）；`ICredentialProvider` SPI 签名。
+
+> **W9-impl 裁定标注（2026-08-16 回写）**：**state 存储载体 = 新 ORM 实体 `NopCredentialOauthState`（表 `nop_credential_oauth_state`）**，本设计 §3.3"服务端持久化 + 跨副本可读"的 impl 落点。理由：W8 用户裁决（缺省不用 Redis、存储必须有 DB 实现）排除 Redis-only；本地内存 map 跨副本失效排除；绕过 ORM 手写 SQL 表违反 model-first 惯例（W8 `DbMfaChallengeStore` 先例亦走 ORM 实体）。"不触碰 ORM 模型"的括号枚举（scope/ownerId/NopCredentialAuth）指 W11 归属变更；state 载体为 §3.3/§八显式留白的 impl 裁定。plan-first 载体：`ai-dev/plans/2026-08-14-2342-1-credential-oauth-flow-engine.md` Phase 1。
 
 ### W10-impl（外部 KMS/HSM 集成）
 

@@ -1,3 +1,15 @@
+# 更新日志
+
+## 特性 2026-08-16
+* nop-credential 新增 OAuth 流程引擎（W9，`authType=oauth2` 出站 OAuth 2.0 客户端）(commit: 待回填)
+  - `credential-type.xdef` `authType` 收敛为枚举 `none|apiKey|basic|oauth2`；oauth2 类型声明 `<oauth2>` 元数据（authorizationEndpoint/tokenEndpoint 必填，scopes/refreshWindowSeconds 可选），registry 加载期校验 fail-closed
+  - 引擎保留字段契约：`accessToken`/`refreshToken`/`expiresAt`/`tokenType`/`scope` 归引擎独占，类型文件占用与 `saveCredential` 输入均拒绝
+  - 授权码闭环：`CredentialOAuthApi__beginOAuthFlow`（登录态）→ 单一公开回调 `GET /r/CredentialOAuthApi__oauthCallback`（publicAccess，返回 HTML 跳转页，不携带 token 明文）→ token 集加密回写
+  - 取用时惰性刷新：accessToken 临期自动以 refreshToken 刷新（DB 行级锁跨副本互斥，并发刷新收敛为一次），失败 fail-closed
+  - 新表 `nop_credential_oauth_state`（state 一次性消费 + TTL；存量部署执行 `deploy/sql/{mysql,oracle,postgresql}/_add_oauth_state_nop-credential.sql`）
+  - 新配置项 `nop.credential.oauth.*`：`callback-base-url`（必配）/ `result-page-url` / `state-ttl-seconds`（600）/ `refresh-window-seconds`（300）
+  - oauth2 类型 `status=disabled` 发起/回调/刷新/取用全路径拒绝；非 OAuth 类型语义不变
+
 ## 特性 2026-08-01
 * flux-web 页面级 tabs 修复：输出字段由 `tabs` 改为 `items`（Flux `TabsSchema` 契约），tab 项补 `key` ← name，修复 Flux 下 tab 内容 silent no-op (commit: 95e9cbcca)
 * flux-web 新增 tab/step 内嵌 body 容器渲染：内容优先级 `page` > `body` > `name` 兜底，共享分派标签 `GenContainerModel` 支持 crud/simple/tabs/wizard/group 五类容器 (commit: 95e9cbcca)
