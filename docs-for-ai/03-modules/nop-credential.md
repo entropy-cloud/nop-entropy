@@ -330,6 +330,19 @@ OAuth 流程 API 面（`CredentialOAuthApiBizModel`）：`beginOAuthFlow(credent
 | 类型元模型 | `nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/credential/credential-type.xdef` |
 | 底层加密原语 | `nop-kernel/nop-commons/src/main/java/io/nop/commons/crypto/impl/AESTextCipher.java`（复用，不修改） |
 
+## 敏感操作标注（@MfaRequired，W12 机制可用）
+
+凭证库写操作（save/delete/reencryptAll 等）属操作级 MFA 的敏感操作候选清单，但本模块动作**尚未标注**——标注需引入 `nop-credential-service → nop-biz-auth-api` 依赖边并经 owner 裁定（deferred 至 A1-audit，见 mission roadmap）。机制本身已可用，后续标注只加注解：
+
+```java
+@BizMutation
+@io.nop.auth.api.mfa.MfaRequired   // 不得与 @BizSubscription / @Auth(publicAccess=true) 同用（构建期报错）
+public void reencryptAll(IServiceContext context) { ... }
+```
+
+- 开关：`nop.auth.operation-mfa.enabled`（缺省 false，关闭时零介入）；验证流与票语义见 `nop-auth.md` 的"操作级 MFA"章节。
+- 标注前置条件：部署 nop-auth-service（提供 `IOperationMfaChecker` 实现 bean——未部署时注解无效果，等价开关关闭）。
+
 ## 相关文档
 
 - `../02-core-guides/ioc-and-config.md`（`@sec:` 配置加密，与凭证库互补）

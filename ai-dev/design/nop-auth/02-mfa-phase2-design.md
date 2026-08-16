@@ -153,6 +153,19 @@ mfaVerifyOperation(challengeToken, code):        # 需登录态
 - **明文边界不变**：操作级不引入新秘密；TOTP secret 仍仅绑定流程 provisioning URI 一次性返回。
 - **一期零回归声明**：`nop.auth.operation-mfa.enabled` 缺省 `false`——不开启时拦截器零介入；开启后无 `@MfaRequired` 标注的方法零介入；一期登录级 E2E 行为不变。
 
+### 3.6 W12-impl 裁定标注（2026-08-17 回写）
+
+实施 `ai-dev/plans/2026-08-16-2321-2-mfa-operation-level-stepup.md` 时的裁定回写（live 实现事实）：
+
+1. **元数据拷贝触点补充两处（设计 §3.3 未列出，live 核定）**：`GraphQLFieldDefinition.deepClone()`（`BizObjectManager.getObjDef`/`getGraphQLDocument` 的字段深克隆路径——不拷贝会在 clone 后丢失 meta）与 `BizObjectBuildHelper.mergeBizModel`（nop-biz，Java biz-model → BizObject 合并的实际搬运点）。传播链共四触点：builder 读取 / deepClone / `GraphQLObjectDefinition.mergeField` 两分支 / mergeBizModel。deepClone 中 makerCheckerMeta 历史缺口维持原状（仅新字段必须补，最小 diff）。
+2. **审计落点偏离设计 §3.3 原文**：设计写"复用一期 @BizAudit + LoginServiceImpl 审计模式"——live 核定 `@BizAudit` 为装饰性注解（全仓库无消费方），实际落点为 `IAuditService.saveAudit(AuditRequest)` 显式调用（`auditLogFail`/`GraphQLAuditLogger` 先例），四事件（challenge 发起/验证成功/验证失败/票消费）由 checker（发起/票消费）与 mfaVerifyOperation 端点（成功/失败）分别写入 NopAuthOpLog。
+3. **票传递通道最终裁定**：请求头 `X-Nop-Op-Mfa-Token`（§3.3 原案成立——`IGraphQLExecutionContext.getRequestHeaders()` 在两检查点可达，checker 大小写不敏感读头）；无回退必要。
+4. **批量请求拦截语义**：与 auth check 同语义的预执行检查点抛错使整批请求失败（无部分执行的副作用——对 mutation 批量更安全）；错误即该 operation 的错误（errorParams 携带 operation），客户端凭票整批重发。设计原文"该 operation 单独报错（逐 field error）"按此实现语义理解。
+5. **首批标注清单（nop-auth 五动作）与 deferral**：`resetUserMfa`/`resetUserPassword`/`changeSelfPassword`/`unbindMfa`/`generateRecoveryCodes`；凭证库模块（reencryptAll/save/delete）与联系方式修改（通用 CRUD 路径，方法级注解无法覆盖共享基类动作）均 deferred（owner 裁定链，见 mission roadmap Deferred 登记）。
+6. **MfaFactorVerifier 组件契约细化**：布尔返回 + 失败计数/错误码留调用方；SMS EXPIRED 抛错（两处既有调用点行为逐字一致，等价重构收敛进组件）；TOTP authenticator 缺失/secret 空统一返回 false（登录级经调用方 !ok 分支等价落 MFA_FAIL+失败计数）；`confirmMfa` 原重复验证/窗口推进块已移除（组件推进为唯一路径，防静默死代码）。
+7. **SPI 签名依赖面事实**：`IOperationMfaChecker.check(operationName, IUserContext, requestHeaders)`——`nop-biz-auth-api` 仅依赖 nop-api-core（IServiceContext 不可达），executor 侧以 `context.getUserContext()` 等价传递设计伪代码的 serviceContext 入参。
+8. **Redis 滚动升级 migration note（测试钉定）**：平台 JSON 序列化缺省仅允许 DataBean（`nop.core.json.serialize-only-data-bean=true`）——`MfaChallenge`/`SmsCodeEntry` 已补 `@DataBean`（W12-impl 修复 pre-existing 缺陷：真实 PrefixTextCodec 写路径此前会抛 only-data-bean-is-serializable，FakeNosql 绕过序列化未暴露）。老进程读新 JSON 的 unknown-prop 拒绝缺省存在（`nop.core.json.parse-ignore-unknown-prop=false`）：滚动升级开启该配置，或利用 challenge TTL 300s 预留排空窗口。
+
 ## 四、角色级强制策略引擎（角色 → 强制因子映射）
 
 ### 4.1 设计结论

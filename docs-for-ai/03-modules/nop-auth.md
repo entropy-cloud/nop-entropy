@@ -13,6 +13,7 @@
 - SSO 单点登录、OAuth2
 - 操作审计日志
 - 外部登录方式（微信等）
+- 多因子验证（登录级两阶段 + 操作级敏感操作二次验证）
 
 ## 默认用户
 
@@ -53,7 +54,7 @@
 | NopAuthExtLogin | `nop_auth_ext_login` | 外部登录方式 |
 | NopAuthMfaSetting | `nop_auth_mfa_setting` | MFA 设置（userId PK / mfaType / secret 加密 / status / phone / lastVerifiedWindow） |
 | NopAuthMfaRecoveryCode | `nop_auth_mfa_recovery_code` | MFA 恢复码（codeHash BCrypt 加盐 / used / expireAt） |
-| NopAuthMfaChallenge | `nop_auth_mfa_challenge` | MFA 挑战令牌（challengeToken PK / userId / mfaType / expireAt / failCount，W8 DB 存储） |
+| NopAuthMfaChallenge | `nop_auth_mfa_challenge` | MFA 挑战令牌（challengeToken PK / userId / mfaType / expireAt / failCount / scene / payload / verifiedAt，W8 DB 存储 + W12 场景化） |
 | NopAuthSmsCode | `nop_auth_sms_code` | 短信验证码（codeKey PK / phone / code / expireAt / failCount，W8 DB 存储） |
 | NopOauthAuthorization | `nop_oauth_authorization` | OAuth2 授权记录 |
 | NopOauthRegisteredClient | `nop_oauth_registered_client` | OAuth2 客户端注册 |
@@ -94,6 +95,9 @@
 | 操作权限检查 | `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/auth/DefaultActionAuthChecker.java` |
 | 数据权限检查 | `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/auth/DefaultDataAuthChecker.java` |
 | 站点地图 | `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/sitemap/SiteMapProviderImpl.java` |
+| 操作级 MFA 拦截判定 | `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/mfa/OperationMfaCheckerImpl.java` |
+| 共享因子校验组件 | `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/mfa/MfaFactorVerifier.java` |
+| 操作级验证端点 | `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/biz/LoginApiBizModel.java`（`mfaVerifyOperation`） |
 | ORM 模型 | `nop-auth/model/nop-auth.orm.xml` |
 
 ## 多因子验证（MFA）
@@ -170,12 +174,46 @@ nop-auth 提供完整的两阶段登录（第一因子 → challenge → 第二�
 | `nop.auth.mfa.max-attempts` | — | 单次 challenge 最大失败次数 |
 | `nop.auth.mfa.totp-issuer` | — | TOTP provisioning URI 的 issuer |
 | `nop.auth.mfa.bind-expire-seconds` | `300` | bindToken 有效期 |
+| `nop.auth.operation-mfa.enabled` | `false` | 操作级 MFA 总开关（关闭时拦截器零介入） |
+| `nop.auth.operation-mfa.op-ticket-expire-seconds` | `60` | 操作级票窗口（验证后允许重试原操作的时间） |
 | `nop.auth.sms-code.enabled` | `false` | 是否启用短信验证码登录 |
 | `nop.auth.sms-code.send-interval-seconds` | — | 发送间隔（限流） |
 | `nop.auth.sms-code.daily-limit` | — | 单手机日发送上限 |
 | `nop.auth.sms-code.max-attempts` | — | 单码最大验证次数 |
 
-MFA/SMS 错误码定义在 `NopAuthErrors.java`：`ERR_AUTH_MFA_REQUIRED`（`nop.err.auth.mfa-required`）、`ERR_AUTH_MFA_FAIL`、`ERR_AUTH_MFA_CHALLENGE_EXPIRED`、`ERR_AUTH_SMS_CODE_INVALID`、`ERR_AUTH_SMS_RATE_LIMITED` 等。
+MFA/SMS 错误码定义在 `NopAuthErrors.java`：`ERR_AUTH_MFA_REQUIRED`（`nop.err.auth.mfa-required`，登录期）、`ERR_AUTH_OPERATION_MFA_REQUIRED`（`nop.err.auth.operation-mfa-required`，会话期——errorParams 携带 challengeToken/mfaType/operation）、`ERR_AUTH_MFA_FAIL`、`ERR_AUTH_MFA_CHALLENGE_EXPIRED`、`ERR_AUTH_SMS_CODE_INVALID`、`ERR_AUTH_SMS_RATE_LIMITED` 等。
+
+### 操作级 MFA（会话内敏感操作二次验证）
+
+长效会话内的高危操作（改密、解绑因子、重置恢复码等）可要求重新验证第二因子。机制：方法级 `@MfaRequired` 注解声明敏感操作 + GraphQL executor 检查点拦截 + 一次性短 TTL 票两段式重试。
+
+**声明与约束**（注解在 `nop-biz-auth-api`，`io.nop.auth.api.mfa.MfaRequired`；存在即敏感，无属性）：
+
+```java
+@BizMutation
+@MfaRequired   // 不得与 @BizSubscription 或 @Auth(publicAccess=true) 同用——构建期报错（fail-fast）
+public void resetUserPassword(@Name("userId") String userId, @Name("password") String password, IServiceContext context) { ... }
+```
+
+- 构建期约束（`ReflectionBizModelBuilder`）：`@MfaRequired` + `@BizSubscription` → 构建报错（订阅路径无请求-响应语义）；`@MfaRequired` + `@Auth(publicAccess=true)` → 构建报错（匿名方法无会话可验）。静默绕过 = fail-open，故 fail-fast。
+- 元数据传播链：`ReflectionBizModelBuilder` → `GraphQLFieldDefinition.mfaRequiredMeta` → `deepClone()` / `GraphQLObjectDefinition.mergeField`（两分支）/ `BizObjectBuildHelper.mergeBizModel`（nop-biz）四触点拷贝（对齐 makerCheckerMeta 先例）。
+- 拦截：`GraphQLExecutor` 两检查点（RPC 单操作 + GraphQL 文档路径，auth check 之后）对带 `mfaRequiredMeta` 的顶层 operation 调用 `IOperationMfaChecker`（`nop-biz-auth-api` SPI）；`GraphQLEngine` 可选注入（`@Inject @Nullable`）——未部署 nop-auth-service 时零介入。订阅路径不接（构建期拒绝保证）。
+
+**两段式流程**（`OperationMfaCheckerImpl` 判定链，`nop.auth.operation-mfa.enabled` 缺省 false）：
+
+1. 敏感操作触发：enabled → 登录用户且 MFA setting status==enabled → 无有效票 → 创建 scene=operation 的 challenge（payload={operation, sessionId}）→ 抛 `ERR_AUTH_OPERATION_MFA_REQUIRED`（errorParams：challengeToken/mfaType/operation）。
+2. 验证：客户端调 `LoginApi__mfaVerifyOperation`（**需登录态且同会话**；请求 `MfaVerifyOperationRequest{challengeToken, code}`，**无 recoveryCode 通道**）→ setting 复核 → `MfaFactorVerifier` 因子校验（错码计数超限作废）→ `markVerified` 一次性转票。**成功不签发任何凭证**（无 accessToken/无 completeLogin——与登录级 `mfaVerify` 的本质区别）。
+3. 重试：原操作携带请求头 `X-Nop-Op-Mfa-Token: {challengeToken}` 重发 → 票核验（scene/operation/sessionId/票窗口四条件 + 原子 consume 恰一放行）。**票一次性、绑定 operation+sessionId、短 TTL（60s 缺省）**。
+
+判定要点：未启用 MFA 的用户不拦截（无第二因子可验；强制启用归角色级策略 W13）；store 未装配放行；批量请求含敏感操作时整批预执行中止（错误即该 operation 的错误，无部分执行副作用）。
+
+**首批标注**（nop-auth 模块内五动作）：`NopAuthUser__resetUserMfa` / `NopAuthUser__resetUserPassword` / `NopAuthUser__changeSelfPassword` / `NopAuthUser__unbindMfa` / `NopAuthUser__generateRecoveryCodes`。凭证库模块标注 deferred（owner 裁定链，见 roadmap）；通用 CRUD 路径（如联系方式修改经 `NopAuthUser__save`）无法用方法级注解覆盖，属平台级治理。
+
+**共享因子校验组件 `MfaFactorVerifier`**（`io.nop.auth.service.mfa`）：登录级/绑定级/操作级三处因子校验收敛；**TOTP 防重放窗口统一推进内聚组件内**（任何场景成功都更新 lastVerifiedWindow——防同一 30s 窗口码跨场景重放）；未知 mfaType fail-closed；恢复码分支不入组件（登录级专用）。新增因子（W14/W15）只改组件与白名单。
+
+**审计**：四事件（challenge 发起/验证成功/验证失败/票消费）经 `IAuditService.saveAudit` 落 `NopAuthOpLog`（记录 operation 与 sessionId；`@BizAudit` 为装饰性注解，不作落点）。
+
+**store 场景化**：`MfaChallengeStore` 提供 `create(scene, ..., payload)` 场景重载与 `markVerified(token)`（一次性迁移，Local=JVM compute / DB=条件 UPDATE+affected-row / Redis=派生票键 SETNX 三实现原子性）；登录级调用点（老五参 create）零改动。Redis 滚动升级注意：老进程读新 JSON（含 scene/payload/verifiedAt 增量键）需 `nop.core.json.parse-ignore-unknown-prop=true`（平台缺省 false）或预留 5 分钟 challenge 排空窗口（TTL 300s）。
 
 ## 相关文档
 

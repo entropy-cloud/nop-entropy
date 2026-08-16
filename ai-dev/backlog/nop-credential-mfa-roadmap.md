@@ -1,7 +1,7 @@
 # 加密凭证库 + 多因子验证 Roadmap（nop-credential + nop-auth MFA）
 
 > Status: active
-> Last updated: 2026-08-14（**W12-design 执行收口（2026-08-14）：`02-mfa-phase2-design.md` 四主题设计产出 + 四小节独立 review + 独立 closure audit READY_TO_CLOSE → 标 `done`**；W12-impl ~ W15-impl 依赖解锁）
+> Last updated: 2026-08-17（**W12-impl 执行收口（2026-08-17）：`2026-08-16-2321-2-mfa-operation-level-stepup.md` 四 Phase 全部落地 → 标 `done`**；W13-impl ~ W15-impl 依赖解锁）
 > Sources（设计已达成共识，实施前必读）：
 > - `ai-dev/design/nop-credential/00-vision.md` + `01-architecture-baseline.md`（凭证库，三期审查达成共识）
 > - `ai-dev/design/nop-auth/00-vision.md` + `01-architecture-baseline.md`（MFA，五期审查达成共识）
@@ -41,7 +41,7 @@
 ### MFA 二期组（nop-auth）
 
 - W12-design. MFA 二期设计文档（操作级 MFA + 角色级强制策略 + 因子扩展（WebAuthn/邮件码/外部服务）+ 可信设备 四主题合一设计，落 `ai-dev/design/nop-auth/02-mfa-phase2-design.md`）：`done` — plan: `ai-dev/plans/2026-08-14-2012-2-mfa-phase2-design.md`（2026-08-14 执行收口：粒度裁决单文件；四主题小节各经独立 review 回修（6 Blocker + 15 Major + 23 Minor）；MfaType 裁决保持常量类不枚举化 + §5.3.0 白名单 10 处变更标注；操作级裁 @MfaRequired 注解 + executor 拦截 + MfaChallengeStore 场景化（scene/payload/verifiedAt）；角色策略裁持有约束模型（minMfaLevel + 三层判定矩阵 + 受限会话 + 登记 channel proof 防 enrollment attack）+ OAuth 一期遗留绕过修复纳入 W13；外部 MFA 服务 deferred；独立 closure audit READY_TO_CLOSE（10/10 内容级 live 锚点抽查 PASS），证据见 plan Closure 段。依赖：W4/W5/W6/W8 done）
-- W12-impl. 操作级 MFA 实现（会话内敏感操作二次验证，请求级钩子；登录级 `mfaVerify` 链路复用）：`planned` — plan: `ai-dev/plans/2026-08-16-2321-2-mfa-operation-level-stepup.md`（2026-08-16 起草并通过两轮独立 draft review；规模裁定不拆分——操作级 MFA 在 Phase 3 末端才第一次成立；live 核定 deepClone/nop-biz 两处设计未列的元数据拷贝触点、`@BizAudit` 装饰性事实、confirmMfa 窗口推进块入 MfaFactorVerifier 收敛、首批标注五动作 + 凭证模块/通用 CRUD 联系方式路径显式 deferral）— 依赖：W12-design
+- W12-impl. 操作级 MFA 实现（会话内敏感操作二次验证，请求级钩子；登录级 `mfaVerify` 链路复用）：`done` — plan: `ai-dev/plans/2026-08-16-2321-2-mfa-operation-level-stepup.md`（2026-08-17 执行收口：Phase 1 框架接线（@MfaRequired + 元数据四触点 + executor 两检查点 + IOperationMfaChecker SPI 可选注入）/Phase 2 store 场景化（scene/payload/verifiedAt + create 重载 + markVerified 三实现原子性 + ORM 加列 + 三方言 DDL + 配置/错误码）/Phase 3（MfaFactorVerifier 三处收敛 + TOTP 窗口统一推进 + OperationMfaCheckerImpl + mfaVerifyOperation 端点 + 首批五动作标注 + 审计四事件）/Phase 4 文档同步与收口。一期零回归（既有 MFA 套件断言零修改）；执行期修复 pre-existing：MfaChallenge/SmsCodeEntry 缺 @DataBean（真实 Redis 序列化会抛错，FakeNosql 绕过未暴露）。设计 §3.6 回写八条 impl 裁定；nop.auth.operation-mfa.enabled 缺省 false 零介入。测试：框架 13 + store 26 + E2E/组件 18 新用例全绿）— 依赖：W12-design
 - W13-impl. 角色级 MFA 强制策略引擎实现（策略模型：存储/继承/评估，角色 → 强制因子映射；一期全局开关 + 用户级启用保留兼容）：`todo` — 依赖：W12-design
 - W14-impl. WebAuthn/FIDO2 实现（MfaType 扩展位——live 为 `NopAuthMfaSetting.mfaType` VARCHAR 列 + `NopAuthConstants.MFA_TYPE_*` 字符串常量，非枚举，白名单校验点随 W12-design 清单更新；术语/枚举化裁决留 W12-design；外部 MFA 服务 Authy/Duo 评估后并入或显式 deferred）：`todo` — 依赖：W12-design
 - W15-impl. 邮件验证码 + 可信设备实现（复用既有 `nop-integration-api` `IEmailSender`（腾讯实现已在）+ `TencentEmailSender`；可信设备/记住此设备：设备指纹 + 会话策略）：`todo` — 依赖：W12-design
