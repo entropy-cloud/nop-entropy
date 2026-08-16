@@ -27,12 +27,28 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class TestNopMetaDtoResults {
 
+    /**
+     * P2-35 项 6（plan 2026-08-16-0549-2）：首方法补 parse-back（F18 形态——stringify → parse →
+     * 关键字段相等，非仅 assertNotNull 序列化 smoke）。同批覆盖 P2-20 新增承接字段
+     * （ErrorDTO.source/refType/refValue）的 round-trip。
+     */
     @Test
     public void testDtoJsonRoundTrip() {
         ErrorDTO original = new ErrorDTO("metadata.test", "msg", "ctx");
+        original.setSource("resolution");
+        original.setRefType("ruleId");
+        original.setRefValue("r-1");
         String json = JsonTool.stringify(original);
         assertNotNull(json);
         assertTrue(json.contains("metadata.test"));
+
+        ErrorDTO back = JsonTool.parseBeanFromText(json, ErrorDTO.class);
+        assertEquals("metadata.test", back.getCode());
+        assertEquals("msg", back.getMessage());
+        assertEquals("ctx", back.getDetail());
+        assertEquals("resolution", back.getSource());
+        assertEquals("ruleId", back.getRefType());
+        assertEquals("r-1", back.getRefValue());
 
         ApiResponse<ErrorDTO> apiResp = ApiResponse.buildSuccess(original);
         String apiJson = JsonTool.stringify(apiResp);
@@ -129,13 +145,19 @@ public class TestNopMetaDtoResults {
                 JsonTool.stringify(query), QueryTableDataResultDTO.class);
         assertEquals("external", queryBack.getTableType());
 
-        // QualityRuleResultDTO
+        // QualityRuleResultDTO（P2-20：含新增承接字段 ruleName/actualValue/expectedValue 的 round-trip）
         QualityRuleResultDTO rule = new QualityRuleResultDTO();
         rule.setQualityRuleId("qr-1");
         rule.setStatus("PASS");
+        rule.setRuleName("row-count-check");
+        rule.setActualValue(42.0);
+        rule.setExpectedValue(10.0);
         QualityRuleResultDTO ruleBack = JsonTool.parseBeanFromText(
                 JsonTool.stringify(rule), QualityRuleResultDTO.class);
         assertEquals("qr-1", ruleBack.getQualityRuleId());
         assertEquals("PASS", ruleBack.getStatus());
+        assertEquals("row-count-check", ruleBack.getRuleName());
+        assertEquals(42.0, ruleBack.getActualValue(), 0.001);
+        assertEquals(10.0, ruleBack.getExpectedValue(), 0.001);
     }
 }

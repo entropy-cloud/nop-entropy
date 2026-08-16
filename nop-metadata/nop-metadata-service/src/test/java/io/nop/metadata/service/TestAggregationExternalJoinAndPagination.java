@@ -29,7 +29,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import static io.nop.metadata.service.TestAggregationHelper.*;
+import static io.nop.metadata.service.AggregationTestHelper.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 @NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
@@ -46,11 +46,11 @@ public class TestAggregationExternalJoinAndPagination extends JunitBaseTestCase 
     @Inject
     IOrmTemplate ormTemplate;
 
-    TestAggregationHelper _helper;
+    AggregationTestHelper _helper;
 
     @BeforeEach
     void initHelper() {
-        _helper = new TestAggregationHelper(graphQLEngine, daoProvider, ormTemplate);
+        _helper = new AggregationTestHelper(graphQLEngine, daoProvider, ormTemplate);
     }
 
     @SuppressWarnings("unchecked")

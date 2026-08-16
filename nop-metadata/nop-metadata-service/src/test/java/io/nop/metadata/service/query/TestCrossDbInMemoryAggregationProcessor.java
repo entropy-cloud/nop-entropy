@@ -250,10 +250,30 @@ public class TestCrossDbInMemoryAggregationProcessor {
         assertEquals("c", result.get(1).get("k"));
     }
 
+    /**
+     * P2-35 项 5（plan 2026-08-16-0549-2）：升为值断言——{@code crossDbAliasOf} 语义为
+     * alias-or-"right"（非空白 alias 原样返回；null/空白 alias 回退 "right"），两态期望值直接构造。
+     * 修复前仅 assertNotNull（恒真于任何非 null 返回，无区分力）。
+     */
     @Test
     public void testCrossDbAliasOf() {
+        // 显式 alias：原样返回
         NopMetaTableJoin join = new NopMetaTableJoin();
-        assertNotNull(AggregationHelper.crossDbAliasOf(join));
+        join.setAlias("r1");
+        assertEquals("r1", AggregationHelper.crossDbAliasOf(join),
+                "explicit alias must be returned as-is");
+
+        // null alias：回退 "right"
+        NopMetaTableJoin nullAlias = new NopMetaTableJoin();
+        nullAlias.setAlias(null);
+        assertEquals("right", AggregationHelper.crossDbAliasOf(nullAlias),
+                "null alias must fall back to 'right'");
+
+        // 空白 alias：回退 "right"（trim 后为空即视为未设置）
+        NopMetaTableJoin blankAlias = new NopMetaTableJoin();
+        blankAlias.setAlias("   ");
+        assertEquals("right", AggregationHelper.crossDbAliasOf(blankAlias),
+                "blank/whitespace alias must fall back to 'right'");
     }
 
     @Test

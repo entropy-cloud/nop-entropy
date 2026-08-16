@@ -332,6 +332,16 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
         // 缺失的 ruleId 与 tableId 都记入 errors（不静默丢弃）
         assertTrue(data.contains("__missing_rule__"), "missing ruleId recorded in errors: " + data);
         assertTrue(data.contains("__missing_table__"), "missing tableId recorded in errors: " + data);
+        // P2-20：类型化逐键等价断言（断言强度增强——从"包含 id 字符串"升为 source/refType/refValue 逐键匹配）
+        List<Map<String, Object>> errors = errorsOf(resp);
+        assertTrue(errors.stream().anyMatch(e -> "resolution".equals(e.get("source"))
+                        && "ruleId".equals(e.get("refType")) && "__missing_rule__".equals(e.get("refValue"))),
+                "missing ruleId must be a typed resolution error {source=resolution, refType=ruleId, "
+                        + "refValue=__missing_rule__}: " + errors);
+        assertTrue(errors.stream().anyMatch(e -> "resolution".equals(e.get("source"))
+                        && "tableId".equals(e.get("refType")) && "__missing_table__".equals(e.get("refValue"))),
+                "missing tableId must be a typed resolution error {source=resolution, refType=tableId, "
+                        + "refValue=__missing_table__}: " + errors);
         assertEquals(1, countResults("r-cp-pm"), "valid rule result written despite missing refs");
     }
 
@@ -343,7 +353,8 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
      *   <li>checkpoint 整体不报错（per-rule 失败隔离，不中断）</li>
      *   <li>executedRuleCount=1、errorCount=1——修复前异常规则只进 errors 列表，errorCount 恒 0，
      *       全量失败时告警侧看到"0 执行 0 错误"假象</li>
-     *   <li>异常规则出现在 executionErrors（含 qualityRuleId）</li>
+     *   <li>异常规则出现在类型化 errors（source=execution，code=qualityRuleId；P2-20 前为 List<Map> 冗余形态
+     *       {source, qualityRuleId, ruleName, error}，逐键等价承接见 daily log 对照表）</li>
      * </ul>
      */
     @Test
@@ -358,7 +369,13 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
         assertTrue(data.contains("executedRuleCount=1"), "exception-failing rule must count as executed: " + data);
         assertTrue(data.contains("errorCount=1"),
                 "exception-failing rule must count in errorCount (was 0 before fix): " + data);
-        assertTrue(data.contains("r-cp-throw"), "exception-failing rule must appear in executionErrors: " + data);
+        assertTrue(data.contains("r-cp-throw"), "exception-failing rule must appear in errors: " + data);
+        // P2-20：类型化逐键等价断言（断言强度增强——source=execution + code=qualityRuleId 逐键匹配）
+        List<Map<String, Object>> errors = errorsOf(resp);
+        assertTrue(errors.stream().anyMatch(e -> "execution".equals(e.get("source"))
+                        && "r-cp-throw".equals(e.get("code"))),
+                "exception-failing rule must be a typed execution error {source=execution, code=r-cp-throw}: "
+                        + errors);
     }
 
     // ===== D6 自动评分触发 =====
@@ -1096,9 +1113,29 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
                 "mutation { NopMetaQualityCheckpoint__executeCheckpoint(checkpointId: \"" + checkpointId
                         + "\", schemaPattern: \"PUBLIC\") { "
                         + "checkpointId runId totalRuleCount executedRuleCount passCount failCount errorCount skipCount "
-                        + "affectedTableIds autoScore scoreSkipped executionErrors "
+                        + "affectedTableIds autoScore scoreSkipped "
+                        + "errors { code message detail source refType refValue } "
                         + "ruleResults { qualityRuleId status message } "
                         + "} }")));
+    }
+
+    /**
+     * P2-20（plan 2026-08-16-0549-2）：从 executeCheckpoint 响应中取类型化 errors 列表
+     * （原 List<Map> 冗余错误字段已于 P2-20 移除，断言重写为类型化字段导航 + 逐键等价断言）。
+     */
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> errorsOf(GraphQLResponseBean resp) {
+        Object data = resp.getData();
+        if (data instanceof Map) {
+            Object mutation = ((Map<String, Object>) data).get("NopMetaQualityCheckpoint__executeCheckpoint");
+            if (mutation instanceof Map) {
+                Object errors = ((Map<String, Object>) mutation).get("errors");
+                if (errors instanceof List) {
+                    return (List<Map<String, Object>>) errors;
+                }
+            }
+        }
+        return java.util.Collections.emptyList();
     }
 
     /** 手动调 computeQualityScore（用于与自动评分比对，证明复用同一 scorer）。 */

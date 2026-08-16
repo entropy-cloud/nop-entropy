@@ -15,6 +15,7 @@ import io.nop.job.api.spec.TriggerSpec;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.api.dto.CheckpointExecutionResultDTO;
 import io.nop.metadata.api.dto.CheckpointExtConfig;
+import io.nop.metadata.api.dto.ErrorDTO;
 import io.nop.metadata.dao.entity.NopMetaQualityCheckpoint;
 import io.nop.metadata.service.entity.NopMetaQualityCheckpointBizModel;
 import io.nop.metadata.service.NopMetadataErrors;
@@ -28,7 +29,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -198,7 +198,7 @@ public class MetaQualityCheckpointScheduler {
      * LocalJobScheduler 将 job 永久置 FAILED（修复配置也无法复活，仅重启 JVM 可恢复）。
      *
      * @param params jobParams（移除 beanName/methodName 后）：{@code {checkpointId: <id>}}
-     * @return {@code executeCheckpoint} 的执行摘要 Map；checkpoint 级错误时为带 executionErrors 的摘要
+     * @return {@code executeCheckpoint} 的执行结果 DTO；checkpoint 级错误时为带类型化 errors 的结果
      */
     public CheckpointExecutionResultDTO executeScheduledCheckpoint(Map<String, Object> params) {
         String checkpointId = null;
@@ -243,14 +243,20 @@ public class MetaQualityCheckpointScheduler {
     // helpers
     // ============================================================
 
-    /** 构建 checkpoint 级错误的结果 DTO（executionErrors 记录错误，job 存活不抛异常，MA7.5-01）。 */
+    /**
+     * 构建 checkpoint 级错误的结果 DTO（类型化 {@code errors} 记录错误，job 存活不抛异常，MA7.5-01）。
+     *
+     * <p>P2-20（plan 2026-08-16-0549-2）：错误条目由原 {@code List<Map>} 冗余字段形态（键 {source:"scheduler",
+     * error}）改为类型化 {@link ErrorDTO}——source="scheduler" / message=错误文本，逐键等价承接（对照表见
+     * owner doc P2-20 裁决记录）。
+     */
     private static CheckpointExecutionResultDTO buildErrorResult(String checkpointId, Exception e) {
         CheckpointExecutionResultDTO dto = new CheckpointExecutionResultDTO();
         dto.setCheckpointId(checkpointId);
-        Map<String, Object> err = new LinkedHashMap<>();
-        err.put("source", "scheduler");
-        err.put("error", NopMetadataHelper.toErrorMessage(e));
-        dto.getExecutionErrors().add(err);
+        ErrorDTO err = new ErrorDTO();
+        err.setSource("scheduler");
+        err.setMessage(NopMetadataHelper.toErrorMessage(e));
+        dto.getErrors().add(err);
         return dto;
     }
 

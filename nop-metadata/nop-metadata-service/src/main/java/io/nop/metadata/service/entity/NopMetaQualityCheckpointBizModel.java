@@ -20,6 +20,7 @@ import io.nop.http.api.client.IHttpClient;
 import io.nop.metadata.biz.INopMetaQualityCheckpointBiz;
 import io.nop.metadata.api.dto.CheckpointExecutionResultDTO;
 import io.nop.metadata.api.dto.CheckpointExtConfig;
+import io.nop.metadata.api.dto.ErrorDTO;
 import io.nop.metadata.api.dto.QualityRuleResultDTO;
 import io.nop.metadata.dao.entity.NopMetaQualityCheckpoint;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionProcessor;
@@ -219,15 +220,18 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
             Object results = summary.get("results");
             if (results instanceof List) {
                 List<Map<String, Object>> resultList = (List<Map<String, Object>>) results;
-                dto.setExecutionResults(resultList);
-                // AR-14 映射契约：summary.results 条目 → QualityRuleResultDTO（qualityRuleId + status + message；
-                // resultCount/passCount/failCount/errors 保持单规则路径语义默认值）。条目数 = totalRuleCount
-                // （含异常规则的 ERROR 条目），计数可对账。
+                // AR-14 + P2-20 映射契约：summary.results 条目 → QualityRuleResultDTO 全 6 键类型化承接
+                // （qualityRuleId/ruleName/status/actualValue/expectedValue/message——P2-20 前 ruleName/actualValue/
+                // expectedValue 无承接字段，为有损投影；现经 QualityRuleResultDTO 增补字段无损承接）。
+                // 条目数 = totalRuleCount（含异常规则的 ERROR 条目），计数可对账。
                 dto.setRuleResults(mapRuleResults(resultList));
             }
             Object errors = summary.get("errors");
             if (errors instanceof List) {
-                dto.setExecutionErrors((List<Map<String, Object>>) errors);
+                // P2-20（变体 a）：填充类型化 errors（此前类型化字段从不填充，错误只进已移除的 List<Map> 冗余字段）。
+                // 三族条目键全承接：source→source、error→message、qualityRuleId/metaTableId→code（标识符惯例）、
+                // ruleName→detail、refType/refValue→同名增补字段（对照表见 owner doc P2-20 裁决记录）。
+                dto.setErrors(mapErrorEntries((List<Map<String, Object>>) errors));
             }
 
             // D6：自动评分触发——按 affectedTableIds 逐表重算评分（复用既有 scorer，零落盘逻辑复制）
@@ -403,9 +407,9 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
     // ============================================================
 
     /**
-     * AR-14 映射契约：summary.results 条目（{qualityRuleId, ruleName, status, actualValue, expectedValue,
-     * message}）→ {@link QualityRuleResultDTO}（qualityRuleId + status + message；resultCount/passCount/
-     * failCount/errors 保持单规则路径语义默认值，形状不对应的字段不硬映射）。
+     * AR-14 + P2-20 映射契约：summary.results 条目（{qualityRuleId, ruleName, status, actualValue, expectedValue,
+     * message}）→ {@link QualityRuleResultDTO} 全 6 键类型化承接（P2-20 前仅 3 键有损投影——ruleName/actualValue/
+     * expectedValue 无承接字段；resultCount/passCount/failCount/errors 保持单规则路径语义默认值，形状不对应的字段不硬映射）。
      */
     private static List<QualityRuleResultDTO> mapRuleResults(List<Map<String, Object>> results) {
         List<QualityRuleResultDTO> list = new ArrayList<>();
@@ -417,6 +421,49 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
             dto.setStatus(status != null ? String.valueOf(status) : null);
             Object message = r.get("message");
             dto.setMessage(message != null ? String.valueOf(message) : null);
+            Object ruleName = r.get("ruleName");
+            dto.setRuleName(ruleName != null ? String.valueOf(ruleName) : null);
+            Object actualValue = r.get("actualValue");
+            if (actualValue instanceof Number) {
+                dto.setActualValue(((Number) actualValue).doubleValue());
+            }
+            Object expectedValue = r.get("expectedValue");
+            if (expectedValue instanceof Number) {
+                dto.setExpectedValue(((Number) expectedValue).doubleValue());
+            }
+            list.add(dto);
+        }
+        return list;
+    }
+
+    /**
+     * P2-20（变体 a）：summary.errors 条目 → {@link ErrorDTO} 类型化承接（错误条目四族全键无损映射）：
+     * <ul>
+     *   <li>execution（executor 规则执行异常）：source/qualityRuleId→code/ruleName→detail/error→message</li>
+     *   <li>resolution（executor 引用解析失败）：source/refType/refValue/error→message</li>
+     *   <li>autoScore（本类 triggerAutoScoring 评分失败）：source/metaTableId→code/error→message</li>
+     *   <li>scheduler（{@link MetaQualityCheckpointScheduler#buildErrorResult} 直接构造 ErrorDTO，不经本方法）</li>
+     * </ul>
+     * code 的"错误所涉标识符"语义沿 {@code NopMetaQualityRuleBizModel}（code=qualityRuleId, detail=ruleName）既有惯例。
+     */
+    private static List<ErrorDTO> mapErrorEntries(List<Map<String, Object>> errors) {
+        List<ErrorDTO> list = new ArrayList<>();
+        for (Map<String, Object> e : errors) {
+            ErrorDTO dto = new ErrorDTO();
+            Object source = e.get("source");
+            dto.setSource(source != null ? String.valueOf(source) : null);
+            Object error = e.get("error");
+            dto.setMessage(error != null ? String.valueOf(error) : null);
+            Object qualityRuleId = e.get("qualityRuleId");
+            Object metaTableId = e.get("metaTableId");
+            Object identifier = qualityRuleId != null ? qualityRuleId : metaTableId;
+            dto.setCode(identifier != null ? String.valueOf(identifier) : null);
+            Object ruleName = e.get("ruleName");
+            dto.setDetail(ruleName != null ? String.valueOf(ruleName) : null);
+            Object refType = e.get("refType");
+            dto.setRefType(refType != null ? String.valueOf(refType) : null);
+            Object refValue = e.get("refValue");
+            dto.setRefValue(refValue != null ? String.valueOf(refValue) : null);
             list.add(dto);
         }
         return list;

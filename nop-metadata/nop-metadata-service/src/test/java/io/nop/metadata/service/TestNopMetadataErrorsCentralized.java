@@ -6,9 +6,7 @@ import io.nop.metadata.service.sync.ExternalTableStructureReader;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -29,10 +27,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class TestNopMetadataErrorsCentralized {
 
-    /** 验证 {@link NopMetadataErrors} 中的 ErrorCode 常量都是从 NopMetadataErrors 引用而非内联。 */
+    /**
+     * 验证 {@link NopMetadataErrors} 中的 ErrorCode 常量都是从 NopMetadataErrors 引用而非内联。
+     *
+     * <p>P2-35 项 4a（plan 2026-08-16-0549-2）：抽样断言用**字面量**作为独立真值（expected 值不与被测常量
+     * 同源——修复前构造器测试以 {@code CONSTANT.getErrorCode()} 断言同一常量的传播，恒真镜像）；
+     * 死码面（define 无生产消费者）由既有门禁 {@code check-error-param-consistency.mjs} define 面规则守护
+     * （P2-10，plan 2026-08-16-0226-2），本测试不重复该面。
+     */
     @Test
     public void testCentralizedErrorCodesDefined() {
-        // 跨文件去重 ErrorCode
+        // 跨文件去重 ErrorCode：抽样与独立字面量真值逐一核对
         assertNotNull(NopMetadataErrors.ERR_DATASOURCE_NOT_FOUND);
         assertEquals("nop.err.metadata.datasource-not-found",
                 NopMetadataErrors.ERR_DATASOURCE_NOT_FOUND.getErrorCode());
@@ -41,11 +46,13 @@ public class TestNopMetadataErrorsCentralized {
         assertTrue(NopMetadataErrors.ERR_JOIN_TABLE_TYPE_NOT_ALLOWED.getErrorCode()
                 .startsWith("nop.err.metadata."));
 
-        // 模块异常辅助 ErrorCode
-        assertNotNull(NopMetadataErrors.ERR_DATASOURCE_TYPE_NOT_SUPPORTED);
-        assertNotNull(NopMetadataErrors.ERR_ORM_RESOURCE_NOT_FOUND);
-        assertNotNull(NopMetadataErrors.ERR_ORM_RESOURCE_READ_FAILED);
-        assertNotNull(NopMetadataErrors.ERR_QUALITY_EXPECT_PASS_WHEN_INVALID);
+        // 模块异常辅助 ErrorCode：独立字面量真值核对（不止 assertNotNull）
+        assertEquals("nop.err.metadata.datasource-type-not-supported",
+                NopMetadataErrors.ERR_DATASOURCE_TYPE_NOT_SUPPORTED.getErrorCode());
+        assertEquals("nop.err.metadata.orm-resource-not-found",
+                NopMetadataErrors.ERR_ORM_RESOURCE_NOT_FOUND.getErrorCode());
+        assertEquals("nop.err.metadata.quality-expect-pass-when-invalid",
+                NopMetadataErrors.ERR_QUALITY_EXPECT_PASS_WHEN_INVALID.getErrorCode());
     }
 
     /** 验证 ARG_* 参数常量已引入，避免魔法字符串。 */
@@ -60,14 +67,36 @@ public class TestNopMetadataErrorsCentralized {
         assertEquals("error", NopMetadataErrors.ARG_ERROR);
     }
 
-    /** 验证所有 ErrorCode 都以 {@code nop.err.metadata.} 前缀（plan 维度09-01 命名规范）。 */
+    /**
+     * 验证所有 ErrorCode 都以 {@code nop.err.metadata.} 前缀（plan 维度09-01 命名规范）。
+     *
+     * <p>P2-35 项 4b（plan 2026-08-16-0549-2）：接口清单由**源码目录动态枚举**发现（扫
+     * {@code src/main/java/io/nop/metadata/service/} 下全部 {@code *Errors.java} 并加载），
+     * 封 F19 族盲区——新增 {@code *Errors} 接口未纳入扫描即红；同时断言发现的每个接口都
+     * 已接入 {@link NopMetadataErrors} 聚合门面（未接线的新接口即红，保证集中化不旁路）。
+     */
     @Test
-    public void testAllErrorsUseNopErrPrefix() {
+    public void testAllErrorsUseNopErrPrefix() throws Exception {
+        Set<Class<?>> errorInterfaces = discoverErrorInterfacesFromSource();
+        assertTrue(errorInterfaces.size() >= 10,
+                "dynamically discovered *Errors interfaces must be >= 10 (live 2026-08-16), but was "
+                        + errorInterfaces.size());
+
+        // 集中化接线核对：发现的每个 *Errors 接口（聚合门面自身除外）都必须是 NopMetadataErrors 的父接口
+        Set<String> facadeSupers = new HashSet<>();
+        for (Class<?> iface : NopMetadataErrors.class.getInterfaces()) {
+            facadeSupers.add(iface.getSimpleName());
+        }
+        for (Class<?> cls : errorInterfaces) {
+            if (cls == NopMetadataErrors.class) {
+                continue;
+            }
+            assertTrue(facadeSupers.contains(cls.getSimpleName()),
+                    "interface " + cls.getSimpleName() + " must be wired into NopMetadataErrors "
+                            + "(facade supers: " + facadeSupers + ")");
+        }
+
         Set<String> allCodes = new HashSet<>();
-        List<Class<?>> errorInterfaces = List.of(
-                AggregationErrors.class, JoinErrors.class, QualityErrors.class,
-                DataSourceErrors.class, SqlErrors.class, FieldErrors.class,
-                LineageErrors.class, ModuleErrors.class, ReconErrors.class, MiscErrors.class);
         for (Class<?> cls : errorInterfaces) {
             for (Field f : cls.getDeclaredFields()) {
                 if (f.getType() == ErrorCode.class) {
@@ -87,17 +116,44 @@ public class TestNopMetadataErrorsCentralized {
         }
     }
 
-    /** 验证 {@link NopMetadataException} 两构造器可用。 */
+    /**
+     * 源码目录动态枚举 {@code *Errors.java}：定位 {@code io.nop.metadata.service} 源目录
+     * （surefire 工作目录 = service 模块 basedir 时取 {@code src/main/java/...}；仓库根执行时回退
+     * {@code nop-metadata/nop-metadata-service/src/main/java/...}），加载全部 {@code *Errors} 类。
+     */
+    private Set<Class<?>> discoverErrorInterfacesFromSource() throws Exception {
+        String rel = "src/main/java/io/nop/metadata/service";
+        java.io.File dir = new java.io.File(rel);
+        if (!dir.exists()) {
+            dir = new java.io.File("nop-metadata/nop-metadata-service/" + rel);
+        }
+        assertTrue(dir.isDirectory(), "*Errors source dir must exist: " + dir.getAbsolutePath());
+        java.io.File[] files = dir.listFiles((d, name) -> name.matches("\\w+Errors\\.java"));
+        assertNotNull(files, "*Errors source dir must be listable: " + dir.getAbsolutePath());
+        Set<Class<?>> result = new HashSet<>();
+        for (java.io.File f : files) {
+            String simpleName = f.getName().substring(0, f.getName().length() - ".java".length());
+            result.add(Class.forName("io.nop.metadata.service." + simpleName));
+        }
+        return result;
+    }
+
+    /**
+     * 验证 {@link NopMetadataException} 两构造器可用。
+     *
+     * <p>P2-35 项 4a：expected 用独立字面量真值（修复前 {@code assertEquals(CONSTANT.getErrorCode(),
+     * e3.getErrorCode())} 与被测物同源恒真——构造器只要回存入参就永远通过，无区分力）。
+     */
     @Test
     public void testNopMetadataExceptionConstructors() {
         // (ErrorCode)
         NopMetadataException e3 = new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_NOT_FOUND);
-        assertEquals(NopMetadataErrors.ERR_DATASOURCE_NOT_FOUND.getErrorCode(), e3.getErrorCode());
+        assertEquals("nop.err.metadata.datasource-not-found", e3.getErrorCode());
 
         // (ErrorCode, Throwable)
         NopMetadataException e4 = new NopMetadataException(
                 NopMetadataErrors.ERR_ORM_RESOURCE_NOT_FOUND, new RuntimeException("io fail"));
-        assertEquals(NopMetadataErrors.ERR_ORM_RESOURCE_NOT_FOUND.getErrorCode(), e4.getErrorCode());
+        assertEquals("nop.err.metadata.orm-resource-not-found", e4.getErrorCode());
         assertNotNull(e4.getCause());
     }
 

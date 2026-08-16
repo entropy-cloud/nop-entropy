@@ -118,6 +118,46 @@ public class TestLimitTargetSetCompleteness {
         return countInDir(dir);
     }
 
+    /**
+     * P2-35 项 2（plan 2026-08-16-0549-2）：样例单测钉死计数正则形态——原单一字面形态
+     * {@code @Name\("limit"\)} 对 {@code @Name(value = "limit")} / 空白变体等合法书写形态漏匹配
+     * （假阴性洞：新方法以变体形态声明 limit 参数时守卫对样例从漏计变计入的区分力缺失）。
+     * 本测试修复前红（变体形态漏计）/ 修复后绿。
+     */
+    @Test
+    public void nameLimitCountRegexCoversAllWritingForms() {
+        String sample = "class Sample {\n"
+                + "    void a(@Name(\"limit\") Long limit) {}\n"
+                + "    void b(@Name(value = \"limit\") Long limit) {}\n"
+                + "    void c(@Name( \"limit\" ) Long limit) {}\n"
+                + "    void d(@Name(value=\"limit\") Long limit) {}\n"
+                + "}\n";
+        assertEquals(4, countNameLimitOccurrences(sample),
+                "regex must count all 4 legal @Name writing forms (canonical / value= / whitespace variants)");
+        // 非法/不相干形态不得误计：不同参数名不算 limit
+        String negative = "class N { void x(@Name(\"limitOverride\") Long v) {}"
+                + " void y(@Optional @Name(\"offset\") Long o) {} }\n";
+        assertEquals(0, countNameLimitOccurrences(negative),
+                "regex must not count @Name annotations with other parameter names");
+    }
+
+    /**
+     * 对源码文本统计 @Name("limit") 命中数（全部合法书写形态）。
+     *
+     * <p>P2-35 项 2：正则覆盖 canonical（{@code @Name("limit")}）、value 显式赋值
+     * （{@code @Name(value = "limit")}）与空白变体（{@code @Name( "limit" )}）——
+     * 修复前单一字面形态对后三者漏匹配（假阴性洞，样例单测钉死）。
+     * 注：@RequestBean DTO 内的 limit 字段不是 @Name 参数形态，不在 INV-LIMIT 守卫口径内
+     * （守卫对象 = 显式 {@code @Name("limit")} 参数方法）。
+     */
+    static int countNameLimitOccurrences(String content) {
+        java.util.regex.Matcher m = java.util.regex.Pattern
+                .compile("@Name\\s*\\(\\s*(?:value\\s*=\\s*)?\"limit\"\\s*\\)").matcher(content);
+        int count = 0;
+        while (m.find()) count++;
+        return count;
+    }
+
     private int countInDir(java.io.File dir) {
         int count = 0;
         java.io.File[] files = dir.listFiles();
@@ -135,11 +175,7 @@ public class TestLimitTargetSetCompleteness {
     private int countInFile(java.io.File file) {
         try {
             String content = java.nio.file.Files.readString(file.toPath());
-            java.util.regex.Matcher m = java.util.regex.Pattern
-                    .compile("@Name\\(\"limit\"\\)").matcher(content);
-            int count = 0;
-            while (m.find()) count++;
-            return count;
+            return countNameLimitOccurrences(content);
         } catch (Exception e) {
             return 0;
         }
