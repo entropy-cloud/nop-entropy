@@ -7,7 +7,6 @@
  */
 package io.nop.credential.service.entity;
 
-import io.nop.api.core.annotations.biz.BizAction;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
@@ -25,7 +24,6 @@ import io.nop.biz.crud.CrudBizModel;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
-import io.nop.credential.api.CredentialData;
 import io.nop.credential.api.ICredentialProvider;
 import io.nop.credential.api.MaskedCredential;
 import io.nop.credential.api.TestResult;
@@ -37,6 +35,7 @@ import io.nop.credential.crypto.CredentialCipher;
 import io.nop.credential.crypto.CredentialErrors;
 import io.nop.credential.dao.entity.NopCredential;
 import io.nop.credential.dao.entity.NopCredentialUsage;
+import io.nop.credential.service.CredentialProviderImpl;
 import io.nop.dao.api.IEntityDao;
 import jakarta.inject.Inject;
 
@@ -45,7 +44,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 
 import static io.nop.biz.BizConstants.BIZ_OBJ_NAME_THIS_OBJ;
 
@@ -77,6 +76,12 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
 
     @Inject
     protected ICredentialProvider credentialProvider;
+
+    /**
+     * 引擎内部通道（分组写用）。注入实现类——{@code engineUpdateInLock} 不在 SPI 面上。
+     */
+    @Inject
+    protected CredentialProviderImpl credentialProviderImpl;
 
     // 注意：IDaoProvider daoProvider 由父类 CrudBizModel 声明并通过 NopIoC 注入，
     // 此处不再重复声明（重复声明会导致字段遮蔽，子类字段保持 null）。
@@ -111,6 +116,12 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
      * 凭证明文输入唯一入口。{@code fields} 为明文字段 map（例如 {@code {"apiKey":"sk-xxx"}}），
      * 内部序列化为 JSON、加密为 {@code cv1:} 密文后持久化到 {@code data} 字段。
      *
+     * <p><b>W9 分组写语义（authType=oauth2，设计 §3.3）</b>：人工字段集合整包替换（未传即删）
+     * 不变，但<b>引擎保留字段不动</b>（锁下从当前 data 解出 token 集合并合并回写）；输入出现
+     * 保留字段名（accessToken/refreshToken/expiresAt/tokenType/scope）一律拒绝（防人工伪造
+     * token 破坏刷新状态机）。更新路径与惰性刷新共用同一行锁串行化入口（互斥覆盖
+     * "刷新 vs 人工保存"）。非 oauth2 类型维持一期整包覆盖语义（零变更）。
+     *
      * <p>返回的实体 {@code data} 已置 null（不向调用方暴露密文）。
      *
      * @param typeName 凭证类型名（必须已注册，否则 fail-closed）
@@ -133,7 +144,7 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
             throw new NopException(CredentialErrors.ERR_CREDENTIAL_UNKNOWN_TYPE)
                     .param(CredentialErrors.ARG_TYPE_NAME, typeName);
         }
-        credentialTypeRegistry.getType(typeName); // throws ERR_CREDENTIAL_UNKNOWN_TYPE
+        CredentialType type = credentialTypeRegistry.getType(typeName); // throws ERR_CREDENTIAL_UNKNOWN_TYPE
 
         if (StringHelper.isEmpty(name)) {
             throw new NopException(CredentialErrors.ERR_CREDENTIAL_NAME_REQUIRED)
@@ -145,9 +156,19 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
                     .param(CredentialErrors.ARG_TYPE_NAME, typeName);
         }
 
-        // 序列化为 JSON，加密为 cv1: 密文（使用 active key）
-        String json = JsonTool.stringify(fields);
-        String ciphertext = credentialCipher.encrypt(json);
+        // W9: oauth2 类型保留字段名拒绝（token 集只能由引擎写入，防伪造破坏刷新状态机）
+        if (type.isOauth2Type()) {
+            List<String> reservedUsed = new ArrayList<>();
+            for (String fieldName : fields.keySet()) {
+                if (CredentialType.OAUTH_RESERVED_FIELD_NAMES.contains(fieldName)) {
+                    reservedUsed.add(fieldName);
+                }
+            }
+            if (!reservedUsed.isEmpty()) {
+                throw new NopException(CredentialErrors.ERR_CREDENTIAL_RESERVED_FIELD_INPUT)
+                        .param(CredentialErrors.ARG_FIELD_NAMES, reservedUsed);
+            }
+        }
 
         IEntityDao<NopCredential> dao = dao();
         NopCredential entity;
@@ -158,17 +179,53 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
             entity.setDelFlag((byte) 0);
             entity.setVersion(1);
             entity.setCreateTime(new Timestamp(System.currentTimeMillis()));
+
+            // 新建：保留字段已被拒绝出现，直接整包加密（一期路径不变）
+            entity.setData(credentialCipher.encrypt(JsonTool.stringify(fields)));
         } else {
             entity = dao.getEntityById(id);
             if (entity == null) {
                 throw new NopException(CredentialErrors.ERR_CREDENTIAL_NOT_FOUND)
-                        .param(CredentialErrors.ARG_CREDENTIAL_ID, id);
+                    .param(CredentialErrors.ARG_CREDENTIAL_ID, id);
             }
+
+            // W9 分组写（oauth2）：元数据与 data 在同一行锁 UPDATE 内提交（锁下从当前 data
+            // 解出保留字段合并，人工字段整包替换；与惰性刷新互斥串行化，无两步乐观锁竞争）
+            if (type.isOauth2Type()) {
+                Map<String, Object> inputFields = fields;
+                credentialProviderImpl.engineUpdateInLock(id,
+                        current -> {
+                            Map<String, Object> merged = new java.util.LinkedHashMap<>();
+                            // 保留字段：从当前 data 原样保留
+                            for (String reserved : CredentialType.OAUTH_RESERVED_FIELD_NAMES) {
+                                if (current.containsKey(reserved)) {
+                                    merged.put(reserved, current.get(reserved));
+                                }
+                            }
+                            // 人工字段：整包替换（未传即删）
+                            merged.putAll(inputFields);
+                            return merged;
+                        },
+                        (entityLocked, updatedFields) -> {
+                            entityLocked.setName(name);
+                            entityLocked.setTypeName(typeName);
+                            if (StringHelper.isEmpty(entityLocked.getStatus())) {
+                                entityLocked.setStatus("enabled");
+                            }
+                        });
+
+                // 返回前重读 + 驱逐 + 清密文（明文边界）
+                entity = dao.getEntityById(id);
+                orm().requireSession().evict(entity);
+                entity.setData(null);
+                return entity;
+            }
+
+            entity.setData(credentialCipher.encrypt(JsonTool.stringify(fields)));
         }
 
         entity.setTypeName(typeName);
         entity.setName(name);
-        entity.setData(ciphertext);
         if (StringHelper.isEmpty(entity.getStatus())) {
             entity.setStatus("enabled");
         }
@@ -247,11 +304,34 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
 
     /**
      * 列出已注册的全部凭证类型及其字段 schema，供前端动态表单渲染。
+     *
+     * <p>W9：oauth2 类型裁剪掉引擎保留字段（表单只出人工字段；registry 已拒绝类型文件占用
+     * 保留名，此处为防御性双保险）。返回浅拷贝，不改写 registry 缓存对象。
      */
     @Description("列出凭证类型及字段 schema")
     @BizQuery
     public List<CredentialType> typeList() {
-        return credentialTypeRegistry.listTypes();
+        List<CredentialType> types = credentialTypeRegistry.listTypes();
+        List<CredentialType> result = new ArrayList<>(types.size());
+        for (CredentialType type : types) {
+            if (type.isOauth2Type()) {
+                CredentialType copy = new CredentialType();
+                copy.setName(type.getName());
+                copy.setVersion(type.getVersion());
+                copy.setDisplayName(type.getDisplayName());
+                copy.setAuthType(type.getAuthType());
+                copy.setTestUrl(type.getTestUrl());
+                copy.setTestAuth(type.getTestAuth());
+                copy.setOauth2(type.getOauth2());
+                copy.setFields(type.getFields().stream()
+                        .filter(f -> !CredentialType.OAUTH_RESERVED_FIELD_NAMES.contains(f.getName()))
+                        .collect(Collectors.toList()));
+                result.add(copy);
+            } else {
+                result.add(type);
+            }
+        }
+        return result;
     }
 
     // ==================== 测试连通性 ====================

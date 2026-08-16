@@ -54,6 +54,15 @@ public class TestDefaultCredentialTypeRegistry {
         return registry;
     }
 
+    /**
+     * 指向测试夹具目录（_vfs/test/credential-types/，含非法类型文件）构造 registry。
+     */
+    private DefaultCredentialTypeRegistry newFixtureRegistry(String dir) {
+        DefaultCredentialTypeRegistry registry = new DefaultCredentialTypeRegistry();
+        registry.setTypesDir(dir);
+        return registry;
+    }
+
     @Test
     public void getTypeReturnsOpenAiKeyTypeWithExpectedFields() {
         ICredentialTypeRegistry registry = newRegistry();
@@ -121,5 +130,68 @@ public class TestDefaultCredentialTypeRegistry {
         assertEquals("secret", secret.getName());
         assertTrue(secret.isSensitive());
         assertTrue(secret.isRequired());
+    }
+
+    // ==================== W9 Phase 1: oauth2 元数据 + 加载校验（全部 fail-closed） ====================
+
+    @Test
+    public void genericOauth2TypeMetadataRoundTrip() {
+        ICredentialTypeRegistry registry = newRegistry();
+        CredentialType type = registry.getType("generic-oauth2");
+
+        assertNotNull(type);
+        assertEquals("generic-oauth2", type.getName());
+        assertTrue(type.isOauth2Type(), "generic-oauth2 must be authType=oauth2");
+
+        CredentialType.OAuth2Metadata metadata = type.getOauth2();
+        assertNotNull(metadata, "oauth2 type must carry OAuth metadata");
+        assertEquals("https://auth.example.com/authorize", metadata.getAuthorizationEndpoint());
+        assertEquals("https://auth.example.com/token", metadata.getTokenEndpoint());
+        assertEquals("read write", metadata.getScopes());
+        assertEquals(Integer.valueOf(300), metadata.getRefreshWindowSeconds());
+
+        // 人工字段只有 clientId/clientSecret；保留字段名不出现在类型 fields
+        assertEquals(2, type.getFields().size());
+        for (CredentialType.CredentialField field : type.getFields()) {
+            assertFalse(CredentialType.OAUTH_RESERVED_FIELD_NAMES.contains(field.getName()),
+                    "type fields must not use reserved names: " + field.getName());
+        }
+    }
+
+    @Test
+    public void loadRejectsTypeFileOccupyingReservedFieldName() {
+        DefaultCredentialTypeRegistry registry = newFixtureRegistry("/test/credential-types-reserved");
+        NopException ex = assertThrows(NopException.class, registry::init,
+                "registry must reject type file occupying reserved field names (no silent skip)");
+        assertEquals("nop.err.credential.type-reserved-field", ex.getErrorCode(),
+                "reserved field name must fail with ERR_CREDENTIAL_TYPE_RESERVED_FIELD, got: " + ex.getMessage());
+    }
+
+    @Test
+    public void loadRejectsAuthTypeOutsideValueDomain() {
+        DefaultCredentialTypeRegistry registry = newFixtureRegistry("/test/credential-types-bad-auth");
+        NopException ex = assertThrows(NopException.class, registry::init,
+                "registry must reject authType outside none|apiKey|basic|oauth2 (no silent skip)");
+        assertNotNull(ex);
+    }
+
+    @Test
+    public void loadRejectsOauth2TypeMissingEndpoints() {
+        DefaultCredentialTypeRegistry registry = newFixtureRegistry("/test/credential-types-no-endpoints");
+        NopException ex = assertThrows(NopException.class, registry::init,
+                "registry must reject oauth2 type without endpoint metadata (no silent skip)");
+        assertEquals("nop.err.credential.type-oauth-metadata-missing", ex.getErrorCode(),
+                "oauth2 without endpoints must fail with ERR_CREDENTIAL_TYPE_OAUTH_METADATA_MISSING, got: "
+                        + ex.getMessage());
+    }
+
+    @Test
+    public void loadRejectsNonOauth2TypeWithOAuthMetadata() {
+        DefaultCredentialTypeRegistry registry = newFixtureRegistry("/test/credential-types-misplaced");
+        NopException ex = assertThrows(NopException.class, registry::init,
+                "registry must reject non-oauth2 type declaring <oauth2> metadata (no silent skip)");
+        assertEquals("nop.err.credential.type-oauth-metadata-not-allowed", ex.getErrorCode(),
+                "non-oauth2 with oauth metadata must fail with ERR_CREDENTIAL_TYPE_OAUTH_METADATA_NOT_ALLOWED, got: "
+                        + ex.getMessage());
     }
 }

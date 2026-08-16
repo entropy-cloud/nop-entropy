@@ -37,4 +37,36 @@ public interface CredentialConfigs {
     @Description("当前用于加密的 active 主密钥 keyId（可选，缺省取列表首项）")
     IConfigReference<String> CFG_CREDENTIAL_ACTIVE_KEY_ID = varRef(
             s_loc, "nop.credential.active-key-id", String.class, null);
+
+    // ==================== W9 OAuth 流程引擎（nop.credential.oauth.*） ====================
+
+    /**
+     * OAuth state 绑定的 TTL（秒）。缺省 600（10 分钟），与设计 §3.3 一致。
+     */
+    @Description("OAuth state 绑定 TTL 秒数（缺省 600）")
+    IConfigReference<Integer> CFG_CREDENTIAL_OAUTH_STATE_TTL_SECONDS = varRef(
+            s_loc, "nop.credential.oauth.state-ttl-seconds", Integer.class, 600);
+
+    /**
+     * 惰性刷新窗口（秒）：now 距 expiresAt 小于该值时触发 refreshToken 刷新。缺省 300。
+     * 类型文件 oauth2 元数据中的 refreshWindowSeconds 可按类型覆盖。
+     */
+    @Description("OAuth 惰性刷新窗口秒数（缺省 300）")
+    IConfigReference<Integer> CFG_CREDENTIAL_OAUTH_REFRESH_WINDOW_SECONDS = varRef(
+            s_loc, "nop.credential.oauth.refresh-window-seconds", Integer.class, 300);
+
+    /**
+     * OAuth 回调端点对外基础地址（部署方配置外部可达地址，如 https://ops.example.com）。
+     * redirect_uri = {base}/r/CredentialOAuthApi__oauthCallback。未配置时发起授权 fail-closed。
+     */
+    @Description("OAuth 回调基础地址（外部可达，redirect_uri 派生自它）")
+    IConfigReference<String> CFG_CREDENTIAL_OAUTH_CALLBACK_BASE_URL = varRef(
+            s_loc, "nop.credential.oauth.callback-base-url", String.class, null);
+
+    /**
+     * 授权结果前端页 URL（回调成功后浏览器跳转目标）。未配置时回调页输出内置静态完成提示。
+     */
+    @Description("OAuth 授权结果前端页 URL（回调跳转目标，可选）")
+    IConfigReference<String> CFG_CREDENTIAL_OAUTH_RESULT_PAGE_URL = varRef(
+            s_loc, "nop.credential.oauth.result-page-url", String.class, null);
 }

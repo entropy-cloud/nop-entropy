@@ -42,9 +42,23 @@
             <artifactId>nop-ioc</artifactId>
         </dependency>
 
+        <!-- W9 OAuth 引擎：IHttpClient 协议客户端（运行时 nopHttpClient 为条件 bean，
+             部署需引入 raw client 实现模块如 nop-http-client-jdk） -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-http-api</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-autotest-junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- OAuthFlowService 经类型注入 IHttpClient；触发容器初始化的测试需要 test classpath
+             上存在 IHttpClient bean（先例 nop-ai-gateway/nop-auth-sso test 依赖声明） -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-http-client-jdk</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
