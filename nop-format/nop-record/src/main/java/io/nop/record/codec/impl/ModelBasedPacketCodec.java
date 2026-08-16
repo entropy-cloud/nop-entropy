@@ -228,7 +228,8 @@ public class ModelBasedPacketCodec implements IPacketCodec<Object> {
     protected long getUnadjustedFrameLength(ByteBuf buf, int offset, int length, ByteOrder order) {
         if (lengthCodec != null) {
             int readerIndex = buf.readerIndex();
-            buf.skipBytes(offset);
+            // offset 是绝对位置（determinePacketLength 已加 readerIndex），用绝对定位与默认分支语义一致
+            buf.readerIndex(offset);
             try {
                 int len = (Integer) lengthCodec.decode(new ByteBufBinaryDataReader(buf), null, length, null, deserializer);
                 return len;

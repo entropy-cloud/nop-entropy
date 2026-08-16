@@ -182,6 +182,9 @@ class TestBlockCachedBinaryDataReader2 {
     @Test
     void testRandomAccessPattern() throws IOException {
         // Simulate random access pattern
+        // backwardCacheBlocks=8：向后窗口覆盖整个缓存（保持旧语义：向后 seek 距离由 maxCacheBlocks 决定）
+        underlyingReader = new ByteBufferBinaryDataReader(TEST_DATA);
+        cachedReader = new BlockCachedBinaryDataReader(underlyingReader, 100, false, 8, 1024 * 1024, 8);
         Random random = new Random(42);
         List<Long> positions = new ArrayList<>();
         for (int i = 0; i < 20; i++) {
@@ -268,5 +271,25 @@ class TestBlockCachedBinaryDataReader2 {
         byte[] result = new byte[length];
         System.arraycopy(source, offset, result, 0, length);
         return result;
+    }
+
+    /**
+     * backwardCacheBlocks 向后窗口：当前位置之前的块最多保留 backwardCacheBlocks 个（默认 2 块 = 200 字节）
+     */
+    @Test
+    void testBackwardCacheBlocksWindow() throws IOException {
+        underlyingReader = new ByteBufferBinaryDataReader(TEST_DATA);
+        cachedReader = new BlockCachedBinaryDataReader(underlyingReader, 100); // maxCacheBlocks=8, backwardCacheBlocks=2
+
+        // 读 9 块（850 字节），触发淘汰；向后窗口保持 2 块（pos 600-850 区间外的向后块被淘汰）
+        cachedReader.readFully(850);
+
+        // 向后窗口 = 2 块（200 字节）：seek 回退 3 块（pos 150）应失败
+        assertThrows(NopException.class, () -> cachedReader.seek(150),
+                "seek beyond backward window should fail");
+
+        // 向后窗口内 seek 可用
+        cachedReader.seek(750);
+        assertEquals((byte) (750 % 10), cachedReader.readByte());
     }
 }

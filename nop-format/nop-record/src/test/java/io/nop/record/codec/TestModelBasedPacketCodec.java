@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestModelBasedPacketCodec extends BaseTestCase {
     @BeforeAll
@@ -99,5 +100,48 @@ public class TestModelBasedPacketCodec extends BaseTestCase {
         Map<String, Object> map2 = (Map<String, Object>) codec.decodeFromBytes(bytes);
         assertEquals(333L, map2.get("id"));
         assertEquals("abc", map2.get("name"));
+    }
+
+    @Test
+    public void testPacketLengthCodecWithReaderIndexOffset() {
+        // lengthFieldOffset=1, lengthFieldLength=2, lengthFieldCodec=u2be
+        PacketCodecModel codecModel = new PacketCodecModel();
+        codecModel.setLengthFieldOffset(1);
+        codecModel.setLengthFieldLength(2);
+        codecModel.setLengthFieldCodec("u2be");
+        codecModel.setLengthAdjustment(0);
+        codecModel.setInitialBytesToStrip(0);
+        ModelBasedPacketCodec codec = new ModelBasedPacketCodec(codecModel, FieldCodecRegistry.DEFAULT);
+
+        // 粘包残留(0xAA, index 0 已被消费) + 帧头(0x00, index 1) + 长度字段 u2be=12 (index 2-3) + 帧内容 (index 4-13)
+        ByteBuf buf = UnpooledByteBufAllocator.DEFAULT.buffer();
+        buf.writeByte(0xAA);
+        buf.writeByte(0x00);
+        buf.writeShort(12);
+        for (int i = 0; i < 10; i++)
+            buf.writeByte(i);
+
+        // 模拟 readerIndex > 0（前面已有粘包残留被处理）
+        buf.readerIndex(1);
+        // 帧长 = 12 + lengthFieldEndOffset(3) = 15
+        assertEquals(15, codec.determinePacketLength(buf));
+    }
+
+    /**
+     * ByteBufBinaryDataReader.subInput 用 slice() 共享底层 refCnt：
+     * 子视图独立所有权（retain），父 reader close（release）后子视图仍可读
+     */
+    @Test
+    public void testSubInputRefCntAfterParentClose() throws IOException {
+        io.netty.buffer.ByteBuf buf = UnpooledByteBufAllocator.DEFAULT.buffer();
+        buf.writeBytes(new byte[]{1, 2, 3, 4, 5, 6});
+        ByteBufBinaryDataReader reader = new ByteBufBinaryDataReader(buf);
+        ByteBufBinaryDataReader sub = (ByteBufBinaryDataReader) reader.subInput(3);
+        assertEquals(1, sub.readU1());
+
+        reader.close();
+        // 修复后：父 close 不影响子视图读取（retain 独立所有权）
+        assertEquals(2, sub.readU1());
+        sub.close();
     }
 }

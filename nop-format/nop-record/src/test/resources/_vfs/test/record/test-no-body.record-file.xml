@@ -1,0 +1,18 @@
+<file x:schema="/nop/schema/record/record-file.xdef" xmlns:x="/nop/schema/xdsl.xdef" binary="true">
+    <header typeRef="Header"/>
+    <trailer typeRef="Trailer"/>
+
+    <types>
+        <type name="Header">
+            <fields>
+                <field name="h1" type="String" length="5"/>
+            </fields>
+        </type>
+
+        <type name="Trailer">
+            <fields>
+                <field name="t1" type="String" length="5"/>
+            </fields>
+        </type>
+    </types>
+</file>

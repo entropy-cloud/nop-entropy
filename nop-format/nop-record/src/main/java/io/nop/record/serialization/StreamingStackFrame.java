@@ -46,6 +46,35 @@ public class StreamingStackFrame {
     // 其他状态
     private String rawDataString;
 
+    // 区域对齐状态（R2-1）：流式对象 length>0 时记录 subInput 创建信息，帧完成处跳过残留
+    private IDataReaderBase subBaseIn;
+    private long subStartPos;
+    private int subLength;
+
+    public IDataReaderBase getSubBaseIn() {
+        return subBaseIn;
+    }
+
+    public void setSubBaseIn(IDataReaderBase subBaseIn) {
+        this.subBaseIn = subBaseIn;
+    }
+
+    public long getSubStartPos() {
+        return subStartPos;
+    }
+
+    public void setSubStartPos(long subStartPos) {
+        this.subStartPos = subStartPos;
+    }
+
+    public int getSubLength() {
+        return subLength;
+    }
+
+    public void setSubLength(int subLength) {
+        this.subLength = subLength;
+    }
+
     private Map<String, Object> nonStreamingFields;
 
     public StreamingItem newStreamingItem() {
@@ -222,6 +251,10 @@ public class StreamingStackFrame {
         if (fieldStage < FIELD_STAGE_COMPLETED) {
             fieldStage++;
         }
+    }
+
+    public void setFieldStage(int fieldStage) {
+        this.fieldStage = fieldStage;
     }
 
     public void resetFieldState() {

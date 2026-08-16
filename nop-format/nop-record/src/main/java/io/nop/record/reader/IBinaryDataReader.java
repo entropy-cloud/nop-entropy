@@ -22,8 +22,10 @@
  */
 package io.nop.record.reader;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.bytes.ByteString;
 import io.nop.commons.util.ByteHelper;
+import io.nop.record.RecordErrors;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataInput;
@@ -419,7 +421,8 @@ public interface IBinaryDataReader extends IDataReaderBase, DataInput {
             int c = read();
             if (c < 0) {
                 if (eosError) {
-                    throw new RuntimeException("End of stream reached, but no terminator " + term + " found");
+                    throw new NopException(RecordErrors.ERR_RECORD_TERMINATOR_NOT_FOUND)
+                            .param(RecordErrors.ARG_TERM, term);
                 } else {
                     return buf.toByteArray();
                 }
@@ -472,10 +475,12 @@ public interface IBinaryDataReader extends IDataReaderBase, DataInput {
     }
 
     default int tryReadFully(byte[] data, int offset, int len) throws IOException {
+        if (len <= 0)
+            return 0;
         int nRead = 0;
         do {
             int n = read(data, offset, len);
-            if (n < 0)
+            if (n <= 0)
                 return nRead > 0 ? nRead : -1;
             nRead += n;
             len -= n;

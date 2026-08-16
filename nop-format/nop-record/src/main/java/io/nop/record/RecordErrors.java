@@ -117,4 +117,22 @@ public interface RecordErrors {
     ErrorCode ERR_RECORD_AGGREGATE_FIELD_NO_AGG_FUNC =
             define("nop.err.record.aggregate-field-no-agg-func", "汇总字段没有设置aggFunc属性:{fieldName}",
                     ARG_FIELD_NAME);
+
+    ErrorCode ERR_RECORD_READWHEN_NOT_SUPPORTED_AT_TOP_LEVEL =
+            define("nop.err.record.readwhen-not-supported-at-top-level",
+                    "body 顶级类型不支持 readWhen 属性:{typeName}", ARG_TYPE_NAME);
+
+    String ARG_ATTRIBUTE_NAME = "attributeName";
+
+    ErrorCode ERR_RECORD_ATTRIBUTE_NOT_IMPLEMENTED =
+            define("nop.err.record.attribute-not-implemented",
+                    "记录属性[{attributeName}]尚未实现:{fieldName}", ARG_ATTRIBUTE_NAME, ARG_FIELD_NAME);
+
+    ErrorCode ERR_RECORD_BODY_NOT_DEFINED =
+            define("nop.err.record.body-not-defined", "模型没有定义body段:{typeName}", ARG_TYPE_NAME);
+
+    String ARG_TERM = "term";
+
+    ErrorCode ERR_RECORD_TERMINATOR_NOT_FOUND =
+            define("nop.err.record.terminator-not-found", "数据结束，未找到终止符:{term}", ARG_TERM);
 }

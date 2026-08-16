@@ -1,0 +1,46 @@
+<file x:schema="/nop/schema/record/record-file.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <header typeRef="Header"/>
+    <body typeRef="Body"/>
+
+    <types>
+        <type name="Header">
+            <fields>
+                <field name="mode" type="String" length="1"/>
+            </fields>
+        </type>
+
+        <type name="Item">
+            <readWhen>mode == '1'</readWhen>
+            <fields>
+                <field name="i1" type="String" length="5"/>
+            </fields>
+        </type>
+
+        <type name="Body">
+            <fields>
+                <field name="a" type="String" length="5">
+                    <readWhen>mode == '1'</readWhen>
+                </field>
+                <field name="b" type="String" length="5"/>
+                <field name="c" type="String" length="5">
+                    <transformIn>value + 'X'</transformIn>
+                    <transformOut>value + 'O'</transformOut>
+                </field>
+                <field name="d" type="String" length="5">
+                    <parseExpr>input.readFully(5)</parseExpr>
+                </field>
+                <field name="e" type="String" length="5">
+                    <readWhen>record.d.trim() != 'off'</readWhen>
+                </field>
+                <field name="f" type="String" length="5" supportStreaming="true">
+                    <readWhen>mode == '1'</readWhen>
+                </field>
+                <field name="g" typeRef="Item"/>
+                <field name="h" type="String" length="5"/>
+                <field name="items" typeRef="Item" repeatKind="expr">
+                    <repeatCountField type="int" length="1"/>
+                </field>
+            </fields>
+        </type>
+    </types>
+</file>

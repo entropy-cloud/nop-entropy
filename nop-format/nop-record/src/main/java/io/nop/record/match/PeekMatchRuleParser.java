@@ -349,15 +349,8 @@ public class PeekMatchRuleParser {
             List<Rule> rules = new ArrayList<>();
             while (currentToken().type != TokenType.EOF) {
                 rules.add(parseRule());
-                skipNewlines();
             }
             return rules;
-        }
-
-        private void skipNewlines() {
-            while (currentToken().type == TokenType.EOF && pos < tokens.size() - 1) {
-                advance();
-            }
         }
 
         private Rule parseRule() {

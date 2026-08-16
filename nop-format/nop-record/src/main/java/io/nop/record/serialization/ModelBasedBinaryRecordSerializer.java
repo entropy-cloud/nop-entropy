@@ -30,6 +30,11 @@ public class ModelBasedBinaryRecordSerializer extends AbstractModelBasedRecordSe
     @Override
     protected void writeField0(IBinaryDataWriter out, RecordSimpleFieldMeta field, Object record,
                                Object value, IFieldCodecContext context) throws IOException {
+        // content 字段原样写出，不适用 transformOut（R2-8）
+        if (field.getTransformOut() != null && field.getContent() == null) {
+            value = field.getTransformOut().call3(null, record, value, context, context.getEvalScope());
+        }
+
         IFieldBinaryCodec encoder = resolveBinaryCodec(field, registry);
         if (encoder != null) {
             encoder.encode(out, value, field.getLength(), context, null);

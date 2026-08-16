@@ -28,6 +28,10 @@ public class ModelBasedTextRecordSerializer extends AbstractModelBasedRecordSeri
     @Override
     protected void writeField0(ITextDataWriter out, RecordSimpleFieldMeta field, Object record,
                                Object value, IFieldCodecContext context) throws IOException {
+        // content 字段原样写出，不适用 transformOut（R2-8）
+        if (field.getTransformOut() != null && field.getContent() == null) {
+            value = field.getTransformOut().call3(null, record, value, context, context.getEvalScope());
+        }
 
         IFieldTextCodec encoder = resolveTextCodec(field, registry);
         if (encoder != null) {

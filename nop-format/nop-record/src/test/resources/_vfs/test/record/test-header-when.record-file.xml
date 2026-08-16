@@ -1,0 +1,19 @@
+<file x:schema="/nop/schema/record/record-file.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <header typeRef="Header"/>
+    <body typeRef="Body"/>
+
+    <types>
+        <type name="Header">
+            <readWhen>false</readWhen>
+            <fields>
+                <field name="mode" type="String" length="1"/>
+            </fields>
+        </type>
+
+        <type name="Body">
+            <fields>
+                <field name="a" type="String" length="5"/>
+            </fields>
+        </type>
+    </types>
+</file>

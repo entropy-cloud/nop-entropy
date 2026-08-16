@@ -83,12 +83,15 @@ public class ModelBasedTextRecordDeserializer extends AbstractModelBasedRecordDe
     @Override
     protected Object readField0(ITextDataReader in, RecordSimpleFieldMeta field,
                                 Object record, IFieldCodecContext context) throws IOException {
+        if (field.getParseExpr() != null)
+            return field.getParseExpr().call3(null, in, record, context, context.getEvalScope());
+
         int length = getFieldLength(in, field, record, context);
 
         IFieldTextCodec decoder = resolveTextCodec(field, registry);
+        Object value;
         if (decoder != null) {
-            Object value = decoder.decode(in, record, length, context, this);
-            return value;
+            value = decoder.decode(in, record, length, context, this);
         } else {
             String str = in.readFully(length);
             if (field.getContent() != null) {
@@ -98,8 +101,12 @@ public class ModelBasedTextRecordDeserializer extends AbstractModelBasedRecordDe
                             .param(ARG_VALUE, str);
             }
             str = RecordMetaHelper.trimText(str, field);
-            return str;
+            value = str;
         }
+
+        if (field.getTransformIn() != null)
+            value = field.getTransformIn().call3(null, record, value, context, context.getEvalScope());
+        return value;
     }
 
     @Override

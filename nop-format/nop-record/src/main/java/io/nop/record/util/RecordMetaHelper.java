@@ -17,15 +17,16 @@ import io.nop.record.codec.IFieldTagTextCodec;
 import io.nop.record.codec.IFieldTextCodec;
 import io.nop.record.model.IRecordFieldsMeta;
 import io.nop.record.model.RecordSimpleFieldMeta;
+import io.nop.xlang.xmeta.ISchema;
 
 import static io.nop.record.RecordErrors.ARG_CODEC;
 import static io.nop.record.RecordErrors.ARG_FIELD_NAME;
 import static io.nop.record.RecordErrors.ARG_LENGTH;
-import static io.nop.record.RecordErrors.ARG_MIN_LENGTH;
+import static io.nop.record.RecordErrors.ARG_MAX_VALUE;
+import static io.nop.record.RecordErrors.ARG_MIN_VALUE;
 import static io.nop.record.RecordErrors.ERR_RECORD_FIELD_LENGTH_GREATER_THAN_MAX_VALUE;
 import static io.nop.record.RecordErrors.ERR_RECORD_FIELD_LENGTH_LESS_THAN_MIN_VALUE;
 import static io.nop.record.RecordErrors.ERR_RECORD_UNKNOWN_FIELD_CODEC;
-import static io.nop.xlang.XLangErrors.ARG_MAX_LENGTH;
 
 public class RecordMetaHelper {
     public static void checkMaxLen(int len, RecordSimpleFieldMeta field) {
@@ -34,17 +35,19 @@ public class RecordMetaHelper {
             throw new NopException(ERR_RECORD_FIELD_LENGTH_GREATER_THAN_MAX_VALUE)
                     .param(ARG_FIELD_NAME, field.getName())
                     .param(ARG_LENGTH, len)
-                    .param(ARG_MAX_LENGTH, max);
+                    .param(ARG_MAX_VALUE, max);
         }
     }
 
     public static void checkMinLen(int len, RecordSimpleFieldMeta field) {
-        int min = field.safeGetMaxLen();
-        if (min > 0 && len > min) {
+        ISchema schema = field.getSchema();
+        Integer minLen = schema == null ? null : schema.getMinLength();
+        // 仅检查显式设置的 minLength：定长字段(length)未设 minLength 时允许短值，由 padText/padBinary 补齐
+        if (minLen != null && len < minLen) {
             throw new NopException(ERR_RECORD_FIELD_LENGTH_LESS_THAN_MIN_VALUE)
                     .param(ARG_FIELD_NAME, field.getName())
                     .param(ARG_LENGTH, len)
-                    .param(ARG_MIN_LENGTH, min);
+                    .param(ARG_MIN_VALUE, minLen);
         }
     }
 

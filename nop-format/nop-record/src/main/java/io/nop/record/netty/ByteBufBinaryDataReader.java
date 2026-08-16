@@ -26,6 +26,7 @@ package io.nop.record.netty;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.util.ReferenceCountUtil;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.record.reader.IBinaryDataReader;
 
 import java.io.ByteArrayOutputStream;
@@ -35,6 +36,9 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+
+import static io.nop.record.RecordErrors.ARG_TERM;
+import static io.nop.record.RecordErrors.ERR_RECORD_TERMINATOR_NOT_FOUND;
 
 /**
  * 基于Kaitai项目的ByteBufferKaitaiStream类修改。
@@ -350,7 +354,7 @@ public class ByteBufBinaryDataReader implements IBinaryDataReader {
         while (true) {
             if (!this.hasRemainingBytes()) {
                 if (eosError) {
-                    throw new RuntimeException("End of stream reached, but no terminator " + term + " found");
+                    throw new NopException(ERR_RECORD_TERMINATOR_NOT_FOUND).param(ARG_TERM, term);
                 } else {
                     return buf.toByteArray();
                 }
@@ -383,6 +387,8 @@ public class ByteBufBinaryDataReader implements IBinaryDataReader {
 
         ByteBuf newBuffer = bb.slice();
         newBuffer.writerIndex((int) n);
+        // 子视图独立所有权：父 reader close（release）不影响子视图读取
+        newBuffer.retain();
         // 更新原始 ByteBuf 的读索引
         bb.readerIndex(bb.readerIndex() + (int) n);
 

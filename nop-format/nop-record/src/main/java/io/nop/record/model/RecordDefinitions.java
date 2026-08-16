@@ -23,7 +23,7 @@ public class RecordDefinitions extends _RecordDefinitions implements INeedInit {
             if (charset == null) {
                 charsetObj = StandardCharsets.UTF_8;
             } else {
-                return Charset.forName(charset);
+                charsetObj = Charset.forName(charset);
             }
         }
         return charsetObj;

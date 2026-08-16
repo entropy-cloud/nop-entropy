@@ -53,14 +53,23 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
 
     @Override
     public boolean readObject(Input in, RecordObjectMeta recordMeta, Object record, IFieldCodecContext context) throws IOException {
+        if (recordMeta.getReadWhen() != null) {
+            if (!ConvertHelper.toPrimitiveBoolean(recordMeta.getReadWhen().call3(null, in, record, context, context.getEvalScope())))
+                return false;
+        }
+
         long pos = in.pos();
         if (recordMeta.getBeforeRead() != null)
             recordMeta.getBeforeRead().call3(null, in, record, context, context.getEvalScope());
 
         String rawString = null;
         int length = getObjectLength(in, recordMeta, record, context);
+        Input subInput = null;
+        Input baseIn = in;
+        long subStart = in.pos();
         if (length > 0) {
-            in = (Input) in.subInput(length);
+            subInput = (Input) baseIn.subInput(length);
+            in = subInput;
 
             // 如果rawVarName不为空，则解析对象的时候将原始内容保存到上下文中，抛出异常的时候可以携带这个内容
             // 这个特性对于解析复杂结构出错时进行问题诊断很有用
@@ -79,6 +88,15 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
                 e.param(recordMeta.getRawVarName(), rawString);
                 throw e;
             }
+        }
+
+        if (subInput != null) {
+            // 区域未消费残留按父 reader 位置差对齐：急切 reader（ByteBuffer/ByteBuf）父位置已前进 length，
+            // remaining 自动为 0；惰性 reader（SubBinaryDataReader）等于未消费部分
+            long remaining = (subStart + length) - baseIn.pos();
+            if (remaining > 0)
+                readOffset(baseIn, (int) remaining, context);
+            return true;
         }
         return pos != in.pos();
     }
@@ -127,6 +145,11 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
     public boolean readField(Input in, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
         if (field.isSkipWhenRead())
             return false;
+
+        if (field.getReadWhen() != null) {
+            if (!ConvertHelper.toPrimitiveBoolean(field.getReadWhen().call3(null, in, record, context, context.getEvalScope())))
+                return false;
+        }
 
         if (field.getOffset() > 0) {
             readOffset(in, field.getOffset(), context);
@@ -208,7 +231,8 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
         if (repeatUntil != null) {
             while (!checkUntil(repeatUntil, in, record, context)) {
                 Object value = readSwitch(in, field, coll, context);
-                coll.add(value);
+                if (value != null)
+                    coll.add(value);
 
                 if (coll.size() >= field.getMaxCollectionSize())
                     throw new IllegalStateException("collection size exceed limit:field=" + field.getName() + ",size=" + coll.size());
@@ -217,17 +241,24 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
             int length = getFieldLength(in, field, record, context);
 
             Input subInput = length > 0 ? (Input) in.subInput(length) : in;
+            Input baseIn = in;
+            long subStart = in.pos();
 
             do {
                 Object value = readSwitch(subInput, field, coll, context);
-                if (value == null)
-                    break;
-                coll.add(value);
-
+                if (value != null)
+                    coll.add(value);
 
                 if (coll.size() >= field.getMaxCollectionSize())
                     throw new IllegalStateException("collection size exceed limit:field=" + field.getName() + ",size=" + coll.size());
-            } while (!in.isEof());
+            } while (subInput != in && !subInput.isEof());
+
+            if (subInput != in) {
+                // 区域未消费残留对齐（与 readObject 同公式）
+                long remaining = (subStart + length) - baseIn.pos();
+                if (remaining > 0)
+                    readOffset(baseIn, (int) remaining, context);
+            }
         } else {
             int count = readRepeatCount(in, field, record, context);
             if (count >= field.getMaxCollectionSize())
@@ -235,7 +266,8 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
 
             for (int i = 0; i < count; i++) {
                 Object value = readSwitch(in, field, coll, context);
-                coll.add(value);
+                if (value != null)
+                    coll.add(value);
             }
         }
     }
@@ -268,8 +300,13 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
     protected Object readSwitch(Input in, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
         RecordTypeMeta typeMeta = determineObjectType(in, field, record, context);
         if (typeMeta != null) {
+            if (typeMeta.getReadWhen() != null
+                    && !ConvertHelper.toPrimitiveBoolean(typeMeta.getReadWhen().call3(null, in, null, context, context.getEvalScope()))) {
+                return null;
+            }
             Object obj = makeObject(field, typeMeta, record, context);
-            readObject(in, typeMeta, obj, context);
+            if (!readObject(in, typeMeta, obj, context))
+                return null;
             return obj;
         } else {
             Object value = readField0(in, field, record, context);

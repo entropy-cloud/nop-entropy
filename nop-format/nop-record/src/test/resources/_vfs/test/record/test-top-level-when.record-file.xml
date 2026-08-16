@@ -1,0 +1,12 @@
+<file x:schema="/nop/schema/record/record-file.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <body typeRef="Body"/>
+
+    <types>
+        <type name="Body">
+            <readWhen>true</readWhen>
+            <fields>
+                <field name="a" type="String" length="5"/>
+            </fields>
+        </type>
+    </types>
+</file>

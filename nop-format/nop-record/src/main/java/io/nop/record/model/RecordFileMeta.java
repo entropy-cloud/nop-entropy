@@ -14,6 +14,12 @@ import io.nop.record.reader.IBinaryDataReader;
 import io.nop.record.reader.ITextDataReader;
 
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
+
+import static io.nop.record.RecordErrors.ARG_ATTRIBUTE_NAME;
+import static io.nop.record.RecordErrors.ARG_FIELD_NAME;
+import static io.nop.record.RecordErrors.ERR_RECORD_ATTRIBUTE_NOT_IMPLEMENTED;
 
 public class RecordFileMeta extends _RecordFileMeta {
     private RecordObjectMeta resolvedHeaderType;
@@ -82,6 +88,45 @@ public class RecordFileMeta extends _RecordFileMeta {
 
         if (getBody() != null)
             fixBody(getBody());
+
+        checkUnsupportedAttributes();
+    }
+
+    /**
+     * terminator/includeTerminator/tillEnd 声明但无引擎实现：模型配置即快速失败（No Silent No-Op）
+     */
+    void checkUnsupportedAttributes() {
+        Set<String> seen = new HashSet<>();
+        checkTypeAttributes(resolvedHeaderType, seen);
+        checkTypeAttributes(resolvedBodyType, seen);
+        checkTypeAttributes(resolvedTrailerType, seen);
+    }
+
+    void checkTypeAttributes(RecordObjectMeta type, Set<String> seen) {
+        if (type == null || type.getName() == null || !seen.add(type.getName()))
+            return;
+
+        for (RecordFieldMeta field : type.getFields()) {
+            if (field.getTerminator() != null)
+                throw new NopException(ERR_RECORD_ATTRIBUTE_NOT_IMPLEMENTED)
+                        .source(field)
+                        .param(ARG_ATTRIBUTE_NAME, "terminator")
+                        .param(ARG_FIELD_NAME, field.getName());
+            if (field.isIncludeTerminator())
+                throw new NopException(ERR_RECORD_ATTRIBUTE_NOT_IMPLEMENTED)
+                        .source(field)
+                        .param(ARG_ATTRIBUTE_NAME, "includeTerminator")
+                        .param(ARG_FIELD_NAME, field.getName());
+            if (field.isTillEnd())
+                throw new NopException(ERR_RECORD_ATTRIBUTE_NOT_IMPLEMENTED)
+                        .source(field)
+                        .param(ARG_ATTRIBUTE_NAME, "tillEnd")
+                        .param(ARG_FIELD_NAME, field.getName());
+
+            if (field.getTypeRef() != null) {
+                checkTypeAttributes(resolveType(field.getTypeRef()), seen);
+            }
+        }
     }
 
     void fixBody(RecordFileBodyMeta body) {

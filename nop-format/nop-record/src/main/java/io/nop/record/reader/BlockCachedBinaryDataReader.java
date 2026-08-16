@@ -470,12 +470,20 @@ public class BlockCachedBinaryDataReader implements IBinaryDataReader {
         maxReadPosition = newBlock.getEndPosition();
         underlyingPosition = maxReadPosition;
 
-        // 限制缓存大小，确保不超过maxCacheBlocks
-        while (cachedBlocks.size() > maxCacheBlocks) {
+        // 向后窗口：当前位置之前的块最多保留 backwardCacheBlocks 个；只淘汰最老的向后块（保持窗口连续），
+        // 总缓存大小同时受 maxCacheBlocks 约束（向后块无剩余可淘汰时容忍略超）
+        while (cachedBlocks.size() > maxCacheBlocks || countBackwardBlocks() > backwardCacheBlocks) {
+            DataBlock oldest = cachedBlocks.getFirst();
+            if (oldest.getEndPosition() > currentPosition || cachedBlocks.size() <= 1)
+                break;
             cachedBlocks.removeFirst();
         }
 
         return true;
+    }
+
+    private long countBackwardBlocks() {
+        return cachedBlocks.stream().filter(b -> b.getEndPosition() <= currentPosition).count();
     }
 
     /**

@@ -23,14 +23,22 @@
 
 package io.nop.record.reader;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
+
+import static io.nop.record.RecordErrors.ARG_LENGTH;
+import static io.nop.record.RecordErrors.ARG_POS;
+import static io.nop.record.RecordErrors.ARG_TERM;
+import static io.nop.record.RecordErrors.ERR_RECORD_NO_ENOUGH_DATA;
+import static io.nop.record.RecordErrors.ERR_RECORD_TERMINATOR_NOT_FOUND;
 
 /**
  * 基于Kaitai项目的ByteBufferKaitaiStream类修改。
@@ -367,7 +375,14 @@ public class ByteBufferBinaryDataReader implements IBinaryDataReader {
     @Override
     public byte[] readBytes(int n) {
         byte[] buf = new byte[n];
-        bb.get(buf);
+        try {
+            bb.get(buf);
+        } catch (BufferUnderflowException e) {
+            throw new NopException(ERR_RECORD_NO_ENOUGH_DATA)
+                    .param(ARG_POS, pos())
+                    .param(ARG_LENGTH, n)
+                    .cause(e);
+        }
         return buf;
     }
 
@@ -389,7 +404,7 @@ public class ByteBufferBinaryDataReader implements IBinaryDataReader {
         while (true) {
             if (!bb.hasRemaining()) {
                 if (eosError) {
-                    throw new RuntimeException("End of stream reached, but no terminator " + term + " found");
+                    throw new NopException(ERR_RECORD_TERMINATOR_NOT_FOUND).param(ARG_TERM, term);
                 } else {
                     return buf.toByteArray();
                 }

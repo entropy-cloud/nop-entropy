@@ -23,8 +23,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 import static io.nop.record.RecordErrors.ARG_EXPECTED;
+import static io.nop.record.RecordErrors.ARG_LENGTH;
 import static io.nop.record.RecordErrors.ARG_POS;
 import static io.nop.record.RecordErrors.ARG_VALUE;
+import static io.nop.record.RecordErrors.ERR_RECORD_NO_ENOUGH_DATA;
 import static io.nop.record.RecordErrors.ERR_RECORD_VALUE_NOT_MATCH_STRING;
 import static io.nop.record.util.RecordMetaHelper.resolveBinaryCodec;
 import static io.nop.record.util.RecordMetaHelper.resolveTagBinaryCodec;
@@ -85,12 +87,15 @@ public class ModelBasedBinaryRecordDeserializer extends AbstractModelBasedRecord
 
     @Override
     protected Object readField0(IBinaryDataReader in, RecordSimpleFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
+        if (field.getParseExpr() != null)
+            return field.getParseExpr().call3(null, in, record, context, context.getEvalScope());
+
         int length = getFieldLength(in, field, record, context);
 
         IFieldBinaryCodec codec = resolveBinaryCodec(field, registry);
+        Object value;
         if (codec != null) {
-            Object value = codec.decode(in, record, length, context, this);
-            return value;
+            value = codec.decode(in, record, length, context, this);
         } else {
             String str = decodeString(in, field.getCharsetObj(), length);
             if (field.getContent() != null) {
@@ -100,12 +105,20 @@ public class ModelBasedBinaryRecordDeserializer extends AbstractModelBasedRecord
                             .param(ARG_VALUE, str);
             }
             str = RecordMetaHelper.trimText(str, field);
-            return str;
+            value = str;
         }
+
+        if (field.getTransformIn() != null)
+            value = field.getTransformIn().call3(null, record, value, context, context.getEvalScope());
+        return value;
     }
 
     String decodeString(IBinaryDataReader in, Charset charset, int length) throws IOException {
         byte[] bytes = in.readBytes(length);
+        if (bytes.length < length)
+            throw new NopException(ERR_RECORD_NO_ENOUGH_DATA)
+                    .param(ARG_POS, in.pos())
+                    .param(ARG_LENGTH, length);
         return new String(bytes, charset == null ? StandardCharsets.UTF_8 : charset);
     }
 

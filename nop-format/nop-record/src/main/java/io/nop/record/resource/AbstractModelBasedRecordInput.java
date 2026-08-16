@@ -26,7 +26,10 @@ import static io.nop.record.RecordErrors.ARG_FIELD_NAME;
 import static io.nop.record.RecordErrors.ARG_FIELD_PATH;
 import static io.nop.record.RecordErrors.ARG_REAL_READ_POS;
 import static io.nop.record.RecordErrors.ARG_TOTAL_COUNT;
+import static io.nop.record.RecordErrors.ARG_TYPE_NAME;
+import static io.nop.record.RecordErrors.ERR_RECORD_BODY_NOT_DEFINED;
 import static io.nop.record.RecordErrors.ERR_RECORD_NO_ENOUGH_ITEMS;
+import static io.nop.record.RecordErrors.ERR_RECORD_READWHEN_NOT_SUPPORTED_AT_TOP_LEVEL;
 
 public class AbstractModelBasedRecordInput<Input extends IDataReaderBase, T> implements IRecordInput<T> {
     //static final Logger LOG = LoggerFactory.getLogger(AbstractModelBasedRecordOutput.class);
@@ -58,6 +61,16 @@ public class AbstractModelBasedRecordInput<Input extends IDataReaderBase, T> imp
         this.deserializer = deserializer;
         this.context = context;
         this.useStreaming = useStreaming;
+
+        RecordObjectMeta bodyType = fileMeta.getResolvedBodyType();
+        if (bodyType != null && bodyType.getReadWhen() != null)
+            throw new NopException(ERR_RECORD_READWHEN_NOT_SUPPORTED_AT_TOP_LEVEL)
+                    .param(ARG_TYPE_NAME, bodyType.getName());
+
+        if (fileMeta.getBody() == null)
+            throw new NopException(ERR_RECORD_BODY_NOT_DEFINED)
+                    .param(ARG_TYPE_NAME, "body");
+
         readHeader();
         this.repeatKind = fileMeta.getBody().getRepeatKind();
         if (repeatKind == null)
@@ -85,7 +98,12 @@ public class AbstractModelBasedRecordInput<Input extends IDataReaderBase, T> imp
 
             if (fileMeta.getResolvedHeaderType() != null && !baseIn.isEof()) {
                 headerMeta = new LinkedHashMap<>();
-                deserializer.readObject(baseIn, fileMeta.getResolvedHeaderType(), headerMeta, context);
+                if (deserializer.readObject(baseIn, fileMeta.getResolvedHeaderType(), headerMeta, context)) {
+                    context.getEvalScope().setLocalValues(headerMeta);
+                } else {
+                    // header 级 readWhen=false：该段视为不存在
+                    headerMeta = null;
+                }
             }
         } catch (IOException e) {
             throw NopException.adapt(e);
@@ -241,7 +259,12 @@ public class AbstractModelBasedRecordInput<Input extends IDataReaderBase, T> imp
             try {
                 if (trailerMeta == null)
                     trailerMeta = new LinkedHashMap<>();
-                deserializer.readObject(baseIn, fileMeta.getResolvedTrailerType(), trailerMeta, context);
+                if (deserializer.readObject(baseIn, fileMeta.getResolvedTrailerType(), trailerMeta, context)) {
+                    context.getEvalScope().setLocalValues(trailerMeta);
+                } else {
+                    // trailer 级 readWhen=false：该段视为不存在
+                    trailerMeta = null;
+                }
             } catch (IOException e) {
                 throw NopException.adapt(e);
             }

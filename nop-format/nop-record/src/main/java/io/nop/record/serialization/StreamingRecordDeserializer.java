@@ -1,5 +1,6 @@
 package io.nop.record.serialization;
 
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Symbol;
 import io.nop.commons.text.SimpleTextTemplate;
@@ -51,12 +52,20 @@ public class StreamingRecordDeserializer<Input extends IDataReaderBase> {
             switch (frame.getCurrentStage()) {
                 case StreamingStackFrame.STAGE_INIT:
                     // 初始化阶段
+                    if (recordMeta.getReadWhen() != null) {
+                        if (!ConvertHelper.toPrimitiveBoolean(recordMeta.getReadWhen().call3(null, in, record, context, context.getEvalScope())))
+                            return null;
+                    }
+
                     if (recordMeta.getBeforeRead() != null) {
                         recordMeta.getBeforeRead().call3(null, in, record, context, context.getEvalScope());
                     }
 
                     int length = deserializer.getObjectLength(in, recordMeta, record, context);
                     if (length > 0) {
+                        frame.setSubBaseIn(in);
+                        frame.setSubStartPos(in.pos());
+                        frame.setSubLength(length);
                         in = (Input) in.subInput(length);
 
                         // 处理原始数据保存
@@ -130,6 +139,14 @@ public class StreamingRecordDeserializer<Input extends IDataReaderBase> {
                     frame.moveToNextStage();
                     break;
             }
+        }
+
+        // 帧完成：区域残留对齐（R2-1），与 readObject 同公式
+        if (frame.getSubBaseIn() != null) {
+            long remaining = (frame.getSubStartPos() + frame.getSubLength()) - frame.getSubBaseIn().pos();
+            if (remaining > 0)
+                deserializer.readOffset((Input) frame.getSubBaseIn(), (int) remaining, context);
+            frame.setSubBaseIn(null);
         }
 
         return frame.newEndOfObjectResult();
@@ -218,6 +235,13 @@ public class StreamingRecordDeserializer<Input extends IDataReaderBase> {
             switch (frame.getFieldStage()) {
                 case StreamingStackFrame.FIELD_STAGE_BEFORE_READ:
                     // 字段前处理
+                    if (field.getReadWhen() != null) {
+                        if (!ConvertHelper.toPrimitiveBoolean(field.getReadWhen().call3(null, in, frame.makeNonStreamingFields(), context, context.getEvalScope()))) {
+                            // readWhen=false：跳过整个字段（不消费字节、不触发 before/after 回调），与写侧 shouldIgnoreWrite 对称
+                            frame.setFieldStage(StreamingStackFrame.FIELD_STAGE_COMPLETED);
+                            break;
+                        }
+                    }
                     if (field.getOffset() > 0) {
                         deserializer.readOffset(in, field.getOffset(), context);
                     }

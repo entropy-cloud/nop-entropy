@@ -2,6 +2,7 @@ package io.nop.record.resource;
 
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopConnectException;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.aggregator.IAggregatorProvider;
 import io.nop.dataset.record.IRecordOutput;
 import io.nop.record.RecordConstants;
@@ -12,6 +13,9 @@ import io.nop.record.model.RecordObjectMeta;
 import io.nop.record.model.RecordPaginationMeta;
 import io.nop.record.serialization.IModelBasedRecordSerializer;
 import io.nop.record.writer.IDataWriterBase;
+
+import static io.nop.record.RecordErrors.ARG_TYPE_NAME;
+import static io.nop.record.RecordErrors.ERR_RECORD_BODY_NOT_DEFINED;
 
 import java.io.IOException;
 import java.util.Map;
@@ -59,6 +63,10 @@ public abstract class AbstractModelBasedRecordOutput<Output extends IDataWriterB
 
     @Override
     public void beginWrite(Map<String, Object> attributes) throws IOException {
+        if (fileMeta.getBody() == null)
+            throw new NopException(ERR_RECORD_BODY_NOT_DEFINED)
+                    .param(ARG_TYPE_NAME, "body");
+
         if (attributes != null)
             context.getEvalScope().setLocalValues(attributes);
 

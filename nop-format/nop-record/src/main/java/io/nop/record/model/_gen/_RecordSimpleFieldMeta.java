@@ -188,14 +188,14 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     /**
      *  
      * xml name: terminator
-     * 读取到terminator判断字段结束
+     * 读取到terminator判断字段结束。注意：尚未实现，模型设置即报错
      */
     private io.nop.commons.bytes.ByteString _terminator ;
     
     /**
      *  
      * xml name: tillEnd
-     * 读取所有剩余部分
+     * 读取所有剩余部分。注意：尚未实现，模型设置即报错
      */
     private boolean _tillEnd  = false;
     
@@ -708,7 +708,7 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     /**
      * 
      * xml name: terminator
-     *  读取到terminator判断字段结束
+     *  读取到terminator判断字段结束。注意：尚未实现，模型设置即报错
      */
     
     public io.nop.commons.bytes.ByteString getTerminator(){
@@ -727,7 +727,7 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     /**
      * 
      * xml name: tillEnd
-     *  读取所有剩余部分
+     *  读取所有剩余部分。注意：尚未实现，模型设置即报错
      */
     
     public boolean isTillEnd(){

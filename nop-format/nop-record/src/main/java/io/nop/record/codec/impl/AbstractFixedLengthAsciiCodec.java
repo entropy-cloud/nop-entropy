@@ -21,6 +21,9 @@ import java.nio.charset.Charset;
 import java.util.function.Function;
 
 import static io.nop.record.RecordErrors.ARG_FIELD_PATH;
+import static io.nop.record.RecordErrors.ARG_LENGTH;
+import static io.nop.record.RecordErrors.ARG_POS;
+import static io.nop.record.RecordErrors.ERR_RECORD_NO_ENOUGH_DATA;
 
 public abstract class AbstractFixedLengthAsciiCodec implements IFieldCodec {
     private final char pad;
@@ -45,6 +48,10 @@ public abstract class AbstractFixedLengthAsciiCodec implements IFieldCodec {
     public Object decode(IBinaryDataReader input, Object record, int length, IFieldCodecContext context,
                          IModelBasedBinaryRecordDeserializer deserializer) throws IOException {
         byte[] bytes = input.readBytes(length);
+        if (bytes.length < length)
+            throw new NopException(ERR_RECORD_NO_ENOUGH_DATA)
+                    .param(ARG_POS, input.pos())
+                    .param(ARG_LENGTH, length);
         return decodeBytes(bytes, charset, err -> new NopException(err).param(ARG_FIELD_PATH, context.getFieldPath()));
     }
 
