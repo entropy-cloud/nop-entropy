@@ -11,7 +11,7 @@
 - **外部 KMS/HSM 集成**（W10）：主密钥材料托管于 Vault KV v2（材料交付模式），独立可选模块 `nop-credential-kms-vault`
 - **归属统一**（W11）：`scope=system|user` + `ownerId`（归属不可变；明文出口 user 级 owner 唯一、管理面 owner+管理员；BizModel 结构性读过滤 + 写分级两层防御）
 - **RBAC 细粒度授权**（W11 Part B）：`NopCredentialAuth`（角色↔凭证实例二值 use 授权表）——默认开放、可选收紧，仅作用于 system 级明文出口；admin-only grant/revoke 管理面（幂等契约）
-- **唯一解密点**：`ICredentialProvider` 实现位于 service 层，明文不跨出服务进程
+- **唯一明文出口**：`ICredentialProvider` 实现位于 service 层，是明文离开模块边界的唯一通道；`reencryptAll` 进程内重加密直接复用 `CredentialCipher`（解密→重加密不出服务进程、无明文出口，A1-audit 措辞裁定）
 - **明文边界结构性强制**：xmeta `data` 列 `published=false`，BizModel 层恒置空，展示用 `maskList` 脱敏值
 - **引用计数删除拦截**：删除凭证前检查 `NopCredentialUsage` 引用计数，>0 拒绝删除
 
@@ -34,7 +34,7 @@
 | NopCredential | `nop_credential` | 加密凭证实例（data 列存 `cv1:` 密文 JSON；scope/ownerId 归属列，见下"凭证归属"章节） |
 | NopCredentialUsage | `nop_credential_usage` | 凭证引用登记（credentialId + consumerRef 唯一约束；查询面限管理员） |
 | NopCredentialAuth | `nop_credential_auth` | 凭证取用授权（credentialId + roleId 唯一约束；物理删除；凭证删除时物理级联清理，见下"RBAC 细粒度授权"章节） |
-| NopCredentialOauthState | `nop_credential_oauth_state` | OAuth state 绑定（一次性消费 + TTL 过期 + 惰性清理，引擎内部存储） |
+| NopCredentialOauthState | `nop_credential_oauth_state` | OAuth state 绑定（一次性消费 + TTL 过期 + 惰性清理，引擎内部存储；管理面 A1-audit 收口：查询面限管理员、全部标准 mutation 禁用） |
 
 > 凭证类型（`*.credential-type.xml`）无 DB 表，经平台 register-model 机制声明式加载。
 
@@ -59,7 +59,7 @@
 - **写路径串行化**：惰性刷新与 `saveCredential` 分组写共用同一行锁入口（"刷新 vs 刷新"与"刷新 vs 人工保存"互斥，无双写丢失）。
 - **saveCredential 分组写**（oauth2 类型）：人工字段整包替换（未传即删）不变 + 保留字段锁下原样保留；`typeList` 对 oauth2 类型裁剪保留字段（表单只出人工字段）。
 - **disabled 全路径拒绝**（显式增量）：oauth2 类型 `status=disabled` 在发起/回调/刷新/取用全路径 fail-closed；非 OAuth 类型取用维持一期语义（仅 delFlag）。
-- **唯一解密点不变式**：OAuth 引擎类不持有 `CredentialCipher`，clientSecret 读取与 token 回写经 `CredentialProviderImpl` 引擎内部通道（`engineGetDecryptedFields`/`engineUpdateTokenFields`/`engineUpdateInLock`）。
+- **引擎不持密钥不变式**：OAuth 引擎类不持有 `CredentialCipher`，clientSecret 读取与 token 回写经 `CredentialProviderImpl` 引擎内部通道（`engineGetDecryptedFields`/`engineUpdateTokenFields`/`engineUpdateInLock`）。
 
 ### OAuth 配置项
 
@@ -114,7 +114,7 @@ keyId 密文按一期语义 fail-closed（`getKey` 抛错）。
 
 ### 本地 → Vault 迁移路径（唯一允许的材料混合窗口）
 
-1. **切换与轮换解耦**：切换 provider 时 active keyId 及其材料不变（旧 passphrase 原样导入 Vault 同 keyId）——滚动发布窗口内新旧副本密钥能力对称。切换完成后再独立执行"Vault 新增 key + 切 active + `reencryptAll`"的轮换步骤。
+1. **切换与轮换解耦**：切换 provider 时 active keyId 及其材料不变（旧 passphrase 原样导入 Vault 同 keyId）——滚动发布窗口内新旧副本密钥能力对称。切换完成后再独立执行"Vault 新增 key + 切 active + `reencryptAll`"的轮换步骤。注意（A1-audit D3-01）：Vault provider 的 active keyId 只读 `nop.credential.vault.active-key-id`，**不读共享配置 `nop.credential.active-key-id`**——切换时必须显式设置 vault 侧同名值（共享值被静默忽略的配置归一修复登记 successor）。
 2. **迁移窗口开启**：`nop.credential.vault.migration-keys` 声明残余 key（`keyId:passphrase`）——只用于解密旧密文，禁含 active key；每次启动 WARN 审计（列出残余 keyId 提示收尾）。
 3. **关窗前置条件**：全部密文的 keyId 属于 Vault key 集合（执行 `reencryptAll`——分页完备性已保证单次执行全覆盖）+ 清空 `nop.credential.master-keys`。
 4. **关窗后**：残余列表为空（正常态）；若存量密文仍引用残余 keyId（未完成迁移即清配置的部署失误），`getKey` 按一期"未知 keyId"fail-closed。
@@ -175,8 +175,8 @@ keyId 密文按一期语义 fail-closed（`getKey` 抛错）。
 ### 管理面权限（admin-roles 配置 + action-auth）
 
 - **管理员判定**：配置项 `nop.credential.admin-roles`（CSV，**缺省 `admin,nop-admin`**，与 nop-auth 事实管理员角色名对齐），运行时经 `IUserContext.isUserInAnyRole` 判定；凭证库不依赖 nop-auth 模块（角色名以配置自持）。
-- **`reencryptAll` 限管理员**；**`NopCredentialUsage` 查询面（findPage/findList/findFirst/findCount/get/batchGet）限管理员**（usage 引用关系属管理信息；消费方登记走 SPI `registerUsage`/`unregisterUsage` 不受影响）。
-- **action-auth 变更**（`nop-credential-web` delta）：`NopCredential:query`/`mutation`（含 `test`）/`saveCredential` 对所有登录用户开放——角色分级由 BizModel 运行时判定执行（避免普通用户的 user 级凭证功能在 GraphQL 入口即 403 的空洞实现）；`delete`/`reencryptAll` 限 admin；`NopCredentialUsage:query`/`mutation` 收紧 admin（BizModel 运行时判定为第二层）。
+- **`reencryptAll` 限管理员**；**`NopCredentialUsage` 查询面（findPage/findList/findFirst/findCount/get/batchGet）限管理员**（usage 引用关系属管理信息；消费方登记走 SPI `registerUsage`/`unregisterUsage` 不受影响）；**`NopCredentialOauthState` 查询面限管理员 + 全部标准 mutation 禁用**（A1-audit D2-01/D4-01 收口：state 绑定为引擎内部存储，唯一合法写方是 `NopCredentialOauthStateStore`（dao 直写），GraphQL 面无任何合法写动作）。
+- **action-auth 变更**（`nop-credential-web` delta）：`NopCredential:query`/`mutation`（含 `test`）/`saveCredential` 在 delta 层**不设角色限制**（区别于 delete/reencryptAll 的 `roles="admin"`）——平台 action-auth 为按角色授予语义（未授予角色的 permission 默认拒绝），部署方经角色管理按需授予后，角色分级由 BizModel 运行时判定执行（system=管理员、user=owner+管理员；避免普通用户的 user 级凭证功能在 GraphQL 入口即 403 的空洞实现）；`delete`/`reencryptAll` 限 admin；`NopCredentialUsage:query`/`mutation` 与 `NopCredentialAuth:query`/`mutation` 与 `NopCredentialOauthState:query`/`mutation` 收紧 admin（BizModel 运行时判定为第二层）。
 
 ### usageScope 废弃说明
 
@@ -233,7 +233,7 @@ keyId 密文按一期语义 fail-closed（`getKey` 抛错）。
 | `nop-credential-api` | SPI/接口/DTO（零业务依赖：`ICredentialProvider`、`CredentialData`、`MaskedCredential`、`TestResult`、`CredentialType`（含 OAuth 元数据与保留字段名契约）） |
 | `nop-credential-dao` | ORM 实体与 DAO |
 | `nop-credential-meta` | xmeta 定义（`data` 列 `published=false` 明文边界） |
-| `nop-credential-service` | `ICredentialProvider` 实现（唯一解密点）+ `NopCredentialBizModel` + 凭证类型注册表 + `CredentialCipher` + OAuth 流程引擎（`service.oauth`：`OAuthFlowService`/`OAuthTokenClient`/`NopCredentialOauthStateStore`/`CredentialOAuthApiBizModel`） |
+| `nop-credential-service` | `ICredentialProvider` 实现（唯一明文出口）+ `NopCredentialBizModel` + 凭证类型注册表 + `CredentialCipher` + OAuth 流程引擎（`service.oauth`：`OAuthFlowService`/`OAuthTokenClient`/`NopCredentialOauthStateStore`/`CredentialOAuthApiBizModel`） |
 | `nop-credential-kms-vault` | 外部 KMS 参照实现（可选部署）：`VaultCredentialKeyProvider`（Vault KV v2 材料交付，compile 依赖仅 api + `nop-http-api`，零 Vault SDK）；运行时需引入 raw HTTP client 模块（如 `nop-http-client-jdk`） |
 | `nop-credential-web` | AMIS 管理页面（动态表单） |
 
@@ -243,7 +243,7 @@ keyId 密文按一期语义 fail-closed（`getKey` 抛错）。
 - **凭证库层包装**：`CredentialCipher`（`nop-credential-service`）输出 `cv1:{keyId}:{v1密文}`，解析 keyId 后委托对应 `AESTextCipher` 解内层 `v1:` 密文。
 - **主密钥来源**：环境变量/独立配置文件（不放入 application.yaml 明文），如 `NOP_CREDENTIAL_MASTER_KEYS` 或 `credential-keys.yaml`，格式为 `keyId:passphrase` 列表；或外部 KMS（`nop.credential.key-provider`，见上"外部 KMS/HSM 集成"章节）。
 - **keyId 约束**：只允许 `[A-Za-z0-9_-]`（`cv1:` 按冒号 split 无歧义的前提）。
-- **轮换**：新增 key 后 active key 指向新 key，新写入用新 key；旧密文按 `cv1:` 中的 keyId 仍可用旧 key 解密；`reencryptAll` 批量重加密（确定性排序 orderBy credentialId + keyset 游标翻页，超批量单次执行全覆盖；页大小 `nop.credential.reencrypt-page-size` 缺省 1000；仅 admin）。
+- **轮换**：新增 key 后 active key 指向新 key，新写入用新 key；旧密文按 `cv1:` 中的 keyId 仍可用旧 key 解密；`reencryptAll` 批量重加密（确定性排序 orderBy credentialId + keyset 游标翻页，超批量单次执行全覆盖；页大小 `nop.credential.reencrypt-page-size` 缺省 1000；仅 admin）。执行语义（A1-audit D5-01/D5-02 标注）：GraphQL mutation 路径在单事务内整体执行（非逐条独立提交），幂等可重跑——单条失败全量回滚后重跑，无部分提交中间态，大表迁移注意长事务锁窗口（可分批执行）；仅处理 `delFlag=0` 行，**软删除行的旧密文不迁移**——旧 key 退役前需先物理清理软删行或接受其不可恢复。
 
 ## 消费 SPI（ICredentialProvider）
 
@@ -314,7 +314,7 @@ OAuth 流程 API 面（`CredentialOAuthApiBizModel`）：`beginOAuthFlow(credent
 | 组件 | 路径 |
 |------|------|
 | 消费 SPI 接口 | `nop-credential/nop-credential-api/src/main/java/io/nop/credential/api/ICredentialProvider.java` |
-| 唯一解密点实现 | `nop-credential/nop-credential-service/src/main/java/io/nop/credential/service/CredentialProviderImpl.java` |
+| 唯一明文出口实现 | `nop-credential/nop-credential-service/src/main/java/io/nop/credential/service/CredentialProviderImpl.java` |
 | OAuth 流程引擎 | `nop-credential/nop-credential-service/src/main/java/io/nop/credential/service/oauth/OAuthFlowService.java` |
 | OAuth 令牌端点客户端 | `nop-credential/nop-credential-service/src/main/java/io/nop/credential/service/oauth/OAuthTokenClient.java` |
 | OAuth 回调 API 面 | `nop-credential/nop-credential-service/src/main/java/io/nop/credential/service/oauth/CredentialOAuthApiBizModel.java` |

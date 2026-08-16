@@ -29,6 +29,8 @@
 | 引用计数（registerUsage/consumerRef） | 不变 | 不变 | 不变（与归属正交） | 不变（与授权正交） |
 | 一期消费链（W7-successor 等）零回归 | 零变更 | 零变更（缺省 local） | 零迁移（scope 缺省 system） | 零回归（默认开放） |
 
+> **A1-audit 术语裁定标注（2026-08-17 回写，路由 deferred 项 8 终局处置）**：本设计中"唯一解密点"的精确语义为**唯一明文出口**——`CredentialProviderImpl` 是明文离开模块边界的唯一通道（SPI 面与 BizModel 返回面）；`reencryptAll` 进程内重加密直接复用 `CredentialCipher`（解密→重加密不出服务进程、无明文出口），不违反本不变式。owner doc 措辞已同步为"唯一明文出口"。另：A1-audit 对本矩阵五行 + 两附加锚点（`ICredentialProvider` SPI 零变更、`@sec:` 共存）的对抗复核结论全部 PASS（证据：`ai-dev/audits/2026-08/2026-08-17-0518-deep-audit-nop-credential/summary.md` §三；其中"一期消费链零回归"带保留——W7-successor 的 resolver 装配缺位为一期自带缺口非二期回归，A1-audit 已修复）。
+
 ## 三、OAuth 流程引擎（出站 OAuth 客户端）
 
 ### 3.1 设计结论
@@ -142,6 +144,7 @@
 - 轮换流程与一期本地轮换同构：托管端新增 key（**新 keyId/新资源**，遵守结论 6 不变式）→ 实现类配置新增 keyId 映射并切换 active → 新写入用新 key；旧密文按 `cv1:` 中 keyId 路由，旧 key 在托管端保持可解密期 = 多 key 并存窗口 → `reencryptAll` 批量重加密 → 托管端退役旧 key。
 - `reencryptAll` 语义不变（active key 重加密、幂等跳过、逐条提交可重跑）。**一期已知限制**：live 实现单批查询存在分页上限（单页 1000 条、无翻页循环），凭证量超出时单次执行不保证全覆盖——KMS 迁移关窗与旧 key 退役所依赖的"密文 keyId 全部属于新 key 集合"完备性验证是 W10-impl 的显式交付物（分页完备性修复或密文 keyId 分布查询，二选一由 impl 裁定），本设计不以其单次执行为关窗担保。
   > **W10-impl 裁定标注（2026-08-16 回写）**：完备性交付物走**分页完备性修复**路径——`reencryptAll` 强制 `orderBy credentialId`（确定性排序）+ keyset 游标翻页循环（页大小 `nop.credential.reencrypt-page-size` 缺省 1000），超批量单次执行全覆盖（测试：7 条/页 3）；不建密文 keyId 分布查询管理面（观测辅助，关窗判定依赖重加密执行完毕本身，二阶价值低）。
+  > **A1-audit 标注（2026-08-17 回写，D5-01/D5-02）**：上段"逐条提交可重跑"的 live 事实为——GraphQL mutation 路径经引擎事务包裹为**单事务整体执行**（非逐条独立提交）；可重跑语义保持（单条失败全量回滚后重跑，无部分提交中间态），大表迁移的长事务锁窗口由运维分批承担。另：`reencryptAll` 仅处理 `delFlag=0` 行，软删除行旧密文不迁移——旧 key 退役前需物理清理软删行或接受不可恢复（关窗完备性盲区，P3 登记 successor）。
 
 **fail-closed 细则（全部启动期）**：
 
