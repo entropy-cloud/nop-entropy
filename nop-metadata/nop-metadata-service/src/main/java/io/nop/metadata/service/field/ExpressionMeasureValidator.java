@@ -59,6 +59,21 @@ public final class ExpressionMeasureValidator {
      * （SET / TRANSACTION / INTO / OUTFILE / DUMPFILE）。表达式上下文（SELECT 片段）中这些词
      * 均非合法列运算关键字（且均为各方言保留字，无真实标识符误伤面），over-block 符合
      * "拒绝比放行安全"既定哲学。
+     *
+     * <p><b>P2-04 裁定（plan 2026-08-16-0226-1）：函数调用形态豁免是有意设计，非漏洞。</b>
+     * 全部 26 条目逐条枚举核对（2026-08-16 live）：存在 callable 函数同形词的仅
+     * {@code REPLACE}（字符串替换 REPLACE(str,from,to)）/ {@code TRUNCATE}（数值截断
+     * TRUNCATE(n,d)）/ {@code INSERT}（MySQL 字符串函数 INSERT(str,pos,len,newstr)）三项；
+     * 其余 23 条目（DROP/CREATE/ALTER/RENAME/UPDATE/DELETE/MERGE/GRANT/REVOKE/COMMIT/
+     * ROLLBACK/SAVEPOINT/SET/TRANSACTION/INTO/OUTFILE/DUMPFILE/CALL/EXEC/EXECUTE/
+     * SHUTDOWN/LOCK/UNLOCK）均无同名 callable 函数——语句/子句/锁关键字（函数形态的
+     * GET_LOCK/RELEASE_LOCK 是不同名条目，已在 {@link #FUNCTION_BLACKLIST}）。三项同形词的
+     * <b>函数调用形态</b>（token 类型 FUNCTION_CALL）是 SELECT 表达式中的合法用法，经
+     * {@link #scanBlacklist} 只查 FUNCTION_BLACKLIST 的分支放行（钉死测试见
+     * {@code TestExpressionMeasureValidator#testP204FunctionHomographsAllowed}）；其<b>语句形态</b>
+     * （REPLACE INTO / TRUNCATE TABLE / INSERT INTO）token 类型为 IDENTIFIER，命中本黑名单被拒。
+     * 表达式上下文无 DML/DDL 逃逸路径：表达式必经聚合/投影 SQL 片段包裹、语句终止符与注释在
+     * {@link #tokenize} 显式拒绝、字面量参数化完整（见类 javadoc 安全模型）。
      */
     private static final Set<String> KEYWORD_BLACKLIST = Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(
             // DDL
@@ -476,6 +491,13 @@ public final class ExpressionMeasureValidator {
      * 函数名 token（{@code foo(}）检测是否命中 {@link #FUNCTION_BLACKLIST}。
      * 由于字符串字面量已被分词阶段收集为字面量 token（其文本保留在 params，不出现在 SQL fragment 中），
      * 故字符串内关键字不会触发误拒。
+     *
+     * <p><b>P2-04 裁定（plan 2026-08-16-0226-1）</b>：FUNCTION_CALL token **只查**
+     * {@link #FUNCTION_BLACKLIST}（不查 KEYWORD_BLACKLIST）是有意设计——KEYWORD_BLACKLIST 中
+     * REPLACE/TRUNCATE/INSERT 存在合法函数同形词（枚举核对见 {@link #KEYWORD_BLACKLIST} javadoc），
+     * 函数调用形态是表达式上下文的合法用法；其语句形态以 IDENTIFIER token 命中 KEYWORD_BLACKLIST
+     * 被拒。钉死测试（3 函数过 / 3 语句拒 / FUNCTION_BLACKLIST 拒 3）防止未来"修复"破坏合法用法
+     * 或审计者重复误报，勿在此添加 FUNCTION_CALL × KEYWORD_BLACKLIST 交叉检查。
      */
     private static void scanBlacklist(List<Token> tokens, String expression,
                                       String metaTableId, String measureName) {

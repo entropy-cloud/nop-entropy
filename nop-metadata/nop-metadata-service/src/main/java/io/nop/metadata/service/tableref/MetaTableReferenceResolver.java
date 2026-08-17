@@ -84,7 +84,11 @@ public class MetaTableReferenceResolver {
                                    IEntityDao<io.nop.metadata.dao.entity.NopMetaEntityField> fieldDao,
                                    IOrmTemplate orm) {
         if (table == null) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_TABLEREF_UNKNOWN_TABLE_TYPE);
+            // P1-6 轨 3（plan 2026-08-15-1913-3）：table 为 null 时无身份值可传
+            // ——换零占位符码（ERR_TABLEREF_UNKNOWN_TABLE_TYPE 占位符在未知
+            // tableType 点位传齐，禁削）
+            throw new NopMetadataException(
+                    NopMetadataErrors.ERR_TABLEREF_TABLE_NULL);
         }
         String tableType = table.getTableType();
         if (_NopMetadataCoreConstants.TABLE_TYPE_EXTERNAL.equals(tableType)) {

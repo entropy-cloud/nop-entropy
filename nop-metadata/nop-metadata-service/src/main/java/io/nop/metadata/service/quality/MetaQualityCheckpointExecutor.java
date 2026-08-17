@@ -154,7 +154,9 @@ public class MetaQualityCheckpointExecutor {
                 }
                 results.add(buildResultEntry(rule, judgment));
             } catch (Exception e) {
-                LOG.error("checkpoint execute failed for rule: {}", rule.getQualityRuleId(), e);
+                LOG.error("checkpoint execute failed for rule: errorCode={} ruleId={}",
+                        NopMetadataErrors.ERR_CHECKPOINT_RULE_EXEC_ISOLATED.getErrorCode(),
+                        rule.getQualityRuleId(), e);
                 errors.add(buildExecutionErrorEntry(rule, e));
                 // MA7.5-02：异常失败的规则必须计入 errorCount（此前只进 errors 列表——全量失败时摘要
                 // 显示 executedCount=0/errorCount=0 的"0 错误"假象，掩盖外部数据源宕机等链路故障）
@@ -177,7 +179,8 @@ public class MetaQualityCheckpointExecutor {
                     orm.flushSession();
                 } catch (Exception appendEx) {
                     // ERROR 行落盘失败不掩盖原始规则异常——errors 已含原始失败，此处留证即可
-                    LOG.error("checkpoint failed to append ERROR result row for rule: {}",
+                    LOG.error("checkpoint failed to append ERROR result row for rule: errorCode={} ruleId={}",
+                            NopMetadataErrors.ERR_CHECKPOINT_RULE_EXEC_ISOLATED.getErrorCode(),
                             rule.getQualityRuleId(), appendEx);
                 }
             }
@@ -352,8 +355,8 @@ public class MetaQualityCheckpointExecutor {
             parsed = JsonTool.parse(actionsJson);
         } catch (Exception e) {
             // actions 存在但不可解析为 JSON —— 配置错误，回退为 store-only 默认（不静默伪造动作执行）
-            LOG.warn("checkpoint {} actions is not valid JSON, falling back to store-only",
-                    cp.getCheckpointId(), e);
+            LOG.warn("checkpoint actions is not valid JSON, falling back to store-only: errorCode={} checkpointId={}",
+                    NopMetadataErrors.ERR_CHECKPOINT_RULE_EXEC_ISOLATED.getErrorCode(), cp.getCheckpointId(), e);
             return;
         }
         if (!(parsed instanceof List)) {
@@ -395,8 +398,8 @@ public class MetaQualityCheckpointExecutor {
             parsed = JsonTool.parse(validationsJson);
         } catch (Exception e) {
             // validations 不可解析 → 空规则集（ERR_CHECKPOINT_NO_RULES 兜底显式失败），但留 WARN 根因
-            LOG.warn("checkpoint {} validations is not valid JSON, falling back to empty rule set",
-                    checkpointId, e);
+            LOG.warn("checkpoint validations is not valid JSON, falling back to empty rule set: errorCode={} checkpointId={}",
+                    NopMetadataErrors.ERR_CHECKPOINT_RULE_EXEC_ISOLATED.getErrorCode(), checkpointId, e);
             return java.util.Collections.emptyList();
         }
         if (!(parsed instanceof List)) {

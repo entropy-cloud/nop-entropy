@@ -146,7 +146,8 @@ public class QualityAlertWorkflowProcessor {
         try {
             return reJudge(ruleId, resultId);
         } catch (Exception e) {
-            LOG.warn("nop.meta.quality-alert.rejudge-failed: ruleId={}, resultId={}",
+            LOG.warn("nop.meta.quality-alert.rejudge-failed: errorCode={} ruleId={} resultId={}",
+                    NopMetadataErrors.ERR_QUALITY_ALERT_WORKFLOW_ISOLATED.getErrorCode(),
                     ruleId, resultId, e);
             return false;
         }

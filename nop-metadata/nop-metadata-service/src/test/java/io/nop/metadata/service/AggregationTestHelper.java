@@ -32,13 +32,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-public class TestAggregationHelper {
+/**
+ * 聚合测试共享 helper（P2-35 项 1，plan 2026-08-16-0549-2）：无 @Test 用例的纯 helper。
+ *
+ * <p>原类名 {@code TestAggregationHelper} 以 {@code Test} 前缀命中 surefire 默认发现模式
+ * （Test 前缀类名通配）但运行 0 例——命名与行为不符（命名误导，非计数膨胀）。更名
+ * {@code AggregationTestHelper} 后不再匹配任何 surefire include 模式，命名如实反映
+ * "聚合测试的共享脚手架"职责（被 3 个聚合测试类实例化使用）。
+ */
+public class AggregationTestHelper {
 
     protected final IGraphQLEngine graphQLEngine;
     protected final IDaoProvider daoProvider;
     protected final IOrmTemplate ormTemplate;
 
-    public TestAggregationHelper(IGraphQLEngine graphQLEngine, IDaoProvider daoProvider,
+    public AggregationTestHelper(IGraphQLEngine graphQLEngine, IDaoProvider daoProvider,
                                   IOrmTemplate ormTemplate) {
         this.graphQLEngine = graphQLEngine;
         this.daoProvider = daoProvider;

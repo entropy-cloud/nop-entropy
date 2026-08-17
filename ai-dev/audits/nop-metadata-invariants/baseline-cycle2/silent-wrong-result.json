@@ -1,0 +1,102 @@
+{
+  "invariant": "INV-SILENT-WRONG-RESULT",
+  "note": "Terminal approved-exemption list (mode b, I5' terminal rewrite per plan 2026-08-15-0820-3 Phase 2 V2; B1b method (a) residency per adjudication-table-cycle2 §0). Entries = the 21 adjudicated false-positive hits (18 contains-classify + 3 delim-key) in 16 count-aware keys; optimization-candidate residents = 0 (both overturned to P1 and fixed). All 46 P1 hits are fixed and no longer present. Any new hit key or count increase outside this list = red. Shrinks only via future adjudication terminal states or fixes.",
+  "entries": [
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/connection/MetaDataSourceConnectionProcessor.java",
+      "family": "contains-classify",
+      "text": "if (lower.contains(dangerous)) {",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/LineageTagPropagationProcessor.java",
+      "family": "delim-key",
+      "text": "if (visited.contains(ENTITY_TYPE_NOP_META_TABLE + \"#\" + nextEdge.getTargetTableId())) {",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/LineageTagPropagationProcessor.java",
+      "family": "delim-key",
+      "text": "String visitKey = ENTITY_TYPE_NOP_META_TABLE + \"#\" + targetId;",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/LineageTagPropagationProcessor.java",
+      "family": "delim-key",
+      "text": "visited.add(entityType + \"#\" + entityId);",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/NopMetaModuleBizModel.java",
+      "family": "contains-classify",
+      "text": "return sourceContent != null && sourceContent.contains(\"x:extends\");",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/field/ExpressionMeasureValidator.java",
+      "family": "contains-classify",
+      "text": "if (!ident.contains(\".\")) {",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/field/ExpressionMeasureValidator.java",
+      "family": "contains-classify",
+      "text": "if (ident.contains(\".\")) {",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/profiling/MetaTableProfiler.java",
+      "family": "contains-classify",
+      "text": "|| lower.contains(\"closed\") || lower.contains(\"timeout\")",
+      "count": 2
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/profiling/MetaTableProfiler.java",
+      "family": "contains-classify",
+      "text": "|| lower.contains(\"communication\") || lower.contains(\"does not exist\")) {",
+      "count": 2
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/profiling/MetaTableProfiler.java",
+      "family": "contains-classify",
+      "text": "if (lower.contains(\"connection\") || lower.contains(\"permission\") || lower.contains(\"denied\")",
+      "count": 3
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/profiling/MetaTableProfiler.java",
+      "family": "contains-classify",
+      "text": "return col != null && col.startsWith(\"<\") && col.contains(\"expr\");",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/quality/MetaQualityRuleExecutor.java",
+      "family": "contains-classify",
+      "text": "if (lower.contains(signature)) {",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/quality/MetaQualityRuleExecutor.java",
+      "family": "contains-classify",
+      "text": "if (upper.contains(\";\")) {",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/quality/MetaQualityRuleExecutor.java",
+      "family": "contains-classify",
+      "text": "if (upper.contains(\"/*!\")) {",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/quality/MetaQualityRuleExecutor.java",
+      "family": "contains-classify",
+      "text": "return col != null && col.startsWith(\"<\") && col.contains(\"expr\");",
+      "count": 1
+    },
+    {
+      "file": "nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/sync/ExternalTableStructureReader.java",
+      "family": "contains-classify",
+      "text": "return p.contains(\"mysql\") || p.contains(\"postgresql\") || p.equals(\"h2\");",
+      "count": 2
+    }
+  ]
+}

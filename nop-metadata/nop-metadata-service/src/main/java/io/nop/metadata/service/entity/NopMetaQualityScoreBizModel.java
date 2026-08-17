@@ -49,7 +49,12 @@ public class NopMetaQualityScoreBizModel extends CrudBizModel<NopMetaQualityScor
         data.put("ruleSummary", JsonTool.stringify(result.getRuleSummary()));
         data.put("trend", JsonTool.stringify(result.getTrend()));
 
-        NopMetaQualityScore saved = doSave(data, null, (entityData, ctx) -> {}, context);
+        // P2-24（plan 2026-08-16-0226-3）：与基类 save 同形态传
+        // this::invokeDefaultPrepareSave——经 getThisObj() 分发到容器注册 bean 的
+        // defaultPrepareSave（xbiz <action> 可覆盖的定制点），不再用空 lambda 显式绕过
+        // （此前 cron 自动评分链路绕过宿主 xbiz 定制）。
+        NopMetaQualityScore saved = doSave(data, null,
+                this::invokeDefaultPrepareSave, context);
 
         QualityScoreResultDTO dto = new QualityScoreResultDTO();
         dto.setScoreId(saved.getQualityScoreId());

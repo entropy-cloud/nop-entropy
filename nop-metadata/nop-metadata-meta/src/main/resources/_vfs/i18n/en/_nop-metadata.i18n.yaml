@@ -643,6 +643,7 @@ prop:
       remark: Remark
       metaModule: Meta Module
       metaModule.displayName: Meta Module
+      qualityResults: Quality Results
       validationsComponent: null
       actionsComponent: null
       extConfigComponent: null
@@ -667,6 +668,8 @@ prop:
       runId: Run Id
       qualityRule: Quality Rule
       qualityRule.displayName: Quality Rule
+      checkpoint: Quality Checkpoint
+      checkpoint.displayName: Quality Checkpoint
       detailsComponent: null
     NopMetaQualityRule:
       qualityRuleId: Quality Rule Id

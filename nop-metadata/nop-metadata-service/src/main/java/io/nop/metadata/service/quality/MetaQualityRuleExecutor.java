@@ -7,6 +7,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
+import io.nop.metadata.service.connection.MetaDataSourceConnectionProcessor;
 import io.nop.metadata.service.tableref.TableReference;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
@@ -23,6 +24,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -56,7 +58,7 @@ public class MetaQualityRuleExecutor {
 
     /**
      * 维度13-03：custom_sql 危险关键字黑名单（MA7.1-02 修复后为 token 级匹配，R6.1 补全 PG 文件族/脚本导出族
-     * 6 缺项，AR-04/AR-05 补 DML/TCL 族与 H2 文件读写族）。
+     * 6 缺项，AR-04/AR-05 补 DML/TCL 族与 H2 文件读写族，F9 补 PG 脚本执行/系统目录族）。
      * <ul>
      *   <li>单 token 条目：分词后按 token 精确匹配（不做子串匹配，避免字符串字面量误伤也避免
      *       {@code UNION} 拼接变体绕过——token 化使空白/注释/反引号变体全部归一）。</li>
@@ -67,11 +69,32 @@ public class MetaQualityRuleExecutor {
      *   <li>文件访问族全覆盖：PostgreSQL 文件/目录访问族（PG_READ_FILE/PG_READ_BINARY_FILE/PG_LS_DIR/
      *       PG_LS_LOGDIR/PG_LS_WALDIR/PG_STAT_FILE/COPY）、脚本导出族（H2 RUNSCRIPT/SCRIPT、SYS_EXEC）、
      *       H2 文件读写族（FILE_READ/FILE_WRITE/BACKUP/CSVWRITE/CSVREAD）。</li>
+     *   <li>F9（plan 2026-08-14-1133-1）补 PG 脚本执行/系统目录/时序攻击族：
+     *       {@code DO}（PG 执行匿名 PL/pgSQL 代码块）、{@code PG_SLEEP}（时序盲注/DoS）、
+     *       {@code PG_CATALOG}（PG 系统目录 schema）、{@code PG_STAT_USER_TABLES}（PG 系统统计视图，
+     *       信息泄漏面）。{@code WITH}（CTE 递归）见下方 tradeoff 裁定。</li>
      *   <li>多 token 条目（{@link #CUSTOM_SQL_FORBIDDEN_SEQUENCES}）：按连续 token 序列匹配，
      *       {@code INTO\tOUTFILE} / 注释分隔的 {@code INTO} 与 {@code OUTFILE} / 多空白分隔一律命中；
      *       {@code LOAD XML} 序列覆盖 H2 的 {@code LOAD XML INFILE} 文件读。</li>
      *   <li>{@code ;} 与 MySQL 可执行注释（{@code /*!} 开头）在归一化前显式拒绝。</li>
      * </ul>
+     *
+     * <p><b>F9 DRY 裁定（与 {@code ExpressionMeasureValidator.KEYWORD_BLACKLIST}/{@code FUNCTION_BLACKLIST} 的关系）</b>：
+     * 保持分离（不抽取共享常量）。理由：(1) 语义域不同——custom_sql 管整条 SQL 文本（DDL/DML/文件读写/过程调用），
+     * expression measure 管 SELECT 片段表达式（计算列，禁任何 DDL/DML）；(2) 分词与匹配机制不同——custom_sql
+     * 用简单 token 化 + fail-closed（字符串字面量内关键字也被拒，{@code testUnionInsideStringLiteralBlockedFailClosed}
+     * 钉死），expression validator 用 word-boundary + 字符串字面量先抽取（字符串内关键字不触发误拒）；(3) 演进路径不同
+     * ——custom_sql 持续吸收外部源方言的副作用函数/系统目录（PG 族），expression validator 聚焦表达式语义安全。
+     * 抽取共享常量会耦合两个不同匹配语义与演进节奏的组件。重叠项（DROP/CREATE/ALTER/... 等 22 项）的"恰好同名"
+     * 是语义域交集的自然结果，非 DRY 缺陷。{@code PG_SLEEP} 同时存在于本表与 {@code FUNCTION_BLACKLIST}，
+     * 但两者匹配形态不同（custom_sql 的 token 精确匹配 vs function-call 形态匹配），各自独立维护。
+     *
+     * <p><b>F9 {@code WITH} CTE false-positive tradeoff</b>：加入 {@code WITH} 会阻断合法分析型 CTE 查询
+     * （{@code WITH t AS (SELECT ...) SELECT ... FROM t}）。这与既有 over-block 哲学一致——custom_sql 质量规则
+     * 面向受限 SQL 场景（已知显式风险的 count/measure SQL），已含 {@code SET} 等常见关键字，宁可误拒不放过。
+     * 合法 CTE 分析需求应改用子查询（{@code SELECT ... FROM (SELECT ...) t}）或评估改用专用 measure 表达式通道
+     * （经 {@code ExpressionMeasureValidator} 校验的 expression 列）。CTE 包装的 DML（{@code WITH x AS (DELETE...) SELECT 1}）
+     * 经 token 化后 DML 关键字亦暴露被拒，{@code WITH} 条目使其更早 fail-fast。
      */
     private static final Set<String> CUSTOM_SQL_FORBIDDEN_WORDS = unmodifiableSet(
             "UNION",
@@ -85,7 +108,10 @@ public class MetaQualityRuleExecutor {
             "INFORMATION_SCHEMA",
             "COPY", "PG_READ_FILE", "PG_READ_BINARY_FILE", "PG_LS_DIR", "PG_LS_LOGDIR", "PG_LS_WALDIR",
             "PG_STAT_FILE", "SYS_EXEC", "RUNSCRIPT", "SCRIPT",
-            "FILE_READ", "FILE_WRITE", "BACKUP", "CSVWRITE", "CSVREAD");
+            "FILE_READ", "FILE_WRITE", "BACKUP", "CSVWRITE", "CSVREAD",
+            // F9（plan 2026-08-14-1133-1）：PG 脚本执行 / 时序攻击 / 系统目录族 + CTE（WITH tradeoff 见上）
+            "DO", "PG_SLEEP", "PG_CATALOG", "PG_STAT_USER_TABLES",
+            "WITH");
 
     /** 多 token 危险序列（归一化分词后的连续 token 序列）。 */
     private static final String[][] CUSTOM_SQL_FORBIDDEN_SEQUENCES = {
@@ -136,7 +162,7 @@ public class MetaQualityRuleExecutor {
         j.getDetails().put("ruleType", ruleType);
         j.getDetails().put("entityType", entityType);
         j.getDetails().put("tableName", displayTable);
-        j.getDetails().put("tableType", ref.getKind().name().toLowerCase());
+        j.getDetails().put("tableType", ref.getKind().name().toLowerCase(Locale.ROOT));
         if (threshold != null) {
             j.getDetails().put("threshold", threshold);
         }
@@ -296,16 +322,20 @@ public class MetaQualityRuleExecutor {
         j.getDetails().put("sqlHash", sqlHash);
         // 沙箱校验在执行前；custom_sql 为用户显式提供（已知显式风险，§2.7.1 D3），白名单是其唯一防御
         validateCustomSqlSandbox(sql, ruleKey, sqlHash);
-        // custom_sql 为用户显式提供（已知显式风险，§2.7.1 D3），直接执行不解析不改写
-        j.getDetails().put("sql", sql);
+        // P2-07（plan 2026-08-16-0226-1）：QualityResult.details 不再持久化 SQL 全文——权威存储
+        // 在规则本体（NopMetaQualityRule.sqlExpression 列优先 / params.sql JSON），details.sql 属
+        // 每结果行重复落盘；details 只保留 sqlHash（:321 已写入）供审计追溯，与 AR-16 裁定的
+        // 日志面"只记 sqlHash"语义对齐（持久化面/日志面同数据族同脱敏口径）
 
         Double value;
         try {
             value = querySingleValue(conn, sql);
         } catch (SQLException e) {
-            LOG.error("custom_sql execution failed (sqlHash={})", sqlHash, e);
+            LOG.error("custom_sql execution failed: errorCode={} sqlHash={}",
+                    NopMetadataErrors.ERR_QUALITY_RULE_EXEC_ISOLATED.getErrorCode(), sqlHash, e);
             j.setStatus("ERROR");
-            j.setMessage("custom_sql execution failed (executes on external data source account): " + messageOf(e));
+            j.setMessage("custom_sql execution failed (executes on external data source account): ["
+                    + NopMetadataErrors.ERR_QUALITY_RULE_EXEC_ISOLATED.getErrorCode() + "] " + messageOf(e));
             return j;
         }
         if (value == null) {
@@ -358,7 +388,7 @@ public class MetaQualityRuleExecutor {
         if (sql == null) {
             return;
         }
-        String upper = sql.trim().toUpperCase();
+        String upper = sql.trim().toUpperCase(Locale.ROOT);
         if (upper.contains(";")) {
             throw customSqlBlocked("forbidden keyword present: ;", ruleKey, sqlHash);
         }
@@ -521,14 +551,24 @@ public class MetaQualityRuleExecutor {
             }
             try (ResultSet rs = st.executeQuery()) {
                 if (!rs.next()) {
-                    throw new SQLException("range COUNT(*) returned no row");
+                    // P2-13：COUNT(*) 无行是可预期业务分支（表空），非 SQL 故障——显式建模为 ERROR 判定，
+                    // 不再以哨兵 SQLException 作方法内控制流信号（judgment 输出与原 catch 路径逐字段等价）。
+                    LOG.error("range SQL execution failed: errorCode={}",
+                            NopMetadataErrors.ERR_QUALITY_RULE_EXEC_ISOLATED.getErrorCode());
+                    j.setStatus("ERROR");
+                    j.setMessage("range SQL execution failed: ["
+                            + NopMetadataErrors.ERR_QUALITY_RULE_EXEC_ISOLATED.getErrorCode()
+                            + "] range COUNT(*) returned no row");
+                    return j;
                 }
                 outOfRange = rs.getLong(1);
             }
         } catch (SQLException e) {
-            LOG.error("range SQL execution failed", e);
+            LOG.error("range SQL execution failed: errorCode={}",
+                    NopMetadataErrors.ERR_QUALITY_RULE_EXEC_ISOLATED.getErrorCode(), e);
             j.setStatus("ERROR");
-            j.setMessage("range SQL execution failed: " + messageOf(e));
+            j.setMessage("range SQL execution failed: ["
+                    + NopMetadataErrors.ERR_QUALITY_RULE_EXEC_ISOLATED.getErrorCode() + "] " + messageOf(e));
             return j;
         }
         j.setActualValue((double) outOfRange);
@@ -564,7 +604,15 @@ public class MetaQualityRuleExecutor {
             st.setString(1, pattern);
             try (ResultSet rs = st.executeQuery()) {
                 if (!rs.next()) {
-                    throw new SQLException("regex COUNT(*) returned no row");
+                    // P2-13：COUNT(*) 无行是可预期业务分支（表空），非 SQL 故障——显式建模为 ERROR 判定，
+                    // 不再以哨兵 SQLException 作方法内控制流信号（judgment 输出与原 catch 路径逐字段等价）。
+                    LOG.error("regex SQL execution failed: errorCode={}",
+                            NopMetadataErrors.ERR_QUALITY_RULE_EXEC_ISOLATED.getErrorCode());
+                    j.setStatus("ERROR");
+                    j.setMessage("regex SQL execution failed: ["
+                            + NopMetadataErrors.ERR_QUALITY_RULE_EXEC_ISOLATED.getErrorCode()
+                            + "] regex COUNT(*) returned no row");
+                    return j;
                 }
                 notMatching = rs.getLong(1);
             }
@@ -577,9 +625,11 @@ public class MetaQualityRuleExecutor {
                 j.getDetails().put("reason", "regexp-unsupported-dialect");
                 return j;
             }
-            LOG.error("regex SQL execution failed", e);
+            LOG.error("regex SQL execution failed: errorCode={}",
+                    NopMetadataErrors.ERR_QUALITY_RULE_EXEC_ISOLATED.getErrorCode(), e);
             j.setStatus("ERROR");
-            j.setMessage("regex SQL execution failed: " + messageOf(e));
+            j.setMessage("regex SQL execution failed: ["
+                    + NopMetadataErrors.ERR_QUALITY_RULE_EXEC_ISOLATED.getErrorCode() + "] " + messageOf(e));
             return j;
         }
         j.setActualValue((double) notMatching);
@@ -701,19 +751,23 @@ public class MetaQualityRuleExecutor {
                 }
             } catch (SQLException ignore) {
                 // 非数值列，尝试按布尔读
+                LOG.debug(NopMetadataErrors.ERR_QUALITY_RULE_TYPE_PROBE_FAILED.getErrorCode()
+                        + ": numeric column probe failed, falling back to boolean read", ignore);
             }
             // 回退按布尔读（true=1, false=0）
             try {
                 boolean b = rs.getBoolean(1);
                 return b ? 1.0 : 0.0;
             } catch (SQLException ignore) {
+                LOG.debug(NopMetadataErrors.ERR_QUALITY_RULE_TYPE_PROBE_FAILED.getErrorCode()
+                        + ": boolean column probe failed, returning null", ignore);
                 return null;
             }
         }
     }
 
     private static boolean evalExpectPassWhen(String expectPassWhen, double value, String ruleKey) {
-        String s = expectPassWhen.trim().toLowerCase();
+        String s = expectPassWhen.trim().toLowerCase(Locale.ROOT);
         try {
             if ("true".equals(s) || "eq 1".equals(s) || "eq1".equals(s)) {
                 return value == 1.0;
@@ -771,7 +825,7 @@ public class MetaQualityRuleExecutor {
         if (msg == null) {
             return false;
         }
-        String lower = msg.toLowerCase();
+        String lower = msg.toLowerCase(Locale.ROOT);
         for (String signature : REGEXP_UNSUPPORTED_SIGNATURES) {
             if (lower.contains(signature)) {
                 return true;
@@ -840,13 +894,26 @@ public class MetaQualityRuleExecutor {
         try {
             return Double.parseDouble(String.valueOf(v));
         } catch (NumberFormatException e) {
+            LOG.debug(NopMetadataErrors.ERR_QUALITY_RULE_TYPE_PROBE_FAILED.getErrorCode()
+                    + ": numeric parse failed for getDouble param, returning null", e);
             return null;
         }
     }
 
-    /** 提取异常消息（null 时回退类名）；集中调用避免 catch 块内直接 e.getMessage() 丢失堆栈。 */
+    /**
+     * 提取异常消息（null 时回退类名）；集中调用避免 catch 块内直接 e.getMessage() 丢失堆栈。
+     *
+     * <p>P2-08（plan 2026-08-16-0226-1）：消息进 judgment message / error param 前统一经
+     * jdbc: URL 脱敏过滤（{@link MetaDataSourceConnectionProcessor#redactJdbcUrlsInText}）——
+     * 单点覆盖本文件全部 messageOf 面（judgeCustomSql ERROR / judgeRange ERROR /
+     * judgeRegex SKIP+ERROR / queryLong / queryTimestamp）。驱动消息可回显 userinfo 形态
+     * 含口令的 URL，未过滤会击穿 jdbcUrl 侧 redactJdbcUrl 脱敏；无 jdbc: 命中时原样返回
+     * （诊断信息不丢）。query 形态口令与无 {@code ://} 的 Oracle thin 形态不在脱敏范围
+     * （F6 既有裁定语义边界）。
+     */
     private static String messageOf(Throwable t) {
         String m = t.getMessage();
-        return m != null ? m : t.getClass().getName();
+        return m != null ? MetaDataSourceConnectionProcessor.redactJdbcUrlsInText(m)
+                : t.getClass().getName();
     }
 }

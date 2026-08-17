@@ -15,6 +15,7 @@ import io.nop.job.api.spec.TriggerSpec;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.api.dto.CheckpointExecutionResultDTO;
 import io.nop.metadata.api.dto.CheckpointExtConfig;
+import io.nop.metadata.api.dto.ErrorDTO;
 import io.nop.metadata.dao.entity.NopMetaQualityCheckpoint;
 import io.nop.metadata.service.entity.NopMetaQualityCheckpointBizModel;
 import io.nop.metadata.service.NopMetadataErrors;
@@ -28,7 +29,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -80,7 +80,8 @@ public class MetaQualityCheckpointScheduler {
     /** jobParams 中传递给包装方法的检查点 ID 键。 */
     static final String PARAM_CHECKPOINT_ID = "checkpointId";
 
-    /** 本 bean 在 IoC 容器中的注册名（与 app-service.beans.xml 一致）。 */
+    /** 本 bean 在 IoC 容器中的注册名（live 唯一注册点：app-service.beans.xml 的 nopMetaQualityCheckpointScheduler，
+     *  ioc:default="true"——宿主 app 可经自有 beans.xml 覆盖注册；jobParams 经 BEAN_NAME 反查本 bean）。 */
     public static final String BEAN_NAME = "nopMetaQualityCheckpointScheduler";
     /** beanMethod 调用的方法名。 */
     public static final String SCHEDULED_METHOD_NAME = "executeScheduledCheckpoint";
@@ -148,7 +149,8 @@ public class MetaQualityCheckpointScheduler {
                 }
             } catch (Exception e) {
                 // 单检查点注册失败不中断其他检查点、不抛崩启动（D4 容错）
-                LOG.error("nop.meta.checkpoint-scheduler.register-failed: checkpointId={}", cp.getCheckpointId(), e);
+                LOG.error("nop.meta.checkpoint-scheduler.register-failed: errorCode={} checkpointId={}",
+                        NopMetadataErrors.ERR_CHECKPOINT_SCHEDULE_FAILED.getErrorCode(), cp.getCheckpointId(), e);
             }
         }
         LOG.info("nop.meta.checkpoint-scheduler.init-done: activeCheckpoints={} registered={}", active.size(), registered);
@@ -172,7 +174,8 @@ public class MetaQualityCheckpointScheduler {
         try {
             doRegister(cp);
         } catch (Exception e) {
-            LOG.error("nop.meta.checkpoint-scheduler.register-failed: checkpointId={}", checkpointId, e);
+            LOG.error("nop.meta.checkpoint-scheduler.register-failed: errorCode={} checkpointId={}",
+                    NopMetadataErrors.ERR_CHECKPOINT_SCHEDULE_FAILED.getErrorCode(), checkpointId, e);
         }
     }
 
@@ -196,7 +199,7 @@ public class MetaQualityCheckpointScheduler {
      * LocalJobScheduler 将 job 永久置 FAILED（修复配置也无法复活，仅重启 JVM 可恢复）。
      *
      * @param params jobParams（移除 beanName/methodName 后）：{@code {checkpointId: <id>}}
-     * @return {@code executeCheckpoint} 的执行摘要 Map；checkpoint 级错误时为带 executionErrors 的摘要
+     * @return {@code executeCheckpoint} 的执行结果 DTO；checkpoint 级错误时为带类型化 errors 的结果
      */
     public CheckpointExecutionResultDTO executeScheduledCheckpoint(Map<String, Object> params) {
         String checkpointId = null;
@@ -218,11 +221,13 @@ public class MetaQualityCheckpointScheduler {
             if (isConcurrentRunRejection(e)) {
                 // R4.3（Minor-8）：cron tick 与手动执行并发被运行标记 fail-fast 拒绝——预期运维噪音，降级 WARN
                 // （区别于真实故障的 ERROR，避免 MA7.5-01 catch-all 转 ERROR 造成运维误读）
+                // P2-14：WARN 补异常末参（对齐同文件 ERROR 分支形态，保留并发拒绝原因的堆栈可诊断性）
                 LOG.warn("nop.meta.checkpoint-scheduler.scheduled-exec-skipped: checkpointId={} "
-                        + "(already running, concurrent execution rejected fail-fast)", checkpointId);
+                        + "(already running, concurrent execution rejected fail-fast)", checkpointId, e);
             } else {
-                LOG.error("nop.meta.checkpoint-scheduler.scheduled-exec-failed: checkpointId={} error={}",
-                        checkpointId, NopMetadataHelper.toErrorMessage(e), e);
+                LOG.error("nop.meta.checkpoint-scheduler.scheduled-exec-failed: errorCode={} checkpointId={} error={}",
+                        NopMetadataErrors.ERR_CHECKPOINT_SCHEDULE_FAILED.getErrorCode(), checkpointId,
+                        NopMetadataHelper.toErrorMessage(e), e);
             }
             return buildErrorResult(checkpointId, e);
         }
@@ -239,14 +244,20 @@ public class MetaQualityCheckpointScheduler {
     // helpers
     // ============================================================
 
-    /** 构建 checkpoint 级错误的结果 DTO（executionErrors 记录错误，job 存活不抛异常，MA7.5-01）。 */
+    /**
+     * 构建 checkpoint 级错误的结果 DTO（类型化 {@code errors} 记录错误，job 存活不抛异常，MA7.5-01）。
+     *
+     * <p>P2-20（plan 2026-08-16-0549-2）：错误条目由原 {@code List<Map>} 冗余字段形态（键 {source:"scheduler",
+     * error}）改为类型化 {@link ErrorDTO}——source="scheduler" / message=错误文本，逐键等价承接（对照表见
+     * owner doc P2-20 裁决记录）。
+     */
     private static CheckpointExecutionResultDTO buildErrorResult(String checkpointId, Exception e) {
         CheckpointExecutionResultDTO dto = new CheckpointExecutionResultDTO();
         dto.setCheckpointId(checkpointId);
-        Map<String, Object> err = new LinkedHashMap<>();
-        err.put("source", "scheduler");
-        err.put("error", NopMetadataHelper.toErrorMessage(e));
-        dto.getExecutionErrors().add(err);
+        ErrorDTO err = new ErrorDTO();
+        err.setSource("scheduler");
+        err.setMessage(NopMetadataHelper.toErrorMessage(e));
+        dto.getErrors().add(err);
         return dto;
     }
 
@@ -258,8 +269,8 @@ public class MetaQualityCheckpointScheduler {
                     ? detail.getTriggerSpec().getCronExpr() : null;
         } catch (Exception e) {
             // scheduler 查询失败 → null（诊断用，不影响主流程），但留 WARN 根因
-            LOG.warn("nop.meta.checkpoint-scheduler.read-registered-cron-failed: checkpointId={}",
-                    checkpointId, e);
+            LOG.warn("nop.meta.checkpoint-scheduler.read-registered-cron-failed: errorCode={} checkpointId={}",
+                    NopMetadataErrors.ERR_CHECKPOINT_SCHEDULE_FAILED.getErrorCode(), checkpointId, e);
             return null;
         }
     }
@@ -295,12 +306,14 @@ public class MetaQualityCheckpointScheduler {
             // MA7.5-03：addJob 失败（如 cron 被运维改为非法值）时，旧 job（旧 cron）仍留在调度器继续触发，
             // 检查点会按过期时间表运行（可能凌晨误跑）且运维误以为已停用。清理残留 job；
             // removeJob 自身失败不掩盖 addJob 失败原因。
-            LOG.error("nop.meta.checkpoint-scheduler.add-job-failed: checkpointId={} oldCron={} newCron={}",
-                    checkpointId, readRegisteredCron(checkpointId), cron, e);
+            LOG.error("nop.meta.checkpoint-scheduler.add-job-failed: errorCode={} checkpointId={} oldCron={} newCron={}",
+                    NopMetadataErrors.ERR_CHECKPOINT_SCHEDULE_FAILED.getErrorCode(), checkpointId,
+                    readRegisteredCron(checkpointId), cron, e);
             try {
                 scheduler.removeJob(jobName(checkpointId));
             } catch (Exception re) {
-                LOG.error("nop.meta.checkpoint-scheduler.remove-stale-job-failed: checkpointId={}", checkpointId, re);
+                LOG.error("nop.meta.checkpoint-scheduler.remove-stale-job-failed: errorCode={} checkpointId={}",
+                        NopMetadataErrors.ERR_CHECKPOINT_SCHEDULE_FAILED.getErrorCode(), checkpointId, re);
             }
             return false;
         }
@@ -323,7 +336,8 @@ public class MetaQualityCheckpointScheduler {
             return config == null ? null : config.getSchedule();
         } catch (Exception e) {
             // extConfig 不可解析 → 视为无 schedule（不静默伪造）
-            LOG.warn("nop.meta.checkpoint-scheduler.ext-config-unparseable: checkpointId={}", cp.getCheckpointId(), e);
+            LOG.warn("nop.meta.checkpoint-scheduler.ext-config-unparseable: errorCode={} checkpointId={}",
+                    NopMetadataErrors.ERR_CHECKPOINT_SCHEDULE_FAILED.getErrorCode(), cp.getCheckpointId(), e);
             return null;
         }
     }

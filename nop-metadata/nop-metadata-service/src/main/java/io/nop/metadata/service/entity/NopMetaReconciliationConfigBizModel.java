@@ -36,7 +36,7 @@ import java.util.Set;
  *
  * <p>{@code executeReconciliation(configId)}（{@code @BizMutation}）：
  * <ol>
- *   <li>加载 config；config 不存在 → 抛 {@link #NopMetadataErrors.ERR_RECON_CONFIG_NOT_FOUND}（不 NPE）。</li>
+ *   <li>加载 config；config 不存在 → {@code requireEntity} 抛平台标准 not-found 错误（不 NPE）。</li>
  *   <li>校验 {@code columnName} 在目标表 {@link MetaTableFieldResolver} 解析字段集合内；
  *       非法 → 抛 {@link #NopMetadataErrors.ERR_RECON_COLUMN_NOT_FOUND}。</li>
  *   <li>经 {@code @Inject NopMetaTableBizModel tableBizModel}（protected，B2 方案 b）调

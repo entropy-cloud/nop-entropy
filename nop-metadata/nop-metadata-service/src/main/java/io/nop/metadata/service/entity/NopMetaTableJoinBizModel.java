@@ -8,6 +8,7 @@ import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.crud.CrudBizModel;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaTableJoinBiz;
@@ -63,28 +64,40 @@ public class NopMetaTableJoinBizModel extends CrudBizModel<NopMetaTableJoin> imp
      */
     @Override
     public NopMetaTableJoin save(@Name("data") Map<String, Object> data, IServiceContext context) {
-        String metaTableId = NopMetadataHelper.stringOf(data, NopMetaTableJoin.PROP_NAME_metaTableId);
-        String leftEntityId = NopMetadataHelper.stringOf(data, NopMetaTableJoin.PROP_NAME_leftEntityId);
-        String rightEntityId = NopMetadataHelper.stringOf(data, NopMetaTableJoin.PROP_NAME_rightEntityId);
-        String leftTableId = NopMetadataHelper.stringOf(data, NopMetaTableJoin.PROP_NAME_leftTableId);
-        String rightTableId = NopMetadataHelper.stringOf(data, NopMetaTableJoin.PROP_NAME_rightTableId);
-        String leftField = NopMetadataHelper.stringOf(data, NopMetaTableJoin.PROP_NAME_leftField);
-        String rightField = NopMetadataHelper.stringOf(data, NopMetaTableJoin.PROP_NAME_rightField);
-        validateJoin(metaTableId, leftEntityId, rightEntityId, leftTableId, rightTableId,
-                leftField, rightField);
+        // P2-19（plan 2026-08-16-0226-3）：null/empty data 提前委托基类，
+        // 统一抛 ERR_BIZ_EMPTY_DATA_FOR_SAVE
+        // （不 NPE 抢先——validateJoin 内 stringOf 会先解引用 data）
+        if (CollectionHelper.isEmptyMap(data)) {
+            return super.save(data, context);
+        }
+        validateJoin(data);
         return super.save(data, context);
     }
 
-    private void validateJoin(String metaTableId, String leftEntityId, String rightEntityId,
-                              String leftTableId, String rightTableId,
-                              String leftField, String rightField) {
+    private void validateJoin(Map<String, Object> data) {
+        String metaTableId = NopMetadataHelper.stringOf(data,
+                NopMetaTableJoin.PROP_NAME_metaTableId);
         if (metaTableId == null || metaTableId.isEmpty()) {
             return;
         }
-        IEntityDao<NopMetaEntityField> fieldDao = daoFor(NopMetaEntityField.class);
-        IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
-        validateJoinSide(metaTableId, "left", leftEntityId, leftTableId, leftField, fieldDao, tableDao);
-        validateJoinSide(metaTableId, "right", rightEntityId, rightTableId, rightField, fieldDao, tableDao);
+        // P1-6（plan 2026-08-15-1913-3 轨 1）：update 路径 joinId 自 data map 下沉穿参
+        // （create 路径 joinId 尚不存在，由 validateTableEndpoint 换无 joinId 占位符孪生码）
+        String joinId = NopMetadataHelper.stringOf(data,
+                NopMetaTableJoin.PROP_NAME_joinId);
+        validateJoinSide(metaTableId, joinId, "left",
+                NopMetadataHelper.stringOf(data,
+                        NopMetaTableJoin.PROP_NAME_leftEntityId),
+                NopMetadataHelper.stringOf(data,
+                        NopMetaTableJoin.PROP_NAME_leftTableId),
+                NopMetadataHelper.stringOf(data,
+                        NopMetaTableJoin.PROP_NAME_leftField));
+        validateJoinSide(metaTableId, joinId, "right",
+                NopMetadataHelper.stringOf(data,
+                        NopMetaTableJoin.PROP_NAME_rightEntityId),
+                NopMetadataHelper.stringOf(data,
+                        NopMetaTableJoin.PROP_NAME_rightTableId),
+                NopMetadataHelper.stringOf(data,
+                        NopMetaTableJoin.PROP_NAME_rightField));
     }
 
     /**
@@ -93,10 +106,13 @@ public class NopMetaTableJoinBizModel extends CrudBizModel<NopMetaTableJoin> imp
      * <p>端点解析：{@code entityId}/{@code tableId} 同时非空 → 互斥失败；同时为空 → 端点 mandatory 失败
      * （{@code NopMetadataErrors.ERR_JOIN_ENTITY_ID_NULL} 放宽为 entity/table 二选一）。entity 端点走实体字段集合校验，
      * table 端点走表可解析列集合校验（tableType 须 external/sql）。
+     *
+     * @param joinId 既有 Join 主键（update 路径自身份下沉，create 路径为空——
+     *               P1-6 plan 2026-08-15-1913-3：{joinId} 占位符真实渲染）
      */
-    private void validateJoinSide(String metaTableId, String side, String entityId, String tableId,
-                                  String field, IEntityDao<NopMetaEntityField> fieldDao,
-                                  IEntityDao<NopMetaTable> tableDao) {
+    private void validateJoinSide(String metaTableId, final String joinId,
+                                  String side, String entityId,
+                                  String tableId, String field) {
         boolean hasEntity = entityId != null && !entityId.isEmpty();
         boolean hasTable = tableId != null && !tableId.isEmpty();
         if (hasEntity && hasTable) {
@@ -106,14 +122,18 @@ public class NopMetaTableJoinBizModel extends CrudBizModel<NopMetaTableJoin> imp
                     .param("entityId", entityId).param("tableId", tableId);
         }
         if (!hasEntity && !hasTable) {
-            // 端点 mandatory：entity/table 二选一（放宽原 NopMetadataErrors.ERR_JOIN_ENTITY_ID_NULL 的 entityId-only 语义）
+            // 端点 mandatory：entity/table 二选一
+            // （放宽原 ERR_JOIN_ENTITY_ID_NULL 的 entityId-only 语义）
             throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_ENTITY_ID_NULL)
                     .param("metaTableId", metaTableId).param("side", side);
         }
         if (hasEntity) {
-            validateEntityEndpoint(metaTableId, side, entityId, field, fieldDao);
+            validateEntityEndpoint(metaTableId, side, entityId, field,
+                    daoFor(NopMetaEntityField.class));
         } else {
-            validateTableEndpoint(metaTableId, side, tableId, field, tableDao, fieldDao);
+            validateTableEndpoint(metaTableId, joinId, side, tableId, field,
+                    daoFor(NopMetaTable.class),
+                    daoFor(NopMetaEntityField.class));
         }
     }
 
@@ -149,19 +169,32 @@ public class NopMetaTableJoinBizModel extends CrudBizModel<NopMetaTableJoin> imp
      * <p>tableType=entity 的 NopMetaTable 作为 table 端点显式失败（应走 entityId 路径，避免解析路径混合）。
      * 列集合解析失败（buildSql 损坏 / sourceSql 不可解析）由 resolver 显式抛 ErrorCode（不静默空集放行）。
      */
-    private void validateTableEndpoint(String metaTableId, String side, String tableId, String field,
-                                       IEntityDao<NopMetaTable> tableDao,
+    private void validateTableEndpoint(String metaTableId, final String joinId,
+                                       String side, String tableId,
+                                       String field, IEntityDao<NopMetaTable> tableDao,
                                        IEntityDao<NopMetaEntityField> fieldDao) {
         NopMetaTable table = tableDao.getEntityById(tableId);
         if (table == null) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_TABLE_NOT_FOUND)
-                    .param("metaTableId", metaTableId).param("side", side).param("tableId", tableId);
+            throw new NopMetadataException(
+                    NopMetadataErrors.ERR_JOIN_TABLE_NOT_FOUND)
+                    .param("metaTableId", metaTableId).param("side", side)
+                    .param("tableId", tableId);
         }
         String tableType = table.getTableType();
         if (!_NopMetadataCoreConstants.TABLE_TYPE_EXTERNAL.equals(tableType)
                 && !_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(tableType)) {
-            // table 端点仅允许 external/sql；entity-type 逻辑表应走 entityId 路径（D1）
-            throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_TABLE_TYPE_NOT_ALLOWED)
+            // table 端点仅允许 external/sql；entity-type 逻辑表应走 entityId 路径（D1）。
+            // P1-6（plan 2026-08-15-1913-3）：update 路径 joinId 传齐原码占位符；create 路径
+            // joinId 尚不存在——禁止传 null（渲染空串=空壳修复），换无 joinId 占位符孪生码。
+            if (joinId != null && !joinId.isEmpty()) {
+                throw new NopMetadataException(
+                        NopMetadataErrors.ERR_JOIN_TABLE_TYPE_NOT_ALLOWED)
+                        .param("joinId", joinId).param("side", side)
+                        .param("tableId", tableId)
+                        .param("tableType", String.valueOf(tableType));
+            }
+            throw new NopMetadataException(
+                    NopMetadataErrors.ERR_JOIN_TABLE_TYPE_NOT_ALLOWED_ON_CREATE)
                     .param("metaTableId", metaTableId).param("side", side)
                     .param("tableId", tableId).param("tableType", String.valueOf(tableType));
         }

@@ -14,6 +14,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * 从外部 jdbc 数据源扫描物理表结构（表 + 列），返回结构化快照。
@@ -137,14 +138,21 @@ public class ExternalTableStructureReader {
      */
     static void requireSupportedProductName(String productName) {
         if (productName == null || !isSupportedDialect(productName)) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_TYPE_NOT_SUPPORTED)
-                    .param(NopMetadataErrors.ARG_DATABASE_PRODUCT_NAME, String.valueOf(productName));
+            // P1-7（plan 2026-08-15-1913-3 方案 A）：错误码声明 {datasourceType}
+            // （ARG_DATASOURCE_TYPE）——改传一致键且值为被拒产品名（此前
+            // ARG_DATABASE_PRODUCT_NAME 键错配，被拒产品名永不渲染）。
+            // 不换码：方案 B 会打破 TestExternalTableStructureReader 精确断言
+            // 并变更客户端可见错误码标识。
+            throw new NopMetadataException(
+                    NopMetadataErrors.ERR_DATASOURCE_TYPE_NOT_SUPPORTED)
+                    .param(NopMetadataErrors.ARG_DATASOURCE_TYPE,
+                            String.valueOf(productName));
         }
     }
 
     /** 方言白名单判断（包级可见以便单元测试）。 */
     static boolean isSupportedDialect(String productName) {
-        String p = productName.toLowerCase();
+        String p = productName.toLowerCase(Locale.ROOT);
         return p.contains("mysql") || p.contains("postgresql") || p.equals("h2");
     }
 

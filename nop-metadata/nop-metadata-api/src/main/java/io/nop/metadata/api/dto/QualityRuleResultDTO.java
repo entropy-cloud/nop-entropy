@@ -24,6 +24,12 @@ public class QualityRuleResultDTO implements Serializable {
     private String status;
     /** AR-14（R8.1）：判定消息（失败原因/SKIP 原因/通过摘要）——确定性新增。 */
     private String message;
+    /** P2-20（plan 2026-08-16-0549-2）：规则名——承接 checkpoint 路径 summary.results 条目的 ruleName 键（类型化承接，无信息损失）。 */
+    private String ruleName;
+    /** P2-20（plan 2026-08-16-0549-2）：实际值——承接 checkpoint 路径 summary.results 条目的 actualValue 键（判定实际值；SKIP 时为 null）。 */
+    private Double actualValue;
+    /** P2-20（plan 2026-08-16-0549-2）：期望值——承接 checkpoint 路径 summary.results 条目的 expectedValue 键（阈值；无阈值语义时为 null）。 */
+    private Double expectedValue;
 
     public String getQualityRuleId() {
         return qualityRuleId;
@@ -79,5 +85,29 @@ public class QualityRuleResultDTO implements Serializable {
 
     public void setMessage(String message) {
         this.message = message;
+    }
+
+    public String getRuleName() {
+        return ruleName;
+    }
+
+    public void setRuleName(String ruleName) {
+        this.ruleName = ruleName;
+    }
+
+    public Double getActualValue() {
+        return actualValue;
+    }
+
+    public void setActualValue(Double actualValue) {
+        this.actualValue = actualValue;
+    }
+
+    public Double getExpectedValue() {
+        return expectedValue;
+    }
+
+    public void setExpectedValue(Double expectedValue) {
+        this.expectedValue = expectedValue;
     }
 }

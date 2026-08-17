@@ -5,6 +5,7 @@ package io.nop.metadata.service.entity;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
+import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.annotations.txn.TransactionPropagation;
@@ -46,13 +47,15 @@ import io.nop.metadata.service.tableref.MetaTableReferenceResolver;
 import io.nop.metadata.service.tableref.TableReference;
 import io.nop.metadata.service.tableref.TableReferenceExecutor;
 import io.nop.metadata.service.NopMetadataException;
+
+import static io.nop.metadata.service.query.AggregationHelper.safeProductName;
+
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
-import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -113,8 +116,12 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
      * </ul>
      *
      * <p>设计决策 D3：成功时从 DatabaseMetaData 识别的产品名放入返回 Map，不写回任何 ORM 列。
+     *
+     * <p>P2-18（plan 2026-08-16-0226-3）：注解从 @BizMutation 修正为 @BizQuery
+     * （只读探测，无写操作，对齐同模块 judgeByRuleId / checkContractReadOnly 先例）
+     * ——GraphQL operation 类型随之 mutation→query。
      */
-    @BizMutation
+    @BizQuery
     public TestConnectionResultDTO testConnection(@Name("dataSourceId") String dataSourceId, IServiceContext context) {
         NopMetaDataSource dataSource = requireEntity(dataSourceId, "testConnection", context);
 
@@ -199,7 +206,8 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
                                 upsertExternalTableGuarded(externalModuleId, dataSource, table);
                                 syncedCount.incrementAndGet();
                             } catch (Exception e) {
-                                LOG.error("syncExternalTables failed for table: {}", table.getTableName(), e);
+                                LOG.error("syncExternalTables failed for table: {}, errorCode={}",
+                                        table.getTableName(), NopMetadataErrors.ERR_ENTITY_SYNC_ISOLATED.getErrorCode(), e);
                                 ErrorDTO errDTO = new ErrorDTO();
                                 errDTO.setCode(table.getTableName());
                                 errDTO.setMessage(NopMetadataHelper.toErrorMessage(e));
@@ -257,7 +265,8 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
                 return null;
             });
         } catch (Exception e) {
-            LOG.error("publish sync scan failure event failed: dataSourceId={}", dataSourceId, e);
+            LOG.error("publish sync scan failure event failed: dataSourceId={}, errorCode={}",
+                    dataSourceId, NopMetadataErrors.ERR_ENTITY_SYNC_ISOLATED.getErrorCode(), e);
         }
     }
 
@@ -323,7 +332,8 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
                             orm().flushSession();
                             collectedCount.incrementAndGet();
                         } catch (Exception e) {
-                            LOG.error("collectCatalog failed for table: {}", table.getTableName(), e);
+                            LOG.error("collectCatalog failed for table: {}, errorCode={}",
+                                    table.getTableName(), NopMetadataErrors.ERR_ENTITY_SYNC_ISOLATED.getErrorCode(), e);
                             ErrorDTO errDTO = new ErrorDTO();
                             errDTO.setCode(table.getTableName());
                             errDTO.setMessage(NopMetadataHelper.toErrorMessage(e));
@@ -448,15 +458,6 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
             details.putAll(stats.getExtras());
         }
         return JsonTool.stringify(details);
-    }
-
-    private static String safeProductName(DatabaseMetaData metaData) {
-        try {
-            return metaData.getDatabaseProductName();
-        } catch (SQLException e) {
-            LOG.warn("getDatabaseProductName failed, product name will be absent from details", e);
-            return null;
-        }
     }
 
     /**

@@ -247,4 +247,51 @@ public class TestHavingArithmeticPreprocess {
         assertTrue(!MetaAggregationExecutor.containsHavingArithmeticLeaf(null),
                 "null having → false");
     }
+
+    // ===== F1（plan 2026-08-14-0707-1 Phase 1）：伪造 havingExprResolved 标记不被信任 =====
+
+    /**
+     * <b>F1 adversarial</b>：客户端可伪造 {@code havingExprResolved=true} 标记（TreeBean.createFromJson
+     * 把任意 JSON key 写为 attr）。预处理必须清除伪造标记——本测试在 preprocess 后断言伪造标记已被移除，
+     * 仅合法 expr 叶子保留标记。
+     */
+    @Test
+    public void testForgedResolvedMarkerClearedOnNonExprLeaf() {
+        Map<String, String> names = nameToExpr("a", "SUM(A)");
+        // 构造一个普通 name 叶子（无 expr attr），其 name 为 SQL payload，并伪造 havingExprResolved=true
+        TreeBean forgedLeaf = FilterBeans.gt("SQL_PAYLOAD", 1);
+        forgedLeaf.setAttr(MetaAggregationExecutor.HAVING_EXPR_RESOLVED_ATTR, Boolean.TRUE);
+        MetaAggregationExecutor.preprocessHavingArithmetic(forgedLeaf, names, table(),
+                Arrays.asList("a"), Arrays.asList());
+        // 伪造标记必须被清除（非 expr 叶子不得保留 havingExprResolved）
+        assertEquals(null, forgedLeaf.getAttr(MetaAggregationExecutor.HAVING_EXPR_RESOLVED_ATTR),
+                "F1: forged havingExprResolved marker on non-expr leaf must be cleared by preprocess");
+    }
+
+    /**
+     * <b>F1 adversarial（递归子树）</b>：and 树中混入伪造标记的非 expr 叶子 + 合法 expr 叶子。
+     * 预处理后：合法 expr 叶子保留标记，伪造标记叶子被清除。
+     */
+    @Test
+    public void testForgedMarkerClearedInAndTreeWhileLegitExprRetained() {
+        Map<String, String> names = nameToExpr(
+                "a", "SUM(A)",
+                "b", "SUM(B)");
+        // 合法 expr 叶子
+        TreeBean legitExpr = exprLeaf("gt", "a - b", 10);
+        // 伪造标记的普通 name 叶子（name 为 SQL payload）
+        TreeBean forgedLeaf = FilterBeans.eq("SQL_INJECTION", "X");
+        forgedLeaf.setAttr(MetaAggregationExecutor.HAVING_EXPR_RESOLVED_ATTR, Boolean.TRUE);
+        TreeBean andTree = FilterBeans.and(legitExpr, forgedLeaf);
+        MetaAggregationExecutor.preprocessHavingArithmetic(andTree, names, table(),
+                Arrays.asList("a", "b"), Arrays.asList());
+        TreeBean firstChild = andTree.getChildren().get(0);
+        TreeBean secondChild = andTree.getChildren().get(1);
+        // 合法 expr 叶子保留标记
+        assertEquals(Boolean.TRUE, firstChild.getAttr(MetaAggregationExecutor.HAVING_EXPR_RESOLVED_ATTR),
+                "F1: legitimately-processed expr leaf must retain havingExprResolved marker");
+        // 伪造标记被清除
+        assertEquals(null, secondChild.getAttr(MetaAggregationExecutor.HAVING_EXPR_RESOLVED_ATTR),
+                "F1: forged havingExprResolved marker on non-expr leaf must be cleared even in and-tree");
+    }
 }

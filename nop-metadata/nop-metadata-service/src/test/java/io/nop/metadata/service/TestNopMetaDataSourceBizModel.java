@@ -61,7 +61,7 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
                         + "\"driverClassName\":\"org.h2.Driver\"}");
 
         GraphQLResponseBean response = execute(
-                "mutation { NopMetaDataSource__testConnection(dataSourceId: \"ds-h2-ok\") { connected databaseProductName databaseProductVersion error } }");
+                "query { NopMetaDataSource__testConnection(dataSourceId: \"ds-h2-ok\") { connected databaseProductName databaseProductVersion error } }");
         assertFalse(response.hasError(), "success path should not error: " + response);
 
         String data = String.valueOf(response.getData());
@@ -76,7 +76,7 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
     @Test
     public void testConnectionNotFound() {
         GraphQLResponseBean response = execute(
-                "mutation { NopMetaDataSource__testConnection(dataSourceId: \"__not_exist__\") { connected databaseProductName error } }");
+                "query { NopMetaDataSource__testConnection(dataSourceId: \"__not_exist__\") { connected databaseProductName error } }");
         assertTrue(response.hasError(),
                 "non-existent dataSourceId must error (no NPE): " + response);
     }
@@ -89,7 +89,7 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
                         + "\"driverClassName\":\"org.h2.Driver\"}");
 
         GraphQLResponseBean response = execute(
-                "mutation { NopMetaDataSource__testConnection(dataSourceId: \"ds-disabled\") { connected databaseProductName error } }");
+                "query { NopMetaDataSource__testConnection(dataSourceId: \"ds-disabled\") { connected databaseProductName error } }");
         assertTrue(response.hasError(),
                 "DISABLED datasource must be rejected (no silent pass): " + response);
     }
@@ -99,7 +99,7 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
         saveDataSource("ds-http", "qs_http", "http", "ACTIVE", "{}");
 
         GraphQLResponseBean response = execute(
-                "mutation { NopMetaDataSource__testConnection(dataSourceId: \"ds-http\") { connected databaseProductName error } }");
+                "query { NopMetaDataSource__testConnection(dataSourceId: \"ds-http\") { connected databaseProductName error } }");
         assertTrue(response.hasError(),
                 "non-jdbc datasource must error (NopException ERR_DATASOURCE_TYPE_NOT_SUPPORTED): " + response);
     }
@@ -110,7 +110,7 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
                 "{\"username\":\"sa\",\"password\":\"\"}");
 
         GraphQLResponseBean response = execute(
-                "mutation { NopMetaDataSource__testConnection(dataSourceId: \"ds-bad-cfg\") { connected databaseProductName error } }");
+                "query { NopMetaDataSource__testConnection(dataSourceId: \"ds-bad-cfg\") { connected databaseProductName error } }");
         assertTrue(response.hasError(),
                 "missing required jdbc field (jdbcUrl) must fast-fail: " + response);
     }

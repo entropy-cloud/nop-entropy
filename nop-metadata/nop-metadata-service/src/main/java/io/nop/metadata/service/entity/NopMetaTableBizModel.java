@@ -13,6 +13,7 @@ import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.crud.CrudBizModel;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IEntityDao;
@@ -98,7 +99,12 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
 
     @Override
     public NopMetaTable save(@Name("data") Map<String, Object> data, IServiceContext context) {
-        String id = data == null ? null : NopMetadataHelper.stringOf(data, NopMetaTable.PROP_NAME_metaTableId);
+        // P2-19（plan 2026-08-16-0226-3）：null/empty data 提前委托基类
+        // （形态统一，此前三元形态只防 null），统一抛 ERR_BIZ_EMPTY_DATA_FOR_SAVE
+        if (CollectionHelper.isEmptyMap(data)) {
+            return super.save(data, context);
+        }
+        String id = NopMetadataHelper.stringOf(data, NopMetaTable.PROP_NAME_metaTableId);
         NopMetaTable before = id != null ? dao().getEntityById(id) : null;
         NopMetaTable saved = super.save(data, context);
         String eventType = before == null
@@ -225,6 +231,19 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         return result;
     }
 
+    /**
+     * F4（plan 2026-08-14-0707-2）——{@code selection} 参数契约说明：
+     * <p>GraphQL 引擎（{@code ReflectionBizModelBuilder}）会将<b>响应字段选择集</b>（DTO 级，
+     * 如 {@code { tableType items }}）自动注入 {@code selection} 参数——它<b>不是</b>调用方
+     * 显式传入的行列过滤规范。由于本方法返回 {@code List<Map<String,Object>>}（Map 为不透明 JSON，
+     * GraphQL 无法对 Map 行做字段级选择），{@code selection} 在此为<b>显式 no-op</b>：
+     * 行的所有列原样返回，不做基于 selection 的 key 过滤。
+     *
+     * <p>这与 {@link CrudBizModel} 不同——CrudBizModel 的结果是 ORM 实体（有已知字段），
+     * selection 经 {@code fetchResultWithSelection} 驱动实体字段装载。nop-metadata 查询结果为
+     * 不透明 Map（列名为 JDBC/ORM 返回键），无字段级 selection 语义。该 no-op 已显式声明，
+     * 不再"静默接受又丢弃"。若未来需要行列裁剪，应新增显式的 {@code fields} 参数。
+     */
     @BizQuery
     public QueryTableDataResultDTO queryTableData(@Name("metaTableId") String metaTableId,
                                                    @Optional @Name("filter") TreeBean filter,
@@ -251,6 +270,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         return result;
     }
 
+    /** F4：{@code selection} 同 {@link #queryTableData} 的显式 no-op 契约说明（不透明 Map 结果，不做行级 key 过滤）。 */
     @BizQuery
     public QueryJoinDataResultDTO queryJoinData(@Name("metaTableId") String metaTableId,
                                                   @Name("joinId") String joinId,
@@ -276,6 +296,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         return result;
     }
 
+    /** F4：{@code selection} 同 {@link #queryTableData} 的显式 no-op 契约说明（不透明 Map 结果，不做行级 key 过滤）。 */
     @BizQuery
     public AggregationResultDTO queryAggregation(@Name("metaTableId") String metaTableId,
                                                   @Name("measures") List<String> measures,
@@ -372,11 +393,22 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
     }
 
     /**
-     * 归一化 queryTableData 的 limit（MA7.4-03）：缺省给默认值，超上限封顶，
-     * 防止省略 limit 的大表查询把全表拉入内存序列化。
+     * 归一化 queryTableData 的 limit（MA7.4-03 + INV-LIMIT）：
+     * <ul>
+     *   <li>{@code limit < 0} → 显式拒绝 {@code ERR_PAGINATION_LIMIT_INVALID}——负 limit 是参数错误，
+     *       静默钳制到默认值会掩盖调用方 bug（INV-LIMIT，与 {@link #normalizeJoinQueryLimit} 对齐，
+     *       沿 AR-09 先例）。MA7.4-03 的范围是「缺省值 + 上限」（null/大正值），不含负值。</li>
+     *   <li>{@code limit == null 或 0} → 缺省值 {@link #DEFAULT_QUERY_LIMIT}（MA7.4-03：防止省略 limit
+     *       的大表查询把全表拉入内存序列化）。</li>
+     *   <li>{@code limit > 0} → 超上限封顶 {@code Math.min(limit, max)}（MA7.4-03 上限配置）。</li>
+     * </ul>
      */
     private Long normalizeQueryLimit(Long limit) {
-        if (limit == null || limit <= 0) {
+        if (limit != null && limit < 0) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_PAGINATION_LIMIT_INVALID)
+                    .param(NopMetadataErrors.ARG_LIMIT, limit);
+        }
+        if (limit == null || limit == 0) {
             return (long) DEFAULT_QUERY_LIMIT;
         }
         long max = configuredMaxQueryLimit > 0 ? configuredMaxQueryLimit : DEFAULT_MAX_QUERY_LIMIT;
@@ -395,9 +427,9 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
      * </ul>
      *
      * <p>与 {@link #normalizeQueryLimit}（queryTableData）的差异（裁定 (b)，文档化于
-     * {@code docs-for-ai/03-modules/nop-metadata.md}）：queryTableData 是数据浏览入口，对超大 limit
-     * 静默封顶；queryJoinData/queryAggregation 是分析/分页入口，非法 limit 显式拒绝——静默改 limit
-     * 会让分页语义静默漂移，两入口差异为有意裁定。
+     * {@code docs-for-ai/03-modules/nop-metadata.md}）：两者对负值均显式拒绝（INV-LIMIT 统一）；
+     * 差异仅在正值上限——queryTableData（数据浏览入口）对超大 limit 静默封顶，queryJoinData/queryAggregation
+     * （分析/分页入口）原样透传由截断层显式拒绝——静默改 limit 会让分页语义静默漂移，两入口差异为有意裁定。
      */
     private Long normalizeJoinQueryLimit(Long limit) {
         if (limit != null && limit < 0) {

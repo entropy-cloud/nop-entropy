@@ -27,8 +27,6 @@ alter table nop_meta_quality_checkpoint add NOP_TENANT_ID VARCHAR(32) DEFAULT '0
 
 alter table nop_meta_manifest add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
-alter table nop_meta_quality_result add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
-
 alter table nop_meta_glossary_term add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_tag add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
@@ -58,6 +56,8 @@ alter table nop_meta_reconciliation_config add NOP_TENANT_ID VARCHAR(32) DEFAULT
 alter table nop_meta_quality_score add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_lineage_edge add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
+alter table nop_meta_quality_result add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_tag_label add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
@@ -119,9 +119,6 @@ alter table nop_meta_quality_checkpoint add constraint PK_nop_meta_quality_check
 alter table nop_meta_manifest drop constraint PK_nop_meta_manifest;
 alter table nop_meta_manifest add constraint PK_nop_meta_manifest primary key (NOP_TENANT_ID, manifest_id);
 
-alter table nop_meta_quality_result drop constraint PK_nop_meta_quality_result;
-alter table nop_meta_quality_result add constraint PK_nop_meta_quality_result primary key (NOP_TENANT_ID, quality_result_id);
-
 alter table nop_meta_glossary_term drop constraint PK_nop_meta_glossary_term;
 alter table nop_meta_glossary_term add constraint PK_nop_meta_glossary_term primary key (NOP_TENANT_ID, glossary_term_id);
 
@@ -166,6 +163,9 @@ alter table nop_meta_quality_score add constraint PK_nop_meta_quality_score prim
 
 alter table nop_meta_lineage_edge drop constraint PK_nop_meta_lineage_edge;
 alter table nop_meta_lineage_edge add constraint PK_nop_meta_lineage_edge primary key (NOP_TENANT_ID, lineage_edge_id);
+
+alter table nop_meta_quality_result drop constraint PK_nop_meta_quality_result;
+alter table nop_meta_quality_result add constraint PK_nop_meta_quality_result primary key (NOP_TENANT_ID, quality_result_id);
 
 alter table nop_meta_tag_label drop constraint PK_nop_meta_tag_label;
 alter table nop_meta_tag_label add constraint PK_nop_meta_tag_label primary key (NOP_TENANT_ID, tag_label_id);
@@ -236,20 +236,11 @@ alter table nop_meta_quality_checkpoint add constraint UK_NOP_META_QCHECKPOINT_N
                 alter table nop_meta_manifest drop constraint UK_NOP_META_MANIFEST_MODULE_VER;
 alter table nop_meta_manifest add constraint UK_NOP_META_MANIFEST_MODULE_VER unique (NOP_TENANT_ID,meta_module_id,manifest_version);
 
-                alter table nop_meta_quality_result drop constraint UK_NOP_META_QUALITY_RESULT_CP_RUN_RULE;
-alter table nop_meta_quality_result add constraint UK_NOP_META_QUALITY_RESULT_CP_RUN_RULE unique (NOP_TENANT_ID,checkpoint_id,run_id,quality_rule_id);
-
                 alter table nop_meta_glossary_term drop constraint UK_NOP_META_GLOSSARY_TERM_FQN;
 alter table nop_meta_glossary_term add constraint UK_NOP_META_GLOSSARY_TERM_FQN unique (NOP_TENANT_ID,fully_qualified_name);
 
-                alter table nop_meta_glossary_term drop constraint UK_NOP_META_GLOSSARY_TERM_G_FQN;
-alter table nop_meta_glossary_term add constraint UK_NOP_META_GLOSSARY_TERM_G_FQN unique (NOP_TENANT_ID,glossary_id,fully_qualified_name);
-
                 alter table nop_meta_tag drop constraint UK_NOP_META_TAG_FQN;
 alter table nop_meta_tag add constraint UK_NOP_META_TAG_FQN unique (NOP_TENANT_ID,fully_qualified_name);
-
-                alter table nop_meta_tag drop constraint UK_NOP_META_TAG_CLS_FQN;
-alter table nop_meta_tag add constraint UK_NOP_META_TAG_CLS_FQN unique (NOP_TENANT_ID,classification_id,fully_qualified_name);
 
                 alter table nop_meta_data_product drop constraint UK_NOP_META_DATA_PRODUCT_DOMAIN_NAME;
 alter table nop_meta_data_product add constraint UK_NOP_META_DATA_PRODUCT_DOMAIN_NAME unique (NOP_TENANT_ID,business_domain_id,name);
@@ -283,6 +274,9 @@ alter table nop_meta_reconciliation_config add constraint UK_NOP_META_RECONCILIA
 
                 alter table nop_meta_lineage_edge drop constraint UK_NOP_META_LINEAGE_EDGE_SRC_TGT_TYPE;
 alter table nop_meta_lineage_edge add constraint UK_NOP_META_LINEAGE_EDGE_SRC_TGT_TYPE unique (NOP_TENANT_ID,source_table_id,source_column,target_table_id,target_column);
+
+                alter table nop_meta_quality_result drop constraint UK_NOP_META_QUALITY_RESULT_CP_RUN_RULE;
+alter table nop_meta_quality_result add constraint UK_NOP_META_QUALITY_RESULT_CP_RUN_RULE unique (NOP_TENANT_ID,checkpoint_id,run_id,quality_rule_id);
 
                 alter table nop_meta_tag_label drop constraint UK_NOP_META_TAG_LABEL;
 alter table nop_meta_tag_label add constraint UK_NOP_META_TAG_LABEL unique (NOP_TENANT_ID,entity_type,entity_id,tag_id,source);

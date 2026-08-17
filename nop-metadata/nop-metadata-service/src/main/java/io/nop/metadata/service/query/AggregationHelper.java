@@ -130,9 +130,22 @@ public class AggregationHelper {
         return rows;
     }
 
-    public static String requireName(String value, String what) {
+    /**
+     * 非空名称守卫（空/null 显式失败，非静默返回）。
+     *
+     * @param value       待检值
+     * @param what        值语义描述（进错误消息 error 参数）
+     * @param metaTableId 目标逻辑表 ID（P1-6 plan 2026-08-15-1913-3 轨 2 穿参：静态工具
+     *                    方法无身份值，由调用方传入——{metaTableId} 占位符真实渲染）
+     * @return 原值（非空非空白）
+     */
+    public static String requireName(String value, String what,
+                                      final String metaTableId) {
         if (value == null || value.trim().isEmpty()) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_EXEC_FAILED).param(NopMetadataErrors.ARG_ERROR, what + " is empty");
+            throw new NopMetadataException(
+                    NopMetadataErrors.ERR_AGGR_EXEC_FAILED)
+                    .param(NopMetadataErrors.ARG_META_TABLE_ID, metaTableId)
+                    .param(NopMetadataErrors.ARG_ERROR, what + " is empty");
         }
         return value;
     }
@@ -210,7 +223,7 @@ public class AggregationHelper {
     }
 
     public static String resolveEntityFieldColumn(String entityFieldId, String name, NopMetaTable table,
-                                                   MetaQueryContext ctx, Map<String, String> propToCol) {
+                                                   MetaQueryContext ctx) {
         if (entityFieldId == null || entityFieldId.isEmpty()) {
             throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_FIELD_NOT_RESOLVED)
                     .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
@@ -470,8 +483,11 @@ public class AggregationHelper {
         try {
             return metaData.getDatabaseProductName();
         } catch (SQLException e) {
-            LOG.error("safeProductName failed: getDatabaseProductName threw", e);
-            return null;
+            // AR-14a：SQLException 来自 getDatabaseProductName()，本质是连接/驱动/基础设施失败，
+            // 非"方言不支持"。fail-loud：抛 infra 错误并传播 cause，不再 return null（否则被调用方
+            // 误归因为 ERR_AGGR_UNSUPPORTED_DIALECT，掩盖真实故障）。
+            throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_DB_PRODUCT_NAME_FAILED, e)
+                    .param(NopMetadataErrors.ARG_ERROR, messageOf(e));
         }
     }
 
@@ -526,7 +542,8 @@ public class AggregationHelper {
                     schema, tableName, e);
             throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_TABLE_VISIBILITY_CHECK_FAILED, e)
                     .param(NopMetadataErrors.ARG_SCHEMA, schema)
-                    .param(NopMetadataErrors.ARG_TABLE_NAME, tableName);
+                    .param(NopMetadataErrors.ARG_TABLE_NAME, tableName)
+                    .param(NopMetadataErrors.ARG_ERROR, messageOf(e));
         }
         return false;
     }
@@ -539,7 +556,35 @@ public class AggregationHelper {
             return new java.math.BigDecimal((java.math.BigInteger) v);
         }
         if (v instanceof Number) {
-            return java.math.BigDecimal.valueOf(((Number) v).doubleValue());
+            Number n = (Number) v;
+            // AR-10：整数类型用 longValue() 无损转换——Long > 2^53 经 doubleValue() 会丢低位；
+            // AtomicLong/AtomicInteger 同为整数子类型（不继承 Long/Integer，需显式判断）
+            if (n instanceof Long || n instanceof Integer || n instanceof Short || n instanceof Byte
+                    || n instanceof java.util.concurrent.atomic.AtomicLong
+                    || n instanceof java.util.concurrent.atomic.AtomicInteger) {
+                return java.math.BigDecimal.valueOf(n.longValue());
+            }
+            // Float/Double 及其它 Number 子类型保持 doubleValue()（小数不截断）
+            return java.math.BigDecimal.valueOf(n.doubleValue());
+        }
+        // AR-10：String 类型数值（部分 JDBC driver 交付方式）尝试解析，不再静默 return null
+        if (v instanceof String) {
+            String s = ((String) v).trim();
+            if (s.isEmpty()) {
+                return null;
+            }
+            try {
+                return new java.math.BigDecimal(s);
+            } catch (NumberFormatException e) {
+                // INV-SILENT-SWALLOW（plan 2026-08-14-1448-2）：非数值字符串是
+                // 预期的 coercion miss（返回 null 由调用方回退非数值处理，如
+                // string stats）。DEBUG 日志携带 ErrorCode 上下文保留可见信号——
+                // 与 probeNumeric（AR-06）同类 benign-miss 形式化，不静默吞。
+                String code = NopMetadataErrors.ERR_AGGR_VALUE_NOT_NUMERIC
+                        .getErrorCode();
+                LOG.debug(code + ": toBigDecimal null (not numeric)", e);
+                return null;
+            }
         }
         return null;
     }
@@ -791,21 +836,21 @@ public class AggregationHelper {
     public static List<Map<String, Object>> memoryGroupBy(List<Map<String, Object>> rows,
                                                            List<AggregationContext.CrossDbMeasureSpec> measures,
                                                            List<AggregationContext.CrossDbDimensionSpec> dims) {
-        LinkedHashMap<String, Map<String, Object>> groupDims = new LinkedHashMap<>();
-        LinkedHashMap<String, AggregationContext.MemAggAccumulator[]> groupAccs = new LinkedHashMap<>();
+        // AR-03（plan 2026-08-14-0707-2）：用结构性 key（值级 equals/hashCode 的 List<Object>）替换分隔符
+        // 拼接 String——消除 "\u0001" 连接符 / "\u0000" null 哨兵导致的碰撞：
+        //   ("a","\u0001b") 与 ("a\u0001","b") 拼出相同 String key → 行被错误合并；
+        //   null 与字面量 "\u0000" 碰撞。List 元素级 equals/hashCode 天然区分这些值。
+        LinkedHashMap<List<Object>, Map<String, Object>> groupDims = new LinkedHashMap<>();
+        LinkedHashMap<List<Object>, AggregationContext.MemAggAccumulator[]> groupAccs = new LinkedHashMap<>();
 
         for (Map<String, Object> row : rows) {
-            StringBuilder keyBuilder = new StringBuilder();
             Object[] dimValues = new Object[dims.size()];
+            List<Object> groupKey = new ArrayList<>(dims.size());
             for (int i = 0; i < dims.size(); i++) {
                 Object v = getCaseInsensitiveObj(row, dims.get(i).lookupKey);
                 dimValues[i] = v;
-                if (i > 0) {
-                    keyBuilder.append('\u0001');
-                }
-                keyBuilder.append(v == null ? "\u0000" : String.valueOf(v));
+                groupKey.add(v);
             }
-            String groupKey = keyBuilder.toString();
 
             Map<String, Object> gRow = groupDims.get(groupKey);
             AggregationContext.MemAggAccumulator[] accs = groupAccs.get(groupKey);
@@ -825,7 +870,7 @@ public class AggregationHelper {
         }
 
         List<Map<String, Object>> items = new ArrayList<>(groupDims.size());
-        for (Map.Entry<String, Map<String, Object>> e : groupDims.entrySet()) {
+        for (Map.Entry<List<Object>, Map<String, Object>> e : groupDims.entrySet()) {
             Map<String, Object> item = new LinkedHashMap<>(e.getValue());
             AggregationContext.MemAggAccumulator[] accs = groupAccs.get(e.getKey());
             for (int i = 0; i < measures.size(); i++) {

@@ -14,6 +14,7 @@ import io.nop.metadata.dao.entity.NopMetaTableJoin;
 import io.nop.metadata.service.field.ExpressionMeasureValidator;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
+import io.nop.metadata.service.quality.MetaQualityRuleExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -121,6 +122,8 @@ public class MixedSameDbJoinAggregationProcessor implements AggregationProcessor
         ctx.connectionService().withConnection(dataSource.getDatasourceType(), dataSource.getConnectionConfig(),
                 (Connection conn, DatabaseMetaData metaData) -> {
                     String dialect = safeProductName(metaData);
+                    // null 仅剩"driver 返回空产品名"这一罕见情形（infra 失败已在
+                    // safeProductName 内 fail-loud 抛出，AR-14a），按 unsupported-dialect 处理
                     if (dialect == null || !SUPPORTED_DIALECTS.contains(dialect)) {
                         throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_UNSUPPORTED_DIALECT)
                                 .param("databaseProductName", String.valueOf(dialect))
@@ -155,7 +158,11 @@ public class MixedSameDbJoinAggregationProcessor implements AggregationProcessor
                     // AggregationHelper.executeJdbcQuery 统一绑定（此处【不得】params.add(limit/offset)，
                     // 否则占位符数 < 绑定数必然抛 SQLException；对照先例 ExternalAggregationProcessor :83-85）。
                     final String sqlText = sql.toString();
-                    LOG.info("queryAggregation mixed same-DB entity<->external/sql JOIN SQL: {}", sqlText);
+                    // P1-8（plan 2026-08-15-1913-1，AR-16 形态）：sql 路径 SQL 内嵌
+                    // sourceSql 全文，INFO 只记 sqlHash
+                    LOG.info("queryAggregation mixed same-DB JOIN sqlHash={}",
+                            MetaQualityRuleExecutor.sqlHashOf(sqlText));
+                    LOG.debug("queryAggregation mixed same-DB SQL: {}", sqlText);
                     holder[0] = executeJdbcQuery(conn, sqlText, params, limit, offset, table.getMetaTableId());
                 });
         return holder[0] == null ? new ArrayList<>() : holder[0];

@@ -10,6 +10,8 @@ import io.nop.metadata.service.datasource.MetaDataSourceResolver;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
 
+import static io.nop.metadata.service.query.AggregationHelper.safeProductName;
+
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -23,9 +25,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * SQL 视图字段类型推断器（架构基线 §4.2.1 方案 B，plan 0900-1）：经 {@code LIMIT 0} + {@link ResultSetMetaData#getColumnTypeName}
@@ -72,8 +71,6 @@ import org.slf4j.LoggerFactory;
  * <p>本组件无状态（依赖外部传入 DAO/resolver/connectionService），可在多 BizModel 间共享实例。
  */
 public class SqlViewFieldTypeInferrer {
-
-    private static final Logger LOG = LoggerFactory.getLogger(SqlViewFieldTypeInferrer.class);
 
     /** inline ErrorCode：方言不支持（首版仅 H2/MySQL/PostgreSQL）。 */
     /** inline ErrorCode：列数不匹配（extractor 输出列数 != ResultSetMetaData 列数）。 */
@@ -148,8 +145,16 @@ public class SqlViewFieldTypeInferrer {
                     .param("querySpace", querySpace);
         }
 
+        // AR-11：包装前 trim + 剥尾分号。sourceSql 带尾分号（如 "SELECT a FROM t;"）时，
+        // 内层子查询 "SELECT * FROM (SELECT a FROM t;) _t LIMIT 0" 会被多数 JDBC 驱动拒绝。
+        // 循环剥离覆盖 ";;" 双分号等边角情况。
+        String trimmedSourceSql = sourceSql.trim();
+        while (trimmedSourceSql.endsWith(";")) {
+            trimmedSourceSql = trimmedSourceSql.substring(0, trimmedSourceSql.length() - 1).trim();
+        }
+
         // SELECT * FROM (<sourceSql>) _t LIMIT 0：sourceSql 作为 PreparedStatement 文本（非拼接值），不拼接标识符
-        String wrappedSql = "SELECT * FROM (" + sourceSql + ") _t LIMIT 0";
+        String wrappedSql = "SELECT * FROM (" + trimmedSourceSql + ") _t LIMIT 0";
         try (PreparedStatement st = conn.prepareStatement(wrappedSql)) {
             try (ResultSet rs = st.executeQuery()) {
                 ResultSetMetaData rsMeta = rs.getMetaData();
@@ -190,16 +195,6 @@ public class SqlViewFieldTypeInferrer {
             throw new NopMetadataException(NopMetadataErrors.ERR_SQL_TYPE_INFERENCE_FAILED, e)
                     .param("error", "getColumnTypeName failed for column " + columnIdx + ": " + messageOf(e))
                     .param("querySpace", querySpace);
-        }
-    }
-
-    private static String safeProductName(DatabaseMetaData metaData) {
-        try {
-            return metaData.getDatabaseProductName();
-        } catch (SQLException e) {
-            // R2.11（P2-MA4-002）：不静默吞异常——记录完整异常（含堆栈）后走既有显式失败路径（方言不支持）
-            LOG.warn("nop.metadata.sqlview.product-name-read-failed", e);
-            return null;
         }
     }
 

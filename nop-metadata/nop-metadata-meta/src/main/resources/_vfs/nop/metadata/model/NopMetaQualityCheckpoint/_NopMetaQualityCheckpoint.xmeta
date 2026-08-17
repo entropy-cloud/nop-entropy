@@ -93,6 +93,13 @@
               queryable="true" sortable="true" lazy="true">
             <schema type="String"/>
         </prop>
+        <prop name="qualityResults" displayName="质量结果集" i18n-en:displayName="Quality Results" tagSet="pub,ref-pub"
+              ext:kind="to-many" internal="true" ext:joinLeftProp="checkpointId" ext:joinRightProp="checkpointId"
+              insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaQualityResult"/>
+            </schema>
+        </prop>
         <prop name="validationsComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"
               updatable="true" lazy="true">
             <schema type="io.nop.orm.component.JsonOrmComponent"/>

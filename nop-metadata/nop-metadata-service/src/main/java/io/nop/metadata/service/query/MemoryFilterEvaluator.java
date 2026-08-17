@@ -83,8 +83,13 @@ final class MemoryFilterEvaluator {
         }
         String op = node.getTagName();
         if (op == null) {
+            // P1-6（plan 2026-08-15-1913-3 轨 1 补齐）：define 声明
+            // {op} name={name}——补 name 键（同方法 default 分支已示范
+            // node.getAttr(FILTER_ATTR_NAME) 取法）
             throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_HAVING_UNSUPPORTED_OP)
-                    .param("op", String.valueOf(op));
+                    .param("op", String.valueOf(op))
+                    .param("name", String.valueOf(
+                            node.getAttr(FilterBeanConstants.FILTER_ATTR_NAME)));
         }
         switch (op) {
             case FilterBeanConstants.FILTER_OP_AND:
@@ -344,18 +349,14 @@ final class MemoryFilterEvaluator {
         return "\\.[]{}()<>*+-=!?^$|".indexOf(c) >= 0;
     }
 
-    /** 值→BigDecimal 转换（Integer/Long/Double/Float/BigDecimal/BigInteger 等）。非数值返回 null。 */
+    /**
+     * 值→BigDecimal 转换。E1（Cycle 2 / P1-E，adjudication-table-cycle2 §6）：委托
+     * {@link AggregationHelper#toBigDecimal}（AR-10 规范实现）——整数 longValue 无损路由
+     * （Long &gt; 2^53 等值过滤不再因 doubleValue 塌缩而错配结果行）、浮点 doubleValue、
+     * String 数值解析（不再静默 return null 回退字符串比较）。
+     */
     private static BigDecimal toBigDecimal(Object v) {
-        if (v instanceof BigDecimal) {
-            return (BigDecimal) v;
-        }
-        if (v instanceof java.math.BigInteger) {
-            return new BigDecimal((java.math.BigInteger) v);
-        }
-        if (v instanceof Number) {
-            return BigDecimal.valueOf(((Number) v).doubleValue());
-        }
-        return null;
+        return AggregationHelper.toBigDecimal(v);
     }
 
     /** 测试可访问的求值入口（仅用于单元测试，避免直接构造内部类）。返回三值结果（null = UNKNOWN）。 */

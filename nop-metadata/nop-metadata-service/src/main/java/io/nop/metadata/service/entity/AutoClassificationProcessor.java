@@ -4,7 +4,9 @@ package io.nop.metadata.service.entity;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
+import io.nop.metadata.service.NopMetadataHelper;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.biz.api.IBizObjectManager;
 import io.nop.core.context.IServiceContext;
@@ -20,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -32,6 +35,7 @@ import java.util.regex.Pattern;
 
 import static io.nop.metadata.service.NopMetadataErrors.ARG_ENTITY_ID;
 import static io.nop.metadata.service.NopMetadataErrors.ARG_ENTITY_TYPE;
+import static io.nop.metadata.service.NopMetadataErrors.ARG_ERROR;
 import static io.nop.metadata.service.NopMetadataErrors.ARG_TABLE_TYPE;
 import static io.nop.metadata.service.NopMetadataErrors.ARG_TAG_ID;
 import static io.nop.metadata.service.NopMetadataErrors.ERR_AUTOCLASSIFY_UNSUPPORTED_ENTITY_TYPE;
@@ -103,8 +107,9 @@ public class AutoClassificationProcessor {
             }
             rules = (List<Map<String, Object>>) parsed;
         } catch (Exception e) {
-            LOG.warn("Failed to parse autoClassificationConfig for classificationId={}",
-                    classification.getClassificationId(), e);
+            LOG.warn("Failed to parse autoClassificationConfig for classificationId={}, errorCode={}",
+                    classification.getClassificationId(),
+                    NopMetadataErrors.ERR_AUTOMATION_PROCESS_ISOLATED.getErrorCode(), e);
             return Collections.emptyList();
         }
 
@@ -123,7 +128,10 @@ public class AutoClassificationProcessor {
         List<MatchResult> matches = new ArrayList<>();
         // 同一非法 pattern 位于 field×rule 双层循环内会对每个字段重复命中——按
         // (classificationId, pattern) 在单次调用内去重，避免日志刷屏（P2-02）。
-        Set<String> warnedInvalidPatterns = new HashSet<>();
+        // D1（Cycle 2，adjudication-table-cycle2 §5）：去重键为结构性 List（值级 equals/hashCode），
+        // 非 "|" 拼接 String——pattern 是用户配置的正则表达式，常态含 "|"（alternation），
+        // 拼接键的正确性依赖 classificationId 格式永不含 "|" 的脆弱假设（沿 AR-03 结构性键先例）。
+        Set<List<String>> warnedInvalidPatterns = new HashSet<>();
         for (NopMetaEntityField field : fields) {
             String fieldName = field.getFieldName();
             String stdDataType = field.getStdDataType();
@@ -139,10 +147,11 @@ public class AutoClassificationProcessor {
                 try {
                     compiled = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
                 } catch (Exception e) {
-                    String warnKey = classification.getClassificationId() + "|" + pattern;
+                    List<String> warnKey = Arrays.asList(classification.getClassificationId(), pattern);
                     if (warnedInvalidPatterns.add(warnKey)) {
-                        LOG.warn("Invalid auto-classification rule pattern pattern={} classificationId={} ruleIndex={}",
-                                pattern, classification.getClassificationId(), i, e);
+                        LOG.warn("Invalid auto-classification rule pattern pattern={} classificationId={} ruleIndex={}, errorCode={}",
+                                pattern, classification.getClassificationId(), i,
+                                NopMetadataErrors.ERR_AUTOMATION_PROCESS_ISOLATED.getErrorCode(), e);
                     }
                     continue;
                 }
@@ -283,7 +292,8 @@ public class AutoClassificationProcessor {
             throw new NopMetadataException(ERR_TAG_LABEL_SAVE_FAILED, e)
                     .param(ARG_ENTITY_TYPE, ENTITY_TYPE_NOP_META_TABLE)
                     .param(ARG_ENTITY_ID, entityId)
-                    .param(ARG_TAG_ID, tagId);
+                    .param(ARG_TAG_ID, tagId)
+                    .param(ARG_ERROR, NopMetadataHelper.toErrorMessage(e));
         }
     }
 

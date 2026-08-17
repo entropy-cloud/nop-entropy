@@ -118,7 +118,7 @@ public class JoinMixedSideResolver {
             IEntityDao<NopMetaEntityField> fieldDao = ctx.daoProvider().daoFor(NopMetaEntityField.class);
             return fieldDao.getEntityById(entityFieldId);
         } catch (Exception e) {
-            LOG.warn("failed to load entity field by id: {}", entityFieldId, e);
+            LOG.warn(NopMetadataErrors.ERR_JOIN_RESOLVE_ISOLATED.getErrorCode() + ": failed to load entity field by id: {}", entityFieldId, e);
             return null;
         }
     }

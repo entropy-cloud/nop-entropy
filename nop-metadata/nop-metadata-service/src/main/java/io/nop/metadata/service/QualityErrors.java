@@ -107,14 +107,6 @@ interface QualityErrors extends NopMetadataArgs {
             ErrorCode.define("nop.err.metadata.quality-table-not-found",
                     "Quality rule target table not found (entityId does not refer to an existing NopMetaTable): "
                             + "{qualityRuleId} entityId={entityId}", ARG_QUALITY_RULE_ID, ARG_ENTITY_ID);
-    ErrorCode ERR_QUALITY_TABLE_NOT_EXTERNAL =
-            ErrorCode.define("nop.err.metadata.quality-table-not-external",
-                    "Quality rule target table is not external (first version supports external-only execution): "
-                            + "{qualityRuleId} tableType={tableType}", ARG_QUALITY_RULE_ID, ARG_TABLE_TYPE);
-    ErrorCode ERR_QUALITY_NO_DATASOURCE =
-            ErrorCode.define("nop.err.metadata.quality-no-datasource",
-                    "No registered MetaDataSource for querySpace of target table: "
-                            + "{qualityRuleId} querySpace={querySpace}", ARG_QUALITY_RULE_ID, ARG_QUERY_SPACE);
     ErrorCode ERR_QUALITY_DATASOURCE_DISABLED =
             ErrorCode.define("nop.err.metadata.quality-datasource-disabled",
                     "MetaDataSource is disabled, cannot execute quality rule: {dataSourceId}", ARG_DATA_SOURCE_ID);
@@ -128,4 +120,37 @@ interface QualityErrors extends NopMetadataArgs {
                     "Workflow manager (IWorkflowManager) is not available: cannot create alert workflow"
                             + " for qualityResultId={qualityResultId}",
                     ARG_QUALITY_RESULT_ID);
+
+    // ===== Checkpoint / Quality rule execution isolation (clause-b formalize) =====
+
+    ErrorCode ERR_CHECKPOINT_SCHEDULE_FAILED =
+            ErrorCode.define("nop.err.metadata.checkpoint-schedule-failed",
+                    "Checkpoint scheduler operation failed: checkpointId={checkpointId} -- {error}",
+                    ARG_CHECKPOINT_ID, ARG_ERROR);
+    ErrorCode ERR_CHECKPOINT_RULE_EXEC_ISOLATED =
+            ErrorCode.define("nop.err.metadata.checkpoint-rule-exec-isolated",
+                    "Checkpoint rule execution failed (isolated, batch continues): checkpointId={checkpointId} "
+                            + "-- {error}",
+                    ARG_CHECKPOINT_ID, ARG_ERROR);
+    ErrorCode ERR_CHECKPOINT_ACTION_DISPATCH_ISOLATED =
+            ErrorCode.define("nop.err.metadata.checkpoint-action-dispatch-isolated",
+                    "Checkpoint action dispatch failed (isolated): checkpointId={checkpointId} "
+                            + "actionType={actionType} -- {error}",
+                    ARG_CHECKPOINT_ID, ARG_ACTION_TYPE, ARG_ERROR);
+    ErrorCode ERR_QUALITY_SCORE_RULE_ISOLATED =
+            ErrorCode.define("nop.err.metadata.quality-score-rule-isolated",
+                    "Quality score rule evaluation failed (isolated, batch continues): metaTableId={metaTableId} "
+                            + "-- {error}",
+                    ARG_META_TABLE_ID, ARG_ERROR);
+    ErrorCode ERR_QUALITY_RULE_EXEC_ISOLATED =
+            ErrorCode.define("nop.err.metadata.quality-rule-exec-isolated",
+                    "Quality rule execution failed (isolated): qualityRuleId={qualityRuleId} -- {error}",
+                    ARG_QUALITY_RULE_ID, ARG_ERROR);
+    ErrorCode ERR_QUALITY_RULE_TYPE_PROBE_FAILED =
+            ErrorCode.define("nop.err.metadata.quality-rule-type-probe-failed",
+                    "Quality rule type probe failed (fallback applied): {error}", ARG_ERROR);
+    ErrorCode ERR_QUALITY_ALERT_WORKFLOW_ISOLATED =
+            ErrorCode.define("nop.err.metadata.quality-alert-workflow-isolated",
+                    "Quality alert workflow creation failed (isolated): qualityResultId={qualityResultId} -- {error}",
+                    ARG_QUALITY_RESULT_ID, ARG_ERROR);
 }

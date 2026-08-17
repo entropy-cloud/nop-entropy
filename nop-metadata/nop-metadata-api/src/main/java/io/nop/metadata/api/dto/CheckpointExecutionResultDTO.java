@@ -2,16 +2,17 @@
 package io.nop.metadata.api.dto;
 
 import io.nop.api.core.annotations.data.DataBean;
-import io.nop.metadata.api.dto.ErrorDTO;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 质量检查点执行结果 DTO（来源：{@code NopMetaQualityCheckpointBizModel.executeCheckpoint}）。
+ *
+ * <p>P2-20（plan 2026-08-16-0549-2）：移除规则结果明细/执行错误明细的两个冗余
+ * {@code List<Map<String,Object>>} 字段——全部键均有类型化承接（{@link QualityRuleResultDTO} 六键全承接；
+ * {@link ErrorDTO} 经 source/refType/refValue 增补 + code/detail 标识符惯例全承接），消费面清点见 owner doc。
  */
 @DataBean
 public class CheckpointExecutionResultDTO implements Serializable {
@@ -28,8 +29,6 @@ public class CheckpointExecutionResultDTO implements Serializable {
     private List<String> affectedTableIds = new ArrayList<>();
     private List<QualityRuleResultDTO> ruleResults = new ArrayList<>();
     private List<ErrorDTO> errors = new ArrayList<>();
-    private List<Map<String, Object>> executionResults = new ArrayList<>();
-    private List<Map<String, Object>> executionErrors = new ArrayList<>();
     private boolean autoScore;
     private boolean scoreSkipped;
 
@@ -120,22 +119,6 @@ public class CheckpointExecutionResultDTO implements Serializable {
 
     public void setAffectedTableIds(List<String> affectedTableIds) {
         this.affectedTableIds = affectedTableIds;
-    }
-
-    public List<Map<String, Object>> getExecutionResults() {
-        return executionResults;
-    }
-
-    public void setExecutionResults(List<Map<String, Object>> executionResults) {
-        this.executionResults = executionResults;
-    }
-
-    public List<Map<String, Object>> getExecutionErrors() {
-        return executionErrors;
-    }
-
-    public void setExecutionErrors(List<Map<String, Object>> executionErrors) {
-        this.executionErrors = executionErrors;
     }
 
     public boolean isAutoScore() {

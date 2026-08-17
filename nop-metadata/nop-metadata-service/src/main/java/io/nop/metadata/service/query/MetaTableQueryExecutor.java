@@ -2,10 +2,11 @@ package io.nop.metadata.service.query;
 
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.metadata.service.query.FilterToSqlTranslator;
-import io.nop.metadata.service.query.SqlPagination;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
+import io.nop.metadata.service.quality.MetaQualityRuleExecutor;
+import io.nop.metadata.service.query.FilterToSqlTranslator;
+import io.nop.metadata.service.query.SqlPagination;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -94,10 +95,20 @@ public final class MetaTableQueryExecutor {
 
     /**
      * 执行查询 SQL 并把每行序列化为 {@code Map<String,Object>}（key=列名/标签，value=列值）。
+     *
+     * @param metaTableId 目标逻辑表 ID（P1-6 plan 2026-08-15-1913-3 轨 2 穿参：
+     *                    静态工具方法无身份值，由调用方传入——占位符真实渲染）
      */
-    public static List<Map<String, Object>> executeQuery(Connection conn, String sql, List<Object> filterParams,
-                                                          Long limit, Long offset) {
-        LOG.info("MetaTableQueryExecutor SQL: {}", sql);
+    public static List<Map<String, Object>> executeQuery(Connection conn,
+                                                           String sql,
+                                                           List<Object> filterParams,
+                                                           Long limit, Long offset,
+                                                           final String metaTableId) {
+        // P1-8（plan 2026-08-15-1913-1，AR-16 形态）：sql 路径 SQL 内嵌 sourceSql
+        // 全文（可含敏感字面量），INFO 只记 sqlHash，全文降 DEBUG
+        LOG.info("MetaTableQueryExecutor SQL executed: sqlHash={}",
+                MetaQualityRuleExecutor.sqlHashOf(sql));
+        LOG.debug("MetaTableQueryExecutor SQL: {}", sql);
         List<Map<String, Object>> rows = new ArrayList<>();
         try (PreparedStatement st = conn.prepareStatement(sql)) {
             int idx = 1;
@@ -130,8 +141,9 @@ public final class MetaTableQueryExecutor {
             return rows;
         } catch (SQLException e) {
             throw new NopMetadataException(NopMetadataErrors.ERR_QUERY_SQL_EXEC_FAILED, e)
+                    .param(NopMetadataErrors.ARG_META_TABLE_ID, metaTableId)
                     .param("sql", sql)
-                    .param("error", messageOf(e));
+                    .param(NopMetadataErrors.ARG_ERROR, messageOf(e));
         }
     }
 

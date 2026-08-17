@@ -638,6 +638,7 @@ prop:
       metaModule: 元数据模块
       metaModule.displayName: 元数据模块
       metaModuleId: 模块版本ID
+      qualityResults: 质量结果集
       remark: 备注
       status: 状态
       status_label: 状态
@@ -648,6 +649,8 @@ prop:
       version: 数据版本
     NopMetaQualityResult:
       actualValue: 实际值
+      checkpoint: 质量检查点
+      checkpoint.displayName: 质量检查点
       checkpointId: 检查点ID
       createTime: 创建时间
       createdBy: 创建人

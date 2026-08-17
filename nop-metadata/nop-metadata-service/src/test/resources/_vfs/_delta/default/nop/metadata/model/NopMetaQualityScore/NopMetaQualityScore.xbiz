@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<biz x:extends="super" x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c">
+
+    <!-- P2-24 接线测试（plan 2026-08-16-0226-3 Phase 3）：defaultPrepareSave 的 xbiz 覆盖——
+         经 delta 层对本模块全部测试生效；副作用写 remark 列（既有评分断言不依赖该列）。
+         证明 computeQualityScore 链路的 doSave(prepareSave=this::invokeDefaultPrepareSave)
+         经 getThisObj() 容器分发真实到达本覆盖（非直调 Java 私有方法）。 -->
+    <actions>
+        <action name="defaultPrepareSave">
+            <arg name="entityData" type="io.nop.biz.crud.EntityData"/>
+            <arg name="svcCtx" kind="ServiceContext"/>
+            <source>
+                <c:script><![CDATA[
+                    entityData.entity.remark = 'defaultPrepareSave-invoked';
+                ]]></c:script>
+            </source>
+        </action>
+    </actions>
+</biz>

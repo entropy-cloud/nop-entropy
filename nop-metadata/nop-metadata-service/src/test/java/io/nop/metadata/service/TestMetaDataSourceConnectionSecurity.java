@@ -103,6 +103,58 @@ public class TestMetaDataSourceConnectionSecurity {
                 ex.getErrorCode());
     }
 
+    // ===== F5（plan 2026-08-14-1133-1）：反射类加载 / 选项透传参数族 blocklist 完备 =====
+
+    /**
+     * <b>F5 adversarial</b>：触发反射类加载（RCE-chain 潜力）的 5 个新参数必须被 fail-fast 拒绝。
+     *
+     * <p>使用外网主机（example.com）隔离危险参数检查（dangerous-param check 在 host check 之前），
+     * 确保命中由新增 token 触发，reason 标识具体 token。
+     */
+    @Test
+    public void testF5ClassLoadingParamsRejected() {
+        // 每行：{token, jdbcUrl}——token 用于断言 reason
+        String[][] vectors = {
+                {"socketfactory", "jdbc:mysql://example.com:3306/db?socketfactory=com.attack.Evil"},
+                {"statementinterceptors", "jdbc:mysql://example.com:3306/db?statementinterceptors=com.attack.Evil"},
+                {"detectcustomcollatz", "jdbc:mysql://example.com:3306/db?detectcustomcollatz=1"},
+                {"sslfactory", "jdbc:postgresql://example.com:5432/db?sslfactory=com.attack.Evil"},
+                {"options=", "jdbc:postgresql://example.com:5432/db?options=-c%20exit_on_error=true"}
+        };
+        for (String[] v : vectors) {
+            String token = v[0];
+            String url = v[1];
+            NopException ex = assertThrows(NopException.class,
+                    () -> service.testConnect("jdbc",
+                            "{\"jdbcUrl\":\"" + url + "\"," + BASE_CFG + "}"),
+                    "F5: class-loading/option-passing dangerous param must fail: " + url);
+            assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(),
+                    ex.getErrorCode(),
+                    "F5: must throw ERR_DATASOURCE_JDBC_URL_BLOCKED for token=" + token);
+            String reason = String.valueOf(ex.getParam("reason"));
+            assertTrue(reason.contains("dangerous") && reason.contains(token),
+                    "F5: reason must flag dangerous + token '" + token + "': " + reason);
+        }
+    }
+
+    /** F5：既有危险 token 不丢失（回归：13 个原 token + 5 个新 token 全覆盖）。 */
+    @Test
+    public void testF5ExistingDangerousTokensStillRejected() {
+        String[] legacyUrls = {
+                "jdbc:mysql://example.com:3306/db?allowLoadLocalInfile=true",
+                "jdbc:h2:mem:x;INIT=RUNSCRIPTFROM",
+                "jdbc:mysql://example.com:3306/db?allowMultiQueries=true"
+        };
+        for (String url : legacyUrls) {
+            NopException ex = assertThrows(NopException.class,
+                    () -> service.testConnect("jdbc",
+                            "{\"jdbcUrl\":\"" + url + "\"," + BASE_CFG + "}"),
+                    "legacy dangerous token must still fail: " + url);
+            assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(),
+                    ex.getErrorCode());
+        }
+    }
+
     // ===== 主机白名单（fail-closed 默认禁内网）=====
 
     /** AWS 元数据服务 IP（SSRF 经典目标）必须失败。 */
@@ -296,6 +348,216 @@ public class TestMetaDataSourceConnectionSecurity {
         assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(), ex.getErrorCode());
     }
 
+    // ===== F2（plan 2026-08-14-0707-1 Phase 2）：多主机 JDBC URL SSRF 绕过 =====
+
+    /**
+     * <b>F2 adversarial：逗号分隔多主机，第二主机为内网（169.254.169.254）必须被拒绝。</b>
+     *
+     * <p>修复前 extractHost 在第一个逗号处截断，只校验 good.com（外网放行），内网第二主机
+     * 未经校验——MySQL Connector/J 支持逗号分隔多主机故障转移，驱动会连到未校验的内网主机。
+     */
+    @Test
+    public void testCommaSeparatedMultiHostInternalSecondHostRejected() {
+        NopException ex = assertThrows(NopException.class,
+                () -> service.testConnect("jdbc",
+                        "{\"jdbcUrl\":\"jdbc:mysql://good.com,169.254.169.254:3306/db\"," + BASE_CFG + "}"),
+                "F2: comma-separated multi-host URL with internal second host must be rejected");
+        assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(), ex.getErrorCode());
+        assertTrue(String.valueOf(ex.getParam("reason")).contains("169.254.169.254"),
+                "F2: reason must identify the internal second host: " + ex.getParam("reason"));
+    }
+
+    /**
+     * <b>F2 adversarial：{@code address=} 形式多主机，第二主机为内网（127.0.0.1）必须被拒绝。</b>
+     *
+     * <p>MySQL Connector/J 官方 address-list 语法：{@code address=(host=h1)(port=p1),address=(host=h2)(port=p2)}。
+     */
+    @Test
+    public void testAddressListMultiHostInternalSecondHostRejected() {
+        NopException ex = assertThrows(NopException.class,
+                () -> service.testConnect("jdbc",
+                        "{\"jdbcUrl\":\"jdbc:mysql://address=(host=good.com)(port=3306),address=(host=127.0.0.1)(port=3306)/db\","
+                                + BASE_CFG + "}"),
+                "F2: address-list multi-host URL with internal second host must be rejected");
+        assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(), ex.getErrorCode());
+        assertTrue(String.valueOf(ex.getParam("reason")).contains("127.0.0.1"),
+                "F2: reason must identify the internal host from host= key: " + ex.getParam("reason"));
+    }
+
+    /**
+     * <b>F2 adversarial：key-value 形式（无 {@code address=} 前缀），第二主机为内网必须被拒绝。</b>
+     *
+     * <p>MySQL Connector/J 等价语法：{@code (host=h1,port=p1),(host=h2,port=p2)}。括号内含逗号，
+     * 顶层逗号切分必须正确（paren-depth 跟踪）。
+     */
+    @Test
+    public void testKeyValueMultiHostInternalSecondHostRejected() {
+        NopException ex = assertThrows(NopException.class,
+                () -> service.testConnect("jdbc",
+                        "{\"jdbcUrl\":\"jdbc:mysql://(host=good.com,port=3306),(host=10.0.0.1,port=3306)/db\","
+                                + BASE_CFG + "}"),
+                "F2: key-value multi-host URL with internal second host must be rejected");
+        assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(), ex.getErrorCode());
+        assertTrue(String.valueOf(ex.getParam("reason")).contains("10.0.0.1"),
+                "F2: reason must identify the internal host: " + ex.getParam("reason"));
+    }
+
+    /** <b>F2：第一主机为内网</b>（逗号分隔）→ 仍被既有逻辑拒绝（回归：不因多主机改动而放行第一主机）。 */
+    @Test
+    public void testCommaSeparatedInternalFirstHostRejected() {
+        NopException ex = assertThrows(NopException.class,
+                () -> service.testConnect("jdbc",
+                        "{\"jdbcUrl\":\"jdbc:mysql://10.0.0.1,good.com:3306/db\"," + BASE_CFG + "}"),
+                "internal first host must still be rejected");
+        assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(), ex.getErrorCode());
+    }
+
+    // ===== F7（plan 2026-08-14-1133-1）：空/畸形主机 fail-closed（enforced，不再依赖驱动拒绝）=====
+
+    /**
+     * <b>F7 adversarial</b>：空主机（{@code jdbc:mysql:///db}）必须被显式拒绝，不再依赖驱动拒绝的 lucky path。
+     *
+     * <p>修复前 {@code extractHosts} 返回非主机形状串 {@code "/db"}，HostSecurityUtil 判其为外部 → 静默放行。
+     */
+    @Test
+    public void testF7EmptyHostRejected() {
+        NopException ex = assertThrows(NopException.class,
+                () -> service.testConnect("jdbc",
+                        "{\"jdbcUrl\":\"jdbc:mysql:///db\"," + BASE_CFG + "}"),
+                "F7: empty host (jdbc:mysql:///db) must be explicitly rejected");
+        assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(), ex.getErrorCode());
+        assertTrue(String.valueOf(ex.getParam("reason")).contains("host unparseable"),
+                "F7: reason must flag host unparseable: " + ex.getParam("reason"));
+    }
+
+    /**
+     * <b>F7 adversarial</b>：空主机带端口（{@code jdbc:mysql://:3306/db}）必须被显式拒绝。
+     *
+     * <p>修复前 {@code extractHosts} 返回 {@code ":3306"}（纯端口），HostSecurityUtil 判其为外部 → 静默放行。
+     */
+    @Test
+    public void testF7EmptyHostWithPortRejected() {
+        NopException ex = assertThrows(NopException.class,
+                () -> service.testConnect("jdbc",
+                        "{\"jdbcUrl\":\"jdbc:mysql://:3306/db\"," + BASE_CFG + "}"),
+                "F7: empty host with port (jdbc:mysql://:3306/db) must be explicitly rejected");
+        assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(), ex.getErrorCode());
+        assertTrue(String.valueOf(ex.getParam("reason")).contains("host unparseable"),
+                "F7: reason must flag host unparseable: " + ex.getParam("reason"));
+    }
+
+    /** F7：合法外网主机不误伤（回归——host shape 校验不破坏既有外网放行路径）。 */
+    @Test
+    public void testF7ValidExternalHostNotBlocked() {
+        assertDoesNotThrow(() -> service.testConnect("jdbc",
+                        "{\"jdbcUrl\":\"jdbc:mysql://example.com:3306/db\"," + BASE_CFG + "}"),
+                "valid external host must pass shape check + host check");
+    }
+
+    // ===== F2 再审计（plan 2026-08-15-1913-1）：hostless 属性组 + query 参数主机（P0 驱动语义级绕过）=====
+
+    /**
+     * <b>F2 再审计 adversarial：hostless 属性组（驱动隐式 localhost）必须被拒绝。</b>
+     *
+     * <p>修复前 {@code (port=3306)} / {@code address=(port=3306)} 段不含 {@code host=} 键，
+     * 整段按"主机名"原样返回，{@code isPlausibleHostShape} 首字符 {@code (} 不在拒绝分支 → 放行。
+     * MySQL Connector/J 9.2.0 对 hostless 属性组默认连接 localhost——SSRF 语义等价内网主机。
+     */
+    @Test
+    public void testHostlessAttributeGroupRejected() {
+        String[] vectors = {
+                "jdbc:mysql://(port=3306)/db",
+                "jdbc:mysql://address=(port=3306)/db"
+        };
+        for (String url : vectors) {
+            NopException ex = assertThrows(NopException.class,
+                    () -> service.testConnect("jdbc",
+                            "{\"jdbcUrl\":\"" + url + "\"," + BASE_CFG + "}"),
+                    "F2 re-audit: hostless attribute group (implicit localhost) must be rejected: " + url);
+            assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(), ex.getErrorCode(),
+                    "hostless attribute group must fail with ERR_DATASOURCE_JDBC_URL_BLOCKED: " + url);
+            assertTrue(String.valueOf(ex.getParam("reason")).contains("hostless"),
+                    "reason must flag hostless attribute group: " + ex.getParam("reason"));
+        }
+    }
+
+    /**
+     * <b>F2 再审计 adversarial：query 中的 {@code host=} 完全覆盖 authority 主机（pgjdbc
+     * Driver.parseURL 语义，实机验证）必须纳入逐主机内网校验。</b>
+     *
+     * <p>修复前 {@code extractHosts} 的 authority 截断于首个 {@code ?}——query string 完全不参与
+     * 主机提取，{@code jdbc:postgresql://public.example.com/db?host=169.254.169.254} 校验层只见
+     * public.example.com（放行），驱动实际连接 169.254.169.254（云元数据端点直连）。
+     */
+    @Test
+    public void testQueryHostOverridesAuthorityRejected() {
+        String[][] vectors = {
+                {"127.0.0.1", "jdbc:postgresql://public.example.com/db?host=127.0.0.1"},
+                {"169.254.169.254", "jdbc:postgresql://public.example.com:5432/db?host=169.254.169.254"}
+        };
+        for (String[] v : vectors) {
+            NopException ex = assertThrows(NopException.class,
+                    () -> service.testConnect("jdbc",
+                            "{\"jdbcUrl\":\"" + v[1] + "\"," + BASE_CFG + "}"),
+                    "F2 re-audit: query host= override must be validated per-host: " + v[1]);
+            assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(), ex.getErrorCode(),
+                    "query internal host must fail with ERR_DATASOURCE_JDBC_URL_BLOCKED: " + v[1]);
+            assertTrue(String.valueOf(ex.getParam("reason")).contains(v[0]),
+                    "reason must identify the internal query host: " + ex.getParam("reason"));
+        }
+    }
+
+    /**
+     * <b>F2 再审计 adversarial 变体：percent-decode / 参数名大小写不敏感 / 多值逐校验 /
+     * {@code hostaddr=} / 裸 token / 空值 / percent 编码参数名。</b>
+     *
+     * <p>对齐 pgjdbc 解析语义：(a) 值 percent-decode 后校验；(b) 参数名大小写不敏感；(c) 重复参数
+     * 逐值校验；(d) {@code hostaddr=} 同 {@code host=}；空值/裸 token = 驱动回落默认主机（localhost）。
+     */
+    @Test
+    public void testQueryHostVariantsRejected() {
+        String[] vectors = {
+                "jdbc:postgresql://public.example.com/db?host=%31%32%37%2e%30%2e%30%2e%31", // decode → 127.0.0.1
+                "jdbc:postgresql://public.example.com/db?Host=10.0.0.1",                    // 大小写不敏感
+                "jdbc:postgresql://public.example.com/db?HOST=192.168.1.1",                 // 全大写
+                "jdbc:postgresql://public.example.com/db?host=169.254.169.254&host=x",      // 多值逐校验
+                "jdbc:postgresql://public.example.com/db?hostaddr=127.0.0.1",               // hostaddr 同 host
+                "jdbc:postgresql://public.example.com/db?host",                             // 裸 token → hostless
+                "jdbc:postgresql://public.example.com/db?host=",                            // 空值 → hostless
+                "jdbc:postgresql://public.example.com/db?%68ost=127.0.0.1",                 // 编码参数名 → host
+                "jdbc:postgresql://public.example.com/db?host=127.0.0.1:5432"               // 值带端口剥离后校验
+        };
+        for (String url : vectors) {
+            NopException ex = assertThrows(NopException.class,
+                    () -> service.testConnect("jdbc",
+                            "{\"jdbcUrl\":\"" + url + "\"," + BASE_CFG + "}"),
+                    "F2 re-audit: query host variant must be rejected: " + url);
+            assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(), ex.getErrorCode(),
+                    "query host variant must fail with ERR_DATASOURCE_JDBC_URL_BLOCKED: " + url);
+        }
+    }
+
+    /**
+     * <b>F2 再审计不误伤：良性 query 参数与合法外网 query 主机放行。</b>
+     *
+     * <p>{@code connectTimeout} / {@code applicationName} 不触发主机提取（参数名精确匹配 host/hostaddr）；
+     * {@code ?host=public.example.com}（合法外网 query 主机）逐主机校验通过。不使用 {@code useSSL=false}
+     * 作向量——该 token 已在 DANGEROUS_URL_TOKENS 中被 F5 时代有意拒绝。
+     */
+    @Test
+    public void testBenignQueryParamsAndExternalQueryHostNotBlocked() {
+        String[] urls = {
+                "jdbc:mysql://public.example.com/db?connectTimeout=10000",
+                "jdbc:postgresql://public.example.com/db?applicationName=x",
+                "jdbc:postgresql://public.example.com/db?host=public.example.com"
+        };
+        for (String url : urls) {
+            assertDoesNotThrow(() -> service.testConnect("jdbc",
+                            "{\"jdbcUrl\":\"" + url + "\"," + BASE_CFG + "}"),
+                    "benign query param / external query host must not be blocked: " + url);
+        }
+    }
+
     // ===== driverClassName 白名单 =====
 
     /** 非白名单 driverClassName（任意类加载攻击）必须失败。 */
@@ -387,6 +649,65 @@ public class TestMetaDataSourceConnectionSecurity {
     @Test
     public void testCredentialRedactionNull() {
         assertEquals(null, MetaDataSourceConnectionProcessor.redactJdbcUrl(null));
+    }
+
+    // ===== F6（plan 2026-08-14-1133-1）：含 @ 口令脱敏不再泄漏尾部 =====
+
+    /**
+     * <b>F6 adversarial</b>：口令含 {@code @}（{@code user:p@ss@host}）必须 redact 到最后一个 {@code @}，
+     * 口令尾部 {@code ss} 不泄漏进 redacted URL。
+     *
+     * <p>修复前 {@code CREDENTIAL_PATTERN} 在第一个 {@code @} 处停止，{@code user:p@ss@host} → {@code ss@host} 泄漏。
+     */
+    @Test
+    public void testF6PasswordWithAtSignFullyRedacted() {
+        String raw = "jdbc:mysql://user:p@ss@host:3306/db";
+        String redacted = MetaDataSourceConnectionProcessor.redactJdbcUrl(raw);
+        assertEquals("jdbc:mysql://host:3306/db", redacted,
+                "password fragment after first '@' must NOT leak");
+        assertTrue(!redacted.contains("ss@host") && !redacted.contains("p@ss"),
+                "no password fragment leak: " + redacted);
+    }
+
+    /** F6：多 {@code @} 极端用例——口令含 3 个 {@code @}，仅 host 段保留。 */
+    @Test
+    public void testF6MultipleAtSignsRedacted() {
+        String raw = "jdbc:mysql://u:a@b@c@prod-db:3306/mydb";
+        String redacted = MetaDataSourceConnectionProcessor.redactJdbcUrl(raw);
+        assertEquals("jdbc:mysql://prod-db:3306/mydb", redacted,
+                "only host segment after last '@' is retained");
+        assertTrue(!redacted.contains("a@b@c"),
+                "multi-@ password fragment must not leak: " + redacted);
+    }
+
+    /** F6：既有脱敏语义不回归（user:pass@ / user@ / 无凭据 / null / h2 全保持原行为）。 */
+    @Test
+    public void testF6LegacyRedactionSemanticsPreserved() {
+        assertEquals("jdbc:mysql://prod-db:3306/mydb",
+                MetaDataSourceConnectionProcessor.redactJdbcUrl("jdbc:mysql://admin:s3cret@prod-db:3306/mydb"));
+        assertEquals("jdbc:mysql://prod-db:3306/mydb",
+                MetaDataSourceConnectionProcessor.redactJdbcUrl("jdbc:mysql://admin@prod-db:3306/mydb"));
+        assertEquals("jdbc:mysql://prod-db:3306/mydb",
+                MetaDataSourceConnectionProcessor.redactJdbcUrl("jdbc:mysql://prod-db:3306/mydb"));
+        assertEquals("jdbc:h2:mem:test",
+                MetaDataSourceConnectionProcessor.redactJdbcUrl("jdbc:h2:mem:test"));
+        assertEquals(null,
+                MetaDataSourceConnectionProcessor.redactJdbcUrl(null));
+    }
+
+    /** F6：含 {@code @} 口令 + 危险参数被拒时，错误消息不含口令片段（端到端脱敏验证）。 */
+    @Test
+    public void testF6AtPasswordNoLeakViaErrorPath() {
+        NopException ex = assertThrows(NopException.class,
+                () -> service.testConnect("jdbc",
+                        "{\"jdbcUrl\":\"jdbc:mysql://admin:p@ss@169.254.169.254:3306/db?allowMultiQueries=true\","
+                                + BASE_CFG + "}"));
+        assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(), ex.getErrorCode());
+        String redactedUrl = String.valueOf(ex.getParam("jdbcUrl"));
+        assertTrue(!redactedUrl.contains("p@ss") && !redactedUrl.contains("ss@"),
+                "jdbcUrl param must be fully redacted (no password fragment): " + redactedUrl);
+        assertTrue(redactedUrl.startsWith("jdbc:mysql://169.254.169.254:3306/db"),
+                "redacted jdbcUrl must retain host (for ops diagnostics) but not credentials: " + redactedUrl);
     }
 
     /**

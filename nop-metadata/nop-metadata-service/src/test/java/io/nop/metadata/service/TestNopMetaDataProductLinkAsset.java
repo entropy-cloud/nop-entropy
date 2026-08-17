@@ -4,7 +4,11 @@ import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.beans.graphql.GraphQLRequestBean;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
+import io.nop.auth.core.login.UserContextImpl;
+import io.nop.auth.dao.entity.NopAuthUser;
 import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.core.context.IServiceContext;
+import io.nop.core.context.ServiceContextImpl;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.graphql.core.IGraphQLExecutionContext;
@@ -21,6 +25,10 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * 验证 Phase 3 DataProduct 资产关联（linkAsset/unlinkAsset/getLinkedAssets）。
+ *
+ * <p>P1-5（plan 2026-08-15-1913-2）：linkAsset 创建路径改走 TagLabel 属主 save 管线——Automated
+ * 标签真实触发提审（wf 启动需要真实操作人，沿 TestNopMetaTagLabelApproval.ensureUser 注记），
+ * 本测试类的 linkAsset 调用统一经带真实用户的 ServiceContext 执行。
  */
 @NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 public class TestNopMetaDataProductLinkAsset extends JunitBaseTestCase {
@@ -30,6 +38,26 @@ public class TestNopMetaDataProductLinkAsset extends JunitBaseTestCase {
 
     @Inject
     IDaoProvider daoProvider;
+
+    private static final String TEST_USER_ID = "u-dp-link-autotest";
+
+    /** wf 启动需要真实操作人（approval-support.xbiz ApprovalFlowHelper.start 的 allowCallByUser 校验）。 */
+    private void ensureUser() {
+        IEntityDao<NopAuthUser> userDao = daoProvider.daoFor(NopAuthUser.class);
+        if (userDao.getEntityById(TEST_USER_ID) == null) {
+            NopAuthUser user = userDao.newEntity();
+            user.setUserName("dp-link-autotest");
+            user.setUserId(TEST_USER_ID);
+            user.setNickName(user.getUserName());
+            user.setPassword("123");
+            user.setOpenId(TEST_USER_ID);
+            user.setUserType(1);
+            user.setStatus(1);
+            user.setGender(1);
+            user.setTenantId("0");
+            userDao.saveEntity(user);
+        }
+    }
 
     private String setupDomainAndProduct() {
         IEntityDao<NopMetaBusinessDomain> domainDao = daoProvider.daoFor(NopMetaBusinessDomain.class);
@@ -216,9 +244,15 @@ public class TestNopMetaDataProductLinkAsset extends JunitBaseTestCase {
     }
 
     private GraphQLResponseBean execute(String query) {
+        ensureUser();
         GraphQLRequestBean request = new GraphQLRequestBean();
         request.setQuery(query);
-        IGraphQLExecutionContext context = graphQLEngine.newGraphQLContext(request);
+        IServiceContext svcCtx = new ServiceContextImpl();
+        UserContextImpl userContext = new UserContextImpl();
+        userContext.setUserId(TEST_USER_ID);
+        userContext.setUserName("dp-link-autotest");
+        svcCtx.setUserContext(userContext);
+        IGraphQLExecutionContext context = graphQLEngine.newGraphQLContext(request, svcCtx);
         return graphQLEngine.executeGraphQL(context);
     }
 }

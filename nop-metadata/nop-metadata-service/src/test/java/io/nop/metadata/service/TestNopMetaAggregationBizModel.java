@@ -11,12 +11,12 @@ package io.nop.metadata.service;
  *   <li>{@link TestAggregationEntityJoinAndComplex} — entity aggregation, entity temporal
  *       granularity bucketing, entity↔entity JOIN, JOIN failure paths, refactor regression</li>
  * </ul>
- * <p>Shared helpers are in {@link TestAggregationHelper}.
+ * <p>Shared helpers are in {@link AggregationTestHelper}.
  *
  * @see TestAggregationCategoricalAndTemporal
  * @see TestAggregationExternalJoinAndPagination
  * @see TestAggregationEntityJoinAndComplex
- * @see TestAggregationHelper
+ * @see AggregationTestHelper
  */
 public class TestNopMetaAggregationBizModel {
     // Tests moved to the three split files above.

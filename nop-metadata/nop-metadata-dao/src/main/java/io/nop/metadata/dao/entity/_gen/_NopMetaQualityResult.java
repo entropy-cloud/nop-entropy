@@ -96,6 +96,9 @@ public class _NopMetaQualityResult extends DynamicOrmEntity{
     /* relation: 质量规则 */
     public static final String PROP_NAME_qualityRule = "qualityRule";
     
+    /* relation: 质量检查点 */
+    public static final String PROP_NAME_checkpoint = "checkpoint";
+    
     /* component:  */
     public static final String PROP_NAME_detailsComponent = "detailsComponent";
     
@@ -992,6 +995,29 @@ public class _NopMetaQualityResult extends DynamicOrmEntity{
            internalSetRefEntity(PROP_NAME_qualityRule, refEntity,()->{
            
                            this.setQualityRuleId(refEntity.getQualityRuleId());
+                       
+           });
+           }
+       
+    }
+       
+    /**
+     * 质量检查点
+     */
+    public final io.nop.metadata.dao.entity.NopMetaQualityCheckpoint getCheckpoint(){
+       return (io.nop.metadata.dao.entity.NopMetaQualityCheckpoint)internalGetRefEntity(PROP_NAME_checkpoint);
+    }
+
+    public final void setCheckpoint(io.nop.metadata.dao.entity.NopMetaQualityCheckpoint refEntity){
+   
+           if(refEntity == null){
+           
+                   this.setCheckpointId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_checkpoint, refEntity,()->{
+           
+                           this.setCheckpointId(refEntity.getCheckpointId());
                        
            });
            }

@@ -24,13 +24,16 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -163,7 +166,8 @@ public class NopMetaLineageEdgeQueryAction {
         try {
             refs = sqlExtractor.extract(sourceSql);
         } catch (NopException e) {
-            LOG.error("extractLineageFromSql failed for metaTableId={}", metaTableId, e);
+            LOG.error("extractLineageFromSql failed for metaTableId={}, errorCode={}",
+                    metaTableId, NopMetadataErrors.ERR_LINEAGE_QUERY_ISOLATED.getErrorCode(), e);
             errors.add(errorMap("sql_parse", e));
             refs = Collections.emptyList();
         }
@@ -172,7 +176,7 @@ public class NopMetaLineageEdgeQueryAction {
         List<String> unresolved = new ArrayList<>();
         List<String> candidateSourceIds = new ArrayList<>();
         for (SqlTableReference ref : refs) {
-            String sourceId = nameToId.get(ref.getSimpleName().toLowerCase());
+            String sourceId = nameToId.get(ref.getSimpleName().toLowerCase(Locale.ROOT));
             if (sourceId == null) {
                 unresolved.add(ref.getFullName());
                 continue;
@@ -194,7 +198,8 @@ public class NopMetaLineageEdgeQueryAction {
         if (!newEdges.isEmpty()) {
             dao.batchSaveEntities(newEdges);
         }
-        return new LineageExtractResult(candidateSourceIds.size(), unresolved, errors);
+        return new LineageExtractResult(candidateSourceIds.size(),
+                dedupPreservingOrder(candidateSourceIds), unresolved, errors);
     }
 
     public LineageExtractResult extractColumnLineageFromSql(String metaTableId,
@@ -219,7 +224,8 @@ public class NopMetaLineageEdgeQueryAction {
         try {
             candidates = columnExtractor.extract(sourceSql);
         } catch (NopException e) {
-            LOG.error("extractColumnLineageFromSql failed for metaTableId={}", metaTableId, e);
+            LOG.error("extractColumnLineageFromSql failed for metaTableId={}, errorCode={}",
+                    metaTableId, NopMetadataErrors.ERR_LINEAGE_QUERY_ISOLATED.getErrorCode(), e);
             errors.add(errorMap("sql_parse_column", e));
             candidates = Collections.emptyList();
         }
@@ -234,7 +240,7 @@ public class NopMetaLineageEdgeQueryAction {
                         + " (" + c.getUnresolvedReason() + ")");
                 continue;
             }
-            String sourceId = nameToId.get(c.getSourceTableName().toLowerCase());
+            String sourceId = nameToId.get(c.getSourceTableName().toLowerCase(Locale.ROOT));
             if (sourceId == null) {
                 unresolved.add(c.getTargetColumn() + " <- " + c.getSourceTableName() + "."
                         + c.getSourceColumn() + " (source-table-not-in-catalog)");
@@ -243,17 +249,20 @@ public class NopMetaLineageEdgeQueryAction {
             resolvedSourceIds.add(sourceId);
             resolvedCandidates.add(c);
         }
-        Map<String, NopMetaLineageEdge> existingEdgeMap = batchLoadExistingColumnParseEdgeMap(resolvedSourceIds, targetId, dao);
+        Map<List<String>, NopMetaLineageEdge> existingEdgeMap = batchLoadExistingColumnParseEdgeMap(resolvedSourceIds, targetId, dao);
         List<NopMetaLineageEdge> toSave = new ArrayList<>();
         List<NopMetaLineageEdge> toUpdate = new ArrayList<>();
         // 同批去重：同一表达式内重复列引用（如 a.x + a.x）产生同键候选，toSave 内待插项不在
-        // existingEdgeMap 中，第二条同键候选会重复 INSERT（MA7.4-02）——用已见键集合拦截
-        Set<String> seenKeys = new HashSet<>();
+        // existingEdgeMap 中，第二条同键候选会重复 INSERT（MA7.4-02）——用已见键集合拦截。
+        // D5（Cycle 2，adjudication-table-cycle2 §5）：键为结构性 List（值级 equals/hashCode），
+        // 非 "|" 拼接 String——带引号 SQL 派生列名可含 "|"，拼接键碰撞会导致第二条边被静默吞掉
+        // （沿 AR-03 结构性键先例）。
+        Set<List<String>> seenKeys = new HashSet<>();
         int extracted = 0;
         for (int i = 0; i < resolvedCandidates.size(); i++) {
             ColumnLineageCandidate c = resolvedCandidates.get(i);
             String sourceId = resolvedSourceIds.get(i);
-            String key = sourceId + "|" + c.getSourceColumn() + "|" + c.getTargetColumn();
+            List<String> key = Arrays.asList(sourceId, c.getSourceColumn(), c.getTargetColumn());
             NopMetaLineageEdge existing = existingEdgeMap.get(key);
             if (existing == null && seenKeys.add(key)) {
                 NopMetaLineageEdge edge = dao.newEntity();
@@ -276,7 +285,7 @@ public class NopMetaLineageEdgeQueryAction {
         if (!toUpdate.isEmpty()) {
             dao.batchUpdateEntities(toUpdate);
         }
-        return new LineageExtractResult(extracted, unresolved, errors);
+        return new LineageExtractResult(extracted, dedupPreservingOrder(resolvedSourceIds), unresolved, errors);
     }
 
     public LineageExtractResult extractMeasureLineage(String metaTableId,
@@ -291,7 +300,7 @@ public class NopMetaLineageEdgeQueryAction {
         Set<String> fieldNames = fieldResolver.resolveFieldNames(targetTable, fieldDao);
         Set<String> fieldNamesLower = new HashSet<>(fieldNames.size());
         for (String n : fieldNames) {
-            if (n != null) fieldNamesLower.add(n.toLowerCase());
+            if (n != null) fieldNamesLower.add(n.toLowerCase(Locale.ROOT));
         }
         String targetId = targetTable.getMetaTableId();
         deleteMeasureParseEdges(targetId, dao);
@@ -321,7 +330,7 @@ public class NopMetaLineageEdgeQueryAction {
                         unresolved.add(measureName + " <- " + ident + " (join-context-deferred)");
                         continue;
                     }
-                    if (!fieldNamesLower.contains(ident.toLowerCase())) {
+                    if (!fieldNamesLower.contains(ident.toLowerCase(Locale.ROOT))) {
                         unresolved.add(measureName + " <- " + ident + " (column-not-in-table-fields)");
                         continue;
                     }
@@ -336,8 +345,8 @@ public class NopMetaLineageEdgeQueryAction {
                     extracted++;
                 }
             } catch (NopException e) {
-                LOG.warn("extractMeasureLineage validator failed for metaTableId={}, measureName={}",
-                        metaTableId, measureName, e);
+                LOG.warn("extractMeasureLineage validator failed for metaTableId={}, measureName={}, errorCode={}",
+                        metaTableId, measureName, NopMetadataErrors.ERR_LINEAGE_QUERY_ISOLATED.getErrorCode(), e);
                 Map<String, Object> err = new LinkedHashMap<>();
                 err.put("stage", "measure_parse");
                 err.put("measureName", measureName);
@@ -348,7 +357,12 @@ public class NopMetaLineageEdgeQueryAction {
         if (!toSave.isEmpty()) {
             dao.batchSaveEntities(toSave);
         }
-        return new LineageExtractResult(extracted, unresolved, errors);
+        // 指标级语义裁定（P1-3）：measure 边全部为自环（sourceTableId=targetId），无独立 resolved 计算——
+        // sourceTables = 宿主表自身 [metaTableId]（与边语义一致）；产出 0 条边时为空列表（不伪造源）。
+        List<String> measureSourceTables = extracted > 0
+                ? Collections.singletonList(targetId)
+                : Collections.emptyList();
+        return new LineageExtractResult(extracted, measureSourceTables, unresolved, errors);
     }
 
     // ============================================================
@@ -433,7 +447,7 @@ public class NopMetaLineageEdgeQueryAction {
         Map<String, String> map = new LinkedHashMap<>();
         for (NopMetaTable t : tables) {
             if (t.getTableName() != null) {
-                map.putIfAbsent(t.getTableName().toLowerCase(), t.getMetaTableId());
+                map.putIfAbsent(t.getTableName().toLowerCase(Locale.ROOT), t.getMetaTableId());
             }
         }
         return map;
@@ -469,9 +483,9 @@ public class NopMetaLineageEdgeQueryAction {
         return existing;
     }
 
-    Map<String, NopMetaLineageEdge> batchLoadExistingColumnParseEdgeMap(Collection<String> sourceIds,
-                                                                          String targetTableId,
-                                                                          IEntityDao<NopMetaLineageEdge> dao) {
+    Map<List<String>, NopMetaLineageEdge> batchLoadExistingColumnParseEdgeMap(Collection<String> sourceIds,
+                                                                               String targetTableId,
+                                                                               IEntityDao<NopMetaLineageEdge> dao) {
         if (sourceIds.isEmpty()) return Collections.emptyMap();
         QueryBean q = new QueryBean();
         q.addFilter(FilterBeans.in(NopMetaLineageEdge.PROP_NAME_sourceTableId, new HashSet<>(sourceIds)));
@@ -479,10 +493,13 @@ public class NopMetaLineageEdgeQueryAction {
         q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_lineageSource,
                 _NopMetadataCoreConstants.LINEAGE_SOURCE_SQL_PARSE));
         List<NopMetaLineageEdge> edges = dao.findAllByQuery(q);
-        Map<String, NopMetaLineageEdge> map = new HashMap<>();
+        // D6（Cycle 2，adjudication-table-cycle2 §5）：existing-edge map 键为结构性 List（值级
+        // equals/hashCode），非 "|" 拼接 String——SQL 派生列名（带引号标识符）可含 "|"，拼接键
+        // 碰撞会使不同边在 map 中互相覆盖 → 错误 update/insert 路由（沿 AR-03 结构性键先例）。
+        Map<List<String>, NopMetaLineageEdge> map = new HashMap<>();
         for (NopMetaLineageEdge e : edges) {
             if (e.getSourceColumn() != null) {
-                map.put(e.getSourceTableId() + "|" + e.getSourceColumn() + "|" + e.getTargetColumn(), e);
+                map.put(Arrays.asList(e.getSourceTableId(), e.getSourceColumn(), e.getTargetColumn()), e);
             }
         }
         return map;
@@ -512,6 +529,12 @@ public class NopMetaLineageEdgeQueryAction {
         return err;
     }
 
+    /** 去重保序（跨 schema 同 simpleName 可解析到同一 metaTable ID，sourceTables 语义为"源表集"）。 */
+    private static List<String> dedupPreservingOrder(List<String> ids) {
+        if (ids.isEmpty()) return Collections.emptyList();
+        return new ArrayList<>(new LinkedHashSet<>(ids));
+    }
+
     public static final class LineageGraph {
         public final Map<String, List<String>> forward;
         public final Map<String, List<String>> reverse;
@@ -528,11 +551,20 @@ public class NopMetaLineageEdgeQueryAction {
 
     public static final class LineageExtractResult {
         public final int edgeCount;
+        /**
+         * 已解析源表标识（metaTable ID 集，去重保序）。
+         * 表级 = nameToId 命中的 candidateSourceIds；列级 = 命中的 resolvedSourceIds；
+         * 指标级 = 宿主表自身（自环边语义，仅当产出 ≥1 条边，否则空列表）。
+         * 与 unresolved（完整名/诊断串）异质并存，语义见 owner doc。
+         */
+        public final List<String> resolvedSourceTables;
         public final List<String> unresolved;
         public final List<Map<String, Object>> errors;
 
-        public LineageExtractResult(int edgeCount, List<String> unresolved, List<Map<String, Object>> errors) {
+        public LineageExtractResult(int edgeCount, List<String> resolvedSourceTables,
+                                    List<String> unresolved, List<Map<String, Object>> errors) {
             this.edgeCount = edgeCount;
+            this.resolvedSourceTables = resolvedSourceTables;
             this.unresolved = unresolved;
             this.errors = errors;
         }

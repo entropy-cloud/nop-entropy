@@ -30,6 +30,10 @@
         </dependency>
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-wf-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-wf-core</artifactId>
         </dependency>
         <dependency>
@@ -75,11 +79,13 @@
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-search-api</artifactId>
         </dependency>
-        <!-- nop-search-lucene (optional — replace with search-platform-elasticsearch or another nop-search-* impl for production search) -->
+        <!-- nop-search-lucene (test scope, P2-35 裁定): main 代码零 lucene import——搜索功能经 io.nop.search.api
+             抽象访问，impl 由运行时 SPI 发现；本依赖仅为搜索测试提供默认 impl。生产部署需要搜索时由宿主应用
+             显式引入 nop-search-lucene 或替换为其他 nop-search-* impl（部署提示见 docs-for-ai/03-modules/nop-metadata.md）。 -->
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-search-lucene</artifactId>
-            <optional>true</optional>
+            <scope>test</scope>
         </dependency>
         <!-- nop-job-api: IJobScheduler / JobSpec / TriggerSpec interfaces for cron scheduling
              (架构基线 §2.7.3.1 D6). Runtime impl provided by host app via app-local-scheduler.beans.xml. -->

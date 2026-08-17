@@ -3,8 +3,8 @@
      ext:entityPackageName="io.nop.metadata.dao.entity" ext:basePackageName="io.nop.metadata"
      ext:mavenGroupId="io.github.entropy-cloud" ext:mavenArtifactId="nop-metadata" ext:mavenVersion="2.0.0-SNAPSHOT"
      ext:platformVersion="2.0.0-SNAPSHOT" ext:dialect="mysql,oracle,postgresql" ext:useCoreModule="true"
-     x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en"
-     xmlns:ref-i18n-en="ref-i18n-en" xmlns:ext="ext" xmlns:orm-gen="orm-gen" xmlns:xpl="xpl" xmlns:ui="ui">
+     xmlns:i18n-en="i18n-en" xmlns:ref-i18n-en="ref-i18n-en" xmlns:ext="ext" xmlns:orm-gen="orm-gen" xmlns:xpl="xpl"
+     xmlns:ui="ui" x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef">
 
     <x:post-extends x:override="replace">
         <orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
@@ -997,6 +997,9 @@
                 <index name="IX_NOP_META_DOMAIN_MODEL" unique="false">
                     <column name="ormModelId"/>
                 </index>
+                <index name="IX_NOP_META_DOMAIN_SOURCE_MODULE" unique="false">
+                    <column name="sourceModuleId"/>
+                </index>
             </indexes>
             <relations>
                 <to-one displayName="ORM模型" name="ormModel" refEntityName="io.nop.metadata.dao.entity.NopMetaOrmModel"
@@ -1204,6 +1207,9 @@
                     <column name="metaSchema"/>
                     <column name="tableName"/>
                 </index>
+                <index name="IX_NOP_META_TABLE_BASE_ENTITY" unique="false">
+                    <column name="baseEntityId"/>
+                </index>
             </indexes>
             <relations>
                 <to-one displayName="元数据模块" name="metaModule" refEntityName="io.nop.metadata.dao.entity.NopMetaModule"
@@ -1379,6 +1385,9 @@
                 <index name="IX_NOP_META_DIM_BUSINESS_DOMAIN" unique="false">
                     <column name="businessDomainId"/>
                 </index>
+                <index name="IX_NOP_META_DIM_ENTITY_FIELD" unique="false">
+                    <column name="entityFieldId"/>
+                </index>
             </indexes>
             <relations>
                 <to-one displayName="逻辑表" name="metaTable" refEntityName="io.nop.metadata.dao.entity.NopMetaTable"
@@ -1448,6 +1457,9 @@
                 </index>
                 <index name="IX_NOP_META_MEASURE_BUSINESS_DOMAIN" unique="false">
                     <column name="businessDomainId"/>
+                </index>
+                <index name="IX_NOP_META_MEASURE_ENTITY_FIELD" unique="false">
+                    <column name="entityFieldId"/>
                 </index>
             </indexes>
             <relations>
@@ -1885,6 +1897,10 @@
                     <column name="qualityRuleId"/>
                     <column name="executeTime"/>
                 </index>
+                <index name="IX_NOP_META_QRESULT_RUN" unique="false">
+                    <column name="runId"/>
+                    <column name="executeTime"/>
+                </index>
             </indexes>
             <relations>
                 <to-one displayName="质量规则" name="qualityRule"
@@ -1892,6 +1908,13 @@
                         tagSet="pub,ref-pub" i18n-en:displayName="Quality Rule">
                     <join>
                         <on leftProp="qualityRuleId" rightProp="qualityRuleId"/>
+                    </join>
+                </to-one>
+                <to-one displayName="质量检查点" name="checkpoint"
+                        refEntityName="io.nop.metadata.dao.entity.NopMetaQualityCheckpoint" refPropName="qualityResults"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Quality Checkpoint">
+                    <join>
+                        <on leftProp="checkpointId" rightProp="checkpointId"/>
                     </join>
                 </to-one>
             </relations>
@@ -1955,6 +1978,13 @@
                         <on leftProp="metaModuleId" rightProp="metaModuleId"/>
                     </join>
                 </to-one>
+                <to-many displayName="质量结果集" name="qualityResults"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaQualityResult" refPropName="checkpoint"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Quality Results">
+                    <join>
+                        <on leftProp="checkpointId" rightProp="checkpointId"/>
+                    </join>
+                </to-many>
             </relations>
             <unique-keys>
                 <unique-key columns="checkpointName" constraint="UK_NOP_META_QCHECKPOINT_NAME"
@@ -2582,6 +2612,7 @@
             <indexes>
                 <index name="IX_NOP_META_EVENT_TYPE_TIME" unique="false">
                     <column name="entityType"/>
+                    <column name="entityId"/>
                     <column name="changeTime"/>
                 </index>
                 <index name="IX_NOP_META_EVENT_SOURCE" unique="false">
@@ -2746,8 +2777,6 @@
             <unique-keys>
                 <unique-key columns="fullyQualifiedName" constraint="UK_NOP_META_GLOSSARY_TERM_FQN"
                             name="UK_NOP_META_GLOSSARY_TERM_FQN" i18n-en:displayName="Unique Term Fully Qualified Name"/>
-                <unique-key columns="glossaryId,fullyQualifiedName" constraint="UK_NOP_META_GLOSSARY_TERM_G_FQN"
-                            name="UK_NOP_META_GLOSSARY_TERM_G_FQN" i18n-en:displayName="Unique Term Per Glossary"/>
             </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaClassification" createTimeProp="createTime"
@@ -2891,8 +2920,6 @@
             <unique-keys>
                 <unique-key columns="fullyQualifiedName" constraint="UK_NOP_META_TAG_FQN" name="UK_NOP_META_TAG_FQN"
                             i18n-en:displayName="Unique Tag Fully Qualified Name"/>
-                <unique-key columns="classificationId,fullyQualifiedName" constraint="UK_NOP_META_TAG_CLS_FQN"
-                            name="UK_NOP_META_TAG_CLS_FQN" i18n-en:displayName="Unique Tag Per Classification"/>
             </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaTagLabel" createTimeProp="createTime"

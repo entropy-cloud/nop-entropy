@@ -19,5 +19,7 @@
   "runId": "",
   "qualityRule": null,
   "qualityRule.displayName": "",
+  "checkpoint": null,
+  "checkpoint.displayName": "",
   "detailsComponent": null
 }

@@ -31,6 +31,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -154,7 +155,7 @@ public class SqlColumnLineageExtractor {
                     if (cte == null || cte.getName() == null) {
                         continue;
                     }
-                    String cteNameLower = cte.getName().toLowerCase();
+                    String cteNameLower = cte.getName().toLowerCase(Locale.ROOT);
                     if (cte.getRecursive()) {
                         // WITH RECURSIVE 自引用 CTE：纯语法无法判定终止，整体 unsupported（不展开、不报错，
                         // 穿透阶段命中时产 unresolved:recursive-cte）。注册空 NamedSourceMap + 标 wildcard 语义。
@@ -315,7 +316,7 @@ public class SqlColumnLineageExtractor {
             String outTransform = resolveTransformType(exprProj.getExpr());
             List<SqlColumnName> bodyCols = new ArrayList<>();
             collectColumnRefs(exprProj.getExpr(), bodyCols);
-            String outColLower = outCol.toLowerCase();
+            String outColLower = outCol.toLowerCase(Locale.ROOT);
             if (bodyCols.isEmpty()) {
                 // 常量列（如 SELECT 1 AS x）无源列 → 该输出列无源列可穿透（上层引用此列产 unresolved:null-source）
                 result.outputs.put(outColLower, Collections.emptyList());
@@ -342,7 +343,7 @@ public class SqlColumnLineageExtractor {
 
         // 限定符列：先看是否是派生表 alias（scope.derivedAliases），再 aliasMap（直查源表 or CTE 名）
         if (owner != null && !owner.isEmpty()) {
-            String ownerLower = owner.toLowerCase();
+            String ownerLower = owner.toLowerCase(Locale.ROOT);
             NamedSourceMap derived = scope.derivedAliases.get(ownerLower);
             if (derived != null) {
                 flattenFromNamedMap(derived, sourceColumn, outerTransform, outRefs);
@@ -351,7 +352,7 @@ public class SqlColumnLineageExtractor {
             String simpleTable = scope.aliasMap.get(ownerLower);
             if (simpleTable != null) {
                 // 若 simpleTable 命中已注册 CTE 名 → 穿透递归到底层源列（嵌套 CTE 引用）
-                NamedSourceMap cte = cteRegistry.get(simpleTable.toLowerCase());
+                NamedSourceMap cte = cteRegistry.get(simpleTable.toLowerCase(Locale.ROOT));
                 if (cte != null) {
                     flattenFromNamedMap(cte, sourceColumn, outerTransform, outRefs);
                     return;
@@ -383,7 +384,7 @@ public class SqlColumnLineageExtractor {
             // 通配符输出 → 无法穿透具体列（上层标 unresolved）
             return;
         }
-        List<SourceRef> refs = namedMap.outputs.get(colName.toLowerCase());
+        List<SourceRef> refs = namedMap.outputs.get(colName.toLowerCase(Locale.ROOT));
         if (refs == null || refs.isEmpty()) {
             return;
         }
@@ -440,7 +441,7 @@ public class SqlColumnLineageExtractor {
                     if (scopeName == null || scopeName.isEmpty()) {
                         scopeName = simple;
                     }
-                    aliasMap.putIfAbsent(scopeName.toLowerCase(), simple);
+                    aliasMap.putIfAbsent(scopeName.toLowerCase(Locale.ROOT), simple);
                     singleCount++;
                 } else if (s instanceof SqlSubqueryTableSource) {
                     SqlSubqueryTableSource sub = (SqlSubqueryTableSource) s;
@@ -454,7 +455,7 @@ public class SqlColumnLineageExtractor {
                     }
                     NamedSourceMap m = resolveCteOrSubquery(sub.getQuery(), resolving, cteRegistry, sql);
                     m.name = alias;
-                    derivedAliases.putIfAbsent(alias.toLowerCase(), m);
+                    derivedAliases.putIfAbsent(alias.toLowerCase(Locale.ROOT), m);
                 }
             }
         }
@@ -520,7 +521,7 @@ public class SqlColumnLineageExtractor {
         String sourceColumn = col.getName();
         String owner = col.getOwner() != null ? col.getOwner().getName() : null;
         if (owner != null && !owner.isEmpty()) {
-            String ownerLower = owner.toLowerCase();
+            String ownerLower = owner.toLowerCase(Locale.ROOT);
             // 1) 派生表 alias（SqlSubqueryTableSource 的 alias，不在 aliasMap）
             NamedSourceMap derived = scope.derivedAliases.get(ownerLower);
             if (derived != null) {
@@ -532,7 +533,7 @@ public class SqlColumnLineageExtractor {
             String sourceTable = scope.aliasMap.get(ownerLower);
             if (sourceTable != null) {
                 // 2a) 若 sourceTable 命中已注册 CTE 名 → 按引用列名穿透到底层源列（CTE 列穿透关键修正）
-                NamedSourceMap cte = cteRegistry.get(sourceTable.toLowerCase());
+                NamedSourceMap cte = cteRegistry.get(sourceTable.toLowerCase(Locale.ROOT));
                 if (cte != null) {
                     emitFromNamedMap(cte, sourceColumn, targetColumn, transformType, "cte-wildcard:"
                             + sourceTable + "." + sourceColumn, out);
@@ -569,7 +570,7 @@ public class SqlColumnLineageExtractor {
             out.add(ColumnLineageCandidate.unresolvable(targetColumn, sourceColumn, wildcardReason));
             return;
         }
-        List<SourceRef> refs = namedMap.outputs.get(sourceColumn.toLowerCase());
+        List<SourceRef> refs = namedMap.outputs.get(sourceColumn.toLowerCase(Locale.ROOT));
         if (refs == null) {
             // 引用列在 CTE/派生表输出中不存在（如通配符 SELECT * 体内或别名列名不匹配）
             out.add(ColumnLineageCandidate.unresolvable(targetColumn, sourceColumn,

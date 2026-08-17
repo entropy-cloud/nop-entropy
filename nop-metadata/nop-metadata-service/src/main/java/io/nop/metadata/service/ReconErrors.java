@@ -15,9 +15,6 @@ interface ReconErrors extends NopMetadataArgs {
     ErrorCode ERR_RECON_UNKNOWN_STATUS =
             ErrorCode.define("nop.err.metadata.recon-unknown-status",
                     "Reconciliation produced unknown status: {status}", ARG_STATUS);
-    ErrorCode ERR_RECON_CONFIG_NOT_FOUND =
-            ErrorCode.define("nop.err.metadata.recon-config-not-found",
-                    "Reconciliation config not found: {configId}", ARG_CONFIG_ID);
     ErrorCode ERR_RECON_TABLE_NOT_FOUND =
             ErrorCode.define("nop.err.metadata.recon-table-not-found",
                     "MetaTable not found for reconciliation: configId={configId} metaTableId={metaTableId}",
@@ -42,8 +39,11 @@ interface ReconErrors extends NopMetadataArgs {
     ErrorCode ERR_RECON_SELECTIONS_EMPTY =
             ErrorCode.define("nop.err.metadata.recon-selections-empty",
                     "Reconciliation batch confirm selections is empty: resultId={resultId}", ARG_RESULT_ID);
-    ErrorCode ERR_RECON_INVALID_SELECTION =
-            ErrorCode.define("nop.err.metadata.recon-invalid-selection",
-                    "Reconciliation selection value is invalid: resultId={resultId} value={value}",
-                    ARG_RESULT_ID, ARG_VALUE);
+
+    // ===== Reconciliation process isolation (clause-b formalize) =====
+
+    ErrorCode ERR_RECON_PROCESS_ISOLATED =
+            ErrorCode.define("nop.err.metadata.recon-process-isolated",
+                    "Reconciliation processing failed (isolated, batch continues): configId={configId} -- {error}",
+                    ARG_CONFIG_ID, ARG_ERROR);
 }

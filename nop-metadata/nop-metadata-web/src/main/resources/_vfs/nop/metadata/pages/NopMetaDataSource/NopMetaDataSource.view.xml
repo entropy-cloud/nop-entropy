@@ -9,7 +9,24 @@
     <forms>
         <form id="view"/>
         <form id="edit"/>
-        <form id="add"/>
+        <!-- connectionConfig 仅进 add 表单（plan 2026-08-15-1913-2 P1-1）：published=false 使该字段不在
+             GraphQL 查询输出类型中，edit 页 initApi 的 {@formSelection} 选中该字段会破坏编辑对话框，
+             故 edit/view 表单不含该字段（沿 NopAuthUser.password 仅 add 表单先例）。 -->
+        <form id="add" x:inherit="true">
+            <layout>
+ dataSourceId[数据源ID]
+ querySpace[查询空间]
+ name[名称]
+ displayName[显示名]
+ datasourceType[数据源类型]
+ status[状态]
+ connectionConfig[连接配置]
+ remark[备注]
+</layout>
+            <cells>
+                <cell id="connectionConfig" control="textarea"/>
+            </cells>
+        </form>
     </forms>
 
     <pages>

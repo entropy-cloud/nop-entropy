@@ -54,6 +54,7 @@ public interface NopMetadataArgs {
     String ARG_DATA_SOURCE_COUNT = "dataSourceCount";
     String ARG_INDEX = "index";
     String ARG_EDGE = "edge";
+    String ARG_EDGES = "edges";
     String ARG_ELEMENT_INDEX = "elementIndex";
     String ARG_SIZE = "size";
     String ARG_COUNT = "count";
@@ -101,9 +102,10 @@ public interface NopMetadataArgs {
     String ARG_ENTITY_TYPE = "entityType";
     String ARG_TAG_ID = "tagId";
     String ARG_TAG_LABEL_ID = "tagLabelId";
+    String ARG_GLOSSARY_TERM_ID = "glossaryTermId";
+    String ARG_BUSINESS_DOMAIN_ID = "businessDomainId";
     String ARG_LABEL_TYPE = "labelType";
     String ARG_DATA_PRODUCT_ID = "dataProductId";
-    String ARG_VALUE = "value";
     String ARG_LENGTH = "length";
     String ARG_CLAUSE = "clause";
     String ARG_COLUMN = "column";

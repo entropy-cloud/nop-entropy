@@ -121,17 +121,14 @@ final class MemoryOrderByComparator {
             return String.valueOf(a).compareTo(String.valueOf(b));
         }
 
+        /**
+         * 值→BigDecimal 转换。E2（Cycle 2 / P1-E，adjudication-table-cycle2 §6）：委托
+         * {@link AggregationHelper#toBigDecimal}（AR-10 规范实现）——整数 longValue 无损路由
+         * （Long &gt; 2^53 不再经 doubleValue 丢低位）、浮点 doubleValue、String 数值解析
+         * （不再静默 return null 回退字符串比较）。
+         */
         private static BigDecimal toBigDecimal(Object v) {
-            if (v instanceof BigDecimal) {
-                return (BigDecimal) v;
-            }
-            if (v instanceof java.math.BigInteger) {
-                return new BigDecimal((java.math.BigInteger) v);
-            }
-            if (v instanceof Number) {
-                return BigDecimal.valueOf(((Number) v).doubleValue());
-            }
-            return null;
+            return AggregationHelper.toBigDecimal(v);
         }
 
         private static Object getCaseInsensitive(Map<String, Object> map, String key) {

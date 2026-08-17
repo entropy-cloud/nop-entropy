@@ -10,6 +10,7 @@ import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.ioc.BeanContainer;
 import io.nop.api.core.message.IMessageService;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.commons.util.StringHelper;
@@ -20,6 +21,7 @@ import io.nop.http.api.client.IHttpClient;
 import io.nop.metadata.biz.INopMetaQualityCheckpointBiz;
 import io.nop.metadata.api.dto.CheckpointExecutionResultDTO;
 import io.nop.metadata.api.dto.CheckpointExtConfig;
+import io.nop.metadata.api.dto.ErrorDTO;
 import io.nop.metadata.api.dto.QualityRuleResultDTO;
 import io.nop.metadata.dao.entity.NopMetaQualityCheckpoint;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionProcessor;
@@ -57,7 +59,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * {@code clearSession} 失败隔离（对齐既有 per-rule 隔离模式），失败记入摘要 errors 不中断其他表评分、不回滚
  * 已落盘的 checkpoint store。受 {@code extConfig.autoScore} 控制（默认开启；关闭时跳过且摘要标注 skipped）。
  *
- * <p>失败路径显式化：检查点不存在 → 抛 {@link #NopMetadataErrors.ERR_CHECKPOINT_NOT_FOUND}；其余不可执行路径（非 ACTIVE 状态 /
+ * <p>失败路径显式化：检查点不存在 → {@code requireEntity} 抛平台标准 not-found 错误；其余不可执行路径（非 ACTIVE 状态 /
  * 未知动作 / 空规则集 / 单规则执行异常）由 executor 显式处理（详见 {@link MetaQualityCheckpointExecutor}）。
  */
 @BizModel("NopMetaQualityCheckpoint")
@@ -82,13 +84,21 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
     protected NopMetaQualityScoreBizModel scoreBizModel;
 
     /**
-     * 注入 {@link MetaQualityCheckpointScheduler}（NopIoC bean，{@code @Nullable}——未配置调度器时不注入）。
-     * 取代 BeanContainer.tryGetBean() 服务定位器反模式，通过 IoC 注入获得调度器实例。
-     * 用于 save 后 register / delete 前 unregister cron job（旁路能力，失败不影响主路径）。
+     * 调度器懒解析 seam（P2-02 断环，plan 2026-08-16-0549-3 Phase 1）：按
+     * {@link MetaQualityCheckpointScheduler#BEAN_NAME} 经 {@link BeanContainer#tryGetBean} 懒查找，
+     * 本 BizModel <b>不</b>{@code @Inject} 调度器——与 {@link MetaQualityCheckpointScheduler}（setter
+     * {@code @Inject} 注入本 BizModel）的双向注入环由此收敛为 scheduler→bizmodel 单向（调度器的
+     * checkpoint 执行是核心路径，维持 IoC 注入；BizModel→Scheduler 是旁路能力，懒解析代价最小）。
+     *
+     * <p>bean 缺失（宿主未注册调度器）时 tryGetBean 返回 null，调用方跳过（旁路容错语义，失败不影响
+     * 主路径）——与 {@code @Nullable @Inject} 的 null-on-missing 语义无损对齐（NopIoC optional 注入
+     * 同为 null）。public 可覆写（plan 原文 protected——测试包跨包不可编译访问，public 语义等同）：
+     * 测试经 Mockito spy/doReturn 覆写注入"bean 缺失"态（接线测试先例）。非 {@code @BizQuery}/
+     * {@code @BizMutation}，不进 GraphQL 面。
      */
-    @Inject
-    @Nullable
-    protected MetaQualityCheckpointScheduler scheduler;
+    public MetaQualityCheckpointScheduler lookupScheduler() {
+        return (MetaQualityCheckpointScheduler) BeanContainer.tryGetBean(MetaQualityCheckpointScheduler.BEAN_NAME);
+    }
 
     /**
      * 注入 {@link IHttpClient}（NopIoC bean，{@code @Nullable}——宿主未拉 HTTP client impl 时不注入）。
@@ -219,15 +229,18 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
             Object results = summary.get("results");
             if (results instanceof List) {
                 List<Map<String, Object>> resultList = (List<Map<String, Object>>) results;
-                dto.setExecutionResults(resultList);
-                // AR-14 映射契约：summary.results 条目 → QualityRuleResultDTO（qualityRuleId + status + message；
-                // resultCount/passCount/failCount/errors 保持单规则路径语义默认值）。条目数 = totalRuleCount
-                // （含异常规则的 ERROR 条目），计数可对账。
+                // AR-14 + P2-20 映射契约：summary.results 条目 → QualityRuleResultDTO 全 6 键类型化承接
+                // （qualityRuleId/ruleName/status/actualValue/expectedValue/message——P2-20 前 ruleName/actualValue/
+                // expectedValue 无承接字段，为有损投影；现经 QualityRuleResultDTO 增补字段无损承接）。
+                // 条目数 = totalRuleCount（含异常规则的 ERROR 条目），计数可对账。
                 dto.setRuleResults(mapRuleResults(resultList));
             }
             Object errors = summary.get("errors");
             if (errors instanceof List) {
-                dto.setExecutionErrors((List<Map<String, Object>>) errors);
+                // P2-20（变体 a）：填充类型化 errors（此前类型化字段从不填充，错误只进已移除的 List<Map> 冗余字段）。
+                // 三族条目键全承接：source→source、error→message、qualityRuleId/metaTableId→code（标识符惯例）、
+                // ruleName→detail、refType/refValue→同名增补字段（对照表见 owner doc P2-20 裁决记录）。
+                dto.setErrors(mapErrorEntries((List<Map<String, Object>>) errors));
             }
 
             // D6：自动评分触发——按 affectedTableIds 逐表重算评分（复用既有 scorer，零落盘逻辑复制）
@@ -259,9 +272,10 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
     /**
      * save override（§2.7.3.1 D4 运行时增量）：持久化后通知调度器重新注册该检查点的 cron job。
      *
-     * <p>调度器经 {@link BeanContainer#tryGetBean} 懒查找（非 {@code @Inject}），避免与
-     * {@link MetaQualityCheckpointScheduler}（注入本 BizModel）构成构造期循环依赖。调度器 bean 缺失
-     * （宿主未注册 {@code IJobScheduler}）时 tryGetBean 返回 null，跳过（不抛崩）。
+     * <p>调度器经 {@link #lookupScheduler()} 懒解析（按 {@link MetaQualityCheckpointScheduler#BEAN_NAME}
+     * {@code tryGetBean}，非 {@code @Inject}——本 BizModel 不持有调度器字段，与 scheduler→bizmodel 的
+     * setter {@code @Inject} 构成的双向注入环已收敛为单向，P2-02）。调度器 bean 缺失（宿主未注册
+     * {@code IJobScheduler}）时懒解析返回 null，跳过（不抛崩）。
      */
     @Override
     public NopMetaQualityCheckpoint save(@Name("data") Map<String, Object> data, IServiceContext context) {
@@ -288,6 +302,7 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
     }
 
     private void notifySchedulerRegister(String checkpointId) {
+        MetaQualityCheckpointScheduler scheduler = lookupScheduler();
         if (scheduler == null) {
             return;
         }
@@ -295,11 +310,13 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
             scheduler.registerCheckpoint(checkpointId);
         } catch (Exception e) {
             // 调度器注册失败不影响 save 主路径（调度是旁路能力）
-            LOG.warn("nop.meta.checkpoint-scheduler.register-after-save-failed: checkpointId={}", checkpointId, e);
+            LOG.warn("nop.meta.checkpoint-scheduler.register-after-save-failed: checkpointId={}, errorCode={}",
+                    checkpointId, NopMetadataErrors.ERR_CHECKPOINT_RULE_EXEC_ISOLATED.getErrorCode(), e);
         }
     }
 
     private void notifySchedulerUnregister(String checkpointId) {
+        MetaQualityCheckpointScheduler scheduler = lookupScheduler();
         if (scheduler == null) {
             return;
         }
@@ -309,7 +326,8 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
             // AR-23①（R8.4b）：删除成功后才摘 cron；此处仍是删除成功后的旁路失败——unregister 失败残留 cron
             // 属已接受成本（显式裁定）：残留 job 每 tick 经 executeScheduledCheckpoint 存活兜底打 ERROR 日志
             // （不转 FAILED），调度器 init() 重注册自愈。日志键语义 = unregister 发生在 delete 之后。
-            LOG.warn("nop.meta.checkpoint-scheduler.unregister-after-delete-failed: checkpointId={}", checkpointId, e);
+            LOG.warn("nop.meta.checkpoint-scheduler.unregister-after-delete-failed: checkpointId={}, errorCode={}",
+                    checkpointId, NopMetadataErrors.ERR_CHECKPOINT_RULE_EXEC_ISOLATED.getErrorCode(), e);
         }
     }
 
@@ -359,7 +377,8 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
                 entry.put("overallScore", scoreSummary.getOverallScore());
                 scoreResults.add(entry);
             } catch (Exception e) {
-                LOG.error("auto-score failed for affected table: {}", metaTableId, e);
+                LOG.error("auto-score failed for affected table: {}, errorCode={}",
+                        metaTableId, NopMetadataErrors.ERR_CHECKPOINT_RULE_EXEC_ISOLATED.getErrorCode(), e);
                 Map<String, Object> errEntry = new LinkedHashMap<>();
                 errEntry.put("source", "autoScore");
                 errEntry.put("metaTableId", metaTableId);
@@ -389,8 +408,8 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
             return config == null || config.isAutoScoreEffective();
         } catch (Exception e) {
             // extConfig 不可解析 → 默认开启（不静默伪造关闭），但留 WARN 根因
-            LOG.warn("checkpoint {} extConfig is not valid JSON, auto-score defaults to on",
-                    cp.getCheckpointId(), e);
+            LOG.warn("checkpoint {} extConfig is not valid JSON, auto-score defaults to on, errorCode={}",
+                    cp.getCheckpointId(), NopMetadataErrors.ERR_CHECKPOINT_RULE_EXEC_ISOLATED.getErrorCode(), e);
             return true;
         }
     }
@@ -400,9 +419,9 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
     // ============================================================
 
     /**
-     * AR-14 映射契约：summary.results 条目（{qualityRuleId, ruleName, status, actualValue, expectedValue,
-     * message}）→ {@link QualityRuleResultDTO}（qualityRuleId + status + message；resultCount/passCount/
-     * failCount/errors 保持单规则路径语义默认值，形状不对应的字段不硬映射）。
+     * AR-14 + P2-20 映射契约：summary.results 条目（{qualityRuleId, ruleName, status, actualValue, expectedValue,
+     * message}）→ {@link QualityRuleResultDTO} 全 6 键类型化承接（P2-20 前仅 3 键有损投影——ruleName/actualValue/
+     * expectedValue 无承接字段；resultCount/passCount/failCount/errors 保持单规则路径语义默认值，形状不对应的字段不硬映射）。
      */
     private static List<QualityRuleResultDTO> mapRuleResults(List<Map<String, Object>> results) {
         List<QualityRuleResultDTO> list = new ArrayList<>();
@@ -414,6 +433,49 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
             dto.setStatus(status != null ? String.valueOf(status) : null);
             Object message = r.get("message");
             dto.setMessage(message != null ? String.valueOf(message) : null);
+            Object ruleName = r.get("ruleName");
+            dto.setRuleName(ruleName != null ? String.valueOf(ruleName) : null);
+            Object actualValue = r.get("actualValue");
+            if (actualValue instanceof Number) {
+                dto.setActualValue(((Number) actualValue).doubleValue());
+            }
+            Object expectedValue = r.get("expectedValue");
+            if (expectedValue instanceof Number) {
+                dto.setExpectedValue(((Number) expectedValue).doubleValue());
+            }
+            list.add(dto);
+        }
+        return list;
+    }
+
+    /**
+     * P2-20（变体 a）：summary.errors 条目 → {@link ErrorDTO} 类型化承接（错误条目四族全键无损映射）：
+     * <ul>
+     *   <li>execution（executor 规则执行异常）：source/qualityRuleId→code/ruleName→detail/error→message</li>
+     *   <li>resolution（executor 引用解析失败）：source/refType/refValue/error→message</li>
+     *   <li>autoScore（本类 triggerAutoScoring 评分失败）：source/metaTableId→code/error→message</li>
+     *   <li>scheduler（{@link MetaQualityCheckpointScheduler#buildErrorResult} 直接构造 ErrorDTO，不经本方法）</li>
+     * </ul>
+     * code 的"错误所涉标识符"语义沿 {@code NopMetaQualityRuleBizModel}（code=qualityRuleId, detail=ruleName）既有惯例。
+     */
+    private static List<ErrorDTO> mapErrorEntries(List<Map<String, Object>> errors) {
+        List<ErrorDTO> list = new ArrayList<>();
+        for (Map<String, Object> e : errors) {
+            ErrorDTO dto = new ErrorDTO();
+            Object source = e.get("source");
+            dto.setSource(source != null ? String.valueOf(source) : null);
+            Object error = e.get("error");
+            dto.setMessage(error != null ? String.valueOf(error) : null);
+            Object qualityRuleId = e.get("qualityRuleId");
+            Object metaTableId = e.get("metaTableId");
+            Object identifier = qualityRuleId != null ? qualityRuleId : metaTableId;
+            dto.setCode(identifier != null ? String.valueOf(identifier) : null);
+            Object ruleName = e.get("ruleName");
+            dto.setDetail(ruleName != null ? String.valueOf(ruleName) : null);
+            Object refType = e.get("refType");
+            dto.setRefType(refType != null ? String.valueOf(refType) : null);
+            Object refValue = e.get("refValue");
+            dto.setRefValue(refValue != null ? String.valueOf(refValue) : null);
             list.add(dto);
         }
         return list;
@@ -444,7 +506,8 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
             });
         } catch (Exception e) {
             // dispatcher 内部 per-action try/catch 已隔离；此处仅兜底防异常外泄到 executeCheckpoint
-            LOG.error("action dispatch failed for checkpoint {}", cp.getCheckpointId(), e);
+            LOG.error("action dispatch failed for checkpoint {}, errorCode={}",
+                    cp.getCheckpointId(), NopMetadataErrors.ERR_CHECKPOINT_RULE_EXEC_ISOLATED.getErrorCode(), e);
         }
     }
 

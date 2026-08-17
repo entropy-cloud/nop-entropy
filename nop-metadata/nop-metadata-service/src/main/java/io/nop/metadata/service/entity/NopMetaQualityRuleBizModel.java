@@ -36,13 +36,15 @@ import io.nop.metadata.service.tableref.MetaTableReferenceResolver;
 import io.nop.metadata.service.tableref.TableReference;
 import io.nop.metadata.service.tableref.TableReferenceExecutor;
 import io.nop.metadata.service.NopMetadataException;
+
+import static io.nop.metadata.service.query.AggregationHelper.safeProductName;
+
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
-import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -55,16 +57,16 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * <p>执行机制（D2）：BizModel action + P2-1 {@code withConnection} callback（不选 nop-batch）。
  *
- * <p>执行范围（D1）：首版仅 external 类型 NopMetaTable 上挂载的规则（entityType=table 或 field，
- * field 规则 entityId 指向 external NopMetaTable.metaTableId，物理列名取自 params.column）。
- * entity/sql 类型表执行 deferred；entityType=database 首版 SKIP（带 details 标记）。
+ * <p>执行范围（D1 → D4 扩展）：external/entity/sql 任意 tableType 的逻辑表上挂载的 table/field 级规则均可执行
+ * （field 规则 entityId 指向逻辑表，物理列名取自 params.column）。
+ * entityType=database 首版 SKIP（带 details 标记）。
  *
  * <p>失败/不可执行路径均显式（不静默通过、不吞异常、不伪造值）：
  * <ul>
  *   <li>规则不存在 → 抛 {@link #NopMetadataErrors.ERR_QUALITY_RULE_NOT_FOUND}（不 NPE）</li>
  *   <li>目标表不存在 → 抛 {@link #NopMetadataErrors.ERR_QUALITY_TABLE_NOT_FOUND}</li>
- *   <li>目标表非 external（首版） → 抛 {@link #NopMetadataErrors.ERR_QUALITY_TABLE_NOT_EXTERNAL}</li>
- *   <li>无注册数据源 → 抛 {@link #NopMetadataErrors.ERR_QUALITY_NO_DATASOURCE}</li>
+ *   <li>表引用解析失败（未知 tableType / baseEntityId 为空 / 无注册数据源等） → 由
+ *       {@code MetaTableReferenceResolver} 抛 ERR_TABLEREF_* 系列错误码</li>
  *   <li>DISABLED 数据源 → 抛 {@link #NopMetadataErrors.ERR_QUALITY_DATASOURCE_DISABLED}</li>
  *   <li>非 jdbc 类型 → 由 {@code withConnection} 抛 NopException</li>
  *   <li>缺 timestampColumn(freshness)/custom_sql 不返回单值 → 写 ERROR 结果行</li>
@@ -162,7 +164,8 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
             try {
                 alertWorkflowService.createAlertWorkflow(row, context);
             } catch (Exception e) {
-                LOG.error("Failed to create alert workflow for quality rule: {}", rule.getQualityRuleId(), e);
+                LOG.error("Failed to create alert workflow for quality rule: {}, errorCode={}",
+                        rule.getQualityRuleId(), NopMetadataErrors.ERR_QUALITY_RULE_EXEC_ISOLATED.getErrorCode(), e);
             }
         }
 
@@ -257,8 +260,8 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
                             executedCount.incrementAndGet();
                             results.add(buildSingleResultDto(row, judgment));
                         } catch (Exception e) {
-                            LOG.error("executeQualityRulesForDataSource failed for rule: {}",
-                                    rule.getQualityRuleId(), e);
+                            LOG.error("executeQualityRulesForDataSource failed for rule: {}, errorCode={}",
+                                    rule.getQualityRuleId(), NopMetadataErrors.ERR_QUALITY_RULE_EXEC_ISOLATED.getErrorCode(), e);
                             errors.add(new ErrorDTO(rule.getQualityRuleId(), NopMetadataHelper.toErrorMessage(e), rule.getRuleName()));
                             // 隔离失败：清理未刷出的脏实体，不影响已 flush 的规则与后续规则
                             orm().clearSession();
@@ -306,24 +309,6 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
             return schemaPattern;
         }
         return table.getMetaSchema();
-    }
-
-    /** 解析目标表对应数据源：table.querySpace → NopMetaDataSource；不存在/DISABLED 显式失败。 */
-    private NopMetaDataSource resolveDataSourceOrThrow(NopMetaQualityRule rule, NopMetaTable table) {
-        IEntityDao<NopMetaDataSource> dsDao = daoFor(NopMetaDataSource.class);
-        QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq(NopMetaDataSource.PROP_NAME_querySpace, table.getQuerySpace()));
-        NopMetaDataSource dataSource = dsDao.findFirstByQuery(q);
-        if (dataSource == null) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_QUALITY_NO_DATASOURCE)
-                    .param("qualityRuleId", rule.getQualityRuleId())
-                    .param("querySpace", table.getQuerySpace());
-        }
-        if (_NopMetadataCoreConstants.DATASOURCE_STATUS_DISABLED.equals(dataSource.getStatus())) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_QUALITY_DATASOURCE_DISABLED)
-                    .param("dataSourceId", dataSource.getDataSourceId());
-        }
-        return dataSource;
     }
 
     /** 查找该 querySpace 下所有 external 类型逻辑表（按 tableType=external 限定）。 */
@@ -389,15 +374,6 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
             dto.setDetails(judgment.getDetails());
         }
         return dto;
-    }
-
-    private static String safeProductName(DatabaseMetaData metaData) {
-        try {
-            return metaData.getDatabaseProductName();
-        } catch (SQLException e) {
-            LOG.warn("getDatabaseProductName failed, product name will be absent from details", e);
-            return null;
-        }
     }
 
 }

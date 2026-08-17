@@ -1,5 +1,6 @@
 package io.nop.metadata.service.event;
 
+import io.nop.api.core.annotations.data.DataBean;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
@@ -228,5 +229,90 @@ public class TestMetaModelChangedEventPublisherSecurity {
         // (iii) 大小写变体不脱敏（与 ORM 分支一致——SENSITIVE_COLUMN_FALLBACK.contains 精确匹配）
         assertEquals("caseVariantNotRedacted", snapshot.get("Password"),
                 "case-variant key must NOT be redacted (case-sensitive semantics aligned with ORM branch)");
+    }
+
+    // ===== AR-04（plan 2026-08-14-0707-1 Phase 3）：POJO 分支脱敏缺口闭环 =====
+
+    /**
+     * <b>AR-04：POJO 分支脱敏</b>——传入含敏感字段（password）的 POJO，快照中对应值必须脱敏为
+     * {@link MetaModelChangedEventPublisher#REDACTED_VALUE}，不再以反射序列化泄露。
+     *
+     * <p>修复前 POJO 分支用 {@code JsonTool.stringify} 反射序列化每个字段、无 isSensitiveColumn 检查，
+     * 敏感字段（password）原样落盘。修复后 stringify→parse 得到 Map 后路由回 Map 分支脱敏。
+     */
+    @Test
+    public void testPojoPathRedactsSensitiveFields() {
+        // POJO（非 IOrmEntity、非 Map）含敏感字段
+        CredentialPojo pojo = new CredentialPojo();
+        pojo.name = "ds-prod";
+        pojo.password = "POJO_PLAIN_SECRET_42";
+        pojo.connectionConfig = "{\"jdbcUrl\":\"jdbc:mysql://prod/db\",\"password\":\"inner\"}";
+        pojo.normalField = "keep-me";
+
+        MetaModelChangedEventPublisher publisher = new MetaModelChangedEventPublisher(null);
+        Map<String, Object> snapshot = publisher.buildEntitySnapshot(pojo);
+
+        assertEquals(MetaModelChangedEventPublisher.REDACTED_VALUE, snapshot.get("password"),
+                "AR-04: POJO path must redact sensitive field 'password'");
+        assertEquals(MetaModelChangedEventPublisher.REDACTED_VALUE, snapshot.get("connectionConfig"),
+                "AR-04: POJO path must redact sensitive field 'connectionConfig'");
+        assertFalse(String.valueOf(snapshot.get("password")).contains("POJO_PLAIN_SECRET_42"),
+                "AR-04: redacted POJO password must NOT contain the real secret");
+        assertFalse(String.valueOf(snapshot.get("connectionConfig")).contains("jdbc:mysql"),
+                "AR-04: redacted POJO connectionConfig must NOT contain the real jdbcUrl");
+        // 非敏感字段原样保留
+        assertEquals("ds-prod", snapshot.get("name"),
+                "non-sensitive POJO field must be preserved");
+        assertEquals("keep-me", snapshot.get("normalField"),
+                "non-sensitive POJO field must be preserved");
+    }
+
+    /**
+     * <b>AR-04 接线验证：三分支（ORM/Map/POJO）对同一敏感 key 产出一致脱敏。</b>
+     *
+     * <p>对 password 这一敏感 key，ORM 分支（tagSet=sensitive）、Map 分支（fallback 列名集）、
+     * POJO 分支（路由回 Map 分支）均必须输出 {@link MetaModelChangedEventPublisher#REDACTED_VALUE}。
+     */
+    @Test
+    public void testTriBranchConsistentRedactionOnSameSensitiveKey() {
+        MetaModelChangedEventPublisher publisher = new MetaModelChangedEventPublisher(null);
+
+        // ORM 分支：password 列配 tagSet=sensitive
+        IColumnModel pwdCol = mockColumn("password", new HashSet<>(Collections.singletonList("sensitive")));
+        IEntityModel model = mockModel(pwdCol);
+        Map<String, Object> ormValues = new LinkedHashMap<>();
+        ormValues.put("password", "ORM_SECRET");
+        IOrmEntity ormEntity = mockOrmEntity(model, ormValues);
+        Object ormRedacted = publisher.buildEntitySnapshot(ormEntity).get("password");
+
+        // Map 分支
+        Map<String, Object> mapEntity = new LinkedHashMap<>();
+        mapEntity.put("password", "MAP_SECRET");
+        Object mapRedacted = publisher.buildEntitySnapshot(mapEntity).get("password");
+
+        // POJO 分支
+        CredentialPojo pojo = new CredentialPojo();
+        pojo.password = "POJO_SECRET";
+        Object pojoRedacted = publisher.buildEntitySnapshot(pojo).get("password");
+
+        assertEquals(MetaModelChangedEventPublisher.REDACTED_VALUE, ormRedacted,
+                "ORM branch must redact password");
+        assertEquals(MetaModelChangedEventPublisher.REDACTED_VALUE, mapRedacted,
+                "Map branch must redact password");
+        assertEquals(MetaModelChangedEventPublisher.REDACTED_VALUE, pojoRedacted,
+                "POJO branch must redact password (AR-04 closure)");
+        assertEquals(ormRedacted, mapRedacted,
+                "ORM and Map branches must produce identical redaction");
+        assertEquals(mapRedacted, pojoRedacted,
+                "Map and POJO branches must produce identical redaction (AR-04 tri-branch consistency)");
+    }
+
+    /** AR-04 测试用 POJO（public 字段，供 JsonTool 反射序列化）。 */
+    @DataBean
+    public static class CredentialPojo {
+        public String name;
+        public String password;
+        public String connectionConfig;
+        public String normalField;
     }
 }

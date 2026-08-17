@@ -13,8 +13,6 @@ import io.nop.metadata.dao.entity.NopMetaTableFilter;
 import io.nop.metadata.dao.entity.NopMetaTableJoin;
 import io.nop.metadata.service.field.ExpressionMeasureValidator;
 import io.nop.metadata.service.NopMetadataException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -44,7 +42,6 @@ import java.util.regex.Pattern;
  * granularity 不约定 / 方言不支持 / expression unparseable/unsafe/dialect-unsupported/too-long / 实体未注册。
  */
 public class MetaAggregationExecutor {
-    private static final Logger LOG = LoggerFactory.getLogger(MetaAggregationExecutor.class);
 
     private final MetaJoinExecutor joinExecutor;
 
@@ -159,6 +156,11 @@ public class MetaAggregationExecutor {
         if (having == null) {
             return;
         }
+        // F1（plan 2026-08-14-0707-1）：清除客户端可伪造的 havingExprResolved 标记。
+        // TreeBean.createFromJson 把任意客户端 JSON key 写为 attr，故该标记可被客户端伪造在任意叶子上，
+        // 致使 nameResolverFor 信任伪造标记并把恶意 name 原文回填 HAVING SQL。本方法递归遍历整棵树，
+        // 对每个节点先清除该标记，仅当本节点经 expr 路径合法处理后（下方 setAttr）才重新置位。
+        having.removeAttr(HAVING_EXPR_RESOLVED_ATTR);
         Object exprAttr = having.getAttr(HAVING_EXPR_ATTR);
         if (exprAttr != null && !exprAttr.toString().isEmpty()) {
             String userExpr = exprAttr.toString();
@@ -186,6 +188,10 @@ public class MetaAggregationExecutor {
      * {@link #substituteAndValidateHavingExpr} 逐 token 白名单校验后的 SQL 表达式。
      * {@code AggregationHelper.nameResolverFor} 仅对带此标记的叶子允许直通拼接；未带标记的原始用户
      * name 一律抛 {@code ERR_AGGR_HAVING_UNKNOWN_NAME}，禁止原样进入 HAVING SQL。
+     *
+     * <p><b>F1 修复（plan 2026-08-14-0707-1）</b>：由于 {@code TreeBean.createFromJson} 把任意客户端
+     * JSON key 写为 attr，该标记可被客户端伪造。{@code preprocessHavingArithmetic} 在递归入口对每个节点
+     * 先清除该标记，仅经 expr 路径合法处理后重新置位——伪造标记不再被信任。
      */
     public static final String HAVING_EXPR_RESOLVED_ATTR = "havingExprResolved";
 

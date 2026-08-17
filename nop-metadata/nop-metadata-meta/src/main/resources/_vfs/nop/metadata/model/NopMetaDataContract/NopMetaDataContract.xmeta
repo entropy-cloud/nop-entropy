@@ -2,6 +2,16 @@
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:wf="wf"
       x:extends="_NopMetaDataContract.xmeta" wf:wfName="metaDataContractApproval">
 
-    <!-- No field-level overrides needed; all props inherit from base xmeta. -->
-    <props/>
+    <!-- P2-33（plan 2026-08-16-0920-2）：状态机字段收紧 GraphQL __update 输入面。
+         status 生命周期（DRAFT→ACTIVE→DEPRECATED→RETIRED）只经 approve/reject mutation 变更
+         （NopMetaDataContract.xbiz:26-33/58，由 metaDataContractApproval 工作流 onEndNotify 与
+         直接调用触达）；approveStatus 只经 approval-support.xbiz（submit/withdraw/approve/reject/reverse）
+         与本实体 approve/reject 变更。updatable=false 后 __update 静默丢弃该 prop
+         （ObjMetaBasedValidator.validateForUpdate:508），内部 writer 直改实体不经 InputBean 校验、不受影响。
+         insertable 保持 true：status 为 ORM mandatory（模型 :2500）且无 default，创建者须供初始 DRAFT；
+         approveStatus 创建时携带是 submitForApproval 守卫语义输入的一部分。 -->
+    <props>
+        <prop name="status" updatable="false"/>
+        <prop name="approveStatus" updatable="false"/>
+    </props>
 </meta>

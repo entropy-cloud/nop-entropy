@@ -416,6 +416,65 @@ public class TestCheckpointActionDispatcherWebhookSsrf {
         assertEquals(0, errorsOf(s).size(), "2xx with redirects disabled must deliver without errors");
     }
 
+    // ===== P2-06（plan 2026-08-16-0226-1）：畸形 host 形状 enforced fail-closed =====
+
+    /**
+     * <b>P2-06 adversarial</b>：畸形 host 向量（提取结果为垃圾串/null/空）必须显式拒绝，
+     * reason 标识 implausible host shape，不再依赖"垃圾 host 建连失败"的 lucky fail-closed。
+     *
+     * <p>修复前 {@code extractWebhookHost} 对这些向量产出垃圾 host 串（"/hook"、":8080"）或 null，
+     * 穿过 null/空守卫后被 {@code isInternalHost} 判为非内网 → 静默放行（建连失败兜底）。
+     */
+    @Test
+    public void testMalformedHostShapeFailClosed() {
+        String[] malformedUrls = {
+                "https:///hook",          // slash=0 → 提取出 "/hook"（path 片段）
+                "http:///path",           // 同上（http 协议变体）
+                "https://:8080/hook",     // 提取出 ":8080"（纯端口无主机）
+                "http://:8080/hook",      // 同上（http 协议变体）
+                "https://[::1/hook",      // 未闭合 IPv6 括号 → 提取 null
+                "https://",               // 空 authority → 提取 null
+        };
+        for (String url : malformedUrls) {
+            assertWebhookBlocked(url, "implausible host shape",
+                    "malformed host vector must fail closed (enforced, not lucky): " + url);
+        }
+    }
+
+    /**
+     * <b>P2-06 零误伤</b>：合法向量（域名+端口 / userinfo+外网 / bracketed IPv6 / userinfo+内网 /
+     * allowed-hosts 命中）判定结果与修复前完全一致——形状校验只扩大拒绝面，不吞内网判定、不误伤放行面。
+     */
+    @Test
+    public void testP206LegitVectorsUnchanged() {
+        // [::1] → 仍按内网拒绝（原判定不变）
+        assertWebhookBlocked("http://[::1]/ipv6-loopback",
+                "internal/link-local/loopback host not in allowed-hosts",
+                "bracketed IPv6 loopback keeps original internal-host judgment");
+        // userinfo + 内网 → 仍按内网拒绝（userinfo 剥离后 host 提取正常）
+        assertWebhookBlocked("http://admin:secret@169.254.169.254/meta-data/",
+                "internal/link-local/loopback host not in allowed-hosts",
+                "userinfo internal host keeps original internal-host judgment");
+        // 外网域名 + 端口 → 放行（到达 IHttpClient.fetch）
+        mockHttpClient.responseStatus = 200;
+        assertDoesNotThrow(() -> dispatchWebhook("https://example.com:8443/hook"));
+        assertEquals(1, mockHttpClient.fetchCallCount,
+                "external domain with port must reach IHttpClient.fetch");
+        // userinfo + 外网域名 → 放行
+        mockHttpClient.reset();
+        mockHttpClient.responseStatus = 200;
+        assertDoesNotThrow(() -> dispatchWebhook("https://user:pass@example.com/hook"));
+        assertEquals(1, mockHttpClient.fetchCallCount,
+                "userinfo external host must reach IHttpClient.fetch");
+        // allowed-hosts 命中 → 放行（运维显式放行场景不受形状校验影响）
+        mockHttpClient.reset();
+        dispatcher.configureWebhookSsrf("intranet.example.com", 30);
+        mockHttpClient.responseStatus = 200;
+        assertDoesNotThrow(() -> dispatchWebhook("http://intranet.example.com/hook"));
+        assertEquals(1, mockHttpClient.fetchCallCount,
+                "allowlisted internal host must reach IHttpClient.fetch");
+    }
+
     // ===== helpers =====
 
     private void assertWebhookBlocked(String url, String expectedReasonFragment, String msg) {

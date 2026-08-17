@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -88,6 +89,10 @@ public class TestMetaQualityCheckpointSchedulerCronReadFailure {
      * 修复前 cpId==null 分支在 try 之外直接 throw，异常逃逸到 BeanMethodJobInvoker 会转
      * {@code JobFireResult.ERROR} 使 job 永久 FAILED（MA7.5-01 要消除的失败模式）。
      * 错误码语义与缺失 checkpointId 匹配（checkpoint-missing-id，不再复用 invalid-cron）。
+     *
+     * <p>P2-20（plan 2026-08-16-0549-2）：断言重写为类型化 {@code errors} 字段（原 {@code List<Map>}
+     * 冗余错误字段已移除）。断言强度不降反升：除错误码语义外，新增 {@code source="scheduler"} 逐字段等价断言
+     * （buildErrorResult 错误条目在终态下的去向 = {@code errors[0]}，逐项对照见 daily log 对照表）。
      */
     @Test
     public void testMissingCheckpointIdReturnsErrorResultInsteadOfThrowing() {
@@ -97,9 +102,12 @@ public class TestMetaQualityCheckpointSchedulerCronReadFailure {
                 "missing checkpointId must not escape to invoker (MA7.5-01, was throwing outside try before AR-12)");
 
         CheckpointExecutionResultDTO dto = service.executeScheduledCheckpoint(Collections.emptyMap());
-        assertFalse(dto.getExecutionErrors().isEmpty(),
-                "error result must carry executionErrors (buildErrorResult path)");
-        String error = String.valueOf(dto.getExecutionErrors().get(0).get("error"));
+        assertFalse(dto.getErrors().isEmpty(),
+                "error result must carry typed errors (buildErrorResult path)");
+        io.nop.metadata.api.dto.ErrorDTO err = dto.getErrors().get(0);
+        assertEquals("scheduler", err.getSource(),
+                "scheduler-built error entry must carry source=scheduler (P2-20 typed mapping), got: " + err);
+        String error = String.valueOf(err.getMessage());
         assertTrue(error.contains("checkpoint-missing-id"),
                 "error code must be ERR_CHECKPOINT_MISSING_ID (missing-checkpoint-id semantics), got: " + error);
         assertTrue(!error.contains("invalid-cron"),

@@ -9,6 +9,7 @@ import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.api.core.beans.DictBean;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.QueryBean;
@@ -118,7 +119,12 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
      */
     @Override
     public NopMetaModule save(@Name("data") Map<String, Object> data, IServiceContext context) {
-        String id = data == null ? null : NopMetadataHelper.stringOf(data, NopMetaModule.PROP_NAME_metaModuleId);
+        // P2-19（plan 2026-08-16-0226-3）：null/empty data 提前委托基类
+        // （形态统一，此前三元形态只防 null），统一抛 ERR_BIZ_EMPTY_DATA_FOR_SAVE
+        if (CollectionHelper.isEmptyMap(data)) {
+            return super.save(data, context);
+        }
+        String id = NopMetadataHelper.stringOf(data, NopMetaModule.PROP_NAME_metaModuleId);
         NopMetaModule before = id != null ? dao().getEntityById(id) : null;
         NopMetaModule saved = super.save(data, context);
         String entityType = EVENT_ENTITY_TYPE;
@@ -318,7 +324,8 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
         try {
             searchService.removeFromIndex(entityType, id);
         } catch (RuntimeException ex) {
-            LOG.warn("import rollback index cleanup failed for entityType={} id={}", entityType, id, ex);
+            LOG.warn("import rollback index cleanup failed for entityType={} id={}, errorCode={}",
+                    entityType, id, NopMetadataErrors.ERR_MODULE_OPERATION_ISOLATED.getErrorCode(), ex);
         }
     }
 
@@ -346,7 +353,8 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
             LOG.warn("parseDeltaModel failed for resource {}, fail-fast (no delta=full fallback)",
                     resource.getPath(), e);
             throw new NopMetadataException(NopMetadataErrors.ERR_MODEL_DELTA_PARSE_FAILED, e)
-                    .param(NopMetadataErrors.ARG_PATH, resource.getPath());
+                    .param(NopMetadataErrors.ARG_PATH, resource.getPath())
+                    .param(NopMetadataErrors.ARG_ERROR, NopMetadataHelper.toErrorMessage(e));
         }
         throw new NopMetadataException(NopMetadataErrors.ERR_MODEL_DELTA_PARSE_FAILED)
                 .param(NopMetadataErrors.ARG_PATH, resource.getPath())
@@ -392,7 +400,8 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
             NopMetaModule baseModule = dao().findFirstByQuery(query);
             return baseModule != null ? baseModule.getMetaModuleId() : null;
         } catch (Exception e) {
-            LOG.warn("resolveBaseModuleId failed, baseModuleId set to null", e);
+            LOG.warn("resolveBaseModuleId failed, baseModuleId set to null, errorCode={}",
+                    NopMetadataErrors.ERR_MODULE_OPERATION_ISOLATED.getErrorCode(), e);
             return null;
         }
     }
@@ -482,7 +491,8 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
                 result.setModuleName(module.getModuleName());
                 result.setSuccess(true);
             } catch (Exception e) {
-                LOG.error("importOrmModels failed for path: {}", path, e);
+                LOG.error("importOrmModels failed for path: {}, errorCode={}",
+                        path, NopMetadataErrors.ERR_MODULE_OPERATION_ISOLATED.getErrorCode(), e);
                 result.setSuccess(false);
                 result.setError(NopMetadataHelper.toErrorMessage(e));
                 // AR-08（plan 2026-08-06-0553-3 Phase 3）：per-path 独立事务（importOrmModel 内
@@ -542,7 +552,7 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
      *
      * <p>快速失败（不静默返回空 Manifest）：
      * <ul>
-     *   <li>metaModuleId 不存在 → 抛 {@link #NopMetadataErrors.ERR_MODULE_NOT_FOUND}</li>
+     *   <li>metaModuleId 不存在 → {@code requireEntity} 抛平台标准 not-found 错误</li>
      *   <li>模块无 full ORM 模型（isDelta=false） → 抛 {@link #NopMetadataErrors.ERR_MODULE_FULL_MODEL_NOT_FOUND}</li>
      * </ul>
      *
@@ -683,7 +693,9 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
         try (InputStream in = resource.getInputStream()) {
             return new String(in.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_ORM_RESOURCE_READ_FAILED, e).param("path", resource.getPath());
+            throw new NopMetadataException(NopMetadataErrors.ERR_ORM_RESOURCE_READ_FAILED, e)
+                    .param(NopMetadataErrors.ARG_PATH, resource.getPath())
+                    .param(NopMetadataErrors.ARG_ERROR, NopMetadataHelper.toErrorMessage(e));
         }
     }
 

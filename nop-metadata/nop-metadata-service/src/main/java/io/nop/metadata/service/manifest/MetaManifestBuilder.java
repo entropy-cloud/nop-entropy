@@ -8,7 +8,8 @@ import io.nop.metadata.dao.entity.NopMetaOrmModel;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
 
-import java.text.SimpleDateFormat;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedHashMap;
@@ -16,7 +17,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TimeZone;
 
 /**
  * Manifest 构建服务：从已导入的逻辑元数据聚合 nodes/sources/parentMap/childMap，生成自包含 JSON 快照。
@@ -32,6 +32,11 @@ import java.util.TimeZone;
  * </ul>
  */
 public class MetaManifestBuilder {
+
+    // AR-14e：不可变、线程安全的 ISO-8601（UTC）格式器，替换脆弱的 SimpleDateFormat（'Z' 字面量
+    // 仅因 setTimeZone(UTC) 碰巧正确；DateTimeFormatter 预绑定 ZoneOffset.UTC 无此隐患）。
+    private static final DateTimeFormatter ISO_UTC =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'").withZone(ZoneOffset.UTC);
 
     /**
      * @param module               目标模块版本（提供 moduleId/moduleVersion）
@@ -104,9 +109,11 @@ public class MetaManifestBuilder {
             // 边方向：owner 依赖 target（owner 引用 target）
             //   parentMap[owner] 追加 target（owner 的上游）
             //   childMap[target]  追加 owner （target 的下游）
+            // AR-09：邻接表去重 + 自环过滤（addEdge 内部处理）
             addEdge(parentMap, ownerUniqueId, targetUniqueId);
             // target 可能不在本模块节点集（跨模块/unresolved），childMap 需为它建条目
-            childMap.computeIfAbsent(targetUniqueId, k -> new ArrayList<>()).add(ownerUniqueId);
+            // AR-09：childMap 同步去重 + 自环过滤
+            addEdge(childMap, targetUniqueId, ownerUniqueId);
         }
 
         Map<String, Object> content = new LinkedHashMap<>();
@@ -141,9 +148,7 @@ public class MetaManifestBuilder {
     private static String formatIso(Date date) {
         if (date == null)
             return null;
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-        return sdf.format(date);
+        return ISO_UTC.format(date.toInstant());
     }
 
     /**
@@ -222,10 +227,23 @@ public class MetaManifestBuilder {
         return "entity." + normalized + "." + simple;
     }
 
+    /**
+     * 向邻接表追加一条边（AR-09：去重 + 自环过滤）。
+     *
+     * <p>重复关系（同一 key→value 对出现多次）不产重复邻居——追加前检查 {@code !list.contains(value)}。
+     * 自环（{@code key.equals(value)}）不追加——owner==target 的关系不产生图边（无意义的自依赖）。
+     */
     private static void addEdge(Map<String, List<String>> map, String key, String value) {
-        if (key == null || value == null)
+        if (key == null || value == null) {
             return;
-        map.computeIfAbsent(key, k -> new ArrayList<>()).add(value);
+        }
+        if (key.equals(value)) {
+            return;
+        }
+        List<String> list = map.computeIfAbsent(key, k -> new ArrayList<>());
+        if (!list.contains(value)) {
+            list.add(value);
+        }
     }
 
     /**

@@ -13,6 +13,8 @@ import io.nop.metadata.dao.entity.NopMetaQualityRule;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
 import jakarta.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -20,6 +22,7 @@ import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -40,6 +43,8 @@ import java.util.concurrent.TimeUnit;
  */
 public class MetaContractChecker {
 
+
+    private static final Logger LOG = LoggerFactory.getLogger(MetaContractChecker.class);
 
     private final IDaoProvider daoProvider;
 
@@ -314,7 +319,7 @@ public class MetaContractChecker {
      * @param unitKey     单位键名（统一 "unit"）
      */
     @SuppressWarnings("unchecked")
-    private Long toDurationMillis(String contractId, Object durationMap, String amountKey, String unitKey) {
+    Long toDurationMillis(String contractId, Object durationMap, String amountKey, String unitKey) {
         if (durationMap == null) {
             return null;
         }
@@ -329,13 +334,23 @@ public class MetaContractChecker {
         if (amountObj == null || unitObj == null) {
             return null;
         }
+        // AR-02（plan 2026-08-14-0707-2）：不可解析的 amount（如非数字 String "oops"）显式映射
+        // ERR_CONTRACT_SLA_INVALID（带 contractId + 错误值），不再逃逸裸 NumberFormatException。
         double amount;
         try {
-            amount = ((Number) amountObj).doubleValue();
-        } catch (ClassCastException e) {
-            amount = Double.parseDouble(String.valueOf(amountObj));
+            if (amountObj instanceof Number) {
+                amount = ((Number) amountObj).doubleValue();
+            } else {
+                LOG.debug(NopMetadataErrors.ERR_CONTRACT_TYPE_PROBE_FAILED.getErrorCode()
+                        + ": duration amount is not a Number, falling back to string parse");
+                amount = Double.parseDouble(String.valueOf(amountObj));
+            }
+        } catch (NumberFormatException e) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_CONTRACT_SLA_INVALID, e)
+                    .param("contractId", contractId)
+                    .param("error", "duration amount is not a number: " + amountObj);
         }
-        String unit = String.valueOf(unitObj).toLowerCase();
+        String unit = String.valueOf(unitObj).toLowerCase(Locale.ROOT);
         TimeUnit tu;
         switch (unit) {
             case "millisecond":
@@ -365,7 +380,9 @@ public class MetaContractChecker {
             case "w":
                 // AR-22（plan 2026-08-06-1228-1 Phase 4）：week/w 补入映射（7 天）——
                 // 修复前落入 default 静默按 1ms 解析（{"interval":1,"unit":"week"} → 恒 stale 零错误信号）
-                return TimeUnit.DAYS.toMillis((long) amount * 7);
+                // AR-01（plan 2026-08-14-0707-2）：不再 (long) 截断 amount——先按 double 换算毫秒再取整，
+                // 使分数 amount（如 0.5w = 3.5 day）得到正确毫秒，而非被 (long)0.5*7=0 截断。
+                return (long) (amount * TimeUnit.DAYS.toMillis(7));
             default:
                 // AR-22：未知单位不再静默按毫秒解析——显式抛既有错误码 ERR_CONTRACT_SLA_INVALID（fail-fast），
                 // unit 值拼入 error 文本（该码消息模板只声明 {contractId}/{error}，不扩展模板避免影响
@@ -374,7 +391,9 @@ public class MetaContractChecker {
                         .param("contractId", contractId)
                         .param("error", "unknown sla time unit: " + unit);
         }
-        return tu.toMillis((long) amount);
+        // AR-01（plan 2026-08-14-0707-2）：不再 (long) 截断 amount——先按 double 换算毫秒再取整，
+        // 使分数 amount（如 0.5h = 1_800_000 ms）得到正确毫秒，而非被 (long)0.5=0 截断导致恒判过期。
+        return (long) (amount * tu.toMillis(1));
     }
 
     // ===== helpers =====

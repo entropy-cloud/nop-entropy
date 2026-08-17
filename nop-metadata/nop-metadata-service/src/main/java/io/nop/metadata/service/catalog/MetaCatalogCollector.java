@@ -16,6 +16,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -72,7 +73,7 @@ public class MetaCatalogCollector {
         if (productName != null) {
             stats.getExtras().put("databaseProductName", productName);
         }
-        stats.getExtras().put("tableType", ref.getKind().name().toLowerCase());
+        stats.getExtras().put("tableType", ref.getKind().name().toLowerCase(Locale.ROOT));
 
         String fromClause = buildFromClause(ref, normalizedSchema);
         stats.setRowCount(countRows(conn, fromClause));

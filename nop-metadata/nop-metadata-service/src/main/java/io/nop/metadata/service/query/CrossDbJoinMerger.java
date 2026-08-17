@@ -127,10 +127,16 @@ class CrossDbJoinMerger {
      * 同串但数值不等，放宽会静默失配/错配。
      */
     private void verifyCrossDbKeyTypeConsistency(NopMetaTableJoin join,
-                                                 List<Map<String, Object>> leftRows, String leftField,
-                                                 List<Map<String, Object>> rightRows, String rightField) {
-        Class<?> leftType = firstNonNullKeyType(leftRows, leftField);
-        Class<?> rightType = firstNonNullKeyType(rightRows, rightField);
+                                                  List<Map<String, Object>> leftRows,
+                                                  String leftField,
+                                                  List<Map<String, Object>> rightRows,
+                                                  String rightField) {
+        // P1-6（plan 2026-08-15-1913-3 轨 2 穿参）：joinId 穿入
+        // firstNonNullKeyType——单列内混型失败时 {joinId} 占位符真实渲染（此前永不渲染）
+        Class<?> leftType = firstNonNullKeyType(leftRows, leftField,
+                join.getJoinId());
+        Class<?> rightType = firstNonNullKeyType(rightRows, rightField,
+                join.getJoinId());
         if (leftType == null || rightType == null) {
             return;
         }
@@ -153,8 +159,12 @@ class CrossDbJoinMerger {
      * Validates that ALL non-null values in that column share the same type
      * (integer-family mixed values are accepted, AR-20b).
      * Returns null if no non-null key is found.
+     *
+     * @param joinId P1-6（plan 2026-08-15-1913-3 轨 2 穿参）：单列内混型失败时
+     *               {joinId} 占位符真实渲染
      */
-    private static Class<?> firstNonNullKeyType(List<Map<String, Object>> rows, String field) {
+    private static Class<?> firstNonNullKeyType(List<Map<String, Object>> rows,
+                                                String field, final String joinId) {
         if (rows == null) return null;
         Class<?> resultType = null;
         for (Map<String, Object> r : rows) {
@@ -168,7 +178,10 @@ class CrossDbJoinMerger {
                     // 单列内整型族混型（如 Integer + Long）→ 兼容（stringKey 匹配语义下数值等值成立）
                     continue;
                 }
+                // P1-6（plan 2026-08-15-1913-3 轨 2）：joinId 穿参补齐——此前该 throw 缺
+                // {joinId}，单列内混型失败时身份永不渲染
                 throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_CROSS_DB_KEY_TYPE_MISMATCH)
+                        .param("joinId", joinId)
                         .param("leftType", resultType.getName())
                         .param("rightType", type.getName());
             }

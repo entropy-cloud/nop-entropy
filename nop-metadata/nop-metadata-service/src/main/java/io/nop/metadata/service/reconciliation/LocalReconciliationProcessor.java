@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * 本地对账匹配服务（设计 08-reconciliation.md §1.2 D1 + §四 D2 裁定）。
@@ -116,10 +117,16 @@ public class LocalReconciliationProcessor implements IReconciliationProcessor {
         throw new NopMetadataException(NopMetadataErrors.ERR_RECON_UNSUPPORTED_MATCH_STRATEGY).param("matchStrategy", String.valueOf(matchStrategy));
     }
 
-    /** levenshtein 归一化相似度 = 1 - distance / max(len)。忽略大小写。 */
+    /**
+     * levenshtein 归一化相似度 = 1 - distance / max(len)。忽略大小写。
+     *
+     * <p>AR-12：使用 {@code Locale.ROOT} 确保 locale-insensitive——默认 locale（如 tr-TR）下
+     * {@code "I".toLowerCase()} → {@code "ı"}（无点 i），同一数据在不同 JVM locale 下匹配结果不同。
+     * 与精确路径（{@code equalsIgnoreCase} 天然 locale-insensitive）保持一致。
+     */
     static double levenshteinSimilarity(String a, String b) {
-        String s1 = a.toLowerCase();
-        String s2 = b.toLowerCase();
+        String s1 = a.toLowerCase(Locale.ROOT);
+        String s2 = b.toLowerCase(Locale.ROOT);
         int n = s1.length();
         int m = s2.length();
         if (n == 0 && m == 0) {
@@ -189,9 +196,9 @@ public class LocalReconciliationProcessor implements IReconciliationProcessor {
             }
         } catch (Exception e) {
             // plan 2026-07-19-1250-3 Phase 2 维度09-09：静默吞异常修复——记录 warn 日志（含原始 JSON 摘要 + 完整 stack trace）
-            LOG.warn("parseProperties failed -- propertiesJsonSnippet={}",
+            LOG.warn("parseProperties failed -- propertiesJsonSnippet={}, errorCode={}",
                     propertiesJson.length() > 200 ? propertiesJson.substring(0, 200) + "..." : propertiesJson,
-                    e);
+                    NopMetadataErrors.ERR_RECON_PROCESS_ISOLATED.getErrorCode(), e);
         }
         return Collections.emptyMap();
     }

@@ -150,24 +150,4 @@ public class NopMetaReconciliationResultBizModel extends CrudBizModel<NopMetaRec
                     .param(NopMetadataErrors.ARG_DETAILS_SIZE, detailsSize);
         }
     }
-
-    private static int toInt(Object v) {
-        if (v instanceof Number) {
-            return ((Number) v).intValue();
-        }
-        if (v == null) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_RECON_INVALID_SELECTION)
-                    .param(NopMetadataErrors.ARG_VALUE, "null");
-        }
-        try {
-            return Integer.parseInt(String.valueOf(v));
-        } catch (NumberFormatException e) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_RECON_INVALID_SELECTION)
-                    .param(NopMetadataErrors.ARG_VALUE, String.valueOf(v));
-        }
-    }
-
-    private static String toStr(Object v) {
-        return v == null ? null : String.valueOf(v);
-    }
 }

@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -124,7 +125,7 @@ public class CheckpointActionDispatcher {
         }
         Set<String> set = new HashSet<>();
         for (String token : webhookAllowedHostsCsv.split(",")) {
-            String trimmed = token.trim().toLowerCase();
+            String trimmed = token.trim().toLowerCase(Locale.ROOT);
             if (!trimmed.isEmpty()) {
                 set.add(trimmed);
             }
@@ -153,7 +154,9 @@ public class CheckpointActionDispatcher {
             }
             actionList = (List<Object>) parsed;
         } catch (Exception e) {
-            LOG.error("actions JSON parse failed (should have been validated): checkpointId={}", cp.getCheckpointId(), e);
+            LOG.error("actions JSON parse failed (should have been validated): errorCode={} checkpointId={}",
+                    NopMetadataErrors.ERR_CHECKPOINT_ACTION_DISPATCH_ISOLATED.getErrorCode(),
+                    cp.getCheckpointId(), e);
             return;
         }
 
@@ -186,7 +189,9 @@ public class CheckpointActionDispatcher {
                             + "checkpointId={}, actionType={}", cp.getCheckpointId(), actionType);
                 }
             } catch (Exception e) {
-                LOG.error("action dispatch failed: actionType={}, checkpointId={}", actionType, cp.getCheckpointId(), e);
+                LOG.error("action dispatch failed: errorCode={} actionType={} checkpointId={}",
+                        NopMetadataErrors.ERR_CHECKPOINT_ACTION_DISPATCH_ISOLATED.getErrorCode(),
+                        actionType, cp.getCheckpointId(), e);
                 errors.add(buildDispatchError(actionType, e));
             }
         }
@@ -225,7 +230,7 @@ public class CheckpointActionDispatcher {
         // 维度13-04：URL 协议 + 主机白名单 + method 白名单
         validateWebhookUrl(cp, url);
         String method = (config != null && config.get("method") != null)
-                ? String.valueOf(config.get("method")).trim().toUpperCase()
+                ? String.valueOf(config.get("method")).trim().toUpperCase(Locale.ROOT)
                 : "POST";
         validateWebhookMethod(cp, method);
 
@@ -277,7 +282,7 @@ public class CheckpointActionDispatcher {
      * </ol>
      */
     void validateWebhookUrl(NopMetaQualityCheckpoint cp, String url) {
-        String lower = url.toLowerCase();
+        String lower = url.toLowerCase(Locale.ROOT);
         boolean protocolOk = false;
         for (String proto : ALLOWED_WEBHOOK_PROTOCOLS) {
             if (lower.startsWith(proto)) {
@@ -292,13 +297,61 @@ public class CheckpointActionDispatcher {
                     .param("reason", "protocol not in whitelist (http/https)");
         }
         String host = extractWebhookHost(url);
-        if (host != null && !host.isEmpty() && isInternalHost(host)
-                && !resolveAllowedWebhookHosts().contains(host.toLowerCase())) {
+        // P2-06（plan 2026-08-16-0226-1）：提取结果 null/空/非主机形状 → 显式 fail-closed（沿 JDBC 侧
+        // F7 isPlausibleHostShape enforced fail-closed 先例，plan 2026-08-14-1133-1）。修复前仅当
+        // host 非 null 非空才做内网校验，畸形 URL 多数产出垃圾 host 串（如 "https:///hook" → "/hook"、
+        // "https://:8080/hook" → ":8080"）穿过 null/空守卫、被 isInternalHost 判为非内网后放行——
+        // lucky fail-closed（垃圾 host 建连失败兜底）而非 enforced fail-closed，与 F7 防御纵深不对称。
+        if (host == null || host.isEmpty() || !isPlausibleWebhookHostShape(host)) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_CHECKPOINT_WEBHOOK_URL_BLOCKED)
+                    .param("checkpointId", cp.getCheckpointId())
+                    .param("url", url)
+                    .param("reason", "implausible host shape: " + host);
+        }
+        if (isInternalHost(host)
+                && !resolveAllowedWebhookHosts().contains(host.toLowerCase(Locale.ROOT))) {
             throw new NopMetadataException(NopMetadataErrors.ERR_CHECKPOINT_WEBHOOK_URL_BLOCKED)
                     .param("checkpointId", cp.getCheckpointId())
                     .param("url", url)
                     .param("reason", "internal/link-local/loopback host not in allowed-hosts: " + host);
         }
+    }
+
+    /**
+     * P2-06（plan 2026-08-16-0226-1）：webhook 提取 host 的形状校验（沿 JDBC 侧 F7
+     * {@code MetaDataSourceConnectionProcessor#isPlausibleHostShape} 先例的 webhook 适配）。拒绝：
+     * <ul>
+     *   <li>以 {@code /} 开头（authority 解析出 path 片段，如 {@code https:///hook} → {@code /hook}）</li>
+     *   <li>以 {@code (} 开头（属性组片段，非主机形状）</li>
+     *   <li>含 {@code %}（percent 编码残片，非 HTTP 客户端可解析主机名，fail-closed）</li>
+     *   <li>以 {@code :} 开头且无第二个冒号（纯端口无主机，如 {@code https://:8080/hook} → {@code :8080}）</li>
+     * </ul>
+     * 合法主机：以字母/数字开头（域名 / IPv4 / 十进制 IP 字面量），或以 {@code :} 开头但含第二个冒号
+     * （无括号 IPv6 字面量如 {@code ::1} / IPv4-mapped {@code ::ffff:127.0.0.1}，经
+     * {@link #isInternalHost} 判定）。方括号 IPv6 已被 {@link #extractWebhookHost} 剥离，不以 {@code [} 开头。
+     */
+    private static boolean isPlausibleWebhookHostShape(String host) {
+        if (host == null || host.isEmpty()) {
+            return false;
+        }
+        char c = host.charAt(0);
+        if (c == '/') {
+            // path 片段，非主机形状
+            return false;
+        }
+        if (c == '(') {
+            // 属性组片段（非 HTTP URL 主机形状，纵深：JDBC 侧属性组语法不会出现在 webhook URL）
+            return false;
+        }
+        if (host.indexOf('%') >= 0) {
+            // percent 编码残片，非客户端可解析主机名（fail-closed：不静默放行待建连失败兜底）
+            return false;
+        }
+        if (c == ':') {
+            // 纯端口（:8080）非主机形状；无括号 IPv6 字面量（::1）含第二个冒号 → 合法主机
+            return host.indexOf(':', 1) >= 0;
+        }
+        return true;
     }
 
     /** 从 webhook URL 粗提取 host（http(s)://host[:port]/path?query 形式，支持 IPv6 [::1]）。 */
@@ -390,6 +443,8 @@ public class CheckpointActionDispatcher {
             byte[] b = addr.getAddress();
             return b != null && (b.length == 4 || b.length == 16);
         } catch (UnknownHostException e) {
+            LOG.debug(NopMetadataErrors.ERR_DATASOURCE_HOST_RESOLVE_SKIPPED.getErrorCode()
+                    + ": IP literal resolve failed for host head, treating as non-literal", e);
             return false;
         }
     }

@@ -13,6 +13,7 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaGlossaryTermBiz;
 import io.nop.metadata.dao.entity.NopMetaGlossaryTerm;
 import io.nop.metadata.dao.entity.NopMetaTagLabel;
+import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataHelper;
 import io.nop.metadata.service.search.NopMetaSearchProcessor;
 import io.nop.search.api.SearchableDoc;
@@ -109,8 +110,8 @@ public class NopMetaGlossaryTermBizModel extends CrudBizModel<NopMetaGlossaryTer
                     bizObjectManager().getBizObject("NopMetaTagLabel")
                             .invoke("save", Map.of("data", data), null, context);
                 } catch (Exception e) {
-                    LOG.warn("Failed to save TagLabel for glossaryTerm {} tagId={}",
-                            glossaryTermId, tagId, e);
+                    LOG.warn("Failed to save TagLabel for glossaryTerm {} tagId={}, errorCode={}",
+                            glossaryTermId, tagId, NopMetadataErrors.ERR_ENTITY_SYNC_ISOLATED.getErrorCode(), e);
                 }
             }
         }

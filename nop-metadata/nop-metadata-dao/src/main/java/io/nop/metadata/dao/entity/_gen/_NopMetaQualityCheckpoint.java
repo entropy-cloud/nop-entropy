@@ -88,6 +88,9 @@ public class _NopMetaQualityCheckpoint extends DynamicOrmEntity{
     /* relation: 元数据模块 */
     public static final String PROP_NAME_metaModule = "metaModule";
     
+    /* relation: 质量结果集 */
+    public static final String PROP_NAME_qualityResults = "qualityResults";
+    
     /* component:  */
     public static final String PROP_NAME_validationsComponent = "validationsComponent";
     
@@ -904,6 +907,16 @@ public class _NopMetaQualityCheckpoint extends DynamicOrmEntity{
            });
            }
        
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaQualityResult> _qualityResults = new OrmEntitySet<>(this, PROP_NAME_qualityResults,
+        io.nop.metadata.dao.entity.NopMetaQualityResult.PROP_NAME_checkpoint, null,io.nop.metadata.dao.entity.NopMetaQualityResult.class);
+
+    /**
+     * 质量结果集。 refPropName: checkpoint, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaQualityResult> getQualityResults(){
+       return _qualityResults;
     }
        
    private io.nop.orm.component.JsonOrmComponent _validationsComponent;

@@ -33,6 +33,19 @@ interface JoinErrors extends NopMetadataArgs {
                     "Join table endpoint must be external/sql tableType (entity-type table should use entityId path): "
                             + "{joinId} side={side} tableId={tableId} tableType={tableType}",
                     ARG_JOIN_ID, ARG_SIDE, ARG_TABLE_ID, ARG_TABLE_TYPE);
+    /**
+     * P1-6（plan 2026-08-15-1913-3）：save 校验 create 路径 joinId 尚不存在（禁止传 null——
+     * 渲染空串=空壳修复），换用无 joinId 必需占位符的孪生码（metaTableId 提供身份）；
+     * update 路径 joinId 自 data map 下沉，仍用上码。
+     */
+    ErrorCode ERR_JOIN_TABLE_TYPE_NOT_ALLOWED_ON_CREATE =
+            ErrorCode.define(
+                    "nop.err.metadata.join-table-type-not-allowed-on-create",
+                    "Join table endpoint must be external/sql tableType on save "
+                            + "(entity-type table should use entityId path): "
+                            + "metaTableId={metaTableId} side={side} "
+                            + "tableId={tableId} tableType={tableType}",
+                    ARG_META_TABLE_ID, ARG_SIDE, ARG_TABLE_ID, ARG_TABLE_TYPE);
     ErrorCode ERR_JOIN_FIELD_NOT_RESOLVED =
             ErrorCode.define("nop.err.metadata.join-field-not-resolved",
                     "Join field could not be resolved to a physical column: {joinId} side={side} "
@@ -101,4 +114,10 @@ interface JoinErrors extends NopMetadataArgs {
     ErrorCode ERR_PAGINATION_LIMIT_INVALID =
             ErrorCode.define("nop.err.metadata.pagination-limit-invalid",
                     "Pagination limit must be null or a positive integer: {limit}", ARG_LIMIT);
+
+    // ===== Join resolve isolation (clause-b formalize) =====
+
+    ErrorCode ERR_JOIN_RESOLVE_ISOLATED =
+            ErrorCode.define("nop.err.metadata.join-resolve-isolated",
+                    "Join side resolution failed (isolated, fallback applied): {error}", ARG_ERROR);
 }

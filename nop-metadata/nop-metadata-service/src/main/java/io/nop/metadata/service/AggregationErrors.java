@@ -164,4 +164,23 @@ interface AggregationErrors extends NopMetadataArgs {
                     "granularity value not in supported set [year,quarter,month,week,day,hour]: "
                             + "{granularity} dimensionName={dimensionName}",
                     ARG_GRANULARITY, ARG_DIMENSION_NAME);
+
+    // ===== Database product name read (AR-14a: infra failure fail-loud) =====
+
+    ErrorCode ERR_AGGR_DB_PRODUCT_NAME_FAILED =
+            ErrorCode.define("nop.err.metadata.aggr-db-product-name-failed",
+                    "Failed to read database product name "
+                            + "from DatabaseMetaData (connection/driver "
+                            + "infrastructure error, not an "
+                            + "unsupported-dialect condition): {error}",
+                    ARG_ERROR);
+
+    // ===== Numeric value coercion (INV-SILENT-SWALLOW formalize, 1448-2) =====
+
+    ErrorCode ERR_AGGR_VALUE_NOT_NUMERIC =
+            ErrorCode.define("nop.err.metadata.aggr-value-not-numeric",
+                    "Aggregation numeric coercion skipped "
+                            + "(value is not numeric, "
+                            + "fallback applied): {error}",
+                    ARG_ERROR);
 }

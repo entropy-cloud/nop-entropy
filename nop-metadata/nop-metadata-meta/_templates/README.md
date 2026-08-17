@@ -4,10 +4,18 @@
 
 ## 用途
 
-本目录下的 `_NopMeta*.json` 文件（共 32 个）是 nop-cli 代码生成管线在首次 `gen` 一个 nop-metadata
+本目录下的 `_NopMeta*.json` 文件（共 39 个）是 nop-cli 代码生成管线在首次 `gen` 一个 nop-metadata
 项目骨架时使用的模板元数据快照。每个文件以 `_` 前缀标识，按 AGENTS.md "Hard Stop: Generated Files"
 规则：**不允许手工编辑**——若需要修改，请改源 ORM 模型（`/model/*.orm.xml`）或 codegen 模板，
 然后重新生成。
+
+## 模板集对账（2026-08-16）
+
+`_NopMeta*.json` 实数 39，与 `nop-metadata/model/nop-metadata.orm.xml` 的 39 个 `<entity>` 集合
+双向差集为空（模板文件名 `_NopMeta<X>.json` 与实体 className 尾段 `NopMeta<X>` 一一对应，
+无孤儿模板）。目录下另有 1 个非实体模板 `_MetadataPropagation.json`（元数据传播配置模板，
+不对应任何 ORM 实体），全目录 JSON 合计 40。`_templates/` 目录"保留不动"的 watch-only
+裁定维持（见下）。
 
 ## 裁定
 

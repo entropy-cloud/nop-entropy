@@ -11,6 +11,7 @@ import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.crud.CrudBizModel;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IEntityDao;
@@ -55,6 +56,12 @@ public class NopMetaTableFilterBizModel extends CrudBizModel<NopMetaTableFilter>
      */
     @Override
     public NopMetaTableFilter save(@Name("data") Map<String, Object> data, IServiceContext context) {
+        // P2-19（plan 2026-08-16-0226-3）：null/empty data 提前委托基类，
+        // 统一抛 ERR_BIZ_EMPTY_DATA_FOR_SAVE
+        // （不抢先抛 ERR_FILTER_DEFINITION_EMPTY——空数据语义归基类）
+        if (CollectionHelper.isEmptyMap(data)) {
+            return super.save(data, context);
+        }
         String metaTableId = NopMetadataHelper.stringOf(data, NopMetaTableFilter.PROP_NAME_metaTableId);
         String filterName = NopMetadataHelper.stringOf(data, NopMetaTableFilter.PROP_NAME_filterName);
         String definition = NopMetadataHelper.stringOf(data, NopMetaTableFilter.PROP_NAME_definition);

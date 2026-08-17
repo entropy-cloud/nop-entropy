@@ -33,12 +33,11 @@ import io.nop.metadata.service.sqlview.SqlViewFieldTypeInferrer;
 import io.nop.metadata.service.tableref.MetaTableReferenceResolver;
 import io.nop.metadata.service.tableref.TableReferenceExecutor;
 import io.nop.metadata.service.NopMetadataException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static io.nop.metadata.service.query.AggregationHelper.safeProductName;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -49,8 +48,6 @@ import java.util.Map;
 import java.util.Set;
 
 public class NopMetaTableQueryAction {
-
-    private static final Logger LOG = LoggerFactory.getLogger(NopMetaTableQueryAction.class);
 
     private final SqlSelectFieldExtractor sqlFieldExtractor = new SqlSelectFieldExtractor();
     private final MetaTableFieldResolver fieldResolver = new MetaTableFieldResolver(sqlFieldExtractor);
@@ -124,7 +121,9 @@ public class NopMetaTableQueryAction {
                     requireSupportedDialect(productName, table.getMetaTableId());
                     FilterToSqlTranslator.TranslatedFilter tf = filterTranslator.translate(filter);
                     String sql = MetaTableQueryExecutor.buildExternalSelectSql(table.getTableName(), columns, tf.getSql(), limit, offset, productName);
-                    holder[0] = MetaTableQueryExecutor.executeQuery(conn, sql, tf.getParams(), limit, offset);
+                    holder[0] = MetaTableQueryExecutor.executeQuery(conn, sql,
+                            tf.getParams(), limit, offset,
+                            table.getMetaTableId());
                 });
         return holder[0];
     }
@@ -144,7 +143,9 @@ public class NopMetaTableQueryAction {
                     requireSupportedDialect(productName, table.getMetaTableId());
                     FilterToSqlTranslator.TranslatedFilter tf = filterTranslator.translate(filter);
                     String sql = MetaTableQueryExecutor.buildSqlSelectSql(sourceSql, tf.getSql(), limit, offset, productName);
-                    holder[0] = MetaTableQueryExecutor.executeQuery(conn, sql, tf.getParams(), limit, offset);
+                    holder[0] = MetaTableQueryExecutor.executeQuery(conn, sql,
+                            tf.getParams(), limit, offset,
+                            table.getMetaTableId());
                 });
         return holder[0];
     }
@@ -232,15 +233,6 @@ public class NopMetaTableQueryAction {
         }
         dto.setErrors(errorDTOs);
         return dto;
-    }
-
-    private static String safeProductName(DatabaseMetaData metaData) {
-        try {
-            return metaData.getDatabaseProductName();
-        } catch (SQLException e) {
-            LOG.warn("getDatabaseProductName failed, product name will be absent from tableStats", e);
-            return null;
-        }
     }
 
     private static List<Map<String, Object>>[] newArrayHolder() {

@@ -95,6 +95,26 @@ interface MiscErrors extends NopMetadataArgs {
                     "TagLabel save failed (automated/propagated label could not be persisted, failing loudly "
                             + "instead of silent drop): {entityType} entityId={entityId} tagId={tagId} -- {error}",
                     ARG_ENTITY_TYPE, ARG_ENTITY_ID, ARG_TAG_ID, ARG_ERROR);
+    // P2-01（plan 2026-08-16-0920-1，裁决选项 ii）：GLOSSARY 来源、tagId=NULL 的标注行不被
+    // UK_NOP_META_TAG_LABEL 约束（复合 UK 任一列 NULL 即豁免唯一性），显式客户端 save 可累积重复行。
+    // 应用层查重守卫 fail-loud 拒绝（沿 existingPropagatedLabel / ERR_SQL_VIEW_TABLE_EXISTS 先例），UK 保持不变。
+    ErrorCode ERR_TAG_LABEL_DUPLICATE_GLOSSARY_TERM =
+            ErrorCode.define("nop.err.metadata.tag-label-duplicate-glossary-term",
+                    "Duplicate glossary term tag label rejected (source=Glossary rows with null tagId are not "
+                            + "covered by UK_NOP_META_TAG_LABEL due to NULL-distinct semantics): "
+                            + "entityType={entityType} entityId={entityId} glossaryTermId={glossaryTermId}",
+                    ARG_ENTITY_TYPE, ARG_ENTITY_ID, ARG_GLOSSARY_TERM_ID);
+
+    // ===== BusinessDomain =====
+
+    // P2-28（plan 2026-08-16-0920-1）：UK_NOP_META_BUSINESS_DOMAIN_PARENT_NAME 对根域
+    // （parentDomainId NULL）不生效（NULL-distinct），应用层根域重名守卫 fail-loud 拒绝，UK 保持不变。
+    ErrorCode ERR_BUSINESS_DOMAIN_DUPLICATE_ROOT_NAME =
+            ErrorCode.define("nop.err.metadata.business-domain-duplicate-root-name",
+                    "Duplicate root business domain name rejected (root domains with null parentDomainId are not "
+                            + "covered by UK_NOP_META_BUSINESS_DOMAIN_PARENT_NAME due to NULL-distinct semantics): "
+                            + "name={name}",
+                    ARG_NAME);
 
     // ===== Propagation =====
 
@@ -125,12 +145,6 @@ interface MiscErrors extends NopMetadataArgs {
             ErrorCode.define("nop.err.metadata.link-asset-entity-type-invalid",
                     "Entity type not recognized as a linkable asset: {entityType}",
                     ARG_ENTITY_TYPE);
-
-    // ===== Checkpoint (checkpoint biz) =====
-
-    ErrorCode ERR_CHECKPOINT_NOT_FOUND =
-            ErrorCode.define("nop.err.metadata.checkpoint-not-found",
-                    "Quality checkpoint not found: {checkpointId}", ARG_CHECKPOINT_ID);
 
     // ===== Event =====
 
@@ -166,4 +180,50 @@ interface MiscErrors extends NopMetadataArgs {
     ErrorCode ERR_SEARCH_LIMIT_INVALID =
             ErrorCode.define("nop.err.metadata.search-limit-invalid",
                     "Search limit must be null or a positive integer: {limit}", ARG_LIMIT);
+    ErrorCode ERR_SEARCH_INDEX_BUILD_FAILED =
+            ErrorCode.define("nop.err.metadata.search-index-build-failed",
+                    "Search index build/rebuild failed for entityType={entityType} -- {error}",
+                    ARG_ENTITY_TYPE, ARG_ERROR);
+    ErrorCode ERR_SEARCH_INDEX_PURGE_FAILED =
+            ErrorCode.define("nop.err.metadata.search-index-purge-failed",
+                    "Search index topic/type purge failed -- {error}", ARG_ERROR);
+    ErrorCode ERR_SEARCH_INDEX_REFRESH_FAILED =
+            ErrorCode.define("nop.err.metadata.search-index-refresh-failed",
+                    "Search index refresh failed for entityType={entityType} -- {error}",
+                    ARG_ENTITY_TYPE, ARG_ERROR);
+    ErrorCode ERR_SEARCH_DOC_CONVERT_FAILED =
+            ErrorCode.define("nop.err.metadata.search-doc-convert-failed",
+                    "Search document conversion failed (isolated, batch continues): "
+                            + "entityType={entityType} -- {error}",
+                    ARG_ENTITY_TYPE, ARG_ERROR);
+
+    // ===== Profiling isolation / type probe (clause-b formalize) =====
+
+    ErrorCode ERR_PROFILING_COLUMN_PROFILE_ISOLATED =
+            ErrorCode.define("nop.err.metadata.profiling-column-profile-isolated",
+                    "Profiling column failed (isolated, batch continues): table={tableName} column={columnName} "
+                            + "-- {error}",
+                    ARG_TABLE_NAME, ARG_COLUMN_NAME, ARG_ERROR);
+    ErrorCode ERR_PROFILING_TYPE_PROBE_FAILED =
+            ErrorCode.define("nop.err.metadata.profiling-type-probe-failed",
+                    "Profiling type probe failed (fallback applied): {error}", ARG_ERROR);
+
+    // ===== Contract type probe (clause-b formalize) =====
+
+    ErrorCode ERR_CONTRACT_TYPE_PROBE_FAILED =
+            ErrorCode.define("nop.err.metadata.contract-type-probe-failed",
+                    "Contract column type probe failed (fallback applied): {error}", ARG_ERROR);
+
+    // ===== Entity / Glossary / TagLabel sync isolation (clause-b formalize) =====
+
+    ErrorCode ERR_ENTITY_SYNC_ISOLATED =
+            ErrorCode.define("nop.err.metadata.entity-sync-isolated",
+                    "Entity sync failed (isolated, batch continues): entityType={entityType} entityId={entityId} "
+                            + "-- {error}",
+                    ARG_ENTITY_TYPE, ARG_ENTITY_ID, ARG_ERROR);
+    ErrorCode ERR_AUTOMATION_PROCESS_ISOLATED =
+            ErrorCode.define("nop.err.metadata.automation-process-isolated",
+                    "Automation processing failed (isolated, batch continues): entityType={entityType} "
+                            + "entityId={entityId} -- {error}",
+                    ARG_ENTITY_TYPE, ARG_ENTITY_ID, ARG_ERROR);
 }

@@ -6,28 +6,31 @@ interface LineageErrors extends NopMetadataArgs {
 
     ErrorCode ERR_COL_LINEAGE_SQL_EMPTY =
             ErrorCode.define("nop.err.metadata.col-lineage-sql-empty",
-                    "Source sql is empty", ARG_SQL);
+                    "Source sql is empty: {sql}", ARG_SQL);
     ErrorCode ERR_COL_LINEAGE_SQL_PARSE_FAILED =
             ErrorCode.define("nop.err.metadata.col-lineage-sql-parse-failed",
-                    "Failed to parse source sql for column lineage", ARG_SQL);
+                    "Failed to parse source sql for column lineage: {sql}", ARG_SQL);
     ErrorCode ERR_COL_LINEAGE_MULTI_STATEMENT =
             ErrorCode.define("nop.err.metadata.col-lineage-multi-statement",
-                    "Sql source must be a single SELECT statement, but got {count} statements", ARG_COUNT, ARG_SQL);
+                    "Sql source must be a single SELECT statement, but got {count} statements: {sql}",
+                    ARG_COUNT, ARG_SQL);
     ErrorCode ERR_COL_LINEAGE_NOT_SELECT =
             ErrorCode.define("nop.err.metadata.col-lineage-not-select",
-                    "Sql source must be a SELECT statement, but got {statementKind}", ARG_STATEMENT_KIND, ARG_SQL);
+                    "Sql source must be a SELECT statement, but got {statementKind}: {sql}",
+                    ARG_STATEMENT_KIND, ARG_SQL);
     ErrorCode ERR_LINEAGE_SQL_EMPTY =
             ErrorCode.define("nop.err.metadata.lineage-sql-empty",
-                    "Source sql is empty", ARG_SQL);
+                    "Source sql is empty: {sql}", ARG_SQL);
     ErrorCode ERR_LINEAGE_SQL_PARSE_FAILED =
             ErrorCode.define("nop.err.metadata.lineage-sql-parse-failed",
-                    "Failed to parse source sql", ARG_SQL);
+                    "Failed to parse source sql: {sql}", ARG_SQL);
     ErrorCode ERR_LINEAGE_NO_EDGES =
             ErrorCode.define("nop.err.metadata.lineage-no-edges",
-                    "No lineage edges provided to record", ARG_SIZE);
+                    "No lineage edges provided to record: size={size}", ARG_SIZE);
     ErrorCode ERR_LINEAGE_TABLE_ID_MISSING =
             ErrorCode.define("nop.err.metadata.lineage-table-id-missing",
-                    "Lineage edge is missing required table id (sourceTableId or targetTableId)", ARG_INDEX, ARG_EDGE);
+                    "Lineage edge is missing required table id (sourceTableId or targetTableId): "
+                            + "index={index} edge={edge}", ARG_INDEX, ARG_EDGE);
     ErrorCode ERR_LINEAGE_TABLE_NOT_FOUND =
             ErrorCode.define("nop.err.metadata.lineage-table-not-found",
                     "Referenced table does not exist in catalog: {tableId}", ARG_TABLE_ID);
@@ -45,10 +48,16 @@ interface LineageErrors extends NopMetadataArgs {
             ErrorCode.define("nop.err.metadata.lineage-graph-too-large",
                     "Lineage graph edge count exceeds size limit (abort to avoid OOM): "
                             + "edges={edges} limit={limit}. Increase nop.metadata.lineage.max-edges if legitimate.",
-                    ARG_EDGE, ARG_LIMIT);
+                    ARG_EDGES, ARG_LIMIT);
     ErrorCode ERR_LINEAGE_TABLE_INDEX_TOO_LARGE =
             ErrorCode.define("nop.err.metadata.lineage-table-index-too-large",
                     "Lineage table-name index size exceeds limit (abort to avoid OOM): "
                             + "tables={tables} limit={limit}. Increase nop.metadata.lineage.max-tables if legitimate.",
                     ARG_TABLES, ARG_LIMIT);
+
+    // ===== Lineage query isolation (clause-b formalize) =====
+
+    ErrorCode ERR_LINEAGE_QUERY_ISOLATED =
+            ErrorCode.define("nop.err.metadata.lineage-query-isolated",
+                    "Lineage query failed (isolated, graceful degradation): {error}", ARG_ERROR);
 }
