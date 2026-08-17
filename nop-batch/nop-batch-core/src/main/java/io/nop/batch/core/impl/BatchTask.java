@@ -13,6 +13,7 @@ import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.FutureHelper;
+import io.nop.api.core.util.ICancellable;
 import io.nop.api.core.util.ProcessResult;
 import io.nop.batch.core.BatchTaskGlobals;
 import io.nop.batch.core.IBatchChunkContext;
@@ -32,6 +33,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 
@@ -148,6 +150,12 @@ public class BatchTask<S> implements IBatchTask {
         }
     }
 
+    static Throwable unwrapCompletionException(Throwable err) {
+        while (err instanceof CompletionException && err.getCause() != null)
+            err = err.getCause();
+        return err;
+    }
+
     void initTaskKey(IBatchTaskContext context) {
         String taskKey = context.getTaskKey();
         if (taskKeyExpr != null && StringHelper.isEmpty(taskKey)) {
@@ -159,6 +167,10 @@ public class BatchTask<S> implements IBatchTask {
     }
 
     void onTaskComplete(CompletableFuture<Void> future, Object meter, Throwable err, IBatchTaskContext context) {
+        // allOf回调交付的异常被CompletionException包装，这里解包为原始异常，
+        // 便于stateStore按异常类型判定任务状态（如BatchCancelException对应KILLED/CANCELLED状态）
+        err = unwrapCompletionException(err);
+
         IBatchTaskMetrics metrics = context.getMetrics();
 
         try {
@@ -217,7 +229,12 @@ public class BatchTask<S> implements IBatchTask {
                     future.complete(null);
                 } catch (Exception e) {
                     NopException.logIfNotTraced(LOG, "nop.batch.execute-chunk-loop-fail", e);
+                    // 先完成future，确保allOf报告的是原始异常而不是兄弟线程随后抛出的BatchCancelException
                     future.completeExceptionally(e);
+
+                    // fail-fast: 任一chunk失败后通知其他线程尽快停止，避免失败后继续处理剩余数据
+                    if (!context.isCancelled())
+                        context.cancel(ICancellable.CANCEL_REASON_STOP);
                 } finally {
                     BatchTaskGlobals.removeTaskContext();
                 }

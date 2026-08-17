@@ -88,11 +88,15 @@ xdef 中 `xpl-fn:(params)=>type` 表示在 XML 中直接写 body，参数按 xde
 
 `nop-batch` 的正确性边界是“记录处理成功后再推进 batch 状态”。运行时既支持按 chunk 组织一次加载/处理/提交，也支持在 chunk 内保留逐条记录的处理结果；不同配置会改变失败后的重试粒度、是否允许跳过，以及事务何时提交。
 
+#### fail-fast（chunk 失败传播）
+
+`concurrency>1` 时，任一 chunk 失败（经过 retry 耗尽且 skip 拒绝后）会立即 `cancel` 任务上下文：其他线程在下一个循环边界（以及 `BatchProcessorConsumer` 的逐条检查点）抛出 `BatchCancelException` 退出，不再处理剩余数据。任务整体以**首个原始异常**失败，状态存储（如 `DaoBatchStateStore`）收到的是解包后的原始异常（`BatchCancelException` 按取消原因映射为 SUSPENDED/CANCELLED/KILLED 状态）。`skipPolicy` 吞掉的失败不会触发该路径。
+
 #### retryPolicy
 
 `retryPolicy` 控制 processor / consumer 抛出异常后的重试策略。
 
-- 未配置时，异常会直接让当前 chunk 失败。
+- 未配置时，异常会直接让当前 chunk 失败（`RetryConsumeHelper` 对 null policy 首次失败即放弃，不会无限重试）。
 - 配置后，运行时会在同一批记录上按策略重试；是否整批重试还是逐条重试，取决于 `retryOneByOne`。
 - `retryPolicy` 解决的是“失败后要不要再试一次”，不改变成功确认边界；真正的成功确认仍要等对应记录处理成功并落入状态存储。
 
@@ -132,6 +136,7 @@ loader/processor 侧如果使用 partition dispatcher，则运行时先按 `part
 - `dispatcher` 解决的是“并发执行模型”。
 - `retryPolicy` / `skipPolicy` 解决的是“失败后如何处理”。
 - dispatcher 只保证同一 partition 不会被两个线程同时处理，不额外规定失败后是否阻塞后续记录；这类约束应由具体业务处理逻辑决定。
+- 同一 partition 内的记录按底层 loader 的源序处理（fetch 与入队已串行化）；跨 partition 之间无顺序保证。
 
 #### 设计边界
 

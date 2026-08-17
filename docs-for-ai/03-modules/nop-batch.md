@@ -7,8 +7,8 @@
 - **Chunk 处理模式**：按批次读取→处理→写入，内存友好
 - **文件输入/输出**：支持 CSV/Excel 文件作为数据源或输出
 - **ORM/JDBC 读写**：内建 `orm-reader`/`orm-writer`、`jdbc-reader`/`jdbc-writer`
-- **断点续传**：通过 `completedIndex` 记录进度，中断后可恢复
-- **记录级幂等**：`NopBatchRecordResult` 表追踪每条记录状态，`recordKey` 唯一标识
+- **断点续传**：通过 `completedIndex` 记录进度，中断后可恢复；语义为 at-least-once（失败 chunk 的行会重新投递，业务方需自带幂等）
+- **记录级幂等**：`historyStore` 配置项存在，但**写路径（`NopBatchRecordResult` 落库）尚未实现**——`filterProcessed` 永远查不到记录，勿依赖它做去重（当前可用幂等手段：重跑前自行清理或按业务主键 upsert）
 - **重试/跳过**：`retryPolicy` + `skipPolicy` 内建支持
 - **并发处理**：`concurrency` + `executor` 线程池
 - **分区处理**：`dispatcher` + `partitionIndexField` 按字段分区并行

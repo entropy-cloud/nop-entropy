@@ -305,12 +305,12 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
 
     @Override
     public void setHistoryItemCount(long count) {
-        processItemCount.set(count);
+        historyItemCount.set(count);
     }
 
     @Override
     public void incHistoryItemCount(int count) {
-        processItemCount.addAndGet(count);
+        historyItemCount.addAndGet(count);
     }
 
     @Override
@@ -468,7 +468,7 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
             if (isDone()) {
                 throw new IllegalStateException("nop.err.execution-already-completed");
             }
-            onChunkTryEnd.add(action);
+            onConsumeEnd.add(action);
         }
     }
 

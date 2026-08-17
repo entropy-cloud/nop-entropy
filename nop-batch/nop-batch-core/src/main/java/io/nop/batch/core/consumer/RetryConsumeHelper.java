@@ -18,14 +18,16 @@ public class RetryConsumeHelper {
 
     public static void checkRetry(IRetryPolicy<IBatchChunkContext> retryPolicy,
                                   Throwable e, int retryTimes, IBatchChunkContext context) {
-        if (retryPolicy != null) {
-            long delay = retryPolicy.getRetryDelay(e, retryTimes, context);
-            if (delay < 0)
-                throw NopException.adapt(e);
+        // 没有配置重试策略时不允许重试，直接以原始异常失败
+        if (retryPolicy == null)
+            throw NopException.adapt(e);
 
-            if (delay > 0) {
-                ThreadHelper.sleep(delay);
-            }
+        long delay = retryPolicy.getRetryDelay(e, retryTimes, context);
+        if (delay < 0)
+            throw NopException.adapt(e);
+
+        if (delay > 0) {
+            ThreadHelper.sleep(delay);
         }
         context.incRetryCount();
     }

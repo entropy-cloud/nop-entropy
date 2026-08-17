@@ -240,7 +240,7 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
                 if (filter != null && filter.accept(item, state.context))
                     continue;
 
-                aggregator.aggregate(input.next(), state.combinedValue);
+                aggregator.aggregate(item, state.combinedValue);
             }
         } else {
             input.skip(skipCount);
@@ -260,7 +260,10 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
                             maxRowNumber = rowNumber;
                         if (rowNumber < minRowNumber || minRowNumber < 0)
                             minRowNumber = rowNumber;
-                        state.processingItems.put(rowNumber, true);
+                        // chunk处理失败时保持false，确保后续兄弟chunk的压实不会越过失败行推进completedIndex，
+                        // 否则按completedIndex恢复时会跳过这些未成功处理的记录，导致数据丢失
+                        if (exception == null)
+                            state.processingItems.put(rowNumber, true);
                     }
                 }
             }

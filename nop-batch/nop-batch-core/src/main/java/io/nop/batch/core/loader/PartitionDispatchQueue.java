@@ -55,6 +55,12 @@ public class PartitionDispatchQueue<T> {
 
     private final Condition notEmpty = lock.newCondition();
 
+    /**
+     * 串行化fetcher的读取与入队动作。多个消费线程并发调用fetcher时，保证数据页按底层loader的源序
+     * 依次进入队列，否则同一partition内的记录处理顺序会被跨页打乱
+     */
+    private final Object fetchMutex = new Object();
+
     private volatile boolean finished;
     private volatile boolean noMoreData;
 
@@ -203,12 +209,15 @@ public class PartitionDispatchQueue<T> {
 
             if (fetcher != null) {
                 if (!noMoreData) {
-                    // fetcher返回空集合后表示所有数据都已经取完
-                    List<T> list = fetcher.get();
-                    if (!list.isEmpty()) {
-                        addBatch(list);
-                    } else {
-                        noMoreData = true;
+                    // fetch与addBatch必须在同一临界区内完成，保证页按源序入队
+                    synchronized (fetchMutex) {
+                        // fetcher返回空集合后表示所有数据都已经取完
+                        List<T> list = fetcher.get();
+                        if (!list.isEmpty()) {
+                            addBatch(list);
+                        } else {
+                            noMoreData = true;
+                        }
                     }
                 } else {
                     lock.lock();

@@ -40,6 +40,12 @@ public class AsyncFetchPartitionDispatchLoaderProvider<S>
     private int loadBatchMultiplyFactor = 30;
     private int maxLockQueueCountPerThread = 100;
 
+    /**
+     * 串行化load+addBatch。多个fetch线程并发执行时，保证数据页按底层loader的源序依次进入队列，
+     * 否则同一partition内的记录处理顺序会被跨页打乱
+     */
+    private final Object fetchMutex = new Object();
+
     public AsyncFetchPartitionDispatchLoaderProvider(IBatchLoaderProvider<S> loader, Executor executor, int fetchThreadCount,
                                                      int loadBatchSize, BiFunction<S, IBatchTaskContext, Integer> partitionFn) {
         this.loader = loader;
@@ -109,13 +115,16 @@ public class AsyncFetchPartitionDispatchLoaderProvider<S>
                         ctx.setConcurrency(fetchThreadCount);
                         ctx.setThreadIndex(threadIndex);
                         try {
-                            List<S> list = loader.load(loadBatchSize, ctx);
-                            if (list.isEmpty()) {
-                                queue.markNoMorData();
-                                LOG.info("nop.batch.exit-fetch-thread:threadIndex={}", threadIndex);
-                                return;
+                            // load与addBatch在同一临界区内完成，保证页按源序入队
+                            synchronized (fetchMutex) {
+                                List<S> list = loader.load(loadBatchSize, ctx);
+                                if (list.isEmpty()) {
+                                    queue.markNoMorData();
+                                    LOG.info("nop.batch.exit-fetch-thread:threadIndex={}", threadIndex);
+                                    return;
+                                }
+                                queue.addBatch(list);
                             }
-                            queue.addBatch(list);
                         } catch (Exception e) {
                             LOG.info("nop.batch.exit-fetch-thread-when-fail:threadIndex={}", threadIndex, e);
                             exception.set(e);

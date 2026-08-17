@@ -351,8 +351,8 @@ public class ModelBasedBatchTaskBuilderFactory {
 
     int limitHash(Object value) {
         int hash = ConvertHelper.toPrimitiveInt(value, NopException::new);
-        hash = Math.abs(hash);
-        return (hash % Short.MAX_VALUE);
+        // 使用floorMod保证结果非负。Math.abs(Integer.MIN_VALUE)仍为负数
+        return Math.floorMod(hash, Short.MAX_VALUE);
     }
 
     private IBatchProcessorProvider<Object, Object> newFilterProcessor(IEvalFunction func) {
