@@ -1,6 +1,6 @@
 # W15-impl 邮件验证码 + 可信设备实现（EmailCodeStore 三实现 + 指纹豁免 + 撤销矩阵）
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: nop-credential-mfa
 > Work Item: W15-impl（邮件验证码 + 可信设备实现）——MFA 二期组第四个 impl 工作项
 > Last Reviewed: 2026-08-17（draft review 两轮：首轮独立 fresh subagent 对抗审查 3 Major + 7 Minor（headers 穿线事实更正/MfaLoginPolicyServiceImpl 副本裁定/聚合器命令空洞绿/锚点漂移等）全部处置，复审 3/3 Major + 7/7 Minor RESOLVED 且二次核对 live 锚点无误，reviewer 终判 READY）
@@ -68,7 +68,7 @@
 
 ### In Scope
 
-- `nop-service-framework/nop-biz-auth-core`：`EmailCodeStore` 接口 + Local 实现 + `_vfs/dict/auth/mfa-type.dict.yaml` email 条目；`MfaChallengeStore`/`SmsCodeStore` 既有契约零变更。
+- `nop-service-framework/nop-biz-auth-core`：`EmailCodeStore` 接口 + Local 实现 + `nop-service-framework/nop-biz-auth-core/src/main/resources/_vfs/dict/auth/mfa-type.dict.yaml` email 条目；`MfaChallengeStore`/`SmsCodeStore` 既有契约零变更。
 - `nop-auth/model/nop-auth.orm.xml`：新实体 `NopAuthEmailCode` + `NopAuthMfaTrustedDevice` + mfaType 列 comment 更新（email 入）；`deploy/sql/{mysql,postgresql,oracle}/` 增量 DDL。
 - `nop-auth/nop-auth-service`：`EmailCodeStore` Db/Redis 实现 + 装配注册（collect-beans + 条件激活）；`MfaStoreProvider` 扩展；`LoginServiceImpl`（checkMfaRequired headers 参数 + 豁免分支 + mfaVerify 登记路径 + sendMfaCode email 分派 + email 发送链路 + 限流）；`MfaFactorVerifier` email 分支；`NopAuthUserBizModel`（bindMfa/confirmMfa email 路径 + unbindMfa/confirmMfa/resetUserMfa 撤销钩子 + listTrustedDevices/removeTrustedDevice）；`LoginApiBizModel`（登记通道 email 解锁 + proof 通道选择）；`NopAuthConstants`/`NopAuthErrors`（如需）/`NopAuthConfigs`（email-code + trusted-device 配置组）；审计。
 - `nop-service-framework/nop-biz-auth-api`：`MfaVerifyRequest.rememberDevice` + `LoginResult.trustedDeviceRegistered`（跨模块公共 API 增量，migration note）。
@@ -84,92 +84,92 @@
 
 ### Phase 1 - EmailCodeStore 三实现 + 邮件因子全链 + 登记通道 email 解锁
 
-Status: planned
+Status: completed
 Targets: `nop-biz-auth-core`（接口 + Local + dict）、`nop-auth`（ORM 新表 + Db/Redis 实现 + 装配 + LoginServiceImpl/MfaFactorVerifier/NopAuthUserBizModel/LoginApiBizModel 接线）、`nop-biz-auth-api`（如需消息增量）
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] **Fix**：`EmailCodeStore` 接口（nop-biz-auth-core，`SmsCodeStore` 同形三方法）+ Local 实现（core 内，同 LocalSmsCodeStore 模式）。
-- [ ] **Fix**：ORM 新实体 `NopAuthEmailCode`（表 `nop_auth_email_code`，结构对齐 `nop_auth_sms_code`：key/手机位改 email 维度语义核对/code/expireAt/failCount/发送时间列族；model-first → codegen → `_create_` 再生成 + 三方言 `_add_email_code_nop-auth.sql`）。
-- [ ] **Fix**：Db/Redis 实现（nop-auth-service，对齐 W8 DbSmsCodeStore/RedisSmsCodeStore 语义：verify 原子消费 + 失败内部计数 + 达 max-attempts 作废）+ 装配（**触点单文件**：`auth-service.beans.xml`——`nopEmailCodeConfig` config bean + 三个 `nopEmailCodeStore_{local,db,redis}` + collect-beans `nopEmailCodeStore` 前缀（`ioc:ignore-depends` + `autowire-candidate=false`）+ Redis `ioc:condition` 条件激活（lessons 15：classpath 无 nosql 时 Redis 实现不加载）+ **工厂 bean `nopActiveEmailCodeStore`**（平行 `nopActiveSmsCodeStore` :79 先例——消费方 `@Nullable EmailCodeStore` 按类型注入的解析来源，漏配 = 全部注入点解析失败））+ `MfaStoreProvider` 扩展（Decision：第三组 map 或平行 `EmailStoreProvider`，执行期最小改动裁定并回写设计 §5.3.3）。
-- [ ] **Fix**：`MFA_TYPE_EMAIL` 常量 + factorLevel 核对断言（`"email"`→1 已在 W13 表）+ 白名单 #2/#3（bindMfa 白名单扩容 email——以 live 状态核对 W14 已否先行扩容；分派 email 同 bindSms 形：发码到服务端解析 `NopAuthUser.email`；`MfaBindResult` 增加对应响应标记（如 `emailSent`——对齐 bindSms 的 `setSmsSent(true)` 先例，执行期定稿））+ #5 `MfaFactorVerifier` email 分支（`EmailCodeStore.verify("mfa-email:"+userId)`，EXPIRED 抛 `ERR_AUTH_SMS_CODE_EXPIRED` 等价错误码通道——执行期核定是否需 email 专属错误码，最小集定稿）+ #6 登录级 mfaVerify email 分支（经 verifier；未知 mfaType fail-closed 保留）+ #9/#10 comment（"totp/sms/email/webauthn"——与 W14 执行后 live 状态合并核对）+ `mfa-type.dict.yaml` email 条目（**前提对冲**：该文件为 W14 交付物——若 W14 未执行或文件不存在则本 plan 创建含全部四因子条目的完整文件，以 live 状态核对）。
-- [ ] **Fix**：发送链路——`nop.auth.email-code.subject-template`/`text-template`（`{code}` 占位）+ `IEmailSender` `@Nullable` 注入（未装配 fail-closed：email 因子 bindMfa/confirmMfa/sendMfaCode 显式报错，对齐 sms `smsSender == null` 行为）+ 发送目标服务端解析（不接受客户端指定）。
-- [ ] **Fix**：限流——`nop.auth.email-code.*` 配置组六项（`enabled` 缺省 false 的**门控语义定稿：三个发码入口统一前置**——bindMfa(email)/sendMfaCode email 分支/登记通道 email 路径在 enabled=false 时拒绝 email 码操作（显式错误非静默），对齐 sms-code.enabled 门控发码入口的语义面）+ `checkEmailRateLimit`（复用 `checkSmsRateLimit` 模式，email+IP 双维度内存计数）在三个发码入口生效。
-- [ ] **Fix**：`sendMfaCode` email 分派（#8：challenge.mfaType==email → 解析 user.email → 限流 → `EmailCodeStore.send("mfa-email:"+userId)` → 邮件发送；无 email 抛 CHALLENGE_EXPIRED 等价先例错误——对齐 sms "no phone number" 分支）。〔若 W14 未先行执行则本项承担 mfaType 分派重构全部——执行顺序上 W14 先执行，此处预期仅接入 email 分支；以 live 状态核对〕
-- [ ] **Fix**：登记通道 email 解锁（W13 `verifyChannelProof`/bindMfa proof 前置扩展）：通道解析从"仅 phone"扩展为 phone 缺失回退 email + 双通道已登记时允许用户选择（服务端限定已登记通道集合；选择参数形态执行期定稿回写设计 §4.3/§5.3.3）；proof 码按通道入 SmsCodeStore（key=`proof:{userId}`）或 EmailCodeStore（key=`proof-email:{userId}`——key 约定执行期定稿，通道隔离原则）；`ERR_AUTH_MFA_CHANNEL_PROOF_REQUIRED` 脱敏提示按通道适配（邮箱脱敏先例对齐手机号后 4 位）；`ERR_AUTH_MFA_NO_RECOVERY_CHANNEL` 双通道皆空时语义不变。
-- [ ] **Proof**：store 三实现生命周期测试（对齐 W8 TestSmsCode* 家族：send/verify 三态/失败计数超限作废/TTL/原子消费并发——FakeNosql + 真 PrefixTextCodec 路径含 @DataBean 序列化核对，W12 教训）；email 因子全链 E2E（bindMfa(email)→confirmMfa→登录→mfaVerify→sendMfaCode email→限流三层断言）；登记通道 email 路径 E2E（无 phone 有 email 受限用户 proof 全链）。
+- [x] **Fix**：`EmailCodeStore` 接口（nop-biz-auth-core，`SmsCodeStore` 同形三方法）+ Local 实现（core 内，同 LocalSmsCodeStore 模式）。
+- [x] **Fix**：ORM 新实体 `NopAuthEmailCode`（表 `nop_auth_email_code`，结构对齐 `nop_auth_sms_code`：key/手机位改 email 维度语义核对/code/expireAt/failCount/发送时间列族；model-first → codegen → `_create_` 再生成 + 三方言 `_add_email_code_nop-auth.sql`）。
+- [x] **Fix**：Db/Redis 实现（nop-auth-service，对齐 W8 DbSmsCodeStore/RedisSmsCodeStore 语义：verify 原子消费 + 失败内部计数 + 达 max-attempts 作废）+ 装配（**触点单文件**：`auth-service.beans.xml`——`nopEmailCodeConfig` config bean + 三个 `nopEmailCodeStore_{local,db,redis}` + collect-beans `nopEmailCodeStore` 前缀（`ioc:ignore-depends` + `autowire-candidate=false`）+ Redis `ioc:condition` 条件激活（lessons 15：classpath 无 nosql 时 Redis 实现不加载）+ **工厂 bean `nopActiveEmailCodeStore`**（平行 `nopActiveSmsCodeStore` :79 先例——消费方 `@Nullable EmailCodeStore` 按类型注入的解析来源，漏配 = 全部注入点解析失败））+ `MfaStoreProvider` 扩展（Decision：**同 provider 第三组 map `emailCodeStores`**——三类 store 共享同一 store-type 选择语义，改动面最小且语义等价，回写设计 §5.3.3）。
+- [x] **Fix**：`MFA_TYPE_EMAIL` 常量 + factorLevel 核对断言（`"email"`→1 已在 W13 表——常量落位替换字面量）+ 白名单 #2/#3（bindMfa 白名单扩容 email；分派 email 同 bindSms 形：发码到服务端解析 `NopAuthUser.email`；`MfaBindResult` 增加 `emailSent` 响应标记——对齐 bindSms 的 `setSmsSent(true)` 先例）+ #5 `MfaFactorVerifier` email 分支（`EmailCodeStore.verify("mfa-email:"+userId)`，EXPIRED 抛 **email 专属错误码 `ERR_AUTH_EMAIL_CODE_EXPIRED`**——错误码定稿最小集：EXPIRED/RATE_LIMITED/DAILY_LIMIT 三码，不复用 sms 编码，回写设计）+ #6 登录级 mfaVerify email 分支（经 verifier；未知 mfaType fail-closed 保留）+ #9/#10 comment（"totp/sms/email/webauthn"——与 W14 执行后 live 状态合并核对）+ `mfa-type.dict.yaml` email 条目（W14 已建文件，本 plan 补 email 行——live 状态核对履行）。
+- [x] **Fix**：发送链路——`nop.auth.email-code.subject-template`/`text-template`（`{code}` 占位）+ `IEmailSender` `@Nullable` 注入（未装配 fail-closed：email 因子 bindMfa/confirmMfa/sendMfaCode 显式报错，对齐 sms `smsSender == null` 行为）+ 发送目标服务端解析（不接受客户端指定）。
+- [x] **Fix**：限流——`nop.auth.email-code.*` 配置组六项（`enabled` 缺省 false 的门控语义定稿：**三个发码入口统一前置**——bindMfa(email)/sendMfaCode email 分支/登记通道 email 路径在 enabled=false 时拒绝 email 码操作（显式错误非静默））+ `checkEmailRateLimit`（复用 `checkSmsRateLimit` 模式，email+IP 双维度内存计数）在三个发码入口生效。
+- [x] **Fix**：`sendMfaCode` email 分派（#8：challenge.mfaType==email → 解析 user.email → 限流 → `EmailCodeStore.send("mfa-email:"+userId)` → 邮件发送；无 email 抛 CHALLENGE_EXPIRED 等价先例错误——对齐 sms "no phone number" 分支）。〔W14 已先行执行 mfaType 分派重构，本项仅接入 email 分支——live 状态核对履行〕
+- [x] **Fix**：登记通道 email 解锁（W13 `verifyChannelProof`/bindMfa proof 前置扩展）：通道解析从"仅 phone"扩展为 phone 缺失回退 email + 双通道已登记时允许用户选择（**选择参数形态执行期定稿：bindMfa 可选 `channel` 参数（四参 GraphQL 面 + 兼容重载）+ verifyChannelProof 可选 `channel` 参数，取值 phone|email，服务端限定已登记通道集合，任意指定显式拒绝**；回写设计 §4.3/§5.3.3）；proof 码按通道入 SmsCodeStore（key=`proof:{userId}`）或 EmailCodeStore（key=`proof-email:{userId}`——通道隔离原则）；`ERR_AUTH_MFA_CHANNEL_PROOF_REQUIRED` 脱敏提示按通道适配（**邮箱脱敏执行期定稿：本地部分前 2 位 + "***" + @域名**，对齐手机号后 4 位先例）；`ERR_AUTH_MFA_NO_RECOVERY_CHANNEL` 双通道皆空时语义不变。
+- [x] **Proof**：store 三实现生命周期测试（对齐 W8 TestSmsCode* 家族：send/verify 三态/失败计数超限作废/TTL/原子消费并发——FakeNosql + 真 PrefixTextCodec 路径含 @DataBean 序列化核对，W12 教训）；email 因子全链 E2E（bindMfa(email)→confirmMfa→登录→mfaVerify→sendMfaCode email→限流三层断言）；登记通道 email 路径 E2E（无 phone 有 email 受限用户 proof 全链）。
 
 Exit Criteria:
 
-- [ ] **端到端验证**：email 因子从绑定到登录完成全链经真实容器组件跑通（发码经注入的 IEmailSender 测试实现断言收件目标与文案模板替换）。
-- [ ] **接线验证**：`MfaFactorVerifier` email 分支被登录级与绑定级两调用点实际命中；`EmailCodeStore` 三实现经 store-type 配置切换各自被装配消费（三实现装配测试）。
-- [ ] **无静默跳过**：IEmailSender 未装配 fail-closed 显式报错；email 维度限流三层各有断言；未知 mfaType fail-closed 保留。
-- [ ] **新功能测试**：列出 Phase 1 测试类与用例名。
-- [ ] 一期零回归：未绑 email 用户全流程无感知；既有套件断言零修改（sms 路径行为不变）。
-- [ ] 文档裁定：No owner-doc update required（章节统一 Phase 3）；跨模块公共 API 增量如有（消息类）migration note 在案。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] **端到端验证**：email 因子从绑定到登录完成全链经真实容器组件跑通（发码经注入的 IEmailSender 测试实现断言收件目标与文案模板替换）。〔TestEmailMfaE2E.testEmailFactorFullChain + TestChannelProofEmailE2E〕
+- [x] **接线验证**：`MfaFactorVerifier` email 分支被登录级与绑定级两调用点实际命中；`EmailCodeStore` 三实现经 store-type 配置切换各自被装配消费（三实现装配测试）。〔TestEmailMfaE2E（mfaVerify/confirmMfa 双调用点）+ TestMfaStoreProvider 扩展 + TestMfaStoreWiringDb 扩展〕
+- [x] **无静默跳过**：IEmailSender 未装配 fail-closed 显式报错；email 维度限流三层各有断言；未知 mfaType fail-closed 保留。〔testEmailSenderAbsentFailsClosed / testEmailRateLimitInterval + testEmailDailyLimit + testSendMfaCodeEmailRateLimit / testBindMfaWhitelistStillRejectsUnknownType + 既有套件〕
+- [x] **新功能测试**：TestLocalEmailCodeStore(8) / TestDbEmailCodeStore(7) / TestRedisEmailCodeStore(6) / TestEmailCodeEntrySerialization(1) / TestMfaStoreProvider email 扩展(3) / TestMfaStoreWiringDb email 扩展 / TestEmailMfaE2E(11) / TestChannelProofEmailE2E(7)。
+- [x] 一期零回归：未绑 email 用户全流程无感知（testZeroRegressionUserWithoutEmailFactor）；既有套件断言零修改（sms 路径行为不变——TestMfa*/TestRoleMfaPolicy/TestOperationMfaE2E/TestWebAuthn*/store 家族 104+ tests 0 failures）。
+- [x] 文档裁定：No owner-doc update required（章节统一 Phase 3）；跨模块公共 API 增量如有（消息类）migration note 在案（EmailCodeStore 接口——Phase 3 设计回写）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 2 - 可信设备：实体 + 指纹 + 豁免判定 + 登记路径 + 撤销矩阵
 
-Status: planned
+Status: completed
 Targets: `nop-auth/model/nop-auth.orm.xml`（新实体）、`nop-auth-service`（LoginServiceImpl/NopAuthUserBizModel/NopAuthConfigs）、`nop-biz-auth-api`（MfaVerifyRequest/LoginResult）
 
 - Item Types: `Fix | Proof`
 
-- [ ] **Fix**：ORM 新实体 `NopAuthMfaTrustedDevice`（sid seq 主键 + userId 索引 + deviceHash + （userId, deviceHash）唯一约束 + deviceName + expireAt + lastUsedAt + TENANT_ID 数据列 + `tagSet="...,no-tenant"` 姊妹先例 + createdBy 等通用审计字段；三方言 DDL；model-first 全链）。
-- [ ] **Fix**：指纹计算组件（`fingerprint(requestHeaders)`：`X-Nop-Mfa-Device-Id`（大小写不敏感读头）+ `User-Agent` + `Accept-Language` 三输入 `|` 连接 SHA-256 hex；device-id 缺失 → null 不豁免非错误）。
-- [ ] **Fix**：`checkMfaRequired` headers 参数（protected 单模块签名变更；`loginAsync` 传真实 headers、`createSessionForUserAsync` 传 null）+ 豁免判定分支（因子等同之后、challenge 创建之前：**进入条件 = headers 非空 且 `policy.allowTrustedDevice == true`**（AND 合并——任一策略行 false 即跳过豁免）且 deviceHash 非空 → 查未过期行 → 命中更新 lastUsedAt（不续 expireAt）+ return null 放行；仅密码类 loginType 1/2/3/5 生效——信道路径 headers=null 结构性跳过）+ evaluator 复合结果 `allowTrustedDevice` 消费接线（W13 已产出，本项为首个消费点）。**同构副本裁定**：`MfaLoginPolicyServiceImpl.checkMfaForUserName`（OAuth 入口）**不加豁免分支**（信道路径无 headers 结构性不可达；同步义务以本裁定 + Phase 2 Proof 的 OAuth 回归断言履行）；**副本同步不变式维护**：本 plan 对 `checkMfaRequired` 的改动（加参 + 插入豁免分支）不改变副本可等价推导的行为面（副本无 headers 即无豁免），设计 §6 回写时登记该裁定。
-- [ ] **Fix**：登记路径——`MfaVerifyRequest` 可选 `rememberDevice` + `LoginResult` 可选 `trustedDeviceRegistered`（跨模块公共 API 增量 + migration note）；**headers 穿线**：`mfaVerifyAsync` 入口 headers 增传 `verifySecondFactorAndComplete`（与 request.rememberDevice 一起）——登记逻辑放 **verifySecondFactorAndComplete 的因子验证成功路径（completeLogin 之前纯 DB 写）**，**禁止放 `completeMfaLogin`**（该方法被恢复码分支共用（live:588），放入即恢复码也登记——设计 §6.4 拒绝项）；**结果回填**：`trustedDeviceRegistered` 经 IUserContext attr 携带（`ATTR_MFA_ACCESS_CODE` 先例：服务层 `ctx.setAttr` → `LoginApiBizModel` live:174 `getAttr` 消费构建 LoginResult），仅密码类路径返回。登记语义：rememberDevice=true 且 challenge.loginType ∈ 密码类 → 指纹计算 → null 则响应 false（无 device-id）；同 hash（含过期行）upsert 覆盖刷新（expireAt=now+ttl-days，不受 max-count 限制）；新行需未过期行数 < max-count 否则响应 false（满员提示）；恢复码分支不登记（结构性排除 + 专项断言）；登记失败不阻断登录。**并发裁定**：并发登记可短暂超 max-count 一行（豁免是优化非安全边界，容忍）；同 hash 并发 upsert 撞 (userId, deviceHash) 唯一约束时捕获冲突归一为 update（不外抛异常）。
-- [ ] **Fix**：撤销矩阵——`unbindMfa` 成功 + `confirmMfa` 成功（换绑判定点）+ `resetUserMfa` → 删除该用户全部可信设备行；`removeTrustedDevice(sid)` 物理删除（本人数据限定，越权归一"不存在"）；到期惰性失效（判定时不豁免，行保留）；策略禁豁免不删行。
-- [ ] **Fix**：`listTrustedDevices`（展示全部行含过期标记，支持自助清理）/`removeTrustedDevice` 管理入口 + `nop.auth.mfa.trusted-device.ttl-days`/`max-count` 配置组 + 审计事件（登记/移除/因子变更全量撤销经 `IAuditService.saveAudit`，userName 非空列设置——W13 教训）。
-- [ ] **Proof**：豁免/登记/撤销矩阵测试——豁免命中（二次登录无 challenge）/固定窗口不续期（命中后再过期不再豁免）/同 hash 复活刷新/max-count 满员显式 false/allowTrustedDevice=false 策略跳过豁免（行保留，策略放宽恢复）/信道路径不豁免不登记（headers=null 结构性）/**OAuth 路径回归断言（副本裁定钉定）：有未过期可信设备行的用户经 OAuth 入口登录仍创建 challenge（副本无豁免分支）**/恢复码不登记/无 device-id 降级正常 MFA/撤销四触发（unbind/换绑/reset/自助移除）/登录零回归（无记录用户 checkMfaRequired 逐字节一致——豁免分支短路条件不改变无记录路径）。
+- [x] **Fix**：ORM 新实体 `NopAuthMfaTrustedDevice`（sid seq 主键 + userId + deviceHash（SHA-256 hex 64）+ （userId, deviceHash）唯一约束（复合唯一索引覆盖 userId 前缀查询，免冗余独立索引——执行期核定）+ deviceName + expireAt + lastUsedAt + TENANT_ID 数据列 + `tagSet="mapper,no-tenant"` 姊妹先例 + createdBy 等通用审计字段（物理删除语义——removeTrustedDevice 物理删除，不引入 delFlag/version）；三方言 DDL（codegen 再生 `_create_`/`_drop_` + 手写 `_add_mfa_trusted_device_nop-auth.sql` ×3）；model-first 全链）。
+- [x] **Fix**：指纹计算组件（`MfaTrustedDeviceManager.fingerprint(requestHeaders)`：`X-Nop-Mfa-Device-Id`（大小写不敏感读头——全 key 集遍历 equalsIgnoreCase）+ `User-Agent` + `Accept-Language` 三输入 `|` 连接 SHA-256 hex（`StringHelper.bytesToHex`——执行期核定 `ByteHelper.toHex` 为 `\xNN` 格式不适用）；device-id 缺失 → null 不豁免非错误）。
+- [x] **Fix**：`checkMfaRequired` headers 参数（protected 单模块签名变更；`loginAsync` 传真实 headers、`createSessionForUserAsync` 传 null）+ 豁免判定分支（因子等同之后、challenge 创建之前：**进入条件 = headers 非空 且 密码类 loginType 1/2/3/5（isPasswordLoginType）且 `policy.allowTrustedDevice == true`**（AND 合并——任一策略行 false 即跳过豁免，W13 evaluator 复合结果首个消费点）且 deviceHash 非空 → 查未过期行 → 命中更新 lastUsedAt（不续 expireAt）+ return null 放行）+ evaluator 复合结果 `allowTrustedDevice` 消费接线。**同构副本裁定**：`MfaLoginPolicyServiceImpl.checkMfaForUserName`（OAuth 入口）**不加豁免分支**（信道路径无 headers 结构性不可达；同步义务以本裁定 + Phase 2 Proof 的 OAuth 回归断言履行）；**副本同步不变式维护**：本 plan 对 `checkMfaRequired` 的改动（加参 + 插入豁免分支）不改变副本可等价推导的行为面（副本无 headers 即无豁免），设计 §六回写登记该裁定。
+- [x] **Fix**：登记路径——`MfaVerifyRequest.rememberDevice`（可选 Boolean）+ `LoginResult.trustedDeviceRegistered`（可选 Boolean propId 12，仅密码类路径返回；跨模块公共 API 增量 + migration note javadoc）；**headers 穿线**：`mfaVerifyAsync` 入口 headers 增传 `verifySecondFactorAndComplete`（与 request.rememberDevice 一起）——登记逻辑放 **verifySecondFactorAndComplete 的因子验证成功路径（consume 之后、completeMfaLogin 之前纯 DB 写）**，**未放 `completeMfaLogin`**（该方法被恢复码分支共用，放入即恢复码也登记——设计 §6.4 拒绝项；恢复码分支在 mfaVerifyAsync 分支判定处结构性绕过登记）；**结果回填**：`trustedDeviceRegistered` 经 IUserContext attr 携带（`ATTR_TRUSTED_DEVICE_REGISTERED`——ATTR_MFA_ACCESS_CODE 先例：服务层 thenApply `ctx.setAttr` 显式 true/false → LoginApiBizModel 密码类分支 `getAttr` 消费构建 LoginResult；未请求登记字段缺省不出现），仅密码类路径返回。登记语义：rememberDevice=true 且 challenge.loginType ∈ 密码类 → 指纹计算 → null 则响应 false（无 device-id）；同 hash（含过期行）upsert 覆盖刷新（expireAt=now+ttl-days，不受 max-count 限制；sid 不变复活）；新行需未过期行数 < max-count 否则响应 false（满员提示）；登记失败不阻断登录（log+audit 不吞异常）。**并发裁定**：并发登记可短暂超 max-count 一行（豁免是优化非安全边界，容忍）；同 hash 并发 upsert 撞 (userId, deviceHash) 唯一约束时捕获冲突归一为 update（不外抛异常——register 的 catch 分支重查行存在即归一刷新）。
+- [x] **Fix**：撤销矩阵——`unbindMfa` 成功（revokeTrustedDevices "unbind"）+ `confirmMfa` 成功（"factor-change" 换绑判定点）+ `resetUserMfa`（"admin-reset"）→ 删除该用户全部可信设备行（经 `MfaTrustedDeviceManager.removeAllForUser` + 审计事件）；`removeTrustedDevice(sid)` 物理删除（本人数据限定，越权归一"不存在"）；到期惰性失效（判定时不豁免，行保留）；策略禁豁免不删行。
+- [x] **Fix**：`listTrustedDevices`（`TrustedDeviceInfo` DTO：sid/deviceName/expireAt/lastUsedAt/createTime/expired 标记——不含 deviceHash 最小暴露面；全部行含过期支持自助清理）/`removeTrustedDevice` 管理入口（NopAuthUserBizModel，W6 并入先例）+ `nop.auth.mfa.trusted-device.ttl-days`（缺省 30）/`max-count`（缺省 5，仅计未过期行；满员新增显式 false，拒绝静默 LRU 淘汰）配置组 + 审计事件（登记成功/满员/失败/移除/全量撤销经 `IAuditService.saveAudit`，userName 非空列设置——W13 教训）；`nopMfaTrustedDeviceManager` bean 注册（ioc:default）。
+- [x] **Proof**：豁免/登记/撤销矩阵测试——豁免命中（二次登录无 challenge）/固定窗口不续期（命中后 expireAt 不变 + 手工过期后不再豁免行保留）/同 hash 复活刷新（sid 不变 + expireAt 重算 + 豁免恢复）/max-count 满员显式 false（不阻断登录）/allowTrustedDevice=false 策略跳过豁免（行保留，策略放宽恢复）/信道路径不豁免不登记（headers=null 结构性：有未过期行仍 challenge + 信道 mfaVerify 不登记 + 字段缺省）/**OAuth 路径回归断言（副本裁定钉定）：有未过期可信设备行的用户经 MfaLoginPolicyServiceImpl 入口登录仍创建 challenge（副本无豁免分支）**/恢复码不登记（结构性排除 + 响应字段缺省）/无 device-id 降级正常 MFA（显式 false + 无行）/撤销四触发（unbind/换绑 confirm/reset/自助移除——含越权归一"不存在"）/登录零回归（无记录用户 checkMfaRequired 逐字节一致——带 device-id 头但无行仍走一期 challenge 路径；不勾选 rememberDevice 字段缺省不出现）。〔TestTrustedDeviceSupport 5 指纹单元 + TestTrustedDeviceE2E 11 E2E〕
 
 Exit Criteria:
 
-- [ ] **端到端验证**：密码登录 → mfaVerify(rememberDevice) → 登记 → 二次登录豁免（无 challenge 直接 completeLogin）→ 30d 后过期 → 重新完整 MFA，全链经真实容器组件跑通。
-- [ ] **接线验证**：`checkMfaRequired` headers 参数被 loginAsync 路径传入真实值（信道路径传 null 专项断言）；`allowTrustedDevice` 复合结果在豁免分支被实际消费（策略 false 时未豁免专项用例）。
-- [ ] **无静默跳过**：满员/无 device-id 显式响应 `trustedDeviceRegistered=false`（非静默失败非错误）；登记失败不阻断登录但不吞异常（审计/日志）。
-- [ ] **新功能测试**：列出 Phase 2 测试类与用例名。
-- [ ] 一期零回归：无 device-id/无记录用户登录行为与一期逐字节一致（既有套件断言零修改）。
-- [ ] 文档裁定：No owner-doc update required（章节统一 Phase 3）；跨模块公共 API 增量（MfaVerifyRequest.rememberDevice/LoginResult.trustedDeviceRegistered）migration note 在案。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] **端到端验证**：密码登录 → mfaVerify(rememberDevice) → 登记 → 二次登录豁免（无 challenge 直接 completeLogin）→ 过期 → 重新完整 MFA（手工过期行 → challenge 再现 → 同 hash 复活刷新），全链经真实组件跑通。〔testRegisterAndSecondLoginExempted + testExpiredRowNotExemptedAndReviveRefresh〕
+- [x] **接线验证**：`checkMfaRequired` headers 参数被 loginAsync 路径传入真实值（豁免命中即证明——豁免仅当 headers 真实流经；信道路径传 null 专项断言 = 有未过期行仍 challenge）；`allowTrustedDevice` 复合结果在豁免分支被实际消费（策略 false 时未豁免 + 放宽恢复专项用例）。〔testChannelPathNotExemptedAndNoRegistration + testPolicyDisallowSkipsExemptionAndRowRetained〕
+- [x] **无静默跳过**：满员/无 device-id 显式响应 `trustedDeviceRegistered=false`（非静默失败非错误）；登记失败不阻断登录但不吞异常（log+audit）。〔testRegistrationWithoutDeviceIdReportsFalse + testMaxCountFullReportsFalse + manager catch 分支审计〕
+- [x] **新功能测试**：TestTrustedDeviceSupport(5：null 降级/确定性 64 hex/大小写不敏感/输入敏感性/UA-AL 可选) + TestTrustedDeviceE2E(11：全链登记豁免/无 device-id/异指纹/过期惰性+复活/满员/策略禁行保留放宽恢复/信道不豁免不登记/恢复码不登记/撤销矩阵四触发+越权/OAuth 副本回归/零回归)。
+- [x] 一期零回归：无 device-id/无记录用户登录行为与一期逐字节一致（既有套件断言零修改——全模块 355 tests 0 failures，3 skipped 为 pre-existing）。〔testZeroRegressionUserWithoutRecord + 全量绿〕
+- [x] 文档裁定：No owner-doc update required（章节统一 Phase 3）；跨模块公共 API 增量（MfaVerifyRequest.rememberDevice/LoginResult.trustedDeviceRegistered）migration note 在案（两 DataBean javadoc + Phase 3 设计回写）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 3 - 文档同步 + 设计回写 + 收口验证
 
-Status: planned
+Status: completed
 Targets: `docs-for-ai/03-modules/nop-auth.md`、`ai-dev/design/nop-auth/02-mfa-phase2-design.md`（§5.3.3/§六回写）、`docs-for-ai/INDEX.md`、`docs-for-ai/04-reference/source-anchors.md`、roadmap
 
 - Item Types: `Follow-up | Proof`
 
-- [ ] **Follow-up**：`docs-for-ai/03-modules/nop-auth.md` 补邮件验证码 + 可信设备章节（EmailCodeStore 三实现与装配/email 因子全链/限流/可信设备指纹算法与威胁模型边界/豁免判定与固定窗口/撤销矩阵/管理 API/配置组/登记通道 email 解锁）；功能概览、核心实体表（×2）、配置、源码锚点表同步。
-- [ ] **Follow-up**：设计 §5.3.3/§六回写 impl 裁定标注（MfaStoreProvider 扩展形态/proof 通道选择参数形态/错误码定稿/执行期偏离）+ roadmap W15-impl 状态更新。
-- [ ] **Proof**：全量验证——`./mvnw test -pl nop-auth/nop-auth-service,nop-service-framework/nop-biz-auth-api,nop-service-framework/nop-biz-auth-core,nop-integration/nop-integration-api -am -T 1C` 绿（**显式子模块路径**——`nop-auth`/`nop-integration` 均为聚合器 pom，`-pl <聚合器>` 不进子模块测试；nop-integration 零变更回归）；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-auth --severity high` 0 NEW；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0。
+- [x] **Follow-up**：`docs-for-ai/03-modules/nop-auth.md` 补邮件验证码 + 可信设备章节（EmailCodeStore 三实现与装配/email 因子全链/限流/可信设备指纹算法与威胁模型边界/豁免判定与固定窗口/撤销矩阵/管理 API/配置组/登记通道 email 解锁）；功能概览、核心实体表（×2）、配置、源码锚点表同步。
+- [x] **Follow-up**：设计 §5.3.3/§六回写 impl 裁定标注（MfaStoreProvider 扩展形态/proof 通道选择参数形态/错误码定稿/执行期偏离）+ roadmap W15-impl 状态更新。
+- [x] **Proof**：全量验证——`./mvnw test -pl nop-auth/nop-auth-service,nop-service-framework/nop-biz-auth-api,nop-service-framework/nop-biz-auth-core,nop-integration/nop-integration-api -am -T 1C` 绿（**显式子模块路径**——`nop-auth`/`nop-integration` 均为聚合器 pom，`-pl <聚合器>` 不进子模块测试；nop-integration 零变更回归）；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-auth --severity high` 0 NEW；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0。
 
 Exit Criteria:
 
-- [ ] 文档与 live 实现一致（端点/配置/实体/撤销矩阵可对号）。
-- [ ] 验证命令通过（附输出存 `_tmp/`）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 文档与 live 实现一致（端点/配置/实体/撤销矩阵可对号）。
+- [x] 验证命令通过（附输出存 `_tmp/`）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
 
-- [ ] EmailCodeStore 三实现生命周期测试通过（含 Redis 真序列化路径 @DataBean 核对——W12 教训）+ 三实现装配切换测试。
-- [ ] email 因子端到端全链（绑定→登录→重发→限流三层）通过；`IEmailSender` 未装配 fail-closed 有专项用例。
-- [ ] 登记通道 email 解锁全链（无 phone 有 email 受限用户 proof→bindMfa→重新登录）通过；通道选择限定已登记通道集合有负例（任意指定拒绝）。
-- [ ] 可信设备端到端全链（登记→豁免→固定窗口过期→撤销四触发）通过。
-- [ ] `checkMfaRequired` headers 参数迁移安全：信道路径传 null 不豁免有结构性断言；无记录用户路径逐字节一致（零回归红线）；`MfaLoginPolicyServiceImpl` 副本"不加豁免分支"裁定在案 + OAuth 路径回归断言通过（W13 同步不变式履行）。
-- [ ] mfaVerify 登记路径：headers 穿线（verifySecondFactorAndComplete 增参）+ `trustedDeviceRegistered` attr 回填（ATTR_MFA_ACCESS_CODE 先例）+ 恢复码结构性排除（登记逻辑不在 completeMfaLogin）三事实经测试钉定。
-- [ ] 撤销矩阵全触发有专项用例；恢复码不登记有专项断言。
-- [ ] `allowTrustedDevice` AND 合并消费（策略 false 跳过豁免、行保留）有专项用例。
-- [ ] ORM 变更经 model-first（两新表），无手编生成物；三方言 DDL 齐备。
-- [ ] 跨模块公共 API 增量（MfaVerifyRequest.rememberDevice/LoginResult.trustedDeviceRegistered/EmailCodeStore 接口）migration note 在案；`nop-integration` 零变更（git diff 核实）。
-- [ ] 一期零回归：既有 MFA 套件断言零修改；sms 路径行为不变；未知 mfaType fail-closed 保留。
-- [ ] 无空壳/静默跳过（scan-hollow NEW 0 + fail-closed/满员/false 响应分支各有专项用例）。
-- [ ] 受影响 owner docs 已同步 + 设计裁定标注回写。
-- [ ] 独立子 agent closure-audit 已完成并记录证据（含 Anti-Hollow：store 装配→发送链→验证链→豁免链→登记链→撤销链全链追踪）。
-- [ ] `./mvnw test -pl nop-auth/nop-auth-service,nop-service-framework/nop-biz-auth-api,nop-service-framework/nop-biz-auth-core,nop-integration/nop-integration-api -am` 绿（显式子模块路径；pre-existing flake 按 W12 登记口径）。
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0。
-- [ ] checkstyle / 代码规范检查通过（受影响模块 `-Pqa`）。
+- [x] EmailCodeStore 三实现生命周期测试通过（含 Redis 真序列化路径 @DataBean 核对——W12 教训）+ 三实现装配切换测试。
+- [x] email 因子端到端全链（绑定→登录→重发→限流三层）通过；`IEmailSender` 未装配 fail-closed 有专项用例。
+- [x] 登记通道 email 解锁全链（无 phone 有 email 受限用户 proof→bindMfa→重新登录）通过；通道选择限定已登记通道集合有负例（任意指定拒绝）。
+- [x] 可信设备端到端全链（登记→豁免→固定窗口过期→撤销四触发）通过。
+- [x] `checkMfaRequired` headers 参数迁移安全：信道路径传 null 不豁免有结构性断言；无记录用户路径逐字节一致（零回归红线）；`MfaLoginPolicyServiceImpl` 副本"不加豁免分支"裁定在案 + OAuth 路径回归断言通过（W13 同步不变式履行）。
+- [x] mfaVerify 登记路径：headers 穿线（verifySecondFactorAndComplete 增参）+ `trustedDeviceRegistered` attr 回填（ATTR_MFA_ACCESS_CODE 先例）+ 恢复码结构性排除（登记逻辑不在 completeMfaLogin）三事实经测试钉定。
+- [x] 撤销矩阵全触发有专项用例；恢复码不登记有专项断言。
+- [x] `allowTrustedDevice` AND 合并消费（策略 false 跳过豁免、行保留）有专项用例。
+- [x] ORM 变更经 model-first（两新表），无手编生成物；三方言 DDL 齐备。
+- [x] 跨模块公共 API 增量（MfaVerifyRequest.rememberDevice/LoginResult.trustedDeviceRegistered/EmailCodeStore 接口）migration note 在案；`nop-integration` 零变更（git diff 核实）。
+- [x] 一期零回归：既有 MFA 套件断言零修改；sms 路径行为不变；未知 mfaType fail-closed 保留。
+- [x] 无空壳/静默跳过（scan-hollow NEW 0 + fail-closed/满员/false 响应分支各有专项用例）。
+- [x] 受影响 owner docs 已同步 + 设计裁定标注回写。
+- [x] 独立子 agent closure-audit 已完成并记录证据（含 Anti-Hollow：store 装配→发送链→验证链→豁免链→登记链→撤销链全链追踪）。
+- [x] `./mvnw test -pl nop-auth/nop-auth-service,nop-service-framework/nop-biz-auth-api,nop-service-framework/nop-biz-auth-core,nop-integration/nop-integration-api -am` 绿（显式子模块路径；pre-existing flake 按 W12 登记口径）。
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0。
+- [x] checkstyle / 代码规范检查通过（受影响模块 `-Pqa`）。
 
 ## Deferred But Adjudicated
 
@@ -183,14 +183,24 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed: YYYY-MM-DD
+Status Note: 三 Phase 全落地且独立 closure audit 判定 READY_TO_CLOSE——Phase 1 EmailCodeStore 三实现 + email 因子全链 + 登记通道 email 解锁、Phase 2 可信设备全链（实体/指纹/豁免/登记/撤销矩阵 + OAuth 副本裁定）、Phase 3 文档同步与全量验证（mvn 全绿 355 tests / scan-hollow 0 NEW / check-doc-links 0 errors / checkstyle 0 violations）。一期零回归红线经专项用例与全量套件钉定（既有断言零修改）。无 in-scope live defect 或 contract drift 被降级为 follow-up。
+Completed: 2026-08-18
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （独立 closure-audit fresh subagent）
-- Evidence: （收口时填写）
+- Reviewer / Agent: 独立 closure-audit fresh subagent（task id: `ses_feded90aaffeT0S7kPmBwecmLH`，research-only，2026-08-18）
+- Evidence:
+  - Phase 1 Exit Criteria 5/5 PASS：`TestEmailMfaE2E.testEmailFactorFullChain`（:156-208，CapturingEmailSender 断言收件目标 + `{code}` 模板替换）；`MfaFactorVerifier.java:172-182` email 分支被登录级（`verifySecondFactorAndComplete:616`）与绑定级（`confirmMfa:628`）双调用点命中；装配链 `auth-service.beans.xml:67-107`（三实现 + collect-beans + 工厂 bean `nopActiveEmailCodeStore`）经 `TestMfaStoreProvider`/`TestMfaStoreWiringDb` 容器实证；fail-closed `testEmailSenderAbsentFailsClosed`；新测试 @Test 实测计数与 plan 逐项一致（8/7/6/1/11/7）。
+  - Phase 2 Exit Criteria 6/6 PASS：`TestTrustedDeviceE2E.testRegisterAndSecondLoginExempted`（:178-179 expireAt 不变断言）/`testExpiredRowNotExemptedAndReviveRefresh`（同 hash sid 不变复活）；信道路径结构性断言（:301-316 有未过期行仍 challenge）；登记落位 `verifySecondFactorAndComplete:625-630`（consume 后、completeMfaLogin 前——不在 completeMfaLogin :730-739，恢复码 :576-578 结构性绕过，`testRecoveryCodeDoesNotRegister:333`）；attr 回填 `ATTR_TRUSTED_DEVICE_REGISTERED`（:545/:636 + LoginApiBizModel:200/:211-213）；`policy.allowTrustedDevice` 消费于 :1042-1043（AND 合并）；`MfaLoginPolicyServiceImpl` 全文无豁免分支 + `testOAuthCopyStillCreatesChallengeDespiteTrustedRow:441`；撤销四触发 `testRevocationMatrix:349-436`。
+  - Phase 3 Exit Criteria 3/3 PASS：owner docs/INDEX/source-anchors（AUTH-MFA-006/007）与 live 一致（配置缺省 300/60/20/50/5+30/5、API 名、错误码三码、撤销矩阵、指纹三输入、key 约定逐项对上）；设计 §5.3.7/§6.6 回写在案；验证输出存 `_tmp/`（test-w15-phase3.log / scan-hollow-w15.log / check-doc-links-w15.log / checkstyle-w15.log）。
+  - Closure Gates 17/17 PASS（逐条证据见审计报告；gate 14 即本审计自身）。
+  - Anti-Hollow 检查：六链全连通——装配链（beans.xml collect → MfaStoreProvider 第三组 map → 工厂 bean → 四个 @Nullable 注入点）/email 发送链（bindMfa → 服务端解析 email → 限流 → store.send → IEmailSender）/email 验证链（mfaVerify → verifier email 分支 → store.verify）/豁免链（loginAsync headers → checkMfaRequired 四条件 → isExempted 固定窗口 → 放行）/登记链（rememberDevice → register upsert/满员/并发归一 → ctx.setAttr → LoginResult 回填）/撤销链（三钩子 + 自助移除 → manager 物理删除）；无空方法体/吞异常静默/TODO 占位（register catch 分支 log+audit+归一）。`scan-hollow --module nop-auth --severity high` 仅 1 条 pre-existing（`nop-auth-sso/OAuthLoginServiceImpl.java:231`，本 plan 未触碰该文件）——0 NEW 成立。
+  - 验证命令：`./mvnw test -pl nop-auth/nop-auth-service,...,-am -T 1C` BUILD SUCCESS（nop-auth-service 355 tests 0 failures 3 skipped，全 reactor 绿）；`check-doc-links --strict` 退出码 0；`checkstyle:check -Pqa` BUILD SUCCESS 0 violations。
+  - Deferred 项分类检查：唯一 non-blocking follow-up"过期可信设备行批量清理"对应设计 §七.4 optimization candidate（惰性失效已保证安全）——分类成立；无 in-scope live defect 被降级。
+  - Minor 备注（watch-only，不阻塞）：email 限流 IP 日上限层无独立专项测试（镜像 sms 先例同结构，interval/daily/入口三断言已覆盖）；email 三错误码采用 NopAuthErrors inline 缺省消息（与 sms 三码先例一致，plan 未要求 yaml 条目）。
+  - `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（收口后复跑确认）。
 
 Follow-up:
 
-- （收口时填写；confirmed live defect 不得出现在这里）
+- 过期可信设备行的批量清理任务（设计 §七.4 optimization candidate——运维优化，可随任一后续 plan 顺带；见 Non-Blocking Follow-ups）。
+- 无其它 plan-owned 剩余工作。
