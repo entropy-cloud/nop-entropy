@@ -5,6 +5,24 @@
 > 关联论文：[A Programming Paradigm for Spatiotemporal Composability](../../references/cordis-paper/README.md)（Cordis 设计论文，dsh 的架构基础）
 > 理论背景：`docs/theory/` 下可逆计算系列文章
 
+## 姊妹篇导览
+
+本文与 `2026-08-17-grc-dsh-theory-mapping.md` 构成一对姊妹篇，分工如下：
+
+- **本文（v2，工程视角）**：基于 dsh 源码核实，给出"dsh 可逆性的范围、粒度、坐标、机制"的具体工程判断；与 Nop 平台做对照，论证"结构空间可逆 + 运行时结构空间可逆 + 运行时具体状态不可逆"的互补图景。
+- **姊妹篇 grc-mapping（理论视角）**：把本文的工程结论上升到 GRC（广义可逆计算）形式化层面，逐项映射 Cordis 论文核心概念到 GRC 文献中的对应表述，并论证"GRC 与 dsh 是互补关系而非'总理论—应用'单向关系"。
+
+**两文的对应关系**：
+
+| 本文（v2） | 姊妹篇 grc-mapping |
+|---|---|
+| §5.1/§5.2 配置层缺字段级差量代数的工程证据 | §4 第 1 条（GRC 有、dsh 没有）的具体例证 |
+| §5.5/§5.6 时间性对偶的工程描述 | §6 形式化对照（`D/≈` vs `≃`、⊗ vs 𝔗Γ） |
+| §3 effect 代数的运行实例 | §5（dsh 有、GRC 缺）的运行时定理展开 |
+| §5.8 Nop 注册机制前提到结构空间的实现 | §4 第 3 条（DSL 图册与多阶段生成）的工程实例 |
+
+**建议阅读顺序**：先读本文的 §4-§5 建立工程认识，再读姊妹篇 grc-mapping 的 §3-§6 上升到理论形式化，最后回到本文 §5.4 与姊妹篇 §8 的"未来工作"小节。
+
 ## 摘要
 
 本文从可逆计算理论出发，澄清"可逆"的常见误解，并基于对 dsh 源码的核实，精确分析 dsh 的可逆性范围与粒度：它作用于**运行时结构空间**（注册/监听/资源层）而非业务数据空间；坐标是 **plugin id 级**而非字段级；配置层是**整段 config 覆盖**而非差量代数。在此基础上，本文讨论三层空间划分、运行时坐标（服务/事件）上的顺序与交互语义、registration 作为 generator 展开 delta 与"时间静止"的关系、可逆性（能力）与响应式（治理）的正交性、"注册机制前提到结构空间"的 Nop 完整实现（xbiz.xdef / xwf.xdef / task.xdef 三种策略谱系），以及运行时注册为何仍是必须的（agent 级 scope 差异：注册内容何时可知，决定结构空间与运行时空间的分界线）。
@@ -150,6 +168,8 @@ effect : Γ → Γ × (Γ → Γ)
 
 即：**运行时并不验证逆是否正确**。逆是否真的撤销了 effect，是组件作者的义务（obligation），不是运行时的性质（property）。可逆性是**机制上的普遍性 + 语义上的契约性**——运行时保证"你的逆会被保存、会被按正确顺序执行、不会被执行两次"（armed 标志、LIFO、guard 中断），但不保证"你的逆真的有用"。这正是可逆计算的"分离到可逆"思想：框架负责可逆的机制结构，作者负责可逆的语义内容。
 
+> **结论标签**：可逆性 = 机制普遍性 × 语义契约性；运行时管"如何撤"，作者管"撤得对不对"。
+
 ### 4.2 语义层面：可逆是观测等价意义下的，不是字面恢复
 
 论文 [1, §3.3.2] 直截了当地承认了字面可逆的不可能性：
@@ -157,6 +177,8 @@ effect : Γ → Γ × (Γ → Γ)
 > The recovery guarantee of Section 3.1 asserts an equality of states (Theorem 7), which is an idealization, because the physical state cannot be recovered as it stood. For example, `free` releases a block to the allocator without restoring the layout the heap had before `malloc`; and a generative name is not restored by the inverse that discards it...
 
 所以可逆是**相对于观测等价关系 ≃** 的：两个状态只要没有任何观察者能区分它们，就算等价。"恢复到初始状态"实际意思是"恢复到不可区分的状态"。这本质上就是物理学的熵约束在软件中的映射——信息可以被抹除到不可观测的程度，但不可能被原样还原；我们追求的是可观测层面的一致，而不是微观层面的同一。
+
+> **结论标签**：可逆的目标是 ≃（观测等价），不是字面相同；这是 dsh 对"全量可逆"朴素理解的诚实纠正。
 
 ### 4.3 边界层面：系统边界之外不可逆
 
@@ -168,6 +190,8 @@ effect : Γ → Γ × (Γ → Γ)
 而外部操作通常分两个阶段：**获取阶段**（acquisition，如 open 一个描述符、malloc 一块内存）发生在边界内，是可逆的；**发出阶段**（emission，如把字节写入文件、把数据报发到网络）跨越边界，不可逆。对于不可逆的 emission，论文给出了两条出路：**保留**（withhold，直到状态确定持久化再发出，即 output commit）或**补偿**（compensation，Saga 式地执行一个业务层面的反向操作，如删除已创建的文件、退还已收的款项）。注意：补偿本身并不满足元理论的交换条件（commutation），它的可逆性是"应用层提供的、更粗的等价"意义上的。
 
 **所以，dsh 的可逆从来不是"每个行为在物理上可逆"。** 它说的是：每个行为要么在边界内被机制性地跟踪和恢复，要么在边界外被显式地标记为不可逆，并通过保留/补偿来管理后果。**可逆性是分层、有边界的，这正是"可逆并不要求全量"的工程化表达。**
+
+> **结论标签**：可逆性由系统边界划分——边界内机制跟踪 + 边界外保留/补偿；"可逆并不要求全量"的工程含义在此落地。
 
 ### 4.4 scope 层面：plugin 划分的作用域隔离是信息可管理性的前提
 
@@ -189,6 +213,8 @@ Cordis 论文的元理论并非无条件成立，它建立在三条结构性约�
 
 换言之：**局部可逆（每个 fiber 的 accumulator 撤回自己的贡献）在 scope 隔离的条件下复合为整体可逆（整个系统的卸载序列精确、有序、必然终止）。** 这就是"局部可逆的复合可以保证整体的可逆性，可逆性的复合性非常重要"在 dsh 中的具体形态——它不是口头原则，而是以定理形式证明了的性质。而 scope 隔离本身也是一种"严格自律后形成的整体性"：每个插件自律地只通过上下文交互、只声明所需、只提供所承诺，系统作为一个整体才获得了"任何一部分都可以被安全拿走"的性质。**插件即信息污染的最小单位**——VSCode 87/100 的扩展需要重启宿主才能卸载（[1, §1.2.1]，数据取自 VSCode Marketplace，2026-06-09），正是因为它的扩展缺少这种 scope 隔离与可逆机制，导致信息在共享进程中大面积扩散，无法定点回收。
 
+> **结论标签**：scope 隔离不是可逆性的替代品，而是可逆性的载体；局部可逆（per-fiber accumulator）在 confinement + 供应不相交 + 依赖无环的前提下，复合为整体可逆。
+
 ### 4.5 三层空间：结构空间 → 运行时结构空间 → 运行时具体状态
 
 把前面核实的事实放回可逆计算的分层框架，dsh 实际上把软件的"相空间"切成了三层：
@@ -200,6 +226,8 @@ Cordis 论文的元理论并非无条件成立，它建立在三条结构性约�
 所以 dsh 的可逆性主张是精确的：**它不要求"每个行为"都可逆，而是要求"每一个改变运行时结构的注册行为"都可逆。** 运行时的"具体状态"（业务数据）走的是另一条路——append-only 事件日志 + 重放，这与可逆是正交的另一种信息管理策略（在 Nop 的术语中，事件流是状态空间的差量序列 `NewState = OldState ⊕ Event`，可逆计算中的 Event Sourcing 本身就是一种"差量管理"而非"逆执行"）。
 
 这回答了用户问题的第一部分：**dsh 强调的不是"所有动作都可逆"，而是"结构管理"**——对运行时结构空间（谁注册了什么、谁监听了什么、谁占用了什么资源）做系统化的可逆规划。运行时结构空间是"运行时空间本身的一个规划"，把它管理好，插件才能安全装卸；而具体的业务状态，交给不可变日志去管。
+
+> **结论标签**：三层空间划分回答"dsh 可逆作用于哪一层"——**仅中间层（运行时结构空间）可逆**；上下两层分别由结构空间差量代数与不可变事件流管理。
 
 ### 4.6 结构坐标：plugin id 是什么级别的坐标？
 
@@ -215,6 +243,8 @@ Cordis 论文的元理论并非无条件成立，它建立在三条结构性约�
 
 也就是说：**dsh 的配置定制坐标 = plugin id，粒度 = 整段 config 覆盖**。它没有 Nop 那样的"Tree 结构 + 唯一属性"的字段级坐标（Nop 可以精确到 `<form-item name="password">` 这一个节点，dsh 只能整段覆盖 `my-plugin` 的全部 config）。这正好印证了用户的判断：**plugin 划分 scope 的本质是把运行时空间按插件 id 划分为粗粒度区域**——可逆性和可管理性都是在"插件"这个粗粒度上建立的，而不是在"任意字段"的细粒度上。
 
+> **结论标签**：结构坐标 = entry id；粒度 = 整段 config 覆盖（非字段级）；可逆性建立在插件级而非字段级。
+
 ### 4.7 运行时空间的重叠处理：按 realm 隔离，而非全局唯一
 
 那么对于运行时空间的重叠（两个插件都想提供同一个 key）有处理吗？有，dsh 的处理比"按 plugin id 隔离"更精细一层：**按 isolation realm（隔离域）隔离**。
@@ -224,6 +254,8 @@ Cordis 论文的元理论并非无条件成立，它建立在三条结构性约�
 - 拦截（intercept）是另一种重叠处理：不改绑定值，只改访问方式（权限、元数据），且拦截属于 derived 上下文，不需要逆。
 
 所以严格来说：dsh 的隔离**不是**简单的"按 plugin id 隔离"，而是**按 realm 隔离，realm 默认与 plugin id 绑定但可以被共享标签改写**。这一点比"plugin id 隔离"更精细——它允许两个插件在同一物理命名下各自维护独立的绑定空间，是"对重叠的显式管理"。
+
+> **结论标签**：隔离粒度 = realm（默认 per plugin id，可被 isolate label 改写）；重叠显式管理（per-realm 互斥 + 跨 realm 共存 + interception）。
 
 ### 4.8 运行时结构坐标系：坐标点上的顺序与交互语义
 
@@ -252,6 +284,8 @@ Cordis 论文的元理论并非无条件成立，它建立在三条结构性约�
 - **覆盖顺序**：不同插件按"entry 树声明顺序 + 依赖就绪的拓扑约束"确定加载顺序——依赖不满足的 fiber 停在 L-Begin 等待（`_refresh`/`_setEpoch`），所以是**声明序 + 拓扑序的混合**，而非严格的纯拓扑排序；
 - **累加无删除**：成立。confinement 保证每个 effect 只能添加自己的贡献、卸载时撤销自己的贡献，**不存在"替别人删除"的能力**——这正是 dsh 不需要"负元素"（如 Nop 的 `x:override="remove"`）的原因，但也意味着它无法像 Nop 那样修改基座中已有的节点；
 - **顺序无关的假定**：不成立，如上表所示——顺序语义由 dispatch mode 声明，需要顺序的坐标（serial/waterfall）必须显式处理顺序。
+
+> **结论标签**：顺序语义由坐标声明决定（dispatch mode + realm），而非插件决定；插件只能影响自身注册时机，不能控制其他插件的相对位置。
 
 ### 4.9 总结：dsh 的可逆是什么
 
@@ -308,7 +342,17 @@ dsh 的静态 patch 机制（`applyEntryPatches`）语义是：
 2. 没有说明"配置层（结构空间）"与"运行时 effect 层（运行时空间）"之间坐标的关系——entry id 如何映射到 fiber、配置的修改如何变成 effect 序列，论文只有算法级描述（Algorithm 5/7），没有概念层面的统一；
 3. 在实现层面，dsh 实际上有**两套不同粒度的"配置 → 运行时"通道**，必须分开评估：
    - **静态 patch 文件层**：`cordis.patch.yml`、bundle 层、user 层、`--patch` overlay 共享 `vendor/include/src/index.ts` 的 `applyEntryPatches` 语义——以 entry id 为坐标，对 patch 中出现的顶层字段（尤其 `config`）做**整体覆盖**，外加 `insert` 新行；没有深合并，没有节点级增删改。**这一层才是"结构空间粗粒度替换"的直接证据。**
-   - **运行时 loader reconciliation 层**：`vendor/loader/src/config/entry.ts` 的 `Entry.update()` 按字段分发（`id/name/url` 重建、`isolate` 重配 realm、`intercept` 原地更新、`disabled` 卸载/重载），`config` 交给组件决定——group 的 `config` 是 child 列表，做 keyed diff。论文 §5.2 的 reconciliation 对应的是这一层，而不是静态 patch 文件层。
+   - **运行时 loader reconciliation 层**：`vendor/loader/src/config/entry.ts` 的 `Entry.update()` 按字段分发。论文 §5.2 的 reconciliation 对应的是这一层，而不是静态 patch 文件层。具体字段处理如下表（基于源码核实，未列出的字段沿用浅合并或组件自定义）：
+
+      | 顶层字段 | 处理方式 | 是否深合并 | 备注 |
+      |---|---|---|---|
+      | `id` / `name` / `url` | 重建（rebuild） | 否 | 标识类字段，变化即视为不同插件行 |
+      | `isolate` | 重配 realm（重新派生 `#id` / `@label`） | 否 | 作用域标识变化会触发 fiber 重实例化 |
+      | `intercept` | 原地更新（in-place） | 否 | 不改绑定值，只改访问方式；属 derived context |
+      | `disabled` | 卸载 / 重载（unload + reload） | 否 | 真值翻转直接驱动生命周期转换 |
+      | `config` | 交给组件决定 | **取决于组件** | 普通组件整体替换；`group` 的 `config` 是 child 列表，**做 keyed diff**（这是论文 §5.2 reconciliation 的真正落点） |
+
+      **关键判断**：运行时 loader 的 reconciliation **不是统一的"整段覆盖"**，它对 5 个字段分别采用 5 种不同的策略——其中只有 `config` 在 group 场景下做了字段级的 keyed diff。这是 dsh 比静态 patch 文件层更精细的地方，但精细不等于形成了差量代数：(1) `config` 之外没有字段级增删改；(2) keyed diff 只对 group 的 child 列表，不是对任意嵌套结构；(3) 没有 `x:override="remove"` 这类负元素，没有结合律证明。
 
 因此，准确的表述是：**论文描述了运行时 loader 的 per-field reconciliation（其上有 group 的 keyed diff），但它没有把这一机制抽象成结构空间的差量代数；而 dsh 的静态 patch 文件层——用户实际做配置定制的入口——更是停留在"整段 config 覆盖 + insert"的粗粒度。** 这印证了 dsh 的结构层尚未达到可逆计算理论所要求的"结构坐标系 + 差量代数"标准。
 
@@ -464,6 +508,40 @@ DeepSeek Harness 的架构之所以独特，不在于它宣称"副作用可以�
 2. **实现层面**：dsh 的静态 patch 层（`applyEntryPatches`）是整段 config 覆盖 + insert；运行时 loader 层（`Entry.update`）有 per-field 雏形，但插件内部仍是命令式代码，没有内部结构坐标。因此 dsh 的结构层仍未达到可逆计算理论所要求的"结构坐标系 + 差量代数"标准。
 
 社区对"副作用怎么可能可逆"的怀疑，其实是对"全量可逆"的怀疑——而这个怀疑本身是成立的：没有任何系统能做到全量可逆。但可逆计算与 dsh 的正确主张是：**可逆并不要求全量，可逆是分层的、有边界的、在 scope 内复合的**。把"可逆"从"逆向运行"的望文生义中解放出来，理解它是信息可追溯性与可分离性的系统化表达，才能真正读懂 dsh 架构设计的精髓。对 Nop 而言，下一步通过 plugin 机制实现运行时空间部分可逆时，最值得带过去的资产，正是它在结构空间深耕多年的差量代数——那是 dsh 论文留白的地方。
+
+## 术语表
+
+按首次出现顺序排列，不熟悉 Cordis 论文的读者可在此查阅。
+
+| 术语 | 含义 |
+|---|---|
+| **effect** | 作用于上下文的一次操作，可能携带副作用；本文特指带逆函数的"可逆 effect" |
+| **可逆 effect / revertible effect** | 形式 `Γ → Γ × (Γ → Γ)`：一次 effect 同时产生新状态与逆函数 |
+| **fiber** | 组件在运行时的一次实例化，拥有独立的生命周期状态、accumulator、committed view |
+| **coeffect** | 组件对外部依赖的声明（specification d）；与 effect 相对，前者是消费、后者是产出 |
+| **coeffect table** | fiber 内 `fiber.ctx[@@store]`，记录本 fiber 写入的所有绑定 |
+| **accumulator** | fiber 内累积的逆函数复合（`fiber.dispose`），卸载时按 LIFO 反序执行 |
+| **committed view** | fiber 激活时所依赖的解析结果（`fiber.committed`） |
+| **provision** | fiber 向上下文发布的服务（`ctx.provide`），同 realm 内互斥 |
+| **inject** | fiber 声明依赖的方式（`ctx.inject` 或 inject 字段），对应 coeffect 规范 |
+| **realm** | 隔离域，决定同 key 互斥性的范围；默认与 entry id 绑定，可被 `isolate` 改写 |
+| **scope** | 运行时继承上下文链；agent scope、standing scope、global scope 形成 `agent → preset → global` 链 |
+| **standing scope** | 进程级只挂载一次的 scope（agent-presets 用此机制） |
+| **inertia** | fiber 转换一旦开始就运行到完成，避免中间状态风暴 |
+| **epoch** | fiber.uid + 依赖指纹的拼接，用于检测依赖变化（`runner.epoch !== oldEpoch`） |
+| **acquisition** | 边界内操作（open 描述符、malloc 内存），可逆 |
+| **emission** | 跨界操作（写文件、send 数据报），不可逆，仅靠保留/补偿 |
+| **withhold** | emission 的两种管理策略之一：推迟发出直到状态确定持久化 |
+| **compensation** | emission 的两种管理策略之一：业务层反向操作（Saga 模式） |
+| **disposable** | fiber 内任一 effect 注册的逆函数封装；accumulator 由 disposable 链构成 |
+| **armed** | disposable 的执行守卫标志，防止逆被执行两次 |
+| **guard** | 运行时对 effect 的拦截（`tools.guard()`），可放行/拒绝；属注册后条件 |
+| **interception** | 改访问方式不改绑定值的派生机制（`intercept` 字段），不需要逆 |
+| **L-Begin / L-Unload** | fiber 生命周期状态（Algorithm 5）；依赖不满足时停在 L-Begin 等待 |
+| **disjoint provisions** | 论文 Definition 43：同一 key 至多由一个 fiber 提供（per realm 互斥） |
+| **confinement** | 论文 Definition 48：限制 fiber 的 effect 只能写自己的 coeffect 表 |
+| **pairwise independence** | 元理论的前提条件之一：fiber 之间 effect 互不干扰，保证 accumulator 只撤回自己的贡献 |
+| **观测等价 ≃** | 论文 Definition 33：两个状态在所有观察者下等价；可逆恢复的目标不是字面相同而是 ≃ |
 
 ## 参考文献
 
