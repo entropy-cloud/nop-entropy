@@ -21,11 +21,13 @@
 | `logs/` | 每日开发上下文、决策记录 | `logs/00-log-writing-guide.md` |
 | `design/` | 架构决策 + 使用契约 + 需求规格 | `design/00-design-writing-guide.md` |
 | `analysis/` | AI 调研、对比、评估 | `analysis/00-analysis-writing-guide.md` |
+| `articles/` | 技术论述与评析文章 | `articles/README.md` |
 | `discussions/` | 人与 AI 多轮对话，澄清模糊需求 | `discussions/00-discussion-writing-guide.md` |
 | `bugs/` | 复杂 bug 的修复记录 | `bugs/00-bug-fix-note-writing-guide.md` |
 | `audits/` | 代码和设计审计记录 | `README.md` |
 | `lessons/` | 经验教训索引 | `README.md` |
 | `skills/` | 可复用的审计/review prompt 模板（含 `invariant-loop-audit-prompt.md` 不变式闭环方法论） | — |
+| `references/` | 外部论文/资料存档（PDF + Markdown） | `references/README.md` |
 
 ## 约定
 
