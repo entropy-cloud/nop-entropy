@@ -12,9 +12,11 @@
 本文论证一个核心观点：**GRC（广义可逆计算）是统一的总理论，dsh/Cordis 论文是 GRC 在运行时空间的一个细化（refinement），不是另一套互补理论。** 核心模式 `App = F(X) ⊕ Δ`（Δ 有逆、F 满足结合律）普适于结构空间与运行时空间。
 
 1. **GRC 的 `F(X)+Δ` 模式是普适的**——结构空间：X=结构树、Δ=树差量、F=x-extends、逆=x-diff（Nop 路线）；运行时空间：X=运行时上下文（coeffect table / fiber state）、Δ=带逆的 effect、F=twisted composition、逆=dispose/accumulator（dsh 路线）。**两者同源**，差异仅在 X 与算子的具体化。
-2. **dsh 不是 GRC 的应用实例而是细化实例**——fibers / scopes / realm / inertia / committed view / Theorem 61/63/66/73 都是 GRC 概念在运行时域的具体形态，不是"另一套理论"。
-3. **Nop 与 dsh 是 GRC 在两个不同域的细化形态**——Nop 把 F(X)+Δ 实例化到结构空间（`proof-v2.md` 与 `grc-delta-associativity-formal-proof.md` 给出了结合律形式证明）；dsh 把 F(X)+Δ 实例化到运行时空间（Theorem 5/61/63/66/73 给出了运行时域的形式化）。
-4. **dsh 的运行时形式化应被 GRC 主论文吸收为"运行时章"**——目前 GRC 的运行时部分是机制描述（`reversible-computation-runtime-evolution.md`），未给出定理级形式化；dsh 恰好补上了这一章。
+2. **GRC 的核心创新是「主动构造 Delta 结构空间」（Active Space Design）**——见 GRC 主论文 §B.1.3 与 §B.2 评价判据第 2 条；这一原则同时适用于结构域与运行时域。**Nop 在结构域主动设计了 XDef / XDSL 语义坐标系（`x:extends` 作用空间）**；**dsh 在运行时域主动设计了 fiber / scope / realm / service key / event name 的运行时坐标系（`ctx.effect` 作用空间）**。两者不是"被动的执行工具"，而是各自领域的"主动设计变化空间"。
+3. **GRC 的"Loader = Generator"原则**（见 `counterintuitive-software-design-insights.md:252`）在两个域同样成立：Nop 的 `ResourceComponentManager` 在结构域把加载器升级为生成器（合并 Delta ⊕ Base 构造完整模型）；dsh 的 `ctx.effect` + fiber 生命周期在运行时域把 effect 注册升级为生成器（注册 Δ + 收集逆 = 在运行时坐标系上叠加 delta）。
+4. **dsh 不是 GRC 的应用实例而是细化实例**——fibers / scopes / realm / inertia / committed view / Theorem 61/63/66/73 都是 GRC 概念在运行时域的具体形态，不是"另一套理论"。
+5. **Nop 与 dsh 是 GRC 在两个不同域的细化形态**——Nop 把 F(X)+Δ 实例化到结构空间（`proof-v2.md` 与 `grc-delta-associativity-formal-proof.md` 给出了结合律形式证明）；dsh 把 F(X)+Δ 实例化到运行时空间（Theorem 5/61/63/66/73 给出了运行时域的形式化）。
+6. **dsh 的运行时形式化应被 GRC 主论文吸收为"运行时章"**——目前 GRC 的运行时部分是机制描述（`reversible-computation-runtime-evolution.md`），未给出定理级形式化；dsh 恰好补上了这一章。
 
 dsh 论文的几乎每个核心观念（时间可组合性、空间可组合性、twisted composition、track 幺半群同态、recover、观测等价、系统边界、withhold/compensation、局部可逆复合）都能在 `docs/theory` 下的 GRC 文献中找到先行表述。本文逐项映射 Cordis 论文核心概念到 GRC 文献中的对应表述，区分哪些是"GRC 概念在运行时域的细化"、哪些是"dsh 对 GRC 模式的具体实现选择"。
 
@@ -25,10 +27,12 @@ dsh 论文的几乎每个核心观念（时间可组合性、空间可组合性�
 ## 一、结论先行
 
 1. **GRC 是统一的总理论**，核心模式 `App = F(X) ⊕ Δ`（Δ 有逆、F 满足结合律）普适于结构空间与运行时空间。Nop 与 dsh 都是该模式在不同域的细化实例，**没有"两个理论"的问题**。
-2. **dsh 是 GRC 在运行时空间的细化**：X = 运行时上下文（coeffect table / fiber state）、Δ = 带逆的 effect、F = twisted composition、逆 = dispose / accumulator。fibers / scopes / realm / inertia / committed view / Theorem 61/63/66/73 都是 GRC 概念在运行时域的具体形态。
-3. **Nop 是 GRC 在结构空间的细化**：X = 结构树、Δ = 树差量、F = x-extends、逆 = x-diff。`proof-v2.md` 与 `grc-delta-associativity-formal-proof.md` 给出了 GRC 在结构域的结合律形式证明。
-4. **GRC 的现有形式证明集中在结构域**（`proof-v2.md`、`grc-delta-associativity-formal-proof.md`），运行时域目前只有机制描述（`reversible-computation-runtime-evolution.md`）。dsh 论文的 Theorem 61/63/66/73 恰好是 GRC 在运行时域需要的定理级形式化，应被 GRC 主论文吸收为"运行时章"。
-5. **形式化对象不同不构成理论不同**：Nop 与 dsh 的差异是"对什么 X、什么 F、什么 Δ 的逆"——这是细化层面的选择，不是理论框架层面的取舍。
+2. **GRC 的核心创新是「主动构造 Delta 结构空间」（Active Space Design）**——见 GRC 主论文 §B.1.3 与 §B.2 评价判据第 2 条：「是否引导开发者主动构造一个承载变化的、具有优良性质的表达空间」。**这一原则同时适用于结构域与运行时域**：Nop 在结构域主动设计了 XDef / XDSL 语义坐标系（`x:extends` 作用空间），dsh 在运行时域主动设计了 fiber / scope / realm / service key / event name 的运行时坐标系（`ctx.effect` 作用空间）。**两者不是"被动的执行工具"，而是各自领域的"主动设计变化空间"**。
+3. **GRC 的"Loader = Generator"原则**（见 `counterintuitive-software-design-insights.md:252`：「在可逆计算的架构下，加载器已经被赋予了生成器的全部职责，它的行为已经从被动读取转变为主动构造」）在两个域同样成立：Nop 的 `ResourceComponentManager` 在结构域把加载器升级为生成器（合并 Delta ⊕ Base 构造完整模型）；dsh 的 `ctx.effect` + fiber 生命周期在运行时域把 effect 注册升级为生成器（注册 Δ + 收集逆 = 在运行时坐标系上叠加 delta）。
+4. **dsh 是 GRC 在运行时空间的细化**：X = 运行时上下文（coeffect table / fiber state）、Δ = 带逆的 effect、F = twisted composition、逆 = dispose / accumulator。fibers / scopes / realm / inertia / committed view / Theorem 61/63/66/73 都是 GRC 概念在运行时域的具体形态。
+5. **Nop 是 GRC 在结构空间的细化**：X = 结构树、Δ = 树差量、F = x-extends、逆 = x-diff。`proof-v2.md` 与 `grc-delta-associativity-formal-proof.md` 给出了 GRC 在结构域的结合律形式证明。
+6. **GRC 的现有形式证明集中在结构域**（`proof-v2.md`、`grc-delta-associativity-formal-proof.md`），运行时域目前只有机制描述（`reversible-computation-runtime-evolution.md`）。dsh 论文的 Theorem 61/63/66/73 恰好是 GRC 在运行时域需要的定理级形式化，应被 GRC 主论文吸收为"运行时章"。
+7. **形式化对象不同不构成理论不同**：Nop 与 dsh 的差异是"对什么 X、什么 F、什么 Δ 的逆"——这是细化层面的选择，不是理论框架层面的取舍。
 
 ---
 
@@ -68,6 +72,8 @@ dsh 论文的几乎每个核心观念（时间可组合性、空间可组合性�
 
 | dsh / Cordis 论文 | GRC / docs-theory 对应表述 | 对应度 |
 |---|---|---|
+| **【GRC 判据 #2：主动空间设计】**：dsh 主动设计了 fiber / scope / realm / service key / event name 的运行时坐标系，effect 注册是在该坐标系上叠加 Δ | GRC 主论文 §B.1.3：「主动地设计一个承载变化的、具有优良语义坐标的结构空间」；§B.2 判据 #2「Active Space Design」；附录 C.2：「主动地构造一个更适合当前领域的差量空间」 | ◼ 概念同构（Nop 在结构域主动设计 XDef/XDSL 坐标系；dsh 在运行时域主动设计 fiber/scope/realm 坐标系——两者是 GRC 同一原则在不同 X 上的实例化） |
+| **【Loader = Generator】**：`ctx.effect` + fiber 生命周期 = dsh 在运行时域把 effect 注册升级为生成器（注册 Δ + 收集逆 = 在运行时坐标系上叠加 delta） | `counterintuitive-software-design-insights.md:252`：「在可逆计算的架构下，加载器已经被赋予了生成器的全部职责，它的行为已经从被动读取转变为主动构造」；`reversible-computation.md:256`：「主动构造一个指定的差量切片出来...差量构成了一个异常丰富的结构空间」 | ◼ 概念同构（Nop 的 `ResourceComponentManager` 是结构域的 Loader=Generator；dsh 的 `ctx.effect` 是运行时域的 Loader=Generator） |
 | **时间可组合性**：每个 effect 携带逆函数，卸载时恢复 | `methodology-source.md`："任何增加的功能都应该有配对的逆向取消机制"；Command 模式 `execute/undo` 配对，BatchCommand 复合 | ◼ 概念同构（GRC 是设计原则，dsh 是运行时强制） |
 | effect 类型 `Γ → Γ × (Γ → Γ)`：变换 + 逆成对出现 | `explanation-of-delta.md` 的逆元讨论；`what-does-reversible-mean.md` 的 `x-extends`/`x-diff` 双向运算 | ◼ 概念同构（X 不同：GRC 是结构树，dsh 是上下文） |
 | **twisted composition**：`(f₁,g₁)∘(f₂,g₂)=(f₁∘f₂,g₂∘g₁)` | `proof-v2.md`：`⊗` 是 delta 之间的内部组合，不是外在函数复合；`methodology-source.md`："可逆性可以复合" | ◼ 形式化同构（GRC 有结构域 `⊗` 结合律证明，dsh 有运行时 `𝔗Γ` 幺半群同态定理） |
@@ -141,16 +147,18 @@ dsh 论文的几乎每个核心观念（时间可组合性、空间可组合性�
 
 ---
 
-## 七、dsh 是 GRC 的细化实例（refinement）
+## 七、dsh 是 GRC「主动构造 Delta 结构空间」原则在运行时域的具体化
 
-**dsh 是 GRC 在运行时空间的细化实例**，与 Nop 是 GRC 在结构空间的细化实例对偶。
+**dsh 是 GRC 在运行时空间的细化实例**，与 Nop 是 GRC 在结构空间的细化实例对偶——但 dsh 的真正理论定位不止于"算子对位"，而是 **GRC「主动构造 Delta 结构空间」原则（Active Space Design，GRC 判据 #2）的运行时域具体化**。
 
+- **dsh 主动设计了运行时域的 Delta 结构空间**：fiber / scope / realm / service key / event name / 5 类 dispatch mode——这些不是"运行时偶然产生的状态"，而是 dsh **主动设计**的"承载运行时变化的优良结构空间"。service key 是单写多读坐标，event name 是多写坐标加 dispatch mode 显式声明顺序语义，realm 提供 per-key 互斥的隔离粒度——这正是 GRC 主论文 §B.1.3 所说的"主动地设计一个承载变化的、具有优良语义坐标的结构空间"在运行时域的实例化。
+- **dsh 的 `ctx.effect` + fiber 生命周期是「Loader = Generator」原则在运行时域的具体化**：每一个 effect 注册都同时产生 Δ（注册动作本身）与 Δ⁻¹（disposable 收集的逆函数），运行时坐标系上的全部结构就是所有注册叠加的结果——这与 GRC 主论文 §B.1.2「分形自相似性」原则一致：F(X)+Δ 模式在四个维度（垂直流水线 / 水平 DSL 族 / 时间演化链 / 元层工具）中递归展开。
 - **理论同源**：GRC 的 `App = F(X) ⊕ Δ` 模式在运行时域的具体化——X = 运行时上下文（coeffect table / fiber state）、Δ = 带逆的 effect、F = twisted composition、逆 = dispose / accumulator。Nop 与 dsh 都是该模式的域细化，**没有"哪个是主理论、哪个是应用"的不对等关系**。
 - **形式化补全**：dsh 的 Theorem 61/63/66/73、twisted composition 幺半群同态、recovery exactness，是 GRC 在运行时域需要的定理级形式化——目前 GRC 现有文献对运行时演化的处理是机制描述（`reversible-computation-runtime-evolution.md`），未给出定理。dsh 恰好补上了这一章。
 - **不构成"两个理论"**：dsh 的形式化语言（effect `Γ→Γ×(Γ→Γ)`、track 幺半群、fiber 状态机）是 GRC 概念在运行时域的实例化——F 的代数结构（结合律）、Δ 的逆元存在、复合的可逆性保持，这三点在 dsh 中以运行时定理（Theorem 5/61/63/66/73）的形式存在，在 GRC 中以结构域定理（tree-delta 结合律）的形式存在；两者不是不同理论，是同一理论在不同 X 上的形式化。
-- **dsh 的配置层未继承 GRC 最成熟的字段级差量代数**——这是 dsh 的实现选择（停在 entry id 粗粒度），不是 GRC 的限制。如果 dsh 引入 GRC 结构域的 `x-extends` / `x-diff` 到配置层，配置层也会得到 GRC 的结合律保证。
+- **dsh 的配置层未继承 GRC 最成熟的字段级差量代数**——这是 dsh 的实现选择（停在 entry id 粗粒度），不是 GRC 的限制。配置层本身也是 GRC「主动构造 Delta 结构空间」原则作用的一个子空间（`cordis.yml` 是配置域的 DSL 坐标系）；如果 dsh 把 GRC 结构域的 `x-extends` / `x-diff` / `x:override="remove"` 引入到该配置域，就能获得 GRC 结构域的字段级差量代数与结合律保证。
 
-**所以结论是**：dsh 不是 GRC 的"应用实例"也不是"互补理论"，而是 GRC 在运行时空间的细化形态。差异只在于"X 是什么、F 用什么算子、逆如何构造"——这是细化层面的选择，不是理论层面的取舍。
+**所以结论是**：dsh 不是 GRC 的"应用实例"也不是"互补理论"，而是 **GRC 「主动构造 Delta 结构空间」原则 + 「Loader = Generator」原则 + F(X)+Δ 模式** 这三大核心原则在运行时域的统一具体化。差异只在于"X 是什么、F 用什么算子、逆如何构造、主动设计的坐标是什么"——这是细化层面的选择，不是理论层面的取舍。
 
 ---
 
