@@ -360,10 +360,10 @@ dsh 的静态 patch 机制（`applyEntryPatches`）语义是：
 
 ### 5.3 两个域的细化形态都验证 F(X)+Δ 的普适性
 
-Nop 与 dsh 都是 GRC `App = F(X) ⊕ Δ` 模式在不同域的细化形态，**不是两套互补的理论**——差异仅在"X 是什么、F 用什么算子、逆如何构造"。
+Nop 与 dsh 都是 GRC `App = F(X) ⊕ Δ` 模式在不同域的细化形态，**不是两套互补的理论**——差异仅在"X 是什么、F 用什么算子、逆如何构造、主动设计的坐标是什么"。
 
-- **Nop（GRC 结构域细化）**：X = 结构树、Δ = 树差量、F = x-extends、逆 = x-diff。结构空间天然是"静态的、可重放"的，字段级坐标 + 结合律 + 逆元让它拥有完整的差量代数形式证明（见姊妹篇 `2026-08-17-grc-dsh-theory-mapping.md` §六 提到的 `proof-v2.md`、`grc-delta-associativity-formal-proof.md`）。
-- **dsh（GRC 运行时域细化）**：X = 运行时上下文（coeffect table / fiber state）、Δ = 带逆的 effect、F = twisted composition、逆 = dispose / accumulator。运行时结构空间是"动态生成的、有状态的"，需通过为每个注册行为显式配备逆、由运行时跟踪组合——坐标粒度停留在 entry id（插件行）而非字段级，必须依赖系统边界来划分可逆/不可逆。
+- **Nop（GRC 结构域细化）**：X = 结构树、Δ = 树差量、F = x-extends、逆 = x-diff。结构空间天然是"静态的、可重放"的，字段级坐标 + 结合律 + 逆元让它拥有完整的差量代数形式证明（见姊妹篇 `2026-08-17-grc-dsh-theory-mapping.md` §六 提到的 `proof-v2.md`、`grc-delta-associativity-formal-proof.md`）。Nop 的 `ResourceComponentManager` 是 GRC「Loader = Generator」原则在结构域的具体化（见 `counterintuitive-software-design-insights.md:252`）——加载器把 Delta ⊕ Base 合并升级为生成器，主动构造完整模型。
+- **dsh（GRC 运行时域细化）**：X = 运行时上下文（coeffect table / fiber state）、Δ = 带逆的 effect、F = twisted composition、逆 = dispose / accumulator。运行时结构空间是"动态生成的、有状态的"，需通过为每个注册行为显式配备逆、由运行时跟踪组合——坐标粒度停留在 entry id（插件行）而非字段级，必须依赖系统边界来划分可逆/不可逆。dsh 的 `ctx.effect` + fiber 生命周期是 GRC「Loader = Generator」原则在运行时域的具体化——effect 注册同时产生 Δ 与 Δ⁻¹，在运行时坐标系上叠加 delta。
 
 **两者互补的是形式化对象，不是理论框架**：
 - Nop 的差量代数证明（结构域 `⊗` 结合律）+ dsh 的 Theorem 61/63/66/73（运行时域定理）= GRC 在两个域的完整形式化图景
@@ -371,6 +371,13 @@ Nop 与 dsh 都是 GRC `App = F(X) ⊕ Δ` 模式在不同域的细化形态，*
 - dsh 若要把配置层从整段覆盖推到字段级，直接引入 Nop 的 `x-extends` / `x-diff` 即可——这就是 GRC 模式在结构域已被验证的工具
 
 **对 Nop 而言**，dsh 论文最大的借鉴价值是：**它补上了 GRC 在运行时域的定理级形式化**——给出了逆的代数（twisted composition）、逆的复合条件（pairwise independence）、以及最重要的概念工具"系统边界"。Nop 若通过 plugin 机制实现运行时可逆，面临的正是论文 [1, §6] 中讨论的问题（边界划分、依赖声明与解析、卸载顺序保证），而 dsh 已给出答案。**对 dsh 而言**，Nop 的差量代数是它在配置层缺失的那一块——直接引入即可得到 GRC 结构域的形式化保证。
+
+**更深一层的联系——GRC「主动构造 Delta 结构空间」原则（判据 #2）**：
+GRC 主论文 §B.1.3 把这一原则列为 GRC 的核心创新——从"被动处理源码变更"转向"主动设计承载变化的优良坐标结构空间"。Nop 与 dsh 都遵循这一原则，只是设计对象不同：
+- Nop 主动设计结构域坐标：XDef / XDSL 元模型 + `xdef:key-attr` 唯一属性 + x:extends 算子 + S-N-V 加载流程
+- dsh 主动设计运行时域坐标：fiber / scope / realm / service key / event name + 5 类 dispatch mode + ctx.effect 算子 + committed view / accumulator
+
+两者都是"主动设计"而非"被动接受"——这就是它们能在各自域内支持精细差量合并与可逆操作的共同理论根源。详见姊妹篇 `2026-08-17-grc-dsh-theory-mapping.md` §三 映射表的"主动空间设计"行与 §七 的展开。
 
 ### 5.4 插件若支持 delta 定制，原则上仍要回到结构空间的差量代数
 
