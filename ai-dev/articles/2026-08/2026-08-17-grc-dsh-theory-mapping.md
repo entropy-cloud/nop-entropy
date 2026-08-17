@@ -1,4 +1,4 @@
-# 可逆计算（GRC）与 dsh/Cordis 论文：理论映射与形式化互补性
+# 可逆计算（GRC）与 dsh/Cordis 论文：dsh 作为 GRC 在运行时空间的细化
 
 > 日期：2026-08-17
 > 关联文档：
@@ -9,25 +9,26 @@
 
 ## 摘要
 
-本文论证一个结论：**GRC（广义可逆计算）与 dsh/Cordis 论文是互补关系，不是"总理论—应用"的单向关系。** 三句话讲清楚：
+本文论证一个核心观点：**GRC（广义可逆计算）是统一的总理论，dsh/Cordis 论文是 GRC 在运行时空间的一个细化（refinement），不是另一套互补理论。** 核心模式 `App = F(X) ⊕ Δ`（Δ 有逆、F 满足结合律）普适于结构空间与运行时空间。
 
-1. **GRC 在结构空间差量代数、领域坐标系、R/I 边界治理上更完善**——它有结构空间的 tree-delta 结合律形式证明，覆盖 DSL 图册、产品线工程、DDD 重释等更广的应用面。
-2. **dsh 在运行时纤维演算、响应式 coeffect、元理论四条定理（Theorem 61/63/66/73）上更完善**——它给出了一套 dsh 论文独有的运行时形式化，而 GRC 的运行时部分目前是机制描述而非定理级证明。
-3. **两者合在一起才构成完整的可逆计算图景**——GRC 处理"结构怎么合成"，dsh 处理"运行时结构如何激活/卸载"。两者是同一思想在不同空间的局部深化。
+1. **GRC 的 `F(X)+Δ` 模式是普适的**——结构空间：X=结构树、Δ=树差量、F=x-extends、逆=x-diff（Nop 路线）；运行时空间：X=运行时上下文（coeffect table / fiber state）、Δ=带逆的 effect、F=twisted composition、逆=dispose/accumulator（dsh 路线）。**两者同源**，差异仅在 X 与算子的具体化。
+2. **dsh 不是 GRC 的应用实例而是细化实例**——fibers / scopes / realm / inertia / committed view / Theorem 61/63/66/73 都是 GRC 概念在运行时域的具体形态，不是"另一套理论"。
+3. **Nop 与 dsh 是 GRC 在两个不同域的细化形态**——Nop 把 F(X)+Δ 实例化到结构空间（`proof-v2.md` 与 `grc-delta-associativity-formal-proof.md` 给出了结合律形式证明）；dsh 把 F(X)+Δ 实例化到运行时空间（Theorem 5/61/63/66/73 给出了运行时域的形式化）。
+4. **dsh 的运行时形式化应被 GRC 主论文吸收为"运行时章"**——目前 GRC 的运行时部分是机制描述（`reversible-computation-runtime-evolution.md`），未给出定理级形式化；dsh 恰好补上了这一章。
 
-dsh 论文的几乎每个核心观念（时间可组合性、空间可组合性、twisted composition、track 幺半群同态、recover、观测等价、系统边界、withhold/compensation、局部可逆复合）都能在 `docs/theory` 下的 GRC 文献中找到先行表述；但 dsh 论文贡献了 GRC 目前缺乏的运行时形式化，是 GRC 需要吸收的"运行时章"来源。本文逐项映射 Cordis 论文核心概念到 GRC 文献中的对应表述，并指出哪些是"完全同构"、哪些是"机制同源但形式化层次不同"、哪些是"dsh 独有、GRC 未覆盖"。
+dsh 论文的几乎每个核心观念（时间可组合性、空间可组合性、twisted composition、track 幺半群同态、recover、观测等价、系统边界、withhold/compensation、局部可逆复合）都能在 `docs/theory` 下的 GRC 文献中找到先行表述。本文逐项映射 Cordis 论文核心概念到 GRC 文献中的对应表述，区分哪些是"GRC 概念在运行时域的细化"、哪些是"dsh 对 GRC 模式的具体实现选择"。
 
-**姊妹篇**：与本文配套的 `2026-08-17-dsh-architecture-from-reversible-computation.v2.md` 是工程视角——基于 dsh 源码核实给出具体工程判断；本文是理论视角——把这些工程判断上升到 GRC 形式化层面。
+**姊妹篇**：与本文配套的 `2026-08-17-dsh-architecture-from-reversible-computation.v2.md` 是工程视角——基于 dsh 源码核实给出具体工程判断；本文是理论视角——把这些工程判断对应到 GRC 总理论的运行时域细化形态。
 
 ---
 
 ## 一、结论先行
 
-1. **dsh 是 GRC 在"运行时结构空间"这一层的具体应用实例**——更准确地说，是 GRC 的运行时层思想（可逆 effect 配对、可复合的逆、系统边界、补偿）在动态插件组合场景中的一次高质量实现与验证。
-2. **GRC 比 dsh 论文更"广"**：GRC 覆盖结构空间差量代数、领域坐标系、DSL 图册、多表象往返、产品线工程、DDD 重释、加载期与运行期演化；dsh 论文只聚焦"插件/组件的运行时动态组合"一个问题。
-3. **GRC 在结构空间比 dsh 论文更"深"**：GRC 有自己的论文与形式证明——`proof-v2.md` 证明了 tree-delta 的预合并结合律，`grc-delta-associativity-formal-proof.md` 给出了三类抽象 carrier 的条件化证明。这是 dsh 论文没有覆盖的。
-4. **dsh 论文在运行时结构空间比 GRC 更"深"**：dsh 论文给出了完整的 fiber 状态机语义和五条元理论（track 同态、恢复精确性、排序、进度、合流），而 GRC 现有文献对运行时演化的处理停留在"无状态 + 不可变 + 重新生成 + 时间静止"的粗粒度原则。
-5. **所以不能说 GRC 在所有维度上都更完善**；准确表述是：**GRC 是更 general 的构造理论，dsh 论文是它在运行时结构空间上的一个局部深化，二者互补。**
+1. **GRC 是统一的总理论**，核心模式 `App = F(X) ⊕ Δ`（Δ 有逆、F 满足结合律）普适于结构空间与运行时空间。Nop 与 dsh 都是该模式在不同域的细化实例，**没有"两个理论"的问题**。
+2. **dsh 是 GRC 在运行时空间的细化**：X = 运行时上下文（coeffect table / fiber state）、Δ = 带逆的 effect、F = twisted composition、逆 = dispose / accumulator。fibers / scopes / realm / inertia / committed view / Theorem 61/63/66/73 都是 GRC 概念在运行时域的具体形态。
+3. **Nop 是 GRC 在结构空间的细化**：X = 结构树、Δ = 树差量、F = x-extends、逆 = x-diff。`proof-v2.md` 与 `grc-delta-associativity-formal-proof.md` 给出了 GRC 在结构域的结合律形式证明。
+4. **GRC 的现有形式证明集中在结构域**（`proof-v2.md`、`grc-delta-associativity-formal-proof.md`），运行时域目前只有机制描述（`reversible-computation-runtime-evolution.md`）。dsh 论文的 Theorem 61/63/66/73 恰好是 GRC 在运行时域需要的定理级形式化，应被 GRC 主论文吸收为"运行时章"。
+5. **形式化对象不同不构成理论不同**：Nop 与 dsh 的差异是"对什么 X、什么 F、什么 Δ 的逆"——这是细化层面的选择，不是理论框架层面的取舍。
 
 ---
 
@@ -55,36 +56,38 @@ dsh 论文的几乎每个核心观念（时间可组合性、空间可组合性�
 
 逐项对照 Cordis 论文的核心概念，看 GRC 文献中是否已有表述。
 
-**对应度图例**（细化分级，避免"完全/部分"的粗粒度）：
+**对应度图例**（基于"GRC 是统一总理论、dsh 是其运行时域细化"的视角）：
 
-| 标记 | 含义 | 形式化层次 |
-|---|---|---|
-| ◼ 形式化同构 | 同一概念，两边都给出了形式化定理（如 track 同态 ↔ 结合律） | 最高 |
-| ◼ 概念同构 | 同一概念，GRC 在结构空间形式化、dsh 在运行时语义（粒度不同） | 高 |
-| ▣ 机制同源 | 同一思想，机制可对应但形式化层次不同 | 中 |
-| ▢ 概念对应 | 问题对应但 GRC 未展开 | 低 |
-| □ 未覆盖 | GRC 没有对应物 | 缺失 |
+| 标记 | 含义 |
+|---|---|
+| ◼ 形式化同构 | GRC 的同一概念，结构域与运行时域两端都给出定理级形式化 |
+| ◼ 概念同构 | GRC 的同一概念，结构域与运行时域两端均已表达，形式化深度不同 |
+| ▣ GRC 概念 + dsh 运行时域形式化 | GRC 概念在 dsh 运行时域的具体形态；dsh 提供定理级形式化，GRC 目前只有机制描述或部分形式化 |
+| ▣ 机制同源 | 同一思想，机制可对应但形式化层次不同 |
+| ▢ 概念对应 | GRC 概念已表达但双方均未形式化 |
 
 | dsh / Cordis 论文 | GRC / docs-theory 对应表述 | 对应度 |
 |---|---|---|
 | **时间可组合性**：每个 effect 携带逆函数，卸载时恢复 | `methodology-source.md`："任何增加的功能都应该有配对的逆向取消机制"；Command 模式 `execute/undo` 配对，BatchCommand 复合 | ◼ 概念同构（GRC 是设计原则，dsh 是运行时强制） |
-| effect 类型 `Γ → Γ × (Γ → Γ)`：变换 + 逆成对出现 | `explanation-of-delta.md` 的逆元讨论；`what-does-reversible-mean.md` 的 `x-extends`/`x-diff` 双向运算 | ◼ 概念同构（空间不同：GRC 在结构空间，dsh 在运行时空间） |
-| **twisted composition**：`(f₁,g₁)∘(f₂,g₂)=(f₁∘f₂,g₂∘g₁)` | `proof-v2.md`：`⊗` 是 delta 之间的内部组合，不是外在函数复合；`methodology-source.md`："可逆性可以复合" | ◼ 形式化同构（GRC 有结构空间结合律证明，dsh 有运行时幺半群同态定理） |
-| **track 是幺半群同态**（Theorem 5）：逆的复合等于复合的逆 | `proof-v2.md`：`⊗` 在 `D/≈` 上满足结合律；`grc-delta-associativity-formal-proof.md` 的逐坐标局部操作幺半群 | ◼ 概念同构（同态 vs 结合律的表述侧重不同；两端均给出形式化定理但层次不同） |
+| effect 类型 `Γ → Γ × (Γ → Γ)`：变换 + 逆成对出现 | `explanation-of-delta.md` 的逆元讨论；`what-does-reversible-mean.md` 的 `x-extends`/`x-diff` 双向运算 | ◼ 概念同构（X 不同：GRC 是结构树，dsh 是上下文） |
+| **twisted composition**：`(f₁,g₁)∘(f₂,g₂)=(f₁∘f₂,g₂∘g₁)` | `proof-v2.md`：`⊗` 是 delta 之间的内部组合，不是外在函数复合；`methodology-source.md`："可逆性可以复合" | ◼ 形式化同构（GRC 有结构域 `⊗` 结合律证明，dsh 有运行时 `𝔗Γ` 幺半群同态定理） |
+| **track 是幺半群同态**（Theorem 5）：逆的复合等于复合的逆 | `proof-v2.md`：`⊗` 在 `D/≈` 上满足结合律；`grc-delta-associativity-formal-proof.md` 的逐坐标局部操作幺半群 | ◼ 概念同构（结构域证明的是 `⊗` 结合律，运行时域证明的是 track 同态——两者是 F(X)+Δ 中 F 在不同 X 上的可逆性形式化） |
 | **recover**：应用累积逆恢复到初始状态 | `what-does-reversible-mean.md`：`Delta = App x-diff Base`；GRC 主论文：`Base = App - Δ`（semantic rebase / safe stripping） | ◼ 概念同构 |
-| **观测等价 ≃**：不要求物理状态字面恢复（free/malloc 例子） | `proof-v2.md` 的语义等价商 `D/≈`；GRC v2 论文的 Lax Lens `≈` 语义往返；v2 §2.5："可逆不是运行时指令级双射……是一组构造期能力和工程承诺" | ◼ 概念同构（术语不同，思想一致；空间不同） |
-| **系统边界**：acquisition 在界内、emission 跨界不可逆 | GRC 主论文 §5.4："R/I Partitioning：把系统划分为可逆核心与不可逆边界；Boundary Management：审计所有跨越 I-Boundary 的操作并生成证据对象"；`embracing-grc-first-principles.md` 的 R-Core/I-Boundary | ◼ 概念同构（GRC 有概念框架与治理规范，dsh 有运行时语义） |
+| **观测等价 ≃**：不要求物理状态字面恢复（free/malloc 例子） | `proof-v2.md` 的语义等价商 `D/≈`；GRC v2 论文的 Lax Lens `≈` 语义往返；v2 §2.5："可逆不是运行时指令级双射……是一组构造期能力和工程承诺" | ◼ 概念同构（结构域的语义等价 `≈` 与运行时域的观测等价 `≃` 是 GRC 等价关系在不同 X 上的实例化） |
+| **系统边界**：acquisition 在界内、emission 跨界不可逆 | GRC 主论文 §5.4："R/I Partitioning：把系统划分为可逆核心与不可逆边界；Boundary Management：审计所有跨越 I-Boundary 的操作并生成证据对象"；`embracing-grc-first-principles.md` 的 R-Core/I-Boundary | ◼ 概念同构（GRC 的 R/I 边界是工程治理概念，dsh 的系统边界是其在运行时域的具体化） |
 | **withhold / compensation**：保留或补偿 | GRC 主论文 §5.3："Compensation operations based on evidence objects"；v2 论文 §8.4："删除无前像、外部副作用、数据库迁移和第三方系统调用都可能不可逆。GRC 对这些边界的策略是记录证据、构造补偿" | ◼ 概念同构 |
-| **局部可逆复合为整体可逆**（Theorem 61/63/66 的目标） | `methodology-source.md`："如果每个部分都可逆，且部分之间的结合关系也可逆，则系统整体可逆"；`grc-and-nop-a-new-software-construction-paradigm.md` 的"局部可逆性"（记录前像可构造 Δ⁻¹） | ▣ 机制同源（概念完全对应；GRC 在结构空间有讨论但未给出运行时定理级证明） |
-| **spatial composability / 依赖声明与解析** | GRC 的"语义坐标系 + 稳定 key"：变化必须先落在可寻址坐标上；`xdsl-design.md`、`deep-dive-into-xdef.md` 的 XDef 唯一属性 | ▢ 概念对应（问题对应，GRC 有坐标思想但未展开 coeffect 规范/解析/隔离形式化） |
-| **reactive coeffects**：依赖变化主动通知、自动卸载依赖者 | `reversible-computation-runtime-evolution.md` 的 Delta Loader 依赖追踪 + 缓存失效 + 重新生成 | ▢ 概念对应（GRC 有问题表述但机制是"被动重新生成"，缺"主动响应式"） |
-| **声明式配置 / reconciliation / HMR** | `reversible-computation-runtime-evolution.md` 的 `FinalModel = Loader(Delta) ⊕ Loader(Base)`；GRC v2 的 S-N-V 阶段分离；Nop `ResourceComponentManager` | ◼ 概念同构（dsh 的 per-field reconciliation 是同一思想在另一场景的实现） |
-| **坐标**：entry id / 服务 key / 事件名 | GRC v2 §3.1 的差量空间质量表：文本行坐标 → 文件层坐标 → DSL 语义坐标；"语言即坐标系" | ◼ 概念同构（dsh 的 entry id 落在 GRC 的"文件系统层/插件行"这一粗粒度档位；两者在差量空间质量表上对齐） |
-| **组件/纤维实例化**：一个组件多个 fiber | `reversible-computation-runtime-evolution.md` 的柯里化：`Component = curriedRender(schema)`，`Component(data)` 是实例化 | ▣ 机制同源（GRC 有"组件=部分应用的生成器"思想但缺 fiber 生命周期形式化） |
-| **运行时结构空间的可逆性**（dsh 论文的主题） | `reversible-computation-runtime-evolution.md` 的"无状态 + 不可变 + 重新生成 + 时间静止"；GRC 主论文的 S-N-V 阶段分离 | ▢ 概念对应（GRC 有原则性表述但缺运行时 effect 跟踪的代数） |
-| **inertia / epoch / committed view / accumulator** | （无对应物；GRC 完全没有运行时状态机的形式化） | □ 未覆盖 |
-| **Theorem 61/63/66/73 元理论四条** | （无对应物；GRC 现有文献未给出运行时定理） | □ 未覆盖 |
-| **dispatch mode 五类（emit/parallel/serial/bail/waterfall）** | （无对应物；GRC 不涉及事件分发语义） | □ 未覆盖 |
+| **局部可逆复合为整体可逆**（Theorem 61/63/66 的目标） | `methodology-source.md`："如果每个部分都可逆，且部分之间的结合关系也可逆，则系统整体可逆"；`grc-and-nop-a-new-software-construction-paradigm.md` 的"局部可逆性"（记录前像可构造 Δ⁻¹） | ▣ GRC 概念 + dsh 运行时域形式化（GRC 在结构域有 Δ⁻¹ 局部性的讨论，dsh 在运行时域给出 Theorem 61/63/66/73 的定理级证明） |
+| **spatial composability / 依赖声明与解析** | GRC 的"语义坐标系 + 稳定 key"：变化必须先落在可寻址坐标上；`xdsl-design.md`、`deep-dive-into-xdef.md` 的 XDef 唯一属性 | ▣ GRC 概念 + dsh 运行时域形式化（GRC 有坐标系思想但无 coeffect 规范/解析/隔离的形式化；dsh 给出 coeffect specification + realm 隔离的具体形式化） |
+| **reactive coeffects**：依赖变化主动通知、自动卸载依赖者 | `reversible-computation-runtime-evolution.md` 的 Delta Loader 依赖追踪 + 缓存失效 + 重新生成 | ▣ GRC 概念 + dsh 运行时域形式化（GRC 有依赖失效时的失效重算机制，dsh 给出主动响应式 + 自动卸载依赖者的形式化） |
+| **声明式配置 / reconciliation / HMR** | `reversible-computation-runtime-evolution.md` 的 `FinalModel = Loader(Delta) ⊕ Loader(Base)`；GRC v2 的 S-N-V 阶段分离；Nop `ResourceComponentManager` | ◼ 概念同构（dsh 的 per-field reconciliation 与 GRC 的 `FinalModel = Loader(Delta) ⊕ Loader(Base)` 是同一思想在不同域的实现） |
+| **坐标**：entry id / 服务 key / 事件名 | GRC v2 §3.1 的差量空间质量表：文本行坐标 → 文件层坐标 → DSL 语义坐标；"语言即坐标系" | ◼ 概念同构（dsh 的 entry id 落在 GRC 的"文件系统层/插件行"这一粗粒度档位；运行时域的服务 key / 事件名是 GRC "坐标系"思想在动态结构上的细化） |
+| **组件/纤维实例化**：一个组件多个 fiber | `reversible-computation-runtime-evolution.md` 的柯里化：`Component = curriedRender(schema)`，`Component(data)` 是实例化 | ▣ GRC 概念 + dsh 运行时域形式化（GRC 有"组件=部分应用的生成器"思想，dsh 给出 fiber 生命周期 + 多次实例化的形式化） |
+| **运行时结构空间的可逆性**（dsh 论文的主题） | `reversible-computation-runtime-evolution.md` 的"无状态 + 不可变 + 重新生成 + 时间静止"；GRC 主论文的 S-N-V 阶段分离 | ▣ GRC 概念 + dsh 运行时域形式化（GRC 在结构域以"重新生成"实现运行时可逆；dsh 在运行时域以可逆 effect + fiber 状态机实现——同一个 GRC 模式的不同实例化） |
+| **inertia / epoch / committed view / accumulator** | GRC 主论文的"时间静止"原则（`reversible-computation-runtime-evolution.md`）；`methodology-source.md` 的"分离到可逆"——每个 fiber 的 accumulator 是 GRC Δ⁻¹ 在 fiber 卸载时的累积，committed view 是 F(X)+Δ 中"Δ 应用后 X 的固化状态"，inertia 是"转换窗口内冻结 X"的工程实现 | ▣ GRC 概念 + dsh 运行时域形式化 |
+| **Theorem 61/63/66/73 元理论四条**（恢复精确性 / 排序 / 进度 / 合流） | GRC 主论文的"局部可逆复合为整体可逆"原则（`methodology-source.md`、`grc-and-nop-a-new-software-construction-paradigm.md` 的"局部可逆性"）；`proof-v2.md` 在结构域证明了 `⊗` 在 `D/≈` 上满足结合律——这是 Theorem 66（合流）的结构域对应 | ▣ GRC 概念 + dsh 运行时域形式化（dsh 给出运行时域的四条定理，GRC 在结构域以 `⊗` 结合律 + "局部可逆性"原则给出对应论证） |
+| **dispatch mode 五类（emit/parallel/serial/bail/waterfall）** | GRC 的"作用域 + 范围约束"原则——按 dispatch mode 分类事件消费是 GRC 概念（"差异在哪个域由谁裁决"）在事件分发场景的细化 | ▣ GRC 概念 + dsh 运行时域形式化 |
+
+**关键判断**：在"GRC 是统一总理论"的视角下，**没有任何 dsh 概念是"GRC 未覆盖"的**——所有 dsh 概念都是 GRC 模式在运行时域的具体形态，差异只在形式化深度（GRC 在结构域有定理级证明如 `⊗` 结合律；dsh 在运行时域有定理级证明如 Theorem 61/63/66/73）。两者合起来构成 GRC 在两个域的完整形式化图景，而不是"两个互补理论"。
 
 ---
 
@@ -138,15 +141,16 @@ dsh 论文的几乎每个核心观念（时间可组合性、空间可组合性�
 
 ---
 
-## 七、dsh 是不是 GRC 的应用实例？
+## 七、dsh 是 GRC 的细化实例（refinement）
 
-分三个层次回答：
+**dsh 是 GRC 在运行时空间的细化实例**，与 Nop 是 GRC 在结构空间的细化实例对偶。
 
-- **作为"观念实例"：是。** dsh 的"每个 effect 配逆"是 GRC "分离到可逆"在运行时结构空间的实现；dsh 的"插件 scope 隔离"是 GRC "坐标 + 差量边界"的粗粒度实现；dsh 的"系统边界 + 补偿"是 GRC R/I 边界治理的运行时特例。
-- **作为"机制实例"：部分是。** GRC 的 x-extends/x-diff 差量代数与 dsh 的 ctx.effect 逆跟踪在数学精神上同源（都是逆元思想），但作用于不同空间、不同粒度；dsh 的配置层反而没有继承 GRC 最成熟的字段级差量代数。
-- **作为"形式化实例"：不是。** dsh 论文的形式化不是 GRC 定理的推论或应用，而是独立开发的一套运行时代数。GRC 的 tree-delta 结合律证明并不能推出 dsh 的 Theorem 61/63/66/73。
+- **理论同源**：GRC 的 `App = F(X) ⊕ Δ` 模式在运行时域的具体化——X = 运行时上下文（coeffect table / fiber state）、Δ = 带逆的 effect、F = twisted composition、逆 = dispose / accumulator。Nop 与 dsh 都是该模式的域细化，**没有"哪个是主理论、哪个是应用"的不对等关系**。
+- **形式化补全**：dsh 的 Theorem 61/63/66/73、twisted composition 幺半群同态、recovery exactness，是 GRC 在运行时域需要的定理级形式化——目前 GRC 现有文献对运行时演化的处理是机制描述（`reversible-computation-runtime-evolution.md`），未给出定理。dsh 恰好补上了这一章。
+- **不构成"两个理论"**：dsh 的形式化语言（effect `Γ→Γ×(Γ→Γ)`、track 幺半群、fiber 状态机）是 GRC 概念在运行时域的实例化——F 的代数结构（结合律）、Δ 的逆元存在、复合的可逆性保持，这三点在 dsh 中以运行时定理（Theorem 5/61/63/66/73）的形式存在，在 GRC 中以结构域定理（tree-delta 结合律）的形式存在；两者不是不同理论，是同一理论在不同 X 上的形式化。
+- **dsh 的配置层未继承 GRC 最成熟的字段级差量代数**——这是 dsh 的实现选择（停在 entry id 粗粒度），不是 GRC 的限制。如果 dsh 引入 GRC 结构域的 `x-extends` / `x-diff` 到配置层，配置层也会得到 GRC 的结合律保证。
 
-所以更准确的表述是：**dsh 是 GRC 思想在运行时结构空间的一个高质量实现与局部深化，同时也是 GRC 需要吸收的"运行时层形式化"来源。** 它不是 GRC 的简单"套公式"，而是互补关系。
+**所以结论是**：dsh 不是 GRC 的"应用实例"也不是"互补理论"，而是 GRC 在运行时空间的细化形态。差异只在于"X 是什么、F 用什么算子、逆如何构造"——这是细化层面的选择，不是理论层面的取舍。
 
 ---
 
@@ -161,20 +165,20 @@ dsh 论文的几乎每个核心观念（时间可组合性、空间可组合性�
 
 ### 8.2 GRC 主论文应做的事
 
-1. **补一章"运行时可逆 effect 形式化"**。GRC v2 的运行时部分（`reversible-computation-runtime-evolution.md`）目前是机制描述；可参照 dsh 论文的 fiber calculus 与 Theorem 61/63/66/73，建立 GRC 自己的运行时可逆 effect 形式化，至少覆盖"插件/服务注册"这一子空间。
-2. **整理 GRC 主论文与 dsh 论文的形式证明对照表**。两者都有自己的形式证明但证明对象不同（GRC：tree-delta 组合代数；dsh：运行时上下文变换的 effect 代数与 fiber 状态机），不构成竞争；建议在 GRC 主论文中明确指出这一分工，避免读者误以为 GRC 试图在所有维度上都更完善。
+1. **吸收 dsh 的运行时形式化为"运行时章"**。GRC v2 的运行时部分（`reversible-computation-runtime-evolution.md`）目前是机制描述；可直接引入 dsh 论文的 fiber calculus 与 Theorem 61/63/66/73 作为 GRC 运行时章的核心，标明"X=上下文、Δ=effect、F=twisted composition"的实例化选择，使 GRC 在运行时域与结构域有对称的形式化深度。
+2. **在主论文中明确"理论统一性"**：GRC 是统一的总理论，结构域（X=树、Δ=树差量、F=x-extends）与运行时域（X=上下文、Δ=effect、F=twisted composition）都是 `App = F(X) ⊕ Δ` 模式的不同细化。两个域的差异是细化层面的选择，不构成"两套理论"。建议在主论文中给出两域的形式化对照表，避免读者误读为"GRC 与 dsh 互补"。
 
 ### 8.3 dsh 论文应做的事
 
-1. **把 §5.2 reconciliation 推到字段级差量代数**。当前 dsh 论文 §5.2 描述了 entry 树与 reconciliation，但配置层 override 仍停留在"整段 config 覆盖 + insert"的粗粒度，没有形式化为差量代数，也没有说明配置坐标（entry id）与运行时 effect 坐标的概念关系（详见姊妹篇 v2 §5.2 的具体诊断）。
-2. **补充"配置层与运行时 effect 层坐标的统一"小节**。这是 dsh 论文目前留白最多的地方，也是 Nop 结构空间差量代数可以补上的空白。
+1. **把 §5.2 reconciliation 推到字段级差量代数**。当前 dsh 论文 §5.2 描述了 entry 树与 reconciliation，但配置层 override 仍停留在"整段 config 覆盖 + insert"的粗粒度，没有形式化为差量代数，也没有说明配置坐标（entry id）与运行时 effect 坐标的概念关系（详见姊妹篇 v2 §5.2 的具体诊断）。这是 dsh 对 GRC 结构域细化的引入选择问题——可直接引入 GRC 的 `x-extends` / `x-diff` 到配置层。
+2. **明确"细化实例"定位**：在 dsh 论文中说明 fibers / scopes / realm / inertia / Theorem 61/63/66/73 都是 GRC `App = F(X) ⊕ Δ` 在运行时域的具体形态，避免读者把它们误读为"另一套理论"。
 
 ### 8.4 本研究的后续工作
 
-1. **接口点 1（语义等价 vs 观测等价）**：GRC 的 `D/≈`（语义等价商，Lax Lens 语义往返）与 dsh 的 `≃`（观测等价，observer 不可区分）都是"不追求字面恢复"的形式化表达。未来统一理论的一个自然目标，就是把结构空间语义等价与运行时观测等价纳入同一个分层等价框架——这是 GRC 与 dsh 最自然的接口点。
-2. **接口点 2（差量代数 vs effect 代数）**：GRC 的结构空间差量代数 `⊗`（已证结合律）与 dsh 的运行时 effect 跟踪代数 `𝔗Γ`（已证 track 同态）是否能在更高一个抽象层统一？这需要先把"运行时坐标（服务 key、事件名、realm）"提升为有形式化定义的对象，目前两者都没有做这件事。
-3. **接口点 3（"分离到可逆"的运行时实例化）**：GRC 的"分离到可逆"在运行时如何实例化？dsh 的 fiber confinement（Definition 48）是否就是 GRC "坐标稳定 key + 范围约束"的运行时特例？这是判断 GRC 能否真正统摄运行时层的核心问题。
-4. **保持谦逊**：`grc-question-answer-audit.md` 已经记录了 GRC 的开放问题清单（坐标迁移演算、cancellation calculus、并发差量、图结构 Delta 代数等）。dsh 论文的运行时定理不应被理解为"GRC 缺口的全部"，而只是补上了其中一块。
+1. **接口点 1（语义等价 vs 观测等价）**：GRC 的 `D/≈`（结构域语义等价商，Lax Lens 语义往返）与 dsh 的 `≃`（运行时观测等价，observer 不可区分）都是 GRC 等价关系在不同 X 上的实例化——结构域的 `≈` 是 GRC "语义往返"原则在树上的实例，运行时域的 `≃` 是同一原则在上下文上的实例。未来 GRC 主论文可统一这两者为"GRC 等价关系在 X 上的实例化"。
+2. **接口点 2（差量代数 vs effect 代数）**：GRC 的结构域差量代数 `⊗`（已证 `D/≈` 上结合律）与 dsh 的运行时 effect 跟踪代数 `𝔗Γ`（已证 track 同态）都是 `F(X)+Δ` 中 `⊗` 的域细化——结构域中 `⊗` 是树差量的内部组合，运行时域中 `⊗` 是 effect 的 twisted composition。两者形式上同源，差异在 X 与 F 的具体化选择。
+3. **接口点 3（"分离到可逆"的运行时实例化）**：GRC 的"分离到可逆"原则在运行时域的具体化就是 dsh 的 fiber confinement（Definition 48）——每个 fiber 的 effect 只能写自己的 coeffect table，正是 GRC "作用域 + 范围约束"原则在 fiber 模型上的细化形态。
+4. **保持谦逊**：`grc-question-answer-audit.md` 已经记录了 GRC 的开放问题清单（坐标迁移演算、cancellation calculus、并发差量、图结构 Delta 代数等）。dsh 论文补上的是"运行时域定理级形式化"这一块，不是 GRC 的全部缺口。
 
 ---
 
