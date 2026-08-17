@@ -1,9 +1,9 @@
 # W16-design nop-integration / nop-metadata credentialId 深度迁移设计（设计文档产出 + 分节独立 review）
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: nop-credential-mfa
 > Work Item: W16-design（深度迁移设计）——迁移二期组设计工作项，依赖 W2/W7/W7-successor（均已 done）
-> Last Reviewed: 2026-08-17（draft review 一轮 READY：0 Blocker/0 Major/8 Minor，其中 5 项建议修复已当场落地——No-new-test 注记/证据落点限 daily log/双 README/roadmap planned 项/值供给面枚举；锚点 100% 复核 PASS）
+> Last Reviewed: 2026-08-17（执行收口：三 Phase 全勾选 + 独立 closure audit CAN CLOSE，证据见 Closure 段；draft review 一轮 READY 记录：0 Blocker/0 Major/8 Minor，5 项当场落地）
 > Source: `ai-dev/backlog/nop-credential-mfa-roadmap.md` W16-design 条目 + stage 19；W7-successor 先例链（`IAiModelCredentialResolver`）；`ai-dev/design/nop-credential/01-architecture-baseline.md` §3.4/§3.5（消费侧契约）；`ai-dev/design/00-design-writing-guide.md`（设计文档规范）
 > Related: W7 `2026-08-13-1118-2-legacy-migration-docs-sync.md`（一期迁移 + 运行时切换 deferred 登记——Successor Required: yes → 与本工作项合流）；W7-successor `2026-08-13-1118-3-nop-ai-model-credential-runtime-consumption.md`（先例链实现）；姊妹二期设计 `ai-dev/design/nop-credential/02-phase2-design.md`（OAuth/KMS/归属/RBAC 已落地面 = 本设计的消费基座）
 
@@ -69,71 +69,71 @@
 
 ### Phase 1 - 引用点盘点基线落盘
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/nop-credential/03-integration-metadata-migration-design.md`（基线小节）
 
 - Item Types: `Proof | Decision`
 
-- [ ] **Proof**：live 复核并全量枚举（不引用旧文档结论，逐点 grep/读码验证）：integration 侧全部 secret 持有类与消费点（含 SMS/Email/Feishu/OSS/SFTP 家族）**与值供给面**（配置键 `nop.integration.feishu.*`/`nop.integration.oss.*`、`@cfg`/`@sec` 约定、`ioc:config-prefix` 绑定、下游 beans.xml 装配值——仓库内无装配值的事实本身是迁移工具语义的输入）、metadata 侧 `connectionConfig` 全部读点与最终 `DriverManager` 汇聚点、两侧既有安全缓解（`@sec:` 可用性/URL 校验/脱敏 tag）；落盘为设计文档的引用点基线小节（file:line 锚点表）。
-- [ ] **Decision**：威胁与需求陈述：明文存储面（DB JSON 列明文/配置文件明文）、轮换能力缺口、审计缺口——作为迁移动机与验收语义来源。
+- [x] **Proof**：live 复核并全量枚举（不引用旧文档结论，逐点 grep/读码验证）：integration 侧全部 secret 持有类与消费点（含 SMS/Email/Feishu/OSS/SFTP 家族）**与值供给面**（配置键 `nop.integration.feishu.*`/`nop.integration.oss.*`、`@cfg`/`@sec` 约定、`ioc:config-prefix` 绑定、下游 beans.xml 装配值——仓库内无装配值的事实本身是迁移工具语义的输入）、metadata 侧 `connectionConfig` 全部读点与最终 `DriverManager` 汇聚点、两侧既有安全缓解（`@sec:` 可用性/URL 校验/脱敏 tag）；落盘为设计文档的引用点基线小节（file:line 锚点表）。
+- [x] **Decision**：威胁与需求陈述：明文存储面（DB JSON 列明文/配置文件明文）、轮换能力缺口、审计缺口——作为迁移动机与验收语义来源。
 
 Exit Criteria:
 
-- [ ] 引用点基线小节与 live code 一致（锚点抽查可对号；`rg` 复核无遗漏消费点——以 secret 字段名/`connectionConfig`/`setPassword`/配置键前缀 `nop.integration.` 等关键词全量扫描，含值供给面）。
-- [ ] roadmap W16-design 行为 `planned` 且 Work Items 行引用本 plan 路径（W9-design 先例；若起草收口时已更新则视为已满足）。
-- [ ] No new test required: documentation-only plan（设计产出，无代码变更）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 引用点基线小节与 live code 一致（锚点抽查可对号；`rg` 复核无遗漏消费点——以 secret 字段名/`connectionConfig`/`setPassword`/配置键前缀 `nop.integration.` 等关键词全量扫描，含值供给面）。
+- [x] roadmap W16-design 行为 `planned` 且 Work Items 行引用本 plan 路径（W9-design 先例；若起草收口时已更新则视为已满足）。
+- [x] No new test required: documentation-only plan（设计产出，无代码变更）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 2 - 四主题设计裁定与文档撰写
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/nop-credential/03-integration-metadata-migration-design.md`
 
 - Item Types: `Decision`
 
-- [ ] **Decision（integration 接入模型）**：无 DB 挂点形态的消费方式裁定——候选方案对比（运行时 credentialId 解析 / 新集成配置实体 / 维持 @sec: + 仅裁定边界）、依赖边方向与模块边界（nop-integration-* 各子模块是否允许依赖 nop-credential-api，还是 resolver 接口留在各消费模块）、发送器初始化时序（凭证惰性解析 vs 构造期解析，凭证轮换/禁用对长生命周期 sender 实例的可见性）。
-- [ ] **Decision（metadata 接入模型）**：`credentialId` 挂点裁定（JSON 内字段 vs 独立列 vs 混合）、解析层落点（单点 `buildDataSource` vs 多消费方）、兼容矩阵（存量明文行/新 credentialId 行/两者并存优先级）、`testConnect` 等管理面语义。
-- [ ] **Decision（横切契约）**：优先级链与 fail-closed 语义（对齐 W7-successor：configured-but-broken 拒绝，不允许静默回退明文——回滚路径单独裁定并论证）；引用计数键规范（consumerRef 命名，`metadata:NopMetaDataSource:<id>` 先例对齐）；归属（system 级）与 RBAC 授权在两侧消费点的判定语义（服务级信任上下文，对齐 02-phase2-design §6.3）；迁移工具语义（存量转换命令、断点续跑、明文清除时点）；回滚路径（凭证库不可用时数据源可用性的安全论证——fail-closed vs 显式降级开关）。
-- [ ] **Decision（out-of-scope/deferred 表）**：逐项 classification + 理由（候选：Feishu/OSS/SFTP 家族是否纳入首期 impl、邮件发送器家族、Web 管理面、多环境密钥分离等）。
-- [ ] **Decision（文档组织）**：遵守 design guide——决策 + 理由 + 拒绝了什么 + 约束边界；不写类签名/方法列表/实现步骤（接口名仅限契约定义）；不引用 discussions/analysis；W7-successor 先例链经**源码锚点 + `01-architecture-baseline.md` §3.4/§3.5** 进入设计文档（plan 路径仅出现在 impl 裁定回写标注语境——`02-phase2-design.md` §八 先例，不作为设计依据引用）。
+- [x] **Decision（integration 接入模型）**：无 DB 挂点形态的消费方式裁定——候选方案对比（运行时 credentialId 解析 / 新集成配置实体 / 维持 @sec: + 仅裁定边界）、依赖边方向与模块边界（nop-integration-* 各子模块是否允许依赖 nop-credential-api，还是 resolver 接口留在各消费模块）、发送器初始化时序（凭证惰性解析 vs 构造期解析，凭证轮换/禁用对长生命周期 sender 实例的可见性）。
+- [x] **Decision（metadata 接入模型）**：`credentialId` 挂点裁定（JSON 内字段 vs 独立列 vs 混合）、解析层落点（单点 `buildDataSource` vs 多消费方）、兼容矩阵（存量明文行/新 credentialId 行/两者并存优先级）、`testConnect` 等管理面语义。
+- [x] **Decision（横切契约）**：优先级链与 fail-closed 语义（对齐 W7-successor：configured-but-broken 拒绝，不允许静默回退明文——回滚路径单独裁定并论证）；引用计数键规范（consumerRef 命名，`metadata:NopMetaDataSource:<id>` 先例对齐）；归属（system 级）与 RBAC 授权在两侧消费点的判定语义（服务级信任上下文，对齐 02-phase2-design §6.3）；迁移工具语义（存量转换命令、断点续跑、明文清除时点）；回滚路径（凭证库不可用时数据源可用性的安全论证——fail-closed vs 显式降级开关）。
+- [x] **Decision（out-of-scope/deferred 表）**：逐项 classification + 理由（候选：Feishu/OSS/SFTP 家族是否纳入首期 impl、邮件发送器家族、Web 管理面、多环境密钥分离等）。
+- [x] **Decision（文档组织）**：遵守 design guide——决策 + 理由 + 拒绝了什么 + 约束边界；不写类签名/方法列表/实现步骤（接口名仅限契约定义）；不引用 discussions/analysis；W7-successor 先例链经**源码锚点 + `01-architecture-baseline.md` §3.4/§3.5** 进入设计文档（plan 路径仅出现在 impl 裁定回写标注语境——`02-phase2-design.md` §八 先例，不作为设计依据引用）。
 
 Exit Criteria:
 
-- [ ] 四主题小节齐备，每个裁定点有"选了什么/为什么/拒绝了什么"。
-- [ ] 设计自洽性检查：与 01-architecture-baseline 消费侧契约（§3.4/§3.5）和 02-phase2-design（归属/RBAC/OAuth/KMS 已落地面）无冲突；冲突处显式标注并裁定优先级。
-- [ ] No new test required: documentation-only plan（设计产出，无代码变更）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 四主题小节齐备，每个裁定点有"选了什么/为什么/拒绝了什么"。
+- [x] 设计自洽性检查：与 01-architecture-baseline 消费侧契约（§3.4/§3.5）和 02-phase2-design（归属/RBAC/OAuth/KMS 已落地面）无冲突；冲突处显式标注并裁定优先级。
+- [x] No new test required: documentation-only plan（设计产出，无代码变更）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 3 - 分节独立 review + 收口
 
-Status: planned
+Status: completed
 Targets: 设计文档、`ai-dev/design/nop-credential/README.md`、roadmap
 
 - Item Types: `Proof | Follow-up`
 
-- [ ] **Proof**：每主题小节独立 fresh subagent 对抗 review（想象性分析模板：假想自己是 W16-impl 执行者，仅凭该小节能否列出全部变更文件与语义、是否有断层/歧义/不可验证项）；发现的问题回修后复审至无 Blocker。
-- [ ] **Proof**：全文一致性核对（小节间交叉引用、锚点行号复核、与 guide 规范符合性）；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0。
-- [ ] **Follow-up**：`ai-dev/design/nop-credential/README.md` 与根 `ai-dev/design/README.md` 索引更新（根索引 nop-credential 行现描述止于二期设计，须同步 03- 文档——W9-design 双 README 先例）；roadmap W16-design 状态更新（`done` 判定交由本 plan closure audit）。
+- [x] **Proof**：每主题小节独立 fresh subagent 对抗 review（想象性分析模板：假想自己是 W16-impl 执行者，仅凭该小节能否列出全部变更文件与语义、是否有断层/歧义/不可验证项）；发现的问题回修后复审至无 Blocker。
+- [x] **Proof**：全文一致性核对（小节间交叉引用、锚点行号复核、与 guide 规范符合性）；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0。
+- [x] **Follow-up**：`ai-dev/design/nop-credential/README.md` 与根 `ai-dev/design/README.md` 索引更新（根索引 nop-credential 行现描述止于二期设计，须同步 03- 文档——W9-design 双 README 先例）；roadmap W16-design 状态更新（`done` 判定交由本 plan closure audit）。
 
 Exit Criteria:
 
-- [ ] 全部小节通过独立 review（review 证据：task/session 标识 + 问题清单 + 回修记录，落 daily log——过程性记录不入设计文档）。
-- [ ] 设计文档与 live code 锚点一致（抽查复核）。
-- [ ] 文档链接检查通过。
-- [ ] 双 README（子目录 + 根索引）已更新且链接有效。
-- [ ] No new test required: documentation-only plan（设计产出，无代码变更）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 全部小节通过独立 review（review 证据：task/session 标识 + 问题清单 + 回修记录，落 daily log——过程性记录不入设计文档）。
+- [x] 设计文档与 live code 锚点一致（抽查复核）。
+- [x] 文档链接检查通过。
+- [x] 双 README（子目录 + 根索引）已更新且链接有效。
+- [x] No new test required: documentation-only plan（设计产出，无代码变更）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
 
-- [ ] 设计文档落盘且四主题小节齐备（引用点基线/integration 模型/metadata 模型/横切契约 + out-of-scope 表）。
-- [ ] 引用点枚举与 live code 一致（全量关键词扫描复核，无遗漏消费点）。
-- [ ] 每主题小节经独立 review 至无 Blocker（证据在案）。
-- [ ] 与既有设计（01-baseline/02-phase2）无未裁定冲突。
-- [ ] W16-impl 可凭设计独立列出变更面（想象性分析验证通过）。
-- [ ] **纯文档计划**：无代码变更，`./mvnw` 构建验证条目按 guide 模板豁免（Closure Gates 移除构建/测试项）。
-- [ ] 独立子 agent closure-audit 已完成并记录证据（设计 vs live 一致性抽查 + review 轮次完整性）。
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0。
+- [x] 设计文档落盘且四主题小节齐备（引用点基线/integration 模型/metadata 模型/横切契约 + out-of-scope 表）。
+- [x] 引用点枚举与 live code 一致（全量关键词扫描复核，无遗漏消费点）。
+- [x] 每主题小节经独立 review 至无 Blocker（证据在案）。
+- [x] 与既有设计（01-baseline/02-phase2）无未裁定冲突。
+- [x] W16-impl 可凭设计独立列出变更面（想象性分析验证通过）。
+- [x] **纯文档计划**：无代码变更，`./mvnw` 构建验证条目按 guide 模板豁免（Closure Gates 移除构建/测试项）。
+- [x] 独立子 agent closure-audit 已完成并记录证据（设计 vs live 一致性抽查 + review 轮次完整性）。
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0。
 
 ## Deferred But Adjudicated
 
@@ -145,14 +145,21 @@ Exit Criteria:
 
 ## Closure
 
-Status Note:
-Completed:
+Status Note: 纯设计工作项收口——设计文档 `ai-dev/design/nop-credential/03-integration-metadata-migration-design.md` 落盘（八节：结论索引/迁移动机与威胁/引用点基线/integration 模型/metadata 模型/横切契约/out-of-scope 表/W16-impl 映射），三 Phase 全部执行完毕；W16-impl（successor）在 roadmap 登记待后续 DRAFT 轮。
+Completed: 2026-08-17
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: 独立 fresh closure-audit subagent（task `ses_ff1d1b3d5ffec4TPNP8LjCioOl`）
 - Evidence:
+  - Phase 1 Exit Criteria 全 PASS：§三基线 25+ 锚点抽查全对号（integration 家族 7 类 + metadata 14 读点/9 文件逐点 rg 复核 + processor/汇聚链/xmeta 四禁 + 先例链 + `BeanDefinitionBuilder.autowireProps` 注入前提）；roadmap :53 `planned` 引用本 plan；daily log Phase 1+2 条目在案。
+  - Phase 2 Exit Criteria 全 PASS：四主题 + §七表齐备，候选对比表均含结论+理由；与 01-baseline §3.5 迁移表、02-phase2 §4.3/§6.3 零矛盾。
+  - Phase 3 Exit Criteria 全 PASS：四 review session（task id 与 findings 清单见 daily log）+ 回修复审 9 组全 RESOLVED；双 README 更新核实；auditor 自跑 `check-doc-links.mjs --strict` exit 0（2305 文件/0 错误）；设计文档无 discussions/analysis/plan 路径引用（rg 无匹配）。
+  - Closure Gates 全 PASS：W16-impl 可凭 §八 独立列出变更面；纯文档豁免声明在案（无 mvn 门）。
+  - Honesty 检查 PASS：§七 11 行均带 Classification+理由；诚实权衡登记在案（§5.2 列方案 xmeta 权衡、§七#7 主路径暴露面声明）；Deferred But Adjudicated 空缺为 plan 显式裁定。
+  - `node ai-dev/tools/check-plan-checklist.mjs 2026-08-17-0447-3-integration-metadata-credential-migration-design.md --strict` 退出码 0。
+- 审计结论：CAN CLOSE（唯一遗留 = 执行者收尾四步：plan 状态翻转/roadmap done/Closure 证据写入/checklist 复跑——本段与 roadmap 更新即该四步的执行）。
 
 Follow-up:
 
-- no remaining plan-owned work（待收口时更新）
+- no remaining plan-owned work（W16-impl plan 起草归后续 DRAFT 轮，roadmap 已登记依赖 W16-design）

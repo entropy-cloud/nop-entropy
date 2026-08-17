@@ -1,7 +1,7 @@
 # 加密凭证库 + 多因子验证 Roadmap（nop-credential + nop-auth MFA）
 
 > Status: active
-> Last updated: 2026-08-17（W13-impl `done`——角色级强制策略引擎四 Phase 全落地（策略模型/登录链第三态与受限签发/受限会话拦截与登记通道 proof/文档回写），独立 closure audit CAN CLOSE（subagent `ses_ff20680acffeXGpSPlvN2K96SC`，证据见 plan Closure 段）；W13 系执行期纠错两例（白名单 Async 尾缀/审计 userName 非空列）；A1-audit 早前 `done`；successor C1-hardening 保持 `todo` 待执行轮）
+> Last updated: 2026-08-17（W16-design `done`——迁移二期设计文档落盘（03-integration-metadata-migration-design 八节：引用点基线/两模块接入模型/横切契约/类型 schema/out-of-scope/impl 映射），四主题独立 review 全 PASS + 回修复审 RESOLVED，独立 closure audit CAN CLOSE（subagent `ses_ff1d1b3d5ffec4TPNP8LjCioOl`，证据见 plan Closure 段）；下一 `todo` = W16-impl（迁移组）或按组规则 C1-hardening（凭证库组 successor 收口）；W13-impl 早前 `done`）
 > Sources（设计已达成共识，实施前必读）：
 > - `ai-dev/design/nop-credential/00-vision.md` + `01-architecture-baseline.md`（凭证库，三期审查达成共识）
 > - `ai-dev/design/nop-auth/00-vision.md` + `01-architecture-baseline.md`（MFA，五期审查达成共识）
@@ -50,7 +50,7 @@
 
 ### 迁移二期组（credentialId 深化）
 
-- W16-design. nop-integration / nop-metadata credentialId 深度迁移设计（渠道密钥 / 数据源密码接入凭证库，参照 W7-successor 先例链）：`planned` — plan: `ai-dev/plans/2026-08-17-0447-3-integration-metadata-credential-migration-design.md`（纯设计 plan：在 nop-credential 设计目录新落 03 号迁移设计文档（integration-metadata-migration-design，路径见 plan）——引用点全量枚举基线（含值供给面）+ integration 无 DB 挂点形态消费模型裁定 + metadata connectionConfig 接入模型 + 优先级链/fail-closed/回滚横切契约 + out-of-scope 表；分节独立 review；不写实现代码）— 依赖：W2, W7, W7-successor done
+- W16-design. nop-integration / nop-metadata credentialId 深度迁移设计（渠道密钥 / 数据源密码接入凭证库，参照 W7-successor 先例链）：`done` — plan: `ai-dev/plans/2026-08-17-0447-3-integration-metadata-credential-migration-design.md`（2026-08-17 执行收口：设计文档落 `ai-dev/design/nop-credential/03-integration-metadata-migration-design.md` 八节——引用点基线（integration 7 家族含值供给面 + metadata 14 读点/9 文件全量 live 锚点，行号较起草时漂移已修正）/integration 模型（配置声明 credentialId + 发送期惰性解析，`nop-integration-api` 共享解析支持 + api 边，拒绝 DB 实体/魔法前缀/独立 resolver SPI；解析时序三分层）/metadata 模型（JSON 内 credentialId 键 + buildDataSource 单点解析，**无 ORM/DDL**，14 消费点零改动；`bindCredential`/`unbindCredential` 管理动作对——live xmeta 四禁下唯一受控入口）/横切契约（`credentialId > 静态值` + 强 fail-closed 不静默回退、引用计数 consumerRef 规范、system 级归属 + RBAC 零新增、拒绝全局明文降级开关含同库可用性论证、迁移幂等反查 + per-row 事务同事务清明文）/8 凭证类型 schema（含字段必填性）/out-of-scope 11 项/W16-impl 映射（批次收口硬约束：扩展批次不交付必须登记 roadmap 新工作项）。四主题小节各经独立 fresh subagent 对抗 review（全 PASS 0 Blocker，5 Major + ~14 Minor 回修后复审 9 组全 RESOLVED；NopIoC XML bean @Inject 注入假设经 autowireProps 源码核实成立）；独立 closure audit CAN CLOSE（证据见 plan Closure 段）。纯设计 plan，无代码变更）— 依赖：W2, W7, W7-successor done
 - W16-impl. nop-integration / nop-metadata 深度迁移实现：`todo` — 依赖：W16-design
 - A3-audit. 二期收口全量验证 + 独立 closure audit（全量 build/test + 零明文回归断言 + 一期功能零回归）：`todo` — 依赖：全部二期 impl + A1/A2 done
 - ★ **Milestone: 安全能力二期落地**（W9-W16 全部 done + A1/A2/A3 通过）：`todo` — 派生：W9-W16 + A1-A3

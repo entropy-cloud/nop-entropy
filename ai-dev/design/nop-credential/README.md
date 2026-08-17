@@ -2,7 +2,7 @@
 
 > Status: active
 > Created: 2026-08-10
-> Updated: 2026-08-14（二期设计文档条目纳入阅读顺序）
+> Updated: 2026-08-17（迁移设计文档条目纳入阅读顺序）
 
 本目录按 AGE（Attractor-Guided Engineering）owner-doc 模式组织，承载 `nop-credential` 子系统的架构决策：加密凭证库的模块边界、加密方案、数据模型与使用契约。
 
@@ -19,6 +19,9 @@
 3. `02-phase2-design.md`
    - 二期四主题设计（OAuth 流程引擎（出站客户端）/ 外部 KMS/HSM 集成 / 凭证归属统一（scope=system|user，不做租户隔离）/ RBAC 细粒度授权），每主题独立小节（设计结论/背景与动机/核心设计/拒绝了什么/与一期契约兼容性五段），含跨主题 deferred 裁定与设计→impl 映射。回答"二期四个方向各怎么做、边界在哪、一期契约如何保持"。
 
+4. `03-integration-metadata-migration-design.md`
+   - 迁移二期深度迁移设计：nop-integration 渠道密钥（无 DB 实体的配置装配形态——配置声明 credentialId + 发送期惰性解析）与 nop-metadata 数据源密码（DB 实体 JSON 列形态——JSON 内 credentialId 键 + buildDataSource 单点解析）接入凭证库；引用点基线（live 锚点全量枚举）、横切契约（优先级链/fail-closed/回滚/引用计数/迁移工具）、凭证类型清单与 out-of-scope 表。回答"两个消费模块怎么接凭证库、W16-impl 要改哪些文件"。
+
 ### 按需深入
 
 - `docs-for-ai/03-modules/nop-sys.md` — 系统管理模块既有能力（凭证库与字典/配置的边界）
@@ -32,6 +35,7 @@
 - `00-vision.md` 回答"凭证库的边界是什么"。
 - `01-architecture-baseline.md` 回答"凭证库如何分层、核心对象各自职责、依赖方向、加密与存储策略"。
 - `02-phase2-design.md` 回答"二期四主题（OAuth/KMS/归属统一/RBAC）的设计裁决与一期契约兼容性"。
+- `03-integration-metadata-migration-design.md` 回答"nop-integration/nop-metadata 消费方如何接入凭证库（迁移基线与横切契约）"。
 - 本目录不记录实现过程、迁移日志、测试结果；这些进入 `ai-dev/logs/`、`ai-dev/plans/` 或 `ai-dev/analysis/`。
 
 ## 阅读顺序建议
