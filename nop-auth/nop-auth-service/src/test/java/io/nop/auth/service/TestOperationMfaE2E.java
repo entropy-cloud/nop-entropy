@@ -7,6 +7,8 @@
  */
 package io.nop.auth.service;
 
+import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
@@ -74,6 +76,7 @@ import static org.junit.jupiter.api.Assertions.fail;
  * 无静默跳过（Rule #24）：同会话不符/票过期/因子失败/超限/重复验证/scene 不符均显式抛错。
  * 判定矩阵：enabled 开关 / 未启用 MFA 用户 / 票四条件 / 一次性 / 绑定 operation+session。
  */
+@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 public class TestOperationMfaE2E extends JunitBaseTestCase {
 
     private static final String TENANT_ID = "0";

@@ -134,12 +134,13 @@ class TestMfaLoginE2E {
         provider.assignConfigValue("nop.auth.mfa.enabled", true);
         provider.assignConfigValue("nop.auth.sms-code.enabled", true);
         provider.assignConfigValue("nop.auth.sms-code.allow-register", true);
-        // Match tenant-by-default=true (same as TestTenant) so ORM models cached
-        // by this test's OrmSessionFactoryBean include tenant columns, preventing
-        // model-cache pollution that would break TestTenant in the shared JVM.
+        // Do NOT toggle nop.orm.enable-tenant-by-default here. This class builds its own
+        // H2 + ORM stack whose model is parsed from the live config; flipping the global
+        // flag leaks tenant columns into sibling tests in the shared surefire JVM
+        // (assignConfigValue'd refs survive NopJunitExtension's reset()), which broke
+        // TestMdxQuery/TestManyToManyProp with nop.err.orm.missing-tenant-id.
         originalTenantByDefault = provider.getConfigValue(
                 "nop.orm.enable-tenant-by-default", Boolean.FALSE);
-        provider.assignConfigValue("nop.orm.enable-tenant-by-default", true);
     }
 
     @AfterAll

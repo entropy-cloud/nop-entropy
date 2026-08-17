@@ -127,7 +127,9 @@ class TestMfaUserSelfService {
         originalMfaEnabled = provider.getConfigValue("nop.auth.mfa.enabled", Boolean.FALSE);
         provider.assignConfigValue("nop.auth.mfa.enabled", true);
         originalTenantByDefault = provider.getConfigValue("nop.orm.enable-tenant-by-default", Boolean.FALSE);
-        provider.assignConfigValue("nop.orm.enable-tenant-by-default", true);
+        // Do NOT toggle nop.orm.enable-tenant-by-default globally: assignConfigValue'd
+        // refs survive NopJunitExtension's reset() and leak tenant columns into sibling
+        // tests in the shared surefire JVM (nop.err.orm.missing-tenant-id).
     }
 
     @AfterAll
