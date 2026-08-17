@@ -357,6 +357,8 @@ if context.mfaRestricted:
 
 补充事实（二期设计输入）：`mfaType` 的取值域校验只有 #2 一处入参门禁；#6 的 else fail-closed 与 #5 的返回 false 是"未知值不扩散"的两道兜底。`MfaBindResult`/`MfaStatusResult`（绑定/状态查询响应）携带 mfaType 为透传字符串，无取值分支。
 
+> **W14-impl 补充触点行（2026-08-18 回写）**：challenge 创建处（登录级 webauthn payload 增量的落点）在 W13 后有**三处**（本表制定于 W13 之前的 drift，§5.3.2 制定时核定）：① `LoginServiceImpl.checkMfaRequired`；② `OperationMfaCheckerImpl`（操作级创建处，payload 同帧增量 cryptoChallenge）；③ `MfaLoginPolicyServiceImpl.checkMfaForUserName`（OAuth/SSO 入口同构副本——W13 新增，其与 ① 的同步不变式已在 W14 履行：①③经 `MfaChallengeHelper.createLoginChallenge` 收敛共用辅助方法，②按同 key 增量，见 §5.3.6）。
+
 #### 5.3.1 MfaType 形态裁决（枚举化问题的正式裁定）
 
 **裁决：保持"VARCHAR 列 + 常量类集中定义"，不收敛为 Java enum，不做字典驱动校验。**
@@ -367,7 +369,7 @@ if context.mfaRestricted:
 
 #### 5.3.2 WebAuthn/FIDO2 设计
 
-**协议与依赖**：W3C WebAuthn Level 2。**不自研协议栈**（CBOR/COSE 解析、attestation 格式验证、断言签名验证的安全敏感协议面）——W14-impl 引入成熟 Java 库（选型基准：java-webauthn-server 级别的社区标准实现、许可兼容、依赖面小；**具体库 POC 后在 W14-impl plan 定稿**，本设计只锁边界：库由 `WebAuthnAuthenticator`（nop-auth-service）封装，不外溢到接口签名）。`nop-biz-auth-core` 不引入该依赖（core 零第三方依赖约束，TOTP 50 行自研先例不可复制于 WebAuthn）。
+**协议与依赖**：W3C WebAuthn Level 2。**不自研协议栈**（CBOR/COSE 解析、attestation 格式验证、断言签名验证的安全敏感协议面）——W14-impl 引入成熟 Java 库（选型基准：java-webauthn-server 级别的社区标准实现、许可兼容、依赖面小；**已定稿（W14-impl POC，2026-08-17）：Yubico `java-webauthn-server-core` 2.7.0**——Apache-2.0、Maven 可解析、传递依赖（guava/jackson/cbor/slf4j）与既有依赖树零冲突、"none" attestation 格式验证器 + origin 精确匹配 + rpId 强校验 + COSE 断言验签能力齐备、测试侧可经 JDK EC 密钥 + CBOR 依赖构造正例；依赖只进 nop-auth-service）。库由 `WebAuthnAuthenticator`（nop-auth-service）封装，不外溢到接口签名。`nop-biz-auth-core` 不引入该依赖（core 零第三方依赖约束，TOTP 50 行自研先例不可复制于 WebAuthn）。
 
 **密码学挑战（cryptoChallenge）的承载裁定（关键）**：WebAuthn 要求服务端记住自己签发的随机挑战并在断言验证时比对（防客户端自造挑战）——本设计将其作为 **`payload` 的一部分在 `create` 时一次写入**（32 字节随机，base64url）：登录级在 `checkMfaRequired` 创建 challenge 处（webauthn 类型时构造 payload）、操作级在 §三 拦截器创建处、解绑经 `webauthnBeginVerify` 端点。**不提供 payload 后置更新原语**——多次取 options 幂等（读同一 payload），challenge 自身的一次性（consume）即防重放，无需刷新挑战；后置更新原语会引入并发覆盖与 TTL 刷新问题（§三 store 扩展面保持两方法）。
 
@@ -473,6 +475,19 @@ unbindMfa 请求扩展（可选 challengeToken + assertion 字段，向后兼容
 | 恢复码 | 因子无关：绑定任意因子即生成 10 个一次性恢复码（BCrypt 加盐），**仅登录级**接受，使用即作废 + status=disabled 强制重绑（一期语义，四因子统一，零增量） | 同左 | 同左（W15 邮箱用户丢邮箱同样需要恢复通道） | 同左（丢硬件钥匙的恢复通道） |
 | 防重放 | per-user `lastVerifiedWindow` 推进（§三 统一推进裁决：任何场景成功验证都推进） | 一次性原子消费（`SmsCodeStore.verify` removeIfMatch）+ 内部失败计数 | 同 sms（`EmailCodeStore` 同形语义） | challenge 一次性（consume）+ `signCount` 单调递增（克隆检测；count=0 认证器跳过+审计） |
 | 失败计数 | challenge `incrFailCount` 超限作废（§三） | 双计数（store 内部 + challenge），一期语义保持 | 同 sms 双计数 | challenge `incrFailCount` 同语义 |
+
+#### 5.3.6 W14-impl 裁定标注（2026-08-18 回写）
+
+实现落地（plan `ai-dev/plans/2026-08-17-2212-1-mfa-webauthn-fido2-w14.md`）对 §5.3.2 的执行期裁定与偏离记录：
+
+1. **库 API 执行期核定**：Yubico `webauthn-server-core` 2.7.0 实际 builder 强制序与 `CredentialRepository` 签名与 POC 草稿有四处偏差（`attestationObject→clientDataJSON` / `authenticatorData→clientDataJSON→signature` 强制序；`challenge` 先于 `rpId`；`lookup(credentialId, userHandle)` / `getCredentialIdsForUsername→Set<PublicKeyCredentialDescriptor>`；`Base64UrlException` 受检），已在 `WebAuthnAuthenticator` 封装内消化（库边界裁定不变）。
+2. **userHandle 权威值裁定**：断言验证的 request 侧以服务端已知的 userId 字节为权威句柄（库 Step6 要求 username/userHandle 至少其一）——assertion 携带句柄时被库强校验与该值一致（句柄漂移防护）；credential 归属绑定仍由 userId 维度查找承担。`WebAuthnAuthenticator.verifyAssertion` 相应增加第五参 `userId`（设计草稿四参的执行期修订）。
+3. **`MfaFactorVerifier` 签名扩展定稿形态**：五参统一载体重载 `verify(setting, mfaType, code, WebAuthnAssertion assertion, MfaChallenge challenge)`（§3.1 结论 5 的落地形态）——`code`（totp/sms/email）与 `assertion`（webauthn）可选共存；三参老签名委托五参（既有调用点零感知）；登录级（mfaVerify）/操作级（mfaVerifyOperation）/解绑级（unbindMfa）三调用点共用。
+4. **signCount 并发语义定稿**：条件 `UPDATE nop_auth_mfa_credential SET SIGN_COUNT=? ... WHERE SID=? AND SIGN_COUNT<?`——并发断言同一 credential 的竞态方 affected-row=0 按验证失败处理（MFA_FAIL，用户重试；不覆盖更大计数）；该副作用内聚 `MfaFactorVerifier` 组件（对齐 TOTP 窗口推进先例——调用方不可选）。count=0 认证器跳过单调写、仅更新 lastUsedAt 并落审计标记（§七.7 watch-only）。
+5. **受限会话白名单增补与不入白名单裁定**：`confirmWebauthnRegistration` 入白名单（minMfaLevel=3 用户的升级路径 = 受限会话内 proof → bindMfa(webauthn) → confirm，缺白名单即引导流断链）；`webauthnBeginVerify` 与 credential 管理三 API（list/remove/rename）**不入**——受限用户 setting.mfaType 不可能为 webauthn（webauthn=3 已达 factorLevel 表上限，策略下永不进入受限态），入白名单为不可达死代码。
+6. **challenge 创建三触点同步履行**（W13 登记的同构副本不变式）：① `checkMfaRequired` 与 ③ `MfaLoginPolicyServiceImpl.checkMfaForUserName` 经新增组件 `MfaChallengeHelper.createLoginChallenge` 收敛共用（webauthn 类型增量 payload.cryptoChallenge；其余类型一期五参语义逐字节等价）；② `OperationMfaCheckerImpl` 创建处同 payload 帧增量 cryptoChallenge 键。
+7. **执行期偏离记录**：`unbindMfa` 扩展为四参 GraphQL 面（`code?` + `challengeToken?` + `assertion?`）+ 两参兼容重载（既有直调调用点零感知，超出设计伪代码的"请求扩展"字面但语义一致）；解绑发起返回载体为内部 dto `MfaWebauthnBeginResult{challengeToken, requestOptions}`；`removeWebauthnCredential` 为逻辑删除（实体 `useLogicalDelete`——与 CRUD 惯例一致）；credential list 返回生成物 `NopAuthMfaCredentialOutputBean`（masked/not-pub 标签生效——不暴露 credentialId/publicKey）；注册 ceremony 的 pending setting 不使用 bindToken（confirm 凭 challengeToken，bindToken 字段保持 null）。
+8. **`mfa-type.dict.yaml` 条目时序**：本 plan 先落 totp/sms/webauthn 三条目；email 行随 W15 落地时同步补入（§5.3.1 结论 1 的 W15 注记履行点）。
 
 ### 5.4 拒绝了什么
 

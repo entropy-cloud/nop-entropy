@@ -57,6 +57,7 @@
 | NopAuthMfaChallenge | `nop_auth_mfa_challenge` | MFA 挑战令牌（challengeToken PK / userId / mfaType / expireAt / failCount / scene / payload / verifiedAt，W8 DB 存储 + W12 场景化） |
 | NopAuthSmsCode | `nop_auth_sms_code` | 短信验证码（codeKey PK / phone / code / expireAt / failCount，W8 DB 存储） |
 | NopAuthRoleMfaPolicy | `nop_auth_role_mfa_policy` | 角色级 MFA 强制策略（roleId PK 1:1 / minMfaLevel 1-3 / allowTrustedDevice / delFlag 软删除——无行 = 无策略，W13） |
+| NopAuthMfaCredential | `nop_auth_mfa_credential` | WebAuthn 凭证（sid seq PK / userId 索引 / credentialId 全局唯一 / publicKey COSE masked / signCount 单调递增 / transports / name / status enabled\|disabled / lastUsedAt，1:N 用户多硬件钥匙——setting 承担用户级启用状态、credential 行承担密钥材料，W14） |
 | NopOauthAuthorization | `nop_oauth_authorization` | OAuth2 授权记录 |
 | NopOauthRegisteredClient | `nop_oauth_registered_client` | OAuth2 客户端注册 |
 | NopOauthAuthorizationConsent | `nop_oauth_authorization_consent` | OAuth2 用户同意（授权许可） |
@@ -102,12 +103,15 @@
 | 受限会话 executor 分支 | `nop-service-framework/nop-graphql/nop-graphql-core/src/main/java/io/nop/graphql/core/engine/GraphQLExecutor.java`（`checkOperationMfa`） |
 | 登记通道验证端点 | `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/biz/LoginApiBizModel.java`（`verifyChannelProof`） |
 | 共享因子校验组件 | `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/mfa/MfaFactorVerifier.java` |
+| WebAuthn 验证器组件 | `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/mfa/WebAuthnAuthenticator.java`（封装 Yubico webauthn-server-core，库类型不外溢） |
+| MFA challenge payload 契约辅助 | `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/mfa/MfaChallengeHelper.java`（登录级 challenge 创建三触点收敛：checkMfaRequired / MfaLoginPolicyServiceImpl 副本共用 `createLoginChallenge`） |
+| WebAuthn options 读取端点 | `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/biz/LoginApiBizModel.java`（`webauthnAuthOptions`） |
 | 操作级验证端点 | `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/biz/LoginApiBizModel.java`（`mfaVerifyOperation`） |
 | ORM 模型 | `nop-auth/model/nop-auth.orm.xml` |
 
 ## 多因子验证（MFA）
 
-nop-auth 提供完整的两阶段登录（第一因子 → challenge → 第二因子）与短信验证码登录，基于 TOTP（RFC 6238）。
+nop-auth 提供完整的两阶段登录（第一因子 → challenge → 第二因子）与短信验证码登录，因子类型：TOTP（RFC 6238）/ SMS 验证码 / WebAuthn-FIDO2 硬件钥匙（W14，见"WebAuthn/FIDO2 硬件因子"章节）。
 
 ### 登录类型（loginType）
 
@@ -120,7 +124,7 @@ nop-auth 提供完整的两阶段登录（第一因子 → challenge → 第二�
 | 5 | 手机号 + 短信验证码（W5 新增） |
 | 20-23 | 信道登录（飞书 / 钉钉 / 企微 / Webhook） |
 
-字典定义：`nop-biz-auth-core/.../_vfs/dict/auth/login-type.dict.yaml`。
+字典定义：`nop-biz-auth-core/.../_vfs/dict/auth/login-type.dict.yaml`；MFA 因子类型显示字典 `mfa-type.dict.yaml`（totp/sms/webauthn——校验源在代码常量，字典仅作显示）。
 
 ### 两阶段登录流程
 
@@ -128,7 +132,7 @@ nop-auth 提供完整的两阶段登录（第一因子 → challenge → 第二�
 2. **MFA 拦截**：`checkMfaRequired()`（`:743`）——`nop.auth.mfa.enabled` 开关 + 角色策略评估（W13 第三态：有策略且不达标 → 受限会话签发，不建 challenge）+ 用户 MFA 设置检查（status==enabled）。SSO/信道登录同样拦截（`createSessionForUserAsync`，`:337`，loginType 参数化保证审计不失真）。
 3. **创建 challenge**：`MfaChallengeStore.create()` 生成一次性 challengeToken。
 4. **抛 `ERR_AUTH_MFA_REQUIRED`**（`:319`）：errorParams 携带 challengeToken / mfaType / loginType。未启用 MFA 的用户零感知（直接进 completeLogin）。
-5. **第二因子验证**：客户端调 `LoginApi.mfaVerify`（`LoginApiBizModel.mfaVerifyAsync`，`:122`）→ `LoginServiceImpl.mfaVerifyAsync`（`:422`）：peek challenge → setting 复核 → TOTP / SMS / 恢复码分支 → 成功后 `consume` challenge 并 `completeMfaLogin`（`:601`）签发 token。
+5. **第二因子验证**：客户端调 `LoginApi.mfaVerify`（`LoginApiBizModel.mfaVerifyAsync`，`:188`）→ `LoginServiceImpl.mfaVerifyAsync`（`:502`）：peek challenge → setting 复核 → TOTP / SMS / WebAuthn 断言（`MfaVerifyRequest` 可选 `assertion` 字段）/ 恢复码分支 → 成功后 `consume` challenge 并 `completeMfaLogin` 签发 token。
 
 > 因子等同分支：PHONE_SMS 登录 + mfaType==SMS 不重复验证。恢复码分支：BCrypt 比对，成功后 consume + status=disabled 强制重绑。
 
@@ -158,12 +162,39 @@ nop-auth 提供完整的两阶段登录（第一因子 → challenge → 第二�
 
 | 方法 | 行 | 语义 |
 |------|----|------|
-| `bindMfa(mfaType, proof?)` | `:133` | 发起绑定（pending + bindToken，TOTP 返回 provisioning URI，SMS 发码到手机）。受限会话内必须先经登记通道 proof（`proof` 参数携带 `verifyChannelProof` 返回的票 token，见"角色级强制策略"章节） |
-| `confirmMfa(bindToken, code)` | `:243` | 确认绑定（校验码 + enabled + 生成恢复码） |
-| `unbindMfa(code)` | `:293` | 解绑（验证当前因子 + 作废恢复码） |
-| `generateRecoveryCodes()` | `:321` | 重置恢复码（作废旧码） |
-| `getMfaStatus()` | `:337` | 查询状态（不返回 secret） |
-| `resetUserMfa(userId)` | `:367` | 管理员重置（admin 权限） |
+| `bindMfa(mfaType, proof?)` | `:194` | 发起绑定（pending；TOTP 返回 provisioning URI，SMS 发码到手机，webauthn 返回 challengeToken + creationOptions——见"WebAuthn/FIDO2"章节）。受限会话内必须先经登记通道 proof（`proof` 参数携带 `verifyChannelProof` 返回的票 token，见"角色级强制策略"章节） |
+| `confirmMfa(bindToken, code)` | `:512` | 确认绑定（校验码 + enabled + 生成恢复码；totp/sms） |
+| `confirmWebauthnRegistration(challengeToken, attestation)` | `:357` | 确认 WebAuthn 注册（attestation 验证 + credential 落库 + enabled + 恢复码 + consume） |
+| `unbindMfa(code?, challengeToken?, assertion?)` | `:580` | 解绑（webauthn 用户凭 challengeToken+assertion 断言验证；其余类型凭 code；验证当前因子 + 作废恢复码） |
+| `webauthnBeginVerify()` | `:443` | 发起 WebAuthn 解绑验证（scene=webauthn-unbind challenge + requestOptions） |
+| `listWebauthnCredentials()` | `:698` | 列出本人 WebAuthn credentials（不暴露 credentialId/publicKey） |
+| `removeWebauthnCredential(sid)` | `:725` | 移除一把 credential（最后一把 enabled 拒绝 `ERR_AUTH_MFA_LAST_CREDENTIAL`；越权归一"不存在"） |
+| `renameWebauthnCredential(sid, name)` | `:743` | 重命名一把 credential（本人数据限定） |
+| `generateRecoveryCodes()` | — | 重置恢复码（作废旧码） |
+| `getMfaStatus()` | — | 查询状态（不返回 secret） |
+| `resetUserMfa(userId)` | — | 管理员重置（admin 权限） |
+
+### WebAuthn/FIDO2 硬件因子（W14）
+
+mfaType 第三取值 `webauthn`（多 credential 模型——用户级仍是单值 mfaType，密钥材料在 `NopAuthMfaCredential` 行 1:N）。协议库为 Yubico `webauthn-server-core` 2.7.0（Apache-2.0，**依赖只在 nop-auth-service**，经 `WebAuthnAuthenticator` 封装、库类型不外溢到方法签名）；attestation 策略 `none`（直接信任 + origin/rpId 强校验——完整信任链 deferred）。RP 配置缺省未配，webauthn 绑定/验证显式报错 fail-closed。
+
+**三个 ceremony**（挑战复用 `MfaChallengeStore` 场景化扩展——payload 携带 32B 随机 cryptoChallenge，**create 时一次写入、只读复用**，无后置更新原语）：
+
+1. **注册（绑定）**：`bindMfa("webauthn", proof?)` → pending setting（secret=null）+ scene=webauthn-register challenge（payload={sessionId, cryptoChallenge}）→ 返回 challengeToken + creationOptions（excludeCredentials=既有 credential 防重复注册）→ 客户端 `navigator.credentials.create()` → `confirmWebauthnRegistration(challengeToken, attestation)`（需登录态 + 同会话；验证失败 incrFailCount（超限作废）+ MFA_FAIL 不消费；credentialId 全局唯一冲突=重复注册拒绝；成功 credential 落库 + setting enabled + 恢复码生成 + consume）。
+2. **认证（登录第二因子）**：登录 challenge 创建处（webauthn 类型）payload 含 cryptoChallenge——三触点同步（`LoginServiceImpl.checkMfaRequired` / `OperationMfaCheckerImpl` / `MfaLoginPolicyServiceImpl.checkMfaForUserName` OAuth 副本，前两者经 `MfaChallengeHelper` 收敛）→ 客户端 `LoginApi__webauthnAuthOptions(challengeToken)` 取 requestOptions（scene=login 公开访问；非 login 需登录态 + payload.sessionId==当前会话；challenge 只读复用）→ `mfaVerify`（`MfaVerifyRequest` 可选 `assertion` 字段）→ `MfaFactorVerifier` 统一 webauthn 分支 → consume → completeLogin（一期出口不变）。
+3. **解绑**：`webauthnBeginVerify()`（需登录态；scene=webauthn-unbind challenge + requestOptions）→ `unbindMfa(null, challengeToken, assertion)`（同会话校验 + 断言验证等价保持"验证当前因子"语义；失败计数 + MFA_FAIL；成功 consume + status=disabled + 删除恢复码）。`operation-mfa.enabled=true` 时解绑为**双 ceremony**（操作级票一次断言 + unbind challenge 一次断言，与 totp 用户"输两次码"同构，非缺陷）。
+
+**断言验证语义**（`MfaFactorVerifier.verify(setting, mfaType, code, assertion, challenge)` 五参统一载体——登录级/操作级/解绑级共用）：cryptoChallenge 取自服务端 challenge payload（防客户端自造挑战）；按 assertion.credentialId 查本人 enabled credential；COSE 公钥验签 + challenge/origin/rpId 校验（库 Step6 强校验 userHandle==服务端 userId 句柄）；**signCount 单调递增写内聚组件**——条件 `UPDATE ... WHERE SIGN_COUNT < ?`，并发竞态方 affected=0 按验证失败处理（不覆盖更大计数）；count=0 认证器（协议允许的无计数实现）跳过单调校验、仅记审计。userHandle 以服务端 userId 字节为权威值，assertion 携带句柄时被强校验一致（句柄漂移防护）。
+
+**防重放**：challenge 一次性（consume）+ options 多次读取幂等（只读复用同一 cryptoChallenge）+ signCount 单调递增（克隆检测，跨 challenge 持久）。
+
+**操作级联动**：`MfaVerifyOperationRequest` 可选 `assertion` 字段；拦截器创建的 scene=operation challenge payload 含 cryptoChallenge → 客户端 `webauthnAuthOptions` 取 options → `mfaVerifyOperation(challengeToken, assertion)` → `MfaFactorVerifier` → markVerified 转票（操作级链路零结构变更）。
+
+**受限会话联动**：`confirmWebauthnRegistration` 在受限会话白名单内（minMfaLevel=3 用户的升级路径 = 受限会话内 proof → bindMfa(webauthn) → confirm）；`webauthnBeginVerify` 与 credential 管理三 API **不在**白名单（受限用户 setting.mfaType 不可能为 webauthn——webauthn=3 已达 factorLevel 表上限，入白名单为不可达死代码）。webauthn 绑定同样继承登记通道 proof 前置（W13 bindMfa 前置在类型分派之前）。
+
+**审计**：注册成功/失败、断言成功/失败（含 count=0 标记）、解绑、credential 移除经 `IAuditService.saveAudit` 落 NopAuthOpLog（userName 非空列必须设置）。
+
+**其他因子不受影响**：`sendMfaCode` 按 challenge.mfaType 分派——sms 现行为原样；totp/webauthn 显式抛 `ERR_AUTH_MFA_CODE_UNSUPPORTED`（email 分支 W15 接入）。未绑定 webauthn 的用户全流程无感知（一期零回归）。
 
 ### 扫码登录 MFA 适配（nop-ai-gateway）
 
@@ -185,8 +216,11 @@ nop-auth 提供完整的两阶段登录（第一因子 → challenge → 第二�
 | `nop.auth.sms-code.send-interval-seconds` | — | 发送间隔（限流） |
 | `nop.auth.sms-code.daily-limit` | — | 单手机日发送上限 |
 | `nop.auth.sms-code.max-attempts` | — | 单码最大验证次数 |
+| `nop.auth.mfa.webauthn.rp-id` | —（未配） | WebAuthn Relying Party ID（如 `example.com`）。webauthn 因子使用时必配（缺配显式报错 fail-closed） |
+| `nop.auth.mfa.webauthn.rp-name` | —（未配） | WebAuthn RP 显示名（creationOptions.rp.name）。必配 |
+| `nop.auth.mfa.webauthn.origins` | —（未配） | 允许的 origin 列表（逗号分隔，如 `https://a.com,https://b.com`）。验证时精确匹配，不匹配即拒绝（fail-closed 防钓鱼域）。必配 |
 
-MFA/SMS 错误码定义在 `NopAuthErrors.java`：`ERR_AUTH_MFA_REQUIRED`（`nop.err.auth.mfa-required`，登录期）、`ERR_AUTH_OPERATION_MFA_REQUIRED`（`nop.err.auth.operation-mfa-required`，会话期——errorParams 携带 challengeToken/mfaType/operation）、`ERR_AUTH_MFA_FAIL`、`ERR_AUTH_MFA_CHALLENGE_EXPIRED`、`ERR_AUTH_SMS_CODE_INVALID`、`ERR_AUTH_SMS_RATE_LIMITED` 等。
+MFA/SMS 错误码定义在 `NopAuthErrors.java`：`ERR_AUTH_MFA_REQUIRED`（`nop.err.auth.mfa-required`，登录期）、`ERR_AUTH_OPERATION_MFA_REQUIRED`（`nop.err.auth.operation-mfa-required`，会话期——errorParams 携带 challengeToken/mfaType/operation）、`ERR_AUTH_MFA_FAIL`、`ERR_AUTH_MFA_CHALLENGE_EXPIRED`、`ERR_AUTH_SMS_CODE_INVALID`、`ERR_AUTH_SMS_RATE_LIMITED`、`ERR_AUTH_MFA_CODE_UNSUPPORTED`（`nop.err.auth.mfa-code-unsupported`——sendMfaCode 对无验证码可发的因子类型 totp/webauthn 显式拒绝，W14）、`ERR_AUTH_MFA_LAST_CREDENTIAL`（`nop.err.auth.mfa-last-credential`——移除最后一把 enabled WebAuthn credential 拒绝，整体解绑走 unbindMfa ceremony，W14）等。
 
 ### 操作级 MFA（会话内敏感操作二次验证）
 
@@ -207,7 +241,7 @@ public void resetUserPassword(@Name("userId") String userId, @Name("password") S
 **两段式流程**（`OperationMfaCheckerImpl` 判定链，`nop.auth.operation-mfa.enabled` 缺省 false）：
 
 1. 敏感操作触发：enabled → 登录用户且 MFA setting status==enabled → 无有效票 → 创建 scene=operation 的 challenge（payload={operation, sessionId}）→ 抛 `ERR_AUTH_OPERATION_MFA_REQUIRED`（errorParams：challengeToken/mfaType/operation）。
-2. 验证：客户端调 `LoginApi__mfaVerifyOperation`（**需登录态且同会话**；请求 `MfaVerifyOperationRequest{challengeToken, code}`，**无 recoveryCode 通道**）→ setting 复核 → `MfaFactorVerifier` 因子校验（错码计数超限作废）→ `markVerified` 一次性转票。**成功不签发任何凭证**（无 accessToken/无 completeLogin——与登录级 `mfaVerify` 的本质区别）。
+2. 验证：客户端调 `LoginApi__mfaVerifyOperation`（**需登录态且同会话**；请求 `MfaVerifyOperationRequest{challengeToken, code?, assertion?}`——`code`（totp/sms）与 `assertion`（webauthn，W14）可选共存，**无 recoveryCode 通道**）→ setting 复核 → `MfaFactorVerifier` 因子校验（错码计数超限作废）→ `markVerified` 一次性转票。**成功不签发任何凭证**（无 accessToken/无 completeLogin——与登录级 `mfaVerify` 的本质区别）。
 3. 重试：原操作携带请求头 `X-Nop-Op-Mfa-Token: {challengeToken}` 重发 → 票核验（scene/operation/sessionId/票窗口四条件 + 原子 consume 恰一放行）。**票一次性、绑定 operation+sessionId、短 TTL（60s 缺省）**。
 
 判定要点：未启用 MFA 的用户不拦截（无第二因子可验；强制启用归角色级策略 W13）；store 未装配放行；批量请求含敏感操作时整批预执行中止（错误即该 operation 的错误，无部分执行副作用）。
