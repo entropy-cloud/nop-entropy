@@ -146,9 +146,63 @@ topic: "agent.coordination.{projectId}"
 
 ### 5.1 父子通信
 
-父子 Agent 通过 `call-agent` 的输入/输出传递消息。这是同步的请求-响应模式。
+> **本节是 AI/读者消歧节**。"call-agent 是同步 fork+exec" 的早期理解是**不完整**——`CallAgentExecutor`（`io.nop.ai.agent.tool`）内有**两条独立路径并存**，由 `IAgentMessenger` 是否功能化决定走哪一条。本节明确双路径的语义、触发条件、跨进程能力。
 
-**call-agent 异步 mailbox 模型 foundational 已由 plan 224 落地**：`CallAgentExecutor` 在功能性 `IAgentMessenger` 可用时经 `IAgentMessenger.request()` 投递 REQUEST 信封到引擎级 `agent.call-agent` topic（携带 `CallAgentRequestPayload` 不可变载荷：targetAgentId/input/resolvedSessionId/parentConstraintMetadata/timeoutMs），引擎在 `setMessenger` 时 idempotent 注册 call-agent handler（handler 内 `engine.execute().orTimeout().join()` 执行子 Agent，try/catch 返回 `CallAgentResponsePayload` failure RESPONSE 非传播）。`CallAgentExecutor` 保留全部 session-mode 分支解析（continue/fork/create-new），fork 模式先同步调用 `engine.forkSession()` 获得 childSessionId 再填入 payload。shipped 默认（`NoOpAgentMessenger`）保留 fork+exec 零回归。
+父子 Agent 通过 `call-agent` 工具传递消息。`CallAgentExecutor`（`io.nop.ai.agent.tool`，plan 224）保留全部 session-mode 解析（continue/fork/create-new），parent permission constraint 传播，delegation depth 自动递增（MAX_DELEGATION_DEPTH 默认4）。两条路径**共享同一份**不可变载荷契约（`CallAgentRequestPayload` / `CallAgentResponsePayload`）——可观察结果（sub-session ID +最终消息 + 错误状态）一致。
+
+#### 5.1.1 call-agent 双路径对比
+
+| 维度 | **sync fork+exec**（默认） | **async mailbox**（plan 224） |
+|---|---|---|
+| 触发条件 | shipped 默认（`NoOpAgentMessenger`） | 功能性 `IAgentMessenger` 接线 |
+| 物理位置 | 同进程 `IAgentEngine.execute().orTimeout()` | 经 `IMessageService.request(envelope, timeout)`） |
+| 跨进程能力 | ❌ 仅同进程 | ✅ 可经 `DBMessageService`（plan 224）跨 JVM |
+| 父→子载荷 | `CallAgentRequestPayload` 不可变对象 | 同（REQUEST 信封 payload） |
+| 子→父响应 | 子 agent execute() 返回值 | `CallAgentResponsePayload`（RESPONSE 信封 payload） |
+| 超时机制 | `engine.execute().orTimeout(timeoutMs)` | `IMessageService.request(envelope, timeoutMs)`（在 `LocalAgentMessenger` 内 `.orTimeout`）） |
+| 派发代码位置 | `CallAgentExecutor.executeSubAgent()` | `CallAgentExecutor.executeViaMessenger()` |
+| 分支点 | `CallAgentExecutor.dispatch()` 第 280 行（`messenger instanceof NoOpAgentMessenger` 判）） | 同 |
+
+**关键判定**（`CallAgentExecutor.java:280-285`）：
+
+```java
+IAgentMessenger messenger = agentCtx.getMessenger();
+if (messenger != null && !(messenger instanceof NoOpAgentMessenger)) {
+    return executeViaMessenger(...);  // async mailbox
+}
+return executeSubAgent(...);          // sync fork+exec
+```
+
+#### 5.1.2 sync fork+exec 详解（默认行为）
+
+子 Agent 在**父 Agent 同一进程内同步运行**。Session 模式由 `call-agent` 工具参数决定：
+- 传入 `sessionId` → `continue` 模式（续接已有 session）
+- 传入 `sessionId` + `inheritContext=true` + `agentId="self"` → `fork` 模式（先 `engine.forkSession()` 获得 childSessionId 再执行）
+- 都不传 → `create-new` 模式（全新 session）
+
+#### 5.1.3 async mailbox 详解（plan 224）
+
+当 `IAgentMessenger` 功能化时（默认 `NoOpAgentMessenger`），`CallAgentExecutor` 走 mailbox 路径：
+
+1. `executeViaMessenger()` 构造 `CallAgentRequestPayload` 不可变对象（targetAgentId / input / resolvedSessionId / childMetadata / timeoutMs）
+2. 包装 `AgentMessageEnvelope`（senderId / targetTopic=`agent.call-agent` / correlationId / AgentMessageKind.REQUEST / payload）
+3. `messenger.request(envelope, timeoutMs)` 投递到 `agent.call-agent` topic
+4. 引擎在 `setMessenger` 时注册 call-agent handler（`engine.execute().orTimeout().join()` 执行子 agent）
+5. handler 返回 `CallAgentResponsePayload`，future 正常 resolve；超时或失败时 future 异常 → 工具结果错误状态
+
+**关键洞察**：async 路径的子 agent 仍然是同引擎执行——`call-agent` **不是**"委派到外部进程"。它只是把"父 → 子 invoke"的控制流异步化、可跨进程投递（如果 messenger backend 是 `DBMessageService`）。**真正跨进程 + 外部进程 agent 委派不在 call-agent 的设计意图内**。
+
+#### 5.1.4 何时选哪条路径
+
+| 场景 | 推荐路径 | 理由 |
+|---|---|---|
+| shipped 默认（无 messenger 配置） | sync fork+exec | 零回归、延迟低 |
+| 单 JVM 多 agent | async mailbox（接线 `LocalAgentMessenger`） | 与 `send-message` 一致的 inbox 语义 |
+| 跨 JVM 多 agent（如分布式部署） | async mailbox（接线 `DBMessageService`） | 跨进程可达 + 至少一次语义 |
+| 严格子 agent 同步结果需要 | sync fork+exec | 不依赖 messenger 异常处理 |
+| 需要 audit 链路 | async mailbox | `correlationId` 在 mailbox 信封中天然携带 |
+
+**默认行为不变化**：shipped 默认（`NoOpAgentMessenger`）下零回归，与 plan 224 之前的 fork+exec 行为逐行一致。
 
 ### 5.2 兄弟通信
 

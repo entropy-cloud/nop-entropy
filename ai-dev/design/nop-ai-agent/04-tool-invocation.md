@@ -22,6 +22,55 @@ agent.xdef 中的 <tools> 声明工具名列表
   → 工具 schema 注入 LLM 请求
 ```
 
+### 2.1 实现机制：VFS + XLang DSL 组件模型注册表（disambiguation）
+
+> **本节是 AI/读者消歧节**。"按 tool name 加载 `.tool.xml`" 这一行容易让读者脑补成"注解反射扫描"——**事实并非如此**。本节固化 nop-ai-toolkit 的实际工具发现机制。
+
+工具定义位于 VFS（Virtual File System）路径 `/nop/ai/tools/<name>.tool.xml`（由 `nop-ai-toolkit/src/main/resources/_vfs/nop/ai/tools/` 提供）。发现与执行链路：
+
+```
+ToolManagerImpl.listTools()                           // io.nop.ai.toolkit.manager
+  └─ VirtualFileSystem 遍历 /nop/ai/tools/ 目录
+       └─ 每个 *.tool.xml 文件 → 工具名 = 文件名去除 .tool.xml
+            └─ ToolManagerImpl.loadTool(name)
+                 └─ ResourceComponentManager.loadComponentModel(path)
+                      └─ 解析 XLang XML → 生成 AiToolModel 对象（IToolDefinition）
+```
+
+执行链路：
+
+```
+IToolManager.callTool(toolName, call, context)
+  └─ IToolCallInterceptor 链（每个 interceptor.beforeCall 拦截）
+  └─ IToolExecutorProvider.getExecutor(toolName)
+       └─ IToolExecutor.executeAsync(call, context)
+            └─ IToolCallInterceptor.afterCall 收尾
+```
+
+### 2.2 与注解扫描机制的关键差异
+
+| 维度 | nop 当前实现 | 注解扫描（Spring `@Component` / Quarkus `@Tool` 等） |
+|---|---|---|
+| 定义位置 | VFS `/nop/ai/tools/*.tool.xml`（XLang XML DSL） | Java 类（`@Component` / `@Tool` 等） |
+| 发现机制 | VFS 枚举 + `ResourceComponentManager.loadComponentModel(path)` 解析 XML | ClassPath 扫描 + 反射读取注解 |
+| 注册时机 | IoC 启动期（XLang DSL 编译/缓存） | IoC 启动期（注解处理器） |
+| 配置 vs 代码分离 | 配置（XML DSL）与执行代码（`IToolExecutor` Java 实现）分离 | 通常耦合在同一个 Java 类 |
+| Delta 定制 | 原生支持（XLang Delta 机制覆盖 XML） | 通常需要额外 hook |
+| 跨模块注册 | VFS 资源继承（`_vfs` 多 module 自动合并） | 包扫描 + `@SpringBootApplication` 配置 |
+
+**重要**：`grep -rn "@Tool\b" nop-ai/nop-ai-toolkit/src/main` 返回 **0 命中**——**nop 没有 `@Tool` 注解**。所有工具都是 `.tool.xml` + `IToolExecutor` Java 实现的组合，工具描述（name/description/parameters schema）与执行逻辑（executeAsync）在不同抽象层。
+
+**为什么这样设计**：XLang DSL + VFS 资源模型是 Nop 平台的核心抽象——模型与代码分离，让 Delta 定制、xdef schema 校验、跨 module 资源合并等机制可以统一应用到工具层。如果走注解扫描路径，就脱离了 XLang 生态，无法享受 Delta + 元编程。
+
+### 2.3 工具扩展点
+
+新工具的实现路径（不需要改框架代码）：
+1. 创建 `/nop/ai/tools/<name>.tool.xml`（受 `tool.xdef` schema 校验）
+2. 实现 `IToolExecutor` 接口（`getToolName()` + `executeAsync(AiToolCall, IToolExecuteContext)`）
+3. 注册 executor 到 `IToolExecutorProvider`（默认 `DefaultToolExecutorProvider`，可通过 `ToolManagerImpl.setExecutorProvider()` 覆盖）
+
+参考实现：`AskOracleExecutor.java`（`io.nop.ai.toolkit.tools`）—— 99 行 Java + 对应 `ask-oracle.tool.xml` DSL 的最小完整实现。
+
 ## 三、工具执行流程
 
 ```
