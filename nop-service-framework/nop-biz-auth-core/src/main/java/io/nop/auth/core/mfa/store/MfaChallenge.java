@@ -38,6 +38,14 @@ public class MfaChallenge implements Serializable {
     /** 操作级 challenge（会话内敏感操作二次验证，验证后转一次性短 TTL 票）。 */
     public static final String SCENE_OPERATION = "operation";
 
+    /**
+     * 登记通道验证票场景（W13-impl，设计 §4.3——防 enrollment attack：受限会话内 bindMfa
+     * 的前置门槛）。verifyChannelProof 校验 proof:{userId} 短信码成功后创建该场景已验证票
+     * （短 TTL，复用 op-ticket-expire-seconds 票窗口语义），bindMfa 经 token 往返一次性消费
+     * （设计伪代码的 peekVerified(scene, userId) 查找原语不落地——见 W13 §4.6 回写）。
+     */
+    public static final String SCENE_CHANNEL_PROOF = "channel-proof";
+
     private String challengeToken;
     private String userId;
     private String mfaType;

@@ -8,6 +8,7 @@
 package io.nop.graphql.core.engine;
 
 import io.nop.api.core.beans.FieldSelectionBean;
+import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
@@ -21,6 +22,7 @@ import io.nop.graphql.core.ast.GraphQLFieldDefinition;
 import io.nop.graphql.core.ast.GraphQLFieldSelection;
 import io.nop.graphql.core.ast.GraphQLFragmentSelection;
 import io.nop.graphql.core.ast.GraphQLOperation;
+import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.ast.GraphQLSelection;
 import io.nop.graphql.core.ast.GraphQLSelectionSet;
 import io.nop.graphql.core.fetcher.BeanPropertyFetcher;
@@ -187,6 +189,13 @@ public class GraphQLExecutor implements IGraphQLExecutor {
      * 批量请求中含敏感操作时该 operation 单独报错（GraphQL 逐 field error 原生语义）。
      * 订阅路径（GraphQLEngine.subscribeGraphQL/subscribeRpc）刻意不接本检查——构建期
      * 约束校验已拒绝 @MfaRequired + @BizSubscription 组合。
+     * <p>
+     * W13-impl（设计 §3.3 注释 / §4.3）：受限会话（{@code IUserContext.isMfaRestricted()}）
+     * 分支前置于 {@code hasMfaRequired} 早退，对**所有** operation 生效——executor 侧以
+     * fieldDef 判别 query/mutation/publicAccess：受限会话的非 public mutation 路由进 checker
+     * （白名单判定在 checker 内执行，命中即短路返回）；全部 query 与 publicAccess mutation
+     * （token 刷新等会话基建，防受限会话中途 token 过期死锁）放行（含 @MfaRequired query——
+     * 受限分支语义下不再叠加操作级检查）。
      */
     void checkOperationMfa(IGraphQLExecutionContext context) {
         IOperationMfaChecker checker = context.getOperationMfaChecker();
@@ -197,6 +206,23 @@ public class GraphQLExecutor implements IGraphQLExecutor {
         if (op == null || op.getSelectionSet() == null)
             return;
 
+        IUserContext userContext = context.getUserContext();
+        if (userContext != null && userContext.isMfaRestricted()) {
+            // 受限会话分支（W13）：仅非 public mutation 进 checker；query/publicAccess mutation 放行
+            boolean mutation = op.getOperationType() == GraphQLOperationType.mutation;
+            if (mutation) {
+                for (GraphQLSelection selection : op.getSelectionSet().getSelections()) {
+                    if (!(selection instanceof GraphQLFieldSelection))
+                        continue;
+                    GraphQLFieldDefinition fieldDef = ((GraphQLFieldSelection) selection).getFieldDefinition();
+                    if (fieldDef == null || isPublicAccess(fieldDef))
+                        continue;
+                    checker.check(fieldDef.getOperationName(), userContext, context.getRequestHeaders());
+                }
+            }
+            return;
+        }
+
         for (GraphQLSelection selection : op.getSelectionSet().getSelections()) {
             if (!(selection instanceof GraphQLFieldSelection))
                 continue;
@@ -205,6 +231,11 @@ public class GraphQLExecutor implements IGraphQLExecutor {
                 continue;
             checker.check(fieldDef.getOperationName(), context.getUserContext(), context.getRequestHeaders());
         }
+    }
+
+    /** publicAccess 判别（对齐 GraphQLActionAuthChecker.isAllowAccess：auth==null 视为公开）。 */
+    private static boolean isPublicAccess(GraphQLFieldDefinition fieldDef) {
+        return fieldDef.getAuth() == null || fieldDef.getAuth().isPublicAccess();
     }
 
     private CompletionStage<Object> invokeOperations(DataFetchingEnvironment env) {

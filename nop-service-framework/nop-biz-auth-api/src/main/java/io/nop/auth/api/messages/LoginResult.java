@@ -39,6 +39,14 @@ public class LoginResult extends ExtensibleBean {
      */
     private String accessCode;
 
+    /**
+     * MFA 受限会话标志（角色级强制策略不达标，W13-impl 可选增量——migration note：
+     * 可选字段向后兼容，老消费方零感知）。true = 登录成功但会话受限
+     * （{@code IUserContext.isMfaRestricted()}），前端据此渲染受限引导页；
+     * 正常登录缺省不出现（null）。
+     */
+    private Boolean mfaRestricted;
+
     @PropMeta(propId = 1)
     public String getAccessToken() {
         return accessToken;
@@ -128,6 +136,16 @@ public class LoginResult extends ExtensibleBean {
 
     public void setAccessCode(String accessCode) {
         this.accessCode = accessCode;
+    }
+
+    @PropMeta(propId = 11)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public Boolean getMfaRestricted() {
+        return mfaRestricted;
+    }
+
+    public void setMfaRestricted(Boolean mfaRestricted) {
+        this.mfaRestricted = mfaRestricted;
     }
 
 }
