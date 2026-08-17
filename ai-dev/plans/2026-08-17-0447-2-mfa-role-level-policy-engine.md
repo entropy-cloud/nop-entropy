@@ -1,6 +1,6 @@
 # W13-impl 角色级 MFA 强制策略引擎（策略模型 + 三层判定 + 受限会话 + 登记通道 proof + OAuth 绕过修复）
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: nop-credential-mfa
 > Work Item: W13-impl（角色级 MFA 强制策略引擎）——MFA 二期组第二个 impl 工作项
 > Last Reviewed: 2026-08-17（draft review 两轮：首轮 1 Blocker/2 Major/4 Minor 全部处置——OAuth substrate 预裁定/default 方法钉定/proof 票 token 往返裁定，复审 READY；锚点全量复核 PASS）
@@ -85,107 +85,107 @@
 
 ### Phase 1 - 策略数据模型 + 评估器 + 策略管理面
 
-Status: planned
+Status: completed
 Targets: `nop-auth/model/nop-auth.orm.xml`、`deploy/sql/{mysql,postgresql,oracle}/`、`nop-auth-service`（新 `RoleMfaPolicyEvaluator`、`NopAuthRoleBizModel`）、beans 注册
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] **Fix**：ORM 新实体 `NopAuthRoleMfaPolicy`（roleId 唯一约束 1:1、minMfaLevel、allowTrustedDevice 缺省 true、通用审计字段 + delFlag 软删除对齐 nop-auth 惯例；无外键，对齐既有关系惯例；model-first → codegen → `_create_` 再生成 + 三方言 `_add_role_mfa_policy_nop-auth.sql` 增量，循 `_add_mfa_challenge_scene_nop-auth.sql` 先例；禁止手编 `_gen/`）。
-- [ ] **Fix**：`RoleMfaPolicyEvaluator`（nop-auth-service）：输入 userId → 按角色快照口径（直接角色 + childRoleIds 继承展开 + 隐式 user 角色及其继承链，与 `buildUserContext` live:772-816 一致）合并全部命中角色的策略行 → 产出复合结果 `{maxLevel, allowTrustedDevice}`（max 取最强、AND 合并、无行 = 0/true）；内含 `factorLevel` 强度表（全量 1/2/3 映射常量：sms/email=1、totp=2、webauthn=3；未知 mfaType fail-closed 视为 0）。
-- [ ] **Fix**：`NopAuthRoleBizModel.saveMfaPolicy`/`removeMfaPolicy`（requireAdmin 运行时校验——`NopAuthUserBizModel.requireAdmin` live:487-498 先例模式；`IAuditService.saveAudit` 审计策略变更；删行即撤策略、无 status 双态）。
-- [ ] **Proof**：单测——evaluator 合并语义（单角色/多角色 max/AND/无策略零行/隐式 user 角色挂策略 = 全员强制）、factorLevel 表映射与未知值 0、策略 CRUD 幂等与权限拒绝（非 admin）、ORM round-trip。
+- [x] **Fix**：ORM 新实体 `NopAuthRoleMfaPolicy`（roleId 唯一约束 1:1、minMfaLevel、allowTrustedDevice 缺省 true、通用审计字段 + delFlag 软删除对齐 nop-auth 惯例；无外键，对齐既有关系惯例；model-first → codegen → `_create_` 再生成 + 三方言 `_add_role_mfa_policy_nop-auth.sql` 增量，循 `_add_mfa_challenge_scene_nop-auth.sql` 先例；禁止手编 `_gen/`）。〔执行期事实：codegen 同时生成平台惯例的 `NopAuthRoleMfaPolicyBizModel`（空 CrudBizModel 桩，与 NopAuthMfaSetting/NopAuthSmsCode 姊妹实体同型）——保留为平台惯例产物；策略管理的 requireAdmin 入口仍是 `NopAuthRole__saveMfaPolicy/removeMfaPolicy`；逻辑删除行（delFlag≠0）在 evaluator/saveMfaPolicy 中按"无策略/复活"处理（ORM `useLogicalDelete` 语义，getEntityById 不滤 delFlag——live 执行期核定）〕
+- [x] **Fix**：`RoleMfaPolicyEvaluator`（nop-auth-service）：输入 userId → 按角色快照口径（直接角色 + childRoleIds 继承展开 + 隐式 user 角色及其继承链，与 `buildUserContext` live:772-816 一致）合并全部命中角色的策略行 → 产出复合结果 `{maxLevel, allowTrustedDevice}`（max 取最强、AND 合并、无行 = 0/true）；内含 `factorLevel` 强度表（全量 1/2/3 映射常量：sms/email=1、totp=2、webauthn=3；未知 mfaType fail-closed 视为 0）。〔快照口径补充：buildUserContext 不把 "user" 本身放入 roles 集合（isUserInRole 恒真实现隐式）；evaluator 显式纳入 ROLE_USER 本身 + 其继承链——"策略挂 user 角色 = 全员强制"由此成立（测试钉定）〕
+- [x] **Fix**：`NopAuthRoleBizModel.saveMfaPolicy`/`removeMfaPolicy`（requireAdmin 运行时校验——`NopAuthUserBizModel.requireAdmin` live:487-498 先例模式；`IAuditService.saveAudit` 审计策略变更；删行即撤策略、无 status 双态）。
+- [x] **Proof**：单测——evaluator 合并语义（单角色/多角色 max/AND/无策略零行/隐式 user 角色挂策略 = 全员强制）、factorLevel 表映射与未知值 0、策略 CRUD 幂等与权限拒绝（非 admin）、ORM round-trip。〔`TestRoleMfaPolicy` 12 用例全绿：testFactorLevelTable/testNoPolicyRowsYieldsNone/testSingleRolePolicy/testMultiRoleMaxAndAndMerge/testChildRoleIdsInheritanceExpansion/testImplicitUserRolePolicyAppliesToAll/testUnknownUserYieldsNone/testOrmRoundTrip/testSaveMfaPolicyAdminCreatesAndUpdatesIdempotently/testRemoveMfaPolicyDeletesRowAndIsIdempotent/testNonAdminSaveAndRemoveRejected/testInvalidMinMfaLevelRejected〕
 
 Exit Criteria:
 
-- [ ] `./mvnw clean install -pl nop-auth -am -DskipTests -T 1C` 编译绿 + codegen 产物再生成（无手编生成物）；三方言 DDL 齐备。
-- [ ] **新功能测试**：列出 Phase 1 测试类与用例名。
-- [ ] 文档裁定：No owner-doc update required（实体/评估器/管理面属实现细节；docs-for-ai 章节统一 Phase 4）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] `./mvnw clean install -pl nop-auth -am -DskipTests -T 1C` 编译绿 + codegen 产物再生成（无手编生成物）；三方言 DDL 齐备。
+- [x] **新功能测试**：列出 Phase 1 测试类与用例名。（见上 Proof 项——TestRoleMfaPolicy 12 用例）
+- [x] 文档裁定：No owner-doc update required（实体/评估器/管理面属实现细节；docs-for-ai 章节统一 Phase 4）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 2 - 登录链第三态 + 受限签发 + mfaRestricted 持久化 + 响应契约 + OAuth 接入
 
-Status: planned
+Status: completed
 Targets: `nop-api-core`（`IUserContext`）、`nop-biz-auth-core`（`UserContextImpl`）、`nop-biz-auth-api`（`LoginResult`）、`nop-auth-service`（`LoginServiceImpl`/`DaoUserContextCache`）、`nop-auth-sso`（`OAuthLoginServiceImpl`）、`nop-ai-gateway`（`ScanLoginResult`）
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] **Fix**：`IUserContext.mfaRestricted` 以 **Java `default` 方法**落地（`default boolean isMfaRestricted() { return false; }`，`UserContextImpl` 覆写——接口存在仓库外/测试树多个外部实现类，如 nop-credential 测试内 5 个匿名/内部 IUserContext 实现，抽象方法会编译破坏下游；default 保证"老消费方零感知"）；migration note 登记。`UserContextImpl` 字段 + `serializeToJson` 白名单纳入（live:45-66）+ `DaoUserContextCache.saveUserContextAsync` 白名单纳入（live:111-123）。
-- [ ] **Fix**：`checkMfaRequired` 第三态（live:725-742）：策略评估调用插入 store null 检查（live:728-729）之后、setting 装载之前；`policy.maxLevel > 0 且 (!enabled 或 factorLevel(mfaType) < maxLevel)` → 返回受限决策对象（不建 challenge）；一期六分支原位原序不动。
-- [ ] **Fix**：`completeLogin` 受限变体（live:398-416）：`restricted=true` 时在 `saveUserContextAsync`（live:414）之前写 `mfaRestricted` 标志（`saveSession` live:408 前置写入覆盖两持久化路径）；`resetFailCount`/`notifyHook` 差异裁决照旧（第一因子成功仍属登录成功）；一期三处调用点（loginAsync/createSessionForUserAsync/mfaVerify）行为不变。`loginAsync`/`createSessionForUserAsync` 调用侧消费第三态 → 受限签发；`LoginResult.mfaRestricted`/`ScanLoginResult.mfaRestricted` 可选字段回填。**受限签发审计事件**（经 `IAuditService.saveAudit` 落 NopAuthOpLog）随本项交付（不后置到 Phase 3）。
-- [ ] **Decision（OAuth 接入 substrate 预裁定，draft review F1）**：
-  1. **SPI 落点**：判定能力经新接口（如 `IMfaLoginPolicyService`，命名执行期定稿）落 **nop-biz-auth-core**（nop-auth-sso classpath 可达），实现 bean 落 nop-auth-service（内部复用 `checkMfaRequired` 等价逻辑 + evaluator）；`OAuthLoginServiceImpl` `@Inject @Nullable` 可选注入（先例：`GraphQLEngine` checker / `LoginServiceImpl` 的 `@Nullable ISmsSender`）——未注册（无 nop-auth-service 部署）时零介入 = 一期行为。**禁止**为接入而在 nop-auth-sso 引入对 nop-auth-service/dao 的依赖边。
+- [x] **Fix**：`IUserContext.mfaRestricted` 以 **Java `default` 方法**落地（`default boolean isMfaRestricted() { return false; }`，`UserContextImpl` 覆写——接口存在仓库外/测试树多个外部实现类，如 nop-credential 测试内 5 个匿名/内部 IUserContext 实现，抽象方法会编译破坏下游；default 保证"老消费方零感知"）；migration note 登记。`UserContextImpl` 字段 + `serializeToJson` 白名单纳入（live:45-66）+ `DaoUserContextCache.saveUserContextAsync` 白名单纳入（live:111-123）。〔两触点均"仅受限会话写入该键"——正常会话 JSON/cacheData 形态零变化；`./mvnw test-compile -pl :nop-credential -am` exit 0 证实下游零破坏〕
+- [x] **Fix**：`checkMfaRequired` 第三态（live:725-742）：策略评估调用插入 store null 检查（live:728-729）之后、setting 装载之前；`policy.maxLevel > 0 且 (!enabled 或 factorLevel(mfaType) < maxLevel)` → 返回受限决策对象（不建 challenge）；一期六分支原位原序不动。
+- [x] **Fix**：`completeLogin` 受限变体（live:398-416）：`restricted=true` 时在 `saveUserContextAsync`（live:414）之前写 `mfaRestricted` 标志（`saveSession` live:408 前置写入覆盖两持久化路径）；`resetFailCount`/`notifyHook` 差异裁决照旧（第一因子成功仍属登录成功）；一期三处调用点（loginAsync/createSessionForUserAsync/mfaVerify）行为不变。`loginAsync`/`createSessionForUserAsync` 调用侧消费第三态 → 受限签发；`LoginResult.mfaRestricted`/`ScanLoginResult.mfaRestricted` 可选字段回填（`buildLoginResult`/`ChannelLoginApiBizModel.buildResult`）。**受限签发审计事件**（经 `IAuditService.saveAudit` 落 NopAuthOpLog，event=mfa-restricted-login）随本项交付（不后置到 Phase 3）。
+- [x] **Decision（OAuth 接入 substrate 预裁定，draft review F1）**：
+  1. **SPI 落点**：判定能力经新接口（如 `IMfaLoginPolicyService`，命名执行期定稿）落 **nop-biz-auth-core**（nop-auth-sso classpath 可达），实现 bean 落 nop-auth-service（内部复用 `checkMfaRequired` 等价逻辑 + evaluator）；`OAuthLoginServiceImpl` `@Inject @Nullable` 可选注入（先例：`GraphQLEngine` checker / `LoginServiceImpl` 的 `@Nullable ISmsSender`）——未注册（无 nop-auth-service 部署）时零介入 = 一期行为。**禁止**为接入而在 nop-auth-sso 引入对 nop-auth-service/dao 的依赖边。〔落地：`io.nop.auth.core.mfa.IMfaLoginPolicyService` + `MfaLoginDecision`（nop-biz-auth-core）+ `MfaLoginPolicyServiceImpl`（nop-auth-service，bean `nopMfaLoginPolicyService` ioc:default）；challenge 分支的 `ERR_AUTH_MFA_REQUIRED` 常量仅 nop-auth-service 可达——由 SPI 实现方抛出（NopException 经 nop-api-core 传播），nop-auth-sso 零依赖边〕
   2. **本地用户与角色语义**：OAuth 身份（userId=userName、realm roles）按 userName 解析本地 `NopAuthUser`；策略评估用**本地角色快照**（`NopAuthRoleMfaPolicy` 挂本地 roleId，realm roles 不参与策略评估——裁定回写设计 §4.6）；无本地用户映射 → 无策略可评估 → 维持一期行为（MFA 不拦截，显式裁定 + 回写；语义 = 与"无策略角色"一致的空策略）。
-  3. **受限签发基座**：live 事实——`DaoUserContextCache` 无 `NopAuthSession` 行时静默 no-op（live:107-109），标志直接置上会丢（fail-open）。裁定：受限路径必须先落会话行（`saveSession` 等价）再 `saveUserContextAsync`，或整体迁移到 completeLogin 受限变体——两方案执行期按最小 diff 定稿并回写 §4.6；无论何者，**OAuth attrs（accessToken/refreshToken，live:146-147）不得丢失**（专项断言）且必须通过 Dao-cache round-trip 测试。
-- [ ] **Fix**：`OAuthLoginServiceImpl.loginAsync`（live:70-79）按上述 Decision 接入同语义判定：判定结果三分支（null 放行/challenge 拦截抛 `ERR_AUTH_MFA_REQUIRED`（errorParams 携带，与一期表达一致）/受限 → 受限签发路径），替换现行的"自行 buildUserContext + saveUserContextAsync 直签"绕过（live:77）；跨模块 migration note 登记（该入口从"永不拦截"变为"与密码路径同语义"——一期遗留 gap 的修复，属预期行为变更）。
-- [ ] **Proof**：单测/集成——三层判定矩阵五行的登录行为（全局开关 off=一期旁路/无策略=一期判定/达标=一期 challenge 路径逐字节一致/弱因子=受限/未启用=受限）；Dao-cache round-trip（**新增** DaoUserContextCache 路径测试：受限签发后第二请求从 cacheData 反序列化 `mfaRestricted` 仍在——Local cache 测试不能替代）；LoginResult/ScanLoginResult 字段序列化（可选、缺省不出现）；OAuth 入口三路径（放行/挑战/受限）+ 修复前绕过对照断言；无策略部署全矩阵 = 一期行为（既有 `TestMfaLoginE2E`/`TestScanLoginMfa` 断言零修改通过）。
+  3. **受限签发基座**：live 事实——`DaoUserContextCache` 无 `NopAuthSession` 行时静默 no-op（live:107-109），标志直接置上会丢（fail-open）。裁定：受限路径必须先落会话行（`saveSession` 等价）再 `saveUserContextAsync`，或整体迁移到 completeLogin 受限变体——两方案执行期按最小 diff 定稿并回写 §4.6；无论何者，**OAuth attrs（accessToken/refreshToken，live:146-147）不得丢失**（专项断言）且必须通过 Dao-cache round-trip 测试。〔最小 diff 定稿：`completeRestricted` 保留 OAuth 上下文原样（attrs/roles/sessionId=IdP sessionState 不重建），先补 `lastAccessTime`（OAuth buildUserContext 不设置——缺省 0 会被 Dao-cache 落成 epoch 致会话立即过期，live 执行期核定）→ `ensureSessionRow`（幂等直插 NopAuthSession 行，保留原 sessionId）→ `saveUserContextAsync`；Dao-cache round-trip + attrs 保留专项断言全绿〕
+- [x] **Fix**：`OAuthLoginServiceImpl.loginAsync`（live:70-79）按上述 Decision 接入同语义判定：判定结果三分支（null 放行/challenge 拦截抛 `ERR_AUTH_MFA_REQUIRED`（errorParams 携带，与一期表达一致）/受限 → 受限签发路径），替换现行的"自行 buildUserContext + saveUserContextAsync 直签"绕过（live:77）；跨模块 migration note 登记（该入口从"永不拦截"变为"与密码路径同语义"——一期遗留 gap 的修复，属预期行为变更）。
+- [x] **Proof**：单测/集成——三层判定矩阵五行的登录行为（全局开关 off=一期旁路/无策略=一期判定/达标=一期 challenge 路径逐字节一致/弱因子=受限/未启用=受限）；Dao-cache round-trip（**新增** DaoUserContextCache 路径测试：受限签发后第二请求从 cacheData 反序列化 `mfaRestricted` 仍在——Local cache 测试不能替代）；LoginResult/ScanLoginResult 字段序列化（可选、缺省不出现）；OAuth 入口三路径（放行/挑战/受限）+ 修复前绕过对照断言；无策略部署全矩阵 = 一期行为（既有 `TestMfaLoginE2E`/`TestScanLoginMfa` 断言零修改通过）。〔`TestMfaRestrictedLoginE2E` 6 用例（五行矩阵 + 上下文/JSON 契约）+ `TestMfaRestrictedDaoCache` 7 用例（Dao-cache round-trip 正常/受限 + OAuth 四路径 + attrs 保留 + 无 sessionId 防御）；既有五套件断言零修改通过（68 用例合跑全绿）〕
 
 Exit Criteria:
 
-- [ ] `./mvnw clean install -pl nop-kernel/nop-api-core,nop-service-framework/nop-biz-auth-api,nop-service-framework/nop-biz-auth-core,nop-auth,nop-auth-sso,nop-ai/nop-ai-gateway -am -DskipTests -T 1C` 编译绿 + **下游接口实现类回归**：`./mvnw test-compile -pl :nop-credential -am`（`IUserContext` 在 nop-credential 测试树有 5 个外部实现类——default 方法落地后必须确认下游零破坏；`-am` 不含该方向，须显式验证）。
-- [ ] **接线验证**：受限签发 → Dao-cache 持久化 → 第二请求标志存活，全链测试通过（非仅字段存在）。
-- [ ] **无静默跳过**：策略不达标路径显式产生受限决策（非静默放行）；未知 mfaType 强度 0 落入受限。
-- [ ] **新功能测试**：列出 Phase 2 测试类与用例名（含 Dao-cache round-trip）。
-- [ ] 文档裁定：No owner-doc update required（章节统一 Phase 4；migration note 随设计回写登记）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] `./mvnw clean install -pl nop-kernel/nop-api-core,nop-service-framework/nop-biz-auth-api,nop-service-framework/nop-biz-auth-core,nop-auth,nop-auth-sso,nop-ai/nop-ai-gateway -am -DskipTests -T 1C` 编译绿 + **下游接口实现类回归**：`./mvnw test-compile -pl :nop-credential -am`（`IUserContext` 在 nop-credential 测试树有 5 个外部实现类——default 方法落地后必须确认下游零破坏；`-am` 不含该方向，须显式验证）。〔注：`nop-auth-sso` 非顶层 reactor 路径，实际命令用 `nop-auth/nop-auth-sso`；两命令均 BUILD SUCCESS / exit 0〕
+- [x] **接线验证**：受限签发 → Dao-cache 持久化 → 第二请求标志存活，全链测试通过（非仅字段存在）。（testRestrictedFlagSurvivesDaoCacheRoundTrip / testOAuthRestrictedPathPreservesAttrsAndSurvivesDaoCache）
+- [x] **无静默跳过**：策略不达标路径显式产生受限决策（非静默放行）；未知 mfaType 强度 0 落入受限。（矩阵行 4/5 用例 + factorLevel 表用例）
+- [x] **新功能测试**：列出 Phase 2 测试类与用例名（含 Dao-cache round-trip）。（见 Proof 项）
+- [x] 文档裁定：No owner-doc update required（章节统一 Phase 4；migration note 随设计回写登记）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 3 - 受限会话拦截 + 登记通道 proof + confirmMfa 策略校验 + 错误码 + 审计
 
-Status: planned
+Status: completed
 Targets: `nop-graphql-core`（`GraphQLExecutor`）、`nop-auth-service`（`OperationMfaCheckerImpl`/`NopAuthUserBizModel`/`LoginApiBizModel`/`NopAuthErrors`）、`nop-biz-auth-api`（消息类如需）
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] **Fix**：受限会话拦截接线（双触点，**机制族钉定——不改 `IOperationMfaChecker` SPI 签名**）：① `GraphQLExecutor.checkOperationMfa`（live:191-208）——executor 持 fieldDef 做 query/mutation/publicAccess 判别，将受限会话的非 public mutation 路由进 checker 调用（早退 continue live:204-205 之前或等价重构）；② `OperationMfaCheckerImpl.check`（live:83-131）——受限分支置于 enabled 门（live:86-87）之前（javadoc live:57-58 预留位），白名单判定在 checker 内执行。语义：`userContext.mfaRestricted` → 全部 query 放行 + 白名单 mutation 放行 + publicAccess mutation 放行（token 刷新等会话基建，防受限会话中途 token 过期死锁；`refreshTokenAsync` publicAccess 先例 `LoginApiBizModel` live:122-125）+ 其余 mutation 抛 `ERR_AUTH_MFA_RESTRICTED_SESSION`；**白名单命中即短路返回**（不再走后续 @MfaRequired 检查——`unbindMfa` 自身标注 @MfaRequired（live:296），受限引导流中白名单动作不做操作级二次验证，语义按设计 §3.3 伪代码受限分支前置序，回写 §4.6）；**不受 `nop.auth.operation-mfa.enabled` 门控**；无 checker bean（无 nop-auth-service 部署）时零介入不变。
-- [ ] **Decision**：白名单清单落地（设计 §4.3）：`bindMfa`/`confirmMfa`/`unbindMfa`/`getMfaStatus` + 登记通道验证端点 + 登出 + 会话基建类 publicAccess mutation（以 live action 清单核对确定，如 token 刷新；清单在 plan 执行时以实际 publicAccess mutation 枚举固化并测试钉定）；白名单匹配口径 = operation 全名（bizObjName__action，与 §三 payload.operation 契约一致）。
-- [ ] **Fix**：登记通道 proof（防 enrollment attack；**票交接机制预裁定——零 store API 变更**：`verifyChannelProof` 成功后创建 scene=channel-proof 已验证票并将 challengeToken 返回客户端，`bindMfa` 请求新增可选 proof 字段携带该 token，服务端经既有 `peek(token)`（scene/payload.userId 校验）+ `consume(token)` 一次性消费——设计 §4.3 伪代码的 `peekVerified(scene, userId)` 查找原语**不落地**（`MfaChallengeStore` 无 scene+userId 查找方法，token 往返方案避免跨模块 store 接口扩展；偏离回写 §4.6））：受限会话内 `bindMfa`（live:139-169）前置——服务端解析用户登记 phone（W13 仅 phone、不接受客户端指定；为空抛 `ERR_AUTH_MFA_NO_RECOVERY_CHANNEL`）→ 无有效 channel-proof 票时 `SmsCodeStore.send("proof:{userId}")` + 抛 `ERR_AUTH_MFA_CHANNEL_PROOF_REQUIRED`（通道脱敏提示）；`verifyChannelProof` 端点（登录态 + 白名单）校验 proof 码 → 创建 scene=channel-proof 已验证票（复用场景化 challenge + markVerified 语义，短 TTL——复用 `op-ticket-expire-seconds` 票窗口语义，执行期定值回写）；bindMfa 消费票（一次性）。正常会话 bindMfa 零改动。**proof 通道发码复用既有 sms-code 限流模式**（60s 间隔/日上限，`sendMfaCode` 调用点限流先例——防受限会话内 proof 码轰炸受害者登记手机）。
-- [ ] **Fix**：`confirmMfa`（live:249-286）策略校验：确认因子 `factorLevel < maxLevel` → `ERR_AUTH_MFA_POLICY_FACTOR_TOO_WEAK`；解绑不受限（攻击者无因子不可解绑 + 审计）；受限会话内 confirmMfa 成功不原位升级会话（无会话变更代码路径）。
-- [ ] **Fix**：`NopAuthErrors` 追加 4 错误码（live:120-121 之后）；审计事件（受限拦截拒绝/登记通道发码与验证/策略变更（saveMfaPolicy/removeMfaPolicy）——受限签发审计已在 Phase 2 交付）经 `IAuditService.saveAudit` 落 NopAuthOpLog。
-- [ ] **Proof**：E2E 全链——受限会话拦截矩阵（query 放行/白名单 mutation 放行/其余 mutation 拒绝且错误码正确/publicAccess mutation 放行/enabled=false 时受限拦截仍生效（伪代码序钉定）/无 checker 零介入回归）；登记通道全链（受限登录 → bindMfa 被阻发码 → verifyChannelProof（含 60s 间隔限流断言）→ bindMfa 携 proof 票过 → confirmMfa 强度不足拒绝 → unbindMfa（验证当前因子）→ bind 强因子 → confirm 过 → 登出 → 重新登录完整两阶段 → 完整会话）；enrollment attack 对抗断言（无 proof 票时 bindMfa 不可达 provisioning URI；proof 票一次性——重放拒绝）；confirmMfa 降级拒绝；错误码/审计落库断言；操作级 MFA 与受限分支共存路径（受限会话内白名单 mutation（如 `unbindMfa`，自身标注 @MfaRequired）被白名单短路放行——不再触发操作级 challenge，专项钉定）；OAuth 入口三路径 + attrs 保留断言。
+- [x] **Fix**：受限会话拦截接线（双触点，**机制族钉定——不改 `IOperationMfaChecker` SPI 签名**）：① `GraphQLExecutor.checkOperationMfa`（live:191-208）——executor 持 fieldDef 做 query/mutation/publicAccess 判别，将受限会话的非 public mutation 路由进 checker 调用（早退 continue live:204-205 之前或等价重构）；② `OperationMfaCheckerImpl.check`（live:83-131）——受限分支置于 enabled 门（live:86-87）之前（javadoc live:57-58 预留位），白名单判定在 checker 内执行。语义：`userContext.mfaRestricted` → 全部 query 放行 + 白名单 mutation 放行 + publicAccess mutation 放行（token 刷新等会话基建，防受限会话中途 token 过期死锁；`refreshTokenAsync` publicAccess 先例 `LoginApiBizModel` live:122-125）+ 其余 mutation 抛 `ERR_AUTH_MFA_RESTRICTED_SESSION`；**白名单命中即短路返回**（不再走后续 @MfaRequired 检查——`unbindMfa` 自身标注 @MfaRequired（live:296），受限引导流中白名单动作不做操作级二次验证，语义按设计 §3.3 伪代码受限分支前置序，回写 §4.6）；**不受 `nop.auth.operation-mfa.enabled` 门控**；无 checker bean（无 nop-auth-service 部署）时零介入不变。〔执行期事实：executor 侧以 operationType==mutation 判别（顶层 op 粒度）+ fieldDef.getAuth() publicAccess 判别（对齐 GraphQLActionAuthChecker.isAllowAccess）；受限分支短路后续 @MfaRequired 检查（含 @MfaRequired query——受限分支语义下不再叠加）〕
+- [x] **Decision**：白名单清单落地（设计 §4.3）：`bindMfa`/`confirmMfa`/`unbindMfa`/`getMfaStatus` + 登记通道验证端点 + 登出 + 会话基建类 publicAccess mutation（以 live action 清单核对确定，如 token 刷新；清单在 plan 执行时以实际 publicAccess mutation 枚举固化并测试钉定）；白名单匹配口径 = operation 全名（bizObjName__action，与 §三 payload.operation 契约一致）。〔终版清单：`NopAuthUser__bindMfa`/`NopAuthUser__confirmMfa`/`NopAuthUser__unbindMfa`/`NopAuthUser__getMfaStatus` + `LoginApi__verifyChannelProof`/`LoginApi__logout`/`LoginApi__refreshToken`。**执行期纠错**：`ReflectionBizModelBuilder#getActionName` 剥除方法名 `Async` 尾缀——`refreshTokenAsync` 方法注册为 `LoginApi__refreshToken`（初版白名单误写 `LoginApi__refreshTokenAsync`，E2E unknown-operation 断言暴露后修正，测试钉定）；logout/refresh 为 publicAccess（executor 侧已放行），checker 白名单内保留为直调路径兜底〕
+- [x] **Fix**：登记通道 proof（防 enrollment attack；**票交接机制预裁定——零 store API 变更**：`verifyChannelProof` 成功后创建 scene=channel-proof 已验证票并将 challengeToken 返回客户端，`bindMfa` 请求新增可选 proof 字段携带该 token，服务端经既有 `peek(token)`（scene/payload.userId 校验）+ `consume(token)` 一次性消费——设计 §4.3 伪代码的 `peekVerified(scene, userId)` 查找原语**不落地**（`MfaChallengeStore` 无 scene+userId 查找方法，token 往返方案避免跨模块 store 接口扩展；偏离回写 §4.6））：受限会话内 `bindMfa`（live:139-169）前置——服务端解析用户登记 phone（W13 仅 phone、不接受客户端指定；为空抛 `ERR_AUTH_MFA_NO_RECOVERY_CHANNEL`）→ 无有效 channel-proof 票时 `SmsCodeStore.send("proof:{userId}")` + 抛 `ERR_AUTH_MFA_CHANNEL_PROOF_REQUIRED`（通道脱敏提示）；`verifyChannelProof` 端点（登录态 + 白名单）校验 proof 码 → 创建 scene=channel-proof 已验证票（复用场景化 challenge + markVerified 语义，短 TTL——复用 `op-ticket-expire-seconds` 票窗口语义，执行期定值回写）；bindMfa 消费票（一次性）。正常会话 bindMfa 零改动。**proof 通道发码复用既有 sms-code 限流模式**（60s 间隔/日上限，`sendMfaCode` 调用点限流先例——防受限会话内 proof 码轰炸受害者登记手机）。〔执行期事实：票窗口 = create TTL（challenge-expire-seconds 缺省 300s）内 markVerified 后，peek 不变式保证 verifiedAt 非空 ⇒ 在 op-ticket-expire-seconds（缺省 60s）票窗口内；bindMfa 消费用 challenge.userId 绑定校验（票绑定发起用户，scene + verifiedAt + userId 三条件 + 原子 consume）；限流复用 `CFG_AUTH_SMS_CODE_SEND_INTERVAL_SECONDS/DAILY_LIMIT`（执行期定值 = sms-code 配置组缺省 60s/20，不新开配置）〕〔**执行期修复生产缺陷**：`auditChannelProofSent` 初版漏设 userName（`NopAuthOpLog.userName` 非空列）→ 审计批处理整批回滚（`nop.err.orm.mandatory-prop-is-null`，E2E 审计断言暴露），补 `setUserName` 后全绿——E2E 审计断言的 Anti-Hollow 价值实证〕
+- [x] **Fix**：`confirmMfa`（live:249-286）策略校验：确认因子 `factorLevel < maxLevel` → `ERR_AUTH_MFA_POLICY_FACTOR_TOO_WEAK`；解绑不受限（攻击者无因子不可解绑 + 审计）；受限会话内 confirmMfa 成功不原位升级会话（无会话变更代码路径）。
+- [x] **Fix**：`NopAuthErrors` 追加 4 错误码（live:120-121 之后）；审计事件（受限拦截拒绝/登记通道发码与验证/策略变更（saveMfaPolicy/removeMfaPolicy）——受限签发审计已在 Phase 2 交付）经 `IAuditService.saveAudit` 落 NopAuthOpLog。〔4 错误码：`ERR_AUTH_MFA_RESTRICTED_SESSION`（ARG_OPERATION）/`ERR_AUTH_MFA_CHANNEL_PROOF_REQUIRED`（ARG_CHANNEL 脱敏）/`ERR_AUTH_MFA_NO_RECOVERY_CHANNEL`/`ERR_AUTH_MFA_POLICY_FACTOR_TOO_WEAK`（ARG_MFA_TYPE/ARG_MFA_LEVEL）；审计事件标识：mfa-restricted-rejected / mfa:channel-proof-sent / mfa:channel-proof-verified / mfa:channel-proof-fail〕
+- [x] **Proof**：E2E 全链——受限会话拦截矩阵（query 放行/白名单 mutation 放行/其余 mutation 拒绝且错误码正确/publicAccess mutation 放行/enabled=false 时受限拦截仍生效（伪代码序钉定）/无 checker 零介入回归）；登记通道全链（受限登录 → bindMfa 被阻发码 → verifyChannelProof（含 60s 间隔限流断言）→ bindMfa 携 proof 票过 → confirmMfa 强度不足拒绝 → unbindMfa（验证当前因子）→ bind 强因子 → confirm 过 → 登出 → 重新登录完整两阶段 → 完整会话）；enrollment attack 对抗断言（无 proof 票时 bindMfa 不可达 provisioning URI；proof 票一次性——重放拒绝）；confirmMfa 降级拒绝；错误码/审计落库断言；操作级 MFA 与受限分支共存路径（受限会话内白名单 mutation（如 `unbindMfa`，自身标注 @MfaRequired）被白名单短路放行——不再触发操作级 challenge，专项钉定）；OAuth 入口三路径 + attrs 保留断言。〔`TestMfaRestrictedSessionE2E` 11 用例全绿：testRestrictedQueryAllowed/testRestrictedNonWhitelistMutationRejectedIncludingUnannotated（gql 文档路径 + RPC 单操作路径 + checker 直调 errorParams + 审计）/testRestrictedWhitelistMutationShortCircuitsOperationMfa（开 operation-mfa 开关使短路可分辨：checker 直调静默返回 + RPC 动作体错误 NOT_ENABLED 非 OPERATION_MFA_REQUIRED/RESTRICTED_SESSION）/testRestrictedPublicAccessMutationAllowed（受限签发 refreshToken 在受限 ctx 下刷新——防死锁）/testRestrictedInterceptionNotGatedByOperationMfaSwitch/testUnrestrictedSessionNotAffected/testChannelProofFullChainBindStrongFactorAndReLogin（主链 8 步 + 脱敏提示 + 票一次性 + 不原位升级 + 审计双事件）/testProofRateLimitInterval/testNoRecoveryChannelWhenNoPhone/testConfirmMfaFactorTooWeakRejected（errorParams.mfaType/mfaLevel 钉定 + setting 仍 pending）/testWeakFactorUserUnbindThenUpgrade（弱因子升级全链）；RPC 路径错误经 ApiResponse 包装（code=errorCode）——断言口径按 W12 先例（checker 直调取 errorParams）〕
 
 Exit Criteria:
 
-- [ ] **端到端验证**：从登录入口（密码/OAuth）→ 策略不达标 → 受限会话签发 → Dao-cache 第二请求仍受限 → 非白名单 mutation 拒绝 → 登记通道验证 → 绑定强因子 → 重新登录完整两阶段 → 完整会话，全路径经真实容器组件 E2E 跑通。
-- [ ] **接线验证**：executor → checker 受限分支运行时连通（未标注 @MfaRequired 的 mutation 也被拦截的专项断言）；checker 不存在时零介入回归。
-- [ ] **无静默跳过**：受限拒绝/proof 缺失/通道为空/因子过弱各分支显式抛错（专项测试）。
-- [ ] **一期零回归**：`./mvnw test -pl nop-auth -am` 既有套件断言零修改通过（pre-existing flake 按 W12 登记口径处理：单独运行复核 + baseline 对照）；无策略部署矩阵 = 一期行为。
-- [ ] **新功能测试**：列出 Phase 3 测试类与用例名。
-- [ ] 文档裁定：章节与回写统一 Phase 4。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] **端到端验证**：从登录入口（密码/OAuth）→ 策略不达标 → 受限会话签发 → Dao-cache 第二请求仍受限 → 非白名单 mutation 拒绝 → 登记通道验证 → 绑定强因子 → 重新登录完整两阶段 → 完整会话，全路径经真实容器组件 E2E 跑通。（testChannelProofFullChainBindStrongFactorAndReLogin + testWeakFactorUserUnbindThenUpgrade + TestMfaRestrictedDaoCache round-trip（Phase 2）+ TestMfaRestrictedDaoCache OAuth 四路径（Phase 2））
+- [x] **接线验证**：executor → checker 受限分支运行时连通（未标注 @MfaRequired 的 mutation 也被拦截的专项断言）；checker 不存在时零介入回归。（testRestrictedNonWhitelistMutationRejectedIncludingUnannotated——enableUser 未标注仍被拦；无 checker 零介入由 executor `checker==null return` 结构保证（W12 testCheckerBeanInjectedIntoEngine 反证接线存在性）+ testUnrestrictedSessionNotAffected）
+- [x] **无静默跳过**：受限拒绝/proof 缺失/通道为空/因子过弱各分支显式抛错（专项测试）。（RESTRICTED_SESSION/CHANNEL_PROOF_REQUIRED/NO_RECOVERY_CHANNEL/POLICY_FACTOR_TOO_WEAK 四错误码各有专项用例）
+- [x] **一期零回归**：`./mvnw test -pl nop-auth -am` 既有套件断言零修改通过（pre-existing flake 按 W12 登记口径处理：单独运行复核 + baseline 对照）；无策略部署全矩阵 = 一期行为。〔本 Phase 执行期实测：模块全量 263 用例（baseline 227 + 新增 36）全绿；fork 分派扰动暴露两个既有泄漏依赖测试（TestIntrospectionQuery/TestSiteMapApi/TestBeanLoader 靠兄弟类泄漏的 datasource/schema 配置起容器——92c8dc392 已登记的 empty-config-var/ NOP_SYS_SEQUENCE 疾病家族），按该 commit 先例补 `@NopTestConfig(localDb, initDatabaseSchema)` 根治，stash 前后 baseline 对照在案（baseline 模块全量 227 绿/带 W13 首跑 2 errors→补丁后全绿×3 命令）〕
+- [x] **新功能测试**：列出 Phase 3 测试类与用例名。（TestMfaRestrictedSessionE2E 11 用例，见 Proof 项）
+- [x] 文档裁定：章节与回写统一 Phase 4。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 4 - 文档同步 + 设计回写 + 收口验证
 
-Status: planned
+Status: completed
 Targets: `docs-for-ai/03-modules/nop-auth.md`、`ai-dev/design/nop-auth/02-mfa-phase2-design.md`（§4.6 回写）、`docs-for-ai/INDEX.md`、`docs-for-ai/04-reference/source-anchors.md`、roadmap
 
 - Item Types: `Follow-up | Proof`
 
-- [ ] **Follow-up**：`docs-for-ai/03-modules/nop-auth.md` 补角色级强制策略章节（三层判定矩阵/受限会话语义与白名单/登记通道 proof/策略管理 API/4 错误码/mfaRestricted 字段与 Dao-cache 语义/OAuth 入口行为变更说明/与操作级 MFA 的分层）；功能概览、核心实体表、配置、源码锚点表同步更新。
-- [ ] **Follow-up**：设计 §四回写 impl 裁定标注（新 §4.6：executor/checker 双触点接线事实与白名单短路语义、白名单终版清单、verifyChannelProof 端点归属与 proof 票 token 往返机制（`peekVerified` 原语不落地的偏离）、proof 发码限流、OAuth 接入 substrate 三裁定（SPI 落点/本地角色语义/受限签发基座）、Dao-cache 测试补充事实、**§4.3 "@BizAudit 审计"措辞按 W12 §3.6 装饰性事实修正为 saveAudit**、**§八 W13-impl Protected Area 清单补 `GraphQLExecutor`/nop-graphql-core 触点**、其余执行期偏离）；roadmap W13-impl 状态更新。
-- [ ] **Proof**：受影响模块全量验证——`./mvnw test -pl nop-kernel/nop-api-core,nop-service-framework/nop-biz-auth-api,nop-service-framework/nop-biz-auth-core,nop-service-framework/nop-graphql/nop-graphql-core,nop-auth,nop-auth-sso,nop-ai/nop-ai-gateway -am -T 1C` 绿（pre-existing flake 口径同 W12 登记）；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-auth --severity high` 0 NEW；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0。
+- [x] **Follow-up**：`docs-for-ai/03-modules/nop-auth.md` 补角色级强制策略章节（三层判定矩阵/受限会话语义与白名单/登记通道 proof/策略管理 API/4 错误码/mfaRestricted 字段与 Dao-cache 语义/OAuth 入口行为变更说明/与操作级 MFA 的分层）；功能概览、核心实体表、配置、源码锚点表同步更新。〔章节名"角色级强制策略与受限会话（W13）"；功能概览/实体表（NopAuthRoleMfaPolicy）/锚点表（evaluator/SPI/executor 分支/verifyChannelProof 四行）/两阶段流程第 2 步（第三态）/bindMfa API 行（proof 参数）同步；配置无新增（proof 限流复用 sms-code 组）〕
+- [x] **Follow-up**：设计 §四回写 impl 裁定标注（新 §4.6：executor/checker 双触点接线事实与白名单短路语义、白名单终版清单、verifyChannelProof 端点归属与 proof 票 token 往返机制（`peekVerified` 原语不落地的偏离）、proof 发码限流、OAuth 接入 substrate 三裁定（SPI 落点/本地角色语义/受限签发基座）、Dao-cache 测试补充事实、**§4.3 "@BizAudit 审计"措辞按 W12 §3.6 装饰性事实修正为 saveAudit**、**§八 W13-impl Protected Area 清单补 `GraphQLExecutor`/nop-graphql-core 触点**、其余执行期偏离）；roadmap W13-impl 状态更新。〔§4.6 十条：另含 Async 尾缀白名单纠错、审计 userName 非空列批处理回滚缺陷钉定、角色快照口径补充、MFA_RESTRICTED 判定载体；roadmap `planned` → `done` + Last updated〕
+- [x] **Proof**：受影响模块全量验证——`./mvnw test -pl nop-kernel/nop-api-core,nop-service-framework/nop-biz-auth-api,nop-service-framework/nop-biz-auth-core,nop-service-framework/nop-graphql/nop-graphql-core,nop-auth,nop-auth-sso,nop-ai/nop-ai-gateway -am -T 1C` 绿（pre-existing flake 口径同 W12 登记）；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-auth --severity high` 0 NEW；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0。〔三命令全过：全模块 test BUILD SUCCESS（263 nop-auth-service 用例 = baseline 227 + 新增 36）；hollow scan 与 stash baseline 对照 0 NEW（唯一 high 发现 `OAuthLoginServiceImpl.generateVerifyCode` UnsupportedOperationException 为一期存量，git diff 零触碰）；doc-links exit 0〕
 
 Exit Criteria:
 
-- [ ] 文档与 live 实现一致（矩阵/白名单/错误码/流程可对号）。
-- [ ] 验证命令通过（附输出；框架核心与公共 API 下游回归面覆盖）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 文档与 live 实现一致（矩阵/白名单/错误码/流程可对号）。（nop-auth.md 章节锚点与 §4.6 裁定均以 live 文件路径/行号核对）
+- [x] 验证命令通过（附输出；框架核心与公共 API 下游回归面覆盖）。（三命令输出存 `_tmp/`（test-phase4b/hollow/links）；`./mvnw test-compile -pl :nop-credential -am` Phase 2 已验 exit 0）
+- [x] `ai-dev/logs/` 对应日期条目已更新。（Phase 4 收口条目 + Phase 3 条目）
 
 ## Closure Gates
 
-- [ ] 三层判定矩阵全路径测试（五行矩阵逐行断言，无策略行 = 一期行为逐字节等价）。
-- [ ] 一期零回归：既有 MFA 套件断言零修改；`ERR_AUTH_MFA_REQUIRED` 表达不变；completeLogin 一期调用点行为不变。
-- [ ] **mfaRestricted 持久化 Dao-cache 路径测试**（第二请求标志存活——fail-open 防护；Local cache 测试不可替代）。
-- [ ] 受限会话拦截矩阵全路径（query/白名单/publicAccess/拒绝/enabled=false 不受限门控/无 checker 零介入）。
-- [ ] 登记通道 proof 全链 + enrollment attack 对抗断言。
-- [ ] confirmMfa 降级拒绝 + 解绑不受限。
-- [ ] OAuth 入口三路径（放行/挑战/受限）+ migration note 登记。
-- [ ] ORM 变更经 model-first，无手编生成物；三方言 DDL 齐备。
-- [ ] 跨模块公共 API 增量（IUserContext default 方法/LoginResult/ScanLoginResult）migration note 在案；`./mvnw test-compile -pl :nop-credential -am` 确认 IUserContext 外部实现类零破坏。
-- [ ] 无空壳/静默跳过（scan-hollow NEW 0 + 拒绝分支测试覆盖）。
-- [ ] 受影响 owner docs 已同步 + 设计裁定标注回写。
-- [ ] 独立子 agent closure-audit 已完成并记录证据（含 Anti-Hollow：登录入口 → 策略评估 → 受限签发 → 持久化 → executor 拦截 → proof → 重新登录全链追踪）。
-- [ ] `./mvnw test -pl nop-kernel/nop-api-core,nop-service-framework/nop-biz-auth-api,nop-service-framework/nop-biz-auth-core,nop-service-framework/nop-graphql/nop-graphql-core,nop-auth,nop-auth-sso,nop-ai/nop-ai-gateway -am` 绿（pre-existing flake 按 W12 登记口径）。
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0。
-- [ ] checkstyle / 代码规范检查通过（受影响模块 `-Pqa`）。
+- [x] 三层判定矩阵全路径测试（五行矩阵逐行断言，无策略行 = 一期行为逐字节等价）。（TestMfaRestrictedLoginE2E 6 用例：testMatrixGlobalSwitchOffBypassesPolicy/testMatrixNoPolicyRowsKeepPhaseOneBehavior/testMatrixStrongFactorPhaseOneChallengePath/testMatrixWeakFactorRestricted/testMatrixNotEnabledRestricted + 契约用例；closure audit 独立复跑全绿）
+- [x] 一期零回归：既有 MFA 套件断言零修改；`ERR_AUTH_MFA_REQUIRED` 表达不变；completeLogin 一期调用点行为不变。（closure audit 核验既有五套件不在 git diff 中且全绿；263 用例 = baseline 227 + 新增 36；执行期泄漏依赖测试根治三例属测试基建修复，产品断言零修改）
+- [x] **mfaRestricted 持久化 Dao-cache 路径测试**（第二请求标志存活——fail-open 防护；Local cache 测试不可替代）。（TestMfaRestrictedDaoCache.testRestrictedFlagSurvivesDaoCacheRoundTrip / testOAuthRestrictedPathPreservesAttrsAndSurvivesDaoCache）
+- [x] 受限会话拦截矩阵全路径（query/白名单/publicAccess/拒绝/enabled=false 不受限门控/无 checker 零介入）。（TestMfaRestrictedSessionE2E 6 拦截矩阵用例；无 checker 零介入 = executor `checker==null return` 结构保证 + testCheckerBeanInjectedIntoEngine 反证接线存在性（W12））
+- [x] 登记通道 proof 全链 + enrollment attack 对抗断言。（testChannelProofFullChainBindStrongFactorAndReLogin：无票不可达 provisioning URI + 票一次性重放拒绝 + 脱敏提示 + 60s 限流）
+- [x] confirmMfa 降级拒绝 + 解绑不受限。（testConfirmMfaFactorTooWeakRejected（errorParams 钉定 + setting 仍 pending）+ testWeakFactorUserUnbindThenUpgrade（解绑成功 → 升级全链））
+- [x] OAuth 入口三路径（放行/挑战/受限）+ migration note 登记。（TestMfaRestrictedDaoCache OAuth 四路径 + attrs 保留；migration note = 设计 §4.5/§4.6(5) + nop-auth.md OAuth 行为变更说明 + 08-17 日志 Phase 2 条目）
+- [x] ORM 变更经 model-first，无手编生成物；三方言 DDL 齐备。（closure audit 核验 codegen `skip-write-since-text-not-change` = 磁盘产物与生成器输出一致；三方言 `_add_` + `_create_` 齐）
+- [x] 跨模块公共 API 增量（IUserContext default 方法/LoginResult/ScanLoginResult）migration note 在案；`./mvnw test-compile -pl :nop-credential -am` 确认 IUserContext 外部实现类零破坏。（Phase 2 执行 exit 0；migration note = IUserContext javadoc + §4.5 + §4.6(7)）
+- [x] 无空壳/静默跳过（scan-hollow NEW 0 + 拒绝分支测试覆盖）。（stash baseline 对照 0 NEW（唯一 high 发现为一期存量 generateVerifyCode，git diff 零触碰）；四拒绝分支各有专项用例）
+- [x] 受影响 owner docs 已同步 + 设计裁定标注回写。（nop-auth.md 章节/INDEX/AUTH-MFA-004/§4.6 十条/§八 Protected Area 补充；closure audit 逐项核验路径行号）
+- [x] 独立子 agent closure-audit 已完成并记录证据（含 Anti-Hollow：登录入口 → 策略评估 → 受限签发 → 持久化 → executor 拦截 → proof → 重新登录全链追踪）。（fresh subagent `ses_ff20680acffeXGpSPlvN2K96SC` 判定 **CAN CLOSE**（4/4 Phase PASS + Anti-Hollow 全链 live 追踪 + 263 用例独立复跑全绿）；1 Minor（roadmap Last updated 措辞时序）+ 3 Advisory 均已在收口簿记处置）
+- [x] `./mvnw test -pl nop-kernel/nop-api-core,nop-service-framework/nop-biz-auth-api,nop-service-framework/nop-biz-auth-core,nop-service-framework/nop-graphql/nop-graphql-core,nop-auth,nop-auth-sso,nop-ai/nop-ai-gateway -am` 绿（pre-existing flake 按 W12 登记口径）。（`-T 1C` BUILD SUCCESS（_tmp/test-phase4b.log）；mission 全量命令同绿（_tmp/test-mission.log））
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0。（收口时执行，见 Closure Evidence）
+- [x] checkstyle / 代码规范检查通过（受影响模块 `-Pqa`）。（`./mvnw checkstyle:check -pl :nop-auth,:nop-ai-gateway,:nop-nosql -am -Pqa -q` exit 0（_tmp/checkstyle-qa.log）；无 profile 调用为项目未接线配置（baseline 9164 条 pre-existing，08-17 日志 mission-verify 条目登记口径），W13 净增 +2 javadoc 类与 IUserContext 文件 40 条存量同款（LineLength 一条已折叠修复））
 
 ## Deferred But Adjudicated
 
@@ -195,16 +195,28 @@ Exit Criteria:
 
 （执行后登记；一期登录级 scene 零校验残留等 W12 登记项不重复搬运。）
 
+- **MfaLoginPolicyServiceImpl 与 LoginServiceImpl.checkMfaRequired 的判定逻辑同构**（closure audit Advisory）：为保持 nop-auth-sso 零依赖边的 substrate 裁定（§4.6(5)）而存在的受控重复——两者任何一方变更时必须同步另一方（A2-audit 回归点；watch-only residual，非 live defect）。
+- W14/W15 落地新 MFA_TYPE 常量时核对 `RoleMfaPolicyEvaluator.factorLevel` 强度表入表（§5.3.1 既定安排，非本 plan 残留）。
+
 ## Closure
 
-Status Note:
-Completed:
+Status Note: 四 Phase 全部落地并勾选（Phase 1 策略模型/评估器/管理面、Phase 2 登录链第三态/受限签发/mfaRestricted 持久化/OAuth 接入、Phase 3 受限会话拦截/登记通道 proof/confirmMfa 校验/错误码/审计、Phase 4 文档同步与设计回写）；无策略行 = 一期行为零回归红线经 baseline 对照 + 263 用例全绿钉定；独立 closure audit 判定 CAN CLOSE；无遗留 plan-owned work。
+Completed: 2026-08-17
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: 独立 closure-audit subagent（fresh session，task `ses_ff20680acffeXGpSPlvN2K96SC`）
 - Evidence:
+  - 每条 Phase Exit Criterion：4/4 Phase **PASS**（live file:line 逐项核验——Phase 1 ORM/codegen 一致性（`skip-write-since-text-not-change`）/evaluator/管理面 12 用例；Phase 2 default 方法/白名单两触点/第三态插入位/completeLogin 先设后存/OAuth 三分支与 attrs 保留；Phase 3 executor+checker 双触点（受限分支前置 enabled 门 + 白名单终版含 `LoginApi__refreshToken` 无 Async 尾缀）/proof 全链/confirmMfa 校验/4 错误码/11 用例；Phase 4 nop-auth.md 章节 + §4.6 十条 + INDEX/AUTH-MFA-004/roadmap done/日志两条目）
+  - 每条 Closure Gate：15/15 PASS（证据见 Closure Gates 括注 + 下方命令输出）
+  - `./mvnw test -pl nop-auth/nop-auth-service -T 1C`（audit 独立复跑）：**Tests run: 263, Failures: 0, Errors: 0, Skipped: 3, BUILD SUCCESS**（= baseline 227 + 新增 36：12+6+7+11）
+  - 全模块命令 `./mvnw test -pl <七模块> -am -T 1C` BUILD SUCCESS（_tmp/test-phase4b.log）；mission 全量 `./mvnw test -pl :nop-auth,:nop-ai-gateway,:nop-nosql -am -T 1C` BUILD SUCCESS（_tmp/test-mission.log）
+  - Anti-Hollow 检查：全链 live 追踪 PASS——loginAsync:338 → checkMfaRequired:800 → evaluator（bean `nopRoleMfaPolicyEvaluator` 注入 LoginServiceImpl:175）→ restricted() → completeLogin(...,true):342 → 标志先设后存 :446-461 → Dao-cache 白名单 :124-126 → executor 两检查点 :69/:152 → 受限分支 :210 → checker（bean `nopOperationMfaChecker` ioc:type 注入 GraphQLEngine:160-163 → context :376-377）→ 白名单/拒绝 → proof 票 → bindMfa consume :477-483 → confirmMfa 校验 :324-333 → 重新登录（E2E 绿）；新路径无空方法体/静默跳过/吞异常（`auditService == null` 守卫为 @Nullable 注入惯例，W12 先例）
+  - `scan-hollow-implementations.mjs --module nop-auth --severity high`：与 stash baseline 对照 **0 NEW**（唯一 high 发现 `OAuthLoginServiceImpl.generateVerifyCode:231` UnsupportedOperationException 为一期存量，git diff 零触碰）；`check-doc-links.mjs --strict` exit 0（audit 独立复跑同）
+  - `check-plan-checklist.mjs <plan-file> --strict` 退出码 0（收口时执行）
+  - Deferred 项分类检查：无 in-scope live defect 降级——Non-Blocking Follow-ups 仅 2 条（watch-only residual + 既定 W14/W15 安排）
+  - Audit findings 处置：1 Minor（roadmap Last updated 措辞时序——本 Closure Evidence 即其依据，roadmap 行已补审计证据引用）+ 3 Advisory（本节登记/A2-audit 回归点/watch-only）全部吸收
 
 Follow-up:
 
-- no remaining plan-owned work（待收口时更新）
+- no remaining plan-owned work（Non-Blocking Follow-ups 两条均为 watch-only/既定后续工作项安排，非 live defect）

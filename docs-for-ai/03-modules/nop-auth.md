@@ -13,7 +13,7 @@
 - SSO 单点登录、OAuth2
 - 操作审计日志
 - 外部登录方式（微信等）
-- 多因子验证（登录级两阶段 + 操作级敏感操作二次验证）
+- 多因子验证（登录级两阶段 + 操作级敏感操作二次验证 + 角色级强制策略与受限会话）
 
 ## 默认用户
 
@@ -56,6 +56,7 @@
 | NopAuthMfaRecoveryCode | `nop_auth_mfa_recovery_code` | MFA 恢复码（codeHash BCrypt 加盐 / used / expireAt） |
 | NopAuthMfaChallenge | `nop_auth_mfa_challenge` | MFA 挑战令牌（challengeToken PK / userId / mfaType / expireAt / failCount / scene / payload / verifiedAt，W8 DB 存储 + W12 场景化） |
 | NopAuthSmsCode | `nop_auth_sms_code` | 短信验证码（codeKey PK / phone / code / expireAt / failCount，W8 DB 存储） |
+| NopAuthRoleMfaPolicy | `nop_auth_role_mfa_policy` | 角色级 MFA 强制策略（roleId PK 1:1 / minMfaLevel 1-3 / allowTrustedDevice / delFlag 软删除——无行 = 无策略，W13） |
 | NopOauthAuthorization | `nop_oauth_authorization` | OAuth2 授权记录 |
 | NopOauthRegisteredClient | `nop_oauth_registered_client` | OAuth2 客户端注册 |
 | NopOauthAuthorizationConsent | `nop_oauth_authorization_consent` | OAuth2 用户同意（授权许可） |
@@ -96,6 +97,10 @@
 | 数据权限检查 | `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/auth/DefaultDataAuthChecker.java` |
 | 站点地图 | `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/sitemap/SiteMapProviderImpl.java` |
 | 操作级 MFA 拦截判定 | `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/mfa/OperationMfaCheckerImpl.java` |
+| 角色级策略评估器 | `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/mfa/RoleMfaPolicyEvaluator.java` |
+| OAuth 接入 MFA 判定 SPI | `nop-service-framework/nop-biz-auth-core/src/main/java/io/nop/auth/core/mfa/IMfaLoginPolicyService.java` |
+| 受限会话 executor 分支 | `nop-service-framework/nop-graphql/nop-graphql-core/src/main/java/io/nop/graphql/core/engine/GraphQLExecutor.java`（`checkOperationMfa`） |
+| 登记通道验证端点 | `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/biz/LoginApiBizModel.java`（`verifyChannelProof`） |
 | 共享因子校验组件 | `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/mfa/MfaFactorVerifier.java` |
 | 操作级验证端点 | `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/biz/LoginApiBizModel.java`（`mfaVerifyOperation`） |
 | ORM 模型 | `nop-auth/model/nop-auth.orm.xml` |
@@ -120,7 +125,7 @@ nop-auth 提供完整的两阶段登录（第一因子 → challenge → 第二�
 ### 两阶段登录流程
 
 1. **第一因子校验**：`LoginServiceImpl.loginAsync()`（`:241`）校验用户凭证（密码/SSO/信道）。
-2. **MFA 拦截**：`checkMfaRequired()`（`:743`）——`nop.auth.mfa.enabled` 开关 + 用户 MFA 设置检查（status==enabled）。SSO/信道登录同样拦截（`createSessionForUserAsync`，`:337`，loginType 参数化保证审计不失真）。
+2. **MFA 拦截**：`checkMfaRequired()`（`:743`）——`nop.auth.mfa.enabled` 开关 + 角色策略评估（W13 第三态：有策略且不达标 → 受限会话签发，不建 challenge）+ 用户 MFA 设置检查（status==enabled）。SSO/信道登录同样拦截（`createSessionForUserAsync`，`:337`，loginType 参数化保证审计不失真）。
 3. **创建 challenge**：`MfaChallengeStore.create()` 生成一次性 challengeToken。
 4. **抛 `ERR_AUTH_MFA_REQUIRED`**（`:319`）：errorParams 携带 challengeToken / mfaType / loginType。未启用 MFA 的用户零感知（直接进 completeLogin）。
 5. **第二因子验证**：客户端调 `LoginApi.mfaVerify`（`LoginApiBizModel.mfaVerifyAsync`，`:122`）→ `LoginServiceImpl.mfaVerifyAsync`（`:422`）：peek challenge → setting 复核 → TOTP / SMS / 恢复码分支 → 成功后 `consume` challenge 并 `completeMfaLogin`（`:601`）签发 token。
@@ -153,7 +158,7 @@ nop-auth 提供完整的两阶段登录（第一因子 → challenge → 第二�
 
 | 方法 | 行 | 语义 |
 |------|----|------|
-| `bindMfa(mfaType)` | `:133` | 发起绑定（pending + bindToken，TOTP 返回 provisioning URI，SMS 发码到手机） |
+| `bindMfa(mfaType, proof?)` | `:133` | 发起绑定（pending + bindToken，TOTP 返回 provisioning URI，SMS 发码到手机）。受限会话内必须先经登记通道 proof（`proof` 参数携带 `verifyChannelProof` 返回的票 token，见"角色级强制策略"章节） |
 | `confirmMfa(bindToken, code)` | `:243` | 确认绑定（校验码 + enabled + 生成恢复码） |
 | `unbindMfa(code)` | `:293` | 解绑（验证当前因子 + 作废恢复码） |
 | `generateRecoveryCodes()` | `:321` | 重置恢复码（作废旧码） |
@@ -214,6 +219,56 @@ public void resetUserPassword(@Name("userId") String userId, @Name("password") S
 **审计**：四事件（challenge 发起/验证成功/验证失败/票消费）经 `IAuditService.saveAudit` 落 `NopAuthOpLog`（记录 operation 与 sessionId；`@BizAudit` 为装饰性注解，不作落点）。
 
 **store 场景化**：`MfaChallengeStore` 提供 `create(scene, ..., payload)` 场景重载与 `markVerified(token)`（一次性迁移，Local=JVM compute / DB=条件 UPDATE+affected-row / Redis=派生票键 SETNX 三实现原子性）；登录级调用点（老五参 create）零改动。Redis 滚动升级注意：老进程读新 JSON（含 scene/payload/verifiedAt 增量键）需 `nop.core.json.parse-ignore-unknown-prop=true`（平台缺省 false）或预留 5 分钟 challenge 排空窗口（TTL 300s）。
+
+### 角色级强制策略与受限会话（W13）
+
+管理员可按角色强制 MFA：策略 = 用户因子**持有约束**（不改变验证所用因子）。无策略行时三层判定退化为一期行为（零回归基线）。
+
+**策略模型与管理 API**：`NopAuthRoleMfaPolicy`（roleId PK 1:1 按需建行，`minMfaLevel` 因子强度下限 1/2/3，`allowTrustedDevice` 缺省 true（W15 消费），delFlag 软删除）。管理入口 `NopAuthRoleBizModel`：
+
+| 方法 | 语义 |
+|------|------|
+| `NopAuthRole__saveMfaPolicy(roleId, minMfaLevel, allowTrustedDevice?)` | 建行/覆盖（admin 运行时校验 + 幂等 + 审计） |
+| `NopAuthRole__removeMfaPolicy(roleId)` | 删行即撤策略（无 status 双态；幂等 + 审计） |
+
+**因子强度表**（`RoleMfaPolicyEvaluator.factorLevel`，W14/W15 新常量仅核对入表）：sms/email=1（OTP 拥有通道）、totp=2、webauthn=3；未知 mfaType fail-closed 视为 0。多角色合并 = `max(minMfaLevel)`（最严格胜）+ `allowTrustedDevice` AND（任一 false 即禁）。角色快照口径 = `buildUserContext`（直接角色 + childRoleIds 继承展开 + 隐式 user 角色及其继承链——策略挂 `user` 角色 = 全员强制）。策略在**登录时评估**（角色/策略变更下次登录生效，会话中期不回溯）。
+
+**三层判定矩阵**（`LoginServiceImpl.checkMfaRequired` 第三态，策略评估插入 store 装配检查之后、setting 装载之前）：
+
+| 全局开关 | 角色策略（合并 maxLevel） | 用户 setting | 行为 |
+|---|---|---|---|
+| off | 任意 | 任意 | 一期行为：直接放行 |
+| on | 无策略 | 任意 | 一期行为：现行判定不变 |
+| on | 有策略（L） | enabled 且 level(因子) ≥ L | 一期行为：正常 challenge 两阶段 |
+| on | 有策略（L） | enabled 且 level(因子) < L | **直接受限**（不建 challenge）：受限会话 |
+| on | 有策略（L） | 未启用 | **直接受限**：受限会话 |
+
+**受限会话（restricted session）**：`completeLogin` 受限变体签发——`mfaRestricted` 标志在会话持久化**之前**写入（`UserContextImpl.serializeToJson` 与 `DaoUserContextCache` 序列化白名单两触点同步，仅受限会话写入该键）；`LoginResult.mfaRestricted` / `ScanLoginResult.mfaRestricted` 可选字段回填（正常登录缺省不出现）。`IUserContext.isMfaRestricted()` 为 Java default 方法（缺省 false，外部实现类零破坏）。
+
+**受限会话拦截**（executor + checker 双触点，与操作级 MFA 同一拦截点分层正交）：
+
+- `GraphQLExecutor.checkOperationMfa` 受限分支（前置于 `mfaRequiredMeta` 早退，对**所有** operation 生效）：query 放行 + publicAccess mutation 放行（token 刷新等会话基建，防中途 token 过期死锁）+ 其余 mutation 路由进 checker。
+- `OperationMfaCheckerImpl` 受限分支（前置于 `operation-mfa.enabled` 门——**不受操作级开关门控**）：白名单 mutation 放行且**短路返回**（不再叠加 @MfaRequired 操作级检查），其余抛 `ERR_AUTH_MFA_RESTRICTED_SESSION`（errorParams 携带 operation 全名）。
+- 白名单终版（operation 全名 `bizObjName__action` 口径；注意 schema 注册名剥除方法名 `Async` 尾缀）：`NopAuthUser__bindMfa` / `NopAuthUser__confirmMfa` / `NopAuthUser__unbindMfa` / `NopAuthUser__getMfaStatus` / `LoginApi__verifyChannelProof` / `LoginApi__logout` / `LoginApi__refreshToken`。
+- 无 checker bean（未部署 nop-auth-service）时 executor 零介入不变。
+
+**登记通道 proof（防 enrollment attack）**：受限会话内 `bindMfa` 前置门槛——仅持有密码的攻击者不得绑定自己的验证器接管账户（门槛提升到"密码 + 登记通道"）。
+
+1. `bindMfa`（受限会话）：服务端解析用户登记 phone（W13 仅 phone，不接受客户端指定；为空抛 `ERR_AUTH_MFA_NO_RECOVERY_CHANNEL`）→ 无有效票时 `SmsCodeStore.send("proof:{userId}")` 发码（复用 sms-code 限流配置：60s 间隔/日上限）→ 抛 `ERR_AUTH_MFA_CHANNEL_PROOF_REQUIRED`（channel 脱敏提示，尾 4 位）。
+2. `LoginApi__verifyChannelProof(code)`（登录态）：校验 proof 码 → 创建 scene=channel-proof 已验证票（`markVerified` 转票，票窗口 = `op-ticket-expire-seconds` 语义）→ 返回票 token。
+3. `bindMfa(mfaType, proof: 票token)`：票核验（scene + verifiedAt + userId 绑定）+ 原子 `consume` 一次性消费 → 绑定流程放行。正常会话 `bindMfa` 零改动（无 proof 参数即原行为）。
+
+**confirmMfa 策略校验（防因子降级）**：确认因子强度 < 角色策略 minMfaLevel → `ERR_AUTH_MFA_POLICY_FACTOR_TOO_WEAK`（errorParams mfaType/mfaLevel）。解绑不受限（`unbindMfa` 本身要求验证当前因子——攻击者无因子不可解绑）；受限会话内 confirmMfa 成功**不原位升级会话**（引导登出后重新登录走完整两阶段）。
+
+**升级引导流（状态机）**：受限登录 → （弱因子用户：unbindMfa 验当前因子解绑）→ 登记通道 proof → bind 强因子 → confirmMfa → 登出 → 重新登录（完整两阶段）→ 完整会话。
+
+**OAuth 入口行为变更（一期遗留 gap 修复，migration note）**：`OAuthLoginServiceImpl.loginAsync`（nop-auth-sso）经 `IMfaLoginPolicyService` SPI（nop-biz-auth-core 接口 / nop-auth-service 实现 bean `nopMfaLoginPolicyService`，`@Inject @Nullable` 可选注入）接入与密码路径同语义判定——从"永不拦截"变为"与密码路径同语义"（null 放行/challenge `ERR_AUTH_MFA_REQUIRED`/受限签发三分支）。策略评估用**本地角色快照**（realm roles 不参与）；无本地用户映射 = 无策略 = 维持一期行为。未部署 nop-auth-service 时零介入。
+
+**审计事件**（`IAuditService.saveAudit` 落 `NopAuthOpLog`）：`mfa-restricted-login`（受限签发）/ `mfa-restricted-rejected`（受限拦截拒绝）/ `mfa:channel-proof-sent`（proof 发码，phone 脱敏）/ `mfa:channel-proof-verified|fail`（proof 验证）/ 策略变更三事件（saveMfaPolicy/removeMfaPolicy）。注意 `NopAuthOpLog.userName` 为非空列——审计请求必须设置 userName，否则批处理整批回滚（W13 E2E 钉定）。
+
+**与操作级 MFA 的分层**：角色策略是登录期持有约束（评估点唯一 = `checkMfaRequired`）；操作级是会话期敏感操作保护。受限分支前置于操作级判定（含 enabled 门）且短路白名单动作的操作级检查；组合仅经 `allowTrustedDevice` 单点（W15）。
+
+**错误码**（`NopAuthErrors`，不触碰一期编码）：`ERR_AUTH_MFA_RESTRICTED_SESSION`（`nop.err.auth.mfa-restricted-session`，ARG_OPERATION）、`ERR_AUTH_MFA_CHANNEL_PROOF_REQUIRED`（`nop.err.auth.mfa-channel-proof-required`，ARG_CHANNEL 脱敏）、`ERR_AUTH_MFA_NO_RECOVERY_CHANNEL`（`nop.err.auth.mfa-no-recovery-channel`）、`ERR_AUTH_MFA_POLICY_FACTOR_TOO_WEAK`（`nop.err.auth.mfa-policy-factor-too-weak`，ARG_MFA_TYPE/ARG_MFA_LEVEL）。
 
 ## 相关文档
 
