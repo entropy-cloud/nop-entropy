@@ -28,6 +28,7 @@ import io.nop.auth.api.messages.WebAuthnAssertion;
 import io.nop.auth.api.messages.WebAuthnAttestation;
 import io.nop.auth.api.messages.WebAuthnCreationOptions;
 import io.nop.auth.biz.INopAuthUserBiz;
+import io.nop.auth.core.mfa.store.EmailCodeStore;
 import io.nop.auth.core.mfa.store.MfaChallenge;
 import io.nop.auth.core.mfa.store.SmsCodeStore;
 import io.nop.auth.core.password.IPasswordEncoder;
@@ -42,8 +43,10 @@ import io.nop.auth.service.NopAuthConstants;
 import io.nop.auth.service.biz.dto.MfaBindResult;
 import io.nop.auth.service.biz.dto.MfaStatusResult;
 import io.nop.auth.service.biz.dto.MfaWebauthnBeginResult;
+import io.nop.auth.service.biz.dto.TrustedDeviceInfo;
 import io.nop.auth.service.mfa.MfaChallengeHelper;
 import io.nop.auth.service.mfa.MfaFactorVerifier;
+import io.nop.auth.service.mfa.MfaTrustedDeviceManager;
 import io.nop.auth.service.mfa.WebAuthnAuthenticator;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.biz.crud.EntityData;
@@ -53,6 +56,8 @@ import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.DaoConstants;
 import io.nop.dao.api.IEntityDao;
+import io.nop.integration.api.email.EmailMessage;
+import io.nop.integration.api.email.IEmailSender;
 import io.nop.integration.api.sms.ISmsSender;
 import io.nop.integration.api.sms.SmsMessage;
 import jakarta.annotation.Nullable;
@@ -67,21 +72,33 @@ import java.util.Set;
 
 import static io.nop.auth.core.AuthCoreErrors.ERR_AUTH_OLD_PASSWORD_NOT_MATCH;
 import static io.nop.auth.core.AuthCoreErrors.ERR_AUTH_USER_NOT_LOGIN;
+import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_EMAIL_CODE_DAILY_LIMIT;
+import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_EMAIL_CODE_ENABLED;
+import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_EMAIL_CODE_SEND_INTERVAL_SECONDS;
+import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_EMAIL_CODE_SUBJECT_TEMPLATE;
+import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_EMAIL_CODE_TEXT_TEMPLATE;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_MFA_BIND_EXPIRE_SECONDS;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_MFA_MAX_ATTEMPTS;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_MFA_TOTP_ISSUER;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_SMS_CODE_TEMPLATE_ID;
+import static io.nop.auth.service.NopAuthConstants.EMAIL_KEY_MFA;
+import static io.nop.auth.service.NopAuthConstants.EMAIL_KEY_PROOF;
 import static io.nop.auth.service.NopAuthConstants.MFA_STATUS_DISABLED;
 import static io.nop.auth.service.NopAuthConstants.MFA_STATUS_ENABLED;
 import static io.nop.auth.service.NopAuthConstants.MFA_STATUS_PENDING;
+import static io.nop.auth.service.NopAuthConstants.MFA_TYPE_EMAIL;
 import static io.nop.auth.service.NopAuthConstants.MFA_TYPE_SMS;
 import static io.nop.auth.service.NopAuthConstants.MFA_TYPE_TOTP;
 import static io.nop.auth.service.NopAuthConstants.MFA_TYPE_WEBAUTHN;
+import static io.nop.auth.service.NopAuthConstants.PROOF_CHANNEL_EMAIL;
+import static io.nop.auth.service.NopAuthConstants.PROOF_CHANNEL_PHONE;
 import static io.nop.auth.service.NopAuthConstants.SMS_KEY_MFA;
 import static io.nop.auth.service.NopAuthConstants.SMS_KEY_PROOF;
 import static io.nop.auth.service.NopAuthErrors.ARG_CHALLENGE_TOKEN;
 import static io.nop.auth.service.NopAuthErrors.ARG_MFA_TYPE;
 import static io.nop.auth.service.NopAuthErrors.ARG_USER_ID;
+import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_EMAIL_DAILY_LIMIT;
+import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_EMAIL_RATE_LIMITED;
 import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_INVALID_LOGIN_REQUEST;
 import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_MFA_ALREADY_ENABLED;
 import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_MFA_BIND_EXPIRED;
@@ -100,8 +117,8 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
     /** 恢复码位数（设计 §3.4：10 位数字）。 */
     private static final int RECOVERY_CODE_DIGITS = 10;
 
-    /** bindMfa 入参白名单（§5.3.0 #2，W14 含 webauthn；错误消息动态拼接自此单点）。 */
-    private static final List<String> SUPPORTED_MFA_TYPES = List.of(MFA_TYPE_TOTP, MFA_TYPE_SMS, MFA_TYPE_WEBAUTHN);
+    /** bindMfa 入参白名单（§5.3.0 #2，W14 含 webauthn、W15 含 email；错误消息动态拼接自此单点）。 */
+    private static final List<String> SUPPORTED_MFA_TYPES = List.of(MFA_TYPE_TOTP, MFA_TYPE_SMS, MFA_TYPE_WEBAUTHN, MFA_TYPE_EMAIL);
 
     @Inject
     IPasswordEncoder passwordEncoder;
@@ -136,6 +153,22 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
     protected ISmsSender smsSender;
 
     /**
+     * 邮件验证码 store（W15-impl，设计 §5.3.3）：bindMfa(email)/登记通道 email proof 发码
+     * （key={@code mfa-email:{userId}} / {@code proof-email:{userId}}）。
+     */
+    @Inject
+    @Nullable
+    protected EmailCodeStore emailCodeStore;
+
+    /**
+     * 邮件发送器（nop-integration-api，W15-impl 复用既有实现零变更）。未装配时 email 因子
+     * 绑定/发码 fail-closed（对齐 sms {@code smsSender == null} 行为）。
+     */
+    @Inject
+    @Nullable
+    protected IEmailSender emailSender;
+
+    /**
      * 共享因子校验组件（W12-impl，设计 §3.1 结论 5）：confirmMfa/unbindMfa 的因子校验
      * 收敛于此（TOTP 窗口推进内聚组件，confirmMfa 不再重复验证）。
      */
@@ -168,10 +201,20 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
     @Nullable
     protected io.nop.auth.service.mfa.RoleMfaPolicyEvaluator roleMfaPolicyEvaluator;
 
-    /** 审计服务（W13：登记通道 proof 发码事件）。{@code @BizAudit} 为装饰性注解（W12 裁定）。 */
+    /**
+     * 审计服务（W13：登记通道 proof 发码事件）。{@code @BizAudit} 为装饰性注解（W12 裁定）。 */
     @Inject
     @Nullable
     protected io.nop.api.core.audit.IAuditService auditService;
+
+    /**
+     * 可信设备共享组件（W15-impl，设计 §六）：撤销矩阵钩子（unbindMfa/confirmMfa 换绑/
+     * resetUserMfa 全量删除）+ 管理 API（listTrustedDevices/removeTrustedDevice）。
+     * 可选注入：未装配 = 钩子/管理显式拒绝（fail-closed，不静默）。
+     */
+    @Inject
+    @Nullable
+    protected MfaTrustedDeviceManager trustedDeviceManager;
 
     public NopAuthUserBizModel() {
         setEntityName(NopAuthUser.class.getName());
@@ -193,20 +236,23 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
     @BizAudit(logRequestFields = "mfaType")
     public MfaBindResult bindMfa(@Name("mfaType") String mfaType,
                                   @io.nop.api.core.annotations.core.Optional @Name("proof") String proofToken,
+                                  @io.nop.api.core.annotations.core.Optional @Name("channel") String channel,
                                   IServiceContext context) {
         String userId = requireCurrentUserId(context);
-        // #2 白名单扩容（W14，设计 §5.3.0）：合法值集合含 webauthn；错误消息动态拼接合法值
-        // （新增因子只改 SUPPORTED_MFA_TYPES 单点）
+        // #2 白名单扩容（W14/W15，设计 §5.3.0）：合法值集合含 webauthn/email；错误消息动态拼接
+        // 合法值（新增因子只改 SUPPORTED_MFA_TYPES 单点）
         if (!SUPPORTED_MFA_TYPES.contains(mfaType)) {
             throw new NopException(ERR_AUTH_INVALID_LOGIN_REQUEST).param(ARG_MFA_TYPE, mfaType)
                     .param("msg", "unsupported mfaType: " + mfaType + " (supported: " + String.join("/", SUPPORTED_MFA_TYPES) + ")");
         }
 
         // W13-impl：受限会话内 bindMfa 前置登记通道验证（防 enrollment attack，设计 §4.3）。
-        // 正常会话 bindMfa 不受影响（零改动）；webauthn 路径在分派之前自动继承（W14 专项断言）
+        // 正常会话 bindMfa 不受影响（零改动）；webauthn 路径在分派之前自动继承（W14 专项断言）。
+        // W15-impl：通道解析扩展——phone 缺失回退 email，双通道登记时可选 channel 参数选择
+        //（服务端限定已登记通道集合，设计 §4.3 既定扩展）。
         IUserContext uc = context.getUserContext();
         if (uc != null && uc.isMfaRestricted()) {
-            requireChannelProof(userId, proofToken);
+            requireChannelProof(userId, proofToken, channel, context);
         }
 
         NopAuthUser user = daoFor(NopAuthUser.class).getEntityById(userId);
@@ -232,15 +278,24 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
         if (MFA_TYPE_WEBAUTHN.equals(mfaType)) {
             return bindWebauthn(settingDao, setting, user, context);
         }
+        // #3 分派扩展（W15-impl，设计 §5.3.3）：email → sms 同形路径（发码到服务端解析的登记 email）
+        if (MFA_TYPE_EMAIL.equals(mfaType)) {
+            return bindEmail(settingDao, setting, user, bindToken, context);
+        }
         return bindSms(settingDao, setting, user, bindToken);
     }
 
     /**
-     * 兼容重载（W13 前调用点）：无 proof 参数 = 正常会话路径（受限会话内将触发 proof 发码
-     * 引导）。无 @BizMutation 注解——GraphQL 面仅暴露三参版本。
+     * 兼容重载（W13/W14 调用点）：无 channel 参数 = 缺省通道解析（phone 优先、phone 缺失回退
+     * email）。无 @BizMutation 注解——GraphQL 面仅暴露四参版本。
      */
+    public MfaBindResult bindMfa(String mfaType, String proofToken, IServiceContext context) {
+        return bindMfa(mfaType, proofToken, null, context);
+    }
+
+    /** 兼容重载（一期调用点）：无 proof/channel 参数 = 正常会话路径。无注解——GraphQL 面仅暴露四参版本。 */
     public MfaBindResult bindMfa(String mfaType, IServiceContext context) {
-        return bindMfa(mfaType, null, context);
+        return bindMfa(mfaType, null, null, context);
     }
 
     private MfaBindResult bindTotp(IEntityDao<NopAuthMfaSetting> settingDao, NopAuthMfaSetting setting,
@@ -281,6 +336,44 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
         MfaBindResult result = new MfaBindResult();
         result.setMfaType(MFA_TYPE_SMS);
         result.setSmsSent(true);
+        result.setBindToken(bindToken);
+        return result;
+    }
+
+    /**
+     * email 因子绑定发起（W15-impl，设计 §5.3.3——bindSms 同形）：发码到<b>服务端解析</b>的
+     * {@code NopAuthUser.email}（不接受客户端指定邮箱，防枚举/骚扰——sms bindMfa 先例）；
+     * key={@code mfa-email:{userId}}（与 mfaVerify 消费口径一致，通道隔离）。
+     * <p>
+     * 门控与限流（email-code 配置组，缺省 enabled=false）：enabled=false / EmailCodeStore 未装配
+     * / IEmailSender 未装配 均 fail-closed 显式报错；发码前 email 维度限流（60s 间隔 + 日上限）。
+     */
+    private MfaBindResult bindEmail(IEntityDao<NopAuthMfaSetting> settingDao, NopAuthMfaSetting setting,
+                                    NopAuthUser user, String bindToken, IServiceContext context) {
+        String email = user.getEmail();
+        if (StringHelper.isEmpty(email)) {
+            throw new NopException(ERR_AUTH_INVALID_LOGIN_REQUEST).param(ARG_USER_ID, user.getUserId())
+                    .param("msg", "user has no email address; cannot bind email MFA");
+        }
+        if (!CFG_AUTH_EMAIL_CODE_ENABLED.get()) {
+            throw new NopException(ERR_AUTH_INVALID_LOGIN_REQUEST).param(ARG_MFA_TYPE, MFA_TYPE_EMAIL)
+                    .param("msg", "email code is disabled (nop.auth.email-code.enabled=false)");
+        }
+        if (emailCodeStore == null) {
+            throw new NopException(ERR_AUTH_INVALID_LOGIN_REQUEST).param(ARG_MFA_TYPE, MFA_TYPE_EMAIL)
+                    .param("msg", "EmailCodeStore is not configured; email MFA binding is disabled");
+        }
+        // email 维度限流（发码入口统一前置，设计 §5.3.3——email 间隔/日上限 + IP 日上限三层）
+        checkEmailRateLimit(email, extractClientIp(context));
+        // 发送验证码到登记邮箱（key=mfa-email:userId，与 mfaVerify 消费口径一致）
+        String code = emailCodeStore.send(EMAIL_KEY_MFA + user.getUserId());
+        sendEmailForBinding(email, code);
+
+        upsertPending(settingDao, setting, user, MFA_TYPE_EMAIL, null, null, bindToken);
+
+        MfaBindResult result = new MfaBindResult();
+        result.setMfaType(MFA_TYPE_EMAIL);
+        result.setEmailSent(true);
         result.setBindToken(bindToken);
         return result;
     }
@@ -555,6 +648,10 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
         setting.setStatus(MFA_STATUS_ENABLED);
         setting.setBindToken(null);
 
+        // W15-impl 撤销矩阵（设计 §6.3）：换绑判定点 = confirmMfa 成功——因子变更即全量撤销
+        //（首次绑定无可信行，删除为无害幂等；pending 覆盖写不算因子变更，仅此刻生效才算）
+        revokeTrustedDevices(userId, "factor-change");
+
         // 生成恢复码（作废旧码）
         return regenerateRecoveryCodes(userId);
     }
@@ -604,7 +701,9 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
         setting.setStatus(MFA_STATUS_DISABLED);
         setting.setBindToken(null);
         deleteRecoveryCodes(userId);
-        // W15 挂点：可信设备撤销矩阵（本 plan 仅保持既有行为）
+        // W15-impl 撤销矩阵（设计 §6.3）：解绑成功 = 因子变更 → 全量删除该用户可信设备
+        //（信任前提 = 特定因子持有，因子变更即失效）
+        revokeTrustedDevices(userId, "unbind");
     }
 
     /** 兼容重载（W14 前调用点）：一期 totp/sms 解绑路径。无注解——GraphQL 面仅暴露四参版本。 */
@@ -762,6 +861,65 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
         return credential;
     }
 
+    // ===================== MFA 可信设备自助管理（W15-impl，设计 §6.3；W6 并入先例） =====================
+
+    /**
+     * 列出本人的可信设备（本人数据限定；全部行含过期标记——支持自助清理，设计 §六）。
+     * 不返回 deviceHash（不可逆哈希非秘密，展示无益——最小暴露面）。
+     */
+    @Description("查询可信设备列表")
+    @BizQuery
+    public List<TrustedDeviceInfo> listTrustedDevices(IServiceContext context) {
+        String userId = requireCurrentUserId(context);
+        requireTrustedDeviceManager();
+        List<TrustedDeviceInfo> result = new ArrayList<>();
+        long now = CoreMetrics.currentTimeMillis();
+        for (io.nop.auth.dao.entity.NopAuthMfaTrustedDevice row : trustedDeviceManager.listForUser(userId)) {
+            TrustedDeviceInfo info = new TrustedDeviceInfo();
+            info.setSid(row.getSid());
+            info.setDeviceName(row.getDeviceName());
+            info.setExpireAt(row.getExpireAt());
+            info.setLastUsedAt(row.getLastUsedAt());
+            info.setCreateTime(row.getCreateTime());
+            info.setExpired(row.getExpireAt() == null
+                    || row.getExpireAt().getTime() <= now);
+            result.add(info);
+        }
+        return result;
+    }
+
+    /**
+     * 移除一把可信设备（本人数据限定——越权/不存在归一"不存在"；物理删除，设计 §六撤销矩阵）。
+     */
+    @Description("移除可信设备")
+    @BizMutation
+    @BizAudit(logRequestFields = "sid")
+    public void removeTrustedDevice(@Name("sid") String sid, IServiceContext context) {
+        String userId = requireCurrentUserId(context);
+        requireTrustedDeviceManager();
+        boolean removed = trustedDeviceManager.removeBySid(sid, userId);
+        if (!removed) {
+            // 越权归一"不存在"（不泄露他人数据存在性——webauthn credential 同先例）
+            throw new NopException(ERR_AUTH_INVALID_LOGIN_REQUEST).param(ARG_USER_ID, userId)
+                    .param("msg", "trusted device not found");
+        }
+    }
+
+    /** 可信设备组件可用性前置（未装配显式拒绝——fail-closed，不静默空实现）。 */
+    private void requireTrustedDeviceManager() {
+        if (trustedDeviceManager == null) {
+            throw new NopException(ERR_AUTH_INVALID_LOGIN_REQUEST)
+                    .param("msg", "MfaTrustedDeviceManager is not configured; trusted device management is unavailable");
+        }
+    }
+
+    /** 撤销矩阵钩子：全量删除该用户可信设备（组件未装配 = 无可删行，跳过）。 */
+    private void revokeTrustedDevices(String userId, String reason) {
+        if (trustedDeviceManager != null) {
+            trustedDeviceManager.removeAllForUser(userId, reason);
+        }
+    }
+
     // ===================== MFA 管理员重置（设计 §3.6，Phase 2） =====================
 
     /**
@@ -801,6 +959,8 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
             setting.setLastVerifiedWindow(null);
         }
         deleteRecoveryCodes(userId);
+        // W15-impl 撤销矩阵（设计 §6.3）：管理员重置 → 全量删除该用户可信设备
+        revokeTrustedDevices(userId, "admin-reset");
     }
 
     // ===================== MFA 内部辅助 =====================
@@ -895,21 +1055,25 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
         auditService.saveAudit(audit);
     }
 
-    /** 登记通道 proof 发码限流追踪：phone → [lastSendMs, dailyCount, dailyDate]（对齐 LoginServiceImpl sms 限流模式）。 */
+    /** 登记通道 proof 发码限流追踪（W13 phone 维度 + W15 email 维度独立计数）。 */
     private final Map<String, long[]> proofRateTracker = new java.util.concurrent.ConcurrentHashMap<>();
+    private final Map<String, long[]> emailRateTracker = new java.util.concurrent.ConcurrentHashMap<>();
+    private final Map<String, long[]> emailIpRateTracker = new java.util.concurrent.ConcurrentHashMap<>();
 
     /**
      * 受限会话内 bindMfa 的登记通道 proof 门槛（设计 §4.3 防 enrollment attack）：
      * <ol>
      *   <li>有效票核验：scene=channel-proof + 已验证（peek 不变式：verifiedAt 非空 ⇒ 票在
      *       op-ticket 窗口内）+ userId 绑定 + 原子消费（一次性）——通过即返回。</li>
-     *   <li>无有效票：服务端解析登记通道（W13 仅 phone，不接受客户端指定；为空抛
-     *       {@code NO_RECOVERY_CHANNEL}）→ 复用 sms-code 限流模式（60s 间隔/日上限——防受限
-     *       会话内 proof 码轰炸受害者登记手机）→ {@code SmsCodeStore.send(proof:{userId})}
-     *       发码 → 抛 {@code CHANNEL_PROOF_REQUIRED}（脱敏提示）。</li>
+     *   <li>无有效票：服务端解析登记通道（W15-impl 扩展：phone 优先、phone 缺失回退 email；
+     *       双通道均登记时可选 {@code channel} 参数选择——服务端限定已登记通道集合，不接受
+     *       任意指定）→ 限流（防受限会话内 proof 码轰炸受害者登记手机/邮箱）→
+     *       {@code SmsCodeStore.send(proof:{userId})} 或 {@code EmailCodeStore.send(proof-email:{userId})}
+     *       发码（通道隔离）→ 抛 {@code CHANNEL_PROOF_REQUIRED}（脱敏提示）。</li>
      * </ol>
      */
-    private void requireChannelProof(String userId, String proofToken) {
+    private void requireChannelProof(String userId, String proofToken, String requestedChannel,
+                                     IServiceContext context) {
         // 1. 票核验（一次性消费）
         if (!StringHelper.isEmpty(proofToken) && mfaChallengeStore != null) {
             io.nop.auth.core.mfa.store.MfaChallenge c = mfaChallengeStore.peek(proofToken);
@@ -921,15 +1085,38 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
             // 无效/过期票按"无有效票"处理（重发码引导，不静默放行也不暴露票状态）
         }
 
-        // 2. 通道解析（服务端；W13 仅 phone）
+        // 2. 通道解析（服务端；W13 仅 phone → W15 扩展 phone 缺失回退 email + 双通道可选）
         NopAuthUser user = daoFor(NopAuthUser.class).getEntityById(userId);
         String phone = user == null ? null : user.getPhone();
-        if (StringHelper.isEmpty(phone)) {
+        String email = user == null ? null : user.getEmail();
+        boolean hasPhone = !StringHelper.isEmpty(phone);
+        boolean hasEmail = !StringHelper.isEmpty(email);
+        if (!hasPhone && !hasEmail) {
             throw new NopException(io.nop.auth.service.NopAuthErrors.ERR_AUTH_MFA_NO_RECOVERY_CHANNEL)
                     .param(ARG_USER_ID, userId);
         }
+        String channel = resolveProofChannel(requestedChannel, hasPhone, hasEmail, userId);
 
-        // 3. 限流（60s 间隔 + 日上限；sendMfaCode 调用点限流先例）
+        if (PROOF_CHANNEL_EMAIL.equals(channel)) {
+            // email 通道（W15-impl）：门控（显式拒绝非静默）→ email 维度限流 →
+            // EmailCodeStore 发码（key=proof-email:{userId}，通道隔离）→ 脱敏提示抛错
+            if (!CFG_AUTH_EMAIL_CODE_ENABLED.get()) {
+                throw new NopException(ERR_AUTH_INVALID_LOGIN_REQUEST).param(ARG_USER_ID, userId)
+                        .param("msg", "email code is disabled (nop.auth.email-code.enabled=false)");
+            }
+            if (emailCodeStore == null) {
+                throw new NopException(ERR_AUTH_INVALID_LOGIN_REQUEST).param(ARG_USER_ID, userId)
+                        .param("msg", "EmailCodeStore is not configured; email channel proof is unavailable");
+            }
+            checkEmailRateLimit(email, extractClientIp(context));
+            String code = emailCodeStore.send(EMAIL_KEY_PROOF + userId);
+            sendEmailForBinding(email, code);
+            auditChannelProofSent(userId, user.getUserName(), PROOF_CHANNEL_EMAIL, maskEmail(email));
+            throw new NopException(io.nop.auth.service.NopAuthErrors.ERR_AUTH_MFA_CHANNEL_PROOF_REQUIRED)
+                    .param(io.nop.auth.service.NopAuthErrors.ARG_CHANNEL, maskEmail(email));
+        }
+
+        // 3. phone 通道（W13 原路径）：限流（60s 间隔 + 日上限；sendMfaCode 调用点限流先例）
         checkProofRateLimit(phone);
 
         // 4. 发码（key=proof:{userId}，通道隔离）→ 脱敏提示抛错（客户端持码调 verifyChannelProof）
@@ -939,9 +1126,27 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
         }
         String code = smsCodeStore.send(SMS_KEY_PROOF + userId);
         sendSmsForBinding(phone, code);
-        auditChannelProofSent(userId, user.getUserName(), phone);
+        auditChannelProofSent(userId, user.getUserName(), PROOF_CHANNEL_PHONE, maskPhone(phone));
         throw new NopException(io.nop.auth.service.NopAuthErrors.ERR_AUTH_MFA_CHANNEL_PROOF_REQUIRED)
                 .param(io.nop.auth.service.NopAuthErrors.ARG_CHANNEL, maskPhone(phone));
+    }
+
+    /**
+     * 通道选择解析（W15-impl，设计 §4.3 既定扩展的执行期定稿）：显式请求值必须属于
+     * {@code phone|email} 且已登记（不接受任意指定——非法/未登记值显式拒绝非静默回退）；
+     * 缺省 = phone 优先、phone 缺失回退 email。
+     */
+    private static String resolveProofChannel(String requestedChannel, boolean hasPhone, boolean hasEmail,
+                                              String userId) {
+        if (StringHelper.isEmpty(requestedChannel)) {
+            return hasPhone ? PROOF_CHANNEL_PHONE : PROOF_CHANNEL_EMAIL;
+        }
+        if (PROOF_CHANNEL_PHONE.equals(requestedChannel) && hasPhone)
+            return PROOF_CHANNEL_PHONE;
+        if (PROOF_CHANNEL_EMAIL.equals(requestedChannel) && hasEmail)
+            return PROOF_CHANNEL_EMAIL;
+        throw new NopException(ERR_AUTH_INVALID_LOGIN_REQUEST).param(ARG_USER_ID, userId)
+                .param("msg", "requested proof channel is not registered: " + requestedChannel);
     }
 
     /** proof 发码限流：同手机号 send-interval-seconds 间隔 + 每日 daily-limit 上限（复用 sms-code 配置）。 */
@@ -968,10 +1173,10 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
     }
 
     /**
-     * 登记通道 proof 发码审计事件（防滥用审计），落 NopAuthOpLog（phone 脱敏）。
+     * 登记通道 proof 发码审计事件（防滥用审计），落 NopAuthOpLog（通道目标脱敏）。
      * userName 必填（NopAuthOpLog 非空列——缺失会使批处理整批回滚，W13 E2E 钉定）。
      */
-    private void auditChannelProofSent(String userId, String userName, String phone) {
+    private void auditChannelProofSent(String userId, String userName, String channel, String maskedTarget) {
         if (auditService == null)
             return;
         io.nop.api.core.audit.AuditRequest audit = new io.nop.api.core.audit.AuditRequest();
@@ -982,9 +1187,101 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
         audit.setUserName(userName);
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("event", "channel-proof-sent");
-        data.put("phone", maskPhone(phone));
+        data.put("channel", channel);
+        data.put("target", maskedTarget);
         audit.setRequestData(io.nop.core.lang.json.JsonTool.stringify(data));
         auditService.saveAudit(audit);
+    }
+
+    /**
+     * email 发码限流（W15-impl，bindMfa(email) 与登记通道 email proof 共用；镜像
+     * {@code LoginServiceImpl.checkEmailRateLimit} 三层：同邮箱 send-interval-seconds 间隔 +
+     * email 维度 daily-limit + IP 维度 ip-daily-limit（clientIp 可空时 IP 层跳过））。
+     */
+    private void checkEmailRateLimit(String email, String clientIp) {
+        long now = CoreMetrics.currentTimeMillis();
+        long today = io.nop.api.core.time.CoreMetrics.today().toEpochDay();
+        int interval = CFG_AUTH_EMAIL_CODE_SEND_INTERVAL_SECONDS.get();
+        int dailyLimit = CFG_AUTH_EMAIL_CODE_DAILY_LIMIT.get();
+        long[] entry = emailRateTracker.compute(email, (k, v) -> {
+            if (v == null || v[2] != today) {
+                return new long[]{now, 1, today};
+            }
+            return new long[]{v[0], v[1] + 1, today};
+        });
+        if (entry[1] > 1 && (now - entry[0]) < interval * 1000L) {
+            throw new NopException(ERR_AUTH_EMAIL_RATE_LIMITED)
+                    .param(io.nop.auth.service.NopAuthErrors.ARG_CHANNEL, maskEmail(email));
+        }
+        if (entry[1] > dailyLimit) {
+            throw new NopException(ERR_AUTH_EMAIL_DAILY_LIMIT)
+                    .param(io.nop.auth.service.NopAuthErrors.ARG_CHANNEL, maskEmail(email));
+        }
+        entry[0] = now;
+
+        if (!StringHelper.isEmpty(clientIp)) {
+            int ipLimit = io.nop.auth.service.NopAuthConfigs.CFG_AUTH_EMAIL_CODE_IP_DAILY_LIMIT.get();
+            long[] ipEntry = emailIpRateTracker.compute(clientIp, (k, v) -> {
+                if (v == null || v[1] != today) {
+                    return new long[]{1, today};
+                }
+                return new long[]{v[0] + 1, today};
+            });
+            if (ipEntry[0] > ipLimit) {
+                throw new NopException(ERR_AUTH_EMAIL_DAILY_LIMIT)
+                        .param(io.nop.auth.service.NopAuthErrors.ARG_CHANNEL, maskEmail(email));
+            }
+        }
+    }
+
+    /** 邮箱脱敏（W15-impl，对齐手机号后 4 位先例的 email 侧形态）：保留本地部分前 2 位 + 域名。 */
+    static String maskEmail(String email) {
+        if (StringHelper.isEmpty(email))
+            return email;
+        int at = email.indexOf('@');
+        if (at <= 0)
+            return email;
+        String local = email.substring(0, at);
+        String prefix = local.substring(0, Math.min(2, local.length()));
+        return prefix + "***" + email.substring(at);
+    }
+
+    /** 从请求头提取客户端 IP（email 限流 IP 维度；LoginApiBizModel.extractClientIp 同型）。 */
+    private static String extractClientIp(IServiceContext context) {
+        if (context == null || context.getRequestHeaders() == null) {
+            return null;
+        }
+        Map<String, Object> headers = context.getRequestHeaders();
+        Object xff = headers.get("X-Forwarded-For");
+        if (xff == null) {
+            xff = headers.get("x-forwarded-for");
+        }
+        if (xff != null && !xff.toString().isEmpty()) {
+            String ip = xff.toString().split(",")[0].trim();
+            return ip.isEmpty() ? null : ip;
+        }
+        Object xri = headers.get("X-Real-IP");
+        if (xri == null) {
+            xri = headers.get("x-real-ip");
+        }
+        return xri == null ? null : xri.toString();
+    }
+
+    /**
+     * 邮件发送（绑定/proof 用，W15-impl）：按 {@code nop.auth.email-code.subject-template}/
+     * {@code text-template}（{@code {code}} 占位服务端替换）组装 {@link EmailMessage} 并经
+     * {@link IEmailSender} 发送。无 emailSender 时 fail-closed（对齐 sendSmsForBinding）。
+     */
+    private void sendEmailForBinding(String email, String code) {
+        if (emailSender == null) {
+            throw new NopException(ERR_AUTH_INVALID_LOGIN_REQUEST)
+                    .param("msg", "IEmailSender is not configured; email MFA binding is disabled");
+        }
+        EmailMessage msg = new EmailMessage();
+        msg.setTo(java.util.Collections.singletonList(email));
+        msg.setSubject(CFG_AUTH_EMAIL_CODE_SUBJECT_TEMPLATE.get().replace("{code}", code));
+        msg.setText(CFG_AUTH_EMAIL_CODE_TEXT_TEMPLATE.get().replace("{code}", code));
+        emailSender.sendEmail(msg);
     }
 
     /**

@@ -91,6 +91,11 @@ public class LoginApiBizModel implements ILoginSpi {
     @Nullable
     io.nop.auth.core.mfa.store.SmsCodeStore smsCodeStore;
 
+    /** 邮件验证码 store（W15-impl：登记通道 email proof 码校验，key=proof-email:{userId}）。 */
+    @Inject
+    @Nullable
+    io.nop.auth.core.mfa.store.EmailCodeStore emailCodeStore;
+
     /** 共享因子校验组件（W12-impl：操作级验证经组件，TOTP 窗口统一推进）。 */
     @Inject
     @Nullable
@@ -182,11 +187,17 @@ public class LoginApiBizModel implements ILoginSpi {
     /**
      * 第二因子验证（公开访问，设计 §3.2 / §3.6）。成功返回 {@link LoginResult}：
      * 密码类 loginType 签发 accessToken；信道类 loginType 签发 accessCode。
+     * <p>
+     * W15-impl：mfaVerify(rememberDevice=true) 的可信设备登记结果经
+     * {@code ATTR_TRUSTED_DEVICE_REGISTERED} attr 回填（仅密码类路径——显式 true/false，
+     * 满员/无 device-id 亦为 false 提示非静默；未请求登记时字段缺省不出现）。
      */
     @BizMutation
     @Auth(publicAccess = true)
     public CompletionStage<LoginResult> mfaVerifyAsync(@RequestBean MfaVerifyRequest request, IServiceContext context) {
         return loginService.mfaVerifyAsync(request, context.getRequestHeaders()).thenApply(ctx -> {
+            // W15-impl：可信设备登记结果回填（在 accessCode 分支判定前读取——密码类路径专用）
+            Object trustedDeviceRegistered = ctx.getAttr(LoginServiceImpl.ATTR_TRUSTED_DEVICE_REGISTERED);
             // 信道类 loginType：accessCode 由 completeMfaLogin stashed 到 attr，只返回 accessCode（不签发 accessToken）
             Object accessCode = ctx.getAttr(LoginServiceImpl.ATTR_MFA_ACCESS_CODE);
             if (accessCode instanceof String) {
@@ -196,7 +207,11 @@ public class LoginApiBizModel implements ILoginSpi {
                 return result;
             }
             // 密码类 loginType：normal path（签发 accessToken）
-            return buildLoginResult(ctx);
+            LoginResult result = buildLoginResult(ctx);
+            if (trustedDeviceRegistered instanceof Boolean) {
+                result.setTrustedDeviceRegistered((Boolean) trustedDeviceRegistered);
+            }
+            return result;
         });
     }
 
@@ -353,10 +368,12 @@ public class LoginApiBizModel implements ILoginSpi {
     /**
      * 登记通道验证端点（受限会话引导流，<b>需登录态</b>——受限会话内 bindMfa 的前置门槛）。
      * <p>
-     * 校验 {@code proof:{userId}} 短信码（服务端解析用户登记 phone，W13 仅 phone、不接受
-     * 客户端指定）→ 成功即创建 scene=channel-proof <b>已验证票</b>（短 TTL——复用
+     * 校验 proof 码（W13 phone：key={@code proof:{userId}}；W15-impl email：
+     * key={@code proof-email:{userId}}——服务端解析登记通道，phone 优先、phone 缺失回退
+     * email，双通道均登记时可选 {@code channel} 参数选择且必须与发码通道一致，不接受任意
+     * 指定）→ 成功即创建 scene=channel-proof <b>已验证票</b>（短 TTL——复用
      * {@code op-ticket-expire-seconds} 票窗口语义）并返回票 token；客户端携该 token 调
-     * bindMfa（proof 参数），bindMfa 校验后一次性消费。通道为空（无登记 phone）抛
+     * bindMfa（proof 参数），bindMfa 校验后一次性消费。两通道皆为空抛
      * {@code ERR_AUTH_MFA_NO_RECOVERY_CHANNEL}（无法自助脱困，管理员介入）。
      * <p>
      * 威胁模型（设计 §4.3）：无此防御时仅持有密码的攻击者进入受限会话后可 bindMfa(totp)
@@ -364,7 +381,9 @@ public class LoginApiBizModel implements ILoginSpi {
      * attack）；登记通道 OTP 把门槛提升到"密码 + 登记通道"。
      */
     @BizMutation
-    public String verifyChannelProof(@Name("code") String code, IServiceContext context) {
+    public String verifyChannelProof(@Name("code") String code,
+                                     @io.nop.api.core.annotations.core.Optional @Name("channel") String channel,
+                                     IServiceContext context) {
         IUserContext userContext = context.getUserContext();
         if (userContext == null || StringHelper.isEmpty(userContext.getUserId()))
             throw new NopException(ERR_AUTH_USER_NOT_LOGIN);
@@ -372,12 +391,34 @@ public class LoginApiBizModel implements ILoginSpi {
         if (StringHelper.isEmpty(code))
             throw new NopException(ERR_AUTH_MFA_FAIL);
 
-        // 服务端解析登记通道（W13 仅 phone；不接受客户端指定）
+        // 服务端解析登记通道（W15-impl 扩展：phone 优先、缺失回退 email；显式 channel 参数
+        // 限定已登记集合——与 bindMfa 侧 requireChannelProof 同一解析规则）
         NopAuthUser user = ContextProvider.runWithTenant(userContext.getTenantId(),
                 () -> daoProvider.daoFor(NopAuthUser.class).getEntityById(userId));
         String phone = user == null ? null : user.getPhone();
-        if (StringHelper.isEmpty(phone)) {
+        String email = user == null ? null : user.getEmail();
+        boolean hasPhone = !StringHelper.isEmpty(phone);
+        boolean hasEmail = !StringHelper.isEmpty(email);
+        if (!hasPhone && !hasEmail) {
             throw new NopException(NopAuthErrors.ERR_AUTH_MFA_NO_RECOVERY_CHANNEL).param("userId", userId);
+        }
+        boolean emailChannel = resolveProofChannel(channel, hasPhone, hasEmail, userId);
+
+        if (emailChannel) {
+            if (emailCodeStore == null || mfaChallengeStore == null) {
+                throw new NopException(ERR_AUTH_MFA_CHALLENGE_EXPIRED)
+                        .param(ARG_CHALLENGE_TOKEN, "proof")
+                        .param("msg", "MFA stores are not configured; email channel proof is unavailable");
+            }
+            io.nop.auth.core.mfa.store.CodeVerifyResult r = emailCodeStore.verify(
+                    NopAuthConstants.EMAIL_KEY_PROOF + userId, code);
+            if (r == io.nop.auth.core.mfa.store.CodeVerifyResult.EXPIRED) {
+                throw new NopException(NopAuthErrors.ERR_AUTH_EMAIL_CODE_EXPIRED);
+            }
+            if (r != io.nop.auth.core.mfa.store.CodeVerifyResult.VALID) {
+                throw new NopException(ERR_AUTH_MFA_FAIL);
+            }
+            return issueChannelProofTicket(userContext, null);
         }
 
         if (smsCodeStore == null || mfaChallengeStore == null) {
@@ -395,15 +436,40 @@ public class LoginApiBizModel implements ILoginSpi {
         if (r != io.nop.auth.core.mfa.store.CodeVerifyResult.VALID) {
             throw new NopException(ERR_AUTH_MFA_FAIL);
         }
+        return issueChannelProofTicket(userContext, phone);
+    }
 
-        // 创建 scene=channel-proof 已验证票（markVerified 即转票；票窗口 = op-ticket-expire-seconds）
-        String token = mfaChallengeStore.create(MfaChallenge.SCENE_CHANNEL_PROOF, userId, null,
+    /** 兼容重载（W13 调用点）：无 channel 参数 = 缺省通道解析。无注解——GraphQL 面仅暴露三参版本。 */
+    public String verifyChannelProof(String code, IServiceContext context) {
+        return verifyChannelProof(code, null, context);
+    }
+
+    /**
+     * 通道选择解析（W15-impl，与 NopAuthUserBizModel.resolveProofChannel 同规则）：
+     * 缺省 = phone 优先、phone 缺失回退 email；显式值必须属于 phone|email 且已登记
+     * （不接受任意指定——非法/未登记值显式拒绝非静默回退）。返回 true=email 通道。
+     */
+    private static boolean resolveProofChannel(String requestedChannel, boolean hasPhone, boolean hasEmail,
+                                               String userId) {
+        String channel = StringHelper.isEmpty(requestedChannel)
+                ? (hasPhone ? NopAuthConstants.PROOF_CHANNEL_PHONE : NopAuthConstants.PROOF_CHANNEL_EMAIL)
+                : requestedChannel;
+        if (NopAuthConstants.PROOF_CHANNEL_PHONE.equals(channel) && hasPhone)
+            return false;
+        if (NopAuthConstants.PROOF_CHANNEL_EMAIL.equals(channel) && hasEmail)
+            return true;
+        throw new NopException(NopAuthErrors.ERR_AUTH_INVALID_LOGIN_REQUEST).param("userId", userId)
+                .param("msg", "requested proof channel is not registered: " + requestedChannel);
+    }
+
+    /** 创建 scene=channel-proof 已验证票（markVerified 即转票；票窗口 = op-ticket-expire-seconds）。 */
+    private String issueChannelProofTicket(IUserContext userContext, String phone) {
+        String token = mfaChallengeStore.create(MfaChallenge.SCENE_CHANNEL_PROOF, userContext.getUserId(), null,
                 io.nop.auth.service.mfa.OperationMfaCheckerImpl.LOGIN_TYPE_OPERATION,
                 userContext.getTenantId(), phone, null);
         if (!mfaChallengeStore.markVerified(token)) {
             throw new NopException(ERR_AUTH_MFA_CHALLENGE_EXPIRED).param(ARG_CHALLENGE_TOKEN, token);
         }
-
         auditChannelProof("mfa:channel-proof-verified", userContext, true);
         return token;
     }

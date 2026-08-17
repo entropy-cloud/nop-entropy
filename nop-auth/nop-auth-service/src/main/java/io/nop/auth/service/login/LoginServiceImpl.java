@@ -32,6 +32,7 @@ import io.nop.auth.core.login.ISessionBootstrap;
 import io.nop.auth.core.login.SessionInfo;
 import io.nop.auth.core.login.UserContextImpl;
 import io.nop.auth.core.mfa.store.CodeVerifyResult;
+import io.nop.auth.core.mfa.store.EmailCodeStore;
 import io.nop.auth.core.mfa.store.MfaChallenge;
 import io.nop.auth.core.mfa.store.MfaChallengeStore;
 import io.nop.auth.core.mfa.store.SmsCodeStore;
@@ -48,6 +49,7 @@ import io.nop.auth.dao.entity.NopAuthUser;
 import io.nop.auth.service.NopAuthConstants;
 import io.nop.auth.service.mfa.MfaChallengeHelper;
 import io.nop.auth.service.mfa.MfaFactorVerifier;
+import io.nop.auth.service.mfa.MfaTrustedDeviceManager;
 import io.nop.auth.service.mfa.RoleMfaPolicy;
 import io.nop.auth.service.mfa.RoleMfaPolicyEvaluator;
 import io.nop.commons.util.DateHelper;
@@ -56,6 +58,8 @@ import io.nop.core.i18n.I18nMessageManager;
 import io.nop.dao.DaoConstants;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
+import io.nop.integration.api.email.EmailMessage;
+import io.nop.integration.api.email.IEmailSender;
 import io.nop.integration.api.sms.ISmsSender;
 import io.nop.integration.api.sms.SmsMessage;
 import jakarta.annotation.Nullable;
@@ -81,6 +85,12 @@ import static io.nop.auth.api.AuthApiErrors.ARG_LOGIN_TYPE;
 import static io.nop.auth.api.AuthApiErrors.ARG_PRINCIPAL_ID;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_ACCESS_TOKEN_EXPIRE_SECONDS;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_ALLOW_CREATE_DEFAULT_USER;
+import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_EMAIL_CODE_DAILY_LIMIT;
+import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_EMAIL_CODE_ENABLED;
+import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_EMAIL_CODE_IP_DAILY_LIMIT;
+import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_EMAIL_CODE_SEND_INTERVAL_SECONDS;
+import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_EMAIL_CODE_SUBJECT_TEMPLATE;
+import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_EMAIL_CODE_TEXT_TEMPLATE;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_MAX_LOGIN_FAIL_COUNT;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_MFA_ACCESS_CODE_EXPIRE_SECONDS;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_MFA_ENABLED;
@@ -94,8 +104,10 @@ import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_SMS_CODE_IP_DAILY_LIMI
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_SMS_CODE_SEND_INTERVAL_SECONDS;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_SMS_CODE_TEMPLATE_ID;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_VERIFY_CODE_ENABLED;
+import static io.nop.auth.service.NopAuthConstants.EMAIL_KEY_MFA;
 import static io.nop.auth.service.NopAuthConstants.MFA_STATUS_DISABLED;
 import static io.nop.auth.service.NopAuthConstants.MFA_STATUS_ENABLED;
+import static io.nop.auth.service.NopAuthConstants.MFA_TYPE_EMAIL;
 import static io.nop.auth.service.NopAuthConstants.MFA_TYPE_SMS;
 import static io.nop.auth.service.NopAuthConstants.MFA_TYPE_TOTP;
 import static io.nop.auth.service.NopAuthConstants.MFA_TYPE_WEBAUTHN;
@@ -104,6 +116,8 @@ import static io.nop.auth.service.NopAuthConstants.SMS_KEY_MFA;
 import static io.nop.auth.service.NopAuthErrors.ARG_CHALLENGE_TOKEN;
 import static io.nop.auth.service.NopAuthErrors.ARG_MFA_TYPE;
 import static io.nop.auth.service.NopAuthErrors.ARG_PHONE;
+import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_EMAIL_DAILY_LIMIT;
+import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_EMAIL_RATE_LIMITED;
 import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_INVALID_LOGIN_REQUEST;
 import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_INVALID_VERIFY_CODE;
 import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_LOGIN_CHECK_FAIL;
@@ -178,12 +192,36 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
     protected RoleMfaPolicyEvaluator roleMfaPolicyEvaluator;
 
     /**
+     * 可信设备共享组件（W15-impl，设计 §六）：checkMfaRequired 豁免判定 + mfaVerify
+     * rememberDevice 登记共用。可选注入：未装配 = 豁免/登记结构性跳过（一期行为）。
+     */
+    @Inject
+    @Nullable
+    protected MfaTrustedDeviceManager trustedDeviceManager;
+
+    /**
      * 短信发送器（nop-integration-api）。sendSmsCode/sendMfaCode 调用。
      * 可选注入：无短信通道的部署（如测试环境）可缺省，sendSmsCode 时 fail-closed。
      */
     @Inject
     @Nullable
     protected ISmsSender smsSender;
+
+    /**
+     * 邮件验证码 store（W15-impl，设计 §5.3.3）：sendMfaCode email 分支发码
+     * （key={@code mfa-email:{userId}}）。与 smsCodeStore 平行装配。
+     */
+    @Inject
+    @Nullable
+    protected EmailCodeStore emailCodeStore;
+
+    /**
+     * 邮件发送器（nop-integration-api，W15-impl 复用既有实现零变更）。可选注入：
+     * 未装配时 email 因子发码 fail-closed（对齐 sms {@code smsSender == null} 行为）。
+     */
+    @Inject
+    @Nullable
+    protected IEmailSender emailSender;
 
     private Set<String> allowedLoginMethods;
 
@@ -338,7 +376,8 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
         } else {
             // 第一因子通过 → MFA 门禁（设计 §3.2 / §4.3 三层判定）。启用 MFA 的用户在此被拦截，
             // 不签发 token；角色策略不达标（W13 第三态）走受限签发。
-            MfaChallengeDecision mfa = checkMfaRequired(user, request.getLoginType());
+            // W15-impl：headers 透传 checkMfaRequired（可信设备豁免判定输入——密码类路径真实值）。
+            MfaChallengeDecision mfa = checkMfaRequired(user, request.getLoginType(), headers);
             if (mfa != null) {
                 if (mfa.isRestricted()) {
                     // 受限签发（W13，§4.1 结论 5/9）：第一因子通过 + 策略不达标 → 受限会话
@@ -373,8 +412,9 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
             throw new NopException(ERR_AUTH_USER_NOT_ALLOW_LOGIN).param(ARG_PRINCIPAL_ID, user.getUserName());
         }
         // MFA 门禁（设计 §3.2 / §4.3）：信道用户启用 MFA 同样拦截，loginType 为真实信道值（审计不失真）；
-        // 角色策略不达标（W13 第三态）→ 受限签发（信道路径同样受策略约束）
-        MfaChallengeDecision mfa = checkMfaRequired(user, loginType);
+        // 角色策略不达标（W13 第三态）→ 受限签发（信道路径同样受策略约束）。
+        // W15-impl：信道路径 headers 传 null——无 HTTP headers 豁免判定结构性跳过（设计 §6.1 结论 3）。
+        MfaChallengeDecision mfa = checkMfaRequired(user, loginType, null);
         if (mfa != null) {
             if (mfa.isRestricted()) {
                 LoginRequest restrictedRequest = syntheticRequest(loginType);
@@ -498,6 +538,12 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
     /** IUserContext attr key：信道类 mfaVerify 成功出口的 accessCode（密码类不设此 attr）。 */
     public static final String ATTR_MFA_ACCESS_CODE = "mfaAccessCode";
 
+    /**
+     * IUserContext attr key：mfaVerify(rememberDevice) 的可信设备登记结果（W15-impl，仅密码类
+     * 路径携带 Boolean true/false；LoginApiBizModel 回填 {@code LoginResult.trustedDeviceRegistered}）。
+     */
+    public static final String ATTR_TRUSTED_DEVICE_REGISTERED = "trustedDeviceRegistered";
+
     @Override
     public CompletionStage<IUserContext> mfaVerifyAsync(MfaVerifyRequest request, Map<String, Object> headers) {
         Guard.notEmpty(request.getChallengeToken(), "challengeToken");
@@ -528,28 +574,37 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
             // 3. 分支判定
             boolean recovery = !StringHelper.isEmpty(request.getRecoveryCode());
             if (recovery) {
+                // 恢复码分支不登记可信设备（设计 §6.4——应急通道不应产生 30 天长期豁免）
                 return verifyRecoveryCodeAndComplete(request, challenge, user, setting);
             }
-            return verifySecondFactorAndComplete(request, challenge, user, setting);
+            return verifySecondFactorAndComplete(request, challenge, user, setting, headers);
         });
     }
 
     /**
-     * TOTP / SMS / WebAuthn 第二因子验证 + completeLogin（设计 §3.2 mfaVerify 流程）。
+     * TOTP / SMS / EMAIL / WebAuthn 第二因子验证 + completeLogin（设计 §3.2 mfaVerify 流程）。
      * 因子校验收敛至 {@link MfaFactorVerifier}（W12-impl 等价重构：SMS EXPIRED 抛错/
      * TOTP 窗口推进内聚组件；失败计数与错误码留在本调用方）。
      * <p>
      * W14-impl webauthn 分支（设计 §5.3.2）：{@code code} 载体换 {@code assertion}（统一五参
      * 重载——cryptoChallenge 取自 challenge payload，signCount 单调写内聚组件）；成功 consume →
      * completeLogin（一期出口不变）。
+     * <p>
+     * W15-impl 可信设备登记（设计 §6.1 结论 4 / §6.3）：{@code headers} 穿线增参——
+     * {@code rememberDevice=true} 且 challenge.loginType ∈ 密码类（1/2/3/5）时在
+     * completeLogin <b>之前</b>纯 DB 写登记（同 hash 含过期行 upsert 覆盖刷新；满员/无
+     * device-id/失败 = false 提示不阻断登录）；结果经 {@code ATTR_TRUSTED_DEVICE_REGISTERED}
+     * attr 携带（ATTR_MFA_ACCESS_CODE 先例）由 LoginApiBizModel 回填 LoginResult。登记逻辑
+     * 在本方法（非 completeMfaLogin）——后者被恢复码分支共用，放入即恢复码也登记（§6.4 拒绝项）。
      */
     protected CompletionStage<IUserContext> verifySecondFactorAndComplete(MfaVerifyRequest request,
                                                                            MfaChallenge challenge,
                                                                            NopAuthUser user,
-                                                                           NopAuthMfaSetting setting) {
+                                                                           NopAuthMfaSetting setting,
+                                                                           Map<String, Object> headers) {
         String mfaType = challenge.getMfaType();
         if (!MFA_TYPE_TOTP.equals(mfaType) && !MFA_TYPE_SMS.equals(mfaType)
-                && !MFA_TYPE_WEBAUTHN.equals(mfaType)) {
+                && !MFA_TYPE_WEBAUTHN.equals(mfaType) && !MFA_TYPE_EMAIL.equals(mfaType)) {
             // 未知 mfaType：fail-closed，作废 challenge（一期兜底保留——未来新值未接入时的安全侧失效）
             mfaChallengeStore.consume(request.getChallengeToken());
             throw new NopException(ERR_AUTH_MFA_CHALLENGE_EXPIRED)
@@ -566,7 +621,22 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
         }
 
         mfaChallengeStore.consume(request.getChallengeToken());
-        return completeMfaLogin(user, challenge.getLoginType());
+
+        // W15-impl 可信设备登记（completeLogin 之前纯 DB 写；仅密码类 loginType；登记失败不阻断登录）
+        final boolean rememberRequested = Boolean.TRUE.equals(request.getRememberDevice())
+                && isPasswordLoginType(challenge.getLoginType()) && trustedDeviceManager != null;
+        final Boolean registered = rememberRequested
+                ? trustedDeviceManager.register(user.getUserId(), headers) != null
+                : null;
+
+        return completeMfaLogin(user, challenge.getLoginType()).thenApply(ctx -> {
+            if (registered != null) {
+                // 结果回填（显式 true/false——满员/无 device-id 也是 false 提示非静默；仅密码类路径
+                // 携带）：IUserContext attr 载体（ATTR_MFA_ACCESS_CODE 先例——LoginApiBizModel 消费）
+                ctx.setAttr(ATTR_TRUSTED_DEVICE_REGISTERED, registered);
+            }
+            return ctx;
+        });
     }
 
     /**
@@ -706,9 +776,11 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
      * MFA 第二因子验证码重发（设计 §3.6；W14-impl #8 按 challenge.mfaType 分派重构）：
      * <ul>
      *   <li><b>sms</b> → 现行为原样（peek → 手机号解析 → 限流 → 发码 key=mfa:userId）。</li>
+     *   <li><b>email</b>（W15-impl，设计 §5.3.3）→ 解析 user.email（服务端解析，不接受客户端
+     *       指定）→ 限流（email+IP 双维度）→ {@code EmailCodeStore.send(mfa-email:{userId})}
+     *       → 邮件发送；无 email 抛 CHALLENGE_EXPIRED 等价先例错误（对齐 sms "no phone number"）。</li>
      *   <li><b>其余（totp/webauthn）</b> → 显式抛 {@code ERR_AUTH_MFA_CODE_UNSUPPORTED}
-     *       （无静默 no-op——这些因子没有"可发的验证码"）；email 分支 W15 接入（在 sms 分支后
-     *       插入，else 兜底形态自然收敛）。</li>
+     *       （无静默 no-op——这些因子没有"可发的验证码"）。</li>
      * </ul>
      */
     @Override
@@ -719,7 +791,11 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
         if (challenge == null) {
             throw new NopException(ERR_AUTH_MFA_CHALLENGE_EXPIRED).param(ARG_CHALLENGE_TOKEN, challengeToken);
         }
-        // #8 分派（W14，设计 §5.3.0）：仅 sms 有码可发，其余因子显式拒绝
+        // #8 分派（W14，设计 §5.3.0 + W15 email 分支接入）
+        if (MFA_TYPE_EMAIL.equals(challenge.getMfaType())) {
+            sendMfaEmailCode(challenge, challengeToken, clientIp);
+            return;
+        }
         if (!MFA_TYPE_SMS.equals(challenge.getMfaType())) {
             throw new NopException(ERR_AUTH_MFA_CODE_UNSUPPORTED)
                     .param(ARG_MFA_TYPE, challenge.getMfaType())
@@ -746,6 +822,58 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
         // 生成 + 存储 + 发送（key=mfa:userId）
         String code = smsCodeStore == null ? null : smsCodeStore.send(SMS_KEY_MFA + challenge.getUserId());
         sendSms(phone, code);
+    }
+
+    /**
+     * email 分支发码（W15-impl，设计 §5.3.3）：enabled 门控（显式拒绝非静默）→ 服务端解析
+     * user.email → email+IP 双维度限流 → {@code EmailCodeStore.send}（key=mfa-email:{userId}，
+     * 通道隔离）→ {@link IEmailSender} 发送。
+     */
+    protected void sendMfaEmailCode(MfaChallenge challenge, String challengeToken, String clientIp) {
+        if (!CFG_AUTH_EMAIL_CODE_ENABLED.get()) {
+            throw new NopException(ERR_AUTH_INVALID_LOGIN_REQUEST)
+                    .param(ARG_CHALLENGE_TOKEN, challengeToken)
+                    .param("msg", "email code is disabled (nop.auth.email-code.enabled=false)");
+        }
+        if (emailCodeStore == null) {
+            throw new NopException(ERR_AUTH_INVALID_LOGIN_REQUEST)
+                    .param(ARG_CHALLENGE_TOKEN, challengeToken)
+                    .param("msg", "EmailCodeStore is not configured; email MFA code cannot be sent");
+        }
+        // 发送目标服务端解析（NopAuthUser.email，不接受客户端指定——防枚举/骚扰，sms 先例）
+        NopAuthUser user = ContextProvider.runWithTenant(challenge.getTenantId(),
+                () -> getUserByUserId(challenge.getUserId()));
+        String email = user == null ? null : user.getEmail();
+        if (StringHelper.isEmpty(email)) {
+            throw new NopException(ERR_AUTH_MFA_CHALLENGE_EXPIRED)
+                    .param(ARG_CHALLENGE_TOKEN, challengeToken)
+                    .param("msg", "no email address associated with this MFA challenge");
+        }
+
+        // 限流（email+IP 双维度）
+        checkEmailRateLimit(email, clientIp);
+
+        // 生成 + 存储 + 发送（key=mfa-email:userId，与验证侧 MfaFactorVerifier 消费口径一致）
+        String code = emailCodeStore.send(EMAIL_KEY_MFA + challenge.getUserId());
+        sendMfaEmail(email, code);
+    }
+
+    /**
+     * 邮件发送：按 {@code nop.auth.email-code.subject-template}/{@code text-template}
+     * （{@code {code}} 占位服务端替换）组装 {@link EmailMessage} 并经 {@link IEmailSender}
+     * 发送。无 emailSender 时 fail-closed（对齐 sendSms）。
+     */
+    protected void sendMfaEmail(String email, String code) {
+        if (emailSender == null) {
+            throw new NopException(ERR_AUTH_INVALID_LOGIN_REQUEST)
+                    .param("msg", "IEmailSender is not configured; email cannot be sent");
+        }
+        EmailMessage msg = new EmailMessage();
+        msg.setTo(java.util.Collections.singletonList(email));
+        msg.setSubject(CFG_AUTH_EMAIL_CODE_SUBJECT_TEMPLATE.get().replace("{code}", code));
+        msg.setText(CFG_AUTH_EMAIL_CODE_TEXT_TEMPLATE.get().replace("{code}", code));
+        emailSender.sendEmail(msg);
+        LOG.info("nop.auth.email-code-sent:email={}", email);
     }
 
     /**
@@ -805,6 +933,53 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
         }
     }
 
+    /** Local 限流追踪（email 维度，W15-impl）：email → [lastSendMs, dailyCount, dailyDate]；IP → [dailyCount, dailyDate]。 */
+    private final Map<String, long[]> emailTracker = new java.util.concurrent.ConcurrentHashMap<>();
+    private final Map<String, long[]> emailIpTracker = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * Local 限流（W15-impl，设计 §5.3.3——复用 {@link #checkSmsRateLimit} 模式）：
+     * 同邮箱 {@code send-interval-seconds} 间隔 + 每日 {@code daily-limit} 上限 + IP 每日
+     * {@code ip-daily-limit}（email-code 配置组）。超限显式抛
+     * {@code EMAIL_RATE_LIMITED} / {@code EMAIL_DAILY_LIMIT}（不静默跳过）。
+     */
+    protected void checkEmailRateLimit(String email, String clientIp) {
+        long now = CoreMetrics.currentTimeMillis();
+        long today = CoreMetrics.today().toEpochDay();
+
+        // 邮箱间隔 + 日上限
+        int interval = CFG_AUTH_EMAIL_CODE_SEND_INTERVAL_SECONDS.get();
+        int dailyLimit = CFG_AUTH_EMAIL_CODE_DAILY_LIMIT.get();
+        long[] emailEntry = emailTracker.compute(email, (k, v) -> {
+            if (v == null || v[2] != today) {
+                return new long[]{now, 1, today};
+            }
+            return new long[]{v[0], v[1] + 1, today};
+        });
+        if (emailEntry[1] > 1 && (now - emailEntry[0]) < interval * 1000L) {
+            throw new NopException(ERR_AUTH_EMAIL_RATE_LIMITED).param("email", email);
+        }
+        if (emailEntry[1] > dailyLimit) {
+            throw new NopException(ERR_AUTH_EMAIL_DAILY_LIMIT).param("email", email);
+        }
+        // 更新 lastSendMs（compute 中已递增 count，此处只更新时间戳）
+        emailEntry[0] = now;
+
+        // IP 日上限
+        if (!StringHelper.isEmpty(clientIp)) {
+            int ipLimit = CFG_AUTH_EMAIL_CODE_IP_DAILY_LIMIT.get();
+            long[] ipEntry = emailIpTracker.compute(clientIp, (k, v) -> {
+                if (v == null || v[1] != today) {
+                    return new long[]{1, today};
+                }
+                return new long[]{v[0] + 1, today};
+            });
+            if (ipEntry[0] > ipLimit) {
+                throw new NopException(ERR_AUTH_EMAIL_DAILY_LIMIT).param("email", email);
+            }
+        }
+    }
+
     /**
      * MFA 门禁判定（设计 §3.2 / §4.3 三层判定矩阵）。返回非 null 表示需要处理：
      * <ul>
@@ -821,8 +996,21 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
      *   <li>用户未启用 MFA（无 setting 或 status!=enabled 或 mfaType 空）→ 放行（零回归）。</li>
      *   <li>因子等同：短信登录（loginType=5）且 mfaType=sms → 放行（验证码即第二因子，不重复验证）。</li>
      * </ul>
+     * <p>
+     * W15-impl（设计 §六）：{@code requestHeaders} 增量参数（protected 单模块内签名变更——
+     * {@code loginAsync} 传真实 headers、{@code createSessionForUserAsync} 信道路径传 null）。
+     * 可信设备豁免分支插入位 = 因子等同之后、challenge 创建之前；进入条件 = headers 非空 且
+     * 密码类 loginType（1/2/3/5）且 {@code policy.allowTrustedDevice}（W13 evaluator 复合结果
+     * AND 合并——任一策略行 false 即跳过豁免，本方法为首个消费点）且指纹非空 → 查未过期行 →
+     * 命中更新 lastUsedAt（<b>不续 expireAt</b>，固定窗口）→ 放行。无记录用户该分支短路
+     * （指纹 null 不查库），行为与一期逐字节一致。
+     * <p>
+     * <b>同构副本裁定（W15）</b>：{@code MfaLoginPolicyServiceImpl.checkMfaForUserName}（OAuth 入口）
+     * <b>不加豁免分支</b>——信道路径无 headers 结构性不可达，同步义务以"本裁定 + OAuth 路径
+     * 回归断言（有未过期可信设备行仍创建 challenge）"形式履行（W13 登记的双方同步不变式）。
      */
-    protected MfaChallengeDecision checkMfaRequired(NopAuthUser user, int loginType) {
+    protected MfaChallengeDecision checkMfaRequired(NopAuthUser user, int loginType,
+                                                    Map<String, Object> requestHeaders) {
         if (!CFG_AUTH_MFA_ENABLED.get())
             return null;
         if (mfaChallengeStore == null)
@@ -850,11 +1038,31 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
         // 因子等同（设计 §3.2 / Vision Non-Goals #9）
         if (loginType == LOGIN_TYPE_PHONE_SMS && MFA_TYPE_SMS.equals(mfaType))
             return null;
+        // ===== 可信设备豁免（W15-impl，设计 §6.3——因子等同之后、challenge 创建之前） =====
+        if (requestHeaders != null && isPasswordLoginType(loginType)
+                && policy.isAllowTrustedDevice() && trustedDeviceManager != null) {
+            String deviceHash = MfaTrustedDeviceManager.fingerprint(requestHeaders);
+            // 短路：无 device-id 不查库（降级正常 MFA，非错误）
+            if (deviceHash != null && trustedDeviceManager.isExempted(user.getUserId(), deviceHash)) {
+                return null; // 登录级豁免放行（与一期"放行"同路径）
+            }
+        }
         // challenge 创建（W14-impl 触点①：webauthn 类型经 helper 增量 payload.cryptoChallenge
         // 一次写入；其余类型一期五参语义逐字节等价）
         String challengeToken = MfaChallengeHelper.createLoginChallenge(mfaChallengeStore,
                 user.getUserId(), mfaType, loginType, user.getTenantId(), setting.getPhone());
         return new MfaChallengeDecision(challengeToken, mfaType);
+    }
+
+    /**
+     * 可信设备豁免/登记适用的登录类型判定（设计 §6.1 结论 3）：密码类 loginType 1/2/3/5
+     * （用户名/邮箱/手机密码 + 手机验证码）；信道类（SSO 4 / 20-23）与 OAuth 不适用不登记。
+     */
+    protected static boolean isPasswordLoginType(int loginType) {
+        return loginType == AuthApiConstants.LOGIN_TYPE_USERNAME_PASSWORD
+                || loginType == AuthApiConstants.LOGIN_TYPE_EMAIL_PASSWORD
+                || loginType == AuthApiConstants.LOGIN_TYPE_PHONE_PASSWORD
+                || loginType == AuthApiConstants.LOGIN_TYPE_PHONE_SMS;
     }
 
     protected NopAuthMfaSetting loadMfaSetting(String userId) {

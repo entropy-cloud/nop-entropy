@@ -24,6 +24,8 @@ public class MfaBindResult {
     private String bindToken;
     /** sms 类型时为 true（验证码已发送）。 */
     private boolean smsSent;
+    /** email 类型时为 true（验证码已发送至登记邮箱，W15-impl——对齐 smsSent 先例）。 */
+    private boolean emailSent;
     /** webauthn 注册 ceremony 的 challengeToken（confirmWebauthnRegistration 凭此定位，W14）。 */
     private String challengeToken;
     /** webauthn 注册 creationOptions（W14；challenge=cryptoChallenge，excludeCredentials 防重复注册）。 */
@@ -59,6 +61,14 @@ public class MfaBindResult {
 
     public void setSmsSent(boolean smsSent) {
         this.smsSent = smsSent;
+    }
+
+    public boolean isEmailSent() {
+        return emailSent;
+    }
+
+    public void setEmailSent(boolean emailSent) {
+        this.emailSent = emailSent;
     }
 
     public String getChallengeToken() {

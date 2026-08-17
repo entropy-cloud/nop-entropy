@@ -71,6 +71,21 @@
         <property name="bizObjName" value="NopAuthRoleMfaPolicy"/>
     </bean>
 
+    <bean id="io.nop.auth.service.entity.NopAuthEmailCodeBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopAuthEmailCode" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.auth.biz.INopAuthEmailCodeBiz" ioc:force-lazy-property="true" lazy-init="true" primary="true">
+        <property name="bizObjName" value="NopAuthEmailCode"/>
+    </bean>
+
+    <bean id="io.nop.auth.service.entity.NopAuthMfaTrustedDeviceBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopAuthMfaTrustedDevice" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.auth.biz.INopAuthMfaTrustedDeviceBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopAuthMfaTrustedDevice"/>
+    </bean>
+
     <bean id="io.nop.auth.service.entity.NopAuthUserBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="biz_NopAuthUser" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.auth.biz.INopAuthUserBiz"

@@ -47,6 +47,13 @@ public class LoginResult extends ExtensibleBean {
      */
     private Boolean mfaRestricted;
 
+    /**
+     * 可信设备登记结果（W15-impl 可选增量，设计 §6.1 结论 4——migration note：可选字段
+     * 向后兼容）。仅密码类路径的 mfaVerify(rememberDevice=true) 成功后出现：true=已登记，
+     * false=未登记（无 device-id / 满员 / 登记失败——非错误提示，不阻断登录）；null=未请求登记。
+     */
+    private Boolean trustedDeviceRegistered;
+
     @PropMeta(propId = 1)
     public String getAccessToken() {
         return accessToken;
@@ -146,6 +153,16 @@ public class LoginResult extends ExtensibleBean {
 
     public void setMfaRestricted(Boolean mfaRestricted) {
         this.mfaRestricted = mfaRestricted;
+    }
+
+    @PropMeta(propId = 12)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public Boolean getTrustedDeviceRegistered() {
+        return trustedDeviceRegistered;
+    }
+
+    public void setTrustedDeviceRegistered(Boolean trustedDeviceRegistered) {
+        this.trustedDeviceRegistered = trustedDeviceRegistered;
     }
 
 }

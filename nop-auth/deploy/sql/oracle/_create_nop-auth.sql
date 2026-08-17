@@ -146,6 +146,35 @@ CREATE TABLE nop_auth_role_mfa_policy(
   constraint PK_nop_auth_role_mfa_policy primary key (ROLE_ID)
 );
 
+CREATE TABLE nop_auth_email_code(
+  CODE_KEY VARCHAR2(100) NOT NULL ,
+  EMAIL VARCHAR2(100)  ,
+  CODE VARCHAR2(20)  ,
+  EXPIRE_AT NUMBER(20)  ,
+  FAIL_COUNT INTEGER default 0   ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50)  ,
+  UPDATE_TIME TIMESTAMP  ,
+  constraint PK_nop_auth_email_code primary key (CODE_KEY)
+);
+
+CREATE TABLE nop_auth_mfa_trusted_device(
+  SID VARCHAR2(32) NOT NULL ,
+  USER_ID VARCHAR2(50) NOT NULL ,
+  DEVICE_HASH VARCHAR2(64) NOT NULL ,
+  DEVICE_NAME VARCHAR2(100)  ,
+  EXPIRE_AT TIMESTAMP  ,
+  LAST_USED_AT TIMESTAMP  ,
+  TENANT_ID VARCHAR2(32)  ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  constraint UK_NOP_AUTH_MFA_TRUSTED_DEVICE_UH unique (USER_ID,DEVICE_HASH),
+  constraint PK_nop_auth_mfa_trusted_device primary key (SID)
+);
+
 CREATE TABLE nop_auth_user(
   USER_ID VARCHAR2(50) NOT NULL ,
   USER_NAME VARCHAR2(50) NOT NULL ,
@@ -659,6 +688,50 @@ CREATE TABLE nop_auth_mfa_recovery_code(
       COMMENT ON COLUMN nop_auth_role_mfa_policy.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON COLUMN nop_auth_role_mfa_policy.REMARK IS '备注';
+                    
+      COMMENT ON TABLE nop_auth_email_code IS '邮件验证码';
+                
+      COMMENT ON COLUMN nop_auth_email_code.CODE_KEY IS '验证码Key';
+                    
+      COMMENT ON COLUMN nop_auth_email_code.EMAIL IS '邮箱';
+                    
+      COMMENT ON COLUMN nop_auth_email_code.CODE IS '验证码';
+                    
+      COMMENT ON COLUMN nop_auth_email_code.EXPIRE_AT IS '过期时间';
+                    
+      COMMENT ON COLUMN nop_auth_email_code.FAIL_COUNT IS '失败计数';
+                    
+      COMMENT ON COLUMN nop_auth_email_code.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_auth_email_code.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_auth_email_code.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_auth_email_code.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON TABLE nop_auth_mfa_trusted_device IS 'MFA可信设备';
+                
+      COMMENT ON COLUMN nop_auth_mfa_trusted_device.SID IS '主键';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_trusted_device.USER_ID IS '用户ID';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_trusted_device.DEVICE_HASH IS '设备指纹';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_trusted_device.DEVICE_NAME IS '设备名称';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_trusted_device.EXPIRE_AT IS '到期时间';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_trusted_device.LAST_USED_AT IS '最近使用时间';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_trusted_device.TENANT_ID IS '租户ID';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_trusted_device.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_trusted_device.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_trusted_device.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_trusted_device.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON TABLE nop_auth_user IS '用户';
                 

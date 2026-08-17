@@ -171,4 +171,16 @@ public interface NopAuthErrors {
      */
     ErrorCode ERR_AUTH_MFA_LAST_CREDENTIAL = define(API_STATUS_BAD_REQUEST, "nop.err.auth.mfa-last-credential",
             "不能移除最后一把启用的WebAuthn凭证，如需解绑请使用解绑MFA功能");
+
+    // ===== 邮件验证码（W15-impl，设计 §5.3.3——错误码定稿：email 专属三码，不复用 sms 编码） =====
+
+    /** 邮件验证码已失效/不存在（EXPIRED 三态；对齐 sms 侧 ERR_AUTH_SMS_CODE_EXPIRED 的等价通道）。 */
+    ErrorCode ERR_AUTH_EMAIL_CODE_EXPIRED = define("nop.err.auth.email-code-expired",
+            "邮件验证码已失效，请重新获取");
+
+    ErrorCode ERR_AUTH_EMAIL_RATE_LIMITED = define(API_STATUS_BAD_REQUEST, "nop.err.auth.email-rate-limited",
+            "邮件发送过于频繁，请稍后再试");
+
+    ErrorCode ERR_AUTH_EMAIL_DAILY_LIMIT = define(API_STATUS_BAD_REQUEST, "nop.err.auth.email-daily-limit",
+            "当日邮件发送次数已达上限");
 }

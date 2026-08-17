@@ -12,6 +12,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.auth.api.messages.WebAuthnAssertion;
 import io.nop.auth.core.mfa.store.CodeVerifyResult;
+import io.nop.auth.core.mfa.store.EmailCodeStore;
 import io.nop.auth.core.mfa.store.MfaChallenge;
 import io.nop.auth.core.mfa.store.SmsCodeStore;
 import io.nop.auth.core.totp.TOTPAuthenticator;
@@ -33,11 +34,14 @@ import java.util.List;
 import java.util.Map;
 
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_MFA_TOTP_WINDOW_SKEW;
+import static io.nop.auth.service.NopAuthConstants.EMAIL_KEY_MFA;
 import static io.nop.auth.service.NopAuthConstants.MFA_STATUS_ENABLED;
+import static io.nop.auth.service.NopAuthConstants.MFA_TYPE_EMAIL;
 import static io.nop.auth.service.NopAuthConstants.MFA_TYPE_SMS;
 import static io.nop.auth.service.NopAuthConstants.MFA_TYPE_TOTP;
 import static io.nop.auth.service.NopAuthConstants.MFA_TYPE_WEBAUTHN;
 import static io.nop.auth.service.NopAuthConstants.SMS_KEY_MFA;
+import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_EMAIL_CODE_EXPIRED;
 import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_SMS_CODE_EXPIRED;
 import static io.nop.dao.DaoConstants.DEFAULT_QUERY_SPACE;
 
@@ -77,6 +81,14 @@ public class MfaFactorVerifier {
     @Inject
     @Nullable
     protected SmsCodeStore smsCodeStore;
+
+    /**
+     * 邮件验证码 store（W15-impl，设计 §5.3.3）：email 分支 {@code verify(mfa-email:{userId})}。
+     * 与 smsCodeStore 平行装配（nopActiveEmailCodeStore 工厂 bean）。
+     */
+    @Inject
+    @Nullable
+    protected EmailCodeStore emailCodeStore;
 
     @Inject
     protected IDaoProvider daoProvider;
@@ -153,6 +165,18 @@ public class MfaFactorVerifier {
             if (r == CodeVerifyResult.EXPIRED) {
                 // 两处既有调用点行为一致：EXPIRED 抛错（不进失败计数），等价重构收敛进组件
                 throw new NopException(ERR_AUTH_SMS_CODE_EXPIRED);
+            }
+            return r == CodeVerifyResult.VALID;
+        }
+
+        if (MFA_TYPE_EMAIL.equals(mfaType)) {
+            // W15-impl（设计 §5.3.3）：email 同 sms 形态——key 通道隔离（mfa-email:{userId}），
+            // EXPIRED 抛 email 专属错误码（错误码定稿见 NopAuthErrors），MISMATCH 落调用方 MFA_FAIL
+            if (emailCodeStore == null)
+                return false;
+            CodeVerifyResult r = emailCodeStore.verify(EMAIL_KEY_MFA + setting.getUserId(), code);
+            if (r == CodeVerifyResult.EXPIRED) {
+                throw new NopException(ERR_AUTH_EMAIL_CODE_EXPIRED);
             }
             return r == CodeVerifyResult.VALID;
         }

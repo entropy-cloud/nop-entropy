@@ -1,6 +1,7 @@
 entity:
   label:
     NopAuthDept: Department
+    NopAuthEmailCode: Email Code
     NopAuthExtLogin: Ext Login
     NopAuthGroup: User Group
     NopAuthGroupDept: Group Department
@@ -9,6 +10,7 @@ entity:
     NopAuthMfaCredential: WebAuthn Credential
     NopAuthMfaRecoveryCode: MFA Recovery Code
     NopAuthMfaSetting: MFA Setting
+    NopAuthMfaTrustedDevice: MFA Trusted Device
     NopAuthOpLog: Operation Log
     NopAuthPosition: Position
     NopAuthResource: Menu Resource
@@ -54,6 +56,16 @@ prop:
       relatedGroupList: null
       relatedGroupList_ids: null
       relatedGroupList_label: null
+    NopAuthEmailCode:
+      codeKey: Code Key
+      email: Email
+      code: Code
+      expireAt: Expire At
+      failCount: Fail Count
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
     NopAuthExtLogin:
       sid: ID
       userId: User ID
@@ -196,6 +208,18 @@ prop:
       user: User
       user.userName: User
       recoveryCodes: Recovery Codes
+    NopAuthMfaTrustedDevice:
+      sid: SID
+      userId: User ID
+      deviceHash: Device Hash
+      deviceName: Device Name
+      expireAt: Expire At
+      lastUsedAt: Last Used At
+      tenantId: Tenant ID
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
     NopAuthOpLog:
       logId: LOG_ID
       userName: USER_NAME

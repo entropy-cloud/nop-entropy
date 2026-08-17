@@ -56,7 +56,7 @@ public class RoleMfaPolicyEvaluator {
             return 0;
         switch (mfaType) {
             case NopAuthConstants.MFA_TYPE_SMS:
-            case "email": // MFA_TYPE_EMAIL 常量 W15 落地（§5.3.1）
+            case NopAuthConstants.MFA_TYPE_EMAIL: // W15-impl 常量落位（§5.3.1 强度表 email=1 核对）
                 return LEVEL_CHANNEL_OTP;
             case NopAuthConstants.MFA_TYPE_TOTP:
                 return LEVEL_TOTP;

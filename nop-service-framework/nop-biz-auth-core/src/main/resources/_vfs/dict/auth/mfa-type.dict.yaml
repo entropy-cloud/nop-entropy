@@ -7,3 +7,5 @@ options:
     value: sms
   - label: WebAuthn硬件凭证
     value: webauthn
+  - label: 邮件验证码
+    value: email

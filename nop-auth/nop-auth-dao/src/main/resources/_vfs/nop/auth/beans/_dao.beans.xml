@@ -14,6 +14,11 @@
         <property name="mapperClass" value="@bean:type"/>
     </bean>
 
+    <bean id="io.nop.auth.dao.mapper.NopAuthMfaTrustedDeviceMapper"
+          class="io.nop.orm.sql_lib.proxy.SqlLibProxyFactoryBean" ioc:type="@bean:id" ioc:bean-method="build">
+        <property name="mapperClass" value="@bean:type"/>
+    </bean>
+
     <bean id="io.nop.auth.dao.mapper.NopAuthUserMapper" class="io.nop.orm.sql_lib.proxy.SqlLibProxyFactoryBean"
           ioc:type="@bean:id" ioc:bean-method="build">
         <property name="mapperClass" value="@bean:type"/>

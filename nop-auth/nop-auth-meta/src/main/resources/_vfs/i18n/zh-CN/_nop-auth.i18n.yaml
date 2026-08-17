@@ -1,6 +1,7 @@
 entity:
   label:
     NopAuthDept: 部门
+    NopAuthEmailCode: 邮件验证码
     NopAuthExtLogin: 扩展登录方式
     NopAuthGroup: 用户组
     NopAuthGroupDept: 分组部门
@@ -9,6 +10,7 @@ entity:
     NopAuthMfaCredential: WebAuthn凭证
     NopAuthMfaRecoveryCode: MFA恢复码
     NopAuthMfaSetting: 用户MFA配置
+    NopAuthMfaTrustedDevice: MFA可信设备
     NopAuthOpLog: 操作日志
     NopAuthPosition: 岗位
     NopAuthResource: 菜单资源
@@ -54,6 +56,16 @@ prop:
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本
+    NopAuthEmailCode:
+      code: 验证码
+      codeKey: 验证码Key
+      createTime: 创建时间
+      createdBy: 创建人
+      email: 邮箱
+      expireAt: 过期时间
+      failCount: 失败计数
+      updateTime: 修改时间
+      updatedBy: 修改人
     NopAuthExtLogin:
       createTime: 创建时间
       createdBy: 创建人
@@ -196,6 +208,18 @@ prop:
       user.userName: 用户
       userId: 用户ID
       version: 数据版本
+    NopAuthMfaTrustedDevice:
+      createTime: 创建时间
+      createdBy: 创建人
+      deviceHash: 设备指纹
+      deviceName: 设备名称
+      expireAt: 到期时间
+      lastUsedAt: 最近使用时间
+      sid: 主键
+      tenantId: 租户ID
+      updateTime: 修改时间
+      updatedBy: 修改人
+      userId: 用户ID
     NopAuthOpLog:
       actionTime: 操作时间
       description: 操作描述

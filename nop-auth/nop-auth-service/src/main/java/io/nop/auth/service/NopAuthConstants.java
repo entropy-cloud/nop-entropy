@@ -48,10 +48,26 @@ public interface NopAuthConstants {
      */
     String MFA_TYPE_WEBAUTHN = "webauthn";
 
-    /** SmsCodeStore key 前缀：登录验证码 / MFA 第二因子验证码（互不通用）。 */
+    /**
+     * 邮件验证码因子（W15-impl，设计 §5.3.3）：OTP 拥有通道类（factorLevel=1），码经
+     * {@code EmailCodeStore}（key={@code mfa-email:{userId}}）生命周期同一期 sms 模式。
+     */
+    String MFA_TYPE_EMAIL = "email";
+
+    /** SmsCodeStore key 前缀：登录验证码 / MFA 第二因子验证码 / 登记通道 proof（互不通用，通道隔离）。 */
     String SMS_KEY_LOGIN = "login:";
     String SMS_KEY_MFA = "mfa:";
-
-    /** 登记通道验证码 key 前缀（W13，设计 §4.3——受限会话 bindMfa 前置 proof，通道隔离）。 */
     String SMS_KEY_PROOF = "proof:";
+
+    /** EmailCodeStore key 前缀（W15-impl，设计 §5.3.3 通道隔离：与 sms 侧 key 互不通用）。 */
+    String EMAIL_KEY_MFA = "mfa-email:";
+    String EMAIL_KEY_PROOF = "proof-email:";
+
+    /**
+     * 登记通道 proof 的通道标识（W15-impl，设计 §4.3 既定扩展——"phone 与 email 均登记时
+     * 允许用户选择"）：bindMfa/verifyChannelProof 可选 {@code channel} 参数取值，服务端限定
+     * 已登记通道集合，缺省解析 = phone 优先、phone 缺失回退 email。
+     */
+    String PROOF_CHANNEL_PHONE = "phone";
+    String PROOF_CHANNEL_EMAIL = "email";
 }

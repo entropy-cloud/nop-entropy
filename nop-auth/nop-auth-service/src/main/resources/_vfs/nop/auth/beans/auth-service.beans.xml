@@ -62,6 +62,27 @@
             <on-class>io.nop.nosql.core.INosqlService</on-class>
         </ioc:condition>
     </bean>
+    <!-- EmailCodeStore 三实现（W15-impl，设计 §5.3.3——复制 W8 装配模式；config bean id
+         nopEmailCodeConfig 不落 collect 前缀 nopEmailCodeStore_ 之内，同 W8 命名教训）。 -->
+    <bean id="nopEmailCodeConfig" class="io.nop.auth.core.mfa.store.EmailCodeStoreConfig">
+        <property name="expireSeconds" value="@cfg:nop.auth.email-code.expire-seconds|300"/>
+        <property name="maxAttempts" value="@cfg:nop.auth.email-code.max-attempts|5"/>
+    </bean>
+    <bean id="nopEmailCodeStore_local" class="io.nop.auth.core.mfa.store.LocalEmailCodeStore"
+          autowire-candidate="false" lazy-init="true">
+        <constructor-arg index="0" ref="nopEmailCodeConfig"/>
+    </bean>
+    <bean id="nopEmailCodeStore_db" class="io.nop.auth.service.mfa.store.DbEmailCodeStore"
+          autowire-candidate="false" lazy-init="true">
+        <property name="config" ref="nopEmailCodeConfig"/>
+    </bean>
+    <bean id="nopEmailCodeStore_redis" class="io.nop.auth.service.mfa.store.RedisEmailCodeStore"
+          autowire-candidate="false" lazy-init="true">
+        <ioc:condition>
+            <if-property name="nop.auth.mfa.store-type" value="redis"/>
+            <on-class>io.nop.nosql.core.INosqlService</on-class>
+        </ioc:condition>
+    </bean>
 
     <bean id="nopMfaStoreProvider" class="io.nop.auth.service.mfa.MfaStoreProvider">
         <property name="storeType" value="@cfg:nop.auth.mfa.store-type|db"/>
@@ -71,6 +92,9 @@
         <property name="smsCodeStores">
             <ioc:collect-beans name-prefix="nopSmsCodeStore" as-map="true" ioc:ignore-depends="true"/>
         </property>
+        <property name="emailCodeStores">
+            <ioc:collect-beans name-prefix="nopEmailCodeStore" as-map="true" ioc:ignore-depends="true"/>
+        </property>
     </bean>
 
     <bean id="nopActiveMfaChallengeStore" ioc:type="io.nop.auth.core.mfa.store.MfaChallengeStore"
@@ -78,6 +102,9 @@
 
     <bean id="nopActiveSmsCodeStore" ioc:type="io.nop.auth.core.mfa.store.SmsCodeStore"
           factory-bean="nopMfaStoreProvider" factory-method="getSmsCodeStore"/>
+
+    <bean id="nopActiveEmailCodeStore" ioc:type="io.nop.auth.core.mfa.store.EmailCodeStore"
+          factory-bean="nopMfaStoreProvider" factory-method="getEmailCodeStore"/>
 
     <!-- TOTP 验证器（W4）。skew 从配置读取，mfaVerify TOTP 分支调用。 -->
     <bean id="nopTotpAuthenticator" class="io.nop.auth.core.totp.TOTPAuthenticator">
@@ -112,6 +139,12 @@
           nop-auth-service 的环境无此 bean → 零介入（一期行为）。 -->
     <bean id="nopMfaLoginPolicyService" class="io.nop.auth.service.mfa.MfaLoginPolicyServiceImpl"
           ioc:type="io.nop.auth.core.mfa.IMfaLoginPolicyService" ioc:default="true"/>
+
+    <!-- 可信设备共享组件（W15-impl，设计 §六）：指纹计算 + 豁免判定 + 登记 + 撤销矩阵统一
+          落点。注入 LoginServiceImpl（豁免/登记）/ NopAuthUserBizModel（撤销/管理 API）。
+          ioc:default 允许应用覆盖。 -->
+    <bean id="nopMfaTrustedDeviceManager" class="io.nop.auth.service.mfa.MfaTrustedDeviceManager"
+          ioc:default="true"/>
 
     <bean id="nopLoginSessionStore" class="io.nop.auth.service.login.DaoLoginSessionStore" ioc:default="true">
 

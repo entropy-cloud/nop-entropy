@@ -167,4 +167,48 @@ public interface NopAuthConfigs {
     @Description("未注册手机号是否允许发送验证码（防枚举：关闭时未注册号也统一响应已发送）")
     IConfigReference<Boolean> CFG_AUTH_SMS_CODE_ALLOW_REGISTER = varRef(s_loc, "nop.auth.sms-code.allow-register",
             Boolean.class, false);
+
+    // ===== 邮件验证码配置（W15-impl，设计 §5.3.3——对齐 sms-code 三层限流先例） =====
+
+    @Description("邮件验证码开关（缺省 false：关闭时 bindMfa(email)/sendMfaCode email 分支/登记通道 email 路径显式拒绝，非静默跳过）")
+    IConfigReference<Boolean> CFG_AUTH_EMAIL_CODE_ENABLED = varRef(s_loc, "nop.auth.email-code.enabled",
+            Boolean.class, false);
+
+    @Description("邮件验证码有效期，单位秒")
+    IConfigReference<Integer> CFG_AUTH_EMAIL_CODE_EXPIRE_SECONDS = varRef(s_loc, "nop.auth.email-code.expire-seconds",
+            Integer.class, 300);
+
+    @Description("同一邮箱邮件发送最小间隔，单位秒")
+    IConfigReference<Integer> CFG_AUTH_EMAIL_CODE_SEND_INTERVAL_SECONDS = varRef(s_loc, "nop.auth.email-code.send-interval-seconds",
+            Integer.class, 60);
+
+    @Description("同一邮箱每日邮件发送上限")
+    IConfigReference<Integer> CFG_AUTH_EMAIL_CODE_DAILY_LIMIT = varRef(s_loc, "nop.auth.email-code.daily-limit",
+            Integer.class, 20);
+
+    @Description("同一 IP 每日邮件发送上限")
+    IConfigReference<Integer> CFG_AUTH_EMAIL_CODE_IP_DAILY_LIMIT = varRef(s_loc, "nop.auth.email-code.ip-daily-limit",
+            Integer.class, 50);
+
+    @Description("邮件验证码错误上限，超过后作废需重发")
+    IConfigReference<Integer> CFG_AUTH_EMAIL_CODE_MAX_ATTEMPTS = varRef(s_loc, "nop.auth.email-code.max-attempts",
+            Integer.class, 5);
+
+    @Description("邮件验证码主题模板（{code} 占位符服务端替换）")
+    IConfigReference<String> CFG_AUTH_EMAIL_CODE_SUBJECT_TEMPLATE = varRef(s_loc, "nop.auth.email-code.subject-template",
+            String.class, "Verification Code");
+
+    @Description("邮件验证码正文模板（{code} 占位符服务端替换）")
+    IConfigReference<String> CFG_AUTH_EMAIL_CODE_TEXT_TEMPLATE = varRef(s_loc, "nop.auth.email-code.text-template",
+            String.class, "Your verification code is {code}. It expires in 5 minutes.");
+
+    // ===== 可信设备配置（W15-impl，设计 §六） =====
+
+    @Description("可信设备豁免固定窗口天数（自登记日起算，命中不续期）")
+    IConfigReference<Integer> CFG_AUTH_MFA_TRUSTED_DEVICE_TTL_DAYS = varRef(s_loc, "nop.auth.mfa.trusted-device.ttl-days",
+            Integer.class, 30);
+
+    @Description("每用户可信设备数量上限（仅计未过期行；同 hash 覆盖刷新不受限；满员新增显式提示不阻断登录）")
+    IConfigReference<Integer> CFG_AUTH_MFA_TRUSTED_DEVICE_MAX_COUNT = varRef(s_loc, "nop.auth.mfa.trusted-device.max-count",
+            Integer.class, 5);
 }
