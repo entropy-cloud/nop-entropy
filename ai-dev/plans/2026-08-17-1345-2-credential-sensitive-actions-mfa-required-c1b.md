@@ -1,6 +1,6 @@
 # C1b 凭证库敏感动作 @MfaRequired 标注（操作级 MFA 接入凭证库）
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: nop-credential-mfa
 > Work Item: C1-hardening Part B（@MfaRequired 标注小 plan），A1-audit successor 收口（roadmap 建议拆分 C1a/C1b 中的 C1b）
 > Last Reviewed: 2026-08-17（draft review 两轮达成共识：首轮 1 Major（owner doc 既有章节改写目标）+ 7 Minor 全部处置，复审确认全部落地且无新缺陷，裁定可执行；非阻塞建议（logs 钩子/受限会话措辞/Item Types/负例跨文件注记）已顺手纳入。审查 session：ses_ff1bada09ffeZ0ONiJJQQzCaq0 / ses_ff1aca46affeoXruyjEa7rYhE2）
@@ -57,55 +57,55 @@
 
 ### Phase 1 - 依赖边 + 四动作标注 + 元数据验证
 
-Status: planned
+Status: completed
 Targets: `nop-credential/nop-credential-service/pom.xml`、`.../entity/NopCredentialBizModel.java`、`.../entity/NopCredentialAuthBizModel.java`、测试目录
 
 - Item Types: `Fix | Proof`
 
-- [ ] pom 新增 `nop-biz-auth-api` 依赖（compile scope，版本走父 pom dependencyManagement 或显式 2.0.0-SNAPSHOT——对齐仓库既有惯例）
-- [ ] 四方法标注 `@MfaRequired`（javadoc 注记来源 A1-audit §二#4 缩窄裁定与生效前置）
-- [ ] 新增元数据级测试（复制 `TestMfaRequiredMetadata` 模式，优先容器级——对齐本模块 `TestNopCredentialAuthBizModel` 的 @NopTestConfig + IGraphQLEngine 先例，确保元数据经 xmeta/merge 管线后仍存活）：四方法 mfaRequired 元数据经 BizModel 构建传播可观察；未标注方法零元数据负例至少三个——`saveCredential`/`maskList`（NopCredentialBizModel）+ `beginOAuthFlow`（位于 `CredentialOAuthApiBizModel`，负例断言跨两个 BizModel 文件）
-- [ ] 新增零介入回归测试（对齐 `TestOperationMfaExecutorWiring` 先例或容器级）：无 checker 装配时容器启动成功且四动作调用路径不触发操作级检查（可选语义不破坏）
-- [ ] 文档裁定：No owner-doc update required（本 Phase 不改文档，统一 Phase 2 回写）
+- [x] pom 新增 `nop-biz-auth-api` 依赖（compile scope，版本走父 pom dependencyManagement 或显式 2.0.0-SNAPSHOT——对齐仓库既有惯例）
+- [x] 四方法标注 `@MfaRequired`（javadoc 注记来源 A1-audit §二#4 缩窄裁定与生效前置）
+- [x] 新增元数据级测试（复制 `TestMfaRequiredMetadata` 模式，优先容器级——对齐本模块 `TestNopCredentialAuthBizModel` 的 @NopTestConfig + IGraphQLEngine 先例，确保元数据经 xmeta/merge 管线后仍存活）：四方法 mfaRequired 元数据经 BizModel 构建传播可观察；未标注方法零元数据负例至少三个——`saveCredential`/`maskList`（NopCredentialBizModel）+ `beginOAuthFlow`（位于 `CredentialOAuthApiBizModel`，负例断言跨两个 BizModel 文件）
+- [x] 新增零介入回归测试（对齐 `TestOperationMfaExecutorWiring` 先例或容器级）：无 checker 装配时容器启动成功且四动作调用路径不触发操作级检查（可选语义不破坏）
+- [x] 文档裁定：No owner-doc update required（本 Phase 不改文档，统一 Phase 2 回写）
 
 Exit Criteria:
 
-- [ ] 元数据断言用例覆盖四标注方法 + 至少三个未标注方法（负例）
-- [ ] **接线验证**：元数据并非仅注解存在——经 GraphQL/BizObject 构建管线（含 xmeta merge）后 `mfaRequiredMeta` 可观察（容器级断言，纯反射级不满足本条）
-- [ ] **无静默跳过**：未装配 checker 时行为差异为零（回归锚点断言），启用路径不在本模块内自造 stub
-- [ ] 构建期约束不触发（四方法无 publicAccess/subscription 组合，容器/元数据构建成功即证明）
-- [ ] `./mvnw test -pl nop-credential -am` 全绿
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 元数据断言用例覆盖四标注方法 + 至少三个未标注方法（负例）
+- [x] **接线验证**：元数据并非仅注解存在——经 GraphQL/BizObject 构建管线（含 xmeta merge）后 `mfaRequiredMeta` 可观察（容器级断言，纯反射级不满足本条）
+- [x] **无静默跳过**：未装配 checker 时行为差异为零（回归锚点断言），启用路径不在本模块内自造 stub
+- [x] 构建期约束不触发（四方法无 publicAccess/subscription 组合，容器/元数据构建成功即证明）
+- [x] `./mvnw test -pl nop-credential -am` 全绿
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - owner doc 同步 + 收口
 
-Status: planned
+Status: completed
 Targets: `docs-for-ai/03-modules/nop-credential.md`、`docs-for-ai/03-modules/nop-auth.md`、roadmap
 
 - Item Types: `Fix | Follow-up`
 
-- [ ] **改写** `nop-credential.md` 既有"敏感操作标注（@MfaRequired，W12 机制可用）"章节（非新增并列章节）：四动作清单、部署前置（enabled 配置 + 用户 MFA 启用 + checker 装配）、缩窄裁定理由（saveCredential/beginOAuthFlow 不标注）、依赖边说明（显式化既有传递边，API-only）。**措辞注意**：零介入表述须对齐 `nop-auth.md` 受限会话分层语义（受限会话拦截不受操作级 enabled 开关门控），不得照抄"enabled=false 零介入"单一措辞
-- [ ] 更新 `nop-auth.md` 操作级 MFA 章节"首批标注"段的跨模块清单句（"凭证库模块标注 deferred"已过期，改为指向四动作落地）
-- [ ] `./mvnw test -pl nop-credential -am` 复跑全绿；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-credential --severity high` 退出码 0
-- [ ] 独立 closure audit（fresh subagent）+ Closure Evidence 写入
+- [x] **改写** `nop-credential.md` 既有"敏感操作标注（@MfaRequired，W12 机制可用）"章节（非新增并列章节）：四动作清单、部署前置（enabled 配置 + 用户 MFA 启用 + checker 装配）、缩窄裁定理由（saveCredential/beginOAuthFlow 不标注）、依赖边说明（显式化既有传递边，API-only）。**措辞注意**：零介入表述须对齐 `nop-auth.md` 受限会话分层语义（受限会话拦截不受操作级 enabled 开关门控），不得照抄"enabled=false 零介入"单一措辞
+- [x] 更新 `nop-auth.md` 操作级 MFA 章节"首批标注"段的跨模块清单句（"凭证库模块标注 deferred"已过期，改为指向四动作落地）
+- [x] `./mvnw test -pl nop-credential -am` 复跑全绿；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-credential --severity high` 退出码 0（**执行注记**：实际退出码 1 系 27 条 **pre-existing adjudicated baseline**（W11/A1-audit 裁定的 mutation 收口 UnsupportedOperationException 模式 + C1a D4-06 计划指定动作，C1a closure 已按同口径记录）；经 git stash 对照基线同为 27 条、**C1b 归因新增 0 条**（本计划仅新增注解/import/javadoc + 测试文件，无方法体变更）——本条按"无 C1b 归因新增空壳发现"实质达成，closure audit 独立复核确认）
+- [x] 独立 closure audit（fresh subagent）+ Closure Evidence 写入
 
 Exit Criteria:
 
-- [ ] 文档内容与 live 行为一致（清单/前置/语义可对照代码验证）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
-- [ ] 独立 closure audit 通过且证据写入本 plan Closure 段
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 文档内容与 live 行为一致（清单/前置/语义可对照代码验证）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
+- [x] 独立 closure audit 通过且证据写入本 plan Closure 段
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
-- [ ] 四动作标注落地且元数据可观察（非仅源码注解存在）
-- [ ] 依赖边显式化且 API-only（pom 直接声明 version-less；依赖树核实无 nop-auth-service 传递引入——既有 nop-biz 传递链不含该工件）
-- [ ] 零介入语义回归通过（未启用时四动作行为与标注前一致）
-- [ ] 缩窄裁定不被执行期静默放宽（saveCredential/beginOAuthFlow 保持未标注）
-- [ ] owner docs 已同步
-- [ ] 独立子 agent closure audit 已完成并记录证据
-- [ ] `./mvnw test -pl nop-credential -am` 通过
-- [ ] checkstyle / 代码规范检查通过
+- [x] 四动作标注落地且元数据可观察（非仅源码注解存在）
+- [x] 依赖边显式化且 API-only（pom 直接声明 version-less；依赖树核实无 nop-auth-service 传递引入——既有 nop-biz 传递链不含该工件）
+- [x] 零介入语义回归通过（未启用时四动作行为与标注前一致）
+- [x] 缩窄裁定不被执行期静默放宽（saveCredential/beginOAuthFlow 保持未标注）
+- [x] owner docs 已同步
+- [x] 独立子 agent closure audit 已完成并记录证据
+- [x] `./mvnw test -pl nop-credential -am` 通过
+- [x] checkstyle / 代码规范检查通过（项目 pom 未接线 checkstyle 插件——mission 命令语义 `lint not configured`，与 C1a closure 同口径；`check-import-order` 本计划改动文件零违规）
 
 ## Deferred But Adjudicated
 
@@ -118,14 +118,20 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （关闭时填写）
-Completed: （关闭时填写）
+Status Note: C1b 全部两 Phase 落地：四敏感动作（reencryptAll/delete/grant/revoke）携带 @MfaRequired 且元数据经容器构建管线（xmeta/merge）可观察；依赖边 nop-credential-service → nop-biz-auth-api 显式化且 API-only（无 nop-auth-service 传递引入）；无 checker 装配时零介入回归通过；缩窄裁定（saveCredential/beginOAuthFlow 不标注）经负例测试钉死；owner docs（nop-credential.md 章节改写 + nop-auth.md 跨模块清单句）已同步。独立 closure audit 裁定"零技术阻塞、可关闭"。
+Completed: 2026-08-17
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （关闭时填写）
-- Evidence: （关闭时填写）
+- Reviewer / Agent: 独立 closure audit fresh subagent（task id: `ses_ff002b6c6ffefvpZj8i3KapRHE`，2026-08-17）
+- Evidence:
+  - Phase 1 Exit Criteria 全 PASS：pom version-less 依赖（pom.xml:48-51 + dependency:tree `nop-biz-auth-api:compile`）；四方法标注（NopCredentialBizModel.java reencryptAll/delete、NopCredentialAuthBizModel.java grant/revoke 各带 javadoc 注记）；容器级元数据断言（TestCredentialMfaRequiredAnnotations 经 engine.getSchemaLoader().getOperationDefinition，正例 4 + 负例 3 跨两 BizModel 文件）；零介入回归（checker null + 四动作 GraphQL 执行成功）；构建期约束合规（grep 无 BizSubscription/publicAccess 组合）；`./mvnw test -pl nop-credential -am` 全绿（service 199/kms-vault 40/web 2）。
+  - Phase 2 Exit Criteria 全 PASS：nop-credential.md 既有章节改写（四动作清单表/部署前置/受限会话分层措辞/缩窄理由/依赖边说明，无残留 deferred 语句）；nop-auth.md "首批标注"句更新（四动作落地，旧 deferred 句移除）；文档与 live 行为一致性经审计逐条核对。
+  - Closure Gates 全 PASS：Anti-Hollow 接线链审计确认（@MfaRequired → ReflectionBizModelBuilder.java:349-364（含两构建期 fail-fast）→ GraphQLFieldDefinition:77/:98（deepClone）→ merge 触点 GraphQLObjectDefinition:227/:266 + BizObjectBuildHelper:73-74 → GraphQLExecutor.checkOperationMfa:200-233（checker-null 零介入 + mfaRequiredMeta 门控））；git diff 核实本计划仅新增 import/4 注解/javadoc/pom 依赖 + 测试文件，零方法体变更、无空壳/吞异常。
+  - `scan-hollow --module nop-credential --severity high`：退出码 1 = 27 条 pre-existing adjudicated baseline（W11/A1-audit mutation 收口 + C1a D4-06）；git stash 对照基线同为 27 条，**C1b 归因新增 0 条**；审计独立复核确认 findings 与 C1b 新增行全部不相交。
+  - Deferred 项分类检查：Deferred But Adjudicated 空；Non-Blocking Follow-ups 仅含显式 Out Of Scope/Non-Goal 项（Web 前端引导 UX、nop-ai/nop-integration 扩展），无 in-scope live defect 被降级。
+  - `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（收口翻转后复跑确认）。
 
 Follow-up:
 
-- （关闭时填写；confirmed live defect 不得出现在这里）
+- no remaining plan-owned work（Non-Blocking Follow-ups 两项均为显式 out-of-scope：Web 管理页对 ERR_AUTH_MFA_OPERATION_REQUIRED 的前端引导体验、nop-ai/nop-integration 侧标注扩展——需求出现时另立 plan）

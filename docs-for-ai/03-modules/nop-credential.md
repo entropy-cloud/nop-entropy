@@ -336,18 +336,27 @@ OAuth 流程 API 面（`CredentialOAuthApiBizModel`）：`beginOAuthFlow(credent
 | 类型元模型 | `nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/credential/credential-type.xdef` |
 | 底层加密原语 | `nop-kernel/nop-commons/src/main/java/io/nop/commons/crypto/impl/AESTextCipher.java`（复用，不修改） |
 
-## 敏感操作标注（@MfaRequired，W12 机制可用）
+## 敏感操作标注（@MfaRequired，C1b 已落地）
 
-凭证库写操作（save/delete/reencryptAll 等）属操作级 MFA 的敏感操作候选清单，但本模块动作**尚未标注**——标注需引入 `nop-credential-service → nop-biz-auth-api` 依赖边并经 owner 裁定（deferred 至 A1-audit，见 mission roadmap）。机制本身已可用，后续标注只加注解：
+四个敏感管理动作已标注操作级 MFA（A1-audit §二#4 缩窄裁定，C1b 落地）：
+
+| 动作 | 裁定理由 |
+|------|----------|
+| `NopCredential__reencryptAll` | 全量敏感（触及全部密文） |
+| `NopCredential__delete` | 数据级不可逆删除 |
+| `NopCredentialAuth__grant` | 权限变更（扩大凭证取用面） |
+| `NopCredentialAuth__revoke` | 权限变更（与 grant 对称拦截，防劫持会话内权限操纵） |
 
 ```java
 @BizMutation
 @io.nop.auth.api.mfa.MfaRequired   // 不得与 @BizSubscription / @Auth(publicAccess=true) 同用（构建期报错）
-public void reencryptAll(IServiceContext context) { ... }
+public int reencryptAll() { ... }
 ```
 
-- 开关：`nop.auth.operation-mfa.enabled`（缺省 false，关闭时零介入）；验证流与票语义见 `nop-auth.md` 的"操作级 MFA"章节。
-- 标注前置条件：部署 nop-auth-service（提供 `IOperationMfaChecker` 实现 bean——未部署时注解无效果，等价开关关闭）。
+- **生效前置**（三者任一不满足时四动作行为与未标注完全一致）：部署侧 `nop.auth.operation-mfa.enabled=true` + 操作用户 MFA 已启用 + checker SPI bean 装配（`IOperationMfaChecker` 实现由 nop-auth-service 提供）。验证流与一次性票语义见 `nop-auth.md` 的"操作级 MFA"章节。
+- **零介入分层措辞**（对齐 `nop-auth.md` 受限会话语义）：未部署 nop-auth-service（无 checker bean）时 executor 零介入；部署后操作级挑战仍受 `nop.auth.operation-mfa.enabled` 门控，但**受限会话拦截不受该开关门控**——受限会话（角色强制策略判定）内非白名单 mutation（含本模块未标注动作如 `saveCredential`）仍会被拒（`ERR_AUTH_MFA_RESTRICTED_SESSION`），这是独立于操作级 MFA 的登录期持有约束层。
+- **缩窄裁定（不标注）**：`saveCredential`（高频用户操作，强制 MFA 损害 UX；明文写入口已有写分级 + 归属校验两层防御）、`beginOAuthFlow`（state 一次性绑定已防劫持，动作仅返回 URL 不泄密）。
+- **依赖边**：`nop-credential-service → nop-biz-auth-api` 为 API-only 边（该模块仅依赖 `nop-api-core`），经 `nop-biz → nop-graphql-core` 传递本已 compile 可达，pom 声明系显式化既有传递边（Maven 依赖卫生），不引入 nop-auth-service 运行时耦合。
 
 ## 相关文档
 

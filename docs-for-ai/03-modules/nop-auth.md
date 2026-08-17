@@ -212,7 +212,7 @@ public void resetUserPassword(@Name("userId") String userId, @Name("password") S
 
 判定要点：未启用 MFA 的用户不拦截（无第二因子可验；强制启用归角色级策略 W13）；store 未装配放行；批量请求含敏感操作时整批预执行中止（错误即该 operation 的错误，无部分执行副作用）。
 
-**首批标注**（nop-auth 模块内五动作）：`NopAuthUser__resetUserMfa` / `NopAuthUser__resetUserPassword` / `NopAuthUser__changeSelfPassword` / `NopAuthUser__unbindMfa` / `NopAuthUser__generateRecoveryCodes`。凭证库模块标注 deferred（owner 裁定链，见 roadmap）；通用 CRUD 路径（如联系方式修改经 `NopAuthUser__save`）无法用方法级注解覆盖，属平台级治理。
+**首批标注**（nop-auth 模块内五动作）：`NopAuthUser__resetUserMfa` / `NopAuthUser__resetUserPassword` / `NopAuthUser__changeSelfPassword` / `NopAuthUser__unbindMfa` / `NopAuthUser__generateRecoveryCodes`。凭证库模块四动作已落地（C1b，A1-audit §二#4 缩窄裁定）：`NopCredential__reencryptAll` / `NopCredential__delete` / `NopCredentialAuth__grant` / `NopCredentialAuth__revoke`（清单、生效前置与缩窄理由见 `nop-credential.md` 的"敏感操作标注"章节）；通用 CRUD 路径（如联系方式修改经 `NopAuthUser__save`）无法用方法级注解覆盖，属平台级治理。
 
 **共享因子校验组件 `MfaFactorVerifier`**（`io.nop.auth.service.mfa`）：登录级/绑定级/操作级三处因子校验收敛；**TOTP 防重放窗口统一推进内聚组件内**（任何场景成功都更新 lastVerifiedWindow——防同一 30s 窗口码跨场景重放）；未知 mfaType fail-closed；恢复码分支不入组件（登录级专用）。新增因子（W14/W15）只改组件与白名单。
 
