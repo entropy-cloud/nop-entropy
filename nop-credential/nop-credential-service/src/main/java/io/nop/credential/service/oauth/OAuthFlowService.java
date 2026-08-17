@@ -12,6 +12,7 @@ import io.nop.api.core.beans.WebContentBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ApiStringHelper;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.credential.api.registry.CredentialType;
 import io.nop.credential.api.registry.ICredentialTypeRegistry;
 import io.nop.credential.config.CredentialConfigs;
@@ -22,10 +23,12 @@ import io.nop.credential.service.CredentialOwnership;
 import io.nop.credential.service.CredentialProviderImpl;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
+import io.nop.dao.exceptions.UnknownEntityException;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -96,6 +99,8 @@ public class OAuthFlowService {
     /**
      * 校验链：实例存在/未删/未禁用 → 类型为 oauth2。（登录态要求仅发起路径有——回调路径无
      * 登录态，以 state 绑定的发起人身份语义执行，见设计 §3.3 回调数据通道联合裁定。）
+     * 回调路径专用（state bearer 语义，不存在归一需求）；发起路径见
+     * {@link #beginOAuthFlow(String)} 的 D1-03/D4-07 三态归一。
      */
     private NopCredential requireOauth2Credential(String credentialId) {
         NopCredential entity = credentialDao().getEntityById(credentialId);
@@ -103,9 +108,18 @@ public class OAuthFlowService {
             throw new NopException(CredentialErrors.ERR_CREDENTIAL_NOT_FOUND)
                     .param(CredentialErrors.ARG_CREDENTIAL_ID, credentialId);
         }
+        assertOauth2CredentialUsable(entity);
+        return entity;
+    }
+
+    /**
+     * 状态校验（已加载实体）：软删除 / 非 oauth2 类型 / 禁用 显式抛错（D1-03/D4-07 显式边界：
+     * 状态类错误码保留，不在越权归一范围内）。
+     */
+    private void assertOauth2CredentialUsable(NopCredential entity) {
         if (entity.getDelFlag() != null && entity.getDelFlag() != 0) {
             throw new NopException(CredentialErrors.ERR_CREDENTIAL_DELETED)
-                    .param(CredentialErrors.ARG_CREDENTIAL_ID, credentialId);
+                    .param(CredentialErrors.ARG_CREDENTIAL_ID, entity.getCredentialId());
         }
         CredentialType type = credentialTypeRegistry.getType(entity.getTypeName());
         if (!type.isOauth2Type()) {
@@ -115,30 +129,24 @@ public class OAuthFlowService {
         }
         if ("disabled".equals(entity.getStatus())) {
             throw new NopException(CredentialErrors.ERR_CREDENTIAL_DISABLED)
-                    .param(CredentialErrors.ARG_CREDENTIAL_ID, credentialId);
+                    .param(CredentialErrors.ARG_CREDENTIAL_ID, entity.getCredentialId());
         }
-        return entity;
     }
 
     /**
      * W11 回补：发起动作归属校验（设计 §5.3 写类矩阵，plan Phase 2）——scope=system 限管理员
      * （无登录态不可能到达本方法：发起路径要求登录态）；scope=user 限 owner+管理员。
-     * 回调路径无登录态，以 state bearer capability 语义执行（归属校验已在发起时完成）。
+     * D1-03/D4-07（A1-audit successor，2026-08-17）：越权拒绝（admin-required / owner-or-admin）
+     * 与"不存在"统一为 {@link UnknownEntityException}（三态不可区分，防 credentialId 枚举探测
+     * 归属；ARG_OWNER_ID 等 param 不进入对外可达异常）。回调路径无登录态，以 state bearer
+     * capability 语义执行（归属校验已在发起时完成）。
      */
-    private void assertBeginOwnership(NopCredential entity, IUserContext userContext) {
-        String denial = CredentialOwnership.writeDenialReason(userContext, entity.getScope(), entity.getOwnerId());
-        if (denial == null) {
-            return;
+    private void requireBeginAllowed(NopCredential entity, IUserContext userContext) {
+        if (!CredentialOwnership.canSee(userContext, entity.getScope(), entity.getOwnerId())
+                || CredentialOwnership.writeDenialReason(
+                        userContext, entity.getScope(), entity.getOwnerId()) != null) {
+            throw new UnknownEntityException(NopCredential.class.getName(), entity.getCredentialId());
         }
-        if ("admin-required".equals(denial)) {
-            throw new NopException(CredentialErrors.ERR_CREDENTIAL_ADMIN_REQUIRED)
-                    .param(CredentialErrors.ARG_CREDENTIAL_ID, entity.getCredentialId())
-                    .param(CredentialErrors.ARG_REQUIRED_ROLES,
-                            CredentialOwnership.adminRolesAsString(CredentialOwnership.adminRoles()));
-        }
-        throw new NopException(CredentialErrors.ERR_CREDENTIAL_OWNER_OR_ADMIN)
-                .param(CredentialErrors.ARG_CREDENTIAL_ID, entity.getCredentialId())
-                .param(CredentialErrors.ARG_OWNER_ID, entity.getOwnerId());
     }
 
     private IUserContext requireUserContext() {
@@ -166,20 +174,37 @@ public class OAuthFlowService {
      * （授权端点 + client_id + redirect_uri + scope + state + response_type=code）。
      *
      * <p>W11 回补：发起动作归属校验（system=管理员 / user=owner+管理员，设计 §5.3 写类矩阵）。
+     * D1-03/D4-07（A1-audit successor，2026-08-17）：不存在/不可见/写分级拒绝统一
+     * {@link UnknownEntityException}（先于状态类校验——越权者对目标的一切信息均"不存在"）；
+     * {@code DELETED}/{@code DISABLED}/{@code NOT_OAUTH2_TYPE} 状态类错误码保留（显式边界）。
      */
     public String beginOAuthFlow(String credentialId) {
         IUserContext userContext = requireUserContext();
-        NopCredential entity = requireOauth2Credential(credentialId);
-        assertBeginOwnership(entity, userContext);
+        NopCredential entity = credentialDao().getEntityById(credentialId);
+        if (entity == null) {
+            // D1-03/D4-07：不存在与越权三态归一
+            throw new UnknownEntityException(NopCredential.class.getName(), credentialId);
+        }
+        requireBeginAllowed(entity, userContext);
+        assertOauth2CredentialUsable(entity);
 
         CredentialType type = credentialTypeRegistry.getType(entity.getTypeName());
         Map<String, Object> fields = credentialProvider.engineGetDecryptedFields(credentialId);
         String clientId = (String) fields.get(FIELD_CLIENT_ID);
         String clientSecret = (String) fields.get(FIELD_CLIENT_SECRET);
+        // D2-02（A1-audit successor，2026-08-17）：发起侧补 clientId 非空校验（对齐回调侧
+        // 字段集）——空/空白 clientId 与缺失 clientSecret 同样拒绝，param 标注缺失字段集
+        List<String> missing = new java.util.ArrayList<>(2);
+        if (StringHelper.isEmpty(clientId)) {
+            missing.add(FIELD_CLIENT_ID);
+        }
         if (StringHelper.isEmpty(clientSecret)) {
+            missing.add(FIELD_CLIENT_SECRET);
+        }
+        if (!missing.isEmpty()) {
             throw new NopException(CredentialErrors.ERR_CREDENTIAL_OAUTH_CLIENT_CREDENTIALS_MISSING)
                     .param(CredentialErrors.ARG_CREDENTIAL_ID, credentialId)
-                    .param(CredentialErrors.ARG_FIELD_NAMES, FIELD_CLIENT_SECRET);
+                    .param(CredentialErrors.ARG_FIELD_NAMES, String.join(",", missing));
         }
 
         long ttlSeconds = CredentialConfigs.CFG_CREDENTIAL_OAUTH_STATE_TTL_SECONDS.get();
@@ -187,7 +212,7 @@ public class OAuthFlowService {
 
         String redirectUri = buildCallbackUrl();
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("client_id", StringHelper.isEmpty(clientId) ? "" : clientId);
+        params.put("client_id", clientId);
         params.put("redirect_uri", redirectUri);
         if (!StringHelper.isEmpty(type.getOauth2().getScopes())) {
             params.put("scope", type.getOauth2().getScopes());
@@ -263,6 +288,12 @@ public class OAuthFlowService {
      * 回调响应页（Phase 2 Decision：biz 层无 30x 原语，落地为 WebContentBean HTML——
      * meta-refresh/JS location 跳转到配置的前端结果页；未配置时输出内置静态完成提示）。
      * 响应体不含 token 明文（Exit Criteria 断言项）。
+     *
+     * <p><b>D2-05（A1-audit successor，2026-08-17）两语境分别编码</b>：meta-refresh 的
+     * {@code content} 属性为 HTML 属性上下文，保持 {@code escapeHtml}；JS
+     * {@code window.location.replace("...")} 为 JS 字符串上下文，改用 JSON 编码
+     * （{@code JsonTool.stringify} 产出带引号的 JSON 字符串字面量——引号/反斜杠/控制字符
+     * 按 JS 语法转义，{@code escapeHtml} 的 HTML 实体在 JS 语境不构成转义）。
      */
     private WebContentBean buildResultPage() {
         String resultUrl = CredentialConfigs.CFG_CREDENTIAL_OAUTH_RESULT_PAGE_URL.get();
@@ -272,12 +303,14 @@ public class OAuthFlowService {
                     + "<title>Authorization Complete</title></head>"
                     + "<body><p>OAuth authorization complete. You can close this window.</p></body></html>";
         } else {
+            // JS 字符串上下文：JSON 编码（含定界引号；内部引号/反斜杠被 JS 语法转义）
+            String jsonEncodedUrl = JsonTool.stringify(resultUrl);
             html = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/>"
                     + "<meta http-equiv=\"refresh\" content=\"0;url=" + StringHelper.escapeHtml(resultUrl) + "\"/>"
                     + "<title>Authorization Complete</title></head>"
                     + "<body><p>OAuth authorization complete. Redirecting...</p>"
-                    + "<script type=\"text/javascript\">window.location.replace(\""
-                    + StringHelper.escapeHtml(resultUrl) + "\");</script></body></html>";
+                    + "<script type=\"text/javascript\">window.location.replace("
+                    + jsonEncodedUrl + ");</script></body></html>";
         }
         return new WebContentBean(WebContentBean.CONTENT_TYPE_HTML, html);
     }

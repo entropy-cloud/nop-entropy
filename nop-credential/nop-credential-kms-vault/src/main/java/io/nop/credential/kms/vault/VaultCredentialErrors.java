@@ -83,6 +83,14 @@ public interface VaultCredentialErrors {
             "显式配置的 active keyId 不在 Vault 密钥映射中（不得指向迁移残余 key）",
             ARG_KEY_ID, ARG_AVAILABLE_KEY_IDS);
 
+    String ARG_SHARED_KEY_ID = "sharedKeyId";
+
+    ErrorCode ERR_CREDENTIAL_VAULT_ACTIVE_KEY_CONFLICT = define(
+            "nop.err.credential.vault.active-key-id-conflict",
+            "nop.credential.vault.active-key-id 与共享 nop.credential.active-key-id 同时设置且不一致"
+                    + "（fail-closed，消除 local→vault 迁移期静默改变 active key 的陷阱；请仅保留 vault 专用配置或保持两者一致）",
+            ARG_KEY_ID, ARG_SHARED_KEY_ID);
+
     ErrorCode ERR_CREDENTIAL_VAULT_UNKNOWN_KEY_ID = define(
             "nop.err.credential.vault.unknown-key-id",
             "keyId 未在 Vault 主密钥提供者中注册（运行期语义与一期 fail-closed 一致）",

@@ -14,6 +14,7 @@ import io.nop.api.core.beans.graphql.GraphQLRequestBean;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.credential.api.crypto.ICredentialKeyProvider;
 import io.nop.credential.crypto.CredentialCipher;
@@ -33,6 +34,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -153,5 +155,70 @@ public class TestNopCredentialReencryptPagination extends JunitBaseTestCase {
         assertEquals("credentialId", orderBy.get(0).getName());
         assertFalse(orderBy.get(0).isDesc(), "credentialId 升序（keyset 游标方向）");
         assertNotNull(query.getFilter(), "必须过滤 delFlag=0");
+    }
+
+    // ==================== D3-02：reencrypt-page-size 下限 fail-closed ====================
+
+    /**
+     * D3-02（A1-audit successor，2026-08-17）：页大小 &lt; 1 拒绝（启动/注入期 fail-closed）——
+     * 0/负值使 keyset 翻页每页取空、游标永不推进（空页死循环）。
+     */
+    @Test
+    public void reencryptPageSizeBelowOneRejectedFailClosed() {
+        NopCredentialBizModel plain = new NopCredentialBizModel();
+        NopException zero = assertThrows(NopException.class, () -> plain.setReencryptPageSize(0));
+        assertEquals("nop.err.credential.reencrypt-page-size-invalid", zero.getErrorCode());
+        assertThrows(NopException.class, () -> plain.setReencryptPageSize(-5));
+        // 合法值不受影响
+        plain.setReencryptPageSize(1);
+    }
+
+    // ==================== D5-03：非 cv1 前缀行计数信号（关窗完备性） ====================
+
+    /**
+     * D5-03（A1-audit successor，2026-08-17）：reencryptAll 对非 cv1 前缀（含空 data）行
+     * 计数上报——包私有计数器与 WARN 汇总同源，测试不依赖日志 appender 即可断言信号；
+     * legacy 行保持不迁移（行为不变），但"静默跳过"变为可观测计数。
+     */
+    @Test
+    public void reencryptAllCountsNonCv1RowsAsClosureSignal() {
+        // 2 条 cv1 行（经正规入口）
+        saveCredentialViaGraphQL("d5-03-cv1-a", "sk-d5-03-a");
+        saveCredentialViaGraphQL("d5-03-cv1-b", "sk-d5-03-b");
+
+        // 3 条非 cv1 行（legacy 裸 data / 空 data），直接经 dao 落库
+        IEntityDao<NopCredential> dao = nopCredentialDao();
+        for (int i = 0; i < 2; i++) {
+            NopCredential legacy = dao.newEntity();
+            legacy.setCredentialId("d5-03-legacy-" + i);
+            legacy.setName("legacy-" + i);
+            legacy.setTypeName("generic-secret");
+            legacy.setStatus("enabled");
+            legacy.setDelFlag((byte) 0);
+            legacy.setVersion(1);
+            legacy.setData("legacy-plaintext-not-cv1-" + i);
+            dao.saveEntityDirectly(legacy);
+        }
+        NopCredential empty = dao.newEntity();
+        empty.setCredentialId("d5-03-empty");
+        empty.setName("empty-data");
+        empty.setTypeName("generic-secret");
+        empty.setStatus("enabled");
+        empty.setDelFlag((byte) 0);
+        empty.setVersion(1);
+        empty.setData(null);
+        dao.saveEntityDirectly(empty);
+
+        int updated = bizModel.reencryptAll(); // 无登录态内部调用（运维通道语义）
+
+        assertEquals(0, updated, "active key 未切换：cv1 行幂等跳过，legacy 行不迁移");
+        assertEquals(3, bizModel.lastNonCv1SkippedCount,
+                "non-cv1 rows (2 legacy + 1 empty) must be counted as closure signal (D5-03)");
+        // legacy 行原样保留（计数不改写数据）
+        assertEquals("legacy-plaintext-not-cv1-0",
+                dao.getEntityById("d5-03-legacy-0").getData());
+        // 信号计数为单次执行口径：再次执行重新累计
+        bizModel.reencryptAll();
+        assertEquals(3, bizModel.lastNonCv1SkippedCount, "counter reflects the latest run");
     }
 }

@@ -560,13 +560,15 @@ public class TestNopCredentialOwnershipBizModel extends JunitBaseTestCase {
         String sysId = saveRowDirect("wg-sys", "system", null);
         String bobId = saveRowDirect("wg-bob", "user", BOB);
 
-        // 普通用户改 system 级 → admin-required
+        // 普通用户改 system 级 → 与"不存在"不可区分（D1-03/D4-07：三态归一
+        // UnknownEntityException——越权保存与不存在目标对外响应一致，防 credentialId 枚举探测）
         IUserContext.set(RoleUserContext.plain(ALICE));
         GraphQLResponseBean sysUpdate = executeGraphQL(
                 "mutation { NopCredential__saveCredential(typeName: \"openai-api-key\", name: \"n\", "
                         + "fields: {apiKey: \"sk\"}, id: \"" + sysId + "\") { credentialId } }");
         assertTrue(sysUpdate.hasError(), "non-admin updating system credential must be denied");
-        assertEquals("nop.err.credential.admin-required", sysUpdate.getErrorCode());
+        assertEquals("nop.err.dao.unknown-entity", sysUpdate.getErrorCode(),
+                "unauthorized saveCredential update must be normalized as not-found (D1-03/D4-07)");
 
         // 普通用户删 system 级 → admin-required（可见行，显式拒绝）
         GraphQLResponseBean sysDelete = executeGraphQL(
@@ -574,12 +576,13 @@ public class TestNopCredentialOwnershipBizModel extends JunitBaseTestCase {
         assertTrue(sysDelete.hasError(), "non-admin deleting system credential must be denied");
         assertEquals("nop.err.credential.admin-required", sysDelete.getErrorCode());
 
-        // 普通用户改他人 user 级 → owner-or-admin（经 saveCredential 更新路径）
+        // 普通用户改他人 user 级 → 与"不存在"不可区分（D1-03/D4-07：原 owner-or-admin 归一）
         GraphQLResponseBean otherUpdate = executeGraphQL(
                 "mutation { NopCredential__saveCredential(typeName: \"openai-api-key\", name: \"n\", "
                         + "fields: {apiKey: \"sk\"}, id: \"" + bobId + "\") { credentialId } }");
         assertTrue(otherUpdate.hasError(), "non-owner updating others' user-level credential must be denied");
-        assertEquals("nop.err.credential.owner-or-admin", otherUpdate.getErrorCode());
+        assertEquals("nop.err.dao.unknown-entity", otherUpdate.getErrorCode(),
+                "unauthorized saveCredential update must be normalized as not-found (D1-03/D4-07)");
 
         // 普通用户删他人 user 级 → 归一"不存在"
         GraphQLResponseBean otherDelete = executeGraphQL(
@@ -602,6 +605,41 @@ public class TestNopCredentialOwnershipBizModel extends JunitBaseTestCase {
         assertFalse(ownDelete.hasError(), "owner must be able to delete own user-level credential, errors="
                 + ownDelete.getErrors());
         assertNotNull(reload(aliceId), "soft-deleted row stays in DB");
+    }
+
+    // ==================== D1-03/D4-07：写路径三态归一（不存在/不可见/越权不可区分） ====================
+
+    /**
+     * saveCredential 更新路径：不存在目标、越权目标（system 级非管理员 / 他人 user 级）
+     * 三态对外统一 {@code nop.err.dao.unknown-entity}——credentialId 枚举探测无法区分
+     * "凭证存在但无权"与"凭证不存在"（A1-audit D1-03/D4-07 收口，对齐 get/delete 先例）。
+     */
+    @Test
+    public void saveCredentialUpdateThreeStatesIndistinguishable() {
+        saveRowDirect("tri-sys", "system", null);
+        saveRowDirect("tri-bob", "user", BOB);
+        IUserContext.set(RoleUserContext.plain(ALICE));
+
+        GraphQLResponseBean nonExistent = executeGraphQL(
+                "mutation { NopCredential__saveCredential(typeName: \"openai-api-key\", name: \"n\", "
+                        + "fields: {apiKey: \"sk\"}, id: \"no-such-credential\") { credentialId } }");
+        assertTrue(nonExistent.hasError(), "update on non-existent credential must fail");
+        assertEquals("nop.err.dao.unknown-entity", nonExistent.getErrorCode());
+
+        GraphQLResponseBean sysDenied = executeGraphQL(
+                "mutation { NopCredential__saveCredential(typeName: \"openai-api-key\", name: \"n\", "
+                        + "fields: {apiKey: \"sk\"}, id: \"tri-sys\") { credentialId } }");
+        assertTrue(sysDenied.hasError(), "non-admin update on system credential must fail");
+
+        GraphQLResponseBean userDenied = executeGraphQL(
+                "mutation { NopCredential__saveCredential(typeName: \"openai-api-key\", name: \"n\", "
+                        + "fields: {apiKey: \"sk\"}, id: \"tri-bob\") { credentialId } }");
+        assertTrue(userDenied.hasError(), "non-owner update on others' user-level credential must fail");
+
+        assertEquals(nonExistent.getErrorCode(), sysDenied.getErrorCode(),
+                "non-existent and unauthorized(system) must be indistinguishable (D1-03/D4-07)");
+        assertEquals(nonExistent.getErrorCode(), userDenied.getErrorCode(),
+                "non-existent and unauthorized(user) must be indistinguishable (D1-03/D4-07)");
     }
 
     // ==================== 两层防御：绕过 BizModel 直调 provider 仍拦截 ====================

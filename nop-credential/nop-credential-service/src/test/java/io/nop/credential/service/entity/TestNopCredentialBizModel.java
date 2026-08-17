@@ -24,6 +24,7 @@ import io.nop.credential.crypto.DefaultCredentialKeyProvider;
 import io.nop.credential.dao.entity.NopCredential;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
+import io.nop.core.context.IServiceContext;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 import jakarta.inject.Inject;
@@ -68,6 +69,12 @@ public class TestNopCredentialBizModel extends JunitBaseTestCase {
 
     @Inject
     IDaoProvider daoProvider;
+
+    @Inject
+    NopCredentialBizModel credentialBizModel;
+
+    @Inject
+    io.nop.orm.IOrmTemplate ormTemplate;
 
     /**
      * NopIoC 不自动按泛型参数解析 {@code IEntityDao<T>}，因此通过 {@link IDaoProvider#daoFor} 获取。
@@ -375,6 +382,50 @@ public class TestNopCredentialBizModel extends JunitBaseTestCase {
         assertEquals("****", masked.getFields().get("apiKey"));
     }
 
+    // ==================== D1-01：继承查询动作 batchGet/findList/findFirst 补齐 data 置空 ====================
+
+    /**
+     * D1-01（A1-audit successor，2026-08-17）：三个继承查询动作在返回前逐行驱逐 +
+     * {@code setData(null)}（与 {@code get}/{@code findPage} 同口径）——即使 xmeta
+     * published=false 结构性边界被绕过，返回实体上也不携带密文。
+     */
+    @Test
+    public void inheritedQueryActionsReturnEntitiesWithNullData() {
+        Map<String, Object> fields = new HashMap<>();
+        fields.put("apiKey", "sk-inherited-query");
+        String credentialId = saveCredentialViaGraphQL("openai-api-key", "d1-01-cred", fields);
+
+        // 直接 BizModel 调用需 ORM 会话上下文（GraphQL 面由引擎包裹；此处对齐引擎语义显式开 session）
+        ormTemplate.runInSession(session -> {
+            IServiceContext context = new io.nop.core.context.ServiceContextImpl();
+
+            // batchGet：返回实体 data == null
+            List<NopCredential> batch = credentialBizModel.batchGet(List.of(credentialId), false, context);
+            assertEquals(1, batch.size(), "batchGet must return the saved credential");
+            assertNull(batch.get(0).getData(), "batchGet returned entity must have data == null (D1-01)");
+
+            // findList：返回实体 data == null
+            io.nop.api.core.beans.query.QueryBean listQuery = new io.nop.api.core.beans.query.QueryBean();
+            listQuery.addFilter(io.nop.api.core.beans.FilterBeans.eq("credentialId", credentialId));
+            List<NopCredential> list = credentialBizModel.findList(listQuery, null, context);
+            assertFalse(list.isEmpty(), "findList must return the saved credential");
+            for (NopCredential entity : list) {
+                assertNull(entity.getData(), "findList returned entity must have data == null (D1-01)");
+            }
+
+            // findFirst：返回实体 data == null
+            io.nop.api.core.beans.query.QueryBean firstQuery = new io.nop.api.core.beans.query.QueryBean();
+            firstQuery.addFilter(io.nop.api.core.beans.FilterBeans.eq("credentialId", credentialId));
+            NopCredential first = credentialBizModel.findFirst(firstQuery, null, context);
+            assertNotNull(first, "findFirst must return the saved credential");
+            assertNull(first.getData(), "findFirst returned entity must have data == null (D1-01)");
+            return null;
+        });
+
+        // DB 中密文仍在（置空只作用于返回实体，不污染存储）
+        assertNotNull(nopCredentialDao().getEntityById(credentialId).getData(),
+                "ciphertext must remain in DB (setData(null) only on returned entities)");
+    }
     // ==================== Phase 2: 删除引用计数拦截 ====================
 
     /**
@@ -465,5 +516,37 @@ public class TestNopCredentialBizModel extends JunitBaseTestCase {
                 "delFlag must be 1 after successful delete");
         assertEquals("disabled", entity.getStatus(),
                 "status must be disabled after successful delete");
+    }
+
+    // ==================== D1-02/D4-05：非 oauth2 更新路径 delFlag fail-closed（墓碑防改写） ====================
+
+    /**
+     * D1-02/D4-05（A1-audit successor，2026-08-17）：软删除（墓碑）行的非 oauth2
+     * `saveCredential` 更新被拒绝（`ERR_CREDENTIAL_DELETED`，与 oauth2 分支经
+     * engineUpdateInLock probe 的 delFlag 检查同口径——此前仅 oauth2 分支有检查）。
+     */
+    @Test
+    public void saveCredentialUpdateOnTombstoneRowRejected() {
+        Map<String, Object> fields = new HashMap<>();
+        fields.put("apiKey", "sk-tombstone");
+        String credentialId = saveCredentialViaGraphQL("openai-api-key", "tombstone-cred", fields);
+
+        // 软删除（无引用 → delete 成功）
+        GraphQLResponseBean del = executeGraphQL(
+                "mutation { NopCredential__delete(id: \"" + credentialId + "\") }");
+        assertFalse(del.hasError(), "delete must succeed without usage refs, errors=" + del.getErrors());
+        assertEquals(Byte.valueOf((byte) 1), nopCredentialDao().getEntityById(credentialId).getDelFlag());
+
+        // 墓碑行改写被拒（fail-closed，不再"复活"已删凭证）
+        GraphQLResponseBean update = executeGraphQL(
+                "mutation { NopCredential__saveCredential(typeName: \"openai-api-key\", name: \"revive-attempt\", "
+                        + "fields: {apiKey: \"sk-revive\"}, id: \"" + credentialId + "\") { credentialId } }");
+        assertTrue(update.hasError(), "updating a soft-deleted (tombstone) credential must be rejected");
+        assertEquals("nop.err.credential.deleted", update.getErrorCode(),
+                "tombstone rewrite must fail with ERR_CREDENTIAL_DELETED (D1-02/D4-05)");
+
+        // data 未被改写（墓碑行原样）
+        NopCredential row = nopCredentialDao().getEntityById(credentialId);
+        assertTrue(row.getData().startsWith("cv1:"), "tombstone ciphertext must stay untouched");
     }
 }

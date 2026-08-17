@@ -58,8 +58,18 @@ public class VaultCredentialKeyProvider implements ICredentialKeyProvider {
 
     private static final Logger LOG = LoggerFactory.getLogger(VaultCredentialKeyProvider.class);
 
-    /** 与一期 local 实现一致的 keyId 字符集约束（cv1: 按冒号 split 无歧义的前提）。 */
-    private static final Pattern KEY_ID_PATTERN = Pattern.compile("[A-Za-z0-9_-]+");
+    /**
+     * keyId 字符集约束（D3-04 单源，A1-audit successor 2026-08-17）：引用 api 模块
+     * {@link ICredentialKeyProvider#KEY_ID_PATTERN} 权威常量，消除本类硬编码副本
+     * （cv1: 按冒号 split 无歧义的前提）。
+     */
+    private static final Pattern KEY_ID_PATTERN = Pattern.compile(ICredentialKeyProvider.KEY_ID_PATTERN);
+
+    /**
+     * Vault 启动期材料读取的请求级超时缺省值（毫秒）。
+     * 由配置项 {@code nop.credential.vault.request-timeout} 覆盖（D3-05）。
+     */
+    static final long DEFAULT_REQUEST_TIMEOUT_MS = 10_000;
 
     /** Vault KV v2 secret 中承载密钥材料的字段名（材料形态与一期 passphrase 同构）。 */
     public static final String MATERIAL_FIELD = "passphrase";
@@ -126,9 +136,41 @@ public class VaultCredentialKeyProvider implements ICredentialKeyProvider {
         this.activeKeyId = activeKeyId;
     }
 
+    /**
+     * 共享 active keyId 配置（D3-01 回退源：vault 专用
+     * {@code nop.credential.vault.active-key-id} 未设时回退 {@code nop.credential.active-key-id}，
+     * 消除 local→vault 迁移期静默改变 active key 的陷阱）。
+     */
+    protected String sharedActiveKeyId;
+
+    @InjectValue("@cfg:nop.credential.active-key-id|")
+    public void setSharedActiveKeyId(String sharedActiveKeyId) {
+        this.sharedActiveKeyId = sharedActiveKeyId;
+    }
+
     @InjectValue("@cfg:nop.credential.vault.migration-keys|")
     public void setMigrationKeys(List<String> migrationKeys) {
         this.migrationKeys = migrationKeys;
+    }
+
+    /**
+     * 启动期材料读取的请求级超时（毫秒，D3-05，A1-audit successor 2026-08-17）。
+     * 由配置项 {@code nop.credential.vault.request-timeout} 注入；null/&lt;=0 或显式置空
+     * 回退缺省 {@link #DEFAULT_REQUEST_TIMEOUT_MS}——启动期材料读取不再无限阻塞。
+     * 字段为 protected 以兼容 NopIoC 字段注入。
+     */
+    protected Long requestTimeout;
+
+    @InjectValue("@cfg:nop.credential.vault.request-timeout|")
+    public void setRequestTimeout(Long requestTimeout) {
+        this.requestTimeout = requestTimeout;
+    }
+
+    long effectiveRequestTimeoutMs() {
+        if (requestTimeout == null || requestTimeout <= 0) {
+            return DEFAULT_REQUEST_TIMEOUT_MS;
+        }
+        return requestTimeout;
     }
 
     @InjectValue("@cfg:nop.credential.master-keys|")
@@ -180,6 +222,20 @@ public class VaultCredentialKeyProvider implements ICredentialKeyProvider {
             built.put(mapping.getKey(), new AESTextCipher().encKey(material));
         }
 
+        // D3-01（A1-audit successor，2026-08-17）active-key-id 配置归一：vault 专用
+        // nop.credential.vault.active-key-id 优先；未设时回退共享 nop.credential.active-key-id
+        // （迁移期共享配置先行调整时 vault 不再静默沿用映射首项）；两处同设且不一致 fail-closed
+        boolean vaultActiveSet = !StringHelper.isEmpty(activeKeyId);
+        boolean sharedActiveSet = !StringHelper.isEmpty(sharedActiveKeyId);
+        if (vaultActiveSet && sharedActiveSet && !activeKeyId.equals(sharedActiveKeyId)) {
+            throw new NopException(VaultCredentialErrors.ERR_CREDENTIAL_VAULT_ACTIVE_KEY_CONFLICT)
+                    .param(VaultCredentialErrors.ARG_KEY_ID, activeKeyId)
+                    .param(VaultCredentialErrors.ARG_SHARED_KEY_ID, sharedActiveKeyId);
+        }
+        if (!vaultActiveSet && sharedActiveSet) {
+            this.activeKeyId = sharedActiveKeyId;
+        }
+
         // active key：显式指定必须命中 Vault 密钥（不得指向迁移残余 key）；缺省取映射首项
         if (StringHelper.isEmpty(activeKeyId)) {
             this.activeKeyId = mappings.keySet().iterator().next();
@@ -200,6 +256,12 @@ public class VaultCredentialKeyProvider implements ICredentialKeyProvider {
                 }
                 String keyId = entry.substring(0, colonIdx);
                 String passphrase = entry.substring(colonIdx + 1);
+                // D5-06（A1-audit successor，2026-08-17）：残余 passphrase 纯空白拒绝
+                // （isBlank；含空格的非空白 passphrase 保持合法）
+                if (StringHelper.isBlank(passphrase)) {
+                    throw new NopException(VaultCredentialErrors.ERR_CREDENTIAL_VAULT_MIGRATION_KEY_INVALID)
+                            .param(VaultCredentialErrors.ARG_MIGRATION_KEY, String.valueOf(entry));
+                }
                 // 禁含 active key 检查先于 keyId 冲突检查（active 必属 Vault 密钥集，
                 // 先查冲突会吞掉更具体的"残余含 active"错误信号）
                 if (keyId.equals(activeKeyId)) {
@@ -250,6 +312,8 @@ public class VaultCredentialKeyProvider implements ICredentialKeyProvider {
         request.setMethod(HttpApiConstants.METHOD_GET);
         request.url(address + "/v1/" + path);
         request.header(HEADER_VAULT_TOKEN, token);
+        // D3-05：请求级超时——启动期材料读取不再无限阻塞（配置置空/非法回退缺省 10s）
+        request.setTimeout(effectiveRequestTimeoutMs());
 
         IHttpResponse response;
         try {
@@ -297,7 +361,9 @@ public class VaultCredentialKeyProvider implements ICredentialKeyProvider {
                     .param(VaultCredentialErrors.ARG_PATH, path);
         }
         Object passphrase = ((Map<?, ?>) material).get(MATERIAL_FIELD);
-        if (!(passphrase instanceof String) || StringHelper.isEmpty((String) passphrase)) {
+        // D5-06：材料纯空白拒绝（isBlank——空串之外的空白形态同样无法构成有效密钥材料；
+        // 含空格的非空白 passphrase 保持合法）
+        if (!(passphrase instanceof String) || StringHelper.isBlank((String) passphrase)) {
             throw new NopException(VaultCredentialErrors.ERR_CREDENTIAL_VAULT_MATERIAL_INVALID)
                     .param(VaultCredentialErrors.ARG_KEY_ID, keyId)
                     .param(VaultCredentialErrors.ARG_PATH, path);

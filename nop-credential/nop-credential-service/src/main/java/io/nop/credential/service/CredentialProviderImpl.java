@@ -194,6 +194,19 @@ public class CredentialProviderImpl implements ICredentialProvider {
 
     @Override
     public void registerUsage(String credentialId, String consumerRef) {
+        // D6-03（A1-audit successor，2026-08-17）：前置校验凭证存在且未软删（fail-closed）——
+        // 配错 credentialId 在登记时即时报错（错误码与 provider 读路径同码），而非运行时
+        // 延迟暴露为"已绑定但不可用"的静默悬空引用
+        NopCredential credential = daoProvider.daoFor(NopCredential.class).getEntityById(credentialId);
+        if (credential == null) {
+            throw new NopException(CredentialErrors.ERR_CREDENTIAL_NOT_FOUND)
+                    .param(CredentialErrors.ARG_CREDENTIAL_ID, credentialId);
+        }
+        if (isDeleted(credential)) {
+            throw new NopException(CredentialErrors.ERR_CREDENTIAL_DELETED)
+                    .param(CredentialErrors.ARG_CREDENTIAL_ID, credentialId);
+        }
+
         IEntityDao<NopCredentialUsage> dao = daoProvider.daoFor(NopCredentialUsage.class);
 
         QueryBean query = new QueryBean();
@@ -280,6 +293,13 @@ public class CredentialProviderImpl implements ICredentialProvider {
      * 驱逐会话缓存后从 DB 重读、解密，应用 {@code updater}（可为空返回值语义之外的任意
      * 外呼，如惰性刷新的 token endpoint 调用），重加密回写。返回更新后的完整字段 map。
      *
+     * <p><b>D2-04（A1-audit successor，2026-08-17）引擎通道</b>：本 2-arg 入口为引擎通道
+     * （惰性刷新 / {@code engineUpdateTokenFields} 回调回写），锁内（{@code lockEntity} 之后）
+     * 复查 oauth2 disabled（TOCTOU 闭合——锁外 probe 与锁内写之间的窗口内被禁用的凭证
+     * 不再被回写）。{@code saveCredential} 分组写走 3-arg 重载（customizer 通道），按
+     * adjudication §二#3(b) 显式豁免该复查（saveCredential 覆盖路径不拒 disabled 为
+     * 已裁定边界）。
+     *
      * <p>跨副本互斥语义（Phase 3 Decision）：同一凭证的"刷新 vs 刷新"与"刷新 vs 人工保存"
      * 均经由本入口串行化；持锁期间含一次秒级 HTTP 外呼为已接受的吞吐代价（单凭证粒度）。
      * updater 抛错 → 事务回滚，data 不变。
@@ -290,10 +310,9 @@ public class CredentialProviderImpl implements ICredentialProvider {
     }
 
     /**
-     * <b>引擎专用</b>：行锁写通道扩展——{@code entityCustomizer} 在锁下对已重读的实体设置
-     * 元数据列（name/typeName/updateTime 等），与 data 重加密在<b>同一 UPDATE</b> 内提交
-     * （避免"元数据先写 + data 后写"两步间乐观锁版本竞争导致的 update-entity-not-found
-     * / 双写丢失）。customizer 为 null 时只写 data。
+     * <b>saveCredential 分组写通道</b>（3-arg，customizer 非 null 时）：锁内<b>不</b>复查
+     * disabled（adjudication §二#3(b)：saveCredential 覆盖路径不拒 disabled 属显式声明
+     * 边界——D2-04 边界约束 (a)）。
      */
     public Map<String, Object> engineUpdateInLock(String credentialId,
                                                   Function<Map<String, Object>, Map<String, Object>> updater,
@@ -310,20 +329,33 @@ public class CredentialProviderImpl implements ICredentialProvider {
                         throw new NopException(CredentialErrors.ERR_CREDENTIAL_DELETED)
                                 .param(CredentialErrors.ARG_CREDENTIAL_ID, credentialId);
                     }
+                    // D2-04：引擎通道（无 customizer = 惰性刷新/回调回写）锁内复查 disabled
+                    boolean engineChannel = entityCustomizer == null;
                     // 驱逐会话缓存中的旧副本，确保锁下从 DB 重读最新 data（防 fast-path 读入的陈旧缓存）
                     session.evict(probe);
                     NopCredential entity = dao.loadEntityById(credentialId);
                     dao.lockEntity(entity);
+                    if (engineChannel) {
+                        // 必须发生在 lockEntity 之后的锁内（通道参数化传入；调用侧锁外复查
+                        // 不闭合 TOCTOU 窗口，不作为实现形态）
+                        assertOauth2NotDisabled(entity);
+                    }
 
                     Map<String, Object> current = decryptToData(entity).getFields();
                     Map<String, Object> updated = updater.apply(current);
 
-                    entity.setData(credentialCipher.encrypt(JsonTool.stringify(updated)));
-                    entity.setUpdateTime(new Timestamp(System.currentTimeMillis()));
-                    if (entityCustomizer != null) {
-                        entityCustomizer.accept(entity, updated);
+                    // D2-03（A1-audit successor，2026-08-17）：无变化分支跳过回写——
+                    // Decision：引用相等（updated == current）为"无变化"判定口径（updater
+                    // 显式返回同实例即"未变化"信号，如惰性刷新"已被并发先行者刷新"分支）；
+                    // 跳过重加密与 UPDATE（写放大 + version 漂移消除），返回值语义不变
+                    if (updated != current) {
+                        entity.setData(credentialCipher.encrypt(JsonTool.stringify(updated)));
+                        entity.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+                        if (entityCustomizer != null) {
+                            entityCustomizer.accept(entity, updated);
+                        }
+                        dao.updateEntityDirectly(entity);
                     }
-                    dao.updateEntityDirectly(entity);
                     return updated;
                 }));
     }

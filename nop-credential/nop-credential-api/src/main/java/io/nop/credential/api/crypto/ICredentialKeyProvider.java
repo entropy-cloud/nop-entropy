@@ -21,6 +21,15 @@ import java.util.Set;
 public interface ICredentialKeyProvider {
 
     /**
+     * keyId 允许的字符集约束（D3-04 单源，A1-audit successor 2026-08-17）：
+     * {@code [A-Za-z0-9_-]+}。这是 {@code cv1:{keyId}:v1:...} 密文按冒号 split
+     * 无歧义的前提（keyId 不含冒号），api 模块为本约束的唯一权威定义处——
+     * service 模块的 {@code CredentialCipher} 与 KMS 各实现（如 Vault）统一引用本常量，
+     * 消除多副本硬编码漂移。
+     */
+    String KEY_ID_PATTERN = "[A-Za-z0-9_-]+";
+
+    /**
      * 当前用于加密的主密钥 keyId。新写入的凭证密文以该 keyId 作为前缀。
      * 密钥轮换时切换 active key，旧密文仍按自身 keyId 解密。
      *

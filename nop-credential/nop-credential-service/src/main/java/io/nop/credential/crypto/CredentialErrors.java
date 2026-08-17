@@ -84,6 +84,14 @@ public interface CredentialErrors {
             "凭证重新加密失败",
             ARG_CREDENTIAL_ID);
 
+    /**
+     * D3-02（A1-audit successor，2026-08-17）：reencrypt-page-size 下限校验
+     * （&lt; 1 时启动 fail-closed 拒绝——0 页大小会造成空页死循环）。
+     */
+    ErrorCode ERR_CREDENTIAL_REENCRYPT_PAGE_SIZE_INVALID = define(
+            "nop.err.credential.reencrypt-page-size-invalid",
+            "nop.credential.reencrypt-page-size 配置非法（须 >= 1：0/负值会造成分页空页死循环）");
+
     // ==================== W10 外部 KMS 集成（default-bean 守卫） ====================
 
     String ARG_KEY_PROVIDER = "keyProvider";

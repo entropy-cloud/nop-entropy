@@ -7,6 +7,7 @@
  */
 package io.nop.credential.service.entity;
 
+import io.nop.api.core.annotations.biz.BizArgsNormalizer;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
@@ -53,6 +54,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static io.nop.biz.BizConstants.BEAN_nopQueryBeanArgsNormalizer;
 import static io.nop.biz.BizConstants.BIZ_OBJ_NAME_THIS_OBJ;
 
 /**
@@ -62,14 +64,17 @@ import static io.nop.biz.BizConstants.BIZ_OBJ_NAME_THIS_OBJ;
  * schema 不暴露密文。本类在此基础上做三重防御：
  * <ol>
  *   <li>继承的标准 {@code save} 被覆盖为抛出异常，强制走自定义 {@link #saveCredential} 路径（明文输入唯一入口）</li>
- *   <li>{@link #get} / {@link #findPage} 在返回前强制 {@code entity.setData(null)}（即使 xmeta 边界被绕过也无密文）</li>
+ *   <li>{@code get} / {@code findPage} / {@code findList} / {@code findFirst} / {@code batchGet}
+ *       在返回前强制 {@code entity.setData(null)} + 会话驱逐（即使 xmeta 边界被绕过也无密文，
+ *       D1-01 补齐继承查询动作面）</li>
  *   <li>{@link #saveCredential} 内部加密后持久化，返回的实体 {@code data} 已置 null</li>
  * </ol>
  *
  * <p><b>W11 归属两层防御</b>（设计 §5.3）：读类动作经 {@link #defaultPrepareQuery} 注入结构性过滤
  * （非管理员可见「system 级（含存量 NULL）∨ 自己的 user 级」）；写类动作（saveCredential 修改路径/
  * delete）前置分级（system=管理员，user=owner+管理员；无登录态的内部调用按一期行为放行 system 级、
- * 拒绝 user 级）；单条越权访问（get/maskList/test）归一"不存在"语义（防 credentialId 枚举探测归属）。
+ * 拒绝 user 级）；单条越权访问（get/delete/maskList/test 及 saveCredential 更新路径——D1-03/D4-07
+ * 写读路径口径对称）归一"不存在"语义（防 credentialId 枚举探测归属）。
  * provider 层 per-method 归属校验为纵深防御（BizModel 面被绕过时第二道 fail-closed）。
  *
  * <p><b>继承动作面收口（W11）</b>：标准 {@code update}/{@code batchDelete}/{@code updateByQuery}/
@@ -261,12 +266,27 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
         } else {
             entity = dao.getEntityById(id);
             if (entity == null) {
-                throw new NopException(CredentialErrors.ERR_CREDENTIAL_NOT_FOUND)
-                    .param(CredentialErrors.ARG_CREDENTIAL_ID, id);
+                // D1-03/D4-07（A1-audit successor，2026-08-17）：更新目标不存在与越权拒绝统一
+                // UnknownEntityException（对齐 get/delete 单条资源访问先例，防 credentialId
+                // 枚举探测归属/存在性；原 ERR_CREDENTIAL_NOT_FOUND 一并归一）
+                throw new UnknownEntityException(getEntityName(), id);
             }
 
-            // W11 写分级：system 级限管理员（无登录态内部调用按一期行为放行）、user 级限 owner+管理员
-            assertWriteAllowed(entity);
+            // W11 写分级 → D1-03/D4-07 归一：越权（system 级非管理员 / user 级非 owner）
+            // 与"不存在"不可区分（三态归一；ARG_OWNER_ID 等 param 不进入对外可达异常）
+            if (CredentialOwnership.writeDenialReason(
+                    IUserContext.get(), entity.getScope(), entity.getOwnerId()) != null) {
+                throw new UnknownEntityException(getEntityName(), id);
+            }
+
+            // D1-02/D4-05（A1-audit successor，2026-08-17）：非 oauth2 更新路径 delFlag
+            // fail-closed（墓碑行拒绝改写）——与 oauth2 分支经 engineUpdateInLock probe 的
+            // delFlag 检查同口径（此前仅 oauth2 分支有检查，两分支不一致）。放置于越权归一
+            // 之后：越权者对墓碑行同样只看到"不存在"，不泄露删除状态
+            if (entity.getDelFlag() != null && entity.getDelFlag() != 0) {
+                throw new NopException(CredentialErrors.ERR_CREDENTIAL_DELETED)
+                        .param(CredentialErrors.ARG_CREDENTIAL_ID, id);
+            }
 
             // W11 归属不可变：显式传入且与存量不符即拒（缺省不传 = 保持不变）
             applyImmutableOwnershipInput(entity, scope, ownerId);
@@ -373,6 +393,49 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
         return page;
     }
 
+    /**
+     * D1-01（A1-audit successor，2026-08-17）：继承查询动作 {@code findList} 补齐
+     * {@code data} 置空 + 会话驱逐（与 {@code get}/{@code findPage} 同口径——逐行防御性
+     * 驱逐，确保 BizMutation 事务 flush 不把 setData(null) 回写数据库污染密文）。
+     * 可见性过滤经 {@link #defaultPrepareQuery} 结构性注入（继承面，与 findPage 同源）。
+     */
+    @Description("@i18n:biz.findList|根据查询条件返回列表数据。与findPage的不同在于,findPage返回PageBean类型，支持分页，而这个函数返回List类型，而且缺省不分页")
+    @BizQuery
+    @BizArgsNormalizer(BEAN_nopQueryBeanArgsNormalizer)
+    @Override
+    @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
+    public List<NopCredential> findList(
+            @Optional @Name("query") @Description("@i18n:biz.query|查询条件") QueryBean query,
+            FieldSelectionBean selection, IServiceContext context) {
+        List<NopCredential> list = super.findList(query, selection, context);
+        if (list != null) {
+            for (NopCredential entity : list) {
+                orm().requireSession().evict(entity);
+                entity.setData(null);
+            }
+        }
+        return list;
+    }
+
+    /**
+     * D1-01：继承查询动作 {@code findFirst} 补齐 {@code data} 置空 + 会话驱逐（同上口径）。
+     */
+    @Description("@i18n:biz.findFirst|返回符合条件的第一条数据")
+    @BizQuery
+    @BizArgsNormalizer(BEAN_nopQueryBeanArgsNormalizer)
+    @Override
+    @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
+    public NopCredential findFirst(
+            @Optional @Name("query") @Description("@i18n:biz.query|查询条件") QueryBean query,
+            FieldSelectionBean selection, IServiceContext context) {
+        NopCredential entity = super.findFirst(query, selection, context);
+        if (entity != null) {
+            orm().requireSession().evict(entity);
+            entity.setData(null);
+        }
+        return entity;
+    }
+
     // ==================== W11 归属过滤与分级（设计 §5.3） ====================
 
     /**
@@ -399,9 +462,14 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
     }
 
     /**
-     * 写分级（设计 §5.3 写类矩阵）：system 级限管理员（无登录态的内部调用按一期行为放行——
-     * GraphQL 入口在生产由 action-auth 管角色，此处为第二层）；user 级限 owner+管理员
-     * （无登录态拒绝——owner 无法判定）。
+     * 写分级（设计 §5.3 写类矩阵，{@code delete} 专用）：system 级限管理员（无登录态的内部
+     * 调用按一期行为放行——GraphQL 入口在生产由 action-auth 管角色，此处为第二层）；user 级限
+     * owner+管理员（无登录态拒绝——owner 无法判定）。
+     *
+     * <p>D1-03/D4-07 后 {@code saveCredential} 更新路径的越权拒绝已归一
+     * {@link UnknownEntityException}（三态不可区分）；{@code delete} 因先行 canSee 归一，
+     * 实际可达分支仅为"可见 system 级 + 非管理员"（显式 ADMIN_REQUIRED，A1-audit 认可的
+     * 既有读路径口径）；user 级 OWNER_OR_ADMIN 分支为纵深防御保留（canSee 已拦截，正常不可达）。
      */
     private void assertWriteAllowed(NopCredential entity) {
         IUserContext userContext = IUserContext.get();
@@ -548,6 +616,12 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
 
     @InjectValue("@cfg:nop.credential.reencrypt-page-size|1000")
     public void setReencryptPageSize(int reencryptPageSize) {
+        // D3-02（A1-audit successor，2026-08-17）：页大小下限 fail-closed（< 1 拒绝）——
+        // 0/负值页大小使 keyset 翻页循环每页取空、游标永不推进（空页死循环）
+        if (reencryptPageSize < 1) {
+            throw new NopException(CredentialErrors.ERR_CREDENTIAL_REENCRYPT_PAGE_SIZE_INVALID)
+                    .param("reencryptPageSize", reencryptPageSize);
+        }
         this.reencryptPageSize = reencryptPageSize;
     }
 
@@ -583,6 +657,7 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
         String activeKeyId = keyProvider.getActiveKeyId();
 
         int updated = 0;
+        int nonCv1Skipped = 0; // D5-03：非 cv1 前缀行计数（关窗完备性信号）
         String cursor = null;
         List<NopCredential> page;
         do {
@@ -593,6 +668,7 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
             for (NopCredential entity : page) {
                 String data = entity.getData();
                 if (StringHelper.isEmpty(data) || !data.startsWith(CredentialCipher.CV1_MARKER)) {
+                    nonCv1Skipped++; // D5-03：静默跳过改为可观测计数（不进 updated、不 fail——存量 legacy 行由关窗信号暴露）
                     continue;
                 }
 
@@ -619,8 +695,26 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
                 cursor = page.get(page.size() - 1).orm_idString();
             }
         } while (page.size() == reencryptPageSize);
+
+        // D5-03（A1-audit successor，2026-08-17）：非 cv1 前缀行 WARN 汇总（含行数）——
+        // KMS 迁移关窗的完备性信号（GraphQL 返回契约 int 保持不变）；包私有计数器供测试断言
+        this.lastNonCv1SkippedCount = nonCv1Skipped;
+        if (nonCv1Skipped > 0) {
+            LOG.warn("reencryptAll skipped {} credential row(s) with non-cv1 or empty data prefix "
+                    + "(legacy/manual rows remain unrotated — investigate before retiring old keys)",
+                    nonCv1Skipped);
+        }
         return updated;
     }
+
+    private static final org.slf4j.Logger LOG =
+            org.slf4j.LoggerFactory.getLogger(NopCredentialBizModel.class);
+
+    /**
+     * D5-03：最近一次 {@code reencryptAll} 跳过的非 cv1 前缀行数（包私有可断言暴露；
+     * 与 WARN 汇总日志同源——测试不依赖日志 appender 也能断言计数信号）。
+     */
+    int lastNonCv1SkippedCount;
 
     /**
      * 构造 reencryptAll 的分页查询：强制 orderBy credentialId（确定性排序——keyset
@@ -775,6 +869,9 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
     /**
      * {@code batchGet} 改走行级可见性过滤语义（W11 收口裁定：过滤而非禁用——UI 批量取数合法
      * 场景保留）：不可见行从结果中剔除（与 {@code get} 的"归一不存在"同口径的批量形式）。
+     * D1-01（A1-audit successor，2026-08-17）：返回前逐行驱逐 + {@code setData(null)}
+     * （与 {@code get}/{@code findPage} 同口径，闭掉"可见性过滤已做但密文仍在返回实体上"
+     * 的防御缺口）。
      * （{@code batchUpdate}/{@code batchModify}/{@code saveOrUpdate} 内部委托已禁用的
      * {@code update}/{@code save}，禁用后自动失效。）
      */
@@ -788,6 +885,11 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
         List<NopCredential> list = super.batchGet(ids, ignoreUnknown, context);
         if (list.isEmpty()) {
             return list;
+        }
+        // D1-01：先逐行驱逐 + 清密文（覆盖全部返回行，再做可见性过滤）
+        for (NopCredential entity : list) {
+            orm().requireSession().evict(entity);
+            entity.setData(null);
         }
         IUserContext userContext = IUserContext.get();
         if (!CredentialOwnership.hasLoginUser(userContext) || CredentialOwnership.isAdmin(userContext)) {

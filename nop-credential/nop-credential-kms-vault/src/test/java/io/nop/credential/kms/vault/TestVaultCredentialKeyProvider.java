@@ -471,4 +471,143 @@ public class TestVaultCredentialKeyProvider {
         p.init();
         assertThrows(NopException.class, () -> p.getKey("not-registered"));
     }
+
+    // ==================== D3-01：active-key-id 配置归一（回退 + 冲突 fail-closed） ====================
+
+    /**
+     * D3-01（A1-audit successor，2026-08-17）：vault 专用 {@code nop.credential.vault.active-key-id}
+     * 未设时回退共享 {@code nop.credential.active-key-id}——local→vault 迁移期共享配置先行
+     * 调整时 vault 不再静默沿用映射首项（消除静默改变 active key 的迁移陷阱）。
+     */
+    @Test
+    public void activeKeyFallsBackToSharedConfigWhenVaultUnset() {
+        VaultCredentialKeyProvider p = newProvider(new StubHttpClient(
+                req -> new StubResponse(200, kvV2Body("m"))),
+                Arrays.asList("keyA:secret/data/cred/a", "keyB:secret/data/cred/b"));
+        p.setSharedActiveKeyId("keyB"); // 仅设共享配置
+        p.init();
+        assertEquals("keyB", p.getActiveKeyId(),
+                "unset vault active-key-id must fall back to shared nop.credential.active-key-id (D3-01)");
+    }
+
+    /**
+     * D3-01：两处同设且一致 → 放行（等值不构成冲突）。
+     */
+    @Test
+    public void sameVaultAndSharedActiveKeyAllowed() {
+        VaultCredentialKeyProvider p = newProvider(new StubHttpClient(
+                req -> new StubResponse(200, kvV2Body("m"))),
+                Arrays.asList("keyA:secret/data/cred/a", "keyB:secret/data/cred/b"));
+        p.setActiveKeyId("keyA");
+        p.setSharedActiveKeyId("keyA");
+        p.init();
+        assertEquals("keyA", p.getActiveKeyId());
+    }
+
+    /**
+     * D3-01：两处同设且不一致 → 启动失败（fail-closed，防迁移期静默改变 active key）。
+     */
+    @Test
+    public void initThrowsWhenVaultAndSharedActiveKeyConflict() {
+        VaultCredentialKeyProvider p = newProvider(new StubHttpClient(
+                req -> new StubResponse(200, kvV2Body("m"))),
+                Arrays.asList("keyA:secret/data/cred/a", "keyB:secret/data/cred/b"));
+        p.setActiveKeyId("keyA");
+        p.setSharedActiveKeyId("keyB");
+        assertEquals("nop.err.credential.vault.active-key-id-conflict", initError(p));
+    }
+
+    /**
+     * D3-01 回退目标仍受既有校验约束：共享配置回退值必须命中 Vault 密钥映射
+     * （不得绕过 unknown-active-key 检查指向迁移残余/未知 key）。
+     */
+    @Test
+    public void sharedFallbackStillValidatedAgainstVaultKeys() {
+        VaultCredentialKeyProvider p = newProvider(new StubHttpClient(
+                req -> new StubResponse(200, kvV2Body("m"))),
+                Collections.singletonList("keyA:secret/data/cred/a"));
+        p.setSharedActiveKeyId("not-in-vault");
+        assertEquals("nop.err.credential.vault.unknown-active-key", initError(p));
+    }
+
+    // ==================== D3-05：启动期材料读取请求级超时 ====================
+
+    /**
+     * D3-05（A1-audit successor，2026-08-17）：fetchMaterial 的 HTTP 请求携带请求级超时
+     * （缺省 10s）——stub 捕获请求断言 {@code timeout > 0}；配置覆盖与非法回退同样验证。
+     */
+    @Test
+    public void materialFetchCarriesRequestLevelTimeout() {
+        java.util.concurrent.atomic.AtomicLong capturedTimeout = new java.util.concurrent.atomic.AtomicLong(-1);
+        VaultCredentialKeyProvider p = newProvider(new StubHttpClient(req -> {
+            capturedTimeout.set(req.getTimeout());
+            return new StubResponse(200, kvV2Body("m"));
+        }), Collections.singletonList("keyA:secret/data/cred/a"));
+        p.init();
+
+        assertTrue(capturedTimeout.get() > 0, "fetch request must carry a positive timeout (D3-05), got: "
+                + capturedTimeout.get());
+        assertEquals(VaultCredentialKeyProvider.DEFAULT_REQUEST_TIMEOUT_MS, capturedTimeout.get(),
+                "unset config must fall back to the 10s default (no infinite blocking)");
+
+        // 配置覆盖生效
+        java.util.concurrent.atomic.AtomicLong overridden = new java.util.concurrent.atomic.AtomicLong(-1);
+        VaultCredentialKeyProvider p2 = newProvider(new StubHttpClient(req -> {
+            overridden.set(req.getTimeout());
+            return new StubResponse(200, kvV2Body("m"));
+        }), Collections.singletonList("keyA:secret/data/cred/a"));
+        p2.setRequestTimeout(2500L);
+        p2.init();
+        assertEquals(2500L, overridden.get(), "configured request-timeout must be applied (D3-05)");
+
+        // 非法取值（<=0 / 显式置空）回退缺省，不再无限阻塞
+        VaultCredentialKeyProvider p3 = newProvider(new StubHttpClient(req -> {
+            overridden.set(req.getTimeout());
+            return new StubResponse(200, kvV2Body("m"));
+        }), Collections.singletonList("keyA:secret/data/cred/a"));
+        p3.setRequestTimeout(0L);
+        p3.init();
+        assertEquals(VaultCredentialKeyProvider.DEFAULT_REQUEST_TIMEOUT_MS, overridden.get(),
+                "explicitly-invalid timeout (<=0) must fall back to default, not block forever");
+    }
+
+    // ==================== D5-06：passphrase 纯空白收紧（材料 + 迁移残余） ====================
+
+    /**
+     * D5-06：Vault 返回材料为纯空白（空格/制表符）→ 材料非法 fail-closed
+     * （原实现仅拦截空串；空白材料形同弱密钥）。
+     */
+    @Test
+    public void initThrowsOnWhitespaceOnlyMaterial() {
+        VaultCredentialKeyProvider p = newProvider(new StubHttpClient(
+                req -> new StubResponse(200, "{\"data\":{\"data\":{\"passphrase\":\"   \\t \"}}}")),
+                Collections.singletonList("keyA:secret/data/cred/a"));
+        assertEquals("nop.err.credential.vault.material-invalid", initError(p));
+    }
+
+    /**
+     * D5-06：迁移残余条目 passphrase 纯空白 → 条目非法 fail-closed（与 master-keys 同口径）。
+     */
+    @Test
+    public void initThrowsForWhitespaceOnlyMigrationKeyPassphrase() {
+        VaultCredentialKeyProvider p = newProvider(new StubHttpClient(
+                req -> new StubResponse(200, kvV2Body("m"))),
+                Collections.singletonList("keyA:secret/data/cred/a"));
+        p.setMigrationKeys(Collections.singletonList("legacyKey:   "));
+        assertEquals("nop.err.credential.vault.migration-key-invalid", initError(p));
+    }
+
+    /**
+     * D5-06 边界：含空格的非空白 passphrase（材料与残余条目）保持合法。
+     */
+    @Test
+    public void whitespaceContainingPassphraseRemainsLegal() {
+        VaultCredentialKeyProvider p = newProvider(new StubHttpClient(
+                req -> new StubResponse(200, kvV2Body("vault mat with spaces"))),
+                Collections.singletonList("keyA:secret/data/cred/a"));
+        p.setMigrationKeys(Collections.singletonList("legacyKey:legacy pass with spaces"));
+        assertDoesNotThrow(p::init);
+        assertEquals("v", p.getKey("legacyKey").decrypt(p.getKey("legacyKey").encrypt("v")),
+                "non-blank passphrase with spaces must still work (material + migration key)");
+    }
 }

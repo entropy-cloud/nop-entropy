@@ -35,7 +35,8 @@ import java.util.regex.Pattern;
  */
 public class DefaultCredentialKeyProvider implements ICredentialKeyProvider {
 
-    private static final Pattern KEY_ID_PATTERN = Pattern.compile(CredentialCipher.CV1_KEY_ID_PATTERN);
+    /** D3-04 单源：keyId 字符集约束引用 api 模块权威常量（消除本类独立副本）。 */
+    private static final Pattern KEY_ID_PATTERN = Pattern.compile(ICredentialKeyProvider.KEY_ID_PATTERN);
 
     /**
      * 主密钥配置条目列表。由 Nop IoC 通过 {@code @cfg:} 解析注入。
@@ -83,7 +84,11 @@ public class DefaultCredentialKeyProvider implements ICredentialKeyProvider {
         // - 非 local 且 master-keys 非空 → 来源混合，启动失败（本地材料只允许存在于
         //   KMS 实现配置中的迁移残余列表；此检查置于守卫使模块缺失场景下也可达）。
         // key-provider=local/未配置时守卫零触发（一期行为不变）。
-        if (!StringHelper.isEmpty(keyProvider) && !"local".equals(keyProvider)) {
+        // D3-03（A1-audit successor，2026-08-17）：取值先 trim + 小写归一再比较——
+        // " Vault "/"LOCAL" 等配置噪声不再误判（错误归因准确化；fail-closed 语义保持）
+        String normalizedKeyProvider = keyProvider == null
+                ? null : keyProvider.trim().toLowerCase(java.util.Locale.ROOT);
+        if (!StringHelper.isEmpty(normalizedKeyProvider) && !"local".equals(normalizedKeyProvider)) {
             if (masterKeys != null && !masterKeys.isEmpty()) {
                 throw new NopException(CredentialErrors.ERR_CREDENTIAL_MASTER_KEYS_RESIDUAL);
             }
@@ -114,6 +119,13 @@ public class DefaultCredentialKeyProvider implements ICredentialKeyProvider {
             String passphrase = entry.substring(colonIdx + 1);
 
             if (!KEY_ID_PATTERN.matcher(keyId).matches()) {
+                throw new NopException(CredentialErrors.ERR_CREDENTIAL_MASTER_KEY_ENTRY_INVALID)
+                        .param(CredentialErrors.ARG_MASTER_KEY_ENTRY, entry);
+            }
+
+            // D5-06（A1-audit successor，2026-08-17）：passphrase 纯空白拒绝（isBlank）——
+            // 空白材料构造的 cipher 形同弱密钥；含空格的非空白 passphrase 保持合法
+            if (StringHelper.isBlank(passphrase)) {
                 throw new NopException(CredentialErrors.ERR_CREDENTIAL_MASTER_KEY_ENTRY_INVALID)
                         .param(CredentialErrors.ARG_MASTER_KEY_ENTRY, entry);
             }
@@ -162,9 +174,12 @@ public class DefaultCredentialKeyProvider implements ICredentialKeyProvider {
     }
 
     /**
-     * 供测试与诊断使用：返回主密钥条目的只读副本。
+     * @deprecated D5-07（A1-audit successor，2026-08-17）：原 public 方法明文返回
+     *             {@code keyId:passphrase} 列表（主密钥泄露面反模式，全仓零调用点），
+     *             已收窄为包私有——生产代码/测试均无既有调用需要同步。
      */
-    public List<String> getMasterKeys() {
+    @Deprecated
+    List<String> getMasterKeys() {
         if (masterKeys == null) {
             return Collections.emptyList();
         }

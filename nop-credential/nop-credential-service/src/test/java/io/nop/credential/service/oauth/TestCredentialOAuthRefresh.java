@@ -52,6 +52,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -285,6 +286,103 @@ public class TestCredentialOAuthRefresh extends JunitBaseTestCase {
         CredentialData data = provider.getCredential(id);
         assertEquals("at-old", data.getField("accessToken"));
         assertEquals(0, refreshCallCount.get());
+    }
+
+    // ==================== D2-03：无变化分支跳过回写（写放大 + version 漂移消除） ====================
+
+    /**
+     * D2-03（A1-audit successor，2026-08-17）：updater 返回无变化（引用相等——本场景为
+     * "临期但无 refreshToken 且未过期"分支返回 current）时跳过重加密与 UPDATE——
+     * 判别式：密文含随机 IV，任何回写都会改变 data 字符串；data 逐字节不变 ⇔ 未发生 UPDATE。
+     */
+    @Test
+    public void noChangeBranchSkipsWriteBack() {
+        long expiresIn60s = System.currentTimeMillis() + 60_000;
+        String id = saveOauth2Credential("cred-refresh-nochange", expiresIn60s, null);
+        NopCredential before = daoProvider.daoFor(NopCredential.class).getEntityById(id);
+        String dataBefore = before.getData();
+        java.sql.Timestamp updateTimeBefore = before.getUpdateTime();
+
+        CredentialData data = provider.getCredential(id);
+
+        assertEquals("at-old", data.getField("accessToken"), "current fields must be returned");
+        assertEquals(0, refreshCallCount.get(), "no refresh endpoint call without refreshToken");
+
+        NopCredential after = daoProvider.daoFor(NopCredential.class).getEntityById(id);
+        assertEquals(dataBefore, after.getData(),
+                "no-change branch must NOT re-encrypt/UPDATE (random IV would alter ciphertext) — D2-03");
+        assertEquals(updateTimeBefore, after.getUpdateTime(),
+                "no-change branch must not bump updateTime — D2-03 (version drift eliminated)");
+    }
+
+    /**
+     * D2-03 对照组：真实变化分支（刷新成功）必须回写——证明跳过逻辑只作用于无变化分支，
+     * 正常刷新路径不受影响。
+     */
+    @Test
+    public void changedBranchStillWritesBack() {
+        long expiresIn60s = System.currentTimeMillis() + 60_000;
+        String id = saveOauth2Credential("cred-refresh-changed", expiresIn60s, "rt-old");
+        String dataBefore = daoProvider.daoFor(NopCredential.class).getEntityById(id).getData();
+
+        CredentialData data = provider.getCredential(id);
+
+        assertEquals("at-refreshed", data.getField("accessToken"));
+        String dataAfter = daoProvider.daoFor(NopCredential.class).getEntityById(id).getData();
+        assertNotEquals(dataBefore, dataAfter,
+                "real change (token refresh) must still write back a new ciphertext");
+    }
+
+    // ==================== D2-04：锁内 disabled 复查（引擎通道；saveCredential 通道豁免） ====================
+
+    /**
+     * D2-04（A1-audit successor，2026-08-17）：引擎通道（{@code engineUpdateTokenFields}
+     * → 2-arg {@code engineUpdateInLock}）在 {@code lockEntity} 之后的锁内复查
+     * oauth2 disabled——修复前 probe 只查 delFlag，disabled 凭证仍可被引擎回写
+     * （TOCTOU：取用通过后、回写前被禁用的窗口闭合）。
+     */
+    @Test
+    public void engineTokenWriteOnDisabledOauth2CredentialRejectedInLock() {
+        long expiresIn1h = System.currentTimeMillis() + 3_600_000;
+        String id = saveOauth2Credential("cred-d204-engine", expiresIn1h, "rt-old");
+        setStatus(id, "disabled");
+
+        Map<String, Object> tokenFields = new LinkedHashMap<>();
+        tokenFields.put("accessToken", "forged-at");
+        NopException ex = assertThrows(NopException.class,
+                () -> provider.engineUpdateTokenFields(id, tokenFields));
+        assertEquals("nop.err.credential.disabled", ex.getErrorCode(),
+                "engine channel must reject disabled credential inside the lock (D2-04)");
+
+        // data 未被改写（token 未落库）
+        Map<String, Object> stored = decryptData(id);
+        assertEquals("at-old", stored.get("accessToken"), "disabled credential data must stay untouched");
+    }
+
+    /**
+     * D2-04 边界约束 (a)（adjudication §二#3(b) 已裁定）：saveCredential oauth2 分组写
+     * 通道（3-arg + customizer）显式豁免 disabled 复查——管理员/owner 覆盖保存 disabled
+     * 凭证仍放行（既有声明边界，非违约）。
+     */
+    @Test
+    public void saveCredentialGroupedWriteOnDisabledCredentialStillAllowed() {
+        long expiresIn1h = System.currentTimeMillis() + 3_600_000;
+        String id = saveOauth2Credential("cred-d204-save", expiresIn1h, "rt-d204");
+
+        setStatus(id, "disabled");
+
+        GraphQLResponseBean response = executeGraphQL(String.format(
+                "mutation { NopCredential__saveCredential(typeName: \"%s\", name: \"d204-save\", id: \"%s\", "
+                        + "fields: {clientId:\"replaced-d204\"}) { credentialId } }",
+                OAUTH_TYPE, id));
+        assertFalse(response.hasError(), "saveCredential on disabled oauth2 credential must stay allowed "
+                + "(adjudication §二#3(b) explicit boundary, D2-04 exemption), errors=" + JSON.stringify(response));
+
+        // 分组写语义保持：人工字段替换 + token 集保留 + disabled 状态不被悄悄改回
+        Map<String, Object> stored = decryptData(id);
+        assertEquals("replaced-d204", stored.get("clientId"));
+        assertEquals("at-old", stored.get("accessToken"), "token set must survive the grouped write");
+        assertEquals("disabled", daoProvider.daoFor(NopCredential.class).getEntityById(id).getStatus());
     }
 
     // ==================== 并发互斥（确定性判据：刷新端点调用计数） ====================

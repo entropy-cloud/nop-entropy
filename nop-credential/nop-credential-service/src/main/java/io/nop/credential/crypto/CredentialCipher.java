@@ -34,12 +34,43 @@ public class CredentialCipher {
     public static final String CV1_MARKER = "cv1:";
 
     /**
+     * 内层 {@code AESTextCipher} 密文的版本前缀（D5-05，A1-audit successor 2026-08-17）：
+     * {@code decrypt} 强制内层载荷以 {@code v1:} 开头——cv1 包装的 legacy 裸载荷
+     * （无版本前缀）无法落入弱路径，按密文格式错误 fail-closed 拒绝。
+     */
+    public static final String V1_MARKER = "v1:";
+
+    /**
      * keyId 允许的字符集约束：{@code [A-Za-z0-9_-]+}。
      * 这是 {@code cv1:} 按冒号 split 无歧义的前提（keyId 不含冒号）。
+     *
+     * @deprecated D3-04 单源收敛：权威定义已下沉 api 模块
+     *             {@link ICredentialKeyProvider#KEY_ID_PATTERN}，本常量为兼容别名。
      */
-    public static final String CV1_KEY_ID_PATTERN = "[A-Za-z0-9_-]+";
+    @Deprecated
+    public static final String CV1_KEY_ID_PATTERN = ICredentialKeyProvider.KEY_ID_PATTERN;
 
-    private static final Pattern KEY_ID_PATTERN = Pattern.compile(CV1_KEY_ID_PATTERN);
+    private static final Pattern KEY_ID_PATTERN = Pattern.compile(ICredentialKeyProvider.KEY_ID_PATTERN);
+
+    /**
+     * D1-04（A1-audit successor，2026-08-17）：{@code ARG_CIPHERTEXT} 异常参数的截断上限——
+     * 密文整串不进日志/错误响应，仅保留前缀（格式归因）+ 总长标注。
+     */
+    static final int CIPHERTEXT_PARAM_MAX_LEN = 16;
+
+    /**
+     * 截断密文用于异常 param（D1-04）：保留前 16 字符前缀 + {@code ...(len=N)} 总长标注，
+     * 足以归因格式问题（前缀/结构），不泄露密文体。
+     */
+    static String truncateCiphertext(String cv1Text) {
+        if (cv1Text == null) {
+            return null;
+        }
+        if (cv1Text.length() <= CIPHERTEXT_PARAM_MAX_LEN) {
+            return cv1Text + "(len=" + cv1Text.length() + ")";
+        }
+        return cv1Text.substring(0, CIPHERTEXT_PARAM_MAX_LEN) + "...(len=" + cv1Text.length() + ")";
+    }
 
     /**
      * 主密钥提供者，由 Nop IoC 注入。字段须为 protected（非 private）以兼容 NopIoC 字段注入。
@@ -90,7 +121,7 @@ public class CredentialCipher {
     public String decrypt(String cv1Text) {
         if (cv1Text == null || !cv1Text.startsWith(CV1_MARKER)) {
             throw new NopException(CredentialErrors.ERR_CREDENTIAL_INVALID_CIPHERTEXT_FORMAT)
-                    .param(CredentialErrors.ARG_CIPHERTEXT, cv1Text);
+                    .param(CredentialErrors.ARG_CIPHERTEXT, truncateCiphertext(cv1Text));
         }
 
         // 去掉 "cv1:" 前缀，剩余形如 {keyId}:v1:{base64data}
@@ -100,7 +131,7 @@ public class CredentialCipher {
         if (colonIdx <= 0) {
             // 缺少 keyId 或分隔冒号
             throw new NopException(CredentialErrors.ERR_CREDENTIAL_INVALID_CIPHERTEXT_FORMAT)
-                    .param(CredentialErrors.ARG_CIPHERTEXT, cv1Text);
+                    .param(CredentialErrors.ARG_CIPHERTEXT, truncateCiphertext(cv1Text));
         }
 
         String keyId = rest.substring(0, colonIdx);
@@ -108,7 +139,14 @@ public class CredentialCipher {
 
         if (!KEY_ID_PATTERN.matcher(keyId).matches() || v1Payload.isEmpty()) {
             throw new NopException(CredentialErrors.ERR_CREDENTIAL_INVALID_CIPHERTEXT_FORMAT)
-                    .param(CredentialErrors.ARG_CIPHERTEXT, cv1Text);
+                    .param(CredentialErrors.ARG_CIPHERTEXT, truncateCiphertext(cv1Text));
+        }
+
+        // D5-05：强制内层 v1: 版本前缀——cv1 包装的 legacy 裸载荷（无版本标记）不可解，
+        // 按 INVALID_CIPHERTEXT_FORMAT fail-closed（AESTextCipher.decrypt 依赖 v1: 前缀分派）
+        if (!v1Payload.startsWith(V1_MARKER)) {
+            throw new NopException(CredentialErrors.ERR_CREDENTIAL_INVALID_CIPHERTEXT_FORMAT)
+                    .param(CredentialErrors.ARG_CIPHERTEXT, truncateCiphertext(cv1Text));
         }
 
         if (!keyProvider.getKeyIds().contains(keyId)) {

@@ -536,6 +536,32 @@ public class TestOAuthFlowService extends JunitBaseTestCase {
         assertEquals("nop.err.credential.oauth-client-credentials-missing", ex.getErrorCode());
     }
 
+    /**
+     * D2-02（A1-audit successor，2026-08-17）：发起侧补 clientId 非空校验（对齐回调侧
+     * 字段集）——缺 clientId 与缺 clientSecret 同样拒绝，param 标注缺失字段集。
+     */
+    @Test
+    public void beginWithoutClientIdThrows() {
+        Map<String, Object> fields = new LinkedHashMap<>();
+        fields.put("clientSecret", "test-client-secret"); // 缺 clientId
+        String id = saveCredentialRow("cred-oauth-noclientid", TYPE_NAME, fields, "enabled");
+
+        NopException ex = assertThrows(NopException.class, () -> flowService.beginOAuthFlow(id));
+        assertEquals("nop.err.credential.oauth-client-credentials-missing", ex.getErrorCode(),
+                "missing clientId must be rejected at begin (D2-02, aligned with callback-side field set)");
+        assertEquals("clientId", ex.getParam("fieldNames"),
+                "param must name the missing field set (D2-02)");
+
+        // 两者皆缺 → 缺失字段集同时标注两者
+        Map<String, Object> bothMissing = new LinkedHashMap<>();
+        bothMissing.put("extraField", "x");
+        String id2 = saveCredentialRow("cred-oauth-noboth", TYPE_NAME, bothMissing, "enabled");
+        NopException both = assertThrows(NopException.class, () -> flowService.beginOAuthFlow(id2));
+        assertEquals("nop.err.credential.oauth-client-credentials-missing", both.getErrorCode());
+        assertEquals("clientId,clientSecret", both.getParam("fieldNames"),
+                "both missing fields must be named in the param (D2-02)");
+    }
+
     @Test
     public void beginWithoutCallbackBaseUrlThrows() {
         String id = saveCredentialRow("cred-oauth-nobase", TYPE_NAME, oauth2ManualFields(), "enabled");
@@ -594,6 +620,48 @@ public class TestOAuthFlowService extends JunitBaseTestCase {
         assertFalse(html.contains("rt-001"), "page must not contain refreshToken plaintext");
         assertTrue(html.contains("https://platform.example.test/oauth-result"),
                 "page must redirect to configured result page");
+    }
+
+    /**
+     * D2-05（A1-audit successor，2026-08-17）：结果页 URL 含引号/反斜杠时按语境分别编码——
+     * JS 字符串上下文 JSON 编码（引号转义为 {@code \"}，无 HTML 实体残留），meta-refresh
+     * 属性上下文保持 HTML 转义（{@code &quot;}）。
+     */
+    @Test
+    public void resultPageEncodesUrlPerContextJsonForJsAndHtmlForMeta() {
+        String hostileUrl = "https://x.test/a\"b\\c'?q=1";
+        AppConfig.getConfigProvider().updateConfigValue(
+                CredentialConfigs.CFG_CREDENTIAL_OAUTH_RESULT_PAGE_URL, hostileUrl);
+        try {
+            String id = saveCredentialRow("cred-oauth-jsenc", TYPE_NAME, oauth2ManualFields(), "enabled");
+            String state = beginAndExtractState(id);
+            WebContentBean page = flowService.handleOAuthCallback("auth-code-abc", state);
+            String html = (String) page.getContent();
+            assertNotNull(html);
+
+            // JS 上下文：JSON 编码生效——引号被 JS 语法转义为 \"（escapeHtml 的 &quot; 残留可检测为失败）
+            int jsStart = html.indexOf("window.location.replace(");
+            assertTrue(jsStart > 0, "page must contain the JS redirect");
+            String jsSegment = html.substring(jsStart, Math.min(html.length(), jsStart + 160));
+            assertTrue(jsSegment.contains("\\\""),
+                    "JS string context must JSON-encode quotes as \\\" (D2-05), segment: " + jsSegment);
+            assertFalse(jsSegment.contains("&quot;"),
+                    "escapeHtml residue must not appear in the JS string context (D2-05), segment: " + jsSegment);
+            assertFalse(jsSegment.contains("&#39;"),
+                    "HTML entity residue must not appear in the JS string context (D2-05)");
+
+            // meta-refresh 属性上下文：HTML 转义保持（引号实体形式，不破坏属性定界）
+            int metaStart = html.indexOf("http-equiv=\"refresh\"");
+            assertTrue(metaStart > 0, "page must contain the meta-refresh tag");
+            String metaSegment = html.substring(metaStart, Math.min(html.length(), metaStart + 160));
+            assertTrue(metaSegment.contains("&quot;"),
+                    "meta-refresh attribute context must keep HTML escaping (D2-05), segment: " + metaSegment);
+            assertFalse(metaSegment.contains(";url=https://x.test/a\""),
+                    "raw unescaped quote must not appear inside the meta url attribute (D2-05), segment: " + metaSegment);
+        } finally {
+            AppConfig.getConfigProvider().updateConfigValue(
+                    CredentialConfigs.CFG_CREDENTIAL_OAUTH_RESULT_PAGE_URL, "https://platform.example.test/oauth-result");
+        }
     }
 
     @Test
@@ -781,10 +849,11 @@ public class TestOAuthFlowService extends JunitBaseTestCase {
     public void containerRegisteredApiBizModelWiredThroughIoc() {
         assertNotNull(containerApiBizModel, "CredentialOAuthApiBizModel must be resolvable from the IoC container");
 
+        // D1-03/D4-07：发起不存在凭证统一 UnknownEntityException（原 ERR_CREDENTIAL_NOT_FOUND 归一）
         NopException e = assertThrows(NopException.class,
                 () -> containerApiBizModel.beginOAuthFlow("no-such-credential-id", null));
-        assertEquals(CredentialErrors.ERR_CREDENTIAL_NOT_FOUND.getErrorCode(), e.getErrorCode(),
-                "container-wired begin must fail closed on unknown credential");
+        assertEquals("nop.err.dao.unknown-entity", e.getErrorCode(),
+                "container-wired begin must fail closed on unknown credential (normalized, D1-03/D4-07)");
     }
 
     // ==================== W11 回补：发起动作归属校验（§5.3 写类矩阵） ====================
@@ -795,9 +864,10 @@ public class TestOAuthFlowService extends JunitBaseTestCase {
                 "system", null);
         IUserContext.set(new TestUserContext(TEST_USER_ID, Collections.emptySet()));
 
+        // D1-03/D4-07：越权发起与"不存在"统一 UnknownEntityException（三态不可区分）
         NopException ex = assertThrows(NopException.class, () -> flowService.beginOAuthFlow(id));
-        assertEquals("nop.err.credential.admin-required", ex.getErrorCode(),
-                "system-scope begin requires admin role");
+        assertEquals("nop.err.dao.unknown-entity", ex.getErrorCode(),
+                "unauthorized begin must be normalized as not-found (D1-03/D4-07)");
         assertEquals(0, stateStoreAllCount(), "no state binding must be persisted on denial");
     }
 
@@ -827,9 +897,10 @@ public class TestOAuthFlowService extends JunitBaseTestCase {
                 "user", "someone-else");
         IUserContext.set(new TestUserContext(TEST_USER_ID, Collections.emptySet()));
 
+        // D1-03/D4-07：非 owner 非 admin 发起他人 user 级 → 与"不存在"不可区分
         NopException ex = assertThrows(NopException.class, () -> flowService.beginOAuthFlow(id));
-        assertEquals("nop.err.credential.owner-or-admin", ex.getErrorCode(),
-                "non-owner non-admin must not begin oauth flow for others' user-scope credential");
+        assertEquals("nop.err.dao.unknown-entity", ex.getErrorCode(),
+                "unauthorized begin must be normalized as not-found (D1-03/D4-07)");
     }
 
     @Test
@@ -848,9 +919,22 @@ public class TestOAuthFlowService extends JunitBaseTestCase {
         String id = saveCredentialRow("cred-oauth-null-nonadmin", TYPE_NAME, oauth2ManualFields(), "enabled");
         IUserContext.set(new TestUserContext(TEST_USER_ID, Collections.emptySet()));
 
+        // D1-03/D4-07：NULL scope（视同 system）非管理员发起 → 与"不存在"不可区分
         NopException ex = assertThrows(NopException.class, () -> flowService.beginOAuthFlow(id));
-        assertEquals("nop.err.credential.admin-required", ex.getErrorCode(),
-                "NULL-scope legacy row is treated as system: begin requires admin");
+        assertEquals("nop.err.dao.unknown-entity", ex.getErrorCode(),
+                "unauthorized begin on NULL-scope (system) row must be normalized as not-found (D1-03/D4-07)");
+    }
+
+    /**
+     * D1-03/D4-07 专项：发起不存在凭证与越权发起不可区分（统一 unknown-entity）——
+     * credentialId 枚举探测无法经发起路径区分"存在但无权"与"不存在"。
+     */
+    @Test
+    public void beginOnNonExistentCredentialNormalizedAsUnknown() {
+        NopException ex = assertThrows(NopException.class,
+                () -> flowService.beginOAuthFlow("no-such-credential-id"));
+        assertEquals("nop.err.dao.unknown-entity", ex.getErrorCode(),
+                "begin on non-existent credential must throw unknown-entity (D1-03/D4-07)");
     }
 
     private long stateStoreAllCount() {
