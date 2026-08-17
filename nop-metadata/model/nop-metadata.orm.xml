@@ -4,7 +4,9 @@
      ext:basePackageName="io.nop.metadata" ext:mavenGroupId="io.github.entropy-cloud"
      ext:mavenArtifactId="nop-metadata" ext:mavenVersion="2.0.0-SNAPSHOT"
      ext:platformVersion="2.0.0-SNAPSHOT" ext:dialect="mysql,oracle,postgresql"
-     ext:useCoreModule="true" x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+     ext:useCoreModule="true" x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     xmlns:i18n-en="i18n-en" xmlns:ref-i18n-en="ref-i18n-en" xmlns:ext="ext"
+     xmlns:orm-gen="orm-gen" xmlns:xpl="xpl" xmlns:ui="ui">
 
     <dicts>
         <dict label="模块状态" name="meta/module-status" valueType="string" i18n-en:label="Module Status">
@@ -1687,9 +1689,14 @@
              [integrity] DUAL FK SYSTEM — NopMetaTableJoin has two independent FK sets:
                1. Entity-level: leftEntityId / rightEntityId → NopMetaEntity
                2. Table-level:  leftTableId  / rightTableId  → NopMetaTable
-             These FKs are mutually exclusive: for a given row, EITHER the entity-level
-             pair is set (both non-null) OR the table-level pair is set (both non-null),
-             but never both. Business logic must enforce this invariant at write time;
+             Endpoint-level exclusivity (architecture baseline §2.5.2 D4 / plan
+             0700-1 Phase 1 D1): each endpoint (left/right) independently references
+             exactly one endpoint form — {entityId, tableId} both set is rejected,
+             both empty is rejected. There is NO cross-side (row-level) constraint:
+             mixed rows (e.g. left = entity endpoint, right = table endpoint) are
+             legal; each side is validated independently. Table endpoints must have
+             tableType external/sql (entity-type logical tables belong to the entity
+             path). Enforced at write time by NopMetaTableJoinBizModel.validateJoinSide;
              the ORM model does not enforce it declaratively.
              ===================================================== -->
         <entity className="io.nop.metadata.dao.entity.NopMetaTableJoin" createTimeProp="createTime"
@@ -2106,6 +2113,17 @@
                         <on leftProp="qualityRuleId" rightProp="qualityRuleId"/>
                     </join>
                 </to-one>
+                <!-- P2-26（plan 2026-08-16-0920-2 裁定）：checkpointId 由无关系弱引用显式化为 to-one 关系
+                     （沿 soft-FK 平台惯例，无 DB 级 FOREIGN KEY）。**无 cascadeDelete = 检查点删除后结果行
+                     保留（历史事实语义）**，与 qualityRule→results 的级联（规则拥有其结果）刻意不对称：
+                     检查点是执行配置，结果是时序历史事实。唯一写位点 = QualityResultWriter（insert-only）。 -->
+                <to-one displayName="质量检查点" name="checkpoint"
+                        refEntityName="io.nop.metadata.dao.entity.NopMetaQualityCheckpoint" refPropName="qualityResults"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Quality Checkpoint">
+                    <join>
+                        <on leftProp="checkpointId" rightProp="checkpointId"/>
+                    </join>
+                </to-one>
             </relations>
             <indexes>
                 <index name="IX_NOP_META_QRESULT_RULE" unique="false">
@@ -2187,6 +2205,16 @@
                         <on leftProp="metaModuleId" rightProp="metaModuleId"/>
                     </join>
                 </to-one>
+                <!-- P2-26（plan 2026-08-16-0920-2 裁定）：NopMetaQualityResult.checkpointId 弱引用的反向
+                     集合。**不声明 cascadeDelete（与 joinAsLeft/childTerms 同款非级联形态）：检查点删除后
+                     结果行无条件保留（历史事实语义，孤儿行是裁定后的显式行为，非缺陷）**。 -->
+                <to-many displayName="质量结果集" name="qualityResults"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaQualityResult" refPropName="checkpoint"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Quality Results">
+                    <join>
+                        <on leftProp="checkpointId" rightProp="checkpointId"/>
+                    </join>
+                </to-many>
             </relations>
             <indexes>
                 <index name="IX_NOP_META_QCHECKPOINT_MODULE" unique="false">

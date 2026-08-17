@@ -3,8 +3,8 @@
      ext:entityPackageName="io.nop.metadata.dao.entity" ext:basePackageName="io.nop.metadata"
      ext:mavenGroupId="io.github.entropy-cloud" ext:mavenArtifactId="nop-metadata" ext:mavenVersion="2.0.0-SNAPSHOT"
      ext:platformVersion="2.0.0-SNAPSHOT" ext:dialect="mysql,oracle,postgresql" ext:useCoreModule="true"
-     x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en"
-     xmlns:ref-i18n-en="ref-i18n-en" xmlns:ext="ext" xmlns:orm-gen="orm-gen" xmlns:xpl="xpl" xmlns:ui="ui">
+     xmlns:i18n-en="i18n-en" xmlns:ref-i18n-en="ref-i18n-en" xmlns:ext="ext" xmlns:orm-gen="orm-gen" xmlns:xpl="xpl"
+     xmlns:ui="ui" x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef">
 
     <x:post-extends x:override="replace">
         <orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
@@ -1910,6 +1910,13 @@
                         <on leftProp="qualityRuleId" rightProp="qualityRuleId"/>
                     </join>
                 </to-one>
+                <to-one displayName="质量检查点" name="checkpoint"
+                        refEntityName="io.nop.metadata.dao.entity.NopMetaQualityCheckpoint" refPropName="qualityResults"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Quality Checkpoint">
+                    <join>
+                        <on leftProp="checkpointId" rightProp="checkpointId"/>
+                    </join>
+                </to-one>
             </relations>
             <unique-keys>
                 <unique-key columns="checkpointId,runId,qualityRuleId"
@@ -1971,6 +1978,13 @@
                         <on leftProp="metaModuleId" rightProp="metaModuleId"/>
                     </join>
                 </to-one>
+                <to-many displayName="质量结果集" name="qualityResults"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaQualityResult" refPropName="checkpoint"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Quality Results">
+                    <join>
+                        <on leftProp="checkpointId" rightProp="checkpointId"/>
+                    </join>
+                </to-many>
             </relations>
             <unique-keys>
                 <unique-key columns="checkpointName" constraint="UK_NOP_META_QCHECKPOINT_NAME"

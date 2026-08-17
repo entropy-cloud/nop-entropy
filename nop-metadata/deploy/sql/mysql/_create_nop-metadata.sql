@@ -281,28 +281,6 @@ CREATE TABLE nop_meta_manifest(
   constraint PK_nop_meta_manifest primary key (MANIFEST_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
-CREATE TABLE nop_meta_quality_result(
-  QUALITY_RESULT_ID VARCHAR(32) NOT NULL    COMMENT '结果ID',
-  QUALITY_RULE_ID VARCHAR(32) NOT NULL    COMMENT '规则ID',
-  EXECUTE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '执行时间',
-  STATUS LONGTEXT NOT NULL    COMMENT '状态',
-  ACTUAL_VALUE DOUBLE NULL    COMMENT '实际值',
-  EXPECTED_VALUE DOUBLE NULL    COMMENT '期望值',
-  MESSAGE VARCHAR(1000) NULL    COMMENT '结果描述',
-  DETAILS VARCHAR(4000) NULL    COMMENT '详情',
-  VERSION BIGINT NOT NULL    COMMENT '数据版本',
-  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
-  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
-  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
-  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
-  REMARK VARCHAR(200) NULL    COMMENT '备注',
-  IS_FALSE_POSITIVE TINYINT default 0  NULL    COMMENT '是否误报',
-  CHECKPOINT_ID VARCHAR(32) NULL    COMMENT '检查点ID',
-  RUN_ID VARCHAR(32) NULL    COMMENT '执行批次ID',
-  constraint UK_NOP_META_QUALITY_RESULT_CP_RUN_RULE unique (CHECKPOINT_ID,RUN_ID,QUALITY_RULE_ID),
-  constraint PK_nop_meta_quality_result primary key (QUALITY_RESULT_ID)
-)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
-
 CREATE TABLE nop_meta_glossary_term(
   GLOSSARY_TERM_ID VARCHAR(32) NOT NULL    COMMENT '术语ID',
   GLOSSARY_ID VARCHAR(32) NOT NULL    COMMENT '词汇表ID',
@@ -658,6 +636,28 @@ CREATE TABLE nop_meta_lineage_edge(
   constraint PK_nop_meta_lineage_edge primary key (LINEAGE_EDGE_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+CREATE TABLE nop_meta_quality_result(
+  QUALITY_RESULT_ID VARCHAR(32) NOT NULL    COMMENT '结果ID',
+  QUALITY_RULE_ID VARCHAR(32) NOT NULL    COMMENT '规则ID',
+  EXECUTE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '执行时间',
+  STATUS LONGTEXT NOT NULL    COMMENT '状态',
+  ACTUAL_VALUE DOUBLE NULL    COMMENT '实际值',
+  EXPECTED_VALUE DOUBLE NULL    COMMENT '期望值',
+  MESSAGE VARCHAR(1000) NULL    COMMENT '结果描述',
+  DETAILS VARCHAR(4000) NULL    COMMENT '详情',
+  VERSION BIGINT NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
+  REMARK VARCHAR(200) NULL    COMMENT '备注',
+  IS_FALSE_POSITIVE TINYINT default 0  NULL    COMMENT '是否误报',
+  CHECKPOINT_ID VARCHAR(32) NULL    COMMENT '检查点ID',
+  RUN_ID VARCHAR(32) NULL    COMMENT '执行批次ID',
+  constraint UK_NOP_META_QUALITY_RESULT_CP_RUN_RULE unique (CHECKPOINT_ID,RUN_ID,QUALITY_RULE_ID),
+  constraint PK_nop_meta_quality_result primary key (QUALITY_RESULT_ID)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
 CREATE TABLE nop_meta_tag_label(
   TAG_LABEL_ID VARCHAR(32) NOT NULL    COMMENT '标注ID',
   SOURCE VARCHAR(20) NOT NULL    COMMENT '标注来源',
@@ -890,8 +890,6 @@ CREATE TABLE nop_meta_reconciliation_result(
                 
    ALTER TABLE nop_meta_manifest COMMENT '元数据快照';
                 
-   ALTER TABLE nop_meta_quality_result COMMENT '质量结果';
-                
    ALTER TABLE nop_meta_glossary_term COMMENT '词汇表术语';
                 
    ALTER TABLE nop_meta_tag COMMENT '分类标签';
@@ -921,6 +919,8 @@ CREATE TABLE nop_meta_reconciliation_result(
    ALTER TABLE nop_meta_quality_score COMMENT '质量评分';
                 
    ALTER TABLE nop_meta_lineage_edge COMMENT '血缘边';
+                
+   ALTER TABLE nop_meta_quality_result COMMENT '质量结果';
                 
    ALTER TABLE nop_meta_tag_label COMMENT '语义标注';
                 

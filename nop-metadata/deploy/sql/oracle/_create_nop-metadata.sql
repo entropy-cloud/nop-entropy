@@ -281,28 +281,6 @@ CREATE TABLE nop_meta_manifest(
   constraint PK_nop_meta_manifest primary key (MANIFEST_ID)
 );
 
-CREATE TABLE nop_meta_quality_result(
-  QUALITY_RESULT_ID VARCHAR2(32) NOT NULL ,
-  QUALITY_RULE_ID VARCHAR2(32) NOT NULL ,
-  EXECUTE_TIME TIMESTAMP NOT NULL ,
-  STATUS CLOB NOT NULL ,
-  ACTUAL_VALUE BINARY_DOUBLE  ,
-  EXPECTED_VALUE BINARY_DOUBLE  ,
-  MESSAGE VARCHAR2(1000)  ,
-  DETAILS VARCHAR2(4000)  ,
-  VERSION NUMBER(20) NOT NULL ,
-  CREATED_BY VARCHAR2(50) NOT NULL ,
-  CREATE_TIME TIMESTAMP NOT NULL ,
-  UPDATED_BY VARCHAR2(50) NOT NULL ,
-  UPDATE_TIME TIMESTAMP NOT NULL ,
-  REMARK VARCHAR2(200)  ,
-  IS_FALSE_POSITIVE SMALLINT default 0   ,
-  CHECKPOINT_ID VARCHAR2(32)  ,
-  RUN_ID VARCHAR2(32)  ,
-  constraint UK_NOP_META_QUALITY_RESULT_CP_RUN_RULE unique (CHECKPOINT_ID,RUN_ID,QUALITY_RULE_ID),
-  constraint PK_nop_meta_quality_result primary key (QUALITY_RESULT_ID)
-);
-
 CREATE TABLE nop_meta_glossary_term(
   GLOSSARY_TERM_ID VARCHAR2(32) NOT NULL ,
   GLOSSARY_ID VARCHAR2(32) NOT NULL ,
@@ -656,6 +634,28 @@ CREATE TABLE nop_meta_lineage_edge(
   REMARK VARCHAR2(200)  ,
   constraint UK_NOP_META_LINEAGE_EDGE_SRC_TGT_TYPE unique (SOURCE_TABLE_ID,SOURCE_COLUMN,TARGET_TABLE_ID,TARGET_COLUMN),
   constraint PK_nop_meta_lineage_edge primary key (LINEAGE_EDGE_ID)
+);
+
+CREATE TABLE nop_meta_quality_result(
+  QUALITY_RESULT_ID VARCHAR2(32) NOT NULL ,
+  QUALITY_RULE_ID VARCHAR2(32) NOT NULL ,
+  EXECUTE_TIME TIMESTAMP NOT NULL ,
+  STATUS CLOB NOT NULL ,
+  ACTUAL_VALUE BINARY_DOUBLE  ,
+  EXPECTED_VALUE BINARY_DOUBLE  ,
+  MESSAGE VARCHAR2(1000)  ,
+  DETAILS VARCHAR2(4000)  ,
+  VERSION NUMBER(20) NOT NULL ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR2(200)  ,
+  IS_FALSE_POSITIVE SMALLINT default 0   ,
+  CHECKPOINT_ID VARCHAR2(32)  ,
+  RUN_ID VARCHAR2(32)  ,
+  constraint UK_NOP_META_QUALITY_RESULT_CP_RUN_RULE unique (CHECKPOINT_ID,RUN_ID,QUALITY_RULE_ID),
+  constraint PK_nop_meta_quality_result primary key (QUALITY_RESULT_ID)
 );
 
 CREATE TABLE nop_meta_tag_label(
@@ -1314,42 +1314,6 @@ CREATE TABLE nop_meta_reconciliation_result(
                     
       COMMENT ON COLUMN nop_meta_manifest.REMARK IS '备注';
                     
-      COMMENT ON TABLE nop_meta_quality_result IS '质量结果';
-                
-      COMMENT ON COLUMN nop_meta_quality_result.QUALITY_RESULT_ID IS '结果ID';
-                    
-      COMMENT ON COLUMN nop_meta_quality_result.QUALITY_RULE_ID IS '规则ID';
-                    
-      COMMENT ON COLUMN nop_meta_quality_result.EXECUTE_TIME IS '执行时间';
-                    
-      COMMENT ON COLUMN nop_meta_quality_result.STATUS IS '状态';
-                    
-      COMMENT ON COLUMN nop_meta_quality_result.ACTUAL_VALUE IS '实际值';
-                    
-      COMMENT ON COLUMN nop_meta_quality_result.EXPECTED_VALUE IS '期望值';
-                    
-      COMMENT ON COLUMN nop_meta_quality_result.MESSAGE IS '结果描述';
-                    
-      COMMENT ON COLUMN nop_meta_quality_result.DETAILS IS '详情';
-                    
-      COMMENT ON COLUMN nop_meta_quality_result.VERSION IS '数据版本';
-                    
-      COMMENT ON COLUMN nop_meta_quality_result.CREATED_BY IS '创建人';
-                    
-      COMMENT ON COLUMN nop_meta_quality_result.CREATE_TIME IS '创建时间';
-                    
-      COMMENT ON COLUMN nop_meta_quality_result.UPDATED_BY IS '修改人';
-                    
-      COMMENT ON COLUMN nop_meta_quality_result.UPDATE_TIME IS '修改时间';
-                    
-      COMMENT ON COLUMN nop_meta_quality_result.REMARK IS '备注';
-                    
-      COMMENT ON COLUMN nop_meta_quality_result.IS_FALSE_POSITIVE IS '是否误报';
-                    
-      COMMENT ON COLUMN nop_meta_quality_result.CHECKPOINT_ID IS '检查点ID';
-                    
-      COMMENT ON COLUMN nop_meta_quality_result.RUN_ID IS '执行批次ID';
-                    
       COMMENT ON TABLE nop_meta_glossary_term IS '词汇表术语';
                 
       COMMENT ON COLUMN nop_meta_glossary_term.GLOSSARY_TERM_ID IS '术语ID';
@@ -1943,6 +1907,42 @@ CREATE TABLE nop_meta_reconciliation_result(
       COMMENT ON COLUMN nop_meta_lineage_edge.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON COLUMN nop_meta_lineage_edge.REMARK IS '备注';
+                    
+      COMMENT ON TABLE nop_meta_quality_result IS '质量结果';
+                
+      COMMENT ON COLUMN nop_meta_quality_result.QUALITY_RESULT_ID IS '结果ID';
+                    
+      COMMENT ON COLUMN nop_meta_quality_result.QUALITY_RULE_ID IS '规则ID';
+                    
+      COMMENT ON COLUMN nop_meta_quality_result.EXECUTE_TIME IS '执行时间';
+                    
+      COMMENT ON COLUMN nop_meta_quality_result.STATUS IS '状态';
+                    
+      COMMENT ON COLUMN nop_meta_quality_result.ACTUAL_VALUE IS '实际值';
+                    
+      COMMENT ON COLUMN nop_meta_quality_result.EXPECTED_VALUE IS '期望值';
+                    
+      COMMENT ON COLUMN nop_meta_quality_result.MESSAGE IS '结果描述';
+                    
+      COMMENT ON COLUMN nop_meta_quality_result.DETAILS IS '详情';
+                    
+      COMMENT ON COLUMN nop_meta_quality_result.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_meta_quality_result.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_meta_quality_result.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_meta_quality_result.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_meta_quality_result.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_meta_quality_result.REMARK IS '备注';
+                    
+      COMMENT ON COLUMN nop_meta_quality_result.IS_FALSE_POSITIVE IS '是否误报';
+                    
+      COMMENT ON COLUMN nop_meta_quality_result.CHECKPOINT_ID IS '检查点ID';
+                    
+      COMMENT ON COLUMN nop_meta_quality_result.RUN_ID IS '执行批次ID';
                     
       COMMENT ON TABLE nop_meta_tag_label IS '语义标注';
                 

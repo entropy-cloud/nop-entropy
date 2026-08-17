@@ -82,7 +82,7 @@
             <schema domain="boolFlag" type="java.lang.Byte"/>
         </prop>
         <prop name="checkpointId" displayName="检查点ID" propId="16" i18n-en:displayName="Checkpoint Id" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+              sortable="true" insertable="true" updatable="true" ext:relation="checkpoint">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="runId" displayName="执行批次ID" propId="17" i18n-en:displayName="Run Id" queryable="true"
@@ -96,6 +96,16 @@
             <schema bizObjName="NopMetaQualityRule"/>
         </prop>
         <prop name="qualityRule.displayName" displayName="质量规则" i18n-en:displayName="Quality Rule" internal="true"
+              queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="checkpoint" displayName="质量检查点" i18n-en:displayName="Quality Checkpoint" tagSet="pub,ref-pub"
+              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="checkpointId"
+              ext:joinRightProp="checkpointId" ext:joinRightDisplayProp="displayName" insertable="false"
+              updatable="false" lazy="true">
+            <schema bizObjName="NopMetaQualityCheckpoint"/>
+        </prop>
+        <prop name="checkpoint.displayName" displayName="质量检查点" i18n-en:displayName="Quality Checkpoint" internal="true"
               queryable="true" sortable="true" lazy="true">
             <schema type="String"/>
         </prop>

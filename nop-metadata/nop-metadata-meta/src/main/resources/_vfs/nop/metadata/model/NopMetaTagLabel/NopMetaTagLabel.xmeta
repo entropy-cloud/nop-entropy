@@ -2,6 +2,15 @@
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:wf="wf" x:extends="_NopMetaTagLabel.xmeta"
       wf:wfName="tagLabelConfirmApproval">
 
-    <!-- No field-level overrides needed; all props inherit from base xmeta. -->
-    <props/>
+    <!-- P2-33（plan 2026-08-16-0920-2）：状态机字段收紧 GraphQL __update 输入面。
+         state 生命周期（Suggested→Confirmed/Rejected）只经专用路径变更：
+         NopMetaTagLabelBizModel.save 缺省注入（:78-86）/ triggerApprovalIfNeeded（:152/157）、
+         approve/reject mutation（NopMetaTagLabel.xbiz:16/33，由 tagLabelConfirmApproval 工作流
+         onEndNotify 与直接调用触达）。updatable=false 后 __update 静默丢弃该 prop
+         （ObjMetaBasedValidator.validateForUpdate:508），内部 writer 直改实体不经 InputBean 校验、不受影响。
+         insertable 保持 true：ORM mandatory（模型 :3321）且 BizModel 内部缺省注入本身经 insert 面落库。 -->
+    <props>
+        <prop name="state" updatable="false"/>
+        <prop name="approveStatus" updatable="false"/>
+    </props>
 </meta>
