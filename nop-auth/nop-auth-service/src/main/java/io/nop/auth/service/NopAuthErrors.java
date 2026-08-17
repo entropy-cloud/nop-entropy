@@ -155,4 +155,20 @@ public interface NopAuthErrors {
     ErrorCode ERR_AUTH_MFA_POLICY_FACTOR_TOO_WEAK = define(API_STATUS_BAD_REQUEST,
             "nop.err.auth.mfa-policy-factor-too-weak",
             "该因子强度不满足角色策略要求（需要强度级别 {mfaLevel}）", ARG_MFA_TYPE, ARG_MFA_LEVEL);
+
+    // ===== WebAuthn/FIDO2（W14-impl，设计 §5.3.2） =====
+
+    /**
+     * sendMfaCode 对无验证码可发的因子类型（totp/webauthn）显式拒绝（设计 §5.3.0 #8——
+     * 按 challenge.mfaType 分派；email 分支 W15 接入）。errorParams 携带 mfaType。
+     */
+    ErrorCode ERR_AUTH_MFA_CODE_UNSUPPORTED = define(API_STATUS_BAD_REQUEST, "nop.err.auth.mfa-code-unsupported",
+            "该多因子类型不支持发送验证码", ARG_MFA_TYPE);
+
+    /**
+     * 移除最后一把 enabled WebAuthn credential 被拒绝（设计 §5.4——enabled 但零 credential
+     * = 用户自锁死；整体解绑走 unbindMfa 的 webauthn ceremony，有恢复码兜底）。
+     */
+    ErrorCode ERR_AUTH_MFA_LAST_CREDENTIAL = define(API_STATUS_BAD_REQUEST, "nop.err.auth.mfa-last-credential",
+            "不能移除最后一把启用的WebAuthn凭证，如需解绑请使用解绑MFA功能");
 }

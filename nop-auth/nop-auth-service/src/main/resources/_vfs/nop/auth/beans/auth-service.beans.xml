@@ -89,6 +89,12 @@
          LoginApiBizModel。 -->
     <bean id="nopMfaFactorVerifier" class="io.nop.auth.service.mfa.MfaFactorVerifier" ioc:default="true"/>
 
+    <!-- WebAuthn/FIDO2 验证器组件（W14-impl 设计 §5.3.2）：封装 Yubico webauthn-server-core
+         （依赖只进 nop-auth-service——nop-biz-auth-core 零第三方依赖不变式保持）。按类型注入
+         MfaFactorVerifier（断言验证）/NopAuthUserBizModel（注册与解绑 ceremony、options 构造）/
+         LoginApiBizModel（webauthnAuthOptions）。ioc:default 允许应用覆盖。 -->
+    <bean id="nopWebAuthnAuthenticator" class="io.nop.auth.service.mfa.WebAuthnAuthenticator" ioc:default="true"/>
+
     <!-- 操作级 MFA 判定（W12-impl 设计 §3.3）：IOperationMfaChecker SPI 实现，经
           GraphQLEngine @Inject @Nullable setOperationMfaChecker 按类型注入（未部署
           nop-auth-service 的环境无此 bean → 引擎零介入）。ioc:default 允许应用覆盖。 -->

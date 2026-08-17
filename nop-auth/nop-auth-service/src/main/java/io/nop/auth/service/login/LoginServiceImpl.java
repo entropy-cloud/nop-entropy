@@ -46,6 +46,7 @@ import io.nop.auth.dao.entity.NopAuthRole;
 import io.nop.auth.dao.entity.NopAuthTenant;
 import io.nop.auth.dao.entity.NopAuthUser;
 import io.nop.auth.service.NopAuthConstants;
+import io.nop.auth.service.mfa.MfaChallengeHelper;
 import io.nop.auth.service.mfa.MfaFactorVerifier;
 import io.nop.auth.service.mfa.RoleMfaPolicy;
 import io.nop.auth.service.mfa.RoleMfaPolicyEvaluator;
@@ -97,6 +98,7 @@ import static io.nop.auth.service.NopAuthConstants.MFA_STATUS_DISABLED;
 import static io.nop.auth.service.NopAuthConstants.MFA_STATUS_ENABLED;
 import static io.nop.auth.service.NopAuthConstants.MFA_TYPE_SMS;
 import static io.nop.auth.service.NopAuthConstants.MFA_TYPE_TOTP;
+import static io.nop.auth.service.NopAuthConstants.MFA_TYPE_WEBAUTHN;
 import static io.nop.auth.service.NopAuthConstants.SMS_KEY_LOGIN;
 import static io.nop.auth.service.NopAuthConstants.SMS_KEY_MFA;
 import static io.nop.auth.service.NopAuthErrors.ARG_CHALLENGE_TOKEN;
@@ -108,6 +110,7 @@ import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_LOGIN_CHECK_FAIL;
 import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_LOGIN_CHECK_FAIL_TOO_MANY_TIMES;
 import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_LOGIN_WITH_UNKNOWN_USER;
 import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_MFA_CHALLENGE_EXPIRED;
+import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_MFA_CODE_UNSUPPORTED;
 import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_MFA_FAIL;
 import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_MFA_REQUIRED;
 import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_SMS_CODE_EXPIRED;
@@ -532,23 +535,30 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
     }
 
     /**
-     * TOTP / SMS 第二因子验证 + completeLogin（设计 §3.2 mfaVerify 流程）。
+     * TOTP / SMS / WebAuthn 第二因子验证 + completeLogin（设计 §3.2 mfaVerify 流程）。
      * 因子校验收敛至 {@link MfaFactorVerifier}（W12-impl 等价重构：SMS EXPIRED 抛错/
      * TOTP 窗口推进内聚组件；失败计数与错误码留在本调用方）。
+     * <p>
+     * W14-impl webauthn 分支（设计 §5.3.2）：{@code code} 载体换 {@code assertion}（统一五参
+     * 重载——cryptoChallenge 取自 challenge payload，signCount 单调写内聚组件）；成功 consume →
+     * completeLogin（一期出口不变）。
      */
     protected CompletionStage<IUserContext> verifySecondFactorAndComplete(MfaVerifyRequest request,
                                                                            MfaChallenge challenge,
                                                                            NopAuthUser user,
                                                                            NopAuthMfaSetting setting) {
         String mfaType = challenge.getMfaType();
-        if (!MFA_TYPE_TOTP.equals(mfaType) && !MFA_TYPE_SMS.equals(mfaType)) {
-            // 未知 mfaType：fail-closed，作废 challenge
+        if (!MFA_TYPE_TOTP.equals(mfaType) && !MFA_TYPE_SMS.equals(mfaType)
+                && !MFA_TYPE_WEBAUTHN.equals(mfaType)) {
+            // 未知 mfaType：fail-closed，作废 challenge（一期兜底保留——未来新值未接入时的安全侧失效）
             mfaChallengeStore.consume(request.getChallengeToken());
             throw new NopException(ERR_AUTH_MFA_CHALLENGE_EXPIRED)
                     .param(ARG_CHALLENGE_TOKEN, request.getChallengeToken());
         }
 
-        boolean ok = mfaFactorVerifier.verify(setting, mfaType, request.getCode());
+        boolean ok = MFA_TYPE_WEBAUTHN.equals(mfaType)
+                ? mfaFactorVerifier.verify(setting, mfaType, request.getCode(), request.getAssertion(), challenge)
+                : mfaFactorVerifier.verify(setting, mfaType, request.getCode());
         if (!ok) {
             // 失败计数（peek 阶段，未消费 challenge）
             incrFailCountOrDiscard(request.getChallengeToken());
@@ -692,6 +702,15 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
         sendSms(phone, code);
     }
 
+    /**
+     * MFA 第二因子验证码重发（设计 §3.6；W14-impl #8 按 challenge.mfaType 分派重构）：
+     * <ul>
+     *   <li><b>sms</b> → 现行为原样（peek → 手机号解析 → 限流 → 发码 key=mfa:userId）。</li>
+     *   <li><b>其余（totp/webauthn）</b> → 显式抛 {@code ERR_AUTH_MFA_CODE_UNSUPPORTED}
+     *       （无静默 no-op——这些因子没有"可发的验证码"）；email 分支 W15 接入（在 sms 分支后
+     *       插入，else 兜底形态自然收敛）。</li>
+     * </ul>
+     */
     @Override
     public void sendMfaCode(String challengeToken, String clientIp) {
         Guard.notEmpty(challengeToken, "challengeToken");
@@ -699,6 +718,12 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
         MfaChallenge challenge = mfaChallengeStore == null ? null : mfaChallengeStore.peek(challengeToken);
         if (challenge == null) {
             throw new NopException(ERR_AUTH_MFA_CHALLENGE_EXPIRED).param(ARG_CHALLENGE_TOKEN, challengeToken);
+        }
+        // #8 分派（W14，设计 §5.3.0）：仅 sms 有码可发，其余因子显式拒绝
+        if (!MFA_TYPE_SMS.equals(challenge.getMfaType())) {
+            throw new NopException(ERR_AUTH_MFA_CODE_UNSUPPORTED)
+                    .param(ARG_MFA_TYPE, challenge.getMfaType())
+                    .param(ARG_CHALLENGE_TOKEN, challengeToken);
         }
         // 解析手机号：优先 setting.phone，回退 user.phone
         String phone = challenge.getPhone();
@@ -825,8 +850,10 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
         // 因子等同（设计 §3.2 / Vision Non-Goals #9）
         if (loginType == LOGIN_TYPE_PHONE_SMS && MFA_TYPE_SMS.equals(mfaType))
             return null;
-        String challengeToken = mfaChallengeStore.create(user.getUserId(), mfaType, loginType,
-                user.getTenantId(), setting.getPhone());
+        // challenge 创建（W14-impl 触点①：webauthn 类型经 helper 增量 payload.cryptoChallenge
+        // 一次写入；其余类型一期五参语义逐字节等价）
+        String challengeToken = MfaChallengeHelper.createLoginChallenge(mfaChallengeStore,
+                user.getUserId(), mfaType, loginType, user.getTenantId(), setting.getPhone());
         return new MfaChallengeDecision(challengeToken, mfaType);
     }
 

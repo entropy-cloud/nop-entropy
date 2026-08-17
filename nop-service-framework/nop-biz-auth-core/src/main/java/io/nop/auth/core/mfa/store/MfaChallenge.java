@@ -46,6 +46,18 @@ public class MfaChallenge implements Serializable {
      */
     public static final String SCENE_CHANNEL_PROOF = "channel-proof";
 
+    /**
+     * WebAuthn 注册 ceremony 场景（W14-impl，设计 §5.3.2）：bindMfa(webauthn) 创建，
+     * payload={sessionId, cryptoChallenge} 一次写入；confirmWebauthnRegistration 消费。
+     */
+    public static final String SCENE_WEBAUTHN_REGISTER = "webauthn-register";
+
+    /**
+     * WebAuthn 解绑 ceremony 场景（W14-impl，设计 §5.3.2）：webauthnBeginVerify 创建
+     * （fresh challenge），payload={sessionId, cryptoChallenge}；unbindMfa 断言验证成功后消费。
+     */
+    public static final String SCENE_WEBAUTHN_UNBIND = "webauthn-unbind";
+
     private String challengeToken;
     private String userId;
     private String mfaType;

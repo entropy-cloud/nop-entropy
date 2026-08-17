@@ -66,226 +66,240 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAuthMfaRecoveryCode-main" displayName="MFA恢复码" orderNo="10013"
+                <resource id="NopAuthMfaCredential-main" displayName="WebAuthn凭证" orderNo="10013"
+                          i18n-en:displayName="WebAuthn Credential" icon="key-round" component="AMIS"
+                          resourceType="SUBM" url="/nop/auth/pages/NopAuthMfaCredential/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopAuthMfaCredential:query" displayName="查询WebAuthn凭证"
+                                  i18n-en:displayName="Query WebAuthn Credential" orderNo="10014" resourceType="FNPT">
+                            <permissions>NopAuthMfaCredential:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopAuthMfaCredential:mutation" displayName="修改WebAuthn凭证"
+                                  i18n-en:displayName="Modify WebAuthn Credential" orderNo="10015" resourceType="FNPT">
+                            <permissions>NopAuthMfaCredential:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopAuthMfaRecoveryCode-main" displayName="MFA恢复码" orderNo="10016"
                           i18n-en:displayName="MFA Recovery Code" icon="key-round" component="AMIS" resourceType="SUBM"
                           url="/nop/auth/pages/NopAuthMfaRecoveryCode/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAuthMfaRecoveryCode:query" displayName="查询MFA恢复码"
-                                  i18n-en:displayName="Query MFA Recovery Code" orderNo="10014" resourceType="FNPT">
+                                  i18n-en:displayName="Query MFA Recovery Code" orderNo="10017" resourceType="FNPT">
                             <permissions>NopAuthMfaRecoveryCode:query</permissions>
                         </resource>
                         <resource id="FNPT:NopAuthMfaRecoveryCode:mutation" displayName="修改MFA恢复码"
-                                  i18n-en:displayName="Modify MFA Recovery Code" orderNo="10015" resourceType="FNPT">
+                                  i18n-en:displayName="Modify MFA Recovery Code" orderNo="10018" resourceType="FNPT">
                             <permissions>NopAuthMfaRecoveryCode:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAuthMfaSetting-main" displayName="用户MFA配置" orderNo="10016"
+                <resource id="NopAuthMfaSetting-main" displayName="用户MFA配置" orderNo="10019"
                           i18n-en:displayName="MFA Setting" icon="shield-check" component="AMIS" resourceType="SUBM"
                           url="/nop/auth/pages/NopAuthMfaSetting/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAuthMfaSetting:query" displayName="查询用户MFA配置"
-                                  i18n-en:displayName="Query MFA Setting" orderNo="10017" resourceType="FNPT">
+                                  i18n-en:displayName="Query MFA Setting" orderNo="10020" resourceType="FNPT">
                             <permissions>NopAuthMfaSetting:query</permissions>
                         </resource>
                         <resource id="FNPT:NopAuthMfaSetting:mutation" displayName="修改用户MFA配置"
-                                  i18n-en:displayName="Modify MFA Setting" orderNo="10018" resourceType="FNPT">
+                                  i18n-en:displayName="Modify MFA Setting" orderNo="10021" resourceType="FNPT">
                             <permissions>NopAuthMfaSetting:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAuthOpLog-main" displayName="操作日志" orderNo="10019" i18n-en:displayName="Operation Log"
+                <resource id="NopAuthOpLog-main" displayName="操作日志" orderNo="10022" i18n-en:displayName="Operation Log"
                           icon="list" component="AMIS" resourceType="SUBM"
                           url="/nop/auth/pages/NopAuthOpLog/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAuthOpLog:query" displayName="查询操作日志"
-                                  i18n-en:displayName="Query Operation Log" orderNo="10020" resourceType="FNPT">
+                                  i18n-en:displayName="Query Operation Log" orderNo="10023" resourceType="FNPT">
                             <permissions>NopAuthOpLog:query</permissions>
                         </resource>
                         <resource id="FNPT:NopAuthOpLog:mutation" displayName="修改操作日志"
-                                  i18n-en:displayName="Modify Operation Log" orderNo="10021" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Operation Log" orderNo="10024" resourceType="FNPT">
                             <permissions>NopAuthOpLog:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAuthPosition-main" displayName="岗位" orderNo="10022" i18n-en:displayName="Position"
+                <resource id="NopAuthPosition-main" displayName="岗位" orderNo="10025" i18n-en:displayName="Position"
                           icon="briefcase" component="AMIS" resourceType="SUBM"
                           url="/nop/auth/pages/NopAuthPosition/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAuthPosition:query" displayName="查询岗位"
-                                  i18n-en:displayName="Query Position" orderNo="10023" resourceType="FNPT">
+                                  i18n-en:displayName="Query Position" orderNo="10026" resourceType="FNPT">
                             <permissions>NopAuthPosition:query</permissions>
                         </resource>
                         <resource id="FNPT:NopAuthPosition:mutation" displayName="修改岗位"
-                                  i18n-en:displayName="Modify Position" orderNo="10024" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Position" orderNo="10027" resourceType="FNPT">
                             <permissions>NopAuthPosition:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAuthResource-main" displayName="菜单资源" orderNo="10025"
+                <resource id="NopAuthResource-main" displayName="菜单资源" orderNo="10028"
                           i18n-en:displayName="Menu Resource" icon="panels-top-left" component="AMIS"
                           resourceType="SUBM" url="/nop/auth/pages/NopAuthResource/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAuthResource:query" displayName="查询菜单资源"
-                                  i18n-en:displayName="Query Menu Resource" orderNo="10026" resourceType="FNPT">
+                                  i18n-en:displayName="Query Menu Resource" orderNo="10029" resourceType="FNPT">
                             <permissions>NopAuthResource:query</permissions>
                         </resource>
                         <resource id="FNPT:NopAuthResource:mutation" displayName="修改菜单资源"
-                                  i18n-en:displayName="Modify Menu Resource" orderNo="10027" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Menu Resource" orderNo="10030" resourceType="FNPT">
                             <permissions>NopAuthResource:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAuthResource_main-main" displayName="菜单资源" orderNo="10028"
+                <resource id="NopAuthResource_main-main" displayName="菜单资源" orderNo="10031"
                           i18n-en:displayName="Menu Resource" icon="panels-top-left" component="AMIS"
                           resourceType="SUBM" url="/nop/auth/pages/NopAuthResource_main/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAuthResource_main:query" displayName="查询菜单资源"
-                                  i18n-en:displayName="Query Menu Resource" orderNo="10029" resourceType="FNPT">
+                                  i18n-en:displayName="Query Menu Resource" orderNo="10032" resourceType="FNPT">
                             <permissions>NopAuthResource_main:query</permissions>
                         </resource>
                         <resource id="FNPT:NopAuthResource_main:mutation" displayName="修改菜单资源"
-                                  i18n-en:displayName="Modify Menu Resource" orderNo="10030" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Menu Resource" orderNo="10033" resourceType="FNPT">
                             <permissions>NopAuthResource_main:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAuthRole-main" displayName="角色" orderNo="10031" i18n-en:displayName="Role"
+                <resource id="NopAuthRole-main" displayName="角色" orderNo="10034" i18n-en:displayName="Role"
                           icon="shield" component="AMIS" resourceType="SUBM"
                           url="/nop/auth/pages/NopAuthRole/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAuthRole:query" displayName="查询角色" i18n-en:displayName="Query Role"
-                                  orderNo="10032" resourceType="FNPT">
+                                  orderNo="10035" resourceType="FNPT">
                             <permissions>NopAuthRole:query</permissions>
                         </resource>
                         <resource id="FNPT:NopAuthRole:mutation" displayName="修改角色" i18n-en:displayName="Modify Role"
-                                  orderNo="10033" resourceType="FNPT">
+                                  orderNo="10036" resourceType="FNPT">
                             <permissions>NopAuthRole:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAuthRoleDataAuth-main" displayName="角色数据权限" orderNo="10034"
+                <resource id="NopAuthRoleDataAuth-main" displayName="角色数据权限" orderNo="10037"
                           i18n-en:displayName="Role Data Auth" icon="database" component="AMIS" resourceType="SUBM"
                           url="/nop/auth/pages/NopAuthRoleDataAuth/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAuthRoleDataAuth:query" displayName="查询角色数据权限"
-                                  i18n-en:displayName="Query Role Data Auth" orderNo="10035" resourceType="FNPT">
+                                  i18n-en:displayName="Query Role Data Auth" orderNo="10038" resourceType="FNPT">
                             <permissions>NopAuthRoleDataAuth:query</permissions>
                         </resource>
                         <resource id="FNPT:NopAuthRoleDataAuth:mutation" displayName="修改角色数据权限"
-                                  i18n-en:displayName="Modify Role Data Auth" orderNo="10036" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Role Data Auth" orderNo="10039" resourceType="FNPT">
                             <permissions>NopAuthRoleDataAuth:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAuthRoleMfaPolicy-main" displayName="角色MFA策略" orderNo="10037"
+                <resource id="NopAuthRoleMfaPolicy-main" displayName="角色MFA策略" orderNo="10040"
                           i18n-en:displayName="Role MFA Policy" icon="shield" component="AMIS" resourceType="SUBM"
                           url="/nop/auth/pages/NopAuthRoleMfaPolicy/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAuthRoleMfaPolicy:query" displayName="查询角色MFA策略"
-                                  i18n-en:displayName="Query Role MFA Policy" orderNo="10038" resourceType="FNPT">
+                                  i18n-en:displayName="Query Role MFA Policy" orderNo="10041" resourceType="FNPT">
                             <permissions>NopAuthRoleMfaPolicy:query</permissions>
                         </resource>
                         <resource id="FNPT:NopAuthRoleMfaPolicy:mutation" displayName="修改角色MFA策略"
-                                  i18n-en:displayName="Modify Role MFA Policy" orderNo="10039" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Role MFA Policy" orderNo="10042" resourceType="FNPT">
                             <permissions>NopAuthRoleMfaPolicy:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAuthSession-main" displayName="会话日志" orderNo="10040" i18n-en:displayName="Session"
+                <resource id="NopAuthSession-main" displayName="会话日志" orderNo="10043" i18n-en:displayName="Session"
                           icon="book-open-text" component="AMIS" resourceType="SUBM"
                           url="/nop/auth/pages/NopAuthSession/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAuthSession:query" displayName="查询会话日志"
-                                  i18n-en:displayName="Query Session" orderNo="10041" resourceType="FNPT">
+                                  i18n-en:displayName="Query Session" orderNo="10044" resourceType="FNPT">
                             <permissions>NopAuthSession:query</permissions>
                         </resource>
                         <resource id="FNPT:NopAuthSession:mutation" displayName="修改会话日志"
-                                  i18n-en:displayName="Modify Session" orderNo="10042" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Session" orderNo="10045" resourceType="FNPT">
                             <permissions>NopAuthSession:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAuthSite-main" displayName="子站点" orderNo="10043" i18n-en:displayName="Sub Site"
+                <resource id="NopAuthSite-main" displayName="子站点" orderNo="10046" i18n-en:displayName="Sub Site"
                           icon="globe-2" component="AMIS" resourceType="SUBM"
                           url="/nop/auth/pages/NopAuthSite/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAuthSite:query" displayName="查询子站点" i18n-en:displayName="Query Sub Site"
-                                  orderNo="10044" resourceType="FNPT">
+                                  orderNo="10047" resourceType="FNPT">
                             <permissions>NopAuthSite:query</permissions>
                         </resource>
                         <resource id="FNPT:NopAuthSite:mutation" displayName="修改子站点"
-                                  i18n-en:displayName="Modify Sub Site" orderNo="10045" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Sub Site" orderNo="10048" resourceType="FNPT">
                             <permissions>NopAuthSite:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAuthSmsCode-main" displayName="短信验证码" orderNo="10046" i18n-en:displayName="SMS Code"
+                <resource id="NopAuthSmsCode-main" displayName="短信验证码" orderNo="10049" i18n-en:displayName="SMS Code"
                           icon="message-square" component="AMIS" resourceType="SUBM"
                           url="/nop/auth/pages/NopAuthSmsCode/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAuthSmsCode:query" displayName="查询短信验证码"
-                                  i18n-en:displayName="Query SMS Code" orderNo="10047" resourceType="FNPT">
+                                  i18n-en:displayName="Query SMS Code" orderNo="10050" resourceType="FNPT">
                             <permissions>NopAuthSmsCode:query</permissions>
                         </resource>
                         <resource id="FNPT:NopAuthSmsCode:mutation" displayName="修改短信验证码"
-                                  i18n-en:displayName="Modify SMS Code" orderNo="10048" resourceType="FNPT">
+                                  i18n-en:displayName="Modify SMS Code" orderNo="10051" resourceType="FNPT">
                             <permissions>NopAuthSmsCode:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAuthTenant-main" displayName="租户" orderNo="10049" i18n-en:displayName="Tenant"
+                <resource id="NopAuthTenant-main" displayName="租户" orderNo="10052" i18n-en:displayName="Tenant"
                           icon="building-2" component="AMIS" resourceType="SUBM"
                           url="/nop/auth/pages/NopAuthTenant/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAuthTenant:query" displayName="查询租户" i18n-en:displayName="Query Tenant"
-                                  orderNo="10050" resourceType="FNPT">
+                                  orderNo="10053" resourceType="FNPT">
                             <permissions>NopAuthTenant:query</permissions>
                         </resource>
                         <resource id="FNPT:NopAuthTenant:mutation" displayName="修改租户"
-                                  i18n-en:displayName="Modify Tenant" orderNo="10051" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Tenant" orderNo="10054" resourceType="FNPT">
                             <permissions>NopAuthTenant:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAuthUser-main" displayName="用户" orderNo="10052" i18n-en:displayName="User"
+                <resource id="NopAuthUser-main" displayName="用户" orderNo="10055" i18n-en:displayName="User"
                           icon="user-round" component="AMIS" resourceType="SUBM"
                           url="/nop/auth/pages/NopAuthUser/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAuthUser:query" displayName="查询用户" i18n-en:displayName="Query User"
-                                  orderNo="10053" resourceType="FNPT">
+                                  orderNo="10056" resourceType="FNPT">
                             <permissions>NopAuthUser:query</permissions>
                         </resource>
                         <resource id="FNPT:NopAuthUser:mutation" displayName="修改用户" i18n-en:displayName="Modify User"
-                                  orderNo="10054" resourceType="FNPT">
+                                  orderNo="10057" resourceType="FNPT">
                             <permissions>NopAuthUser:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAuthUser_tenant-main" displayName="用户" orderNo="10055" i18n-en:displayName="User"
+                <resource id="NopAuthUser_tenant-main" displayName="用户" orderNo="10058" i18n-en:displayName="User"
                           icon="user-round" component="AMIS" resourceType="SUBM"
                           url="/nop/auth/pages/NopAuthUser_tenant/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAuthUser_tenant:query" displayName="查询用户" i18n-en:displayName="Query User"
-                                  orderNo="10056" resourceType="FNPT">
+                                  orderNo="10059" resourceType="FNPT">
                             <permissions>NopAuthUser_tenant:query</permissions>
                         </resource>
                         <resource id="FNPT:NopAuthUser_tenant:mutation" displayName="修改用户"
-                                  i18n-en:displayName="Modify User" orderNo="10057" resourceType="FNPT">
+                                  i18n-en:displayName="Modify User" orderNo="10060" resourceType="FNPT">
                             <permissions>NopAuthUser_tenant:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAuthUserSubstitution-main" displayName="用户代理" orderNo="10058"
+                <resource id="NopAuthUserSubstitution-main" displayName="用户代理" orderNo="10061"
                           i18n-en:displayName="User Substitution" icon="workflow" component="AMIS" resourceType="SUBM"
                           url="/nop/auth/pages/NopAuthUserSubstitution/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAuthUserSubstitution:query" displayName="查询用户代理"
-                                  i18n-en:displayName="Query User Substitution" orderNo="10059" resourceType="FNPT">
+                                  i18n-en:displayName="Query User Substitution" orderNo="10062" resourceType="FNPT">
                             <permissions>NopAuthUserSubstitution:query</permissions>
                         </resource>
                         <resource id="FNPT:NopAuthUserSubstitution:mutation" displayName="修改用户代理"
-                                  i18n-en:displayName="Modify User Substitution" orderNo="10060" resourceType="FNPT">
+                                  i18n-en:displayName="Modify User Substitution" orderNo="10063" resourceType="FNPT">
                             <permissions>NopAuthUserSubstitution:mutation</permissions>
                         </resource>
                     </children>

@@ -101,9 +101,12 @@ public class MfaLoginPolicyServiceImpl implements IMfaLoginPolicyService {
                 return null;
             if (loginType == LOGIN_TYPE_PHONE_SMS && MFA_TYPE_SMS.equals(mfaType))
                 return null;
-            // challenge 分支：与一期表达一致（ERR_AUTH_MFA_REQUIRED + errorParams 三元组）
-            String challengeToken = mfaChallengeStore.create(user.getUserId(), mfaType, loginType,
-                    user.getTenantId(), setting.getPhone());
+            // challenge 分支：与一期表达一致（ERR_AUTH_MFA_REQUIRED + errorParams 三元组）。
+            // W14-impl 触点③（W13 登记的同构副本同步不变式履行）：webauthn 类型经 helper 增量
+            // payload.cryptoChallenge（与 LoginServiceImpl.checkMfaRequired 共用 createLoginChallenge，
+            // 两副本不再漂移）；其余类型一期五参语义逐字节等价
+            String challengeToken = MfaChallengeHelper.createLoginChallenge(mfaChallengeStore,
+                    user.getUserId(), mfaType, loginType, user.getTenantId(), setting.getPhone());
             throw new NopException(ERR_AUTH_MFA_REQUIRED)
                     .param(ARG_CHALLENGE_TOKEN, challengeToken)
                     .param(ARG_MFA_TYPE, mfaType)

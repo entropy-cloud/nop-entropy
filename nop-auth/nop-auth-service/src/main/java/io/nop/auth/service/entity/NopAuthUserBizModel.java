@@ -15,17 +15,25 @@ import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Description;
 import io.nop.api.core.annotations.core.Locale;
 import io.nop.api.core.annotations.core.Name;
+import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.auth.IUserContext;
+import io.nop.api.core.audit.AuditRequest;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.auth.api.AuthApiConstants;
+import io.nop.auth.api.beans.NopAuthMfaCredentialOutputBean;
 import io.nop.auth.api.mfa.MfaRequired;
+import io.nop.auth.api.messages.WebAuthnAssertion;
+import io.nop.auth.api.messages.WebAuthnAttestation;
+import io.nop.auth.api.messages.WebAuthnCreationOptions;
 import io.nop.auth.biz.INopAuthUserBiz;
+import io.nop.auth.core.mfa.store.MfaChallenge;
 import io.nop.auth.core.mfa.store.SmsCodeStore;
 import io.nop.auth.core.password.IPasswordEncoder;
 import io.nop.auth.core.password.IPasswordPolicy;
 import io.nop.auth.core.totp.TOTPAuthenticator;
+import io.nop.auth.dao.entity.NopAuthMfaCredential;
 import io.nop.auth.dao.entity.NopAuthMfaRecoveryCode;
 import io.nop.auth.dao.entity.NopAuthMfaSetting;
 import io.nop.auth.dao.entity.NopAuthUser;
@@ -33,12 +41,16 @@ import io.nop.auth.dao.generator.IUserIdGenerator;
 import io.nop.auth.service.NopAuthConstants;
 import io.nop.auth.service.biz.dto.MfaBindResult;
 import io.nop.auth.service.biz.dto.MfaStatusResult;
+import io.nop.auth.service.biz.dto.MfaWebauthnBeginResult;
+import io.nop.auth.service.mfa.MfaChallengeHelper;
 import io.nop.auth.service.mfa.MfaFactorVerifier;
+import io.nop.auth.service.mfa.WebAuthnAuthenticator;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.biz.crud.EntityData;
 import io.nop.commons.util.MathHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.DaoConstants;
 import io.nop.dao.api.IEntityDao;
 import io.nop.integration.api.sms.ISmsSender;
@@ -56,6 +68,7 @@ import java.util.Set;
 import static io.nop.auth.core.AuthCoreErrors.ERR_AUTH_OLD_PASSWORD_NOT_MATCH;
 import static io.nop.auth.core.AuthCoreErrors.ERR_AUTH_USER_NOT_LOGIN;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_MFA_BIND_EXPIRE_SECONDS;
+import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_MFA_MAX_ATTEMPTS;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_MFA_TOTP_ISSUER;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_SMS_CODE_TEMPLATE_ID;
 import static io.nop.auth.service.NopAuthConstants.MFA_STATUS_DISABLED;
@@ -63,14 +76,17 @@ import static io.nop.auth.service.NopAuthConstants.MFA_STATUS_ENABLED;
 import static io.nop.auth.service.NopAuthConstants.MFA_STATUS_PENDING;
 import static io.nop.auth.service.NopAuthConstants.MFA_TYPE_SMS;
 import static io.nop.auth.service.NopAuthConstants.MFA_TYPE_TOTP;
+import static io.nop.auth.service.NopAuthConstants.MFA_TYPE_WEBAUTHN;
 import static io.nop.auth.service.NopAuthConstants.SMS_KEY_MFA;
 import static io.nop.auth.service.NopAuthConstants.SMS_KEY_PROOF;
+import static io.nop.auth.service.NopAuthErrors.ARG_CHALLENGE_TOKEN;
 import static io.nop.auth.service.NopAuthErrors.ARG_MFA_TYPE;
 import static io.nop.auth.service.NopAuthErrors.ARG_USER_ID;
 import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_INVALID_LOGIN_REQUEST;
 import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_MFA_ALREADY_ENABLED;
 import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_MFA_BIND_EXPIRED;
 import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_MFA_FAIL;
+import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_MFA_LAST_CREDENTIAL;
 import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_MFA_NOT_ENABLED;
 import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_SMS_CODE_EXPIRED;
 
@@ -83,6 +99,9 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
 
     /** 恢复码位数（设计 §3.4：10 位数字）。 */
     private static final int RECOVERY_CODE_DIGITS = 10;
+
+    /** bindMfa 入参白名单（§5.3.0 #2，W14 含 webauthn；错误消息动态拼接自此单点）。 */
+    private static final List<String> SUPPORTED_MFA_TYPES = List.of(MFA_TYPE_TOTP, MFA_TYPE_SMS, MFA_TYPE_WEBAUTHN);
 
     @Inject
     IPasswordEncoder passwordEncoder;
@@ -133,6 +152,15 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
     protected io.nop.auth.core.mfa.store.MfaChallengeStore mfaChallengeStore;
 
     /**
+     * WebAuthn 验证器组件（W14-impl，设计 §5.3.2）：注册/解绑 ceremony 的 attestation/options
+     * 构造；断言验证经 {@link MfaFactorVerifier} 统一收敛。未装配（无 webauthn 部署）时
+     * webauthn 绑定显式拒绝（fail-closed）。
+     */
+    @Inject
+    @Nullable
+    protected WebAuthnAuthenticator webAuthnAuthenticator;
+
+    /**
      * 角色级 MFA 策略评估器（W13-impl，设计 §4.3）：confirmMfa 策略校验（防因子降级）。
      * 可选注入：未装配 = 无策略 = 不校验（一期行为）。
      */
@@ -167,13 +195,15 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
                                   @io.nop.api.core.annotations.core.Optional @Name("proof") String proofToken,
                                   IServiceContext context) {
         String userId = requireCurrentUserId(context);
-        if (!MFA_TYPE_TOTP.equals(mfaType) && !MFA_TYPE_SMS.equals(mfaType)) {
+        // #2 白名单扩容（W14，设计 §5.3.0）：合法值集合含 webauthn；错误消息动态拼接合法值
+        // （新增因子只改 SUPPORTED_MFA_TYPES 单点）
+        if (!SUPPORTED_MFA_TYPES.contains(mfaType)) {
             throw new NopException(ERR_AUTH_INVALID_LOGIN_REQUEST).param(ARG_MFA_TYPE, mfaType)
-                    .param("msg", "unsupported mfaType: " + mfaType + " (only totp/sms supported)");
+                    .param("msg", "unsupported mfaType: " + mfaType + " (supported: " + String.join("/", SUPPORTED_MFA_TYPES) + ")");
         }
 
         // W13-impl：受限会话内 bindMfa 前置登记通道验证（防 enrollment attack，设计 §4.3）。
-        // 正常会话 bindMfa 不受影响（零改动）
+        // 正常会话 bindMfa 不受影响（零改动）；webauthn 路径在分派之前自动继承（W14 专项断言）
         IUserContext uc = context.getUserContext();
         if (uc != null && uc.isMfaRestricted()) {
             requireChannelProof(userId, proofToken);
@@ -197,6 +227,10 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
 
         if (MFA_TYPE_TOTP.equals(mfaType)) {
             return bindTotp(settingDao, setting, user, bindToken);
+        }
+        // #3 分派扩展（W14，设计 §5.3.0）：webauthn → 注册 ceremony 发起
+        if (MFA_TYPE_WEBAUTHN.equals(mfaType)) {
+            return bindWebauthn(settingDao, setting, user, context);
         }
         return bindSms(settingDao, setting, user, bindToken);
     }
@@ -248,6 +282,191 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
         result.setMfaType(MFA_TYPE_SMS);
         result.setSmsSent(true);
         result.setBindToken(bindToken);
+        return result;
+    }
+
+    // ===================== WebAuthn/FIDO2 三 ceremony（W14-impl，设计 §5.3.2） =====================
+
+    /**
+     * 注册 ceremony 发起（bindMfa(webauthn) 分派目标，设计 §5.3.2 伪代码）：
+     * <ol>
+     *   <li>创建 pending setting（mfaType=webauthn，secret=null——WebAuthn 无共享秘密；
+     *       覆盖写语义同一期；bindToken 不参与 webauthn ceremony，confirm 凭 challengeToken）。</li>
+     *   <li>创建 scene=webauthn-register challenge，payload={sessionId, cryptoChallenge}
+     *       <b>一次写入</b>（§3.1 结论 4——无后置更新原语）。</li>
+     *   <li>返回 challengeToken + creationOptions（challenge=payload.cryptoChallenge；
+     *       excludeCredentials=该用户既有 credential 防同一钥匙重复注册）。</li>
+     * </ol>
+     * 受限会话 proof 前置由 bindMfa 主流程在分派之前统一执行（W13——webauthn 路径自动继承）。
+     */
+    private MfaBindResult bindWebauthn(IEntityDao<NopAuthMfaSetting> settingDao, NopAuthMfaSetting setting,
+                                       NopAuthUser user, IServiceContext context) {
+        requireWebauthnConfigured();
+        if (mfaChallengeStore == null) {
+            throw new NopException(ERR_AUTH_INVALID_LOGIN_REQUEST).param(ARG_USER_ID, user.getUserId())
+                    .param("msg", "MfaChallengeStore is not configured; webauthn MFA binding is unavailable");
+        }
+        IUserContext uc = context.getUserContext();
+        if (uc == null || StringHelper.isEmpty(uc.getSessionId())) {
+            // ceremony 的会话绑定是 confirm 校验的前置（无会话即不可确认，fail-closed 显式报错）
+            throw new NopException(ERR_AUTH_INVALID_LOGIN_REQUEST).param(ARG_USER_ID, user.getUserId())
+                    .param("msg", "webauthn registration requires an active session");
+        }
+
+        // pending setting（secret=null；bindToken=null）
+        upsertPending(settingDao, setting, user, MFA_TYPE_WEBAUTHN, null, null, null);
+
+        // 注册 challenge：payload={sessionId, cryptoChallenge} 一次写入
+        String payload = MfaChallengeHelper.webauthnScenePayload(uc.getSessionId());
+        String challengeToken = mfaChallengeStore.create(MfaChallenge.SCENE_WEBAUTHN_REGISTER,
+                user.getUserId(), MFA_TYPE_WEBAUTHN, 0, user.getTenantId(), null, payload);
+        String cryptoChallenge = MfaChallengeHelper.cryptoChallengeOf(mfaChallengeStore.peek(challengeToken));
+
+        List<String> existingCredentialIds = new ArrayList<>();
+        for (NopAuthMfaCredential c : listCredentials(user.getUserId())) {
+            existingCredentialIds.add(c.getCredentialId());
+        }
+        WebAuthnCreationOptions options = webAuthnAuthenticator.buildCreationOptions(
+                cryptoChallenge, user.getUserId(), webauthnUserName(user), existingCredentialIds);
+
+        MfaBindResult result = new MfaBindResult();
+        result.setMfaType(MFA_TYPE_WEBAUTHN);
+        result.setChallengeToken(challengeToken);
+        result.setCreationOptions(options);
+        return result;
+    }
+
+    /**
+     * 确认 WebAuthn 注册（设计 §5.3.2 注册 ceremony 确认端点，需登录态）。
+     * <p>
+     * 校验链：challengeToken → peek（scene=webauthn-register + userId 绑定 + payload.sessionId
+     * ==当前会话）→ setting 复核（pending + webauthn）→ attestation 验证（clientData.challenge
+     * 匹配 payload.cryptoChallenge / origin / rpId / fmt=none 直接信任）。
+     * <ul>
+     *   <li>验证失败：incrFailCount（超限作废）+ MFA_FAIL，<b>不消费 challenge</b>（一期失败模式）。</li>
+     *   <li>credentialId 唯一冲突（全局唯一约束）：重复注册拒绝（MFA_FAIL）。</li>
+     *   <li>成功：credential 落库 + setting.status=enabled（换绑原子性：仅此刻生效）+ 恢复码生成
+     *       （对齐一期 confirmMfa）+ consume。</li>
+     * </ul>
+     * <b>受限会话白名单</b>：本端点在 {@code OperationMfaCheckerImpl.RESTRICTED_SESSION_WHITELIST}
+     * （minMfaLevel=3 用户的升级路径 = 受限会话内 bindMfa(webauthn) → confirm，缺白名单即断链）。
+     */
+    @Description("确认WebAuthn注册")
+    @BizMutation
+    @BizAudit(logRequestFields = "challengeToken")
+    public List<String> confirmWebauthnRegistration(@Name("challengeToken") String challengeToken,
+                                                    @Name("attestation") WebAuthnAttestation attestation,
+                                                    IServiceContext context) {
+        String userId = requireCurrentUserId(context);
+        IUserContext uc = context.getUserContext();
+        if (StringHelper.isEmpty(challengeToken) || mfaChallengeStore == null) {
+            throw new NopException(ERR_AUTH_MFA_BIND_EXPIRED).param(ARG_USER_ID, userId);
+        }
+
+        // 1. peek + scene + userId 绑定 + 会话绑定（防跨会话搬运 challenge）
+        MfaChallenge c = mfaChallengeStore.peek(challengeToken);
+        String payloadSessionId = c == null ? null : MfaChallengeHelper.sessionIdOf(c);
+        if (c == null || !MfaChallenge.SCENE_WEBAUTHN_REGISTER.equals(c.getScene())
+                || !userId.equals(c.getUserId())
+                || StringHelper.isEmpty(payloadSessionId) || uc == null
+                || !payloadSessionId.equals(uc.getSessionId())) {
+            throw new NopException(ERR_AUTH_MFA_BIND_EXPIRED).param(ARG_USER_ID, userId);
+        }
+
+        // 2. setting 复核（pending + webauthn；换绑必经 disabled 态——状态复核即作废换绑前发起的注册）
+        NopAuthMfaSetting setting = daoFor(NopAuthMfaSetting.class).getEntityById(userId);
+        if (setting == null || !MFA_STATUS_PENDING.equals(setting.getStatus())
+                || !MFA_TYPE_WEBAUTHN.equals(setting.getMfaType())) {
+            throw new NopException(ERR_AUTH_MFA_BIND_EXPIRED).param(ARG_USER_ID, userId);
+        }
+
+        NopAuthUser user = daoFor(NopAuthUser.class).getEntityById(userId);
+        String userName = user == null ? userId : webauthnUserName(user);
+
+        // 3. attestation 验证（失败 fail-closed：计数不消费）
+        String cryptoChallenge = MfaChallengeHelper.cryptoChallengeOf(c);
+        WebAuthnAuthenticator.RegistrationCheck check = webAuthnAuthenticator == null
+                || StringHelper.isEmpty(cryptoChallenge)
+                ? null : webAuthnAuthenticator.verifyRegistration(cryptoChallenge, userId, userName, attestation);
+        if (check == null) {
+            incrWebauthnFailCountOrDiscard(challengeToken);
+            auditWebauthnEvent(userId, uc, null, false, "webauthn-register-fail", "attestation-invalid");
+            throw new NopException(ERR_AUTH_MFA_FAIL).param(ARG_USER_ID, userId)
+                    .param(ARG_CHALLENGE_TOKEN, challengeToken);
+        }
+
+        // 4. credentialId 全局唯一冲突 = 重复注册拒绝（同一钥匙已注册过——含其他用户）
+        if (findCredentialByCredentialId(check.getCredentialId()) != null) {
+            incrWebauthnFailCountOrDiscard(challengeToken);
+            auditWebauthnEvent(userId, uc, check.getCredentialId(), false, "webauthn-register-fail",
+                    "duplicate-credential");
+            throw new NopException(ERR_AUTH_MFA_FAIL).param(ARG_USER_ID, userId)
+                    .param(ARG_CHALLENGE_TOKEN, challengeToken)
+                    .param("msg", "webauthn credential already registered");
+        }
+
+        // 5. credential 落库 + setting enabled + 恢复码 + consume（一次性）
+        IEntityDao<NopAuthMfaCredential> credDao = daoFor(NopAuthMfaCredential.class);
+        NopAuthMfaCredential credential = credDao.newEntity();
+        credential.setUserId(userId);
+        credential.setCredentialId(check.getCredentialId());
+        credential.setPublicKey(check.getPublicKeyCose());
+        credential.setSignCount(check.getSignCount());
+        credential.setTransports(attestation != null && attestation.getTransports() != null
+                ? String.join(",", attestation.getTransports()) : null);
+        credential.setName(defaultCredentialName(userId));
+        credential.setStatus(MFA_STATUS_ENABLED);
+        credential.setTenantId(setting.getTenantId());
+        credDao.saveEntity(credential);
+
+        setting.setStatus(MFA_STATUS_ENABLED);
+        setting.setBindToken(null);
+        List<String> recoveryCodes = regenerateRecoveryCodes(userId);
+
+        mfaChallengeStore.consume(challengeToken);
+        auditWebauthnEvent(userId, uc, check.getCredentialId(), true, "webauthn-register-ok", "ok");
+        return recoveryCodes;
+    }
+
+    /**
+     * 解绑 ceremony 发起（设计 §5.3.2）：创建 scene=webauthn-unbind challenge（fresh
+     * cryptoChallenge，payload={sessionId, cryptoChallenge} 一次写入）+ requestOptions。
+     * webauthn 无"验证码字符串"可输——断言验证需 fresh challenge（与 totp 用户"输码"同位）。
+     * <p>
+     * <b>受限会话白名单裁定（W14）</b>：本端点<b>不入</b>白名单——受限会话用户的 setting.mfaType
+     * 不可能为 webauthn（webauthn=3 已达 factorLevel 表上限，策略 minMfaLevel≤3 时启用 webauthn
+     * 的用户永不进入受限态），入白名单为不可达死代码；同理 credential 管理三 API 不入。
+     */
+    @Description("发起WebAuthn解绑验证")
+    @BizMutation
+    @BizAudit
+    public MfaWebauthnBeginResult webauthnBeginVerify(IServiceContext context) {
+        String userId = requireCurrentUserId(context);
+        IUserContext uc = context.getUserContext();
+        requireWebauthnConfigured();
+        if (mfaChallengeStore == null) {
+            throw new NopException(ERR_AUTH_MFA_NOT_ENABLED).param(ARG_USER_ID, userId);
+        }
+
+        NopAuthMfaSetting setting = daoFor(NopAuthMfaSetting.class).getEntityById(userId);
+        if (setting == null || !MFA_STATUS_ENABLED.equals(setting.getStatus())
+                || !MFA_TYPE_WEBAUTHN.equals(setting.getMfaType())) {
+            throw new NopException(ERR_AUTH_MFA_NOT_ENABLED).param(ARG_USER_ID, userId);
+        }
+        if (uc == null || StringHelper.isEmpty(uc.getSessionId())) {
+            throw new NopException(ERR_AUTH_INVALID_LOGIN_REQUEST).param(ARG_USER_ID, userId)
+                    .param("msg", "webauthn verify requires an active session");
+        }
+
+        String payload = MfaChallengeHelper.webauthnScenePayload(uc.getSessionId());
+        String challengeToken = mfaChallengeStore.create(MfaChallenge.SCENE_WEBAUTHN_UNBIND,
+                userId, MFA_TYPE_WEBAUTHN, 0, setting.getTenantId(), null, payload);
+        String cryptoChallenge = MfaChallengeHelper.cryptoChallengeOf(mfaChallengeStore.peek(challengeToken));
+
+        MfaWebauthnBeginResult result = new MfaWebauthnBeginResult();
+        result.setChallengeToken(challengeToken);
+        result.setRequestOptions(webAuthnAuthenticator.buildRequestOptions(cryptoChallenge,
+                listEnabledCredentialIds(userId)));
         return result;
     }
 
@@ -341,15 +560,27 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
     }
 
     /**
-     * 解绑 MFA（设计 §3.6）。需验证当前第二因子通过才可解绑；成功 → status=disabled + 删除全部恢复码。
+     * 解绑 MFA（设计 §3.6 + §5.3.2 解绑 ceremony）。需验证当前第二因子通过才可解绑；
+     * 成功 → status=disabled + 删除全部恢复码（+ W15 可信设备撤销挂点位——本 plan 保持既有行为）。
+     * <p>
+     * W14-impl 扩展（向后兼容）：webauthn 用户凭可选 {@code challengeToken}+{@code assertion}
+     * 完成"验证当前因子"（webauthnBeginVerify 发起 → 断言验证成功 consume；失败 incrFailCount +
+     * MFA_FAIL 不消费）；其余 mfaType 一期因子验证路径原样（code 经 MfaFactorVerifier）。
      * <p>
      * 敏感操作（W12-impl 首批标注：修改认证因子类）。
+     * <p>
+     * 双 ceremony 组合提示：本端点自身标注 {@code @MfaRequired}——{@code operation-mfa.enabled=true}
+     * 时 webauthn 用户解绑需两次断言（操作级票一次 + unbind challenge 断言一次），与 totp 用户
+     * "输两次码"同构，非缺陷。
      */
     @Description("解绑MFA")
     @BizMutation
     @BizAudit
     @MfaRequired
-    public void unbindMfa(@Name("code") String code, IServiceContext context) {
+    public void unbindMfa(@Name("code") String code,
+                          @Optional @Name("challengeToken") String challengeToken,
+                          @Optional @Name("assertion") WebAuthnAssertion assertion,
+                          IServiceContext context) {
         String userId = requireCurrentUserId(context);
         IEntityDao<NopAuthMfaSetting> settingDao = daoFor(NopAuthMfaSetting.class);
         NopAuthMfaSetting setting = settingDao.getEntityById(userId);
@@ -359,15 +590,57 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
             throw new NopException(ERR_AUTH_MFA_NOT_ENABLED).param(ARG_USER_ID, userId);
         }
 
-        // 验证当前因子（totp/sms；W12-impl 收敛至 MfaFactorVerifier）
-        boolean ok = mfaFactorVerifier.verify(setting, setting.getMfaType(), code);
-        if (!ok) {
-            throw new NopException(ERR_AUTH_MFA_FAIL).param(ARG_USER_ID, userId);
+        if (MFA_TYPE_WEBAUTHN.equals(setting.getMfaType())) {
+            // 解绑 ceremony（W14，设计 §5.3.2）：断言验证等价保持"验证当前因子"语义
+            verifyWebauthnUnbindAssertion(userId, setting, challengeToken, assertion, context);
+        } else {
+            // 一期因子验证路径原样（totp/sms；W12-impl 收敛至 MfaFactorVerifier）
+            boolean ok = mfaFactorVerifier.verify(setting, setting.getMfaType(), code);
+            if (!ok) {
+                throw new NopException(ERR_AUTH_MFA_FAIL).param(ARG_USER_ID, userId);
+            }
         }
 
         setting.setStatus(MFA_STATUS_DISABLED);
         setting.setBindToken(null);
         deleteRecoveryCodes(userId);
+        // W15 挂点：可信设备撤销矩阵（本 plan 仅保持既有行为）
+    }
+
+    /** 兼容重载（W14 前调用点）：一期 totp/sms 解绑路径。无注解——GraphQL 面仅暴露四参版本。 */
+    public void unbindMfa(String code, IServiceContext context) {
+        unbindMfa(code, null, null, context);
+    }
+
+    /**
+     * 解绑 ceremony 断言验证（W14，设计 §5.3.2）：scene=webauthn-unbind + userId 绑定 +
+     * payload.sessionId==当前会话（防跨会话重放）→ {@link MfaFactorVerifier} 统一 webauthn
+     * 分支（cryptoChallenge 取自服务端 payload + signCount 单调写内聚组件）。失败 incrFailCount
+     * （超限作废）+ MFA_FAIL 不消费；成功 consume + 解绑审计事件。
+     */
+    private void verifyWebauthnUnbindAssertion(String userId, NopAuthMfaSetting setting, String challengeToken,
+                                               WebAuthnAssertion assertion, IServiceContext context) {
+        IUserContext uc = context.getUserContext();
+        MfaChallenge c = StringHelper.isEmpty(challengeToken) || mfaChallengeStore == null
+                ? null : mfaChallengeStore.peek(challengeToken);
+        String payloadSessionId = c == null ? null : MfaChallengeHelper.sessionIdOf(c);
+        if (c == null || !MfaChallenge.SCENE_WEBAUTHN_UNBIND.equals(c.getScene())
+                || !userId.equals(c.getUserId())
+                || StringHelper.isEmpty(payloadSessionId) || uc == null
+                || !payloadSessionId.equals(uc.getSessionId())) {
+            throw new NopException(ERR_AUTH_MFA_FAIL).param(ARG_USER_ID, userId);
+        }
+
+        boolean ok = mfaFactorVerifier.verify(setting, MFA_TYPE_WEBAUTHN, null, assertion, c);
+        if (!ok) {
+            incrWebauthnFailCountOrDiscard(challengeToken);
+            auditWebauthnEvent(userId, uc, assertion == null ? null : assertion.getCredentialId(),
+                    false, "webauthn-unbind-fail", "assertion-invalid");
+            throw new NopException(ERR_AUTH_MFA_FAIL).param(ARG_USER_ID, userId)
+                    .param(ARG_CHALLENGE_TOKEN, challengeToken);
+        }
+        mfaChallengeStore.consume(challengeToken);
+        auditWebauthnEvent(userId, uc, assertion.getCredentialId(), true, "webauthn-unbind-ok", "ok");
     }
 
     /**
@@ -409,6 +682,84 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
         result.setStatus(setting.getStatus());
         result.setPhone(maskPhone(setting.getPhone()));
         return result;
+    }
+
+    // ===================== WebAuthn credential 管理（W14-impl，设计 §5.3.2；W6 并入先例） =====================
+
+    /**
+     * 列出本人的 WebAuthn credentials（本人数据限定）。返回展示字段
+     * （sid/name/transports/status/signCount/lastUsedAt/createTime）——<b>不含
+     * credentialId/publicKey</b>（公钥材料对齐 secret 列 masked 策略不展示）。
+     * <p>
+     * 受限会话白名单裁定：不入白名单（受限用户 setting.mfaType 不可能为 webauthn，不可达死代码）。
+     */
+    @Description("查询WebAuthn凭证列表")
+    @BizQuery
+    public List<NopAuthMfaCredentialOutputBean> listWebauthnCredentials(IServiceContext context) {
+        String userId = requireCurrentUserId(context);
+        List<NopAuthMfaCredentialOutputBean> result = new ArrayList<>();
+        for (NopAuthMfaCredential c : listCredentials(userId)) {
+            NopAuthMfaCredentialOutputBean bean = new NopAuthMfaCredentialOutputBean();
+            bean.setSid(c.getSid());
+            bean.setUserId(c.getUserId());
+            bean.setName(c.getName());
+            bean.setTransports(c.getTransports());
+            bean.setStatus(c.getStatus());
+            bean.setSignCount(c.getSignCount());
+            bean.setLastUsedAt(c.getLastUsedAt());
+            bean.setCreateTime(c.getCreateTime());
+            result.add(bean);
+        }
+        return result;
+    }
+
+    /**
+     * 移除一把 WebAuthn credential（本人数据限定——越权归一"不存在"）。
+     * 移除<b>最后一把 enabled</b> credential 拒绝（{@code ERR_AUTH_MFA_LAST_CREDENTIAL}——
+     * enabled 但零 credential = 用户自锁死；整体解绑走 unbindMfa 的 webauthn ceremony，
+     * 有恢复码兜底）。禁用单把（status=disabled）不在此路径——禁用钥匙仍可移除。
+     */
+    @Description("移除WebAuthn凭证")
+    @BizMutation
+    @BizAudit(logRequestFields = "sid")
+    public void removeWebauthnCredential(@Name("sid") String sid, IServiceContext context) {
+        String userId = requireCurrentUserId(context);
+        NopAuthMfaCredential credential = requireOwnCredential(sid, userId);
+
+        if (MFA_STATUS_ENABLED.equals(credential.getStatus()) && countEnabledCredentials(userId) <= 1) {
+            throw new NopException(ERR_AUTH_MFA_LAST_CREDENTIAL).param(ARG_USER_ID, userId);
+        }
+        String credentialId = credential.getCredentialId();
+        String name = credential.getName();
+        daoFor(NopAuthMfaCredential.class).deleteEntity(credential);
+        auditWebauthnEvent(userId, context.getUserContext(), credentialId, true,
+                "webauthn-credential-removed", name);
+    }
+
+    /** 重命名一把 WebAuthn credential（本人数据限定——越权归一"不存在"）。 */
+    @Description("重命名WebAuthn凭证")
+    @BizMutation
+    @BizAudit(logRequestFields = "sid")
+    public void renameWebauthnCredential(@Name("sid") String sid, @Name("name") String name,
+                                         IServiceContext context) {
+        String userId = requireCurrentUserId(context);
+        if (StringHelper.isEmpty(name)) {
+            throw new NopException(ERR_AUTH_INVALID_LOGIN_REQUEST).param(ARG_USER_ID, userId)
+                    .param("msg", "credential name must not be empty");
+        }
+        NopAuthMfaCredential credential = requireOwnCredential(sid, userId);
+        credential.setName(name);
+    }
+
+    /** 按 sid 定位本人 credential；不存在与非本人归一"不存在"（不泄露他人数据存在性）。 */
+    private NopAuthMfaCredential requireOwnCredential(String sid, String userId) {
+        NopAuthMfaCredential credential = StringHelper.isEmpty(sid)
+                ? null : daoFor(NopAuthMfaCredential.class).getEntityById(sid);
+        if (credential == null || !userId.equals(credential.getUserId())) {
+            throw new NopException(ERR_AUTH_INVALID_LOGIN_REQUEST).param(ARG_USER_ID, userId)
+                    .param("msg", "webauthn credential not found");
+        }
+        return credential;
     }
 
     // ===================== MFA 管理员重置（设计 §3.6，Phase 2） =====================
@@ -457,6 +808,92 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
     // 绑定/解绑的因子校验已收敛至 MfaFactorVerifier（W12-impl；原 verifyFactorForBind
     // 的 totp/sms 分支语义逐条迁入组件：totp 解密校验+窗口推进 / sms 原子消费+EXPIRED 抛错 /
     // 未知 mfaType 返回 false fail-closed）。
+
+    // ---- WebAuthn 内部辅助（W14-impl，设计 §5.3.2） ----
+
+    /** webauthn ceremony 可用性前置：组件未装配或 RP 配置缺失即显式拒绝（fail-closed）。 */
+    private void requireWebauthnConfigured() {
+        if (webAuthnAuthenticator == null || !webAuthnAuthenticator.isConfigured()) {
+            throw new NopException(ERR_AUTH_INVALID_LOGIN_REQUEST).param(ARG_MFA_TYPE, MFA_TYPE_WEBAUTHN)
+                    .param("msg", "WebAuthn RP config is incomplete; configure "
+                            + "nop.auth.mfa.webauthn.rp-id/rp-name/origins to enable webauthn MFA");
+        }
+    }
+
+    /** 失败计数（对齐 LoginServiceImpl.incrFailCountOrDiscard 语义）：超限作废 challenge。 */
+    private void incrWebauthnFailCountOrDiscard(String challengeToken) {
+        if (mfaChallengeStore == null)
+            return;
+        int failCount = mfaChallengeStore.incrFailCount(challengeToken);
+        if (failCount >= CFG_AUTH_MFA_MAX_ATTEMPTS.get()) {
+            mfaChallengeStore.consume(challengeToken);
+        }
+    }
+
+    /** 本人 credentials（全状态，按 createTime 排序稳定展示）。 */
+    private List<NopAuthMfaCredential> listCredentials(String userId) {
+        IEntityDao<NopAuthMfaCredential> dao = daoFor(NopAuthMfaCredential.class);
+        NopAuthMfaCredential example = dao.newEntity();
+        example.setUserId(userId);
+        return dao.findAllByExample(example);
+    }
+
+    private List<String> listEnabledCredentialIds(String userId) {
+        List<String> ids = new ArrayList<>();
+        for (NopAuthMfaCredential c : listCredentials(userId)) {
+            if (MFA_STATUS_ENABLED.equals(c.getStatus()))
+                ids.add(c.getCredentialId());
+        }
+        return ids;
+    }
+
+    private long countEnabledCredentials(String userId) {
+        return listCredentials(userId).stream().filter(c -> MFA_STATUS_ENABLED.equals(c.getStatus())).count();
+    }
+
+    /** 按 credentialId 全局定位（唯一约束保证至多一行；重复注册检测）。 */
+    private NopAuthMfaCredential findCredentialByCredentialId(String credentialId) {
+        if (StringHelper.isEmpty(credentialId))
+            return null;
+        IEntityDao<NopAuthMfaCredential> dao = daoFor(NopAuthMfaCredential.class);
+        NopAuthMfaCredential example = dao.newEntity();
+        example.setCredentialId(credentialId);
+        List<NopAuthMfaCredential> found = dao.findAllByExample(example);
+        return found.isEmpty() ? null : found.get(0);
+    }
+
+    /** 缺省设备命名（"WebAuthn Key #N"，N=注册序号）。 */
+    private String defaultCredentialName(String userId) {
+        return "WebAuthn Key #" + (listCredentials(userId).size() + 1);
+    }
+
+    /** creationOptions 用户名（userName 优先，回退 userId）。 */
+    private static String webauthnUserName(NopAuthUser user) {
+        return StringHelper.isEmpty(user.getUserName()) ? user.getUserId() : user.getUserName();
+    }
+
+    /**
+     * WebAuthn ceremony 审计事件（注册成功/失败、解绑、credential 移除），落 NopAuthOpLog。
+     * userName 非空列必须设置（W13 执行期缺陷教训——缺失会使批处理整批回滚）。
+     */
+    private void auditWebauthnEvent(String userId, IUserContext uc, String credentialId, boolean success,
+                                    String event, String detail) {
+        if (auditService == null)
+            return;
+        AuditRequest audit = new AuditRequest();
+        audit.setOperation("NopAuthUser__webauthn");
+        audit.setDescription(event);
+        audit.setResultStatus(success ? 200 : 400);
+        audit.setActionTime(new Timestamp(CoreMetrics.currentTimeMillis()));
+        audit.setUserId(userId);
+        audit.setUserName(uc != null && !StringHelper.isEmpty(uc.getUserName()) ? uc.getUserName() : userId);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("event", event);
+        data.put("credentialId", credentialId);
+        data.put("detail", detail);
+        audit.setRequestData(JsonTool.stringify(data));
+        auditService.saveAudit(audit);
+    }
 
     /** 登记通道 proof 发码限流追踪：phone → [lastSendMs, dailyCount, dailyDate]（对齐 LoginServiceImpl sms 限流模式）。 */
     private final Map<String, long[]> proofRateTracker = new java.util.concurrent.ConcurrentHashMap<>();

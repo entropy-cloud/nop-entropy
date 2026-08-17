@@ -16,6 +16,7 @@ drop table nop_auth_user_substitution;
 drop table nop_auth_session;
 drop table nop_auth_group;
 drop table nop_auth_mfa_setting;
+drop table nop_auth_mfa_credential;
 drop table nop_auth_role_resource;
 drop table nop_auth_op_log;
 drop table nop_auth_group_dept;

@@ -60,7 +60,7 @@ public class RoleMfaPolicyEvaluator {
                 return LEVEL_CHANNEL_OTP;
             case NopAuthConstants.MFA_TYPE_TOTP:
                 return LEVEL_TOTP;
-            case "webauthn": // MFA_TYPE_WEBAUTHN 常量 W14 落地（§5.3.1）
+            case NopAuthConstants.MFA_TYPE_WEBAUTHN:
                 return LEVEL_WEBAUTHN;
             default:
                 return 0;

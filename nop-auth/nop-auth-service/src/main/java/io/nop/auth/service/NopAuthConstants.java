@@ -42,6 +42,12 @@ public interface NopAuthConstants {
     String MFA_TYPE_TOTP = "totp";
     String MFA_TYPE_SMS = "sms";
 
+    /**
+     * WebAuthn/FIDO2 硬件因子（W14-impl，设计 §5.3.2）：多 credential 模型——用户级仍是单值
+     * mfaType，密钥材料在 {@code NopAuthMfaCredential} 行（1:N）。
+     */
+    String MFA_TYPE_WEBAUTHN = "webauthn";
+
     /** SmsCodeStore key 前缀：登录验证码 / MFA 第二因子验证码（互不通用）。 */
     String SMS_KEY_LOGIN = "login:";
     String SMS_KEY_MFA = "mfa:";

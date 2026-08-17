@@ -110,6 +110,20 @@ public interface NopAuthConfigs {
     IConfigReference<Integer> CFG_AUTH_MFA_BIND_EXPIRE_SECONDS = varRef(s_loc, "nop.auth.mfa.bind-expire-seconds",
             Integer.class, 300);
 
+    // ===== WebAuthn/FIDO2 配置（W14-impl，设计 §5.3.2 RP 配置） =====
+
+    @Description("WebAuthn Relying Party ID（WebAuthn rpId，一般为域名，如 example.com）。webauthn 因子使用时必配")
+    IConfigReference<String> CFG_AUTH_MFA_WEBAUTHN_RP_ID = varRef(s_loc, "nop.auth.mfa.webauthn.rp-id",
+            String.class, null);
+
+    @Description("WebAuthn Relying Party 显示名（creationOptions.rp.name）。webauthn 因子使用时必配")
+    IConfigReference<String> CFG_AUTH_MFA_WEBAUTHN_RP_NAME = varRef(s_loc, "nop.auth.mfa.webauthn.rp-name",
+            String.class, null);
+
+    @Description("WebAuthn 允许的 origin 列表（逗号分隔，如 https://a.com,https://b.com）。验证时精确匹配，不匹配即拒绝（fail-closed 防钓鱼域）。webauthn 因子使用时必配")
+    IConfigReference<String> CFG_AUTH_MFA_WEBAUTHN_ORIGINS = varRef(s_loc, "nop.auth.mfa.webauthn.origins",
+            String.class, null);
+
     // ===== 操作级 MFA 配置（设计 §3.1 结论 8 / §3.7） =====
 
     @Description("操作级 MFA 总开关（会话内敏感操作二次验证）。缺省 false：关闭时拦截器零介入，一期零回归")

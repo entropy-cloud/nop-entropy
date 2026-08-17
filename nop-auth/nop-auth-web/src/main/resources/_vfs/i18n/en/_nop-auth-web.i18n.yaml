@@ -16,6 +16,10 @@ site:
       displayName: Modify MFA Challenge
     FNPT:NopAuthMfaChallenge:query:
       displayName: Query MFA Challenge
+    FNPT:NopAuthMfaCredential:mutation:
+      displayName: Modify WebAuthn Credential
+    FNPT:NopAuthMfaCredential:query:
+      displayName: Query WebAuthn Credential
     FNPT:NopAuthMfaRecoveryCode:mutation:
       displayName: Modify MFA Recovery Code
     FNPT:NopAuthMfaRecoveryCode:query:
@@ -92,6 +96,8 @@ site:
       displayName: User Group
     NopAuthMfaChallenge-main:
       displayName: MFA Challenge
+    NopAuthMfaCredential-main:
+      displayName: WebAuthn Credential
     NopAuthMfaRecoveryCode-main:
       displayName: MFA Recovery Code
     NopAuthMfaSetting-main:

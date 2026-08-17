@@ -6,6 +6,7 @@ entity:
     NopAuthGroupDept: 分组部门
     NopAuthGroupUser: 分组用户
     NopAuthMfaChallenge: MFA挑战码
+    NopAuthMfaCredential: WebAuthn凭证
     NopAuthMfaRecoveryCode: MFA恢复码
     NopAuthMfaSetting: 用户MFA配置
     NopAuthOpLog: 操作日志
@@ -139,6 +140,26 @@ prop:
       updatedBy: 修改人
       userId: 用户ID
       verifiedAt: 验证时间
+    NopAuthMfaCredential:
+      createTime: 创建时间
+      createdBy: 创建人
+      credentialId: 凭证ID
+      delFlag: 删除标识
+      lastUsedAt: 最近使用时间
+      name: 设备名称
+      publicKey: COSE公钥
+      remark: 备注
+      sid: 主键
+      signCount: 签名计数
+      status: 凭证状态
+      tenantId: 租户ID
+      transports: 传输方式
+      updateTime: 修改时间
+      updatedBy: 修改人
+      user: 用户
+      user.userName: 用户
+      userId: 用户ID
+      version: 数据版本
     NopAuthMfaRecoveryCode:
       codeHash: 恢复码哈希
       createTime: 创建时间

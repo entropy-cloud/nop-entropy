@@ -29,33 +29,42 @@ import io.nop.auth.api.messages.LogoutRequest;
 import io.nop.auth.api.messages.MfaVerifyOperationRequest;
 import io.nop.auth.api.messages.MfaVerifyRequest;
 import io.nop.auth.api.messages.RefreshTokenRequest;
+import io.nop.auth.api.messages.WebAuthnRequestOptions;
 import io.nop.auth.core.login.AuthToken;
 import io.nop.auth.core.login.ILoginService;
 import io.nop.auth.core.spi.ILoginSpi;
 import io.nop.auth.core.mfa.store.MfaChallenge;
 import io.nop.auth.core.mfa.store.MfaChallengeStore;
+import io.nop.auth.dao.entity.NopAuthMfaCredential;
 import io.nop.auth.dao.entity.NopAuthMfaSetting;
 import io.nop.auth.dao.entity.NopAuthUser;
 import io.nop.auth.service.NopAuthConstants;
 import io.nop.auth.service.NopAuthErrors;
 import io.nop.auth.service.login.LoginServiceImpl;
+import io.nop.auth.service.mfa.MfaChallengeHelper;
 import io.nop.auth.service.mfa.MfaFactorVerifier;
 import io.nop.auth.service.mfa.OperationMfaCheckerImpl;
+import io.nop.auth.service.mfa.WebAuthnAuthenticator;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.unittest.VarCollector;
 import io.nop.dao.api.IDaoProvider;
+import io.nop.dao.api.IEntityDao;
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
 import static io.nop.auth.core.AuthCoreErrors.ERR_AUTH_USER_NOT_LOGIN;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_MFA_MAX_ATTEMPTS;
+import static io.nop.auth.service.NopAuthConstants.MFA_STATUS_ENABLED;
+import static io.nop.auth.service.NopAuthConstants.MFA_TYPE_WEBAUTHN;
 import static io.nop.auth.service.NopAuthErrors.ARG_CHALLENGE_TOKEN;
 import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_MFA_CHALLENGE_EXPIRED;
 import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_MFA_FAIL;
@@ -93,6 +102,14 @@ public class LoginApiBizModel implements ILoginSpi {
     @Inject
     @Nullable
     IAuditService auditService;
+
+    /**
+     * WebAuthn 验证器组件（W14-impl，设计 §5.3.2）：webauthnAuthOptions 的 requestOptions
+     * 构造。断言验证经 {@link MfaFactorVerifier}（统一载体五参重载）。
+     */
+    @Inject
+    @Nullable
+    WebAuthnAuthenticator webAuthnAuthenticator;
 
     @BizMutation("login")
     @Auth(publicAccess = true)
@@ -184,6 +201,66 @@ public class LoginApiBizModel implements ILoginSpi {
     }
 
     /**
+     * WebAuthn 断言 options 读取端点（W14-impl，设计 §5.3.2 认证 ceremony；公开访问——
+     * 对齐一期 mfaVerify 的 publicAccess 先例，登录期无会话）。
+     * <p>
+     * 任意 scene 的 webauthn challenge 通用：
+     * <ul>
+     *   <li><b>scene=login</b>：公开可访问（登录期无会话）。</li>
+     *   <li><b>scene 非 login</b>（operation/webauthn-unbind 等）：需登录态且
+     *       payload.sessionId==当前会话（防跨会话读取他人 options）。</li>
+     *   <li>requestOptions.challenge = payload.cryptoChallenge <b>只读复用</b>（不更新——
+     *       payload 一次写入契约，多次取 options 幂等）；allowCredentials = 该用户 enabled
+     *       credentials。</li>
+     *   <li>非 webauthn 类型的 challenge 显式拒绝（无 cryptoChallenge 可读，fail-closed）。</li>
+     * </ul>
+     */
+    @BizQuery
+    @Auth(publicAccess = true)
+    public WebAuthnRequestOptions webauthnAuthOptions(@Name("challengeToken") String challengeToken,
+                                                      IServiceContext context) {
+        if (StringHelper.isEmpty(challengeToken) || mfaChallengeStore == null) {
+            throw new NopException(ERR_AUTH_MFA_CHALLENGE_EXPIRED).param(ARG_CHALLENGE_TOKEN, challengeToken);
+        }
+        MfaChallenge c = mfaChallengeStore.peek(challengeToken);
+        if (c == null || !MFA_TYPE_WEBAUTHN.equals(c.getMfaType())) {
+            throw new NopException(ERR_AUTH_MFA_CHALLENGE_EXPIRED).param(ARG_CHALLENGE_TOKEN, challengeToken);
+        }
+
+        // 非 login 场景：需登录态 + 同会话（login 场景公开——登录期无会话）
+        if (!MfaChallenge.SCENE_LOGIN.equals(c.getScene()) && c.getScene() != null) {
+            IUserContext userContext = context.getUserContext();
+            String payloadSessionId = MfaChallengeHelper.sessionIdOf(c);
+            if (userContext == null || StringHelper.isEmpty(userContext.getUserId())
+                    || StringHelper.isEmpty(payloadSessionId)
+                    || !payloadSessionId.equals(userContext.getSessionId())) {
+                throw new NopException(ERR_AUTH_MFA_CHALLENGE_EXPIRED).param(ARG_CHALLENGE_TOKEN, challengeToken);
+            }
+        }
+
+        // cryptoChallenge 只读复用（一次写入契约——无后置更新原语）
+        String cryptoChallenge = MfaChallengeHelper.cryptoChallengeOf(c);
+        if (StringHelper.isEmpty(cryptoChallenge) || webAuthnAuthenticator == null) {
+            throw new NopException(ERR_AUTH_MFA_CHALLENGE_EXPIRED).param(ARG_CHALLENGE_TOKEN, challengeToken);
+        }
+        return webAuthnAuthenticator.buildRequestOptions(cryptoChallenge, enabledCredentialIds(c.getUserId()));
+    }
+
+    /** 该用户 enabled credentials 的 credentialId 列表（allowCredentials）。 */
+    private List<String> enabledCredentialIds(String userId) {
+        IEntityDao<NopAuthMfaCredential> dao = daoProvider.daoFor(NopAuthMfaCredential.class);
+        NopAuthMfaCredential example = dao.newEntity();
+        example.setUserId(userId);
+        example.setStatus(MFA_STATUS_ENABLED);
+        List<NopAuthMfaCredential> found = dao.findAllByExample(example);
+        List<String> ids = new ArrayList<>(found.size());
+        for (NopAuthMfaCredential credential : found) {
+            ids.add(credential.getCredentialId());
+        }
+        return ids;
+    }
+
+    /**
      * 操作级 MFA 第二因子验证（设计 §3.3 验证端点，W12-impl）。
      * <p>
      * <b>需登录态</b>（本 BizModel 首个非 publicAccess action——省略 @Auth 即默认 permission，
@@ -235,10 +312,12 @@ public class LoginApiBizModel implements ILoginSpi {
             throw new NopException(ERR_AUTH_MFA_CHALLENGE_EXPIRED).param(ARG_CHALLENGE_TOKEN, challengeToken);
         }
 
-        // 5. 因子校验（共享组件：TOTP 窗口统一推进；失败计数超限作废 challenge）
+        // 5. 因子校验（共享组件：TOTP 窗口统一推进；失败计数超限作废 challenge）。
+        //    W14-impl 统一载体五参重载：webauthn 用户凭 assertion 验证（cryptoChallenge 取自
+        //    challenge payload——拦截器创建处增量），code 参数忽略；其余类型 assertion 忽略
         boolean ok;
         try {
-            ok = mfaFactorVerifier.verify(setting, c.getMfaType(), request.getCode());
+            ok = mfaFactorVerifier.verify(setting, c.getMfaType(), request.getCode(), request.getAssertion(), c);
         } catch (NopException e) {
             auditOperationVerify(operationOf(c), userContext, false);
             throw e;

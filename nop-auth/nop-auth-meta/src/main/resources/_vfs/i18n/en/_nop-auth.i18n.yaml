@@ -6,6 +6,7 @@ entity:
     NopAuthGroupDept: Group Department
     NopAuthGroupUser: Group User
     NopAuthMfaChallenge: MFA Challenge
+    NopAuthMfaCredential: WebAuthn Credential
     NopAuthMfaRecoveryCode: MFA Recovery Code
     NopAuthMfaSetting: MFA Setting
     NopAuthOpLog: Operation Log
@@ -139,6 +140,26 @@ prop:
       scene: Scene
       payload: Payload
       verifiedAt: Verified At
+    NopAuthMfaCredential:
+      sid: SID
+      userId: User ID
+      credentialId: Credential ID
+      publicKey: Public Key
+      signCount: Sign Count
+      transports: Transports
+      name: Name
+      status: Status
+      lastUsedAt: Last Used At
+      delFlag: Deleted
+      version: Version
+      tenantId: Tenant ID
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      user: User
+      user.userName: User
     NopAuthMfaRecoveryCode:
       sid: SID
       userId: User ID

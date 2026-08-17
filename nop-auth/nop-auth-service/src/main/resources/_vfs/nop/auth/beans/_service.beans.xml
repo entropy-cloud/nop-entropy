@@ -129,6 +129,14 @@
         <property name="bizObjName" value="NopAuthMfaSetting"/>
     </bean>
 
+    <bean id="io.nop.auth.service.entity.NopAuthMfaCredentialBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopAuthMfaCredential" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.auth.biz.INopAuthMfaCredentialBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopAuthMfaCredential"/>
+    </bean>
+
     <bean id="io.nop.auth.service.entity.NopAuthRoleResourceBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="biz_NopAuthRoleResource" class="io.nop.biz.proxy.BizProxyFactoryBean"

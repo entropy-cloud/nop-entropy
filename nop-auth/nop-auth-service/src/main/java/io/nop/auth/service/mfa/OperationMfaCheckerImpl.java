@@ -31,6 +31,7 @@ import java.util.Set;
 
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_OPERATION_MFA_ENABLED;
 import static io.nop.auth.service.NopAuthConstants.MFA_STATUS_ENABLED;
+import static io.nop.auth.service.NopAuthConstants.MFA_TYPE_WEBAUTHN;
 import static io.nop.auth.service.NopAuthErrors.ARG_CHALLENGE_TOKEN;
 import static io.nop.auth.service.NopAuthErrors.ARG_MFA_TYPE;
 import static io.nop.auth.service.NopAuthErrors.ARG_OPERATION;
@@ -77,16 +78,24 @@ public class OperationMfaCheckerImpl implements IOperationMfaChecker {
     public static final int LOGIN_TYPE_OPERATION = 0;
 
     /**
-     * 受限会话白名单 mutation（设计 §4.3，W13-impl 终版清单）：MFA 绑定引导类四动作 +
-     * 登记通道验证端点 + 登出 + 会话基建类 publicAccess mutation（token 刷新——executor
+     * 受限会话白名单 mutation（设计 §4.3，W13-impl 终版清单 + W14-impl 增补）：MFA 绑定引导类
+     * 动作 + 登记通道验证端点 + 登出 + 会话基建类 publicAccess mutation（token 刷新——executor
      * 侧已放行 publicAccess，此处为直调路径兜底）。匹配口径 = operation 全名
      * （{@code bizObjName__action}，与 payload.operation 契约一致；注意
      * {@code ReflectionBizModelBuilder#getActionName} 会剥除方法名尾缀 {@code Async}——
      * {@code refreshTokenAsync} 方法注册为 {@code LoginApi__refreshToken}）。
+     * <p>
+     * <b>W14-impl 增补裁定</b>：{@code NopAuthUser__confirmWebauthnRegistration} 入白名单
+     * （对齐设计 §4.3 "绑定类"语义——minMfaLevel=3 用户的升级路径 = 受限会话内
+     * bindMfa(webauthn) → confirm，缺白名单即引导流断链）。<b>不入白名单</b>：
+     * {@code webauthnBeginVerify} 与 credential 管理三 API（list/remove/rename）——受限用户
+     * setting.mfaType 不可能为 webauthn（webauthn=3 已达 factorLevel 表上限，启用 webauthn
+     * 的用户永不进入受限态），入白名单为不可达死代码。
      */
     private static final Set<String> RESTRICTED_SESSION_WHITELIST = Set.of(
             "NopAuthUser__bindMfa",
             "NopAuthUser__confirmMfa",
+            "NopAuthUser__confirmWebauthnRegistration",
             "NopAuthUser__unbindMfa",
             "NopAuthUser__getMfaStatus",
             "LoginApi__verifyChannelProof",
@@ -153,6 +162,11 @@ public class OperationMfaCheckerImpl implements IOperationMfaChecker {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put(PAYLOAD_OPERATION, operationName);
         payload.put(PAYLOAD_SESSION_ID, userContext.getSessionId());
+        // W14-impl 触点②：webauthn 类型增量 payload.cryptoChallenge（一次写入，与
+        // operation/sessionId 同 payload；客户端经 webauthnAuthOptions 只读读取）
+        if (MFA_TYPE_WEBAUTHN.equals(setting.getMfaType())) {
+            payload.put(MfaChallengeHelper.PAYLOAD_CRYPTO_CHALLENGE, MfaChallengeHelper.randomCryptoChallenge());
+        }
         String challengeToken = mfaChallengeStore.create(MfaChallenge.SCENE_OPERATION,
                 userContext.getUserId(), setting.getMfaType(), LOGIN_TYPE_OPERATION,
                 tenantId, setting.getPhone(), JsonTool.stringify(payload));
