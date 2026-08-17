@@ -22,6 +22,7 @@ import java.lang.reflect.Field;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -85,10 +86,23 @@ public class TestAiModelCredentialResolverWiring {
 
     @Test
     public void optionalDependenciesKeepContainerStartableWithoutCredentialModule() {
-        // 容器已成功启动（setUp 无异常）即证明：无 nop-credential-service 部署时 resolver bean 构造不失败
-        // （两个依赖均为 @Nullable setter 可选装配）。调用期语义（配 credentialId 但 provider 缺失 →
-        // ERR_AI_CREDENTIAL_PROVIDER_NOT_AVAILABLE fail-closed）由 TestAiModelCredentialResolver 覆盖。
-        assertNotNull(BeanContainer.instance().getBean("nopAiModelCredentialResolver"),
-                "resolver bean must construct without ICredentialProvider/DB beans (optional wiring)");
+        // 复核观察项 2（A1-audit successor，2026-08-17 显式断言改写）：原断言
+        // assertNotNull(getBean(...)) 仅隐式证明可选装配——bean 存在但构造可能已引入对
+        // ICredentialProvider 的隐藏强制解析。改写为显式断言：
+        // (a) 本容器（无 nop-credential-service 部署）解析出的 resolver 实例的
+        //     credentialProvider 字段为 null——对凭证库 bean 的可选依赖字段确实保持空，
+        //     构造路径零强制解析（若存在隐藏依赖，容器启动或本断言即失败）；
+        // (b) daoProvider 在本容器有 bean（OrmDaoProvider）故非 null——其可选性的证明
+        //     载体是 TestAiModelCredentialResolver 的自建 ORM 栈单测（不经容器注入 dao），
+        //     此处不重复断言。
+        // 调用期语义（配 credentialId 但 provider 缺失 → ERR_AI_CREDENTIAL_PROVIDER_NOT_AVAILABLE）
+        // 由 TestAiModelCredentialResolver 覆盖。
+        Object bean = BeanContainer.instance().getBean("nopAiModelCredentialResolver");
+        assertNotNull(bean, "resolver bean must construct without ICredentialProvider/DB beans (optional wiring)");
+        AiModelCredentialResolverImpl impl = (AiModelCredentialResolverImpl) bean;
+        assertNull(impl.credentialProvider,
+                "resolver construction must not depend on ICredentialProvider (field stays null when the "
+                        + "credential lib is absent — explicit optional-wiring assertion, replaces the former "
+                        + "implicit assertNotNull proof)");
     }
 }
