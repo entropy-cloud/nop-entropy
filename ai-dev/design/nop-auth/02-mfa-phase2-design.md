@@ -456,13 +456,25 @@ unbindMfa 请求扩展（可选 challengeToken + assertion 字段，向后兼容
 
 #### 5.3.3 邮件验证码设计
 
-**存储**：新接口 `EmailCodeStore`（`nop-biz-auth-core`，与 `SmsCodeStore` 同形——key-based：`send(key)` 生成 6 位码存储并**返回明文码**（实际发送由调用方经 `IEmailSender` 完成，同一期 sms 模式）/ `verify(key, code): CodeVerifyResult`（校验 + 成功原子消费 + 失败内部计数）/ `consume(key)`）+ 三实现（Local 在 core；Db/Redis 在 nop-auth-service，Db 表 `nop_auth_email_code` 结构对齐 `nop_auth_sms_code`）；装配复制 W8 模式：collect-beans `nopEmailCodeStore_` 前缀（`ioc:ignore-depends` + `autowire-candidate=false`）+ Redis bean `ioc:condition` 条件激活（lessons 15 不变式）。`MfaStoreProvider` 扩展收集第三组 map（或平行 `EmailStoreProvider`——W15-impl 按最小改动裁定，语义等价）。
+**存储**：新接口 `EmailCodeStore`（`nop-biz-auth-core`，与 `SmsCodeStore` 同形——key-based：`send(key)` 生成 6 位码存储并**返回明文码**（实际发送由调用方经 `IEmailSender` 完成，同一期 sms 模式）/ `verify(key, code): CodeVerifyResult`（校验 + 成功原子消费 + 失败内部计数）/ `consume(key)`）+ 三实现（Local 在 core；Db/Redis 在 nop-auth-service，Db 表 `nop_auth_email_code` 结构对齐 `nop_auth_sms_code`）；装配复制 W8 模式：collect-beans `nopEmailCodeStore_` 前缀（`ioc:ignore-depends` + `autowire-candidate=false`）+ Redis bean `ioc:condition` 条件激活（lessons 15 不变式）。`MfaStoreProvider` 扩展收集第三组 map（**W15-impl 裁定：同 provider 第三组 map `emailCodeStores`，不另立平行 provider——三类 store 共享同一 store-type 选择语义（单部署单后端一致性），改动面最小且语义等价**，见 §5.3.7）。
 
 **key 约定（通道隔离，同一期 key 隔离纪律）**：绑定与验证共用 `mfa-email:{userId}`（对照 sms 的 `mfa:{userId}`）——通道间 key 前缀隔离，防 pending 期类型切换的码互窜。
 
 **发送链路**：`EmailMessage` 无模板概念（subject/text 直排）→ 邮件码文案配置化：`nop.auth.email-code.subject-template`/`text-template`（含 `{code}` 占位符，服务端替换）；发送目标一律服务端从 `NopAuthUser.email` 解析（不接受客户端指定邮箱，防枚举/骚扰——同 sms bindMfa 先例）；`IEmailSender` 未装配时 email 因子绑定 fail-closed（对齐 sms 无通道部署行为）。
 
 **限流/防滥用（对齐一期 sms-code 三层限流先例）**：`nop.auth.email-code.*` 配置组：`enabled`（缺省 false）/`expire-seconds`（300）/`send-interval-seconds`（60）/`daily-limit`（20，email 维度）/`ip-daily-limit`（50）/`max-attempts`（5）。**无独立公开发码端点**（email 码仅服务 MFA 绑定/验证/通道验证，无邮箱登录场景）——发码入口为 `bindMfa(email)`/`sendMfaCode`（按 mfaType 分派，§5.3.0 #8）/登记通道验证，限流在这些入口生效（email+IP 双维度，复用一期 `checkSmsRateLimit` 模式）。
+
+#### 5.3.7 W15-impl 裁定标注（2026-08-18 回写）
+
+实现落地（plan `ai-dev/plans/2026-08-17-2212-2-mfa-email-code-trusted-device-w15.md` Phase 1）对 §5.3.3 的执行期裁定与偏离记录：
+
+1. **MfaStoreProvider 扩展形态定稿**：同 provider 第三组 map（`setEmailCodeStores` + 工厂方法 `getEmailCodeStore` + 工厂 bean `nopActiveEmailCodeStore`）——不另立平行 `EmailStoreProvider`。理由：三类 store 共享同一 `nop.auth.mfa.store-type` 选择语义（单部署单后端一致性），第三组 map 改动面最小且与既有两类行为逐字节同构；email 侧未注册任何实现时显式失败（fail-closed，不静默回退 sms 侧——通道隔离语义）。
+2. **proof 通道选择参数形态定稿**（§4.3 既定扩展的落地形态）：`bindMfa` 增可选 `channel` 参数（四参 GraphQL 面 + 三参/两参兼容重载——W13/W14 既有直调调用点零感知）；`verifyChannelProof` 增可选 `channel` 参数（三参 GraphQL 面 + 两参兼容重载）。取值 `phone`|`email`；解析规则两侧同一实现语义：缺省 = phone 优先、phone 缺失回退 email；显式值必须已登记（任意指定/未登记值显式拒绝 `ERR_AUTH_INVALID_LOGIN_REQUEST`，不静默回退）。proof 码 key 定稿：phone=`proof:{userId}`（SmsCodeStore）/ email=`proof-email:{userId}`（EmailCodeStore，通道隔离）。
+3. **`ERR_AUTH_MFA_CHANNEL_PROOF_REQUIRED` 邮箱脱敏形态定稿**：本地部分前 2 位 + `***` + `@域名`（如 `ab***@example.com`）——对齐手机号"后 4 位可见"的最小透露先例（邮箱本地部分保留前缀比保留后缀更不易泄露完整地址结构）。
+4. **email 错误码定稿（最小集）**：email 专属三码 `ERR_AUTH_EMAIL_CODE_EXPIRED` / `ERR_AUTH_EMAIL_RATE_LIMITED` / `ERR_AUTH_EMAIL_DAILY_LIMIT`（`nop.err.auth.email-*`）——不复用 sms 编码（EXPIRED 消息文案通道语义不可混用；REJECTED 类错误用户可感知通道）。
+5. **email 码限流实现事实**：`LoginServiceImpl.checkEmailRateLimit`（sendMfaCode email 分支）与 `NopAuthUserBizModel.checkEmailRateLimit`（bindMfa(email)/登记通道 email proof——BizModel 与 proof 复用同一 email 维度计数器）为**分组件内存计数**（对齐 sms 先例：`checkSmsRateLimit` 与 proof 限流同为各自 map）——每入口三层（间隔/email 日上限/IP 日上限）各自生效，跨入口不共享 JVM 计数（store 层 TTL/max-attempts 仍全局）。
+6. **`mfa-type.dict.yaml` email 条目**：W14 已建文件（三条目），本 plan 补第四条目（§5.3.6 裁定 8 的 W15 注记履行）。
+7. **发送链路默认模板**：`subject-template` 缺省 `Verification Code`；`text-template` 缺省 `Your verification code is {code}. It expires in 5 minutes.`（配置化覆盖；模板属消费侧文案，`IEmailSender` API 零变更——§5.4 拒绝项维持）。
 
 #### 5.3.4 外部 MFA 服务评估（Authy/Duo）
 
@@ -612,6 +624,18 @@ mfaVerify 成功（TOTP/SMS/EMAIL/WebAuthn 分支，不含恢复码分支，不�
 - **明文边界不变**：指纹哈希非秘密（不可逆哈希）；deviceName 仅展示。
 - **跨模块公共 API 增量声明（Protected Area，W15-impl 需 plan-first + migration note）**：`MfaVerifyRequest.rememberDevice`（可选字段）与 `LoginResult.trustedDeviceRegistered`（可选字段，仅密码类路径返回）均在 `nop-biz-auth-api`——对齐 §4.5 同款声明手续。
 - **一期零回归声明**：不勾选 rememberDevice / 无 device-id / 无记录的用户登录行为与一期逐字节一致；`mfaVerify` 可选参数向后兼容（老客户端零感知）。
+
+### 6.6 W15-impl 裁定标注（2026-08-18 回写）
+
+实现落地（plan `ai-dev/plans/2026-08-17-2212-2-mfa-email-code-trusted-device-w15.md` Phase 2）对 §六 的执行期裁定与偏离记录：
+
+1. **共享组件落点**：指纹/豁免/登记/撤销统一收敛 `MfaTrustedDeviceManager`（nop-auth-service，bean `nopMfaTrustedDeviceManager` ioc:default）——`LoginServiceImpl`（豁免判定 + 登记）与 `NopAuthUserBizModel`（撤销矩阵钩子 + 管理 API）共用，防两处判定漂移；审计五事件（登记成功/满员/失败/移除/全量撤销）经 `IAuditService.saveAudit`（userName 非空列，W13 教训）。
+2. **指纹 hex 编码核定**：`ByteHelper.toHex` 产出 `\xNN` 格式（每字节 4 字符）非纯 hex——改用 `StringHelper.bytesToHex`（64 字符小写 hex）。头读取大小写不敏感以全 key 集遍历 `equalsIgnoreCase` 实现（双大小写显式尝试之外的一般化形态）。
+3. **实体结构执行期核定**：(userId, deviceHash) 复合唯一索引已覆盖 userId 前缀查询，**不另建独立 userId 索引**（免冗余）；`removeTrustedDevice` 物理删除语义 → 实体**不引入 delFlag/version/useLogicalDelete**（对齐 NopAuthMfaChallenge/NopAuthSmsCode 形态，区别于 credential 的逻辑删除）；审计字段 createdBy/createTime/updatedBy/updateTime 齐备。
+4. **OAuth 同构副本裁定履行**：`MfaLoginPolicyServiceImpl.checkMfaForUserName` **不加豁免分支**（信道路径无 headers 结构性不可达——同步豁免分支 = 永不可达死代码）；W13 登记的双方同步不变式以"本裁定 + 专项回归断言（`TestTrustedDeviceE2E.testOAuthCopyStillCreatesChallengeDespiteTrustedRow`：有未过期可信设备行的用户经 OAuth 入口登录仍创建 challenge）"形式履行。本 plan 对 `checkMfaRequired` 的改动（加 headers 参 + 插入豁免分支）不改变副本可等价推导的行为面（副本无 headers 即无豁免）。
+5. **登记结果响应语义细化**：`LoginResult.trustedDeviceRegistered` 仅密码类路径返回且**显式 true/false**（rememberDevice=true 时满员/无 device-id/登记失败均为 false 提示——非静默；未请求登记时字段缺省不出现）；回填载体 = IUserContext attr `ATTR_TRUSTED_DEVICE_REGISTERED`（`ATTR_MFA_ACCESS_CODE` 先例），登记逻辑落位 `verifySecondFactorAndComplete` 因子验证成功路径（consume 之后、`completeMfaLogin` 之前——**不在 completeMfaLogin**，后者被恢复码分支共用即恢复码也登记，§6.4 拒绝项）。
+6. **登记失败不吞异常**：`register` 的 catch 分支区分两类——并发同 hash 撞唯一约束（重查行存在 → 归一为覆盖刷新，返回成功）与真实失败（log error + 审计 `register-fail`，返回 false 不阻断登录）。
+7. **密码类 loginType 判定辅助**：`isPasswordLoginType`（1/2/3/5）落在 LoginServiceImpl（豁免与登记两处共用）；PHONE_SMS(5) + mfaType=sms 的因子等同放行先于豁免分支（一期分支原位原序不变）。
 
 ## 七、跨主题 out-of-scope / deferred 裁定
 
