@@ -64,6 +64,7 @@
 **授权码闭环（语义契约）**：
 
 1. **先建实例、再发起授权**：`authType=oauth2` 的凭证实例必须先经 `saveCredential` 人工录入 clientId/clientSecret 等人工字段（归属/命名在创建时即确定）；**发起 action 的入参必须含目标 credentialId**（校验：实例存在、未删除、未禁用、类型为 oauth2、已录入 clientSecret——发起时 biz action 有登录态，此处完成发起人与凭证归属的校验）。不提供"边授权边新建"路径。
+   > **C1a 裁定标注（2026-08-17 回写，A1-audit D1-03/D4-07 错误码归一）**：发起路径与 `saveCredential` 更新路径的"不存在/越权（system 级非管理员、user 级非 owner）"三态统一抛 `UnknownEntityException`（对齐 `get`/`delete` 单条资源访问先例，防 credentialId 枚举探测存在性与 scope 类别）；`ARG_OWNER_ID` 等 param 不进入对外可达异常。创建路径 `ADMIN_REQUIRED`（无 credentialId 参与）与 `DELETED`/`DISABLED`/`NOT_OAUTH2_TYPE` 状态类错误码保留——归一范围仅越权三态，为显式边界。
 2. **发起**：引擎生成不可预测的一次性 `state`，服务端持久化 state 绑定（目标 credentialId + 发起人（审计用）+ 过期时间，TTL 缺省 10 分钟、可配置）→ 返回授权 URL（授权端点 + client_id + redirect_uri + scope + state），由前端跳转第三方。`redirect_uri` 为本平台对外基础地址配置（需部署方配置外部可达地址）派生的单一回调端点 URL，token 交换时回传同值。
 3. **回调**（单一公开端点，`@Auth(publicAccess=true)`，浏览器顶层 30x 重定向流）：接收 `code` + `state` → 校验 state（存在、未过期、未消费；校验通过**立即作废**——一次性消费）→ 以 code + **该实例 data 中解密出的 clientSecret** 在令牌端点换取 token 集 → token 集加密**回写该实例**（只写引擎保留字段）→ 30x 重定向到前端结果页（不返回 token 明文）。state 未命中/过期/重放一律 fail-closed（拒绝并作废）。
    > **W9-impl 裁定标注（2026-08-16 回写）**：**回调响应载体落地为 `WebContentBean` HTML 跳转页（HTTP 200 + meta-refresh/JS `location` 跳转到配置的前端结果页），非服务端 30x**。理由：平台 biz 层无 30x 原语（biz action 只能返回响应体；`IHttpServerContext.sendRedirect` 仅 HTTP filter 层可达，注册 filter 并处理与 auth filter 顺序的复杂度与收益不成比例）。语义等价性成立：浏览器最终落在前端结果页、token 明文不出现在任何响应体——与"30x 重定向"条文的差异为显式偏离记录，不改设计结论。
@@ -105,6 +106,7 @@
 - **明文边界不变**：公开回调端点只进（code/state）不出（30x 重定向，不返回 token 明文）；token 明文仅经服务端 SPI 取用；`mask` 对 token 字段输出 `****`；管理面查询 data 恒置空。
 - **软删除 fail-closed 不变**：已删除（delFlag）凭证不参与发起授权、回调写入、刷新与取用（fail-closed）。
 - **显式增量声明**：一期取用路径仅对 `delFlag` fail-closed、不校验 `status`；二期对 `authType=oauth2` 类型**新增** `status=disabled` fail-closed（发起/回调/刷新/取用全路径拒绝禁用凭证）；非 OAuth 类型取用维持一期语义（仅 delFlag），status 语义是否全局收紧为独立裁定（§七 deferred，避免隐性变更一期消费方行为）。
+  > **C1a 裁定标注（2026-08-17 回写，A1-audit D2-03/D2-04 行锁写通道实现形态）**：(1) **D2-04 锁内 disabled 复查**——`engineUpdateInLock` 以 2-arg/3-arg 重载分层实现通道参数化：2-arg（引擎通道：惰性刷新/`engineUpdateTokenFields` 回调回写）在 `lockEntity` 之后的锁内复查 oauth2 disabled（TOCTOU 闭合；调用侧锁外复查不闭合窗口，不作为实现形态）；3-arg（saveCredential oauth2 分组写通道，customizer 非 null）按 adjudication §二#3(b) 显式豁免——"saveCredential 覆盖路径不拒 disabled"为已裁定边界，非违约。(2) **D2-03 无变化跳过回写**——"无变化"判定口径为**引用相等**（updater 返回 `current` 同实例即显式"未变化"信号，如惰性刷新"已被并发先行者刷新"分支）；跳过重加密与 UPDATE（写放大 + version 漂移消除），方法返回值语义不变。
 - **引用计数不变**：OAuth 凭证被消费方绑定仍经 registerUsage/unregisterUsage（consumerRef 约定不变，如 `ai:NopAiModel:<id>`）。
 - **增量声明**：新增管理面 action（发起授权）与单一公开回调端点；既有 API 方法签名零变更；saveCredential 对 oauth2 类型新增"保留字段拒绝 + 分组写"语义（人工字段整包替换语义不变）。
 
@@ -157,6 +159,7 @@
 **迁移路径（本地 → 托管端，唯一允许的材料混合窗口）**：
 
 1. **切换与轮换解耦**：切换 provider 时 active keyId **及其材料不变**（旧 passphrase 原样导入托管端同 keyId）——滚动发布窗口内新旧副本密钥能力对称，不存在"新副本写旧副本解不开"的密文。切换完成（全副本稳定运行于 KMS provider）后，再独立执行"托管端生成新 key + 切 active + reencryptAll"的轮换步骤。
+   > **C1a 裁定标注（2026-08-17 回写，A1-audit D3-01 active-key-id 配置归一）**：KMS 实现读取 active keyId 的解析序为 **vault/KMS 专用配置优先，未设时回退共享 `nop.credential.active-key-id`**；两处同设且不一致 → 启动失败（fail-closed）。回退语义优先于"仅启动校验"：迁移期共享配置先行调整时 KMS 侧不再静默沿用映射首项（消除 local→vault 迁移静默改变 active key 的陷阱），同时以冲突 fail-closed 排除双源漂移。impl 落点：`VaultCredentialKeyProvider.init()`（`ERR_CREDENTIAL_VAULT_ACTIVE_KEY_CONFLICT`）。
 2. **迁移窗口开启**：KMS 实现配置声明迁移残余列表（`keyId:passphrase`，与一期同构格式，命名空间如 `nop.credential.<impl>.migration-keys`）——残余 key 只用于解密旧密文，禁止含 active key；每次启动对残余列表输出 WARN 审计（列出残余 keyId，提示收尾）。
 3. **关窗前置条件**：全部密文的 keyId 属于 KMS key 集合（验证载体为 W10-impl 交付的完备性查询/统计，见轮换段已知限制）；同时清空 `nop.credential.master-keys`。
 4. **关窗后**：残余列表为空（正常态）；若存量密文仍引用残余 keyId（未完成迁移即清配置的部署失误），`getKey` 按一期"未知 keyId"fail-closed——部署失误显式暴露而非静默降级。

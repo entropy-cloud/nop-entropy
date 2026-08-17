@@ -71,6 +71,7 @@
 - **查找键/粒度**：按 `provider + modelName` 精确匹配 `NopAiModel` 行取该模型的 credentialId（每模型自有行/自有凭证）。`.llm.xml` modelName ↔ `NopAiModel.modelName` 不对应（模型仅在 `.llm.xml` 存在）= 显式回退到 resolveApiKey + WARN 审计（非报错）。
 - **fail-closed**：credentialId 非空但凭证缺失/软删/解密失败/字段空 → 抛 `NopException` 中止调用（强 fail-closed，不静默用错配 key）。credentialId 为空 → 回退 resolveApiKey（正常兼容路径，非异常）。
 - **引用计数**：`NopAiModelBizModel.save` 按 credentialId 新旧差异调用 `registerUsage`/`unregisterUsage`，consumerRef 约定 `ai:NopAiModel:<modelId>`（bind/换绑/解绑）。凭证删除时由 `NopCredentialBizModel.delete` 的引用计数拦截。
+- **删除动作注销引用（A1-audit D6-02）**：`delete`/`batchDelete`（基类逐 id 虚分派到 `delete`）/`deleteByQuery`（先收集命中行再删除后注销）三动作在删除后自动 `unregisterUsage`（同事务；provider 未部署或 credentialId 空白时跳过，保持可选装配语义；`unregisterUsage` 按 (credentialId, consumerRef) 删行、天然幂等）——模型删除后凭证不再被残留 usage 行永久拦截（运维死锁闭合：模型删除 → usage 注销 → 凭证可删）。
 
 **迁移路径**（建凭证 → 设 credentialId（save 自动登记引用） → apiKey 冗余）：
 
