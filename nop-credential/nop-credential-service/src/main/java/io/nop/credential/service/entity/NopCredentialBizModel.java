@@ -23,6 +23,7 @@ import io.nop.api.core.beans.PageBean;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.auth.api.mfa.MfaRequired;
 import io.nop.dao.exceptions.UnknownEntityException;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.commons.util.StringHelper;
@@ -638,10 +639,15 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
      * 逐条提交可重跑（单条失败抛错中止，重跑从断点语义继续——已处理条目幂等跳过）。
      * 失败 fail-closed（解密/加密异常抛出，不静默跳过）。
      *
+     * <p><b>C1b 操作级 MFA 标注</b>（A1-audit §二#4 缩窄裁定：全量敏感——触及全部密文）：
+     * 生效前置 = 部署侧 {@code nop.auth.operation-mfa.enabled=true} + 用户 MFA 启用 +
+     * checker SPI bean 装配（nop-auth-service）；三者任一不满足时行为与未标注一致。
+     *
      * @return 实际重新加密的凭证数量
      */
     @Description("批量重新加密所有凭证（密钥轮换）")
     @BizMutation
+    @MfaRequired
     public int reencryptAll() {
         // W11：全量敏感操作限管理员（进程内重加密不出明文，但触及全部密文；无登录态内部
         // 调用按一期行为放行——KMS 迁移等运维通道）
@@ -754,10 +760,15 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
      * 业务级禁用。ORM 的 {@code useLogicalDelete} 会自动设置 {@code delFlag=true}，
      * 本回调额外设置 {@code status=disabled}（业务层关闭）。
      *
+     * <p><b>C1b 操作级 MFA 标注</b>（A1-audit §二#4 缩窄裁定：数据级不可逆删除）：
+     * 生效前置 = 部署侧 {@code nop.auth.operation-mfa.enabled=true} + 用户 MFA 启用 +
+     * checker SPI bean 装配（nop-auth-service）；三者任一不满足时行为与未标注一致。
+     *
      * @throws NopException {@link CredentialErrors#ERR_CREDENTIAL_HAS_ACTIVE_USAGE} 当存在活跃引用时
      */
     @Description("@i18n:biz.delete|根据主键删除指定对象")
     @BizMutation
+    @MfaRequired
     @Override
     public boolean delete(@Name("id") String id, IServiceContext context) {
         NopCredential entity = dao().getEntityById(id);

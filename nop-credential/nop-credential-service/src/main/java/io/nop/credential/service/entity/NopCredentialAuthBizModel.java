@@ -12,6 +12,7 @@ import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.auth.api.mfa.MfaRequired;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
@@ -97,9 +98,14 @@ public class NopCredentialAuthBizModel extends CrudBizModel<NopCredentialAuth> i
      * <p>入参校验：凭证存在且未删（NOT_FOUND/DELETED 归一，fail-closed）；scope≠system 拒绝
      * （user 级不叠加角色授权）；roleId 仅非空校验（字符串软引用 nop-auth 角色，不做跨模块
      * 存在性校验——依赖边界裁定，死 roleId 无害）。
+     *
+     * <p><b>C1b 操作级 MFA 标注</b>（A1-audit §二#4 缩窄裁定：权限变更——扩大凭证取用面）：
+     * 生效前置 = 部署侧 {@code nop.auth.operation-mfa.enabled=true} + 用户 MFA 启用 +
+     * checker SPI bean 装配（nop-auth-service）；三者任一不满足时行为与未标注一致。
      */
     @Description("授予凭证取用授权（幂等）")
     @BizMutation
+    @MfaRequired
     public boolean grant(@Name("credentialId") String credentialId,
                          @Name("roleId") String roleId,
                          IServiceContext context) {
@@ -131,9 +137,15 @@ public class NopCredentialAuthBizModel extends CrudBizModel<NopCredentialAuth> i
      * 撤销角色的凭证取用授权。幂等：记录不存在 = no-op 成功。物理删除（无软删除列，
      * revoke→re-grant 循环靠物理删除与唯一约束天然成立）；revoke 为授权行唯一删除通道
      * （标准 delete 已禁用）。
+     *
+     * <p><b>C1b 操作级 MFA 标注</b>（A1-audit §二#4 缩窄裁定：权限变更——收缩凭证取用面，
+     * 与 grant 对称拦截防劫持会话内权限操纵）：生效前置 = 部署侧
+     * {@code nop.auth.operation-mfa.enabled=true} + 用户 MFA 启用 + checker SPI bean 装配
+     * （nop-auth-service）；三者任一不满足时行为与未标注一致。
      */
     @Description("撤销凭证取用授权（幂等）")
     @BizMutation
+    @MfaRequired
     public boolean revoke(@Name("credentialId") String credentialId,
                           @Name("roleId") String roleId,
                           IServiceContext context) {

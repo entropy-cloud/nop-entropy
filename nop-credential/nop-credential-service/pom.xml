@@ -42,6 +42,14 @@
             <artifactId>nop-ioc</artifactId>
         </dependency>
 
+        <!-- C1b 操作级 MFA 标注：@MfaRequired 注解载体（nop-biz-auth-api 仅依赖 nop-api-core，
+             API-only 边——经 nop-biz → nop-graphql-core 传递本已 compile 可达，此处按 Maven
+             依赖卫生显式声明直接依赖；版本走 nop-bom dependencyManagement） -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-biz-auth-api</artifactId>
+        </dependency>
+
         <!-- W9 OAuth 引擎：IHttpClient 协议客户端（运行时 nopHttpClient 为条件 bean，
              部署需引入 raw client 实现模块如 nop-http-client-jdk） -->
         <dependency>
