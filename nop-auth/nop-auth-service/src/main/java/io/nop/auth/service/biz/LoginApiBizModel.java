@@ -35,6 +35,7 @@ import io.nop.auth.core.spi.ILoginSpi;
 import io.nop.auth.core.mfa.store.MfaChallenge;
 import io.nop.auth.core.mfa.store.MfaChallengeStore;
 import io.nop.auth.dao.entity.NopAuthMfaSetting;
+import io.nop.auth.dao.entity.NopAuthUser;
 import io.nop.auth.service.NopAuthConstants;
 import io.nop.auth.service.NopAuthErrors;
 import io.nop.auth.service.login.LoginServiceImpl;
@@ -75,6 +76,11 @@ public class LoginApiBizModel implements ILoginSpi {
     @Inject
     @Nullable
     MfaChallengeStore mfaChallengeStore;
+
+    /** 短信验证码 store（W13：登记通道 proof 码校验，key=proof:{userId}）。 */
+    @Inject
+    @Nullable
+    io.nop.auth.core.mfa.store.SmsCodeStore smsCodeStore;
 
     /** 共享因子校验组件（W12-impl：操作级验证经组件，TOTP 窗口统一推进）。 */
     @Inject
@@ -263,6 +269,84 @@ public class LoginApiBizModel implements ILoginSpi {
         return sessionId == null ? null : sessionId.toString();
     }
 
+    // ===================== 登记通道验证（W13-impl，设计 §4.3 防 enrollment attack） =====================
+
+    /**
+     * 登记通道验证端点（受限会话引导流，<b>需登录态</b>——受限会话内 bindMfa 的前置门槛）。
+     * <p>
+     * 校验 {@code proof:{userId}} 短信码（服务端解析用户登记 phone，W13 仅 phone、不接受
+     * 客户端指定）→ 成功即创建 scene=channel-proof <b>已验证票</b>（短 TTL——复用
+     * {@code op-ticket-expire-seconds} 票窗口语义）并返回票 token；客户端携该 token 调
+     * bindMfa（proof 参数），bindMfa 校验后一次性消费。通道为空（无登记 phone）抛
+     * {@code ERR_AUTH_MFA_NO_RECOVERY_CHANNEL}（无法自助脱困，管理员介入）。
+     * <p>
+     * 威胁模型（设计 §4.3）：无此防御时仅持有密码的攻击者进入受限会话后可 bindMfa(totp)
+     * 拿到 provisioning URI 绑定自己的验证器 → 重新登录 → 完全接管（经典 enrollment
+     * attack）；登记通道 OTP 把门槛提升到"密码 + 登记通道"。
+     */
+    @BizMutation
+    public String verifyChannelProof(@Name("code") String code, IServiceContext context) {
+        IUserContext userContext = context.getUserContext();
+        if (userContext == null || StringHelper.isEmpty(userContext.getUserId()))
+            throw new NopException(ERR_AUTH_USER_NOT_LOGIN);
+        String userId = userContext.getUserId();
+        if (StringHelper.isEmpty(code))
+            throw new NopException(ERR_AUTH_MFA_FAIL);
+
+        // 服务端解析登记通道（W13 仅 phone；不接受客户端指定）
+        NopAuthUser user = ContextProvider.runWithTenant(userContext.getTenantId(),
+                () -> daoProvider.daoFor(NopAuthUser.class).getEntityById(userId));
+        String phone = user == null ? null : user.getPhone();
+        if (StringHelper.isEmpty(phone)) {
+            throw new NopException(NopAuthErrors.ERR_AUTH_MFA_NO_RECOVERY_CHANNEL).param("userId", userId);
+        }
+
+        if (smsCodeStore == null || mfaChallengeStore == null) {
+            throw new NopException(ERR_AUTH_MFA_CHALLENGE_EXPIRED)
+                    .param(ARG_CHALLENGE_TOKEN, "proof")
+                    .param("msg", "MFA stores are not configured; channel proof is unavailable");
+        }
+
+        // 校验 proof 码（key=proof:{userId}，一次性原子消费 + 内部失败计数）
+        io.nop.auth.core.mfa.store.CodeVerifyResult r = smsCodeStore.verify(
+                NopAuthConstants.SMS_KEY_PROOF + userId, code);
+        if (r == io.nop.auth.core.mfa.store.CodeVerifyResult.EXPIRED) {
+            throw new NopException(NopAuthErrors.ERR_AUTH_SMS_CODE_EXPIRED);
+        }
+        if (r != io.nop.auth.core.mfa.store.CodeVerifyResult.VALID) {
+            throw new NopException(ERR_AUTH_MFA_FAIL);
+        }
+
+        // 创建 scene=channel-proof 已验证票（markVerified 即转票；票窗口 = op-ticket-expire-seconds）
+        String token = mfaChallengeStore.create(MfaChallenge.SCENE_CHANNEL_PROOF, userId, null,
+                io.nop.auth.service.mfa.OperationMfaCheckerImpl.LOGIN_TYPE_OPERATION,
+                userContext.getTenantId(), phone, null);
+        if (!mfaChallengeStore.markVerified(token)) {
+            throw new NopException(ERR_AUTH_MFA_CHALLENGE_EXPIRED).param(ARG_CHALLENGE_TOKEN, token);
+        }
+
+        auditChannelProof("mfa:channel-proof-verified", userContext, true);
+        return token;
+    }
+
+    /** 登记通道验证审计事件（验证成功/失败），落 NopAuthOpLog。 */
+    private void auditChannelProof(String description, IUserContext userContext, boolean success) {
+        if (auditService == null)
+            return;
+        AuditRequest audit = new AuditRequest();
+        audit.setOperation("LoginApi__verifyChannelProof");
+        audit.setDescription(description);
+        audit.setResultStatus(success ? 200 : 400);
+        audit.setActionTime(new Timestamp(CoreMetrics.currentTimeMillis()));
+        audit.setUserId(userContext.getUserId());
+        audit.setUserName(userContext.getUserName());
+        audit.setSessionId(userContext.getSessionId());
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("event", success ? "channel-proof-verified" : "channel-proof-fail");
+        audit.setRequestData(JsonTool.stringify(data));
+        auditService.saveAudit(audit);
+    }
+
     private static String operationOf(MfaChallenge c) {
         if (StringHelper.isEmpty(c.getPayload()))
             return null;
@@ -334,6 +418,12 @@ public class LoginApiBizModel implements ILoginSpi {
         result.setExpiresIn(authToken.getExpireSeconds());
 
         result.setUserInfo(loginService.getUserInfo(userContext));
+
+        // W13-impl：受限会话标志回填（受限签发的会话经 login/getLoginResult/refresh 均可见，
+        // 前端据此渲染受限引导页；正常登录缺省不出现）
+        if (userContext.isMfaRestricted()) {
+            result.setMfaRestricted(Boolean.TRUE);
+        }
 
         if (varCollector != null) {
             varCollector.collectVar("refreshToken", refreshToken);

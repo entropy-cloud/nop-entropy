@@ -178,100 +178,114 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAuthSession-main" displayName="会话日志" orderNo="10037" i18n-en:displayName="Session"
+                <resource id="NopAuthRoleMfaPolicy-main" displayName="角色MFA策略" orderNo="10037"
+                          i18n-en:displayName="Role MFA Policy" icon="shield" component="AMIS" resourceType="SUBM"
+                          url="/nop/auth/pages/NopAuthRoleMfaPolicy/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopAuthRoleMfaPolicy:query" displayName="查询角色MFA策略"
+                                  i18n-en:displayName="Query Role MFA Policy" orderNo="10038" resourceType="FNPT">
+                            <permissions>NopAuthRoleMfaPolicy:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopAuthRoleMfaPolicy:mutation" displayName="修改角色MFA策略"
+                                  i18n-en:displayName="Modify Role MFA Policy" orderNo="10039" resourceType="FNPT">
+                            <permissions>NopAuthRoleMfaPolicy:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopAuthSession-main" displayName="会话日志" orderNo="10040" i18n-en:displayName="Session"
                           icon="book-open-text" component="AMIS" resourceType="SUBM"
                           url="/nop/auth/pages/NopAuthSession/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAuthSession:query" displayName="查询会话日志"
-                                  i18n-en:displayName="Query Session" orderNo="10038" resourceType="FNPT">
+                                  i18n-en:displayName="Query Session" orderNo="10041" resourceType="FNPT">
                             <permissions>NopAuthSession:query</permissions>
                         </resource>
                         <resource id="FNPT:NopAuthSession:mutation" displayName="修改会话日志"
-                                  i18n-en:displayName="Modify Session" orderNo="10039" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Session" orderNo="10042" resourceType="FNPT">
                             <permissions>NopAuthSession:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAuthSite-main" displayName="子站点" orderNo="10040" i18n-en:displayName="Sub Site"
+                <resource id="NopAuthSite-main" displayName="子站点" orderNo="10043" i18n-en:displayName="Sub Site"
                           icon="globe-2" component="AMIS" resourceType="SUBM"
                           url="/nop/auth/pages/NopAuthSite/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAuthSite:query" displayName="查询子站点" i18n-en:displayName="Query Sub Site"
-                                  orderNo="10041" resourceType="FNPT">
+                                  orderNo="10044" resourceType="FNPT">
                             <permissions>NopAuthSite:query</permissions>
                         </resource>
                         <resource id="FNPT:NopAuthSite:mutation" displayName="修改子站点"
-                                  i18n-en:displayName="Modify Sub Site" orderNo="10042" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Sub Site" orderNo="10045" resourceType="FNPT">
                             <permissions>NopAuthSite:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAuthSmsCode-main" displayName="短信验证码" orderNo="10043" i18n-en:displayName="SMS Code"
+                <resource id="NopAuthSmsCode-main" displayName="短信验证码" orderNo="10046" i18n-en:displayName="SMS Code"
                           icon="message-square" component="AMIS" resourceType="SUBM"
                           url="/nop/auth/pages/NopAuthSmsCode/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAuthSmsCode:query" displayName="查询短信验证码"
-                                  i18n-en:displayName="Query SMS Code" orderNo="10044" resourceType="FNPT">
+                                  i18n-en:displayName="Query SMS Code" orderNo="10047" resourceType="FNPT">
                             <permissions>NopAuthSmsCode:query</permissions>
                         </resource>
                         <resource id="FNPT:NopAuthSmsCode:mutation" displayName="修改短信验证码"
-                                  i18n-en:displayName="Modify SMS Code" orderNo="10045" resourceType="FNPT">
+                                  i18n-en:displayName="Modify SMS Code" orderNo="10048" resourceType="FNPT">
                             <permissions>NopAuthSmsCode:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAuthTenant-main" displayName="租户" orderNo="10046" i18n-en:displayName="Tenant"
+                <resource id="NopAuthTenant-main" displayName="租户" orderNo="10049" i18n-en:displayName="Tenant"
                           icon="building-2" component="AMIS" resourceType="SUBM"
                           url="/nop/auth/pages/NopAuthTenant/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAuthTenant:query" displayName="查询租户" i18n-en:displayName="Query Tenant"
-                                  orderNo="10047" resourceType="FNPT">
+                                  orderNo="10050" resourceType="FNPT">
                             <permissions>NopAuthTenant:query</permissions>
                         </resource>
                         <resource id="FNPT:NopAuthTenant:mutation" displayName="修改租户"
-                                  i18n-en:displayName="Modify Tenant" orderNo="10048" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Tenant" orderNo="10051" resourceType="FNPT">
                             <permissions>NopAuthTenant:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAuthUser-main" displayName="用户" orderNo="10049" i18n-en:displayName="User"
+                <resource id="NopAuthUser-main" displayName="用户" orderNo="10052" i18n-en:displayName="User"
                           icon="user-round" component="AMIS" resourceType="SUBM"
                           url="/nop/auth/pages/NopAuthUser/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAuthUser:query" displayName="查询用户" i18n-en:displayName="Query User"
-                                  orderNo="10050" resourceType="FNPT">
+                                  orderNo="10053" resourceType="FNPT">
                             <permissions>NopAuthUser:query</permissions>
                         </resource>
                         <resource id="FNPT:NopAuthUser:mutation" displayName="修改用户" i18n-en:displayName="Modify User"
-                                  orderNo="10051" resourceType="FNPT">
+                                  orderNo="10054" resourceType="FNPT">
                             <permissions>NopAuthUser:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAuthUser_tenant-main" displayName="用户" orderNo="10052" i18n-en:displayName="User"
+                <resource id="NopAuthUser_tenant-main" displayName="用户" orderNo="10055" i18n-en:displayName="User"
                           icon="user-round" component="AMIS" resourceType="SUBM"
                           url="/nop/auth/pages/NopAuthUser_tenant/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAuthUser_tenant:query" displayName="查询用户" i18n-en:displayName="Query User"
-                                  orderNo="10053" resourceType="FNPT">
+                                  orderNo="10056" resourceType="FNPT">
                             <permissions>NopAuthUser_tenant:query</permissions>
                         </resource>
                         <resource id="FNPT:NopAuthUser_tenant:mutation" displayName="修改用户"
-                                  i18n-en:displayName="Modify User" orderNo="10054" resourceType="FNPT">
+                                  i18n-en:displayName="Modify User" orderNo="10057" resourceType="FNPT">
                             <permissions>NopAuthUser_tenant:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAuthUserSubstitution-main" displayName="用户代理" orderNo="10055"
+                <resource id="NopAuthUserSubstitution-main" displayName="用户代理" orderNo="10058"
                           i18n-en:displayName="User Substitution" icon="workflow" component="AMIS" resourceType="SUBM"
                           url="/nop/auth/pages/NopAuthUserSubstitution/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAuthUserSubstitution:query" displayName="查询用户代理"
-                                  i18n-en:displayName="Query User Substitution" orderNo="10056" resourceType="FNPT">
+                                  i18n-en:displayName="Query User Substitution" orderNo="10059" resourceType="FNPT">
                             <permissions>NopAuthUserSubstitution:query</permissions>
                         </resource>
                         <resource id="FNPT:NopAuthUserSubstitution:mutation" displayName="修改用户代理"
-                                  i18n-en:displayName="Modify User Substitution" orderNo="10057" resourceType="FNPT">
+                                  i18n-en:displayName="Modify User Substitution" orderNo="10060" resourceType="FNPT">
                             <permissions>NopAuthUserSubstitution:mutation</permissions>
                         </resource>
                     </children>

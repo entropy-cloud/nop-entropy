@@ -90,10 +90,22 @@
     <bean id="nopMfaFactorVerifier" class="io.nop.auth.service.mfa.MfaFactorVerifier" ioc:default="true"/>
 
     <!-- 操作级 MFA 判定（W12-impl 设计 §3.3）：IOperationMfaChecker SPI 实现，经
-         GraphQLEngine @Inject @Nullable setOperationMfaChecker 按类型注入（未部署
-         nop-auth-service 的环境无此 bean → 引擎零介入）。ioc:default 允许应用覆盖。 -->
+          GraphQLEngine @Inject @Nullable setOperationMfaChecker 按类型注入（未部署
+          nop-auth-service 的环境无此 bean → 引擎零介入）。ioc:default 允许应用覆盖。 -->
     <bean id="nopOperationMfaChecker" class="io.nop.auth.service.mfa.OperationMfaCheckerImpl"
           ioc:type="io.nop.auth.api.mfa.IOperationMfaChecker" ioc:default="true"/>
+
+    <!-- 角色级 MFA 策略评估器（W13-impl 设计 §4.3）：checkMfaRequired 第三态 / confirmMfa
+          策略校验 / OAuth 接入判定共用。注入 LoginServiceImpl / NopAuthUserBizModel /
+          MfaLoginPolicyServiceImpl。ioc:default 允许应用覆盖。 -->
+    <bean id="nopRoleMfaPolicyEvaluator" class="io.nop.auth.service.mfa.RoleMfaPolicyEvaluator" ioc:default="true"/>
+
+    <!-- 外部身份（OAuth/SSO）MFA/策略判定（W13-impl 设计 §4.1 结论 10）：SPI 落
+          nop-biz-auth-core（IMfaLoginPolicyService），本实现复用 checkMfaRequired 等价
+          逻辑 + evaluator；OAuthLoginServiceImpl @Inject @Nullable 可选注入——未部署
+          nop-auth-service 的环境无此 bean → 零介入（一期行为）。 -->
+    <bean id="nopMfaLoginPolicyService" class="io.nop.auth.service.mfa.MfaLoginPolicyServiceImpl"
+          ioc:type="io.nop.auth.core.mfa.IMfaLoginPolicyService" ioc:default="true"/>
 
     <bean id="nopLoginSessionStore" class="io.nop.auth.service.login.DaoLoginSessionStore" ioc:default="true">
 

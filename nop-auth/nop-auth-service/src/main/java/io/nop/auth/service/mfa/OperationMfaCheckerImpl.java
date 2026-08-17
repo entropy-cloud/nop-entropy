@@ -27,12 +27,14 @@ import jakarta.inject.Inject;
 import java.sql.Timestamp;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_OPERATION_MFA_ENABLED;
 import static io.nop.auth.service.NopAuthConstants.MFA_STATUS_ENABLED;
 import static io.nop.auth.service.NopAuthErrors.ARG_CHALLENGE_TOKEN;
 import static io.nop.auth.service.NopAuthErrors.ARG_MFA_TYPE;
 import static io.nop.auth.service.NopAuthErrors.ARG_OPERATION;
+import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_MFA_RESTRICTED_SESSION;
 import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_OPERATION_MFA_REQUIRED;
 
 /**
@@ -54,8 +56,13 @@ import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_OPERATION_MFA_REQUIRED;
  * 审计：challenge 发起/票消费两事件经 {@link IAuditService#saveAudit}（验证成功/失败在
  * mfaVerifyOperation 端点），记录 operation 与 sessionId。
  * <p>
- * W13 接缝：受限会话白名单前置分支将插在 enabled 判定之前（设计 §3.3 注释），本类
- * 不预留半成品分支。
+ * W13-impl（设计 §3.3 注释 / §4.3）：受限会话白名单前置分支插在 enabled 判定**之前**
+ * （javadoc 预留位）——mfaRestricted 会话的非白名单 mutation 抛
+ * {@code ERR_AUTH_MFA_RESTRICTED_SESSION}；白名单命中即短路返回（不再走后续 @MfaRequired
+ * 检查——受限引导流中白名单动作（如 unbindMfa，自身标注 @MfaRequired）不做操作级二次验证）。
+ * 该分支**不受** {@code nop.auth.operation-mfa.enabled} 门控（受限会话是登录期策略结果，
+ * 与操作级开关分层正交）；无 checker bean（无 nop-auth-service 部署）时 executor 不调用，
+ * 零介入不变。
  */
 public class OperationMfaCheckerImpl implements IOperationMfaChecker {
 
@@ -68,6 +75,23 @@ public class OperationMfaCheckerImpl implements IOperationMfaChecker {
 
     /** 操作级 challenge 的 loginType 取值（非登录场景，登录级出口判定不适用）。 */
     public static final int LOGIN_TYPE_OPERATION = 0;
+
+    /**
+     * 受限会话白名单 mutation（设计 §4.3，W13-impl 终版清单）：MFA 绑定引导类四动作 +
+     * 登记通道验证端点 + 登出 + 会话基建类 publicAccess mutation（token 刷新——executor
+     * 侧已放行 publicAccess，此处为直调路径兜底）。匹配口径 = operation 全名
+     * （{@code bizObjName__action}，与 payload.operation 契约一致；注意
+     * {@code ReflectionBizModelBuilder#getActionName} 会剥除方法名尾缀 {@code Async}——
+     * {@code refreshTokenAsync} 方法注册为 {@code LoginApi__refreshToken}）。
+     */
+    private static final Set<String> RESTRICTED_SESSION_WHITELIST = Set.of(
+            "NopAuthUser__bindMfa",
+            "NopAuthUser__confirmMfa",
+            "NopAuthUser__unbindMfa",
+            "NopAuthUser__getMfaStatus",
+            "LoginApi__verifyChannelProof",
+            "LoginApi__logout",
+            "LoginApi__refreshToken");
 
     @Inject
     @Nullable
@@ -82,6 +106,17 @@ public class OperationMfaCheckerImpl implements IOperationMfaChecker {
 
     @Override
     public void check(String operationName, IUserContext userContext, Map<String, Object> requestHeaders) {
+        // W13 受限会话分支（设计 §3.3 注释序：前置于操作级总开关——不受 operation-mfa.enabled
+        // 门控）。仅 executor 路由的非 public mutation 会到达此处（query/publicAccess 由
+        // executor 侧放行）
+        if (userContext != null && userContext.isMfaRestricted()) {
+            if (isRestrictedSessionWhitelisted(operationName)) {
+                // 白名单命中即短路返回（不再走后续 @MfaRequired 检查）
+                return;
+            }
+            auditOperationMfa("mfa-restricted-rejected", operationName, userContext, null);
+            throw new NopException(ERR_AUTH_MFA_RESTRICTED_SESSION).param(ARG_OPERATION, operationName);
+        }
         // 操作级总开关（缺省 false——关闭时框架零介入，一期零回归）
         if (!CFG_AUTH_OPERATION_MFA_ENABLED.get())
             return;
@@ -139,6 +174,11 @@ public class OperationMfaCheckerImpl implements IOperationMfaChecker {
             return false;
         return operationName.equals(payload.get(PAYLOAD_OPERATION))
                 && sessionId != null && sessionId.equals(payload.get(PAYLOAD_SESSION_ID));
+    }
+
+    /** 受限会话白名单判定（operation 全名精确匹配，设计 §4.3）。 */
+    private static boolean isRestrictedSessionWhitelisted(String operationName) {
+        return operationName != null && RESTRICTED_SESSION_WHITELIST.contains(operationName);
     }
 
     /** 请求头大小写不敏感读取（live extractClientIp 双大小写先例）。 */

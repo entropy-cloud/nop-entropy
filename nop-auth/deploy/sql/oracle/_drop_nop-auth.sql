@@ -7,6 +7,7 @@ drop table nop_auth_role_data_auth;
 drop table nop_auth_tenant;
 drop table nop_auth_mfa_challenge;
 drop table nop_auth_sms_code;
+drop table nop_auth_role_mfa_policy;
 drop table nop_auth_user;
 drop table nop_auth_resource;
 drop table nop_auth_ext_login;

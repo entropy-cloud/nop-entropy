@@ -248,6 +248,9 @@ public class ChannelLoginApiBizModel {
         String accessCode = authTokenProvider.generateAccessCode(userContext, accessCodeExpireSeconds);
         ScanLoginResult result = new ScanLoginResult();
         result.setAccessCode(accessCode);
+        // W13: restricted-session flag (role-level MFA policy unmet) — the session is
+        // issued restricted; the front-end renders the restricted-guidance flow.
+        result.setMfaRestricted(userContext.isMfaRestricted());
         return result;
     }
 

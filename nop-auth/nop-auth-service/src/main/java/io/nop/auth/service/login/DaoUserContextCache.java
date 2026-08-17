@@ -118,6 +118,12 @@ public class DaoUserContextCache extends LocalUserContextCache {
             map.put("roles", userContext.getRoles());
             map.put("deptId", userContext.getDeptId());
             map.put("deptName", userContext.getDeptName());
+            // MFA 受限会话标志（W13-impl Dao-cache 白名单触点，设计 §4.3 持久化机制）：
+            // 必须纳入序列化白名单，否则 Dao-cache 部署下第二请求起标志丢失 = fail-open。
+            // 仅受限会话写入（正常会话 cacheData 形态零变化；缺失键反序列化为缺省 false）。
+            if (userContext.isMfaRestricted()) {
+                map.put("mfaRestricted", Boolean.TRUE);
+            }
             if (userContext.getAttrs() != null) {
                 map.put("attrs", userContext.getAttrs());
             }

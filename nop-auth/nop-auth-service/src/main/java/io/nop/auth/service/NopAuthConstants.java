@@ -45,4 +45,7 @@ public interface NopAuthConstants {
     /** SmsCodeStore key 前缀：登录验证码 / MFA 第二因子验证码（互不通用）。 */
     String SMS_KEY_LOGIN = "login:";
     String SMS_KEY_MFA = "mfa:";
+
+    /** 登记通道验证码 key 前缀（W13，设计 §4.3——受限会话 bindMfa 前置 proof，通道隔离）。 */
+    String SMS_KEY_PROOF = "proof:";
 }

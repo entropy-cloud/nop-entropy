@@ -131,6 +131,21 @@ CREATE TABLE nop_auth_sms_code(
   constraint PK_nop_auth_sms_code primary key (code_key)
 );
 
+CREATE TABLE nop_auth_role_mfa_policy(
+  role_id VARCHAR(50) NOT NULL ,
+  min_mfa_level INT4 NOT NULL ,
+  allow_trusted_device INT4 default 1  NOT NULL ,
+  del_flag INT4 NOT NULL ,
+  version INT4 NOT NULL ,
+  tenant_id VARCHAR(32)  ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint PK_nop_auth_role_mfa_policy primary key (role_id)
+);
+
 CREATE TABLE nop_auth_user(
   user_id VARCHAR(50) NOT NULL ,
   user_name VARCHAR(50) NOT NULL ,
@@ -598,6 +613,30 @@ CREATE TABLE nop_auth_mfa_recovery_code(
       COMMENT ON COLUMN nop_auth_sms_code.updated_by IS '修改人';
                     
       COMMENT ON COLUMN nop_auth_sms_code.update_time IS '修改时间';
+                    
+      COMMENT ON TABLE nop_auth_role_mfa_policy IS '角色MFA策略';
+                
+      COMMENT ON COLUMN nop_auth_role_mfa_policy.role_id IS '角色ID';
+                    
+      COMMENT ON COLUMN nop_auth_role_mfa_policy.min_mfa_level IS '最低MFA强度';
+                    
+      COMMENT ON COLUMN nop_auth_role_mfa_policy.allow_trusted_device IS '允许可信设备';
+                    
+      COMMENT ON COLUMN nop_auth_role_mfa_policy.del_flag IS '删除标识';
+                    
+      COMMENT ON COLUMN nop_auth_role_mfa_policy.version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_auth_role_mfa_policy.tenant_id IS '租户ID';
+                    
+      COMMENT ON COLUMN nop_auth_role_mfa_policy.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_auth_role_mfa_policy.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_auth_role_mfa_policy.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_auth_role_mfa_policy.update_time IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_auth_role_mfa_policy.remark IS '备注';
                     
       COMMENT ON TABLE nop_auth_user IS '用户';
                 

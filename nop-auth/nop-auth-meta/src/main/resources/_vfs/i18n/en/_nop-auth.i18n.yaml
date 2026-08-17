@@ -14,6 +14,7 @@ entity:
     NopAuthResource_main: Menu Resource
     NopAuthRole: Role
     NopAuthRoleDataAuth: Role Data Auth
+    NopAuthRoleMfaPolicy: Role MFA Policy
     NopAuthRoleResource: Role Resource
     NopAuthSession: Session
     NopAuthSite: Sub Site
@@ -321,6 +322,18 @@ prop:
       description: Description
       delFlag: Deleted
       version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+    NopAuthRoleMfaPolicy:
+      roleId: Role ID
+      minMfaLevel: Min MFA Level
+      allowTrustedDevice: Allow Trusted Device
+      delFlag: Deleted
+      version: Version
+      tenantId: Tenant ID
       createdBy: Created By
       createTime: Create Time
       updatedBy: Updated By

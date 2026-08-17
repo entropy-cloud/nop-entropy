@@ -48,7 +48,9 @@ import jakarta.inject.Inject;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static io.nop.auth.core.AuthCoreErrors.ERR_AUTH_OLD_PASSWORD_NOT_MATCH;
@@ -62,6 +64,7 @@ import static io.nop.auth.service.NopAuthConstants.MFA_STATUS_PENDING;
 import static io.nop.auth.service.NopAuthConstants.MFA_TYPE_SMS;
 import static io.nop.auth.service.NopAuthConstants.MFA_TYPE_TOTP;
 import static io.nop.auth.service.NopAuthConstants.SMS_KEY_MFA;
+import static io.nop.auth.service.NopAuthConstants.SMS_KEY_PROOF;
 import static io.nop.auth.service.NopAuthErrors.ARG_MFA_TYPE;
 import static io.nop.auth.service.NopAuthErrors.ARG_USER_ID;
 import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_INVALID_LOGIN_REQUEST;
@@ -121,6 +124,27 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
     @Nullable
     protected MfaFactorVerifier mfaFactorVerifier;
 
+    /**
+     * MFA challenge store（W13-impl，设计 §4.3）：受限会话内 bindMfa 的登记通道 proof 票
+     * （scene=channel-proof）核验与一次性消费。与 LoginServiceImpl 共享同一装配。
+     */
+    @Inject
+    @Nullable
+    protected io.nop.auth.core.mfa.store.MfaChallengeStore mfaChallengeStore;
+
+    /**
+     * 角色级 MFA 策略评估器（W13-impl，设计 §4.3）：confirmMfa 策略校验（防因子降级）。
+     * 可选注入：未装配 = 无策略 = 不校验（一期行为）。
+     */
+    @Inject
+    @Nullable
+    protected io.nop.auth.service.mfa.RoleMfaPolicyEvaluator roleMfaPolicyEvaluator;
+
+    /** 审计服务（W13：登记通道 proof 发码事件）。{@code @BizAudit} 为装饰性注解（W12 裁定）。 */
+    @Inject
+    @Nullable
+    protected io.nop.api.core.audit.IAuditService auditService;
+
     public NopAuthUserBizModel() {
         setEntityName(NopAuthUser.class.getName());
     }
@@ -139,11 +163,20 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
     @Description("发起MFA绑定")
     @BizMutation
     @BizAudit(logRequestFields = "mfaType")
-    public MfaBindResult bindMfa(@Name("mfaType") String mfaType, IServiceContext context) {
+    public MfaBindResult bindMfa(@Name("mfaType") String mfaType,
+                                  @io.nop.api.core.annotations.core.Optional @Name("proof") String proofToken,
+                                  IServiceContext context) {
         String userId = requireCurrentUserId(context);
         if (!MFA_TYPE_TOTP.equals(mfaType) && !MFA_TYPE_SMS.equals(mfaType)) {
             throw new NopException(ERR_AUTH_INVALID_LOGIN_REQUEST).param(ARG_MFA_TYPE, mfaType)
                     .param("msg", "unsupported mfaType: " + mfaType + " (only totp/sms supported)");
+        }
+
+        // W13-impl：受限会话内 bindMfa 前置登记通道验证（防 enrollment attack，设计 §4.3）。
+        // 正常会话 bindMfa 不受影响（零改动）
+        IUserContext uc = context.getUserContext();
+        if (uc != null && uc.isMfaRestricted()) {
+            requireChannelProof(userId, proofToken);
         }
 
         NopAuthUser user = daoFor(NopAuthUser.class).getEntityById(userId);
@@ -166,6 +199,14 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
             return bindTotp(settingDao, setting, user, bindToken);
         }
         return bindSms(settingDao, setting, user, bindToken);
+    }
+
+    /**
+     * 兼容重载（W13 前调用点）：无 proof 参数 = 正常会话路径（受限会话内将触发 proof 发码
+     * 引导）。无 @BizMutation 注解——GraphQL 面仅暴露三参版本。
+     */
+    public MfaBindResult bindMfa(String mfaType, IServiceContext context) {
+        return bindMfa(mfaType, null, context);
     }
 
     private MfaBindResult bindTotp(IEntityDao<NopAuthMfaSetting> settingDao, NopAuthMfaSetting setting,
@@ -275,6 +316,20 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
         boolean ok = mfaFactorVerifier.verify(setting, setting.getMfaType(), code);
         if (!ok) {
             throw new NopException(ERR_AUTH_MFA_FAIL).param(ARG_USER_ID, userId);
+        }
+
+        // W13-impl 策略校验（防因子降级，设计 §4.1 结论 6）：确认因子强度 < 角色策略
+        // minMfaLevel → 拒绝。解绑不受限（用户自主权 + 下次登录受限兜底）；受限会话内
+        // confirmMfa 成功后不原位升级会话（无会话变更代码路径——引导重新登录，§4.1 结论 7）
+        if (roleMfaPolicyEvaluator != null) {
+            io.nop.auth.service.mfa.RoleMfaPolicy policy = roleMfaPolicyEvaluator.evaluateForUser(userId);
+            if (policy.getMaxLevel() > 0
+                    && io.nop.auth.service.mfa.RoleMfaPolicyEvaluator.factorLevel(setting.getMfaType())
+                    < policy.getMaxLevel()) {
+                throw new NopException(io.nop.auth.service.NopAuthErrors.ERR_AUTH_MFA_POLICY_FACTOR_TOO_WEAK)
+                        .param(ARG_MFA_TYPE, setting.getMfaType())
+                        .param(io.nop.auth.service.NopAuthErrors.ARG_MFA_LEVEL, policy.getMaxLevel());
+            }
         }
 
         // 成功 → enabled + 清 bindToken（换绑原子性：仅成功才置生效）
@@ -402,6 +457,98 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
     // 绑定/解绑的因子校验已收敛至 MfaFactorVerifier（W12-impl；原 verifyFactorForBind
     // 的 totp/sms 分支语义逐条迁入组件：totp 解密校验+窗口推进 / sms 原子消费+EXPIRED 抛错 /
     // 未知 mfaType 返回 false fail-closed）。
+
+    /** 登记通道 proof 发码限流追踪：phone → [lastSendMs, dailyCount, dailyDate]（对齐 LoginServiceImpl sms 限流模式）。 */
+    private final Map<String, long[]> proofRateTracker = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * 受限会话内 bindMfa 的登记通道 proof 门槛（设计 §4.3 防 enrollment attack）：
+     * <ol>
+     *   <li>有效票核验：scene=channel-proof + 已验证（peek 不变式：verifiedAt 非空 ⇒ 票在
+     *       op-ticket 窗口内）+ userId 绑定 + 原子消费（一次性）——通过即返回。</li>
+     *   <li>无有效票：服务端解析登记通道（W13 仅 phone，不接受客户端指定；为空抛
+     *       {@code NO_RECOVERY_CHANNEL}）→ 复用 sms-code 限流模式（60s 间隔/日上限——防受限
+     *       会话内 proof 码轰炸受害者登记手机）→ {@code SmsCodeStore.send(proof:{userId})}
+     *       发码 → 抛 {@code CHANNEL_PROOF_REQUIRED}（脱敏提示）。</li>
+     * </ol>
+     */
+    private void requireChannelProof(String userId, String proofToken) {
+        // 1. 票核验（一次性消费）
+        if (!StringHelper.isEmpty(proofToken) && mfaChallengeStore != null) {
+            io.nop.auth.core.mfa.store.MfaChallenge c = mfaChallengeStore.peek(proofToken);
+            if (c != null && io.nop.auth.core.mfa.store.MfaChallenge.SCENE_CHANNEL_PROOF.equals(c.getScene())
+                    && c.getVerifiedAt() != null && userId.equals(c.getUserId())
+                    && mfaChallengeStore.consume(proofToken) != null) {
+                return; // proof 票通过（一次性消费成功）
+            }
+            // 无效/过期票按"无有效票"处理（重发码引导，不静默放行也不暴露票状态）
+        }
+
+        // 2. 通道解析（服务端；W13 仅 phone）
+        NopAuthUser user = daoFor(NopAuthUser.class).getEntityById(userId);
+        String phone = user == null ? null : user.getPhone();
+        if (StringHelper.isEmpty(phone)) {
+            throw new NopException(io.nop.auth.service.NopAuthErrors.ERR_AUTH_MFA_NO_RECOVERY_CHANNEL)
+                    .param(ARG_USER_ID, userId);
+        }
+
+        // 3. 限流（60s 间隔 + 日上限；sendMfaCode 调用点限流先例）
+        checkProofRateLimit(phone);
+
+        // 4. 发码（key=proof:{userId}，通道隔离）→ 脱敏提示抛错（客户端持码调 verifyChannelProof）
+        if (smsCodeStore == null) {
+            throw new NopException(ERR_AUTH_INVALID_LOGIN_REQUEST)
+                    .param("msg", "SmsCodeStore is not configured; channel proof is unavailable");
+        }
+        String code = smsCodeStore.send(SMS_KEY_PROOF + userId);
+        sendSmsForBinding(phone, code);
+        auditChannelProofSent(userId, user.getUserName(), phone);
+        throw new NopException(io.nop.auth.service.NopAuthErrors.ERR_AUTH_MFA_CHANNEL_PROOF_REQUIRED)
+                .param(io.nop.auth.service.NopAuthErrors.ARG_CHANNEL, maskPhone(phone));
+    }
+
+    /** proof 发码限流：同手机号 send-interval-seconds 间隔 + 每日 daily-limit 上限（复用 sms-code 配置）。 */
+    private void checkProofRateLimit(String phone) {
+        long now = CoreMetrics.currentTimeMillis();
+        long today = io.nop.api.core.time.CoreMetrics.today().toEpochDay();
+        int interval = io.nop.auth.service.NopAuthConfigs.CFG_AUTH_SMS_CODE_SEND_INTERVAL_SECONDS.get();
+        int dailyLimit = io.nop.auth.service.NopAuthConfigs.CFG_AUTH_SMS_CODE_DAILY_LIMIT.get();
+        long[] entry = proofRateTracker.compute(phone, (k, v) -> {
+            if (v == null || v[2] != today) {
+                return new long[]{now, 1, today};
+            }
+            return new long[]{v[0], v[1] + 1, today};
+        });
+        if (entry[1] > 1 && (now - entry[0]) < interval * 1000L) {
+            throw new NopException(io.nop.auth.service.NopAuthErrors.ERR_AUTH_SMS_RATE_LIMITED)
+                    .param(io.nop.auth.service.NopAuthErrors.ARG_PHONE, maskPhone(phone));
+        }
+        if (entry[1] > dailyLimit) {
+            throw new NopException(io.nop.auth.service.NopAuthErrors.ERR_AUTH_SMS_DAILY_LIMIT)
+                    .param(io.nop.auth.service.NopAuthErrors.ARG_PHONE, maskPhone(phone));
+        }
+        entry[0] = now;
+    }
+
+    /**
+     * 登记通道 proof 发码审计事件（防滥用审计），落 NopAuthOpLog（phone 脱敏）。
+     * userName 必填（NopAuthOpLog 非空列——缺失会使批处理整批回滚，W13 E2E 钉定）。
+     */
+    private void auditChannelProofSent(String userId, String userName, String phone) {
+        if (auditService == null)
+            return;
+        io.nop.api.core.audit.AuditRequest audit = new io.nop.api.core.audit.AuditRequest();
+        audit.setOperation("NopAuthUser__bindMfa");
+        audit.setDescription("mfa:channel-proof-sent");
+        audit.setActionTime(new Timestamp(CoreMetrics.currentTimeMillis()));
+        audit.setUserId(userId);
+        audit.setUserName(userName);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("event", "channel-proof-sent");
+        data.put("phone", maskPhone(phone));
+        audit.setRequestData(io.nop.core.lang.json.JsonTool.stringify(data));
+        auditService.saveAudit(audit);
+    }
 
     /**
      * bindToken 过期判定（Phase 1 裁决 option a）：复用 pending 记录 updateTime + 配置 bind-expire-seconds。

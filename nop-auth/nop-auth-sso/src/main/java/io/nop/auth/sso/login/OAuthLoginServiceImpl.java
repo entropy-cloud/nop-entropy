@@ -19,6 +19,8 @@ import io.nop.auth.core.login.AbstractLoginService;
 import io.nop.auth.core.login.AuthToken;
 import io.nop.auth.core.login.SessionInfo;
 import io.nop.auth.core.login.UserContextImpl;
+import io.nop.auth.core.mfa.IMfaLoginPolicyService;
+import io.nop.auth.core.mfa.MfaLoginDecision;
 import io.nop.auth.sso.AccessTokenResponse;
 import io.nop.auth.sso.SsoConfig;
 import io.nop.auth.sso.SsoConstants;
@@ -27,6 +29,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.http.api.HttpApiConstants;
 import io.nop.http.api.client.HttpRequest;
 import io.nop.http.api.client.IHttpClient;
+import jakarta.annotation.Nullable;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
@@ -52,6 +55,18 @@ public class OAuthLoginServiceImpl extends AbstractLoginService {
     @Inject
     protected IHttpClient httpClient;
 
+    /**
+     * MFA/角色策略判定 SPI（W13-impl，设计 §4.1 结论 10——一期遗留绕过修复）：
+     * 可选注入（{@code @Inject @Nullable}，GraphQLEngine checker / LoginServiceImpl 的
+     * {@code @Nullable ISmsSender} 先例）——接口落 nop-biz-auth-core、实现 bean 落
+     * nop-auth-service；未注册（无 nop-auth-service 部署）时零介入 = 一期行为。
+     * migration note：注册后该入口从"永不拦截"变为"与密码路径同语义"
+     * （MFA challenge 拦截 + 角色策略受限签发）。
+     */
+    @Inject
+    @Nullable
+    protected IMfaLoginPolicyService mfaLoginPolicyService;
+
     protected SsoConfig config;
 
     protected JWKPublicKeyLocator keyLocator;
@@ -74,6 +89,17 @@ public class OAuthLoginServiceImpl extends AbstractLoginService {
             IUserContext userContext = buildUserContext(res.getBodyAsBean(AccessTokenResponse.class));
             if (userContext == null)
                 return null;
+            // W13：MFA/角色策略判定（与密码路径同语义——一期遗留"零 MFA 判定"绕过的修复）。
+            // challenge 分支经 SPI 实现方抛 ERR_AUTH_MFA_REQUIRED（errorParams 同一期表达）；
+            // 受限分支经 completeRestricted 完成"先设后存 + Dao-cache 会话行保障"受限签发
+            // （OAuth attrs：IdP accessToken/refreshToken 原样保留）。
+            if (mfaLoginPolicyService != null) {
+                MfaLoginDecision decision = mfaLoginPolicyService.checkMfaForUserName(
+                        userContext.getUserName(), request.getLoginType());
+                if (decision != null && decision.isRestricted()) {
+                    return mfaLoginPolicyService.completeRestricted(userContext);
+                }
+            }
             return userContextCache.saveUserContextAsync(userContext).thenApply(v -> userContext);
         });
     }

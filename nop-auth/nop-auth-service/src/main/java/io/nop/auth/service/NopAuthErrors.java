@@ -41,8 +41,14 @@ public interface NopAuthErrors {
     String ARG_LOGIN_TYPE = "loginType";
     String ARG_PHONE = "phone";
 
+    /** 登记通道（{@link #ERR_AUTH_MFA_CHANNEL_PROOF_REQUIRED} 的脱敏提示，如手机号后 4 位）。 */
+    String ARG_CHANNEL = "channel";
+
     /** 操作名（{@link #ERR_AUTH_OPERATION_MFA_REQUIRED} 的 errorParams 携带，bizObjName__action 全名）。 */
     String ARG_OPERATION = "operation";
+
+    /** 因子强度（角色策略 minMfaLevel 相关错误的 errorParams 携带）。 */
+    String ARG_MFA_LEVEL = "mfaLevel";
 
     ErrorCode ERR_AUTH_INVALID_LOGIN_REQUEST = define(API_STATUS_BAD_REQUEST, "nop.err.auth.invalid-login-request",
             "登录请求参数不合法");
@@ -119,4 +125,34 @@ public interface NopAuthErrors {
 
     ErrorCode ERR_AUTH_MFA_RECOVERY_CODE_USED = define("nop.err.auth.mfa-recovery-code-used",
             "该恢复码已被使用过");
+
+    // ===== 角色级强制策略（W13-impl，设计 §4.3） =====
+
+    /**
+     * 受限会话拦截（mfaRestricted 会话的非白名单 mutation）。errorParams 携带 operation
+     * （bizObjName__action 全名）——前端据此渲染受限引导页（绑定强因子后重新登录）。
+     */
+    ErrorCode ERR_AUTH_MFA_RESTRICTED_SESSION = define(API_STATUS_BAD_REQUEST,
+            "nop.err.auth.mfa-restricted-session", "当前会话受多因子策略限制，仅允许安全设置相关操作",
+            ARG_OPERATION);
+
+    /**
+     * 受限会话内 bindMfa 需先通过登记通道验证（防 enrollment attack）。errorParams 携带
+     * channel（脱敏提示：登记手机号后 4 位）。
+     */
+    ErrorCode ERR_AUTH_MFA_CHANNEL_PROOF_REQUIRED = define(API_STATUS_BAD_REQUEST,
+            "nop.err.auth.mfa-channel-proof-required",
+            "需要先通过登记手机/邮箱的验证码确认身份，验证码已发送至 {channel}", ARG_CHANNEL);
+
+    /** 登记通道为空（无已登记 phone/email，无法自助脱困——管理员介入）。 */
+    ErrorCode ERR_AUTH_MFA_NO_RECOVERY_CHANNEL = define("nop.err.auth.mfa-no-recovery-channel",
+            "账户未登记可用于身份确认的手机号或邮箱，请联系管理员");
+
+    /**
+     * confirmMfa 策略校验（防因子降级，设计 §4.1 结论 6）：确认因子强度 < 角色策略
+     * minMfaLevel。errorParams 携带 mfaType/mfaLevel（要求的强度下限）。
+     */
+    ErrorCode ERR_AUTH_MFA_POLICY_FACTOR_TOO_WEAK = define(API_STATUS_BAD_REQUEST,
+            "nop.err.auth.mfa-policy-factor-too-weak",
+            "该因子强度不满足角色策略要求（需要强度级别 {mfaLevel}）", ARG_MFA_TYPE, ARG_MFA_LEVEL);
 }

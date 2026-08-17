@@ -14,6 +14,7 @@ entity:
     NopAuthResource_main: 菜单资源
     NopAuthRole: 角色
     NopAuthRoleDataAuth: 角色数据权限
+    NopAuthRoleMfaPolicy: 角色MFA策略
     NopAuthRoleResource: 角色可访问资源
     NopAuthSession: 会话日志
     NopAuthSite: 子站点
@@ -326,6 +327,18 @@ prop:
       updatedBy: 修改人
       version: 数据版本
       whenConfig: 权限应用条件
+    NopAuthRoleMfaPolicy:
+      allowTrustedDevice: 允许可信设备
+      createTime: 创建时间
+      createdBy: 创建人
+      delFlag: 删除标识
+      minMfaLevel: 最低MFA强度
+      remark: 备注
+      roleId: 角色ID
+      tenantId: 租户ID
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
     NopAuthRoleResource:
       createTime: 创建时间
       createdBy: 创建人

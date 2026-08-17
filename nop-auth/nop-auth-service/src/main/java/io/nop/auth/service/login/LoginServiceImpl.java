@@ -47,6 +47,8 @@ import io.nop.auth.dao.entity.NopAuthTenant;
 import io.nop.auth.dao.entity.NopAuthUser;
 import io.nop.auth.service.NopAuthConstants;
 import io.nop.auth.service.mfa.MfaFactorVerifier;
+import io.nop.auth.service.mfa.RoleMfaPolicy;
+import io.nop.auth.service.mfa.RoleMfaPolicyEvaluator;
 import io.nop.commons.util.DateHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.i18n.I18nMessageManager;
@@ -163,6 +165,14 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
     @Inject
     @Nullable
     protected MfaFactorVerifier mfaFactorVerifier;
+
+    /**
+     * 角色级 MFA 策略评估器（W13-impl，设计 §4.3）：{@code checkMfaRequired} 第三态
+     * （受限决策）的评估输入。可选注入：未装配（如测试手工 wiring）= 无策略 = 一期行为。
+     */
+    @Inject
+    @Nullable
+    protected RoleMfaPolicyEvaluator roleMfaPolicyEvaluator;
 
     /**
      * 短信发送器（nop-integration-api）。sendSmsCode/sendMfaCode 调用。
@@ -323,9 +333,14 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
 
             return FutureHelper.reject(err);
         } else {
-            // 第一因子通过 → MFA 门禁（设计 §3.2）。启用 MFA 的用户在此被拦截，不签发 token。
+            // 第一因子通过 → MFA 门禁（设计 §3.2 / §4.3 三层判定）。启用 MFA 的用户在此被拦截，
+            // 不签发 token；角色策略不达标（W13 第三态）走受限签发。
             MfaChallengeDecision mfa = checkMfaRequired(user, request.getLoginType());
             if (mfa != null) {
+                if (mfa.isRestricted()) {
+                    // 受限签发（W13，§4.1 结论 5/9）：第一因子通过 + 策略不达标 → 受限会话
+                    return completeLogin(user, request, headers, true, true, true);
+                }
                 NopException err = new NopException(ERR_AUTH_MFA_REQUIRED)
                         .param(ARG_CHALLENGE_TOKEN, mfa.challengeToken)
                         .param(ARG_MFA_TYPE, mfa.mfaType)
@@ -354,9 +369,14 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
         if (!isAllowLogin(user)) {
             throw new NopException(ERR_AUTH_USER_NOT_ALLOW_LOGIN).param(ARG_PRINCIPAL_ID, user.getUserName());
         }
-        // MFA 门禁（设计 §3.2）：信道用户启用 MFA 同样拦截，loginType 为真实信道值（审计不失真）
+        // MFA 门禁（设计 §3.2 / §4.3）：信道用户启用 MFA 同样拦截，loginType 为真实信道值（审计不失真）；
+        // 角色策略不达标（W13 第三态）→ 受限签发（信道路径同样受策略约束）
         MfaChallengeDecision mfa = checkMfaRequired(user, loginType);
         if (mfa != null) {
+            if (mfa.isRestricted()) {
+                LoginRequest restrictedRequest = syntheticRequest(loginType);
+                return completeLogin(user, restrictedRequest, new HashMap<>(), false, false, true);
+            }
             NopException err = new NopException(ERR_AUTH_MFA_REQUIRED)
                     .param(ARG_CHALLENGE_TOKEN, mfa.challengeToken)
                     .param(ARG_MFA_TYPE, mfa.mfaType)
@@ -396,23 +416,70 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
      * </ul>
      */
     protected CompletionStage<IUserContext> completeLogin(NopAuthUser user, LoginRequest request,
-                                                          Map<String, Object> headers,
-                                                          boolean resetFailCount, boolean notifyHook) {
+                                                           Map<String, Object> headers,
+                                                           boolean resetFailCount, boolean notifyHook) {
+        return completeLogin(user, request, headers, resetFailCount, notifyHook, false);
+    }
+
+    /**
+     * completeLogin 受限变体（W13-impl，设计 §4.3/§4.5）：{@code restricted=true} 时在
+     * {@code saveSession} 与 {@code saveUserContextAsync} 之前写入 {@code mfaRestricted}
+     * 标志（"先设后存"——覆盖 Dao-cache 与 session 行两持久化路径），并落受限签发审计
+     * 事件（经 {@link IAuditService#saveAudit} 落 NopAuthOpLog）。
+     * <p>
+     * resetFailCount/notifyHook 差异裁决照旧（第一因子成功仍属登录成功——受限会话是
+     * 成功登录 + 受限标志，非异常路径）。一期三处调用点（loginAsync/
+     * createSessionForUserAsync/mfaVerify 经双参重载）行为不变。
+     */
+    protected CompletionStage<IUserContext> completeLogin(NopAuthUser user, LoginRequest request,
+                                                           Map<String, Object> headers,
+                                                           boolean resetFailCount, boolean notifyHook,
+                                                           boolean restricted) {
         NopAuthUser fixedUser = user;
         int loginType = request.getLoginType();
         return ContextProvider.runWithTenant(user.getTenantId(), () -> {
             if (resetFailCount)
                 userContextCache.resetLoginFailCountForUser(fixedUser.getUserName());
             UserContextImpl userContext = buildUserContext(fixedUser, request);
+            // 受限标志"先设后存"：在 saveSession（session 行路径）与 saveUserContextAsync
+            // （cache 路径）之前写入 userContext
+            if (restricted) {
+                userContext.setMfaRestricted(true);
+                auditRestrictedLogin(userContext, loginType);
+            }
             autoLogout(userContext);
             saveSession(userContext, request, headers == null ? new HashMap<>() : headers);
 
             if (notifyHook && userContextHook != null)
                 userContextHook.onLoginSuccess(userContext, request);
 
-            LOG.info("nop.auth.login-ok:loginType={},userName={}", loginType, userContext.getUserName());
+            if (restricted) {
+                LOG.info("nop.auth.login-restricted:loginType={},userName={}", loginType, userContext.getUserName());
+            } else {
+                LOG.info("nop.auth.login-ok:loginType={},userName={}", loginType, userContext.getUserName());
+            }
             return userContextCache.saveUserContextAsync(userContext).thenApply(v -> userContext);
         });
+    }
+
+    /** 受限签发审计事件（W13）：登录成功但角色策略不达标，会话受限签发。 */
+    private void auditRestrictedLogin(UserContextImpl userContext, int loginType) {
+        if (auditService == null)
+            return;
+        AuditRequest audit = new AuditRequest();
+        audit.setOperation("LoginApi__login");
+        audit.setDescription("mfa:restricted-login");
+        audit.setResultStatus(200);
+        audit.setActionTime(new Timestamp(CoreMetrics.currentTimeMillis()));
+        audit.setUserId(userContext.getUserId());
+        audit.setUserName(userContext.getUserName());
+        audit.setSessionId(userContext.getSessionId());
+        audit.setTenantId(userContext.getTenantId());
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("event", "mfa-restricted-login");
+        data.put("loginType", loginType);
+        audit.setRequestData(JSON.stringify(data));
+        auditService.saveAudit(audit);
     }
 
     protected LoginRequest syntheticRequest(int loginType) {
@@ -714,8 +781,16 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
     }
 
     /**
-     * MFA 门禁判定（设计 §3.2）。返回非 null 表示需要第二因子（调用方据此抛
-     * {@code ERR_AUTH_MFA_REQUIRED}）；返回 null 表示放行走 completeLogin。
+     * MFA 门禁判定（设计 §3.2 / §4.3 三层判定矩阵）。返回非 null 表示需要处理：
+     * <ul>
+     *   <li>{@code restricted} 决策（W13 第三态）：角色策略不达标——返回受限决策对象
+     *       （不建 challenge，设计 §4.1 结论 9），调用侧走 completeLogin 受限变体。</li>
+     *   <li>challenge 决策（一期语义不变）：调用方据此抛 {@code ERR_AUTH_MFA_REQUIRED}。</li>
+     *   <li>返回 null 表示放行走 completeLogin。</li>
+     * </ul>
+     * 一期分支原位原序保留（全局开关 → store 装配 → setting 检查 → 因子等同 → challenge 创建）；
+     * 策略评估插入在 store null 检查之后、setting 装载之前（§4.3 伪代码）——无策略部署
+     * （maxLevel=0）不可达第三态，一期路径逐字节等价。
      * <ul>
      *   <li>全局开关关闭（{@code nop.auth.mfa.enabled=false}）→ 放行（显式配置门禁，非静默跳过）。</li>
      *   <li>用户未启用 MFA（无 setting 或 status!=enabled 或 mfaType 空）→ 放行（零回归）。</li>
@@ -727,7 +802,21 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
             return null;
         if (mfaChallengeStore == null)
             return null;
+        // W13 增量：角色策略评估（§4.3——store null 检查之后、setting 装载之前；evaluator
+        // 未装配 = 无策略 = NONE，一期行为）
+        RoleMfaPolicy policy = roleMfaPolicyEvaluator == null ? RoleMfaPolicy.NONE
+                : roleMfaPolicyEvaluator.evaluateForUser(user.getUserId());
         NopAuthMfaSetting setting = loadMfaSetting(user.getUserId());
+        // 第三态（§4.3 矩阵第 4/5 行）：policy>0 且 (!enabled 或 factorLevel(mfaType) < maxLevel)
+        // → 受限决策（不建 challenge——结论 9：多验一次弱因子不改变受限结果）
+        if (policy.getMaxLevel() > 0) {
+            boolean mfaEnabled = setting != null && MFA_STATUS_ENABLED.equals(setting.getStatus())
+                    && !StringHelper.isEmpty(setting.getMfaType());
+            if (!mfaEnabled || RoleMfaPolicyEvaluator.factorLevel(setting.getMfaType()) < policy.getMaxLevel()) {
+                return MfaChallengeDecision.restricted();
+            }
+        }
+        // ===== 一期分支（原位原序） =====
         if (setting == null || !MFA_STATUS_ENABLED.equals(setting.getStatus()))
             return null;
         String mfaType = setting.getMfaType();
@@ -747,14 +836,34 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
         return daoProvider.daoFor(NopAuthMfaSetting.class).getEntityById(userId);
     }
 
-    /** MFA 门禁结果（challengeToken + mfaType），仅当需要第二因子时非 null。 */
+    /**
+     * MFA 门禁结果：challenge 决策（challengeToken + mfaType，仅当需要第二因子时非 null）
+     * 或受限决策（{@link #restricted()}，W13 第三态——角色策略不达标，不建 challenge）。
+     */
     protected static final class MfaChallengeDecision {
         final String challengeToken;
         final String mfaType;
+        final boolean restricted;
 
         MfaChallengeDecision(String challengeToken, String mfaType) {
             this.challengeToken = challengeToken;
             this.mfaType = mfaType;
+            this.restricted = false;
+        }
+
+        private MfaChallengeDecision(boolean restricted) {
+            this.challengeToken = null;
+            this.mfaType = null;
+            this.restricted = restricted;
+        }
+
+        /** 受限决策（W13 第三态，设计 §4.3 结论 9：不建 challenge）。 */
+        static MfaChallengeDecision restricted() {
+            return new MfaChallengeDecision(true);
+        }
+
+        boolean isRestricted() {
+            return restricted;
         }
     }
 

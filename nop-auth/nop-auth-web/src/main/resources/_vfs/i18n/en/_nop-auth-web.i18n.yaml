@@ -48,6 +48,10 @@ site:
       displayName: Modify Role Data Auth
     FNPT:NopAuthRoleDataAuth:query:
       displayName: Query Role Data Auth
+    FNPT:NopAuthRoleMfaPolicy:mutation:
+      displayName: Modify Role MFA Policy
+    FNPT:NopAuthRoleMfaPolicy:query:
+      displayName: Query Role MFA Policy
     FNPT:NopAuthSession:mutation:
       displayName: Modify Session
     FNPT:NopAuthSession:query:
@@ -104,6 +108,8 @@ site:
       displayName: Role
     NopAuthRoleDataAuth-main:
       displayName: Role Data Auth
+    NopAuthRoleMfaPolicy-main:
+      displayName: Role MFA Policy
     NopAuthSession-main:
       displayName: Session
     NopAuthSite-main:

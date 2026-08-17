@@ -131,6 +131,21 @@ CREATE TABLE nop_auth_sms_code(
   constraint PK_nop_auth_sms_code primary key (CODE_KEY)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+CREATE TABLE nop_auth_role_mfa_policy(
+  ROLE_ID VARCHAR(50) NOT NULL    COMMENT '角色ID',
+  MIN_MFA_LEVEL INTEGER NOT NULL    COMMENT '最低MFA强度',
+  ALLOW_TRUSTED_DEVICE TINYINT default 1  NOT NULL    COMMENT '允许可信设备',
+  DEL_FLAG TINYINT NOT NULL    COMMENT '删除标识',
+  VERSION INTEGER NOT NULL    COMMENT '数据版本',
+  TENANT_ID VARCHAR(32) NULL    COMMENT '租户ID',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
+  REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint PK_nop_auth_role_mfa_policy primary key (ROLE_ID)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
 CREATE TABLE nop_auth_user(
   USER_ID VARCHAR(50) NOT NULL    COMMENT '用户ID',
   USER_NAME VARCHAR(50) NOT NULL    COMMENT '用户名',
@@ -400,6 +415,8 @@ CREATE TABLE nop_auth_mfa_recovery_code(
    ALTER TABLE nop_auth_mfa_challenge COMMENT 'MFA挑战码';
                 
    ALTER TABLE nop_auth_sms_code COMMENT '短信验证码';
+                
+   ALTER TABLE nop_auth_role_mfa_policy COMMENT '角色MFA策略';
                 
    ALTER TABLE nop_auth_user COMMENT '用户';
                 

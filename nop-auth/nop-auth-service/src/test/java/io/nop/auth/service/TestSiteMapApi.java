@@ -9,6 +9,7 @@ package io.nop.auth.service;
 
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.graphql.core.IGraphQLExecutionContext;
@@ -18,7 +19,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
-@NopTestConfig(localDb = true)
+@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 public class TestSiteMapApi extends JunitAutoTestCase {
     @Inject
     IGraphQLEngine graphQLEngine;
