@@ -153,6 +153,18 @@ mutation {
 
 **BusinessDomain 根域重名守卫（P2-28 裁定）**：`UK_NOP_META_BUSINESS_DOMAIN_PARENT_NAME (parentDomainId,name)` 对根域（parentDomainId NULL）不生效。`NopMetaBusinessDomainBizModel` 在 save/update 之后对根域按 `(parentDomainId IS NULL, name)` 查重（自排除），命中抛 `nop.err.metadata.business-domain-duplicate-root-name` 并回滚；非根域由 DB UK 拒绝。UK 与列语义均不变（sentinel 改造否决理由见 plan 裁决表）。
 
+## 状态机字段写路径分层契约（plan 2026-08-16-0920-2）
+
+**契约**：TagLabel / DataContract / QualityResult 三实体的 5 个状态机字段（`NopMetaTagLabel.state/approveStatus`、`NopMetaDataContract.status/approveStatus`、`NopMetaQualityResult.status`）**只经专用路径变更**，GraphQL `__update` 输入面不收（delta xmeta props override `updatable="false"`）：
+
+- **专用路径**（唯一合法翻转通道，`.xbiz`/Java 实体直写不经 InputBean 校验，不受收紧影响）：审批动作 `approval-support.xbiz`（submitForApproval/withdrawApproval/approve/reject/reverseApprove）+ 各实体 delta xbiz 的 approve/reject（含 DataContract status 生命周期 DRAFT→ACTIVE→DEPRECATED→RETIRED 与 TagLabel state Confirmed/Suggested）+ `NopMetaTagLabelBizModel` save 缺省注入 + 执行/re-judge 引擎（`QualityResultWriter` insert / `QualityAlertWorkflowProcessor.reJudge`）。
+- **运行时语义**：`__update` 对这些字段是**静默丢弃**（`ObjMetaBasedValidator.validateForUpdate` 按 `updatable` 过滤，非 updatable prop 跳过），不抛错；同请求内其他可更新字段正常生效。断言按「值不变/输入面不收」设计（不得写成抛错拒绝）。
+- **insert 面保留**（逐字段 Why-Not，详见 plan 裁决表）：3 个 ORM-mandatory 字段（QualityResult.status / DataContract.status / TagLabel.state）无 default 需创建面供值；TagLabel.state 的 BizModel 内部缺省注入本身经 insert 面落库；approveStatus×2 创建时携带是 `submitForApproval` 守卫语义输入的一部分。
+- **ORM 层不可收紧的机制事实**：所有合法状态写入都走标准实体更新 flush——ORM 列 `updatable="false"` 会在 flush 时抛 `ERR_ORM_ENTITY_PROP_NOT_UPDATABLE` 打断全部审批翻转，不是可用机制。
+- 回归测试：`TestNopMetaStateFieldGuard`（双路径 8 例：`__update` 静默丢弃 + 专用路径仍翻转 + P2-26 删除保留/关系可查询；变异验证 = 移除 state override 即红）。
+
+**checkpointId 语义（P2-26 裁定）**：`NopMetaQualityResult.checkpointId` 为显式化的 soft-FK 弱引用（结果侧 `checkpoint` to-one + 检查点侧 `qualityResults` to-many，**无 cascadeDelete、无 DB 级 FOREIGN KEY**）。**检查点删除后结果行无条件保留**（时序历史事实语义，孤儿行为是裁定后的显式行为）；与 `qualityRule→results` 的级联（规则拥有其结果）刻意不对称——检查点是执行配置，结果是历史事实。唯一写位点 = `QualityResultWriter`（insert-only）。
+
 ## API 契约（I*Biz 接口）
 
 每个 BizModel 都实现了对应的 `INopMeta*Biz` 接口（位于 `nop-metadata-dao` 模块的 `io.nop.metadata.biz` 包），声明全部自定义 `@BizQuery` / `@BizMutation` 方法签名。跨模块 `@Inject INopMeta*Biz` 可直接调用接口方法，避免依赖具体实现类。

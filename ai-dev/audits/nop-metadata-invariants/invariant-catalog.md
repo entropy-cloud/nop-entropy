@@ -252,6 +252,27 @@ INV-LIMIT 门禁自身的守卫测试曾存在区分力为零的假绿行：`inl
 
 ---
 
+## Cycle 4 增补 — 状态机写路径族（plan `2026-08-16-0920-2` Phase 3）
+
+> P2-26/P2-33 裁定后沉淀：TagLabel/DataContract/QualityResult 5 状态字段的 GraphQL `__update` 输入面收紧（delta xmeta `updatable="false"`）+ checkpointId 弱引用显式化（无级联 = 历史事实语义）。
+
+### INV-STATE-PATH — 状态机字段只经专用路径变更族
+
+**① 陈述**：审批流/状态机字段（`NopMetaTagLabel.state/approveStatus`、`NopMetaDataContract.status/approveStatus`、`NopMetaQualityResult.status`）**不得经 GraphQL `__update` 输入面直改**——只经专用路径变更（approval-support.xbiz 五动作、各实体 delta xbiz approve/reject、BizModel 内部缺省注入、执行/re-judge 引擎）。收紧层 = delta xmeta props override `updatable="false"`（运行时静默丢弃，`ObjMetaBasedValidator.validateForUpdate`）；**ORM 列 `updatable="false"` 不可用**（全部合法写入走标准实体 flush，会抛 `ERR_ORM_ENTITY_PROP_NOT_UPDATABLE` 打断审批翻转）。同族延伸：`NopMetaQualityResult.checkpointId` 为 soft-FK 弱引用（checkpoint to-one + qualityResults to-many **无 cascadeDelete**）——检查点删除后结果行无条件保留是**裁定后的显式语义**（历史事实），非缺陷。
+
+**② 覆盖的失败族**：审批/状态机守卫绕过族（P2-33：标准 update 直改状态字段绕过保留层守卫）+ 弱引用孤儿歧义族（P2-26：无关系弱引用的删除语义未裁定）。
+
+**③ 历史 audit-finding-ID 证据**：
+
+- P2-33（2026-08-15 multi-audit，`_NopMetaTagLabel.xmeta:44` state prop / `_NopMetaDataContract.xmeta:103` approveStatus prop 均 `updatable="true"` → GraphQL `__update` 可直改；fixed 2026-08-16 plan `2026-08-16-0920-2`：写路径分层盘点表 + 逐字段裁定表落 plan，5 字段 delta xmeta override + insert 面 Why-Not）
+- P2-26（同 audit，checkpointId 无关系弱引用；fixed 2026-08-16 同 plan：补显式双向关系无级联 + 模型注释 + 删除保留/关系可查询测试）
+
+**④ 检测方法**：双路径区分力回归测试 `TestNopMetaStateFieldGuard`（8 例）——(a) `__update` 直改 5 字段断言**值不变**（静默丢弃语义，同请求其他可更新字段仍生效，证明字段级丢弃）+ (b) 专用路径（approve mutation / `QualityResultWriter.append` 生产写入通道）仍翻转 + (c) P2-26 删除保留/双向关系可查询。变异验证区分力实证（2026-08-16）：移除 `NopMetaTagLabel.xmeta` 的 `state` override → (a) 变红（`state must be unchanged: expected: <Suggested> but was: <Confirmed>`）；恢复 → 绿。新增状态字段/实体复刻同族收紧时须同步扩测（棘轮：delta xmeta override 只增不减）。
+
+**目标集覆盖率**：5 状态字段 + checkpointId 全覆盖（2026-08-16）；测试 8/8 绿（`TestNopMetaStateFieldGuard`）。
+
+---
+
 ## 候选不变式（Non-Blocking Follow-up，留待 I6 裁定）
 
 > Phase 1 枚举未发现超出首批 4 族的高频复发模式需立即沉淀。以下为低频观察，不展开，留待 I6 统计后裁定是否派生 Cycle 2 / I1。
