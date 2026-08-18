@@ -362,13 +362,13 @@ public int reencryptAll() { ... }
 
 ## 深度迁移（W16：nop-integration / nop-metadata 消费方接入）
 
-深度迁移 = 消费方以 `credentialId` 引用凭证库、发送期/建连期经 `ICredentialProvider` 惰性解析（替代配置文件/JSON 明文）。首批交付 = 共享解析支持 + SMS 家族（tencent/yunpian）+ metadata 数据源，扩展批次（Email×2/Feishu/OSS/SFTP）登记于 roadmap `W16-impl-ext`。
+深度迁移 = 消费方以 `credentialId` 引用凭证库、发送期/建连期经 `ICredentialProvider` 惰性解析（替代配置文件/JSON 明文）。首批交付 = 共享解析支持 + SMS 家族（tencent/yunpian）+ metadata 数据源；扩展批次（W16-impl-ext）= Email×2（tencent/smtp）+ Feishu + OSS + SFTP 五家族 + feishu/oss credentialId 配置键——设计 §4.3 八类型清单全量落地。
 
 ### 横切契约（两侧统一）
 
 - **优先级链**：`credentialId` 空/空白 → 既有静态值现状路径（零回归）；非空 → 凭证字段集**整组**取凭证库，同名静态值忽略（不逐字段混搭）。
 - **强 fail-closed 不静默回退**：credentialId 已配置但 provider 未装配（部署不一致）/凭证缺失/软删/解密失败/必填字段空/typeName 错型/转换失败 → 中止本次发送/建连，**不回退静态值**（对齐 nop-ai `IAiModelCredentialResolver` 先例）。
-- **consumerRef 引用计数**：`integration:<channelType>`（发送器 bean 初始化幂等登记，catch-all WARN 不阻断启动）与 `metadata:NopMetaDataSource:<dataSourceId>`（bind/迁移登记、unbind/换绑/行删除解除）。
+- **consumerRef 引用计数**：`integration:<channelType>`（登记时点随家族消费时序——逐次消费/构造期家族为发送器 bean 初始化幂等登记；feishu start 期家族为 `FeishuClient.start` 登记见下；均 catch-all WARN 不阻断启动）与 `metadata:NopMetaDataSource:<dataSourceId>`（bind/迁移登记、unbind/换绑/行删除解除）。
 - **归属一律 system 级**；RBAC 走 provider 出口既有判定矩阵零新增语义；拒绝全局明文降级开关。
 
 ### SPI 增量（W16，`nop-credential-api` additive，六方法签名冻结不变）
@@ -380,20 +380,53 @@ public int reencryptAll() { ... }
 
 `CredentialResolutionSupport`（静态工具，公共语义单点——厂商模块零复制）：`isConfigured`（空串/空白视同缺失）/ `resolveGroup(provider, credentialId, allowedTypeNames)`（部署不一致 + provider 侧异常包装（cause 保留）+ typeName 家族允许集校验）/ `requireString`/`optionalString`/`requireInteger`（字符串归一 + 转换失败 fail-closed）。错误码在 `IntegrationErrors`（`nop.err.integration.credential-*` 五码）。`nop-integration-api` 对 `nop-credential-api` 为 api→api compile 依赖（无 service/dao 传递）。
 
-### SMS 家族接线（首批）
+### 凭证类型清单（设计 §4.3 八类型全量，`_vfs/nop/credential/types/`）
 
-`TencentSmsSender`/`YunpianSmsSender`：可选 `credentialId` bean 属性 + `@Nullable ICredentialProvider` setter 注入 + 发送期惰性解析（逐次发送家族——轮换/禁用下次发送即生效；sendMessage 与 sendMultiMessage 双构造点全覆盖）+ `@PostConstruct` 幂等 `registerUsage`（catch-all WARN——含 D6-03 前置校验抛错，配错 credentialId 不阻断启动）。凭证类型 `tencent-sms`（appId 必填/appKey 必填 sensitive/sign 可空）、`yunpian-sms`（apiKey 必填 sensitive）。
+| typeName | 字段（sensitive / 必填性） | 家族 |
+|---|---|---|
+| `tencent-sms` | appId（false/必填）、appKey（true/必填）、sign（false/可空） | 短信-腾讯（首批） |
+| `yunpian-sms` | apiKey（true/必填） | 短信-云片（首批） |
+| `jdbc-datasource` | username（false/必填）、password（true/可空） | metadata 数据源（首批） |
+| `tencent-email` | secretId（false/必填）、secretKey（true/必填）、region（false/必填） | 邮件-腾讯 SES（扩展批次） |
+| `smtp-email` | username（false/可空）、password（true/可空），**整凭证至少一字段非空**（跨字段约束，解析侧 fail-closed 兜底） | 邮件-JavaMail（扩展批次） |
+| `feishu-app` | appId（false/必填）、appSecret（true/必填）、verificationToken（true/可空）、encryptKey（true/可空） | 飞书应用四元组（扩展批次） |
+| `oss-s3` | accessKey（false/必填）、secretKey（true/必填） | S3 兼容对象存储（扩展批次） |
+| `sftp-ssh` | username（false/可空）、password（true/可空）、passphrase（true/可空）——公钥无口令场景均空合法 | SFTP（扩展批次） |
+
+### 家族接线形态（首批 + 扩展批次统一语义）
+
+- **逐次消费家族**（sms-tencent / sms-yunpian / **email-tencent / email-java / sftp**）：可选 `credentialId` 属性 + `@Nullable ICredentialProvider` 注入 + 每次发送/建连/操作期解析（轮换/禁用下次即生效）。消费点 seam：`TencentSmsSender.createSender` / `YunpianSmsSender.createClient` / `TencentEmailSender.createClient` / `JavaEmailSender.connectTransport`（解析在 `withTransport` 吞异常 try **之前**，fail-closed 穿透）/ `SftpClient.openConnection`+`newJsch`（解析在 `ERR_SFTP_CONNECT_FAIL` 包装点之前，错误码独立）。
+- **构造期家族**（**oss**）：`OssFileServiceClientFactory` `@PostConstruct` 构造期一次解析（客户端缓存——轮换可见性 = 重启，显式接受）；消费点 seam `createAwsCredentials`；`nop.integration.oss.enabled` 门控下零介入（未启用无 bean、无登记、无解析）。
+- **start 期捕获家族**（**feishu**）：`FeishuCredentials` 第五键 `nop.integration.feishu.credentialId`（`@InjectValue` 与四键并列）；`FeishuClient.start` 解析四字段整组并持有**已解析副本**（DataBean `@InjectValue` 装配形态不变；token 惰性刷新与重连使用已捕获值）；**登记随 start 期执行**（live 约束：client 仅在 start() 获得凭证，bean 初始化期不可达）。ChannelConfig options 面**不引入** credentialId（options 维持字面值语义，配置键为唯一入口）。
+- **登记语义**（各家族统一）：`@PostConstruct`（或 feishu start 期）幂等 `registerUsage`，catch-all WARN——含 provider 前置校验抛错（D6-03 后配错 credentialId 显式抛错），配错不阻断启动（安全边界 = 消费期解析 fail-closed）。
+
+### credentialId 配置键表（config-bound 家族）
+
+| 键 | 绑定机制 | 说明 |
+|---|---|---|
+| `nop.integration.feishu.credentialId` | `FeishuCredentials` `@InjectValue("@cfg:...|")` 与四键并列 | 空串缺省 = 未配置 |
+| `nop.integration.oss.credentialId` | `ioc:config-prefix="nop.integration.oss"` 自动绑定（`@ConfigField(name="credentialId")` 钉住 camelCase 键名——config-prefix 缺省归一为 kebab-case `credential-id`，与设计键名不符故显式指定） | 受 `nop.integration.oss.enabled` 门控（未启用时零介入） |
+| SMS×2 / Email×2 / SFTP | 无配置键——消费方应用 beans.xml 以 `<property name="credentialId" .../>` 或 `@cfg:` 引用提供 | credentialId 持有位置：tencent-email 在 `TencentEmailSender`；smtp-email 在 `MailConfig`；sftp 在 `SftpConfig` |
+
+### Email 消费链验证面（W16-impl-ext 依赖注记的兑现）
+
+W15-impl 后 `IEmailSender` 在 nop-auth-service 有真实运行时消费方（`LoginServiceImpl`/`NopAuthUserBizModel` 邮件验证码发码链，@Nullable fail-closed）——Email 家族 credentialId 接线经该链端到端验证（`TestJavaEmailSenderMfaE2E`：credential 行 → 解析 → Transport 构造点 → bindMfa(email)/sendMfaCode 真实发码路径消费 + fail-closed 负例贯穿）。
 
 ### integration 迁移 runbook（integration 侧唯一迁移机制）
 
 integration 无 DB 行、无迁移工具——迁移 = 运维顺序操作：
 
-1. **创建凭证**：经 `NopCredential__saveCredential`（如 `tencent-sms` 类型，字段 appId/appKey/sign）。
-2. **设 credentialId 属性**（并存窗口）：消费方应用 beans.xml 给发送器 bean 增加 `<property name="credentialId" value="..."/>`（或 `@cfg:` 引用）；静态密钥属性**暂留**（回滚安全网）。重启后发送路径整组取凭证库（静态值被忽略）；`registerUsage("integration:tencent-sms")` 自动登记。
-3. **验证发送**：经真实业务链路（如登录验证码）或渠道测试发送确认成功。
-4. **清除静态密钥**：从 beans.xml 删除 appId/appKey/sign 静态属性（配置文件治理范畴）。
-5. **回滚 = 引用级**：删除 `credentialId` 属性即回退静态值路径；**明文清除后回滚需显式再录入**（杜绝从死值复活明文）。
-- consumerRef 清单（人工清理参照）：`integration:tencent-sms` / `integration:yunpian-sms`（扩展批次将增加 email/feishu/oss/sftp token）。渠道下线后 usage 行由管理面人工清理（陈旧引用仅影响该凭证删除拦截提示）。
+1. **创建凭证**：经 `NopCredential__saveCredential`（如 `tencent-sms` 类型，字段 appId/appKey/sign；扩展批次类型见上表）。
+2. **设 credentialId**（并存窗口）：
+   - SMS×2 / Email×2 / SFTP：消费方应用 beans.xml 给发送器/配置 bean 增加 `<property name="credentialId" value="..."/>`（或 `@cfg:` 引用）；静态密钥属性**暂留**（回滚安全网）。
+   - Feishu：部署配置加 `nop.integration.feishu.credentialId=<id>`（四静态键暂留）。
+   - OSS：部署配置加 `nop.integration.oss.credentialId=<id>`（需 `nop.integration.oss.enabled=true`；access-key/secret-key 暂留）。
+   重启后发送/建连路径整组取凭证库（静态值被忽略）；`registerUsage("integration:<channelType>")` 自动登记（feishu 随首个 start）。
+3. **验证发送**：经真实业务链路（Email 家族 = MFA 邮件码发码链；SMS = 登录验证码）或渠道测试发送确认成功。
+4. **清除静态密钥**：从 beans.xml / 配置文件删除静态密钥属性（配置文件治理范畴；feishu/oss 静态值自此降为回退路径）。
+5. **回滚 = 引用级**：删除 `credentialId` 属性/配置键即回退静态值路径；**明文清除后回滚需显式再录入**（杜绝从死值复活明文）。
+- 过渡并存窗口期（credentialId 与静态密钥并存）结束后由 runbook 指引人工复核清除（运行时静态值不可达死值，无安全暴露；属运维治理）。
+- consumerRef 清单（人工清理参照）：`integration:tencent-sms` / `integration:yunpian-sms` / `integration:tencent-email` / `integration:smtp-email` / `integration:feishu-app` / `integration:oss-s3` / `integration:sftp-ssh`。渠道下线后 usage 行由管理面人工清理（陈旧引用仅影响该凭证删除拦截提示）。
 - 部署前置：消费 app 的 beans 聚合需引入 `credential-defaults.beans.xml`（app-service.beans.xml 聚合装载，nop-ai-service 同型先例）；未部署凭证库时 credentialId 必须留空（配置了即 fail-closed 部署不一致）。
 
 ### metadata 数据源迁移（首批）
