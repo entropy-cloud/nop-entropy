@@ -58,8 +58,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *   <li>有 checker 时 executor 两检查点（RPC 单操作路径 + GraphQL 文档路径）确实调用，
  *       且只对 @MfaRequired 方法调用（非敏感方法零介入）。</li>
  *   <li>订阅 operation 无 mfaRequired 字段可达（构建期拒绝保证）。</li>
- *   <li>checker 抛异常（拦截）时该 operation 单独报错，批量中其他 operation 不受影响
- *       （GraphQL 逐 field error 原生语义）。</li>
+ *   <li>checker 抛异常（拦截）时**整批预执行中止**（检查点位于 invokeOperations 之前，
+ *       同批任何 operation 均不执行——A2-audit D5-F2 更正，断言 data==null 钉定）。</li>
  * </ul>
  */
 public class TestOperationMfaExecutorWiring {

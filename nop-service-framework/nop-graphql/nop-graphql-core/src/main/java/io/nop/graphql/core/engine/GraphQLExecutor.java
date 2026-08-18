@@ -185,8 +185,10 @@ public class GraphQLExecutor implements IGraphQLExecutor {
 
     /**
      * 操作级 MFA 检查点（设计 §3.1/§3.3）：对声明了 @MfaRequired 的顶层 operation 调用
-     * {@link IOperationMfaChecker}。checker 为 null（未注册实现）时零介入；
-     * 批量请求中含敏感操作时该 operation 单独报错（GraphQL 逐 field error 原生语义）。
+     * {@link IOperationMfaChecker}。checker 为 null（未注册实现）时零介入。
+     * 批量请求含未验证敏感操作时**整批预执行中止**（检查点位于 invokeOperations 之前，
+     * 同批任何 operation 均不执行——A2-audit D5-F2 更正：非"逐 field error 单独报错"，
+     * E2E 断言 data==null 钉定）。
      * 订阅路径（GraphQLEngine.subscribeGraphQL/subscribeRpc）刻意不接本检查——构建期
      * 约束校验已拒绝 @MfaRequired + @BizSubscription 组合。
      * <p>
