@@ -105,4 +105,33 @@ interface DataSourceErrors extends NopMetadataArgs {
             ErrorCode.define("nop.err.metadata.query-sql-exec-failed",
                     "Query SQL execution failed: metaTableId={metaTableId} -- {error}",
                     ARG_META_TABLE_ID, ARG_ERROR);
+
+    // ==================== W16-impl 数据源凭证（credentialId 深度迁移，设计 §五/§六） ====================
+
+    ErrorCode ERR_DATASOURCE_CREDENTIAL_PROVIDER_NOT_AVAILABLE =
+            ErrorCode.define("nop.err.metadata.datasource-credential-provider-not-available",
+                    "connectionConfig declares credentialId but ICredentialProvider is not assembled "
+                            + "(deployment inconsistency, fail-closed; no fallback to JSON plaintext): "
+                            + "{credentialId}", ARG_CREDENTIAL_ID);
+
+    ErrorCode ERR_DATASOURCE_CREDENTIAL_RESOLVE_FAILED =
+            ErrorCode.define("nop.err.metadata.datasource-credential-resolve-failed",
+                    "Credential resolution failed for dataSource (fail-closed, no fallback to JSON plaintext): "
+                            + "{credentialId}", ARG_CREDENTIAL_ID);
+
+    ErrorCode ERR_DATASOURCE_CREDENTIAL_TYPE_MISMATCH =
+            ErrorCode.define("nop.err.metadata.datasource-credential-type-mismatch",
+                    "Credential type does not match the jdbc-datasource family: "
+                            + "{credentialId} typeName={typeName} expected={expectedTypeNames}",
+                    ARG_CREDENTIAL_ID, ARG_TYPE_NAME, ARG_EXPECTED_TYPE_NAMES);
+
+    ErrorCode ERR_DATASOURCE_CREDENTIAL_FIELD_REQUIRED =
+            ErrorCode.define("nop.err.metadata.datasource-credential-field-required",
+                    "Required credential field missing or blank: {credentialId} field={fieldName}",
+                    ARG_CREDENTIAL_ID, ARG_FIELD_NAME);
+
+    ErrorCode ERR_DATASOURCE_CREDENTIAL_ADMIN_REQUIRED =
+            ErrorCode.define("nop.err.metadata.datasource-credential-admin-required",
+                    "This action requires datasource credential admin roles (nop.metadata.credential-admin-roles): "
+                            + "{requiredRoles}", ARG_REQUIRED_ROLES);
 }

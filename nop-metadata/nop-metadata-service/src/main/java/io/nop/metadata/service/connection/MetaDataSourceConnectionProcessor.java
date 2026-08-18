@@ -5,11 +5,15 @@ import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.IoHelper;
 import io.nop.core.lang.json.JsonTool;
+import io.nop.credential.api.CredentialData;
+import io.nop.credential.api.ICredentialProvider;
 import io.nop.dao.jdbc.datasource.SimpleDataSource;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
 import io.nop.metadata.service.security.HostSecurityUtil;
+import jakarta.annotation.Nullable;
+import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,6 +54,12 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
     private static final String CFG_USERNAME = "username";
     private static final String CFG_PASSWORD = "password";
     private static final String CFG_DRIVER_CLASS_NAME = "driverClassName";
+
+    /** W16-impl：connectionConfig JSON 内的凭证引用键（空串/空白视同缺失，设计 §5.1）。 */
+    private static final String CFG_CREDENTIAL_ID = "credentialId";
+
+    /** W16-impl：数据源凭证家族类型（username/password 字段集，设计 §4.3 类型清单）。 */
+    static final String CREDENTIAL_TYPE_JDBC_DATASOURCE = "jdbc-datasource";
 
     /** AR-02: 允许的 JDBC 协议前缀（mysql/postgresql/h2 mem/file 本地模式）。H2 tcp/ssl 网络模式禁用（远程 H2 攻击面）。 */
     private static final Set<String> ALLOWED_JDBC_PROTOCOLS = new HashSet<>(Arrays.asList(
@@ -105,6 +115,18 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
     @InjectValue(value = "@cfg:nop.metadata.datasource.allowed-hosts|")
     protected String allowedInternalHostsCsv = "";
 
+    /**
+     * 凭证消费 SPI（W16-impl，可选装配，{@code @Nullable} → NopIoC optional）：部署不含
+     * nop-credential 时为 null——connectionConfig 含 credentialId 时 fail-closed（部署不一致），
+     * 不含时维持 JSON 明文现状路径（既有部署零回归）。
+     */
+    protected ICredentialProvider credentialProvider;
+
+    @Inject
+    public void setCredentialProvider(@Nullable ICredentialProvider credentialProvider) {
+        this.credentialProvider = credentialProvider;
+    }
+
     /** 解析后的允许内网主机集合（小写）。 */
     protected Set<String> resolveAllowedInternalHosts() {
         if (allowedInternalHostsCsv == null || allowedInternalHostsCsv.trim().isEmpty()) {
@@ -140,7 +162,23 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
     public Map<String, Object> testConnect(String datasourceType, String connectionConfig) {
         requireJdbcType(datasourceType);
 
-        DataSource dataSource = buildDataSource(datasourceType, connectionConfig);
+        DataSource dataSource;
+        try {
+            dataSource = buildDataSource(datasourceType, connectionConfig);
+        } catch (NopException e) {
+            // W16-impl（设计 §5.1.4 catch 范围精确化）：仅凭证解析失败（provider 侧异常经
+            // mergeCredentialIntoConfig 包装出的自身码集）映射结构化 {connected:false}——固定描述
+            // 不携带明文/密文细节；AR-02 与 config-invalid 异常不在映射域内、维持上抛
+            // （不吞成结构化 false，防校验失败被静默降级）。白名单 = 自身包装码集，
+            // 不跨模块比对 credential 错误码常量。
+            if (NopMetadataErrors.ERR_DATASOURCE_CREDENTIAL_RESOLVE_FAILED.getErrorCode().equals(e.getErrorCode())) {
+                Map<String, Object> result = new LinkedHashMap<>();
+                result.put("connected", false);
+                result.put("error", "credential resolution failed");
+                return result;
+            }
+            throw e;
+        }
 
         Map<String, Object> result = new LinkedHashMap<>();
         Connection conn = null;
@@ -169,11 +207,17 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
      *
      * <p>AR-02 安全加固：(a) jdbcUrl 协议白名单 + 危险参数黑名单 + 内网主机白名单；
      * (b) driverClassName 白名单； (c) {@link DriverManager#setLoginTimeout} 在构造函数中设置（非每连接调用）。
+     *
+     * <p>W16-impl 单点解析（设计 §5.1.2）：JSON 解析后含非空 credentialId → 经
+     * {@link ICredentialProvider} 取 {@code jdbc-datasource} 字段集（username/password）合并进
+     * cfg map——后续 requireNonBlank/requireField/AR-02 校验/SimpleDataSource 建连全链零变化；
+     * 14 处消费点经 withConnection/testConnect 汇聚于此，零改动。
      */
     private DataSource buildDataSource(String datasourceType, String connectionConfig) {
         requireJdbcType(datasourceType);
 
         Map<String, Object> cfg = parseConnectionConfig(connectionConfig, datasourceType);
+        mergeCredentialConfig(cfg, datasourceType);
         String jdbcUrl = requireNonBlank(cfg, CFG_JDBC_URL, datasourceType);
         String username = requireNonBlank(cfg, CFG_USERNAME, datasourceType);
         // password 允许空串（如 H2 默认空密码），仅要求 key 存在（缺失才快速失败）
@@ -194,6 +238,66 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
             ds.setDriverClassName(driverClassName);
         }
         return ds;
+    }
+
+    /**
+     * W16-impl 单点凭证解析（设计 §5.1 兼容矩阵三行 + §六 fail-closed 契约）：
+     * <ul>
+     *   <li>credentialId 空/缺失 → 原样返回（存量明文行现状路径，零回归）；</li>
+     *   <li>provider null + credentialId 非空 → 部署不一致 fail-closed；</li>
+     *   <li>解析失败（缺失/软删/解密失败/归属或授权拒绝）→ 包装为 metadata 自身码 fail-closed，
+     *       <b>不回退 JSON 明文</b>（过渡并存行语义：credentialId 已配置即宣告凭证库治理）；</li>
+     *   <li>typeName 非 jdbc-datasource（含 null）→ 错型 fail-closed（SPI 增量裁定 1 通道）；</li>
+     *   <li>成功 → username/password <b>整组</b>合并进 cfg（同名 JSON 明文被覆盖 = 忽略；
+     *       password 键恒存在以维持 requireField 语义——可空字段空值合法，对齐 H2 空密码现状）。</li>
+     * </ul>
+     */
+    void mergeCredentialConfig(Map<String, Object> cfg, String datasourceType) {
+        Object credentialIdObj = cfg.get(CFG_CREDENTIAL_ID);
+        if (credentialIdObj == null) {
+            return; // 存量明文行：无键 → 现状路径
+        }
+        String credentialId = credentialIdObj.toString().trim();
+        if (credentialId.isEmpty()) {
+            return; // 空串/空白视同缺失（设计 §5.1.3）
+        }
+        if (credentialProvider == null) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_CREDENTIAL_PROVIDER_NOT_AVAILABLE)
+                    .param("datasourceType", datasourceType)
+                    .param("credentialId", credentialId);
+        }
+
+        CredentialData data;
+        try {
+            data = credentialProvider.getCredential(credentialId);
+        } catch (NopException e) {
+            // 缺失/软删/解密失败/归属或授权拒绝——包装为自身码（cause 保留），不回退 JSON 明文
+            throw new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_CREDENTIAL_RESOLVE_FAILED, e)
+                    .param("datasourceType", datasourceType)
+                    .param("credentialId", credentialId);
+        }
+
+        String typeName = data.getTypeName();
+        if (!CREDENTIAL_TYPE_JDBC_DATASOURCE.equals(typeName)) {
+            // null（非标准 provider 未填充）同样拒绝——错型校验不因来源缺失而放行
+            throw new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_CREDENTIAL_TYPE_MISMATCH)
+                    .param("datasourceType", datasourceType)
+                    .param("credentialId", credentialId)
+                    .param("typeName", typeName)
+                    .param("expectedTypeNames", CREDENTIAL_TYPE_JDBC_DATASOURCE);
+        }
+
+        Object username = data.getField(CFG_USERNAME);
+        if (username == null || username.toString().trim().isEmpty()) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_CREDENTIAL_FIELD_REQUIRED)
+                    .param("datasourceType", datasourceType)
+                    .param("credentialId", credentialId)
+                    .param("fieldName", CFG_USERNAME);
+        }
+        Object password = data.getField(CFG_PASSWORD);
+        cfg.put(CFG_USERNAME, username.toString().trim());
+        // password 可空（必填性对齐 requireField 现状不收紧）；键恒存在维持 requireField 语义
+        cfg.put(CFG_PASSWORD, password == null ? "" : password.toString());
     }
 
     private void requireJdbcType(String datasourceType) {
