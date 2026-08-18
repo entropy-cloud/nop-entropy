@@ -1,3 +1,4 @@
+nop.err.ai.agent.invalid-arg: 'invalid argument: {msg}'
 nop.err.ai.coder.headers-and-data-not-match: 表头和数据的列数不匹配:headers={headers},data={data}
 nop.err.ai.coder.method-signature-not-found: 'Method signature not found: {signature}'
 nop.err.ai.coder.unbalanced-braces: Unbalanced braces in method body
@@ -12,6 +13,8 @@ nop.err.ai.file.invalid-edit-type: Invalid edit type
 nop.err.ai.invalid-expr-var-name: 提示词表达式中的变量名无效:{varName}
 nop.err.ai.mandatory-input-is-empty: 输入参数{inputName}不能为空
 nop.err.ai.mandatory-output-is-empty: 输出参数{outputName}不能为空
+nop.err.ai.model-class.saturated: 'No candidate is currently available for model class:
+  {modelClass}'
 nop.err.ai.no-var-in-scope: 上下文中不存在对应变量:{varName}
 nop.err.ai.prompt-empty-expr: 提示词表达式内容为空
 nop.err.ai.prompt-expr-prefix-unknown: 未定义的提示词表达式前缀:{prefix}
@@ -940,6 +943,8 @@ nop.err.orm.visit-loop-count-exceed-limit: 实体遍历循环的执行次数超�
 nop.err.pom.reference-contains-loop: Maven不允许循环依赖
 nop.err.proto.not-support-data-type: 不支持的类型:{dataType}
 nop.err.record.aggregate-field-no-agg-func: 汇总字段没有设置aggFunc属性:{fieldName}
+nop.err.record.attribute-not-implemented: 记录属性[{attributeName}]尚未实现:{fieldName}
+nop.err.record.body-not-defined: 模型没有定义body段:{typeName}
 nop.err.record.case-value-map-to-unknown-type: 字段[{fieldName}]的条件类型映射到未定义的类型:{caseValue}=>{typeName}
 nop.err.record.decode-length-is-too-long: length
 nop.err.record.field-is-mandatory: 字段[{fieldName}]的值不允许为空
@@ -964,6 +969,8 @@ nop.err.record.no-match-for-case-value: 字段[{fieldName}]的条件类型没有
 nop.err.record.no-switch-on-field: 条件类型无法确定类型值:{fieldName}
 nop.err.record.not-enough-of-line: 不是换行符
 nop.err.record.pos-not-in-cache: 位置{pos}不在缓存中
+nop.err.record.readwhen-not-supported-at-top-level: body 顶级类型不支持 readWhen 属性:{typeName}
+nop.err.record.terminator-not-found: 数据结束，未找到终止符:{term}
 nop.err.record.type-no-fields: 结构体没有定义字段
 nop.err.record.unknown-field: 未定义的字段：{fieldName}
 nop.err.record.unknown-field-codec:{codec}: fieldName
