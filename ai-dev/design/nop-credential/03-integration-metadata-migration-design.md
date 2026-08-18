@@ -98,7 +98,7 @@
 
 ### 4.1 设计结论
 
-1. **消费模型 = 配置/装配声明 `credentialId` + 发送期经 `ICredentialProvider` 惰性解析**。每个发送器家族新增可选 `credentialId` 属性（bean property；config-bound 家族对应新增配置键，如 `nop.integration.feishu.credentialId`、`nop.integration.oss.credentialId`；SMS/Email 家族由消费方应用 beans.xml 以 `@cfg:` 引用或字面量提供）。`credentialId` 非空时，该家族的**凭证字段集整组**取自凭证库；同名字段静态值被忽略（不逐字段混搭）。`credentialId` 为空时维持现状（静态值直用），**既有部署零回归**。
+1. **消费模型 = 配置/装配声明 `credentialId` + 发送期经 `ICredentialProvider` 惰性解析**。每个发送器家族新增可选 `credentialId` 属性（bean property；config-bound 家族对应新增配置键，如 `nop.integration.feishu.credentialId`、`nop.integration.oss.credentialId`——**键名绑定机制注记（W16-impl-ext 回写）：oss 键经 `@ConfigField(name="credentialId")` 显式钉住 camelCase（`ioc:config-prefix` 缺省归一为 kebab-case `credential-id`，与键名不符），真实容器绑定测试证明生效**；SMS/Email 家族由消费方应用 beans.xml 以 `@cfg:` 引用或字面量提供）。`credentialId` 非空时，该家族的**凭证字段集整组**取自凭证库；同名字段静态值被忽略（不逐字段混搭）。`credentialId` 为空时维持现状（静态值直用），**既有部署零回归**。
 2. **凭证字段集 = 认证身份对与应用级参数；连接拓扑不入凭证**。拓扑类字段（endpoint、host、port、bucket、keyPath、protocol、MailConfig 扩展 properties）留在配置；凭证类型字段集见 §4.3 表。理由：拓扑是部署资产（版本化配置文件持有），密钥是安全资产（凭证库持有）；轮换密钥不动拓扑、改拓扑不碰密文；加密面最小化。
 3. **`@sec:` 静态加密保留为非托管场景的基线**（`01-architecture-baseline.md` §3.5 既有裁定）：部署级静态密钥、无运行期管理诉求的场景继续 `@sec:`；`credentialId` 路径服务轮换/审计/禁用/连通性诉求。两者非互斥（`credentialId` 缺省即回退静态值路径）。
 4. **拒绝新增集成配置 DB 实体**（候选 A，见 §4.2）。
@@ -108,7 +108,7 @@
    - **客户端缓存家族**（oss）：`@PostConstruct` 构造期解析一次；轮换可见性 = bean 重建（重启）——显式接受的限制（§七 deferred 热重建）。
    - **start 期捕获家族**（feishu）：`FeishuClient.start` 时解析一次并持有；token 惰性刷新（`ensureToken`）继续使用已捕获值——轮换可见性 = connector 重启；刷新期再解析列 deferred（§七）。
 7. **飞书接线裁定（双供给面的入口收敛）**：`credentialId` 落在 `FeishuCredentials` 新增字段（经新配置键 `nop.integration.feishu.credentialId` `@InjectValue` 注入，与现有四键并列）；`FeishuClient.start` 时若 `credentialId` 非空 → 经 provider 解析凭证字段集并构建**已解析副本**（整组覆盖 appId/appSecret/verificationToken/encryptKey 四字段）供 client 持有——原 DataBean 保持 `@InjectValue` 装配形态不变，解析副本仅在 start 期产生。`FeishuConnector.resolveCredentials` 的 **ChannelConfig options 面（`feishu.appId/appSecret`、`feishu.credentials`，`FeishuConnector.java:622-636`）首期不引入 credentialId 支持**（options 面维持字面值语义；配置键面为 credentialId 唯一入口）——理由：options 面是 nop-ai-gateway 的 ChannelConfig 扩展点，为其引入凭证引用语义需要网关侧配合改造，超出本迁移范围（§七#10 deferred）。
-8. **引用计数**：`consumerRef = integration:<channelType>`（部署级单渠道，每渠道类型一条稳定引用；token 清单：`integration:tencent-sms` / `integration:yunpian-sms` / `integration:tencent-email` / `integration:smtp-email` / `integration:feishu-app` / `integration:oss-s3` / `integration:sftp-ssh`），credentialId 非空且 provider 装配时在 bean 初始化幂等登记（`registerUsage` 幂等，**前置校验凭证存在且未软删（D6-03 修复后行为，本设计起草时"不校验存在性"的断言已过时——W16-impl 回写更正**；重复启动无副作用）；**登记失败 catch-all WARN 不阻断启动**（含 provider 前置校验抛错与 DB 异常）——登记是治理辅助而非安全边界（安全边界 = 运行时解析 fail-closed），审计行写入失败或 credentialId 配错不应杀死应用；渠道移除后的陈旧引用行由管理面人工清理（引用拦截按"该凭证仍被 config 侧引用"理解，可接受）。
+8. **引用计数**：`consumerRef = integration:<channelType>`（部署级单渠道，每渠道类型一条稳定引用；token 清单：`integration:tencent-sms` / `integration:yunpian-sms` / `integration:tencent-email` / `integration:smtp-email` / `integration:feishu-app` / `integration:oss-s3` / `integration:sftp-ssh`），credentialId 非空且 provider 装配时在 bean 初始化幂等登记（`registerUsage` 幂等，**前置校验凭证存在且未软删（D6-03 修复后行为，本设计起草时"不校验存在性"的断言已过时——W16-impl 回写更正**；重复启动无副作用；**feishu 家族偏差——W16-impl-ext 回写更正：`FeishuClient` bean 初始化期不持有 credentials（live 约束），该家族登记随 `FeishuClient.start` 期执行（真实可达），见 §八 W16-impl-ext 落地裁定**）；**登记失败 catch-all WARN 不阻断启动**（含 provider 前置校验抛错与 DB 异常）——登记是治理辅助而非安全边界（安全边界 = 运行时解析 fail-closed），审计行写入失败或 credentialId 配错不应杀死应用；渠道移除后的陈旧引用行由管理面人工清理（引用拦截按"该凭证仍被 config 侧引用"理解，可接受）。
 
 ### 4.2 候选对比与拒绝了什么
 
@@ -241,13 +241,13 @@
 
 | # | 条目 | Classification | Why Not Blocking | Successor |
 |---|---|---|---|---|
-| 1 | 飞书 token 刷新期凭证再解析（`ensureToken` 每次取新 appSecret，彻底轮换可见） | optimization candidate | start 期解析已消除配置明文（主目标）；token 刷新周期约 2h，轮换最迟一个 token 周期后经 connector 重启生效；刷新期再解析需 `FeishuClient` 持解析回调而非凭证值，改造面与收益不成比例 | W16-impl 可选增量 |
+| 1 | 飞书 token 刷新期凭证再解析（`ensureToken` 每次取新 appSecret，彻底轮换可见）。**W16-impl-ext 再裁定（2026-08-18）：维持 optimization candidate**——现行语义（刷新/重连用 start 期已捕获值）经显式测试钉死为 watch 锚点（`TestFeishuCredentialResolution.tokenRefreshUsesCapturedResolvedValues` / `reconnectUsesCapturedResolvedValues`） | optimization candidate | start 期解析已消除配置明文（主目标）；token 刷新周期约 2h，轮换最迟一个 token 周期后经 connector 重启生效；刷新期再解析需 `FeishuClient` 持解析回调而非凭证值，改造面与收益不成比例 | no（需求实证后按 optimization candidate 立项） |
 | 2 | OSS 客户端热重建（凭证轮换免重启） | optimization candidate | 存储密钥轮换低频且通常计划性停机执行；`@PostConstruct` 构造期解析 + 重启生效语义显式清晰 | no（痛点实证后并入） |
 | 3 | 集成配置 DB 实体 + Web 渠道管理面（候选 A 的完整形态） | out-of-scope improvement | 渠道配置运行期 CRUD 无需求实证；`credentialId` 配置路径已交付轮换/审计/禁用能力 | no（需求实证后新开设计） |
 | 4 | user 级凭证用于渠道/数据源（个人外部账号） | out-of-scope improvement | 渠道/数据源为部署级共享资产，消费含无用户上下文的后台链路（质量规则/定时同步），user 级 owner-唯一出口语义与之冲突 | no（需求实证后重开归属语义） |
 | 5 | 多环境密钥分离（dev/staging/prod 凭证命名空间） | out-of-scope improvement | 凭证库按部署实例隔离，环境分离=各环境各自凭证实例（现 naming 约定可承担）；平台级多环境编排非凭证库职责 | no |
-| 6 | 新类型的 `testCredential` 连通性实现（tencent-sms 真实发一条测试短信等） | optimization candidate | `testCredential` 一期对未实现类型显式返回 `success=false` + 描述（非静默）；metadata 侧 `testConnect` 已覆盖 jdbc 全链真实测试 | C1-hardening 同族可选项或 W16-impl |
-| 7 | `nop.integration.feishu.*` / `nop.integration.oss.*` 静态值强制 `@sec:`（启动校验拒绝明文） | watch-only residual | 强制化会破坏既有部署（明文合法形态）；feishu/oss 发送器接线在扩展批次落地前，静态值仍是**主路径**（非仅回退，#9 联动），明文暴露面在扩展批次前不因本设计收窄——诚实登记为观测项：审计部署配置 | no |
+| 6 | 新类型的 `testCredential` 连通性实现（tencent-sms 真实发一条测试短信等）。**W16-impl-ext 再裁定（2026-08-18）：再延 out-of-scope**——A1 adjudication §二#5 oauth2 同族先例（"探测语义需设计"）适用：新五类型的真实连通探测（发测试邮件/建 S3/SFTP 连接/飞书连通）每渠道需探测语义设计（配额消耗/真实消息副作用/超时与错误分类），超出迁移扩展批次范围 | optimization candidate（再延 out-of-scope） | `testCredential` 一期对未实现类型显式返回 `success=false` + 描述（非静默）——安全底线已覆盖；metadata 侧 `testConnect` 已覆盖 jdbc 全链真实测试（语义不可平移） | no（探测语义需求实证后立项） |
+| 7 | `nop.integration.feishu.*` / `nop.integration.oss.*` 静态值强制 `@sec:`（启动校验拒绝明文）。**W16-impl-ext 前提变化登记（2026-08-18）：扩展批次落地后静态值从主路径降为回退路径**（credentialId 优先，静态值仅 `credentialId` 清除后的回滚回退值），明文暴露面收窄；但并存窗口期明文仍为合法形态，强制化仍会破坏既有部署——维持 watch-only（审计部署配置），不实施启动校验 | watch-only residual | 强制化会破坏既有部署（明文合法形态）；扩展批次落地后静态值为回退路径（非主路径），暴露面已收窄但并存窗口明文合法——诚实登记为观测项：审计部署配置 | no |
 | 8 | 邮件家族首期接入 | 首期范围裁定（非缺陷） | 仓库内无 `IEmailSender` 运行时消费方（§3.2 核实；W15-impl 前无调用链可验证）；设计契约（类型 schema + 解析语义）已覆盖，接入为纯增量 | W15-impl 或 W16-impl 扩展批次 |
 | 9 | Feishu/OSS/SFTP 家族首期接入 | 首期范围裁定（非缺陷） | 三家族为部署级静态密钥、`@sec:` 基线保护在场；设计契约已覆盖全部家族，实现为同型扩展。**批次收口约束见 §八**（不得静默丢失） | W16-impl 扩展批次或 roadmap 显式新工作项 |
 | 10 | 飞书 ChannelConfig options 面的 credentialId 支持（`feishu.credentialId` option，经 `FeishuConnector.resolveCredentials` 生效） | out-of-scope improvement | options 面是 nop-ai-gateway 的 ChannelConfig 扩展点，引入凭证引用需网关侧解析配合（超出 integration 模块边界）；配置键面已提供 credentialId 唯一入口（§4.1 结论 7） | no（网关侧需求实证后并入） |
@@ -278,3 +278,19 @@
 - **发送器接线形态**：构造点抽 `protected createSender/createClient` seam（sendMessage/sendMultiMessage 双构造点全覆盖共用）；初始化登记经 `@PostConstruct`（NopIoC 支持，`DefaultCredentialTypeRegistry` 先例）。
 - **metadata 动作返回**：Map 摘要（`{migratedCount, skippedCount, failedCount, failures[]}`）——GraphQL 面为叶子选择语义（Map 返回类型不支持字段级 selection）。
 - **执行期偏离**：无语义偏离；形态定稿如上。
+
+### W16-impl-ext 落地裁定（2026-08-18 回写，扩展批次交付）
+
+- **批次**：扩展批次 = Email×2（tencent/smtp）+ Feishu + OSS + SFTP 五家族接线 + feishu/oss credentialId 配置键 + 五类型实例（tencent-email/smtp-email/feishu-app/oss-s3/sftp-ssh，§4.3 八类型全量落地）+ 五枚 consumerRef token。零凭证库侧改动、零 metadata 侧改动（共享解析支持/SPI 增量/横切契约均复用首批）。
+- **五家族接线形态定稿**（分层时序按 §4.1 结论 6）：
+  - Email×2 逐次发送期：`TencentEmailSender`（credentialId bean 属性 + `createClient(ResolvedCredential)` seam（原无参 `newClient()` 收敛））；`JavaEmailSender`/`MailConfig`（credentialId 持于 `MailConfig`——与 username/password 同属凭证字段；解析置于 `withTransport` 吞异常 try **之前**，fail-closed 的 `NopException` 穿透不进 catch；`connectTransport(ResolvedCredential)` seam；空=无认证语义保持）。
+  - Feishu start 期解析副本：`FeishuCredentials` 第五键 + `resolveEffectiveCredentials`（四字段整组、已解析副本、DataBean 装配形态不变）；ChannelConfig options 面负向语义钉死（`TestFeishuConnector.channelConfigOptionsCredentialIdIsIgnored`）。
+  - OSS 构造期：`OssFileServiceClientFactory.init` 一次解析（`createAwsCredentials` seam；enabled 门控零介入经容器级测试覆盖四态）。
+  - SFTP 逐次操作期：解析置于 `SftpClient.connect()` 的 `ERR_SFTP_CONNECT_FAIL` 包装点**之前**（错误码独立，`newJsch()` + `openConnection(ResolvedCredential)` seam 覆盖 addIdentity/getSession/setPassword 三消费点）。
+- **smtp-email 跨字段约束实现通道**："整凭证至少一字段非空"类型 schema 仅字段级无法表达（且本批次零凭证库侧改动）——解析侧 fail-closed 兜底：credentialId 路径下整组全空显式拒绝（`ERR_CREDENTIAL_FIELD_REQUIRED`，fieldName=username/password）。
+- **SFTP credentialId 持有形态**：持于 `SftpConfig`（与三凭证字段同置；host/port/keyPath 拓扑留置）；provider 持于 `SftpClientFactory`（`@PostConstruct` 登记 + 经 `newClient()` 传递给每次新建的 `SftpClient`——逐次操作期时序天然适配）。
+- **feishu 登记时序裁定（§4.1 结论 8 "bean 初始化"措辞的家族偏差）**：live 约束——`FeishuClient` 仅在 `start()` 经参数获得 credentials（bean 初始化期不可达），故 feishu 家族的 `registerUsage` 随 `FeishuClient.start` 期执行（与解析同时点，生产链路 FeishuConnector.start → client.start 真实可达；测试断言真实调用）。结论 8 的"bean 初始化幂等登记"语义在逐次消费/构造期家族成立，feishu 为登记时点的家族偏差（幂等与 catch-all WARN 语义不变）。
+- **OSS 配置键名实测结论（§4.1 结论 1 回写）**：`ioc:config-prefix` 缺省将属性名归一为 kebab-case（`credentialId` → `credential-id`），与结论 1 指定的 `nop.integration.oss.credentialId` 键名不符——经 `@ConfigField(name="credentialId")` 显式钉住 camelCase 键名后按设计键名生效（真实容器绑定测试证明：camelCase 新键绑定 + 既有 kebab 键并存绑定）。feishu 键经 `@InjectValue("@cfg:nop.integration.feishu.credentialId|")` 直接绑定（无归一化问题）。
+- **§七#1/#6/#7 再裁定**：#1 维持 optimization candidate（watch 锚点测试钉死现行语义）；#6 再延 out-of-scope（A1 adjudication §二#5 同族先例"探测语义需设计"）；#7 维持 watch-only + 前提变化登记（静态值降为回退路径）——详见 §七 表内标注。
+- **Email 消费链验证面**：W15-impl 后 `IEmailSender` 在 nop-auth-service 的 MFA 邮件码发码链为 Email 家族端到端验证面（`TestJavaEmailSenderMfaE2E`：credential 行 → 解析 → Transport 构造点 → `bindMfa(email)`/`sendMfaCode` 真实发码路径消费 + fail-closed 负例贯穿发码链）。
+- **执行期偏离**：无语义偏离；形态定稿如上（fail-closed 两处落点风险（withTransport 吞异常/SftpClient 包装）均以"解析先于 try/包装点"兑现）。

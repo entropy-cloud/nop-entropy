@@ -1,6 +1,6 @@
 # W16-impl-ext 深度迁移扩展批次（Email×2/Feishu/OSS/SFTP 发送器 credentialId 接线 + feishu/oss 配置键 + 五类型实例）
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: nop-credential-mfa
 > Work Item: W16-impl-ext（深度迁移扩展批次）——迁移二期组，依赖 W16-impl done + W15-impl done（均已 done；email 消费链成立后验证面完整）
 > Last Reviewed: 2026-08-18
@@ -73,122 +73,153 @@
 
 ### Phase 1 - Email 家族接线 + 五类型实例 + consumerRef token
 
-Status: planned
+Status: completed
 Targets: `nop-integration/nop-integration-email-tencent/`、`nop-integration/nop-integration-email-java/`、`nop-credential/nop-credential-service/src/main/resources/_vfs/nop/credential/types/`
 
 - Item Types: `Fix | Proof`
 
-- [ ] **Fix**：`tencent-email` / `smtp-email` 凭证类型实例文件（§4.3 字段 schema：必填性/敏感性/tagSet 逐字段对齐首批三实例文件形态）。
-- [ ] **Fix**：`TencentEmailSender` credentialId 属性 + 逐次发送期解析（优先级链经 `CredentialResolutionSupport` 单点语义；client 构造点抽 protected seam 覆盖全部构造路径，同首批 `createSender` 先例）+ `@PostConstruct` 幂等登记 `integration:tencent-email`（catch-all WARN）。
-- [ ] **Fix**：JavaEmailSender/MailConfig 家族 credentialId 接线（逐次发送建 Transport 期解析 username/password 整组；空=无认证语义保持；"整凭证至少一字段非空"跨字段约束——类型 schema 仅字段级无法表达且本 plan 零凭证库侧改动，故实现通道裁定为解析侧 fail-closed 兜底（整组全空显式拒绝），裁定记录于本 plan）+ 幂等登记 `integration:smtp-email`。**fail-closed 落点注意（live 核对）**：`JavaEmailSender.withTransport` 捕获 `Exception` 仅 LOG.error 后返回——解析必须在该 try 之前执行或使 `NopException` 穿透不被吞，否则 fail-closed 退化为静默失败（MFA 链误信已发码）；负例测试断言抛出异常而非日志。
-- [ ] **Proof**：Email 家族组件测试——三态优先级链（credentialId 空/有效/失效）、fail-closed 矩阵（provider 未装配/缺失/软删/secretKey 必填空/错型/转换失败逐例显式抛错不回退）、静态路径零回归、登记幂等 + WARN 不阻断（含 email 两模块 pom 测试依赖补齐——live 无 `src/test` 基建，参照 feishu 模块先例；Phase 2 oss / Phase 3 sftp 同口径继承）。
+- [x] **Fix**：`tencent-email` / `smtp-email` 凭证类型实例文件（§4.3 字段 schema：必填性/敏感性/tagSet 逐字段对齐首批三实例文件形态）。（落盘：`tencent-email.credential-type.xml`（secretId 必填非敏感/secretKey 必填敏感/region 必填非敏感）+ `smtp-email.credential-type.xml`（username 可空非敏感/password 可空敏感），`TestDefaultCredentialTypeRegistry` init 扫描加载通过）
+- [x] **Fix**：`TencentEmailSender` credentialId 属性 + 逐次发送期解析（优先级链经 `CredentialResolutionSupport` 单点语义；client 构造点抽 protected seam 覆盖全部构造路径，同首批 `createSender` 先例）+ `@PostConstruct` 幂等登记 `integration:tencent-email`（catch-all WARN）。（落地：`ResolvedCredential` 组（secretId/secretKey/region）+ 包可见 `resolveCredential()` + `protected createClient(ResolvedCredential)` seam（原 `newClient()` 无参构造点改携带解析组——单构造点 sendEmail 覆盖）+ `@Inject @Nullable ICredentialProvider`）
+- [x] **Fix**：JavaEmailSender/MailConfig 家族 credentialId 接线（逐次发送建 Transport 期解析 username/password 整组；空=无认证语义保持；"整凭证至少一字段非空"跨字段约束——类型 schema 仅字段级无法表达且本 plan 零凭证库侧改动，故实现通道裁定为解析侧 fail-closed 兜底（整组全空显式拒绝），裁定记录于本 plan）+ 幂等登记 `integration:smtp-email`。**fail-closed 落点注意（live 核对）**：`JavaEmailSender.withTransport` 捕获 `Exception` 仅 LOG.error 后返回——解析必须在该 try 之前执行或使 `NopException` 穿透不被吞，否则 fail-closed 退化为静默失败（MFA 链误信已发码）；负例测试断言抛出异常而非日志。（落地：credentialId 持于 `MailConfig`（与 username/password 同属凭证字段）；解析置于 `withTransport` try 之前——专项用例 `resolutionFailurePropagatesOutOfWithTransportNotSwallowedAsLog` 断言穿透；跨字段兜底抛 `ERR_CREDENTIAL_FIELD_REQUIRED`（fieldName=username/password）；`connectTransport(ResolvedCredential)` seam 化）
+- [x] **Proof**：Email 家族组件测试——三态优先级链（credentialId 空/有效/失效）、fail-closed 矩阵（provider 未装配/缺失/软删/secretKey 必填空/错型/转换失败逐例显式抛错不回退）、静态路径零回归、登记幂等 + WARN 不阻断（含 email 两模块 pom 测试依赖补齐——live 无 `src/test` 基建，参照 feishu 模块先例；Phase 2 oss / Phase 3 sftp 同口径继承）。（落地：`TestTencentEmailSenderCredential` 11 用例 + `TestJavaEmailSenderCredential` 16 用例，全绿；两模块 pom 补 `junit-jupiter` test 依赖）
 
 Exit Criteria:
 
-- [ ] 两类型实例文件落盘；typeList 可见性断言（动态表单 schema）随 Phase 3 nop-credential-service 测试门执行（Phase 1 只负责文件落盘，该验证点显式后移至 nop-credential-service 测试面）。
-- [ ] 两发送器 credentialId 路径全链可用：组件测试证明解析后的凭证组真实到达 client/Transport 构造（**接线验证**，Minimum Rules #23——mock provider 断言解析值被消费，非仅存在性）。
-- [ ] **无静默跳过**：所有 fail-closed 分支抛 `NopException`（`IntegrationErrors` 码），无吞异常/空方法体（Minimum Rules #24）。
-- [ ] 静态路径既有测试零回归（两 email 模块既有测试全绿，既有断言零修改）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 两类型实例文件落盘；typeList 可见性断言（动态表单 schema）随 Phase 3 nop-credential-service 测试门执行（Phase 1 只负责文件落盘，该验证点显式后移至 nop-credential-service 测试面）。
+- [x] 两发送器 credentialId 路径全链可用：组件测试证明解析后的凭证组真实到达 client/Transport 构造（**接线验证**，Minimum Rules #23——mock provider 断言解析值被消费，非仅存在性）。（`sendEmailEntryUsesResolvedCredentialGroup`（SendEmail 于解析组构造的 client 上调用）×2 + `sendEmailEntryUsesResolvedCredentialAndTransportConsumesIt`（sendMessage 消费））
+- [x] **无静默跳过**：所有 fail-closed 分支抛 `NopException`（`IntegrationErrors` 码），无吞异常/空方法体（Minimum Rules #24）。（专项：`resolutionFailurePropagatesOutOfWithTransportNotSwallowedAsLog`）
+- [x] 静态路径既有测试零回归（两 email 模块既有测试全绿，既有断言零修改）。（两模块此前零 test 基建——`staticPathSendEmailReachesTransportWithStaticValues` / `blankCredentialIdUsesStaticValuesWithoutProviderCall` 钉死现状行为；模块全量 16+11 绿）
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 2 - config-bound 家族：Feishu start 期 + OSS 构造期
 
-Status: planned
+Status: completed
 Targets: `nop-integration/nop-integration-feishu/`、`nop-integration/nop-integration-oss/`
 
 - Item Types: `Fix | Proof`
 
-- [ ] **Fix**：`feishu-app` / `oss-s3` 凭证类型实例文件（§4.3 schema）。
-- [ ] **Fix**：Feishu 接线——`FeishuCredentials` 新增 credentialId 字段（`@InjectValue("@cfg:nop.integration.feishu.credentialId|")` 与现有四键同型，空串缺省）；`FeishuClient.start` 期 credentialId 非空 → 经 provider 解析四字段整组并构建**已解析副本**供 client 持有（原 DataBean `@InjectValue` 装配形态不变；同名静态值忽略）+ 幂等登记 `integration:feishu-app`——**登记载体执行期定稿（live 约束）**：`FeishuClient` 仅在 `start()` 经参数获得 credentials（bean 初始化期不可达），候选载体为 `FeishuClient.start` 期（与解析同时点，credentialId 随 credentials 到手）或 `FeishuCredentials` 初始化期（配置注入后可见 credentialId）；硬约束：登记路径在持有 credentialId 值的时点**真实可达** + 测试断言 `registerUsage` 真实调用/usage 行存在——不得落成结构性不可达的空登记（Minimum Rules #23/#24）。ChannelConfig options 面不引入 credentialId（§4.1 结论 7——负向语义随测试钉死）。
-- [ ] **Fix**：OSS 接线——`OssConfig` 新增 credentialId 属性（`ioc:config-prefix` 自动绑定 `nop.integration.oss.credentialId`）；`OssFileServiceClientFactory` `@PostConstruct` 构造期解析 accessKey/secretKey 整组（一次消费，客户端缓存语义不变；消费点为 `BasicAWSCredentials` 构造——抽 protected seam 同首批 `createSender` 先例）+ 幂等登记 `integration:oss-s3`（enabled 门控下零介入保持——未启用时无登记无解析）。
-- [ ] **Proof**：config-bound 家族测试——Feishu start 期副本整组覆盖（四字段逐一断言）/ 静态路径零回归（credentialId 空 = 现状：四键直用）/ token 刷新与重连使用已捕获值（若 Phase 3 裁定 #1 维持 deferred，则该语义以显式测试钉死，作为 deferred 的 watch 锚点）；OSS 构造期一次解析 + enabled=false 门控零介入 + 静态零回归；两家族 fail-closed 矩阵与登记幂等 WARN 同 Phase 1 口径。
+- [x] **Fix**：`feishu-app` / `oss-s3` 凭证类型实例文件（§4.3 schema）。（落盘：`feishu-app.credential-type.xml`（appId 必填非敏感/appSecret 必填敏感/verificationToken+encryptKey 可空敏感）+ `oss-s3.credential-type.xml`（accessKey 必填非敏感/secretKey 必填敏感））
+- [x] **Fix**：Feishu 接线——`FeishuCredentials` 新增 credentialId 字段（`@InjectValue("@cfg:nop.integration.feishu.credentialId|")` 与现有四键同型，空串缺省）；`FeishuClient.start` 期 credentialId 非空 → 经 provider 解析四字段整组并构建**已解析副本**供 client 持有（原 DataBean `@InjectValue` 装配形态不变；同名静态值忽略）+ 幂等登记 `integration:feishu-app`——**登记载体执行期定稿（live 约束）**：`FeishuClient` 仅在 `start()` 经参数获得 credentials（bean 初始化期不可达），候选载体为 `FeishuClient.start` 期（与解析同时点，credentialId 随 credentials 到手）或 `FeishuCredentials` 初始化期（配置注入后可见 credentialId）；硬约束：登记路径在持有 credentialId 值的时点**真实可达** + 测试断言 `registerUsage` 真实调用/usage 行存在——不得落成结构性不可达的空登记（Minimum Rules #23/#24）。ChannelConfig options 面不引入 credentialId（§4.1 结论 7——负向语义随测试钉死）。（**裁定：登记载体 = `FeishuClient.start` 期**（与解析同时点；生产链路 FeishuConnector.start → client.start 真实可达）；测试 `registerUsageAtStartWhenCredentialConfigured`/`registerUsageProviderValidationErrorDoesNotBlockStart` 断言真实调用；options 面负向测试落 nop-ai-gateway `TestFeishuConnector.channelConfigOptionsCredentialIdIsIgnored`）
+- [x] **Fix**：OSS 接线——`OssConfig` 新增 credentialId 属性（`ioc:config-prefix` 自动绑定 `nop.integration.oss.credentialId`）；`OssFileServiceClientFactory` `@PostConstruct` 构造期解析 accessKey/secretKey 整组（一次消费，客户端缓存语义不变；消费点为 `BasicAWSCredentials` 构造——抽 protected seam 同首批 `createSender` 先例）+ 幂等登记 `integration:oss-s3`（enabled 门控下零介入保持——未启用时无登记无解析）。（落地：`@ConfigField(name="credentialId")` 钉住 camelCase 键名；`createAwsCredentials(accessKey, secretKey)` seam；**键名实测结论**：config-prefix 缺省归一为 kebab-case `credential-id`，经 `@ConfigField` 显式指定后 `nop.integration.oss.credentialId` 生效——容器级真实绑定测试证明，回写设计 §4.1 结论 1 见 Phase 4）
+- [x] **Proof**：config-bound 家族测试——Feishu start 期副本整组覆盖（四字段逐一断言）/ 静态路径零回归（credentialId 空 = 现状：四键直用）/ token 刷新与重连使用已捕获值（若 Phase 3 裁定 #1 维持 deferred，则该语义以显式测试钉死，作为 deferred 的 watch 锚点）；OSS 构造期一次解析 + enabled=false 门控零介入 + 静态零回归；两家族 fail-closed 矩阵与登记幂等 WARN 同 Phase 1 口径。（落地：`TestFeishuCredentialResolution` 17 用例（含 `tokenRefreshUsesCapturedResolvedValues`/`reconnectUsesCapturedResolvedValues` watch 锚点）+ `TestFeishuCredentialIdBinding` 2 用例（真实容器装载生产 feishu-defaults.beans.xml）+ `TestOssFileServiceClientFactoryCredential` 10 用例 + `TestOssConfigCredentialBinding` 5 用例（真实容器装载 ioc:config-prefix 夹具 + 生产 oss-defaults.beans.xml 门控四态）；feishu/oss 模块 pom 补 nop-ioc test 依赖、oss 补 junit）
 
 Exit Criteria:
 
-- [ ] 两类型实例文件落盘；两配置键经**真实绑定测试**证明生效（live 核对提示：既有 OSS 配置键为 kebab-case 形态（`nop.integration.oss.access-key`），`credentialId` 键名能否经 config-prefix 归一化绑定须以测试实证——若需调整键名以实测为准，并回写设计 §4.1 结论 1 与 Phase 4 配置键表；防"配置键静默不生效→静默回退静态值"路径）。
-- [ ] Feishu 解析副本语义成立：start 期整组覆盖 + DataBean 装配形态不变（**接线验证**：解析值真实到达 `getStreamEndpoint`/`ensureToken` 消费点）。
-- [ ] OSS 构造期解析语义成立（**接线验证**：解析值真实到达 `BasicAWSCredentials` 构造）；`nop.integration.oss.enabled` 门控下零介入。
-- [ ] 静态路径既有测试零回归（feishu/oss 模块既有测试全绿）。
-- [ ] **无静默跳过**：fail-closed 分支全部显式抛错。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 两类型实例文件落盘；两配置键经**真实绑定测试**证明生效（live 核对提示：既有 OSS 配置键为 kebab-case 形态（`nop.integration.oss.access-key`），`credentialId` 键名能否经 config-prefix 归一化绑定须以测试实证——若需调整键名以实测为准，并回写设计 §4.1 结论 1 与 Phase 4 配置键表；防"配置键静默不生效→静默回退静态值"路径）。（**实测结论**：config-prefix 缺省归一为 kebab-case `credential-id`——经 `@ConfigField(name="credentialId")` 显式钉住后设计键名 `nop.integration.oss.credentialId` 生效；`TestOssConfigCredentialBinding.credentialIdKeyBindsViaConfigPrefixAndFactoryConsumesAtConstructTime` 真实容器证明（含既有 kebab 键并存绑定断言）；feishu 键经 `TestFeishuCredentialIdBinding` 真实容器装载生产 defaults 文件证明；设计回写归 Phase 4）
+- [x] Feishu 解析副本语义成立：start 期整组覆盖 + DataBean 装配形态不变（**接线验证**：解析值真实到达 `getStreamEndpoint`/`ensureToken` 消费点）。（`startPassesResolvedGroupToStreamEndpointAndHandshake`/`tokenRefreshUsesCapturedResolvedValues`/`reconnectUsesCapturedResolvedValues`）
+- [x] OSS 构造期解析语义成立（**接线验证**：解析值真实到达 `BasicAWSCredentials` 构造）；`nop.integration.oss.enabled` 门控下零介入。（`validCredentialOverridesStaticValuesAsGroupAtConstructTime`；门控四态容器用例（enabled 缺省→bean 缺席零调用/enabled=true 静态零介入/enabled=true 配错 fail-closed））
+- [x] 静态路径既有测试零回归（feishu/oss 模块既有测试全绿）。（feishu 既有 25 用例全绿（TestFeishuClient 10 + BindProvider 7 + PbCodec 8，断言零修改——fakes 仅增量记录字段）；oss 此前零 test 基建）
+- [x] **无静默跳过**：fail-closed 分支全部显式抛错。（两家族 fail-closed 矩阵用例在案：provider 未装配/解析失败/错型/必填空）
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 3 - SFTP 逐次操作期 + 路由裁定收口 + 全家族回归
 
-Status: planned
+Status: completed
 Targets: `nop-integration/nop-integration-sftp/`、`ai-dev/design/nop-credential/03-integration-metadata-migration-design.md`、测试树
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] **Fix**：`sftp-ssh` 凭证类型实例文件（§4.3 schema：三字段均可空）。
-- [ ] **Fix**：SFTP 接线——credentialId 属性（SftpConfig 或发送侧持有，形态执行期定稿：逐次操作期解析 username/password/passphrase 整组，`SftpClientFactory.newClient` 每次新建的时序天然适配；jsch 消费点 addIdentity/getSession/setPassword——抽 protected seam 覆盖，同首批先例）+ 幂等登记 `integration:sftp-ssh`；公钥无口令场景（password/passphrase 均空）合法语义保持。**fail-closed 落点注意（live 核对）**：`SftpClient.connect` 将 `Exception` 统一包装为 `ERR_SFTP_CONNECT_FAIL`——解析须在包装点之前独立失败以保留 `IntegrationErrors` 码语义；负例测试断言抛出的错误码而非包装后码。
-- [ ] **Decision**：设计 §七#1（飞书 token 刷新期再解析）裁定：纳入本 plan 或维持 optimization candidate（默认倾向维持——设计理由在案：start 期解析已消除配置明文主目标，刷新期再解析改造面与收益不成比例；若维持，Phase 2 的"已捕获值"测试即为 watch 锚点）。裁定 + 理由待 Phase 4 回写设计。
-- [ ] **Decision**：设计 §七#6（新类型 testCredential 连通性）归属裁定：本 plan 实施 / 再延 out-of-scope（对照 A1 adjudication §二#5 oauth2 同族先例："探测语义需设计"） / successor 登记。裁定 + 理由待 Phase 4 回写设计。
-- [ ] **Decision**：设计 §七#7（feishu/oss 静态值 @sec: watch-only）前提变化登记：扩展批次落地后静态值从主路径降为回退路径，watch 项状态更新回写设计（不实施强制化）。
-- [ ] **Proof**：SFTP 组件测试（同 Phase 1 口径：三态/fail-closed 矩阵/静态零回归/登记幂等；**接线验证**：解析值真实到达 jsch addIdentity/getSession/setPassword 消费点）+ 全家族回归汇总（五家族 fail-closed 矩阵统一跑齐 + nop-integration 全模块既有测试绿）。
+- [x] **Fix**：`sftp-ssh` 凭证类型实例文件（§4.3 schema：三字段均可空）。（落盘：username 可空非敏感 + password/passphrase 可空敏感；typeList 可见性与字段 schema 断言落 `TestDefaultCredentialTypeRegistry` 6 新用例（含 W16 八类型全量可见））
+- [x] **Fix**：SFTP 接线——credentialId 属性（SftpConfig 或发送侧持有，形态执行期定稿：逐次操作期解析 username/password/passphrase 整组，`SftpClientFactory.newClient` 每次新建的时序天然适配；jsch 消费点 addIdentity/getSession/setPassword——抽 protected seam 覆盖，同首批先例）+ 幂等登记 `integration:sftp-ssh`；公钥无口令场景（password/passphrase 均空）合法语义保持。**fail-closed 落点注意（live 核对）**：`SftpClient.connect` 将 `Exception` 统一包装为 `ERR_SFTP_CONNECT_FAIL`——解析须在包装点之前独立失败以保留 `IntegrationErrors` 码语义；负例测试断言抛出的错误码而非包装后码。（落地：**credentialId 持于 `SftpConfig`**（与三凭证字段同置，host/port/keyPath 拓扑留置）；`SftpClientFactory` 持 `@Nullable ICredentialProvider` 经 `newClient()` 传递（`SftpClient(SftpConfig, ICredentialProvider)` 包可见重载，旧构造委托 null）；解析置于 `connect()` try 之前——专项用例 `failedResolutionFailsClosedWithoutFallbackAndKeepsErrorCode` 断言码独立；seam = `newJsch()` + `openConnection(ResolvedCredential)`（三消费点集中）；jsch 级接线用例 `resolvedValuesReachRealJschIdentityAndSessionConsumptionPoints`（真实 JSch 离线消费 + 传输层包装码分界断言））
+- [x] **Decision**：设计 §七#1（飞书 token 刷新期再解析）裁定：纳入本 plan 或维持 optimization candidate（默认倾向维持——设计理由在案：start 期解析已消除配置明文主目标，刷新期再解析改造面与收益不成比例；若维持，Phase 2 的"已捕获值"测试即为 watch 锚点）。裁定 + 理由待 Phase 4 回写设计。（**裁定：维持 optimization candidate（deferred）**——start 期解析已消除配置明文主目标；刷新期再解析需 FeishuClient 持解析回调而非凭证值，改造面与收益不成比例（设计理由在案）；Phase 2 watch 锚点测试钉死现行语义：`tokenRefreshUsesCapturedResolvedValues` + `reconnectUsesCapturedResolvedValues`（断言刷新/重连不经 provider 再解析）。Successor：无独立 successor——后续需求实证后按 optimization candidate 立项）
+- [x] **Decision**：设计 §七#6（新类型 testCredential 连通性）归属裁定：本 plan 实施 / 再延 out-of-scope（对照 A1 adjudication §二#5 oauth2 同族先例："探测语义需设计"） / successor 登记。裁定 + 理由待 Phase 4 回写设计。（**裁定：再延 out-of-scope**——A1 adjudication §二#5 oauth2 同族先例（"探测语义需设计"）适用：新五类型的真实连通探测（发测试邮件/建 S3/SFTP 连接/飞书连通）每渠道需探测语义设计（配额消耗/真实消息副作用/超时与错误分类），超出迁移扩展批次范围；一期 `testCredential` 对未实现类型显式返回 success=false + 描述（非静默）已覆盖安全底线。Successor：no（探测语义需求实证后立项））
+- [x] **Decision**：设计 §七#7（feishu/oss 静态值 @sec: watch-only）前提变化登记：扩展批次落地后静态值从主路径降为回退路径，watch 项状态更新回写设计（不实施强制化）。（**裁定：维持 watch-only，前提变化登记**——本 plan 落地后 feishu/oss 静态值从主路径降为回退路径（credentialId 优先，静态值仅回滚回退值），明文暴露面收窄但并存窗口期明文仍为合法形态，启动强制校验仍会破坏既有部署；watch 项 Why-Not-Blocking 前提更新随 Phase 4 回写设计 §七#7 行，不实施强制化）
+- [x] **Proof**：SFTP 组件测试（同 Phase 1 口径：三态/fail-closed 矩阵/静态零回归/登记幂等；**接线验证**：解析值真实到达 jsch addIdentity/getSession/setPassword 消费点）+ 全家族回归汇总（五家族 fail-closed 矩阵统一跑齐 + nop-integration 全模块既有测试绿）。（落地：`TestSftpClientCredential` 12 用例；全家族回归：七模块门 BUILD SUCCESS（email-tencent 11/email-java 16/feishu 44/oss 15/sftp 12/credential-service 215/auth-service 360）+ nop-integration 11 子模块全绿；中间一次 run 命中已登记 pre-existing rocksdb benchmark flake（-am 传递依赖、非 mission 模块）——按在案口径单模块复跑绿（ratio 0.878 < guard 2.0），整门复跑全绿）
 
 Exit Criteria:
 
-- [ ] SFTP 接线全链可用 + 静态路径零回归。
-- [ ] 三项裁定（#1/#6/#7）全部有结论与理由（记录于本 plan，Phase 4 回写设计）。
-- [ ] 五家族 fail-closed 矩阵测试全绿（每家族负例齐备，无静默回退路径）。
-- [ ] `./mvnw test -pl :nop-integration-email-tencent,:nop-integration-email-java,:nop-integration-feishu,:nop-integration-oss,:nop-integration-sftp,:nop-credential-service,:nop-auth-service -am` 绿（首五者为接线模块回归；nop-credential-service 覆盖 typeList/类型实例面 + Phase 1 后移的动态表单 schema 断言——注意 `:nop-credential` 为聚合器 pom（packaging=pom），`-pl` 不展开子模块、`-am` 只带上行依赖，必须显式选 service 子模块否则该门空转；nop-auth-service 覆盖 Email MFA 发码链 E2E——E2E 落点模块必须显式列入，否则 Minimum Rules #22 端到端验证无执行门）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] SFTP 接线全链可用 + 静态路径零回归。（12 用例；sftp 模块此前零 test 基建，静态路径现状行为经 `blankCredentialIdUsesStaticValuesWithoutProviderCall`/`publicKeyWithoutPassphraseScenarioStaysLegal` 钉死）
+- [x] 三项裁定（#1/#6/#7）全部有结论与理由（记录于本 plan，Phase 4 回写设计）。（#1 维持 optimization candidate + watch 锚点测试在案；#6 再延 out-of-scope（A1 #5 同族先例）；#7 维持 watch-only + 前提变化登记回写）
+- [x] 五家族 fail-closed 矩阵测试全绿（每家族负例齐备，无静默回退路径）。（email-tencent/email-java/feishu/oss/sftp 五模块 fail-closed 矩阵用例统一绿）
+- [x] `./mvnw test -pl :nop-integration-email-tencent,:nop-integration-email-java,:nop-integration-feishu,:nop-integration-oss,:nop-integration-sftp,:nop-credential-service,:nop-auth-service -am` 绿（首五者为接线模块回归；nop-credential-service 覆盖 typeList/类型实例面 + Phase 1 后移的动态表单 schema 断言——注意 `:nop-credential` 为聚合器 pom（packaging=pom），`-pl` 不展开子模块、`-am` 只带上行依赖，必须显式选 service 子模块否则该门空转；nop-auth-service 覆盖 Email MFA 发码链 E2E——E2E 落点模块必须显式列入，否则 Minimum Rules #22 端到端验证无执行门）。（BUILD SUCCESS（`_tmp/gate-p3-seven-modules-r2.log`）；首 run 命中已登记 pre-existing rocksdb benchmark flake（非本 plan 模块，-am 传递），按在案口径单模块复跑绿 + 整门复跑全绿；credential-service 215 含 `TestDefaultCredentialTypeRegistry` 16（+6 新：八类型全量可见 + 五新类型字段 schema 逐一对齐）；auth-service 360 为 W15/A2 基线零回归——Email MFA credentialId E2E 属 Phase 4 交付物，随 Phase 4 后的收口门重跑覆盖）
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 4 - 文档同步与收口
 
-Status: planned
+Status: completed
 Targets: `docs-for-ai/03-modules/nop-credential.md`、`ai-dev/design/nop-credential/03-integration-metadata-migration-design.md`、`nop-auth/nop-auth-service`（MFA 发码链 E2E 用例落点——与 `TestEmailMfaE2E`/`CapturingEmailSender`/`app-test.beans.xml` 同基建）、roadmap、`ai-dev/logs/`
 
 - Item Types: `Proof | Follow-up`
 
-- [ ] **Follow-up**：`docs-for-ai/03-modules/nop-credential.md` 深度迁移章节扩展：runbook 覆盖五新家族（设 credentialId 属性/配置键 → 验证 → 清除静态密钥；回滚 = 引用级清除）+ 类型清单 8 类型全量 + feishu/oss 配置键表 + email 消费链验证面说明（MFA 邮件码链）。
-- [ ] **Proof**：Email 家族 MFA 发码链 E2E：credentialId 凭证经 `IEmailSender` 真实消费方（`LoginServiceImpl`/`NopAuthUserBizModel` 发码路径）的端到端用例（**端到端验证**，Minimum Rules #22——从凭证库行到发码消费的完整路径；用例落 nop-auth-service 测试树，随 Phase 3 七模块测试门执行）。
-- [ ] **Follow-up**：设计 03 号文回写：新增"W16-impl-ext 落地裁定"小节（五家族接线形态定稿 + smtp-email 跨字段约束实现通道 + SFTP credentialId 持有形态 + feishu 登记时序裁定对设计 §4.1 结论 8"bean 初始化"措辞的家族偏差 + OSS 配置键名实测结论（结论 1 回写，若调整））+ §七#1/#6/#7 再裁定标注。回写须先于 Closure Gate"语义符合设计 §4.1 结论 1/2/6/7/8"核对完成（Phase 顺序已保证）。
-- [ ] **Follow-up**：roadmap W16-impl-ext 收口（`done` 判定交由本 plan closure audit）+ `docs-for-ai/INDEX.md`/`source-anchors.md`（若锚点变化）。
+- [x] **Follow-up**：`docs-for-ai/03-modules/nop-credential.md` 深度迁移章节扩展：runbook 覆盖五新家族（设 credentialId 属性/配置键 → 验证 → 清除静态密钥；回滚 = 引用级清除）+ 类型清单 8 类型全量 + feishu/oss 配置键表 + email 消费链验证面说明（MFA 邮件码链）。（落地：章节扩展——类型清单表（八类型全量字段 schema）+ "家族接线形态"（分层时序 + 各家族消费点 seam + 登记语义）+ credentialId 配置键表（含 @ConfigField camelCase 钉住说明）+ Email 消费链验证面节 + runbook 步骤 2 分家族细化 + consumerRef 七 token 全清单 + 并存窗口复核提示；`source-anchors.md` 新增 `CRED-007`（扩展批次消费链全锚点）；INDEX.md 路由无变化无需更新）
+- [x] **Proof**：Email 家族 MFA 发码链 E2E：credentialId 凭证经 `IEmailSender` 真实消费方（`LoginServiceImpl`/`NopAuthUserBizModel` 发码路径）的端到端用例（**端到端验证**，Minimum Rules #22——从凭证库行到发码消费的完整路径；用例落 nop-auth-service 测试树，随 Phase 3 七模块测试门执行）。（落地：`TestJavaEmailSenderMfaE2E` 3 用例（包位置 io.nop.integration.email.java 访问 seam，同 TestTencentSmsSenderCredential 同包先例）——`testBindMfaEmailConsumesCredentialResolvedGroup`（bindMfa 发码 → 解析组到达 Transport 构造点 + 真实 MimeMessage 收件人/验证码 + usage 登记）/`testLoginChallengeSendMfaCodeConsumesCredentialResolvedGroup`（LoginServiceImpl.sendMfaCode email 分派 + 惰性证明（init 零解析））/`testResolutionFailureFailsClosedThroughSendChain`（fail-closed 贯穿真实发码链，NopException 穿透不误信已发码）；nop-auth-service pom 补 nop-integration-email-java test 依赖）
+- [x] **Follow-up**：设计 03 号文回写：新增"W16-impl-ext 落地裁定"小节（五家族接线形态定稿 + smtp-email 跨字段约束实现通道 + SFTP credentialId 持有形态 + feishu 登记时序裁定对设计 §4.1 结论 8"bean 初始化"措辞的家族偏差 + OSS 配置键名实测结论（结论 1 回写，若调整））+ §七#1/#6/#7 再裁定标注。回写须先于 Closure Gate"语义符合设计 §4.1 结论 1/2/6/7/8"核对完成（Phase 顺序已保证）。（落地：§八新增"W16-impl-ext 落地裁定（2026-08-18 回写，扩展批次交付）"十要点小节；§七表 #1/#6/#7 三行内联再裁定标注；§4.1 结论 1 键名绑定机制注记 + 结论 8 feishu 家族偏差内联更正）
+- [x] **Follow-up**：roadmap W16-impl-ext 收口（`done` 判定交由本 plan closure audit）+ `docs-for-ai/INDEX.md`/`source-anchors.md`（若锚点变化）。（source-anchors `CRED-007` 已落；INDEX 路由无变化；roadmap `done` 标记随 closure audit 后收口（本 plan Phase 4 执行时点先登记，最终判定以 Closure 段证据为准——见 Closure Gates））
 
 Exit Criteria:
 
-- [ ] owner docs / 设计 / roadmap / logs 四侧同步完成（或显式记录 No owner-doc update required 的具体条目）。
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] owner docs / 设计 / roadmap / logs 四侧同步完成（或显式记录 No owner-doc update required 的具体条目）。（nop-credential.md 章节扩展 + source-anchors CRED-007 + 设计 03 号文（W16-impl-ext 落地裁定节 + §七三行再裁定 + 结论 1/8 内联注记）+ roadmap done 标记随 closure audit + logs 见对应日期条目；INDEX.md 无路由变化）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。
 
-- [ ] 五家族接线全落地且语义符合设计 §4.1 结论 1/2/6/7/8 + §4.3 解析契约三条（整组生效/必填缺失 fail-closed/错型拒绝/转换失败 fail-closed）。
-- [ ] fail-closed 全路径显式失败：每家族 provider 未装配/凭证缺失/软删/必填空/错型/转换失败负例测试在案，无任何静默回退静态值路径。
-- [ ] 静态路径零回归：五厂商模块 + nop-integration 既有测试全绿，既有断言零修改。
-- [ ] **接线验证（Minimum Rules #23）**：五家族解析值真实到达各自消费点（client/Transport/getStreamEndpoint/BasicAWSCredentials/jsch），Email 家族另经 MFA 发码链端到端（Minimum Rules #22）。
-- [ ] 五类型实例文件落 `_vfs/nop/credential/types/` 且 typeList 可见（设计 §4.3 八类型清单全量落地）。
-- [ ] 五枚 consumerRef token 幂等登记 + 失败 WARN 不阻断启动（每家族测试在案）。
-- [ ] 路由裁定（§七#1/#6/#7 + W16-impl Follow-up 归属指引）全部落盘，无悬挂。
-- [ ] owner docs（nop-credential.md）/设计 03 号文/roadmap 同步到 live baseline。
-- [ ] `./mvnw test` 覆盖面绿（Phase 3 列出的七模块 `-am`（含 `:nop-auth-service` E2E 执行门），不带 `-T 1C`，规避已登记 reactor 顺序 flake；pre-existing flake 按在案口径单独复核并声明）。
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-integration --severity high` 0 NEW（对照 W16-impl closure 基线）。
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0。
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0。
-- [ ] checkstyle / 代码规范检查通过（五个接线厂商模块）。
-- [ ] 独立子 agent closure-audit 已完成并记录证据（含 Anti-Hollow：五家族调用链运行时连通 + 无空方法体/静默跳过）。
+- [x] 五家族接线全落地且语义符合设计 §4.1 结论 1/2/6/7/8 + §4.3 解析契约三条（整组生效/必填缺失 fail-closed/错型拒绝/转换失败 fail-closed）。（closure audit 区域 2-6 全 PASS：Email×2 逐次发送期/Feishu start 期解析副本/OSS 构造期/SFTP 逐次操作期；结论 1 键名注记 + 结论 8 feishu 家族偏差已回写）
+- [x] fail-closed 全路径显式失败：每家族 provider 未装配/凭证缺失/软删/必填空/错型/转换失败负例测试在案，无任何静默回退静态值路径。（五模块 fail-closed 矩阵统一绿；两处吞异常落点专项用例（withTransport 穿透/SftpClient 码独立）在案）
+- [x] 静态路径零回归：五厂商模块 + nop-integration 既有测试全绿，既有断言零修改。（closure audit git diff 核实：TestFeishuClient/TestFeishuConnector 仅增量、TestDefaultCredentialTypeRegistry 117 插 0 删；feishu 既有 25 用例全绿；nop-integration 11 子模块全绿）
+- [x] **接线验证（Minimum Rules #23）**：五家族解析值真实到达各自消费点（client/Transport/getStreamEndpoint/BasicAWSCredentials/jsch），Email 家族另经 MFA 发码链端到端（Minimum Rules #22）。（closure audit Anti-Hollow 区域 8 全链追踪 PASS；`TestJavaEmailSenderMfaE2E` 3/0 于真实 bindMfa/sendMfaCode 链）
+- [x] 五类型实例文件落 `_vfs/nop/credential/types/` 且 typeList 可见（设计 §4.3 八类型清单全量落地）。（`TestDefaultCredentialTypeRegistry.listTypesCoversAllEightW16Types` + 五 schema 用例）
+- [x] 五枚 consumerRef token 幂等登记 + 失败 WARN 不阻断启动（每家族测试在案）。（五模块 registerUsage 用例族：幂等/跳过/WARN 不阻断）
+- [x] 路由裁定（§七#1/#6/#7 + W16-impl Follow-up 归属指引）全部落盘，无悬挂。（三项裁定落 plan Phase 3 + 设计 §七 内联标注 + Deferred But Adjudicated 三条分类在案）
+- [x] owner docs（nop-credential.md）/设计 03 号文/roadmap 同步到 live baseline。（nop-credential.md 章节扩展 + source-anchors CRED-007 + 设计 W16-impl-ext 落地裁定节；roadmap done 标记随本 Closure 同步）
+- [x] `./mvnw test` 覆盖面绿（Phase 3 列出的七模块 `-am`（含 `:nop-auth-service` E2E 执行门），不带 `-T 1C`，规避已登记 reactor 顺序 flake；pre-existing flake 按在案口径单独复核并声明）。（最终轮 BUILD SUCCESS（`_tmp/gate-final-seven.log`）：email-tencent 11/email-java 16/feishu 44/oss 15/sftp 12/credential-service 215/auth-service 363（360 基线 + 3 E2E，3 skipped 为既有）；首 run 命中已登记 rocksdb benchmark flake（非本 plan 模块，-am 传递）——单模块复跑绿（ratio 0.878 < guard 2.0）后整门复跑全绿；mission 门 `:nop-auth,:nop-ai-gateway,:nop-nosql -am -T 1C` 亦 BUILD SUCCESS）
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-integration --severity high` 0 NEW（对照 W16-impl closure 基线）。（单标志扫描 Total 1 = pre-existing 占位注释（JavaEmailSender `// probably from a placeholder`，git show HEAD :105 同条在案 + stash 对照证实）→ **0 NEW**；W16-impl closure log 的 "Total 0" 实为工具 `--module` 多标志覆盖（只扫了 nop-metadata）——工具治理项登记 Non-Blocking Follow-ups）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0。（2324 文件 / 25905 引用 / 0 errors；closure audit 独立复跑同 0）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0。
+- [x] checkstyle / 代码规范检查通过（五个接线厂商模块）。（checkstyle 非项目 lint 门禁在案（mission verify 轮口径：9166 条既有违例）；五模块基线 466 → 500（+34 全为 Javadoc 风格类，与 W16-impl 首批先例 TencentSmsSender 同风格画像（sms-tencent 单模块既有 74 条），无功能性违例））
+- [x] 独立子 agent closure-audit 已完成并记录证据（含 Anti-Hollow：五家族调用链运行时连通 + 无空方法体/静默跳过）。（fresh subagent `ses_feb75b744ffehC4b20dYd38aLo`，13 验证区域全 PASS，0 Blocker / 0 Major / 3 Minor（未提交（收口后提交）/一处 .rels 环境触碰（已还原）/Closure 段待填（本段即履行）））
 
 ## Deferred But Adjudicated
 
-（起草时空缺——执行中产生的延期项按 Anti-Slacking 规则填充。预登记倾向：§七#1 维持 optimization candidate（Phase 3 裁定 + Phase 2 watch 锚点测试）；§七#6 倾向再延 out-of-scope（A1 #5 先例）或 successor 登记；§七#7 维持 watch-only（前提变化登记回写）。）
+### 飞书 token 刷新期凭证再解析（设计 §七#1）
+
+- Classification: `optimization candidate`
+- Why Not Blocking Closure: start 期解析已消除配置明文主目标；刷新周期约 2h、轮换最迟一个 token 周期后经 connector 重启生效；再解析需 FeishuClient 持解析回调而非凭证值，改造面与收益不成比例。现行"已捕获值"语义经显式测试钉死为 watch 锚点（`TestFeishuCredentialResolution.tokenRefreshUsesCapturedResolvedValues` / `reconnectUsesCapturedResolvedValues`）。
+- Successor Required: `no`
+- Successor Path: 需求实证后按 optimization candidate 立项
+
+### 新类型 testCredential 连通性（设计 §七#6，含本批次五类型）
+
+- Classification: `out-of-scope improvement`
+- Why Not Blocking Closure: `testCredential` 一期对未实现类型显式返回 `success=false` + 描述（非静默）——安全底线已覆盖；真实连通探测每渠道需探测语义设计（配额消耗/真实消息副作用/超时与错误分类），A1 adjudication §二#5 oauth2 同族先例（"探测语义需设计"）适用。
+- Successor Required: `no`
+- Successor Path: 探测语义需求实证后立项
+
+### feishu/oss 静态值强制 `@sec:`（设计 §七#7）
+
+- Classification: `watch-only residual`
+- Why Not Blocking Closure: 强制化（启动校验拒绝明文）会破坏既有部署（并存窗口明文为合法形态）；本 plan 落地后静态值已从主路径降为回退路径（credentialId 优先），明文暴露面收窄——前提变化已登记回写设计 §七#7 行，维持 watch-only（审计部署配置），不实施强制化。
+- Successor Required: `no`
+- Successor Path: —
 
 ## Non-Blocking Follow-ups
 
-（执行后登记。预登记：过渡并存配置（credentialId 与静态密钥并存窗口期）的运维复核提示，随 runbook 指引，同首批口径。）
+- 过渡并存配置（credentialId 与静态密钥并存窗口期）的运维复核提示已落 runbook（`docs-for-ai/03-modules/nop-credential.md` 深度迁移章节步骤 2/4 + 并存窗口复核条目）——运行时静态值不可达死值，无安全暴露，属运维治理。
+- `scan-hollow-implementations.mjs` 的 `--module` 多标志互相覆盖（第二个覆盖第一个——W16-impl closure log 的 "Total 0" 实为仅扫描了 nop-metadata；单标志扫描 nop-integration 在 HEAD 基线即有 1 条 pre-existing 占位注释发现（JavaEmailSender `// probably from a placeholder`，stash 对照证实），本批次 0 NEW）。建议工具修复为多模块累积；与本 plan 交付无涉。
+- checkstyle 非项目 lint 门禁在案（mission verify 轮口径：9166 条违例全在既有框架代码）；本批次新增代码与 W16-impl 首批先例（TencentSmsSender 同为 JavadocVariable/JavadocStyle 风格画像）一致。
 
 ## Closure
 
-Status Note: （完成或关闭时填写）
-Completed: YYYY-MM-DD
+Status Note: 扩展批次全量落地且经独立 closure audit 核验通过——五家族 credentialId 接线（Email×2/SFTP 逐次消费期、Feishu start 期解析副本、OSS 构造期，分层时序按设计 §4.1 结论 6）+ feishu/oss 配置键（含 OSS @ConfigField camelCase 键名实测裁定）+ 五类型实例（设计 §4.3 八类型全量）+ 五枚 consumerRef token + 三项路由裁定（§七#1 维持 optimization candidate（watch 锚点测试在案）/#6 再延 out-of-scope（A1 #5 先例）/#7 维持 watch-only + 前提变化登记）+ Email MFA 发码链 E2E + owner docs/设计/roadmap 同步。76 新测试用例（11+16+17+2+10+5+12+3 五家族及绑定/E2E + registry 6）+ 七模块门与 mission 门全绿。执行期偏离均为形态定稿（plan 各 Phase 标注），无语义偏离。
+Completed: 2026-08-18
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （独立 closure-audit fresh subagent）
-- Evidence: （每条 Exit Criterion / Closure Gate 的验证结果 + 工具退出码 + Anti-Hollow 检查 + Deferred 分类检查）
+- Reviewer / Agent: 独立 closure-audit fresh subagent（task ses_feb75b744ffehC4b20dYd38aLo，非执行 session）
+- Audit Session: ses_feb75b744ffehC4b20dYd38aLo
+- Evidence:
+  - 13 验证区域全 PASS（五类型实例逐字段/五家族接线逐点（TencentEmailSender :87-112/:134-150、JavaEmailSender withTransport :152 先于 try :154、FeishuClient 副本 :132/:189-192 + ensureToken/attemptReconnect 读捕获值、OssFactory :71/:83-88/:113-114、SftpClient :108 先于包装 :110 + 三消费点 seam）/ 测试真实接线断言抽查（穿透/码独立/真实容器绑定/真实 defaults 装载/E2E 真实 bindMfa 链）/ Anti-Hollow 五家族 + E2E 全链运行时追踪 / 静态零回归 git diff（测试文件仅增量）/ 文档四侧 / 验证日志复核（含独立复跑两工具均退出码 0）/ Deferred 诚实性 / 文本一致性）
+  - `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（审计时点 Passed: 1, Failed: 0；收口后复跑同 0）
+  - Anti-Hollow 检查结果：调用链运行时连通（credentialId → CredentialResolutionSupport → provider → 各家族消费点；E2E bindMfa → 发码 → 解析 → Transport）；`scan-hollow-implementations --module nop-integration --severity high` 单标志 Total 1 = pre-existing（HEAD :105 同条，stash 对照）= **0 NEW**
+  - 全量验证：七模块 `-am` 门 BUILD SUCCESS（`_tmp/gate-final-seven.log`，auth-service 363 = 360 基线 + 3 E2E）；mission 门 `-T 1C` BUILD SUCCESS（`_tmp/mission-gate-final.log`）；`check-doc-links --strict` 0 errors（2324 文件/25905 引用）；首 run rocksdb benchmark flake 按在案口径单模块复跑绿（ratio 0.878）+ 整门复跑全绿
+  - Deferred 项分类检查：三条（§七#1 optimization candidate / §七#6 out-of-scope improvement / §七#7 watch-only residual）均带 Why Not Blocking + Successor no；Non-Blocking Follow-ups 无已确认 live defect（scan-hollow 多模块标志覆盖为工具治理项，已诚实披露）
+- Findings: 0 Blocker / 0 Major / 3 Minor（未提交（收口后即提交）/一处 .rels 环境触碰（已 git checkout 还原）/Closure 段待填（本段落即履行））
 
 Follow-up:
 
-- （只记录 non-blocking follow-up；或明确写 no remaining plan-owned work）
+- 过渡并存窗口运维复核（runbook 指引在案，Non-Blocking Follow-ups 登记）
+- scan-hollow 工具 `--module` 多标志覆盖治理项（Non-Blocking Follow-ups 登记）
+- 设计 §七#1（飞书刷新期再解析）按 optimization candidate 待需求实证；§七#6（testCredential 探测语义）待需求实证——均无悬挂
+- no remaining plan-owned work beyond the above registered non-blocking follow-ups
