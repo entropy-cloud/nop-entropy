@@ -160,6 +160,16 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- W16-impl-ext: Email MFA credentialId E2E (TestJavaEmailSenderMfaE2E) —
+             the real email-code send chain consumes a credential-wired JavaEmailSender.
+             Test-scope only: no runtime dependency edge. -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-integration-email-java</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
     <build>

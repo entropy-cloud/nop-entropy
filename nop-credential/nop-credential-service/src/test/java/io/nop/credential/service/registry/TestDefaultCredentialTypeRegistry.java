@@ -194,4 +194,121 @@ public class TestDefaultCredentialTypeRegistry {
                 "non-oauth2 with oauth metadata must fail with ERR_CREDENTIAL_TYPE_OAUTH_METADATA_NOT_ALLOWED, got: "
                         + ex.getMessage());
     }
+
+    // ==================== W16-impl-ext: 五类型实例 typeList 可见性（设计 §4.3 八类型全量） ====================
+
+    @Test
+    public void listTypesCoversAllEightW16Types() {
+        // W16 首批三类型 + W16-impl-ext 五类型（tencent-email/smtp-email/feishu-app/oss-s3/sftp-ssh）
+        // 全量可见——typeList 动态表单 schema 的输入完整性
+        ICredentialTypeRegistry registry = newRegistry();
+        List<String> names = registry.listTypes().stream()
+                .map(CredentialType::getName).collect(Collectors.toList());
+        assertTrue(names.contains("tencent-sms"), "first-batch type visible");
+        assertTrue(names.contains("yunpian-sms"), "first-batch type visible");
+        assertTrue(names.contains("jdbc-datasource"), "first-batch type visible");
+        assertTrue(names.contains("tencent-email"), "ext-batch type visible: " + names);
+        assertTrue(names.contains("smtp-email"), "ext-batch type visible: " + names);
+        assertTrue(names.contains("feishu-app"), "ext-batch type visible: " + names);
+        assertTrue(names.contains("oss-s3"), "ext-batch type visible: " + names);
+        assertTrue(names.contains("sftp-ssh"), "ext-batch type visible: " + names);
+    }
+
+    @Test
+    public void tencentEmailTypeSchemaMatchesDesign() {
+        ICredentialTypeRegistry registry = newRegistry();
+        CredentialType type = registry.getType("tencent-email");
+        assertEquals(3, type.getFields().size());
+
+        CredentialType.CredentialField secretId = field(type, "secretId");
+        assertFalse(secretId.isSensitive());
+        assertTrue(secretId.isRequired());
+
+        CredentialType.CredentialField secretKey = field(type, "secretKey");
+        assertTrue(secretKey.isSensitive());
+        assertTrue(secretKey.isRequired());
+        assertEquals("password", secretKey.getType());
+
+        CredentialType.CredentialField region = field(type, "region");
+        assertFalse(region.isSensitive());
+        assertTrue(region.isRequired());
+    }
+
+    @Test
+    public void smtpEmailTypeSchemaMatchesDesign() {
+        ICredentialTypeRegistry registry = newRegistry();
+        CredentialType type = registry.getType("smtp-email");
+        assertEquals(2, type.getFields().size());
+
+        CredentialType.CredentialField username = field(type, "username");
+        assertFalse(username.isSensitive());
+        assertFalse(username.isRequired());
+
+        CredentialType.CredentialField password = field(type, "password");
+        assertTrue(password.isSensitive());
+        assertFalse(password.isRequired());
+    }
+
+    @Test
+    public void feishuAppTypeSchemaMatchesDesign() {
+        ICredentialTypeRegistry registry = newRegistry();
+        CredentialType type = registry.getType("feishu-app");
+        assertEquals(4, type.getFields().size());
+
+        assertTrue(field(type, "appId").isRequired());
+        assertFalse(field(type, "appId").isSensitive());
+
+        CredentialType.CredentialField appSecret = field(type, "appSecret");
+        assertTrue(appSecret.isRequired());
+        assertTrue(appSecret.isSensitive());
+
+        CredentialType.CredentialField verificationToken = field(type, "verificationToken");
+        assertFalse(verificationToken.isRequired());
+        assertTrue(verificationToken.isSensitive());
+
+        CredentialType.CredentialField encryptKey = field(type, "encryptKey");
+        assertFalse(encryptKey.isRequired());
+        assertTrue(encryptKey.isSensitive());
+    }
+
+    @Test
+    public void ossS3TypeSchemaMatchesDesign() {
+        ICredentialTypeRegistry registry = newRegistry();
+        CredentialType type = registry.getType("oss-s3");
+        assertEquals(2, type.getFields().size());
+
+        CredentialType.CredentialField accessKey = field(type, "accessKey");
+        assertTrue(accessKey.isRequired());
+        assertFalse(accessKey.isSensitive());
+
+        CredentialType.CredentialField secretKey = field(type, "secretKey");
+        assertTrue(secretKey.isRequired());
+        assertTrue(secretKey.isSensitive());
+    }
+
+    @Test
+    public void sftpSshTypeSchemaMatchesDesign() {
+        ICredentialTypeRegistry registry = newRegistry();
+        CredentialType type = registry.getType("sftp-ssh");
+        assertEquals(3, type.getFields().size());
+
+        CredentialType.CredentialField username = field(type, "username");
+        assertFalse(username.isRequired());
+        assertFalse(username.isSensitive());
+
+        CredentialType.CredentialField password = field(type, "password");
+        assertFalse(password.isRequired());
+        assertTrue(password.isSensitive());
+
+        CredentialType.CredentialField passphrase = field(type, "passphrase");
+        assertFalse(passphrase.isRequired());
+        assertTrue(passphrase.isSensitive());
+    }
+
+    private static CredentialType.CredentialField field(CredentialType type, String name) {
+        CredentialType.CredentialField field = type.getFields().stream()
+                .filter(f -> name.equals(f.getName())).findFirst().orElse(null);
+        assertNotNull(field, "field " + name + " must exist on type " + type.getName());
+        return field;
+    }
 }

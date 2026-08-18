@@ -33,6 +33,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -331,6 +332,26 @@ class TestFeishuConnector {
                 "reply must mention rate limit: " + feishuClient.lastContent);
     }
 
+    // ==================== W16-impl-ext：ChannelConfig options 面不引入 credentialId ====================
+
+    @Test
+    void channelConfigOptionsCredentialIdIsIgnored() {
+        // 设计 §4.1 结论 7 负向语义钉死：options 面维持字面值语义，不读取 feishu.credentialId——
+        // credentialId 唯一入口为配置键 nop.integration.feishu.credentialId（FeishuCredentials bean）
+        ChannelConfig config = new ChannelConfig("test-agent");
+        config.setOption("feishu.appId", "cli_options");
+        config.setOption("feishu.appSecret", "sec_options");
+        config.setOption("feishu.credentialId", "cred-must-be-ignored");
+        connector.start(new ChannelConnectorContext(engine, new NoopPublisher(), config));
+
+        assertEquals(1, feishuClient.startCount);
+        assertNotNull(feishuClient.lastCredentials, "connector.start must pass credentials to the client");
+        assertNull(feishuClient.lastCredentials.getCredentialId(),
+                "options-face credentialId must be ignored (no credential-reference semantics on ChannelConfig)");
+        assertEquals("cli_options", feishuClient.lastCredentials.getAppId(),
+                "options-face literal appId/appSecret semantics unchanged");
+    }
+
     @Test
     void botMentionParsedFromDocumentedPayloadShape() {
         connector.start(ctx());
@@ -383,12 +404,14 @@ class TestFeishuConnector {
         int sendMessageCount;
         String lastContent;
         String lastReceiveId;
+        FeishuCredentials lastCredentials;
         final List<String> sentContents = new ArrayList<>();
         IMessageHandler registeredHandler;
 
         @Override
         public synchronized void start(FeishuCredentials credentials, IMessageHandler handler) {
             startCount++;
+            this.lastCredentials = credentials;
             this.registeredHandler = handler;
         }
 
