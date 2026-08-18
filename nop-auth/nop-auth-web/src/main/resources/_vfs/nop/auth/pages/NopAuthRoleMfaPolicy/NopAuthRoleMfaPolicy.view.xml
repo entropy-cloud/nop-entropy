@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
+<!-- A2-followup-1 写路径收口（D5-F1）：策略行唯一写入口 = NopAuthRole__saveMfaPolicy/removeMfaPolicy
+     （requireAdmin + minMfaLevel 校验 + 审计，管理页经角色管理面操作）；本表管理页收敛为只读监控面，
+     继承 mutation 已在 BizModel 层显式拒绝（见 MfaSensitiveTableBizModel）。-->
 <view x:extends="_gen/_NopAuthRoleMfaPolicy.view.xml" x:schema="/nop/schema/xui/xview.xdef"
       xmlns:x="/nop/schema/xdsl.xdef">
 
@@ -9,12 +12,17 @@
 
     <forms>
         <form id="view"/>
-        <form id="edit"/>
-        <form id="add"/>
+        <form id="add" x:override="remove"/>
+        <form id="edit" x:override="remove"/>
     </forms>
 
     <pages>
-        <crud name="main"/>
+        <crud name="main">
+            <listActions x:override="remove"/>
+            <rowActions x:override="remove"/>
+        </crud>
         <picker name="picker"/>
+        <simple name="add" x:override="remove"/>
+        <simple name="update" x:override="remove"/>
     </pages>
 </view>

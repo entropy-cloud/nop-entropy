@@ -167,6 +167,34 @@
         }
 
 
+        private Integer _totpFailCount;
+
+    
+        @PropMeta(propId=17)
+    
+        public Integer getTotpFailCount(){
+            return _totpFailCount;
+        }
+
+        public void setTotpFailCount(Integer value){
+            this._totpFailCount = value;
+        }
+
+
+        private java.sql.Timestamp _totpFailAt;
+
+    
+        @PropMeta(propId=18)
+    
+        public java.sql.Timestamp getTotpFailAt(){
+            return _totpFailAt;
+        }
+
+        public void setTotpFailAt(java.sql.Timestamp value){
+            this._totpFailAt = value;
+        }
+
+
         private List<NopAuthMfaRecoveryCodeInputBean> _recoveryCodes;
 
         public List<NopAuthMfaRecoveryCodeInputBean> getRecoveryCodes(){

@@ -353,6 +353,8 @@ CREATE TABLE nop_auth_mfa_setting(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  totp_fail_count INT4 default 0   ,
+  totp_fail_at TIMESTAMP  ,
   constraint PK_nop_auth_mfa_setting primary key (user_id)
 );
 
@@ -1042,6 +1044,10 @@ CREATE TABLE nop_auth_mfa_recovery_code(
       COMMENT ON COLUMN nop_auth_mfa_setting.update_time IS '修改时间';
                     
       COMMENT ON COLUMN nop_auth_mfa_setting.remark IS '备注';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_setting.totp_fail_count IS 'TOTP失败计数';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_setting.totp_fail_at IS 'TOTP失败时间';
                     
       COMMENT ON TABLE nop_auth_mfa_credential IS 'WebAuthn凭证';
                 

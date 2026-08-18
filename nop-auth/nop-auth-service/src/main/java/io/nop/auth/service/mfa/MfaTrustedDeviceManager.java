@@ -221,6 +221,22 @@ public class MfaTrustedDeviceManager {
         return true;
     }
 
+    /**
+     * 管理端按 sid 物理删除（A2-followup-1 Phase 1 carve-out）：调用方（
+     * {@code NopAuthMfaTrustedDeviceBizModel.delete}）负责 admin 校验；本方法补 revoke 族
+     * 审计事件（reason=admin-removed，与自助移除/因子变更撤销同一事件面）。行不存在返回
+     * false（归一"不存在"语义）。
+     */
+    public boolean removeBySidForAdmin(String sid) {
+        NopAuthMfaTrustedDevice row = StringHelper.isEmpty(sid) ? null : dao().getEntityById(sid);
+        if (row == null)
+            return false;
+        String userId = row.getUserId();
+        dao().deleteEntity(row);
+        auditRevoke(userId, sid, "admin-removed");
+        return true;
+    }
+
     /** 全量撤销（因子变更 unbindMfa/confirmMfa 换绑、resetUserMfa；策略禁不删行——本方法不被调用）。 */
     public int removeAllForUser(String userId, String reason) {
         int removed = 0;

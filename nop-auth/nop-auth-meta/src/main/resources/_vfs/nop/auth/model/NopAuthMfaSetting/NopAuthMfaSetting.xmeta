@@ -3,9 +3,12 @@
 
     <!-- 明文边界结构性强制：secret 与 bindToken 永不发布到 GraphQL/REST schema。
          即使 ORM tagSet 的 not-pub 被误删，retention 层仍兜底 published=false。
-         参照 nop-credential 的 NopCredential.data 处理（W3 模式）。 -->
+         参照 nop-credential 的 NopCredential.data 处理（W3 模式）。
+         A2-followup-1 D1-7：phone 同口径兜底——通用查询面（findPage/get）出参不含手机号
+         （biz 面 getMfaStatus 既有 maskPhone 脱敏输出不变；服务内部 dao 读取不受影响）。 -->
     <props>
         <prop name="secret" published="false"/>
         <prop name="bindToken" published="false"/>
+        <prop name="phone" published="false"/>
     </props>
 </meta>

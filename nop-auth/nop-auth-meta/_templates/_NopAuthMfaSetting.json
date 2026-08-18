@@ -15,6 +15,8 @@
   "updatedBy": "",
   "updateTime": "2000-01-01 14:00:00",
   "remark": "",
+  "totpFailCount": 0,
+  "totpFailAt": "2000-01-01 14:00:00",
   "user": null,
   "user.userName": "",
   "recoveryCodes": null

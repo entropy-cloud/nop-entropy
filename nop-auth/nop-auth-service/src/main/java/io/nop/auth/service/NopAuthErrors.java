@@ -50,6 +50,12 @@ public interface NopAuthErrors {
     /** 因子强度（角色策略 minMfaLevel 相关错误的 errorParams 携带）。 */
     String ARG_MFA_LEVEL = "mfaLevel";
 
+    /** bizObj 名（{@link #ERR_AUTH_MFA_CRUD_DISABLED} 的 errorParams 携带）。 */
+    String ARG_BIZ_OBJ_NAME = "bizObjName";
+
+    /** 动作名（{@link #ERR_AUTH_MFA_CRUD_DISABLED} 的 errorParams 携带）。 */
+    String ARG_ACTION = "action";
+
     ErrorCode ERR_AUTH_INVALID_LOGIN_REQUEST = define(API_STATUS_BAD_REQUEST, "nop.err.auth.invalid-login-request",
             "登录请求参数不合法");
 
@@ -183,4 +189,32 @@ public interface NopAuthErrors {
 
     ErrorCode ERR_AUTH_EMAIL_DAILY_LIMIT = define(API_STATUS_BAD_REQUEST, "nop.err.auth.email-daily-limit",
             "当日邮件发送次数已达上限");
+
+    // ===== MFA 敏感数据治理（A2-followup-1，D5-F1/D6-1/D3-F3 写路径收口） =====
+
+    /**
+     * MFA 敏感表的通用 CRUD 写动作被显式禁用（写路径收口到专项入口：bind/confirm/unbind 族、
+     * saveMfaPolicy/removeMfaPolicy、regenerateRecoveryCodes、可信设备 manager 等）。
+     * errorParams 携带 action（被禁动作名）与 bizObjName。
+     */
+    ErrorCode ERR_AUTH_MFA_CRUD_DISABLED = define(API_STATUS_BAD_REQUEST, "nop.err.auth.mfa-crud-disabled",
+            "Generic CRUD mutation '{action}' is disabled on MFA data '{bizObjName}'; "
+                    + "use the dedicated MFA management API instead", ARG_ACTION, ARG_BIZ_OBJ_NAME);
+
+    /**
+     * 非管理员经通用 CRUD 修改用户联系方式（phone/email）被拒（W12 路由项 3——受限会话
+     * enrollment attack 链闭合：改 phone 后 bindSms）。联系方式变更需管理员或专用流程。
+     */
+    ErrorCode ERR_AUTH_CONTACT_CHANGE_NOT_ALLOWED = define(API_STATUS_BAD_REQUEST,
+            "nop.err.auth.contact-change-not-allowed",
+            "Changing phone/email via generic CRUD is not allowed; contact info can only be updated "
+                    + "by an administrator or through a dedicated flow", ARG_USER_ID);
+
+    /**
+     * TOTP 验证失败次数达上限后的冷却窗口内拒绝（A2-followup-1 D1-1：confirmMfa/unbindMfa
+     * TOTP 分支失败计数——pending 路径作废 bindToken 报 BIND_EXPIRED，enabled 路径本码）。
+     */
+    ErrorCode ERR_AUTH_MFA_COOLDOWN = define(API_STATUS_BAD_REQUEST, "nop.err.auth.mfa-cooldown",
+            "Too many failed MFA verification attempts; please retry after the cooldown window",
+            ARG_USER_ID);
 }

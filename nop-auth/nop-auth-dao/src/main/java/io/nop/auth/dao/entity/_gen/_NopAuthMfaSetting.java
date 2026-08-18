@@ -85,8 +85,16 @@ public class _NopAuthMfaSetting extends DynamicOrmEntity{
     public static final String PROP_NAME_remark = "remark";
     public static final int PROP_ID_remark = 16;
     
+    /* TOTP失败计数: TOTP_FAIL_COUNT INTEGER */
+    public static final String PROP_NAME_totpFailCount = "totpFailCount";
+    public static final int PROP_ID_totpFailCount = 17;
+    
+    /* TOTP失败时间: TOTP_FAIL_AT TIMESTAMP */
+    public static final String PROP_NAME_totpFailAt = "totpFailAt";
+    public static final int PROP_ID_totpFailAt = 18;
+    
 
-    private static int _PROP_ID_BOUND = 17;
+    private static int _PROP_ID_BOUND = 19;
 
     
     /* relation: 用户 */
@@ -99,7 +107,7 @@ public class _NopAuthMfaSetting extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_userId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_userId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[17];
+    private static final String[] PROP_ID_TO_NAME = new String[19];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -151,6 +159,12 @@ public class _NopAuthMfaSetting extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_remark] = PROP_NAME_remark;
           PROP_NAME_TO_ID.put(PROP_NAME_remark, PROP_ID_remark);
       
+          PROP_ID_TO_NAME[PROP_ID_totpFailCount] = PROP_NAME_totpFailCount;
+          PROP_NAME_TO_ID.put(PROP_NAME_totpFailCount, PROP_ID_totpFailCount);
+      
+          PROP_ID_TO_NAME[PROP_ID_totpFailAt] = PROP_NAME_totpFailAt;
+          PROP_NAME_TO_ID.put(PROP_NAME_totpFailAt, PROP_ID_totpFailAt);
+      
     }
 
     
@@ -201,6 +215,12 @@ public class _NopAuthMfaSetting extends DynamicOrmEntity{
     
     /* 备注: REMARK */
     private java.lang.String _remark;
+    
+    /* TOTP失败计数: TOTP_FAIL_COUNT */
+    private java.lang.Integer _totpFailCount;
+    
+    /* TOTP失败时间: TOTP_FAIL_AT */
+    private java.sql.Timestamp _totpFailAt;
     
 
     public _NopAuthMfaSetting(){
@@ -323,6 +343,12 @@ public class _NopAuthMfaSetting extends DynamicOrmEntity{
         
             case PROP_ID_remark:
                return getRemark();
+        
+            case PROP_ID_totpFailCount:
+               return getTotpFailCount();
+        
+            case PROP_ID_totpFailAt:
+               return getTotpFailAt();
         
            default:
               return super.orm_propValue(propId);
@@ -495,6 +521,26 @@ public class _NopAuthMfaSetting extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_totpFailCount:{
+               java.lang.Integer typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_totpFailCount));
+               }
+               setTotpFailCount(typedValue);
+               break;
+            }
+        
+            case PROP_ID_totpFailAt:{
+               java.sql.Timestamp typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toTimestamp(value,
+                       err-> newTypeConversionError(PROP_NAME_totpFailAt));
+               }
+               setTotpFailAt(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -612,6 +658,20 @@ public class _NopAuthMfaSetting extends DynamicOrmEntity{
             case PROP_ID_remark:{
                onInitProp(propId);
                this._remark = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_totpFailCount:{
+               onInitProp(propId);
+               this._totpFailCount = (java.lang.Integer)value;
+               
+               break;
+            }
+        
+            case PROP_ID_totpFailAt:{
+               onInitProp(propId);
+               this._totpFailAt = (java.sql.Timestamp)value;
                
                break;
             }
@@ -922,6 +982,44 @@ public class _NopAuthMfaSetting extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);
+            
+        }
+    }
+    
+    /**
+     * TOTP失败计数: TOTP_FAIL_COUNT
+     */
+    public final java.lang.Integer getTotpFailCount(){
+         onPropGet(PROP_ID_totpFailCount);
+         return _totpFailCount;
+    }
+
+    /**
+     * TOTP失败计数: TOTP_FAIL_COUNT
+     */
+    public final void setTotpFailCount(java.lang.Integer value){
+        if(onPropSet(PROP_ID_totpFailCount,value)){
+            this._totpFailCount = value;
+            internalClearRefs(PROP_ID_totpFailCount);
+            
+        }
+    }
+    
+    /**
+     * TOTP失败时间: TOTP_FAIL_AT
+     */
+    public final java.sql.Timestamp getTotpFailAt(){
+         onPropGet(PROP_ID_totpFailAt);
+         return _totpFailAt;
+    }
+
+    /**
+     * TOTP失败时间: TOTP_FAIL_AT
+     */
+    public final void setTotpFailAt(java.sql.Timestamp value){
+        if(onPropSet(PROP_ID_totpFailAt,value)){
+            this._totpFailAt = value;
+            internalClearRefs(PROP_ID_totpFailAt);
             
         }
     }

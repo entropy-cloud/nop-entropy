@@ -41,8 +41,8 @@
               ui:show="X">
             <schema type="java.lang.String" precision="64"/>
         </prop>
-        <prop name="phone" displayName="MFA手机号" propId="6" i18n-en:displayName="MFA Phone" queryable="true"
-              sortable="true" insertable="true" updatable="true" ui:show="L">
+        <prop name="phone" displayName="MFA手机号" propId="6" i18n-en:displayName="MFA Phone" tagSet="not-pub"
+              published="false" queryable="true" sortable="true" insertable="true" updatable="true" ui:show="L">
             <schema domain="phone" type="java.lang.String" precision="50"/>
         </prop>
         <prop name="lastVerifiedWindow" displayName="最近验证窗口" propId="7" i18n-en:displayName="Last Verified Window"
@@ -84,6 +84,16 @@
         <prop name="remark" displayName="备注" propId="16" i18n-en:displayName="Remark" queryable="true" sortable="true"
               insertable="true" updatable="true" ui:show="S">
             <schema domain="remark" type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="totpFailCount" displayName="TOTP失败计数" propId="17" i18n-en:displayName="TOTP Fail Count"
+              tagSet="not-pub" published="false" queryable="true" sortable="true" insertable="true" updatable="true"
+              internal="true" ui:show="X" defaultValue="0">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="totpFailAt" displayName="TOTP失败时间" propId="18" i18n-en:displayName="TOTP Fail At" tagSet="not-pub"
+              published="false" queryable="true" sortable="true" insertable="true" updatable="true" internal="true"
+              ui:show="X">
+            <schema type="java.sql.Timestamp"/>
         </prop>
         <prop name="user" displayName="用户" i18n-en:displayName="User" tagSet="pub,ref-pub" ext:kind="to-one"
               internal="true" queryable="true" ext:joinLeftProp="userId" ext:joinRightProp="userId"

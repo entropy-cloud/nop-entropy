@@ -205,6 +205,8 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+      totpFailCount: TOTP Fail Count
+      totpFailAt: TOTP Fail At
       user: User
       user.userName: User
       recoveryCodes: Recovery Codes

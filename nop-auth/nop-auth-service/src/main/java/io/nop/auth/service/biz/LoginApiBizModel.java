@@ -416,6 +416,9 @@ public class LoginApiBizModel implements ILoginSpi {
                 throw new NopException(NopAuthErrors.ERR_AUTH_EMAIL_CODE_EXPIRED);
             }
             if (r != io.nop.auth.core.mfa.store.CodeVerifyResult.VALID) {
+                // A2-followup-1 D1-3：MISMATCH 分支抛错前补 fail 审计事件（W13 裁定 8 声明的
+                // mfa:channel-proof-sent|verified|fail 事件面补全；审计字段脱敏——不含明文联系方式）
+                auditChannelProofFail(userContext, NopAuthConstants.PROOF_CHANNEL_EMAIL, maskEmail(email));
                 throw new NopException(ERR_AUTH_MFA_FAIL);
             }
             return issueChannelProofTicket(userContext, null);
@@ -434,6 +437,8 @@ public class LoginApiBizModel implements ILoginSpi {
             throw new NopException(NopAuthErrors.ERR_AUTH_SMS_CODE_EXPIRED);
         }
         if (r != io.nop.auth.core.mfa.store.CodeVerifyResult.VALID) {
+            // A2-followup-1 D1-3：MISMATCH 分支抛错前补 fail 审计事件（同上，脱敏 target）
+            auditChannelProofFail(userContext, NopAuthConstants.PROOF_CHANNEL_PHONE, maskPhone(phone));
             throw new NopException(ERR_AUTH_MFA_FAIL);
         }
         return issueChannelProofTicket(userContext, phone);
@@ -484,12 +489,57 @@ public class LoginApiBizModel implements ILoginSpi {
         audit.setResultStatus(success ? 200 : 400);
         audit.setActionTime(new Timestamp(CoreMetrics.currentTimeMillis()));
         audit.setUserId(userContext.getUserId());
-        audit.setUserName(userContext.getUserName());
+        audit.setUserName(StringHelper.isEmpty(userContext.getUserName()) ? userContext.getUserId() : userContext.getUserName());
         audit.setSessionId(userContext.getSessionId());
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("event", success ? "channel-proof-verified" : "channel-proof-fail");
         audit.setRequestData(JsonTool.stringify(data));
         auditService.saveAudit(audit);
+    }
+
+    /**
+     * 登记通道验证失败审计事件（A2-followup-1 D1-3）：事件名对齐 W13 裁定 8 声明的
+     * {@code mfa:channel-proof-fail}；审计字段含 userId 与脱敏 target（maskedTarget，
+     * 手机号后 4 位 / 邮箱本地部分前 2 位 + @域名），不含明文联系方式。userName 非空列兜底
+     * 缺省 userId（W13 教训）。
+     */
+    private void auditChannelProofFail(IUserContext userContext, String channel, String maskedTarget) {
+        if (auditService == null)
+            return;
+        AuditRequest audit = new AuditRequest();
+        audit.setOperation("LoginApi__verifyChannelProof");
+        audit.setDescription("mfa:channel-proof-fail");
+        audit.setResultStatus(400);
+        audit.setActionTime(new Timestamp(CoreMetrics.currentTimeMillis()));
+        audit.setUserId(userContext.getUserId());
+        audit.setUserName(StringHelper.isEmpty(userContext.getUserName()) ? userContext.getUserId() : userContext.getUserName());
+        audit.setSessionId(userContext.getSessionId());
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("event", "channel-proof-fail");
+        data.put("channel", channel);
+        data.put("target", maskedTarget);
+        audit.setRequestData(JsonTool.stringify(data));
+        auditService.saveAudit(audit);
+    }
+
+    /** 手机号脱敏（对齐 NopAuthUserBizModel.maskPhone 先例：保留后 4 位）。 */
+    static String maskPhone(String phone) {
+        if (StringHelper.isEmpty(phone) || phone.length() <= 4) {
+            return phone;
+        }
+        return StringHelper.repeat("*", phone.length() - 4) + phone.substring(phone.length() - 4);
+    }
+
+    /** 邮箱脱敏（对齐 NopAuthUserBizModel.maskEmail 先例：本地部分前 2 位 + 域名）。 */
+    static String maskEmail(String email) {
+        if (StringHelper.isEmpty(email))
+            return email;
+        int at = email.indexOf('@');
+        if (at <= 0)
+            return email;
+        String local = email.substring(0, at);
+        String prefix = local.substring(0, Math.min(2, local.length()));
+        return prefix + "***" + email.substring(at);
     }
 
     private static String operationOf(MfaChallenge c) {

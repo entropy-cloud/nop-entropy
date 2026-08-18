@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" ?>
+<!-- A2-followup-1 写路径收口（D6-1）：登记不变式内聚在 MfaTrustedDeviceManager——通用 save/update
+     等继承 mutation 已在 BizModel 层显式拒绝（见 MfaSensitiveTableBizModel），管理页移除对应入口。
+     管理端 carve-out：保留行删除按钮（NopAuthMfaTrustedDevice__delete = admin 校验 + manager 物理
+     删除 + revoke 族审计）与查看；移除新增/编辑/批量删除入口。-->
 <view x:extends="_gen/_NopAuthMfaTrustedDevice.view.xml" x:schema="/nop/schema/xui/xview.xdef"
       xmlns:x="/nop/schema/xdsl.xdef">
 
@@ -9,11 +13,20 @@
 
     <forms>
         <form id="view"/>
-        <form id="edit"/>
+        <form id="add" x:override="remove"/>
+        <form id="edit" x:override="remove"/>
     </forms>
 
     <pages>
-        <crud name="main"/>
+        <crud name="main">
+            <listActions x:override="remove"/>
+            <rowActions>
+                <action id="row-update-button" x:override="remove"/>
+                <actionGroup id="row-more-button" x:override="remove"/>
+            </rowActions>
+        </crud>
         <picker name="picker"/>
+        <simple name="add" x:override="remove"/>
+        <simple name="update" x:override="remove"/>
     </pages>
 </view>

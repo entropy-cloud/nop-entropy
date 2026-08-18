@@ -202,6 +202,8 @@ prop:
       secret: TOTP密钥
       status: 绑定状态
       tenantId: 租户ID
+      totpFailAt: TOTP失败时间
+      totpFailCount: TOTP失败计数
       updateTime: 修改时间
       updatedBy: 修改人
       user: 用户

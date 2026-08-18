@@ -1078,8 +1078,10 @@
                 <column code="BIND_TOKEN" comment="绑定流程一次性 token（UUID + TTL）" displayName="绑定令牌" name="bindToken"
                         precision="64" propId="5" stdDataType="string" stdSqlType="VARCHAR" tagSet="var,not-pub"
                         ui:show="X" i18n-en:displayName="Bind Token"/>
-                <column code="PHONE" comment="短信接收手机号（仅 sms 类型，默认取用户手机号）" displayName="MFA手机号" domain="phone"
-                        name="phone" precision="50" propId="6" stdDataType="string" stdSqlType="VARCHAR" ui:show="L"
+                <column code="PHONE" comment="短信接收手机号（仅 sms 类型，默认取用户手机号；A2-followup-1 D1-7：not-pub 结构性排除——通用查询面出参不含 phone，服务内部 dao 读取不受影响）"
+                        displayName="MFA手机号" domain="phone"
+                        name="phone" precision="50" propId="6" stdDataType="string" stdSqlType="VARCHAR"
+                        tagSet="not-pub" ui:show="L"
                         i18n-en:displayName="MFA Phone"/>
                 <column code="LAST_VERIFIED_WINDOW" comment="最近成功验证的 TOTP 窗口编号（防重放）" displayName="最近验证窗口"
                         name="lastVerifiedWindow" propId="7" stdDataType="long" stdSqlType="BIGINT" ui:show="X"
@@ -1087,6 +1089,13 @@
                 <column code="LAST_VERIFIED_AT" comment="最近验证时间（审计）" displayName="最近验证时间" name="lastVerifiedAt"
                         propId="8" stdDataType="timestamp" stdSqlType="TIMESTAMP" ui:show="X"
                         i18n-en:displayName="Last Verified At"/>
+                <column code="TOTP_FAIL_COUNT" comment="TOTP 绑定/解绑验证失败计数（A2-followup-1 D1-1：达上限 pending 作废 bindToken / enabled 进冷却；成功清零）"
+                        defaultValue="0" displayName="TOTP失败计数" name="totpFailCount" propId="17"
+                        stdDataType="int" stdSqlType="INTEGER" tagSet="not-pub" ui:show="X"
+                        i18n-en:displayName="TOTP Fail Count"/>
+                <column code="TOTP_FAIL_AT" comment="最近 TOTP 验证失败时间（冷却窗口起点：count 达上限后 failAt+cooldown 内拒绝）"
+                        displayName="TOTP失败时间" name="totpFailAt" propId="18" stdDataType="timestamp"
+                        stdSqlType="TIMESTAMP" tagSet="not-pub" ui:show="X" i18n-en:displayName="TOTP Fail At"/>
                 <column code="DEL_FLAG" displayName="删除标识" domain="delFlag" mandatory="true" name="delFlag" propId="9"
                         stdDataType="byte" stdDomain="boolFlag" stdSqlType="TINYINT" ui:show="X"
                         i18n-en:displayName="Deleted"/>

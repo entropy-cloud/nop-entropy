@@ -58,9 +58,11 @@ import io.nop.auth.service.mfa.RoleMfaPolicyEvaluator;
 import io.nop.commons.util.DateHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.i18n.I18nMessageManager;
+import io.nop.core.lang.sql.SQL;
 import io.nop.dao.DaoConstants;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
+import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.integration.api.email.EmailMessage;
 import io.nop.integration.api.email.IEmailSender;
 import io.nop.integration.api.sms.ISmsSender;
@@ -137,6 +139,7 @@ import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_SMS_RATE_LIMITED;
 import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_USER_NOT_ALLOW_LOGIN;
 import static io.nop.commons.util.StringHelper.isYes;
 import static io.nop.dao.DaoConfigs.CFG_ORM_ENABLE_TENANT_BY_DEFAULT;
+import static io.nop.dao.DaoConstants.DEFAULT_QUERY_SPACE;
 
 public class LoginServiceImpl extends AbstractLoginService implements ISessionBootstrap {
     static final Logger LOG = LoggerFactory.getLogger(LoginServiceImpl.class);
@@ -146,6 +149,15 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
 
     @Inject
     protected IDaoProvider daoProvider;
+
+    /**
+     * JDBC 模板（A2-followup-1 D3-F2）：恢复码 used 条件写（原子 UPDATE + affected-row，
+     * {@code DbMfaChallengeStore.markVerified} 同型）。手工 wiring 测试可缺省——缺省时退化
+     * 为实体写（直调路径无并发竞争，语义等价）。
+     */
+    @Inject
+    @Nullable
+    protected IJdbcTemplate jdbcTemplate;
 
     @Inject
     protected IAuditService auditService;
@@ -699,6 +711,11 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
     /**
      * 验证恢复码：遍历用户的所有恢复码，BCrypt 比对。
      * codeHash 格式为 {@code salt:hash}（无独立 salt 列）。
+     * <p>
+     * A2-followup-1 D3-F2：used 置位为<b>条件写</b>（{@code SET USED=1, USED_AT WHERE SID AND USED=0}
+     * + affected-row 判定，{@code DbMfaChallengeStore.markVerified} 同型）——并发双 verify 同码
+     * 恰一次成功；regenerate 与并发 verify 的竞态随条件写闭合（被删行条件写 affected=0 → 按已用
+     * 路径处理，对外错误码保持 {@code ERR_AUTH_MFA_FAIL} 统一面）。
      */
     protected RecoveryVerifyResult verifyRecoveryCode(String userId, String inputCode) {
         IEntityDao<NopAuthMfaRecoveryCode> dao = daoProvider.daoFor(NopAuthMfaRecoveryCode.class);
@@ -719,14 +736,38 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
                 if (code.getUsed() != null && code.getUsed() != 0) {
                     return RecoveryVerifyResult.USED;
                 }
-                // 标记已使用
-                code.setUsed((byte) 1);
-                code.setUsedAt(new Timestamp(CoreMetrics.currentTimeMillis()));
-                dao.updateEntityDirectly(code);
+                // 条件写置 used：仅 USED=0 行受影响（并发/regenerate 竞态方 affected=0 → USED 路径）
+                if (!markRecoveryCodeUsed(code.getSid())) {
+                    return RecoveryVerifyResult.USED;
+                }
                 return RecoveryVerifyResult.VALID;
             }
         }
         return RecoveryVerifyResult.INVALID;
+    }
+
+    /**
+     * 恢复码 used 条件置位（D3-F2）。jdbcTemplate 可用时走原子条件 UPDATE（affected-row 判定）；
+     * 手工 wiring 退化路径经实体写（直调路径无并发竞争，语义等价）。
+     */
+    private boolean markRecoveryCodeUsed(String sid) {
+        if (jdbcTemplate != null) {
+            SQL upd = SQL.begin().name("mfaRecoveryCodeMarkUsed").querySpace(DEFAULT_QUERY_SPACE)
+                    .sql("UPDATE nop_auth_mfa_recovery_code SET USED = 1, USED_AT = ? "
+                            + "WHERE SID = ? AND USED = 0",
+                            new Timestamp(CoreMetrics.currentTimeMillis()), sid)
+                    .end();
+            return jdbcTemplate.executeUpdate(upd) > 0;
+        }
+        IEntityDao<NopAuthMfaRecoveryCode> dao = daoProvider.daoFor(NopAuthMfaRecoveryCode.class);
+        NopAuthMfaRecoveryCode code = dao.getEntityById(sid);
+        if (code == null || (code.getUsed() != null && code.getUsed() != 0)) {
+            return false;
+        }
+        code.setUsed((byte) 1);
+        code.setUsedAt(new Timestamp(CoreMetrics.currentTimeMillis()));
+        dao.updateEntityDirectly(code);
+        return true;
     }
 
     /**

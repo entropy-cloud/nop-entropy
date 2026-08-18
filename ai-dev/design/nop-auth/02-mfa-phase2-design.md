@@ -728,3 +728,25 @@ mfaVerify 成功（TOTP/SMS/EMAIL/WebAuthn 分支，不含恢复码分支，不�
 4. **路由项 2 维持 watch-only（两副本同构不变式）**：A2 逐块复核当前同步（8 共享逻辑块逐字等价 + 3 处登记在案裁定漂移）；新登记第 4 处差异——evaluator null 防御不对称（`LoginServiceImpl` 侧有 NONE 回退、`MfaLoginPolicyServiceImpl` 侧必注入；装配保证下无行为后果）。同步义务不变：任何一方变更必须同步另一方。
 5. **路由项 3 裁定（联系方式修改通用 CRUD 敏感化）**：并入 MFA 敏感数据治理 successor（与"4 MFA 表裸 CrudBizModel 通用 mutation 通道收紧"同族——D5-F1/D6-1/D3-F3/D1-7/D1-1/D3-F2）；平台治理形态（override 拒绝 / 敏感列不可写 / xmeta 限制）需独立 plan 裁定。
 6. **executor 批量语义表述更正（D5-F2）**：批量请求含未验证敏感操作 = **整批预执行中止**（检查点位于 invokeOperations 之前，同批任何 operation 均不执行）——GraphQLExecutor javadoc 原"逐 field error 单独报错"表述更正，owner doc（nop-auth.md）原本即正确。
+
+### 10.1 successor-A 落地裁定（A2-followup-1，2026-08-19 回写）
+
+MFA 敏感数据治理族（plan `ai-dev/plans/2026-08-18-1924-1-mfa-sensitive-data-governance-a2-followup-1.md`，successor-A 全部 8 项 finding 的落地裁定）。
+
+**A. 通用 CRUD 写路径收口清单与 carve-outs（D5-F1 / D6-1 / D3-F3）**：八张 MFA 表（五敏感表 Setting/Credential/TrustedDevice/RoleMfaPolicy/RecoveryCode + 三张瞬态码表 MfaChallenge/SmsCode/EmailCode）的 BizModel 统一继承 `MfaSensitiveTableBizModel`，继承写动作面（save/update/delete/batchDelete/batchUpdate/batchModify/saveOrUpdate/updateByQuery/deleteByQuery/copyForNew/recoverDeleted）逐个覆写显式拒绝（`ERR_AUTH_MFA_CRUD_DISABLED`，NopException + ErrorCode 的 public API 面口径——nop-credential 的 UnsupportedOperationException 属模块内部面先例，不沿用）；多对多三动作不覆写（实体无多对多 prop，基类 fail-closed）。**carve-out 唯一项**：TrustedDevice 的 `delete` 保留为管理端动作（运行时 requireAdmin + `MfaTrustedDeviceManager.removeBySidForAdmin` 物理删除 + revoke 族审计 reason=admin-removed）；自助移除仍走 removeTrustedDevice（本人限定）。管理页同步收敛只读（`x:override="remove"`）。
+
+**B. 同族边界裁定结论**：三张瞬态码表**纳入**收紧——其通用 mutation 通道允许持权限者直接植入验证码/challenge 行（植入已知 code 后走正常验证流 = 第一因子旁路原语），与五敏感表同族同机制；码表行仅由 store 组件管理，无任何合法手工建行入口。action-auth.xml 的 mutation 资源声明保持不变（仅控 UI 可见性，服务端拒绝才是防线）。
+
+**C. TOTP 绑定/解绑失败计数语义（D1-1）**：
+- **计数载体 = setting 行持久化列**（`TOTP_FAIL_COUNT` int default 0 + `TOTP_FAIL_AT` timestamp，model-first 增列 + 三方言增量 DDL；备选 challenge-store 复用被否——污染 challenge 生命周期语义）。计数维度 = 按 setting（即 userId）。
+- **递增原子性与事务语义**：raw SQL `TOTP_FAIL_COUNT = COALESCE(TOTP_FAIL_COUNT,0)+1`（`DbMfaChallengeStore.incrFailCount` 同型）；**计数写必须在 REQUIRES_NEW 独立事务先行落库**——confirmMfa/unbindMfa 的外层 @BizMutation 事务在随后抛 MFA_FAIL 时回滚，随波逐流的计数永不持久（生产 GraphQL 路径空壳风险）。失败路径此前无同行写，无自锁。
+- **超限语义**：上限 `nop.auth.mfa.totp-verify-max-fails`（缺省 5，对齐登录级）；pending 路径（confirmMfa）达上限**作废 bindToken**（后续 confirm 报 BIND_EXPIRED，含冷却窗口内重新 bindMfa 的新 token——防 bind/confirm 循环绕过计数）；enabled 路径（unbindMfa）达上限进入**冷却窗口** `nop.auth.mfa.totp-cooldown-seconds`（缺省 300s，窗口内因子验证直接拒绝 `ERR_AUTH_MFA_COOLDOWN`，过期后可重试）。成功验证清零计数（条件写，不触碰 VERSION）。
+- **边界钉定**：SMS/EMAIL 分支不引入本计数（store 内部 max-attempts 已覆盖）；webauthn 经 challenge store incrFailCountOrDiscard 既有覆盖（E2E 断言 SMS 失败不触发 TOTP 锁）。
+
+**D. 恢复码 used 条件写（D3-F2）**：`verifyRecoveryCode` 的 used 置位改条件写 `UPDATE ... SET USED=1, USED_AT=? WHERE SID=? AND USED=0` + affected-row 判定（`DbMfaChallengeStore.markVerified` 同型）——并发双 verify 同码恰一次成功（败者按已用码路径处理）；regenerate 与并发 verify 的竞态随条件写闭合（被删行 affected=0 → 失败）；对外错误码保持 `ERR_AUTH_MFA_FAIL` 统一面（不暴露"曾有效"）。
+
+**E. proof 失败审计补全（D1-3）**：`verifyChannelProof` 两处 MISMATCH 分支抛错前补 `mfa:channel-proof-fail` 审计事件（W13 裁定 8 声明的 sent|verified|fail 三事件面补全；字段含 userId + maskedTarget，不含明文联系方式）；同族核对补齐发送侧——`requireChannelProof` 的拒绝分支补 `mfa:channel-proof-send-fail` 审计（共 5 分支：限流 × phone/email + store-missing × phone/email + email channel-disabled——phone 无 channel-disabled 门（`CFG_AUTH_EMAIL_CODE_ENABLED` 仅 email）；reason 区分，target 脱敏）。
+
+**F. setting.phone 出参脱敏载体（D1-7）**：裁定 = **结构性排除**——ORM 源 `NopAuthMfaSetting` PHONE 列 tagSet 增 `not-pub`（model-first 单点）→ codegen `published=false` 链承载，通用查询面（findPage/get）输出不含 phone 字段（GraphQL schema 无该 field，选择即校验失败）；保留 xmeta `NopAuthMfaSetting.xmeta` 同步兜底 `published=false`（secret/bindToken 同款双保险先例）。裁定依据：(a) biz 面 `getMfaStatus` 既有 maskPhone 行为零冲突（biz 面不走 published schema）；(b) admin 管理面 phone 不可见可接受（MfaSetting 管理页 Phase 1 后为只读监控面；管理员经 `NopAuthUser` 管理面可见用户手机号）；(c) 服务内部 dao 实体读取不受影响（`published=false` 仅作用于 API 出参 schema，登录/发码链内部读路径零改动）。防再犯注记：ORM `masked` 标签在本仓**仅作用于 SQL 日志参数脱敏**（消费面 `GenSqlHelper`/`SqlColumnName`），不构成出参脱敏机制；secret 列先例为 `masked,var,not-pub` 组合。备选（BizModel 层输出脱敏，字段保留、值为脱敏形态）被否——双写漂移面大于结构性排除。
+
+**G. 联系方式修改拦截形态（W12 路由项 3）**：拦截点 = `NopAuthUserBizModel` 的 save/update preparer 路径（`defaultPrepareSave`/`defaultPrepareUpdate` 钩子），以 ORM 脏属性判定"本次提交改了 phone/email"（同值提交不算变更）。分级：**非 admin 登录调用方（含修改本人行）→ `ERR_AUTH_CONTACT_CHANGE_NOT_ALLOWED` 显式拒绝**（英文文案指引管理员/专用流程）；**admin → 放行 + `user:contact-changed` 审计事件**（targetUserId/字段清单/create|update 形态；不落明文新旧值——审计面最小化）；**无登录态内部调用 → 放行**（W11 凭证归属两层防御先例：批量导入/autotest 数据准备；本类无内部 save/update 调用方）。与 F 正交：排除是读面、拦截是写面。受限会话组合链闭合：受限用户"改 phone → bindSms"的 enrollment attack 前半步在受限拦截门即断（通用 mutation 非白名单）；非受限非 admin 会话由本拦截门断。用户自助 changePhone/changeEmail 正门端点为 Non-Goal（另行立项）。

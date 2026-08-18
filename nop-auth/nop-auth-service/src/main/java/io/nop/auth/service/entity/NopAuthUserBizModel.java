@@ -81,7 +81,9 @@ import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_EMAIL_CODE_SUBJECT_TEM
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_EMAIL_CODE_TEXT_TEMPLATE;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_MFA_BIND_EXPIRE_SECONDS;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_MFA_MAX_ATTEMPTS;
+import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_MFA_TOTP_COOLDOWN_SECONDS;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_MFA_TOTP_ISSUER;
+import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_MFA_TOTP_VERIFY_MAX_FAILS;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_SMS_CODE_TEMPLATE_ID;
 import static io.nop.auth.service.NopAuthConstants.EMAIL_KEY_MFA;
 import static io.nop.auth.service.NopAuthConstants.EMAIL_KEY_PROOF;
@@ -217,6 +219,15 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
     @Inject
     @Nullable
     protected MfaTrustedDeviceManager trustedDeviceManager;
+
+    /**
+     * JDBC 模板（A2-followup-1 D1-1）：TOTP 绑定/解绑失败计数的原子递增/条件判定
+     * （{@code DbMfaChallengeStore.incrFailCount} 同型 raw SQL）。手工 wiring 测试可缺省——
+     * 缺省时计数退化为实体写（无装饰器直调路径同样持久）。
+     */
+    @Inject
+    @Nullable
+    protected io.nop.dao.jdbc.IJdbcTemplate jdbcTemplate;
 
     public NopAuthUserBizModel() {
         setEntityName(NopAuthUser.class.getName());
@@ -625,11 +636,27 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
             throw new NopException(ERR_AUTH_MFA_BIND_EXPIRED).param(ARG_USER_ID, userId);
         }
 
+        // A2-followup-1 D1-1（pending 路径锁门）：TOTP 失败计数达上限（bindToken 已被作废）→
+        // BIND_EXPIRED（用户重新 bindMfa）。SMS/EMAIL 分支不引入本计数（store 内部
+        // max-attempts 已覆盖——边界钉定，防误扩）。
+        if (MFA_TYPE_TOTP.equals(setting.getMfaType()) && isTotpLocked(userId)) {
+            throw new NopException(ERR_AUTH_MFA_BIND_EXPIRED).param(ARG_USER_ID, userId);
+        }
+
         // 校验第二因子（用 pending 记录的 secret；W12-impl 收敛至 MfaFactorVerifier——
         // TOTP 成功即内聚推进 lastVerifiedWindow/lastVerifiedAt，此处不再重复验证窗口）
         boolean ok = mfaFactorVerifier.verify(setting, setting.getMfaType(), code);
         if (!ok) {
+            // D1-1：TOTP 分支失败递增计数；达上限作废 bindToken（后续 confirm 报 BIND_EXPIRED）
+            if (MFA_TYPE_TOTP.equals(setting.getMfaType())) {
+                incrTotpVerifyFail(setting, true);
+            }
             throw new NopException(ERR_AUTH_MFA_FAIL).param(ARG_USER_ID, userId);
+        }
+        // D1-1：成功清零计数（TOTP 分支；SMS/EMAIL/webauthn 无本计数——webauthn 经
+        // challenge store incrFailCountOrDiscard 既有覆盖）
+        if (MFA_TYPE_TOTP.equals(setting.getMfaType())) {
+            resetTotpVerifyFail(setting);
         }
 
         // W13-impl 策略校验（防因子降级，设计 §4.1 结论 6）：确认因子强度 < 角色策略
@@ -693,10 +720,25 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
             // 解绑 ceremony（W14，设计 §5.3.2）：断言验证等价保持"验证当前因子"语义
             verifyWebauthnUnbindAssertion(userId, setting, challengeToken, assertion, context);
         } else {
+            // A2-followup-1 D1-1（enabled 路径锁门）：TOTP 失败计数达上限 → 冷却窗口内
+            // 直接拒绝（窗口 = 最近失败时间 + totp-cooldown-seconds，过期后可重试）。
+            // SMS/EMAIL 分支不引入本计数（store 内部 max-attempts 已覆盖——边界钉定，防误扩）
+            if (MFA_TYPE_TOTP.equals(setting.getMfaType()) && isTotpLocked(userId)) {
+                throw new NopException(io.nop.auth.service.NopAuthErrors.ERR_AUTH_MFA_COOLDOWN)
+                        .param(ARG_USER_ID, userId);
+            }
             // 一期因子验证路径原样（totp/sms；W12-impl 收敛至 MfaFactorVerifier）
             boolean ok = mfaFactorVerifier.verify(setting, setting.getMfaType(), code);
             if (!ok) {
+                // D1-1：TOTP 分支失败递增计数（达上限进入冷却窗口）
+                if (MFA_TYPE_TOTP.equals(setting.getMfaType())) {
+                    incrTotpVerifyFail(setting, false);
+                }
                 throw new NopException(ERR_AUTH_MFA_FAIL).param(ARG_USER_ID, userId);
+            }
+            // D1-1：成功清零计数（TOTP 分支）
+            if (MFA_TYPE_TOTP.equals(setting.getMfaType())) {
+                resetTotpVerifyFail(setting);
             }
         }
 
@@ -1116,14 +1158,25 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
             // email 通道（W15-impl）：门控（显式拒绝非静默）→ email 维度限流 →
             // EmailCodeStore 发码（key=proof-email:{userId}，通道隔离）→ 脱敏提示抛错
             if (!CFG_AUTH_EMAIL_CODE_ENABLED.get()) {
+                // A2-followup-1 D1-3 Proof：发送侧拒绝分支补 fail 审计（防滥用审计面补全）
+                auditChannelProofSendFail(userId, user.getUserName(), PROOF_CHANNEL_EMAIL,
+                        maskEmail(email), "channel-disabled");
                 throw new NopException(ERR_AUTH_INVALID_LOGIN_REQUEST).param(ARG_USER_ID, userId)
                         .param("msg", "email code is disabled (nop.auth.email-code.enabled=false)");
             }
             if (emailCodeStore == null) {
+                auditChannelProofSendFail(userId, user.getUserName(), PROOF_CHANNEL_EMAIL,
+                        maskEmail(email), "store-missing");
                 throw new NopException(ERR_AUTH_INVALID_LOGIN_REQUEST).param(ARG_USER_ID, userId)
                         .param("msg", "EmailCodeStore is not configured; email channel proof is unavailable");
             }
-            checkEmailRateLimit(email, extractClientIp(context));
+            try {
+                checkEmailRateLimit(email, extractClientIp(context));
+            } catch (NopException e) {
+                auditChannelProofSendFail(userId, user.getUserName(), PROOF_CHANNEL_EMAIL,
+                        maskEmail(email), "rate-limited");
+                throw e;
+            }
             String code = emailCodeStore.send(EMAIL_KEY_PROOF + userId);
             sendEmailForBinding(email, code);
             auditChannelProofSent(userId, user.getUserName(), PROOF_CHANNEL_EMAIL, maskEmail(email));
@@ -1132,10 +1185,19 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
         }
 
         // 3. phone 通道（W13 原路径）：限流（60s 间隔 + 日上限；sendMfaCode 调用点限流先例）
-        checkProofRateLimit(phone);
+        try {
+            checkProofRateLimit(phone);
+        } catch (NopException e) {
+            // A2-followup-1 D1-3 Proof：发送侧限流拒绝分支补 fail 审计
+            auditChannelProofSendFail(userId, user.getUserName(), PROOF_CHANNEL_PHONE,
+                    maskPhone(phone), "rate-limited");
+            throw e;
+        }
 
         // 4. 发码（key=proof:{userId}，通道隔离）→ 脱敏提示抛错（客户端持码调 verifyChannelProof）
         if (smsCodeStore == null) {
+            auditChannelProofSendFail(userId, user.getUserName(), PROOF_CHANNEL_PHONE,
+                    maskPhone(phone), "store-missing");
             throw new NopException(ERR_AUTH_INVALID_LOGIN_REQUEST)
                     .param("msg", "SmsCodeStore is not configured; channel proof is unavailable");
         }
@@ -1204,6 +1266,32 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
         data.put("event", "channel-proof-sent");
         data.put("channel", channel);
         data.put("target", maskedTarget);
+        audit.setRequestData(io.nop.core.lang.json.JsonTool.stringify(data));
+        auditService.saveAudit(audit);
+    }
+
+    /**
+     * 登记通道 proof <b>发送侧拒绝</b>审计事件（A2-followup-1 D1-3 Proof：限流/channel-disabled/
+     * store-missing 分支"失败无审计"补齐）。事件名区分发送侧（send-fail）与验证侧
+     * （{@code mfa:channel-proof-fail}，LoginApiBizModel）；审计字段脱敏（maskedTarget），
+     * 不含明文联系方式。userName 兜底 userId（非空列教训）。
+     */
+    private void auditChannelProofSendFail(String userId, String userName, String channel, String maskedTarget,
+                                           String reason) {
+        if (auditService == null)
+            return;
+        io.nop.api.core.audit.AuditRequest audit = new io.nop.api.core.audit.AuditRequest();
+        audit.setOperation("NopAuthUser__bindMfa");
+        audit.setDescription("mfa:channel-proof-send-fail");
+        audit.setResultStatus(400);
+        audit.setActionTime(new Timestamp(CoreMetrics.currentTimeMillis()));
+        audit.setUserId(userId);
+        audit.setUserName(StringHelper.isEmpty(userName) ? userId : userName);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("event", "channel-proof-send-fail");
+        data.put("channel", channel);
+        data.put("target", maskedTarget);
+        data.put("reason", reason);
         audit.setRequestData(io.nop.core.lang.json.JsonTool.stringify(data));
         auditService.saveAudit(audit);
     }
@@ -1309,6 +1397,109 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
         long expireMs = CFG_AUTH_MFA_BIND_EXPIRE_SECONDS.get() * 1000L;
         long age = CoreMetrics.currentTimeMillis() - setting.getUpdateTime().getTime();
         return age > expireMs;
+    }
+
+    // ===================== TOTP 绑定/解绑失败计数（A2-followup-1 D1-1） =====================
+
+    /** setting 表名（raw SQL 计数操作——DbMfaChallengeStore.incrFailCount 同型）。 */
+    private static final String SETTING_TABLE = "nop_auth_mfa_setting";
+
+    /**
+     * TOTP 锁定判定：失败计数 ≥ 上限 且 处于冷却窗口内（最近失败时间 + totp-cooldown-seconds）。
+     * 窗口过期后放行重试（重试失败继续累计，成功清零）。raw SQL 读（绕过 ORM 会话缓存，
+     * {@code DbMfaChallengeStore.readVerifiedAt} 先例——并发递增后判定读到新值）。
+     */
+    private boolean isTotpLocked(String userId) {
+        int maxFails = CFG_AUTH_MFA_TOTP_VERIFY_MAX_FAILS.get();
+        long cutoff = CoreMetrics.currentTimeMillis() - CFG_AUTH_MFA_TOTP_COOLDOWN_SECONDS.get() * 1000L;
+        if (jdbcTemplate != null) {
+            io.nop.core.lang.sql.SQL sel = io.nop.core.lang.sql.SQL.begin()
+                    .name("mfaTotpLockedProbe").querySpace(io.nop.dao.DaoConstants.DEFAULT_QUERY_SPACE)
+                    .sql("SELECT COUNT(*) FROM " + SETTING_TABLE
+                            + " WHERE USER_ID = ? AND COALESCE(TOTP_FAIL_COUNT,0) >= ?"
+                            + " AND TOTP_FAIL_AT IS NOT NULL AND TOTP_FAIL_AT > ?",
+                            userId, maxFails, new Timestamp(cutoff))
+                    .end();
+            return jdbcTemplate.findInt(sel, 0) > 0;
+        }
+        // 手工 wiring 退化路径：经 setting 实体值判定（直调路径无会话缓存竞争）
+        NopAuthMfaSetting setting = daoFor(NopAuthMfaSetting.class).getEntityById(userId);
+        if (setting == null || setting.getTotpFailAt() == null) {
+            return false;
+        }
+        int count = setting.getTotpFailCount() == null ? 0 : setting.getTotpFailCount();
+        return count >= maxFails && setting.getTotpFailAt().getTime() > cutoff;
+    }
+
+    /**
+     * TOTP 验证失败递增计数（原子 SQL；{@code COALESCE} 兼容存量 NULL 行）。
+     * pending 路径达上限同步作废 bindToken（后续 confirm 报 BIND_EXPIRED）。
+     * <p>
+     * <b>事务语义（防生产空壳）</b>：confirmMfa/unbindMfa 是 @BizMutation——外层事务在随后的
+     * {@code ERR_AUTH_MFA_FAIL} 抛出时会回滚，计数若随波逐流将永不持久。故计数写必须在
+     * {@code REQUIRES_NEW} 独立事务中先行落库（失败路径此前无同行写，无自锁风险）。
+     * 手工 wiring（无 transactionTemplate，直调无装饰器）退化为实体写。
+     */
+    private void incrTotpVerifyFail(NopAuthMfaSetting setting, boolean pendingPath) {
+        int maxFails = CFG_AUTH_MFA_TOTP_VERIFY_MAX_FAILS.get();
+        Timestamp now = new Timestamp(CoreMetrics.currentTimeMillis());
+        if (jdbcTemplate != null && txn() != null) {
+            txn().runInTransaction(null, io.nop.api.core.annotations.txn.TransactionPropagation.REQUIRES_NEW, txn -> {
+                io.nop.core.lang.sql.SQL incr = io.nop.core.lang.sql.SQL.begin()
+                        .name("mfaTotpIncrFail").querySpace(io.nop.dao.DaoConstants.DEFAULT_QUERY_SPACE)
+                        .sql("UPDATE " + SETTING_TABLE
+                                + " SET TOTP_FAIL_COUNT = COALESCE(TOTP_FAIL_COUNT,0) + 1, TOTP_FAIL_AT = ?"
+                                + " WHERE USER_ID = ?", now, setting.getUserId())
+                        .end();
+                jdbcTemplate.executeUpdate(incr);
+                Integer count = jdbcTemplate.findInt(io.nop.core.lang.sql.SQL.begin()
+                        .name("mfaTotpFailCount").querySpace(io.nop.dao.DaoConstants.DEFAULT_QUERY_SPACE)
+                        .sql("SELECT TOTP_FAIL_COUNT FROM " + SETTING_TABLE + " WHERE USER_ID = ?",
+                                setting.getUserId())
+                        .end(), null);
+                if (pendingPath && count != null && count >= maxFails) {
+                    // pending 路径超限语义：作废 bindToken（条件写：仅非空时）
+                    jdbcTemplate.executeUpdate(io.nop.core.lang.sql.SQL.begin()
+                            .name("mfaTotpInvalidateBindToken").querySpace(io.nop.dao.DaoConstants.DEFAULT_QUERY_SPACE)
+                            .sql("UPDATE " + SETTING_TABLE + " SET BIND_TOKEN = NULL"
+                                    + " WHERE USER_ID = ? AND BIND_TOKEN IS NOT NULL", setting.getUserId())
+                            .end());
+                }
+                return null;
+            });
+            return;
+        }
+        // 退化路径（手工 wiring 直调）：实体写（version 冲突语义下并发丢失更新表现为请求失败，
+        // 不产生静默计数旁路）
+        int count = (setting.getTotpFailCount() == null ? 0 : setting.getTotpFailCount()) + 1;
+        setting.setTotpFailCount(count);
+        setting.setTotpFailAt(now);
+        if (pendingPath && count >= maxFails) {
+            setting.setBindToken(null);
+        }
+        daoFor(NopAuthMfaSetting.class).updateEntityDirectly(setting);
+    }
+
+    /**
+     * TOTP 验证成功清零计数（条件写：仅非零时触发；不触碰 VERSION——成功路径的 ORM 实体写
+     * （lastVerifiedWindow 推进/status 变更）随后正常提交，互不干扰）。
+     */
+    private void resetTotpVerifyFail(NopAuthMfaSetting setting) {
+        if (jdbcTemplate != null) {
+            jdbcTemplate.executeUpdate(io.nop.core.lang.sql.SQL.begin()
+                    .name("mfaTotpResetFail").querySpace(io.nop.dao.DaoConstants.DEFAULT_QUERY_SPACE)
+                    .sql("UPDATE " + SETTING_TABLE + " SET TOTP_FAIL_COUNT = 0, TOTP_FAIL_AT = NULL"
+                            + " WHERE USER_ID = ? AND (TOTP_FAIL_COUNT IS NOT NULL AND TOTP_FAIL_COUNT <> 0"
+                            + " OR TOTP_FAIL_AT IS NOT NULL)", setting.getUserId())
+                    .end());
+            return;
+        }
+        if ((setting.getTotpFailCount() != null && setting.getTotpFailCount() != 0)
+                || setting.getTotpFailAt() != null) {
+            setting.setTotpFailCount(0);
+            setting.setTotpFailAt(null);
+            daoFor(NopAuthMfaSetting.class).updateEntityDirectly(setting);
+        }
     }
 
     /**
@@ -1446,6 +1637,89 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
 
         user.setStatus(NopAuthConstants.USER_STATUS_ACTIVE);
         user.setDelFlag(DaoConstants.NO_VALUE);
+
+        // A2-followup-1 W12 路由项 3：创建面联系方式拦截（新增实体上 phone/email 已置值即脏）。
+        // 非 admin 调用方（含本人）→ 显式拒绝；admin → 放行 + 联系方式变更审计；无登录态的
+        // 内部调用（批量导入/autotest 数据准备先例，W11 归属两层防御同款裁定）→ 放行。
+        guardContactChange(user, context, true);
+    }
+
+    /**
+     * A2-followup-1 W12 路由项 3：update preparer 路径的联系方式拦截钩子。ORM 实体 copier 已
+     * 把提交字段拷贝到实体（脏属性可判），prepareUpdate 时机可精确区分"本次提交改了
+     * phone/email"与"仅改其他字段"。非联系字段的通用修改（如 nickname）不受影响。
+     */
+    @BizAction
+    @Override
+    protected void defaultPrepareUpdate(@Name("entityData") EntityData<NopAuthUser> entityData, IServiceContext context) {
+        super.defaultPrepareUpdate(entityData, context);
+        // 修改面联系方式拦截（含本人行修改——受限会话 enrollment attack 链闭合：
+        // 改 phone 后 bindSms 的组合路径断链，拦截点在 bindMfa 之前）
+        guardContactChange(entityData.getEntity(), context, false);
+    }
+
+    /**
+     * 联系方式（phone/email）经通用 CRUD 的写拦截（W12 路由项 3，A2 裁定路由项 3 落地）：
+     * <ul>
+     *   <li>非 admin 登录调用方（含修改本人行）→ {@code ERR_AUTH_CONTACT_CHANGE_NOT_ALLOWED}
+     *       （英文文案指引"联系方式变更需管理员或专用流程"）。</li>
+     *   <li>admin 调用方 → 放行 + {@code user:contact-changed} 审计事件（改人留痕，含
+     *       target userId/变更字段清单/创建或修改形态；不落明文新旧值——审计面最小化）。</li>
+     *   <li>无登录态内部调用 → 放行（W11 凭证归属两层防御先例：无登录态内部调用按一期
+     *       行为放行；本类无内部 save/update 调用方，实际命中面为批量导入/autotest）。</li>
+     * </ul>
+     * 与 D1-7 正交：D1-7 是读面结构性排除（MfaSetting.phone 出参不可见），本拦截是写面
+     * （NopAuthUser.phone/email 写路径分级）。
+     */
+    private void guardContactChange(NopAuthUser user, IServiceContext context, boolean create) {
+        if (user == null) {
+            return;
+        }
+        boolean phoneChanged = user.orm_propDirtyByName("phone");
+        boolean emailChanged = user.orm_propDirtyByName("email");
+        if (!phoneChanged && !emailChanged) {
+            return; // 联系字段不涉及：通用修改（nickname 类）行为不变
+        }
+        IUserContext uc = context == null ? null : context.getUserContext();
+        if (uc == null || StringHelper.isEmpty(uc.getUserId())) {
+            return; // 无登录态内部调用：放行（W11 先例）
+        }
+        Set<String> roles = uc.getRoles();
+        boolean admin = roles != null && (roles.contains(NopAuthConstants.ROLE_ADMIN)
+                || roles.contains(NopAuthConstants.ROLE_NOP_ADMIN));
+        if (!admin) {
+            throw new NopException(io.nop.auth.service.NopAuthErrors.ERR_AUTH_CONTACT_CHANGE_NOT_ALLOWED)
+                    .param(ARG_USER_ID, user.getUserId())
+                    .param("msg", "contact info (phone/email) can only be changed by an administrator "
+                            + "or through a dedicated flow");
+        }
+        auditContactChange(uc, user.getUserId(), phoneChanged, emailChanged, create);
+    }
+
+    /** admin 联系方式变更审计事件（改人留痕），落 NopAuthOpLog；不记录明文新旧值。 */
+    private void auditContactChange(IUserContext operator, String targetUserId, boolean phoneChanged,
+                                    boolean emailChanged, boolean create) {
+        if (auditService == null)
+            return;
+        AuditRequest audit = new AuditRequest();
+        audit.setOperation(create ? "NopAuthUser__save" : "NopAuthUser__update");
+        audit.setDescription("user:contact-changed");
+        audit.setResultStatus(200);
+        audit.setActionTime(new Timestamp(CoreMetrics.currentTimeMillis()));
+        audit.setUserId(operator.getUserId());
+        audit.setUserName(StringHelper.isEmpty(operator.getUserName()) ? operator.getUserId() : operator.getUserName());
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("event", "contact-changed");
+        data.put("targetUserId", targetUserId);
+        java.util.List<String> fields = new ArrayList<>(2);
+        if (phoneChanged)
+            fields.add("phone");
+        if (emailChanged)
+            fields.add("email");
+        data.put("fields", fields);
+        data.put("mode", create ? "create" : "update");
+        audit.setRequestData(JsonTool.stringify(data));
+        auditService.saveAudit(audit);
     }
 
     @Description("@i18n:common.resetUserPassword")

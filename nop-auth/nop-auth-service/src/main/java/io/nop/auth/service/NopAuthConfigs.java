@@ -110,6 +110,16 @@ public interface NopAuthConfigs {
     IConfigReference<Integer> CFG_AUTH_MFA_BIND_EXPIRE_SECONDS = varRef(s_loc, "nop.auth.mfa.bind-expire-seconds",
             Integer.class, 300);
 
+    // ===== TOTP 绑定/解绑失败上限（A2-followup-1 D1-1） =====
+
+    @Description("confirmMfa/unbindMfa 的 TOTP 分支连续失败次数上限（对齐登录级 max-attempts）：pending 路径达上限作废 bindToken（BIND_EXPIRED），enabled 路径进入冷却窗口")
+    IConfigReference<Integer> CFG_AUTH_MFA_TOTP_VERIFY_MAX_FAILS = varRef(s_loc, "nop.auth.mfa.totp-verify-max-fails",
+            Integer.class, 5);
+
+    @Description("unbindMfa 的 TOTP 分支失败达上限后的冷却窗口（秒）：窗口内因子验证直接拒绝（ERR_AUTH_MFA_COOLDOWN），过期后可重试；成功验证清零计数")
+    IConfigReference<Integer> CFG_AUTH_MFA_TOTP_COOLDOWN_SECONDS = varRef(s_loc, "nop.auth.mfa.totp-cooldown-seconds",
+            Integer.class, 300);
+
     // ===== WebAuthn/FIDO2 配置（W14-impl，设计 §5.3.2 RP 配置） =====
 
     @Description("WebAuthn Relying Party ID（WebAuthn rpId，一般为域名，如 example.com）。webauthn 因子使用时必配")
