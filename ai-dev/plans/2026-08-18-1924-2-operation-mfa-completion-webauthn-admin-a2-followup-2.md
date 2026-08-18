@@ -1,6 +1,6 @@
 # A2-followup-2 操作级 MFA 补全 + WebAuthn 管理面裁定落地（A2 successor-B）
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: nop-credential-mfa
 > Work Item: A2-followup-2
 > Last Reviewed: 2026-08-18
@@ -134,38 +134,38 @@ Exit Criteria:
 
 ### Phase 4 - 全量回归 + 文档收口 + closure
 
-Status: planned
+Status: completed
 Targets: 全模块测试、`docs-for-ai/03-modules/nop-auth.md`、`ai-dev/design/nop-auth/02-mfa-phase2-design.md`（§3.5 再裁定 + successor-B 落地裁定节）、roadmap、daily log
 
 - Item Types: `Fix | Proof | Follow-up`
 
-- [ ] `./mvnw test -pl nop-auth/nop-auth-service -am`（含 sso）全量回归；`./mvnw test -pl nop-graphql/nop-graphql-core -am` 全量回归；`./mvnw test -pl nop-credential/nop-credential-service -am` 回归（C1b 容器元数据断言等跨模块面不受影响）
-- [ ] 设计文档回写：`02-mfa-phase2-design.md` §3.5 再裁定结论 + successor-B 落地裁定小节（scene 校验语义 / 路由项 1 落地 / add-key ceremony / D5-F3 四组合构建期约束）
-- [ ] `docs-for-ai/03-modules/nop-auth.md` 同步（WebAuthn 管理动作与 add-key 章节、敏感操作标注清单更新）
-- [ ] roadmap `ai-dev/backlog/nop-credential-mfa-roadmap.md` A2-followup-2 状态与 plan 链接更新
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-auth --severity high` 退出码 0（无 NEW 高危空壳）
-- [ ] 独立 fresh 子 agent closure audit（证据写入本 plan Closure 段）
+- [x] `./mvnw test -pl nop-auth/nop-auth-service -am`（含 sso）全量回归；`./mvnw test -pl nop-graphql/nop-graphql-core -am` 全量回归；`./mvnw test -pl nop-credential/nop-credential-service -am` 回归（C1b 容器元数据断言等跨模块面不受影响）
+- [x] 设计文档回写：`02-mfa-phase2-design.md` §3.5 再裁定结论 + successor-B 落地裁定小节（scene 校验语义 / 路由项 1 落地 / add-key ceremony / D5-F3 四组合构建期约束）
+- [x] `docs-for-ai/03-modules/nop-auth.md` 同步（WebAuthn 管理动作与 add-key 章节、敏感操作标注清单更新）
+- [x] roadmap `ai-dev/backlog/nop-credential-mfa-roadmap.md` A2-followup-2 状态与 plan 链接更新
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-auth --severity high` 退出码 0（无 NEW 高危空壳）
+- [x] 独立 fresh 子 agent closure audit（证据写入本 plan Closure 段）
 
 Exit Criteria:
 
-- [ ] 上述命令全部退出码 0 / 全绿
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
-- [ ] Closure 段已记录独立 audit 证据（Reviewer/task id + 逐 Gate 验证结果 + Anti-Hollow 结论）
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] 上述命令全部退出码 0 / 全绿（执行记录：nop-auth-service 389/0 + sso 5/0 + nop-credential-service 215/0 + graphql-core 全绿（80 基线 + 2 新 fail-fast）；mission 门 `:nop-auth,:nop-ai-gateway,:nop-nosql -am -T 1C` 复跑全绿——首跑 1 例 `TestNopAuthUserBizModel.testJsonRpc` 为 `-T 1C` 并行 displayName 竞态 flake（隔离运行 9/9 绿，复跑全绿，08-16 日志同族先例）；排除两例为文档化 pre-existing：`TestRocksDBIncrementalRestoreAndBenchmark`（性能基准，08-14/16 日志）与 `TestFeatureConditionEvaluator.testVirtualNode`（nop-xlang，clean HEAD stash 对照即失败、与 mission 模块无关））
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] Closure 段已记录独立 audit 证据（Reviewer/task id + 逐 Gate 验证结果 + Anti-Hollow 结论）
+- [x] `ai-dev/logs/` 收口条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：本 section 与各 Phase Exit Criteria 全部 `[x]` 后才能将 Plan Status 改为 `completed`。关闭流程见 guide `When Closing The Plan`。
 
-- [ ] successor-B 全部 4 项（路由项 1 / D2-F2 / add-key-while-enabled / D5-F3）落地且有 focused 测试，或经显式裁定移出 scope（裁定记录在案）
-- [ ] 设计 §3.5 再裁定已回写且与 live 行为一致（"一期调用点零改动"红线的创建侧/验证侧区分成文）
-- [ ] 一期/二期契约零回归：nop-auth-service(+sso) 全量 0 failures、nop-graphql-core 0 failures、nop-credential-service 回归 0 failures
-- [ ] 无 in-scope live defect 被降级到 deferred / follow-up
-- [ ] owner docs（nop-auth.md）与设计文档（02-mfa-phase2-design.md）与 live 行为一致
-- [ ] Anti-Hollow：scene 校验/add-key 端点/fail-fast 在运行时与构建期真实可达（E2E 从 GraphQL 入口断言 + fail-fast 测试）；无空方法体/静默跳过作为实现
-- [ ] 独立 fresh 子 agent closure audit 完成且证据写入 Closure 段
-- [ ] `./mvnw compile` + `./mvnw test -pl nop-auth/nop-auth-service -am` + `-pl nop-graphql/nop-graphql-core -am` + `-pl nop-credential/nop-credential-service -am` 通过
-- [ ] checkstyle / 代码规范检查通过（import 分组 io.nop.* → 三方 → java.*）
+- [x] successor-B 全部 4 项（路由项 1 / D2-F2 / add-key-while-enabled / D5-F3）落地且有 focused 测试，或经显式裁定移出 scope（裁定记录在案）
+- [x] 设计 §3.5 再裁定已回写且与 live 行为一致（"一期调用点零改动"红线的创建侧/验证侧区分成文）
+- [x] 一期/二期契约零回归：nop-auth-service(+sso) 全量 0 failures、nop-graphql-core 0 failures、nop-credential-service 回归 0 failures
+- [x] 无 in-scope live defect 被降级到 deferred / follow-up
+- [x] owner docs（nop-auth.md）与设计文档（02-mfa-phase2-design.md）与 live 行为一致
+- [x] Anti-Hollow：scene 校验/add-key 端点/fail-fast 在运行时与构建期真实可达（E2E 从 GraphQL 入口断言 + fail-fast 测试）；无空方法体/静默跳过作为实现
+- [x] 独立 fresh 子 agent closure audit 完成且证据写入 Closure 段
+- [x] `./mvnw compile` + `./mvnw test -pl nop-auth/nop-auth-service -am` + `-pl nop-graphql/nop-graphql-core -am` + `-pl nop-credential/nop-credential-service -am` 通过
+- [x] checkstyle / 代码规范检查通过（import 分组 io.nop.* → 三方 → java.*；commit 前 ast-grep Java lint 检查通过；`./mvnw checkstyle:check` 仓内未配置该 goal（lint not configured），ast-grep 钩子为零通过）
 
 ## Deferred But Adjudicated
 
@@ -179,14 +179,25 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<待关闭时填写>>
-Completed: <<待填写>>
+Status Note: successor-B 全部 4 项（D2-F2 / 路由项 1 / add-key-while-enabled / D5-F3）经四 Phase 落地并全部通过 focused 测试与全量回归；设计（§3.5 再裁定 + §10.2）与 owner docs 与 live 行为一致；独立 fresh 子 agent closure audit 判定 CAN CLOSE（0 Blocker / 0 Major）。无 in-scope 项被降级。
+Completed: 2026-08-19
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<待填写>>
-- Evidence: <<待填写>>
+- Reviewer / Agent: 独立 fresh subagent（general agent，task id `ses_fe94fb7c7ffeTg6dtKQRumKpYR`，closure audit 专用 fresh session，非实现会话复用）
+- Evidence:
+  - **A. Live code（5/5 PASS）**：A1 scene/verifiedAt 校验（LoginServiceImpl.java:580-584，peek 阶段不消费，拒绝后 token 在自身场景仍可用——:451-452 测试证明）；A2 双端点全链（NopAuthUserBizModel webauthnBeginAddKey :955 前置守卫 + :980-985 双 challenge 行独立 cryptoChallenge；confirmWebauthnAddKey :1034-1139 四参 + @MfaRequired，:1045 绑定复核 / :1049 setting 复核 / :1060 attestation+重复拒绝 / :1084 持有证明（mfaFactorVerifier 真实调用，测试断言 key1 signCount 5→6）/ :1094-1105 落库 enabled / :1108-1109 双 consume / :1110-1112 双审计；全部失败路径显式 NopException，无空方法体/静默返回）；A3 SCENE_WEBAUTHN_ADD（MfaChallenge.java:69）；A4 双错误码（GraphQLErrors.java:309-317）；A5 两构建路径 fail-fast（ReflectionBizModelBuilder.java:175-181 / :197-202）
+  - **B. Tests（4/4 PASS）**：TestOperationMfaE2E 拒绝矩阵含 SCENE_WEBAUTHN_ADD（:464）+ 容器元数据正例（remove :142 + confirm :142）/ 负例（rename/begin/getMfaStatus）+ 双标注接线测试；TestWebAuthnAddKeyE2E 6 用例（全链 :166-248 含零副作用逐项 + 双 consume + 双审计断言；登录双向回归 :253-303；持有证明负例 ×4 :308-376；发起守卫 ×3 :381-411；attestation+重复 :416-451；多钥匙 last-credential :456-500）；TestMfaRequiredMetadata +2 fail-fast（:136/:145），既有断言零修改；旧 residual 钉定零残留（全仓 grep）
+  - **C. Docs（3/3 PASS）**：设计 §3.5 再裁定块（:156-162）+ §10.2 A/B/C 三记录（:762-777）；nop-auth.md 六处同步（:139/:175-178/:194/:202/:305）；roadmap A2-followup-2 `done`（:51 + 头部 :4）
+  - **D. Anti-Hollow PASS**：confirmWebauthnAddKey 调用链逐环追踪（GraphQL mutation → 元数据传播（容器断言 + checker 注入断言）→ 绑定复核 → 真实 verifyRegistration（测试断言落库 publicKey/signCount）→ 真实 MfaFactorVerifier（signCount 推进断言）→ saveEntity → consume×2 → 审计×2）；新路径无 TODO/stub/no-op；测试为真实生产方法 + 真实组件 + H2 ORM 栈（唯一 stub CapturingAuditService 是被断言对象本身）
+  - **E. Plan 文件一致性**：审计时点 Phase 4 in progress + Closure Gates 未勾（预期——audit 先于状态翻转，本 Closure 段即补记）；audit 判定 CAN CLOSE 后完成全部文本收口
+  - `node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0（收口后运行确认）
+  - Anti-Hollow 扫描：`scan-hollow-implementations.mjs --module nop-auth --severity high` 单条 high 为 nop-auth-sso pre-existing（本 plan 提交未触碰该模块——git log 证据），0 NEW
+  - Deferred 项分类检查：Deferred But Adjudicated 无预置项（执行期未产生延期项）；Non-Blocking Follow-ups 三项均为 roadmap 所有权项/前端对接/info 级记录，无 in-scope live defect 降级
+- Minor（audit 记录，不阻塞）：① TestWebAuthnAddKeyE2E 经 BizModel 直调驱动 ceremony（GraphQL 层由 TestOperationMfaE2E 引擎路径覆盖——分层合理）；② audit 为 read-only 未复跑测试（回归计数以 roadmap/日志记载的实际运行记录为准——本 plan 执行期 389/0 + 215/0 + graphql 全绿 + mission 门复跑全绿）
 
 Follow-up:
 
-- <<待关闭时填写>>
+- add-key 前端页面与用户引导（API 面已交付，前端对接另行——Non-Goal 登记）
+- `sendMfaCode` scene 收紧（info 级记录项，如需收紧另行评估）
+- A3-audit（二期收口全量验证）可下轮起草——两 successor 均已 done
