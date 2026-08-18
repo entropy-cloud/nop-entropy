@@ -249,6 +249,11 @@ class TestConfigExpressionResolver {
         }
 
         @Override
+        public boolean isDirty() {
+            return false;
+        }
+
+        @Override
         public <T> void updateConfigValue(IConfigReference<T> ref, T value) {
             throw new UnsupportedOperationException();
         }

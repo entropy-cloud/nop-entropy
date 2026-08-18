@@ -191,6 +191,11 @@ public class InstanceConfigProvider implements IConfigProvider {
     }
 
     @Override
+    public boolean isDirty() {
+        return globalProvider.isDirty();
+    }
+
+    @Override
     public <T> void updateConfigValue(IConfigReference<T> ref, T value) {
         if (containsKey(ref.getName())) {
             setInstanceValue(ref.getName(), value);

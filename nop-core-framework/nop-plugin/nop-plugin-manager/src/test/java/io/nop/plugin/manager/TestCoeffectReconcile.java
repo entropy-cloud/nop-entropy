@@ -430,6 +430,11 @@ public class TestCoeffectReconcile {
         }
 
         @Override
+        public boolean isDirty() {
+            return delegate.isDirty();
+        }
+
+        @Override
         public <T> void updateConfigValue(IConfigReference<T> ref, T value) {
             delegate.updateConfigValue(ref, value);
         }
