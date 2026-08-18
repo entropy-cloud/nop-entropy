@@ -88,25 +88,25 @@ Exit Criteria:
 
 ### Phase 2 - 标注补全族：路由项 1 落地 + D5-F3 构建期 fail-fast
 
-Status: planned
+Status: completed
 Targets: `NopAuthUserBizModel.java`、`TestOperationMfaE2E.java`、`GraphQLErrors.java`、`ReflectionBizModelBuilder.java`、`TestMfaRequiredMetadata.java`
 
 - Item Types: `Fix | Proof`
 
-- [ ] **Fix（路由项 1）**：`removeWebauthnCredential` 加 `@MfaRequired`，javadoc 注记裁定依据（A2 路由项 1 终局裁定 + A1 §二#4 缩窄先例的区分论证："删除一把钥匙 = 修改认证因子集合，与 unbindMfa 同族"；last-credential 守卫防自锁死非劫持面）；`renameWebauthnCredential` 保持不标注（javadoc 可注一句"路由项 1 裁定：展示元数据变更不标注"）
-- [ ] **Fix（容器断言同步）**：`TestOperationMfaE2E` 容器级元数据断言（约 :133-146 先例）正例清单加入 removeWebauthnCredential（5→6），负例加入 renameWebauthnCredential（钉定"不标注"为预期而非遗漏）
-- [ ] **Fix（D5-F3）**：`GraphQLErrors` 新增两个错误码（@MfaRequired+@BizAction / @MfaRequired+@BizLoader 非法组合，文案与结构镜像 :299-307 既有两码的定义模式——语言随既有形态，不新开语言惯例）；`ReflectionBizModelBuilder` 在 @BizAction 与 @BizLoader 构建路径检测到 @MfaRequired 即抛构建错误（镜像 buildActionField 路径 :348-364 的读取与拒绝模式）
-- [ ] **Proof**：`TestMfaRequiredMetadata` 增补两类误标的 fail-fast 断言（对齐 :97-110 先例）；grep 全仓确认现无 @MfaRequired 误标于 @BizAction/@BizLoader 的真实用法（fail-fast 不误伤既有 9 处标注）
+- [x] **Fix（路由项 1）**：`removeWebauthnCredential` 加 `@MfaRequired`，javadoc 注记裁定依据（A2 路由项 1 终局裁定 + A1 §二#4 缩窄先例的区分论证："删除一把钥匙 = 修改认证因子集合，与 unbindMfa 同族"；last-credential 守卫防自锁死非劫持面）；`renameWebauthnCredential` 保持不标注（javadoc 可注一句"路由项 1 裁定：展示元数据变更不标注"）
+- [x] **Fix（容器断言同步）**：`TestOperationMfaE2E` 容器级元数据断言（约 :133-146 先例）正例清单加入 removeWebauthnCredential（5→6），负例加入 renameWebauthnCredential（钉定"不标注"为预期而非遗漏）
+- [x] **Fix（D5-F3）**：`GraphQLErrors` 新增两个错误码（@MfaRequired+@BizAction / @MfaRequired+@BizLoader 非法组合，文案与结构镜像 :299-307 既有两码的定义模式——语言随既有形态，不新开语言惯例）；`ReflectionBizModelBuilder` 在 @BizAction 与 @BizLoader 构建路径检测到 @MfaRequired 即抛构建错误（镜像 buildActionField 路径 :348-364 的读取与拒绝模式）
+- [x] **Proof**：`TestMfaRequiredMetadata` 增补两类误标的 fail-fast 断言（对齐 :97-110 先例）；grep 全仓确认现无 @MfaRequired 误标于 @BizAction/@BizLoader 的真实用法（fail-fast 不误伤既有 9 处标注）
 
 Exit Criteria:
 
-- [ ] 容器级测试：nop-auth 容器内 removeWebauthnCredential 元数据存活断言 + rename 无元数据断言均通过；`operation-mfa.enabled=false` 下 removeWebauthnCredential 行为零变化（零介入负例）
-- [ ] `TestMfaRequiredMetadata` 两类新 fail-fast 断言通过；既有 subscription/publicAccess fail-fast 断言零修改
-- [ ] 全仓无既有误标（build 不被 fail-fast 误伤）：`./mvnw compile` 通过；nop-graphql-core 全量测试全绿
-- [ ] **无静默跳过**：两类误标在 BizModel 注册时构建期显式失败（异常 + 错误码），不再静默忽略
-- [ ] `./mvnw test -pl nop-graphql/nop-graphql-core -am` 与 `./mvnw test -pl nop-auth/nop-auth-service -am` 全绿
-- [ ] 设计回写节含路由项 1 落地记录（remove 标注/rename 负例钉定）与 D5-F3 裁定（构建期约束从两组合扩至四组合）；owner docs（nop-auth.md 敏感操作标注清单）同步
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 容器级测试：nop-auth 容器内 removeWebauthnCredential 元数据存活断言 + rename 无元数据断言均通过；`operation-mfa.enabled=false` 下 removeWebauthnCredential 行为零变化（零介入负例）
+- [x] `TestMfaRequiredMetadata` 两类新 fail-fast 断言通过；既有 subscription/publicAccess fail-fast 断言零修改
+- [x] 全仓无既有误标（build 不被 fail-fast 误伤）：`./mvnw compile` 通过；nop-graphql-core 全量测试全绿
+- [x] **无静默跳过**：两类误标在 BizModel 注册时构建期显式失败（异常 + 错误码），不再静默忽略
+- [x] `./mvnw test -pl nop-graphql/nop-graphql-core -am` 与 `./mvnw test -pl nop-auth/nop-auth-service -am` 全绿
+- [x] 设计回写节含路由项 1 落地记录（remove 标注/rename 负例钉定）与 D5-F3 裁定（构建期约束从两组合扩至四组合）；owner docs（nop-auth.md 敏感操作标注清单）同步
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - add-key-while-enabled 正门端点
 

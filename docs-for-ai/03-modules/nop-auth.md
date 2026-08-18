@@ -172,8 +172,8 @@ nop-auth 提供完整的两阶段登录（第一因子 → challenge → 第二�
 | `unbindMfa(code?, challengeToken?, assertion?)` | `:677` | 解绑（webauthn 用户凭 challengeToken+assertion 断言验证；其余类型凭 code；验证当前因子 + 作废恢复码 + **物理删除全部 webauthn credential 行**——A2-audit D3-F1 因子作废语义） |
 | `webauthnBeginVerify()` | `:536` | 发起 WebAuthn 解绑验证（scene=webauthn-unbind challenge + requestOptions） |
 | `listWebauthnCredentials()` | `:797` | 列出本人 WebAuthn credentials（不暴露 credentialId/publicKey） |
-| `removeWebauthnCredential(sid)` | `:824` | 移除一把 credential（最后一把 enabled 拒绝 `ERR_AUTH_MFA_LAST_CREDENTIAL`；越权归一"不存在"；**物理删除**释放 credentialId 唯一键——A2-audit） |
-| `renameWebauthnCredential(sid, name)` | `:842` | 重命名一把 credential（本人数据限定） |
+| `removeWebauthnCredential(sid)` | `:824` | 移除一把 credential（最后一把 enabled 拒绝 `ERR_AUTH_MFA_LAST_CREDENTIAL`；越权归一"不存在"；**物理删除**释放 credentialId 唯一键——A2-audit；**`@MfaRequired` 标注**（A2 路由项 1 终局裁定：修改认证因子集合，与 unbindMfa 同族）） |
+| `renameWebauthnCredential(sid, name)` | `:842` | 重命名一把 credential（本人数据限定；**不标注**——路由项 1 裁定：纯展示元数据变更） |
 | `generateRecoveryCodes()` | — | 重置恢复码（作废旧码） |
 | `getMfaStatus()` | — | 查询状态（不返回 secret） |
 | `listTrustedDevices()` | `:872` | 列出本人可信设备（全部行含过期标记，W15） |
@@ -283,11 +283,11 @@ MFA/SMS 错误码定义在 `NopAuthErrors.java`：`ERR_AUTH_MFA_REQUIRED`（`nop
 
 ```java
 @BizMutation
-@MfaRequired   // 不得与 @BizSubscription 或 @Auth(publicAccess=true) 同用——构建期报错（fail-fast）
+@MfaRequired   // 不得与 @BizSubscription / @Auth(publicAccess=true) / @BizAction / @BizLoader 同用——构建期报错（fail-fast）
 public void resetUserPassword(@Name("userId") String userId, @Name("password") String password, IServiceContext context) { ... }
 ```
 
-- 构建期约束（`ReflectionBizModelBuilder`）：`@MfaRequired` + `@BizSubscription` → 构建报错（订阅路径无请求-响应语义）；`@MfaRequired` + `@Auth(publicAccess=true)` → 构建报错（匿名方法无会话可验）。静默绕过 = fail-open，故 fail-fast。
+- 构建期约束（`ReflectionBizModelBuilder`，两组合 → **四组合**，D5-F3）：`@MfaRequired` + `@BizSubscription` → 构建报错（订阅路径无请求-响应语义）；`@MfaRequired` + `@Auth(publicAccess=true)` → 构建报错（匿名方法无会话可验）；`@MfaRequired` + `@BizAction` → 构建报错（内部动作不经 executor 操作级 MFA 检查点）；`@MfaRequired` + `@BizLoader` → 构建报错（字段装载器无独立操作入口）。静默绕过 = fail-open，故 fail-fast。
 - 元数据传播链：`ReflectionBizModelBuilder` → `GraphQLFieldDefinition.mfaRequiredMeta` → `deepClone()` / `GraphQLObjectDefinition.mergeField`（两分支）/ `BizObjectBuildHelper.mergeBizModel`（nop-biz）四触点拷贝（对齐 makerCheckerMeta 先例）。
 - 拦截：`GraphQLExecutor` 两检查点（RPC 单操作 + GraphQL 文档路径，auth check 之后）对带 `mfaRequiredMeta` 的顶层 operation 调用 `IOperationMfaChecker`（`nop-biz-auth-api` SPI）；`GraphQLEngine` 可选注入（`@Inject @Nullable`）——未部署 nop-auth-service 时零介入。订阅路径不接（构建期拒绝保证）。
 
@@ -299,7 +299,7 @@ public void resetUserPassword(@Name("userId") String userId, @Name("password") S
 
 判定要点：未启用 MFA 的用户不拦截（无第二因子可验；强制启用归角色级策略 W13）；store 未装配放行；批量请求含敏感操作时整批预执行中止（错误即该 operation 的错误，无部分执行副作用）。
 
-**首批标注**（nop-auth 模块内五动作）：`NopAuthUser__resetUserMfa` / `NopAuthUser__resetUserPassword` / `NopAuthUser__changeSelfPassword` / `NopAuthUser__unbindMfa` / `NopAuthUser__generateRecoveryCodes`。凭证库模块四动作已落地（C1b，A1-audit §二#4 缩窄裁定）：`NopCredential__reencryptAll` / `NopCredential__delete` / `NopCredentialAuth__grant` / `NopCredentialAuth__revoke`（清单、生效前置与缩窄理由见 `nop-credential.md` 的"敏感操作标注"章节）；通用 CRUD 路径（如联系方式修改经 `NopAuthUser__save`）无法用方法级注解覆盖，属平台级治理。
+**标注清单**（nop-auth 模块内六动作）：`NopAuthUser__resetUserMfa` / `NopAuthUser__resetUserPassword` / `NopAuthUser__changeSelfPassword` / `NopAuthUser__unbindMfa` / `NopAuthUser__generateRecoveryCodes` / `NopAuthUser__removeWebauthnCredential`（A2 路由项 1 终局裁定落地：删除一把钥匙 = 修改认证因子集合，与 unbindMfa 同族；`renameWebauthnCredential` 裁定不标注——纯展示元数据变更，容器级元数据断言负例钉定）。凭证库模块四动作已落地（C1b，A1-audit §二#4 缩窄裁定）：`NopCredential__reencryptAll` / `NopCredential__delete` / `NopCredentialAuth__grant` / `NopCredentialAuth__revoke`（清单、生效前置与缩窄理由见 `nop-credential.md` 的"敏感操作标注"章节）；通用 CRUD 路径（如联系方式修改经 `NopAuthUser__save`）无法用方法级注解覆盖，属平台级治理。
 
 **共享因子校验组件 `MfaFactorVerifier`**（`io.nop.auth.service.mfa`）：登录级/绑定级/操作级三处因子校验收敛；**TOTP 防重放窗口统一推进内聚组件内**（任何场景成功都更新 lastVerifiedWindow——防同一 30s 窗口码跨场景重放）；未知 mfaType fail-closed；恢复码分支不入组件（登录级专用）。新增因子（W14/W15）只改组件与白名单。
 
