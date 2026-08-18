@@ -14,6 +14,7 @@ import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.ioc.BeanContainerStartMode;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.core.initialize.CoreInitialization;
+import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.unittest.BaseTestCase;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
@@ -32,6 +33,16 @@ public class NopJunitExtension implements BeforeAllCallback, AfterAllCallback {
 
         BaseTestCase.beginTest();
         processTestConfig(context);
+
+        // 仅在前序测试类动态修改过配置（assignConfigValue / setTestConfig / @NopTestProperty）
+        // 时清空模型缓存。xlib/xdef 编译时会按当时的配置求值 feature:on 等条件；
+        // 若不清缓存，后续类会复用前序类污染过的编译产物（典型症状：TenantSupport
+        // 等条件节点被错误保留导致 ORM 模型 useTenant=true）。
+        // 没有配置修改时跳过，避免无谓清空所有缓存。
+        if (AppConfig.getConfigProvider().isDirty()) {
+            ResourceComponentManager.instance().clearAllCache();
+        }
+
         CoreInitialization.initialize();
     }
 
