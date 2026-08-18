@@ -1208,7 +1208,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
         // 先标记实体被删除，避免递归删除的时候出现死循环
         dao().deleteEntity(entity);
         deleteReferences(entity, BizConstants.METHOD_DELETE, context);
-        afterEntityChange(entity, context);
+        afterEntityChange(entity, BizConstants.METHOD_DELETE, context);
     }
 
     /**
