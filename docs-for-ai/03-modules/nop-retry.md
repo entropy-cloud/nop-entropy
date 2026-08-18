@@ -27,13 +27,12 @@
 
 ## 阻塞策略
 
-- **丢弃**（DISCARD）：同幂等键已有记录时丢弃新任务
-- **覆盖**（OVERWRITE）：覆盖已有记录
-- **并行**（PARALLEL）：允许并行执行
+- **丢弃**（DISCARD）：同命名空间、同分组、同幂等键已有未完成记录时丢弃新任务
+- **覆盖**（OVERWRITE）：删除已有未完成记录并以新请求替换
 
 ## 回调
 
-由 policy 驱动（`callbackEnabled` + `callbackTriggerType` + `callbackPolicyId`），回调执行原任务 service/method，payload 含 `recordId`/`idempotentId`/`success`/`retryCount`/`errorCode`/`errorMessage`；回调任务 idempotentId 追加 `_callback` 后缀。
+由 policy 驱动（`callbackEnabled` + `callbackTriggerType` + `callbackPolicyId`），仅在 `callbackEnabled=true` 且存在 `callbackPolicyId` 时触发。当前实现仍回调原任务 service/method，payload 含 `recordId`/`idempotentId`/`success`/`retryCount`/`errorCode`/`errorMessage`；回调任务 idempotentId 追加 `_callback` 后缀。
 
 ## 关键字段
 
@@ -53,7 +52,7 @@
 - `groupId`：分组
 - `executorName`：执行器名称
 - `idempotentId`：幂等键
-- `status`：状态（PENDING/RETRYING/COMPLETED/MAX_RETRIES/SUSPENDED）
+- `status`：状态（PENDING/RETRYING/COMPLETED/SUSPENDED）
 - `nextTriggerTime`：下次触发时间
 - `partitionIndex`：分区索引（集群扫描分区）
 - `retryCount` / `maxRetryCount`：重试计数
@@ -73,10 +72,11 @@
 ## 执行语义
 
 - **尝试追踪**：每次执行尝试（含立即/延迟重试）写一条 `NopRetryAttempt`，attemptNo = retryCount + 1。
-- **死信化**：maxRetry 耗尽/bizFatal/deadline 超时 → 死信全量快照 + 删除原 record 行；此后同 idempotentId 可重新提交。
-- **死信重放**：`retryFromDeadLetter` = 手动单次重放（fire-and-forget，不新建 record、不改死信状态）。
+- **幂等隔离**：未完成记录的查重和唯一性都按 `(namespaceId, groupId, idempotentId)` 收口；不同 group 不互相阻塞。
+- **死信化**：maxRetry 耗尽/bizFatal/deadline 超时 → 死信全量快照 + 删除原 record 行；此后同 `(namespaceId, groupId, idempotentId)` 可重新提交。
+- **死信重放**：`retryFromDeadLetter` = 手动单次重放（fire-and-forget，不新建 record、不改死信状态）；它不是重新入队。
 - **分区**：`partitionIndex = floorMod(hash(namespaceId:groupId:idempotentId), 16)`，集群扫描按分区取数。
-- **回调**：`callbackEnabled` + `callbackTriggerType`（ON_SUCCESS/ON_FAILURE/ALWAYS）+ `callbackPolicyId`；回调执行原 service/method，新任务 idempotentId 追加 `_callback` 后缀。
+- **回调**：`callbackEnabled` 是总开关；仅当开关打开且存在 `callbackPolicyId` 时才按 `callbackTriggerType`（ON_SUCCESS/ON_FAILURE/ALWAYS）触发。当前实现仍回调原 service/method，新任务 idempotentId 追加 `_callback` 后缀。
 
 ## 子模块
 
