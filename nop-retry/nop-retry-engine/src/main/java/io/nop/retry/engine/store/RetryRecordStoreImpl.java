@@ -137,7 +137,12 @@ public class RetryRecordStoreImpl implements IRetryRecordStore {
 
     @Override
     public void saveAttempt(NopRetryAttempt attempt) {
-        getAttemptDao().saveEntityDirectly(attempt);
+        // 首次保存为 TRANSIENT 插入；执行完成后再次保存时实体已 MANAGED，需走更新
+        if (attempt.orm_state().isTransient()) {
+            getAttemptDao().saveEntityDirectly(attempt);
+        } else {
+            getAttemptDao().updateEntityDirectly(attempt);
+        }
     }
 
     @Override
@@ -202,20 +207,20 @@ public class RetryRecordStoreImpl implements IRetryRecordStore {
     }
 
     @Override
-    public NopRetryRecord findPendingRecordByIdempotentId(String idempotentId) {
+    public NopRetryRecord findPendingRecordByIdempotentId(String namespaceId, String groupId, String idempotentId) {
         if (idempotentId == null || idempotentId.isEmpty()) {
             return null;
         }
 
         QueryBean query = new QueryBean();
-        // 自动过滤命名空间
-        query.addFilter(FilterBeans.eq(PROP_NAME_namespaceId, namespaceId));
+        query.addFilter(FilterBeans.eq(PROP_NAME_namespaceId,
+                namespaceId != null ? namespaceId : this.namespaceId));
+        query.addFilter(FilterBeans.eq(PROP_NAME_groupId,
+                groupId != null ? groupId : this.groupId));
         query.addFilter(FilterBeans.eq(PROP_NAME_idempotentId, idempotentId));
         query.addFilter(FilterBeans.in(PROP_NAME_status, PENDING_STATUSES));
-        query.setLimit(1);
 
-        List<NopRetryRecord> records = getRecordDao().findAllByQuery(query);
-        return records.isEmpty() ? null : records.get(0);
+        return getRecordDao().findFirstByQuery(query);
     }
 
     @Override

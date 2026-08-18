@@ -155,7 +155,8 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
     CompletionStage<ApiResponse<?>> executeTask(IRetryTask task, ApiRequest<?> request, ICancelToken cancelToken) {
         NopRetryPolicy policy = recordStore.loadPolicy(task.getPolicyId());
 
-        NopRetryRecord existingRecord = recordStore.findPendingRecordByIdempotentId(task.getIdempotentId());
+        NopRetryRecord existingRecord = recordStore.findPendingRecordByIdempotentId(
+                task.getNamespaceId(), task.getGroupId(), task.getIdempotentId());
         if (existingRecord != null) {
             return handleBlockStrategy(existingRecord, policy, request, cancelToken, task);
         }
@@ -184,10 +185,9 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
                 recordStore.saveRecord(newRecord);
                 return executeWithRetry(newRecord, policy, request, cancelToken, task);
 
-            case NopRetryConstants.BLOCK_STRATEGY_PARALLEL:
             default:
-                LOG.debug("nop.retry.block-strategy-parallel:recordId={}", existingRecord.getSid());
-                return executeWithRetry(existingRecord, policy, request, cancelToken, null);
+                LOG.info("nop.retry.block-strategy-discard:recordId={}", existingRecord.getSid());
+                return FutureHelper.success(ApiResponse.success(null));
         }
     }
 

@@ -85,7 +85,7 @@ class TestRetryScannerImpl {
         }
 
         @Override
-        public io.nop.retry.dao.entity.NopRetryRecord findPendingRecordByIdempotentId(String idempotentId) {
+        public io.nop.retry.dao.entity.NopRetryRecord findPendingRecordByIdempotentId(String namespaceId, String groupId, String idempotentId) {
             throw new UnsupportedOperationException();
         }
 

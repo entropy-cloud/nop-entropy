@@ -31,10 +31,12 @@ import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import static io.nop.retry.dao._NopRetryDaoConstants.*;
 import static io.nop.retry.api.NopRetryApiConstants.*;
 import static io.nop.retry.dao.entity._gen._NopRetryAttempt.*;
+import static io.nop.retry.engine.NopRetryErrors.ERR_RETRY_DEADLINE_EXCEEDED;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -157,7 +159,7 @@ public class TestRetryEngineImpl extends JunitAutoTestCase {
         assertEquals("success-result", response.getData());
 
         // 成功后记录不应再处于 pending 状态
-        NopRetryRecord record = recordStore.findPendingRecordByIdempotentId("idem-1");
+        NopRetryRecord record = recordStore.findPendingRecordByIdempotentId("default", "default", "idem-1");
         assertNull(record);
     }
 
@@ -230,7 +232,7 @@ public class TestRetryEngineImpl extends JunitAutoTestCase {
         assertEquals("success-after-retry", response.getData());
 
         // 验证：记录不在 pending 状态（已成功完成）
-        NopRetryRecord pendingRecord = recordStore.findPendingRecordByIdempotentId("idem-immediate-retry");
+        NopRetryRecord pendingRecord = recordStore.findPendingRecordByIdempotentId("default", "default", "idem-immediate-retry");
         assertNull(pendingRecord);
     }
 
@@ -273,7 +275,7 @@ public class TestRetryEngineImpl extends JunitAutoTestCase {
         assertFalse(response.isOk());
 
         // 验证：记录仍在 pending 状态，等待 scanner 触发延迟重试
-        NopRetryRecord pendingRecord = recordStore.findPendingRecordByIdempotentId("idem-delayed-retry");
+        NopRetryRecord pendingRecord = recordStore.findPendingRecordByIdempotentId("default", "default", "idem-delayed-retry");
         assertNotNull(pendingRecord);
         assertEquals(2, pendingRecord.getRetryCount());  // 两次立即重试失败
         assertNotNull(pendingRecord.getNextTriggerTime());  // 已设置下次触发时间
@@ -393,14 +395,14 @@ public class TestRetryEngineImpl extends JunitAutoTestCase {
         assertTrue(record1.getPartitionIndex() >= 0 && record1.getPartitionIndex() < DEFAULT_PARTITION_COUNT);
         assertTrue(record2.getPartitionIndex() >= 0 && record2.getPartitionIndex() < DEFAULT_PARTITION_COUNT);
 
-        // 同一幂等键落到同一分区（taskSame 未实际执行，验证计算一致性）
+        // 同一幂等键稳定落到同一分区；不同键独立分区（仅在有效范围内）
         IRetryTask taskNew = retryEngine.newRetryTask("svc", "method")
                 .withPolicyId("policy-partition")
                 .withIdempotentId("idem-partition-new");
         NopRetryRecord newRecord = recordStore.newRecord(taskNew, request);
         NopRetryRecord sameKeyRecord = recordStore.newRecord(task1, request);
-        assertEquals(newRecord.getPartitionIndex(), record1.getPartitionIndex());
         assertEquals(sameKeyRecord.getPartitionIndex(), record1.getPartitionIndex());
+        assertTrue(newRecord.getPartitionIndex() >= 0 && newRecord.getPartitionIndex() < DEFAULT_PARTITION_COUNT);
     }
 
     // ==================== Dead Letter & Idempotent Reuse Tests ====================
@@ -512,19 +514,20 @@ public class TestRetryEngineImpl extends JunitAutoTestCase {
         NopRetryRecord oldRecord = createTestRecord("old-record", RETRY_RECORD_STATUS_PENDING);
         oldRecord.setIdempotentId("idem-deadline");
         oldRecord.setPolicyId("policy-deadline");
+        oldRecord.setRequestPayload("{\"data\":\"test\"}");
+        // 保留手工设置的旧 createTime，避免 ORM 自动盖写为当前时间
+        oldRecord.orm_disableAutoStamp(true);
         oldRecord.setCreateTime(new Timestamp(System.currentTimeMillis() - 1000));
         oldRecord.setRetryCount(1);
         recordStore.saveRecord(oldRecord);
 
-        IRetryTask task = retryEngine.newRetryTask("svc", "method")
-                .withPolicyId("policy-deadline")
-                .withIdempotentId("idem-deadline");
-
-        ApiRequest<Object> request = new ApiRequest<>();
-        CompletableFuture<ApiResponse<?>> future = retryEngine.executeTask(task, request, null)
+        // deadline 检查位于执行路径：老记录由 scanner 重新触发执行时检查；
+        // 重复提交（executeTask + DISCARD）不会执行已有记录，因此不走该路径
+        CompletableFuture<ApiResponse<?>> future = retryEngine.executeRetryFromScanner(oldRecord, null)
                 .toCompletableFuture();
 
-        assertThrows(NopException.class, future::get);
+        NopException ex = expectFutureFailure(future);
+        assertEquals(ERR_RETRY_DEADLINE_EXCEEDED.getErrorCode(), ex.getErrorCode());
         assertEquals(0, rpcInvoker.getInvocationCount());
 
         List<NopRetryDeadLetter> deadLetters = findDeadLetters("idem-deadline");
@@ -568,9 +571,9 @@ public class TestRetryEngineImpl extends JunitAutoTestCase {
     }
 
     @Test
-    void testExecuteTask_shouldHandleParallelStrategy() throws Exception {
+    void testExecuteTask_shouldDiscardWhenDuplicateHitsDefaultStrategy() throws Exception {
         NopRetryPolicy policy = createTestPolicy("policy-parallel");
-        policy.setBlockStrategy(BLOCK_STRATEGY_PARALLEL);
+        policy.setBlockStrategy(BLOCK_STRATEGY_DISCARD);
         policy.setMaxRetryCount(5);
         policy.setImmediateRetryCount(0);
         recordStore.savePolicy(policy);
@@ -592,7 +595,8 @@ public class TestRetryEngineImpl extends JunitAutoTestCase {
         ApiResponse<?> response = future.get();
         assertTrue(response.isOk());
 
-        // PARALLEL 复用已有记录执行
+        // 默认重复提交直接丢弃，不复用已有 record 执行
+        assertEquals(0, rpcInvoker.getInvocationCount());
         NopRetryRecord record = findRecordByIdempotentId("idem-parallel");
         assertNotNull(record);
         assertEquals("existing-parallel", record.getSid());
@@ -640,7 +644,10 @@ public class TestRetryEngineImpl extends JunitAutoTestCase {
         policy.setImmediateRetryCount(0);
         policy.setCallbackEnabled(BOOL_YES);
         policy.setCallbackTriggerType(CALLBACK_TRIGGER_TYPE_ON_SUCCESS);
-        policy.setCallbackPolicyId("policy-callback-success");
+        // 回调策略必须是独立策略且自身不再配置 callback，否则会递归触发回调链
+        NopRetryPolicy callbackPolicy = createTestPolicy("policy-callback-success-cb");
+        recordStore.savePolicy(callbackPolicy);
+        policy.setCallbackPolicyId("policy-callback-success-cb");
         recordStore.savePolicy(policy);
 
         rpcInvoker.setResponse(ApiResponse.success("ok"));
@@ -670,10 +677,18 @@ public class TestRetryEngineImpl extends JunitAutoTestCase {
         policy.setImmediateRetryCount(0);
         policy.setCallbackEnabled(BOOL_YES);
         policy.setCallbackTriggerType(CALLBACK_TRIGGER_TYPE_ON_FAILURE);
-        policy.setCallbackPolicyId("policy-callback-failure");
+        // 回调策略为独立策略，自身不再配置 callback
+        NopRetryPolicy callbackPolicy = createTestPolicy("policy-callback-failure-cb");
+        callbackPolicy.setMaxRetryCount(3);
+        recordStore.savePolicy(callbackPolicy);
+        policy.setCallbackPolicyId("policy-callback-failure-cb");
         recordStore.savePolicy(policy);
 
-        rpcInvoker.setResponses(createErrorResponse("fail-1"));
+        // 原任务失败(1) + 回调任务自身执行(1)，回调任务失败后进入延迟重试
+        rpcInvoker.setResponses(
+                createErrorResponse("fail-1"),
+                createErrorResponse("callback-fail")
+        );
 
         IRetryTask task = retryEngine.newRetryTask("svc", "method")
                 .withPolicyId("policy-callback-failure")
@@ -727,7 +742,7 @@ public class TestRetryEngineImpl extends JunitAutoTestCase {
     void testRetryFromDeadLetter_shouldFailWhenDeadLetterMissing() throws Exception {
         CompletableFuture<ApiResponse<?>> future = retryEngine.retryFromDeadLetter("missing-dl", null)
                 .toCompletableFuture();
-        assertThrows(NopException.class, future::get);
+        expectFutureFailure(future);
         assertEquals(0, rpcInvoker.getInvocationCount());
     }
 
@@ -741,7 +756,7 @@ public class TestRetryEngineImpl extends JunitAutoTestCase {
 
         CompletableFuture<ApiResponse<?>> future = retryEngine.retryFromDeadLetter("dl-no-executor", null)
                 .toCompletableFuture();
-        assertThrows(NopException.class, future::get);
+        expectFutureFailure(future);
         assertEquals(0, rpcInvoker.getInvocationCount());
     }
 
@@ -755,11 +770,21 @@ public class TestRetryEngineImpl extends JunitAutoTestCase {
 
         CompletableFuture<ApiResponse<?>> future = retryEngine.retryFromDeadLetter("dl-no-payload", null)
                 .toCompletableFuture();
-        assertThrows(NopException.class, future::get);
+        expectFutureFailure(future);
         assertEquals(0, rpcInvoker.getInvocationCount());
     }
 
     // ==================== Helper Methods ====================
+
+    /**
+     * future.get() 会把异常包成 ExecutionException，断言 cause 为 NopException 并返回
+     */
+    private NopException expectFutureFailure(CompletableFuture<?> future) throws Exception {
+        ExecutionException ex = assertThrows(ExecutionException.class, future::get);
+        assertTrue(ex.getCause() instanceof NopException,
+                "cause should be NopException but was: " + ex.getCause());
+        return (NopException) ex.getCause();
+    }
 
     private NopRetryRecord createTestRecord(String sid, int status) {
         NopRetryRecord record = new NopRetryRecord();
@@ -787,7 +812,7 @@ public class TestRetryEngineImpl extends JunitAutoTestCase {
         policy.setJitterRatio(DEFAULT_JITTER_RATIO);
         policy.setDeadlineTimeoutMs(DEFAULT_DEADLINE_TIMEOUT_MS);
         policy.setBackoffStrategy(BACKOFF_STRATEGY_EXPONENTIAL_BACKOFF);
-        policy.setBlockStrategy(BLOCK_STRATEGY_PARALLEL);
+        policy.setBlockStrategy(BLOCK_STRATEGY_DISCARD);
         policy.setImmediateRetryCount(DEFAULT_IMMEDIATE_RETRY_COUNT);
         return policy;
     }
@@ -819,14 +844,15 @@ public class TestRetryEngineImpl extends JunitAutoTestCase {
     private List<NopRetryAttempt> findAttempts(String recordId) {
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.eq(PROP_NAME_recordId, recordId));
-        query.addOrderField(PROP_NAME_attemptNo, true);
+        // addOrderField 第二参为 desc，false 表示按 attemptNo 升序
+        query.addOrderField(PROP_NAME_attemptNo, false);
         return daoProvider.daoFor(NopRetryAttempt.class).findAllByQuery(query);
     }
 
     private List<NopRetryDeadLetter> findDeadLetters(String idempotentId) {
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.eq("idempotentId", idempotentId));
-        query.addOrderField("createTime", true);
+        query.addOrderField("createTime", false);
         return daoProvider.daoFor(NopRetryDeadLetter.class).findAllByQuery(query);
     }
 }

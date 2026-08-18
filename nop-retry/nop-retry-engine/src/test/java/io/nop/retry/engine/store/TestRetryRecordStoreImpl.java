@@ -17,6 +17,7 @@ import io.nop.api.core.beans.query.QueryBean;
 import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.retry.api.IRetryTask;
+import io.nop.retry.dao.entity.NopRetryAttempt;
 import io.nop.retry.dao.entity.NopRetryDeadLetter;
 import io.nop.retry.dao.entity.NopRetryPolicy;
 import io.nop.retry.dao.entity.NopRetryRecord;
@@ -127,12 +128,12 @@ public class TestRetryRecordStoreImpl extends JunitAutoTestCase {
         pending.setIdempotentId("idem-query");
         recordStore.saveRecord(pending);
 
-        assertEquals("idem-pending", recordStore.findPendingRecordByIdempotentId("idem-query").getSid());
+        assertEquals("idem-pending", recordStore.findPendingRecordByIdempotentId("default", "default", "idem-query").getSid());
 
         // 终态记录不再被视为 pending
         pending.setStatus(RETRY_RECORD_STATUS_COMPLETED);
         recordStore.updateRecord(pending);
-        assertNull(recordStore.findPendingRecordByIdempotentId("idem-query"));
+        assertNull(recordStore.findPendingRecordByIdempotentId("default", "default", "idem-query"));
     }
 
     @Test
@@ -148,6 +149,33 @@ public class TestRetryRecordStoreImpl extends JunitAutoTestCase {
         assertEquals(1, locked.size());
         assertEquals(RETRY_RECORD_STATUS_RETRYING, locked.get(0).getStatus());
         assertNotNull(locked.get(0).getNextTriggerTime());
+    }
+
+    @Test
+    void testSaveAttempt_shouldInsertThenUpdateSameEntity() {
+        NopRetryPolicy policy = createPolicy("policy-attempt");
+        recordStore.savePolicy(policy);
+
+        NopRetryRecord record = createRecord("rec-attempt", RETRY_RECORD_STATUS_PENDING);
+        recordStore.saveRecord(record);
+
+        // 首次保存：TRANSIENT 插入
+        NopRetryAttempt attempt = recordStore.newAttempt(record);
+        attempt.setStatus(RETRY_ATTEMPT_STATUS_RUNNING);
+        recordStore.saveAttempt(attempt);
+
+        // 执行完成后二次保存：实体已 MANAGED，应走更新而不是再次插入
+        attempt.setStatus(RETRY_ATTEMPT_STATUS_FAILED);
+        attempt.setEndTime(new Timestamp(recordStore.getCurrentTime()));
+        recordStore.saveAttempt(attempt);
+
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq("recordId", record.getSid()));
+        List<NopRetryAttempt> attempts = daoProvider.daoFor(NopRetryAttempt.class).findAllByQuery(query);
+
+        assertEquals(1, attempts.size());
+        assertEquals(RETRY_ATTEMPT_STATUS_FAILED, attempts.get(0).getStatus());
+        assertNotNull(attempts.get(0).getEndTime());
     }
 
     @Test
@@ -170,7 +198,7 @@ public class TestRetryRecordStoreImpl extends JunitAutoTestCase {
         assertNotNull(deadLetters.get(0).getRecordId());
 
         // 原 record 行已删除（幂等键可复用）
-        assertNull(recordStore.findPendingRecordByIdempotentId("idem-dl"));
+        assertNull(recordStore.findPendingRecordByIdempotentId("default", "default", "idem-dl"));
     }
 
     // ==================== Helpers ====================
@@ -196,7 +224,7 @@ public class TestRetryRecordStoreImpl extends JunitAutoTestCase {
         policy.setNamespaceId("default");
         policy.setGroupId("default");
         policy.setMaxRetryCount(DEFAULT_MAX_RETRY_COUNT);
-        policy.setBlockStrategy(BLOCK_STRATEGY_PARALLEL);
+        policy.setBlockStrategy(BLOCK_STRATEGY_DISCARD);
         policy.setImmediateRetryCount(0);
         return policy;
     }

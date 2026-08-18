@@ -60,7 +60,7 @@ public interface IRetryRecordStore {
     /**
      * 根据幂等ID查找未完成的重试记录
      */
-    NopRetryRecord findPendingRecordByIdempotentId(String idempotentId);
+    NopRetryRecord findPendingRecordByIdempotentId(String namespaceId, String groupId, String idempotentId);
 
     /**
      * 删除未完成的重试记录

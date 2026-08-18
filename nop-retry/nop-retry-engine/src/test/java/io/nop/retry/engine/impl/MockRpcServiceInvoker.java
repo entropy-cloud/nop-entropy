@@ -44,6 +44,8 @@ public class MockRpcServiceInvoker implements IRpcServiceInvoker {
             this.responses.add(r);
         }
         this.response = null;
+        // 重新排队后从头消费，避免索引越界后回落到 null 的 response
+        this.responseIndex.set(0);
     }
 
     public int getInvocationCount() {
