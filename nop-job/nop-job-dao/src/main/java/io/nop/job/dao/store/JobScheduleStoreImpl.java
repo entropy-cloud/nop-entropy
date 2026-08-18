@@ -220,8 +220,7 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
         freshFire.setJobParamsSnapshot(schedule.getJobParams());
         freshFire.setRetryPolicyId(schedule.getRetryPolicyId());
 
-        List<NopJobFire> updatedFires = fireDao().tryUpdateManyWithVersionCheck(Collections.singletonList(freshFire));
-        if (updatedFires.isEmpty()) {
+        if (!fireDao().tryUpdateWithVersionCheck(freshFire)) {
             LOG.warn("nop.job.schedule.recovery-fire-version-conflict:fireId={}", failedFire.getJobFireId());
             return;
         }
@@ -404,8 +403,7 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
             task.setDurationMs(null);
             task.setErrorCode(null);
             task.setErrorMessage(null);
-            List<NopJobTask> updated = taskDao().tryUpdateManyWithVersionCheck(Collections.singletonList(task));
-            if (updated.isEmpty()) {
+            if (!taskDao().tryUpdateWithVersionCheck(task)) {
                 LOG.warn("nop.job.schedule.reset-task-version-conflict:taskId={}", task.getJobTaskId());
             }
         }
@@ -432,8 +430,7 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
         fresh.setDurationMs(DateHelper.durationMs(fresh.getStartTime(), cancelTime));
         fresh.setErrorCode(ERR_JOB_OVERLAID.getErrorCode());
         fresh.setErrorMessage(ERR_JOB_OVERLAID.getDescription());
-        List<NopJobFire> updated = fireDao().tryUpdateManyWithVersionCheck(Collections.singletonList(fresh));
-        if (updated.isEmpty()) {
+        if (!fireDao().tryUpdateWithVersionCheck(fresh)) {
             LOG.warn("nop.job.schedule.cancel-fire-version-conflict:fireId={}", fire.getJobFireId());
             return false;
         }
@@ -454,8 +451,7 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
             task.setDurationMs(DateHelper.durationMs(task.getStartTime(), cancelTime));
             task.setErrorCode(ERR_JOB_OVERLAID.getErrorCode());
             task.setErrorMessage(ERR_JOB_OVERLAID.getDescription());
-            List<NopJobTask> updated = taskDao().tryUpdateManyWithVersionCheck(Collections.singletonList(task));
-            if (updated.isEmpty()) {
+            if (!taskDao().tryUpdateWithVersionCheck(task)) {
                 LOG.warn("nop.job.schedule.cancel-task-version-conflict:taskId={}", task.getJobTaskId());
             }
         }
