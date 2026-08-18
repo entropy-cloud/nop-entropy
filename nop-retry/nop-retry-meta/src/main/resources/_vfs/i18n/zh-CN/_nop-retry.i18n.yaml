@@ -4,6 +4,7 @@ entity:
     NopRetryDeadLetter: 重试死信
     NopRetryPolicy: 重试策略
     NopRetryRecord: 重试记录
+    NopRetryTemplate: 重试模板
 prop:
   label:
     NopRetryAttempt:
@@ -100,6 +101,34 @@ prop:
       sid: 主键
       status: 状态
       status_label: 状态
+      updateTime: 更新时间
+      updatedBy: 更新人
+      version: 版本
+    NopRetryTemplate:
+      backoffConfig: 退避配置
+      backoffConfigComponent: null
+      backoffStrategy: 退避策略
+      backoffStrategy_label: 退避策略
+      blockStrategy: 阻塞策略
+      blockStrategy_label: 阻塞策略
+      callbackEnabled: 启用回调
+      callbackIntervalSeconds: 回调间隔(秒)
+      callbackMaxAttempts: 回调最大次数
+      callbackTriggerType: 回调触发类型
+      callbackTriggerType_label: 回调触发类型
+      createTime: 创建时间
+      createdBy: 创建人
+      deadlineTimeoutMs: 截止超时(毫秒)
+      description: 描述
+      executionTimeoutSeconds: 执行超时(秒)
+      groupId: 组ID
+      maxRetryCount: 最大重试次数
+      name: 模板名称
+      namespaceId: 命名空间ID
+      ownerId: 所有者ID
+      records: 重试记录
+      sid: 主键
+      status: 状态
       updateTime: 更新时间
       updatedBy: 更新人
       version: 版本

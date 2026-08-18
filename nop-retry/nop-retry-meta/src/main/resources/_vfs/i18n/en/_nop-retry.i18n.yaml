@@ -4,6 +4,7 @@ entity:
     NopRetryDeadLetter: Retry Dead Letter
     NopRetryPolicy: Retry Policy
     NopRetryRecord: Retry Record
+    NopRetryTemplate: Retry Template
 prop:
   label:
     NopRetryAttempt:
@@ -103,6 +104,34 @@ prop:
       serviceMethod: Service Method
       policy: Policy
       requestPayloadComponent: null
+    NopRetryTemplate:
+      sid: Primary Key
+      namespaceId: Namespace ID
+      groupId: Group ID
+      name: Template Name
+      status: Status
+      maxRetryCount: Max Retry Count
+      backoffStrategy: Backoff Strategy
+      backoffStrategy_label: null
+      backoffConfig: Backoff Config
+      executionTimeoutSeconds: Execution Timeout (Seconds)
+      deadlineTimeoutMs: Deadline Timeout (Milliseconds)
+      blockStrategy: Block Strategy
+      blockStrategy_label: null
+      callbackEnabled: Callback Enabled
+      callbackTriggerType: Callback Trigger Type
+      callbackTriggerType_label: null
+      callbackMaxAttempts: Callback Max Attempts
+      callbackIntervalSeconds: Callback Interval (Seconds)
+      ownerId: Owner ID
+      description: Description
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      records: Retry Records
+      backoffConfigComponent: null
 dict:
   label:
     retry/retry-record-status: Retry Record Status
@@ -115,7 +144,6 @@ dict.option.label:
     '0': Pending
     '1': Retrying
     '2': Completed
-    '3': Max Retries
     '4': Suspended
   retry/retry-attempt-status:
     '0': Waiting
@@ -130,7 +158,6 @@ dict.option.label:
   retry/block-strategy:
     '1': Discard
     '2': Overwrite
-    '3': Parallel
   retry/callback-trigger-type:
     '1': On Success
     '2': On Failure
