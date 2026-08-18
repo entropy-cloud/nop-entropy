@@ -58,7 +58,7 @@
 | NopAuthSmsCode | `nop_auth_sms_code` | 短信验证码（codeKey PK / phone / code / expireAt / failCount，W8 DB 存储） |
 | NopAuthEmailCode | `nop_auth_email_code` | 邮件验证码（codeKey PK / email 信息性可空 / code / expireAt / failCount——结构对齐 nop_auth_sms_code，W15） |
 | NopAuthRoleMfaPolicy | `nop_auth_role_mfa_policy` | 角色级 MFA 强制策略（roleId PK 1:1 / minMfaLevel 1-3 / allowTrustedDevice / delFlag 软删除——无行 = 无策略，W13） |
-| NopAuthMfaCredential | `nop_auth_mfa_credential` | WebAuthn 凭证（sid seq PK / userId 索引 / credentialId 全局唯一 / publicKey COSE masked / signCount 单调递增 / transports / name / status enabled\|disabled / lastUsedAt，1:N 用户多硬件钥匙——setting 承担用户级启用状态、credential 行承担密钥材料，W14） |
+| NopAuthMfaCredential | `nop_auth_mfa_credential` | WebAuthn 凭证（sid seq PK / userId 索引 / credentialId 全局唯一 / publicKey COSE masked / signCount 单调递增 / transports / name / status enabled\|disabled / lastUsedAt，1:N 用户多硬件钥匙——setting 承担用户级启用状态、credential 行承担密钥材料，W14）。**因子失效边界全量物理删除**（unbindMfa/resetUserMfa/恢复码使用，A2-audit D3-F1——残留行会在重绑后复活旧钥匙；多钥匙累积的正规入口为后续 add-key 端点 successor） |
 | NopAuthMfaTrustedDevice | `nop_auth_mfa_trusted_device` | MFA 可信设备（sid seq PK / (userId, deviceHash) 复合唯一 / deviceName / expireAt 固定窗口 / lastUsedAt——物理删除，到期惰性失效行保留审计，W15） |
 | NopOauthAuthorization | `nop_oauth_authorization` | OAuth2 授权记录 |
 | NopOauthRegisteredClient | `nop_oauth_registered_client` | OAuth2 客户端注册 |
@@ -138,7 +138,7 @@ nop-auth 提供完整的两阶段登录（第一因子 → challenge → 第二�
 4. **抛 `ERR_AUTH_MFA_REQUIRED`**（`:386`）：errorParams 携带 challengeToken / mfaType / loginType。未启用 MFA 的用户零感知（直接进 completeLogin）。
 5. **第二因子验证**：客户端调 `LoginApi.mfaVerify`（`LoginApiBizModel.mfaVerifyAsync`，`:197`）→ `LoginServiceImpl.mfaVerifyAsync`（`:548`）：peek challenge → setting 复核 → TOTP / SMS / WebAuthn 断言（`MfaVerifyRequest` 可选 `assertion` 字段）/ 恢复码分支 → 成功后 `consume` challenge 并 `completeMfaLogin` 签发 token。
 
-> 因子等同分支：PHONE_SMS 登录 + mfaType==SMS 不重复验证。恢复码分支：BCrypt 比对，成功后 consume + status=disabled 强制重绑。
+> 因子等同分支：PHONE_SMS 登录 + mfaType==SMS 不重复验证。恢复码分支：BCrypt 比对，成功后 consume + status=disabled 强制重绑 + **物理删除 webauthn credential 行**（因子失效边界，A2-audit D3-F1）。
 
 ### 短信验证码登录（loginType=5）
 
@@ -169,10 +169,10 @@ nop-auth 提供完整的两阶段登录（第一因子 → challenge → 第二�
 | `bindMfa(mfaType, proof?, channel?)` | `:237` | 发起绑定（pending；TOTP 返回 provisioning URI，SMS 发码到手机，webauthn 返回 challengeToken + creationOptions——见"WebAuthn/FIDO2"章节；email 发码到登记邮箱——见"邮件验证码因子"章节）。受限会话内必须先经登记通道 proof（`proof` 参数携带 `verifyChannelProof` 返回的票 token；`channel` 参数选择 proof 通道 phone\|email，见"角色级强制策略"章节） |
 | `confirmMfa(bindToken, code)` | `:605` | 确认绑定（校验码 + enabled + 生成恢复码；totp/sms） |
 | `confirmWebauthnRegistration(challengeToken, attestation)` | `:450` | 确认 WebAuthn 注册（attestation 验证 + credential 落库 + enabled + 恢复码 + consume） |
-| `unbindMfa(code?, challengeToken?, assertion?)` | `:677` | 解绑（webauthn 用户凭 challengeToken+assertion 断言验证；其余类型凭 code；验证当前因子 + 作废恢复码） |
+| `unbindMfa(code?, challengeToken?, assertion?)` | `:677` | 解绑（webauthn 用户凭 challengeToken+assertion 断言验证；其余类型凭 code；验证当前因子 + 作废恢复码 + **物理删除全部 webauthn credential 行**——A2-audit D3-F1 因子作废语义） |
 | `webauthnBeginVerify()` | `:536` | 发起 WebAuthn 解绑验证（scene=webauthn-unbind challenge + requestOptions） |
 | `listWebauthnCredentials()` | `:797` | 列出本人 WebAuthn credentials（不暴露 credentialId/publicKey） |
-| `removeWebauthnCredential(sid)` | `:824` | 移除一把 credential（最后一把 enabled 拒绝 `ERR_AUTH_MFA_LAST_CREDENTIAL`；越权归一"不存在"） |
+| `removeWebauthnCredential(sid)` | `:824` | 移除一把 credential（最后一把 enabled 拒绝 `ERR_AUTH_MFA_LAST_CREDENTIAL`；越权归一"不存在"；**物理删除**释放 credentialId 唯一键——A2-audit） |
 | `renameWebauthnCredential(sid, name)` | `:842` | 重命名一把 credential（本人数据限定） |
 | `generateRecoveryCodes()` | — | 重置恢复码（作废旧码） |
 | `getMfaStatus()` | — | 查询状态（不返回 secret） |
@@ -188,7 +188,7 @@ mfaType 第三取值 `webauthn`（多 credential 模型——用户级仍是单�
 
 1. **注册（绑定）**：`bindMfa("webauthn", proof?)` → pending setting（secret=null）+ scene=webauthn-register challenge（payload={sessionId, cryptoChallenge}）→ 返回 challengeToken + creationOptions（excludeCredentials=既有 credential 防重复注册）→ 客户端 `navigator.credentials.create()` → `confirmWebauthnRegistration(challengeToken, attestation)`（需登录态 + 同会话；验证失败 incrFailCount（超限作废）+ MFA_FAIL 不消费；credentialId 全局唯一冲突=重复注册拒绝；成功 credential 落库 + setting enabled + 恢复码生成 + consume）。
 2. **认证（登录第二因子）**：登录 challenge 创建处（webauthn 类型）payload 含 cryptoChallenge——三触点同步（`LoginServiceImpl.checkMfaRequired` / `OperationMfaCheckerImpl` / `MfaLoginPolicyServiceImpl.checkMfaForUserName` OAuth 副本，前两者经 `MfaChallengeHelper` 收敛）→ 客户端 `LoginApi__webauthnAuthOptions(challengeToken)` 取 requestOptions（scene=login 公开访问；非 login 需登录态 + payload.sessionId==当前会话；challenge 只读复用）→ `mfaVerify`（`MfaVerifyRequest` 可选 `assertion` 字段）→ `MfaFactorVerifier` 统一 webauthn 分支 → consume → completeLogin（一期出口不变）。
-3. **解绑**：`webauthnBeginVerify()`（需登录态；scene=webauthn-unbind challenge + requestOptions）→ `unbindMfa(null, challengeToken, assertion)`（同会话校验 + 断言验证等价保持"验证当前因子"语义；失败计数 + MFA_FAIL；成功 consume + status=disabled + 删除恢复码）。`operation-mfa.enabled=true` 时解绑为**双 ceremony**（操作级票一次断言 + unbind challenge 一次断言，与 totp 用户"输两次码"同构，非缺陷）。
+3. **解绑**：`webauthnBeginVerify()`（需登录态；scene=webauthn-unbind challenge + requestOptions）→ `unbindMfa(null, challengeToken, assertion)`（同会话校验 + 断言验证等价保持"验证当前因子"语义；失败计数 + MFA_FAIL；成功 consume + status=disabled + 删除恢复码 + **物理删除全部 credential 行**（A2-audit D3-F1——被窃钥匙不随重绑复活，credentialId 唯一键同步释放允许同钥匙复注册））。`operation-mfa.enabled=true` 时解绑为**双 ceremony**（操作级票一次断言 + unbind challenge 一次断言，与 totp 用户"输两次码"同构，非缺陷）。
 
 **断言验证语义**（`MfaFactorVerifier.verify(setting, mfaType, code, assertion, challenge)` 五参统一载体——登录级/操作级/解绑级共用）：cryptoChallenge 取自服务端 challenge payload（防客户端自造挑战）；按 assertion.credentialId 查本人 enabled credential；COSE 公钥验签 + challenge/origin/rpId 校验（库 Step6 强校验 userHandle==服务端 userId 句柄）；**signCount 单调递增写内聚组件**——条件 `UPDATE ... WHERE SIGN_COUNT < ?`，并发竞态方 affected=0 按验证失败处理（不覆盖更大计数）；count=0 认证器（协议允许的无计数实现）跳过单调校验、仅记审计。userHandle 以服务端 userId 字节为权威值，assertion 携带句柄时被强校验一致（句柄漂移防护）。
 

@@ -717,3 +717,14 @@ mfaVerify 成功（TOTP/SMS/EMAIL/WebAuthn 分支，不含恢复码分支，不�
 - **同层协作**：`ai-dev/design/nop-credential/02-phase2-design.md`（姊妹二期设计——操作级 MFA 的敏感操作建议清单含凭证库操作，W12-impl 时与其 owner 对齐；单文件四主题 + 分节独立 review 的组织方式同构）。
 - **下游影响**：W12-impl ~ W15-impl 四个 impl plan 直接消费本设计（§八映射）；`docs-for-ai/03-modules/nop-auth.md` 与 `docs-for-ai/02-core-guides/auth-and-permissions.md` 的二期章节由各 impl 落地后补充（本 plan Non-Blocking Follow-ups 已登记）；A2-audit 以本设计的兼容性矩阵（§二）与各主题 x.5 为回归基准。
 - **参照**：GitHub sudo mode（操作级重验证——其时间窗方案被 §3.4 拒绝，改为一次性票）；WebAuthn Level 2 规范（ceremony 模型）；一期 vision §四 设计收敛路径（本设计即该路径的展开）。
+
+## 十、A2-audit 落地裁定（2026-08-18 回写）
+
+安全审计 A2（plan `ai-dev/plans/2026-08-18-0904-1-mfa-phase2-security-audit-a2.md`；审计记录 `ai-dev/audits/2026-08/2026-08-18-1244-deep-audit-nop-auth/`）对 live code 的对抗探查与裁决回写。一期契约兼容性矩阵（§二）七维度回归**全部 PASS**；P0×0 / P1×2 已修复；完整裁决表见 `adjudication.md`。
+
+1. **Redis 码 store 的 VALID 裁决原子性（D2-F1，P1 修复）**：`RedisSmsCodeStore`/`RedisEmailCodeStore` 的 VALID 分支原忽略 `removeIfMatch`（Lua CAS）返回值——删除原子 ≠ 裁决原子，并发双 verify 同码双双 VALID。修复裁定：**VALID 裁决以 CAS 胜出为前提**，败者返回 EXPIRED（与 Db 实现 affected==0 → EXPIRED 语义对齐，跨实现契约统一："码不再可用"归一 EXPIRED）。
+2. **webauthn credential 的因子失效边界语义（D3-F1，P1 修复——修正 §5.3.2 执行期偏离记录 #7 的隐含行为）**：原实现 unbindMfa/resetUserMfa/恢复码使用三边界只置 setting disabled，credential 行残留 enabled——用户重绑 webauthn 后旧（被窃）硬件钥匙复活，"强制重绑/全因子作废"的安全语义被打破。修复裁定：**三失效边界（unbindMfa / resetUserMfa / LoginServiceImpl 恢复码分支）一律 bulk 物理 DELETE 该用户全部 credential 行**（`deleteByQuery`——逻辑删除占用 credentialId 全局唯一键阻断同钥匙复注册，且对重复注册守卫不可见）；`removeWebauthnCredential` 同步改物理删除（同因）。**能力裁定**：原"解绑保留行 → 重绑累积多钥匙"路径关闭（安全语义优先，多钥匙累积的安全替代 = add-key-while-enabled 端点，successor 登记）；1:N 数据模型与 last-credential 守卫保持（守卫防自锁死语义不变）。
+3. **路由项 1 终局裁定（webauthn 管理动作标注）**：`renameWebauthnCredential` **不标注**（纯展示元数据，C1b 缩窄先例适用）；`removeWebauthnCredential` **应标注**（修改认证因子集合，与 unbindMfa"删全部已标注"的强度一致性优先）——落地归 successor（行为变更 + 容器级元数据断言同步）。
+4. **路由项 2 维持 watch-only（两副本同构不变式）**：A2 逐块复核当前同步（8 共享逻辑块逐字等价 + 3 处登记在案裁定漂移）；新登记第 4 处差异——evaluator null 防御不对称（`LoginServiceImpl` 侧有 NONE 回退、`MfaLoginPolicyServiceImpl` 侧必注入；装配保证下无行为后果）。同步义务不变：任何一方变更必须同步另一方。
+5. **路由项 3 裁定（联系方式修改通用 CRUD 敏感化）**：并入 MFA 敏感数据治理 successor（与"4 MFA 表裸 CrudBizModel 通用 mutation 通道收紧"同族——D5-F1/D6-1/D3-F3/D1-7/D1-1/D3-F2）；平台治理形态（override 拒绝 / 敏感列不可写 / xmeta 限制）需独立 plan 裁定。
+6. **executor 批量语义表述更正（D5-F2）**：批量请求含未验证敏感操作 = **整批预执行中止**（检查点位于 invokeOperations 之前，同批任何 operation 均不执行）——GraphQLExecutor javadoc 原"逐 field error 单独报错"表述更正，owner doc（nop-auth.md）原本即正确。
