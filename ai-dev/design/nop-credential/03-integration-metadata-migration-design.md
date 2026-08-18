@@ -108,7 +108,7 @@
    - **客户端缓存家族**（oss）：`@PostConstruct` 构造期解析一次；轮换可见性 = bean 重建（重启）——显式接受的限制（§七 deferred 热重建）。
    - **start 期捕获家族**（feishu）：`FeishuClient.start` 时解析一次并持有；token 惰性刷新（`ensureToken`）继续使用已捕获值——轮换可见性 = connector 重启；刷新期再解析列 deferred（§七）。
 7. **飞书接线裁定（双供给面的入口收敛）**：`credentialId` 落在 `FeishuCredentials` 新增字段（经新配置键 `nop.integration.feishu.credentialId` `@InjectValue` 注入，与现有四键并列）；`FeishuClient.start` 时若 `credentialId` 非空 → 经 provider 解析凭证字段集并构建**已解析副本**（整组覆盖 appId/appSecret/verificationToken/encryptKey 四字段）供 client 持有——原 DataBean 保持 `@InjectValue` 装配形态不变，解析副本仅在 start 期产生。`FeishuConnector.resolveCredentials` 的 **ChannelConfig options 面（`feishu.appId/appSecret`、`feishu.credentials`，`FeishuConnector.java:622-636`）首期不引入 credentialId 支持**（options 面维持字面值语义；配置键面为 credentialId 唯一入口）——理由：options 面是 nop-ai-gateway 的 ChannelConfig 扩展点，为其引入凭证引用语义需要网关侧配合改造，超出本迁移范围（§七#10 deferred）。
-8. **引用计数**：`consumerRef = integration:<channelType>`（部署级单渠道，每渠道类型一条稳定引用；token 清单：`integration:tencent-sms` / `integration:yunpian-sms` / `integration:tencent-email` / `integration:smtp-email` / `integration:feishu-app` / `integration:oss-s3` / `integration:sftp-ssh`），credentialId 非空且 provider 装配时在 bean 初始化幂等登记（`registerUsage` 幂等且不校验凭证存在性，重复启动无副作用）；**登记失败（DB 异常等）记 WARN 不阻断启动**——登记是治理辅助而非安全边界（安全边界 = 运行时解析 fail-closed），审计行写入失败不应杀死应用；渠道移除后的陈旧引用行由管理面人工清理（引用拦截按"该凭证仍被 config 侧引用"理解，可接受）。
+8. **引用计数**：`consumerRef = integration:<channelType>`（部署级单渠道，每渠道类型一条稳定引用；token 清单：`integration:tencent-sms` / `integration:yunpian-sms` / `integration:tencent-email` / `integration:smtp-email` / `integration:feishu-app` / `integration:oss-s3` / `integration:sftp-ssh`），credentialId 非空且 provider 装配时在 bean 初始化幂等登记（`registerUsage` 幂等，**前置校验凭证存在且未软删（D6-03 修复后行为，本设计起草时"不校验存在性"的断言已过时——W16-impl 回写更正**；重复启动无副作用）；**登记失败 catch-all WARN 不阻断启动**（含 provider 前置校验抛错与 DB 异常）——登记是治理辅助而非安全边界（安全边界 = 运行时解析 fail-closed），审计行写入失败或 credentialId 配错不应杀死应用；渠道移除后的陈旧引用行由管理面人工清理（引用拦截按"该凭证仍被 config 侧引用"理解，可接受）。
 
 ### 4.2 候选对比与拒绝了什么
 
@@ -136,9 +136,9 @@
 
 - 类型经平台标准 register-model 机制声明（`*.credential-type.xml`，`authType` 按 xdef 语义由 impl 裁定）；字段 schema 即 `typeList` 动态表单的输入。
 - **整组生效语义**：`credentialId` 非空 → 凭证字段集全量取自凭证库；发送器同名静态字段（如 beans.xml 里的 appKey）被忽略，仅作 `credentialId` 清除后的回退值（回滚路径，§六）。
-- **解析契约三条**（共享解析支持统一承载）：
+- **解析契约三条**（共享解析支持统一承载；W16-impl 落地：契约 2 经 SPI 增量 `CredentialData.typeName`（`CredentialProviderImpl.getCredential` 从凭实行填充）实现——api additive 属性，`ICredentialProvider` 六方法签名零变更）：
   1. **必填字段缺失/空值 = fail-closed**（§6.1 精确化为"必填字段"而非一切字段——可空字段空值合法，如 jdbc 空密码、sftp 公钥无口令）；
-  2. **类型校验**：凭证 `typeName` 不在该家族允许集（如 tencent-sms 的 credentialId 指向 `yunpian-sms` 凭证）→ fail-closed 明确错型错误（不允许靠"字段恰好同名"继续）；
+  2. **类型校验**：凭证 `typeName` 不在该家族允许集（如 tencent-sms 的 credentialId 指向 `yunpian-sms` 凭证）→ fail-closed 明确错型错误（不允许靠"字段恰好同名"继续；typeName 未填充（null，非标准 provider）同样拒绝）；
   3. **值转换**：字段值经字符串归一（如 `tencent-sms.appId` 为 Integer）后按目标类型转换，转换失败 = fail-closed。
 - **错误码归属**：integration 侧解析错误入 `IntegrationErrors`（`nop-integration-api` 既有错误类家族）；metadata 侧入 `NopMetadataErrors`。
 
@@ -165,6 +165,7 @@
    允许并存（迁移窗口期安全网），迁移动作在切换时同事务清除明文（§6.4）；并存行的 JSON 明文密码是死值（运行时不可达）。**credentialId 空串/空白值视同缺失**（走静态值路径，不触发解析）。
 4. **`testConnect` 管理面语义**：与运行时同路径解析（`testConnect` 也经 `buildDataSource`，:143）——测试结果真实覆盖凭证解析 + 建连全链；**catch 范围精确化**：仅凭证解析异常（provider 抛出的 `NopException`）映射进既有 `{connected:false, error}` 结构化返回（error 为固定描述如 "credential resolution failed"，不携带凭证明文/密文/credentialId 以外细节）；AR-02 与 config-invalid 异常维持现状上抛（不吞成结构化 false，防校验失败被静默降级）。
 5. **credentialId 的写入/清除载体 = BizModel 管理动作对**（bind / unbind，管理员）：`bindCredential(dataSourceId, credentialId)` = 置 JSON 键 + 清除 username/password 明文 + `registerUsage`，同一行级事务；`unbindCredential(dataSourceId)` = 清除 JSON 键（回滚 §6.2）+ `unregisterUsage`，明文需另行重录（unbind 不自动复活死值）；换绑 A→B = bind 内 unregister 旧 + register 新。**理由**：live xmeta 将 `connectionConfig` 设为 `published=false insertable=false updatable=false queryable=false`（`NopMetaDataSource.xmeta`，GraphQL 面整体不可读写），行编辑 UI form 为空——通用 CRUD 面不存在 credentialId 的合法写入通道，管理动作是唯一受控入口（对齐迁移工具语义 §6.4；xmeta/view 放开编辑属 UI 增强，deferred §七#11）。保存路径对含 credentialId 的 JSON 仅做结构校验（jdbcUrl 必填不变），不做凭证存在性校验（运行时 fail-closed 兜底）。
+   **W16-impl 落地裁定（admin 判定与审计载体）**：admin 判定 = 运行时角色校验（`IUserContext.isUserInAnyRole` + 配置 `nop.metadata.credential-admin-roles`，缺省 `admin,nop-admin`——复用 `nop.credential.admin-roles` 惯例的等价最小实现，不引入 nop-auth 依赖边；无登录态（内部调用）放行，与 nop-credential 写分级同口径，生产 GraphQL 入口另由 action-auth 管角色）。审计载体 = 实体变更事件（`MetaModelChangedEventPublisher` 行级事件，changeSource=`credential-bind`，快照脱敏自动覆盖 connectionConfig——**live 事实：该发布器为手动调用型、无 ORM 实体监听器自动触发，起草时"经 ORM 行更新自动触发"表述按 live 机制以 bind/unbind/迁移内显式发布兑现**）+ 凭证侧审计（registerUsage/unregisterUsage）；不引入 IAuditService（nop-metadata 无该基建，§6.4 审计行未要求）。行删除钩子 unregister 覆盖 `delete` 与 `deleteByQuery` 双路径（批量路径不经虚分派，双覆写防 usage 引用残留——NopAiModelBizModel 先例）。
 
 ### 5.2 候选对比与拒绝了什么
 
@@ -222,7 +223,7 @@
 |---|---|---|
 | 存量对象 | `nop_meta_data_source` 行（JSON 含 password） | 无 DB 行——配置侧选择加入 |
 | 工具形态 | `NopMetaDataSourceBizModel` 管理动作：`bindCredential`（单行，§5.1.5）+ 批量迁移变体（管理员） | 无迁移工具，**迁移 runbook 文档**（设 credentialId 键/属性 → 验证发送 → 清除静态密钥）为显式交付物（§八） |
-| 步骤语义 | 逐行：**幂等反查**（按确定性凭证名 `<typeName>:<querySpace>/<name>` 与 `NopCredentialUsage` consumerRef 双源定位既有凭证，命中即复用不重建）→ 缺失则创建凭证（username/password 取自 JSON）→ `registerUsage("metadata:NopMetaDataSource:<dataSourceId>")` → JSON 置 credentialId 并清除 username/password 明文——**四步同一行级事务**（biz action 内显式 per-row 事务边界，REQUIRES_NEW 或等价；整行原子，中断重试经反查收敛无孤儿/无重复凭证） | 运维顺序：先加 credentialId（并存窗口验证）→ 后删静态密钥（§6.2 回滚语义） |
+| 步骤语义 | 逐行：**幂等反查（主源 = `NopCredentialUsage` consumerRef（唯一约束承载身份，W16-impl 回写更正——起草时"名称与 consumerRef 双源"表述以 consumerRef 为主源、名称仅辅助）；名称辅助 = `<typeName>:<querySpace}/{name>` 确定性名 + 截断/短哈希后缀适配 VARCHAR(100)（name 无唯一约束）；反查命中软删凭证 → 该行计入失败清单供人工处置，不跳过不重建）** → 缺失则创建凭证（username/password 取自 JSON；经迁移支持 SPI `createCredential` 复用 saveCredential 语义：加密 + scope=system + 分级审计）→ `registerUsage("metadata:NopMetaDataSource:<dataSourceId>")` → JSON 置 credentialId 并清除 username/password 明文——**四步同一行级事务**（biz action 内显式 per-row 事务边界，`REQUIRES_NEW`（`upsertExternalTableGuarded` 先例）；行级事务内重读行（外层实体 attached 外层会话，重读副本随本事务提交——W16-impl 执行期定稿）；整行原子，中断重试经反查收敛无孤儿/无重复凭证） | 运维顺序：先加 credentialId（并存窗口验证）→ 后删静态密钥（§6.2 回滚语义） |
 | 断点续跑 | 逐行独立事务 + `orderBy dataSourceId` 确定性排序 + 幂等重跑（反查复用；对齐 `reencryptAll` 修复后的确定性排序与幂等重跑语义——事务粒度不同：reencryptAll 为 GraphQL 引擎单事务整体，此处显式 per-row） | N/A |
 | 明文清除时点 | **切换同事务**（credentialId 写入与明文清除原子），不存在"已引用凭证但仍留明文"的中间落盘态 | 运维显式删除配置键（存在窗口期明文，属配置文件治理范畴） |
 | 审计 | 实体变更事件（`MetaModelChangedEventPublisher`，敏感列快照脱敏自动覆盖）+ 凭证侧 `tagSet="audit"` | 凭证侧审计（`registerUsage`/`lastUsedAt`） |
@@ -267,4 +268,13 @@
   - 测试面：优先级链三态（credentialId 空/有效/失效）、fail-closed 不回退、并存行忽略明文、空串 credentialId 视同缺失、必填性/错型/转换失败路径、bind/unbind/迁移幂等（中断重跑反查复用、无重复凭证）、14 消费点零改动回归（既有测试基线）。
 - **Protected Area（plan-first）**：无 ORM/`nop-xdefs` 变更；`nop-integration-api` 跨模块公共 API 变更（共享解析支持 + 依赖，如上）；`nop-integration-api`/`nop-metadata-service` 模块 pom 变更（plan 内声明）；发送器新增属性为纯加法；新增 BizModel 管理动作属行为变更（plan 内声明回归影响）。
 - **首发范围建议与批次收口约束**：第一批 = SMS 家族（tencent/yunpian——有 in-platform 消费链 `LoginServiceImpl`/`NopAuthUserBizModel` 可验证）+ metadata 数据源（DB 明文迁移目标）；Email/Feishu/OSS/SFTP 为同型扩展批次（§七#8/#9）。**批次收口硬约束**：W16-impl plan 必须显式裁定交付批次范围——若仅交付首批，扩展批次（Email/Feishu/OSS/SFTP 发送器接线 + feishu/oss 配置键）必须登记为 roadmap 显式新工作项（不得静默丢失；A3 收口审计以其登记为前提），全家族一次交付则无此需要。
-- **不触碰**：`ICredentialProvider` SPI 签名；`cv1:` 密文格式；AR-02 校验链；`@sec:` 配置加密机制；`nop-auth` 消费方代码（`smsSender == null` 检查原样）。
+- **不触碰**：`ICredentialProvider` SPI 六方法签名（**W16-impl 增量裁定修正：api 模块的 additive 增量——`CredentialData` 可选 `typeName` 属性 + 独立接口 `ICredentialMigrationSupport`（实现 bean `nopCredentialMigrationSupport` 落 nop-credential-service 并经 beans 注册）——经 W16-impl plan draft review 评审门落地，既有接口签名零变更**）；`cv1:` 密文格式；AR-02 校验链；`@sec:` 配置加密机制；`nop-auth` 消费方代码（`smsSender == null` 检查原样）。
+
+### W16-impl 落地裁定（2026-08-18 回写，首批交付）
+
+- **批次**：首批 = 共享解析支持（`CredentialResolutionSupport` 静态工具，`nop-integration-api`）+ SMS×2 + metadata 数据源 + 三类型实例（tencent-sms/yunpian-sms/jdbc-datasource）+ integration 迁移 runbook（落 `docs-for-ai/03-modules/nop-credential.md` 深度迁移章节——integration 无独立 owner doc，归属裁定见该节）。扩展批次（Email×2/Feishu/OSS/SFTP + feishu/oss 配置键）登记 roadmap `W16-impl-ext`（A3 收口以其登记为前提）。
+- **SPI 增量**：如上"不触碰"修正段——`CredentialData.typeName`（`getCredential` 填充）承载契约 2 精确错型判定；`CredentialLookup` DTO（deleted 标记承载"软删命中供人工处置"语义——返回裸 credentialId 无从表达失败原因，实现通道裁定补充）。
+- **依赖边**：`nop-integration-api` / `nop-metadata-service` → `nop-credential-api` 均为 version-less compile、api-only（dependency:tree 证据无 service/dao 传递）。
+- **发送器接线形态**：构造点抽 `protected createSender/createClient` seam（sendMessage/sendMultiMessage 双构造点全覆盖共用）；初始化登记经 `@PostConstruct`（NopIoC 支持，`DefaultCredentialTypeRegistry` 先例）。
+- **metadata 动作返回**：Map 摘要（`{migratedCount, skippedCount, failedCount, failures[]}`）——GraphQL 面为叶子选择语义（Map 返回类型不支持字段级 selection）。
+- **执行期偏离**：无语义偏离；形态定稿如上。

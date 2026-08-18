@@ -234,7 +234,7 @@ keyId 密文按一期语义 fail-closed（`getKey` 抛错）。
 
 | 子模块 | 职责 |
 |--------|------|
-| `nop-credential-api` | SPI/接口/DTO（零业务依赖：`ICredentialProvider`、`CredentialData`、`MaskedCredential`、`TestResult`、`CredentialType`（含 OAuth 元数据与保留字段名契约）） |
+| `nop-credential-api` | SPI/接口/DTO（零业务依赖：`ICredentialProvider`、`ICredentialMigrationSupport`（W16 迁移支持）、`CredentialData`（含 W16 可选 `typeName`）、`CredentialLookup`、`MaskedCredential`、`TestResult`、`CredentialType`（含 OAuth 元数据与保留字段名契约）） |
 | `nop-credential-dao` | ORM 实体与 DAO |
 | `nop-credential-meta` | xmeta 定义（`data` 列 `published=false` 明文边界） |
 | `nop-credential-service` | `ICredentialProvider` 实现（唯一明文出口）+ `NopCredentialBizModel` + 凭证类型注册表 + `CredentialCipher` + OAuth 流程引擎（`service.oauth`：`OAuthFlowService`/`OAuthTokenClient`/`NopCredentialOauthStateStore`/`CredentialOAuthApiBizModel`） |
@@ -320,6 +320,8 @@ OAuth 流程 API 面（`CredentialOAuthApiBizModel`）：`beginOAuthFlow(credent
 | 组件 | 路径 |
 |------|------|
 | 消费 SPI 接口 | `nop-credential/nop-credential-api/src/main/java/io/nop/credential/api/ICredentialProvider.java` |
+| 迁移支持 SPI（W16） | `nop-credential/nop-credential-api/src/main/java/io/nop/credential/api/ICredentialMigrationSupport.java`（实现 `CredentialMigrationSupportImpl`，bean 注册于 `credential-defaults.beans.xml`） |
+| 共享解析支持（W16） | `nop-integration/nop-integration-api/src/main/java/io/nop/integration/api/credential/CredentialResolutionSupport.java` |
 | 唯一明文出口实现 | `nop-credential/nop-credential-service/src/main/java/io/nop/credential/service/CredentialProviderImpl.java` |
 | OAuth 流程引擎 | `nop-credential/nop-credential-service/src/main/java/io/nop/credential/service/oauth/OAuthFlowService.java` |
 | OAuth 令牌端点客户端 | `nop-credential/nop-credential-service/src/main/java/io/nop/credential/service/oauth/OAuthTokenClient.java` |
@@ -357,6 +359,46 @@ public int reencryptAll() { ... }
 - **零介入分层措辞**（对齐 `nop-auth.md` 受限会话语义）：未部署 nop-auth-service（无 checker bean）时 executor 零介入；部署后操作级挑战仍受 `nop.auth.operation-mfa.enabled` 门控，但**受限会话拦截不受该开关门控**——受限会话（角色强制策略判定）内非白名单 mutation（含本模块未标注动作如 `saveCredential`）仍会被拒（`ERR_AUTH_MFA_RESTRICTED_SESSION`），这是独立于操作级 MFA 的登录期持有约束层。
 - **缩窄裁定（不标注）**：`saveCredential`（高频用户操作，强制 MFA 损害 UX；明文写入口已有写分级 + 归属校验两层防御）、`beginOAuthFlow`（state 一次性绑定已防劫持，动作仅返回 URL 不泄密）。
 - **依赖边**：`nop-credential-service → nop-biz-auth-api` 为 API-only 边（该模块仅依赖 `nop-api-core`），经 `nop-biz → nop-graphql-core` 传递本已 compile 可达，pom 声明系显式化既有传递边（Maven 依赖卫生），不引入 nop-auth-service 运行时耦合。
+
+## 深度迁移（W16：nop-integration / nop-metadata 消费方接入）
+
+深度迁移 = 消费方以 `credentialId` 引用凭证库、发送期/建连期经 `ICredentialProvider` 惰性解析（替代配置文件/JSON 明文）。首批交付 = 共享解析支持 + SMS 家族（tencent/yunpian）+ metadata 数据源，扩展批次（Email×2/Feishu/OSS/SFTP）登记于 roadmap `W16-impl-ext`。
+
+### 横切契约（两侧统一）
+
+- **优先级链**：`credentialId` 空/空白 → 既有静态值现状路径（零回归）；非空 → 凭证字段集**整组**取凭证库，同名静态值忽略（不逐字段混搭）。
+- **强 fail-closed 不静默回退**：credentialId 已配置但 provider 未装配（部署不一致）/凭证缺失/软删/解密失败/必填字段空/typeName 错型/转换失败 → 中止本次发送/建连，**不回退静态值**（对齐 nop-ai `IAiModelCredentialResolver` 先例）。
+- **consumerRef 引用计数**：`integration:<channelType>`（发送器 bean 初始化幂等登记，catch-all WARN 不阻断启动）与 `metadata:NopMetaDataSource:<dataSourceId>`（bind/迁移登记、unbind/换绑/行删除解除）。
+- **归属一律 system 级**；RBAC 走 provider 出口既有判定矩阵零新增语义；拒绝全局明文降级开关。
+
+### SPI 增量（W16，`nop-credential-api` additive，六方法签名冻结不变）
+
+- `CredentialData.typeName`（可选属性，`CredentialProviderImpl.getCredential` 从凭实行填充）——消费方家族错型校验的精确依据（如 yunpian-sms 凭证误用于 tencent-sms 渠道直接拒绝，不靠字段缺失间接失败）。
+- `ICredentialMigrationSupport`（迁移支持 SPI，bean `nopCredentialMigrationSupport` 落 service 并经 `credential-defaults.beans.xml` 注册）：`findCredentialByName(typeName, name)`（活跃行、确定性取首条）/ `findCredentialIdByConsumerRef(consumerRef)`（迁移反查**主源**——usage 唯一约束承载身份；命中软删返回 `deleted=true` 供调用方计入失败清单人工处置）/ `createCredential(typeName, name, fields)`（复用 `saveCredential` 语义：加密 + scope=system + 分级审计）。
+
+### 共享解析支持（`nop-integration-api`）
+
+`CredentialResolutionSupport`（静态工具，公共语义单点——厂商模块零复制）：`isConfigured`（空串/空白视同缺失）/ `resolveGroup(provider, credentialId, allowedTypeNames)`（部署不一致 + provider 侧异常包装（cause 保留）+ typeName 家族允许集校验）/ `requireString`/`optionalString`/`requireInteger`（字符串归一 + 转换失败 fail-closed）。错误码在 `IntegrationErrors`（`nop.err.integration.credential-*` 五码）。`nop-integration-api` 对 `nop-credential-api` 为 api→api compile 依赖（无 service/dao 传递）。
+
+### SMS 家族接线（首批）
+
+`TencentSmsSender`/`YunpianSmsSender`：可选 `credentialId` bean 属性 + `@Nullable ICredentialProvider` setter 注入 + 发送期惰性解析（逐次发送家族——轮换/禁用下次发送即生效；sendMessage 与 sendMultiMessage 双构造点全覆盖）+ `@PostConstruct` 幂等 `registerUsage`（catch-all WARN——含 D6-03 前置校验抛错，配错 credentialId 不阻断启动）。凭证类型 `tencent-sms`（appId 必填/appKey 必填 sensitive/sign 可空）、`yunpian-sms`（apiKey 必填 sensitive）。
+
+### integration 迁移 runbook（integration 侧唯一迁移机制）
+
+integration 无 DB 行、无迁移工具——迁移 = 运维顺序操作：
+
+1. **创建凭证**：经 `NopCredential__saveCredential`（如 `tencent-sms` 类型，字段 appId/appKey/sign）。
+2. **设 credentialId 属性**（并存窗口）：消费方应用 beans.xml 给发送器 bean 增加 `<property name="credentialId" value="..."/>`（或 `@cfg:` 引用）；静态密钥属性**暂留**（回滚安全网）。重启后发送路径整组取凭证库（静态值被忽略）；`registerUsage("integration:tencent-sms")` 自动登记。
+3. **验证发送**：经真实业务链路（如登录验证码）或渠道测试发送确认成功。
+4. **清除静态密钥**：从 beans.xml 删除 appId/appKey/sign 静态属性（配置文件治理范畴）。
+5. **回滚 = 引用级**：删除 `credentialId` 属性即回退静态值路径；**明文清除后回滚需显式再录入**（杜绝从死值复活明文）。
+- consumerRef 清单（人工清理参照）：`integration:tencent-sms` / `integration:yunpian-sms`（扩展批次将增加 email/feishu/oss/sftp token）。渠道下线后 usage 行由管理面人工清理（陈旧引用仅影响该凭证删除拦截提示）。
+- 部署前置：消费 app 的 beans 聚合需引入 `credential-defaults.beans.xml`（app-service.beans.xml 聚合装载，nop-ai-service 同型先例）；未部署凭证库时 credentialId 必须留空（配置了即 fail-closed 部署不一致）。
+
+### metadata 数据源迁移（首批）
+
+见 `nop-metadata.md`"数据源凭证（credentialId 深度迁移）"节：`connectionConfig` JSON 内 `credentialId` 键 + `MetaDataSourceConnectionProcessor.buildDataSource` 单点解析（14 消费点零改动）+ `bindCredential`/`unbindCredential`/`migrateDataSourcesCredential` 管理动作对。凭证类型 `jdbc-datasource`（username 必填/password 可空 sensitive）。
 
 ## 相关文档
 

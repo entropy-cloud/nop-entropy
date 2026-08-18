@@ -217,6 +217,37 @@ nop-metadata 严格遵循"无静默跳过"原则（plan 2026-07-19-1250-3 Phase 
 - **syncExternalTables 原子性契约（AR-17，R8.4b）**：`syncExternalTables` 是**部分持久化**语义（非全量原子）——每表 upsert 在 per-key 锁 + `REQUIRES_NEW` 独立事务内独立提交（R6.3 裁定，plan-2026-08-05-2157-3）：scan 中途失败或单表失败时**已同步表保持持久化**（不整体回滚），失败表记入 `errors` 且不中断整批；**scan 级失败**（`structureReader.read` 抛 / 连接中断）异常向上传播（fail-loud），且失败路径**仍发布**变更事件（`NopMetaModelChangedEvent`，changeSource=SYNC）——事件行经 `REQUIRES_NEW` 独立事务提交（沿每表 upsert 先例），不随外层事务回滚消失；事件价值是"sync 尝试发生 + 已部分持久化"的下游通知（dataSource 实体在 sync 期间不变，before/after 快照等同，非实体 diff）
 - ErrorCode 已集中到 `NopMetadataErrors.java`，命名前缀 `nop.err.metadata.*`（plan Phase 2 渐进迁移）
 
+## 数据源凭证（credentialId 深度迁移，W16）
+
+`NopMetaDataSource.connectionConfig` JSON 支持 `credentialId` 键（username/password 整组入凭证库，类型 `jdbc-datasource`；jdbcUrl/driverClassName 留 JSON——拓扑 + AR-02 校验锚点不动）。**无 ORM 列变更、无 DDL**；引用随配置字符串自包含传输，14 处 `withConnection`/`testConnect` 消费点零改动。
+
+### 兼容矩阵与解析语义
+
+| 行形态 | JSON 内容 | 运行时行为 |
+|---|---|---|
+| 存量明文行 | password 在 JSON、无 `credentialId` 键 | 现状路径（零回归） |
+| 迁移行 | 明文已清、有键 | username/password 整组取凭证库 |
+| 过渡并存行 | 明文仍在、有键 | **凭证侧整组生效，JSON 明文忽略**；解析失败 fail-closed 不回退明文 |
+
+- 解析落点 = 单点 `MetaDataSourceConnectionProcessor.buildDataSource`（`mergeCredentialConfig`：空串/空白键视同缺失；provider null + 键非空 = 部署不一致 fail-closed；typeName 非 `jdbc-datasource`（含 null）= 错型拒绝；username 必填、password 键恒存在可空——必填性对齐 requireNonBlank/requireField 现状不收紧）。
+- `testConnect` catch 精确化：仅凭证解析失败（自身包装码 `nop.err.metadata.datasource-credential-resolve-failed`）映射 `{connected:false, error:"credential resolution failed"}` 固定描述（不携带明文/密文细节）；AR-02 与 config-invalid 异常维持上抛（不吞成结构化 false）。
+- `nop-metadata-service` 对 `nop-credential-api` 为 api-only compile 依赖（与 `nop-ai-service` 同构）；provider 经 `@Nullable` 可选注入——未部署凭证库时无键行不受影响。
+- 既有安全缓解原位不动：AR-02 全链、`tagSet="sensitive"`、事件快照脱敏（connectionConfig 列自动覆盖）。
+
+### 管理动作对（NopMetaDataSourceBizModel，admin）
+
+live xmeta 将 connectionConfig 整列设为不可读写——管理动作是 credentialId 的唯一受控写入入口：
+
+| 动作 | 语义 |
+|------|------|
+| `bindCredential(dataSourceId, credentialId)` | 置 JSON 键 + 清除 username/password 明文 + `registerUsage`，同一行级事务（registerUsage 先行——凭证不存在/软删即中止、行未被触碰）；换绑 A→B = unregister 旧 + register 新；幂等 |
+| `unbindCredential(dataSourceId)` | 清键 + `unregisterUsage`；**明文不自动复活**（死值不回填，需另行重录）；幂等（无键 no-op） |
+| `migrateDataSourcesCredential()` | 批量迁移：逐行幂等反查（**主源 = consumerRef `metadata:NopMetaDataSource:<dataSourceId>`**；名称辅助 `jdbc-datasource:{querySpace}/{name}` 截断+短哈希后缀适配 VARCHAR(100)；命中软删凭证 → 该行计入失败清单人工处置，不跳过不重建）→ 缺失则经 `ICredentialMigrationSupport.createCredential`（scope=system）→ registerUsage → 置键清明文——四步同一 per-row `REQUIRES_NEW` 事务（中断重跑经反查收敛，无孤儿/无重复凭证）；`orderBy dataSourceId`；单行失败收集不中断整批；返回 `{migratedCount, skippedCount, failedCount, failures[]}` |
+| `delete` / `deleteByQuery` | 双路径覆写：行删除后按行内 credentialId `unregisterUsage`（批量路径不经虚分派，双覆写防 usage 引用残留——NopAiModelBizModel 先例） |
+
+- **admin 判定**：`nop.metadata.credential-admin-roles`（CSV，缺省 `admin,nop-admin`）经 `IUserContext.isUserInAnyRole`；无登录态（内部调用）放行——生产 GraphQL 入口另由 action-auth 管角色（第二层）。
+- **审计**：`MetaModelChangedEventPublisher` 行级事件（changeSource=`credential-bind`，快照脱敏自动覆盖 connectionConfig）+ 凭证侧审计（registerUsage/unregisterUsage）；不引入 IAuditService。
+
 ## 参考文档
 
 - 平台主文档：`docs-for-ai/03-modules/nop-metadata.md`（本文档）
