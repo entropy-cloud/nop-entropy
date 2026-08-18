@@ -60,7 +60,7 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
         JobQueryHelper.addPartitionFilter(query, partitions, PROP_NAME_partitionIndex);
         query.addOrderField(PROP_NAME_nextFireTime, false);
         query.addOrderField(PROP_NAME_jobScheduleId, false);
-        return dao.findAllByQuery(query);
+        return dao.findPageByQuery(query);
     }
 
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
@@ -311,6 +311,16 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
         if (scheduleIds == null || scheduleIds.isEmpty()) {
             return Collections.emptyMap();
         }
+        // batchGetEntityMapByIds 的单 id 分支返回未加载的 proxy 实体（见 OrmEntityDao.batchGetEntitiesByIds），
+        // session 关闭后访问属性会抛 session-closed，因此单 id 场景改用 getEntityById 全量加载。
+        if (scheduleIds.size() == 1) {
+            String id = scheduleIds.iterator().next();
+            NopJobSchedule schedule = scheduleDao().getEntityById(id);
+            if (schedule == null) {
+                return Collections.emptyMap();
+            }
+            return Collections.singletonMap(id, schedule);
+        }
         return (Map) scheduleDao().batchGetEntityMapByIds(scheduleIds);
     }
 
@@ -350,7 +360,7 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
             query.addFilter(FilterBeans.eq(_NopJobFire.PROP_NAME_triggerSource, triggerSource));
         }
         query.setLimit(1);
-        return !fireDao().findAllByQuery(query).isEmpty();
+        return !fireDao().findPageByQuery(query).isEmpty();
     }
 
     private List<NopJobFire> findActiveFires(String jobScheduleId) {
@@ -361,7 +371,7 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
         query.addOrderField(_NopJobFire.PROP_NAME_jobFireId, false);
         // plan 340 §2.9 (P2-8): defensive cap; remaining active fires are handled on subsequent cycles.
         query.setLimit(ACTIVE_FIRES_QUERY_LIMIT);
-        List<NopJobFire> result = fireDao().findAllByQuery(query);
+        List<NopJobFire> result = fireDao().findPageByQuery(query);
         if (result.size() >= ACTIVE_FIRES_QUERY_LIMIT) {
             LOG.warn("nop.job.query-limit-hit:method=findActiveFires,scheduleId={},limit={}",
                     jobScheduleId, ACTIVE_FIRES_QUERY_LIMIT);
@@ -386,7 +396,7 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
         query.addOrderField(_NopJobFire.PROP_NAME_scheduledFireTime, false);
         query.addOrderField(_NopJobFire.PROP_NAME_jobFireId, false);
         query.setLimit(1);
-        return fireDao().findAllByQuery(query);
+        return fireDao().findPageByQuery(query);
     }
 
     private void resetFailedTasks(String jobFireId, Timestamp recoveryTime) {

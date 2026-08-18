@@ -138,4 +138,3 @@ dict.option.label:
   job/executor-kind:
     test: Test Executor
     rpc: RPC Executor
-    rpcBroadcast: RPC Broadcast Executor

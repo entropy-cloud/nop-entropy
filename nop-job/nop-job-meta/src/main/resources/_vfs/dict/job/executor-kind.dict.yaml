@@ -13,4 +13,3 @@ options:
     value: rpc
     description: 将 fire 投递给 worker 侧 RPC 执行器（nopJobInvoker_rpc）
   
-  

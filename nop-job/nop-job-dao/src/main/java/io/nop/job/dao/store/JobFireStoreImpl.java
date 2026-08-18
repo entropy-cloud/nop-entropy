@@ -65,7 +65,7 @@ public class JobFireStoreImpl implements IJobFireStore {
         JobQueryHelper.addPartitionFilter(query, partitions, PROP_NAME_partitionIndex);
         query.addOrderField(PROP_NAME_scheduledFireTime, false);
         query.addOrderField(PROP_NAME_jobFireId, false);
-        return fireDao().findAllByQuery(query);
+        return fireDao().findPageByQuery(query);
     }
 
     @Override
@@ -76,7 +76,7 @@ public class JobFireStoreImpl implements IJobFireStore {
         JobQueryHelper.addPartitionFilter(query, partitions, PROP_NAME_partitionIndex);
         query.addOrderField(PROP_NAME_scheduledFireTime, false);
         query.addOrderField(PROP_NAME_jobFireId, false);
-        return fireDao().findAllByQuery(query);
+        return fireDao().findPageByQuery(query);
     }
 
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
@@ -220,6 +220,16 @@ public class JobFireStoreImpl implements IJobFireStore {
         if (fireIds == null || fireIds.isEmpty()) {
             return Collections.emptyMap();
         }
+        // batchGetEntityMapByIds 的单 id 分支返回未加载的 proxy 实体（见 OrmEntityDao.batchGetEntitiesByIds），
+        // session 关闭后访问属性会抛 session-closed，因此单 id 场景改用 getEntityById 全量加载。
+        if (fireIds.size() == 1) {
+            String id = fireIds.iterator().next();
+            NopJobFire fire = fireDao().getEntityById(id);
+            if (fire == null) {
+                return Collections.emptyMap();
+            }
+            return Collections.singletonMap(id, fire);
+        }
         return (Map) fireDao().batchGetEntityMapByIds(fireIds);
     }
 
@@ -244,7 +254,7 @@ public class JobFireStoreImpl implements IJobFireStore {
         }
         query.addOrderField(PROP_NAME_startTime, true);
         query.addOrderField(PROP_NAME_jobFireId, true);
-        return fireDao().findAllByQuery(query);
+        return fireDao().findPageByQuery(query);
     }
 
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)

@@ -82,7 +82,7 @@ public class JobTaskStoreImpl implements IJobTaskStore {
         query.addOrderField(PROP_NAME_priority, true);
         query.addOrderField(PROP_NAME_createTime, false);
         query.addOrderField(PROP_NAME_jobTaskId, false);
-        return taskDao().findAllByQuery(query);
+        return taskDao().findPageByQuery(query);
     }
 
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
@@ -118,7 +118,7 @@ public class JobTaskStoreImpl implements IJobTaskStore {
         }
         query.addOrderField(PROP_NAME_startTime, true);
         query.addOrderField(PROP_NAME_jobTaskId, true);
-        return taskDao().findAllByQuery(query);
+        return taskDao().findPageByQuery(query);
     }
 
     @Override
@@ -182,7 +182,7 @@ public class JobTaskStoreImpl implements IJobTaskStore {
         query.addOrderField(PROP_NAME_createTime, true);
         query.addOrderField(PROP_NAME_jobTaskId, true);
 
-        List<NopJobTask> stale = taskDao().findAllByQuery(query);
+        List<NopJobTask> stale = taskDao().findPageByQuery(query);
         if (stale.isEmpty()) {
             return java.util.Collections.emptyList();
         }

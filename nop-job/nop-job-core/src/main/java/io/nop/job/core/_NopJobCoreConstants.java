@@ -128,7 +128,6 @@ public interface _NopJobCoreConstants {
      */
     String EXECUTOR_KIND_rpc = "rpc";
                     
-                    
     /**
      * 阻塞策略: 丢弃 
      */
