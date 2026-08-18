@@ -190,7 +190,7 @@
 | 理解 nop-credential（加密凭证库/行级敏感数据加密/ICredentialProvider） | `03-modules/nop-credential.md`（与 `@sec:` 配置加密的边界见 `02-core-guides/ioc-and-config.md`） |
 | 理解 nop-dyn（动态表单/实体） | `03-modules/nop-dyn.md` |
 | 理解 nop-file（文件上传下载与存储机制） | `03-modules/nop-file.md` |
-| 理解 nop-retry（分布式重试） | `03-modules/nop-retry.md` |
+| 理解 nop-retry（分布式重试：幂等三元组 / 死信重放 / 回调开关） | `03-modules/nop-retry.md` |
 | 理解 nop-tcc（TCC 分布式事务） | `03-modules/nop-tcc.md` |
 | 理解 nop-metadata（联邦式元数据 / BI 语义层 / 血缘 / 质量 / 对账） | `03-modules/nop-metadata.md`（含 I*Biz 接口契约 + 5 大功能场景 + 失败路径显式化原则） |
 | 理解 nop-code 模块（代码索引与分析） | `03-modules/nop-code.md` |

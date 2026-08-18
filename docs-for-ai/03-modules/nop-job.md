@@ -261,9 +261,9 @@ public class MyJobInvoker implements IJobInvoker {
 }
 ```
 
-> **bean 命名约定**：Worker 通过 `DefaultJobInvokerResolver` 解析 invoker，bean 名固定前缀为 `nopJobInvoker_`，后缀为作业记录中的 `executorKind` 字段值。上面的例子对应 `executorKind = myJob`。参考 `nop-job-service` 内置的 `nopJobInvoker_rpc`、`nopJobInvoker_rpcBroadcast`、`nopJobInvoker_test`。
+> **bean 命名约定**：Worker 通过 `DefaultJobInvokerResolver` 解析 invoker，bean 名固定前缀为 `nopJobInvoker_`，后缀为作业记录中的 `executorKind` 字段值。上面的例子对应 `executorKind = myJob`。`nop-job-service` 当前内置 `nopJobInvoker_rpc`、`nopJobInvoker_test`。
 
-> **dispatchMode 路由**：`nop_job_fire.dispatch_mode` 是 coordinator 侧**唯一** task 拆分路由键。dispatcher 启动期经 IoC `collect-beans` 注入 `Map<String, IJobTaskBuilder>`（bean 名 `nopJobTaskBuilder_<dispatchMode>`，key=去前缀后缀），运行期 `dispatchMode` 直接查 map（plan 339）。`dispatchMode ∈ {null, blank, "single"}` 统一解析为 `single` → `DefaultJobTaskBuilder`（单 task 竞争认领），**不参与 executorKind 路由**——`single` + `executorKind=rpcBroadcast` 只会得到单 task，广播需显式配 `dispatchMode=broadcast`。**任意 dispatchMode 若对应 bean 未注册则显式失败**（抛 `nop.err.job.dispatch-mode-not-implemented`，由 per-fire 隔离捕获、fire 留 DISPATCHING 由超时检查器回收），不静默退化为单例。单个 fire 派发失败不波及同批次其余 fire。`executorKind` 仅作 worker 侧 invoker 选择键（见下），与 task 拆分彻底正交。`bestFit` 默认策略 `LeastLoadedStrategy` 返回单个 assignment（单 task）；自定义 `IWorkerAssignmentStrategy` 可返回多个 assignment，builder 为每个 assignment 生成一个 task（null/空 workerInstanceId 的 assignment 抛异常 fail fast）。
+> **dispatchMode 路由**：`nop_job_fire.dispatch_mode` 是 coordinator 侧**唯一** task 拆分路由键。dispatcher 启动期经 IoC `collect-beans` 注入 `Map<String, IJobTaskBuilder>`（bean 名 `nopJobTaskBuilder_<dispatchMode>`，key=去前缀后缀），运行期 `dispatchMode` 直接查 map（plan 339）。`dispatchMode ∈ {null, blank, "single"}` 统一解析为 `single` → `DefaultJobTaskBuilder`（单 task 竞争认领），**不参与 executorKind 路由**。广播需显式配 `dispatchMode=broadcast`，并使用 `executorKind=rpc`。**任意 dispatchMode 若对应 bean 未注册则显式失败**（抛 `nop.err.job.dispatch-mode-not-implemented`，由 per-fire 隔离捕获、fire 留 DISPATCHING 由超时检查器回收），不静默退化为单例。单个 fire 派发失败不波及同批次其余 fire。`executorKind` 仅作 worker 侧 invoker 选择键（见下），与 task 拆分彻底正交。`bestFit` 默认策略 `LeastLoadedStrategy` 返回单个 assignment（单 task）；自定义 `IWorkerAssignmentStrategy` 可返回多个 assignment，builder 为每个 assignment 生成一个 task（null/空 workerInstanceId 的 assignment 抛异常 fail fast）。
 >
 > **service 型 builder 失败语义（plan 339）**：`broadcast`/`partition`/`bestFit` 三个 builder 依赖 jobParams 中 `serviceName`（服务注册中心实例列表）与 `IDiscoveryClient`。配置缺失显式失败、不静默降级：`serviceName` 缺失/非 String 抛 `nop.err.job.service-name-required`；`discoveryClient` bean 未注入抛 `nop.err.job.discovery-client-required`（配置错误）；实例列表为空或全部不健康抛 `nop.err.job.no-available-instance`（运行时瞬态）。失败时该 fire 不产生 task、状态留 DISPATCHING，由超时检查器回收——广播/分区调度在 0 健康实例时表现为 fire 一直 DISPATCHING 直到超时，这是有意行为（失败显式可观测，可告警重试），不会退化为单 task 假成功。
 
@@ -362,6 +362,8 @@ public interface IJobInvoker {
 
 > **超时语义（三层独立，不互相回退）**：`dispatchTimeoutMs`（fire 卡在 DISPATCHING，默认 5min）/ `executionTimeoutMs`（task 执行墙钟，默认 -1 禁用）/ `schedule.timeoutSeconds`（per-schedule 覆盖执行超时）。判定 RUNNING-task 是否超时：`schedule.timeoutSeconds>0` 用之 → 否则 `executionTimeoutMs>0` 用之 → **否则不超时**。未配任何执行超时的长任务**不会**被墙钟超时误杀，由 worker-liveness 链兜底（worker 不存活则 task `CLAIMED/RUNNING → SUSPICIOUS → TIMEOUT`）。若需要默认执行超时，显式配 `executionTimeoutMs`，不要依赖隐式回退。
 
+> **worker-liveness 链细节**：`JobTimeoutCheckerImpl` 通过 `INamingService.getInstances(AppConfig.appName())` 获取当前健康且启用的实例 id 集合，并把 `task.workerInstanceId` 视为 worker 存活判据。若 `CLAIMED/RUNNING` task 的 `workerInstanceId` 不在 alive 集合中，则首轮扫描先标记 `SUSPICIOUS`，下一轮扫描再转 `TIMEOUT`。`SUSPICIOUS` 是有意保留的中间态：它既阻止旧 worker 的迟到结果覆盖（worker 侧把 `SUSPICIOUS` 视为 concurrently-finalized），也让 fire 聚合在仍有其他 pending task 时保持未完成；当 fire 只剩 `SUSPICIOUS` / terminal task 时，completion 会把 `SUSPICIOUS` 按 `TIMEOUT` 聚合。
+
 > **fire 计数自愈**：`schedule.activeFireCount` 由 dispatcher/planner 维护，但并发版本冲突下可能漂移。平台周期运行 `JobScheduleCounterReconciler`（独立会话）按 live 非 terminal fire 计数重算 `activeFireCount` 收敛漂移，因此 DISCARD/OVERLAY/RECOVERY 调度（依赖该计数）最终一致。
 
 ## 架构
@@ -438,7 +440,7 @@ Coordinator (协调器)                    Worker (工作者)
 | `nop-job-coordinator` | 分布式协调器（Planner/Dispatcher/Completion/Timeout） |
 | `nop-job-worker` | 分布式工作者（扫描任务、解析 invoker、执行） |
 | `nop-job-dao` | ORM 实体与 Store |
-| `nop-job-service` | BizModel、内置 invoker（rpc/rpcBroadcast/test） |
+| `nop-job-service` | BizModel、内置 invoker（rpc/test） |
 | `nop-job-web` | XMeta、AMIS 管理页面 |
 | `nop-job-app` | 可独立运行的示例应用 |
 | `nop-job-retry-adapter` | 与 nop-retry 集成的适配器（可选） |

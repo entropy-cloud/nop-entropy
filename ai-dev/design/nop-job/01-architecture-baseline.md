@@ -186,7 +186,7 @@ Job Planner Scanner ------------> JobFire
 | `job_task_id` | 主键 |
 | `job_fire_id` | 所属 fire |
 | `task_no` | fire 内部序号，V1 固定从 1 开始 |
-| `task_status` | `WAITING/CLAIMED/RUNNING/SUCCESS/FAILED/TIMEOUT/CANCELED` |
+| `task_status` | `WAITING/CLAIMED/SUSPICIOUS/RUNNING/SUCCESS/FAILED/TIMEOUT/CANCELED` |
 | `worker_instance_id` | 实际执行节点 |
 | `task_payload` | 投递参数快照 |
 | `result_payload` | 结果摘要，可空 |

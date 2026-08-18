@@ -101,6 +101,8 @@ public interface IJobRetryBridge {
 ```
 fire 失败 (FIRE_STATUS_FAILED)
   ↓
+检查 fire.triggerSource 是否为 TRIGGER_SOURCE_SCHEDULE
+  ↓ (不是 SCHEDULE → 跳过 retry，仅触发告警)
 检查 fire.getRetryPolicyId() 或 schedule.getRetryPolicyId()
   ↓ (非空)
 调用 IJobRetryBridge.onFireFailed(event)
@@ -128,7 +130,7 @@ schedule.retryPolicyId 兜底
 
 回调由 **policy 配置驱动**（不是 `IRetryTask` 上的回调字段——`withCallback` 属死 API，已随 plan 342 移除）：
 
-- `NopRetryPolicy.callbackEnabled` 启用回调
+- `NopRetryPolicy.callbackEnabled` 是回调总开关
 - `callbackTriggerType`：`ON_SUCCESS`（重试成功时回调）/ `ON_FAILURE`（重试最终失败时回调）/ `ALWAYS`（两种情况都回调）
 - `callbackPolicyId` 指向回调目标策略（回调本身也走 retry 链路）
 
@@ -139,6 +141,8 @@ schedule.retryPolicyId 兜底
 回调任务使用新 `NopRetryRecord`，其 `idempotentId` = 原 idempotentId + `"_callback"` 后缀，避免与主任务幂等键冲突。
 
 > 2026-08-13 更新（plan 342）：删除原"回调经 `withCallback` 到 `nopJobCompletionService.onRetryComplete`"描述——该设计从未实现，实际为 policy 驱动回调原服务。bridge 保持 fire-and-forget（§3.2），回调不回写 fire 状态。
+>
+> 2026-08-18 收口：仅当 `callbackEnabled=true` 且 `callbackPolicyId` 非空时才允许触发回调；`callbackEnabled` 不是展示字段。
 
 ---
 
@@ -224,7 +228,7 @@ Task 执行失败时由 Worker 提交重试。
 
 - 每次执行尝试（含立即重试与延迟重试）写一条 `NopRetryAttempt`：attemptNo = 当前 retryCount + 1，status 迁移 WAITING→RUNNING→SUCCESS/FAILED，记录 startTime/endTime/durationMs、errorCode/errorMessage/errorStack、requestPayloadSnapshot。
 - `UK_RETRY_ATTEMPT_RECORD_NO(recordId, attemptNo)` 保证编号唯一；retryCount 单调递增，编号可能因 handleExecutionFailure 的 +1 出现间隙（如 1,2,4），不构成冲突。
-- **已知限制（watch-only）**：PARALLEL 阻塞策略下同一 record 并发执行时，attemptNo 均由 retryCount+1 派生，理论上可能撞唯一约束；PARALLEL 语义本身不保证并发安全，视为既有设计限制。
+- 2026-08-18 收口：nop-retry 不再保留 `PARALLEL` 阻塞策略；同 `(namespaceId, groupId, idempotentId)` 的未完成记录仅允许 `DISCARD` 或 `OVERWRITE` 两种行为，避免共享同一 record 的并发执行歧义。
 
 ### 8.2 分区赋值（partitionIndex）
 
@@ -232,7 +236,7 @@ Task 执行失败时由 Worker 提交重试。
 
 ### 8.3 死信后幂等键可复用（Decision）
 
-- `moveToDeadLetter` 保存死信全量快照（含 recordId/requestPayload/失败信息）后**删除原 record 行**，使同一 idempotentId 可重新提交（`findPendingRecordByIdempotentId` 只查 PENDING/RETRYING，且原行已删除，无唯一约束冲突）。
+- `moveToDeadLetter` 保存死信全量快照（含 recordId/requestPayload/失败信息）后**删除原 record 行**，使同一 `(namespaceId, groupId, idempotentId)` 可重新提交（未完成记录查重与唯一性均按三元组收口）。
 - **副作用（已裁定）**：
   (a) `deadLetter→record` to-one relation 悬空（两表无 FK/cascade，`deleteEntityDirectly` 不触发级联，仅关系导航为 null）；
   (b) attempt 行成为孤儿（recordId 指向已删 record，历史明细不再可经 record 导航）；
@@ -241,5 +245,55 @@ Task 执行失败时由 Worker 提交重试。
 
 ### 8.4 retryFromDeadLetter 语义（Decision）
 
-- `retryFromDeadLetter` = **手动单次重放**：读取死信快照，单次 `invokeAsync`（fire-and-forget，不新建 record、不改死信状态、失败无痕迹）。
+- `retryFromDeadLetter` = **手动单次重放**：读取死信快照，单次 `invokeAsync`（fire-and-forget，不新建 record、不改死信状态、失败无痕迹）。该语义是 replay-once，而不是重新入队。
 - 错误路径快速失败：死信不存在 / 缺 serviceName/serviceMethod / 缺 requestPayload，分别返回 `ERR_RETRY_DEAD_LETTER_NOT_FOUND` / `ERR_RETRY_DEAD_LETTER_INVALID_EXECUTOR` / `ERR_RETRY_DEAD_LETTER_INVALID_REQUEST`。
+
+---
+
+## 9. 重试级联防止（2026-08-18）
+
+### 9.1 问题
+
+原始设计中，`buildRecoveryFire` 和 `buildManualFire` 都会从 `schedule.retryPolicyId` 复制重试策略到新 fire。这导致：
+
+1. **scheduled fire 失败** → retry engine 调用 `rerunFire` → 创建 recovery fire（带 retryPolicyId）→ recovery fire 又失败 → 又触发 retry → 无限循环
+2. **manual fire 失败** → 同样触发自动重试 → 用户手动触发的操作不应自动重试
+
+### 9.2 规则（Decision）
+
+| 触发源 | 是否允许自动重试 | 原因 |
+|--------|-----------------|------|
+| `TRIGGER_SOURCE_SCHEDULE` (1) | 允许 | 定时调度失败是瞬态故障，自动重试合理 |
+| `TRIGGER_SOURCE_MANUAL` (2) | 不允许 | 用户主动触发，失败后应由用户决定是否重试 |
+| `TRIGGER_SOURCE_RECOVERY` (3) | 不允许 | 已是重试产物，级联重试会导致无限循环 |
+
+### 9.3 实现
+
+三层防护：
+
+1. **`handleRetryAndAlarm`**（`JobCompletionProcessorImpl:219`）：检查 `fire.triggerSource`，仅 `TRIGGER_SOURCE_SCHEDULE` 允许进入 retry 分支。Manual 和 recovery fire 直接跳过，仅触发告警。
+
+2. **`buildRecoveryFire`**（`NopJobFireBizModel:128`）：不再从 schedule 复制 `retryPolicyId`。Recovery fire 的 `retryPolicyId` 为 null，即使 fallback 逻辑被触发也不会提交 retry。
+
+3. **`buildManualFire`**（`NopJobScheduleBizModel:190`）：不再从 schedule 复制 `retryPolicyId`。Manual fire 的 `retryPolicyId` 为 null。
+
+### 9.4 执行链路（修复后）
+
+```
+scheduled fire 失败
+  → handleRetryAndAlarm: triggerSource=SCHEDULE ✓
+  → retryBridge.onFireFailed (idempotentId=原始fireId)
+  → retryEngine → rerunFire(原始fireId)
+  → buildRecoveryFire: retryPolicyId=null
+  → recovery fire (triggerSource=RECOVERY) 进入 pipeline
+  → recovery fire 又失败
+  → handleRetryAndAlarm: triggerSource=RECOVERY ✗ → 跳过retry，仅告警
+  → 循环终止
+```
+
+### 9.5 配置 `schedule.retryPolicyId` 的语义
+
+设置 `schedule.retryPolicyId` 后：
+- 该 schedule 的**定时触发** fire 失败时，自动重试（最多 maxRetryCount 次）
+- **手动触发**和**恢复触发**的 fire 失败时，**不自动重试**，仅触发告警
+- 这是合理的：用户手动触发是明确意图，恢复触发本身已经是重试的产物

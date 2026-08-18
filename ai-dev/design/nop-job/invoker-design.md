@@ -9,7 +9,7 @@
 ## 一、核心结论
 
 1. **不新增模块**。Invoker / TaskBuilder 实现直接放在 `nop-job-service`，通过 IoC 注册。
-2. **executorKind 是唯一路由字段**。扩展 `job/executor-kind` dict 为 `test`/`rpc`/`rpcBroadcast`，Resolver 据此查找 `nopJobInvoker_{executorKind}` bean。
+2. **executorKind 是 worker 侧 invoker 选择字段**。当前内置 `job/executor-kind` dict 为 `test`/`rpc`，Resolver 据此查找 `nopJobInvoker_{executorKind}` bean。
 3. **找不到 invoker 时抛异常**，不返回 null。
 4. **废弃 executorRef**。executorKind 直接确定调用方式，无需额外 ref 字段。
 5. **不需要 executorMethod**。RPC 调用的 serviceName、serviceMethod 等参数由 invoker 自行从 `jobParams` 中解析。
@@ -206,7 +206,7 @@ public class NopE2eTestJobInvoker implements IJobInvoker {
   TaskBuilder 已迁移到 nop-job-coordinator 的 app-engine.beans.xml（plan 339）：
   nopJobTaskBuilder_single / broadcast / partition / bestFit 四个 bean，
   dispatcher 经 <ioc:collect-beans as-map="true" name-prefix="nopJobTaskBuilder_" by-type="IJobTaskBuilder"/>
-  启动期注入 taskBuilders map。不再注册 default / rpcBroadcast 别名 bean。
+  启动期注入 taskBuilders map。不再注册 default 等历史别名 bean。
 -->
 ```
 
@@ -397,8 +397,7 @@ Fire(WAITING) → Dispatcher → taskBuilders.get("broadcast")（dispatchMode=br
 ```xml
 <dict name="job/executor-kind" valueType="string">
     <option code="test" label="测试执行器"/>
-    <option code="rpc" label="RPC 执行器（单次调用）"/>
-    <option code="rpcBroadcast" label="RPC 广播执行器（每个实例一个 task）"/>
+    <option code="rpc" label="RPC 执行器"/>
 </dict>
 ```
 
@@ -413,7 +412,7 @@ Fire(WAITING) → Dispatcher → taskBuilders.get("broadcast")（dispatchMode=br
 </dict>
 ```
 
-**路由优先级（plan 339 收敛）**：`dispatchMode` 是 coordinator 侧**唯一** builder 路由键。dispatcher 启动期注入 `Map<String, IJobTaskBuilder>`（`<ioc:collect-beans as-map="true" name-prefix="nopJobTaskBuilder_" by-type="IJobTaskBuilder"/>`），运行期 `taskBuilders.get(dispatchMode)` 直接查 map：`null`/blank/`single` 统一解析为 `single` → `DefaultJobTaskBuilder`（单 task 竞争认领，**不参与 executorKind 路由**）；任意未注册的 `dispatchMode` 显式抛 `ERR_JOB_DISPATCH_MODE_NOT_IMPLEMENTED`（per-fire 隔离，fire 留 DISPATCHING 由超时检查器回收），无静默 fallback。`executorKind` 完全退出 coordinator 路由，仅作 worker 侧 invoker 选择键（`nopJobInvoker_<executorKind>`）。旧 `executorKind=rpcBroadcast` 调度需迁移为 `dispatchMode=broadcast`。
+**路由优先级（plan 339 收敛）**：`dispatchMode` 是 coordinator 侧**唯一** builder 路由键。dispatcher 启动期注入 `Map<String, IJobTaskBuilder>`（`<ioc:collect-beans as-map="true" name-prefix="nopJobTaskBuilder_" by-type="IJobTaskBuilder"/>`），运行期 `taskBuilders.get(dispatchMode)` 直接查 map：`null`/blank/`single` 统一解析为 `single` → `DefaultJobTaskBuilder`（单 task 竞争认领，**不参与 executorKind 路由**）；任意未注册的 `dispatchMode` 显式抛 `ERR_JOB_DISPATCH_MODE_NOT_IMPLEMENTED`（per-fire 隔离，fire 留 DISPATCHING 由超时检查器回收），无静默 fallback。`executorKind` 仅作 worker 侧 invoker 选择键（`nopJobInvoker_<executorKind>`）；广播场景统一使用 `executorKind=rpc` + `dispatchMode=broadcast`。
 
 配套 bean 对照：
 
@@ -421,7 +420,7 @@ Fire(WAITING) → Dispatcher → taskBuilders.get("broadcast")（dispatchMode=br
 |-------------|----------------------------------|-----------------|------|
 | `single`(默认) / null / blank | `nopJobInvoker_test` | `nopJobTaskBuilder_single` → `DefaultJobTaskBuilder` | 单 task，任意 worker 竞争认领 |
 | `single`(默认) / null / blank | `nopJobInvoker_rpc` | `nopJobTaskBuilder_single` → `DefaultJobTaskBuilder` | 单次 RPC |
-| `broadcast` | (按 executorKind) | `nopJobTaskBuilder_broadcast` → `RpcBroadcastTaskBuilder` | 1:1 广播（每健康实例 1 task） |
+| `broadcast` | `nopJobInvoker_rpc` | `nopJobTaskBuilder_broadcast` → `RpcBroadcastTaskBuilder` | 1:1 广播（每健康实例 1 task） |
 | `partition` | (按 executorKind) | `nopJobTaskBuilder_partition` → `PartitionTaskBuilder` | 按 weight 切 hash range |
 | `bestFit` | — | `nopJobTaskBuilder_bestFit` → `AdaptiveJobTaskBuilder` | 负载感知派发（单 task） |
 
@@ -511,7 +510,7 @@ List<NopJobTask> locked = taskStore.tryLockTasksForExecute(pending, AppConfig.ho
 
 | 序号 | 变更 | 文件 | 说明 |
 |------|------|------|------|
-| 1 | 扩展 executorKind dict | `nop-job.orm.xml` | dict `job/executor-kind` 新增 test/rpc/rpcBroadcast，valueType 改为 string |
+| 1 | 扩展 executorKind dict | `nop-job.orm.xml` | dict `job/executor-kind` 使用 string，内置选项为 test/rpc |
 | 2 | 废弃 executorRef | ORM / xmeta / view | 从 NopJobSchedule 中移除 executorRef 字段，只保留 executorKind |
 | 3 | 修正 resolver | `DefaultJobInvokerResolver.java` | 改为按 executorKind 查找 `nopJobInvoker_{executorKind}` |
 | 4 | 新增错误码 | `JobWorkerErrors.java` | `ERR_JOB_EXECUTOR_KIND_EMPTY`, `ERR_JOB_INVOKER_NOT_FOUND` |
