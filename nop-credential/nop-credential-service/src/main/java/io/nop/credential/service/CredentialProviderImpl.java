@@ -133,7 +133,8 @@ public class CredentialProviderImpl implements ICredentialProvider {
         if (type != null && type.isOauth2Type()) {
             fields = refreshIfNearingExpiry(credentialId, type, fields);
         }
-        return new CredentialData(fields);
+        // W16-impl SPI 增量裁定 1：CredentialData 携带 typeName（消费方家族错型校验的精确依据）
+        return new CredentialData(entity.getTypeName(), fields);
     }
 
     @Override
