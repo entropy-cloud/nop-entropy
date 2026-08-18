@@ -26,6 +26,13 @@ public interface IConfigProvider {
 
     void reset();
 
+    /**
+     * 自上次 {@link #reset()} 之后是否有通过 {@link #assignConfigValue} 或
+     * {@link #updateConfigValue} 动态修改过配置。true 表示当前 in-memory 配置可能
+     * 与上一次 reset 之后的基线不一致，下游（如模型缓存）需要重新加载。
+     */
+    boolean isDirty();
+
     <T> void updateConfigValue(IConfigReference<T> ref, T value);
 
     void assignConfigValue(String name, Object value);

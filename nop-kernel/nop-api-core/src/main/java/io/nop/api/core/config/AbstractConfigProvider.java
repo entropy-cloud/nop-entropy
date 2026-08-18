@@ -16,6 +16,8 @@ public abstract class AbstractConfigProvider implements IConfigProvider {
 
     private final Map<String, StaticValue<?>> staticValues;
 
+    private volatile boolean dirty;
+
     public AbstractConfigProvider(Map<String, DefaultConfigReference<?>> usedRefs,
                                   Map<String, StaticValue<?>> staticValues) {
         this.usedRefs = usedRefs;
@@ -32,6 +34,15 @@ public abstract class AbstractConfigProvider implements IConfigProvider {
         return usedRefs;
     }
 
+    /**
+     * 自上次 {@link #reset()} 之后是否有通过 {@link #assignConfigValue} 或
+     * {@link #updateConfigValue} 动态修改过的配置。测试框架据此判断是否需要
+     * 清空模型缓存（xlib 编译时会按配置求值 feature:on，配置变化后必须重编）。
+     */
+    public boolean isDirty() {
+        return dirty;
+    }
+
     @Override
     public <T> IConfigReference<T> getStaticConfigReference(String varName, Class<T> clazz, T defaultValue, SourceLocation loc) {
         IConfigReference<T> ref = getConfigReference(varName, clazz, defaultValue, loc);
@@ -44,6 +55,7 @@ public abstract class AbstractConfigProvider implements IConfigProvider {
 
     @Override
     public void reset() {
+        dirty = false;
         usedRefs.keySet().retainAll(staticValues.keySet());
         for (DefaultConfigReference ref : usedRefs.values()) {
             StaticValue<?> value = staticValues.get(ref.getName());
@@ -55,12 +67,14 @@ public abstract class AbstractConfigProvider implements IConfigProvider {
 
     @Override
     public void assignConfigValue(String name, Object value) {
+        dirty = true;
         Class<?> valueClass = value == null ? Object.class : value.getClass();
         DefaultConfigReference ref = makeConfigRef(null, name, valueClass);
         ref.updateValue(null, StaticValue.build(name, ref.getValueType(), value));
     }
 
     public <T> void updateConfigValue(IConfigReference<T> ref, T value) {
+        dirty = true;
         DefaultConfigReference<T> df = makeConfigRef(null, ref.getName(), ref.getValueType());
         df.updateValue(ref.getLocation(), StaticValue.build(ref.getName(), ref.getValueType(), value));
     }

@@ -16,8 +16,13 @@ import static io.nop.api.core.ApiErrors.ERR_IOC_BEAN_CONTAINER_NOT_INITIALIZED;
 public class BeanContainer {
     static IBeanContainerProvider _provider;
 
+    /**
+     * Whether a usable container is currently registered. A provider that yields
+     * {@code null} (i.e. {@link #registerInstance(Object)} called with {@code null}
+     * to unregister) counts as not initialized.
+     */
     public static boolean isInitialized() {
-        return _provider != null;
+        return _provider != null && _provider.getBeanContainer() != null;
     }
 
     public static IBeanContainer instance() {
