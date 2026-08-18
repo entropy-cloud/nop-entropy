@@ -58,7 +58,7 @@
 | NopAuthSmsCode | `nop_auth_sms_code` | 短信验证码（codeKey PK / phone / code / expireAt / failCount，W8 DB 存储） |
 | NopAuthEmailCode | `nop_auth_email_code` | 邮件验证码（codeKey PK / email 信息性可空 / code / expireAt / failCount——结构对齐 nop_auth_sms_code，W15） |
 | NopAuthRoleMfaPolicy | `nop_auth_role_mfa_policy` | 角色级 MFA 强制策略（roleId PK 1:1 / minMfaLevel 1-3 / allowTrustedDevice / delFlag 软删除——无行 = 无策略，W13） |
-| NopAuthMfaCredential | `nop_auth_mfa_credential` | WebAuthn 凭证（sid seq PK / userId 索引 / credentialId 全局唯一 / publicKey COSE masked / signCount 单调递增 / transports / name / status enabled\|disabled / lastUsedAt，1:N 用户多硬件钥匙——setting 承担用户级启用状态、credential 行承担密钥材料，W14）。**因子失效边界全量物理删除**（unbindMfa/resetUserMfa/恢复码使用，A2-audit D3-F1——残留行会在重绑后复活旧钥匙；多钥匙累积的正规入口为后续 add-key 端点 successor） |
+| NopAuthMfaCredential | `nop_auth_mfa_credential` | WebAuthn 凭证（sid seq PK / userId 索引 / credentialId 全局唯一 / publicKey COSE masked / signCount 单调递增 / transports / name / status enabled\|disabled / lastUsedAt，1:N 用户多硬件钥匙——setting 承担用户级启用状态、credential 行承担密钥材料，W14）。**因子失效边界全量物理删除**（unbindMfa/resetUserMfa/恢复码使用，A2-audit D3-F1——残留行会在重绑后复活旧钥匙；多钥匙累积的正规入口为 `webauthnBeginAddKey`/`confirmWebauthnAddKey` 双端点（A2-followup-2，add-key-while-enabled 正门）） |
 | NopAuthMfaTrustedDevice | `nop_auth_mfa_trusted_device` | MFA 可信设备（sid seq PK / (userId, deviceHash) 复合唯一 / deviceName / expireAt 固定窗口 / lastUsedAt——物理删除，到期惰性失效行保留审计，W15） |
 | NopOauthAuthorization | `nop_oauth_authorization` | OAuth2 授权记录 |
 | NopOauthRegisteredClient | `nop_oauth_registered_client` | OAuth2 客户端注册 |
@@ -174,6 +174,8 @@ nop-auth 提供完整的两阶段登录（第一因子 → challenge → 第二�
 | `listWebauthnCredentials()` | `:797` | 列出本人 WebAuthn credentials（不暴露 credentialId/publicKey） |
 | `removeWebauthnCredential(sid)` | `:824` | 移除一把 credential（最后一把 enabled 拒绝 `ERR_AUTH_MFA_LAST_CREDENTIAL`；越权归一"不存在"；**物理删除**释放 credentialId 唯一键——A2-audit；**`@MfaRequired` 标注**（A2 路由项 1 终局裁定：修改认证因子集合，与 unbindMfa 同族）） |
 | `renameWebauthnCredential(sid, name)` | `:842` | 重命名一把 credential（本人数据限定；**不标注**——路由项 1 裁定：纯展示元数据变更） |
+| `webauthnBeginAddKey()` | — | **发起追加钥匙**（add-key-while-enabled 正门，A2-followup-2：enabled webauthn 用户不解绑添加第二把钥匙）。前置守卫：登录态 + enabled + webauthn + ≥1 enabled credential；创建两行 scene=webauthn-add challenge（持有证明行 + 注册行，独立 cryptoChallenge，payload 含 sessionId）；返回 verifyChallengeToken + assertionOptions（既有钥匙）+ addChallengeToken + creationOptions（excludeCredentials=既有防重复注册）。不标注（只读准备）；不入受限白名单 |
+| `confirmWebauthnAddKey(addChallengeToken, attestation, verifyChallengeToken, assertion)` | — | **确认追加钥匙**（四参 ceremony）：双 challenge 绑定复核（scene/userId/sessionId）+ setting 复核 + attestation 验证（credentialId 重复拒绝）+ 持有证明（`MfaFactorVerifier` 统一分支定位 enabled 凭证行）→ 新 credential 落库（enabled）→ 双 challenge 一并消费 + 审计双事件。**零副作用**：setting/恢复码/可信设备不变。部分失败 per-token 计数。**`@MfaRequired` 标注**（修改认证因子集合族） |
 | `generateRecoveryCodes()` | — | 重置恢复码（作废旧码） |
 | `getMfaStatus()` | — | 查询状态（不返回 secret） |
 | `listTrustedDevices()` | `:872` | 列出本人可信设备（全部行含过期标记，W15） |
@@ -189,6 +191,7 @@ mfaType 第三取值 `webauthn`（多 credential 模型——用户级仍是单�
 1. **注册（绑定）**：`bindMfa("webauthn", proof?)` → pending setting（secret=null）+ scene=webauthn-register challenge（payload={sessionId, cryptoChallenge}）→ 返回 challengeToken + creationOptions（excludeCredentials=既有 credential 防重复注册）→ 客户端 `navigator.credentials.create()` → `confirmWebauthnRegistration(challengeToken, attestation)`（需登录态 + 同会话；验证失败 incrFailCount（超限作废）+ MFA_FAIL 不消费；credentialId 全局唯一冲突=重复注册拒绝；成功 credential 落库 + setting enabled + 恢复码生成 + consume）。
 2. **认证（登录第二因子）**：登录 challenge 创建处（webauthn 类型）payload 含 cryptoChallenge——三触点同步（`LoginServiceImpl.checkMfaRequired` / `OperationMfaCheckerImpl` / `MfaLoginPolicyServiceImpl.checkMfaForUserName` OAuth 副本，前两者经 `MfaChallengeHelper` 收敛）→ 客户端 `LoginApi__webauthnAuthOptions(challengeToken)` 取 requestOptions（scene=login 公开访问；非 login 需登录态 + payload.sessionId==当前会话；challenge 只读复用）→ `mfaVerify`（`MfaVerifyRequest` 可选 `assertion` 字段）→ `MfaFactorVerifier` 统一 webauthn 分支 → consume → completeLogin（一期出口不变）。
 3. **解绑**：`webauthnBeginVerify()`（需登录态；scene=webauthn-unbind challenge + requestOptions）→ `unbindMfa(null, challengeToken, assertion)`（同会话校验 + 断言验证等价保持"验证当前因子"语义；失败计数 + MFA_FAIL；成功 consume + status=disabled + 删除恢复码 + **物理删除全部 credential 行**（A2-audit D3-F1——被窃钥匙不随重绑复活，credentialId 唯一键同步释放允许同钥匙复注册））。`operation-mfa.enabled=true` 时解绑为**双 ceremony**（操作级票一次断言 + unbind challenge 一次断言，与 totp 用户"输两次码"同构，非缺陷）。
+4. **追加钥匙（add-key-while-enabled，A2-followup-2）**：`webauthnBeginAddKey()`（前置：登录态 + enabled + webauthn + ≥1 enabled credential）创建**两行** scene=webauthn-add challenge（持有证明行 + 注册行，独立 cryptoChallenge，payload={sessionId, cryptoChallenge} 一次写入）→ 返回 verifyChallengeToken + assertionOptions（既有钥匙）+ addChallengeToken + creationOptions（excludeCredentials=全部既有）→ 客户端对既有钥匙 `navigator.credentials.get()` + 对新钥匙 `create()` → `confirmWebauthnAddKey(addChallengeToken, attestation, verifyChallengeToken, assertion)`（双 challenge 绑定复核 + setting 复核 + attestation 验证（重复拒绝）+ 持有证明（verifier 统一分支）→ 新 credential 落库 enabled → 双 challenge 一并消费 + 审计双事件）。**零副作用**（setting/恢复码/可信设备不变，不经 pending 状态机）；部分失败 per-token 计数（证明失败计 verify 行/attestation 失败计 add 行）。读路径前置于持有证明（signCount 条件 UPDATE 推进既有行乐观锁版本，同会话后置装载会 entity-version-changed——执行期定稿）。scene=webauthn-add token 送登录级 `mfaVerify` 被 scene 纪律拒绝。确认端点标注 `@MfaRequired`（enabled=true 时为双 ceremony：操作级票 + 持有证明，与解绑同构）。
 
 **断言验证语义**（`MfaFactorVerifier.verify(setting, mfaType, code, assertion, challenge)` 五参统一载体——登录级/操作级/解绑级共用）：cryptoChallenge 取自服务端 challenge payload（防客户端自造挑战）；按 assertion.credentialId 查本人 enabled credential；COSE 公钥验签 + challenge/origin/rpId 校验（库 Step6 强校验 userHandle==服务端 userId 句柄）；**signCount 单调递增写内聚组件**——条件 `UPDATE ... WHERE SIGN_COUNT < ?`，并发竞态方 affected=0 按验证失败处理（不覆盖更大计数）；count=0 认证器（协议允许的无计数实现）跳过单调校验、仅记审计。userHandle 以服务端 userId 字节为权威值，assertion 携带句柄时被强校验一致（句柄漂移防护）。
 
@@ -196,7 +199,7 @@ mfaType 第三取值 `webauthn`（多 credential 模型——用户级仍是单�
 
 **操作级联动**：`MfaVerifyOperationRequest` 可选 `assertion` 字段；拦截器创建的 scene=operation challenge payload 含 cryptoChallenge → 客户端 `webauthnAuthOptions` 取 options → `mfaVerifyOperation(challengeToken, assertion)` → `MfaFactorVerifier` → markVerified 转票（操作级链路零结构变更）。
 
-**受限会话联动**：`confirmWebauthnRegistration` 在受限会话白名单内（minMfaLevel=3 用户的升级路径 = 受限会话内 proof → bindMfa(webauthn) → confirm）；`webauthnBeginVerify` 与 credential 管理三 API **不在**白名单（受限用户 setting.mfaType 不可能为 webauthn——webauthn=3 已达 factorLevel 表上限，入白名单为不可达死代码）。webauthn 绑定同样继承登记通道 proof 前置（W13 bindMfa 前置在类型分派之前）。
+**受限会话联动**：`confirmWebauthnRegistration` 在受限会话白名单内（minMfaLevel=3 用户的升级路径 = 受限会话内 proof → bindMfa(webauthn) → confirm）；`webauthnBeginVerify` 与 credential 管理三 API **不在**白名单（受限用户 setting.mfaType 不可能为 webauthn——webauthn=3 已达 factorLevel 表上限，入白名单为不可达死代码）；add-key 双端点同构不入（A2-followup-2 同裁定先例）。webauthn 绑定同样继承登记通道 proof 前置（W13 bindMfa 前置在类型分派之前）。
 
 **审计**：注册成功/失败、断言成功/失败（含 count=0 标记）、解绑、credential 移除经 `IAuditService.saveAudit` 落 NopAuthOpLog（userName 非空列必须设置）。
 

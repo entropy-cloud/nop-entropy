@@ -110,27 +110,27 @@ Exit Criteria:
 
 ### Phase 3 - add-key-while-enabled 正门端点
 
-Status: planned
+Status: completed
 Targets: `NopAuthUserBizModel.java`、`MfaChallenge.java`（若裁定加常量）、新测试文件（E2E + 组件）
 
 - Item Types: `Decision | Fix | Proof`
 
-- [ ] **Decision（ceremony 形态）**：**默认裁定：双端点 + 新 scene + 双 challenge 行 + 既有钥匙持有证明**——(a) 发起端点：前置校验（登录态 + setting enabled + mfaType=webauthn + ≥1 把 enabled credential，不符显式报错），创建**两行** scene=`webauthn-add` challenge（**持有证明行**——供既有钥匙 webauthn.get 断言；**注册行**——供新钥匙 webauthn.create attestation；各自独立 cryptoChallenge、payload 含 sessionId 一次写入。理由：get/create 两个 ceremony 各需匹配的 `clientData.challenge`，`MfaFactorVerifier.verifyWebauthn` 从 challenge 行取期望值，单行无法同时服务两 ceremony），返回 verifyChallengeToken + assertionOptions（既有钥匙）+ addChallengeToken + creationOptions（excludeCredentials=既有钥匙，防同钥匙重复注册——bindWebauthn 同构）；(b) 确认端点四参（addChallengeToken/attestation/verifyChallengeToken/assertion，`unbindMfa` 的 `challengeToken+assertion` 参数形态先例）：持有证明（校验链对齐 `verifyWebauthnUnbindAssertion` 形态：scene/userId/sessionId 绑定 + `MfaFactorVerifier` 统一 webauthn 分支——其按 assertion.credentialId + userId + status=enabled 定位凭证行，无钥匙会话不可伪造 + 失败计数不消费）+ add-challenge 校验（scene=webauthn-add + userId + sessionId）+ setting 复核（仍 enabled + webauthn）+ attestation 验证 → 新 credential 落库（status=enabled）→ consume 两 challenge + 审计事件（持有证明与钥匙新增分别落审计）。**部分失败语义（默认裁定）**：持有证明失败仅计数 verify 行、attestation 失败仅计数 add 行（各自先例：`incrWebauthnFailCountOrDiscard` per-token）；verify 行消费时机 = 整体成功时与 add 行一并收口（双行一次性消费，对齐"票在动作成功时才消费"纪律），任一环节失败后重试需重新发起。备选（执行期若裁定采纳须记录取舍）：单 challenge 行双 ceremony 共用 cryptoChallenge——少一行但偏离"一行一用途"scene 纪律。若 draft review 翻案其他形态（如持有证明前置到发起端点），须记录取舍理由
-- [ ] **Decision（副作用边界）**：**默认裁定：setting 状态/恢复码/可信设备零副作用**——add-key 不经 pending 状态机（禁止 upsertPending 触碰 enabled setting——防锁死）、不重生成恢复码（对齐"仅 confirmMfa/恢复码重置动作管理恢复码"惯例）、不撤销可信设备（新钥匙增加不降低既有信任前提）。credentialId 全局唯一冲突 → 拒绝（MFA_FAIL，bindWebauthn 同语义）
-- [ ] **Decision（标注与白名单）**：**默认裁定：确认端点标注 @MfaRequired（对齐 unbindMfa"修改认证因子集合"族 + 操作级票为第二重验证）；发起端点不标注（只读准备动作，C1b 缩窄先例）。受限会话白名单：不入**——受限用户 setting 不可能 enabled+webauthn（webauthn=当前 factorLevel 上限，W14 同构裁定先例），白名单入口为不可达死代码
-- [ ] **Fix**：按上述裁定落地双端点（命名执行期定，语义对齐"addWebauthnKey"族）；与 Phase 1 的交互自动成立：scene=webauthn-add 的 token 在 `mfaVerifyAsync` 被 scene 校验拒绝（无需额外代码，测试钉定）
-- [ ] **Proof**：E2E 全链——enabled webauthn 用户（双钥匙场景）经发起+确认添加第三把钥匙：新钥匙落库 enabled、既有钥匙/恢复码/可信设备/setting 状态逐项断言不变、审计事件落库；持有证明失败（错误断言/他人 challenge/跨会话）→ 拒绝 + 失败计数；非 webauthn 用户/未 enabled 用户调发起端点 → 显式拒绝
+- [x] **Decision（ceremony 形态）**：**默认裁定：双端点 + 新 scene + 双 challenge 行 + 既有钥匙持有证明**——(a) 发起端点：前置校验（登录态 + setting enabled + mfaType=webauthn + ≥1 把 enabled credential，不符显式报错），创建**两行** scene=`webauthn-add` challenge（**持有证明行**——供既有钥匙 webauthn.get 断言；**注册行**——供新钥匙 webauthn.create attestation；各自独立 cryptoChallenge、payload 含 sessionId 一次写入。理由：get/create 两个 ceremony 各需匹配的 `clientData.challenge`，`MfaFactorVerifier.verifyWebauthn` 从 challenge 行取期望值，单行无法同时服务两 ceremony），返回 verifyChallengeToken + assertionOptions（既有钥匙）+ addChallengeToken + creationOptions（excludeCredentials=既有钥匙，防同钥匙重复注册——bindWebauthn 同构）；(b) 确认端点四参（addChallengeToken/attestation/verifyChallengeToken/assertion，`unbindMfa` 的 `challengeToken+assertion` 参数形态先例）：持有证明（校验链对齐 `verifyWebauthnUnbindAssertion` 形态：scene/userId/sessionId 绑定 + `MfaFactorVerifier` 统一 webauthn 分支——其按 assertion.credentialId + userId + status=enabled 定位凭证行，无钥匙会话不可伪造 + 失败计数不消费）+ add-challenge 校验（scene=webauthn-add + userId + sessionId）+ setting 复核（仍 enabled + webauthn）+ attestation 验证 → 新 credential 落库（status=enabled）→ consume 两 challenge + 审计事件（持有证明与钥匙新增分别落审计）。**部分失败语义（默认裁定）**：持有证明失败仅计数 verify 行、attestation 失败仅计数 add 行（各自先例：`incrWebauthnFailCountOrDiscard` per-token）；verify 行消费时机 = 整体成功时与 add 行一并收口（双行一次性消费，对齐"票在动作成功时才消费"纪律），任一环节失败后重试需重新发起。备选（执行期若裁定采纳须记录取舍）：单 challenge 行双 ceremony 共用 cryptoChallenge——少一行但偏离"一行一用途"scene 纪律（**取舍记录：被否**，见设计 §10.2-C）。若 draft review 翻案其他形态（如持有证明前置到发起端点），须记录取舍理由（**执行期定稿：读路径前置于持有证明**——signCount 条件 UPDATE 推进既有行乐观锁版本，同会话后置装载触发 entity-version-changed（E2E 首跑暴露的生产级缺陷）；安全语义不变——两证明均须通过才有任何持久化，已回写设计 §10.2-C）
+- [x] **Decision（副作用边界）**：**默认裁定：setting 状态/恢复码/可信设备零副作用**——add-key 不经 pending 状态机（禁止 upsertPending 触碰 enabled setting——防锁死）、不重生成恢复码（对齐"仅 confirmMfa/恢复码重置动作管理恢复码"惯例）、不撤销可信设备（新钥匙增加不降低既有信任前提）。credentialId 全局唯一冲突 → 拒绝（MFA_FAIL，bindWebauthn 同语义）
+- [x] **Decision（标注与白名单）**：**默认裁定：确认端点标注 @MfaRequired（对齐 unbindMfa"修改认证因子集合"族 + 操作级票为第二重验证）；发起端点不标注（只读准备动作，C1b 缩窄先例）。受限会话白名单：不入**——受限用户 setting 不可能 enabled+webauthn（webauthn=当前 factorLevel 上限，W14 同构裁定先例），白名单入口为不可达死代码
+- [x] **Fix**：按上述裁定落地双端点（命名执行期定，语义对齐"addWebauthnKey"族）；与 Phase 1 的交互自动成立：scene=webauthn-add 的 token 在 `mfaVerifyAsync` 被 scene 校验拒绝（无需额外代码，测试钉定）
+- [x] **Proof**：E2E 全链——enabled webauthn 用户（双钥匙场景）经发起+确认添加第三把钥匙：新钥匙落库 enabled、既有钥匙/恢复码/可信设备/setting 状态逐项断言不变、审计事件落库；持有证明失败（错误断言/他人 challenge/跨会话）→ 拒绝 + 失败计数；非 webauthn 用户/未 enabled 用户调发起端点 → 显式拒绝
 
 Exit Criteria:
 
-- [ ] E2E 测试：add-key 全链正例（含双 challenge consume 断言）；持有证明负例矩阵（无断言/错钥匙断言/跨会话 challenge/跨用户 challenge）至少 4 用例；发起前置守卫负例（非 enabled/非 webauthn/零 enabled credential）至少 3 用例
-- [ ] E2E 测试：add-key 后原 enabled 钥匙仍可正常通过 webauthn 登录（新钥匙不破坏既有认证路径）；scene=webauthn-add token 送 `mfaVerifyAsync` 被拒（Phase 1 交互钉定）；`last-credential` 守卫与 `removeWebauthnCredential`（Phase 2 已标注）在新钥匙语境下行为正确
-- [ ] **接线验证**：add-key 确认端点在容器级元数据断言中入正例清单（若标注）；@MfaRequired 零介入回归（enabled=false 行为不变）
-- [ ] **无静默跳过**：所有前置不符/校验失败路径显式错误码；空实现/静默 return 不存在
-- [ ] **端到端验证**：从发起端点到新钥匙可用（登录链验证新钥匙断言成功）的完整用户路径已验证
-- [ ] 设计回写节含 add-key ceremony 三项裁定（形态/副作用边界/标注与白名单）；owner docs（nop-auth.md WebAuthn 章节 add-key 说明）同步
-- [ ] `./mvnw test -pl nop-auth/nop-auth-service -am` 全绿
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E2E 测试：add-key 全链正例（含双 challenge consume 断言）；持有证明负例矩阵（无断言/错钥匙断言/跨会话 challenge/跨用户 challenge）至少 4 用例；发起前置守卫负例（非 enabled/非 webauthn/零 enabled credential）至少 3 用例
+- [x] E2E 测试：add-key 后原 enabled 钥匙仍可正常通过 webauthn 登录（新钥匙不破坏既有认证路径）；scene=webauthn-add token 送 `mfaVerifyAsync` 被拒（Phase 1 交互钉定）；`last-credential` 守卫与 `removeWebauthnCredential`（Phase 2 已标注）在新钥匙语境下行为正确
+- [x] **接线验证**：add-key 确认端点在容器级元数据断言中入正例清单（若标注）；@MfaRequired 零介入回归（enabled=false 行为不变）
+- [x] **无静默跳过**：所有前置不符/校验失败路径显式错误码；空实现/静默 return 不存在
+- [x] **端到端验证**：从发起端点到新钥匙可用（登录链验证新钥匙断言成功）的完整用户路径已验证
+- [x] 设计回写节含 add-key ceremony 三项裁定（形态/副作用边界/标注与白名单）；owner docs（nop-auth.md WebAuthn 章节 add-key 说明）同步
+- [x] `./mvnw test -pl nop-auth/nop-auth-service -am` 全绿
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - 全量回归 + 文档收口 + closure
 
