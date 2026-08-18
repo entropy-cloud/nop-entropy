@@ -54,4 +54,6 @@
           <constructor-arg index="3" value="nop-stream.rpc.task.node-0"/>
       </bean>
 
+    -->
+
 </beans>

@@ -73,6 +73,10 @@ public class TestAdvancedPipelineE2E {
             container.stop();
         }
         CoreInitialization.destroy();
+        // 复位全局容器 provider：否则同 fork 内后续测试类执行完整
+        // CoreInitialization.initialize() 时会把已 stop 的 standalone 容器当作
+        // app 容器父容器，getBeanDefinitionsByType 触发 container-not-started。
+        BeanContainer.registerInstance(null);
     }
 
     @Test
