@@ -128,10 +128,6 @@ public interface _NopJobCoreConstants {
      */
     String EXECUTOR_KIND_rpc = "rpc";
                     
-    /**
-     * 执行器类型: RPC广播执行器 仅 worker 侧 invoker 选择键（nopJobInvoker_rpcBroadcast），与 task 拆分无关：task 拆分只由 dispatchMode 决定，广播需配 dispatchMode=broadcast（plan 339）
-     */
-    String EXECUTOR_KIND_rpcBroadcast = "rpcBroadcast";
                     
     /**
      * 阻塞策略: 丢弃 

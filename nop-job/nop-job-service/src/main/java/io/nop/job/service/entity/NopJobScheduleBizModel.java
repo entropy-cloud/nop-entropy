@@ -203,7 +203,6 @@ public class NopJobScheduleBizModel extends CrudBizModel<NopJobSchedule> impleme
         fire.setPlannerInstanceId(AppConfig.hostId());
         fire.setTriggeredBy(JobContextHelper.resolveTriggeredBy(context));
         fire.setPartitionIndex(schedule.getPartitionIndex());
-        fire.setRetryPolicyId(schedule.getRetryPolicyId());
         fire.setJobParamsSnapshot(JsonTool.stringify(resolveJobParams(schedule, overrideParams)));
         fire.setExecutorKind(schedule.getExecutorKind());
         fire.setDispatchMode(schedule.getDispatchMode());

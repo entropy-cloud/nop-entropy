@@ -16,8 +16,8 @@ public class NopRetryJobRetryBridge implements IJobRetryBridge {
 
     static final Logger LOG = LoggerFactory.getLogger(NopRetryJobRetryBridge.class);
 
-    static final String SERVICE_NAME = "NopJobService";
-    static final String SERVICE_METHOD = "fireJob";
+    static final String SERVICE_NAME = "nop-job-service";
+    static final String SERVICE_METHOD = "NopJobFire__rerunFire";
 
     private IRetryEngine retryEngine;
 
@@ -41,12 +41,7 @@ public class NopRetryJobRetryBridge implements IJobRetryBridge {
                     .withGroupId(event.getGroupId());
 
             Map<String, Object> data = new LinkedHashMap<>();
-            data.put("jobFireId", event.getJobFireId());
-            data.put("jobScheduleId", event.getJobScheduleId());
-            data.put("jobName", event.getJobName());
-            data.put("executorKind", event.getExecutorKind());
-            data.put("errorCode", event.getErrorCode());
-            data.put("errorMessage", event.getErrorMessage());
+            data.put("id", event.getJobFireId());
 
             ApiRequest<Map<String, Object>> request = new ApiRequest<>();
             request.setData(data);

@@ -140,7 +140,6 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
         fire.setPlannerInstanceId(AppConfig.hostId());
         fire.setTriggeredBy(JobContextHelper.resolveTriggeredBy(context));
         fire.setPartitionIndex(schedule.getPartitionIndex());
-        fire.setRetryPolicyId(schedule.getRetryPolicyId());
         fire.setJobParamsSnapshot(schedule.getJobParams());
         fire.setExecutorKind(schedule.getExecutorKind());
         fire.setDispatchMode(schedule.getDispatchMode());

@@ -86,16 +86,48 @@ public class LocalJobScheduler implements IJobScheduler {
                         .param(ARG_JOB_NAME, spec.getJobName());
             }
             synchronized (existing) {
-                existing.update(spec, invoker, trigger, state);
-                if (existing.state.internal == InternalState.WAITING || existing.state.internal == InternalState.SUSPENDED) {
-                    cancelScheduledFire(existing);
-                    scheduleNext(existing);
+                // re-check: removeJob may have removed this entry between get and lock
+                if (!jobs.containsKey(spec.getJobName())) {
+                    // job was removed; fall through to create-and-schedule below
+                } else {
+                    existing.update(spec, invoker, trigger, state);
+                    if (existing.state.internal == InternalState.WAITING || existing.state.internal == InternalState.SUSPENDED) {
+                        cancelScheduledFire(existing);
+                        scheduleNext(existing);
+                    }
+                    return;
+                }
+            }
+        }
+
+        // New job or existing was removed while we waited for the lock.
+        // putIfAbsent prevents two threads from creating duplicate ScheduledJobs
+        // for the same name; synchronized(job) then protects scheduleNext against
+        // a concurrent removeJob or deactivate.
+        ScheduledJob job = new ScheduledJob(spec, invoker, trigger, state);
+        ScheduledJob raced = jobs.putIfAbsent(spec.getJobName(), job);
+        if (raced != null) {
+            // Another thread inserted first — treat as update.
+            synchronized (raced) {
+                if (!jobs.containsKey(spec.getJobName())) {
+                    return;
+                }
+                raced.update(spec, invoker, trigger, state);
+                if (raced.state.internal == InternalState.WAITING || raced.state.internal == InternalState.SUSPENDED) {
+                    cancelScheduledFire(raced);
+                    scheduleNext(raced);
                 }
             }
         } else {
-            ScheduledJob job = new ScheduledJob(spec, invoker, trigger, state);
-            jobs.put(spec.getJobName(), job);
-            scheduleNext(job);
+            synchronized (job) {
+                if (!active) {
+                    // deactivate ran after our putIfAbsent; clean up
+                    cancelScheduledFire(job);
+                    jobs.remove(spec.getJobName(), job);
+                    return;
+                }
+                scheduleNext(job);
+            }
         }
     }
 

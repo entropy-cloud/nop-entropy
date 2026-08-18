@@ -45,8 +45,8 @@ public class TestNopRetryJobRetryBridge {
 
         assertEquals(1, retryEngine.getSubmittedTasks().size());
         MockRetryTask task = retryEngine.getSubmittedTasks().get(0);
-        assertEquals("NopJobService", task.serviceName);
-        assertEquals("fireJob", task.serviceMethod);
+        assertEquals("nop-job-service", task.serviceName);
+        assertEquals("NopJobFire__rerunFire", task.serviceMethod);
         assertEquals("policy-1", task.policyId);
         assertEquals("fire-1", task.idempotentId);
         assertEquals("ns-1", task.namespaceId);

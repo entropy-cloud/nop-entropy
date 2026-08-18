@@ -17,6 +17,7 @@ import io.nop.job.api.resource.ResourceVector;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
+import io.nop.job.dao.helper.JobTaskStateMachine;
 import io.nop.job.dao.store.IJobFireStore;
 import io.nop.job.dao.store.IJobScheduleStore;
 import io.nop.job.dao.store.IJobTaskStore;
@@ -772,6 +773,46 @@ public class TestJobWorkerScanner extends JunitBaseTestCase {
                 "CAS-failure branch emits metric (non-silent return)");
     }
 
+    @Test
+    public void testRetryClearsStaleResultPayloadWhenNewResultHasNoPayload() {
+        rememberOriginalBeanContainer();
+        StaticBeanContainer container = new StaticBeanContainer();
+        container.registerBean("nopJobInvoker_test", new IJobInvoker() {
+            @Override
+            public CompletionStage<JobFireResult> invokeAsync(IJobExecutionContext jobCtx) {
+                return CompletableFuture.completedFuture(null);
+            }
+
+            @Override
+            public CompletionStage<Boolean> cancelAsync(IJobExecutionContext jobCtx) {
+                return CompletableFuture.completedFuture(Boolean.TRUE);
+            }
+        });
+        BeanContainer.registerInstance(container);
+
+        PreparedTask pt = prepareWaitingTask("sched-ar-result-payload", "job-ar-result-payload");
+        NopJobTask taskWithPayload = taskStore.loadTask(pt.task.getJobTaskId());
+        taskWithPayload.setResultPayload("{\"nextScheduleTime\":123456,\"completed\":true}");
+        daoProvider.daoFor(NopJobTask.class).updateEntityDirectly(taskWithPayload);
+
+        JobWorkerScannerImpl worker = new JobWorkerScannerImpl();
+        worker.setTaskStore(new RetryOnceTaskStore(taskStore));
+        worker.setFireStore(fireStore);
+        worker.setScheduleStore(scheduleStore);
+        worker.setInvokerResolver(new DefaultJobInvokerResolver());
+        worker.setExecutionContextBuilder(new DefaultJobExecutionContextBuilder());
+        worker.setBatchSize(10);
+        worker.setAssignedPartitions("1");
+        worker.setLockTimeoutMs(1000);
+        worker.setCapacityProvider(() -> ResourceVector.MAX_VALUE);
+        worker.scanOnce();
+
+        NopJobTask saved = taskStore.loadTask(pt.task.getJobTaskId());
+        assertEquals(TASK_STATUS_SUCCESS, saved.getTaskStatus());
+        assertNull(saved.getResultPayload(),
+                "retry path must clear stale resultPayload when the new result carries no payload fields");
+    }
+
     /**
      * Delegating IJobTaskStore that makes updateTask (the CLAIMED→RUNNING CAS) return false,
      * simulating a concurrent ownership change (timeout checker moved task to SUSPICIOUS).
@@ -838,6 +879,79 @@ public class TestJobWorkerScanner extends JunitBaseTestCase {
         @Override
         public List<NopJobTask> resetStaleWaitingTasks(int batchSize, IntRangeSet partitions, long deadlineMs,
                                                        java.sql.Timestamp cursorTime, String cursorId) {
+            return delegate.resetStaleWaitingTasks(batchSize, partitions, deadlineMs, cursorTime, cursorId);
+        }
+    }
+
+    private static final class RetryOnceTaskStore implements IJobTaskStore {
+        private final IJobTaskStore delegate;
+        private boolean failedFinalUpdate;
+
+        private RetryOnceTaskStore(IJobTaskStore delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public boolean updateTask(NopJobTask task) {
+            if (!JobTaskStateMachine.isRunning(task.getTaskStatus())) {
+                if (!failedFinalUpdate) {
+                    failedFinalUpdate = true;
+                    return false;
+                }
+            }
+            return delegate.updateTask(task);
+        }
+
+        @Override
+        public List<NopJobTask> fetchWaitingTasks(int limit, IntRangeSet partitions) {
+            return delegate.fetchWaitingTasks(limit, partitions);
+        }
+
+        @Override
+        public List<NopJobTask> fetchWaitingTasks(int limit, IntRangeSet partitions,
+                                                   String workerInstanceId, boolean enforceAttribution) {
+            return delegate.fetchWaitingTasks(limit, partitions, workerInstanceId, enforceAttribution);
+        }
+
+        @Override
+        public List<NopJobTask> tryLockTasksForExecute(List<NopJobTask> tasks, String workerInstanceId, long lockTimeoutMs) {
+            return delegate.tryLockTasksForExecute(tasks, workerInstanceId, lockTimeoutMs);
+        }
+
+        @Override
+        public List<NopJobTask> fetchRunningTasks(int limit, IntRangeSet partitions,
+                                                  Timestamp cursorTime, String cursorId) {
+            return delegate.fetchRunningTasks(limit, partitions, cursorTime, cursorId);
+        }
+
+        @Override
+        public List<NopJobTask> findTasksByFireId(String jobFireId) {
+            return delegate.findTasksByFireId(jobFireId);
+        }
+
+        @Override
+        public NopJobTask loadTask(String jobTaskId) {
+            return delegate.loadTask(jobTaskId);
+        }
+
+        @Override
+        public long countInFlightTasks(String workerInstanceId) {
+            return delegate.countInFlightTasks(workerInstanceId);
+        }
+
+        @Override
+        public ResourceVector sumReservedCost(String workerInstanceId) {
+            return delegate.sumReservedCost(workerInstanceId);
+        }
+
+        @Override
+        public List<io.nop.job.dao.store.WorkerReservedCost> sumReservedCostByWorker() {
+            return delegate.sumReservedCostByWorker();
+        }
+
+        @Override
+        public List<NopJobTask> resetStaleWaitingTasks(int batchSize, IntRangeSet partitions, long deadlineMs,
+                                                       Timestamp cursorTime, String cursorId) {
             return delegate.resetStaleWaitingTasks(batchSize, partitions, deadlineMs, cursorTime, cursorId);
         }
     }

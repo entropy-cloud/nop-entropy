@@ -217,6 +217,12 @@ public class JobCompletionProcessorImpl extends AbstractBatchScanner implements 
     }
 
     private void handleRetryAndAlarm(NopJobFire fire, NopJobSchedule schedule, long duration) {
+        if (fire.getTriggerSource() != null
+                && fire.getTriggerSource() != _NopJobCoreConstants.TRIGGER_SOURCE_SCHEDULE) {
+            // Only scheduled fires are eligible for automatic retry.
+            // Manual and recovery fires should not cascade into retry chains.
+            return;
+        }
         String retryPolicyId = fire.getRetryPolicyId() != null
                 ? fire.getRetryPolicyId() : schedule.getRetryPolicyId();
         if (retryPolicyId != null && !retryPolicyId.isEmpty()) {

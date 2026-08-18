@@ -19,8 +19,8 @@ import io.nop.job.dao.store.IJobFireStore;
 import io.nop.job.dao.store.IJobScheduleStore;
 import io.nop.job.dao.store.IJobTaskStore;
 import io.nop.job.worker.capacity.IWorkerCapacityProvider;
-import io.nop.job.worker.metrics.EmptyJobWorkerMetrics;
 import io.nop.job.worker.metrics.IJobWorkerMetrics;
+import io.nop.job.worker.metrics.JobWorkerMetricsImpl;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,7 +42,7 @@ public class JobWorkerScannerImpl extends AbstractBatchScanner implements IJobWo
     private IJobInvokerResolver invokerResolver;
     private IJobExecutionContextBuilder executionContextBuilder;
     private IWorkerCapacityProvider capacityProvider;
-    private IJobWorkerMetrics workerMetrics = new EmptyJobWorkerMetrics();
+    private IJobWorkerMetrics workerMetrics = new JobWorkerMetricsImpl();
     private long lockTimeoutMs = 60000;
     private int maxConcurrency = 0;
     private boolean enforceAttribution = false;
@@ -134,93 +134,93 @@ public class JobWorkerScannerImpl extends AbstractBatchScanner implements IJobWo
     protected boolean scanBatch() {
         int effectiveBatchSize = batchSize;
 
-            // 1. Count-based ceiling (backward-compatible hard cap)
-            if (maxConcurrency > 0) {
-                long runningCount = taskStore.countInFlightTasks(AppConfig.hostId());
-                int remaining = maxConcurrency - (int) runningCount;
-                if (remaining <= 0) {
+        // 1. Count-based ceiling (backward-compatible hard cap)
+        if (maxConcurrency > 0) {
+            long runningCount = taskStore.countInFlightTasks(AppConfig.hostId());
+            int remaining = maxConcurrency - (int) runningCount;
+            if (remaining <= 0) {
                 workerMetrics.onRejected((int) runningCount);
                 return false;
-                }
-                effectiveBatchSize = Math.min(batchSize, remaining);
             }
+            effectiveBatchSize = Math.min(batchSize, remaining);
+        }
 
-            // 2. Resource-based check
-            ResourceVector myCapacity = capacityProvider.getMyCapacity();
-            ResourceVector myReserved = taskStore.sumReservedCost(AppConfig.hostId());
-            ResourceVector myRemaining = myCapacity.subtract(myReserved);
-            if (myRemaining.isZeroOrNegative()) {
-                LOG.warn("nop.job.worker.resource-exhausted:cpu={},mem={}",
-                        myRemaining.getCpu(), myRemaining.getMemory());
-                workerMetrics.onRejected(0);
-                return false;
-            }
+        // 2. Resource-based check
+        ResourceVector myCapacity = capacityProvider.getMyCapacity();
+        ResourceVector myReserved = taskStore.sumReservedCost(AppConfig.hostId());
+        ResourceVector myRemaining = myCapacity.subtract(myReserved);
+        if (myRemaining.isZeroOrNegative()) {
+            LOG.warn("nop.job.worker.resource-exhausted:cpu={},mem={}",
+                    myRemaining.getCpu(), myRemaining.getMemory());
+            workerMetrics.onRejected(0);
+            return false;
+        }
 
-            // 3. Fetch candidates, client-side fit filter
-            List<NopJobTask> candidates = taskStore.fetchWaitingTasks(
-                    batchSize, assignedPartitions, AppConfig.hostId(), enforceAttribution);
-            if (candidates.isEmpty()) {
-                return false;
-            }
+        // 3. Fetch candidates, client-side fit filter
+        List<NopJobTask> candidates = taskStore.fetchWaitingTasks(
+                batchSize, assignedPartitions, AppConfig.hostId(), enforceAttribution);
+        if (candidates.isEmpty()) {
+            return false;
+        }
 
-            String myHostId = AppConfig.hostId();
-            List<NopJobTask> tasks = new ArrayList<>();
-            for (NopJobTask task : candidates) {
-                if (tasks.size() >= effectiveBatchSize)
-                    break;
-                // Defensive null → 0 normalization (second line of defense): historical
-                // task rows persisted before the dispatcher normalization (AR-95) may
-                // still have null cost. Auto-unboxing a null Integer here would throw
-                // NPE and abort the entire scan batch (AR-84).
-                int costCpu = normalizeCost(task.getCostCpu());
-                int costMemory = normalizeCost(task.getCostMemory());
-                ResourceVector cost = new ResourceVector(costCpu, costMemory);
+        String myHostId = AppConfig.hostId();
+        List<NopJobTask> tasks = new ArrayList<>();
+        for (NopJobTask task : candidates) {
+            if (tasks.size() >= effectiveBatchSize)
+                break;
+            // Defensive null → 0 normalization (second line of defense): historical
+            // task rows persisted before the dispatcher normalization (AR-95) may
+            // still have null cost. Auto-unboxing a null Integer here would throw
+            // NPE and abort the entire scan batch (AR-84).
+            int costCpu = normalizeCost(task.getCostCpu());
+            int costMemory = normalizeCost(task.getCostMemory());
+            ResourceVector cost = new ResourceVector(costCpu, costMemory);
 
-                // AR-83 double-count fix: WAITING tasks already attributed to this worker
-                // (workerInstanceId == myHostId) are already included in myReserved (WAITING
-                // is in RESERVED_TASK_STATUSES). Claiming them adds no new net load, so add
-                // their own cost back to undo the double-count. An idle worker must be able
-                // to claim a self-attributed task whose cost approaches capacity (the defect:
-                // such a task was previously never claimed because its cost was counted twice,
-                // making any task with cost > capacity/2 unclaimable).
-                boolean selfAttributed = myHostId.equals(task.getWorkerInstanceId());
-                ResourceVector available = selfAttributed ? myRemaining.add(cost) : myRemaining;
-                if (available.fits(cost)) {
-                    tasks.add(task);
-                    // Decrement remaining for genuinely new (non-self-attributed) load so
-                    // cumulative claims within one scan do not exceed capacity. Self-attributed
-                    // claims are already accounted in reserved, so no decrement needed.
-                    if (!selfAttributed) {
-                        myRemaining = myRemaining.subtract(cost);
-                    }
-                }
-            }
-
-            if (tasks.isEmpty()) {
-                // AR-93: candidates existed but none fit this worker's remaining capacity (or all exceed
-                // the window). Emit an observable signal so starvation/stall is diagnosable, distinct
-                // from the no-candidates case above (which is normal idle).
-                LOG.warn("nop.job.worker.no-fitting-candidate:candidateCount={},remainingCpu={},remainingMem={}",
-                        candidates.size(), myRemaining.getCpu(), myRemaining.getMemory());
-                workerMetrics.onRejected(0);
-                return false;
-            }
-
-            // 4. CAS grab (unchanged)
-            List<NopJobTask> lockedTasks = taskStore.tryLockTasksForExecute(tasks, AppConfig.hostId(), lockTimeoutMs);
-            if (!lockedTasks.isEmpty()) {
-                workerMetrics.onTasksClaimed(lockedTasks.size());
-            }
-            // per-task isolation (AR-86): a single task's loadFire/loadSchedule failure must not abort the
-            // remaining already-claimed tasks in this batch.
-            for (NopJobTask task : lockedTasks) {
-                try {
-                    executeTask(task);
-                } catch (Exception e) {
-                    LOG.warn("nop.job.worker.task-execute-failed:taskId={}", task.getJobTaskId(), e);
-                    workerMetrics.onTaskExecuteFailed(1);
+            // AR-83 double-count fix: WAITING tasks already attributed to this worker
+            // (workerInstanceId == myHostId) are already included in myReserved (WAITING
+            // is in RESERVED_TASK_STATUSES). Claiming them adds no new net load, so add
+            // their own cost back to undo the double-count. An idle worker must be able
+            // to claim a self-attributed task whose cost approaches capacity (the defect:
+            // such a task was previously never claimed because its cost was counted twice,
+            // making any task with cost > capacity/2 unclaimable).
+            boolean selfAttributed = myHostId.equals(task.getWorkerInstanceId());
+            ResourceVector available = selfAttributed ? myRemaining.add(cost) : myRemaining;
+            if (available.fits(cost)) {
+                tasks.add(task);
+                // Decrement remaining for genuinely new (non-self-attributed) load so
+                // cumulative claims within one scan do not exceed capacity. Self-attributed
+                // claims are already accounted in reserved, so no decrement needed.
+                if (!selfAttributed) {
+                    myRemaining = myRemaining.subtract(cost);
                 }
             }
+        }
+
+        if (tasks.isEmpty()) {
+            // AR-93: candidates existed but none fit this worker's remaining capacity (or all exceed
+            // the window). Emit an observable signal so starvation/stall is diagnosable, distinct
+            // from the no-candidates case above (which is normal idle).
+            LOG.warn("nop.job.worker.no-fitting-candidate:candidateCount={},remainingCpu={},remainingMem={}",
+                    candidates.size(), myRemaining.getCpu(), myRemaining.getMemory());
+            workerMetrics.onRejected(0);
+            return false;
+        }
+
+        // 4. CAS grab (unchanged)
+        List<NopJobTask> lockedTasks = taskStore.tryLockTasksForExecute(tasks, AppConfig.hostId(), lockTimeoutMs);
+        if (!lockedTasks.isEmpty()) {
+            workerMetrics.onTasksClaimed(lockedTasks.size());
+        }
+        // per-task isolation (AR-86): a single task's loadFire/loadSchedule failure must not abort the
+        // remaining already-claimed tasks in this batch.
+        for (NopJobTask task : lockedTasks) {
+            try {
+                executeTask(task);
+            } catch (Exception e) {
+                LOG.warn("nop.job.worker.task-execute-failed:taskId={}", task.getJobTaskId(), e);
+                workerMetrics.onTaskExecuteFailed(1);
+            }
+        }
 
         return !lockedTasks.isEmpty() && candidates.size() >= batchSize;
     }
@@ -305,16 +305,7 @@ public class JobWorkerScannerImpl extends AbstractBatchScanner implements IJobWo
                 task.setErrorCode(null);
                 task.setErrorMessage(null);
             }
-            if (update.getNextScheduleTime() != null || update.isCompleted()) {
-                Map<String, Object> resultPayload = new LinkedHashMap<>();
-                if (update.getNextScheduleTime() != null) {
-                    resultPayload.put("nextScheduleTime", update.getNextScheduleTime());
-                }
-                if (update.isCompleted()) {
-                    resultPayload.put("completed", true);
-                }
-                task.setResultPayload(JsonTool.stringify(resultPayload));
-            }
+            task.setResultPayload(buildResultPayload(update));
             boolean updated = taskStore.updateTask(task);
             if (!updated) {
                 NopJobTask freshTask = taskStore.loadTask(jobTaskId);
@@ -336,16 +327,7 @@ public class JobWorkerScannerImpl extends AbstractBatchScanner implements IJobWo
                     freshTask.setErrorCode(null);
                     freshTask.setErrorMessage(null);
                 }
-                if (update.getNextScheduleTime() != null || update.isCompleted()) {
-                    Map<String, Object> resultPayload = new LinkedHashMap<>();
-                    if (update.getNextScheduleTime() != null) {
-                        resultPayload.put("nextScheduleTime", update.getNextScheduleTime());
-                    }
-                    if (update.isCompleted()) {
-                        resultPayload.put("completed", true);
-                    }
-                    freshTask.setResultPayload(JsonTool.stringify(resultPayload));
-                }
+                freshTask.setResultPayload(buildResultPayload(update));
                 if (!taskStore.updateTask(freshTask)) {
                     LOG.warn("nop.job.worker.update-task-conflict-after-retry:taskId={},status={},resultStatus={}",
                             jobTaskId, freshTask.getTaskStatus(), update.getTaskStatus());
@@ -386,5 +368,20 @@ public class JobWorkerScannerImpl extends AbstractBatchScanner implements IJobWo
 
     private static int normalizeCost(Integer value) {
         return value != null ? value : 0;
+    }
+
+    private static String buildResultPayload(JobTaskExecutionUpdate update) {
+        if (update.getNextScheduleTime() == null && !update.isCompleted()) {
+            return null;
+        }
+
+        Map<String, Object> resultPayload = new LinkedHashMap<>();
+        if (update.getNextScheduleTime() != null) {
+            resultPayload.put("nextScheduleTime", update.getNextScheduleTime());
+        }
+        if (update.isCompleted()) {
+            resultPayload.put("completed", true);
+        }
+        return JsonTool.stringify(resultPayload);
     }
 }
