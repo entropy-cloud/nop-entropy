@@ -1,4 +1,4 @@
-package io.nop.job.core;
+package io.nop.job.local;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.concurrent.executor.GlobalExecutors;

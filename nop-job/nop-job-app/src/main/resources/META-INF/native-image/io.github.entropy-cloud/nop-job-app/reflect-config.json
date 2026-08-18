@@ -5874,7 +5874,7 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.job.core.LocalJobScheduler"
+    "name": "io.nop.job.local.LocalJobScheduler"
   },
   {
     "allDeclaredConstructors": true,

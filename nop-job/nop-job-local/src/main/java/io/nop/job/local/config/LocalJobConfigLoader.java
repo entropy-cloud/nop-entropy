@@ -44,6 +44,8 @@ public class LocalJobConfigLoader {
     private IJobScheduler scheduler;
     private String configPath = "/nop/job/conf/scheduler.yaml";
     private String jobDir = DEFAULT_JOB_DIR;
+    private boolean enabled = true;
+    private boolean failOnConfigError = true;
 
     @Inject
     public void setScheduler(IJobScheduler scheduler) {
@@ -59,8 +61,24 @@ public class LocalJobConfigLoader {
         this.jobDir = jobDir;
     }
 
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    public void setFailOnConfigError(boolean failOnConfigError) {
+        this.failOnConfigError = failOnConfigError;
+    }
+
     @PostConstruct
     public void init() {
+        if (!enabled) {
+            LOG.info("nop.job.local-config-loader.disabled-by-config");
+            return;
+        }
         LocalSchedulerConfig config = loadSchedulerConfig();
         if (config == null) {
             return;
@@ -97,7 +115,7 @@ public class LocalJobConfigLoader {
         try {
             resource = VirtualFileSystem.instance().getResource(configPath);
         } catch (Exception e) {
-            LOG.info("nop.job.local-config-loader.vfs-not-available: path={}", configPath);
+            LOG.info("nop.job.local-config-loader.vfs-not-available: path={}", configPath, e);
             return null;
         }
 
@@ -128,7 +146,7 @@ public class LocalJobConfigLoader {
         try {
             resources = VirtualFileSystem.instance().getAllResources(dir, JOB_FILE_SUFFIX);
         } catch (Exception e) {
-            LOG.info("nop.job.local-config-loader.job-dir-not-available: dir={}", dir);
+            LOG.info("nop.job.local-config-loader.job-dir-not-available: dir={}", dir, e);
             return result;
         }
         if (resources == null || resources.isEmpty()) {
@@ -147,6 +165,10 @@ public class LocalJobConfigLoader {
                 result.add(jc);
                 LOG.info("nop.job.local-config-loader.job-file-loaded: path={}", resource.getStdPath());
             } catch (Exception e) {
+                if (failOnConfigError) {
+                    throw new NopException(ERR_JOB_LOCAL_CONFIG_INVALID, e)
+                            .param(ARG_CONFIG_PATH, resource.getStdPath());
+                }
                 LOG.error("nop.job.local-config-loader.job-file-load-failed: path={}", resource.getStdPath(), e);
             }
         }
@@ -172,6 +194,10 @@ public class LocalJobConfigLoader {
             scheduler.addJob(spec, true);
             LOG.info("nop.job.local-config-loader.job-registered: jobName={}", jobName);
         } catch (Exception e) {
+            if (failOnConfigError) {
+                throw new NopException(ERR_JOB_LOCAL_CONFIG_INVALID, e)
+                        .param(ARG_CONFIG_PATH, jobName);
+            }
             LOG.error("nop.job.local-config-loader.job-register-failed: jobName={}", jobName, e);
         }
     }

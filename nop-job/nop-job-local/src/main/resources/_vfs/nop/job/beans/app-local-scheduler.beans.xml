@@ -6,18 +6,19 @@
 
     <bean id="nopJobScheduledExecutor" class="io.nop.commons.concurrent.executor.DefaultScheduledExecutor"
           destroy-method="destroy">
+        <property name="enabled" value="@cfg:nop.job.local-scheduler.enabled|true"/>
         <property name="config">
             <bean class="io.nop.commons.concurrent.executor.ThreadPoolConfig">
                 <property name="name" value="nop-job-local-scheduler"/>
-                <property name="corePoolSize" value="1"/>
-                <property name="maxPoolSize" value="1"/>
+                <property name="corePoolSize" value="@cfg:nop.job.local-scheduler.pool-size|4"/>
+                <property name="maxPoolSize" value="@cfg:nop.job.local-scheduler.pool-size|4"/>
             </bean>
         </property>
     </bean>
 
     <bean id="nopJobInvokerResolver" class="io.nop.job.local.config.BeanContainerInvokerResolver"/>
 
-    <bean id="nopJobLocalScheduler" class="io.nop.job.core.LocalJobScheduler">
+    <bean id="nopJobLocalScheduler" class="io.nop.job.local.LocalJobScheduler">
         <constructor-arg index="0" ref="nopJobScheduledExecutor"/>
         <constructor-arg index="1" ref="nopJobInvokerResolver"/>
     </bean>
@@ -26,6 +27,7 @@
 
     <bean id="nopJobLocalConfigLoader" class="io.nop.job.local.config.LocalJobConfigLoader">
         <property name="scheduler" ref="nopJobLocalScheduler"/>
+        <property name="enabled" value="@cfg:nop.job.local-config-loader.enabled|true"/>
         <property name="configPath" value="@cfg:nop.job.scheduler.config-path|/nop/job/conf/scheduler.yaml"/>
     </bean>
 </beans>

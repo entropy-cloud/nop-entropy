@@ -1,4 +1,4 @@
-package io.nop.job.core;
+package io.nop.job.local;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
@@ -13,6 +13,10 @@ import io.nop.job.api.execution.IJobInvoker;
 import io.nop.job.api.execution.JobFireResult;
 import io.nop.job.api.spec.ITriggerSpec;
 import io.nop.job.api.spec.JobSpec;
+import io.nop.job.core.ITrigger;
+import io.nop.job.core.ITriggerEvalContext;
+import io.nop.job.core.trigger.OnceTrigger;
+import io.nop.job.core.trigger.TriggerBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,9 +72,9 @@ public class LocalJobScheduler implements IJobScheduler {
         IJobInvoker invoker = invokerResolver.apply(spec.getJobInvoker());
         ITrigger trigger;
         if (spec.getTriggerSpec() == null) {
-            trigger = new io.nop.job.core.trigger.OnceTrigger(-1);
+            trigger = new OnceTrigger(-1);
         } else {
-            trigger = io.nop.job.core.trigger.TriggerBuilder.buildTrigger(spec.getTriggerSpec(), null);
+            trigger = TriggerBuilder.buildTrigger(spec.getTriggerSpec(), null);
         }
 
         SimpleJobState state = new SimpleJobState(spec.getTriggerSpec());
