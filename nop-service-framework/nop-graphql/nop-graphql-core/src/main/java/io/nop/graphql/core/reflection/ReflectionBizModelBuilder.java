@@ -34,6 +34,8 @@ import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.MultiCsvSet;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.auth.api.mfa.MfaRequired;
+import io.nop.auth.api.mfa.MfaRequiredMeta;
 import io.nop.commons.cache.ICache;
 import io.nop.commons.util.ArrayHelper;
 import io.nop.commons.util.StringHelper;
@@ -70,10 +72,15 @@ import static io.nop.graphql.core.GraphQLErrors.ARG_ARG_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ARG_CLASS;
 import static io.nop.graphql.core.GraphQLErrors.ARG_METHOD_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ARG_OBJ_NAME;
+import static io.nop.graphql.core.GraphQLErrors.ARG_OPERATION_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ARG_RETURN_TYPE;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_ACTION_RETURN_TYPE_MUST_NOT_BE_API_RESPONSE;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_BATCH_LOAD_METHOD_MUST_RETURN_LIST;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_METHOD_PARAM_NO_REFLECTION_NAME_ANNOTATION;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_MFA_REQUIRED_NOT_ALLOWED_FOR_PUBLIC_ACCESS;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_MFA_REQUIRED_NOT_ALLOWED_ON_BIZ_ACTION;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_MFA_REQUIRED_NOT_ALLOWED_ON_BIZ_LOADER;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_MFA_REQUIRED_NOT_ALLOWED_ON_SUBSCRIPTION;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_ONLY_ALLOW_ONE_CONTEXT_SOURCE_PARAM;
 import static io.nop.graphql.core.reflection.ArgBuilders.getArg;
 import static io.nop.graphql.core.reflection.ArgBuilders.getArgsAsBean;
@@ -161,6 +168,17 @@ public class ReflectionBizModelBuilder {
                 String action = getBizActionName(bizAction, func);
                 if (!isLocalMethod(classModel, func) && !isAllowed(action, disabledActions, inheritActions))
                     continue;
+                // 操作级 MFA（D5-F3，构建期 fail-fast）：@BizAction 是内部动作（非 GraphQL
+                // operation），不进入 executor 操作级 MFA 检查点——标注 @MfaRequired 会被
+                // 静默忽略（fail-open 错觉），构建期显式拒绝（镜像 buildActionField 的
+                // subscription/publicAccess 两组合拒绝模式）
+                if (func.getAnnotation(MfaRequired.class) != null) {
+                    throw new NopException(ERR_GRAPHQL_MFA_REQUIRED_NOT_ALLOWED_ON_BIZ_ACTION).loc(loc)
+                            .param(ARG_OBJ_NAME, action).param(ARG_OPERATION_NAME,
+                                    GraphQLNameHelper.getOperationName(bizObjName, action))
+                            .param(ARG_METHOD_NAME, func.getName())
+                            .param(ARG_CLASS, func.getDeclaringClass().getName());
+                }
                 BeanMethodAction gqlAction = buildAction(bean, loc, action, func);
                 gqlAction.setSourceClassModel(classModel);
                 ret.addBizAction(action, gqlAction);
@@ -172,6 +190,16 @@ public class ReflectionBizModelBuilder {
                 String name = getLoaderName(bizLoader, func);
                 if (!isLocalMethod(classModel, func) && !isAllowed(name, disabledActions, inheritActions))
                     continue;
+
+                // 操作级 MFA（D5-F3，构建期 fail-fast）：@BizLoader 是字段装载器（非独立
+                // operation），无操作级 MFA 检查点——标注 @MfaRequired 会被静默忽略，
+                // 构建期显式拒绝（镜像 buildActionField 的两组合拒绝模式）
+                if (func.getAnnotation(MfaRequired.class) != null) {
+                    throw new NopException(ERR_GRAPHQL_MFA_REQUIRED_NOT_ALLOWED_ON_BIZ_LOADER).loc(loc)
+                            .param(ARG_OBJ_NAME, name).param(ARG_OPERATION_NAME, name)
+                            .param(ARG_METHOD_NAME, func.getName())
+                            .param(ARG_CLASS, func.getDeclaringClass().getName());
+                }
 
                 GraphQLFieldDefinition field = buildFetcherField(bizObjName, bean, loc, name, func, registry);
                 field.setSourceClassModel(classModel);
@@ -338,6 +366,24 @@ public class ReflectionBizModelBuilder {
         BizMakerChecker makerChecker = func.getAnnotation(BizMakerChecker.class);
         if (makerChecker != null) {
             field.setMakerCheckerMeta(new BizMakerCheckerMeta(makerChecker.tryMethod(), makerChecker.cancelMethod()));
+        }
+
+        // 操作级 MFA：读取 @MfaRequired 并执行构建期约束校验（fail-fast，静默绕过 = fail-open）
+        MfaRequired mfaRequired = func.getAnnotation(MfaRequired.class);
+        if (mfaRequired != null) {
+            if (opType == GraphQLOperationType.subscription) {
+                throw new NopException(ERR_GRAPHQL_MFA_REQUIRED_NOT_ALLOWED_ON_SUBSCRIPTION).loc(loc)
+                        .param(ARG_OBJ_NAME, name).param(ARG_OPERATION_NAME, field.getName())
+                        .param(ARG_METHOD_NAME, func.getName())
+                        .param(ARG_CLASS, func.getDeclaringClass().getName());
+            }
+            if (auth != null && auth.publicAccess()) {
+                throw new NopException(ERR_GRAPHQL_MFA_REQUIRED_NOT_ALLOWED_FOR_PUBLIC_ACCESS).loc(loc)
+                        .param(ARG_OBJ_NAME, name).param(ARG_OPERATION_NAME, field.getName())
+                        .param(ARG_METHOD_NAME, func.getName())
+                        .param(ARG_CLASS, func.getDeclaringClass().getName());
+            }
+            field.setMfaRequiredMeta(MfaRequiredMeta.INSTANCE);
         }
 
         BizArgsNormalizer argsNormalizer = func.getAnnotation(BizArgsNormalizer.class);

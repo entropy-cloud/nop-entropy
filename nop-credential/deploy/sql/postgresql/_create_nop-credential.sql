@@ -16,7 +16,20 @@ CREATE TABLE nop_credential(
   update_time TIMESTAMP  ,
   updated_by VARCHAR(50)  ,
   remark VARCHAR(200)  ,
+  scope VARCHAR(20)  ,
+  owner_id VARCHAR(50)  ,
   constraint PK_nop_credential primary key (credential_id)
+);
+
+CREATE TABLE nop_credential_oauth_state(
+  state VARCHAR(64) NOT NULL ,
+  credential_id VARCHAR(50) NOT NULL ,
+  user_id VARCHAR(50) NOT NULL ,
+  expire_at INT8  ,
+  consumed INT4 default 0  NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  constraint PK_nop_credential_oauth_state primary key (state)
 );
 
 CREATE TABLE nop_credential_usage(
@@ -26,6 +39,16 @@ CREATE TABLE nop_credential_usage(
   create_time TIMESTAMP  ,
   constraint UK_NOP_CREDENTIAL_USAGE_CRED_CONSUMER unique (credential_id,consumer_ref),
   constraint PK_nop_credential_usage primary key (usage_id)
+);
+
+CREATE TABLE nop_credential_auth(
+  auth_id VARCHAR(50) NOT NULL ,
+  credential_id VARCHAR(50) NOT NULL ,
+  role_id VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  constraint UK_NOP_CREDENTIAL_AUTH_CRED_ROLE unique (credential_id,role_id),
+  constraint PK_nop_credential_auth primary key (auth_id)
 );
 
 
@@ -63,6 +86,26 @@ CREATE TABLE nop_credential_usage(
                     
       COMMENT ON COLUMN nop_credential.remark IS '备注';
                     
+      COMMENT ON COLUMN nop_credential.scope IS '凭证归属';
+                    
+      COMMENT ON COLUMN nop_credential.owner_id IS '归属用户';
+                    
+      COMMENT ON TABLE nop_credential_oauth_state IS 'OAuth授权State绑定';
+                
+      COMMENT ON COLUMN nop_credential_oauth_state.state IS 'State令牌';
+                    
+      COMMENT ON COLUMN nop_credential_oauth_state.credential_id IS '凭证ID';
+                    
+      COMMENT ON COLUMN nop_credential_oauth_state.user_id IS '发起人';
+                    
+      COMMENT ON COLUMN nop_credential_oauth_state.expire_at IS '过期时间';
+                    
+      COMMENT ON COLUMN nop_credential_oauth_state.consumed IS '已消费';
+                    
+      COMMENT ON COLUMN nop_credential_oauth_state.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_credential_oauth_state.created_by IS '创建人';
+                    
       COMMENT ON TABLE nop_credential_usage IS '凭证使用记录';
                 
       COMMENT ON COLUMN nop_credential_usage.usage_id IS '使用记录ID';
@@ -72,4 +115,16 @@ CREATE TABLE nop_credential_usage(
       COMMENT ON COLUMN nop_credential_usage.consumer_ref IS '消费者引用';
                     
       COMMENT ON COLUMN nop_credential_usage.create_time IS '创建时间';
+                    
+      COMMENT ON TABLE nop_credential_auth IS '凭证取用授权';
+                
+      COMMENT ON COLUMN nop_credential_auth.auth_id IS '授权ID';
+                    
+      COMMENT ON COLUMN nop_credential_auth.credential_id IS '凭证ID';
+                    
+      COMMENT ON COLUMN nop_credential_auth.role_id IS '角色ID';
+                    
+      COMMENT ON COLUMN nop_credential_auth.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_credential_auth.created_by IS '创建人';
                     

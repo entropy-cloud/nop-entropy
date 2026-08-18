@@ -63,7 +63,8 @@ public class DbMfaChallengeStore implements MfaChallengeStore {
     }
 
     @Override
-    public String create(String userId, String mfaType, int loginType, String tenantId, String phone) {
+    public String create(String scene, String userId, String mfaType, int loginType, String tenantId, String phone,
+                         String payload) {
         long now = System.currentTimeMillis();
         String token = StringHelper.generateUUID();
         NopAuthMfaChallenge e = dao().newEntity();
@@ -75,6 +76,8 @@ public class DbMfaChallengeStore implements MfaChallengeStore {
         e.setPhone(phone);
         e.setExpireAt(now + ttlMillis());
         e.setFailCount(0);
+        e.setScene(scene);
+        e.setPayload(payload);
         dao().saveEntityDirectly(e);
         return token;
     }
@@ -86,12 +89,22 @@ public class DbMfaChallengeStore implements MfaChallengeStore {
         NopAuthMfaChallenge e = dao().getEntityById(challengeToken);
         if (e == null)
             return null;
+        long now = System.currentTimeMillis();
         // peek 不刷新 TTL —— expireAt 在 create 时固化
-        if (e.getExpireAt() != null && e.getExpireAt() <= System.currentTimeMillis()) {
+        if (e.getExpireAt() != null && e.getExpireAt() <= now) {
             deleteByToken(challengeToken); // 惰性 TTL 清理
             return null;
         }
-        return toPojo(e);
+        // 票窗口判定（设计 §3.3）：已验证票仅在 verifiedAt + op-ticket-expire 内可见。
+        // verifiedAt 经原始 SQL 读取（绕过 ORM 会话缓存，markVerified 是 raw UPDATE）
+        Long verifiedAt = readVerifiedAt(challengeToken);
+        if (verifiedAt != null && now >= verifiedAt + opTicketMillis()) {
+            deleteByToken(challengeToken); // 票失效即 challenge 整体失效（票不续命）
+            return null;
+        }
+        MfaChallenge pojo = toPojo(e);
+        pojo.setVerifiedAt(verifiedAt);
+        return pojo;
     }
 
     @Override
@@ -122,14 +135,34 @@ public class DbMfaChallengeStore implements MfaChallengeStore {
             deleteByToken(challengeToken); // 惰性清理过期行
             return null;
         }
-        // 捕获数据后条件 DELETE：一次性语义（并发 consume 仅一个 DELETE 影响行>0）
+        // 捕获数据后条件 DELETE：一次性语义（并发 consume 仅一个 DELETE 影响行>0）。
+        // consume 一次性不因 markVerified 改变：条件仅校验 EXPIRE_AT（票状态不拦截消费）
         MfaChallenge captured = toPojo(e);
+        captured.setVerifiedAt(readVerifiedAt(challengeToken));
         long now = System.currentTimeMillis();
         SQL del = SQL.begin().name("mfaChallengeConsume").querySpace(DEFAULT_QUERY_SPACE)
                 .sql("DELETE FROM " + TABLE + " WHERE CHALLENGE_TOKEN = ? AND EXPIRE_AT > ?", challengeToken, now)
                 .end();
         long affected = jdbcTemplate.executeUpdate(del);
         return affected > 0 ? captured : null;
+    }
+
+    @Override
+    public boolean markVerified(String challengeToken) {
+        if (StringHelper.isEmpty(challengeToken))
+            return false;
+        // 条件 UPDATE + affected-row：仅首个验证者迁移成功（并发恰一次，设计 §3.3 原子性契约）
+        long now = System.currentTimeMillis();
+        SQL upd = SQL.begin().name("mfaChallengeMarkVerified").querySpace(DEFAULT_QUERY_SPACE)
+                .sql("UPDATE " + TABLE + " SET VERIFIED_AT = ? "
+                        + "WHERE CHALLENGE_TOKEN = ? AND VERIFIED_AT IS NULL AND EXPIRE_AT > ?",
+                        now, challengeToken, now)
+                .end();
+        return jdbcTemplate.executeUpdate(upd) > 0;
+    }
+
+    private long opTicketMillis() {
+        return config.getOpTicketExpireSeconds() * 1000L;
     }
 
     private void deleteByToken(String token) {
@@ -145,12 +178,23 @@ public class DbMfaChallengeStore implements MfaChallengeStore {
         return val == null ? 0 : val;
     }
 
+    /** 原始 SQL 读 VERIFIED_AT（null=未验证；绕过 ORM 会话缓存，markVerified 为 raw UPDATE）。 */
+    private Long readVerifiedAt(String token) {
+        SQL select = SQL.begin().name("mfaChallengeVerifiedAt").querySpace(DEFAULT_QUERY_SPACE)
+                .sql("SELECT VERIFIED_AT FROM " + TABLE + " WHERE CHALLENGE_TOKEN = ?", token).end();
+        Long val = jdbcTemplate.findLong(select, null);
+        return val;
+    }
+
     private static MfaChallenge toPojo(NopAuthMfaChallenge e) {
         long now = System.currentTimeMillis();
         long created = e.getCreateTime() != null ? e.getCreateTime().getTime() : now;
         long expireAt = e.getExpireAt() != null ? e.getExpireAt() : 0L;
         int loginType = e.getLoginType() != null ? e.getLoginType() : 0;
-        return new MfaChallenge(e.getChallengeToken(), e.getUserId(), e.getMfaType(), loginType,
+        MfaChallenge pojo = new MfaChallenge(e.getChallengeToken(), e.getUserId(), e.getMfaType(), loginType,
                 e.getTenantId(), e.getPhone(), created, expireAt);
+        pojo.setScene(e.getScene());
+        pojo.setPayload(e.getPayload());
+        return pojo;
     }
 }

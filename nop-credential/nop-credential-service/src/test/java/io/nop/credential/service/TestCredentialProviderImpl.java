@@ -233,6 +233,36 @@ public class TestCredentialProviderImpl extends JunitBaseTestCase {
         assertEquals(1, impl.countUsage("cred-multi"));
     }
 
+    // ==================== D6-03：registerUsage 前置校验（凭证存在/未软删） ====================
+
+    /**
+     * D6-03（A1-audit successor，2026-08-17）：登记引用的 credentialId 不存在 →
+     * 即时 fail-closed（错误码与读路径同码 NOT_FOUND）——配错 credentialId 在登记时
+     * 暴露，而非运行时延迟为"已绑定但不可用"的静默悬空引用。
+     */
+    @Test
+    public void registerUsageOnNonExistentCredentialFailsClosed() {
+        ICredentialProvider provider = newProvider();
+        NopException ex = assertThrows(NopException.class,
+                () -> provider.registerUsage("no-such-credential", "consumer-x"));
+        assertEquals("nop.err.credential.not-found", ex.getErrorCode(),
+                "registerUsage on non-existent credential must fail closed (D6-03)");
+    }
+
+    /**
+     * D6-03：已软删凭证登记引用 → fail-closed（与读路径 DELETED 同码）。
+     */
+    @Test
+    public void registerUsageOnSoftDeletedCredentialFailsClosed() {
+        saveCredential("cred-usage-deleted", "openai-api-key",
+                new LinkedHashMap<>(Map.of("apiKey", "sk-d")), true);
+        ICredentialProvider provider = newProvider();
+        NopException ex = assertThrows(NopException.class,
+                () -> provider.registerUsage("cred-usage-deleted", "consumer-x"));
+        assertEquals("nop.err.credential.deleted", ex.getErrorCode(),
+                "registerUsage on soft-deleted credential must fail closed (D6-03)");
+    }
+
     // ==================== 脱敏 ====================
 
     @Test

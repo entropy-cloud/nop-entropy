@@ -134,12 +134,13 @@ class TestMfaLoginE2E {
         provider.assignConfigValue("nop.auth.mfa.enabled", true);
         provider.assignConfigValue("nop.auth.sms-code.enabled", true);
         provider.assignConfigValue("nop.auth.sms-code.allow-register", true);
-        // Match tenant-by-default=true (same as TestTenant) so ORM models cached
-        // by this test's OrmSessionFactoryBean include tenant columns, preventing
-        // model-cache pollution that would break TestTenant in the shared JVM.
+        // Do NOT toggle nop.orm.enable-tenant-by-default here. This class builds its own
+        // H2 + ORM stack whose model is parsed from the live config; flipping the global
+        // flag leaks tenant columns into sibling tests in the shared surefire JVM
+        // (assignConfigValue'd refs survive NopJunitExtension's reset()), which broke
+        // TestMdxQuery/TestManyToManyProp with nop.err.orm.missing-tenant-id.
         originalTenantByDefault = provider.getConfigValue(
                 "nop.orm.enable-tenant-by-default", Boolean.FALSE);
-        provider.assignConfigValue("nop.orm.enable-tenant-by-default", true);
     }
 
     @AfterAll
@@ -684,6 +685,12 @@ class TestMfaLoginE2E {
         setField(loginService, "smsCodeStore", smsCodeStore);
         setField(loginService, "totpAuthenticator", totpAuthenticator);
         setField(loginService, "smsSender", smsSender);
+        // W12-impl：因子校验收敛至 MfaFactorVerifier（等价重构 wiring，断言零修改）
+        io.nop.auth.service.mfa.MfaFactorVerifier mfaFactorVerifier = new io.nop.auth.service.mfa.MfaFactorVerifier();
+        setField(mfaFactorVerifier, "totpAuthenticator", totpAuthenticator);
+        setField(mfaFactorVerifier, "smsCodeStore", smsCodeStore);
+        setField(mfaFactorVerifier, "daoProvider", daoProvider);
+        setField(loginService, "mfaFactorVerifier", mfaFactorVerifier);
         loginService.setReturnDeptName(false);
 
         loginApiBizModel = new LoginApiBizModel();

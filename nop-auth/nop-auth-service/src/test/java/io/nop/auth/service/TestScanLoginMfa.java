@@ -127,7 +127,9 @@ class TestScanLoginMfa {
         originalMfaEnabled = provider.getConfigValue("nop.auth.mfa.enabled", Boolean.FALSE);
         provider.assignConfigValue("nop.auth.mfa.enabled", true);
         originalTenantByDefault = provider.getConfigValue("nop.orm.enable-tenant-by-default", Boolean.FALSE);
-        provider.assignConfigValue("nop.orm.enable-tenant-by-default", true);
+        // Do NOT toggle nop.orm.enable-tenant-by-default globally: assignConfigValue'd
+        // refs survive NopJunitExtension's reset() and leak tenant columns into sibling
+        // tests in the shared surefire JVM (nop.err.orm.missing-tenant-id).
     }
 
     @AfterAll
@@ -410,6 +412,12 @@ class TestScanLoginMfa {
         setField(loginService, "mfaChallengeStore", mfaChallengeStore);
         setField(loginService, "smsCodeStore", new LocalSmsCodeStore());
         setField(loginService, "totpAuthenticator", totpAuthenticator);
+        // W12-impl：因子校验收敛至 MfaFactorVerifier（等价重构 wiring，断言零修改）
+        io.nop.auth.service.mfa.MfaFactorVerifier mfaFactorVerifier = new io.nop.auth.service.mfa.MfaFactorVerifier();
+        setField(mfaFactorVerifier, "totpAuthenticator", totpAuthenticator);
+        setField(mfaFactorVerifier, "smsCodeStore", new LocalSmsCodeStore());
+        setField(mfaFactorVerifier, "daoProvider", daoProvider);
+        setField(loginService, "mfaFactorVerifier", mfaFactorVerifier);
         loginService.setReturnDeptName(false);
 
         loginApiBizModel = new LoginApiBizModel();

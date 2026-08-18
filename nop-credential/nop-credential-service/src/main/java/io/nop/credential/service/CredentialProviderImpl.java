@@ -7,6 +7,8 @@
  */
 package io.nop.credential.service;
 
+import io.nop.api.core.annotations.txn.TransactionPropagation;
+import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
@@ -19,18 +21,28 @@ import io.nop.credential.api.MaskedCredential;
 import io.nop.credential.api.TestResult;
 import io.nop.credential.api.registry.CredentialType;
 import io.nop.credential.api.registry.ICredentialTypeRegistry;
+import io.nop.credential.config.CredentialConfigs;
 import io.nop.credential.crypto.CredentialCipher;
 import io.nop.credential.crypto.CredentialErrors;
 import io.nop.credential.dao.entity.NopCredential;
+import io.nop.credential.dao.entity.NopCredentialAuth;
 import io.nop.credential.dao.entity.NopCredentialUsage;
+import io.nop.credential.service.oauth.OAuthTokenClient;
+import io.nop.credential.service.oauth.OAuthTokenResponse;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
+import io.nop.dao.txn.ITransactionTemplate;
+import io.nop.orm.IOrmTemplate;
 import jakarta.inject.Inject;
 
 import java.sql.Timestamp;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 /**
  * {@link ICredentialProvider} 的实现。平台内<strong>唯一的凭证解密点</strong>：
@@ -39,8 +51,22 @@ import java.util.Map;
  * <p>失败语义全部 fail-closed（Rule #24）：
  * <ul>
  *   <li>凭证不存在 → 抛 {@code ERR_CREDENTIAL_NOT_FOUND}</li>
- *   <li>凭证已软删除 → 抛 {@code ERR_CREDENTIAL_DELETED}（getCredential/getCredentialData/mask）</li>
+ *   <li>凭证已软删除 → 抛 {@code ERR_CREDENTIAL_DELETED}（getCredential/getCredentialData/mask，先序归属判定）</li>
+ *   <li>W11 归属不符 → 抛 {@code ERR_CREDENTIAL_OWNER_ONLY}（明文出口，owner 唯一）或
+ *       {@code ERR_CREDENTIAL_OWNER_OR_ADMIN}（mask/test，owner+管理员）；scope=system（含 NULL）放行</li>
+ *   <li>W11 Part B RBAC 收紧不符 → 抛 {@code ERR_CREDENTIAL_ROLE_NOT_GRANTED}（system 级 + 存在授权记录
+ *       + 有用户上下文 + 角色求交为空；无授权记录 = 一期行为不变；admin 不自动豁免）</li>
  *   <li>解密失败 → 由 {@link CredentialCipher} 抛出（篡改/未知 keyId）</li>
+ * </ul>
+ *
+ * <p><b>W9 引擎内部通道</b>（public 方法 + 引擎专用语义，供 {@code service.oauth} 包的 OAuth
+ * 引擎调用——唯一解密点不变式：引擎类不得直接持有 {@link CredentialCipher} 解用户 data）：
+ * <ul>
+ *   <li>{@link #engineGetDecryptedFields(String)}：校验（存在/未删/oauth2 未禁用）+ 解密。</li>
+ *   <li>{@link #engineUpdateTokenFields(String, Map)}：DB 行级锁（SELECT FOR UPDATE）下合并
+ *       写引擎保留字段（只写保留名，人工字段不动）。</li>
+ *   <li>{@link #engineUpdateInLock(String, Function)}：通用行锁写通道（Phase 3 惰性刷新与
+ *       saveCredential 分组写共用同一串行化入口，设计 §3.3"同一凭证写路径串行化"）。</li>
  * </ul>
  */
 public class CredentialProviderImpl implements ICredentialProvider {
@@ -54,6 +80,21 @@ public class CredentialProviderImpl implements ICredentialProvider {
     @Inject
     protected ICredentialTypeRegistry credentialTypeRegistry;
 
+    /**
+     * 行级锁写通道所需的 ORM 会话模板（NopIoC 注入，字段 protected 兼容字段注入）。
+     */
+    @Inject
+    protected IOrmTemplate ormTemplate;
+
+    @Inject
+    protected ITransactionTemplate txnTemplate;
+
+    /**
+     * OAuth 令牌端点协议客户端（惰性刷新外呼用；无 provider 反向依赖，无循环）。
+     */
+    @Inject
+    protected OAuthTokenClient oauthTokenClient;
+
     public void setDaoProvider(IDaoProvider daoProvider) {
         this.daoProvider = daoProvider;
     }
@@ -66,10 +107,34 @@ public class CredentialProviderImpl implements ICredentialProvider {
         this.credentialTypeRegistry = credentialTypeRegistry;
     }
 
+    public void setOrmTemplate(IOrmTemplate ormTemplate) {
+        this.ormTemplate = ormTemplate;
+    }
+
+    public void setTxnTemplate(ITransactionTemplate txnTemplate) {
+        this.txnTemplate = txnTemplate;
+    }
+
+    public void setOauthTokenClient(OAuthTokenClient oauthTokenClient) {
+        this.oauthTokenClient = oauthTokenClient;
+    }
+
     @Override
     public CredentialData getCredential(String credentialId) {
         NopCredential entity = loadActiveCredential(credentialId);
-        return decryptToData(entity);
+        // W11 归属校验（设计 §5.3 per-method 矩阵，解密之前、fail-closed，先序 delFlag）
+        assertOwnershipForPlaintext(entity);
+        // W11 Part B RBAC 收紧（设计 §6.3 判定矩阵第 4/5/6 行，归属校验之后、解密之前）
+        assertRoleAuthForPlaintext(entity);
+        Map<String, Object> fields = decryptToData(entity).getFields();
+
+        // W9 惰性刷新：oauth2 类型 accessToken 临期 → 行锁互斥下先刷新再返回明文（设计 §3.3）
+        CredentialType type = resolveType(entity.getTypeName());
+        if (type != null && type.isOauth2Type()) {
+            fields = refreshIfNearingExpiry(credentialId, type, fields);
+        }
+        // W16-impl SPI 增量裁定 1：CredentialData 携带 typeName（消费方家族错型校验的精确依据）
+        return new CredentialData(entity.getTypeName(), fields);
     }
 
     @Override
@@ -81,6 +146,8 @@ public class CredentialProviderImpl implements ICredentialProvider {
     @Override
     public TestResult testCredential(String credentialId) {
         NopCredential entity = loadActiveCredential(credentialId);
+        // W11 归属校验：user 级 owner+admin（进程内解密只回结果，属管理面动作）
+        assertOwnershipForMaskOrTest(entity);
 
         TestResult result = new TestResult(false,
                 "test not implemented for this credential type",
@@ -96,6 +163,8 @@ public class CredentialProviderImpl implements ICredentialProvider {
     @Override
     public MaskedCredential mask(String credentialId) {
         NopCredential entity = loadActiveCredential(credentialId);
+        // W11 归属校验：user 级 owner+admin（脱敏视图属管理面动作）
+        assertOwnershipForMaskOrTest(entity);
         CredentialData data = decryptToData(entity);
 
         Map<String, String> masked = new LinkedHashMap<>();
@@ -126,6 +195,19 @@ public class CredentialProviderImpl implements ICredentialProvider {
 
     @Override
     public void registerUsage(String credentialId, String consumerRef) {
+        // D6-03（A1-audit successor，2026-08-17）：前置校验凭证存在且未软删（fail-closed）——
+        // 配错 credentialId 在登记时即时报错（错误码与 provider 读路径同码），而非运行时
+        // 延迟暴露为"已绑定但不可用"的静默悬空引用
+        NopCredential credential = daoProvider.daoFor(NopCredential.class).getEntityById(credentialId);
+        if (credential == null) {
+            throw new NopException(CredentialErrors.ERR_CREDENTIAL_NOT_FOUND)
+                    .param(CredentialErrors.ARG_CREDENTIAL_ID, credentialId);
+        }
+        if (isDeleted(credential)) {
+            throw new NopException(CredentialErrors.ERR_CREDENTIAL_DELETED)
+                    .param(CredentialErrors.ARG_CREDENTIAL_ID, credentialId);
+        }
+
         IEntityDao<NopCredentialUsage> dao = daoProvider.daoFor(NopCredentialUsage.class);
 
         QueryBean query = new QueryBean();
@@ -166,6 +248,248 @@ public class CredentialProviderImpl implements ICredentialProvider {
         return dao.findAllByQuery(query).size();
     }
 
+    // ==================== W9 引擎内部通道（唯一解密点不变式） ====================
+
+    /**
+     * <b>引擎专用</b>（service.oauth 包 OAuth 引擎调用，非 SPI 面）：校验（存在 / 未删 /
+     * oauth2 类型未禁用）后解密返回完整明文字段 map。
+     *
+     * <p>本方法与 {@link #getCredential(String)} 的差异：oauth2 类型额外校验
+     * {@code status=disabled}（发起/回调路径全路径拒绝，设计 §3.5 显式增量）。
+     * 非 oauth2 类型维持一期语义（仅 delFlag）。
+     */
+    public Map<String, Object> engineGetDecryptedFields(String credentialId) {
+        NopCredential entity = loadActiveCredential(credentialId);
+        assertOauth2NotDisabled(entity);
+        return decryptToData(entity).getFields();
+    }
+
+    /**
+     * <b>引擎专用</b>：DB 行级锁（SELECT FOR UPDATE，事务模板内）下合并写引擎保留字段。
+     *
+     * <p>只写保留名（accessToken/refreshToken/expiresAt/tokenType/scope）——输入出现非保留名
+     * 直接抛错（fail-closed）；保留名缺失的键保持现值（如提供方不轮换 refresh_token 时保留旧值）。
+     * 人工字段整包不动。
+     */
+    public Map<String, Object> engineUpdateTokenFields(String credentialId, Map<String, Object> tokenFields) {
+        for (String name : tokenFields.keySet()) {
+            if (!CredentialType.OAUTH_RESERVED_FIELD_NAMES.contains(name)) {
+                throw new NopException(CredentialErrors.ERR_CREDENTIAL_RESERVED_FIELD_INPUT)
+                        .param(CredentialErrors.ARG_FIELD_NAMES, tokenFields.keySet());
+            }
+        }
+        return engineUpdateInLock(credentialId, current -> {
+            Map<String, Object> merged = new LinkedHashMap<>(current);
+            for (Map.Entry<String, Object> entry : tokenFields.entrySet()) {
+                if (entry.getValue() != null) {
+                    merged.put(entry.getKey(), entry.getValue());
+                }
+            }
+            return merged;
+        });
+    }
+
+    /**
+     * <b>引擎专用</b>：通用行锁写通道——事务模板（REQUIRED）内 SELECT FOR UPDATE 该凭证行，
+     * 驱逐会话缓存后从 DB 重读、解密，应用 {@code updater}（可为空返回值语义之外的任意
+     * 外呼，如惰性刷新的 token endpoint 调用），重加密回写。返回更新后的完整字段 map。
+     *
+     * <p><b>D2-04（A1-audit successor，2026-08-17）引擎通道</b>：本 2-arg 入口为引擎通道
+     * （惰性刷新 / {@code engineUpdateTokenFields} 回调回写），锁内（{@code lockEntity} 之后）
+     * 复查 oauth2 disabled（TOCTOU 闭合——锁外 probe 与锁内写之间的窗口内被禁用的凭证
+     * 不再被回写）。{@code saveCredential} 分组写走 3-arg 重载（customizer 通道），按
+     * adjudication §二#3(b) 显式豁免该复查（saveCredential 覆盖路径不拒 disabled 为
+     * 已裁定边界）。
+     *
+     * <p>跨副本互斥语义（Phase 3 Decision）：同一凭证的"刷新 vs 刷新"与"刷新 vs 人工保存"
+     * 均经由本入口串行化；持锁期间含一次秒级 HTTP 外呼为已接受的吞吐代价（单凭证粒度）。
+     * updater 抛错 → 事务回滚，data 不变。
+     */
+    public Map<String, Object> engineUpdateInLock(String credentialId,
+                                                  Function<Map<String, Object>, Map<String, Object>> updater) {
+        return engineUpdateInLock(credentialId, updater, null);
+    }
+
+    /**
+     * <b>saveCredential 分组写通道</b>（3-arg，customizer 非 null 时）：锁内<b>不</b>复查
+     * disabled（adjudication §二#3(b)：saveCredential 覆盖路径不拒 disabled 属显式声明
+     * 边界——D2-04 边界约束 (a)）。
+     */
+    public Map<String, Object> engineUpdateInLock(String credentialId,
+                                                  Function<Map<String, Object>, Map<String, Object>> updater,
+                                                  BiConsumer<NopCredential, Map<String, Object>> entityCustomizer) {
+        return ormTemplate.runInSession(session ->
+                txnTemplate.runInTransaction(null, TransactionPropagation.REQUIRED, txn -> {
+                    IEntityDao<NopCredential> dao = daoProvider.daoFor(NopCredential.class);
+                    NopCredential probe = dao.getEntityById(credentialId);
+                    if (probe == null) {
+                        throw new NopException(CredentialErrors.ERR_CREDENTIAL_NOT_FOUND)
+                                .param(CredentialErrors.ARG_CREDENTIAL_ID, credentialId);
+                    }
+                    if (isDeleted(probe)) {
+                        throw new NopException(CredentialErrors.ERR_CREDENTIAL_DELETED)
+                                .param(CredentialErrors.ARG_CREDENTIAL_ID, credentialId);
+                    }
+                    // D2-04：引擎通道（无 customizer = 惰性刷新/回调回写）锁内复查 disabled
+                    boolean engineChannel = entityCustomizer == null;
+                    // 驱逐会话缓存中的旧副本，确保锁下从 DB 重读最新 data（防 fast-path 读入的陈旧缓存）
+                    session.evict(probe);
+                    NopCredential entity = dao.loadEntityById(credentialId);
+                    dao.lockEntity(entity);
+                    if (engineChannel) {
+                        // 必须发生在 lockEntity 之后的锁内（通道参数化传入；调用侧锁外复查
+                        // 不闭合 TOCTOU 窗口，不作为实现形态）
+                        assertOauth2NotDisabled(entity);
+                    }
+
+                    Map<String, Object> current = decryptToData(entity).getFields();
+                    Map<String, Object> updated = updater.apply(current);
+
+                    // D2-03（A1-audit successor，2026-08-17）：无变化分支跳过回写——
+                    // Decision：引用相等（updated == current）为"无变化"判定口径（updater
+                    // 显式返回同实例即"未变化"信号，如惰性刷新"已被并发先行者刷新"分支）；
+                    // 跳过重加密与 UPDATE（写放大 + version 漂移消除），返回值语义不变
+                    if (updated != current) {
+                        entity.setData(credentialCipher.encrypt(JsonTool.stringify(updated)));
+                        entity.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+                        if (entityCustomizer != null) {
+                            entityCustomizer.accept(entity, updated);
+                        }
+                        dao.updateEntityDirectly(entity);
+                    }
+                    return updated;
+                }));
+    }
+
+    /**
+     * oauth2 类型禁用拒绝（engine 通道用；Phase 3 接入 loadActiveCredential 全路径）。
+     * 类型未注册时容忍（保持一期语义，不因新增校验破坏存量未知类型凭证取用）。
+     */
+    private void assertOauth2NotDisabled(NopCredential entity) {
+        CredentialType type = resolveType(entity.getTypeName());
+        if (type != null && type.isOauth2Type() && STATUS_DISABLED.equals(entity.getStatus())) {
+            throw new NopException(CredentialErrors.ERR_CREDENTIAL_DISABLED)
+                    .param(CredentialErrors.ARG_CREDENTIAL_ID, entity.getCredentialId());
+        }
+    }
+
+    private static final String STATUS_DISABLED = "disabled";
+
+    /**
+     * 解析凭证类型；未注册返回 null（调用方按非 oauth2 处理，保持一期语义）。
+     */
+    private CredentialType resolveType(String typeName) {
+        try {
+            return credentialTypeRegistry.getType(typeName);
+        } catch (NopException ignored) {
+            return null;
+        }
+    }
+
+    // ==================== W9 惰性刷新（跨副本互斥 = DB 行级锁 + 事务模板） ====================
+
+    /**
+     * 取用时惰性刷新（设计 §3.3）：oauth2 类型 accessToken 临期（now 距 expiresAt 小于刷新窗口）
+     * → 行锁互斥下以 refreshToken + clientId/clientSecret 刷新 → 新 token 集回写（只写保留字段）
+     * → 返回新明文。刷新失败（invalid_grant 等）fail-closed 抛错；refreshToken 缺失且已过期 →
+     * fail-closed（提示重新授权）。
+     *
+     * <p>非临期直接返回（不持锁，非刷新取用可并发）；锁下双重检查保证并发取用同一凭证时
+     * 刷新收敛为一次（跨副本经 DB 行锁 SELECT FOR UPDATE 互斥，Phase 3 Decision）。
+     */
+    private Map<String, Object> refreshIfNearingExpiry(String credentialId, CredentialType type,
+                                                       Map<String, Object> fields) {
+        Long expiresAt = asEpochMillis(fields.get("expiresAt"));
+        if (expiresAt == null) {
+            return fields; // 无 expiresAt（token 未写入或提供方未返回 expires_in）：无从判定期限
+        }
+        long windowMs = refreshWindowSeconds(type) * 1000L;
+        long now = System.currentTimeMillis();
+        if (now < expiresAt - windowMs) {
+            return fields; // 非临期：直接返回，不持锁
+        }
+
+        // 临期：进入行锁互斥路径（锁下双重检查——并发下后到者直接读到先行者刷新后的 token）
+        return engineUpdateInLock(credentialId, current -> {
+            Long curExpiresAt = asEpochMillis(current.get("expiresAt"));
+            if (curExpiresAt == null) {
+                return current;
+            }
+            long nowInLock = System.currentTimeMillis();
+            if (nowInLock < curExpiresAt - refreshWindowSeconds(type) * 1000L) {
+                return current; // 已被并发先行者刷新，不再临期
+            }
+
+            String refreshToken = (String) current.get("refreshToken");
+            if (StringHelper.isEmpty(refreshToken)) {
+                if (curExpiresAt <= nowInLock) {
+                    // accessToken 已过期且无 refreshToken → fail-closed（提示重新授权）
+                    throw new NopException(CredentialErrors.ERR_CREDENTIAL_OAUTH_REAUTH_REQUIRED)
+                            .param(CredentialErrors.ARG_CREDENTIAL_ID, credentialId);
+                }
+                return current; // 尚未过期、无 refreshToken：直接返回（下次取用到过期点再 fail-closed）
+            }
+
+            String clientId = (String) current.get("clientId");
+            String clientSecret = (String) current.get("clientSecret");
+            if (StringHelper.isEmpty(clientId) || StringHelper.isEmpty(clientSecret)) {
+                throw new NopException(CredentialErrors.ERR_CREDENTIAL_OAUTH_REFRESH_FAILED)
+                        .param(CredentialErrors.ARG_CREDENTIAL_ID, credentialId)
+                        .param(CredentialErrors.ARG_ERROR, "clientId/clientSecret missing");
+            }
+
+            OAuthTokenResponse response;
+            try {
+                response = oauthTokenClient.refresh(type.getOauth2().getTokenEndpoint(),
+                        clientId, clientSecret, refreshToken);
+            } catch (NopException e) {
+                // 刷新失败（invalid_grant 等）fail-closed：不静默使用旧 token、不静默返回空值
+                throw new NopException(CredentialErrors.ERR_CREDENTIAL_OAUTH_REFRESH_FAILED, e)
+                        .param(CredentialErrors.ARG_CREDENTIAL_ID, credentialId)
+                        .param(CredentialErrors.ARG_ERROR, e.getMessage());
+            }
+
+            long nowAfterRefresh = System.currentTimeMillis();
+            Map<String, Object> merged = new LinkedHashMap<>(current);
+            merged.put("accessToken", response.getAccessToken());
+            if (response.getRefreshToken() != null) {
+                merged.put("refreshToken", response.getRefreshToken());
+            }
+            if (response.getExpiresIn() != null) {
+                merged.put("expiresAt", nowAfterRefresh + response.getExpiresIn() * 1000L);
+            }
+            if (response.getTokenType() != null) {
+                merged.put("tokenType", response.getTokenType());
+            }
+            if (response.getScope() != null) {
+                merged.put("scope", response.getScope());
+            }
+            return merged;
+        });
+    }
+
+    /**
+     * 刷新窗口（秒）：类型 oauth2 元数据 refreshWindowSeconds 覆盖全局缺省
+     * （nop.credential.oauth.refresh-window-seconds，缺省 300）。
+     */
+    private static long refreshWindowSeconds(CredentialType type) {
+        Integer typeWindow = type.getOauth2() != null ? type.getOauth2().getRefreshWindowSeconds() : null;
+        if (typeWindow != null && typeWindow > 0) {
+            return typeWindow;
+        }
+        Integer global = CredentialConfigs.CFG_CREDENTIAL_OAUTH_REFRESH_WINDOW_SECONDS.get();
+        return global != null && global > 0 ? global : DEFAULT_REFRESH_WINDOW_SECONDS;
+    }
+
+    private static final long DEFAULT_REFRESH_WINDOW_SECONDS = 300;
+
+    private static Long asEpochMillis(Object value) {
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        }
+        return null;
+    }
+
     private NopCredential loadActiveCredential(String credentialId) {
         if (credentialId == null) {
             throw new NopException(CredentialErrors.ERR_CREDENTIAL_NOT_FOUND)
@@ -183,12 +507,118 @@ public class CredentialProviderImpl implements ICredentialProvider {
                     .param(CredentialErrors.ARG_CREDENTIAL_ID, credentialId);
         }
 
+        // W9 显式增量（设计 §3.5）：oauth2 类型 status=disabled 全路径拒绝
+        // （发起/回调/刷新/取用；非 OAuth 类型维持一期语义——仅 delFlag，零变更）
+        assertOauth2NotDisabled(entity);
+
         return entity;
     }
 
     private boolean isDeleted(NopCredential entity) {
         Byte delFlag = entity.getDelFlag();
         return delFlag != null && delFlag != 0;
+    }
+
+    // ==================== W11 归属校验（设计 §5.3 per-method 矩阵，解密之前） ====================
+
+    /**
+     * 明文出口（getCredential/getCredentialData）归属校验：scope=user 时 owner 唯一——
+     * 无用户上下文（后台任务/服务间调用）或 {@code userId != ownerId} 一律拒绝，
+     * <b>管理员不例外</b>（最小权限：管理面 mask/test 足以完成管理职责）。
+     *
+     * <p>scope=system（含存量 NULL）放行（一期行为不变）。调用序在 {@link #loadActiveCredential}
+     * 之后：delFlag 先序，已删凭证报 {@code ERR_CREDENTIAL_DELETED}，不进入归属判定、不泄露归属。
+     */
+    private void assertOwnershipForPlaintext(NopCredential entity) {
+        if (!CredentialOwnership.isUserScope(entity.getScope())) {
+            return;
+        }
+        IUserContext userContext = IUserContext.get();
+        if (!CredentialOwnership.isOwner(userContext, entity.getOwnerId())) {
+            throw new NopException(CredentialErrors.ERR_CREDENTIAL_OWNER_ONLY)
+                    .param(CredentialErrors.ARG_CREDENTIAL_ID, entity.getCredentialId())
+                    .param(CredentialErrors.ARG_OWNER_ID, entity.getOwnerId());
+        }
+    }
+
+    /**
+     * 管理面出口（mask/testCredential）归属校验：scope=user 时 owner 或管理员放行，
+     * 其余（含无用户上下文）拒绝。
+     */
+    private void assertOwnershipForMaskOrTest(NopCredential entity) {
+        if (!CredentialOwnership.isUserScope(entity.getScope())) {
+            return;
+        }
+        IUserContext userContext = IUserContext.get();
+        if (!CredentialOwnership.isOwner(userContext, entity.getOwnerId())
+                && !CredentialOwnership.isAdmin(userContext)) {
+            throw new NopException(CredentialErrors.ERR_CREDENTIAL_OWNER_OR_ADMIN)
+                    .param(CredentialErrors.ARG_CREDENTIAL_ID, entity.getCredentialId())
+                    .param(CredentialErrors.ARG_OWNER_ID, entity.getOwnerId());
+        }
+    }
+
+    // ==================== W11 Part B RBAC 收紧（设计 §6.3 判定矩阵） ====================
+
+    /**
+     * 明文出口（getCredential/getCredentialData）RBAC 授权收紧，默认开放、可选收紧：
+     * <ul>
+     *   <li>仅 system 级（含存量 NULL）实行——user 级不叠加角色授权（owner 唯一明文出口，§5.3 归属矩阵已裁定）</li>
+     *   <li>无授权记录 → 放行（矩阵第 4 行，一期行为不变——增量兼容基线）</li>
+     *   <li>有记录 + 无用户上下文 → 放行（第 5 行，服务级信任：SPI 是服务端边界，收紧针对"人"的冒用）</li>
+     *   <li>有记录 + 有用户上下文 → 登录角色快照与授权 roleId 集合求交，非空放行、空集拒绝
+     *       （第 6 行，<b>admin 不自动豁免</b>——管理员的管理权不等于取用权，需要时经授权管理面 grant 自己的角色）</li>
+     * </ul>
+     *
+     * <p>无记录路径与一期等价：单次按 credentialId 的索引查询（唯一键最左前缀），无 join/远程调用。
+     * 拒绝 fail-closed 抛 {@code ERR_CREDENTIAL_ROLE_NOT_GRANTED}（含 credentialId 与授权角色集参数），
+     * 不返回 null/空。角色快照时效：用户角色集合为登录时快照（nop-auth 填充，含一级复合角色展开）；
+     * 授权记录（grant/revoke）即时生效（DB 点查）。roleId 按字面求交，不展开子角色。
+     *
+     * <p><b>引擎内部通道豁免裁定</b>（plan 2026-08-16-2321-1 Phase 1 Decision）：
+     * {@link #engineGetDecryptedFields}/{@link #engineUpdateTokenFields}/{@link #engineUpdateInLock}
+     * 不做授权记录检查——(a) 明文不外泄（beginOAuthFlow 只返回授权 URL、publicAccess 回调返回跳转页
+     * 不含 token、saveCredential 路径有写分级门控）；(b) 入口动作已被 W11 归属/管理员判定门控；
+     * (c) 与矩阵第 5 行服务级信任边界一致。{@code getCredential} 内的惰性刷新发生在本检查通过之后。
+     */
+    private void assertRoleAuthForPlaintext(NopCredential entity) {
+        if (CredentialOwnership.isUserScope(entity.getScope())) {
+            return;
+        }
+        Set<String> grantedRoleIds = findGrantedRoleIds(entity.getCredentialId());
+        if (grantedRoleIds.isEmpty()) {
+            return;
+        }
+        IUserContext userContext = IUserContext.get();
+        if (!CredentialOwnership.hasLoginUser(userContext)) {
+            return;
+        }
+        Set<String> userRoles = userContext.getRoles();
+        if (userRoles != null) {
+            for (String role : userRoles) {
+                if (grantedRoleIds.contains(role)) {
+                    return;
+                }
+            }
+        }
+        throw new NopException(CredentialErrors.ERR_CREDENTIAL_ROLE_NOT_GRANTED)
+                .param(CredentialErrors.ARG_CREDENTIAL_ID, entity.getCredentialId())
+                .param(CredentialErrors.ARG_ROLE_IDS, String.join(",", grantedRoleIds));
+    }
+
+    /**
+     * 按 credentialId 查授权 roleId 集合（(credentialId, roleId) 唯一键最左前缀索引点查）。
+     */
+    private Set<String> findGrantedRoleIds(String credentialId) {
+        IEntityDao<NopCredentialAuth> dao = daoProvider.daoFor(NopCredentialAuth.class);
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq(NopCredentialAuth.PROP_NAME_credentialId, credentialId));
+        List<NopCredentialAuth> grants = dao.findAllByQuery(query);
+        Set<String> roleIds = new LinkedHashSet<>();
+        for (NopCredentialAuth grant : grants) {
+            roleIds.add(grant.getRoleId());
+        }
+        return roleIds;
     }
 
     @SuppressWarnings("unchecked")

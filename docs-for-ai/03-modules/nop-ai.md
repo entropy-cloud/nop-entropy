@@ -58,7 +58,7 @@
 
 ## NopAiModel 凭证库迁移（credentialId）
 
-`NopAiModel` 增加了可选普通列 `credentialId`（`credential_id VARCHAR(50)`，propId=17），作为指向加密凭证库 `nop_credential` 的**逻辑外键**。运行时消费读取路径**已接通**（W7-successor，2026-08-13）。
+`NopAiModel` 增加了可选普通列 `credentialId`（`credential_id VARCHAR(50)`，propId=17），作为指向加密凭证库 `nop_credential` 的**逻辑外键**。运行时消费读取路径**已接通**（W7-successor，2026-08-13；2026-08-17 A1-audit D6-01 修复装配缺位——此前 resolver 实现类从未在 beans.xml 注册（NopIoC 无注解扫描），`ChatServiceImpl.credentialResolver` 恒 null，credentialId 在运行时静默回退 config apiKey）。
 
 **设计要点**：
 
@@ -73,6 +73,7 @@
 - **查找键/粒度**：按 `provider + modelName` 精确匹配 `NopAiModel` 行取该模型的 credentialId（每模型自有行/自有凭证）。`.llm.xml` modelName ↔ `NopAiModel.modelName` 不对应（模型仅在 `.llm.xml` 存在）= 显式回退到 resolveApiKey + WARN 审计（非报错）。
 - **fail-closed**：credentialId 非空但凭证缺失/软删/解密失败/字段空 → 抛 `NopException` 中止调用（强 fail-closed，不静默用错配 key）。credentialId 为空 → 回退 resolveApiKey（正常兼容路径，非异常）。
 - **引用计数**：`NopAiModelBizModel.save` 按 credentialId 新旧差异调用 `registerUsage`/`unregisterUsage`，consumerRef 约定 `ai:NopAiModel:<modelId>`（bind/换绑/解绑）。凭证删除时由 `NopCredentialBizModel.delete` 的引用计数拦截。
+- **删除动作注销引用（A1-audit D6-02）**：`delete`/`batchDelete`（基类逐 id 虚分派到 `delete`）/`deleteByQuery`（先收集命中行再删除后注销）三动作在删除后自动 `unregisterUsage`（同事务；provider 未部署或 credentialId 空白时跳过，保持可选装配语义；`unregisterUsage` 按 (credentialId, consumerRef) 删行、天然幂等）——模型删除后凭证不再被残留 usage 行永久拦截（运维死锁闭合：模型删除 → usage 注销 → 凭证可删）。
 
 **迁移路径**（建凭证 → 设 credentialId（save 自动登记引用） → apiKey 冗余）：
 
@@ -80,7 +81,7 @@
 2. 设 `NopAiModel.credentialId`：`NopAiModel__save(data={id, credentialId})`——BizModel.save 自动 `registerUsage(credentialId, "ai:NopAiModel:<modelId>")`，无需手动登记引用。换绑/解绑自动 reconcile。
 3. `apiKey` 列冗余：迁移后 `apiKey` 列成为冗余备份，可在确认运行时消费稳定后清理（保留不破坏兼容）。
 
-> **运行时消费装配**：消费 app 需含 `nop-credential-service`（提供 `nopCredentialProvider` bean）并在装配链 import `credential-defaults.beans.xml`。`ICredentialProvider`/`IDaoProvider` 在 resolver 中为 `@Nullable` 可选注入——部署不含 nop-credential 时 resolver bean 仍创建（credentialId 空→回退、credentialId 非空→fail-closed）。凭证库与 `@sec:` 的边界详见 `nop-credential.md`。
+> **运行时消费装配**（A1-audit D6-01 修复后语义）：`AiModelCredentialResolverImpl` 由 `nop-ai-service` 自身的 `app-service.beans.xml` 注册（bean id `nopAiModelCredentialResolver`，`ioc:default` + 模块 `_module` 自动装载）——**消费 app 含 nop-ai-service 即完成 resolver 接线**（`ChatServiceImpl` 按类型注入）。再含 `nop-credential-service`（提供 `nopCredentialProvider` bean，装配链 import `credential-defaults.beans.xml`）时凭证解析完整生效；`ICredentialProvider`/`IDaoProvider` 在 resolver 中为 `@Nullable` 可选注入——部署不含 nop-credential 时 resolver bean 仍创建（credentialId 空→回退、credentialId 非空→fail-closed）。装配回归由 `TestAiModelCredentialResolverWiring`（完整 app 容器）守护。凭证库与 `@sec:` 的边界详见 `nop-credential.md`。
 
 ## Agent 引擎可靠性配置（nop-ai-agent）
 

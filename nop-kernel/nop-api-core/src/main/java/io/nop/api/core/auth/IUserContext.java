@@ -90,6 +90,21 @@ public interface IUserContext extends IDirtyFlagSupport {
 
     void setRefreshToken(String refreshToken);
 
+    /**
+     * MFA 受限会话标志（角色级强制策略不达标时签发，设计 §4.3，W13-impl）：
+     * true = 第一因子已通过但用户因子持有不满足角色策略（minMfaLevel），会话仅放行
+     * MFA 绑定引导类白名单操作 + 全部 query（受限拦截分支见操作级 MFA 拦截器）。
+     * <p>
+     * Java {@code default} 方法（migration note）：仓库外/测试树存在多个 {@link IUserContext}
+     * 外部实现类（匿名/内部类），抽象方法会编译破坏下游；缺省 false 保证老实现与老消费方
+     * 零感知。{@code UserContextImpl} 覆写并提供 setter（持久化两触点白名单同步：
+     * {@code UserContextImpl.serializeToJson} 与
+     * {@code DaoUserContextCache.saveUserContextAsync}）。
+     */
+    default boolean isMfaRestricted() {
+        return false;
+    }
+
     long getLastAccessTime();
 
     void setLastAccessTime(long lastAccessTime);

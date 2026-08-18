@@ -124,4 +124,46 @@
         }
 
 
+        private String _scene;
+
+    
+        @PropMeta(propId=13)
+    
+        public String getScene(){
+            return _scene;
+        }
+
+        public void setScene(String value){
+            this._scene = value;
+        }
+
+
+        private String _payload;
+
+    
+        @PropMeta(propId=14)
+    
+        public String getPayload(){
+            return _payload;
+        }
+
+        public void setPayload(String value){
+            this._payload = value;
+        }
+
+
+        private Long _verifiedAt;
+
+    
+        @PropMeta(propId=15)
+    
+        public Long getVerifiedAt(){
+            return _verifiedAt;
+        }
+
+        public void setVerifiedAt(Long value){
+            this._verifiedAt = value;
+        }
+
+
     }

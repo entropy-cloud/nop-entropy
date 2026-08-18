@@ -11,6 +11,7 @@ import io.nop.commons.util.StringHelper;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -49,11 +50,14 @@ public class LocalMfaChallengeStore implements MfaChallengeStore {
     }
 
     @Override
-    public String create(String userId, String mfaType, int loginType, String tenantId, String phone) {
+    public String create(String scene, String userId, String mfaType, int loginType, String tenantId, String phone,
+                         String payload) {
         long now = System.currentTimeMillis();
         long ttlMs = config.getExpireSeconds() * 1000L;
         String token = StringHelper.generateUUID();
         MfaChallenge c = new MfaChallenge(token, userId, mfaType, loginType, tenantId, phone, now, now + ttlMs);
+        c.setScene(scene);
+        c.setPayload(payload);
         challenges.put(token, new Entry(c, now + ttlMs));
         return token;
     }
@@ -63,7 +67,16 @@ public class LocalMfaChallengeStore implements MfaChallengeStore {
         Entry e = challenges.get(challengeToken);
         if (e == null)
             return null;
-        if (e.expired(System.currentTimeMillis())) {
+        long now = System.currentTimeMillis();
+        if (e.expired(now)) {
+            challenges.remove(challengeToken, e);
+            failCounts.remove(challengeToken);
+            return null;
+        }
+        // 票窗口判定（设计 §3.3）：已验证票仅在 verifiedAt + op-ticket-expire 内可见，
+        // 窗口外票失效即 challenge 整体失效（票不续命）
+        Long verifiedAt = e.challenge.getVerifiedAt();
+        if (verifiedAt != null && now >= verifiedAt + opTicketMs()) {
             challenges.remove(challengeToken, e);
             failCounts.remove(challengeToken);
             return null;
@@ -90,6 +103,29 @@ public class LocalMfaChallengeStore implements MfaChallengeStore {
         if (e.expired(System.currentTimeMillis()))
             return null;
         return e.challenge;
+    }
+
+    @Override
+    public boolean markVerified(String challengeToken) {
+        if (challengeToken == null)
+            return false;
+        long now = System.currentTimeMillis();
+        AtomicBoolean marked = new AtomicBoolean(false);
+        // JVM 原子 compute：恰好首个未验证调用者迁移成功（并发二次 false，票不续命）
+        challenges.compute(challengeToken, (k, e) -> {
+            if (e == null || e.expired(now))
+                return e;
+            if (e.challenge.getVerifiedAt() != null)
+                return e;
+            e.challenge.setVerifiedAt(now);
+            marked.set(true);
+            return e;
+        });
+        return marked.get();
+    }
+
+    private long opTicketMs() {
+        return config.getOpTicketExpireSeconds() * 1000L;
     }
 
     // ---- package-private test helpers（仅 Local 行为断言用）----

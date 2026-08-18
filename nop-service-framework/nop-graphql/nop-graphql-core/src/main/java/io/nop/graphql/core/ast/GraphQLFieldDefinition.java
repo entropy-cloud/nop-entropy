@@ -13,6 +13,7 @@ import io.nop.api.core.auth.ActionAuthMeta;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.convert.ITypeConverter;
 import io.nop.api.core.convert.IdentityTypeConverter;
+import io.nop.auth.api.mfa.MfaRequiredMeta;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.util.DateHelper;
 import io.nop.commons.util.StringHelper;
@@ -69,6 +70,12 @@ public class GraphQLFieldDefinition extends _GraphQLFieldDefinition implements I
 
     private BizMakerCheckerMeta makerCheckerMeta;
 
+    /**
+     * 操作级 MFA 元数据（@MfaRequired，存在即敏感操作）。executor 检查点据此调用
+     * IOperationMfaChecker；非 null 才参与拦截，传播链拷贝对齐 makerCheckerMeta 先例。
+     */
+    private MfaRequiredMeta mfaRequiredMeta;
+
     private IGraphQLArgsNormalizer argsNormalizer;
 
     private int propId;
@@ -88,6 +95,7 @@ public class GraphQLFieldDefinition extends _GraphQLFieldDefinition implements I
         field.setSourceClassModel(sourceClassModel);
         field.setArgsNormalizer(argsNormalizer);
         field.setAuth(auth);
+        field.setMfaRequiredMeta(mfaRequiredMeta);
         return field;
     }
 
@@ -218,6 +226,14 @@ public class GraphQLFieldDefinition extends _GraphQLFieldDefinition implements I
 
     public void setMakerCheckerMeta(BizMakerCheckerMeta makerCheckerMeta) {
         this.makerCheckerMeta = makerCheckerMeta;
+    }
+
+    public MfaRequiredMeta getMfaRequiredMeta() {
+        return mfaRequiredMeta;
+    }
+
+    public void setMfaRequiredMeta(MfaRequiredMeta mfaRequiredMeta) {
+        this.mfaRequiredMeta = mfaRequiredMeta;
     }
 
     public String getTryMethod() {

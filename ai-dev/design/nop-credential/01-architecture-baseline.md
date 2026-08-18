@@ -37,7 +37,7 @@
 
 **结论**：`@sec:` 只能加密**配置文件中的静态值**（启动期解密一次）；无法解决 **DB 行级动态数据**（如 `NopAiModel.apiKey` 这种运行期写入的列）的加密存储，也无法提供类型注册/连通性测试/密钥轮换等管理能力。这正是凭证库的定位。
 
-**需求来源**：n8n 对比调研结论——n8n 有类型化凭证（AES 加密 + OAuth + RBAC），Nop 平台无对应能力，属"真实差距"。n8n 凭证系统要素：类型注册、加密存储、认证方式（authenticate）、连通性测试（test）、OAuth、共享授权。本设计一期覆盖"类型注册 + 加密存储 + 认证方式声明 + 连通性测试"，OAuth/RBAC/租户隔离留二期。
+**需求来源**：n8n 对比调研结论——n8n 有类型化凭证（AES 加密 + OAuth + RBAC），Nop 平台无对应能力，属"真实差距"。n8n 凭证系统要素：类型注册、加密存储、认证方式（authenticate）、连通性测试（test）、OAuth、共享授权。本设计一期覆盖"类型注册 + 加密存储 + 认证方式声明 + 连通性测试"，OAuth/归属统一（系统级/用户级）/RBAC 授权留二期（租户隔离不做——租户为平台全局能力）。
 
 ### 2.2 与既有 `@sec:` / `v1:` 的关系
 
@@ -93,7 +93,7 @@ flowchart LR
 
 - `ICredentialKeyProvider`：`getActiveKeyId(): String` / `getKey(keyId): ITextCipher`；多 key 并存（轮换期新旧 key 同时有效）
 - `CredentialCipher`：`encrypt(plain, keyId)` 输出 **`cv1:{keyId}:{v1密文}`**；`decrypt(cv1text)` 解析 keyId 后委托对应 `AESTextCipher` 解内层 `v1:` 密文
-- 主密钥来源：环境变量/独立配置文件（**不放入 application.yaml 明文**），如 `NOP_CREDENTIAL_MASTER_KEYS` 或独立 `credential-keys.yaml`（`@cfg:` 可注入环境变量）；格式为 `keyId:passphrase` 列表
+- 主密钥来源：Nop 配置项 `nop.credential.master-keys`（`List<String>`，每条 `keyId:passphrase`）+ `nop.credential.active-key-id`（未设置取首项）；配置值可来自环境变量或独立配置文件（**不放入 application.yaml 明文**）
 - **keyId 约束**：只允许 `[A-Za-z0-9_-]`（`cv1:` 按冒号 split 无歧义的前提；base64 payload 无冒号，解析安全）
 - **轮换**：新增 key 后 `getActiveKeyId()` 指向新 key，新写入用新 key；旧密文按 `cv1:` 中的 keyId 仍可用旧 key 解密；提供 `reencryptAll` 批量重加密（service 层循环 DAO 重写，逐条提交可断点续跑）
 
@@ -117,11 +117,11 @@ ORM 模型（model/nop-credential.orm.xml，实施时创建）：
 
 | 字段 | 说明 |
 |---|---|
-| id / name / typeName | 类型引用（typeName 对应 credential-type.xml 注册名） |
+| credentialId / name / typeName | 类型引用（typeName 对应 credential-type.xml 注册名） |
 | data | **加密列**（`cv1:` 密文 JSON：`{field: value}`） |
 | status | enabled/disabled |
-| deleted | 软删除标记（true=已删，物理清理二期） |
-| usageScope | 使用范围声明（`instance`，一期仅声明；租户/项目维度二期） |
+| delFlag | 软删除标记（ORM 列 `DEL_FLAG`，boolFlag，`useLogicalDelete` 挂接；true=已删，物理清理二期） |
+| usageScope | 使用范围声明（一期仅声明；**归属统一（系统级/用户级）语义定稿在二期 W9-design**；不做租户隔离——租户为平台全局能力） |
 | lastUsedAt / expireAt | 审计与过期 |
 | testResult | 最近一次连通性测试结果 |
 | version / updateTime / createdBy | 通用审计字段（变更日志复用 nop-sys ChangeLog，`tagSet="audit"`） |
@@ -147,14 +147,14 @@ ICredentialProvider
 **明文边界（结构性强制，非约定）**：
 
 - 接口 + DTO 在 api 层，**实现类在 service 层**；`getCredential/getCredentialData` 不暴露为任何 BizModel/GraphQL 方法
-- `NopCredentialBizModel` 只暴露 `save/delete/get/findPage/test/maskList/reencryptAll`；xmeta 中 `data` 列 `published="false"`（不对外生成 GraphQL 字段），`findPage` 返回的 `data` 恒为 null（BizModel 层在返回前强制置空）；展示层用 `maskList` 输出脱敏值
+- `NopCredentialBizModel` 暴露 `saveCredential/delete/get/findPage/test/maskList/typeList/reencryptAll`——标准 `save` 被覆盖禁用（抛异常），明文输入唯一入口为 `saveCredential`；xmeta 中 `data` 列 `published="false"`（不对外生成 GraphQL 字段），`findPage` 返回的 `data` 恒为 null（BizModel 层在返回前强制置空）；展示层用 `maskList` 输出脱敏值
 - 消费方获取明文 = 依赖 `nop-credential-service` 的 bean（`@Inject ICredentialProvider`），这是"服务端代码"的显式声明
 
 **管理 CRUD（BizModel，GraphQL/REST）**：
 
 ```
 NopCredentialBizModel
-  save / delete / get / findPage / maskList   # 标准 CrudBizModel 语义（data 恒脱敏，maskList 出脱敏值）
+  saveCredential / delete / get / findPage / maskList   # 标准 save 被禁用（抛异常），明文输入唯一入口为 saveCredential；data 恒脱敏，maskList 出脱敏值
   typeList()                                  # 返回类型字段 schema（web 动态表单用）
   test(credentialId)                          # 触发连通性测试
   reencryptAll()                              # 主密钥轮换后批量重加密（仅 admin）
@@ -192,7 +192,7 @@ NopCredentialBizModel
 | nop-integration OSS/邮件/短信/飞书 | `@cfg:` 明文 | 静态密钥改用 `@sec:` 加密（立即可做）；需要运行期管理的场景改用 `ICredentialProvider` |
 | nop-metadata 数据源 | connectionConfig JSON 列 | `tagSet="sensitive"` 字段改为经凭证库取用，二期执行 |
 
-**删除语义（一期定义）**：凭证删除采用**软删除**（`status=disabled` + `deleted=true` 标记），不物理删除；`ICredentialProvider` 取用时跳过 `deleted=true` 记录（fail-closed：取不到抛错，不静默用空值）。引用机制：消费方绑定凭证时经 `registerUsage` 登记（`NopCredentialUsage` 表），替换/解绑时 `unregisterUsage` 解除；删除前检查引用计数，>0 拒绝删除（提示先解绑）；物理清理（deleted 记录 + 引用表归档）列二期。
+**删除语义（一期定义）**：凭证删除采用**软删除**（`status=disabled` + ORM 逻辑删除 `delFlag=true` 标记，列 `DEL_FLAG`），不物理删除；`ICredentialProvider` 取用时跳过 `delFlag=true` 记录（fail-closed：取不到抛错，不静默用空值）。引用机制：消费方绑定凭证时经 `registerUsage` 登记（`NopCredentialUsage` 表），替换/解绑时 `unregisterUsage` 解除；删除前检查引用计数，>0 拒绝删除（提示先解绑）；物理清理（deleted 记录 + 引用表归档）列二期。
 
 **Web 管理页（动态表单，一期定案）**：AMIS 页面按类型动态渲染表单——`NopCredentialBizModel.typeList()` 返回 `ICredentialTypeRegistry` 中的类型字段 schema，type 选择后前端动态生成 AMIS form；字段 `type` 词汇枚举：`string`/`password`/`number`/`select`/`boolean`/`textarea`（password 类型自动打码回显）。
 

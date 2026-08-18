@@ -16,6 +16,18 @@
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-api-core</artifactId>
         </dependency>
+        <!-- W16-impl: api→api 零业务依赖边——共享解析支持（CredentialResolutionSupport）消费
+             ICredentialProvider/CredentialData；runtime bean 由 nop-credential-service 提供，
+             消费 app 经 app-service.beans.xml 聚合装载（同 nop-ai-service 先例）。 -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-credential-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 </project>

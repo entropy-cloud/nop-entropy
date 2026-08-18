@@ -22,5 +22,11 @@
             <artifactId>qcloudsms</artifactId>
             <version>1.0.5</version>
         </dependency>
+        <!-- W16-impl: 测试基建（模块此前零 test 依赖） -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>

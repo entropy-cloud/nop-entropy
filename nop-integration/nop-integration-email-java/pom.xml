@@ -21,6 +21,13 @@
             <groupId>com.sun.mail</groupId>
             <artifactId>jakarta.mail</artifactId>
         </dependency>
+
+        <!-- W16-impl-ext: 测试基建（模块此前零 test 依赖，参照 sms-tencent/feishu 先例） -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 </project>

@@ -6,9 +6,12 @@ import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
+import io.nop.api.core.annotations.core.Description;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
+import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.annotations.txn.TransactionPropagation;
+import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.ErrorCode;
@@ -16,8 +19,11 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.metadata.service.NopMetadataHelper;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.biz.crud.CrudBizModel;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
+import io.nop.credential.api.ICredentialMigrationSupport;
+import io.nop.credential.api.ICredentialProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.dao.txn.ITransaction;
 import io.nop.dao.txn.ITransactionTemplate;
@@ -50,6 +56,7 @@ import io.nop.metadata.service.NopMetadataException;
 
 import static io.nop.metadata.service.query.AggregationHelper.safeProductName;
 
+import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,6 +68,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -81,6 +89,37 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
     /** 元数据变更事件发布 helper（架构基线 §2.8 D2，IoC bean）。 */
     @Inject
     protected MetaModelChangedEventPublisher eventPublisher;
+
+    /**
+     * 凭证消费 SPI（W16-impl，可选装配，{@code @Nullable} → NopIoC optional）：部署不含
+     * nop-credential 时为 null——bind/unbind/迁移动作此时显式拒绝（管理动作要求凭证库在场），
+     * 读路径（buildDataSource）由 processor 侧 fail-closed 兜底。
+     */
+    protected ICredentialProvider credentialProvider;
+
+    /**
+     * 迁移支持 SPI（W16-impl SPI 增量裁定 2，可选装配）：批量迁移的反查/创建通道。
+     */
+    protected ICredentialMigrationSupport credentialMigrationSupport;
+
+    /**
+     * W16-impl Decision（draft review F6）：admin 判定 = 运行时角色校验（IUserContext roles 比对，
+     * 角色集自持配置——复用 {@code nop.credential.admin-roles} 惯例的等价最小实现；
+     * 禁止为 admin 判定引入 nop-auth 依赖边）。无登录态（后台/内部调用）放行——生产 GraphQL 入口
+     * 由 action-auth 管角色，此处为第二层（与 nop-credential 写分级"无登录态内部调用放行"同口径）。
+     */
+    @InjectValue(value = "@cfg:nop.metadata.credential-admin-roles|admin,nop-admin")
+    protected String credentialAdminRolesCsv = "admin,nop-admin";
+
+    @Inject
+    public void setCredentialProvider(@Nullable ICredentialProvider credentialProvider) {
+        this.credentialProvider = credentialProvider;
+    }
+
+    @Inject
+    public void setCredentialMigrationSupport(@Nullable ICredentialMigrationSupport credentialMigrationSupport) {
+        this.credentialMigrationSupport = credentialMigrationSupport;
+    }
 
     /** 事件 entityType（架构基线 §2.8 D3）。 */
     static final String EVENT_ENTITY_TYPE = "NopMetaDataSource";
@@ -147,6 +186,384 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
             dto.setError((String) error);
         }
         return dto;
+    }
+
+    // ==================== W16-impl：数据源凭证管理动作对（bind/unbind/批量迁移/delete 钩子） ====================
+
+    /** consumerRef 前缀（设计 §6.5：metadata:NopMetaDataSource:<dataSourceId>）。 */
+    static final String CREDENTIAL_CONSUMER_REF_PREFIX = "metadata:NopMetaDataSource:";
+
+    /** 迁移凭证类型（设计 §4.3：username 必填/password 可空 sensitive）。 */
+    static final String MIGRATION_CREDENTIAL_TYPE = "jdbc-datasource";
+
+    /** NopCredential.name 列宽（orm.xml CREDENTIAL_NAME precision=100）。 */
+    static final int CREDENTIAL_NAME_MAX_LENGTH = 100;
+
+    /**
+     * admin 判定（Decision 项）：登录用户须命中 {@code nop.metadata.credential-admin-roles} 任一角色；
+     * 无用户上下文（内部调用）放行（与 nop-credential 写分级同口径，生产入口另有 action-auth 层）。
+     */
+    void assertCredentialAdmin() {
+        IUserContext userContext = IUserContext.get();
+        if (userContext == null) {
+            return; // 内部调用（无登录态）放行——action-auth 为生产第一层
+        }
+        java.util.Set<String> roles = new java.util.LinkedHashSet<>();
+        if (credentialAdminRolesCsv != null) {
+            for (String role : credentialAdminRolesCsv.split(",")) {
+                String trimmed = role.trim();
+                if (!trimmed.isEmpty()) {
+                    roles.add(trimmed);
+                }
+            }
+        }
+        if (!roles.isEmpty() && userContext.isUserInAnyRole(roles)) {
+            return;
+        }
+        throw new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_CREDENTIAL_ADMIN_REQUIRED)
+                .param("requiredRoles", String.join(",", roles));
+    }
+
+    /** 该数据源行的凭证 consumerRef（设计 §6.5 引用计数键规范）。 */
+    static String credentialConsumerRef(String dataSourceId) {
+        return CREDENTIAL_CONSUMER_REF_PREFIX + dataSourceId;
+    }
+
+    /**
+     * 解析 connectionConfig JSON 为可变 map（非法 JSON = config-invalid，fail-closed 不静默）。
+     */
+    private Map<String, Object> parseConnectionConfigMap(NopMetaDataSource dataSource) {
+        String config = dataSource.getConnectionConfig();
+        if (config == null || config.trim().isEmpty()) {
+            return new LinkedHashMap<>();
+        }
+        Map<String, Object> map;
+        try {
+            map = JsonTool.parseMap(config);
+        } catch (Exception e) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_CONFIG_INVALID, e)
+                    .param("datasourceType", dataSource.getDatasourceType())
+                    .param("reason", "connectionConfig is not valid JSON");
+        }
+        return map != null ? map : new LinkedHashMap<>();
+    }
+
+    /** 从 JSON map 取 credentialId（trim；空串/空白 → null）。 */
+    private static String credentialIdOf(Map<String, Object> cfg) {
+        Object value = cfg.get("credentialId");
+        if (value == null) {
+            return null;
+        }
+        String credentialId = value.toString().trim();
+        return credentialId.isEmpty() ? null : credentialId;
+    }
+
+    /**
+     * 确认凭证 SPI 装配在场（bind/unbind/迁移是管理动作，部署无凭证库时显式拒绝而非静默降级）。
+     */
+    private void requireCredentialSpi(String action) {
+        if (credentialProvider == null || credentialMigrationSupport == null) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_CREDENTIAL_PROVIDER_NOT_AVAILABLE)
+                    .param("datasourceType", "jdbc")
+                    .param("credentialId", action);
+        }
+    }
+
+    /**
+     * 绑定数据源凭证（admin）：connectionConfig 置 credentialId 键 + 清除 username/password 明文 +
+     * registerUsage——<b>同一行级事务</b>（BizMutation 事务内，registerUsage 先行校验凭证存在/未软删，
+     * 失败则整事务回滚、明文不清除——无"已引用但仍留明文"中间落盘态）。换绑 A→B = bind 内 unregister
+     * 旧 + register 新；重复 bind 同一凭证幂等（registerUsage 幂等 + JSON 重写等值）。
+     */
+    @Description("绑定数据源凭证（置 credentialId 键 + 清除明文 + 登记引用，同一行级事务）")
+    @BizMutation
+    public Map<String, Object> bindCredential(@Name("dataSourceId") String dataSourceId,
+                                              @Name("credentialId") String credentialId,
+                                              IServiceContext context) {
+        assertCredentialAdmin();
+        requireCredentialSpi("bindCredential");
+        if (StringHelper.isBlank(credentialId)) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_CONFIG_INVALID)
+                    .param("datasourceType", "jdbc").param("reason", "credentialId must not be blank");
+        }
+        String normalizedCredentialId = credentialId.trim();
+
+        NopMetaDataSource dataSource = requireEntity(dataSourceId, "bindCredential", context);
+        String consumerRef = credentialConsumerRef(dataSourceId);
+
+        // 先行 registerUsage（幂等；前置校验凭证存在/未软删）——失败即中止，行未被触碰
+        credentialProvider.registerUsage(normalizedCredentialId, consumerRef);
+
+        Map<String, Object> cfg = parseConnectionConfigMap(dataSource);
+        String oldCredentialId = credentialIdOf(cfg);
+        if (oldCredentialId != null && !oldCredentialId.equals(normalizedCredentialId)) {
+            // 换绑 A→B：unregister 旧 + register 新（§6.5）
+            credentialProvider.unregisterUsage(oldCredentialId, consumerRef);
+        }
+
+        String beforeSnapshot = eventPublisher.buildSnapshot(dataSource, EVENT_ENTITY_TYPE, dataSourceId);
+        cfg.put("credentialId", normalizedCredentialId);
+        cfg.remove("username");   // 明文清除（unbind 不自动复活死值——需另行重录）
+        cfg.remove("password");
+        dataSource.setConnectionConfig(JsonTool.stringify(cfg));
+        dao().updateEntity(dataSource);
+        publishCredentialEvent(dataSource, beforeSnapshot, context);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("dataSourceId", dataSourceId);
+        result.put("credentialId", normalizedCredentialId);
+        return result;
+    }
+
+    /**
+     * 解绑数据源凭证（admin）：清除 credentialId 键（回滚 = 引用级清除回静态路径，§6.2）+
+     * unregisterUsage。明文不自动复活（死值不回填，需另行重录）——幂等（无键时 no-op）。
+     */
+    @Description("解绑数据源凭证（清除 credentialId 键 + 注销引用；明文需另行重录）")
+    @BizMutation
+    public Map<String, Object> unbindCredential(@Name("dataSourceId") String dataSourceId, IServiceContext context) {
+        assertCredentialAdmin();
+        requireCredentialSpi("unbindCredential");
+
+        NopMetaDataSource dataSource = requireEntity(dataSourceId, "unbindCredential", context);
+        Map<String, Object> cfg = parseConnectionConfigMap(dataSource);
+        String oldCredentialId = credentialIdOf(cfg);
+        if (oldCredentialId == null) {
+            Map<String, Object> result = new LinkedHashMap<>(); // 幂等 no-op
+            result.put("dataSourceId", dataSourceId);
+            result.put("credentialId", null);
+            return result;
+        }
+
+        String beforeSnapshot = eventPublisher.buildSnapshot(dataSource, EVENT_ENTITY_TYPE, dataSourceId);
+        cfg.remove("credentialId");
+        dataSource.setConnectionConfig(JsonTool.stringify(cfg));
+        dao().updateEntity(dataSource);
+        credentialProvider.unregisterUsage(oldCredentialId, credentialConsumerRef(dataSourceId));
+        publishCredentialEvent(dataSource, beforeSnapshot, context);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("dataSourceId", dataSourceId);
+        result.put("credentialId", null);
+        return result;
+    }
+
+    /**
+     * 实体变更事件发布（W16-impl Decision：审计载体 = MetaModelChangedEventPublisher 行级事件 +
+     * 敏感列快照脱敏自动覆盖 connectionConfig + 凭证侧审计（registerUsage/unregisterUsage），
+     * 不引入 IAuditService——nop-metadata 无该基建，设计 §6.4 审计行未要求）。
+     */
+    private void publishCredentialEvent(NopMetaDataSource dataSource, String beforeSnapshot,
+                                        IServiceContext context) {
+        String afterSnapshot = eventPublisher.buildSnapshot(dataSource, EVENT_ENTITY_TYPE, dataSource.getDataSourceId());
+        eventPublisher.publishEventWithSnapshots(
+                _NopMetadataCoreConstants.CHANGE_EVENT_TYPE_ENTITY_UPDATED,
+                EVENT_ENTITY_TYPE, dataSource.getDataSourceId(), dataSource.getName(),
+                "credential-bind",
+                beforeSnapshot, afterSnapshot,
+                MetaModelChangedEventPublisher.newTransactionId(), context);
+    }
+
+    /**
+     * 迁移用确定性凭证名：{@code jdbc-datasource:{querySpace}/{name}}；超 {@link #CREDENTIAL_NAME_MAX_LENGTH}
+     * 时截断 + 短哈希后缀适配 VARCHAR(100)（name 无唯一约束可接受——身份由 consumerRef 唯一约束承载，
+     * 哈希后缀仅为同名区分辅助）。
+     */
+    public static String deterministicCredentialName(String querySpace, String name) {
+        String fullName = MIGRATION_CREDENTIAL_TYPE + ":" + (querySpace == null ? "" : querySpace)
+                + "/" + (name == null ? "" : name);
+        if (fullName.length() <= CREDENTIAL_NAME_MAX_LENGTH) {
+            return fullName;
+        }
+        String hash = StringHelper.sha256Hash(fullName, "");
+        if (hash == null || hash.length() < 8) {
+            hash = String.valueOf(fullName.hashCode());
+        }
+        String prefix = fullName.substring(0, CREDENTIAL_NAME_MAX_LENGTH - 9);
+        return prefix + "-" + hash.substring(0, 8);
+    }
+
+    /**
+     * 批量迁移存量明文数据源行到凭证库（admin mutation，设计 §6.4 迁移工具面）：
+     * 逐行 = 幂等反查（<b>主源 = findCredentialIdByConsumerRef（NopCredentialUsage 唯一约束）</b>；
+     * 名称辅助 = 确定性名反查；反查命中软删凭证 → 该行计入失败清单供人工处置，不跳过不重建）→
+     * 缺失则经迁移支持 SPI 创建凭证（username/password 取自 JSON；scope=system；加密复用
+     * saveCredential 语义）→ registerUsage → JSON 置键并清除明文——<b>四步同一行级事务</b>
+     * （REQUIRES_NEW per-row，{@link #upsertExternalTableGuarded} 先例；中断重跑经反查收敛，
+     * 无孤儿/无重复凭证）。{@code orderBy dataSourceId} 确定性排序；单行失败收集到 failures
+     * 不中断整批（该行事务独立回滚）。返回摘要（migrated/skipped/failed 计数 + 失败清单）。
+     */
+    @Description("批量迁移存量明文数据源凭证到凭证库（逐行幂等反查 + per-row 事务同事务清明文）")
+    @BizMutation
+    public Map<String, Object> migrateDataSourcesCredential(IServiceContext context) {
+        assertCredentialAdmin();
+        requireCredentialSpi("migrateDataSourcesCredential");
+
+        QueryBean query = new QueryBean();
+        query.addOrderField(NopMetaDataSource.PROP_NAME_dataSourceId, true); // 确定性排序（断点续跑收敛）
+        List<NopMetaDataSource> rows = dao().findAllByQuery(query);
+
+        int migrated = 0;
+        int skipped = 0;
+        List<Map<String, Object>> failures = new ArrayList<>();
+        for (NopMetaDataSource row : rows) {
+            try {
+                if (Boolean.TRUE.equals(migrateOneRow(row, context))) {
+                    migrated++;
+                } else {
+                    skipped++;
+                }
+            } catch (Exception e) {
+                LOG.error("migrateDataSourcesCredential failed for dataSourceId={}", row.getDataSourceId(), e);
+                Map<String, Object> failure = new LinkedHashMap<>();
+                failure.put("dataSourceId", row.getDataSourceId());
+                failure.put("error", NopMetadataHelper.toErrorMessage(e));
+                failures.add(failure);
+            }
+        }
+
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("migratedCount", migrated);
+        summary.put("skippedCount", skipped);
+        summary.put("failedCount", failures.size());
+        summary.put("failures", failures);
+        return summary;
+    }
+
+    /**
+     * 单行迁移（per-row REQUIRES_NEW 事务内四步：反查→创建→registerUsage→置键清明文）。
+     *
+     * <p>行级事务内<b>重读行</b>（外层加载的实体 attached 到外层会话；重读副本随本事务提交，
+     * {@link #upsertExternalTableGuarded} 先例的 per-row 独立提交语义）。
+     *
+     * @return true = 本行已迁移；false = 跳过（已迁移/无明文可迁移/行已不存在）
+     */
+    private Boolean migrateOneRow(NopMetaDataSource row, IServiceContext context) {
+        Map<String, Object> cfgOuter = parseConnectionConfigMap(row);
+        if (credentialIdOf(cfgOuter) != null) {
+            return Boolean.FALSE; // 已迁移（幂等跳过）
+        }
+        if (!cfgOuter.containsKey("username") && !cfgOuter.containsKey("password")) {
+            return Boolean.FALSE; // 无明文凭据可迁移（如仅 http 类型占位行）
+        }
+
+        ITransactionTemplate txnTemplate = orm().getSessionFactory().txn();
+        return txnTemplate.runInTransaction(null, TransactionPropagation.REQUIRES_NEW, (ITransaction txn) -> {
+            NopMetaDataSource fresh = dao().getEntityById(row.getDataSourceId());
+            if (fresh == null) {
+                return Boolean.FALSE; // 行在迁移过程中被删除（外层循环快照陈旧）
+            }
+            Map<String, Object> cfg = parseConnectionConfigMap(fresh);
+            if (credentialIdOf(cfg) != null) {
+                return Boolean.FALSE; // 双检：并发迁移已处理
+            }
+            boolean hasUsername = cfg.containsKey("username");
+            boolean hasPassword = cfg.containsKey("password");
+            if (!hasUsername && !hasPassword) {
+                return Boolean.FALSE;
+            }
+            String username = hasUsername && cfg.get("username") != null ? cfg.get("username").toString() : null;
+            if (StringHelper.isBlank(username)) {
+                // username 必填（对齐 buildDataSource requireNonBlank 现状语义——该行本就运行时失败）
+                throw new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_CONFIG_INVALID)
+                        .param("datasourceType", String.valueOf(fresh.getDatasourceType()))
+                        .param("reason", "username missing/blank: row violates jdbc-datasource required field");
+            }
+            String password = hasPassword && cfg.get("password") != null ? cfg.get("password").toString() : "";
+
+            String consumerRef = credentialConsumerRef(fresh.getDataSourceId());
+
+            // (1) 幂等反查——主源 consumerRef（唯一约束承载身份）
+            io.nop.credential.api.CredentialLookup byRef =
+                    credentialMigrationSupport.findCredentialIdByConsumerRef(consumerRef);
+            String credentialId;
+            if (byRef != null) {
+                if (byRef.isDeleted()) {
+                    // 软删命中 → 该行失败供人工处置（不跳过不重建，避免同 consumerRef 双凭证歧义）
+                    throw new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_CREDENTIAL_RESOLVE_FAILED)
+                            .param("credentialId", byRef.getCredentialId())
+                            .param("reason", "referenced credential is soft-deleted; manual handling required");
+                }
+                credentialId = byRef.getCredentialId();
+            } else {
+                // 名称辅助反查（活跃行；name 无唯一约束，身份由 consumerRef 承载）
+                String deterministicName = deterministicCredentialName(fresh.getQuerySpace(), fresh.getName());
+                io.nop.credential.api.CredentialLookup byName =
+                        credentialMigrationSupport.findCredentialByName(MIGRATION_CREDENTIAL_TYPE, deterministicName);
+                if (byName != null) {
+                    credentialId = byName.getCredentialId();
+                } else {
+                    // (2) 创建凭证（saveCredential 语义：加密 + scope=system）
+                    Map<String, Object> fields = new LinkedHashMap<>();
+                    fields.put("username", username);
+                    fields.put("password", password);
+                    credentialId = credentialMigrationSupport.createCredential(
+                            MIGRATION_CREDENTIAL_TYPE, deterministicName, fields);
+                }
+            }
+
+            // (3) registerUsage（幂等；前置校验凭证存在/未软删）
+            credentialProvider.registerUsage(credentialId, consumerRef);
+
+            // (4) JSON 置键 + 清除明文——与前三步同一行级事务（无中间落盘态）
+            String beforeSnapshot = eventPublisher.buildSnapshot(fresh, EVENT_ENTITY_TYPE, fresh.getDataSourceId());
+            cfg.put("credentialId", credentialId);
+            cfg.remove("username");
+            cfg.remove("password");
+            fresh.setConnectionConfig(JsonTool.stringify(cfg));
+            dao().updateEntity(fresh);
+            publishCredentialEvent(fresh, beforeSnapshot, context);
+            return Boolean.TRUE;
+        });
+    }
+
+    /**
+     * 覆盖标准 {@code delete}：删除前读取行内 credentialId，删除成功后注销引用计数
+     * （{@code metadata:NopMetaDataSource:<dataSourceId>}）——防止 usage 行残留导致凭证删除被
+     * 引用计数拦截永久拒绝（NopAiModelBizModel live 先例）。
+     */
+    @Description("@i18n:biz.delete|根据主键删除指定对象")
+    @BizMutation
+    @Override
+    public boolean delete(@Name("id") String id, IServiceContext context) {
+        NopMetaDataSource existing = dao().getEntityById(id);
+        boolean deleted = super.delete(id, context);
+        if (deleted && existing != null) {
+            unregisterCredentialUsageQuietly(existing);
+        }
+        return deleted;
+    }
+
+    /**
+     * 覆盖 {@code deleteByQuery}：基类路径经 {@code doDeleteByQuery → doDeleteMulti → doDelete}
+     * <b>不经过</b>本类覆盖的 {@code delete}（虚分派不发生）——先收集命中行，删除后逐行注销
+     * （NopAiModelBizModel 先例钉定的批量路径坑位：漏覆写即 usage 引用残留）。
+     */
+    @Description("根据查询条件获取一批实体数据，然后删除这些实体")
+    @BizMutation
+    @Override
+    public int deleteByQuery(@Name("query") QueryBean query, IServiceContext context) {
+        List<NopMetaDataSource> hits = findList(query, null, context);
+        int deleted = super.deleteByQuery(query, context);
+        for (NopMetaDataSource hit : hits) {
+            unregisterCredentialUsageQuietly(hit);
+        }
+        return deleted;
+    }
+
+    /**
+     * 注销单行凭证引用（包私有以便测试覆盖）：provider 未部署或行内无 credentialId 时静默跳过
+     * （无凭证可注销，非缺陷路径）；unregisterUsage 按 (credentialId, consumerRef) 删行、天然幂等。
+     */
+    void unregisterCredentialUsageQuietly(NopMetaDataSource dataSource) {
+        if (credentialProvider == null) {
+            return;
+        }
+        String credentialId = credentialIdOf(parseConnectionConfigMap(dataSource));
+        if (StringHelper.isBlank(credentialId)) {
+            return;
+        }
+        credentialProvider.unregisterUsage(credentialId, credentialConsumerRef(dataSource.getDataSourceId()));
     }
 
     /**

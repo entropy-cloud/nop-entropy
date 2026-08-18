@@ -15,12 +15,25 @@ import io.nop.api.core.annotations.data.DataBean;
  * {@code challengeToken} 由第一因子通过后服务端经 {@code ERR_AUTH_MFA_REQUIRED} 的
  * errorParams 返回；{@code code} 为 TOTP / 短信验证码；{@code recoveryCode} 可选，
  * 提交时走恢复码分支（成功后强制重绑）。
+ * <p>
+ * W14-impl 增量（设计 §3.1 结论 5 统一验证载体 / §5.3.2）：可选 {@code assertion} 字段
+ * （webauthn 断言，mfaType=webauthn 的 challenge 必填，其余类型忽略）——向后兼容，
+ * 老调用方零感知。migration note：跨模块公共 API 增量（新增可选字段，无破坏性变更）。
+ * <p>
+ * W15-impl 增量（设计 §6.1 结论 4）：可选 {@code rememberDevice} 字段——true 时
+ * mfaVerify 成功后登记可信设备（仅密码类 challenge.loginType 生效；恢复码分支不登记；
+ * 结果经 {@code LoginResult.trustedDeviceRegistered} 回显）。migration note：跨模块公共
+ * API 增量（新增可选字段，无破坏性变更）。
  */
 @DataBean
 public class MfaVerifyRequest {
     private String challengeToken;
     private String code;
     private String recoveryCode;
+    /** webauthn 断言（可选，W14：webauthn 类型 challenge 的验证凭据）。 */
+    private WebAuthnAssertion assertion;
+    /** 登记可信设备请求（可选，W15：true = mfaVerify 成功后"记住此设备"；仅密码类 loginType 生效）。 */
+    private Boolean rememberDevice;
 
     public String getChallengeToken() {
         return challengeToken;
@@ -44,5 +57,21 @@ public class MfaVerifyRequest {
 
     public void setRecoveryCode(String recoveryCode) {
         this.recoveryCode = recoveryCode;
+    }
+
+    public WebAuthnAssertion getAssertion() {
+        return assertion;
+    }
+
+    public void setAssertion(WebAuthnAssertion assertion) {
+        this.assertion = assertion;
+    }
+
+    public Boolean getRememberDevice() {
+        return rememberDevice;
+    }
+
+    public void setRememberDevice(Boolean rememberDevice) {
+        this.rememberDevice = rememberDevice;
     }
 }

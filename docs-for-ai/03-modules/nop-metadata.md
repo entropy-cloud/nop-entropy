@@ -301,6 +301,37 @@ nop-metadata 对三处安全敏感路径维持 fail-closed / 默认脱敏 / fail
 - **connectionConfig 受控写路径与读脱敏（P1-1，plan 2026-08-15-1913-2）**：`NopMetaDataSource.connectionConfig` 持有明文 JDBC 凭据，契约分两面——**读出口脱敏**：`published="false"` 使该字段不在 GraphQL 查询输出类型中（findPage/findList/get 永不返回）；**受控写路径**：`insertable="true" updatable="true"`，`NopMetaDataSource__save` 可写入该字段，`__update` 在提交体显式含该键时更新（凭据轮换）；update 提交体不含该键时**不触碰已存配置**（`OrmEntityCopier` 只拷贝提交体中存在的 key——edit 表单不含该字段，表单提交永不清空配置）。`queryable/sortable="false"`：不允许以该字段作为过滤/排序条件探测凭据。表单字段落点：**仅 add 表单**（留存层 `NopMetaDataSource.view.xml`，textarea 控件，沿 `NopAuthUser.password` 先例）；edit/view 表单不显示（`published=false` 使字段不在查询输出类型，edit 页 `initApi` 的 `{@formSelection}` 选中该字段会报错）。`connectionConfigComponent`（惰性 JSON 解析组件，`internal="true"`）保持锁死、无写路径。`testConnection` / `syncExternalTables` / `collectCatalog` 均消费 save 写入的配置（写路径端到端可达，回归测试钉死）。
 - **`testConnection` 注解语义与兼容性影响（P2-18，plan 2026-08-16-0226-3）**：`testConnection` 为只读探测（requireEntity + 建连读 `DatabaseMetaData`，无任何写操作），注解自 `@BizMutation` 修正为 `@BizQuery`（`INopMetaDataSourceBiz` 接口 + `NopMetaDataSourceBizModel` 实现双面一致；对齐同模块 judgeByRuleId / checkContractReadOnly 同类探测先例）。**GraphQL operation 类型由 mutation 翻转为 query**（`ReflectionBizModelBuilder` 按注解归类）——仓库内引用面（6 处测试调用 + 文档示例）已同步为 `query { NopMetaDataSource__testConnection(...) }`；对外部第三方调用方不做迁移承诺（模块 API 演进期，调用方需自行将 mutation 调用改为 query）。**action-auth 授权面影响（部署侧须知）**：无显式 `@Auth` 的 action 由平台生成默认权限串 `NopMetaDataSource:<opType>|NopMetaDataSource:testConnection`（`ReflectionBizModelBuilder` 默认 auth 分支），翻转使粗粒度兜底从 `:mutation` 换为 `:query`——启用 action-auth 的部署中：已授权细粒度 `NopMetaDataSource:testConnection` 功能点的角色不受影响；仅授粗粒度 `:mutation` 的角色失去该操作（fail-closed 收窄）；仅授粗粒度 `:query` 的角色（通常为更广的只读角色集）**新获得**该操作（SSRF 触发面可能扩大，需部署侧知情评估）。建议启用 action-auth 的部署为 `testConnection` 显式配置细粒度功能点条目、不依赖粗粒度兜底；SSRF 主防御（F2 fail-closed URL 主机校验、F5 危险参数 blocklist、F7 主机形状校验）与注解无关、不受翻转影响。
 
+## 数据源凭证（credentialId 深度迁移，W16）
+
+`NopMetaDataSource.connectionConfig` JSON 支持 `credentialId` 键（username/password 整组入凭证库，类型 `jdbc-datasource`；jdbcUrl/driverClassName 留 JSON——拓扑 + AR-02 校验锚点不动）。**无 ORM 列变更、无 DDL**；引用随配置字符串自包含传输，14 处 `withConnection`/`testConnect` 消费点零改动。
+
+### 兼容矩阵与解析语义
+
+| 行形态 | JSON 内容 | 运行时行为 |
+|---|---|---|
+| 存量明文行 | password 在 JSON、无 `credentialId` 键 | 现状路径（零回归） |
+| 迁移行 | 明文已清、有键 | username/password 整组取凭证库 |
+| 过渡并存行 | 明文仍在、有键 | **凭证侧整组生效，JSON 明文忽略**；解析失败 fail-closed 不回退明文 |
+
+- 解析落点 = 单点 `MetaDataSourceConnectionProcessor.buildDataSource`（`mergeCredentialConfig`：空串/空白键视同缺失；provider null + 键非空 = 部署不一致 fail-closed；typeName 非 `jdbc-datasource`（含 null）= 错型拒绝；username 必填、password 键恒存在可空——必填性对齐 requireNonBlank/requireField 现状不收紧）。
+- `testConnect` catch 精确化：仅凭证解析失败（自身包装码 `nop.err.metadata.datasource-credential-resolve-failed`）映射 `{connected:false, error:"credential resolution failed"}` 固定描述（不携带明文/密文细节）；AR-02 与 config-invalid 异常维持上抛（不吞成结构化 false）。
+- `nop-metadata-service` 对 `nop-credential-api` 为 api-only compile 依赖（与 `nop-ai-service` 同构）；provider 经 `@Nullable` 可选注入——未部署凭证库时无键行不受影响。
+- 既有安全缓解原位不动：AR-02 全链、`tagSet="sensitive"`、事件快照脱敏（connectionConfig 列自动覆盖）。
+
+### 管理动作对（NopMetaDataSourceBizModel，admin）
+
+live xmeta 将 connectionConfig 整列设为不可读写——管理动作是 credentialId 的唯一受控写入入口：
+
+| 动作 | 语义 |
+|------|------|
+| `bindCredential(dataSourceId, credentialId)` | 置 JSON 键 + 清除 username/password 明文 + `registerUsage`，同一行级事务（registerUsage 先行——凭证不存在/软删即中止、行未被触碰）；换绑 A→B = unregister 旧 + register 新；幂等 |
+| `unbindCredential(dataSourceId)` | 清键 + `unregisterUsage`；**明文不自动复活**（死值不回填，需另行重录）；幂等（无键 no-op） |
+| `migrateDataSourcesCredential()` | 批量迁移：逐行幂等反查（**主源 = consumerRef `metadata:NopMetaDataSource:<dataSourceId>`**；名称辅助 `jdbc-datasource:{querySpace}/{name}` 截断+短哈希后缀适配 VARCHAR(100)；命中软删凭证 → 该行计入失败清单人工处置，不跳过不重建）→ 缺失则经 `ICredentialMigrationSupport.createCredential`（scope=system）→ registerUsage → 置键清明文——四步同一 per-row `REQUIRES_NEW` 事务（中断重跑经反查收敛，无孤儿/无重复凭证）；`orderBy dataSourceId`；单行失败收集不中断整批；返回 `{migratedCount, skippedCount, failedCount, failures[]}` |
+| `delete` / `deleteByQuery` | 双路径覆写：行删除后按行内 credentialId `unregisterUsage`（批量路径不经虚分派，双覆写防 usage 引用残留——NopAiModelBizModel 先例） |
+
+- **admin 判定**：`nop.metadata.credential-admin-roles`（CSV，缺省 `admin,nop-admin`）经 `IUserContext.isUserInAnyRole`；无登录态（内部调用）放行——生产 GraphQL 入口另由 action-auth 管角色（第二层）。
+- **审计**：`MetaModelChangedEventPublisher` 行级事件（changeSource=`credential-bind`，快照脱敏自动覆盖 connectionConfig）+ 凭证侧审计（registerUsage/unregisterUsage）；不引入 IAuditService。
+
 ## 参考文档
 
 - 平台主文档：`docs-for-ai/03-modules/nop-metadata.md`（本文档）

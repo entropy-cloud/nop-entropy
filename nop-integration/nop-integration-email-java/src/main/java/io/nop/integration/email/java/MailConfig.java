@@ -59,6 +59,21 @@ public class MailConfig {
      */
     private Map<String, String> properties = new HashMap<>();
 
+    /**
+     * 可选的凭证库引用（W16-impl-ext）：非空时 {@code smtp-email} 字段集（username/password）整组
+     * 取自凭证库，同名静态值被忽略；空/空白时维持静态值现状路径（既有部署零回归）。与
+     * username/password 同属凭证字段，故持于本配置类。
+     */
+    private String credentialId;
+
+    public String getCredentialId() {
+        return credentialId;
+    }
+
+    public void setCredentialId(String credentialId) {
+        this.credentialId = credentialId;
+    }
+
     public String getHost() {
         return host;
     }

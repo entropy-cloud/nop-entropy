@@ -69,15 +69,27 @@ public class _NopAuthMfaChallenge extends DynamicOrmEntity{
     public static final String PROP_NAME_updateTime = "updateTime";
     public static final int PROP_ID_updateTime = 12;
     
+    /* 场景: SCENE VARCHAR */
+    public static final String PROP_NAME_scene = "scene";
+    public static final int PROP_ID_scene = 13;
+    
+    /* 场景数据: PAYLOAD VARCHAR */
+    public static final String PROP_NAME_payload = "payload";
+    public static final int PROP_ID_payload = 14;
+    
+    /* 验证时间: VERIFIED_AT BIGINT */
+    public static final String PROP_NAME_verifiedAt = "verifiedAt";
+    public static final int PROP_ID_verifiedAt = 15;
+    
 
-    private static int _PROP_ID_BOUND = 13;
+    private static int _PROP_ID_BOUND = 16;
 
     
 
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_challengeToken);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_challengeToken};
 
-    private static final String[] PROP_ID_TO_NAME = new String[13];
+    private static final String[] PROP_ID_TO_NAME = new String[16];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -117,6 +129,15 @@ public class _NopAuthMfaChallenge extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_updateTime] = PROP_NAME_updateTime;
           PROP_NAME_TO_ID.put(PROP_NAME_updateTime, PROP_ID_updateTime);
       
+          PROP_ID_TO_NAME[PROP_ID_scene] = PROP_NAME_scene;
+          PROP_NAME_TO_ID.put(PROP_NAME_scene, PROP_ID_scene);
+      
+          PROP_ID_TO_NAME[PROP_ID_payload] = PROP_NAME_payload;
+          PROP_NAME_TO_ID.put(PROP_NAME_payload, PROP_ID_payload);
+      
+          PROP_ID_TO_NAME[PROP_ID_verifiedAt] = PROP_NAME_verifiedAt;
+          PROP_NAME_TO_ID.put(PROP_NAME_verifiedAt, PROP_ID_verifiedAt);
+      
     }
 
     
@@ -155,6 +176,15 @@ public class _NopAuthMfaChallenge extends DynamicOrmEntity{
     
     /* 修改时间: UPDATE_TIME */
     private java.sql.Timestamp _updateTime;
+    
+    /* 场景: SCENE */
+    private java.lang.String _scene;
+    
+    /* 场景数据: PAYLOAD */
+    private java.lang.String _payload;
+    
+    /* 验证时间: VERIFIED_AT */
+    private java.lang.Long _verifiedAt;
     
 
     public _NopAuthMfaChallenge(){
@@ -265,6 +295,15 @@ public class _NopAuthMfaChallenge extends DynamicOrmEntity{
         
             case PROP_ID_updateTime:
                return getUpdateTime();
+        
+            case PROP_ID_scene:
+               return getScene();
+        
+            case PROP_ID_payload:
+               return getPayload();
+        
+            case PROP_ID_verifiedAt:
+               return getVerifiedAt();
         
            default:
               return super.orm_propValue(propId);
@@ -397,6 +436,36 @@ public class _NopAuthMfaChallenge extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_scene:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_scene));
+               }
+               setScene(typedValue);
+               break;
+            }
+        
+            case PROP_ID_payload:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_payload));
+               }
+               setPayload(typedValue);
+               break;
+            }
+        
+            case PROP_ID_verifiedAt:{
+               java.lang.Long typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toLong(value,
+                       err-> newTypeConversionError(PROP_NAME_verifiedAt));
+               }
+               setVerifiedAt(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -486,6 +555,27 @@ public class _NopAuthMfaChallenge extends DynamicOrmEntity{
             case PROP_ID_updateTime:{
                onInitProp(propId);
                this._updateTime = (java.sql.Timestamp)value;
+               
+               break;
+            }
+        
+            case PROP_ID_scene:{
+               onInitProp(propId);
+               this._scene = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_payload:{
+               onInitProp(propId);
+               this._payload = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_verifiedAt:{
+               onInitProp(propId);
+               this._verifiedAt = (java.lang.Long)value;
                
                break;
             }
@@ -720,6 +810,63 @@ public class _NopAuthMfaChallenge extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_updateTime,value)){
             this._updateTime = value;
             internalClearRefs(PROP_ID_updateTime);
+            
+        }
+    }
+    
+    /**
+     * 场景: SCENE
+     */
+    public final java.lang.String getScene(){
+         onPropGet(PROP_ID_scene);
+         return _scene;
+    }
+
+    /**
+     * 场景: SCENE
+     */
+    public final void setScene(java.lang.String value){
+        if(onPropSet(PROP_ID_scene,value)){
+            this._scene = value;
+            internalClearRefs(PROP_ID_scene);
+            
+        }
+    }
+    
+    /**
+     * 场景数据: PAYLOAD
+     */
+    public final java.lang.String getPayload(){
+         onPropGet(PROP_ID_payload);
+         return _payload;
+    }
+
+    /**
+     * 场景数据: PAYLOAD
+     */
+    public final void setPayload(java.lang.String value){
+        if(onPropSet(PROP_ID_payload,value)){
+            this._payload = value;
+            internalClearRefs(PROP_ID_payload);
+            
+        }
+    }
+    
+    /**
+     * 验证时间: VERIFIED_AT
+     */
+    public final java.lang.Long getVerifiedAt(){
+         onPropGet(PROP_ID_verifiedAt);
+         return _verifiedAt;
+    }
+
+    /**
+     * 验证时间: VERIFIED_AT
+     */
+    public final void setVerifiedAt(java.lang.Long value){
+        if(onPropSet(PROP_ID_verifiedAt,value)){
+            this._verifiedAt = value;
+            internalClearRefs(PROP_ID_verifiedAt);
             
         }
     }

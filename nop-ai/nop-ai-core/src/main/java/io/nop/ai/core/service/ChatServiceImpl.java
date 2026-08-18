@@ -284,12 +284,14 @@ public class ChatServiceImpl implements IChatService {
      * credentialId 非空但凭证失效时 resolver 抛 {@link NopException}（强 fail-closed），本方法不吞。
      */
     private String resolveApiKeyForRequest(String provider, String model, String accountKey) {
-        if (!StringHelper.isEmpty(accountKey)) {
+        // D6-04（A1-audit successor，2026-08-17）：isBlank 判空——纯空白 accountKey/credApiKey
+        // 不是有效 key，不得当"非空"使用（空白 accountKey 应回退解析链而非注入空白凭证头）
+        if (!StringHelper.isBlank(accountKey)) {
             return accountKey;
         }
         if (credentialResolver != null) {
             String credApiKey = credentialResolver.resolveApiKeyByCredential(provider, model);
-            if (!StringHelper.isEmpty(credApiKey)) {
+            if (!StringHelper.isBlank(credApiKey)) {
                 return credApiKey;
             }
         }

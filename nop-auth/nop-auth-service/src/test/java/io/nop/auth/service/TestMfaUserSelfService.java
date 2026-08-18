@@ -41,6 +41,7 @@ import io.nop.core.CoreConstants;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.context.ServiceContextImpl;
 import io.nop.core.initialize.CoreInitialization;
+import io.nop.core.lang.sql.SQL;
 import io.nop.core.unittest.VarCollector;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
@@ -107,6 +108,7 @@ class TestMfaUserSelfService {
     private OrmSessionFactoryBean factoryBean;
     private OrmTemplateImpl ormTemplate;
     private IDaoProvider daoProvider;
+    private IJdbcTemplate jdbcTemplate;
 
     // ---- real beans ----
     private JwtAuthTokenProvider authTokenProvider;
@@ -127,7 +129,9 @@ class TestMfaUserSelfService {
         originalMfaEnabled = provider.getConfigValue("nop.auth.mfa.enabled", Boolean.FALSE);
         provider.assignConfigValue("nop.auth.mfa.enabled", true);
         originalTenantByDefault = provider.getConfigValue("nop.orm.enable-tenant-by-default", Boolean.FALSE);
-        provider.assignConfigValue("nop.orm.enable-tenant-by-default", true);
+        // Do NOT toggle nop.orm.enable-tenant-by-default globally: assignConfigValue'd
+        // refs survive NopJunitExtension's reset() and leak tenant columns into sibling
+        // tests in the shared surefire JVM (nop.err.orm.missing-tenant-id).
     }
 
     @AfterAll
@@ -396,18 +400,29 @@ class TestMfaUserSelfService {
                 ormTemplate.runInSession(s -> userBizModel.confirmMfa("unknown-token", "123456", ctx(userId, userName))));
         assertEquals(NopAuthErrors.ERR_AUTH_MFA_BIND_EXPIRED.getErrorCode(), ex1.getErrorCode());
 
-        // bind, then expire the pending record by lowering bind-expire-seconds to 0 → BIND_EXPIRED
+        // bind, then backdate the pending row's UPDATE_TIME past bind-expire-seconds → BIND_EXPIRED.
+        // Deterministic expiry: setting bind-expire-seconds=0 relies on >=1ms elapsing between the
+        // bind flush and the confirm expiry check; under heavy parallel load (-T 1C) both can land
+        // in the same millisecond (age==0, check is strict '>') causing an intermittent mfa-fail.
+        // Backdate 600s must exceed the default bind-expire-seconds=300 window.
         MfaBindResult bind = ormTemplate.runInSession(s ->
                 userBizModel.bindMfa(NopAuthConstants.MFA_TYPE_TOTP, ctx(userId, userName)));
-        IConfigProvider provider = AppConfig.getConfigProvider();
-        provider.assignConfigValue("nop.auth.mfa.bind-expire-seconds", 0);
-        try {
-            NopException ex2 = assertThrows(NopException.class, () ->
-                    ormTemplate.runInSession(s -> userBizModel.confirmMfa(bind.getBindToken(), "123456", ctx(userId, userName))));
-            assertEquals(NopAuthErrors.ERR_AUTH_MFA_BIND_EXPIRED.getErrorCode(), ex2.getErrorCode());
-        } finally {
-            provider.assignConfigValue("nop.auth.mfa.bind-expire-seconds", 300);
-        }
+        backdatePendingUpdateTime(userId, 600_000L);
+        NopException ex2 = assertThrows(NopException.class, () ->
+                ormTemplate.runInSession(s -> userBizModel.confirmMfa(bind.getBindToken(), "123456", ctx(userId, userName))));
+        assertEquals(NopAuthErrors.ERR_AUTH_MFA_BIND_EXPIRED.getErrorCode(), ex2.getErrorCode());
+    }
+
+    /**
+     * Backdate UPDATE_TIME of the pending MfaSetting row via direct SQL, bypassing the ORM
+     * auto-stamp (onUpdate would overwrite a manually assigned updateTime at flush).
+     */
+    private void backdatePendingUpdateTime(String userId, long backdateMs) {
+        SQL upd = SQL.begin().name("mfaBindBackdateUpdateTime")
+                .sql("UPDATE NOP_AUTH_MFA_SETTING SET UPDATE_TIME = ? WHERE USER_ID = ?",
+                        new Timestamp(CoreMetrics.currentTimeMillis() - backdateMs), userId)
+                .end();
+        jdbcTemplate.executeUpdate(upd);
     }
 
     @Test
@@ -711,7 +726,7 @@ class TestMfaUserSelfService {
 
         JdbcFactory factory = new JdbcFactory();
         ITransactionTemplate txn = factory.newTransactionTemplate(dataSource);
-        IJdbcTemplate jdbcTemplate = factory.newJdbcTemplate(txn);
+        jdbcTemplate = factory.newJdbcTemplate(txn);
 
         factoryBean = new OrmSessionFactoryBean();
         factoryBean.setJdbcTemplate(jdbcTemplate);
@@ -767,6 +782,14 @@ class TestMfaUserSelfService {
         setField(loginService, "totpAuthenticator", totpAuthenticator);
         setField(loginService, "smsSender", smsSender);
         loginService.setReturnDeptName(false);
+
+        // W12-impl：因子校验收敛至 MfaFactorVerifier（等价重构 wiring，断言零修改）
+        io.nop.auth.service.mfa.MfaFactorVerifier mfaFactorVerifier = new io.nop.auth.service.mfa.MfaFactorVerifier();
+        setField(mfaFactorVerifier, "totpAuthenticator", totpAuthenticator);
+        setField(mfaFactorVerifier, "smsCodeStore", smsCodeStore);
+        setField(mfaFactorVerifier, "daoProvider", daoProvider);
+        setField(loginService, "mfaFactorVerifier", mfaFactorVerifier);
+        setField(userBizModel, "mfaFactorVerifier", mfaFactorVerifier);
 
         loginApiBizModel = new LoginApiBizModel();
         setField(loginApiBizModel, "loginService", loginService);

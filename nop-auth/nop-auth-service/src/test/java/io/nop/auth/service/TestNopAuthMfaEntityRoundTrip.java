@@ -9,6 +9,7 @@ package io.nop.auth.service;
 
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.OptionalBoolean;
+import io.nop.auth.dao.entity.NopAuthMfaCredential;
 import io.nop.auth.dao.entity.NopAuthMfaRecoveryCode;
 import io.nop.auth.dao.entity.NopAuthMfaSetting;
 import io.nop.autotest.junit.JunitBaseTestCase;
@@ -83,5 +84,51 @@ public class TestNopAuthMfaEntityRoundTrip extends JunitBaseTestCase {
     public void testMfaSettingNotFound() {
         IEntityDao<NopAuthMfaSetting> dao = daoProvider.daoFor(NopAuthMfaSetting.class);
         assertNull(dao.getEntityById("non-existent-user"));
+    }
+
+    /**
+     * W14: NopAuthMfaCredential round-trip（webauthn 多 credential 模型，设计 §5.3.2）——
+     * seq sid 生成、credentialId 唯一约束落库、COSE publicKey/signCount/transports/status
+     * 字段完整回读、按 credentialId 定位。
+     */
+    @Test
+    public void testWebauthnCredentialRoundTrip() {
+        IEntityDao<NopAuthMfaCredential> dao = daoProvider.daoFor(NopAuthMfaCredential.class);
+        NopAuthMfaCredential c = dao.newEntity();
+        c.setUserId("user-webauthn-1");
+        c.setCredentialId("cred-base64url-alpha");
+        c.setPublicKey("pQECAyYgASFYIHh4eHggaXNfYV9jb3NlX3B1YmxpY19rZXlfZHVtbXlfbWF0ZXJpYWwiJ1");
+        c.setSignCount(42L);
+        c.setTransports("usb,nfc");
+        c.setName("YubiKey 5C");
+        c.setStatus("enabled");
+        dao.saveEntity(c);
+        assertNotNull(c.getSid(), "seq sid must be generated");
+
+        // 按 credentialId 定位（断言验证路径的查找口径）
+        NopAuthMfaCredential example = dao.newEntity();
+        example.setCredentialId("cred-base64url-alpha");
+        List<NopAuthMfaCredential> list = dao.findAllByExample(example, null);
+        assertEquals(1, list.size());
+        NopAuthMfaCredential loaded = list.get(0);
+        assertEquals("user-webauthn-1", loaded.getUserId());
+        assertEquals("cred-base64url-alpha", loaded.getCredentialId());
+        assertEquals("pQECAyYgASFYIHh4eHggaXNfYV9jb3NlX3B1YmxpY19rZXlfZHVtbXlfbWF0ZXJpYWwiJ1", loaded.getPublicKey());
+        assertEquals(42L, loaded.getSignCount());
+        assertEquals("usb,nfc", loaded.getTransports());
+        assertEquals("YubiKey 5C", loaded.getName());
+        assertEquals("enabled", loaded.getStatus());
+
+        // 同用户第二把（1:N 多 credential 模型）
+        NopAuthMfaCredential c2 = dao.newEntity();
+        c2.setUserId("user-webauthn-1");
+        c2.setCredentialId("cred-base64url-beta");
+        c2.setPublicKey("second-cose-key-material");
+        c2.setStatus("disabled");
+        c2.setSignCount(0L);
+        dao.saveEntity(c2);
+        NopAuthMfaCredential byUser = dao.newEntity();
+        byUser.setUserId("user-webauthn-1");
+        assertEquals(2, dao.findAllByExample(byUser, null).size());
     }
 }

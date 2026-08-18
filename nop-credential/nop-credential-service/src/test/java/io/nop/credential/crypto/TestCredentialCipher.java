@@ -21,6 +21,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -247,6 +248,78 @@ public class TestCredentialCipher {
 
         // GCM tag 校验失败应抛异常，不返回 null 或乱码
         assertThrows(Exception.class, () -> cipher.decrypt(tamperedCt));
+    }
+
+    // ==================== D5-05：内层 v1: 前缀强制 ====================
+
+    /**
+     * D5-05（A1-audit successor，2026-08-17）：cv1 包装的 legacy 裸载荷（无 {@code v1:}
+     * 版本前缀）必须被拒——修复前该形态会落入 {@code AESTextCipher} 的 legacy 弱路径。
+     */
+    @Test
+    public void decryptRejectsCv1WrappedLegacyPayloadWithoutV1Marker() {
+        CredentialCipher cipher = cipherWith(provider(null, "keyA:p-a"));
+        // cv1:keyA: 后直接是裸 base64（无 v1: 版本标记）—— legacy 载荷形态
+        NopException ex = assertThrows(NopException.class,
+                () -> cipher.decrypt("cv1:keyA:QUJDREVG"));
+        assertEquals("nop.err.credential.invalid-ciphertext-format", ex.getErrorCode(),
+                "cv1-wrapped legacy payload (no v1: marker) must be rejected (D5-05)");
+    }
+
+    /**
+     * D5-05 边界：合法 v1: 前缀载荷正常解密（强制不破坏正常路径）。
+     */
+    @Test
+    public void decryptAcceptsWellFormedV1Payload() {
+        ICredentialKeyProvider provider = provider(null, "keyA:p-a");
+        CredentialCipher cipher = cipherWith(provider);
+        String plain = "{\"apiKey\":\"sk-v1-ok\"}";
+        assertEquals(plain, cipher.decrypt(cipher.encrypt(plain, "keyA")));
+    }
+
+    // ==================== D1-04：ARG_CIPHERTEXT 截断（密文不整串进日志） ====================
+
+    /**
+     * D1-04（A1-audit successor，2026-08-17）：decrypt 格式错误异常的 {@code ciphertext}
+     * param 必须截断——前缀保留（格式归因）+ 总长标注，密文整串不进日志/错误响应。
+     */
+    @Test
+    public void decryptTruncatesCiphertextParamInFormatExceptions() {
+        CredentialCipher cipher = cipherWith(provider(null, "keyA:p-a"));
+        // 通过 D5-05 v1: 强制检查触发格式错误（合法 keyId + 裸 base64 载荷，长输入）
+        String longBadCiphertext = "cv1:keyA:" + "A".repeat(500);
+
+        NopException ex = assertThrows(NopException.class, () -> cipher.decrypt(longBadCiphertext));
+        assertEquals("nop.err.credential.invalid-ciphertext-format", ex.getErrorCode());
+        Object param = ex.getParam("ciphertext");
+        assertNotNull(param, "ARG_CIPHERTEXT param must be present for format attribution");
+        String value = param.toString();
+        assertTrue(value.length() <= CredentialCipher.CIPHERTEXT_PARAM_MAX_LEN + 20,
+                "ciphertext param must be truncated (prefix + len marker), got length: " + value.length());
+        assertTrue(value.startsWith("cv1:keyA:"),
+                "truncated param must keep the format-diagnostic prefix");
+        assertTrue(value.contains("len=509"),
+                "truncated param must carry total length marker, got: " + value);
+        assertFalse(value.contains("A".repeat(100)),
+                "full ciphertext body must not leak into the param");
+    }
+
+    /**
+     * D1-04：三处格式错误分支（缺 cv1 前缀/缺 keyId 段/非法 keyId）均使用截断 param。
+     */
+    @Test
+    public void allFormatExceptionBranchesUseTruncatedParam() {
+        CredentialCipher cipher = cipherWith(provider(null, "keyA:p-a"));
+        String longJunk = "J".repeat(300);
+
+        for (String bad : new String[]{longJunk, "cv1:" + longJunk, "cv1:bad key!" + ":" + longJunk}) {
+            NopException ex = assertThrows(NopException.class, () -> cipher.decrypt(bad));
+            Object param = ex.getParam("ciphertext");
+            assertNotNull(param);
+            assertTrue(param.toString().length() < bad.length() + 20,
+                    "param must not carry the full input, input len=" + bad.length()
+                            + ", param=" + param);
+        }
     }
 
     @Test

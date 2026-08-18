@@ -112,6 +112,9 @@ CREATE TABLE nop_auth_mfa_challenge(
   create_time TIMESTAMP NOT NULL ,
   updated_by VARCHAR(50)  ,
   update_time TIMESTAMP  ,
+  scene VARCHAR(20)  ,
+  payload VARCHAR(500)  ,
+  verified_at INT8  ,
   constraint PK_nop_auth_mfa_challenge primary key (challenge_token)
 );
 
@@ -126,6 +129,50 @@ CREATE TABLE nop_auth_sms_code(
   updated_by VARCHAR(50)  ,
   update_time TIMESTAMP  ,
   constraint PK_nop_auth_sms_code primary key (code_key)
+);
+
+CREATE TABLE nop_auth_role_mfa_policy(
+  role_id VARCHAR(50) NOT NULL ,
+  min_mfa_level INT4 NOT NULL ,
+  allow_trusted_device INT4 default 1  NOT NULL ,
+  del_flag INT4 NOT NULL ,
+  version INT4 NOT NULL ,
+  tenant_id VARCHAR(32)  ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint PK_nop_auth_role_mfa_policy primary key (role_id)
+);
+
+CREATE TABLE nop_auth_email_code(
+  code_key VARCHAR(100) NOT NULL ,
+  email VARCHAR(100)  ,
+  code VARCHAR(20)  ,
+  expire_at INT8  ,
+  fail_count INT4 default 0   ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50)  ,
+  update_time TIMESTAMP  ,
+  constraint PK_nop_auth_email_code primary key (code_key)
+);
+
+CREATE TABLE nop_auth_mfa_trusted_device(
+  sid VARCHAR(32) NOT NULL ,
+  user_id VARCHAR(50) NOT NULL ,
+  device_hash VARCHAR(64) NOT NULL ,
+  device_name VARCHAR(100)  ,
+  expire_at TIMESTAMP  ,
+  last_used_at TIMESTAMP  ,
+  tenant_id VARCHAR(32)  ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  constraint UK_NOP_AUTH_MFA_TRUSTED_DEVICE_UH unique (user_id,device_hash),
+  constraint PK_nop_auth_mfa_trusted_device primary key (sid)
 );
 
 CREATE TABLE nop_auth_user(
@@ -306,7 +353,31 @@ CREATE TABLE nop_auth_mfa_setting(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  totp_fail_count INT4 default 0   ,
+  totp_fail_at TIMESTAMP  ,
   constraint PK_nop_auth_mfa_setting primary key (user_id)
+);
+
+CREATE TABLE nop_auth_mfa_credential(
+  sid VARCHAR(32) NOT NULL ,
+  user_id VARCHAR(50) NOT NULL ,
+  credential_id VARCHAR(1400) NOT NULL ,
+  public_key VARCHAR(1000) NOT NULL ,
+  sign_count INT8 default 0   ,
+  transports VARCHAR(100)  ,
+  name VARCHAR(100)  ,
+  status VARCHAR(20) default 'enabled'  NOT NULL ,
+  last_used_at TIMESTAMP  ,
+  del_flag INT4 NOT NULL ,
+  version INT4 NOT NULL ,
+  tenant_id VARCHAR(32)  ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint UK_NOP_AUTH_MFA_CREDENTIAL_CRED unique (credential_id),
+  constraint PK_nop_auth_mfa_credential primary key (sid)
 );
 
 CREATE TABLE nop_auth_role_resource(
@@ -570,6 +641,12 @@ CREATE TABLE nop_auth_mfa_recovery_code(
                     
       COMMENT ON COLUMN nop_auth_mfa_challenge.update_time IS '修改时间';
                     
+      COMMENT ON COLUMN nop_auth_mfa_challenge.scene IS '场景';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_challenge.payload IS '场景数据';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_challenge.verified_at IS '验证时间';
+                    
       COMMENT ON TABLE nop_auth_sms_code IS '短信验证码';
                 
       COMMENT ON COLUMN nop_auth_sms_code.code_key IS '验证码Key';
@@ -589,6 +666,74 @@ CREATE TABLE nop_auth_mfa_recovery_code(
       COMMENT ON COLUMN nop_auth_sms_code.updated_by IS '修改人';
                     
       COMMENT ON COLUMN nop_auth_sms_code.update_time IS '修改时间';
+                    
+      COMMENT ON TABLE nop_auth_role_mfa_policy IS '角色MFA策略';
+                
+      COMMENT ON COLUMN nop_auth_role_mfa_policy.role_id IS '角色ID';
+                    
+      COMMENT ON COLUMN nop_auth_role_mfa_policy.min_mfa_level IS '最低MFA强度';
+                    
+      COMMENT ON COLUMN nop_auth_role_mfa_policy.allow_trusted_device IS '允许可信设备';
+                    
+      COMMENT ON COLUMN nop_auth_role_mfa_policy.del_flag IS '删除标识';
+                    
+      COMMENT ON COLUMN nop_auth_role_mfa_policy.version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_auth_role_mfa_policy.tenant_id IS '租户ID';
+                    
+      COMMENT ON COLUMN nop_auth_role_mfa_policy.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_auth_role_mfa_policy.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_auth_role_mfa_policy.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_auth_role_mfa_policy.update_time IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_auth_role_mfa_policy.remark IS '备注';
+                    
+      COMMENT ON TABLE nop_auth_email_code IS '邮件验证码';
+                
+      COMMENT ON COLUMN nop_auth_email_code.code_key IS '验证码Key';
+                    
+      COMMENT ON COLUMN nop_auth_email_code.email IS '邮箱';
+                    
+      COMMENT ON COLUMN nop_auth_email_code.code IS '验证码';
+                    
+      COMMENT ON COLUMN nop_auth_email_code.expire_at IS '过期时间';
+                    
+      COMMENT ON COLUMN nop_auth_email_code.fail_count IS '失败计数';
+                    
+      COMMENT ON COLUMN nop_auth_email_code.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_auth_email_code.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_auth_email_code.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_auth_email_code.update_time IS '修改时间';
+                    
+      COMMENT ON TABLE nop_auth_mfa_trusted_device IS 'MFA可信设备';
+                
+      COMMENT ON COLUMN nop_auth_mfa_trusted_device.sid IS '主键';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_trusted_device.user_id IS '用户ID';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_trusted_device.device_hash IS '设备指纹';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_trusted_device.device_name IS '设备名称';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_trusted_device.expire_at IS '到期时间';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_trusted_device.last_used_at IS '最近使用时间';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_trusted_device.tenant_id IS '租户ID';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_trusted_device.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_trusted_device.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_trusted_device.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_trusted_device.update_time IS '修改时间';
                     
       COMMENT ON TABLE nop_auth_user IS '用户';
                 
@@ -899,6 +1044,46 @@ CREATE TABLE nop_auth_mfa_recovery_code(
       COMMENT ON COLUMN nop_auth_mfa_setting.update_time IS '修改时间';
                     
       COMMENT ON COLUMN nop_auth_mfa_setting.remark IS '备注';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_setting.totp_fail_count IS 'TOTP失败计数';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_setting.totp_fail_at IS 'TOTP失败时间';
+                    
+      COMMENT ON TABLE nop_auth_mfa_credential IS 'WebAuthn凭证';
+                
+      COMMENT ON COLUMN nop_auth_mfa_credential.sid IS '主键';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_credential.user_id IS '用户ID';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_credential.credential_id IS '凭证ID';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_credential.public_key IS 'COSE公钥';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_credential.sign_count IS '签名计数';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_credential.transports IS '传输方式';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_credential.name IS '设备名称';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_credential.status IS '凭证状态';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_credential.last_used_at IS '最近使用时间';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_credential.del_flag IS '删除标识';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_credential.version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_credential.tenant_id IS '租户ID';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_credential.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_credential.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_credential.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_credential.update_time IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_auth_mfa_credential.remark IS '备注';
                     
       COMMENT ON TABLE nop_auth_role_resource IS '角色可访问资源';
                 

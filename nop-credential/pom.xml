@@ -21,6 +21,7 @@
         <module>nop-credential-api</module>
         <module>nop-credential-dao</module>
         <module>nop-credential-service</module>
+        <module>nop-credential-kms-vault</module>
         <module>nop-credential-web</module>
         <module>nop-credential-app</module>
         <module>nop-credential-meta</module>

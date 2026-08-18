@@ -112,6 +112,31 @@ public class TestChatServiceImplCredentialWiring extends JunitBaseTestCase {
                 "accountKey (coordinator FALLBACK) must win over credentialId (priority chain D2)");
     }
 
+    /**
+     * D6-04（A1-audit successor，2026-08-17）：空白 accountKey（纯空格）不是有效账号 key——
+     * 必须回退解析链（credentialId → config-var），不得把空白当"非空"注入凭证头。
+     */
+    @Test
+    void blankAccountKeyFallsThroughToCredentialChain() {
+        httpClient.setResponse(ok("{}"));
+        resolver.apiKey = "sk-from-credential-lib";
+
+        ChatRequest req = ChatRequest.userPrompt("hi");
+        req.setOptions(ChatOptions.builder()
+                .provider("default")
+                .model("gpt-4")
+                .stream(false)
+                .accountKey("   ") // 纯空白：非显式纠正账号
+                .accountBaseUrl("https://api.example.com")
+                .build());
+
+        chatService.call(req, null);
+
+        assertEquals("sk-from-credential-lib", httpClient.lastRequest.getBearerToken(),
+                "blank accountKey must fall through to the credential chain (D6-04 isBlank)");
+        assertEquals("default", resolver.lastProvider, "resolver must be consulted when accountKey is blank");
+    }
+
     @Test
     void fallsBackToConfigVarWhenCredentialReturnsNull() {
         // resolver returns null => fallback to resolveApiKey(config-var/secret). With no config/secret set,

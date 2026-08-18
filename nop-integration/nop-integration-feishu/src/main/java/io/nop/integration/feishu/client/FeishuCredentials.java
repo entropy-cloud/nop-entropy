@@ -26,6 +26,14 @@ public class FeishuCredentials {
     private String verificationToken;
     private String encryptKey;
 
+    /**
+     * 可选的凭证库引用（W16-impl-ext，设计 §4.1 结论 7）：非空时 {@code feishu-app} 四字段
+     * （appId/appSecret/verificationToken/encryptKey）在 {@code FeishuClient.start} 期整组取自
+     * 凭证库（解析副本，同名静态值忽略）；空/空白时四键静态值现状路径（既有部署零回归）。
+     * 配置键 {@code nop.integration.feishu.credentialId}（与现有四键并列，空串缺省）。
+     */
+    private String credentialId;
+
     public String getAppId() {
         return appId;
     }
@@ -60,5 +68,14 @@ public class FeishuCredentials {
     @InjectValue("@cfg:nop.integration.feishu.encryptKey|")
     public void setEncryptKey(String encryptKey) {
         this.encryptKey = encryptKey;
+    }
+
+    public String getCredentialId() {
+        return credentialId;
+    }
+
+    @InjectValue("@cfg:nop.integration.feishu.credentialId|")
+    public void setCredentialId(String credentialId) {
+        this.credentialId = credentialId;
     }
 }

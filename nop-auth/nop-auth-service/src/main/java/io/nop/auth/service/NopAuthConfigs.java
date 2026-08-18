@@ -82,9 +82,9 @@ public interface NopAuthConfigs {
     IConfigReference<Boolean> CFG_AUTH_MFA_ENABLED = varRef(s_loc, "nop.auth.mfa.enabled",
             Boolean.class, false);
 
-    @Description("MFA challenge / 短信验证码存储实现类型：local 或 redis")
+    @Description("MFA challenge / 短信验证码存储实现类型：local、db（默认）或 redis")
     IConfigReference<String> CFG_AUTH_MFA_STORE_TYPE = varRef(s_loc, "nop.auth.mfa.store-type",
-            String.class, "local");
+            String.class, "db");
 
     @Description("MFA challenge 有效期，单位秒")
     IConfigReference<Integer> CFG_AUTH_MFA_CHALLENGE_EXPIRE_SECONDS = varRef(s_loc, "nop.auth.mfa.challenge-expire-seconds",
@@ -109,6 +109,40 @@ public interface NopAuthConfigs {
     @Description("MFA 绑定流程 bindToken 有效期，单位秒。confirmMfa 据此判定 pending 记录是否过期（复用 pending 记录 updateTime）")
     IConfigReference<Integer> CFG_AUTH_MFA_BIND_EXPIRE_SECONDS = varRef(s_loc, "nop.auth.mfa.bind-expire-seconds",
             Integer.class, 300);
+
+    // ===== TOTP 绑定/解绑失败上限（A2-followup-1 D1-1） =====
+
+    @Description("confirmMfa/unbindMfa 的 TOTP 分支连续失败次数上限（对齐登录级 max-attempts）：pending 路径达上限作废 bindToken（BIND_EXPIRED），enabled 路径进入冷却窗口")
+    IConfigReference<Integer> CFG_AUTH_MFA_TOTP_VERIFY_MAX_FAILS = varRef(s_loc, "nop.auth.mfa.totp-verify-max-fails",
+            Integer.class, 5);
+
+    @Description("unbindMfa 的 TOTP 分支失败达上限后的冷却窗口（秒）：窗口内因子验证直接拒绝（ERR_AUTH_MFA_COOLDOWN），过期后可重试；成功验证清零计数")
+    IConfigReference<Integer> CFG_AUTH_MFA_TOTP_COOLDOWN_SECONDS = varRef(s_loc, "nop.auth.mfa.totp-cooldown-seconds",
+            Integer.class, 300);
+
+    // ===== WebAuthn/FIDO2 配置（W14-impl，设计 §5.3.2 RP 配置） =====
+
+    @Description("WebAuthn Relying Party ID（WebAuthn rpId，一般为域名，如 example.com）。webauthn 因子使用时必配")
+    IConfigReference<String> CFG_AUTH_MFA_WEBAUTHN_RP_ID = varRef(s_loc, "nop.auth.mfa.webauthn.rp-id",
+            String.class, null);
+
+    @Description("WebAuthn Relying Party 显示名（creationOptions.rp.name）。webauthn 因子使用时必配")
+    IConfigReference<String> CFG_AUTH_MFA_WEBAUTHN_RP_NAME = varRef(s_loc, "nop.auth.mfa.webauthn.rp-name",
+            String.class, null);
+
+    @Description("WebAuthn 允许的 origin 列表（逗号分隔，如 https://a.com,https://b.com）。验证时精确匹配，不匹配即拒绝（fail-closed 防钓鱼域）。webauthn 因子使用时必配")
+    IConfigReference<String> CFG_AUTH_MFA_WEBAUTHN_ORIGINS = varRef(s_loc, "nop.auth.mfa.webauthn.origins",
+            String.class, null);
+
+    // ===== 操作级 MFA 配置（设计 §3.1 结论 8 / §3.7） =====
+
+    @Description("操作级 MFA 总开关（会话内敏感操作二次验证）。缺省 false：关闭时拦截器零介入，一期零回归")
+    IConfigReference<Boolean> CFG_AUTH_OPERATION_MFA_ENABLED = varRef(s_loc, "nop.auth.operation-mfa.enabled",
+            Boolean.class, false);
+
+    @Description("操作级票窗口（秒）：mfaVerifyOperation 验证后允许重试原操作的时间（票绑定 operation+sessionId+单次消费）")
+    IConfigReference<Integer> CFG_AUTH_OPERATION_MFA_OP_TICKET_EXPIRE_SECONDS = varRef(s_loc,
+            "nop.auth.operation-mfa.op-ticket-expire-seconds", Integer.class, 60);
 
     // ===== 短信验证码配置（设计 §3.7） =====
 
@@ -143,4 +177,48 @@ public interface NopAuthConfigs {
     @Description("未注册手机号是否允许发送验证码（防枚举：关闭时未注册号也统一响应已发送）")
     IConfigReference<Boolean> CFG_AUTH_SMS_CODE_ALLOW_REGISTER = varRef(s_loc, "nop.auth.sms-code.allow-register",
             Boolean.class, false);
+
+    // ===== 邮件验证码配置（W15-impl，设计 §5.3.3——对齐 sms-code 三层限流先例） =====
+
+    @Description("邮件验证码开关（缺省 false：关闭时 bindMfa(email)/sendMfaCode email 分支/登记通道 email 路径显式拒绝，非静默跳过）")
+    IConfigReference<Boolean> CFG_AUTH_EMAIL_CODE_ENABLED = varRef(s_loc, "nop.auth.email-code.enabled",
+            Boolean.class, false);
+
+    @Description("邮件验证码有效期，单位秒")
+    IConfigReference<Integer> CFG_AUTH_EMAIL_CODE_EXPIRE_SECONDS = varRef(s_loc, "nop.auth.email-code.expire-seconds",
+            Integer.class, 300);
+
+    @Description("同一邮箱邮件发送最小间隔，单位秒")
+    IConfigReference<Integer> CFG_AUTH_EMAIL_CODE_SEND_INTERVAL_SECONDS = varRef(s_loc, "nop.auth.email-code.send-interval-seconds",
+            Integer.class, 60);
+
+    @Description("同一邮箱每日邮件发送上限")
+    IConfigReference<Integer> CFG_AUTH_EMAIL_CODE_DAILY_LIMIT = varRef(s_loc, "nop.auth.email-code.daily-limit",
+            Integer.class, 20);
+
+    @Description("同一 IP 每日邮件发送上限")
+    IConfigReference<Integer> CFG_AUTH_EMAIL_CODE_IP_DAILY_LIMIT = varRef(s_loc, "nop.auth.email-code.ip-daily-limit",
+            Integer.class, 50);
+
+    @Description("邮件验证码错误上限，超过后作废需重发")
+    IConfigReference<Integer> CFG_AUTH_EMAIL_CODE_MAX_ATTEMPTS = varRef(s_loc, "nop.auth.email-code.max-attempts",
+            Integer.class, 5);
+
+    @Description("邮件验证码主题模板（{code} 占位符服务端替换）")
+    IConfigReference<String> CFG_AUTH_EMAIL_CODE_SUBJECT_TEMPLATE = varRef(s_loc, "nop.auth.email-code.subject-template",
+            String.class, "Verification Code");
+
+    @Description("邮件验证码正文模板（{code} 占位符服务端替换）")
+    IConfigReference<String> CFG_AUTH_EMAIL_CODE_TEXT_TEMPLATE = varRef(s_loc, "nop.auth.email-code.text-template",
+            String.class, "Your verification code is {code}. It expires in 5 minutes.");
+
+    // ===== 可信设备配置（W15-impl，设计 §六） =====
+
+    @Description("可信设备豁免固定窗口天数（自登记日起算，命中不续期）")
+    IConfigReference<Integer> CFG_AUTH_MFA_TRUSTED_DEVICE_TTL_DAYS = varRef(s_loc, "nop.auth.mfa.trusted-device.ttl-days",
+            Integer.class, 30);
+
+    @Description("每用户可信设备数量上限（仅计未过期行；同 hash 覆盖刷新不受限；满员新增显式提示不阻断登录）")
+    IConfigReference<Integer> CFG_AUTH_MFA_TRUSTED_DEVICE_MAX_COUNT = varRef(s_loc, "nop.auth.mfa.trusted-device.max-count",
+            Integer.class, 5);
 }

@@ -50,6 +50,11 @@ public interface NopMetadataArgs {
     String ARG_METHOD = "method";
     String ARG_RULE_KEY = "ruleKey";
     String ARG_JDBC_URL = "jdbcUrl";
+    String ARG_CREDENTIAL_ID = "credentialId";
+    String ARG_TYPE_NAME = "typeName";
+    String ARG_EXPECTED_TYPE_NAMES = "expectedTypeNames";
+    String ARG_FIELD_NAME = "fieldName";
+    String ARG_REQUIRED_ROLES = "requiredRoles";
     String ARG_DRIVER_CLASS_NAME = "driverClassName";
     String ARG_DATA_SOURCE_COUNT = "dataSourceCount";
     String ARG_INDEX = "index";

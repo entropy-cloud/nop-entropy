@@ -3,6 +3,7 @@ package io.nop.auth.service;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.annotations.autotest.NopTestProperty;
+import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.auth.dao.entity.NopAuthDept;
@@ -13,6 +14,7 @@ import io.nop.orm.OrmErrors;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
 import jakarta.inject.Inject;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -23,6 +25,17 @@ import static org.junit.jupiter.api.Assertions.fail;
 public class TestTenant extends JunitBaseTestCase {
     @Inject
     IDaoProvider daoProvider;
+
+    /**
+     * @NopTestProperty sets the flag via assignConfigValue, and NopJunitExtension's
+     * reset() cannot restore it afterwards (refs survive reset). Explicitly restore
+     * it to false so the flag does not leak tenant columns into sibling DB tests
+     * sharing the surefire JVM (nop.err.orm.missing-tenant-id).
+     */
+    @AfterAll
+    static void restoreTenantByDefault() {
+        AppConfig.getConfigProvider().assignConfigValue("nop.orm.enable-tenant-by-default", false);
+    }
 
     @Test
     public void testCloneInstance() {

@@ -85,18 +85,29 @@ public class _NopCredential extends DynamicOrmEntity{
     public static final String PROP_NAME_remark = "remark";
     public static final int PROP_ID_remark = 16;
     
+    /* 凭证归属: SCOPE VARCHAR */
+    public static final String PROP_NAME_scope = "scope";
+    public static final int PROP_ID_scope = 17;
+    
+    /* 归属用户: OWNER_ID VARCHAR */
+    public static final String PROP_NAME_ownerId = "ownerId";
+    public static final int PROP_ID_ownerId = 18;
+    
 
-    private static int _PROP_ID_BOUND = 17;
+    private static int _PROP_ID_BOUND = 19;
 
     
     /* relation: 凭证使用记录 */
     public static final String PROP_NAME_usages = "usages";
     
+    /* relation: 凭证取用授权 */
+    public static final String PROP_NAME_auths = "auths";
+    
 
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_credentialId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_credentialId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[17];
+    private static final String[] PROP_ID_TO_NAME = new String[19];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -148,6 +159,12 @@ public class _NopCredential extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_remark] = PROP_NAME_remark;
           PROP_NAME_TO_ID.put(PROP_NAME_remark, PROP_ID_remark);
       
+          PROP_ID_TO_NAME[PROP_ID_scope] = PROP_NAME_scope;
+          PROP_NAME_TO_ID.put(PROP_NAME_scope, PROP_ID_scope);
+      
+          PROP_ID_TO_NAME[PROP_ID_ownerId] = PROP_NAME_ownerId;
+          PROP_NAME_TO_ID.put(PROP_NAME_ownerId, PROP_ID_ownerId);
+      
     }
 
     
@@ -198,6 +215,12 @@ public class _NopCredential extends DynamicOrmEntity{
     
     /* 备注: REMARK */
     private java.lang.String _remark;
+    
+    /* 凭证归属: SCOPE */
+    private java.lang.String _scope;
+    
+    /* 归属用户: OWNER_ID */
+    private java.lang.String _ownerId;
     
 
     public _NopCredential(){
@@ -320,6 +343,12 @@ public class _NopCredential extends DynamicOrmEntity{
         
             case PROP_ID_remark:
                return getRemark();
+        
+            case PROP_ID_scope:
+               return getScope();
+        
+            case PROP_ID_ownerId:
+               return getOwnerId();
         
            default:
               return super.orm_propValue(propId);
@@ -492,6 +521,26 @@ public class _NopCredential extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_scope:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_scope));
+               }
+               setScope(typedValue);
+               break;
+            }
+        
+            case PROP_ID_ownerId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_ownerId));
+               }
+               setOwnerId(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -609,6 +658,20 @@ public class _NopCredential extends DynamicOrmEntity{
             case PROP_ID_remark:{
                onInitProp(propId);
                this._remark = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_scope:{
+               onInitProp(propId);
+               this._scope = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_ownerId:{
+               onInitProp(propId);
+               this._ownerId = (java.lang.String)value;
                
                break;
             }
@@ -923,6 +986,44 @@ public class _NopCredential extends DynamicOrmEntity{
         }
     }
     
+    /**
+     * 凭证归属: SCOPE
+     */
+    public final java.lang.String getScope(){
+         onPropGet(PROP_ID_scope);
+         return _scope;
+    }
+
+    /**
+     * 凭证归属: SCOPE
+     */
+    public final void setScope(java.lang.String value){
+        if(onPropSet(PROP_ID_scope,value)){
+            this._scope = value;
+            internalClearRefs(PROP_ID_scope);
+            
+        }
+    }
+    
+    /**
+     * 归属用户: OWNER_ID
+     */
+    public final java.lang.String getOwnerId(){
+         onPropGet(PROP_ID_ownerId);
+         return _ownerId;
+    }
+
+    /**
+     * 归属用户: OWNER_ID
+     */
+    public final void setOwnerId(java.lang.String value){
+        if(onPropSet(PROP_ID_ownerId,value)){
+            this._ownerId = value;
+            internalClearRefs(PROP_ID_ownerId);
+            
+        }
+    }
+    
     private final OrmEntitySet<io.nop.credential.dao.entity.NopCredentialUsage> _usages = new OrmEntitySet<>(this, PROP_NAME_usages,
         io.nop.credential.dao.entity.NopCredentialUsage.PROP_NAME_credential, null,io.nop.credential.dao.entity.NopCredentialUsage.class);
 
@@ -931,6 +1032,16 @@ public class _NopCredential extends DynamicOrmEntity{
      */
     public final IOrmEntitySet<io.nop.credential.dao.entity.NopCredentialUsage> getUsages(){
        return _usages;
+    }
+       
+    private final OrmEntitySet<io.nop.credential.dao.entity.NopCredentialAuth> _auths = new OrmEntitySet<>(this, PROP_NAME_auths,
+        io.nop.credential.dao.entity.NopCredentialAuth.PROP_NAME_credential, null,io.nop.credential.dao.entity.NopCredentialAuth.class);
+
+    /**
+     * 凭证取用授权。 refPropName: credential, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.credential.dao.entity.NopCredentialAuth> getAuths(){
+       return _auths;
     }
        
 }

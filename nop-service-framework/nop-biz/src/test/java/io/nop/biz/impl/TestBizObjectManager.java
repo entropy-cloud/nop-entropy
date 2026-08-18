@@ -65,4 +65,28 @@ public class TestBizObjectManager extends JunitBaseTestCase {
 
         assertEquals(attachmentJsonText("mutation-response.json"), JSON.serialize(response, true));
     }
+
+    /**
+     * W12-impl Phase 1：@MfaRequired 元数据经 BizObjectBuildHelper.mergeBizModel（Java
+     * biz-model → BizObject 合并的实际搬运点）不丢失；deepClone 路径
+     * （getGraphQLDocument 的字段 deep-clone）同样保留。
+     */
+    @Test
+    public void testMfaRequiredMetaSurvivesBizObjectMerge() {
+        io.nop.graphql.core.ast.GraphQLFieldDefinition field = bizObjManager.getOperationDefinition(
+                io.nop.graphql.core.ast.GraphQLOperationType.mutation, "MyObject__sensitiveMutation");
+        org.junit.jupiter.api.Assertions.assertNotNull(field, "sensitiveMutation must be registered as operation");
+        org.junit.jupiter.api.Assertions.assertNotNull(field.getMfaRequiredMeta(),
+                "mergeBizModel must carry mfaRequiredMeta from java biz model to biz object operation");
+
+        // deepClone 路径（getGraphQLDocument 对 operation 字段做 deepClone）
+        io.nop.graphql.core.ast.GraphQLDocument doc = bizObjManager.getGraphQLDocument();
+        boolean clonedHasMeta = doc.getDefinitions().stream()
+                .filter(d -> d instanceof io.nop.graphql.core.ast.GraphQLObjectDefinition)
+                .map(d -> (io.nop.graphql.core.ast.GraphQLObjectDefinition) d)
+                .flatMap(d -> d.getFields().stream())
+                .anyMatch(f -> "MyObject__sensitiveMutation".equals(f.getName()) && f.getMfaRequiredMeta() != null);
+        org.junit.jupiter.api.Assertions.assertTrue(clonedHasMeta,
+                "deep-cloned document must keep mfaRequiredMeta");
+    }
 }

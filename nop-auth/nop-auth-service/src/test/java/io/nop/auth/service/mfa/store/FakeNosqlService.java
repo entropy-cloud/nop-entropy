@@ -181,6 +181,19 @@ public class FakeNosqlService implements INosqlService {
         return CompletableFuture.completedFuture(putIfAbsent(key, value));
     }
 
+    /**
+     * SETNX+PX（操作级票键，设计 §3.3 markVerified 原子性）：仅当键不存在时写入并设定 TTL。
+     */
+    @Override
+    public CompletionStage<Boolean> putIfAbsentExAsync(String key, Object value, long timeout) {
+        record("putIfAbsentExAsync");
+        if (rawGet(key) != null)
+            return CompletableFuture.completedFuture(Boolean.FALSE);
+        long expireAt = timeout > 0 ? System.currentTimeMillis() + timeout : 0L;
+        store.putIfAbsent(key, new Slot(value, expireAt));
+        return CompletableFuture.completedFuture(Boolean.TRUE);
+    }
+
     // ---- counter (方案 A 原子失败计数) ----
 
     @Override
@@ -307,10 +320,7 @@ public class FakeNosqlService implements INosqlService {
         throw new UnsupportedOperationException();
     }
 
-    @Override
-    public CompletionStage<Boolean> putIfAbsentExAsync(String key, Object value, long timeout) {
-        throw new UnsupportedOperationException();
-    }
+    // putIfAbsentExAsync 已在上方实现（操作级票键 SETNX+PX）
 
     @Override
     public CompletionStage<String> putIfAbsentOrMatchExAsync(String key, String value, long timeout) {

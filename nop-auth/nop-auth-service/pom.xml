@@ -84,6 +84,17 @@
             <artifactId>nop-core</artifactId>
         </dependency>
 
+        <!-- W14: WebAuthn/FIDO2 protocol library (design §5.3.2 / §5.4: never
+             roll our own protocol stack). Encapsulated exclusively inside
+             WebAuthnAuthenticator; library types must not leak into method
+             signatures. Only nop-auth-service carries this dependency —
+             nop-biz-auth-core keeps its zero-third-party-dependency rule. -->
+        <dependency>
+            <groupId>com.yubico</groupId>
+            <artifactId>webauthn-server-core</artifactId>
+            <version>2.7.0</version>
+        </dependency>
+
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-sys-service</artifactId>
@@ -146,6 +157,16 @@
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-integration-feishu</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- W16-impl-ext: Email MFA credentialId E2E (TestJavaEmailSenderMfaE2E) —
+             the real email-code send chain consumes a credential-wired JavaEmailSender.
+             Test-scope only: no runtime dependency edge. -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-integration-email-java</artifactId>
+            <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
 

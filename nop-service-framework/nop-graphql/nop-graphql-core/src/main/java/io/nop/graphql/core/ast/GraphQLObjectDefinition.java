@@ -224,6 +224,9 @@ public class GraphQLObjectDefinition extends _GraphQLObjectDefinition implements
                 if (field.getMakerCheckerMeta() != null)
                     old.setMakerCheckerMeta(field.getMakerCheckerMeta());
 
+                if (field.getMfaRequiredMeta() != null)
+                    old.setMfaRequiredMeta(field.getMfaRequiredMeta());
+
                 if (field.getServiceAction() != null && field.getFetcher() == null) {
                     old.setServiceAction(field.getServiceAction());
                 }
@@ -259,6 +262,9 @@ public class GraphQLObjectDefinition extends _GraphQLObjectDefinition implements
 
                 if (old.getMakerCheckerMeta() == null)
                     old.setMakerCheckerMeta(field.getMakerCheckerMeta());
+
+                if (old.getMfaRequiredMeta() == null)
+                    old.setMfaRequiredMeta(field.getMfaRequiredMeta());
 
                 if (old.getServiceAction() == null) {
                     old.setServiceAction(field.getServiceAction());

@@ -56,20 +56,6 @@
         }
 
 
-        private String _phone;
-
-    
-        @PropMeta(propId=6)
-    
-        public String getPhone(){
-            return _phone;
-        }
-
-        public void setPhone(String value){
-            this._phone = value;
-        }
-
-
         private Long _lastVerifiedWindow;
 
     

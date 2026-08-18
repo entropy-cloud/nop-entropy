@@ -1,0 +1,11 @@
+label: MFA类型
+locale: zh-CN
+options:
+  - label: TOTP动态口令
+    value: totp
+  - label: 短信验证码
+    value: sms
+  - label: WebAuthn硬件凭证
+    value: webauthn
+  - label: 邮件验证码
+    value: email

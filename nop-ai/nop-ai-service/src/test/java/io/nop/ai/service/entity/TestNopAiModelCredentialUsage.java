@@ -96,6 +96,26 @@ public class TestNopAiModelCredentialUsage {
         biz.reconcileCredentialUsage(model("m-6", "cred-A"), null);
     }
 
+    /**
+     * D6-04（A1-audit successor，2026-08-17）：纯空白 credentialId 视同未配置——
+     * 不走 bind 分支登记引用（isEmpty → isBlank 收紧：空白值不当有效凭证引用使用）。
+     */
+    @Test
+    void blankCredentialIdDoesNotRegisterUsage() {
+        RecordingProvider provider = new RecordingProvider();
+        NopAiModelBizModel biz = newBiz(provider);
+
+        // old=null → new=blank：视同"未配置"，不 bind
+        biz.reconcileCredentialUsage(model("m-7", "   "), null);
+        assertTrue(provider.registered.isEmpty(),
+                "blank credentialId must be treated as unconfigured (no registerUsage, D6-04)");
+
+        // old=blank → new=blank：双空白 noop
+        biz.reconcileCredentialUsage(model("m-8", "  "), " \t ");
+        assertTrue(provider.registered.isEmpty() && provider.unregistered.isEmpty(),
+                "both blank => noop (D6-04)");
+    }
+
     @Test
     void consumerRefFollowsConvention() {
         assertEquals("ai:NopAiModel:abc-123", NopAiModelBizModel.consumerRef("abc-123"));

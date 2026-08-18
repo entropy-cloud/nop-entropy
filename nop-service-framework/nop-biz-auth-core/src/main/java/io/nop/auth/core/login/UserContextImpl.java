@@ -42,6 +42,9 @@ public class UserContextImpl extends ExtensibleBean implements IUserContext, IJs
 
     private long lastAccessTime;
 
+    /** MFA 受限会话标志（设计 §4.3，W13-impl）。缺省 false；true 仅在受限签发（completeLogin 受限变体）时设置。 */
+    private boolean mfaRestricted;
+
     @Override
     public void serializeToJson(IJsonHandler out) {
         out.beginObject(null);
@@ -61,6 +64,11 @@ public class UserContextImpl extends ExtensibleBean implements IUserContext, IJs
         out.putNotNull("accessToken", accessToken);
         out.putNotNull("refreshToken", refreshToken);
         out.put("lastAccessTime", lastAccessTime);
+        if (mfaRestricted) {
+            // Dao-cache 白名单触点之一（设计 §4.3 持久化机制）：仅受限会话序列化该标志，
+            // 正常会话 JSON 形态零变化
+            out.putNotNull("mfaRestricted", Boolean.TRUE);
+        }
         out.putNotNull("attrs", getAttrs());
         out.endObject();
     }
@@ -292,6 +300,22 @@ public class UserContextImpl extends ExtensibleBean implements IUserContext, IJs
     @Override
     public boolean dirty() {
         return dirty;
+    }
+
+    /**
+     * MFA 受限会话标志（{@link IUserContext#isMfaRestricted()} 覆写，W13-impl）。
+     * setter 供 Dao-cache 反序列化（BeanTool.setProperties）与受限签发路径使用。
+     */
+    @Override
+    public boolean isMfaRestricted() {
+        return mfaRestricted;
+    }
+
+    public void setMfaRestricted(boolean mfaRestricted) {
+        if (this.mfaRestricted != mfaRestricted) {
+            this.mfaRestricted = mfaRestricted;
+            dirty = true;
+        }
     }
 
     @Override

@@ -11,6 +11,7 @@ import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
+import io.nop.auth.api.mfa.IOperationMfaChecker;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.context.ServiceContextImpl;
 import io.nop.graphql.core.GraphQLConstants;
@@ -43,6 +44,8 @@ public class GraphQLExecutionContext implements IGraphQLExecutionContext {
     private FieldSelectionBean fieldSelection;
 
     private boolean makerCheckerEnabled;
+
+    private IOperationMfaChecker operationMfaChecker;
 
     public GraphQLExecutionContext(IServiceContext serviceContext) {
         this.serviceContext = serviceContext == null ? new ServiceContextImpl() : serviceContext;
@@ -91,6 +94,16 @@ public class GraphQLExecutionContext implements IGraphQLExecutionContext {
     @Override
     public void setMakerCheckerEnabled(boolean makerCheckerEnabled) {
         this.makerCheckerEnabled = makerCheckerEnabled;
+    }
+
+    @Override
+    public IOperationMfaChecker getOperationMfaChecker() {
+        return operationMfaChecker;
+    }
+
+    @Override
+    public void setOperationMfaChecker(IOperationMfaChecker operationMfaChecker) {
+        this.operationMfaChecker = operationMfaChecker;
     }
 
     public FieldSelectionBean getFieldSelection() {

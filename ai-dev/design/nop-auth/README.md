@@ -2,9 +2,9 @@
 
 > Status: active
 > Created: 2026-08-10
-> Updated: 2026-08-10（第五轮审查修订，已达成共识）
+> Updated: 2026-08-14（二期设计 `02-mfa-phase2-design.md` 定稿，阅读顺序补条目）
 
-本目录按 AGE（Attractor-Guided Engineering）owner-doc 模式组织，承载 `nop-auth` 子系统的架构决策。当前覆盖 **MFA（多因子验证）** 设计：短信验证码登录与多因子验证，后续可继续纳入登录安全、会话治理等专题。
+本目录按 AGE（Attractor-Guided Engineering）owner-doc 模式组织，承载 `nop-auth` 子系统的架构决策。当前覆盖 **MFA（多因子验证）** 设计：一期已落地（短信验证码登录 + TOTP + 登录级两阶段 MFA），二期设计定稿（操作级 MFA / 角色级强制策略 / 因子扩展（WebAuthn/邮件码）/ 可信设备，待 W12-W15-impl 实施）；后续可继续纳入登录安全、会话治理等专题。
 
 ## 文档结构与阅读顺序
 
@@ -14,7 +14,10 @@
    - MFA 子系统的产品定位、成功标准、显式 non-goals、设计收敛路径。回答"MFA 做什么、不做什么、凭什么判断成功"。
 
 2. `01-architecture-baseline.md`
-   - 登录流程改造（两阶段 challenge，覆盖 loginAsync 与 createSessionForUserAsync）、短信验证码登录、TOTP 验证器、数据模型、API 契约、配置项、错误码、关键设计决策。回答"MFA 如何分层、对象间如何协作、需要改哪些既有代码"。
+   - 登录流程改造（两阶段 challenge，覆盖 loginAsync 与 createSessionForUserAsync）、短信验证码登录、TOTP 验证器、数据模型、API 契约、配置项、错误码、关键设计决策。回答"MFA 如何分层、对象间如何协作、需要改哪些既有代码"。**一期基线（W4-W8 已落地），二期各主题的兼容性锚点。**
+
+3. `02-mfa-phase2-design.md`
+   - MFA 二期四主题设计：操作级 MFA（请求级钩子 + 敏感操作声明模型）、角色级强制策略（策略模型/三层判定矩阵/受限会话引导）、因子扩展（MfaType 形态裁决 + 白名单校验点基线清单 + WebAuthn/FIDO2 + 邮件验证码 + 外部服务评估）、可信设备（设备指纹/豁免语义/撤销条件）。回答"二期做什么、怎么与一期契约共存"。W12-impl ~ W15-impl 的直接设计输入。
 
 ### 按需深入
 
@@ -31,9 +34,10 @@
 ## 职责边界
 
 - `00-vision.md` 回答"MFA 的边界是什么"。
-- `01-architecture-baseline.md` 回答"MFA 如何改造登录流程、核心对象职责、数据模型、API 契约、与既有机制的关系"。
+- `01-architecture-baseline.md` 回答"MFA 如何改造登录流程、核心对象职责、数据模型、API 契约、与既有机制的关系"（一期基线）。
+- `02-mfa-phase2-design.md` 回答"二期四主题（操作级/角色策略/因子扩展/可信设备）如何设计与一期契约共存"（二期设计，未实施）。
 - 本目录不记录实现过程、迁移日志、测试结果；这些进入 `ai-dev/logs/`、`ai-dev/plans/` 或 `ai-dev/analysis/`。
 
 ## 阅读顺序建议
 
-新读者按 00 → 01 顺序阅读；只关心"短信验证码登录怎么加"的读者直接读 `01-architecture-baseline.md` 的"短信验证码登录与存储设计"一节；只关心"二次验证怎么加"的读者读"MFA 登录流程"一节。
+新读者按 00 → 01 → 02 顺序阅读；只关心"短信验证码登录怎么加"的读者直接读 `01-architecture-baseline.md` 的"短信验证码登录与存储设计"一节；只关心"二次验证怎么加"的读者读"MFA 登录流程"一节；关心二期主题（操作级 MFA/角色策略/WebAuthn/邮件码/可信设备）的读者读 `02-mfa-phase2-design.md` 对应主题小节（各小节五段结构自包含）。

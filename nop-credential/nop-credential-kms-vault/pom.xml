@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <parent>
+        <artifactId>nop-credential</artifactId>
+        <groupId>io.github.entropy-cloud</groupId>
+        <version>2.0.0-SNAPSHOT</version>
+    </parent>
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>nop-credential-kms-vault</artifactId>
+
+    <dependencies>
+        <!-- 独立可选模块的轻量依赖约束（W10-impl plan 裁定）：仅依赖 api 层 + 平台 HTTP api，
+             不依赖 nop-credential-service，不引入 Vault Java SDK（经 IHttpClient 直连 KV v2 HTTP API） -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-credential-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-http-api</artifactId>
+        </dependency>
+
+        <!-- 容器级 wiring 测试模拟真实部署组合（nop-credential-service + 本模块）；
+             同时提供 IHttpClient 实现（JdkHttpClient）供 Vault KV v2 读取 -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-credential-service</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-http-client-jdk</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-autotest-junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- WARN 审计断言（logback ListAppender；nop-commons 已传递提供，此处显式声明 test 依赖以固化意图） -->
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+</project>

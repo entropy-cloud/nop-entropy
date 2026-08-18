@@ -209,6 +209,23 @@ public class TestAiModelCredentialResolver {
                 "credential configured but apiKey field empty => strong fail-closed (no silent fallback)");
     }
 
+    /**
+     * D6-04（A1-audit successor，2026-08-17）：apiKey 字段值为纯空白 → 同空值处理，
+     * fail-closed（isEmpty → isBlank 收紧：空白值不得当有效 key 使用）。
+     */
+    @Test
+    void failClosedWhenApiKeyFieldBlank() {
+        seedModel("m4b", "test", "gpt-4", "cred-blank-field");
+        RecordingCredentialProvider provider = new RecordingCredentialProvider();
+        provider.data.put("cred-blank-field", credData("   ")); // 纯空白 apiKey
+        IAiModelCredentialResolver resolver = newResolver(provider);
+
+        NopException ex = assertThrows(NopException.class,
+                () -> resolver.resolveApiKeyByCredential("test", "gpt-4"));
+        assertEquals(ERR_AI_CREDENTIAL_FIELD_EMPTY.getErrorCode(), ex.getErrorCode(),
+                "blank (whitespace-only) apiKey field must fail closed like an empty one (D6-04 isBlank)");
+    }
+
     @Test
     void failClosedWhenProviderNotDeployed() {
         seedModel("m5", "test", "gpt-4", "cred-005");

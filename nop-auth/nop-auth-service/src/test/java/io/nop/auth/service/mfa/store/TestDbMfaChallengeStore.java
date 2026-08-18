@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.nop.dao.DaoConstants.DEFAULT_QUERY_SPACE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -168,5 +169,131 @@ public class TestDbMfaChallengeStore extends JunitBaseTestCase {
     public void testPeekMissingReturnsNull() {
         DbMfaChallengeStore s = store(60);
         assertNull(s.peek("never-created"), "peek on missing token returns null (no exception)");
+    }
+
+    // ===================== W12-impl Phase 2：场景化 + markVerified（设计 §3.3） =====================
+
+    private Long dbVerifiedAt(String token) {
+        SQL select = SQL.begin().name("assertVerifiedAt").querySpace(DEFAULT_QUERY_SPACE)
+                .sql("SELECT VERIFIED_AT FROM " + DbMfaChallengeStore.TABLE + " WHERE CHALLENGE_TOKEN = ?", token).end();
+        return jdbcTemplate.findLong(select, null);
+    }
+
+    @Test
+    public void testSceneCreateOverloadPinsSceneAndPayload() {
+        DbMfaChallengeStore s = store(60);
+        String payload = "{\"operation\":\"NopAuthUser__resetUserMfa\",\"sessionId\":\"sess-1\"}";
+        String token = s.create(MfaChallenge.SCENE_OPERATION, "op-user", "totp", 1, "t0", null, payload);
+
+        MfaChallenge peeked = s.peek(token);
+        assertNotNull(peeked, "scene=operation challenge must be creatable and peekable (DB)");
+        assertEquals(MfaChallenge.SCENE_OPERATION, peeked.getScene(), "scene must be persisted (SCENE column)");
+        assertEquals(payload, peeked.getPayload(), "payload must be persisted (PAYLOAD column)");
+        assertNull(peeked.getVerifiedAt(), "freshly created challenge must be unverified");
+    }
+
+    @Test
+    public void testLegacyFiveArgDelegatesToLoginScene() {
+        DbMfaChallengeStore s = store(60);
+        String token = s.create("legacy-user", "totp", 1, "t0", "13800000000");
+
+        MfaChallenge peeked = s.peek(token);
+        assertNotNull(peeked);
+        assertEquals(MfaChallenge.SCENE_LOGIN, peeked.getScene(), "old 5-arg create delegates scene=login (DB)");
+        assertNull(peeked.getPayload(), "old 5-arg create delegates payload=null (DB)");
+    }
+
+    @Test
+    public void testMarkVerifiedExactlyOnceDb() {
+        DbMfaChallengeStore s = store(60);
+        String token = s.create(MfaChallenge.SCENE_OPERATION, "mv-user", "totp", 1, "t0", null, "{}");
+
+        assertTrue(s.markVerified(token), "first markVerified must succeed (conditional UPDATE)");
+        assertNotNull(dbVerifiedAt(token), "VERIFIED_AT column must be set");
+        assertNotNull(s.peek(token).getVerifiedAt(), "peek must expose verifiedAt (raw read)");
+        assertFalse(s.markVerified(token), "second markVerified must return false (VERIFIED_AT IS NULL fails)");
+        assertFalse(s.markVerified("no-such-token"), "missing token returns false");
+    }
+
+    @Test
+    public void testMarkVerifiedConcurrentExactlyOneWinnerDb() throws Exception {
+        DbMfaChallengeStore s = store(120);
+        String token = s.create(MfaChallenge.SCENE_OPERATION, "conc-user", "totp", 1, "t0", null, "{}");
+
+        int threads = 10;
+        ExecutorService pool = Executors.newFixedThreadPool(threads);
+        CountDownLatch start = new CountDownLatch(1);
+        AtomicInteger winners = new AtomicInteger();
+        List<java.util.concurrent.Future<?>> futures = new ArrayList<>();
+        for (int i = 0; i < threads; i++) {
+            futures.add(pool.submit(() -> {
+                start.await();
+                if (s.markVerified(token))
+                    winners.incrementAndGet();
+                return null;
+            }));
+        }
+        start.countDown();
+        for (java.util.concurrent.Future<?> f : futures)
+            f.get();
+        pool.shutdown();
+
+        assertEquals(1, winners.get(), "concurrent markVerified must have exactly one winner (affected-row semantics)");
+    }
+
+    @Test
+    public void testTicketWindowVisibleOnlyWithinOpTicketExpireDb() {
+        MfaChallengeStoreConfig cfg = new MfaChallengeStoreConfig();
+        cfg.setExpireSeconds(60);
+        cfg.setOpTicketExpireSeconds(60);
+        DbMfaChallengeStore s = storeWithConfig(cfg);
+        String token = s.create(MfaChallenge.SCENE_OPERATION, "win-user", "totp", 1, "t0", null, "{}");
+
+        assertTrue(s.markVerified(token));
+        MfaChallenge peeked = s.peek(token);
+        assertNotNull(peeked, "within ticket window, peek must see the challenge (DB)");
+        assertNotNull(peeked.getVerifiedAt(), "within window, peek().verifiedAt must be non-null (DB invariant)");
+    }
+
+    @Test
+    public void testTicketWindowExpiryInvalidatesChallengeDb() throws InterruptedException {
+        MfaChallengeStoreConfig cfg = new MfaChallengeStoreConfig();
+        cfg.setExpireSeconds(60);
+        cfg.setOpTicketExpireSeconds(1);
+        DbMfaChallengeStore s = storeWithConfig(cfg);
+        String token = s.create(MfaChallenge.SCENE_OPERATION, "win2-user", "totp", 1, "t0", null, "{}");
+
+        assertTrue(s.markVerified(token));
+        Thread.sleep(1200L);
+        assertNull(s.peek(token), "after ticket window, ticket (and challenge) must be invalid (DB, 票不续命)");
+        assertEquals(-1, dbFailCount(token), "expired ticket row must be lazily deleted");
+    }
+
+    @Test
+    public void testConsumeOneTimeNotAffectedByMarkVerifiedDb() {
+        DbMfaChallengeStore s = store(60);
+        String token = s.create(MfaChallenge.SCENE_OPERATION, "c-user", "totp", 1, "t0", null, "{}");
+
+        assertTrue(s.markVerified(token));
+        MfaChallenge consumed = s.consume(token);
+        assertNotNull(consumed, "consume after markVerified must still return the challenge (DB one-time unchanged)");
+        assertNotNull(consumed.getVerifiedAt(), "consumed challenge carries verifiedAt (DB)");
+        assertNull(s.consume(token), "second consume returns null (DB one-time)");
+    }
+
+    @Test
+    public void testMarkVerifiedOnExpiredChallengeReturnsFalseDb() throws InterruptedException {
+        DbMfaChallengeStore s = store(1);
+        String token = s.create(MfaChallenge.SCENE_OPERATION, "exp-user", "totp", 1, "t0", null, "{}");
+        Thread.sleep(1100L);
+        assertFalse(s.markVerified(token), "markVerified on expired challenge must return false (EXPIRE_AT > now fails)");
+    }
+
+    private DbMfaChallengeStore storeWithConfig(MfaChallengeStoreConfig cfg) {
+        DbMfaChallengeStore s = new DbMfaChallengeStore();
+        s.daoProvider = daoProvider;
+        s.jdbcTemplate = jdbcTemplate;
+        s.setConfig(cfg);
+        return s;
     }
 }

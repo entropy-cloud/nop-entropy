@@ -45,8 +45,7 @@
           <constructor-arg index="3" ref="nopStreamMessageService"/>
           <constructor-arg index="4" value="nop-stream.rpc.task.node-0"/>
       </bean>
-
-      <bean id="nopStreamTaskRpcProxy_node0"
+<bean id="nopStreamTaskRpcProxy_node0"
             class="io.nop.stream.runtime.rpc.StreamControlRpcProxyFactory">
           <constructor-arg index="0" value="streamTaskRpc@node-0"/>
           <constructor-arg index="1" value="io.nop.stream.runtime.rpc.IStreamTaskRpcService"/>
@@ -55,5 +54,4 @@
       </bean>
 
     -->
-
 </beans>

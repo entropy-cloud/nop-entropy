@@ -2,9 +2,9 @@
 
 > **产出方法**：`ai-dev/skills/invariant-loop-audit-prompt.md`；待经独立 fresh session 审查至共识。
 > **驱动方**：`missions/nop-code-invariant-loop.json`（范围：nop-code 全模块组）
-> **先例**：nop-chaos-flux 仓库的 `nop-chaos-flux/docs/backlog/ai-invariant-loop-roadmap.md`（首个闭环先例）
+> **先例**：nop-chaos-flux 项目的 docs/backlog/ai-invariant-loop-roadmap.md（首个闭环先例，属外部项目，不在本仓库）
 > **状态**：**Cycle 1 关闭——稳态暂停（分支 A）待复触发**（I6-revisit 2026-08-13 确定性稳态判定收口）。I0-I3 done；I4 `done*`（Phase 1-9 全部落地，Phase 4 ORM cascadeDelete ✅ successor 已落地 `2026-08-14-0707-1-nop-code-cascade-delete-successor.md`，Phase 9 @Auth 阻塞待人工确认）；I5 `done`（I4 Phase 1-9 全范围全量独立验证全绿）；I6 `done`（确定性稳态判定 = 分支 A 稳态暂停，见 `i6-cycle1-closure-report.md` §3.3）。下一行动 = 复触发条件驱动（§Loop Rule T1-T3；非主动恢复）。
-> **与既有审计的关系**：`../skills/nop-code/audit-prompt.md`（模块专用补充审计维度）+ `nop-code-audit-2026-05-05.md` / `nop-code-audit-2026-05-10.md`（2 baseline）+ 13 轮 adversarial review（2026-05-25 至 2026-06-06，含同日 5 sub-round）为输入材料，不重复执行。
+> **与既有审计的关系**：`ai-dev/skills/nop-code/audit-prompt.md`（模块专用补充审计维度）+ `nop-code-audit-2026-05-05.md` / `nop-code-audit-2026-05-10.md`（2 baseline）+ 13 轮 adversarial review（2026-05-25 至 2026-06-06，含同日 5 sub-round）为输入材料，不重复执行。
 
 ## 目的
 

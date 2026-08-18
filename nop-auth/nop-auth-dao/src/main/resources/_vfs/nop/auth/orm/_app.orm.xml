@@ -1080,8 +1080,8 @@
                 <column code="USER_ID" displayName="用户ID" domain="userId" mandatory="true" name="userId" precision="50"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
                         i18n-en:displayName="User ID"/>
-                <column code="MFA_TYPE" comment="启用的第二因子类型：totp/sms，空=未启用" displayName="MFA类型" name="mfaType"
-                        precision="10" propId="2" stdDataType="string" stdSqlType="VARCHAR" ui:show="L"
+                <column code="MFA_TYPE" comment="启用的第二因子类型：totp/sms/email/webauthn（空=未启用）" displayName="MFA类型"
+                        name="mfaType" precision="10" propId="2" stdDataType="string" stdSqlType="VARCHAR" ui:show="L"
                         i18n-en:displayName="MFA Type"/>
                 <column code="SECRET" comment="TOTP secret（AESTextCipher 加密密文，仅 totp 类型有值）" displayName="TOTP密钥"
                         name="secret" precision="500" propId="3" stdDataType="string" stdSqlType="VARCHAR"
@@ -1092,9 +1092,10 @@
                 <column code="BIND_TOKEN" comment="绑定流程一次性 token（UUID + TTL）" displayName="绑定令牌" name="bindToken"
                         precision="64" propId="5" stdDataType="string" stdSqlType="VARCHAR" tagSet="var,not-pub"
                         ui:show="X" i18n-en:displayName="Bind Token"/>
-                <column code="PHONE" comment="短信接收手机号（仅 sms 类型，默认取用户手机号）" displayName="MFA手机号" domain="phone"
-                        name="phone" precision="50" propId="6" stdDataType="string" stdSqlType="VARCHAR" ui:show="L"
-                        i18n-en:displayName="MFA Phone"/>
+                <column code="PHONE"
+                        comment="短信接收手机号（仅 sms 类型，默认取用户手机号；A2-followup-1 D1-7：not-pub 结构性排除——通用查询面出参不含 phone，服务内部 dao 读取不受影响）"
+                        displayName="MFA手机号" domain="phone" name="phone" precision="50" propId="6" stdDataType="string"
+                        stdSqlType="VARCHAR" tagSet="not-pub" ui:show="L" i18n-en:displayName="MFA Phone"/>
                 <column code="LAST_VERIFIED_WINDOW" comment="最近成功验证的 TOTP 窗口编号（防重放）" displayName="最近验证窗口"
                         name="lastVerifiedWindow" propId="7" stdDataType="long" stdSqlType="BIGINT" ui:show="X"
                         i18n-en:displayName="Last Verified Window"/>
@@ -1122,6 +1123,13 @@
                         i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="16"
                         stdDataType="string" stdSqlType="VARCHAR" ui:show="S" i18n-en:displayName="Remark"/>
+                <column code="TOTP_FAIL_COUNT"
+                        comment="TOTP 绑定/解绑验证失败计数（A2-followup-1 D1-1：达上限 pending 作废 bindToken / enabled 进冷却；成功清零）"
+                        defaultValue="0" displayName="TOTP失败计数" name="totpFailCount" propId="17" stdDataType="int"
+                        stdSqlType="INTEGER" tagSet="not-pub" ui:show="X" i18n-en:displayName="TOTP Fail Count"/>
+                <column code="TOTP_FAIL_AT" comment="最近 TOTP 验证失败时间（冷却窗口起点：count 达上限后 failAt+cooldown 内拒绝）"
+                        displayName="TOTP失败时间" name="totpFailAt" propId="18" stdDataType="timestamp"
+                        stdSqlType="TIMESTAMP" tagSet="not-pub" ui:show="X" i18n-en:displayName="TOTP Fail At"/>
             </columns>
             <comment>用户 MFA 配置（TOTP/短信），1:1 用户</comment>
             <relations>
@@ -1210,8 +1218,9 @@
                         i18n-en:displayName="Challenge Token"/>
                 <column code="USER_ID" displayName="用户ID" domain="userId" mandatory="true" name="userId" precision="50"
                         propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="User ID"/>
-                <column code="MFA_TYPE" comment="第二因子类型：totp/sms" displayName="MFA类型" name="mfaType" precision="10"
-                        propId="3" stdDataType="string" stdSqlType="VARCHAR" ui:show="L" i18n-en:displayName="MFA Type"/>
+                <column code="MFA_TYPE" comment="第二因子类型：totp/sms/email/webauthn" displayName="MFA类型" name="mfaType"
+                        precision="10" propId="3" stdDataType="string" stdSqlType="VARCHAR" ui:show="L"
+                        i18n-en:displayName="MFA Type"/>
                 <column code="LOGIN_TYPE" comment="触发 MFA 的登录方式" displayName="登录方式" name="loginType" propId="4"
                         stdDataType="int" stdSqlType="INTEGER" ui:show="L" i18n-en:displayName="Login Type"/>
                 <column code="TENANT_ID" displayName="租户ID" name="tenantId" precision="32" propId="5"
@@ -1235,6 +1244,15 @@
                         i18n-en:displayName="Updated By"/>
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" name="updateTime" propId="12"
                         stdDataType="timestamp" stdSqlType="TIMESTAMP" ui:show="X" i18n-en:displayName="Update Time"/>
+                <column code="SCENE" comment="challenge 场景：login（缺省）/operation（操作级，验证后转一次性短 TTL 票）" displayName="场景"
+                        name="scene" precision="20" propId="13" stdDataType="string" stdSqlType="VARCHAR" ui:show="X"
+                        i18n-en:displayName="Scene"/>
+                <column code="PAYLOAD" comment="场景数据（JSON 字符串，一次写入只读；operation 场景含 operation/sessionId）"
+                        displayName="场景数据" name="payload" precision="500" propId="14" stdDataType="string"
+                        stdSqlType="VARCHAR" tagSet="not-pub" ui:show="X" i18n-en:displayName="Payload"/>
+                <column code="VERIFIED_AT" comment="操作级票验证时间戳（epoch 毫秒，null=未验证；一次性状态迁移）" displayName="验证时间"
+                        name="verifiedAt" propId="15" stdDataType="long" stdSqlType="BIGINT" ui:show="X"
+                        i18n-en:displayName="Verified At"/>
             </columns>
             <comment>MFA 挑战码存储（DB 实现，TTL 过期 + 失败计数 + 一次性消费，惰性清理）</comment>
             <indexes>
@@ -1283,6 +1301,204 @@
                     <column name="expireAt"/>
                 </index>
             </indexes>
+        </entity>
+        <entity className="io.nop.auth.dao.entity.NopAuthRoleMfaPolicy" createTimeProp="createTime"
+                createrProp="createdBy" deleteFlagProp="delFlag" displayName="角色MFA策略"
+                name="io.nop.auth.dao.entity.NopAuthRoleMfaPolicy" registerShortName="true"
+                tableName="nop_auth_role_mfa_policy" tagSet="mapper,no-tenant" updateTimeProp="updateTime"
+                updaterProp="updatedBy" useLogicalDelete="true" versionProp="version" ext:icon="shield"
+                i18n-en:displayName="Role MFA Policy">
+            <columns>
+                <column code="ROLE_ID" comment="角色ID（唯一约束，1:1 NopAuthRole；无策略行=该角色无策略）" displayName="角色ID"
+                        domain="roleId" mandatory="true" name="roleId" precision="50" primary="true" propId="1"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="L" i18n-en:displayName="Role ID"/>
+                <column code="MIN_MFA_LEVEL" comment="因子强度下限：1=OTP通道类(sms/email) 2=TOTP 3=WebAuthn；多角色取max"
+                        displayName="最低MFA强度" mandatory="true" name="minMfaLevel" propId="2" stdDataType="int"
+                        stdSqlType="INTEGER" ui:show="L" i18n-en:displayName="Min MFA Level"/>
+                <column code="ALLOW_TRUSTED_DEVICE" comment="是否允许登录级可信设备豁免（多角色AND合并，任一false即禁）" defaultValue="1"
+                        displayName="允许可信设备" domain="boolFlag" mandatory="true" name="allowTrustedDevice" propId="3"
+                        stdDataType="byte" stdDomain="boolFlag" stdSqlType="TINYINT" ui:show="L"
+                        i18n-en:displayName="Allow Trusted Device"/>
+                <column code="DEL_FLAG" displayName="删除标识" domain="delFlag" mandatory="true" name="delFlag" propId="4"
+                        stdDataType="byte" stdDomain="boolFlag" stdSqlType="TINYINT" ui:show="X"
+                        i18n-en:displayName="Deleted"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="5"
+                        stdDataType="int" stdSqlType="INTEGER" ui:show="X" i18n-en:displayName="Version"/>
+                <column code="TENANT_ID" displayName="租户ID" name="tenantId" precision="32" propId="6"
+                        stdDataType="string" stdSqlType="VARCHAR" ui:show="X" i18n-en:displayName="Tenant ID"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="7" stdDataType="string" stdSqlType="VARCHAR" ui:show="L"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="8" stdDataType="timestamp" stdSqlType="TIMESTAMP" ui:show="L"
+                        i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="9" stdDataType="string" stdSqlType="VARCHAR" ui:show="L"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="10" stdDataType="timestamp" stdSqlType="TIMESTAMP" ui:show="L"
+                        i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="11"
+                        stdDataType="string" stdSqlType="VARCHAR" ui:show="S" i18n-en:displayName="Remark"/>
+            </columns>
+            <comment>角色级 MFA 强制策略（1:1 角色按需建行；无行=无策略；删行即撤策略——单态，无 status 双态）</comment>
+        </entity>
+        <entity className="io.nop.auth.dao.entity.NopAuthMfaCredential" createTimeProp="createTime"
+                createrProp="createdBy" deleteFlagProp="delFlag" displayName="WebAuthn凭证"
+                name="io.nop.auth.dao.entity.NopAuthMfaCredential" registerShortName="true"
+                tableName="nop_auth_mfa_credential" tagSet="mapper,no-tenant" updateTimeProp="updateTime"
+                updaterProp="updatedBy" useLogicalDelete="true" versionProp="version" ext:icon="key-round"
+                i18n-en:displayName="WebAuthn Credential">
+            <columns>
+                <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X" i18n-en:displayName="SID"/>
+                <column code="USER_ID" displayName="用户ID" domain="userId" mandatory="true" name="userId" precision="50"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="User ID"/>
+                <column code="CREDENTIAL_ID" comment="WebAuthn credential ID（base64url，全局唯一，防同一钥匙重复注册）"
+                        displayName="凭证ID" mandatory="true" name="credentialId" precision="1400" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="var,not-pub" ui:show="L"
+                        i18n-en:displayName="Credential ID"/>
+                <column code="PUBLIC_KEY" comment="COSE 公钥（CBOR 编码 base64url，断言验签用；公开材料，对齐 secret 列 masked 策略不展示）"
+                        displayName="COSE公钥" mandatory="true" name="publicKey" precision="1000" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="masked,var,not-pub" ui:show="X"
+                        i18n-en:displayName="Public Key"/>
+                <column code="SIGN_COUNT" comment="最近断言签名计数（克隆检测，单调递增写；0=认证器不维护计数跳过单调校验）" defaultValue="0"
+                        displayName="签名计数" name="signCount" propId="5" stdDataType="long" stdSqlType="BIGINT"
+                        ui:show="X" i18n-en:displayName="Sign Count"/>
+                <column code="TRANSPORTS" comment="传输方式（internal/hybrid/usb/nfc/ble，逗号分隔，审计与 UI 提示）" displayName="传输方式"
+                        name="transports" precision="100" propId="6" stdDataType="string" stdSqlType="VARCHAR"
+                        ui:show="L" i18n-en:displayName="Transports"/>
+                <column code="NAME" comment="设备命名（用户自定义，如 YubiKey 5C）" displayName="设备名称" name="name" precision="100"
+                        propId="7" stdDataType="string" stdSqlType="VARCHAR" ui:show="L" i18n-en:displayName="Name"/>
+                <column code="STATUS" comment="凭证状态：enabled|disabled（禁用单把钥匙不解绑整体；移除最后一把 enabled 被拒绝）"
+                        defaultValue="enabled" displayName="凭证状态" mandatory="true" name="status" precision="20"
+                        propId="8" stdDataType="string" stdSqlType="VARCHAR" ui:show="L" i18n-en:displayName="Status"/>
+                <column code="LAST_USED_AT" comment="最近断言使用时间（审计）" displayName="最近使用时间" name="lastUsedAt" propId="9"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" ui:show="X" i18n-en:displayName="Last Used At"/>
+                <column code="DEL_FLAG" displayName="删除标识" domain="delFlag" mandatory="true" name="delFlag" propId="10"
+                        stdDataType="byte" stdDomain="boolFlag" stdSqlType="TINYINT" ui:show="X"
+                        i18n-en:displayName="Deleted"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="11"
+                        stdDataType="int" stdSqlType="INTEGER" ui:show="X" i18n-en:displayName="Version"/>
+                <column code="TENANT_ID" displayName="租户ID" name="tenantId" precision="32" propId="12"
+                        stdDataType="string" stdSqlType="VARCHAR" ui:show="X" i18n-en:displayName="Tenant ID"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="13" stdDataType="string" stdSqlType="VARCHAR" ui:show="L"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="14" stdDataType="timestamp" stdSqlType="TIMESTAMP" ui:show="L"
+                        i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="15" stdDataType="string" stdSqlType="VARCHAR" ui:show="L"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="16" stdDataType="timestamp" stdSqlType="TIMESTAMP" ui:show="L"
+                        i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="17"
+                        stdDataType="string" stdSqlType="VARCHAR" ui:show="S" i18n-en:displayName="Remark"/>
+            </columns>
+            <comment>WebAuthn 凭证（1:N 用户多硬件钥匙行；credentialId 全局唯一；signCount 单调递增克隆检测——setting 承担用户级启用状态，credential 行承担密钥材料）</comment>
+            <indexes>
+                <index name="IX_NOP_AUTH_MFA_CREDENTIAL_USER" unique="false">
+                    <column name="userId"/>
+                </index>
+            </indexes>
+            <relations>
+                <to-one displayName="用户" name="user" refDisplayName="WebAuthn凭证"
+                        refEntityName="io.nop.auth.dao.entity.NopAuthUser" tagSet="pub,ref-pub"
+                        i18n-en:displayName="User" ref-i18n-en:displayName="WebAuthn Credential">
+                    <join>
+                        <on leftProp="userId" rightProp="userId"/>
+                    </join>
+                </to-one>
+            </relations>
+            <unique-keys>
+                <unique-key columns="credentialId" constraint="UK_NOP_AUTH_MFA_CREDENTIAL_CRED" name="credentialIdKey"/>
+            </unique-keys>
+        </entity>
+        <entity className="io.nop.auth.dao.entity.NopAuthEmailCode" createTimeProp="createTime" createrProp="createdBy"
+                displayName="邮件验证码" name="io.nop.auth.dao.entity.NopAuthEmailCode" registerShortName="true"
+                tableName="nop_auth_email_code" tagSet="no-tenant" updateTimeProp="updateTime" updaterProp="updatedBy"
+                ext:icon="mail" i18n-en:displayName="Email Code">
+            <columns>
+                <column code="CODE_KEY" comment="逻辑 key（mfa-email:{userId} / proof-email:{userId}，与 sms 侧 key 通道隔离）"
+                        displayName="验证码Key" mandatory="true" name="codeKey" precision="100" primary="true" propId="1"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="var,not-pub" ui:show="X"
+                        i18n-en:displayName="Code Key"/>
+                <column code="EMAIL" comment="邮箱（审计/信息性；email 码无邮箱登录场景，key 不含邮箱地址，可为空）" displayName="邮箱" domain="email"
+                        name="email" precision="100" propId="2" stdDataType="string" stdSqlType="VARCHAR" ui:show="L"
+                        i18n-en:displayName="Email"/>
+                <column code="CODE" comment="6 位验证码（明文 + 短 TTL，对齐 Local/Redis 实现）" displayName="验证码" name="code"
+                        precision="20" propId="3" stdDataType="string" stdSqlType="VARCHAR" tagSet="masked,var,not-pub"
+                        ui:show="X" i18n-en:displayName="Code"/>
+                <column code="EXPIRE_AT" comment="过期时间戳（epoch 毫秒，用于 TTL 比较）" displayName="过期时间" name="expireAt"
+                        propId="4" stdDataType="long" stdSqlType="BIGINT" ui:show="X" i18n-en:displayName="Expire At"/>
+                <column code="FAIL_COUNT" comment="失败计数（SQL 原子递增，达 max-attempts 作废）" defaultValue="0" displayName="失败计数"
+                        name="failCount" propId="5" stdDataType="int" stdSqlType="INTEGER" ui:show="X"
+                        i18n-en:displayName="Fail Count"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="6" stdDataType="string" stdSqlType="VARCHAR" ui:show="X"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="7" stdDataType="timestamp" stdSqlType="TIMESTAMP" ui:show="X"
+                        i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" name="updatedBy" precision="50"
+                        propId="8" stdDataType="string" stdSqlType="VARCHAR" ui:show="X"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" name="updateTime" propId="9"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" ui:show="X" i18n-en:displayName="Update Time"/>
+            </columns>
+            <comment>邮件验证码存储（DB 实现，三态校验 + 失败计数 + 一次性消费，惰性清理；结构对齐 nop_auth_sms_code）</comment>
+            <indexes>
+                <index name="IX_NOP_AUTH_EMAIL_CODE_EXPIRE" unique="false">
+                    <column name="expireAt"/>
+                </index>
+            </indexes>
+        </entity>
+        <entity className="io.nop.auth.dao.entity.NopAuthMfaTrustedDevice" createTimeProp="createTime"
+                createrProp="createdBy" displayName="MFA可信设备" name="io.nop.auth.dao.entity.NopAuthMfaTrustedDevice"
+                registerShortName="true" tableName="nop_auth_mfa_trusted_device" tagSet="mapper,no-tenant"
+                updateTimeProp="updateTime" updaterProp="updatedBy" ext:icon="laptop"
+                i18n-en:displayName="MFA Trusted Device">
+            <columns>
+                <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X" i18n-en:displayName="SID"/>
+                <column code="USER_ID" displayName="用户ID" domain="userId" mandatory="true" name="userId" precision="50"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="User ID"/>
+                <column code="DEVICE_HASH"
+                        comment="设备指纹哈希（X-Nop-Mfa-Device-Id + UA + Accept-Language 的 SHA-256 hex，不可逆非秘密）"
+                        displayName="设备指纹" mandatory="true" name="deviceHash" precision="64" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="var,not-pub" ui:show="X"
+                        i18n-en:displayName="Device Hash"/>
+                <column code="DEVICE_NAME" comment="设备命名（缺省 UA 摘要，用户可管理）" displayName="设备名称" name="deviceName"
+                        precision="100" propId="4" stdDataType="string" stdSqlType="VARCHAR" ui:show="L"
+                        i18n-en:displayName="Device Name"/>
+                <column code="EXPIRE_AT" comment="豁免窗口到期时间（固定窗口自登记日起算，命中不续期）" displayName="到期时间" name="expireAt"
+                        propId="5" stdDataType="timestamp" stdSqlType="TIMESTAMP" ui:show="L"
+                        i18n-en:displayName="Expire At"/>
+                <column code="LAST_USED_AT" comment="最近豁免命中时间（审计；仅更新此列，不续 expireAt）" displayName="最近使用时间"
+                        name="lastUsedAt" propId="6" stdDataType="timestamp" stdSqlType="TIMESTAMP" ui:show="L"
+                        i18n-en:displayName="Last Used At"/>
+                <column code="TENANT_ID" displayName="租户ID" name="tenantId" precision="32" propId="7"
+                        stdDataType="string" stdSqlType="VARCHAR" ui:show="X" i18n-en:displayName="Tenant ID"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="8" stdDataType="string" stdSqlType="VARCHAR" ui:show="L"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="9" stdDataType="timestamp" stdSqlType="TIMESTAMP" ui:show="L"
+                        i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="10" stdDataType="string" stdSqlType="VARCHAR" ui:show="L"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="11" stdDataType="timestamp" stdSqlType="TIMESTAMP" ui:show="L"
+                        i18n-en:displayName="Update Time"/>
+            </columns>
+            <comment>MFA 可信设备（记住此设备：指纹哈希（userId,deviceHash）唯一 + 固定窗口 30d 不滚动；到期惰性失效行保留审计，removeTrustedDevice 物理删除）</comment>
+            <unique-keys>
+                <unique-key columns="userId,deviceHash" constraint="UK_NOP_AUTH_MFA_TRUSTED_DEVICE_UH"
+                            name="userIdDeviceHashKey"/>
+            </unique-keys>
         </entity>
     </entities>
 </orm>

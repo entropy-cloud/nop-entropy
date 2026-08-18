@@ -7,4 +7,13 @@
     <import resource="_dao.beans.xml"/>
 
     <import resource="_service.beans.xml"/>
+
+    <!-- A1-audit D6-01 fix: AiModelCredentialResolverImpl was never registered in any beans.xml
+         (NopIoC does no annotation scanning), so ChatServiceImpl.credentialResolver was always null
+         and NopAiModel.credentialId never took effect at runtime (silent fallback to config apiKey).
+         Registered here so the credentialId consumption chain is wired whenever nop-ai-service is
+         deployed. Both dependencies are optional (@Nullable setters): deployments without
+         nop-credential / without DB still start, failing closed at call time instead. -->
+    <bean id="nopAiModelCredentialResolver" class="io.nop.ai.service.credential.AiModelCredentialResolverImpl"
+          ioc:type="io.nop.ai.api.credential.IAiModelCredentialResolver" ioc:default="true"/>
 </beans>

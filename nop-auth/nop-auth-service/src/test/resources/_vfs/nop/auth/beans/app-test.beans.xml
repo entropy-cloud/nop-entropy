@@ -11,4 +11,12 @@
 
     <bean id="nopShardSelector" class="io.nop.auth.service.mock.MockShardSelector"/>
 
+    <!-- 捕获型短信发送器（W13-impl）：登记通道 proof 发码链路 E2E 用（验证码可读取） -->
+    <bean id="nopSmsSender" class="io.nop.auth.service.mock.CapturingSmsSender"
+          ioc:type="io.nop.integration.api.sms.ISmsSender" ioc:default="true"/>
+
+    <!-- 捕获型邮件发送器（W15-impl）：邮件验证码/登记通道 email proof 发码链路 E2E 用 -->
+    <bean id="nopEmailSender" class="io.nop.auth.service.mock.CapturingEmailSender"
+          ioc:type="io.nop.integration.api.email.IEmailSender" ioc:default="true"/>
+
 </beans>

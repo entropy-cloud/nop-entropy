@@ -1,5 +1,7 @@
 package io.nop.auth.service;
 
+import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
@@ -10,6 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 public class TestBeanLoader extends JunitBaseTestCase {
 
     @Test

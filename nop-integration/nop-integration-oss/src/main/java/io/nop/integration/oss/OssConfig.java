@@ -7,6 +7,7 @@
  */
 package io.nop.integration.oss;
 
+import io.nop.api.core.annotations.config.ConfigField;
 import io.nop.api.core.annotations.data.DataBean;
 
 @DataBean
@@ -20,6 +21,15 @@ public class OssConfig {
 
     private String accessKey;
     private String secretKey;
+
+    /**
+     * 可选的凭证库引用（W16-impl-ext，设计 §4.1 结论 1）：非空时 {@code oss-s3} 字段集
+     * （accessKey/secretKey）在工厂构造期整组取自凭证库（同名静态值忽略）；空/空白时维持静态值
+     * 现状路径（既有部署零回归）。经 {@code ioc:config-prefix="nop.integration.oss"} 自动绑定——
+     * {@code ConfigField} 显式钉住 camelCase 键名 {@code nop.integration.oss.credentialId}
+     * （缺省归一为 kebab-case {@code credential-id}，与设计键名不符，故显式指定）。
+     */
+    private String credentialId;
 
     private String appId;
     private String region;
@@ -101,6 +111,15 @@ public class OssConfig {
 
     public void setSecretKey(String secretKey) {
         this.secretKey = secretKey;
+    }
+
+    public String getCredentialId() {
+        return credentialId;
+    }
+
+    @ConfigField(name = "credentialId")
+    public void setCredentialId(String credentialId) {
+        this.credentialId = credentialId;
     }
 
     public String getDefaultBucketName() {

@@ -9,7 +9,11 @@ package io.nop.credential.api.registry;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.LinkedHashSet;
 
 /**
  * 凭证类型描述 DTO（手写，非 codegen 产物）。
@@ -21,12 +25,26 @@ import java.util.List;
 public class CredentialType implements Serializable {
     private static final long serialVersionUID = 1L;
 
+    /** authType 取值域（xdef 内联枚举同源）。 */
+    public static final String AUTH_TYPE_NONE = "none";
+    public static final String AUTH_TYPE_API_KEY = "apiKey";
+    public static final String AUTH_TYPE_BASIC = "basic";
+    public static final String AUTH_TYPE_OAUTH2 = "oauth2";
+
+    /**
+     * OAuth 引擎保留字段名（W9 二期契约）：token 集以这些名字存于凭证明文 data，
+     * 类型文件 fields 不得占用、saveCredential 输入不得出现，由引擎独占读写。
+     */
+    public static final Set<String> OAUTH_RESERVED_FIELD_NAMES = Collections.unmodifiableSet(new LinkedHashSet<>(
+            Arrays.asList("accessToken", "refreshToken", "expiresAt", "tokenType", "scope")));
+
     private String name;
     private String version;
     private String displayName;
     private String authType;
     private String testUrl;
     private String testAuth;
+    private OAuth2Metadata oauth2;
     private List<CredentialField> fields = new ArrayList<>();
 
     public String getName() {
@@ -77,12 +95,75 @@ public class CredentialType implements Serializable {
         this.testAuth = testAuth;
     }
 
+    /**
+     * OAuth 应用元数据。仅 {@code authType=oauth2} 时非 null（registry 加载校验保证）。
+     */
+    public OAuth2Metadata getOauth2() {
+        return oauth2;
+    }
+
+    public void setOauth2(OAuth2Metadata oauth2) {
+        this.oauth2 = oauth2;
+    }
+
+    /**
+     * 是否为 OAuth 引擎托管类型（authType=oauth2）。
+     */
+    public boolean isOauth2Type() {
+        return AUTH_TYPE_OAUTH2.equals(authType);
+    }
+
     public List<CredentialField> getFields() {
         return fields;
     }
 
     public void setFields(List<CredentialField> fields) {
         this.fields = fields;
+    }
+
+    /**
+     * OAuth 2.0 应用元数据（授权端点/令牌端点/scopes/惰性刷新窗口），
+     * 对应类型文件中 {@code authType=oauth2} 下的 {@code <oauth2>} 声明。
+     */
+    public static class OAuth2Metadata implements Serializable {
+        private static final long serialVersionUID = 1L;
+
+        private String authorizationEndpoint;
+        private String tokenEndpoint;
+        private String scopes;
+        private Integer refreshWindowSeconds;
+
+        public String getAuthorizationEndpoint() {
+            return authorizationEndpoint;
+        }
+
+        public void setAuthorizationEndpoint(String authorizationEndpoint) {
+            this.authorizationEndpoint = authorizationEndpoint;
+        }
+
+        public String getTokenEndpoint() {
+            return tokenEndpoint;
+        }
+
+        public void setTokenEndpoint(String tokenEndpoint) {
+            this.tokenEndpoint = tokenEndpoint;
+        }
+
+        public String getScopes() {
+            return scopes;
+        }
+
+        public void setScopes(String scopes) {
+            this.scopes = scopes;
+        }
+
+        public Integer getRefreshWindowSeconds() {
+            return refreshWindowSeconds;
+        }
+
+        public void setRefreshWindowSeconds(Integer refreshWindowSeconds) {
+            this.refreshWindowSeconds = refreshWindowSeconds;
+        }
     }
 
     /**

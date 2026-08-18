@@ -112,6 +112,9 @@ CREATE TABLE nop_auth_mfa_challenge(
   CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
   UPDATED_BY VARCHAR(50) NULL    COMMENT '修改人',
   UPDATE_TIME DATETIME(3) NULL    COMMENT '修改时间',
+  SCENE VARCHAR(20) NULL    COMMENT '场景',
+  PAYLOAD VARCHAR(500) NULL    COMMENT '场景数据',
+  VERIFIED_AT BIGINT NULL    COMMENT '验证时间',
   constraint PK_nop_auth_mfa_challenge primary key (CHALLENGE_TOKEN)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
@@ -126,6 +129,50 @@ CREATE TABLE nop_auth_sms_code(
   UPDATED_BY VARCHAR(50) NULL    COMMENT '修改人',
   UPDATE_TIME DATETIME(3) NULL    COMMENT '修改时间',
   constraint PK_nop_auth_sms_code primary key (CODE_KEY)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
+CREATE TABLE nop_auth_role_mfa_policy(
+  ROLE_ID VARCHAR(50) NOT NULL    COMMENT '角色ID',
+  MIN_MFA_LEVEL INTEGER NOT NULL    COMMENT '最低MFA强度',
+  ALLOW_TRUSTED_DEVICE TINYINT default 1  NOT NULL    COMMENT '允许可信设备',
+  DEL_FLAG TINYINT NOT NULL    COMMENT '删除标识',
+  VERSION INTEGER NOT NULL    COMMENT '数据版本',
+  TENANT_ID VARCHAR(32) NULL    COMMENT '租户ID',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
+  REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint PK_nop_auth_role_mfa_policy primary key (ROLE_ID)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
+CREATE TABLE nop_auth_email_code(
+  CODE_KEY VARCHAR(100) NOT NULL    COMMENT '验证码Key',
+  EMAIL VARCHAR(100) NULL    COMMENT '邮箱',
+  CODE VARCHAR(20) NULL    COMMENT '验证码',
+  EXPIRE_AT BIGINT NULL    COMMENT '过期时间',
+  FAIL_COUNT INTEGER default 0  NULL    COMMENT '失败计数',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) NULL    COMMENT '修改时间',
+  constraint PK_nop_auth_email_code primary key (CODE_KEY)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
+CREATE TABLE nop_auth_mfa_trusted_device(
+  SID VARCHAR(32) NOT NULL    COMMENT '主键',
+  USER_ID VARCHAR(50) NOT NULL    COMMENT '用户ID',
+  DEVICE_HASH VARCHAR(64) NOT NULL    COMMENT '设备指纹',
+  DEVICE_NAME VARCHAR(100) NULL    COMMENT '设备名称',
+  EXPIRE_AT DATETIME(3) NULL    COMMENT '到期时间',
+  LAST_USED_AT DATETIME(3) NULL    COMMENT '最近使用时间',
+  TENANT_ID VARCHAR(32) NULL    COMMENT '租户ID',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
+  constraint UK_NOP_AUTH_MFA_TRUSTED_DEVICE_UH unique (USER_ID,DEVICE_HASH),
+  constraint PK_nop_auth_mfa_trusted_device primary key (SID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_auth_user(
@@ -306,7 +353,31 @@ CREATE TABLE nop_auth_mfa_setting(
   UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
+  TOTP_FAIL_COUNT INTEGER default 0  NULL    COMMENT 'TOTP失败计数',
+  TOTP_FAIL_AT DATETIME(3) NULL    COMMENT 'TOTP失败时间',
   constraint PK_nop_auth_mfa_setting primary key (USER_ID)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
+CREATE TABLE nop_auth_mfa_credential(
+  SID VARCHAR(32) NOT NULL    COMMENT '主键',
+  USER_ID VARCHAR(50) NOT NULL    COMMENT '用户ID',
+  CREDENTIAL_ID VARCHAR(1400) NOT NULL    COMMENT '凭证ID',
+  PUBLIC_KEY VARCHAR(1000) NOT NULL    COMMENT 'COSE公钥',
+  SIGN_COUNT BIGINT default 0  NULL    COMMENT '签名计数',
+  TRANSPORTS VARCHAR(100) NULL    COMMENT '传输方式',
+  NAME VARCHAR(100) NULL    COMMENT '设备名称',
+  STATUS VARCHAR(20) default 'enabled'  NOT NULL    COMMENT '凭证状态',
+  LAST_USED_AT DATETIME(3) NULL    COMMENT '最近使用时间',
+  DEL_FLAG TINYINT NOT NULL    COMMENT '删除标识',
+  VERSION INTEGER NOT NULL    COMMENT '数据版本',
+  TENANT_ID VARCHAR(32) NULL    COMMENT '租户ID',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
+  REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint UK_NOP_AUTH_MFA_CREDENTIAL_CRED unique (CREDENTIAL_ID),
+  constraint PK_nop_auth_mfa_credential primary key (SID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_auth_role_resource(
@@ -398,6 +469,12 @@ CREATE TABLE nop_auth_mfa_recovery_code(
                 
    ALTER TABLE nop_auth_sms_code COMMENT '短信验证码';
                 
+   ALTER TABLE nop_auth_role_mfa_policy COMMENT '角色MFA策略';
+                
+   ALTER TABLE nop_auth_email_code COMMENT '邮件验证码';
+                
+   ALTER TABLE nop_auth_mfa_trusted_device COMMENT 'MFA可信设备';
+                
    ALTER TABLE nop_auth_user COMMENT '用户';
                 
    ALTER TABLE nop_auth_resource COMMENT '菜单资源';
@@ -413,6 +490,8 @@ CREATE TABLE nop_auth_mfa_recovery_code(
    ALTER TABLE nop_auth_group COMMENT '用户组';
                 
    ALTER TABLE nop_auth_mfa_setting COMMENT '用户MFA配置';
+                
+   ALTER TABLE nop_auth_mfa_credential COMMENT 'WebAuthn凭证';
                 
    ALTER TABLE nop_auth_role_resource COMMENT '角色可访问资源';
                 

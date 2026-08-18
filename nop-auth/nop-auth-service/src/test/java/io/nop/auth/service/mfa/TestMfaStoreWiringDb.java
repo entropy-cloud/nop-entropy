@@ -9,8 +9,10 @@ package io.nop.auth.service.mfa;
 
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.OptionalBoolean;
+import io.nop.auth.core.mfa.store.EmailCodeStore;
 import io.nop.auth.core.mfa.store.MfaChallengeStore;
 import io.nop.auth.core.mfa.store.SmsCodeStore;
+import io.nop.auth.service.mfa.store.DbEmailCodeStore;
 import io.nop.auth.service.mfa.store.DbMfaChallengeStore;
 import io.nop.auth.service.mfa.store.DbSmsCodeStore;
 import io.nop.autotest.junit.JunitBaseTestCase;
@@ -30,6 +32,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * the test classpath but no {@code INosqlService} bean is registered, and store-type defaults to db,
  * so the Redis store beans (which would otherwise fail to construct without INosqlService) are
  * conditionally excluded.
+ * <p>
+ * W15-impl：EmailCodeStore 三实现同装配验证（nopEmailCodeStore_ 前缀 + nopActiveEmailCodeStore
+ * 工厂 bean——设计 §5.3.3 复制 W8 模式）。
  */
 @NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 public class TestMfaStoreWiringDb extends JunitBaseTestCase {
@@ -43,6 +48,9 @@ public class TestMfaStoreWiringDb extends JunitBaseTestCase {
     @Inject
     SmsCodeStore smsCodeStore;
 
+    @Inject
+    EmailCodeStore emailCodeStore;
+
     @Test
     public void testDefaultStoreTypeIsDb() {
         assertTrue("db".equalsIgnoreCase(mfaStoreProvider.getStoreType()),
@@ -55,8 +63,12 @@ public class TestMfaStoreWiringDb extends JunitBaseTestCase {
                 "store-type=db must wire DbMfaChallengeStore");
         assertInstanceOf(DbSmsCodeStore.class, mfaStoreProvider.getSmsCodeStore(),
                 "store-type=db must wire DbSmsCodeStore");
+        assertInstanceOf(DbEmailCodeStore.class, mfaStoreProvider.getEmailCodeStore(),
+                "store-type=db must wire DbEmailCodeStore");
         assertInstanceOf(DbMfaChallengeStore.class, mfaChallengeStore);
         assertInstanceOf(DbSmsCodeStore.class, smsCodeStore);
+        assertInstanceOf(DbEmailCodeStore.class, emailCodeStore,
+                "factory bean nopActiveEmailCodeStore must resolve @Nullable EmailCodeStore injection");
     }
 
     @Test
@@ -68,6 +80,9 @@ public class TestMfaStoreWiringDb extends JunitBaseTestCase {
         assertFalse(mfaStoreProvider.getSmsCodeStores().containsKey("redis")
                         || mfaStoreProvider.getSmsCodeStores().containsKey("_redis"),
                 "redis sms store must NOT be collected when store-type != redis");
+        assertFalse(mfaStoreProvider.getEmailCodeStores().containsKey("redis")
+                        || mfaStoreProvider.getEmailCodeStores().containsKey("_redis"),
+                "redis email store must NOT be collected when store-type != redis");
 
         assertTrue(mfaStoreProvider.getChallengeStores().containsKey("local")
                         || mfaStoreProvider.getChallengeStores().containsKey("_local"));
@@ -77,5 +92,11 @@ public class TestMfaStoreWiringDb extends JunitBaseTestCase {
                         || mfaStoreProvider.getSmsCodeStores().containsKey("_local"));
         assertTrue(mfaStoreProvider.getSmsCodeStores().containsKey("db")
                         || mfaStoreProvider.getSmsCodeStores().containsKey("_db"));
+        assertTrue(mfaStoreProvider.getEmailCodeStores().containsKey("local")
+                        || mfaStoreProvider.getEmailCodeStores().containsKey("_local"),
+                "local email store must be collected");
+        assertTrue(mfaStoreProvider.getEmailCodeStores().containsKey("db")
+                        || mfaStoreProvider.getEmailCodeStores().containsKey("_db"),
+                "db email store must be collected");
     }
 }

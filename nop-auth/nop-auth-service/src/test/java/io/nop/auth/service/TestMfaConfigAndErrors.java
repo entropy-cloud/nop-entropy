@@ -47,7 +47,7 @@ public class TestMfaConfigAndErrors {
     @Test
     void mfaConfigDefaultsAreDocumentedValues() {
         assertEquals(false, NopAuthConfigs.CFG_AUTH_MFA_ENABLED.get());
-        assertEquals("local", NopAuthConfigs.CFG_AUTH_MFA_STORE_TYPE.get());
+        assertEquals("db", NopAuthConfigs.CFG_AUTH_MFA_STORE_TYPE.get());
         assertEquals(300, NopAuthConfigs.CFG_AUTH_MFA_CHALLENGE_EXPIRE_SECONDS.get());
         assertEquals(5, NopAuthConfigs.CFG_AUTH_MFA_MAX_ATTEMPTS.get());
         assertEquals("nop", NopAuthConfigs.CFG_AUTH_MFA_TOTP_ISSUER.get());
@@ -94,6 +94,26 @@ public class TestMfaConfigAndErrors {
             assertTrue(seen.add(c.getErrorCode()), "duplicate error code: " + c.getErrorCode());
         }
         assertEquals(codes.length, seen.size());
+    }
+
+    /**
+     * W14：webauthn 配置组缺省未配置（fail-closed——因子使用时必配校验在 WebAuthnAuthenticator）+
+     * 两个新错误码与既有 MFA 编码互不冲突（不触碰一期编码）。
+     */
+    @Test
+    void webauthnConfigDefaultsUnsetAndNewErrorCodesDistinct() {
+        assertNull(NopAuthConfigs.CFG_AUTH_MFA_WEBAUTHN_RP_ID.get(), "rp-id default unset (must be configured to enable)");
+        assertNull(NopAuthConfigs.CFG_AUTH_MFA_WEBAUTHN_RP_NAME.get(), "rp-name default unset");
+        assertNull(NopAuthConfigs.CFG_AUTH_MFA_WEBAUTHN_ORIGINS.get(), "origins default unset (fail-closed)");
+
+        assertDistinct(NopAuthErrors.ERR_AUTH_MFA_CODE_UNSUPPORTED,
+                NopAuthErrors.ERR_AUTH_MFA_LAST_CREDENTIAL,
+                NopAuthErrors.ERR_AUTH_MFA_REQUIRED,
+                NopAuthErrors.ERR_AUTH_MFA_FAIL,
+                NopAuthErrors.ERR_AUTH_MFA_CHALLENGE_EXPIRED,
+                NopAuthErrors.ERR_AUTH_MFA_RESTRICTED_SESSION);
+        assertTrue(Arrays.asList(NopAuthErrors.ERR_AUTH_MFA_CODE_UNSUPPORTED.getArgNames())
+                        .contains(NopAuthErrors.ARG_MFA_TYPE), "CODE_UNSUPPORTED must carry mfaType");
     }
 
     @Test

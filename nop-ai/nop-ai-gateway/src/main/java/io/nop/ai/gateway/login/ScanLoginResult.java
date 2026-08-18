@@ -40,6 +40,16 @@ public class ScanLoginResult {
     /** Real channel loginType (20-23) carried from the challenge (audit fidelity). */
     private Integer loginType;
 
+    /**
+     * MFA restricted-session flag (W13, role-level MFA policy): true when the first
+     * factor passed but the bound user's factor holdings do not satisfy the role
+     * policy ({@code minMfaLevel}). The scan still yields a valid {@code accessCode}
+     * (the session is issued restricted); the front-end should render the
+     * restricted-guidance flow. Optional field, backward compatible (W6 precedent,
+     * same shape as {@code mfaRequired}).
+     */
+    private boolean mfaRestricted;
+
     public String getAccessCode() {
         return accessCode;
     }
@@ -78,5 +88,13 @@ public class ScanLoginResult {
 
     public void setLoginType(Integer loginType) {
         this.loginType = loginType;
+    }
+
+    public boolean isMfaRestricted() {
+        return mfaRestricted;
+    }
+
+    public void setMfaRestricted(boolean mfaRestricted) {
+        this.mfaRestricted = mfaRestricted;
     }
 }

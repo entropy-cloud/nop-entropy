@@ -27,9 +27,6 @@
                 <!--绑定状态-->
                 <col id="status" mandatory="true" sortable="true" x:abstract="true"/>
 
-                <!--MFA手机号-->
-                <col id="phone" sortable="true" x:abstract="true"/>
-
                 <!--创建人-->
                 <col id="createdBy" mandatory="true" sortable="true" x:abstract="true"/>
 
@@ -55,7 +52,6 @@
  userId[用户ID]
  mfaType[MFA类型]
  status[绑定状态]
- phone[MFA手机号]
  createdBy[创建人]
  createTime[创建时间]
  updatedBy[修改人]
@@ -69,7 +65,6 @@
  userId[用户ID]
  mfaType[MFA类型]
  status[绑定状态]
- phone[MFA手机号]
  remark[备注]
 </layout>
         </form>

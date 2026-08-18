@@ -1,19 +1,23 @@
 entity:
   label:
     NopAuthDept: Department
+    NopAuthEmailCode: Email Code
     NopAuthExtLogin: Ext Login
     NopAuthGroup: User Group
     NopAuthGroupDept: Group Department
     NopAuthGroupUser: Group User
     NopAuthMfaChallenge: MFA Challenge
+    NopAuthMfaCredential: WebAuthn Credential
     NopAuthMfaRecoveryCode: MFA Recovery Code
     NopAuthMfaSetting: MFA Setting
+    NopAuthMfaTrustedDevice: MFA Trusted Device
     NopAuthOpLog: Operation Log
     NopAuthPosition: Position
     NopAuthResource: Menu Resource
     NopAuthResource_main: Menu Resource
     NopAuthRole: Role
     NopAuthRoleDataAuth: Role Data Auth
+    NopAuthRoleMfaPolicy: Role MFA Policy
     NopAuthRoleResource: Role Resource
     NopAuthSession: Session
     NopAuthSite: Sub Site
@@ -52,6 +56,16 @@ prop:
       relatedGroupList: null
       relatedGroupList_ids: null
       relatedGroupList_label: null
+    NopAuthEmailCode:
+      codeKey: Code Key
+      email: Email
+      code: Code
+      expireAt: Expire At
+      failCount: Fail Count
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
     NopAuthExtLogin:
       sid: ID
       userId: User ID
@@ -135,6 +149,29 @@ prop:
       createTime: Create Time
       updatedBy: Updated By
       updateTime: Update Time
+      scene: Scene
+      payload: Payload
+      verifiedAt: Verified At
+    NopAuthMfaCredential:
+      sid: SID
+      userId: User ID
+      credentialId: Credential ID
+      publicKey: Public Key
+      signCount: Sign Count
+      transports: Transports
+      name: Name
+      status: Status
+      lastUsedAt: Last Used At
+      delFlag: Deleted
+      version: Version
+      tenantId: Tenant ID
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      user: User
+      user.userName: User
     NopAuthMfaRecoveryCode:
       sid: SID
       userId: User ID
@@ -168,9 +205,23 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+      totpFailCount: TOTP Fail Count
+      totpFailAt: TOTP Fail At
       user: User
       user.userName: User
       recoveryCodes: Recovery Codes
+    NopAuthMfaTrustedDevice:
+      sid: SID
+      userId: User ID
+      deviceHash: Device Hash
+      deviceName: Device Name
+      expireAt: Expire At
+      lastUsedAt: Last Used At
+      tenantId: Tenant ID
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
     NopAuthOpLog:
       logId: LOG_ID
       userName: USER_NAME
@@ -318,6 +369,18 @@ prop:
       description: Description
       delFlag: Deleted
       version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+    NopAuthRoleMfaPolicy:
+      roleId: Role ID
+      minMfaLevel: Min MFA Level
+      allowTrustedDevice: Allow Trusted Device
+      delFlag: Deleted
+      version: Version
+      tenantId: Tenant ID
       createdBy: Created By
       createTime: Create Time
       updatedBy: Updated By

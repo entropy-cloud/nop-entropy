@@ -129,7 +129,9 @@ public class AiModelCredentialResolverImpl implements IAiModelCredentialResolver
         }
         // ICredentialProvider.getCredentialData 对缺失/软删/解密失败已抛 NopException，此处直接传播。
         Object apiKeyValue = credentialProvider.getCredentialData(credentialId, FIELD_API_KEY);
-        if (apiKeyValue == null || StringHelper.isEmpty(apiKeyValue.toString())) {
+        // D6-04（A1-audit successor，2026-08-17）：isBlank 判空——纯空白 apiKey 字段值
+        // 视同配错凭证，不得当有效 key 使用（fail-closed）
+        if (apiKeyValue == null || StringHelper.isBlank(apiKeyValue.toString())) {
             throw new NopException(ERR_AI_CREDENTIAL_FIELD_EMPTY)
                     .param(ARG_CREDENTIAL_ID, credentialId)
                     .param(ARG_FIELD, FIELD_API_KEY);

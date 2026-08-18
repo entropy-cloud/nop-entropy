@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- A2-followup-1 写路径收口（同族边界裁定：纳入）：邮件码行仅由 EmailCodeStore 组件管理，管理页
+     收敛为只读监控面（继承 mutation 已在 BizModel 层显式拒绝，见 MfaSensitiveTableBizModel）。-->
+<view x:extends="_gen/_NopAuthEmailCode.view.xml" x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <grids>
+        <grid id="list"/>
+        <grid id="pick-list"/>
+    </grids>
+
+    <forms>
+        <form id="view"/>
+        <form id="add" x:override="remove"/>
+        <form id="edit" x:override="remove"/>
+    </forms>
+
+    <pages>
+        <crud name="main">
+            <listActions x:override="remove"/>
+            <rowActions x:override="remove"/>
+        </crud>
+        <picker name="picker"/>
+        <simple name="add" x:override="remove"/>
+        <simple name="update" x:override="remove"/>
+    </pages>
+</view>

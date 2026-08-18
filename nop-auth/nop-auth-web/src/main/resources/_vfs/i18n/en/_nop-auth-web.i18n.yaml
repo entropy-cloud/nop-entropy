@@ -4,6 +4,10 @@ site:
       displayName: Modify Department
     FNPT:NopAuthDept:query:
       displayName: Query Department
+    FNPT:NopAuthEmailCode:mutation:
+      displayName: Modify Email Code
+    FNPT:NopAuthEmailCode:query:
+      displayName: Query Email Code
     FNPT:NopAuthExtLogin:mutation:
       displayName: Modify Ext Login
     FNPT:NopAuthExtLogin:query:
@@ -16,6 +20,10 @@ site:
       displayName: Modify MFA Challenge
     FNPT:NopAuthMfaChallenge:query:
       displayName: Query MFA Challenge
+    FNPT:NopAuthMfaCredential:mutation:
+      displayName: Modify WebAuthn Credential
+    FNPT:NopAuthMfaCredential:query:
+      displayName: Query WebAuthn Credential
     FNPT:NopAuthMfaRecoveryCode:mutation:
       displayName: Modify MFA Recovery Code
     FNPT:NopAuthMfaRecoveryCode:query:
@@ -24,6 +32,10 @@ site:
       displayName: Modify MFA Setting
     FNPT:NopAuthMfaSetting:query:
       displayName: Query MFA Setting
+    FNPT:NopAuthMfaTrustedDevice:mutation:
+      displayName: Modify MFA Trusted Device
+    FNPT:NopAuthMfaTrustedDevice:query:
+      displayName: Query MFA Trusted Device
     FNPT:NopAuthOpLog:mutation:
       displayName: Modify Operation Log
     FNPT:NopAuthOpLog:query:
@@ -48,6 +60,10 @@ site:
       displayName: Modify Role Data Auth
     FNPT:NopAuthRoleDataAuth:query:
       displayName: Query Role Data Auth
+    FNPT:NopAuthRoleMfaPolicy:mutation:
+      displayName: Modify Role MFA Policy
+    FNPT:NopAuthRoleMfaPolicy:query:
+      displayName: Query Role MFA Policy
     FNPT:NopAuthSession:mutation:
       displayName: Modify Session
     FNPT:NopAuthSession:query:
@@ -82,16 +98,22 @@ site:
       displayName: Department
     NopAuthDept-tabsView:
       displayName: Department
+    NopAuthEmailCode-main:
+      displayName: Email Code
     NopAuthExtLogin-main:
       displayName: Ext Login
     NopAuthGroup-main:
       displayName: User Group
     NopAuthMfaChallenge-main:
       displayName: MFA Challenge
+    NopAuthMfaCredential-main:
+      displayName: WebAuthn Credential
     NopAuthMfaRecoveryCode-main:
       displayName: MFA Recovery Code
     NopAuthMfaSetting-main:
       displayName: MFA Setting
+    NopAuthMfaTrustedDevice-main:
+      displayName: MFA Trusted Device
     NopAuthOpLog-main:
       displayName: Operation Log
     NopAuthPosition-main:
@@ -104,6 +126,8 @@ site:
       displayName: Role
     NopAuthRoleDataAuth-main:
       displayName: Role Data Auth
+    NopAuthRoleMfaPolicy-main:
+      displayName: Role MFA Policy
     NopAuthSession-main:
       displayName: Session
     NopAuthSite-main:
