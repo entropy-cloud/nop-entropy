@@ -716,7 +716,7 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
                     first = false;
                 }
 
-                owner(owner).append(name).param(value);
+                owner(owner).append(name).append('=').param(value);
             }
             return this;
         }
