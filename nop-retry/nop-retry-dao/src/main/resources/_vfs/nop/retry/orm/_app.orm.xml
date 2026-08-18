@@ -19,7 +19,6 @@
             <option code="PENDING" label="待调度" value="0" i18n-en:label="Pending"/>
             <option code="RETRYING" label="重试中" value="1" i18n-en:label="Retrying"/>
             <option code="COMPLETED" label="已完成" value="2" i18n-en:label="Completed"/>
-            <option code="MAX_RETRIES" label="超限" value="3" i18n-en:label="Max Retries"/>
             <option code="SUSPENDED" label="已暂停" value="4" i18n-en:label="Suspended"/>
         </dict>
         <dict label="重试尝试状态" name="retry/retry-attempt-status" valueType="int" i18n-en:label="Retry Attempt Status">
@@ -37,7 +36,6 @@
         <dict label="阻塞策略" name="retry/block-strategy" valueType="int" i18n-en:label="Block Strategy">
             <option code="DISCARD" label="丢弃" value="1" i18n-en:label="Discard"/>
             <option code="OVERWRITE" label="覆盖" value="2" i18n-en:label="Overwrite"/>
-            <option code="PARALLEL" label="并行" value="3" i18n-en:label="Parallel"/>
         </dict>
         <dict label="回调触发类型" name="retry/callback-trigger-type" valueType="int" i18n-en:label="Callback Trigger Type">
             <option code="ON_SUCCESS" label="成功时触发" value="1" i18n-en:label="On Success"/>
@@ -217,6 +215,8 @@
                     <column name="nextTriggerTime"/>
                 </index>
                 <index name="UK_RETRY_IDEMPOTENT_ID" unique="true">
+                    <column name="namespaceId"/>
+                    <column name="groupId"/>
                     <column name="idempotentId"/>
                 </index>
                 <index name="IDX_RETRY_MGMT_LOOKUP" unique="false">

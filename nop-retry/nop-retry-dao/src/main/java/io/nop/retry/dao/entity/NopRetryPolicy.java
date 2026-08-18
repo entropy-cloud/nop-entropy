@@ -44,7 +44,7 @@ public class NopRetryPolicy extends _NopRetryPolicy {
     }
 
     public int getBlockStrategyOrDefault() {
-        return getBlockStrategy() != null ? getBlockStrategy() : BLOCK_STRATEGY_PARALLEL;
+        return getBlockStrategy() != null ? getBlockStrategy() : BLOCK_STRATEGY_DISCARD;
     }
 
     public boolean isCallbackEnabled() {

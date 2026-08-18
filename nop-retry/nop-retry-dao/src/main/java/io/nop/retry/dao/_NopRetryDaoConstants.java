@@ -19,11 +19,6 @@ public interface _NopRetryDaoConstants {
     int RETRY_RECORD_STATUS_COMPLETED = 2;
                     
     /**
-     * 重试记录状态: 超限 
-     */
-    int RETRY_RECORD_STATUS_MAX_RETRIES = 3;
-                    
-    /**
      * 重试记录状态: 已暂停 
      */
     int RETRY_RECORD_STATUS_SUSPENDED = 4;
@@ -77,11 +72,6 @@ public interface _NopRetryDaoConstants {
      * 阻塞策略: 覆盖 
      */
     int BLOCK_STRATEGY_OVERWRITE = 2;
-                    
-    /**
-     * 阻塞策略: 并行 
-     */
-    int BLOCK_STRATEGY_PARALLEL = 3;
                     
     /**
      * 回调触发类型: 成功时触发 

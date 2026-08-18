@@ -13,7 +13,3 @@ options:
     value: 2
     description: 
   
-  - label: 并行
-    value: 3
-    description: 
-  
