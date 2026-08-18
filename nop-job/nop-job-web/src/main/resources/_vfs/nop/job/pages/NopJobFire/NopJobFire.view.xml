@@ -15,7 +15,7 @@
         </form>
         <form id="edit"/>
         <form id="add"/>
-        <form id="runtimeSummaryForm" editMode="view" title="运行态摘要-触发批次" i18n-en:title="Fire Runtime Summary">
+        <form id="runtimeSummaryForm" editMode="view" title="运行态摘要-触发批次">
             <layout>
  jobName[作业名] triggerSource[触发来源]
  fireStatus[批次状态] triggeredBy[触发人]
@@ -29,7 +29,7 @@
     </forms>
 
     <pages>
-        <crud name="main" x:inherit="true">
+        <crud name="main">
             <listActions>
                 <action id="batch-delete-button" x:override="remove"/>
                 <action id="add-button" x:override="remove"/>
