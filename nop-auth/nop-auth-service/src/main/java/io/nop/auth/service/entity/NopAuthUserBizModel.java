@@ -13,6 +13,8 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Description;
+import io.nop.api.core.beans.FilterBeans;
+import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.annotations.core.Locale;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
@@ -701,6 +703,11 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
         setting.setStatus(MFA_STATUS_DISABLED);
         setting.setBindToken(null);
         deleteRecoveryCodes(userId);
+        // A2-audit D3-F1（P1 修复）：解绑 = 因子作废 → 物理删除该用户全部 webauthn credential 行。
+        // 残留 enabled 行会在重绑 webauthn 后复活旧（被窃）钥匙；逻辑删除则占用 credentialId
+        // 唯一键阻断同钥匙复注册——故用 bulk 物理 DELETE（deleteWebauthnCredentials，
+        // 可信设备撤销矩阵同"信任失效即物理删除"语义）。
+        deleteWebauthnCredentials(userId);
         // W15-impl 撤销矩阵（设计 §6.3）：解绑成功 = 因子变更 → 全量删除该用户可信设备
         //（信任前提 = 特定因子持有，因子变更即失效）
         revokeTrustedDevices(userId, "unbind");
@@ -830,7 +837,12 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
         }
         String credentialId = credential.getCredentialId();
         String name = credential.getName();
-        daoFor(NopAuthMfaCredential.class).deleteEntity(credential);
+        // A2-audit fix-verification V-F1（对齐 D3-F1 修复语义）：物理删除而非逻辑删除——
+        // 软删行的 credentialId 仍占用全局唯一键，同钥匙复注册会撞 DB 约束抛未归一异常；
+        // 且软删行对重复注册守卫不可见（findAllByExample 过滤 delFlag），守卫与约束判定分裂。
+        QueryBean deleteQuery = new QueryBean();
+        deleteQuery.addFilter(FilterBeans.eq("sid", sid));
+        daoFor(NopAuthMfaCredential.class).deleteByQuery(deleteQuery);
         auditWebauthnEvent(userId, context.getUserContext(), credentialId, true,
                 "webauthn-credential-removed", name);
     }
@@ -959,6 +971,9 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
             setting.setLastVerifiedWindow(null);
         }
         deleteRecoveryCodes(userId);
+        // A2-audit D3-F1（P1 修复）：管理员重置 = 全因子作废 → 物理删除 webauthn credential 行
+        //（unbindMfa 同步修复；理由见 deleteWebauthnCredentials javadoc）
+        deleteWebauthnCredentials(userId);
         // W15-impl 撤销矩阵（设计 §6.3）：管理员重置 → 全量删除该用户可信设备
         revokeTrustedDevices(userId, "admin-reset");
     }
@@ -1326,6 +1341,23 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
         for (NopAuthMfaRecoveryCode rc : old) {
             rcDao.deleteEntity(rc);
         }
+    }
+
+    /**
+     * 因子作废（unbindMfa/resetUserMfa）时物理删除该用户全部 webauthn credential
+     * （A2-audit D3-F1，P1 修复）。物理删除而非逻辑删除：实体 {@code useLogicalDelete=true}，
+     * 软删行的 credentialId 仍占用全局唯一键（同钥匙复注册会撞 DB 约束抛未归一异常），
+     * 且残留 enabled 行会在重绑 webauthn 后复活旧（被窃）硬件钥匙。
+     * <p>
+     * 用 {@code deleteByQuery}（bulk 物理 DELETE）而非逐行 {@code deleteEntityDirectly}：
+     * unbind ceremony 的断言验证刚以条件 UPDATE 推进 signCount/version，会话内实体版本
+     * 落后于 DB，逐行删除触发乐观锁冲突；bulk DELETE 按条件直接执行，无版本比对。
+     */
+    private void deleteWebauthnCredentials(String userId) {
+        IEntityDao<NopAuthMfaCredential> dao = daoFor(NopAuthMfaCredential.class);
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq("userId", userId));
+        dao.deleteByQuery(query);
     }
 
     /** 生成 10 位数字恢复码（设计 §3.4）。 */

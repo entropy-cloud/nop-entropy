@@ -413,18 +413,10 @@ class TestWebAuthnMfaAdvancedE2E {
         ormTemplate.runInSession(s -> userBizModel.confirmWebauthnRegistration(bindA.getChallengeToken(),
                 keyA.attest(bindA.getCreationOptions().getChallenge(), 5L), selfCtx));
 
-        // 解绑 → 重绑注册第二把（credential A 行保留 enabled——1:N 模型）
+        // 第二把直接落库（A2-audit D3-F1 修复后 unbind 物理删除 credential 行，"解绑保留行
+        // 再重绑"不再累积第二把——多钥匙状态以直接落库构造，断言面不变）
         WebAuthnTestClient keyB = new WebAuthnTestClient();
-        MfaWebauthnBeginResult unbindA = ormTemplate.runInSession(s -> userBizModel.webauthnBeginVerify(selfCtx));
-        ormTemplate.runInSession(s -> {
-            userBizModel.unbindMfa(null, unbindA.getChallengeToken(),
-                    keyA.assert_(unbindA.getRequestOptions().getChallenge(), 6L), selfCtx);
-            return null;
-        });
-        MfaBindResult bindB = ormTemplate.runInSession(s ->
-                userBizModel.bindMfa(NopAuthConstants.MFA_TYPE_WEBAUTHN, null, selfCtx));
-        ormTemplate.runInSession(s -> userBizModel.confirmWebauthnRegistration(bindB.getChallengeToken(),
-                keyB.attest(bindB.getCreationOptions().getChallenge(), 5L), selfCtx));
+        saveCredentialDirectly(userId, keyB, 5L, NopAuthConstants.MFA_STATUS_ENABLED);
 
         // 禁用 B（直接落库——禁用单把不解绑整体）
         setCredentialStatus(keyB.credentialIdB64Url(), NopAuthConstants.MFA_STATUS_DISABLED);
@@ -527,7 +519,12 @@ class TestWebAuthnMfaAdvancedE2E {
             assertDoesNotThrow(() -> operationMfaChecker.check("NopAuthUser__unbindMfa",
                     selfCtx.getUserContext(), headers));
 
-            // ceremony 2：解绑 challenge 断言（count 再推进一次——两把断言各自单调）
+            // ceremony 1 后票据断言已推进 signCount（5→6，单调性证据在此读取）
+            assertEquals(Long.valueOf(6L), findCredentialByCredentialId(client.credentialIdB64Url()).getSignCount(),
+                    "op-ticket assertion must advance signCount (5→6)");
+
+            // ceremony 2：解绑 challenge 断言（count 再推进一次——两把断言各自单调；unbind 成功
+            // 本身即证明断言 count 7 严格大于存储值 6，回退/重放会被拒）
             MfaWebauthnBeginResult begin = ormTemplate.runInSession(s -> userBizModel.webauthnBeginVerify(selfCtx));
             ormTemplate.runInSession(s -> {
                 userBizModel.unbindMfa(null, begin.getChallengeToken(),
@@ -536,12 +533,56 @@ class TestWebAuthnMfaAdvancedE2E {
             });
             assertEquals(NopAuthConstants.MFA_STATUS_DISABLED,
                     daoProvider.daoFor(NopAuthMfaSetting.class).getEntityById(userId).getStatus());
-            assertEquals(Long.valueOf(7L), findCredentialByCredentialId(client.credentialIdB64Url()).getSignCount(),
-                    "both ceremony assertions must advance signCount monotonically");
+            // A2-audit D3-F1（P1 修复）：解绑 = 因子作废 → credential 行物理删除（count 7 的
+            // 落库值随行删除不可再读，单调推进由上方 6L 读取 + unbind 成功双重证实）
+            assertNull(findCredentialByCredentialId(client.credentialIdB64Url()),
+                    "unbind must physically delete credential rows (A2-audit D3-F1)");
         } finally {
             provider.assignConfigValue("nop.auth.operation-mfa.enabled",
                     original != null && original);
         }
+    }
+
+    // ===================== A2-audit D3-F1（P1 修复验证）：解绑/管理员重置物理删除 credential 行 =====================
+
+    @Test
+    void testUnbindAndAdminResetDeleteCredentialRows() {
+        String userId = "wa-inval-user";
+        String userName = "wa_inval_user";
+        saveUser(userId, userName, null);
+        WebAuthnTestClient client = new WebAuthnTestClient();
+        enableWebauthnDirectly(userId, client, 5L);
+        IServiceContext selfCtx = ctx(userId, userName, "sess-inval");
+
+        // (a) unbind ceremony → credential 行物理删除（旧行为：残留 enabled，重绑后复活被窃钥匙）
+        MfaWebauthnBeginResult begin = ormTemplate.runInSession(s -> userBizModel.webauthnBeginVerify(selfCtx));
+        ormTemplate.runInSession(s -> {
+            userBizModel.unbindMfa(null, begin.getChallengeToken(),
+                    client.assert_(begin.getRequestOptions().getChallenge(), 6L), selfCtx);
+            return null;
+        });
+        assertEquals(NopAuthConstants.MFA_STATUS_DISABLED,
+                daoProvider.daoFor(NopAuthMfaSetting.class).getEntityById(userId).getStatus());
+        assertNull(findCredentialByCredentialId(client.credentialIdB64Url()),
+                "unbind must physically delete the credential row (A2-audit D3-F1)");
+
+        // (b) 同钥匙复注册可行（credentialId 唯一键已随物理删除释放——逻辑删除会撞唯一约束）
+        MfaBindResult rebind = ormTemplate.runInSession(s ->
+                userBizModel.bindMfa(NopAuthConstants.MFA_TYPE_WEBAUTHN, null, selfCtx));
+        ormTemplate.runInSession(s -> userBizModel.confirmWebauthnRegistration(rebind.getChallengeToken(),
+                client.attest(rebind.getCreationOptions().getChallenge(), 7L), selfCtx));
+        assertNotNull(findCredentialByCredentialId(client.credentialIdB64Url()),
+                "re-registering the same key after full unbind must succeed (unique key freed)");
+
+        // (c) 管理员重置 → credential 行物理删除（"全因子作废"语义闭合）
+        ormTemplate.runInSession(s -> {
+            userBizModel.resetUserMfa(userId, adminCtx("wa-inval-admin"));
+            return null;
+        });
+        assertNull(findCredentialByCredentialId(client.credentialIdB64Url()),
+                "admin reset must physically delete the credential row (A2-audit D3-F1)");
+        assertEquals(NopAuthConstants.MFA_STATUS_DISABLED,
+                daoProvider.daoFor(NopAuthMfaSetting.class).getEntityById(userId).getStatus());
     }
 
     // ===================== 审计四事件（userName 非空——W13 教训专项） =====================
@@ -767,6 +808,20 @@ class TestWebAuthnMfaAdvancedE2E {
         uc.setUserName(userName);
         uc.setTenantId(TENANT_ID);
         uc.setSessionId(sessionId);
+        c.setUserContext(uc);
+        return c;
+    }
+
+    /** 管理员上下文（resetUserMfa requireAdmin 运行时校验——TestTrustedDeviceE2E 同型）。 */
+    private IServiceContext adminCtx(String userId) {
+        ServiceContextImpl c = new ServiceContextImpl();
+        UserContextImpl uc = new UserContextImpl();
+        uc.setUserId(userId);
+        uc.setUserName(userId);
+        uc.setTenantId(TENANT_ID);
+        java.util.Set<String> roles = new java.util.HashSet<>();
+        roles.add(NopAuthConstants.ROLE_ADMIN);
+        uc.setRoles(roles);
         c.setUserContext(uc);
         return c;
     }

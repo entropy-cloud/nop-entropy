@@ -512,27 +512,17 @@ class TestWebAuthnMfaE2E {
         saveUser(userId, userName, null);
         WebAuthnTestClient client = new WebAuthnTestClient();
 
-        // 首把注册成功
+        // 预置同 key 的 credential 行（等价"该钥匙已注册"）。A2-audit D3-F1 修复后 unbind
+        // 物理删除 credential 行，重复注册守卫的覆盖不再依赖"解绑后行保留"旧语义。
+        saveCredentialDirectly(userId, client, 5L, NopAuthConstants.MFA_STATUS_ENABLED);
+
+        // bind（覆盖/新建 pending）+ 用同一把钥匙 confirm → 重复注册拒绝
         MfaBindResult bind = ormTemplate.runInSession(s ->
                 userBizModel.bindMfa(NopAuthConstants.MFA_TYPE_WEBAUTHN, null, ctx(userId, userName, "sess-dup")));
-        ormTemplate.runInSession(s -> userBizModel.confirmWebauthnRegistration(bind.getChallengeToken(),
-                client.attest(bind.getCreationOptions().getChallenge(), 5L), ctx(userId, userName, "sess-dup")));
-
-        // 解绑（setting disabled——credential 行保留）后再次 bind + 用同一把钥匙 confirm → 重复注册拒绝
-        MfaWebauthnBeginResult begin = ormTemplate.runInSession(s ->
-                userBizModel.webauthnBeginVerify(ctx(userId, userName, "sess-dup")));
-        ormTemplate.runInSession(s -> {
-            userBizModel.unbindMfa(null, begin.getChallengeToken(),
-                    client.assert_(begin.getRequestOptions().getChallenge(), 6L), ctx(userId, userName, "sess-dup"));
-            return null;
-        });
-
-        MfaBindResult rebind = ormTemplate.runInSession(s ->
-                userBizModel.bindMfa(NopAuthConstants.MFA_TYPE_WEBAUTHN, null, ctx(userId, userName, "sess-dup2")));
         NopException dup = assertThrows(NopException.class, () -> ormTemplate.runInSession(s ->
-                userBizModel.confirmWebauthnRegistration(rebind.getChallengeToken(),
-                        client.attest(rebind.getCreationOptions().getChallenge(), 5L),
-                        ctx(userId, userName, "sess-dup2"))));
+                userBizModel.confirmWebauthnRegistration(bind.getChallengeToken(),
+                        client.attest(bind.getCreationOptions().getChallenge(), 6L),
+                        ctx(userId, userName, "sess-dup"))));
         assertEquals(NopAuthErrors.ERR_AUTH_MFA_FAIL.getErrorCode(), dup.getErrorCode());
         assertTrue(dup.getMessage().contains("already registered"), "duplicate registration must be explicit");
 

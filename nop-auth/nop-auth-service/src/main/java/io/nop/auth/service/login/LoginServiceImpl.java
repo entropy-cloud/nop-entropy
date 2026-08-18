@@ -11,6 +11,8 @@ import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.audit.AuditRequest;
 import io.nop.api.core.audit.IAuditService;
 import io.nop.api.core.auth.IUserContext;
+import io.nop.api.core.beans.FilterBeans;
+import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.convert.ConvertHelper;
@@ -41,6 +43,7 @@ import io.nop.auth.core.totp.TOTPAuthenticator;
 import io.nop.auth.core.verifycode.IVerifyCodeGenerator;
 import io.nop.auth.core.verifycode.VerifyCode;
 import io.nop.auth.dao.entity.NopAuthDept;
+import io.nop.auth.dao.entity.NopAuthMfaCredential;
 import io.nop.auth.dao.entity.NopAuthMfaRecoveryCode;
 import io.nop.auth.dao.entity.NopAuthMfaSetting;
 import io.nop.auth.dao.entity.NopAuthRole;
@@ -664,6 +667,10 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
         mfaChallengeStore.consume(request.getChallengeToken());
         setting.setStatus(MFA_STATUS_DISABLED);
         daoProvider.daoFor(NopAuthMfaSetting.class).updateEntityDirectly(setting);
+        // A2-audit D3-F1（P1 修复）：恢复码使用 = 因子失效边界（与 unbindMfa/resetUserMfa 同步修复，
+        // 三边界闭合）→ 物理删除 webauthn credential 行。残留 enabled 行会在用户重绑后复活旧
+        //（被窃）硬件钥匙，"强制重绑"的安全语义被打破；物理删除同时释放 credentialId 唯一键。
+        deleteWebauthnCredentials(challenge.getUserId());
         LOG.info("nop.auth.mfa-recovery-used:userId={},userName={}", user.getUserId(), user.getUserName());
         return completeMfaLogin(user, challenge.getLoginType());
     }
@@ -671,6 +678,22 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
     /** 恢复码验证三态。 */
     protected enum RecoveryVerifyResult {
         VALID, USED, INVALID
+    }
+
+    /**
+     * 因子失效边界（恢复码使用）物理删除该用户全部 webauthn credential（A2-audit D3-F1，
+     * P1 修复；NopAuthUserBizModel.unbindMfa/resetUserMfa 同语义）。物理删除而非逻辑删除：
+     * 实体 {@code useLogicalDelete=true}，软删行占用 credentialId 全局唯一键（同钥匙复注册
+     * 撞 DB 约束），且残留 enabled 行会在重绑后复活旧（被窃）硬件钥匙。
+     * <p>
+     * 用 {@code deleteByQuery}（bulk 物理 DELETE）：断言验证路径的条件 UPDATE 会推进
+     * version，逐行删除会话缓存实体会触发乐观锁冲突；bulk DELETE 按条件直接执行。
+     */
+    private void deleteWebauthnCredentials(String userId) {
+        IEntityDao<NopAuthMfaCredential> dao = daoProvider.daoFor(NopAuthMfaCredential.class);
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq("userId", userId));
+        dao.deleteByQuery(query);
     }
 
     /**

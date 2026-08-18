@@ -88,8 +88,12 @@ public class RedisSmsCodeStore implements SmsCodeStore {
         }
 
         if (entry.getCode().equals(code)) {
-            // 成功：原子一次性消费（Lua CAS），并清失败计数
-            nosql.removeIfMatch(codeKey(key), entry);
+            // 成功：原子一次性消费（Lua CAS），并清失败计数。A2-audit D2-F1（P1 修复）：
+            // 删除原子 ≠ 裁决原子——CAS 失败 = 并发竞争者已消费，败者必须返回 EXPIRED 而非 VALID
+            // （与 Db 实现的 affected==0 → EXPIRED 语义对齐，双花防御）
+            if (!nosql.removeIfMatch(codeKey(key), entry)) {
+                return CodeVerifyResult.EXPIRED;
+            }
             nosql.remove(failKey(key));
             return CodeVerifyResult.VALID;
         }
