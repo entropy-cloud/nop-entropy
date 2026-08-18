@@ -331,7 +331,7 @@ public class TestOperationMfaE2E extends JunitBaseTestCase {
                 "recovery-code-shaped input must fail factor verification at operation level");
     }
 
-    // ===================== scene 校验与登录级残留钉定 =====================
+    // ===================== scene 纪律：登录级 mfaVerify 拒绝他场景 token（D2-F2） =====================
 
     @Test
     public void testOperationEndpointRejectsLoginSceneToken() {
@@ -347,30 +347,102 @@ public class TestOperationMfaE2E extends JunitBaseTestCase {
     }
 
     @Test
-    public void testLoginLevelResidualWithOperationSceneTokenPinned() {
-        // 设计继承残留（§3.5 一期零改动裁定）：operation scene 的 token 经登录级 mfaVerify
-        // 因子通过后会走 completeLogin 签发会话——因子仍被验证，安全等价。行为钉定 + watch-only。
-        String userId = "op-mfa-residual-user";
+    public void testLoginLevelRejectsOperationSceneToken() {
+        // D2-F2（successor-B 落地）：operation scene 的 token 送登录级 mfaVerify 被显式拒绝——
+        // 拒绝其"challenge token + 因子码 = 免第一因子签发全新会话"的挪用面（原"安全等价"论证
+        // 只覆盖第二因子、忽略第一因子降级，A2 审计提级异议成立，§3.5 再裁定翻案）。
+        String userId = "op-mfa-cross-op-user";
         saveUserWithTotp(userId);
+        UserContextImpl ctx = adminContext(userId, "sess-cross-op");
 
         String challengeToken = mfaChallengeStore.create(MfaChallenge.SCENE_OPERATION, userId,
                 NopAuthConstants.MFA_TYPE_TOTP, 0, TENANT_ID, null,
-                "{\"operation\":\"" + OP_RESET + "\",\"sessionId\":\"sess-residual\"}");
+                "{\"operation\":\"" + OP_RESET + "\",\"sessionId\":\"sess-cross-op\"}");
 
-        IUserContext.set(adminContext(userId, "sess-residual"));
-        try {
+        NopException ex = assertThrows(NopException.class, () -> {
+            MfaVerifyRequest loginRequest = new MfaVerifyRequest();
+            loginRequest.setChallengeToken(challengeToken);
+            loginRequest.setCode(computeTotpCode(base32Secret));
             ormTemplate.runInSession(s -> {
+                // 显式中间类型：嵌套泛型推断（runInSession + syncGet 双泛型方法）的中间变量锚定
+                java.util.concurrent.CompletionStage<io.nop.auth.api.messages.LoginResult> stage =
+                        loginApiBizModel.mfaVerifyAsync(loginRequest, new ServiceContextImpl());
+                return FutureHelper.syncGet(stage);
+            });
+        });
+        assertEquals(NopAuthErrors.ERR_AUTH_MFA_CHALLENGE_EXPIRED.getErrorCode(), ex.getErrorCode(),
+                "login-level mfaVerify must reject operation-scene token even with a valid factor code");
+
+        // 拒绝语义：不消费——该 token 在其自身场景与 TTL 内仍合法可用（mfaVerifyOperation 验证成功）
+        mfaVerifyOperation(challengeToken, computeTotpCode(base32Secret), ctx);
+    }
+
+    @Test
+    public void testLoginLevelRejectsCrossSceneTokensMatrix() {
+        // D2-F2 矩阵：webauthn-register / webauthn-unbind / channel-proof 场景 token 全部被拒；
+        // 已转票（verifiedAt 非空）的 operation token 被拒（票只授权其绑定操作，不授权登录）
+        String userId = "op-mfa-matrix-user";
+        saveUserWithTotp(userId);
+        UserContextImpl ctx = adminContext(userId, "sess-matrix");
+
+        String[] scenes = {MfaChallenge.SCENE_WEBAUTHN_REGISTER, MfaChallenge.SCENE_WEBAUTHN_UNBIND,
+                MfaChallenge.SCENE_CHANNEL_PROOF};
+        for (String scene : scenes) {
+            String token = mfaChallengeStore.create(scene, userId, NopAuthConstants.MFA_TYPE_TOTP, 0,
+                    TENANT_ID, null, "{\"sessionId\":\"sess-matrix\"}");
+            NopException ex = assertThrows(NopException.class, () -> mfaVerifyLogin(userId, token,
+                    computeTotpCode(base32Secret)), "scene=" + scene + " token must be rejected");
+            assertEquals(NopAuthErrors.ERR_AUTH_MFA_CHALLENGE_EXPIRED.getErrorCode(), ex.getErrorCode(),
+                    "scene=" + scene + " token must be rejected by login-level mfaVerify");
+        }
+
+        // 已转票的 operation token：markVerified 后 peek 可见（票窗口内），登录级拒绝
+        String ticketToken = requireChallenge(OP_RESET, userId, ctx);
+        mfaVerifyOperation(ticketToken, computeTotpCode(base32Secret), ctx);
+        assertNotNull(mfaChallengeStore.peek(ticketToken), "ticket stays visible within its window");
+        assertNotNull(mfaChallengeStore.peek(ticketToken).getVerifiedAt(), "verified ticket must carry verifiedAt");
+        NopException ticket = assertThrows(NopException.class, () -> mfaVerifyLogin(userId, ticketToken,
+                computeTotpCode(base32Secret)));
+        assertEquals(NopAuthErrors.ERR_AUTH_MFA_CHALLENGE_EXPIRED.getErrorCode(), ticket.getErrorCode(),
+                "already-verified operation ticket must not authorize login-level session issuance");
+    }
+
+    @Test
+    public void testLoginLevelAcceptsLoginAndLegacyNullScene() {
+        // 一期兼容钉定：scene=login 与 scene=null（一期存量数据）的正常两阶段登录零回归。
+        // 两场景用不同用户：同用户同窗口二次验证会触发 TOTP 防重放（MfaFactorVerifier 统一
+        // 窗口推进）——与 scene 兼容语义无关，属组件既有纪律。
+        String userId = "op-mfa-compat-user";
+        saveUserWithTotp(userId);
+        String loginToken = mfaChallengeStore.create(MfaChallenge.SCENE_LOGIN, userId,
+                NopAuthConstants.MFA_TYPE_TOTP, 1, TENANT_ID, null, null);
+        io.nop.auth.api.messages.LoginResult ctx1 = mfaVerifyLogin(userId, loginToken, computeTotpCode(base32Secret));
+        assertNotNull(ctx1.getAccessToken(), "scene=login two-phase login must complete (session issued)");
+
+        // scene=null（一期存量兼容口径——老进程写的无 scene 行）
+        String legacyUserId = "op-mfa-compat-legacy-user";
+        saveUserWithTotp(legacyUserId);
+        String nullToken = mfaChallengeStore.create(null, legacyUserId, NopAuthConstants.MFA_TYPE_TOTP, 1,
+                TENANT_ID, null, null);
+        io.nop.auth.api.messages.LoginResult ctx2 = mfaVerifyLogin(legacyUserId, nullToken,
+                computeTotpCode(base32Secret));
+        assertNotNull(ctx2.getAccessToken(), "scene=null legacy challenge must still complete login");
+    }
+
+    /** 登录级 mfaVerify 直调（GraphQL 入口 LoginApiBizModel.mfaVerifyAsync 的服务层路径；异常自然上抛）。 */
+    private io.nop.auth.api.messages.LoginResult mfaVerifyLogin(String userId, String challengeToken, String code) {
+        IUserContext.set(adminContext(userId, "sess-login-" + (challengeToken == null ? 0
+                : challengeToken.hashCode() & 0xFFFF)));
+        try {
+            return ormTemplate.runInSession(s -> {
                 MfaVerifyRequest loginRequest = new MfaVerifyRequest();
                 loginRequest.setChallengeToken(challengeToken);
-                loginRequest.setCode(computeTotpCode(base32Secret));
-                return FutureHelper.syncGet(
-                        loginApiBizModel.mfaVerifyAsync(loginRequest, new ServiceContextImpl()));
+                loginRequest.setCode(code);
+                // 显式中间类型：嵌套泛型推断（runInSession + syncGet 双泛型方法）的中间变量锚定
+                java.util.concurrent.CompletionStage<io.nop.auth.api.messages.LoginResult> stage =
+                        loginApiBizModel.mfaVerifyAsync(loginRequest, new ServiceContextImpl());
+                return FutureHelper.syncGet(stage);
             });
-            // 到这里未抛错即为"登录级接受 operation token 并完成登录"（residual 钉定；
-            // 抛错则说明行为与设计裁定不一致——fail 让测试说话）
-        } catch (NopException e) {
-            fail("design-residual pinned: login-level mfaVerify is expected to accept operation-scene token. "
-                    + "Got: " + e.getErrorCode());
         } finally {
             IUserContext.set(null);
         }

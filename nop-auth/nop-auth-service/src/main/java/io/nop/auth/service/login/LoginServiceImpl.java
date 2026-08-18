@@ -569,6 +569,20 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
             throw new NopException(ERR_AUTH_MFA_CHALLENGE_EXPIRED).param(ARG_CHALLENGE_TOKEN, request.getChallengeToken());
         }
 
+        // 1b. scene/verifiedAt 纪律（A2-audit D2-F2，successor-B 落地；设计 §3.5 再裁定）：登录级
+        //     验证端点仅接受 scene ∈ {login, null}（null = 一期存量兼容口径）且未转票
+        //     （verifiedAt==null）的 challenge。operation/webauthn-register/webauthn-unbind/
+        //     channel-proof 等他场景 token 携真实因子码可在此免第一因子签发全新会话（challenge
+        //     token 替代密码的账户接管面）——显式拒绝。已转票（verifiedAt 非空）的 operation
+        //     token 同样拒绝（票只授权其绑定操作，不授权登录）。拒绝语义对齐 mfaVerifyOperation
+        //     对 login token 的既有行为：抛 CHALLENGE_EXPIRED 且不消费（错误场景的 token 在其
+        //     自身场景与 TTL 内仍合法可用）。
+        if ((challenge.getScene() != null && !MfaChallenge.SCENE_LOGIN.equals(challenge.getScene()))
+                || challenge.getVerifiedAt() != null) {
+            throw new NopException(ERR_AUTH_MFA_CHALLENGE_EXPIRED)
+                    .param(ARG_CHALLENGE_TOKEN, request.getChallengeToken());
+        }
+
         // 2. loadUser + setting 复核（runWithTenant 保证租户上下文）
         String tenantId = challenge.getTenantId();
         return ContextProvider.runWithTenant(tenantId, () -> {
