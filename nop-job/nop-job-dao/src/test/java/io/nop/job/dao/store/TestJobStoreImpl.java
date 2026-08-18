@@ -606,26 +606,29 @@ public class TestJobStoreImpl extends JunitBaseTestCase {
         NopJobSchedule schedule = newSchedule("sched-cursor2", "job-cursor2");
         daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
 
+        // createTime 是 ORM 审计字段，insert 时会被强制覆写为当前时间，需先保存再回拨
         NopJobTask stale1 = newTask("task-stale-cursor-1", newFire("fire-stale-cursor-1", schedule));
-        stale1.setCreateTime(new Timestamp(System.currentTimeMillis() - 600_000));
         daoProvider.daoFor(NopJobTask.class).saveEntityDirectly(stale1);
+        stale1.setCreateTime(new Timestamp(System.currentTimeMillis() - 600_000));
+        daoProvider.daoFor(NopJobTask.class).updateEntityDirectly(stale1);
 
         NopJobTask stale2 = newTask("task-stale-cursor-2", newFire("fire-stale-cursor-2", schedule));
-        stale2.setCreateTime(new Timestamp(System.currentTimeMillis() - 700_000));
         daoProvider.daoFor(NopJobTask.class).saveEntityDirectly(stale2);
+        stale2.setCreateTime(new Timestamp(System.currentTimeMillis() - 700_000));
+        daoProvider.daoFor(NopJobTask.class).updateEntityDirectly(stale2);
 
         long deadline = System.currentTimeMillis() - 300_000;
 
-        // 首批：返回 1 条（按 createTime DESC，更老的 stale2 在前）
+        // 首批：返回 1 条（按 createTime DESC，更新的 stale1 在前）
         List<NopJobTask> firstBatch = taskStore.resetStaleWaitingTasks(1, null, deadline, null, null);
         assertEquals(1, firstBatch.size(), "first batch returns 1");
-        assertEquals("task-stale-cursor-2", firstBatch.get(0).getJobTaskId(),
-                "createTime DESC: older task-stale-cursor-2 first");
+        assertEquals("task-stale-cursor-1", firstBatch.get(0).getJobTaskId(),
+                "createTime DESC: newer task-stale-cursor-1 first");
 
-        // 第二批 cursor=(stale2.createTime, task-stale-cursor-2)：应只剩 stale1
+        // 第二批 cursor=(stale1.createTime, task-stale-cursor-1)：应只剩 stale2
         List<NopJobTask> secondBatch = taskStore.resetStaleWaitingTasks(100, null, deadline,
                 firstBatch.get(0).getCreateTime(), firstBatch.get(0).getJobTaskId());
-        assertEquals(1, secondBatch.size(), "cursor advances past stale2");
-        assertEquals("task-stale-cursor-1", secondBatch.get(0).getJobTaskId());
+        assertEquals(1, secondBatch.size(), "cursor advances past stale1");
+        assertEquals("task-stale-cursor-2", secondBatch.get(0).getJobTaskId());
     }
 }
