@@ -306,6 +306,16 @@ public interface GraphQLErrors {
             "对象[{bizObjName}]的业务方法[{operationName}]标注了@MfaRequired，不允许与@Auth(publicAccess=true)同用（匿名方法无会话可验）",
             ARG_BIZ_OBJ_NAME, ARG_OPERATION_NAME);
 
+    ErrorCode ERR_GRAPHQL_MFA_REQUIRED_NOT_ALLOWED_ON_BIZ_ACTION = define(
+            "nop.err.graphql.mfa-required-not-allowed-on-biz-action",
+            "对象[{bizObjName}]的业务方法[{operationName}]标注了@MfaRequired，不允许用于@BizAction方法（内部动作不经executor操作级MFA检查点，静默忽略等于fail-open；请改标@BizMutation/@BizQuery）",
+            ARG_BIZ_OBJ_NAME, ARG_OPERATION_NAME);
+
+    ErrorCode ERR_GRAPHQL_MFA_REQUIRED_NOT_ALLOWED_ON_BIZ_LOADER = define(
+            "nop.err.graphql.mfa-required-not-allowed-on-biz-loader",
+            "对象[{bizObjName}]的业务方法[{operationName}]标注了@MfaRequired，不允许用于@BizLoader方法（字段装载器无独立操作入口，静默忽略等于fail-open）",
+            ARG_BIZ_OBJ_NAME, ARG_OPERATION_NAME);
+
     ErrorCode ERR_GRAPHQL_MULTI_BIZ_FILE_FOR_BIZ_OBJ =
             define("nop.err.graphql.multi-biz-file-for-biz-obj",
                     "存在多个biz文件对应于同一个对象[{bizObjName}]:pathA={pathA},pathB={pathB}",

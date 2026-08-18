@@ -7,10 +7,13 @@
  */
 package io.nop.graphql.core.reflection;
 
+import io.nop.api.core.annotations.biz.BizAction;
+import io.nop.api.core.annotations.biz.BizLoader;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.biz.BizSubscription;
+import io.nop.api.core.annotations.biz.ContextSource;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.directive.Auth;
 import io.nop.api.core.exceptions.NopException;
@@ -75,6 +78,26 @@ public class TestMfaRequiredMetadata {
         }
     }
 
+    /** D5-F3：@MfaRequired 误标 @BizAction（内部动作不经 executor 操作级检查点）——构建期 fail-fast。 */
+    @BizModel("MfaActionBiz")
+    public static class MfaActionBizModel {
+        @BizAction
+        @MfaRequired
+        public String internalSensitive(@Name("id") String id) {
+            return id;
+        }
+    }
+
+    /** D5-F3：@MfaRequired 误标 @BizLoader（字段装载器无操作入口）——构建期 fail-fast。 */
+    @BizModel("MfaLoaderBiz")
+    public static class MfaLoaderBizModel {
+        @BizLoader
+        @MfaRequired
+        public String sensitiveField(@ContextSource String source) {
+            return source;
+        }
+    }
+
     private GraphQLBizModel buildBizModel(Object bean) {
         return ReflectionBizModelBuilder.INSTANCE.build(bean, new TypeRegistry(), new GraphQLBizModels());
     }
@@ -107,6 +130,24 @@ public class TestMfaRequiredMetadata {
                 () -> buildBizModel(new MfaPublicBizModel()));
         assertEquals(GraphQLErrors.ERR_GRAPHQL_MFA_REQUIRED_NOT_ALLOWED_FOR_PUBLIC_ACCESS.getErrorCode(),
                 e.getErrorCode(), "@MfaRequired + @Auth(publicAccess=true) must fail at build time (fail-fast)");
+    }
+
+    @Test
+    public void testBizActionCombinationRejectedAtBuildTime() {
+        // D5-F3：@MfaRequired + @BizAction 误标原被静默忽略（fail-open 错觉）——构建期显式拒绝
+        NopException e = assertThrows(NopException.class,
+                () -> buildBizModel(new MfaActionBizModel()));
+        assertEquals(GraphQLErrors.ERR_GRAPHQL_MFA_REQUIRED_NOT_ALLOWED_ON_BIZ_ACTION.getErrorCode(),
+                e.getErrorCode(), "@MfaRequired + @BizAction must fail at build time (fail-fast)");
+    }
+
+    @Test
+    public void testBizLoaderCombinationRejectedAtBuildTime() {
+        // D5-F3：@MfaRequired + @BizLoader 误标原被静默忽略——构建期显式拒绝
+        NopException e = assertThrows(NopException.class,
+                () -> buildBizModel(new MfaLoaderBizModel()));
+        assertEquals(GraphQLErrors.ERR_GRAPHQL_MFA_REQUIRED_NOT_ALLOWED_ON_BIZ_LOADER.getErrorCode(),
+                e.getErrorCode(), "@MfaRequired + @BizLoader must fail at build time (fail-fast)");
     }
 
     @Test

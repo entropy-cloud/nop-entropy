@@ -866,10 +866,16 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
      * 移除<b>最后一把 enabled</b> credential 拒绝（{@code ERR_AUTH_MFA_LAST_CREDENTIAL}——
      * enabled 但零 credential = 用户自锁死；整体解绑走 unbindMfa 的 webauthn ceremony，
      * 有恢复码兜底）。禁用单把（status=disabled）不在此路径——禁用钥匙仍可移除。
+     * <p>
+     * <b>敏感操作标注（A2-audit 路由项 1 终局裁定，2026-08-19 落地）</b>：删除一把钥匙 =
+     * 修改认证因子集合，与 {@code unbindMfa}（删全部钥匙，已标注）同族同强度——
+     * {@code @MfaRequired} 标注（A1 §二#4 缩窄先例的区分论证）。last-credential 守卫
+     * 防"自锁死"属可用性保护，不构成劫持面（攻击者删钥匙仍需先过操作级票）。
      */
     @Description("移除WebAuthn凭证")
     @BizMutation
     @BizAudit(logRequestFields = "sid")
+    @MfaRequired
     public void removeWebauthnCredential(@Name("sid") String sid, IServiceContext context) {
         String userId = requireCurrentUserId(context);
         NopAuthMfaCredential credential = requireOwnCredential(sid, userId);
@@ -889,7 +895,12 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
                 "webauthn-credential-removed", name);
     }
 
-    /** 重命名一把 WebAuthn credential（本人数据限定——越权归一"不存在"）。 */
+    /**
+     * 重命名一把 WebAuthn credential（本人数据限定——越权归一"不存在"）。
+     * <p>
+     * <b>不标注裁定（A2-audit 路由项 1 终局裁定）</b>：纯展示元数据变更，不触碰认证因子
+     * 集合——C1b 缩窄先例（saveCredential/beginOAuthFlow 类展示性动作不标注）直接适用。
+     */
     @Description("重命名WebAuthn凭证")
     @BizMutation
     @BizAudit(logRequestFields = "sid")

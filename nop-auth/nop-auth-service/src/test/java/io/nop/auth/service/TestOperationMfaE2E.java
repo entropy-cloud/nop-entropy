@@ -58,7 +58,9 @@ import java.util.Set;
 import static io.nop.auth.service.NopAuthErrors.ARG_CHALLENGE_TOKEN;
 import static io.nop.auth.service.NopAuthErrors.ARG_MFA_TYPE;
 import static io.nop.auth.service.NopAuthErrors.ARG_OPERATION;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -131,8 +133,11 @@ public class TestOperationMfaE2E extends JunitBaseTestCase {
 
     @Test
     public void testEngineMetadataOnAnnotatedActions() {
+        // 路由项 1 落地（A2 终局裁定）：removeWebauthnCredential 入正例（5→6）；
+        // renameWebauthnCredential 入负例（裁定"展示元数据变更不标注"——钉定为预期而非遗漏）
         String[] ops = {OP_RESET, OP_CHANGE_PWD, "NopAuthUser__unbindMfa",
-                "NopAuthUser__generateRecoveryCodes", "NopAuthUser__resetUserPassword"};
+                "NopAuthUser__generateRecoveryCodes", "NopAuthUser__resetUserPassword",
+                "NopAuthUser__removeWebauthnCredential"};
         for (String op : ops) {
             assertNotNull(graphQLEngine.getSchemaLoader().getOperationDefinition(GraphQLOperationType.mutation, op),
                     op + " must be a registered mutation");
@@ -141,8 +146,45 @@ public class TestOperationMfaE2E extends JunitBaseTestCase {
                     op + " must carry mfaRequiredMeta through container wiring (BizObjectBuildHelper path)");
         }
         assertNull(graphQLEngine.getSchemaLoader()
+                        .getOperationDefinition(GraphQLOperationType.mutation, "NopAuthUser__renameWebauthnCredential")
+                        .getMfaRequiredMeta(),
+                "rename is adjudicated non-sensitive (display-only metadata): no mfaRequiredMeta is expected");
+        assertNull(graphQLEngine.getSchemaLoader()
                 .getOperationDefinition(GraphQLOperationType.query, "NopAuthUser__getMfaStatus").getMfaRequiredMeta(),
                 "non-sensitive action must have no mfaRequiredMeta");
+    }
+
+    @Test
+    public void testRemoveWebauthnCredentialAnnotationInterception() {
+        // 路由项 1 行为面：removeWebauthnCredential 标注后进入操作级判定（enabled=true 拦截 /
+        // enabled=false 零介入）；rename 未标注 → enabled=true 亦零介入（负向钉定）
+        String userId = "op-mfa-remove-cred-user";
+        saveUserWithTotp(userId);
+        UserContextImpl ctx = adminContext(userId, "sess-rm-cred");
+
+        // enabled=true（类缺省）：MFA 用户调 remove → 拦截（新 challenge）
+        NopException ex = assertThrows(NopException.class,
+                () -> checker().check("NopAuthUser__removeWebauthnCredential", ctx, null));
+        assertEquals(NopAuthErrors.ERR_AUTH_OPERATION_MFA_REQUIRED.getErrorCode(), ex.getErrorCode(),
+                "annotated removeWebauthnCredential must be intercepted for MFA-enabled user");
+
+        // rename 未标注：enabled=true 亦零介入——经引擎路径（executor 检查点按元数据路由，
+        // 无 mfaRequiredMeta 即不进 checker）；业务侧报"credential not found"证明已穿过检查点
+        ApiResponse<?> renameResp = rpcMutation("NopAuthUser__renameWebauthnCredential",
+                Map.of("sid", "nonexistent", "name", "x"), ctx, null);
+        assertFalse(renameResp.isOk(), "rename should fail on business validation (sid not found)");
+        assertNotEquals(NopAuthErrors.ERR_AUTH_OPERATION_MFA_REQUIRED.getErrorCode(), renameResp.getCode(),
+                "unannotated rename must never be MFA-intercepted (executor routes by metadata)");
+
+        // enabled=false：remove 零介入（标注存在但开关关闭——一期零回归语义）
+        IConfigProvider provider = AppConfig.getConfigProvider();
+        provider.assignConfigValue("nop.auth.operation-mfa.enabled", false);
+        try {
+            assertDoesNotThrow(() -> checker().check("NopAuthUser__removeWebauthnCredential", ctx, null),
+                    "enabled=false must zero-intervene even for annotated actions");
+        } finally {
+            provider.assignConfigValue("nop.auth.operation-mfa.enabled", true);
+        }
     }
 
     @Test

@@ -78,6 +78,8 @@ import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_ACTION_RETURN_TYPE_M
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_BATCH_LOAD_METHOD_MUST_RETURN_LIST;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_METHOD_PARAM_NO_REFLECTION_NAME_ANNOTATION;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_MFA_REQUIRED_NOT_ALLOWED_FOR_PUBLIC_ACCESS;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_MFA_REQUIRED_NOT_ALLOWED_ON_BIZ_ACTION;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_MFA_REQUIRED_NOT_ALLOWED_ON_BIZ_LOADER;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_MFA_REQUIRED_NOT_ALLOWED_ON_SUBSCRIPTION;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_ONLY_ALLOW_ONE_CONTEXT_SOURCE_PARAM;
 import static io.nop.graphql.core.reflection.ArgBuilders.getArg;
@@ -166,6 +168,17 @@ public class ReflectionBizModelBuilder {
                 String action = getBizActionName(bizAction, func);
                 if (!isLocalMethod(classModel, func) && !isAllowed(action, disabledActions, inheritActions))
                     continue;
+                // 操作级 MFA（D5-F3，构建期 fail-fast）：@BizAction 是内部动作（非 GraphQL
+                // operation），不进入 executor 操作级 MFA 检查点——标注 @MfaRequired 会被
+                // 静默忽略（fail-open 错觉），构建期显式拒绝（镜像 buildActionField 的
+                // subscription/publicAccess 两组合拒绝模式）
+                if (func.getAnnotation(MfaRequired.class) != null) {
+                    throw new NopException(ERR_GRAPHQL_MFA_REQUIRED_NOT_ALLOWED_ON_BIZ_ACTION).loc(loc)
+                            .param(ARG_OBJ_NAME, action).param(ARG_OPERATION_NAME,
+                                    GraphQLNameHelper.getOperationName(bizObjName, action))
+                            .param(ARG_METHOD_NAME, func.getName())
+                            .param(ARG_CLASS, func.getDeclaringClass().getName());
+                }
                 BeanMethodAction gqlAction = buildAction(bean, loc, action, func);
                 gqlAction.setSourceClassModel(classModel);
                 ret.addBizAction(action, gqlAction);
@@ -177,6 +190,16 @@ public class ReflectionBizModelBuilder {
                 String name = getLoaderName(bizLoader, func);
                 if (!isLocalMethod(classModel, func) && !isAllowed(name, disabledActions, inheritActions))
                     continue;
+
+                // 操作级 MFA（D5-F3，构建期 fail-fast）：@BizLoader 是字段装载器（非独立
+                // operation），无操作级 MFA 检查点——标注 @MfaRequired 会被静默忽略，
+                // 构建期显式拒绝（镜像 buildActionField 的两组合拒绝模式）
+                if (func.getAnnotation(MfaRequired.class) != null) {
+                    throw new NopException(ERR_GRAPHQL_MFA_REQUIRED_NOT_ALLOWED_ON_BIZ_LOADER).loc(loc)
+                            .param(ARG_OBJ_NAME, name).param(ARG_OPERATION_NAME, name)
+                            .param(ARG_METHOD_NAME, func.getName())
+                            .param(ARG_CLASS, func.getDeclaringClass().getName());
+                }
 
                 GraphQLFieldDefinition field = buildFetcherField(bizObjName, bean, loc, name, func, registry);
                 field.setSourceClassModel(classModel);
