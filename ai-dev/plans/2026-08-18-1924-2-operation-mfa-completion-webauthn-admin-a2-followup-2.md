@@ -66,25 +66,25 @@
 
 ### Phase 1 - D2-F2：mfaVerifyAsync scene/verifiedAt 校验（含设计 §3.5 再裁定）
 
-Status: planned
+Status: completed
 Targets: `LoginServiceImpl.java`、`TestOperationMfaE2E.java`、`ai-dev/design/nop-auth/02-mfa-phase2-design.md`（§3.5）
 
 - Item Types: `Decision | Fix | Proof`
 
-- [ ] **Decision（§3.5 再裁定）**：设计 §3.5"一期全部调用点（checkMfaRequired/mfaVerify）零改动"红线与验证端 scene 校验的相容性——**默认裁定：相容，采纳校验**。论证：红线的语义是**创建侧**调用点零改动（老五参 create 签名/缺省 scene=login 不变——live 事实保持）；`mfaVerifyAsync` peek 后的 scene/verifiedAt 复核是**验证端增量**，与 `mfaVerifyOperation`/`confirmWebauthnRegistration` 既有 scene 纪律对齐，且不改变任何一期合法流的行为（一期合法流只会送 scene=login 或 null 的 challenge 到该端点）。A2 审计人的提级异议（challenge token 替代第一因子 = 无密码账户接管路径）作为翻案证据采纳；原"安全等价"钉定测试的论证缺陷（只覆盖第二因子）在设计回写中显式记录
-- [ ] **Decision（拒绝语义）**：不符 scene/verifiedAt 条件时的行为——**默认裁定：抛 `ERR_AUTH_MFA_CHALLENGE_EXPIRED` 且不消费 challenge**（错误场景的 token 在其自身场景与 TTL 内仍合法可用，烧毁属过度副作用；与 `mfaVerifyOperation` 对 login token 的既有拒绝行为对齐——执行期核对 live 行为一致后钉定）
-- [ ] **Fix**：`mfaVerifyAsync` peek 后增加校验：`scene ∈ {login, null}` 且 `verifiedAt == null`，不符即按拒绝语义抛错；一期合法流（checkMfaRequired 创建的 login challenge，含 SSO/信道 loginType 变体）零改动通过
-- [ ] **Proof**：改写钉定测试 `testLoginLevelResidualWithOperationSceneTokenPinned` 为拒绝断言（`CHALLENGE_EXPIRED`），并确认仓内无其他测试依赖"登录级接受他场景 token"行为（grep 全测试树）
+- [x] **Decision（§3.5 再裁定）**：设计 §3.5"一期全部调用点（checkMfaRequired/mfaVerify）零改动"红线与验证端 scene 校验的相容性——**默认裁定：相容，采纳校验**。论证：红线的语义是**创建侧**调用点零改动（老五参 create 签名/缺省 scene=login 不变——live 事实保持）；`mfaVerifyAsync` peek 后的 scene/verifiedAt 复核是**验证端增量**，与 `mfaVerifyOperation`/`confirmWebauthnRegistration` 既有 scene 纪律对齐，且不改变任何一期合法流的行为（一期合法流只会送 scene=login 或 null 的 challenge 到该端点）。A2 审计人的提级异议（challenge token 替代第一因子 = 无密码账户接管路径）作为翻案证据采纳；原"安全等价"钉定测试的论证缺陷（只覆盖第二因子）在设计回写中显式记录
+- [x] **Decision（拒绝语义）**：不符 scene/verifiedAt 条件时的行为——**默认裁定：抛 `ERR_AUTH_MFA_CHALLENGE_EXPIRED` 且不消费 challenge**（错误场景的 token 在其自身场景与 TTL 内仍合法可用，烧毁属过度副作用；与 `mfaVerifyOperation` 对 login token 的既有拒绝行为对齐——执行期核对 live 行为一致后钉定）
+- [x] **Fix**：`mfaVerifyAsync` peek 后增加校验：`scene ∈ {login, null}` 且 `verifiedAt == null`，不符即按拒绝语义抛错；一期合法流（checkMfaRequired 创建的 login challenge，含 SSO/信道 loginType 变体）零改动通过
+- [x] **Proof**：改写钉定测试 `testLoginLevelResidualWithOperationSceneTokenPinned` 为拒绝断言（`CHALLENGE_EXPIRED`），并确认仓内无其他测试依赖"登录级接受他场景 token"行为（grep 全测试树）
 
 Exit Criteria:
 
-- [ ] E2E 测试矩阵：scene=operation / webauthn-register / webauthn-unbind / channel-proof 的 token 送 `mfaVerifyAsync` 全部被拒（错误码断言）；verifiedAt 非空（已转票）的 operation token 被拒；scene=null（一期兼容）与 scene=login 的正常两阶段登录（密码类 + SSO/信道变体）零回归
-- [ ] 原钉定测试已完成改写且无残留"residual 钉定"注释/命名（测试名与断言一致表达拒绝语义）
-- [ ] **接线验证**：`mfaVerifyOperation`/`confirmWebauthnRegistration`/`verifyWebauthnUnbindAssertion`/`requireChannelProof` 既有 scene 纪律测试零修改通过（收紧不波及正确场景）
-- [ ] **无静默跳过**：不符条件是显式错误码（有审计可见的错误响应），非静默返回
-- [ ] 设计 §3.5 再裁定结论（含翻案证据与论证缺陷记录）已回写 `02-mfa-phase2-design.md`；owner docs 若有"设计残留"表述同步清理（执行期 grep nop-auth.md）
-- [ ] `./mvnw test -pl nop-auth/nop-auth-service -am` 全绿（基线 363，新增用例计入）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E2E 测试矩阵：scene=operation / webauthn-register / webauthn-unbind / channel-proof 的 token 送 `mfaVerifyAsync` 全部被拒（错误码断言）；verifiedAt 非空（已转票）的 operation token 被拒；scene=null（一期兼容）与 scene=login 的正常两阶段登录（密码类 + SSO/信道变体）零回归
+- [x] 原钉定测试已完成改写且无残留"residual 钉定"注释/命名（测试名与断言一致表达拒绝语义）
+- [x] **接线验证**：`mfaVerifyOperation`/`confirmWebauthnRegistration`/`verifyWebauthnUnbindAssertion`/`requireChannelProof` 既有 scene 纪律测试零修改通过（收紧不波及正确场景）
+- [x] **无静默跳过**：不符条件是显式错误码（有审计可见的错误响应），非静默返回
+- [x] 设计 §3.5 再裁定结论（含翻案证据与论证缺陷记录）已回写 `02-mfa-phase2-design.md`；owner docs 若有"设计残留"表述同步清理（执行期 grep nop-auth.md——无残留表述；登录验证流程描述已同步 scene 纪律）
+- [x] `./mvnw test -pl nop-auth/nop-auth-service -am` 全绿（基线 363，新增用例计入）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 标注补全族：路由项 1 落地 + D5-F3 构建期 fail-fast
 

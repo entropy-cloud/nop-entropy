@@ -136,7 +136,7 @@ nop-auth 提供完整的两阶段登录（第一因子 → challenge → 第二�
 2. **MFA 拦截**：`checkMfaRequired()`（`:1012`，W15 增 headers 参数）——`nop.auth.mfa.enabled` 开关 + 角色策略评估（W13 第三态：有策略且不达标 → 受限会话签发，不建 challenge）+ 用户 MFA 设置检查（status==enabled）。SSO/信道登录同样拦截（`createSessionForUserAsync`，`:404`，loginType 参数化保证审计不失真）。
 3. **创建 challenge**：`MfaChallengeStore.create()` 生成一次性 challengeToken。
 4. **抛 `ERR_AUTH_MFA_REQUIRED`**（`:386`）：errorParams 携带 challengeToken / mfaType / loginType。未启用 MFA 的用户零感知（直接进 completeLogin）。
-5. **第二因子验证**：客户端调 `LoginApi.mfaVerify`（`LoginApiBizModel.mfaVerifyAsync`，`:197`）→ `LoginServiceImpl.mfaVerifyAsync`（`:548`）：peek challenge → setting 复核 → TOTP / SMS / WebAuthn 断言（`MfaVerifyRequest` 可选 `assertion` 字段）/ 恢复码分支 → 成功后 `consume` challenge 并 `completeMfaLogin` 签发 token。
+5. **第二因子验证**：客户端调 `LoginApi.mfaVerify`（`LoginApiBizModel.mfaVerifyAsync`，`:197`）→ `LoginServiceImpl.mfaVerifyAsync`（`:548`）：peek challenge → **scene/verifiedAt 纪律**（仅接受 `scene ∈ {login, null}`（null=一期存量兼容）且 `verifiedAt==null`——他场景（operation/webauthn-register/webauthn-unbind/channel-proof/webauthn-add）token 与已转票 token 拒绝 `CHALLENGE_EXPIRED` 且不消费，D2-F2：challenge token 不可替代第一因子）→ setting 复核 → TOTP / SMS / WebAuthn 断言（`MfaVerifyRequest` 可选 `assertion` 字段）/ 恢复码分支 → 成功后 `consume` challenge 并 `completeMfaLogin` 签发 token。
 
 > 因子等同分支：PHONE_SMS 登录 + mfaType==SMS 不重复验证。恢复码分支：BCrypt 比对，成功后 consume + status=disabled 强制重绑 + **物理删除 webauthn credential 行**（因子失效边界，A2-audit D3-F1）。
 

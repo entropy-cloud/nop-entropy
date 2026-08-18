@@ -153,6 +153,14 @@ mfaVerifyOperation(challengeToken, code):        # 需登录态
 - **明文边界不变**：操作级不引入新秘密；TOTP secret 仍仅绑定流程 provisioning URI 一次性返回。
 - **一期零回归声明**：`nop.auth.operation-mfa.enabled` 缺省 `false`——不开启时拦截器零介入；开启后无 `@MfaRequired` 标注的方法零介入；一期登录级 E2E 行为不变。
 
+**§3.5 再裁定（A2-audit D2-F2，successor-B 落地，2026-08-19 回写）——"一期全部调用点零改动"红线的创建侧/验证侧区分**：
+
+- **红线语义核定**：首条"一期全部调用点（`checkMfaRequired`/`mfaVerify`）零改动"的语义是**创建侧**零改动——老五参 `create` 签名、缺省 `scene=login`（`MfaChallengeHelper.createLoginChallenge` 收敛路径）保持不变，一期合法流（登录/SSO/信道 loginType 变体）只会送 `scene=login` 或 `scene=null`（一期存量数据兼容口径）的 challenge 到登录级验证端点。
+- **验证端增量相容**：`mfaVerifyAsync` peek 后新增 scene/verifiedAt 复核（仅接受 `scene ∈ {login, null}` 且 `verifiedAt == null`，不符抛 `ERR_AUTH_MFA_CHALLENGE_EXPIRED` 且不消费 challenge）属**验证端增量**，与 `mfaVerifyOperation`（scene==operation + sessionId）/`confirmWebauthnRegistration`（scene=webauthn-register + userId + sessionId）/`verifyWebauthnUnbindAssertion`（scene=webauthn-unbind + userId + sessionId）/`requireChannelProof`（scene=channel-proof + verifiedAt + userId）的既有 scene 纪律对齐——登录级 `mfaVerifyAsync` 原为唯一无 scene 纪律的验证端点。
+- **翻案证据（A2 审计人提级异议成立）**：operation / webauthn-register / webauthn-unbind / channel-proof 场景的 challenge 携带用户真实 mfaType——凭 `challengeToken + 有效因子码` 可在**免第一因子（密码）**情况下经 `completeLogin` 签发全新会话（challenge token 替代第一因子 = 无密码账户接管路径）；已转票（verifiedAt 非空、60s 窗口）的 operation token 同样可兑换登录。
+- **原"安全等价"论证缺陷记录（防再犯）**：W12-impl 钉定测试 `testLoginLevelResidualWithOperationSceneTokenPinned` 的论证只覆盖第二因子（"因子仍被验证，安全等价"），忽略了第一因子降级（登录级端点的安全承诺 = 第一因子 + 第二因子同时通过；接受他场景 token 使第一因子被 challenge 持有替代）。该测试已改写为拒绝断言（`testLoginLevelRejectsOperationSceneToken`），"设计残留 watch-only"登记随之撤销。
+- **拒绝语义**：对齐 `mfaVerifyOperation` 对 login token 的既有行为——抛 `ERR_AUTH_MFA_CHALLENGE_EXPIRED` 且**不消费** challenge（错误场景的 token 在其自身场景与 TTL 内仍合法可用，烧毁属过度副作用）。
+
 ### 3.6 W12-impl 裁定标注（2026-08-17 回写）
 
 实施 `ai-dev/plans/2026-08-16-2321-2-mfa-operation-level-stepup.md` 时的裁定回写（live 实现事实）：
