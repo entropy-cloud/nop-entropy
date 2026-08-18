@@ -22,5 +22,16 @@
             <artifactId>yunpian-java-sdk</artifactId>
             <version>1.2.7</version>
         </dependency>
+        <!-- W16-impl: 测试基建（模块此前零 test 依赖） -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>
