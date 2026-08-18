@@ -203,22 +203,38 @@ class TestFeishuClient {
                 listener.onBinary(data);
             }
         }
+
+        // W16-impl-ext: 触发 onClose（重连路径测试入口）
+        void fireClose() {
+            if (listener != null) {
+                listener.onClose();
+            }
+        }
     }
 
     static final class FakeFeishuHttpApi implements IFeishuHttpApi {
         int endpointCount;
         int getTokenCount;
         int sendMessageCount;
+        // W16-impl-ext: 记录每次调用的凭证参数（appId/appSecret 消费点接线断言）
+        final List<String> endpointAppIds = new ArrayList<>();
+        final List<String> endpointAppSecrets = new ArrayList<>();
+        final List<String> tokenAppIds = new ArrayList<>();
+        final List<String> tokenAppSecrets = new ArrayList<>();
 
         @Override
         public StreamEndpoint getStreamEndpoint(String appId, String appSecret) {
             endpointCount++;
+            endpointAppIds.add(appId);
+            endpointAppSecrets.add(appSecret);
             return new StreamEndpoint("wss://fake.feishu.cn/stream", "ticket-" + endpointCount);
         }
 
         @Override
         public AccessTokenResult getTenantAccessToken(String appId, String appSecret) {
             getTokenCount++;
+            tokenAppIds.add(appId);
+            tokenAppSecrets.add(appSecret);
             return new AccessTokenResult("t-token-" + getTokenCount, 7200L);
         }
 
@@ -235,6 +251,8 @@ class TestFeishuClient {
     static final class NoopScheduler implements java.util.concurrent.ScheduledExecutorService {
         int scheduleAtFixedRateCount;
         int scheduleCount;
+        // W16-impl-ext: 记录一次性调度命令（重连路径测试可手动执行）
+        final List<Runnable> scheduledCommands = new ArrayList<>();
         private boolean shutdown;
 
         @Override
@@ -246,6 +264,7 @@ class TestFeishuClient {
         @Override
         public ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit) {
             scheduleCount++;
+            scheduledCommands.add(command);
             return null;
         }
 
