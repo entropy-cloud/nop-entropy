@@ -605,10 +605,12 @@ class TestWebAuthnMfaE2E {
                 restrictedCtx.getUserContext(), null),
                 "confirmWebauthnRegistration must be whitelisted for restricted sessions (upgrade path)");
 
-        // webauthnBeginVerify / credential 管理不入白名单（裁定：受限用户 setting 不可能为 webauthn——不可达死代码）
+        // webauthnBeginVerify / credential 管理 / add-key 双端点不入白名单（裁定：受限用户 setting
+        // 不可能为 webauthn——不可达死代码；A2-followup-2 add-key 同构先例）
         for (String op : new String[]{"NopAuthUser__webauthnBeginVerify",
                 "NopAuthUser__removeWebauthnCredential", "NopAuthUser__renameWebauthnCredential",
-                "NopAuthUser__listWebauthnCredentials"}) {
+                "NopAuthUser__listWebauthnCredentials",
+                "NopAuthUser__webauthnBeginAddKey", "NopAuthUser__confirmWebauthnAddKey"}) {
             NopException ex = assertThrows(NopException.class, () ->
                     operationMfaChecker.check(op, restrictedCtx.getUserContext(), null));
             assertEquals(NopAuthErrors.ERR_AUTH_MFA_RESTRICTED_SESSION.getErrorCode(), ex.getErrorCode(),

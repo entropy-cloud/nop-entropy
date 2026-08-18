@@ -58,6 +58,16 @@ public class MfaChallenge implements Serializable {
      */
     public static final String SCENE_WEBAUTHN_UNBIND = "webauthn-unbind";
 
+    /**
+     * WebAuthn 追加钥匙 ceremony 场景（A2-followup-2，设计 §10.2——add-key-while-enabled
+     * 正门）：webauthnBeginAddKey 创建<b>两行</b>（持有证明行 + 注册行，各自独立
+     * cryptoChallenge、payload 含 sessionId 一次写入——get/create 两 ceremony 各需匹配的
+     * clientData.challenge，单行无法同时服务两 ceremony）；confirmWebauthnAddKey 整体成功时
+     * 双行一并消费。enabled webauthn 用户不解绑添加第二把钥匙的正规入口（替代 A2 D3-F1
+     * 修复后关闭的"解绑保留行累积"旁路）。
+     */
+    public static final String SCENE_WEBAUTHN_ADD = "webauthn-add";
+
     private String challengeToken;
     private String userId;
     private String mfaType;

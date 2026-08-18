@@ -44,6 +44,7 @@ import io.nop.auth.dao.generator.IUserIdGenerator;
 import io.nop.auth.service.NopAuthConstants;
 import io.nop.auth.service.biz.dto.MfaBindResult;
 import io.nop.auth.service.biz.dto.MfaStatusResult;
+import io.nop.auth.service.biz.dto.MfaWebauthnAddKeyBeginResult;
 import io.nop.auth.service.biz.dto.MfaWebauthnBeginResult;
 import io.nop.auth.service.biz.dto.TrustedDeviceInfo;
 import io.nop.auth.service.mfa.MfaChallengeHelper;
@@ -924,6 +925,206 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
                     .param("msg", "webauthn credential not found");
         }
         return credential;
+    }
+
+    // ===================== add-key-while-enabled（A2-followup-2，设计 §10.2） =====================
+
+    /**
+     * 发起追加 WebAuthn 钥匙（add-key-while-enabled 正门，A2-followup-2，设计 §10.2）：
+     * enabled webauthn 用户在<b>不解绑</b>（保留既有钥匙/恢复码/可信设备）的前提下添加第二把
+     * 硬件钥匙——替代 A2 D3-F1 修复后关闭的"解绑保留行累积"旁路（多设备 UX 正门缺失）。
+     * <p>
+     * 前置守卫（不符显式拒绝，无静默跳过）：登录态会话 + setting enabled + mfaType=webauthn +
+     * ≥1 把 enabled credential（持有证明的对象——无钥匙会话不可发起）。非 webauthn/未 enabled
+     * 用户仍走 bindMfa 主入口（guard：enabled → ALREADY_ENABLED）。
+     * <p>
+     * 创建<b>两行</b> scene=webauthn-add challenge（持有证明行 + 注册行，各自独立
+     * cryptoChallenge、payload={sessionId, cryptoChallenge} 一次写入——get/create 两 ceremony
+     * 各需匹配的 clientData.challenge，单行无法同时服务两 ceremony）；返回
+     * verifyChallengeToken + assertionOptions（既有钥匙，allowCredentials=enabled）+
+     * addChallengeToken + creationOptions（excludeCredentials=全部既有，防同钥匙重复注册）。
+     * <p>
+     * <b>不标注裁定</b>：只读准备动作（创建 challenge 不变更任何持久状态），C1b 缩窄先例
+     * （beginOAuthFlow 类）直接适用。**受限会话白名单：不入**——受限用户 setting 不可能
+     * enabled+webauthn（webauthn=当前 factorLevel 上限，W14 同构裁定先例），入白名单为不可达
+     * 死代码。
+     */
+    @Description("发起追加WebAuthn钥匙")
+    @BizMutation
+    @BizAudit
+    public MfaWebauthnAddKeyBeginResult webauthnBeginAddKey(IServiceContext context) {
+        String userId = requireCurrentUserId(context);
+        IUserContext uc = context.getUserContext();
+        requireWebauthnConfigured();
+        if (mfaChallengeStore == null) {
+            throw new NopException(ERR_AUTH_INVALID_LOGIN_REQUEST).param(ARG_USER_ID, userId)
+                    .param("msg", "MfaChallengeStore is not configured; webauthn add-key is unavailable");
+        }
+        if (uc == null || StringHelper.isEmpty(uc.getSessionId())) {
+            throw new NopException(ERR_AUTH_INVALID_LOGIN_REQUEST).param(ARG_USER_ID, userId)
+                    .param("msg", "webauthn add-key requires an active session");
+        }
+
+        NopAuthMfaSetting setting = daoFor(NopAuthMfaSetting.class).getEntityById(userId);
+        if (setting == null || !MFA_STATUS_ENABLED.equals(setting.getStatus())
+                || !MFA_TYPE_WEBAUTHN.equals(setting.getMfaType())) {
+            throw new NopException(ERR_AUTH_MFA_NOT_ENABLED).param(ARG_USER_ID, userId);
+        }
+        List<String> enabledIds = listEnabledCredentialIds(userId);
+        if (enabledIds.isEmpty()) {
+            throw new NopException(ERR_AUTH_INVALID_LOGIN_REQUEST).param(ARG_USER_ID, userId)
+                    .param("msg", "no enabled webauthn credential to prove possession; re-bind via bindMfa");
+        }
+
+        // 双 challenge 行（同一 scene；两行独立 cryptoChallenge；payload 一次写入）
+        String verifyToken = mfaChallengeStore.create(MfaChallenge.SCENE_WEBAUTHN_ADD,
+                userId, MFA_TYPE_WEBAUTHN, 0, setting.getTenantId(), null,
+                MfaChallengeHelper.webauthnScenePayload(uc.getSessionId()));
+        String addToken = mfaChallengeStore.create(MfaChallenge.SCENE_WEBAUTHN_ADD,
+                userId, MFA_TYPE_WEBAUTHN, 0, setting.getTenantId(), null,
+                MfaChallengeHelper.webauthnScenePayload(uc.getSessionId()));
+
+        List<String> existingIds = new ArrayList<>();
+        for (NopAuthMfaCredential c : listCredentials(userId)) {
+            existingIds.add(c.getCredentialId());
+        }
+        NopAuthUser user = daoFor(NopAuthUser.class).getEntityById(userId);
+        String userName = user == null ? userId : webauthnUserName(user);
+
+        MfaWebauthnAddKeyBeginResult result = new MfaWebauthnAddKeyBeginResult();
+        result.setVerifyChallengeToken(verifyToken);
+        result.setAssertionOptions(webAuthnAuthenticator.buildRequestOptions(
+                MfaChallengeHelper.cryptoChallengeOf(mfaChallengeStore.peek(verifyToken)), enabledIds));
+        result.setAddChallengeToken(addToken);
+        result.setCreationOptions(webAuthnAuthenticator.buildCreationOptions(
+                MfaChallengeHelper.cryptoChallengeOf(mfaChallengeStore.peek(addToken)),
+                userId, userName, existingIds));
+        return result;
+    }
+
+    /**
+     * 确认追加 WebAuthn 钥匙（四参 ceremony，设计 §10.2）：add-challenge 绑定复核 + setting
+     * 复核（仍 enabled + webauthn）+ 新钥匙 attestation 验证（含 credentialId 重复注册检查）+
+     * 持有证明（既有 enabled 钥匙 webauthn.get 断言，校验链对齐
+     * {@code verifyWebauthnUnbindAssertion} 形态——scene/userId/sessionId 绑定 +
+     * {@link MfaFactorVerifier} 统一 webauthn 分支，无钥匙会话不可伪造）→ credential 落库
+     * （status=enabled）→ 双 challenge 一并消费 + 审计（持有证明与钥匙新增分别落）。
+     * <p>
+     * <b>步骤序裁定（执行期定稿）</b>：读路径（attestation 验证/重复检查/缺省命名）前置于持有
+     * 证明——证明的 signCount 条件 UPDATE（组件内聚 raw SQL）会推进既有 credential 行的乐观锁
+     * 版本，同 ORM 会话内后续再装载该行会触发 entity-version-changed。安全语义不变：两证明
+     * 均须通过才有任何持久化；部分失败语义不变（attestation 失败计数 add 行 / 证明失败计数
+     * verify 行）。
+     * <p>
+     * <b>部分失败语义</b>：持有证明失败仅计数 verify 行、attestation 失败仅计数 add 行
+     * （{@code incrWebauthnFailCountOrDiscard} per-token 先例）；verify 行消费时机 = 整体成功时
+     * 与 add 行一并收口（"票在动作成功时才消费"纪律）。
+     * <p>
+     * <b>副作用边界（裁定）</b>：setting 状态/恢复码/可信设备<b>零副作用</b>——不经 pending
+     * 状态机（禁止触碰 enabled setting——防锁死）、不重生成恢复码（仅 confirmMfa/恢复码重置
+     * 动作管理恢复码）、不撤销可信设备（新钥匙增加不降低既有信任前提）。credentialId 全局唯一
+     * 冲突 → MFA_FAIL（bindWebauthn 同语义）。
+     * <p>
+     * <b>标注裁定</b>：修改认证因子集合族（unbindMfa/removeWebauthnCredential 同族）——
+     * {@code @MfaRequired} 标注（操作级票为第二重验证）。
+     */
+    @Description("确认追加WebAuthn钥匙")
+    @BizMutation
+    @BizAudit(logRequestFields = "addChallengeToken")
+    @MfaRequired
+    public void confirmWebauthnAddKey(@Name("addChallengeToken") String addChallengeToken,
+                                      @Name("attestation") WebAuthnAttestation attestation,
+                                      @Name("verifyChallengeToken") String verifyChallengeToken,
+                                      @Name("assertion") WebAuthnAssertion assertion,
+                                      IServiceContext context) {
+        String userId = requireCurrentUserId(context);
+        IUserContext uc = context.getUserContext();
+
+        // 1. 双 challenge 定位与绑定复核（scene=webauthn-add + userId + payload.sessionId==当前会话；
+        //    不符归一 MFA_FAIL——越权/跨会话/不存在不泄露区分）
+        MfaChallenge verifyRow = requireAddKeyChallenge(verifyChallengeToken, userId, uc);
+        MfaChallenge addRow = requireAddKeyChallenge(addChallengeToken, userId, uc);
+
+        // 2. setting 复核（begin 后被解绑/重置 → 拒绝，fail-closed）
+        NopAuthMfaSetting setting = daoFor(NopAuthMfaSetting.class).getEntityById(userId);
+        if (setting == null || !MFA_STATUS_ENABLED.equals(setting.getStatus())
+                || !MFA_TYPE_WEBAUTHN.equals(setting.getMfaType())) {
+            throw new NopException(ERR_AUTH_MFA_NOT_ENABLED).param(ARG_USER_ID, userId);
+        }
+
+        // 3. attestation 验证（新钥匙注册；失败仅计数 add 行、不消费）——读路径前置于持有证明
+        //    （signCount 条件 UPDATE 推进既有行乐观锁版本，同会话后置装载会版本冲突）
+        NopAuthUser user = daoFor(NopAuthUser.class).getEntityById(userId);
+        String userName = user == null ? userId : webauthnUserName(user);
+        String addCryptoChallenge = MfaChallengeHelper.cryptoChallengeOf(addRow);
+        WebAuthnAuthenticator.RegistrationCheck check = webAuthnAuthenticator == null
+                || StringHelper.isEmpty(addCryptoChallenge)
+                ? null : webAuthnAuthenticator.verifyRegistration(addCryptoChallenge, userId, userName, attestation);
+        if (check == null) {
+            incrWebauthnFailCountOrDiscard(addChallengeToken);
+            auditWebauthnEvent(userId, uc, null, false, "webauthn-add-fail", "attestation-invalid");
+            throw new NopException(ERR_AUTH_MFA_FAIL).param(ARG_USER_ID, userId)
+                    .param(ARG_CHALLENGE_TOKEN, addChallengeToken);
+        }
+
+        // 4. credentialId 全局唯一冲突 = 重复注册拒绝（bindWebauthn 同语义；计数 add 行）
+        if (findCredentialByCredentialId(check.getCredentialId()) != null) {
+            incrWebauthnFailCountOrDiscard(addChallengeToken);
+            auditWebauthnEvent(userId, uc, check.getCredentialId(), false, "webauthn-add-fail",
+                    "duplicate-credential");
+            throw new NopException(ERR_AUTH_MFA_FAIL).param(ARG_USER_ID, userId)
+                    .param(ARG_CHALLENGE_TOKEN, addChallengeToken)
+                    .param("msg", "webauthn credential already registered");
+        }
+
+        // 5. 持有证明（既有 enabled 钥匙断言；失败仅计数 verify 行、不消费）——最后一步读后执行。
+        //    缺省命名在此之前的读窗口内完成（证明的 signCount 条件 UPDATE 推进既有行版本后，
+        //    同会话 findAllByExample 再装载会 entity-version-changed）
+        String newName = defaultCredentialName(userId);
+        boolean proofOk = mfaFactorVerifier.verify(setting, MFA_TYPE_WEBAUTHN, null, assertion, verifyRow);
+        if (!proofOk) {
+            incrWebauthnFailCountOrDiscard(verifyChallengeToken);
+            auditWebauthnEvent(userId, uc, assertion == null ? null : assertion.getCredentialId(),
+                    false, "webauthn-add-proof-fail", "assertion-invalid");
+            throw new NopException(ERR_AUTH_MFA_FAIL).param(ARG_USER_ID, userId)
+                    .param(ARG_CHALLENGE_TOKEN, verifyChallengeToken);
+        }
+
+        // 6. 新 credential 落库（status=enabled；不经 pending 状态机——setting/恢复码/可信设备零副作用）
+        IEntityDao<NopAuthMfaCredential> credDao = daoFor(NopAuthMfaCredential.class);
+        NopAuthMfaCredential credential = credDao.newEntity();
+        credential.setUserId(userId);
+        credential.setCredentialId(check.getCredentialId());
+        credential.setPublicKey(check.getPublicKeyCose());
+        credential.setSignCount(check.getSignCount());
+        credential.setTransports(attestation != null && attestation.getTransports() != null
+                ? String.join(",", attestation.getTransports()) : null);
+        credential.setName(newName);
+        credential.setStatus(MFA_STATUS_ENABLED);
+        credential.setTenantId(setting.getTenantId());
+        credDao.saveEntity(credential);
+
+        // 7. 双 challenge 一并消费（整体成功才收口）+ 审计（持有证明与钥匙新增分别落）
+        mfaChallengeStore.consume(verifyChallengeToken);
+        mfaChallengeStore.consume(addChallengeToken);
+        auditWebauthnEvent(userId, uc, assertion.getCredentialId(), true, "webauthn-add-proof-ok", "ok");
+        auditWebauthnEvent(userId, uc, check.getCredentialId(), true, "webauthn-key-added",
+                credential.getName());
+    }
+
+    /** add-key ceremony 的 challenge 绑定复核（scene=webauthn-add + userId + 会话绑定；不符归一 MFA_FAIL）。 */
+    private MfaChallenge requireAddKeyChallenge(String challengeToken, String userId, IUserContext uc) {
+        MfaChallenge c = StringHelper.isEmpty(challengeToken) || mfaChallengeStore == null
+                ? null : mfaChallengeStore.peek(challengeToken);
+        String payloadSessionId = c == null ? null : MfaChallengeHelper.sessionIdOf(c);
+        if (c == null || !MfaChallenge.SCENE_WEBAUTHN_ADD.equals(c.getScene())
+                || !userId.equals(c.getUserId())
+                || StringHelper.isEmpty(payloadSessionId) || uc == null
+                || !payloadSessionId.equals(uc.getSessionId())) {
+            throw new NopException(ERR_AUTH_MFA_FAIL).param(ARG_USER_ID, userId)
+                    .param(ARG_CHALLENGE_TOKEN, challengeToken);
+        }
+        return c;
     }
 
     // ===================== MFA 可信设备自助管理（W15-impl，设计 §6.3；W6 并入先例） =====================

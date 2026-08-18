@@ -134,10 +134,12 @@ public class TestOperationMfaE2E extends JunitBaseTestCase {
     @Test
     public void testEngineMetadataOnAnnotatedActions() {
         // 路由项 1 落地（A2 终局裁定）：removeWebauthnCredential 入正例（5→6）；
-        // renameWebauthnCredential 入负例（裁定"展示元数据变更不标注"——钉定为预期而非遗漏）
+        // renameWebauthnCredential 入负例（裁定"展示元数据变更不标注"——钉定为预期而非遗漏）。
+        // Phase 3（add-key）：confirmWebauthnAddKey 入正例（修改认证因子集合族）；webauthnBeginAddKey
+        // 入负例（只读准备动作，C1b 缩窄先例）。
         String[] ops = {OP_RESET, OP_CHANGE_PWD, "NopAuthUser__unbindMfa",
                 "NopAuthUser__generateRecoveryCodes", "NopAuthUser__resetUserPassword",
-                "NopAuthUser__removeWebauthnCredential"};
+                "NopAuthUser__removeWebauthnCredential", "NopAuthUser__confirmWebauthnAddKey"};
         for (String op : ops) {
             assertNotNull(graphQLEngine.getSchemaLoader().getOperationDefinition(GraphQLOperationType.mutation, op),
                     op + " must be a registered mutation");
@@ -150,8 +152,39 @@ public class TestOperationMfaE2E extends JunitBaseTestCase {
                         .getMfaRequiredMeta(),
                 "rename is adjudicated non-sensitive (display-only metadata): no mfaRequiredMeta is expected");
         assertNull(graphQLEngine.getSchemaLoader()
+                        .getOperationDefinition(GraphQLOperationType.mutation, "NopAuthUser__webauthnBeginAddKey")
+                        .getMfaRequiredMeta(),
+                "begin-add-key is adjudicated non-sensitive (read-only preparation): no mfaRequiredMeta");
+        assertNull(graphQLEngine.getSchemaLoader()
                 .getOperationDefinition(GraphQLOperationType.query, "NopAuthUser__getMfaStatus").getMfaRequiredMeta(),
                 "non-sensitive action must have no mfaRequiredMeta");
+    }
+
+    @Test
+    public void testConfirmWebauthnAddKeyAnnotationInterception() {
+        // add-key 标注接线（Phase 3）：confirmWebauthnAddKey 元数据 → 检查点拦截（enabled=true）/
+        // 零介入（enabled=false）；begin 端点未标注经引擎路径零介入
+        String userId = "op-mfa-addkey-meta-user";
+        saveUserWithTotp(userId);
+        UserContextImpl ctx = adminContext(userId, "sess-addkey-meta");
+
+        NopException ex = assertThrows(NopException.class,
+                () -> checker().check("NopAuthUser__confirmWebauthnAddKey", ctx, null));
+        assertEquals(NopAuthErrors.ERR_AUTH_OPERATION_MFA_REQUIRED.getErrorCode(), ex.getErrorCode(),
+                "annotated confirmWebauthnAddKey must be intercepted for MFA-enabled user");
+
+        ApiResponse<?> beginResp = rpcMutation("NopAuthUser__webauthnBeginAddKey", Map.of(), ctx, null);
+        assertNotEquals(NopAuthErrors.ERR_AUTH_OPERATION_MFA_REQUIRED.getErrorCode(), beginResp.getCode(),
+                "unannotated begin endpoint must never be MFA-intercepted");
+
+        IConfigProvider provider = AppConfig.getConfigProvider();
+        provider.assignConfigValue("nop.auth.operation-mfa.enabled", false);
+        try {
+            assertDoesNotThrow(() -> checker().check("NopAuthUser__confirmWebauthnAddKey", ctx, null),
+                    "enabled=false must zero-intervene even for annotated actions");
+        } finally {
+            provider.assignConfigValue("nop.auth.operation-mfa.enabled", true);
+        }
     }
 
     @Test
@@ -428,7 +461,7 @@ public class TestOperationMfaE2E extends JunitBaseTestCase {
         UserContextImpl ctx = adminContext(userId, "sess-matrix");
 
         String[] scenes = {MfaChallenge.SCENE_WEBAUTHN_REGISTER, MfaChallenge.SCENE_WEBAUTHN_UNBIND,
-                MfaChallenge.SCENE_CHANNEL_PROOF};
+                MfaChallenge.SCENE_CHANNEL_PROOF, MfaChallenge.SCENE_WEBAUTHN_ADD};
         for (String scene : scenes) {
             String token = mfaChallengeStore.create(scene, userId, NopAuthConstants.MFA_TYPE_TOTP, 0,
                     TENANT_ID, null, "{\"sessionId\":\"sess-matrix\"}");
