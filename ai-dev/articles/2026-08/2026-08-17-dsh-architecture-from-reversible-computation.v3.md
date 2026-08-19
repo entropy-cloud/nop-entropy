@@ -257,7 +257,7 @@ Cordis 论文的元理论并非无条件成立，它建立在三条结构性约�
 
 答案：**entry id（插件行 id）是 dsh 的结构坐标，它只精确到"一个插件的整个配置"这一级，不深入到配置内部。**
 
-从源码看，dsh 的静态 patch 机制（`applyEntryPatches`，vendor/include）是：
+从源码看，dsh 的静态 patch 机制（`applyEntryPatches`，dsh/vendor/include）是：
 
 - 以 `id` 为 key 在 entry 树中定位一行；
 - patch 对该行的处理是**对 patch 中出现的顶层字段做整体赋值**：`target[key] = value`（被指定的 `config` 等字段整体覆盖，未指定的字段保留）或 `insert` 新行；
@@ -363,8 +363,8 @@ dsh 的静态 patch 机制（`applyEntryPatches`）语义是：
 1. 没有把配置层的 override 形式化为差量代数——论文从未讨论"配置层的合并运算是否满足结合律、是否有逆元"这类问题，而这正是可逆计算理论最关心的；
 2. 没有说明"配置层（结构空间）"与"运行时 effect 层（运行时空间）"之间坐标的关系——entry id 如何映射到 fiber、配置的修改如何变成 effect 序列，论文只有算法级描述（Algorithm 5/7），没有概念层面的统一；
 3. 在实现层面，dsh 实际上有**两套不同粒度的"配置 → 运行时"通道**，必须分开评估：
-   - **静态 patch 文件层**：`cordis.patch.yml`、bundle 层、user 层、`--patch` overlay 共享 `vendor/include/src/index.ts` 的 `applyEntryPatches` 语义——以 entry id 为坐标，对 patch 中出现的顶层字段（尤其 `config`）做**整体覆盖**，外加 `insert` 新行；没有深合并，没有节点级增删改。**这一层才是"结构空间粗粒度替换"的直接证据。**
-   - **运行时 loader reconciliation 层**：`vendor/loader/src/config/entry.ts` 的 `Entry.update()` 按字段分发。论文 §5.2 的 reconciliation 对应的是这一层，而不是静态 patch 文件层。具体字段处理如下表（基于源码核实，未列出的字段沿用浅合并或组件自定义）：
+   - **静态 patch 文件层**：`cordis.patch.yml`、bundle 层、user 层、`--patch` overlay 共享 `dsh/vendor/include/src/index.ts` 的 `applyEntryPatches` 语义——以 entry id 为坐标，对 patch 中出现的顶层字段（尤其 `config`）做**整体覆盖**，外加 `insert` 新行；没有深合并，没有节点级增删改。**这一层才是"结构空间粗粒度替换"的直接证据。**
+   - **运行时 loader reconciliation 层**：`dsh/vendor/loader/src/config/entry.ts` 的 `Entry.update()` 按字段分发。论文 §5.2 的 reconciliation 对应的是这一层，而不是静态 patch 文件层。具体字段处理如下表（基于源码核实，未列出的字段沿用浅合并或组件自定义）：
 
       | 顶层字段 | 处理方式 | 是否深合并 | 备注 |
       |---|---|---|---|
@@ -496,7 +496,7 @@ RuntimeStructure = ⊕_i Register_i           （dsh，运行时结构空间）
 
 **机制**：dsh 为每个 agent 通过 `createScope` mint 一个独立的 scope 上下文（`agent.ctx`），它继承插件的依赖 API，并拥有该 scope 内的一切注册。同一插件代码（如 tools 插件）在不同 agent 的 scope 中执行时，注册的具体内容可能完全不同——`tools.presentAs(mode)` 只对当前 scope 生效（一个 scope 一种 presentation 模式）、`tools.restrict()` 只限制当前 agent 的工具集、`tools.guard()` 只给当前 agent 增加执行守卫。**注册什么，取决于这个 agent 是谁、它的配置是什么——这些信息在编译期/加载期并不存在，只在运行期创建 agent 时才出现。**
 
-scope 链的解析顺序是 **agent → preset → global**（nearest shadowing farthest，近者遮蔽远者）。`agent.ctx` 由 `createScope` 以 session id 为 key mint 出来；agent-presets 则更进一步：每个 preset 的 `agent.cordis.yml` 在进程级只挂载一次（standing scope），每个会话的 agent scope 通过 scope 父链加入该挂载点。因此 preset 贡献的工具、提示区块和投影单元只存在一份，却覆盖所有加入该 preset 的 agent（见 `packages/preset/agent-presets/README.md`）。
+scope 链的解析顺序是 **agent → preset → global**（nearest shadowing farthest，近者遮蔽远者）。`agent.ctx` 由 `createScope` 以 session id 为 key mint 出来；agent-presets 则更进一步：每个 preset 的 `agent.cordis.yml` 在进程级只挂载一次（standing scope），每个会话的 agent scope 通过 scope 父链加入该挂载点。因此 preset 贡献的工具、提示区块和投影单元只存在一份，却覆盖所有加入该 preset 的 agent（见 `dsh/packages/preset/agent-presets/README.md`）。
 
 这正是"全局注册有困难"的根源：如果把所有 agent 的注册都提前到结构空间，就无法表达"同一个插件代码在不同 agent 下注册不同内容"的差异——除非把这种差异也变成结构（每个 agent 一个 DSL 配置），但这本质上就是把 agent 配置前提到结构空间，而 agent 配置本身又是运行时数据（可能来自持久化 session、用户设置、动态创建）。
 
@@ -623,14 +623,14 @@ grep -rn "ctx\.effect" --include='*.ts' --include='*.tsx' . | grep -v '/tests/' 
 
 | 文章结论 | 源码位置 |
 |---|---|
-| 服务发布与同 realm 互斥（`service "..." has been registered`） | `vendor/cordis/src/reflect.ts` |
-| 事件监听注册、五类 dispatch mode | `vendor/cordis/src/events.ts` |
-| fiber 生命周期、epoch 检查、inertia | `vendor/cordis/src/fiber.ts` |
-| 静态 patch 文件层（`applyEntryPatches`） | `vendor/include/src/index.ts` |
-| 运行时 loader reconciliation（`Entry.update`） | `vendor/loader/src/config/entry.ts` |
-| realm 隔离（`isolate: true` → `#id`，`isolate: <label>` → `@label`） | `vendor/loader/src/config/isolate.ts` |
-| agent scope（`createScope`） | `packages/client/runtime/src/client/agents/scope.ts` |
-| `tools.presentAs` / `tools.restrict` / `tools.guard` | `packages/core/tools/src/index.ts` |
-| agent-presets（standing scope 挂载） | `packages/preset/agent-presets/README.md` |
-| patch 文档引文 | `packages/bundle/base/README.md`、`packages/boot/app-boot/README.md` |
+| 服务发布与同 realm 互斥（`service "..." has been registered`） | `dsh/vendor/cordis/src/reflect.ts` |
+| 事件监听注册、五类 dispatch mode | `dsh/vendor/cordis/src/events.ts` |
+| fiber 生命周期、epoch 检查、inertia | `dsh/vendor/cordis/src/fiber.ts` |
+| 静态 patch 文件层（`applyEntryPatches`） | `dsh/vendor/include/src/index.ts` |
+| 运行时 loader reconciliation（`Entry.update`） | `dsh/vendor/loader/src/config/entry.ts` |
+| realm 隔离（`isolate: true` → `#id`，`isolate: <label>` → `@label`） | `dsh/vendor/loader/src/config/isolate.ts` |
+| agent scope（`createScope`） | `dsh/packages/client/runtime/src/client/agents/scope.ts` |
+| `tools.presentAs` / `tools.restrict` / `tools.guard` | `dsh/packages/core/tools/src/index.ts` |
+| agent-presets（standing scope 挂载） | `dsh/packages/preset/agent-presets/README.md` |
+| patch 文档引文 | `dsh/packages/bundle/base/README.md`、`dsh/packages/boot/app-boot/README.md` |
 | Nop 字段级坐标（`xdef:key-attr`） | `nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/biz/xbiz.xdef`、`.../schema/wf/wf.xdef`、`.../schema/task/task.xdef` |

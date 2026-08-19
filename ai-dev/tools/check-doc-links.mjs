@@ -95,6 +95,10 @@ const SKIP_PREFIXES = [
   'nop-app-mall/',
   'nop-chaos-flux/',
   'nop-chaos/',
+  // dsh（DeepSeek Harness）是外部开源项目，源码不在本仓库。
+  // ai-dev/articles 中的 dsh/ 前缀路径（如 dsh/vendor/...、dsh/packages/...）
+  // 指向该外部项目的源码布局，本仓库无法验证其存在性。
+  'dsh/',
 ];
 
 const SKIP_PATTERNS = [

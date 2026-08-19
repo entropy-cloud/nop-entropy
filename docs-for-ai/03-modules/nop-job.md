@@ -100,7 +100,7 @@ scheduler.removeJob("demo-cron");  // 删除
 scheduler.deactivate();            // 关闭，清空所有作业
 ```
 
-参考测试：`nop-job/nop-job-core/src/test/java/io/nop/job/core/TestLocalJobScheduler.java`。
+参考测试：`nop-job/nop-job-local/src/test/java/io/nop/job/local/TestLocalJobScheduler.java`。
 
 ### 1.3 YAML 配置式（推荐，引入 nop-job-local）
 
@@ -451,13 +451,13 @@ Coordinator (协调器)                    Worker (工作者)
 |------|------|
 | ORM 模型 | `nop-job/model/nop-job.orm.xml` |
 | IJobScheduler 接口 | `nop-job/nop-job-api/src/main/java/io/nop/job/api/IJobScheduler.java` |
-| LocalJobScheduler | `nop-job/nop-job-core/src/main/java/io/nop/job/core/LocalJobScheduler.java` |
+| LocalJobScheduler | `nop-job/nop-job-local/src/main/java/io/nop/job/local/LocalJobScheduler.java` |
 | IJobInvoker SPI | `nop-job/nop-job-api/src/main/java/io/nop/job/api/execution/IJobInvoker.java` |
 | DefaultJobInvokerResolver | `nop-job/nop-job-worker/src/main/java/io/nop/job/worker/engine/DefaultJobInvokerResolver.java` |
 | JobCoordinator | `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/JobCoordinator.java` |
 | BeanMethodJobInvoker | `nop-job/nop-job-local/src/main/java/io/nop/job/local/executor/BeanMethodJobInvoker.java` |
 | LocalJobConfigLoader | `nop-job/nop-job-local/src/main/java/io/nop/job/local/config/LocalJobConfigLoader.java` |
-| 本地模式测试（core） | `nop-job/nop-job-core/src/test/java/io/nop/job/core/TestLocalJobScheduler.java` |
+| 本地模式测试（local） | `nop-job/nop-job-local/src/test/java/io/nop/job/local/TestLocalJobScheduler.java` |
 | 本地配置测试（local） | `nop-job/nop-job-local/src/test/java/io/nop/job/local/` |
 
 ## 相关文档

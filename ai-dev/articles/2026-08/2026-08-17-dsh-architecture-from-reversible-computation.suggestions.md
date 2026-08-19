@@ -31,10 +31,10 @@ grep -rn "ctx\.effect" --include='*.ts' --include='*.tsx' . | grep -v '/tests/' 
 
 ### A2. §5.2 混淆了静态 patch 层与运行时 loader 的 reconciliation（最重要）
 
-§5.2 的核心论点是"论文说 reconciliation 是 keyed diff，但 dsh 实际实现（vendor/include 的 `applyEntryPatches`）是整行替换 + insert，并没有 diff 级合并"。这个对比把两个不同层面放在了一起：
+§5.2 的核心论点是"论文说 reconciliation 是 keyed diff，但 dsh 实际实现（dsh/vendor/include 的 `applyEntryPatches`）是整行替换 + insert，并没有 diff 级合并"。这个对比把两个不同层面放在了一起：
 
-- `vendor/include/src/index.ts` 的 `applyEntryPatches` 是**启动期/离线 patch 文件**（`cordis.patch.yml`、bundle 层、user 层、`--patch` overlay）的合并语义，确实对 `config` 等顶层字段做整体覆盖，没有深合并。
-- 论文 §5.2.1 描述的 reconciliation 是**运行时 loader** 的行为，对应 `vendor/loader/src/config/entry.ts` 的 `Entry.update()`。该实现按字段分发：`id/name/url` 重建、`isolate` 重配 realm、`intercept` 原地更新、`config` 交给组件决定（group 的 config 就是 child 列表，做 keyed diff）、`disabled` 卸载/重载；并且 `Entry.update` 对传入字段做的是**浅合并 + null 删除**，不是"整行替换"。
+- `dsh/vendor/include/src/index.ts` 的 `applyEntryPatches` 是**启动期/离线 patch 文件**（`cordis.patch.yml`、bundle 层、user 层、`--patch` overlay）的合并语义，确实对 `config` 等顶层字段做整体覆盖，没有深合并。
+- 论文 §5.2.1 描述的 reconciliation 是**运行时 loader** 的行为，对应 `dsh/vendor/loader/src/config/entry.ts` 的 `Entry.update()`。该实现按字段分发：`id/name/url` 重建、`isolate` 重配 realm、`intercept` 原地更新、`config` 交给组件决定（group 的 config 就是 child 列表，做 keyed diff）、`disabled` 卸载/重载；并且 `Entry.update` 对传入字段做的是**浅合并 + null 删除**，不是"整行替换"。
 
 因此原文的"错位"判断需要改写：
 
@@ -61,7 +61,7 @@ grep -rn "ctx\.effect" --include='*.ts' --include='*.tsx' . | grep -v '/tests/' 
 
 ### A6. "agent-presets：standing scope 挂载"过于简略
 
-§5.9 表格中"agent-presets：standing scope 挂载"直接使用了 dsh 仓库的英文术语，中文读者不易理解。建议改写为："agent-presets：每个 preset 在进程级挂载一个 standing scope（`agent.cordis.yml` 只挂载一次），每个会话的 agent scope 通过 scope 父链加入该挂载点（agent → preset → global）"。可引用 `packages/preset/agent-presets/README.md`。
+§5.9 表格中"agent-presets：standing scope 挂载"直接使用了 dsh 仓库的英文术语，中文读者不易理解。建议改写为："agent-presets：每个 preset 在进程级挂载一个 standing scope（`agent.cordis.yml` 只挂载一次），每个会话的 agent scope 通过 scope 父链加入该挂载点（agent → preset → global）"。可引用 `dsh/packages/preset/agent-presets/README.md`。
 
 ---
 
@@ -114,7 +114,7 @@ grep -rn "ctx\.effect" --include='*.ts' --include='*.tsx' . | grep -v '/tests/' 
 文章的价值很大程度上来自"核对了 dsh 源码"。建议在参考文献前增加附录，至少包含：
 
 - dsh 仓库本地路径（`~/ai/deepseek-harness`）、统计日期/commit；
-- 关键源码文件与文章结论的对应表（reflect.ts ↔ 服务发布、events.ts ↔ 事件分发、fiber.ts ↔ epoch/inertia、vendor/include/src/index.ts ↔ applyEntryPatches、vendor/loader/src/config/entry.ts ↔ runtime reconciliation、packages/core/tools/src/index.ts ↔ agent scope tools）；
+- 关键源码文件与文章结论的对应表（reflect.ts ↔ 服务发布、events.ts ↔ 事件分发、fiber.ts ↔ epoch/inertia、dsh/vendor/include/src/index.ts ↔ applyEntryPatches、dsh/vendor/loader/src/config/entry.ts ↔ runtime reconciliation、dsh/packages/core/tools/src/index.ts ↔ agent scope tools）；
 - 复算命令（如 `grep -rn "ctx\.effect" --include='*.ts' --include='*.tsx' .`）。
 
 ### C2. 增加图示
@@ -137,7 +137,7 @@ grep -rn "ctx\.effect" --include='*.ts' --include='*.tsx' . | grep -v '/tests/' 
 
 §5.9 是全文最有原创性的部分之一，但目前对 scope 链的描述只有一句。建议补充：
 
-- `createScope` 如何 mint scope key（`packages/client/runtime/src/client/agents/scope.ts`）；
+- `createScope` 如何 mint scope key（`dsh/packages/client/runtime/src/client/agents/scope.ts`）；
 - agent scope 的视图解析链（agent → preset → global，nearest shadowing farthest）；
 - `tools.presentAs`/`tools.restrict`/`tools.guard` 三者在 scope 链上的不同行为（声明式选择/注册时条件/执行时 guard），并说明它们分别落在"结构空间可定/注册时刻可定/执行时刻可定"的哪个位置。
 
@@ -160,10 +160,10 @@ grep -rn "ctx\.effect" --include='*.ts' --include='*.tsx' . | grep -v '/tests/' 
 
 以下论断经与 dsh 源码及 Cordis 论文对照，基本准确，建议保留：
 
-- `ctx.provide` 同 realm 重复注册抛错（`vendor/cordis/src/reflect.ts`）；
-- `ctx.on` 监听器作为 effect 存入 fiber，卸载自动注销（`vendor/cordis/src/events.ts`）；
-- 五类 dispatch mode（emit/parallel/serial/bail/waterfall）语义与顺序关系（`vendor/cordis/src/events.ts`）；
-- epoch 检查 `runner.epoch !== oldEpoch` 与 inertia 机制（`vendor/cordis/src/fiber.ts`）；
-- realm 隔离：`isolate: true` → `#id`，`isolate: <label>` → `@label`（`vendor/loader/src/config/isolate.ts`）；
-- patch 文档引文 "replaces whole row configs" 等（`packages/bundle/base/README.md`、`packages/boot/app-boot/README.md`）；
+- `ctx.provide` 同 realm 重复注册抛错（`dsh/vendor/cordis/src/reflect.ts`）；
+- `ctx.on` 监听器作为 effect 存入 fiber，卸载自动注销（`dsh/vendor/cordis/src/events.ts`）；
+- 五类 dispatch mode（emit/parallel/serial/bail/waterfall）语义与顺序关系（`dsh/vendor/cordis/src/events.ts`）；
+- epoch 检查 `runner.epoch !== oldEpoch` 与 inertia 机制（`dsh/vendor/cordis/src/fiber.ts`）；
+- realm 隔离：`isolate: true` → `#id`，`isolate: <label>` → `@label`（`dsh/vendor/loader/src/config/isolate.ts`）；
+- patch 文档引文 "replaces whole row configs" 等（`dsh/packages/bundle/base/README.md`、`dsh/packages/boot/app-boot/README.md`）；
 - xbiz/xwf/task 三处 `xdef:key-attr` 的字段级坐标（`nop-kernel/nop-xdefs` 与各 `_dump` 副本）。

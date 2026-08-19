@@ -184,7 +184,7 @@ F 给 Δ 提供可作用的坐标系；Δ 给 F 提供可变性与演化。离�
 
 ## 附：关键文献位置
 
-- GRC 公式与 F/⊕ 定义：中文全本 `generalized-reversible-computation-paper.md` 核心术语表、§3.1、附录 D；英文主论文 `paper/generalized-reversible-computation-paper-en.md` 术语表与 §3.1。
+- GRC 公式与 F/⊕ 定义：中文全本 `generalized-reversible-computation-paper.md` 核心术语表、§3.1、附录 D；英文主论文 `docs/theory/paper/generalized-reversible-computation-paper-en.md` 术语表与 §3.1。
 - Δ 条件化逆：中文全本附录 D.2.2 的 P10/P11。
 - Loader = Generator：`docs/theory/counterintuitive-software-design-insights.md:252`。
 - dsh 的 effect 代数与 fiber 演算：Cordis 论文 §3.1、§4、Theorem 5/61/63/66/73。

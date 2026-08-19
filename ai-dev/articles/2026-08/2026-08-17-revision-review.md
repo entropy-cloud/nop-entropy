@@ -29,7 +29,7 @@
 
 修订稿（mapping 文档 §摘要、§一、§三、§七，以及 v2 §5.3）多次引用"GRC 主论文 §B.1.3"、"§B.2 判据 #2"、"附录 C.2"。但：
 
-- **这些章节只存在于中文全本 `generalized-reversible-computation-paper.md`**（附录 B、C），不在 `paper/generalized-reversible-computation-paper-en.md` 中。
+- **这些章节只存在于中文全本 `generalized-reversible-computation-paper.md`**（附录 B、C），不在 `docs/theory/paper/generalized-reversible-computation-paper-en.md` 中。
 - 英文主论文的对应内容是 **附录 F.3 "Active Selection and Design of Delta Space"** 和 **F.5 "Space Selection Evaluation Criteria"**；它没有 B.1.3。
 - mapping 文档的"关联文档"把"GRC 主论文"标为英文主论文，参考文献却未收录中文全本 `generalized-reversible-computation-paper.md`；它还引用了 `counterintuitive-software-design-insights.md` 和 `reversible-computation.md`，也不在参考文献里。
 - v2 的参考文献 [1]–[6] **没有收录任何一份 GRC 论文**，但正文 §5.3 引用了"GRC 主论文 §B.1.3"。
@@ -93,7 +93,7 @@ mapping 文档把 emit/parallel/serial/bail/waterfall 对应为"GRC 的'作用�
 
 ### B4. 三份 GRC 论文的关系应先说明
 
-`paper/generalized-reversible-computation-paper-en.md`、`generalized-reversible-computation-paper.md`（中文全本，附录 A–G）、`generalized-reversible-computation-paper-v2.md`（中文长文 v2）三者内容、详略、形式化深度都不同。mapping 文档应在一开始说明哪份是"主论文"、哪份用于哪个引用，避免读者按图索骥找不到 §B.1.3。
+`docs/theory/paper/generalized-reversible-computation-paper-en.md`、`generalized-reversible-computation-paper.md`（中文全本，附录 A–G）、`generalized-reversible-computation-paper-v2.md`（中文长文 v2）三者内容、详略、形式化深度都不同。mapping 文档应在一开始说明哪份是"主论文"、哪份用于哪个引用，避免读者按图索骥找不到 §B.1.3。
 
 ## 四、值得保留的改进（肯定清单）
 
