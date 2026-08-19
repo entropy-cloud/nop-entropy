@@ -1,0 +1,61 @@
+package io.nop.xlang.truffle.lang;
+
+import com.oracle.truffle.api.TruffleLanguage;
+import io.nop.core.lang.eval.IEvalOutput;
+import io.nop.core.lang.eval.IEvalScope;
+
+/**
+ * XLang 语言上下文（设计 truffle 02 §三）：每次 Context 持有输出缓冲（{@link IEvalOutput}，
+ * 线程绑定，绝不可跨 Context 共享）与本次求值的全局作用域句柄；二者只在根节点求值窗口
+ * （bind..clear）内有效。可共享数据（翻译缓存等）存语言实例，节点不存 context 数据或
+ * 运行时值（context-independent 准则）。
+ */
+public final class XLangContext {
+
+    private final TruffleLanguage.Env env;
+
+    private IEvalScope evalScope;
+
+    private IEvalOutput output;
+
+    XLangContext(TruffleLanguage.Env env) {
+        this.env = env;
+    }
+
+    public TruffleLanguage.Env getEnv() {
+        return env;
+    }
+
+    /**
+     * 求值窗口协议（根节点入口绑定/出口清空；EXCLUSIVE 最小形态，池租借协议归 I8）。
+     */
+    public void bindEvaluation(IEvalScope evalScope, IEvalOutput output) {
+        this.evalScope = evalScope;
+        this.output = output;
+    }
+
+    public void clearEvaluation() {
+        this.evalScope = null;
+        this.output = null;
+    }
+
+    /**
+     * 本次求值的作用域句柄；求值窗口外访问为接线缺陷，fail-fast 而非静默返回 null。
+     */
+    public IEvalScope requireEvalScope() {
+        IEvalScope scope = evalScope;
+        if (scope == null)
+            throw new IllegalStateException("XLangContext eval scope is not bound (outside evaluation window)");
+        return scope;
+    }
+
+    /**
+     * 本次求值的输出缓冲（线程绑定）。
+     */
+    public IEvalOutput requireOutput() {
+        IEvalOutput out = output;
+        if (out == null)
+            throw new IllegalStateException("XLangContext output buffer is not bound (outside evaluation window)");
+        return out;
+    }
+}

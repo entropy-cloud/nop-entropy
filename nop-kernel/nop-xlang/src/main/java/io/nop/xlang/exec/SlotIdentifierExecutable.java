@@ -37,6 +37,13 @@ public class SlotIdentifierExecutable extends AbstractExecutable {
         return slot;
     }
 
+    /**
+     * 只读访问器（truffle 翻译器消费，纯增量，解释器行为不变）。
+     */
+    public String getId() {
+        return id;
+    }
+
     @Override
     public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
         return rt.getCurrentFrame().getStackValue(slot);

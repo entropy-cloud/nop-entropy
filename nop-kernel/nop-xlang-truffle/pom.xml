@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <artifactId>nop-kernel</artifactId>
+        <groupId>io.github.entropy-cloud</groupId>
+        <version>2.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>nop-xlang-truffle</artifactId>
+    <description>XLang的Truffle执行后端：Executable树翻译为Truffle AST，运行时动态求值在GraalVM下经partial evaluation获得JIT（多线程与SHARED形态归I8）</description>
+
+    <properties>
+        <!-- truffle 25.x LTS 线钉版：truffle-api / truffle-dsl-processor / polyglot 三坐标同线对齐（设计 truffle 02 §二） -->
+        <truffle.version>25.2.4</truffle.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-xlang</artifactId>
+        </dependency>
+
+        <!-- Truffle 依赖不泄漏约束（设计 truffle 02 §二）：org.graalvm.truffle:* / org.graalvm.polyglot:*
+             依赖声明只允许出现在本模块 pom；nop-js（非内核）与 org.graalvm.buildtools 构建插件为显式豁免 -->
+        <dependency>
+            <groupId>org.graalvm.truffle</groupId>
+            <artifactId>truffle-api</artifactId>
+            <version>${truffle.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.graalvm.polyglot</groupId>
+            <artifactId>polyglot</artifactId>
+            <version>${truffle.version}</version>
+        </dependency>
+
+        <!-- I1 对拍 harness 与 corpus v1（test-jar 发布，见 nop-xlang pom） -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-xlang</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.graalvm.truffle</groupId>
+                            <artifactId>truffle-dsl-processor</artifactId>
+                            <version>${truffle.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
