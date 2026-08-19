@@ -2,7 +2,7 @@
 
 **日期**：2026-08-19（更新于 2026-08-19，主方案定为"coordinator 复用 worker 执行链 + `executorKind=rpcPoll` 三段式 invoker"）
 **范围**：`nop-job-api`、`nop-job-coordinator`、`nop-job-dao`、`nop-job-service`、`nop-job-meta`；不新增模块
-**状态**：草案
+**状态**：定稿（Phase 2-4 已实现并全量测试通过；Phase 4 日志上报 client 为可选增强，Deferred 项见计划 2254）
 **灵感来源**：PowerJob v5.1.2 worker 心跳注册 + server push；snail-job v2.0.2 client 内置 RPC server + server push（详见 §二，已浓缩为设计决策）
 
 ---
@@ -213,7 +213,7 @@ worker 是任意 Nop 服务，暴露三个 BizModel 方法（方法名可配，�
 
 **取消接线**：远程执行需配 `executorKind=rpcPoll`（`RemoteJobInvoker.cancelAsync` → 远程 `cancelJob`）。取消链路（本计划接通）：`cancelFire`（BizModel）→ **在 `fireStore.cancelFire` 之前**用 `IJobTaskStore.findTasksByFireId` 捕获 in-flight task 快照（cancel 事务会把活动 task 全部置 CANCELED，事后加载为空）→ 取消成功后对快照中的活动任务调用 `IJobCancelHandler.cancelRunningTask`（既有组件，超时路径已在用）→ 按 executorKind 解析 invoker → `cancelAsync`（`data.instanceId`=DB taskId）→ 远程 `cancelJob`。该接线同时惠及 DB 模式（手动取消也会通知 worker 调 invoker.cancelAsync）。
 
-**实现注记（踩坑）**：`NopJobFireBizModel` 的 taskStore 依赖**不能用 @Inject 或 beans.xml property 装配**——BizModel bean（`ioc:type="@bean:id"`）经 `BizProxyFactoryBean` 注册时，backing 实例上的 @Inject/property 注入会破坏 `BizObjectManager` 的 biz model 注册（表现为全部 `biz_*` proxy 转换失败 `nop.err.api.convert-to-type-fail`，`MODEL BEANS: []`）。因此 taskStore 按类型懒获取（`BeanContainer.getBeanByType(IJobTaskStore.class)`，调用时取）；cancelHandler 保持普通 setter + 应用层可选装配（测试经 BeanContainer 反射注入 mock）。
+**实现注记（踩坑）**：`NopJobFireBizModel` 的 taskStore 依赖**不能用 @Inject 或 beans.xml property 装配**——BizModel bean（`ioc:type="@bean:id"`）经 `BizProxyFactoryBean` 注册时，backing 实例上的 @Inject/property 注入会破坏 `BizObjectManager` 的 biz model 注册（表现为全部 `biz_*` proxy 转换失败 `nop.err.api.convert-to-type-fail`，`MODEL BEANS: []`）。因此 taskStore 与 cancelHandler 均按类型懒获取（`BeanContainer.getBeanByType(IJobTaskStore.class)` / `BeanContainer.instance().tryGetBeanByType(IJobCancelHandler.class)`，调用时取；cancelHandler 保留普通 setter 供测试反射注入 mock 覆盖）；生产环境中 coordinator 部署（app-engine.beans.xml 装配 `IJobCancelHandler`=DefaultJobCancelHandler）时取消链自动生效，未装配时取消仅置 DB 状态（best-effort 语义不变）。
 
 ### 3.5 RemoteJobInvoker 职责（三段式 start/poll/cancel，executorKind=rpcPoll）
 
@@ -285,11 +285,13 @@ HttpRpcPollTaskClient（startJob/getJobStatus/cancelJob）：请求 header 注�
 
 | 项 | 设计 |
 |----|------|
-| 上报端点 | coordinator（调度服务）开放 `NopJobTaskLogBizModel.reportTaskLog`（REST `/r/` 入口），批量接收日志行 |
+| 上报端点 | coordinator（调度服务）开放 `NopJobTaskLogBizModel.reportTaskLog`（REST `/r/` 入口），批量接收日志行（`TaskLogEntry` 列表，校验 jobTaskId/logTime/logLevel；logLevel 按 `job/log-level` dict 编码 10/20/30/40/50 落库） |
 | **taskId 关联** | 日志行以 `taskId`（= DB jobTaskId）归组，控制台按 taskId 查询；同一 taskId 下可包含多次 startJob（重试/恢复）产生的日志 |
 | **上报地址（worker 侧配置，防攻击）** | 普通 REST/RPC 配置方式：worker 侧部署时受信配置上报地址（如 `nop.job.log.report-url`），**不随请求头下发**——避免恶意请求伪造上报地址导致日志泄露或诱导 SSRF |
 | **与状态查询分离（可选）** | `getJobStatus` 是任务状态机必需路径；日志上报是可选增强——worker 未配置上报地址则不启用；上报失败 best-effort（本地缓冲/丢弃），**不影响任务执行与状态机** |
-| worker 侧接入 | 轻量上报 client（平台提供，走普通 RPC 通道）+ 可选 SLF4J/logback appender（按 taskId 归组）；业务代码也可显式调用 |
+| worker 侧接入 | 轻量上报 client `JobLogReporter`（`io.nop.job.api.log` 包，nop-job-api +`nop-http-api` 依赖；未配置 report-url/无 IHttpClient 时 `isEnabled()=false` 显式关闭，`report()` 抛 `ERR_JOB_LOG_REPORT_DISABLED`；异步上报 handle 吞错 + WARN 日志）+ 可选 SLF4J/logback appender（按 taskId 归组）；业务代码也可显式调用 |
+
+**实现注记（Phase 4 落地）**：`reportTaskLog` 冗余展示列（jobFireId/jobScheduleId/jobName/groupId）从 task → fire 两级快照填充（`IJobTaskStore.loadTask` + `IJobFireStore.loadFire`，经 `BeanContainer` 懒取——BizModel backing 注入坑见 §3.4 注记）；task 缺失时日志行仍落库（仅 taskId，展示列留空），端点不触碰任何 task/fire/schedule 状态——与状态机完全解耦。
 
 #### 3.8.1 日志表 `nop_job_task_log`
 
@@ -387,7 +389,7 @@ HTTP/RPC 调用超时与重试沿用平台 RPC 栈配置（`nop.cluster.client-r
 
 ## 六、Open Questions
 
-- [ ] `NopJobTaskLogBizModel.reportTaskLog` 的鉴权：与平台标准认证集成（要求登录）还是仅依赖 worker 侧受信地址 + 可选 token？——倾向平台标准认证 + 可选 token 双保险。
-- [ ] worker 侧 in-memory 任务表的生命周期：worker 进程重启后任务丢失（NOT_FOUND → FAILED）是否符合预期？是否需要 worker 侧磁盘持久化（PowerJob 本地 H2 式）作为可选增强。
-- [ ] `IRpcPollTaskClient` 对 `IRpcServiceInvoker` 的具体调用形态：直接 `invokeAsync(serviceName, method, ApiRequest)`（简单）还是预生成类型化接口（与 api-model codegen 集成）？
-- [ ] RemoteJobInvoker 轮询失败连续次数上限：当前无限重试（TimeoutChecker 墙钟兜底），是否需要显式连续失败上限（如 5 次 → FAILED）以加速失败可见性？
+- [x] `NopJobTaskLogBizModel.reportTaskLog` 的鉴权：**已定案**——平台标准认证（REST `/r/` 入口走 Nop 标准鉴权链）+ worker 侧受信地址；可选 token 增强留作后续（见计划 Deferred）。
+- [x] worker 侧 in-memory 任务表的生命周期：**已定案**——worker 重启后任务丢失（NOT_FOUND → FAILED）是设计既定语义（由超时链/轮询发现）；worker 侧磁盘持久化（PowerJob 本地 H2 式）列为 Deferred（见计划 2254）。
+- [x] `IRpcPollTaskClient` 对 `IRpcServiceInvoker` 的具体调用形态：**已定案**——直接 `invokeAsync(serviceName, method, ApiRequest)`（`HttpRpcPollTaskClient` 已实现）；预生成类型化接口列为 Deferred（见计划 2254）。
+- [x] RemoteJobInvoker 轮询失败连续次数上限：**已定案**——无限重试 + TimeoutChecker 墙钟兜底（既有 `timeoutSeconds`/`executionTimeoutMs` 语义），不新增连续失败上限维度；失败可见性由墙钟超时保证。

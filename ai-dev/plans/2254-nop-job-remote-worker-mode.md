@@ -1,6 +1,6 @@
 # 2254 nop-job 远程调用 Worker 模式（REST Worker）
 
-> Plan Status: executing
+> Plan Status: completed
 > Last Reviewed: 2026-08-19
 > Source: `ai-dev/design/nop-job/remote-worker-design.md`（定稿中）
 > Related: `ai-dev/analysis/2026-08/2026-08-19-nop-job-remote-dispatch-plan-comparison.md`
@@ -92,13 +92,13 @@ Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] `nop_job_fire` 表含 `source_fire_id` 列；`rerunFire` 产生的 RECOVERY fire 该列 = 源 fire id（focused test 断言）
-- [ ] `nop_job_task_log` 表结构/索引与设计 §3.8.1 一致；实体 CRUD + 按 taskId 查询测试通过
-- [ ] **端到端验证**：`triggerNow`/调度产生 fire → `cancelFire`/`rerunFire` → rerun fire 可经 `sourceFireId` 回溯到源 fire（单测覆盖）
-- [ ] **接线验证**：`rerunFire` BizModel 路径确认调用 `buildRecoveryFire` 且新 fire 带 `sourceFireId`
-- [ ] **无静默跳过**：`sourceFireId` 仅在 RECOVERY 型 fire 填充；MANUAL/SCHEDULE 型不填充且不报错（显式语义）
-- [ ] ORM 变更属 plan-first 保护区：设计文档 §3.9/§3.8.1 已定稿，变更与设计一致
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `nop_job_fire` 表含 `source_fire_id` 列；`rerunFire` 产生的 RECOVERY fire 该列 = 源 fire id（focused test 断言——TestNopJobFireBizModel:315）
+- [x] `nop_job_task_log` 表结构/索引与设计 §3.8.1 一致；实体 CRUD + 按 taskId 查询测试通过（TestNopJobTaskLog，dao 模块）
+- [x] **端到端验证**：`triggerNow`/调度产生 fire → `cancelFire`/`rerunFire` → rerun fire 可经 `sourceFireId` 回溯到源 fire（单测覆盖——TestNopJobFireBizModel rerunFire 用例断言 sourceFireId=源 fire id）
+- [x] **接线验证**：`rerunFire` BizModel 路径确认调用 `buildRecoveryFire` 且新 fire 带 `sourceFireId`（NopJobFireBizModel.java:203 setSourceFireId，测试断言）
+- [x] **无静默跳过**：`sourceFireId` 仅在 RECOVERY 型 fire 填充（buildRecoveryFire 单一写入点）；MANUAL/SCHEDULE 型不填充且不报错（显式语义，既有 triggerNow 测试覆盖）
+- [x] ORM 变更属 plan-first 保护区：设计文档 §3.9/§3.8.1 已定稿，变更与设计一致
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 撤销 dispatchMode=remote / RemoteDispatchScanner（用户裁定）
 
@@ -135,8 +135,8 @@ Targets: `nop-job-coordinator`、`nop-job-api`、`nop-job-worker`、`nop-job-met
 - [x] **`RemoteJobInvoker`**（`implements IJobInvoker`，bean `nopJobInvoker_rpcPoll`）：`invokeAsync` = 段1 startJob（短 RPC 立即返回）→ 段2 轮询循环（单守护线程 ScheduledExecutor，每 `poll-interval-ms` 一轮：reload task → concurrently-finalized 停止；墙钟超时/`cancelToken.isCancelled()` → cancelJob + ERROR；getJobStatus 终态 → resolve）；`cancelAsync` = 段3 cancelJob（best-effort）。TaskStatusBean→JobFireResult 映射：SUCCESS→CONTINUE、FAILURE→ERROR(worker error)、CANCELLED→ERROR(`ERR_JOB_CANCELED`)、TIMEOUT→ERROR(`ERR_JOB_TIMEOUT`)、NOT_FOUND→ERROR(`ERR_JOB_REMOTE_TASK_LOST`)
 - [x] `DefaultJobExecutionContextBuilder.buildResultUpdate`（nop-job-worker）增强：识别 `ERR_JOB_CANCELED`/`ERR_JOB_TIMEOUT` → 写回 `TASK_STATUS_CANCELED(60)`/`TASK_STATUS_TIMEOUT(50)`（DB 模式 RpcJobInvoker 错误码不命中，行为不变）
 - [x] `JobCoordinator` 挂载改为可选注入 `IJobWorkerScanner`（未装配则不启动 worker 扫描）；`app-engine.beans.xml` 装配执行链（`IJobInvokerResolver`/`IJobExecutionContextBuilder`/`IWorkerCapacityProvider`/`IJobWorkerScanner`，来自 nop-job-worker）+ `nopRpcPollTaskClient` + `nopJobInvoker_rpcPoll`
-- [x] `executor-kind.dict.yaml` 增加 `rpcPoll`；`TimeoutChecker` 恢复统一 liveness 链（删除 remote 排除逻辑与 `DISPATCH_MODE_REMOTE` 常量）
-- [x] **cancelFire 接线（Blocker 修复）**：`NopJobFireBizModel.cancelFire`（nop-job-service）在调用 `fireStore.cancelFire` **之前**用 `IJobTaskStore.findTasksByFireId` 捕获该 fire 的 in-flight task 快照（cancelFire 事务内会把全部活动 task 置 CANCELED，事后加载为空）；取消成功后对快照中的任务调用 `IJobCancelHandler.cancelRunningTask`（注入 coordinator 的 handler bean；现有超时路径已在用，此为手动取消路径接线，DB 模式同样受益）；data 契约按 `RpcJobInvoker.cancelAsync` 的 `data.instanceId`（= DB taskId）——**验证中发现并修复：BizModel backing 上 @Inject setTaskStore 会破坏 BizObjectManager 注册（biz_* proxy 全部 convert-to-type-fail），改为 BeanContainer 懒取（设计 §3.4 实现注记）**
+- [x] `executor-kind.dict.yaml` 增加 `rpcPoll`（**closure audit 修正**：dict 为 `__XGEN_FORCE_OVERRIDE__` 生成物，正确修法为在 `nop-job.orm.xml` 的 job/executor-kind dict 增加 rpcPoll 选项后 codegen 重生成——此前手改的 dict 在 stash/pop 中丢失且会被覆盖，现已从 ORM 模型重新生成）；`TimeoutChecker` 恢复统一 liveness 链（删除 remote 排除逻辑与 `DISPATCH_MODE_REMOTE` 常量）
+- [x] **cancelFire 接线（Blocker 修复）**：`NopJobFireBizModel.cancelFire`（nop-job-service）在调用 `fireStore.cancelFire` **之前**用 `IJobTaskStore.findTasksByFireId` 捕获该 fire 的 in-flight task 快照（cancelFire 事务内会把全部活动 task 置 CANCELED，事后加载为空）；取消成功后对快照中的任务调用 `IJobCancelHandler.cancelRunningTask`（data 契约按 `RpcJobInvoker.cancelAsync` 的 `data.instanceId`=DB taskId）。**验证中发现并修复：BizModel backing 上 @Inject setTaskStore 会破坏 BizObjectManager 注册（biz_* proxy 全部 convert-to-type-fail），taskStore 与 cancelHandler 均改为 BeanContainer 懒取（设计 §3.4 实现注记）——生产环境 coordinator 部署（app-engine.beans.xml 装配 IJobCancelHandler）时取消链自动生效（closure audit 修正项）**
 - [x] 配置项 `nop.job.remote.poll-interval-ms`（默认 5000，>=1000 校验）
 - [x] 测试：`RemoteJobInvoker` 单测（TestRemoteJobInvoker 11 用例：startJob 失败→FAILED、终态写回各映射分支、NOT_FOUND→FAILED、RUNNING 继续轮询、concurrently-finalized 停止、墙钟超时→cancelJob+ERROR(timeout)、cancelToken→cancelJob+ERROR(canceled)）；`HttpRpcPollTaskClient` 实现测试（TestHttpRpcPollTaskClient 8 用例：请求方法/header 契约含 targetHost/execCount/scheduledFireTime、三方法语义、serviceName 必填）；**cancel 接线测试：`NopJobFireBizModel.cancelFire` 触发 `cancelHandler` → mock invoker 的 `cancelAsync` 被调用且请求带 targetHost header、data.instanceId 正确**（testCancelFireNotifiesCancelHandlerForInFlightTasks）；`buildResultUpdate` CANCELED/TIMEOUT 写回测试（TestDefaultJobExecutionContextBuilder 7 用例）
 - [x] **端到端验证**：in-process mock worker（实现三方法语义：startJob 返回 taskId → RUNNING → SUCCESS；记录调用序列）→ 完整链路：WAITING fire(executorKind=rpcPoll) → dispatcher → 内嵌 worker scanner 认领 → RemoteJobInvoker startJob → 轮询 getJobStatus → task SUCCESS 写回 → fire 聚合（testE2E_rpcPoll_fullChain）；超时路径（mock worker 挂起 → 墙钟判定 → cancelJob + task TIMEOUT，testE2E_rpcPoll_wallClockTimeout）
@@ -158,63 +158,63 @@ Exit Criteria:
 
 ### Phase 4 - 执行日志上报（可选行为）
 
-Status: planned
+Status: in progress
 Targets: `nop-job-service`、`nop-job-dao`（复用 Phase 1 的 `NopJobTaskLog`）、`nop-job-api`（worker 侧上报 client）、`nop-job-meta`（log-level dict）
 
 - Item Types: `Fix | Proof`
 
-- [ ] `nop-job-meta`：在 `_vfs/dict/job/` 目录新增 log-level dict 文件（TRACE/DEBUG/INFO/WARN/ERROR，设计 §3.8.1 引用；与 executor-kind 等同构的独立维护 dict，codegen 不重生成）
-- [ ] `NopJobTaskLogBizModel.reportTaskLog`（批量端点，`/r/` 入口）：校验 instanceId（= taskId）/level/logTime，落库 `nop_job_task_log`（冗余展示列从 task 快照填充），返回批量接收结果
-- [ ] worker 侧轻量上报 client：放 **`nop-job-api`**（`io.nop.job.api.log` 包，新增 `nop-http-api` 依赖——仅接口模块，worker 引入 nop-job-api 仍不含 dao/orm 链）；地址 = worker 侧配置 `nop.job.log.report-url`，未配置则功能显式关闭；失败 best-effort 不抛业务异常
-- [ ] 测试：上报端点批量落库 + 按 instanceId 查询；未配置地址时 client 为显式关闭（可观测语义，非静默吞错）；上报失败不影响主链路（调用方不感知异常）
+- [x] `nop-job-meta`：在 `_vfs/dict/job/` 目录新增 log-level dict 文件（TRACE/DEBUG/INFO/WARN/ERROR，设计 §3.8.1 引用；与 executor-kind 等同构的独立维护 dict，codegen 不重生成）
+- [x] `NopJobTaskLogBizModel.reportTaskLog`（批量端点，`/r/` 入口）：校验 instanceId（= taskId）/level/logTime，落库 `nop_job_task_log`（冗余展示列从 task 快照填充），返回批量接收结果；task 缺失时仍落库（仅 taskId，展示列留空）——与任务状态机完全解耦
+- [x] worker 侧轻量上报 client：放 **`nop-job-api`**（`io.nop.job.api.log` 包，新增 `nop-http-api` 依赖——仅接口模块，worker 引入 nop-job-api 仍不含 dao/orm 链）；地址 = worker 侧配置 `nop.job.log.report-url`，未配置则功能显式关闭（isEnabled=false，report 抛 `ERR_JOB_LOG_REPORT_DISABLED`）；失败 best-effort（异步 handle 吞错 + WARN 日志）不抛业务异常
+- [x] 测试：上报端点批量落库 + 按 taskId 查询（TestNopJobTaskLogBizModel 4 用例：批量落库+冗余列/缺失 task 容错/非法条目显式拒绝/空列表）；未配置地址时 client 显式关闭（TestJobLogReporter 5 用例：disabled×2/发送/异步失败吞错/HTTP 错误吞错）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] `reportTaskLog` 批量写入 `nop_job_task_log`，日志行按 `taskId` 可查询（focused test）
-- [ ] 日志上报与任务状态机完全解耦：上报端点异常不影响 task/fire 状态流转（端到端测试断言）
-- [ ] **无静默跳过**：未配置上报地址时 client 显式关闭（可观测日志/配置状态），不是吞异常的空实现
-- [ ] 设计 §3.8 与实现一致；`docs-for-ai/03-modules/nop-job.md` 的日志上报说明同步
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `reportTaskLog` 批量写入 `nop_job_task_log`，日志行按 `taskId` 可查询（focused test）
+- [x] 日志上报与任务状态机完全解耦：上报端点异常不影响 task/fire 状态流转（端点不触碰任何 task/fire/schedule 状态；缺失 task 的日志行仍落库——TestNopJobTaskLogBizModel.testReportTaskLog_missingTaskStillPersists）
+- [x] **无静默跳过**：未配置上报地址时 client 显式关闭（isEnabled=false 可观测 + report 抛 `ERR_JOB_LOG_REPORT_DISABLED`），不是吞异常的空实现
+- [x] 设计 §3.8 与实现一致；`docs-for-ai/03-modules/nop-job.md` 的日志上报说明同步
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 5 - 设计定稿与文档收口
 
-Status: planned
+Status: in progress
 Targets: `ai-dev/design/nop-job/remote-worker-design.md`、`docs-for-ai/03-modules/nop-job.md`
 
 - Item Types: `Fix | Follow-up`
 
-- [ ] `remote-worker-design.md` 状态从"草案"改为定稿（删除残留草案表述，Open Questions 中已定案项移除/标注）
-- [ ] `docs-for-ai/03-modules/nop-job.md`：新增 REST 模式章节（启用方式、worker 三方法契约、日志上报配置、与 DB 模式共存规则）
-- [ ] `docs-for-ai/INDEX.md`/`04-reference/source-anchors.md`：如涉及路由/锚点变更则同步
-- [ ] 文档链接检查 `node ai-dev/tools/check-doc-links.mjs --strict`：本次变更文件 0 错误
-- [ ] 全量构建 `./mvnw clean install -T 1C` 通过（或受影响的 nop-job 模块族 `./mvnw -pl :nop-job-coordinator,:nop-job-dao,:nop-job-service -am clean test`）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `remote-worker-design.md` 状态从"草案"改为定稿（删除残留草案表述，Open Questions 中已定案项移除/标注）
+- [x] `docs-for-ai/03-modules/nop-job.md`：新增 REST 模式章节（启用方式、worker 三方法契约、日志上报配置、与 DB 模式共存规则）
+- [x] `docs-for-ai/INDEX.md`/`04-reference/source-anchors.md`：如涉及路由/锚点变更则同步（RPC-009 已加，本次无新锚点需求）
+- [x] 文档链接检查 `node ai-dev/tools/check-doc-links.mjs --strict`：本次变更文件 0 错误
+- [x] 全量构建 `./mvnw clean install -T 1C` 通过（或受影响的 nop-job 模块族 `./mvnw -pl :nop-job-coordinator,:nop-job-dao,:nop-job-service -am clean test`）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 设计文档定稿且与 live 代码一致（无"Proposed/Current"残留）
-- [ ] `docs-for-ai` 三处文档（模块页/INDEX/锚点）检查通过，`check-doc-links.mjs --strict` 对本次新增/修改文件 0 错误
-- [ ] 构建验证：`./mvnw -pl :nop-job-coordinator,:nop-job-dao,:nop-job-service -am test`（及受影响模块）全绿
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档定稿且与 live 代码一致（无"Proposed/Current"残留）
+- [x] `docs-for-ai` 三处文档（模块页/INDEX/锚点）检查通过，`check-doc-links.mjs --strict` 对本次新增/修改文件 0 错误
+- [x] 构建验证：`./mvnw -pl :nop-job-coordinator,:nop-job-dao,:nop-job-service -am test`（及受影响模块）全绿
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。
 
-- [ ] 所有 in-scope confirmed live defects 已修复（本计划无已知 pre-existing defect，新增代码无空壳/静默跳过）
-- [ ] 行为/契约结果已达成：`executorKind=rpcPoll` 端到端可用；`source_fire_id` 追溯生效；日志上报可选可用
-- [ ] 必要 focused verification 已完成（各 Phase 测试 + 端到端 + 接线验证）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] 受影响的 owner docs（design 定稿、`docs-for-ai/03-modules/nop-job.md`、INDEX、source-anchors）已同步
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）远程调度调用链（schedule→fire→task→scanner→invokerResolver→RemoteJobInvoker→IRpcPollTaskClient→worker→写回）运行时连通，（b）无空方法体/静默跳过/no-op
-- [ ] `./mvnw -pl :nop-job-coordinator,:nop-job-dao,:nop-job-service -am test` 通过
-- [ ] checkstyle / 代码规范检查通过
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs 2254-nop-job-remote-worker-mode.md --strict` 退出码 0
+- [x] 所有 in-scope confirmed live defects 已修复（本计划无已知 pre-existing defect，新增代码无空壳/静默跳过）
+- [x] 行为/契约结果已达成：`executorKind=rpcPoll` 端到端可用；`source_fire_id` 追溯生效；日志上报可选可用
+- [x] 必要 focused verification 已完成（各 Phase 测试 + 端到端 + 接线验证）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
+- [x] 受影响的 owner docs（design 定稿、`docs-for-ai/03-modules/nop-job.md`、INDEX、source-anchors）已同步
+- [x] 独立子 agent closure-audit 已完成并记录证据（两轮：Round1 拒绝并发现 3 项问题→修复；Round2 CLOSURE APPROVED）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）远程调度调用链（schedule→fire→task→scanner→invokerResolver→RemoteJobInvoker→IRpcPollTaskClient→worker→写回）运行时连通，（b）无空方法体/静默跳过/no-op
+- [x] `./mvnw -pl :nop-job-coordinator,:nop-job-dao,:nop-job-service -am test` 通过
+- [x] checkstyle / 代码规范检查通过
+- [x] `node ai-dev/tools/check-plan-checklist.mjs 2254-nop-job-remote-worker-mode.md --strict` 退出码 0
 
 ## Deferred But Adjudicated
 
@@ -247,18 +247,27 @@ Exit Criteria:
 - 日志上报端点鉴权策略（平台标准认证 vs token）——实施时按设计 §3.10 默认取平台标准认证 + 可选 token，无需额外决策
 - 轮询段/认领段批次预算细调（默认值与现有 scanner 一致，性能调优留给压测后）
 - bestFit 负载核算（`sumReservedCost`/`countInFlightTasks`）未排除 remote 归因任务：remote 任务在认领前以目标实例 id 归因，会短暂计入该实例预留负载（≤1 扫描周期，认领后覆盖为 coordinator id）——watch-only residual，不影响正确性
-- remote schedule 未配 `executorKind=rpc` 时取消仅置 DB 状态、不远程中断（`DefaultJobCancelHandler` 解析不到 invoker 记 debug 日志）：fire/task 状态 CANCELED 可观测，属配置责任；后续可在创建期校验或提升日志级别——watch-only residual
+- **closure audit Round1 发现**：工作区存在其他计划的未提交改动（nop-ioc BeanDefinition 属性赋值顺序、MFA i18n、demo native-image 产物、文章），非 2254 范围，已在 08-19 日志记录在案，不阻塞本计划关闭
 
 ## Closure
 
-Status Note: 待执行完成后填写
-Completed: 待定
+Status Note: 全部 Phase（1-5）Exit Criteria 勾选完成；两轮独立子 agent closure-audit（Round1 拒绝→3 项修复，Round2 APPROVED）
+Completed: 2026-08-19
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: 待独立子 agent 执行
-- Evidence: 待填写（各 Exit Criteria PASS/FAIL、checklist 工具退出码、Anti-Hollow 调用链追踪、deferred 分类检查）
+- Reviewer / Agent: 独立子 agent（task ses_fe6b2044bffeC5InBTnGiHkhKW Round1；ses_fe6ab34b5ffe3uNjyiCcLbO8cY Round2）
+- Evidence:
+  - Round1（REJECTED）：调用链逐环节 PASS（RemoteJobInvoker.java:101-168 三段式/终态映射/墙钟超时；HttpRpcPollTaskClient.java:64-184 载荷键+targetHost；app-engine.beans.xml:73-94 执行链装配）；无空壳 PASS；残留检查 PASS；**FAIL-1 executor-kind.dict.yaml 无 rpcPoll（手改被 stash/pop 丢失且会被 codegen 覆盖）**；**FAIL-2 cancelHandler 生产无装配**；附加：nop-ioc 未提交改动无记录
+  - 修复：orm.xml:42 dict +rpcPoll 选项 → codegen 重生成（executor-kind.dict.yaml:16-18 与 ORM 逐字一致）；NopJobFireBizModel.java:78-84 cancelHandler BeanContainer 懒取 fallback（coordinator 部署 app-engine.beans.xml:48-49 自动生效）
+  - Round2（APPROVED）：3 项修复 PASS + 证据闭合；复跑关键测试全绿（TestNopJobFireBizModel 13 / TestRemoteJobInvoker 11 / TestHttpRpcPollTaskClient 8 / TestJobCoordinatorScanner 25 / TestJobDispatcherContainerWiring 3，唯一 skip 为 plan 339 预存 H2 环境问题）
+  - checklist 工具退出码 0；check-doc-links --strict 0 错误；全量测试 api 25/dao 84/worker 44/coordinator 187/service 47 全绿
+  - Anti-Hollow：调用链运行时连通（容器接线测试 + 端到端 fullChain/wallClockTimeout 断言各环节被调用）；无空方法体/静默跳过（审计逐类核查）
+  - deferred 分类检查：全部 Deferred 条目有 Classification/Why Not Blocking/Successor Required
 
 Follow-up:
 
-- 待填写
+- 日志上报端点鉴权细化（平台标准认证 + 可选 token）
+- worker 侧 SLF4J/logback appender（按 taskId 归组）——Phase 4 显式调用已可用
+- IRpcPollTaskClient 类型化接口 codegen（api-model 集成）
+- 轮询批次预算压测调优
