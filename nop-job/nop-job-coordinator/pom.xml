@@ -36,6 +36,18 @@
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-cluster-core</artifactId>
         </dependency>
+        <!-- plan 2254: coordinator 内嵌 worker 执行链（JobWorkerScannerImpl/DefaultJobInvokerResolver/
+             DefaultJobExecutionContextBuilder/MetadataWorkerCapacityProvider），并复用 worker 侧
+             nopJobInvoker_* invoker 解析；nopRpcServiceInvoker bean 装配在 nop-rpc-cluster
+             （ClusterRpcServiceInvoker / HttpRpcServiceInvoker；nop-http-api 经其传递可达） -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-job-worker</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-rpc-cluster</artifactId>
+        </dependency>
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-orm</artifactId>

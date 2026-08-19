@@ -246,6 +246,65 @@ public class TestJobTimeoutChecker {
         assertEquals(_NopJobCoreConstants.TASK_STATUS_RUNNING, task.getTaskStatus());
     }
 
+    /**
+     * plan 2254（最终裁定）：不存在 dispatchMode=remote 概念——远程执行（executorKind=rpcPoll）
+     * 的认领者 workerInstanceId=coordinator hostId，纳入统一 liveness 链判定；
+     * workerInstanceId 不在存活集合时与普通任务一样标记 SUSPICIOUS。
+     */
+    @Test
+    void testWorkerLiveness_remoteTaskMarkedSuspicious() {
+        namingService.setAliveInstances(List.of("coordinator-1"));
+
+        NopJobTask task = createTask("t1", "f1", _NopJobCoreConstants.TASK_STATUS_RUNNING);
+        task.setWorkerInstanceId("remote-worker-1");
+        task.setStartTime(new Timestamp(currentTime - 10000));
+        taskStore.addRunningTask(task);
+
+        NopJobFire fire = createFire("f1", "s1", _NopJobCoreConstants.FIRE_STATUS_RUNNING, null);
+        fire.setDispatchMode("remote");
+        fireStore.addFire("f1", fire);
+
+        NopJobSchedule schedule = createSchedule("s1", "testJob");
+        schedule.setTimeoutSeconds(60);
+        scheduleStore.addSchedule("s1", schedule);
+
+        scheduleStore.setCurrentTime(currentTime);
+
+        checker.scanOnce();
+
+        assertEquals(_NopJobCoreConstants.TASK_STATUS_SUSPICIOUS, task.getTaskStatus(),
+                "remote task must join worker-liveness chain like normal tasks");
+    }
+
+    /**
+     * plan 2254（最终裁定）：远程任务与普通任务一致——liveness 链（SUSPICIOUS 判定）优先于
+     * 墙钟超时（本批标记 suspicious 后不再 tryMarkTimeout）。
+     */
+    @Test
+    void testWorkerLiveness_remoteTaskSuspiciousBeforeWallClockTimeout() {
+        namingService.setAliveInstances(List.of("coordinator-1"));
+
+        NopJobTask task = createTask("t1", "f1", _NopJobCoreConstants.TASK_STATUS_RUNNING);
+        task.setWorkerInstanceId("remote-worker-1");
+        task.setStartTime(new Timestamp(currentTime - 10_000));
+        taskStore.addRunningTask(task);
+
+        NopJobFire fire = createFire("f1", "s1", _NopJobCoreConstants.FIRE_STATUS_RUNNING, null);
+        fire.setDispatchMode("remote");
+        fireStore.addFire("f1", fire);
+
+        NopJobSchedule schedule = createSchedule("s1", "testJob");
+        schedule.setTimeoutSeconds(1); // 已超时
+        scheduleStore.addSchedule("s1", schedule);
+
+        scheduleStore.setCurrentTime(currentTime);
+
+        checker.scanOnce();
+
+        assertEquals(_NopJobCoreConstants.TASK_STATUS_SUSPICIOUS, task.getTaskStatus(),
+                "liveness chain wins over wall-clock timeout for remote tasks");
+    }
+
     @Test
     void testClaimedTask_reclaimedWhenWorkerGone() {
         namingService.setAliveInstances(List.of("worker-a"));
@@ -977,7 +1036,7 @@ public class TestJobTimeoutChecker {
                     .collect(java.util.stream.Collectors.toList());
         }
 
-        /**
+                /**
          * Returns true if (t.time, t.id) is strictly before (cursor.time, cursor.id) in DESC order
          * (i.e., would appear AFTER the cursor in descending iteration).
          */

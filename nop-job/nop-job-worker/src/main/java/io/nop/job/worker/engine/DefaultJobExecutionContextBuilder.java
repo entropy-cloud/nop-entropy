@@ -16,7 +16,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_CANCELED;
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_EXECUTION_FAILED;
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_TIMEOUT;
 
 public class DefaultJobExecutionContextBuilder implements IJobExecutionContextBuilder {
     @Override
@@ -39,6 +41,14 @@ public class DefaultJobExecutionContextBuilder implements IJobExecutionContextBu
             ErrorBean error = result.getError();
             if (error == null) {
                 error = new ErrorBean(ERR_JOB_EXECUTION_FAILED.getErrorCode());
+            }
+            // plan 2254：识别三段式远程执行（executorKind=rpcPoll）的终态错误码，
+            // 让 CANCELLED/TIMEOUT 写回正确状态（DB 模式 RpcJobInvoker 的错误码不命中）。
+            if (ERR_JOB_CANCELED.getErrorCode().equals(error.getErrorCode())) {
+                return new JobTaskExecutionUpdate(_NopJobCoreConstants.TASK_STATUS_CANCELED, error, null, true);
+            }
+            if (ERR_JOB_TIMEOUT.getErrorCode().equals(error.getErrorCode())) {
+                return new JobTaskExecutionUpdate(_NopJobCoreConstants.TASK_STATUS_TIMEOUT, error, null, true);
             }
             return new JobTaskExecutionUpdate(_NopJobCoreConstants.TASK_STATUS_FAILED, error, null, true);
         }

@@ -4,6 +4,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.beans.IntRangeSet;
+import io.nop.api.core.beans.task.TaskStatusBean;
 import io.nop.api.core.config.AppConfig;
 import io.nop.cluster.discovery.ServiceInstance;
 import io.nop.autotest.junit.JunitBaseTestCase;
@@ -18,6 +19,8 @@ import io.nop.job.dao.entity.NopJobTask;
 import io.nop.job.dao.store.IJobFireStore;
 import io.nop.job.dao.store.IJobScheduleStore;
 import io.nop.job.dao.store.IJobTaskStore;
+import io.nop.job.worker.engine.DefaultJobExecutionContextBuilder;
+import io.nop.job.worker.engine.JobWorkerScannerImpl;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
@@ -1254,6 +1257,201 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
         public void stopScanning() {
             stopCalled = true;
             throw new NopException(JobCoreErrors.ERR_JOB_CALENDAR_MAX_ITERATION_EXCEEDED);
+        }
+    }
+
+    /**
+     * plan 2254 端到端：WAITING fire(executorKind=rpcPoll) → dispatcher 产生 WAITING task →
+     * 内嵌 worker 执行链（JobWorkerScannerImpl + invokerResolver）认领 → RemoteJobInvoker 三段式
+     * （startJob → 轮询 getJobStatus → SUCCESS）→ 终态写回 → fire/schedule 聚合。
+     * mock worker 记录调用序列。
+     */
+    @Test
+    public void testE2E_rpcPoll_fullChain() {
+        NopJobSchedule schedule = newSchedule("sched-rpcpoll", "job-rpcpoll");
+        schedule.setExecutorKind("rpcPoll");
+        schedule.getJobParamsComponent().set_jsonValue(Map.of(
+                "serviceName", "mockWorker",
+                "data", Map.of("url", "http://worker/job")
+        ));
+        daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
+
+        NopJobFire fire = newFire("fire-rpcpoll", schedule);
+        daoProvider.daoFor(NopJobFire.class).saveEntityDirectly(fire);
+
+        MockPollWorker worker = new MockPollWorker();
+
+        runDispatcher();
+
+        List<NopJobTask> tasksBefore = daoProvider.daoFor(NopJobTask.class).findAll().stream()
+                .filter(t -> fire.getJobFireId().equals(t.getJobFireId()))
+                .collect(Collectors.toList());
+        assertEquals(1, tasksBefore.size());
+
+        runWorkerScanner(worker);
+
+        NopJobTask task = tasksBefore.get(0);
+        NopJobTask fresh = waitForStatus(task.getJobTaskId(), TASK_STATUS_SUCCESS);
+        assertEquals(TASK_STATUS_SUCCESS, fresh.getTaskStatus());
+
+        ((JobCompletionProcessorImpl) completionProcessorBean).scanOnce();
+
+        NopJobFire savedFire = fireStore.loadFire(fire.getJobFireId());
+        assertEquals(FIRE_STATUS_SUCCESS, savedFire.getFireStatus());
+
+        assertEquals(1, worker.startCalls);
+        assertEquals(task.getJobTaskId(), worker.lastInstanceId);
+        assertEquals("http://worker/job", worker.lastData.get("url"));
+        assertEquals("mockWorker", worker.lastServiceName);
+    }
+
+    /**
+     * plan 2254 端到端：worker 持续 RUNNING + schedule.timeoutSeconds 超时 →
+     * RemoteJobInvoker 墙钟判定 → cancelJob + ERROR(ERR_JOB_TIMEOUT) → task TIMEOUT。
+     */
+    @Test
+    public void testE2E_rpcPoll_wallClockTimeout() {
+        NopJobSchedule schedule = newSchedule("sched-rpcpoll-timeout", "job-rpcpoll-timeout");
+        schedule.setExecutorKind("rpcPoll");
+        schedule.setTimeoutSeconds(1);
+        schedule.getJobParamsComponent().set_jsonValue(Map.of("serviceName", "mockWorker"));
+        daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
+
+        NopJobFire fire = newFire("fire-rpcpoll-timeout", schedule);
+        daoProvider.daoFor(NopJobFire.class).saveEntityDirectly(fire);
+
+        MockPollWorker worker = new MockPollWorker();
+        worker.alwaysRunning = true;
+
+        runDispatcher();
+
+        List<NopJobTask> tasksBefore = daoProvider.daoFor(NopJobTask.class).findAll().stream()
+                .filter(t -> fire.getJobFireId().equals(t.getJobFireId()))
+                .collect(Collectors.toList());
+        assertEquals(1, tasksBefore.size());
+
+        runWorkerScanner(worker);
+
+        NopJobTask fresh = waitForStatus(tasksBefore.get(0).getJobTaskId(), TASK_STATUS_TIMEOUT);
+        assertEquals(TASK_STATUS_TIMEOUT, fresh.getTaskStatus());
+        assertTrue(worker.cancelCalls > 0, "wall-clock timeout must trigger remote cancel");
+    }
+
+    private NopJobFire newFire(String fireId, NopJobSchedule schedule) {
+        NopJobFire fire = new NopJobFire();
+        fire.setJobFireId(fireId);
+        fire.setJobScheduleId(schedule.getJobScheduleId());
+        fire.setNamespaceId(schedule.getNamespaceId());
+        fire.setGroupId(schedule.getGroupId());
+        fire.setJobName(schedule.getJobName());
+        fire.setTriggerSource(1);
+        fire.setScheduledFireTime(new Timestamp(System.currentTimeMillis() - 1000));
+        fire.setFireStatus(FIRE_STATUS_WAITING);
+        fire.setExecutorKind(schedule.getExecutorKind());
+        fire.setDispatchMode(schedule.getDispatchMode());
+        fire.setPartitionIndex(schedule.getPartitionIndex());
+        fire.setJobParamsSnapshot(JsonTool.stringify(
+                schedule.getJobParamsComponent().get_jsonMap()));
+        fire.setVersion(0L);
+        fire.setCreatedBy("test");
+        fire.setCreateTime(new Timestamp(System.currentTimeMillis()));
+        fire.setUpdatedBy("test");
+        fire.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+        return fire;
+    }
+
+    private NopJobTask waitForStatus(String jobTaskId, int expectedStatus) {
+        long deadline = System.currentTimeMillis() + 15000;
+        while (System.currentTimeMillis() < deadline) {
+            NopJobTask fresh = taskStore.loadTask(jobTaskId);
+            if (fresh != null && fresh.getTaskStatus() == expectedStatus) {
+                return fresh;
+            }
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("interrupted while waiting for task status", e);
+            }
+        }
+        NopJobTask last = taskStore.loadTask(jobTaskId);
+        assertEquals(expectedStatus, last != null ? last.getTaskStatus() : -1,
+                "task did not reach expected status in time");
+        return last;
+    }
+
+    private void runWorkerScanner(MockPollWorker worker) {
+        JobWorkerScannerImpl workerScanner = new JobWorkerScannerImpl();
+        workerScanner.setTaskStore(taskStore);
+        workerScanner.setFireStore(fireStore);
+        workerScanner.setScheduleStore(scheduleStore);
+        workerScanner.setInvokerResolver((s, f) -> buildRpcPollInvoker(worker));
+        workerScanner.setExecutionContextBuilder(new DefaultJobExecutionContextBuilder());
+        workerScanner.setCapacityProvider(() -> ResourceVector.MAX_VALUE);
+        workerScanner.setBatchSize(10);
+        workerScanner.setLockTimeoutMs(1000);
+        workerScanner.setAssignedPartitions("1");
+        workerScanner.scanOnce();
+    }
+
+    private RemoteJobInvoker buildRpcPollInvoker(MockPollWorker worker) {
+        RemoteJobInvoker invoker = new RemoteJobInvoker();
+        invoker.setTaskStore(taskStore);
+        invoker.setFireStore(fireStore);
+        invoker.setScheduleStore(scheduleStore);
+        invoker.setRpcPollTaskClient(worker);
+        invoker.setPollIntervalMs(1000);
+        return invoker;
+    }
+
+    /**
+     * 模拟 worker（三方法语义）：startJob 登记并返回 jobTaskId；getJobStatus 先 RUNNING 再
+     * SUCCESS（或持续 RUNNING）；cancelJob 计数。记录方法名/instanceId/data/serviceName。
+     */
+    static final class MockPollWorker implements IRpcPollTaskClient {
+        int startCalls;
+        int cancelCalls;
+        boolean alwaysRunning;
+        String lastMethod;
+        String lastInstanceId;
+        String lastServiceName;
+        Map<?, ?> lastData;
+
+        @Override
+        public String startJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
+            startCalls++;
+            lastMethod = "invokeJob";
+            lastInstanceId = task.getJobTaskId();
+            lastServiceName = resolveServiceName(schedule, fire, task);
+            Object data = task.getEffectiveParams(fire).get("data");
+            if (data instanceof Map) {
+                lastData = (Map<?, ?>) data;
+            } else if (data instanceof String) {
+                lastData = (Map<?, ?>) JsonTool.parse((String) data);
+            }
+            return task.getJobTaskId();
+        }
+
+        @Override
+        public TaskStatusBean getJobStatus(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
+            lastMethod = "getJobStatus";
+            lastInstanceId = task.getJobTaskId();
+            TaskStatusBean bean = new TaskStatusBean();
+            bean.setTaskStatus(alwaysRunning ? TaskStatusBean.STATUS_RUNNING : TaskStatusBean.STATUS_SUCCESS);
+            return bean;
+        }
+
+        @Override
+        public boolean cancelJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
+            cancelCalls++;
+            lastMethod = "cancelJob";
+            lastInstanceId = task.getJobTaskId();
+            return true;
+        }
+
+        private static String resolveServiceName(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
+            Object value = task.getEffectiveParams(fire).get("serviceName");
+            return value != null ? String.valueOf(value) : null;
         }
     }
 

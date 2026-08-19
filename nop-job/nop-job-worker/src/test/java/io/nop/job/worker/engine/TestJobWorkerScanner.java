@@ -840,7 +840,7 @@ public class TestJobWorkerScanner extends JunitBaseTestCase {
             return delegate.fetchWaitingTasks(limit, partitions, workerInstanceId, enforceAttribution);
         }
 
-        @Override
+                @Override
         public List<NopJobTask> tryLockTasksForExecute(List<NopJobTask> tasks, String workerInstanceId, long lockTimeoutMs) {
             return delegate.tryLockTasksForExecute(tasks, workerInstanceId, lockTimeoutMs);
         }
@@ -924,7 +924,7 @@ public class TestJobWorkerScanner extends JunitBaseTestCase {
             return delegate.fetchRunningTasks(limit, partitions, cursorTime, cursorId);
         }
 
-        @Override
+                @Override
         public List<NopJobTask> findTasksByFireId(String jobFireId) {
             return delegate.findTasksByFireId(jobFireId);
         }

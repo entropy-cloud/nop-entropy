@@ -73,7 +73,7 @@ public class TestDefaultWorkerLoadProviderScanCache {
         @Override public List<NopJobTask> fetchWaitingTasks(int limit, IntRangeSet partitions, String workerInstanceId, boolean enforceAttribution) { return Collections.emptyList(); }
         @Override public List<NopJobTask> tryLockTasksForExecute(List<NopJobTask> tasks, String workerInstanceId, long lockTimeoutMs) { return Collections.emptyList(); }
         @Override public List<NopJobTask> fetchRunningTasks(int limit, IntRangeSet partitions, java.sql.Timestamp ct, String cid) { return Collections.emptyList(); }
-        @Override public List<NopJobTask> findTasksByFireId(String jobFireId) { return Collections.emptyList(); }
+                @Override public List<NopJobTask> findTasksByFireId(String jobFireId) { return Collections.emptyList(); }
         @Override public NopJobTask loadTask(String jobTaskId) { return null; }
         @Override public long countInFlightTasks(String workerInstanceId) { return 0; }
         @Override public ResourceVector sumReservedCost(String workerInstanceId) { return ResourceVector.ZERO; }

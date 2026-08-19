@@ -13,6 +13,8 @@ public class JobCoordinator extends LifeCycleSupport {
     private IJobCompletionProcessor completionProcessor;
     private IJobTimeoutChecker timeoutChecker;
     private JobScheduleCounterReconciler counterReconciler;
+    private io.nop.job.api.execution.IJobInvoker invoker;
+    private io.nop.job.worker.engine.IJobWorkerScanner workerScanner;
 
     @Inject
     public void setPlannerScanner(IJobPlannerScanner plannerScanner) {
@@ -39,6 +41,14 @@ public class JobCoordinator extends LifeCycleSupport {
         this.counterReconciler = counterReconciler;
     }
 
+    /**
+     * plan 2254: coordinator 内嵌 worker 执行链（可选注入——未装配 IJobWorkerScanner bean 时
+     * coordinator 启动不失败，行为与现状一致）。
+     */
+    public void setWorkerScanner(io.nop.job.worker.engine.IJobWorkerScanner workerScanner) {
+        this.workerScanner = workerScanner;
+    }
+
     @Override
     protected void doStart() {
         if (plannerScanner != null) {
@@ -55,6 +65,9 @@ public class JobCoordinator extends LifeCycleSupport {
         }
         if (counterReconciler != null) {
             counterReconciler.startScanning();
+        }
+        if (workerScanner != null) {
+            workerScanner.startScanning();
         }
     }
 
@@ -89,6 +102,12 @@ public class JobCoordinator extends LifeCycleSupport {
                 counterReconciler.stopScanning();
         } catch (Exception e) {
             LOG.warn("nop.job.coordinator.stop-component-failed:component=counterReconciler", e);
+        }
+        try {
+            if (workerScanner != null)
+                workerScanner.stopScanning();
+        } catch (Exception e) {
+            LOG.warn("nop.job.coordinator.stop-component-failed:component=workerScanner", e);
         }
     }
 }

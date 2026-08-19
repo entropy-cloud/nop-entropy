@@ -545,7 +545,7 @@ public class TestJobCompletionProcessor {
         @Override public List<NopJobTask> fetchWaitingTasks(int limit, IntRangeSet p, String wid, boolean enfo) { return Collections.emptyList(); }
         @Override public List<NopJobTask> tryLockTasksForExecute(List<NopJobTask> tasks, String workerInstanceId, long lockTimeoutMs) { return tasks; }
         @Override public List<NopJobTask> fetchRunningTasks(int limit, IntRangeSet partitions, java.sql.Timestamp ct, String cid) { return Collections.emptyList(); }
-        @Override public NopJobTask loadTask(String jobTaskId) { return null; }
+                @Override public NopJobTask loadTask(String jobTaskId) { return null; }
         @Override public long countInFlightTasks(String workerInstanceId) { return 0; }
         @Override public io.nop.job.api.resource.ResourceVector sumReservedCost(String workerInstanceId) { return io.nop.job.api.resource.ResourceVector.ZERO; }
         @Override public java.util.List<io.nop.job.dao.store.WorkerReservedCost> sumReservedCostByWorker() { return java.util.Collections.emptyList(); }

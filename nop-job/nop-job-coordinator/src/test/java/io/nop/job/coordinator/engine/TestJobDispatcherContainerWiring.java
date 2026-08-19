@@ -2,12 +2,16 @@ package io.nop.job.coordinator.engine;
 
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.OptionalBoolean;
+import io.nop.api.core.ioc.BeanContainer;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.dao.api.IDaoProvider;
+import io.nop.job.api.execution.IJobInvoker;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.store.IJobFireStore;
 import io.nop.job.dao.store.IJobTaskStore;
+import io.nop.job.worker.engine.IJobWorkerScanner;
+import io.nop.job.worker.engine.JobWorkerScannerImpl;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -56,6 +60,27 @@ public class TestJobDispatcherContainerWiring extends JunitBaseTestCase {
         assertInstanceOf(RpcBroadcastTaskBuilder.class, builders.get("broadcast"));
         assertInstanceOf(PartitionTaskBuilder.class, builders.get("partition"));
         assertInstanceOf(AdaptiveJobTaskBuilder.class, builders.get("bestFit"));
+    }
+
+    /**
+     * plan 2254: coordinator 内嵌 worker 执行链容器级接线验证——app-engine.beans.xml 装配的
+     * IJobWorkerScanner（JobWorkerScannerImpl）与其 invokerResolver/executionContextBuilder/
+     * capacityProvider 依赖链在真实 IoC 容器中可解析（@Inject 全满足），且
+     * nopJobInvoker_rpcPoll（RemoteJobInvoker）bean 注册成功。
+     */
+    @Test
+    public void testRpcPollWorkerChainWiredFromBeans() {
+        IJobWorkerScanner workerScanner = BeanContainer.getBeanByType(IJobWorkerScanner.class);
+        assertInstanceOf(JobWorkerScannerImpl.class, workerScanner,
+                "app-engine.beans.xml must assemble JobWorkerScannerImpl as IJobWorkerScanner");
+
+        Object rpcPollInvoker = BeanContainer.tryGetBean("nopJobInvoker_rpcPoll");
+        assertInstanceOf(RemoteJobInvoker.class, rpcPollInvoker,
+                "nopJobInvoker_rpcPoll must be assembled (RemoteJobInvoker)");
+
+        IRpcPollTaskClient client = BeanContainer.getBeanByType(IRpcPollTaskClient.class);
+        assertInstanceOf(HttpRpcPollTaskClient.class, client,
+                "IRpcPollTaskClient must be assembled (HttpRpcPollTaskClient)");
     }
 
     /**

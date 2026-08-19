@@ -125,4 +125,15 @@ public interface JobCoreErrors {
             "fetchWaitingTasks called with enforceAttribution={enforceAttribution} but workerInstanceId is null/empty; "
                     + "configure the worker hostId before enabling dedicated-pool attribution",
             ARG_ENFORCE_ATTRIBUTION);
+
+    // plan 2254: remote 模式（dispatchMode=remote）错误码
+    String ARG_TASK_ID = "taskId";
+
+    ErrorCode ERR_JOB_REMOTE_INVOKE_FAILED = define("nop.err.job.remote-invoke-failed",
+            "Remote startJob invoke failed for task {taskId}; task marked FAILED, retry via nop-retry bridge",
+            ARG_TASK_ID);
+
+    ErrorCode ERR_JOB_REMOTE_TASK_LOST = define("nop.err.job.remote-task-lost",
+            "Remote task {taskId} not found on worker (worker restarted or never received it); marked FAILED",
+            ARG_TASK_ID);
 }

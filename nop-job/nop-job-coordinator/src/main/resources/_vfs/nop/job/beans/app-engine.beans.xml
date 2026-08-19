@@ -67,5 +67,29 @@
           class="io.nop.job.coordinator.engine.JobScheduleCounterReconciler"/>
 
     <bean id="io.nop.job.coordinator.engine.JobCoordinator"
-          class="io.nop.job.coordinator.engine.JobCoordinator"/>
+          class="io.nop.job.coordinator.engine.JobCoordinator">
+        <!-- plan 2254: coordinator 内嵌 worker 执行链（可选装配——不配置则 coordinator 不启动
+             worker 扫描，行为与现状一致） -->
+        <property name="workerScanner" ref="io.nop.job.worker.engine.IJobWorkerScanner"/>
+    </bean>
+
+    <!-- plan 2254: 三段式远程执行（executorKind=rpcPoll）——coordinator 复用 worker 执行链：
+         JobWorkerScannerImpl 认领 WAITING task 后经 DefaultJobInvokerResolver 按 fire.executorKind
+         解析 invoker；executorKind=rpcPoll → nopJobInvoker_rpcPoll（RemoteJobInvoker），内部经
+         IRpcPollTaskClient 完成 start/poll/cancel 三段 RPC，对外就是一个普通 invoker。 -->
+    <bean id="nopRpcPollTaskClient" class="io.nop.job.coordinator.engine.HttpRpcPollTaskClient">
+        <property name="rpcServiceInvoker" ref="nopRpcServiceInvoker"/>
+    </bean>
+
+    <bean id="nopJobInvoker_rpcPoll" class="io.nop.job.coordinator.engine.RemoteJobInvoker"/>
+
+    <!-- coordinator 内嵌 worker 执行链组件（来自 nop-job-worker） -->
+    <bean id="io.nop.job.worker.engine.IJobInvokerResolver"
+          class="io.nop.job.worker.engine.DefaultJobInvokerResolver"/>
+    <bean id="io.nop.job.worker.engine.IJobExecutionContextBuilder"
+          class="io.nop.job.worker.engine.DefaultJobExecutionContextBuilder"/>
+    <bean id="io.nop.job.worker.capacity.IWorkerCapacityProvider"
+          class="io.nop.job.worker.capacity.MetadataWorkerCapacityProvider"/>
+    <bean id="io.nop.job.worker.engine.IJobWorkerScanner"
+          class="io.nop.job.worker.engine.JobWorkerScannerImpl"/>
 </beans>
