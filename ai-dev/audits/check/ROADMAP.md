@@ -74,10 +74,10 @@
 |------|------|--------|------|------|
 | nop-report | `nop-report` | 176 | [nop-report.md](nop-report.md) | done |
 | nop-rule | `nop-rule` | 98 | [nop-rule.md](nop-rule.md) | done |
-| nop-batch | `nop-batch`（core/dsl 为主） | 269 | [nop-batch.md](nop-batch.md) | in-progress |
-| nop-dyn | `nop-dyn` | 131 | [nop-dyn.md](nop-dyn.md) | in-progress |
-| file-retry-tcc | `nop-file` + `nop-retry` + `nop-tcc` | 123 | [file-retry-tcc.md](file-retry-tcc.md) | pending |
-| nop-metadata | `nop-metadata`（service/dao 为主） | 441 | [nop-metadata.md](nop-metadata.md) | pending |
+| nop-batch | `nop-batch`（core/dsl 为主） | 269 | [nop-batch.md](nop-batch.md) | done |
+| nop-dyn | `nop-dyn` | 131 | [nop-dyn.md](nop-dyn.md) | done |
+| file-retry-tcc | `nop-file` + `nop-retry` + `nop-tcc` | 123 | [file-retry-tcc.md](file-retry-tcc.md) | in-progress |
+| nop-metadata | `nop-metadata`（service/dao 为主） | 441 | [nop-metadata.md](nop-metadata.md) | in-progress |
 | nop-excel | `nop-format/nop-excel` | 338 | [nop-excel.md](nop-excel.md) | pending |
 | format-record | nop-record + nop-record-netty + nop-tablesaw | 175 | [format-record.md](format-record.md) | pending |
 | format-pdf-svg | nop-pdf + nop-svg + nop-chart-export | 153 | [format-pdf-svg.md](format-pdf-svg.md) | pending |
