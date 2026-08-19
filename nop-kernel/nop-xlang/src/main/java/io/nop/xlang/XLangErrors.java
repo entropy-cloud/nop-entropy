@@ -22,6 +22,7 @@ public interface XLangErrors {
     String ARG_PARSE_TREE = "parseTree";
 
     String ARG_NODE = "node";
+    String ARG_LOCATION = "location";
     String ARG_NODES = "nodes";
 
     String ARG_XDEF_NODE = "xdefNode";
@@ -654,6 +655,9 @@ public interface XLangErrors {
 
     ErrorCode ERR_EXEC_NOT_SUPPORTED_AST_NODE = define("nop.err.xlang.exec.not-supported-node", "不支持的语法节点",
             ARG_AST_NODE);
+
+    ErrorCode ERR_EXEC_TRANSLATE_UNSUPPORTED_NODE = define("nop.err.xlang.exec.translate-unsupported-node",
+            "java转译不支持的表达式子集外节点:{className} {location}", ARG_CLASS_NAME, ARG_LOCATION);
 
     ErrorCode ERR_EXEC_IDENTIFIER_NOT_INITIALIZED = define("nop.err.xlang.exec.identifier-not-initialized",
             "变量[{varName}]没有初始化", ARG_VAR_NAME);

@@ -28,6 +28,10 @@ public class NotExecutable extends AbstractExecutable {
         return false;
     }
 
+    public IExecutableExpression getExpr() {
+        return expr;
+    }
+
     @Override
     public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
         Object v = executor.execute(expr, rt);

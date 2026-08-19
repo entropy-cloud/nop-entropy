@@ -20,6 +20,10 @@ public class ReturnNullExecutable extends AbstractExecutable {
         this.executable = executable;
     }
 
+    public IExecutableExpression getExecutable() {
+        return executable;
+    }
+
     public boolean containsBreakStatement() {
         return executable.containsBreakStatement();
     }

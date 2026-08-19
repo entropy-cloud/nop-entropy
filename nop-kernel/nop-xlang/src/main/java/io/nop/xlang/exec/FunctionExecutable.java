@@ -44,6 +44,18 @@ public class FunctionExecutable extends AbstractExecutable {
         }
     }
 
+    public String getFuncName() {
+        return funcName;
+    }
+
+    public IEvalFunction getFunc() {
+        return func;
+    }
+
+    public IExecutableExpression[] getArgs() {
+        return args;
+    }
+
     @Override
     public void display(StringBuilder sb) {
         sb.append(funcName);
@@ -73,12 +85,7 @@ public class FunctionExecutable extends AbstractExecutable {
             argValues[i] = executor.execute(args[i], rt);
         }
 
-        try {
-            return func.invoke(null, argValues, rt.getScope());
-        } catch (NopException e) {
-            e.addXplStack(this);
-            throw e;
-        }
+        return XLangSemantics.invokeEvalFunction(func, argValues, rt.getScope(), this);
     }
 
     static class NoArgExecutable extends FunctionExecutable {
@@ -90,12 +97,7 @@ public class FunctionExecutable extends AbstractExecutable {
 
         @Override
         public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
-            try {
-                return func.invoke(null, EMPTY_ARGS, rt.getScope());
-            } catch (NopException e) {
-                e.addXplStack(this);
-                throw e;
-            }
+            return XLangSemantics.invokeEvalFunction(func, EMPTY_ARGS, rt.getScope(), this);
         }
     }
 
@@ -110,12 +112,7 @@ public class FunctionExecutable extends AbstractExecutable {
         @Override
         public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
             Object arg = executor.execute(argExpr, rt);
-            try {
-                return func.call1(null, arg, rt.getScope());
-            } catch (NopException e) {
-                e.addXplStack(this);
-                throw e;
-            }
+            return XLangSemantics.invokeEvalFunction1(func, arg, rt.getScope(), this);
         }
     }
 
@@ -134,12 +131,7 @@ public class FunctionExecutable extends AbstractExecutable {
             Object arg1 = executor.execute(argExpr1, rt);
             Object arg2 = executor.execute(argExpr2, rt);
 
-            try {
-                return func.call2(null, arg1, arg2, rt.getScope());
-            } catch (NopException e) {
-                e.addXplStack(this);
-                throw e;
-            }
+            return XLangSemantics.invokeEvalFunction2(func, arg1, arg2, rt.getScope(), this);
         }
     }
 
@@ -162,12 +154,7 @@ public class FunctionExecutable extends AbstractExecutable {
             Object arg2 = executor.execute(argExpr2, rt);
             Object arg3 = executor.execute(argExpr3, rt);
 
-            try {
-                return func.call3(null, arg1, arg2, arg3, rt.getScope());
-            } catch (NopException e) {
-                e.addXplStack(this);
-                throw e;
-            }
+            return XLangSemantics.invokeEvalFunction3(func, arg1, arg2, arg3, rt.getScope(), this);
         }
     }
 }

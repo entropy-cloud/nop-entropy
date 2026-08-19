@@ -14,7 +14,6 @@ import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
-import static io.nop.xlang.XLangErrors.ERR_EXEC_VALUE_NOT_ALLOW_NULL;
 
 public class GuardNotNullExecutable extends AbstractExecutable {
     private final IExecutableExpression expr;
@@ -29,12 +28,14 @@ public class GuardNotNullExecutable extends AbstractExecutable {
         return false;
     }
 
+    public IExecutableExpression getExpr() {
+        return expr;
+    }
+
     @Override
     public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
         Object v = executor.execute(expr, rt);
-        if (v == null)
-            throw newError(ERR_EXEC_VALUE_NOT_ALLOW_NULL);
-        return v;
+        return XLangSemantics.guardNotNull(getLocation(), display(), v);
     }
 
     @Override

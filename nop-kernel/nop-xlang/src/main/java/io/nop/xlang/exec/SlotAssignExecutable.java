@@ -25,6 +25,18 @@ public class SlotAssignExecutable extends AbstractExecutable {
         this.expr = expr;
     }
 
+    public String getVarName() {
+        return varName;
+    }
+
+    public int getSlot() {
+        return slot;
+    }
+
+    public IExecutableExpression getExpr() {
+        return expr;
+    }
+
     @Override
     public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
         Object v = executor.execute(expr, rt);

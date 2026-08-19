@@ -33,6 +33,10 @@ public class SlotIdentifierExecutable extends AbstractExecutable {
         sb.append(id);
     }
 
+    public int getSlot() {
+        return slot;
+    }
+
     @Override
     public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
         return rt.getCurrentFrame().getStackValue(slot);

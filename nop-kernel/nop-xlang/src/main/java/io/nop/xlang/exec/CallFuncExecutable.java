@@ -37,6 +37,22 @@ public class CallFuncExecutable extends AbstractExecutable {
         this.bodyExpr = bodyExpr;
     }
 
+    public String getFuncName() {
+        return funcName;
+    }
+
+    public String[] getSlotNames() {
+        return slotNames;
+    }
+
+    public IExecutableExpression[] getArgExprs() {
+        return argExprs;
+    }
+
+    public IExecutableExpression getBodyExpr() {
+        return bodyExpr;
+    }
+
     @Override
     public boolean allowBreakPoint() {
         return allowBreakpoint;

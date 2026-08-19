@@ -17,6 +17,14 @@ public abstract class AbstractBinaryExecutable extends AbstractExecutable {
     protected final IExecutableExpression left;
     protected final IExecutableExpression right;
 
+    public IExecutableExpression getLeft() {
+        return left;
+    }
+
+    public IExecutableExpression getRight() {
+        return right;
+    }
+
     public AbstractBinaryExecutable(SourceLocation loc, IExecutableExpression left, IExecutableExpression right) {
         super(loc);
         this.left = Guard.notNull(left, "left");

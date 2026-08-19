@@ -40,6 +40,14 @@ public class CompareOpExecutable extends AbstractExecutable implements IEvalPred
         return filterOp;
     }
 
+    public IExecutableExpression getLeft() {
+        return left;
+    }
+
+    public IExecutableExpression getRight() {
+        return right;
+    }
+
     @Override
     public boolean allowBreakPoint() {
         return false;

@@ -15,10 +15,6 @@ import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 
-import static io.nop.xlang.XLangErrors.ARG_CLASS_NAME;
-import static io.nop.xlang.XLangErrors.ARG_FUNC_NAME;
-import static io.nop.xlang.XLangErrors.ERR_EXEC_INVOKE_METHOD_FAIL;
-
 public abstract class AbstractObjFunctionExecutable extends AbstractExecutable {
     protected final IExecutableExpression objExpr;
     protected final String funcName;
@@ -34,6 +30,22 @@ public abstract class AbstractObjFunctionExecutable extends AbstractExecutable {
         this.funcName = Guard.notEmpty(funcName, "funcName");
         this.optional = optional;
         this.args = args;
+    }
+
+    public IExecutableExpression getObjExpr() {
+        return objExpr;
+    }
+
+    public String getFuncName() {
+        return funcName;
+    }
+
+    public boolean isOptional() {
+        return optional;
+    }
+
+    public IExecutableExpression[] getArgs() {
+        return args;
     }
 
     @Override
@@ -54,67 +66,33 @@ public abstract class AbstractObjFunctionExecutable extends AbstractExecutable {
     }
 
     protected Object doInvoke(IEvalFunction func, Object obj, Object[] attrValues, IEvalScope scope) {
-        try {
-            return func.invoke(obj, attrValues, scope);
-        } catch (Exception e) {
-            throw wrapInvokeException(e, obj);
-        }
-    }
-
-    static String getClassName(Object o) {
-        if (o == null)
-            return "null";
-        if (o instanceof Class)
-            return o.toString();
-        return o.getClass().getName();
+        return XLangSemantics.invokeObjFunction(func, obj, attrValues, scope, getLocation(), display(), funcName);
     }
 
     /**
-     * 将方法调用异常包装为 {@code NopEvalException(ERR_EXEC_INVOKE_METHOD_FAIL)}，
-     * 保留 {@code wrapException} / cause / errorCode 全部既有语义。当被调用方法抛出 bizFatal
-     * {@link NopException} 时，将 bizFatal 标记传播到包装异常，使下游分类器（如
-     * {@code RetryPolicy.isRecoverableException}）能正确识别不可恢复异常。
+     * 方法调用异常包装统一收口于共享 helper {@link XLangSemantics#wrapInvokeException}
+     * （错误码 / loc / forWrap / params / bizFatal 传播语义不变，解释器与生成代码同一实现来源）。
      */
     private NopException wrapInvokeException(Exception e, Object obj) {
-        NopException err = newError(ERR_EXEC_INVOKE_METHOD_FAIL, e).forWrap()
-                .param(ARG_CLASS_NAME, getClassName(obj))
-                .param(ARG_FUNC_NAME, funcName);
-        if (e instanceof NopException && ((NopException) e).isBizFatal())
-            err.bizFatal(true);
-        return err;
+        return XLangSemantics.wrapInvokeException(getLocation(), display(), funcName, e, obj);
     }
 
     protected Object doInvoke0(IEvalFunction func, Object obj, IEvalScope scope) {
-        try {
-            return func.call0(obj, scope);
-        } catch (Exception e) {
-            throw wrapInvokeException(e, obj);
-        }
+        return XLangSemantics.invokeObjFunction0(func, obj, scope, getLocation(), display(), funcName);
     }
 
     protected Object doInvoke1(IEvalFunction func, Object obj, Object arg1, IEvalScope scope) {
-        try {
-            return func.call1(obj, arg1, scope);
-        } catch (Exception e) {
-            throw wrapInvokeException(e, obj);
-        }
+        return XLangSemantics.invokeObjFunction1(func, obj, arg1, scope, getLocation(), display(), funcName);
     }
 
     protected Object doInvoke2(IEvalFunction func, Object obj, Object arg1, Object arg2, IEvalScope scope) {
-        try {
-            return func.call2(obj, arg1, arg2, scope);
-        } catch (Exception e) {
-            throw wrapInvokeException(e, obj);
-        }
+        return XLangSemantics.invokeObjFunction2(func, obj, arg1, arg2, scope, getLocation(), display(), funcName);
     }
 
     protected Object doInvoke3(IEvalFunction func, Object obj, Object arg1, Object arg2, Object arg3,
                                IEvalScope scope) {
-        try {
-            return func.call3(obj, arg1, arg2, arg3, scope);
-        } catch (Exception e) {
-            throw wrapInvokeException(e, obj);
-        }
+        return XLangSemantics.invokeObjFunction3(func, obj, arg1, arg2, arg3, scope, getLocation(), display(),
+                funcName);
     }
 
     @Override

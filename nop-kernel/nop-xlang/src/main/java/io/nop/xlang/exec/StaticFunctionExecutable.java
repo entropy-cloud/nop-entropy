@@ -13,13 +13,7 @@ import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
-import io.nop.core.reflect.IFunctionModel;
 import io.nop.core.reflect.IMethodModelCollection;
-
-import static io.nop.xlang.XLangErrors.ARG_ARG_COUNT;
-import static io.nop.xlang.XLangErrors.ARG_CLASS_NAME;
-import static io.nop.xlang.XLangErrors.ARG_METHOD_NAME;
-import static io.nop.xlang.XLangErrors.ERR_EXEC_OBJ_UNKNOWN_METHOD;
 
 public class StaticFunctionExecutable extends AbstractExecutable {
     private final String className;
@@ -38,6 +32,26 @@ public class StaticFunctionExecutable extends AbstractExecutable {
         this.argExprs = Guard.notNull(argExprs, "argExprs");
     }
 
+    public String getClassName() {
+        return className;
+    }
+
+    public String getFuncName() {
+        return funcName;
+    }
+
+    public boolean isOptional() {
+        return optional;
+    }
+
+    public IMethodModelCollection getMethodCollection() {
+        return methodCollection;
+    }
+
+    public IExecutableExpression[] getArgExprs() {
+        return argExprs;
+    }
+
     @Override
     public void display(StringBuilder sb) {
         sb.append(className);
@@ -48,15 +62,8 @@ public class StaticFunctionExecutable extends AbstractExecutable {
     @Override
     public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
         Object[] argValues = evaluateArgs(argExprs, executor, rt);
-        IFunctionModel fn = methodCollection.getMethodForArgValues(argValues);
-        if (fn == null) {
-            if (optional)
-                return null;
-
-            throw newError(ERR_EXEC_OBJ_UNKNOWN_METHOD).param(ARG_CLASS_NAME, className)
-                    .param(ARG_METHOD_NAME, funcName).param(ARG_ARG_COUNT, argExprs.length);
-        }
-        return fn.invoke(null, argValues, rt.getScope());
+        return XLangSemantics.invokeStaticMethod(getLocation(), display(), className, funcName, optional,
+                methodCollection, argValues, rt.getScope());
     }
 
     @Override
