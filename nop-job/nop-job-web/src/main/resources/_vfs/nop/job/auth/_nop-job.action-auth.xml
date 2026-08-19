@@ -52,6 +52,20 @@
                         </resource>
                     </children>
                 </resource>
+                <resource id="NopJobTaskLog-main" displayName="执行日志" orderNo="10010" i18n-en:displayName="Job Task Log"
+                          icon="file-lines" component="AMIS" resourceType="SUBM"
+                          url="/nop/job/pages/NopJobTaskLog/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopJobTaskLog:query" displayName="查询执行日志"
+                                  i18n-en:displayName="Query Job Task Log" orderNo="10011" resourceType="FNPT">
+                            <permissions>NopJobTaskLog:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopJobTaskLog:mutation" displayName="修改执行日志"
+                                  i18n-en:displayName="Modify Job Task Log" orderNo="10012" resourceType="FNPT">
+                            <permissions>NopJobTaskLog:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
             </children>
         </resource>
     </site>

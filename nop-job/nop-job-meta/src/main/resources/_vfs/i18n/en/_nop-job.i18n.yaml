@@ -159,3 +159,4 @@ dict.option.label:
   job/executor-kind:
     test: Test Executor
     rpc: RPC Executor
+    rpcPoll: RPC Poll Executor

@@ -28,11 +28,17 @@ site:
       displayName: Modify Job Task
     FNPT:NopJobTask:query:
       displayName: Query Execution Task
+    FNPT:NopJobTaskLog:mutation:
+      displayName: Modify Job Task Log
+    FNPT:NopJobTaskLog:query:
+      displayName: Query Job Task Log
     NopJobFire-main:
       displayName: Trigger Batch
     NopJobSchedule-main:
       displayName: Schedule Definition
     NopJobTask-main:
       displayName: Execution Task
+    NopJobTaskLog-main:
+      displayName: Job Task Log
     test-orm-nop-job:
       displayName: Test nop-job
