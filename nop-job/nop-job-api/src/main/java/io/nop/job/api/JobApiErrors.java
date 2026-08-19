@@ -109,4 +109,19 @@ public interface JobApiErrors {
             "Local scheduler config is invalid: {configPath}",
             ARG_CONFIG_PATH
     );
+
+    String ARG_REPORT_URL = "reportUrl";
+    String ARG_TASK_LOG_ID = "taskLogId";
+
+    ErrorCode ERR_JOB_LOG_REPORT_DISABLED = define(
+            "nop.err.job.log.report-disabled",
+            "Job log reporting is not enabled (missing nop.job.log.report-url or IHttpClient): {reportUrl}",
+            ARG_REPORT_URL
+    );
+
+    ErrorCode ERR_JOB_LOG_INVALID_ENTRY = define(
+            "nop.err.job.log.invalid-entry",
+            "Invalid task log entry: {taskLogId}",
+            ARG_TASK_LOG_ID
+    );
 }
