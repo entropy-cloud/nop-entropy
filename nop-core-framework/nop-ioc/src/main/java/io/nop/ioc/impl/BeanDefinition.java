@@ -532,6 +532,15 @@ public class BeanDefinition implements IBeanDefinition {
                 scope.add(getId(), producedBeanInstance);
             }
 
+            for (Map.Entry<String, BeanProperty> entry : props.entrySet()) {
+                BeanProperty prop = entry.getValue();
+                // lazy-property不在newObject中设置，而是在init-method之后通过runLazyProperties设置
+                if (prop.isLazyProperty())
+                    continue;
+                prop.assignToObject(bean, entry.getKey(), container, scope, beanCtx);
+            }
+
+            // 属性被设置之前不能执行init
             int beanIndex = this.getBeanTopoIndex();
             beanCtx.addInitAction(beanIndex, producedBeanInstance::checkBeanInitialized);
 
@@ -543,14 +552,6 @@ public class BeanDefinition implements IBeanDefinition {
                 if (hasDelayMethod()) {
                     beanCtx.addDelayAction(beanIndex, producedBeanInstance::checkBeanDelayActionRun);
                 }
-            }
-
-            for (Map.Entry<String, BeanProperty> entry : props.entrySet()) {
-                BeanProperty prop = entry.getValue();
-                // lazy-property不在newObject中设置，而是在init-method之后通过runLazyProperties设置
-                if (prop.isLazyProperty())
-                    continue;
-                prop.assignToObject(bean, entry.getKey(), container, scope, beanCtx);
             }
 
             addInterceptors(bean, scope, container, beanCtx);
