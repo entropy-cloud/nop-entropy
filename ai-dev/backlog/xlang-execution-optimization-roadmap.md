@@ -1,7 +1,7 @@
 # XLang 优化执行双后端 Roadmap（nop-xlang-java + nop-xlang-truffle）
 
 > Status: active
-> Last updated: 2026-08-16（创建：设计先行四 gate + 预列实现项）
+> Last updated: 2026-08-19（W1-design 完成：三组设计文档成稿并通过独立 closure audit）
 > Sources（设计阶段必读输入，实施前不得跳过）：
 > - `ai-dev/design/xlang-truffle/01-truffle-knowledge.md`（Truffle 框架知识层，2026-08-16 三轮独立审查达成共识）
 > - `ai-dev/analysis/2026-08/2026-08-16-truffle-graalvm-ecosystem-research.md`（GraalVM/Truffle 生态调研：native 内 guest 代码有运行时 JIT（25 默认）但宿主 Java 无 JIT，Truffle 只服务 JVM 部署形态；Espresso 支持 native exe 内动态加载字节码）
@@ -21,13 +21,13 @@
 
 ### 阶段一：设计与计划 gate（用户指定流程，先于一切实现）
 
-- W1-design. 三组设计文档撰写：`todo`
+- W1-design. 三组设计文档撰写：`done`（plan：`ai-dev/plans/xlang-execution-optimization/2026-08-19-2050-1-w1-design-docs.md`，2026-08-19 closure audit CAN CLOSE，0 Blocker/0 Major；产出 5 篇正文 + 3 README，01 决策迁出收口、Open Questions 清账）
   - `ai-dev/design/xlang-execution/`：00-vision（双后端愿景）+ 01-architecture-baseline（双后端统一架构：后端选择机制"编译期确定→java / 运行时→truffle / 兜底→解释器"、后端注册 SPI、对拍验证框架、模块边界与依赖方向）
   - `ai-dev/design/xlang-java/`：README + architecture-baseline（Executable→Java 转译器、~137 节点类映射策略、SourceLocation 保真、生成类加载与 `ResourceComponentManager` 集成"生成类优先/解释器兜底"、`_gen/` 构建任务、EvalMethod 调用约定）
   - `ai-dev/design/xlang-truffle/`：00-vision + 02-architecture-baseline（truffle 模块设计：XLangLanguage/Context、帧/slot 映射、多线程架构 Context 池 + SHARED + 共享 Engine、两级内联缓存准则、与 nop-js Engine 共享评估）
   - 依赖：无（知识输入已就绪）。粒度约束：三组文档可拆多个 plan，但必须全部定稿才能进 W2
-- W2-review. 设计文档独立审查 gate：`todo` — 依赖：W1-design。**硬性要求：至少两轮独立子agent 审查（每轮新开子agent，不共享上下文），逐轮修复后复审，直到某轮 PASS（0 P0/P1）才可关闭；审查报告落 `ai-dev/audits/xlang-execution-optimization/`，roadmap 条目须回链两轮以上报告**
-- W3-supplement. 按定稿设计回填实现 work items：`todo` — 依赖：W2-review。修订本 roadmap 阶段二的 I1-I7（增删拆并、定稿验收标准与依赖），同步更新 `missions/xlang-execution-optimization.json` 的 commands（纳入新模块）；本项自身需 plan review 通过
+- W2-review. 设计文档独立审查 gate：`planned`（plan：`ai-dev/plans/xlang-execution-optimization/2026-08-19-2050-2-w2-design-review-gate.md`，已过独立 draft review） — 依赖：W1-design。**硬性要求：至少两轮独立子agent 审查（每轮新开子agent，不共享上下文），逐轮修复后复审，直到某轮 PASS（0 P0/P1）才可关闭；审查报告落 `ai-dev/audits/xlang-execution-optimization/`，roadmap 条目须回链两轮以上报告**
+- W3-supplement. 按定稿设计回填实现 work items：`planned`（plan：`ai-dev/plans/xlang-execution-optimization/2026-08-19-2050-3-w3-supplement-work-items.md`，已过独立 draft review） — 依赖：W2-review。修订本 roadmap 阶段二的 I1-I7（增删拆并、定稿验收标准与依赖），同步更新 `missions/xlang-execution-optimization.json` 的 commands（纳入新模块）；本项自身需 plan review 通过
 - W4-audit. roadmap workitem 审核 gate：`todo` — 依赖：W3-supplement。独立 audit（openAuditPrompt）：粒度（单 plan 可完成，5-15 文件/200-500 行/1-4 phases）、依赖图无环且与 stage 表一致、验收标准可验证、复用标注准确、与定稿设计无冲突；FAIL 则回 W3
 - ★ **Milestone: 设计与计划就绪**（W1-W4 全部 done，阶段二 work items 定稿并通过审核）：`todo` — 派生：W1-W4
 
