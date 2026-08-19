@@ -1,7 +1,7 @@
 # XLang 优化执行双后端 Roadmap（nop-xlang-java + nop-xlang-truffle）
 
 > Status: active
-> Last updated: 2026-08-20（W4-audit 完成：round-1 独立审计即 PASS，★「设计与计划就绪」里程碑达成，阶段二解冻——I1-I12 可起草 plan）
+> Last updated: 2026-08-20（I1 执行完毕 + 独立 closure audit CAN CLOSE，标 done——阶段二首个实现条目收口；I2/I5 plan 就绪待执行）
 > Sources（设计阶段必读输入，实施前不得跳过）：
 > - `ai-dev/design/xlang-truffle/01-truffle-knowledge.md`（Truffle 框架知识层，2026-08-16 三轮独立审查达成共识）
 > - `ai-dev/analysis/2026-08/2026-08-16-truffle-graalvm-ecosystem-research.md`（GraalVM/Truffle 生态调研：native 内 guest 代码有运行时 JIT（25 默认）但宿主 Java 无 JIT，Truffle 只服务 JVM 部署形态；Espresso 支持 native exe 内动态加载字节码）
@@ -41,11 +41,11 @@
 > - **共享 helper 纪律**：语义敏感操作（数值提升/宽松比较/属性反射等）生成代码与翻译 AST 统一调用定义在 `nop-xlang` 的共享 helper，禁止为后端重写语义等价实现（设计 java §三 / truffle 02 §七同一裁定）
 > - **编号映射（W3 重排，解读设计文档旧引用用）**：原预列 I1-I7 → 定稿 I1-I12：旧 I1→I1+I2；旧 I2→I3+I4+I10；旧 I3→I5；旧 I4→I6+I7+I8；旧 I5→I9；旧 I6→I11；旧 I7→I12。W1/W2 定稿设计文档中的 I 系条目号引用仍为旧编号（设计文档冻结不改，finding 已移交），W4-audit 核对"与定稿设计无冲突"时按本映射解读
 
-- I1. 三后端对拍验证框架 + corpus v1：`todo` — 依赖：W4-audit
+- I1. 三后端对拍验证框架 + corpus v1：`done`（plan：`ai-dev/plans/xlang-execution-optimization/2026-08-20-0030-1-i1-compare-harness-corpus-v1.md`，2026-08-20 执行完毕并独立 closure audit CAN CLOSE（task `ses_fe4ede786ffeuzX4oxTRiiXzli`，0 Blocker/0 Major/3 Minor 收口动作项当场处置）；落地：harness 于 nop-xlang 测试源码 `io.nop.xlang.compare` 包 + test-jar 发布、corpus v1 22 单元（6 类 × 双形态 + 组合双形态）解释器基线全绿、四类分歧注入自检红/绿可控、列缺席显式记录有测试；执行中三项裁定（CallFunc 程序入口包装/slot 类 let 载体/FunctionExecutable 族属宿主反射分派族）记 plan Phase 2 Execution note 供 I2/I5 对账） — 依赖：W4-audit
   - 范围：对拍 harness（后端作为用例执行参数矩阵化，复用 Nop AutoTest 机制；落点由实现 plan 按模块依赖方向合法性定）；表达式子集 corpus v1（静态资源样例 + 动态字符串样例配比构成，配比落 plan）；测试级强制路由 API 与后端身份断言；列适用性与"列缺席显式记录"机制；差异注入自检
   - 验收：对拍不变式断言机制落地（三层断言/身份断言/列适用性）并以差异注入自检证明（故意构造分歧用例 → harness 判 FAIL，红/绿可控）；corpus v1 解释器基线列全绿；列缺席记录机制有测试（java/truffle 列缺席时显式记跳过、不算通过）
   - 复用：Nop AutoTest 机制
-- I2. nop-xlang-java 模块骨架 + 表达式子集转译 + 共享语义 helper 基座 + 对拍 java 列激活：`todo` — 依赖：I1
+- I2. nop-xlang-java 模块骨架 + 表达式子集转译 + 共享语义 helper 基座 + 对拍 java 列激活：`planned`（plan：`ai-dev/plans/xlang-execution-optimization/2026-08-20-0030-2-i2-java-backend-skeleton.md`，2026-08-20 两轮独立子agent draft review 至共识（round-2 GO 0 Blocker/0 Major）；plan 内定稿：简单方法调用子集边界=宿主反射分派族不含 CallFunc 族、java 列测试域执行通路=nop-javac 内存编译（设计文本未枚举的测试域扩展裁定）、包装器契约责任链 I2 定约/I4 验证记账（W4-audit R1-2 承接）） — 依赖：I1
   - 范围：新模块 `nop-xlang-java` 落盘（`nop-kernel` 下，pom/包结构骨架）；表达式子集（字面量/slot 标识符/算术/逻辑/比较/简单方法调用）树→Java 源码转译；共享语义 helper 基座（数值提升/宽松比较等，定义在 nop-xlang，解释器同步改用——行为不变由既有测试保证）；EvalMethod 调用约定（static + 首参 `IEvalScope $scope`，纯表达式单元经 `EvalMethodInvoker` 包装）；模板入口包装器契约定稿（xpl/xlib 追加 `IEvalOutput $out` 隐参，设计 java §七）；SourceLocation 静态常量内嵌
   - 验收：表达式 corpus java 列 vs 解释器列对拍全绿（含 java 列身份断言=生成类实例）；解释器改用共享 helper 后 nop-xlang 既有测试全绿；生成源码含 SourceLocation 静态常量（异常语义断言可执行）；mission.json commands 在模块落盘的同一次变更中切换为含 `:nop-xlang-java` 的口径（如 `./mvnw test -pl :nop-xlang,:nop-xlang-java -am -T 1C`，build/lint/typecheck 同步）——"模块落盘即切换"裁定，见 W3-supplement 条目备注
   - 复用：janino `EvalMethod` 先例（`JaninoScriptCompiler`/`EvalMethodInvoker`）；`nop-javac` 仅可选诊断性编译校验（不承担产物编译）
@@ -55,7 +55,7 @@
 - I4. java 转译覆盖 B（函数闭包/控制流/输出节点生成族）+ 覆盖矩阵闭环：`todo` — 依赖：I3
   - 范围：函数/闭包（含可变 slot 闭包捕获 cell 契约，设计 java §三）；控制流（ExitMode 传播边界不变式：不跨函数/闭包边界传播，语句位置一一对应）；输出/节点生成族（`$out` API 调用序列）
   - 验收：全类别 corpus java 列 vs 解释器列对拍全绿；覆盖矩阵全绿（exec/ 137 文件基线逐节点类注册断言，新增节点类红灯）
-- I5. nop-xlang-truffle 模块骨架 + 帧/slot 映射 + 表达式子集翻译 + 翻译缓存：`todo` — 依赖：I1（可与 I2-I4 并行）
+- I5. nop-xlang-truffle 模块骨架 + 帧/slot 映射 + 表达式子集翻译 + 翻译缓存：`planned`（plan：`ai-dev/plans/xlang-execution-optimization/2026-08-20-0030-3-i5-truffle-backend-skeleton.md`，2026-08-20 两轮独立子agent draft review 至共识（round-2 GO 0 Blocker/0 Major）；plan 内定稿：无 resourcePath 动态源缓存=源内容哈希键、I5 以 EXCLUSIVE 过渡形态落地（SHARED 切换归 I8）、不泄漏断言口径=nop-kernel 域内 truffle/polyglot 依赖仅本模块+nop-js/buildtools 豁免） — 依赖：I1（可与 I2-I4 并行）
   - 范围：新模块 `nop-xlang-truffle` 落盘（`nop-kernel` 下；truffle-api/dsl-processor/polyglot 25.x LTS 钉版引入 + 常规冒烟复核——Q5 确认点已关闭，设计 truffle 02 §二）；XLangLanguage（id `xl`、`ContextPolicy=SHARED` 终态注册；EXCLUSIVE 过渡形态=翻译正确性对拍保守载体，两形态各自是验证载体）；XLangContext（输出缓冲线程绑定）；帧/slot 映射（`LexicalScopeAnalysis` slot 布局 → FrameDescriptor/FrameSlot，kind 标注仅限可推断类型、不虚构）；表达式子集翻译（与 I2 同子集）；翻译缓存（键=resourcePath+树指纹；无 resourcePath 动态源缓存形态由 plan 定稿，设计 truffle 02 §七）
   - 验收：表达式 corpus truffle 列 vs 解释器列对拍全绿（允许 EXCLUSIVE 过渡形态；含 truffle 列身份断言=翻译 AST 经 CallTarget 执行）；org.graalvm.* 依赖仅出现在本模块 pom（不泄漏断言）；mission.json commands 在模块落盘的同一次变更中追加 `:nop-xlang-truffle`（模块落盘即切换，同 W3-supplement 裁定）
   - 复用：SL 参考实现（`~/sources/graal`）；`LexicalScopeAnalysis`
