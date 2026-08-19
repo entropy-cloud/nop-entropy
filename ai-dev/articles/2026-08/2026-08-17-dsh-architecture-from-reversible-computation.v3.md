@@ -5,7 +5,7 @@
 > 关联参考：六篇社区解读文章（本地副本 `ai-dev/references/dsh-community-articles/`，引用编号 [17]–[22]）
 > 摘要：本文把 DSH 的"一切皆插件、插件皆可逆"读成可逆计算公式 App = Base + Δ₁ + Δ₂ + … 的运行时实例化。第一篇论证插件即差量，"+"是有精确代数定义的叠加而非启发式累加；第二篇论证"可逆"指每个 effect 出生即携带逆（Delta 可正可负），并基于源码核实逐层界定其范围与边界；第三篇给出差量概念的自然推论（坐标系、负元素、Generator、结构空间与运行时空间的分界线），指出 dsh 补齐了运行时域的形式化，而结构空间的差量代数仍需引入可逆计算的成熟做法。
 
-DeepSeek Harness（DSH）发布后在社区激起了巨大反响：GitHub 上挂上 #dsh-plugin 标签的插件仓库很快超过一千个（写文时参考值，据 [17]），各类拆解文章层出不穷。它的 README 用一句话概括了整个架构——"一切皆插件"（everything is a plugin）；而驱动它的 Cordis 框架（DSH 的底层插件运行时）又在同步发表的设计论文里，给这句话补上了更强的另一半承诺：**插件皆可逆**——每个插件对系统的每一份修改，都自带配对的撤销机制。
+DeepSeek Harness（DSH）发布后在社区激起了巨大反响：主仓库上线不到一周，GitHub star 数已超过 16 万，挂上 dsh-plugin 话题标签的插件仓库已近 8,000 个（2026-08-19 查询值），各类拆解文章层出不穷。DSH 的架构设计思想可以用一句话来概括：**一切皆插件，插件皆可逆**。
 
 这份设计收获的反应，一半是兴奋，一半是困惑。知乎上围绕它的质疑相当集中，归纳起来是四条：
 
@@ -14,7 +14,7 @@ DeepSeek Harness（DSH）发布后在社区激起了巨大反响：GitHub 上挂
 3. "可逆插件"是什么意思？副作用是不可避免的，怎么可能可逆？
 4. 动态更新插件有什么必要？一般版本升级不就可以了吗？
 
-这些疑问并非抬杠——它们各自指向一个真实的理论问题，而答案其实已经写在 DSH 的设计论文 [A Programming Paradigm for Spatiotemporal Composability](../../references/cordis-paper/README.md) 里了。问题在于，这篇论文从范畴论/函数式的角度做形式化，概念密度很高，直接读它并不比读懂架构本身更容易。也正因为论文反复强调"可逆"二字，知乎上有同学@我，问它的概念与我提出的可逆计算理论之间是否存在渊源。
+这些疑问并非抬杠——它们各自指向一个真实的理论问题，而答案其实已经写在 Cordis（DSH 的底层插件运行时框架）的设计论文 [A Programming Paradigm for Spatiotemporal Composability](../../references/cordis-paper/README.md) 里了。问题在于，这篇论文从范畴论/函数式的角度做形式化，概念密度很高，直接读它并不比读懂架构本身更容易。也正因为论文反复强调"可逆"二字，知乎上有同学@我，问它的概念与我提出的可逆计算理论之间是否存在渊源。
 
 那就从可逆计算理论出发，把 Cordis 的设计原理解读一遍。结论先行：
 
@@ -65,7 +65,7 @@ DeepSeek Harness（DSH）发布后在社区激起了巨大反响：GitHub 上挂
 
 ## 一、一切皆插件 => 一切皆差量
 
-一切皆插件的概念可以看作是如下公式：
+一切皆插件（README 原话：everything is a plugin）的概念可以看作是如下公式：
 
 App = Base + Plugin1 + Plugin2 + ....
 
@@ -370,7 +370,7 @@ Cordis 论文的元理论并非无条件成立，它建立在三条结构性约�
 3. **失败原子性与级联清理**：插件初始化中途抛错，已应用的一半效应被逆序清掉，不残留部分初始化状态；清理正确性从"每个作者写对 deactivate"变成"框架结构性保证"。
 4. **自进化**：这是前三项的复合。Agent 在运行时挂载自己写的插件，装了坏的能回滚，而且回滚机制本身（宿主进程）不被新组件弄坏。
 
-第 4 条在 dsh 中已经是现实而非愿景，我核实了对应源码：`packages/extensions/cordis-host-runner` 提供 dynamicCordisRunner 服务——插件定义在 node:vm 沙箱（"a fresh realm whose globals…"，sandbox.ts）中求值，经 request-run 往返实时挂载；`dsh-tool-cordis` 把"检查与挂载动态包"暴露为模型可调用的工具；examples/web-cordis 是官方的自指演示——Agent 检查并挂载自己的 Cordis 插件。浏览器端同样在热重载插件（cordis-client-runner）。这条路线有前科可循：Cordis 的第一个大型应用 Koishi（跨平台聊天机器人框架）靠同一套机制支撑了多年"几十个插件拼装、热插拔、随时改配置"的场景，而 DSH 上线即有千余个社区插件仓库（写文时参考值，[17]）——**动态性不是锦上添花，是这类系统的日常形态**。
+第 4 条在 dsh 中已经是现实而非愿景，我核实了对应源码：`dsh/packages/extensions/cordis-host-runner` 提供 dynamicCordisRunner 服务——插件定义在 node:vm 沙箱（"a fresh realm whose globals…"，sandbox.ts）中求值，经 request-run 往返实时挂载；`dsh-tool-cordis` 把"检查与挂载动态包"暴露为模型可调用的工具；examples/web-cordis 是官方的自指演示——Agent 检查并挂载自己的 Cordis 插件。浏览器端同样在热重载插件（cordis-client-runner）。这条路线有前科可循：Cordis 的第一个大型应用 Koishi（跨平台聊天机器人框架）靠同一套机制支撑了多年"几十个插件拼装、热插拔、随时改配置"的场景，而 DSH 上线一周，dsh-plugin 话题下就长出了近 8,000 个社区插件仓库（2026-08-19 查询值）——**动态性不是锦上添花，是这类系统的日常形态**。
 
 所以疑问④的答案是：**当"版本升级"意味着丢弃进程内全部累积状态、且系统需要在不中断服务的前提下修改自己时，可逆装卸不是"版本升级的替代品"，而是使"不停机演化"成为可能的前提**。
 
@@ -768,4 +768,6 @@ grep -rn "ctx\.effect" --include='*.ts' --include='*.tsx' . | grep -v '/tests/' 
 | 门禁脚本 145 个；gen-scoped-events.ts 生成事件矩阵；runtime-diagnostics/invariants 运行时断言 | dsh/scripts/、dsh/packages/runtime-diagnostics/ |
 | vendor 九包框架族；packages/ 54 个包组 | dsh/vendor/（ls）、dsh/packages/（ls 计数） |
 
-未复核、仅按社区文章转述的（正文均标注"据 [n]"）：#dsh-plugin 仓库数千量级（[17]，写文时参考值）、Pi Extension 特性对比（[17]）、vendor 内本地修改处数（[18]，本文不引用具体数字）。
+GitHub 公开数据（2026-08-19 经 api.github.com 查询）：主仓库 `deepseek-ai/deepseek-harness`（2026-08-13 创建）star 数 164,984、fork 17,509；`dsh-plugin` 话题仓库 7,892 个。引言与 2.5 节的数字以此为准。
+
+未复核、仅按社区文章转述的（正文均标注"据 [n]"）：Pi Extension 特性对比（[17]）、vendor 内本地修改处数（[18]，本文不引用具体数字）。
