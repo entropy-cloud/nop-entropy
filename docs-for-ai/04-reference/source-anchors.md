@@ -170,6 +170,7 @@
 | `RPC-006` | `nop-network/nop-rpc/nop-rpc-api/src/main/java/io/nop/rpc/api/ContextBinder.java` | RPC 上下文绑定：从 `ApiRequest.headers` 提取 locale/timezone/tenant 等传播到 `IContext` |
 | `RPC-007` | `nop-service-framework/nop-graphql/nop-graphql-core/src/main/java/io/nop/graphql/core/web/GraphQLWebService.java` (`runProxy`) | `/px/` 分布式代理入口：从 `ApiRequest.headers` 原样转发 HTTP 头到远程服务 |
 | `RPC-008` | `nop-service-framework/nop-graphql/nop-graphql-core/src/main/java/io/nop/graphql/core/rpc/RpcServiceOnGraphQL.java` | 将 GraphQL BizModel 包装为 `IRpcService`，支持字段选择 |
+| `RPC-009` | `nop-kernel/nop-api-core/src/main/java/io/nop/api/core/util/ApiHeaders.java` (`getSvcTargetHost`/`setSvcTargetHost`) + `nop-cluster/nop-cluster-core/src/main/java/io/nop/cluster/chooser/filter/SpecificServiceInstanceFilter.java` | 指定实例路由：`nop-svc-target-host` header → 实例过滤器只保留 host 匹配实例；装配于 `nop-cluster/nop-rpc-cluster/src/main/resources/_vfs/nop/rpc/beans/rpc-cluster-defaults.beans.xml`（`nopServiceInstanceFilter_specific`） |
 | `MOD-001` | `nop-kernel/nop-core/src/main/java/io/nop/core/module/ModuleManager.java` | 模块管理器全局单例；`discover()` 扫描 `*/*/_module`，`getEnabledModules()` 供所有消费者遍历 |
 | `MOD-002` | `nop-kernel/nop-core/src/main/java/io/nop/core/module/ModuleModel.java` | 模块数据模型；对应 `app.module.yaml` 的 Java bean |
 | `MOD-003` | `nop-kernel/nop-core/src/main/java/io/nop/core/resource/store/ModuleNamespaceHandler.java` | 实现 `module:` VFS 名字空间；`getResource()` 按模块隔离查找 |

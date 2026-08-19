@@ -2,7 +2,7 @@
 
 > Status: active
 > Created: 2026-04-04
-> Updated: 2026-06-18（新增 worker-assignment-design.md、priority-design.md，经独立审核一轮修订）
+> Updated: 2026-08-19（新增 remote-worker-design.md）
 
 本目录按 AGE（Attractor-Guided Engineering）owner-doc 模式组织，从高层设计原则到分项设计逐层展开：
 
@@ -59,6 +59,12 @@
   - Micrometer Metrics 命名和埋点规范（Planner/Dispatcher/Worker/Completion 四套 Metrics）
   - 状态：implemented
 
+## 远程调用层
+
+- `remote-worker-design.md`
+  - REST Worker 模式：worker 零数据库依赖、只提供 REST 服务（三个短 BizModel 方法）；coordinator 进程内复用 worker 执行链 + 三段式 `RemoteJobInvoker`（executorKind=rpcPoll：startJob → 轮询 getJobStatus → cancelJob），经平台 `IRpcServiceInvoker` + `nop-svc-target-host` 精确路由调用 worker；不新增 dispatchMode 值、无 SQL 隔离（用户裁定）
+  - 状态：定稿中
+
 ## 集群层
 
 - `cluster-ha-design.md`
@@ -89,6 +95,7 @@
 9. `rate-limiting-design.md` — 限流设计
 10. `worker-assignment-design.md` — Worker 分配策略与负载感知
 11. `priority-design.md` — 任务调度优先级
+12. `remote-worker-design.md` — 远程调用 Worker 模式（REST Worker，零数据库依赖）
 
 **扩展方向**：
 

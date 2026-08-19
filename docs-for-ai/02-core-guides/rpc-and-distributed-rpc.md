@@ -300,6 +300,21 @@ GraphQLWebService.runRest()
 
 `ClusterRpcServiceInvoker` 通过 `IServerChooser` 选择实例，默认使用随机负载均衡。实例过滤器链：健康检查 → 指定实例 → 标签匹配 → 区域匹配 → 路由匹配。
 
+### 指定实例路由（`nop-svc-target-host` header）
+
+RPC 调用可以通过请求 header **直接指定目标实例**，用于广播/分片派发等需要精确路由到特定节点的场景：
+
+```
+请求头：nop-svc-target-host: <instance host>
+```
+
+- 机制：`SpecificServiceInstanceFilter`（`nop-cluster-core`，bean `nopServiceInstanceFilter_specific`）默认装配在 `nopServerChooser_*` 的过滤器链上（`rpc-cluster-defaults.beans.xml`）。请求带该 header 时，候选实例列表只保留 `host == instance.getHost()` 的实例；不带该 header 则不过滤（行为不变）。
+- 设置方式：`ApiHeaders.setSvcTargetHost(request, host)`（nop-api-core，`ApiConstants.HEADER_SVC_TARGET_HOST = "nop-svc-target-host"`）。
+- 与负载均衡的关系：header 存在时过滤器把候选集收敛到单实例，之后的负载均衡在该单实例上无实际意义；header 不存在时走正常负载均衡。
+- 实例失效行为：目标实例已下线（注册中心无该 host）时过滤结果为空，该次调用失败（走调用失败路径），不会路由到其他实例——保证"指定即精确"，不静默漂移。
+- 使用示例：nop-job 的 broadcast 模式把任务目标实例 host 写入 `task.targetHost`，经 `RpcJobInvoker` 以该 header 注入请求，精确调用指定 worker 节点。
+
+
 ## 三种调用的选择指南
 
 | 场景 | 推荐方式 |
