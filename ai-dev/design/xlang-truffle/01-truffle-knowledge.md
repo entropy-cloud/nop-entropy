@@ -11,7 +11,7 @@
 
 1. Truffle 的性能来自**自修改 AST 解释器 + partial evaluation (PE)**：节点首次执行时做类型画像并"自我改写"为特化节点，热点 CallTarget 被运行时 Graal 编译器内联展开成机器码。**只有跑在 GraalVM 系运行时上才有 JIT**；stock JVM 上纯解释执行。**native image 形态**：Truffle guest 代码的运行时 JIT 在 GraalVM 25 为默认（优化运行时编入镜像），宿主 Java 代码则无运行时 JIT（closed-world AOT 语义；Truffle 侧机制见 `~/sources/graal/truffle/docs/AOTOverview.md`）。
 2. 实现一门 Truffle 语言 = 实现一组 `Node` + 一个 `TruffleLanguage` 子类。没有 parser 也可行（`Source` 可为合成源或直接程序化构造 AST）。
-3. 多线程有两条机制路径：**路 A**——host 侧每线程一个 `polyglot.Context`，显式共享同一个 `Engine`（编译代码与 parse 缓存跨线程复用，语言实现无需支持并发 AST 访问）；**路 B**——单 Context 多线程并发执行（要求语言覆写 `isThreadAccessAllowed` 返回 true 并保证节点线程安全，且该 Context 内所有已初始化语言都允许）。**xlang 的选型决策（选定路 A）见 `02-architecture-baseline.md` §五。**
+3. 多线程有两条机制路径：**路 A**——host 侧每线程一个 `polyglot.Context`，显式共享同一个 `Engine`（编译代码与 parse 缓存跨线程复用，语言实现无需支持并发 AST 访问）；**路 B**——单 Context 多线程并发执行（要求语言覆写 `isThreadAccessAllowed` 返回 true 并保证节点线程安全，且该 Context 内所有已初始化语言都允许）。**xlang 的选型决策（选定路 A，落地为池租借而非线程固定绑定）见 `02-architecture-baseline.md` §五。**
 4. 语言上下文共享策略由 `ContextPolicy` 决定（EXCLUSIVE → REUSE → SHARED，共享程度递增）。**注意 REUSE ≠ 池化共享**：REUSE 是"context 销毁后回收复用 language 实例"，同一时刻一个实例只服务一个存活 context（TruffleLanguage.java:4306-4310）；**多个同时存活的 Context 要共享 AST/parse 缓存/JIT，只有 SHARED 一条路**（AOTOverview.md:32-34）。官方建议手写语言从 EXCLUSIVE 起步、成熟后升 SHARED（SLLanguage.java:552；SL 本身已是 SHARED，L226）。context-independent 准则清单见 §4.3。**xlang 的 Policy 决策（终态 SHARED + 正确性验证期 EXCLUSIVE 过渡）见 `02-architecture-baseline.md` §五。**
 5. 依赖形态：`org.graalvm.truffle:truffle-api` + 注解处理器 `truffle-dsl-processor`（编译期生成特化子类与 provider 注册文件），嵌入侧用 `org.graalvm.polyglot:polyglot`。语言注册**不依赖注解扫描**——DSL 处理器在编译期生成 `META-INF/services/...TruffleLanguageProvider`（SL 源码 META-INF 下无手写 services 文件，只有 native-image.properties）。
 6. Native image 内**可以**嵌入 Truffle 语言：官方 23.1+ 无需特殊配置，GraalVM 25 起优化运行时（guest 代码运行时 JIT）为默认（构建期传 `-Dtruffle.UseFallbackRuntime=true` 才退回纯解释）。**xlang 是否利用 native 内 guest JIT 的路线裁定（否决，native 提速走构建期 Java 转译、两者互补）见 `00-vision.md` §四**；native 内动态加载字节码的官方通路是 Espresso（Java on Truffle，支持在 native exe 内动态加载字节码）。
@@ -48,7 +48,7 @@ parse → AST(Node 树, 每 RootNode 包装为 CallTarget)
 
 - DSL 的 `@Specialization` + `@Cached` 生成的就是**内联缓存式节点**：首次执行锁定一个特化实现 + 缓存值，后续执行退化为一次类型检查 + 直达代码。
 - `@CachedLibrary`（如 `InteropLibrary`）为互操作消息做同样的缓存，`limit = "3"` 控制缓存槽位数，超限进入 generic/fallback 状态（避免缓存爆炸）。
-- XLang 对应物：现有解释器的 `MathHelper`/方法分派按接收者类型走 Map 查找——Truffle 的对应机制是"缓存 + guard"（内联缓存节点）。
+- XLang 对应物：现解释器的算术走数值提升 switch + 精确类型逐级判断（`MathHelper`），方法调用走反射/方法表查找——Truffle 的对应机制是"缓存 + guard"（内联缓存节点）。
 
 ### 2.3 帧模型（Frame）
 
@@ -71,7 +71,7 @@ parse → AST(Node 树, 每 RootNode 包装为 CallTarget)
 ```java
 @TruffleLanguage.Registration(
     id = "xl", name = "XLang", defaultMimeType = "application/x-xlang",
-    contextPolicy = ContextPolicy.SHARED /* xlang 选定值，见 02-architecture-baseline §五 */)
+    contextPolicy = ContextPolicy.SHARED /* 枚举值演示；xlang 取值决策见 02-architecture-baseline §五 */)
 public final class XLangLanguage extends TruffleLanguage<XLangLanguageContext> { ... }
 ```
 
@@ -84,7 +84,7 @@ public final class XLangLanguage extends TruffleLanguage<XLangLanguageContext> {
 
 - `Node`：`execute(VirtualFrame)` 约定方法族；`Node.replace(newNode)` 触发自改写（DSL 生成代码自动处理同步）。
 - `RootNode`：函数体根，持有 `FrameDescriptor`、`getName`、`getSourceSection`；`getCallTarget()` 惰性创建并缓存 CallTarget。
-- 控制流用**异常**实现非局部跳转（SL 的 `SLReturnException`/`SLBreakException` 模式），XLang 的 `ExitMode`（`CONTINUE`/`BREAK`/`RETURN`，见 `nop-kernel/nop-core` 的 `io.nop.core.lang.eval.ExitMode`）按同样模式映射。注意：Truffle 侧也有一个同名 `TruffleLanguage.ExitMode`（NATURAL/HARD，指 Context 退出模式），与 xlang 的控制流 ExitMode **无关**，勿混淆。
+- 控制流用**异常**实现非局部跳转（SL 的 `SLReturnException`/`SLBreakException` 模式），XLang 的 `ExitMode`（`CONTINUE`/`BREAK`/`RETURN`，见 `nop-kernel/nop-core` 的 `io.nop.core.lang.eval.ExitMode`）可按同样模式映射（xlang 侧映射决策见 `02-architecture-baseline.md` §三）。注意：Truffle 侧也有一个同名 `TruffleLanguage.ExitMode`（NATURAL/HARD，指 Context 退出模式），与 xlang 的控制流 ExitMode **无关**，勿混淆。
 - `@TruffleBoundary`：切出 PE 边界（`BigInteger.add` 这类不可 PE 的调用必须标注，SLAddNode.java:131 有示范；`allowInlining=true` 允许 Graal 侧再内联）。
 - `@HostCompilerDirectives.InliningCutoff`：慢路径切块，控制编译产物体积。
 - `@GenerateUncached`：生成无实例缓存版本（供 instrumentation/_uncached 调用路径）。
@@ -146,7 +146,7 @@ fn.execute(args);
 
 两条路径的机制事实：路 A（每线程一 Context + 共享 Engine）要求 `ContextPolicy=SHARED` + context-independent 准则，节点无需支持并发访问，语言 context 天然隔离；路 B（单 Context 多线程并发）要求 `isThreadAccessAllowed→true` + 节点全线程安全，共享语言 context（全局状态需自行同步），XLang 适配需重审 `IEvalOutput` 等线程绑定资源。
 
-**xlang 运行时的选型决策（选定路 A、拒绝路 B 的完整对比与理由）已正式化至 `02-architecture-baseline.md` §五**，本文不再承载该决策。
+**xlang 运行时的选型决策（选定路 A、拒绝路 B 的完整对比与理由，以及落地为池租借而非固定绑定的裁定）已正式化至 `02-architecture-baseline.md` §五**，本文不再承载该决策。
 
 ### 4.5 guest 侧线程与协作原语（实现 xlang 线程相关标签/函数时用）
 
@@ -164,15 +164,17 @@ fn.execute(args);
 
 | 模式 | SLAddNode 示范 | xlang 迁移要点 |
 |---|---|---|
-| 快路径特化 + 溢出重写 | `@Specialization(rewriteOn = ArithmeticException.class) doLong(long,long)` 用 `Math.addExact`（L100-103） | `BinaryExecutable` 的算术按 long/double/Object 三档特化 |
+| 快路径特化 + 溢出重写 | `@Specialization(rewriteOn = ArithmeticException.class) doLong(long,long)` 用 `Math.addExact`（L100-103） | 特化分档结构示范（xlang 侧翻译/特化策略由 `02-architecture-baseline.md` 裁定，本文不预设） |
 | 慢路径泛化 | `@Specialization(replaces = "doLong") doSLBigInteger`（L117） | 类型系统用 `@TypeSystem` + `@ImplicitCast` 声明单调升级链 |
 | 自定义 guard | `@Specialization(guards = "isString(left,right)")`（L152） | 标签/属性分派 guard 化 |
-| 缓存子节点 | `@Cached SLToTruffleStringNode` / `@Cached TruffleString.ConcatNode`（L156-158） | 嵌套求值节点一律 @Cached 复用，禁止 execute 中 new 节点 |
+| 缓存子节点 | `@Cached SLToTruffleStringNode` / `@Cached TruffleString.ConcatNode`（L156-158） | DSL 规范要求嵌套求值节点经 `@Cached` 复用（SL 惯例：execute 中不 new 节点） |
 | 互操作缓存 | `@CachedLibrary("left") InteropLibrary` + `limit="3"`（L203-207） | 宿主对象（biz bean）访问走 InteropLibrary 缓存 |
-| 边界标注 | `@TruffleBoundary(allowInlining=true)` 包 `BigInteger.add`（L131）；慢路径 `@InliningCutoff`（L153,168） | 所有不可 PE 的调用（反射、HashMap 深链、日志）必须 boundary |
+| 边界标注 | `@TruffleBoundary(allowInlining=true)` 包 `BigInteger.add`（L131）；慢路径 `@InliningCutoff`（L153,168） | DSL 规范：不可 PE 的调用（反射、HashMap 深链、日志）需 boundary 标注（SL 惯例） |
 | 兜底 | `@Fallback` 走 SlowPathNode（L167-173） | 泛型路径集中兜底，抛带 SourceSection 的语言异常 |
 
 其他高频注解：`@ExplodeLoop`（编译期展开定长循环）、`@GenerateUncached`（无状态版本）、`@GenerateInline`（字段内联）、`@Bind`（注入 Node/ContextReference 参数）。
+
+> 本表"xlang 迁移要点"列为 SL/DSL 规范层面的迁移提示（框架惯例），各要点是否采用及 xlang 侧实现策略由 `02-architecture-baseline.md` 与实现计划裁定。
 
 **调试/调优入口**（docs/Optimizing.md、docs/Options.md）：`--engine.TraceCompilation`、`--engine.TraceCompilationDetails`（观测 tier/阈值/内联）、`--engine.TraceDeoptimization`、`--cpusampler`；DSL 静态检查警告见 docs/DSLWarnings.md。
 
@@ -187,7 +189,7 @@ fn.execute(args);
 | `~/sources/graal/truffle/src/com.oracle.truffle.sl/src/com/oracle/truffle/sl/SLLanguage.java` | 语言注册、ContextPolicy=SHARED 的完整实现（L226, L538-556）、`initializeMultipleContexts` |
 | 同目录 `SLContext.java` | 语言 context 职责：全局函数表、scope 对象 |
 | 同目录 nodes 包 expression 子包的 `SLAddNode` | 特化/缓存/边界范本（见上节） |
-| 同目录 nodes 包 controlflow 子包的 `SLReturnException` 等 | 控制流异常模式（xlang ExitMode 直接照抄结构） |
+| 同目录 nodes 包 controlflow 子包的 `SLReturnException` 等 | 控制流异常模式（xlang ExitMode 映射决策见 `02-architecture-baseline.md` §三） |
 | 同目录 `SLFunctionLiteralNode`、`SLInvokeNode`（nodes 包 expression 子包） | 函数调用 + dispatch 内联缓存（两级缓存模式） |
 | 同目录 `SLBlockNode` | 语句序列：实现 `BlockNode.ElementExecutor`，定长块的全展开内联语义由框架 `BlockNode` 保证（javadoc L100-102 明说触发 full unrolling 使全部子节点可内联） |
 | 同目录 bytecode 子包的 `SLBytecodeRootNode` | **新式 Bytecode DSL 写法**（GenerateBytecode）：AST→字节码解释器的官方新路线（xlang 路线裁定见 `02-architecture-baseline.md` §九 Q1；官方文档 truffle/docs/bytecode_dsl/UserGuide.md） |
@@ -251,6 +253,6 @@ fn.execute(args);
 | Context 池大小与工作线程映射策略、创建/销毁成本 | `02` §五"Context 池策略"（池租借 + 配置化，实测归 I7） |
 | 按名访问 slot 化覆盖率、残余按名访问路径 | `02` §四（翻译期 slot 化优先，残余走 context scope 链对象） |
 | 与 nop-js 共享 Engine 的可行性与收益 | `02` §八（一期不共享，独立 Engine；触发条件重评估） |
-| GraalVM 版本钉法与 JDK 21 基线兼容矩阵 | `02` §二（钉 25.x LTS + 条件钉版条款；构件实测确认点移交 W2-review） |
+| GraalVM 版本钉法与 JDK 21 基线兼容矩阵 | `02` §二（钉 25.x LTS；源码 + 25.2.4 构件实测双证据确认 JDK 21 兼容，确认点已关闭；I3 常规冒烟复核） |
 
 另有移交 W2-review 复核的确认点清单，见 `02` §九末尾。本文不再保留 open 状态的问题条目。

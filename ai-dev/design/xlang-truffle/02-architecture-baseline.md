@@ -26,7 +26,7 @@
 
 - 三个坐标钉**同一条 25.x LTS 版本线**（Truffle Unchained 后 Maven Central 独立分发、与 GraalVM JDK 解耦；GraalVM 25 线 Oracle 支持至 2030-09，是 native 构建与运行时 JIT 的共同 LTS 基线）。truffle-api 与 polyglot 版本必须对齐，dsl-processor 同线。
 - 同一二进制两种形态：stock JDK 21+ 上嵌入运行 = 解释执行（monotonic frames）；GraalVM 运行时 = partial evaluation JIT。
-- **JDK 基线兼容性（条件钉版条款）**：源码级证据——`~/sources/graal/truffle/mx.truffle/suite.py` 中 `com.oracle.truffle.api` 基线 `javaCompliance "17+"`，multi-release overlay（`jdk9` 版 9 / `jdk21` 版 21）；`~/sources/graal/sdk/mx.sdk/suite.py` 版本 25.3.4.1。即 class file 层面与 nop JDK 21 基线兼容。**Maven Central 发布构件的最终 class 文件版本以实现阶段（I3）引入时实测为准**；若实测与源码证据不符，钉版决策升级重议——此确认点列入 W2-review 复核清单。
+- **JDK 基线兼容性（条件钉版条款）**：源码级证据——上游 oracle/graal 仓库源码（证据文件：truffle 模块与 sdk 模块各自的 mx suite 配置，本地镜像为 `~/sources/graal` sparse clone，引用以上游仓库为准）中 `com.oracle.truffle.api` 基线 `javaCompliance "17+"`，multi-release overlay（`jdk9` 版 9 / `jdk21` 版 21）；sdk 模块版本 25.3.4.1。即 class file 层面与 nop JDK 21 基线兼容。构件级证据：Maven Central 25.2.4 线实测（truffle-api / polyglot / truffle-dsl-processor 基础 class 均 major 61（Java 17），multi-release overlay 仅 versions/9 与 versions/21、无更高版本目录），与源码证据一致——**JDK 21 兼容确认点已关闭**，I3 引入所钉版本时做常规冒烟复核即可（若 I3 钉 25.x 线内更新版本，重跑一次同口径检查）。
 
 ## 三、XLangLanguage / XLangContext 设计
 
@@ -44,7 +44,7 @@
 ### XLangContext（语言上下文）
 
 - 每次 Context 持有：**输出缓冲（`IEvalOutput`，线程绑定，绝不可跨 Context 共享）**、本次求值的全局作用域句柄、宿主交互辅助。
-- **语言实例只存可共享数据**：按 resourcePath 的翻译缓存（享受 parse 缓存语义）、函数表等；可变部分需同步。节点不得持有 context 数据或运行时值（context-independent 准则，SHARED 硬要求）。
+- **语言实例只存可共享数据**：按 resourcePath + 树指纹的翻译缓存（享受 parse 缓存语义，键口径见 §七）、函数表等；可变部分需同步。节点不得持有 context 数据或运行时值（context-independent 准则，SHARED 硬要求）。
 - 为什么这样切分：SHARED 下一个语言实例服务多个同时存活的 Context，任何 context 私有状态进语言实例都是跨 Context 污染缺陷。
 
 ## 四、对象映射与帧/slot 映射
@@ -68,7 +68,7 @@
 ### 帧/slot 映射（与 LexicalScopeAnalysis 的关系）
 
 - **slot 布局不是新设计**：编译前端 `LexicalScopeAnalysis` 产出的 slot 分配直接映射为 `FrameDescriptor`（每 RootNode 一份）+ `FrameSlot`；`SlotIdentifierExecutable` 直译为 slot 读写节点。
-- FrameDescriptor 声明时标注 primitive kind：帮助 PE 消除装箱（long/double/boolean 通道）。
+- FrameDescriptor 声明时标注 primitive kind：帮助 PE 消除装箱（long/double/boolean 通道）。**类型信息来源有前置约束**：live `EvalFrame` 为 `Object[]`、`LexicalScopeAnalysis` 只产 slot 布局不产静态类型——只有能从字面量节点/显式类型声明推断出类型的 slot 才标注 kind，推断不出的 slot 保持 Object kind（不虚构类型信息；覆盖率实测归实现计划）。
 - 帧访问模式（READ/WRITE/MATERIALIZE）按节点实际用法声明，帮助编译器优化。
 - 规则：能进 VirtualFrame 的变量不放语言 context；帧 slot 类型单调升级（monotonic）以减少重新检查。
 - 闭包捕获：`MaterializedFrame`（物化帧），对应解释器的 `EvalScope` 捕获语义。
@@ -113,8 +113,9 @@ graph TD
 ### Context 池策略（§九 Q2 裁定）
 
 - **池租借模式**：求值线程从池租借 Context，`enter()/leave()` 包住批求值，用毕归还；不做每线程固定绑定（线程池弹性伸缩时固定绑定会泄漏 Context）。
+- **租借状态协议（契约）**：租借时注入本次求值的输出缓冲（`IEvalOutput`）与全局作用域句柄，归还前清空；context 内状态只在 `enter()..leave()` 窗口内有效，归还后的 Context 不得残留上一批求值的任何可变状态（翻译缓存等可共享数据除外，存语言实例作用域）。缺此协议，池化复用即跨求值污染的天然来源。
 - 池大小为配置项，缺省随并发工作线程规模；**Context 创建/销毁成本实测与池大小调优归 I7 基准**，本层不发明数值。
-- **保守过渡路径**：正确性验证阶段用 EXCLUSIVE 单 Context 与解释器对拍（不追求共享），对拍通过后切 SHARED 上池——分两步走是为了把"翻译正确性"与"共享正确性"两类缺陷分离定位。
+- **保守过渡路径**：正确性验证阶段用 EXCLUSIVE 单 Context 与解释器对拍（不追求共享），对拍通过后切 SHARED 上池——分两步走是为了把"翻译正确性"与"共享正确性"两类缺陷分离定位。**切换机制**：`contextPolicy` 是 `@Registration` 编译期常量，"切"指注解取值变更（EXCLUSIVE → SHARED）后重新编译的形态切换，不是运行时开关；两形态各自都是验证载体（EXCLUSIVE 形态验证翻译正确性，SHARED+池形态验证共享正确性）。**SHARED 形态的正确性验证载体**：切 SHARED 后必须补并发正确性验证——多线程经池并发求值同一/不同编译单元，断言结果与单线程求值一致、无跨 Context 串值（输出缓冲、作用域隔离）；该验证纳入 I4 实现计划的验收标准（EXCLUSIVE 期对拍发现不了共享缺陷，两形态都要验证）。
 
 ## 六、两级内联缓存准则
 
@@ -133,7 +134,8 @@ graph TD
 ## 七、翻译器与运行时接入
 
 - 翻译器：Executable 树 → Truffle AST 的纯函数翻译，逐节点类翻译器，全覆盖策略（分类 + 覆盖矩阵 + fail-fast）与 java 后端同构，节点基线同为 `exec/` 137 文件。
-- 翻译缓存：按 resourcePath、language 实例作用域（SHARED 下跨 Context 复用）；**Delta 无关**——翻译发生在模型加载完成后（差量合并已完成、树已固化），Truffle 层不感知 Delta。
+- **语义一致性策略（与 java 后端对称）**：特化节点（`@Specialization` fast-path）仅承担**已证实语义等价**的加速路径；数值提升、宽松比较、属性反射等语义敏感操作，其 generic/fallback 路径一律调用与解释器**共享的 helper**（定义在 `nop-xlang`，依赖方向合法）——拒绝在特化节点内重写一套语义等价实现（双实现漂移是对拍失败的恒定来源，与 java 组架构 §三同一裁定）。
+- 翻译缓存：**缓存键 = resourcePath + 树指纹**（与 java 后端生成类清单的指纹纪律对称）、language 实例作用域（SHARED 下跨 Context 复用）。为什么键必须含树指纹：统一架构 §六声明 RCM 的资源变更检测与多租户缓存隔离维持现状（live 支持同 resourcePath 按租户解析为不同内容），纯 resourcePath 键会使"同路径不同树"（租户差异、资源热变更后重载）串用旧 AST——静默执行旧逻辑是本设计在 java 侧自认的最危险缺陷形态，truffle 侧同样禁止；键含树指纹后不同树自然分键，不依赖失效通知，旧条目按容量淘汰（上限/LRU 归实现）。无 resourcePath 的动态源（运行时字符串表达式、规则配置产物——统一架构 §三动态路径的主场景）按**源内容哈希键**入翻译缓存，或由编译出口持有翻译产物（避免高频重复求值每次重翻译；具体形态归 I3/I4 实现计划定稿）；**Delta 无关**——翻译发生在模型加载完成后（差量合并已完成、树已固化），Truffle 层不感知 Delta。
 - 接入统一选择机制**动态路径**：truffle 后端按统一注册 SPI 显式注册，能力声明为"动态翻译"；初始化失败（Engine 创建失败/依赖缺失）→ 注册不可用条目并降级解释器（统一架构 §三/§四）。
 - JIT 粒度：每编译单元一个 CallTarget（= `RootNode.getCallTarget()` 惰性获取并缓存）。
 
@@ -157,13 +159,13 @@ graph TD
 | Q2 Context 池大小与工作线程映射、创建/销毁成本 | 池租借模式 + 配置化池大小（缺省随工作线程规模）；实测与调优归 I7 | §五"Context 池策略" |
 | Q3 按名访问（`ScopeIdentifierExecutable`）slot 化覆盖率与残余路径 | 翻译期 slot 化优先（`LexicalScopeAnalysis` 已有分析）；残余按名访问走 **context 持有的 scope 链对象查找节点**；覆盖率实测归实现计划验收 | §四 |
 | Q4 与 nop-js 共享 Engine 的可行性与收益 | 一期不共享（独立 Engine），理由与重评估触发见本表所引节 | §八 |
-| Q5 GraalVM 版本钉法与 JDK 21 基线兼容矩阵 | 钉 25.x LTS 线；源码级证据（truffle 基线 javaCompliance 17+ + multi-release overlay 9/21，sdk 25.3.4.1）支持 JDK 21 兼容；**Maven Central 构件实测为条件钉版条款，确认点移交 W2-review 复核** | §二 |
+| Q5 GraalVM 版本钉法与 JDK 21 基线兼容矩阵 | 钉 25.x LTS 线；源码级证据（truffle 基线 javaCompliance 17+ + multi-release overlay 9/21，sdk 25.3.4.1）+ 构件级实测（25.2.4：class 61 / overlay ≤21）双证据确认 JDK 21 兼容，**确认点已关闭**（§二）；I3 引入时常规冒烟复核 | §二 |
 
-**移交 W2-review 输入清单**（本设计显式标注"暂缓/待确认"的点，未以留白方式跳过）：
+**移交 W2-review 输入清单**（本设计显式标注"暂缓/待确认"的点，未以留白方式跳过；W2-review 处置结论见下）：
 
-1. Q5 条件钉版确认：I3 引入时实测 Maven Central 构件 class file 版本与源码 compliance 是否一致。
-2. Q1 watch-only 重评估的触发阈值口径（"解释开销占比显著"的量化标准在 I7 基准计划中定义）。
-3. Q4 重评估的前置条件（编译线程预算基准数据）依赖 I7 输出。
+1. Q5 条件钉版确认：**已关闭**（Maven Central 25.2.4 构件实测 class 61 / overlay ≤21，与源码证据一致；证据与处置记录见 §二，I3 仅常规冒烟复核）。
+2. Q1 watch-only 重评估的触发阈值口径（"解释开销占比显著"的量化标准在 I7 基准计划中定义）：维持移交——量化口径归 I7，W2-review 无需行动。
+3. Q4 重评估的前置条件（编译线程预算基准数据）依赖 I7 输出：维持移交——归 I7，W2-review 无需行动。
 
 ## 十、拒绝了什么
 

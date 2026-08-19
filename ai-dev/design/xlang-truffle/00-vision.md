@@ -25,7 +25,7 @@
 
 1. **正确性（对拍，一票否决）**：同一 Executable 树，Truffle 翻译 AST 的执行结果与解释器一致（返回值 / 副作用 / 异常语义三层断言，统一对拍框架承载）。正确性验证阶段允许以 `EXCLUSIVE` 单 Context 与解释器对拍（保守过渡，不追求共享），验证通过后切 `SHARED` 上池。
 2. **性能门槛（方向性，量化归 I7）**：GraalVM 形态显著优于解释器；stock JVM 形态以"不显著劣于解释器"为底线。本层不发明具体数字，基准口径（负载集、形态矩阵、阈值）由 I7 落定。
-3. **多线程正确性**：Context 池并发求值下行为正确——输出缓冲（`IEvalOutput`）与求值状态按 Context 隔离，无跨 Context 共享可变状态；并发求值无串行化瓶颈回归。
+3. **多线程正确性**：Context 池并发求值下行为正确——输出缓冲（`IEvalOutput`）与求值状态按 Context 隔离，无跨 Context 共享可变状态；并发求值无串行化瓶颈回归。验证载体：SHARED 池化形态的并发求值正确性断言（与单线程结果一致、无跨 Context 串值），见 [02-architecture-baseline.md](02-architecture-baseline.md) §五，纳入 I4 实现计划验收。
 4. **边界干净**：Truffle 依赖零泄漏（`org.graalvm.*` 只出现在本模块）；解释器测试零回归。
 
 ## 四、显式 Non-Goals

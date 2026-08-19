@@ -1,6 +1,6 @@
 # W2-review 设计文档独立审查 gate（≥2 轮独立子agent 至 PASS）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-19
 > Mission: xlang-execution-optimization
 > Work Item: W2-review
@@ -58,74 +58,74 @@
 
 ### Phase 1 - Round 1 独立审查与修复
 
-Status: planned
+Status: completed
 Targets: `ai-dev/audits/xlang-execution-optimization/{执行日期}-design-review-round-1.md`（新建）、W1 产出的三组设计文档（修复对象）
 
 - Item Types: `Proof` | `Fix`
 
-- [ ] 组装审查输入包：三组设计文档 + `01-truffle-knowledge.md` + 审查锚点清单（live 位置：`exec/` 137 节点、`ScriptCompilerRegistry`、`ResourceComponentManager`、`JaninoScriptCompiler`、`nop-kernel/nop-javac`、`nop-frontend-support/nop-js`；W1 移交的遗留分歧清单如有则一并附上）
-- [ ] 派发独立子agent（fresh session，task id 记录在案）执行对抗性审查，审查维度至少覆盖：①roadmap W1 内容点逐点覆盖核对（4+6+5）②design-writing-guide 合规（决策三要素/无代码级展开/引用约束）③跨文档一致性（选择机制/边界/依赖方向/对拍基准）④与 live 代码可行性核对（引用的先例类/模块是否存在、约束是否可实现）⑤`01-truffle-knowledge.md` 决策迁出与 Open Questions 清账核对
-- [ ] 报告按命名规范落盘，finding 逐条分级（P0/P1/P2）并附文档内定位
-- [ ] 修复：全部 P0/P1 修复，或书面裁定驳回（附理由）记入报告回应段；P2 修复或裁定遗留
+- [x] 组装审查输入包：三组设计文档 + `01-truffle-knowledge.md` + 审查锚点清单（live 位置：`exec/` 137 节点、`ScriptCompilerRegistry`、`ResourceComponentManager`、`JaninoScriptCompiler`、`nop-kernel/nop-javac`、`nop-frontend-support/nop-js`；W1 移交的遗留分歧清单如有则一并附上）
+- [x] 派发独立子agent（fresh session，task id 记录在案）执行对抗性审查，审查维度至少覆盖：①roadmap W1 内容点逐点覆盖核对（4+6+5）②design-writing-guide 合规（决策三要素/无代码级展开/引用约束）③跨文档一致性（选择机制/边界/依赖方向/对拍基准）④与 live 代码可行性核对（引用的先例类/模块是否存在、约束是否可实现）⑤`01-truffle-knowledge.md` 决策迁出与 Open Questions 清账核对
+- [x] 报告按命名规范落盘，finding 逐条分级（P0/P1/P2）并附文档内定位
+- [x] 修复：全部 P0/P1 修复，或书面裁定驳回（附理由）记入报告回应段；P2 修复或裁定遗留
 
 Exit Criteria:
 
-- [ ] round-1 报告存在于 `ai-dev/audits/xlang-execution-optimization/`，含分级 findings 与审查者 task/session 标识
-- [ ] round-1 的全部 P0/P1 已修复或裁定驳回，且修复后的设计文档已落盘（报告回应段逐条对应）
-- [ ] `ai-dev/logs/` 当日条目已更新
+- [x] round-1 报告存在于 `ai-dev/audits/xlang-execution-optimization/`，含分级 findings 与审查者 task/session 标识
+- [x] round-1 的全部 P0/P1 已修复或裁定驳回，且修复后的设计文档已落盘（报告回应段逐条对应）
+- [x] `ai-dev/logs/` 当日条目已更新
 
 ### Phase 2 - Round 2+ 独立复审至 PASS
 
-Status: planned
+Status: completed
 Targets: `ai-dev/audits/xlang-execution-optimization/{执行日期}-design-review-round-N.md`（N≥2，新建）
 
 - Item Types: `Proof` | `Fix`
 
-- [ ] 派发新的独立子agent（不得复用 round-1 的 session/task）对修复后的文档全量复审（不是只复审 delta）
-- [ ] round-N 报告落盘（同命名规范，含 verdict 字段）
-- [ ] 若该轮存在 P0/P1：修复后开启 round-(N+1)（继续 fresh session），循环直到某轮 verdict=PASS；每轮非 PASS 报告均含"回应段"——该轮 P0/P1 的修复/裁定逐条记录在案，作为下一轮开启的前置条件（与 round-1 同一规范）
-- [ ] 收敛保护：若连续 3 轮未 PASS 且 P0/P1 发现不再收敛（同质 finding 反复出现），停止循环，将 Phase 2 置为 `blocked`（plan 保持 `active`）并在当日 log 上报设计争议待用户/后继裁定；不得无限循环，不得降级口径换取 PASS
-- [ ] PASS 轮的报告显式写明 `Verdict: PASS（0 P0/P1）`、遗留 P2 清单，以及"移交 W3 清单"章节（汇总审查中发现但裁定为 out-of-scope 的新需求/改进项，供 W3 回填阶段二时核对是否纳入）
+- [x] 派发新的独立子agent（不得复用 round-1 的 session/task）对修复后的文档全量复审（不是只复审 delta）
+- [x] round-N 报告落盘（同命名规范，含 verdict 字段）
+- [x] 若该轮存在 P0/P1：修复后开启 round-(N+1)（继续 fresh session），循环直到某轮 verdict=PASS；每轮非 PASS 报告均含"回应段"——该轮 P0/P1 的修复/裁定逐条记录在案，作为下一轮开启的前置条件（与 round-1 同一规范）
+- [x] 收敛保护：若连续 3 轮未 PASS 且 P0/P1 发现不再收敛（同质 finding 反复出现），停止循环，将 Phase 2 置为 `blocked`（plan 保持 `active`）并在当日 log 上报设计争议待用户/后继裁定；不得无限循环，不得降级口径换取 PASS
+- [x] PASS 轮的报告显式写明 `Verdict: PASS（0 P0/P1）`、遗留 P2 清单，以及"移交 W3 清单"章节（汇总审查中发现但裁定为 out-of-scope 的新需求/改进项，供 W3 回填阶段二时核对是否纳入）
 
 Exit Criteria:
 
-- [ ] 磁盘上审查轮次报告 ≥2 份，最后一轮 verdict 为 PASS（0 P0/P1）
-- [ ] 相邻两轮之间都有修复/裁定记录（每轮报告的 finding 在下一轮开始前已处置）
-- [ ] 每轮审查均由不同的 fresh session 子agent 执行（各报告含 task/session 标识，可核对互不相同）
-- [ ] `ai-dev/logs/` 当日条目已更新
+- [x] 磁盘上审查轮次报告 ≥2 份，最后一轮 verdict 为 PASS（0 P0/P1）——实际 5 份（round 1-5），round 5 PASS
+- [x] 相邻两轮之间都有修复/裁定记录（每轮报告的 finding 在下一轮开始前已处置）
+- [x] 每轮审查均由不同的 fresh session 子agent 执行（各报告含 task/session 标识，可核对互不相同）
+- [x] `ai-dev/logs/` 当日条目已更新
 
 ### Phase 3 - gate 收口与回链
 
-Status: planned
+Status: completed
 Targets: `ai-dev/backlog/xlang-execution-optimization-roadmap.md`（W2-review 条目）、`ai-dev/audits/xlang-execution-optimization/README.md`
 
 - Item Types: `Follow-up`
 
-- [ ] roadmap `W2-review` 条目正文回链全部轮次报告（≥2 份，含 PASS 轮）
-- [ ] audits 目录 README 索引补齐本次报告清单
-- [ ] roadmap `W2-review` 状态与 plan 状态一致（closure audit 通过后 `done`）
+- [x] roadmap `W2-review` 条目正文回链全部轮次报告（≥2 份，含 PASS 轮）——实际回链 5 份（round 1-5）
+- [x] audits 目录 README 索引补齐本次报告清单
+- [x] roadmap `W2-review` 状态与 plan 状态一致（closure audit 通过后 `done`）
 
 Exit Criteria:
 
-- [ ] roadmap W2 条目正文包含 ≥2 份报告的相对链接且链接有效
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `ai-dev/logs/` 当日条目已更新
+- [x] roadmap W2 条目正文包含 ≥2 份报告的相对链接且链接有效（5 份，check-doc-links 0 errors）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `ai-dev/logs/` 当日条目已更新
 
 ## Closure Gates
 
 > 纯文档计划：`./mvnw test` / `./mvnw compile` 等构建验证条目按 guide 规则移除。
 
-- [ ] 独立审查轮次 ≥2，且最后一轮 verdict 为 PASS（0 P0/P1），报告全部落盘
-- [ ] 每轮的 P0/P1 发现在下一轮开始前已修复或书面裁定驳回（无静默跳过的 finding）
-- [ ] 各轮审查者均为独立 fresh session（报告内 task/session 标识互不相同）
-- [ ] roadmap `W2-review` 条目回链 ≥2 份报告，链接有效
-- [ ] W1 产出的设计文档与最终 PASS 轮结论一致（修复未回退）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/xlang-execution-optimization/2026-08-19-2050-2-w2-design-review-gate.md --strict` 退出码 0（closure 时执行）
-- [ ] roadmap `W2-review` 状态与 plan 状态一致
-- [ ] No docs-for-ai update required: 本 plan 仅审查/修复 `ai-dev/design/` 文档
-- [ ] 独立子 agent closure audit 已完成且证据写入下方 Closure 段
-- [ ] `ai-dev/logs/` 收口条目已记录
+- [x] 独立审查轮次 ≥2，且最后一轮 verdict 为 PASS（0 P0/P1），报告全部落盘——实际 5 轮（round 1-5），round-5 PASS
+- [x] 每轮的 P0/P1 发现在下一轮开始前已修复或书面裁定驳回（无静默跳过的 finding）——round 1-4 各含回应段（P1 共 2/1/1/2 条全修复）
+- [x] 各轮审查者均为独立 fresh session（报告内 task/session 标识互不相同——5 个 task id 互异，closure audit B3 核验）
+- [x] roadmap `W2-review` 条目回链 ≥2 份报告，链接有效（5 份，相对路径，check-doc-links 0 errors）
+- [x] W1 产出的设计文档与最终 PASS 轮结论一致（修复未回退）——closure audit D3 抽查 3 处修复点全部在位
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（0 errors；2 warnings 为 W3 plan 既知前向引用，与本 plan 无关）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/xlang-execution-optimization/2026-08-19-2050-2-w2-design-review-gate.md --strict` 退出码 0（closure 时执行）
+- [x] roadmap `W2-review` 状态与 plan 状态一致（均 done/completed；closure audit C3 指名时序轻微超前为 Minor，见 Closure 段）
+- [x] No docs-for-ai update required: 本 plan 仅审查/修复 `ai-dev/design/` 文档（closure audit D5：git diff docs-for-ai/ 为空）
+- [x] 独立子 agent closure audit 已完成且证据写入下方 Closure 段（task `ses_fe58edcceffecyDP7vPH251Cek`，CAN CLOSE）
+- [x] `ai-dev/logs/` 收口条目已记录
 
 ## Deferred But Adjudicated
 
@@ -140,14 +140,22 @@ Exit Criteria:
 
 ## Closure
 
-Status Note:
-Completed:
+Status Note: W2-review gate 关闭——五轮独立 fresh-session 对抗性审查（round 1-4 各 0 P0 / 1-2 P1，逐轮修复并记录回应段；round 5 达成 PASS 0 P0/0 P1），全部报告落盘并由 roadmap W2 条目回链；PASS 轮遗留 6 项 P2 逐条裁定（round-5 报告裁定表），移交 W3 清单 17 项汇总于 PASS 轮报告；独立 closure audit 结论 CAN CLOSE（0 Blocker/0 Major/2 Minor）。后继 W3-supplement 按 roadmap 既定顺序接管（gate 已解锁）。
+Completed: 2026-08-19
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: 独立子 agent closure audit（fresh session，read-only），opencode task `ses_fe58edcceffecyDP7vPH251Cek`（自标识 ses_closure-audit-2026-08-19-w2-gate），2026-08-19
 - Evidence:
+  - Phase 1（A1/A2 PASS）：round-1 报告在档含分级与审查者标识；2 条 P1 回应段逐条处置，live 修复可见（execution 01:121 单元级降级判 FAIL；java 01:33 编译主体裁定）
+  - Phase 2（B1-B4 PASS）：5 份报告落盘、round-5 Verdict PASS（0 P0/0 P1）；round 1-4 回应段与 live 修复对应（R2-1 扫描清单 / R3-1 `$out` 隐参 / R4-1 树指纹键 / R4-2 列适用性 抽查全部在位）；5 个 task id 互异；PASS 轮含 P2 裁定表与移交 W3 清单 17 项
+  - Phase 3（C1/C2 PASS；C3 PASS-点名）：roadmap 回链 5 份报告链接有效；audits README 索引齐备；roadmap `done` 与 plan 状态一致（时序轻微超前记为 Minor，因 closure 与本次审计同一收口动作内完成）
+  - Closure Gates（D1-D6 PASS）：轮次/PASS/落盘 ✓；无静默跳过 ✓；独立性 ✓；修复未回退（D3 抽查 3 处）✓；check-doc-links --strict 退出码 0 ✓；docs-for-ai 零改动（git diff 为空）✓；Phase 1/2 checklist 全勾（Phase 3 由本次审计后补齐，见下）
+  - 诚实性（E1-E3 PASS）：6 项 P2 逐条裁定；round-1/round-4 移交项在 round-5 汇总清单一一对应；无 in-scope live defect 被降级
+  - `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（closure 收口后复跑，见当日 log）
+  - Minor×2：①roadmap done 时序轻微超前（本 Closure 同一动作收口）；②check-doc-links 2 warnings 为 W3 plan 既知前向引用（非本 plan 文件，移交 W3）
+- Verdict: **CAN CLOSE**
 
 Follow-up:
 
-- no remaining plan-owned work（后继 W3-supplement 由 roadmap 既定顺序接管）
+- no remaining plan-owned work（后继 W3-supplement 由 roadmap 既定顺序接管；PASS 轮 6 项 P2 与移交 W3 清单 17 项均已在 round-5 报告记录归属，见 Deferred But Adjudicated）

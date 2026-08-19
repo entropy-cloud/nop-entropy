@@ -36,7 +36,7 @@ XLang 解释器是宿主 Java 代码，经 GraalVM native image AOT 编译后**�
 
 | 后端 | 模块 | 适用判据 | 部署形态收益 |
 |---|---|---|---|
-| java | `nop-xlang-java`（新模块） | 编译期可确定的资源（`_vfs` 内静态 xpl / xlib / expr / xbiz 等） | JVM：普通 Java 代码获 JIT；native image：生成类直编进镜像，是 native 提速的唯一路线 |
+| java | `nop-xlang-java`（新模块） | 编译期可确定的资源（`_vfs` 内静态 xpl / xlib 等，扫描清单口径见统一架构 §三） | JVM：普通 Java 代码获 JIT；native image：生成类直编进镜像，是 native 提速的唯一路线 |
 | truffle | `nop-xlang-truffle`（新模块） | 运行时动态产生的脚本/表达式 | GraalVM：partial evaluation JIT 显著提速；stock JVM：解释执行 |
 | interpreter | `nop-xlang`（现状） | 兜底：后端不可用 / 未启用 / 生成物缺失 / 显式降级 | 全形态可用，正确性基线 |
 
@@ -46,7 +46,7 @@ XLang 解释器是宿主 Java 代码，经 GraalVM native image AOT 编译后**�
 
 ## 四、成功标准
 
-1. **对拍基准（正确性，一票否决）**：同一 Executable 树在解释器 / java / truffle 三后端执行，返回值、副作用（scope 变更、输出缓冲）、异常语义（错误码 + 源位置）一致；对拍差异即回归失败（fail-fast），不允许静默跳过。对拍纳入常规回归，不允许削弱现解释器测试。
+1. **对拍基准（正确性，一票否决）**：同一 Executable 树在解释器 / java / truffle 三后端执行，返回值、副作用（scope 变更、输出缓冲）、异常语义（错误码 + 源位置）一致；对拍差异即回归失败（fail-fast），不允许静默跳过。对拍纳入常规回归，不允许削弱现解释器测试。口径细化：单元**在其适用后端上**结果一致——静态单元（构建期扫描清单内）适用三后端，动态单元适用解释器与 truffle 两后端（列适用性规则见统一架构 §五）。
 2. **性能门槛（方向性，量化归 I7）**：
    - java 后端：不低于解释器（JVM 与 native 两形态）——转译产物是普通 Java 方法，结构性消除解释开销；
    - truffle 后端：GraalVM 形态显著优于解释器（partial evaluation + 内联缓存收益）；stock JVM 形态以"不显著劣于解释器"为底线——收益取决于 DSL 特化节点密度，量化归 I7；
