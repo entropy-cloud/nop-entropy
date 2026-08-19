@@ -1,6 +1,6 @@
 # I5 nop-xlang-truffle 模块骨架 + 帧/slot 映射 + 表达式子集翻译 + 翻译缓存
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-20
 > Source: `ai-dev/backlog/xlang-execution-optimization-roadmap.md` I5；设计冻结于 `ai-dev/design/xlang-truffle/02-architecture-baseline.md`（§二钉版/§三 Language/Context/§四帧映射/§七翻译缓存）与 `ai-dev/design/xlang-execution/01-architecture-baseline.md` §五（对拍口径）
 > Mission: xlang-execution-optimization
@@ -61,90 +61,90 @@
 
 ### Phase 1 - 模块落盘、钉版与决策定稿
 
-Status: planned
+Status: completed
 Targets: `nop-kernel/nop-xlang-truffle/`（新模块）、`nop-kernel/pom.xml`、`missions/xlang-execution-optimization.json`
 
 - Item Types: `Decision | Proof`
 
-- [ ] D1（形态决策，定稿）：本 plan 以 EXCLUSIVE 过渡形态落地为翻译正确性对拍载体（roadmap I5 验收显式允许）；SHARED 终态切换（`@Registration` 注解取值变更 + 重新编译）与池化并发验证归 I8。语言类注册结构按"形态 = 编译期常量"组织，I8 切换不重构。决策记入当日 log
-- [ ] D2（无 resourcePath 动态源缓存形态，roadmap 委托本 plan 定稿）：按**源内容哈希键**入翻译缓存。理由：与"键 = resourcePath + 树指纹"防串用语义同构（不同内容自然分键，不依赖失效通知）；拒绝"由编译出口持有翻译产物"（需改所有动态编译出口签名，侵入面大，且出口统一化归 I9）。决策记入当日 log
-- [ ] D3（共享 helper 依赖处理，并行轨道裁定）：truffle 翻译的语义敏感操作统一调用 nop-xlang 共享 helper 基座（共享 helper 纪律）；若执行时 I2 已落地则直接复用，若 I2 未落地则本 plan 落地**子集所需最小 helper 集**（定义在 nop-xlang；解释器全量改用与基座补齐仍归 I2，两 plan 不重复提取同一操作——先落地方为事实源）。决策记入当日 log
-- [ ] 创建模块骨架：pom 钉版引入 truffle 三坐标（同一 25.x LTS 版本线）+ `truffle-dsl-processor` 注解处理器配置；依赖仅 `nop-xlang` 及传递依赖，禁止依赖 `nop-xlang-java`
-- [ ] 父 pom modules 注册；mission.json commands 同一次变更追加 `:nop-xlang-truffle`（在既有口径模块集上追加——I2 已切换则成三模块口径，未切换则 `:nop-xlang,:nop-xlang-truffle`）
-- [ ] 钉版冒烟复核（配方钉死）：抽查对象 = truffle-api 代表 class（如 `com.oracle.truffle.api.TruffleLanguage`）的 class major version（期望 61）+ 三坐标 jar 的 `META-INF/versions` 目录列表（期望仅 `versions/9` 与 `versions/21`）；若钉 25.x 线内更新版本，重跑同口径检查
-- [ ] 最小 polyglot 冒烟：空 Context + Engine 构建在 stock JDK 21 可运行（语言注册发现归 Phase 2 验证，本 phase 仓内尚无语言类）
-- [ ] 不泄漏断言（口径钉死）：断言/脚本扫描 `nop-kernel` 域内全部 pom 的 `<dependency>` 声明，`org.graalvm.truffle:*` / `org.graalvm.polyglot:*` 仅命中本模块；显式豁免项（nop-js 非内核、`org.graalvm.buildtools` 构建插件）在断言中记录为豁免而非命中——repo-observable
+- [x] D1（形态决策，定稿）：本 plan 以 EXCLUSIVE 过渡形态落地为翻译正确性对拍载体（roadmap I5 验收显式允许）；SHARED 终态切换（`@Registration` 注解取值变更 + 重新编译）与池化并发验证归 I8。语言类注册结构按"形态 = 编译期常量"组织，I8 切换不重构。决策记入当日 log
+- [x] D2（无 resourcePath 动态源缓存形态，roadmap 委托本 plan 定稿）：按**源内容哈希键**入翻译缓存。理由：与"键 = resourcePath + 树指纹"防串用语义同构（不同内容自然分键，不依赖失效通知）；拒绝"由编译出口持有翻译产物"（需改所有动态编译出口签名，侵入面大，且出口统一化归 I9）。决策记入当日 log
+- [x] D3（共享 helper 依赖处理，并行轨道裁定）：truffle 翻译的语义敏感操作统一调用 nop-xlang 共享 helper 基座（共享 helper 纪律）；若执行时 I2 已落地则直接复用，若 I2 未落地则本 plan 落地**子集所需最小 helper 集**（定义在 nop-xlang；解释器全量改用与基座补齐仍归 I2，两 plan 不重复提取同一操作——先落地方为事实源）。决策记入当日 log（裁定：I2 已落地，直接复用 `XLangSemantics`）
+- [x] 创建模块骨架：pom 钉版引入 truffle 三坐标（同一 25.x LTS 版本线）+ `truffle-dsl-processor` 注解处理器配置；依赖仅 `nop-xlang` 及传递依赖，禁止依赖 `nop-xlang-java`
+- [x] 父 pom modules 注册；mission.json commands 同一次变更追加 `:nop-xlang-truffle`（在既有口径模块集上追加——I2 已切换则成三模块口径，未切换则 `:nop-xlang,:nop-xlang-truffle`）
+- [x] 钉版冒烟复核（配方钉死）：抽查对象 = truffle-api 代表 class（如 `com.oracle.truffle.api.TruffleLanguage`）的 class major version（期望 61）+ 三坐标 jar 的 `META-INF/versions` 目录列表（期望仅 `versions/9` 与 `versions/21`）；若钉 25.x 线内更新版本，重跑同口径检查
+- [x] 最小 polyglot 冒烟：空 Context + Engine 构建在 stock JDK 21 可运行（语言注册发现归 Phase 2 验证，本 phase 仓内尚无语言类）
+- [x] 不泄漏断言（口径钉死）：断言/脚本扫描 `nop-kernel` 域内全部 pom 的 `<dependency>` 声明，`org.graalvm.truffle:*` / `org.graalvm.polyglot:*` 仅命中本模块；显式豁免项（nop-js 非内核、`org.graalvm.buildtools` 构建插件）在断言中记录为豁免而非命中——repo-observable
 
 Exit Criteria:
 
-- [ ] D1/D2/D3 三项决策记录 repo-observable（当日 log + 本 plan 勾选）
-- [ ] `./mvnw compile -pl :nop-xlang-truffle -am` 通过（模块进 reactor；dsl-processor 在编译链配置生效——annotationProcessorPaths/处理器依赖 repo-observable，生成产物验证归 Phase 2）
-- [ ] 冒烟复核记录落 log（版本号 + class major/versions 目录检查结果 + 空 Context/Engine polyglot 冒烟结果；如覆盖 release 基线亦记录）
-- [ ] 不泄漏断言存在且通过（口径 = nop-kernel 域内 truffle/polyglot 依赖仅本模块 + 豁免清单）——roadmap I5 验收第二项
-- [ ] mission.json commands 已追加且 live 可运行（逐条执行通过）
-- [ ] No owner-doc update required（docs-for-ai 新模块开发指南同步归 I11）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] D1/D2/D3 三项决策记录 repo-observable（当日 log + 本 plan 勾选）
+- [x] `./mvnw compile -pl :nop-xlang-truffle -am` 通过（模块进 reactor；dsl-processor 在编译链配置生效——annotationProcessorPaths/处理器依赖 repo-observable，生成产物验证归 Phase 2）
+- [x] 冒烟复核记录落 log（版本号 + class major/versions 目录检查结果 + 空 Context/Engine polyglot 冒烟结果；如覆盖 release 基线亦记录）
+- [x] 不泄漏断言存在且通过（口径 = nop-kernel 域内 truffle/polyglot 依赖仅本模块 + 豁免清单）——roadmap I5 验收第二项
+- [x] mission.json commands 已追加且 live 可运行（逐条执行通过）
+- [x] No owner-doc update required（docs-for-ai 新模块开发指南同步归 I11）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - XLangLanguage/XLangContext 与帧/slot 映射
 
-Status: planned
+Status: completed
 Targets: `nop-kernel/nop-xlang-truffle/`（语言/上下文/帧映射）
 
 - Item Types: `Proof`
 
-- [ ] XLangLanguage（EXCLUSIVE 形态注册，D1）：id `xl`、name `XLang`、defaultMimeType `application/x-xlang`；无 parser——`parse(ParsingRequest)` 查翻译缓存（合成 Source：路径 + 行号）；`isThreadAccessAllowed` 保持默认；`initializeMultipleContexts` 按 SHARED 要求的接口形态预留（实现可为 EXCLUSIVE 下的最小合规形态）
-- [ ] XLangContext：每次 Context 持有输出缓冲（`IEvalOutput`，线程绑定，绝不可跨 Context 共享）与本次求值全局作用域句柄；语言实例只存可共享数据（翻译缓存位），节点不存 context 数据或运行时值
-- [ ] 帧/slot 映射：`LexicalScopeAnalysis` slot 布局 → 每 RootNode 一份 `FrameDescriptor` + `FrameSlot`；kind 仅可推断处标注（字面量/显式类型声明），推断不出保持 Object kind（不虚构）；帧访问模式（READ/WRITE/MATERIALIZE）按节点实际用法声明
-- [ ] `NopException` 语义：语言异常携带 SourceSection（合成 Source 回映射源位置），`.param()` 参数 host 侧可见
+- [x] XLangLanguage（EXCLUSIVE 形态注册，D1）：id `xl`、name `XLang`、defaultMimeType `application/x-xlang`；无 parser——`parse(ParsingRequest)` 查翻译缓存（合成 Source：路径 + 行号）；`isThreadAccessAllowed` 保持默认；`initializeMultipleContexts` 按 SHARED 要求的接口形态预留（实现可为 EXCLUSIVE 下的最小合规形态）
+- [x] XLangContext：每次 Context 持有输出缓冲（`IEvalOutput`，线程绑定，绝不可跨 Context 共享）与本次求值的全局作用域句柄；语言实例只存可共享数据（翻译缓存位），节点不存 context 数据或运行时值
+- [x] 帧/slot 映射：`LexicalScopeAnalysis` slot 布局 → 每 RootNode 一份 `FrameDescriptor` + `FrameSlot`；kind 仅可推断处标注（字面量/显式类型声明），推断不出保持 Object kind（不虚构）；帧访问模式（READ/WRITE/MATERIALIZE）按节点实际用法声明
+- [x] `NopException` 语义：语言异常携带 SourceSection（合成 Source 回映射源位置），`.param()` 参数 host 侧可见
 
 Exit Criteria:
 
-- [ ] 语言注册可发现（polyglot `Value`/Engine 层可按 id `xl` 定位语言；dsl-processor 生成 provider 服务文件 repo-observable）
-- [ ] 合成 Source 回映射有单测：同一节点异常的 SourceSection 回映射到与解释器一致的源位置（对拍第三层断言的前置）
-- [ ] 帧/slot 映射有单测：slot 布局逐 slot 对应（数量/标识/kind 标注规则；子集内可推断比例记录落 log，全量覆盖率归 I6 后续实测）
-- [ ] 无静默跳过：kind 推断不出的 slot 保持 Object kind 且不虚构类型（映射单测覆盖一例）
-- [ ] **接线验证**：Language.parse → 翻译缓存查找/构建 → CallTarget 获取链路可被触发（最小冒烟树，此 phase 不要求子集全翻译）
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 语言注册可发现（polyglot `Value`/Engine 层可按 id `xl` 定位语言；dsl-processor 生成 provider 服务文件 repo-observable）
+- [x] 合成 Source 回映射有单测：同一节点异常的 SourceSection 回映射到与解释器一致的源位置（对拍第三层断言的前置）
+- [x] 帧/slot 映射有单测：slot 布局逐 slot 对应（数量/标识/kind 标注规则；子集内可推断比例记录落 log，全量覆盖率归 I6 后续实测）
+- [x] 无静默跳过：kind 推断不出的 slot 保持 Object kind 且不虚构类型（映射单测覆盖一例）
+- [x] **接线验证**：Language.parse → 翻译缓存查找/构建 → CallTarget 获取链路可被触发（最小冒烟树，此 phase 不要求子集全翻译）
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 表达式子集翻译、翻译缓存与对拍 truffle 列激活
 
-Status: planned
+Status: completed
 Targets: `nop-kernel/nop-xlang-truffle/`（翻译器/缓存）+ `src/test/`（列接入）
 
 - Item Types: `Proof`
 
-- [ ] Executable 树 → Truffle AST 纯函数翻译器：子集（字面量/slot 标识符/算术/逻辑/比较/简单方法调用，与 I2 同子集）逐节点类翻译；语义敏感操作 generic 路径走共享 helper（D3 口径）；子集外节点 fail-fast（报节点类名 + SourceLocation，不部分翻译）
-- [ ] 每编译单元一个 `RootNode` + `CallTarget`（JIT 编译粒度）；`ExitMode` 相关控制流节点不在子集内，遇到即 fail-fast（全量落实归 I7）
-- [ ] 翻译缓存：键 = resourcePath + 树指纹（resourcePath 单元）；无 resourcePath 动态源按源内容哈希键（D2）；language 实例作用域；缓存本体不做淘汰（I8）
-- [ ] 以 I1 harness 注册 truffle 列（test-jar 依赖）：静态 + 动态单元均适用；身份断言 = 翻译 AST 经 CallTarget 执行（非解释器树）
-- [ ] corpus v1 表达式单元 truffle 列 vs 解释器列对拍全量执行（三层断言 + 身份断言 + java 列缺席显式记录——动态单元 java 列为"不适用"而非"缺席"，按 I1 列适用性机制区分）
+- [x] Executable 树 → Truffle AST 纯函数翻译器：子集（字面量/slot 标识符/算术/逻辑/比较/简单方法调用，与 I2 同子集）逐节点类翻译；语义敏感操作 generic 路径走共享 helper（D3 口径）；子集外节点 fail-fast（报节点类名 + SourceLocation，不部分翻译）
+- [x] 每编译单元一个 `RootNode` + `CallTarget`（JIT 编译粒度）；`ExitMode` 相关控制流节点不在子集内，遇到即 fail-fast（全量落实归 I7）
+- [x] 翻译缓存：键 = resourcePath + 树指纹（resourcePath 单元）；无 resourcePath 动态源按源内容哈希键（D2）；language 实例作用域；缓存本体不做淘汰（I8）
+- [x] 以 I1 harness 注册 truffle 列（test-jar 依赖）：静态 + 动态单元均适用；身份断言 = 翻译 AST 经 CallTarget 执行（非解释器树）
+- [x] corpus v1 表达式单元 truffle 列 vs 解释器列对拍全量执行（三层断言 + 身份断言 + java 列缺席显式记录——动态单元 java 列为"不适用"而非"缺席"，按 I1 列适用性机制区分）
 
 Exit Criteria:
 
-- [ ] corpus v1 表达式单元 truffle 列 vs 解释器列对拍全绿（EXCLUSIVE 过渡形态；含身份断言）——roadmap I5 验收第一项
-- [ ] 翻译缓存键语义有单测：同 resourcePath 不同树指纹分键不串用（构造两棵不同树断言两次翻译/两个 CallTarget 或等效证据）
-- [ ] fail-fast 有测试：子集外节点翻译报错且错误信息含节点类名与 SourceLocation
-- [ ] **端到端验证**：树 → 翻译器 → Truffle AST → CallTarget 执行 → 三层对拍断言全链可运行（stock JDK 21 形态）
-- [ ] **接线验证**：truffle 列身份断言通过即证明翻译 AST 真实经 CallTarget 执行（非解释器兜底）
-- [ ] `./mvnw test -pl :nop-xlang-truffle -am` 全绿
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] corpus v1 表达式单元 truffle 列 vs 解释器列对拍全绿（EXCLUSIVE 过渡形态；含身份断言）——roadmap I5 验收第一项
+- [x] 翻译缓存键语义有单测：同 resourcePath 不同树指纹分键不串用（构造两棵不同树断言两次翻译/两个 CallTarget 或等效证据）
+- [x] fail-fast 有测试：子集外节点翻译报错且错误信息含节点类名与 SourceLocation
+- [x] **端到端验证**：树 → 翻译器 → Truffle AST → CallTarget 执行 → 三层对拍断言全链可运行（stock JDK 21 形态）
+- [x] **接线验证**：truffle 列身份断言通过即证明翻译 AST 真实经 CallTarget 执行（非解释器兜底）
+- [x] `./mvnw test -pl :nop-xlang-truffle -am` 全绿
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
-- [ ] 表达式 corpus truffle 列 vs 解释器列对拍全绿（允许 EXCLUSIVE 过渡形态；含身份断言 = 翻译 AST 经 CallTarget 执行）——roadmap I5 验收第一项
-- [ ] `org.graalvm.*` truffle/polyglot 依赖仅出现在本模块 pom（不泄漏断言通过，口径与豁免见 Phase 1/Current Baseline）——roadmap I5 验收第二项
-- [ ] mission.json commands 已按"模块落盘即切换"追加且逐条可运行——roadmap I5 验收第三项
-- [ ] D1/D2/D3 决策定稿并记录（roadmap 委托项闭合）
-- [ ] 回归不允许削弱现解释器测试（纪律 3）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] owner-docs：No owner-doc update required（docs-for-ai 同步归 I11）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] Anti-Hollow Check：truffle 列真实经 CallTarget 执行（身份断言）；无空方法体/静默跳过/no-op
-- [ ] `./mvnw compile -pl :nop-xlang-truffle -am`
-- [ ] `./mvnw test -pl :nop-xlang-truffle -am -T 1C`
-- [ ] checkstyle / 代码规范检查通过
+- [x] 表达式 corpus truffle 列 vs 解释器列对拍全绿（允许 EXCLUSIVE 过渡形态；含身份断言 = 翻译 AST 经 CallTarget 执行）——roadmap I5 验收第一项
+- [x] `org.graalvm.*` truffle/polyglot 依赖仅出现在本模块 pom（不泄漏断言通过，口径与豁免见 Phase 1/Current Baseline）——roadmap I5 验收第二项
+- [x] mission.json commands 已按"模块落盘即切换"追加且逐条可运行——roadmap I5 验收第三项
+- [x] D1/D2/D3 决策定稿并记录（roadmap 委托项闭合）
+- [x] 回归不允许削弱现解释器测试（纪律 3）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
+- [x] owner-docs：No owner-doc update required（docs-for-ai 同步归 I11）
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] Anti-Hollow Check：truffle 列真实经 CallTarget 执行（身份断言）；无空方法体/静默跳过/no-op
+- [x] `./mvnw compile -pl :nop-xlang-truffle -am`
+- [x] `./mvnw test -pl :nop-xlang-truffle -am -T 1C`
+- [x] checkstyle / 代码规范检查通过
 
 ## Deferred But Adjudicated
 
@@ -168,14 +168,22 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写>>
-Completed: <<YYYY-MM-DD>>
+Status Note: 三 Phase（模块落盘/钉版/决策 → 语言/上下文/帧映射 → 翻译器/缓存/对拍列）全部 completed 且逐项勾选；roadmap I5 三项验收（对拍全绿、依赖不泄漏、commands 追加）与三项委托决策（D1/D2/D3）全部闭合。独立 fresh closure audit 逐项核验 live 代码/测试/工具门，verdict CAN CLOSE（0 Blocker）。
+Completed: 2026-08-20
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Evidence: <<task id / daily log link / findings 摘要>>
+- Reviewer / Agent: mission-driver closure-audit step（fresh session，独立于实现 session；MISSION_DRIVER:2026-08-19-205000 触发）
+- Evidence:
+  - Phase 1 Exit Criteria 全 PASS：`nop-kernel/nop-xlang-truffle/pom.xml`（truffle.version=25.2.4 三坐标钉线 + dsl-processor annotationProcessorPaths）+ 父 pom `nop-kernel/pom.xml:464` module 注册 repo-observable；D1/D2/D3 决策记录于 `ai-dev/logs/2026/08-20.md` Phase 1 条目；钉版冒烟/polyglot 冒烟/不泄漏断言（`TestTrufflePinnedVersionSmoke` 3/3、`TestTruffleDependencyIsolation` 1/1 绿）
+  - Phase 2 Exit Criteria 全 PASS：`XLangLanguage`（`@Registration` id=xl/EXCLUSIVE）+ dsl-processor 生成 provider 服务文件经 `TestXLangLanguageRegistration` 3/3 验证；回映射/帧映射单测（`TestSyntheticSourceMapping` 4/4、`TestFrameLayoutMapper` 6/6、接线冒烟 `TestLanguageWiringSmoke` 5/5）绿
+  - Phase 3 Exit Criteria 全 PASS：`TestCorpusV1TruffleColumn` 22/22 绿（三层断言 + cross-compare + 身份断言；静态单元 java skipped/not-registered、动态单元 java 不适用无 skip 记录）；缓存键语义 `TestTranslationCacheKeySemantics` 5/5、fail-fast `TestTranslatorFailFast` 4/4 绿
+  - Closure Gates 逐项 PASS（本 audit live 复跑）：`./mvnw compile -pl :nop-xlang-truffle -am` EXIT=0；`./mvnw test -pl :nop-xlang-truffle -am -T 1C` BUILD SUCCESS（nop-xlang 498/0/2 回归基线不变 + nop-xlang-truffle 53/0/0）；`checkstyle:check -pl :nop-xlang-truffle -Pqa` EXIT=0；依赖隔离 grep 复核 = nop-kernel 域内 `org.graalvm.truffle/polyglot` 仅本模块 pom（buildtools 插件豁免口径）；mission.json 四条 commands 均含 `:nop-xlang-truffle`
+  - Anti-Hollow 检查 PASS：代码追踪 `TruffleBackendColumn.execute → XLangTruffleEval.eval → Context.eval(合成 Source) → XLangLanguage.parse → TranslationCache → RootCallTarget 执行`，`TruffleBackendIdentityRule` 依证据断言 executedArtifact=翻译 XLangRootNode（sourceTree=请求树实例）+ executorArtifact=其 RootCallTarget，corpus 测试显式断言非解释器树；`scan-hollow-implementations.mjs --module nop-xlang-truffle --severity high` 0 findings exit 0
+  - Deferred 项分类检查：SHARED/池/缓存淘汰归 I8、Q1/Q4 watch-only 归 I12 均为 roadmap/design 既定责任分工（非缺陷降级）；执行中发现的 live 缺陷（guest null 语义）已在 scope 内修复（COMPLETION_MARKER + handoff 交接，见 log Phase 3 条目），无 in-scope defect 残留
+  - `node ai-dev/tools/check-plan-checklist.mjs <本 plan> --strict` EXIT=0（closure 后复跑确认）
+  - 注：触发器指定 的 `tools/mission-driver/src/plan-check.mjs` 本仓不存在，以 plan guide 规则 26 钉定的 `ai-dev/tools/check-plan-checklist.mjs --strict` 等价执行
 
 Follow-up:
 
-- <<SHARED/池/缓存淘汰归 I8；Q1/Q4 watch-only 归 I12；其余 no remaining plan-owned work>>
+- SHARED 终态切换/Context 池/并发对拍/缓存淘汰归 I8；Q1/Q4 watch-only 归 I12；docs-for-ai 新模块开发指南同步归 I11；除此之外 no remaining plan-owned work
