@@ -1,6 +1,6 @@
 # 从可逆计算看 DeepSeek Harness 的架构设计
 
-DeepSeek Harness（DSH）发布后在社区激起了巨大反响：主仓库上线不到一周，GitHub star 数已超过 16 万，挂上 dsh-plugin 话题标签的插件仓库已近 8,000 个（2026-08-19 查询值）。伴随DSH发布的，还有一篇Deepseek与北大合写的论文——[A Programming Paradigm for Spatiotemporal Composability](https://github.com/cordiverse/paper)（《一种面向时空可组合性的编程范式》），从数学上形式化了 DSH 底层插件运行时 Cordis 的设计原理。
+DeepSeek Harness（DSH）发布后在社区激起了巨大反响：主仓库上线不到一周，GitHub star 数已超过 16 万（2026-08-19 查询值）——据社区统计，它是 GitHub 历史上最快突破 10 万 star 的项目（约两天，此前纪录保持者为 OpenClaw）；挂上 dsh-plugin 话题标签的插件仓库已近 8,000 个。伴随DSH发布的，还有一篇Deepseek与北大合写的论文——[A Programming Paradigm for Spatiotemporal Composability](https://github.com/cordiverse/paper)（《一种面向时空可组合性的编程范式》），从数学上形式化了 DSH 底层插件运行时 Cordis 的设计原理。
 
 DSH 的架构设计思想可以用一句话来概括：**一切皆插件，插件皆可逆**。
 
@@ -765,6 +765,6 @@ grep -rn "ctx\.effect" --include='*.ts' --include='*.tsx' . | grep -v '/tests/' 
 | 门禁脚本 145 个；gen-scoped-events.ts 生成事件矩阵；runtime-diagnostics/invariants 运行时断言 | dsh/scripts/、dsh/packages/runtime-diagnostics/ |
 | vendor 九包框架族；packages/ 54 个包组 | dsh/vendor/（ls）、dsh/packages/（ls 计数） |
 
-GitHub 公开数据（2026-08-19 经 api.github.com 查询）：主仓库 `deepseek-ai/deepseek-harness`（2026-08-13 创建）star 数 164,984、fork 17,509；`dsh-plugin` 话题仓库 7,892 个。引言与 2.5 节的数字以此为准。
+GitHub 公开数据（2026-08-19 经 api.github.com 查询）：主仓库 `deepseek-ai/deepseek-harness`（2026-08-13 创建）star 数 164,984、fork 17,509；`dsh-plugin` 话题仓库 7,892 个。引言与 2.5 节的数字以此为准。引言中"史上最快突破 10 万 star（约两天，此前纪录保持者为 OpenClaw）"为社区/媒体口径（Reddit、LinkedIn 及多家新闻站互证），GitHub 官方无此类统计，正文以"据社区统计"限定引用。
 
 未复核、仅按社区文章转述的（正文均标注"据 [n]"）：Pi Extension 特性对比（[17]）、vendor 内本地修改处数（[18]，本文不引用具体数字）。
