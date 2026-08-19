@@ -1,6 +1,6 @@
 # 从可逆计算看 DeepSeek Harness 的架构设计
 
-DeepSeek Harness（DSH）发布后在社区激起了巨大反响：主仓库上线不到一周，GitHub star 数已超过 16 万，挂上 dsh-plugin 话题标签的插件仓库已近 8,000 个（2026-08-19 查询值）。伴随DSH发布的，还有一篇Deepseek与北大合写的论文——[A Programming Paradigm for Spatiotemporal Composability](https://github.com/cordiverse/paper)（《一种面向时空可组合性的编程范式》，预印本 88 页）：论文形式化的对象 Cordis 正是 DSH 底层的插件运行时，第三作者崔添翼即 DSH 团队负责人（见 [22]），产品与论文出自同一批人之手。
+DeepSeek Harness（DSH）发布后在社区激起了巨大反响：主仓库上线不到一周，GitHub star 数已超过 16 万，挂上 dsh-plugin 话题标签的插件仓库已近 8,000 个（2026-08-19 查询值）。伴随DSH发布的，还有一篇Deepseek与北大合写的论文——[A Programming Paradigm for Spatiotemporal Composability](https://github.com/cordiverse/paper)（《一种面向时空可组合性的编程范式》），从数学上形式化了 DSH 底层插件运行时 Cordis 的设计原理。
 
 DSH 的架构设计思想可以用一句话来概括：**一切皆插件，插件皆可逆**。
 
