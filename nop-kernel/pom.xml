@@ -460,6 +460,7 @@
         <module>nop-api-core</module>
         <module>nop-core</module>
         <module>nop-xlang</module>
+        <module>nop-xlang-java</module>
         <module>nop-xdefs</module>
         <module>nop-markdown</module>
         <module>nop-kernel-cli</module>
