@@ -66,12 +66,21 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
     /**
      * plan 2254: 手动取消链接线——cancelFire 成功后对 in-flight 任务调用 cancelHandler
      * （coordinator 侧既有组件，超时路径已在用），经 executorKind 解析 invoker 通知 worker
-     * 主动中断（remote 模式 executorKind=rpc → RpcJobInvoker.cancelAsync → 远程 cancelJob）。
-     * 普通 setter（无 @Inject，仿 JobTimeoutCheckerImpl.setNamingService 可选注入先例）：
-     * beans.xml 按需装配，未装配时跳过通知，取消仍以 DB 状态为准。
+     * 主动中断（executorKind=rpcPoll → RemoteJobInvoker.cancelAsync → 远程 cancelJob）。
+     * 普通 setter（无 @Inject，仿 JobTimeoutCheckerImpl.setNamingService 可选注入先例）；
+     * **生产装配**：容器存在 IJobCancelHandler bean（coordinator 部署 app-engine.beans.xml）
+     * 时经 {@link #cancelHandler()} 懒取自动生效；测试可经反射注入 mock 覆盖。
      */
     public void setCancelHandler(IJobCancelHandler cancelHandler) {
         this.cancelHandler = cancelHandler;
+    }
+
+    private IJobCancelHandler cancelHandler() {
+        if (cancelHandler != null) {
+            return cancelHandler;
+        }
+        Object bean = BeanContainer.instance().tryGetBeanByType(IJobCancelHandler.class);
+        return bean instanceof IJobCancelHandler ? (IJobCancelHandler) bean : null;
     }
 
     @Override
@@ -130,7 +139,8 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
      * 依赖注入的 cancelHandler（未装配则跳过）。DB 状态已 CANCELED，通知失败不影响结果。
      */
     private void notifyCancel(List<NopJobTask> tasks, NopJobFire fire, IServiceContext context) {
-        if (cancelHandler == null || tasks == null || tasks.isEmpty()) {
+        IJobCancelHandler handler = cancelHandler();
+        if (handler == null || tasks == null || tasks.isEmpty()) {
             return;
         }
         NopJobSchedule schedule = scheduleStore.loadSchedule(fire.getJobScheduleId());
@@ -139,7 +149,7 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
                 continue;
             }
             try {
-                cancelHandler.cancelRunningTask(schedule, fire, task);
+                handler.cancelRunningTask(schedule, fire, task);
             } catch (Exception e) {
                 LOG.warn("nop.job.cancel.notify-failed:fireId={},taskId={}",
                         fire.getJobFireId(), task.getJobTaskId(), e);

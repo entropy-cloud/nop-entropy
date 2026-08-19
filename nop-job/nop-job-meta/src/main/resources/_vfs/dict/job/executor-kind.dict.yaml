@@ -13,3 +13,7 @@ options:
     value: rpc
     description: 将 fire 投递给 worker 侧 RPC 执行器（nopJobInvoker_rpc）
   
+  - label: 远程轮询执行器
+    value: rpcPoll
+    description: 三段式远程执行（start/poll/cancel，nopJobInvoker_rpcPoll），适用于长任务（longTask），worker 零 DB 依赖
+  

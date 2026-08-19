@@ -39,6 +39,7 @@
         <dict label="执行器类型" name="job/executor-kind" valueType="string" i18n-en:label="Executor Kind">
             <option code="test" description="仅用于测试/调试的本地执行器" label="测试执行器" value="test" i18n-en:label="Test Executor"/>
             <option code="rpc" description="将 fire 投递给 worker 侧 RPC 执行器（nopJobInvoker_rpc）" label="RPC执行器" value="rpc" i18n-en:label="RPC Executor"/>
+            <option code="rpcPoll" description="三段式远程执行（start/poll/cancel，nopJobInvoker_rpcPoll），适用于长任务（longTask），worker 零 DB 依赖" label="远程轮询执行器" value="rpcPoll" i18n-en:label="RPC Poll Executor"/>
         </dict>
         <dict label="阻塞策略" name="job/block-strategy" valueType="int" i18n-en:label="Block Strategy">
             <option code="DISCARD" label="丢弃" value="1"/>

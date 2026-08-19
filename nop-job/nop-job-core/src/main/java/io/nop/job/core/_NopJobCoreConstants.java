@@ -129,6 +129,11 @@ public interface _NopJobCoreConstants {
     String EXECUTOR_KIND_rpc = "rpc";
                     
     /**
+     * 执行器类型: 远程轮询执行器 三段式远程执行（start/poll/cancel，nopJobInvoker_rpcPoll），适用于长任务（longTask），worker 零 DB 依赖
+     */
+    String EXECUTOR_KIND_rpcPoll = "rpcPoll";
+                    
+    /**
      * 阻塞策略: 丢弃 
      */
     int BLOCK_STRATEGY_DISCARD = 1;
