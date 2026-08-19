@@ -1,6 +1,7 @@
 # nop-ai 外部信道集成 Roadmap
 
-> Status: active
+> Status: done
+> **收口（2026-08-19 状态同步）**：W0–W7 全部 27 个工项 `[x]` done（落地计划与 closure audit 见各条目），设计 Open Questions 全部收口，「完成定义」各项满足。后续新信道（钉钉/企微/Webhook）按 W7-1 后的扩展点另开 successor，不改本 roadmap。
 > 设计：`ai-dev/design/nop-ai-channel-integration-design.md`（业务层 + QR 绑定/登录）+ `ai-dev/design/nop-ai-agent/nop-ai-agent-channel-connector.md`（传输层 `IChannelConnector`）。两篇合起来是"外部信道集成"的完整设计——本 roadmap 彻底落地两者。
 > 立场：业务层接口放 `nop-integration-api`（不依赖 AI），实现与传输连接器胶水放 `nop-ai-gateway`（装配点），厂商 SDK 协议放新模块 `nop-integration-feishu`（不依赖 AI），绑定记录复用 `NopAuthExtLogin`。飞书是第一个落地信道，信道抽象保证钉钉/企微/Webhook 零改引擎与登录主流程即可接入。
 >

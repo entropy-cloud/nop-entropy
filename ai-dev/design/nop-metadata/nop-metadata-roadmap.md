@@ -159,11 +159,11 @@
 
 | 工作项 | 描述 | 状态 |
 |--------|------|------|
-| S1-1 | 新增 4 个 dict：`meta/tag-label-source`、`meta/tag-label-type`、`meta/tag-label-state`、`meta/tag-provider` | todo |
-| S1-2 | 新增实体 `NopMetaClassification`（分类体系，含 to-many tags relation） | todo |
-| S1-3 | 新增实体 `NopMetaTag`（分类标签，含自引用 parentTagId 层级） | todo |
-| S1-4 | 新增实体 `NopMetaTagLabel`（统一桥接，含 entityType+entityId 索引） | todo |
-| S1-5 | 集成测试：GraphQL CRUD + 按 entityType+entityId 查询 | todo |
+| S1-1 | 新增 4 个 dict：`meta/tag-label-source`、`meta/tag-label-type`、`meta/tag-label-state`、`meta/tag-provider` | done |
+| S1-2 | 新增实体 `NopMetaClassification`（分类体系，含 to-many tags relation） | done |
+| S1-3 | 新增实体 `NopMetaTag`（分类标签，含自引用 parentTagId 层级） | done |
+| S1-4 | 新增实体 `NopMetaTagLabel`（统一桥接，含 entityType+entityId 索引） | done |
+| S1-5 | 集成测试：GraphQL CRUD + 按 entityType+entityId 查询 | done |
 
 > Plan: 302
 
