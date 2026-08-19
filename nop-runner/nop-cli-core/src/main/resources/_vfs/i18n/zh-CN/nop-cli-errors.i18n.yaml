@@ -674,6 +674,10 @@ nop.err.graphql.invalid-fragment-selection-name: GraphQL片段选择器名称不
 nop.err.graphql.invalid-operation-name: 操作名称格式不正确:{operationName}
 nop.err.graphql.method-arg-type-not-obj-type: 函数[{methodName}]的参数[{argName}]的类型不是对象类型:{type}
 nop.err.graphql.method-param-no-reflection-name-annotation: 方法[{methodName}]上的参数[{argName}]没有@Name注解，也不是引擎可以识别的内部参数
+nop.err.graphql.mfa-required-not-allowed-for-public-access: 对象[{bizObjName}]的业务方法[{operationName}]标注了@MfaRequired，不允许与@Auth(publicAccess=true)同用（匿名方法无会话可验）
+nop.err.graphql.mfa-required-not-allowed-on-biz-action: 对象[{bizObjName}]的业务方法[{operationName}]标注了@MfaRequired，不允许用于@BizAction方法（内部动作不经executor操作级MFA检查点，静默忽略等于fail-open；请改标@BizMutation/@BizQuery）
+nop.err.graphql.mfa-required-not-allowed-on-biz-loader: 对象[{bizObjName}]的业务方法[{operationName}]标注了@MfaRequired，不允许用于@BizLoader方法（字段装载器无独立操作入口，静默忽略等于fail-open）
+nop.err.graphql.mfa-required-not-allowed-on-subscription: 对象[{bizObjName}]的业务方法[{operationName}]标注了@MfaRequired，不允许用于subscription方法（订阅路径无请求-响应语义，静默绕过等于fail-open）
 nop.err.graphql.missing-field-arg: 对象[{objName}]的属性[{fieldName}]要求必须传入参数[{argName}]
 nop.err.graphql.multi-biz-file-for-biz-obj: 存在多个biz文件对应于同一个对象[{bizObjName}]:pathA={pathA},pathB={pathB}
 nop.err.graphql.multi-class-has-same-biz-obj-name: 类[{class}]和[{otherClass}]标记了同样的对象名[{bizObjName}]
@@ -723,6 +727,12 @@ nop.err.http.response-format-not-expected: 返回的内容格式不符合预期
 nop.err.http.response-text-not-json: 返回的内容不是JSON格式
 nop.err.http.timeout: http请求超时
 nop.err.imp.duplicate-sheet-alias: 发现重复的表单别名：别名'{alias}'同时被表单'{oldName}'和'{newName}'使用
+nop.err.integration.credential-field-convert-failed: 凭证字段值类型转换失败:{credentialId},字段:{fieldName}
+nop.err.integration.credential-field-required: 凭证必填字段缺失或为空:{credentialId},字段:{fieldName}
+nop.err.integration.credential-provider-not-configured: credentialId 已配置但 ICredentialProvider
+  未装配（部署不一致，fail-closed 拒绝回退静态值）:{credentialId}
+nop.err.integration.credential-resolve-failed: 凭证解析失败（fail-closed，不回退静态值）:{credentialId}
+nop.err.integration.credential-type-mismatch: 凭证类型与当前渠道不匹配（typeName 不在渠道允许集）:{credentialId},实际类型:{typeName},允许集:{expectedTypeNames}
 nop.err.integration.send-sms-fail: 发送短信失败，号码:{mobile},错误码:{errorCode},消息:{msg}
 nop.err.ioc..invalid-bean-config-value: bean[{beanName}]的配置值[{value}]格式不正确
 nop.err.ioc.alias-conflict: bean的别名[{name}]已经被使用，无法重复定义:locA={locA},locB={locB}
