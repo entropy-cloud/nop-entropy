@@ -37,6 +37,14 @@ const AI_DEV_ROOT = join(PROJECT_ROOT, 'ai-dev');
 
 const SKIP_FILES = new Set([
   'ai-dev/plans/50-doc-link-check-fix-all.md',
+  // dsh 社区文章存档（ai-dev/references/dsh-community-articles/）：
+  // 第三方原文的正文路径（module-graph.md、docs/cookbook/ 等）指涉外部 dsh 仓库，非本仓库链接
+  'ai-dev/references/dsh-community-articles/DeepSeek Harness 拆解 - 一套能拼装的 Agent 架构.md',
+  'ai-dev/references/dsh-community-articles/Cordis如何支撑DeepSeek Harness的插件化构建 - 基于源码与架构互证的深度分析.md',
+  'ai-dev/references/dsh-community-articles/DeepSeek Harness 架构解析 - Cordis 插件运行时的深度剖析.md',
+  'ai-dev/references/dsh-community-articles/DeepSeek Harness 架构解析 - 以差值定义系统，用插件组装智慧.md',
+  'ai-dev/references/dsh-community-articles/DeepSeek Harness 架构解析 - 从理论到实现的鸿沟，如何跨越.md',
+  'ai-dev/references/dsh-community-articles/DeepSeek Harness 架构解析 - 沙箱、Code Mode 与安全的未来.md',
 ]);
 
 let filenameSearchCache = null;
