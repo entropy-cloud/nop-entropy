@@ -1,7 +1,7 @@
 # XLang 优化执行双后端 Roadmap（nop-xlang-java + nop-xlang-truffle）
 
 > Status: active
-> Last updated: 2026-08-20（I1 执行完毕 + 独立 closure audit CAN CLOSE，标 done——阶段二首个实现条目收口；I2/I5 plan 就绪待执行）
+> Last updated: 2026-08-20（I2 执行完毕 + 独立 closure audit CAN CLOSE，标 done——java 后端骨架与子集转译落地，对拍 java 列激活；I5 plan 就绪待执行）
 > Sources（设计阶段必读输入，实施前不得跳过）：
 > - `ai-dev/design/xlang-truffle/01-truffle-knowledge.md`（Truffle 框架知识层，2026-08-16 三轮独立审查达成共识）
 > - `ai-dev/analysis/2026-08/2026-08-16-truffle-graalvm-ecosystem-research.md`（GraalVM/Truffle 生态调研：native 内 guest 代码有运行时 JIT（25 默认）但宿主 Java 无 JIT，Truffle 只服务 JVM 部署形态；Espresso 支持 native exe 内动态加载字节码）
@@ -45,7 +45,7 @@
   - 范围：对拍 harness（后端作为用例执行参数矩阵化，复用 Nop AutoTest 机制；落点由实现 plan 按模块依赖方向合法性定）；表达式子集 corpus v1（静态资源样例 + 动态字符串样例配比构成，配比落 plan）；测试级强制路由 API 与后端身份断言；列适用性与"列缺席显式记录"机制；差异注入自检
   - 验收：对拍不变式断言机制落地（三层断言/身份断言/列适用性）并以差异注入自检证明（故意构造分歧用例 → harness 判 FAIL，红/绿可控）；corpus v1 解释器基线列全绿；列缺席记录机制有测试（java/truffle 列缺席时显式记跳过、不算通过）
   - 复用：Nop AutoTest 机制
-- I2. nop-xlang-java 模块骨架 + 表达式子集转译 + 共享语义 helper 基座 + 对拍 java 列激活：`planned`（plan：`ai-dev/plans/xlang-execution-optimization/2026-08-20-0030-2-i2-java-backend-skeleton.md`，2026-08-20 两轮独立子agent draft review 至共识（round-2 GO 0 Blocker/0 Major）；plan 内定稿：简单方法调用子集边界=宿主反射分派族不含 CallFunc 族、java 列测试域执行通路=nop-javac 内存编译（设计文本未枚举的测试域扩展裁定）、包装器契约责任链 I2 定约/I4 验证记账（W4-audit R1-2 承接）） — 依赖：I1
+- I2. nop-xlang-java 模块骨架 + 表达式子集转译 + 共享语义 helper 基座 + 对拍 java 列激活：`done`（plan：`ai-dev/plans/xlang-execution-optimization/2026-08-20-0030-2-i2-java-backend-skeleton.md`，2026-08-20 执行完毕并独立 closure audit CAN CLOSE（task `ses_fe4c3e210ffexDxW6Ji3fpPwTa`，0 Blocker）；落地：`nop-kernel/nop-xlang-java` 模块（转译器 `ExecToJavaTranslator` + 生成约定 `EvalMethodConvention`/`GeneratedEvalBinding`）、共享 helper 基座 `io.nop.xlang.exec.XLangSemantics`（解释器五节点类收口改调，498 回归与基线一致）、corpus v1 静态单元 java 列 vs 解释器列对拍全绿（22/22，强身份断言=确定性派生生成类实例）、mission.json commands 四条切换 live 可运行；包装器契约定稿（`$out` 第二隐参）责任链 I4 记账；执行中裁定：java 列测试域执行通路=nop-javac 内存编译（设计文本缺口记 log 供修订）、FunctionExecutable 系生成代码经同一 `EvalGlobalRegistry` 运行时解析、共享分派 handle 按 funcName 分立防类级缓存跨名污染） — 依赖：I1
   - 范围：新模块 `nop-xlang-java` 落盘（`nop-kernel` 下，pom/包结构骨架）；表达式子集（字面量/slot 标识符/算术/逻辑/比较/简单方法调用）树→Java 源码转译；共享语义 helper 基座（数值提升/宽松比较等，定义在 nop-xlang，解释器同步改用——行为不变由既有测试保证）；EvalMethod 调用约定（static + 首参 `IEvalScope $scope`，纯表达式单元经 `EvalMethodInvoker` 包装）；模板入口包装器契约定稿（xpl/xlib 追加 `IEvalOutput $out` 隐参，设计 java §七）；SourceLocation 静态常量内嵌
   - 验收：表达式 corpus java 列 vs 解释器列对拍全绿（含 java 列身份断言=生成类实例）；解释器改用共享 helper 后 nop-xlang 既有测试全绿；生成源码含 SourceLocation 静态常量（异常语义断言可执行）；mission.json commands 在模块落盘的同一次变更中切换为含 `:nop-xlang-java` 的口径（如 `./mvnw test -pl :nop-xlang,:nop-xlang-java -am -T 1C`，build/lint/typecheck 同步）——"模块落盘即切换"裁定，见 W3-supplement 条目备注
   - 复用：janino `EvalMethod` 先例（`JaninoScriptCompiler`/`EvalMethodInvoker`）；`nop-javac` 仅可选诊断性编译校验（不承担产物编译）
