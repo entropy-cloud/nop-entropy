@@ -4,7 +4,6 @@ entity:
     NopRetryDeadLetter: Retry Dead Letter
     NopRetryPolicy: Retry Policy
     NopRetryRecord: Retry Record
-    NopRetryTemplate: Retry Template
 prop:
   label:
     NopRetryAttempt:
@@ -104,34 +103,6 @@ prop:
       serviceMethod: Service Method
       policy: Policy
       requestPayloadComponent: null
-    NopRetryTemplate:
-      sid: Primary Key
-      namespaceId: Namespace ID
-      groupId: Group ID
-      name: Template Name
-      status: Status
-      maxRetryCount: Max Retry Count
-      backoffStrategy: Backoff Strategy
-      backoffStrategy_label: null
-      backoffConfig: Backoff Config
-      executionTimeoutSeconds: Execution Timeout (Seconds)
-      deadlineTimeoutMs: Deadline Timeout (Milliseconds)
-      blockStrategy: Block Strategy
-      blockStrategy_label: null
-      callbackEnabled: Callback Enabled
-      callbackTriggerType: Callback Trigger Type
-      callbackTriggerType_label: null
-      callbackMaxAttempts: Callback Max Attempts
-      callbackIntervalSeconds: Callback Interval (Seconds)
-      ownerId: Owner ID
-      description: Description
-      version: Version
-      createdBy: Created By
-      createTime: Create Time
-      updatedBy: Updated By
-      updateTime: Update Time
-      records: Retry Records
-      backoffConfigComponent: null
 dict:
   label:
     retry/retry-record-status: Retry Record Status
