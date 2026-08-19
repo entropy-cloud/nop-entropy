@@ -1,7 +1,7 @@
 # XLang 优化执行双后端 Roadmap（nop-xlang-java + nop-xlang-truffle）
 
 > Status: active
-> Last updated: 2026-08-19（W3-supplement 完成：阶段二定稿 I1-I12、Stages/依赖图同步、mission.json commands 机制裁定；下一项 W4-audit）
+> Last updated: 2026-08-20（W4-audit 完成：round-1 独立审计即 PASS，★「设计与计划就绪」里程碑达成，阶段二解冻——I1-I12 可起草 plan）
 > Sources（设计阶段必读输入，实施前不得跳过）：
 > - `ai-dev/design/xlang-truffle/01-truffle-knowledge.md`（Truffle 框架知识层，2026-08-16 三轮独立审查达成共识）
 > - `ai-dev/analysis/2026-08/2026-08-16-truffle-graalvm-ecosystem-research.md`（GraalVM/Truffle 生态调研：native 内 guest 代码有运行时 JIT（25 默认）但宿主 Java 无 JIT，Truffle 只服务 JVM 部署形态；Espresso 支持 native exe 内动态加载字节码）
@@ -28,8 +28,8 @@
   - 依赖：无（知识输入已就绪）。粒度约束：三组文档可拆多个 plan，但必须全部定稿才能进 W2
 - W2-review. 设计文档独立审查 gate：`done`（plan：`ai-dev/plans/xlang-execution-optimization/2026-08-19-2050-2-w2-design-review-gate.md`，2026-08-19 五轮独立子agent 审查至 PASS） — 依赖：W1-design。**硬性要求：至少两轮独立子agent 审查（每轮新开子agent，不共享上下文），逐轮修复后复审，直到某轮 PASS（0 P0/P1）才可关闭；审查报告落 `ai-dev/audits/xlang-execution-optimization/`，roadmap 条目须回链两轮以上报告**。轮次报告：[round-1](../audits/xlang-execution-optimization/2026-08-19-design-review-round-1.md)（FAIL 2 P1→修复）、[round-2](../audits/xlang-execution-optimization/2026-08-19-design-review-round-2.md)（FAIL 1 P1→修复）、[round-3](../audits/xlang-execution-optimization/2026-08-19-design-review-round-3.md)（FAIL 1 P1→修复）、[round-4](../audits/xlang-execution-optimization/2026-08-19-design-review-round-4.md)（FAIL 2 P1→修复）、[round-5](../audits/xlang-execution-optimization/2026-08-19-design-review-round-5.md)（**PASS 0 P0/0 P1**，含移交 W3 清单 17 项）
 - W3-supplement. 按定稿设计回填实现 work items：`done`（plan：`ai-dev/plans/xlang-execution-optimization/2026-08-19-2050-3-w3-supplement-work-items.md`，2026-08-19 独立 closure audit CAN CLOSE，0 Blocker/0 Major/3 Minor——Minor 均为 W4-audit 输入；裁定记录见 `ai-dev/logs/2026/08-19.md`） — 依赖：W2-review。修订本 roadmap 阶段二（原预列 I1-I7 增删拆并为 I1-I12，定稿验收标准与依赖，Stages 表/依赖图同步）。**commands 纳入新模块采用"模块落盘即切换"裁定**：Maven `-pl` 对尚不存在模块直接报错，提前写入会使 mission.json live commands 恒失败——目标 commands 与切换时机已写入 I2（落盘 `nop-xlang-java` 时切换）/I5（落盘 `nop-xlang-truffle` 时追加）/I12（汇总口径核验）条目验收标准，live commands 在落盘前保持仅引用已存在模块
-- W4-audit. roadmap workitem 审核 gate：`todo` — 依赖：W3-supplement。独立 audit（openAuditPrompt）：粒度（单 plan 可完成，5-15 文件/200-500 行/1-4 phases）、依赖图无环且与 stage 表一致、验收标准可验证、复用标注准确、与定稿设计无冲突；FAIL 则回 W3
-- ★ **Milestone: 设计与计划就绪**（W1-W4 全部 done，阶段二 work items 定稿并通过审核）：`todo` — 派生：W1-W4
+- W4-audit. roadmap workitem 审核 gate：`done`（plan：`ai-dev/plans/xlang-execution-optimization/2026-08-19-2350-1-w4-roadmap-workitem-audit-gate.md`，2026-08-20 round-1 独立审计即 PASS + 独立 closure audit CAN CLOSE，0 Blocker/0 Major/0 Minor；W3 Closure 移交 3 项 Minor 逐项裁定非阻塞，裁定记录见 `ai-dev/logs/2026/08-20.md`） — 依赖：W3-supplement。独立 audit（openAuditPrompt）：粒度（单 plan 可完成，5-15 文件/200-500 行/1-4 phases）、依赖图无环且与 stage 表一致、验收标准可验证、复用标注准确、与定稿设计无冲突；FAIL 则回 W3。轮次报告：[round-1](../audits/xlang-execution-optimization/2026-08-20-roadmap-workitem-audit-round-1.md)（**PASS 0 P0/0 P1/4 P2**，独立 fresh session，五维度逐维度 PASS；W3 移交 3 项 Minor 逐项裁定非阻塞——I6 类别同构引用链完整可解析 / I3/I4/I6/I7/I8 复用信息由定稿口径块共享 helper 纪律 + Stages Reuse 列承载 / 编号映射表抽验 10 处覆盖全部行使分支且语义正确；遗留 4 项 P2 逐条裁定归属见报告 §八，移交后继清单见 §七）
+- ★ **Milestone: 设计与计划就绪**（W1-W4 全部 done，阶段二 work items 定稿并通过审核）：`done` — 派生：W1-W4（2026-08-20 W4-audit done 后同步）
 
 ### 阶段二：实现（W3-supplement 已定稿：原预列 I1-I7 增删拆并为 I1-I12，逐项裁定与理由见 `ai-dev/logs/2026/08-19.md`；W4-audit done 前不得启动）
 
@@ -160,7 +160,7 @@ graph TD
 ## 审查与验证纪律（本 roadmap 特有约束）
 
 1. **设计 gate 硬约束**：W2-review 不少于两轮独立子agent（无共享上下文），PASS（0 P0/P1）前不得进 W3；审查报告持久化到 `ai-dev/audits/xlang-execution-optimization/` 并在 W2 条目回链。
-2. **阶段二冻结**：W4-audit done 前，任何 I 系列工作项不得起草 plan（阶段二条目已由 W3-supplement 定稿；解冻点仍是 W4-audit done）。
+2. **阶段二冻结**：W4-audit done 前，任何 I 系列工作项不得起草 plan（阶段二条目已由 W3-supplement 定稿；解冻点仍是 W4-audit done）。**解冻点已达成（2026-08-20 W4-audit done），I 系列可起草 plan。**
 3. **对拍不变式**：每个 I 系列实现 plan 的验收必须包含"同一 Executable 树多后端执行结果一致"的对拍断言；回归不允许削弱现解释器测试。
 4. **生成物纪律**：`_gen/` 与 `_` 前缀产物不可手改（AGENTS.md 硬规则）；Java 后端只生成源码与加载器，不绕过 codegen 管线。
 5. **模块边界**：新模块依赖方向 `nop-xlang-java`/`nop-xlang-truffle` → `nop-xlang` → `nop-core`，禁止反向；`nop-xlang-java` → `nop-javac` 仅限构建期可选诊断性编译校验边（设计 execution 01 §二虚线边，非运行时依赖）；Truffle 依赖只出现在 nop-xlang-truffle（不得泄漏进内核其他模块）。
