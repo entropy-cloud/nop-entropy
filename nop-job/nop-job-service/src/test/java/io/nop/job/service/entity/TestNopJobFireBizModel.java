@@ -13,13 +13,19 @@ import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.job.biz.INopJobFireBiz;
 import io.nop.job.core._NopJobCoreConstants;
+import io.nop.job.coordinator.engine.IJobCancelHandler;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
+import io.nop.job.dao.store.IJobFireStore;
+import io.nop.job.dao.store.IJobScheduleStore;
+import io.nop.job.dao.store.IJobTaskStore;
+import io.nop.api.core.ioc.BeanContainer;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -54,6 +60,88 @@ public class TestNopJobFireBizModel extends JunitBaseTestCase {
 
     @Inject
     INopJobFireBiz fireBiz;
+
+    @Inject
+    IJobFireStore fireStore;
+
+    @Inject
+    IJobScheduleStore scheduleStore;
+
+    @Inject
+    IJobTaskStore taskStore;
+
+    /**
+     * plan 2254: cancelFire 对 in-flight 任务通知 cancelHandler（best-effort 主动中断），
+     * 且必须在 fireStore.cancelFire 之前捕获任务快照（cancel 事务会把活动 task 置 CANCELED）。
+     *
+     * <p>cancelHandler 是普通 setter（无 @Inject），IoC 不会自动装配。测试通过 BeanContainer 按类型
+     * 拿到 backing NopJobFireBizModel 实例（fireBiz 是 JDK proxy，仅是统一接口，路由到 backing
+     * 实例调 method），反射写入 mock cancelHandler 后经 fireBiz.cancelFire 触发通知。
+     */
+    @Test
+    public void testCancelFireNotifiesCancelHandlerForInFlightTasks() {
+        long now = System.currentTimeMillis();
+
+        NopJobSchedule schedule = newSchedule("schedule-fire-cancel-n1", "job-fire-cancel-n1");
+        schedule.setFireCount(1L);
+        schedule.setActiveFireCount(1);
+        saveSchedule(schedule);
+
+        NopJobFire fire = newFire("fire-cancel-n1", schedule, FIRE_STATUS_RUNNING,
+                TRIGGER_SOURCE_SCHEDULE, new Timestamp(now - 2_000L));
+        fire.setStartTime(new Timestamp(now - 1_500L));
+        saveFire(fire);
+
+        NopJobTask running = newTask("task-cancel-n1", fire, TASK_STATUS_RUNNING);
+        running.setStartTime(new Timestamp(now - 1_000L));
+        running.setWorkerInstanceId("worker-1");
+        saveTask(running);
+
+        NopJobTask finished = newTask("task-cancel-n2", fire, TASK_STATUS_SUCCESS);
+        saveTask(finished);
+
+        RecordingCancelHandler handler = new RecordingCancelHandler();
+        BeanContainer.getBeanByType(NopJobFireBizModel.class).setCancelHandler(handler);
+
+        fireBiz.cancelFire(fire.getJobFireId(), newContext());
+
+        // 只通知 in-flight（RUNNING）任务，已终态任务不通知
+        assertEquals(1, handler.calls.size());
+        assertEquals(running.getJobTaskId(), handler.calls.get(0).getJobTaskId());
+
+        // DB 状态仍然正确（cancelFire 既有语义不变）
+        assertEquals(FIRE_STATUS_CANCELED, loadFire(fire.getJobFireId()).getFireStatus());
+        assertEquals(TASK_STATUS_CANCELED, loadTask(running.getJobTaskId()).getTaskStatus());
+    }
+
+    @Test
+    public void testCancelFireWithoutCancelHandlerStillWorks() {
+        long now = System.currentTimeMillis();
+
+        NopJobSchedule schedule = newSchedule("schedule-fire-cancel-n2", "job-fire-cancel-n2");
+        schedule.setFireCount(1L);
+        schedule.setActiveFireCount(1);
+        saveSchedule(schedule);
+
+        NopJobFire fire = newFire("fire-cancel-n2", schedule, FIRE_STATUS_RUNNING,
+                TRIGGER_SOURCE_SCHEDULE, new Timestamp(now - 2_000L));
+        fire.setStartTime(new Timestamp(now - 1_500L));
+        saveFire(fire);
+
+        // cancelHandler 保持 null（容器默认未装配），cancelFire 仍以 DB 状态为准
+        fireBiz.cancelFire(fire.getJobFireId(), newContext());
+
+        assertEquals(FIRE_STATUS_CANCELED, loadFire(fire.getJobFireId()).getFireStatus());
+    }
+
+    static final class RecordingCancelHandler implements IJobCancelHandler {
+        final List<NopJobTask> calls = new ArrayList<>();
+
+        @Override
+        public void cancelRunningTask(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
+            calls.add(task);
+        }
+    }
 
     @Test
     public void testCancelWaitingFireUpdatesFireAndSchedule() {
@@ -223,6 +311,8 @@ public class TestNopJobFireBizModel extends JunitBaseTestCase {
 
         assertNotEquals(sourceFire.getJobFireId(), rerunFire.getJobFireId());
         assertEquals(_NopJobCoreConstants.TRIGGER_SOURCE_RECOVERY, rerunFire.getTriggerSource());
+        // rerun 追溯：新 fire 必须保留源 fire id
+        assertEquals(sourceFire.getJobFireId(), rerunFire.getSourceFireId());
         assertEquals(FIRE_STATUS_WAITING, rerunFire.getFireStatus());
         assertEquals("bob", rerunFire.getTriggeredBy());
         assertEquals(JsonTool.parseMap(schedule.getJobParams()), JsonTool.parseMap(rerunFire.getJobParamsSnapshot()));

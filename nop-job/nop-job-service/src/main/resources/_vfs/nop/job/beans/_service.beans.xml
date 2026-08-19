@@ -12,6 +12,13 @@
         <property name="bizObjName" value="NopJobSchedule"/>
     </bean>
 
+    <bean id="io.nop.job.service.entity.NopJobTaskLogBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopJobTaskLog" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.job.biz.INopJobTaskLogBiz" ioc:force-lazy-property="true" lazy-init="true" primary="true">
+        <property name="bizObjName" value="NopJobTaskLog"/>
+    </bean>
+
     <bean id="io.nop.job.service.entity.NopJobFireBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="biz_NopJobFire" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.job.biz.INopJobFireBiz"

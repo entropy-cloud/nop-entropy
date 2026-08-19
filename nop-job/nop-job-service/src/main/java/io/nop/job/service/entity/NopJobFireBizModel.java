@@ -6,18 +6,23 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.ioc.BeanContainer;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.core.context.IServiceContext;
 
 import io.nop.job.biz.INopJobFireBiz;
 import io.nop.job.core._NopJobCoreConstants;
+import io.nop.job.coordinator.engine.IJobCancelHandler;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
+import io.nop.job.dao.entity.NopJobTask;
 import io.nop.job.dao.helper.JobFireStateMachine;
 import io.nop.job.dao.helper.JobScheduleStateMachine;
+import io.nop.job.dao.helper.JobTaskStateMachine;
 import io.nop.job.dao.store.FireScheduleOutcome;
 import io.nop.job.dao.store.IJobFireStore;
 import io.nop.job.dao.store.IJobScheduleStore;
+import io.nop.job.dao.store.IJobTaskStore;
 import io.nop.job.service.JobContextHelper;
 import io.nop.job.service.fire.FireFactory;
 import jakarta.inject.Inject;
@@ -25,6 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
+import java.util.List;
 
 import static io.nop.job.service.NopJobErrors.ERR_JOB_FIRE_CANCEL_NOT_ALLOWED;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_FIRE_DELETE_NOT_ALLOWED;
@@ -42,9 +48,30 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
 
     protected IJobFireStore fireStore;
     protected IJobScheduleStore scheduleStore;
+    protected IJobCancelHandler cancelHandler;
 
     public NopJobFireBizModel(){
         setEntityName(NopJobFire.class.getName());
+    }
+
+    /**
+     * plan 2254: cancel 接线所需的 task 快照来源。BizModel bean 的 IoC 注入/装配对 backing
+     * 实例不生效（_service.beans.xml 的 BizModel bean 不声明 property），因此按类型懒获取
+     * （BeanContainer，容器中 IJobTaskStore bean 由 app-dao.beans.xml 装配）。
+     */
+    private IJobTaskStore taskStore() {
+        return BeanContainer.getBeanByType(IJobTaskStore.class);
+    }
+
+    /**
+     * plan 2254: 手动取消链接线——cancelFire 成功后对 in-flight 任务调用 cancelHandler
+     * （coordinator 侧既有组件，超时路径已在用），经 executorKind 解析 invoker 通知 worker
+     * 主动中断（remote 模式 executorKind=rpc → RpcJobInvoker.cancelAsync → 远程 cancelJob）。
+     * 普通 setter（无 @Inject，仿 JobTimeoutCheckerImpl.setNamingService 可选注入先例）：
+     * beans.xml 按需装配，未装配时跳过通知，取消仍以 DB 状态为准。
+     */
+    public void setCancelHandler(IJobCancelHandler cancelHandler) {
+        this.cancelHandler = cancelHandler;
     }
 
     @Override
@@ -81,6 +108,10 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
             throwCancelNotAllowed(fire, "cancelFire");
         }
 
+        // plan 2254: cancelFire 事务会把活动 task 全部置 CANCELED，事后加载为空——
+        // 必须在调用前捕获 in-flight task 快照，用于取消后通知执行端主动中断（best-effort）。
+        List<NopJobTask> inFlightTasks = taskStore().findTasksByFireId(id);
+
         FireScheduleOutcome outcome = fireStore.cancelFire(id);
         if (!outcome.fireUpdated()) {
             throwCancelNotAllowed(fireStore.loadFire(id), "cancelFire");
@@ -89,7 +120,31 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
             LOG.warn("nop.job.cancel.schedule-counter-not-updated:fireId={}", id);
         }
 
+        notifyCancel(inFlightTasks, fire, context);
+
         afterEntityChange(fireStore.loadFire(id), "cancelFire", context);
+    }
+
+    /**
+     * 取消后通知执行端主动中断（best-effort）：仅通知 in-flight（RUNNING_LIKE）任务，
+     * 依赖注入的 cancelHandler（未装配则跳过）。DB 状态已 CANCELED，通知失败不影响结果。
+     */
+    private void notifyCancel(List<NopJobTask> tasks, NopJobFire fire, IServiceContext context) {
+        if (cancelHandler == null || tasks == null || tasks.isEmpty()) {
+            return;
+        }
+        NopJobSchedule schedule = scheduleStore.loadSchedule(fire.getJobScheduleId());
+        for (NopJobTask task : tasks) {
+            if (!JobTaskStateMachine.isInFlight(task.getTaskStatus())) {
+                continue;
+            }
+            try {
+                cancelHandler.cancelRunningTask(schedule, fire, task);
+            } catch (Exception e) {
+                LOG.warn("nop.job.cancel.notify-failed:fireId={},taskId={}",
+                        fire.getJobFireId(), task.getJobTaskId(), e);
+            }
+        }
     }
 
     @Override
@@ -135,6 +190,7 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
         fire.setGroupId(schedule.getGroupId());
         fire.setJobName(schedule.getJobName());
         fire.setTriggerSource(_NopJobCoreConstants.TRIGGER_SOURCE_RECOVERY);
+        fire.setSourceFireId(sourceFire.getJobFireId());
         fire.setScheduledFireTime(fireTime);
         fire.setFireStatus(_NopJobCoreConstants.FIRE_STATUS_WAITING);
         fire.setPlannerInstanceId(AppConfig.hostId());
