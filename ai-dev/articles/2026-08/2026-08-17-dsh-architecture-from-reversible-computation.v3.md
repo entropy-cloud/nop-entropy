@@ -1,11 +1,8 @@
 # 从可逆计算看 DeepSeek Harness 的架构设计
 
-> 日期：2026-08-17（v3 重构于 2026-08-19）
-> 关联论文：A Programming Paradigm for Spatiotemporal Composability（本地副本 `ai-dev/references/cordis-paper/`）
-> 关联参考：六篇社区解读文章（本地副本 `ai-dev/references/dsh-community-articles/`，引用编号 [17]–[22]）
-> 摘要：本文把 DSH 的"一切皆插件、插件皆可逆"读成可逆计算公式 App = Base + Δ₁ + Δ₂ + … 的运行时实例化。第一篇论证插件即差量，"+"是有精确代数定义的叠加而非启发式累加；第二篇论证"可逆"指每个 effect 出生即携带逆（Delta 可正可负），并基于源码核实逐层界定其范围与边界；第三篇给出差量概念的自然推论（坐标系、负元素、Generator、结构空间与运行时空间的分界线），指出 dsh 补齐了运行时域的形式化，而结构空间的差量代数仍需引入可逆计算的成熟做法。
+DeepSeek Harness（DSH）发布后在社区激起了巨大反响：主仓库上线不到一周，GitHub star 数已超过 16 万，挂上 dsh-plugin 话题标签的插件仓库已近 8,000 个（2026-08-19 查询值）。伴随DSH发布的，还有一篇Deepseek与北大合写的论文——[A Programming Paradigm for Spatiotemporal Composability](https://github.com/cordiverse/paper)（《一种面向时空可组合性的编程范式》，预印本 88 页）：论文形式化的对象 Cordis 正是 DSH 底层的插件运行时，第三作者崔添翼即 DSH 团队负责人（见 [22]），产品与论文出自同一批人之手。
 
-DeepSeek Harness（DSH）发布后在社区激起了巨大反响：主仓库上线不到一周，GitHub star 数已超过 16 万，挂上 dsh-plugin 话题标签的插件仓库已近 8,000 个（2026-08-19 查询值），各类拆解文章层出不穷。DSH 的架构设计思想可以用一句话来概括：**一切皆插件，插件皆可逆**。
+DSH 的架构设计思想可以用一句话来概括：**一切皆插件，插件皆可逆**。
 
 这份设计收获的反应，一半是兴奋，一半是困惑。知乎上的质疑相当集中；社区深读文章也在回应同一类困惑——[18] 专设"代价与挑战"一节讨论兼容性风险与认知门槛，[21] 开篇就问"为什么普通插件系统不够用"：运行中切换 LLM Provider、局部热重载、卸载后把监听器定时器清干净，这些真实需求普通插件系统都接不住。把这些疑问归纳起来，是五条：
 
@@ -15,7 +12,7 @@ DeepSeek Harness（DSH）发布后在社区激起了巨大反响：主仓库上�
 4. 动态更新插件有什么必要？一般版本升级不就可以了吗？
 5. 这套机制的工程代价值得吗？副作用注册要包装追踪、属性访问要过 Proxy、动态加载叠加作用域链让调试变得困难——"为什么我的插件没加载？"（依赖不满足，fiber 停在等待态，并不报错）；而插件化治理的前车之鉴并不遥远：Mach 败于 IPC 开销，OSGi 败于类加载器地狱（[18] 的"代价与挑战"一节讨论的正是这类隐忧）。
 
-这些疑问并非抬杠——它们各自指向一个真实的理论问题，而答案其实已经写在 Cordis（DSH 的底层插件运行时框架）的设计论文 [A Programming Paradigm for Spatiotemporal Composability](../../references/cordis-paper/README.md) 里了。问题在于，这篇论文从范畴论/函数式的角度做形式化，概念密度很高，直接读它并不比读懂架构本身更容易。也正因为论文反复强调"可逆"二字，知乎上有同学@我，问它的概念与我提出的可逆计算理论之间是否存在渊源。
+这些疑问并非抬杠——它们各自指向一个真实的理论问题，而答案其实就写在开篇提到的那篇论文里。问题在于，这篇论文从范畴论/函数式的角度做形式化，概念密度很高，直接读它并不比读懂架构本身更容易。也正因为论文反复强调"可逆"二字，知乎上有同学@我，问它的概念与我提出的可逆计算理论之间是否存在渊源。
 
 那就从可逆计算理论出发，把 Cordis 的设计原理解读一遍。结论先行：
 
@@ -693,7 +690,7 @@ Nop 与 dsh 是 GRC `App = F(X) ⊕ Δ` 模式在结构域与运行时域的两�
 
 ## 参考文献
 
-1. Yifan Shi, Wei Zhang, Tianyi Cui. *A Programming Paradigm for Spatiotemporal Composability*. Preprint, 2026. 本仓库副本：`ai-dev/references/cordis-paper/spatiotemporal-composability.md`
+1. Yifan Shi, Wei Zhang, Tianyi Cui. *A Programming Paradigm for Spatiotemporal Composability*. Preprint, 2026. 公开出处：https://github.com/cordiverse/paper ；本仓库副本：`ai-dev/references/cordis-paper/spatiotemporal-composability.md`
 2. `docs/theory/what-does-reversible-mean.md` — 可逆计算中的可逆到底指什么
 3. `docs/theory/methodology-source.md` — 可逆计算的方法论来源（熵增原理与狄拉克图景）
 4. `docs/theory/reversible-computation-runtime-evolution.md` — 可逆计算如何赋能运行时演化
