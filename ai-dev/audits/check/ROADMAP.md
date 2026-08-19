@@ -66,16 +66,16 @@
 | nop-sys | `nop-sys` | 184 | [nop-sys.md](nop-sys.md) | done |
 | nop-job | `nop-job` | 222 | [nop-job.md](nop-job.md) | done |
 | nop-task | `nop-task`（core 为主） | 264 | [nop-task.md](nop-task.md) | done |
-| nop-wf | `nop-wf`（core/api 为主） | 286 | [nop-wf.md](nop-wf.md) | in-progress |
+| nop-wf | `nop-wf`（core/api 为主） | 286 | [nop-wf.md](nop-wf.md) | done |
 
 ### Phase 3 — 可复用业务模块
 
 | 单元 | 路径 | 文件数 | 报告 | 状态 |
 |------|------|--------|------|------|
-| nop-report | `nop-report` | 176 | [nop-report.md](nop-report.md) | pending |
-| nop-rule | `nop-rule` | 98 | [nop-rule.md](nop-rule.md) | pending |
-| nop-batch | `nop-batch`（core/dsl 为主） | 269 | [nop-batch.md](nop-batch.md) | pending |
-| nop-dyn | `nop-dyn` | 131 | [nop-dyn.md](nop-dyn.md) | pending |
+| nop-report | `nop-report` | 176 | [nop-report.md](nop-report.md) | done |
+| nop-rule | `nop-rule` | 98 | [nop-rule.md](nop-rule.md) | done |
+| nop-batch | `nop-batch`（core/dsl 为主） | 269 | [nop-batch.md](nop-batch.md) | in-progress |
+| nop-dyn | `nop-dyn` | 131 | [nop-dyn.md](nop-dyn.md) | in-progress |
 | file-retry-tcc | `nop-file` + `nop-retry` + `nop-tcc` | 123 | [file-retry-tcc.md](file-retry-tcc.md) | pending |
 | nop-metadata | `nop-metadata`（service/dao 为主） | 441 | [nop-metadata.md](nop-metadata.md) | pending |
 | nop-excel | `nop-format/nop-excel` | 338 | [nop-excel.md](nop-excel.md) | pending |
@@ -193,3 +193,9 @@
   - db-migration: XML 迁移文件 type 恒为 null → 全部 DDL 静默不执行却记成功
   - gateway-bizauth: 网关默认装配硬编码公开测试 API Key（sk-test-key-1/2）→ 未覆盖配置的应用等于发布有效凭证
   - 启动 Phase 2（业务骨架模块）。
+- 2026-08-19: **Phase 2 全部 5 个单元完成**。合计 82 条发现（P0=6 / P1=18 / P2=27 / P3=31）。P0 摘要:
+  - nop-auth: `max-login-fail-count` 配为 0/负数时整个凭证校验块被跳过 → 已知用户名+任意密码完全认证绕过
+  - nop-sys: 分布式锁过期判断条件写反 → 有效锁被抢占删除（互斥失效）、真过期锁永不回收
+  - nop-task: 循环/分支迭代 2+ 起被 continuation-skip 静默跳过; 延迟重试每轮双执行副作用; executor+异步步骤成功即永久挂死
+  - nop-wf: 批量转办 mutation 全链路无鉴权 → 任意登录用户可改派他人审批任务并审批通过
+  - 启动 Phase 3（可复用业务模块）。
