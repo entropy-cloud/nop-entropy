@@ -126,6 +126,10 @@
               insertable="true" updatable="true">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>
+        <prop name="sourceFireId" displayName="源触发批次ID" propId="28" i18n-en:displayName="Source Fire Id"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
         <prop name="dispatchMode" displayName="派发模式" propId="30" i18n-en:displayName="Dispatch Mode" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="30" dict="job/dispatch-mode"/>

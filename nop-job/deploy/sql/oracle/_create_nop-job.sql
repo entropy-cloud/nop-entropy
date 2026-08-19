@@ -46,6 +46,26 @@ CREATE TABLE nop_job_schedule(
   constraint PK_nop_job_schedule primary key (JOB_SCHEDULE_ID)
 );
 
+CREATE TABLE nop_job_task_log(
+  JOB_TASK_LOG_ID VARCHAR2(32) NOT NULL ,
+  JOB_TASK_ID VARCHAR2(32) NOT NULL ,
+  JOB_FIRE_ID VARCHAR2(32)  ,
+  JOB_SCHEDULE_ID VARCHAR2(32)  ,
+  JOB_NAME VARCHAR2(100)  ,
+  GROUP_ID VARCHAR2(100)  ,
+  LOG_TIME TIMESTAMP NOT NULL ,
+  LOG_LEVEL INTEGER NOT NULL ,
+  LOG_MESSAGE VARCHAR2(4000) NOT NULL ,
+  LOG_PAYLOAD VARCHAR2(4000)  ,
+  VERSION NUMBER(20) NOT NULL ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR2(200)  ,
+  constraint PK_nop_job_task_log primary key (JOB_TASK_LOG_ID)
+);
+
 CREATE TABLE nop_job_fire(
   JOB_FIRE_ID VARCHAR2(32) NOT NULL ,
   JOB_SCHEDULE_ID VARCHAR2(32) NOT NULL ,
@@ -73,6 +93,7 @@ CREATE TABLE nop_job_fire(
   UPDATED_BY VARCHAR2(50) NOT NULL ,
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR2(200)  ,
+  SOURCE_FIRE_ID VARCHAR2(32)  ,
   DISPATCH_MODE VARCHAR2(30)  ,
   constraint PK_nop_job_fire primary key (JOB_FIRE_ID)
 );
@@ -196,6 +217,40 @@ CREATE TABLE nop_job_task(
                     
       COMMENT ON COLUMN nop_job_schedule.PRIORITY IS '优先级';
                     
+      COMMENT ON TABLE nop_job_task_log IS '执行日志';
+                
+      COMMENT ON COLUMN nop_job_task_log.JOB_TASK_LOG_ID IS '日志ID';
+                    
+      COMMENT ON COLUMN nop_job_task_log.JOB_TASK_ID IS '任务ID';
+                    
+      COMMENT ON COLUMN nop_job_task_log.JOB_FIRE_ID IS '批次ID';
+                    
+      COMMENT ON COLUMN nop_job_task_log.JOB_SCHEDULE_ID IS '调度ID';
+                    
+      COMMENT ON COLUMN nop_job_task_log.JOB_NAME IS '作业名';
+                    
+      COMMENT ON COLUMN nop_job_task_log.GROUP_ID IS '分组';
+                    
+      COMMENT ON COLUMN nop_job_task_log.LOG_TIME IS '日志时间';
+                    
+      COMMENT ON COLUMN nop_job_task_log.LOG_LEVEL IS '日志级别';
+                    
+      COMMENT ON COLUMN nop_job_task_log.LOG_MESSAGE IS '日志内容';
+                    
+      COMMENT ON COLUMN nop_job_task_log.LOG_PAYLOAD IS '日志扩展信息';
+                    
+      COMMENT ON COLUMN nop_job_task_log.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_job_task_log.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_job_task_log.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_job_task_log.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_job_task_log.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_job_task_log.REMARK IS '备注';
+                    
       COMMENT ON TABLE nop_job_fire IS '触发批次';
                 
       COMMENT ON COLUMN nop_job_fire.JOB_FIRE_ID IS '触发批次ID';
@@ -249,6 +304,8 @@ CREATE TABLE nop_job_task(
       COMMENT ON COLUMN nop_job_fire.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON COLUMN nop_job_fire.REMARK IS '备注';
+                    
+      COMMENT ON COLUMN nop_job_fire.SOURCE_FIRE_ID IS '源触发批次ID';
                     
       COMMENT ON COLUMN nop_job_fire.DISPATCH_MODE IS '派发模式';
                     

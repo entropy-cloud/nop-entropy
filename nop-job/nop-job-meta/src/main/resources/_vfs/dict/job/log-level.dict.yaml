@@ -1,0 +1,26 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 日志级别
+locale: zh-CN
+valueType: int
+description: 执行日志级别（与 SLF4J/logback 级别语义对齐）
+options:
+
+  - label: TRACE
+    value: 10
+    description: 跟踪级
+
+  - label: DEBUG
+    value: 20
+    description: 调试级
+
+  - label: INFO
+    value: 30
+    description: 信息级
+
+  - label: WARN
+    value: 40
+    description: 警告级
+
+  - label: ERROR
+    value: 50
+    description: 错误级

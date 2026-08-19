@@ -317,6 +317,20 @@
         }
 
 
+        private String _sourceFireId;
+
+    
+        @PropMeta(propId=28)
+    
+        public String getSourceFireId(){
+            return _sourceFireId;
+        }
+
+        public void setSourceFireId(String value){
+            this._sourceFireId = value;
+        }
+
+
         private String _dispatchMode;
 
     

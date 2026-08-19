@@ -125,6 +125,10 @@ public class _NopJobFire extends DynamicOrmEntity{
     public static final String PROP_NAME_remark = "remark";
     public static final int PROP_ID_remark = 27;
     
+    /* 源触发批次ID: SOURCE_FIRE_ID VARCHAR */
+    public static final String PROP_NAME_sourceFireId = "sourceFireId";
+    public static final int PROP_ID_sourceFireId = 28;
+    
     /* 派发模式: DISPATCH_MODE VARCHAR */
     public static final String PROP_NAME_dispatchMode = "dispatchMode";
     public static final int PROP_ID_dispatchMode = 30;
@@ -225,6 +229,9 @@ public class _NopJobFire extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_remark] = PROP_NAME_remark;
           PROP_NAME_TO_ID.put(PROP_NAME_remark, PROP_ID_remark);
       
+          PROP_ID_TO_NAME[PROP_ID_sourceFireId] = PROP_NAME_sourceFireId;
+          PROP_NAME_TO_ID.put(PROP_NAME_sourceFireId, PROP_ID_sourceFireId);
+      
           PROP_ID_TO_NAME[PROP_ID_dispatchMode] = PROP_NAME_dispatchMode;
           PROP_NAME_TO_ID.put(PROP_NAME_dispatchMode, PROP_ID_dispatchMode);
       
@@ -308,6 +315,9 @@ public class _NopJobFire extends DynamicOrmEntity{
     
     /* 备注: REMARK */
     private java.lang.String _remark;
+    
+    /* 源触发批次ID: SOURCE_FIRE_ID */
+    private java.lang.String _sourceFireId;
     
     /* 派发模式: DISPATCH_MODE */
     private java.lang.String _dispatchMode;
@@ -463,6 +473,9 @@ public class _NopJobFire extends DynamicOrmEntity{
         
             case PROP_ID_remark:
                return getRemark();
+        
+            case PROP_ID_sourceFireId:
+               return getSourceFireId();
         
             case PROP_ID_dispatchMode:
                return getDispatchMode();
@@ -738,6 +751,16 @@ public class _NopJobFire extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_sourceFireId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_sourceFireId));
+               }
+               setSourceFireId(typedValue);
+               break;
+            }
+        
             case PROP_ID_dispatchMode:{
                java.lang.String typedValue = null;
                if(value != null){
@@ -935,6 +958,13 @@ public class _NopJobFire extends DynamicOrmEntity{
             case PROP_ID_remark:{
                onInitProp(propId);
                this._remark = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_sourceFireId:{
+               onInitProp(propId);
+               this._sourceFireId = (java.lang.String)value;
                
                break;
             }
@@ -1442,6 +1472,25 @@ public class _NopJobFire extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);
+            
+        }
+    }
+    
+    /**
+     * 源触发批次ID: SOURCE_FIRE_ID
+     */
+    public final java.lang.String getSourceFireId(){
+         onPropGet(PROP_ID_sourceFireId);
+         return _sourceFireId;
+    }
+
+    /**
+     * 源触发批次ID: SOURCE_FIRE_ID
+     */
+    public final void setSourceFireId(java.lang.String value){
+        if(onPropSet(PROP_ID_sourceFireId,value)){
+            this._sourceFireId = value;
+            internalClearRefs(PROP_ID_sourceFireId);
             
         }
     }

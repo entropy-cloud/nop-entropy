@@ -1,0 +1,20 @@
+{
+  "jobTaskLogId": "",
+  "jobTaskId": "",
+  "jobFireId": "",
+  "jobScheduleId": "",
+  "jobName": "",
+  "groupId": "",
+  "logTime": "2000-01-01 14:00:00",
+  "logLevel": 0,
+  "logLevel_label": "",
+  "logMessage": "",
+  "logPayload": "",
+  "version": 0,
+  "createdBy": "",
+  "createTime": "2000-01-01 14:00:00",
+  "updatedBy": "",
+  "updateTime": "2000-01-01 14:00:00",
+  "remark": "",
+  "logPayloadComponent": null
+}

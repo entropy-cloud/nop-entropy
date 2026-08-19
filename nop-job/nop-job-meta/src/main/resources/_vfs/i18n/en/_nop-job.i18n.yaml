@@ -3,6 +3,7 @@ entity:
     NopJobFire: Job Fire
     NopJobSchedule: Job Schedule
     NopJobTask: Job Task
+    NopJobTaskLog: Job Task Log
 prop:
   label:
     NopJobFire:
@@ -28,6 +29,7 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+      sourceFireId: Source Fire Id
       dispatchMode: Dispatch Mode
       dispatchMode_label: null
       jobSchedule: Job Schedule
@@ -123,6 +125,25 @@ prop:
       updateTime: Update Time
       remark: Remark
       targetHost: Target Host
+    NopJobTaskLog:
+      jobTaskLogId: Job Task Log Id
+      jobTaskId: Job Task Id
+      jobFireId: Job Fire Id
+      jobScheduleId: Job Schedule Id
+      jobName: Job Name
+      groupId: Group Id
+      logTime: Log Time
+      logLevel: Log Level
+      logLevel_label: null
+      logMessage: Log Message
+      logPayload: Log Payload
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      logPayloadComponent: null
 dict:
   label:
     job/schedule-status: Schedule Status

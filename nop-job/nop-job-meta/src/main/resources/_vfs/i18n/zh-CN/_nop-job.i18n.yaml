@@ -3,6 +3,7 @@ entity:
     NopJobFire: 触发批次
     NopJobSchedule: 调度定义
     NopJobTask: 执行任务
+    NopJobTaskLog: 执行日志
 prop:
   label:
     NopJobFire:
@@ -33,6 +34,7 @@ prop:
       remark: 备注
       retryPolicyId: 重试策略ID
       scheduledFireTime: 计划触发时间
+      sourceFireId: 源触发批次ID
       startTime: 开始时间
       triggerSource: 触发来源
       triggerSource_label: 触发来源
@@ -123,3 +125,22 @@ prop:
       updatedBy: 修改人
       version: 数据版本
       workerInstanceId: 执行节点ID
+    NopJobTaskLog:
+      createTime: 创建时间
+      createdBy: 创建人
+      groupId: 分组
+      jobFireId: 批次ID
+      jobName: 作业名
+      jobScheduleId: 调度ID
+      jobTaskId: 任务ID
+      jobTaskLogId: 日志ID
+      logLevel: 日志级别
+      logLevel_label: 日志级别
+      logMessage: 日志内容
+      logPayload: 日志扩展信息
+      logPayloadComponent: null
+      logTime: 日志时间
+      remark: 备注
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本

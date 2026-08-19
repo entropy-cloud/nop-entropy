@@ -277,6 +277,10 @@
                 <column code="RETRY_POLICY_ID" displayName="重试策略ID" name="retryPolicyId" precision="32"
                         propId="17" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Retry Policy Id"/>
+                <!-- rerun 追溯：仅 TRIGGER_SOURCE=RECOVERY 的 fire 填充，指向被重跑的源 fire -->
+                <column code="SOURCE_FIRE_ID" displayName="源触发批次ID" name="sourceFireId" precision="32"
+                        propId="28" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Source Fire Id"/>
                 <!-- 错误信息 -->
                 <column code="ERROR_CODE" displayName="错误码" name="errorCode" precision="200" propId="19"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Error Code"/>
@@ -337,6 +341,9 @@
                 <index name="IX_NOP_JOB_FIRE_SCHEDULE_STATUS" unique="false">
                     <column name="jobScheduleId"/>
                     <column name="fireStatus"/>
+                </index>
+                <index name="IX_NOP_JOB_FIRE_SOURCE" unique="false">
+                    <column name="sourceFireId"/>
                 </index>
             </indexes>
         </entity>
@@ -461,6 +468,70 @@
                 <index name="IX_NOP_JOB_TASK_STATUS_WORKER" unique="false">
                     <column name="taskStatus"/>
                     <column name="workerInstanceId"/>
+                </index>
+            </indexes>
+        </entity>
+
+        <!-- =====================================================
+             NopJobTaskLog: 执行日志（REST Worker 模式可选日志上报的落点）
+             日志行按 jobTaskId 归组；冗余展示列（fireId/scheduleId/jobName/groupId）
+             写入时从 task 快照填充，避免日志量大时 join
+             ===================================================== -->
+        <entity className="io.nop.job.dao.entity.NopJobTaskLog" createTimeProp="createTime" createrProp="createdBy"
+                displayName="执行日志" name="io.nop.job.dao.entity.NopJobTaskLog" registerShortName="true"
+                tableName="nop_job_task_log" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
+                ext:icon="file-lines" i18n-en:displayName="Job Task Log">
+            <columns>
+                <column code="JOB_TASK_LOG_ID" displayName="日志ID" mandatory="true" name="jobTaskLogId" precision="32"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        i18n-en:displayName="Job Task Log Id"/>
+                <column code="JOB_TASK_ID" displayName="任务ID" mandatory="true" name="jobTaskId" precision="32"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Job Task Id"/>
+                <!-- 冗余展示列（写入时从 task 快照填充） -->
+                <column code="JOB_FIRE_ID" displayName="批次ID" name="jobFireId" precision="32" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Job Fire Id"/>
+                <column code="JOB_SCHEDULE_ID" displayName="调度ID" name="jobScheduleId" precision="32" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Job Schedule Id"/>
+                <column code="JOB_NAME" displayName="作业名" name="jobName" precision="100" propId="5"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Job Name"/>
+                <column code="GROUP_ID" displayName="分组" name="groupId" precision="100" propId="6"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Group Id"/>
+                <!-- 日志内容 -->
+                <column code="LOG_TIME" displayName="日志时间" mandatory="true" name="logTime" propId="7"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Log Time"/>
+                <column code="LOG_LEVEL" displayName="日志级别" mandatory="true" name="logLevel" propId="8"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Log Level"
+                        ext:dict="job/log-level"/>
+                <column code="LOG_MESSAGE" displayName="日志内容" mandatory="true" name="logMessage" precision="4000"
+                        propId="9" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Log Message"/>
+                <column code="LOG_PAYLOAD" displayName="日志扩展信息" domain="json-4000" name="logPayload"
+                        precision="4000" propId="10" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Log Payload"/>
+                <!-- 审计字段 -->
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
+                        propId="11" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="12" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true"
+                        name="createTime" propId="13" stdDataType="timestamp" stdSqlType="TIMESTAMP"
+                        i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="14" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true"
+                        name="updateTime" propId="15" stdDataType="timestamp" stdSqlType="TIMESTAMP"
+                        i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="16"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+            </columns>
+            <indexes>
+                <index name="IX_NOP_JOB_TASK_LOG_TASK_TIME" unique="false">
+                    <column name="jobTaskId"/>
+                    <column name="logTime"/>
+                </index>
+                <index name="IX_NOP_JOB_TASK_LOG_TIME" unique="false">
+                    <column name="logTime"/>
                 </index>
             </indexes>
         </entity>
