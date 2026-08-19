@@ -31,7 +31,6 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -102,8 +101,7 @@ public class TestNopDatavAuditLog extends AbstractNopDatavAuthTest {
 
         flushAudit();
 
-        NopAuthOpLog log = findLogByOperation("NopDatavDashboard__publishDashboard");
-        assertNotNull(log, "audit log should exist for successful publishDashboard");
+        NopAuthOpLog log = awaitLogByOperation("NopDatavDashboard__publishDashboard");
         assertEquals(0, log.getResultStatus(), "resultStatus should be 0 for success");
         assertEquals("admin-user", log.getUserName(), "userName should be admin-user");
     }
@@ -127,8 +125,7 @@ public class TestNopDatavAuditLog extends AbstractNopDatavAuthTest {
 
         flushAudit();
 
-        NopAuthOpLog log = findLogByOperation("NopDatavDashboard__publishDashboard");
-        assertNotNull(log, "audit log should exist even for failed publishDashboard");
+        NopAuthOpLog log = awaitLogByOperation("NopDatavDashboard__publishDashboard");
         assertTrue(log.getErrorCode() != null && !log.getErrorCode().isEmpty(),
                 "errorCode should be non-empty for failed operation, got: " + log.getErrorCode());
     }
@@ -180,8 +177,7 @@ public class TestNopDatavAuditLog extends AbstractNopDatavAuthTest {
         graphQLLogger.onRpcExecute(ctx, beginTime, result, null);
         flushAudit();
 
-        NopAuthOpLog log = findLogByOperation("NopDatavDashboardShare__revokeShare");
-        assertNotNull(log, "share management mutation should be audited (NopDatavDashboardShare__* pattern)");
+        NopAuthOpLog log = awaitLogByOperation("NopDatavDashboardShare__revokeShare");
         assertEquals(0, log.getResultStatus(), "resultStatus should be 0 for successful revokeShare");
     }
 
@@ -212,8 +208,7 @@ public class TestNopDatavAuditLog extends AbstractNopDatavAuthTest {
         graphQLLogger.onRpcExecute(rbacCtx, beginTime, rollbackResp, null);
 
         flushAudit();
-        NopAuthOpLog denyLog = findLogByOperation("NopDatavDashboard__rollbackDashboard");
-        assertNotNull(denyLog, "denied rollback should still be audited");
+        NopAuthOpLog denyLog = awaitLogByOperation("NopDatavDashboard__rollbackDashboard");
         assertTrue(denyLog.getErrorCode() != null && !denyLog.getErrorCode().isEmpty(),
                 "denied operation should have errorCode in audit log");
 
@@ -232,8 +227,7 @@ public class TestNopDatavAuditLog extends AbstractNopDatavAuthTest {
                 GraphQLOperationType.query, "NopDatavDashboard__getPublishedDashboard", new ApiRequest<>());
         graphQLLogger.onRpcExecute(pubCtx, beginTime2, pubResp, null);
         flushAudit();
-        NopAuthOpLog pubLog = findLogByOperation("NopDatavDashboard__getPublishedDashboard");
-        assertNotNull(pubLog, "getPublishedDashboard should be audited (in query patterns)");
+        awaitLogByOperation("NopDatavDashboard__getPublishedDashboard");
     }
 
     // ==================== Helpers ====================
@@ -250,6 +244,20 @@ public class TestNopDatavAuditLog extends AbstractNopDatavAuthTest {
     private void flushAudit() {
         assertTrue(FutureHelper.waitUntil(() -> auditService.isAllProcessed(), 10000),
                 "audit service should flush all records within timeout");
+    }
+
+    /**
+     * 等待指定 operation 的审计日志真实落库后返回。
+     * <p>
+     * 不能只依赖 {@link #flushAudit()}：{@code AbstractBatchProcessService} 的消费任务在
+     * {@code drainTo} 移除队列元素与 {@code processingCount} 递增之间存在窗口，该窗口内
+     * {@code isAllProcessed()} 会误报 true，而 INSERT 尚未执行（实证：findAll 先于 INSERT
+     * ~7ms 执行导致偶发断言失败）。因此这里轮询数据库直到记录出现或超时。
+     */
+    private NopAuthOpLog awaitLogByOperation(String operationFragment) {
+        assertTrue(FutureHelper.waitUntil(() -> findLogByOperation(operationFragment) != null, 10000),
+                "audit log should appear within timeout for " + operationFragment);
+        return findLogByOperation(operationFragment);
     }
 
     private NopAuthOpLog findLogByOperation(String operationFragment) {

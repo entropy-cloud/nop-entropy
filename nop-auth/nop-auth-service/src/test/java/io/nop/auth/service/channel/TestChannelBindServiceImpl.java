@@ -519,6 +519,19 @@ public class TestChannelBindServiceImpl {
         }
 
         @Override
+        public Map<Object, NopAuthExtLogin> batchRequireEntityMapByIds(Collection<?> ids) {
+            Map<Object, NopAuthExtLogin> result = new HashMap<>();
+            for (Object id : ids) {
+                NopAuthExtLogin row = findById(id);
+                if (row == null) {
+                    throw new IllegalStateException("Entity not found for id: " + id);
+                }
+                result.put(id, row);
+            }
+            return result;
+        }
+
+        @Override
         public List<NopAuthExtLogin> batchGetEntitiesByProp(String propName, Collection<?> propValues) {
             throw new UnsupportedOperationException();
         }

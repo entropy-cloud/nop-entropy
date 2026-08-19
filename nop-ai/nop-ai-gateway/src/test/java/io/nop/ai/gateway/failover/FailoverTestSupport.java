@@ -101,11 +101,14 @@ final class FailoverTestSupport {
      * 一个流式场景（每次 {@code fetchServerEventFlow} 调用消费一个）：
      * {@code events} 依次发射；{@code error} 非 null = 发射完 events 后 onError；
      * 否则 onComplete。{@code gate} 非 null = 发射前 await（取消/时序确定性测试用）。
+     * {@code interEventDelayMs} = 相邻 event 发射间隔（避免 JDK SubmissionPublisher
+     * submit/closeExceptionally 同线程竞态导致 tail 被丢弃，参考 W6 log 489）。
      */
     static final class StreamScenario {
         final List<String> events = new ArrayList<>();
         Throwable error;
         CountDownLatch gate;
+        long interEventDelayMs = 0;
 
         StreamScenario events(String... lines) {
             for (String line : lines) {
@@ -121,6 +124,11 @@ final class FailoverTestSupport {
 
         StreamScenario gate(CountDownLatch latch) {
             this.gate = latch;
+            return this;
+        }
+
+        StreamScenario interEventDelayMs(long ms) {
+            this.interEventDelayMs = ms;
             return this;
         }
 
@@ -236,6 +244,10 @@ final class FailoverTestSupport {
                                 return;
                             }
                             subscriber.onNext(new FakeServerEvent(data));
+                            long interEventDelayMs = scenario.interEventDelayMs;
+                            if (interEventDelayMs > 0) {
+                                Thread.sleep(interEventDelayMs);
+                            }
                         }
                         if (cancelled.get()) {
                             return;
