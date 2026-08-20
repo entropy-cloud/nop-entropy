@@ -6,10 +6,12 @@
  */
 package io.nop.stream.connector.file;
 
-import java.io.BufferedReader;
+import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.InputStream;
+import java.io.PushbackInputStream;
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -55,7 +57,7 @@ public final class FileSourceReader implements SourceReader<String, FileSplit> {
 
     /** Currently-open split (lazy-open on first poll). */
     private transient FileSplit activeSplit;
-    private transient BufferedReader activeReader;
+    private transient PushbackInputStream activeReader;
     private transient long activeBytesConsumed;
 
     /** Whether the reader has ever received at least one split (avoids premature finish). */
@@ -124,12 +126,13 @@ public final class FileSourceReader implements SourceReader<String, FileSplit> {
                     }
                     openSplit(next);
                 }
-                line = activeReader.readLine();
+                line = readNextLine();
             }
 
             if (line != null) {
-                activeBytesConsumed += line.getBytes(StandardCharsets.UTF_8).length + 1; // +1 for newline
-                // Update the cursor on the active split so checkpoint reflects progress
+                // Cursor is computed from the exact number of bytes consumed from the
+                // stream (including the line terminator), so it is correct for both
+                // LF and CRLF line endings on any platform.
                 if (activeSplit != null) {
                     long newOffset = activeSplit.getStartOffset() + activeBytesConsumed;
                     activeSplit = activeSplit.withCurrentOffset(newOffset);
@@ -163,11 +166,44 @@ public final class FileSourceReader implements SourceReader<String, FileSplit> {
             if (skipped <= 0) break;
             skip -= skipped;
         }
-        activeReader = new BufferedReader(new InputStreamReader(fis, StandardCharsets.UTF_8));
+        activeReader = new PushbackInputStream(new BufferedInputStream(fis), 1);
         activeSplit = split;
         activeBytesConsumed = 0;
         LOG.debug("FileSourceReader opened split {} at offset {}",
                 split.getFilePath(), split.getCurrentOffset());
+    }
+
+    /**
+     * Reads one text line while counting the exact number of bytes consumed from the
+     * underlying stream (including the terminator). Supports LF, CRLF and lone CR as
+     * line terminators, so the resulting cursor offset is platform-independent.
+     */
+    private String readNextLine() throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        int b;
+        while ((b = activeReader.read()) != -1) {
+            activeBytesConsumed++;
+            if (b == '\n') {
+                return out.toString(StandardCharsets.UTF_8);
+            }
+            if (b == '\r') {
+                int next = activeReader.read();
+                if (next != -1) {
+                    activeBytesConsumed++;
+                    if (next != '\n') {
+                        // Lone CR terminator: push the non-newline char back to
+                        // the start of the following line.
+                        activeReader.unread(next);
+                        activeBytesConsumed--;
+                    }
+                }
+                return out.toString(StandardCharsets.UTF_8);
+            }
+            out.write(b);
+        }
+        // EOF reached: if no bytes were collected this is the end of the stream,
+        // otherwise the final unterminated line is returned.
+        return out.size() == 0 ? null : out.toString(StandardCharsets.UTF_8);
     }
 
     private void closeActiveReader() {

@@ -6,6 +6,7 @@
  */
 package io.nop.stream.runtime.source;
 
+import io.nop.commons.util.FileHelper;
 import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
 import io.nop.stream.connector.file.FileSource;
@@ -13,11 +14,14 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import java.nio.file.Files;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -50,9 +54,9 @@ class TestFileSourceE2E {
     @Test
     void e2eSingleParallelismReadsAllLinesOnce() throws Exception {
         Path dir = tempDir.resolve("e2e-single");
-        Files.createDirectories(dir);
-        Files.write(dir.resolve("a.txt"), Arrays.asList("alpha", "beta"));
-        Files.write(dir.resolve("b.txt"), Arrays.asList("gamma", "delta"));
+        createDir(dir);
+        writeLines(dir, "a.txt", Arrays.asList("alpha", "beta"));
+        writeLines(dir, "b.txt", Arrays.asList("gamma", "delta"));
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         env.setParallelism(1);
@@ -76,13 +80,13 @@ class TestFileSourceE2E {
     @Test
     void e2eMultiParallelismDistributesSplitsWithoutLoss() throws Exception {
         Path dir = tempDir.resolve("e2e-multi");
-        Files.createDirectories(dir);
-        Files.write(dir.resolve("f1.txt"), Collections.singletonList("L1"));
-        Files.write(dir.resolve("f2.txt"), Collections.singletonList("L2"));
-        Files.write(dir.resolve("f3.txt"), Collections.singletonList("L3"));
-        Files.write(dir.resolve("f4.txt"), Collections.singletonList("L4"));
-        Files.write(dir.resolve("f5.txt"), Collections.singletonList("L5"));
-        Files.write(dir.resolve("f6.txt"), Collections.singletonList("L6"));
+        createDir(dir);
+        writeLines(dir, "f1.txt", Collections.singletonList("L1"));
+        writeLines(dir, "f2.txt", Collections.singletonList("L2"));
+        writeLines(dir, "f3.txt", Collections.singletonList("L3"));
+        writeLines(dir, "f4.txt", Collections.singletonList("L4"));
+        writeLines(dir, "f5.txt", Collections.singletonList("L5"));
+        writeLines(dir, "f6.txt", Collections.singletonList("L6"));
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         env.setParallelism(2);
@@ -107,7 +111,7 @@ class TestFileSourceE2E {
     @Test
     void e2eEmptyDirectoryCompletesWithEmptySink() throws Exception {
         Path dir = tempDir.resolve("e2e-empty");
-        Files.createDirectories(dir);
+        createDir(dir);
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         env.setParallelism(1);
@@ -131,8 +135,8 @@ class TestFileSourceE2E {
     @Test
     void e2eWiringProvenByCoordinatorActivity() throws Exception {
         Path dir = tempDir.resolve("e2e-wiring");
-        Files.createDirectories(dir);
-        Files.write(dir.resolve("only.txt"), Collections.singletonList("X"));
+        createDir(dir);
+        writeLines(dir, "only.txt", Collections.singletonList("X"));
 
         // Clear any stale state, then run a job whose only output path goes through
         // the new SourceReaderOperator + LocalSourceCoordinator.
@@ -167,5 +171,23 @@ class TestFileSourceE2E {
         public void consume(T value) {
             sink.add(value);
         }
+    }
+
+    /**
+     * Creates a directory (FileHelper has no dedicated mkdirs helper).
+     */
+    private static void createDir(Path dir) throws IOException {
+        if (!dir.toFile().mkdirs() && !dir.toFile().isDirectory()) {
+            throw new IOException("Failed to create directory: " + dir);
+        }
+    }
+
+    /**
+     * Writes text lines with an explicit LF terminator so the file bytes are identical on
+     * every platform.
+     */
+    private static void writeLines(Path dir, String fileName, List<String> lines) throws IOException {
+        FileHelper.writeText(new File(dir.toFile(), fileName),
+                String.join("\n", lines) + "\n", StandardCharsets.UTF_8.name());
     }
 }

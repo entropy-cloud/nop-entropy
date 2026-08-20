@@ -6,13 +6,15 @@
  */
 package io.nop.stream.connector.file;
 
+import io.nop.commons.util.FileHelper;
 import io.nop.stream.core.source.AssignmentDeliveryService;
 import io.nop.stream.core.source.SplitEnumeratorContext;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -65,11 +67,11 @@ class TestFileSource {
     @Test
     void enumeratorScansDirectoryAndDistributesRoundRobin() throws Exception {
         Path dir = tempDir.resolve("file-source-test");
-        Files.createDirectories(dir);
-        Files.write(dir.resolve("f1.txt"), Collections.singletonList("hello"));
-        Files.write(dir.resolve("f2.txt"), Collections.singletonList("world"));
-        Files.write(dir.resolve("f3.txt"), Collections.singletonList("!"));
-        Files.write(dir.resolve("f4.txt"), Collections.singletonList("end"));
+        createDir(dir);
+        writeLines(dir, "f1.txt", Collections.singletonList("hello"));
+        writeLines(dir, "f2.txt", Collections.singletonList("world"));
+        writeLines(dir, "f3.txt", Collections.singletonList("!"));
+        writeLines(dir, "f4.txt", Collections.singletonList("end"));
 
         CapturingDeliveryService delivery = new CapturingDeliveryService();
         SplitEnumeratorContext<FileSplit> ctx = new SplitEnumeratorContext<>(2, delivery);
@@ -95,9 +97,9 @@ class TestFileSource {
     @Test
     void readerConsumesAssignedSplitsAndEmitsLines() throws Exception {
         Path dir = tempDir.resolve("file-source-reader-test");
-        Files.createDirectories(dir);
-        Files.write(dir.resolve("file-a.txt"), Arrays.asList("alpha", "beta", "gamma"));
-        Files.write(dir.resolve("file-b.txt"), Arrays.asList("one", "two"));
+        createDir(dir);
+        writeLines(dir, "file-a.txt", Arrays.asList("alpha", "beta", "gamma"));
+        writeLines(dir, "file-b.txt", Arrays.asList("one", "two"));
 
         io.nop.stream.core.source.SourceReaderContext readerCtx =
                 new io.nop.stream.core.source.SourceReaderContext(0, 1, null);
@@ -106,9 +108,9 @@ class TestFileSource {
         reader.start();
 
         FileSplit splitA = new FileSplit(dir.resolve("file-a.txt").toString(), 0L,
-                Files.size(dir.resolve("file-a.txt")));
+                dir.resolve("file-a.txt").toFile().length());
         FileSplit splitB = new FileSplit(dir.resolve("file-b.txt").toString(), 0L,
-                Files.size(dir.resolve("file-b.txt")));
+                dir.resolve("file-b.txt").toFile().length());
         reader.addSplits(Arrays.asList(splitA, splitB));
 
         List<String> collected = new ArrayList<>();
@@ -133,8 +135,8 @@ class TestFileSource {
     @Test
     void readerSnapshotCapturesActiveSplitCursor() throws Exception {
         Path dir = tempDir.resolve("file-source-snapshot-test");
-        Files.createDirectories(dir);
-        Files.write(dir.resolve("lines.txt"), Arrays.asList("a", "b", "c", "d", "e"));
+        createDir(dir);
+        writeLines(dir, "lines.txt", Arrays.asList("a", "b", "c", "d", "e"));
 
         io.nop.stream.core.source.SourceReaderContext readerCtx =
                 new io.nop.stream.core.source.SourceReaderContext(0, 1, null);
@@ -143,7 +145,7 @@ class TestFileSource {
         reader.start();
         reader.addSplits(Collections.singletonList(
                 new FileSplit(dir.resolve("lines.txt").toString(),
-                        0L, Files.size(dir.resolve("lines.txt")))));
+                        0L, dir.resolve("lines.txt").toFile().length())));
 
         // Consume 2 lines, then snapshot
         reader.pollNext(); // "a"
@@ -164,8 +166,8 @@ class TestFileSource {
     @Test
     void readerRestoreResumesFromCheckpointedCursor() throws Exception {
         Path dir = tempDir.resolve("file-source-restore-test");
-        Files.createDirectories(dir);
-        Files.write(dir.resolve("seq.txt"), Arrays.asList("L1", "L2", "L3", "L4", "L5"));
+        createDir(dir);
+        writeLines(dir, "seq.txt", Arrays.asList("L1", "L2", "L3", "L4", "L5"));
 
         io.nop.stream.core.source.SourceReaderContext readerCtx =
                 new io.nop.stream.core.source.SourceReaderContext(0, 1, null);
@@ -175,7 +177,7 @@ class TestFileSource {
         r1.start();
         r1.addSplits(Collections.singletonList(
                 new FileSplit(dir.resolve("seq.txt").toString(),
-                        0L, Files.size(dir.resolve("seq.txt")))));
+                        0L, dir.resolve("seq.txt").toFile().length())));
         Optional<String> first = r1.pollNext();
         assertEquals("L1", first.orElseThrow());
         List<FileSplit> snap = r1.snapshotState(1L);
@@ -202,9 +204,9 @@ class TestFileSource {
     @Test
     void enumeratorStateSnapshotRestoreRoundTrip() throws Exception {
         Path dir = tempDir.resolve("file-source-enum-state");
-        Files.createDirectories(dir);
-        Files.write(dir.resolve("x1.txt"), Collections.singletonList("a"));
-        Files.write(dir.resolve("x2.txt"), Collections.singletonList("b"));
+        createDir(dir);
+        writeLines(dir, "x1.txt", Collections.singletonList("a"));
+        writeLines(dir, "x2.txt", Collections.singletonList("b"));
 
         CapturingDeliveryService delivery = new CapturingDeliveryService();
         SplitEnumeratorContext<FileSplit> ctx = new SplitEnumeratorContext<>(1, delivery);
@@ -270,6 +272,26 @@ class TestFileSource {
     }
 
     // ====================== Helpers ======================
+
+    /**
+     * Creates a directory (FileHelper has no dedicated mkdirs helper; mkdirs() is used
+     * directly, keeping the Windows-safe byte-content handling in writeLines below).
+     */
+    private static void createDir(Path dir) throws IOException {
+        if (!dir.toFile().mkdirs() && !dir.toFile().isDirectory()) {
+            throw new IOException("Failed to create directory: " + dir);
+        }
+    }
+
+    /**
+     * Writes text lines with an explicit LF terminator so the file bytes are identical on
+     * every platform (Files.write(Path, List) would use CRLF on Windows and break the
+     * reader's byte-accurate cursor accounting).
+     */
+    private static void writeLines(Path dir, String fileName, List<String> lines) throws IOException {
+        FileHelper.writeText(new File(dir.toFile(), fileName),
+                String.join("\n", lines) + "\n", StandardCharsets.UTF_8.name());
+    }
 
     private static final class CapturingDeliveryService implements AssignmentDeliveryService<FileSplit> {
         final Map<Integer, List<FileSplit>> assignedToSubtask = new java.util.concurrent.ConcurrentHashMap<>();

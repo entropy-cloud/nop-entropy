@@ -6,14 +6,18 @@
  */
 package io.nop.stream.connector.file;
 
+import io.nop.commons.util.FileHelper;
 import io.nop.stream.core.source.SimpleVersionedSerializer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import java.nio.file.Files;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -35,9 +39,9 @@ class TestFileSourceCheckpointRestore {
     @Test
     void enumeratorStateSurvivesCheckpointRestoreRoundTrip() throws Exception {
         Path dir = tempDir.resolve("ckpt");
-        Files.createDirectories(dir);
-        Files.write(dir.resolve("a.txt"), Collections.singletonList("lineA"));
-        Files.write(dir.resolve("b.txt"), Collections.singletonList("lineB"));
+        createDir(dir);
+        writeLines(dir, "a.txt", Collections.singletonList("lineA"));
+        writeLines(dir, "b.txt", Collections.singletonList("lineB"));
 
         // Initial enumerator discovers files, marks one as finished (simulating read progress)
         io.nop.stream.core.source.SplitEnumeratorContext<FileSplit> ctx1 =
@@ -73,12 +77,12 @@ class TestFileSourceCheckpointRestore {
     @Test
     void readerSplitCursorSurvivesRoundTrip() throws Exception {
         Path dir = tempDir.resolve("reader-ckpt");
-        Files.createDirectories(dir);
-        Files.write(dir.resolve("seq.txt"), Arrays.asList("a", "b", "c", "d"));
+        createDir(dir);
+        writeLines(dir, "seq.txt", Arrays.asList("a", "b", "c", "d"));
 
         // Snapshot a partially-consumed split
         FileSplit partial = new FileSplit(dir.resolve("seq.txt").toString(), 0L,
-                Files.size(dir.resolve("seq.txt")), 4L /* cursor advanced */);
+                dir.resolve("seq.txt").toFile().length(), 4L /* cursor advanced */);
 
         FileSource source = new FileSource(dir.toString());
         SimpleVersionedSerializer<FileSplit> splitSer = source.getSplitSerializer();
@@ -95,8 +99,8 @@ class TestFileSourceCheckpointRestore {
     @Test
     void sourceEnumeratorSnapshotSectionMatchesManifestContract() throws Exception {
         Path dir = tempDir.resolve("manifest");
-        Files.createDirectories(dir);
-        Files.write(dir.resolve("x.txt"), Collections.singletonList("hello"));
+        createDir(dir);
+        writeLines(dir, "x.txt", Collections.singletonList("hello"));
 
         FileSource source = new FileSource(dir.toString());
         FileSplitEnumerator enumerator = new FileSplitEnumerator(dir.toString());
@@ -118,5 +122,23 @@ class TestFileSourceCheckpointRestore {
         assertNotNull(recovered);
         assertEquals(1, recovered.getDiscoveredFiles().size());
         assertEquals(dir.resolve("x.txt").toString(), recovered.getDiscoveredFiles().iterator().next());
+    }
+
+    /**
+     * Creates a directory (FileHelper has no dedicated mkdirs helper).
+     */
+    private static void createDir(Path dir) throws IOException {
+        if (!dir.toFile().mkdirs() && !dir.toFile().isDirectory()) {
+            throw new IOException("Failed to create directory: " + dir);
+        }
+    }
+
+    /**
+     * Writes text lines with an explicit LF terminator so the file bytes are identical on
+     * every platform.
+     */
+    private static void writeLines(Path dir, String fileName, List<String> lines) throws IOException {
+        FileHelper.writeText(new File(dir.toFile(), fileName),
+                String.join("\n", lines) + "\n", StandardCharsets.UTF_8.name());
     }
 }
