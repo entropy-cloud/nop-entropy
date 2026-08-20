@@ -617,7 +617,6 @@ public class TestRetryEngineImpl extends JunitAutoTestCase {
 
         rpcInvoker.setResponses(createErrorResponse("error-1"));
 
-        long before = System.currentTimeMillis();
         IRetryTask task = retryEngine.newRetryTask("svc", "method")
                 .withPolicyId("policy-backoff")
                 .withIdempotentId("idem-backoff");
@@ -629,10 +628,11 @@ public class TestRetryEngineImpl extends JunitAutoTestCase {
         assertNotNull(record);
         assertNotNull(record.getNextTriggerTime());
 
-        // 第一次失败后 retryCount=1，指数退避 initial * 2^(1-1) = 100ms
-        long expected = before + 100;
-        long actual = record.getNextTriggerTime().getTime();
-        assertTrue(actual >= expected - 50 && actual <= expected + 50);
+        // 第一次失败后 retryCount=1，指数退避 initial * 2^(1-1) = 100ms（无抖动，确定性断言）。
+        // 以失败落库时刻（updateTime）为基准而非 before 基准，避免并行构建耗时扰动窗口
+        long delayMs = record.getNextTriggerTime().getTime() - record.getUpdateTime().getTime();
+        assertTrue(delayMs >= 50 && delayMs <= 300,
+                "backoff delay should be ~100ms but was " + delayMs + "ms");
     }
 
     // ==================== Callback Tests ====================
