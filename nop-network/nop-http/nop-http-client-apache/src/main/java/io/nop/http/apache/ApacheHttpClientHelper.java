@@ -55,8 +55,21 @@ public class ApacheHttpClientHelper {
         H2AsyncClientBuilder builder = HttpAsyncClients.customHttp2();
         builder.setIOReactorConfig(ioReactorConfig)
                 .evictIdleConnections(TimeValue.ofMilliseconds(clientConfig.getMaxIdleTime().toMillis()))
-                .setUserAgent(clientConfig.getUserAgent()).build();
+                .setUserAgent(clientConfig.getUserAgent());
+        applyRetryPolicy(builder, clientConfig);
         return builder.build();
+    }
+
+    public static void applyRetryPolicy(H2AsyncClientBuilder builder, HttpClientConfig clientConfig) {
+        if (!clientConfig.isRetryOnConnectionFailure()) {
+            builder.disableAutomaticRetries();
+        }
+    }
+
+    public static void applyRetryPolicy(HttpAsyncClientBuilder builder, HttpClientConfig clientConfig) {
+        if (!clientConfig.isRetryOnConnectionFailure()) {
+            builder.disableAutomaticRetries();
+        }
     }
 
     public static CloseableHttpAsyncClient createHttp(HttpClientConfig clientConfig, IOReactorConfig ioReactorConfig,
@@ -65,6 +78,7 @@ public class ApacheHttpClientHelper {
         builder.setIOReactorConfig(ioReactorConfig).setConnectionManager(connManager)
                 .evictIdleConnections(TimeValue.ofMilliseconds(clientConfig.getMaxIdleTime().toMillis()))
                 .setUserAgent(clientConfig.getUserAgent());
+        applyRetryPolicy(builder, clientConfig);
         return builder.build();
     }
 
