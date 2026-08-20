@@ -53,7 +53,8 @@ public class ThoughtStorage {
         if (storageDirPath == null || storageDirPath.isEmpty()) {
             this.storageDir = new File(System.getProperty("user.home"), ".mcp_sequential_thinking");
         } else {
-            this.storageDir = FileHelper.resolveFile(storageDirPath);
+            File dir = new File(storageDirPath);
+            this.storageDir = dir.isAbsolute() ? dir : FileHelper.resolveFile(storageDirPath);
         }
     }
 

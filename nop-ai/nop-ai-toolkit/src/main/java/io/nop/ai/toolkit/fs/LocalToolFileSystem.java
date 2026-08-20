@@ -42,8 +42,9 @@ public class LocalToolFileSystem implements IToolFileSystem {
         if (path == null) return false;
         try {
             File resolved = resolveFileInternal(path);
-            String canonicalWorkDir = workDir.getCanonicalPath();
-            String canonicalPath = resolved.getCanonicalPath();
+            // Windows 规范路径使用 '\' 分隔符，pathStartsWith 只识别 '/' 边界，需先统一分隔符
+            String canonicalWorkDir = StringHelper.normalizePath(workDir.getCanonicalPath());
+            String canonicalPath = StringHelper.normalizePath(resolved.getCanonicalPath());
             return StringHelper.pathStartsWith(canonicalPath, canonicalWorkDir);
         } catch (IOException e) {
             return false;

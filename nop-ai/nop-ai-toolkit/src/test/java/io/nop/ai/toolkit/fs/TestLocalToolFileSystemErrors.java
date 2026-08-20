@@ -111,7 +111,9 @@ public class TestLocalToolFileSystemErrors {
         assertTrue(fs.isPathAllowed("file.txt"), "in-workdir path must remain allowed");
         assertTrue(fs.isPathAllowed(tempDir.getAbsolutePath() + "/sub.txt"),
                 "absolute path under workdir must remain allowed");
-        assertFalse(fs.isPathAllowed("/sub.txt"), "absolute path outside workdir must remain rejected");
+        // Windows 上 "/sub.txt" 不是绝对路径（会被解析到工作目录内），改用工作目录外的真实绝对路径
+        assertFalse(fs.isPathAllowed(new File(tempDir.getParentFile(), "outside.txt").getAbsolutePath()),
+                "absolute path outside workdir must remain rejected");
         assertFalse(fs.isPathAllowed("../secret.txt"), "traversal path must remain rejected");
         assertFalse(fs.isPathAllowed(null), "null path must remain rejected");
     }

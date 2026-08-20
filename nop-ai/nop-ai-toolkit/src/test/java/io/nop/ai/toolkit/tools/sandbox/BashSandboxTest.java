@@ -38,6 +38,7 @@ public class BashSandboxTest {
 
     @Test
     void hostBackendEnforcesWallTimeTimeout() {
+        assumeTrue(isShAvailable(), "sh not available on this host — host-backend launch tests require a POSIX shell");
         HostBashSandbox sandbox = new HostBashSandbox(
                 BashSandboxConfig.builder().wallSeconds(1).build(),
                 List.of(tempDir.toPath()));
@@ -58,6 +59,7 @@ public class BashSandboxTest {
 
     @Test
     void hostBackendCapturesExitCodeAndOutput() {
+        assumeTrue(isShAvailable(), "sh not available on this host — host-backend launch tests require a POSIX shell");
         HostBashSandbox sandbox = new HostBashSandbox(
                 BashSandboxConfig.builder().wallSeconds(10).build(),
                 List.of(tempDir.toPath()));
@@ -234,6 +236,23 @@ public class BashSandboxTest {
         assertTrue(result.getStdout().contains("exit=1") || result.getExitCode() != 0,
                 "a network request under --network none must fail (real-backend isolation proof). "
                         + "stdout=" + result.getStdout() + " exit=" + result.getExitCode());
+    }
+
+    private static boolean isShAvailable() {
+        try {
+            Process p = new ProcessBuilder(List.of("sh", "-c", "echo ok"))
+                    .redirectErrorStream(true).start();
+            byte[] buf = new byte[64];
+            //noinspection StatementWithEmptyBody
+            try (var in = p.getInputStream()) {
+                while (in.read(buf) != -1) {
+                    // drain
+                }
+            }
+            return p.waitFor(5, java.util.concurrent.TimeUnit.SECONDS) && p.exitValue() == 0;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private static boolean isDockerAvailable() throws IOException, InterruptedException {
