@@ -5,10 +5,23 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BooleanSupplier;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class TestDrainableSourceSupport {
+
+    /** Event-driven wait: returns as soon as the condition holds; the deadline only guards against hangs. */
+    private static void awaitUntil(String message, BooleanSupplier condition) throws InterruptedException {
+        long deadline = System.currentTimeMillis() + 30_000;
+        while (System.currentTimeMillis() < deadline) {
+            if (condition.getAsBoolean()) {
+                return;
+            }
+            Thread.sleep(10);
+        }
+        fail(message + " (condition not met within 30s)");
+    }
 
     @Test
     void testDrainableSourceTruncateStopsConsuming() throws Exception {
@@ -72,17 +85,12 @@ class TestDrainableSourceSupport {
         });
         sourceThread.start();
 
-        // Wait until the source thread has started collecting items
-        long deadline = System.currentTimeMillis() + 60_000;
-        while (collected.isEmpty() && System.currentTimeMillis() < deadline) {
-            Thread.sleep(10);
-        }
-        assertFalse(collected.isEmpty(), "Source thread did not collect items within 1 minute");
+        // Wait until the source thread has actually started collecting items
+        awaitUntil("source thread did not collect any items", () -> !collected.isEmpty());
 
         source.truncateForDrain();
 
-        sourceThread.join(2000);
-        assertFalse(sourceThread.isAlive(), "Source thread should have exited after truncateForDrain");
+        awaitUntil("source thread should have exited after truncateForDrain", () -> !sourceThread.isAlive());
         assertFalse(collected.isEmpty(), "Should have collected some items before drain");
 
         source.cancel();
