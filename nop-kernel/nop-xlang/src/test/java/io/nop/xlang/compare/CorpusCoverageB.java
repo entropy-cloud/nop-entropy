@@ -158,6 +158,23 @@ public final class CorpusCoverageB {
     }
 
     /**
+     * 单元的编译输出模式（I10 生产绑定路径测试消费：经 {@code XLang.parseXpl} 取树时须与
+     * corpus 编译器同模式，保证树结构一致供指纹校验与三层对拍）。
+     */
+    public static XLangOutputMode outputModeOf(String path) {
+        switch (unitFormOf(path)) {
+            case TAG_TEXT:
+                return XLangOutputMode.text;
+            case TAG_XML:
+                return XLangOutputMode.xml;
+            case TAG_NODE:
+                return XLangOutputMode.node;
+            default:
+                return XLangOutputMode.none;
+        }
+    }
+
+    /**
      * 类别 → 该类别单元的树必须满足的节点规则（每条规则一组等价类，满足其一即可）。
      * b-function-closure 含 CallFuncExecutable（局部函数调用形态的承载类——非根形态与程序入口
      * 同类名，规则强度由基线测试的强成员断言 + LOCAL_FUNCTION_FORM_UNITS 计数断言补足）。

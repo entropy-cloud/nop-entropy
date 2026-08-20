@@ -74,7 +74,13 @@ public class XLang {
     }
 
     public static XplModel parseXpl(IResource resource, XLangOutputMode outputMode) {
-        return new XplModelParser().outputModel(outputMode).parseFromResource(resource);
+        XplModel model = new XplModelParser().outputModel(outputMode).parseFromResource(resource);
+        if (model == null)
+            return null;
+        // 模型加载期绑定（I10）：编译单元装载完成后"生成类优先/解释器兜底"，绑定结果随模型
+        // （RCM ComponentCacheEntry.model）缓存复用。注册表空/清单外等静默分支返回原模型。
+        IExecutableExpression bound = EvalBackendRouter.instance().bindLoadedUnit(resource.getPath(), model.getExpr());
+        return bound == model.getExpr() ? model : new XplModel(bound);
     }
 
     public static XplModel parseXpl(IResource resource) {

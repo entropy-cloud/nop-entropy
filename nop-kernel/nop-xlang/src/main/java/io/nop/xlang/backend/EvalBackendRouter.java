@@ -78,8 +78,19 @@ public class EvalBackendRouter {
     /**
      * 运行时求值期统一裁决入口（由 {@code XLang.execute} choke point 调用；全部"运行时字符串→
      * Executable 树"出口的求值经该 choke point 流入）。
+     *
+     * <p>加载期已裁定执行体直通（I10，D3 组合语义）：{@link EvalStaticBoundExecutable} 直通绑定体
+     * （无重复指纹计算、无降级观测）；{@link EvalStaticDegradedExecutable} 直通解释器（观测已在
+     * 加载期完成）。未标记树走决策树原语义。
      */
     public Object executeAdjudicated(IExecutableExpression expr, EvalRuntime rt) {
+        if (expr instanceof EvalStaticBoundExecutable) {
+            return executeBoundUnit((EvalStaticBoundExecutable) expr, rt);
+        }
+        if (expr instanceof EvalStaticDegradedExecutable) {
+            return executeDegradedUnit((EvalStaticDegradedExecutable) expr, rt);
+        }
+
         String resourcePath = resourcePathOf(expr);
         EvalBackendDecision decision = decide(resourcePath, expr);
         Object result;
@@ -114,6 +125,65 @@ public class EvalBackendRouter {
         }
 
         decision.setSourceKey(sourceKeyOf(resourcePath, expr));
+        recordDecision(decision);
+        return result;
+    }
+
+    /**
+     * 模型加载期绑定（I10，设计 java §五绑定决策树的行为规格落地；由 {@code XLang.parseXpl}
+     * 编译单元装载完成后调用）。逐分支：
+     * <ul>
+     * <li>注册表空 / force-interpreter / java 开关关 / 清单外 / resourcePath 不可得 → 返回原树
+     * （静默；执行期按既有决策树裁决——开关关/force 走 I9 分支语义，清单外走动态路径不记降级）；</li>
+     * <li>清单成员 + 后端不可用 → 降级观测（reason=unavailable）+ {@link EvalStaticDegradedExecutable}；</li>
+     * <li>清单成员 + 绑定命中 → {@link EvalStaticBoundExecutable}（生成类优先，随缓存条目复用）；</li>
+     * <li>清单成员 + 绑定缺失（binder 返回 null）→ {@link EvalStaticDegradedExecutable}
+     * （分级观测由生产 binder 在返回 null 前自记——D5 观测记录方裁定；此处不补记，防双记）。</li>
+     * </ul>
+     * 返回原树实例（未包装）时调用方原样缓存。
+     */
+    public IExecutableExpression bindLoadedUnit(String resourcePath, IExecutableExpression tree) {
+        if (tree == null || resourcePath == null)
+            return tree;
+        IEvalStaticBackend staticBackend = registry.findStaticBackend();
+        if (staticBackend == null)
+            return tree;
+        // §五条件1：java 后端未启用（配置开关/强制解释器模式）——静默返回原树，执行期按 I9 分支裁决
+        if (isForceInterpreter() || !isStaticSlotEnabled())
+            return tree;
+        // §五条件2：清单外资源——不适用 java 绑定，动态路径（不记降级事件）
+        if (!staticBackend.isStaticCandidate(resourcePath))
+            return tree;
+        if (!staticBackend.isAvailable()) {
+            EvalBackendObservation.onDegradation(staticBackend.getBackendId(),
+                    EvalBackendObservation.REASON_UNAVAILABLE + ":" + staticBackend.getUnavailableReason(),
+                    resourcePath, tree.getLocation());
+            return new EvalStaticDegradedExecutable(tree, EvalBackendObservation.REASON_UNAVAILABLE);
+        }
+        IEvalStaticBinding binding = staticBackend.findStaticBinding(resourcePath, tree);
+        if (binding == null) {
+            // 清单内资源应有生成类而缺失：生产 binder 已按 D5 分级自记观测（stale/稳态）；
+            // 此处包装降级标记，执行期直通解释器（不再重复观测/咨询/指纹计算）
+            return new EvalStaticDegradedExecutable(tree,
+                    "load-time-" + EvalBackendObservation.REASON_GENERATED_BINDING_MISSING);
+        }
+        return new EvalStaticBoundExecutable(tree, binding, staticBackend.getBackendId());
+    }
+
+    private Object executeBoundUnit(EvalStaticBoundExecutable bound, EvalRuntime rt) {
+        Object result = bound.getBinding().execute(rt);
+        EvalBackendDecision decision = EvalBackendDecision.boundUnit(bound.getBackendId(), bound.getBinding());
+        decision.setArtifact(bound.getBinding().getBindingArtifact());
+        decision.setSourceKey(sourceKeyOf(resourcePathOf(bound), bound));
+        recordDecision(decision);
+        return result;
+    }
+
+    private Object executeDegradedUnit(EvalStaticDegradedExecutable degraded, EvalRuntime rt) {
+        Object result = degraded.execute(EvalExprProvider.getGlobalExecutor(), rt);
+        EvalBackendDecision decision = EvalBackendDecision.interpreter(degraded.getReason(), true);
+        decision.setArtifact(degraded.getSourceTree());
+        decision.setSourceKey(sourceKeyOf(resourcePathOf(degraded), degraded));
         recordDecision(decision);
         return result;
     }

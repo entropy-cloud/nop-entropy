@@ -12,6 +12,9 @@ import io.nop.commons.metrics.GlobalMeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
 /**
  * 后端降级观测（命名契约，落 docs-for-ai）：
  *
@@ -21,7 +24,10 @@ import org.slf4j.LoggerFactory;
  * 每次降级一条（诊断配置 force-interpreter 为静默隔离，不产生降级事件）。</li>
  * <li>指标：counter {@code nop.xlang.execution.backend-degradation}，tags {@code backend}
  * （java|truffle）与 {@code reason}（config-disabled | unavailable | unit-translation-failure |
- * generated-binding-missing）。</li>
+ * generated-binding-missing | generated-fingerprint-mismatch | tenant-divergent-tree）。
+ * 分级语义（I10）：generated-binding-missing / generated-fingerprint-mismatch = stale 缺陷
+ * （每次 WARN）；tenant-divergent-tree = 租户差异化树预期稳态（WARN 按 sourceKey 去重，
+ * 指标计数不衰减）。</li>
  * <li>不可用条目查询：{@link EvalBackendRegistry#getUnavailableBackends()}。</li>
  * </ul>
  */
@@ -43,6 +49,17 @@ public final class EvalBackendObservation {
 
     public static final String REASON_GENERATED_BINDING_MISSING = "generated-binding-missing";
 
+    /** 清单条目在、树指纹失配、绑定发生时无租户上下文 = stale 缺陷（基树变更未重生成） */
+    public static final String REASON_GENERATED_FINGERPRINT_MISMATCH = "generated-fingerprint-mismatch";
+
+    /** 清单条目在、树指纹失配、绑定发生时租户上下文活跃 = 租户差异化树预期稳态（非缺陷） */
+    public static final String REASON_TENANT_DIVERGENT_TREE = "tenant-divergent-tree";
+
+    /** 稳态去重集上界：超界回退每次 WARN（宁噪声不无界内存） */
+    static final int STEADY_STATE_DEDUP_MAX_KEYS = 1024;
+
+    private static final Set<String> STEADY_STATE_WARNED_KEYS = ConcurrentHashMap.newKeySet();
+
     private static final Logger LOG = LoggerFactory.getLogger(EvalBackendObservation.class);
 
     private EvalBackendObservation() {
@@ -50,6 +67,29 @@ public final class EvalBackendObservation {
 
     /** 记一次降级观测：WARN 日志 + 指标计数 */
     public static void onDegradation(String backendId, String reason, String sourceKey, SourceLocation loc) {
+        warn(backendId, reason, sourceKey, loc);
+        count(backendId, reason);
+    }
+
+    /**
+     * 记一次稳态降级观测（I10 分级：租户差异化树）：WARN 按 sourceKey 去重（once-per-path，
+     * 有界），指标计数不衰减（每次降级都计数）。
+     */
+    public static void onSteadyStateDegradation(String backendId, String reason, String sourceKey,
+                                                SourceLocation loc) {
+        if (sourceKey == null || STEADY_STATE_WARNED_KEYS.size() >= STEADY_STATE_DEDUP_MAX_KEYS
+                || STEADY_STATE_WARNED_KEYS.add(sourceKey)) {
+            warn(backendId, reason, sourceKey, loc);
+        }
+        count(backendId, reason);
+    }
+
+    /** 测试隔离用：清空稳态去重集 */
+    public static void clearSteadyStateDedup() {
+        STEADY_STATE_WARNED_KEYS.clear();
+    }
+
+    private static void warn(String backendId, String reason, String sourceKey, SourceLocation loc) {
         if (loc != null) {
             LOG.warn("{}: backend={}, reason={}, sourceKey={}, loc={}",
                     LOG_MESSAGE_KEY, backendId, reason, sourceKey, loc);
@@ -57,6 +97,9 @@ public final class EvalBackendObservation {
             LOG.warn("{}: backend={}, reason={}, sourceKey={}",
                     LOG_MESSAGE_KEY, backendId, reason, sourceKey);
         }
+    }
+
+    private static void count(String backendId, String reason) {
         GlobalMeterRegistry.instance().counter(METRIC_NAME, TAG_BACKEND, backendId, TAG_REASON, reason).increment();
     }
 

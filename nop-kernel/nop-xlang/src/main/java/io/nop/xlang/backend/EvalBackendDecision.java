@@ -51,6 +51,14 @@ public class EvalBackendDecision {
         return new EvalBackendDecision(RouteKind.STATIC, backend.getBackendId(), null, false, backend, binding);
     }
 
+    /**
+     * 加载期绑定直通（I10）：执行体为 {@code EvalStaticBoundExecutable}（加载期已完成指纹校验与
+     * 绑定），执行直通绑定体，无降级、无重复裁定。
+     */
+    public static EvalBackendDecision boundUnit(String backendId, IEvalStaticBinding binding) {
+        return new EvalBackendDecision(RouteKind.STATIC, backendId, null, false, null, binding);
+    }
+
     public static EvalBackendDecision dynamicBackend(IEvalDynamicBackend backend) {
         return new EvalBackendDecision(RouteKind.DYNAMIC, backend.getBackendId(), null, false, backend, null);
     }

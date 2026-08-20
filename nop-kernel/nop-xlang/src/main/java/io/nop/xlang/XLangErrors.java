@@ -1123,6 +1123,7 @@ public interface XLangErrors {
 
     String ARG_BACKEND_ID = "backendId";
     String ARG_CAPABILITY = "capability";
+    String ARG_RESOURCE_PATH = "resourcePath";
 
     ErrorCode ERR_XLANG_BACKEND_ALREADY_REGISTERED = define("nop.err.xlang.backend-already-registered",
             "执行后端已注册，重复注册不同实例必须先反注册:{backendId}", ARG_BACKEND_ID);
@@ -1132,4 +1133,9 @@ public interface XLangErrors {
 
     ErrorCode ERR_XLANG_BACKEND_INVALID_CONTRACT = define("nop.err.xlang.backend-invalid-contract",
             "执行后端契约非法:{backendId}", ARG_BACKEND_ID);
+
+    ErrorCode ERR_XLANG_GENERATED_MANIFEST_INVALID_ENTRY = define(
+            "nop.err.xlang.generated-manifest-invalid-entry",
+            "生成类清单条目非法（resourcePath/className/treeFingerprint 必须完整且格式合法）:"
+                    + "{resourcePath} {className}", ARG_RESOURCE_PATH, ARG_CLASS_NAME);
 }
