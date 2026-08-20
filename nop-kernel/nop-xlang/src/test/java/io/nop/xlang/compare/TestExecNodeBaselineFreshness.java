@@ -73,6 +73,23 @@ public class TestExecNodeBaselineFreshness {
     }
 
     /**
+     * per-backend 目标集口径一致性（I4 Phase 1 定稿口径对新鲜度测试保持有效）：
+     * java 侧 = registeredTarget ∪ bFamily（全量非排除）；truffle 侧 = 87 口径（至 I7）；
+     * registeredTarget 语义冻结为 CorpusCoverageA 白名单锚（不随 I4 扩量放宽）。
+     */
+    @Test
+    public void testPerBackendTargetSetsConsistent() {
+        Set<String> live = scanLiveExecFiles();
+        assertEquals(live.size(),
+                ExecNodeBaseline.javaTargetSet().size() + ExecNodeBaseline.excluded().size(),
+                "javaTargetSet + excluded must partition the live file set");
+        assertEquals(new TreeSet<>(ExecNodeBaseline.registeredTarget()),
+                new TreeSet<>(ExecNodeBaseline.truffleRegisteredTarget()),
+                "truffle anchor keeps the legacy 87 content until I7");
+        assertTrue(ExecNodeBaseline.bFamily().size() == 33, "bFamily after I4 edge adjudication = 33");
+    }
+
+    /**
      * 红灯注入对照（红/绿可控）：未登记类名 → isClassified=false（新鲜度测试将 FAIL）；
      * 已登记类名 → isClassified=true（绿）。
      */

@@ -31,10 +31,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p>矩阵口径（plan Phase 1 定稿）：
  * <ul>
  * <li>注册证据 = 翻译器支持集可编程枚举（{@link ExecToTruffleTranslator#getSupportedNodeClasses()}）
- *   与基线 {@code registeredTarget()}（I2 子集 + A 族 + 并入残余 = 87 类）双向 set 相等；</li>
+ *   与基线 truffle 侧目标集 {@code ExecNodeBaseline.truffleRegisteredTarget()}（I2 子集 + A 族 + 并入残余 = 87 类，
+ *   I4 per-backend 口径锚点适配——内容与既有 87 口径一致的行为中性切换，I7 闭环时收敛到全量）双向 set 相等；</li>
  * <li>真实翻译验证（非清单自证）：87 类逐类最小实例经翻译器真实翻译成功
  *   （slot 依赖节点程序入口帧包装，嵌套同族变体经顶层类工厂产生）；</li>
- * <li>fail-fast 反证：B 族 35 类逐类断言不支持（pending 可观测、不算通过），树节点类同时
+ * <li>fail-fast 反证：B 族逐类断言不支持（pending 可观测、不算通过），树节点类同时
  *   断言翻译报 {@code ERR_EXEC_TRANSLATE_UNSUPPORTED_NODE}；</li>
  * <li>红灯注入：未注册具体节点类（测试域合成 {@code FutureExecutable}）→ 支持集不含 +
  *   翻译 fail-fast + 基线判未归属（新鲜度红灯路径），已注册类绿对照。</li>
@@ -55,20 +56,21 @@ public class TestTruffleCoverageMatrix {
     }
 
     // ------------------------------------------------------------------
-    // 注册证据：支持集 ↔ 基线 registeredTarget 双向一致（同基线同口径可验证）
+    // 注册证据：支持集 ↔ truffle 侧目标集（truffleRegisteredTarget）双向一致
+    // （I4 per-backend 口径锚点适配：内容与既有 87 口径一致的行为中性切换）
     // ------------------------------------------------------------------
 
     @Test
-    public void testSupportSetMatchesBaselineRegisteredTarget() {
+    public void testSupportSetMatchesTruffleRegisteredTarget() {
         Set<String> supported = new TreeSet<>();
         for (Class<?> cls : ExecToTruffleTranslator.getSupportedNodeClasses())
             supported.add(cls.getSimpleName());
-        Set<String> baseline = new TreeSet<>(ExecNodeBaseline.registeredTarget());
+        Set<String> baseline = new TreeSet<>(ExecNodeBaseline.truffleRegisteredTarget());
         assertEquals(baseline, supported,
-                "translator support set must equal baseline registeredTarget (missing="
+                "translator support set must equal truffle registered target (missing="
                         + diff(baseline, supported) + ", extra=" + diff(supported, baseline) + ")");
         assertEquals(ExecNodeBaseline.i3Scope().size() + ExecNodeBaseline.I2_SUBSET.size(),
-                baseline.size(), "registeredTarget = i3Scope + i2Subset");
+                baseline.size(), "truffleRegisteredTarget = i3Scope + i2Subset (87)");
     }
 
     private static Set<String> diff(Set<String> a, Set<String> b) {
@@ -78,11 +80,11 @@ public class TestTruffleCoverageMatrix {
     }
 
     // ------------------------------------------------------------------
-    // 真实翻译验证：registeredTarget 87 类逐类最小实例翻译成功（非清单自证）
+    // 真实翻译验证：truffle 侧目标集 87 类逐类最小实例翻译成功（非清单自证）
     // ------------------------------------------------------------------
 
     static Stream<String> registeredTargetClasses() {
-        return new TreeSet<>(ExecNodeBaseline.registeredTarget()).stream();
+        return new TreeSet<>(ExecNodeBaseline.truffleRegisteredTarget()).stream();
     }
 
     @ParameterizedTest(name = "translate:{0}")
@@ -103,8 +105,8 @@ public class TestTruffleCoverageMatrix {
     }
 
     // ------------------------------------------------------------------
-    // fail-fast 反证：B 族 35 类逐类 pending（不支持 + 翻译 fail-fast）
-    // ------------------------------------------------------------------
+    // fail-fast 反证：B 族逐类 pending（不支持 + 翻译 fail-fast）
+    // -------------------------------------------------------------------
 
     static Stream<String> bFamilyClasses() {
         return new TreeSet<>(ExecNodeBaseline.bFamily()).stream();

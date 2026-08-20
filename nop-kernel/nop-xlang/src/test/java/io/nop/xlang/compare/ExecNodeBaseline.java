@@ -15,7 +15,8 @@ import java.util.Set;
  * （文件级，见 {@code TestExecNodeBaselineFreshness}：新增未分类文件即红灯）。
  * 本类随 test-jar 发布，供 java 侧（nop-xlang-java 矩阵断言测试）与 truffle 侧（I6 同基线同口径）消费。
  *
- * <p>四分区（live 全部 138 文件逐一归属，无无主残留）：
+ * <p>四分区（live 全部 138 文件逐一归属，无无主残留；I4 移交三边缘类裁定后
+ * ReturnScopeValuesExecutable/ExecutableFunctionEvalAction 改判排除、LocationFunction 留 B 族转译）：
  * <ol>
  * <li>{@link Partition#A_FAMILY}——覆盖 A 五族（I3 转译范围）；</li>
  * <li>{@link Partition#RESIDUAL_MERGED}——数据面残余算子（I2 子集起步时设计 §三两行的尾部，裁定并入 I3）；</li>
@@ -24,6 +25,10 @@ import java.util.Set;
  * <li>{@link Partition#EXCLUDED}——抽象基类/接口/非节点辅助类（不作为节点注册对象，逐类理由见
  * {@link #EXCLUDED_REASONS}）。</li>
  * </ol>
+ *
+ * <p><b>per-backend 目标集口径（I4 Phase 1 定稿）</b>：java 侧 = {@link #javaTargetSet()}（全量非排除），
+ * truffle 侧 = {@link #truffleRegisteredTarget()}（87 直至 I7）；两侧矩阵各自锚定本后端目标集，
+ * {@link #registeredTarget()} 语义冻结为 CorpusCoverageA 白名单锚。
  *
  * <p>扫描粒度裁定（I3 Phase 1）：<b>文件级</b>。文件内嵌套具体类（如
  * {@code ObjFunctionExecutable$NoArgExecutable}、{@code VarFunctionExecutable$OneArgExecutable}）
@@ -83,13 +88,12 @@ public final class ExecNodeBaseline {
             "GuardNotNullExecutable", "SeqExecutable", "BlockExecutable", "ReturnNullExecutable",
             "CallFuncExecutable");
 
-    /** B 族：函数/闭包/控制流/输出/节点生成 + 归 B 裁定的边缘节点（I4 范围，35 类）。 */
+    /** B 族：函数/闭包/控制流/输出/节点生成（I4 范围，33 类——三边缘类中 LocationFunction 裁定转译并入，ReturnScopeValuesExecutable/ExecutableFunctionEvalAction 裁定改判排除）。 */
     public static final Set<String> B_FAMILY = setOf(
             // 函数/闭包族
             "VarFunctionExecutable", "VarExecutableFunction", "LazyCompiledExecutableFunction",
             "FunctionalAdapterExecutable", "CallFuncWithClosureExecutable", "BuildFuncRefExecutable",
-            "BuildClosureBodyExecutable", "ExecutableFunctionEvalAction", "ReturnScopeValuesExecutable",
-            "LocationFunction",
+            "BuildClosureBodyExecutable", "LocationFunction",
             // 控制流族
             "IfExecutable", "SwitchExecutable", "ForExecutable", "ForInExecutable", "ForOfExecutable",
             "WhileExecutable", "DoWhileExecutable", "BreakExecutable", "ContinueExecutable",
@@ -100,13 +104,14 @@ public final class ExecNodeBaseline {
             "GenXJsonExecutable", "CollectJsonExecutable", "CollectNodeExecutable",
             "CollectSqlExecutable", "CollectTextExecutable", "EscapeOutputExecutable");
 
-    /** 排除清单：抽象基类/接口/非节点辅助类（16 类，逐类理由见 {@link #EXCLUDED_REASONS}）。 */
+    /** 排除清单：抽象基类/接口/非节点辅助类（18 类，逐类理由见 {@link #EXCLUDED_REASONS}）。 */
     public static final Set<String> EXCLUDED = setOf(
             "AbstractBinaryExecutable", "AbstractExecutable", "AbstractMultiExecutable",
             "AbstractObjFunctionExecutable", "AbstractPropertyExecutable", "AbstractSelfAssignExecutable",
             "ISeqExecutable", "IMacroFunction",
             "AssignIdentifier", "PropBinding", "ScopeValues", "ObjFunctionHandle",
-            "ExecutableHelper", "MakeScopeEvalFunction", "XLangSemantics", "ExecutableFunction");
+            "ExecutableHelper", "MakeScopeEvalFunction", "XLangSemantics", "ExecutableFunction",
+            "ReturnScopeValuesExecutable", "ExecutableFunctionEvalAction");
 
     /** 排除清单逐类理由（I2 三类标注法同源纪律：无"整类划为辅助"的粗粒度划分）。 */
     public static final Map<String, String> EXCLUDED_REASONS;
@@ -130,6 +135,13 @@ public final class ExecNodeBaseline {
         m.put("XLangSemantics", "非节点辅助类：I2 落地的共享语义 helper 基座（生成代码与解释器同一实现来源）");
         m.put("ExecutableFunction", "非节点函数对象：implements IEvalFunction，树中仅作为 LiteralExecutable 载荷出现；"
                 + "其函数体编译/闭包捕获归 B 族（I4）");
+        m.put("ReturnScopeValuesExecutable", "I4 边缘裁定改判排除：宏 script 单元的编译期执行产物"
+                + "（MacroScriptTagCompiler 在 parse 阶段执行取值注册宏变量），不进入运行期编译单元树；"
+                + "返回值 ScopeValues 载荷为 List<LocalVarDeclaration> AST 声明列表，生成源码无自包含表示");
+        m.put("ExecutableFunctionEvalAction", "I4 边缘裁定改判排除：宿主 API 构造"
+                + "（XLang.getTagAction 从 xlib tag 的 IFunctionModel 包装为 EvalAction），非前端树编译产物、"
+                + "不作为节点出现在编译单元树中；implements IExecutableExpression 为宿主互通形态（委托内部"
+                + " ExecutableFunction），函数体语义随函数族载荷处置（生成私有方法）承载");
         EXCLUDED_REASONS = Collections.unmodifiableMap(m);
     }
 
@@ -186,7 +198,25 @@ public final class ExecNodeBaseline {
         return union(i3Scope(), I2_SUBSET);
     }
 
-    /** 矩阵显式 pending 集 = B 族（35 类，可观测、不算通过）。 */
+    /**
+     * java 侧矩阵目标集（I4 per-backend 口径）：全部非排除且未改判排除的具体类
+     * = {@link #registeredTarget()} ∪ {@link #bFamily()}（87 + 33 = 120 类）。
+     * I4 闭环时 java 侧矩阵锚定本口径（支持集 ↔ 本集合双向 set 相等）。
+     */
+    public static Set<String> javaTargetSet() {
+        return union(registeredTarget(), B_FAMILY);
+    }
+
+    /**
+     * truffle 侧矩阵目标集（I4 per-backend 口径）：维持既有 87 口径（= {@link #registeredTarget()} 内容）
+     * 直至 I7 闭环收敛到全量。truffle 侧矩阵锚定本 accessor（I4 Phase 1 行为中性切换）；
+     * {@link #registeredTarget()} 的语义保持 = CorpusCoverageA 防越界白名单锚（不随 I4 扩量放宽）。
+     */
+    public static Set<String> truffleRegisteredTarget() {
+        return union(i3Scope(), I2_SUBSET);
+    }
+
+    /** 矩阵显式 pending 集 = B 族（33 类，可观测、不算通过）。 */
     public static Set<String> bFamily() {
         return B_FAMILY;
     }
