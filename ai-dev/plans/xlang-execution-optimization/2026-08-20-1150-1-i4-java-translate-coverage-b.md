@@ -158,27 +158,27 @@ Exit Criteria:
 
 ### Phase 3 - corpus 覆盖 B 对拍全绿、`$out` 执行验证与矩阵闭环
 
-Status: planned
+Status: completed
 Targets: `nop-kernel/nop-xlang/src/test/`（corpus 与基线）、`nop-kernel/nop-xlang-java/src/test/`（java 列与矩阵）、`nop-kernel/nop-xlang-truffle/src/test/`（矩阵锚点适配回归，Phase 1 落地物的复验）
 
 - Item Types: `Proof`
 
-- [ ] 构建覆盖 B corpus 单元：各族静态 ≥1（输出族以模板单元形态；**函数/闭包族静态单元显式含"局部函数声明 + 调用"形态语料**——非根 `CallFuncExecutable` 形态的 corpus 级对拍由该语料承载，或裁定记录中写明其承载单元）、动态按自然产生能力配比（不能产生显式记录）、异常语义单元 ≥1（错误码 + 预期源位置）、模板单元（`$out` 通路）≥1；单元 schema 四字段齐备；Phase 1 盘点证实整族不可产生的族按其裁定以合成树转译级测试覆盖替代并记录（不算静默跳过）
-- [ ] 解释器基线列全量执行覆盖 B corpus（单列阶段判定基准 = 列结果 vs 单元声明预期）
-- [ ] java 列对拍全量执行覆盖 B corpus（三层断言 + 身份断言 + truffle 列缺席显式记录；**模板单元含输出缓冲副作用比对——I2 移交闭合**；动态单元 java 列不适用按列适用性机制区分）
-- [ ] 覆盖矩阵闭环：java 目标集扩至全部非排除且未改判排除的具体类（138 - 16 - N）；支持集 ↔ java 目标集双向 set 相等；java 侧 B 族 pending 断言清零（三边缘类裁定迁移到位；无树形态类按 Phase 2 裁定的证据形态覆盖）；新增节点类红灯注入保持有效（`FutureExecutable` 红/绿对照复验）；truffle 侧矩阵（Phase 1 锚点适配后）全绿复验
+- [x] 构建覆盖 B corpus 单元：各族静态 ≥1（输出族以模板单元形态；**函数/闭包族静态单元显式含"局部函数声明 + 调用"形态语料**——非根 `CallFuncExecutable` 形态的 corpus 级对拍由该语料承载，或裁定记录中写明其承载单元）、动态按自然产生能力配比（不能产生显式记录）、异常语义单元 ≥1（错误码 + 预期源位置）、模板单元（`$out` 通路）≥1；单元 schema 四字段齐备；Phase 1 盘点证实整族不可产生的族按其裁定以合成树转译级测试覆盖替代并记录（不算静默跳过）
+- [x] 解释器基线列全量执行覆盖 B corpus（单列阶段判定基准 = 列结果 vs 单元声明预期）
+- [x] java 列对拍全量执行覆盖 B corpus（三层断言 + 身份断言 + truffle 列缺席显式记录；**模板单元含输出缓冲副作用比对——I2 移交闭合**；动态单元 java 列不适用按列适用性机制区分）
+- [x] 覆盖矩阵闭环：java 目标集扩至全部非排除且未改判排除的具体类（138 - 16 - N）；支持集 ↔ java 目标集双向 set 相等；java 侧 B 族 pending 断言清零（三边缘类裁定迁移到位；无树形态类按 Phase 2 裁定的证据形态覆盖）；新增节点类红灯注入保持有效（`FutureExecutable` 红/绿对照复验）；truffle 侧矩阵（Phase 1 锚点适配后）全绿复验
 
 Exit Criteria:
 
-- [ ] 覆盖 B corpus 单元 repo-observable（清单/类别/schema/动态缺席记录）；解释器基线全绿；**java 列 vs 解释器列对拍全绿（含身份断言 + 模板单元输出缓冲比对）——roadmap I4 验收第一项**
-- [ ] **覆盖矩阵全绿——roadmap I4 验收第二项**：java 目标集逐类注册断言全绿（逐类最小实例真实转译，非清单自证）；java pending 集清零可断言；新增节点类红灯经注入验证（红/绿可控）；truffle 侧矩阵锚点适配后全绿
-- [ ] **I2 移交闭合**：`$out` 包装器契约执行路径验证在仓（模板单元 java 列对拍含输出缓冲副作用比对；I2 Deferred 责任链闭环记录）
-- [ ] **端到端验证**：corpus B 模板单元 → 树编译 → 转译器 → 生成源码（`$out` 第二隐参）→ 测试域编译加载 → 执行 → 三层对拍断言（含输出缓冲）全链可运行
-- [ ] **接线验证**：java 列身份断言（生成类实例）在覆盖 B 单元（含模板单元）上持续成立（非解释器兜底）
-- [ ] 回归不削弱既有解释器测试（纪律 3）：`TestCorpusV1JavaColumn` 22/22、`TestCorpusCoverageAJavaColumn` 33/33、truffle 侧既有测试（含 `TestCorpusV1TruffleColumn` 22/22、`TestCorpusCoverageATruffleColumn` 33/33）与 nop-xlang/nop-xlang-java 既有测试保持全绿
-- [ ] `./mvnw test -pl :nop-xlang,:nop-xlang-java,:nop-xlang-truffle -am -T 1C` 全绿
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 覆盖 B corpus 单元 repo-observable（清单/类别/schema/动态缺席记录）；解释器基线全绿；**java 列 vs 解释器列对拍全绿（含身份断言 + 模板单元输出缓冲比对）——roadmap I4 验收第一项**
+- [x] **覆盖矩阵全绿——roadmap I4 验收第二项**：java 目标集逐类注册断言全绿（逐类最小实例真实转译，非清单自证）；java pending 集清零可断言；新增节点类红灯经注入验证（红/绿可控）；truffle 侧矩阵锚点适配后全绿
+- [x] **I2 移交闭合**：`$out` 包装器契约执行路径验证在仓（模板单元 java 列对拍含输出缓冲副作用比对；I2 Deferred 责任链闭环记录）
+- [x] **端到端验证**：corpus B 模板单元 → 树编译 → 转译器 → 生成源码（`$out` 第二隐参）→ 测试域编译加载 → 执行 → 三层对拍断言（含输出缓冲）全链可运行
+- [x] **接线验证**：java 列身份断言（生成类实例）在覆盖 B 单元（含模板单元）上持续成立（非解释器兜底）
+- [x] 回归不削弱既有解释器测试（纪律 3）：`TestCorpusV1JavaColumn` 22/22、`TestCorpusCoverageAJavaColumn` 33/33、truffle 侧既有测试（含 `TestCorpusV1TruffleColumn` 22/22、`TestCorpusCoverageATruffleColumn` 33/33）与 nop-xlang/nop-xlang-java 既有测试保持全绿
+- [x] `./mvnw test -pl :nop-xlang,:nop-xlang-java,:nop-xlang-truffle -am -T 1C` 全绿
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
