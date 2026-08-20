@@ -26,8 +26,8 @@ import static org.junit.jupiter.api.Assertions.assertNotSame;
 
 /**
  * 树指纹载荷覆盖单测（Phase 2 Exit Criteria，防缓存串用——设计 truffle 02 §七自认最危险
- * 缺陷形态的硬验收）：registeredTarget 全部 87 类（I2 子集 28 + 覆盖 A 五族 + 并入残余 59，
- * NullExecutable 无任何语义载荷除外）——
+ * 缺陷形态的硬验收）：truffleRegisteredTarget 全部 120 类（I2 子集 + 覆盖 A 五族 + 并入残余 + 覆盖 B 三族（I7 扩展），
+ * 无语义载荷类除外；无树形态类对齐矩阵证据形态口径跳过）——
  *
  * <ul>
  * <li>仅标量语义载荷不同的两棵树 → 指纹不同（同 sourceKey 不串用缓存）；</li>
@@ -47,12 +47,14 @@ public class TestTreeFingerprintPayloadCoverage {
             "ScopeSelfDecExecutable", "ReferenceIdentifierExecutable", "ReferenceSelfIncExecutable",
             "ReferenceSelfDecExecutable", "RenewReferenceExecutable", "InitRefSlotExecutable",
             "EnhanceRefSlotExecutable", "DebugIdentifierExecutable", "SelfIncExecutable",
-            "SelfDecExecutable", "CloneLiteralExecutable");
+            "SelfDecExecutable", "CloneLiteralExecutable",
+            "OutputTextExecutable", "FunctionalAdapterExecutable");
 
     /**
      * 无任何语义载荷的节点类（NullExecutable 单例：任意两实例指纹相同是正确语义，排除变体测试）。
      */
-    private static final Set<String> NO_PAYLOAD_CLASSES = Set.of("NullExecutable");
+    private static final Set<String> NO_PAYLOAD_CLASSES = Set.of("NullExecutable",
+            "BreakExecutable", "ContinueExecutable", "LocationFunction");
 
     /**
      * 无标量载荷的复合节点类（类名 + 子树即全载荷，"仅语义载荷不同"经子树差异表达）。
@@ -67,7 +69,12 @@ public class TestTreeFingerprintPayloadCoverage {
             "NegExecutable", "BitNotExecutable", "TypeOfExecutable",
             "EqNullExecutable", "NeNullExecutable", "StrictEqNullExecutable", "StrictNeNullExecutable",
             "NullCoalesceExecutable", "PropInExecutable", "ConcatExecutable", "RangeExecutable",
-            "DebugExecutable");
+            "DebugExecutable",
+            // 覆盖 B（I7）：无标量载荷复合类（语义载荷 = 子树，经子树差异表达）
+            "IfExecutable", "ForExecutable", "WhileExecutable", "DoWhileExecutable",
+            "ReturnExecutable", "ThrowErrorCodeExecutable", "ThrowExceptionExecutable",
+            "OutputValueExecutable", "GenXJsonExecutable", "GenNodeExecutable",
+            "CollectJsonExecutable", "CollectSqlExecutable", "CollectTextExecutable");
 
     @BeforeAll
     public static void init() {
@@ -79,15 +86,23 @@ public class TestTreeFingerprintPayloadCoverage {
         io.nop.core.initialize.CoreInitialization.destroy();
     }
 
+    /**
+     * 无独立树级形态类（对齐矩阵证据形态口径：宿主载体/支持集成员 + 载荷反证——不适用变体测试）。
+     */
+    private static final Set<String> NO_TREE_FORM_CLASSES = Set.of("GenNodeAttrExecutable",
+            "LazyCompiledExecutableFunction");
+
     static Stream<String> payloadClasses() {
-        return new TreeSet<>(ExecNodeBaseline.registeredTarget()).stream()
-                .filter(name -> !NO_PAYLOAD_CLASSES.contains(name));
+        return new TreeSet<>(ExecNodeBaseline.truffleRegisteredTarget()).stream()
+                .filter(name -> !NO_PAYLOAD_CLASSES.contains(name))
+                .filter(name -> !NO_TREE_FORM_CLASSES.contains(name));
     }
 
     static Stream<String> compositeClasses() {
-        return new TreeSet<>(ExecNodeBaseline.registeredTarget()).stream()
+        return new TreeSet<>(ExecNodeBaseline.truffleRegisteredTarget()).stream()
                 .filter(name -> !NO_PAYLOAD_CLASSES.contains(name))
-                .filter(name -> !NO_CHILD_CLASSES.contains(name));
+                .filter(name -> !NO_CHILD_CLASSES.contains(name))
+                .filter(name -> !NO_TREE_FORM_CLASSES.contains(name));
     }
 
     @ParameterizedTest(name = "payload:{0}")

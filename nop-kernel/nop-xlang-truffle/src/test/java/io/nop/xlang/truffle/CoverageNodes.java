@@ -77,6 +77,38 @@ import io.nop.xlang.exec.StaticFunctionExecutable;
 import io.nop.xlang.exec.StaticGetterGetPropertyExecutable;
 import io.nop.xlang.exec.TypeOfExecutable;
 import io.nop.xlang.exec.VarStatusExecutable;
+import io.nop.xlang.exec.BreakExecutable;
+import io.nop.xlang.exec.BuildClosureBodyExecutable;
+import io.nop.xlang.exec.BuildFuncRefExecutable;
+import io.nop.xlang.exec.CallFuncWithClosureExecutable;
+import io.nop.xlang.exec.CollectJsonExecutable;
+import io.nop.xlang.exec.CollectNodeExecutable;
+import io.nop.xlang.exec.CollectSqlExecutable;
+import io.nop.xlang.exec.CollectTextExecutable;
+import io.nop.xlang.exec.ContinueExecutable;
+import io.nop.xlang.exec.DoWhileExecutable;
+import io.nop.xlang.exec.EscapeOutputExecutable;
+import io.nop.xlang.exec.ExecutableFunction;
+import io.nop.xlang.exec.ForExecutable;
+import io.nop.xlang.exec.ForInExecutable;
+import io.nop.xlang.exec.ForOfExecutable;
+import io.nop.xlang.exec.FunctionalAdapterExecutable;
+import io.nop.xlang.exec.GenNodeExecutable;
+import io.nop.xlang.exec.GenXJsonExecutable;
+import io.nop.xlang.exec.IfExecutable;
+import io.nop.xlang.exec.LocationFunction;
+import io.nop.xlang.exec.OutputTextExecutable;
+import io.nop.xlang.exec.OutputValueExecutable;
+import io.nop.xlang.exec.OutputXmlAttrExecutable;
+import io.nop.xlang.exec.OutputXmlExtAttrsExecutable;
+import io.nop.xlang.exec.ReturnExecutable;
+import io.nop.xlang.exec.SwitchExecutable;
+import io.nop.xlang.exec.ThrowErrorCodeExecutable;
+import io.nop.xlang.exec.ThrowExceptionExecutable;
+import io.nop.xlang.exec.TryExecutable;
+import io.nop.xlang.exec.VarExecutableFunction;
+import io.nop.xlang.exec.VarFunctionExecutable;
+import io.nop.xlang.exec.WhileExecutable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -100,6 +132,9 @@ final class CoverageNodes {
     static final SourceLocation LOC = SourceLocation.fromLine("coverage-a.xpl", 1);
 
     private static final IEvalFunction VALUE_FN = (thisObj, args, scope) -> 2;
+
+    /** 载荷变体（不同 lambda 站点 → 不同合成类，指纹标量载荷差异载体）。 */
+    private static final IEvalFunction VALUE_FN2 = (thisObj, args, scope) -> 3;
 
     private static final IPropertyGetter PROP_GETTER = (obj, propName, scope) -> 2;
 
@@ -136,6 +171,10 @@ final class CoverageNodes {
         return build(name, 0, childValue);
     }
 
+    /**
+     * @param variant 标量载荷旋钮（0/1：属性名/变量名/类型/算子/标志/常量取两组值）
+     * @param childValue 子树旋钮（子表达式字面量取值，1/2）
+     */
     /**
      * @param variant 标量载荷旋钮（0/1：属性名/变量名/类型/算子/标志/常量取两组值）
      * @param childValue 子树旋钮（子表达式字面量取值，1/2）
@@ -424,6 +463,110 @@ final class CoverageNodes {
                         variant == 0 ? "length" : "size", false,
                         new IExecutableExpression[0], VALUE_FN);
 
+            // ---- 覆盖 B：函数/闭包族（plan I7；7 有树形态 + LocationFunction）----
+            case "VarFunctionExecutable":
+                return VarFunctionExecutable.build(LOC, literal("f" + childValue), variant == 0,
+                        childLiterals(childValue));
+            case "VarExecutableFunction":
+                return new VarExecutableFunction(LOC, literal("f" + childValue), variant == 0,
+                        new IExecutableExpression[]{literal(childValue)});
+            case "FunctionalAdapterExecutable":
+                return new FunctionalAdapterExecutable(LOC, variant == 0 ? VALUE_FN : VALUE_FN2);
+            case "CallFuncWithClosureExecutable":
+                // 调用时闭包拷贝载体：sourceSlots 指向调用者帧 slot 0，被调帧 slotNames 自携带
+                return programEntry(new String[]{"c"},
+                        new CallFuncWithClosureExecutable(LOC, variant == 0 ? "__fn_m" : "__fn_n",
+                                new String[0], IExecutableExpression.EMPTY_EXPRS, literal(childValue),
+                                new int[]{0}, new int[0]));
+            case "BuildFuncRefExecutable":
+                // 捕获时闭包拷贝载体：sourceSlots 快照 + 函数体独立 RootNode（函数体 = 子树旋钮）
+                return programEntry(new String[]{"c"},
+                        BuildFuncRefExecutable.build(LOC,
+                                new ExecutableFunction(LOC, LOC, variant == 0 ? "__fn_m" : "__fn_n",
+                                        0, 0, new String[0], new IExecutableExpression[0],
+                                        literal(childValue)),
+                                new int[]{0}, new int[0]));
+            case "BuildClosureBodyExecutable":
+                return programEntry(new String[]{"c", "d"},
+                        new BuildClosureBodyExecutable(LOC, variant == 0 ? 0 : 1,
+                                new int[]{0}, new int[0], literal(childValue)));
+            case "LocationFunction":
+                return new LocationFunction(LOC);
+
+            // ---- 覆盖 B：控制流族（13）----
+            case "IfExecutable":
+                return new IfExecutable(LOC, literal(variant == 0), literal(childValue), literal(2));
+            case "SwitchExecutable":
+                return new SwitchExecutable(LOC, variant == 0, literal(1),
+                        new IExecutableExpression[]{literal(1)}, new IExecutableExpression[]{literal(childValue)},
+                        new boolean[]{false}, null);
+            case "ForExecutable":
+                return ForExecutable.valueOf(LOC, null, literal(true), null, literal(childValue));
+            case "ForInExecutable":
+                return programEntry(new String[]{"k", "k2"},
+                        ForInExecutable.valueOf(LOC, variant == 0 ? 0 : 1, literal(childValue),
+                                literal(childValue + 1)));
+            case "ForOfExecutable":
+                return programEntry(new String[]{"v", "i"},
+                        ForOfExecutable.valueOf(LOC, 0, variant == 0, variant == 0 ? -1 : 1,
+                                literal(List.of(childValue)), literal(childValue + 1)));
+            case "WhileExecutable":
+                return WhileExecutable.valueOf(LOC, literal(false), literal(childValue));
+            case "DoWhileExecutable":
+                return DoWhileExecutable.valueOf(LOC, literal(false), literal(childValue));
+            case "BreakExecutable":
+                return new BreakExecutable(LOC);
+            case "ContinueExecutable":
+                return new ContinueExecutable(LOC);
+            case "ReturnExecutable":
+                return new ReturnExecutable(LOC, literal(childValue));
+            case "TryExecutable":
+                return programEntry(new String[]{"e"},
+                        new TryExecutable(LOC, literal(childValue), variant == 0 ? -1 : 0,
+                                null, literal(childValue + 1)));
+            case "ThrowErrorCodeExecutable":
+                return new ThrowErrorCodeExecutable(LOC, literal("test.err" + childValue), null);
+            case "ThrowExceptionExecutable":
+                return new ThrowExceptionExecutable(LOC, literal("boom" + childValue));
+
+            // ---- 覆盖 B：输出/节点生成族（12；GenNodeAttrExecutable 为 GenNode 宿主载体）----
+            case "OutputTextExecutable":
+                return new OutputTextExecutable(LOC, variant == 0 ? "text" : "text2");
+            case "OutputValueExecutable":
+                return new OutputValueExecutable(LOC, literal(childValue));
+            case "OutputXmlAttrExecutable":
+                return new OutputXmlAttrExecutable(LOC, variant == 0 ? "name" : "name2",
+                        literal("v" + childValue));
+            case "OutputXmlExtAttrsExecutable":
+                return new OutputXmlExtAttrsExecutable(LOC,
+                        variant == 0 ? null : java.util.Set.of("ex"),
+                        literal(Map.of("a", childValue)));
+            case "EscapeOutputExecutable":
+                return new EscapeOutputExecutable(LOC,
+                        variant == 0 ? io.nop.xlang.ast.XLangEscapeMode.none : io.nop.xlang.ast.XLangEscapeMode.xml,
+                        literal("v" + childValue));
+            case "GenNodeExecutable":
+                // 真实树恒有 tagNameExpr（visit 无条件访问；常量 tagName 的空 expr 为退化形态）
+                return new GenNodeExecutable(LOC, null, literal("div" + childValue),
+                        new io.nop.xlang.exec.GenNodeAttrExecutable[0], null, literal(childValue));
+            case "GenXJsonExecutable":
+                return new GenXJsonExecutable(literal(childValue));
+            case "CollectJsonExecutable":
+                return new CollectJsonExecutable(LOC, literal(childValue));
+            case "CollectNodeExecutable":
+                return new CollectNodeExecutable(LOC, literal(childValue), variant == 0);
+            case "CollectSqlExecutable":
+                return new CollectSqlExecutable(literal(childValue));
+            case "CollectTextExecutable":
+                return new CollectTextExecutable(LOC, literal(childValue));
+            case "GenNodeAttrExecutable":
+                // 属性描述符（非树节点）：宿主 GenNode 载体形态覆盖（与 java 侧矩阵同口径）
+                return new GenNodeExecutable(LOC, null, literal("div"),
+                        new io.nop.xlang.exec.GenNodeAttrExecutable[]{
+                                new io.nop.xlang.exec.GenNodeAttrExecutable(
+                                        variant == 0 ? "a" : "b", literal(childValue))},
+                        null, literal(childValue));
+
             default:
                 throw new IllegalArgumentException("no coverage-a factory for class: " + name);
         }
@@ -434,100 +577,23 @@ final class CoverageNodes {
         return new CallFuncExecutable(LOC, "__fn_1", slotNames, IExecutableExpression.EMPTY_EXPRS, body);
     }
 
+    static IExecutableExpression programEntry(String[] slotNames, IExecutableExpression body) {
+        return new CallFuncExecutable(LOC, "__fn_1", slotNames, IExecutableExpression.EMPTY_EXPRS, body);
+    }
+
     /**
-     * B 族 35 类最小实例（矩阵 pending fail-fast 反证输入；非树节点类不在此工厂——
-     * GenNodeAttrExecutable 为 GenNode 属性描述符，pending 证据 = 支持集不含）。
+     * 改判排除类（I4 边缘裁定）的最小实例（矩阵 fail-fast 反证输入：排除类不在支持集，
+     * 遇即 fail-fast）。B 族 33 类的翻译最小实例已并入 {@link #build(String, int, int)}。
      */
-    static IExecutableExpression bMinimalTree(String name) {
+    static IExecutableExpression excludedMinimalTree(String name) {
         switch (name) {
-            // 控制流族
-            case "IfExecutable":
-                return new io.nop.xlang.exec.IfExecutable(LOC, literal(true), literal(1), literal(2));
-            case "SwitchExecutable":
-                return new io.nop.xlang.exec.SwitchExecutable(LOC, true, literal(1),
-                        new IExecutableExpression[]{literal(1)}, new IExecutableExpression[]{literal(2)},
-                        new boolean[]{false}, null);
-            case "ForExecutable":
-                return io.nop.xlang.exec.ForExecutable.valueOf(LOC, null, literal(true), null, literal(1));
-            case "ForInExecutable":
-                return io.nop.xlang.exec.ForInExecutable.valueOf(LOC, 0, literal(List.of()), literal(1));
-            case "ForOfExecutable":
-                return io.nop.xlang.exec.ForOfExecutable.valueOf(LOC, 0, false, -1,
-                        literal(List.of()), literal(1));
-            case "WhileExecutable":
-                return io.nop.xlang.exec.WhileExecutable.valueOf(LOC, literal(true), literal(1));
-            case "DoWhileExecutable":
-                return io.nop.xlang.exec.DoWhileExecutable.valueOf(LOC, literal(true), literal(1));
-            case "BreakExecutable":
-                return new io.nop.xlang.exec.BreakExecutable(LOC);
-            case "ContinueExecutable":
-                return new io.nop.xlang.exec.ContinueExecutable(LOC);
-            case "ReturnExecutable":
-                return new io.nop.xlang.exec.ReturnExecutable(LOC, literal(1));
-            case "TryExecutable":
-                return new io.nop.xlang.exec.TryExecutable(LOC, literal(1), -1, null, null);
-            case "ThrowErrorCodeExecutable":
-                return new io.nop.xlang.exec.ThrowErrorCodeExecutable(LOC, literal("test.err"), null);
-            case "ThrowExceptionExecutable":
-                return new io.nop.xlang.exec.ThrowExceptionExecutable(LOC, literal("boom"));
-            // 输出/节点生成族
-            case "OutputTextExecutable":
-                return new io.nop.xlang.exec.OutputTextExecutable(LOC, "text");
-            case "OutputValueExecutable":
-                return new io.nop.xlang.exec.OutputValueExecutable(LOC, literal(1));
-            case "OutputXmlAttrExecutable":
-                return new io.nop.xlang.exec.OutputXmlAttrExecutable(LOC, "name", literal("v"));
-            case "OutputXmlExtAttrsExecutable":
-                return new io.nop.xlang.exec.OutputXmlExtAttrsExecutable(LOC, null, literal(Map.of()));
-            case "GenNodeExecutable":
-                // tagNameExpr 非空形态（visit() 无条件访问 tagNameExpr——常量 tagName 的空 expr 是
-                // 不可 visit 的退化形态，真实树恒有 tagNameExpr）
-                return new io.nop.xlang.exec.GenNodeExecutable(LOC, null, literal("div"),
-                        new io.nop.xlang.exec.GenNodeAttrExecutable[0], null, null);
-            case "GenXJsonExecutable":
-                return new io.nop.xlang.exec.GenXJsonExecutable(literal(1));
-            case "CollectJsonExecutable":
-                return new io.nop.xlang.exec.CollectJsonExecutable(LOC, literal(1));
-            case "CollectNodeExecutable":
-                return new io.nop.xlang.exec.CollectNodeExecutable(LOC, literal(1), false);
-            case "CollectSqlExecutable":
-                return new io.nop.xlang.exec.CollectSqlExecutable(literal(1));
-            case "CollectTextExecutable":
-                return new io.nop.xlang.exec.CollectTextExecutable(LOC, literal(1));
-            case "EscapeOutputExecutable":
-                return new io.nop.xlang.exec.EscapeOutputExecutable(LOC,
-                        io.nop.xlang.ast.XLangEscapeMode.none, literal("v"));
-            // 函数/闭包/邻接族 + 边缘归 B
-            case "VarFunctionExecutable":
-                return io.nop.xlang.exec.VarFunctionExecutable.build(LOC, literal("f"), false,
-                        literals(4));
-            case "VarExecutableFunction":
-                return new io.nop.xlang.exec.VarExecutableFunction(LOC, literal("f"), false,
-                        new IExecutableExpression[0]);
-            case "LazyCompiledExecutableFunction":
-                // 无独立可 visit 形态：visit() 解析 lazy 编译体（需 XPL 编译器现场），树级 fail-fast
-                // 反证不适用——pending 证据 = 支持集不含（见 TestTruffleCoverageMatrix 裁定注记）
-                return null;
-            case "FunctionalAdapterExecutable":
-                return new io.nop.xlang.exec.FunctionalAdapterExecutable(LOC, VALUE_FN);
-            case "CallFuncWithClosureExecutable":
-                return new io.nop.xlang.exec.CallFuncWithClosureExecutable(LOC, "__fn_m", new String[0],
-                        IExecutableExpression.EMPTY_EXPRS, literal(1), new int[0], new int[0]);
-            case "BuildFuncRefExecutable":
-                return io.nop.xlang.exec.BuildFuncRefExecutable.build(LOC, executableFunction(),
-                        new int[0], new int[0]);
-            case "BuildClosureBodyExecutable":
-                return new io.nop.xlang.exec.BuildClosureBodyExecutable(LOC, 0, new int[0], new int[0],
-                        literal(1));
             case "ReturnScopeValuesExecutable":
                 return new io.nop.xlang.exec.ReturnScopeValuesExecutable(LOC, List.of(), List.of(literal(1)));
-            case "LocationFunction":
-                return new io.nop.xlang.exec.LocationFunction(LOC);
             case "ExecutableFunctionEvalAction":
-                return new io.nop.xlang.exec.ExecutableFunctionEvalAction(functionModelOf(executableFunction()));
-
+                return new io.nop.xlang.exec.ExecutableFunctionEvalAction(
+                        functionModelOf(executableFunction()));
             default:
-                throw new IllegalArgumentException("no B-family factory for class: " + name);
+                throw new IllegalArgumentException("no excluded factory for class: " + name);
         }
     }
 
@@ -545,7 +611,12 @@ final class CoverageNodes {
     }
 
     private static io.nop.xlang.exec.ExecutableFunction executableFunction() {
-        return new io.nop.xlang.exec.ExecutableFunction(LOC, LOC, "__fn_m", 0, 0, new String[0],
+        return executableFunction(0);
+    }
+
+    /** variant 旋钮：函数名载荷差异（指纹变体测试）。 */
+    static ExecutableFunction executableFunction(int variant) {
+        return new ExecutableFunction(LOC, LOC, variant == 0 ? "__fn_m" : "__fn_n", 0, 0, new String[0],
                 new IExecutableExpression[0], LiteralExecutable.build(LOC, 1));
     }
 

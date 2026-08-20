@@ -310,7 +310,9 @@ public class TestTranslatorCoverageA {
                         removeAll(supported);
                     }
                 });
-        assertEquals(87, supported.size(), "support set = registeredTarget size (I2 28 + A 44 + residual 15)");
+        // I7 闭环后支持集收敛到全量 120（registeredTarget 87 + B 族 33）；A 范围 containment 断言不变
+        assertEquals(120, supported.size(),
+                "support set = truffleRegisteredTarget full set after I7 closure (87 + B 33)");
     }
 
     // ------------------------------------------------------------------

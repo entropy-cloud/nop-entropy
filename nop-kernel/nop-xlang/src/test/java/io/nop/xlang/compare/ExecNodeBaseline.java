@@ -26,8 +26,8 @@ import java.util.Set;
  * {@link #EXCLUDED_REASONS}）。</li>
  * </ol>
  *
- * <p><b>per-backend 目标集口径（I4 Phase 1 定稿）</b>：java 侧 = {@link #javaTargetSet()}（全量非排除），
- * truffle 侧 = {@link #truffleRegisteredTarget()}（87 直至 I7）；两侧矩阵各自锚定本后端目标集，
+ * <p><b>per-backend 目标集口径（I4 Phase 1 定稿；I7 闭环收敛）</b>：java 侧 = {@link #javaTargetSet()}（全量非排除），
+ * truffle 侧 = {@link #truffleRegisteredTarget()}（I7 闭环后同为全量非排除）；两侧矩阵各自锚定本后端目标集，
  * {@link #registeredTarget()} 语义冻结为 CorpusCoverageA 白名单锚。
  *
  * <p>扫描粒度裁定（I3 Phase 1）：<b>文件级</b>。文件内嵌套具体类（如
@@ -208,12 +208,13 @@ public final class ExecNodeBaseline {
     }
 
     /**
-     * truffle 侧矩阵目标集（I4 per-backend 口径）：维持既有 87 口径（= {@link #registeredTarget()} 内容）
-     * 直至 I7 闭环收敛到全量。truffle 侧矩阵锚定本 accessor（I4 Phase 1 行为中性切换）；
-     * {@link #registeredTarget()} 的语义保持 = CorpusCoverageA 防越界白名单锚（不随 I4 扩量放宽）。
+     * truffle 侧矩阵目标集（I4 per-backend 口径，<b>I7 闭环已收敛到全量</b>）：与 java 侧同为
+     * 全量非排除具体类 = {@link #registeredTarget()} ∪ {@link #bFamily()}（87 + 33 = 120 类）。
+     * truffle 侧矩阵锚定本 accessor；{@link #registeredTarget()} 的语义保持 = CorpusCoverageA
+     * 防越界白名单锚（不随扩量放宽）。
      */
     public static Set<String> truffleRegisteredTarget() {
-        return union(i3Scope(), I2_SUBSET);
+        return union(i3Scope(), I2_SUBSET, B_FAMILY);
     }
 
     /** 矩阵显式 pending 集 = B 族（33 类，可观测、不算通过）。 */

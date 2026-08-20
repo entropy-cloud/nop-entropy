@@ -3,6 +3,7 @@ package io.nop.xlang.truffle;
 import io.nop.api.core.exceptions.NopEvalException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.xlang.exec.GenNodeExecutable;
 import io.nop.xlang.exec.GetPropertyExecutable;
 import io.nop.xlang.exec.IfExecutable;
 import io.nop.xlang.exec.LiteralExecutable;
@@ -22,12 +23,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * 支持集外节点 fail-fast 单测（Phase 2/3 Exit Criteria）：翻译失败必须报节点类名 + SourceLocation，
- * 禁止部分翻译。覆盖两类越界形态：
+ * 禁止部分翻译。I7 边界收缩后反例迁移（闭环后无 pending 集——反证取"支持集外合成节点"与
+ * "改判排除类"，附边界不回退守护）：
  *
  * <ul>
- * <li>支持集外节点类（I6 后 A 族已并入支持集，反例取 B 族：输出族 OutputTextExecutable /
- * 控制流族 IfExecutable——全量落实归 I7）；</li>
- * <li>支持集内节点类的越域用法（slot 读写越出程序入口帧——slot 下标不在帧布局内）。</li>
+ * <li>支持集外节点类（测试域合成 {@code FutureExecutable}——模拟前端演进新增节点；
+ * <li>改判排除类（I4 边缘裁定：{@code ReturnScopeValuesExecutable}/{@code ExecutableFunctionEvalAction}）；
+ * <li>支持集内节点类的越域用法（slot 读写越出程序入口帧）；</li>
+ * <li>边界不回退守护：I5 期反例 GetProperty（I6 收缩）、I6 期反例 OutputText/If（I7 收缩）
+ *     均已可翻译。</li>
  * </ul>
  */
 public class TestTranslatorFailFast {
@@ -38,14 +42,15 @@ public class TestTranslatorFailFast {
 
     @Test
     public void testOutOfSubsetNodeFailsFastWithClassNameAndLocation() {
-        OutputTextExecutable output = new OutputTextExecutable(LOC, "text");
+        // I7 后既有 B 族已可翻译：反例迁移到测试域合成节点（未注册具体节点类）
+        IExecutableExpression future = new CoverageNodes.FutureExecutable(LOC);
 
         NopEvalException e = assertThrows(NopEvalException.class,
-                () -> translator.translate("/fail-fast-test.xpl", TreeFingerprints.fingerprint(output),
-                        output, null));
+                () -> translator.translate("/fail-fast-test.xpl", TreeFingerprints.fingerprint(future),
+                        future, null));
 
         assertEquals(ERR_EXEC_TRANSLATE_UNSUPPORTED_NODE.getErrorCode(), e.getErrorCode());
-        assertEquals(OutputTextExecutable.class.getName(), e.getParam(ARG_CLASS_NAME),
+        assertTrue(String.valueOf(e.getParam(ARG_CLASS_NAME)).contains("FutureExecutable"),
                 "error must carry the offending node class name");
         Object location = e.getParam(ARG_LOCATION);
         assertNotNull(location, "error must carry the node SourceLocation");
@@ -56,27 +61,42 @@ public class TestTranslatorFailFast {
     }
 
     @Test
-    public void testControlFlowFamilyFailsFastToo() {
-        // ExitMode 控制流族不在支持集内（全量落实归 I7），遇到即 fail-fast
-        IfExecutable ifExpr = new IfExecutable(LOC, LiteralExecutable.build(LOC, Boolean.TRUE),
-                LiteralExecutable.build(LOC, 1), LiteralExecutable.build(LOC, 2));
-
-        NopEvalException e = assertThrows(NopEvalException.class,
-                () -> translator.translate("/fail-fast-test.xpl", TreeFingerprints.fingerprint(ifExpr),
-                        ifExpr, null));
-        assertEquals(ERR_EXEC_TRANSLATE_UNSUPPORTED_NODE.getErrorCode(), e.getErrorCode());
-        assertEquals(IfExecutable.class.getName(), e.getParam(ARG_CLASS_NAME));
+    public void testExcludedClassesFailFast() {
+        // I4 改判排除类（边缘裁定）不在支持集：遇即 fail-fast（无第三态残留）
+        for (String name : new String[]{"ReturnScopeValuesExecutable", "ExecutableFunctionEvalAction"}) {
+            IExecutableExpression tree = CoverageNodes.excludedMinimalTree(name);
+            NopEvalException e = assertThrows(NopEvalException.class,
+                    () -> translator.translate("/fail-fast-test.xpl", TreeFingerprints.fingerprint(tree),
+                            tree, null));
+            assertEquals(ERR_EXEC_TRANSLATE_UNSUPPORTED_NODE.getErrorCode(), e.getErrorCode());
+            assertTrue(String.valueOf(e.getParam(ARG_CLASS_NAME)).contains(name),
+                    "error must report the excluded class name: " + name);
+        }
     }
 
     @Test
-    public void testCoverageAFamilyNowTranslatable() {
-        // I6 边界收缩反证：A 族代表节点（属性访问 GetProperty）已可翻译（I5 期以本类为 fail-fast
-        // 反例，I6 后反例移交 B 族，本用例守护边界收缩不回退）
+    public void testCoverageFamiliesNowTranslatable() {
+        // 边界收缩不回退守护：I5 期反例 GetProperty（I6 收缩）、I6 期反例 OutputText / If /
+        // GenNode（I7 收缩）均已可翻译
         GetPropertyExecutable getProp = new GetPropertyExecutable(LOC,
                 LiteralExecutable.build(LOC, "obj"), false, "length");
-        io.nop.xlang.truffle.translate.TranslatedUnit unit = translator.translate("/fail-fast-test.xpl",
-                TreeFingerprints.fingerprint(getProp), getProp, null);
-        assertNotNull(unit.getRootNode().getBody());
+        assertNotNull(translator.translate("/fail-fast-test.xpl",
+                TreeFingerprints.fingerprint(getProp), getProp, null).getRootNode().getBody());
+
+        OutputTextExecutable output = new OutputTextExecutable(LOC, "text");
+        assertNotNull(translator.translate("/fail-fast-test.xpl",
+                TreeFingerprints.fingerprint(output), output, null).getRootNode().getBody());
+
+        IfExecutable ifExpr = new IfExecutable(LOC, LiteralExecutable.build(LOC, Boolean.TRUE),
+                LiteralExecutable.build(LOC, 1), LiteralExecutable.build(LOC, 2));
+        assertNotNull(translator.translate("/fail-fast-test.xpl",
+                TreeFingerprints.fingerprint(ifExpr), ifExpr, null).getRootNode().getBody());
+
+        GenNodeExecutable genNode = new GenNodeExecutable(LOC, null,
+                LiteralExecutable.build(LOC, "div"), new io.nop.xlang.exec.GenNodeAttrExecutable[0],
+                null, null);
+        assertNotNull(translator.translate("/fail-fast-test.xpl",
+                TreeFingerprints.fingerprint(genNode), genNode, null).getRootNode().getBody());
     }
 
     @Test
@@ -98,7 +118,7 @@ public class TestTranslatorFailFast {
         // 子集节点内嵌子集外节点：整体翻译失败（无部分翻译产物逃逸）
         IExecutableExpression tree = LiteralExecutable.build(LOC, 1);
         GetPropertyExecutable nested = new GetPropertyExecutable(LOC,
-                new IfExecutable(LOC, tree, tree, tree), false, "prop");
+                new CoverageNodes.FutureExecutable(LOC), false, "prop");
 
         NopEvalException e = assertThrows(NopEvalException.class,
                 () -> translator.translate("/fail-fast-test.xpl", TreeFingerprints.fingerprint(nested),
