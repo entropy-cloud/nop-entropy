@@ -128,6 +128,29 @@
 
 **10. Phase 2 验证**：`./mvnw test -pl :nop-xlang-truffle -am -T 1C` **495/0/0**（477 基线全绿保持 + 新增 18：`TestXLangContextPool` 9（租借→求值→归还→再租借无残留/异常路径归还/可重入批求值/池耗尽阻塞/双重归还/归还后求值/关闭后租借/Engine 同一性/共享缓存 + SHARED 旗标）+ `TestTranslationCacheEviction` 5（容量淘汰 eldest/访问刷新新近度/淘汰后重翻译等价/配置缺省/非正数 fail-fast）+ `TestTranslationFailureEvents` 4（fail-fast 同时记事件/消费者通知/池句柄注册通道/直构无 language 纯 fail-fast））。
 
+### Phase 3 执行记录（2026-08-21）
+
+**11. 并发对拍落地**（`TestCorpusConcurrentTruffleColumn`，Phase 1 §7 裁定的独立并发测试类承载）：
+
+- 同一编译单元并发：74 corpus 单元（v1 22 + 覆盖 A 33 + 覆盖 B 19，静态/动态按适用性）× 4 线程经池并发（barrier 同时起步，每线程独立 scope/输出缓冲/租约）；逐线程三层对拍 vs **解释器单线程基线**（同一棵树经 harness 解释器列执行的结果快照：返回值 typedEquals / 异常错误码 + SourceLocation 回映射 / scope 变量逐项 / 输出缓冲调用序列逐项 = **无跨 Context 串值断言载体**——任何串值表现为逐线程比对分歧）。
+- 不同编译单元并发：4 线程 × corpus 单元分片（19 单元/线程）同时起步各自顺序求值——不同期望值的并发线程间串值直接暴露为该线程比对分歧。
+- truffle 身份断言：执行产物源树 = 本单元编译树实例（全新翻译）或结构等价（**JVM 级共享翻译缓存命中**——键 = sourceKey + 树指纹，跨测试复用是 SHARED 缓存正确语义；执行中发现严格 assertSame 在共享缓存下伪红——同键旧条目结构等价但实例不同，修正为"实例同一或指纹同一"双通道断言，Phase 3 执行记录）。
+- 共享激活行为证据：跨线程同键 → 同一 `TranslatedUnit` 实例（共享语言实例 + 翻译缓存）+ `isMultipleContextsInitialized()` 旗标置位断言；池空闲回收（leasedCount=0 / availableCount=THREADS）。
+
+**12. 负测试与并发观测落地**：
+
+- `TestPoolProtocolNegative` 5 用例（roadmap 验收第二项红/绿对照）：红灯 = 注入通道自证（currentContext + bindEvaluation 公共 API，与检测同通道）+ 注入残留 → 归还红灯 + Context 退役 + 剩余条目照常服务 + 仅输出缓冲残留同样红灯；绿灯 = 正常/异常路径归还无残留 + 连续三轮复用无残留。
+- `TestConcurrentEvictionAndFailures` 2 用例：并发淘汰压力（4 线程 × 60 键，逐次结果必须与树字面值一致——错译/串用即数值错位）+ 并发翻译失败注入（4 线程 × 5 失败：fail-fast 各自抛出、事件 20/20 全记录无丢失、消费者计数一致、环形保留有界、载荷字段完整、fail-fast 主语义并发下保持）。
+- 不泄漏断言复跑：`TestTruffleDependencyIsolation` 在全量 577 用例内全绿。
+
+**13. Phase 3 验证**：`./mvnw test -pl :nop-xlang,:nop-xlang-java,:nop-xlang-truffle -am -T 1C` **1354/0/0**（nop-xlang 514/0/2-skipped（基线一致）+ nop-xlang-java 263/0/0（零变更）+ nop-xlang-truffle **577/0/0** = 477 基线 + 18 Phase 2 + 75 并发对拍 + 5 负测试 + 2 并发淘汰/观测）。
+
+**14. I9 移交显式记录（责任链 repo-observable）**：
+
+- **观测事件消费接口**：`TranslationFailureListener`（载荷 `TranslationFailureEvent`：sourceKey/节点类名/SourceLocation/原因/原始异常）——消费方 = I9 的 truffle 侧 SPI 适配器（Phase 1 §6 裁定），注册通道 = `XLangContextPool.getLanguage().addTranslationFailureListener(...)`（池预热捕获共享 Engine 的语言实例，`TestTranslationFailureEvents.testPoolLanguageHandleRegistersConsumer` 已验证该通道行为）；无消费者时内置记录器恒记可查询（`XLangLanguage.getTranslationFailures()`）。
+- **池运行时生产接入点**：`XLangContextPool.open()/lease()/Lease.eval/close`（租借协议契约见类 javadoc 与 Phase 1 §3 定稿：注入复用 handoff 链路、enter/leave 批求值、归还残留检测、池耗尽有界阻塞）；共享 Engine = `XLangTruffleEngine.sharedEngine()`（创建失败显式 IllegalStateException——I9 注册不可用条目的判定信号）。
+- I9 决策树动态路径第三分支的供给即上述两者；本 plan 未做路由/注册表/降级（I9 范围）。
+
 ## Execution Plan
 
 ### Phase 1 - 口径对齐与设计定稿（SHARED 切换面/池协议/共享 Engine/淘汰/观测事件/共享 AST 并发语义）
@@ -178,27 +201,27 @@ Exit Criteria:
 
 ### Phase 3 - SHARED 并发对拍、池协议负测试与回归收口
 
-Status: planned
+Status: completed
 Targets: `nop-kernel/nop-xlang-truffle/src/test/`（并发对拍与协议负测试）
 
 - Item Types: `Proof`
 
-- [ ] **SHARED 并发对拍（roadmap 验收第一项）**：多线程经池并发求值——同一编译单元并发（N 线程 × 同单元，每线程独立 scope/输出缓冲）与不同编译单元并发（线程 × corpus 单元分配）两形态；结果与单线程解释器求值逐线程比对（三层断言：返回值 equals 含类型 / scope 变量与输出缓冲逐项 / 异常语义错误码 + SourceLocation 回映射）+ truffle 身份断言（翻译 AST 经 CallTarget）+ **无跨 Context 串值断言**（各线程输出缓冲内容互不含他线程输出、scope 变量集互不污染）全绿；语料 = 既有 corpus 单元（静态 + 动态按适用性；并发 driver 承载形态——扩展既有 harness 列机制 vs 独立并发测试类——Phase 1 决策记录中一并裁定）
-- [ ] **池租借协议负测试（roadmap 验收第二项）**：注入故意残留（绕过归还清空路径构造残留 context 状态）→ 残留检测机制红灯（红/绿对照——I1 差异注入自检先例）；正常归还 → 检测通过；异常抛出路径归还 → 无残留
-- [ ] 淘汰并发安全测试（并发 getOrBuild + 淘汰触发下结果一致、无错译/串用）；观测事件在并发翻译失败注入下被记录且可查询
-- [ ] 不泄漏断言复跑（`TestTruffleDependencyIsolation`）；三模块回归 `./mvnw test -pl :nop-xlang,:nop-xlang-java,:nop-xlang-truffle -am -T 1C` 全绿
-- [ ] I9 移交显式记录：观测事件消费接口 + 池运行时生产接入点（责任链 repo-observable，落 plan Execution Notes + 当日 log）
+- [x] **SHARED 并发对拍（roadmap 验收第一项）**：多线程经池并发求值——同一编译单元并发（N 线程 × 同单元，每线程独立 scope/输出缓冲）与不同编译单元并发（线程 × corpus 单元分配）两形态；结果与单线程解释器求值逐线程比对（三层断言：返回值 equals 含类型 / scope 变量与输出缓冲逐项 / 异常语义错误码 + SourceLocation 回映射）+ truffle 身份断言（翻译 AST 经 CallTarget）+ **无跨 Context 串值断言**（各线程输出缓冲内容互不含他线程输出、scope 变量集互不污染）全绿；语料 = 既有 corpus 单元（静态 + 动态按适用性；并发 driver 承载形态——扩展既有 harness 列机制 vs 独立并发测试类——Phase 1 决策记录中一并裁定）（`TestCorpusConcurrentTruffleColumn` 75 用例全绿，Execution Notes §11）
+- [x] **池租借协议负测试（roadmap 验收第二项）**：注入故意残留（绕过归还清空路径构造残留 context 状态）→ 残留检测机制红灯（红/绿对照——I1 差异注入自检先例）；正常归还 → 检测通过；异常抛出路径归还 → 无残留（`TestPoolProtocolNegative` 5 用例红/绿对照，Execution Notes §12）
+- [x] 淘汰并发安全测试（并发 getOrBuild + 淘汰触发下结果一致、无错译/串用）；观测事件在并发翻译失败注入下被记录且可查询（`TestConcurrentEvictionAndFailures` 2 用例，Execution Notes §12）
+- [x] 不泄漏断言复跑（`TestTruffleDependencyIsolation`）；三模块回归 `./mvnw test -pl :nop-xlang,:nop-xlang-java,:nop-xlang-truffle -am -T 1C` 全绿（1354/0/0，Execution Notes §13）
+- [x] I9 移交显式记录：观测事件消费接口 + 池运行时生产接入点（责任链 repo-observable，落 plan Execution Notes + 当日 log）（Execution Notes §14）
 
 Exit Criteria:
 
-- [ ] **并发对拍全绿（含身份断言 + 无跨 Context 串值断言）——roadmap I8 验收第一项**
-- [ ] **池租借协议正/负测试在仓（红/绿可控）——roadmap I8 验收第二项**
-- [ ] **端到端验证**：多线程入口 → 池租借 → enter → 翻译 AST CallTarget 执行 → leave → 归还 → 逐线程三层对拍断言全链可运行（stock JDK 21、SHARED 形态）
-- [ ] **接线验证**：并发测试真实经池驱动（非直接 new Context）；观测事件真实被记录且消费接口可取（非摆设接口）
-- [ ] 回归不削弱既有测试；三模块全绿；不泄漏断言通过
-- [ ] `./mvnw test -pl :nop-xlang,:nop-xlang-java,:nop-xlang-truffle -am -T 1C` 全绿
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] **并发对拍全绿（含身份断言 + 无跨 Context 串值断言）——roadmap I8 验收第一项**
+- [x] **池租借协议正/负测试在仓（红/绿可控）——roadmap I8 验收第二项**
+- [x] **端到端验证**：多线程入口 → 池租借 → enter → 翻译 AST CallTarget 执行 → leave → 归还 → 逐线程三层对拍断言全链可运行（stock JDK 21、SHARED 形态）
+- [x] **接线验证**：并发测试真实经池驱动（非直接 new Context）；观测事件真实被记录且消费接口可取（非摆设接口）（`TestCorpusConcurrentTruffleColumn` 全部经池驱动 + `testPoolLanguageHandleRegistersConsumer` 通道行为验证）
+- [x] 回归不削弱既有测试；三模块全绿；不泄漏断言通过
+- [x] `./mvnw test -pl :nop-xlang,:nop-xlang-java,:nop-xlang-truffle -am -T 1C` 全绿
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
