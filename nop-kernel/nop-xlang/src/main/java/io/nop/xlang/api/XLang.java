@@ -23,6 +23,7 @@ import io.nop.core.type.PredefinedGenericTypes;
 import io.nop.xlang.XLangConstants;
 import io.nop.xlang.ast.XLangOutputMode;
 import io.nop.xlang.ast.definition.ScopeVarDefinition;
+import io.nop.xlang.backend.EvalBackendRouter;
 import io.nop.xlang.exec.ExecutableFunctionEvalAction;
 import io.nop.xlang.xpl.IXplCompiler;
 import io.nop.xlang.xpl.IXplTag;
@@ -44,6 +45,11 @@ public class XLang {
     }
 
     public static Object execute(IExecutableExpression expr, EvalRuntime rt) {
+        // 统一后端选择裁决入口（choke point）：全部"运行时字符串→Executable 树"出口的求值经此流入。
+        // 注册表空（后端未注册）时 fast-path 直通全局执行器，行为与无路由现状一致。
+        EvalBackendRouter router = EvalBackendRouter.instance();
+        if (router.isActive())
+            return router.executeAdjudicated(expr, rt);
         return EvalExprProvider.getGlobalExecutor().execute(expr, rt);
     }
 

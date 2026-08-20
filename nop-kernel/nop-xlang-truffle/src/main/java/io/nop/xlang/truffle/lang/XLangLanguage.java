@@ -73,6 +73,13 @@ public final class XLangLanguage extends TruffleLanguage<XLangContext> {
     }
 
     /**
+     * 反注册翻译失败消费者（SPI 适配器关闭/重置时防泄漏；SHARED 语言实例生命周期长于池）。
+     */
+    public void removeTranslationFailureListener(TranslationFailureListener listener) {
+        translationFailureListeners.remove(listener);
+    }
+
+    /**
      * 上报翻译失败事件：内置记录器恒记 + 已注册消费者追加通知（fail-fast 主语义在
      * {@code TranslationCache} 抛错路径，事件是观测增量不是降级）。
      */

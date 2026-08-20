@@ -46,4 +46,20 @@ public interface XLangConfigs {
     @Description("如果大于0，则表示XLang调试服务启动后在一段时间内阻塞当前程序执行，等待外部调试器连接。单位为秒")
     IConfigReference<Integer> CFG_XLANG_DEBUGGER_WAIT_CONNECTION_SECONDS = varRef(s_loc,
             "nop.xlang.debugger.wait-connection-seconds", Integer.class, 1);
+
+    @Description("是否启用java执行后端（静态生成物路径）。仅在后端模块已注册时生效；未注册=classpath缺席的安静缺省")
+    IConfigReference<Boolean> CFG_XLANG_EXECUTION_JAVA_BACKEND_ENABLED = varRef(s_loc,
+            "nop.xlang.execution.java-backend-enabled", Boolean.class, true);
+
+    @Description("是否启用truffle执行后端（动态翻译路径）。仅在后端模块已注册时生效；native部署形态下结构性不适用")
+    IConfigReference<Boolean> CFG_XLANG_EXECUTION_TRUFFLE_BACKEND_ENABLED = varRef(s_loc,
+            "nop.xlang.execution.truffle-backend-enabled", Boolean.class, true);
+
+    @Description("强制解释器诊断模式：全部路由短路到解释器执行，且不记降级观测事件（隔离后端问题的诊断开关）")
+    IConfigReference<Boolean> CFG_XLANG_EXECUTION_FORCE_INTERPRETER = varRef(s_loc,
+            "nop.xlang.execution.force-interpreter", Boolean.class, false);
+
+    @Description("部署形态标记：auto（缺省，探测系统属性org.graalvm.nativeimage.kind）| jvm | native-image。native-image下truffle后端结构性不启用")
+    IConfigReference<String> CFG_XLANG_EXECUTION_DEPLOYMENT_FORM = varRef(s_loc,
+            "nop.xlang.execution.deployment-form", String.class, "auto");
 }

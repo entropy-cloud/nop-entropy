@@ -1120,4 +1120,16 @@ public interface XLangErrors {
 
     ErrorCode ERR_TYPE_INFER_CIRCULAR_DEPENDENCY = define("nop.err.xlang.type-infer.circular-dependency",
             "类型推导发现循环依赖: {name}", ARG_NAME);
+
+    String ARG_BACKEND_ID = "backendId";
+    String ARG_CAPABILITY = "capability";
+
+    ErrorCode ERR_XLANG_BACKEND_ALREADY_REGISTERED = define("nop.err.xlang.backend-already-registered",
+            "执行后端已注册，重复注册不同实例必须先反注册:{backendId}", ARG_BACKEND_ID);
+
+    ErrorCode ERR_XLANG_BACKEND_CAPABILITY_CONFLICT = define("nop.err.xlang.backend-capability-conflict",
+            "执行后端能力槽位冲突：能力[{capability}]已被后端[{backendId}]占用", ARG_CAPABILITY, ARG_BACKEND_ID);
+
+    ErrorCode ERR_XLANG_BACKEND_INVALID_CONTRACT = define("nop.err.xlang.backend-invalid-contract",
+            "执行后端契约非法:{backendId}", ARG_BACKEND_ID);
 }
