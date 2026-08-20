@@ -45,4 +45,8 @@ public class StrictEqNullExecutable extends AbstractExecutable {
             visitor.onEndVisitExpr(this);
         }
     }
+    public IExecutableExpression getExpr() {
+        return expr;
+    }
+
 }

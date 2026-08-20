@@ -49,4 +49,12 @@ public class StaticGetterGetPropertyExecutable extends AbstractExecutable {
     public void visit(IExecutableExpressionVisitor visitor) {
         visitor.onVisitSimpleExpr(this);
     }
+    public String getClassName() {
+        return className;
+    }
+
+    public String getPropName() {
+        return propName;
+    }
+
 }

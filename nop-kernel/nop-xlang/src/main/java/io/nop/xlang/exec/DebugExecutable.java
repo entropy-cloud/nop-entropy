@@ -50,4 +50,12 @@ public class DebugExecutable extends AbstractExecutable {
             visitor.onEndVisitExpr(this);
         }
     }
+    public IExecutableExpression getValueExpr() {
+        return valueExpr;
+    }
+
+    public IExecutableExpression getPrefixExpr() {
+        return prefixExpr;
+    }
+
 }

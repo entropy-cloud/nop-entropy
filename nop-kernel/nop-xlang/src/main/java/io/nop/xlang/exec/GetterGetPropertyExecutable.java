@@ -15,7 +15,6 @@ import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.reflect.IPropertyGetter;
 
-import static io.nop.xlang.XLangErrors.ERR_EXEC_READ_PROP_FAIL;
 
 public class GetterGetPropertyExecutable extends AbstractExecutable {
     private final IExecutableExpression objExpr;
@@ -59,10 +58,14 @@ public class GetterGetPropertyExecutable extends AbstractExecutable {
     }
 
     protected Object readProp(Object obj, IPropertyGetter reader, IEvalScope scope) {
-        try {
-            return reader.getProperty(obj, propName, scope);
-        } catch (Exception e) {
-            throw wrapPropException(ERR_EXEC_READ_PROP_FAIL, e, obj.getClass().getName(), propName);
-        }
+        return XLangSemantics.readPropValue(getLocation(), display(), propName, obj, reader, scope);
     }
+    public String getPropName() {
+        return propName;
+    }
+
+    public IExecutableExpression getObjExpr() {
+        return objExpr;
+    }
+
 }

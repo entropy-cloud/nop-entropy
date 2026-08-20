@@ -10,25 +10,10 @@ package io.nop.xlang.exec;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.IEvalScope;
-import io.nop.core.reflect.IClassModel;
-import io.nop.core.reflect.IFieldModel;
 import io.nop.core.reflect.IPropertyGetter;
 import io.nop.core.reflect.IPropertySetter;
-import io.nop.core.reflect.ReflectionManager;
-import io.nop.core.reflect.accessor.ArrayLengthGetter;
-import io.nop.core.reflect.bean.IBeanModel;
-import io.nop.core.reflect.bean.IBeanPropertyModel;
-import io.nop.xlang.XLangConstants;
 
-import java.lang.annotation.Annotation;
 
-import static io.nop.xlang.XLangErrors.ARG_CLASS_NAME;
-import static io.nop.xlang.XLangErrors.ARG_PARAM_NAME;
-import static io.nop.xlang.XLangErrors.ARG_PROP_NAME;
-import static io.nop.xlang.XLangErrors.ERR_EXEC_READ_PROP_FAIL;
-import static io.nop.xlang.XLangErrors.ERR_EXEC_UNKNOWN_PROP;
-import static io.nop.xlang.XLangErrors.ERR_EXEC_UNKNOWN_STATIC_FIELD;
-import static io.nop.xlang.XLangErrors.ERR_EXEC_WRITE_PROP_FAIL;
 
 public abstract class AbstractPropertyExecutable extends AbstractExecutable {
     protected final String propName;
@@ -45,75 +30,26 @@ public abstract class AbstractPropertyExecutable extends AbstractExecutable {
     }
 
     protected IPropertySetter getSetter(Class<?> clazz) {
-        IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(clazz);
-        if (clazz == Class.class) {
-            return getStaticFieldSetter(clazz);
-        }
-
-        IBeanPropertyModel field = beanModel.getPropertyModel(propName);
-        if (field == null) {
-            if (beanModel.isAllowSetExtProperty()) {
-                return beanModel.getExtPropertySetter();
-            }
-            throw newError(ERR_EXEC_UNKNOWN_PROP).param(ARG_CLASS_NAME, clazz.getName()).param(ARG_PARAM_NAME,
-                    propName);
-        }
-        return field.getSetter();
+        return XLangSemantics.getPropSetter(getLocation(), display(), propName, clazz);
     }
 
     protected void setProp(Object obj, Object value, IPropertySetter setter, IEvalScope scope) {
-        try {
-            setter.setProperty(obj, propName, value, scope);
-        } catch (Exception e) {
-            throw wrapPropException(ERR_EXEC_WRITE_PROP_FAIL, e, obj.getClass().getName(), propName);
-        }
+        XLangSemantics.writePropValue(getLocation(), display(), propName, obj, value, setter, scope);
     }
 
     protected IPropertySetter getStaticFieldSetter(Class<?> clazz) {
-        IClassModel classModel = ReflectionManager.instance().getClassModel(clazz);
-        IFieldModel field = classModel.getStaticField(propName);
-        if (field == null)
-            throw newError(ERR_EXEC_UNKNOWN_STATIC_FIELD).param(ARG_CLASS_NAME, clazz.getName()).param(ARG_PARAM_NAME,
-                    propName);
-        return field.getSetter();
+        return XLangSemantics.getStaticFieldSetter(getLocation(), display(), propName, clazz);
     }
 
     protected IPropertyGetter getStaticFieldGetter(Class<?> clazz) {
-        IClassModel classModel = ReflectionManager.instance().getClassModel(clazz);
-        IFieldModel field = classModel.getStaticField(propName);
-        if (field == null)
-            throw newError(ERR_EXEC_UNKNOWN_STATIC_FIELD).param(ARG_CLASS_NAME, clazz.getName()).param(ARG_PARAM_NAME,
-                    propName);
-        return field.getGetter();
+        return XLangSemantics.getStaticFieldGetter(getLocation(), display(), propName, clazz);
     }
 
     protected IPropertyGetter getGetter(Class<?> clazz, Object bean) {
-        if (bean instanceof Annotation)
-            clazz = ((Annotation) bean).annotationType();
-
-        if (clazz.isArray()) {
-            if (XLangConstants.PROP_NAME_LENGTH.equals(propName))
-                return ArrayLengthGetter.INSTANCE;
-        }
-
-        IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(clazz);
-        if (clazz == Class.class)
-            return getStaticFieldGetter(clazz);
-        IBeanPropertyModel field = beanModel.getPropertyModel(propName);
-        if (field == null) {
-            if (beanModel.isAllowGetExtProperty()) {
-                return beanModel.getExtPropertyGetter();
-            }
-            throw newError(ERR_EXEC_UNKNOWN_PROP).param(ARG_CLASS_NAME, clazz.getName()).param(ARG_PROP_NAME, propName);
-        }
-        return field.getGetter();
+        return XLangSemantics.getPropGetter(getLocation(), display(), propName, clazz, bean);
     }
 
     protected Object readProp(Object obj, IPropertyGetter reader, IEvalScope scope) {
-        try {
-            return reader.getProperty(obj, propName, scope);
-        } catch (Exception e) {
-            throw wrapPropException(ERR_EXEC_READ_PROP_FAIL, e, obj.getClass().getName(), propName);
-        }
+        return XLangSemantics.readPropValue(getLocation(), display(), propName, obj, reader, scope);
     }
 }

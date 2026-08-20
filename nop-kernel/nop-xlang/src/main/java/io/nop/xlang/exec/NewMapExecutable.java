@@ -8,18 +8,13 @@
 package io.nop.xlang.exec;
 
 import io.nop.api.core.util.SourceLocation;
-import io.nop.commons.lang.Undefined;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
-import io.nop.core.model.object.DynamicObject;
-import io.nop.core.reflect.ReflectionManager;
-import io.nop.core.reflect.bean.IBeanModel;
 
 import java.util.Map;
-import java.util.Set;
 
 public class NewMapExecutable extends AbstractExecutable {
     private final MapItemExecutable[] itemExprs;
@@ -45,28 +40,7 @@ public class NewMapExecutable extends AbstractExecutable {
         Map<String, Object> ret = CollectionHelper.newLinkedHashMap(itemExprs.length / 2);
         for (MapItemExecutable itemExpr : itemExprs) {
             if (itemExpr.isSpread()) {
-                Object value = itemExpr.getValue(executor, rt);
-                if (value != null && value != Undefined.undefined) {
-                    if (value instanceof Map) {
-                        ret.putAll(((Map<String, ?>) value));
-                    } else if (value instanceof DynamicObject) {
-                        ret.putAll(((DynamicObject) value).obj_propValues());
-                    } else {
-                        IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(value.getClass());
-                        beanModel.forEachSerializableProp(prop -> {
-                            Object propValue = prop.getPropertyValue(value);
-                            ret.put(prop.getName(), propValue);
-                        });
-
-                        Set<String> propNames = beanModel.getExtPropertyNames(value);
-                        if (propNames != null) {
-                            for (String propName : propNames) {
-                                Object propValue = beanModel.getExtProperty(value, propName);
-                                ret.put(propName, propValue);
-                            }
-                        }
-                    }
-                }
+                XLangSemantics.spreadMapPut(ret, itemExpr.getValue(executor, rt));
                 // 如果null为空或者undefined，直接忽略
             } else {
                 Object key = itemExpr.getKey(executor, rt);
@@ -87,4 +61,8 @@ public class NewMapExecutable extends AbstractExecutable {
             visitor.onEndVisitExpr(this);
         }
     }
+    public io.nop.xlang.exec.MapItemExecutable[] getItems() {
+        return itemExprs;
+    }
+
 }

@@ -9,14 +9,11 @@ package io.nop.xlang.exec;
 
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
-import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
-import static io.nop.xlang.XLangErrors.ARG_TARGET;
-import static io.nop.xlang.XLangErrors.ERR_EXEC_VALUE_NOT_ALLOW_EMPTY;
 
 public class GuardNotEmptyExecutable extends AbstractExecutable {
     private final IExecutableExpression expr;
@@ -36,9 +33,7 @@ public class GuardNotEmptyExecutable extends AbstractExecutable {
     @Override
     public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
         Object v = executor.execute(expr, rt);
-        if (StringHelper.isEmptyObject(v))
-            throw newError(ERR_EXEC_VALUE_NOT_ALLOW_EMPTY).param(ARG_TARGET, target);
-        return v;
+        return XLangSemantics.guardNotEmpty(getLocation(), display(), target, v);
     }
 
     @Override
@@ -54,4 +49,12 @@ public class GuardNotEmptyExecutable extends AbstractExecutable {
             visitor.onEndVisitExpr(this);
         }
     }
+    public IExecutableExpression getExpr() {
+        return expr;
+    }
+
+    public String getTarget() {
+        return target;
+    }
+
 }

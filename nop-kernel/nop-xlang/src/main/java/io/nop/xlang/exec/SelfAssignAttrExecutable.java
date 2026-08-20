@@ -109,4 +109,8 @@ public class SelfAssignAttrExecutable extends AbstractExecutable {
             visitor.onEndVisitExpr(this);
         }
     }
+    public io.nop.xlang.ast.XLangOperator getOperator() {
+        return operator;
+    }
+
 }

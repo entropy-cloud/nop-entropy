@@ -70,4 +70,8 @@ public class AssertOpExecutable extends AbstractExecutable implements IEvalPredi
             visitor.onEndVisitExpr(this);
         }
     }
+    public IExecutableExpression getValueExpr() {
+        return value;
+    }
+
 }

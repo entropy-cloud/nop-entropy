@@ -48,4 +48,8 @@ public class CloneLiteralExecutable extends AbstractExecutable {
     public void visit(IExecutableExpressionVisitor visitor) {
         visitor.onVisitSimpleExpr(this);
     }
+    public Object getValue() {
+        return value;
+    }
+
 }

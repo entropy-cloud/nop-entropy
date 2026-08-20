@@ -33,4 +33,8 @@ public class ScopeSelfIncExecutable extends AbstractExecutable {
         sb.append(varName);
         sb.append("--");
     }
+    public String getVarName() {
+        return varName;
+    }
+
 }

@@ -7,17 +7,13 @@
  */
 package io.nop.xlang.exec;
 
-import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
-import io.nop.commons.collections.iterator.LoopVarStatus;
-import io.nop.commons.util.CollectionHelper;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
-import java.util.Iterator;
 
 /**
  * 将itemsExpr返回的iterator包装为LoopVarStatus对象，并在上下文中设置varStatus变量
@@ -48,22 +44,10 @@ public class VarStatusExecutable extends AbstractExecutable {
     @Override
     public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
         Object items = executor.execute(itemsExpr, rt);
-        if (items == null)
-            return null;
-
-        Iterator<Object> it = toIterator(items);
-        LoopVarStatus vs = new LoopVarStatus(it, true);
-        rt.getCurrentFrame().setStackValue(varStatusSlot, vs);
+        Object vs = XLangSemantics.varStatus(getLocation(), display(), itemsExpr.display(), items);
+        if (vs != null)
+            rt.getCurrentFrame().setStackValue(varStatusSlot, vs);
         return vs;
-    }
-
-    private Iterator<Object> toIterator(Object o) {
-        try {
-            return CollectionHelper.toIterator(o, false);
-        } catch (NopException e) {
-            e.addXplStack(itemsExpr);
-            throw e;
-        }
     }
 
     @Override
@@ -73,4 +57,16 @@ public class VarStatusExecutable extends AbstractExecutable {
             visitor.onEndVisitExpr(this);
         }
     }
+    public String getVarStatusName() {
+        return varStatusName;
+    }
+
+    public int getVarStatusSlot() {
+        return varStatusSlot;
+    }
+
+    public IExecutableExpression getItemsExpr() {
+        return itemsExpr;
+    }
+
 }

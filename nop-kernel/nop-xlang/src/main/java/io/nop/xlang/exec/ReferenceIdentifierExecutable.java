@@ -9,13 +9,10 @@ package io.nop.xlang.exec;
 
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
-import io.nop.core.lang.eval.EvalReference;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
-import static io.nop.xlang.XLangErrors.ARG_VAR_NAME;
-import static io.nop.xlang.XLangErrors.ERR_EXEC_IDENTIFIER_NOT_INITIALIZED;
 
 public class ReferenceIdentifierExecutable extends AbstractExecutable {
     private final String id;
@@ -39,14 +36,19 @@ public class ReferenceIdentifierExecutable extends AbstractExecutable {
 
     @Override
     public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
-        EvalReference ref = rt.getCurrentFrame().getRef(slot);
-        if (ref == null)
-            throw newError(ERR_EXEC_IDENTIFIER_NOT_INITIALIZED).param(ARG_VAR_NAME, id);
-        return ref.getValue();
+        return XLangSemantics.getRefValue(getLocation(), display(), id, rt.getCurrentFrame().getStackValue(slot));
     }
 
     @Override
     public void visit(IExecutableExpressionVisitor visitor) {
         visitor.onVisitSimpleExpr(this);
     }
+    public String getId() {
+        return id;
+    }
+
+    public int getSlot() {
+        return slot;
+    }
+
 }

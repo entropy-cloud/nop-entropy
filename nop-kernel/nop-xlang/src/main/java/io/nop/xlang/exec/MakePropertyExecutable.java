@@ -11,18 +11,10 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.reflect.IPropertyGetter;
-import io.nop.core.reflect.ReflectionManager;
-import io.nop.core.reflect.bean.IBeanModel;
-import io.nop.core.reflect.bean.IBeanPropertyModel;
 
-import java.lang.annotation.Annotation;
 
-import static io.nop.xlang.XLangErrors.ARG_CLASS_NAME;
 import static io.nop.xlang.XLangErrors.ARG_OBJ_EXPR;
-import static io.nop.xlang.XLangErrors.ARG_PARAM_NAME;
-import static io.nop.xlang.XLangErrors.ERR_EXEC_MAKE_PROP_NULL;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_MAKE_PROP_OBJ_NULL;
-import static io.nop.xlang.XLangErrors.ERR_EXEC_UNKNOWN_PROP;
 
 public class MakePropertyExecutable extends GetPropertyExecutable {
 
@@ -37,25 +29,11 @@ public class MakePropertyExecutable extends GetPropertyExecutable {
 
     @Override
     protected IPropertyGetter getGetter(Class clazz, Object bean) {
-        if (bean instanceof Annotation)
-            clazz = ((Annotation) bean).annotationType();
-
-        IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(clazz);
-        IBeanPropertyModel field = beanModel.getPropertyModel(getPropName());
-        if (field == null) {
-            if (beanModel.isAllowGetExtProperty()) {
-                return beanModel.getExtPropertyGetter();
-            }
-            throw newError(ERR_EXEC_UNKNOWN_PROP).param(ARG_CLASS_NAME, clazz.getName()).param(ARG_PARAM_NAME,
-                    getPropName());
-        }
-        return field.getMaker();
+        return XLangSemantics.getMakerGetter(getLocation(), display(), getPropName(), bean);
     }
 
+    @Override
     protected Object readProp(Object obj, IPropertyGetter reader, IEvalScope scope) {
-        Object value = super.readProp(obj, reader, scope);
-        if (value == null)
-            throw newError(ERR_EXEC_MAKE_PROP_NULL);
-        return value;
+        return XLangSemantics.readMakerPropValue(getLocation(), display(), getPropName(), obj, reader, scope);
     }
 }

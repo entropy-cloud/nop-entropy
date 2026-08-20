@@ -587,6 +587,9 @@ public interface XLangErrors {
 
     ErrorCode ERR_EXEC_MAKE_PROP_OBJ_NULL = define("nop.err.xlang.exec.make-prop-obj-null", "makeProperty的对象为null");
 
+    ErrorCode ERR_EXEC_CLASS_NOT_FOUND = define("nop.err.xlang.exec.class-not-found", "类[{className}]不存在",
+            ARG_CLASS_NAME);
+
     ErrorCode ERR_EXEC_WRITE_PROP_OBJ_NULL = define("nop.err.xlang.exec.write-prop-obj-null", "设置属性时对象不能为空");
 
     ErrorCode ERR_EXEC_MAKE_PROP_NULL = define("nop.err.xlang.exec.make-prop-null", "makeProperty的返回值不允许为空");

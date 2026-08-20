@@ -39,4 +39,8 @@ public class ScopeSelfDecExecutable extends AbstractExecutable {
     public void visit(IExecutableExpressionVisitor visitor) {
         visitor.onVisitSimpleExpr(this);
     }
+    public String getVarName() {
+        return varName;
+    }
+
 }

@@ -67,4 +67,12 @@ public class CastExecutable extends AbstractExecutable {
             visitor.onEndVisitExpr(this);
         }
     }
+    public IExecutableExpression getExpr() {
+        return expr;
+    }
+
+    public Class<?> getClazz() {
+        return clazz;
+    }
+
 }

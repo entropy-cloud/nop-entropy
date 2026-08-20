@@ -52,4 +52,16 @@ public class BindVarExecutable extends AbstractExecutable {
             visitor.onEndVisitExpr(this);
         }
     }
+    public int[] getSlots() {
+        return slots;
+    }
+
+    public Object[] getVars() {
+        return vars;
+    }
+
+    public IExecutableExpression getExpr() {
+        return expr;
+    }
+
 }

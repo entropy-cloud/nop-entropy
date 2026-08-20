@@ -121,4 +121,12 @@ public class SelfAssignPropertyExecutable extends AbstractPropertyExecutable {
         return setter;
     }
 
+    public IExecutableExpression getValueExpr() {
+        return valueExpr;
+    }
+
+    public io.nop.xlang.ast.XLangOperator getOperator() {
+        return operator;
+    }
+
 }

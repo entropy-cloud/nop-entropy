@@ -60,4 +60,16 @@ public class ConvertWithDefaultExecutable extends AbstractExecutable {
             visitor.onEndVisitExpr(this);
         }
     }
+    public IExecutableExpression getExpr() {
+        return expr;
+    }
+
+    public String getFuncName() {
+        return funcName;
+    }
+
+    public IExecutableExpression getDefaultExpr() {
+        return defaultExpr;
+    }
+
 }

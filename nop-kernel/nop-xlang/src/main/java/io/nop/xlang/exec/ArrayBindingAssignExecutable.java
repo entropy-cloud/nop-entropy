@@ -92,4 +92,16 @@ public class ArrayBindingAssignExecutable extends AbstractExecutable {
             visitor.onEndVisitExpr(this);
         }
     }
+    public AssignIdentifier[] getElementBindings() {
+        return elementBindings;
+    }
+
+    public AssignIdentifier getRestBinding() {
+        return restBinding;
+    }
+
+    public IExecutableExpression getExpr() {
+        return expr;
+    }
+
 }

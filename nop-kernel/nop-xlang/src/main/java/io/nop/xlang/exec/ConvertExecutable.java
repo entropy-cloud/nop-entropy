@@ -52,4 +52,12 @@ public class ConvertExecutable extends AbstractExecutable {
             visitor.onEndVisitExpr(this);
         }
     }
+    public IExecutableExpression getExpr() {
+        return expr;
+    }
+
+    public String getFuncName() {
+        return funcName;
+    }
+
 }

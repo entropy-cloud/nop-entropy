@@ -11,7 +11,6 @@ import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopEvalException;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
-import io.nop.commons.util.MathHelper;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExecutableExpressionVisitor;
@@ -20,18 +19,10 @@ import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.reflect.bean.IBeanModel;
 import io.nop.xlang.ast.XLangOperator;
 
-import java.util.Map;
 
-import static io.nop.xlang.XLangErrors.ARG_ATTR_VALUE;
-import static io.nop.xlang.XLangErrors.ARG_CLASS_NAME;
 import static io.nop.xlang.XLangErrors.ARG_EXPR;
-import static io.nop.xlang.XLangErrors.ARG_OP;
-import static io.nop.xlang.XLangErrors.ARG_PROP_NAME;
-import static io.nop.xlang.XLangErrors.ERR_EXEC_NOT_SUPPORTED_OPERATOR;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_READ_ATTR_FAIL;
-import static io.nop.xlang.XLangErrors.ERR_EXEC_READ_PROP_FAIL;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_WRITE_ATTR_FAIL;
-import static io.nop.xlang.XLangErrors.ERR_EXEC_WRITE_PROP_FAIL;
 
 public abstract class AbstractExecutable implements IExecutableExpression {
     private static final Object[] EMPTY_ARGS = new Object[0];
@@ -103,35 +94,7 @@ public abstract class AbstractExecutable implements IExecutableExpression {
     }
 
     protected Object selfAssignValue(XLangOperator op, Object value, Object change) {
-        switch (op) {
-            case SELF_ASSIGN_BIT_AND:
-                return MathHelper.band(value, change);
-            case SELF_ASSIGN_BIT_OR:
-                return MathHelper.bor(value, change);
-            case SELF_ASSIGN_BIT_XOR:
-                return MathHelper.bxor(value, change);
-            case SELF_ASSIGN_DIV:
-                return MathHelper.divide(value, change);
-            case SELF_ASSIGN_MULTI:
-                return MathHelper.multiply(value, change);
-            case SELF_ASSIGN_MOD:
-                return MathHelper.mod(value, change);
-            case SELF_ASSIGN_LEFT_SHIFT:
-                return MathHelper.sl(value, change);
-            case SELF_ASSIGN_RIGHT_SHIFT:
-                return MathHelper.sr(value, change);
-            case SELF_ASSIGN_UNSIGNED_RIGHT_SHIFT:
-                return MathHelper.usr(value, change);
-            case SELF_ASSIGN_ADD:
-                if(value instanceof String || change instanceof String)
-                    return String.valueOf(value) + String.valueOf(change);
-                return MathHelper.add(value, change);
-            case SELF_ASSIGN_MINUS:
-                return MathHelper.minus(value, change);
-            default:
-                throw newError(ERR_EXEC_NOT_SUPPORTED_OPERATOR).param(ARG_OP, op);
-        }
-
+        return XLangSemantics.selfAssignValue(loc, display(), op, value, change);
     }
 
 
@@ -140,14 +103,7 @@ public abstract class AbstractExecutable implements IExecutableExpression {
     }
 
     protected Object readAttr(IBeanModel beanModel, Object obj, Object attrValue) {
-        try {
-            if (beanModel.isMapLike())
-                return ((Map) obj).get(attrValue);
-
-            return beanModel.getProperty(obj, attrValue.toString());
-        } catch (Exception e) {
-            throw wrapAttrException(ERR_EXEC_READ_ATTR_FAIL, e, obj, attrValue);
-        }
+        return XLangSemantics.readAttrValue(loc, display(), ERR_EXEC_READ_ATTR_FAIL, beanModel, obj, attrValue);
     }
 
     protected void setByIndex(Object o, int index, Object value) {
@@ -155,15 +111,7 @@ public abstract class AbstractExecutable implements IExecutableExpression {
     }
 
     protected void setAttr(IBeanModel beanModel, Object obj, Object attrValue, Object value) {
-        try {
-            if (beanModel.isMapLike()) {
-                ((Map) obj).put(attrValue, value);
-            } else {
-                beanModel.setProperty(obj, attrValue.toString(), value);
-            }
-        } catch (Exception e) {
-            throw wrapAttrException(ERR_EXEC_WRITE_ATTR_FAIL, e, obj, attrValue);
-        }
+        XLangSemantics.writeAttrValue(loc, display(), ERR_EXEC_WRITE_ATTR_FAIL, beanModel, obj, attrValue, value);
     }
 
     /**
@@ -173,12 +121,7 @@ public abstract class AbstractExecutable implements IExecutableExpression {
      * {@code RetryPolicy.isRecoverableException}）能正确识别不可恢复异常。
      */
     private NopException wrapAttrException(ErrorCode errorCode, Throwable e, Object obj, Object attrValue) {
-        NopException err = newError(errorCode, e).forWrap()
-                .param(ARG_CLASS_NAME, obj.getClass().getName())
-                .param(ARG_ATTR_VALUE, attrValue);
-        if (e instanceof NopException && ((NopException) e).isBizFatal())
-            err.bizFatal(true);
-        return err;
+        return XLangSemantics.wrapAttrException(loc, display(), errorCode, e, obj, attrValue);
     }
 
     /**
@@ -188,12 +131,7 @@ public abstract class AbstractExecutable implements IExecutableExpression {
      * {@code RetryPolicy.isRecoverableException}）能正确识别不可恢复异常。
      */
     protected NopException wrapPropException(ErrorCode errorCode, Throwable e, String className, String propName) {
-        NopException err = newError(errorCode, e).forWrap()
-                .param(ARG_CLASS_NAME, className)
-                .param(ARG_PROP_NAME, propName);
-        if (e instanceof NopException && ((NopException) e).isBizFatal())
-            err.bizFatal(true);
-        return err;
+        return XLangSemantics.wrapPropException(loc, display(), errorCode, e, className, propName);
     }
 
     @Override

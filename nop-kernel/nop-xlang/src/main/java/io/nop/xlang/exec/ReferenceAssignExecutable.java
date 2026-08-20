@@ -8,6 +8,7 @@
 package io.nop.xlang.exec;
 
 import io.nop.api.core.util.SourceLocation;
+import io.nop.core.lang.eval.EvalFrame;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExecutableExpressionVisitor;
@@ -34,7 +35,10 @@ public class ReferenceAssignExecutable extends AbstractExecutable {
     @Override
     public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
         Object v = executor.execute(expr, rt);
-        rt.getCurrentFrame().setRefValue(slot, v);
+        EvalFrame frame = rt.getCurrentFrame();
+        Object updated = XLangSemantics.setRefValue(frame.getStackValue(slot), v);
+        if (updated != frame.getStackValue(slot))
+            frame.setStackValue(slot, updated);
         return v;
     }
 
@@ -52,4 +56,16 @@ public class ReferenceAssignExecutable extends AbstractExecutable {
             visitor.onEndVisitExpr(this);
         }
     }
+    public String getVarName() {
+        return varName;
+    }
+
+    public int getSlot() {
+        return slot;
+    }
+
+    public IExecutableExpression getExpr() {
+        return expr;
+    }
+
 }

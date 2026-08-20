@@ -40,13 +40,7 @@ public class RenewReferenceExecutable extends AbstractExecutable {
     @Override
     public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
         EvalFrame frame = rt.getCurrentFrame();
-        EvalReference ref = frame.getRef(slot);
-        if (ref != null) {
-            ref = new EvalReference(ref.getValue());
-        } else {
-            ref = new EvalReference(0);
-        }
-        frame.setStackValue(slot, ref);
+        frame.setStackValue(slot, (EvalReference) XLangSemantics.renewReference(frame.getStackValue(slot)));
         return null;
     }
 
@@ -54,4 +48,12 @@ public class RenewReferenceExecutable extends AbstractExecutable {
     public void visit(IExecutableExpressionVisitor visitor) {
         visitor.onVisitSimpleExpr(this);
     }
+    public String getVarName() {
+        return varName;
+    }
+
+    public int getSlot() {
+        return slot;
+    }
+
 }

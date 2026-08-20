@@ -94,7 +94,7 @@ public class ObjectBindingAssignExecutable extends AbstractExecutable {
             for (Map.Entry<String, Object> entry : map.entrySet()) {
                 if (propKeys.contains(entry.getKey()))
                     continue;
-                tail.put(entry.getKey(), value);
+                tail.put(entry.getKey(), entry.getValue());
             }
             restBinding.assign(tail, rt);
         }
@@ -116,4 +116,16 @@ public class ObjectBindingAssignExecutable extends AbstractExecutable {
             visitor.onEndVisitExpr(this);
         }
     }
+    public PropBinding[] getPropBindings() {
+        return propBindings;
+    }
+
+    public AssignIdentifier getRestBinding() {
+        return restBinding;
+    }
+
+    public IExecutableExpression getExpr() {
+        return expr;
+    }
+
 }

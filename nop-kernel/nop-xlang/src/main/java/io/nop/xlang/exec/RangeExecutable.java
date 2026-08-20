@@ -7,15 +7,12 @@
  */
 package io.nop.xlang.exec;
 
-import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.util.SourceLocation;
-import io.nop.commons.collections.iterator.IntRangeIterator;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
-import static io.nop.xlang.XLangErrors.ERR_EXEC_LOOP_STEP_MUST_NOT_BE_ZERO;
 
 public class RangeExecutable extends AbstractExecutable {
     protected final IExecutableExpression beginExpr;
@@ -41,22 +38,10 @@ public class RangeExecutable extends AbstractExecutable {
 
     @Override
     public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
-        Integer begin = ConvertHelper.toInt(executor.execute(beginExpr, rt), err -> newError(err));
-        Integer end = ConvertHelper.toInt(executor.execute(endExpr, rt), err -> newError(err));
-
-        Integer step = ConvertHelper.toInt(executor.execute(stepExpr, rt), err -> newError(err));
-
-        if (step == null) {
-            step = 1;
-        } else if (step == 0) {
-            throw newError(ERR_EXEC_LOOP_STEP_MUST_NOT_BE_ZERO);
-        }
-
-        if (begin == null) begin = 0;
-
-        if (end == null) end = 0;
-
-        return new IntRangeIterator(begin, end, step);
+        Object begin = executor.execute(beginExpr, rt);
+        Object end = executor.execute(endExpr, rt);
+        Object step = executor.execute(stepExpr, rt);
+        return XLangSemantics.range(getLocation(), display(), begin, end, step);
     }
 
     @Override
@@ -68,4 +53,16 @@ public class RangeExecutable extends AbstractExecutable {
             visitor.onEndVisitExpr(this);
         }
     }
+    public IExecutableExpression getBeginExpr() {
+        return beginExpr;
+    }
+
+    public IExecutableExpression getEndExpr() {
+        return endExpr;
+    }
+
+    public IExecutableExpression getStepExpr() {
+        return stepExpr;
+    }
+
 }

@@ -90,4 +90,24 @@ public class BetweenOpExecutable extends AbstractExecutable implements IEvalPred
             visitor.onEndVisitExpr(this);
         }
     }
+    public IExecutableExpression getValueExpr() {
+        return valueExpr;
+    }
+
+    public IExecutableExpression getMinExpr() {
+        return minExpr;
+    }
+
+    public IExecutableExpression getMaxExpr() {
+        return maxExpr;
+    }
+
+    public boolean isExcludeMin() {
+        return excludeMin;
+    }
+
+    public boolean isExcludeMax() {
+        return excludeMax;
+    }
+
 }

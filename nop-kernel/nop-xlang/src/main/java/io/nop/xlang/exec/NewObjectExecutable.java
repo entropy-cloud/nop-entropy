@@ -14,11 +14,7 @@ import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.reflect.IClassModel;
-import io.nop.core.reflect.IFunctionModel;
 
-import static io.nop.xlang.XLangErrors.ARG_ARG_COUNT;
-import static io.nop.xlang.XLangErrors.ARG_CLASS_NAME;
-import static io.nop.xlang.XLangErrors.ERR_EXEC_CLASS_NO_CONSTRUCTOR;
 
 public class NewObjectExecutable extends AbstractExecutable {
     private final IClassModel classModel;
@@ -48,16 +44,7 @@ public class NewObjectExecutable extends AbstractExecutable {
     @Override
     public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
         Object[] argValues = evaluateArgs(argExprs, executor, rt);
-
-        IFunctionModel constructor = classModel.getConstructorForArgs(argValues);
-        if (constructor == null)
-            throw newError(ERR_EXEC_CLASS_NO_CONSTRUCTOR).param(ARG_CLASS_NAME, classModel.getClassName())
-                    .param(ARG_ARG_COUNT, argExprs.length);
-        Object ret = constructor.invoke(null, argValues, rt.getScope());
-        if (locSetter) {
-            ((ISourceLocationSetter) ret).setLocation(getLocation());
-        }
-        return ret;
+        return XLangSemantics.newInstance(getLocation(), display(), classModel, argValues, rt.getScope());
     }
 
     @Override
@@ -69,4 +56,12 @@ public class NewObjectExecutable extends AbstractExecutable {
             visitor.onEndVisitExpr(this);
         }
     }
+    public io.nop.core.reflect.IClassModel getClassModel() {
+        return classModel;
+    }
+
+    public IExecutableExpression[] getArgExprs() {
+        return argExprs;
+    }
+
 }

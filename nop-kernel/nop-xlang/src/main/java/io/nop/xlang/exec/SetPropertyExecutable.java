@@ -91,4 +91,8 @@ public class SetPropertyExecutable extends AbstractPropertyExecutable {
         return setter;
     }
     // resume CPD analysis - CPD-ON
+    public IExecutableExpression getValueExpr() {
+        return valueExpr;
+    }
+
 }

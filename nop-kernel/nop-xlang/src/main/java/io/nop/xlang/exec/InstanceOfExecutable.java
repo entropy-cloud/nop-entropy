@@ -47,4 +47,12 @@ public class InstanceOfExecutable extends AbstractExecutable {
             visitor.onEndVisitExpr(this);
         }
     }
+    public IExecutableExpression getExpr() {
+        return expr;
+    }
+
+    public io.nop.core.type.IGenericType getType() {
+        return type;
+    }
+
 }

@@ -36,4 +36,8 @@ public class SelfAssignExecutable extends AbstractSelfAssignExecutable {
         return newValue;
     }
 
+    public int getSlot() {
+        return slot;
+    }
+
 }

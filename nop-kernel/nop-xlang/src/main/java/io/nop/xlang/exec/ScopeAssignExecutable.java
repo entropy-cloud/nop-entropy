@@ -27,8 +27,7 @@ public class ScopeAssignExecutable extends AbstractExecutable {
     @Override
     public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
         Object v = executor.execute(expr, rt);
-        rt.setLocalValue(getLocation(), varName, v);
-        return v;
+        return XLangSemantics.setScopeValue(getLocation(), rt.getScope(), varName, v);
     }
 
     @Override
@@ -45,4 +44,12 @@ public class ScopeAssignExecutable extends AbstractExecutable {
             visitor.onEndVisitExpr(this);
         }
     }
+    public String getVarName() {
+        return varName;
+    }
+
+    public IExecutableExpression getExpr() {
+        return expr;
+    }
+
 }

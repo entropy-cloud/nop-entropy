@@ -42,4 +42,8 @@ public class ReferenceSelfAssignExecutable extends AbstractSelfAssignExecutable 
         ref.setValue(newValue);
         return newValue;
     }
+    public int getSlot() {
+        return slot;
+    }
+
 }

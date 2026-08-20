@@ -14,8 +14,6 @@ import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
-import static io.nop.xlang.xpl.XplInputFormat.value;
-
 public class TypeOfExecutable extends AbstractExecutable {
     private final IExecutableExpression expr;
 
@@ -27,7 +25,7 @@ public class TypeOfExecutable extends AbstractExecutable {
     @Override
     public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
         Object v = executor.execute(expr, rt);
-        return value == null ? "undefined" : v.getClass().getTypeName();
+        return XLangSemantics.typeOf(v);
     }
 
     @Override
@@ -43,4 +41,8 @@ public class TypeOfExecutable extends AbstractExecutable {
             visitor.onEndVisitExpr(this);
         }
     }
+    public IExecutableExpression getExpr() {
+        return expr;
+    }
+
 }

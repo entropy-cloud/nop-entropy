@@ -13,7 +13,6 @@ import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 public class NewListExecutable extends AbstractExecutable {
@@ -41,13 +40,7 @@ public class NewListExecutable extends AbstractExecutable {
         for (ListItemExecutable expr : exprs) {
             Object value = expr.getValue(executor, rt);
             if (expr.isSpread()) {
-                if (value != null) {
-                    if (value instanceof Collection) {
-                        ret.addAll((Collection<?>) value);
-                    } else {
-                        ret.add(value);
-                    }
-                }
+                XLangSemantics.spreadListAdd(ret, value);
             } else {
                 ret.add(value);
             }
@@ -64,4 +57,8 @@ public class NewListExecutable extends AbstractExecutable {
             visitor.onEndVisitExpr(this);
         }
     }
+    public io.nop.xlang.exec.ListItemExecutable[] getItems() {
+        return exprs;
+    }
+
 }

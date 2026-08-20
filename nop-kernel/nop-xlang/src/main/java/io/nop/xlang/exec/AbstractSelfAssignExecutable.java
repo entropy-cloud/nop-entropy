@@ -39,4 +39,16 @@ public abstract class AbstractSelfAssignExecutable extends AbstractExecutable {
             visitor.onEndVisitExpr(this);
         }
     }
+    public String getVarName() {
+        return varName;
+    }
+
+    public XLangOperator getOperator() {
+        return operator;
+    }
+
+    public IExecutableExpression getExpr() {
+        return expr;
+    }
+
 }

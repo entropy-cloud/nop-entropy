@@ -16,7 +16,6 @@ import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.reflect.IPropertySetter;
 
-import static io.nop.xlang.XLangErrors.ERR_EXEC_WRITE_PROP_FAIL;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_WRITE_PROP_OBJ_NULL;
 
 public class SetterSetPropertyExecutable extends AbstractExecutable {
@@ -73,10 +72,10 @@ public class SetterSetPropertyExecutable extends AbstractExecutable {
     }
 
     protected void setProp(Object obj, Object value, IPropertySetter setter, IEvalScope scope) {
-        try {
-            setter.setProperty(obj, propName, value, scope);
-        } catch (Exception e) {
-            throw wrapPropException(ERR_EXEC_WRITE_PROP_FAIL, e, obj.getClass().getName(), propName);
-        }
+        XLangSemantics.writePropValue(getLocation(), display(), propName, obj, value, setter, scope);
     }
+    public IExecutableExpression getValueExpr() {
+        return valueExpr;
+    }
+
 }

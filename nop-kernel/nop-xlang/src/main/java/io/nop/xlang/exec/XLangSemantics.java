@@ -7,32 +7,96 @@
  */
 package io.nop.xlang.exec;
 
+import io.nop.api.core.ApiErrors;
 import io.nop.api.core.convert.ConvertHelper;
+import io.nop.api.core.convert.ITypeConverter;
+import io.nop.api.core.convert.SysConverterRegistry;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopEvalException;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.ISourceLocationSetter;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.commons.collections.iterator.IntRangeIterator;
+import io.nop.commons.collections.iterator.LoopVarStatus;
+import io.nop.commons.lang.Undefined;
+import io.nop.commons.util.ClassHelper;
+import io.nop.api.core.util.CloneHelper;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.MathHelper;
+import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.eval.EvalReference;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.global.EvalGlobalRegistry;
+import io.nop.core.lang.eval.global.IGlobalVariableDefinition;
+import io.nop.core.model.object.DynamicObject;
+import io.nop.core.reflect.bean.IBeanModel;
+import io.nop.core.reflect.bean.IBeanPropertyModel;
+import io.nop.core.reflect.IClassModel;
+import io.nop.core.reflect.IFieldModel;
 import io.nop.core.reflect.IFunctionModel;
 import io.nop.core.reflect.IMethodModelCollection;
+import io.nop.core.reflect.IPropertyGetter;
+import io.nop.core.reflect.IPropertySetter;
 import io.nop.core.reflect.ReflectionManager;
+import io.nop.core.reflect.accessor.ArrayLengthGetter;
+import io.nop.core.reflect.bean.BeanTool;
+import io.nop.xlang.XLangConstants;
+import io.nop.xlang.ast.XLangOperator;
 
+import java.lang.annotation.Annotation;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static io.nop.xlang.XLangErrors.ARG_ARG_COUNT;
+import static io.nop.xlang.XLangErrors.ARG_ATTR_EXPR;
+import static io.nop.xlang.XLangErrors.ARG_ATTR_VALUE;
 import static io.nop.xlang.XLangErrors.ARG_CLASS_NAME;
 import static io.nop.xlang.XLangErrors.ARG_EXPR;
 import static io.nop.xlang.XLangErrors.ARG_FUNC_NAME;
 import static io.nop.xlang.XLangErrors.ARG_METHOD_NAME;
+import static io.nop.xlang.XLangErrors.ARG_OBJ_EXPR;
+import static io.nop.xlang.XLangErrors.ARG_OP;
+import static io.nop.xlang.XLangErrors.ARG_PARAM_NAME;
+import static io.nop.xlang.XLangErrors.ARG_PROP_NAME;
+import static io.nop.xlang.XLangErrors.ARG_TARGET;
+import static io.nop.xlang.XLangErrors.ARG_VALUE;
+import static io.nop.xlang.XLangErrors.ARG_VAR_NAME;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_ARRAY_BINDING_NOT_LIST;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_CLASS_NO_CONSTRUCTOR;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_CLASS_NO_STATIC_METHOD;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_CLASS_NOT_FOUND;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_GET_ATTR_ON_NULL_OBJ;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_GET_PROP_ON_NULL_OBJ;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_IDENTIFIER_NOT_INITIALIZED;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_INVOKE_FUNCTION_FAIL;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_INVOKE_METHOD_FAIL;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_LOOP_STEP_MUST_NOT_BE_ZERO;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_MAKE_PROP_NULL;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_MAKE_PROP_OBJ_NULL;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_NOT_SUPPORTED_OPERATOR;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_OBJ_ATTR_IS_NULL;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_OBJ_PROP_IS_NULL;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_OBJ_UNKNOWN_METHOD;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_OBJECT_BINDING_NOT_MAP;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_READ_ATTR_EXPR_RETURN_NULL;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_READ_ATTR_FAIL;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_READ_PROP_FAIL;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_SCOPE_VAR_IS_UNDEFINED;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_UNKNOWN_PROP;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_UNKNOWN_STATIC_FIELD;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_VALUE_NOT_ALLOW_EMPTY;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_VALUE_NOT_ALLOW_NULL;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_WRITE_ATTR_EXPR_RETURN_NULL;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_WRITE_ATTR_FAIL;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_WRITE_PROP_FAIL;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_WRITE_PROP_OBJ_NULL;
+import static io.nop.xlang.XLangErrors.ERR_XLANG_UNRESOLVED_IDENTIFIER;
 
 /**
  * 表达式子集语义敏感操作的共享 helper 基座（设计 xlang-java 01 §三语义一致性策略）。
@@ -328,5 +392,684 @@ public final class XLangSemantics {
 
     private static NopException newError(ErrorCode errorCode, Throwable e, SourceLocation loc, String display) {
         return new NopEvalException(errorCode, e).loc(loc).param(ARG_EXPR, display);
+    }
+
+    // ------------------------------------------------------------------
+    // 覆盖 A（I3）：作用域链访问族（经 $scope 参数的作用域访问 API，设计 java §三）
+    // ------------------------------------------------------------------
+
+    /** ScopeIdentifierExecutable 语义：按名读取，null 且未定义时报错。 */
+    public static Object getScopeValue(SourceLocation loc, String display, IEvalScope scope, String varName) {
+        Object value = scope.getValue(varName);
+        if (value == null && !scope.containsValue(varName))
+            throw newError(ERR_EXEC_SCOPE_VAR_IS_UNDEFINED, loc, display).param(ARG_VAR_NAME, varName);
+        return value;
+    }
+
+    /** ScopeAssignExecutable / 各 slot<0 写路径语义：带 loc 写本地变量。 */
+    public static Object setScopeValue(SourceLocation loc, IEvalScope scope, String varName, Object value) {
+        scope.setLocalValue(loc, varName, value);
+        return value;
+    }
+
+    /** ScopeSelfInc/Dec 语义：读旧值（不校验未定义），MathHelper.add 提升，写回，返回旧值。 */
+    public static Object scopeSelfInc(SourceLocation loc, IEvalScope scope, String varName, int delta) {
+        Object value = scope.getValue(varName);
+        Object newValue = MathHelper.add(value, delta);
+        scope.setLocalValue(loc, varName, newValue);
+        return value;
+    }
+
+    /** GlobalVarExecutable 生成代码入口：注册表解析 + 生成代码无帧运行时交接（脚本单元等价形态）。 */
+    public static Object getGlobalVarValue(SourceLocation loc, String display, IEvalScope scope, String varName) {
+        IGlobalVariableDefinition varDef = EvalGlobalRegistry.instance().getRegisteredVariable(varName);
+        if (varDef == null)
+            throw newError(ERR_XLANG_UNRESOLVED_IDENTIFIER, loc, display).param(ARG_VAR_NAME, varName);
+        return varDef.getValue(new EvalRuntime(scope));
+    }
+
+    // ------------------------------------------------------------------
+    // 覆盖 A（I3）：引用族（帧 slot 持有 EvalReference cell；生成代码以局部变量承载 slot 值）
+    // ------------------------------------------------------------------
+
+    /** ReferenceIdentifierExecutable 语义。 */
+    public static Object getRefValue(SourceLocation loc, String display, String varName, Object slotValue) {
+        return asRef(loc, display, varName, slotValue).getValue();
+    }
+
+    /** 引用族公共前置：slot 未初始化报 ERR_EXEC_IDENTIFIER_NOT_INITIALIZED。 */
+    public static EvalReference asRef(SourceLocation loc, String display, String varName, Object slotValue) {
+        if (slotValue == null)
+            throw newError(ERR_EXEC_IDENTIFIER_NOT_INITIALIZED, loc, display).param(ARG_VAR_NAME, varName);
+        return (EvalReference) slotValue;
+    }
+
+    /** ReferenceAssignExecutable / frame.setRefValue 语义：已有 ref 则写值，否则新建 cell 写入 slot。 */
+    public static Object setRefValue(Object slotValue, Object value) {
+        if (slotValue instanceof EvalReference) {
+            ((EvalReference) slotValue).setValue(value);
+            return slotValue;
+        }
+        return new EvalReference(value);
+    }
+
+    /** RenewReferenceExecutable 语义（含 frame.getRef 的强制转型语义）。 */
+    public static Object renewReference(Object slotValue) {
+        EvalReference ref = (EvalReference) slotValue;
+        if (ref != null) {
+            ref = new EvalReference(ref.getValue());
+        } else {
+            ref = new EvalReference(0);
+        }
+        return ref;
+    }
+
+    // ------------------------------------------------------------------
+    // 覆盖 A（I3）：slot 写族 / 复合赋值公共语义（自 AbstractExecutable.selfAssignValue 提取）
+    // ------------------------------------------------------------------
+
+    public static Object selfAssignValue(SourceLocation loc, String display, XLangOperator op,
+                                         Object value, Object change) {
+        switch (op) {
+            case SELF_ASSIGN_BIT_AND:
+                return MathHelper.band(value, change);
+            case SELF_ASSIGN_BIT_OR:
+                return MathHelper.bor(value, change);
+            case SELF_ASSIGN_BIT_XOR:
+                return MathHelper.bxor(value, change);
+            case SELF_ASSIGN_DIV:
+                return MathHelper.divide(value, change);
+            case SELF_ASSIGN_MULTI:
+                return MathHelper.multiply(value, change);
+            case SELF_ASSIGN_MOD:
+                return MathHelper.mod(value, change);
+            case SELF_ASSIGN_LEFT_SHIFT:
+                return MathHelper.sl(value, change);
+            case SELF_ASSIGN_RIGHT_SHIFT:
+                return MathHelper.sr(value, change);
+            case SELF_ASSIGN_UNSIGNED_RIGHT_SHIFT:
+                return MathHelper.usr(value, change);
+            case SELF_ASSIGN_ADD:
+                if (value instanceof String || change instanceof String)
+                    return String.valueOf(value) + String.valueOf(change);
+                return MathHelper.add(value, change);
+            case SELF_ASSIGN_MINUS:
+                return MathHelper.minus(value, change);
+            default:
+                throw newError(ERR_EXEC_NOT_SUPPORTED_OPERATOR, loc, display).param(ARG_OP, op);
+        }
+    }
+
+    /** slot 自增/自减语义（SelfInc/SelfDec/ReferenceSelfInc/ReferenceSelfDec）：返回旧值。 */
+    public static Object selfIncValue(Object value, int delta) {
+        return MathHelper.add(value, delta);
+    }
+
+    // ------------------------------------------------------------------
+    // 覆盖 A（I3）：类型操作族
+    // ------------------------------------------------------------------
+
+    /** TypeOfExecutable 语义（意图语义：null => "undefined"；原实现误引用枚举常量致 NPE，已修复）。 */
+    public static Object typeOf(Object v) {
+        return v == null ? "undefined" : v.getClass().getTypeName();
+    }
+
+    /** InstanceOfExecutable 语义（IGenericType.isInstance = rawClass.isInstance）。 */
+    public static boolean instanceOf(Object value, String className) {
+        if (value == null)
+            return false;
+        return resolveClass(className).isInstance(value);
+    }
+
+    /** ConvertExecutable 生成代码入口：按 `$xxx` 函数名经 SysConverterRegistry 解析同一 converter。 */
+    public static Object convertValue(SourceLocation loc, String display, String funcName,
+                                      IEvalScope scope, Object value) {
+        ITypeConverter converter = resolveConverter(funcName);
+        return converter.convertEx(scope, value, err -> newError(err, loc, display));
+    }
+
+    /** ConvertWithDefaultExecutable 生成代码入口（default 值由调用方在 value==null 时求值后传入）。 */
+    public static Object convertWithDefault(SourceLocation loc, String display, String funcName,
+                                            IEvalScope scope, Object value, Object defaultValue) {
+        if (value != null)
+            return convertValue(loc, display, funcName, scope, value);
+        return convertValue(loc, display, funcName, scope, defaultValue);
+    }
+
+    /** CastExecutable 生成代码入口（converter/defaultValue 按 className 运行时解析，与构造期同源）。 */
+    public static Object castValue(SourceLocation loc, String display, IEvalScope scope,
+                                   String className, Object value) {
+        Class<?> clazz = resolveClass(className);
+        Object defaultValue = ConvertHelper.getDefault(clazz);
+        if (value == null)
+            return defaultValue;
+        ITypeConverter converter = ReflectionManager.instance().getConverterForJavaType(clazz);
+        Object converted = converter.convertEx(scope, value, err -> newError(err, loc, display));
+        if (converted != null) {
+            // 与解释器现状一致：校验的是原值（quirk 忠实保留，见 I3 log watch-only 记录）
+            if (!clazz.isInstance(value))
+                throw newError(ApiErrors.ERR_CONVERT_TO_TYPE_FAIL, loc, display)
+                        .param(ApiErrors.ARG_VALUE, value)
+                        .param(ApiErrors.ARG_SRC_TYPE, value.getClass().getTypeName())
+                        .param(ApiErrors.ARG_TARGET_TYPE, clazz.getTypeName());
+        }
+        return converted;
+    }
+
+    private static ITypeConverter resolveConverter(String funcName) {
+        ITypeConverter converter = SysConverterRegistry.instance()
+                .getConverterByName(funcName.substring(1));
+        if (converter == null)
+            throw new NopEvalException(ERR_XLANG_UNRESOLVED_IDENTIFIER)
+                    .param(ARG_VAR_NAME, funcName);
+        return converter;
+    }
+
+    private static Class<?> resolveClass(String className) {
+        try {
+            return ClassHelper.forName(className);
+        } catch (ClassNotFoundException e) {
+            throw new NopEvalException(ERR_EXEC_CLASS_NOT_FOUND, e).param(ARG_CLASS_NAME, className);
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // 覆盖 A（I3）：对象/集合构造与访问族——属性反射（与解释器同一实现，按 propName 全局缓存）
+    // ------------------------------------------------------------------
+
+    /**
+     * 按 propName 分立的属性访问器缓存（镜像解释器 per-node transient 缓存语义：
+     * 同 propName 下按 class 缓存 getter/setter，跨名不污染）。
+     */
+    private static final Map<String, PropAccessor> PROP_ACCESSORS = new ConcurrentHashMap<>();
+
+    static final class PropAccessor {
+        final Map<Class<?>, IPropertyGetter> getters = new ConcurrentHashMap<>();
+        final Map<Class<?>, IPropertySetter> setters = new ConcurrentHashMap<>();
+    }
+
+    static PropAccessor propAccessor(String propName) {
+        return PROP_ACCESSORS.computeIfAbsent(propName, k -> new PropAccessor());
+    }
+
+    /** AbstractPropertyExecutable.getGetter 提取（Annotation/array-length/Class 静态字段/扩展属性）。 */
+    public static IPropertyGetter getPropGetter(SourceLocation loc, String display, String propName,
+                                                Class<?> clazz, Object bean) {
+        if (bean instanceof Annotation)
+            clazz = ((Annotation) bean).annotationType();
+
+        if (clazz.isArray() && XLangConstants.PROP_NAME_LENGTH.equals(propName))
+            return ArrayLengthGetter.INSTANCE;
+
+        IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(clazz);
+        if (clazz == Class.class)
+            return getStaticFieldGetter(loc, display, propName, clazz);
+        IBeanPropertyModel field = beanModel.getPropertyModel(propName);
+        if (field == null) {
+            if (beanModel.isAllowGetExtProperty())
+                return beanModel.getExtPropertyGetter();
+            throw newError(ERR_EXEC_UNKNOWN_PROP, loc, display).param(ARG_CLASS_NAME, clazz.getName())
+                    .param(ARG_PROP_NAME, propName);
+        }
+        return field.getGetter();
+    }
+
+    /** AbstractPropertyExecutable.getSetter 提取。 */
+    public static IPropertySetter getPropSetter(SourceLocation loc, String display, String propName,
+                                                Class<?> clazz) {
+        if (clazz == Class.class) {
+            return getStaticFieldSetter(loc, display, propName, clazz);
+        }
+        IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(clazz);
+        IBeanPropertyModel field = beanModel.getPropertyModel(propName);
+        if (field == null) {
+            if (beanModel.isAllowSetExtProperty())
+                return beanModel.getExtPropertySetter();
+            throw newError(ERR_EXEC_UNKNOWN_PROP, loc, display).param(ARG_CLASS_NAME, clazz.getName())
+                    .param(ARG_PROP_NAME, propName);
+        }
+        return field.getSetter();
+    }
+
+    public static IPropertySetter getStaticFieldSetter(SourceLocation loc, String display, String propName,
+                                                       Class<?> clazz) {
+        IClassModel classModel = ReflectionManager.instance().getClassModel(clazz);
+        IFieldModel field = classModel.getStaticField(propName);
+        if (field == null)
+            throw newError(ERR_EXEC_UNKNOWN_STATIC_FIELD, loc, display).param(ARG_CLASS_NAME, clazz.getName())
+                    .param(ARG_PARAM_NAME, propName);
+        return field.getSetter();
+    }
+
+    public static IPropertyGetter getStaticFieldGetter(SourceLocation loc, String display, String propName,
+                                                       Class<?> clazz) {
+        IClassModel classModel = ReflectionManager.instance().getClassModel(clazz);
+        IFieldModel field = classModel.getStaticField(propName);
+        if (field == null)
+            throw newError(ERR_EXEC_UNKNOWN_STATIC_FIELD, loc, display).param(ARG_CLASS_NAME, clazz.getName())
+                    .param(ARG_PARAM_NAME, propName);
+        return field.getGetter();
+    }
+
+    /** AbstractPropertyExecutable.readProp 提取（含 bizFatal 传播）。 */
+    public static Object readPropValue(SourceLocation loc, String display, String propName, Object obj,
+                                       IPropertyGetter reader, IEvalScope scope) {
+        try {
+            return reader.getProperty(obj, propName, scope);
+        } catch (Exception e) {
+            throw wrapPropException(loc, display, ERR_EXEC_READ_PROP_FAIL, e,
+                    obj == null ? "null" : obj.getClass().getName(), propName);
+        }
+    }
+
+    /** AbstractPropertyExecutable.setProp 提取。 */
+    public static void writePropValue(SourceLocation loc, String display, String propName, Object obj,
+                                      Object value, IPropertySetter setter, IEvalScope scope) {
+        try {
+            setter.setProperty(obj, propName, value, scope);
+        } catch (Exception e) {
+            throw wrapPropException(loc, display, ERR_EXEC_WRITE_PROP_FAIL, e, obj.getClass().getName(), propName);
+        }
+    }
+
+    /** AbstractExecutable.wrapPropException 提取（forWrap + bizFatal 传播语义保持）。 */
+    public static NopException wrapPropException(SourceLocation loc, String display, ErrorCode errorCode,
+                                                 Throwable e, String className, String propName) {
+        NopException err = newError(errorCode, e, loc, display).forWrap()
+                .param(ARG_CLASS_NAME, className)
+                .param(ARG_PROP_NAME, propName);
+        if (e instanceof NopException && ((NopException) e).isBizFatal())
+            err.bizFatal(true);
+        return err;
+    }
+
+    /** GetPropertyExecutable 完整语义（生成代码入口，含按 propName 全局缓存的 getter 解析）。 */
+    public static Object getProperty(SourceLocation loc, String display, String objDisplay, boolean optional,
+                                     String propName, Object obj, IEvalScope scope) {
+        if (obj == null) {
+            if (!optional)
+                throw newError(ERR_EXEC_GET_PROP_ON_NULL_OBJ, loc, display)
+                        .param(ARG_PROP_NAME, propName).param(ARG_OBJ_EXPR, objDisplay);
+            return null;
+        }
+        IPropertyGetter reader = cachedGetter(loc, display, propName, obj);
+        return readPropValue(loc, display, propName, obj, reader, scope);
+    }
+
+    /** SetterSetPropertyExecutable 生成代码入口（无产生路径；按 propName 同一解析）。 */
+    public static Object getterGetProperty(SourceLocation loc, String display, String propName,
+                                           Object obj, IEvalScope scope) {
+        if (obj == null)
+            return null;
+        IPropertyGetter reader = cachedGetter(loc, display, propName, obj);
+        return readPropValue(loc, display, propName, obj, reader, scope);
+    }
+
+    /** StaticGetterGetPropertyExecutable 生成代码入口（按 className/propName 运行时解析静态字段 getter）。 */
+    public static Object getStaticProperty(SourceLocation loc, String display, String className,
+                                           String propName, IEvalScope scope) {
+        IPropertyGetter getter = getStaticFieldGetter(loc, display, propName, resolveClass(className));
+        try {
+            return getter.getProperty(null, propName, scope);
+        } catch (Exception e) {
+            throw wrapPropException(loc, display, ERR_EXEC_READ_PROP_FAIL, e, className, propName);
+        }
+    }
+
+    private static IPropertyGetter cachedGetter(SourceLocation loc, String display, String propName, Object bean) {
+        Class<?> clazz = bean.getClass();
+        PropAccessor accessor = propAccessor(propName);
+        IPropertyGetter reader = accessor.getters.get(clazz);
+        if (reader == null) {
+            // 解析失败（unknown prop / not readable）在共享 getPropGetter 中报错，与解释器 cache-miss 路径一致
+            reader = getPropGetter(loc, display, propName, clazz, bean);
+            accessor.getters.put(clazz, reader);
+        }
+        return reader;
+    }
+
+    /** SetPropertyExecutable 完整语义（生成代码入口）。 */
+    public static Object setProperty(SourceLocation loc, String display, String propName,
+                                     Object obj, Object value, IEvalScope scope) {
+        if (obj == null)
+            throw newError(ERR_EXEC_WRITE_PROP_OBJ_NULL, loc, display);
+        IPropertySetter setter = cachedSetter(loc, display, propName, obj.getClass());
+        writePropValue(loc, display, propName, obj, value, setter, scope);
+        return value;
+    }
+
+    /** SetterSetPropertyExecutable 生成代码入口（无产生路径；按 propName 同一解析）。 */
+    public static Object setterSetProperty(SourceLocation loc, String display, String propName,
+                                           Object obj, Object value, IEvalScope scope) {
+        return setProperty(loc, display, propName, obj, value, scope);
+    }
+
+    private static IPropertySetter cachedSetter(SourceLocation loc, String display, String propName,
+                                                Class<?> clazz) {
+        PropAccessor accessor = propAccessor(propName);
+        IPropertySetter setter = accessor.setters.get(clazz);
+        if (setter == null) {
+            setter = getPropSetter(loc, display, propName, clazz);
+            accessor.setters.put(clazz, setter);
+        }
+        return setter;
+    }
+
+    /** MakePropertyExecutable 完整语义（生成代码入口）。 */
+    public static Object makeProperty(SourceLocation loc, String display, String objDisplay,
+                                      String propName, Object obj, IEvalScope scope) {
+        if (obj == null)
+            throw newError(ERR_EXEC_MAKE_PROP_OBJ_NULL, loc, display).param(ARG_OBJ_EXPR, objDisplay);
+        IPropertyGetter reader = getMakerGetter(loc, display, propName, obj);
+        return readMakerPropValue(loc, display, propName, obj, reader, scope);
+    }
+
+    /** MakePropertyExecutable.getGetter 提取（maker 解析：注解类型/扩展属性/未知属性报错）。 */
+    public static IPropertyGetter getMakerGetter(SourceLocation loc, String display, String propName, Object bean) {
+        Class<?> clazz = bean.getClass();
+        if (bean instanceof Annotation)
+            clazz = ((Annotation) bean).annotationType();
+        IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(clazz);
+        IBeanPropertyModel field = beanModel.getPropertyModel(propName);
+        if (field == null) {
+            if (beanModel.isAllowGetExtProperty()) {
+                return beanModel.getExtPropertyGetter();
+            }
+            throw newError(ERR_EXEC_UNKNOWN_PROP, loc, display).param(ARG_CLASS_NAME, clazz.getName())
+                    .param(ARG_PARAM_NAME, propName);
+        }
+        return field.getMaker();
+    }
+
+    /** MakePropertyExecutable.readProp 提取（读值 + null 报错）。 */
+    public static Object readMakerPropValue(SourceLocation loc, String display, String propName,
+                                            Object obj, IPropertyGetter reader, IEvalScope scope) {
+        Object value = readPropValue(loc, display, propName, obj, reader, scope);
+        if (value == null)
+            throw newError(ERR_EXEC_MAKE_PROP_NULL, loc, display);
+        return value;
+    }
+
+    /** SelfAssignPropertyExecutable 完整语义（生成代码入口）。 */
+    public static Object selfAssignProperty(SourceLocation loc, String display, String propName,
+                                            XLangOperator operator, Object obj, Object value,
+                                            IEvalScope scope) {
+        if (obj == null)
+            throw newError(ERR_EXEC_WRITE_PROP_OBJ_NULL, loc, display);
+
+        IPropertyGetter getter = cachedGetter(loc, display, propName, obj);
+        Object oldValue = readPropValue(loc, display, propName, obj, getter, scope);
+        if (oldValue == null)
+            throw newError(ERR_EXEC_OBJ_PROP_IS_NULL, loc, display).param(ARG_PROP_NAME, propName);
+
+        Object newValue = selfAssignValue(loc, display, operator, oldValue, value);
+        IPropertySetter setter = cachedSetter(loc, display, propName, obj.getClass());
+        writePropValue(loc, display, propName, obj, newValue, setter, scope);
+        return newValue;
+    }
+
+    // ------------------------------------------------------------------
+    // 覆盖 A（I3）：对象/集合构造与访问族——下标/属性表达式（Get/SetAttr、SelfAssignAttr）
+    // ------------------------------------------------------------------
+
+    /** AbstractExecutable.readAttr 提取。 */
+    public static Object readAttrValue(SourceLocation loc, String display, ErrorCode errorCode,
+                                       IBeanModel beanModel, Object obj, Object attrValue) {
+        try {
+            if (beanModel.isMapLike())
+                return ((Map) obj).get(attrValue);
+            return beanModel.getProperty(obj, attrValue.toString());
+        } catch (Exception e) {
+            throw wrapAttrException(loc, display, errorCode, e, obj, attrValue);
+        }
+    }
+
+    /** AbstractExecutable.setAttr 提取。 */
+    public static void writeAttrValue(SourceLocation loc, String display, ErrorCode errorCode,
+                                      IBeanModel beanModel, Object obj, Object attrValue, Object value) {
+        try {
+            if (beanModel.isMapLike()) {
+                ((Map) obj).put(attrValue, value);
+            } else {
+                beanModel.setProperty(obj, attrValue.toString(), value);
+            }
+        } catch (Exception e) {
+            throw wrapAttrException(loc, display, errorCode, e, obj, attrValue);
+        }
+    }
+
+    /** AbstractExecutable.wrapAttrException 提取。 */
+    public static NopException wrapAttrException(SourceLocation loc, String display, ErrorCode errorCode,
+                                                 Throwable e, Object obj, Object attrValue) {
+        NopException err = newError(errorCode, e, loc, display).forWrap()
+                .param(ARG_CLASS_NAME, obj.getClass().getName())
+                .param(ARG_ATTR_VALUE, attrValue);
+        if (e instanceof NopException && ((NopException) e).isBizFatal())
+            err.bizFatal(true);
+        return err;
+    }
+
+    /** GetAttrExecutable 完整语义（生成代码入口）。 */
+    public static Object getAttr(SourceLocation loc, String display, String objDisplay, String attrDisplay,
+                                 boolean optional, Object obj, Object attr) {
+        if (obj == null) {
+            if (!optional)
+                throw newError(ERR_EXEC_GET_ATTR_ON_NULL_OBJ, loc, display)
+                        .param(ARG_ATTR_EXPR, attrDisplay).param(ARG_OBJ_EXPR, objDisplay);
+            return null;
+        }
+        if (attr instanceof Integer)
+            return BeanTool.getByIndex(obj, (Integer) attr);
+        IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(obj.getClass());
+        if (attr == null && !beanModel.isMapLike())
+            throw newError(ERR_EXEC_READ_ATTR_EXPR_RETURN_NULL, loc, display).param(ARG_ATTR_EXPR, attrDisplay);
+        return readAttrValue(loc, display, ERR_EXEC_READ_ATTR_FAIL, beanModel, obj, attr);
+    }
+
+    /** SetAttrExecutable 完整语义（生成代码入口；obj 为 null 静默返回 null 与解释器一致）。 */
+    public static Object setAttr(SourceLocation loc, String display, String attrDisplay,
+                                 Object obj, Object attr, Object value) {
+        if (obj == null)
+            return null;
+        if (attr instanceof Integer) {
+            BeanTool.setByIndex(obj, (Integer) attr, value);
+            return value;
+        }
+        IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(obj.getClass());
+        if (attr == null && !beanModel.isMapLike())
+            throw newError(ERR_EXEC_WRITE_ATTR_EXPR_RETURN_NULL, loc, display).param(ARG_ATTR_EXPR, attrDisplay);
+        writeAttrValue(loc, display, ERR_EXEC_WRITE_ATTR_FAIL, beanModel, obj, attr, value);
+        return value;
+    }
+
+    /** SelfAssignAttrExecutable 完整语义（生成代码入口）。 */
+    public static Object selfAssignAttr(SourceLocation loc, String display, String attrDisplay,
+                                        XLangOperator operator, Object obj, Object attr, Object value) {
+        if (obj == null)
+            return null;
+
+        Object oldValue;
+        if (attr instanceof Integer) {
+            oldValue = BeanTool.getByIndex(obj, (Integer) attr);
+        } else {
+            IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(obj.getClass());
+            if (attr == null && !beanModel.isMapLike())
+                throw newError(ERR_EXEC_READ_ATTR_EXPR_RETURN_NULL, loc, display).param(ARG_ATTR_EXPR, attrDisplay);
+            oldValue = readAttrValue(loc, display, ERR_EXEC_READ_ATTR_FAIL, beanModel, obj, attr);
+        }
+
+        if (oldValue == null)
+            throw newError(ERR_EXEC_OBJ_ATTR_IS_NULL, loc, display).param(ARG_ATTR_EXPR, attrDisplay);
+
+        Object newValue = selfAssignValue(loc, display, operator, oldValue, value);
+
+        if (attr instanceof Integer) {
+            BeanTool.setByIndex(obj, (Integer) attr, newValue);
+            return newValue;
+        }
+        IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(obj.getClass());
+        if (attr == null && !beanModel.isMapLike())
+            throw newError(ERR_EXEC_WRITE_ATTR_EXPR_RETURN_NULL, loc, display).param(ARG_ATTR_EXPR, attrDisplay);
+        writeAttrValue(loc, display, ERR_EXEC_WRITE_ATTR_FAIL, beanModel, obj, attr, newValue);
+        return newValue;
+    }
+
+    // ------------------------------------------------------------------
+    // 覆盖 A（I3）：对象/集合构造族（NewObject/NewList/NewMap spread 分支）
+    // ------------------------------------------------------------------
+
+    private static final Map<String, IClassModel> CLASS_MODELS = new ConcurrentHashMap<>();
+
+    /** NewObjectExecutable 完整语义（生成代码入口；按 className 缓存 classModel）。 */
+    public static Object newInstance(SourceLocation loc, String display, String className,
+                                     Object[] argValues, IEvalScope scope) {
+        IClassModel classModel = CLASS_MODELS.computeIfAbsent(className, k ->
+                ReflectionManager.instance().getClassModel(resolveClass(k)));
+        return newInstance(loc, display, classModel, argValues, scope);
+    }
+
+    /** NewObjectExecutable 完整语义（解释器入口：复用编译期 classModel，零查找）。 */
+    public static Object newInstance(SourceLocation loc, String display, IClassModel classModel,
+                                     Object[] argValues, IEvalScope scope) {
+        IFunctionModel constructor = classModel.getConstructorForArgs(argValues);
+        if (constructor == null)
+            throw newError(ERR_EXEC_CLASS_NO_CONSTRUCTOR, loc, display)
+                    .param(ARG_CLASS_NAME, classModel.getClassName()).param(ARG_ARG_COUNT, argValues.length);
+        Object ret = constructor.invoke(null, argValues, scope);
+        if (classModel.isAssignableTo(ISourceLocationSetter.class))
+            ((ISourceLocationSetter) ret).setLocation(loc);
+        return ret;
+    }
+
+    /** NewListExecutable spread 分支提取（null 跳过 / Collection 展开 / 单值追加）。 */
+    public static void spreadListAdd(List<Object> list, Object value) {
+        if (value != null) {
+            if (value instanceof Collection) {
+                list.addAll((Collection<?>) value);
+            } else {
+                list.add(value);
+            }
+        }
+    }
+
+    /** NewMapExecutable spread 分支提取（null/undefined 跳过 / Map / DynamicObject / bean 序列化属性）。 */
+    public static void spreadMapPut(Map<String, Object> map, Object value) {
+        if (value != null && value != Undefined.undefined) {
+            if (value instanceof Map) {
+                map.putAll(((Map<String, ?>) value));
+            } else if (value instanceof DynamicObject) {
+                map.putAll(((DynamicObject) value).obj_propValues());
+            } else {
+                IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(value.getClass());
+                beanModel.forEachSerializableProp(prop -> {
+                    Object propValue = prop.getPropertyValue(value);
+                    map.put(prop.getName(), propValue);
+                });
+
+                Set<String> propNames = beanModel.getExtPropertyNames(value);
+                if (propNames != null) {
+                    for (String propName : propNames) {
+                        Object propValue = beanModel.getExtProperty(value, propName);
+                        map.put(propName, propValue);
+                    }
+                }
+            }
+        }
+    }
+
+    /** CloneLiteralExecutable 生成代码入口：List 复合字面量（每次求值深拷贝；嵌套复合字面量由转译器
+     *  以嵌套 cloneList/cloneMap 调用作为元素表达式产生，此处只需按值收集后整体深拷贝）。 */
+    public static Object cloneList(Object[] items) {
+        List<Object> list = new ArrayList<>(items.length);
+        for (Object item : items) {
+            list.add(item);
+        }
+        return CloneHelper.deepClone(list);
+    }
+
+    /** CloneLiteralExecutable 生成代码入口：Map 复合字面量（键值交替数组，每次求值深拷贝）。 */
+    public static Object cloneMap(Object[] kv) {
+        Map<String, Object> map = CollectionHelper.newLinkedHashMap(kv.length / 2);
+        for (int i = 0, n = kv.length; i < n; i += 2) {
+            map.put(StringHelper.toString(kv[i], null), kv[i + 1]);
+        }
+        return CloneHelper.deepClone(map);
+    }
+
+    // ------------------------------------------------------------------
+    // 覆盖 A（I3）：绑定/守卫/调试族
+    // ------------------------------------------------------------------
+
+    /** ArrayBindingAssignExecutable 前置语义。 */
+    @SuppressWarnings("unchecked")
+    public static List<Object> asListBinding(SourceLocation loc, String display, Object value) {
+        if (!(value instanceof List))
+            throw newError(ERR_EXEC_ARRAY_BINDING_NOT_LIST, loc, display).param(ARG_VALUE, value);
+        return (List<Object>) value;
+    }
+
+    /** ObjectBindingAssignExecutable 前置语义。 */
+    @SuppressWarnings("unchecked")
+    public static Map<String, Object> asMapBinding(SourceLocation loc, String display, Object value) {
+        if (!(value instanceof Map))
+            throw newError(ERR_EXEC_OBJECT_BINDING_NOT_MAP, loc, display).param(ARG_VALUE, value);
+        return (Map<String, Object>) value;
+    }
+
+    /** GuardNotEmptyExecutable 语义（提取；解释器改调）。 */
+    public static Object guardNotEmpty(SourceLocation loc, String display, String target, Object v) {
+        if (StringHelper.isEmptyObject(v))
+            throw newError(ERR_EXEC_VALUE_NOT_ALLOW_EMPTY, loc, display).param(ARG_TARGET, target);
+        return v;
+    }
+
+    /** VarStatusExecutable 语义（生成代码入口；写入 slot 由生成代码完成）。 */
+    public static Object varStatus(SourceLocation loc, String display, String itemsDisplay, Object items) {
+        if (items == null)
+            return null;
+        try {
+            return new LoopVarStatus<>(CollectionHelper.toIterator(items, false), true);
+        } catch (NopException e) {
+            e.addXplStack(itemsDisplay);
+            throw e;
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // 覆盖 A（I3）：并入残余算子族（PropIn/Range）
+    // ------------------------------------------------------------------
+
+    /** PropInExecutable 语义（提取；解释器改调）。 */
+    public static boolean propIn(Object leftValue, Object rightValue) {
+        if (leftValue == null || rightValue == null)
+            return false;
+        if (!(leftValue instanceof String))
+            return false;
+        IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(rightValue.getClass());
+        String propName = leftValue.toString();
+        IBeanPropertyModel propModel = beanModel.getPropertyModel(propName);
+        if (propModel != null)
+            return true;
+        return beanModel.isAllowExtProperty(rightValue, propName);
+    }
+
+    /** RangeExecutable 语义（提取；解释器改调）。 */
+    public static Object range(SourceLocation loc, String display, Object begin, Object end, Object step) {
+        Integer beginValue = ConvertHelper.toInt(begin, err -> newError(err, loc, display));
+        Integer endValue = ConvertHelper.toInt(end, err -> newError(err, loc, display));
+        Integer stepValue = ConvertHelper.toInt(step, err -> newError(err, loc, display));
+
+        if (stepValue == null) {
+            stepValue = 1;
+        } else if (stepValue == 0) {
+            throw newError(ERR_EXEC_LOOP_STEP_MUST_NOT_BE_ZERO, loc, display);
+        }
+
+        if (beginValue == null)
+            beginValue = 0;
+        if (endValue == null)
+            endValue = 0;
+
+        return new IntRangeIterator(beginValue, endValue, stepValue);
     }
 }
