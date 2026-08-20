@@ -116,6 +116,77 @@ public class TestFrameLayoutMapper {
     }
 
     // ------------------------------------------------------------------
+    // 覆盖 A：A 族节点实际用法的 READ/WRITE 声明扩展 + kind 未推断原因分类
+    // ------------------------------------------------------------------
+
+    @Test
+    public void testAFamilySlotUsageDeclaredByActualUsage() {
+        // slot 0：引用族（读 cell + 写 cell）；slot 1：slot 写族复合赋值（读旧值 + 写回）；
+        // slot 2：绑定写（BindVar 写）；slot 3：VarStatus 写；slot 4：DebugIdentifier 按名读（在帧内）
+        io.nop.xlang.exec.InitRefSlotExecutable initRef = new io.nop.xlang.exec.InitRefSlotExecutable(LOC, "r", 0);
+        io.nop.xlang.exec.ReferenceAssignExecutable refAssign = new io.nop.xlang.exec.ReferenceAssignExecutable(
+                LOC, "r", 0, literal(1));
+        io.nop.xlang.exec.SelfIncExecutable selfInc = new io.nop.xlang.exec.SelfIncExecutable(LOC, "s", 1);
+        io.nop.xlang.exec.BindVarExecutable bindVar = new io.nop.xlang.exec.BindVarExecutable(
+                LOC, new int[]{2}, new Object[]{9}, slotRead(2));
+        io.nop.xlang.exec.VarStatusExecutable varStatus = new io.nop.xlang.exec.VarStatusExecutable(
+                LOC, "vs", 3, literal(3));
+        io.nop.xlang.exec.DebugIdentifierExecutable debugId = new io.nop.xlang.exec.DebugIdentifierExecutable(
+                LOC, "d");
+        IExecutableExpression body = seq(initRef, refAssign, selfInc, bindVar, varStatus, debugId);
+        IExecutableExpression tree = programEntry(new String[]{"r", "s", "b", "vs", "d"}, body);
+        FrameLayout layout = FrameLayoutMapper.map(tree);
+
+        assertTrue(layout.getSlot(0).isRead() && layout.getSlot(0).isWritten(),
+                "reference family declares read+write");
+        assertTrue(layout.getSlot(1).isRead() && layout.getSlot(1).isWritten(),
+                "self-inc declares read (old value) + write (new value)");
+        assertTrue(layout.getSlot(2).isWritten(), "bind var declares write");
+        assertTrue(layout.getSlot(2).isRead(), "bind var body read declares read");
+        assertTrue(layout.getSlot(3).isWritten(), "var status declares write");
+        assertTrue(layout.getSlot(4).isRead(), "debug identifier resolved in entry frame declares read");
+        for (int i = 0; i < 5; i++) {
+            assertEquals(FrameSlotKind.Object, layout.getSlot(i).getKind(),
+                    "non-literal write sources must stay Object kind");
+        }
+    }
+
+    @Test
+    public void testKindReasonClassification() {
+        // slot 0：int 字面量单调写（INFERRED）；slot 1：String 字面量（NON_PRIMITIVE_LITERAL）；
+        // slot 2：int 字面量 + String 字面量混合（MIXED_FAMILY）；slot 3：纯非字面量写（NON_LITERAL_WRITE）；
+        // slot 4：零写入（ZERO_WRITE）
+        IExecutableExpression body = seq(
+                assign(0, literal(5)),
+                assign(1, literal("str")),
+                assign(2, literal(5)),
+                assign(2, literal("s")),
+                assign(3, plus(literal(1), literal(2))),
+                literal(0));
+        IExecutableExpression tree = programEntry(new String[]{"a", "b", "c", "d", "e"}, body);
+        FrameLayout layout = FrameLayoutMapper.map(tree);
+
+        assertEquals(FrameLayoutMapper.KindReason.INFERRED, layout.getSlot(0).getKindReason());
+        assertEquals(FrameLayoutMapper.KindReason.NON_PRIMITIVE_LITERAL, layout.getSlot(1).getKindReason());
+        assertEquals(FrameLayoutMapper.KindReason.MIXED_FAMILY, layout.getSlot(2).getKindReason());
+        assertEquals(FrameLayoutMapper.KindReason.NON_LITERAL_WRITE, layout.getSlot(3).getKindReason());
+        assertEquals(FrameLayoutMapper.KindReason.ZERO_WRITE, layout.getSlot(4).getKindReason());
+        assertTrue(layout.getSlot(0).isKindInferred());
+        assertFalse(layout.getSlot(1).isKindInferred());
+    }
+
+    @Test
+    public void testDebugIdentifierOutsideFrameDeclaresNoFrameAccess() {
+        // 名字不在入口帧 = scope 按名查找（Q3 残余路径），无帧访问声明
+        io.nop.xlang.exec.DebugIdentifierExecutable debugId =
+                new io.nop.xlang.exec.DebugIdentifierExecutable(LOC, "notInFrame");
+        IExecutableExpression tree = programEntry(new String[]{"x"}, debugId);
+        FrameLayout layout = FrameLayoutMapper.map(tree);
+        assertFalse(layout.getSlot(0).isRead(), "unresolved name must not declare frame READ");
+        assertEquals(FrameLayoutMapper.KindReason.ZERO_WRITE, layout.getSlot(0).getKindReason());
+    }
+
+    // ------------------------------------------------------------------
     // 树构造 helpers（直接构造 Executable 节点，不经编译前端）
     // ------------------------------------------------------------------
 

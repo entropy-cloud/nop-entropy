@@ -6,6 +6,7 @@ import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.xlang.exec.GetPropertyExecutable;
 import io.nop.xlang.exec.IfExecutable;
 import io.nop.xlang.exec.LiteralExecutable;
+import io.nop.xlang.exec.OutputTextExecutable;
 import io.nop.xlang.exec.SlotIdentifierExecutable;
 import io.nop.xlang.truffle.translate.ExecToTruffleTranslator;
 import io.nop.xlang.truffle.translate.TreeFingerprints;
@@ -20,12 +21,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * 子集外节点 fail-fast 单测（Phase 3 Exit Criteria）：翻译失败必须报节点类名 + SourceLocation，
+ * 支持集外节点 fail-fast 单测（Phase 2/3 Exit Criteria）：翻译失败必须报节点类名 + SourceLocation，
  * 禁止部分翻译。覆盖两类越界形态：
  *
  * <ul>
- * <li>子集外节点类（属性访问族 GetPropertyExecutable —— 数据族覆盖归 I6；控制流族同理）；</li>
- * <li>子集内节点类的越域用法（slot 读写越出程序入口帧——slot 下标不在帧布局内）。</li>
+ * <li>支持集外节点类（I6 后 A 族已并入支持集，反例取 B 族：输出族 OutputTextExecutable /
+ * 控制流族 IfExecutable——全量落实归 I7）；</li>
+ * <li>支持集内节点类的越域用法（slot 读写越出程序入口帧——slot 下标不在帧布局内）。</li>
  * </ul>
  */
 public class TestTranslatorFailFast {
@@ -36,15 +38,14 @@ public class TestTranslatorFailFast {
 
     @Test
     public void testOutOfSubsetNodeFailsFastWithClassNameAndLocation() {
-        GetPropertyExecutable getProp = new GetPropertyExecutable(LOC,
-                LiteralExecutable.build(LOC, "obj"), false, "prop");
+        OutputTextExecutable output = new OutputTextExecutable(LOC, "text");
 
         NopEvalException e = assertThrows(NopEvalException.class,
-                () -> translator.translate("/fail-fast-test.xpl", TreeFingerprints.fingerprint(getProp),
-                        getProp, null));
+                () -> translator.translate("/fail-fast-test.xpl", TreeFingerprints.fingerprint(output),
+                        output, null));
 
         assertEquals(ERR_EXEC_TRANSLATE_UNSUPPORTED_NODE.getErrorCode(), e.getErrorCode());
-        assertEquals(GetPropertyExecutable.class.getName(), e.getParam(ARG_CLASS_NAME),
+        assertEquals(OutputTextExecutable.class.getName(), e.getParam(ARG_CLASS_NAME),
                 "error must carry the offending node class name");
         Object location = e.getParam(ARG_LOCATION);
         assertNotNull(location, "error must carry the node SourceLocation");
@@ -56,7 +57,7 @@ public class TestTranslatorFailFast {
 
     @Test
     public void testControlFlowFamilyFailsFastToo() {
-        // ExitMode 控制流族不在子集内（全量落实归 I7），遇到即 fail-fast
+        // ExitMode 控制流族不在支持集内（全量落实归 I7），遇到即 fail-fast
         IfExecutable ifExpr = new IfExecutable(LOC, LiteralExecutable.build(LOC, Boolean.TRUE),
                 LiteralExecutable.build(LOC, 1), LiteralExecutable.build(LOC, 2));
 
@@ -65,6 +66,17 @@ public class TestTranslatorFailFast {
                         ifExpr, null));
         assertEquals(ERR_EXEC_TRANSLATE_UNSUPPORTED_NODE.getErrorCode(), e.getErrorCode());
         assertEquals(IfExecutable.class.getName(), e.getParam(ARG_CLASS_NAME));
+    }
+
+    @Test
+    public void testCoverageAFamilyNowTranslatable() {
+        // I6 边界收缩反证：A 族代表节点（属性访问 GetProperty）已可翻译（I5 期以本类为 fail-fast
+        // 反例，I6 后反例移交 B 族，本用例守护边界收缩不回退）
+        GetPropertyExecutable getProp = new GetPropertyExecutable(LOC,
+                LiteralExecutable.build(LOC, "obj"), false, "length");
+        io.nop.xlang.truffle.translate.TranslatedUnit unit = translator.translate("/fail-fast-test.xpl",
+                TreeFingerprints.fingerprint(getProp), getProp, null);
+        assertNotNull(unit.getRootNode().getBody());
     }
 
     @Test

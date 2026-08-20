@@ -4,15 +4,31 @@ import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlotKind;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExecutableExpressionVisitor;
+import io.nop.xlang.exec.ArrayBindingAssignExecutable;
+import io.nop.xlang.exec.AssignIdentifier;
+import io.nop.xlang.exec.BindVarExecutable;
 import io.nop.xlang.exec.CallFuncExecutable;
+import io.nop.xlang.exec.DebugIdentifierExecutable;
+import io.nop.xlang.exec.EnhanceRefSlotExecutable;
+import io.nop.xlang.exec.InitRefSlotExecutable;
 import io.nop.xlang.exec.LiteralExecutable;
+import io.nop.xlang.exec.ObjectBindingAssignExecutable;
+import io.nop.xlang.exec.ReferenceAssignExecutable;
+import io.nop.xlang.exec.ReferenceIdentifierExecutable;
+import io.nop.xlang.exec.ReferenceSelfAssignExecutable;
+import io.nop.xlang.exec.ReferenceSelfDecExecutable;
+import io.nop.xlang.exec.ReferenceSelfIncExecutable;
+import io.nop.xlang.exec.RenewReferenceExecutable;
+import io.nop.xlang.exec.SelfAssignExecutable;
+import io.nop.xlang.exec.SelfDecExecutable;
+import io.nop.xlang.exec.SelfIncExecutable;
 import io.nop.xlang.exec.SlotAssignExecutable;
 import io.nop.xlang.exec.SlotIdentifierExecutable;
+import io.nop.xlang.exec.VarStatusExecutable;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 
 /**
  * 帧/slot 映射（设计 truffle 02 §四）：前端 {@code LexicalScopeAnalysis} 产出的 slot 布局
@@ -23,10 +39,12 @@ import java.util.Map;
  * （Integer/Long/Double/Float/Boolean）时标注对应 primitive kind（monotonic 单调写入下
  * 类型稳定）；推断不出（非字面量写入、混合族、零写入、程序入口参数帧）保持
  * {@link FrameSlotKind#Object}。字面量族外的字面量（String/BigDecimal 等）同为 Object。
+ * 未推断原因经 {@link KindReason} 分类（kind 覆盖率实测的统计口径）。
  *
- * <p>帧访问模式按节点实际用法声明：READ（SlotIdentifier 读取）/WRITE（SlotAssign 写入）
- * 记入 {@link SlotMeta}；MATERIALIZE 在表达式子集内无使用（无闭包捕获节点，不物化帧），
- * 物化路径归 I7 闭包覆盖。
+ * <p>帧访问模式按节点实际用法声明：READ（SlotIdentifier/ReferenceIdentifier/复合赋值旧值读/
+ * 解构引用写旧 cell 读等）/WRITE（SlotAssign/引用写/自增自减/绑定写/VarStatus 等 A 族
+ * 实际用法来源）记入 {@link SlotMeta}；MATERIALIZE 在当前支持集内无使用（无闭包捕获节点，
+ * 不物化帧），物化路径归 I7 闭包覆盖。
  */
 public final class FrameLayoutMapper {
 
@@ -34,11 +52,27 @@ public final class FrameLayoutMapper {
     }
 
     /**
+     * kind 未推断原因分类（覆盖 A 全量实测统计口径）。
+     */
+    public enum KindReason {
+        /** 同族 primitive 字面量单调写入，已推断 primitive kind。 */
+        INFERRED,
+        /** 有写入但混合族（含字面量 + 非字面量混合、多字面量族混合），回落 Object。 */
+        MIXED_FAMILY,
+        /** 有写入但全部为非字面量来源（绑定/引用/复合赋值等），不可推断。 */
+        NON_LITERAL_WRITE,
+        /** 写入全部为字面量但属字面量族外（String/BigDecimal 等），Object。 */
+        NON_PRIMITIVE_LITERAL,
+        /** 零写入（只读或未用 slot）。 */
+        ZERO_WRITE
+    }
+
+    /**
      * @param tree 编译单元根（程序入口 CallFuncExecutable 或纯表达式）
      */
     public static FrameLayout map(IExecutableExpression tree) {
         String[] slotNames = slotNamesOf(tree);
-        SlotScan scan = new SlotScan(slotNames.length);
+        SlotScan scan = new SlotScan(slotNames);
         tree.visit(scan);
 
         FrameDescriptor.Builder builder = FrameDescriptor.newBuilder();
@@ -46,8 +80,9 @@ public final class FrameLayoutMapper {
         for (int i = 0; i < slotNames.length; i++) {
             SlotUsage usage = scan.usage(i);
             FrameSlotKind kind = usage.inferableKind();
+            KindReason reason = usage.kindReason();
             SlotMeta meta = new SlotMeta(i, slotNames[i], kind,
-                    usage.readCount > 0, usage.writeCount > 0, kind != FrameSlotKind.Object);
+                    usage.readCount > 0, usage.writeCount > 0, reason == KindReason.INFERRED, reason);
             metas.add(meta);
             builder.addSlot(kind, slotNames[i], meta);
         }
@@ -63,11 +98,14 @@ public final class FrameLayoutMapper {
     }
 
     private static final class SlotScan implements IExecutableExpressionVisitor {
+        private final String[] slotNames;
+
         private final SlotUsage[] usages;
 
-        SlotScan(int slotCount) {
-            usages = new SlotUsage[slotCount];
-            for (int i = 0; i < slotCount; i++)
+        SlotScan(String[] slotNames) {
+            this.slotNames = slotNames;
+            usages = new SlotUsage[slotNames.length];
+            for (int i = 0; i < slotNames.length; i++)
                 usages[i] = new SlotUsage();
         }
 
@@ -85,8 +123,100 @@ public final class FrameLayoutMapper {
             } else if (expr instanceof SlotIdentifierExecutable) {
                 SlotIdentifierExecutable identifier = (SlotIdentifierExecutable) expr;
                 requireInFrame(identifier.getSlot(), identifier).readCount++;
+            } else if (expr instanceof ReferenceIdentifierExecutable) {
+                ReferenceIdentifierExecutable ref = (ReferenceIdentifierExecutable) expr;
+                requireInFrame(ref.getSlot(), ref).readCount++;
+            } else if (expr instanceof ReferenceAssignExecutable) {
+                ReferenceAssignExecutable assign = (ReferenceAssignExecutable) expr;
+                readWrite(assign.getSlot(), assign);
+            } else if (expr instanceof ReferenceSelfAssignExecutable) {
+                ReferenceSelfAssignExecutable self = (ReferenceSelfAssignExecutable) expr;
+                readWrite(self.getSlot(), self);
+            } else if (expr instanceof ReferenceSelfIncExecutable) {
+                ReferenceSelfIncExecutable self = (ReferenceSelfIncExecutable) expr;
+                readWrite(self.getSlot(), self);
+            } else if (expr instanceof ReferenceSelfDecExecutable) {
+                ReferenceSelfDecExecutable self = (ReferenceSelfDecExecutable) expr;
+                readWrite(self.getSlot(), self);
+            } else if (expr instanceof RenewReferenceExecutable) {
+                RenewReferenceExecutable renew = (RenewReferenceExecutable) expr;
+                readWrite(renew.getSlot(), renew);
+            } else if (expr instanceof InitRefSlotExecutable) {
+                InitRefSlotExecutable init = (InitRefSlotExecutable) expr;
+                write(init.getSlot(), init);
+            } else if (expr instanceof EnhanceRefSlotExecutable) {
+                EnhanceRefSlotExecutable enhance = (EnhanceRefSlotExecutable) expr;
+                readWrite(enhance.getSlot(), enhance);
+            } else if (expr instanceof SelfAssignExecutable) {
+                SelfAssignExecutable self = (SelfAssignExecutable) expr;
+                readWrite(self.getSlot(), self);
+            } else if (expr instanceof SelfIncExecutable) {
+                SelfIncExecutable self = (SelfIncExecutable) expr;
+                readWrite(self.getSlot(), self);
+            } else if (expr instanceof SelfDecExecutable) {
+                SelfDecExecutable self = (SelfDecExecutable) expr;
+                readWrite(self.getSlot(), self);
+            } else if (expr instanceof VarStatusExecutable) {
+                VarStatusExecutable varStatus = (VarStatusExecutable) expr;
+                write(varStatus.getVarStatusSlot(), varStatus);
+            } else if (expr instanceof BindVarExecutable) {
+                BindVarExecutable bind = (BindVarExecutable) expr;
+                for (int slot : bind.getSlots()) {
+                    write(slot, bind);
+                }
+            } else if (expr instanceof ArrayBindingAssignExecutable) {
+                ArrayBindingAssignExecutable binding = (ArrayBindingAssignExecutable) expr;
+                for (AssignIdentifier id : binding.getElementBindings()) {
+                    bindingUsage(id, binding);
+                }
+                if (binding.getRestBinding() != null)
+                    bindingUsage(binding.getRestBinding(), binding);
+            } else if (expr instanceof ObjectBindingAssignExecutable) {
+                ObjectBindingAssignExecutable binding = (ObjectBindingAssignExecutable) expr;
+                for (AssignIdentifier id : binding.getPropBindings()) {
+                    bindingUsage(id, binding);
+                }
+                if (binding.getRestBinding() != null)
+                    bindingUsage(binding.getRestBinding(), binding);
+            } else if (expr instanceof DebugIdentifierExecutable) {
+                DebugIdentifierExecutable identifier = (DebugIdentifierExecutable) expr;
+                int slot = indexOfSlotName(identifier.getVarName());
+                if (slot >= 0)
+                    usage(slot).readCount++;
+                // 名字不在入口帧 = scope 按名查找（Q3 残余路径），无帧访问
             }
             return true;
+        }
+
+        private void bindingUsage(AssignIdentifier id, IExecutableExpression node) {
+            int slot = id.getVarSlot();
+            if (slot < 0)
+                return;
+            SlotUsage usage = requireInFrame(slot, node);
+            usage.readCount++;
+            usage.writeCount++;
+            usage.writeKinds.add(null);
+        }
+
+        private void readWrite(int slot, IExecutableExpression node) {
+            SlotUsage usage = requireInFrame(slot, node);
+            usage.readCount++;
+            usage.writeCount++;
+            usage.writeKinds.add(null);
+        }
+
+        private void write(int slot, IExecutableExpression node) {
+            SlotUsage usage = requireInFrame(slot, node);
+            usage.writeCount++;
+            usage.writeKinds.add(null);
+        }
+
+        private int indexOfSlotName(String varName) {
+            for (int i = 0; i < slotNames.length; i++) {
+                if (varName.equals(slotNames[i]))
+                    return i;
+            }
+            return -1;
         }
 
         private SlotUsage requireInFrame(int slot, IExecutableExpression node) {
@@ -125,16 +255,26 @@ public final class FrameLayoutMapper {
         final List<String> writeKinds = new ArrayList<>();
 
         FrameSlotKind inferableKind() {
-            if (writeCount == 0 || writeKinds.size() != writeCount)
-                return FrameSlotKind.Object;
+            return kindReason() == KindReason.INFERRED ? primitiveKind(writeKinds.get(0)) : FrameSlotKind.Object;
+        }
+
+        KindReason kindReason() {
+            if (writeCount == 0)
+                return KindReason.ZERO_WRITE;
             String first = writeKinds.get(0);
-            if (first == null)
-                return FrameSlotKind.Object;
             for (String kind : writeKinds) {
-                if (!first.equals(kind))
-                    return FrameSlotKind.Object;
+                if (!Objects.equals(first, kind))
+                    return KindReason.MIXED_FAMILY;
             }
-            switch (first) {
+            if (first == null)
+                return KindReason.NON_LITERAL_WRITE;
+            if (first.equals("object-literal"))
+                return KindReason.NON_PRIMITIVE_LITERAL;
+            return KindReason.INFERRED;
+        }
+
+        private static FrameSlotKind primitiveKind(String family) {
+            switch (family) {
                 case "int":
                     return FrameSlotKind.Int;
                 case "long":
@@ -167,13 +307,17 @@ public final class FrameLayoutMapper {
 
         private final boolean kindInferred;
 
-        SlotMeta(int index, String name, FrameSlotKind kind, boolean read, boolean written, boolean kindInferred) {
+        private final KindReason kindReason;
+
+        SlotMeta(int index, String name, FrameSlotKind kind, boolean read, boolean written,
+                 boolean kindInferred, KindReason kindReason) {
             this.index = index;
             this.name = name;
             this.kind = kind;
             this.read = read;
             this.written = written;
             this.kindInferred = kindInferred;
+            this.kindReason = kindReason;
         }
 
         public int getIndex() {
@@ -200,9 +344,14 @@ public final class FrameLayoutMapper {
             return kindInferred;
         }
 
+        public KindReason getKindReason() {
+            return kindReason;
+        }
+
         @Override
         public String toString() {
-            return "SlotMeta[" + index + ':' + name + ',' + kind + ",read=" + read + ",write=" + written + ']';
+            return "SlotMeta[" + index + ':' + name + ',' + kind + ",read=" + read + ",write=" + written
+                    + ",reason=" + kindReason + ']';
         }
     }
 }
