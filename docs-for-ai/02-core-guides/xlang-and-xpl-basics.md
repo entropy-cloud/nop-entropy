@@ -403,6 +403,25 @@ resourcePath ∈ 构建期扫描清单    → java 启用 + 可用 + 绑定命�
 单元级翻译失败（第三分支）       → 该单元降级 INTERPRETER + 降级观测
 ```
 
+### 生成类加载与模型加载期绑定（java 后端）
+
+xpl 族编译单元（xpl/xgen/xrun）经 `XLang.parseXpl` 装载完成后按绑定决策树裁定执行体
+（设计 java 组架构 §五）：
+
+- 扫描清单成员 + 生成类清单条目在 + **Executable 树指纹一致**（hex SHA-256，构建期固化指纹
+  vs 运行时树指纹——防 stale；施加对象是树而非源资源，Delta 变更不漏检）→ 绑定生成类执行体
+  （`Class.forName` classpath 常规加载，无自定义 ClassLoader），绑定结果随 RCM 模型缓存条目
+  复用（资源变更驱动的重载自然重绑定）；
+- 已绑定执行体经 `XLang.execute` **直通**（不重复指纹计算、不产生降级观测）；
+- 降级（条目缺失/指纹失配/类缺失）→ 解释器兜底 + 分级观测，执行期直通解释器（观测只在绑定期）；
+- 清单外资源不做 java 绑定，走动态路径（不记降级事件）。
+
+内存契约与供给缝：`JavaEvalExecutionBackend.setGeneratedClassManifest`（生成类清单：
+resourcePath → 生成类名 + 树指纹；`GeneratedClassBindingBinder` 生产 binder 消费）+
+`setStaticScanList`（扫描清单 should-set）。缺省空态 = 行为与纯解释器一致。双清单**文件**产物、
+构建任务注册与 `_gen/` 布局归构建集成（后续阶段）。xlib 多标签单元暂不参与绑定
+（消费侧形态 = 每标签条目，随构建集成落地）。
+
 ### 配置开关（`nop.xlang.execution.*`，`XLangConfigs`）
 
 | 配置项 | 缺省 | 语义 |
@@ -420,12 +439,20 @@ resourcePath ∈ 构建期扫描清单    → java 启用 + 可用 + 绑定命�
   `nop.xlang.execution.backend-degraded`，格式 `backend={}, reason={}, sourceKey={}`。
 - **指标**：counter `nop.xlang.execution.backend-degradation`，tags `backend`
   （`java`/`truffle`）与 `reason`（`config-disabled` / `unavailable` /
-  `unit-translation-failure` / `generated-binding-missing` / `backend-unavailable`——
-  最后一种仅在裁决后执行期后端失活的窄竞态路径出现）。
+  `unit-translation-failure` / `generated-binding-missing` / `generated-fingerprint-mismatch` /
+  `tenant-divergent-tree` / `backend-unavailable`——最后一种仅在裁决后执行期后端失活的
+  窄竞态路径出现）。
+- **分级语义（java 绑定降级）**：
+  - stale 缺陷族（每次 WARN，缺陷应响亮）：`generated-binding-missing`（清单条目缺失或
+    清单内类缺失/入口约定违规）、`generated-fingerprint-mismatch`（树指纹失配且无租户上下文
+    ——模型变更后 `_gen/` 未重生成的哨兵）；
+  - 预期稳态（非缺陷）：`tenant-divergent-tree`（树指纹失配且绑定时租户上下文活跃——租户
+    delta 合并树结构性无生成类，解释器兜底为预期行为）。WARN 按 sourceKey 去重
+    （once-per-path，有界去重集 ≤1024），**指标计数不衰减**。
 - 查询计数（诊断/测试）：
   `EvalBackendObservation.degradationCount(backendId, reason)`。
 - 静默不记事件的边界：force-interpreter 诊断模式、native 部署形态结构性排除、
-  后端未注册（classpath 缺席）。
+  后端未注册（classpath 缺席）、清单外资源动态路径。
 
 ## 默认工作方式
 
