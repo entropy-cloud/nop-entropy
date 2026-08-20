@@ -58,4 +58,24 @@ public final class XLangContext {
             throw new IllegalStateException("XLangContext output buffer is not bound (outside evaluation window)");
         return out;
     }
+
+    /**
+     * 换缓冲协议（plan I7 Phase 1 §2）：context 持有输出缓冲的线程绑定 swap/restore——
+     * Collect 族与 Gen 族运行期换缓冲的 truffle 承载（对应解释器 {@code rt.setOut} 换/恢复）。
+     * EXCLUSIVE 单线程下调用方以栈式 try/finally 配对使用；返回换出的旧缓冲供恢复。
+     */
+    public IEvalOutput swapOutput(IEvalOutput newOutput) {
+        if (newOutput == null)
+            throw new IllegalStateException("swapOutput requires a non-null output buffer");
+        IEvalOutput old = this.output;
+        this.output = newOutput;
+        return old;
+    }
+
+    /**
+     * 换缓冲恢复（与 {@link #swapOutput} 配对；异常路径经 finally 不丢恢复由调用方保证）。
+     */
+    public void restoreOutput(IEvalOutput previous) {
+        this.output = previous;
+    }
 }

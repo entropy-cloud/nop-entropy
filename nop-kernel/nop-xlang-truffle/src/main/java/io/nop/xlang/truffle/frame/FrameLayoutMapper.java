@@ -7,10 +7,15 @@ import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.xlang.exec.ArrayBindingAssignExecutable;
 import io.nop.xlang.exec.AssignIdentifier;
 import io.nop.xlang.exec.BindVarExecutable;
+import io.nop.xlang.exec.BuildClosureBodyExecutable;
+import io.nop.xlang.exec.BuildFuncRefExecutable;
 import io.nop.xlang.exec.CallFuncExecutable;
+import io.nop.xlang.exec.CallFuncWithClosureExecutable;
 import io.nop.xlang.exec.DebugIdentifierExecutable;
 import io.nop.xlang.exec.EnhanceRefSlotExecutable;
+import io.nop.xlang.exec.ExecutableFunction;
 import io.nop.xlang.exec.InitRefSlotExecutable;
+import io.nop.xlang.exec.LazyCompiledExecutableFunction;
 import io.nop.xlang.exec.LiteralExecutable;
 import io.nop.xlang.exec.ObjectBindingAssignExecutable;
 import io.nop.xlang.exec.ReferenceAssignExecutable;
@@ -43,8 +48,16 @@ import java.util.Objects;
  *
  * <p>帧访问模式按节点实际用法声明：READ（SlotIdentifier/ReferenceIdentifier/复合赋值旧值读/
  * 解构引用写旧 cell 读等）/WRITE（SlotAssign/引用写/自增自减/绑定写/VarStatus 等 A 族
- * 实际用法来源）记入 {@link SlotMeta}；MATERIALIZE 在当前支持集内无使用（无闭包捕获节点，
- * 不物化帧），物化路径归 I7 闭包覆盖。
+ * 实际用法来源）记入 {@link SlotMeta}；MATERIALIZE 无用法来源（plan I7 Phase 1 §4 闭包形态
+ * 裁定 = 急切值拷贝，函数体为独立 RootNode + 独立 FrameDescriptor，不物化帧——javadoc 口径
+ * 依此更新；被调帧的实参槽/闭包目标槽以入口写入（WRITE，非字面量源）记入被调帧布局）。
+ *
+ * <p><b>嵌套帧（plan I7）</b>：函数体帧由帧开启者节点携带（非根 CallFunc /
+ * CallFuncWithClosure / LazyCompiledExecutableFunction 的被调体、BuildFuncRef 与
+ * LiteralExecutable 的 ExecutableFunction 载荷、BuildClosureBody 的目标帧）。扫描遇开启者：
+ * 实参表达式与 sourceSlots 在<b>调用者帧</b>记录用量，被调体以独立 SlotScan 递归扫描
+ * （被调帧 slotNames 为底、入口槽记 WRITE）；BuildClosureBody 的 expr 属不可知目标帧
+ * （全仓无产生路径），显式跳过不记录。
  */
 public final class FrameLayoutMapper {
 
@@ -72,9 +85,39 @@ public final class FrameLayoutMapper {
      */
     public static FrameLayout map(IExecutableExpression tree) {
         String[] slotNames = slotNamesOf(tree);
-        SlotScan scan = new SlotScan(slotNames);
+        // 仅程序入口 CallFunc 根免开启者处理（其 slotNames 即底层帧）；其他形态根（含
+        // LazyCompiled 等可作根的可翻译节点）按嵌套帧开启者处理，被调体独立扫描
+        SlotScan scan = new SlotScan(slotNames, tree instanceof CallFuncExecutable ? tree : null);
         tree.visit(scan);
+        return buildLayout(slotNames, scan);
+    }
 
+    /**
+     * 函数体帧布局（plan I7：每个被翻译函数体独立 RootNode 的 FrameDescriptor 来源）。
+     *
+     * @param slotNames   被调函数帧 slot 布局（ExecutableFunction.getSlotNames() / 调用节点自携带）
+     * @param argBindCount 实参绑定槽数（0..argBindCount-1 为入口写入，非字面量源 → Object kind）
+     * @param targetSlots 闭包捕获目标槽（BuildFuncRef/CallFuncWithClosure 绑定写入；可为 null）
+     * @param body        被调函数体树
+     */
+    public static FrameLayout mapFunction(String[] slotNames, int argBindCount, int[] targetSlots,
+                                          IExecutableExpression body) {
+        if (slotNames == null)
+            slotNames = new String[0];
+        SlotScan scan = new SlotScan(slotNames, null);
+        if (body != null) {
+            for (int i = 0; i < argBindCount; i++)
+                scan.write(i, body);
+            if (targetSlots != null) {
+                for (int slot : targetSlots)
+                    scan.write(slot, body);
+            }
+            body.visit(scan);
+        }
+        return buildLayout(slotNames, scan);
+    }
+
+    private static FrameLayout buildLayout(String[] slotNames, SlotScan scan) {
         FrameDescriptor.Builder builder = FrameDescriptor.newBuilder();
         List<SlotMeta> metas = new ArrayList<>(slotNames.length);
         for (int i = 0; i < slotNames.length; i++) {
@@ -100,10 +143,17 @@ public final class FrameLayoutMapper {
     private static final class SlotScan implements IExecutableExpressionVisitor {
         private final String[] slotNames;
 
+        /**
+         * 底层帧对应的树节点（程序入口 map() 的根节点——其自身不再作为嵌套帧开启者处理）；
+         * 函数体扫描（mapFunction / 递归被调帧）无根标记（null）。
+         */
+        private final IExecutableExpression frameRoot;
+
         private final SlotUsage[] usages;
 
-        SlotScan(String[] slotNames) {
+        SlotScan(String[] slotNames, IExecutableExpression frameRoot) {
             this.slotNames = slotNames;
+            this.frameRoot = frameRoot;
             usages = new SlotUsage[slotNames.length];
             for (int i = 0; i < slotNames.length; i++)
                 usages[i] = new SlotUsage();
@@ -115,6 +165,9 @@ public final class FrameLayoutMapper {
 
         @Override
         public boolean onVisitExpr(IExecutableExpression expr) {
+            if (expr != frameRoot && visitNestedFrameOpener(expr))
+                return false;
+
             if (expr instanceof SlotAssignExecutable) {
                 SlotAssignExecutable assign = (SlotAssignExecutable) expr;
                 SlotUsage usage = requireInFrame(assign.getSlot(), assign);
@@ -196,6 +249,104 @@ public final class FrameLayoutMapper {
             usage.readCount++;
             usage.writeCount++;
             usage.writeKinds.add(null);
+        }
+
+        /**
+         * 嵌套帧开启者处理（plan I7）：实参与 sourceSlots 在调用者帧记录，被调体递归独立扫描；
+         * 返回 true = 已接管子树遍历（调用方返回 false 跳过默认 visit 递归）。
+         */
+        private boolean visitNestedFrameOpener(IExecutableExpression expr) {
+            if (expr instanceof CallFuncExecutable) {
+                CallFuncExecutable call = (CallFuncExecutable) expr;
+                scanCalleeFrame(call.getSlotNames(), call.getArgExprs(), call.getBodyExpr(), null, call);
+                return true;
+            }
+            if (expr instanceof CallFuncWithClosureExecutable) {
+                CallFuncWithClosureExecutable call = (CallFuncWithClosureExecutable) expr;
+                for (int slot : call.getSourceSlots())
+                    read(slot, call);
+                scanCalleeFrame(call.getSlotNames(), call.getArgExprs(), call.getBodyExpr(),
+                        call.getTargetSlots(), call);
+                return true;
+            }
+            if (expr instanceof LazyCompiledExecutableFunction) {
+                LazyCompiledExecutableFunction lazy = (LazyCompiledExecutableFunction) expr;
+                for (IExecutableExpression argExpr : lazy.getArgExprs())
+                    argExpr.visit(this);
+                ExecutableFunction fn = compiledOrNull(lazy);
+                if (fn != null)
+                    scanFunctionFrame(fn, null, lazy);
+                return true;
+            }
+            if (expr instanceof BuildFuncRefExecutable) {
+                BuildFuncRefExecutable ref = (BuildFuncRefExecutable) expr;
+                for (int slot : ref.getSourceSlots())
+                    read(slot, ref);
+                scanFunctionFrame(ref.getFunc(), ref.getTargetSlots(), ref);
+                return true;
+            }
+            if (expr instanceof LiteralExecutable
+                    && ((LiteralExecutable) expr).getValue() instanceof ExecutableFunction) {
+                scanFunctionFrame((ExecutableFunction) ((LiteralExecutable) expr).getValue(), null, expr);
+                return true;
+            }
+            if (expr instanceof BuildClosureBodyExecutable) {
+                // sourceSlots 在调用者帧读取；expr 属不可知目标帧（全仓无产生路径），显式跳过
+                BuildClosureBodyExecutable closure = (BuildClosureBodyExecutable) expr;
+                for (int slot : closure.getSourceSlots())
+                    read(slot, closure);
+                return true;
+            }
+            return false;
+        }
+
+        /** 被调帧扫描：实参在调用者帧（本扫描）求值；被调体以独立扫描递归（入口槽记 WRITE）。 */
+        private void scanCalleeFrame(String[] slotNames, IExecutableExpression[] argExprs,
+                                     IExecutableExpression body, int[] targetSlots,
+                                     IExecutableExpression node) {
+            if (argExprs != null) {
+                for (IExecutableExpression argExpr : argExprs)
+                    argExpr.visit(this);
+            }
+            SlotScan inner = new SlotScan(slotNames == null ? new String[0] : slotNames, null);
+            if (argExprs != null) {
+                for (int i = 0; i < argExprs.length; i++)
+                    inner.write(i, node);
+            }
+            if (targetSlots != null) {
+                for (int slot : targetSlots)
+                    inner.write(slot, node);
+            }
+            if (body != null)
+                body.visit(inner);
+        }
+
+        /** ExecutableFunction 载荷帧扫描（BuildFuncRef / Literal 函数字面量）。 */
+        private void scanFunctionFrame(ExecutableFunction fn, int[] targetSlots, IExecutableExpression node) {
+            if (fn == null || fn.getBody() == null)
+                return;
+            SlotScan inner = new SlotScan(fn.getSlotNames() == null ? new String[0] : fn.getSlotNames(), null);
+            for (int i = 0; i < fn.getArgCount(); i++)
+                inner.write(i, node);
+            if (targetSlots != null) {
+                for (int slot : targetSlots)
+                    inner.write(slot, node);
+            }
+            fn.getBody().visit(inner);
+        }
+
+        private static ExecutableFunction compiledOrNull(LazyCompiledExecutableFunction lazy) {
+            try {
+                return lazy.getCompiled();
+            } catch (RuntimeException e) {
+                // 载荷不可解析（null/惰性编译失败）——翻译阶段将显式 fail-fast，扫描跳过
+                return null;
+            }
+        }
+
+        private void read(int slot, IExecutableExpression node) {
+            SlotUsage usage = requireInFrame(slot, node);
+            usage.readCount++;
         }
 
         private void readWrite(int slot, IExecutableExpression node) {

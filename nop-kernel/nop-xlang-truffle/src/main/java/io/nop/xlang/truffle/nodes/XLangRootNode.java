@@ -107,6 +107,14 @@ public final class XLangRootNode extends RootNode {
             Object result = body.execute(frame);
             pending.captureReturned(result);
             return COMPLETION_MARKER;
+        } catch (XLReturnException e) {
+            // 根边界（plan I7 Phase 1 §1）：XLReturn → 取值返回（= 解释器 return 值经调用链回传）
+            pending.captureReturned(e.getValue());
+            return COMPLETION_MARKER;
+        } catch (XLBreakException | XLContinueException e) {
+            // 根边界清零吞没（= 解释器 root CallFunc finally setExitMode(null)，调用结果 null）
+            pending.captureReturned(null);
+            return COMPLETION_MARKER;
         } catch (ControlFlowException e) {
             throw e;
         } catch (Exception e) {

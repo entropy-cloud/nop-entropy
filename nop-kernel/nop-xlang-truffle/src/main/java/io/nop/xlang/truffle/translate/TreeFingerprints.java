@@ -76,6 +76,39 @@ import io.nop.xlang.exec.StrictNeNullExecutable;
 import io.nop.xlang.exec.TypeOfExecutable;
 import io.nop.xlang.exec.VarStatusExecutable;
 import io.nop.xlang.exec.EnhanceRefSlotExecutable;
+import io.nop.xlang.exec.BreakExecutable;
+import io.nop.xlang.exec.BuildClosureBodyExecutable;
+import io.nop.xlang.exec.BuildFuncRefExecutable;
+import io.nop.xlang.exec.CallFuncWithClosureExecutable;
+import io.nop.xlang.exec.CollectJsonExecutable;
+import io.nop.xlang.exec.CollectNodeExecutable;
+import io.nop.xlang.exec.CollectSqlExecutable;
+import io.nop.xlang.exec.CollectTextExecutable;
+import io.nop.xlang.exec.ContinueExecutable;
+import io.nop.xlang.exec.DoWhileExecutable;
+import io.nop.xlang.exec.EscapeOutputExecutable;
+import io.nop.xlang.exec.ExecutableFunction;
+import io.nop.xlang.exec.ForExecutable;
+import io.nop.xlang.exec.ForInExecutable;
+import io.nop.xlang.exec.ForOfExecutable;
+import io.nop.xlang.exec.FunctionalAdapterExecutable;
+import io.nop.xlang.exec.GenNodeExecutable;
+import io.nop.xlang.exec.GenXJsonExecutable;
+import io.nop.xlang.exec.IfExecutable;
+import io.nop.xlang.exec.LazyCompiledExecutableFunction;
+import io.nop.xlang.exec.LocationFunction;
+import io.nop.xlang.exec.OutputTextExecutable;
+import io.nop.xlang.exec.OutputValueExecutable;
+import io.nop.xlang.exec.OutputXmlAttrExecutable;
+import io.nop.xlang.exec.OutputXmlExtAttrsExecutable;
+import io.nop.xlang.exec.ReturnExecutable;
+import io.nop.xlang.exec.SwitchExecutable;
+import io.nop.xlang.exec.ThrowErrorCodeExecutable;
+import io.nop.xlang.exec.ThrowExceptionExecutable;
+import io.nop.xlang.exec.TryExecutable;
+import io.nop.xlang.exec.VarExecutableFunction;
+import io.nop.xlang.exec.VarFunctionExecutable;
+import io.nop.xlang.exec.WhileExecutable;
 
 /**
  * Executable 树指纹（翻译缓存键组成部分，与 java 后端生成类清单的指纹纪律对称）：
@@ -107,7 +140,12 @@ public final class TreeFingerprints {
 
         if (node instanceof LiteralExecutable) {
             Object value = ((LiteralExecutable) node).getValue();
-            h = mixValue(h, value);
+            if (value instanceof ExecutableFunction) {
+                // 函数字面量载荷下降（plan I7）：全量函数载荷混合（slotNames/参数规格/缺省/函数体）
+                h = mixExecutableFunction(h, (ExecutableFunction) value);
+            } else {
+                h = mixValue(h, value);
+            }
         } else if (node instanceof CloneLiteralExecutable) {
             Object value = ((CloneLiteralExecutable) node).getValue();
             h = mixValue(h, value);
@@ -397,6 +435,147 @@ public final class TreeFingerprints {
             AbstractBinaryExecutable binary = (AbstractBinaryExecutable) node;
             h = mix(h, binary.getLeft());
             h = mix(h, binary.getRight());
+        }
+        // ---- 覆盖 B（plan I7）：函数/闭包/控制流/输出族载荷白名单 ----
+        else if (node instanceof CallFuncWithClosureExecutable) {
+            CallFuncWithClosureExecutable call = (CallFuncWithClosureExecutable) node;
+            h = h * 31 + (call.getFuncName() == null ? 0 : call.getFuncName().hashCode());
+            h = h * 31 + arrayHash(call.getSlotNames());
+            h = h * 31 + intArrayHash(call.getSourceSlots());
+            h = h * 31 + intArrayHash(call.getTargetSlots());
+            h = mixAll(h, call.getArgExprs());
+            h = mix(h, call.getBodyExpr());
+        } else if (node instanceof BuildFuncRefExecutable) {
+            BuildFuncRefExecutable ref = (BuildFuncRefExecutable) node;
+            h = h * 31 + intArrayHash(ref.getSourceSlots());
+            h = h * 31 + intArrayHash(ref.getTargetSlots());
+            h = mixExecutableFunction(h, ref.getFunc());
+        } else if (node instanceof BuildClosureBodyExecutable) {
+            BuildClosureBodyExecutable closure = (BuildClosureBodyExecutable) node;
+            h = h * 31 + closure.getClosureSlot();
+            h = h * 31 + intArrayHash(closure.getSourceSlots());
+            h = h * 31 + intArrayHash(closure.getTargetSlots());
+            h = mix(h, closure.getExpr());
+        } else if (node instanceof VarFunctionExecutable) {
+            VarFunctionExecutable var = (VarFunctionExecutable) node;
+            h = h * 31 + (var.isOptional() ? 1 : 0);
+            h = mix(h, var.getFuncExpr());
+            h = mixAll(h, var.getArgs());
+        } else if (node instanceof VarExecutableFunction) {
+            VarExecutableFunction var = (VarExecutableFunction) node;
+            h = h * 31 + (var.isOptional() ? 1 : 0);
+            h = mix(h, var.getFuncExpr());
+            h = mixAll(h, var.getArgs());
+        } else if (node instanceof LazyCompiledExecutableFunction) {
+            LazyCompiledExecutableFunction lazy = (LazyCompiledExecutableFunction) node;
+            h = h * 31 + strHash(lazy.getFuncName());
+            h = mixAll(h, lazy.getArgExprs());
+            h = mixExecutableFunction(h, compiledOrNull(lazy));
+        } else if (node instanceof FunctionalAdapterExecutable) {
+            // 载荷 = 运行期 IEvalFunction 常量对象（全仓无产生路径，仅合成树）：混合类名；
+            // 函数对象无结构化表示（非身份哈希——指纹不含对象身份），同 sourceKey 不同载荷
+            // 无碰撞场景（无产生路径 + sourceKey 唯一），记录于 plan I7 Phase 2
+            h = h * 31 + strHash(((FunctionalAdapterExecutable) node).getFunction().getClass().getName());
+        } else if (node instanceof LocationFunction) {
+            // 无语义载荷（返回编译期固化位置，位置已混入）
+        } else if (node instanceof IfExecutable) {
+            IfExecutable ifExpr = (IfExecutable) node;
+            h = mix(h, ifExpr.getTest());
+            h = mix(h, ifExpr.getConsequent());
+            h = mix(h, ifExpr.getAlternate());
+        } else if (node instanceof SwitchExecutable) {
+            SwitchExecutable sw = (SwitchExecutable) node;
+            h = h * 31 + (sw.isAsExpr() ? 1 : 0);
+            h = mix(h, sw.getDiscriminant());
+            h = mixAll(h, sw.getTests());
+            h = mixAll(h, sw.getConsequences());
+            for (boolean fallthrough : sw.getFallthroughs())
+                h = h * 31 + (fallthrough ? 1 : 0);
+            h = mix(h, sw.getDefaultCase());
+        } else if (node instanceof ForExecutable) {
+            ForExecutable forExpr = (ForExecutable) node;
+            h = mix(h, forExpr.getInitExpr());
+            h = mix(h, forExpr.getTestExpr());
+            h = mix(h, forExpr.getUpdateExpr());
+            h = mix(h, forExpr.getBodyExpr());
+        } else if (node instanceof ForInExecutable) {
+            ForInExecutable forIn = (ForInExecutable) node;
+            h = h * 31 + forIn.getVarSlot();
+            h = mix(h, forIn.getItemsExpr());
+            h = mix(h, forIn.getBodyExpr());
+        } else if (node instanceof ForOfExecutable) {
+            ForOfExecutable forOf = (ForOfExecutable) node;
+            h = h * 31 + forOf.getVarSlot();
+            h = h * 31 + forOf.getIndexSlot();
+            h = h * 31 + (forOf.isUseRef() ? 1 : 0);
+            h = mix(h, forOf.getItemsExpr());
+            h = mix(h, forOf.getBodyExpr());
+        } else if (node instanceof WhileExecutable) {
+            WhileExecutable whileExpr = (WhileExecutable) node;
+            h = mix(h, whileExpr.getTestExpr());
+            h = mix(h, whileExpr.getBodyExpr());
+        } else if (node instanceof DoWhileExecutable) {
+            DoWhileExecutable doWhile = (DoWhileExecutable) node;
+            h = mix(h, doWhile.getTestExpr());
+            h = mix(h, doWhile.getBodyExpr());
+        } else if (node instanceof BreakExecutable
+                || node instanceof ContinueExecutable) {
+            // 无语义载荷（三值异常族载体节点）
+        } else if (node instanceof ReturnExecutable) {
+            h = mix(h, ((ReturnExecutable) node).getExpr());
+        } else if (node instanceof TryExecutable) {
+            TryExecutable tryExpr = (TryExecutable) node;
+            h = h * 31 + tryExpr.getExceptionSlot();
+            h = mix(h, tryExpr.getBodyExpr());
+            h = mix(h, tryExpr.getCatchExpr());
+            h = mix(h, tryExpr.getFinallyExpr());
+        } else if (node instanceof ThrowErrorCodeExecutable) {
+            ThrowErrorCodeExecutable thr = (ThrowErrorCodeExecutable) node;
+            h = mix(h, thr.getErrorExpr());
+            h = mix(h, thr.getParamsExpr());
+        } else if (node instanceof ThrowExceptionExecutable) {
+            h = mix(h, ((ThrowExceptionExecutable) node).getExpr());
+        } else if (node instanceof OutputTextExecutable) {
+            h = h * 31 + strHash(((OutputTextExecutable) node).getText());
+        } else if (node instanceof OutputValueExecutable) {
+            h = mix(h, ((OutputValueExecutable) node).getValueExpr());
+        } else if (node instanceof OutputXmlAttrExecutable) {
+            OutputXmlAttrExecutable attr = (OutputXmlAttrExecutable) node;
+            h = h * 31 + strHash(attr.getName());
+            h = mix(h, attr.getValueExpr());
+        } else if (node instanceof OutputXmlExtAttrsExecutable) {
+            OutputXmlExtAttrsExecutable extAttrs = (OutputXmlExtAttrsExecutable) node;
+            h = h * 31 + (extAttrs.getExcludeNames() == null ? 0
+                    : extAttrs.getExcludeNames().hashCode());
+            h = mix(h, extAttrs.getAttrsExpr());
+        } else if (node instanceof EscapeOutputExecutable) {
+            EscapeOutputExecutable escape = (EscapeOutputExecutable) node;
+            h = h * 31 + strHash(escape.getEscapeMode().name());
+            h = mix(h, escape.getValueExpr());
+        } else if (node instanceof GenXJsonExecutable) {
+            h = mix(h, ((GenXJsonExecutable) node).getExecutable());
+        } else if (node instanceof CollectTextExecutable
+                || node instanceof CollectJsonExecutable
+                || node instanceof CollectSqlExecutable) {
+            h = mix(h, node instanceof CollectTextExecutable
+                    ? ((CollectTextExecutable) node).getBodyExpr()
+                    : node instanceof CollectJsonExecutable
+                    ? ((CollectJsonExecutable) node).getBodyExpr()
+                    : ((CollectSqlExecutable) node).getBodyExpr());
+        } else if (node instanceof CollectNodeExecutable) {
+            CollectNodeExecutable collect = (CollectNodeExecutable) node;
+            h = h * 31 + (collect.isSingleNode() ? 1 : 0);
+            h = mix(h, collect.getBodyExpr());
+        } else if (node instanceof GenNodeExecutable) {
+            GenNodeExecutable gen = (GenNodeExecutable) node;
+            h = h * 31 + strHash(gen.getTagName());
+            h = mix(h, gen.getTagNameExpr());
+            for (io.nop.xlang.exec.GenNodeAttrExecutable attr : gen.getAttrExprs()) {
+                h = h * 31 + strHash(attr.getName());
+                h = mix(h, attr.getValueExpr());
+            }
+            h = mix(h, gen.getExtAttrs());
+            h = mix(h, gen.getBodyExpr());
         } else if (ExecToTruffleTranslator.isNodeClassSupported(node.getClass())) {
             // 载荷覆盖硬保证：可翻译节点类必须有显式白名单分支，禁止静默弱哈希兜底
             throw new IllegalStateException(
@@ -414,6 +593,40 @@ public final class TreeFingerprints {
         h = h * 31 + (id.isUseRef() ? 1 : 0);
         if (id.getInitializer() != null)
             h = mix(h, id.getInitializer());
+        return h;
+    }
+
+    /**
+     * ExecutableFunction 载荷全量混合（plan I7）：slotNames/参数规格/缺省值/函数体。
+     * null 载荷（LazyCompiled 不可解析形态——翻译必然 fail-fast，不进入缓存）跳过。
+     */
+    private static long mixExecutableFunction(long seed, ExecutableFunction fn) {
+        if (fn == null)
+            return seed;
+        long h = seed * 31 + strHash(fn.getFuncName());
+        h = h * 31 + fn.getArgCount();
+        h = h * 31 + fn.getDemandArgCount();
+        h = h * 31 + arrayHash(fn.getSlotNames());
+        h = mixAll(h, fn.getDefaultArgValues());
+        h = mix(h, fn.getBody());
+        return h;
+    }
+
+    private static ExecutableFunction compiledOrNull(LazyCompiledExecutableFunction lazy) {
+        try {
+            return lazy.getCompiled();
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
+    private static long intArrayHash(int[] values) {
+        if (values == null)
+            return 0;
+        long h = values.length;
+        for (int value : values) {
+            h = h * 31 + value;
+        }
         return h;
     }
 
