@@ -37,7 +37,10 @@ public final class TruffleBackendColumn implements IEvalBackendColumn, AutoClose
     }
 
     /**
-     * 打开一个 truffle 列（EXCLUSIVE 形态：单 polyglot Context 串行求值，调用方负责 close）。
+     * 打开一个 truffle 列（单 polyglot Context 串行求值——SHARED 形态下的非共享 Engine
+     * 用法，每 Context 独立语言实例；多线程池化并发对拍走
+     * {@code io.nop.xlang.truffle.runtime.XLangContextPool}（TestCorpusConcurrentTruffleColumn），
+     * 调用方负责 close）。
      */
     public static TruffleBackendColumn open() {
         return new TruffleBackendColumn(new XLangTruffleEval());

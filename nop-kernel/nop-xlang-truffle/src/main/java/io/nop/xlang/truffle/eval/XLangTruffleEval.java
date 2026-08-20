@@ -1,5 +1,6 @@
 package io.nop.xlang.truffle.eval;
 
+import io.nop.api.core.exceptions.NopEvalException;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalOutput;
 import io.nop.core.lang.eval.IEvalScope;
@@ -11,10 +12,13 @@ import org.graalvm.polyglot.HostAccess;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 
 /**
  * XLang truffle 后端宿主侧求值入口（测试域 driver：I5 对拍 truffle 列/接线冒烟的执行通路；
- * 生产代码路径的路由接入归 I9）。
+ * 生产代码路径的路由接入归 I9；多线程池化运行时 = {@code io.nop.xlang.truffle.runtime.XLangContextPool}，
+ * 其 Lease 复用本类的 {@link #evalOnContext} 通用求值协议）。
  *
  * <p>执行通路：注册求值 handoff（同线程）→ {@code Context.eval(合成 Source)} →
  * {@link XLangLanguage#parse} 查翻译缓存返回 CallTarget → 引擎执行该 CallTarget →
@@ -22,15 +26,21 @@ import org.graalvm.polyglot.Source;
  * 三层断言语料），宿主值经 host access 直取。
  *
  * <p>sourceKey 口径（决策 D2）：resourcePath 单元 = resourcePath；无 resourcePath 动态源
- * = {@code dyn:} + 源内容哈希（源内容即键的防串用形态）。
+ * = {@code dyn:} + 源内容哈希（源内容即键的防串用形态）。本实例持独立 Context（未绑定
+ * 共享 Engine），单线程串行使用。
  */
 public final class XLangTruffleEval implements AutoCloseable {
 
     private static final String DYNAMIC_PREFIX = "dyn:";
 
-    private final Context context;
+    /**
+     * 全局单调求值序号：Source 内容必须<b>全局</b>逐次唯一——SHARED + 共享 Engine 下
+     * parse 缓存按语言实例共享，同内容 Source 会命中缓存跳过 parse（plan I8 发现并修复：
+     * 逐 Context 计数会在第二个 Context 上碰撞缓存，绕过翻译缓存查找链路）。
+     */
+    private static final AtomicLong GLOBAL_EVAL_SEQ = new AtomicLong();
 
-    private long evalCounter;
+    private final Context context;
 
     public XLangTruffleEval() {
         context = Context.newBuilder(XLangLanguage.ID).allowHostAccess(HostAccess.ALL).build();
@@ -45,14 +55,27 @@ public final class XLangTruffleEval implements AutoCloseable {
 
     public TranslatedEval eval(String sourceKey, IExecutableExpression tree, IEvalScope scope,
                                IEvalOutput output) {
+        return evalOnContext(context, sourceKey, tree, scope, output);
+    }
+
+    /**
+     * 通用求值协议（宿主侧 facade 与池租借 Lease 共用，plan I8 §3 复用裁定）：注册求值
+     * handoff（同线程）→ {@code Context.eval(合成 Source)} → {@link XLangLanguage#parse} 查
+     * 翻译缓存返回 CallTarget → 引擎执行 → 根节点在求值窗口内绑定 scope/输出缓冲。语言异常
+     * 经 handoff 原样回传（原始 NopException，三层断言语料），宿主值经 host access 直取。
+     */
+    public static TranslatedEval evalOnContext(Context context, String sourceKey,
+                                               IExecutableExpression tree, IEvalScope scope,
+                                               IEvalOutput output) {
         EvalHandoff.Pending pending = new EvalHandoff.Pending(sourceKey, tree, scope, output);
         EvalHandoff.begin(pending);
         try {
             Source source;
             try {
-                // 内容逐次唯一：引擎按 Source 内容缓存 parse 结果，唯一化保证每次 eval 都经
+                // 内容全局逐次唯一：引擎按 Source 内容缓存 parse 结果，唯一化保证每次 eval 都经
                 // parse → 翻译缓存查找链路（内容不被解析消费，XLang 无 parser）
-                source = Source.newBuilder(XLangLanguage.ID, "eval-" + (++evalCounter), sourceKey).build();
+                source = Source.newBuilder(XLangLanguage.ID, "eval-" + GLOBAL_EVAL_SEQ.incrementAndGet(),
+                        sourceKey).build();
             } catch (java.io.IOException e) {
                 throw new IllegalStateException("build synthetic xl source failed: " + sourceKey, e);
             }
@@ -75,6 +98,9 @@ public final class XLangTruffleEval implements AutoCloseable {
             if (host != null)
                 return host;
         }
+        // parse 期 fail-fast（如支持集外节点翻译失败）：NopEvalException 以 cause 链透出
+        if (e.getCause() instanceof NopEvalException)
+            return e.getCause();
         return e;
     }
 

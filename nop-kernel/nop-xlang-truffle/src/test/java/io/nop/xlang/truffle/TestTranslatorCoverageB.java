@@ -90,7 +90,7 @@ public class TestTranslatorCoverageB {
         if (result.getThrown() != null) {
             if (result.getThrown() instanceof RuntimeException)
                 throw (RuntimeException) result.getThrown();
-            throw new NopEvalException("unwrapped non-runtime thrown", result.getThrown());
+            throw new IllegalStateException("unwrapped non-runtime thrown", result.getThrown());
         }
         return result.getReturnValue();
     }

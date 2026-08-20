@@ -9,8 +9,10 @@ import io.nop.xlang.truffle.translate.TranslatedUnit;
  * 求值 handoff（宿主侧 facade → 语言侧 parse/根节点的同线程交接）。
  *
  * <p>facade 在 {@code Context.eval} 前注册本记录：parse 依据 sourceKey 取待翻译树并回填解析产物，
- * 根节点在执行窗口读取求值现场（scope + 输出缓冲）并记录逃逸的原始异常。EXCLUSIVE 单线程
- * 形态下同线程交接是确定性的；嵌套注册与 sourceKey 失配均 fail-fast，无静默回退。
+ * 根节点在执行窗口读取求值现场（scope + 输出缓冲）并记录逃逸的原始异常。同线程交接是
+ * 确定性的（SHARED 形态下并发由多 Context 承担，各自线程各自 ThreadLocal 天然隔离）；
+ * 嵌套注册与 sourceKey 失配均 fail-fast，无静默回退。池化批求值 = 多次 handoff 循环
+ * （一个 Lease 多次 eval，不嵌套——plan I8 §3 裁定，现 fail-fast 语义保持）。
  */
 public final class EvalHandoff {
 

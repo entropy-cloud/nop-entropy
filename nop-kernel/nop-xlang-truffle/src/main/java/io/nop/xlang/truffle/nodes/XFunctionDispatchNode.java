@@ -11,6 +11,8 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.xlang.exec.XLangSemantics;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 /**
  * 函数值调用点的两级内联缓存分派节点（plan I7 Phase 1 §3，设计 truffle 02 §六准则表；
  * VarFunctionExecutable/VarExecutableFunction 的翻译产物）：
@@ -31,17 +33,18 @@ import io.nop.xlang.exec.XLangSemantics;
  */
 public abstract class XFunctionDispatchNode extends Node {
 
-    // ---- 可观测缓存状态探针（接线证据载体，不参与语义） ----
-    private long directCalls;
+    // ---- 可观测缓存状态探针（接线证据载体，不参与语义；plan I8 原子化裁定——SHARED 下
+    //      同一翻译 AST 被多 Context 并发执行，非原子 long ++ 为数据竞争，拒绝静默保留） ----
+    private final AtomicLong directCalls = new AtomicLong();
 
-    private long genericCalls;
+    private final AtomicLong genericCalls = new AtomicLong();
 
     public long getDirectCalls() {
-        return directCalls;
+        return directCalls.get();
     }
 
     public long getGenericCalls() {
-        return genericCalls;
+        return genericCalls.get();
     }
 
     static boolean isTruffleFunction(Object function) {
@@ -72,7 +75,7 @@ public abstract class XFunctionDispatchNode extends Node {
                                     IEvalScope scope, Object function, Object[] args,
                                     @Cached("targetOf(function)") CallTarget cachedTarget,
                                     @Cached("createDirectCall(cachedTarget)") DirectCallNode callNode) {
-        directCalls++;
+        directCalls.incrementAndGet();
         return callNode.call(((XLangTruffleFunction) function).callArguments(args, scope));
     }
 
@@ -83,7 +86,7 @@ public abstract class XFunctionDispatchNode extends Node {
     @Specialization(replaces = "dispatchDirect")
     protected Object dispatchGeneric(SourceLocation loc, String display, boolean optional,
                                      IEvalScope scope, Object function, Object[] args) {
-        genericCalls++;
+        genericCalls.incrementAndGet();
         return XLangSemantics.callVarFunction(loc, display, optional, function, args, scope);
     }
 }

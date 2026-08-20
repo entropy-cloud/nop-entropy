@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 对拍 truffle 列扩展到 corpus 覆盖 B（roadmap I7 验收第一项）：函数/闭包、控制流、输出/节点
  * 生成三族单元 truffle 列 vs 解释器列对拍全绿（三层断言 + 列间 cross-compare + 身份断言 =
  * 翻译 AST 经 CallTarget 执行；模板单元含输出缓冲副作用比对——$out 通路经
- * {@code XLangContext} 输出缓冲线程绑定机制；EXCLUSIVE 过渡形态）。
+ * {@code XLangContext} 输出缓冲线程绑定机制；单 Context 串行形态，SHARED 超集用法）。
  *
  * <p>静态单元：解释器 + truffle 两列执行（同一棵树实例分列执行）；java 列缺席显式记
  * skipped（not-registered，java 列在 nop-xlang-java 模块）。动态单元：解释器 + truffle 两列

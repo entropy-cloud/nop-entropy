@@ -58,7 +58,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * 对拍 truffle 列扩展到 corpus 覆盖 A（roadmap I6 验收第一项）：A 五族 + 残余类别单元
  * truffle 列 vs 解释器列对拍全绿（三层断言 + 列间 cross-compare + 身份断言 = 翻译 AST 经
- * CallTarget 执行；EXCLUSIVE 过渡形态）。
+ * CallTarget 执行；单 Context 串行形态，SHARED 超集用法）。
  *
  * <p>静态单元：解释器 + truffle 两列执行（同一棵树实例分列执行）；java 列缺席显式记
  * skipped（not-registered），不计入通过。动态单元：解释器 + truffle 两列执行，java 列为
