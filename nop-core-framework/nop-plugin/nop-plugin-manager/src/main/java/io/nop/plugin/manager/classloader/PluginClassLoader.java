@@ -18,15 +18,21 @@ package io.nop.plugin.manager.classloader;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.ClassHelper;
 import io.nop.commons.util.StringHelper;
+import io.nop.commons.util.URLHelper;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.impl.URLResource;
 import io.nop.plugin.api.IPlugin;
 import io.nop.plugin.api.NopPluginConstants;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.charset.StandardCharsets;
 import java.util.Enumeration;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 
 import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_NO_PLUGIN_CLASS_NAME;
 
@@ -70,10 +76,44 @@ public class PluginClassLoader extends URLClassLoader {
             return config;
         }
 
-        PluginConfig config = JsonTool.parseBeanFromResource(new URLResource(NopPluginConstants.PLUGIN_CONFIG_FILE, url), PluginConfig.class);
+        PluginConfig config = parsePluginConfig(url);
         if (StringHelper.isEmpty(config.getPluginClassName()))
             throw new NopException(ERR_PLUGIN_NO_PLUGIN_CLASS_NAME);
         return config;
+    }
+
+    private PluginConfig parsePluginConfig(URL url) {
+        if (URLHelper.isJarURL(url)) {
+            // Windows 文件锁（JDK JarFileFactory 缓存）：jar: URL 读取会把 JarFile 句柄缓存进
+            // JarFileFactory，PluginClassLoader.close() 也无法释放该句柄，jar 文件删除会失败直到
+            // JVM 退出。改用自有 JarFile 读取 plugin.json 并立即关闭，不经过 jar: 协议。
+            String file = url.getFile();
+            int pos = file.indexOf("!/");
+            if (pos < 0) {
+                return JsonTool.parseBeanFromResource(
+                        new URLResource(NopPluginConstants.PLUGIN_CONFIG_FILE, url), PluginConfig.class);
+            }
+            String entryName = file.substring(pos + 2);
+            if (entryName.startsWith("/"))
+                entryName = entryName.substring(1);
+            try {
+                File jarFile = new File(new URL(file.substring(0, pos)).toURI());
+                try (JarFile jar = new JarFile(jarFile)) {
+                    JarEntry entry = jar.getJarEntry(entryName);
+                    if (entry == null) {
+                        throw new NopException(ERR_PLUGIN_NO_PLUGIN_CLASS_NAME);
+                    }
+                    try (InputStream in = jar.getInputStream(entry)) {
+                        String text = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+                        return JsonTool.parseBeanFromText(text, PluginConfig.class);
+                    }
+                }
+            } catch (Exception e) {
+                throw NopException.adapt(e);
+            }
+        }
+        return JsonTool.parseBeanFromResource(
+                new URLResource(NopPluginConstants.PLUGIN_CONFIG_FILE, url), PluginConfig.class);
     }
 
     public IPlugin loadPlugin() {

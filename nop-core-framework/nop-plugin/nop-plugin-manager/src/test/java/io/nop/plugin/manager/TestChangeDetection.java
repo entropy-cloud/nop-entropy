@@ -49,11 +49,25 @@ public class TestChangeDetection {
      */
     private static final File CHANGE_DIR = new File("target/plugin-change-test/").getAbsoluteFile();
     private static final File TOOLS_FILE = new File(CHANGE_DIR, "change-tools.plugin.xml");
-    private static final String TOOLS_ID = "file:" + TOOLS_FILE.getAbsolutePath();
+    private static final String TOOLS_ID = toFileId(TOOLS_FILE);
     private static final File PRODUCER_FILE = new File(CHANGE_DIR, "change-producer.plugin.xml");
-    private static final String PRODUCER_ID = "file:" + PRODUCER_FILE.getAbsolutePath();
+    private static final String PRODUCER_ID = toFileId(PRODUCER_FILE);
     private static final File CONSUMER_FILE = new File(CHANGE_DIR, "change-consumer.plugin.xml");
-    private static final String CONSUMER_ID = "file:" + CONSUMER_FILE.getAbsolutePath();
+    private static final String CONSUMER_ID = toFileId(CONSUMER_FILE);
+
+    /**
+     * file: 命名空间 VFS 路径规范化：Windows 盘符路径（C:\...）需转为 /C:/... 形式（FileNamespaceHandler
+     * 校验要求以 "/" 开头且第 3 个字符为 ':'），且统一为 "/" 分隔符；Linux 绝对路径天然符合。
+     */
+    private static String toFileId(File file) {
+        String path = file.getAbsolutePath();
+        if (File.separatorChar == '\\') {
+            path = path.replace('\\', '/');
+            if (!path.startsWith("/"))
+                path = "/" + path;
+        }
+        return "file:" + path;
+    }
 
     private static final String TOOLS_V1 = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
             + "<plugin name=\"change-tools\" x:schema=\"/nop/schema/plugin/plugin.xdef\" xmlns:x=\"/nop/schema/xdsl.xdef\">\n"

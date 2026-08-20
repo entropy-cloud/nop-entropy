@@ -894,11 +894,15 @@ public class PluginManagerImpl implements IPluginManager, IPluginContext {
     }
 
     /**
-     * id 判别（本 plan 裁定）：{@link ArtifactCoordinates#parse} 成功 → Maven 坐标 → uber jar 轨；
-     * parse 抛 IllegalArgumentException 视为非坐标 → VFS 路径轨（含 ":" 的 VFS 路径存在误判坐标的
-     * 可接受残余，见 plan 记录）。
+     * id 判别（本 plan 裁定 + Windows 修复）：{@link ArtifactCoordinates#parse} 成功 → Maven 坐标 →
+     * uber jar 轨；parse 抛 IllegalArgumentException 视为非坐标 → VFS 路径轨。Windows 盘符绝对路径
+     * （file:C:\path）含两个冒号会被 parse 误判为坐标，Maven 坐标不允许出现路径分隔符，故含 '/' 或
+     * '\' 的 id 一律归入 VFS 路径轨。
      */
     private ArtifactCoordinates tryParseCoordinates(String pluginId) {
+        if (pluginId.indexOf('/') >= 0 || pluginId.indexOf('\\') >= 0) {
+            return null;
+        }
         try {
             return ArtifactCoordinates.parse(pluginId);
         } catch (IllegalArgumentException e) {

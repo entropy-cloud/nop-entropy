@@ -60,9 +60,9 @@ public class TestReloadPlugin {
 
     private static final File RELOAD_DIR = new File("target/plugin-reload-test/").getAbsoluteFile();
     private static final File RELOAD_TOOLS_FILE = new File(RELOAD_DIR, "reload-tools.plugin.xml");
-    private static final String RELOAD_TOOLS_ID = "file:" + RELOAD_TOOLS_FILE.getAbsolutePath();
+    private static final String RELOAD_TOOLS_ID = toFileId(RELOAD_TOOLS_FILE);
     private static final File RELOAD_GATED_FILE = new File(RELOAD_DIR, "reload-gated.plugin.xml");
-    private static final String RELOAD_GATED_ID = "file:" + RELOAD_GATED_FILE.getAbsolutePath();
+    private static final String RELOAD_GATED_ID = toFileId(RELOAD_GATED_FILE);
 
     private static final String TEMPLATE_TOOLS_V1 = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
             + "<plugin name=\"reload-tools\" x:schema=\"/nop/schema/plugin/plugin.xdef\" xmlns:x=\"/nop/schema/xdsl.xdef\">\n"
@@ -99,6 +99,20 @@ public class TestReloadPlugin {
             + "        <bean id=\"tool.bash\" class=\"io.nop.plugin.test.BashTool\" primary=\"true\"/>\n"
             + "    </beans>\n"
             + "</plugin>\n";
+
+    /**
+     * file: 命名空间 VFS 路径规范化：Windows 盘符路径（C:\...）需转为 /C:/... 形式（FileNamespaceHandler
+     * 校验要求以 "/" 开头且第 3 个字符为 ':'），且统一为 "/" 分隔符；Linux 绝对路径天然符合。
+     */
+    private static String toFileId(File file) {
+        String path = file.getAbsolutePath();
+        if (File.separatorChar == '\\') {
+            path = path.replace('\\', '/');
+            if (!path.startsWith("/"))
+                path = "/" + path;
+        }
+        return "file:" + path;
+    }
 
     private PluginManagerImpl manager;
     private Object priorToolsEnabled;
