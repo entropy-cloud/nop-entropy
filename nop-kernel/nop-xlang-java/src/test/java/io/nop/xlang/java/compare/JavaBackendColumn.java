@@ -70,21 +70,31 @@ public final class JavaBackendColumn implements IEvalBackendColumn {
 
         Object generatedInstance;
         Method entry;
-        IEvalFunction bound;
+        boolean usesOut;
         try {
             generatedInstance = generatedClass.getDeclaredConstructor().newInstance();
             entry = GeneratedEvalBinding.findEntryMethod(generatedClass);
-            bound = new EvalMethodInvoker(new MethodInvoker(entry));
+            usesOut = entry.getParameterCount() == 2;
         } catch (Throwable t) {
             throw new IllegalStateException("java column execution setup failed: " + source.getResourcePath(), t);
         }
         BackendExecutionEvidence evidence = new BackendExecutionEvidence(generatedInstance, entry);
         try {
-            Object ret = bound.invoke(generatedInstance, new Object[0], request.getScope());
+            Object ret;
+            if (usesOut) {
+                // 含输出语义单元（I2 契约 / I4 执行路径）：第二隐参 IEvalOutput $out 直接反射注入
+                // （harness 提供的录制缓冲；三层断言的输出缓冲比对即 $out API 调用序列比对）
+                ret = entry.invoke(generatedInstance, request.getScope(), request.getOut());
+            } else {
+                IEvalFunction bound = new EvalMethodInvoker(new MethodInvoker(entry));
+                ret = bound.invoke(generatedInstance, new Object[0], request.getScope());
+            }
             return BackendExecutionResult.value(ret, evidence);
         } catch (Throwable t) {
+            Throwable cause = t instanceof java.lang.reflect.InvocationTargetException && t.getCause() != null
+                    ? t.getCause() : t;
             // 单元执行异常是三层断言的语料（异常层），作为证据返回而非列崩溃
-            return BackendExecutionResult.error(t, evidence);
+            return BackendExecutionResult.error(cause, evidence);
         }
     }
 }
