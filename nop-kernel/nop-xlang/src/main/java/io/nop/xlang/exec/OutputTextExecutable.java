@@ -42,4 +42,8 @@ public class OutputTextExecutable extends AbstractExecutable {
     public void visit(IExecutableExpressionVisitor visitor) {
         visitor.onVisitSimpleExpr(this);
     }
+
+    public String getText() {
+        return text;
+    }
 }

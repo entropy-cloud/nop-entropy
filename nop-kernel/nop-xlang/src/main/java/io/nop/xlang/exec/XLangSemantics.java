@@ -24,10 +24,16 @@ import io.nop.api.core.util.CloneHelper;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.MathHelper;
 import io.nop.commons.util.StringHelper;
+import io.nop.commons.text.RawText;
+import io.nop.commons.util.objects.ValueWithLocation;
+import io.nop.core.lang.eval.DisabledEvalOutput;
 import io.nop.core.lang.eval.EvalReference;
 import io.nop.core.lang.eval.EvalRuntime;
+import io.nop.core.lang.eval.ExitMode;
 import io.nop.core.lang.eval.IEvalFunction;
+import io.nop.core.lang.eval.IEvalOutput;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.StringBuilderEvalOutput;
 import io.nop.core.lang.eval.global.EvalGlobalRegistry;
 import io.nop.core.lang.eval.global.IGlobalVariableDefinition;
 import io.nop.core.model.object.DynamicObject;
@@ -42,12 +48,27 @@ import io.nop.core.reflect.IPropertySetter;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.accessor.ArrayLengthGetter;
 import io.nop.core.reflect.bean.BeanTool;
+import io.nop.core.lang.sql.SQL;
+import io.nop.core.lang.xml.IXNodeHandler;
+import io.nop.core.lang.xml.XNode;
+import io.nop.core.lang.xml.handler.CollectJObjectHandler;
+import io.nop.core.lang.xml.handler.CollectXNodeHandler;
+import io.nop.commons.util.StringHelper;
+import io.nop.core.CoreConstants;
 import io.nop.xlang.XLangConstants;
+import io.nop.xlang.api.XLang;
+import io.nop.xlang.ast.XLangEscapeMode;
 import io.nop.xlang.ast.XLangOperator;
+import io.nop.xlang.utils.ExprEvalHelper;
+
+import io.nop.xlang.utils.EvalFunctionHelper;
 
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -68,11 +89,14 @@ import static io.nop.xlang.XLangErrors.ARG_TARGET;
 import static io.nop.xlang.XLangErrors.ARG_VALUE;
 import static io.nop.xlang.XLangErrors.ARG_VAR_NAME;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_ARRAY_BINDING_NOT_LIST;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_CALL_FUNC_FAIL;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_CLASS_NO_CONSTRUCTOR;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_CLASS_NO_STATIC_METHOD;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_CLASS_NOT_FOUND;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_GET_ATTR_ON_NULL_OBJ;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_GET_PROP_ON_NULL_OBJ;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_EXPR_NOT_RETURN_FUNC;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_FOR_IN_ITEMS_MUST_BE_MAP;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_IDENTIFIER_NOT_INITIALIZED;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_INVOKE_FUNCTION_FAIL;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_INVOKE_METHOD_FAIL;
@@ -89,7 +113,19 @@ import static io.nop.xlang.XLangErrors.ERR_EXEC_READ_ATTR_FAIL;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_READ_PROP_FAIL;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_SCOPE_VAR_IS_UNDEFINED;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_UNKNOWN_PROP;
+import static io.nop.xlang.XLangErrors.ARG_ERROR;
+import static io.nop.xlang.XLangErrors.ARG_TAG_NAME;
+import static io.nop.xlang.XLangErrors.ARG_TAG_NAME_EXPR;
+import static io.nop.xlang.XLangErrors.ARG_VALUE;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_CALL_NULL_FUNCTION;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_COLLECT_RESULT_NOT_SINGLE_NODE;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_THROW_EXCEPTION;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_THROW_INVALID_ERROR;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_THROW_NULL_EXCEPTION;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_TOO_MANY_ARGS;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_UNKNOWN_STATIC_FIELD;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_XML_EXT_ATTRS_NOT_MAP;
+import static io.nop.xlang.XLangErrors.ERR_XPL_DISALLOW_OUTPUT_INVALID_XML_NAME;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_VALUE_NOT_ALLOW_EMPTY;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_VALUE_NOT_ALLOW_NULL;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_WRITE_ATTR_EXPR_RETURN_NULL;
@@ -274,7 +310,13 @@ public final class XLangSemantics {
         IFunctionModel fn = EvalGlobalRegistry.instance().getRegisteredFunction(funcName);
         if (fn == null)
             throw newError(ERR_EXEC_INVOKE_FUNCTION_FAIL, loc, display).param(ARG_FUNC_NAME, funcName);
-        return invokeEvalFunction(fn, argValues, scope, display + "@" + loc);
+        try {
+            return fn.invoke(null, argValues, scope);
+        } catch (NopException e) {
+            // display 串仅错误路径构造（I2 closure audit 移交的急切构造收敛，行为等价）
+            e.addXplStack(display + "@" + loc);
+            throw e;
+        }
     }
 
     public static Object invokeEvalFunction(IEvalFunction func, Object[] argValues, IEvalScope scope,
@@ -1071,5 +1113,387 @@ public final class XLangSemantics {
             endValue = 0;
 
         return new IntRangeIterator(beginValue, endValue, stepValue);
+    }
+
+    // ------------------------------------------------------------------
+    // 覆盖 B（I4）：函数值适配 / 输出与换缓冲 / throw 语义共享 helper
+    // ------------------------------------------------------------------
+
+    /**
+     * 生成函数体回调：生成类私有方法经方法引用接入（签名 = scope + 实参数组 + 闭包捕获数组）。
+     * 实参缺省填充（demandArgCount..argCount 的字面量缺省）由生成体自身内嵌承载。
+     */
+    public interface IGeneratedFunctionBody {
+        Object invoke(IEvalScope scope, Object[] args, Object[] captured);
+    }
+
+    /**
+     * 换缓冲类节点（Collect 族与 Gen 族）的生成体回调：输出缓冲、pending ExitMode 通道与
+     * 调用方帧 slot 数组以参数线程化（生成代码无 EvalRuntime；解释器侧改调时以闭包内
+     * rt.setOut 承载同等交换，frame 参数不使用）。
+     */
+    public interface IGeneratedOutBody {
+        Object run(IEvalScope scope, IEvalOutput out, ExitMode[] exit, Object[] frame);
+    }
+
+    /**
+     * 函数值载荷（LiteralExecutable(ExecutableFunction)/BuildFuncRefExecutable）下降为生成私有方法后的
+     * {@link IEvalFunction} 适配（设计 java §三目标形态；invoke/callN 参数个数校验与
+     * {@code ExecutableFunction.callN} 同码）。
+     */
+    public static IEvalFunction generatedFunction(int argCount, int demandArgCount,
+                                                  IGeneratedFunctionBody body, Object[] captured) {
+        return new GeneratedEvalFunction(argCount, demandArgCount, body, captured);
+    }
+
+    public static final class GeneratedEvalFunction implements IEvalFunction {
+        private final int argCount;
+        private final int demandArgCount;
+        private final IGeneratedFunctionBody body;
+        private final Object[] captured;
+
+        GeneratedEvalFunction(int argCount, int demandArgCount, IGeneratedFunctionBody body, Object[] captured) {
+            this.argCount = argCount;
+            this.demandArgCount = demandArgCount;
+            this.body = body;
+            this.captured = captured == null ? new Object[0] : captured;
+        }
+
+        public Object invokeWithArgs(Object[] args, IEvalScope scope) {
+            Object[] a = args == null ? new Object[0] : args;
+            if (a.length > argCount)
+                throw tooManyArgs(a.length);
+            return body.invoke(scope, a, captured);
+        }
+
+        @Override
+        public Object invoke(Object thisObj, Object[] args, IEvalScope scope) {
+            return invokeWithArgs(args, scope);
+        }
+
+        @Override
+        public Object call0(Object thisObj, IEvalScope scope) {
+            return body.invoke(scope, new Object[0], captured);
+        }
+
+        @Override
+        public Object call1(Object thisObj, Object arg, IEvalScope scope) {
+            if (argCount < 1)
+                throw tooManyArgs(1);
+            return body.invoke(scope, new Object[]{arg}, captured);
+        }
+
+        @Override
+        public Object call2(Object thisObj, Object arg1, Object arg2, IEvalScope scope) {
+            if (argCount < 2)
+                throw tooManyArgs(2);
+            return body.invoke(scope, new Object[]{arg1, arg2}, captured);
+        }
+
+        @Override
+        public Object call3(Object thisObj, Object arg1, Object arg2, Object arg3, IEvalScope scope) {
+            if (argCount < 3)
+                throw tooManyArgs(3);
+            return body.invoke(scope, new Object[]{arg1, arg2, arg3}, captured);
+        }
+
+        private NopEvalException tooManyArgs(int count) {
+            NopEvalException e = new NopEvalException(ERR_EXEC_TOO_MANY_ARGS);
+            e.param(io.nop.xlang.XLangErrors.ARG_MAX_COUNT, argCount)
+                    .param(io.nop.xlang.XLangErrors.ARG_ARG_COUNT, count);
+            return e;
+        }
+    }
+
+    /**
+     * VarFunctionExecutable/VarExecutableFunction 的函数值调用语义（生成代码入口，先例
+     * {@link #invokeGlobalFunction}）：null → optional 短路或 ERR_EXEC_CALL_NULL_FUNCTION；
+     * 非 IEvalFunction 且非 null → ERR_EXEC_EXPR_NOT_RETURN_FUNC（与解释器 getFunction 同码）；
+     * ExecutableFunction 走 executeWithArgs；GeneratedEvalFunction 走 invokeWithArgs；其余统一 invoke。
+     * argValues 在 funcValue == null 时允许传 null（实参不求值短路由生成代码承载）。
+     */
+    public static Object callVarFunction(SourceLocation loc, String display, boolean optional,
+                                         Object funcValue, Object[] argValues, IEvalScope scope) {
+        IEvalFunction func = null;
+        if (funcValue instanceof ExecutableFunction) {
+            return ((ExecutableFunction) funcValue).executeWithArgs(XLang.getExecutor(), argValues,
+                    new EvalRuntime(scope));
+        }
+        if (funcValue != null) {
+            func = EvalFunctionHelper.toEvalFunction(funcValue);
+            if (func == null)
+                throw newError(ERR_EXEC_EXPR_NOT_RETURN_FUNC, loc, display).param(ARG_FUNC_NAME, display)
+                        .param(ARG_CLASS_NAME, funcValue.getClass().getName());
+        }
+        if (func == null) {
+            if (optional)
+                return null;
+            throw newError(ERR_EXEC_CALL_NULL_FUNCTION, loc, display);
+        }
+        try {
+            if (func instanceof GeneratedEvalFunction)
+                return ((GeneratedEvalFunction) func).invokeWithArgs(argValues, scope);
+            return func.invoke(null, argValues, scope);
+        } catch (NopException e) {
+            e.addXplStack(display + "@" + loc);
+            throw e;
+        }
+    }
+
+    /**
+     * ThrowErrorCodeExecutable 语义（提取；解释器改调）。source 仅解释器传节点自身（display 用），
+     * 生成代码传 null；display = 节点 display 串（ARG_EXPR 语义与解释器一致）。
+     */
+    public static void throwErrorCode(SourceLocation loc, io.nop.api.core.util.ISourceLocationGetter source,
+                                      String display, Object error, Object params) {
+        if (error instanceof NopException) {
+            NopException exp = (NopException) error;
+            if (exp.getErrorLocation() == null)
+                exp.loc(loc);
+            throw exp;
+        }
+        if (error instanceof Throwable)
+            throw NopException.adapt((Throwable) error);
+
+        if (error instanceof ErrorCode) {
+            throw throwErrorCodeParams(source, new NopEvalException((ErrorCode) error), params);
+        } else if (error instanceof String) {
+            throw new NopEvalException((String) error, null, false, false).loc(loc);
+        }
+        throw newError(ERR_EXEC_THROW_INVALID_ERROR, loc, display).param(ARG_ERROR, error);
+    }
+
+    private static NopException throwErrorCodeParams(io.nop.api.core.util.ISourceLocationGetter source,
+                                                     NopException e, Object params) {
+        if (source != null)
+            e.source(source);
+        if (params == null)
+            return e;
+        if (params instanceof Map) {
+            return e.params((Map) params);
+        }
+        return e.param(io.nop.xlang.XLangErrors.ARG_ARGS, params);
+    }
+
+    /** ThrowExceptionExecutable 语义（提取；解释器改调）。display = 节点 display 串。 */
+    public static void throwException(SourceLocation loc, String display, Object value) {
+        if (value == null)
+            throw newError(ERR_EXEC_THROW_NULL_EXCEPTION, loc, display);
+        if (value instanceof NopException) {
+            NopException e = (NopException) value;
+            if (e.getErrorLocation() == null)
+                e.loc(loc);
+            throw e;
+        } else if (value instanceof Throwable) {
+            throw newError(ERR_EXEC_THROW_EXCEPTION, (Throwable) value, loc, display).forWrap();
+        }
+        throw newError(ERR_EXEC_THROW_EXCEPTION, loc, display).param(ARG_VALUE, value);
+    }
+
+    /** OutputXmlAttrExecutable 语义（提取；解释器改调）：属性文本片序列。 */
+    public static void outputXmlAttr(SourceLocation loc, IEvalOutput out, String name, Object v) {
+        if (v == null)
+            return;
+        out.text(null, " ");
+        out.text(null, name);
+        out.text(loc, "=\"");
+        out.text(loc, StringHelper.escapeXmlAttr(v.toString()));
+        out.text(null, "\"");
+    }
+
+    /** OutputXmlExtAttrsExecutable 语义（提取；解释器改调）。display = 节点 display 串。 */
+    public static void outputXmlExtAttrs(SourceLocation loc, String display, IEvalOutput out,
+                                         Set<String> excludeNames, Object v) {
+        if (v == null)
+            return;
+        if (!(v instanceof Map))
+            throw newError(ERR_EXEC_XML_EXT_ATTRS_NOT_MAP, loc, display);
+        Map<String, Object> map = (Map<String, Object>) v;
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            Object value = entry.getValue();
+            if (value != null && !excludeNames.contains(entry.getKey())) {
+                out.text(null, " ");
+                out.text(null, entry.getKey());
+                out.text(null, "=\"");
+                out.text(loc, StringHelper.escapeXmlAttr(value.toString()));
+                out.text(null, "\"");
+            }
+        }
+    }
+
+    /** EscapeOutputExecutable 语义（提取；解释器改调）。 */
+    public static void escapeOutput(SourceLocation loc, IEvalOutput out, XLangEscapeMode escapeMode, Object value) {
+        if (value == null)
+            return;
+        if (value instanceof RawText) {
+            out.text(loc, ((RawText) value).getText());
+            return;
+        }
+        switch (escapeMode) {
+            case xml: {
+                out.text(loc, StringHelper.escapeXml(value.toString()));
+                break;
+            }
+            case xmlAttr: {
+                out.text(loc, StringHelper.escapeXmlAttr(value.toString()));
+                break;
+            }
+            case xmlValue: {
+                out.text(loc, StringHelper.escapeXmlValue(value.toString()));
+                break;
+            }
+            default:
+                out.value(loc, value);
+        }
+    }
+
+    /** CollectTextExecutable 语义（提取；解释器改调，scope/frame 透传给生成体回调）。 */
+    public static String collectText(IEvalScope scope, ExitMode[] exit, IGeneratedOutBody body, Object[] frame) {
+        StringBuilderEvalOutput out = new StringBuilderEvalOutput();
+        body.run(scope, out, exit, frame);
+        return out.getOutput();
+    }
+
+    /** CollectJsonExecutable 语义（提取；解释器改调，scope/frame 透传给生成体回调）。 */
+    public static Object collectJson(IEvalScope scope, ExitMode[] exit, IGeneratedOutBody body, Object[] frame) {
+        CollectJObjectHandler out = new CollectJObjectHandler();
+        body.run(scope, out, exit, frame);
+        return out.getResult();
+    }
+
+    /** CollectNodeExecutable 语义（提取；解释器改调，scope/frame 透传给生成体回调）。 */
+    public static Object collectNode(IEvalScope scope, SourceLocation loc, boolean singleNode,
+                                     ExitMode[] exit, IGeneratedOutBody body, Object[] frame) {
+        CollectXNodeHandler out = new CollectXNodeHandler();
+        out.beginNode(loc, CoreConstants.DUMMY_TAG_NAME, Collections.emptyMap());
+        body.run(scope, out, exit, frame);
+        out.endNode(CoreConstants.DUMMY_TAG_NAME);
+        XNode node = out.endDoc();
+        if (singleNode) {
+            if (node.getChildCount() != 1)
+                throw newError(ERR_EXEC_COLLECT_RESULT_NOT_SINGLE_NODE, loc, "@collect");
+            return node.child(0);
+        }
+        return node;
+    }
+
+    /** CollectSqlExecutable 语义（单源复用 ExprEvalHelper.generateSql 的收集核心）。 */
+    public static SQL collectSql(IEvalScope scope, ExitMode[] exit, IGeneratedOutBody body, Object[] frame) {
+        return ExprEvalHelper.generateSql(ctx -> body.run(scope, ctx.getOut(), exit, frame), new EvalRuntime(scope));
+    }
+
+    /** GenXJsonExecutable 语义（单源复用 ExprEvalHelper.generateXjson 的收集核心）。 */
+    public static Object genXjson(IEvalScope scope, ExitMode[] exit, IGeneratedOutBody body, Object[] frame) {
+        return ExprEvalHelper.generateXjson(ctx -> body.run(scope, ctx.getOut(), exit, frame), new EvalRuntime(scope));
+    }
+
+    /** GenNodeExecutable 的分支语义（提取；解释器改调）：DisabledEvalOutput → 收集并返回 XNode，否则 cast handler 直发。 */
+    public interface IGenNodeContent {
+        void emit(IXNodeHandler handler, ExitMode[] exit, Object[] frame);
+    }
+
+    public static Object genNode(IEvalOutput output, ExitMode[] exit, IGenNodeContent content, Object[] frame) {
+        if (output == DisabledEvalOutput.INSTANCE) {
+            CollectXNodeHandler out = new CollectXNodeHandler();
+            content.emit(out, exit, frame);
+            return out.endDoc();
+        }
+        content.emit((IXNodeHandler) output, exit, frame);
+        return null;
+    }
+
+    /** GenNodeExecutable 的节点发射语义（simpleNode/beginNode+body+endNode，提取；解释器改调）。 */
+    public static void genNodeHandler(IXNodeHandler handler, SourceLocation loc, String tagName,
+                                      Map<String, ValueWithLocation> attrs, Runnable body) {
+        if (body == null) {
+            handler.simpleNode(loc, tagName, attrs);
+        } else {
+            handler.beginNode(loc, tagName, attrs);
+            body.run();
+            handler.endNode(tagName);
+        }
+    }
+
+    /** GenNodeExecutable 的 tagName 校验语义（提取；解释器改调）。display = 节点 display 串。 */
+    public static String genNodeTagName(SourceLocation loc, String tagName, Object tagNameValue,
+                                        Object tagNameExpr, String display) {
+        if (tagName != null)
+            return tagName;
+        if (tagNameValue instanceof String) {
+            String str = (String) tagNameValue;
+            if (!StringHelper.isValidXmlName(str))
+                throw new NopEvalException(ERR_XPL_DISALLOW_OUTPUT_INVALID_XML_NAME).loc(loc)
+                        .param(ARG_EXPR, display)
+                        .param(ARG_TAG_NAME, str).param(ARG_TAG_NAME_EXPR, tagNameExpr);
+            return str;
+        }
+        throw new NopEvalException(ERR_XPL_DISALLOW_OUTPUT_INVALID_XML_NAME).loc(loc)
+                .param(ARG_EXPR, display)
+                .param(ARG_TAG_NAME, tagNameValue).param(ARG_TAG_NAME_EXPR, tagNameExpr);
+    }
+
+    /**
+     * GenNodeExecutable 的属性合并语义（显式属性优先 + extAttrs 跳过重复/空值；提取；解释器改调）。
+     * values 为已按求值顺序求值的显式属性值，extAttrsValue 为随后求值的扩展属性值。
+     */
+    public static Map<String, ValueWithLocation> genNodeAttrs(String[] names, SourceLocation[] valueLocs,
+                                                              Object[] values, Object extAttrsValue,
+                                                              SourceLocation extAttrsLoc, Set<String> attrNames) {
+        Map<String, ValueWithLocation> map = new LinkedHashMap<>();
+        for (int i = 0; i < names.length; i++) {
+            if (values[i] == null)
+                continue;
+            map.put(names[i], ValueWithLocation.of(valueLocs[i], values[i]));
+        }
+        if (extAttrsValue != null) {
+            if (!(extAttrsValue instanceof Map))
+                throw new NopEvalException(ERR_EXEC_XML_EXT_ATTRS_NOT_MAP).loc(extAttrsLoc);
+            Map<String, Object> extMap = (Map<String, Object>) extAttrsValue;
+            for (Map.Entry<String, Object> entry : extMap.entrySet()) {
+                Object extValue = entry.getValue();
+                if (extValue == null || attrNames.contains(entry.getKey()))
+                    continue;
+                map.put(entry.getKey(), ValueWithLocation.of(extAttrsLoc, extValue));
+            }
+        }
+        return map;
+    }
+
+    // ------------------------------------------------------------------
+    // 覆盖 B（I4）：控制流族共享 helper（ForIn 前置校验 / ForOf 迭代 / CallFunc 族异常包装）
+    // ------------------------------------------------------------------
+
+    /** ForInExecutable 前置语义（提取；解释器改调）：items null → null（跳过）；非 Map 报错。 */
+    @SuppressWarnings("unchecked")
+    public static Map<String, Object> asForInMap(SourceLocation loc, String display, Object items) {
+        if (items == null)
+            return null;
+        if (!(items instanceof Map))
+            throw newError(ERR_EXEC_FOR_IN_ITEMS_MUST_BE_MAP, loc, display);
+        return (Map<String, Object>) items;
+    }
+
+    /** ForOfExecutable.toIterator 提取（NopException 时 addXplStack(itemsDisplay)）。 */
+    public static Iterator<Object> forOfIterator(SourceLocation loc, String display,
+                                                 String itemsDisplay, Object items) {
+        try {
+            return CollectionHelper.toIterator(items, false);
+        } catch (NopException e) {
+            e.addXplStack(itemsDisplay);
+            throw e;
+        }
+    }
+
+    /**
+     * CallFuncExecutable/CallFuncWithClosureExecutable 的 catch 包装语义（提取；解释器改调）：
+     * NopException → addXplStack(stackObj) 重抛；其他 Exception → ERR_EXEC_CALL_FUNC_FAIL forWrap 包装。
+     */
+    public static NopException wrapCallFuncException(Object stackObj, SourceLocation loc, String display, Exception e) {
+        if (e instanceof NopException) {
+            ((NopException) e).addXplStack(stackObj);
+            return (NopException) e;
+        }
+        return (NopException) new NopEvalException(ERR_EXEC_CALL_FUNC_FAIL, e).loc(loc).param(ARG_EXPR, display)
+                .forWrap();
     }
 }

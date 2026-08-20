@@ -86,11 +86,8 @@ public class CallFuncExecutable extends AbstractExecutable {
         try {
             rt.pushFrame(frame);
             return executor.execute(bodyExpr, rt);
-        } catch (NopException e) {
-            e.addXplStack(this);
-            throw e;
         } catch (Exception e) {
-            throw newError(ERR_EXEC_CALL_FUNC_FAIL, e).forWrap();
+            throw XLangSemantics.wrapCallFuncException(this, getLocation(), display(), e);
         } finally {
             rt.setExitMode(null);
             rt.popFrame();

@@ -49,4 +49,8 @@ public class OutputValueExecutable extends AbstractExecutable {
             visitor.onEndVisitExpr(this);
         }
     }
+
+    public IExecutableExpression getValueExpr() {
+        return valueExpr;
+    }
 }

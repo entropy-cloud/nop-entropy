@@ -58,4 +58,8 @@ public class GenXJsonExecutable extends AbstractExecutable {
             visitor.onEndVisitExpr(this);
         }
     }
+
+    public IExecutableExpression getExecutable() {
+        return executable;
+    }
 }

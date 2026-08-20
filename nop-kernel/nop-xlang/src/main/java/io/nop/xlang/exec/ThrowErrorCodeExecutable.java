@@ -43,34 +43,12 @@ public class ThrowErrorCodeExecutable extends AbstractExecutable {
     @Override
     public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
         Object error = executor.execute(errorExpr, rt);
-        if (error instanceof NopException) {
-            NopException exp = (NopException) error;
-            if (exp.getErrorLocation() == null)
-                exp.loc(getLocation());
-            throw exp;
-        }
-        if (error instanceof Throwable)
-            throw NopException.adapt((Throwable) error);
-
-        Object params = paramsExpr == null ? null : executor.execute(paramsExpr, rt);
-
-        if (error instanceof ErrorCode) {
-            throw addParams(new NopEvalException((ErrorCode) error), params);
-        } else if (error instanceof String) {
-            throw new NopEvalException((String) error, null, false, false).loc(getLocation());
-        }
-        throw newError(ERR_EXEC_THROW_INVALID_ERROR).param(ARG_ERROR, error);
-    }
-
-    private NopException addParams(NopException e, Object params) {
-        e.source(this);
-        if (params == null)
-            return e;
-        if (params instanceof Map) {
-            return e.params((Map) params);
-        } else {
-            return e.param(ARG_ARGS, params);
-        }
+        // 与原实现求值顺序一致：params 仅在 error 非 NopException/Throwable 时求值
+        Object params = null;
+        if (!(error instanceof NopException) && !(error instanceof Throwable) && paramsExpr != null)
+            params = executor.execute(paramsExpr, rt);
+        XLangSemantics.throwErrorCode(getLocation(), this, display(), error, params);
+        return null;
     }
 
     @Override
@@ -81,5 +59,13 @@ public class ThrowErrorCodeExecutable extends AbstractExecutable {
                 paramsExpr.visit(visitor);
             visitor.onEndVisitExpr(this);
         }
+    }
+
+    public IExecutableExpression getErrorExpr() {
+        return errorExpr;
+    }
+
+    public IExecutableExpression getParamsExpr() {
+        return paramsExpr;
     }
 }

@@ -263,29 +263,36 @@ public class TestExecToJavaTranslatorSource {
 
     @Test
     public void testFailFastOutOfSubsetNode() {
-        // IfExecutable 属 B 族控制流（I4 范围），pending 集节点转译必须 fail-fast（矩阵反证口径）
+        // IfExecutable 已并入覆盖 B 转译；新形态边界反例 = 控制跳转节点出现在表达式位置
+        // （前端语法不可能形态，I4 覆盖 B 收口后的 fail-fast 边界）
         IExecutableExpression tree = new PlusExecutable(LOC,
                 LiteralExecutable.build(LOC, 1),
-                new io.nop.xlang.exec.IfExecutable(LOC, LiteralExecutable.build(LOC, Boolean.TRUE),
-                        LiteralExecutable.build(LOC, 2), null));
+                new io.nop.xlang.exec.BreakExecutable(LOC));
         NopEvalException err = assertThrows(NopEvalException.class,
-                () -> TRANSLATOR.translate("synthetic/if-node.xpl", tree));
+                () -> TRANSLATOR.translate("synthetic/break-node.xpl", tree));
         assertEquals("nop.err.xlang.exec.translate-unsupported-node", err.getErrorCode());
-        assertTrue(err.getParam("className").toString().contains("IfExecutable"), err.toString());
+        assertTrue(err.getParam("className").toString().contains("BreakExecutable"), err.toString());
+        assertTrue(String.valueOf(err.getParam("detail")).contains("expression position"), err.toString());
     }
 
     @Test
     public void testFailFastNestedCallFuncIsLocalFunctionCall() {
-        // CallFunc 族在非根位置 = 局部函数调用，子集排除（I4 覆盖 B 范围）
+        // 非根 CallFunc = 局部函数调用（I4 裁定并入转译，不再是 fail-fast 边界）——
+        // 反例随边界收缩迁移：改判排除类 ReturnScopeValuesExecutable（I4 边缘裁定）保持 fail-fast
         CallFuncExecutable localCall = new CallFuncExecutable(LOC, "myFn",
                 new String[]{"x"}, new IExecutableExpression[0], LiteralExecutable.build(LOC, 1));
         IExecutableExpression tree = new PlusExecutable(LOC,
                 LiteralExecutable.build(LOC, 1), localCall);
+        String code = TRANSLATOR.translate("synthetic/local-call.xpl", tree).getCode();
+        assertTrue(code.contains("$fn_1($scope"), code);
+
+        IExecutableExpression excluded = new io.nop.xlang.exec.ReturnScopeValuesExecutable(LOC,
+                java.util.Collections.emptyList(),
+                java.util.List.of(LiteralExecutable.build(LOC, 1)));
         NopEvalException err = assertThrows(NopEvalException.class,
-                () -> TRANSLATOR.translate("synthetic/local-call.xpl", tree));
+                () -> TRANSLATOR.translate("synthetic/excluded-node.xpl", excluded));
         assertEquals("nop.err.xlang.exec.translate-unsupported-node", err.getErrorCode());
-        assertTrue(err.getParam("className").toString().contains("CallFuncExecutable"), err.toString());
-        assertEquals(LOC, err.getErrorLocation());
+        assertTrue(err.getParam("className").toString().contains("ReturnScopeValuesExecutable"), err.toString());
     }
 
     @Test

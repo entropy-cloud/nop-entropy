@@ -10,6 +10,7 @@ package io.nop.xlang.java.translator;
 import io.nop.api.core.exceptions.NopEvalException;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.core.lang.eval.IEvalOutput;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.xlang.exec.AbstractBinaryExecutable;
@@ -23,21 +24,40 @@ import io.nop.xlang.exec.BinaryExecutable;
 import io.nop.xlang.exec.BindVarExecutable;
 import io.nop.xlang.exec.BitNotExecutable;
 import io.nop.xlang.exec.BlockExecutable;
+import io.nop.xlang.exec.BreakExecutable;
+import io.nop.xlang.exec.BuildClosureBodyExecutable;
+import io.nop.xlang.exec.BuildFuncRefExecutable;
 import io.nop.xlang.exec.CallFuncExecutable;
+import io.nop.xlang.exec.CallFuncWithClosureExecutable;
 import io.nop.xlang.exec.CastExecutable;
 import io.nop.xlang.exec.CloneLiteralExecutable;
+import io.nop.xlang.exec.CollectJsonExecutable;
+import io.nop.xlang.exec.CollectNodeExecutable;
+import io.nop.xlang.exec.CollectSqlExecutable;
+import io.nop.xlang.exec.CollectTextExecutable;
 import io.nop.xlang.exec.CompareOpExecutable;
 import io.nop.xlang.exec.ConcatExecutable;
+import io.nop.xlang.exec.ContinueExecutable;
 import io.nop.xlang.exec.ConvertExecutable;
 import io.nop.xlang.exec.ConvertWithDefaultExecutable;
 import io.nop.xlang.exec.DebugExecutable;
 import io.nop.xlang.exec.DebugIdentifierExecutable;
 import io.nop.xlang.exec.DivideExecutable;
+import io.nop.xlang.exec.DoWhileExecutable;
 import io.nop.xlang.exec.EnhanceRefSlotExecutable;
 import io.nop.xlang.exec.EqExecutable;
 import io.nop.xlang.exec.EqNullExecutable;
+import io.nop.xlang.exec.EscapeOutputExecutable;
+import io.nop.xlang.exec.ExecutableFunction;
+import io.nop.xlang.exec.ForExecutable;
+import io.nop.xlang.exec.ForInExecutable;
+import io.nop.xlang.exec.ForOfExecutable;
 import io.nop.xlang.exec.FunctionExecutable;
+import io.nop.xlang.exec.FunctionalAdapterExecutable;
 import io.nop.xlang.exec.GeExecutable;
+import io.nop.xlang.exec.GenNodeAttrExecutable;
+import io.nop.xlang.exec.GenNodeExecutable;
+import io.nop.xlang.exec.GenXJsonExecutable;
 import io.nop.xlang.exec.GetAttrExecutable;
 import io.nop.xlang.exec.GetPropertyExecutable;
 import io.nop.xlang.exec.GetterGetPropertyExecutable;
@@ -46,11 +66,14 @@ import io.nop.xlang.exec.GtExecutable;
 import io.nop.xlang.exec.GuardNotEmptyExecutable;
 import io.nop.xlang.exec.GuardNotNullExecutable;
 import io.nop.xlang.exec.ISeqExecutable;
+import io.nop.xlang.exec.IfExecutable;
 import io.nop.xlang.exec.InitRefSlotExecutable;
 import io.nop.xlang.exec.InstanceOfExecutable;
+import io.nop.xlang.exec.LazyCompiledExecutableFunction;
 import io.nop.xlang.exec.LeExecutable;
 import io.nop.xlang.exec.ListItemExecutable;
 import io.nop.xlang.exec.LiteralExecutable;
+import io.nop.xlang.exec.LocationFunction;
 import io.nop.xlang.exec.LtExecutable;
 import io.nop.xlang.exec.MakePropertyExecutable;
 import io.nop.xlang.exec.MapItemExecutable;
@@ -68,6 +91,10 @@ import io.nop.xlang.exec.NullExecutable;
 import io.nop.xlang.exec.ObjFunctionExecutable;
 import io.nop.xlang.exec.ObjectBindingAssignExecutable;
 import io.nop.xlang.exec.OrExecutable;
+import io.nop.xlang.exec.OutputTextExecutable;
+import io.nop.xlang.exec.OutputValueExecutable;
+import io.nop.xlang.exec.OutputXmlAttrExecutable;
+import io.nop.xlang.exec.OutputXmlExtAttrsExecutable;
 import io.nop.xlang.exec.PlusExecutable;
 import io.nop.xlang.exec.PropBinding;
 import io.nop.xlang.exec.PropInExecutable;
@@ -79,18 +106,19 @@ import io.nop.xlang.exec.ReferenceSelfDecExecutable;
 import io.nop.xlang.exec.ReferenceSelfIncExecutable;
 import io.nop.xlang.exec.RenewReferenceExecutable;
 import io.nop.xlang.exec.ResolvedObjFunctionExecutable;
+import io.nop.xlang.exec.ReturnExecutable;
 import io.nop.xlang.exec.ReturnNullExecutable;
 import io.nop.xlang.exec.ScopeAssignExecutable;
 import io.nop.xlang.exec.ScopeIdentifierExecutable;
 import io.nop.xlang.exec.ScopeSelfAssignExecutable;
 import io.nop.xlang.exec.ScopeSelfDecExecutable;
 import io.nop.xlang.exec.ScopeSelfIncExecutable;
-import io.nop.xlang.exec.SeqExecutable;
-import io.nop.xlang.exec.SelfAssignAttrExecutable;
 import io.nop.xlang.exec.SelfAssignExecutable;
+import io.nop.xlang.exec.SelfAssignAttrExecutable;
 import io.nop.xlang.exec.SelfAssignPropertyExecutable;
 import io.nop.xlang.exec.SelfDecExecutable;
 import io.nop.xlang.exec.SelfIncExecutable;
+import io.nop.xlang.exec.SeqExecutable;
 import io.nop.xlang.exec.SetAttrExecutable;
 import io.nop.xlang.exec.SetPropertyExecutable;
 import io.nop.xlang.exec.SetterSetPropertyExecutable;
@@ -102,8 +130,15 @@ import io.nop.xlang.exec.StrictEqExecutable;
 import io.nop.xlang.exec.StrictEqNullExecutable;
 import io.nop.xlang.exec.StrictNeExecutable;
 import io.nop.xlang.exec.StrictNeNullExecutable;
+import io.nop.xlang.exec.SwitchExecutable;
+import io.nop.xlang.exec.ThrowErrorCodeExecutable;
+import io.nop.xlang.exec.ThrowExceptionExecutable;
+import io.nop.xlang.exec.TryExecutable;
 import io.nop.xlang.exec.TypeOfExecutable;
+import io.nop.xlang.exec.VarExecutableFunction;
+import io.nop.xlang.exec.VarFunctionExecutable;
 import io.nop.xlang.exec.VarStatusExecutable;
+import io.nop.xlang.exec.WhileExecutable;
 import io.nop.xlang.exec.XLangSemantics;
 import io.nop.xlang.java.gen.EvalMethodConvention;
 
@@ -124,23 +159,38 @@ import static io.nop.xlang.XLangErrors.ERR_EXEC_TRANSLATE_UNSUPPORTED_NODE;
 /**
  * Executable 树到 Java 源码的纯函数转译器（设计 xlang-java 01 §二/§三/§四/§七）。
  *
- * <p>子集（与 I1 corpus v1 对齐）：字面量 / slot 标识符 / 算术 / 逻辑 / 比较 / 简单方法调用
- * （= 宿主方法反射分派族：ObjFunctionExecutable / StaticFunctionExecutable /
- * FunctionExecutable 系，不含函数字面量、闭包捕获、CallFunc 族局部函数调用）+ 结构性载体
- * （CallFunc 程序入口 / Block / Seq / SlotAssign / ReturnNull / GuardNotNull / Null）。
+ * <p>支持集（I2 表达式子集 + I3 覆盖 A + I4 覆盖 B = 全量非排除具体类，
+ * 见 {@code ExecNodeBaseline.javaTargetSet()}）：字面量 / slot 标识符 / 算术 / 逻辑 / 比较 /
+ * 简单方法调用（宿主方法反射分派族）/ 作用域链 / 类型操作 / 对象集合 / 绑定守卫 / slot 写 /
+ * 残余算子 + 控制流（Java 控制流直译，ExitMode 以生成方法边界为传播边界）+
+ * 函数闭包（载荷下降为生成私有方法 + {@code XLangSemantics.generatedFunction} 适配）+
+ * 输出与节点生成（{@code $out} 隐参 API 调用序列 + 换缓冲共享 helper 回调 + ExitMode cell 通道）。
  *
  * <p>硬保证：
  * <ul>
- * <li>fail-fast——树中出现子集外节点即转译失败（报节点类名 + SourceLocation），
- * 禁止部分生成与"剩余解释"混合产物；</li>
+ * <li>fail-fast——树中出现子集外节点/形态即转译失败（报节点类名 + SourceLocation），
+ * 禁止部分生成与"剩余解释"混合产物；运行期对象载荷（如 {@code FunctionalAdapterExecutable}
+ * 的 IEvalFunction）与不可解析载荷（如 {@code LazyCompiledExecutableFunction} 空载荷）显式
+ * fail-fast，不静默降级；</li>
  * <li>SourceLocation 保真——可抛错点内嵌静态 SourceLocation 常量（转译期从节点固化），
  * 抛 {@code NopException} 时携带对应常量；</li>
  * <li>语义一致——语义敏感操作统一调用 {@link XLangSemantics} 共享 helper，
  * 禁止为生成代码重写语义等价实现；</li>
- * <li>EvalMethod 约定——生成入口方法 static + 首参 {@code IEvalScope $scope}。</li>
+ * <li>EvalMethod 约定——生成入口方法 static + 首参 {@code IEvalScope $scope}；含输出语义
+ * 单元按 I2 定稿契约追加第二隐参 {@code IEvalOutput $out}（{@link EvalMethodConvention#OUT_PARAM}）；</li>
+ * <li>ExitMode 边界不变式——ExitMode 不跨函数/闭包边界传播：函数体下降为私有方法（方法边界
+ * 原生对应）；换缓冲生成体以显式 ExitMode cell 通道承载 pending 跳转（调用点按
+ * RETURN/BREAK/CONTINUE 分派，与解释器逐语句停走语义一一对应）。</li>
  * </ul>
  */
 public final class ExecToJavaTranslator {
+
+    /** 控制跳转节点发射后的"值引用"标记：控制流已跳转，值不可用（return 或经 ExitMode cell 返回）。 */
+    private static final String JUMP_RETURN = "$$jump-return";
+    /** 跳转经 ExitMode cell 通道承载（换缓冲生成体内、无原生循环边界可跨）：控制流已从生成体返回。 */
+    private static final String JUMP_EXIT_CELL = "$$jump-cell";
+    /** 原生循环内 break/continue：跳出本块后控制流在循环外恢复（后续语句仍按停走语义跳过）。 */
+    private static final String JUMP_BREAK_NATIVE = "$$jump-break";
 
     public GeneratedJavaSource translate(String resourcePath, IExecutableExpression tree) {
         Guard.notEmpty(resourcePath, "resourcePath");
@@ -151,10 +201,9 @@ public final class ExecToJavaTranslator {
         } else {
             translatePureExpression(ctx, tree);
         }
-        String className = EvalMethodConvention.GENERATED_PACKAGE + '.'
-                + EvalMethodConvention.generatedClassName(resourcePath);
-        return new GeneratedJavaSource(resourcePath, className,
-                ctx.buildClass(EvalMethodConvention.generatedClassName(resourcePath)));
+        String className = EvalMethodConvention.generatedClassName(resourcePath);
+        return new GeneratedJavaSource(resourcePath,
+                EvalMethodConvention.GENERATED_PACKAGE + '.' + className, ctx.buildClass(className));
     }
 
     // ------------------------------------------------------------------
@@ -163,7 +212,8 @@ public final class ExecToJavaTranslator {
     // ------------------------------------------------------------------
 
     /**
-     * 转译器已注册的具体节点类（I2 子集 + 覆盖 A 五族 + 并入残余 = {@code ExecNodeBaseline.registeredTarget()}）。
+     * 转译器已注册的具体节点类（I2 子集 + 覆盖 A 五族 + 并入残余 + 覆盖 B 三族
+     * = {@code ExecNodeBaseline.javaTargetSet()}，120 类）。
      */
     static final Set<Class<?>> SUPPORTED_NODE_CLASSES = buildSupportedNodeClasses();
 
@@ -213,6 +263,23 @@ public final class ExecToJavaTranslator {
                 ConcatExecutable.class, RangeExecutable.class, PropInExecutable.class,
                 EqNullExecutable.class, NeNullExecutable.class, StrictEqNullExecutable.class,
                 StrictNeNullExecutable.class, BinaryExecutable.class);
+        // 覆盖 B：函数/闭包族（含裁定转译并入的边缘类 LocationFunction）
+        Collections.addAll(set, VarFunctionExecutable.class, VarExecutableFunction.class,
+                LazyCompiledExecutableFunction.class, FunctionalAdapterExecutable.class,
+                CallFuncWithClosureExecutable.class, BuildFuncRefExecutable.class,
+                BuildClosureBodyExecutable.class, LocationFunction.class);
+        // 覆盖 B：控制流族
+        Collections.addAll(set, IfExecutable.class, SwitchExecutable.class,
+                ForExecutable.class, ForInExecutable.class, ForOfExecutable.class,
+                WhileExecutable.class, DoWhileExecutable.class,
+                BreakExecutable.class, ContinueExecutable.class, ReturnExecutable.class,
+                TryExecutable.class, ThrowErrorCodeExecutable.class, ThrowExceptionExecutable.class);
+        // 覆盖 B：输出/节点生成族（GenNodeAttrExecutable 为 GenNode 的属性描述符，经宿主节点载体覆盖）
+        Collections.addAll(set, OutputTextExecutable.class, OutputValueExecutable.class,
+                OutputXmlAttrExecutable.class, OutputXmlExtAttrsExecutable.class,
+                GenNodeExecutable.class, GenNodeAttrExecutable.class,
+                GenXJsonExecutable.class, CollectJsonExecutable.class, CollectNodeExecutable.class,
+                CollectSqlExecutable.class, CollectTextExecutable.class, EscapeOutputExecutable.class);
         return Collections.unmodifiableSet(set);
     }
 
@@ -239,28 +306,30 @@ public final class ExecToJavaTranslator {
     // ------------------------------------------------------------------
 
     /**
-     * 程序入口模式：树根为 CallFuncExecutable 程序入口包装（编译前端对 script 单元的固有产物，
-     * slotNames 承载帧布局），入口包装翻译为生成方法本体（与其 EvalMethod 生成方法约定同构），
-     * 与"用户级 CallFunc 族局部函数调用被子集排除"不冲突。
+     * 程序入口模式：树根为 CallFuncExecutable 程序入口包装（编译前端对 script/模板单元的固有产物，
+     * slotNames 承载帧布局），入口包装翻译为生成方法本体（与其 EvalMethod 生成方法约定同构）。
+     * 非根 CallFunc = 局部函数调用，经 {@link #genCallFunc} 转译（I4 裁定并入）。
      */
     private void translateProgramEntry(GenContext ctx, CallFuncExecutable entry) {
         IExecutableExpression[] argExprs = entry.getArgExprs();
         if (argExprs != null && argExprs.length > 0)
             throw unsupported(entry, "program entry with declared arguments");
         String[] slotNames = entry.getSlotNames() == null ? new String[0] : entry.getSlotNames();
-        ctx.slotNames = slotNames;
-        ctx.slotCount = slotNames.length;
+        ctx.beginEntryMethod(slotNames);
         for (int i = 0; i < slotNames.length; i++) {
             ctx.line("Object $v" + i + " = null; // slot " + i + ": " + slotNames[i]);
         }
         emitRootValue(ctx, entry.getBodyExpr());
+        ctx.endMethod();
     }
 
     /**
      * 纯表达式模式：树根为任意子集表达式（无入口帧），单表达式返回。
      */
     private void translatePureExpression(GenContext ctx, IExecutableExpression tree) {
+        ctx.beginEntryMethod(new String[0]);
         emitRootValue(ctx, tree);
+        ctx.endMethod();
     }
 
     private void emitRootValue(GenContext ctx, IExecutableExpression body) {
@@ -268,24 +337,35 @@ public final class ExecToJavaTranslator {
             ctx.line("return null;");
             return;
         }
-        if (body instanceof ISeqExecutable) {
-            IExecutableExpression[] exprs = ((ISeqExecutable) body).getExprs();
-            boolean block = ((ISeqExecutable) body).isBlockStatement();
-            if (exprs.length == 0) {
-                ctx.line("return null;");
-                return;
-            }
-            int last = block ? exprs.length : exprs.length - 1;
-            for (int i = 0; i < last; i++) {
-                genStatement(ctx, exprs[i]);
-            }
-            if (block) {
-                ctx.line("return null;");
+        boolean prev = ctx.jumpCtx;
+        ctx.jumpCtx = true;
+        try {
+            if (body instanceof ISeqExecutable) {
+                IExecutableExpression[] exprs = ((ISeqExecutable) body).getExprs();
+                boolean block = ((ISeqExecutable) body).isBlockStatement();
+                if (exprs.length == 0) {
+                    ctx.line("return null;");
+                    return;
+                }
+                int last = block ? exprs.length : exprs.length - 1;
+                for (int i = 0; i < last; i++) {
+                    if (!genStatementChild(ctx, exprs[i]))
+                        return; // 语句无条件跳转（return 已发射）：后续按停走语义跳过
+                }
+                if (block) {
+                    ctx.line("return null;");
+                } else {
+                    String ref = genBodyValue(ctx, exprs[exprs.length - 1]);
+                    if (!isJump(ref))
+                        ctx.line("return " + ref + ";");
+                }
             } else {
-                ctx.line("return " + genExpr(ctx, exprs[exprs.length - 1]) + ";");
+                String ref = genExpr(ctx, body);
+                if (!isJump(ref))
+                    ctx.line("return " + ref + ";");
             }
-        } else {
-            ctx.line("return " + genExpr(ctx, body) + ";");
+        } finally {
+            ctx.jumpCtx = prev;
         }
     }
 
@@ -296,22 +376,49 @@ public final class ExecToJavaTranslator {
     private void genStatement(GenContext ctx, IExecutableExpression node) {
         if (node instanceof ISeqExecutable) {
             for (IExecutableExpression child : ((ISeqExecutable) node).getExprs()) {
-                genStatement(ctx, child);
+                if (!genStatementChild(ctx, child))
+                    break;
             }
             return;
         }
+        genStatementChild(ctx, node);
+    }
+
+    /**
+     * 语句位置子节点发射；返回 false = 控制流已无条件跳转，后续语句按解释器 exitMode 停走语义
+     * 跳过（live {@code SeqExecutable.execute} 每 child 后检查 exitMode，一一对应）。
+     */
+    private boolean genStatementChild(GenContext ctx, IExecutableExpression node) {
         if (node instanceof ReturnNullExecutable) {
             genStatement(ctx, ((ReturnNullExecutable) node).getExecutable());
-            return;
+            return true;
         }
-        if (node instanceof SlotAssignExecutable) {
-            genExpr(ctx, node);
-            return;
+        boolean prev = ctx.jumpCtx;
+        ctx.jumpCtx = true;
+        try {
+            String ref = genExpr(ctx, node);
+            if (isJump(ref))
+                return false;
+            if (isInvocationRef(ref))
+                ctx.line(ref + ";");
+            return true;
+        } finally {
+            ctx.jumpCtx = prev;
         }
-        // 一般表达式在语句位置：求值（含副作用）后弃值
-        String ref = genExpr(ctx, node);
-        if (isInvocationRef(ref)) {
-            ctx.line(ref + ";");
+    }
+
+    /**
+     * 体位置（分支体/情形体/函数体根部/换缓冲生成体根部）求值：允许控制跳转节点（jump 语境）。
+     */
+    private String genBodyValue(GenContext ctx, IExecutableExpression node) {
+        boolean prev = ctx.jumpCtx;
+        ctx.jumpCtx = true;
+        try {
+            if (node instanceof ISeqExecutable)
+                return genSeqAsExpr(ctx, (ISeqExecutable) node);
+            return genExpr(ctx, node);
+        } finally {
+            ctx.jumpCtx = prev;
         }
     }
 
@@ -319,13 +426,46 @@ public final class ExecToJavaTranslator {
         return ref.startsWith("XLangSemantics.") || ref.startsWith("io.nop.");
     }
 
+    private static boolean isJump(String ref) {
+        return ref == JUMP_RETURN || ref == JUMP_EXIT_CELL || ref == JUMP_BREAK_NATIVE;
+    }
+
+    /** 终端跳转标记（return / ExitMode cell 返回）：后续语句不可达。 */
+    private static boolean isTerminalJumpRef(String ref) {
+        return ref == JUMP_RETURN || ref == JUMP_EXIT_CELL;
+    }
+
     private String genExpr(GenContext ctx, IExecutableExpression node) {
-        // ---- 字面量 / null ----
+        // ---- 控制跳转：仅语句/体位置合法；表达式位置 = 前端不可能形态，显式 fail-fast ----
+        if (node instanceof BreakExecutable || node instanceof ContinueExecutable
+                || node instanceof ReturnExecutable) {
+            if (!ctx.jumpCtx)
+                throw unsupported(node, "jump statement in expression position");
+            return genJump(ctx, node);
+        }
+        boolean prev = ctx.jumpCtx;
+        ctx.jumpCtx = false;
+        try {
+            return genValueExpr(ctx, node);
+        } finally {
+            ctx.jumpCtx = prev;
+        }
+    }
+
+    private String genValueExpr(GenContext ctx, IExecutableExpression node) {
+        // ---- 字面量 / null（ExecutableFunction 载荷 = 函数值，下降为生成私有方法） ----
         if (node instanceof LiteralExecutable) {
+            Object value = ((LiteralExecutable) node).getValue();
+            if (value instanceof ExecutableFunction)
+                return genFunctionValue(ctx, node, (ExecutableFunction) value, null, null);
             return literal(ctx, (LiteralExecutable) node);
         }
         if (node instanceof NullExecutable) {
             return "null";
+        }
+        if (node instanceof LocationFunction) {
+            // 边缘类裁定转译并入：返回调用点 SourceLocation 常量直译
+            return ctx.locRef(node);
         }
 
         // ---- slot 读写 ----
@@ -707,8 +847,827 @@ public final class ExecToJavaTranslator {
             return genObjFunction(ctx, (AbstractObjFunctionExecutable) node);
         }
 
-        // CallFunc 族在非根位置 = 局部函数调用，子集排除（fail-fast）
+        // ---- 覆盖 B：控制流族（Java 控制流直译；ExitMode 边界 = 生成方法边界） ----
+        if (node instanceof IfExecutable) {
+            return genIf(ctx, (IfExecutable) node);
+        }
+        if (node instanceof SwitchExecutable) {
+            return genSwitch(ctx, (SwitchExecutable) node);
+        }
+        if (node instanceof ForExecutable) {
+            return genFor(ctx, (ForExecutable) node);
+        }
+        if (node instanceof ForInExecutable) {
+            return genForIn(ctx, (ForInExecutable) node);
+        }
+        if (node instanceof ForOfExecutable) {
+            return genForOf(ctx, (ForOfExecutable) node);
+        }
+        if (node instanceof WhileExecutable) {
+            return genWhile(ctx, (WhileExecutable) node);
+        }
+        if (node instanceof DoWhileExecutable) {
+            return genDoWhile(ctx, (DoWhileExecutable) node);
+        }
+        if (node instanceof TryExecutable) {
+            return genTry(ctx, (TryExecutable) node);
+        }
+        if (node instanceof ThrowErrorCodeExecutable) {
+            return genThrowErrorCode(ctx, (ThrowErrorCodeExecutable) node);
+        }
+        if (node instanceof ThrowExceptionExecutable) {
+            ThrowExceptionExecutable thr = (ThrowExceptionExecutable) node;
+            String v = hoist(ctx, genExpr(ctx, thr.getExpr()));
+            ctx.line("XLangSemantics.throwException(" + ctx.locRef(node) + ", " + displayOf(node)
+                    + ", " + v + ");");
+            return "null";
+        }
+
+        // ---- 覆盖 B：函数/闭包族（载荷下降为生成私有方法 + generatedFunction 适配） ----
+        if (node instanceof VarFunctionExecutable || node instanceof VarExecutableFunction) {
+            return genVarFunctionCall(ctx, node);
+        }
+        if (node instanceof CallFuncExecutable) {
+            // 非根 CallFunc = 局部函数调用（I4 裁定并入转译；根位置在 translate 入口分派）
+            return genCallFunc(ctx, (CallFuncExecutable) node, null);
+        }
+        if (node instanceof CallFuncWithClosureExecutable) {
+            return genCallFunc((CallFuncWithClosureExecutable) node, ctx);
+        }
+        if (node instanceof BuildFuncRefExecutable) {
+            BuildFuncRefExecutable ref = (BuildFuncRefExecutable) node;
+            return genFunctionValue(ctx, node, ref.getFunc(), ref.getSourceSlots(), ref.getTargetSlots());
+        }
+        if (node instanceof BuildClosureBodyExecutable) {
+            return genBuildClosureBody(ctx, (BuildClosureBodyExecutable) node);
+        }
+        if (node instanceof LazyCompiledExecutableFunction) {
+            return genLazyCompiledCall(ctx, (LazyCompiledExecutableFunction) node);
+        }
+        if (node instanceof FunctionalAdapterExecutable) {
+            // 运行期 IEvalFunction 载荷：生成源码无自包含表示（I11 构建 JVM ≠ 运行 JVM），显式 fail-fast
+            throw unsupported(node, "runtime IEvalFunction payload cannot be embedded in generated source");
+        }
+
+        // ---- 覆盖 B：输出/节点生成族（$out 隐参 API 调用序列 + 换缓冲共享 helper 回调） ----
+        if (node instanceof OutputTextExecutable) {
+            requireOut(ctx, node);
+            OutputTextExecutable out = (OutputTextExecutable) node;
+            ctx.line("$out.text(" + ctx.locRef(node) + ", \"" + escape(out.getText()) + "\");");
+            return "null";
+        }
+        if (node instanceof OutputValueExecutable) {
+            requireOut(ctx, node);
+            OutputValueExecutable out = (OutputValueExecutable) node;
+            String v = genExpr(ctx, out.getValueExpr());
+            ctx.line("$out.value(" + ctx.locRef(node) + ", " + v + ");");
+            return "null";
+        }
+        if (node instanceof OutputXmlAttrExecutable) {
+            requireOut(ctx, node);
+            OutputXmlAttrExecutable out = (OutputXmlAttrExecutable) node;
+            String v = hoist(ctx, genExpr(ctx, out.getValueExpr()));
+            ctx.line("XLangSemantics.outputXmlAttr(" + ctx.locRef(node) + ", $out, \""
+                    + escape(out.getName()) + "\", " + v + ");");
+            return "null";
+        }
+        if (node instanceof OutputXmlExtAttrsExecutable) {
+            requireOut(ctx, node);
+            OutputXmlExtAttrsExecutable out = (OutputXmlExtAttrsExecutable) node;
+            String v = hoist(ctx, genExpr(ctx, out.getAttrsExpr()));
+            ctx.line("XLangSemantics.outputXmlExtAttrs(" + ctx.locRef(node) + ", " + displayOf(node)
+                    + ", $out, " + stringSetRef(out.getExcludeNames()) + ", " + v + ");");
+            return "null";
+        }
+        if (node instanceof EscapeOutputExecutable) {
+            requireOut(ctx, node);
+            EscapeOutputExecutable out = (EscapeOutputExecutable) node;
+            String v = hoist(ctx, genExpr(ctx, out.getValueExpr()));
+            ctx.line("XLangSemantics.escapeOutput(" + ctx.locRef(node) + ", $out, io.nop.xlang.ast.XLangEscapeMode."
+                    + out.getEscapeMode().name() + ", " + v + ");");
+            return "null";
+        }
+        if (node instanceof GenXJsonExecutable) {
+            requireOut(ctx, node);
+            return genSwapCall(ctx, ((GenXJsonExecutable) node).getExecutable(), "genXjson", null);
+        }
+        if (node instanceof CollectTextExecutable) {
+            requireOut(ctx, node);
+            return genSwapCall(ctx, ((CollectTextExecutable) node).getBodyExpr(), "collectText", null);
+        }
+        if (node instanceof CollectJsonExecutable) {
+            requireOut(ctx, node);
+            return genSwapCall(ctx, ((CollectJsonExecutable) node).getBodyExpr(), "collectJson", null);
+        }
+        if (node instanceof CollectNodeExecutable) {
+            requireOut(ctx, node);
+            CollectNodeExecutable collect = (CollectNodeExecutable) node;
+            return genSwapCall(ctx, collect.getBodyExpr(), "collectNode",
+                    ctx.locRef(node) + ", " + collect.isSingleNode());
+        }
+        if (node instanceof CollectSqlExecutable) {
+            requireOut(ctx, node);
+            return genSwapCall(ctx, ((CollectSqlExecutable) node).getBodyExpr(), "collectSql", null);
+        }
+        if (node instanceof GenNodeExecutable) {
+            requireOut(ctx, node);
+            return genGenNode(ctx, (GenNodeExecutable) node);
+        }
+
+        // 子集外节点（fail-fast）
         throw unsupported(node, null);
+    }
+
+    // ------------------------------------------------------------------
+    // 覆盖 B：控制流族生成方法（循环以 "$loop_k: while(true){...}" + 迭代块 "$iter_k:{ body }"
+    // 承载——break → break $loop_k（穿透 switch 翻译的顺序块结构，与解释器 switch 不消费
+    // exitMode 一致）；continue → break $iter_k（落到 update/test 位置，与解释器 continue
+    // 后执行 update 的次序一致）；test 前置 / update 尾部与解释器逐迭代次序一一对应
+    // ------------------------------------------------------------------
+
+    private String genIf(GenContext ctx, IfExecutable node) {
+        String test = hoist(ctx, genExpr(ctx, node.getTest()));
+        String temp = ctx.temp();
+        ctx.line("Object " + temp + ";");
+        ctx.line("if (XLangSemantics.truthy(" + test + ")) {");
+        ctx.indent();
+        String cons = genBodyValue(ctx, node.getConsequent());
+        boolean consJump = isJump(cons);
+        if (!consJump)
+            ctx.line(temp + " = " + cons + ";");
+        ctx.unindent();
+        ctx.line("} else {");
+        ctx.indent();
+        boolean altJump = false;
+        if (node.getAlternate() != null) {
+            String alt = genBodyValue(ctx, node.getAlternate());
+            altJump = isJump(alt);
+            if (!altJump)
+                ctx.line(temp + " = " + alt + ";");
+        } else {
+            ctx.line(temp + " = null;");
+        }
+        ctx.unindent();
+        ctx.line("}");
+        if (consJump && altJump)
+            return JUMP_RETURN; // 两分支均跳转：if 之后控制流不可达（后续语句按停走语义跳过）
+        return temp;
+    }
+
+    /**
+     * Switch 直译为顺序 case 块 + 标签块（逐 test 求值 + fallthrough 语义与解释器迭代算法
+     * 一一对应；非 fallthrough 命中即 break 标签跳出 case 链；consequent 内跳转节点为
+     * 原生/标签跳转，与解释器 switch 不消费 exitMode 一致）。
+     */
+    private String genSwitch(GenContext ctx, SwitchExecutable node) {
+        String disc = hoist(ctx, genExpr(ctx, node.getDiscriminant()));
+        String label = ctx.newLabel("$sw");
+        String ret = ctx.temp();
+        ctx.line("Object " + ret + " = null;");
+        ctx.line(label + ": {");
+        ctx.indent();
+        IExecutableExpression[] tests = node.getTests();
+        IExecutableExpression[] consequences = node.getConsequences();
+        boolean[] fallthroughs = node.getFallthroughs();
+        for (int i = 0; i < tests.length; i++) {
+            String testValue = hoist(ctx, genExpr(ctx, tests[i]));
+            ctx.line("if (java.util.Objects.equals(" + disc + ", " + testValue + ")) {");
+            ctx.indent();
+            String value = genBodyValue(ctx, consequences[i]);
+            if (!isJump(value)) {
+                ctx.line(ret + " = " + value + ";");
+                if (!fallthroughs[i])
+                    ctx.line("break " + label + ";");
+            }
+            ctx.unindent();
+            ctx.line("}");
+        }
+        if (node.getDefaultCase() != null) {
+            String value = genBodyValue(ctx, node.getDefaultCase());
+            if (!isJump(value))
+                ctx.line(ret + " = " + value + ";");
+        }
+        ctx.unindent();
+        ctx.line("}");
+        return node.isAsExpr() ? ret : "null";
+    }
+
+    private String genFor(GenContext ctx, ForExecutable node) {
+        if (node.getInitExpr() != null)
+            genStatement(ctx, node.getInitExpr());
+        ctx.openLoop();
+        if (node.getTestExpr() != null)
+            emitLoopTest(ctx, node.getTestExpr());
+        genStatement(ctx, node.getBodyExpr());
+        ctx.closeIterBlock();
+        if (node.getUpdateExpr() != null)
+            genStatement(ctx, node.getUpdateExpr());
+        ctx.closeLoop();
+        return "null";
+    }
+
+    private String genWhile(GenContext ctx, WhileExecutable node) {
+        ctx.openLoop();
+        emitLoopTest(ctx, node.getTestExpr());
+        genStatement(ctx, node.getBodyExpr());
+        ctx.closeIterBlock();
+        ctx.closeLoop();
+        return "null";
+    }
+
+    private String genDoWhile(GenContext ctx, DoWhileExecutable node) {
+        ctx.openLoop();
+        genStatement(ctx, node.getBodyExpr());
+        ctx.closeIterBlock();
+        if (node.getTestExpr() != null)
+            emitLoopTest(ctx, node.getTestExpr());
+        ctx.closeLoop();
+        return "null";
+    }
+
+    private String genForIn(GenContext ctx, ForInExecutable node) {
+        checkSlot(ctx, node, node.getVarSlot());
+        String items = hoist(ctx, genExpr(ctx, node.getItemsExpr()));
+        String map = ctx.temp();
+        ctx.line("java.util.Map " + map + " = XLangSemantics.asForInMap(" + ctx.locRef(node) + ", "
+                + displayOf(node) + ", " + items + ");");
+        ctx.line("if (" + map + " != null) {");
+        ctx.indent();
+        // 迭代器在循环外创建一次（循环内每次新建会无限循环）
+        String it = ctx.temp();
+        ctx.line("java.util.Iterator " + it + " = " + map + ".keySet().iterator();");
+        ctx.openLoop();
+        String key = ctx.temp();
+        ctx.line("if (!" + it + ".hasNext()) {");
+        ctx.indent();
+        ctx.line("break " + ctx.current().currentLoopLabel() + ";");
+        ctx.unindent();
+        ctx.line("}");
+        ctx.line("Object " + key + " = " + it + ".next();");
+        ctx.line("$v" + node.getVarSlot() + " = " + key + ";");
+        genStatement(ctx, node.getBodyExpr());
+        ctx.closeIterBlock();
+        ctx.closeLoop();
+        ctx.unindent();
+        ctx.line("}");
+        return "null";
+    }
+
+    private String genForOf(GenContext ctx, ForOfExecutable node) {
+        checkSlot(ctx, node, node.getVarSlot());
+        String items = hoist(ctx, genExpr(ctx, node.getItemsExpr()));
+        String iter = ctx.temp();
+        ctx.line("java.util.Iterator " + iter + " = " + items + " == null ? null : XLangSemantics.forOfIterator("
+                + ctx.locRef(node) + ", " + displayOf(node) + ", " + displayOf(node.getItemsExpr()) + ", "
+                + items + ");");
+        ctx.line("if (" + iter + " != null) {");
+        ctx.indent();
+        String idx = null;
+        if (node.getIndexSlot() >= 0) {
+            checkSlot(ctx, node, node.getIndexSlot());
+            idx = ctx.temp();
+            ctx.line("int " + idx + " = 0;");
+        }
+        ctx.openLoop();
+        String var = ctx.temp();
+        ctx.line("if (!" + iter + ".hasNext()) {");
+        ctx.indent();
+        ctx.line("break " + ctx.current().currentLoopLabel() + ";");
+        ctx.unindent();
+        ctx.line("}");
+        ctx.line("Object " + var + " = " + iter + ".next();");
+        ctx.line("$v" + node.getVarSlot() + " = "
+                + (node.isUseRef() ? "new io.nop.core.lang.eval.EvalReference(" + var + ")" : var) + ";");
+        if (node.getIndexSlot() >= 0)
+            ctx.line("$v" + node.getIndexSlot() + " = Integer.valueOf(" + idx + ");");
+        genStatement(ctx, node.getBodyExpr());
+        ctx.closeIterBlock();
+        if (node.getIndexSlot() >= 0)
+            ctx.line(idx + "++;");
+        ctx.closeLoop();
+        ctx.unindent();
+        ctx.line("}");
+        return "null";
+    }
+
+    private void emitLoopTest(GenContext ctx, IExecutableExpression testExpr) {
+        String test = hoist(ctx, genExpr(ctx, testExpr));
+        ctx.line("if (!XLangSemantics.truthy(" + test + ")) {");
+        ctx.indent();
+        // 命名 break 跳出 $loop_k（裸 break 只能跳出 $iter_k 语句块，会退化成死循环）
+        ctx.line("break " + ctx.current().currentLoopLabel() + ";");
+        ctx.unindent();
+        ctx.line("}");
+    }
+
+    /**
+     * Try 直译：catch Exception → slot 承载 → 执行 catch 体 → <b>总是</b> adapt 重抛（live 语义
+     * 忠实保留）；finally 原生（unwind 路径执行与解释器一致）。
+     */
+    private String genTry(GenContext ctx, TryExecutable node) {
+        String ret = ctx.temp();
+        ctx.line("Object " + ret + " = null;");
+        ctx.line("try {");
+        ctx.indent();
+        String body = genBodyValue(ctx, node.getBodyExpr());
+        if (!isJump(body))
+            ctx.line(ret + " = " + body + ";");
+        ctx.unindent();
+        String exVar = null;
+        if (node.getCatchExpr() != null) {
+            exVar = ctx.temp();
+            ctx.line("} catch (java.lang.Exception " + exVar + ") {");
+            ctx.indent();
+            if (node.getExceptionSlot() >= 0) {
+                checkSlot(ctx, node, node.getExceptionSlot());
+                ctx.line("$v" + node.getExceptionSlot() + " = " + exVar + ";");
+            }
+            genStatement(ctx, node.getCatchExpr());
+            ctx.line("throw io.nop.api.core.exceptions.NopException.adapt(" + exVar + ");");
+            ctx.unindent();
+        }
+        if (node.getFinallyExpr() != null) {
+            ctx.line("} finally {");
+            ctx.indent();
+            genStatement(ctx, node.getFinallyExpr());
+            ctx.unindent();
+        }
+        ctx.line("}");
+        return ret;
+    }
+
+    /** ThrowErrorCode 直译：error 求值 →（非异常载荷时）params 求值 → 共享 helper throwErrorCode。 */
+    private String genThrowErrorCode(GenContext ctx, ThrowErrorCodeExecutable node) {
+        String error = hoist(ctx, genExpr(ctx, node.getErrorExpr()));
+        String params = ctx.temp();
+        ctx.line("Object " + params + " = null;");
+        ctx.line("if (!(" + error + " instanceof io.nop.api.core.exceptions.NopException)"
+                + " && !(" + error + " instanceof java.lang.Throwable)) {");
+        ctx.indent();
+        String paramsValue = node.getParamsExpr() == null ? "null" : hoist(ctx, genExpr(ctx, node.getParamsExpr()));
+        ctx.line(params + " = " + paramsValue + ";");
+        ctx.unindent();
+        ctx.line("}");
+        ctx.line("XLangSemantics.throwErrorCode(" + ctx.locRef(node) + ", null, " + displayOf(node)
+                + ", " + error + ", " + params + ");");
+        return "null";
+    }
+
+    // ------------------------------------------------------------------
+    // 覆盖 B：函数/闭包族生成方法（I4 Phase 1 §5 载荷处置裁定：下降为生成私有方法 + 适配包装）
+    // ------------------------------------------------------------------
+
+    /**
+     * 函数值创建（LiteralExecutable(ExecutableFunction) 载荷 / BuildFuncRefExecutable）：
+     * 函数体下降为 {@code private static Object $fn_k(IEvalScope, Object[] args, Object[] captured)}，
+     * 值 = {@code XLangSemantics.generatedFunction} 适配包装；captured = 创建点读取当前帧 slot 值
+     * （被捕获可变 slot 持 EvalReference 对象 → 按引用传递 = 共享 cell，与 bindClosureVars 快照一致）。
+     */
+    private String genFunctionValue(GenContext ctx, IExecutableExpression node, ExecutableFunction fn,
+                                    int[] sourceSlots, int[] targetSlots) {
+        if (fn.getBody() == null)
+            throw unsupported(node, "function payload without body");
+        String methodName = emitFunctionMethod(ctx, node, fn.getSlotNames(), fn.getBody(),
+                fn.getArgCount(), fn.getDemandArgCount(), fn.getDefaultArgValues(), targetSlots);
+        String captured = capturedArrayRef(ctx, node, sourceSlots);
+        return "XLangSemantics.generatedFunction(" + fn.getArgCount() + ", " + fn.getDemandArgCount()
+                + ", ($s, $a, $c) -> " + methodName + "($s, $a, $c), " + captured + ")";
+    }
+
+    /**
+     * 非根 CallFunc（局部函数调用，I4 裁定并入）：被调函数体下降为私有方法（slotNames 帧由节点
+     * 自携带，前端已内联缺省实参），调用点求值 argExprs（调用者帧）→ 直调 + 异常包装
+     * （wrapCallFuncException，与解释器 CallFunc 族 catch 语义一致）；ExitMode 边界 = 私有方法边界（原生）。
+     */
+    private String genCallFunc(GenContext ctx, CallFuncExecutable call, Object unused) {
+        IExecutableExpression[] argExprs = call.getArgExprs();
+        String methodName = emitFunctionMethod(ctx, call, call.getSlotNames(), call.getBodyExpr(),
+                argExprs.length, argExprs.length, null, null);
+        return emitDirectCallSite(ctx, call, methodName, argExprs, null);
+    }
+
+    /**
+     * CallFuncWithClosure：非根 CallFunc 形态 + 闭包捕获线程化——调用点 captured 数组 = 当前帧
+     * sourceSlots 槽当前值（求值次序 args → captured，与解释器一致）；私有方法内
+     * $v&lt;targetSlot[i]&gt; = $captured[i]（对应 BindVarExecutable 语义，捕获写入后于实参绑定）。
+     */
+    private String genCallFunc(CallFuncWithClosureExecutable call, GenContext ctx) {
+        IExecutableExpression[] argExprs = call.getArgExprs();
+        String methodName = emitFunctionMethod(ctx, call, call.getSlotNames(), call.getBodyExpr(),
+                argExprs.length, argExprs.length, null, call.getTargetSlots());
+        return emitDirectCallSite(ctx, call, methodName, argExprs, call.getSourceSlots());
+    }
+
+    /**
+     * VarFunction/VarExecutableFunction 函数值调用：共享 helper callVarFunction（null 短路/
+     * EXPR_NOT_RETURN_FUNC/ExecutableFunction/GeneratedEvalFunction 分派同一实现）；
+     * 求值顺序保真——func 为 null 时实参不求值（与解释器 getFunction → null 检查 → 实参求值一致）。
+     */
+    private String genVarFunctionCall(GenContext ctx, IExecutableExpression node) {
+        IExecutableExpression funcExpr;
+        IExecutableExpression[] args;
+        boolean optional;
+        if (node instanceof VarFunctionExecutable) {
+            VarFunctionExecutable var = (VarFunctionExecutable) node;
+            funcExpr = var.getFuncExpr();
+            args = var.getArgs();
+            optional = var.isOptional();
+        } else {
+            VarExecutableFunction var = (VarExecutableFunction) node;
+            funcExpr = var.getFuncExpr();
+            args = var.getArgs();
+            optional = var.isOptional();
+        }
+        String func = hoist(ctx, genExpr(ctx, funcExpr));
+        String ret = ctx.temp();
+        ctx.line("Object " + ret + ";");
+        ctx.line("if (" + func + " == null) {");
+        ctx.indent();
+        ctx.line(ret + " = XLangSemantics.callVarFunction(" + ctx.locRef(node) + ", " + displayOf(node)
+                + ", " + optional + ", null, null, $scope);");
+        ctx.unindent();
+        ctx.line("} else {");
+        ctx.indent();
+        String argArray = ctx.temp();
+        ctx.line("Object[] " + argArray + " = new Object[]{" + genArgs(ctx, args) + "};");
+        ctx.line(ret + " = XLangSemantics.callVarFunction(" + ctx.locRef(node) + ", " + displayOf(node)
+                + ", " + optional + ", " + func + ", " + argArray + ", $scope);");
+        ctx.unindent();
+        ctx.line("}");
+        return ret;
+    }
+
+    /**
+     * BuildClosureBodyExecutable（无产生路径，合成树可转译形态）：以当前帧 sourceSlots 快照为
+     * captured，生成函数值（体 = 目标槽绑定 captured 后求值 expr），存入 closureSlot。
+     */
+    private String genBuildClosureBody(GenContext ctx, BuildClosureBodyExecutable node) {
+        checkSlot(ctx, node, node.getClosureSlot());
+        int[] targetSlots = node.getTargetSlots();
+        int frameSize = 0;
+        for (int target : targetSlots)
+            frameSize = Math.max(frameSize, target + 1);
+        String[] frameSlots = new String[frameSize];
+        java.util.Arrays.fill(frameSlots, "");
+        String methodName = emitFunctionMethod(ctx, node, frameSlots, node.getExpr(),
+                0, 0, null, targetSlots);
+        String captured = capturedArrayRef(ctx, node, node.getSourceSlots());
+        ctx.line("$v" + node.getClosureSlot() + " = XLangSemantics.generatedFunction(0, 0,"
+                + " ($s, $a, $c) -> " + methodName + "($s, $a, $c), " + captured + ");");
+        return "null";
+    }
+
+    /**
+     * LazyCompiledExecutableFunction：转译期 force-compile（I4 Phase 1 §5 同类决策伞）——
+     * getCompiled() 触发惰性编译得 ExecutableFunction，下降为私有方法直调（无适配器层）；
+     * 载荷 null/不可解析 → 显式 fail-fast（矩阵最小实例 null 载荷即此路径的反证）。
+     */
+    private String genLazyCompiledCall(GenContext ctx, LazyCompiledExecutableFunction node) {
+        ExecutableFunction compiled;
+        try {
+            compiled = node.getCompiled();
+        } catch (RuntimeException e) {
+            throw unsupported(node, "lazy function payload not resolvable: " + e);
+        }
+        if (compiled == null || compiled.getBody() == null)
+            throw unsupported(node, "lazy function payload not resolvable");
+        String methodName = emitFunctionMethod(ctx, node, compiled.getSlotNames(), compiled.getBody(),
+                node.getArgExprs().length, node.getArgExprs().length, null, null);
+        return emitDirectCallSite(ctx, node, methodName, node.getArgExprs(), null);
+    }
+
+    /** 控制跳转节点发射（native 模式 = 原生语句；换缓冲生成体 = ExitMode cell 通道）。 */
+    private String genJump(GenContext ctx, IExecutableExpression node) {
+        boolean cellMode = ctx.current().outBody;
+        if (node instanceof ReturnExecutable) {
+            ReturnExecutable ret = (ReturnExecutable) node;
+            if (cellMode)
+                ctx.line("$exit[0] = io.nop.core.lang.eval.ExitMode.RETURN;");
+            if (ret.getExpr() != null) {
+                ctx.line("return " + genExpr(ctx, ret.getExpr()) + ";");
+            } else {
+                ctx.line("return null;");
+            }
+            return JUMP_RETURN;
+        }
+        boolean isBreak = node instanceof BreakExecutable;
+        if (ctx.current().loopDepth() > 0) {
+            // 原生循环边界内：带标签原生跳转（break 穿透 switch 翻译块；continue 落到 update/test）
+            ctx.line("break " + (isBreak ? ctx.current().currentLoopLabel()
+                    : ctx.current().currentIterLabel()) + ";");
+            return JUMP_BREAK_NATIVE;
+        }
+        if (cellMode) {
+            ctx.line("$exit[0] = io.nop.core.lang.eval.ExitMode."
+                    + (isBreak ? "BREAK" : "CONTINUE") + ";");
+            ctx.line("return null;");
+            return JUMP_EXIT_CELL;
+        }
+        // 生成方法内循环外 break/continue = 前端拒绝形态（"break语句必须放到循环语句内部"），显式 fail-fast
+        throw unsupported(node, (isBreak ? "break" : "continue") + " statement outside loop");
+    }
+
+    /** 输出族节点要求当前方法有 $out 形参（入口/换缓冲生成体）；$fn_k 函数体内输出 = 显式边界。 */
+    private void requireOut(GenContext ctx, IExecutableExpression node) {
+        ctx.usesOut = true;
+        if (!ctx.current().hasOut)
+            throw unsupported(node, "output node inside function body without $out parameter");
+    }
+
+    private String stringSetRef(java.util.Collection<String> names) {
+        if (names == null || names.isEmpty())
+            return "java.util.Collections.emptySet()";
+        StringBuilder sb = new StringBuilder("java.util.Collections.unmodifiableSet(new java.util.HashSet(");
+        sb.append("java.util.Arrays.asList(");
+        boolean first = true;
+        for (String name : names) {
+            if (!first)
+                sb.append(", ");
+            first = false;
+            sb.append('"').append(escape(name)).append('"');
+        }
+        sb.append(")))");
+        return sb.toString();
+    }
+
+    // ------------------------------------------------------------------
+    // 覆盖 B：换缓冲族生成方法（共享 helper 回调 + ExitMode cell 通道 + 帧数组线程化）
+    // ------------------------------------------------------------------
+
+    /**
+     * Collect* / GenXJson 换缓冲调用：生成体下降为
+     * {@code private static Object $body_k(IEvalScope, IEvalOutput, ExitMode[], Object[] frame)}，
+     * 换缓冲语义走共享 helper（save/set/try-body-finally-restore/collect 与解释器同一实现）；
+     * 调用点帧 marshaling（try/finally 回写，异常路径不丢）+ 按 pending exit 分派
+     * （RETURN→return 收集值；BREAK/CONTINUE 在循环内→原生跳转、无循环→return 收集值——
+     * 解释器边界清零吞没 + Seq 停走语义的合并对应）。
+     */
+    private String genSwapCall(GenContext ctx, IExecutableExpression bodyExpr, String helper, String extraArgs) {
+        String methodName = translateOutBody(ctx, bodyExpr);
+
+        String frame = ctx.temp();
+        emitFrameMarshal(ctx, frame);
+        String exitVar = ctx.temp();
+        ctx.line("io.nop.core.lang.eval.ExitMode[] " + exitVar + " = new io.nop.core.lang.eval.ExitMode[1];");
+        String ret = ctx.temp();
+        ctx.line("Object " + ret + " = null;");
+        ctx.line("try {");
+        ctx.indent();
+        ctx.line(ret + " = XLangSemantics." + helper + "($scope" + (extraArgs != null ? ", " + extraArgs : "")
+                + ", " + exitVar + ", ($s, $o, $e, $f) -> " + methodName + "($s, $o, $e, $f), " + frame + ");");
+        ctx.unindent();
+        ctx.line("} finally {");
+        ctx.indent();
+        emitFrameWriteback(ctx, frame);
+        ctx.unindent();
+        ctx.line("}");
+        emitExitDispatch(ctx, exitVar, ret);
+        return ret;
+    }
+
+    /**
+     * GenNode 换缓冲：节点体先降级为 {@code $genBody_k(IEvalScope, IEvalOutput, ExitMode[], Object[] frame)}；
+     * 发射体下降为 {@code private static void $gen_k(IEvalScope, IXNodeHandler, ExitMode[], Object[] frame)}
+     * （属性/标签求值写槽在 body 前 flush），共享 helper genNode 承载 DisabledEvalOutput 收集 /
+     * handler 直发分支，genNodeHandler 的 begin/body/end 序列与解释器同一实现。
+     */
+    private String genGenNode(GenContext ctx, GenNodeExecutable node) {
+        String bodyMethod = node.getBodyExpr() == null ? null : translateOutBody(ctx, node.getBodyExpr());
+        String genMethod = translateGenEmitter(ctx, node, bodyMethod);
+
+        String frame = ctx.temp();
+        emitFrameMarshal(ctx, frame);
+        String exitVar = ctx.temp();
+        ctx.line("io.nop.core.lang.eval.ExitMode[] " + exitVar + " = new io.nop.core.lang.eval.ExitMode[1];");
+        String ret = ctx.temp();
+        ctx.line("Object " + ret + " = null;");
+        ctx.line("try {");
+        ctx.indent();
+        ctx.line(ret + " = XLangSemantics.genNode($out, " + exitVar + ", ($h, $e, $f) -> "
+                + genMethod + "($scope, $h, $e, $f), " + frame + ");");
+        ctx.unindent();
+        ctx.line("} finally {");
+        ctx.indent();
+        emitFrameWriteback(ctx, frame);
+        ctx.unindent();
+        ctx.line("}");
+        emitExitDispatch(ctx, exitVar, ret);
+        return ret;
+    }
+
+    /** $gen_k 发射体方法（属性/标签求值 + genNodeHandler 接线；body lambda 引用 $genBody_k）。 */
+    private String translateGenEmitter(GenContext ctx, GenNodeExecutable node, String bodyMethod) {
+        String methodName = ctx.newMethodName("$gen");
+        ctx.beginMethod(methodName, ctx.current().slotNames(), true, true,
+                "io.nop.core.lang.xml.IXNodeHandler", true);
+        emitFrameUnmarshal(ctx, "$frame");
+
+        GenNodeAttrExecutable[] attrs = node.getAttrExprs();
+        StringBuilder names = new StringBuilder("new String[]{");
+        StringBuilder valueLocs = new StringBuilder("new io.nop.api.core.util.SourceLocation[]{");
+        StringBuilder values = new StringBuilder("new Object[]{");
+        for (int i = 0; i < attrs.length; i++) {
+            String v = hoist(ctx, genExpr(ctx, attrs[i].getValueExpr()));
+            if (i > 0) {
+                names.append(", ");
+                valueLocs.append(", ");
+                values.append(", ");
+            }
+            names.append('"').append(escape(attrs[i].getName())).append('"');
+            valueLocs.append(ctx.locRef(attrs[i].getValueExpr()));
+            values.append(v);
+        }
+        names.append('}');
+        valueLocs.append('}');
+        values.append('}');
+        String extAttrsValue = "null";
+        if (node.getExtAttrs() != null)
+            extAttrsValue = hoist(ctx, genExpr(ctx, node.getExtAttrs()));
+        String tagNameValue = node.getTagName() != null ? "\"" + escape(node.getTagName()) + "\""
+                : hoist(ctx, genExpr(ctx, node.getTagNameExpr()));
+        List<String> attrNames = new ArrayList<>(attrs.length);
+        for (GenNodeAttrExecutable attr : attrs)
+            attrNames.add(attr.getName());
+        String attrNamesRef = node.getExtAttrs() == null ? "null" : stringSetRef(attrNames);
+
+        String attrMap = ctx.temp();
+        String tag = ctx.temp();
+        // 声明在 try 外（finally 写回帧后仍需在 genNodeHandler 调用中引用）
+        ctx.line("java.util.Map " + attrMap + " = null;");
+        ctx.line("String " + tag + " = null;");
+        ctx.line("try {");
+        ctx.indent();
+        ctx.line(attrMap + " = XLangSemantics.genNodeAttrs(" + names + ", " + valueLocs
+                + ", " + values + ", " + extAttrsValue + ", "
+                + (node.getExtAttrs() == null ? "null" : ctx.locRef(node.getExtAttrs())) + ", " + attrNamesRef + ");");
+        ctx.line(tag + " = XLangSemantics.genNodeTagName(" + ctx.locRef(node) + ", "
+                + (node.getTagName() != null ? "\"" + escape(node.getTagName()) + "\"" : "null") + ", "
+                + tagNameValue + ", "
+                + (node.getTagNameExpr() == null ? "null" : displayOf(node.getTagNameExpr())) + ", "
+                + displayOf(node) + ");");
+        ctx.unindent();
+        ctx.line("} finally {");
+        ctx.indent();
+        emitFrameWriteback(ctx, "$frame");
+        ctx.unindent();
+        ctx.line("}");
+        String bodyLambda = bodyMethod == null ? "null"
+                : "() -> " + bodyMethod + "($scope, $out, $exit, $frame)";
+        ctx.line("XLangSemantics.genNodeHandler($out, " + ctx.locRef(node) + ", " + tag + ", " + attrMap
+                + ", " + bodyLambda + ");");
+        ctx.endMethod();
+        return methodName;
+    }
+
+    /**
+     * 统一函数私有方法生成（$fn_k）：slotNames 帧 → $v 局部变量；实参槽 = $args[i]
+     * （i &lt; 提供数，缺省参数槽 = 内嵌字面量——前端 defaultArgValues 仅产生 Literal/CloneLiteral，
+     * "解释器在调用者帧求值缺省"与"方法内嵌常量"行为等价）；闭包捕获 = $v&lt;targetSlot[i]&gt; =
+     * $captured[i]（对应 BindVarExecutable 语义，捕获写入后于实参——与解释器
+     * args → BindVar 次序一致）。
+     */
+    private String emitFunctionMethod(GenContext ctx, IExecutableExpression node, String[] slotNames,
+                                      IExecutableExpression bodyExpr, int argCount, int demandArgCount,
+                                      IExecutableExpression[] defaultArgValues, int[] capturedTargetSlots) {
+        String methodName = ctx.newMethodName("$fn");
+        ctx.beginFnMethod(methodName, slotNames == null ? new String[0] : slotNames);
+        int slotCount = slotNames == null ? 0 : slotNames.length;
+        for (int i = 0; i < slotCount; i++) {
+            ctx.line("Object $v" + i + " = null; // slot " + i + ": " + slotNames[i]);
+        }
+        for (int i = 0; i < argCount; i++) {
+            if (i < demandArgCount || defaultArgValues == null || defaultArgValues.length == 0) {
+                // 必填实参（或前端已内联缺省的调用形态）：直接取 $args[i]
+                ctx.line("$v" + i + " = $args[" + i + "];");
+            } else {
+                String defaultValue = defaultArgValues[i - demandArgCount] == null ? "null"
+                        : genExpr(ctx, defaultArgValues[i - demandArgCount]);
+                ctx.line("$v" + i + " = $args.length > " + i + " ? $args[" + i + "] : " + defaultValue + ";");
+            }
+        }
+        if (capturedTargetSlots != null) {
+            for (int j = 0; j < capturedTargetSlots.length; j++) {
+                ctx.line("$v" + capturedTargetSlots[j] + " = $captured[" + j + "];");
+            }
+        }
+        emitRootValue(ctx, bodyExpr);
+        ctx.endMethod();
+        return methodName;
+    }
+
+    /** 直调调用点（非根 CallFunc/WithClosure/LazyCompiled）：args 数组 → captured 数组 → 直调 + 异常包装。 */
+    private String emitDirectCallSite(GenContext ctx, IExecutableExpression node, String methodName,
+                                      IExecutableExpression[] argExprs, int[] sourceSlots) {
+        String argsVar = ctx.temp();
+        ctx.line("Object[] " + argsVar + " = new Object[]{" + genArgs(ctx, argExprs) + "};");
+        String capturedRef = capturedArrayRef(ctx, node, sourceSlots);
+        String ret = ctx.temp();
+        String exVar = ctx.temp();
+        ctx.line("Object " + ret + " = null;");
+        ctx.line("try {");
+        ctx.indent();
+        ctx.line(ret + " = " + methodName + "($scope, " + argsVar + ", " + capturedRef + ");");
+        ctx.unindent();
+        ctx.line("} catch (java.lang.Exception " + exVar + ") {");
+        ctx.indent();
+        ctx.line("throw XLangSemantics.wrapCallFuncException(" + displayOf(node) + ", " + ctx.locRef(node)
+                + ", " + displayOf(node) + ", " + exVar + ");");
+        ctx.unindent();
+        ctx.line("}");
+        return ret;
+    }
+
+    private String capturedArrayRef(GenContext ctx, IExecutableExpression node, int[] sourceSlots) {
+        if (sourceSlots == null || sourceSlots.length == 0)
+            return "new Object[0]";
+        StringBuilder sb = new StringBuilder("new Object[]{");
+        for (int i = 0; i < sourceSlots.length; i++) {
+            checkSlot(ctx, node, sourceSlots[i]);
+            if (i > 0)
+                sb.append(", ");
+            sb.append("$v").append(sourceSlots[i]);
+        }
+        sb.append('}');
+        return sb.toString();
+    }
+
+    /**
+     * 换缓冲生成体方法（$body_k / $genBody_k）：unmarshal 帧 → try{ 体 } finally{ writeback 帧 }
+     * → 尾部 return（体为终端跳转时省略——跳转已在 try 内 return，尾部不可达）。
+     */
+    private String translateOutBody(GenContext ctx, IExecutableExpression bodyExpr) {
+        String methodName = ctx.newMethodName("$body");
+        ctx.beginMethod(methodName, ctx.current().slotNames(), true, true,
+                "io.nop.core.lang.eval.IEvalOutput", false);
+        emitFrameUnmarshal(ctx, "$frame");
+        String result = ctx.temp();
+        ctx.line("Object " + result + " = null;");
+        ctx.line("try {");
+        ctx.indent();
+        String body = genBodyValue(ctx, bodyExpr);
+        if (!isJump(body))
+            ctx.line(result + " = " + body + ";");
+        ctx.unindent();
+        ctx.line("} finally {");
+        ctx.indent();
+        emitFrameWriteback(ctx, "$frame");
+        ctx.unindent();
+        ctx.line("}");
+        if (!isTerminalJumpRef(body))
+            ctx.line("return " + result + ";");
+        ctx.endMethod();
+        return methodName;
+    }
+
+    private void emitFrameMarshal(GenContext ctx, String frameVar) {
+        StringBuilder sb = new StringBuilder("Object[] " + frameVar + " = new Object[]{");
+        for (int i = 0; i < ctx.current().slotCount(); i++) {
+            if (i > 0)
+                sb.append(", ");
+            sb.append("$v").append(i);
+        }
+        sb.append("};");
+        ctx.line(sb.toString());
+    }
+
+    private void emitFrameUnmarshal(GenContext ctx, String frameVar) {
+        for (int i = 0; i < ctx.current().slotCount(); i++) {
+            ctx.line("Object $v" + i + " = " + frameVar + "[" + i + "];");
+        }
+    }
+
+    private void emitFrameWriteback(GenContext ctx, String frameVar) {
+        for (int i = 0; i < ctx.current().slotCount(); i++) {
+            ctx.line(frameVar + "[" + i + "] = $v" + i + ";");
+        }
+    }
+
+    /** 换缓冲调用点的 pending exit 分派（I4 Phase 1 §6 裁定形态）。 */
+    private void emitExitDispatch(GenContext ctx, String exitVar, String valueVar) {
+        ctx.line("if (" + exitVar + "[0] == io.nop.core.lang.eval.ExitMode.RETURN) {");
+        ctx.indent();
+        ctx.line("return " + valueVar + ";");
+        ctx.unindent();
+        ctx.line("}");
+        if (ctx.current().loopDepth() > 0) {
+            ctx.line("if (" + exitVar + "[0] == io.nop.core.lang.eval.ExitMode.BREAK) {");
+            ctx.indent();
+            ctx.line("break " + ctx.current().currentLoopLabel() + ";");
+            ctx.unindent();
+            ctx.line("}");
+            ctx.line("if (" + exitVar + "[0] == io.nop.core.lang.eval.ExitMode.CONTINUE) {");
+            ctx.indent();
+            ctx.line("break " + ctx.current().currentIterLabel() + ";");
+            ctx.unindent();
+            ctx.line("}");
+        } else {
+            // 无循环：解释器边界清零吞没 + Seq 停走语义的合并对应（收集值作为返回值）
+            ctx.line("if (" + exitVar + "[0] != null) {");
+            ctx.indent();
+            ctx.line("return " + valueVar + ";");
+            ctx.unindent();
+            ctx.line("}");
+        }
     }
 
     // ------------------------------------------------------------------
@@ -946,7 +1905,7 @@ public final class ExecToJavaTranslator {
     private String genDebugIdentifier(GenContext ctx, DebugIdentifierExecutable node) {
         // ExprExecHelper.getVar 同一查找序：入口帧按名定位（deRef）→ 回落 scope 按名读取
         String varName = node.getVarName();
-        int slot = ctx.indexOfSlotName(varName);
+        int slot = ctx.current().indexOfSlotName(varName);
         if (slot >= 0) {
             checkSlot(ctx, node, slot);
             return "io.nop.core.lang.eval.EvalReference.deRef($v" + slot + ")";
@@ -1036,18 +1995,25 @@ public final class ExecToJavaTranslator {
 
     private String genSeqAsExpr(GenContext ctx, ISeqExecutable seq) {
         IExecutableExpression[] exprs = seq.getExprs();
+        boolean jumped = false;
         if (seq.isBlockStatement()) {
             for (IExecutableExpression child : exprs) {
-                genStatement(ctx, child);
+                if (!genStatementChild(ctx, child)) {
+                    jumped = true;
+                    break;
+                }
             }
-            return "null";
+            return jumped ? JUMP_RETURN : "null";
         }
         if (exprs.length == 0)
             return "null";
         for (int i = 0, n = exprs.length - 1; i < n; i++) {
-            genStatement(ctx, exprs[i]);
+            if (!genStatementChild(ctx, exprs[i]))
+                return JUMP_RETURN; // 前置语句无条件跳转：Seq 停走，值为跳转承载（解释器 exitMode 语义）
         }
-        String last = genExpr(ctx, exprs[exprs.length - 1]);
+        String last = genBodyValue(ctx, exprs[exprs.length - 1]);
+        if (isJump(last))
+            return last;
         if (isInvocationRef(last)) {
             String temp = ctx.temp();
             ctx.line("Object " + temp + " = " + last + ";");
@@ -1223,7 +2189,7 @@ public final class ExecToJavaTranslator {
     }
 
     private void checkSlot(GenContext ctx, IExecutableExpression node, int slot) {
-        if (slot < 0 || slot >= ctx.slotCount)
+        if (slot < 0 || slot >= ctx.current().slotCount())
             throw unsupported(ctx, node, "slot read/write outside program entry frame: slot=" + slot);
     }
 
@@ -1299,49 +2265,125 @@ public final class ExecToJavaTranslator {
     }
 
     // ------------------------------------------------------------------
-    // 生成上下文
+    // 生成上下文（类级状态 + 方法发射器栈：入口方法与私有方法 $fn_k/$body_k/$gen_k 各一层）
     // ------------------------------------------------------------------
 
     private static final class GenContext {
         final String resourcePath;
-        final List<String> lines = new ArrayList<>();
         final Map<String, String> locConstants = new LinkedHashMap<>();
         final List<SourceLocation> locDecls = new ArrayList<>();
-        String[] slotNames = new String[0];
-        int tempCounter;
-        int slotCount;
-        int indent = 1;
+        final List<String> extraMethods = new ArrayList<>();
+        boolean usesOut;
+        boolean jumpCtx;
+        int methodCounter;
+
+        private MethodEmitter current;
+        private List<String> entryLines = new ArrayList<>();
 
         GenContext(String resourcePath) {
             this.resourcePath = resourcePath;
         }
 
-        int indexOfSlotName(String varName) {
-            for (int i = 0; i < slotNames.length; i++) {
-                if (varName.equals(slotNames[i]))
-                    return i;
+        MethodEmitter current() {
+            if (current == null)
+                throw new IllegalStateException("no method emitter active");
+            return current;
+        }
+
+        void beginEntryMethod(String[] slotNames) {
+            current = new MethodEmitter(null, slotNames, false, true, null, false);
+        }
+
+        void beginMethod(String name, String[] slotNames, boolean outBody, boolean hasOut,
+                         String outType, boolean voidMethod) {
+            MethodEmitter m = new MethodEmitter(name, slotNames, outBody, hasOut, outType, voidMethod);
+            m.caller = current;
+            current = m;
+        }
+
+        /** 函数私有方法（$fn_k）：参数形态 = (IEvalScope $scope, Object[] $args, Object[] $captured)。 */
+        void beginFnMethod(String name, String[] slotNames) {
+            MethodEmitter m = new MethodEmitter(name, slotNames, false, false, null, false);
+            m.fnParams = true;
+            m.caller = current;
+            current = m;
+        }
+
+        void endMethod() {
+            if (current == null)
+                throw new IllegalStateException("no method emitter active");
+            if (current.name == null) {
+                entryLines = current.lines; // 入口方法：buildClass 直接消费
+            } else {
+                StringBuilder sb = new StringBuilder(256);
+                sb.append("    private ").append(current.returnType()).append(' ').append(current.name).append('(')
+                        .append("io.nop.core.lang.eval.IEvalScope $scope");
+                if (current.fnParams) {
+                    sb.append(", Object[] $args, Object[] $captured");
+                } else {
+                    if (current.outType != null)
+                        sb.append(", ").append(current.outType).append(" $out");
+                    sb.append(", io.nop.core.lang.eval.ExitMode[] $exit, Object[] $frame");
+                }
+                sb.append(") {\n");
+                for (String text : current.lines)
+                    sb.append("    ").append(text).append('\n');
+                sb.append("    }\n");
+                extraMethods.add(sb.toString());
             }
-            return -1;
+            current = current.caller;
+        }
+
+        String newMethodName(String prefix) {
+            return prefix + "_" + (++methodCounter);
+        }
+
+        String newLabel(String prefix) {
+            return current().newLabel(prefix);
         }
 
         void line(String text) {
-            StringBuilder sb = new StringBuilder(text.length() + 8);
-            for (int i = 0; i < indent; i++)
-                sb.append("    ");
-            sb.append(text);
-            lines.add(sb.toString());
+            current().line(text);
         }
 
         void indent() {
-            indent++;
+            current().indent++;
         }
 
         void unindent() {
-            indent--;
+            current().indent--;
         }
 
         String temp() {
-            return "$t" + (tempCounter++);
+            return current().temp();
+        }
+
+        void openLoop() {
+            MethodEmitter m = current();
+            m.loopDepth++;
+            String loopVar = m.newLabel("$loop");
+            String iterVar = m.newLabel("$iter");
+            m.loopLabels.add(loopVar);
+            m.iterLabels.add(iterVar);
+            line(loopVar + ": while (true) {");
+            indent();
+            line(iterVar + ": {");
+            indent();
+        }
+
+        void closeIterBlock() {
+            unindent();
+            line("} // iter block");
+            indent();
+        }
+
+        void closeLoop() {
+            unindent();
+            line("}");
+            MethodEmitter m = current();
+            m.loopLabels.remove(m.loopLabels.size() - 1);
+            m.iterLabels.remove(m.iterLabels.size() - 1);
+            m.loopDepth--;
         }
 
         /**
@@ -1365,17 +2407,21 @@ public final class ExecToJavaTranslator {
         }
 
         String buildClass(String className) {
+            if (current != null)
+                throw new IllegalStateException("unbalanced method emitters");
             StringBuilder sb = new StringBuilder(1024);
             sb.append("// source: ").append(resourcePath).append('\n');
             sb.append("package ").append(EvalMethodConvention.GENERATED_PACKAGE).append(";\n\n");
             sb.append("import ").append(SourceLocation.class.getName()).append(";\n");
-            sb.append("import ").append(IEvalScope.class.getName()).append(";\n");
+            sb.append("import io.nop.core.lang.eval.IEvalScope;\n");
+            sb.append("import io.nop.core.lang.eval.IEvalOutput;\n");
+            sb.append("import io.nop.core.lang.eval.ExitMode;\n");
+            sb.append("import io.nop.core.lang.xml.IXNodeHandler;\n");
             sb.append("import ").append(XLangSemantics.class.getName()).append(";\n\n");
             sb.append("public final class ").append(className).append(" {\n");
             for (int i = 0, n = locDecls.size(); i < n; i++) {
                 SourceLocation loc = locDecls.get(i);
-                String name = "LOC_" + i;
-                sb.append("    private static final SourceLocation ").append(name)
+                sb.append("    private static final SourceLocation LOC_").append(i)
                         .append(" = SourceLocation.fromLine(\"").append(escape(loc.getPath()))
                         .append("\", ").append(loc.getLine()).append(", ").append(loc.getCol())
                         .append(");\n");
@@ -1383,13 +2429,96 @@ public final class ExecToJavaTranslator {
             if (!locDecls.isEmpty())
                 sb.append('\n');
             sb.append("    public static Object ").append(EvalMethodConvention.ENTRY_METHOD_NAME)
-                    .append("(").append(IEvalScope.class.getSimpleName()).append(' ')
-                    .append(EvalMethodConvention.SCOPE_PARAM).append(") {\n");
-            for (String text : lines)
+                    .append("(IEvalScope ").append(EvalMethodConvention.SCOPE_PARAM);
+            if (usesOut)
+                sb.append(", IEvalOutput ").append(EvalMethodConvention.OUT_PARAM);
+            sb.append(") {\n");
+            for (String text : entryLines)
                 sb.append("    ").append(text).append('\n');
             sb.append("    }\n");
+            for (String method : extraMethods)
+                sb.append('\n').append(method);
             sb.append("}\n");
             return sb.toString();
+        }
+
+        /** 单个生成方法的发射器（入口方法 name == null）。 */
+        private static final class MethodEmitter {
+            final String name;
+            final List<String> lines = new ArrayList<>();
+            final String[] slotNames;
+            final int slotCount;
+            final boolean outBody;
+            final boolean hasOut;
+            final String outType;
+            final boolean voidMethod;
+            boolean fnParams;
+            MethodEmitter caller;
+            int indent = 1;
+            int tempCounter;
+            int labelCounter;
+            int loopDepth;
+            final List<String> loopLabels = new ArrayList<>();
+            final List<String> iterLabels = new ArrayList<>();
+
+            MethodEmitter(String name, String[] slotNames, boolean outBody, boolean hasOut,
+                          String outType, boolean voidMethod) {
+                this.name = name;
+                this.slotNames = slotNames == null ? new String[0] : slotNames;
+                this.slotCount = this.slotNames.length;
+                this.outBody = outBody;
+                this.hasOut = hasOut;
+                this.outType = outType;
+                this.voidMethod = voidMethod;
+            }
+
+            String returnType() {
+                return voidMethod ? "static void" : "static Object";
+            }
+
+            int slotCount() {
+                return slotCount;
+            }
+
+            String[] slotNames() {
+                return slotNames;
+            }
+
+            int loopDepth() {
+                return loopDepth;
+            }
+
+            String currentLoopLabel() {
+                return loopLabels.get(loopLabels.size() - 1);
+            }
+
+            String currentIterLabel() {
+                return iterLabels.get(iterLabels.size() - 1);
+            }
+
+            String newLabel(String prefix) {
+                return prefix + "_" + (++labelCounter);
+            }
+
+            int indexOfSlotName(String varName) {
+                for (int i = 0; i < slotNames.length; i++) {
+                    if (varName.equals(slotNames[i]))
+                        return i;
+                }
+                return -1;
+            }
+
+            void line(String text) {
+                StringBuilder sb = new StringBuilder(text.length() + 8);
+                for (int i = 0; i < indent; i++)
+                    sb.append("    ");
+                sb.append(text);
+                lines.add(sb.toString());
+            }
+
+            String temp() {
+                return "$t" + (tempCounter++);
+            }
         }
     }
 }

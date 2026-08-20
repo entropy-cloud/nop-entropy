@@ -106,4 +106,12 @@ public class DoWhileExecutable extends AbstractExecutable {
         }
     }
 
+
+    public IExecutableExpression getTestExpr() {
+        return testExpr;
+    }
+
+    public IExecutableExpression getBodyExpr() {
+        return bodyExpr;
+    }
 }

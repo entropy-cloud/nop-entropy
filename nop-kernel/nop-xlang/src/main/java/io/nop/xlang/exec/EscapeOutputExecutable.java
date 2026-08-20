@@ -44,36 +44,7 @@ public class EscapeOutputExecutable extends AbstractExecutable {
     @Override
     public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
         Object value = executor.execute(valueExpr, rt);
-        if (value == null)
-            return null;
-
-        SourceLocation loc = getLocation();
-        IEvalOutput out = rt.getOut();
-
-        if (value instanceof RawText) {
-            out.text(loc, ((RawText) value).getText());
-            return null;
-        }
-
-        switch (escapeMode) {
-            case xml: {
-                String text = StringHelper.escapeXml(value.toString());
-                out.text(loc, text);
-                break;
-            }
-            case xmlAttr: {
-                String text = StringHelper.escapeXmlAttr(value.toString());
-                out.text(loc, text);
-                break;
-            }
-            case xmlValue: {
-                String text = StringHelper.escapeXmlValue(value.toString());
-                out.text(loc, text);
-                break;
-            }
-            default:
-                out.value(loc, value);
-        }
+        XLangSemantics.escapeOutput(getLocation(), rt.getOut(), escapeMode, value);
         return null;
     }
 
@@ -83,5 +54,13 @@ public class EscapeOutputExecutable extends AbstractExecutable {
             valueExpr.visit(visitor);
             visitor.onEndVisitExpr(this);
         }
+    }
+
+    public XLangEscapeMode getEscapeMode() {
+        return escapeMode;
+    }
+
+    public IExecutableExpression getValueExpr() {
+        return valueExpr;
     }
 }

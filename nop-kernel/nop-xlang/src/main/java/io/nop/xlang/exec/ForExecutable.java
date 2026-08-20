@@ -128,4 +128,20 @@ public class ForExecutable extends AbstractExecutable {
             return null;
         }
     }
+
+    public IExecutableExpression getInitExpr() {
+        return initExpr;
+    }
+
+    public IExecutableExpression getTestExpr() {
+        return testExpr;
+    }
+
+    public IExecutableExpression getUpdateExpr() {
+        return updateExpr;
+    }
+
+    public IExecutableExpression getBodyExpr() {
+        return bodyExpr;
+    }
 }

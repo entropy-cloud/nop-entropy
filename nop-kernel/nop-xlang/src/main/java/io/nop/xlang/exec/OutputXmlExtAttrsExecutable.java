@@ -46,37 +46,8 @@ public class OutputXmlExtAttrsExecutable extends AbstractExecutable {
     @Override
     public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
         Object v = executor.execute(attrs, rt);
-        if (v == null)
-            return null;
-
-        if (!(v instanceof Map))
-            throw newError(ERR_EXEC_XML_EXT_ATTRS_NOT_MAP);
-
-        IEvalOutput out = rt.getOut();
-        Map<String, Object> map = (Map<String, Object>) v;
-        if (excludeNames.isEmpty()) {
-            for (Map.Entry<String, Object> entry : map.entrySet()) {
-                outputAttr(entry, out);
-            }
-        } else {
-            for (Map.Entry<String, Object> entry : map.entrySet()) {
-                if (!excludeNames.contains(entry.getKey()))
-                    outputAttr(entry, out);
-            }
-        }
+        XLangSemantics.outputXmlExtAttrs(getLocation(), display(), rt.getOut(), excludeNames, v);
         return null;
-    }
-
-    private void outputAttr(Map.Entry<String, Object> entry, IEvalOutput out) {
-        Object value = entry.getValue();
-        if (value != null) {
-            SourceLocation loc = getLocation();
-            out.text(null, " ");
-            out.text(null, entry.getKey());
-            out.text(null, "=\"");
-            out.text(loc, StringHelper.escapeXmlAttr(value.toString()));
-            out.text(null, "\"");
-        }
     }
 
     @Override
@@ -85,5 +56,13 @@ public class OutputXmlExtAttrsExecutable extends AbstractExecutable {
             attrs.visit(visitor);
             visitor.onEndVisitExpr(this);
         }
+    }
+
+    public Set<String> getExcludeNames() {
+        return excludeNames;
+    }
+
+    public IExecutableExpression getAttrsExpr() {
+        return attrs;
     }
 }

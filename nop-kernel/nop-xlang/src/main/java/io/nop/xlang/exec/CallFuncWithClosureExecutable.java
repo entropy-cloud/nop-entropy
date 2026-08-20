@@ -72,11 +72,8 @@ public class CallFuncWithClosureExecutable extends AbstractExecutable {
         try {
             rt.pushFrame(frame);
             return executor.execute(bodyExpr, rt);
-        } catch (NopException e) {
-            e.addXplStack(this);
-            throw e;
         } catch (Exception e) {
-            throw newError(ERR_EXEC_CALL_FUNC_FAIL, e).forWrap();
+            throw XLangSemantics.wrapCallFuncException(this, getLocation(), display(), e);
         } finally {
             rt.setExitMode(null);
             rt.popFrame();
@@ -93,5 +90,29 @@ public class CallFuncWithClosureExecutable extends AbstractExecutable {
             bodyExpr.visit(visitor);
             visitor.onEndVisitExpr(this);
         }
+    }
+
+    public String getFuncName() {
+        return funcName;
+    }
+
+    public String[] getSlotNames() {
+        return slotNames;
+    }
+
+    public IExecutableExpression[] getArgExprs() {
+        return argExprs;
+    }
+
+    public IExecutableExpression getBodyExpr() {
+        return bodyExpr;
+    }
+
+    public int[] getSourceSlots() {
+        return sourceSlots;
+    }
+
+    public int[] getTargetSlots() {
+        return targetSlots;
     }
 }

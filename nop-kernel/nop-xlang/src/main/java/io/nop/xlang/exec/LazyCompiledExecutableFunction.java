@@ -36,6 +36,10 @@ public class LazyCompiledExecutableFunction extends AbstractExecutable {
         return funcName;
     }
 
+    public IExecutableExpression[] getArgExprs() {
+        return argExprs;
+    }
+
     @Override
     public void display(StringBuilder sb) {
         sb.append(funcName).append("(").append(argExprs.length).append(")");

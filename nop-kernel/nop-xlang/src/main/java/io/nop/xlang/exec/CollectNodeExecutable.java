@@ -10,6 +10,7 @@ package io.nop.xlang.exec;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.CoreConstants;
 import io.nop.core.lang.eval.EvalRuntime;
+import io.nop.core.lang.eval.ExitMode;
 import io.nop.core.lang.eval.IEvalOutput;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExecutableExpressionVisitor;
@@ -44,25 +45,17 @@ public class CollectNodeExecutable extends AbstractExecutable {
 
     @Override
     public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
-        IEvalOutput oldOut = rt.getOut();
-        CollectXNodeHandler out = new CollectXNodeHandler();
-        rt.setOut(out);
-        try {
-            out.beginNode(getLocation(), CoreConstants.DUMMY_TAG_NAME, Collections.emptyMap());
-            bodyExpr.execute(executor, rt);
-            out.endNode(CoreConstants.DUMMY_TAG_NAME);
-        } finally {
-            rt.setOut(oldOut);
-        }
-        XNode node = out.endDoc();
-        if (singleNode) {
-            if (node.getChildCount() != 1) {
-                throw newError(ERR_EXEC_COLLECT_RESULT_NOT_SINGLE_NODE);
-            } else {
-                node = node.child(0);
-            }
-        }
-        return node;
+        return XLangSemantics.collectNode(rt.getScope(), getLocation(), singleNode, new ExitMode[1],
+                ($scope, $out, $exit, $frame) -> {
+                    IEvalOutput oldOut = rt.getOut();
+                    rt.setOut($out);
+                    try {
+                        bodyExpr.execute(executor, rt);
+                    } finally {
+                        rt.setOut(oldOut);
+                    }
+                    return null;
+                }, null);
     }
 
     @Override
@@ -71,5 +64,13 @@ public class CollectNodeExecutable extends AbstractExecutable {
             bodyExpr.visit(visitor);
             visitor.onEndVisitExpr(this);
         }
+    }
+
+    public IExecutableExpression getBodyExpr() {
+        return bodyExpr;
+    }
+
+    public boolean isSingleNode() {
+        return singleNode;
     }
 }

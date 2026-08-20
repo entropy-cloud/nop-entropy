@@ -95,4 +95,12 @@ public class WhileExecutable extends AbstractExecutable {
             return null;
         }
     }
+
+    public IExecutableExpression getTestExpr() {
+        return testExpr;
+    }
+
+    public IExecutableExpression getBodyExpr() {
+        return bodyExpr;
+    }
 }

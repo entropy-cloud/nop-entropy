@@ -65,4 +65,16 @@ public class BuildFuncRefExecutable extends AbstractExecutable {
             visitor.onEndVisitExpr(this);
         }
     }
+
+    public ExecutableFunction getFunc() {
+        return func;
+    }
+
+    public int[] getSourceSlots() {
+        return sourceSlots;
+    }
+
+    public int[] getTargetSlots() {
+        return targetSlots;
+    }
 }

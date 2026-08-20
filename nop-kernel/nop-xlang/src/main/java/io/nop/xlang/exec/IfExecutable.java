@@ -74,4 +74,16 @@ public class IfExecutable extends AbstractExecutable {
     public void display(StringBuilder sb) {
         sb.append("if()");
     }
+
+    public IExecutableExpression getTest() {
+        return test;
+    }
+
+    public IExecutableExpression getConsequent() {
+        return consequent;
+    }
+
+    public IExecutableExpression getAlternate() {
+        return alternate;
+    }
 }

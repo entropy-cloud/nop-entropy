@@ -152,4 +152,24 @@ public class ForOfExecutable extends AbstractExecutable {
             return null;
         }
     }
+
+    public int getVarSlot() {
+        return varSlot;
+    }
+
+    public int getIndexSlot() {
+        return indexSlot;
+    }
+
+    public boolean isUseRef() {
+        return useRef;
+    }
+
+    public IExecutableExpression getItemsExpr() {
+        return itemsExpr;
+    }
+
+    public IExecutableExpression getBodyExpr() {
+        return bodyExpr;
+    }
 }

@@ -35,17 +35,8 @@ public class ThrowExceptionExecutable extends AbstractExecutable {
     @Override
     public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
         Object value = executor.execute(expr, rt);
-        if (value == null)
-            throw newError(ERR_EXEC_THROW_NULL_EXCEPTION);
-        if (value instanceof NopException) {
-            NopException e = (NopException) value;
-            if (e.getErrorLocation() == null)
-                e.loc(getLocation());
-            throw e;
-        } else if (value instanceof Throwable) {
-            throw newError(ERR_EXEC_THROW_EXCEPTION, (Throwable) value).forWrap();
-        }
-        throw newError(ERR_EXEC_THROW_EXCEPTION).param(ARG_VALUE, value);
+        XLangSemantics.throwException(getLocation(), display(), value);
+        return null;
     }
 
     @Override
@@ -54,5 +45,9 @@ public class ThrowExceptionExecutable extends AbstractExecutable {
             expr.visit(visitor);
             visitor.onEndVisitExpr(this);
         }
+    }
+
+    public IExecutableExpression getExpr() {
+        return expr;
     }
 }

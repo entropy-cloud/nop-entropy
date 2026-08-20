@@ -14,6 +14,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.lang.eval.DisabledEvalOutput;
 import io.nop.core.lang.eval.EvalRuntime;
+import io.nop.core.lang.eval.ExitMode;
 import io.nop.core.lang.eval.IEvalOutput;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExecutableExpressionVisitor;
@@ -71,7 +72,8 @@ public class GenNodeExecutable extends AbstractExecutable {
     @Override
     public void visit(IExecutableExpressionVisitor visitor) {
         if (visitor.onVisitExpr(this)) {
-            tagNameExpr.visit(visitor);
+            if (tagNameExpr != null)
+                tagNameExpr.visit(visitor);
             for (GenNodeAttrExecutable attrExpr : this.attrExprs) {
                 attrExpr.getValueExpr().visit(visitor);
             }
@@ -85,21 +87,15 @@ public class GenNodeExecutable extends AbstractExecutable {
 
     @Override
     public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
-        IEvalOutput output = rt.getOut();
-        if (output == DisabledEvalOutput.INSTANCE) {
-            CollectXNodeHandler out = new CollectXNodeHandler();
+        return XLangSemantics.genNode(rt.getOut(), new ExitMode[1], (out, exit, frame) -> {
+            IEvalOutput oldOut = rt.getOut();
             rt.setOut(out);
             try {
                 executeWithHandler(out, executor, rt);
-                return out.endDoc();
-            }finally {
-                rt.setOut(output);
+            } finally {
+                rt.setOut(oldOut);
             }
-        } else {
-            IXNodeHandler out = (IXNodeHandler) rt.getOut();
-            executeWithHandler(out, executor, rt);
-            return null;
-        }
+        }, null);
     }
 
     void executeWithHandler(IXNodeHandler out, IExpressionExecutor executor, EvalRuntime rt) {
@@ -107,30 +103,13 @@ public class GenNodeExecutable extends AbstractExecutable {
         Map<String, ValueWithLocation> attrs = buildAttrs(executor, rt);
 
         String tagName = buildTagName(executor, rt);
-        if (bodyExpr == null) {
-            out.simpleNode(loc, tagName, attrs);
-        } else {
-            out.beginNode(loc, tagName, attrs);
-            executor.execute(bodyExpr, rt);
-            out.endNode(tagName);
-        }
+        XLangSemantics.genNodeHandler(out, loc, tagName, attrs,
+                bodyExpr == null ? null : () -> executor.execute(bodyExpr, rt));
     }
 
     String buildTagName(IExpressionExecutor executor, EvalRuntime rt) {
-        if (tagName != null)
-            return tagName;
-
-        Object value = executor.execute(tagNameExpr, rt);
-        if (value instanceof String) {
-            String str = value.toString();
-            if (!StringHelper.isValidXmlName(str))
-                throw newError(ERR_XPL_DISALLOW_OUTPUT_INVALID_XML_NAME).param(ARG_TAG_NAME, str)
-                        .param(ARG_TAG_NAME_EXPR, tagNameExpr);
-            return str;
-        }
-
-        throw newError(ERR_XPL_DISALLOW_OUTPUT_INVALID_XML_NAME).param(ARG_TAG_NAME, value).param(ARG_TAG_NAME_EXPR,
-                tagNameExpr);
+        Object tagNameValue = tagName != null ? tagName : executor.execute(tagNameExpr, rt);
+        return XLangSemantics.genNodeTagName(getLocation(), tagName, tagNameValue, tagNameExpr, display());
     }
 
     private Map<String, ValueWithLocation> buildAttrs(IExpressionExecutor executor, EvalRuntime rt) {
@@ -138,35 +117,42 @@ public class GenNodeExecutable extends AbstractExecutable {
             return Collections.emptyMap();
         }
 
-        Map<String, ValueWithLocation> map = new LinkedHashMap<>();
-        for (GenNodeAttrExecutable attrExpr : attrExprs) {
+        String[] names = new String[attrExprs.length];
+        SourceLocation[] valueLocs = new SourceLocation[attrExprs.length];
+        Object[] values = new Object[attrExprs.length];
+        for (int i = 0; i < attrExprs.length; i++) {
+            GenNodeAttrExecutable attrExpr = attrExprs[i];
             IExecutableExpression valueExpr = attrExpr.getValueExpr();
-            Object value = executor.execute(valueExpr, rt);
-            if (value == null)
-                continue;
-            map.put(attrExpr.getName(), ValueWithLocation.of(valueExpr.getLocation(), value));
+            names[i] = attrExpr.getName();
+            valueLocs[i] = valueExpr.getLocation();
+            values[i] = executor.execute(valueExpr, rt);
         }
 
+        Object extAttrsValue = null;
         if (extAttrs != null) {
-            Object value = executor.execute(extAttrs, rt);
-            if (value != null) {
-                if (!(value instanceof Map))
-                    throw newError(ERR_EXEC_XML_EXT_ATTRS_NOT_MAP).loc(extAttrs.getLocation());
-
-                Map<String, Object> extMap = (Map<String, Object>) value;
-                for (Map.Entry<String, Object> entry : extMap.entrySet()) {
-                    Object extValue = entry.getValue();
-                    if (extValue == null)
-                        continue;
-
-                    if (attrNames.contains(entry.getKey()))
-                        continue;
-
-                    map.put(entry.getKey(), ValueWithLocation.of(extAttrs.getLocation(), extValue));
-                }
-            }
+            extAttrsValue = executor.execute(extAttrs, rt);
         }
+        return XLangSemantics.genNodeAttrs(names, valueLocs, values, extAttrsValue,
+                extAttrs == null ? null : extAttrs.getLocation(), attrNames);
+    }
 
-        return map;
+    public String getTagName() {
+        return tagName;
+    }
+
+    public IExecutableExpression getTagNameExpr() {
+        return tagNameExpr;
+    }
+
+    public GenNodeAttrExecutable[] getAttrExprs() {
+        return attrExprs;
+    }
+
+    public IExecutableExpression getExtAttrs() {
+        return extAttrs;
+    }
+
+    public IExecutableExpression getBodyExpr() {
+        return bodyExpr;
     }
 }

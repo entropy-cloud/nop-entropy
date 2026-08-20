@@ -118,4 +118,16 @@ public class ForInExecutable extends AbstractExecutable {
             return null;
         }
     }
+
+    public int getVarSlot() {
+        return varSlot;
+    }
+
+    public IExecutableExpression getItemsExpr() {
+        return itemsExpr;
+    }
+
+    public IExecutableExpression getBodyExpr() {
+        return bodyExpr;
+    }
 }

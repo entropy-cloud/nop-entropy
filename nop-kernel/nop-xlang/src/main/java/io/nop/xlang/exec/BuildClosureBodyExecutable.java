@@ -59,4 +59,20 @@ public class BuildClosureBodyExecutable extends AbstractExecutable {
             visitor.onEndVisitExpr(this);
         }
     }
+
+    public int getClosureSlot() {
+        return closureSlot;
+    }
+
+    public int[] getSourceSlots() {
+        return sourceSlots;
+    }
+
+    public int[] getTargetSlots() {
+        return targetSlots;
+    }
+
+    public IExecutableExpression getExpr() {
+        return expr;
+    }
 }

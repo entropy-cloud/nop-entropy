@@ -142,20 +142,23 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * 覆盖矩阵断言测试（I3 Phase 3 落地，roadmap I3 验收第二项）。
+ * 覆盖矩阵断言测试（I3 Phase 3 落地，I4 Phase 2/3 锚点切换到 java 侧目标集后闭环）。
  *
- * <p>矩阵口径（plan Phase 1 定稿）：
+ * <p>矩阵口径（I4 per-backend 定稿）：
  * <ul>
  * <li>基线 = {@link ExecNodeBaseline}（live 包扫描单一事实源，新鲜度红灯在 nop-xlang 侧
  *   {@code TestExecNodeBaselineFreshness}；本测试经 test-jar 同基线消费）；</li>
  * <li>注册证据 = 转译器支持集可编程枚举（{@link ExecToJavaTranslator#getSupportedNodeClasses()}）
- *   与基线 {@code registeredTarget()}（I2 子集 + A 族 + 并入残余 = 87 类）双向一致；</li>
- * <li>真实转译验证（非清单自证）：87 类逐类构造最小实例经转译器真实转译成功
- *   （I3 范围 59 类 + I2 子集 28 类；slot 依赖节点以程序入口帧包装，嵌套同族变体
- *   如 {@code SimpleSeqExecutable}/{@code SimpleBlockExecutable} 经其顶层类的工厂产生，
- *   转译器按 {@code ISeqExecutable} 接口分派——文件级粒度裁定见 {@link ExecNodeBaseline} javadoc）；</li>
- * <li>fail-fast 反证：B 族 35 类逐类断言不支持（pending 可观测、不算通过），
- *   树节点类同时断言转译报 {@code ERR_EXEC_TRANSLATE_UNSUPPORTED_NODE}；</li>
+ *   与基线 <b>java 侧目标集</b> {@code ExecNodeBaseline.javaTargetSet()}（I2 子集 + A 族 +
+ *   并入残余 + B 族三族 = 120 类）双向一致；</li>
+ * <li>真实转译验证（非清单自证）：目标集逐类构造最小实例经转译器真实转译成功
+ *   （slot 依赖节点以程序入口帧包装，嵌套同族变体经其顶层类的工厂产生——文件级粒度裁定见
+ *   {@link ExecNodeBaseline} javadoc）。证据形态裁定（I4 Phase 2）：
+ *   {@code GenNodeAttrExecutable} 为属性描述符（非树节点），证据 = 支持集成员 + 宿主
+ *   {@code GenNodeExecutable} 携带属性的最小实例真实转译（宿主节点载体）；
+ *   {@code LazyCompiledExecutableFunction}（载荷不可解析时）/ {@code FunctionalAdapterExecutable}
+ *   （运行期 IEvalFunction 载荷不可内嵌）证据 = 支持集成员 + 分派 fail-fast 反证；</li>
+ * <li>pending 清零：java 侧 B 族 pending 集不存在（目标集 = 支持集，三边缘类裁定无第三态）；</li>
  * <li>红灯注入：未注册具体节点类（测试域合成 {@code FutureExecutable}）→ 矩阵判不支持 +
  *   转译 fail-fast + 基线判未归属（新鲜度红灯路径），已注册类绿对照。</li>
  * </ul>
@@ -181,16 +184,24 @@ public class TestExecTranslationCoverageMatrix {
     // ------------------------------------------------------------------
 
     @org.junit.jupiter.api.Test
-    public void testSupportSetMatchesBaselineRegisteredTarget() {
+    public void testSupportSetMatchesJavaTargetSet() {
         Set<String> supported = new TreeSet<>();
         for (Class<?> cls : ExecToJavaTranslator.getSupportedNodeClasses())
             supported.add(cls.getSimpleName());
-        Set<String> baseline = new TreeSet<>(ExecNodeBaseline.registeredTarget());
+        Set<String> baseline = new TreeSet<>(ExecNodeBaseline.javaTargetSet());
         assertEquals(baseline, supported,
-                "translator support set must equal baseline registeredTarget (missing="
+                "translator support set must equal baseline javaTargetSet (missing="
                         + diff(baseline, supported) + ", extra=" + diff(supported, baseline) + ")");
-        assertEquals(ExecNodeBaseline.i3Scope().size() + ExecNodeBaseline.I2_SUBSET.size(),
-                baseline.size(), "registeredTarget = i3Scope + i2Subset");
+        assertEquals(120, baseline.size(), "javaTargetSet = registeredTarget(87) + bFamily(33)");
+        // pending 清零可断言：java 目标集与支持集双向相等即 B 族全部落地（无 pending 残留、无第三态）
+        assertTrue(javaTargetSetFullySupported(), "java-side pending set is empty after I4 closure");
+    }
+
+    private static boolean javaTargetSetFullySupported() {
+        Set<String> supported = new TreeSet<>();
+        for (Class<?> cls : ExecToJavaTranslator.getSupportedNodeClasses())
+            supported.add(cls.getSimpleName());
+        return supported.containsAll(ExecNodeBaseline.bFamily());
     }
 
     private static Set<String> diff(Set<String> a, Set<String> b) {
@@ -200,11 +211,17 @@ public class TestExecTranslationCoverageMatrix {
     }
 
     // ------------------------------------------------------------------
-    // 真实转译验证：registeredTarget 87 类逐类最小实例转译成功（非清单自证）
+    // 真实转译验证：java 目标集逐类最小实例转译成功（非清单自证；
+    // 无树形态/载荷不可内嵌的证据形态裁定类走专门断言，不出现在本流）
     // ------------------------------------------------------------------
 
+    /** 证据形态裁定类（I4 Phase 2）：非树节点（宿主载体）与载荷不可内嵌（分派 fail-fast 反证）。 */
+    private static final Set<String> SPECIAL_EVIDENCE_FORM = Set.of("GenNodeAttrExecutable",
+            "LazyCompiledExecutableFunction", "FunctionalAdapterExecutable");
+
     static Stream<String> registeredTargetClasses() {
-        return new TreeSet<>(ExecNodeBaseline.registeredTarget()).stream();
+        return new TreeSet<>(ExecNodeBaseline.javaTargetSet()).stream()
+                .filter(name -> !SPECIAL_EVIDENCE_FORM.contains(name));
     }
 
     @ParameterizedTest(name = "translate:{0}")
@@ -219,36 +236,72 @@ public class TestExecTranslationCoverageMatrix {
         }
         assertNotNull(src);
         assertNotNull(src.getCode());
-        assertTrue(src.getCode().contains("public static Object execute(IEvalScope $scope)"),
+        // EvalMethod 约定：首参 $scope；输出族触达的单元按 I2 契约追加第二隐参 IEvalOutput $out
+        assertTrue(src.getCode().contains("public static Object execute(IEvalScope $scope)")
+                        || src.getCode().contains("public static Object execute(IEvalScope $scope, IEvalOutput $out)"),
                 "generated source must follow EvalMethod convention: " + className + "\n" + src.getCode());
         assertTrue(src.getClassName().startsWith(EvalMethodConvention.GENERATED_PACKAGE + ".Gen_"));
     }
 
     // ------------------------------------------------------------------
-    // fail-fast 反证：B 族 35 类逐类 pending（不支持 + 转译 fail-fast）
+    // 证据形态裁定（I4 Phase 2）：无树形态/载荷不可内嵌类的专门断言 + 排除类反证
     // ------------------------------------------------------------------
 
-    static Stream<String> bFamilyClasses() {
-        return new TreeSet<>(ExecNodeBaseline.bFamily()).stream();
+    @org.junit.jupiter.api.Test
+    public void testSpecialEvidenceForms() throws Exception {
+        // GenNodeAttrExecutable：属性描述符（非 IExecutableExpression）——证据 = 支持集成员 +
+        // 宿主 GenNodeExecutable 携带属性的最小实例真实转译（宿主节点载体，translate 流内覆盖）
+        Class<?> attrClass = Class.forName("io.nop.xlang.exec.GenNodeAttrExecutable");
+        assertTrue(ExecToJavaTranslator.isNodeClassSupported(attrClass),
+                "GenNodeAttrExecutable must be a support-set member (host-carrier evidence)");
+        assertFalse(IExecutableExpression.class.isAssignableFrom(attrClass),
+                "GenNodeAttrExecutable is a descriptor, not a tree node");
+
+        // LazyCompiledExecutableFunction：支持集成员 + 空载荷分派 fail-fast 反证
+        // （转译期 force-compile 裁定：载荷 null/不可解析 → 显式 fail-fast）
+        Class<?> lazyClass = Class.forName("io.nop.xlang.exec.LazyCompiledExecutableFunction");
+        assertTrue(ExecToJavaTranslator.isNodeClassSupported(lazyClass),
+                "LazyCompiledExecutableFunction must be a support-set member");
+        NopEvalException lazyErr = assertThrows(NopEvalException.class, () -> TRANSLATOR.translate(
+                "matrix/b-LazyCompiledExecutableFunction.xpl",
+                MinimalNodeFactory.minimalTree("LazyCompiledExecutableFunction")));
+        assertEquals(ERR_EXEC_TRANSLATE_UNSUPPORTED_NODE.getErrorCode(), lazyErr.getErrorCode());
+        assertTrue(String.valueOf(lazyErr.getParam("detail")).contains("lazy function payload"),
+                lazyErr.toString());
+
+        // FunctionalAdapterExecutable：支持集成员 + 运行期 IEvalFunction 载荷分派 fail-fast 反证
+        Class<?> adapterClass = Class.forName("io.nop.xlang.exec.FunctionalAdapterExecutable");
+        assertTrue(ExecToJavaTranslator.isNodeClassSupported(adapterClass),
+                "FunctionalAdapterExecutable must be a support-set member");
+        NopEvalException adapterErr = assertThrows(NopEvalException.class, () -> TRANSLATOR.translate(
+                "matrix/b-FunctionalAdapterExecutable.xpl",
+                MinimalNodeFactory.minimalTree("FunctionalAdapterExecutable")));
+        assertEquals(ERR_EXEC_TRANSLATE_UNSUPPORTED_NODE.getErrorCode(), adapterErr.getErrorCode());
+        assertTrue(String.valueOf(adapterErr.getParam("detail")).contains("IEvalFunction payload"),
+                adapterErr.toString());
     }
 
-    @ParameterizedTest(name = "pending:{0}")
-    @MethodSource("bFamilyClasses")
-    public void testBFamilyPendingFailsFast(String className) throws Exception {
+    /**
+     * 排除类反证（边界收缩后的新 fail-fast 边界，I4 边缘裁定改判排除的两类保持不可转译）：
+     * 树节点类同时断言转译报 {@code ERR_EXEC_TRANSLATE_UNSUPPORTED_NODE}。
+     */
+    @ParameterizedTest(name = "excluded:{0}")
+    @MethodSource("i4ExcludedTreeClasses")
+    public void testI4ExcludedClassesFailFast(String className) throws Exception {
         Class<?> cls = Class.forName("io.nop.xlang.exec." + className);
         assertFalse(ExecToJavaTranslator.isNodeClassSupported(cls),
-                "B-family class must not be in translator support set: " + className);
-        if (!IExecutableExpression.class.isAssignableFrom(cls)) {
-            // 非树节点具体类（如 GenNodeAttrExecutable 为 GenNode 的属性描述符）：
-            // pending 证据 = 支持集不含（矩阵可观测），无树级转译形态
+                "I4-excluded class must not be in translator support set: " + className);
+        if (!IExecutableExpression.class.isAssignableFrom(cls))
             return;
-        }
         IExecutableExpression tree = MinimalNodeFactory.minimalTree(className);
         NopEvalException err = assertThrows(NopEvalException.class,
-                () -> TRANSLATOR.translate("matrix/b-" + className + ".xpl", tree));
+                () -> TRANSLATOR.translate("matrix/excluded-" + className + ".xpl", tree));
         assertEquals(ERR_EXEC_TRANSLATE_UNSUPPORTED_NODE.getErrorCode(), err.getErrorCode(),
-                "B-family node must fail-fast as unsupported: " + className);
-        assertNotNull(err.getParam("className"), "unsupported error must report node class name");
+                "I4-excluded node must fail-fast as unsupported: " + className);
+    }
+
+    static Stream<String> i4ExcludedTreeClasses() {
+        return Stream.of("ReturnScopeValuesExecutable", "ExecutableFunctionEvalAction");
     }
 
     // ------------------------------------------------------------------
@@ -268,11 +321,12 @@ public class TestExecTranslationCoverageMatrix {
                 "unsupported error must report the injected class name");
         assertFalse(ExecNodeBaseline.isClassified("FutureExecutable"),
                 "baseline must classify the injected class as unassigned (freshness red)");
-        // 绿对照：已注册类判绿（I2/A 族转译成功、B 族判 pending 但已归属）
+        // 绿对照：已注册类判绿（I2/A/B 族全部已注册转译）
         assertTrue(ExecToJavaTranslator.isNodeClassSupported(
                 io.nop.xlang.exec.LiteralExecutable.class), "registered class must resolve (green)");
         assertTrue(ExecNodeBaseline.isClassified("LiteralExecutable"));
-        assertTrue(ExecNodeBaseline.isClassified("IfExecutable"), "B-family class is classified (pending green)");
+        assertTrue(ExecToJavaTranslator.isNodeClassSupported(
+                io.nop.xlang.exec.IfExecutable.class), "B-family class resolves (translated, green)");
     }
 
     /** 红灯注入用的测试域合成节点类（未注册具体节点类，模拟前端演进新增节点）。 */
@@ -618,13 +672,14 @@ public class TestExecTranslationCoverageMatrix {
                             io.nop.xlang.exec.LiteralExecutable.build(LOC, true), null,
                             io.nop.xlang.exec.LiteralExecutable.build(LOC, 1));
                 case "ForInExecutable":
-                    return ForInExecutable.valueOf(LOC, 0,
+                    // varSlot 依赖入口帧（矩阵证据形态：程序入口帧包装，I3 先例）
+                    return programEntry("v", ForInExecutable.valueOf(LOC, 0,
                             io.nop.xlang.exec.LiteralExecutable.build(LOC, java.util.List.of()),
-                            io.nop.xlang.exec.LiteralExecutable.build(LOC, 1));
+                            io.nop.xlang.exec.LiteralExecutable.build(LOC, 1)));
                 case "ForOfExecutable":
-                    return ForOfExecutable.valueOf(LOC, 0, false, -1,
+                    return programEntry("v", ForOfExecutable.valueOf(LOC, 0, false, -1,
                             io.nop.xlang.exec.LiteralExecutable.build(LOC, java.util.List.of()),
-                            io.nop.xlang.exec.LiteralExecutable.build(LOC, 1));
+                            io.nop.xlang.exec.LiteralExecutable.build(LOC, 1)));
                 case "WhileExecutable":
                     return WhileExecutable.valueOf(LOC,
                             io.nop.xlang.exec.LiteralExecutable.build(LOC, true),
@@ -634,9 +689,14 @@ public class TestExecTranslationCoverageMatrix {
                             io.nop.xlang.exec.LiteralExecutable.build(LOC, true),
                             io.nop.xlang.exec.LiteralExecutable.build(LOC, 1));
                 case "BreakExecutable":
-                    return new BreakExecutable(LOC);
+                    // break/continue 需循环语境（前端不变式）——矩阵证据形态：入口帧 + 循环体包装
+                    return programEntry(null, WhileExecutable.valueOf(LOC,
+                            io.nop.xlang.exec.LiteralExecutable.build(LOC, true),
+                            new BreakExecutable(LOC)));
                 case "ContinueExecutable":
-                    return new ContinueExecutable(LOC);
+                    return programEntry(null, WhileExecutable.valueOf(LOC,
+                            io.nop.xlang.exec.LiteralExecutable.build(LOC, true),
+                            new ContinueExecutable(LOC)));
                 case "ReturnExecutable":
                     return new ReturnExecutable(LOC, io.nop.xlang.exec.LiteralExecutable.build(LOC, 1));
                 case "TryExecutable":
@@ -661,8 +721,12 @@ public class TestExecTranslationCoverageMatrix {
                     return new OutputXmlExtAttrsExecutable(LOC, null,
                             io.nop.xlang.exec.LiteralExecutable.build(LOC, java.util.Map.of()));
                 case "GenNodeExecutable":
+                    // 携带一个显式属性：宿主载体形态同时覆盖 GenNodeAttrExecutable 的真实转译证据
                     return new GenNodeExecutable(LOC, "div", null,
-                            new io.nop.xlang.exec.GenNodeAttrExecutable[0], null, null);
+                            new io.nop.xlang.exec.GenNodeAttrExecutable[]{
+                                    new io.nop.xlang.exec.GenNodeAttrExecutable("a",
+                                            io.nop.xlang.exec.LiteralExecutable.build(LOC, 1))},
+                            null, null);
                 case "GenXJsonExecutable":
                     return new GenXJsonExecutable(io.nop.xlang.exec.LiteralExecutable.build(LOC, 1));
                 case "CollectJsonExecutable":
@@ -698,8 +762,8 @@ public class TestExecTranslationCoverageMatrix {
                 case "BuildFuncRefExecutable":
                     return BuildFuncRefExecutable.build(LOC, executableFunction(), new int[0], new int[0]);
                 case "BuildClosureBodyExecutable":
-                    return new BuildClosureBodyExecutable(LOC, 0, new int[0], new int[0],
-                            io.nop.xlang.exec.LiteralExecutable.build(LOC, 1));
+                    return programEntry("c", new BuildClosureBodyExecutable(LOC, 0, new int[0], new int[0],
+                            io.nop.xlang.exec.LiteralExecutable.build(LOC, 1)));
                 case "ExecutableFunctionEvalAction":
                     return new ExecutableFunctionEvalAction(functionModelOf(executableFunction()));
                 case "ReturnScopeValuesExecutable":

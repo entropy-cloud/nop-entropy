@@ -72,4 +72,16 @@ public class VarExecutableFunction extends AbstractExecutable {
             visitor.onEndVisitExpr(this);
         }
     }
+
+    public IExecutableExpression getFuncExpr() {
+        return funcExpr;
+    }
+
+    public boolean isOptional() {
+        return optional;
+    }
+
+    public IExecutableExpression[] getArgs() {
+        return args;
+    }
 }

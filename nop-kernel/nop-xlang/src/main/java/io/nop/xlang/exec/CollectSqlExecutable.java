@@ -44,4 +44,8 @@ public class CollectSqlExecutable extends AbstractExecutable {
             visitor.onEndVisitExpr(this);
         }
     }
+
+    public IExecutableExpression getBodyExpr() {
+        return bodyExpr;
+    }
 }

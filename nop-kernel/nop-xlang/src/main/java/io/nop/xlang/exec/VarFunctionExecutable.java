@@ -245,4 +245,16 @@ public class VarFunctionExecutable extends AbstractExecutable {
             return doInvoke3(func, arg1, arg2, arg3, rt.getScope());
         }
     }
+
+    public IExecutableExpression getFuncExpr() {
+        return funcExpr;
+    }
+
+    public boolean isOptional() {
+        return optional;
+    }
+
+    public IExecutableExpression[] getArgs() {
+        return args;
+    }
 }

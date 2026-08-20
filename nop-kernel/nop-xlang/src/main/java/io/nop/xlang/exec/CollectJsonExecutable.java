@@ -9,6 +9,7 @@ package io.nop.xlang.exec;
 
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalRuntime;
+import io.nop.core.lang.eval.ExitMode;
 import io.nop.core.lang.eval.IEvalOutput;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExecutableExpressionVisitor;
@@ -36,15 +37,16 @@ public class CollectJsonExecutable extends AbstractExecutable {
 
     @Override
     public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
-        IEvalOutput oldOut = rt.getOut();
-        CollectJObjectHandler out = new CollectJObjectHandler();
-        rt.setOut(out);
-        try {
-            bodyExpr.execute(executor, rt);
-        } finally {
-            rt.setOut(oldOut);
-        }
-        return out.getResult();
+        return XLangSemantics.collectJson(rt.getScope(), new ExitMode[1], ($scope, $out, $exit, $frame) -> {
+            IEvalOutput oldOut = rt.getOut();
+            rt.setOut($out);
+            try {
+                bodyExpr.execute(executor, rt);
+            } finally {
+                rt.setOut(oldOut);
+            }
+            return null;
+        }, null);
     }
 
     @Override
@@ -53,5 +55,9 @@ public class CollectJsonExecutable extends AbstractExecutable {
             bodyExpr.visit(visitor);
             visitor.onEndVisitExpr(this);
         }
+    }
+
+    public IExecutableExpression getBodyExpr() {
+        return bodyExpr;
     }
 }

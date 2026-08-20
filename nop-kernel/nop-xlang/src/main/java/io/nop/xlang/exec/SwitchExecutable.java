@@ -100,4 +100,28 @@ public class SwitchExecutable extends AbstractExecutable {
             visitor.onEndVisitExpr(this);
         }
     }
+
+    public boolean isAsExpr() {
+        return asExpr;
+    }
+
+    public IExecutableExpression getDiscriminant() {
+        return discriminant;
+    }
+
+    public IExecutableExpression[] getTests() {
+        return tests;
+    }
+
+    public IExecutableExpression[] getConsequences() {
+        return consequences;
+    }
+
+    public boolean[] getFallthroughs() {
+        return fallthroughs;
+    }
+
+    public IExecutableExpression getDefaultCase() {
+        return defaultCase;
+    }
 }

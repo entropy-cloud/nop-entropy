@@ -73,4 +73,20 @@ public class TryExecutable extends AbstractExecutable {
             visitor.onEndVisitExpr(this);
         }
     }
+
+    public IExecutableExpression getBodyExpr() {
+        return bodyExpr;
+    }
+
+    public int getExceptionSlot() {
+        return exceptionSlot;
+    }
+
+    public IExecutableExpression getCatchExpr() {
+        return catchExpr;
+    }
+
+    public IExecutableExpression getFinallyExpr() {
+        return finallyExpr;
+    }
 }

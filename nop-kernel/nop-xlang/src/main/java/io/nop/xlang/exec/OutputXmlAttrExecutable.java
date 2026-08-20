@@ -41,16 +41,7 @@ public class OutputXmlAttrExecutable extends AbstractExecutable {
     @Override
     public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
         Object v = executor.execute(value, rt);
-        if (v == null)
-            return null;
-        IEvalOutput out = rt.getOut();
-        SourceLocation loc = getLocation();
-        out.text(null, " ");
-        out.text(null, name);
-        out.text(loc, "=\"");
-        String text = StringHelper.escapeXmlAttr(v.toString());
-        out.text(loc, text);
-        out.text(null, "\"");
+        XLangSemantics.outputXmlAttr(getLocation(), rt.getOut(), name, v);
         return null;
     }
 
@@ -60,5 +51,13 @@ public class OutputXmlAttrExecutable extends AbstractExecutable {
             value.visit(visitor);
             visitor.onEndVisitExpr(this);
         }
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public IExecutableExpression getValueExpr() {
+        return value;
     }
 }
