@@ -76,26 +76,26 @@
 | nop-rule | `nop-rule` | 98 | [nop-rule.md](nop-rule.md) | done |
 | nop-batch | `nop-batch`（core/dsl 为主） | 269 | [nop-batch.md](nop-batch.md) | done |
 | nop-dyn | `nop-dyn` | 131 | [nop-dyn.md](nop-dyn.md) | done |
-| file-retry-tcc | `nop-file` + `nop-retry` + `nop-tcc` | 123 | [file-retry-tcc.md](file-retry-tcc.md) | in-progress |
-| nop-metadata | `nop-metadata`（service/dao 为主） | 441 | [nop-metadata.md](nop-metadata.md) | in-progress |
-| nop-excel | `nop-format/nop-excel` | 338 | [nop-excel.md](nop-excel.md) | pending |
-| format-record | nop-record + nop-record-netty + nop-tablesaw | 175 | [format-record.md](format-record.md) | pending |
-| format-pdf-svg | nop-pdf + nop-svg + nop-chart-export | 153 | [format-pdf-svg.md](format-pdf-svg.md) | pending |
-| format-office | nop-ooxml + nop-office-model + nop-office-doc-model | 206 | [format-office.md](format-office.md) | pending |
-| format-misc | nop-converter + nop-mermaid + nop-markdown-ext | 105 | [format-misc.md](format-misc.md) | pending |
+| file-retry-tcc | `nop-file` + `nop-retry` + `nop-tcc` | 123 | [file-retry-tcc.md](file-retry-tcc.md) | done |
+| nop-metadata | `nop-metadata`（service/dao 为主） | 441 | [nop-metadata.md](nop-metadata.md) | done |
+| nop-excel | `nop-format/nop-excel` | 338 | [nop-excel.md](nop-excel.md) | done |
+| format-record | nop-record + nop-record-netty + nop-tablesaw | 175 | [format-record.md](format-record.md) | done |
+| format-pdf-svg | nop-pdf + nop-svg + nop-chart-export | 153 | [format-pdf-svg.md](format-pdf-svg.md) | done |
+| format-office | nop-ooxml + nop-office-model + nop-office-doc-model | 206 | [format-office.md](format-office.md) | done |
+| format-misc | nop-converter + nop-mermaid + nop-markdown-ext | 105 | [format-misc.md](format-misc.md) | done |
 
 ### Phase 4 — 大型子系统
 
 | 单元 | 路径 | 文件数 | 报告 | 状态 |
 |------|------|--------|------|------|
-| nop-ai-agent | `nop-ai/nop-ai-agent` | 963 | [nop-ai-agent.md](nop-ai-agent.md) | pending |
-| ai-core-api | nop-ai-core + nop-ai-api | 326 | [ai-core-api.md](ai-core-api.md) | pending |
-| ai-toolkit-skills | nop-ai-toolkit + nop-ai-skills + nop-ai-tools | 172 | [ai-toolkit-skills.md](ai-toolkit-skills.md) | pending |
-| ai-rest | nop-ai-gateway/shell/coder/dao/service/maven/mcp 等 | 215 | [ai-rest.md](ai-rest.md) | pending |
-| stream-core | `nop-stream/nop-stream-core`（含 Flink 兼容层） | 578 | [stream-core.md](stream-core.md) | pending |
-| stream-runtime | `nop-stream/nop-stream-runtime` + rocksdb | 262 | [stream-runtime.md](stream-runtime.md) | pending |
-| stream-cep | `nop-stream/nop-stream-cep` | 131 | [stream-cep.md](stream-cep.md) | pending |
-| stream-flow-conn | nop-stream-flow + connector 系 + fraud-example | 138 | [stream-flow-conn.md](stream-flow-conn.md) | pending |
+| nop-ai-agent | `nop-ai/nop-ai-agent` | 963 | [nop-ai-agent.md](nop-ai-agent.md) | done |
+| ai-core-api | nop-ai-core + nop-ai-api | 326 | [ai-core-api.md](ai-core-api.md) | done |
+| ai-toolkit-skills | nop-ai-toolkit + nop-ai-skills + nop-ai-tools | 172 | [ai-toolkit-skills.md](ai-toolkit-skills.md) | done |
+| ai-rest | nop-ai-gateway/shell/coder/dao/service/maven/mcp 等 | 215 | [ai-rest.md](ai-rest.md) | done |
+| stream-core | `nop-stream/nop-stream-core`（含 Flink 兼容层） | 578 | [stream-core.md](stream-core.md) | done |
+| stream-runtime | `nop-stream/nop-stream-runtime` + rocksdb | 262 | [stream-runtime.md](stream-runtime.md) | done |
+| stream-cep | `nop-stream/nop-stream-cep` | 131 | [stream-cep.md](stream-cep.md) | in-progress |
+| stream-flow-conn | nop-stream-flow + connector 系 + fraud-example | 138 | [stream-flow-conn.md](stream-flow-conn.md) | in-progress |
 | nop-code | `nop-code`（core/service/api/lang 为主） | 281 | [nop-code.md](nop-code.md) | pending |
 | nop-graph | `nop-graph` | 30 | [nop-graph.md](nop-graph.md) | pending |
 | nop-datav | `nop-datav`（service/dao） | 231 | [nop-datav.md](nop-datav.md) | pending |
@@ -199,3 +199,11 @@
   - nop-task: 循环/分支迭代 2+ 起被 continuation-skip 静默跳过; 延迟重试每轮双执行副作用; executor+异步步骤成功即永久挂死
   - nop-wf: 批量转办 mutation 全链路无鉴权 → 任意登录用户可改派他人审批任务并审批通过
   - 启动 Phase 3（可复用业务模块）。
+- 2026-08-20: **Phase 3 全部 11 个单元完成**。合计 192 条发现（P0=6 / P1=42 / P2=69 / P3=75）。P0 摘要:
+  - nop-report: `ReportDataSet.min` 遇 null 字段值直接放弃整个聚合结果
+  - nop-batch: `ListBatchLoader` subList 分页参数错误 → 超过一个批次的数据静默丢失且任务报成功
+  - file-retry-tcc: TCC 超时取消失败被误标 `CANCEL_SUCCESS` 终态 → 补偿被双重永久放弃，参与者资源悬挂
+  - format-record: nop-tablesaw `ColumnCollectors` 全部 10 个 consumer 的 null 判断颠倒 → 产出的 Table 数据全部静默丢失
+  - format-pdf-svg: `ResourceDocumentParser.open()` 对同一 InputStream 双读 → memoryRestrict 默认开启时 PDF 解析整体不可用
+  - format-office: sharedStrings 按不可信 `uniqueCount` 预分配 → 几十字节恶意文件触发 OOM
+  - 启动 Phase 4（大型子系统）。
