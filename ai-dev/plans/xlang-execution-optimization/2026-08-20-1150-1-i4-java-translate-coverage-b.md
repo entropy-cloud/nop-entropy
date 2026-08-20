@@ -1,7 +1,7 @@
 # I4 java 转译覆盖 B（函数闭包/控制流/输出节点生成族）+ 覆盖矩阵闭环 + `$out` 契约执行验证
 
-> Plan Status: active
-> Last Reviewed: 2026-08-20
+> Plan Status: completed
+> Last Reviewed: 2026-08-21
 > Source: `ai-dev/backlog/xlang-execution-optimization-roadmap.md` I4（含 I3 Phase 1 移交口径）；类别划分 = 设计 `ai-dev/design/xlang-java/01-architecture-baseline.md` §三分类表（函数/闭包 cell 契约、控制流 ExitMode 传播边界不变式）与 §七（`$out` 第二隐参约定）；对拍口径 = 设计 `ai-dev/design/xlang-execution/01-architecture-baseline.md` §五
 > Mission: xlang-execution-optimization
 > Work Item: I4
@@ -182,22 +182,22 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] 全类别 corpus java 列 vs 解释器列对拍全绿（含 java 列身份断言）——roadmap I4 验收第一项
-- [ ] 覆盖矩阵全绿（java 目标集逐节点类注册断言，新增节点类红灯；java pending 集清零；truffle 侧锚点适配后全绿）——roadmap I4 验收第二项
-- [ ] I2 移交的模板入口包装器契约执行路径验证闭合（`$out` 模板单元对拍在仓）
-- [ ] 三边缘类最终裁定 repo-observable（转译并入或改判排除，无第三态残留）
-- [ ] 共享基线 per-backend 口径落地（单一事实源无漂移；truffle 侧矩阵适配不改变其测试语义）
-- [ ] ExitMode 传播边界不变式有行为级验证（不跨函数/闭包边界；清零点全集对应；语句位置一一对应）
-- [ ] 可变 slot 闭包捕获 cell 契约有行为级验证（与解释器语义一致）
-- [ ] 语义敏感操作无双实现（共享 helper 纪律）：生成代码调用的语义 helper 与解释器同一实现来源
-- [ ] 回归不允许削弱现解释器测试（纪律 3；含 corpus 覆盖 A 白名单重锚后不放宽）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] owner-docs：No owner-doc update required（docs-for-ai 同步归 I11）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] Anti-Hollow Check：closure audit 已验证（a）模板单元经 `$out` 通路端到端连通（b）矩阵注册证据 = 真实转译验证而非清单自证（c）无空方法体/静默跳过/no-op
-- [ ] `./mvnw compile -pl :nop-xlang,:nop-xlang-java,:nop-xlang-truffle -am`
-- [ ] `./mvnw test -pl :nop-xlang,:nop-xlang-java,:nop-xlang-truffle -am -T 1C`
-- [ ] checkstyle / 代码规范检查通过（`-Pqa checkstyle:check` 变更模块）
+- [x] 全类别 corpus java 列 vs 解释器列对拍全绿（含 java 列身份断言）——roadmap I4 验收第一项
+- [x] 覆盖矩阵全绿（java 目标集逐节点类注册断言，新增节点类红灯；java pending 集清零；truffle 侧锚点适配后全绿）——roadmap I4 验收第二项
+- [x] I2 移交的模板入口包装器契约执行路径验证闭合（`$out` 模板单元对拍在仓）
+- [x] 三边缘类最终裁定 repo-observable（转译并入或改判排除，无第三态残留）
+- [x] 共享基线 per-backend 口径落地（单一事实源无漂移；truffle 侧矩阵适配不改变其测试语义）
+- [x] ExitMode 传播边界不变式有行为级验证（不跨函数/闭包边界；清零点全集对应；语句位置一一对应）
+- [x] 可变 slot 闭包捕获 cell 契约有行为级验证（与解释器语义一致）
+- [x] 语义敏感操作无双实现（共享 helper 纪律）：生成代码调用的语义 helper 与解释器同一实现来源
+- [x] 回归不允许削弱现解释器测试（纪律 3；含 corpus 覆盖 A 白名单重锚后不放宽）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
+- [x] owner-docs：No owner-doc update required（docs-for-ai 同步归 I11）
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] Anti-Hollow Check：closure audit 已验证（a）模板单元经 `$out` 通路端到端连通（b）矩阵注册证据 = 真实转译验证而非清单自证（c）无空方法体/静默跳过/no-op
+- [x] `./mvnw compile -pl :nop-xlang,:nop-xlang-java,:nop-xlang-truffle -am`
+- [x] `./mvnw test -pl :nop-xlang,:nop-xlang-java,:nop-xlang-truffle -am -T 1C`
+- [x] checkstyle / 代码规范检查通过（`-Pqa checkstyle:check` 变更模块）
 
 ## Deferred But Adjudicated
 
@@ -210,14 +210,29 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写>>
-Completed: YYYY-MM-DD
+Status Note: B 族 33 类（Phase 1 三边缘类裁定后口径）全部逐类转译落地（含非根 `CallFuncExecutable` 局部函数调用形态、`LocationFunction` 转译并入；两类改判排除分区）；corpus 覆盖 B（19 单元：函数/闭包 4 静态 + 2 动态、控制流 5、模板 8）java 列 vs 解释器列对拍全绿（三层断言 + 身份断言 + 输出缓冲副作用比对）；I2 移交的 `$out` 第二隐参契约执行路径验证在仓闭合（模板单元端到端：compileTag → 转译 → `$out` 入口 → RecordingEvalOutput 对拍）；覆盖矩阵闭环（java 目标集 120 双向 set 相等 + 逐类真实转译 + pending 清零 + 红灯注入保持；truffle 侧锚点适配后全绿）。三 Phase Exit Criteria 逐项 PASS，无 deferred 项，无第三态残留。docs-for-ai 同步归 I11（owner-doc 裁定在案）。
+Completed: 2026-08-21
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Evidence: <<task id / daily log link / findings 摘要>>
+- Reviewer / Agent: 独立 fresh closure-audit 子 agent（read-only），task `ses_fdff23ea7ffeN3POIvcB21hN32`，verdict **CAN CLOSE（0 Blocker / 0 Major / 2 Minor）**；Minor ①执行侧上下文引述"263 tests"为 nop-xlang-java 单模块数（三模块合计 1159 = 514+263+382，全绿，非 repo 缺陷）②收口日志条目待补——本日 `ai-dev/logs/2026/08-21.md` 落盘即闭合。
+- Evidence（逐 Closure Gate，live 锚点）：
+  - 对拍全绿 + 身份断言：`TestCorpusCoverageBJavaColumn` 19/19（身份断言 = 生成类实例 `assertNotSame`）；回归 `TestCorpusV1JavaColumn` 22/22、`TestCorpusCoverageAJavaColumn` 33/33——PASS
+  - 矩阵闭环：`TestExecTranslationCoverageMatrix` 122/122（支持集 ↔ `javaTargetSet()`(120) 双向 + pending 清零 `javaTargetSetFullySupported` + `FutureExecutable` 红灯注入 + 证据形态裁定类专门断言 + 改判排除两类 fail-fast 反证）；`TestTruffleCoverageMatrix` 122/122（锚 `truffleRegisteredTarget()`(87)）——PASS
+  - `$out` 移交闭合：`EvalMethodConvention.OUT_PARAM`；`JavaBackendColumn` 双参入口反射调用（`findEntryMethod` + `request.getOut()`）；模板单元 `ExpectedOutcome.outputCalls(...)` + harness 输出缓冲 cross-compare——PASS
+  - 三边缘类裁定：`ExecNodeBaseline` B_FAMILY 33（含 `LocationFunction`）/ EXCLUDED 18（逐类理由）；排除类矩阵 fail-fast 反证——PASS
+  - per-backend 口径：`javaTargetSet()`=120 / `truffleRegisteredTarget()`=87；`TestExecNodeBaselineFreshness.testPerBackendTargetSetsConsistent` 5/5——PASS
+  - ExitMode 边界行为级：`TestExecToJavaTranslatorCoverageB` 4 例（函数内 return/break/continue 不外泄 + collect 体内 return + 模板循环 return）18/18 全绿——PASS
+  - cell 契约行为级：`testClosureMutableSlotCellContract` + corpus 单元 `fn-closure-cell.xpl`；`XLangSemantics.generatedFunction`/`GeneratedEvalFunction` 同源实现——PASS
+  - 共享 helper 无双实现：解释器 `CollectJson/CollectText/CollectNode/GenNode*` 同步改调 `XLangSemantics.*`；生成代码经 `genSwapCall` 发同一 helper 调用——PASS
+  - 回归不削弱：corpus v1 / 覆盖 A java+truffle 双列 22/22、33/33 全绿——PASS
+  - 无静默降级：7 个不可产生类全部有覆盖（矩阵最小实例 4 + 证据形态裁定 2 + Try 合成树 1）；动态缺席显式断言——PASS
+- Anti-Hollow：(a) 模板单元端到端链路 live 追踪连通（`static-b/*.xpl` → `compileTag` → `ExecToJavaTranslator` → `JdkJavaCompiler` 内存编译 → 双参入口反射调用 `RecordingEvalOutput`（implements `IXNodeHandler`）→ 三层断言含输出缓冲比对）；(b) 矩阵证据 = `MinimalNodeFactory.minimalTree` 真实实例逐类转译（含 `GenNodeAttrExecutable` 宿主载体形态），非清单自证；(c) `scan-hollow-implementations.mjs --module nop-xlang / nop-xlang-java / nop-xlang-truffle --severity high` 均 0 critical/0 high、exit 0；B 族路径无空方法体/吞异常。
+- 工具门（2026-08-21 live 复跑）：`./mvnw compile -pl :nop-xlang,:nop-xlang-java,:nop-xlang-truffle -am` EXIT=0；`./mvnw test -pl :nop-xlang,:nop-xlang-java,:nop-xlang-truffle -am -T 1C` BUILD SUCCESS（合计 1159 tests / 0 failures / 0 errors = nop-xlang 514 + nop-xlang-java 263 + nop-xlang-truffle 382）；`./mvnw -Pqa checkstyle:check` 同模块集 EXIT=0（仅 2 处存量 UnusedImports WARN 于 `ThrowErrorCodeExecutable.java`，非违规）；`node ai-dev/tools/check-plan-checklist.mjs <本 plan> --strict` EXIT=0。
+- Deferred 项分类检查：`Deferred But Adjudicated` 为空（I2 `$out` 移交已 In Scope 闭合）；Non-Blocking Follow-ups 两项均为裁定在案的非阻塞项（优化候选 + watch-only nop-core 存量），无 in-scope live defect 降级。
 
 Follow-up:
 
-- <<只记录 non-blocking follow-up；confirmed live defect 不得出现在这里>>
+- `XLangSemantics.invokeGlobalFunction` display 串急切构造——行为等价优化候选（non-blocking，错误路径可观测；I2 closure audit 裁定延续移交）。
+- `ClassModel.getConstructorForArgs` 多 1 参构造候选误选——watch-only residual（nop-core 域存量，I3 移交延续）。
+- 其余无 plan-owned 剩余工作。
