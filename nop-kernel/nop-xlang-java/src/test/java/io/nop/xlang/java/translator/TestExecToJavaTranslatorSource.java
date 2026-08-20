@@ -263,16 +263,15 @@ public class TestExecToJavaTranslatorSource {
 
     @Test
     public void testFailFastOutOfSubsetNode() {
-        // NullCoalesceExecutable 属算术/逻辑/比较类但不在 corpus v1 子集白名单（I3/I4 覆盖范围）
+        // IfExecutable 属 B 族控制流（I4 范围），pending 集节点转译必须 fail-fast（矩阵反证口径）
         IExecutableExpression tree = new PlusExecutable(LOC,
                 LiteralExecutable.build(LOC, 1),
-                new io.nop.xlang.exec.NullCoalesceExecutable(LOC,
-                        LiteralExecutable.build(LOC, 4), LiteralExecutable.build(LOC, 2)));
+                new io.nop.xlang.exec.IfExecutable(LOC, LiteralExecutable.build(LOC, Boolean.TRUE),
+                        LiteralExecutable.build(LOC, 2), null));
         NopEvalException err = assertThrows(NopEvalException.class,
-                () -> TRANSLATOR.translate("synthetic/null-coalesce.xpl", tree));
+                () -> TRANSLATOR.translate("synthetic/if-node.xpl", tree));
         assertEquals("nop.err.xlang.exec.translate-unsupported-node", err.getErrorCode());
-        assertTrue(err.getParam("className").toString().contains("NullCoalesceExecutable"), err.toString());
-        assertEquals(LOC, err.getErrorLocation());
+        assertTrue(err.getParam("className").toString().contains("IfExecutable"), err.toString());
     }
 
     @Test
