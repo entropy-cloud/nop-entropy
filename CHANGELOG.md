@@ -1,5 +1,12 @@
 # 更新日志
 
+## 修复 2026-08-20
+* 修复 nop-ioc 并发初始化同一 bean 时的死锁（ctx↔P 锁序反转）(commit: 428a196557)
+  - 根因：`ProducedBeanInstance.runUntil` 持 monitor 执行 init 回调、`BeanCreationContext.flushInit` 持 ctx monitor 执行 action，跨线程形成循环等待（2026-08-20 现场在 nop-metadata-service 测试 fork 中表现为永久挂起）
+  - 修复：`runUntil` 重构为 owner 线程 + wait/notify 状态机（新增 `PROPERTY_SET` 中间状态），回调在锁外执行；`BeanCreationContext` 改锁内快照 + 锁外执行；`getBean0` 的 beanDef 锁收缩到 scope 读取/创建/注册，属性赋值与动作登记移到锁外
+  - 行为契约不变：bean 初始化完成前对容器可见（循环依赖/自引用）、属性先于 init、init 只执行一次、`getBean(name,false)` 返回完整初始化结果、异常完整传播
+  - 新增确定性并发回归测试 `TestBeanConcurrentInitDeadlock`：旧代码必死锁（30s 超时复现），新代码通过（全模块 55 tests 零回归）
+
 ## 特性 2026-08-16
 * nop-credential 新增 OAuth 流程引擎（W9，`authType=oauth2` 出站 OAuth 2.0 客户端）(commits: 385aa44ea, e18a87982)
   - `credential-type.xdef` `authType` 收敛为枚举 `none|apiKey|basic|oauth2`；oauth2 类型声明 `<oauth2>` 元数据（authorizationEndpoint/tokenEndpoint 必填，scopes/refreshWindowSeconds 可选），registry 加载期校验 fail-closed
