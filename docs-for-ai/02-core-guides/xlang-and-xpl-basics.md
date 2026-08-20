@@ -374,6 +374,59 @@ sql-lib 的 XDEF 参见 `nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema
 
 > 标签定义的 `outputMode` 可以用 `xpl:outputMode` 在 source 内部临时覆盖。如果某个子模板有自己的 `xpl:outputMode`，以子模板的为准。
 
+## 执行后端选择与降级观测（Execution Backend Selection）
+
+XLang 支持三执行后端：解释器（默认，`nop-xlang`）、java 生成类后端（`nop-xlang-java`）、
+truffle 翻译后端（`nop-xlang-truffle`）。后端选择由统一决策树裁决，入口在
+`io.nop.xlang.api.XLang#execute`——所有"运行时字符串→Executable 树"编译出口
+（`XLangCompileTool.compileSimpleExpr/compileFullExpr/compileTemplateExpr/compileTag/compileXpl` 等）
+的求值都经该入口流入。后端不在 classpath（未注册）时行为与纯解释器完全一致。
+
+### 后端注册 SPI（显式注册表，无 classpath 扫描）
+
+- 契约与注册表在 `nop-xlang` 包 `io.nop.xlang.backend`：`IEvalExecutionBackend`
+  （标识/能力集/可用性/不可用原因）+ `IEvalStaticBackend`（扫描清单成员资格 + 生成类绑定查找）
+  + `IEvalDynamicBackend`（动态树翻译执行）+ `EvalBackendRegistry`（`@GlobalInstance` 单例）。
+- 后端模块经 `ICoreInitializer` + `META-INF/services` 显式注册（先例：
+  `XLangCoreInitializer` 内 `JaninoScriptCompiler.register()`）。
+- 初始化失败 → 不可用条目（保留原因，不阻断启动）；诊断查询：
+  `EvalBackendRegistry.instance().getUnavailableBackends()`（backendId → 原因）。
+
+### 决策树（单跳降级，无跨跳）
+
+```
+force-interpreter 开启          → INTERPRETER（静默诊断模式，不记降级事件）
+resourcePath ∈ 构建期扫描清单    → java 启用 + 可用 + 绑定命中 → JAVA（生成类执行体）
+                                  否则 → INTERPRETER + 降级观测（WARN + 指标）
+清单外资源（动态路径）           → truffle 启用 + 可用 + 非 native 部署 → TRUFFLE（池运行时）
+                                  否则 → INTERPRETER（未注册/native 为静默；开关关/不可用记观测）
+单元级翻译失败（第三分支）       → 该单元降级 INTERPRETER + 降级观测
+```
+
+### 配置开关（`nop.xlang.execution.*`，`XLangConfigs`）
+
+| 配置项 | 缺省 | 语义 |
+|---|---|---|
+| `nop.xlang.execution.java-backend-enabled` | `true` | java 后端启用（仅对已注册后端生效） |
+| `nop.xlang.execution.truffle-backend-enabled` | `true` | truffle 后端启用（仅对已注册后端生效） |
+| `nop.xlang.execution.force-interpreter` | `false` | 强制解释器诊断模式：全路由短路 + 不记降级事件 |
+| `nop.xlang.execution.deployment-form` | `auto` | 部署形态标记：`auto`（探测系统属性 `org.graalvm.nativeimage.kind`）/ `jvm` / `native-image`；native 下 truffle 结构性不适用 |
+
+不存在"全局默认后端"配置项（默认语义 = auto 按判据裁决）。
+
+### 降级观测命名契约
+
+- **WARN 日志**：logger `io.nop.xlang.backend.EvalBackendObservation`，消息键
+  `nop.xlang.execution.backend-degraded`，格式 `backend={}, reason={}, sourceKey={}`。
+- **指标**：counter `nop.xlang.execution.backend-degradation`，tags `backend`
+  （`java`/`truffle`）与 `reason`（`config-disabled` / `unavailable` /
+  `unit-translation-failure` / `generated-binding-missing` / `backend-unavailable`——
+  最后一种仅在裁决后执行期后端失活的窄竞态路径出现）。
+- 查询计数（诊断/测试）：
+  `EvalBackendObservation.degradationCount(backendId, reason)`。
+- 静默不记事件的边界：force-interpreter 诊断模式、native 部署形态结构性排除、
+  后端未注册（classpath 缺席）。
+
 ## 默认工作方式
 
 1. 先判断文件是 `.xpl`、`.xlib`、`.xrun` 还是 `.xgen`。
