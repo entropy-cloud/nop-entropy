@@ -11,6 +11,7 @@ import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.xlang.backend.EvalBackendCapability;
 import io.nop.xlang.backend.IEvalStaticBackend;
 import io.nop.xlang.backend.IEvalStaticBinding;
+import io.nop.xlang.java.gen.GeneratedClassManifest;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -21,9 +22,11 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * java 执行后端（静态生成物形态）：扫描清单成员资格判定 + 生成类绑定查找。
  *
- * <p>清单与绑定的生产供给：扫描清单为构建期扫描任务产物（构建集成阶段接入
- * {@link #setStaticScanList}）；生成类加载与树指纹一致性校验为 java 生成类加载集成（I10）的
- * 范围，经 {@link #setBinder} 接入。测试域以合成清单与合成绑定（转译器产物 + 内存编译）承载。
+ * <p>清单与绑定的生产供给（I10 落地）：扫描清单为构建期扫描任务产物（构建集成阶段接入
+ * {@link #setStaticScanList}）；生产 binder = {@link GeneratedClassBindingBinder}（生成类清单内存
+ * 契约消费 + classpath 常规加载 + 树指纹一致性校验 + D5 分级降级观测），经
+ * {@link #setGeneratedClassManifest} 接入（内部走 I9 移交的 {@link #setBinder} 缝——同一接入缝、
+ * 同一降级语义，仅供给方替换）。测试域仍可经 {@link #setBinder} 直接注入合成绑定。
  * 缺省（未设置清单与 binder）为惰性空态：无静态成员，全部资源走动态路径，行为与现状一致。
  */
 public class JavaEvalExecutionBackend implements IEvalStaticBackend {
@@ -78,6 +81,14 @@ public class JavaEvalExecutionBackend implements IEvalStaticBackend {
     /** 生成类绑定供给方接入（生产 = java 生成类加载集成；测试 = 合成绑定） */
     public void setBinder(IEvalStaticBindingBinder binder) {
         this.binder = binder;
+    }
+
+    /**
+     * 生产供给缝（I10）：设置生成类清单内存契约——内部构造生产 binder
+     * {@link GeneratedClassBindingBinder} 经 {@link #setBinder} 缝接入。传 null 清除（回空态）。
+     */
+    public void setGeneratedClassManifest(GeneratedClassManifest manifest) {
+        setBinder(manifest == null ? null : new GeneratedClassBindingBinder(manifest));
     }
 
     /** 设置扫描清单成员（构建期扫描任务产物；测试合成清单） */
