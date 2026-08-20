@@ -1,6 +1,7 @@
 package io.nop.ioc.impl;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -33,24 +34,72 @@ public class BeanCreationContext {
         return shouldRunLazy;
     }
 
-    public synchronized void flushActions() {
-        runInitActions();
+    /**
+     * 按顺序 快照→执行 → 快照→执行 推进 init → lazy → delay 三个队列。每次快照是短临界区，
+     * 执行在锁外进行，因此init执行期间新增的lazy action仍会被后续的lazy快照拾取。
+     * 任何线程都不再"持有ctx等待bean"。
+     */
+    public void flushActions() {
+        List<Runnable> initSnapshot = drainAndClearInit();
+        runActions(initSnapshot);
+
         if (shouldRunLazy) {
-            runLazyPropActions();
-            runDelayActions();
+            List<Runnable> lazySnapshot = drainAndClearLazyProp();
+            runActions(lazySnapshot);
+
+            List<Runnable> delaySnapshot = drainAndClearDelay();
+            runActions(delaySnapshot);
         }
     }
 
-    public synchronized void flushInit(int beanIndex) {
-        if (initActions == null)
+    /**
+     * 锁内按拓扑序快照并drain key &lt;= beanIndex 的init action，锁外执行。
+     * 循环重查新入队（递归创建bean时新增）的key &lt;= beanIndex 的动作。
+     */
+    public void flushInit(int beanIndex) {
+        List<Runnable> snapshot = drainInitUpTo(beanIndex);
+        if (snapshot.isEmpty())
             return;
+        runActions(snapshot);
 
-        do {
-            // Drain eligible actions to a snapshot before iterating: action.run() may trigger
-            // recursive bean creation (getBean -> flushInit), which would otherwise mutate the
-            // same TreeMap during iteration and throw ConcurrentModificationException.
-            // New actions with key <= beanIndex go into a fresh map and are picked up by the
-            // loop below or by the next flushInit pass.
+        while (true) {
+            snapshot = drainInitUpTo(beanIndex);
+            if (snapshot.isEmpty())
+                return;
+            runActions(snapshot);
+        }
+    }
+
+    private List<Runnable> drainAndClearInit() {
+        synchronized (this) {
+            return drainAndClear(initActions);
+        }
+    }
+
+    private List<Runnable> drainAndClearLazyProp() {
+        synchronized (this) {
+            return drainAndClear(lazyPropActions);
+        }
+    }
+
+    private List<Runnable> drainAndClearDelay() {
+        synchronized (this) {
+            return drainAndClear(delayActions);
+        }
+    }
+
+    private List<Runnable> drainAndClear(TreeMap<Integer, Runnable> actions) {
+        if (actions == null)
+            return Collections.emptyList();
+        List<Runnable> snapshot = new ArrayList<>(actions.values());
+        actions.clear();
+        return snapshot;
+    }
+
+    private List<Runnable> drainInitUpTo(int beanIndex) {
+        synchronized (this) {
+            if (initActions == null)
+                return Collections.emptyList();
             List<Runnable> snapshot = new ArrayList<>();
             Iterator<Map.Entry<Integer, Runnable>> it = initActions.entrySet().iterator();
             while (it.hasNext()) {
@@ -62,70 +111,31 @@ public class BeanCreationContext {
                     break;
                 }
             }
-
-            for (Runnable action : snapshot) {
-                action.run();
-            }
-
-            // If recursive bean creation added new init actions with key <= beanIndex during
-            // the run above, flush them now (one extra pass; further additions will be handled
-            // by the next flushInit call or by flushActions at the top level).
-            if (initActions == null || initActions.isEmpty() || initActions.firstKey() > beanIndex)
-                break;
-        } while (true);
+            return snapshot;
+        }
     }
 
-    public void addInitAction(int beanIndex, Runnable action) {
+    private static void runActions(List<Runnable> snapshot) {
+        for (Runnable action : snapshot) {
+            action.run();
+        }
+    }
+
+    public synchronized void addInitAction(int beanIndex, Runnable action) {
         if (initActions == null)
             initActions = new TreeMap<>();
         initActions.put(beanIndex, action);
     }
 
-    public void runInitActions() {
-        if (initActions != null) {
-            // Drain to a snapshot before iterating: action.run() may trigger further bean
-            // creation (recursive getBean -> flushActions), which would otherwise call
-            // addInitAction on the same TreeMap during iteration and throw
-            // ConcurrentModificationException. New actions go into a fresh map and are
-            // picked up by the next flushActions pass.
-            TreeMap<Integer, Runnable> snapshot = initActions;
-            initActions = null;
-            for (Runnable action : snapshot.values()) {
-                action.run();
-            }
-        }
-    }
-
-    public void addLazyPropAction(int beanIndex, Runnable action) {
+    public synchronized void addLazyPropAction(int beanIndex, Runnable action) {
         if (lazyPropActions == null)
             lazyPropActions = new TreeMap<>();
         lazyPropActions.put(beanIndex, action);
     }
 
-    public void runLazyPropActions() {
-        if (lazyPropActions != null) {
-            // Same drain-then-iterate pattern as runInitActions — see comment there.
-            TreeMap<Integer, Runnable> snapshot = lazyPropActions;
-            lazyPropActions = null;
-            for (Runnable action : snapshot.values()) {
-                action.run();
-            }
-        }
-    }
-
-    public void addDelayAction(int beanIndex, Runnable action) {
+    public synchronized void addDelayAction(int beanIndex, Runnable action) {
         if (delayActions == null)
             delayActions = new TreeMap<>();
         delayActions.put(beanIndex, action);
-    }
-
-    public void runDelayActions() {
-        if (delayActions != null) {
-            // Same drain-then-iterate pattern as runInitActions — see comment there.
-            TreeMap<Integer, Runnable> snapshot = delayActions;
-            delayActions = null;
-            for (Runnable action : snapshot.values())
-                action.run();
-        }
     }
 }

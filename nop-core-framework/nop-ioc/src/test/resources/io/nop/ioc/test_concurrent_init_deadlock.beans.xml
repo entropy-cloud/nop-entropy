@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
+
+    <!-- 并发初始化死锁复现。P 依赖 D，无 lazy-property，无 delay-method。
+         lazy-init=true 确保 start() 不会预先创建 P/D（不依赖 start mode 配置生效）。 -->
+    <bean id="beanP" class="test.io.entropy.beans.TestConcurrentP" depends-on="beanD" lazy-init="true"/>
+
+    <bean id="beanD" class="test.io.entropy.beans.TestConcurrentD" lazy-init="true"/>
+</beans>

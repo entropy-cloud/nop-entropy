@@ -509,11 +509,16 @@ public class BeanDefinition implements IBeanDefinition {
         return constructor.invoke(null, args, scope == null ? null : scope.getEvalScope());
     }
 
-    public ProducedBeanInstance newObject(IBeanScope scope, IBeanContainerImplementor container, BeanCreationContext beanCtx) {
+    /**
+     * 创建并注册bean实例，但不做属性赋值与init动作登记。调用方在锁内调用本方法，
+     * 之后在锁外调用 {@link #setupInstance} 完成属性赋值与init动作登记。
+     */
+    public ProducedBeanInstance createInstance(IBeanScope scope, IBeanContainerImplementor container, BeanCreationContext beanCtx) {
+        ProducedBeanInstance producedBeanInstance = null;
         try {
             Object bean = newInstance(scope, container, beanCtx);
 
-            ProducedBeanInstance producedBeanInstance = new ProducedBeanInstance(bean,
+            producedBeanInstance = new ProducedBeanInstance(getId(), bean,
                     pb -> initBean(pb, scope, container, beanCtx),
                     pb -> runLazyProperties(pb, scope, container, beanCtx),
                     pb -> runDelayMethod(pb, scope, container));
@@ -532,6 +537,29 @@ public class BeanDefinition implements IBeanDefinition {
                 scope.add(getId(), producedBeanInstance);
             }
 
+            return producedBeanInstance;
+        } catch (Exception e) {
+            if (producedBeanInstance != null) {
+                producedBeanInstance.markPropSetFailed(e);
+            }
+            if (e instanceof NopException) {
+                NopException nopErr = (NopException) e;
+                nopErr.addXplStack("createBean:" + getId() + "|" + getLocation());
+            }
+            LOG.error("nop.ioc.create-bean-fail:bean={}", this, e);
+            throw NopException.adapt(e);
+        }
+    }
+
+    /**
+     * 在锁外执行：属性赋值、标记PROPERTY_SET、登记init/lazy/delay动作、附加拦截器。
+     * 失败时记录错误并唤醒等待者，防止并发访问者永久挂起。
+     */
+    public void setupInstance(ProducedBeanInstance producedBeanInstance, IBeanScope scope,
+                              IBeanContainerImplementor container, BeanCreationContext beanCtx) {
+        try {
+            Object bean = producedBeanInstance.getCreatedBean();
+
             for (Map.Entry<String, BeanProperty> entry : props.entrySet()) {
                 BeanProperty prop = entry.getValue();
                 // lazy-property不在newObject中设置，而是在init-method之后通过runLazyProperties设置
@@ -540,7 +568,7 @@ public class BeanDefinition implements IBeanDefinition {
                 prop.assignToObject(bean, entry.getKey(), container, scope, beanCtx);
             }
 
-            // 属性被设置之前不能执行init
+            // 属性被设置之前不能执行init。先登记init动作再广播PROPERTY_SET，等待者被唤醒时一切就绪。
             int beanIndex = this.getBeanTopoIndex();
             beanCtx.addInitAction(beanIndex, producedBeanInstance::checkBeanInitialized);
 
@@ -556,13 +584,14 @@ public class BeanDefinition implements IBeanDefinition {
 
             addInterceptors(bean, scope, container, beanCtx);
 
-            return producedBeanInstance;
+            producedBeanInstance.markPropSet();
         } catch (Exception e) {
+            producedBeanInstance.markPropSetFailed(e);
             if (e instanceof NopException) {
                 NopException nopErr = (NopException) e;
-                nopErr.addXplStack("createBean:" + getId() + "|" + getLocation());
+                nopErr.addXplStack("setupBean:" + getId() + "|" + getLocation());
             }
-            LOG.error("nop.ioc.create-bean-fail:bean={}", this, e);
+            LOG.error("nop.ioc.setup-bean-fail:bean={}", this, e);
             throw NopException.adapt(e);
         }
     }

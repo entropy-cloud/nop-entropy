@@ -184,6 +184,10 @@ public interface IocErrors {
     ErrorCode ERR_IOC_PRODUCER_BEAN_NOT_INITED = define("nop.err.ioc.producer-bean-not-inited",
             "bean[{beanName}]尚未完成初始化，无法访问", ARG_BEAN_NAME);
 
+    ErrorCode ERR_IOC_BEAN_INIT_SELF_WAIT = define("nop.err.ioc.bean-init-self-wait",
+            "bean[{beanName}]初始化过程中发生循环等待：当前线程正在等待自身的初始化阶段完成（同一线程重入或创建线程等待属性赋值）",
+            ARG_BEAN_NAME);
+
     ErrorCode ERR_IOC_PROXY_BEAN_TYPE_NOT_INTERFACE = define("nop.err.ioc.proxy-bean-type-not-interface",
             "bean[{beanName}]标记了ioc:proxy=true，则必须设置ioc:type为接口类型");
 

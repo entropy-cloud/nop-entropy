@@ -381,16 +381,24 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
         }
 
         ProducedBeanInstance beanInstance;
+        boolean created = false;
         if (beanScope == null) {
-            beanInstance = beanDef.newObject(null, this, beanCtx);
+            beanInstance = beanDef.createInstance(null, this, beanCtx);
+            created = true;
         } else {
             synchronized (beanDef) { //NOSONAR
                 beanInstance = beanScope.get(beanDef.getId());
                 if (beanInstance == null) {
                     LOG.info("nop.new-bean:{}", beanDef);
-                    beanInstance = beanDef.newObject(beanScope, this, beanCtx);
+                    beanInstance = beanDef.createInstance(beanScope, this, beanCtx);
+                    created = true;
                 }
             }
+        }
+
+        // 属性赋值与init动作登记在锁外执行，避免在容器锁内回调用户代码
+        if (created) {
+            beanDef.setupInstance(beanInstance, beanScope, this, beanCtx);
         }
 
         return beanDef.getBeanInstance(beanInstance, onlyProducer, includeCreating, beanCtx);
