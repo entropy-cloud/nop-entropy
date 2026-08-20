@@ -1,6 +1,6 @@
 # I8 truffle 多线程运行时（Context 池 + 共享 Engine + SHARED 形态）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-21
 > Source: `ai-dev/backlog/xlang-execution-optimization-roadmap.md` I8（范围/验收 = 定稿条目）；设计冻结于 `ai-dev/design/xlang-truffle/02-architecture-baseline.md`（§三 SHARED 注册与 initializeMultipleContexts、§四 context-independent 准则、§五多线程架构=路 A 池租借契约/共享 Engine/enter-leave 窗口/SHARED 并发验证载体、§六内联缓存身份纪律、§七翻译缓存键与淘汰归属）；对拍口径 = 设计 `ai-dev/design/xlang-execution/01-architecture-baseline.md` §五
 > Mission: xlang-execution-optimization
@@ -225,22 +225,22 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] SHARED 形态并发对拍全绿（多线程经池 × 同一/不同编译单元 vs 解释器单线程基线 + 无跨 Context 串值断言）——roadmap I8 验收第一项
-- [ ] 池租借协议正/负测试在仓（归还后残留检测红/绿对照）——roadmap I8 验收第二项
-- [ ] SHARED 切换不重构注册结构（I5 D1 承诺）；既有测试全量保持全绿（翻译正确性载体不削弱）
-- [ ] 共享 Engine 单例 + 可重入批求值 + 归还清空协议落地（异常路径不丢清空）
-- [ ] 翻译缓存淘汰落地（键语义不变；淘汰后重翻译结果一致有测试）
-- [ ] 单元级翻译失败观测事件落地且 I9 消费接口显式（无静默路径）
-- [ ] 共享 AST 并发语义有规范/源码锚点依据或显式处置裁定（Phase 1 决策记录，覆盖执行侧 DSL 缓存/探针与翻译侧 translator 单实例）+ 并发对拍行为级验证
-- [ ] I5/I7 移交四项全部闭合（SHARED/池/并发对拍/缓存淘汰——Deferred 责任链收口）
-- [ ] 回归不允许削弱现解释器测试（纪律 3）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] owner-docs：No owner-doc update required（docs-for-ai 同步归 I11）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] Anti-Hollow Check：closure audit 已验证（a）并发测试真实经池与共享 Engine 驱动（b）观测事件/残留检测非摆设（c）无空方法体/静默跳过/no-op
-- [ ] `./mvnw compile -pl :nop-xlang-truffle -am`
-- [ ] `./mvnw test -pl :nop-xlang,:nop-xlang-java,:nop-xlang-truffle -am -T 1C`
-- [ ] checkstyle / 代码规范检查通过（`-Pqa checkstyle:check` 或 mission lint 口径）
+- [x] SHARED 形态并发对拍全绿（多线程经池 × 同一/不同编译单元 vs 解释器单线程基线 + 无跨 Context 串值断言）——roadmap I8 验收第一项
+- [x] 池租借协议正/负测试在仓（归还后残留检测红/绿对照）——roadmap I8 验收第二项
+- [x] SHARED 切换不重构注册结构（I5 D1 承诺）；既有测试全量保持全绿（翻译正确性载体不削弱）
+- [x] 共享 Engine 单例 + 可重入批求值 + 归还清空协议落地（异常路径不丢清空）
+- [x] 翻译缓存淘汰落地（键语义不变；淘汰后重翻译结果一致有测试）
+- [x] 单元级翻译失败观测事件落地且 I9 消费接口显式（无静默路径）
+- [x] 共享 AST 并发语义有规范/源码锚点依据或显式处置裁定（Phase 1 决策记录，覆盖执行侧 DSL 缓存/探针与翻译侧 translator 单实例）+ 并发对拍行为级验证
+- [x] I5/I7 移交四项全部闭合（SHARED/池/并发对拍/缓存淘汰——Deferred 责任链收口）
+- [x] 回归不允许削弱现解释器测试（纪律 3）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
+- [x] owner-docs：No owner-doc update required（docs-for-ai 同步归 I11）
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] Anti-Hollow Check：closure audit 已验证（a）并发测试真实经池与共享 Engine 驱动（b）观测事件/残留检测非摆设（c）无空方法体/静默跳过/no-op
+- [x] `./mvnw compile -pl :nop-xlang-truffle -am`
+- [x] `./mvnw test -pl :nop-xlang,:nop-xlang-java,:nop-xlang-truffle -am -T 1C`
+- [x] checkstyle / 代码规范检查通过（`-Pqa checkstyle:check` 或 mission lint 口径）
 
 ## Deferred But Adjudicated
 
@@ -253,14 +253,22 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写>>
-Completed: <<YYYY-MM-DD>>
+Status Note: SHARED 终态切换在仓（`XLangLanguage` 注解取值 + `initializeMultipleContexts` 覆写，注册结构未重构——I5 D1 保持；477 基线全量在 577 内全绿）；共享 Engine 单例 + Context 池租借协议落地（租借注入复用 handoff 链路、enter/leave 可重入批求值、归还残留检测 + 防御清空 + 退役、池耗尽有界阻塞、打开预热接线自检、getLanguage I9 消费通道）；翻译缓存淘汰（LRU + 翻译锁外并行 + 淘汰可观测，键语义不变）；单元级翻译失败观测事件（fail-fast 重抛不变 + 内置记录器恒记 + 消费者接口，I9 移交在案）；并发对拍全绿（74 corpus 单元 × 4 线程经池 × 同一/不同单元两形态，逐线程三层对拍 vs 解释器单线程基线 + 身份断言 + 无跨 Context 串值 + 共享缓存同一性 + SHARED 旗标）；池协议红/绿对照在仓。三 Phase Exit Criteria 与 16 条 Closure Gates 逐条 PASS（独立 fresh closure audit CAN CLOSE，0 Blocker/0 Major/1 Minor=陈旧 target 调试报告已清理）。执行中四缺陷全部 scope 内修复（含一个先于本 plan 的存量编译缺陷）。docs-for-ai 同步归 I11（owner-doc 裁定在案）。
+Completed: 2026-08-21
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Evidence: <<task id / daily log link / findings 摘要>>
+- Reviewer / Agent: 独立 fresh closure audit 子 agent（task `ses_fdf4c2c90ffeTAJ5NrAwayOC7M`，未参与实现，live repo 全量核验）
+- Evidence:
+  - Phase 1/2/3 全部 Exit Criteria：PASS（live 锚点——`XLangLanguage.java:42` SHARED 注解 / `:86-88` 覆写；`XLangContextPool.java:96-98` activate 状态机、`:283-311` Lease.close try/finally；`TranslationCache.java:78-81` 失败上报 + 原样重抛；`TestCorpusConcurrentTruffleColumn` 75/75 live 绿（三层 `:244-248/:283-333` + 身份 `:252-257` + 共享同一性 `:258-263` + SHARED 旗标 `:166-168`）；`TestPoolProtocolNegative` 5/5（红灯 `:84-88` + 绿灯 `:95-123`）；`TestConcurrentEvictionAndFailures` 2/2（事件 20/20 无丢失））
+  - 16 条 Closure Gates：全 PASS（含 I5/I7 移交四项闭合对照 I7 plan §11 逐一核验）
+  - Anti-Hollow：(a) 并发测试真实经池 + 共享 Engine（`pool.lease()` + `Context.newBuilder(...).engine(sharedEngine())` 绑定链 + `assertSame(context.getEngine())`）(b) 残留检测在 `Lease.close()` 真实执行 + listener 在 getOrBuild catch 真实触发（行为断言在案）(c) 四个新主类逐读无空方法体/no-op（唯一"无动作"路径 = language==null 跳过记录，显式裁定 + 专测覆盖）——全 PASS
+  - 回归 live 复跑：nop-xlang 514/0/0(2skip，基线一致) + nop-xlang-java 263/0/0（零变更）+ nop-xlang-truffle **577/0/0**（477 基线 + 100 新增）；`-Pqa checkstyle:check` EXIT=0
+  - `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-xlang-truffle --severity high` 0 critical/0 high
+  - Deferred 项分类检查：`Deferred But Adjudicated` 为空；Follow-up 仅 Q1/Q4 watch-only 与池/容量调优（设计既定归属 I12）——无 in-scope live defect 降级
 
 Follow-up:
 
-- <<只记录 non-blocking follow-up；confirmed live defect 不得出现在这里>>
+- Q1（Bytecode DSL 重评估）/ Q4（与 nop-js 共享 Engine 重评估）watch-only，触发口径量化归 I12（Non-Blocking Follow-ups 既定）
+- Context 池创建/销毁成本与池大小/缓存容量调优实测归 I12（设计 §五"本层不发明数值"保持）
+- I9 消费义务：观测事件消费接口（`TranslationFailureListener`，注册通道 `XLangContextPool.getLanguage()`）+ 池运行时生产接入点（Execution Notes §14 移交记录）
