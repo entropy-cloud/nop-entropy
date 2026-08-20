@@ -27,11 +27,13 @@ import java.util.concurrent.SubmissionPublisher;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
+import java.util.function.BooleanSupplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestJsonRpcWebSocketHandler extends BaseTestCase {
 
@@ -45,19 +47,52 @@ public class TestJsonRpcWebSocketHandler extends BaseTestCase {
         CoreInitialization.destroy();
     }
 
+    /**
+     * 事件驱动等待（不依赖固定 sleep）：轮询条件直至满足，30s 仅为防挂起护栏。
+     */
+    private static void awaitUntil(String message, BooleanSupplier condition) {
+        long deadline = System.currentTimeMillis() + 30000;
+        while (System.currentTimeMillis() < deadline) {
+            if (condition.getAsBoolean())
+                return;
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                fail(message);
+            }
+        }
+        fail(message);
+    }
+
     private MockWebSocketSession session;
     private BiFunction<JsonRpcRequest, Map<String, Object>, Flow.Publisher<ApiResponse<?>>> executionService;
 
     @BeforeEach
     public void setUp() {
         session = new MockWebSocketSession();
-        executionService = (request, headers) -> {
-            SubmissionPublisher<ApiResponse<?>> publisher = new SubmissionPublisher<>();
-            ApiResponse<Map<String, Object>> response = ApiResponse.success(new HashMap<>());
-            ((Map<String, Object>)response.getData()).put("testField", "testValue");
-            publisher.submit(response);
-            publisher.close();
-            return publisher;
+        // 同步投递 publisher：onSubscribe 内由 request(1) 同步触发 onNext + onComplete（消息在
+        // handler.onMessage 处理线程内确定性到达）。SubmissionPublisher 在 submit+close 之后再
+        // subscribe 只会收到 onComplete、不会投递已提交项（数据消息断言会空跑）。
+        executionService = (request, headers) -> subscriber -> {
+            subscriber.onSubscribe(new Flow.Subscription() {
+                private boolean delivered;
+
+                @Override
+                public void request(long n) {
+                    if (n > 0 && !delivered) {
+                        delivered = true;
+                        ApiResponse<Map<String, Object>> response = ApiResponse.success(new HashMap<>());
+                        ((Map<String, Object>) response.getData()).put("testField", "testValue");
+                        subscriber.onNext(response);
+                        subscriber.onComplete();
+                    }
+                }
+
+                @Override
+                public void cancel() {
+                }
+            });
         };
     }
 
@@ -67,7 +102,8 @@ public class TestJsonRpcWebSocketHandler extends BaseTestCase {
 
         handler.onMessage("{\"jsonrpc\":\"2.0\",\"method\":\"TestSubscription__onEvent\",\"params\":{},\"id\":\"sub-1\"}");
 
-        Thread.sleep(100);
+        awaitUntil("data or complete message", () -> session.getSentMessages().stream().anyMatch(m ->
+                m.contains("\"complete\":true") || (m.contains("\"result\"") && m.contains("\"data\""))));
 
         List<String> messages = session.getSentMessages();
         assertFalse(messages.isEmpty(), "Should have received data messages");
@@ -107,7 +143,7 @@ public class TestJsonRpcWebSocketHandler extends BaseTestCase {
         JsonRpcWebSocketHandler handler = new JsonRpcWebSocketHandler(executionService, session, initialHeaders);
 
         handler.onMessage("{\"jsonrpc\":\"2.0\",\"method\":\"TestSubscription__onEvent\",\"params\":{},\"id\":\"sub-1\"}");
-        Thread.sleep(100);
+        awaitUntil("headers captured", () -> capturedHeaders.get() != null);
 
         Map<String, Object> headers = capturedHeaders.get();
         assertNotNull(headers, "Headers should be passed to execution service");
@@ -131,7 +167,7 @@ public class TestJsonRpcWebSocketHandler extends BaseTestCase {
 
         handler.onMessage("{\"jsonrpc\":\"2.0\",\"method\":\"TestSubscription__onEvent\",\"params\":{\"userId\":\"1001\"},\"selection\":\"id,name\",\"id\":\"sub-1\"}");
 
-        Thread.sleep(100);
+        awaitUntil("request captured", () -> capturedRequest.get() != null);
 
         JsonRpcRequest request = capturedRequest.get();
         assertNotNull(request, "Request should be captured");
@@ -145,54 +181,25 @@ public class TestJsonRpcWebSocketHandler extends BaseTestCase {
     public void testUnsubscribe() throws Exception {
         AtomicBoolean publisherCancelled = new AtomicBoolean(false);
 
-        executionService = (request, headers) -> {
-            SubmissionPublisher<ApiResponse<?>> publisher = new SubmissionPublisher<>();
-            return new Flow.Publisher<ApiResponse<?>>() {
+        // 同步接线（与 testDuplicateSubscriptionId 同模式）：onSubscribe 在消息处理线程内同步交付，
+        // 取消路径确定性可观测（不用 SubmissionPublisher 异步接线 + sleep 竞态）。
+        executionService = (request, headers) -> subscriber -> {
+            subscriber.onSubscribe(new Flow.Subscription() {
                 @Override
-                public void subscribe(Flow.Subscriber<? super ApiResponse<?>> subscriber) {
-                    publisher.subscribe(new Flow.Subscriber<ApiResponse<?>>() {
-                        @Override
-                        public void onSubscribe(Flow.Subscription subscription) {
-                            subscriber.onSubscribe(new Flow.Subscription() {
-                                @Override
-                                public void request(long n) {
-                                    subscription.request(n);
-                                }
-
-                                @Override
-                                public void cancel() {
-                                    publisherCancelled.set(true);
-                                    subscription.cancel();
-                                }
-                            });
-                        }
-
-                        @Override
-                        public void onNext(ApiResponse<?> item) {
-                            subscriber.onNext(item);
-                        }
-
-                        @Override
-                        public void onError(Throwable throwable) {
-                            subscriber.onError(throwable);
-                        }
-
-                        @Override
-                        public void onComplete() {
-                            subscriber.onComplete();
-                        }
-                    });
+                public void request(long n) {
                 }
-            };
+
+                @Override
+                public void cancel() {
+                    publisherCancelled.set(true);
+                }
+            });
         };
 
         JsonRpcWebSocketHandler handler = new JsonRpcWebSocketHandler(executionService, session);
 
         handler.onMessage("{\"jsonrpc\":\"2.0\",\"method\":\"TestSubscription__onEvent\",\"params\":{},\"id\":\"sub-1\"}");
-        Thread.sleep(50);
-
         handler.onMessage("{\"jsonrpc\":\"2.0\",\"method\":\"unsubscribe\",\"params\":{\"id\":\"sub-1\"},\"id\":\"cancel-1\"}");
-        Thread.sleep(50);
 
         assertTrue(publisherCancelled.get(), "Publisher should be cancelled after unsubscribe");
 
@@ -207,7 +214,11 @@ public class TestJsonRpcWebSocketHandler extends BaseTestCase {
         JsonRpcWebSocketHandler handler = new JsonRpcWebSocketHandler(executionService, session);
 
         handler.onMessage("{\"jsonrpc\":\"2.0\",\"method\":\"ping\",\"id\":\"ping-1\"}");
-        Thread.sleep(50);
+        awaitUntil("pong response sent", () -> session.getSentMessages().stream().anyMatch(m ->
+                m.contains("\"jsonrpc\":\"2.0\"") &&
+                m.contains("\"id\":\"ping-1\"") &&
+                m.contains("\"result\"") &&
+                m.contains("\"pong\":true")));
 
         List<String> messages = session.getSentMessages();
         boolean foundPong = messages.stream().anyMatch(m ->
@@ -223,7 +234,9 @@ public class TestJsonRpcWebSocketHandler extends BaseTestCase {
         JsonRpcWebSocketHandler handler = new JsonRpcWebSocketHandler(executionService, session);
 
         handler.onMessage("{\"jsonrpc\":\"2.0\",\"method\":\"ping\"}");
-        Thread.sleep(50);
+        awaitUntil("pong notification sent", () -> session.getSentMessages().stream().anyMatch(m ->
+                m.contains("\"jsonrpc\":\"2.0\"") &&
+                m.contains("\"method\":\"pong\"")));
 
         List<String> messages = session.getSentMessages();
         boolean foundPong = messages.stream().anyMatch(m ->
@@ -238,7 +251,7 @@ public class TestJsonRpcWebSocketHandler extends BaseTestCase {
 
         handler.onMessage("{\"jsonrpc\":\"2.0\",\"id\":\"req-1\"}");
 
-        Thread.sleep(50);
+        awaitUntil("error response sent", () -> !session.getSentMessages().isEmpty());
 
         List<String> messages = session.getSentMessages();
         assertFalse(messages.isEmpty(), "Should have error response");
@@ -254,7 +267,9 @@ public class TestJsonRpcWebSocketHandler extends BaseTestCase {
 
         handler.onMessage("{\"jsonrpc\":\"2.0\",\"method\":\"TestSubscription__onEvent\",\"params\":{}}");
 
-        Thread.sleep(50);
+        awaitUntil("missing id error sent", () -> session.getSentMessages().stream().anyMatch(m ->
+                m.contains("\"error\"") &&
+                m.contains("must have 'id' field")));
 
         List<String> messages = session.getSentMessages();
         boolean foundError = messages.stream().anyMatch(m ->
@@ -270,7 +285,9 @@ public class TestJsonRpcWebSocketHandler extends BaseTestCase {
         JsonRpcWebSocketHandler handler = new JsonRpcWebSocketHandler(executionService, session, initialHeaders);
 
         handler.onMessage("{\"jsonrpc\":\"2.0\",\"method\":\"tokenRefresh\",\"params\":{\"authToken\":\"new-token\"},\"id\":\"refresh-1\"}");
-        Thread.sleep(50);
+        awaitUntil("refresh response sent", () -> session.getSentMessages().stream().anyMatch(m ->
+                m.contains("\"id\":\"refresh-1\"") &&
+                m.contains("\"refreshed\":true")));
 
         List<String> messages = session.getSentMessages();
         boolean foundRefreshResponse = messages.stream().anyMatch(m ->
@@ -296,12 +313,9 @@ public class TestJsonRpcWebSocketHandler extends BaseTestCase {
         JsonRpcWebSocketHandler handler = new JsonRpcWebSocketHandler(executionService, session);
 
         handler.onMessage("{\"jsonrpc\":\"2.0\",\"method\":\"TestSubscription__onEvent1\",\"params\":{},\"id\":\"sub-1\"}");
-        Thread.sleep(100);
-
         handler.onMessage("{\"jsonrpc\":\"2.0\",\"method\":\"TestSubscription__onEvent2\",\"params\":{},\"id\":\"sub-1\"}");
-        Thread.sleep(100);
 
-        assertTrue(session.isClosed(), "Should close on duplicate subscription id");
+        awaitUntil("session closed on duplicate id", session::isClosed);
         assertEquals(4409, session.getCloseCode(), "Close code should be 4409 (Subscriber already exists)");
     }
 
@@ -310,7 +324,7 @@ public class TestJsonRpcWebSocketHandler extends BaseTestCase {
         JsonRpcWebSocketHandler handler = new JsonRpcWebSocketHandler(executionService, session);
 
         handler.onMessage("{\"jsonrpc\":\"2.0\",\"method\":\"TestSubscription__onEvent\",\"params\":{},\"id\":\"sub-1\"}");
-        Thread.sleep(100);
+        awaitUntil("data message sent", () -> session.getSentMessages().stream().anyMatch(m -> m.contains("\"testField\"")));
 
         List<String> messages = session.getSentMessages();
 
@@ -329,7 +343,7 @@ public class TestJsonRpcWebSocketHandler extends BaseTestCase {
         JsonRpcWebSocketHandler handler = new JsonRpcWebSocketHandler(executionService, session);
 
         handler.onMessage("{\"jsonrpc\":\"2.0\",\"method\":\"TestSubscription__onEvent\",\"params\":{},\"id\":\"sub-1\"}");
-        Thread.sleep(100);
+        awaitUntil("complete message sent", () -> session.getSentMessages().stream().anyMatch(m -> m.contains("\"complete\":true")));
 
         List<String> messages = session.getSentMessages();
 
