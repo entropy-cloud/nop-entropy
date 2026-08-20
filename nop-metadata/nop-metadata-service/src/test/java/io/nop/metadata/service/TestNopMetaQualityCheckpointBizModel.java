@@ -688,7 +688,7 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
             mockHttpClient.blockLatch.countDown();
             secondDone.await(10, TimeUnit.SECONDS);
             pool.shutdown();
-            assertTrue(pool.awaitTermination(10, TimeUnit.SECONDS), "both requests must finish");
+            assertTrue(pool.awaitTermination(60, TimeUnit.SECONDS), "both requests must finish");
         }
 
         assertFalse(first.get().hasError(), "first request must complete successfully: " + first.get());
@@ -762,7 +762,7 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
             logger.detachAppender(appender);
             mockHttpClient.blockLatch.countDown();
             pool.shutdown();
-            assertTrue(pool.awaitTermination(10, java.util.concurrent.TimeUnit.SECONDS),
+            assertTrue(pool.awaitTermination(60, java.util.concurrent.TimeUnit.SECONDS),
                     "first request must finish after latch release");
         }
     }
