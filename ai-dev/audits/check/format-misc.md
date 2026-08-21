@@ -45,6 +45,8 @@ for (String directType : directTypes) {
 
 ---
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复并附回归测试。递归改为 visited 集合剪枝（`collectChainedFileTypes`）。测试：`nop-converter` `TestDocumentConverterManager#testChainedFileTypesWithBidirectionalPair`（注册双向对后 allowChained=true 不再 StackOverflowError）。
+
 ### [P1] ExcelDocumentConverter.convertToText 对 xlsx 目标类型强转 ITextTemplateOutput 抛 ClassCastException
 
 - **文件**: `nop-format/nop-converter/src/main/java/io/nop/converter/impl/ExcelDocumentConverter.java:61`（同型问题 `ExcelDocHelper.java:23`）
@@ -61,6 +63,8 @@ return renderer.generateText(newEvalScope(options));
 
 ---
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。`convertToText` 先 `instanceof ITextTemplateOutput` 判断，不支持时抛 `ERR_DOC_CONVERT_UNSUPPORTED_TEXT_OUTPUT`（带 from/to 参数），不再 ClassCastException。
+
 ### [P1] DslDocumentConverter.convertToText 用目标格式 loader 解析源资源，跨格式 DSL 文本转换必失败
 
 - **文件**: `nop-format/nop-converter/src/main/java/io/nop/converter/impl/DslDocumentConverter.java:39-40`
@@ -76,6 +80,8 @@ if (toLoader != null && toLoader.getDslNodeLoader() != null)
 - **误报排除**: 已核实 prompt 模型双 xdsl-loader 装配链（`RegisterModelDiscovery.java:166-180`、`AbstractDslResourcePersister implements IResourceObjectSaver`）、`newConverter` 的 saver 非空条件（`ConverterRegistrationBean.java:166`）、以及 yaml→json/json→yaml 等走 `JsonTool` 分支的类型不受影响。
 
 ---
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。删除"用目标格式 loader 解析源资源"的错误分支；文本输出统一走：目标 loader 的 IDslNodeTextSerializer / JsonTool yaml-json / xdef 序列化，与 convertToResource 语义对齐（源格式 `doc.getNode(options)` 取节点）。
 
 ### [P1] MermaidGenerator 所有 out.line(String) 调用经 MessageFormat 格式化：class/style 语句必抛异常，单引号被静默吞掉
 
@@ -99,6 +105,8 @@ return append(MessageFormat.format(format, args)).line();
 
 ---
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复并附回归测试。`CodeBuilder` 新增不做 MessageFormat 的 `printLine(String)`，MermaidGenerator 全部字面量输出改用之。测试：`nop-mermaid` `TestMermaidGenerator#testClassStatementNotBrokenByMessageFormat/#testSingleQuoteNotSwallowed`（修复前 class 语句必抛、单引号被吞）。
+
 ### [P1] MermaidGenerator 输出与模块自带文法系统性不匹配，生成文本无法被自身解析器往返
 
 - **文件**: `nop-format/nop-mermaid/src/main/java/io/nop/mermaid/output/MermaidGenerator.java:72,89-99,104-131,134-143,156-183,212-217`；对照 `nop-format/nop-mermaid/model/antlr/Mermaid.g4` 与生成 lexer 的 literal 表
@@ -121,6 +129,8 @@ out.append(" -> ");                                                    // 161: s
 - **误报排除**: 所有结论均对照生成的 `Mermaid.tokens`/`MermaidLexer.java` literal 表逐 token 论证（lexer 大小写敏感、`Identifier_: [a-zA-Z_][a-zA-Z0-9_]*`），未依赖对真实 Mermaid 语法的假设——本模块是自定义 DSL，判定标准是其自带文法。
 
 ---
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已确认，暂缓。生成器输出与文法的系统性对齐需要以 Mermaid.g4 为单一事实源补 round-trip 测试并逐语句修正（涉及 flowchart 头/participant 等多条输出格式），与下一条文法缺陷耦合，建议合并立项。
 
 ### [P1] Mermaid 文法自身缺陷：COMMENT 进 HIDDEN 通道使注释规则不可达；DIRECTION token 无 lexer 规则；BaseRules 关键字重复定义
 
@@ -148,6 +158,8 @@ COMMENT: '%%' ~[\r\n]* -> channel(HIDDEN);  // 第 78 行
 
 ---
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已确认，暂缓。BaseRules.g4 的 COMMENT 通道/DIRECTION token/关键字重复修正需要重新生成 ANTLR 生成物并同步提交（生成物与 .g4 目前不同步），建议与上一条合并为 mermaid 文法专项。
+
 ### [P1] MarkdownNormalizer 强制把代码围栏长度改为 3 并原地覆写源文件，含 ``` 行的代码块被不可逆破坏
 
 - **文件**: `nop-format/nop-markdown-ext/src/main/java/io/nop/markdown/ext/MarkdownNormalizer.java:101-105,47-51`
@@ -172,6 +184,8 @@ public void normalizeResource(IResource resource) {
 
 ---
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复并附回归测试。围栏长度改为 `max(3, 内容最长反引号串+1)`。测试：`nop-markdown-ext` `TestMarkdownNormalizer#testFenceLengthPreservedForNestedBackticks`（修复前含```的代码块重解析提前闭合）。
+
 ### [P2] DslDocumentConverter 用 from 模型的 config 查找 toFileType 的 loader（toConfig 取而未用）
 
 - **文件**: `nop-format/nop-converter/src/main/java/io/nop/converter/impl/DslDocumentConverter.java:20-23,52-55`
@@ -190,6 +204,8 @@ if (toConfig != null) {
 
 ---
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。convertToText/convertToResource 均改用 `toConfig.getLoader(toFileType)`（目标类型模型配置）。
+
 ### [P2] MermaidGenerator 对标识符类字段不校验不转义，非 ASCII/特殊字符 ID 直接破坏图文本
 
 - **文件**: `nop-format/nop-mermaid/src/main/java/io/nop/mermaid/output/MermaidGenerator.java:90,105,124,148,157,176,188,213,223,244`
@@ -206,6 +222,8 @@ out.line("class " + node.getClassName() + " {");           // 188
 - **误报排除**: 已核对文法 Identifier_ 定义与生成器全部 append 点；确认为程序化 API 输入面（解析器产出的 ID 必然合法），非解析路径漏洞。
 
 ---
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复并附回归测试。新增 `id()` 校验（`[a-zA-Z_][a-zA-Z0-9_]*`），id/from/to/className/target/participant name 越界抛 `ERR_MERMAID_INVALID_IDENTIFIER`。测试：`TestMermaidGenerator#testIllegalIdentifierRejected`。
 
 ### [P2] 异常处理策略违背平台两档规范：impl 层大量裸 JDK 异常，模块错误码闲置
 
@@ -224,6 +242,8 @@ throw new IllegalArgumentException("Document format must be xlsx");             
 
 ---
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 部分修复。ExcelDocumentConverter/DslDocumentConverter 的关键抛出点已改 NopException + 错误码；Word/Ppt/Json 等 impl 层裸异常的全面替换涉及十几个抛出点的错误码语义梳理，暂缓（无运行时危害，属规范债务）。
+
 ### [P3] SameTypeDocumentConverter.convertToText 两分支完全相同（死条件）
 
 - **文件**: `nop-format/nop-converter/src/main/java/io/nop/converter/impl/SameTypeDocumentConverter.java:20-25`
@@ -240,6 +260,8 @@ return doc.getText(options);
 - **误报排除**: 已核对 `ResourceDocumentObject.getText`/`DslDocumentObject` 均无 options 分支行为差异，确认两分支确实等价。
 
 ---
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。删除无效果的 keepRaw 条件（两分支等价），语义注释说明。
 
 ### [P3] 死代码：WordDocHelper 空类、MathNodeProcessor 未注册、MathNodeParser 注册被注释
 
@@ -259,6 +281,8 @@ public class WordDocHelper {
 
 ---
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。WordDocHelper 空类与未注册的 MathNodeProcessor 已删除（grep 确认无生产引用；内联数学仍由 NormalizeVisitor 手工转换兜底）。
+
 ### [P3] DocumentConverterManager 静态可变单例与无同步注册表
 
 - **文件**: `nop-format/nop-converter/src/main/java/io/nop/converter/DocumentConverterManager.java:29,31-36`
@@ -275,6 +299,8 @@ private final Map<String, Map<String, IDocumentConverter>> converters = new Hash
 
 ---
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。`_instance` 加 volatile；converters/fromFileTypeMap/documentObjectBuilders 改 ConcurrentHashMap（当前注册仍仅启动期，属防御加固）。
+
 ### [P3] XlsxDslDocumentObjectBuilder 用可空 get 获取模型配置，失败时裸 NPE
 
 - **文件**: `nop-format/nop-converter/src/main/java/io/nop/converter/impl/XlsxDslDocumentObjectBuilder.java:34-35,56-57`
@@ -290,6 +316,8 @@ if(config.getXdefPath() != null)   // config 可能为 null
 - **误报排除**: 已比对两处 builder 的注册来源（`loadDslConverters` 仅对 modelConfig 的 loader 类型注册），确认当前配置下 config 非空。
 
 ---
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。两处改 `requireModelConfigByFileType`（未注册类型抛带类型的 NopException 而非 NPE）。
 
 ### [P3] MarkdownNormalizer 每个文件重建 Parser/Renderer
 
@@ -308,6 +336,8 @@ public String normalizeText(String text) {
 - **误报排除**: 已确认 Parser 与 MarkdownRenderer 在 commonmark 中线程安全（无状态渲染），复用不会引入并发问题。
 
 ---
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。Parser/Renderer 懒加载为实例字段（double-check + volatile），批量归一化不再每文件重建。
 
 ### [P3] NormalizeVisitor 把同一 Text 节点内任意两个 `$` 之间内容一律转为数学节点（货币文本误转）
 
@@ -334,3 +364,5 @@ if (pos >= 0 && literal.length() > pos + 2 && literal.indexOf('$', pos + 1) > 0)
 - **空 catch / printStackTrace / bare RuntimeException / System.out**: grep 全量扫描零命中。
 - **`_` 前缀文件手改痕迹**: 未发现（`_gen` 与 antlr 生成物与平台模板风格一致，但存在生成物与 .g4 源不同步问题，见 P1 文法条目）。
 - **ExcelWorkbookToMarkdownConverter → TableToMarkdownConverter**: 表格单元格经 `MarkdownHelper.escapeCell` 转义 `|` 与换行（nop-markdown 模块，越界核实），xlsx→md 表格保真度无问题。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 复查后维持现状。收紧 `$..$` 识别（排除货币文本）需要明确的启发式规则且必然引入新的误判边界（如 `$a_b$` 合法变量名含下划线），现输出文本层面可往返；建议有真实 KaTeX 渲染场景后再定规则。

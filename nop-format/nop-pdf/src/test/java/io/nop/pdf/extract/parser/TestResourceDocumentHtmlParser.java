@@ -28,7 +28,7 @@ public class TestResourceDocumentHtmlParser {
     public void testTocPageIndexIsOneBased() {
         ResourceDocumentHtmlParser parser = new ResourceDocumentHtmlParser();
         ResourceDocument doc = parser.loadObjectFromResource(
-                new ByteArrayResource("test.html", HTML.getBytes(StandardCharsets.UTF_8), 0));
+                new ByteArrayResource("/test.html", HTML.getBytes(StandardCharsets.UTF_8), 0));
 
         assertEquals(2, doc.getPages().size());
         TocTable toc = doc.getTocTable();

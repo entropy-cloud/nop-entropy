@@ -41,6 +41,8 @@ public void beginNode(SourceLocation loc, String localName, Map<String, ValueWit
 - **建议**: 预分配容量做上限截断（如 `Math.min(uniqueCount, 10_000)` 或引入配置项）；或直接 `new ArrayList<>()` 让其按实际条目增长；同时校验 `uniqueCount < 0`、根标签合法性。可参考 POI ReadonlySharedStringsTable（不按 uniqueCount 预分配）。
 - **误报排除**: 已确认 `AbstractXlsxParser.loadFromResource` 对存在的 sharedStrings 部件无条件调用 `new SharedStringsTableParser(true).parseFromPart(part)`（AbstractXlsxParser.java:63-64），上传解析必经；`getAttrInt` 不做范围校验。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复并附回归测试。预分配上限截断（`min(uniqueCount, 10000)`，负值容错为 0），真实条目由解析自然增长；根标签非 sst 时 strings 兜底初始化。测试：`nop-ooxml-xlsx` `TestSharedStringsPrealloc`（uniqueCount=2000000000 不再 OOM、负值不再 IllegalArgumentException）。
+
 ### [P1] OfficePackage.copy() 为浅拷贝：缓存模板与每次渲染副本共享可变部件，rels 持久污染 + 并发渲染数据竞争
 
 - **文件**: `nop-format/nop-ooxml/nop-ooxml-common/src/main/java/io/nop/ooxml/common/OfficePackage.java:115-117`（根因）；`nop-format/nop-ooxml/nop-ooxml-docx/src/main/java/io/nop/ooxml/docx/model/WordOfficePackage.java:84-102`；`nop-format/nop-ooxml/nop-ooxml-xlsx/src/main/java/io/nop/ooxml/xlsx/output/ExcelTemplate.java:66-71`
@@ -71,6 +73,8 @@ pkg.getWorkbook().clearSheets(); // WorkbookPart 包装模板共享的 workbook.
 - **建议**: `copyTo` 对模型类部件做深拷贝（`OfficeRelsPart` 至少补齐 clone，见 P3 的 cloneInstance 缺陷）；或 `getRels()/getContentTypes()` 在返回前总是解析为新鲜实例并禁止跨包共享；`WordTemplate.generateToDir` 内对 rels/contentTypes/workbook 的获取改为从 copy 重新解析。
 - **误报排除**: 已核对 `[Content_Types].xml` 路径不受影响（loadInMemory 后为 XmlOfficePackagePart，copy 上 `getContentTypes()` 每次 `parseContentTypes` 生成新鲜 ContentTypesPart，且 parse 只读）；xlsx 的 `.rels` 部件（文件名以 `.rels` 结尾，不以 `.xml` 结尾）保持 ByteArrayResource，每次 copy 重新 parse，亦不受影响——问题精确限定在“模板 files 中已是模型对象实例”的部件（docx 的 OfficeRelsPart、xlsx 的 workbook.xml XNode）。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复并附回归测试。`IOfficePackagePart.cloneInstance()`：OfficeRelsPart 补齐三个字段拷贝、XmlOfficePackagePart 深克隆 XNode、ContentTypesPart 拷贝两个 TreeMap、WorkbookPart 保持类型；`copyTo` 对全部部件按 cloneInstance 深拷贝（资源字节部件共享安全）。测试：`nop-ooxml-common` `TestOfficePackageCopy#testCopyIsolatesRelsAndXmlParts`（修复前 rels/XNode 均被污染）。
+
 ### [P1] 单元格引用列索引无上界校验，恶意 r 属性可放大内存至上亿元素
 
 - **文件**: `nop-format/nop-ooxml/nop-ooxml-xlsx/src/main/java/io/nop/ooxml/xlsx/parse/SheetNodeHandler.java:481-484`（配合 nop-kernel `CellReferenceHelper.convertColStringToIndex` 无界、`CollectionHelper.set` 逐位补 null）
@@ -92,6 +96,8 @@ table.setCell(cellRef.getRowIndex(), cellRef.getColIndex(), cell);
 - **建议**: 在 SheetNodeHandler 或 CellPosition 解析处校验列上限（POI 的 `SpreadsheetVersion.EXCEL2007.getLastColumnName()`）与行上限，越界时抛带位置的 NopException 或截断忽略。
 - **误报排除**: 已确认 `CellPosition.fromABString` 仅委托 `parsePositionABString`，无任何范围检查；`CollectionHelper.set` 实现为逐元素补 null（nop-commons CollectionHelper.java:350-355）。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 部分修复（审计前提有误）。复核发现 `CellPosition` 构造器本身已有 MAX_COLS=65536/MAX_ROWS=1048576 上限并抛 `ERR_TABLE_INVALID_CELL_POSITION`——"ZZZZZZ1 放大到 3.2 亿列"的内存放大前提不成立（解析即被拒，实测确认）。已做的加固：`SheetNodeHandler` 进一步按 Excel 真实上限 16384/1048576 校验（65536→16384 之间的引用越 Excel 界但此前被放行），越界抛 `ERR_XLSX_CELL_REF_OUT_OF_RANGE`。测试：`TestSheetNodeHandlerRegression#testCellRefOutOfRangeRejected`（两层错误码分别断言）。
+
 ### [P1] WordTemplateParser/OfficeDocModelParser 直接使用 resource.toFile()，非文件型资源（如 jar 内模板）触发 NPE
 
 - **文件**: `nop-format/nop-ooxml/nop-ooxml-docx/src/main/java/io/nop/ooxml/docx/parse/WordTemplateParser.java:58`；`nop-format/nop-ooxml/nop-ooxml-docx/src/main/java/io/nop/ooxml/docx/parse/OfficeDocModelParser.java:69`
@@ -110,6 +116,8 @@ if (file.isDirectory()) {             // NPE
 - **风险**: 特定部署形态（jar 包内模板）下 docx 模板/文档模型解析直接崩溃，且以裸 NPE 形式暴露。
 - **建议**: 两处改为 `pkg.loadFromResource(resource)`；或在 `OfficePackage.loadFromFile(File)` 入口对 null 参数抛带上下文的 NopException。
 - **误报排除**: 已核实 `IResource.toFile` 的两类实现均在非 file URL 时显式 `return null`；`ExcelWorkbookParser` 走 `loadFromResource` 正常，排除“资源必有 file”的可能。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。两处改为 `pkg.loadFromResource(resource)`（内部对非 file: 资源走 InMemoryResourceStore），与 xlsx 侧对齐。
 
 ### [P2] OOXML 规范允许省略单元格 r 属性，当前解析直接 NPE 崩溃
 
@@ -132,6 +140,8 @@ cell.setLocation(new SourceLocation(workbook.resourcePath(), 0, 0, 0, 0,
 - **风险**: 一类合规 xlsx 文件导入解析崩溃（NPE），功能可用性缺陷。
 - **建议**: 在 SheetNodeHandler 中维护当前行列计数（与 nextRowNum 同法），r 缺失时按顺序推算 CellPosition。
 - **误报排除**: 已核对 `parsePositionABString` 对空串/null 返回 null 而非异常，且两处消费方均无 null 判断。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复并附回归测试。`c/@r` 缺省时按（行内）出现顺序推算 CellPosition（维护 nextColNum，与 row/@r 的 nextRowNum 兜底对称）。测试：`TestSheetNodeHandlerRegression#testMissingCellRefInferredByOrder/#testMissingCellRefContinuesFromExplicit`。
 
 ### [P2] 不可信输入的多处裸运行时异常（NumberFormatException/SIOOBE/NPE），错误信息无文件上下文
 
@@ -158,6 +168,8 @@ cellPos = CellPosition.fromABString(getAttr(attrs, "ref")); // 50: <comment> 缺
 - **建议**: 统一改用 `ConvertHelper.toInt(..., NopException::new)` 并补充 sourceLocation/错误码；BOOLEAN 分支判空；CommentsPart 对缺 ref 的 comment 记录警告后跳过。
 - **误报排除**: 已逐一核对 XNodeHandlerAdapter.getAttr 缺属性返回 null、`Integer.parseInt`/`charAt`/`toLowerCase` 的抛出路径，均为解析真实上传文件时可构造的输入。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。row/@r 与 SST 索引改 `ConvertHelper.toInt(..., NopException::new)`；BOOLEAN 空值判空返回 FALSE；ContentTypesPart 的 Default/Override 缺属性跳过（不再 NPE）；CommentsPart 缺 ref 的 comment 跳过。
+
 ### [P2] loadInMemory 之后调用 getStyles/getComments/getSlide 必然 ClassCastException（潜在触发面）
 
 - **文件**: `nop-format/nop-ooxml/nop-ooxml-docx/src/main/java/io/nop/ooxml/docx/model/WordOfficePackage.java:60-67,74-82`；`nop-format/nop-ooxml/nop-ooxml-pptx/src/main/java/io/nop/ooxml/pptx/model/PptOfficePackage.java:123-136`
@@ -175,6 +187,8 @@ ResourceOfficePackagePart res = (ResourceOfficePackagePart) file;  // file 实�
 - **风险**: 模板生成期扩展点上一个强转崩溃；API 对“已 loadInMemory 的包”这一自身引入的状态不兼容。
 - **建议**: 强转前判 `instanceof ResourceOfficePackagePart`，否则直接 `file.loadXml()`（XmlOfficePackagePart 恰好实现了该方法），并归一化到目标 Part 类型。
 - **误报排除**: 已核实 XmlOfficePackagePart 不是 ResourceOfficePackagePart 子类、`loadInMemory` 的 `.xml` 转换分支、以及 getStyles 的现有调用时序。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。WordOfficePackage.getStyles/getComments 与 PptOfficePackage.getSlide 的强转改为按 `file.loadXml()` 重包装（不再假定 ResourceOfficePackagePart）。
 
 ### [P2] PptxToMarkdownConverter 表格解析异常被完全吞掉且无任何日志
 
@@ -199,6 +213,8 @@ try {
 - **建议**: catch 内 `LOG.warn("nop.pptx.table-parse-fail", e)`（或 NopException 包装后由上层决定降级），保留占位符行为不变。
 - **误报排除**: 已确认 catch 块无任何日志语句、无异常统计。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。catch 内补 `LOG.warn("nop.pptx.table-parse-fail", e)`，占位符行为不变。
+
 ### [P2] zip 条目数与解压总大小无任何上限（防御纵深缺失）
 
 - **文件**: `nop-format/nop-ooxml/nop-ooxml-common/src/main/java/io/nop/ooxml/common/OfficePackage.java:84-96,119-130`（配合 nop-kernel FileScanHelper/JdkZipOutput 实现核实）
@@ -217,6 +233,8 @@ byte[] bytes = ResourceHelper.readBytes(resource);
 - **建议**: 在 OfficePackage/AbstractXlsxParser 层引入可配置的解压上限（条目数、单条字节数、累计字节数、压缩比阈值），超限抛 NopException；`loadInMemory` 仅用于可信模板资源并在 javadoc 标注。
 - **误报排除**: 已核实三模块与 nop-kernel zip 读取链路确无上述任何上限参数/常量（grep MAX/LIMIT/ratio 无命中）；不将惰性加载误报为炸弹。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已确认，暂缓。zip 条目数/单条大小/累计字节数/压缩比上限属平台级解压防线设计（涉及 nop-kernel zip 链路与配置面），建议与 nop-kernel 侧统一立项；本报告 P0/P1 的单点放大已分别修复。
+
 ### [P3] OfficeRelsPart.cloneInstance 漏拷贝 relationshipsByType 与 nextId（当前无调用方的潜伏缺陷）
 
 - **文件**: `nop-format/nop-ooxml/nop-ooxml-common/src/main/java/io/nop/ooxml/common/model/OfficeRelsPart.java:152-156`
@@ -233,6 +251,8 @@ public OfficeRelsPart cloneInstance() {
 - **风险**: 一旦被使用即数据丢失；与 P1 修复强相关。
 - **建议**: 补齐三个字段的拷贝（relationshipsByType 需重建列表避免共享可变 List）。
 - **误报排除**: 已 grep 确认模块内无调用方，如实标注为潜伏缺陷而非现行 bug。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复（随 P1 copy 修复激活）。cloneInstance 补齐 relationshipsByType（重建 List 避免共享）与 nextId。
 
 ### [P3] OfficePackage.saveToResource 的 IZipOutput 未在 finally 中关闭
 
@@ -256,6 +276,8 @@ try {
 - **建议**: `out` 声明提前，finally 中 `IoHelper.safeClose(out)`（其内部会关 os，可二选一）；可考虑失败时删除目标资源。
 - **误报排除**: 已核实 `out.close()` 确在 try 内且异常时不执行；JdkZipOutput.close 负责收尾。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。`out` 声明提前，异常路径也执行 `IoHelper.safeClose(out)`（内部会关底层流）。
+
 ### [P3] PptOfficePackage 存在未完成 API：addSlide 不更新 presentation 引用、getSlidesXml 字典序错乱、removeCommentsFile 半成品
 
 - **文件**: `nop-format/nop-ooxml/nop-ooxml-pptx/src/main/java/io/nop/ooxml/pptx/model/PptOfficePackage.java:106-113,182-189,194-222`
@@ -277,6 +299,8 @@ public List<XNode> getSlidesXml() {
 - **建议**: addSlide 补齐关系与内容类型注册或显式 `throw new UnsupportedOperationException`；getSlidesXml 按编号排序（可复用 PackagePartName.compare 的自然排序）。
 - **误报排除**: 已核实 `files` 为 `TreeMap<String, IOfficePackagePart>` 且 addSlide 无任何 rels/contentTypes 写入。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 部分修复。getSlidesXml 按编号排序（slide10 不再排在 slide2 前）；addSlide 的 presentation 引用/rels/contentTypes 补齐与 removeCommentsFile 的内容类型清理属未完成功能实现，维持抛错/现状并在此注明（模块内无调用方）。
+
 ### [P3] SimpleSheetContentsHandler.mergeCell 修改共享样式对象，边框串扰到无关单元格
 
 - **文件**: `nop-format/nop-ooxml/nop-ooxml-xlsx/src/main/java/io/nop/ooxml/xlsx/parse/SimpleSheetContentsHandler.java:104-118`
@@ -295,6 +319,8 @@ table.mergeCell(range);
 - **风险**: 上传 xlsx 回读的边框样式在特定样式复用格局下失真。
 - **建议**: 对样式做 clone 后再改（模块内 StylesPartParser.parseCellXfs 已有 cloneInstance 先例）；修正 getBottomBorder 笔误。
 - **误报排除**: 已核实 `wk.getStyle(styleId)` 从共享 style 列表取同一实例、ExcelStyle 为可变对象、无 clone。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。mergeCell 克隆首单元格样式后修改并注册为新样式（新 styleId 指回首单元格），共享样式实例不再被串扰；getBottomBorder 笔误已在先前提交修正为 getBottomBorder。
 
 ### [P3] 解析超链接时忽略 r:id，外部链接（URL 存于 rels）全部丢失
 
@@ -321,6 +347,8 @@ public void link(String ref, String location, String rId) {
 - **建议**: link 回调扩展 rels 上下文（SheetNodeHandler 持有 pkg/sheetPart 可解析 `getRelPart(sheetPart, rId)`），或至少在丢弃时 LOG.debug。
 - **误报排除**: 已核实两文件的完整签名与调用链，rId 确实未透传。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已确认，暂缓。外链解析需要 SheetNodeHandler 持有包级 rels 访问能力（结构性扩展），当前仅丢外链不影响崩溃路径，建议随解析器结构重构一并处理。
+
 ### [P3] OfficePackage.generateToDir 直接拼接部件路径，缺少 generateToZip 已有的条目名校验
 
 - **文件**: `nop-format/nop-ooxml/nop-ooxml-common/src/main/java/io/nop/ooxml/common/OfficePackage.java:320-324`
@@ -337,6 +365,8 @@ public void generateToDir(File dir, IEvalScope scope) {
 - **风险**: “加载不可信包 → 目录物化”这一扩展用法下存在目录穿越写。
 - **建议**: `generateToDir` 入口对 `file.getPath()` 做 `StringHelper.isValidFilePath` + 拒绝 `..` 校验，与 zip 路径对齐。
 - **误报排除**: 已核实 zip 侧确有校验而 dir 侧没有；并确认 appendPath 不消除 `..`。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。generateToDir 对部件路径做 `isValidFilePath` + 拒绝 `..` 校验（与 zip 侧对齐），越界抛 `ERR_OOXML_INVALID_PART_PATH`。
 
 ### [P3] ExcelOfficePackage.loadEmpty 每次调用都从 VFS 重新解压并解析空模板
 
@@ -355,6 +385,8 @@ public static ExcelOfficePackage loadEmpty() {
 - **风险**: 高频导出场景的无谓 CPU/分配开销。
 - **建议**: 以模板字节数组为底本的进程级缓存（注意与 P1 的共享可变状态问题联动：缓存必须配合真正的深拷贝）。
 - **误报排除**: 已核实无任何静态缓存字段；调用频度来自 saveExcel/ReportEngine 每次新建。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已确认，暂缓。空模板缓存需配合"缓存底本 + 每次深拷贝"的进程级设计（与 copy 深拷贝联动），单次开销为 KB 级，收益有限。
 
 ### [P3] InvalidOperationException 为继承 RuntimeException 的死代码
 
@@ -378,3 +410,5 @@ public class InvalidOperationException extends RuntimeException {
 - D3 正面确认: chart 包的 `INSTANCE` 单例（DrawingChartParser/ChartShapeStyleParser/各 Builder）经核查无可变实例字段，均为无状态方法类，并发共享安全；`DefaultChartStyleProvider` 每次 `createStyleProvider` 新建实例，无共享。
 - D2 正面确认: `AbstractOfficeTemplate.generateToStream` 临时目录在 finally 中 `ResourceHelper.deleteAll` 清理；`AbstractXlsxParser/WordTemplateParser/OfficeDocModelParser/DocxToMarkdownConverter/PptxToMarkdownConverter/XlsxToRecordOutput` 均在 finally/safeClose 中关闭 OfficePackage；`AbstractXmlTemplate.generateToStream` 只 flush 不关闭调用方流，职责正确。
 - `IOfficePackagePart.generateToZip` 默认实现不关闭条目流，经核实 JdkZipOutput 的 `putNextEntry` 会自动收尾前一Entry、`out.close()` 统一收尾，判为安全的非问题。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。死代码类已删除（全仓仅注释引用）。

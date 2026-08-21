@@ -117,7 +117,7 @@ public class OfficePackage implements Closeable, ISourceLocationGetter {
         // 浅拷贝会让缓存模板与每次渲染的副本共享可变部件（rels/contentTypes/XNode），
         // 渲染期的修改会污染模板并产生并发数据竞争，必须对可变模型部件做深拷贝
         files.forEach((path, part) -> pkg.files.put(path, part.cloneInstance()));
-        nextIndex.forEach((prefix, idx) -> pkg.nextIndex.put(prefix, new MutableInt(idx.get()));
+        nextIndex.forEach((prefix, idx) -> pkg.nextIndex.put(prefix, new MutableInt(idx.get())));
     }
 
     public OfficePackage loadInMemory() {

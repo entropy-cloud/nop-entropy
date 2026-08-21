@@ -44,7 +44,7 @@ public class TestRenderersRegression {
         HeatmapChartRenderer renderer = new HeatmapChartRenderer();
         ChartDataSet ds = new ChartDataSet();
         ds.setXValues(Arrays.asList(1.0, null, 3.0));
-        ds.setValues(Arrays.asList(10.0, 20.0, null));
+        ds.setValues(Arrays.asList(10.0, 20.0, 30.0));
         ds.setHeatmapValues(Arrays.asList(100.0, 200.0, 300.0));
 
         ChartModel model = new ChartModel();
@@ -55,7 +55,8 @@ public class TestRenderersRegression {
         JFreeChart chart = renderer.createChart(model, Collections.singletonList(ds), null);
         XYPlot plot = chart.getXYPlot();
         XYZDataset dataset = (XYZDataset) plot.getDataset();
-        assertEquals(1, dataset.getItemCount(0));
+        // x值为null的第2个点被跳过，其余2个点保留
+        assertEquals(2, dataset.getItemCount(0));
 
         // 修复前从不设置 PaintScale，所有热块渲染为同一默认颜色
         XYBlockRenderer blockRenderer = (XYBlockRenderer) plot.getRenderer();

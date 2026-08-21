@@ -22,7 +22,7 @@ public class TestOfficePackageCopy {
 
     static XNode parseNode(String xml) {
         return XNodeParser.instance().parseFromResource(
-                new ByteArrayResource("test.xml", xml.getBytes(StandardCharsets.UTF_8), 0));
+                new ByteArrayResource("/test.xml", xml.getBytes(StandardCharsets.UTF_8), 0));
     }
 
     @Test

@@ -16,7 +16,7 @@ public class TestSharedStringsPrealloc {
 
     static SharedStringsPart parse(String xml) {
         return new SharedStringsTableParser(true).parseFromResource(
-                new ByteArrayResource("sharedStrings.xml", xml.getBytes(StandardCharsets.UTF_8), 0));
+                new ByteArrayResource("/sharedStrings.xml", xml.getBytes(StandardCharsets.UTF_8), 0));
     }
 
     @Test

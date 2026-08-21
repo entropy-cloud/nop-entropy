@@ -27,14 +27,14 @@ public class TestPptSlidesOrder {
     public void testSlidesOrderedByNumber() {
         PptOfficePackage pkg = new PptOfficePackage();
         // 乱序添加，TreeMap 内部按字典序 slide1,slide10,slide2
-        pkg.addFile(part("slide1.xml", "one"));
+        pkg.addFile(part("/slide1.xml", "one"));
         pkg.addFile(part("slide10.xml", "ten"));
         pkg.addFile(part("slide2.xml", "two"));
 
         List<XNode> slides = pkg.getSlidesXml();
         assertEquals(3, slides.size());
-        assertEquals("one", slides.get(0).getChildByTag("t").text());
-        assertEquals("two", slides.get(1).getChildByTag("t").text());
-        assertEquals("ten", slides.get(2).getChildByTag("t").text());
+        assertEquals("one", slides.get(0).childByTag("t").text());
+        assertEquals("two", slides.get(1).childByTag("t").text());
+        assertEquals("ten", slides.get(2).childByTag("t").text());
     }
 }

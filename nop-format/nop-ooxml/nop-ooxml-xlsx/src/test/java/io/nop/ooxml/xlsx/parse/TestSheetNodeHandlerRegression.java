@@ -70,21 +70,28 @@ public class TestSheetNodeHandlerRegression {
         RecordingHandler recorder = new RecordingHandler();
         SheetNodeHandler handler = new SheetNodeHandler((SharedStringsPart) null, recorder);
         XNodeParser.instance().handler(handler).parseFromResource(new ByteArrayResource(
-                "sheet1.xml", sheetXml.getBytes(StandardCharsets.UTF_8), 0));
+                "/sheet1.xml", sheetXml.getBytes(StandardCharsets.UTF_8), 0));
         return recorder.cells;
     }
 
     static final String SHEET_HEAD = "<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><sheetData>";
     static final String SHEET_TAIL = "</sheetData></worksheet>";
 
-    // 修复前 ZZZZZZ1 会被解析为约3.2亿的列索引，下游集合按索引补null造成内存放大
+    // 超长列引用在 CellPosition 解析层即被拒（MAX_COLS=65536，审计声称的"3.2亿放大"前提不成立）；
+    // 本修复进一步把上限收紧到 Excel 真实列数 16384（XFE1 = 第16385列）
     @Test
     public void testCellRefOutOfRangeRejected() {
         String xml = SHEET_HEAD
                 + "<row r=\"1\"><c r=\"ZZZZZZ1\" t=\"inlineStr\"><is><t>x</t></is></c></row>"
                 + SHEET_TAIL;
         NopException e = assertThrows(NopException.class, () -> parseCells(xml));
-        assertEquals(XlsxErrors.ERR_XLSX_CELL_REF_OUT_OF_RANGE.getErrorCode(), e.getErrorCode());
+        assertEquals("nop.err.core.table.invalid-cell-position", e.getErrorCode());
+
+        String xml2 = SHEET_HEAD
+                + "<row r=\"1\"><c r=\"XFE1\" t=\"inlineStr\"><is><t>x</t></is></c></row>"
+                + SHEET_TAIL;
+        NopException e2 = assertThrows(NopException.class, () -> parseCells(xml2));
+        assertEquals(XlsxErrors.ERR_XLSX_CELL_REF_OUT_OF_RANGE.getErrorCode(), e2.getErrorCode());
     }
 
     // ECMA-376 允许省略 c/@r：缺失时按出现顺序推算（此前静默变null，下游NPE）
