@@ -32,6 +32,7 @@ import java.awt.geom.Rectangle2D;
 import java.util.Arrays;
 
 import static io.nop.svg.SVGErrors.ARG_TYPE;
+import static io.nop.svg.SVGErrors.ERR_SVG_CLONE_NOT_SUPPORTED;
 import static io.nop.svg.SVGErrors.ERR_SVG_UNRECOGNISED_SEGMENT_TYPE;
 
 /**
@@ -710,7 +711,7 @@ public class SVGPath implements Shape, Cloneable {
             return result;
         } catch (CloneNotSupportedException ex) {
             // 实现了Cloneable，该分支不可达；吞异常返回this会破坏clone的副本语义
-            throw new NopException("nop.err.svg.clone-not-supported").cause(ex);
+            throw new NopException(ERR_SVG_CLONE_NOT_SUPPORTED).cause(ex);
         }
     }
 

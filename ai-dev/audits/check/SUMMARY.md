@@ -85,6 +85,10 @@
 6. **认证/授权边界**。9 条安全 P0 中 6 条（#1-#6）属于"边界条件下的信任假设失效"：配置为 0 跳过校验、publicAccess 端点信任 payload、默认装配携带测试凭证、客户端可控值进文件路径。
 7. **方言/Provider 适配层质量分层明显**。Gemini/Ollama/Anthropic dialect、TDengine 驱动、Vert.x MQTT 等适配层的缺陷密度显著高于平台自研核心（nop-biz/nop-metadata/nop-ai-agent 的 grep 层面几乎零违例）。适配层多为单遍移植，缺往返测试。
 
+## 修复进展（fix-ai-check 分支，2026-08-21）
+
+dev-tools / file-retry-tcc / format-misc / format-office / format-pdf-svg / format-record 六个单元的全部 118 条发现已在独立分支 `fix-ai-check` 完成处置：74 条已修复（含全部 P0/P1，附回归测试）、27 条已确认暂缓（需设计决策）、4 条复查后维持现状、1 条审计前提有误（xlsx 列引用放大，CellPosition 既有上限）、其余文档化/删除死代码。逐条处置见各报告条目末尾的"处置（fix-ai-check 分支）"标注。两个超出审计的发现：ModelBasedPacketCodec 编码帧长公式与解码恒差 lengthFieldEndOffset 字节；readLine EOF 语义应统一为 null 而非空串（消费方以 null 判结束）。
+
 ## 后续建议
 
 1. **修复分批**：建议按"安全类 9 条 → 数据正确性 16 条 → 流处理/失效类"顺序建修复 plan（`ai-dev/plans/`），每个 plan 引用对应 check 报告作 baseline。P2/P3 可按模块顺带处理。

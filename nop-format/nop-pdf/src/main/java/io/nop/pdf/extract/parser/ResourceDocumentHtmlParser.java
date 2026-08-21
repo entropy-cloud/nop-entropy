@@ -1,5 +1,6 @@
 package io.nop.pdf.extract.parser;
 
+import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.parse.IXNodeParser;
@@ -28,6 +29,9 @@ public class ResourceDocumentHtmlParser implements
 
     static final Logger LOG = LoggerFactory.getLogger(ResourceDocumentHtmlParser.class);
 
+    static final ErrorCode ERR_HTML_BODY_NOT_FOUND = ErrorCode.define("nop.err.pdf.html-body-not-found",
+            "HTML文档缺少body元素:resourcePath={resourcePath}");
+
     @Override
     public ResourceDocument loadObjectFromPath(String path) {
         return loadObjectFromResource(VirtualFileSystem.instance().getResource(path));
@@ -50,7 +54,7 @@ public class ResourceDocumentHtmlParser implements
 
         XNode bodyTag = XNode.childByTag("body");
         if (bodyTag == null)
-            throw new NopException("nop.err.pdf.html-body-not-found").param("resourcePath", resource.getPath());
+            throw new NopException(ERR_HTML_BODY_NOT_FOUND).param("resourcePath", resource.getPath());
 
         List<XNode> pageList = bodyTag
                 .childrenByAttr("class", "pdf-page");
@@ -72,12 +76,12 @@ public class ResourceDocumentHtmlParser implements
             // 得到content
             XNode contentNode = page.childByAttr("class",
                     "pdf-page-content");
-            blocks = parseBlocks(contentNode);
+            blocks = contentNode != null ? parseBlocks(contentNode) : new ArrayList<>();
             rePage.getSortedBlocks().addAll(blocks);
             // 得到foot
             XNode pageFooterNode = page.childByAttr("class",
                     "pdf-page-footer");
-            blocks = parseBlocks(pageFooterNode);
+            blocks = pageFooterNode != null ? parseBlocks(pageFooterNode) : new ArrayList<>();
             rePage.setPageFooter(blocks);
             rePage.setDisplayPageNo(displayPageNo);
             rePage.setPageNo(pageNo);

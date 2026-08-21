@@ -32,4 +32,6 @@ public interface SVGErrors {
 
     ErrorCode ERR_SVG_UNRECOGNISED_SEGMENT_TYPE =
             define("nop.err.svg.unrecognised-segment-type", "无法识别的路径段类型:{type}", ARG_TYPE);
+
+    ErrorCode ERR_SVG_CLONE_NOT_SUPPORTED = define("nop.err.svg.clone-not-supported", "SVGPath不支持clone");
 }

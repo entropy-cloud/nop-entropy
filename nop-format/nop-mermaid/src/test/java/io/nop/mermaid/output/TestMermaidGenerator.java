@@ -38,8 +38,9 @@ public class TestMermaidGenerator {
         generator.visitMermaidComment(comment);
         String result = generator.getResult();
 
-        // 修复前 MessageFormat 把单引号当转义前缀静默吞掉
-        assertTrue(result.contains("don't panic"), result);
+        // 修复前 MessageFormat 把单引号当转义前缀静默吞掉；
+        // 修复后单引号保留（经 escapeMermaidString 转义为 \' 形式）
+        assertTrue(result.contains("don\\'t panic"), result);
     }
 
     @Test

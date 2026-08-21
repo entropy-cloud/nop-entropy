@@ -19,7 +19,7 @@ public class TestPptSlidesOrder {
     static XmlOfficePackagePart part(String name, String text) {
         byte[] bytes = ("<slide><t>" + text + "</t></slide>").getBytes(StandardCharsets.UTF_8);
         XNode node = XNodeParser.instance().parseFromResource(
-                new ByteArrayResource(name, bytes, 0));
+                new ByteArrayResource("/" + name, bytes, 0));
         return new XmlOfficePackagePart("ppt/slides/" + name, node);
     }
 
@@ -27,7 +27,7 @@ public class TestPptSlidesOrder {
     public void testSlidesOrderedByNumber() {
         PptOfficePackage pkg = new PptOfficePackage();
         // 乱序添加，TreeMap 内部按字典序 slide1,slide10,slide2
-        pkg.addFile(part("/slide1.xml", "one"));
+        pkg.addFile(part("slide1.xml", "one"));
         pkg.addFile(part("slide10.xml", "ten"));
         pkg.addFile(part("slide2.xml", "two"));
 
