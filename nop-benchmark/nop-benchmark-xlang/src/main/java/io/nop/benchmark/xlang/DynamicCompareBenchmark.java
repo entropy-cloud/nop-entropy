@@ -41,7 +41,8 @@ import java.util.concurrent.TimeUnit;
  * <ul>
  * <li><b>truffle 列 = 真实生产路径</b>：{@code XLang.execute} choke point → 决策树动态分支
  * → truffle 后端池运行时（租借求值稳态；翻译缓存命中后不再翻译）。setup 期路由身份核验：
- * 最近裁决 RouteKind = TRUFFLE（防静默测错后端）。<b>stock JVM 上 truffle 为解释执行稳态
+ * 最近裁决 RouteKind = DYNAMIC（决策树动态分支→truffle 后端，防静默测错后端）。<b>stock
+ * JVM 上 truffle 为解释执行稳态
  * （JIT 生效形态仅在 GraalVM 形态成立——报告数据行按形态标注）</b>。</li>
  * <li><b>interpreter 列 = 显式旁路</b>（动态分支经 choke point 会被路由到 truffle）——
  * 同树直驱全局执行器；setup 期身份核验：树非 bound 包装 + 基线值断言。</li>
