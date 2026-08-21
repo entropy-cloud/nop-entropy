@@ -1,0 +1,1285 @@
+# JMH version: 1.33
+# VM version: JDK 26.0.1, OpenJDK 64-Bit Server VM, 26.0.1+8
+# VM invoker: /Users/abc/Library/Java/JavaVirtualMachines/zulu-26.0.1/Contents/Home/bin/java
+# VM options: <none>
+# Blackhole mode: full + dont-inline hint (default, use -Djmh.blackhole.autoDetect=true to auto-detect)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 4 threads, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.nop.benchmark.xlang.ContextPoolBenchmark.poolLeaseEvalConcurrent4
+# Parameters: (poolSize = 1)
+
+# Run progress: 0.00% complete, ETA 00:08:00
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/abc/.m2/repository/org/openjdk/jmh/jmh-core/1.33/jmh-core-1.33.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.oracle.truffle.polyglot.JDKSupport in an unnamed module (file:/Users/abc/.m2/repository/org/graalvm/truffle/truffle-api/25.2.4/truffle-api-25.2.4.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+13:10:51.782 WARN  i.n.c.r.store.LocalResourceStore - nop.warn.core.resource.store.directory-not-exists:basePath=/,dir=/Users/abc/app/nop-entropy-wt/nop-entropy-master/nop-benchmark/nop-benchmark-xlang/././_vfs
+5.031 ±(99.9%) 1.186 us/op
+# Warmup Iteration   2: 5.225 ±(99.9%) 1.479 us/op
+# Warmup Iteration   3: 4.663 ±(99.9%) 0.782 us/op
+Iteration   1: 6.168 ±(99.9%) 0.515 us/op
+Iteration   2: 6.030 ±(99.9%) 1.435 us/op
+Iteration   3: 4.780 ±(99.9%) 0.414 us/op
+Iteration   4: 4.979 ±(99.9%) 0.630 us/op
+Iteration   5: 6.135 ±(99.9%) 0.609 us/op
+
+
+Result "io.nop.benchmark.xlang.ContextPoolBenchmark.poolLeaseEvalConcurrent4":
+  5.618 ±(99.9%) 2.619 us/op [Average]
+  (min, avg, max) = (4.780, 5.618, 6.168), stdev = 0.680
+  CI (99.9%): [2.999, 8.238] (assumes normal distribution)
+
+
+# JMH version: 1.33
+# VM version: JDK 26.0.1, OpenJDK 64-Bit Server VM, 26.0.1+8
+# VM invoker: /Users/abc/Library/Java/JavaVirtualMachines/zulu-26.0.1/Contents/Home/bin/java
+# VM options: <none>
+# Blackhole mode: full + dont-inline hint (default, use -Djmh.blackhole.autoDetect=true to auto-detect)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 4 threads, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.nop.benchmark.xlang.ContextPoolBenchmark.poolLeaseEvalConcurrent4
+# Parameters: (poolSize = 2)
+
+# Run progress: 3.33% complete, ETA 00:08:31
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/abc/.m2/repository/org/openjdk/jmh/jmh-core/1.33/jmh-core-1.33.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.oracle.truffle.polyglot.JDKSupport in an unnamed module (file:/Users/abc/.m2/repository/org/graalvm/truffle/truffle-api/25.2.4/truffle-api-25.2.4.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+13:11:09.412 WARN  i.n.c.r.store.LocalResourceStore - nop.warn.core.resource.store.directory-not-exists:basePath=/,dir=/Users/abc/app/nop-entropy-wt/nop-entropy-master/nop-benchmark/nop-benchmark-xlang/././_vfs
+3.855 ±(99.9%) 0.107 us/op
+# Warmup Iteration   2: 3.977 ±(99.9%) 0.705 us/op
+# Warmup Iteration   3: 3.512 ±(99.9%) 0.209 us/op
+Iteration   1: 3.952 ±(99.9%) 0.092 us/op
+Iteration   2: 3.589 ±(99.9%) 0.117 us/op
+Iteration   3: 4.716 ±(99.9%) 3.170 us/op
+Iteration   4: 3.639 ±(99.9%) 0.160 us/op
+Iteration   5: 3.361 ±(99.9%) 0.222 us/op
+
+
+Result "io.nop.benchmark.xlang.ContextPoolBenchmark.poolLeaseEvalConcurrent4":
+  3.852 ±(99.9%) 2.031 us/op [Average]
+  (min, avg, max) = (3.361, 3.852, 4.716), stdev = 0.527
+  CI (99.9%): [1.821, 5.882] (assumes normal distribution)
+
+
+# JMH version: 1.33
+# VM version: JDK 26.0.1, OpenJDK 64-Bit Server VM, 26.0.1+8
+# VM invoker: /Users/abc/Library/Java/JavaVirtualMachines/zulu-26.0.1/Contents/Home/bin/java
+# VM options: <none>
+# Blackhole mode: full + dont-inline hint (default, use -Djmh.blackhole.autoDetect=true to auto-detect)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 4 threads, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.nop.benchmark.xlang.ContextPoolBenchmark.poolLeaseEvalConcurrent4
+# Parameters: (poolSize = 4)
+
+# Run progress: 6.67% complete, ETA 00:08:16
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/abc/.m2/repository/org/openjdk/jmh/jmh-core/1.33/jmh-core-1.33.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.oracle.truffle.polyglot.JDKSupport in an unnamed module (file:/Users/abc/.m2/repository/org/graalvm/truffle/truffle-api/25.2.4/truffle-api-25.2.4.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+13:11:27.254 WARN  i.n.c.r.store.LocalResourceStore - nop.warn.core.resource.store.directory-not-exists:basePath=/,dir=/Users/abc/app/nop-entropy-wt/nop-entropy-master/nop-benchmark/nop-benchmark-xlang/././_vfs
+2.463 ±(99.9%) 0.075 us/op
+# Warmup Iteration   2: 2.741 ±(99.9%) 0.139 us/op
+# Warmup Iteration   3: 2.254 ±(99.9%) 0.058 us/op
+Iteration   1: 2.206 ±(99.9%) 0.165 us/op
+Iteration   2: 2.476 ±(99.9%) 0.104 us/op
+Iteration   3: 2.451 ±(99.9%) 0.038 us/op
+Iteration   4: 2.860 ±(99.9%) 0.564 us/op
+Iteration   5: 2.294 ±(99.9%) 0.389 us/op
+
+
+Result "io.nop.benchmark.xlang.ContextPoolBenchmark.poolLeaseEvalConcurrent4":
+  2.457 ±(99.9%) 0.966 us/op [Average]
+  (min, avg, max) = (2.206, 2.457, 2.860), stdev = 0.251
+  CI (99.9%): [1.491, 3.424] (assumes normal distribution)
+
+
+# JMH version: 1.33
+# VM version: JDK 26.0.1, OpenJDK 64-Bit Server VM, 26.0.1+8
+# VM invoker: /Users/abc/Library/Java/JavaVirtualMachines/zulu-26.0.1/Contents/Home/bin/java
+# VM options: <none>
+# Blackhole mode: full + dont-inline hint (default, use -Djmh.blackhole.autoDetect=true to auto-detect)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 4 threads, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.nop.benchmark.xlang.ContextPoolBenchmark.poolLeaseEvalConcurrent4
+# Parameters: (poolSize = 8)
+
+# Run progress: 10.00% complete, ETA 00:08:02
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/abc/.m2/repository/org/openjdk/jmh/jmh-core/1.33/jmh-core-1.33.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.oracle.truffle.polyglot.JDKSupport in an unnamed module (file:/Users/abc/.m2/repository/org/graalvm/truffle/truffle-api/25.2.4/truffle-api-25.2.4.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+13:11:45.326 WARN  i.n.c.r.store.LocalResourceStore - nop.warn.core.resource.store.directory-not-exists:basePath=/,dir=/Users/abc/app/nop-entropy-wt/nop-entropy-master/nop-benchmark/nop-benchmark-xlang/././_vfs
+2.602 ±(99.9%) 0.482 us/op
+# Warmup Iteration   2: 3.077 ±(99.9%) 0.422 us/op
+# Warmup Iteration   3: 2.405 ±(99.9%) 0.149 us/op
+Iteration   1: 3.155 ±(99.9%) 0.568 us/op
+Iteration   2: 2.920 ±(99.9%) 0.208 us/op
+Iteration   3: 2.655 ±(99.9%) 0.206 us/op
+Iteration   4: 3.037 ±(99.9%) 0.222 us/op
+Iteration   5: 2.737 ±(99.9%) 0.164 us/op
+
+
+Result "io.nop.benchmark.xlang.ContextPoolBenchmark.poolLeaseEvalConcurrent4":
+  2.901 ±(99.9%) 0.795 us/op [Average]
+  (min, avg, max) = (2.655, 2.901, 3.155), stdev = 0.206
+  CI (99.9%): [2.106, 3.695] (assumes normal distribution)
+
+
+# JMH version: 1.33
+# VM version: JDK 26.0.1, OpenJDK 64-Bit Server VM, 26.0.1+8
+# VM invoker: /Users/abc/Library/Java/JavaVirtualMachines/zulu-26.0.1/Contents/Home/bin/java
+# VM options: <none>
+# Blackhole mode: full + dont-inline hint (default, use -Djmh.blackhole.autoDetect=true to auto-detect)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 4 threads, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.nop.benchmark.xlang.ContextPoolBenchmark.poolLeaseEvalConcurrent4
+# Parameters: (poolSize = 16)
+
+# Run progress: 13.33% complete, ETA 00:07:46
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/abc/.m2/repository/org/openjdk/jmh/jmh-core/1.33/jmh-core-1.33.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.oracle.truffle.polyglot.JDKSupport in an unnamed module (file:/Users/abc/.m2/repository/org/graalvm/truffle/truffle-api/25.2.4/truffle-api-25.2.4.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+13:12:03.571 WARN  i.n.c.r.store.LocalResourceStore - nop.warn.core.resource.store.directory-not-exists:basePath=/,dir=/Users/abc/app/nop-entropy-wt/nop-entropy-master/nop-benchmark/nop-benchmark-xlang/././_vfs
+2.747 ±(99.9%) 0.192 us/op
+# Warmup Iteration   2: 2.207 ±(99.9%) 0.117 us/op
+# Warmup Iteration   3: 2.336 ±(99.9%) 0.206 us/op
+Iteration   1: 2.694 ±(99.9%) 0.140 us/op
+Iteration   2: 2.842 ±(99.9%) 0.164 us/op
+Iteration   3: 2.737 ±(99.9%) 0.427 us/op
+Iteration   4: 2.586 ±(99.9%) 0.118 us/op
+Iteration   5: 2.625 ±(99.9%) 0.193 us/op
+
+
+Result "io.nop.benchmark.xlang.ContextPoolBenchmark.poolLeaseEvalConcurrent4":
+  2.697 ±(99.9%) 0.386 us/op [Average]
+  (min, avg, max) = (2.586, 2.697, 2.842), stdev = 0.100
+  CI (99.9%): [2.311, 3.083] (assumes normal distribution)
+
+
+# JMH version: 1.33
+# VM version: JDK 26.0.1, OpenJDK 64-Bit Server VM, 26.0.1+8
+# VM invoker: /Users/abc/Library/Java/JavaVirtualMachines/zulu-26.0.1/Contents/Home/bin/java
+# VM options: <none>
+# Blackhole mode: full + dont-inline hint (default, use -Djmh.blackhole.autoDetect=true to auto-detect)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.nop.benchmark.xlang.ContextPoolBenchmark.poolLeaseEvalSteady
+# Parameters: (poolSize = 1)
+
+# Run progress: 16.67% complete, ETA 00:07:31
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/abc/.m2/repository/org/openjdk/jmh/jmh-core/1.33/jmh-core-1.33.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.oracle.truffle.polyglot.JDKSupport in an unnamed module (file:/Users/abc/.m2/repository/org/graalvm/truffle/truffle-api/25.2.4/truffle-api-25.2.4.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+13:12:22.013 WARN  i.n.c.r.store.LocalResourceStore - nop.warn.core.resource.store.directory-not-exists:basePath=/,dir=/Users/abc/app/nop-entropy-wt/nop-entropy-master/nop-benchmark/nop-benchmark-xlang/././_vfs
+0.788 us/op
+# Warmup Iteration   2: 0.923 us/op
+# Warmup Iteration   3: 1.111 us/op
+Iteration   1: 0.933 us/op
+Iteration   2: 1.020 us/op
+Iteration   3: 1.269 us/op
+Iteration   4: 0.901 us/op
+Iteration   5: 0.933 us/op
+
+
+Result "io.nop.benchmark.xlang.ContextPoolBenchmark.poolLeaseEvalSteady":
+  1.011 ±(99.9%) 0.581 us/op [Average]
+  (min, avg, max) = (0.901, 1.011, 1.269), stdev = 0.151
+  CI (99.9%): [0.430, 1.592] (assumes normal distribution)
+
+
+# JMH version: 1.33
+# VM version: JDK 26.0.1, OpenJDK 64-Bit Server VM, 26.0.1+8
+# VM invoker: /Users/abc/Library/Java/JavaVirtualMachines/zulu-26.0.1/Contents/Home/bin/java
+# VM options: <none>
+# Blackhole mode: full + dont-inline hint (default, use -Djmh.blackhole.autoDetect=true to auto-detect)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.nop.benchmark.xlang.ContextPoolBenchmark.poolLeaseEvalSteady
+# Parameters: (poolSize = 2)
+
+# Run progress: 20.00% complete, ETA 00:07:07
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/abc/.m2/repository/org/openjdk/jmh/jmh-core/1.33/jmh-core-1.33.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.oracle.truffle.polyglot.JDKSupport in an unnamed module (file:/Users/abc/.m2/repository/org/graalvm/truffle/truffle-api/25.2.4/truffle-api-25.2.4.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+13:12:38.612 WARN  i.n.c.r.store.LocalResourceStore - nop.warn.core.resource.store.directory-not-exists:basePath=/,dir=/Users/abc/app/nop-entropy-wt/nop-entropy-master/nop-benchmark/nop-benchmark-xlang/././_vfs
+0.831 us/op
+# Warmup Iteration   2: 1.038 us/op
+# Warmup Iteration   3: 1.042 us/op
+Iteration   1: 1.025 us/op
+Iteration   2: 0.786 us/op
+Iteration   3: 1.080 us/op
+Iteration   4: 1.316 us/op
+Iteration   5: 0.926 us/op
+
+
+Result "io.nop.benchmark.xlang.ContextPoolBenchmark.poolLeaseEvalSteady":
+  1.027 ±(99.9%) 0.757 us/op [Average]
+  (min, avg, max) = (0.786, 1.027, 1.316), stdev = 0.197
+  CI (99.9%): [0.270, 1.784] (assumes normal distribution)
+
+
+# JMH version: 1.33
+# VM version: JDK 26.0.1, OpenJDK 64-Bit Server VM, 26.0.1+8
+# VM invoker: /Users/abc/Library/Java/JavaVirtualMachines/zulu-26.0.1/Contents/Home/bin/java
+# VM options: <none>
+# Blackhole mode: full + dont-inline hint (default, use -Djmh.blackhole.autoDetect=true to auto-detect)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.nop.benchmark.xlang.ContextPoolBenchmark.poolLeaseEvalSteady
+# Parameters: (poolSize = 4)
+
+# Run progress: 23.33% complete, ETA 00:06:46
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/abc/.m2/repository/org/openjdk/jmh/jmh-core/1.33/jmh-core-1.33.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.oracle.truffle.polyglot.JDKSupport in an unnamed module (file:/Users/abc/.m2/repository/org/graalvm/truffle/truffle-api/25.2.4/truffle-api-25.2.4.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+13:12:55.360 WARN  i.n.c.r.store.LocalResourceStore - nop.warn.core.resource.store.directory-not-exists:basePath=/,dir=/Users/abc/app/nop-entropy-wt/nop-entropy-master/nop-benchmark/nop-benchmark-xlang/././_vfs
+0.845 us/op
+# Warmup Iteration   2: 1.055 us/op
+# Warmup Iteration   3: 1.004 us/op
+Iteration   1: 0.965 us/op
+Iteration   2: 1.122 us/op
+Iteration   3: 0.937 us/op
+Iteration   4: 1.341 us/op
+Iteration   5: 0.909 us/op
+
+
+Result "io.nop.benchmark.xlang.ContextPoolBenchmark.poolLeaseEvalSteady":
+  1.055 ±(99.9%) 0.693 us/op [Average]
+  (min, avg, max) = (0.909, 1.055, 1.341), stdev = 0.180
+  CI (99.9%): [0.362, 1.748] (assumes normal distribution)
+
+
+# JMH version: 1.33
+# VM version: JDK 26.0.1, OpenJDK 64-Bit Server VM, 26.0.1+8
+# VM invoker: /Users/abc/Library/Java/JavaVirtualMachines/zulu-26.0.1/Contents/Home/bin/java
+# VM options: <none>
+# Blackhole mode: full + dont-inline hint (default, use -Djmh.blackhole.autoDetect=true to auto-detect)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.nop.benchmark.xlang.ContextPoolBenchmark.poolLeaseEvalSteady
+# Parameters: (poolSize = 8)
+
+# Run progress: 26.67% complete, ETA 00:06:25
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/abc/.m2/repository/org/openjdk/jmh/jmh-core/1.33/jmh-core-1.33.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.oracle.truffle.polyglot.JDKSupport in an unnamed module (file:/Users/abc/.m2/repository/org/graalvm/truffle/truffle-api/25.2.4/truffle-api-25.2.4.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+13:13:12.041 WARN  i.n.c.r.store.LocalResourceStore - nop.warn.core.resource.store.directory-not-exists:basePath=/,dir=/Users/abc/app/nop-entropy-wt/nop-entropy-master/nop-benchmark/nop-benchmark-xlang/././_vfs
+0.809 us/op
+# Warmup Iteration   2: 0.973 us/op
+# Warmup Iteration   3: 1.086 us/op
+Iteration   1: 1.003 us/op
+Iteration   2: 0.922 us/op
+Iteration   3: 1.386 us/op
+Iteration   4: 1.070 us/op
+Iteration   5: 0.885 us/op
+
+
+Result "io.nop.benchmark.xlang.ContextPoolBenchmark.poolLeaseEvalSteady":
+  1.053 ±(99.9%) 0.768 us/op [Average]
+  (min, avg, max) = (0.885, 1.053, 1.386), stdev = 0.199
+  CI (99.9%): [0.286, 1.821] (assumes normal distribution)
+
+
+# JMH version: 1.33
+# VM version: JDK 26.0.1, OpenJDK 64-Bit Server VM, 26.0.1+8
+# VM invoker: /Users/abc/Library/Java/JavaVirtualMachines/zulu-26.0.1/Contents/Home/bin/java
+# VM options: <none>
+# Blackhole mode: full + dont-inline hint (default, use -Djmh.blackhole.autoDetect=true to auto-detect)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.nop.benchmark.xlang.ContextPoolBenchmark.poolLeaseEvalSteady
+# Parameters: (poolSize = 16)
+
+# Run progress: 30.00% complete, ETA 00:06:06
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/abc/.m2/repository/org/openjdk/jmh/jmh-core/1.33/jmh-core-1.33.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.oracle.truffle.polyglot.JDKSupport in an unnamed module (file:/Users/abc/.m2/repository/org/graalvm/truffle/truffle-api/25.2.4/truffle-api-25.2.4.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+13:13:28.725 WARN  i.n.c.r.store.LocalResourceStore - nop.warn.core.resource.store.directory-not-exists:basePath=/,dir=/Users/abc/app/nop-entropy-wt/nop-entropy-master/nop-benchmark/nop-benchmark-xlang/././_vfs
+0.897 us/op
+# Warmup Iteration   2: 1.022 us/op
+# Warmup Iteration   3: 1.013 us/op
+Iteration   1: 1.008 us/op
+Iteration   2: 1.023 us/op
+Iteration   3: 1.097 us/op
+Iteration   4: 1.152 us/op
+Iteration   5: 0.829 us/op
+
+
+Result "io.nop.benchmark.xlang.ContextPoolBenchmark.poolLeaseEvalSteady":
+  1.022 ±(99.9%) 0.471 us/op [Average]
+  (min, avg, max) = (0.829, 1.022, 1.152), stdev = 0.122
+  CI (99.9%): [0.551, 1.492] (assumes normal distribution)
+
+
+# JMH version: 1.33
+# VM version: JDK 26.0.1, OpenJDK 64-Bit Server VM, 26.0.1+8
+# VM invoker: /Users/abc/Library/Java/JavaVirtualMachines/zulu-26.0.1/Contents/Home/bin/java
+# VM options: <none>
+# Blackhole mode: full + dont-inline hint (default, use -Djmh.blackhole.autoDetect=true to auto-detect)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.nop.benchmark.xlang.ContextPoolBenchmark.poolOpenClose
+# Parameters: (poolSize = 1)
+
+# Run progress: 33.33% complete, ETA 00:05:47
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/abc/.m2/repository/org/openjdk/jmh/jmh-core/1.33/jmh-core-1.33.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.oracle.truffle.polyglot.JDKSupport in an unnamed module (file:/Users/abc/.m2/repository/org/graalvm/truffle/truffle-api/25.2.4/truffle-api-25.2.4.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+13:13:45.489 WARN  i.n.c.r.store.LocalResourceStore - nop.warn.core.resource.store.directory-not-exists:basePath=/,dir=/Users/abc/app/nop-entropy-wt/nop-entropy-master/nop-benchmark/nop-benchmark-xlang/././_vfs
+3.694 us/op
+# Warmup Iteration   2: 2.930 us/op
+# Warmup Iteration   3: 3.913 us/op
+Iteration   1: 3.060 us/op
+Iteration   2: 2.927 us/op
+Iteration   3: 2.686 us/op
+Iteration   4: 2.716 us/op
+Iteration   5: 2.689 us/op
+
+
+Result "io.nop.benchmark.xlang.ContextPoolBenchmark.poolOpenClose":
+  2.816 ±(99.9%) 0.653 us/op [Average]
+  (min, avg, max) = (2.686, 2.816, 3.060), stdev = 0.170
+  CI (99.9%): [2.163, 3.469] (assumes normal distribution)
+
+
+# JMH version: 1.33
+# VM version: JDK 26.0.1, OpenJDK 64-Bit Server VM, 26.0.1+8
+# VM invoker: /Users/abc/Library/Java/JavaVirtualMachines/zulu-26.0.1/Contents/Home/bin/java
+# VM options: <none>
+# Blackhole mode: full + dont-inline hint (default, use -Djmh.blackhole.autoDetect=true to auto-detect)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.nop.benchmark.xlang.ContextPoolBenchmark.poolOpenClose
+# Parameters: (poolSize = 2)
+
+# Run progress: 36.67% complete, ETA 00:05:28
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/abc/.m2/repository/org/openjdk/jmh/jmh-core/1.33/jmh-core-1.33.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.oracle.truffle.polyglot.JDKSupport in an unnamed module (file:/Users/abc/.m2/repository/org/graalvm/truffle/truffle-api/25.2.4/truffle-api-25.2.4.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+13:14:02.068 WARN  i.n.c.r.store.LocalResourceStore - nop.warn.core.resource.store.directory-not-exists:basePath=/,dir=/Users/abc/app/nop-entropy-wt/nop-entropy-master/nop-benchmark/nop-benchmark-xlang/././_vfs
+7.522 us/op
+# Warmup Iteration   2: 6.014 us/op
+# Warmup Iteration   3: 8.214 us/op
+Iteration   1: 6.025 us/op
+Iteration   2: 5.810 us/op
+Iteration   3: 6.358 us/op
+Iteration   4: 5.761 us/op
+Iteration   5: 5.817 us/op
+
+
+Result "io.nop.benchmark.xlang.ContextPoolBenchmark.poolOpenClose":
+  5.954 ±(99.9%) 0.953 us/op [Average]
+  (min, avg, max) = (5.761, 5.954, 6.358), stdev = 0.247
+  CI (99.9%): [5.001, 6.907] (assumes normal distribution)
+
+
+# JMH version: 1.33
+# VM version: JDK 26.0.1, OpenJDK 64-Bit Server VM, 26.0.1+8
+# VM invoker: /Users/abc/Library/Java/JavaVirtualMachines/zulu-26.0.1/Contents/Home/bin/java
+# VM options: <none>
+# Blackhole mode: full + dont-inline hint (default, use -Djmh.blackhole.autoDetect=true to auto-detect)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.nop.benchmark.xlang.ContextPoolBenchmark.poolOpenClose
+# Parameters: (poolSize = 4)
+
+# Run progress: 40.00% complete, ETA 00:05:10
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/abc/.m2/repository/org/openjdk/jmh/jmh-core/1.33/jmh-core-1.33.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.oracle.truffle.polyglot.JDKSupport in an unnamed module (file:/Users/abc/.m2/repository/org/graalvm/truffle/truffle-api/25.2.4/truffle-api-25.2.4.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+13:14:18.767 WARN  i.n.c.r.store.LocalResourceStore - nop.warn.core.resource.store.directory-not-exists:basePath=/,dir=/Users/abc/app/nop-entropy-wt/nop-entropy-master/nop-benchmark/nop-benchmark-xlang/././_vfs
+14.104 us/op
+# Warmup Iteration   2: 12.288 us/op
+# Warmup Iteration   3: 12.678 us/op
+Iteration   1: 10.955 us/op
+Iteration   2: 10.292 us/op
+Iteration   3: 10.975 us/op
+Iteration   4: 12.346 us/op
+Iteration   5: 14.034 us/op
+
+
+Result "io.nop.benchmark.xlang.ContextPoolBenchmark.poolOpenClose":
+  11.720 ±(99.9%) 5.752 us/op [Average]
+  (min, avg, max) = (10.292, 11.720, 14.034), stdev = 1.494
+  CI (99.9%): [5.968, 17.473] (assumes normal distribution)
+
+
+# JMH version: 1.33
+# VM version: JDK 26.0.1, OpenJDK 64-Bit Server VM, 26.0.1+8
+# VM invoker: /Users/abc/Library/Java/JavaVirtualMachines/zulu-26.0.1/Contents/Home/bin/java
+# VM options: <none>
+# Blackhole mode: full + dont-inline hint (default, use -Djmh.blackhole.autoDetect=true to auto-detect)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.nop.benchmark.xlang.ContextPoolBenchmark.poolOpenClose
+# Parameters: (poolSize = 8)
+
+# Run progress: 43.33% complete, ETA 00:04:52
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/abc/.m2/repository/org/openjdk/jmh/jmh-core/1.33/jmh-core-1.33.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.oracle.truffle.polyglot.JDKSupport in an unnamed module (file:/Users/abc/.m2/repository/org/graalvm/truffle/truffle-api/25.2.4/truffle-api-25.2.4.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+13:14:35.340 WARN  i.n.c.r.store.LocalResourceStore - nop.warn.core.resource.store.directory-not-exists:basePath=/,dir=/Users/abc/app/nop-entropy-wt/nop-entropy-master/nop-benchmark/nop-benchmark-xlang/././_vfs
+29.575 us/op
+# Warmup Iteration   2: 24.553 us/op
+# Warmup Iteration   3: 29.268 us/op
+Iteration   1: 28.117 us/op
+Iteration   2: 23.547 us/op
+Iteration   3: 23.211 us/op
+Iteration   4: 24.117 us/op
+Iteration   5: 23.041 us/op
+
+
+Result "io.nop.benchmark.xlang.ContextPoolBenchmark.poolOpenClose":
+  24.407 ±(99.9%) 8.143 us/op [Average]
+  (min, avg, max) = (23.041, 24.407, 28.117), stdev = 2.115
+  CI (99.9%): [16.264, 32.550] (assumes normal distribution)
+
+
+# JMH version: 1.33
+# VM version: JDK 26.0.1, OpenJDK 64-Bit Server VM, 26.0.1+8
+# VM invoker: /Users/abc/Library/Java/JavaVirtualMachines/zulu-26.0.1/Contents/Home/bin/java
+# VM options: <none>
+# Blackhole mode: full + dont-inline hint (default, use -Djmh.blackhole.autoDetect=true to auto-detect)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.nop.benchmark.xlang.ContextPoolBenchmark.poolOpenClose
+# Parameters: (poolSize = 16)
+
+# Run progress: 46.67% complete, ETA 00:04:34
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/abc/.m2/repository/org/openjdk/jmh/jmh-core/1.33/jmh-core-1.33.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.oracle.truffle.polyglot.JDKSupport in an unnamed module (file:/Users/abc/.m2/repository/org/graalvm/truffle/truffle-api/25.2.4/truffle-api-25.2.4.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+13:14:51.894 WARN  i.n.c.r.store.LocalResourceStore - nop.warn.core.resource.store.directory-not-exists:basePath=/,dir=/Users/abc/app/nop-entropy-wt/nop-entropy-master/nop-benchmark/nop-benchmark-xlang/././_vfs
+63.182 us/op
+# Warmup Iteration   2: 51.020 us/op
+# Warmup Iteration   3: 61.828 us/op
+Iteration   1: 55.606 us/op
+Iteration   2: 53.388 us/op
+Iteration   3: 48.198 us/op
+Iteration   4: 47.888 us/op
+Iteration   5: 47.767 us/op
+
+
+Result "io.nop.benchmark.xlang.ContextPoolBenchmark.poolOpenClose":
+  50.570 ±(99.9%) 14.146 us/op [Average]
+  (min, avg, max) = (47.767, 50.570, 55.606), stdev = 3.674
+  CI (99.9%): [36.424, 64.715] (assumes normal distribution)
+
+
+# JMH version: 1.33
+# VM version: JDK 26.0.1, OpenJDK 64-Bit Server VM, 26.0.1+8
+# VM invoker: /Users/abc/Library/Java/JavaVirtualMachines/zulu-26.0.1/Contents/Home/bin/java
+# VM options: <none>
+# Blackhole mode: full + dont-inline hint (default, use -Djmh.blackhole.autoDetect=true to auto-detect)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.nop.benchmark.xlang.DynamicCompareBenchmark.interpreterDynamicCorpus
+
+# Run progress: 50.00% complete, ETA 00:04:16
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/abc/.m2/repository/org/openjdk/jmh/jmh-core/1.33/jmh-core-1.33.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.oracle.truffle.polyglot.JDKSupport in an unnamed module (file:/Users/abc/.m2/repository/org/graalvm/truffle/truffle-api/25.2.4/truffle-api-25.2.4.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+13:15:08.449 WARN  i.n.c.r.store.LocalResourceStore - nop.warn.core.resource.store.directory-not-exists:basePath=/,dir=/Users/abc/app/nop-entropy-wt/nop-entropy-master/nop-benchmark/nop-benchmark-xlang/././_vfs
+13:15:08.548 WARN  i.nop.commons.util.ReflectionHelper - nop.commons.reflect.set-accessible-fail:method=java.lang.reflect.InaccessibleObjectException: Unable to make java.util.ImmutableCollections$AbstractImmutableList() accessible: module java.base does not "opens java.util" to unnamed module @1f89ab83
+13:15:08.550 WARN  i.n.c.reflect.impl.ClassModelBuilder - nop.interface-method-type:returnType=java.lang.Object
+13:15:08.550 WARN  i.n.c.reflect.impl.ClassModelBuilder - nop.interface-method-type:returnType=java.util.List
+13:15:08.550 WARN  i.n.c.reflect.impl.ClassModelBuilder - nop.interface-method-type:returnType=java.lang.Object
+13:15:08.550 WARN  i.n.c.reflect.impl.ClassModelBuilder - nop.interface-method-type:returnType=java.lang.Object
+13:15:08.550 WARN  i.n.c.reflect.impl.ClassModelBuilder - nop.interface-method-type:returnType=java.lang.Object
+13:15:08.550 WARN  i.n.c.reflect.impl.ClassModelBuilder - nop.interface-method-type:returnType=java.util.List
+13:15:08.551 WARN  i.nop.commons.util.ReflectionHelper - nop.commons.reflect.set-accessible-fail:method=java.lang.reflect.InaccessibleObjectException: Unable to make java.util.ImmutableCollections$AbstractImmutableCollection() accessible: module java.base does not "opens java.util" to unnamed module @1f89ab83
+0.463 us/op
+# Warmup Iteration   2: 0.434 us/op
+# Warmup Iteration   3: 0.428 us/op
+Iteration   1: 0.428 us/op
+Iteration   2: 0.429 us/op
+Iteration   3: 0.426 us/op
+Iteration   4: 0.443 us/op
+Iteration   5: 0.426 us/op
+
+
+Result "io.nop.benchmark.xlang.DynamicCompareBenchmark.interpreterDynamicCorpus":
+  0.431 ±(99.9%) 0.027 us/op [Average]
+  (min, avg, max) = (0.426, 0.431, 0.443), stdev = 0.007
+  CI (99.9%): [0.403, 0.458] (assumes normal distribution)
+
+
+# JMH version: 1.33
+# VM version: JDK 26.0.1, OpenJDK 64-Bit Server VM, 26.0.1+8
+# VM invoker: /Users/abc/Library/Java/JavaVirtualMachines/zulu-26.0.1/Contents/Home/bin/java
+# VM options: <none>
+# Blackhole mode: full + dont-inline hint (default, use -Djmh.blackhole.autoDetect=true to auto-detect)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.nop.benchmark.xlang.DynamicCompareBenchmark.truffleDynamicCorpus
+
+# Run progress: 53.33% complete, ETA 00:03:59
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/abc/.m2/repository/org/openjdk/jmh/jmh-core/1.33/jmh-core-1.33.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.oracle.truffle.polyglot.JDKSupport in an unnamed module (file:/Users/abc/.m2/repository/org/graalvm/truffle/truffle-api/25.2.4/truffle-api-25.2.4.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+13:15:25.017 WARN  i.n.c.r.store.LocalResourceStore - nop.warn.core.resource.store.directory-not-exists:basePath=/,dir=/Users/abc/app/nop-entropy-wt/nop-entropy-master/nop-benchmark/nop-benchmark-xlang/././_vfs
+13:15:25.112 WARN  i.nop.commons.util.ReflectionHelper - nop.commons.reflect.set-accessible-fail:method=java.lang.reflect.InaccessibleObjectException: Unable to make java.util.ImmutableCollections$AbstractImmutableList() accessible: module java.base does not "opens java.util" to unnamed module @1f89ab83
+13:15:25.114 WARN  i.n.c.reflect.impl.ClassModelBuilder - nop.interface-method-type:returnType=java.lang.Object
+13:15:25.114 WARN  i.n.c.reflect.impl.ClassModelBuilder - nop.interface-method-type:returnType=java.util.List
+13:15:25.114 WARN  i.n.c.reflect.impl.ClassModelBuilder - nop.interface-method-type:returnType=java.lang.Object
+13:15:25.114 WARN  i.n.c.reflect.impl.ClassModelBuilder - nop.interface-method-type:returnType=java.lang.Object
+13:15:25.114 WARN  i.n.c.reflect.impl.ClassModelBuilder - nop.interface-method-type:returnType=java.lang.Object
+13:15:25.114 WARN  i.n.c.reflect.impl.ClassModelBuilder - nop.interface-method-type:returnType=java.util.List
+13:15:25.115 WARN  i.nop.commons.util.ReflectionHelper - nop.commons.reflect.set-accessible-fail:method=java.lang.reflect.InaccessibleObjectException: Unable to make java.util.ImmutableCollections$AbstractImmutableCollection() accessible: module java.base does not "opens java.util" to unnamed module @1f89ab83
+9.272 us/op
+# Warmup Iteration   2: 9.741 us/op
+# Warmup Iteration   3: 9.996 us/op
+Iteration   1: 20.037 us/op
+Iteration   2: 13.170 us/op
+Iteration   3: 8.980 us/op
+Iteration   4: 12.336 us/op
+Iteration   5: 10.061 us/op
+
+
+Result "io.nop.benchmark.xlang.DynamicCompareBenchmark.truffleDynamicCorpus":
+  12.917 ±(99.9%) 16.647 us/op [Average]
+  (min, avg, max) = (8.980, 12.917, 20.037), stdev = 4.323
+  CI (99.9%): [≈ 0, 29.564] (assumes normal distribution)
+
+
+# JMH version: 1.33
+# VM version: JDK 26.0.1, OpenJDK 64-Bit Server VM, 26.0.1+8
+# VM invoker: /Users/abc/Library/Java/JavaVirtualMachines/zulu-26.0.1/Contents/Home/bin/java
+# VM options: <none>
+# Blackhole mode: full + dont-inline hint (default, use -Djmh.blackhole.autoDetect=true to auto-detect)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.nop.benchmark.xlang.StaticThreeWayBenchmark.interpreterStaticCorpus
+
+# Run progress: 56.67% complete, ETA 00:03:41
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/abc/.m2/repository/org/openjdk/jmh/jmh-core/1.33/jmh-core-1.33.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.oracle.truffle.polyglot.JDKSupport in an unnamed module (file:/Users/abc/.m2/repository/org/graalvm/truffle/truffle-api/25.2.4/truffle-api-25.2.4.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+13:15:41.683 WARN  i.n.c.r.store.LocalResourceStore - nop.warn.core.resource.store.directory-not-exists:basePath=/,dir=/Users/abc/app/nop-entropy-wt/nop-entropy-master/nop-benchmark/nop-benchmark-xlang/././_vfs
+13:15:41.863 WARN  i.nop.commons.util.ReflectionHelper - nop.commons.reflect.set-accessible-fail:method=java.lang.reflect.InaccessibleObjectException: Unable to make java.lang.AbstractStringBuilder() accessible: module java.base does not "opens java.lang" to unnamed module @1f89ab83
+5.902 us/op
+# Warmup Iteration   2: 5.182 us/op
+# Warmup Iteration   3: 5.220 us/op
+Iteration   1: 5.163 us/op
+Iteration   2: 5.237 us/op
+Iteration   3: 5.183 us/op
+Iteration   4: 5.163 us/op
+Iteration   5: 5.152 us/op
+
+
+Result "io.nop.benchmark.xlang.StaticThreeWayBenchmark.interpreterStaticCorpus":
+  5.180 ±(99.9%) 0.130 us/op [Average]
+  (min, avg, max) = (5.152, 5.180, 5.237), stdev = 0.034
+  CI (99.9%): [5.050, 5.310] (assumes normal distribution)
+
+
+# JMH version: 1.33
+# VM version: JDK 26.0.1, OpenJDK 64-Bit Server VM, 26.0.1+8
+# VM invoker: /Users/abc/Library/Java/JavaVirtualMachines/zulu-26.0.1/Contents/Home/bin/java
+# VM options: <none>
+# Blackhole mode: full + dont-inline hint (default, use -Djmh.blackhole.autoDetect=true to auto-detect)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.nop.benchmark.xlang.StaticThreeWayBenchmark.javaStaticCorpus
+
+# Run progress: 60.00% complete, ETA 00:03:24
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/abc/.m2/repository/org/openjdk/jmh/jmh-core/1.33/jmh-core-1.33.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.oracle.truffle.polyglot.JDKSupport in an unnamed module (file:/Users/abc/.m2/repository/org/graalvm/truffle/truffle-api/25.2.4/truffle-api-25.2.4.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+13:15:58.386 WARN  i.n.c.r.store.LocalResourceStore - nop.warn.core.resource.store.directory-not-exists:basePath=/,dir=/Users/abc/app/nop-entropy-wt/nop-entropy-master/nop-benchmark/nop-benchmark-xlang/././_vfs
+13:15:58.566 WARN  i.nop.commons.util.ReflectionHelper - nop.commons.reflect.set-accessible-fail:method=java.lang.reflect.InaccessibleObjectException: Unable to make java.lang.AbstractStringBuilder() accessible: module java.base does not "opens java.lang" to unnamed module @1f89ab83
+3.278 us/op
+# Warmup Iteration   2: 2.817 us/op
+# Warmup Iteration   3: 2.809 us/op
+Iteration   1: 2.822 us/op
+Iteration   2: 2.923 us/op
+Iteration   3: 2.866 us/op
+Iteration   4: 2.803 us/op
+Iteration   5: 2.793 us/op
+
+
+Result "io.nop.benchmark.xlang.StaticThreeWayBenchmark.javaStaticCorpus":
+  2.842 ±(99.9%) 0.206 us/op [Average]
+  (min, avg, max) = (2.793, 2.842, 2.923), stdev = 0.053
+  CI (99.9%): [2.636, 3.047] (assumes normal distribution)
+
+
+# JMH version: 1.33
+# VM version: JDK 26.0.1, OpenJDK 64-Bit Server VM, 26.0.1+8
+# VM invoker: /Users/abc/Library/Java/JavaVirtualMachines/zulu-26.0.1/Contents/Home/bin/java
+# VM options: <none>
+# Blackhole mode: full + dont-inline hint (default, use -Djmh.blackhole.autoDetect=true to auto-detect)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.nop.benchmark.xlang.StaticThreeWayBenchmark.truffleStaticCorpus
+
+# Run progress: 63.33% complete, ETA 00:03:07
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/abc/.m2/repository/org/openjdk/jmh/jmh-core/1.33/jmh-core-1.33.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.oracle.truffle.polyglot.JDKSupport in an unnamed module (file:/Users/abc/.m2/repository/org/graalvm/truffle/truffle-api/25.2.4/truffle-api-25.2.4.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+13:16:15.079 WARN  i.n.c.r.store.LocalResourceStore - nop.warn.core.resource.store.directory-not-exists:basePath=/,dir=/Users/abc/app/nop-entropy-wt/nop-entropy-master/nop-benchmark/nop-benchmark-xlang/././_vfs
+13:16:15.271 WARN  i.nop.commons.util.ReflectionHelper - nop.commons.reflect.set-accessible-fail:method=java.lang.reflect.InaccessibleObjectException: Unable to make java.lang.AbstractStringBuilder() accessible: module java.base does not "opens java.lang" to unnamed module @1f89ab83
+56.254 us/op
+# Warmup Iteration   2: 58.296 us/op
+# Warmup Iteration   3: 52.788 us/op
+Iteration   1: 58.776 us/op
+Iteration   2: 65.691 us/op
+Iteration   3: 41.507 us/op
+Iteration   4: 59.050 us/op
+Iteration   5: 39.774 us/op
+
+
+Result "io.nop.benchmark.xlang.StaticThreeWayBenchmark.truffleStaticCorpus":
+  52.959 ±(99.9%) 44.660 us/op [Average]
+  (min, avg, max) = (39.774, 52.959, 65.691), stdev = 11.598
+  CI (99.9%): [8.300, 97.619] (assumes normal distribution)
+
+
+# JMH version: 1.33
+# VM version: JDK 26.0.1, OpenJDK 64-Bit Server VM, 26.0.1+8
+# VM invoker: /Users/abc/Library/Java/JavaVirtualMachines/zulu-26.0.1/Contents/Home/bin/java
+# VM options: <none>
+# Blackhole mode: full + dont-inline hint (default, use -Djmh.blackhole.autoDetect=true to auto-detect)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.nop.benchmark.xlang.TranslationCacheBenchmark.cacheSweep64
+# Parameters: (maxEntries = 16)
+
+# Run progress: 66.67% complete, ETA 00:02:50
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/abc/.m2/repository/org/openjdk/jmh/jmh-core/1.33/jmh-core-1.33.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.oracle.truffle.polyglot.JDKSupport in an unnamed module (file:/Users/abc/.m2/repository/org/graalvm/truffle/truffle-api/25.2.4/truffle-api-25.2.4.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+13:16:32.411 WARN  i.n.c.r.store.LocalResourceStore - nop.warn.core.resource.store.directory-not-exists:basePath=/,dir=/Users/abc/app/nop-entropy-wt/nop-entropy-master/nop-benchmark/nop-benchmark-xlang/././_vfs
+70.780 us/op
+# Warmup Iteration   2: 79.691 us/op
+# Warmup Iteration   3: 85.986 us/op
+Iteration   1: 174.223 us/op
+Iteration   2: 71.274 us/op
+Iteration   3: 62.669 us/op
+Iteration   4: 84.539 us/op
+Iteration   5: 75.596 us/op
+
+
+Result "io.nop.benchmark.xlang.TranslationCacheBenchmark.cacheSweep64":
+  93.660 ±(99.9%) 176.054 us/op [Average]
+  (min, avg, max) = (62.669, 93.660, 174.223), stdev = 45.721
+  CI (99.9%): [≈ 0, 269.714] (assumes normal distribution)
+
+
+# JMH version: 1.33
+# VM version: JDK 26.0.1, OpenJDK 64-Bit Server VM, 26.0.1+8
+# VM invoker: /Users/abc/Library/Java/JavaVirtualMachines/zulu-26.0.1/Contents/Home/bin/java
+# VM options: <none>
+# Blackhole mode: full + dont-inline hint (default, use -Djmh.blackhole.autoDetect=true to auto-detect)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.nop.benchmark.xlang.TranslationCacheBenchmark.cacheSweep64
+# Parameters: (maxEntries = 64)
+
+# Run progress: 70.00% complete, ETA 00:02:33
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/abc/.m2/repository/org/openjdk/jmh/jmh-core/1.33/jmh-core-1.33.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.oracle.truffle.polyglot.JDKSupport in an unnamed module (file:/Users/abc/.m2/repository/org/graalvm/truffle/truffle-api/25.2.4/truffle-api-25.2.4.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+13:16:50.224 WARN  i.n.c.r.store.LocalResourceStore - nop.warn.core.resource.store.directory-not-exists:basePath=/,dir=/Users/abc/app/nop-entropy-wt/nop-entropy-master/nop-benchmark/nop-benchmark-xlang/././_vfs
+3.142 us/op
+# Warmup Iteration   2: 3.040 us/op
+# Warmup Iteration   3: 2.898 us/op
+Iteration   1: 2.879 us/op
+Iteration   2: 2.850 us/op
+Iteration   3: 2.869 us/op
+Iteration   4: 2.860 us/op
+Iteration   5: 2.860 us/op
+
+
+Result "io.nop.benchmark.xlang.TranslationCacheBenchmark.cacheSweep64":
+  2.864 ±(99.9%) 0.043 us/op [Average]
+  (min, avg, max) = (2.850, 2.864, 2.879), stdev = 0.011
+  CI (99.9%): [2.821, 2.906] (assumes normal distribution)
+
+
+# JMH version: 1.33
+# VM version: JDK 26.0.1, OpenJDK 64-Bit Server VM, 26.0.1+8
+# VM invoker: /Users/abc/Library/Java/JavaVirtualMachines/zulu-26.0.1/Contents/Home/bin/java
+# VM options: <none>
+# Blackhole mode: full + dont-inline hint (default, use -Djmh.blackhole.autoDetect=true to auto-detect)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.nop.benchmark.xlang.TranslationCacheBenchmark.cacheSweep64
+# Parameters: (maxEntries = 256)
+
+# Run progress: 73.33% complete, ETA 00:02:16
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/abc/.m2/repository/org/openjdk/jmh/jmh-core/1.33/jmh-core-1.33.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.oracle.truffle.polyglot.JDKSupport in an unnamed module (file:/Users/abc/.m2/repository/org/graalvm/truffle/truffle-api/25.2.4/truffle-api-25.2.4.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+13:17:06.804 WARN  i.n.c.r.store.LocalResourceStore - nop.warn.core.resource.store.directory-not-exists:basePath=/,dir=/Users/abc/app/nop-entropy-wt/nop-entropy-master/nop-benchmark/nop-benchmark-xlang/././_vfs
+3.034 us/op
+# Warmup Iteration   2: 2.994 us/op
+# Warmup Iteration   3: 2.912 us/op
+Iteration   1: 2.907 us/op
+Iteration   2: 2.888 us/op
+Iteration   3: 2.889 us/op
+Iteration   4: 2.879 us/op
+Iteration   5: 2.890 us/op
+
+
+Result "io.nop.benchmark.xlang.TranslationCacheBenchmark.cacheSweep64":
+  2.891 ±(99.9%) 0.040 us/op [Average]
+  (min, avg, max) = (2.879, 2.891, 2.907), stdev = 0.010
+  CI (99.9%): [2.851, 2.931] (assumes normal distribution)
+
+
+# JMH version: 1.33
+# VM version: JDK 26.0.1, OpenJDK 64-Bit Server VM, 26.0.1+8
+# VM invoker: /Users/abc/Library/Java/JavaVirtualMachines/zulu-26.0.1/Contents/Home/bin/java
+# VM options: <none>
+# Blackhole mode: full + dont-inline hint (default, use -Djmh.blackhole.autoDetect=true to auto-detect)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.nop.benchmark.xlang.TranslationCacheBenchmark.cacheSweep64
+# Parameters: (maxEntries = 1024)
+
+# Run progress: 76.67% complete, ETA 00:01:59
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/abc/.m2/repository/org/openjdk/jmh/jmh-core/1.33/jmh-core-1.33.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.oracle.truffle.polyglot.JDKSupport in an unnamed module (file:/Users/abc/.m2/repository/org/graalvm/truffle/truffle-api/25.2.4/truffle-api-25.2.4.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+13:17:23.311 WARN  i.n.c.r.store.LocalResourceStore - nop.warn.core.resource.store.directory-not-exists:basePath=/,dir=/Users/abc/app/nop-entropy-wt/nop-entropy-master/nop-benchmark/nop-benchmark-xlang/././_vfs
+2.952 us/op
+# Warmup Iteration   2: 2.968 us/op
+# Warmup Iteration   3: 2.872 us/op
+Iteration   1: 2.846 us/op
+Iteration   2: 2.852 us/op
+Iteration   3: 2.845 us/op
+Iteration   4: 2.841 us/op
+Iteration   5: 2.851 us/op
+
+
+Result "io.nop.benchmark.xlang.TranslationCacheBenchmark.cacheSweep64":
+  2.847 ±(99.9%) 0.017 us/op [Average]
+  (min, avg, max) = (2.841, 2.847, 2.852), stdev = 0.004
+  CI (99.9%): [2.830, 2.864] (assumes normal distribution)
+
+
+# JMH version: 1.33
+# VM version: JDK 26.0.1, OpenJDK 64-Bit Server VM, 26.0.1+8
+# VM invoker: /Users/abc/Library/Java/JavaVirtualMachines/zulu-26.0.1/Contents/Home/bin/java
+# VM options: <none>
+# Blackhole mode: full + dont-inline hint (default, use -Djmh.blackhole.autoDetect=true to auto-detect)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.nop.benchmark.xlang.TranslationCacheBenchmark.cacheSweep64
+# Parameters: (maxEntries = 4096)
+
+# Run progress: 80.00% complete, ETA 00:01:42
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/abc/.m2/repository/org/openjdk/jmh/jmh-core/1.33/jmh-core-1.33.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.oracle.truffle.polyglot.JDKSupport in an unnamed module (file:/Users/abc/.m2/repository/org/graalvm/truffle/truffle-api/25.2.4/truffle-api-25.2.4.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+13:17:39.810 WARN  i.n.c.r.store.LocalResourceStore - nop.warn.core.resource.store.directory-not-exists:basePath=/,dir=/Users/abc/app/nop-entropy-wt/nop-entropy-master/nop-benchmark/nop-benchmark-xlang/././_vfs
+2.931 us/op
+# Warmup Iteration   2: 2.840 us/op
+# Warmup Iteration   3: 2.906 us/op
+Iteration   1: 2.889 us/op
+Iteration   2: 2.954 us/op
+Iteration   3: 2.827 us/op
+Iteration   4: 2.829 us/op
+Iteration   5: 2.803 us/op
+
+
+Result "io.nop.benchmark.xlang.TranslationCacheBenchmark.cacheSweep64":
+  2.860 ±(99.9%) 0.236 us/op [Average]
+  (min, avg, max) = (2.803, 2.860, 2.954), stdev = 0.061
+  CI (99.9%): [2.625, 3.096] (assumes normal distribution)
+
+
+# JMH version: 1.33
+# VM version: JDK 26.0.1, OpenJDK 64-Bit Server VM, 26.0.1+8
+# VM invoker: /Users/abc/Library/Java/JavaVirtualMachines/zulu-26.0.1/Contents/Home/bin/java
+# VM options: <none>
+# Blackhole mode: full + dont-inline hint (default, use -Djmh.blackhole.autoDetect=true to auto-detect)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.nop.benchmark.xlang.TranslationCacheBenchmark.translateUnitCost
+# Parameters: (maxEntries = 16)
+
+# Run progress: 83.33% complete, ETA 00:01:24
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/abc/.m2/repository/org/openjdk/jmh/jmh-core/1.33/jmh-core-1.33.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.oracle.truffle.polyglot.JDKSupport in an unnamed module (file:/Users/abc/.m2/repository/org/graalvm/truffle/truffle-api/25.2.4/truffle-api-25.2.4.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+13:17:56.367 WARN  i.n.c.r.store.LocalResourceStore - nop.warn.core.resource.store.directory-not-exists:basePath=/,dir=/Users/abc/app/nop-entropy-wt/nop-entropy-master/nop-benchmark/nop-benchmark-xlang/././_vfs
+1.262 us/op
+# Warmup Iteration   2: 1.370 us/op
+# Warmup Iteration   3: 1.109 us/op
+Iteration   1: 1.764 us/op
+Iteration   2: 1.157 us/op
+Iteration   3: 1.202 us/op
+Iteration   4: 1.378 us/op
+Iteration   5: 2.911 us/op
+
+
+Result "io.nop.benchmark.xlang.TranslationCacheBenchmark.translateUnitCost":
+  1.682 ±(99.9%) 2.800 us/op [Average]
+  (min, avg, max) = (1.157, 1.682, 2.911), stdev = 0.727
+  CI (99.9%): [≈ 0, 4.483] (assumes normal distribution)
+
+
+# JMH version: 1.33
+# VM version: JDK 26.0.1, OpenJDK 64-Bit Server VM, 26.0.1+8
+# VM invoker: /Users/abc/Library/Java/JavaVirtualMachines/zulu-26.0.1/Contents/Home/bin/java
+# VM options: <none>
+# Blackhole mode: full + dont-inline hint (default, use -Djmh.blackhole.autoDetect=true to auto-detect)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.nop.benchmark.xlang.TranslationCacheBenchmark.translateUnitCost
+# Parameters: (maxEntries = 64)
+
+# Run progress: 86.67% complete, ETA 00:01:07
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/abc/.m2/repository/org/openjdk/jmh/jmh-core/1.33/jmh-core-1.33.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.oracle.truffle.polyglot.JDKSupport in an unnamed module (file:/Users/abc/.m2/repository/org/graalvm/truffle/truffle-api/25.2.4/truffle-api-25.2.4.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+13:18:13.276 WARN  i.n.c.r.store.LocalResourceStore - nop.warn.core.resource.store.directory-not-exists:basePath=/,dir=/Users/abc/app/nop-entropy-wt/nop-entropy-master/nop-benchmark/nop-benchmark-xlang/././_vfs
+1.218 us/op
+# Warmup Iteration   2: 1.313 us/op
+# Warmup Iteration   3: 1.640 us/op
+Iteration   1: 1.217 us/op
+Iteration   2: 1.139 us/op
+Iteration   3: 1.266 us/op
+Iteration   4: 2.246 us/op
+Iteration   5: 1.268 us/op
+
+
+Result "io.nop.benchmark.xlang.TranslationCacheBenchmark.translateUnitCost":
+  1.427 ±(99.9%) 1.773 us/op [Average]
+  (min, avg, max) = (1.139, 1.427, 2.246), stdev = 0.461
+  CI (99.9%): [≈ 0, 3.200] (assumes normal distribution)
+
+
+# JMH version: 1.33
+# VM version: JDK 26.0.1, OpenJDK 64-Bit Server VM, 26.0.1+8
+# VM invoker: /Users/abc/Library/Java/JavaVirtualMachines/zulu-26.0.1/Contents/Home/bin/java
+# VM options: <none>
+# Blackhole mode: full + dont-inline hint (default, use -Djmh.blackhole.autoDetect=true to auto-detect)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.nop.benchmark.xlang.TranslationCacheBenchmark.translateUnitCost
+# Parameters: (maxEntries = 256)
+
+# Run progress: 90.00% complete, ETA 00:00:51
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/abc/.m2/repository/org/openjdk/jmh/jmh-core/1.33/jmh-core-1.33.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.oracle.truffle.polyglot.JDKSupport in an unnamed module (file:/Users/abc/.m2/repository/org/graalvm/truffle/truffle-api/25.2.4/truffle-api-25.2.4.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+13:18:32.099 WARN  i.n.c.r.store.LocalResourceStore - nop.warn.core.resource.store.directory-not-exists:basePath=/,dir=/Users/abc/app/nop-entropy-wt/nop-entropy-master/nop-benchmark/nop-benchmark-xlang/././_vfs
+1.538 us/op
+# Warmup Iteration   2: 1.005 us/op
+# Warmup Iteration   3: 1.365 us/op
+Iteration   1: 1.761 us/op
+Iteration   2: 1.517 us/op
+Iteration   3: 1.338 us/op
+Iteration   4: 1.447 us/op
+Iteration   5: 1.390 us/op
+
+
+Result "io.nop.benchmark.xlang.TranslationCacheBenchmark.translateUnitCost":
+  1.491 ±(99.9%) 0.636 us/op [Average]
+  (min, avg, max) = (1.338, 1.491, 1.761), stdev = 0.165
+  CI (99.9%): [0.855, 2.127] (assumes normal distribution)
+
+
+# JMH version: 1.33
+# VM version: JDK 26.0.1, OpenJDK 64-Bit Server VM, 26.0.1+8
+# VM invoker: /Users/abc/Library/Java/JavaVirtualMachines/zulu-26.0.1/Contents/Home/bin/java
+# VM options: <none>
+# Blackhole mode: full + dont-inline hint (default, use -Djmh.blackhole.autoDetect=true to auto-detect)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.nop.benchmark.xlang.TranslationCacheBenchmark.translateUnitCost
+# Parameters: (maxEntries = 1024)
+
+# Run progress: 93.33% complete, ETA 00:00:34
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/abc/.m2/repository/org/openjdk/jmh/jmh-core/1.33/jmh-core-1.33.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.oracle.truffle.polyglot.JDKSupport in an unnamed module (file:/Users/abc/.m2/repository/org/graalvm/truffle/truffle-api/25.2.4/truffle-api-25.2.4.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+13:18:49.120 WARN  i.n.c.r.store.LocalResourceStore - nop.warn.core.resource.store.directory-not-exists:basePath=/,dir=/Users/abc/app/nop-entropy-wt/nop-entropy-master/nop-benchmark/nop-benchmark-xlang/././_vfs
+1.123 us/op
+# Warmup Iteration   2: 1.292 us/op
+# Warmup Iteration   3: 1.153 us/op
+Iteration   1: 1.769 us/op
+Iteration   2: 1.071 us/op
+Iteration   3: 1.184 us/op
+Iteration   4: 2.162 us/op
+Iteration   5: 1.336 us/op
+
+
+Result "io.nop.benchmark.xlang.TranslationCacheBenchmark.translateUnitCost":
+  1.505 ±(99.9%) 1.745 us/op [Average]
+  (min, avg, max) = (1.071, 1.505, 2.162), stdev = 0.453
+  CI (99.9%): [≈ 0, 3.250] (assumes normal distribution)
+
+
+# JMH version: 1.33
+# VM version: JDK 26.0.1, OpenJDK 64-Bit Server VM, 26.0.1+8
+# VM invoker: /Users/abc/Library/Java/JavaVirtualMachines/zulu-26.0.1/Contents/Home/bin/java
+# VM options: <none>
+# Blackhole mode: full + dont-inline hint (default, use -Djmh.blackhole.autoDetect=true to auto-detect)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.nop.benchmark.xlang.TranslationCacheBenchmark.translateUnitCost
+# Parameters: (maxEntries = 4096)
+
+# Run progress: 96.67% complete, ETA 00:00:17
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/abc/.m2/repository/org/openjdk/jmh/jmh-core/1.33/jmh-core-1.33.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.oracle.truffle.polyglot.JDKSupport in an unnamed module (file:/Users/abc/.m2/repository/org/graalvm/truffle/truffle-api/25.2.4/truffle-api-25.2.4.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+13:19:06.716 WARN  i.n.c.r.store.LocalResourceStore - nop.warn.core.resource.store.directory-not-exists:basePath=/,dir=/Users/abc/app/nop-entropy-wt/nop-entropy-master/nop-benchmark/nop-benchmark-xlang/././_vfs
+1.206 us/op
+# Warmup Iteration   2: 1.175 us/op
+# Warmup Iteration   3: 1.319 us/op
+Iteration   1: 1.507 us/op
+Iteration   2: 1.054 us/op
+Iteration   3: 1.243 us/op
+Iteration   4: 1.955 us/op
+Iteration   5: 1.146 us/op
+
+
+Result "io.nop.benchmark.xlang.TranslationCacheBenchmark.translateUnitCost":
+  1.381 ±(99.9%) 1.398 us/op [Average]
+  (min, avg, max) = (1.054, 1.381, 1.955), stdev = 0.363
+  CI (99.9%): [≈ 0, 2.779] (assumes normal distribution)
+
+
+# Run complete. Total time: 00:08:32
+
+REMEMBER: The numbers below are just data. To gain reusable insights, you need to follow up on
+why the numbers are the way they are. Use profilers (see -prof, -lprof), design factorial
+experiments, perform baseline and negative tests that provide experimental control, make sure
+the benchmarking environment is safe on JVM/OS/HW level, ask for reviews from the domain experts.
+Do not assume the numbers tell you what you want them to tell.
+
+Benchmark                                         (maxEntries)  (poolSize)  Mode  Cnt   Score     Error  Units
+ContextPoolBenchmark.poolLeaseEvalConcurrent4              N/A           1  avgt    5   5.618 ±   2.619  us/op
+ContextPoolBenchmark.poolLeaseEvalConcurrent4              N/A           2  avgt    5   3.852 ±   2.031  us/op
+ContextPoolBenchmark.poolLeaseEvalConcurrent4              N/A           4  avgt    5   2.457 ±   0.966  us/op
+ContextPoolBenchmark.poolLeaseEvalConcurrent4              N/A           8  avgt    5   2.901 ±   0.795  us/op
+ContextPoolBenchmark.poolLeaseEvalConcurrent4              N/A          16  avgt    5   2.697 ±   0.386  us/op
+ContextPoolBenchmark.poolLeaseEvalSteady                   N/A           1  avgt    5   1.011 ±   0.581  us/op
+ContextPoolBenchmark.poolLeaseEvalSteady                   N/A           2  avgt    5   1.027 ±   0.757  us/op
+ContextPoolBenchmark.poolLeaseEvalSteady                   N/A           4  avgt    5   1.055 ±   0.693  us/op
+ContextPoolBenchmark.poolLeaseEvalSteady                   N/A           8  avgt    5   1.053 ±   0.768  us/op
+ContextPoolBenchmark.poolLeaseEvalSteady                   N/A          16  avgt    5   1.022 ±   0.471  us/op
+ContextPoolBenchmark.poolOpenClose                         N/A           1  avgt    5   2.816 ±   0.653  us/op
+ContextPoolBenchmark.poolOpenClose                         N/A           2  avgt    5   5.954 ±   0.953  us/op
+ContextPoolBenchmark.poolOpenClose                         N/A           4  avgt    5  11.720 ±   5.752  us/op
+ContextPoolBenchmark.poolOpenClose                         N/A           8  avgt    5  24.407 ±   8.143  us/op
+ContextPoolBenchmark.poolOpenClose                         N/A          16  avgt    5  50.570 ±  14.146  us/op
+DynamicCompareBenchmark.interpreterDynamicCorpus           N/A         N/A  avgt    5   0.431 ±   0.027  us/op
+DynamicCompareBenchmark.truffleDynamicCorpus               N/A         N/A  avgt    5  12.917 ±  16.647  us/op
+StaticThreeWayBenchmark.interpreterStaticCorpus            N/A         N/A  avgt    5   5.180 ±   0.130  us/op
+StaticThreeWayBenchmark.javaStaticCorpus                   N/A         N/A  avgt    5   2.842 ±   0.206  us/op
+StaticThreeWayBenchmark.truffleStaticCorpus                N/A         N/A  avgt    5  52.959 ±  44.660  us/op
+TranslationCacheBenchmark.cacheSweep64                      16         N/A  avgt    5  93.660 ± 176.054  us/op
+TranslationCacheBenchmark.cacheSweep64                      64         N/A  avgt    5   2.864 ±   0.043  us/op
+TranslationCacheBenchmark.cacheSweep64                     256         N/A  avgt    5   2.891 ±   0.040  us/op
+TranslationCacheBenchmark.cacheSweep64                    1024         N/A  avgt    5   2.847 ±   0.017  us/op
+TranslationCacheBenchmark.cacheSweep64                    4096         N/A  avgt    5   2.860 ±   0.236  us/op
+TranslationCacheBenchmark.translateUnitCost                 16         N/A  avgt    5   1.682 ±   2.800  us/op
+TranslationCacheBenchmark.translateUnitCost                 64         N/A  avgt    5   1.427 ±   1.773  us/op
+TranslationCacheBenchmark.translateUnitCost                256         N/A  avgt    5   1.491 ±   0.636  us/op
+TranslationCacheBenchmark.translateUnitCost               1024         N/A  avgt    5   1.505 ±   1.745  us/op
+TranslationCacheBenchmark.translateUnitCost               4096         N/A  avgt    5   1.381 ±   1.398  us/op
+
+Benchmark result is saved to xlang-backend-benchmark-result.json

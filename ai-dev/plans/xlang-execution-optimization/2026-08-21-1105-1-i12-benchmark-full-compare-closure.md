@@ -96,29 +96,29 @@ Exit Criteria:
 
 ### Phase 2 - 三后端性能基准 + 两形态运行 + 数据落 repo
 
-Status: planned
+Status: completed
 Targets: `nop-benchmark/`（新模块或扩展，D2 裁定）、`missions/xlang-execution-optimization.json`、基准报告（`ai-dev/analysis/2026-08/`，路径 D2 定稿）
 
 - Item Types: `Decision | Fix | Proof`
 
-- [ ] **D2 基准载体与语料裁定**：载体 = `nop-benchmark` 下新 JMH 模块（复用 `nop-benchmark-xpl` JMH 先例——**先例 = JMH + main() runner 接线形态，非版本数字**；首次运行前在 live JDK 上做 JMH 冒烟，1.33 不兼容则升版钉线并记录决策）或既有模块扩展。**语料集合（必答裁定一）**：静态单元三向对比语料 = e2e 模块 main classpath 生产形态单元**全集**（Phase 1 D1 物化后的 corpus 48 单元 + e2e 原生 7 单元；与套件同一供给，I11 §14(5) 移交口径"e2e fixture 单元的 java 列 vs 解释器列耗时对比"据此超集满足）；**mode 口径同 D1 裁定**（全部按生产形态 html 模式，5 个非 html 语义单元为 html 变体树、显式记录）；如个别单元形态不适合耗时基准（如异常单元以抛异常为主路径），基准语料子集裁选显式记录（套件侧仍全量，不受裁选影响）。**依赖形态（必答裁定二）**：benchmark 为 main 域 JMH 载体——静态语料经 e2e 模块 main classpath 消费（生产形态闭环）；动态语料 = benchmark 载体**自带语料定义**、直连 `XLang.execute` choke point 真实出口；**禁止 main 域 compile-scope test-jar 消费**（corpus/harness 均随 nop-xlang test-jar 发布、仓内无 main 域消费先例——静态语料复用经 Phase 1 物化路径供给，不走 test-jar）。**解释器列路由旁路裁定**：静态语料为清单成员、经 choke point 会被决策树路由到 java 后端——基准中"解释器执行"列必须显式旁路（`force-interpreter`（I9 诊断开关）或等价显式直驱取树执行）并附**解释器列身份核验**（执行体非生成类入口、非翻译 AST CallTarget——防静默测错后端污染三向对比数据）。**梯度机制约束（分列，机制不同）**：池大小梯度经 `XLangContextPool.open(int)` 在真实运行时路径内参数化（单 JVM 多 run 可行）；翻译缓存容量梯度经 `TranslationCache(Integer)` 显式构造做**隔离基准**（直接驱动翻译/装载测容量-LRU-再翻译成本——live 事实：`XLangLanguage` 内 cache 为无参构造私有字段、无运行时注入缝），如需 in-situ 形态则经配置键构造独立 Language/Engine 实例（**顺序 run**：改配置→新实例→跑一轮；配置源为 JVM 内全局快照，不同容量实例不可并行）；两者分别支撑 Phase 3 缺省值裁定。依赖方向约束：benchmark → 被测模块单向，禁止内核模块新增依赖边（roadmap 纪律 5）。
-- [ ] **JMH 基准用例落地**（按 D2）：①静态单元三向对比——同批语料（D2 裁定一全集，必要时含子集裁选记录）：解释器执行 vs java 生产绑定形态执行（I11 §14(5) Q1 量化输入）vs truffle 执行（机会成本三向量化——"静态资源 JVM 形态生成物缺失不借道 truffle"的依据数据）；②动态单元对比——解释器 vs truffle 经池运行时稳态（预热后；**JIT 生效形态仅在 GraalVM 形态成立**——stock JVM 上 truffle 为解释执行稳态，报告数据行按形态显式标注）；③Context 池创建/销毁成本 + 池大小敏感性梯度（现缺省 `availableProcessors` 邻域）；④翻译缓存容量敏感性（现缺省 1024 邻域，隔离基准 + 翻译单成本）——③④为 I8 移交调优实测；⑤Q1/Q4 锚点数据供给——truffle 稳态 AST 解释开销占比测量（经 JMH profiler 或等价采样产出**可复算的占比数据行**，支撑 Q1"显著"数值化）+ 编译线程预算口径数据（翻译成本与缓存命中收益，衔接 ④），支撑 Q4 前置条件操作化。
-- [ ] **stock JVM 形态全量基准运行**（本工作区 live JDK——运行时实际 JDK vendor/version 记录入报告），原始 JMH 结果 + 汇总表落 repo。
-- [ ] **D3 GraalVM 环境获取尝试决策（必答）**：GraalVM JVM 形态是 truffle 后端核心价值载体（roadmap 范围项"× GraalVM 与 stock JVM 两形态"、truffle 列稳态数据必须在此形态补齐）——**优先尝试获取 GraalVM JDK**（向用户提出安装请求，ask-first；本 plan 不自行下载安装）。获取成功 → 双形态全量运行；**尝试后仍不可得**才按 I11 先例显式裁定（live 核验记录 + 复跑入口命令 + 报告显式标注缺席），不静默降级；Exit/Gate 记录区分"尝试后不可得"与"未尝试"（后者不允许作为缺席理由）。
-- [ ] **基准数据落 repo**：报告（`ai-dev/analysis/2026-08/2026-08-xx-xlang-backend-benchmark.md`——**既知前向引用**，Phase 2 执行时以实际日期落盘；含环境/JDK/参数/原始数据/结论/复跑命令）+ 可复跑入口（模块 README 或 docs 落点 D2 定稿）；Phase 1 直跑证据并入同报告。
-- [ ] mission.json commands 同次变更追加 benchmark 模块（`test`/`build`/`lint`/`typecheck` 四条一致口径；"模块落盘即切换"裁定）——JMH 基准经 main 入口运行而非 surefire，commands 追加仅影响编译域，口径记录在案。
+- [x] **D2 基准载体与语料裁定**：载体 = `nop-benchmark` 下新 JMH 模块（复用 `nop-benchmark-xpl` JMH 先例——**先例 = JMH + main() runner 接线形态，非版本数字**；首次运行前在 live JDK 上做 JMH 冒烟，1.33 不兼容则升版钉线并记录决策）或既有模块扩展。**语料集合（必答裁定一）**：静态单元三向对比语料 = e2e 模块 main classpath 生产形态单元**全集**（Phase 1 D1 物化后的 corpus 48 单元 + e2e 原生 7 单元；与套件同一供给，I11 §14(5) 移交口径"e2e fixture 单元的 java 列 vs 解释器列耗时对比"据此超集满足）；**mode 口径同 D1 裁定**（全部按生产形态 html 模式，5 个非 html 语义单元为 html 变体树、显式记录）；如个别单元形态不适合耗时基准（如异常单元以抛异常为主路径），基准语料子集裁选显式记录（套件侧仍全量，不受裁选影响）。**依赖形态（必答裁定二）**：benchmark 为 main 域 JMH 载体——静态语料经 e2e 模块 main classpath 消费（生产形态闭环）；动态语料 = benchmark 载体**自带语料定义**、直连 `XLang.execute` choke point 真实出口；**禁止 main 域 compile-scope test-jar 消费**（corpus/harness 均随 nop-xlang test-jar 发布、仓内无 main 域消费先例——静态语料复用经 Phase 1 物化路径供给，不走 test-jar）。**解释器列路由旁路裁定**：静态语料为清单成员、经 choke point 会被决策树路由到 java 后端——基准中"解释器执行"列必须显式旁路（`force-interpreter`（I9 诊断开关）或等价显式直驱取树执行）并附**解释器列身份核验**（执行体非生成类入口、非翻译 AST CallTarget——防静默测错后端污染三向对比数据）。**梯度机制约束（分列，机制不同）**：池大小梯度经 `XLangContextPool.open(int)` 在真实运行时路径内参数化（单 JVM 多 run 可行）；翻译缓存容量梯度经 `TranslationCache(Integer)` 显式构造做**隔离基准**（直接驱动翻译/装载测容量-LRU-再翻译成本——live 事实：`XLangLanguage` 内 cache 为无参构造私有字段、无运行时注入缝），如需 in-situ 形态则经配置键构造独立 Language/Engine 实例（**顺序 run**：改配置→新实例→跑一轮；配置源为 JVM 内全局快照，不同容量实例不可并行）；两者分别支撑 Phase 3 缺省值裁定。依赖方向约束：benchmark → 被测模块单向，禁止内核模块新增依赖边（roadmap 纪律 5）。
+- [x] **JMH 基准用例落地**（按 D2）：①静态单元三向对比——同批语料（D2 裁定一全集，必要时含子集裁选记录）：解释器执行 vs java 生产绑定形态执行（I11 §14(5) Q1 量化输入）vs truffle 执行（机会成本三向量化——"静态资源 JVM 形态生成物缺失不借道 truffle"的依据数据）；②动态单元对比——解释器 vs truffle 经池运行时稳态（预热后；**JIT 生效形态仅在 GraalVM 形态成立**——stock JVM 上 truffle 为解释执行稳态，报告数据行按形态显式标注）；③Context 池创建/销毁成本 + 池大小敏感性梯度（现缺省 `availableProcessors` 邻域）；④翻译缓存容量敏感性（现缺省 1024 邻域，隔离基准 + 翻译单成本）——③④为 I8 移交调优实测；⑤Q1/Q4 锚点数据供给——truffle 稳态 AST 解释开销占比测量（经 JMH profiler 或等价采样产出**可复算的占比数据行**，支撑 Q1"显著"数值化）+ 编译线程预算口径数据（翻译成本与缓存命中收益，衔接 ④），支撑 Q4 前置条件操作化。
+- [x] **stock JVM 形态全量基准运行**（本工作区 live JDK——运行时实际 JDK vendor/version 记录入报告），原始 JMH 结果 + 汇总表落 repo。
+- [x] **D3 GraalVM 环境获取尝试决策（必答）**：GraalVM JVM 形态是 truffle 后端核心价值载体（roadmap 范围项"× GraalVM 与 stock JVM 两形态"、truffle 列稳态数据必须在此形态补齐）——**优先尝试获取 GraalVM JDK**（向用户提出安装请求，ask-first；本 plan 不自行下载安装）。获取成功 → 双形态全量运行；**尝试后仍不可得**才按 I11 先例显式裁定（live 核验记录 + 复跑入口命令 + 报告显式标注缺席），不静默降级；Exit/Gate 记录区分"尝试后不可得"与"未尝试"（后者不允许作为缺席理由）。
+- [x] **基准数据落 repo**：报告（`ai-dev/analysis/2026-08/2026-08-21-xlang-backend-benchmark.md`——实际落盘日期；含环境/JDK/参数/原始数据/结论/复跑命令）+ 可复跑入口（模块 README，D2 定稿落点）；Phase 1 直跑证据并入同报告。
+- [x] mission.json commands 同次变更追加 benchmark 模块（`test`/`build`/`lint`/`typecheck` 四条一致口径；"模块落盘即切换"裁定）——JMH 基准经 main 入口运行而非 surefire，commands 追加仅影响编译域，口径记录在案。
 
 Exit Criteria:
 
-- [ ] 基准载体落盘（repo-observable：模块/用例类 + JMH 接线 + README 复跑命令），五类用例（三向对比/动态稳态/池成本与梯度/缓存敏感性/Q1-Q4 锚点数据）各自有可复跑入口。
-- [ ] stock JVM 全量数据在 repo（JMH 原始输出 + 汇总表 + 环境）；机会成本量化结论有数据行支撑（同单元三向对比）。
-- [ ] GraalVM 形态（D3）：真实运行数据在 repo；或"尝试获取后仍不可得"显式裁定 + live 核验记录 + 复跑入口（二选一，报告显式标注，"未尝试"不构成缺席理由）。
-- [ ] **端到端验证**：基准的 java 列经生产绑定路径（双清单装载）执行、truffle 列经池运行时执行、解释器列经显式旁路（force-interpreter/直驱）执行且**三列各有身份核验**（java=生成类入口 / truffle=CallTarget / 解释器=非 bound 执行体）——与用户真实路径一致或显式等价，非静默测错后端。
-- [ ] **无静默跳过**：环境探测失败/用例前置缺失显式失败（JMH error），无吞异常空结果。
-- [ ] mission.json commands 四条追加后 live 可运行（原样执行记录）。
-- [ ] **New test required 清单**：基准载体为 main 域 JMH（非 surefire 用例）——防漏/身份类断言若为 Phase 1 测试域已覆盖则此处显式引用；载体自身新增的纯 JMH 用例不强制 surefire 测试，注明 `No new test required: JMH main-entry benchmark`（如另有测试域新增，逐条列出）。
-- [ ] owner-doc 裁定：docs-for-ai 若需补"基准复跑入口"小节（I11 已有 native 复跑入口章节，视 D2 落点裁定追加或引用）；裁定显式记录。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 基准载体落盘（repo-observable：模块/用例类 + JMH 接线 + README 复跑命令），五类用例（三向对比/动态稳态/池成本与梯度/缓存敏感性/Q1-Q4 锚点数据）各自有可复跑入口。
+- [x] stock JVM 全量数据在 repo（JMH 原始输出 + 汇总表 + 环境）；机会成本量化结论有数据行支撑（同单元三向对比）。
+- [x] GraalVM 形态（D3）：真实运行数据在 repo；或"尝试获取后仍不可得"显式裁定 + live 核验记录 + 复跑入口（二选一，报告显式标注，"未尝试"不构成缺席理由）。
+- [x] **端到端验证**：基准的 java 列经生产绑定路径（双清单装载）执行、truffle 列经池运行时执行、解释器列经显式旁路（force-interpreter/直驱）执行且**三列各有身份核验**（java=生成类入口 / truffle=CallTarget / 解释器=非 bound 执行体）——与用户真实路径一致或显式等价，非静默测错后端。
+- [x] **无静默跳过**：环境探测失败/用例前置缺失显式失败（JMH error），无吞异常空结果。
+- [x] mission.json commands 四条追加后 live 可运行（原样执行记录）。
+- [x] **New test required 清单**：基准载体为 main 域 JMH（非 surefire 用例）——防漏/身份类断言若为 Phase 1 测试域已覆盖则此处显式引用；载体自身新增的纯 JMH 用例不强制 surefire 测试，注明 `No new test required: JMH main-entry benchmark`（如另有测试域新增，逐条列出）。
+- [x] owner-doc 裁定：docs-for-ai 若需补"基准复跑入口"小节（I11 已有 native 复跑入口章节，视 D2 落点裁定追加或引用）；裁定显式记录。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 3 - Q1/Q4 触发口径量化 + 调优裁定 + 移交对账与收口记账
 
@@ -157,6 +157,16 @@ Exit Criteria:
 - **mission.json 四条 commands 汇总口径核验（live）**：`test`（上述 1713 绿）/`build`（clean install -DskipTests BUILD SUCCESS）/`typecheck`（compile EXIT=0）/`lint`（原样命令 EXIT=0——含 fallback echo 形态，与命令定义一致）；另 `-Pqa` checkstyle 四模块 EXIT=0。benchmark 模块追加归 Phase 2 同次变更（未触发——Phase 1 无模块落盘）。
 - **owner-doc 裁定**：`No owner-doc update required`——套件入口为 roadmap QA 基础设施（测试域，经 mission `test` 命令消费），不改变平台使用者可感知的开发/验证流程；对拍断言口径与既有 docs 描述无冲突。Phase 2 基准复跑入口 docs 落点归 Phase 2 裁定。
 - **hollow scan**：`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-xlang-java-e2e --severity high` EXIT=0（0 findings）。
+
+### Phase 2（2026-08-21 执行）
+
+- **D2 落地**：载体 = `nop-benchmark/nop-benchmark-xlang`（pom 挂 nop-benchmark reactor + e2e/truffle compile 依赖单向；零 test-jar）。**JMH 冒烟裁定**：JMH 1.33 在 live Zulu 26.0.1 可用，但 JDK 23+ javac 缺省禁用隐式注解处理 → 模块 pom 显式 `annotationProcessorPaths` 接线（非版本不兼容，不升版钉线，决策记入 pom 注释 + 报告 §二）。语料 52 xpl（46 计时 = 排除 6 异常 + 3 标签，显式记录）；动态语料自带 10 单元；三列身份 setup 期 fail-fast 断言；梯度机制 = `open(int)` 真实路径 + `TranslationCache(Integer)` 隔离基准（in-situ 配置键形态未启用——隔离形态已产出所需数据行）。
+- **执行中发现与修复**：(a) 首版 smoke 发现 `[1,2,3].size()` 非 simple-expr 合法形态 → 改 var 形态 `xs.size()`；(b) `Map.of()` 不可变导致 `assign()` 单元 UOE（harness 语义 = 可变拷贝）→ `newScope()` 统一 `LinkedHashMap` 拷贝；(c) 语料含 `debug()` 单元逐执行 INFO 日志 → 7.8GB 输出淹没基准 → 模块 `logback.xml` ROOT=WARN（修复后全量 run 输出 76KB）。三项均为基准载体缺陷非被测系统缺陷。
+- **stock JVM 全量数据**：报告 `ai-dev/analysis/2026-08/2026-08-21-xlang-backend-benchmark.md`（环境/JDK/裁定/原始数据/结论/复跑命令 + gc 补充 run + JMH JSON 三份原始文件在 repo）。要点：①静态三向 java 2.842 vs 解释器 5.180 vs truffle(stock 解释) 52.959 µs/46单元批（java 快 1.82×；truffle 慢 18.6×——机会成本数据行）；②动态 0.431 vs 12.917 µs/10单元批；③池创建/销毁 2.8–3.2 µs/Context 线性 + 4 线程并发 poolSize<4 有界阻塞可见、≥4 饱和；④容量 ≥ 工作集无惩罚（64→4096 平坦 ~2.85 µs/64键扫），容量<工作集惩罚 33×，翻译单成本 ~1.5 µs，命中查询 44.6 ns/键。
+- **D3 GraalVM（尝试后不可得，非未尝试）**：ask-first 安装请求已发出（执行窗口内无安装/同意响应，请求原文记录于报告 §五 + 最终输出向用户重复）；live 核验在案（无 graalvm JDK/native-image/GRAALVM_HOME，候选 JDK 仅 Zulu 26.0.1/OpenJDK 25.0.1/ms-17.0.17）→ 按 I11 先例显式裁定缺席 + 复跑入口（`GRAALVM_HOME` 后同一载体全量 run）+ 报告所有 truffle 行标注 stock 解释执行形态（引擎 fallback WARNING 自证文本在案）。
+- **mission.json commands 同次切换**：四条命令追加 `:nop-benchmark-xlang`，live 复跑全绿（test = BUILD SUCCESS 1713+0（benchmark 模块 surefire 0 用例——JMH main 入口形态）；build/typecheck/lint EXIT=0；`-Pqa` checkstyle benchmark 模块 EXIT=0）。"模块落盘即切换"裁定兑现，口径记录于报告 §六/§七。
+- **owner-doc 裁定（docs 追加）**：`docs-for-ai/02-core-guides/xlang-and-xpl-basics.md`「漏跑诊断与部署」小节追加"性能基准复跑"条目（模块 README + 分析报告引用）——基准复跑入口成为后端运维知识的单一入口小节成员；INDEX/source-anchors 无路由变化（既有条目内追加，无新文件）。
+- **New test required 清单**：基准载体 main 域 JMH（非 surefire 用例）——防漏/身份类断言为 Phase 1 测试域已覆盖（`TestFullCompareSuite`/`TestCorpusMaterializationAntiDrift` 显式引用）；载体自身纯 JMH 用例注明 `No new test required: JMH main-entry benchmark`，无测试域新增。
 
 ## Closure Gates
 

@@ -7,10 +7,10 @@
   "auditsDir": "ai-dev/audits/xlang-execution-optimization",
   "sourceDir": ".",
   "commands": {
-    "test": "./mvnw test -pl :nop-xlang,:nop-xlang-java,:nop-xlang-truffle,:nop-xlang-java-e2e -am -T 1C",
-    "build": "./mvnw clean install -DskipTests -pl :nop-xlang,:nop-xlang-java,:nop-xlang-truffle,:nop-xlang-java-e2e -am -T 1C",
-    "lint": "./mvnw checkstyle:check -pl :nop-xlang,:nop-xlang-java,:nop-xlang-truffle,:nop-xlang-java-e2e -am -q 2>/dev/null || echo 'lint not configured'",
-    "typecheck": "./mvnw compile -pl :nop-xlang,:nop-xlang-java,:nop-xlang-truffle,:nop-xlang-java-e2e -am -q 2>/dev/null || echo 'typecheck not configured'"
+    "test": "./mvnw test -pl :nop-xlang,:nop-xlang-java,:nop-xlang-truffle,:nop-xlang-java-e2e,:nop-benchmark-xlang -am -T 1C",
+    "build": "./mvnw clean install -DskipTests -pl :nop-xlang,:nop-xlang-java,:nop-xlang-truffle,:nop-xlang-java-e2e,:nop-benchmark-xlang -am -T 1C",
+    "lint": "./mvnw checkstyle:check -pl :nop-xlang,:nop-xlang-java,:nop-xlang-truffle,:nop-xlang-java-e2e,:nop-benchmark-xlang -am -q 2>/dev/null || echo 'lint not configured'",
+    "typecheck": "./mvnw compile -pl :nop-xlang,:nop-xlang-java,:nop-xlang-truffle,:nop-xlang-java-e2e,:nop-benchmark-xlang -am -q 2>/dev/null || echo 'typecheck not configured'"
   },
   "prompts": {
     "designKnowledge": "ai-dev/design/xlang-truffle/01-truffle-knowledge.md",

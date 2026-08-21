@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>nop-benchmark</artifactId>
+        <groupId>io.github.entropy-cloud</groupId>
+        <version>2.0.0-SNAPSHOT</version>
+    </parent>
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>nop-benchmark-xlang</artifactId>
+    <description>三后端（解释器/java 生成类/truffle）执行基准（I12）：静态单元三向对比（e2e 生产形态语料）+ 动态单元对比 + Context 池成本与梯度 + 翻译缓存容量敏感性 + Q1/Q4 锚点数据；main() JMH runner 接线（nop-benchmark-xpl 先例同构）</description>
+
+    <dependencies>
+        <!-- 静态语料 = e2e 模块 main classpath 生产形态单元全集（物化 corpus + e2e 原生 +
+             双清单 + 生成类；main 域生产形态闭环，无 test-jar 消费） -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-xlang-java-e2e</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- truffle 列（池运行时 + 翻译缓存隔离基准；benchmark → 被测模块单向） -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-xlang-truffle</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <!-- JMH 冒烟裁定（I12 D2）：live JDK 26（Zulu）起 javac 缺省禁用隐式注解处理
+                         （JDK 23+ 行为），JMH 1.33 注解处理器需显式接线方可产出
+                         META-INF/BenchmarkList——非版本不兼容，不升版钉线 -->
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.openjdk.jmh</groupId>
+                            <artifactId>jmh-generator-annprocess</artifactId>
+                            <version>${jmh.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

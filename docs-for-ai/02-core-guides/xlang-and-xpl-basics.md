@@ -478,6 +478,10 @@ execution（`generate-test-resources` = postcompile 同相位）接入——参�
   `nop-kernel-cli`（`-Pnative`）与 `nop-demo/nop-quarkus-demo`（`-Pnative`）；
   trace 模式（`-Dnop.codegen.trace.enabled=true`）运行构建任务时
   `GraalvmConfigGenerator` 管线（vfs-index/reflect delta）随任务真实执行。
+- **性能基准复跑**：三后端（解释器/java/truffle）执行基准 = `nop-benchmark/nop-benchmark-xlang`
+  （JMH main 入口，含静态三向对比/动态对比/Context 池梯度/翻译缓存容量敏感性）；
+  复跑命令与数据报告指针见模块 README（truffle JIT 生效形态需 GraalVM JDK，
+  报告含环境裁定与复跑口径）。
 
 ### 配置开关（`nop.xlang.execution.*`，`XLangConfigs`）
 

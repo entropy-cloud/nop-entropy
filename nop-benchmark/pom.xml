@@ -22,6 +22,7 @@
 <!--        <module>nop-benchmark-orm</module>-->
         <module>nop-benchmark-xpl</module>
         <module>nop-benchmark-json</module>
+        <module>nop-benchmark-xlang</module>
     </modules>
 
     <dependencies>

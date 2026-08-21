@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  基准模块日志配置（I12）：语料含 debug() 调用单元（每次执行打 INFO）——JMH 每秒
+  执行数百万次，控制台日志会淹没结果且放大 IO 噪声；基准 JVM 统一 ROOT=WARN
+  （fork 继承 classpath，本文件优先于传递依赖内的配置）。
+-->
+<configuration>
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+    <root level="WARN">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>

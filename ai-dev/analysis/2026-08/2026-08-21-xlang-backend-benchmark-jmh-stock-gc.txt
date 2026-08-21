@@ -1,0 +1,582 @@
+# JMH version: 1.33
+# VM version: JDK 26.0.1, OpenJDK 64-Bit Server VM, 26.0.1+8
+# VM invoker: /Users/abc/Library/Java/JavaVirtualMachines/zulu-26.0.1/Contents/Home/bin/java
+# VM options: -Dpolyglot.engine.WarnInterpreterOnly=false
+# Blackhole mode: full + dont-inline hint (default, use -Djmh.blackhole.autoDetect=true to auto-detect)
+# Warmup: 2 iterations, 1 s each
+# Measurement: 3 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.nop.benchmark.xlang.DynamicCompareBenchmark.interpreterDynamicCorpus
+
+# Run progress: 0.00% complete, ETA 00:00:25
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/abc/.m2/repository/org/openjdk/jmh/jmh-core/1.33/jmh-core-1.33.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.oracle.truffle.polyglot.JDKSupport in an unnamed module (file:/Users/abc/.m2/repository/org/graalvm/truffle/truffle-api/25.2.4/truffle-api-25.2.4.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+13:19:36.277 WARN  i.n.c.r.store.LocalResourceStore - nop.warn.core.resource.store.directory-not-exists:basePath=/,dir=/Users/abc/app/nop-entropy-wt/nop-entropy-master/nop-benchmark/nop-benchmark-xlang/././_vfs
+13:19:36.373 WARN  i.nop.commons.util.ReflectionHelper - nop.commons.reflect.set-accessible-fail:method=java.lang.reflect.InaccessibleObjectException: Unable to make java.util.ImmutableCollections$AbstractImmutableList() accessible: module java.base does not "opens java.util" to unnamed module @1f89ab83
+13:19:36.374 WARN  i.n.c.reflect.impl.ClassModelBuilder - nop.interface-method-type:returnType=java.lang.Object
+13:19:36.374 WARN  i.n.c.reflect.impl.ClassModelBuilder - nop.interface-method-type:returnType=java.util.List
+13:19:36.375 WARN  i.n.c.reflect.impl.ClassModelBuilder - nop.interface-method-type:returnType=java.lang.Object
+13:19:36.375 WARN  i.n.c.reflect.impl.ClassModelBuilder - nop.interface-method-type:returnType=java.lang.Object
+13:19:36.375 WARN  i.n.c.reflect.impl.ClassModelBuilder - nop.interface-method-type:returnType=java.lang.Object
+13:19:36.375 WARN  i.n.c.reflect.impl.ClassModelBuilder - nop.interface-method-type:returnType=java.util.List
+13:19:36.375 WARN  i.nop.commons.util.ReflectionHelper - nop.commons.reflect.set-accessible-fail:method=java.lang.reflect.InaccessibleObjectException: Unable to make java.util.ImmutableCollections$AbstractImmutableCollection() accessible: module java.base does not "opens java.util" to unnamed module @1f89ab83
+0.499 us/op
+# Warmup Iteration   2: 0.446 us/op
+Iteration   1: 0.436 us/op
+                 ·gc.alloc.rate:                   4282.084 MB/sec
+                 ·gc.alloc.rate.norm:              2952.091 B/op
+                 ·gc.churn.G1_Eden_Space:          4369.536 MB/sec
+                 ·gc.churn.G1_Eden_Space.norm:     3012.381 B/op
+                 ·gc.churn.G1_Survivor_Space:      0.007 MB/sec
+                 ·gc.churn.G1_Survivor_Space.norm: 0.005 B/op
+                 ·gc.count:                        8.000 counts
+                 ·gc.time:                         5.000 ms
+
+Iteration   2: 0.429 us/op
+                 ·gc.alloc.rate:                   4344.825 MB/sec
+                 ·gc.alloc.rate.norm:              2952.090 B/op
+                 ·gc.churn.G1_Eden_Space:          4278.312 MB/sec
+                 ·gc.churn.G1_Eden_Space.norm:     2906.897 B/op
+                 ·gc.churn.G1_Survivor_Space:      0.037 MB/sec
+                 ·gc.churn.G1_Survivor_Space.norm: 0.025 B/op
+                 ·gc.count:                        8.000 counts
+                 ·gc.time:                         4.000 ms
+
+Iteration   3: 0.430 us/op
+                 ·gc.alloc.rate:                   4339.540 MB/sec
+                 ·gc.alloc.rate.norm:              2952.353 B/op
+                 ·gc.churn.G1_Eden_Space:          4656.802 MB/sec
+                 ·gc.churn.G1_Eden_Space.norm:     3168.198 B/op
+                 ·gc.churn.G1_Survivor_Space:      0.013 MB/sec
+                 ·gc.churn.G1_Survivor_Space.norm: 0.009 B/op
+                 ·gc.count:                        9.000 counts
+                 ·gc.time:                         5.000 ms
+
+
+
+Result "io.nop.benchmark.xlang.DynamicCompareBenchmark.interpreterDynamicCorpus":
+  0.432 ±(99.9%) 0.066 us/op [Average]
+  (min, avg, max) = (0.429, 0.432, 0.436), stdev = 0.004
+  CI (99.9%): [0.366, 0.497] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.DynamicCompareBenchmark.interpreterDynamicCorpus:·gc.alloc.rate":
+  4322.150 ±(99.9%) 634.854 MB/sec [Average]
+  (min, avg, max) = (4282.084, 4322.150, 4344.825), stdev = 34.799
+  CI (99.9%): [3687.295, 4957.004] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.DynamicCompareBenchmark.interpreterDynamicCorpus:·gc.alloc.rate.norm":
+  2952.178 ±(99.9%) 2.769 B/op [Average]
+  (min, avg, max) = (2952.090, 2952.178, 2952.353), stdev = 0.152
+  CI (99.9%): [2949.409, 2954.947] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.DynamicCompareBenchmark.interpreterDynamicCorpus:·gc.churn.G1_Eden_Space":
+  4434.883 ±(99.9%) 3603.597 MB/sec [Average]
+  (min, avg, max) = (4278.312, 4434.883, 4656.802), stdev = 197.525
+  CI (99.9%): [831.286, 8038.481] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.DynamicCompareBenchmark.interpreterDynamicCorpus:·gc.churn.G1_Eden_Space.norm":
+  3029.159 ±(99.9%) 2398.246 B/op [Average]
+  (min, avg, max) = (2906.897, 3029.159, 3168.198), stdev = 131.456
+  CI (99.9%): [630.913, 5427.405] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.DynamicCompareBenchmark.interpreterDynamicCorpus:·gc.churn.G1_Survivor_Space":
+  0.019 ±(99.9%) 0.288 MB/sec [Average]
+  (min, avg, max) = (0.007, 0.019, 0.037), stdev = 0.016
+  CI (99.9%): [≈ 0, 0.307] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.DynamicCompareBenchmark.interpreterDynamicCorpus:·gc.churn.G1_Survivor_Space.norm":
+  0.013 ±(99.9%) 0.195 B/op [Average]
+  (min, avg, max) = (0.005, 0.013, 0.025), stdev = 0.011
+  CI (99.9%): [≈ 0, 0.208] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.DynamicCompareBenchmark.interpreterDynamicCorpus:·gc.count":
+  25.000 ±(99.9%) 0.001 counts [Sum]
+  (min, avg, max) = (8.000, 8.333, 9.000), stdev = 0.577
+  CI (99.9%): [25.000, 25.000] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.DynamicCompareBenchmark.interpreterDynamicCorpus:·gc.time":
+  14.000 ±(99.9%) 0.001 ms [Sum]
+  (min, avg, max) = (4.000, 4.667, 5.000), stdev = 0.577
+  CI (99.9%): [14.000, 14.000] (assumes normal distribution)
+
+
+# JMH version: 1.33
+# VM version: JDK 26.0.1, OpenJDK 64-Bit Server VM, 26.0.1+8
+# VM invoker: /Users/abc/Library/Java/JavaVirtualMachines/zulu-26.0.1/Contents/Home/bin/java
+# VM options: -Dpolyglot.engine.WarnInterpreterOnly=false
+# Blackhole mode: full + dont-inline hint (default, use -Djmh.blackhole.autoDetect=true to auto-detect)
+# Warmup: 2 iterations, 1 s each
+# Measurement: 3 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.nop.benchmark.xlang.DynamicCompareBenchmark.truffleDynamicCorpus
+
+# Run progress: 20.00% complete, ETA 00:00:32
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/abc/.m2/repository/org/openjdk/jmh/jmh-core/1.33/jmh-core-1.33.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.oracle.truffle.polyglot.JDKSupport in an unnamed module (file:/Users/abc/.m2/repository/org/graalvm/truffle/truffle-api/25.2.4/truffle-api-25.2.4.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+13:19:44.417 WARN  i.n.c.r.store.LocalResourceStore - nop.warn.core.resource.store.directory-not-exists:basePath=/,dir=/Users/abc/app/nop-entropy-wt/nop-entropy-master/nop-benchmark/nop-benchmark-xlang/././_vfs
+13:19:44.513 WARN  i.nop.commons.util.ReflectionHelper - nop.commons.reflect.set-accessible-fail:method=java.lang.reflect.InaccessibleObjectException: Unable to make java.util.ImmutableCollections$AbstractImmutableList() accessible: module java.base does not "opens java.util" to unnamed module @1f89ab83
+13:19:44.515 WARN  i.n.c.reflect.impl.ClassModelBuilder - nop.interface-method-type:returnType=java.lang.Object
+13:19:44.515 WARN  i.n.c.reflect.impl.ClassModelBuilder - nop.interface-method-type:returnType=java.util.List
+13:19:44.515 WARN  i.n.c.reflect.impl.ClassModelBuilder - nop.interface-method-type:returnType=java.lang.Object
+13:19:44.515 WARN  i.n.c.reflect.impl.ClassModelBuilder - nop.interface-method-type:returnType=java.lang.Object
+13:19:44.515 WARN  i.n.c.reflect.impl.ClassModelBuilder - nop.interface-method-type:returnType=java.lang.Object
+13:19:44.516 WARN  i.n.c.reflect.impl.ClassModelBuilder - nop.interface-method-type:returnType=java.util.List
+13:19:44.516 WARN  i.nop.commons.util.ReflectionHelper - nop.commons.reflect.set-accessible-fail:method=java.lang.reflect.InaccessibleObjectException: Unable to make java.util.ImmutableCollections$AbstractImmutableCollection() accessible: module java.base does not "opens java.util" to unnamed module @1f89ab83
+11.044 us/op
+# Warmup Iteration   2: 7.693 us/op
+Iteration   1: 7.960 us/op
+                 ·gc.alloc.rate:               966.883 MB/sec
+                 ·gc.alloc.rate.norm:          12155.681 B/op
+                 ·gc.churn.G1_Eden_Space:      189.494 MB/sec
+                 ·gc.churn.G1_Eden_Space.norm: 2382.319 B/op
+                 ·gc.count:                    1.000 counts
+                 ·gc.time:                     32.000 ms
+
+Iteration   2: 11.690 us/op
+                 ·gc.alloc.rate:               699.694 MB/sec
+                 ·gc.alloc.rate.norm:          12914.380 B/op
+                 ·gc.churn.G1_Eden_Space:      1209.836 MB/sec
+                 ·gc.churn.G1_Eden_Space.norm: 22330.184 B/op
+                 ·gc.count:                    1.000 counts
+                 ·gc.time:                     139.000 ms
+
+Iteration   3: 7.852 us/op
+                 ·gc.alloc.rate:                   946.838 MB/sec
+                 ·gc.alloc.rate.norm:              11772.826 B/op
+                 ·gc.churn.G1_Eden_Space:          860.161 MB/sec
+                 ·gc.churn.G1_Eden_Space.norm:     10695.097 B/op
+                 ·gc.churn.G1_Survivor_Space:      20.980 MB/sec
+                 ·gc.churn.G1_Survivor_Space.norm: 260.856 B/op
+                 ·gc.count:                        1.000 counts
+                 ·gc.time:                         137.000 ms
+
+
+
+Result "io.nop.benchmark.xlang.DynamicCompareBenchmark.truffleDynamicCorpus":
+  9.168 ±(99.9%) 39.863 us/op [Average]
+  (min, avg, max) = (7.852, 9.168, 11.690), stdev = 2.185
+  CI (99.9%): [≈ 0, 49.031] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.DynamicCompareBenchmark.truffleDynamicCorpus:·gc.alloc.rate":
+  871.138 ±(99.9%) 2714.910 MB/sec [Average]
+  (min, avg, max) = (699.694, 871.138, 966.883), stdev = 148.813
+  CI (99.9%): [≈ 0, 3586.048] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.DynamicCompareBenchmark.truffleDynamicCorpus:·gc.alloc.rate.norm":
+  12280.963 ±(99.9%) 10599.559 B/op [Average]
+  (min, avg, max) = (11772.826, 12280.963, 12914.380), stdev = 580.998
+  CI (99.9%): [1681.404, 22880.521] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.DynamicCompareBenchmark.truffleDynamicCorpus:·gc.churn.G1_Eden_Space":
+  753.164 ±(99.9%) 9459.703 MB/sec [Average]
+  (min, avg, max) = (189.494, 753.164, 1209.836), stdev = 518.518
+  CI (99.9%): [≈ 0, 10212.867] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.DynamicCompareBenchmark.truffleDynamicCorpus:·gc.churn.G1_Eden_Space.norm":
+  11802.533 ±(99.9%) 182800.960 B/op [Average]
+  (min, avg, max) = (2382.319, 11802.533, 22330.184), stdev = 10019.937
+  CI (99.9%): [≈ 0, 194603.493] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.DynamicCompareBenchmark.truffleDynamicCorpus:·gc.churn.G1_Survivor_Space":
+  6.993 ±(99.9%) 220.978 MB/sec [Average]
+  (min, avg, max) = (≈ 0, 6.993, 20.980), stdev = 12.113
+  CI (99.9%): [≈ 0, 227.971] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.DynamicCompareBenchmark.truffleDynamicCorpus:·gc.churn.G1_Survivor_Space.norm":
+  86.952 ±(99.9%) 2747.601 B/op [Average]
+  (min, avg, max) = (≈ 0, 86.952, 260.856), stdev = 150.605
+  CI (99.9%): [≈ 0, 2834.553] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.DynamicCompareBenchmark.truffleDynamicCorpus:·gc.count":
+  3.000 ±(99.9%) 0.001 counts [Sum]
+  (min, avg, max) = (1.000, 1.000, 1.000), stdev = 0.001
+  CI (99.9%): [3.000, 3.000] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.DynamicCompareBenchmark.truffleDynamicCorpus:·gc.time":
+  308.000 ±(99.9%) 0.001 ms [Sum]
+  (min, avg, max) = (32.000, 102.667, 139.000), stdev = 61.207
+  CI (99.9%): [308.000, 308.000] (assumes normal distribution)
+
+
+# JMH version: 1.33
+# VM version: JDK 26.0.1, OpenJDK 64-Bit Server VM, 26.0.1+8
+# VM invoker: /Users/abc/Library/Java/JavaVirtualMachines/zulu-26.0.1/Contents/Home/bin/java
+# VM options: -Dpolyglot.engine.WarnInterpreterOnly=false
+# Blackhole mode: full + dont-inline hint (default, use -Djmh.blackhole.autoDetect=true to auto-detect)
+# Warmup: 2 iterations, 1 s each
+# Measurement: 3 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.nop.benchmark.xlang.StaticThreeWayBenchmark.interpreterStaticCorpus
+
+# Run progress: 40.00% complete, ETA 00:00:24
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/abc/.m2/repository/org/openjdk/jmh/jmh-core/1.33/jmh-core-1.33.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.oracle.truffle.polyglot.JDKSupport in an unnamed module (file:/Users/abc/.m2/repository/org/graalvm/truffle/truffle-api/25.2.4/truffle-api-25.2.4.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+13:19:52.565 WARN  i.n.c.r.store.LocalResourceStore - nop.warn.core.resource.store.directory-not-exists:basePath=/,dir=/Users/abc/app/nop-entropy-wt/nop-entropy-master/nop-benchmark/nop-benchmark-xlang/././_vfs
+13:19:52.743 WARN  i.nop.commons.util.ReflectionHelper - nop.commons.reflect.set-accessible-fail:method=java.lang.reflect.InaccessibleObjectException: Unable to make java.lang.AbstractStringBuilder() accessible: module java.base does not "opens java.lang" to unnamed module @1f89ab83
+6.411 us/op
+# Warmup Iteration   2: 5.346 us/op
+Iteration   1: 5.469 us/op
+                 ·gc.alloc.rate:                   2067.375 MB/sec
+                 ·gc.alloc.rate.norm:              17904.433 B/op
+                 ·gc.churn.G1_Eden_Space:          1838.820 MB/sec
+                 ·gc.churn.G1_Eden_Space.norm:     15925.043 B/op
+                 ·gc.churn.G1_Survivor_Space:      2.930 MB/sec
+                 ·gc.churn.G1_Survivor_Space.norm: 25.372 B/op
+                 ·gc.count:                        3.000 counts
+                 ·gc.time:                         4.000 ms
+
+Iteration   2: 5.348 us/op
+                 ·gc.alloc.rate:                   2113.637 MB/sec
+                 ·gc.alloc.rate.norm:              17904.563 B/op
+                 ·gc.churn.G1_Eden_Space:          2439.379 MB/sec
+                 ·gc.churn.G1_Eden_Space.norm:     20663.910 B/op
+                 ·gc.churn.G1_Survivor_Space:      0.043 MB/sec
+                 ·gc.churn.G1_Survivor_Space.norm: 0.361 B/op
+                 ·gc.count:                        4.000 counts
+                 ·gc.time:                         1.000 ms
+
+Iteration   3: 5.239 us/op
+                 ·gc.alloc.rate:                   2157.349 MB/sec
+                 ·gc.alloc.rate.norm:              17908.507 B/op
+                 ·gc.churn.G1_Eden_Space:          1793.159 MB/sec
+                 ·gc.churn.G1_Eden_Space.norm:     14885.303 B/op
+                 ·gc.churn.G1_Survivor_Space:      ≈ 10⁻³ MB/sec
+                 ·gc.churn.G1_Survivor_Space.norm: 0.004 B/op
+                 ·gc.count:                        3.000 counts
+                 ·gc.time:                         2.000 ms
+
+
+
+Result "io.nop.benchmark.xlang.StaticThreeWayBenchmark.interpreterStaticCorpus":
+  5.352 ±(99.9%) 2.100 us/op [Average]
+  (min, avg, max) = (5.239, 5.352, 5.469), stdev = 0.115
+  CI (99.9%): [3.252, 7.452] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.StaticThreeWayBenchmark.interpreterStaticCorpus:·gc.alloc.rate":
+  2112.787 ±(99.9%) 820.847 MB/sec [Average]
+  (min, avg, max) = (2067.375, 2112.787, 2157.349), stdev = 44.993
+  CI (99.9%): [1291.940, 2933.634] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.StaticThreeWayBenchmark.interpreterStaticCorpus:·gc.alloc.rate.norm":
+  17905.834 ±(99.9%) 42.245 B/op [Average]
+  (min, avg, max) = (17904.433, 17905.834, 17908.507), stdev = 2.316
+  CI (99.9%): [17863.589, 17948.080] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.StaticThreeWayBenchmark.interpreterStaticCorpus:·gc.churn.G1_Eden_Space":
+  2023.786 ±(99.9%) 6579.368 MB/sec [Average]
+  (min, avg, max) = (1793.159, 2023.786, 2439.379), stdev = 360.637
+  CI (99.9%): [≈ 0, 8603.154] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.StaticThreeWayBenchmark.interpreterStaticCorpus:·gc.churn.G1_Eden_Space.norm":
+  17158.085 ±(99.9%) 56196.496 B/op [Average]
+  (min, avg, max) = (14885.303, 17158.085, 20663.910), stdev = 3080.320
+  CI (99.9%): [≈ 0, 73354.581] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.StaticThreeWayBenchmark.interpreterStaticCorpus:·gc.churn.G1_Survivor_Space":
+  0.991 ±(99.9%) 30.633 MB/sec [Average]
+  (min, avg, max) = (≈ 10⁻³, 0.991, 2.930), stdev = 1.679
+  CI (99.9%): [≈ 0, 31.624] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.StaticThreeWayBenchmark.interpreterStaticCorpus:·gc.churn.G1_Survivor_Space.norm":
+  8.579 ±(99.9%) 265.342 B/op [Average]
+  (min, avg, max) = (0.004, 8.579, 25.372), stdev = 14.544
+  CI (99.9%): [≈ 0, 273.921] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.StaticThreeWayBenchmark.interpreterStaticCorpus:·gc.count":
+  10.000 ±(99.9%) 0.001 counts [Sum]
+  (min, avg, max) = (3.000, 3.333, 4.000), stdev = 0.577
+  CI (99.9%): [10.000, 10.000] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.StaticThreeWayBenchmark.interpreterStaticCorpus:·gc.time":
+  7.000 ±(99.9%) 0.001 ms [Sum]
+  (min, avg, max) = (1.000, 2.333, 4.000), stdev = 1.528
+  CI (99.9%): [7.000, 7.000] (assumes normal distribution)
+
+
+# JMH version: 1.33
+# VM version: JDK 26.0.1, OpenJDK 64-Bit Server VM, 26.0.1+8
+# VM invoker: /Users/abc/Library/Java/JavaVirtualMachines/zulu-26.0.1/Contents/Home/bin/java
+# VM options: -Dpolyglot.engine.WarnInterpreterOnly=false
+# Blackhole mode: full + dont-inline hint (default, use -Djmh.blackhole.autoDetect=true to auto-detect)
+# Warmup: 2 iterations, 1 s each
+# Measurement: 3 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.nop.benchmark.xlang.StaticThreeWayBenchmark.javaStaticCorpus
+
+# Run progress: 60.00% complete, ETA 00:00:16
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/abc/.m2/repository/org/openjdk/jmh/jmh-core/1.33/jmh-core-1.33.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.oracle.truffle.polyglot.JDKSupport in an unnamed module (file:/Users/abc/.m2/repository/org/graalvm/truffle/truffle-api/25.2.4/truffle-api-25.2.4.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+13:20:00.800 WARN  i.n.c.r.store.LocalResourceStore - nop.warn.core.resource.store.directory-not-exists:basePath=/,dir=/Users/abc/app/nop-entropy-wt/nop-entropy-master/nop-benchmark/nop-benchmark-xlang/././_vfs
+13:20:00.977 WARN  i.nop.commons.util.ReflectionHelper - nop.commons.reflect.set-accessible-fail:method=java.lang.reflect.InaccessibleObjectException: Unable to make java.lang.AbstractStringBuilder() accessible: module java.base does not "opens java.lang" to unnamed module @1f89ab83
+3.843 us/op
+# Warmup Iteration   2: 2.884 us/op
+Iteration   1: 2.802 us/op
+                 ·gc.alloc.rate:                   3011.826 MB/sec
+                 ·gc.alloc.rate.norm:              13368.442 B/op
+                 ·gc.churn.G1_Eden_Space:          3333.709 MB/sec
+                 ·gc.churn.G1_Eden_Space.norm:     14797.167 B/op
+                 ·gc.churn.G1_Survivor_Space:      2.902 MB/sec
+                 ·gc.churn.G1_Survivor_Space.norm: 12.882 B/op
+                 ·gc.count:                        6.000 counts
+                 ·gc.time:                         5.000 ms
+
+Iteration   2: 2.783 us/op
+                 ·gc.alloc.rate:                   3036.260 MB/sec
+                 ·gc.alloc.rate.norm:              13368.366 B/op
+                 ·gc.churn.G1_Eden_Space:          2744.069 MB/sec
+                 ·gc.churn.G1_Eden_Space.norm:     12081.874 B/op
+                 ·gc.churn.G1_Survivor_Space:      0.038 MB/sec
+                 ·gc.churn.G1_Survivor_Space.norm: 0.166 B/op
+                 ·gc.count:                        5.000 counts
+                 ·gc.time:                         3.000 ms
+
+Iteration   3: 2.800 us/op
+                 ·gc.alloc.rate:                   3030.353 MB/sec
+                 ·gc.alloc.rate.norm:              13370.624 B/op
+                 ·gc.churn.G1_Eden_Space:          3165.818 MB/sec
+                 ·gc.churn.G1_Eden_Space.norm:     13968.325 B/op
+                 ·gc.churn.G1_Survivor_Space:      0.007 MB/sec
+                 ·gc.churn.G1_Survivor_Space.norm: 0.031 B/op
+                 ·gc.count:                        6.000 counts
+                 ·gc.time:                         3.000 ms
+
+
+
+Result "io.nop.benchmark.xlang.StaticThreeWayBenchmark.javaStaticCorpus":
+  2.795 ±(99.9%) 0.187 us/op [Average]
+  (min, avg, max) = (2.783, 2.795, 2.802), stdev = 0.010
+  CI (99.9%): [2.608, 2.982] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.StaticThreeWayBenchmark.javaStaticCorpus:·gc.alloc.rate":
+  3026.147 ±(99.9%) 232.588 MB/sec [Average]
+  (min, avg, max) = (3011.826, 3026.147, 3036.260), stdev = 12.749
+  CI (99.9%): [2793.558, 3258.735] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.StaticThreeWayBenchmark.javaStaticCorpus:·gc.alloc.rate.norm":
+  13369.144 ±(99.9%) 23.386 B/op [Average]
+  (min, avg, max) = (13368.366, 13369.144, 13370.624), stdev = 1.282
+  CI (99.9%): [13345.758, 13392.530] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.StaticThreeWayBenchmark.javaStaticCorpus:·gc.churn.G1_Eden_Space":
+  3081.198 ±(99.9%) 5542.284 MB/sec [Average]
+  (min, avg, max) = (2744.069, 3081.198, 3333.709), stdev = 303.791
+  CI (99.9%): [≈ 0, 8623.482] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.StaticThreeWayBenchmark.javaStaticCorpus:·gc.churn.G1_Eden_Space.norm":
+  13615.789 ±(99.9%) 25387.077 B/op [Average]
+  (min, avg, max) = (12081.874, 13615.789, 14797.167), stdev = 1391.551
+  CI (99.9%): [≈ 0, 39002.866] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.StaticThreeWayBenchmark.javaStaticCorpus:·gc.churn.G1_Survivor_Space":
+  0.982 ±(99.9%) 30.335 MB/sec [Average]
+  (min, avg, max) = (0.007, 0.982, 2.902), stdev = 1.663
+  CI (99.9%): [≈ 0, 31.317] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.StaticThreeWayBenchmark.javaStaticCorpus:·gc.churn.G1_Survivor_Space.norm":
+  4.360 ±(99.9%) 134.654 B/op [Average]
+  (min, avg, max) = (0.031, 4.360, 12.882), stdev = 7.381
+  CI (99.9%): [≈ 0, 139.014] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.StaticThreeWayBenchmark.javaStaticCorpus:·gc.count":
+  17.000 ±(99.9%) 0.001 counts [Sum]
+  (min, avg, max) = (5.000, 5.667, 6.000), stdev = 0.577
+  CI (99.9%): [17.000, 17.000] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.StaticThreeWayBenchmark.javaStaticCorpus:·gc.time":
+  11.000 ±(99.9%) 0.001 ms [Sum]
+  (min, avg, max) = (3.000, 3.667, 5.000), stdev = 1.155
+  CI (99.9%): [11.000, 11.000] (assumes normal distribution)
+
+
+# JMH version: 1.33
+# VM version: JDK 26.0.1, OpenJDK 64-Bit Server VM, 26.0.1+8
+# VM invoker: /Users/abc/Library/Java/JavaVirtualMachines/zulu-26.0.1/Contents/Home/bin/java
+# VM options: -Dpolyglot.engine.WarnInterpreterOnly=false
+# Blackhole mode: full + dont-inline hint (default, use -Djmh.blackhole.autoDetect=true to auto-detect)
+# Warmup: 2 iterations, 1 s each
+# Measurement: 3 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.nop.benchmark.xlang.StaticThreeWayBenchmark.truffleStaticCorpus
+
+# Run progress: 80.00% complete, ETA 00:00:08
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/abc/.m2/repository/org/openjdk/jmh/jmh-core/1.33/jmh-core-1.33.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.oracle.truffle.polyglot.JDKSupport in an unnamed module (file:/Users/abc/.m2/repository/org/graalvm/truffle/truffle-api/25.2.4/truffle-api-25.2.4.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+13:20:09.016 WARN  i.n.c.r.store.LocalResourceStore - nop.warn.core.resource.store.directory-not-exists:basePath=/,dir=/Users/abc/app/nop-entropy-wt/nop-entropy-master/nop-benchmark/nop-benchmark-xlang/././_vfs
+13:20:09.196 WARN  i.nop.commons.util.ReflectionHelper - nop.commons.reflect.set-accessible-fail:method=java.lang.reflect.InaccessibleObjectException: Unable to make java.lang.AbstractStringBuilder() accessible: module java.base does not "opens java.lang" to unnamed module @1f89ab83
+52.977 us/op
+# Warmup Iteration   2: 40.013 us/op
+Iteration   1: 44.015 us/op
+                 ·gc.alloc.rate:                   716.083 MB/sec
+                 ·gc.alloc.rate.norm:              48664.215 B/op
+                 ·gc.churn.G1_Eden_Space:          180.963 MB/sec
+                 ·gc.churn.G1_Eden_Space.norm:     12298.008 B/op
+                 ·gc.churn.G1_Survivor_Space:      10.053 MB/sec
+                 ·gc.churn.G1_Survivor_Space.norm: 683.223 B/op
+                 ·gc.count:                        2.000 counts
+                 ·gc.time:                         37.000 ms
+
+Iteration   2: 47.078 us/op
+                 ·gc.alloc.rate:               659.736 MB/sec
+                 ·gc.alloc.rate.norm:          48817.257 B/op
+                 ·gc.churn.G1_Eden_Space:      1132.030 MB/sec
+                 ·gc.churn.G1_Eden_Space.norm: 83764.739 B/op
+                 ·gc.count:                    1.000 counts
+                 ·gc.time:                     143.000 ms
+
+Iteration   3: 42.818 us/op
+                 ·gc.alloc.rate:      765.337 MB/sec
+                 ·gc.alloc.rate.norm: 51929.303 B/op
+                 ·gc.count:           ≈ 0 counts
+
+
+
+Result "io.nop.benchmark.xlang.StaticThreeWayBenchmark.truffleStaticCorpus":
+  44.637 ±(99.9%) 40.081 us/op [Average]
+  (min, avg, max) = (42.818, 44.637, 47.078), stdev = 2.197
+  CI (99.9%): [4.556, 84.718] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.StaticThreeWayBenchmark.truffleStaticCorpus:·gc.alloc.rate":
+  713.719 ±(99.9%) 964.005 MB/sec [Average]
+  (min, avg, max) = (659.736, 713.719, 765.337), stdev = 52.840
+  CI (99.9%): [≈ 0, 1677.724] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.StaticThreeWayBenchmark.truffleStaticCorpus:·gc.alloc.rate.norm":
+  49803.591 ±(99.9%) 33614.234 B/op [Average]
+  (min, avg, max) = (48664.215, 49803.591, 51929.303), stdev = 1842.510
+  CI (99.9%): [16189.358, 83417.825] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.StaticThreeWayBenchmark.truffleStaticCorpus:·gc.churn.G1_Eden_Space":
+  437.664 ±(99.9%) 11094.141 MB/sec [Average]
+  (min, avg, max) = (≈ 0, 437.664, 1132.030), stdev = 608.107
+  CI (99.9%): [≈ 0, 11531.805] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.StaticThreeWayBenchmark.truffleStaticCorpus:·gc.churn.G1_Eden_Space.norm":
+  32020.916 ±(99.9%) 825188.738 B/op [Average]
+  (min, avg, max) = (≈ 0, 32020.916, 83764.739), stdev = 45231.379
+  CI (99.9%): [≈ 0, 857209.653] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.StaticThreeWayBenchmark.truffleStaticCorpus:·gc.churn.G1_Survivor_Space":
+  3.351 ±(99.9%) 105.893 MB/sec [Average]
+  (min, avg, max) = (≈ 0, 3.351, 10.053), stdev = 5.804
+  CI (99.9%): [≈ 0, 109.245] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.StaticThreeWayBenchmark.truffleStaticCorpus:·gc.churn.G1_Survivor_Space.norm":
+  227.741 ±(99.9%) 7196.397 B/op [Average]
+  (min, avg, max) = (≈ 0, 227.741, 683.223), stdev = 394.459
+  CI (99.9%): [≈ 0, 7424.138] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.StaticThreeWayBenchmark.truffleStaticCorpus:·gc.count":
+  3.000 ±(99.9%) 0.001 counts [Sum]
+  (min, avg, max) = (≈ 0, 1.000, 2.000), stdev = 1.000
+  CI (99.9%): [3.000, 3.000] (assumes normal distribution)
+
+Secondary result "io.nop.benchmark.xlang.StaticThreeWayBenchmark.truffleStaticCorpus:·gc.time":
+  180.000 ±(99.9%) 0.001 ms [Sum]
+  (min, avg, max) = (≈ 0, 60.000, 143.000), stdev = 74.223
+  CI (99.9%): [180.000, 180.000] (assumes normal distribution)
+
+
+# Run complete. Total time: 00:00:41
+
+REMEMBER: The numbers below are just data. To gain reusable insights, you need to follow up on
+why the numbers are the way they are. Use profilers (see -prof, -lprof), design factorial
+experiments, perform baseline and negative tests that provide experimental control, make sure
+the benchmarking environment is safe on JVM/OS/HW level, ask for reviews from the domain experts.
+Do not assume the numbers tell you what you want them to tell.
+
+Benchmark                                                                          Mode  Cnt      Score        Error   Units
+DynamicCompareBenchmark.interpreterDynamicCorpus                                   avgt    3      0.432 ±      0.066   us/op
+DynamicCompareBenchmark.interpreterDynamicCorpus:·gc.alloc.rate                    avgt    3   4322.150 ±    634.854  MB/sec
+DynamicCompareBenchmark.interpreterDynamicCorpus:·gc.alloc.rate.norm               avgt    3   2952.178 ±      2.769    B/op
+DynamicCompareBenchmark.interpreterDynamicCorpus:·gc.churn.G1_Eden_Space           avgt    3   4434.883 ±   3603.597  MB/sec
+DynamicCompareBenchmark.interpreterDynamicCorpus:·gc.churn.G1_Eden_Space.norm      avgt    3   3029.159 ±   2398.246    B/op
+DynamicCompareBenchmark.interpreterDynamicCorpus:·gc.churn.G1_Survivor_Space       avgt    3      0.019 ±      0.288  MB/sec
+DynamicCompareBenchmark.interpreterDynamicCorpus:·gc.churn.G1_Survivor_Space.norm  avgt    3      0.013 ±      0.195    B/op
+DynamicCompareBenchmark.interpreterDynamicCorpus:·gc.count                         avgt    3     25.000               counts
+DynamicCompareBenchmark.interpreterDynamicCorpus:·gc.time                          avgt    3     14.000                   ms
+DynamicCompareBenchmark.truffleDynamicCorpus                                       avgt    3      9.168 ±     39.863   us/op
+DynamicCompareBenchmark.truffleDynamicCorpus:·gc.alloc.rate                        avgt    3    871.138 ±   2714.910  MB/sec
+DynamicCompareBenchmark.truffleDynamicCorpus:·gc.alloc.rate.norm                   avgt    3  12280.963 ±  10599.559    B/op
+DynamicCompareBenchmark.truffleDynamicCorpus:·gc.churn.G1_Eden_Space               avgt    3    753.164 ±   9459.703  MB/sec
+DynamicCompareBenchmark.truffleDynamicCorpus:·gc.churn.G1_Eden_Space.norm          avgt    3  11802.533 ± 182800.960    B/op
+DynamicCompareBenchmark.truffleDynamicCorpus:·gc.churn.G1_Survivor_Space           avgt    3      6.993 ±    220.978  MB/sec
+DynamicCompareBenchmark.truffleDynamicCorpus:·gc.churn.G1_Survivor_Space.norm      avgt    3     86.952 ±   2747.601    B/op
+DynamicCompareBenchmark.truffleDynamicCorpus:·gc.count                             avgt    3      3.000               counts
+DynamicCompareBenchmark.truffleDynamicCorpus:·gc.time                              avgt    3    308.000                   ms
+StaticThreeWayBenchmark.interpreterStaticCorpus                                    avgt    3      5.352 ±      2.100   us/op
+StaticThreeWayBenchmark.interpreterStaticCorpus:·gc.alloc.rate                     avgt    3   2112.787 ±    820.847  MB/sec
+StaticThreeWayBenchmark.interpreterStaticCorpus:·gc.alloc.rate.norm                avgt    3  17905.834 ±     42.245    B/op
+StaticThreeWayBenchmark.interpreterStaticCorpus:·gc.churn.G1_Eden_Space            avgt    3   2023.786 ±   6579.368  MB/sec
+StaticThreeWayBenchmark.interpreterStaticCorpus:·gc.churn.G1_Eden_Space.norm       avgt    3  17158.085 ±  56196.496    B/op
+StaticThreeWayBenchmark.interpreterStaticCorpus:·gc.churn.G1_Survivor_Space        avgt    3      0.991 ±     30.633  MB/sec
+StaticThreeWayBenchmark.interpreterStaticCorpus:·gc.churn.G1_Survivor_Space.norm   avgt    3      8.579 ±    265.342    B/op
+StaticThreeWayBenchmark.interpreterStaticCorpus:·gc.count                          avgt    3     10.000               counts
+StaticThreeWayBenchmark.interpreterStaticCorpus:·gc.time                           avgt    3      7.000                   ms
+StaticThreeWayBenchmark.javaStaticCorpus                                           avgt    3      2.795 ±      0.187   us/op
+StaticThreeWayBenchmark.javaStaticCorpus:·gc.alloc.rate                            avgt    3   3026.147 ±    232.588  MB/sec
+StaticThreeWayBenchmark.javaStaticCorpus:·gc.alloc.rate.norm                       avgt    3  13369.144 ±     23.386    B/op
+StaticThreeWayBenchmark.javaStaticCorpus:·gc.churn.G1_Eden_Space                   avgt    3   3081.198 ±   5542.284  MB/sec
+StaticThreeWayBenchmark.javaStaticCorpus:·gc.churn.G1_Eden_Space.norm              avgt    3  13615.789 ±  25387.077    B/op
+StaticThreeWayBenchmark.javaStaticCorpus:·gc.churn.G1_Survivor_Space               avgt    3      0.982 ±     30.335  MB/sec
+StaticThreeWayBenchmark.javaStaticCorpus:·gc.churn.G1_Survivor_Space.norm          avgt    3      4.360 ±    134.654    B/op
+StaticThreeWayBenchmark.javaStaticCorpus:·gc.count                                 avgt    3     17.000               counts
+StaticThreeWayBenchmark.javaStaticCorpus:·gc.time                                  avgt    3     11.000                   ms
+StaticThreeWayBenchmark.truffleStaticCorpus                                        avgt    3     44.637 ±     40.081   us/op
+StaticThreeWayBenchmark.truffleStaticCorpus:·gc.alloc.rate                         avgt    3    713.719 ±    964.005  MB/sec
+StaticThreeWayBenchmark.truffleStaticCorpus:·gc.alloc.rate.norm                    avgt    3  49803.591 ±  33614.234    B/op
+StaticThreeWayBenchmark.truffleStaticCorpus:·gc.churn.G1_Eden_Space                avgt    3    437.664 ±  11094.141  MB/sec
+StaticThreeWayBenchmark.truffleStaticCorpus:·gc.churn.G1_Eden_Space.norm           avgt    3  32020.916 ± 825188.738    B/op
+StaticThreeWayBenchmark.truffleStaticCorpus:·gc.churn.G1_Survivor_Space            avgt    3      3.351 ±    105.893  MB/sec
+StaticThreeWayBenchmark.truffleStaticCorpus:·gc.churn.G1_Survivor_Space.norm       avgt    3    227.741 ±   7196.397    B/op
+StaticThreeWayBenchmark.truffleStaticCorpus:·gc.count                              avgt    3      3.000               counts
+StaticThreeWayBenchmark.truffleStaticCorpus:·gc.time                               avgt    3    180.000                   ms
