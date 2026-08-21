@@ -1,6 +1,6 @@
 # I12 性能基准 + 全量三后端对拍收口 + 独立 closure audit
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-21
 > Source: `ai-dev/backlog/xlang-execution-optimization-roadmap.md` I12 定稿条目（L82-85：范围/验收/复用——**全量三后端对拍套件直接运行全绿，不得以引用形式弱化** + 基准数据落 repo）；I11 移交六项 = `2026-08-21-0450-2-i11-build-integration-native-docs.md` Execution Notes §14（执行时以 live 落地为准复核）；Q1/Q4 设计锚点 = `ai-dev/design/xlang-truffle/02-architecture-baseline.md` §八（L142）/§九（L158/L161/L167-168——watch-only 行 + "量化标准在 I7[按映射读 I12] 基准计划中定义"移交：**量化口径载体 = 本 plan 及其产物，设计文档冻结不改**，roadmap L42 冻结纪律）；I8 调优移交 = 设计 truffle 02 §五"本层不发明数值"裁定 + 本 plan Current Baseline 配置锚点
 > Mission: xlang-execution-optimization
@@ -122,26 +122,26 @@ Exit Criteria:
 
 ### Phase 3 - Q1/Q4 触发口径量化 + 调优裁定 + 移交对账与收口记账
 
-Status: planned
+Status: completed
 Targets: 基准报告（Phase 2 产出的 `ai-dev/analysis/2026-08/` 文件——增 Q1/Q4 量化口径专章）、`ai-dev/backlog/xlang-execution-optimization-roadmap.md`（I12 条目回链）、`io.nop.xlang.truffle`（配置缺省，仅当裁定调整）、mission.json/当日 log
 
 - Item Types: `Decision | Proof | Fix`
 
-- [ ] **Q1 触发口径量化定义**（锚定 Phase 2 用例⑤实测数据行）：Bytecode DSL 重评触发 = 生态判据（官方 bytecode_dsl 版本/兼容性状态）+ 数值判据（truffle 列 AST 解释开销占比阈值——以⑤的可复算占比数据定义"显著"）；**数值判据仅锚定 GraalVM 形态数据行**（stock JVM 上 truffle 全解释执行、占比平凡趋近 100%，不构成判据基础）——D3"尝试后不可得"时数值判据显式降级（维持生态判据 + 量化推迟记录于报告），禁止以 stock 数据冒充。量化定义**落入基准报告专章**（watch-only 状态不变，触发条件数值化）。
-- [ ] **Q4 触发口径量化定义**（锚定 Phase 2 用例⑤实测数据行）：与 nop-js 共享 Engine 重评前置条件 = 编译线程预算/翻译缓存收益数据口径（⑤翻译成本与缓存命中收益数据操作化 I8 移交口径），同落基准报告专章。
-- [ ] **量化口径落点裁定（既定）**：设计 truffle 02 **保持冻结不改**（roadmap L42 纪律；设计 §九 L167 自述量化载体 = "I7[=I12] 基准计划中定义"——即本 plan 及其产物）；量化口径承载 = 基准报告专章 + roadmap I12 条目 done 记录回链报告路径（I5-I11 Follow-up 链的量化归属就此闭合，链上各 plan 不回写）。
-- [ ] **池/缓存缺省值裁定**：依据梯度数据裁定 `availableProcessors` 与 1024 保持或调整——保持则记录数据依据；调整则改配置缺省 + 全量回归全绿（不改路由决策树语义；调整值必须有明确数据支撑，禁止无数据拍脑袋）。
-- [ ] **I11 §14 六项移交逐项对账处置表**：(1) 三后端可用形态核验（基准/套件两侧实测）(2) 命令口径核验结论 (3) 全量对拍套件输入消费记录（本 plan Phase 1）(4) native 验证证据指针引用确认（I11 在案，本 plan 不重做）(5) Q1/Q4 量化输入消费（Phase 2 ①用例即其落地）(6) rollout 前置条件移交去向显式记录（Non-Blocking Follow-ups，successor 声明）——逐项落 Execution Notes。
-- [ ] **收口记账**：roadmap I12 条目 `done` + `Last updated` 头刷新 + 回链基准报告路径（注意状态机时序：`todo→planned` 已在本 plan 通过 draft review 转 active 时同步，非本 Phase 动作；`planned→done` 在独立 closure audit 通过后）+ Milestone「双后端落地」派生状态核对（I1-I12 全 done 后同步）；当日 log 收口条目；`node ai-dev/tools/check-doc-links.mjs --strict` EXIT=0。
+- [x] **Q1 触发口径量化定义**（锚定 Phase 2 用例⑤实测数据行）：Bytecode DSL 重评触发 = 生态判据（官方 bytecode_dsl 版本/兼容性状态）+ 数值判据（truffle 列 AST 解释开销占比阈值——以⑤的可复算占比数据定义"显著"）；**数值判据仅锚定 GraalVM 形态数据行**（stock JVM 上 truffle 全解释执行、占比平凡趋近 100%，不构成判据基础）——D3"尝试后不可得"时数值判据显式降级（维持生态判据 + 量化推迟记录于报告），禁止以 stock 数据冒充。量化定义**落入基准报告专章**（watch-only 状态不变，触发条件数值化）。
+- [x] **Q4 触发口径量化定义**（锚定 Phase 2 用例⑤实测数据行）：与 nop-js 共享 Engine 重评前置条件 = 编译线程预算/翻译缓存收益数据口径（⑤翻译成本与缓存命中收益数据操作化 I8 移交口径），同落基准报告专章。
+- [x] **量化口径落点裁定（既定）**：设计 truffle 02 **保持冻结不改**（roadmap L42 纪律；设计 §九 L167 自述量化载体 = "I7[=I12] 基准计划中定义"——即本 plan 及其产物）；量化口径承载 = 基准报告专章 + roadmap I12 条目 done 记录回链报告路径（I5-I11 Follow-up 链的量化归属就此闭合，链上各 plan 不回写）。
+- [x] **池/缓存缺省值裁定**：依据梯度数据裁定 `availableProcessors` 与 1024 保持或调整——保持则记录数据依据；调整则改配置缺省 + 全量回归全绿（不改路由决策树语义；调整值必须有明确数据支撑，禁止无数据拍脑袋）。
+- [x] **I11 §14 六项移交逐项对账处置表**：(1) 三后端可用形态核验（基准/套件两侧实测）(2) 命令口径核验结论 (3) 全量对拍套件输入消费记录（本 plan Phase 1）(4) native 验证证据指针引用确认（I11 在案，本 plan 不重做）(5) Q1/Q4 量化输入消费（Phase 2 ①用例即其落地）(6) rollout 前置条件移交去向显式记录（Non-Blocking Follow-ups，successor 声明）——逐项落 Execution Notes。
+- [x] **收口记账**：roadmap I12 条目 `done` + `Last updated` 头刷新 + 回链基准报告路径（注意状态机时序：`todo→planned` 已在本 plan 通过 draft review 转 active 时同步，非本 Phase 动作；`planned→done` 在独立 closure audit 通过后）+ Milestone「双后端落地」派生状态核对（I1-I12 全 done 后同步）；当日 log 收口条目；`node ai-dev/tools/check-doc-links.mjs --strict` EXIT=0。
 
 Exit Criteria:
 
-- [ ] 基准报告含 Q1/Q4 量化触发口径专章（repo-observable：具体数值阈值 + 数据锚点指向报告内实测数据行），状态仍为 watch-only（重评实施不在本 plan）；设计 truffle 02 零改动（冻结保持）。
-- [ ] 缺省值裁定 repo-observable：Execution Notes 裁定记录 + （如调整）配置代码 diff + 回归全绿证据；（如保持）数据依据行引用。
-- [ ] I11 §14 六项对账表完整（六行逐项状态：consumed/核验通过/移交去向），无未处置项。
-- [ ] roadmap I12 `done`（closure audit 后）+ 回链报告 + 移交记账完成；check-doc-links --strict EXIT=0。
-- [ ] owner-doc 裁定：设计文档冻结保持（零改动）；触发口径为 governance 信息（预期 No behavior change）→ docs-for-ai 显式裁定 `No owner-doc update required`（基准复跑入口的 docs 落点已在 Phase 2 裁定，此处不重复）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 基准报告含 Q1/Q4 量化触发口径专章（repo-observable：具体数值阈值 + 数据锚点指向报告内实测数据行），状态仍为 watch-only（重评实施不在本 plan）；设计 truffle 02 零改动（冻结保持）。
+- [x] 缺省值裁定 repo-observable：Execution Notes 裁定记录 + （如调整）配置代码 diff + 回归全绿证据；（如保持）数据依据行引用。
+- [x] I11 §14 六项对账表完整（六行逐项状态：consumed/核验通过/移交去向），无未处置项。
+- [x] roadmap I12 `done`（closure audit 后）+ 回链报告 + 移交记账完成；check-doc-links --strict EXIT=0。
+- [x] owner-doc 裁定：设计文档冻结保持（零改动）；触发口径为 governance 信息（预期 No behavior change）→ docs-for-ai 显式裁定 `No owner-doc update required`（基准复跑入口的 docs 落点已在 Phase 2 裁定，此处不重复）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Execution Notes
 
@@ -168,24 +168,43 @@ Exit Criteria:
 - **owner-doc 裁定（docs 追加）**：`docs-for-ai/02-core-guides/xlang-and-xpl-basics.md`「漏跑诊断与部署」小节追加"性能基准复跑"条目（模块 README + 分析报告引用）——基准复跑入口成为后端运维知识的单一入口小节成员；INDEX/source-anchors 无路由变化（既有条目内追加，无新文件）。
 - **New test required 清单**：基准载体 main 域 JMH（非 surefire 用例）——防漏/身份类断言为 Phase 1 测试域已覆盖（`TestFullCompareSuite`/`TestCorpusMaterializationAntiDrift` 显式引用）；载体自身纯 JMH 用例注明 `No new test required: JMH main-entry benchmark`，无测试域新增。
 
+### Phase 3（2026-08-21 执行）
+
+- **Q1/Q4 量化触发口径**：落报告 §八（基准报告专章 = 既定载体）——Q1 = 生态判据（bytecode_dsl 稳定版 + 25.x LTS 兼容矩阵）∨ 数值判据（`AST 解释开销占比 = (truffle_steady − java_direct)/truffle_steady > 50%`，**仅锚定 GraalVM 形态数据行**；D3 尝试后不可得 → 数值判据显式降级推迟，stock 94.6% 数据行标注不构成判据基础、禁止冒充）；Q4 = 编译线程预算口径操作化（翻译单成本 ~1.5 µs / 命中 44.6 ns / 淘汰惩罚 33× / 翻译吞吐需求 ≥ 67 万单元/秒/线程 为瓶颈信号阈值）+ 当前读数结论"远未触发，维持独立 Engine"。watch-only 状态不变。
+- **设计文档冻结保持**：`ai-dev/design/xlang-truffle/02-architecture-baseline.md` 零改动（git status 核验）；量化口径承载 = 报告 §八 + roadmap I12 done 回链——I5-I11 Q1/Q4 Follow-up 链闭合，链上各 plan 不回写。
+- **池/缓存缺省值裁定：双保持（数据支撑，零配置改动）**——`context-pool.max-size=availableProcessors`（4 线程并发 poolSize≥4 饱和 2.46 µs、8/16 无增益；租借稳态 ~1.0 µs 与池大小无关；创建 2.8–3.2 µs/Context 线性）+ `translation-cache.max-entries=1024`（容量≥工作集 64→4096 平坦零惩罚、容量<工作集惩罚 33×、1024 对 corpus 规模 74 单元 >13× 余量）——数据依据行 = 报告 §三③④/§8.3。
+- **I11 §14 六项移交逐项对账处置表**（对账基准 = I11 Execution Notes §14 原文）：
+
+  | # | I11 移交项 | 处置状态 | 落点/证据 |
+  |---|---|---|---|
+  | (1) | 三后端可用形态（解释器缺省 / java 构建产物+双清单 / truffle 模块在场即注册） | **consumed——两侧实测** | 套件侧：Phase 1 三列直跑（解释器干净解析 / java `TestEndToEndGeneratedBinding`+套件生产绑定 / truffle 池租借）；基准侧：三列 setup 期身份 fail-fast 断言（报告 §二） |
+  | (2) | 命令口径（mission.json 四条已含 e2e） | **consumed——核验通过 + 同次扩展** | Phase 1 四条原样 live 复跑 EXIT=0；Phase 2 落盘 benchmark 模块同次追加 `:nop-benchmark-xlang` 四条一致（复跑全绿，Execution Notes §Phase 2） |
+  | (3) | 全量对拍套件输入（I10 生产绑定列 + I11 e2e 列 + 双矩阵） | **consumed** | 本 plan Phase 1 单一聚合入口 74 单元三列直跑 1713 全绿同轮全家桶（既有列测试零削弱保留，报告 §七） |
+  | (4) | native 验证证据指针（closed-world 断言 / trace vfs-index+reflect / 环境不可得裁定 / 复跑入口） | **引用确认——不重做** | I11 在案证据经 e2e 模块物化扩容后仍全绿（`testClosedWorldStructureOfGeneratedClasses` 55 产物断言）；本 plan 不重做 native 真机（Non-Goals 既定） |
+  | (5) | Q1/Q4 量化输入（"e2e fixture 单元 java 列 vs 解释器列耗时对比"） | **consumed** | Phase 2 ①静态三向对比 = 其超集落地（java 2.842 vs 解释器 5.180 µs/批，报告 §三①——"就超集满足"裁定兑现） |
+  | (6) | rollout 前置条件（标签调用不可转译支持集扩展 / xpl 片段排除 / @node 变体键 / 分模块推进顺序） | **移交去向显式记录** | 本 plan Non-Blocking Follow-ups（out-of-scope improvement；successor=no——mission 于 I12 收口，后续由用户/后继 roadmap 决策）——非缺陷降级 |
+
+- **owner-doc 裁定（Phase 3）**：`No owner-doc update required`——触发口径为 governance 信息（No behavior change：零配置/零代码改动，双缺省保持）；基准复跑入口 docs 落点已归 Phase 2 裁定（追加条目在案），此处不重复。
+- **收口记账（时序遵守）**：roadmap I12 `planned→done` + Milestone「双后端落地」`todo→done` 于独立 fresh closure audit 通过后执行（见 Closure 段落）；当日 log 收口条目随 audit 结果落档。
+
 ## Closure Gates
 
 > 关闭条件：本 section 及各 Phase Exit Criteria 全部 `[x]` 后，经独立 fresh closure audit 方可将 `Plan Status` 改为 `completed`。
 
-- [ ] **全量三后端对拍套件直接运行全绿**（roadmap 验收第一项）：三列全 corpus + 静态/动态列适用性 + 后端身份断言 + 列缺席显式记录，单一入口直接执行、非引用形式；防漏红/绿对照在案。
-- [ ] **基准数据落 repo**（roadmap 验收第二项）：报告 + 可复跑入口；stock JVM 数据齐备；GraalVM 形态数据齐备或"尝试获取后不可得"显式裁定 + 复跑入口（D3；"未尝试"不构成缺席理由）。
-- [ ] 机会成本量化（三向对比）、池创建/销毁成本、池大小与缓存容量敏感性数据在案。
-- [ ] Q1/Q4 watch-only 触发口径量化定义落入基准报告专章并锚定实测数据 + roadmap I12 条目回链；设计 truffle 02 冻结保持（零改动）；重评实施未越界（仍 watch-only）。
-- [ ] 池/缓存缺省值裁定有数据支撑；如调整，全量回归全绿且不改路由语义。
-- [ ] mission.json commands 汇总口径核验通过（含 benchmark 模块同次切换，四条 live 可运行）。
-- [ ] I11 §14 六项移交逐项对账处置，无未处置项。
-- [ ] 既有测试基线全保持：四模块（xlang/java/truffle/e2e，+ benchmark 如落盘）`./mvnw test` 全绿，无既有断言削弱（roadmap 纪律 3）。
-- [ ] `./mvnw compile`（或 `-pl` 指定模块）通过；checkstyle / `-Pqa` 通过。
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module <affected-module> --severity high` EXIT=0。
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` EXIT=0。
-- [ ] 模块依赖方向保持（benchmark → 被测模块单向；内核模块零新增依赖边；org.graalvm.* 不泄漏）。
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（rollout 项为 I12+ 既定归属显式移交，非缺陷降级）。
-- [ ] 独立 fresh 子 agent closure audit 完成且 evidence 写入 `Closure` 段落（含 Anti-Hollow 检查：套件三列真实调用三后端执行体 + 基准用例经生产路径）。
+- [x] **全量三后端对拍套件直接运行全绿**（roadmap 验收第一项）：三列全 corpus + 静态/动态列适用性 + 后端身份断言 + 列缺席显式记录，单一入口直接执行、非引用形式；防漏红/绿对照在案。
+- [x] **基准数据落 repo**（roadmap 验收第二项）：报告 + 可复跑入口；stock JVM 数据齐备；GraalVM 形态数据齐备或"尝试获取后不可得"显式裁定 + 复跑入口（D3；"未尝试"不构成缺席理由）。
+- [x] 机会成本量化（三向对比）、池创建/销毁成本、池大小与缓存容量敏感性数据在案。
+- [x] Q1/Q4 watch-only 触发口径量化定义落入基准报告专章并锚定实测数据 + roadmap I12 条目回链；设计 truffle 02 冻结保持（零改动）；重评实施未越界（仍 watch-only）。
+- [x] 池/缓存缺省值裁定有数据支撑；如调整，全量回归全绿且不改路由语义。
+- [x] mission.json commands 汇总口径核验通过（含 benchmark 模块同次切换，四条 live 可运行）。
+- [x] I11 §14 六项移交逐项对账处置，无未处置项。
+- [x] 既有测试基线全保持：四模块（xlang/java/truffle/e2e，+ benchmark 如落盘）`./mvnw test` 全绿，无既有断言削弱（roadmap 纪律 3）。
+- [x] `./mvnw compile`（或 `-pl` 指定模块）通过；checkstyle / `-Pqa` 通过。
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module <affected-module> --severity high` EXIT=0。
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` EXIT=0。
+- [x] 模块依赖方向保持（benchmark → 被测模块单向；内核模块零新增依赖边；org.graalvm.* 不泄漏）。
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（rollout 项为 I12+ 既定归属显式移交，非缺陷降级）。
+- [x] 独立 fresh 子 agent closure audit 完成且 evidence 写入 `Closure` 段落（含 Anti-Hollow 检查：套件三列真实调用三后端执行体 + 基准用例经生产路径）。
 
 ## Deferred But Adjudicated
 
@@ -199,14 +218,27 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （待关闭时填写）
-Completed: YYYY-MM-DD
+Status Note: 三 Phase 全部完成——Phase 1 全量三后端对拍套件直接运行收口（corpus 物化 + 单一聚合入口 + 防漏/反漂移，mission `test` 命令 1713 全绿）、Phase 2 JMH 基准五类用例 + stock JVM 全量数据落 repo + GraalVM 尝试后不可得显式裁定、Phase 3 Q1/Q4 量化口径专章 + 池/缓存双缺省保持 + I11 六项对账。独立 fresh closure audit **Can Close**（0 Blocker/3 Advisory，处置记录见下）后执行收口记账：roadmap I12 `planned`→`done` + Milestone「双后端落地」`todo`→`done` + 当日 log 收口条目。无 plan-owned 剩余工作（Non-Blocking Follow-ups 均为 roadmap 既定 out-of-scope 移交，见 Follow-up）。
+Completed: 2026-08-21
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待独立 fresh closure audit）
-- Evidence: （待补）
+- Reviewer / Agent: 独立 fresh closure audit 子 agent（task `ses_fdcb5d728ffeoGNkXD3vnxzjx1`，read-only，按 mission.json `prompts.closureAudit` = `ai-dev/skills/plan-closure-audit-prompt.md` 模板派遣）
+- Verdict: **Can Close**（0 Blocking / 3 Advisory）
+- Evidence:
+  - Phase 1 Exit Criteria 全 PASS：`TestFullCompareSuite.java`（74 单元 `@ParameterizedTest`，corpus 钉线 48+26）+ 物化 48 xpl（static 11 + static-a 20 + static-b 17）+ 双清单 `META-INF/nop-xlang/xlang-java-{static-scan,generated-classes}.txt` 各 55 行 + 48 `Gen__test_xlang_e2e_corpus_*` 产物提交（commit `f9fd79b582`）+ `TestCorpusMaterializationAntiDrift` 与 nop-xlang test-jar 原件字节比对 + `TestEndToEndGeneratedBinding` 计数 55/55/55 + corpus-48 子计数；**Anti-Hollow 代码走读证实**（`SuiteColumns`/`E2eCorpusUnits`：java 列 = `XLang.parseXpl` 绑定 hook → `EvalStaticBoundExecutable`（非 bound 即 IllegalStateException FAIL）→ 生成类 FQN 身份 → choke point 直通；truffle 列 = `XLangTruffleEval` main API + `XLangRootNode.sourceTree` 同一性 + RootCallTarget；解释器列 = 干净解析非 bound；列缺席 = `skipRecords` 空 + 列计数断言（FAIL-not-SKIP）；防漏红绿负测试在场）
+  - Phase 2 Exit Criteria 全 PASS：`nop-benchmark/nop-benchmark-xlang`（commit `ce989c9128`）四 JMH 组 + main() runner + setup 期身份 fail-fast + 解释器显式旁路 + README 复跑命令；报告 §一环境（Zulu 26.0.1）/§三 stock 数据/§五 D3"尝试后不可得"裁定（ask-first 请求原文 + live 核验在案）/§六复跑命令；原始 JMH 分数与报告表逐一吻合（5.180/2.842/52.959/12.917 µs；cacheSweep 93.660→2.860）；mission.json 四条命令含 `:nop-benchmark-xlang`；依赖单向（无模块反向引用 benchmark、e2e truffle 依赖 test-scope、main 域零 test-jar 消费、内核 pom 零改动）
+  - Phase 3 Exit Criteria 全 PASS：报告 §八在场——Q1 数值判据 = `(truffle_steady − java_direct)/truffle_steady > 50%` 仅锚定 GraalVM 形态数据行（stock 94.6% 显式不构成判据基础、判据降级推迟记录）；Q4 操作化（≥67 万单元/秒/线程瓶颈信号 + 33× 淘汰惩罚 + 当前读数"远未触发，维持独立 Engine"）；§8.3 池/缓存双缺省保持（数据行引用）；设计 truffle 02 冻结核验（git clean，末次变更 `7667bf5ff2` 2026-08-19 早于本 plan）；I11 §14 六项对账表完整（六行无未处置项）
+  - Closure Gates 验证：surefire 报告合计 551(2 skip 既有)/493/584/85 = 1713 零失败零错误（审计者 live 复核）；`check-doc-links.mjs --strict` EXIT=0 与 `scan-hollow-implementations.mjs`（e2e + benchmark 两模块）EXIT=0 由审计者独立复跑；docs-for-ai `xlang-and-xpl-basics.md:481` 基准复跑条目在场；follow-ups 诚实（rollout = roadmap 既定 I12+ out-of-scope；Q1/Q4 watch-only；I3/I4 既有候选——无 in-scope 缺陷伪装）
+  - 收口前执行者验证（2026-08-21，Zulu 26.0.1 / macOS arm64）：`./mvnw test -pl :nop-xlang,:nop-xlang-java,:nop-xlang-truffle,:nop-xlang-java-e2e,:nop-benchmark-xlang -am -T 1C` BUILD SUCCESS（mission.json `test` 命令原样）；`./mvnw compile ...` EXIT=0；`./mvnw checkstyle:check -Pqa ...` EXIT=0
+  - Advisory 处置（3 项，全部非阻塞）：① `DynamicCompareBenchmark.java` javadoc "RouteKind = TRUFFLE" 注释精度——当场修复为 `DYNAMIC`（对齐代码断言 `RouteKind.DYNAMIC` 与报告 §二，注释级零语义变化，模块 compile EXIT=0）；② Phase 3/closure log 条目——随本 Closure 同步落 `ai-dev/logs/2026/08-21.md`；③ test/checkstyle 未由审计者复跑——经 surefire 报告合计 + 编译产物（含 `META-INF/BenchmarkList`）佐证 + 执行者同日全量绿
+  - `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（收口记账后复跑）
+  - Deferred 项分类检查：`Deferred But Adjudicated` 无新增；Non-Blocking Follow-ups 三项均带 Why Not Blocking Closure，无 in-scope live defect 被降级
+- 收口记账（audit 通过后执行）：roadmap `ai-dev/backlog/xlang-execution-optimization-roadmap.md` I12 条目 `planned`→`done`（执行+audit 记录 + 报告回链）+ Milestone「双后端落地」`todo`→`done`（派生核对 I1-I12 全 done）+ `Last updated` 头刷新；当日 log 收口条目落档。
 
 Follow-up:
 
-- （见 Non-Blocking Follow-ups；确认无 plan-owned 剩余工作后显式写明）
+- rollout 治理项移交（I11 §14(6) 四项；Classification: out-of-scope improvement；Successor Required: no——mission 于 I12 收口，后续由用户/后继 roadmap 决策）
+- Q1/Q4 维持 watch-only（量化触发口径已落报告 §八；若数据满足触发条件，重评属后继决策）
+- I3/I4 优化候选维持原分类（本 plan 基准数据可为其输入，实施归触及对应域的后继 plan）
+- 除上述外无 plan-owned 剩余工作
