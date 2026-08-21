@@ -28,6 +28,15 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- I12 全量三后端对拍套件 truffle 列（main API：XLangTruffleEval 驱动；test scope，
+             内核模块零新增依赖边——e2e fixture 模块消费面） -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-xlang-truffle</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>

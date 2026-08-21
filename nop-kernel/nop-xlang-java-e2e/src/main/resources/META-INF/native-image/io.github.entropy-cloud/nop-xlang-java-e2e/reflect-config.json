@@ -4,6 +4,198 @@
     "allPublicMethods": true
   },
   {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_a_binding_array_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_a_binding_object_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_a_debug_call_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_a_exception_convert_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_a_exception_prop_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_a_global_var_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_a_list_spread_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_a_map_access_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_a_map_write_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_a_null_checks_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_a_obj_new_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_a_prop_in_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_a_residual_ops_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_a_scope_assign_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_a_scope_chain_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_a_scope_self_assign_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_a_slot_write_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_a_type_convert_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_a_type_instanceof_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_a_typeof_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_arith_plus_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_arith_string_concat_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_b_ctrl_for_break_continue_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_b_ctrl_forin_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_b_ctrl_loops_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_b_ctrl_switch_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_b_exception_fn_throw_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_b_exception_throw_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_b_fn_arrow_call_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_b_fn_closure_cell_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_b_fn_local_call_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_b_tpl_collect_node_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_b_tpl_collect_sql_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_b_tpl_collect_text_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_b_tpl_node_simple_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_b_tpl_node_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_b_tpl_text_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_b_tpl_xml_extattrs_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_b_tpl_xml_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_combo_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_compare_lt_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_exception_method_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_literal_int_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_literal_string_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_logic_and_or_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_method_instance_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_method_static_side_effect_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_corpus_static_slot_identifier_xpl",
+    "allPublicMethods": true
+  },
+  {
     "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_e2e_xlib_Greet",
     "allPublicMethods": true
   },

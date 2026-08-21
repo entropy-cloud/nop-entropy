@@ -102,7 +102,11 @@ public class TestEndToEndGeneratedBinding {
         assertFalse(scan.contains("/test/xlang/e2e/negatives/build-time.xgen"));
         assertFalse(scan.contains("/test/xlang/e2e/negatives/init.xrun"));
         assertFalse(scan.contains("/test/xlang/e2e/negatives/task.xtask"));
-        assertEquals(7, scan.size(), "exactly the fixture keys (4 xpl + 3 tags)");
+        // I12 物化：e2e 原生 7 单元（4 xpl + 3 tags）+ corpus 48 静态单元生产形态物化
+        assertEquals(55, scan.size(), "fixture keys (4 xpl + 3 tags) + materialized corpus 48 units");
+        // 物化单元逐目录计数（11 + 20 + 17）：corpus 新增单元漏扫即红灯（防漏下界）
+        assertEquals(48, scan.stream().filter(k -> k.startsWith("/test/xlang/e2e/corpus/")).count(),
+                "materialized corpus units (static 11 + static-a 20 + static-b 17)");
     }
 
     // ---- xpl 单元：java 列 vs 解释器列全量一致 + 身份断言 ----
@@ -258,7 +262,7 @@ public class TestEndToEndGeneratedBinding {
         XlangJavaGenTask.GenerationResult result = XlangJavaGenTask.generate(projectDir, true);
         assertTrue(result.isClean(), "committed products must equal task regeneration (drifts: "
                 + result.getDrifts() + ")——源已改未重生成即红灯（stale 哨兵语义）");
-        assertEquals(7, result.getUnits().size());
+        assertEquals(55, result.getUnits().size());
     }
 
     // ---- closed-world 结构断言（native 下界 (i)） ----
@@ -269,7 +273,7 @@ public class TestEndToEndGeneratedBinding {
                 "src/main/java/io/nop/xlang/gen");
         File[] sources = genDir.listFiles((d, n) -> n.startsWith("Gen_") && n.endsWith(".java"));
         assertNotNull(sources);
-        assertEquals(7, sources.length);
+        assertEquals(55, sources.length);
         for (File src : sources) {
             String code = FileHelper.readText(src, null);
             assertFalse(code.contains("defineClass"), src + ": generated code must not define classes at runtime");
