@@ -66,8 +66,9 @@ public class ObjectExtractor implements java.io.Closeable {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - //
+    // 构造器注入的文档不属于本对象所有，close 不关闭宿主文档（避免 try-with-resources
+    // 使用方意外关闭底层 PDDocument）；文档生命周期由调用方负责
     public void close() throws IOException {
-        pdfDocument.close();
     }
     
 }

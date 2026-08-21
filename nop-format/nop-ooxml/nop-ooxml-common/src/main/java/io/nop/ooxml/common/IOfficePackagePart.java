@@ -36,6 +36,14 @@ public interface IOfficePackagePart extends ITemplateOutput {
     }
 
     /**
+     * 为OfficePackage.copy提供深拷贝。可变模型部件（rels/contentTypes/xml节点）必须覆写，
+     * 不可变资源部件可以共享实例（默认返回this）
+     */
+    default IOfficePackagePart cloneInstance() {
+        return this;
+    }
+
+    /**
      * 将文件内容解析为XML节点返回
      *
      * @return

@@ -1,0 +1,17 @@
+<file x:schema="/nop/schema/record/record-file.xdef" xmlns:x="/nop/schema/xdsl.xdef" binary="true">
+    <body typeRef="Body"/>
+
+    <types>
+        <type name="Base">
+            <fields>
+                <field name="a" type="String" length="5" supportStreaming="true"/>
+            </fields>
+        </type>
+        <type name="Body" baseType="Base" length="20">
+            <fields>
+                <field name="b" type="String" length="5"/>
+                <field name="c" type="String" length="5" supportStreaming="true"/>
+            </fields>
+        </type>
+    </types>
+</file>

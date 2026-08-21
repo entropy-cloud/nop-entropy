@@ -7,11 +7,17 @@ import java.io.IOException;
  */
 public class SubBinaryDataReader implements IBinaryDataReader {
     private final IBinaryDataReader underlying;
+    private final long startOffset;
     private final long maxLength;
     private long position = 0;
 
     public SubBinaryDataReader(IBinaryDataReader underlying, long maxLength) {
+        this(underlying, underlying.pos(), maxLength);
+    }
+
+    public SubBinaryDataReader(IBinaryDataReader underlying, long startOffset, long maxLength) {
         this.underlying = underlying;
+        this.startOffset = startOffset;
         this.maxLength = maxLength;
     }
 
@@ -37,10 +43,10 @@ public class SubBinaryDataReader implements IBinaryDataReader {
 
     @Override
     public void seek(long newPos) throws IOException {
-        if (newPos > maxLength) {
+        if (newPos < 0 || newPos > maxLength) {
             throw new IOException("Seek position " + newPos + " exceeds max length " + maxLength);
         }
-        underlying.seek(newPos);
+        underlying.seek(startOffset + newPos);
         position = newPos;
     }
 
@@ -91,7 +97,7 @@ public class SubBinaryDataReader implements IBinaryDataReader {
 
     @Override
     public void reset() throws IOException {
-        underlying.reset();
+        underlying.seek(startOffset);
         position = 0;
     }
 

@@ -55,7 +55,7 @@ public class XLangDebugProcess extends JavaDebugProcess {
     private final XLangDebuggerEditorsProvider myEditorsProvider;
     boolean isDisconnected = false;
 
-    private IDebuggerAsync debugger;
+    private volatile IDebuggerAsync debugger;
 
     //private final AtomicBoolean breakpointsInitiated = new AtomicBoolean();
 
@@ -112,18 +112,21 @@ public class XLangDebugProcess extends JavaDebugProcess {
                 indicator.setIndeterminate(true);
 
                 try {
-                    if (connect()) {
+                    if (connect(indicator)) {
                         startDebugSession();
                     }
                 } catch (Exception e) {
-                    onConnectFail(e.getMessage());
+                    LOG.error("xlang.debugger.connect-fail", e);
+                    onConnectFail(e.toString());
                 }
             }
         });
     }
 
-    private boolean connect() {
+    private boolean connect(ProgressIndicator indicator) {
         while (true) {
+            // Task.Backgroundable声明可取消，此前不检查indicator导致重试循环无法取消
+            indicator.checkCanceled();
             try {
                 debugger = connector.connect();
                 cleanup.appendOnCancelTask(connector::destroy);
@@ -133,7 +136,9 @@ public class XLangDebugProcess extends JavaDebugProcess {
             } catch (Exception e) {
                 try {
                     Thread.sleep(200);
-                } catch (Exception ignored) {
+                } catch (InterruptedException ie) {
+                    // 恢复中断标志，下一轮indicator.checkCanceled()会抛出取消
+                    Thread.currentThread().interrupt();
                 }
 
                 if (getProcessHandler().isProcessTerminated()) {

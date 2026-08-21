@@ -103,7 +103,7 @@ public class TccTransaction implements ITccTransaction {
 
         TccStatus curStatus = tccRecord.getTccStatus();
         // 如果事务正在或已经 cancel，则不允许 confirm，避免与 cancel 路径互相覆盖中间态
-        if (curStatus == TccStatus.CANCELLING || curStatus.isCancelled())
+        if (curStatus == TccStatus.CANCELLING || curStatus == TccStatus.TIMEOUT_FAILED || curStatus.isCancelled())
             return FutureHelper.success(null);
 
         if (curStatus.isFinished())

@@ -27,4 +27,9 @@ public interface SVGErrors {
     ErrorCode ERR_SVG_PARSE_UNEXPECTED_CHAR = define("nop.err.svg.unexpected-char", "解析SVG文本失败，不是期待的字符");
 
     ErrorCode ERR_SVG_MATRIX_INVERT_FAIL = define("nop.err.svg.matrix-invert-fail", "转换矩阵求逆失败");
+
+    String ARG_TYPE = "type";
+
+    ErrorCode ERR_SVG_UNRECOGNISED_SEGMENT_TYPE =
+            define("nop.err.svg.unrecognised-segment-type", "无法识别的路径段类型:{type}", ARG_TYPE);
 }

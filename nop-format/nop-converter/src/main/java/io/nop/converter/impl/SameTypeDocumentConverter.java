@@ -18,9 +18,7 @@ public class SameTypeDocumentConverter implements IDocumentConverter {
 
     @Override
     public String convertToText(IDocumentObject doc, String toFileType, DocumentConvertOptions options) {
-        if (keepRaw(doc, options))
-            return doc.getText(options);
-
+        // 文本路径两分支等价（getText对raw阶段即原文），无需按keepRaw区分
         return doc.getText(options);
     }
 

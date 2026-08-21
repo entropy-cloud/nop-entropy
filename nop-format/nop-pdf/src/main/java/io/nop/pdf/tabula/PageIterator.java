@@ -1,5 +1,7 @@
 package io.nop.pdf.tabula;
 
+import io.nop.api.core.exceptions.NopException;
+
 import java.io.IOException;
 import java.util.Iterator;
 
@@ -22,16 +24,15 @@ public class PageIterator implements Iterator<Page> {
 
     @Override
     public Page next() {
-        Page nextPage = null;
         if (!this.hasNext()) {
             throw new IllegalStateException();
         }
         try {
-            nextPage = objectExtractor.extractPage(pageIndexIterator.next());
+            return objectExtractor.extractPage(pageIndexIterator.next());
         } catch (IOException e) {
-            e.printStackTrace();
+            // 页提取失败不能静默返回null元素，调用方解引用会NPE且丢失异常上下文
+            throw NopException.adapt(e);
         }
-        return nextPage;
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - //

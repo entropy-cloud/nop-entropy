@@ -112,4 +112,20 @@ public class TestTccRunner {
                 TccRunner.aggregateCancelBranchStatus(Arrays.asList(
                         branch(TccStatus.CANCEL_SUCCESS), branch(TccStatus.CANCEL_FAILED))));
     }
+
+    // 超时取消失败的分支此前被误聚合为 CANCEL_SUCCESS 终态，补偿被双重永久放弃
+    @Test
+    public void aggregateCancel_whenHasTimeoutFailed_thenCancelFailed() {
+        assertEquals(TccStatus.CANCEL_FAILED,
+                TccRunner.aggregateCancelBranchStatus(Arrays.asList(
+                        branch(TccStatus.CANCEL_SUCCESS), branch(TccStatus.TIMEOUT_FAILED))));
+    }
+
+    // 超时取消失败的分支必须可以被 cancelAllAsync 重新补偿
+    @Test
+    public void timeoutFailed_isNotCancelled() {
+        assertEquals(false, TccStatus.TIMEOUT_FAILED.isCancelled());
+        assertEquals(true, TccStatus.CANCEL_SUCCESS.isCancelled());
+        assertEquals(true, TccStatus.TRY_FAILED.isCancelled());
+    }
 }

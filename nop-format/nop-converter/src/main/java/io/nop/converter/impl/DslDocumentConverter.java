@@ -20,7 +20,8 @@ public class DslDocumentConverter implements ITextDocumentConverter {
         ComponentModelConfig toConfig = ResourceComponentManager.instance().getModelConfigByFileType(toFileType);
         ComponentModelConfig.LoaderConfig toLoader = null;
         if (toConfig != null) {
-            toLoader = config.getLoader(toFileType);
+            // loader 应取目标类型模型配置（与 convertToResource 对齐），此前误取源类型配置
+            toLoader = toConfig.getLoader(toFileType);
 
             if (toLoader != null && toLoader.getLoader() instanceof IDslNodeTextSerializer) {
                 XNode node = doc.getNode(options);
@@ -36,9 +37,6 @@ public class DslDocumentConverter implements ITextDocumentConverter {
             return JsonTool.serialize(doc.getModelObject(options), true);
         }
 
-        if (toLoader != null && toLoader.getDslNodeLoader() != null)
-            return toLoader.getDslNodeLoader().loadDslNodeFromResource(doc.getResource(), options.getDslNodeResolvePhase()).xml();
-
         String xdefPath = config.getXdefPath();
         if (xdefPath == null)
             throw new IllegalArgumentException("fileType no xdef:" + toFileType);
@@ -48,11 +46,10 @@ public class DslDocumentConverter implements ITextDocumentConverter {
 
     @Override
     public void convertToResource(IDocumentObject doc, String toFileType, IResource resource, DocumentConvertOptions options) {
-        ComponentModelConfig config = ResourceComponentManager.instance().requireModelConfigByFileType(doc.getFileType());
         ComponentModelConfig toConfig = ResourceComponentManager.instance().getModelConfigByFileType(toFileType);
         ComponentModelConfig.LoaderConfig toLoader = null;
         if (toConfig != null) {
-            toLoader = config.getLoader(toFileType);
+            toLoader = toConfig.getLoader(toFileType);
 
             if (toLoader.getDslNodeSaver() != null) {
                 toLoader.getDslNodeSaver().saveDslNodeToResource(resource, doc.getNode(options));

@@ -12,6 +12,7 @@ import java.util.Set;
 import com.intellij.codeInsight.daemon.impl.HighlightRangeExtension;
 import com.intellij.codeInspection.ProblemHighlightType;
 import com.intellij.lang.annotation.AnnotationHolder;
+import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.lang.annotation.Annotator;
 import com.intellij.lang.annotation.HighlightSeverity;
 import com.intellij.openapi.editor.DefaultLanguageHighlighterColors;
@@ -79,9 +80,12 @@ public class XLangAnnotator implements Annotator {
         ProjectEnv.withProject(element.getProject(), () -> {
             try {
                 doAnnotate(holder, element);
+            } catch (ProcessCanceledException e) {
+                // PCE必须传播（表示索引更新/任务取消），吞掉会破坏平台重试机制
+                throw e;
             } catch (Exception e) {
-                String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getName();
                 LOG.debug("nop.validate-xlang-fail", e);
+                String msg = e.toString();
 
                 holder.newAnnotation(HighlightSeverity.WARNING, msg)
                       .highlightType(ProblemHighlightType.WARNING)

@@ -417,11 +417,9 @@ public class BlockCachedBinaryDataReader implements IBinaryDataReader {
 
     @Override
     public IBinaryDataReader duplicate() throws IOException {
-        BlockCachedBinaryDataReader duplicate = new BlockCachedBinaryDataReader(
-                underlyingReader, defaultBlockSize, strictBlockSize, maxCacheBlocks,
-                maxSkipDistance, backwardCacheBlocks);
-        duplicate.seek(currentPosition);
-        return duplicate;
+        // 不能共享 underlyingReader: 新实例的 underlyingPosition/maxReadPosition 从 0 开始，
+        // 与已被推进的底层 reader 位置脱节，会导致块标签错位。detach 会复制缓存块并接管底层剩余数据
+        return detach();
     }
 
     @Override

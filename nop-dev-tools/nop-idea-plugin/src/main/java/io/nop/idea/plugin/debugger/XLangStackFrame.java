@@ -75,7 +75,7 @@ public class XLangStackFrame extends XStackFrame {
         } else {
             debugger.getFrameVariablesAsync(threadId, frameIndex)
                     .whenComplete((vars, err) -> {
-                        if (err != null) {
+                        if (err != null || vars == null) {
                             super.computeChildren(node);
                         } else {
                             XValueChildrenList list = new XValueChildrenList(vars.size());
@@ -84,8 +84,6 @@ public class XLangStackFrame extends XStackFrame {
                                 list.add(var.getName(), new XLangValue(this, var));
                             }
                             node.addChildren(list, true);
-
-                            debugProcess.getSession().reportError(err.getMessage());
                         }
                     });
         }

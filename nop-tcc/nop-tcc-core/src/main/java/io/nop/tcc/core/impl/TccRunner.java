@@ -155,6 +155,10 @@ public class TccRunner {
                 return TccStatus.BIZ_CANCEL_FAILED;
             if (branchTxn.getBranchStatus() == TccStatus.CANCEL_FAILED)
                 return TccStatus.CANCEL_FAILED;
+            // 超时取消失败聚合为可重试的 CANCEL_FAILED。此前被误聚合为 CANCEL_SUCCESS 终态，
+            // 补偿被双重永久放弃，参与者预留资源悬挂
+            if (branchTxn.getBranchStatus() == TccStatus.TIMEOUT_FAILED)
+                return TccStatus.CANCEL_FAILED;
         }
         return TccStatus.CANCEL_SUCCESS;
     }

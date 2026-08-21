@@ -105,11 +105,22 @@ public class PptOfficePackage extends OfficePackage {
 
     public List<XNode> getSlidesXml() {
         List<XNode> slides = new ArrayList<>();
-        // 获取所有幻灯片文件
-        this.getFiles("ppt/slides/slide").forEach(part -> {
-            slides.add(part.buildXml(null));
-        });
+        // files 为 TreeMap，字典序会把 slide10 排在 slide2 前，需按编号排序
+        List<IOfficePackagePart> parts = new ArrayList<>(this.getFiles("ppt/slides/slide"));
+        parts.sort(java.util.Comparator.comparingInt(p -> extractSlideIndex(p.getPath())));
+        parts.forEach(part -> slides.add(part.buildXml(null)));
         return slides;
+    }
+
+    static int extractSlideIndex(String path) {
+        String name = path.substring(path.lastIndexOf('/') + 1);
+        int start = "slide".length();
+        int end = name.lastIndexOf('.');
+        try {
+            return Integer.parseInt(name.substring(start, end < 0 ? name.length() : end));
+        } catch (NumberFormatException e) {
+            return Integer.MAX_VALUE;
+        }
     }
 
     public XNode getSlideXml(int slideIndex) {
@@ -129,8 +140,8 @@ public class PptOfficePackage extends OfficePackage {
         if (file instanceof SlidePart)
             return (SlidePart) file;
 
-        ResourceOfficePackagePart res = (ResourceOfficePackagePart) file;
-        SlidePart part = new SlidePart(file.getPath(), res.loadXml());
+        // loadInMemory 后 .xml 部件是 XmlOfficePackagePart 而非 ResourceOfficePackagePart
+        SlidePart part = new SlidePart(file.getPath(), file.loadXml());
         addFile(part);
         return part;
     }

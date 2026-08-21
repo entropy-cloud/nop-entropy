@@ -45,6 +45,7 @@ import java.util.TreeMap;
 
 import static io.nop.ooxml.common.OfficeErrors.ARG_PATH;
 import static io.nop.ooxml.common.OfficeErrors.ERR_OOXML_FILE_PATH_MUST_HAS_EXT;
+import static io.nop.ooxml.common.OfficeErrors.ERR_OOXML_INVALID_PART_PATH;
 
 public class OfficePackage implements Closeable, ISourceLocationGetter {
     private SourceLocation location;
@@ -113,7 +114,10 @@ public class OfficePackage implements Closeable, ISourceLocationGetter {
     }
 
     public void copyTo(OfficePackage pkg) {
-        pkg.files.putAll(files);
+        // 浅拷贝会让缓存模板与每次渲染的副本共享可变部件（rels/contentTypes/XNode），
+        // 渲染期的修改会污染模板并产生并发数据竞争，必须对可变模型部件做深拷贝
+        files.forEach((path, part) -> pkg.files.put(path, part.cloneInstance()));
+        nextIndex.forEach((prefix, idx) -> pkg.nextIndex.put(prefix, new MutableInt(idx.get()));
     }
 
     public OfficePackage loadInMemory() {
@@ -319,7 +323,11 @@ public class OfficePackage implements Closeable, ISourceLocationGetter {
 
     public void generateToDir(File dir, IEvalScope scope) {
         for (IOfficePackagePart file : files.values()) {
-            file.generateToFile(new File(dir, file.getPath()), scope);
+            String path = file.getPath();
+            // 与zip输出侧的校验对齐，防止加载不可信包后部件路径含..造成目录穿越写
+            if (!StringHelper.isValidFilePath(path) || path.contains(".."))
+                throw new NopException(ERR_OOXML_INVALID_PART_PATH).param(ARG_PATH, path);
+            file.generateToFile(new File(dir, path), scope);
         }
     }
 
@@ -332,14 +340,19 @@ public class OfficePackage implements Closeable, ISourceLocationGetter {
         String password = (String) scope.getValue(OfficeConstants.VAR_FILE_PASSWORD);
         options.setPassword(password);
         OutputStream os = resource.getOutputStream();
+        IZipOutput out = null;
         try {
-            IZipOutput out = ResourceHelper.getZipTool().newZipOutput(os, options);
+            out = ResourceHelper.getZipTool().newZipOutput(os, options);
             generateToZip(out, scope);
-            out.close();
         } catch (IOException e) {
             throw NopException.adapt(e);
         } finally {
-            IoHelper.safeClose(os);
+            // out.close 负责收尾 Deflater 等本地资源，异常路径也必须执行
+            if (out != null) {
+                IoHelper.safeClose(out);
+            } else {
+                IoHelper.safeClose(os);
+            }
         }
     }
 

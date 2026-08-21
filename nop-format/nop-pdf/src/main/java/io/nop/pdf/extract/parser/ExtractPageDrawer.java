@@ -34,6 +34,12 @@ public class ExtractPageDrawer extends PageDrawer {
 
     private ResourceParseConfig config;
 
+    /**
+     * 输出边界补偿系数 = config.getImageScale() / 实际渲染scale。
+     * 渲染graphics的flip+scale复合变换对scale齐次，按系数放大即可还原配置scale下的边界
+     */
+    private final double boundScale;
+
     public ExtractPageDrawer(int pageIndex, IExtractStripperCallback listener,
             PageDrawerParameters parameters, ResourceParseConfig config)
             throws IOException {
@@ -43,6 +49,13 @@ public class ExtractPageDrawer extends PageDrawer {
         this.pageIndex = pageIndex;
         this.stripperListener = listener;
         this.config = config;
+        this.boundScale = (double) (config.getImageScale() / ExtractStripper.RENDER_SCALE);
+    }
+
+    private Rectangle2D scaledBounds(Shape shape) {
+        Rectangle2D rect = shape.getBounds2D();
+        return new Rectangle2D.Double(rect.getMinX() * boundScale, rect.getMinY() * boundScale,
+                rect.getWidth() * boundScale, rect.getHeight() * boundScale);
     }
 
     @Override
@@ -54,7 +67,7 @@ public class ExtractPageDrawer extends PageDrawer {
         ShapeBlock block = new ShapeBlock();
         //block.setId(LocalSequence.next());
         block.setPageNo(this.pageIndex + 1);
-        block.setViewBounding(shape.getBounds2D());
+        block.setViewBounding(scaledBounds(shape));
         this.stripperListener.onFillShape(this.pageIndex, block);
 
         super.fillPath(windingRule);
@@ -71,11 +84,11 @@ public class ExtractPageDrawer extends PageDrawer {
         bbox.setRect( bbox.getMinX(), bbox.getMinY(), w, h );
         
         Shape shape = this.getGraphics().getTransform().createTransformedShape( bbox );
-        
+
         ShapeBlock block = new ShapeBlock();
         //block.setId( LocalSequence.next() );
         block.setPageNo( this.pageIndex + 1 );
-        block.setViewBounding( shape.getBounds2D() );
+        block.setViewBounding( scaledBounds(shape) );
         
         this.stripperListener.onFillShape( this.pageIndex,  block );
         
@@ -105,7 +118,7 @@ public class ExtractPageDrawer extends PageDrawer {
         Shape shape = at.createTransformedShape(unitRect);
 
         Shape shape2 = this.getGraphics().getTransform().createTransformedShape( shape );
-        Rectangle2D rect = shape2.getBounds2D();
+        Rectangle2D rect = scaledBounds(shape2);
         
         BufferedImage bi = this.procImage( image );
         

@@ -63,20 +63,29 @@ public class BubbleChartRenderer extends AbstractChartRenderer {
             }
             
             int minSize = Math.min(Math.min(xValues.size(), yValues.size()), zValues.size());
-            if (minSize > 0) {
-                double[][] data = new double[3][minSize];
-                
+            // 先统计非null数据点，避免null以0.0占位渲染出(0,0)幽灵数据
+            int count = 0;
+            for (int j = 0; j < minSize; j++) {
+                if (xValues.get(j) != null && yValues.get(j) != null && zValues.get(j) != null)
+                    count++;
+            }
+
+            if (count > 0) {
+                double[][] data = new double[3][count];
+
+                int k = 0;
                 for (int j = 0; j < minSize; j++) {
                     Number xNum = xValues.get(j);
                     Number yNum = yValues.get(j);
                     Number zNum = zValues.get(j);
                     if (xNum != null && yNum != null && zNum != null) {
-                        data[0][j] = xNum.doubleValue(); // X值
-                        data[1][j] = yNum.doubleValue(); // Y值
-                        data[2][j] = zNum.doubleValue(); // 气泡大小
+                        data[0][k] = xNum.doubleValue(); // X值
+                        data[1][k] = yNum.doubleValue(); // Y值
+                        data[2][k] = zNum.doubleValue(); // 气泡大小
+                        k++;
                     }
                 }
-                
+
                 dataset.addSeries(seriesName, data);
             }
         }

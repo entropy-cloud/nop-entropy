@@ -152,6 +152,9 @@ public class OfficeRelsPart implements Serializable, IOfficePackagePart {
     public OfficeRelsPart cloneInstance() {
         OfficeRelsPart ret = new OfficeRelsPart(path);
         ret.relationships.putAll(relationships);
+        // relationshipsByType 的List必须重建，不能与原实例共享可变集合
+        relationshipsByType.forEach((type, list) -> ret.relationshipsByType.put(type, new ArrayList<>(list)));
+        ret.nextId = this.nextId;
         return ret;
     }
 

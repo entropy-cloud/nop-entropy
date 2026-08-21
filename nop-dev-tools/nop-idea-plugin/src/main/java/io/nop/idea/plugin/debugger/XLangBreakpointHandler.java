@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -36,11 +37,11 @@ public class XLangBreakpointHandler extends XBreakpointHandler<XLineBreakpoint<X
 
     static final Logger LOG = LoggerFactory.getLogger(XLangBreakpointHandler.class);
 
-    private final Map<String, XLineBreakpoint<XLangBreakpointProperties>> breakpoints = new HashMap<>();
+    private final Map<String, XLineBreakpoint<XLangBreakpointProperties>> breakpoints = new ConcurrentHashMap<>();
     private final XLangDebugProcess debugProcess;
     private boolean muted;
 
-    private final Map<String, Breakpoint> bpMap = new HashMap<>();
+    private final Map<String, Breakpoint> bpMap = new ConcurrentHashMap<>();
 
     public XLangBreakpointHandler(final XLangDebugProcess debugProcess) {
         super(XLangBreakpointType.class);

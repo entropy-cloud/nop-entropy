@@ -14,7 +14,6 @@ import io.nop.core.resource.IResource;
 import io.nop.ooxml.common.IOfficePackagePart;
 import io.nop.ooxml.common.OfficePackage;
 import io.nop.ooxml.common.constants.ContentTypes;
-import io.nop.ooxml.common.impl.ResourceOfficePackagePart;
 import io.nop.ooxml.common.model.ContentTypesPart;
 import io.nop.ooxml.common.model.OfficeRelationship;
 import io.nop.ooxml.common.model.OfficeRelsPart;
@@ -60,8 +59,8 @@ public class WordOfficePackage extends OfficePackage {
         if (file instanceof WordStylesPart)
             return (WordStylesPart) file;
 
-        ResourceOfficePackagePart res = (ResourceOfficePackagePart) file;
-        WordStylesPart part = new WordStylesPart(file.getPath(), res.loadXml());
+        // loadInMemory 后 .xml 部件是 XmlOfficePackagePart 而非 ResourceOfficePackagePart
+        WordStylesPart part = new WordStylesPart(file.getPath(), file.loadXml());
         addFile(part);
         return part;
     }
@@ -75,8 +74,7 @@ public class WordOfficePackage extends OfficePackage {
         if (file instanceof WordCommentsPart)
             return (WordCommentsPart) file;
 
-        ResourceOfficePackagePart res = (ResourceOfficePackagePart) file;
-        WordCommentsPart part = new WordCommentsPart(file.getPath(), res.loadXml());
+        WordCommentsPart part = new WordCommentsPart(file.getPath(), file.loadXml());
         addFile(part);
         return part;
     }

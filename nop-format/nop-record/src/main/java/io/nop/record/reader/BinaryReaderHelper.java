@@ -22,9 +22,15 @@
  */
 package io.nop.record.reader;
 
+import io.nop.api.core.exceptions.NopException;
+
 import java.io.ByteArrayOutputStream;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
+
+import static io.nop.record.RecordErrors.ARG_LENGTH;
+import static io.nop.record.RecordErrors.ERR_RECORD_ZLIB_DECODE_FAIL;
+import static io.nop.record.RecordErrors.ERR_RECORD_ZLIB_OUTPUT_TOO_LARGE;
 
 public class BinaryReaderHelper {
 
@@ -120,27 +126,43 @@ public class BinaryReaderHelper {
     private final static int ZLIB_BUF_SIZE = 4096;
 
     /**
+     * 解压输出的防御上限，防止压缩炸弹把小输入膨胀到任意大小
+     */
+    private final static int ZLIB_MAX_OUTPUT_SIZE = 256 * 1024 * 1024;
+
+    /**
      * Performs an unpacking ("inflation") of zlib-compressed data with usual zlib headers.
      *
      * @param data data to unpack
      * @return unpacked data
-     * @throws RuntimeException if data can't be decoded
+     * @throws NopException if data can't be decoded or output exceeds {@link #ZLIB_MAX_OUTPUT_SIZE}
      */
     public static byte[] processZlib(byte[] data) {
         Inflater ifl = new Inflater();
-        ifl.setInput(data);
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        byte buf[] = new byte[ZLIB_BUF_SIZE];
-        while (!ifl.finished()) {
-            try {
-                int decBytes = ifl.inflate(buf);
+        try {
+            ifl.setInput(data);
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            byte buf[] = new byte[ZLIB_BUF_SIZE];
+            while (!ifl.finished()) {
+                int decBytes;
+                try {
+                    decBytes = ifl.inflate(buf);
+                } catch (DataFormatException e) {
+                    throw new NopException(ERR_RECORD_ZLIB_DECODE_FAIL, e);
+                }
+                // 输入耗尽且未结束时inflate恒返回0，若继续循环即为忙等死循环
+                if (decBytes == 0 && ifl.needsInput())
+                    throw new NopException(ERR_RECORD_ZLIB_DECODE_FAIL)
+                            .param(ARG_LENGTH, data.length);
                 baos.write(buf, 0, decBytes);
-            } catch (DataFormatException e) {
-                throw new RuntimeException(e);
+                if (baos.size() > ZLIB_MAX_OUTPUT_SIZE)
+                    throw new NopException(ERR_RECORD_ZLIB_OUTPUT_TOO_LARGE)
+                            .param(ARG_LENGTH, ZLIB_MAX_OUTPUT_SIZE);
             }
+            return baos.toByteArray();
+        } finally {
+            ifl.end();
         }
-        ifl.end();
-        return baos.toByteArray();
     }
 
     //endregion

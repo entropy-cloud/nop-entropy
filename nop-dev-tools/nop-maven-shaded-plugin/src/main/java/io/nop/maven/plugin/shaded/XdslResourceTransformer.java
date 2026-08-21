@@ -28,6 +28,8 @@ import io.nop.xlang.xdsl.XDslKeys;
 import io.nop.xlang.xdsl.XDslParseHelper;
 import io.nop.xlang.xmeta.SchemaLoader;
 import org.apache.maven.plugins.shade.relocation.Relocator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -36,6 +38,8 @@ import java.util.List;
 import java.util.Map;
 
 public class XdslResourceTransformer extends AbstractResourceTransformer {
+    static final Logger LOG = LoggerFactory.getLogger(XdslResourceTransformer.class);
+
     private final List<String> FILE_TYPES = List.of("xmeta", "xdef", "xwf", "xlib", "xpl", "xgen", "xrun", "xbiz");
 
     static {
@@ -55,7 +59,7 @@ public class XdslResourceTransformer extends AbstractResourceTransformer {
             path = StringHelper.appendPath("/", path);
             processResource(new ByteArrayResource(path, data, -1L), relocatorList);
         } catch (NopException e) {
-            e.printStackTrace();
+            LOG.error("nop.shade.transform-resource-fail:path={}", path, e);
             throw e;
         }
     }
@@ -109,8 +113,11 @@ public class XdslResourceTransformer extends AbstractResourceTransformer {
                     String relocated = relocate(typeName, relocatorList);
                     entry.setValue(ValueWithLocation.of(null, "enum:" + relocated));
                 } else if (value.startsWith("io.nop.")) {
+                    // 裸io.nop.*属性值不一定是枚举引用（可能是类名/常量路径），
+                    // 无条件加enum:前缀会篡改语义。仅在relocate实际改变值时回写，且保持原形式
                     String relocated = relocate(value, relocatorList);
-                    entry.setValue(ValueWithLocation.of(null, "enum:" + relocated));
+                    if (!relocated.equals(value))
+                        entry.setValue(ValueWithLocation.of(null, relocated));
                 }
             }
         });

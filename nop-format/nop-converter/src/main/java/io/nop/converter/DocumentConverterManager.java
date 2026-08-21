@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static io.nop.converter.DocConvertErrors.ARG_FILE_TYPE;
 import static io.nop.converter.DocConvertErrors.ARG_FROM_FILE_TYPE;
@@ -26,14 +27,14 @@ import static io.nop.converter.DocConvertErrors.ERR_NO_DOCUMENT_OBJECT_BUILDER;
 public class DocumentConverterManager implements IDocumentConverterManager {
     static final Logger LOG = LoggerFactory.getLogger(DocumentConverterManager.class);
 
-    static DocumentConverterManager _instance = new DocumentConverterManager();
+    static volatile DocumentConverterManager _instance = new DocumentConverterManager();
 
-    private final Map<String, Map<String, IDocumentConverter>> converters = new HashMap<>();
+    private final Map<String, Map<String, IDocumentConverter>> converters = new ConcurrentHashMap<>();
 
     // 从toFileType到fromFileType的映射
-    private final Map<String, Set<String>> fromFileTypeMap = new HashMap<>();
+    private final Map<String, Set<String>> fromFileTypeMap = new ConcurrentHashMap<>();
 
-    private final Map<String, IDocumentObjectBuilder> documentObjectBuilders = new HashMap<>();
+    private final Map<String, IDocumentObjectBuilder> documentObjectBuilders = new ConcurrentHashMap<>();
 
     public static DocumentConverterManager instance() {
         return _instance;
@@ -64,19 +65,22 @@ public class DocumentConverterManager implements IDocumentConverterManager {
             return directTypes;
         }
 
-        // 如果需要包含链式转换可达的类型
-        Set<String> allTypes = new TreeSet<>(directTypes);
+        // 如果需要包含链式转换可达的类型。默认注册表含双向转换对（json<->json5等），
+        // 必须用visited集合剪枝，此前仅排除一步自环，双向对会无限互递归导致StackOverflowError
+        return collectChainedFileTypes(fromFileType, new TreeSet<>());
+    }
 
-        // 遍历所有直接可转换的目标类型，递归查找它们能转换到的类型
+    private Set<String> collectChainedFileTypes(String fromFileType, Set<String> visited) {
+        Set<String> directTypes = getDirectToFileTypes(fromFileType);
+        visited.add(fromFileType);
+
+        Set<String> allTypes = new TreeSet<>();
         for (String directType : directTypes) {
-            // 避免循环依赖导致的无限递归
-            if (!directType.equals(fromFileType)) {
-                Set<String> indirectTypes = getToFileTypes(directType, true);
-                allTypes.addAll(indirectTypes);
+            if (!visited.contains(directType)) {
+                allTypes.add(directType);
+                allTypes.addAll(collectChainedFileTypes(directType, visited));
             }
         }
-
-        allTypes.remove(fromFileType);
         return allTypes;
     }
 

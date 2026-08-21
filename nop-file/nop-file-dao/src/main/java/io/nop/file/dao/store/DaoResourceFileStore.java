@@ -41,6 +41,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.time.LocalDate;
 import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletionStage;
 
@@ -133,10 +134,18 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
     public void removeTempFileByOwner(String ownerId) {
         IEntityDao<NopFileRecord> dao = daoProvider.daoFor(NopFileRecord.class);
 
-        NopFileRecord example = new NopFileRecord();
-        example.setCreatedBy(ownerId);
-        example.setBizObjId(FileConstants.TEMP_BIZ_OBJ_ID);
-        dao.deleteByExample(example);
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.and(
+                eq(NopFileRecord.PROP_NAME_createdBy, ownerId),
+                eq(NopFileRecord.PROP_NAME_bizObjId, FileConstants.TEMP_BIZ_OBJ_ID)));
+        List<NopFileRecord> records = dao.findListByQuery(query);
+        for (NopFileRecord record : records) {
+            dao.deleteEntity(record);
+            // 与 detachFile 对齐：仅删DB行会让物理文件成为永久孤儿，存储目录持续膨胀
+            if (isUniqueRef(dao, record)) {
+                removeResource(record.getFilePath());
+            }
+        }
     }
 
     @Override
@@ -229,6 +238,12 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
     }
 
     protected String newPath(String bizObjName, String fileId, String fileExt) {
+        // 纵深防御：bizObjName/fileExt 直接拼入存储路径，非受控调用方传入 ../ 等即可越出存储根目录
+        if (!StringHelper.isValidSimpleVarName(bizObjName))
+            throw new NopException("nop.err.file.invalid-biz-obj-name").param("bizObjName", bizObjName);
+        if (!StringHelper.isEmpty(fileExt) && !fileExt.matches("[A-Za-z0-9]+"))
+            throw new NopException("nop.err.file.invalid-file-ext").param("fileExt", fileExt);
+
         LocalDate now = DateHelper.currentDate();
         StringBuilder sb = new StringBuilder();
 

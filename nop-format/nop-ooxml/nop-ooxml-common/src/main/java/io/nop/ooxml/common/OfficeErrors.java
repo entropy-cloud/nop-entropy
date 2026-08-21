@@ -46,6 +46,8 @@ public interface OfficeErrors {
 
     ErrorCode ERR_OOXML_FILE_PATH_MUST_HAS_EXT = define("nop.err.ooxml.file-path-no-ext", "文件必须具有扩展名:{path}", ARG_PATH);
 
+    ErrorCode ERR_OOXML_INVALID_PART_PATH = define("nop.err.ooxml.invalid-part-path", "非法的包内部件路径:{path}", ARG_PATH);
+
     ErrorCode ERR_OOXML_UNSUPPORTED_CONTENT_TYPE = define("nop.err.ooxml.unsupported-content-type", "不支持的文件类型:{path}",
             ARG_PATH);
 }

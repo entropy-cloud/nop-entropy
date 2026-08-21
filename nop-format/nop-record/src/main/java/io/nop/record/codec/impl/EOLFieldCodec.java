@@ -24,6 +24,10 @@ import static io.nop.record.RecordErrors.ARG_FIELD_PATH;
 import static io.nop.record.RecordErrors.ARG_POS;
 import static io.nop.record.RecordErrors.ARG_VALUE;
 
+/**
+ * 行结束符编解码。解码兼容 "\r\n" 与 "\n"（统一归一为 '\n'），编码恒写 '\n'：
+ * 读 CRLF 文件再写回时行尾会被规范化为 LF（有意设计，无按输入保真的开关）。
+ */
 public class EOLFieldCodec implements IFieldCodec, IFieldCodecFactory {
     public static final EOLFieldCodec INSTANCE = new EOLFieldCodec();
 

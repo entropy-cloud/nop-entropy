@@ -355,7 +355,7 @@ public class BlockCachedTextDataReader implements ITextDataReader {
             }
         }
 
-        // 更新当前位置并返回已读取的内容
+        // 更新当前位置并返回已读取的内容（EOF 无内容时返回 null，消费方以 null 判定EOF）
         currentPosition = pos;
         return result.length() > 0 ? result.toString() : null;
     }

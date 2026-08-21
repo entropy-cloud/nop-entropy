@@ -30,6 +30,12 @@ public class XmlOfficePackagePart implements IOfficePackagePart {
     }
 
     @Override
+    public IOfficePackagePart cloneInstance() {
+        // XNode 是可变树（如 workbook.xml 的 clearSheets/addSheet），copy 必须深克隆
+        return new XmlOfficePackagePart(path, node.cloneInstance());
+    }
+
+    @Override
     public XNode loadXml() {
         return node;
     }

@@ -2,6 +2,7 @@ package io.nop.pdf.core;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
+import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.model.table.impl.BaseTable;
 import io.nop.pdf.tabula.ObjectExtractor;
@@ -143,10 +144,15 @@ public class PdfDoc implements Closeable {
     public void splitIntoPages(File dir) {
         dir.mkdirs();
 
-        for (int i = 1, n = this.getNumberOfPages(); i < n; i++) {
+        for (int i = 1, n = this.getNumberOfPages(); i <= n; i++) {
             File file = new File(dir, StringHelper.leftPad(i + "", 3, '0') + ".pdf");
 
-            selectPage(i).save(file);
+            PdfDoc doc = selectPage(i);
+            try {
+                doc.save(file);
+            } finally {
+                IoHelper.safeClose(doc);
+            }
         }
     }
 

@@ -46,6 +46,11 @@ public interface ITextDataReader extends IDataReaderBase {
 
     int readChar() throws IOException;
 
+    /**
+     * 读取一行（不包含行结束符）。
+     *
+     * @return 行内容；读到空行返回空串；EOF且无剩余内容时返回 null（消费方以此判定结束）
+     */
     String readLine(int maxLength) throws IOException;
 
     long pos() throws IOException;

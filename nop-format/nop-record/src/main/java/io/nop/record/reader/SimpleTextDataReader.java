@@ -87,7 +87,7 @@ public class SimpleTextDataReader implements ITextDataReader {
         }
         long avail = available();
         if (avail <= 0)
-            return "";
+            return null;
 
         int n = (int) Math.min(maxLength, avail);
         for (int i = 0; i < n; i++) {

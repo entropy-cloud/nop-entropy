@@ -29,10 +29,16 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 
 import static io.nop.record.RecordErrors.ARG_CASE_VALUE;
+import static io.nop.record.RecordErrors.ARG_ATTRIBUTE_NAME;
 import static io.nop.record.RecordErrors.ARG_FIELD_NAME;
 import static io.nop.record.RecordErrors.ARG_FIELD_PATH;
+import static io.nop.record.RecordErrors.ARG_LENGTH;
+import static io.nop.record.RecordErrors.ARG_POS;
 import static io.nop.record.RecordErrors.ARG_REAL_READ_POS;
 import static io.nop.record.RecordErrors.ARG_TYPE_NAME;
+import static io.nop.record.RecordErrors.ERR_RECORD_ATTRIBUTE_NOT_IMPLEMENTED;
+import static io.nop.record.RecordErrors.ERR_RECORD_COLLECTION_NO_PROGRESS;
+import static io.nop.record.RecordErrors.ERR_RECORD_COLLECTION_SIZE_EXCEED_LIMIT;
 import static io.nop.record.RecordErrors.ERR_RECORD_FIELD_IS_MANDATORY;
 import static io.nop.record.RecordErrors.ERR_RECORD_NO_MATCH_FOR_CASE_VALUE;
 import static io.nop.record.RecordErrors.ERR_RECORD_NO_SWITCH_ON_FIELD;
@@ -79,15 +85,21 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
             }
         }
 
-        if (rawString == null) {
-            _readObject(in, recordMeta, record, context);
-        } else {
-            try {
+        try {
+            if (rawString == null) {
                 _readObject(in, recordMeta, record, context);
-            } catch (NopException e) {
-                e.param(recordMeta.getRawVarName(), rawString);
-                throw e;
+            } else {
+                try {
+                    _readObject(in, recordMeta, record, context);
+                } catch (NopException e) {
+                    e.param(recordMeta.getRawVarName(), rawString);
+                    throw e;
+                }
             }
+        } finally {
+            // ByteBuf 类 subInput 持有独立引用计数，必须关闭释放
+            if (subInput != null)
+                subInput.close();
         }
 
         if (subInput != null) {
@@ -230,12 +242,19 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
         IEvalFunction repeatUntil = field.getRepeatUntil();
         if (repeatUntil != null) {
             while (!checkUntil(repeatUntil, in, record, context)) {
+                long startPos = in.pos();
                 Object value = readSwitch(in, field, coll, context);
                 if (value != null)
                     coll.add(value);
 
                 if (coll.size() >= field.getMaxCollectionSize())
-                    throw new IllegalStateException("collection size exceed limit:field=" + field.getName() + ",size=" + coll.size());
+                    throw newError(ERR_RECORD_COLLECTION_SIZE_EXCEED_LIMIT, in, context)
+                            .param(ARG_FIELD_NAME, field.getName()).param(ARG_LENGTH, coll.size());
+
+                // 元素零消耗且未新增时循环条件不会变化，直接报错避免死循环
+                if (value == null && in.pos() == startPos)
+                    throw newError(ERR_RECORD_COLLECTION_NO_PROGRESS, in, context)
+                            .param(ARG_FIELD_NAME, field.getName()).param(ARG_POS, startPos);
             }
         } else if (field.getRepeatKind() == FieldRepeatKind.fixed) {
             int length = getFieldLength(in, field, record, context);
@@ -244,14 +263,25 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
             Input baseIn = in;
             long subStart = in.pos();
 
-            do {
-                Object value = readSwitch(subInput, field, coll, context);
-                if (value != null)
-                    coll.add(value);
+            try {
+                do {
+                    long startPos = subInput.pos();
+                    Object value = readSwitch(subInput, field, coll, context);
+                    if (value != null)
+                        coll.add(value);
 
-                if (coll.size() >= field.getMaxCollectionSize())
-                    throw new IllegalStateException("collection size exceed limit:field=" + field.getName() + ",size=" + coll.size());
-            } while (subInput != in && !subInput.isEof());
+                    if (coll.size() >= field.getMaxCollectionSize())
+                        throw newError(ERR_RECORD_COLLECTION_SIZE_EXCEED_LIMIT, in, context)
+                                .param(ARG_FIELD_NAME, field.getName()).param(ARG_LENGTH, coll.size());
+
+                    if (value == null && subInput.pos() == startPos)
+                        throw newError(ERR_RECORD_COLLECTION_NO_PROGRESS, in, context)
+                                .param(ARG_FIELD_NAME, field.getName()).param(ARG_POS, startPos);
+                } while (subInput != in && !subInput.isEof());
+            } finally {
+                if (subInput != in)
+                    subInput.close();
+            }
 
             if (subInput != in) {
                 // 区域未消费残留对齐（与 readObject 同公式）
@@ -262,7 +292,8 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
         } else {
             int count = readRepeatCount(in, field, record, context);
             if (count >= field.getMaxCollectionSize())
-                throw new IllegalStateException("collection size exceed limit:field=" + field.getName() + ",size=" + count);
+                throw newError(ERR_RECORD_COLLECTION_SIZE_EXCEED_LIMIT, in, context)
+                        .param(ARG_FIELD_NAME, field.getName()).param(ARG_LENGTH, count);
 
             for (int i = 0; i < count; i++) {
                 Object value = readSwitch(in, field, coll, context);
@@ -290,7 +321,8 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
                 if (repeatCountExpr != null) {
                     count = repeatCountExpr.call3(null, in, record, context, context.getEvalScope());
                 } else {
-                    throw new IllegalArgumentException("Repeat count field not found:" + field.getName());
+                    throw newError(ERR_RECORD_ATTRIBUTE_NOT_IMPLEMENTED, in, context)
+                            .param(ARG_ATTRIBUTE_NAME, "repeatCount").param(ARG_FIELD_NAME, field.getName());
                 }
             }
         }

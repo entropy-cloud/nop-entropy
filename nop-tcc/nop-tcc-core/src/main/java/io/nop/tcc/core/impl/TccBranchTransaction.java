@@ -8,6 +8,7 @@
 package io.nop.tcc.core.impl;
 
 import io.nop.api.core.beans.ApiResponse;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
@@ -19,6 +20,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CompletionStage;
+
+import static io.nop.tcc.core.TccCoreErrors.ARG_TCC_STATUS;
+import static io.nop.tcc.core.TccCoreErrors.ARG_TXN_GROUP;
+import static io.nop.tcc.core.TccCoreErrors.ARG_TXN_ID;
+import static io.nop.tcc.core.TccCoreErrors.ERR_TCC_INVALID_CONFIRM_BRANCH_STATUS;
 
 public class TccBranchTransaction implements ITccBranchTransaction {
     static final Logger LOG = LoggerFactory.getLogger(TccBranchTransaction.class);
@@ -74,7 +80,11 @@ public class TccBranchTransaction implements ITccBranchTransaction {
     @Override
     public CompletionStage<Void> beginConfirmAsync() {
         LOG.info("nop.tcc.branch-begin-confirm:{}", this);
-        Guard.checkArgument(branchRecord.getBranchStatus().isAllowConfirm());
+        if (!branchRecord.getBranchStatus().isAllowConfirm())
+            throw new NopException(ERR_TCC_INVALID_CONFIRM_BRANCH_STATUS)
+                    .param(ARG_TXN_GROUP, branchRecord.getTxnGroup())
+                    .param(ARG_TXN_ID, branchRecord.getTxnId())
+                    .param(ARG_TCC_STATUS, branchRecord.getBranchStatus());
         return getRepository().updateTccBranchStatusAsync(branchRecord, TccStatus.CONFIRMING, null);
     }
 
@@ -94,7 +104,11 @@ public class TccBranchTransaction implements ITccBranchTransaction {
     public CompletionStage<Void> beginCancelAsync(boolean timeout) {
         LOG.info("nop.tcc.branch-begin-cancel:{}", this);
 
-        Guard.checkArgument(branchRecord.getBranchStatus().isRollbackOnly());
+        if (!branchRecord.getBranchStatus().isRollbackOnly())
+            throw new NopException(ERR_TCC_INVALID_CONFIRM_BRANCH_STATUS)
+                    .param(ARG_TXN_GROUP, branchRecord.getTxnGroup())
+                    .param(ARG_TXN_ID, branchRecord.getTxnId())
+                    .param(ARG_TCC_STATUS, branchRecord.getBranchStatus());
         return getRepository().updateTccBranchStatusAsync(branchRecord,
                 timeout ? TccStatus.BEFORE_TIMEOUT : TccStatus.CANCELLING, null);
     }

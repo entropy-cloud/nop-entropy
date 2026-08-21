@@ -26,6 +26,9 @@ import java.util.Stack;
 import java.util.regex.Pattern;
 
 public class PptxToMarkdownConverter {
+
+    static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(PptxToMarkdownConverter.class);
+
     private File imagesDir;
     private boolean includeSlideNumbers = true;
     private boolean addSlideSeparators = true;
@@ -218,6 +221,7 @@ public class PptxToMarkdownConverter {
                 }
             } catch (Exception e) {
                 // 表格解析失败时添加占位符
+                LOG.warn("nop.pptx.table-parse-fail", e);
                 if (contentBuilder.length() > 0) {
                     contentBuilder.append("\n\n");
                 }

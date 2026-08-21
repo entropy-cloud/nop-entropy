@@ -18,6 +18,7 @@
  */
 package io.nop.svg.model;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 import io.nop.svg.parse.SVGPathParser;
 
@@ -29,6 +30,9 @@ import java.awt.geom.PathIterator;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.Arrays;
+
+import static io.nop.svg.SVGErrors.ARG_TYPE;
+import static io.nop.svg.SVGErrors.ERR_SVG_UNRECOGNISED_SEGMENT_TYPE;
 
 /**
  * The <code>SVGPath</code> class represents a geometric path constructed from straight lines, quadratic and cubic
@@ -473,11 +477,13 @@ public class SVGPath implements Shape, Cloneable {
                     sb.append("Z");
                     break;
                 case SEG_ARCTO:
+                    // SVG A 指令恰好 7 个参数：rx ry x-axis-rotation large-arc-flag sweep-flag x y
                     sb.append("A").append(coords[0]).append(' ').append(coords[1]).append(' ').append(coords[2]).append(' ')
                             .append(coords[3]).append(' ').append(coords[4]).append(' ').append(coords[5]).append(' ')
-                            .append(coords[6]).append(' ').append(coords[7]);
+                            .append(coords[6]);
+                    break;
                 default:
-                    throw new RuntimeException("Unrecognised segment type " + segType);
+                    throw new NopException(ERR_SVG_UNRECOGNISED_SEGMENT_TYPE).param(ARG_TYPE, segType);
             }
             iterator.next();
         }
@@ -703,8 +709,9 @@ public class SVGPath implements Shape, Cloneable {
 
             return result;
         } catch (CloneNotSupportedException ex) {
+            // 实现了Cloneable，该分支不可达；吞异常返回this会破坏clone的副本语义
+            throw new NopException("nop.err.svg.clone-not-supported").cause(ex);
         }
-        return this;
     }
 
     /**

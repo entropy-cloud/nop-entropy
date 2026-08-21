@@ -39,19 +39,21 @@ public class TableFlowFunctions {
         if (Double.isNaN(min) || Double.isNaN(max) || step <= 0)
             return list;
 
-        for (double start = min; start < max; start += step) {
-            double end = Math.min(start + step, max);
-            double rangeStart = start;
-            double rangeEnd = end;
+        // 用整数索引乘法计算桶边界，避免浮点累进漂移；最后一个桶包含最大值（闭区间）
+        int bucketCount = Math.max(1, (int) Math.ceil((max - min) / step));
+        for (int b = 0; b < bucketCount; b++) {
+            double rangeStart = min + b * step;
+            double rangeEnd = Math.min(min + (b + 1) * step, max);
+            boolean lastBucket = b == bucketCount - 1;
             long count = 0;
             for (int i = 0; i < col.size(); i++) {
                 if (!col.isMissing(i)) {
                     double v = col.getDouble(i);
-                    if (v >= rangeStart && v < rangeEnd) count++;
+                    if (v >= rangeStart && (lastBucket ? v <= rangeEnd : v < rangeEnd)) count++;
                 }
             }
             Map<String, Object> entry = new LinkedHashMap<>();
-            entry.put("range", String.format("[%.2f, %.2f)", rangeStart, rangeEnd));
+            entry.put("range", String.format(lastBucket ? "[%.2f, %.2f]" : "[%.2f, %.2f)", rangeStart, rangeEnd));
             entry.put("count", count);
             list.add(entry);
         }

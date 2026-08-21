@@ -20,6 +20,7 @@ public interface XlsxErrors {
     String ARG_COLOR_NAME = "colorName";
     String ARG_ELEMENT_NAME = "elementName";
     String ARG_PARSER_NAME = "parserName";
+    String ARG_CELL_REF = "cellRef";
 
     ErrorCode ERR_XLSX_NULL_REL_PART = define("nop.err.xlsx.null-rel-part", "没有关联文件:type={type},relId={relId}", ARG_TYPE,
             ARG_REL_ID);
@@ -42,4 +43,7 @@ public interface XlsxErrors {
 
     ErrorCode ERR_XLSX_CHART_THEME_LOAD_FAIL = define("nop.err.xlsx.chart-theme-load-fail",
             "加载图表主题失败:partName={partName}", ARG_PART_NAME);
+
+    ErrorCode ERR_XLSX_CELL_REF_OUT_OF_RANGE = define("nop.err.xlsx.cell-ref-out-of-range",
+            "单元格引用超出Excel范围:cellRef={cellRef}", ARG_CELL_REF);
 }

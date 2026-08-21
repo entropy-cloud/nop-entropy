@@ -13,6 +13,7 @@ import io.nop.api.debugger.StackInfo;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.LinkedList;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.List;
 
 /**
@@ -21,7 +22,7 @@ import java.util.List;
 public class XLangSuspendContext extends XSuspendContext {
     private final XLangDebugProcess debugProcess;
     private XLangExecutionStack myActiveStack;
-    private List<XLangExecutionStack> myExecutionStacks = new LinkedList<>();
+    private final List<XLangExecutionStack> myExecutionStacks = new CopyOnWriteArrayList<>();
 
     public XLangSuspendContext(@NotNull XLangDebugProcess process, @NotNull StackInfo stackInfo) {
         this.debugProcess = process;

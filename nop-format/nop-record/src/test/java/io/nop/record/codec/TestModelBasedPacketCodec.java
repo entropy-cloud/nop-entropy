@@ -1,7 +1,9 @@
 package io.nop.record.codec;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.buffer.UnpooledByteBufAllocator;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.unittest.BaseTestCase;
@@ -143,5 +145,42 @@ public class TestModelBasedPacketCodec extends BaseTestCase {
         // 修复后：父 close 不影响子视图读取（retain 独立所有权）
         assertEquals(2, sub.readU1());
         sub.close();
+    }
+
+    /**
+     * 编码帧长与 determinePacketLength 对称：编码写出的总字节数应等于解码判定的帧长。
+     * 修复前编码公式 len = endIndex - strip - adj 与解码公式 frame = raw + adj + H 恒差 H-strip 字节
+     */
+    @Test
+    public void testFrameLengthSymmetry() {
+        PacketCodecModel codecModel = (PacketCodecModel) ResourceComponentManager.instance().loadComponentModel("/test/record/test.packet-codec.xml");
+        ModelBasedPacketCodec codec = new ModelBasedPacketCodec(codecModel, FieldCodecRegistry.DEFAULT);
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", 333L);
+        map.put("name", "abc");
+
+        byte[] bytes = codec.encodeToBytes(map);
+
+        ByteBuf buf = Unpooled.wrappedBuffer(bytes);
+        int frameLen = codec.determinePacketLength(buf);
+        assertEquals(bytes.length, frameLen);
+
+        // 模拟 PacketCodecHandler 的取帧方式：readSlice(frameLen) 后解码
+        ByteBuf frame = buf.readSlice(frameLen);
+        Map<String, Object> map2 = (Map<String, Object>) codec.decodeFromBuf(frame);
+        assertEquals(333L, map2.get("id"));
+        assertEquals("abc", map2.get("name"));
+    }
+
+    /**
+     * initialBytesToStrip 非 0 时构造直接报错（解码侧从未实现 strip，静默配置会错帧）
+     */
+    @Test
+    public void testInitialBytesToStripRejected() {
+        PacketCodecModel codecModel = new PacketCodecModel();
+        codecModel.setLengthFieldLength(2);
+        codecModel.setInitialBytesToStrip(1);
+        assertThrows(NopException.class,
+                () -> new ModelBasedPacketCodec(codecModel, FieldCodecRegistry.DEFAULT));
     }
 }

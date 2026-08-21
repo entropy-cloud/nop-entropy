@@ -63,6 +63,8 @@ public class PacketStateMachineHandler extends ChannelDuplexHandler {
 
         if (process.shouldDrop()) {
             ReferenceCountUtil.release(msg);
+            // 吞掉写操作的handler必须自行完成promise，否则writeAndFlush的future永不结束
+            promise.trySuccess();
             return;
         }
 

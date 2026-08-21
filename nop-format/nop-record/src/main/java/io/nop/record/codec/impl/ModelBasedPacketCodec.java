@@ -23,12 +23,14 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static io.nop.record.RecordConstants.TYPE_DEFAULT;
+import static io.nop.record.RecordErrors.ARG_ATTRIBUTE_NAME;
 import static io.nop.record.RecordErrors.ARG_FIELD_NAME;
 import static io.nop.record.RecordErrors.ARG_LENGTH;
 import static io.nop.record.RecordErrors.ARG_LENGTH_FIELD_LENGTH;
 import static io.nop.record.RecordErrors.ARG_MAX_LENGTH;
 import static io.nop.record.RecordErrors.ARG_MIN_LENGTH;
 import static io.nop.record.RecordErrors.ARG_TYPE_NAME;
+import static io.nop.record.RecordErrors.ERR_RECORD_ATTRIBUTE_NOT_IMPLEMENTED;
 import static io.nop.record.RecordErrors.ERR_RECORD_FIELD_LENGTH_IS_NEGATIVE;
 import static io.nop.record.RecordErrors.ERR_RECORD_FIELD_LENGTH_IS_TOO_LARGE;
 import static io.nop.record.RecordErrors.ERR_RECORD_FIELD_LENGTH_IS_TOO_SMALL;
@@ -63,6 +65,9 @@ public class ModelBasedPacketCodec implements IPacketCodec<Object> {
         this.maxFrameLength = codecModel.getMaxFrameLength();
         this.lengthFieldOffset = codecModel.getLengthFieldOffset();
         this.initialBytesToStrip = codecModel.getInitialBytesToStrip();
+        if (this.initialBytesToStrip != 0)
+            throw new NopException(ERR_RECORD_ATTRIBUTE_NOT_IMPLEMENTED)
+                    .param(ARG_ATTRIBUTE_NAME, "initialBytesToStrip").param(ARG_LENGTH, this.initialBytesToStrip);
         this.lengthFieldLength = codecModel.getLengthFieldLength();
         this.lengthAdjustment = codecModel.getLengthAdjustment();
         this.lengthFieldEndOffset = lengthFieldOffset + lengthFieldLength;
@@ -219,7 +224,9 @@ public class ModelBasedPacketCodec implements IPacketCodec<Object> {
             throw NopException.adapt(e);
         }
         int endIndex = buf.writerIndex();
-        int len = endIndex - initialBytesToStrip - lengthAdjustment;
+        // 长度字段按 Netty LengthFieldBasedFrameDecoder 语义记录 lengthFieldEndOffset 之后的有效字节数：
+        // determinePacketLength 计算帧总长 = raw + lengthAdjustment + lengthFieldEndOffset
+        int len = endIndex - lengthFieldEndOffset - lengthAdjustment;
         buf.writerIndex(lengthFieldOffset);
         writeUnadjustedFrameLength(buf, lengthFieldLength, len);
         buf.writerIndex(endIndex);

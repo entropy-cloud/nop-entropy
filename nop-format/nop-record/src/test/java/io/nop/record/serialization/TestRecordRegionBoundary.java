@@ -148,4 +148,21 @@ public class TestRecordRegionBoundary extends BaseTestCase {
         assertEquals("fffff", items.get(3).getStreamingData());
         input.close();
     }
+
+    // ByteBuf 路径 subInput 的 retain 必须配对 release：读完全部记录并关闭后 refCnt 归零
+    // 修复前每个 length>0 对象的 subInput 都净增一次引用计数（直接内存泄漏）
+    @Test
+    public void testByteBufSubInputRefCntBalanced() throws Exception {
+        RecordFileMeta fileMeta = meta("/test/record/test-region-boundary.record-file.xml");
+        byte[] data = "aaaaabbbbbccccc01234dddddeeeeefffff01234".getBytes(StandardCharsets.UTF_8);
+        io.netty.buffer.ByteBuf buf = io.netty.buffer.Unpooled.wrappedBuffer(data);
+        ModelBasedBinaryRecordInput<Map<String, Object>> input =
+                new ModelBasedBinaryRecordInput<>(new io.nop.record.netty.ByteBufBinaryDataReader(buf), fileMeta);
+        Map<String, Object> r1 = input.next();
+        assertEquals("aaaaa", r1.get("a"));
+        Map<String, Object> r2 = input.next();
+        assertEquals("ddddd", r2.get("a"));
+        input.close();
+        assertEquals(0, buf.refCnt());
+    }
 }

@@ -1,5 +1,12 @@
 package io.nop.pdf.extract.parser;
 
+import io.nop.api.core.exceptions.NopException;
+import io.nop.core.lang.xml.XNode;
+import io.nop.core.lang.xml.parse.IXNodeParser;
+import io.nop.core.lang.xml.parse.XNodeParser;
+import io.nop.core.resource.IResource;
+import io.nop.core.resource.IResourceObjectLoader;
+import io.nop.core.resource.VirtualFileSystem;
 import io.nop.pdf.extract.struct.Block;
 import io.nop.pdf.extract.struct.DummyImageReference;
 import io.nop.pdf.extract.struct.ImageBlock;
@@ -10,18 +17,16 @@ import io.nop.pdf.extract.struct.TableCellBlock;
 import io.nop.pdf.extract.struct.TextlineBlock;
 import io.nop.pdf.extract.struct.TocItem;
 import io.nop.pdf.extract.struct.TocTable;
-import io.nop.core.lang.xml.XNode;
-import io.nop.core.lang.xml.parse.IXNodeParser;
-import io.nop.core.lang.xml.parse.XNodeParser;
-import io.nop.core.resource.IResource;
-import io.nop.core.resource.IResourceObjectLoader;
-import io.nop.core.resource.VirtualFileSystem;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class ResourceDocumentHtmlParser implements
         IResourceObjectLoader<ResourceDocument> {
+
+    static final Logger LOG = LoggerFactory.getLogger(ResourceDocumentHtmlParser.class);
 
     @Override
     public ResourceDocument loadObjectFromPath(String path) {
@@ -40,10 +45,12 @@ public class ResourceDocumentHtmlParser implements
         IXNodeParser parser = XNodeParser.instance();
         parser.defaultEncoding("UTF-8");
         XNode XNode = parser.parseFromResource(resource);
-        String titleValue = XNode.childByTag("head")
-                .childContentText("title");
+        XNode headNode = XNode.childByTag("head");
+        String titleValue = headNode != null ? headNode.childContentText("title") : null;
 
         XNode bodyTag = XNode.childByTag("body");
+        if (bodyTag == null)
+            throw new NopException("nop.err.pdf.html-body-not-found").param("resourcePath", resource.getPath());
 
         List<XNode> pageList = bodyTag
                 .childrenByAttr("class", "pdf-page");
@@ -99,10 +106,15 @@ public class ResourceDocumentHtmlParser implements
             tocItem = new TocItem();
             XNode aNode = liNode.childByTag("a");
             String hrefValue = aNode.attrText("href");
-            int pageIndex = Integer.parseInt(hrefValue.substring(2));
+            // 写侧 href='#p' + item.getPageNo()，pageNo 从1开始，需换算为0-based索引
+            int pageIndex = Integer.parseInt(hrefValue.substring(2)) - 1;
             String title = aNode.contentText();
             tocItem.setTitle(title);
 
+            if (pageIndex < 0 || pageIndex >= doc.getPages().size()) {
+                LOG.warn("nop.pdf.toc-page-index-out-of-range:index={},pages={}", pageIndex, doc.getPages().size());
+                continue;
+            }
             ResourcePage page = doc.getPages().get(pageIndex);
             tocItem.setPageNo(page.getDisplayPageNo());
 
@@ -117,6 +129,10 @@ public class ResourceDocumentHtmlParser implements
         List<Block> blocks = new ArrayList<>();
         for (XNode child : node.getChildren()) {
             String idParam = child.attrText("id");
+            if (idParam == null || idParam.indexOf('-') <= 0) {
+                LOG.warn("nop.pdf.html-block-id-invalid:id={}", idParam);
+                continue;
+            }
             int pageBlockIndex = Integer.parseInt(idParam.substring(idParam
                     .indexOf("-") + 1));
             int pageNo = Integer.parseInt(idParam.substring(1,

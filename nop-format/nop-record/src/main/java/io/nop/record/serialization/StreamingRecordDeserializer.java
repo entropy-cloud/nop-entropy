@@ -13,6 +13,11 @@ import io.nop.record.model.RecordTypeMeta;
 import io.nop.record.reader.IDataReaderBase;
 
 import java.io.IOException;
+import java.util.Map;
+
+import static io.nop.record.RecordErrors.ARG_FIELD_NAME;
+import static io.nop.record.RecordErrors.ARG_LENGTH;
+import static io.nop.record.RecordErrors.ERR_RECORD_COLLECTION_SIZE_EXCEED_LIMIT;
 
 public class StreamingRecordDeserializer<Input extends IDataReaderBase> {
     private final AbstractModelBasedRecordDeserializer<Input> deserializer;
@@ -38,9 +43,24 @@ public class StreamingRecordDeserializer<Input extends IDataReaderBase> {
         try {
             return processObjectStreaming(frame, in, recordMeta, context);
         } catch (NopException e) {
+            closeSubIn(frame);
             if (recordMeta.getRawVarName() != null && frame.getRawDataString() != null)
                 e.param(recordMeta.getRawVarName(), frame.getRawDataString());
             throw e;
+        } catch (IOException e) {
+            closeSubIn(frame);
+            throw e;
+        }
+    }
+
+    private static void closeSubIn(StreamingStackFrame frame) {
+        if (frame.getSubIn() != null) {
+            try {
+                frame.getSubIn().close();
+            } catch (IOException e) {
+                // ignore
+            }
+            frame.setSubIn(null);
         }
     }
 
@@ -67,6 +87,7 @@ public class StreamingRecordDeserializer<Input extends IDataReaderBase> {
                         frame.setSubStartPos(in.pos());
                         frame.setSubLength(length);
                         in = (Input) in.subInput(length);
+                        frame.setSubIn(in);
 
                         // 处理原始数据保存
                         if (recordMeta.getRawVarName() != null) {
@@ -82,17 +103,21 @@ public class StreamingRecordDeserializer<Input extends IDataReaderBase> {
                 case StreamingStackFrame.STAGE_BEFORE_READ:
                     // 读取前处理 - 处理基类
                     if (recordMeta.getResolvedBaseType() != null) {
-                        // 递归处理基类
-                        StreamingReadResult baseResult = processObjectStreaming(
-                                frame, in,
-                                recordMeta.getResolvedBaseType(),
-                                context
-                        );
-                        // 需要继续处理基类
+                        // 基类必须使用独立 frame：共享 frame 会被基类一路推进到 COMPLETED，
+                        // 返回后派生类型的 READ_TAGS/READ_FIELDS 循环立即退出，派生字段全部丢失
+                        RecordObjectMeta baseMeta = recordMeta.getResolvedBaseType();
+                        StreamingStackFrame baseFrame = new StreamingStackFrame();
+                        baseFrame.setRecordMeta(baseMeta);
+                        baseFrame.setCurrentRecord(record);
+                        baseFrame.setOriginalIn(in);
+                        baseFrame.setCurrentStage(StreamingStackFrame.STAGE_BEFORE_READ);
+                        baseFrame.setSuppressEndOfObject(true);
+                        StreamingReadResult baseResult = processObjectStreaming(baseFrame, in, baseMeta, context);
                         if (baseResult != null) {
                             Input paramIn = in;
                             return baseResult.then(() -> {
                                 try {
+                                    copyNonStreamingFields(baseFrame, frame);
                                     frame.moveToNextStage();
                                     return processObjectStreaming(frame, paramIn, recordMeta, context);
                                 } catch (IOException e) {
@@ -100,6 +125,7 @@ public class StreamingRecordDeserializer<Input extends IDataReaderBase> {
                                 }
                             });
                         }
+                        copyNonStreamingFields(baseFrame, frame);
                     }
                     frame.moveToNextStage();
                     break;
@@ -148,8 +174,17 @@ public class StreamingRecordDeserializer<Input extends IDataReaderBase> {
                 deserializer.readOffset((Input) frame.getSubBaseIn(), (int) remaining, context);
             frame.setSubBaseIn(null);
         }
+        closeSubIn(frame);
 
+        if (frame.isSuppressEndOfObject())
+            return null;
         return frame.newEndOfObjectResult();
+    }
+
+    private static void copyNonStreamingFields(StreamingStackFrame from, StreamingStackFrame to) {
+        Map<String, Object> fields = from.makeNonStreamingFields();
+        if (!fields.isEmpty())
+            fields.forEach(to::setNonStreamingFields);
     }
 
     private StreamingReadResult processFieldsStreaming(StreamingStackFrame frame, Input in,
@@ -340,7 +375,8 @@ public class StreamingRecordDeserializer<Input extends IDataReaderBase> {
                 break;
 
             if (frame.getCollectionIndex() >= field.getMaxCollectionSize())
-                throw new IllegalStateException("collection size exceed limit:field=" + field.getName() + ",count=" + frame.getCollectionIndex());
+                throw new NopException(ERR_RECORD_COLLECTION_SIZE_EXCEED_LIMIT)
+                        .param(ARG_FIELD_NAME, field.getName()).param(ARG_LENGTH, frame.getCollectionIndex());
 
             // 直接处理集合项的内容，不改变field stage
             StreamingReadResult itemResult = processSwitchFieldStreaming(frame, in, context);

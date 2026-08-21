@@ -31,6 +31,11 @@ import java.util.List;
 import java.util.Map;
 
 public class SharedStringsTableParser extends XNodeHandlerAdapter {
+
+    /**
+     * 预分配容量上限：uniqueCount 是不可信属性，真实条目数由解析过程自然增长
+     */
+    static final int MAX_PREALLOC_SIZE = 10_000;
     public SharedStringsPart parseFromResource(IResource resource) {
         XNodeParser.instance().handler(this).parseFromResource(resource);
         return getResult();
@@ -68,9 +73,13 @@ public class SharedStringsTableParser extends XNodeHandlerAdapter {
             this.count = getAttrInt(attrs, "count", 0);
             this.uniqueCount = getAttrInt(attrs, "uniqueCount", 0);
 
-            this.strings = new ArrayList<>(this.uniqueCount);
+            // uniqueCount来自不可信的上传文件属性，按其预分配可能被几十字节的文件放大到GB级。
+            // 设置预分配上限，超出部分由 ArrayList 自然增长
+            this.strings = new ArrayList<>(Math.max(0, Math.min(this.uniqueCount, MAX_PREALLOC_SIZE)));
             characters = new StringBuilder(64);
         } else if ("si".equals(localName)) {
+            if (strings == null)
+                strings = new ArrayList<>();
             characters.setLength(0);
         } else if ("t".equals(localName)) {
             tIsOpen = true;

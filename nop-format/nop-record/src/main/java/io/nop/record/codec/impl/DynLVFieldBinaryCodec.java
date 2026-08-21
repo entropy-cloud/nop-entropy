@@ -27,6 +27,12 @@ import static io.nop.record.RecordErrors.ERR_RECORD_NO_ENOUGH_DATA;
  * 注意：codec 无 charset 字段，String 固定按 UTF-8 编码，与模型 charset 可能不一致（已知限制）。
  */
 public class DynLVFieldBinaryCodec implements IFieldBinaryCodec {
+
+    /**
+     * 未配置 maxLength（length<=0）时对线上 len 字段的防御上限，防止恶意长度触发超大 byte[] 分配
+     */
+    static final int MAX_UNBOUNDED_READ_LEN = 64 * 1024 * 1024;
+
     private final IFieldBinaryCodec lengthCodec;
     private final IFieldBinaryCodec valueCodec;
     private final Function<Object, Integer> lengthGetter;
@@ -50,6 +56,11 @@ public class DynLVFieldBinaryCodec implements IFieldBinaryCodec {
             throw new NopException(ERR_RECORD_DECODE_LENGTH_IS_TOO_LONG)
                     .param(ARG_POS, input.pos())
                     .param(ARG_LENGTH, len).param(ARG_MAX_LENGTH, length);
+        }
+        if (length <= 0 && len > MAX_UNBOUNDED_READ_LEN) {
+            throw new NopException(ERR_RECORD_DECODE_LENGTH_IS_TOO_LONG)
+                    .param(ARG_POS, input.pos())
+                    .param(ARG_LENGTH, len).param(ARG_MAX_LENGTH, MAX_UNBOUNDED_READ_LEN);
         }
 
         if (valueCodec == null) {
@@ -78,10 +89,10 @@ public class DynLVFieldBinaryCodec implements IFieldBinaryCodec {
     public void encode(IBinaryDataWriter output, Object value, int length,
                        IFieldCodecContext context, IModelBasedBinaryRecordSerializer serializer) throws IOException {
         int len = lengthGetter.apply(value);
-        lengthCodec.encode(output, len, length, context, null);
+        lengthCodec.encode(output, len, length, context, serializer);
         if (len > 0) {
             if (valueCodec != null) {
-                valueCodec.encode(output, value, len, context, null);
+                valueCodec.encode(output, value, len, context, serializer);
                 return;
             }
 
