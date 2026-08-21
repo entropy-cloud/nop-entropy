@@ -139,6 +139,7 @@ function runReal(repo, baseRef, since) {
 
 /** 自测：_tmp 构造正反例仓库。 */
 function runSelfTest() {
+    mkdirSync(join(ROOT, '_tmp'), { recursive: true });
     const tmp = mkdtempSync(join(ROOT, '_tmp', 'gate5-selftest-'));
     try {
         git(tmp, ['init', '-q']);
