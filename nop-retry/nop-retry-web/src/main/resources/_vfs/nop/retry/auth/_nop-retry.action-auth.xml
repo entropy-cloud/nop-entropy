@@ -67,20 +67,6 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopRetryTemplate-main" displayName="重试模板" orderNo="10013"
-                          i18n-en:displayName="Retry Template" icon="blocks" component="AMIS" resourceType="SUBM"
-                          url="/nop/retry/pages/NopRetryTemplate/main.page.yaml">
-                    <children>
-                        <resource id="FNPT:NopRetryTemplate:query" displayName="查询重试模板"
-                                  i18n-en:displayName="Query Retry Template" orderNo="10014" resourceType="FNPT">
-                            <permissions>NopRetryTemplate:query</permissions>
-                        </resource>
-                        <resource id="FNPT:NopRetryTemplate:mutation" displayName="修改重试模板"
-                                  i18n-en:displayName="Modify Retry Template" orderNo="10015" resourceType="FNPT">
-                            <permissions>NopRetryTemplate:mutation</permissions>
-                        </resource>
-                    </children>
-                </resource>
             </children>
         </resource>
     </site>

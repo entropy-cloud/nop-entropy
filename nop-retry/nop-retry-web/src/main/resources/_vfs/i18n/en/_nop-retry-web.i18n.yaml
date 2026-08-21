@@ -16,10 +16,6 @@ site:
       displayName: Modify Retry Record
     FNPT:NopRetryRecord:query:
       displayName: Query Retry Record
-    FNPT:NopRetryTemplate:mutation:
-      displayName: Modify Retry Template
-    FNPT:NopRetryTemplate:query:
-      displayName: Query Retry Template
     NopRetryAttempt-main:
       displayName: Retry Attempt
     NopRetryDeadLetter-main:
@@ -28,7 +24,5 @@ site:
       displayName: Retry Policy
     NopRetryRecord-main:
       displayName: Retry Record
-    NopRetryTemplate-main:
-      displayName: Retry Template
     test-orm-nop-retry:
       displayName: Test nop-retry
