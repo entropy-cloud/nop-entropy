@@ -1,6 +1,6 @@
 # DSH/Cordis 社区解读文章（微信公众号）
 
-DeepSeek Harness / Cordis 发布后社区产出的六篇解读文章的本地副本。作为《从可逆计算看 DeepSeek Harness 的架构设计》（`ai-dev/articles/2026-08/2026-08-17-dsh-architecture-from-reversible-computation.v3.md`）修订的参考材料入库。
+DeepSeek Harness / Cordis 发布后社区产出的六篇解读文章的本地副本。作为《从可逆计算看 DeepSeek Harness 的架构设计》（现整合于 `ai-dev/articles/dsh-architecture-from-reversible-computation.md`）修订的参考材料入库。
 
 > **入库纪律（2026-08-19 事故后确立）**：每篇存档的标题与作者必须与原链接页面的 og:title / og:description 元数据核验一致方可入库；正文由 curl 原始 HTML 经统一脚本（`_tmp/wx_convert.py` 流程）转换，不做人工扩写。首轮入库时抓取工具对 4/6 个链接返回了错误内容（"数字双生子"四篇系列，实际不属于本组链接），已全部替换为核验过的真实文章。
 
@@ -24,4 +24,4 @@ DeepSeek Harness / Cordis 发布后社区产出的六篇解读文章的本地副
 - 这些文章中的 **dsh 源码细节（路径、机制描述、统计数字）属于二手转述**，与本地 `~/ai/deepseek-harness` 工作区核对一致后方可作为事实引用；未核对的转述在引用时应标注"据 [n] 描述"。
 - 生态数据（star 数、插件仓库数等）随时间漂移；[19] 写文时 star 数为 41K，与本文集 2026-08-19 实查值（164,984）差距即为例证，引用时一律以自 query 为准并标注查询日期。
 - 首轮错位入库的"数字双生子"四篇系列已移出本目录（在 `~/app/ref-doc/_quarantine-数字双生子系列-来源URL不明/` 留档，来源 URL 不明，**禁止引用**）。
-- 相关使用规划见 `ai-dev/articles/2026-08/2026-08-19-dsh-article-restructure-plan.md`（注意其 §三 吸收清单写作于错位语料之上，[19]–[22] 条目已被 §十 勘误取代）。
+- 原使用规划文档（2026-08-19 的 DSH 文章重构计划）已随 2026-08 草稿清理一并移除；其 §三 吸收清单写作于错位语料之上，[19]–[22] 条目已被 §十 勘误取代。
