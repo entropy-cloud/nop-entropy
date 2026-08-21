@@ -418,9 +418,66 @@ xpl 族编译单元（xpl/xgen/xrun）经 `XLang.parseXpl` 装载完成后按绑
 
 内存契约与供给缝：`JavaEvalExecutionBackend.setGeneratedClassManifest`（生成类清单：
 resourcePath → 生成类名 + 树指纹；`GeneratedClassBindingBinder` 生产 binder 消费）+
-`setStaticScanList`（扫描清单 should-set）。缺省空态 = 行为与纯解释器一致。双清单**文件**产物、
-构建任务注册与 `_gen/` 布局归构建集成（后续阶段）。xlib 多标签单元暂不参与绑定
-（消费侧形态 = 每标签条目，随构建集成落地）。
+`setStaticScanList`（扫描清单 should-set）。缺省空态 = 行为与纯解释器一致。classpath
+双清单**文件**产物的自动装载与构建任务接入见下节"构建集成与新模块接入"。
+
+**xlib 多标签单元（每标签条目）**：清单键 = `xlib路径 + '#' + 标签名`（如
+`/test/my.xlib#Sum`）；标签体在惰性编译完成点按同一绑定决策树裁定——命中则标签函数
+body 替换为生成类绑定执行体（随标签编译缓存复用），指纹 = 标签函数树指纹（签名 +
+缺省实参 + 函数体，防参数变更 stale 漏检）。xlib **裸路径**永不在扫描清单内（标签体
+经动态出口编译时按非成员走动态路径，无误降级）。宏标签不参与（编译期执行）；强制
+node 输出模式变体（xml/html 标签用于 node 上下文）暂不生成（`@node` 变体键首落
+不入清单，该变体静默走解释器）。
+
+### 构建集成与新模块接入（java 生成类后端）
+
+构建期管线（I11 落地）：`nop-xlang-java` 提供构建任务 `io.nop.xlang.java.gen.task.XlangJavaGenTask`
+（独立 main 入口，`main <projectBasedir> [--check]`），模块经 exec-maven-plugin 增量
+execution（`generate-test-resources` = postcompile 同相位）接入——参考实现 =
+`nop-kernel/nop-xlang-java-e2e` fixture 模块（全真链路样例）。
+
+- **扫描口径**：本模块 `src/main/resources/_vfs` 内 `*.xpl`（单根单元，RCM 装载语义 =
+  html 输出模式）+ `*.xlib`（每标签一条目，键 `path#tag`）；`xgen`/`xrun` 排除（live
+  仅构建期消费）、`xtask` 排除（仅测试资源人口）、其余 XDSL 排除（非独立编译单元）、
+  `_delta/` 子树排除（产物只从基树生成）。排除类型在任务日志显式清点（不静默）。
+- **任务行为**：经与运行时相同的编译前端取树（xpl = `XplModelParser` 干净编译；xlib =
+  RCM 装载 + 标签惰性编译真实触发）→ 树指纹（与运行时校验同一实现）→ 转译 → 落盘。
+  重生成幂等（write-if-changed，逐字节等价）；`--check` 模式只比对不写盘、漂移即非零
+  退出（CI stale 哨兵）；同形路径折叠（如 `a-b.xpl` 与 `a_b.xpl` 派生同名类）任务侧
+  fail-fast；转译失败不产出半成品（原子性）。
+- **产物（全部落盘提交，`Gen_` 前缀 + 文件头生成标记，重生成幂等机械执行不可手改）**：
+  - `_gen/` Java 源码：`src/main/java/io/nop/xlang/gen/Gen_<派生名>.java`（包
+    `io.nop.xlang.gen`；类名从 resourcePath / `path#tag` 确定性派生）。当轮生成的源码
+    不经本轮 main compile（任务在 compile 之后运行），落盘提交下轮编译——改了 `_vfs`
+    源必须重跑任务并提交，否则运行时指纹失配降级（stale 检测哨兵即此语义）。
+  - 双清单（分离产物）：`src/main/resources/META-INF/nop-xlang/xlang-java-static-scan.txt`
+    （扫描清单 should-set，每行一键）+ `xlang-java-generated-classes.txt`（生成类清单，
+    每行 `键\t类名FQN\t64位hex指纹`）。运行时经 `ClassLoader.getResources` 多 jar 聚合
+    装载（同键异条目/同类名异键 fail-fast）。
+  - native reflect 配置：`src/main/resources/META-INF/native-image/<groupId>/<artifactId>/reflect-config.json`
+    （生成类 `allPublicMethods` 条目——`Class.forName`+`getDeclaredMethods`+`invoke`
+    的最小充分集）。
+- **运行时供给闭环**：`XLangJavaBackendInitializer`（ICoreInitializer + services）注册
+  后自动装载 classpath 双清单填充供给缝——清单在场即激活（模块接入构建任务即生效）。
+- **限制（rollout 前置条件）**：xpl 单元内含 xlib 标签调用（元素形态 `<ns:Tag/>` 或
+  `xpl('ns:Tag', args)` 函数形态）当前不可转译（编译为 `ExecutableFunction` 内联调用
+  节点，不在转译器支持集内）——含标签调用的单元勿纳入扫描（任务 fail-fast）。
+
+### 漏跑诊断与部署（java 后端）
+
+- **判别子**：classpath 信号无法区分"从未接入构建任务"与"接入后管线漏跑"——接入方
+  （部署/应用）设置 `nop.xlang.execution.java-backend.require-manifest=true` 显式声明
+  "本部署应有产物"。缺省 `false` = 未接入的合法空态（静默）。
+- **漏跑形态**：require-manifest=true 且 classpath 无清单文件 → java 后端注册不可用条目
+  （原因 `codegen-pipeline-missed`，经 `EvalBackendRegistry.instance()
+  .getUnavailableBackends()` 可查）+ 全局 WARN + 指标计数；全部资源走动态路径/解释器。
+- **native image**：生成类作为普通类直编进镜像（closed-world：无运行期编译/无自定义
+  ClassLoader）；truffle 模块镜像排除 = 应用侧 Maven profile/exclusion 配方（结构性）
+  + `deployment-form=native-image` 标记（行为性 belt-and-suspenders——若依赖仍在
+  classpath，动态分支静默走解释器）。GraalVM 环境下的真实镜像构建先例：
+  `nop-kernel-cli`（`-Pnative`）与 `nop-demo/nop-quarkus-demo`（`-Pnative`）；
+  trace 模式（`-Dnop.codegen.trace.enabled=true`）运行构建任务时
+  `GraalvmConfigGenerator` 管线（vfs-index/reflect delta）随任务真实执行。
 
 ### 配置开关（`nop.xlang.execution.*`，`XLangConfigs`）
 
@@ -430,6 +487,7 @@ resourcePath → 生成类名 + 树指纹；`GeneratedClassBindingBinder` 生产
 | `nop.xlang.execution.truffle-backend-enabled` | `true` | truffle 后端启用（仅对已注册后端生效） |
 | `nop.xlang.execution.force-interpreter` | `false` | 强制解释器诊断模式：全路由短路 + 不记降级事件 |
 | `nop.xlang.execution.deployment-form` | `auto` | 部署形态标记：`auto`（探测系统属性 `org.graalvm.nativeimage.kind`）/ `jvm` / `native-image`；native 下 truffle 结构性不适用 |
+| `nop.xlang.execution.java-backend.require-manifest` | `false` | 声明本部署应存在 java 后端生成产物（构建任务已接入）；true 且清单缺席 = 漏跑缺陷（不可用条目 + 全局 WARN） |
 
 不存在"全局默认后端"配置项（默认语义 = auto 按判据裁决）。
 
@@ -440,8 +498,9 @@ resourcePath → 生成类名 + 树指纹；`GeneratedClassBindingBinder` 生产
 - **指标**：counter `nop.xlang.execution.backend-degradation`，tags `backend`
   （`java`/`truffle`）与 `reason`（`config-disabled` / `unavailable` /
   `unit-translation-failure` / `generated-binding-missing` / `generated-fingerprint-mismatch` /
-  `tenant-divergent-tree` / `backend-unavailable`——最后一种仅在裁决后执行期后端失活的
-  窄竞态路径出现）。
+  `tenant-divergent-tree` / `codegen-pipeline-missed` / `backend-unavailable`——
+  `backend-unavailable` 仅在裁决后执行期后端失活的窄竞态路径出现；
+  `codegen-pipeline-missed` 在初始化装载时全局一次（漏跑缺陷，见"漏跑诊断与部署"））。
 - **分级语义（java 绑定降级）**：
   - stale 缺陷族（每次 WARN，缺陷应响亮）：`generated-binding-missing`（清单条目缺失或
     清单内类缺失/入口约定违规）、`generated-fingerprint-mismatch`（树指纹失配且无租户上下文

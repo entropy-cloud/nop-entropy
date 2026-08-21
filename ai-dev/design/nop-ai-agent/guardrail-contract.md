@@ -150,9 +150,9 @@ guardrail-test（测试时组件，非运行时；不调用真实 LLM / 真实 a
 
 #### 裁定 A — 组件归属与模块边界
 
-`GuardrailTestSuite` 放在 **`nop-ai-agent` main source 的 `io.nop.ai.agent.guardrail.test` 包**（非独立模块、非 `src/test`）。理由：
+`GuardrailTestSuite` 放在 **`nop-ai-agent` main source 的 `io.nop.ai.agent.guardrail.test` 包**（非独立模块、非 src/test 层级）。理由：
 
-- 它是测试时库，需被消费方（含下游模块的测试）引用——main source 中的测试时库是既定惯例（类 JUnit support lib）；放在 `src/test` 则不能跨模块引用（test 类不进入发布产物）。
+- 它是测试时库，需被消费方（含下游模块的测试）引用——main source 中的测试时库是既定惯例（类 JUnit support lib）；放在 src/test 层级则不能跨模块引用（test 类不进入发布产物）。
 - 不污染运行时类路径语义：运行时执行路径（`AgentPromptAssembly` 的 INPUT/OUTPUT 调用点）只调 `IContentGuardrail.check()`，从不引用 `guardrail.test` 包；该包是纯验收工具。
 - 与 `nop-ai-agent-eval-design.md`（草案）正交：eval 走真实 agent session + LLM-judge 测 ReAct 行为；本套件对 `IContentGuardrail.check()` 做纯函数式拦截验收（无 LLM、无 session）。两者目标不同、共存不冲突。
 

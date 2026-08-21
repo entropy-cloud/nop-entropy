@@ -125,7 +125,7 @@ node ai-dev/tools/check-bean-naming.mjs nop-auth   # 指定模块
 node ai-dev/tools/check-bean-naming.mjs --json     # JSON 输出（CI 友好）
 ```
 
-工具覆盖范围：`*.beans.xml` 中的 `<bean id>`、`ref`/`value-ref`/`depends-on`、`ioc:collect-beans name-prefix`；自动排除测试目录（`src/test`）、生成物（`_dump`、`_gen`、`target`）、`nop-demo` 示例模块。
+工具覆盖范围：`*.beans.xml` 中的 `<bean id>`、`ref`/`value-ref`/`depends-on`、`ioc:collect-beans name-prefix`；自动排除测试目录（src/test 层级）、生成物（`_dump`、`_gen`、`target`）、`nop-demo` 示例模块。
 
 ### 豁免（非违规）
 
