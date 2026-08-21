@@ -1,0 +1,7 @@
+/test/xlang/e2e/control.xpl
+/test/xlang/e2e/e2e.xlib#Greet
+/test/xlang/e2e/e2e.xlib#RangeSum
+/test/xlang/e2e/e2e.xlib#Sum
+/test/xlang/e2e/exception.xpl
+/test/xlang/e2e/expr.xpl
+/test/xlang/e2e/template.xpl

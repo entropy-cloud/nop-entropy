@@ -25,13 +25,17 @@ import io.nop.xlang.expr.ExprConstants;
  * corpus 验证（含模板单元样例覆盖 {@code $out} 通路）属 I4 验收范围。</li>
  * </ul>
  *
- * <p>生成类名从 resourcePath 确定性派生（{@link #generatedClassName}）；生产 {@code _gen/}
- * 产物布局与包名策略由 I11 定稿，测试域以 {@link #GENERATED_PACKAGE} 编译加载。
+ * <p>生成类名从 resourcePath 确定性派生（{@link #generatedClassName}）。生产 {@code _gen/}
+ * 产物布局（I11 定稿）：生成源码落产出模块 {@code <srcRoot>/io/nop/xlang/gen/Gen_*.java}
+ * （包 = {@link #GENERATED_PACKAGE}，与转译器 FQN 契约逐字一致），文件头标记生成来源、
+ * 任务重生成幂等机械执行不可手改纪律；xlib 每标签单元类名从键 {@code path#tag} 派生
+ * （{@code #} 折叠为 {@code _}）。同形路径（如 {@code a-b} 与 {@code a_b}）折叠同名的
+ * 唯一性校验在任务侧与清单聚合装载侧 fail-fast（I11 落地）。
  */
 public final class EvalMethodConvention {
 
     /**
-     * 测试域编译加载使用的生成类包名（生产 {@code _gen/} 布局归 I11 定稿）。
+     * 测试域编译加载使用的生成类包名（生产 {@code _gen/} 布局 = 同包，I11 定稿）。
      */
     public static final String GENERATED_PACKAGE = "io.nop.xlang.gen";
 
@@ -43,6 +47,13 @@ public final class EvalMethodConvention {
      * xpl/xlib 有输出语义单元的固定第二隐参名（位于声明参数之前；纯表达式单元不追加）。
      */
     public static final String OUT_PARAM = "$out";
+
+    /**
+     * xlib 每标签单元类的固定第二隐参名（I11）：{@code Object[]} 标签实参组
+     * （attrs + slots 按声明序），入口形态 {@code execute(IEvalScope $scope, Object[] $args)}——
+     * 运行时绑定经标签函数帧槽位重建实参组后反射调用。
+     */
+    public static final String ARGS_PARAM = "$args";
 
     private static final String CLASS_NAME_PREFIX = "Gen_";
 

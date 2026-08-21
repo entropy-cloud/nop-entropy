@@ -206,6 +206,33 @@ public final class ExecToJavaTranslator {
                 EvalMethodConvention.GENERATED_PACKAGE + '.' + className, ctx.buildClass(className));
     }
 
+    /**
+     * xlib 每标签单元转译（I11，Phase 1 §7 裁定的生产生成形态）：一个标签一个生成类，入口
+     * {@code public static Object execute(IEvalScope $scope, Object[] $args, IEvalOutput $out)}
+     * （{@link EvalMethodConvention#ARGS_PARAM} 形态——实参组 + 输出缓冲经绑定体注入），函数体下降
+     * 为 {@code private static Object $fn_k(IEvalScope, Object[], Object[], IEvalOutput)}（slot 绑定 +
+     * 缺省实参 + 函数体，emitFunctionMethod 同款前导；$out 形参使输出族节点在标签体内合法——
+     * 解释器标签体经 EvalRuntime.out 输出的直译对应）。纯增量 API：既有 {@link #translate}
+     * 与全部既有测试零改动。指纹口径 = {@code ExecutableTreeFingerprints.fingerprint(fn)}
+     * （根级函数分支）——任务侧先指纹后转译（转译会 force-compile 惰性载荷）。
+     */
+    public GeneratedJavaSource translateTagUnit(String entryKey, ExecutableFunction fn) {
+        Guard.notEmpty(entryKey, "entryKey");
+        Guard.notNull(fn, "fn");
+        if (fn.getBody() == null)
+            throw unsupported(fn, "tag function without body");
+        GenContext ctx = new GenContext(entryKey);
+        ctx.entryTagForm = true;
+        String methodName = emitFunctionMethod(ctx, fn, fn.getSlotNames(), fn.getBody(),
+                fn.getArgCount(), fn.getDemandArgCount(), fn.getDefaultArgValues(), null, true);
+        ctx.beginEntryMethod(new String[0]);
+        ctx.line("return " + methodName + "($scope, $args, null, $out);");
+        ctx.endMethod();
+        String className = EvalMethodConvention.generatedClassName(entryKey);
+        return new GeneratedJavaSource(entryKey,
+                EvalMethodConvention.GENERATED_PACKAGE + '.' + className, ctx.buildClass(className));
+    }
+
     // ------------------------------------------------------------------
     // 支持集可编程枚举（矩阵注册证据之一；分派为 instanceof 链，本集合与分派分支一一对应，
     // 一致性由矩阵测试逐类真实转译验证——非清单自证）
@@ -1529,8 +1556,17 @@ public final class ExecToJavaTranslator {
     private String emitFunctionMethod(GenContext ctx, IExecutableExpression node, String[] slotNames,
                                       IExecutableExpression bodyExpr, int argCount, int demandArgCount,
                                       IExecutableExpression[] defaultArgValues, int[] capturedTargetSlots) {
+        return emitFunctionMethod(ctx, node, slotNames, bodyExpr, argCount, demandArgCount,
+                defaultArgValues, capturedTargetSlots, false);
+    }
+
+    /** withOut = 标签单元形态：$fn_k 追加 {@code IEvalOutput $out} 形参（输出族节点合法）。 */
+    private String emitFunctionMethod(GenContext ctx, IExecutableExpression node, String[] slotNames,
+                                      IExecutableExpression bodyExpr, int argCount, int demandArgCount,
+                                      IExecutableExpression[] defaultArgValues, int[] capturedTargetSlots,
+                                      boolean withOut) {
         String methodName = ctx.newMethodName("$fn");
-        ctx.beginFnMethod(methodName, slotNames == null ? new String[0] : slotNames);
+        ctx.beginFnMethod(methodName, slotNames == null ? new String[0] : slotNames, withOut);
         int slotCount = slotNames == null ? 0 : slotNames.length;
         for (int i = 0; i < slotCount; i++) {
             ctx.line("Object $v" + i + " = null; // slot " + i + ": " + slotNames[i]);
@@ -2275,6 +2311,8 @@ public final class ExecToJavaTranslator {
         final List<String> extraMethods = new ArrayList<>();
         boolean usesOut;
         boolean jumpCtx;
+        /** xlib 每标签单元形态（I11）：入口参数 = (IEvalScope $scope, Object[] $args, IEvalOutput $out)。 */
+        boolean entryTagForm;
         int methodCounter;
 
         private MethodEmitter current;
@@ -2301,9 +2339,13 @@ public final class ExecToJavaTranslator {
             current = m;
         }
 
-        /** 函数私有方法（$fn_k）：参数形态 = (IEvalScope $scope, Object[] $args, Object[] $captured)。 */
+        /** 函数私有方法（$fn_k）：参数形态 = (IEvalScope $scope, Object[] $args, Object[] $captured[, IEvalOutput $out])。 */
         void beginFnMethod(String name, String[] slotNames) {
-            MethodEmitter m = new MethodEmitter(name, slotNames, false, false, null, false);
+            beginFnMethod(name, slotNames, false);
+        }
+
+        void beginFnMethod(String name, String[] slotNames, boolean hasOut) {
+            MethodEmitter m = new MethodEmitter(name, slotNames, false, hasOut, null, false);
             m.fnParams = true;
             m.caller = current;
             current = m;
@@ -2320,6 +2362,8 @@ public final class ExecToJavaTranslator {
                         .append("io.nop.core.lang.eval.IEvalScope $scope");
                 if (current.fnParams) {
                     sb.append(", Object[] $args, Object[] $captured");
+                    if (current.hasOut)
+                        sb.append(", IEvalOutput ").append(EvalMethodConvention.OUT_PARAM);
                 } else {
                     if (current.outType != null)
                         sb.append(", ").append(current.outType).append(" $out");
@@ -2430,8 +2474,12 @@ public final class ExecToJavaTranslator {
                 sb.append('\n');
             sb.append("    public static Object ").append(EvalMethodConvention.ENTRY_METHOD_NAME)
                     .append("(IEvalScope ").append(EvalMethodConvention.SCOPE_PARAM);
-            if (usesOut)
+            if (entryTagForm) {
+                sb.append(", Object[] ").append(EvalMethodConvention.ARGS_PARAM)
+                        .append(", IEvalOutput ").append(EvalMethodConvention.OUT_PARAM);
+            } else if (usesOut) {
                 sb.append(", IEvalOutput ").append(EvalMethodConvention.OUT_PARAM);
+            }
             sb.append(") {\n");
             for (String text : entryLines)
                 sb.append("    ").append(text).append('\n');

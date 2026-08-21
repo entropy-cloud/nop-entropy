@@ -1,0 +1,7 @@
+/test/xlang/e2e/control.xpl	io.nop.xlang.gen.Gen__test_xlang_e2e_control_xpl	05a6c4571bb8fa82a41c3b50693d442c610b62d8e57a19432cfdcae4a37d4c1f
+/test/xlang/e2e/e2e.xlib#Greet	io.nop.xlang.gen.Gen__test_xlang_e2e_e2e_xlib_Greet	4d20e6b370816654858c26804b7cdf2204327e85c3934f1dbba34670c960667b
+/test/xlang/e2e/e2e.xlib#RangeSum	io.nop.xlang.gen.Gen__test_xlang_e2e_e2e_xlib_RangeSum	997812fcabbe0d5c754e0edab3956e990c06bfd3e61b05b436d7050df348ee1a
+/test/xlang/e2e/e2e.xlib#Sum	io.nop.xlang.gen.Gen__test_xlang_e2e_e2e_xlib_Sum	7080b53c87b3b2695508e9b35a4b5e5b703387d369d3ce49348a4a6c6eb0069e
+/test/xlang/e2e/exception.xpl	io.nop.xlang.gen.Gen__test_xlang_e2e_exception_xpl	1572c689abd1af879f6e494a60324e239737203b28e6c9c0904a568aca93bfaa
+/test/xlang/e2e/expr.xpl	io.nop.xlang.gen.Gen__test_xlang_e2e_expr_xpl	8ecbd8df2f61a1ed6e2075313fa53f3ca2bf12f83bf46b0e5b67993073518c9b
+/test/xlang/e2e/template.xpl	io.nop.xlang.gen.Gen__test_xlang_e2e_template_xpl	49513dc0ca89083e618ccdd5a34937b97b1711f7ac275e1a85246029bb892c80

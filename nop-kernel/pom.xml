@@ -124,6 +124,12 @@
 
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-xlang-java</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-antlr4-common</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
@@ -461,6 +467,7 @@
         <module>nop-core</module>
         <module>nop-xlang</module>
         <module>nop-xlang-java</module>
+        <module>nop-xlang-java-e2e</module>
         <module>nop-xlang-truffle</module>
         <module>nop-xdefs</module>
         <module>nop-markdown</module>

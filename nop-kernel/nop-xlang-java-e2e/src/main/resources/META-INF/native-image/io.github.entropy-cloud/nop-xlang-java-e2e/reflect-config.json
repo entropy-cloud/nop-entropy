@@ -1,0 +1,30 @@
+[
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_control_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_e2e_xlib_Greet",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_e2e_xlib_RangeSum",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_e2e_xlib_Sum",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_exception_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_expr_xpl",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.xlang.gen.Gen__test_xlang_e2e_template_xpl",
+    "allPublicMethods": true
+  }
+]

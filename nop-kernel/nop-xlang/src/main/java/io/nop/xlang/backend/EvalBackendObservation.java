@@ -24,10 +24,12 @@ import java.util.concurrent.ConcurrentHashMap;
  * 每次降级一条（诊断配置 force-interpreter 为静默隔离，不产生降级事件）。</li>
  * <li>指标：counter {@code nop.xlang.execution.backend-degradation}，tags {@code backend}
  * （java|truffle）与 {@code reason}（config-disabled | unavailable | unit-translation-failure |
- * generated-binding-missing | generated-fingerprint-mismatch | tenant-divergent-tree）。
+ * generated-binding-missing | generated-fingerprint-mismatch | tenant-divergent-tree |
+ * codegen-pipeline-missed）。
  * 分级语义（I10）：generated-binding-missing / generated-fingerprint-mismatch = stale 缺陷
  * （每次 WARN）；tenant-divergent-tree = 租户差异化树预期稳态（WARN 按 sourceKey 去重，
- * 指标计数不衰减）。</li>
+ * 指标计数不衰减）。codegen-pipeline-missed（I11）= 构建管线漏跑缺陷（初始化装载时全局
+ * 一次 WARN + java 后端不可用条目，sourceKey = 清单文件探测路径）。</li>
  * <li>不可用条目查询：{@link EvalBackendRegistry#getUnavailableBackends()}。</li>
  * </ul>
  */
@@ -54,6 +56,12 @@ public final class EvalBackendObservation {
 
     /** 清单条目在、树指纹失配、绑定发生时租户上下文活跃 = 租户差异化树预期稳态（非缺陷） */
     public static final String REASON_TENANT_DIVERGENT_TREE = "tenant-divergent-tree";
+
+    /**
+     * java 后端启用且部署声明应有生成产物（require-manifest=true）但 classpath 无清单文件 =
+     * 构建管线漏跑缺陷（I11 漏跑判别子：全局一次性 WARN + 不可用条目，全部资源走动态路径/解释器）。
+     */
+    public static final String REASON_CODEGEN_PIPELINE_MISSED = "codegen-pipeline-missed";
 
     /** 稳态去重集上界：超界回退每次 WARN（宁噪声不无界内存） */
     static final int STEADY_STATE_DEDUP_MAX_KEYS = 1024;

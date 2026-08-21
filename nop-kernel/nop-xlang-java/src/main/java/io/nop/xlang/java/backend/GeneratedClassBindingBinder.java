@@ -8,13 +8,17 @@
 package io.nop.xlang.java.backend;
 
 import io.nop.api.core.context.ContextProvider;
+import io.nop.core.lang.eval.EvalFrame;
 import io.nop.core.lang.eval.IEvalFunction;
+import io.nop.core.lang.eval.IEvalOutput;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.reflect.impl.EvalMethodInvoker;
 import io.nop.core.reflect.impl.MethodInvoker;
 import io.nop.xlang.backend.EvalBackendObservation;
 import io.nop.xlang.backend.IEvalStaticBinding;
+import io.nop.xlang.exec.ExecutableFunction;
+import io.nop.xlang.java.gen.EvalMethodConvention;
 import io.nop.xlang.java.gen.ExecutableTreeFingerprints;
 import io.nop.xlang.java.gen.GeneratedClassManifest;
 import io.nop.xlang.java.gen.GeneratedEvalBinding;
@@ -87,7 +91,17 @@ public class GeneratedClassBindingBinder implements IEvalStaticBindingBinder {
         }
 
         try {
+            if (tree instanceof ExecutableFunction) {
+                // xlib 每标签形态（I11，I10 D4）：树根 = 标签函数（键 path#tag），
+                // 入口 = execute(IEvalScope, Object[], IEvalOutput)——实参组经标签函数帧槽位重建
+                return new TagGeneratedBinding(findTagEntryMethod(generatedClass),
+                        ((ExecutableFunction) tree).getArgCount());
+            }
             Method entryMethod = GeneratedEvalBinding.findEntryMethod(generatedClass);
+            if (isTagEntryMethod(entryMethod)) {
+                // 动作路径收到标签形态入口 = 约定违规（键/形态错配），降级而非误调用
+                throw new IllegalStateException("tag-form entry on action binding: " + entryMethod);
+            }
             return new ReflectiveGeneratedBinding(entryMethod);
         } catch (RuntimeException e) {
             LOG.warn("nop.xlang.execution.generated-binding-convention-violated: path={}, class={}",
@@ -96,6 +110,26 @@ public class GeneratedClassBindingBinder implements IEvalStaticBindingBinder {
                     "generated class violates EvalMethod convention: " + entry.getClassName());
             return null;
         }
+    }
+
+    /** 标签形态入口：static execute(IEvalScope, Object[], IEvalOutput)（{@link EvalMethodConvention#ARGS_PARAM} 形态） */
+    static boolean isTagEntryMethod(Method method) {
+        return method.getParameterCount() == 3 && method.getParameterTypes()[1] == Object[].class
+                && method.getParameterTypes()[2] == IEvalOutput.class;
+    }
+
+    static Method findTagEntryMethod(Class<?> generatedClass) {
+        for (Method method : generatedClass.getDeclaredMethods()) {
+            if (EvalMethodConvention.ENTRY_METHOD_NAME.equals(method.getName())
+                    && java.lang.reflect.Modifier.isStatic(method.getModifiers())
+                    && isTagEntryMethod(method)) {
+                return method;
+            }
+        }
+        throw new IllegalStateException("generated class does not declare tag-form EvalMethod entry: "
+                + EvalMethodConvention.ENTRY_METHOD_NAME + "(IEvalScope, Object[] "
+                + EvalMethodConvention.ARGS_PARAM + ", IEvalOutput " + EvalMethodConvention.OUT_PARAM
+                + "): " + generatedClass.getName());
     }
 
     private void observeStale(String resourcePath, IExecutableExpression tree, String reason, String detail) {
@@ -152,6 +186,51 @@ public class GeneratedClassBindingBinder implements IEvalStaticBindingBinder {
                 if (cause instanceof Error)
                     throw (Error) cause;
                 throw new IllegalStateException("generated binding eval failed: " + entryMethod, cause);
+            }
+        }
+
+        @Override
+        public Object getBindingArtifact() {
+            return entryMethod;
+        }
+    }
+
+    /**
+     * xlib 每标签生成类绑定执行体（I11）：入口 static
+     * {@code execute(IEvalScope $scope, Object[] $args, IEvalOutput $out)}；实参组经标签函数帧
+     * 槽位（0..argCount-1，含缺省实参已求值态）重建，输出缓冲注入运行时输出。身份证据 = 入口
+     * {@link Method}（确定性派生标签生成类）。执行语义对应解释器
+     * {@code LazyCompiledExecutableFunction.execute} 的帧构建 + body 执行（绑定替换 body 后
+     * 帧构建发生在调用方，本执行体在既有帧上取实参）。
+     */
+    static final class TagGeneratedBinding implements IEvalStaticBinding {
+
+        private final Method entryMethod;
+
+        private final int argCount;
+
+        TagGeneratedBinding(Method entryMethod, int argCount) {
+            this.entryMethod = entryMethod;
+            this.argCount = argCount;
+        }
+
+        @Override
+        public Object execute(io.nop.core.lang.eval.EvalRuntime rt) {
+            Object[] args = new Object[argCount];
+            EvalFrame frame = rt.getCurrentFrame();
+            for (int i = 0; i < argCount; i++) {
+                args[i] = frame == null ? null : frame.getArg(i);
+            }
+            try {
+                return entryMethod.invoke(null, rt.getScope(), args, rt.getOut());
+            } catch (Throwable t) {
+                Throwable cause = t instanceof InvocationTargetException && t.getCause() != null
+                        ? t.getCause() : t;
+                if (cause instanceof RuntimeException)
+                    throw (RuntimeException) cause;
+                if (cause instanceof Error)
+                    throw (Error) cause;
+                throw new IllegalStateException("generated tag binding eval failed: " + entryMethod, cause);
             }
         }
 

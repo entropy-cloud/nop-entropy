@@ -1138,4 +1138,10 @@ public interface XLangErrors {
             "nop.err.xlang.generated-manifest-invalid-entry",
             "生成类清单条目非法（resourcePath/className/treeFingerprint 必须完整且格式合法）:"
                     + "{resourcePath} {className}", ARG_RESOURCE_PATH, ARG_CLASS_NAME);
+
+    ErrorCode ERR_XLANG_GENERATED_MANIFEST_FILE_INVALID = define(
+            "nop.err.xlang.generated-manifest-file-invalid",
+            "生成类清单文件非法（行格式/聚合冲突/同形路径折叠冲突——构建产物损坏或多模块键冲突，"
+                    + "处置=重跑构建任务并检查产物）:{resourcePath} {className}",
+            ARG_RESOURCE_PATH, ARG_CLASS_NAME);
 }

@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <artifactId>nop-kernel</artifactId>
+        <groupId>io.github.entropy-cloud</groupId>
+        <version>2.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>nop-xlang-java-e2e</artifactId>
+    <description>java生成类后端端到端fixture模块（I11 全真链路）：构建任务经exec-maven-plugin真实运行（generate-test-resources），_vfs fixture资源 + _gen落盘提交产物 + 双清单 + native reflect配置，断言测试落本模块（模块环消解）</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-xlang-java</artifactId>
+        </dependency>
+
+        <!-- I1 对拍 harness 断言工具（test-jar 发布，见 nop-xlang pom） -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-xlang</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <executions>
+                    <!-- 抑制根 pom pluginManagement 继承的 CodeGenTask executions（本模块无 precompile/aop/postcompile 模板） -->
+                    <execution>
+                        <id>precompile</id>
+                        <phase>none</phase>
+                    </execution>
+                    <execution>
+                        <id>precompile2</id>
+                        <phase>none</phase>
+                    </execution>
+                    <execution>
+                        <id>aop</id>
+                        <phase>none</phase>
+                    </execution>
+                    <execution>
+                        <id>postcompile</id>
+                        <phase>none</phase>
+                    </execution>
+                    <!-- java 生成类构建任务（I11）：扫描 _vfs → 相同前端取树 → 转译 → _gen 落盘 +
+                         双清单 + native reflect 配置。generate-test-resources = postcompile 同相位
+                         （compile 之后，落盘提交产物下轮编译——重生成幂等保证无冲突合并）。
+                         stale 哨兵：手动以 check 模式运行任务（漂移即非零退出）。 -->
+                    <execution>
+                        <id>xlang-java-gen</id>
+                        <phase>generate-test-resources</phase>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>io.nop.xlang.java.gen.task.XlangJavaGenTask</mainClass>
+                            <classpathScope>compile</classpathScope>
+                            <arguments>
+                                <argument>${project.basedir}</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

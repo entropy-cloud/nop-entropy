@@ -180,6 +180,11 @@ public final class ExecutableTreeFingerprints {
                 updateBoolean(md, false);
                 mixValue(md, value);
             }
+        } else if (node instanceof ExecutableFunction) {
+            // 根级 ExecutableFunction（I11 xlib 每标签形态）：函数本身为指纹施加对象，
+            // 全量函数载荷混合（签名 + 缺省 + 函数体——防参数变更 stale 漏检）。
+            // 纯增量分支：既有调用方不传函数根，行为不变。
+            mixExecutableFunction(md, (ExecutableFunction) node);
         } else if (node instanceof CloneLiteralExecutable) {
             mixValue(md, ((CloneLiteralExecutable) node).getValue());
         } else if (node instanceof SlotIdentifierExecutable) {

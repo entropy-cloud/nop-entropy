@@ -59,8 +59,9 @@ public class TestGeneratedFixtureSources {
         try (Stream<Path> files = Files.list(fixtureDir)) {
             genCount = files.filter(p -> p.getFileName().toString().startsWith("Gen_")).count();
         }
-        assertEquals(ProductionBindingCorpus.staticUnits().size() + 1L, genCount,
-                "fixtures = corpus static units + tenant unit (no stale fixtures allowed)");
+        // corpus 静态单元 + 租户单元（I10）+ xlib 标签夹具（I11，反漂移护栏见 TestTagFixtureSources）
+        assertEquals(ProductionBindingCorpus.staticUnits().size() + 2L, genCount,
+                "fixtures = corpus static units + tenant unit + tag fixture (no stale fixtures allowed)");
     }
 
     private void assertFixtureInSync(String path) {

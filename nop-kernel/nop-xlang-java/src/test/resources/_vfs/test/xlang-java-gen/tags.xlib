@@ -1,0 +1,16 @@
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <tags>
+        <Sum>
+            <attr name="a" mandatory="true"/>
+            <attr name="b" defaultValue="5"/>
+            <source>
+                <c:script>a + b</c:script>
+            </source>
+        </Sum>
+
+        <Greet outputMode="text">
+            <attr name="name" mandatory="true"/>
+            <source>hello ${name}!</source>
+        </Greet>
+    </tags>
+</lib>

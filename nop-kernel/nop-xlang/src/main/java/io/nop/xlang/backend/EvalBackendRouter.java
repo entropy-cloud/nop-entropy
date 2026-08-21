@@ -11,6 +11,7 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalExprProvider;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.xlang.exec.ExecutableFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -177,6 +178,45 @@ public class EvalBackendRouter {
         decision.setSourceKey(sourceKeyOf(resourcePathOf(bound), bound));
         recordDecision(decision);
         return result;
+    }
+
+    /**
+     * xlib 每标签运行时绑定（I11，I10 D4 消费面"绑定作用面 = 每标签 executable"的落地）：
+     * 由 {@code XplLibTagCompiler} 标签惰性编译完成点调用，对标签函数的 body executable 施加
+     * 与 {@link #bindLoadedUnit} 同构的加载期裁定。绑定键 = {@code libPath + '#' + tagName}
+     *（xlib 裸路径永不在扫描清单内——标签体经动态出口编译时按非成员走动态路径，无误降级）；
+     * 强制 node 输出模式变体键追加 {@code "@node"}（首落不生成、不入清单 → 静默走解释器）。
+     *
+     * <p>逐分支与 {@code bindLoadedUnit} 一致：注册表空 / force-interpreter / java 开关关 /
+     * 清单外 / fn 不可识别 → 返回原 body（静默）；不可用 → 观测 + degraded 包装；绑定命中 →
+     * {@link EvalStaticBoundExecutable} 包装（随标签编译缓存条目复用）；绑定缺失（binder 返回
+     * null）→ degraded 包装（分级观测由生产 binder 在返回 null 前自记，此处不补记防双记）。
+     * 指纹口径 = ExecutableFunction 根树指纹（函数全载荷：签名 + 缺省 + 函数体——防参数变更
+     * stale 漏检）。绑定作用面 = body（不替换 IEvalFunction 实例：live 事实
+     * {@code LazyCompiledExecutableFunction.getCompiled()} 硬转型 + functionModel.setInvoker 共享）。
+     */
+    public IExecutableExpression bindTagFunction(String bindingKey, ExecutableFunction fn) {
+        if (fn == null || bindingKey == null)
+            return fn == null ? null : fn.getBody();
+        IEvalStaticBackend staticBackend = registry.findStaticBackend();
+        if (staticBackend == null)
+            return fn.getBody();
+        if (isForceInterpreter() || !isStaticSlotEnabled())
+            return fn.getBody();
+        if (!staticBackend.isStaticCandidate(bindingKey))
+            return fn.getBody();
+        if (!staticBackend.isAvailable()) {
+            EvalBackendObservation.onDegradation(staticBackend.getBackendId(),
+                    EvalBackendObservation.REASON_UNAVAILABLE + ":" + staticBackend.getUnavailableReason(),
+                    bindingKey, fn.getLocation());
+            return new EvalStaticDegradedExecutable(fn.getBody(), EvalBackendObservation.REASON_UNAVAILABLE);
+        }
+        IEvalStaticBinding binding = staticBackend.findStaticBinding(bindingKey, fn);
+        if (binding == null) {
+            return new EvalStaticDegradedExecutable(fn.getBody(),
+                    "load-time-" + EvalBackendObservation.REASON_GENERATED_BINDING_MISSING);
+        }
+        return new EvalStaticBoundExecutable(fn.getBody(), binding, staticBackend.getBackendId());
     }
 
     private Object executeDegradedUnit(EvalStaticDegradedExecutable degraded, EvalRuntime rt) {

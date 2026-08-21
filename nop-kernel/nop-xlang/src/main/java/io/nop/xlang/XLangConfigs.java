@@ -62,4 +62,8 @@ public interface XLangConfigs {
     @Description("部署形态标记：auto（缺省，探测系统属性org.graalvm.nativeimage.kind）| jvm | native-image。native-image下truffle后端结构性不启用")
     IConfigReference<String> CFG_XLANG_EXECUTION_DEPLOYMENT_FORM = varRef(s_loc,
             "nop.xlang.execution.deployment-form", String.class, "auto");
+
+    @Description("声明本部署应存在java后端生成产物（构建任务已接入）。true且classpath无生成类清单文件时=构建管线漏跑缺陷：java后端注册不可用条目+全局WARN。缺省false=未接入构建任务的合法空态（静默）")
+    IConfigReference<Boolean> CFG_XLANG_EXECUTION_JAVA_BACKEND_REQUIRE_MANIFEST = varRef(s_loc,
+            "nop.xlang.execution.java-backend.require-manifest", Boolean.class, false);
 }

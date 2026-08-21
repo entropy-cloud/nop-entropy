@@ -1,0 +1,31 @@
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <tags>
+        <Sum>
+            <attr name="a" mandatory="true"/>
+            <attr name="b" defaultValue="5"/>
+            <source>
+                <c:script>a + b</c:script>
+            </source>
+        </Sum>
+
+        <Greet outputMode="text">
+            <attr name="name" mandatory="true"/>
+            <source>hello ${name}!</source>
+        </Greet>
+
+        <RangeSum>
+            <attr name="n" mandatory="true"/>
+            <source>
+                <c:script>
+                    let total = 0;
+                    let i = 1;
+                    while (i &lt;= n) {
+                        total += i;
+                        i++;
+                    }
+                    total
+                </c:script>
+            </source>
+        </RangeSum>
+    </tags>
+</lib>

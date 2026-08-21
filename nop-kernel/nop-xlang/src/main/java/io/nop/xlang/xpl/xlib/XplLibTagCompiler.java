@@ -15,6 +15,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.reflect.IFunctionModel;
@@ -47,6 +48,8 @@ import io.nop.xlang.ast.XLangASTBuilder;
 import io.nop.xlang.ast.XLangASTNode;
 import io.nop.xlang.ast.XLangOutputMode;
 import io.nop.xlang.ast.definition.ResolvedFuncDefinition;
+import io.nop.xlang.backend.EvalBackendRouter;
+import io.nop.xlang.exec.ExecutableFunction;
 import io.nop.xlang.utils.ExprEvalHelper;
 import io.nop.xlang.xdef.XDefConstants;
 import io.nop.xlang.xpl.IXplCompiler;
@@ -104,6 +107,21 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
      */
     private final ResourceCacheEntryWithLoader<CompiledTag> cachedCompiledTagForNodeMode = new ResourceCacheEntryWithLoader<>(
             "XplLibTagCompilerForNodeMode", path -> this.buildCompiledTag(XLangOutputMode.node));
+
+    /**
+     * xlib 每标签生成类绑定键（I11，I10 D4 消费面）：默认编译缓存（标签声明输出模式）键 =
+     * {@code libPath#tagName}；强制 node 输出模式缓存 = 标签声明模式为 node 时同一键（同树形态），
+     * 否则追加 {@code "@node"} 变体后缀（首落不生成不入清单 → 该变体静默走解释器）。
+     * 返回 null 表示该编译变体不参与绑定（不存在的形态）。
+     */
+    private String tagBindingKey(XLangOutputMode forcedOutputMode) {
+        String key = lib.resourcePath() + "#" + tag.getTagName();
+        if (forcedOutputMode == null)
+            return key;
+        if (tag.getOutputMode() == forcedOutputMode)
+            return key;
+        return key + "@node";
+    }
 
     public XplLibTagCompiler(XplTagLib lib, XplTag tag) {
         this.tag = tag;
@@ -678,7 +696,7 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
             // compiledTag.slotDefaults = scope.getSlotDefaults();
             compiledTag.functionModel = fn;
 
-            fn.setInvoker(new LazyCompiledFunction(cp, compiledTag));
+            fn.setInvoker(new LazyCompiledFunction(cp, compiledTag, tagBindingKey(outputMode)));
 
             return compiledTag;
         } catch (Exception e) {
@@ -691,13 +709,20 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
     public class LazyCompiledFunction implements IEvalFunction {
         private final XLangCompileTool compileTool;
         private final CompiledTag compiledTag;
+        /**
+         * 生成类绑定键（I11）：标签惰性编译完成点对函数 body 施加加载期裁定（{@code EvalBackendRouter
+         * .bindTagFunction}）；null = 该编译变体不参与绑定。绑定作用面 = body（不替换本函数实例——
+         * {@code LazyCompiledExecutableFunction.getCompiled()} 硬转型 + functionModel.setInvoker 共享）。
+         */
+        private final String bindingKey;
         private boolean compiled;
         private IEvalFunction compiledFn;
         private RuntimeException compileException;
 
-        public LazyCompiledFunction(XLangCompileTool compileTool, CompiledTag compiledTag) {
+        public LazyCompiledFunction(XLangCompileTool compileTool, CompiledTag compiledTag, String bindingKey) {
             this.compileTool = compileTool;
             this.compiledTag = compiledTag;
+            this.bindingKey = bindingKey;
         }
 
         public IEvalFunction getCompiledFn() {
@@ -719,6 +744,7 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
                 try {
                     ArrowFunctionExpression ast = parseSource(compileTool);
                     compiledFn = compileTool.compileFunction(ast);
+                    applyGeneratedClassBinding();
                     compiledTag.functionModel.setInvoker(compiledFn);
                     compiledTag.functionModel.freeze(true);
                 } catch (Exception e) {
@@ -729,6 +755,20 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
                 return null;
             });
             compiledTag.deps = deps;
+        }
+
+        /**
+         * 标签函数编译完成后施加生成类绑定（I11 xlib 每标签形态）：命中则函数 body 替换为
+         * 已绑定/降级包装执行体，随标签编译缓存条目复用。静默分支（未注册后端/开关关/清单外/
+         * 变体键不在清单）返回原 body，行为与现状一致。
+         */
+        private void applyGeneratedClassBinding() {
+            if (bindingKey == null || !(compiledFn instanceof ExecutableFunction))
+                return;
+            ExecutableFunction fn = (ExecutableFunction) compiledFn;
+            IExecutableExpression boundBody = EvalBackendRouter.instance().bindTagFunction(bindingKey, fn);
+            if (boundBody != null && boundBody != fn.getBody())
+                fn.setBody(boundBody);
         }
 
         @Override
