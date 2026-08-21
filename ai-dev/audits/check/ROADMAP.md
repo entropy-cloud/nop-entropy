@@ -94,39 +94,39 @@
 | ai-rest | nop-ai-gateway/shell/coder/dao/service/maven/mcp 等 | 215 | [ai-rest.md](ai-rest.md) | done |
 | stream-core | `nop-stream/nop-stream-core`（含 Flink 兼容层） | 578 | [stream-core.md](stream-core.md) | done |
 | stream-runtime | `nop-stream/nop-stream-runtime` + rocksdb | 262 | [stream-runtime.md](stream-runtime.md) | done |
-| stream-cep | `nop-stream/nop-stream-cep` | 131 | [stream-cep.md](stream-cep.md) | in-progress |
-| stream-flow-conn | nop-stream-flow + connector 系 + fraud-example | 138 | [stream-flow-conn.md](stream-flow-conn.md) | in-progress |
-| nop-code | `nop-code`（core/service/api/lang 为主） | 281 | [nop-code.md](nop-code.md) | pending |
-| nop-graph | `nop-graph` | 30 | [nop-graph.md](nop-graph.md) | pending |
-| nop-datav | `nop-datav`（service/dao） | 231 | [nop-datav.md](nop-datav.md) | pending |
-| nop-search | `nop-search` | 19 | [nop-search.md](nop-search.md) | pending |
+| stream-cep | `nop-stream/nop-stream-cep` | 131 | [stream-cep.md](stream-cep.md) | done |
+| stream-flow-conn | nop-stream-flow + connector 系 + fraud-example | 138 | [stream-flow-conn.md](stream-flow-conn.md) | done |
+| nop-code | `nop-code`（core/service/api/lang 为主） | 281 | [nop-code.md](nop-code.md) | done |
+| nop-graph | `nop-graph` | 30 | [nop-graph.md](nop-graph.md) | done |
+| nop-datav | `nop-datav`（service/dao） | 231 | [nop-datav.md](nop-datav.md) | done |
+| nop-search | `nop-search` | 19 | [nop-search.md](nop-search.md) | done |
 
 ### Phase 5 — 集成与运行时外围
 
 | 单元 | 路径 | 文件数 | 报告 | 状态 |
 |------|------|--------|------|------|
-| net-http-rpc | nop-network: http + rpc | 154 | [net-http-rpc.md](net-http-rpc.md) | pending |
-| net-misc | nop-network: netty + codec + socket + vertx | 65 | [net-misc.md](net-misc.md) | pending |
-| nop-integration | `nop-integration` | 75 | [nop-integration.md](nop-integration.md) | pending |
-| msg-cluster-cred | nop-message + nop-cluster + nop-credential | 199 | [msg-cluster-cred.md](msg-cluster-cred.md) | pending |
-| runner-cli | `nop-runner` | 50 | [runner-cli.md](runner-cli.md) | pending |
-| spring-quarkus | `nop-spring` + `nop-quarkus` | 55 | [spring-quarkus.md](spring-quarkus.md) | pending |
+| net-http-rpc | nop-network: http + rpc | 154 | [net-http-rpc.md](net-http-rpc.md) | in-progress |
+| net-misc | nop-network: netty + codec + socket + vertx | 65 | [net-misc.md](net-misc.md) | done |
+| nop-integration | `nop-integration` | 75 | [nop-integration.md](nop-integration.md) | done |
+| msg-cluster-cred | nop-message + nop-cluster + nop-credential | 199 | [msg-cluster-cred.md](msg-cluster-cred.md) | done |
+| runner-cli | `nop-runner` | 50 | [runner-cli.md](runner-cli.md) | done |
+| spring-quarkus | `nop-spring` + `nop-quarkus` | 55 | [spring-quarkus.md](spring-quarkus.md) | done |
 
 ### Phase 6 — 工具、测试基建与示例
 
 | 单元 | 路径 | 文件数 | 报告 | 状态 |
 |------|------|--------|------|------|
-| nop-autotest | `nop-autotest` | 45 | [nop-autotest.md](nop-autotest.md) | pending |
-| nop-utils | `nop-utils` | 138 | [nop-utils.md](nop-utils.md) | pending |
-| dev-tools | `nop-dev-tools`（idea-plugin 为主） | 181 | [dev-tools.md](dev-tools.md) | pending |
-| frontend-benchmark | nop-frontend-support + nop-benchmark | 182 | [frontend-benchmark.md](frontend-benchmark.md) | pending |
-| demo-migration | `nop-demo` + `nop-migration` | 163 | [demo-migration.md](demo-migration.md) | pending |
+| nop-autotest | `nop-autotest` | 45 | [nop-autotest.md](nop-autotest.md) | done |
+| nop-utils | `nop-utils` | 138 | [nop-utils.md](nop-utils.md) | done |
+| dev-tools | `nop-dev-tools`（idea-plugin 为主） | 181 | [dev-tools.md](dev-tools.md) | done |
+| frontend-benchmark | nop-frontend-support + nop-benchmark | 182 | [frontend-benchmark.md](frontend-benchmark.md) | done |
+| demo-migration | `nop-demo` + `nop-migration` | 163 | [demo-migration.md](demo-migration.md) | done |
 
 ### Phase 7 — 汇总与复检
 
 | 单元 | 内容 | 产出 | 状态 |
 |------|------|------|------|
-| SUMMARY | 汇总全部单元的 P0/P1 发现，按模块与主题聚类 | [SUMMARY.md](SUMMARY.md) | pending |
+| SUMMARY | 汇总全部单元的 P0/P1 发现，按模块与主题聚类 | [SUMMARY.md](SUMMARY.md) | done |
 | 复检批次 | 对 P0 密集、覆盖率声明不足（<60% 深读）或发现异常少的单元二次检查 | 各单元报告追加章节 | pending |
 
 ## 执行规则
@@ -199,7 +199,7 @@
   - nop-task: 循环/分支迭代 2+ 起被 continuation-skip 静默跳过; 延迟重试每轮双执行副作用; executor+异步步骤成功即永久挂死
   - nop-wf: 批量转办 mutation 全链路无鉴权 → 任意登录用户可改派他人审批任务并审批通过
   - 启动 Phase 3（可复用业务模块）。
-- 2026-08-20: **Phase 3 全部 11 个单元完成**。合计 192 条发现（P0=6 / P1=42 / P2=69 / P3=75）。P0 摘要:
+- 2026-08-20: **Phase 3 全部 11 个单元完成**。合计 179 条发现（P0=6 / P1=42 / P2=66 / P3=65；初记 192 为手工累加错误，已按各报告统计表修正）。P0 摘要:
   - nop-report: `ReportDataSet.min` 遇 null 字段值直接放弃整个聚合结果
   - nop-batch: `ListBatchLoader` subList 分页参数错误 → 超过一个批次的数据静默丢失且任务报成功
   - file-retry-tcc: TCC 超时取消失败被误标 `CANCEL_SUCCESS` 终态 → 补偿被双重永久放弃，参与者资源悬挂
@@ -207,3 +207,21 @@
   - format-pdf-svg: `ResourceDocumentParser.open()` 对同一 InputStream 双读 → memoryRestrict 默认开启时 PDF 解析整体不可用
   - format-office: sharedStrings 按不可信 `uniqueCount` 预分配 → 几十字节恶意文件触发 OOM
   - 启动 Phase 4（大型子系统）。
+- 2026-08-21: **Phase 4 全部 12 个单元完成**。合计 195 条发现（P0=10 / P1=49 / P2=70 / P3=66）。P0 摘要:
+  - ai-core-api: Gemini/Ollama 流式工具调用 arguments 完全丢失 → 默认流式路径工具参数恒为空
+  - ai-toolkit-skills: ThoughtStorage 把客户端可控 header 直接拼文件路径 → 任意 .json 读写（路径遍历）
+  - ai-rest: 扫码登录 publicAccess 端点身份取自调用方可控 payload → 任意用户账号接管
+  - stream-core: `StreamReduceOperator.open()` 无条件重建状态 map → checkpoint 恢复后聚合状态清零
+  - stream-cep: watermark/定时器回调在错误的 key 上下文执行 → 多 key 流事件滞留、SharedBuffer 泄漏
+  - stream-flow-conn: 2PC sink 无 per-subtask 隔离 → 并行度>1 时其余 subtask 数据静默丢失; source run() 不重置 running 标志 → region 重启后数据流静默停摆
+  - nop-code: 迭代式 Tarjan SCC 回溯 lowLink 传播被跳过 → 环检测静默返回错误数据
+  - nop-graph: `Edge` 未实现 equals/hashCode → 图差分把所有边判为同时新增+删除
+  - nop-search: 数值字段 filter 用 DoublePoint 查 LongPoint 索引 → 永不命中; `indexDir` 接受任意绝对路径建索引 → 任意本地文件读取
+  - 启动 Phase 5（集成与运行时外围）。
+- 2026-08-21: **Phase 5 全部 6 个单元完成**。合计 114 条发现（P0=5 / P1=26 / P2=46 / P3=37；初记 117 为手工累加错误，已按各报告统计表修正）。P0 摘要:
+  - net-misc: GZip/Deflate 解压从原始压缩流拷贝 → 解压完全失效; SocketServer 连接表 add/remove key 不匹配 → 连接永久泄漏; Vert.x MQTT 服务端从不 accept → 无法完成任何客户端连接
+  - nop-integration: 腾讯短信 areaCode 未设置必现 NPE; JavaEmailSender 吞掉全部发送异常 → MFA 邮件假发送成功
+  - 启动 Phase 6（工具、测试基建与示例）。
+- 2026-08-21: **Phase 6 全部 5 个单元完成**。合计 90 条发现（P0=2 / P1=16 / P2=39 / P3=33）。P0 摘要:
+  - nop-utils: `UnifiedDiffLine` 对空行 diff 内容 Guard.notEmpty 必抛异常（真实 diff 常态）; `ShellCommand.create` Unix 分支缺 `-c` → 非 Windows 平台命令完全不可用
+- 2026-08-21: **Phase 7 SUMMARY 完成**。全量总计（按 54 份报告统计表汇总，awk 提取）: **P0=36 / P1=209 / P2=355 / P3=330，共 930 条**。复检批次保持 pending（建议清单见 SUMMARY.md 末节）。
