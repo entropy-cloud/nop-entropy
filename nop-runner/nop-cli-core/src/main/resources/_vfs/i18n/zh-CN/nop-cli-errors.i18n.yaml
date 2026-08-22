@@ -546,6 +546,7 @@ nop.err.dao.txn.rollback-fail: 事务回滚失败
 nop.err.dao.txn.rollback-only-not-allow-commit: 事务标记为只允许回滚，因此不能提交此事务:{txnGroup}
 nop.err.dao.unknown-entity: 类型为[{entityName}]，id为[{entityId}]的记录不存在
 nop.err.dao.unknown-query-space: 未定义的数据源:{querySpace}
+nop.err.doc.convert-unsupported-text-output: 目标类型的渲染器不支持文本输出：{fromFileType} -> {toFileType}
 nop.err.eql.cannot-merge-collection-scopes: '无法合并集合操作符作用域: operator1={operator1},
   operator2={operator2}'
 nop.err.eql.collection-prefix-mismatch: '集合操作符的collectionPrefix不匹配: scope1=[{collectionPrefix1}],
@@ -823,6 +824,7 @@ nop.err.ooxml.docx.xpl-begin-no-end: 通过超链接标注的xpl标签[{tagName}
 nop.err.ooxml.docx.xpl-end-no-begin: 通过超链接标注的xpl标签[{tagName}]没有起始部分:{label}
 nop.err.ooxml.file-path-no-ext: 文件必须具有扩展名:{path}
 nop.err.ooxml.invalid-format: 文件格式不正确，解析失败
+nop.err.ooxml.invalid-part-path: 非法的包内部件路径:{path}
 nop.err.ooxml.lib-namespace-conflict-with-internal-namespace: 标签库[{libPath}]的namespace[{namespace}]与内置的名字空间冲突，以下名字空间已被占用:{nsList}
 nop.err.ooxml.link-source-not-xml: 超链接的内容不是XML格式:source={source},label={label}
 nop.err.ooxml.unsupported-content-type: 不支持的文件类型:{path}
@@ -957,6 +959,8 @@ nop.err.record.aggregate-field-no-agg-func: 汇总字段没有设置aggFunc属�
 nop.err.record.attribute-not-implemented: 记录属性[{attributeName}]尚未实现:{fieldName}
 nop.err.record.body-not-defined: 模型没有定义body段:{typeName}
 nop.err.record.case-value-map-to-unknown-type: 字段[{fieldName}]的条件类型映射到未定义的类型:{caseValue}=>{typeName}
+nop.err.record.collection-no-progress: 集合元素读取零进展，检查readWhen/repeatUntil配置:field={fieldName},pos={pos}
+nop.err.record.collection-size-exceed-limit: 集合大小超过限制:field={fieldName},size={length}
 nop.err.record.decode-length-is-too-long: length
 nop.err.record.field-is-mandatory: 字段[{fieldName}]的值不允许为空
 nop.err.record.field-length-greater-than-max-value: fieldName
@@ -991,6 +995,8 @@ nop.err.record.unknown-obj-type: 未知的对象类型:{typeName}
 nop.err.record.unsupported-packet-field-length-field: '不支持的包长度字段长度:{lengthFieldLength}
   (期望: 1, 2, 3, 4, 或 8)'
 nop.err.record.value-not-match-string: 值与预想的情况不匹配:pos={pos},expected={expected}
+nop.err.record.zlib-decode-fail: zlib数据解压失败:length={length}
+nop.err.record.zlib-output-too-large: zlib解压输出超过上限:maxLength={maxLength}
 nop.err.rpc.cancelled: RPC调用已取消，原因:{reason}
 nop.err.rpc.channel-closed: RPC连接已关闭
 nop.err.rpc.empty-request: 请求对象为空
@@ -1037,6 +1043,7 @@ nop.err.socket.accept-fail: 网络连接失败
 nop.err.socket.connect-fail: 网络连接失败
 nop.err.socket.read-fail: 网络读取数据失败
 nop.err.socket.read-timeout: 读取数据超时
+nop.err.socket.start-server-fail: 启动服务端失败
 nop.err.socket.write-fail: 网络写数据失败
 nop.err.sql.unknown-lib-path: sql库文件不存在:{path}
 nop.err.task.already-failed: 任务[{taskName}]在历史状态中已终态失败，恢复执行时重抛终态异常
@@ -1379,6 +1386,7 @@ nop.err.xlang.xpl.unknown-slot-arg: slot[{slotName}]不支持变量[{argName}]
 nop.err.xlang.xpl.unknown-tag-attr: 标签[{tagName}]不支持属性:{attrName},允许的属性为{allowedNames}
 nop.err.xlang.xpl.unknown-tag-name: 未知的标签:{tagName}
 nop.err.xlang.xpl.unknown-tag-slot: 未知的子节点:{slotName},允许的节点名为{allowedNames}
+nop.err.xlsx.cell-ref-out-of-range: 单元格引用超出Excel范围:cellRef={cellRef}
 nop.err.xlsx.chart-color-resolve-fail: 解析图表颜色失败:colorName={colorName}
 nop.err.xlsx.chart-parse-fail: 解析图表失败:chartId={chartId},partName={partName}
 nop.err.xlsx.chart-style-parse-fail: 解析图表样式失败:parserName={parserName},elementName={elementName}
