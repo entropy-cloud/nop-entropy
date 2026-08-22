@@ -20,6 +20,7 @@ import java.util.List;
 import static io.nop.xlang.XLangErrors.ARG_NODE;
 import static io.nop.xlang.XLangErrors.ARG_XPATH;
 import static io.nop.xlang.XLangErrors.ERR_XT_MANDATORY_NODE_NOT_FOUND;
+import static io.nop.xlang.XLangErrors.ERR_XT_XPATH_ERROR;
 
 public abstract class AbstractSelectorRule implements IXTransformRule {
     protected final IXSelector<XNode> xpath;
@@ -34,10 +35,19 @@ public abstract class AbstractSelectorRule implements IXTransformRule {
         if (xpath == null)
             return node;
         context.setThisNode(node);
-        Object selected = xpath.select(node);
+        Object selected;
+        try {
+            selected = xpath.select(node);
+        } catch (NopException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new NopException(ERR_XT_XPATH_ERROR)
+                    .param(ARG_XPATH, String.valueOf(xpath))
+                    .cause(e);
+        }
         if (selected == null && mandatory) {
             throw new NopException(ERR_XT_MANDATORY_NODE_NOT_FOUND)
-                    .param(ARG_XPATH, xpath)
+                    .param(ARG_XPATH, String.valueOf(xpath))
                     .param(ARG_NODE, node);
         }
         return selected instanceof XNode ? (XNode) selected : node;
@@ -48,7 +58,16 @@ public abstract class AbstractSelectorRule implements IXTransformRule {
         if (xpath == null)
             return Collections.singletonList(node);
         context.setThisNode(node);
-        Collection<?> result = xpath.selectAll(node);
+        Collection<?> result;
+        try {
+            result = xpath.selectAll(node);
+        } catch (NopException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new NopException(ERR_XT_XPATH_ERROR)
+                    .param(ARG_XPATH, String.valueOf(xpath))
+                    .cause(e);
+        }
         if (result == null || result.isEmpty())
             return Collections.emptyList();
         return (List<XNode>) result;

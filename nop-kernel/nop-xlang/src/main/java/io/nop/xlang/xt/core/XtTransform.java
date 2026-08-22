@@ -12,36 +12,43 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.xdsl.DslModelParser;
+import io.nop.xlang.xt.IXTransform;
 import io.nop.xlang.xt.IXTransformRule;
-import io.nop.xlang.xt.model.XtMappingModel;
 import io.nop.xlang.xt.model.XtTransformModel;
 
 import java.util.Collections;
 import java.util.Map;
 
-public class XtTransform {
+public class XtTransform implements IXTransform {
     private final XtTransformModel model;
     private final IXTransformRule mainRule;
     private final Map<String, IXTransformRule> templates;
-    private final Map<String, XtMappingModel> mappings;
+    private final Map<String, Map<String, IXTransformRule>> mappings;
+    private final Map<String, IXTransformRule> mappingDefaults;
 
     public XtTransform(XtTransformModel model) {
         this.model = model;
         XtTransformCompiler compiler = new XtTransformCompiler();
-        this.mainRule = compiler.compile(model);
-        this.templates = compiler.compileTemplates(model);
-        this.mappings = compiler.getMappings(model);
+        compiler.compileAll(model);
+        this.mainRule = compiler.getMainRule();
+        this.templates = compiler.getTemplates();
+        this.mappings = compiler.getCompiledMappings();
+        this.mappingDefaults = compiler.getMappingDefaults();
     }
 
+    @Override
     public XNode transform(XNode source) {
         return transform(source, Collections.emptyMap());
     }
 
+    @Override
     public XNode transform(XNode source, Map<String, Object> params) {
         XNode outputRoot = XNode.make("root");
-        XtTransformContext context = new XtTransformContext(model, templates, mappings, params, outputRoot, XLang.newEvalScope());
+        XtTransformContext context = new XtTransformContext(model, templates, mappings, mappingDefaults,
+                params, outputRoot, XLang.newEvalScope());
         context.setCurrentNode(source);
         context.setRoot(source);
+        bindParameters(context);
 
         if (mainRule != null) {
             mainRule.apply(outputRoot, source, context);
@@ -51,6 +58,22 @@ public class XtTransform {
             return outputRoot.child(0);
         }
         return outputRoot;
+    }
+
+    /**
+     * 把 params 的每个 key 同时暴露为 scope 局部变量，便于规则/XPL 体内直接以 ${name} 引用。
+     * 与内置变量 node/thisNode/root/output/params/context 同名时以内置变量优先，不覆盖。
+     */
+    private void bindParameters(XtTransformContext context) {
+        Map<String, Object> params = context.getParameters();
+        if (params == null || params.isEmpty())
+            return;
+        for (Map.Entry<String, Object> entry : params.entrySet()) {
+            String name = entry.getKey();
+            if (name == null || XtExprParser.BUILTIN_SCOPE_VARS.contains(name))
+                continue;
+            context.setVariable(name, entry.getValue());
+        }
     }
 
     public static XtTransform load(String path) {
@@ -75,7 +98,14 @@ public class XtTransform {
         return templates;
     }
 
-    public Map<String, XtMappingModel> getMappings() {
+    /**
+     * mappingId -&gt; (tagName -&gt; compiled rule)，已合并 imports（prefix 前缀 key）与 inherits。
+     */
+    public Map<String, Map<String, IXTransformRule>> getMappings() {
         return mappings;
+    }
+
+    public Map<String, IXTransformRule> getMappingDefaults() {
+        return mappingDefaults;
     }
 }

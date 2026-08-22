@@ -1,0 +1,13 @@
+<transform x:schema="/nop/schema/xt.xdef"
+           xmlns:x="/nop/schema/xdsl.xdef"
+           xmlns:xt="/nop/schema/xt.xdef">
+    <main>
+        <result>
+            <xt:each xpath="/root/item">
+                <xt:if test="${@id=='X'}">
+                    <match id="${@id}"/>
+                </xt:if>
+            </xt:each>
+        </result>
+    </main>
+</transform>

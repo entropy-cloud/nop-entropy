@@ -10,7 +10,6 @@ package io.nop.xlang.xt.rules;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.xml.IXSelector;
 import io.nop.core.lang.xml.XNode;
-import io.nop.xlang.XLangConstants;
 import io.nop.xlang.xt.IXTransformRule;
 import io.nop.xlang.xt.IXTransformContext;
 
@@ -42,12 +41,12 @@ public class CustomTagRule extends AbstractSelectorRule {
 
         XNode outputNode = context.getOutput().newOutputNode(tagName);
 
-        context.getEvalScope().setLocalValue("node", selected);
-        context.getEvalScope().setLocalValue(XLangConstants.XPATH_VAR_THIS_NODE, selected);
+        // 单参 childContext 只切换当前节点；输出栈由本规则自己 push/pop 管理
+        IXTransformContext childContext = context.childContext(selected);
 
         if (attrs != null) {
             for (Map.Entry<String, IEvalAction> entry : attrs.entrySet()) {
-                Object value = entry.getValue().invoke(context.getEvalScope());
+                Object value = entry.getValue().invoke(childContext.getEvalScope());
                 if (value != null) {
                     outputNode.setAttr(entry.getKey(), value);
                 }
@@ -55,7 +54,7 @@ public class CustomTagRule extends AbstractSelectorRule {
         }
 
         if (xtAttrs != null) {
-            Object value = xtAttrs.invoke(context.getEvalScope());
+            Object value = xtAttrs.invoke(childContext.getEvalScope());
             if (value instanceof Map) {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> attrsMap = (Map<String, Object>) value;
@@ -72,7 +71,6 @@ public class CustomTagRule extends AbstractSelectorRule {
 
         try {
             if (bodyRule != null) {
-                IXTransformContext childContext = context.childContext(selected, outputNode);
                 bodyRule.apply(outputNode, selected, childContext);
             }
         } finally {

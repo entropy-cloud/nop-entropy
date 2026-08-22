@@ -38,6 +38,7 @@ import io.nop.xlang.xdef.IStdDomainHandler;
 import io.nop.xlang.xdef.XDefConstants;
 import io.nop.xlang.xdsl.XDslConstants;
 import io.nop.xlang.xpl.tags.FilterBeanExpressionCompiler;
+import io.nop.xlang.xt.core.XtExprParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -536,7 +537,8 @@ public class XplStdDomainHandlers {
             XLangOutputMode oldMode = cp.getOutputMode();
             cp.outputMode(XLangOutputMode.none);
             try {
-                return cp.compileTemplateExpr(loc, text, true, ExprPhase.transform);
+                Expression expr = new XtExprParser().parseTemplateExpr(loc, text, true, ExprPhase.transform);
+                return cp.buildEvalAction(expr);
             } catch (Exception e) {
                 throw newPropError(loc, propName, text).cause(e);
             } finally {
@@ -547,9 +549,8 @@ public class XplStdDomainHandlers {
         @Override
         public void validate(SourceLocation loc, String propName, Object value, IValidationErrorCollector collector) {
             String text = value.toString();
-            XLangCompileTool cp = XLang.newCompileTool();
             try {
-                cp.getCompiler().parseTemplateExpr(loc, text, true, ExprPhase.transform, cp.getScope(), false);
+                new XtExprParser().parseTemplateExpr(loc, text, true, ExprPhase.transform);
             } catch (Exception e) {
                 collector.addException(e);
             }
@@ -572,7 +573,8 @@ public class XplStdDomainHandlers {
             XLangOutputMode oldMode = cp.getOutputMode();
             cp.outputMode(XLangOutputMode.none);
             try {
-                return cp.compileTemplateExpr(loc, text, false, ExprPhase.transform);
+                Expression expr = new XtExprParser().parseTemplateExpr(loc, text, false, ExprPhase.transform);
+                return cp.buildEvalAction(expr);
             } catch (Exception e) {
                 throw newPropError(loc, propName, text).cause(e);
             } finally {
@@ -584,9 +586,8 @@ public class XplStdDomainHandlers {
         public void validate(SourceLocation loc, String propName,
                              Object value, IValidationErrorCollector collector) {
             String text = value.toString();
-            XLangCompileTool cp = XLang.newCompileTool();
             try {
-                cp.getCompiler().parseTemplateExpr(loc, text, false, ExprPhase.transform, cp.getScope(), false);
+                new XtExprParser().parseTemplateExpr(loc, text, false, ExprPhase.transform);
             } catch (Exception e) {
                 collector.addException(e);
             }

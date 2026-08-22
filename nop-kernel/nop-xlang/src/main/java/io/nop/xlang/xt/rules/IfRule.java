@@ -31,9 +31,6 @@ public class IfRule implements IXTransformRule {
     }
 
     private boolean evaluateCondition(XNode node, IXTransformContext context) {
-        context.getEvalScope().setLocalValue("node", node);
-        context.getEvalScope().setLocalValue("context", context);
-        context.getEvalScope().setLocalValue("params", context.getParameters());
         Object result = condition.invoke(context.getEvalScope());
         return Boolean.TRUE.equals(result);
     }

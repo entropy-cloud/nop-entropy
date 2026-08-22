@@ -44,9 +44,6 @@ public class ChooseRule implements IXTransformRule {
         if (condition == null) {
             return false;
         }
-        context.getEvalScope().setLocalValue("node", node);
-        context.getEvalScope().setLocalValue("context", context);
-        context.getEvalScope().setLocalValue("params", context.getParameters());
         Object result = condition.invoke(context.getEvalScope());
         return Boolean.TRUE.equals(result);
     }

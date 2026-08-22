@@ -7,5 +7,12 @@
  */
 package io.nop.xlang.xt;
 
+import io.nop.core.lang.xml.XNode;
+
+import java.util.Map;
+
 public interface IXTransform {
+    XNode transform(XNode source);
+
+    XNode transform(XNode source, Map<String, Object> params);
 }

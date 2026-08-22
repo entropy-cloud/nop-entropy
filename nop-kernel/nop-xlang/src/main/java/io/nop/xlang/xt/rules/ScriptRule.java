@@ -26,10 +26,8 @@ public class ScriptRule extends AbstractSelectorRule {
         if (selected == null)
             return;
 
-        context.getEvalScope().setLocalValue("node", selected);
-        context.getEvalScope().setLocalValue("context", context);
+        // output 已在 XtTransformContext 构造时注入，这里幂等再次确认，供 XPL 脚本体内直接引用
         context.getEvalScope().setLocalValue("output", context.getOutput());
-        context.getEvalScope().setLocalValue("params", context.getParameters());
 
         script.invoke(context.getEvalScope());
     }

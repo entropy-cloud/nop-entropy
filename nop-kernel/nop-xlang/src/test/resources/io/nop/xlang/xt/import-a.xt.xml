@@ -1,0 +1,11 @@
+<transform x:schema="/nop/schema/xt.xdef"
+           xmlns:x="/nop/schema/xdsl.xdef"
+           xmlns:xt="/nop/schema/xt.xdef">
+    <import from="/test/xt/import-b.xt.xml" prefix="ext"/>
+
+    <main>
+        <result>
+            <xt:apply-template id="ext:t"/>
+        </result>
+    </main>
+</transform>

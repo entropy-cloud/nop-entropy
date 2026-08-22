@@ -1,0 +1,29 @@
+<transform x:schema="/nop/schema/xt.xdef"
+           xmlns:x="/nop/schema/xdsl.xdef"
+           xmlns:xt="/nop/schema/xt.xdef">
+    <mapping id="base">
+        <match tag="a">
+            <baseA/>
+        </match>
+        <match tag="b">
+            <baseB/>
+        </match>
+        <default>
+            <baseDefault/>
+        </default>
+    </mapping>
+
+    <mapping id="child" inherits="base">
+        <match tag="a">
+            <childA/>
+        </match>
+    </mapping>
+
+    <main>
+        <result>
+            <xt:apply-mapping id="child" xpath="/root/a"/>
+            <xt:apply-mapping id="child" xpath="/root/b"/>
+            <xt:apply-mapping id="child" xpath="/root/c"/>
+        </result>
+    </main>
+</transform>

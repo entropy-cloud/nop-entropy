@@ -1089,9 +1089,15 @@ public interface XLangErrors {
     ErrorCode ERR_FILTER_NOT_ALLOW_EXPR = define("nop.err.filter.not-allow-expr", "Filter不支持的表达式", ARG_EXPR);
 
     // XT Transform errors
+    String ARG_RULE_TYPE = "ruleType";
+
     ErrorCode ERR_XT_TEMPLATE_NOT_FOUND = define("nop.err.xt.template-not-found", "未找到模板:{templateId}", ARG_TEMPLATE_ID);
     ErrorCode ERR_XT_MAPPING_NOT_FOUND = define("nop.err.xt.mapping-not-found", "未找到映射:{mappingId}", ARG_MAPPING_ID);
     ErrorCode ERR_XT_MANDATORY_NODE_NOT_FOUND = define("nop.err.xt.mandatory-node-not-found", "强制要求的节点未找到:{xpath}", ARG_XPATH, ARG_NODE);
+    ErrorCode ERR_XT_XPATH_ERROR = define("nop.err.xt.xpath-error", "xpath表达式错误:{xpath}", ARG_XPATH);
+    ErrorCode ERR_XT_RULE_COMPILE_ERROR = define("nop.err.xt.rule-compile-error", "规则编译失败:{ruleType}", ARG_RULE_TYPE);
+    ErrorCode ERR_XT_CIRCULAR_REFERENCE = define("nop.err.xt.circular-reference", "xt转换规则存在循环引用:{path}", ARG_PATH);
+    ErrorCode ERR_XT_IMPORT_CONFLICT = define("nop.err.xt.import-conflict", "import冲突:id={id} 已被定义", ARG_ID);
 
     // ==================== Type Inference Errors ====================
 

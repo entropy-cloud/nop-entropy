@@ -21,10 +21,6 @@ public class ValueRule extends AbstractSelectorRule {
 
     @Override
     public void apply(XNode parent, XNode node, IXTransformContext context) {
-        context.getEvalScope().setLocalValue("node", node);
-        context.getEvalScope().setLocalValue("context", context);
-        context.getEvalScope().setLocalValue("params", context.getParameters());
-
         Object value = valueExpr.invoke(context.getEvalScope());
         context.getOutput().setValue(value);
     }

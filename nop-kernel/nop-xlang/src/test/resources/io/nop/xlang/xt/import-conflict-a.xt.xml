@@ -1,0 +1,16 @@
+<transform x:schema="/nop/schema/xt.xdef"
+           xmlns:x="/nop/schema/xdsl.xdef"
+           xmlns:xt="/nop/schema/xt.xdef">
+    <import from="/test/xt/import-b.xt.xml" prefix="p"/>
+
+    <template id="t">
+        <localT/>
+    </template>
+
+    <main>
+        <result>
+            <xt:apply-template id="p:t"/>
+            <xt:apply-template id="t"/>
+        </result>
+    </main>
+</transform>

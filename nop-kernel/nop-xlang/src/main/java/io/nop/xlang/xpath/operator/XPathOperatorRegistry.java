@@ -13,6 +13,9 @@ import io.nop.xlang.xpath.IXPathOperator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static io.nop.xlang.XLangConstants.XPATH_OPERATOR_HTML;
+import static io.nop.xlang.XLangConstants.XPATH_OPERATOR_IDENTITY;
+import static io.nop.xlang.XLangConstants.XPATH_OPERATOR_INNER_HTML;
 import static io.nop.xlang.XLangConstants.XPATH_OPERATOR_INNER_XML;
 import static io.nop.xlang.XLangConstants.XPATH_OPERATOR_TAG;
 import static io.nop.xlang.XLangConstants.XPATH_OPERATOR_TEXT;
@@ -29,6 +32,9 @@ public class XPathOperatorRegistry implements IXPathOperatorProvider {
         _instance.registerOperator(XPATH_OPERATOR_TAG, TagOperator.INSTANCE);
         _instance.registerOperator(XPATH_OPERATOR_VALUE, ValueOperator.INSTANCE);
         _instance.registerOperator(XPATH_OPERATOR_TEXT, TextOperator.INSTANCE);
+        _instance.registerOperator(XPATH_OPERATOR_HTML, HtmlOperator.INSTANCE);
+        _instance.registerOperator(XPATH_OPERATOR_INNER_HTML, InnerHtmlOperator.INSTANCE);
+        _instance.registerOperator(XPATH_OPERATOR_IDENTITY, IdentityOperator.INSTANCE);
     }
 
     private final Map<String, IXPathOperator> operators = new ConcurrentHashMap<>();

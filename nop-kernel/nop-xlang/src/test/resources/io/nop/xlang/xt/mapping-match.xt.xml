@@ -1,0 +1,19 @@
+<transform x:schema="/nop/schema/xt.xdef"
+           xmlns:x="/nop/schema/xdsl.xdef"
+           xmlns:xt="/nop/schema/xt.xdef">
+    <mapping id="m">
+        <match tag="foo">
+            <fooOut/>
+        </match>
+        <default>
+            <otherOut/>
+        </default>
+    </mapping>
+
+    <main>
+        <result>
+            <xt:apply-mapping id="m" xpath="/root/foo"/>
+            <xt:apply-mapping id="m" xpath="/root/bar"/>
+        </result>
+    </main>
+</transform>

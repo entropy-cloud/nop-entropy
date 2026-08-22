@@ -13,7 +13,9 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.xlang.xt.IXTransformRule;
 import io.nop.xlang.xt.IXTransformContext;
 
+import static io.nop.xlang.XLangErrors.ARG_PATH;
 import static io.nop.xlang.XLangErrors.ARG_TEMPLATE_ID;
+import static io.nop.xlang.XLangErrors.ERR_XT_CIRCULAR_REFERENCE;
 import static io.nop.xlang.XLangErrors.ERR_XT_TEMPLATE_NOT_FOUND;
 
 public class ApplyTemplateRule extends AbstractSelectorRule {
@@ -38,11 +40,18 @@ public class ApplyTemplateRule extends AbstractSelectorRule {
                     .param(ARG_TEMPLATE_ID, templateId);
         }
 
-        IXTransformContext childContext = context.childContext(selected);
-        template.apply(parent, selected, childContext);
+        if (!context.getVisitedTemplates().add(templateId))
+            throw new NopException(ERR_XT_CIRCULAR_REFERENCE).param(ARG_PATH, templateId);
 
-        if (bodyRule != null) {
-            bodyRule.apply(parent, selected, childContext);
+        IXTransformContext childContext = context.childContext(selected);
+        try {
+            template.apply(parent, selected, childContext);
+
+            if (bodyRule != null) {
+                bodyRule.apply(parent, selected, childContext);
+            }
+        } finally {
+            context.getVisitedTemplates().remove(templateId);
         }
     }
 

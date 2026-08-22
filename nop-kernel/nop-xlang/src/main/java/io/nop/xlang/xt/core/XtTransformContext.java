@@ -7,49 +7,79 @@
  */
 package io.nop.xlang.xt.core;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.adapter.XNodeAdapter;
+import io.nop.xlang.XLangConstants;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.xt.IXTransformContext;
 import io.nop.xlang.xt.IXTransformRule;
-import io.nop.xlang.xt.model.XtMappingMatchModel;
-import io.nop.xlang.xt.model.XtMappingModel;
 import io.nop.xlang.xt.model.XtTransformModel;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+
+import static io.nop.xlang.XLangErrors.ARG_MAPPING_ID;
+import static io.nop.xlang.XLangErrors.ERR_XT_MAPPING_NOT_FOUND;
 
 public class XtTransformContext implements IXTransformContext {
     private final XtTransformModel transformModel;
     private final Map<String, IXTransformRule> templates;
-    private final Map<String, XtMappingModel> mappings;
+    private final Map<String, Map<String, IXTransformRule>> mappings;
+    private final Map<String, IXTransformRule> mappingDefaults;
     private final IEvalScope scope;
     private final Map<String, Object> parameters;
     private final IXtTransformOutput output;
+    // 所有 child context 共享同一份循环引用检测状态
+    private final Set<String> visitedTemplates;
+    private final Set<String> visitedMappings;
 
     private XNode currentNode;
     private XNode rootNode;
 
     public XtTransformContext(XtTransformModel transformModel,
                               Map<String, IXTransformRule> templates,
-                              Map<String, XtMappingModel> mappings,
+                              Map<String, Map<String, IXTransformRule>> mappings,
+                              Map<String, IXTransformRule> mappingDefaults,
                               Map<String, Object> parameters,
                               XNode outputRoot,
                               IEvalScope scope) {
+        this(transformModel, templates, mappings, mappingDefaults, parameters,
+                new XtTransformOutputImpl(outputRoot), scope, new HashSet<>(), new HashSet<>());
+    }
+
+    XtTransformContext(XtTransformModel transformModel,
+                       Map<String, IXTransformRule> templates,
+                       Map<String, Map<String, IXTransformRule>> mappings,
+                       Map<String, IXTransformRule> mappingDefaults,
+                       Map<String, Object> parameters,
+                       IXtTransformOutput output,
+                       IEvalScope scope,
+                       Set<String> visitedTemplates,
+                       Set<String> visitedMappings) {
         this.transformModel = transformModel;
         this.templates = templates;
         this.mappings = mappings;
+        this.mappingDefaults = mappingDefaults;
         this.parameters = parameters != null ? parameters : new HashMap<>();
         this.scope = scope != null ? scope : XLang.newEvalScope();
-        this.output = new XtTransformOutputImpl(outputRoot);
+        this.output = output;
+        this.visitedTemplates = visitedTemplates;
+        this.visitedMappings = visitedMappings;
         this.currentNode = null;
         this.rootNode = null;
 
-        this.scope.setLocalValue("context", this);
-        this.scope.setLocalValue("params", this.parameters);
+        this.scope.setLocalValue(XtExprParser.VAR_NODE, null);
+        this.scope.setLocalValue(XLangConstants.XPATH_VAR_THIS_NODE, null);
+        this.scope.setLocalValue(XLangConstants.XPATH_VAR_ROOT, null);
+        this.scope.setLocalValue(XtExprParser.VAR_OUTPUT, this.output);
+        this.scope.setLocalValue(XtExprParser.VAR_PARAMS, this.parameters);
+        this.scope.setLocalValue(XtExprParser.VAR_CONTEXT, this);
     }
 
     public XtTransformModel getTransformModel() {
@@ -60,20 +90,24 @@ public class XtTransformContext implements IXTransformContext {
         return templates.get(id);
     }
 
-    public XtMappingModel getMapping(String id) {
-        return mappings.get(id);
+    @Override
+    public IXTransformRule getCompiledRuleForTag(String mappingId, String tagName) {
+        Map<String, IXTransformRule> matches = mappings.get(mappingId);
+        if (matches == null && !mappingDefaults.containsKey(mappingId))
+            throw new NopException(ERR_XT_MAPPING_NOT_FOUND).param(ARG_MAPPING_ID, mappingId);
+
+        if (matches != null) {
+            IXTransformRule rule = matches.get(tagName);
+            if (rule != null)
+                return rule;
+        }
+        return mappingDefaults.get(mappingId);
     }
 
+    @Deprecated
+    @Override
     public IXTransformRule getRuleForTag(String mappingId, String tagName) {
-        XtMappingModel mapping = mappings.get(mappingId);
-        if (mapping == null)
-            return null;
-
-        XtMappingMatchModel match = mapping.getMatch(tagName);
-        if (match != null) {
-            return (IXTransformRule) match;
-        }
-        return (IXTransformRule) mapping.getDefault();
+        return getCompiledRuleForTag(mappingId, tagName);
     }
 
     public IXtTransformOutput getOutput() {
@@ -92,14 +126,34 @@ public class XtTransformContext implements IXTransformContext {
         return parameters;
     }
 
-    public XtTransformContext childContext(XNode newNode) {
-        return childContext(newNode, output.getCurrentNode());
+    @Override
+    public Set<String> getVisitedTemplates() {
+        return visitedTemplates;
     }
 
-    public XtTransformContext childContext(XNode newNode, XNode newOutput) {
-        XtTransformContext child = new XtTransformContext(transformModel, templates, mappings, parameters, output.getCurrentNode(), scope);
+    @Override
+    public Set<String> getVisitedMappings() {
+        return visitedMappings;
+    }
+
+    public XtTransformContext childContext(XNode newNode) {
+        XtTransformContext child = new XtTransformContext(transformModel, templates, mappings, mappingDefaults,
+                parameters, output, scope, visitedTemplates, visitedMappings);
         child.currentNode = newNode;
         child.rootNode = this.rootNode != null ? this.rootNode : newNode;
+        child.scope.setLocalValue(XtExprParser.VAR_NODE, newNode);
+        child.scope.setLocalValue(XLangConstants.XPATH_VAR_THIS_NODE, newNode);
+        child.scope.setLocalValue(XLangConstants.XPATH_VAR_ROOT, child.rootNode);
+        return child;
+    }
+
+    /**
+     * 切换当前节点并压入新的输出栈顶。调用方负责在适当的时候（推荐 try-finally）
+     * 调用 {@code getOutput().popNode()} 还原输出栈。
+     */
+    public XtTransformContext childContext(XNode newNode, XNode newOutput) {
+        XtTransformContext child = childContext(newNode);
+        child.output.pushNode(newOutput);
         return child;
     }
 
@@ -115,7 +169,7 @@ public class XtTransformContext implements IXTransformContext {
 
     @Override
     public void setThisNode(XNode node) {
-        this.currentNode = node;
+        setCurrentNode(node);
     }
 
     @Override
@@ -130,10 +184,13 @@ public class XtTransformContext implements IXTransformContext {
 
     public void setCurrentNode(XNode node) {
         this.currentNode = node;
+        this.scope.setLocalValue(XtExprParser.VAR_NODE, node);
+        this.scope.setLocalValue(XLangConstants.XPATH_VAR_THIS_NODE, node);
     }
 
     public void setRoot(XNode root) {
         this.rootNode = root;
+        this.scope.setLocalValue(XLangConstants.XPATH_VAR_ROOT, root);
     }
 
     private static class XtTransformOutputImpl implements IXtTransformOutput {

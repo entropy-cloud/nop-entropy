@@ -1,0 +1,12 @@
+<transform x:schema="/nop/schema/xt.xdef"
+           xmlns:x="/nop/schema/xdsl.xdef"
+           xmlns:xt="/nop/schema/xt.xdef"
+           xmlns:c="/nop/schema/xlib.xdef">
+    <main>
+        <result>
+            <xt:script xpath="/root">
+                <c:script>import io.nop.core.lang.xml.XNode; let n = XNode.make('built'); n.setContentValue('yes'); output.addChild(n)</c:script>
+            </xt:script>
+        </result>
+    </main>
+</transform>

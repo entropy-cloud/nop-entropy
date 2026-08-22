@@ -1,0 +1,17 @@
+<transform x:schema="/nop/schema/xt.xdef"
+           xmlns:x="/nop/schema/xdsl.xdef"
+           xmlns:xt="/nop/schema/xt.xdef">
+    <main>
+        <result>
+            <xt:if test="${@enabled=='true'}">
+                <yes/>
+            </xt:if>
+            <xt:if test="${@enabled=='false'}">
+                <no/>
+            </xt:if>
+            <xt:if test="${@enabled==null}">
+                <none/>
+            </xt:if>
+        </result>
+    </main>
+</transform>

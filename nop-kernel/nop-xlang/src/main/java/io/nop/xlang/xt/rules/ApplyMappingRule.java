@@ -13,8 +13,8 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.xlang.xt.IXTransformRule;
 import io.nop.xlang.xt.IXTransformContext;
 
-import static io.nop.xlang.XLangErrors.ARG_MAPPING_ID;
-import static io.nop.xlang.XLangErrors.ERR_XT_MAPPING_NOT_FOUND;
+import static io.nop.xlang.XLangErrors.ARG_PATH;
+import static io.nop.xlang.XLangErrors.ERR_XT_CIRCULAR_REFERENCE;
 
 public class ApplyMappingRule extends AbstractSelectorRule {
     private final String mappingId;
@@ -32,21 +32,29 @@ public class ApplyMappingRule extends AbstractSelectorRule {
         if (selected == null)
             return;
 
-        if (context.getMapping(mappingId) == null) {
-            throw new NopException(ERR_XT_MAPPING_NOT_FOUND)
-                    .param(ARG_MAPPING_ID, mappingId);
-        }
-
         String tagName = selected.getTagName();
-        IXTransformRule rule = context.getRuleForTag(mappingId, tagName);
+        IXTransformRule rule = context.getCompiledRuleForTag(mappingId, tagName);
+
+        // mapping 本身不存在时 getCompiledRuleForTag 已抛 ERR_XT_MAPPING_NOT_FOUND；
+        // mapping 存在但 tag 无 match 且无 default 时无规则可应用
+        if (rule == null && bodyRule == null)
+            return;
+
+        String visitKey = mappingId + ":" + tagName;
+        if (!context.getVisitedMappings().add(visitKey))
+            throw new NopException(ERR_XT_CIRCULAR_REFERENCE).param(ARG_PATH, visitKey);
 
         IXTransformContext childContext = context.childContext(selected);
-        if (rule != null) {
-            rule.apply(parent, selected, childContext);
-        }
+        try {
+            if (rule != null) {
+                rule.apply(parent, selected, childContext);
+            }
 
-        if (bodyRule != null) {
-            bodyRule.apply(parent, selected, childContext);
+            if (bodyRule != null) {
+                bodyRule.apply(parent, selected, childContext);
+            }
+        } finally {
+            context.getVisitedMappings().remove(visitKey);
         }
     }
 

@@ -1,0 +1,14 @@
+<transform x:schema="/nop/schema/xt.xdef"
+           xmlns:x="/nop/schema/xdsl.xdef"
+           xmlns:xt="/nop/schema/xt.xdef"
+           xmlns:c="/nop/schema/xlib.xdef">
+    <main>
+        <result>
+            <xt:gen xpath="/root">
+                <c:for var="i" items="${items}">
+                    <row>${i.name}</row>
+                </c:for>
+            </xt:gen>
+        </result>
+    </main>
+</transform>

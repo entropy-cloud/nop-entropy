@@ -26,13 +26,14 @@ public class GenRule extends AbstractSelectorRule {
         if (selected == null)
             return;
 
-        context.getEvalScope().setLocalValue("node", selected);
-        context.getEvalScope().setLocalValue("context", context);
-        context.getEvalScope().setLocalValue("params", context.getParameters());
-
         XNode generated = generator.generateNode(context.getEvalScope());
         if (generated != null) {
-            context.getOutput().addChild(generated);
+            if (generated.isDummyNode()) {
+                // 多根输出被包在 dummy 节点中，展开为其子节点
+                context.getOutput().getCurrentNode().appendChildren(generated.detachChildren());
+            } else {
+                context.getOutput().addChild(generated);
+            }
         }
     }
 

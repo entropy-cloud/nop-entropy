@@ -1,0 +1,13 @@
+<transform x:schema="/nop/schema/xt.xdef"
+           xmlns:x="/nop/schema/xdsl.xdef"
+           xmlns:xt="/nop/schema/xt.xdef">
+    <template id="t">
+        <hit/>
+    </template>
+
+    <main>
+        <result>
+            <xt:apply-template id="t" xpath="/root/no/such/node" mandatory="true"/>
+        </result>
+    </main>
+</transform>
