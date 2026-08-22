@@ -48,7 +48,7 @@ public class SequentialTaskExecutor implements Executor, ISuspendable, IBlocking
     private volatile boolean hasTask;
 
     // nanos
-    private long totalExecutionTime;
+    private volatile long totalExecutionTime;
 
     private final Runnable doTask;
 
@@ -65,8 +65,11 @@ public class SequentialTaskExecutor implements Executor, ISuspendable, IBlocking
         this(executor, new OverflowBlockingQueue<>(queueCapacity, overflowPolicy), quotaMillis);
     }
 
+    /**
+     * 任务总执行时间，单位为纳秒。doTask中累加的CoreMetrics.nanoTimeDiff()差值即为纳秒
+     */
     public long getTotalExecutionTime() {
-        return TimeUnit.NANOSECONDS.convert(totalExecutionTime, TimeUnit.MILLISECONDS);
+        return totalExecutionTime;
     }
 
     public void clearQueue() {

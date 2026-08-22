@@ -677,7 +677,7 @@ public class ClassHelper {
             toReturn = URLDecoder.decode(toReturn, "UTF-8");
             return toReturn.replaceAll("!.*$", "");
         } catch (IOException var6) {
-            throw new RuntimeException(var6);
+            throw NopException.adapt(var6);
         }
     }
 

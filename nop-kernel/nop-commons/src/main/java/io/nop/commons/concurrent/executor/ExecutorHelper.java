@@ -35,7 +35,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class ExecutorHelper {
-    static Executor SYNC_EXECUTOR = task -> task.run();
+    static volatile Executor SYNC_EXECUTOR = task -> task.run();
     static final Logger LOG = LoggerFactory.getLogger(ExecutorHelper.class);
 
     public static Executor syncExecutor() {

@@ -78,7 +78,7 @@ Targets: 对应 6 份报告；`nop-kernel`、`nop-core`、`nop-xlang`、`nop-com
 - Item Types: `Fix | Decision | Proof`
 
 - [x] kernel-small.md（P1×2 P2×8 P3×6）— 2026-08-22 完成：13 修复 + 1 非问题（表格尾空单元格：探针实证与 GFM 一致、审计例子有误）+ 1 非问题附带加固（getErrorDetail 越界路径经 janino getMessage 不可达）+ 2 处局部不修复裁定（CLI stderr 惯例 / Guard 风格 IAE）；五模块 156 tests 绿（含 kernel-cli 回归），红验证抽查 9 条（markdown 6 + dataset 4 + record-mapping 3 中 9 失败形态与审计一致）；超审计新发现 1 项（changeLinkUrl/addImageSummarization 只排 posList 不排并行列表的配对缺陷）已修复
-- [ ] nop-commons.md（P1×6 P2×8 P3×6）
+- [x] nop-commons.md（P1×6 P2×8 P3×6）— 2026-08-22 完成：17 条修复（Lazy.loaded 标志/LocalFileLock 恒 false 返回+异常路径句柄清理/LocalResourceLockManager 租约条件反转+ResourceLock 空锁 NPE/writeTextWithLock 字节截断/findLocalIp 懒初始化/LocalCache.putIfAbsent 原子化/RateLimitExecutor throttle 失效+map 泄漏/RoundRobinSupplier 扩容失败泄漏/DefaultRateLimiter 失败计数/SequentialTaskExecutor 单位+volatile/GlobalCacheRegistry 先替换后抛/IoHelper BOM 短流 EOF/DateHelper formatter 回填/FileHelper 资源缺失 NPE/裸 RuntimeException×2/静态 volatile×4/MutableInt javadoc+HighWatermarkSemaphore 统计/StringTrie 空串）+ 2 暂缓（JavaSerializer ObjectInputFilter 安全基线决策/ExecutorHelper config 突变系 refreshConfig 承重约定）+ 1 子项非问题（MapCache async：FutureHelper.futureCall 实为同步执行，探针测试实证）；219 tests 绿（nop-commons）+ 回归 nop-core 235 / nop-xlang 551 绿；红验证 22 处失败形态与审计一致
 - [ ] nop-core.md（P1×3 P2×4 P3×10）
 - [ ] nop-core-framework.md（P1×4 P2×5 P3×6）
 - [ ] nop-utils.md（P1×7 P2×7 P3×7）

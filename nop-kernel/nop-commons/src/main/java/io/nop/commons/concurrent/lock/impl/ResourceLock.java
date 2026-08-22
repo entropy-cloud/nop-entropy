@@ -68,6 +68,9 @@ public class ResourceLock extends AbstractResourceLock {
 
     @Override
     public boolean tryResetLease(long leaseTime) {
+        IResourceLockState lock = this.lock;
+        if (lock == null)
+            return false;
         return lockManager.tryResetLease(lock, leaseTime);
     }
 

@@ -63,6 +63,10 @@ public interface ICache<K, V> extends IAsyncCache<K, V>, IAsyncMap<K, V>, IConfi
         }
     }
 
+    /**
+     * 仅当key不存在时才插入。实现方应保证check-then-act的原子性：
+     * 并发对同一key调用时，只有一个调用返回true。
+     */
     default boolean putIfAbsent(K key, V value) {
         if (containsKey(key))
             return false;

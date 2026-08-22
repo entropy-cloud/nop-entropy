@@ -47,6 +47,8 @@ public T get() {
 - **建议**: 在 `synchronized` 块内 `value = supplier.get();` 之后补 `loaded = true;`；同时注意 supplier 返回 null 时当前语义（loaded 置 true、value 为 null）需要一并定义。
 - **误报排除**: 已通读全类确认 `loaded` 无其他赋值点（仅 `set()`）；已核实调用方确实通过 `Lazy.of(...)` 使用而非 `set()` 预填。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 已修复。`Lazy.get()` 在 synchronized 块内 `value = supplier.get()` 之后补上 `loaded = true`；supplier 返回 null 时同样标记已加载（不重复执行）。测试 `TestLazy.testGetCachesSupplierValue` / `testGetCachesNullValue` / `testSetPreloads`（红验证：修复前 supplier 执行 3 次/2 次，断言 1 次失败，形态与审计一致）。
+
 ### [P1] LocalFileLock.tryLock 恒返回 false：锁获取"成功"却报告失败，lock() 必抛超时异常且泄漏 FileLock
 
 - **文件**: `nop-kernel/nop-commons/src/main/java/io/nop/commons/concurrent/lock/LocalFileLock.java:40-105`
@@ -75,6 +77,8 @@ public void lock() {
 - **风险**: (1) `Lock.lock()` 在**成功获取锁之后**抛 `ERR_FILE_ACQUIRE_LOCK_TIMEOUT`；(2) `Lock.tryLock()` 返回 false 但进程实际持有 OS 文件锁，调用方认为失败而去重试/走分支，锁句柄与 RandomAccessFile 挂在对象上直到 GC，期间其他进程永远无法获锁（锁饥饿）。该类是公共 `java.util.concurrent.locks.Lock` 实现，任何下游使用即触发。当前仓库内无调用方（已全仓 grep 确认），故未评 P0。
 - **建议**: 改为 `return lock != null;`；同时 `tryLock()` 抛 `OverlappingFileLockException`/`ClosedChannelException` 时也应关闭并清理已打开的 `randomAccessFile`/`channel`（当前外层 catch 直接抛出，未关闭已打开句柄）。
 - **误报排除**: 已通读全类 127 行，确认无其他返回路径；确认 `FileChannel.tryLock` 语义（成功返回锁对象、重叠锁抛异常）。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 已修复。私有 `tryLock(long,boolean)` 返回值由硬编码 `false` 改为 `return lock != null;`；新增 `releaseHandles()` 并在 InterruptedException 与 Exception 两个 catch 路径上关闭已打开的 lock/channel/randomAccessFile（unlock() 复用同一清理逻辑），消除异常路径句柄泄漏。测试 `TestLocalFileLock.testLockAcquireSuccess`（红验证：修复前 lock() 在获锁成功后仍抛 `nop.err.commons.file.acquire-lock-timeout`，与审计描述完全一致）。
 
 ### [P1] LocalResourceLockManager.tryResetLease/isHoldingLock 过期判断条件写反：未过期的锁被当作过期移除，过期的锁反被报告为"持有"
 
@@ -109,6 +113,8 @@ public boolean isHoldingLock(IResourceLockState lock) {
 - **建议**: 将两处条件改为 `expireTime > current`（有效租约）分支内做续租/判持有，else 分支 `removeExpiredLock` 并 return false；`ResourceLock.tryResetLease` 增加 `lock == null` 判断。
 - **误报排除**: 已对照 `checkTimeout`、`tryLockWithLease`、`ResourceLockState`、`SysDaoResourceLockManager` 三处交叉验证语义，确认是反转而非另有隐含语义。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 已修复。`tryResetLease`/`isHoldingLock` 条件由 `expireTime < current`（已过期）改为 `expireTime > current`（有效租约）才续租/判持有，else 分支 `removeExpiredLock`；附带修复 `ResourceLock.tryResetLease` 未获锁时 `lock == null` 直接透传导致 `state.getLatch()` NPE（先判空返回 false）。测试 `TestLocalLockManager.testTryResetLease` / `testTryResetLeaseOnExpired` / `testIsHoldingLockOnExpired` / `testResourceLockTryResetLeaseWithoutLock`（红验证：修复前有效租约被移除且续租返回 false、过期租约被续租返回 true、过期锁被报告持有、未获锁直接 NPE，四处失败形态与审计一致）。
+
 ### [P1] FileHelper.writeTextWithLock 用字符数 truncate，非 ASCII 内容被截断损坏
 
 - **文件**: `nop-kernel/nop-commons/src/main/java/io/nop/commons/util/FileHelper.java:492-496`
@@ -126,6 +132,8 @@ channel.truncate(content.length());   // content.length() 是字符数，不是�
 - **建议**: `channel.truncate(content.getBytes(charsetName).length)`，或复用已构造的 `sendBuffer` 计算写入字节数。
 - **误报排除**: 已确认 `content.length()` 为 String 字符数；已确认无其他逻辑补偿该截断。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 已修复。truncate 长度改为 `content.getBytes(charsetName).length`（复用写入用的同一 byte[]，不重复编码），与上游 Nacos 实现对齐。测试 `TestFileHelper.testWriteTextWithLockNonAscii`（红验证：修复前 "中文内容测试123" 写入后被截断读回为 "中文内"，与审计预测的 9 字符→9 字节完全一致）。
+
 ### [P1] NetHelper.findLocalIp 绕过懒初始化直接读 LOCALHOST4 字段，特定网络环境下 NPE
 
 - **文件**: `nop-kernel/nop-commons/src/main/java/io/nop/commons/util/NetHelper.java:349-352`
@@ -142,6 +150,8 @@ public static String findLocalIp() {
 - **风险**: 现实调用链: `SysDaoResourceLockManager`（分布式锁记录 holder 地址）、`SysSequenceGenerator`（序列 hostId）、`AbstractLeaderElector`（选主）、`DefaultServerAddrFinder` 都会走到此方法，异常环境下一个 NPE 打断锁获取/序列生成。
 - **建议**: 改为 `LOCALHOST4().getHostAddress()`。
 - **误报排除**: 已确认 `LOCALHOST4` 仅在 `_initLocalHost()` 内赋值，`_initLocalHost()` 仅被两个访问器方法触发；`findFirstNonLoopbackAddress` 存在返回 null 的路径（所有网卡被过滤时最后 `InetAddress.getLocalHost()` 也可能抛 UnknownHostException，仅 LOG.warn 后 return null）。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 已修复。`LOCALHOST4.getHostAddress()` 改为 `LOCALHOST4().getHostAddress()` 触发懒初始化。补充 `TestNetHelper.testFindLocalIp` 冒烟回归。红验证说明：确定性触发需要"无非回环可用网卡且 `InetAddress.getLocalHost()` 抛 UnknownHostException"的运行环境，单测无法稳定构造（回退链末端的 getLocalHost 在常见开发/CI 机器上均成功），本条以代码级复核为修复依据：字段唯一赋值点在 `_initLocalHost()`，仅两个访问器方法触发，一行语义修复无歧义。
 
 ### [P1] LocalCache.putIfAbsent 非原子 check-then-act，并发下缓存 API 契约破坏
 
@@ -163,6 +173,8 @@ public boolean putIfAbsent(K key, V value) {
 - **风险**: `putIfAbsent` 返回 true 的语义是"由我插入"，调用方（如 nop-core `ResourceLoadingCache.state_loadFrom` 中 `if (!cache.putIfAbsent(...)) entry.clear()`）据此决定是否清理/占用，竞态下两个调用方都认为自己占有条目，后写覆盖先写。LocalCache 是全仓库默认本地缓存实现，影响面大。
 - **建议**: 改为 `return cache.asMap().putIfAbsent(key, value) == null;`；`ICache` 接口默认方法的 javadoc 应注明实现应保证原子性。
 - **误报排除**: 已核对 Caffeine `Cache#asMap` 返回 `ConcurrentMap`，`putIfAbsent` 原子；确认 `getAndSet`、`MapCache.putIfAbsent`（基于 `map.putIfAbsent`）无此问题。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 已修复。`LocalCache.putIfAbsent` 改为 `cache.asMap().putIfAbsent(key, value) == null`（Caffeine ConcurrentMap 原子语义）；`ICache.putIfAbsent` 默认方法补充 javadoc，声明实现方必须保证 check-then-act 原子性。测试 `TestCache.testPutIfAbsentAtomic`（双线程 CyclicBarrier 对同一 key 竞争 200 轮逐轮断言仅一个 true；红验证：修复前第 63 轮即出现两个 true，断言失败）+ `testPutIfAbsentSingleThread` 基本语义。nop-core 的 ResourceLoadingCache 回归绿（235 tests）。
 
 ### [P2] RateLimitExecutorImpl.throttle 节流语义失效，且 promiseMap 永不清理
 
@@ -187,6 +199,8 @@ public void debounce(final Object key, long delay, Runnable task) {
 - **风险**: 公共 API 契约破坏 + 潜在内存泄漏。当前仓库内调用方（FileWatcher、ZipFileWatcher、CliWatchZipCommand）只用 `debounce` 且 key 固定（"refresh"/"process"），泄漏量有限，故降为 P2。
 - **建议**: throttle 改为 `promiseMap.compute` 或"map 中放 schedule 返回的 future，任务执行完毕后 remove"；debounce 在任务结束后清理条目。
 - **误报排除**: 已通读全类并核实所有仓库内调用方只传固定 key。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 已修复。throttle 改用 `promiseMap.compute`：旧条目未完成则保留并跳过本次调用，已完成/不存在则原子替换为本次 promise，调度任务在 finally 中 `promiseMap.remove(key, promise)` 自清理，节流窗口在每次任务执行后正确重开；debounce 保存真实调度 future（cancel 语义不变），任务包装 try/finally 通过 `remove(key, holder[0])` 自清理，两者均不再按 key 无限累积。测试 `TestRateLimitExecutor.testThrottle`（红验证：修复前首个任务完成后第二窗口 3 次调用全部执行，count=4 vs 期望 2——节流失效与审计描述一致）、`testThrottleCleanup` / `testDebounce`（红验证：修复前 promiseMap 条目残留，containsKey=true）。
 
 ### [P2] RoundRobinSupplier.resize 扩容失败时新建资源泄漏（closeNext 起始索引错误）
 
@@ -216,6 +230,8 @@ if (toClose != null)
 - **建议**: 扩容失败分支单独 `closeNext(newObjects, oldLength)`，注意只关新建部分、不要关从旧数组共享复制来的元素。
 - **误报排除**: 已核对缩小分支与扩容分支的数组构成，确认只有扩容失败路径有此问题。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 已修复。扩容失败分支改为 `closeNext(newObjects, objects.length())` 从旧数组长度开始只关闭本次新建的资源（从旧数组复制来的元素不动）；缩小分支 `closeNext(toClose, size)` 语义保持不变。测试 `TestRoundRobinSupplier.testResizeCloseNewResourcesOnFailure`（红验证：修复前 factory 在第 3 次创建抛异常时 index1 新建资源未被关闭、旧资源也未关闭，断言 "newly created resource must be closed" 失败）+ `testResizeShrinkAndExpand` 正常路径回归。
+
 ### [P2] DefaultRateLimiter.getAcquireFailCount 返回的是成功计数
 
 - **文件**: `nop-kernel/nop-commons/src/main/java/io/nop/commons/concurrent/ratelimit/DefaultRateLimiter.java:33-41`
@@ -236,6 +252,8 @@ public long getAcquireFailCount() {
 - **风险**: 基于 IRateLimiter 统计的监控/熔断指标失真（失败被报告为成功数量）。
 - **建议**: 改为 `acquireFailCount.get()`。
 - **误报排除**: 已通读全类确认无别名/委托逻辑。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 已修复。`getAcquireFailCount()` 改为返回 `acquireFailCount.get()`。测试 `TestRateLimiter.testAcquireCounters`（红验证：修复前 fail getter 返回成功计数导致断言失败）。注意测试构造按 Guava 语义：RateLimiter 首个许可立即发放（burst），故用"1 成功 + 2 失败"形成计数值差异，杜绝两种计数相等时红测试失效。
 
 ### [P2] SequentialTaskExecutor.getTotalExecutionTime 时间单位错乱，且字段无同步
 
@@ -258,6 +276,8 @@ totalExecutionTime += diff;               // 累加的是纳秒
 - **建议**: getter 直接返回 `totalExecutionTime`（纳秒）或统一改毫秒语义；字段加 volatile。
 - **误报排除**: 已核对 `CoreMetrics.nanoTime()/nanoTimeDiff()` 均基于 `System.nanoTime`；quotaNanos 对比路径正确，确认仅 getter 有单位问题。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 已修复。getter 直接返回纳秒累加值并更新 javadoc 说明单位，`totalExecutionTime` 字段加 volatile（worker 线程写、任意线程读）。仓库内无其他调用方，无单位迁移负担。测试 `TestSequentialTaskExecutor.testTotalExecutionTimeUnit`（红验证：修复前 120ms 任务返回 1.3e14 纳秒（ms→ns 放大 10^6 倍），超出 [50ms,10s) 纳秒区间断言失败，与审计一致）。
+
 ### [P2] GlobalCacheRegistry.register 先 put 后抛异常，失败时旧缓存已被覆盖、新缓存残留
 
 - **文件**: `nop-kernel/nop-commons/src/main/java/io/nop/commons/cache/GlobalCacheRegistry.java:65-71`
@@ -275,6 +295,8 @@ public void register(@Nonnull ICacheManagement<?> cache) {
 - **风险**: 重复注册场景（如多个模块注册同名缓存）下缓存实例被静默替换，违背 `ERR_CACHE_DUPLICATE_REGISTRATION` 的防护意图。
 - **建议**: 改为 `if (caches.putIfAbsent(cache.getName(), cache) != null) throw ...`。
 - **误报排除**: 已确认无调用方在捕获该异常后做回滚。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 已修复。`caches.put` 先替换后抛异常改为 `caches.putIfAbsent` 检查，重名注册抛 `ERR_CACHE_DUPLICATE_REGISTRATION` 时注册表保持原状。测试 `TestGlobalCacheRegistry.testRegisterDuplicateKeepsFirst`（红验证：修复前抛异常后 `getCache` 返回新实例——"失败的操作实际生效一半"，与审计一致；修复后仍返回首个实例）。
 
 ### [P2] IoHelper.getEncodingFromBOM 对不足 4 字节的流抛"意外 EOF"
 
@@ -294,6 +316,8 @@ public static String getEncodingFromBOM(InputStream is) throws IOException {
 - **建议**: 改为按可读长度逐字节探测（先读 2 字节判 UTF-16/32，再读第 3 字节判 UTF-8，EOF 时 reset 返回 null）。
 - **误报排除**: 已核对 `readFully` 实现与 XNodeParser 调用路径。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 已修复。`readFully`（不足 4 字节抛 ERR_IO_UNEXPECTED_EOF）改为部分读取 `read(is, bom, 0, 4)`，并按实际读取字节数 n 分档匹配（UTF-32 需 n>=4、UTF-16 需 n>=2、UTF-8 需 n>=3），零填充字节不会误判为 BOM；命中后 reset+跳 BOM、未命中 reset 的既有语义不变。测试 `TestIoHelper.testGetEncodingFromBOMShortStream`（红验证：修复前 3/2/1/0 字节流抛 `nop.err.commons.io.unexpected-eof`）+ `testGetEncodingFromBOM` 全 BOM 矩阵回归。调用方 XNodeParser 所在 nop-core 回归 235 tests 绿。
+
 ### [P2] JavaSerializer 原生 Java 反序列化无类型过滤（ObjectInputFilter 缺失）
 
 - **文件**: `nop-kernel/nop-commons/src/main/java/io/nop/commons/io/serialize/JavaSerializer.java:44-50`（配合 `IoHelper.java:48-49` 全局默认注册）
@@ -312,6 +336,8 @@ public Object getObjectInput(InputStream is) {
 - **建议**: 为 `ObjectInputStream` 设置基于白名单/最大深度/最大字节数的 `ObjectInputFilter`（至少 `Config.serialFilter` 级别限制），或在文档中明确禁止反序列化不可信数据。
 - **误报排除**: 已确认仓库内无其他自定义 filter 注册点；已确认 ResourceHelper.readObject 走此实现。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 裁定暂缓。决策点：(1) `JavaSerializer.INSTANCE` 同时是 `IoHelper.serializeClone`（任意平台对象深拷贝）与 `ResourceHelper.readObject`（本地 store 状态文件）的默认实现，类白名单型 ObjectInputFilter 必然破坏 serializeClone 对任意类型的支持；(2) 深度/字节数上限型 filter 也可能截断平台自身的深对象图，阈值属产品级安全基线；(3) JDK 已内置 `jdk.serialFilter` / `jdk.serialFilterFactory` 全局过滤机制，ObjectInputStream 自动应用，部署侧不改代码即可加固。影响面：全仓库默认反序列化器（攻击前提是攻击者可写本地 store 文件，审计亦承认攻击面有限）。需独立的安全设计裁定（拆分 trusted-clone 序列化器与不可信输入过滤策略），不宜在本轮最小修复中落地。
+
 ### [P2] DateHelper.buildFormatter 缓存未命中后不回填，热路径每次重新编译 pattern
 
 - **文件**: `nop-kernel/nop-commons/src/main/java/io/nop/commons/util/DateHelper.java:270-275`
@@ -329,6 +355,8 @@ static DateTimeFormatter buildFormatter(String pattern) {
 - **风险**: 高频日期格式化（报表、日志、导出）下 CPU 浪费；`s_formatters` 是 HashMap，若未来有人修复为回填需同时换 ConcurrentHashMap。
 - **建议**: `s_formatters` 改为 `ConcurrentHashMap`，未命中时 `computeIfAbsent(pattern, DateTimeFormatter::ofPattern)`。
 - **误报排除**: 已确认 `registerFormatter` 仅在静态初始化和显式注册时调用，运行期无回填路径。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 已修复。`s_formatters` 改为 `static final ConcurrentHashMap`，`buildFormatter` 改 `computeIfAbsent(pattern, DateTimeFormatter::ofPattern)` 回填缓存；`registerFormatter` 保持 put 语义。测试 `TestDateHelper.testBuildFormatterCache`（红验证：修复前两次构建返回不同实例，assertSame 失败；修复后同实例且格式化结果正确）。
 
 ### [P3] FileHelper.getClassPathFile / getJarFile 资源不存在时 NPE
 
@@ -351,6 +379,8 @@ public static File getJarFile(Class<?> clazz) {
 - **建议**: 判空后抛 `NopException`（带 path 参数）。
 - **误报排除**: 已确认调用方未预先判空。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 已修复。`getClassPathFile` / `getJarFile` 对 `getResource` 返回 null 先判空，抛 `NopException(ERR_FILE_NOT_FOUND).param(ARG_PATH, path)`（复用现有错误码，无新增 i18n 负担）。测试 `TestFileHelper.testGetClassPathFileNotExists`（红验证：修复前抛裸 NullPointerException）+ 既有 `testGetJarFile` 回归。
+
 ### [P3] ExecutorHelper.newScheduledExecutor 修改调用方传入的 config 对象
 
 - **文件**: `nop-kernel/nop-commons/src/main/java/io/nop/commons/concurrent/executor/ExecutorHelper.java:56-71`
@@ -366,6 +396,8 @@ public static ScheduledThreadPoolExecutor newScheduledExecutor(ThreadPoolConfig 
 - **风险**: 配置对象共享场景下的隐性状态污染，排查困难。
 - **建议**: 不改入参，或先 clone。
 - **误报排除**: 已确认 `DefaultScheduledExecutor.refreshConfig` 会继续使用同一 config 实例。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 裁定暂缓。live code 复核发现 `config.setMaxPoolSize(0)` 并非孤立副作用，而是承重的约定标记：`DefaultScheduledExecutor.init()`（调 `newScheduledExecutor`）与 `refreshConfig()`（调 `updateThreadPool`）共享同一 config 实例，且 `refreshConfig` 与 `updateThreadPool` 均以 `maxPoolSize > 0` 作为"需要应用上限约束"的开关——若去掉突变或改为 clone，refreshConfig 会把用户配置的 maxPoolSize 当作有效约束，触发 corePoolSize 钳制与 setMaximumPoolSize 路径，刷新行为随之改变。决策点：ThreadPoolConfig 归一化（maxPoolSize=0 表示"不使用上限"）的所有权应归属 newScheduledExecutor（现状）、DefaultScheduledExecutor 还是调用方，涉及 GlobalExecutors 体系所有定时执行器的刷新语义。修复需连同 refreshConfig 契约一起设计，超出本条最小修复范围，nop-commons 作为最底层公共库不宜激进改动。
 
 ### [P3] ClassHelper/HashHelper 存在 bare RuntimeException，违背错误处理两档策略
 
@@ -385,6 +417,8 @@ throw new RuntimeException("unexpected exception creating MessageDigest instance
 - **建议**: 换成 `NopException.adapt(e)` 或模块错误码。
 - **误报排除**: 已全模块 grep `new RuntimeException`，仅此 4 处。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 已修复。`ClassHelper.findContainingJar` 的 catch 改 `NopException.adapt(var6)`；`HashHelper` 的 MessageDigest 创建失败改 `NopException.adapt(e)`（算法名保留在 NoSuchAlgorithmException cause 消息中）。免测试理由：仅异常包装类型变化、无数值行为语义，且两处均为实际不可达路径（枚举 classpath 的 IO 异常 / JDK 缺摘要算法）。
+
 ### [P3] 可变全局静态字段缺少 volatile（IoHelper 序列化器、GlobalMeterRegistry、GlobalExecutors SYNC_EXECUTOR）
 
 - **文件**: `nop-kernel/nop-commons/src/main/java/io/nop/commons/util/IoHelper.java:48-49`；`nop-kernel/nop-commons/src/main/java/io/nop/commons/metrics/GlobalMeterRegistry.java:18`；`nop-kernel/nop-commons/src/main/java/io/nop/commons/concurrent/executor/ExecutorHelper.java:38`
@@ -403,6 +437,8 @@ static Executor SYNC_EXECUTOR = task -> task.run();
 - **风险**: 启动后动态替换序列化器/metrics 注册表的场景下，部分线程可能继续使用旧实例。实际发生概率低（替换通常发生在启动早期）。
 - **建议**: 加 `volatile`（零成本修复）。
 - **误报排除**: 已确认这些字段都有运行期写路径，非"仅初始化一次"的 final 化场景。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 已修复。`IoHelper.s_streamSerializer` / `s_byteArraySerializer`、`GlobalMeterRegistry.s_instance`、`ExecutorHelper.SYNC_EXECUTOR` 四处静态字段加 volatile。免测试理由：纯内存可见性声明（happens-before），无数值行为语义，JMM 层面属性无法用确定性单测验证。
 
 ### [P3] 契约漂移杂项：MutableInt javadoc 声称原子、HighWatermarkSemaphore 统计计数器从不累加、MapCache 默认非线程安全但暴露 async 方法
 
@@ -431,6 +467,8 @@ public MapCache() { this("default", false); }
 - **建议**: 修正 javadoc 或提供真正原子版本；信号量统计补累加；MapCache async 方法对非线程安全实例直接同步执行或抛异常。
 - **误报排除**: 已通读三个类确认无其他累加/同步点。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 分项处置。(1) MutableInt javadoc：已修复，`decrementAndGet` / `addAndGet` 的 "Atomically" 措辞改为非原子说明并加并发丢更新警示（免测试理由：纯文档修正，零行为变化）。(2) HighWatermarkSemaphore 统计：已修复，tryAcquire 成功路径累计 `acquireSuccessCount`，超时与中断两个失败路径累计 `acquireFailCount`。测试 `TestHighWatermarkSemaphore.testAcquireStats`（红验证：修复前两个计数器恒为 0，断言 expected:<1> but was:<0> 失败）。(3) MapCache async 跨线程：复查非问题——审计前提"futureCall 在公共线程池执行"有误，live code 中 `FutureHelper.futureCall(Callable)` / `futureRun(Runnable)` 均为同步执行（`task.call()`/`task.run()` 在调用线程完成后包装为已完成的 CompletionStage，见 nop-api-core FutureHelper.java:122-138），非线程安全实例的 HashMap 从未通过这些方法暴露给其他线程；已补充探针测试 `TestMapCache.testAsyncOnNonThreadSafeRunsSynchronously`（含 300ms 阻塞 mappingFunction，实证调用同步耗时>=200ms 且返回时 future 已完成——该测试在修复前后代码上均为绿，与 FutureHelper 源码互证），作为同步性质的回归守卫，防止后续有人把 futureCall 改为真异步时静默破坏 MapCache。
+
 ### [P3] StringTrie.find 传入空字符串抛 StringIndexOutOfBoundsException
 
 - **文件**: `nop-kernel/nop-commons/src/main/java/io/nop/commons/text/StringTrie.java:113-122`
@@ -448,6 +486,8 @@ TrieNode<T> findInList(List<TrieNode<T>> list, String str, int startPos, boolean
 - **风险**: 调用方以用户输入作为 key 查询时（关键字 Trie 常用于敏感词/标记匹配），空输入引发异常而非未命中。
 - **建议**: 入口处 `if (str.isEmpty()) return null;`。
 - **误报排除**: 已通读全类确认无空串防护。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 已修复。`findNode` 入口对空串直接返回 null（`find`/`findWithPrefix` 按未命中处理）；`add` 系列入口 `Guard.checkArgument(str.length() > 0, "trie key must not be empty")` 拒绝空 key（空串在 Trie 中无法表达，插入会产生空 data 节点破坏后续遍历），以带信息的 IllegalArgumentException 替代 charAt 越界。测试 `TestStringTrie.testEmptyString`（红验证：修复前 `find("")` 抛 StringIndexOutOfBoundsException: Index 0 out of bounds for length 0，与审计一致）。唯一 findWithPrefix 调用方 CompositeResourceStore 对 null 已有完备处理，nop-core 回归 235 tests 绿。
 
 ## 补充说明（核实过、不构成缺陷的点）
 

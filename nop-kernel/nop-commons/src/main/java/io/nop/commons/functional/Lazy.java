@@ -53,6 +53,8 @@ public class Lazy<T> implements Supplier<T> {
                     return value;
 
                 value = supplier.get();
+                // supplier返回null时也标记为已加载，后续get()不再重复执行supplier
+                loaded = true;
             }
         }
 

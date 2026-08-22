@@ -71,7 +71,10 @@ public class RoundRobinSupplier<T extends AutoCloseable> implements AutoCloseabl
                             newObjects.set(i, factory.get());
                         }
                     } catch (Exception e) {
-                        toClose = newObjects;
+                        // 扩容失败时只关闭本次新建的资源（从旧数组长度开始），
+                        // 从旧数组复制来的资源仍归旧数组管理。注意不能使用closeNext(newObjects, size)，
+                        // 那样起始下标即终点，一个资源都不会被关闭
+                        closeNext(newObjects, objects.length());
                         throw NopException.adapt(e);
                     }
                     this.objects = newObjects;

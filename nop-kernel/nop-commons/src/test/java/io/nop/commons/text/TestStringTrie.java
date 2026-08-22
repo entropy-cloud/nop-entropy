@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestStringTrie {
 
@@ -61,5 +62,19 @@ public class TestStringTrie {
         System.out.println(sb);
         assertEquals("abct", trie.findWithPrefix("/_info/ch1/abc").toString());
         assertEquals("abcv", trie.find("/_info/ch2/").toString());
+    }
+
+    @Test
+    public void testEmptyString() {
+        StringTrie<String> trie = new StringTrie<>();
+        trie.add("abc", "ABC");
+
+        // 空串查询应返回未命中，而不是抛StringIndexOutOfBoundsException
+        assertNull(trie.find(""));
+        assertNull(trie.findWithPrefix(""));
+
+        // 空串作为key无法在Trie中表达，应抛出带信息的参数异常而不是越界异常
+        assertThrows(IllegalArgumentException.class, () -> trie.add("", "EMPTY"));
+        assertThrows(IllegalArgumentException.class, () -> trie.put("", "EMPTY"));
     }
 }

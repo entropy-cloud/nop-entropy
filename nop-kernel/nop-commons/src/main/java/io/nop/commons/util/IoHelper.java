@@ -45,8 +45,9 @@ import static io.nop.commons.CommonErrors.ERR_IO_UNEXPECTED_EOF;
 public class IoHelper {
     static final Logger LOG = LoggerFactory.getLogger(IoHelper.class);
 
-    static IStreamSerializer s_streamSerializer = JavaSerializer.INSTANCE;
-    static IByteArraySerializer s_byteArraySerializer = JavaSerializer.INSTANCE;
+    // 运行期可通过registerStreamSerializer替换，需要volatile保证跨线程可见
+    static volatile IStreamSerializer s_streamSerializer = JavaSerializer.INSTANCE;
+    static volatile IByteArraySerializer s_byteArraySerializer = JavaSerializer.INSTANCE;
 
     public static IStreamSerializer streamSerializer() {
         return s_streamSerializer;
@@ -325,6 +326,7 @@ public class IoHelper {
 
     /**
      * 根据BOM头来判定文件的编码类型。如果成功解析得到encoding, 则跳过BOM头，否则恢复stream原先的位置。
+     * 流长度不足4字节时按实际读取的字节数探测，不视为错误。
      *
      * @param is
      * @return
@@ -332,18 +334,20 @@ public class IoHelper {
     public static String getEncodingFromBOM(InputStream is) throws IOException {
         is.mark(4);
         byte[] bom = new byte[4];
-        readFully(is, bom);
+        int n = read(is, bom, 0, 4);
+        if (n < 0)
+            n = 0;
 
         String encoding = null;
-        if (bom[0] == 0x00 && bom[1] == 0x00 && bom[2] == (byte) 0xFE && bom[3] == (byte) 0xFF || // BE
-                bom[0] == (byte) 0xFF && bom[1] == (byte) 0xFE && bom[2] == 0x00 && bom[3] == 0x00) { // LE
+        if (n >= 4 && (bom[0] == 0x00 && bom[1] == 0x00 && bom[2] == (byte) 0xFE && bom[3] == (byte) 0xFF || // BE
+                bom[0] == (byte) 0xFF && bom[1] == (byte) 0xFE && bom[2] == 0x00 && bom[3] == 0x00)) { // LE
             encoding = "UTF-32"; // and I hope it's on your system
-        } else if (bom[0] == (byte) 0xFE && bom[1] == (byte) 0xFF || // BE
-                bom[0] == (byte) 0xFF && bom[1] == (byte) 0xFE) {
+        } else if (n >= 2 && (bom[0] == (byte) 0xFE && bom[1] == (byte) 0xFF || // BE
+                bom[0] == (byte) 0xFF && bom[1] == (byte) 0xFE)) {
             encoding = "UTF-16"; // in all Javas
             is.reset();
             is.read(bom, 0, 2);
-        } else if (bom[0] == (byte) 0xEF && bom[1] == (byte) 0xBB && bom[2] == (byte) 0xBF) {
+        } else if (n >= 3 && bom[0] == (byte) 0xEF && bom[1] == (byte) 0xBB && bom[2] == (byte) 0xBF) {
             encoding = "UTF-8"; // in all Javas
             is.reset();
             is.read(bom, 0, 3);

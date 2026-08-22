@@ -25,10 +25,10 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
 import java.util.TimeZone;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * 获得本月的天数 localDate.lengthOfMonth() 获得本年的天数 localDate.lengthOfYear() 判断是否闰年 localDate.isLeapYear()
@@ -56,7 +56,7 @@ public class DateHelper {
 
     public static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
 
-    private static Map<String, DateTimeFormatter> s_formatters = new HashMap<>();
+    private static final ConcurrentMap<String, DateTimeFormatter> s_formatters = new ConcurrentHashMap<>();
 
     static {
         registerFormatter("yyyy-MM-dd HH:mm:ss", DATETIME_FORMATTER);
@@ -268,10 +268,8 @@ public class DateHelper {
     }
 
     static DateTimeFormatter buildFormatter(String pattern) {
-        DateTimeFormatter formatter = s_formatters.get(pattern);
-        if (formatter == null)
-            formatter = DateTimeFormatter.ofPattern(pattern);
-        return formatter;
+        // 未命中缓存时回填。DateTimeFormatter不可变且线程安全，可以缓存
+        return s_formatters.computeIfAbsent(pattern, DateTimeFormatter::ofPattern);
     }
 
     public static LocalDate parseDate(String s) {
@@ -293,6 +291,8 @@ public class DateHelper {
                 DateTimeFormatter formatter = buildFormatter(pattern);
                 return LocalDate.parse(s, formatter);
             } catch (Exception expected) {
+                // 当前pattern不匹配则继续尝试下一个pattern
+                continue;
             }
         }
         return null;

@@ -15,12 +15,23 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.TimeZone;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 public class TestDateHelper {
+
+    @Test
+    public void testBuildFormatterCache() {
+        // 非预注册pattern的formatter应回填缓存，重复构建返回同一实例
+        DateTimeFormatter f1 = DateHelper.buildFormatter("yyyy/MM/dd HH:mm");
+        DateTimeFormatter f2 = DateHelper.buildFormatter("yyyy/MM/dd HH:mm");
+        assertSame(f1, f2);
+        assertEquals("2024/01/15 10:30", f1.format(LocalDateTime.of(2024, 1, 15, 10, 30)));
+    }
 
     void checkDuration(String target, String source) {
         assertEquals(target, DateHelper.parseDuration(source).toString());

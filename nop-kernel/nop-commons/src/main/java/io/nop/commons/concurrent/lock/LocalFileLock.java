@@ -67,13 +67,16 @@ public class LocalFileLock implements Lock {
             } while (lock == null && !CoreMetrics.isExpiredNanos(expireNanos));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            releaseHandles();
             throw e;
         } catch (Exception e) {
+            // 异常路径上关闭已打开的文件句柄，避免泄漏导致其他进程永远无法获锁
+            releaseHandles();
             throw new NopException(ERR_FILE_ACQUIRE_LOCK_FAIL, e).param(ARG_WAIT_TIME, timeoutMs).param(ARG_PATH,
                     lockFile.getAbsolutePath());
         }
 
-        return false;
+        return lock != null;
     }
 
     @Override
@@ -115,6 +118,10 @@ public class LocalFileLock implements Lock {
     }
 
     public void unlock() {
+        releaseHandles();
+    }
+
+    private void releaseHandles() {
         IoHelper.safeCloseObject(lock);
         lock = null;
 
