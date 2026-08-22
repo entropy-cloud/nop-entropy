@@ -74,6 +74,8 @@ pkg.getWorkbook().clearSheets(); // WorkbookPart 包装模板共享的 workbook.
 - **误报排除**: 已核对 `[Content_Types].xml` 路径不受影响（loadInMemory 后为 XmlOfficePackagePart，copy 上 `getContentTypes()` 每次 `parseContentTypes` 生成新鲜 ContentTypesPart，且 parse 只读）；xlsx 的 `.rels` 部件（文件名以 `.rels` 结尾，不以 `.xml` 结尾）保持 ByteArrayResource，每次 copy 重新 parse，亦不受影响——问题精确限定在“模板 files 中已是模型对象实例”的部件（docx 的 OfficeRelsPart、xlsx 的 workbook.xml XNode）。
 
 > **处置（fix-ai-check 分支，2026-08-21）**: 已修复并附回归测试。`IOfficePackagePart.cloneInstance()`：OfficeRelsPart 补齐三个字段拷贝、XmlOfficePackagePart 深克隆 XNode、ContentTypesPart 拷贝两个 TreeMap、WorkbookPart 保持类型；`copyTo` 对全部部件按 cloneInstance 深拷贝（资源字节部件共享安全）。测试：`nop-ooxml-common` `TestOfficePackageCopy#testCopyIsolatesRelsAndXmlParts`（修复前 rels/XNode 均被污染）。
+>
+> **补记（fix-ai-check 分支，2026-08-22）**: 该修复使此前被共享污染丢失的模板样式（命名样式 s13+ 等）在渲染输出中正确出现，下游 nop-report-demo 的 24 个 output 快照与 4 个 attachment 基线编码的是修复前的丢样式行为，已逐一验证（剥离样式类名后表格内容逐字节一致）并更新基线。
 
 ### [P1] 单元格引用列索引无上界校验，恶意 r 属性可放大内存至上亿元素
 
