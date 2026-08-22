@@ -40,4 +40,18 @@
 
     </dependencies>
 
+    <build>
+        <plugins>
+            <!-- JMH 的 BenchmarkList 由注解处理器生成；JDK 23+ 默认禁用隐式注解处理，
+                 必须显式开启 proc=full，否则 benchmark main 无法启动 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <proc>full</proc>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
 </project>
