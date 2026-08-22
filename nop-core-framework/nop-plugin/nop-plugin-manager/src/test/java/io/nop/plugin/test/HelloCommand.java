@@ -8,7 +8,8 @@ import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
 /**
- * per-instance 命令路由测试 bean（bean id = nopPluginCommand_hello）。
+ * 定义级命令路由测试 bean（bean id = nopPluginCommand_hello）：invokeCommand 分发于
+ * 本插件激活容器（单容器定义级路由，非激活态抛 INACTIVE）。
  */
 public class HelloCommand implements IPluginCommand {
 

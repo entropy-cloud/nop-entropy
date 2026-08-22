@@ -233,7 +233,7 @@
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-plugin-manager</artifactId>
+            <artifactId>nop-plugin-api</artifactId>
         </dependency>
 
         <!--        <dependency>-->

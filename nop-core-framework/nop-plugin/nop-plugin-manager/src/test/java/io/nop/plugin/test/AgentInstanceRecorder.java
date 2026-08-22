@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 实例生命周期事件记录器（activator / 记录 bean / 命令 bean 的共享观测点）。
+ * 插件激活生命周期事件记录器（activator / 记录 bean / 命令 bean 的共享观测点）。
  * 事件顺序：return-disposed（activator 返回值，后注册）→ effect-disposed（先注册）→
  * bean-destroyed（子容器 stop）——LIFO 回退 + deactivate 顺序（scope.close 先于容器 stop）的观测证据。
  */

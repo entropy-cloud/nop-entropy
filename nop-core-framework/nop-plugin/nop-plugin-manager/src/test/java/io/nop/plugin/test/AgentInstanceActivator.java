@@ -8,7 +8,7 @@ import java.util.Map;
 
 /**
  * agent-instance 插件激活器：scope + config 双参数传递验证——scope.getService 取 primary bean、
- * getServices 集合版；scope.effect 注册 effect；返回值 = disposer（自动注册为实例 effect）。
+ * getServices 集合版；scope.effect 注册 effect；返回值 = disposer（自动注册为本次插件激活的 effect）。
  */
 public class AgentInstanceActivator implements IPluginActivator {
 
