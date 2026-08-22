@@ -15,9 +15,14 @@ import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.json.JSON;
 import io.nop.api.core.json.JsonParseOptions;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.DateHelper;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.CoreErrors;
+import io.nop.core.lang.json.handler.BuildXNodeJsonHandler;
+import io.nop.core.lang.json.handler.CollectTextJsonHandler;
 import io.nop.core.lang.json.parse.JsonParser;
+import io.nop.core.lang.xml.XNode;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.bean.IBeanModel;
 import io.nop.core.type.PredefinedGenericTypes;
@@ -29,6 +34,7 @@ import java.time.LocalDateTime;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestJsonTool {
@@ -461,5 +467,65 @@ public class TestJsonTool {
         // 验证序列化后的 YAML 包含 comment
         assertTrue(serialized.contains("数组注释"),
                 "序列化后的 YAML 应该包含数组注释，实际内容: " + serialized);
+    }
+
+    @Test
+    public void testDuplicateKeyWithNullValue() {
+        // 重复键检测必须对 null 值同样生效（Plan 344 Phase 3 行为规格）
+        NopException ex = assertThrows(NopException.class,
+                () -> JsonTool.parseMap("{\"a\":null,\"a\":1}"));
+        assertEquals(CoreErrors.ERR_JSON_DUPLICATE_KEY.getErrorCode(), ex.getErrorCode());
+
+        ex = assertThrows(NopException.class,
+                () -> JsonTool.parseMap("{\"a\":1,\"a\":2}"));
+        assertEquals(CoreErrors.ERR_JSON_DUPLICATE_KEY.getErrorCode(), ex.getErrorCode());
+    }
+
+    @Test
+    public void testXNodeDuplicateAttr() {
+        // XNode 子类完全覆写 addEntry，重复属性抛 XML 错误码而非 JSON 错误码
+        JsonParser parser = new JsonParser().handler(new BuildXNodeJsonHandler());
+        NopException ex = assertThrows(NopException.class,
+                () -> parser.parseFromText(null, "{\"a\":1,\"a\":2}"));
+        assertEquals(CoreErrors.ERR_XML_DUPLICATE_ATTR_NAME.getErrorCode(), ex.getErrorCode());
+
+        // 正常属性解析不受影响
+        JsonParser parser2 = new JsonParser().handler(new BuildXNodeJsonHandler());
+        XNode node = (XNode) parser2.parseFromText(null, "{\"a\":1,\"b\":\"x\"}");
+        assertEquals(1, node.getAttr("a"));
+        assertEquals("x", node.getAttr("b"));
+    }
+
+    @Test
+    public void testScalarSerializationTextConsistency() {
+        // Plan 344 Phase 4：Integer/Long/Boolean 直写路径的输出文本必须与原 toString 路径逐字符一致
+        Map<String, Object> obj = new java.util.LinkedHashMap<>();
+        obj.put("i", 1);
+        obj.put("neg", -42);
+        obj.put("zero", 0);
+        obj.put("intMax", Integer.MAX_VALUE);
+        obj.put("intMin", Integer.MIN_VALUE);
+        obj.put("l", 123L);
+        obj.put("longMax", Long.MAX_VALUE);
+        obj.put("longMin", Long.MIN_VALUE);
+        obj.put("t", Boolean.TRUE);
+        obj.put("f", Boolean.FALSE);
+
+        String ret = JsonTool.stringify(obj);
+        assertEquals("{\"i\":1,\"neg\":-42,\"zero\":0,\"intMax\":2147483647,\"intMin\":-2147483648,"
+                + "\"l\":123,\"longMax\":9223372036854775807,\"longMin\":-9223372036854775808,"
+                + "\"t\":true,\"f\":false}", ret);
+
+        // htmlSafe 模式不影响数字与布尔字面量（直接驱动 handler 验证）
+        CollectTextJsonHandler handler = new CollectTextJsonHandler();
+        handler.htmlSafe(true);
+        Map<String, Object> small = new java.util.LinkedHashMap<>();
+        small.put("a", 1);
+        small.put("b", true);
+        small.put("<x>", "<y>");
+        handler.value(null, small);
+        String htmlSafeRet = handler.getOutString();
+        assertTrue(htmlSafeRet.contains("\"a\":1") && htmlSafeRet.contains("\"b\":true"));
+        assertTrue(htmlSafeRet.contains("\\u003cx\\u003e"), "htmlSafe 应转义尖括号: " + htmlSafeRet);
     }
 }

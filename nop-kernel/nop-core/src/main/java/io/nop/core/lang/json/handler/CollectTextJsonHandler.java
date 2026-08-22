@@ -394,10 +394,23 @@ public class CollectTextJsonHandler implements IJsonHandler {
             }
             writeDeferredName(loc);
             beforeValue(loc);
-            out.append(value.toString());
+            // Integer/Long 直写数字字符，避免每个标量产生临时 String；其他 Number 子类型保留原路径
+            if (value instanceof Integer || value instanceof Long) {
+                appendLong(value.longValue());
+            } else {
+                out.append(value.toString());
+            }
             return this;
         } catch (IOException e) {
             throw NopException.adapt(e);
+        }
+    }
+
+    private void appendLong(long v) throws IOException {
+        if (out instanceof StringBuilder) {
+            ((StringBuilder) out).append(v);
+        } else {
+            out.append(Long.toString(v));
         }
     }
 
@@ -408,7 +421,7 @@ public class CollectTextJsonHandler implements IJsonHandler {
             }
             writeDeferredName(loc);
             beforeValue(loc);
-            out.append(value.toString());
+            out.append(value.booleanValue() ? "true" : "false");
             return this;
         } catch (IOException e) {
             throw NopException.adapt(e);
@@ -433,7 +446,12 @@ public class CollectTextJsonHandler implements IJsonHandler {
             endArray();
         } else if (o instanceof RawText) {
             out.append(((RawText) o).getText());
-        } else if (o instanceof Number || o instanceof Boolean) {
+        } else if (o instanceof Integer || o instanceof Long) {
+            // 数字直写免临时 String（Plan 344 Phase 4）
+            appendLong(((Number) o).longValue());
+        } else if (o instanceof Boolean) {
+            out.append((Boolean) o ? "true" : "false");
+        } else if (o instanceof Number) {
             out.append(o.toString());
         } else {
             throw new NopException(ERR_JSON_VALUE_NOT_SERIALIZABLE).param(ARG_CLASS_NAME, o.getClass().getTypeName())
