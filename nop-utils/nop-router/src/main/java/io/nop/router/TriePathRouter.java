@@ -12,9 +12,6 @@ import io.nop.router.trie.MatchResult;
 import io.nop.router.trie.PatternChild;
 import io.nop.router.trie.Trie;
 import io.nop.router.trie.TrieNode;
-import io.nop.router.trie.MatchResult;
-import io.nop.router.trie.Trie;
-import io.nop.router.trie.TrieNode;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -34,9 +31,11 @@ public class TriePathRouter<E> extends Trie<List<RouteValue<E>>> {
     }
 
     public void addMatchAll(E value) {
-        List<String> list = List.of("*path");
+        // 与 addPathPattern("/{*path}", value) 等价：{*path} 是 tillEnd 通配段，
+        // 匹配任意多级路径，且 varNames 为 ["*path"]，与 getVarNames 的解析规则保持一致
+        List<String> list = List.of("{*path}");
         makeNode(list, node -> {
-            List<String> varNames = List.of("path");
+            List<String> varNames = List.of("*path");
             node.setTillEnd(true);
             addValue(node, varNames, value);
         });

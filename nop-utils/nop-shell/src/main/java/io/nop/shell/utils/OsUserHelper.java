@@ -18,8 +18,10 @@ package io.nop.shell.utils;
 
 // copy from org.apache.dolphinscheduler.common.utils;
 
+import io.nop.api.core.util.Guard;
 import io.nop.commons.env.PlatformEnv;
 import io.nop.commons.util.StringHelper;
+import io.nop.shell.ShellResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Pattern;
 
 import static io.nop.shell.ShellRunner.runCommand;
@@ -58,7 +61,7 @@ public class OsUserHelper {
                 return getUserListFromLinux();
             }
         } catch (Exception e) {
-            logger.error(e.getMessage(), e);
+            logger.error("nop.err.shell.get-user-list-fail", e);
         }
 
         return Collections.emptyList();
@@ -120,7 +123,7 @@ public class OsUserHelper {
             int count = 0;
             if (lines[i].charAt(0) == '-') {
                 for (int j = 0; j < lines[i].length(); j++) {
-                    if (lines[i].charAt(i) == '-') {
+                    if (lines[i].charAt(j) == '-') {
                         count++;
                     }
                 }
@@ -177,7 +180,7 @@ public class OsUserHelper {
             }
             return true;
         } catch (Exception e) {
-            logger.error(e.getMessage(), e);
+            logger.error("nop.err.shell.create-user-fail:userName={}", userName, e);
         }
 
         return false;
@@ -194,7 +197,7 @@ public class OsUserHelper {
         logger.info("create linux os user: {}", userName);
         String cmd = String.format("sudo useradd -g %s %s", userGroup, userName);
         logger.info("execute cmd: {}", cmd);
-        runCommand(cmd);
+        checkRunResult(runCommand(cmd), cmd);
     }
 
     /**
@@ -208,12 +211,13 @@ public class OsUserHelper {
         logger.info("create mac os user: {}", userName);
 
         String createUserCmd = String.format("sudo sysadminctl -addUser %s -password %s", userName, userName);
-        logger.info("create user command: {}", createUserCmd);
-        runCommand(createUserCmd);
+        // 不打印 -password 参数，避免凭据明文进入日志
+        logger.info("create user command: sudo sysadminctl -addUser {} -password ***", userName);
+        checkRunResult(runCommand(createUserCmd), createUserCmd);
 
         String appendGroupCmd = String.format("sudo dseditgroup -o edit -a %s -t user %s", userName, userGroup);
         logger.info("append user to group: {}", appendGroupCmd);
-        runCommand(appendGroupCmd);
+        checkRunResult(runCommand(appendGroupCmd), appendGroupCmd);
     }
 
     /**
@@ -228,11 +232,21 @@ public class OsUserHelper {
 
         String userCreateCmd = String.format("net user \"%s\" /add", userName);
         logger.info("execute create user command: {}", userCreateCmd);
-        runCommand(userCreateCmd);
+        checkRunResult(runCommand(userCreateCmd), userCreateCmd);
 
         String appendGroupCmd = String.format("net localgroup \"%s\" \"%s\" /add", userGroup, userName);
         logger.info("execute append user to group: {}", appendGroupCmd);
-        runCommand(appendGroupCmd);
+        checkRunResult(runCommand(appendGroupCmd), appendGroupCmd);
+    }
+
+    /**
+     * 校验命令执行结果，退出码非 0 时抛出 IOException，避免失败被误报为成功
+     */
+    private static void checkRunResult(ShellResult result, String command) throws IOException {
+        if (result.getReturnCode() != 0) {
+            throw new IOException("command failed with exit code " + result.getReturnCode()
+                    + ": " + command + ", error: " + result.getError());
+        }
     }
 
     /**
@@ -244,14 +258,9 @@ public class OsUserHelper {
     public static String getGroup() throws IOException {
         if (PlatformEnv.isWindows()) {
             String currentProcUserName = System.getProperty("user.name");
-            String result = runCommand(String.format("net user \"%s\"", currentProcUserName)).getError();
-            String line = result.split("\n")[22];
-            String group = PATTERN.split(line)[1];
-            if (group.charAt(0) == '*') {
-                return group.substring(1);
-            } else {
-                return group;
-            }
+            // runCommand 开启了 redirectErrorStream，net user 的输出统一进入 output
+            String result = runCommand(String.format("net user \"%s\"", currentProcUserName)).getOutput();
+            return parseWindowsGroupFromNetUserOutput(result);
         } else {
             String result = runCommand("groups").getOutput();
             if (!StringHelper.isEmpty(result)) {
@@ -261,6 +270,43 @@ public class OsUserHelper {
         }
 
         return null;
+    }
+
+    /**
+     * 从 net user 输出中解析用户组。按 "Local/Global Group Memberships" 标签行定位，
+     * 而不是依赖固定行号（行号受 locale 与 Windows 版本影响，越界即 AIOOBE）。
+     * 仅识别英文标签；无法定位时抛出 IOException 而非静默返回错误数据。
+     */
+    static String parseWindowsGroupFromNetUserOutput(String result) throws IOException {
+        if (StringHelper.isEmpty(result)) {
+            throw new IOException("empty 'net user' output, cannot resolve group");
+        }
+        String[] lines = result.split("\n");
+        for (String line : lines) {
+            String trimmed = line.trim();
+            String lower = trimmed.toLowerCase(Locale.ROOT);
+            String label = null;
+            if (lower.startsWith("local group memberships")) {
+                label = "local group memberships";
+            } else if (lower.startsWith("global group memberships")) {
+                label = "global group memberships";
+            }
+            if (label == null)
+                continue;
+
+            // 标签本身由多个单词组成，取标签之后的第一个 token 作为组名
+            String rest = trimmed.substring(label.length()).trim();
+            if (rest.isEmpty())
+                continue;
+            String group = PATTERN.split(rest)[0];
+            if (!group.isEmpty()) {
+                if (group.charAt(0) == '*') {
+                    group = group.substring(1);
+                }
+                return group;
+            }
+        }
+        throw new IOException("cannot locate group memberships line in 'net user' output");
     }
 
     /**
@@ -274,7 +320,20 @@ public class OsUserHelper {
         if (StringHelper.isEmpty(tenantCode)) {
             return command;
         }
+        Guard.checkArgument(isSafeTenantCode(tenantCode), "invalid tenantCode:" + tenantCode);
         return String.format("sudo -u %s %s", tenantCode, command);
     }
 
+    /**
+     * tenantCode 会拼入 shell 命令，只允许字母/数字/下划线/中划线，防止空格、分号等注入额外命令
+     */
+    static boolean isSafeTenantCode(String tenantCode) {
+        for (int i = 0, n = tenantCode.length(); i < n; i++) {
+            char c = tenantCode.charAt(i);
+            if (!Character.isLetterOrDigit(c) && c != '_' && c != '-') {
+                return false;
+            }
+        }
+        return true;
+    }
 }

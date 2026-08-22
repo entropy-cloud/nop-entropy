@@ -51,4 +51,16 @@ public class TestShellRunner {
             assertEquals(ShellErrors.ERR_SHELL_EXEC_COMMAND_FAIL.getErrorCode(), e.getErrorCode());
         }
     }
+
+    @Test
+    public void testRunWithInput() {
+        // cat 从 stdin 读到 EOF 才退出：写完 input 后必须关闭进程 stdin，否则永久挂起直到超时
+        org.junit.jupiter.api.Assumptions.assumeTrue(!io.nop.commons.env.PlatformEnv.isWindows());
+
+        ShellCommand cmd = new ShellCommand("cat").input("hello").timeout(10_000);
+        DefaultShellOutputCollector collector = new DefaultShellOutputCollector();
+        int exitCode = new ShellRunner().run(cmd, collector);
+        assertEquals(0, exitCode);
+        assertTrue(collector.getOutput().contains("hello"));
+    }
 }

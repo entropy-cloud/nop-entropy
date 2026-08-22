@@ -82,6 +82,9 @@ public class GitRepositoryManagerImpl implements IGitRepositoryManager {
             LOG.trace("nop.git.ls-remote:url={},{}", url, list);
             return true;
         } catch (Exception e) {
+            // 网络/认证/超时等异常与"远程仓库不存在"都会走到这里，调用方只拿到 false。
+            // 至少记录 warn 日志保留原因，避免网络故障被误判为仓库不存在后触发错误的重新初始化分支
+            LOG.warn("nop.git.ls-remote-fail:url={}", url, e);
             return false;
         }
     }

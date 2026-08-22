@@ -7,6 +7,7 @@
  */
 package io.nop.diff;
 
+import io.nop.api.core.exceptions.NopException;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -308,5 +309,71 @@ class TestUnifiedDiffApplier {
 
         String result = applier.apply(originalText, diff);
         assertEquals("header\na\nB\nc\nmiddle\nd\nE\nf\n", result);
+    }
+
+    @Test
+    void testStrictContextRejectsIndentMismatch() {
+        // 默认 strictContext 模式下前导缩进差异不算匹配：
+        // diff 的 context 行 "body" 无缩进，原文件对应行有 4 空格缩进，必须报 ERR_DIFF_APPLY_CONTEXT_MISMATCH
+        String originalText = "header\n    body\nfooter\n";
+        String diffText = "--- a/file.txt\n" +
+                "+++ b/file.txt\n" +
+                "@@ -1,3 +1,4 @@\n" +
+                " header\n" +
+                " body\n" +
+                "+extra\n" +
+                " footer\n";
+
+        UnifiedDiff diff = UnifiedDiffParser.parseSingleDiff(diffText);
+        UnifiedDiffApplier applier = new UnifiedDiffApplier();
+
+        NopException e = assertThrows(NopException.class, () -> applier.apply(originalText, diff));
+        assertEquals(DiffErrors.ERR_DIFF_APPLY_CONTEXT_MISMATCH.getErrorCode(), e.getErrorCode());
+    }
+
+    @Test
+    void testIgnoreTrailingWhitespaceStillTolerated() {
+        String originalText = "header\nbody   \nfooter\n";
+        String diffText = "--- a/file.txt\n" +
+                "+++ b/file.txt\n" +
+                "@@ -1,3 +1,3 @@\n" +
+                " header\n" +
+                "-body\n" +
+                "+BODY\n" +
+                " footer\n";
+
+        UnifiedDiff diff = UnifiedDiffParser.parseSingleDiff(diffText);
+        UnifiedDiffApplier.Config config = new UnifiedDiffApplier.Config()
+                .ignoreTrailingWhitespace(true);
+        UnifiedDiffApplier applier = new UnifiedDiffApplier(config);
+
+        // 行尾空白被忽略，且 context 行从原文件复制，保留 "body   " 的原始空白
+        String result = applier.apply(originalText, diff);
+        assertEquals("header\nBODY\nfooter\n", result);
+    }
+
+    @Test
+    void testApplyHunkToTextCopiesContextFromOriginalFile() {
+        // applyHunkToText 的 context 行应从原文件复制（与 apply() 一致），而不是使用 diff 中的内容。
+        // 原文件首行带行尾空白、diff 中的 context 行没有：输出必须保留原文件的 "header   "
+        UnifiedDiffHunk hunk = UnifiedDiffHunk.builder()
+                .oldStartLine(1)
+                .oldLineCount(3)
+                .newStartLine(1)
+                .newLineCount(3)
+                .addContextLine("header")
+                .addDeleteLine("body")
+                .addAddLine("BODY")
+                .addContextLine("footer")
+                .build();
+
+        UnifiedDiffApplier.Config config = new UnifiedDiffApplier.Config()
+                .ignoreTrailingWhitespace(true);
+        UnifiedDiffApplier applier = new UnifiedDiffApplier(config);
+
+        String originalText = "header   \nbody\nfooter\n";
+        String result = applier.applyHunkToText(originalText, hunk);
+
+        assertEquals("header   \nBODY\nfooter\n", result);
     }
 }

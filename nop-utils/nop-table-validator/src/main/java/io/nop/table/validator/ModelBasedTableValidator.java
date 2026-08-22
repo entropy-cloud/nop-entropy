@@ -64,11 +64,21 @@ public class ModelBasedTableValidator<T> implements ITableValidator<T> {
 
         ModelBasedValidator[] rowValidators = compiled.getRowValidators();
         if (rowValidators != null) {
+            // 行级校验的字段引用（如 condition 中的 age）从 scope 解析，必须把行数据放入 scope
+            Map<String, Object> rowVars = new HashMap<>();
+            for (int colIdx = 0; colIdx < columnNames.length; colIdx++) {
+                rowVars.putIfAbsent(columnNames[colIdx], rowAdaptor.getValue(row, colIdx));
+            }
+            rowVars.put("rowIndex", rowIdx);
+
+            IVariableScope rowScope;
             IEvalScope scope = context != null ? context.getEvalScope() : null;
             if (scope != null) {
-                scope.setLocalValue("rowIndex", rowIdx);
+                // 子作用域中的行数据覆盖同名上下文变量，同时保留外部上下文变量的可见性
+                rowScope = scope.newChildScope(rowVars);
+            } else {
+                rowScope = new BeanVariableScope(rowVars);
             }
-            IVariableScope rowScope = scope != null ? scope : new BeanVariableScope(Map.of("rowIndex", rowIdx));
             for (ModelBasedValidator rv : rowValidators) {
                 rv.validate(rowScope, new RowWiseCollector(collector, rowIdx));
             }
@@ -78,12 +88,6 @@ public class ModelBasedTableValidator<T> implements ITableValidator<T> {
             Object value = rowAdaptor.getValue(row, colIdx);
             statsArr[colIdx].accumulate(value);
         }
-    }
-
-    private IVariableScope buildRowScope(int rowIdx) {
-        Map<String, Object> map = new HashMap<>();
-        map.put("rowIndex", rowIdx);
-        return new BeanVariableScope(map);
     }
 
     @Override
@@ -184,9 +188,12 @@ public class ModelBasedTableValidator<T> implements ITableValidator<T> {
 
         @Override
         public void addError(ErrorBean error) {
-            if (error.getParams() == null)
-                error.setParams(new HashMap<>());
-            error.getParams().put("rowIndex", rowIndex);
+            // ModelBasedValidator 可能传入 Collections.emptyMap()（errorParams 为空时），
+            // 不能直接 put，先复制为可变 Map 再补充 rowIndex
+            Map<String, Object> params = error.getParams() == null
+                    ? new HashMap<>() : new HashMap<>(error.getParams());
+            params.put("rowIndex", rowIndex);
+            error.setParams(params);
             delegate.addError(error);
         }
 

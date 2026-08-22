@@ -8,7 +8,6 @@
 package io.nop.router.trie;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -58,11 +57,13 @@ public class Trie<V> {
     }
 
     public MatchResult<V> match(List<String> path) {
-        if(path.isEmpty())
-            return null;
-
         lock.readLock().lock();
         try {
+            // 根路径（如 "/"）注册在 rootNode 上，空 path 时直接检查 rootNode 的值，
+            // 与 makeNode(Collections.emptyList(), ...) 的注册行为保持对称
+            if (path.isEmpty())
+                return rootNode.getValue() != null ? new MatchResult<>(path, rootNode.getValue()) : null;
+
             return _match(rootNode, path, 0, null, null);
         } finally {
             lock.readLock().unlock();
@@ -76,12 +77,15 @@ public class Trie<V> {
      * @return 所有匹配结果列表，如果没有匹配则返回空列表
      */
     public List<MatchResult<V>> matchAll(List<String> path) {
-        if (path.isEmpty())
-            return Collections.emptyList();
-
         lock.readLock().lock();
         try {
             List<MatchResult<V>> results = new ArrayList<>();
+            if (path.isEmpty()) {
+                if (rootNode.getValue() != null)
+                    results.add(new MatchResult<>(path, rootNode.getValue()));
+                return results;
+            }
+
             _matchAll(rootNode, path, 0, results);
             return results;
         } finally {
@@ -96,12 +100,15 @@ public class Trie<V> {
      * @return 所有匹配值的集合，如果没有匹配则返回空集合
      */
     public Set<V> matchAllValues(List<String> path) {
-        if (path.isEmpty())
-            return Collections.emptySet();
-
         lock.readLock().lock();
         try {
             Set<V> results = new HashSet<>();
+            if (path.isEmpty()) {
+                if (rootNode.getValue() != null)
+                    results.add(rootNode.getValue());
+                return results;
+            }
+
             _matchAllValues(rootNode, path, 0, results);
             return results;
         } finally {
@@ -220,11 +227,14 @@ public class Trie<V> {
                 return makeResult(path, candidate, patternInfo);
             } else {
                 if (child.hasChild()) {
-                    return _match(child, path, index + 1, candidate, patternInfo);
+                    MatchResult<V> result = _match(child, path, index + 1, candidate, patternInfo);
+                    if (result != null)
+                        return result;
                 }
-
-                // 如果path只匹配了一部分，但是已经没有子模式能够匹配，则检查是否已经存在可匹配模式
-                return makeResult(path, candidate, patternInfo);
+                // 精确子树没有命中：回退到本层的 tillEnd 通配节点（兜底路由语义）。
+                // 例如根上注册了 addMatchAll 的 {*path}，同时存在 "/api/users" 精确前缀，
+                // 请求 "/api/orders" 沿 "api" 前缀走到底无匹配时仍应命中兜底
+                return matchTillEndFallback(node, path, candidate, patternInfo);
             }
         } else {
             TrieNode<V> wildcardChild = node.getWildcardChild();
@@ -264,6 +274,19 @@ public class Trie<V> {
                 return makeResult(path, candidate, patternInfo);
             }
         }
+    }
+
+    /**
+     * 精确子树未命中时，尝试本节点的 tillEnd 通配子节点作为兜底候选
+     */
+    private MatchResult<V> matchTillEndFallback(TrieNode<V> node, List<String> path,
+            TrieNode<V> candidate, PatternMatchInfo<V> patternInfo) {
+        TrieNode<V> wildcardChild = node.getWildcardChild();
+        if (wildcardChild != null && wildcardChild.isTillEnd() && wildcardChild.getValue() != null) {
+            candidate = wildcardChild;
+            patternInfo = null;
+        }
+        return makeResult(path, candidate, patternInfo);
     }
 
     /**

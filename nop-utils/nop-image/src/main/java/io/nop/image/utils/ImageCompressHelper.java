@@ -10,6 +10,7 @@ import javax.imageio.ImageIO;
 import javax.imageio.ImageWriteParam;
 import javax.imageio.ImageWriter;
 import javax.imageio.stream.MemoryCacheImageOutputStream;
+import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.RenderingHints;
@@ -124,9 +125,13 @@ public class ImageCompressHelper {
     // 工具方法示例
     private static BufferedImage resizeImage(BufferedImage src, int w, int h) {
         Image tmp = src.getScaledInstance(w, h, Image.SCALE_SMOOTH);
+        // 压缩路径统一转 jpg（无 alpha），必须先铺白色背景：透明像素在无 alpha 的 RGB 目标上
+        // 默认合成黑色，带透明的 PNG（logo/图标）压缩后透明区域会变黑
         BufferedImage resized = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
         Graphics2D g2d = resized.createGraphics();
         g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g2d.setColor(Color.WHITE);
+        g2d.fillRect(0, 0, w, h);
         g2d.drawImage(tmp, 0, 0, null);
         g2d.dispose();
         return resized;
@@ -160,7 +165,11 @@ public class ImageCompressHelper {
             writer.dispose();
             output.close();
         } else {
-            ImageIO.write(image, format, baos);
+            if (!ImageIO.write(image, format, baos)) {
+                // 找不到对应格式的 writer 时 ImageIO.write 返回 false 且不写任何字节，
+                // 不能把空 byte[] 当作合法的编码结果返回
+                throw new IOException("no ImageIO writer for format: " + format);
+            }
         }
         return baos.toByteArray();
     }

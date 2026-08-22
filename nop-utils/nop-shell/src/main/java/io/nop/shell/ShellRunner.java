@@ -74,12 +74,13 @@ public class ShellRunner implements IShellRunner {
         if (collector == null)
             collector = LogShellOutputCollector.INSTANCE;
 
+        // 提前声明，catch 块中用于区分超时销毁引发的 IOException 与命令自身失败
+        final AtomicBoolean stopped = new AtomicBoolean();
+
         try {
             long beginTime = CoreMetrics.nanoTime();
 
             final Process process = this.newProcess(command);
-
-            AtomicBoolean stopped = new AtomicBoolean();
 
             final Future<?> timerFuture = scheduleTimeout(command, () -> {
                 safeDestroy(command, process, stopped);
@@ -90,7 +91,13 @@ public class ShellRunner implements IShellRunner {
 
             try {
                 if (command.getInputBytes() != null) {
-                    IoHelper.write(process.getOutputStream(), command.getInputBytes(), null);
+                    try {
+                        IoHelper.write(process.getOutputStream(), command.getInputBytes(), null);
+                    } finally {
+                        // 写入 stdin 后必须关闭，让读到 EOF 的子进程（cat/wc/grep 等）正常退出，
+                        // 否则进程会一直等待更多输入，导致 readOutput 永久挂起
+                        IoHelper.safeClose(process.getOutputStream());
+                    }
                 }
 
                 readOutput(process, command, collector, stopped);
@@ -122,6 +129,12 @@ public class ShellRunner implements IShellRunner {
             Thread.currentThread().interrupt();
             throw NopException.adapt(e);
         } catch (Exception e) {
+            // 超时处理器 safeDestroy 关闭输出流时，阻塞在 read 上的主线程可能被 IOException 唤醒，
+            // 此时异常的真正原因是超时销毁，而不是命令本身执行失败
+            if (stopped.get()) {
+                throw new NopException(ERR_SHELL_EXEC_COMMAND_TIMEOUT, e).param(ARG_TIMEOUT, command.getTimeout())
+                        .param(ARG_COMMAND, command.getCommandString());
+            }
             throw new NopException(ERR_SHELL_EXEC_COMMAND_FAIL, e).param(ARG_COMMAND, command.getCommandString());
         }
 

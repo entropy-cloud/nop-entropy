@@ -56,7 +56,8 @@ public class BetweenMatchPattern implements IMatchPattern {
         if (!operator.test(state.getValue(), minValue, maxValue, excludeMin, excludeMax)) {
             if (collectError) {
                 state.buildError(ERR_MATCH_BETWEEN_CHECK_FAIL).param(ARG_FILTER_OP, filterOp).param(ARG_MIN, minValue)
-                        .param(ARG_MAX, maxValue).param(ARG_EXCLUDE_MIN, excludeMin).param(ARG_EXCLUDE_MAX, excludeMax);
+                        .param(ARG_MAX, maxValue).param(ARG_EXCLUDE_MIN, excludeMin).param(ARG_EXCLUDE_MAX, excludeMax)
+                        .addToCollector(state.getErrorCollector());
             }
             return false;
         }

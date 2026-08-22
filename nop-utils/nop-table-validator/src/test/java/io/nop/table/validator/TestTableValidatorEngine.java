@@ -1,6 +1,13 @@
 package io.nop.table.validator;
 
 import io.nop.api.core.validate.ListValidationErrorCollector;
+import io.nop.core.lang.eval.EvalExprProvider;
+import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.xml.XNode;
+import io.nop.core.model.validator.ModelBasedValidator;
+import io.nop.core.model.validator.ValidatorCheckModel;
+import io.nop.core.model.validator.ValidatorModel;
+import io.nop.table.validator.compile.TableValidatorCompiled;
 import io.nop.table.validator.model.*;
 import org.junit.jupiter.api.Test;
 
@@ -23,6 +30,37 @@ public class TestTableValidatorEngine {
             if (columnIndex == 1) return row.score;
             return null;
         }
+    }
+
+    static class AgeRow {
+        final int age;
+        AgeRow(int age) { this.age = age; }
+    }
+
+    static class AgeRowAdaptor implements IRowDataAdaptor<AgeRow> {
+        @Override
+        public Object getValue(AgeRow row, int columnIndex) {
+            return columnIndex == 0 ? row.age : null;
+        }
+    }
+
+    /**
+     * 构建带行级校验的 validator：condition 为 gt(age, 20)，age 不大于 20 的行报错
+     */
+    static ModelBasedTableValidator<AgeRow> buildAgeValidator() {
+        ValidatorModel vm = new ValidatorModel();
+        ValidatorCheckModel check = new ValidatorCheckModel();
+        check.setErrorCode("test.age-too-small");
+        XNode cond = XNode.make("gt");
+        cond.setAttr("name", "age");
+        cond.setAttr("value", 20);
+        check.setCondition(cond);
+        vm.addCheck(check);
+
+        ModelBasedValidator rv = new ModelBasedValidator(vm);
+        TableValidatorCompiled compiled = new TableValidatorCompiled(
+                "age-validator", new ModelBasedValidator[]{rv}, null, null);
+        return new ModelBasedTableValidator<>(compiled, new AgeRowAdaptor());
     }
 
     @Test
@@ -128,5 +166,88 @@ public class TestTableValidatorEngine {
         validator.validateRow(new SimpleRow("c", null), null);
         validator.endTable();
         assertEquals(0, c2.getErrors().size());
+    }
+
+    // ==================== 行级校验测试 ====================
+
+    @Test
+    public void testRowValidatorResolvesColumns() {
+        // 行级校验的 condition 引用列名 age：修复前行数据从未进入 scope，
+        // age 解析为 null 导致 gt 恒为 false，每行都误报错
+        ModelBasedTableValidator<AgeRow> validator = buildAgeValidator();
+
+        ListValidationErrorCollector collector = new ListValidationErrorCollector();
+        validator.beginTable(new String[]{"age"}, collector);
+        validator.validateRow(new AgeRow(25), null);
+        validator.validateRow(new AgeRow(18), null);
+        validator.endTable();
+
+        assertEquals(1, collector.getErrors().size());
+        assertEquals("test.age-too-small", collector.getErrors().get(0).getErrorCode());
+    }
+
+    @Test
+    public void testRowValidatorWithEvalContext() {
+        // 带外部上下文调用：行数据覆盖同名变量，同时外部上下文变量（minAge）仍然可见
+        ValidatorModel vm = new ValidatorModel();
+        ValidatorCheckModel check = new ValidatorCheckModel();
+        check.setErrorCode("test.age-too-small");
+        XNode cond = XNode.make("gt");
+        cond.setAttr("name", "age");
+        cond.setAttr("valueName", "minAge");
+        check.setCondition(cond);
+        vm.addCheck(check);
+
+        ModelBasedValidator rv = new ModelBasedValidator(vm);
+        TableValidatorCompiled compiled = new TableValidatorCompiled(
+                "age-validator", new ModelBasedValidator[]{rv}, null, null);
+        ModelBasedTableValidator<AgeRow> validator = new ModelBasedTableValidator<>(compiled, new AgeRowAdaptor());
+
+        IEvalScope scope = EvalExprProvider.newEvalScope();
+        scope.setLocalValue(null, "minAge", 20);
+
+        ListValidationErrorCollector collector = new ListValidationErrorCollector();
+        validator.beginTable(new String[]{"age"}, collector);
+        validator.validateRow(new AgeRow(25), scope);
+        validator.validateRow(new AgeRow(18), scope);
+        validator.endTable();
+
+        assertEquals(1, collector.getErrors().size());
+        assertEquals("test.age-too-small", collector.getErrors().get(0).getErrorCode());
+    }
+
+    @Test
+    public void testRowValidatorFromModelCompiler() {
+        // 经 TableValidatorCompiler 的模型路径：XML 形态的 <check><condition><gt .../></condition></check>
+        // 编译时需解包 condition 包裹节点，行级校验引用列名 age 正常生效
+        XNode condWrapper = XNode.make("condition");
+        XNode gt = XNode.make("gt");
+        gt.setAttr("name", "age");
+        gt.setAttr("value", 20);
+        condWrapper.appendChild(gt);
+
+        XNode validatorNode = XNode.make("validator");
+        XNode checkNode = XNode.make("check");
+        checkNode.setAttr("errorCode", "test.age-too-small");
+        checkNode.appendChild(condWrapper);
+        validatorNode.appendChild(checkNode);
+
+        RowValidatorDef def = new RowValidatorDef();
+        def.setId("r1");
+        def.setValidator(validatorNode);
+
+        TableValidatorModel model = new TableValidatorModel();
+        model.setRowValidators(List.of(def));
+
+        ModelBasedTableValidator<AgeRow> validator = new ModelBasedTableValidator<>(model, new AgeRowAdaptor());
+
+        ListValidationErrorCollector collector = new ListValidationErrorCollector();
+        validator.beginTable(new String[]{"age"}, collector);
+        validator.validateRow(new AgeRow(25), null);
+        validator.validateRow(new AgeRow(18), null);
+        validator.endTable();
+
+        assertEquals(1, collector.getErrors().size());
+        assertEquals("test.age-too-small", collector.getErrors().get(0).getErrorCode());
     }
 }

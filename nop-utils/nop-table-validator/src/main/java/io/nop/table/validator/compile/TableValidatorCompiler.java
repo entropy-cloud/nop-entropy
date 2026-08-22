@@ -3,6 +3,7 @@ package io.nop.table.validator.compile;
 import io.nop.api.core.beans.FilterBeanConstants;
 import io.nop.api.core.beans.ITreeBean;
 import io.nop.api.core.beans.TreeBean;
+import io.nop.core.lang.xml.XNode;
 import io.nop.core.model.validator.ModelBasedValidator;
 import io.nop.core.model.validator.ValidatorCheckModel;
 import io.nop.core.model.validator.ValidatorModel;
@@ -55,10 +56,25 @@ public class TableValidatorCompiler {
             check.setErrorDescription((String) checkNode.getAttr("errorDescription"));
             var condition = checkNode.childByTag("condition");
             if (condition != null)
-                check.setCondition(condition);
+                check.setCondition(unwrapCondition(condition));
             vm.addCheck(check);
         }
         return vm;
+    }
+
+    /**
+     * condition 是 XML 中的包裹节点（<condition><gt .../></condition>），而 FilterBeanEvaluator
+     * 要求根节点本身是合法的过滤算子。单个子节点时直接解包；多个子节点按 AND 语义求值
+     */
+    private static XNode unwrapCondition(XNode condition) {
+        List<XNode> children = condition.getChildren();
+        if (children == null || children.isEmpty())
+            return condition;
+        if (children.size() == 1)
+            return children.get(0);
+        XNode and = XNode.make(FilterBeanConstants.FILTER_OP_AND);
+        and.appendChildren(children);
+        return and;
     }
 
     private TableValidatorCompiled.CompiledStatCheck[] compileStatChecks(List<TableStatCheckModel> checks) {

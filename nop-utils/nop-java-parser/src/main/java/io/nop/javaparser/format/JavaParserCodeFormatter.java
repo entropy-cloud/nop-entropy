@@ -30,9 +30,10 @@ public class JavaParserCodeFormatter implements ITextFormatter {
                     .addOption(new DefaultConfigurationOption(
                             DefaultPrinterConfiguration.ConfigOption.END_OF_LINE_CHARACTER, "\n"));
 
-    // 使用 JAVA_17 语言级别创建 JavaParser
-    private static final JavaParser JAVA_PARSER = new JavaParser(
-            new ParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17));
+    // 解析配置本身不可变共享；JavaParser 实例内部持有可变状态（如惰性创建的 astParser），
+    // 官方明确其非线程安全，因此每次 format 新建实例（与本模块 JavaParseTool/DeltaJavaMerger 的用法一致）
+    private static final ParserConfiguration PARSER_CONFIG = new ParserConfiguration()
+            .setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17);
 
     public String formatCompilationUnit(CompilationUnit cu) {
         return new DefaultPrettyPrinter(DEFAULT_CONFIG).print(cu);
@@ -48,7 +49,7 @@ public class JavaParserCodeFormatter implements ITextFormatter {
         }
 
         // 解析源代码（使用 JAVA_17 语言级别）
-        ParseResult<CompilationUnit> parseResult = JAVA_PARSER.parse(sourceCode);
+        ParseResult<CompilationUnit> parseResult = newParser().parse(sourceCode);
 
         if (parseResult.isSuccessful() && parseResult.getResult().isPresent()) {
             // 格式化代码
@@ -63,5 +64,9 @@ public class JavaParserCodeFormatter implements ITextFormatter {
 
             throw new NopException(ERR_JAVA_PARSER_PARSE_FAILED).loc(problemLoc).param(ARG_PARSE_RESULT, parseResult.toString());
         }
+    }
+
+    private static JavaParser newParser() {
+        return new JavaParser(PARSER_CONFIG);
     }
 }

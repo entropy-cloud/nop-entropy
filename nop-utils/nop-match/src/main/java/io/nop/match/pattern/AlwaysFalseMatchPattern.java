@@ -25,7 +25,8 @@ public class AlwaysFalseMatchPattern implements IMatchPattern {
     @Override
     public boolean matchValue(MatchState state, boolean collectError) {
         if (collectError) {
-            state.buildError(ERR_MATCH_ASSERT_OP_MATCH_FAIL).param(ARG_FILTER_OP, ALWAYS_FALSE.name());
+            state.buildError(ERR_MATCH_ASSERT_OP_MATCH_FAIL).param(ARG_FILTER_OP, ALWAYS_FALSE.name())
+                    .addToCollector(state.getErrorCollector());
         }
         return false;
     }
