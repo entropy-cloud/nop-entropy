@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  宿主容器命令 bean fixture（/main/beans 的 app-*.beans.xml 由 AppBeanContainerLoader 装入
+  全局容器）：注册 nopPluginCommand_host（宿主回退分支可观测）与 nopPluginCommand_default
+  （default bean 兜底分支可观测）。
+-->
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef">
+    <bean id="nopPluginCommand_host" class="io.nop.plugin.test.HostCommand"/>
+    <bean id="nopPluginCommand_default" class="io.nop.plugin.test.HostDefaultCommand"/>
+</beans>

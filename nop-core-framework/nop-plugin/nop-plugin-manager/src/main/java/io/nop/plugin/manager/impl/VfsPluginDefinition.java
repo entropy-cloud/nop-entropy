@@ -70,7 +70,10 @@ import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_SERVICE_PROXY
  * </ul>
  *
  * <p>钉死行为：VFS 轨无 Maven 坐标（groupId/artifactId/version 为 null）；start/stop 收敛为
- * §7.1 目标语义（start = load + activate、stop = deactivate + unload）；定义级
+ * §7.1 目标语义（start = load + activate、stop = deactivate + unload），状态边界两轨统一
+ * 规格——仅 UNLOADED 补 load 步（已 LOADED 不重复 load、config 经 updateConfig 并入定义级
+ * 配置域），已 ACTIVATED 时 start 幂等（activate 幂等不重跑），UNLOADED 态 stop 幂等 no-op；
+ * 定义级
  * {@link #updateConfig} 合并更新定义配置域——ACTIVATED 热应用（配置域视图刷新 + 经委托 provider
  * 触发变更通知），LOADED/FAILED 缓存、下次 activate 应用（updateConfig 后经 {@link #onConfigChanged}
  * 回调自动触发 manager reconcile）；invokeCommand 定义级路由（命令 bean 分发于本插件激活容器）。

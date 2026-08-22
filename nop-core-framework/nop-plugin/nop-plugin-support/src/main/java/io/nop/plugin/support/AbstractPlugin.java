@@ -48,9 +48,12 @@ import static io.nop.plugin.api.PluginApiErrors.ERR_PLUGIN_NOT_DEACTIVATED;
  *     （plugin.beans.xml 经 {@link AppBeanContainerLoader}、parent = 宿主容器）——
  *     子容器启动即 ACTIVATED。</li>
  *     <li>{@link #deactivate()} 子容器 stop；{@link #unload()} 守卫：ACTIVATED/中间态抛明确异常。</li>
- *     <li>start/stop 收敛为 §7.1 目标语义（start = load + activate、stop = deactivate + unload）。</li>
+ *     <li>start/stop 收敛为 §7.1 目标语义（start = load + activate、stop = deactivate + unload），
+ *     状态边界两轨统一规格：UNLOADED 才补 load 步（已 LOADED/FAILED 不重复 load 直接 activate）；
+ *     已 ACTIVATED 时 start 幂等 no-op（activate 幂等，不重建容器）；UNLOADED 态 stop 幂等 no-op。</li>
  *     <li>invokeCommand 定义级路由：命令 bean 分发于本插件激活容器（未接通路径显式抛异常，
- *     不静默返回）。</li>
+ *     不静默返回）；回退链与 VfsPluginDefinition 一致（插件容器 → 宿主回退 → default bean 兜底），
+ *     不分叉。</li>
  * </ul>
  *
  * <p><b>兼容路径</b>（子类 override {@code isStateMachineAware()} 返回 false）：保留旧 start/stop
@@ -107,6 +110,15 @@ public abstract class AbstractPlugin extends LifeCycleSupport implements IPlugin
      */
     protected String getPluginDefinitionPath() {
         return NopPluginConstants.PLUGIN_DEFINITION_FILE;
+    }
+
+    /**
+     * 插件子容器 bean 装配文件路径（VFS 约定路径，默认
+     * {@link NopPluginConstants#PLUGIN_BEANS_FILE}；aware 与兼容路径共用）。
+     * 路径无文件时 aware 激活成功但无子容器（命令经回退链解析）。
+     */
+    protected String getPluginBeansPath() {
+        return NopPluginConstants.PLUGIN_BEANS_FILE;
     }
 
     /**
@@ -191,14 +203,15 @@ public abstract class AbstractPlugin extends LifeCycleSupport implements IPlugin
 
     /**
      * 容器构建（复用旧 doStart 路径逻辑）：CoreInitialization 按需初始化 + plugin.beans.xml
-     * 经 {@link AppBeanContainerLoader} 装配（parent = 宿主容器）。容器 id 容忍坐标未设置
-     * （activate 可先于 start 调用，groupId/artifactId 为 null）。
+     * （{@link #getPluginBeansPath()}）经 {@link AppBeanContainerLoader} 装配
+     * （parent = 宿主容器）。容器 id 容忍坐标未设置（activate 可先于 start 调用，
+     * groupId/artifactId 为 null）。
      *
      * @param startAwarePath true = aware activate 路径：build 后显式 start（加载器只 build 不
      *                       start；jar 轨契约"子容器启动即 ACTIVATED"）；false = 兼容路径
      *                       （doStart）：保持改造前行为（build 不 start）
      */
-    private void buildBeanContainer(boolean startAwarePath) {
+    protected void buildBeanContainer(boolean startAwarePath) {
         this.loadTime = CoreMetrics.currentTimestamp();
 
         if (!CoreInitialization.isInitialized()) {
@@ -206,7 +219,7 @@ public abstract class AbstractPlugin extends LifeCycleSupport implements IPlugin
             CoreInitialization.initialize();
         }
 
-        IResource beansResource = VirtualFileSystem.instance().getResource(NopPluginConstants.PLUGIN_BEANS_FILE);
+        IResource beansResource = VirtualFileSystem.instance().getResource(getPluginBeansPath());
         if (beansResource.exists()) {
             String containerId = pluginGroupId != null ? getPluginId().toString() : getClass().getName();
             IBeanContainer container = new AppBeanContainerLoader().loadFromResource(containerId, beansResource,
@@ -297,11 +310,15 @@ public abstract class AbstractPlugin extends LifeCycleSupport implements IPlugin
     public void start(String pluginGroupId, String pluginArtifactId, String pluginVersion,
                       Map<String, Object> config) {
         if (isStateMachineAware()) {
-            // §7.1 收敛：start = load + activate（jar 轨门控空集 → activate 恒为 true）
+            // §7.1 收敛 + 状态边界（两轨统一规格）：start = load + activate（jar 轨门控空集 →
+            // activate 恒为 true）。仅 UNLOADED 补 load 步；已 LOADED/FAILED 不重复 load 直接
+            // activate；已 ACTIVATED 时 activate 幂等 no-op（不重建容器）
             this.pluginGroupId = pluginGroupId;
             this.pluginArtifactId = pluginArtifactId;
             this.pluginVersion = pluginVersion;
-            load(config);
+            if (state == PluginState.UNLOADED) {
+                load(config);
+            }
             activate();
             return;
         }
@@ -320,7 +337,8 @@ public abstract class AbstractPlugin extends LifeCycleSupport implements IPlugin
     @Override
     public void stop() {
         if (isStateMachineAware()) {
-            // §7.1 收敛：stop = deactivate + unload
+            // §7.1 收敛：stop = deactivate + unload（两轨统一边界：UNLOADED 态幂等 no-op——
+            // deactivate 非激活态 no-op、unload 对 UNLOADED 幂等）
             FutureHelper.syncGet(deactivate());
             unload();
             return;
@@ -356,13 +374,20 @@ public abstract class AbstractPlugin extends LifeCycleSupport implements IPlugin
         return pluginGroupId != null ? getPluginId().toString() : getClass().getName();
     }
 
+    /**
+     * 命令 bean 解析回退链（与 VfsPluginDefinition 同一链，不分叉）：本插件容器优先 →
+     * 宿主容器回退（ignoreUnknown=true 时 miss 返回 null）→ default bean 兜底
+     * （ignoreUnknown=false 时 miss 经 getBean 显式抛异常，不静默返回）。
+     */
     protected IPluginCommand getCommandBean(String beanName, boolean ignoreUnknown) {
         if (beanContainer != null) {
             if (beanContainer.containsBean(beanName))
                 return (IPluginCommand) beanContainer.getBean(beanName);
         }
-        if (ignoreUnknown)
-            return (IPluginCommand) BeanContainer.tryGetBean(beanName);
+        if (ignoreUnknown) {
+            Object bean = BeanContainer.tryGetBean(beanName);
+            return bean instanceof IPluginCommand ? (IPluginCommand) bean : null;
+        }
         return (IPluginCommand) BeanContainer.instance().getBean(beanName);
     }
 
