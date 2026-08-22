@@ -96,7 +96,7 @@ nop-job-local-scheduler-15-1: waiting to lock BeanCreationContext(ce50c570)，he
 
 - bean 生命周期推进的先后顺序（属性 → init → lazy 属性 → delay）在任何线程路径下都成立。
 - `getBean(name, false)` 返回**完整初始化**的 bean（等待而非加入）。
-- `getBean(name, true)` 返回**可提前可见**的 bean（循环依赖/自引用场景）。
+- `getBean(name, true)` 返回**可提前可见**的 bean（循环依赖/自引用场景）。**可见窗口语义（2026-08-22 补记）**：getBean0 收缩锁后，早引用可能落在 createInstance（注册进 scope）与 setupInstance 完成（markPropSet）之间的窗口——此时返回的是**属性尚未赋值的裸实例**（旧实现被 beanDef 监视器屏蔽，跨线程早引用总是看到属性齐备实例；同线程重入则两代一致）。早引用消费方按"身份可用、状态不保证"对待返回值。
 - 依赖/强制创建/拓扑序语义与 `bean-dependency-semantics.md` 一致，不变。
 - 并发初始化同一 bean 不再死锁；异常被完整传播。
 - 同线程在自身 init/lazy/delay 阶段回调中再次 `getBean(自身, false)` 属循环自依赖，抛出 `ERR_IOC_BEAN_INIT_SELF_WAIT`（旧实现为重复执行 init 的 bug 行为；正常依赖路径经依赖拓扑序/`includeCreating=true` 不可达）。

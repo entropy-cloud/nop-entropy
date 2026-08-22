@@ -39,7 +39,7 @@
           ioc:bean-method="getObject" ioc:default="true">
         <property name="name" value="app-orm"/>
         <property name="registerGlobalCache" value="true"/>
-        <property name="sequenceGenerator" ref="nopSequenceGenerator"/>
+        <property name="sequenceGenerator" ref="nopSequenceGenerator" ioc:ignore-depends="true"/>
 
         <property name="daoListeners">
             <ioc:collect-beans by-type="io.nop.orm.IOrmDaoListener" ioc:ignore-depends="true"/>

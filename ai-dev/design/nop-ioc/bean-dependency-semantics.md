@@ -18,6 +18,10 @@
 
    `<ref>` 注入是独立的第三种形式：ref 目标若**拓扑序在 X 之前**（已确定先初始化），也加入 X 的 `resolvedDepends`，纳入"必须完整初始化"保证；否则仅作为属性引用，不保证完整初始化（并发下可能观察中间态）。声明 `ioc:after`/`ioc:before` **不再写入 model 的 `dependsOn`**——它们只在解析阶段归入 `resolvedDepends`。
 
+   > **属性级豁免 `ioc:ignore-depends`**（2026-08-22 补记，源起 nop-datav self-wait 断环）：ref 声明可标注豁免——XML `<property ioc:ignore-depends="true"/>` / `<ref ioc:ignore-depends="true"/>`、字符串前缀 `ioc:~ref`、Java 注解 `@IgnoreDepends`、`lazy-property` 自动置位、`ioc:collect-beans` 级联到子项。被豁免的 ref **既不进排序图边也不进 resolvedDepends**（`InjectRefValueResolver.collectDepends` 跳过）——无顺序保证、无 init 前强制创建；属性赋值仍按早引用语义解析（`getBean(ref, true)`），不等待完整初始化。用途 = 运行期才消费的协作者（sequenceGenerator/listeners/interceptors 等）断开与基础设施 bean 的声明环。注意 by-type 注入（`InjectTypeValueResolver`）**从不贡献 depends**（未覆写 `collectDepends`），其 ignoreDepends 标注仅影响配置序列化——已知不对称，非缺陷。
+   >
+   > 实例：`nop-orm orm-defaults.beans.xml` 中 `nopOrmSessionFactory.sequenceGenerator` ref 曾无豁免，与 `nopSequenceGenerator`（sys-dao 版注入 ormTemplate）构成声明环；并发修复（428a196557）移除"嵌套重跑 initFunc + 提前发半成品"面具后，在 nop-datav-service 测试确定性触发 `ERR_IOC_BEAN_INIT_SELF_WAIT`。修复 = 该 ref 加 `ioc:ignore-depends="true"`，与同 bean 定义中 daoListeners/interceptors collect-beans 既有豁免风格对齐。
+
 2. **单一机制**：运行时强制创建只有一条路径——`BeanDefinition` 在 init-method 前遍历 `resolvedDepends`（替代原来的 `getBeanModel().getDependsOn()`）。创建 X 时强制创建 X 的全部在 resolved 集合中的前置（"依赖方拉动前置方"）。该集合**同时**驱动异步启动的任务排序（`asyncStartBeans`），两个消费方不再各持一份结构。
 
 3. **`nextBeans` 机制整体移除**：`BeanContainerImpl` 构造函数不再据 `ioc:after` 设置 `nextBeans`，`getBean0` 不再前向强制创建，`BeanDefinition.nextBeans` 字段及其方法删除。它是与 `resolvedDepends` 方向相反、表达同一信息的冗余第二机制，与 dependsOn 强制创建形成双向强关联。
@@ -89,6 +93,7 @@
 - 校验先于填充执行：声明的 before/after 恶意环（如 `A ioc:before B` + `B ioc:before A`）在步骤 1 被捕获，环中必有一条约束被违反，不会进入步骤 2。
 - **存在性校验不对称**：`depends-on` 是**强声明**——目标缺失在加载期直接报错（`ERR_IOC_UNKNOWN_DEPEND_REF`，`BeanDefinitionBuilder.checkDependRef`），因为 `resolvedDepends` 的强制创建循环在运行时必然依赖它，早报错优于运行时失败。`ioc:before`/`ioc:after` 是**弱声明**——目标缺失静默跳过（被条件禁用/父容器/可选模块提供时不报错）。但无论强弱，只要目标存在，其顺序约束都必须成立（步骤 1 校验覆盖三种声明）。
 - ref 目标的拓扑序过滤使循环 ref（并发下无初始化保证的既存行为）不被误提升为"必须完整初始化"。
+- 带 `ioc:ignore-depends` 的 ref 不进入 R 集合（`InjectRefValueResolver.collectDepends` 显式跳过），排序图边同步豁免；ref 目标缺失时同样静默跳过。
 
 ### 3.4 生产用法影响评估
 
