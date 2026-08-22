@@ -8,7 +8,7 @@ import java.util.List;
  *
  * <p>作为参数传入 {@link IPluginActivator#activate(IPluginScope, Map)}，提供 effect 注册与服务获取。
  * 可逆性由本 scope 自身保证（注册即回退），不依赖、不承诺观测 IoC 内部（子容器 stop 触发 bean
- * destroy 是实现细节，非 API 契约）。
+ * destroy 是实现细节，非 API 契约）。scope 绑定每次激活：插件 deactivate 时随激活一并回退。
  *
  * <p>关闭语义：{@link #close()} 按 LIFO（后注册先回退）执行全部 disposer，执行后
  * {@link #effects()} 清空 = quiescence。close 幂等（已关闭则直接返回）；close 之后再次
@@ -38,14 +38,14 @@ public interface IPluginScope {
     void close();
 
     /**
-     * 激活期等价于实例的 {@link IPluginInstance#getService(Class)}（activator 取 bean 用）。
+     * 激活期取 bean（activator 使用），多候选规则与插件级 getService 相同。
      *
      * <p>多候选规则：按 primary 优先；无 primary 时按 bean id 与接口匹配的唯一实现；
      * 多候选且无 primary 时抛明确异常（不静默返回集合）。
      *
-     * <p><b>与实例级 getService 的区别（W4 裁定）</b>：等价仅指调用语义（多候选规则相同）；
+     * <p><b>与插件级 getService 的区别（W4 裁定保留）</b>：等价仅指调用语义（多候选规则相同）；
      * scope 是激活期句柄（activator 在激活流程内调用，无失效语义需求），
-     * <b>返回真实 bean 非生命周期代理</b>——instance 级才是代理边界。
+     * <b>返回真实 bean 非生命周期代理</b>——插件级才是代理边界。
      */
     <T> T getService(Class<T> serviceType);
 

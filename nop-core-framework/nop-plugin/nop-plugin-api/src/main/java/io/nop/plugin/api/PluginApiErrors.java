@@ -12,25 +12,46 @@ import static io.nop.api.core.exceptions.ErrorCode.define;
 public interface PluginApiErrors {
     String ARG_PLUGIN_ID = "pluginId";
     String ARG_INSTANCE_KEYS = "instanceKeys";
+    String ARG_PLUGIN_STATE = "pluginState";
 
     /**
-     * 插件没有 ACTIVATED 实例（aware 定义在 LOADED 且 0 实例时命令不可用；W4 完善实例数=1 路由）。
+     * 插件未激活（LOADED/UNLOADED/FAILED 态命令与服务不可用；激活态代理在 deactivate
+     * 完成后调用同抛此码）。
      */
     ErrorCode ERR_PLUGIN_INACTIVE =
-            define("nop.err.plugin.inactive", "插件没有激活的实例，命令不可用:{pluginId}", ARG_PLUGIN_ID);
+            define("nop.err.plugin.inactive", "插件未激活，命令与服务不可用:{pluginId}", ARG_PLUGIN_ID);
 
     /**
-     * 插件定义文件缺失或无法解析（VFS 轨 id 对应的 *.plugin.xml 不存在；aware 插件 load() 时约定路径无定义文件）。
+     * unload 守卫（单激活不变量，01 §三）：插件处于 ACTIVATED 或生命周期中间态
+     * （ACTIVATING/DEACTIVATING）时禁止 unload——须先 deactivate 回到 LOADED
+     * （FAILED 态已清理完毕，允许 unload）。定义在 api 模块（support 与 manager 均抛出）。
+     */
+    ErrorCode ERR_PLUGIN_NOT_DEACTIVATED =
+            define("nop.err.plugin.not-deactivated", "插件未去激活，禁止卸载:{pluginId},{pluginState}",
+                    ARG_PLUGIN_ID, ARG_PLUGIN_STATE);
+
+    /**
+     * 非状态机感知插件不支持新状态机生命周期方法（load/unload/activate/deactivate/
+     * getService(s)/updateConfig）——default 实现显式失败（No Silent No-Op），
+     * 实现层对非 aware 插件永不调用这些方法。
+     */
+    ErrorCode ERR_PLUGIN_LIFECYCLE_NOT_SUPPORTED =
+            define("nop.err.plugin.lifecycle-not-supported",
+                    "插件未参与状态机（非状态机感知），不支持该生命周期方法");
+
+    /**
+     * 插件定义文件缺失或无法解析（VFS 轨 id 对应的 *.plugin.xml 不存在；aware 插件 load() 时
+     * 约定路径无定义文件且未声明容忍缺失）。
      */
     ErrorCode ERR_PLUGIN_DEFINITION_NOT_FOUND =
             define("nop.err.plugin.definition-not-found", "插件定义文件不存在或不可解析:{pluginId}", ARG_PLUGIN_ID);
 
     /**
-     * 定义级 invokeCommand 多实例歧义（§7.1：仅实例数=1 时经该实例路由；多实例须经
-     * {@link IPluginInstance#invokeCommand} 显式指定实例，避免静默路由错误）。
+     * 多激活歧义遗留错误码（原多实例机制已随单激活模型移除，常量本体保留至 R2 退役；
+     * 单激活模型下不再抛出）。
      */
     ErrorCode ERR_PLUGIN_MULTIPLE_INSTANCES =
             define("nop.err.plugin.multiple-instances",
-                    "插件存在多个实例，invokeCommand 须经 IPluginInstance 显式指定实例:{pluginId},{instanceKeys}",
+                    "插件存在多个激活（遗留错误码，多实例机制已移除）:{pluginId},{instanceKeys}",
                     ARG_PLUGIN_ID, ARG_INSTANCE_KEYS);
 }

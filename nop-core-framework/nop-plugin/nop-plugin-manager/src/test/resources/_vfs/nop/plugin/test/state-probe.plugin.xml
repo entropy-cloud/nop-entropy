@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin name="state-probe"
+        if-property="state.probe.enabled|true"
+        activator="stateProbeActivator"
+        x:schema="/nop/schema/plugin/plugin.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <beans>
+        <bean id="stateProbeActivator" class="io.nop.plugin.test.StateProbeActivator"/>
+        <bean id="recording.bean" class="io.nop.plugin.test.RecordingBean" destroy-method="onDestroy"/>
+    </beans>
+</plugin>

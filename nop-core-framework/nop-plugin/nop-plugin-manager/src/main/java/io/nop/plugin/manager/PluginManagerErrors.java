@@ -48,35 +48,37 @@ public interface PluginManagerErrors {
             define("nop.err.plugin.no-plugin-class-name", "插件配置文件中缺少pluginClassName属性");
 
     /**
-     * 定义未加载（LOADED 校验失败）：createInstance 要求定义已 loadPlugin 且仍为 LOADED。
+     * 定义未加载（LOADED 校验失败）：activatePlugin/deactivatePlugin/reloadPlugin 要求
+     * 定义已 loadPlugin 且未 unload。
      */
     ErrorCode ERR_PLUGIN_DEFINITION_NOT_LOADED =
             define("nop.err.plugin.definition-not-loaded", "插件定义未加载:{pluginId}",
                     io.nop.plugin.api.PluginApiErrors.ARG_PLUGIN_ID);
 
     /**
-     * 同 key 重复 createInstance（instanceKey 同定义下唯一，禁止静默覆盖）。
+     * 同 key 重复派生实例（原多实例机制，已随单激活模型移除；遗留错误码保留至 R2 退役）。
      */
     ErrorCode ERR_PLUGIN_INSTANCE_EXISTS =
             define("nop.err.plugin.instance-exists", "插件实例已存在:{pluginId},{instanceKey}",
                     io.nop.plugin.api.PluginApiErrors.ARG_PLUGIN_ID, ARG_INSTANCE_KEY);
 
     /**
-     * 指定 key 的实例不存在（destroyInstance/getInstance 找不到）。
+     * 指定 key 的实例不存在（原多实例机制，已随单激活模型移除；遗留错误码保留至 R2 退役）。
      */
     ErrorCode ERR_PLUGIN_INSTANCE_NOT_FOUND =
             define("nop.err.plugin.instance-not-found", "插件实例不存在:{pluginId},{instanceKey}",
                     io.nop.plugin.api.PluginApiErrors.ARG_PLUGIN_ID, ARG_INSTANCE_KEY);
 
     /**
-     * unload 守卫：定义仍有实例时禁止 unload（须先 destroy 全部实例）。
+     * unload 守卫遗留错误码（原"定义仍有实例时禁止 unload"；单激活模型的对应错误码为
+     * {@link #ERR_PLUGIN_NOT_DEACTIVATED}，本码保留至 R2 退役）。
      */
     ErrorCode ERR_PLUGIN_INSTANCES_NOT_EMPTY =
             define("nop.err.plugin.instances-not-empty", "插件仍有实例，禁止卸载:{pluginId},{instanceKeys}",
                     io.nop.plugin.api.PluginApiErrors.ARG_PLUGIN_ID, ARG_INSTANCE_KEYS);
 
     /**
-     * 实例化路径未就绪（uber jar 轨 plugin.json 定义无 plugin.xdef/activator 载体，为 W4/W7 successor 项）。
+     * 实例化路径未就绪（原多实例机制，已随单激活模型移除；遗留错误码保留至 R2 退役）。
      */
     ErrorCode ERR_PLUGIN_INSTANCE_NOT_SUPPORTED =
             define("nop.err.plugin.instance-not-supported",
@@ -84,18 +86,18 @@ public interface PluginManagerErrors {
                     io.nop.plugin.api.PluginApiErrors.ARG_PLUGIN_ID, ARG_INSTANCE_KEY);
 
     /**
-     * 实例激活失败（实例化/activator 抛错；实例回退 DEACTIVATED 并记录错误）。
+     * 插件激活失败（容器构建/activator 抛错；插件置 FAILED 并记录错误，可重试激活）。
      */
     ErrorCode ERR_PLUGIN_ACTIVATION_FAILED =
-            define("nop.err.plugin.activation-failed", "插件实例激活失败:{pluginId},{instanceKey}",
-                    io.nop.plugin.api.PluginApiErrors.ARG_PLUGIN_ID, ARG_INSTANCE_KEY);
+            define("nop.err.plugin.activation-failed", "插件激活失败:{pluginId}",
+                    io.nop.plugin.api.PluginApiErrors.ARG_PLUGIN_ID);
 
     /**
-     * 定义声明的 activator bean 在实例容器中不存在。
+     * 定义声明的 activator bean 在插件容器中不存在。
      */
     ErrorCode ERR_PLUGIN_ACTIVATOR_NOT_FOUND =
-            define("nop.err.plugin.activator-not-found", "插件激活器 bean 不存在:{activator},{pluginId},{instanceKey}",
-                    ARG_ACTIVATOR, io.nop.plugin.api.PluginApiErrors.ARG_PLUGIN_ID, ARG_INSTANCE_KEY);
+            define("nop.err.plugin.activator-not-found", "插件激活器 bean 不存在:{activator},{pluginId}",
+                    ARG_ACTIVATOR, io.nop.plugin.api.PluginApiErrors.ARG_PLUGIN_ID);
 
     /**
      * 定义声明的 activator bean 未实现 IPluginActivator。
@@ -138,7 +140,7 @@ public interface PluginManagerErrors {
                     io.nop.plugin.api.PluginApiErrors.ARG_PLUGIN_ID, ARG_SPEC_ATTR);
 
     /**
-     * createInstance(parent) 父实例状态检查（W6）：父存在且 ACTIVATED 才可挂靠——
+     * 挂靠父实例状态检查（原多实例机制，已随单激活模型移除；遗留错误码保留至 R2 退役）。父存在且 ACTIVATED 才可挂靠——
      * 父 DEACTIVATED（或非本框架实现的父实例，无法接线 parent 容器）显式失败，
      * 禁止挂到已停/未知容器（服务沿链回退会抛 ERR_IOC_CONTAINER_NOT_STARTED 硬失败）。
      */
@@ -148,7 +150,7 @@ public interface PluginManagerErrors {
                     io.nop.plugin.api.PluginApiErrors.ARG_PLUGIN_ID, ARG_INSTANCE_KEY);
 
     /**
-     * createInstance(parent) 父链成环防护（W6）：沿 getParent() 链回溯到重复实例
+     * 父实例链成环防护（原多实例机制，已随单激活模型移除；遗留错误码保留至 R2 退役）：沿 getParent() 链回溯到重复实例
      * （手工构造的环引用）时显式失败，禁止父链成环。
      */
     ErrorCode ERR_PLUGIN_PARENT_CHAIN_CYCLE =

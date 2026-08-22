@@ -2,10 +2,9 @@ package io.nop.plugin.manager;
 
 import io.nop.api.core.beans.ArtifactCoordinates;
 import io.nop.plugin.api.IPlugin;
-import io.nop.plugin.api.IPluginInstance;
 
 import java.util.List;
-import java.util.Map;
+import java.util.concurrent.CompletionStage;
 
 /**
  * 每一个plugin对应于一个uber jar，通过远程仓库下载，并使用独立的ClassLoader加载
@@ -14,8 +13,9 @@ import java.util.Map;
  * 判别规则 = {@link ArtifactCoordinates#parse(String)} 成功（Maven 坐标，双冒号格式）
  * → uber jar 轨（resolver → PluginClassLoader → plugin.json）；解析失败 → VFS 路径轨
  * （本地 VFS 的 *.plugin.xml，经 plugin.xdef 解析为静态定义）。
- * <p>状态机感知（{@link IPlugin#isStateMachineAware()}）路由：aware → 定义级状态机
- * （loadPlugin 只到 LOADED，不激活）；非 aware → 兼容路径（loadPlugin 执行旧 start 语义）。
+ * <p>状态机感知（{@link IPlugin#isStateMachineAware()}）路由：aware → 单层六态状态机
+ * （loadPlugin 只到 LOADED；reconcile 按门控自动激活）；非 aware → 兼容路径
+ * （loadPlugin 执行旧 start 语义）。
  */
 public interface IPluginManager {
 
@@ -27,7 +27,7 @@ public interface IPluginManager {
     IPlugin loadPlugin(String pluginId);
 
     /**
-     * 卸载插件定义：aware → unload()（须先 destroy 全部实例，有实例抛异常）；非 aware → stop()（旧语义）。
+     * 卸载插件定义：aware → unload()（须未激活，激活态抛异常）；非 aware → stop()（旧语义）。
      */
     void unloadPlugin(String pluginId);
 
@@ -46,56 +46,40 @@ public interface IPluginManager {
     }
 
     /**
-     * 为已 LOADED 的定义派生一个激活实例（§7.3）：实例 registry 注册 → 立即激活
-     * （子容器 + activator + effect）。同 key 重复创建抛明确异常；激活失败抛明确异常
-     * （错误带实例 key 参数，实例回退 DEACTIVATED 留在 registry）。
-     *
-     * <p><b>W5 定义级 coeffect 门控</b>：定义级 spec（requires + if-property）不满足时
-     * <b>no-op 返回 null</b>（设计 §五）——重复 key 检查先于门控，门控关闭但实例已存在
-     * 仍抛重复 key 异常。创建成功后 manager 自动 reconcile（级联激活下游依赖实例）。
-     *
-     * <p>parent 为层级实例化（subagent）预留（W6 落地，本阶段传 null）。
-     * uber jar 轨定义的实例化路径为 successor 项（W4/W7 评估），调用时抛明确异常。
+     * 激活插件（§7.3）：委托 {@link IPlugin#activate()}——门控满足建子容器 + activator + effect
+     * 返回 true；门控未满足 no-op 返回 false；已 ACTIVATED 幂等返回 true；激活失败显式抛异常
+     * （置 FAILED、错误可经定义读取）。
      */
-    IPluginInstance createInstance(String pluginId, String instanceKey, Map<String, Object> config,
-                                   IPluginInstance parent);
+    boolean activatePlugin(String pluginId);
 
     /**
-     * 销毁指定实例（回退 effect、从定义移除）；实例不存在抛明确异常。
+     * 去激活插件（§7.3）：委托 {@link IPlugin#deactivate()}——先 scope.close() LIFO 回退全部
+     * effect 再子容器 stop，回到 LOADED（定义保留）。
      */
-    void destroyInstance(String pluginId, String instanceKey);
+    CompletionStage<Void> deactivatePlugin(String pluginId);
 
     /**
-     * 按 instanceKey 查询已加载定义的实例；定义未加载或实例不存在返回 null。
+     * 按 id 查询已加载插件；未加载返回 null。
      */
-    IPluginInstance getInstance(String pluginId, String instanceKey);
-
-    /**
-     * 已加载定义的全部实例。
-     */
-    List<IPluginInstance> getInstances(String pluginId);
+    IPlugin getPlugin(String pluginId);
 
     List<IPlugin> getLoadedPlugins();
 
     /**
-     * 扫描全部实例的 coeffect（定义级 + 实例级），批量 activating / deactivating（§7.3）。
+     * 扫描全部 LOADED plugin 的插件级 coeffect（requires + if-property），批量
+     * activating / deactivating（§7.3，委托 {@link io.nop.plugin.api.IPluginContext#reconcile()}）。
      *
-     * <p>委托 {@link io.nop.plugin.api.IPluginContext#reconcile()}：迭代收敛 + 静态环检测报告
-     * + 激活失败阈值暂停；reconcile 不自动创建实例——定义级满足但无实例的定义保持 LOADED，
-     * 实例由 {@link #createInstance}（显式调用）创建。
+     * <p>迭代收敛 + 静态环检测报告 + 激活失败阈值暂停；reconcile 不自动 load——
+     * 未加载的定义保持 UNLOADED（load 是显式调用）。
      */
-    void reconcileInstances();
+    void reconcilePlugins();
 
     /**
-     * HMR 热重载（§六，W6 落地）：VFS 轨定义变更 → 快照采集（级联闭包）→ destroy 全部实例 →
-     * unload → load（重解析 plugin.xml，新定义对象）→ 按快照重建（父先建子后建）→ reconcile。
+     * HMR 热重载（§六）：VFS 轨定义变更 → 若激活态先 deactivate → unload → load
+     * （重解析 plugin.xml，重放定义级 updateConfig 累积值）→ reconcile（重新门控激活）。
      *
-     * <p>P2-A 快照语义：快照（定义级 definitionConfig + 级联闭包内全部实例的
-     * (instanceKey, config, parent 对)——parent 以 (pluginId, instanceKey) 对记录，
-     * 重建时解析到新实例对象）由 manager 持有，reload 流程成功结束后失效（下次 reload
-     * 重新采集），失败路径保留（调用方可重试）。定义级 coeffect 门控不满足的实例记录为
-     * pending（reconcile 触发点重试重建，不误判为失败）。jar 轨（uber jar 不可编辑，
-     * 设计 §六 HMR 面向本地/开发场景）显式抛 {@code ERR_PLUGIN_RELOAD_NOT_SUPPORTED}。
+     * <p>jar 轨（uber jar 不可编辑，设计 §六 HMR 面向本地/开发场景）显式抛
+     * {@code ERR_PLUGIN_RELOAD_NOT_SUPPORTED}。
      */
     void reloadPlugin(String pluginId);
 }
