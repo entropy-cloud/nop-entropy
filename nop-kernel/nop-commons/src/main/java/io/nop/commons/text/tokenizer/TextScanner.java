@@ -479,13 +479,20 @@ public class TextScanner {
     public boolean skipBlank() {
         int line = this.line;
         int pos = this.pos;
-        while (StringHelper.isSpace(cur)) {
+        while (isWs(cur)) {
             if (!next())
                 break;
         }
         lineSkipped = line != this.line;
         blankSkipped = pos != this.pos;
         return blankSkipped;
+    }
+
+    /**
+     * 与 StringHelper.isSpace 相同的谓词，内联在扫描器热点循环中使用
+     */
+    private static boolean isWs(int ch) {
+        return ch <= ' ' && (ch == ' ' || ch == '\n' || ch == '\r' || ch == '\t' || ch == '\f' || ch == '\b');
     }
 
     public void checkBlankSkipped() {
@@ -674,6 +681,74 @@ public class TextScanner {
             throw newError(radix == 16 ? ERR_SCAN_INVALID_HEX_INT_STRING : ERR_SCAN_INVALID_LONG_STRING)
                     .param(ARG_VALUE, value);
         }
+    }
+
+    private static final long LONG_MAX_DIV_10 = Long.MAX_VALUE / 10;
+    private static final int LONG_MAX_MOD_10 = (int) (Long.MAX_VALUE % 10);
+
+    /**
+     * 快路径：无前导零的纯十进制整数。仅当底层输入可寻址（CharSequence）时启用：
+     * 先在序列上前瞻扫描（不触碰扫描器状态），确认"纯数字、未溢出、终止符非 . e E l L f F d D"后，
+     * 再经 read0() 真实消费并按 consumeDigits 相同方式批量结算状态。
+     * 任何复杂情形（溢出/小数/指数/后缀/流式输入）返回 null，状态保持原样由原逻辑处理，
+     * 因此错误语义与类型规则（int 范围内 Integer 否则 Long）与原实现完全一致。
+     */
+    private Number tryNextDecimalInteger(boolean neg) {
+        CharSequence seq = getBaseSequence();
+        if (seq == null)
+            return null;
+        int c = cur;
+        if (c < '1' || c > '9')
+            return null;
+        int len = seq.length();
+        int start = pos;
+        if (start < 0 || start >= len || seq.charAt(start) != c)
+            return null;
+        long value = 0;
+        boolean overflow = false;
+        int i = start;
+        while (i < len) {
+            c = seq.charAt(i);
+            if (c < '0' || c > '9')
+                break;
+            if (!overflow) {
+                int digit = c - '0';
+                if (value > LONG_MAX_DIV_10 || (value == LONG_MAX_DIV_10 && digit > LONG_MAX_MOD_10)) {
+                    overflow = true;
+                } else {
+                    value = value * 10 + digit;
+                }
+            }
+            i++;
+        }
+        if (overflow)
+            return null;
+        if (i >= len) {
+            c = -1; // EOF 终止
+        } else if (c == '.' || c == 'e' || c == 'E' || c == 'l' || c == 'L'
+                || c == 'f' || c == 'F' || c == 'd' || c == 'D') {
+            return null;
+        }
+
+        int count = i - start;
+        for (int k = 0; k < count; k++) {
+            this.cur = read0();
+        }
+        this.pos += count;
+        this.col += count;
+        syncLineState();
+
+        // 注意：不能用 cond ? Integer.valueOf(..) : Long.valueOf(..) 形式——
+        // 混合装箱类型的三元表达式会被数值提升统一为 long 再装箱，恒返回 Long
+        if (!neg) {
+            if (value <= Integer.MAX_VALUE)
+                return Integer.valueOf((int) value);
+            return Long.valueOf(value);
+        }
+        value = -value;
+        if (value >= Integer.MIN_VALUE)
+            return Integer.valueOf((int) value);
+        return Long.valueOf(value);
     }
 
     /**
@@ -902,6 +977,11 @@ public class TextScanner {
             next();
         }
 
+        // 快路径：无前导零的纯十进制整数直接累加，免拼串免二次 parse
+        Number fast = tryNextDecimalInteger(neg);
+        if (fast != null)
+            return fast;
+
         MutableString buf = getReusableBuffer();
         if (neg)
             buf.append('-');
@@ -1024,6 +1104,7 @@ public class TextScanner {
 
         if (p != pos) {
             col += p - pos;
+            pos = p;
             cur = c;
             syncLineState();
             return true;
@@ -1106,6 +1187,54 @@ public class TextScanner {
 
     public String nextJsonString() {
         char quote = (char) this.cur;
+        String fast = tryNextSimpleJsonString(quote);
+        if (fast != null)
+            return fast;
+        return nextJsonStringSlow(quote);
+    }
+
+    /**
+     * 快路径：当底层输入是可直接寻址的字符序列时，先扫描引号后首个终止符（闭引号/反斜杠/换行）。
+     * 区间内无转义且以闭引号终止时，一次性切片返回，避免逐字符 append 与簿记。
+     * 含转义、跨行、EOF 或底层不可寻址时返回 null 回落到逐字符路径。
+     * 状态推进结果与逐字符路径逐位一致：批量跳过的内容字符均为普通字符（lineState 保持 0），
+     * 最终 cur 停在闭引号上再调用一次 {@link #next()} 完成与原实现相同的收尾。
+     */
+    private String tryNextSimpleJsonString(char quote) {
+        CharSequence seq = getBaseSequence();
+        if (seq == null)
+            return null;
+        int len = seq.length();
+        int open = this.pos;
+        // 防御：外部传入已部分消费的 reader 时 pos 可能与序列索引不对齐，此时回落慢路径
+        if (open < 0 || open >= len || seq.charAt(open) != this.cur)
+            return null;
+        int i = open + 1;
+        while (i < len) {
+            char c = seq.charAt(i);
+            if (c == quote || c == '\\' || c == '\r' || c == '\n')
+                break;
+            i++;
+        }
+        if (i >= len || seq.charAt(i) != quote)
+            return null;
+
+        int start = open + 1;
+        String ret = i == start ? "" : seq.subSequence(start, i).toString();
+        // 序列只用于前瞻定位；被跳过的字符（内容+闭引号）仍通过底层 reader 消费，
+        // 保证 reader 自身状态与扫描器同步。相比逐字符路径省去的是每字符簿记与缓冲区 append。
+        for (int k = open; k < i; k++) {
+            this.cur = read0();
+        }
+        // 批量结算 pos/col：跳过区间内无换行，行号不变；lineState 与慢路径一样保持不动
+        this.pos = i;
+        this.col += i - open;
+        // 此时 cur 停在闭引号上，再走一次 next() 完成与慢路径相同的收尾
+        next();
+        return ret;
+    }
+
+    private String nextJsonStringSlow(char quote) {
         MutableString buf = getReusableBuffer();
 
         SourceLocation loc = location();
