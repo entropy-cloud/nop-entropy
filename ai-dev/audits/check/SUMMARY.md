@@ -89,6 +89,17 @@
 
 dev-tools / file-retry-tcc / format-misc / format-office / format-pdf-svg / format-record 六个单元的全部 118 条发现已在独立分支 `fix-ai-check` 完成处置：74 条已修复（含全部 P0/P1，附回归测试）、27 条已确认暂缓（需设计决策）、4 条复查后维持现状、1 条审计前提有误（xlsx 列引用放大，CellPosition 既有上限）、其余文档化/删除死代码。逐条处置见各报告条目末尾的"处置（fix-ai-check 分支）"标注。两个超出审计的发现：ModelBasedPacketCodec 编码帧长公式与解码恒差 lengthFieldEndOffset 字节；readLine EOF 语义应统一为 null 而非空串（消费方以 null 判结束）。
 
+## 修复进展（fix-ai-check 分支，2026-08-22，剩余全部 P0 清零）
+
+2026-08-21 六单元之外的**剩余 32 条 P0**（分布于 25 份单元报告）已全部处置完毕，每条均按"live code 复核 → 红测试 → 最小修复 → 绿 → 模块全量测试 → 报告条目标注"闭环：
+
+- **安全类 8 条全部修复**：nop-auth 登录锁号与凭证校验解耦（max-login-fail-count=0 不再跳过密码/SMS/账号状态校验）、nop-wf transferActors 增加管理员/本人鉴权 + requireUser 校验、ai-toolkit-skills sessionId 白名单防路径穿越、gateway 默认 API Key 改配置化 fail-closed、nop-search Lucene 数值/path 过滤按索引类型重构查询构造、nop-integration 腾讯短信区号回退默认 + JavaEmailSender 异常穿透。ai-rest 扫码登录实施最小加固（登录身份以服务端 ticket 断言为准、伪造 extId 拒绝、ticketId 改随机 UUID）；完整的渠道签名/OAuth code 换取属设计级变更，标注暂缓。
+- **数据正确性 15 条全部修复**：thenRun 异步分支、BeanCopier 数组长度、BaseRecordInput off-by-one、游标分页三缺陷、迁移 type 回填、nop-task 三条（loop/fork continuation-skip 按首实例化门控、延迟重试去重、whenComplete 成败反正）、锁过期反向、min null、ListBatchLoader 分块索引、Tarjan lowLink 传播、Edge equals/hashCode、Gemini/Ollama 流式工具调用 args 通道（ChatStreamChunk 新增 arguments 承载）。
+- **流处理/失效类 9 条全部修复**：StreamReduceOperator 恢复后不清零、CepOperator per-key 定时器账本 + watermark/processing-time 回调切 key 上下文（checkpoint 快照新 per-key 格式、兼容旧 flat 格式）、2PC sink per-subtask 隔离（JDBC ledger 加 subtask_id 列，旧 schema 显式报错）、source run() 重置重启、GZip/Deflate decode、SocketServer 连接表 key 统一、MQTT endpoint.accept、JdbcBatcher flush 关闭 Statement、UnifiedDiffLine 空行、ShellCommand Unix `-c`。
+- **超出审计的新发现**（未修，已记录在对应报告标注中）：DaoQueryHelper.queryToFindPrevSql 空 filter 时漏 where 生成非法 EQL；db-migration 9 个变更类（createIndex/sql/alterColumn 等）解析期 ClassCastException、insert/update column 解析为 DynamicObject、14 个测试 fixture XML 不符 xdef 契约；nop-task 延迟重试 async 结果未压平（随 P0 一并修复）。
+- **门禁维护**：nop-stream output-contract-registry 发射点行号随 CepOperator 改动重钉（507→568、814→960），`check-nop-stream-invariants.mjs` exit 0；`check-nop-stream-audit-manifest.mjs` 的三个分母（钉在 2026-08-07 HEAD）在本次改动前即已过期红屏，属存量状态未处置。
+- 各报告 P1/P2/P3 条目尚未处置（保持原状），建议后续按模块分批立项。
+
 ## 后续建议
 
 1. **修复分批**：建议按"安全类 9 条 → 数据正确性 16 条 → 流处理/失效类"顺序建修复 plan（`ai-dev/plans/`），每个 plan 引用对应 check 报告作 baseline。P2/P3 可按模块顺带处理。
