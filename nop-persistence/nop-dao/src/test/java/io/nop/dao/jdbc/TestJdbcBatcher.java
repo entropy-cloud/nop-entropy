@@ -21,6 +21,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -160,5 +162,53 @@ public class TestJdbcBatcher extends JdbcTestCase {
         assertTrue(trackers.get(0).isClosed());
 
         assertEquals(10L, jdbc().findLong(new SQL("select a from my_entity where id = 1"), 0L));
+    }
+
+    /**
+     * 批量失败时的回调契约：驱动确认成功的命令必须回调(count, null)，
+     * 未确认/失败的命令在stopOnError时必须回调(null, error)，不允许静默丢失
+     */
+    @Test
+    public void testFlushBatchFailCallbackSemantics() throws Exception {
+        jdbc().executeUpdate(new SQL("create table batcher_entity(id int primary key, v int)"));
+        jdbc().executeUpdate(new SQL("insert into batcher_entity(id, v) values(1, 11)"));
+
+        List<Integer> counts = new ArrayList<>();
+        List<Throwable> errors = new ArrayList<>();
+
+        try (Connection conn = getDataSource().getConnection()) {
+            JdbcBatcher batcher = new JdbcBatcher(conn, getDialect(), null);
+            batcher.setBatchSize(10);
+
+            // 第一条成功，第二条与已存在主键冲突，第三条因stopOnError不再执行
+            batcher.addCommand(insertSql(2, 22), true, (count, e) -> {
+                counts.add(count);
+                errors.add(e);
+            });
+            batcher.addCommand(insertSql(1, 33), true, (count, e) -> {
+                counts.add(count);
+                errors.add(e);
+            });
+            batcher.addCommand(insertSql(3, 44), true, (count, e) -> {
+                counts.add(count);
+                errors.add(e);
+            });
+
+            assertThrows(NopException.class, batcher::flush);
+        }
+
+        assertEquals(3, counts.size(), "all three commands must receive exactly one callback");
+        assertEquals(3, errors.size());
+
+        // H2在批量中遇到失败后仍会继续执行后续语句，updateCounts为[1,-3,1]：
+        // 驱动确认成功的两条命令必须回调(count, null)，失败的那条回调(null, cause)
+        assertEquals(1, counts.get(0).intValue());
+        assertNull(errors.get(0));
+        assertNotNull(errors.get(1));
+        assertEquals(1, counts.get(2).intValue());
+        assertNull(errors.get(2));
+
+        // 成功的两条插入生效，冲突的一条不生效
+        assertEquals(3L, jdbc().findLong(new SQL("select count(*) from batcher_entity"), 0L));
     }
 }

@@ -65,6 +65,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 import static io.nop.dao.DaoConfigs.CFG_DAO_DB_TIME_CACHE_TIMEOUT;
@@ -87,6 +88,8 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
     private final Map<String, IEstimatedClock> clockMap = new ConcurrentHashMap<>();
 
     private final Map<String, ICache<Object, DataSetCacheData>> cacheMap = new ConcurrentHashMap<>();
+
+    private final AtomicBoolean noCacheProviderWarned = new AtomicBoolean();
 
     public void setCacheProvider(ICacheProvider cacheProvider) {
         this.cacheProvider = cacheProvider;
@@ -130,6 +133,8 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
 
     @Override
     public IDialect getDialectForQuerySpace(String querySpace) {
+        // 与withTxn保持一致：动态querySpace映射后，事务连接实际所在的querySpace决定方言
+        querySpace = useDynamicQuerySpace(querySpace);
         if (dialectProvider != null)
             return dialectProvider.getDialectForQuerySpace(querySpace);
         return transactionTemplate.getDialectForQuerySpace(querySpace);
@@ -363,8 +368,13 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
     }
 
     private DataSetCacheData getCacheData(SQL sql, LongRangeBean range) {
-        if (cacheProvider == null)
+        if (cacheProvider == null) {
+            if (sql.getCacheRef() != null && noCacheProviderWarned.compareAndSet(false, true)) {
+                LOG.warn("nop.dao.query-cache-provider-not-configured:sqlName={},cacheName={}", sql.getName(),
+                        sql.getCacheRef().getCacheName());
+            }
             return null;
+        }
 
         CacheRef cacheRef = sql.getCacheRef();
         if (cacheRef == null)
@@ -406,7 +416,8 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
 
         CacheRef cacheRef = sql.getCacheRef();
         if (cacheRef == null)
-            return null;
+            // 无cacheRef的查询无需缓存，原样返回数据集
+            return ds;
 
         ICache<Object, DataSetCacheData> cache = cacheMap.computeIfAbsent(cacheRef.getCacheName(),
                 k -> cacheProvider.getCache(cacheRef.getCacheName()));
@@ -582,11 +593,9 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
             });
 
             SQL sql = SQL.begin().querySpace(querySpace).sql(sqlText).end();
-            List<Object> list = findAll(sql);
             return exists(sql);
         } catch (RuntimeException e) {
-            LOG.info("nop.jdbc.exists-template-fallback:querySpace={},error={}", querySpace, e.getMessage());
-            LOG.debug("nop.jdbc.exists-template-fallback-detail", e);
+            LOG.info("nop.jdbc.exists-template-fallback:querySpace={}", querySpace, e);
             return null;
         }
     }

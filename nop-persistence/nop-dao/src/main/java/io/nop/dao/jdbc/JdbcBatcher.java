@@ -22,6 +22,7 @@ import java.sql.BatchUpdateException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Objects;
@@ -205,10 +206,15 @@ public class JdbcBatcher {
                         while (i < ret.length && (params = commands.pollFirst()) != null) {
                             if (ret[i] >= 0) {
                                 LOG.debug("nop.jdbc.execute-batch-result-success:sql={}", params.sql);
+                                params.onComplete(ret[i], null);
+                            } else if (ret[i] == Statement.SUCCESS_NO_INFO) {
+                                // 驱动返回SUCCESS_NO_INFO表示执行成功但没有更新计数
+                                LOG.debug("nop.jdbc.execute-batch-result-success-no-info:sql={}", params.sql);
+                                params.onComplete(null, null);
                             } else {
                                 LOG.error("nop.jdbc.execute-batch-result-fail:sql={}", params.sql);
+                                params.onComplete(null, cause);
                             }
-                            params.onComplete(null, cause);
                             i++;
                         }
                     } catch (Exception e2) {
@@ -220,8 +226,14 @@ public class JdbcBatcher {
                     if (resetAutoCommit)
                         conn.rollback();
 
-                    if (stopOnError)
+                    if (stopOnError) {
+                        // 剩余未得到驱动确认的命令不再执行，统一回调失败，避免上层回调丢失
+                        BatchCommand remain;
+                        while ((remain = commands.pollFirst()) != null) {
+                            remain.onComplete(null, error);
+                        }
                         throw error;
+                    }
                 } catch (SQLException ex2) {
                     error = dialect.getSQLExceptionTranslator().translate(batchSql, ex2);
                     throw error;

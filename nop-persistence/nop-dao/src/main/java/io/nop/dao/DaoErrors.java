@@ -151,6 +151,9 @@ public interface DaoErrors {
 
     ErrorCode ERR_DAO_NO_DATA_SOURCE_AVAILABLE = define("nop.err.dao.no-data-source-available", "没有可用的数据库连接池");
 
+    ErrorCode ERR_DAO_MISSING_DRIVER_CLASS_NAME = define("nop.err.dao.missing-driver-class-name",
+            "SimpleDataSource必须配置driverClassName");
+
     ErrorCode ERR_SQL_INVALID_RESULT_SET_ACCESS = define("nop.err.dao.sql.invalid-resultset-access", "访问数据集失败");
 
     ErrorCode ERR_SQL_CANNOT_SERIALIZE_TRANSACTION = define("nop.err.dao.sql.cannot-serialize-transaction",

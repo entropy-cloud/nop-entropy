@@ -515,6 +515,7 @@ nop.err.dao.func-too-few-args: 函数[{funcName}]的参数个数少于最小值{
 nop.err.dao.func-too-many-args: 函数[{funcName}]的参数个数超过最大值{maxArgCount}
 nop.err.dao.invalid-snowflake-timestamp: 非法的时间戳，系统时钟不允许回拨；ts={ts},lastTs={lastTs}
 nop.err.dao.invalid-sql-data-type: 非法的SQL数据类型：{sqlDataType}
+nop.err.dao.missing-driver-class-name: SimpleDataSource必须配置driverClassName
 nop.err.dao.missing-entity-with-props: 类型为[{entityName}]的记录不存在
 nop.err.dao.no-data-source-available: 没有可用的数据库连接池
 nop.err.dao.no-dialect-for-datasource: 没有适用于数据库[{productName}]的Dialect

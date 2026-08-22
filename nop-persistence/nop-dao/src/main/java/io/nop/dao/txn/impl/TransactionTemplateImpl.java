@@ -342,7 +342,9 @@ public class TransactionTemplateImpl implements ITransactionTemplate {
 
     private CompletionStage<Void> rollbackTransactionAsync(TxnState state, Throwable e) {
         if (state.groupTxn != null) {
-            if (state.newlyCreated && state.groupTxn.isTransactionOpened())
+            // 与同步版rollbackTransaction保持一致：仅当本层新建了事务组才回滚整个组。
+            // 仅新建子事务时异常向外传播，由主事务的owner负责回滚
+            if (state.groupNewlyCreated && state.groupTxn.isTransactionOpened())
                 return state.groupTxn.rollbackAsync(e);
         } else if (state.txn != null) {
             if (state.newlyCreated && state.txn.isTransactionOpened())
@@ -384,7 +386,7 @@ public class TransactionTemplateImpl implements ITransactionTemplate {
         } else if (state.newlyCreated && state.groupTxn == null) {
             // 如果存在主事务，则实际txn是注册到groupTxn中，而不是注册为全局的事务，因此这里也就不需要取消注册
             if (!transactionManager.unregisterTransaction(state.txn)) {
-                ex = new NopException(ERR_TXN_NOT_REGISTERED).param(ARG_TXN, state.groupTxn);
+                ex = new NopException(ERR_TXN_NOT_REGISTERED).param(ARG_TXN, state.txn);
             }
         }
 

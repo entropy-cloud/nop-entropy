@@ -7,9 +7,17 @@
  */
 package io.nop.dao.jdbc;
 
+import io.nop.commons.cache.ICache;
+import io.nop.commons.cache.ICacheProvider;
+import io.nop.commons.cache.MapCache;
 import io.nop.core.lang.sql.SQL;
+import io.nop.dao.api.QuerySpaceEnv;
+import io.nop.dao.jdbc.impl.JdbcTemplateImpl;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -62,5 +70,95 @@ public class TestJdbcTemplate extends JdbcTestCase {
             return ds.getResultSet().next().getString(0);
         }, null);
         assertEquals("1", id);
+    }
+
+    /**
+     * cacheProvider已配置但SQL没有设置cacheRef时（绝大多数查询），executeQuery不应崩溃
+     */
+    @Test
+    public void testFindAllWithoutCacheRefWhenCacheProviderConfigured() {
+        JdbcTemplateImpl template = (JdbcTemplateImpl) jdbc();
+        template.setCacheProvider(new SimpleCacheProvider());
+
+        List<Map<String, Object>> list = template.findAll(new SQL("select a, b, c from my_entity order by id"));
+        assertEquals(1, list.size());
+        assertEquals("CC", list.get(0).get("C"));
+    }
+
+    /**
+     * 动态querySpace启用时，方言应跟随映射后的querySpace解析，而不是SQL原始的缺省querySpace
+     */
+    @Test
+    public void testGetDialectForQuerySpaceFollowsDynamicQuerySpace() {
+        JdbcTemplateImpl template = new JdbcTemplateImpl();
+        List<String> asked = new ArrayList<>();
+        template.setDialectProvider(querySpace -> {
+            asked.add(querySpace);
+            return null;
+        });
+
+        QuerySpaceEnv.runWithQuerySpace("slave", () -> {
+            template.getDialectForQuerySpace(null);
+            template.getDialectForQuerySpace("");
+            return null;
+        });
+        // 缺省querySpace被映射到QuerySpaceEnv指定的slave
+        assertEquals(List.of("slave", "slave"), asked);
+
+        // 显式指定的非缺省querySpace不参与映射
+        asked.clear();
+        template.getDialectForQuerySpace("explicit");
+        assertEquals(List.of("explicit"), asked);
+    }
+
+    /**
+     * exists模板探测只应执行一次exists查询，不再先findAll物化整个结果集
+     */
+    @Test
+    public void testExistsTemplateSingleExecution() throws Exception {
+        CountingTemplate template = new CountingTemplate();
+        template.setTransactionTemplate(txn());
+
+        Method m = JdbcTemplateImpl.class.getDeclaredMethod("tryExistsByTemplate",
+                String.class, String.class, String.class, String.class, String.class, String.class);
+        m.setAccessible(true);
+        try {
+            Boolean ret = (Boolean) m.invoke(template, null,
+                    "select 1 from my_entity where {tableName} is not null", "PUBLIC", "my_entity", null, null);
+            assertTrue(ret);
+        } catch (InvocationTargetException e) {
+            throw (Exception) e.getCause();
+        }
+
+        assertEquals(0, template.findAllCalls);
+        assertEquals(1, template.existsCalls);
+    }
+
+    static class SimpleCacheProvider implements ICacheProvider {
+        @Override
+        public <K, V> ICache<K, V> getCache(String name) {
+            return new MapCache<>(name, true);
+        }
+
+        @Override
+        public void clearAllCache() {
+        }
+    }
+
+    static class CountingTemplate extends JdbcTemplateImpl {
+        int findAllCalls;
+        int existsCalls;
+
+        @Override
+        public List<Object> findAll(SQL sql) {
+            findAllCalls++;
+            return super.findAll(sql);
+        }
+
+        @Override
+        public boolean exists(SQL sql) {
+            existsCalls++;
+            return super.exists(sql);
+        }
     }
 }

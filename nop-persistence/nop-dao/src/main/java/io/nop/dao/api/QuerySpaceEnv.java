@@ -50,16 +50,16 @@ public class QuerySpaceEnv {
         return old;
     }
 
-    public static void leave(String querySpace) {
-        LOG.debug("nop.dao.leave-query-space:{}", querySpace);
+    /**
+     * 恢复到{@link #enter(String)}之前保存的值。必须与enter成对使用（按enter返回的旧值嵌套恢复）
+     */
+    public static void leave(String prevQuerySpace) {
+        LOG.debug("nop.dao.leave-query-space:{}", prevQuerySpace);
 
-        String old = s_querySpace.get();
-        if (!Objects.equals(old, querySpace))
-            throw new IllegalStateException("nop.err.dao.query-space-enter-leave-not-match:" + old + " -> " + querySpace);
-        if (querySpace == null) {
+        if (prevQuerySpace == null) {
             s_querySpace.remove();
         } else {
-            s_querySpace.set(querySpace);
+            s_querySpace.set(prevQuerySpace);
         }
     }
 }

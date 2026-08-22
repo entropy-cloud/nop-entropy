@@ -7,7 +7,9 @@
  */
 package io.nop.dao.jdbc.datasource;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.ClassHelper;
+import io.nop.commons.util.StringHelper;
 
 import javax.sql.DataSource;
 import java.io.PrintWriter;
@@ -17,6 +19,8 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.Properties;
 import java.util.logging.Logger;
+
+import static io.nop.dao.DaoErrors.ERR_DAO_MISSING_DRIVER_CLASS_NAME;
 
 public class SimpleDataSource implements DataSource {
     private String driverClassName;
@@ -101,13 +105,14 @@ public class SimpleDataSource implements DataSource {
     }
 
     public void setDriverClassName(String driverClassName) {
+        if (StringHelper.isBlank(driverClassName))
+            throw new NopException(ERR_DAO_MISSING_DRIVER_CLASS_NAME);
         this.driverClassName = driverClassName.trim();
 
-        String driverClassNameToUse = driverClassName.trim();
         try {
-            Class.forName(driverClassNameToUse, true, ClassHelper.getDefaultClassLoader());
+            Class.forName(this.driverClassName, true, ClassHelper.getDefaultClassLoader());
         } catch (ClassNotFoundException ex) {
-            throw new IllegalStateException("Could not load JDBC driver class [" + driverClassNameToUse + "]", ex);
+            throw new IllegalStateException("Could not load JDBC driver class [" + this.driverClassName + "]", ex);
         }
     }
 

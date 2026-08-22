@@ -472,6 +472,7 @@ nop.err.dao.func-too-few-args: "The number of arguments for function [{funcName}
 nop.err.dao.func-too-many-args: "The number of arguments for function [{funcName}] exceeds the maximum {maxArgCount}"
 nop.err.dao.invalid-snowflake-timestamp: "Invalid timestamp, system clock is not allowed to go backwards; ts={ts},lastTs={lastTs}"
 nop.err.dao.invalid-sql-data-type: "Invalid SQL data type: {sqlDataType}"
+nop.err.dao.missing-driver-class-name: "SimpleDataSource requires driverClassName to be configured"
 nop.err.dao.missing-entity-with-props: "Record of type [{entityName}] does not exist"
 nop.err.dao.no-data-source-available: "No available data source"
 nop.err.dao.no-dialect-for-datasource: "No dialect available for database [{productName}]"
