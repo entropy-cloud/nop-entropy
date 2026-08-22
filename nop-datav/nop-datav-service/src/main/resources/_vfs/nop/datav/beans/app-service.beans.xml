@@ -25,12 +25,12 @@
     <!-- 定时报告通知发送器（普通 bean）：渲染 NopSysNoticeTemplate → IEmailSender.sendEmail 带附件送达。
          IEmailSender 经 @Nullable 注入（宿主未提供 IEmailSender 实现时为 null，
          邮件渠道显式失败 ERR_DATAV_REPORT_SENDER_NOT_CONFIGURED，非静默跳过）。 -->
-    <bean id="notificationSender" class="io.nop.datav.service.report.NotificationSender" ioc:default="true"/>
+    <bean id="nopDatavNotificationSender" class="io.nop.datav.service.report.NotificationSender" ioc:default="true"/>
 
     <!-- 定时报告交付执行器（普通 bean）：异步取数（PanelDataExporter.exportDashboard）+ 文件落盘
          （IFileStore.saveFile）+ 通知送达（NotificationSender）+ 更新交付记录。
          镜像 NopDatavExportTaskBizModel.submitExecution 的 GlobalExecutors + runInNewSession 模式。 -->
-    <bean id="reportDeliveryExecutor" class="io.nop.datav.service.report.ReportDeliveryExecutor" ioc:default="true"/>
+    <bean id="nopDatavReportDeliveryExecutor" class="io.nop.datav.service.report.ReportDeliveryExecutor" ioc:default="true"/>
 
     <!-- 定时报告 cron 调度器（普通 IoC bean 非 BizModel，镜像 MetaQualityCheckpointScheduler）。
          启动 scanner 全量注册 ENABLED 报告任务的 cron job + 运行时增量（save/enable/disable/delete 调用）。
@@ -60,7 +60,7 @@
          （AlertThresholdComparator）→ 状态机转换 + rearm 判定 → 通知（NotificationSender.sendAlert）
          → 更新 NopDatavAlertState。PanelDataBinder 非 bean，本评估器注入 IDaoProvider+IJdbcTemplate
          后 new PanelDataBinder(...) 构造（与 NopDatavPanelBizModel:47 同模式）。 -->
-    <bean id="alertEvaluator" class="io.nop.datav.service.alert.AlertEvaluator" ioc:default="true"/>
+    <bean id="nopDatavAlertEvaluator" class="io.nop.datav.service.alert.AlertEvaluator" ioc:default="true"/>
 
     <!-- 告警 cron 调度器（普通 IoC bean 非 BizModel，与 NopDatavReportScheduler 同模式）。
          启动 scanner 全量注册 ENABLED 告警规则的 cron job + 运行时增量（save/enable/disable/delete 调用）。
@@ -107,7 +107,7 @@
 
     <!-- ChatBI 多轮会话管理器（D6-1 follow-up，裁定 S1–S4）：会话 CRUD + 历史注入上下文构造 + 归属校验，
           经真实持久层（IDaoProvider）。被 NopDatavChatBiBizModel 注入（会话模式 chatToQuery + 4 个管理 action）。 -->
-    <bean id="chatBiSessionManager"
+    <bean id="nopDatavChatBiSessionManager"
           class="io.nop.datav.service.chatbi.ChatBiSessionManager" ioc:default="true"/>
 
 </beans>
