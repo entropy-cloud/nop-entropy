@@ -122,6 +122,7 @@
 | **为无 xdef 的 JSON/YAML（i18n.yaml、amis 页面等）做差量合并；理解 `DeltaJsonLoader` 与 `XDslExtender` 两条链路的关系** | **`02-core-guides/xdef-and-xdsl.md`**（「无 xdef 的并行 JSON 合并链路」章节） |
 | 理解 XLang / XPL / xrun / xgen 基本写法 + XScript 语法与 `xpl\`...\`` 标签模板 + **xbiz action source 内置变量**（`svcCtx`/`$context`/`thisObj`/全局变量） | `02-core-guides/xlang-and-xpl-basics.md` |
 | **接入 java 生成类后端（构建任务 `XlangJavaGenTask` + 双清单产物 + `_gen/` 落盘 + 漏跑诊断 `require-manifest` + truffle 镜像排除/native 部署）** | **`02-core-guides/xlang-and-xpl-basics.md`**（「构建集成与新模块接入（java 生成类后端）」章节） |
+| 使用 / 修改 `io.nop.xlang.xpath` XPath 选择器或 `io.nop.xlang.xt` XT Transform（xpath 语法与 `$xxx` operator、xt 规则指令、import/inherits、错误码清单） | `02-core-guides/xpath-and-xtransform.md` |
 | 定制 index.html 扩展注入 | `02-core-guides/index-html-extensions.md` |
 | 编写测试 | `02-core-guides/testing.md` |
 | **运行 nop-metadata 不变式门禁（silent-swallow / unique-key / sensitive-literal / limit / silent-wrong-result 五条硬门禁 + CI 接入 + baseline 对账棘轮）** | **`02-core-guides/invariant-guards.md`** |
