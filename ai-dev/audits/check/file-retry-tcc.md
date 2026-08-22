@@ -246,6 +246,8 @@ public void removeTempFileByOwner(String ownerId) {
 - **误报排除**: 已全仓检索该方法无其他调用方（当前为待接入的公共清理 API），也未发现独立的孤儿文件清扫任务；泄漏路径本身确凿。
 
 > **处置（fix-ai-check 分支，2026-08-21）**: 已修复（无独立单测：依赖 dao 层）。改为按 (createdBy, TEMP_BIZ_OBJ_ID) 查询记录后逐条删除，并按 `isUniqueRef` 判定删除物理文件，与 `detachFile` 对齐。
+>
+> **补记（fix-ai-check 分支，2026-08-22）**: 该修复当时引入三处编译错误（`IEntityDao` 无 `findListByQuery`、`NopException` 无单 String 构造）未被模块编译验证；已修正为 `findAllByQuery` + 模块内 ErrorCode 常量（`nop.err.file.invalid-biz-obj-name`/`invalid-file-ext`），随全量构建验证。
 
 ### [P3] nop-file：detachFile 的 isUniqueRef 存在 TOCTOU，并发分离共享 originFileId 的记录可致孤儿文件
 
