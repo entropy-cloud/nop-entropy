@@ -51,6 +51,10 @@ if (!pushedChild && returning) {
 - **建议**: 回溯帧恢复时立即与 `edgeIdx-1` 对应子节点合并 lowLink（放在 for 循环前的 `if (returning && edgeIdx > 0)` 中），且 SCC 出栈条件去掉 `returning` 约束（原始帧也应出栈）；或改用递归 Tarjan/Kosaraju 并配独立栈。补一个含"多子节点+回边"图的单测。
 - **误报排除**: 已按代码逐帧手工推演两个反例图并得出与正确 Tarjan 不同的结果；非并发或输入异常引起，纯算法逻辑错误。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认成立（P0 定级准确），已修复。修改 `CodeGraphService.tarjanSCC`：回溯帧恢复时在扫描后续邻居之前立即合并刚完成子节点（`edgeIdx-1`）的 lowLink（原先合并在 `!pushedChild && returning` 分支内，非末位孩子的 lowLink 传播被跳过），SCC 出栈检查去掉 returning 约束、对所有已完成帧执行（原先叶子/全已访问节点永不弹栈，滞留节点被祖先 SCC 出栈错误吞入）；方法签名与输出结构不变。测试：`nop-code-service` `TestTarjanSccCycles#parentWithTwoChildrenAndBackEdge`（修复前对报告反例图 S→P、P→C1/C2、C1→S 返回 `[{C2,C1,P},{S}]`：非环节点 C2 被报成环成员、真环 {S,P,C1} 被拆散；同类其余 5 个用例修复前还暴露：纯 DAG 链 A→B→C 误报 {B,C} 为环、环+尾节点把尾节点吞入环、自环/孤立点图返回空结果、双不相交环被拆成假环 {P,C1}）；修复后 6/6 通过，全模块 `./mvnw test -pl nop-code/nop-code-service` 152 tests / 0 failures / 13 skipped（skip 为 TestIndexNopEntropyProject 既有环境性跳过）。
+
 ### [P1] analyzeChanges 用 VFS 形式的 rootPath 作为 git 工作目录，变更影响分析永远返回空结果且异常被吞
 
 - **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeIndexService.java:1762-1769`；`nop-code/nop-code-flow/src/main/java/io/nop/code/flow/ChangeAnalyzer.java:136-142, 211-218`

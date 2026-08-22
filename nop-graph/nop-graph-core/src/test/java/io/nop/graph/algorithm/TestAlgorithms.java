@@ -12,6 +12,7 @@ import io.nop.graph.api.ImpactResult;
 import io.nop.graph.api.ImpactedNode;
 import io.nop.graph.api.GraphDiff;
 import io.nop.graph.api.BfsResult;
+import io.nop.graph.api.Edge;
 import io.nop.graph.impl.InMemoryGraph;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -231,6 +232,53 @@ class TestAlgorithms {
         assertTrue(diff.getAddedNodes().contains("x"));
         assertTrue(diff.getAddedNodes().contains("y"));
         assertTrue(diff.getRemovedNodes().isEmpty());
+    }
+
+    @Test
+    void testGraphDifferIdenticalGraphs() {
+        InMemoryGraph baseline = new InMemoryGraph();
+        baseline.addEdge("a", "b");
+        baseline.addEdge("b", "c");
+
+        InMemoryGraph target = new InMemoryGraph();
+        target.addEdge("a", "b");
+        target.addEdge("b", "c");
+
+        Set<String> nodes = new HashSet<>(Set.of("a", "b", "c"));
+
+        GraphDiff diff = GraphDiffer.diff(baseline, nodes, target, new HashSet<>(nodes));
+
+        assertTrue(diff.getAddedEdges().isEmpty());
+        assertTrue(diff.getRemovedEdges().isEmpty());
+        assertTrue(diff.isEmpty());
+    }
+
+    @Test
+    void testGraphDifferEdgeChange() {
+        InMemoryGraph baseline = new InMemoryGraph();
+        baseline.addEdge("a", "b");
+        baseline.addEdge("b", "c");
+
+        InMemoryGraph target = new InMemoryGraph();
+        target.addEdge("a", "b");
+        target.addEdge("a", "c");
+
+        Set<String> nodes = new HashSet<>(Set.of("a", "b", "c"));
+
+        GraphDiff diff = GraphDiffer.diff(baseline, nodes, target, new HashSet<>(nodes));
+
+        assertTrue(diff.getAddedNodes().isEmpty());
+        assertTrue(diff.getRemovedNodes().isEmpty());
+
+        assertEquals(1, diff.getRemovedEdges().size());
+        Edge removed = diff.getRemovedEdges().iterator().next();
+        assertEquals("b", removed.getSourceId());
+        assertEquals("c", removed.getTargetId());
+
+        assertEquals(1, diff.getAddedEdges().size());
+        Edge added = diff.getAddedEdges().iterator().next();
+        assertEquals("a", added.getSourceId());
+        assertEquals("c", added.getTargetId());
     }
 
     // ==================== InMemoryGraph Tests ====================

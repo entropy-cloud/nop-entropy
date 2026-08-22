@@ -38,6 +38,10 @@ try {
 - **建议**: 改为 `IoHelper.copy(zip, output)`。
 - **误报排除**: 全仓库无该两个类的调用方与测试，不存在"依赖此错误行为"的锁定；decode 语义为解压无歧义。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 确认成立，已修复。两个 codec 的 decodeBuf 将 IoHelper.copy 的拷贝源从原始压缩流 input 改为解压流 zip；nop-codec 新增 junit-jupiter 测试依赖。测试：`nop-network/nop-codec` `TestCompressCodec#testGZipRoundTrip`/`#testDeflateRoundTrip`（修复前 encode→decode 返回原始压缩字节，无法还原原文）。
+
 ### [P0] SocketServer 连接注册/移除 key 不一致，每次客户端断开泄漏 connections 条目
 
 - **文件**: `nop-network/nop-socket/src/main/java/io/nop/socket/SocketServer.java:206-209（注册）`、`SocketServer.java:229-240（移除）`、`SocketServer.java:242-246`
@@ -58,6 +62,10 @@ connections.remove(addr, client);              // key 不匹配，remove 永远 
 - **风险**: 每个客户端断开后 Socket 永久残留在 `connections` map（内存泄漏、连接对象无法 GC）；`broadcast()` 持续向已关闭 socket 写入并逐条记错误日志；长运行服务在客户端反复连接/断开（移动网络闪断、恶意连接）下内存耗尽。客户端断开是必然事件，触发路径现实。附带：public `getConnectionKey(Socket)` 用 toString 形式，外部拿它查 map 也必然 miss。
 - **建议**: 统一使用 `getHostAddress()`；在测试中补充断连后 `connections` 为空的回归断言。
 - **误报排除**: 唯一测试 `TestSocketServer` 未覆盖断连清理；`ConcurrentMap.remove(key,value)` 在 key 不匹配时静默返回 false，无异常暴露此问题。
+
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 确认成立，已修复。removeSocket 与 getConnectionKey(Socket) 的 key 构造统一改用 InetAddress.getHostAddress()，与 run() 注册路径一致。测试：`nop-network/nop-socket` `TestSocketServer#testDisconnectRemovesConnection`（修复前客户端断开后 connections 条目永久残留，getConnection 轮询 10s 后仍返回已关闭 socket；getConnectionKey(Socket) 返回 "/127.0.0.1:port" 形式与注册 key 不一致）。
 
 ### [P0] MqttConnection 从不调用 endpoint.accept()，MQTT 服务端无法与任何客户端完成连接
 
@@ -83,6 +91,8 @@ private void handleEndpoint(MqttEndpoint endpoint) {
 - **误报排除**: 已 grep 全模块确认无任何 `.accept(` 调用；MqttServerOptions 无 autoAccept 选项（javap 确认字段列表）。
 
 ---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 确认成立，已修复。MqttConnection.init() 在注册完全部断连/消息 handler 后调用 endpoint.accept() 发送 CONNACK（认证分流 authChecker 属 P1 另行处置）；顺带删除从未读写的 accepted 残留字段；模块新增 junit-jupiter 测试依赖。测试：`nop-network/nop-vertx/nop-vertx-mqtt-server` `TestMqttConnection#testEndpointAcceptedOnConnect`（修复前 endpoint.accept() 从不被调用，客户端收不到 CONNACK）；`#testCloseHandlerNotifiesMqttHandlerOnce` 守护既有断连订阅逻辑不回退。
 
 ### [P1] RpcMessageHandler 在 channelInactive 后 send 触发 NPE，请求 future 永不完成
 

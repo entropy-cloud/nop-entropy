@@ -42,7 +42,7 @@ public class GZipCompressCodec extends AbstractByteBufCodec {
         ByteBufInputStream input = new ByteBufInputStream(data);
         try {
             GZIPInputStream zip = new GZIPInputStream(input);
-            IoHelper.copy(input, output);
+            IoHelper.copy(zip, output);
             zip.close();
             return output.buffer();
         } catch (Exception e) {

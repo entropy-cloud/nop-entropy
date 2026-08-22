@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -199,6 +200,50 @@ public class TestOperatorSubtaskIsolation {
         assertThrows(UnsupportedOperationException.class, chain::deepCopy);
     }
 
+    // ---- Two-phase-commit sink udf isolation (P0: parallel pendingCommits overwrite) ----
+
+    @Test
+    void twoPhaseCommitSinkBaseDefaultFailsLoudForSecondSubtask() {
+        TestTwoPhaseSink template = new TestTwoPhaseSink();
+        assertSame(template, template.copyForSubtask(0),
+                "subtask 0 may reuse the template instance (never shared with another subtask)");
+        assertThrows(UnsupportedOperationException.class, () -> template.copyForSubtask(1),
+                "a 2PC sink without copy semantics must fail loudly instead of being shared across subtasks");
+    }
+
+    @Test
+    void streamSinkCopyIsolatesTwoPhaseCommitUdfPerSubtask() {
+        CopyableTwoPhaseSink udf = new CopyableTwoPhaseSink();
+        StreamSinkOperator<String> op = new StreamSinkOperator<>(udf);
+
+        StreamSinkOperator<String> copy0 = op.copyForSubtask(0);
+        StreamSinkOperator<String> copy1 = op.copyForSubtask(1);
+
+        assertNotSame(op, copy0);
+        assertNotSame(copy0.getUserFunction(), copy1.getUserFunction(),
+                "2PC sink udf must be an independent copy per subtask (pendingCommits/buffer isolation)");
+        assertEquals(0, ((CopyableTwoPhaseSink) copy0.getUserFunction()).subtaskIndex);
+        assertEquals(1, ((CopyableTwoPhaseSink) copy1.getUserFunction()).subtaskIndex);
+    }
+
+    @Test
+    void operatorChainDeepCopyRoutesSubtaskIndexToSinkUdf() {
+        CopyableTwoPhaseSink udf = new CopyableTwoPhaseSink();
+        StreamSinkOperator<String> sinkOp = new StreamSinkOperator<>(udf);
+        OperatorChain chain = new OperatorChain(Collections.singletonList(sinkOp));
+
+        OperatorChain copy0 = chain.deepCopy(0);
+        OperatorChain copy1 = chain.deepCopy(1);
+
+        CopyableTwoPhaseSink udf0 = (CopyableTwoPhaseSink)
+                ((StreamSinkOperator<?>) copy0.getOperators().get(0)).getUserFunction();
+        CopyableTwoPhaseSink udf1 = (CopyableTwoPhaseSink)
+                ((StreamSinkOperator<?>) copy1.getOperators().get(0)).getUserFunction();
+        assertNotSame(udf0, udf1);
+        assertEquals(0, udf0.subtaskIndex);
+        assertEquals(1, udf1.subtaskIndex);
+    }
+
     // ---- Stubs ----
 
     /**
@@ -234,5 +279,42 @@ public class TestOperatorSubtaskIsolation {
         private static final long serialVersionUID = 1L;
         @Override public void run(SourceContext<T> ctx) {}
         @Override public void cancel() {}
+    }
+
+    /** 2PC sink that does NOT override copyForSubtask(int): exercises the base default. */
+    private static class TestTwoPhaseSink
+            extends io.nop.stream.core.common.functions.sink.TwoPhaseCommitSinkFunction<String> {
+        private static final long serialVersionUID = 1L;
+        @Override public void beginTransaction() {}
+        @Override public void invoke(String value) {}
+        @Override public void preCommit(long checkpointId) {}
+        @Override public void commit(long checkpointId) {}
+        @Override public void rollback() {}
+    }
+
+    /** 2PC sink that declares per-subtask copy semantics (like the File/JDBC connectors). */
+    private static class CopyableTwoPhaseSink
+            extends io.nop.stream.core.common.functions.sink.TwoPhaseCommitSinkFunction<String> {
+        private static final long serialVersionUID = 1L;
+        final int subtaskIndex;
+
+        CopyableTwoPhaseSink() {
+            this(0);
+        }
+
+        private CopyableTwoPhaseSink(int subtaskIndex) {
+            this.subtaskIndex = subtaskIndex;
+        }
+
+        @Override
+        public CopyableTwoPhaseSink copyForSubtask(int subtaskIndex) {
+            return new CopyableTwoPhaseSink(subtaskIndex);
+        }
+
+        @Override public void beginTransaction() {}
+        @Override public void invoke(String value) {}
+        @Override public void preCommit(long checkpointId) {}
+        @Override public void commit(long checkpointId) {}
+        @Override public void rollback() {}
     }
 }

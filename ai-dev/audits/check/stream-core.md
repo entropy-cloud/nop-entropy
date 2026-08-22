@@ -48,6 +48,10 @@ public void restoreState(OperatorSnapshotResult snapshotResult) throws Exception
 - **建议**: 仿照 WindowOperator 的 deferred 模式——restoreState 只暂存快照，open() 中先建空 map、再应用暂存快照；或 open() 仅在 `values == null` 时初始化。
 - **误报排除**: 确认 `GraphModelCheckpointExecutor`（初始恢复）与 `SupervisionLoop.rebuildTask`（region 重启，:655）两条路径均在任务提交/invoke（即 open）之前调用 restoreState；`OperatorChain.open()`（OperatorChain.java）会对每个 operator 调 open()。不存在 restore 在 open 之后的恢复路径。该算子不经 keyedStateBackend 存状态，无其他恢复通道兜底。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 确认成立，已修复。`open()` 改为仅在 `values == null` 时初始化，restoreState 先于 open 写入的 keyed reduce 聚合状态不再被清零（与 WindowOperator 延迟应用模式语义对齐；既有测试均为 open-先-restore 顺序，掩盖了真实恢复序）。测试：`nop-stream-core` `TestStreamReduceOperator#testRestoreBeforeOpenPreservesRestoredState`（修复前 open() 清空恢复的 140，恢复后首元素 5 被当作初始值重新发射，期望 145 实得 5）；另加 `testOpenWithoutRestoreStillInitializesEmptyState` 守护全新启动路径。
+
 ### [P1] 水位线空闲状态（WatermarkStatus）不跨任务边界传播，空闲上游将永久钉住下游 watermark
 
 - **文件**:

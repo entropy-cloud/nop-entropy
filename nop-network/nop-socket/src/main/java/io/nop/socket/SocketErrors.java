@@ -19,6 +19,8 @@ public interface SocketErrors {
 
     ErrorCode ERR_SOCKET_ACCEPT_FAIL = define("nop.err.socket.accept-fail", "网络连接失败");
 
+    ErrorCode ERR_SOCKET_START_SERVER_FAIL = define("nop.err.socket.start-server-fail", "启动服务端失败");
+
     ErrorCode ERR_SOCKET_CONNECT_FAIL = define("nop.err.socket.connect-fail", "网络连接失败");
 
     ErrorCode ERR_SOCKET_READ_TIMEOUT = define("nop.err.socket.read-timeout", "读取数据超时");

@@ -57,6 +57,12 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
  * atomic rename but before the manifest write, {@code commit} repairs the manifest (adds the entry,
  * skips the rename) rather than throwing — the data is already durable.
  *
+ * <p><strong>Parallel subtasks</strong>: when the sink runs with {@code parallelism > 1},
+ * each subtask receives an independent copy via {@link #copyForSubtask(int)} (routed from
+ * {@code OperatorChain.deepCopy(subtaskIndex)}). Copies for subtask index &gt; 0 suffix their
+ * per-epoch temp/final files ({@code epoch-N.sK.txt}) and manifest keys ({@code N.sK}) so
+ * they never overwrite each other's output; subtask 0 keeps the legacy unsuffixed names.
+ *
  * <p>See {@code ai-dev/design/nop-stream/connector-design.md} §5.5.
  *
  * @param <IN> the type of input records (rendered via {@code toString()})
@@ -73,6 +79,13 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
     private final String outputDir;
     private final Charset charset;
     private final transient Path outputDirPath;
+    /**
+     * Subtask identity of this sink copy (0 for a non-parallel / template instance).
+     * Parallel subtask copies suffix their per-epoch temp/final files and manifest keys
+     * with this index so they never overwrite each other's output (P0: parallelism&gt;1
+     * batch loss via shared pendingCommits / identical temp paths).
+     */
+    private final int subtaskIndex;
 
     // In-memory buffer for the current epoch (not yet in pendingCommits)
     private final transient List<String> currentBuffer = new ArrayList<>();
@@ -84,11 +97,19 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
      * @param charset   the charset for text encoding (null defaults to UTF-8)
      */
     public FileTwoPhaseCommitSink(String outputDir, Charset charset) {
+        this(outputDir, charset, 0);
+    }
+
+    /**
+     * Copy constructor for a parallel subtask (see {@link #copyForSubtask(int)}).
+     */
+    private FileTwoPhaseCommitSink(String outputDir, Charset charset, int subtaskIndex) {
         if (outputDir == null || outputDir.isEmpty()) {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "outputDir");
         }
         this.outputDir = outputDir;
         this.charset = charset != null ? charset : StandardCharsets.UTF_8;
+        this.subtaskIndex = subtaskIndex;
         this.outputDirPath = Paths.get(outputDir);
         try {
             Files.createDirectories(outputDirPath);
@@ -103,6 +124,26 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
      */
     public FileTwoPhaseCommitSink(String outputDir) {
         this(outputDir, StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Returns an independent copy of this sink for the parallel subtask
+     * {@code subtaskIndex}. The copy shares the immutable configuration (output
+     * directory, charset) but has a fresh in-memory buffer and an empty
+     * {@code pendingCommits} map, and suffixes its per-epoch temp/final files and
+     * manifest keys with the subtask index — parallel subtasks therefore never
+     * overwrite each other's batches (exactly-once under {@code parallelism > 1}).
+     */
+    @Override
+    public FileTwoPhaseCommitSink<IN> copyForSubtask(int subtaskIndex) {
+        return new FileTwoPhaseCommitSink<>(outputDir, charset, subtaskIndex);
+    }
+
+    /**
+     * Returns the subtask index of this sink copy. Primarily for tests.
+     */
+    public int getSubtaskIndex() {
+        return subtaskIndex;
     }
 
     @Override
@@ -134,7 +175,8 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
             if (count > 0) {
                 Path tempPath = tempPath(epochId);
                 writeLines(tempPath, currentBuffer);
-                getPendingCommits().put(epochId, new FilePendingCommit(tempPath.toString(), count));
+                getPendingCommits().put(epochId,
+                        new FilePendingCommit(tempPath.toString(), count, subtaskIndex));
                 currentBuffer.clear();
             }
         }
@@ -162,11 +204,16 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
         }
         FilePendingCommit pending = (FilePendingCommit) raw;
         Path tempPath = Paths.get(pending.getTempPath());
-        Path finalPath = finalPath(checkpointId);
+        // Derive the final path and manifest key from the entry's OWNING subtask, not
+        // from this copy's index: after recovery a different subtask copy may re-commit
+        // a durable-but-uncommitted entry, and the recorded paths must stay identical.
+        int ownerSubtask = pending.getSubtaskIndex();
+        Path finalPath = finalPath(ownerSubtask, checkpointId);
+        String manifestEntryKey = manifestKey(ownerSubtask, checkpointId);
         Properties manifest = loadManifest();
 
         // Idempotent guard: manifest already records this epoch → skip (recover-safe re-commit)
-        if (manifest.containsKey(manifestKey(checkpointId))) {
+        if (manifest.containsKey(manifestEntryKey)) {
             getPendingCommits().remove(checkpointId);
             return;
         }
@@ -174,7 +221,7 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
         if (Files.exists(finalPath)) {
             // Edge case: rename succeeded on a prior attempt but manifest write did not.
             // Repair the manifest (add entry, skip rename) — data is already durable.
-            manifest.setProperty(manifestKey(checkpointId), finalPath.toString());
+            manifest.setProperty(manifestEntryKey, finalPath.toString());
             updateManifestAtomically(manifest);
             getPendingCommits().remove(checkpointId);
             return;
@@ -190,7 +237,7 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
         }
 
         // Atomic manifest update
-        manifest.setProperty(manifestKey(checkpointId), finalPath.toString());
+        manifest.setProperty(manifestEntryKey, finalPath.toString());
         updateManifestAtomically(manifest);
 
         getPendingCommits().remove(checkpointId);
@@ -256,7 +303,20 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
     }
 
     String manifestKey(long epochId) {
-        return String.valueOf(epochId);
+        return manifestKey(subtaskIndex, epochId);
+    }
+
+    static String manifestKey(int subtaskIndex, long epochId) {
+        return epochId + subtaskSuffix(subtaskIndex);
+    }
+
+    /**
+     * Path suffix that disambiguates parallel subtask copies. Subtask 0 keeps the
+     * legacy unsuffixed names so existing single-subtask deployments (and their
+     * on-disk manifests) stay compatible.
+     */
+    static String subtaskSuffix(int subtaskIndex) {
+        return subtaskIndex > 0 ? ".s" + subtaskIndex : "";
     }
 
     /**
@@ -271,11 +331,19 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
      * Returns the final path for an epoch's output file. Primarily for tests.
      */
     Path finalPath(long epochId) {
-        return outputDirPath.resolve("epoch-" + epochId + ".txt");
+        return finalPath(subtaskIndex, epochId);
+    }
+
+    static Path finalPath(int subtaskIndex, long epochId, Path outputDirPath) {
+        return outputDirPath.resolve("epoch-" + epochId + subtaskSuffix(subtaskIndex) + ".txt");
+    }
+
+    final Path finalPath(int subtaskIndex, long epochId) {
+        return finalPath(subtaskIndex, epochId, outputDirPath);
     }
 
     Path tempPath(long epochId) {
-        return outputDirPath.resolve(".epoch-" + epochId + TEMP_SUFFIX);
+        return outputDirPath.resolve(".epoch-" + epochId + subtaskSuffix(subtaskIndex) + TEMP_SUFFIX);
     }
 
     private void writeLines(Path path, List<String> lines) throws IOException {

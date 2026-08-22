@@ -941,6 +941,14 @@ class CodeGraphService {
                 }
 
                 List<String> neighbors = adj.getOrDefault(v, Collections.emptyList());
+
+                // propagate lowLink from the child subtree that just completed before scanning
+                // further neighbors; otherwise only the last child's lowLink would be merged
+                if (returning && edgeIdx > 0) {
+                    String child = neighbors.get(edgeIdx - 1);
+                    lowLink.put(v, Math.min(lowLink.get(v), lowLink.get(child)));
+                }
+
                 boolean pushedChild = false;
                 for (int i = edgeIdx; i < neighbors.size(); i++) {
                     String w = neighbors.get(i);
@@ -954,12 +962,10 @@ class CodeGraphService {
                     }
                 }
 
-                if (!pushedChild && returning) {
-                    if (edgeIdx > 0) {
-                        String w = neighbors.get(edgeIdx - 1);
-                        lowLink.put(v, Math.min(lowLink.get(v), lowLink.get(w)));
-                    }
-
+                // SCC root check runs for every finished frame, including frames that never
+                // pushed a child (leaves / all neighbors visited): otherwise such nodes stay on
+                // the Tarjan stack and are swallowed into an ancestor's SCC
+                if (!pushedChild) {
                     if (lowLink.get(v).equals(nodeIndex.get(v))) {
                         List<String> scc = new ArrayList<>();
                         String w;

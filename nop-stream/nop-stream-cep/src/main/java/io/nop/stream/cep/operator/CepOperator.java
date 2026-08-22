@@ -21,11 +21,11 @@ package io.nop.stream.cep.operator;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
-import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.LongAdder;
@@ -127,7 +127,19 @@ public class CepOperator<IN, KEY, OUT>
 
     private transient NFA<IN> nfa;
 
-    private transient Set<Long> registeredEventTimeTimers;
+    /**
+     * Ledger of pending event-time timers, scoped per key: key -> sorted pending
+     * timestamps. Timers are registered under the key that is current at registration
+     * time (set by the upstream {@code KeyExtractingOutput} before
+     * {@code processElement}); the watermark drain
+     * ({@link #processWatermark}) switches to each key's context before running
+     * {@link #onEventTime(long)} so every key's queue and NFA state are advanced, not
+     * just the last processed element's key.
+     *
+     * <p>A key's entry is removed once all of its timers are consumed, so the map is
+     * bounded by the number of keys with genuinely pending work.
+     */
+    private transient Map<Object, TreeSet<Long>> registeredEventTimeTimersByKey;
 
     /**
      * Comparator for secondary sorting. Primary sorting is always done on time.
@@ -280,8 +292,8 @@ public class CepOperator<IN, KEY, OUT>
         // it is still null. The previous unconditional rebuild wiped every timer
         // restored from a checkpoint — the storage side (AR-9) persisted them, but
         // the consumption side silently lost them on open().
-        if (registeredEventTimeTimers == null) {
-            registeredEventTimeTimers = new TreeSet<>();
+        if (registeredEventTimeTimersByKey == null) {
+            registeredEventTimeTimersByKey = new LinkedHashMap<>();
         }
 
         timerService = new InternalTimerService<VoidNamespace>() {
@@ -297,8 +309,15 @@ public class CepOperator<IN, KEY, OUT>
 
             @Override
             public void registerProcessingTimeTimer(VoidNamespace namespace, long time) {
+                // Capture the registering key: the processing-time service delivers
+                // callbacks on the task thread but WITHOUT any key context, so the
+                // callback must restore the owning key's context before running the
+                // per-key drain (onProcessingTime). Without this, a multi-key stream
+                // would drain only whatever key happened to be current at fire time.
+                Object registeringKey = currentRegistrationKey();
                 getProcessingTimeService().registerTimer(time, t -> {
                     try {
+                        setCurrentKey(registeringKey);
                         onProcessingTime(t);
                     } catch (Exception e) {
                         throw new StreamException(ERR_STREAM_STATE_ERROR, e).param(ARG_DETAIL, "onProcessingTime timer callback");
@@ -312,18 +331,20 @@ public class CepOperator<IN, KEY, OUT>
 
             @Override
             public void registerEventTimeTimer(VoidNamespace namespace, long time) {
-                registeredEventTimeTimers.add(time);
+                registerEventTimeTimerForKey(currentRegistrationKey(), time);
             }
 
             @Override
             public void deleteEventTimeTimer(VoidNamespace namespace, long time) {
-                registeredEventTimeTimers.remove(time);
+                deleteEventTimeTimerForKey(currentRegistrationKey(), time);
             }
 
             @Override
             public void forEachEventTimeTimer(BiConsumer<VoidNamespace, Long> consumer) {
-                for (Long time : new TreeSet<>(registeredEventTimeTimers)) {
-                    consumer.accept(VoidNamespace.INSTANCE, time);
+                for (Map.Entry<Object, TreeSet<Long>> entry : snapshotTimersByKey().entrySet()) {
+                    for (Long time : new TreeSet<>(entry.getValue())) {
+                        consumer.accept(VoidNamespace.INSTANCE, time);
+                    }
                 }
             }
 
@@ -434,8 +455,18 @@ public class CepOperator<IN, KEY, OUT>
     public OperatorSnapshotResult snapshotState(StateSnapshotContext context) throws Exception {
         OperatorSnapshotResult result = super.snapshotState(context);
         result.putOperatorState(WATERMARK_STATE_NAME, currentWatermark);
-        if (registeredEventTimeTimers != null) {
-            result.putOperatorState(EVENT_TIME_TIMERS_STATE_NAME, new ArrayList<>(registeredEventTimeTimers));
+        if (registeredEventTimeTimersByKey != null) {
+            // Per-key JSON-safe form: a list of {"key": k, "timers": [t1, t2, ...]} maps.
+            // Keys are stored as plain objects (String / boxed numbers are JSON-safe for
+            // the local-storage checkpoint persist path).
+            List<Map<String, Object>> timersForm = new ArrayList<>();
+            for (Map.Entry<Object, TreeSet<Long>> entry : registeredEventTimeTimersByKey.entrySet()) {
+                Map<String, Object> form = new LinkedHashMap<>();
+                form.put("key", entry.getKey());
+                form.put("timers", new ArrayList<>(entry.getValue()));
+                timersForm.add(form);
+            }
+            result.putOperatorState(EVENT_TIME_TIMERS_STATE_NAME, timersForm);
         }
         return result;
     }
@@ -451,12 +482,28 @@ public class CepOperator<IN, KEY, OUT>
             }
             Object timersObj = snapshotResult.getOperatorState(EVENT_TIME_TIMERS_STATE_NAME);
             if (timersObj instanceof List) {
-                @SuppressWarnings("unchecked")
-                List<Long> timers = (List<Long>) timersObj;
-                if (registeredEventTimeTimers == null) {
-                    registeredEventTimeTimers = new TreeSet<>();
+                List<?> timersList = (List<?>) timersObj;
+                if (registeredEventTimeTimersByKey == null) {
+                    registeredEventTimeTimersByKey = new LinkedHashMap<>();
                 }
-                registeredEventTimeTimers.addAll(timers);
+                if (isPerKeyTimersForm(timersList)) {
+                    // Current format: list of {"key": k, "timers": [t...]} maps. Timer
+                    // values may arrive as Integer or Long after the JSON persist path.
+                    for (Object element : timersList) {
+                        Map<?, ?> form = (Map<?, ?>) element;
+                        TreeSet<Long> timers = registeredEventTimeTimersByKey
+                                .computeIfAbsent(form.get("key"), k -> new TreeSet<>());
+                        addAllTimerTimestamps(form.get("timers"), timers);
+                    }
+                } else {
+                    // Legacy flat List<Long> (written before timers carried a key
+                    // dimension). The key association was never recorded, so attach the
+                    // timestamps to the null-key bucket: pre-key-aware checkpoints were
+                    // only ever correct for single-key usage, which restores to one bucket.
+                    TreeSet<Long> timers = registeredEventTimeTimersByKey
+                            .computeIfAbsent(null, k -> new TreeSet<>());
+                    addAllTimerTimestamps(timersList, timers);
+                }
             }
         }
     }
@@ -467,7 +514,21 @@ public class CepOperator<IN, KEY, OUT>
         if (newWatermark > currentWatermark) {
             currentWatermark = newWatermark;
             if (!isProcessingTime) {
-                onEventTime(currentWatermark);
+                // Watermark delivery carries no key context (the upstream
+                // KeyExtractingOutput sets the key only for elements), so the drain must
+                // explicitly visit every key that has at least one due event-time timer,
+                // switching to that key's context first. Without this, onEventTime would
+                // only ever drain the last processed element's key: other keys' buffered
+                // events would linger in elementQueueState, their partial matches would
+                // never time out and their SharedBuffer entries would leak.
+                for (Map.Entry<Object, TreeSet<Long>> entry : snapshotTimersByKey().entrySet()) {
+                    TreeSet<Long> pending = registeredEventTimeTimersByKey.get(entry.getKey());
+                    if (pending == null || pending.isEmpty() || pending.first() > currentWatermark) {
+                        continue;
+                    }
+                    setCurrentKey(entry.getKey());
+                    onEventTime(currentWatermark);
+                }
             }
         }
         super.processWatermark(mark);
@@ -519,6 +580,77 @@ public class CepOperator<IN, KEY, OUT>
         }
     }
 
+    /**
+     * The key under which a timer registration belongs: the keyed state backend's
+     * current key (set by the upstream {@code KeyExtractingOutput} before
+     * {@code processElement}, or by this operator's own per-key drain). {@code null}
+     * when no keyed backend is wired (unit-test fallback store) — matching the single
+     * null-key bucket that fallback uses for all state.
+     */
+    private Object currentRegistrationKey() {
+        IKeyedStateBackend<?> backend = getKeyedStateBackend();
+        return backend != null ? backend.getCurrentKey() : null;
+    }
+
+    private void registerEventTimeTimerForKey(Object key, long time) {
+        if (registeredEventTimeTimersByKey == null) {
+            registeredEventTimeTimersByKey = new LinkedHashMap<>();
+        }
+        registeredEventTimeTimersByKey.computeIfAbsent(key, k -> new TreeSet<>()).add(time);
+    }
+
+    private void deleteEventTimeTimerForKey(Object key, long time) {
+        if (registeredEventTimeTimersByKey == null) {
+            return;
+        }
+        TreeSet<Long> timers = registeredEventTimeTimersByKey.get(key);
+        if (timers != null) {
+            timers.remove(time);
+            if (timers.isEmpty()) {
+                registeredEventTimeTimersByKey.remove(key);
+            }
+        }
+    }
+
+    /**
+     * Copy-on-iterate view of the per-key timer ledger: iteration happens inside the
+     * watermark drain, and the drain itself may register new timers (bucket / window
+     * timers) for the key being processed.
+     */
+    private Map<Object, TreeSet<Long>> snapshotTimersByKey() {
+        if (registeredEventTimeTimersByKey == null) {
+            return Collections.emptyMap();
+        }
+        Map<Object, TreeSet<Long>> snapshot = new LinkedHashMap<>();
+        for (Map.Entry<Object, TreeSet<Long>> entry : registeredEventTimeTimersByKey.entrySet()) {
+            snapshot.put(entry.getKey(), new TreeSet<>(entry.getValue()));
+        }
+        return snapshot;
+    }
+
+    /**
+     * Detects the current per-key snapshot form: a non-empty list whose elements are
+     * maps (vs. the legacy flat {@code List<Long>} form which holds numbers).
+     */
+    private static boolean isPerKeyTimersForm(List<?> timersList) {
+        return !timersList.isEmpty() && timersList.get(0) instanceof Map;
+    }
+
+    /**
+     * Adds timer timestamps from a snapshot form (live {@code List<Long>} or a JSON
+     * round-tripped list whose elements may be {@code Integer}/{@code Long}).
+     */
+    private static void addAllTimerTimestamps(Object timersForm, TreeSet<Long> target) {
+        if (!(timersForm instanceof List)) {
+            return;
+        }
+        for (Object timer : (List<?>) timersForm) {
+            if (timer instanceof Number) {
+                target.add(((Number) timer).longValue());
+            }
+        }
+    }
+
     private void bufferEvent(IN event, long currentTime) throws Exception {
         List<IN> elementsForTimestamp = elementQueueState.get(currentTime);
         if (elementsForTimestamp == null) {
@@ -530,6 +662,13 @@ public class CepOperator<IN, KEY, OUT>
         elementQueueState.put(currentTime, elementsForTimestamp);
     }
 
+    /**
+     * Drains the event queue and advances the NFA of the CURRENT key context only
+     * (all state touched here — elementQueueState, computationStates, SharedBuffer —
+     * is keyed). Callers must ensure the key context is set to the owning key:
+     * {@link #processWatermark} switches to each key with due timers before calling
+     * this; processing-time callbacks restore the key captured at registration time.
+     */
     public void onEventTime(long time) throws Exception {
 
         // STEP 1
@@ -596,12 +735,19 @@ public class CepOperator<IN, KEY, OUT>
         // watermark advancement (STEP 2 drains every queue bucket <= watermark
         // directly). A registry entry's work is done once the watermark reaches
         // it: its queue bucket has been consumed (STEP 2) and window cleanup
-        // performed (STEP 3-5). Expired entries are removed here so the registry
-        // (which is checkpointed in FULL on every snapshot) does not grow without
-        // bound, and so a restored registry only ever contains genuinely pending
-        // timers.
-        if (registeredEventTimeTimers != null) {
-            registeredEventTimeTimers.removeIf(timer -> timer <= time);
+        // performed (STEP 3-5). Expired entries of the CURRENT key are removed
+        // here so the registry (which is checkpointed in FULL on every snapshot)
+        // does not grow without bound, and so a restored registry only ever
+        // contains genuinely pending timers.
+        if (registeredEventTimeTimersByKey != null) {
+            Object key = currentRegistrationKey();
+            TreeSet<Long> timers = registeredEventTimeTimersByKey.get(key);
+            if (timers != null) {
+                timers.removeIf(timer -> timer <= time);
+                if (timers.isEmpty()) {
+                    registeredEventTimeTimersByKey.remove(key);
+                }
+            }
         }
     }
 
@@ -877,12 +1023,17 @@ public class CepOperator<IN, KEY, OUT>
     /**
      * P1-04: testing accessor for the event-time timer bookkeeping registry.
      *
-     * @return the currently registered (pending) event-time timers; empty when the
-     *         registry has not been initialized yet
+     * @return the union of currently registered (pending) event-time timers across all
+     *         keys; empty when the registry has not been initialized yet
      */
     java.util.Set<Long> getRegisteredEventTimeTimersForTesting() {
-        return registeredEventTimeTimers == null
-                ? java.util.Collections.emptySet()
-                : java.util.Collections.unmodifiableSet(registeredEventTimeTimers);
+        if (registeredEventTimeTimersByKey == null) {
+            return java.util.Collections.emptySet();
+        }
+        TreeSet<Long> union = new TreeSet<>();
+        for (TreeSet<Long> timers : registeredEventTimeTimersByKey.values()) {
+            union.addAll(timers);
+        }
+        return java.util.Collections.unmodifiableSet(union);
     }
 }

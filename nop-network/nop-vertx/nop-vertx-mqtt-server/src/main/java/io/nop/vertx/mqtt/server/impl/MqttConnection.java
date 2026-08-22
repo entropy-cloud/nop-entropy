@@ -45,7 +45,7 @@ public class MqttConnection implements IMqttConnection {
     private long lastPingTime = CoreMetrics.currentTimeMillis();
     private volatile boolean closed = false;
 
-    private volatile boolean accepted = false, autoAckSub = true, autoAckUnSub = true, autoAckMsg = true;
+    private volatile boolean autoAckSub = true, autoAckUnSub = true, autoAckMsg = true;
 
     private final IMqttHandler handler;
 
@@ -112,6 +112,9 @@ public class MqttConnection implements IMqttConnection {
                     }
                     handler.onUnsubscribe(msg, this);
                 });
+
+        // 注册完所有 handler 后发送 CONNACK，完成与客户端的连接建立
+        endpoint.accept();
     }
 
     public void ack(MqttMessage message) {

@@ -172,4 +172,60 @@ public class TestOllamaDialect extends JunitBaseTestCase {
         assertNull(dialect.parseStreamChunk(""));
         assertNull(dialect.parseStreamChunk("[DONE]"));
     }
+
+    @Test
+    public void testParseStreamChunkToolCallsPreserveArguments() {
+        // P0 回归：Ollama 流式 tool_calls（终止帧完整下发 name + args），
+        // 解析后 args 必须经 arguments 通道完整保留（修复前恒为空）。
+        OllamaDialect dialect = new OllamaDialect();
+        String data = "{\"model\":\"qwen3\",\"message\":{\"role\":\"assistant\",\"content\":null," +
+                "\"tool_calls\":[{\"id\":\"call_42\",\"type\":\"function\",\"function\":{" +
+                "\"name\":\"get_weather\",\"arguments\":{\"location\":\"beijing\",\"unit\":\"celsius\"}}}]}}";
+
+        ChatStreamChunk chunk = dialect.parseStreamChunk(data);
+
+        assertNotNull(chunk);
+        assertEquals(StreamItemType.tool_call, chunk.getItemType());
+        assertEquals(StreamItemPhase.ADDED, chunk.getPhase());
+        assertEquals("call_42", chunk.getCallId());
+        assertEquals("get_weather", chunk.getDelta(), "ADDED delta carries the function name");
+
+        assertNotNull(chunk.getArguments(), "complete args must be carried on the arguments channel");
+        Map<String, Object> args = (Map<String, Object>) io.nop.api.core.json.JSON.parse(chunk.getArguments());
+        assertEquals("beijing", args.get("location"));
+        assertEquals("celsius", args.get("unit"));
+    }
+
+    @Test
+    public void testParseStreamChunkToolCallsStringArguments() {
+        // arguments 为 JSON 字符串形态（与 parseResponse/parseRequestBody 同款降级路径）
+        OllamaDialect dialect = new OllamaDialect();
+        String data = "{\"model\":\"qwen3\",\"message\":{\"tool_calls\":[{\"id\":\"call_7\"," +
+                "\"function\":{\"name\":\"get_time\",\"arguments\":\"{\\\"zone\\\":\\\"utc\\\"}\"}}]}}";
+
+        ChatStreamChunk chunk = dialect.parseStreamChunk(data);
+
+        assertNotNull(chunk);
+        assertEquals("get_time", chunk.getDelta());
+        assertNotNull(chunk.getArguments());
+        Map<String, Object> args = (Map<String, Object>) io.nop.api.core.json.JSON.parse(chunk.getArguments());
+        assertEquals("utc", args.get("zone"));
+    }
+
+    @Test
+    public void testBuildStreamChunkToolCallRoundTripsArguments() {
+        // parseStreamChunk → buildStreamChunk 闭环不丢 args（网关反向转换同路径）
+        OllamaDialect dialect = new OllamaDialect();
+        String data = "{\"model\":\"qwen3\",\"message\":{\"tool_calls\":[{\"id\":\"call_42\"," +
+                "\"function\":{\"name\":\"get_weather\",\"arguments\":{\"location\":\"beijing\"}}}]}}";
+
+        Map<String, Object> rebuilt = dialect.buildStreamChunk(dialect.parseStreamChunk(data));
+
+        Map<?, ?> tc = (Map<?, ?>) ((List<?>) ((Map<?, ?>) rebuilt.get("message")).get("tool_calls")).get(0);
+        assertEquals("call_42", tc.get("id"));
+        assertEquals("get_weather", ((Map<?, ?>) tc.get("function")).get("name"));
+        Map<?, ?> args = (Map<?, ?>) ((Map<?, ?>) tc.get("function")).get("arguments");
+        assertNotNull(args, "roundtrip must preserve function.arguments");
+        assertEquals("beijing", args.get("location"));
+    }
 }

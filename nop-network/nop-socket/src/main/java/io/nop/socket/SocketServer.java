@@ -32,6 +32,9 @@ import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Consumer;
 
 import static io.nop.socket.SocketErrors.ERR_SOCKET_ACCEPT_FAIL;
+import static io.nop.socket.SocketErrors.ARG_HOST;
+import static io.nop.socket.SocketErrors.ARG_PORT;
+import static io.nop.socket.SocketErrors.ERR_SOCKET_START_SERVER_FAIL;
 import static io.nop.socket.SocketErrors.ERR_SOCKET_WRITE_FAIL;
 
 public class SocketServer extends LifeCycleSupport implements ICommandServer {
@@ -125,7 +128,7 @@ public class SocketServer extends LifeCycleSupport implements ICommandServer {
             socket.setReuseAddress(true);
         } catch (IOException e) {
             LOG.info("nop.socket.start-server-fail:host={},port={}", config.getHost(), config.getPort());
-            throw new RuntimeException("nop.socket.start-server-fail:" + config.getPort(), e);
+            throw new NopException(ERR_SOCKET_START_SERVER_FAIL, e).param(ARG_HOST, config.getHost()).param(ARG_PORT, config.getPort());
         }
         LOG.info("nop.socket.start-server:serverName={},host={},port={}", config.getServerName(), config.getHost(),
                 config.getPort());
@@ -227,9 +230,9 @@ public class SocketServer extends LifeCycleSupport implements ICommandServer {
     }
 
     void removeSocket(Socket client) {
-        String ip = client.getInetAddress().toString();
+        String ip = client.getInetAddress().getHostAddress();
         int port = client.getPort();
-        String addr = ip + ':' + port;
+        String addr = getConnectionKey(ip, port);
 
         LOG.info("nop.socket.destroy-client:ip={},port={}", ip, port);
 
@@ -240,7 +243,7 @@ public class SocketServer extends LifeCycleSupport implements ICommandServer {
     }
 
     public String getConnectionKey(Socket client) {
-        String ip = client.getInetAddress().toString();
+        String ip = client.getInetAddress().getHostAddress();
         int port = client.getPort();
         return getConnectionKey(ip, port);
     }

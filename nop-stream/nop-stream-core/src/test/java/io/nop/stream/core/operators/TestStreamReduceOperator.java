@@ -169,6 +169,52 @@ public class TestStreamReduceOperator {
     }
 
     @Test
+    void testRestoreBeforeOpenPreservesRestoredState() throws Exception {
+        // Platform restore lifecycle: restoreState() runs BEFORE open()
+        // (GraphModelCheckpointExecutor.restoreOperatorsFromState precedes task
+        // submission; operatorChain.open() runs at the top of invoke()).
+        processElement(1, 100);
+        processElement(1, 40);
+
+        OperatorSnapshotResult snapshot = operator.snapshotState(
+                new StateSnapshotContext(1L, System.currentTimeMillis()));
+
+        ReduceFunction<Integer> sum = (value1, value2) -> value1 + value2;
+        StreamReduceOperator<Integer> restored = new StreamReduceOperator<>(sum);
+        TestOutput<Integer> restoredOutput = new TestOutput<>();
+        restored.setOutput((Output) restoredOutput);
+
+        // Real recovery order: restore first, then open. open() must not
+        // discard the values map that restoreState() already populated.
+        restored.restoreState(snapshot);
+        restored.open();
+
+        restored.setCurrentKey(1);
+        restored.processElement(new StreamRecord<>(5, System.currentTimeMillis()));
+
+        assertEquals(1, restoredOutput.getRecords().size());
+        // Restored aggregate is 140, then 140 + 5 = 145.
+        assertEquals(145, restoredOutput.getRecords().get(0).getValue());
+    }
+
+    @Test
+    void testOpenWithoutRestoreStillInitializesEmptyState() throws Exception {
+        // Fresh start (no restoreState call): open() must initialize the
+        // values map so processElement works.
+        ReduceFunction<Integer> sum = (value1, value2) -> value1 + value2;
+        StreamReduceOperator<Integer> fresh = new StreamReduceOperator<>(sum);
+        TestOutput<Integer> freshOutput = new TestOutput<>();
+        fresh.setOutput((Output) freshOutput);
+        fresh.open();
+
+        fresh.setCurrentKey(1);
+        fresh.processElement(new StreamRecord<>(9, System.currentTimeMillis()));
+
+        assertEquals(1, freshOutput.getRecords().size());
+        assertEquals(9, freshOutput.getRecords().get(0).getValue());
+    }
+
+    @Test
     void testOperatorSnapshotResultJsonMethods() throws Exception {
         OperatorSnapshotResult result = new OperatorSnapshotResult();
 

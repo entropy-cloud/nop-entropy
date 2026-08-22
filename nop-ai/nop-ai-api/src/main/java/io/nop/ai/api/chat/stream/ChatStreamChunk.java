@@ -22,6 +22,9 @@ import io.nop.api.core.annotations.data.DataBean;
  *   <li>{@link #delta} — 增量载荷：text/reasoning 为内容片段；
  *       tool_call 在 {@link StreamItemPhase#ADDED} 时为函数名、
  *       {@link StreamItemPhase#DELTA} 时为 arguments JSON 片段</li>
+ *   <li>{@link #arguments} — tool_call 完整 arguments JSON 文本：provider 在单事件内
+ *       完整下发 name + args（Gemini/Ollama 型）时与 {@link #delta}（函数名）同载，
+ *       弥补单 chunk 无法再发一个 DELTA 片段的通道缺口</li>
  *   <li>{@link #phase} — 生命周期阶段（ADDED / DELTA / DONE）</li>
  * </ul>
  *
@@ -63,6 +66,17 @@ public class ChatStreamChunk {
      * 增量载荷
      */
     private String delta;
+
+    /**
+     * tool_call 完整 arguments JSON 文本（可选）。
+     * <p>
+     * 适用于在单个事件内完整下发 name + args 的 provider（Gemini functionCall.args /
+     * Ollama tool_calls.function.arguments）。此类 provider 无法按 OpenAI 惯例
+     * 拆成 ADDED(name) + DELTA(args 片段) 两个 chunk（{@code parseStreamChunk}
+     * 单事件单返回），故在 ADDED chunk 上经本字段同载完整 args，由聚合端与
+     * DELTA 片段一并拼装。为 null 时序列化忽略（通道可选，向后兼容）。
+     */
+    private String arguments;
 
     /**
      * 生命周期阶段
@@ -133,6 +147,15 @@ public class ChatStreamChunk {
 
     public void setDelta(String delta) {
         this.delta = delta;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public String getArguments() {
+        return arguments;
+    }
+
+    public void setArguments(String arguments) {
+        this.arguments = arguments;
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -228,6 +251,7 @@ public class ChatStreamChunk {
         if (callId != null) sb.append(", callId='").append(callId).append('\'');
         if (phase != null) sb.append(", phase=").append(phase);
         if (delta != null) sb.append(", delta='").append(delta).append('\'');
+        if (arguments != null) sb.append(", arguments='").append(arguments).append('\'');
         if (finishReason != null) sb.append(", finishReason='").append(finishReason).append('\'');
         sb.append('}');
         return sb.toString();

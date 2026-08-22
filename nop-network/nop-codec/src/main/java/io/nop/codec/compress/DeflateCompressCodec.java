@@ -44,7 +44,7 @@ public class DeflateCompressCodec extends AbstractByteBufCodec {
         ByteBufInputStream input = new ByteBufInputStream(data);
         try {
             InputStream zip = new InflaterInputStream(input);
-            IoHelper.copy(input, output);
+            IoHelper.copy(zip, output);
             zip.close();
             return output.buffer();
         } catch (Exception e) {

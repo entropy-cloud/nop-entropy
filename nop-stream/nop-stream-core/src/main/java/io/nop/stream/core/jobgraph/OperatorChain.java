@@ -224,7 +224,7 @@ public class OperatorChain implements Serializable {
     }
 
     /**
-     * Creates a shallow copy of this OperatorChain suitable for parallel subtask execution.
+     * Creates a copy of this OperatorChain suitable for parallel subtask execution.
      *
      * <p>Each parallel subtask needs its own OperatorChain to maintain independent operator state
      * (output wiring, watermark tracking, etc.), but user functions (closures, sinks, map functions)
@@ -234,18 +234,36 @@ public class OperatorChain implements Serializable {
      * to the test caller regardless of which subtask produced them.
      *
      * <p>Per-operator copy semantics are delegated to {@link
-     * io.nop.stream.core.operators.StreamOperator#copyForSubtask()}. Operators that do not
+     * io.nop.stream.core.operators.StreamOperator#copyForSubtask(int)}. Operators that do not
      * declare copy semantics (no override, not {@link io.nop.stream.core.operators.Shareable})
      * throw {@link UnsupportedOperationException} here so that parallelism &gt; 1 cannot silently
      * fall back to sharing mutable state across subtasks (No-Silent-No-Op).
      *
+     * <p>The index-aware {@code copyForSubtask(int)} lets operators wrapping per-subtask user
+     * functions (e.g. two-phase-commit sinks buffering per-subtask batches) produce a function
+     * copy that carries the stable subtask identity (per-subtask commit keys / output paths).
+     * This closes the P0 where parallel subtasks shared one 2PC sink instance whose
+     * {@code pendingCommits} entries overwrote each other, silently dropping all but one
+     * subtask's batch per epoch.
+     *
+     * @param subtaskIndex the runtime subtask/task index (0..parallelism-1)
+     * @return a new OperatorChain with fresh operator state for the given subtask
+     */
+    public OperatorChain deepCopy(int subtaskIndex) {
+        List<io.nop.stream.core.operators.StreamOperator<?>> copiedOperators = new ArrayList<>(operators.size());
+        for (io.nop.stream.core.operators.StreamOperator<?> op : operators) {
+            copiedOperators.add(op.copyForSubtask(subtaskIndex));
+        }
+        return new OperatorChain(copiedOperators, new ArrayList<>(keySelectors));
+    }
+
+    /**
+     * Creates a copy of this OperatorChain without a subtask identity.
+     * Equivalent to {@link #deepCopy(int)} with a negative index.
+     *
      * @return a new OperatorChain with fresh operator state but shared user functions
      */
     public OperatorChain deepCopy() {
-        List<io.nop.stream.core.operators.StreamOperator<?>> copiedOperators = new ArrayList<>(operators.size());
-        for (io.nop.stream.core.operators.StreamOperator<?> op : operators) {
-            copiedOperators.add(op.copyForSubtask());
-        }
-        return new OperatorChain(copiedOperators, new ArrayList<>(keySelectors));
+        return deepCopy(-1);
     }
 }

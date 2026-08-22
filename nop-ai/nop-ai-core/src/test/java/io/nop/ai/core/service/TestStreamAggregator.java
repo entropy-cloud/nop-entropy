@@ -8,8 +8,12 @@ import io.nop.ai.api.chat.messages.ChatUsage;
 import io.nop.ai.api.chat.stream.ChatStreamChunk;
 import io.nop.ai.api.chat.stream.StreamItemPhase;
 import io.nop.ai.api.chat.stream.StreamItemType;
+import io.nop.ai.core.dialect.GeminiDialect;
+import io.nop.ai.core.dialect.OllamaDialect;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import org.junit.jupiter.api.Test;
+
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -211,5 +215,57 @@ public class TestStreamAggregator extends JunitBaseTestCase {
         assertEquals("bj", toolCalls.get(0).getArguments().get("city"));
         assertEquals("call_2", toolCalls.get(1).getId());
         assertEquals("utc", toolCalls.get(1).getArguments().get("zone"));
+    }
+
+    @Test
+    void testAggregator_geminiStreamToolCallArgsPreserved() {
+        // P0 回归（默认调用路径）：Gemini 流式 functionCall 单事件完整下发 name + args，
+        // parseStreamChunk → StreamAggregator 聚合后 arguments 必须与原始一致（修复前恒为空 Map）。
+        GeminiDialect dialect = new GeminiDialect();
+        ChatServiceImpl.StreamAggregator aggregator = new ChatServiceImpl.StreamAggregator();
+
+        String functionCallEvent = "{\"candidates\":[{\"content\":{\"role\":\"model\",\"parts\":[" +
+                "{\"functionCall\":{\"name\":\"get_weather\",\"args\":{\"location\":\"beijing\",\"unit\":\"celsius\"}}}]}}]}";
+        String doneEvent = "{\"candidates\":[{\"finishReason\":\"STOP\"}],\"usageMetadata\":{" +
+                "\"promptTokenCount\":10,\"candidatesTokenCount\":5,\"totalTokenCount\":15}}";
+
+        aggregator.addChunk(dialect.parseStreamChunk(functionCallEvent));
+        aggregator.addChunk(dialect.parseStreamChunk(doneEvent));
+
+        ChatResponse response = aggregator.toResponse();
+
+        java.util.List<io.nop.ai.api.chat.messages.ChatToolCall> toolCalls = response.outputToolCalls();
+        assertEquals(1, toolCalls.size());
+        assertEquals("get_weather", toolCalls.get(0).getName());
+        Map<String, Object> args = toolCalls.get(0).getArguments();
+        assertEquals("beijing", args.get("location"), "streamed functionCall args must survive aggregation");
+        assertEquals("celsius", args.get("unit"));
+        assertEquals("stop", response.getFinishReason());
+    }
+
+    @Test
+    void testAggregator_ollamaStreamToolCallArgsPreserved() {
+        // P0 回归（默认调用路径）：Ollama 流式终止帧完整下发 tool_calls（name + args），
+        // 聚合后 arguments 必须与原始一致（修复前恒为空 Map）。
+        OllamaDialect dialect = new OllamaDialect();
+        ChatServiceImpl.StreamAggregator aggregator = new ChatServiceImpl.StreamAggregator();
+
+        String toolCallEvent = "{\"model\":\"qwen3\",\"message\":{\"role\":\"assistant\",\"content\":null," +
+                "\"tool_calls\":[{\"id\":\"call_42\",\"type\":\"function\",\"function\":{" +
+                "\"name\":\"get_weather\",\"arguments\":{\"location\":\"beijing\"}}}]}}";
+        String doneEvent = "{\"model\":\"qwen3\",\"message\":{\"role\":\"assistant\"}," +
+                "\"done_reason\":\"stop\",\"prompt_eval_count\":10,\"eval_count\":5}";
+
+        aggregator.addChunk(dialect.parseStreamChunk(toolCallEvent));
+        aggregator.addChunk(dialect.parseStreamChunk(doneEvent));
+
+        ChatResponse response = aggregator.toResponse();
+
+        java.util.List<io.nop.ai.api.chat.messages.ChatToolCall> toolCalls = response.outputToolCalls();
+        assertEquals(1, toolCalls.size());
+        assertEquals("call_42", toolCalls.get(0).getId());
+        assertEquals("get_weather", toolCalls.get(0).getName());
+        assertEquals("beijing", toolCalls.get(0).getArguments().get("location"),
+                "streamed tool_calls args must survive aggregation");
     }
 }

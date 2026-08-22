@@ -192,6 +192,45 @@ public class TestBatchLoaderSourceFunction {
     }
 
     @Test
+    void testRunAfterCancelResumesDataFlow() throws Exception {
+        // P0 (region restart): SupervisionLoop Phase 1 cancels the task, which calls
+        // StreamSourceOperator.close() -> sourceFunction.cancel() (running=false).
+        // Phase 3 rebuilds the task with a deep-copied chain that SHARES this source
+        // instance and calls run() again. run() must reset the running flag and emit
+        // data again instead of returning immediately (silent EOS).
+        List<String> round1 = new ArrayList<>(Arrays.asList("a", "b"));
+        List<String> round2 = new ArrayList<>(Arrays.asList("c", "d"));
+        List<List<String>> rounds = new ArrayList<>(Arrays.asList(round1, round2));
+        IBatchLoaderProvider<String> provider = ctx -> (batchSize, chunkCtx) -> {
+            List<String> current = rounds.get(0);
+            if (current.isEmpty()) {
+                rounds.remove(0);
+                return Collections.emptyList();
+            }
+            List<String> batch = new ArrayList<>();
+            for (int i = 0; i < batchSize && !current.isEmpty(); i++) {
+                batch.add(current.remove(0));
+            }
+            return batch;
+        };
+
+        BatchLoaderSourceFunction<String> source = new BatchLoaderSourceFunction<>(provider, 1);
+
+        List<String> collected1 = new ArrayList<>();
+        source.run(collectingContext(collected1));
+        assertEquals(Arrays.asList("a", "b"), collected1);
+
+        // Region restart Phase 1: cancel sets running=false on the shared instance.
+        source.cancel();
+
+        // Region restart Phase 3: the rebuilt task re-runs the SAME instance.
+        List<String> collected2 = new ArrayList<>();
+        source.run(collectingContext(collected2));
+        assertEquals(Arrays.asList("c", "d"), collected2,
+                "run() after cancel() must reset the running flag and emit data again");
+    }
+
+    @Test
     void testSeekSetsOffset() {
         BatchLoaderSourceFunction<String> source = new BatchLoaderSourceFunction<>(ctx -> (batchSize, chunkCtx) -> Collections.emptyList(), 1);
         assertEquals(-1, source.getCurrentOffset());

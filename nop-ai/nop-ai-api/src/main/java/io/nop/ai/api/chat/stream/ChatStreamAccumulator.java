@@ -201,13 +201,16 @@ public class ChatStreamAccumulator {
             if (chunk.getCallId() != null) {
                 this.id = chunk.getCallId();
             }
-            if (chunk.getDelta() == null) {
-                return;
+            if (chunk.getDelta() != null) {
+                if (chunk.getPhase() == StreamItemPhase.ADDED) {
+                    this.name = chunk.getDelta();
+                } else {
+                    argumentsBuilder.append(chunk.getDelta());
+                }
             }
-            if (chunk.getPhase() == StreamItemPhase.ADDED) {
-                this.name = chunk.getDelta();
-            } else {
-                argumentsBuilder.append(chunk.getDelta());
+            // 完整 arguments 通道（Gemini/Ollama 型单事件完整下发）：与 DELTA 片段同一拼装语义
+            if (chunk.getArguments() != null) {
+                argumentsBuilder.append(chunk.getArguments());
             }
         }
 
