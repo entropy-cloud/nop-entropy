@@ -402,10 +402,8 @@ public class ObjMetaBasedValidator {
                 SimpleSchemaValidator.INSTANCE.validate(schema, null, bizObjName,
                         subPropName, value, scope,
                         errorCollector);
-            }
-
-            if (schema.getValidator() != null) {
-                // SimpleSchemaValidator中会调用validator, 因此这里判断else if即可
+            } else if (schema.getValidator() != null) {
+                // SimpleSchemaValidator内部已经调用过validator，避免simple schema场景下重复执行
                 schema.getValidator().call1(null, value, scope);
             }
 

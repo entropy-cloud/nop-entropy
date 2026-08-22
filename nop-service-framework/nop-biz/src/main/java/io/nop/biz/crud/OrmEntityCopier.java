@@ -130,7 +130,7 @@ public class OrmEntityCopier {
 
         IEntityModel entityModel = target.orm_entityModel();
         Set<String> ignoreAutoExprProps = new HashSet<>();
-        if (entityModel.getTenantPropId() > 0) {
+        if (objMeta != null && entityModel.getTenantPropId() > 0) {
             String tenantProp = entityModel.getTenantColumn().getName();
             IObjPropMeta propMeta = objMeta.getProp(tenantProp);
             if (propMeta != null && (propMeta.getAutoExpr() != null || propMeta.getDefaultValue() != null)) {

@@ -34,6 +34,7 @@ import java.util.Map;
 
 import static io.nop.biz.BizErrors.ERR_BIZ_ACTION_ARG_NOT_FIELD_SELECTION;
 import static io.nop.biz.BizErrors.ERR_BIZ_ACTION_ARG_NOT_SERVICE_CONTEXT;
+import static io.nop.biz.BizErrors.ERR_BIZ_ACTION_NO_SVC_CONTEXT;
 import static io.nop.biz.BizErrors.ERR_BIZ_OBJECT_NOT_SUPPORT_ACTION;
 import static io.nop.graphql.core.GraphQLErrors.ARG_ACTION_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ARG_BIZ_OBJ_NAME;
@@ -262,15 +263,16 @@ public class BizObjectImpl implements IBizObject, IMethodMissingHook {
                             .param(ARG_ACTION_NAME, actionName);
                 context = (IServiceContext) args[2];
             } else {
-                throw new IllegalArgumentException("nop.err.graphql.too-many-action-args:bizObjName=" + getBizObjName()
-                        + ",bizAction=" + actionName);
+                // 两参调用(data, selection)时缺少IServiceContext参数，而非参数过多
+                throw new NopException(ERR_BIZ_ACTION_NO_SVC_CONTEXT).param(ARG_BIZ_OBJ_NAME, bizObjName)
+                        .param(ARG_ACTION_NAME, actionName);
             }
         } else {
             context = (IServiceContext) scope.getValue(BizConstants.ACTION_ARG_SVC_CONTEXT);
         }
         if (context == null)
-            throw new IllegalArgumentException(
-                    "nop.err.graphql.no-svc-context:bizObName=" + getBizObjName() + ",bizAction=" + actionName);
+            throw new NopException(ERR_BIZ_ACTION_NO_SVC_CONTEXT).param(ARG_BIZ_OBJ_NAME, getBizObjName())
+                    .param(ARG_ACTION_NAME, actionName);
 
         return action.invoke(request, selection, context);
     }

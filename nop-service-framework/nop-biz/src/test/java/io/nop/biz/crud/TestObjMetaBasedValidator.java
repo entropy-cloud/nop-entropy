@@ -6,11 +6,13 @@ import io.nop.xlang.xmeta.ISchema;
 import io.nop.xlang.xmeta.ObjRelationWriteMode;
 import io.nop.xlang.xmeta.impl.ObjMetaImpl;
 import io.nop.xlang.xmeta.impl.ObjPropMetaImpl;
+import io.nop.xlang.xmeta.impl.SchemaImpl;
 import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -98,6 +100,29 @@ public class TestObjMetaBasedValidator {
         assertEquals("child-name", validatedChild.get("name"));
         assertEquals("child-code", validatedChild.get("code"));
         assertTrue(validated.containsKey(BizConstants.PROP_WRITE_MODE + "_child"));
+    }
+
+    @Test
+    public void testSimpleSchemaValidatorExecutedOnlyOnce() {
+        ObjPropMetaImpl prop = newSimpleProp("code");
+        SchemaImpl schema = new SchemaImpl();
+        AtomicInteger count = new AtomicInteger();
+        schema.setValidator((thisObj, args, scope) -> {
+            count.incrementAndGet();
+            return null;
+        });
+        prop.setSchema(schema);
+
+        ObjMetaImpl parentMeta = newParentMeta(prop);
+        TestValidator validator = new TestValidator(parentMeta, Set.of("id"));
+
+        Map<String, Object> request = new LinkedHashMap<>();
+        request.put("code", "c-1");
+
+        validator.validateForSave(request, null);
+
+        // 修复前：simple schema的validator在SimpleSchemaValidator内外各执行一次
+        assertEquals(1, count.get());
     }
 
     private static ObjMetaImpl newParentMeta(ObjPropMetaImpl prop) {
