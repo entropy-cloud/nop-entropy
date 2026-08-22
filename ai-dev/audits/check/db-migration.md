@@ -40,6 +40,10 @@ private String type;
 - **建议**: 让 `_gen` 模板为每个 change 子类生成 `getType()` 常量覆盖（对齐 task/orm 模式），或在 `MigrationFileScanner.loadMigration` 后按元素名回填 type；补一个"XML 文件 → 至少生成一条 DDL"的端到端测试。
 - **误报排除**: 已核对测试目录无任何用例经 scanner/DslModelParser 加载 XML（全部手工 `setType("insertData")`），故测试通过不能证伪；已核对 DslBeanModelParser/TreeBeanBuilder 两条装配路径均不会填充该字段；已用 BeanMapValue 硬编码 `getBeanValueType()` 佐证平台解析器不自动填充 sub-type prop。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 确认属实，已修复。`MigrationFileScanner.loadMigration` 解析后新增 `backfillChangeTypes`，按"变更模型类 → 执行器 CHANGE_TYPE 常量"的显式映射表回填 `DbChangeModel.type`（覆盖 changeset 与 rollback.changes）。映射依据：8 个继承 DbChangeModel 的变更类中 createTable/dropTable/addColumn/dropColumn/dropIndex 的 tag 与常量同名，`<insert>`→`insertData`、`<update>`→`updateData`、`<delete>`→`deleteData` 三个数据变更 tag 与常量不一致，必须走显式映射（逐一对照各 Executor 的 `CHANGE_TYPE` 常量与 xdef tag 核对）；未修改任何 `_gen` 文件。验证中另发现两个独立缺陷影响本条边界（均未在本条处置）：其余 8 个 tag（createIndex/sql/alterColumn/renameTable/createView/dropView/customChange/dbTypeFilter/executeMark）的 `_gen` 类不继承 DbChangeModel，`_DbMigrationModel.setChangeset` 构造 KeyedList 时解析期即 ClassCastException（非静默跳过，属模型生成物结构缺陷）；insert/update/delete 的 `<column>` 在 migration.xdef 中缺 `xdef:name`，列解析为 DynamicObject 导致执行期 ClassCastException。测试：`nop-db-migration` `TestMigrationFileScanner#testMigrateFromXmlFilesExecutesChanges`（修复前：XML 迁移经 scanner 加载后全部 change.type==null，DDL 一条不执行却记 success=true；修复后 createTable/addColumn/dropTable 经引擎实际执行）；映射正确性另由 `TestMigrationFileScanner#testScanMapsEveryTagToRegisteredChangeType`、`#testScanFillsChangeTypeForAllChanges` 覆盖（修复前 type 均为 null 断言失败）。
+
 ### [P1] 迁移失败一次后，重试必然触发历史表主键冲突并中断整个迁移流程
 
 - **文件**: `nop-persistence/nop-db-migration/src/main/java/io/nop/db/migration/core/MigrationEngine.java:117-141`；`core/MigrationHistoryManager.java:79-81、186-197`

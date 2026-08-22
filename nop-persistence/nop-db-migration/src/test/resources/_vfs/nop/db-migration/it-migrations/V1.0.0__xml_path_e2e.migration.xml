@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  End-to-end fixture for the XML scanner path (MigrationFileScanner ->
+  MigrationEngine). Uses only change tags whose executors generate valid H2 DDL.
+
+  Constraints imposed by separate, still-open defects in this module:
+  - no remark on createTable: CreateTableExecutor always appends a MySQL-only
+    table-level COMMENT clause
+  - no insert/update/delete: the xdef does not declare xdef:name on their
+    <column> elements, so columns parse to DynamicObject and the executors
+    fail with ClassCastException
+-->
+<migration xmlns="/nop/schema/db-migration/migration.xdef"
+  version="1.0.0"
+  description="Minimal migration exercising the XML scanner path"
+  author="test">
+
+  <changeset>
+    <createTable id="create-xml-e2e-user" name="xml_e2e_user">
+      <columns>
+        <column name="id" type="VARCHAR" size="36" primaryKey="true" nullable="false"/>
+        <column name="user_name" type="VARCHAR" size="100" nullable="false"/>
+      </columns>
+    </createTable>
+
+    <createTable id="create-xml-e2e-tmp" name="xml_e2e_tmp">
+      <columns>
+        <column name="id" type="VARCHAR" size="36" primaryKey="true" nullable="false"/>
+      </columns>
+    </createTable>
+
+    <addColumn id="add-tmp-email" tableName="xml_e2e_tmp">
+      <columns>
+        <column name="email" type="VARCHAR" size="200" nullable="true"/>
+      </columns>
+    </addColumn>
+
+    <dropTable id="drop-xml-e2e-tmp" name="xml_e2e_tmp"/>
+  </changeset>
+</migration>

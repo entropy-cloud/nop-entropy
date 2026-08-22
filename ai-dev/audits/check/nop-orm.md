@@ -47,6 +47,10 @@ if (query.isFindPrev()) {
 - **建议**: 仅当 `list.size() > query.getLimit()` 时才 remove 探测行；findPrev 分支将 hasPrev 判断移到 remove 之前；对空列表直接短路返回。
 - **误报排除**: 已验证 `ISqlExecutor.findPage` → `RowMapperAllExtractor` 返回可变 ArrayList（空结果返回 `new ArrayList<>(0)` 而非 null），remove 语义如上所述成立；已确认 `CrudBizModel:349` 为生产调用方。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 确认属实，已修复。`OrmEntityDao.findPageAndReturnCursor` 两个分支改为先以 `list.size() > limit` 判定 hasPrev/hasNext、仅满页时才 remove 探测行（findPrev 分支的 hasPrev 判断移到 remove 之前，与 findNext 分支对称），空结果不再 remove，且空页时短路 cursor 计算为 `ID_NULL`（避免 `list.get(0)`/`get(-1)` 越界）。测试：`nop-orm` `TestEntityDaoQuery#testFindPageCursorLastPageKeepsAllItems`（修复前最后一页丢 1 条：剩余 3 条仅返回 2 条）、`#testFindPageCursorPastEndReturnsEmptyPage`（修复前空结果 `remove(-1)` 抛 IndexOutOfBoundsException）、`#testFindPageCursorFindPrevFullPage`（修复前 findPrev 分支 hasPrev 恒为 false）、`#testFindPageCursorFindPrevShortPage`（修复前 findPrev 不足页丢数据）；`#testFindPageCursorFullPage` 回归满页语义。修复后 nop-orm 全模块 145 个测试通过（0 失败，4 跳过）。另发现独立缺陷：`DaoQueryHelper.queryToFindPrevSql` 在 filter 为空且 cursor 非空时漏生成 `where` 关键字生成非法 EQL（findNext 版本有 `else sb.where()` 分支），不在本条目范围，测试中通过附加 filter 规避。
+
 ### [P1] to-one 关联 cascadeDelete 传入 owner 自身，级联删除完全失效
 
 - **文件**: `nop-persistence/nop-orm/src/main/java/io/nop/orm/session/CascadeFlusher.java:265-273`

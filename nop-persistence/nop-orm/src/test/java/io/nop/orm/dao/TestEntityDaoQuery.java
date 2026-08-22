@@ -8,12 +8,14 @@
 package io.nop.orm.dao;
 
 import io.nop.api.core.beans.FilterBeans;
+import io.nop.api.core.beans.PageBean;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.app.SimsCollege;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.api.IEntityDao;
 import io.nop.orm.AbstractOrmTestCase;
+import io.nop.orm.OrmConstants;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -24,6 +26,8 @@ import static io.nop.api.core.beans.FilterBeans.isNull;
 import static io.nop.api.core.beans.FilterBeans.not;
 import static io.nop.api.core.beans.FilterBeans.or;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestEntityDaoQuery extends AbstractOrmTestCase {
     @Test
@@ -68,5 +72,97 @@ public class TestEntityDaoQuery extends AbstractOrmTestCase {
         SQL sql = DaoQueryHelper.queryToSelectObjectSql("Test", query);
         assertEquals("select o from Test as o \n" +
                 " where o.f1 > o.f2", sql.getText());
+    }
+
+    private PageBean<SimsCollege> findPageByCursor(String cursor, int limit, boolean findPrev, TreeBean filter) {
+        IEntityDao<SimsCollege> dao = daoProvider().daoFor(SimsCollege.class);
+        QueryBean query = new QueryBean();
+        query.setLimit(limit);
+        query.setCursor(cursor);
+        query.setFindPrev(findPrev);
+        query.setFilter(filter);
+        PageBean<SimsCollege> page = new PageBean<>();
+        dao.findPageAndReturnCursor(query, page);
+        return page;
+    }
+
+    // 注意: DaoQueryHelper.queryToFindPrevSql 在 filter 为空时会漏生成 where 关键字(独立缺陷)，
+    // 因此 findPrev 场景统一附加 filter 以聚焦 findPageAndReturnCursor 自身的逻辑
+    private static final TreeBean COLLEGE_ID_GE_100 = FilterBeans.ge(SimsCollege.PROP_NAME_collegeId, "100");
+
+    @Test
+    public void testFindPageCursorFullPage() {
+        insertColleges(100, 110);
+
+        PageBean<SimsCollege> page = findPageByCursor("102", 3, false, null);
+
+        assertEquals(3, page.getItems().size());
+        assertEquals("103", page.getItems().get(0).getCollegeId());
+        assertEquals("105", page.getItems().get(2).getCollegeId());
+        assertTrue(page.getHasNext());
+        assertTrue(page.getHasPrev());
+        assertEquals("105", page.getNextCursor());
+        assertEquals("103", page.getPrevCursor());
+    }
+
+    @Test
+    public void testFindPageCursorLastPageKeepsAllItems() {
+        insertColleges(100, 110);
+
+        // 游标后只剩 3 条（不足 limit+1），不能丢掉最后一条
+        PageBean<SimsCollege> page = findPageByCursor("107", 3, false, null);
+
+        assertEquals(3, page.getItems().size());
+        assertEquals("108", page.getItems().get(0).getCollegeId());
+        assertEquals("110", page.getItems().get(2).getCollegeId());
+        assertFalse(page.getHasNext());
+        assertTrue(page.getHasPrev());
+        assertEquals(OrmConstants.ID_NULL, page.getNextCursor());
+        assertEquals("108", page.getPrevCursor());
+    }
+
+    @Test
+    public void testFindPageCursorPastEndReturnsEmptyPage() {
+        insertColleges(100, 110);
+
+        // 游标之后无记录：应返回空页而不是抛 IndexOutOfBoundsException
+        PageBean<SimsCollege> page = findPageByCursor("110", 3, false, null);
+
+        assertTrue(page.getItems().isEmpty());
+        assertFalse(page.getHasNext());
+        assertTrue(page.getHasPrev());
+        assertEquals(OrmConstants.ID_NULL, page.getNextCursor());
+        assertEquals(OrmConstants.ID_NULL, page.getPrevCursor());
+    }
+
+    @Test
+    public void testFindPageCursorFindPrevFullPage() {
+        insertColleges(100, 110);
+
+        PageBean<SimsCollege> page = findPageByCursor("104", 3, true, COLLEGE_ID_GE_100);
+
+        assertEquals(3, page.getItems().size());
+        assertEquals("101", page.getItems().get(0).getCollegeId());
+        assertEquals("103", page.getItems().get(2).getCollegeId());
+        assertTrue(page.getHasPrev());
+        assertTrue(page.getHasNext());
+        assertEquals("101", page.getPrevCursor());
+        assertEquals("103", page.getNextCursor());
+    }
+
+    @Test
+    public void testFindPageCursorFindPrevShortPage() {
+        insertColleges(100, 110);
+
+        // 游标前只有 '100','101' 两条（不足 limit+1），不能丢数据
+        PageBean<SimsCollege> page = findPageByCursor("102", 3, true, COLLEGE_ID_GE_100);
+
+        assertEquals(2, page.getItems().size());
+        assertEquals("100", page.getItems().get(0).getCollegeId());
+        assertEquals("101", page.getItems().get(1).getCollegeId());
+        assertFalse(page.getHasPrev());
+        assertTrue(page.getHasNext());
+        assertEquals(OrmConstants.ID_NULL, page.getPrevCursor());
+        assertEquals("101", page.getNextCursor());
     }
 }

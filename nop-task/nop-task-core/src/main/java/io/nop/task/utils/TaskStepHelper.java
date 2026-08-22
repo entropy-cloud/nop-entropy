@@ -4,6 +4,7 @@ import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.api.core.util.ICancellable;
 import io.nop.api.core.util.SourceLocation;
@@ -222,22 +223,28 @@ public class TaskStepHelper {
                 }
 
                 if (delay > 0) {
-                    return TaskStepReturn.of(null, stepRt.getTaskRuntime().getScheduledExecutor()
-                            .schedule(action, delay, TimeUnit.MILLISECONDS).thenApply(result -> {
+                    // schedule(action, delay) 在延迟后执行一次 step body（本轮重试的唯一一次执行）。
+                    // 不允许在回调里再次调用 action.call()——那会把业务副作用每轮执行两次。
+                    // thenCompleteAsync 同时处理 schedule 的成败：err != null 走 doRetry 重试，
+                    // 成功则基于 result 判定 async（与非延迟路径结构一致）；handler 返回
+                    // CompletionStage 时会被压平，保证外层 future 的最终完成值是同步 TaskStepReturn。
+                    return TaskStepReturn.of(null, FutureHelper.thenCompleteAsync(
+                            stepRt.getTaskRuntime().getScheduledExecutor()
+                                    .schedule(action, delay, TimeUnit.MILLISECONDS),
+                            (TaskStepReturn result, Throwable err) -> {
                                 try {
-                                    TaskStepReturn ret = action.call();
-                                    if (ret.isAsync()) {
-                                        if (ret.isDone())
-                                            return doRetry(result.sync(), null, loc, stepRt, retryPolicy, action);
-                                    }
-                                    return (Object) result.thenCompose((v, err) -> doRetry(v, err, loc,
-                                            stepRt, retryPolicy, action));
+                                    if (err != null)
+                                        return doRetry(null, err, loc, stepRt, retryPolicy, action)
+                                                .getReturnPromise();
+                                    if (result.isAsync() && result.isDone())
+                                        return doRetry(result.sync(), null, loc, stepRt, retryPolicy, action)
+                                                .getReturnPromise();
+                                    return result.thenCompose((v, e) -> doRetry(v, e, loc,
+                                            stepRt, retryPolicy, action)).getReturnPromise();
                                 } catch (Exception e) {
                                     throw NopException.adapt(e);
                                 }
-                            }).exceptionally(err -> doRetry(null, err,
-                                    loc, stepRt, retryPolicy, action)
-                            ));
+                            }));
                 }
             }
 

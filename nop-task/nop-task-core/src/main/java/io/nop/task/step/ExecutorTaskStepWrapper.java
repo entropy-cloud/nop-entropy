@@ -37,9 +37,9 @@ public class ExecutorTaskStepWrapper extends DelegateTaskStep {
                 } else {
                     result.whenComplete((data, err) -> {
                         if (err != null) {
-                            ret.complete(data);
-                        } else {
                             ret.completeExceptionally(err);
+                        } else {
+                            ret.complete(data);
                         }
                     });
                 }

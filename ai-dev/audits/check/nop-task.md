@@ -55,6 +55,10 @@ if (stepState != null && stepState.isDone()) {
 - **建议**: 在 `newStepRuntime` 中以 `taskRt.isRecoverMode()` 门控 `loadStepState`（与 `newMainStepRuntime` 对齐）；或让 load 匹配当前 runId/迭代键；并为 Fork body 步骤运行时附加分支序号以区分 stepPath。
 - **误报排除**: 已逐环验证：`SequentialTaskStep.execute:57-59` 每轮迭代调用 `executeWithParentRt`；`TaskStepExecution.saveTerminalStateIfDone:382-387` 确认终态落盘；`DefaultTaskStateStore`（内存）不受影响（load 恒 null），故仅持久化配置触发；非 Loop/Fork 场景（Graph/固定 Sequential）步骤路径唯一，行为正确。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 成立，已修复。未采用 recoverMode 硬门控（会破坏既有 resume-by-load 语义及其全部相关测试），改为在 `TaskStepRuntimeImpl.newStepRuntime` 以 task 级 attribute 记录本次执行内已实例化的 stepPath，`loadStepState` 仅对每个 stepPath 的首次实例化生效：loop 迭代 2+/fork 分支 2+（同一执行内同一 stepPath 的再次实例化）一律走 `newStepState` 正常执行，不再命中首轮终态行；重新执行（resume/re-execution 总是构建新 task runtime，attribute 集为空）的 load 语义不变。`DaoTaskStateStore` 未改动（含 fork 并发 add 的原子性由并发集合保证）。测试：`nop-task-core` `TestRepeatedStepPathExecution#loopIteration2_executesInsteadOfReusingIteration1Result`（修复前 loop 第 2 轮迭代被 continuation-skip 静默跳过，sum 停留在 1，结果 'FAIL'）；`TestRepeatedStepPathExecution#forkBranch2_executesInsteadOfReusingBranch1Result`（修复前 fork 第 2 分支复用第 1 分支结果，聚合 2+2=4，'FAIL'）；`TestRepeatedStepPathExecution#uniquePathResume_firstInstantiationStillLoads`（守卫：唯一路径步骤 resume-by-load 跳过语义不变）。
+
 ### [P0] retry 延迟重试路径每轮将 step body 执行两次（副作用重复）
 
 - **文件**: `nop-task/nop-task-core/src/main/java/io/nop/task/utils/TaskStepHelper.java:224-241`
@@ -78,6 +82,10 @@ if (delay > 0) {
 - **建议**: `schedule` 应提交空任务（纯定时器），在 thenApply 中执行一次 `action.call()`；或去掉回调中的 `action.call()`、直接基于 `result` 判定 async。同时为该路径补一条"每轮执行次数=1"的回归测试。
 - **误报排除**: 确认 `IScheduledExecutor.schedule(Callable, delay, unit)` 语义为延迟执行传入任务（非定时器占位）；`action` 为 `() -> getTaskStep().execute(stepRt)`（`RetryTaskStepWrapper:28-29`），两次调用均为真实执行；`thenApply` 参数 `result` 即 run#1 的返回值。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 成立，已修复。删除 thenApply 回调中的重复 `action.call()`，延迟轮次仅由 `schedule(action, delay)` 执行一次；回调改用 `FutureHelper.thenCompleteAsync` 组装（handler 返回 CompletionStage 时自动压平为同步完成值），顺带修复修复前同样存在的 async 延迟重试结果未压平问题（延迟轮 action 返回未完成 async 结果时，外层 future 完成值为 async TaskStepReturn，触发 `TaskStepReturn.of` 的 "asyncReturn result must not be async" Guard 异常）。测试：`nop-task-core` `TestTaskStepHelperRetryDelayExecutionCount#delayRetry_syncSuccess_executesActionExactlyOncePerRound`（修复前 1 次初始失败 + 1 轮延迟重试共执行 step body 3 次，副作用重复）；`TestTaskStepHelperRetryDelayExecutionCount#delayRetry_asyncSuccess_executesActionExactlyOncePerRound`（修复前同样 3 次执行，且 async 结果触发上述 Guard 异常）。
+
 ### [P0] ExecutorTaskStepWrapper 异步分支 whenComplete 成败条件写反：成功挂死、失败吞错
 
 - **文件**: `nop-task/nop-task-core/src/main/java/io/nop/task/step/ExecutorTaskStepWrapper.java:38-44`
@@ -96,6 +104,10 @@ result.whenComplete((data, err) -> {
 - **风险**: 任何配置了 `executor` 且子步骤返回未完成异步结果的步骤（如 executor + delay/异步 invoke 组合）：成功路径任务永久挂死（等待一个永不完成的 future）；失败路径错误被静默吞掉、以 null 结果当成功继续流转（数据错误）。同步子步骤（`isDone()` 为 true 走 `ret.complete(result.sync())`）不受影响，掩盖了该缺陷。
 - **建议**: 交换两个分支体：`err != null → ret.completeExceptionally(err)`，否则 `ret.complete(data)`。补 executor+异步步骤的成功/失败两用例。
 - **误报排除**: JDK 行为已实测验证（成功分支 NPE 被吞、future 永不完成）；参数语义已对照 `TaskStepReturn.whenComplete` 定义；该代码自 `e3ba7cdd5` 起即存在，非近期回归。
+
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 成立，已修复。交换 `ExecutorTaskStepWrapper.execute` 中 whenComplete 回调两个分支体：`err != null → ret.completeExceptionally(err)`，否则 `ret.complete(data)`。测试：`nop-task-core` `TestExecutorTaskStepWrapperAsyncBranch#asyncSubStepSuccess_completesWrapperWithResult`（修复前成功分支 `completeExceptionally(null)` 抛 NPE 且被回调机制吞掉，wrapper future 永不完成，任务挂死）；`TestExecutorTaskStepWrapperAsyncBranch#asyncSubStepFailure_propagatesException`（修复前失败被 `ret.complete(null)` 吞掉，以 null 结果当成功返回）。
 
 ### [P1] 步骤 input mandatory 校验条件反转：非空抛异常、空值放行
 

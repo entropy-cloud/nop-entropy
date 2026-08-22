@@ -39,6 +39,10 @@ if (existing != null) {
 - **建议**: 改为 `return entity.getExpireAt().getTime() < clock.getMinCurrentTimeMillis();`（保守口径），并为锁管理器补充"争用时不可获取""过期后可恢复"两条回归测试。
 - **误报排除**: 已核实 `getMaxCurrentTimeMillis` 语义（javadoc + DbEstimatedClock 实现）、`tryDelete` 为按 id+version 的即时 DELETE（可成功删除活锁）、该方法仅此一处调用、该 bean 以 `ioc:default="true"` 注册（app-dao.beans.xml:24）为默认 `IResourceLockManager`。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复。`isExpired` 改为 `entity.getExpireAt().getTime() < clock.getMinCurrentTimeMillis()`（保守口径，与建议一致）；另发现 `orm().tryDelete` 对复合主键生成 `((LOCK_NAME,LOCK_GROUP) = ?)` 行比较，在 H2 上绑定参数直接抛数据类型转换错误，使过期锁回收路径不可用，故触发点处改为按 lockName+lockGroup+version 逐列构造 DELETE（语义等价的 id+version 防护删除）。测试：`nop-sys/nop-sys-dao` `TestSysDaoResourceLockManager#testTryLockContentionDoesNotStealValidLock`（修复前争用者进入删除有效锁的分支、互斥失效）、`TestSysDaoResourceLockManager#testExpiredLockIsRecovered`（修复前过期锁永不回收，tryLock 空转 3s 超时返回 null）。
+
 ### [P1] 序列号生成对 cacheSize=NULL 的序列必然 NPE，该序列完全不可用
 
 - **文件**: `nop-sys/nop-sys-dao/src/main/java/io/nop/sys/dao/seq/SysSequenceGenerator.java:233`

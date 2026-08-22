@@ -145,7 +145,12 @@ public class SysDaoResourceLockManager extends AbstractDaoHandler implements IRe
                 if (existing != null) {
                     // 如果已过期，则尝试删除
                     if (isExpired(existing, clock)) {
-                        if (orm().tryDelete(existing))
+                        // 按主键列逐列构造删除条件。复合主键生成 (A,B)=? 的行比较在部分数据库上无法绑定参数
+                        SQL sql = SQL.begin().deleteFrom().append(NopSysLock.class.getName())
+                                .where().eq(NopSysLock.PROP_NAME_lockName, existing.getLockName())
+                                .and().eq(NopSysLock.PROP_NAME_lockGroup, existing.getLockGroup())
+                                .and().eq(NopSysLock.PROP_NAME_version, existing.getVersion()).end();
+                        if (session.executeUpdate(sql) > 0)
                             return null;
                     }
                 }
@@ -173,7 +178,7 @@ public class SysDaoResourceLockManager extends AbstractDaoHandler implements IRe
     }
 
     protected boolean isExpired(NopSysLock entity, IEstimatedClock clock) {
-        return entity.getExpireAt().getTime() >= clock.getMaxCurrentTimeMillis();
+        return entity.getExpireAt().getTime() < clock.getMinCurrentTimeMillis();
     }
 
     NopSysLock saveNew(String resourceId, String lockId, long leaseTime, String lockReason, long currentTime) {
