@@ -40,6 +40,7 @@ import java.util.function.Supplier;
 
 import static io.nop.api.core.util.FutureHelper.tryResolve;
 import static io.nop.graphql.core.GraphQLErrors.ARG_FIELD_NAME;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_NULL_OPERATION_FETCHER;
 
 public class GraphQLExecutor implements IGraphQLExecutor {
     static Logger LOG = LoggerFactory.getLogger(GraphQLExecutor.class);
@@ -290,7 +291,7 @@ public class GraphQLExecutor implements IGraphQLExecutor {
             GraphQLFieldDefinition fieldDef = selection.getFieldDefinition();
             IDataFetcher fetcher = fieldDef.getFetcher();
             if (fetcher == null)
-                throw new IllegalStateException("nop.graphql.null-operation-fetcher:" + fieldDef.getName());
+                throw new NopException(ERR_GRAPHQL_NULL_OPERATION_FETCHER).param(ARG_FIELD_NAME, fieldDef.getName());
 
             future = FutureHelper.toCompletionStage(withFlowControl(fetcher).get(env)).thenApply(v -> {
                 v = normalizeValue(v, selection);
@@ -315,9 +316,16 @@ public class GraphQLExecutor implements IGraphQLExecutor {
     private CompletionStage<Void> _invokeOperations(DataFetchingEnvironment baseEnv, Map<String, Object> result,
                                                     List<Supplier<CompletionStage<Object>>> actions) {
         FieldSelectionBean sourceSelection = baseEnv.getSelectionBean();
-        GraphQLSelectionSet selectionSet = baseEnv.getGraphQLExecutionContext().getOperation().getSelectionSet();
+        GraphQLOperation operation = baseEnv.getGraphQLExecutionContext().getOperation();
+        GraphQLSelectionSet selectionSet = operation.getSelectionSet();
+
+        // GraphQL规范要求mutation顶层字段串行执行以保证副作用顺序：异步mutation下并行发起会导致
+        // 后续mutation的副作用先于前置mutation落地。query保持并行发起不变。
+        boolean serial = operation.getOperationType() == GraphQLOperationType.mutation;
 
         List<CompletionStage<?>> promises = new ArrayList<>();
+        // 串行链：每个operation等前一个完成（含后处理）后再发起
+        CompletionStage<Object> serialChain = null;
 
         // int depth = env.getDepth();
         for (GraphQLSelection selection : selectionSet.getSelections()) {
@@ -339,6 +347,36 @@ public class GraphQLExecutor implements IGraphQLExecutor {
             opEnv.setSelectionBean(selectionBean);
             opEnv.setOperationName(fieldSelection.getName());
 
+            if (serial) {
+                // 串行执行：发起与后处理一并链接到前一个operation之后，仍在operationInvoker
+                // （如事务包装器）的作用域内，异常沿链传播使后续mutation不再执行
+                final DataFetchingEnvironment env = opEnv;
+                final GraphQLFieldSelection sel = fieldSelection;
+                final String resultAlias = alias;
+                Supplier<CompletionStage<Object>> action = () -> {
+                    CompletionStage<OperationResult> future = invokeOperationOrTry(env);
+                    FutureHelper.collectWaiting(future, promises);
+                    return thenFetchNext(future.thenApply(r -> {
+                        env.setRoot(r.getValue());
+                        return r.getValue();
+                    }), env).thenApply(v -> {
+                        v = normalizeValue(v, sel);
+                        synchronized (resultLock) {
+                            result.put(resultAlias, v);
+                        }
+                        return v;
+                    });
+                };
+
+                if (serialChain == null) {
+                    serialChain = action.get();
+                } else {
+                    final CompletionStage<Object> prev = serialChain;
+                    serialChain = prev.thenCompose(v -> action.get());
+                }
+                continue;
+            }
+
             CompletionStage<OperationResult> future = invokeOperationOrTry(opEnv);
             actions.add(() -> {
                 return thenFetchNext(future.thenApply(r -> {
@@ -353,6 +391,12 @@ public class GraphQLExecutor implements IGraphQLExecutor {
                 });
             });
             FutureHelper.collectWaiting(future, promises);
+        }
+
+        if (serial) {
+            if (serialChain == null)
+                return FutureHelper.success(null);
+            return serialChain.thenApply(v -> null);
         }
         return FutureHelper.waitAll(promises);
     }

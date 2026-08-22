@@ -66,8 +66,8 @@ public class SelectionBeanBuilder {
                 GraphQLFragmentSelection fragmentSelection = (GraphQLFragmentSelection) selection;
                 GraphQLFragment fragment = fragmentSelection.getResolvedFragment();
                 if (fragment == null)
-                    throw new IllegalArgumentException(
-                            "nop.graphql.fragment-not-resolved:" + fragmentSelection.getFragmentName());
+                    throw new NopException(ERR_GRAPHQL_FRAGMENT_NOT_RESOLVED).source(fragmentSelection)
+                            .param(ARG_FRAGMENT_NAME, fragmentSelection.getFragmentName());
 
                 Set<String> fragmentExcludes = getExcludeFields(fragmentSelection, vars);
                 Set<String> mergedExcludes = excludeFields;

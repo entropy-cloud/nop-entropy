@@ -76,6 +76,8 @@ import static io.nop.graphql.core.GraphQLErrors.ARG_OPERATION_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ARG_RETURN_TYPE;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_ACTION_RETURN_TYPE_MUST_NOT_BE_API_RESPONSE;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_BATCH_LOAD_METHOD_MUST_RETURN_LIST;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_CLASS_NO_BIZ_MODEL;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_EMPTY_BIZ_OBJ_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_METHOD_PARAM_NO_REFLECTION_NAME_ANNOTATION;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_MFA_REQUIRED_NOT_ALLOWED_FOR_PUBLIC_ACCESS;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_MFA_REQUIRED_NOT_ALLOWED_ON_BIZ_ACTION;
@@ -108,7 +110,7 @@ public class ReflectionBizModelBuilder {
         }
 
         if (StringHelper.isEmpty(bizObjName))
-            throw new IllegalArgumentException("nop.err.graphql.empty-bizObjName:" + bean);
+            throw new NopException(ERR_GRAPHQL_EMPTY_BIZ_OBJ_NAME).param(ARG_CLASS, bean.getClass().getName());
 
         GraphQLBizModel ret = new GraphQLBizModel(bizObjName);
         ret.addBizModelBean(bean);
@@ -261,7 +263,7 @@ public class ReflectionBizModelBuilder {
     protected BizModel getBizModel(IClassModel classModel) {
         BizModel bizModel = classModel.getAnnotation(BizModel.class);
         if (bizModel == null)
-            throw new IllegalArgumentException("class no @BizModel annotation:" + classModel.getClassName());
+            throw new NopException(ERR_GRAPHQL_CLASS_NO_BIZ_MODEL).param(ARG_CLASS, classModel.getClassName());
 
         return bizModel;
     }

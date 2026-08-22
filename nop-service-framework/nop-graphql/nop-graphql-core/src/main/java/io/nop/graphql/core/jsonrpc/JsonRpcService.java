@@ -59,7 +59,13 @@ public class JsonRpcService {
 
         if (req instanceof List) {
             List<JsonRpcRequest> requests = (List<JsonRpcRequest>) req;
-            if (GraphQLConfigs.CFG_GRAPHQL_QUERY_MAX_OPERATION_COUNT.get() <= requests.size()) {
+            if (requests.isEmpty()) {
+                // JSON-RPC 2.0规范：空批返回单个Invalid Request错误对象（非数组）
+                return FutureHelper.success(buildResult(
+                        200, null, JsonRpcResponse.INVALID_REQUEST(null)));
+            }
+
+            if (GraphQLConfigs.CFG_GRAPHQL_QUERY_MAX_OPERATION_COUNT.get() < requests.size()) {
                 NopException err = new NopException(ERR_JSONRPC_EXCEED_MAX_COMMAND_COUNT)
                         .param(ARG_MAX_COUNT, requests.size());
                 return FutureHelper.success(buildResult(
@@ -112,21 +118,47 @@ public class JsonRpcService {
 
     public CompletionStage<List<JsonRpcResponse<?>>> batchExecuteCommandAsync(List<JsonRpcRequest> requests, IServiceContext context) {
         if (requests.isEmpty()) {
-            return FutureHelper.success(JsonRpcResponse.INVALID_REQUEST(null));
+            // 返回类型必须与声明的List一致：单个JsonRpcResponse塞进List泛型是潜伏的ClassCastException
+            return FutureHelper.success(List.of(JsonRpcResponse.INVALID_REQUEST(null)));
         }
 
         List<CompletionStage<JsonRpcResponse<?>>> promises = new ArrayList<>();
         for (JsonRpcRequest request : requests) {
             if (request.getId() == null) {
-                executeCommandAsync(request, context);
+                // notification按规范无需响应，但失败必须可观测，且不得拖垮同批其他entry
+                executeCommandAsyncSafely(request, context).whenComplete((r, e) -> {
+                    if (e != null) {
+                        LOG.warn("nop.jsonrpc.notification-execute-fail:method={}", request.getMethod(), e);
+                    } else if (r != null && r.getError() != null) {
+                        LOG.warn("nop.jsonrpc.notification-execute-fail:method={},errorCode={},errorMsg={}",
+                                request.getMethod(), r.getError().getCode(), r.getError().getMessage());
+                    }
+                });
             } else {
-                promises.add(executeCommandAsync(request, context));
+                promises.add(executeCommandAsyncSafely(request, context));
             }
         }
 
         return FutureHelper.waitAll(promises).thenApply(r -> {
             return FutureHelper.getResults(promises);
         });
+    }
+
+    /**
+     * 单个entry的失败只影响该entry（JSON-RPC 2.0 batch语义）：newRpcContext对未知参数/selection
+     * 校验失败会同步抛出NopException，异步执行失败会使promise异常完成，两处都收敛为该entry的错误响应。
+     */
+    private CompletionStage<JsonRpcResponse<?>> executeCommandAsyncSafely(JsonRpcRequest request, IServiceContext context) {
+        try {
+            return executeCommandAsync(request, context).exceptionally(err -> {
+                Throwable e = err instanceof java.util.concurrent.CompletionException && err.getCause() != null
+                        ? err.getCause() : err;
+                return buildResponseForException(JsonRpcErrorCodes.INVALID_REQUEST, request.getId(), e);
+            });
+        } catch (Exception err) {
+            return FutureHelper.success(buildResponseForException(
+                    JsonRpcErrorCodes.INVALID_REQUEST, request.getId(), err));
+        }
     }
 
 }

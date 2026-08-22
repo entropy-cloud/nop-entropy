@@ -319,6 +319,58 @@ public class TestJsonRpcWebSocketHandler extends BaseTestCase {
         assertEquals(4409, session.getCloseCode(), "Close code should be 4409 (Subscriber already exists)");
     }
 
+    /**
+     * 订阅正常完成后activeOperations必须清理条目：graphql-ws协议允许id复用，
+     * 修复前完成后复用同一id重新订阅会触发4409断开整个连接。
+     */
+    @Test
+    public void testReuseIdAfterComplete() throws Exception {
+        // setUp中的同步投递publisher：onSubscribe内同步触发onNext + onComplete
+        JsonRpcWebSocketHandler handler = new JsonRpcWebSocketHandler(executionService, session);
+
+        handler.onMessage("{\"jsonrpc\":\"2.0\",\"method\":\"TestSubscription__onEvent\",\"params\":{},\"id\":\"sub-1\"}");
+        awaitUntil("complete message", () -> session.getSentMessages().stream()
+                .anyMatch(m -> m.contains("\"complete\":true")));
+
+        // 完成后复用同一id：不应触发4409断连，且新订阅正常投递
+        handler.onMessage("{\"jsonrpc\":\"2.0\",\"method\":\"TestSubscription__onEvent\",\"params\":{},\"id\":\"sub-1\"}");
+        awaitUntil("second subscription data", () -> session.getSentMessages().stream()
+                .filter(m -> m.contains("\"testField\"")).count() >= 2);
+
+        assertFalse(session.isClosed(), "reusing id after complete must not close the connection");
+        assertTrue(handler.activeOperations.isEmpty(), "completed subscription must be removed from activeOperations");
+    }
+
+    /**
+     * 订阅出错（onError）后activeOperations同样必须清理，id复用不被4409拒绝。
+     */
+    @Test
+    public void testReuseIdAfterError() throws Exception {
+        executionService = (request, headers) -> subscriber -> {
+            subscriber.onSubscribe(new Flow.Subscription() {
+                @Override
+                public void request(long n) {
+                    subscriber.onError(new IOException("stream failed"));
+                }
+
+                @Override
+                public void cancel() {
+                }
+            });
+        };
+
+        JsonRpcWebSocketHandler handler = new JsonRpcWebSocketHandler(executionService, session);
+
+        handler.onMessage("{\"jsonrpc\":\"2.0\",\"method\":\"TestSubscription__onEvent\",\"params\":{},\"id\":\"sub-1\"}");
+        awaitUntil("activeOperations cleared after error", () -> handler.activeOperations.isEmpty());
+        assertFalse(session.isClosed(), "stream error must not close the whole connection");
+
+        // 同步publisher：onMessage返回前subscribe+onError已执行完，若id复用被拒会在此触发4409断连
+        handler.onMessage("{\"jsonrpc\":\"2.0\",\"method\":\"TestSubscription__onEvent\",\"params\":{},\"id\":\"sub-1\"}");
+        assertFalse(session.isClosed(), "reusing id after error must not trigger 4409");
+        assertEquals(0, session.getCloseCode(), "connection must not be closed");
+    }
+
     @Test
     public void testDataMessageFormat() throws Exception {
         JsonRpcWebSocketHandler handler = new JsonRpcWebSocketHandler(executionService, session);

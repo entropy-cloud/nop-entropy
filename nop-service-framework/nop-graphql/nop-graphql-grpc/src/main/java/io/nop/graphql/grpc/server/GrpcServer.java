@@ -10,7 +10,7 @@ package io.nop.graphql.grpc.server;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.ServerServiceDefinition;
-import io.grpc.protobuf.services.ProtoReflectionService;
+import io.grpc.protobuf.services.ProtoReflectionServiceV1;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.concurrent.executor.DefaultThreadPoolExecutor;
@@ -54,9 +54,11 @@ public class GrpcServer extends LifeCycleSupport {
         ServerBuilder<?> builder = newBuilder();
 
         addServices(builder);
-        this.server = builder
-                .addService(ProtoReflectionService.newInstance()) // 添加Proto Reflection服务
-                .build();
+        // 反射服务可枚举全部服务与方法schema，默认关闭，与GraphQL introspection默认关闭的收紧语义对齐
+        if (config.isReflectionEnabled()) {
+            builder.addService(ProtoReflectionServiceV1.newInstance());
+        }
+        this.server = builder.build();
 
         dumpProtoFile();
 

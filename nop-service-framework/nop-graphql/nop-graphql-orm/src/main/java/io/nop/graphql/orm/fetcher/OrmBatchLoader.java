@@ -39,12 +39,17 @@ public class OrmBatchLoader implements BatchLoader<Supplier<Object>, Object> {
 
     public static DataLoader<Supplier<Object>, Object> makeDataLoader(IOrmTemplate ormTemplate,
                                                                       IGraphQLExecutionContext context) {
-        DataLoader<Supplier<Object>, Object> loader = context.getDataLoader(OrmBatchLoader.class.getName());
-        if (loader == null) {
-            DataLoaderOptions options = new DataLoaderOptions();
-            options.setCachingEnabled(false);
-            loader = DataLoaderFactory.newDataLoader(new OrmBatchLoader(ormTemplate), options);
-            context.registerDataLoader(OrmBatchLoader.class.getName(), loader);
+        DataLoader<Supplier<Object>, Object> loader;
+        // check-then-act与registerDataLoader之间无原子性：并发分支同时首次调用时后注册方会抛
+        // ERR_GRAPHQL_DUPLICATED_LOADER。与GraphQLExecutionContext.dispatchAll同锁串行化，先注册者胜出
+        synchronized (context) {
+            loader = context.getDataLoader(OrmBatchLoader.class.getName());
+            if (loader == null) {
+                DataLoaderOptions options = new DataLoaderOptions();
+                options.setCachingEnabled(false);
+                loader = DataLoaderFactory.newDataLoader(new OrmBatchLoader(ormTemplate), options);
+                context.registerDataLoader(OrmBatchLoader.class.getName(), loader);
+            }
         }
         return loader;
     }

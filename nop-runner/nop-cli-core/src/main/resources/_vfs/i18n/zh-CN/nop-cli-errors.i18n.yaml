@@ -647,6 +647,7 @@ nop.err.graphql.action-with-empty-id-arg: 执行[{actionName}]操作要求id参�
 nop.err.graphql.action-with-empty-ids-arg: 执行[{actionName}]操作要求id参数不能为空
 nop.err.graphql.arg-max-must-be-positive: 参数max必须为正整数
 nop.err.graphql.batch-load-method-must-return-list: 批量加载方法[{methodName}]必须返回列表数据类型
+nop.err.graphql.class-no-biz-model: 类[{class}]上没有@BizModel注解
 nop.err.graphql.doc-not-operation: graphql请求不是query/mutation/subscription等操作指令
 nop.err.graphql.doc-operation-size-not-one: graphql请求文本中只能包含唯一一个操作语句
 nop.err.graphql.duplicate-action: 方法[{method}]和[{oldMethod}]对应的action名称重复，都是[{actionName}]
@@ -656,6 +657,7 @@ nop.err.graphql.duplicate-fragment-def: 片段定义已存在:{fragmentName}
 nop.err.graphql.duplicate-obj-def: 对象定义已存在:{objName}
 nop.err.graphql.duplicate-type-def: 类型定义已存在:{typeName}
 nop.err.graphql.duplicated-loader: Loader名称不允许重复:{loaderName}
+nop.err.graphql.empty-biz-obj-name: BizModel对象的bizObjName不允许为空:{class}
 nop.err.graphql.exceed-max-directive-per-request: 当前请求的Directive个数超出限制，最多允许{maxCount}个
 nop.err.graphql.field-complex-type-no-selection: 对象[{objName}]的字段[{fieldName}]不是简单类型，必须指定需要返回的字段集合
 nop.err.graphql.field-empty-arg: 函数[{fieldName}]的参数[{argName}]不允许为空
@@ -668,6 +670,7 @@ nop.err.graphql.field-not-allow-selection: 对象[{objName}]中字段[{fieldName
 nop.err.graphql.field-not-scalar: 对象[{objName}]的字段[{fieldName}]不是标量数据类型
 nop.err.graphql.field-null-arg: 函数[{fieldName}]的参数[{argName}]不允许为空
 nop.err.graphql.field-prop-id-conflict: 对象[{objType}]的字段[{fieldName}]的propId[{propId}]与已存在的propId冲突
+nop.err.graphql.fragment-not-resolved: GraphQL片段尚未解析:{fragmentName}
 nop.err.graphql.introspection-not-enabled: 没有开启GraphQL的introspection支持，不允许访问系统对象
 nop.err.graphql.invalid-directive-location: '[{name}]不是合法的directive位置名称，参见GraphQLDirectiveLocation枚举类的定义'
 nop.err.graphql.invalid-fragment: 非法的GraphQL片段:{fragmentName}
@@ -686,14 +689,18 @@ nop.err.graphql.multi-meta-file-for-biz-obj: 存在多个meta文件对应于同�
 nop.err.graphql.not-allow-directive-at-location: GraphQL扩展[{directive}]不允许出现在位置[{location}]
 nop.err.graphql.not-obj-type: '[{type}]不是对象类型，不支持字段选择'
 nop.err.graphql.not-obj-type-for-field: 对象[{objType}]的属性[{fieldName}]的类型[{type}]未定义
+nop.err.graphql.null-operation-fetcher: 操作[{fieldName}]没有配置fetcher
+nop.err.graphql.null-request: GraphQL请求内容为空
 nop.err.graphql.obj-field-type-mismatch-interface: 对象[{objName}]的字段[{fieldName}]类型[{type}]与接口[{interfaceName}]中定义的类型[{expectedType}]不匹配
 nop.err.graphql.obj-missing-required-interface-field: 对象[{objName}]实现接口[{interfaceName}]时缺少必需字段[{fieldName}]
 nop.err.graphql.only-allow-one-context-source-param: 方法[{methodName}]上最多只允许一个参数具有@ContextSource注解
 nop.err.graphql.parse.empty-string: GraphQL查询语句为空
 nop.err.graphql.parse.exceed-max-length: GraphQL查询语句过长，超过长度限制
 nop.err.graphql.parse.invalid-arg-name: 参数名不合法：{name}
+nop.err.graphql.parse.invalid-extend-syntax: 非法的extend语法，仅支持extend type
 nop.err.graphql.parse.invalid-var-name: 变量名不合法:{name}
 nop.err.graphql.parse.unexpected-char: 非法的字符
+nop.err.graphql.parse.unsupported-inline-fragment: 不支持inline fragment语法(... on Type)，请使用命名fragment
 nop.err.graphql.query.exceed-max-depth: GraphQL查询语句嵌套层次过多，超过最大深度限制。最大深度为{maxDepth}
 nop.err.graphql.query.exceed-max-operation-count: GraphQL查询语句包含操作过多，超过最大操作个数限制。最大个数为{maxCount}
 nop.err.graphql.query.no-operation: GraphQL查询语句不能为空，必须包含具体的操作

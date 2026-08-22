@@ -14,6 +14,7 @@ import io.nop.api.core.message.IMessageSubscription;
 import io.nop.api.core.message.MessageSubscribeOptions;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.graphql.core.ws.IWebSocketSession;
+import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,6 +63,7 @@ public class GraphQLSubscriptionManager {
     /**
      * Subscribe to message service topics and start routing events
      */
+    @PostConstruct
     public void start() {
         if (messageService != null) {
             MessageSubscribeOptions options = new MessageSubscribeOptions();

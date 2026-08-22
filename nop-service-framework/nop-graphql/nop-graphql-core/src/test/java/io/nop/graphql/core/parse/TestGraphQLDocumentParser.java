@@ -8,6 +8,7 @@
 package io.nop.graphql.core.parse;
 
 import io.nop.api.core.beans.FieldSelectionBean;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
@@ -26,9 +27,11 @@ import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_PARSE_UNSUPPORTED_INLINE_FRAGMENT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestGraphQLDocumentParser extends BaseTestCase {
     @Test
@@ -82,5 +85,18 @@ public class TestGraphQLDocumentParser extends BaseTestCase {
         GraphQLSourcePrinter printer = new GraphQLSourcePrinter();
         printer.print(doc);
         System.out.println(printer);
+    }
+
+    /**
+     * inline fragment（... on Type）不受支持："on"被误当作fragment名后产生与根因无关的解析错误。
+     * 修复后在fragment名位置识别on关键字并抛出带明确错误码的异常。
+     */
+    @Test
+    public void testInlineFragmentRejectedWithClearError() {
+        GraphQLDocumentParser parser = new GraphQLDocumentParser();
+        String gql = "query { a { ... on B { c } } }";
+
+        NopException err = assertThrows(NopException.class, () -> parser.parseFromText(null, gql));
+        assertEquals(ERR_GRAPHQL_PARSE_UNSUPPORTED_INLINE_FRAGMENT.getErrorCode(), err.getErrorCode());
     }
 }
