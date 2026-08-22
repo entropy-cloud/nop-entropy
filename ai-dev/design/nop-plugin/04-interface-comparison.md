@@ -47,7 +47,7 @@
 |---|---|---|
 | 接口 | `ctx.tools`/`ctx.llm` 等（proxy 属性读取） | `getService(Class<T>)` / `getServices(Class<T>)` |
 | 类型 | **弱类型**（字符串 key，编译期经 declaration merging 补类型） | **强类型**（Class 参数） |
-| 失效语义 | 属性弱读经 ctx.get 返回 undefined；traceable proxy 方法调用抛 INACTIVE（两路径并存，R4 对照 cordis 源码终核——见 `03` §5.3 统一注解） | 激活态绑定代理：deactivate 后调用**抛 INACTIVE**（快速失败），重激活后恢复 |
+| 失效语义 | 弱读探测 API `ctx.reflect.get(name)` 返回 undefined（strict 下 provider fiber 非 ACTIVE 亦 undefined）；属性访问 `ctx.<key>` 显式抛错（without inject / in inactive context）；持有的 traceable 代理方法调用无失效检查（2026-08-23 终核结论，见 `03` §5.3 统一注解） | 激活态绑定代理：deactivate 后调用**抛 INACTIVE**（快速失败），重激活后恢复 |
 | 多候选 | 由 registry 语义决定 | primary 优先 → 唯一实现 → 多候选抛异常（明确） |
 | 作用域选择 | realm/scope 视图解析（同名多实现按上下文选择） | 单一解析语义（realm/scope 不建模——agent 层职责） |
 | 暴露内部 | ctx 是公开服务仓库 | 内部子容器**隐藏** |
@@ -129,7 +129,7 @@
 |---|---|---|---|
 | 参数传递激活入口 | ✅（apply ↔ activate 双参数同构） | | |
 | 可逆副作用 | ✅（effect ↔ scope.effect） | | |
-| 失效语义 | ✅（调用路径均快速失败；dsh 弱读路径更宽松，待 R4 终核） | 强类型 + 全路径显式抛错 | |
+| 失效语义 | ✅（获取路径均显式失败；终核结论：dsh 防护在获取边界、弱读探测 API 宽松、代理调用不检查失效——见 03 §5.3 统一注解） | 强类型 + 获取/调用双边界显式抛错 | |
 | 服务访问类型 | | ✅ 强类型 + 隐藏容器 | |
 | 结构层定制粒度 | | ✅ 节点级 Delta + remove | |
 | 声明式外壳 | | ✅ plugin.xml + XDSL 管线 | |

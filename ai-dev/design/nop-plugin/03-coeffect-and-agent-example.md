@@ -287,7 +287,7 @@ const tools = fiber.ctx.tools
 fiber.dispose()
 ```
 
-> **dsh 失效语义统一注解（2026-08-22 审计裁定）**：既有文档对 dsh 非活跃访问行为存在两种表述——"属性弱读经 `ctx.get` 返回 undefined"与"traceable proxy 方法调用抛 INACTIVE 错"。两者描述的是不同访问路径，均可能成立；**R4 阶段对照 cordis 源码终核后回填本文与 04 的对应行**。Nop 侧语义单一且严格：任何路径调用已 deactivate plugin 的代理一律抛 INACTIVE。
+> **dsh 失效语义统一注解（2026-08-23 R4 终核，依据 cordis 源码）**：cordis 4.x（`github.com/cordiverse/cordis@main` `packages/core/src`，原 koishijs/cordis 迁移；dsh 侧证据基线 = `@deepseek-ai/cordis` 4.0.1 附带 TS 源码，见 analysis §10）结论为**两路径并存 + 边界更正**：(1) **弱读 undefined 仅存在于显式探测 API** `ctx.reflect.get(name)`（cordis 3.x `ctx.get`）——服务缺失返回 undefined，且 strict 语义下 provider fiber 状态非 ACTIVE 同样返回 undefined（`reflect.ts` `_getImpl`：`if (strict && impl.fiber.state !== FiberState.ACTIVE) return`）；(2) **属性访问 `ctx.<key>` 是显式抛错路径非弱读**（`reflect.ts:62-98` `ReflectService.handler.get`）：未声明 inject 抛 "cannot get property … without inject"、已声明 inject 但服务不在 store（provider 卸载/fiber 非活跃）抛 "cannot get required service … in inactive context"、命中返回 traceable 包装值（仅 root 上下文无 runtime 时回落弱读 `ctx.reflect.get(prop, false)`）；(3) **持有的 traceable proxy 方法调用本身无失效检查**（`utils.ts:148-155` `createShadowMethod` apply 直通真实方法）——INACTIVE 抛出点在**获取边界**（上述 property get）与**生命周期方法**（`effect/restart/update` → `assertActive()` → `CordisError('INACTIVE_EFFECT')`，`fiber.ts:224-227/278`），不在代理调用点。Nop 侧语义单一且更严格：getService 新调用与既有代理调用**双边界**均抛 INACTIVE。
 
 **对照 Nop**：
 
@@ -296,7 +296,7 @@ fiber.dispose()
 | 挂载 | `ctx.plugin(plugin, opts)` → fiber | `loadPlugin` + reconcile/activate → LOADED⇄ACTIVATED |
 | 多实例 | 每次 `ctx.plugin()` 一个新 fiber | **有意不做**（non-goal；一个定义至多一个激活） |
 | 服务获取 | `fiber.ctx.<key>`（弱类型 key） | `plugin.getService(Class)`（强类型代理） |
-| 失效行为 | 属性弱读 undefined / 方法调用抛 INACTIVE（路径待终核，见统一注解） | 调用已 deactivate plugin 的代理一律抛 INACTIVE |
+| 失效行为 | 弱读探测 API `ctx.reflect.get` 返回 undefined；属性访问 `ctx.<key>` 抛错（without inject / in inactive context）；代理方法调用不检查失效（终核结论见 §5.3 统一注解） | 调用已 deactivate plugin 的代理一律抛 INACTIVE（获取 + 调用双边界） |
 | 销毁 | `fiber.dispose()` | `deactivatePlugin` / `unloadPlugin` |
 | 内部容器 | ctx 是公开服务仓库 | 子容器隐藏，只 getService |
 | per-agent 差异 | scope 层（注册路由 + 近遮蔽远）+ realm（逐名字槽位） | agent 层 session/contribution 机制（§2.8），plugin 层不建模 |
@@ -323,7 +323,7 @@ ctx.effect(() => {
 |---|---|---|---|
 | 结构层定制粒度 | 配置行级 patch（无 remove/deep-merge） | 节点级 Delta（x:override merge/remove） | **Nop** |
 | 服务获取类型安全 | ctx.\<key\> 弱类型 | getService(Class) 强类型 | **Nop** |
-| 失效语义 | 弱读 undefined / 调用抛 INACTIVE | 激活态代理一律抛 INACTIVE | **持平偏 Nop**（严格性不低于 dsh 任一路径；待 R4 终核） |
+| 失效语义 | 弱读探测 undefined / 属性访问抛错 / 代理调用不检查失效（终核结论见 §5.3 统一注解） | 激活态代理获取 + 调用双边界一律抛 INACTIVE | **Nop**（双边界快速失败，严格性高于 dsh 任一路径） |
 | 内部容器暴露 | ctx 公开服务仓库 | 子容器隐藏 | **Nop** |
 | 细粒度定制上限 | 插件内部是代码，无字段级坐标 | 插件定义是结构，Delta 到字段级 | **Nop** |
 | 多实例/fiber | fiber（客户端 harness 必需） | 无（服务端定位 non-goal） | 各按定位取舍 |

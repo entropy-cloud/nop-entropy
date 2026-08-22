@@ -333,7 +333,7 @@ flowchart TD
 
 - `../nop-ioc/bean-dependency-semantics.md`：plugin 实现层复用 IoC 的 bean 依赖语义。本设计不改变这些语义，且 plugin API 不依赖它们。
 - beans.xml 的 XDSL/Delta 能力由 `nop-xlang` 提供，本设计直接复用（结构层），API 层不引用其类型。
-- `05-artifact-loading-design.md`：artifact 下载 + SHA256 校验 + 类隔离。反转影响面：§七加载链路终点表述与"ServiceLoader 发现"描述待 R1 更正（实际机制为 plugin.json 指定实现类 + 反射实例化）。
+- `05-artifact-loading-design.md`：artifact 下载 + SHA256 校验 + 类隔离。反转影响面的 §七加载链路终点表述与"ServiceLoader 发现"描述已随 R1 更正（实际机制为 plugin.json 指定实现类 + 反射实例化；05 §七已含 2026-08-22 审计更正注解）。
 - `../../analysis/2026-08/2026-08-21-dsh-plugin-system-reference.md`：dsh 机制参考基线。**supersession 交代（2026-08-22）**：该文 §9 "核心结构对齐，无需推倒；instanceKey/parent 链作 agent 层基座"的结论已被本轮定位反转取代（其**机制事实**部分——三层模型/生命周期/可逆性语义核验——仍然有效）；agent 层承接机制以 tag 可见性系统为准（见 `02-dsh-usage-coverage.md` §三.E 改判理由）。
 - `00-vision.md`（本目录）：约束与 non-goals 的权威来源。
 
@@ -348,7 +348,7 @@ flowchart TD
 | ★ `PluginState`/`InstanceState` 枚举 | `nop-plugin-api/...` | **R1 合并**为单组六态枚举 |
 | ★ `IPluginContext` | `nop-plugin-api/.../IPluginContext.java` | **R1 重写**：删 getInstance/allInstances（返回 IPluginInstance），改 getPlugin/allPlugins/reconcile |
 | ★ `IPluginManager` | `nop-plugin-manager/.../IPluginManager.java` | **R1 签名收缩**：createInstance/destroyInstance/getInstance(key)/getInstances 为抽象方法（非 default），随接口收缩一并删除 |
-| ★ `PluginManagerImpl.createInstance/getInstance/getInstances/destroyInstance` | `nop-plugin-manager/.../PluginManagerImpl.java:200/188/194/237` | **R1 删除方法**；parentToChildren 映射、级联销毁、快照/pending 重建逻辑归 **R2** 移除（含 InstanceConfigProvider/CoeffectConfigHelper 与实例错误码族退役） |
+| ★ `PluginManagerImpl.createInstance/getInstance/getInstances/destroyInstance` | `nop-plugin-manager/.../PluginManagerImpl.java:200/188/194/237` | **R1 随编译依赖删除方法**（Ownership Deviation：parentToChildren 映射、级联销毁、快照/pending 重建、`ICoeffectEvaluator.isInstanceConfigMatched` 均以 IPluginInstance 为类型或消费者，随 R1 一并移除）；**R2 = 残留引用审计 + InstanceConfigProvider→DefinitionConfigProvider 定义级重命名 + 宽松比较迁移（`PluginManagerImpl.configValueMatches`）+ 实例错误码族退役 + reconcile 拓扑序编排**（与 roadmap R2 条目执行裁定及 R1/R2 plan Closure 记录一致） |
 | ★ `PluginInstanceImpl` | `nop-plugin-manager/.../impl/PluginInstanceImpl.java` | **R1 删除**（activate/deactivate/effect 生命周期并入 VfsPluginDefinition 或提取 PluginLifecycle 支持类） |
 | ★ `ServiceProxy` | `nop-plugin-manager/.../impl/ServiceProxy.java` | **R1 改造保留**（绑定对象从 instance 改 plugin 激活态） |
 | ★ `ICoeffectEvaluator.isInstanceConfigMatched` | `nop-plugin-manager/.../impl/ICoeffectEvaluator.java:31` | **R2 删除实例级条件**；仅保留定义级 requires/if-property |

@@ -1,40 +1,57 @@
-# nop-plugin — 可插拔组件框架（plugin 定义 + 多实例 + coeffect + HMR）
+# nop-plugin — 可插拔组件框架（插件定义 + 单层六态状态机 + 插件级 coeffect + HMR）
 
 ## 功能概览
 
-nop-plugin 提供完整的插件框架：插件定义（XDSL `*.plugin.xml` / uber jar 双轨来源）、定义级与实例级两层状态机、多实例隔离、条件激活（coeffect）、强类型服务访问、per-instance 命令路由、热重载（HMR）与 artifact 下载完整性校验（SHA256）。
+nop-plugin 提供完整的插件框架：插件定义（XDSL `*.plugin.xml` / uber jar 双轨来源）、单层六态状态机（一个定义至多一个激活）、插件级条件激活（coeffect）、强类型服务访问（激活态绑定代理）、定义级命令路由、热重载（HMR）与 artifact 下载完整性校验（SHA256）。
+
+> 2026-08-22 定位反转（R1-R4 重构）：plugin 收敛为"粗粒度引入 + 激活门控"，运行时派生机制（实例身份、实例级配置视图、父子层级级联）已删除。定位声明：凡进入 plugin 层的内容均须加载期可静态声明，运行时变化收敛为激活态迁移 + effect 登记的可逆资源。
 
 模块结构（`nop-core-framework/nop-plugin/`）：
 
 | 子模块 | 职责 |
 |--------|------|
-| `nop-plugin-api` | 插件实现者契约（`IPlugin`/`IPluginInstance`/`IPluginScope`/`IPluginActivator`/`Disposable`）+ `plugin.xdef`。**零依赖**（不引用 `io.nop.ioc`/`io.nop.xlang`） |
-| `nop-plugin-manager` | 框架实现：双轨加载、实例生命周期、coeffect/reconcile、HMR、`HttpPluginResourceResolver`（artifact 下载 + SHA256 校验） |
-| `nop-plugin-support` | `AbstractPlugin` 基类（兼容旧插件的 start/stop 收敛） |
+| `nop-plugin-api` | 插件实现者契约（`IPlugin`/`IPluginScope`/`IPluginActivator`/`Disposable`/`PluginState`）+ `plugin.xdef`。**零依赖**（不引用 `io.nop.ioc`/`io.nop.xlang`） |
+| `nop-plugin-manager` | 框架实现：双轨加载、单激活生命周期编排、coeffect/reconcile、HMR、`HttpPluginResourceResolver`（artifact 下载 + SHA256 校验） |
+| `nop-plugin-support` | `AbstractPlugin` 基类（jar 轨 aware/兼容双路径实现） |
 
 ## 核心概念与生命周期
 
-### 两层状态机
+### 单层六态状态机
 
-插件有**定义级**（`PluginState`）与**实例级**（`InstanceState`）两层状态：
+插件生命周期是**一条单层状态机**：定义（load/unload）与激活（activate/deactivate）在同一 `IPlugin` 对象上演进，**一个定义至多一个激活**：
 
 ```
-定义级:  UNLOADED ──loadPlugin──▶ LOADED ──unloadPlugin(须先 destroy 全部实例)──▶ UNLOADED
-实例级:  createInstance ──▶ ACTIVATED ──deactivate──▶ DEACTIVATED ──activate──▶ ACTIVATED
-                            └──────────destroy（移除实例）──────────┘
+UNLOADED ──load──▶ LOADED ──activate(门控满足)──▶ ACTIVATING ──▶ ACTIVATED
+   ▲                  │  ▲                            │              │
+   │                  │  └── activate 失败 ──▶ FAILED │              │ deactivate
+   └── unload ────────┘        FAILED ──(可重试 activate)──▶ …      ▼
+                     └── unload ◀── LOADED ◀── DEACTIVATING ◀───────┘
 ```
 
-- `loadPlugin(pluginId)` 只把定义加载到 **LOADED**（解析 + 校验），**不激活**。
-- `createInstance(pluginId, instanceKey, config, parent)` 为 LOADED 定义派生一个 **ACTIVATED** 实例；`destroyInstance` 移除实例（`destroy()` 级联销毁后代实例）。
-- `deactivate()` 只回退内部资源（effect LIFO 回退、销毁子容器），**实例对象保留**，可重新 `activate()`。
-- `unloadPlugin` 前必须先 destroy 全部实例（有实例抛 `ERR_PLUGIN_INSTANCES_NOT_EMPTY`）。
+| 状态 | 静态定义 | 内部子容器 | bean 实例 | effect |
+|------|---------|-----------|----------|--------|
+| UNLOADED | ✗ | ✗ | ✗ | ✗ |
+| LOADED | ✓（可缓存，loader 被动失效） | ✗ | ✗ | ✗ |
+| ACTIVATING | ✓ | build 中 | 部分 | 注册中 |
+| ACTIVATED | ✓ | ✓（started） | ✓ | ✓（已注册） |
+| DEACTIVATING | ✓ | stop 中 | destroy 中 | 回退中 |
+| FAILED | ✓ | ✗（已清理） | ✗ | ✗（已回退） |
+
+关键语义：
+
+- `loadPlugin(pluginId)` 只把定义加载到 **LOADED**（解析 + 校验），**不激活**；reconcile 按门控决定是否自动激活。
+- `activate()`：门控满足时建子容器 + 执行 activator + 注册 effect，返回 `true`；门控未满足 **no-op 返回 `false`**（不抛异常）；已 ACTIVATED **幂等返回 `true`**（并发重复经 in-flight 单飞收敛，不重跑）。同步返回 boolean 是有意设计（激活资源建立为同步操作，展开窗口短）。
+- `deactivate()` 返回 `CompletionStage<Void>`：先 `scope.close()`（LIFO 回退全部 effect）再子容器 stop，回到 **LOADED（定义保留）**；异步 effect 回退故为异步返回。
+- **unload 守卫**：ACTIVATED/中间态（ACTIVATING/DEACTIVATING）时 `unload()`/`unloadPlugin()` 抛 `ERR_PLUGIN_NOT_DEACTIVATED`（须先 deactivate）。
+- **FAILED 可重试**：激活失败置 FAILED（资源已回退清理、`lastActivationError` 可读、原始异常保留为 cause），显式 `activatePlugin` 可恢复尝试；FAILED 态允许 unload。
+- **失败阈值暂停**：连续自动激活失败超阈值（5 次）后 reconcile 暂停该插件的自动激活（显式 activatePlugin 仍可恢复）。
 
 ### 兼容路径（isStateMachineAware 双路径）
 
-`IPlugin.isStateMachineAware()` 默认 `false`——存量第三方插件（只有 `start/stop`）不进入新状态机：
+`IPlugin.isStateMachineAware()` 默认 `false`——存量第三方插件（只有 `start/stop`）零感知、不进入新状态机：
 
-- 非 aware：`loadPlugin` 执行旧 `start` 语义（= load + 激活，无"已加载未激活"态），`unloadPlugin` 执行旧 `stop` 语义。
-- aware（`AbstractPlugin` 子类或自实现）：进入定义级状态机；`start(config)` = `load + createInstance(默认 key "default")`，`stop()` = `destroyInstance + unload`。
+- **非 aware**：`loadPlugin` 执行旧 `start` 语义（无"已加载未激活"态），`unloadPlugin` 执行旧 `stop` 语义；状态机新方法（load/activate/getService 等）的 default 实现显式抛 `ERR_PLUGIN_LIFECYCLE_NOT_SUPPORTED`（实现层对非 aware 插件永不调用，No Silent No-Op）。
+- **aware**（`AbstractPlugin` 子类或 `VfsPluginDefinition`）：`start` = `load + activate`、`stop` = `deactivate + unload`，状态边界两轨统一规格：仅 UNLOADED 补 load 步（已 LOADED/FAILED 不重复 load、updateConfig 累积值保留）；已 ACTIVATED 时 start 幂等 no-op（不重跑 activator、scope/容器不重建）；UNLOADED 态 stop 幂等 no-op。
 
 ## 插件定义（VFS 轨）
 
@@ -54,31 +71,37 @@ nop-plugin 提供完整的插件框架：插件定义（XDSL `*.plugin.xml` / ub
 
 | 属性 | 含义 |
 |------|------|
-| `name` | 插件名（定义 id） |
-| `requires` | 依赖的插件名集合（csv-set，空格分隔）——coeffect 依赖链 |
+| `name` | 插件名（必填 `!string`，定义 id） |
+| `requires` | 依赖的插件名集合（csv-set，空格分隔）——所列插件均已 ACTIVATED 才开门控 |
 | `if-property` | 激活条件：`propName\|expectedValue`（缺省 expectedValue 视为 `true`），如 `agent.tools.enabled\|true` |
-| `activator` | 激活器 bean id（见下文 activator 模式） |
-| `<beans>` | 插件内部 bean 定义（复用 beans.xdef，`primary` 用于 getService 多候选规则） |
+| `activator` | 激活器 bean id（bean-name，见下文 activator 模式） |
+| `<beans>` | 唯一子元素。插件内部 bean 定义（复用 beans.xdef，`primary` 用于 getService 多候选规则） |
 
-## 多实例（instanceKey / parent 层级 / 实例配置域）
+**属性集冻结（R3 裁决）**：不新增 `requires-service` 等服务级条件属性（扩展点已关闭）；属性集由机器守护测试 `TestPluginXdef#testAttributeSetFrozen`（manager 测试树）锁定，偏差即测试失败。
 
-- **instanceKey**：一个 LOADED 定义可派生 N 个独立实例（多租户/多 agent），每个实例持有独立的 scope / effect / 配置域；同 key 重复 `createInstance` 抛 `ERR_PLUGIN_INSTANCE_EXISTS`。
-- **parent 层级**（subagent）：`createInstance(pluginId, key, config, parent)` 的 `parent` 为父实例（顶层传 `null`）。子容器 parent = 父实例容器，**服务查找沿链回退**（子 → 父 → … → 顶层；顶层 parentContainer 为 null，不扩展宿主）；destroy 父级联 destroy 子；配置层叠：子覆盖父、父独有键继承进子合并视图；父 DEACTIVATED 时禁止挂靠（`ERR_PLUGIN_PARENT_NOT_ACTIVATED`）。
-- **实例配置域**：每个实例有独立 `IConfigProvider`，`getConfig()` 返回合并视图（定义默认 ← 实例配置覆盖，W6 起含父链层叠），**任何态可读**；不写全局 `AppConfig`。
+## 插件级 coeffect 条件激活
 
-## coeffect 条件激活
+coeffect = **插件级**条件评估，运行时动态激活/去激活（`<ioc:condition>` 是 build 时一次性决定，coeffect 是运行时可反复）：
 
-coeffect = 定义级 + 实例级条件评估，运行时动态激活/去激活：
+- `requires`：所列插件名的**定义已 ACTIVATED**（依赖仅 LOADED 不满足——`TestReconcileTopologicalOrder#testRequiresEvaluatesDependencyActivationNotLoaded` 断言语义）。
+- `if-property`：全局配置项匹配，**宽松比较**（数值宽松等价 Integer 10/Double 10.0/"10" 互通；字符串精确；布尔 Boolean.TRUE/"true" 互通）。
+- 显式 `activatePlugin` 门控不满足 → no-op 返回 `false`（不抛异常）。
+- `reconcilePlugins()` 迭代评估全部 LOADED 插件到不动点，编排规则：
+  - **批量激活按正拓扑序**（提供者先激活——同 pass 先激活的提供者即满足消费者 requires 腿）；
+  - **批量去激活按逆拓扑序**（消费者先于提供者退出，含级联闭包：提供者失效 → 消费者随之入组）；
+  - **同 pass 混合批次先去激活组后激活组**；
+  - 激活窗口**时间静止**：activate 展开期间条件失效不打断本次激活（完成后收敛去激活）；deactivate 展开期间条件恢复（回退完成后重激活）；
+  - 静态依赖图 DFS 环检测（环成员强制门控关闭并报告 unresolved）；失败阈值暂停自动激活。
+- reconcile **不自动 load**（未加载定义保持 UNLOADED，load 是显式调用）；实现层订阅配置变更（`subscribeChange`）自动触发 reconcile，API 层只暴露显式 `reconcile()`。
 
-- **定义级**：`requires`（依赖插件名，须存在 ACTIVATED 实例）+ `if-property`（全局配置，缺省回退 true）。
-- **实例级**：`if-property` 按实例合并视图求值（实例配置优先、全局回退）。
-- `createInstance` 时定义级条件不满足 → **no-op 返回 null**（门控；重复 key 检查先于门控）。
-- `reconcileInstances()` 迭代评估全部定义/实例到不动点（自动级联激活/去激活，静态环检测报告 `unresolvedPluginIds`，激活失败超阈值暂停自动激活）；实现层配置订阅（`subscribeChange`）自动触发 reconcile，API 层只暴露显式 `reconcile()`。
-- 条件翻转真实驱动实例状态翻转（destroy 父实例 → 子自动 DEACTIVATED；创建父实例 → 子自动 ACTIVATED）。
+## 定义级配置域与 activator 参数传递模式
 
-## activator 参数传递模式
+定义级配置域 = `loadPlugin(id, config)` 传入的初始 config + `updateConfig(config)` 的累积合并视图（R1 反转后唯一配置域；不写全局 `AppConfig`、全局无污染）：
 
-定义声明 `activator="beanId"`，激活实例时实现层实例化子容器后调用 **`activate(scope, config)`** 双参数（scope + 合并视图 config 作为参数传入，禁止字段注入 scope）：
+- `updateConfig`：LOADED 时缓存待下次激活应用；ACTIVATED 时热应用（合并视图重算 + 经 provider 变更通知传播，bean 属性真实重绑定）。
+- bean 属性 `${var}` 占位符从插件的 `DefinitionConfigProvider` 解析：定义级合并视图命中 / 无定义级值的键回落全局配置。
+
+定义声明 `activator="beanId"`，激活时实现层实例化子容器后调用 **`activate(scope, config)`** 双参数（scope + 定义级配置视图作为参数传入，禁止字段注入 scope）：
 
 ```java
 @FunctionalInterface
@@ -87,27 +110,37 @@ public interface IPluginActivator {
 }
 ```
 
-- `scope.getService(Class)` 激活期取 bean；`scope.effect(Disposable)` 注册可逆操作（实例 deactivate/destroy 时 **LIFO 回退**，回退后可观测 quiescence）。
-- **返回值非 null 自动注册为该实例的 effect**（与显式 `scope.effect(...)` 等价，便捷模式 `return () -> cleanup`）。
-- 重激活语义：deactivate 后再次 activate 重新执行 activator（scope 已 close，effect 需重新注册）。
+- `scope.getService(Class)` 激活期取 bean（返回真实 bean 非代理）；`scope.effect(Disposable)` 注册可逆操作（deactivate 时 **LIFO 回退**，`effects()` 清空 = quiescence 可断言）。
+- **返回值非 null 自动注册为本次插件激活的 effect**（便捷模式 `return () -> cleanup`）。
+- 重激活语义：deactivate 后再次 activate 重新执行 activator（scope 已 close，effect 需重新注册；close 后再注册抛异常、重复 close 幂等）。
 
-## getService 生命周期代理
+## getService 激活态绑定代理
 
-`instance.getService(Class<T>)` 返回**生命周期绑定代理**（仅支持接口类型，具体类抛 `ERR_PLUGIN_SERVICE_PROXY_ONLY_INTERFACE`）：
+`plugin.getService(Class<T>)` 返回**激活态绑定代理**（仅支持接口类型，具体类抛 `ERR_PLUGIN_SERVICE_PROXY_ONLY_INTERFACE`）：
 
-- **ACTIVATED**：路由到实现；**deactivate/destroy 后调用快速失败**（抛 `ERR_PLUGIN_INACTIVE`，不悬空、不静默返回 null）。
+- **ACTIVATED**：路由到实现；**deactivate 完成后调用快速失败**（抛 `ERR_PLUGIN_INACTIVE`，不悬空、不静默返回 null）；**重新激活后同一代理引用恢复可用**（绑定对象 = 插件激活态，按调用重新解析）。
 - **多候选规则**：`primary="true"` 优先 → 无 primary 时按 bean id 与接口匹配的唯一实现 → 多候选且无 primary 抛 `ERR_PLUGIN_MULTIPLE_SERVICE_CANDIDATES`（不静默返回集合）。
-- `getServices(Class)` 返回全部实现的代理集合；`scope.getService`（activator 内用）返回真实 bean。
-- 服务查找沿 parent 链回退（见多实例）；全链未命中 → 容器标准错误 `ERR_IOC_UNKNOWN_BEAN_FOR_TYPE`（透传，参数完整）。
+- `getServices(Class)` 返回全部实现的代理集合（重激活后按 bean id 恢复可用）。
 
-## per-instance 命令路由
+## 定义级命令路由
 
-- `instance.invokeCommand(command, args, fieldSelection, cancelToken)` 路由到**本实例子容器**（多实例下命令隔离由此保证）。
-- 定义级 `plugin.invokeCommand(...)` 兼容语义：仅实例数=1 时经该实例路由；多实例抛明确异常（须显式指定实例）；无 ACTIVATED 实例抛 `ERR_PLUGIN_INACTIVE`。
+`plugin.invokeCommand(command, args, fieldSelection, cancelToken)` 分发于**本插件激活容器**（单容器，无实例路由）：
+
+- 未激活（非 ACTIVATED）调用抛 `ERR_PLUGIN_INACTIVE`（定义级状态检查）。
+- **命令 bean 回退链**：插件容器命令 bean（`nopPluginCommand_{command}`）→ 宿主容器回退（宿主同名命令 bean，与 jar 轨行为一致）→ default 兜底 bean（`nopPluginCommand_default`，宿主注册，未知名命令不静默失败）——链终点无命中时显式抛错。
+
+## jar 轨契约（uber jar）
+
+jar 轨（Maven 坐标 id，双冒号格式）无 plugin.xdef/VFS 定义载体（发现机制 = uber jar 内 plugin.json 指定实现类 + 反射实例化，非 ServiceLoader）：
+
+- **门控恒为空集 → 无条件激活**（requires/if-property 不评估）；activator 未声明则**跳过激活回调**（子容器启动即完成激活）。
+- `AbstractPlugin.load()` 容忍 xdef 载体缺失（约定路径无定义文件时空定义加载成功；有载体时解析持有仅作元数据，不驱动门控）。
+- **documented behavior（两轨固有差异）**：aware `start(gav, config)` 在插件已 LOADED/ACTIVATED 时**忽略 config 参数**——start 仅在 UNLOADED 态补 load 步（config 经 `load(config)` 进入配置域），已 LOADED/ACTIVATED 时不重复 load、config 不被消费（jar 轨 aware 无定义级配置域语义，activate 不接受 config）。
+- jar 轨 `reloadPlugin` 显式抛 `ERR_PLUGIN_RELOAD_NOT_SUPPORTED`（HMR 面向本地/开发场景，uber jar 不可编辑）。
 
 ## artifact 加载（uber jar 轨 + SHA256 校验）
 
-`loadPlugin("groupId:artifactId:version")`（Maven 坐标，双冒号格式）走 uber jar 轨：`IPluginResourceResolver.resolvePluginResource(coords)` → 下载到本地缓存 → SHA256 校验 → `PluginClassLoader` 从已校验 jar 加载。
+`loadPlugin("groupId:artifactId:version")` 走 uber jar 轨：`IPluginResourceResolver.resolvePluginResource(coords)` → 下载到本地缓存 → SHA256 校验 → `PluginClassLoader` 从已校验 jar 加载。
 
 **`HttpPluginResourceResolver` 配置（宿主应用注入）**：
 
@@ -135,7 +168,7 @@ public interface IPluginActivator {
 
 ## 变更检测接线（HMR）
 
-框架核心**不起轮询线程**——提供显式检查入口 `PluginManagerImpl.checkChangedAndReload()`：遍历 VFS 轨 LOADED 定义，用 `ResourceComponentManager.checkChanged`（资源真实 lastModified 严格比对）检测 → 有变更调 `reloadPlugin`（快照采集 → destroy 全部 → unload → load 重解析 → 按快照重建 → reconcile）。宿主应用**定时调用**接线方式：
+框架核心**不起轮询线程**——提供显式检查入口 `PluginManagerImpl.checkChangedAndReload()`：遍历 VFS 轨已加载定义（仅跳过 UNLOADED，ACTIVATED/中间态定义进入变更检测），用 `ResourceComponentManager.checkChanged`（资源真实 lastModified 严格比对）检测 → 有变更调 `reloadPlugin`。宿主应用**定时调用**接线方式：
 
 ```java
 // 宿主调度（如 nop-job / 定时线程）：
@@ -143,26 +176,27 @@ ScheduledExecutorService executor = ...;
 executor.scheduleWithFixedDelay(manager::checkChangedAndReload, 0, 5, TimeUnit.SECONDS);
 ```
 
-注意：`checkChangedAndReload` 是 `PluginManagerImpl` 的**实现层方法**（非 `IPluginManager` 接口方法）；jar 轨（uber jar 不可编辑）`reloadPlugin` 显式抛 `ERR_PLUGIN_RELOAD_NOT_SUPPORTED`。
+`reloadPlugin(pluginId)` 编排：若激活态先 `deactivate()`（回退 effect）→ `unload()`（丢弃旧定义）→ `load()`（重解析 plugin.xml，**重放定义级 updateConfig 累积值**）→ `reconcile()`（重新门控激活）。
+
+注意：`checkChangedAndReload` 是 `PluginManagerImpl` 的**实现层方法**（非 `IPluginManager` 接口方法）；jar 轨 `reloadPlugin` 显式抛 `ERR_PLUGIN_RELOAD_NOT_SUPPORTED`。
 
 ## 源码锚点
 
-> **注（2026-08-23，R1 定位反转已落地）**：多实例机制（IPluginInstance/InstanceState/createInstance/parent 层级）已删除，`IPlugin` 收敛为单层六态状态机（activate/deactivate/getService）。本文档为反转前版本，全面重写归 roadmap R4；下表已剔除被删文件的死链接。
-
 | 组件 | 路径 |
 |------|------|
-| `IPlugin`（定义级状态机 + 兼容 default 方法） | `nop-core-framework/nop-plugin/nop-plugin-api/src/main/java/io/nop/plugin/api/IPlugin.java` |
+| `IPlugin`（单层六态状态机 + 兼容 default 方法 + 定义级命令路由） | `nop-core-framework/nop-plugin/nop-plugin-api/src/main/java/io/nop/plugin/api/IPlugin.java` |
 | `PluginState`（单层六态：UNLOADED/LOADED/ACTIVATING/ACTIVATED/DEACTIVATING/FAILED） | `nop-core-framework/nop-plugin/nop-plugin-api/src/main/java/io/nop/plugin/api/PluginState.java` |
 | `IPluginScope`（effect/effects/close + 激活期 getService） | `nop-core-framework/nop-plugin/nop-plugin-api/src/main/java/io/nop/plugin/api/IPluginScope.java` |
 | `IPluginActivator`（`activate(scope, config)` 双参数） | `nop-core-framework/nop-plugin/nop-plugin-api/src/main/java/io/nop/plugin/api/IPluginActivator.java` |
-| `IPluginManager`（loadPlugin/createInstance/reconcile/reloadPlugin） | `nop-core-framework/nop-plugin/nop-plugin-manager/src/main/java/io/nop/plugin/manager/IPluginManager.java` |
-| `PluginManagerImpl`（双轨路由 + reconcile + HMR + `checkChangedAndReload`） | `nop-core-framework/nop-plugin/nop-plugin-manager/src/main/java/io/nop/plugin/manager/impl/PluginManagerImpl.java` |
+| `IPluginManager`（loadPlugin/unloadPlugin/activatePlugin/deactivatePlugin/getPlugin/getLoadedPlugins/reloadPlugin/reconcilePlugins） | `nop-core-framework/nop-plugin/nop-plugin-manager/src/main/java/io/nop/plugin/manager/IPluginManager.java` |
+| `PluginManagerImpl`（双轨路由 + reconcile 拓扑编排 + HMR + `checkChangedAndReload`） | `nop-core-framework/nop-plugin/nop-plugin-manager/src/main/java/io/nop/plugin/manager/impl/PluginManagerImpl.java` |
+| `VfsPluginDefinition`（VFS 轨单激活生命周期：子容器 + activator + effect + 失败阈值） | `nop-core-framework/nop-plugin/nop-plugin-manager/src/main/java/io/nop/plugin/manager/impl/VfsPluginDefinition.java` |
 | `HttpPluginResourceResolver`（SHA256 校验 + expected-hash map） | `nop-core-framework/nop-plugin/nop-plugin-manager/src/main/java/io/nop/plugin/manager/resolver/HttpPluginResourceResolver.java` |
-| `AbstractPlugin`（兼容基类） | `nop-core-framework/nop-plugin/nop-plugin-support/src/main/java/io/nop/plugin/support/AbstractPlugin.java` |
-| `plugin.xdef`（定义 schema：requires/if-property/activator/beans） | `nop-core-framework/nop-plugin/nop-plugin-api/src/main/resources/_vfs/nop/schema/plugin/plugin.xdef` |
+| `AbstractPlugin`（jar 轨 aware/兼容双路径基类） | `nop-core-framework/nop-plugin/nop-plugin-support/src/main/java/io/nop/plugin/support/AbstractPlugin.java` |
+| `plugin.xdef`（定义 schema：requires/if-property/activator/beans，属性集冻结） | `nop-core-framework/nop-plugin/nop-plugin-api/src/main/resources/_vfs/nop/schema/plugin/plugin.xdef` |
 
 ## 相关文档
 
 - 实现锚点：`../04-reference/source-anchors.md`（`PLG-001` ~ `PLG-009`）
 - 模块分组：`../01-repo-map/module-groups.md`（核心框架分组）
-- 权威设计来源：仓库 ai-dev/design/nop-plugin/ 目录下文档（两态状态机/接口契约 + artifact 加载缓存语义与 SHA256，平台内部文档）——按 docs-for-ai 边界规则不直接链接，需精确定位时从 `04-reference/source-anchors.md` 出发
+- 权威设计来源：仓库 ai-dev/design/nop-plugin/ 目录下文档（01-architecture-baseline 架构基线 + 05-artifact-loading-design artifact 加载缓存语义与 SHA256，平台内部文档）——按 docs-for-ai 边界规则不直接链接，需精确定位时从 `04-reference/source-anchors.md` 出发

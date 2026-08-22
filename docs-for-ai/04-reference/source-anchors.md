@@ -208,15 +208,15 @@
 
 | 规则 ID | 锚点 | 说明 |
 |---------|------|------|
-| `PLG-001` | `nop-core-framework/nop-plugin/nop-plugin-api/src/main/java/io/nop/plugin/api/IPlugin.java` | 插件定义级状态机契约：`load/unload/getState/getInstance/getInstances/isStateMachineAware` 等 default 方法 + 兼容路径语义 |
-| `PLG-002` | `nop-core-framework/nop-plugin/nop-plugin-api/src/main/java/io/nop/plugin/api/PluginState.java` | 单层六态状态机契约（2026-08-23 R1 定位反转：原实例级 IPluginInstance 契约已删除，getService/INACTIVE 快速失败语义并入 `IPlugin`，生命周期实现见 `VfsPluginDefinition`；本表其余反转前措辞的重写归 roadmap R4） |
+| `PLG-001` | `nop-core-framework/nop-plugin/nop-plugin-api/src/main/java/io/nop/plugin/api/IPlugin.java` | 单层六态状态机契约：`load/unload/activate/deactivate/getState/getService(s)/updateConfig/invokeCommand/isStateMachineAware` default 方法（默认实现显式失败）+ 兼容路径语义 |
+| `PLG-002` | `nop-core-framework/nop-plugin/nop-plugin-api/src/main/java/io/nop/plugin/api/PluginState.java` | 单层六态状态机契约（2026-08-22 R1 定位反转：getService/INACTIVE 快速失败语义并入 `IPlugin`，一个定义至多一个激活；生命周期实现见 `VfsPluginDefinition`） |
 | `PLG-003` | `nop-core-framework/nop-plugin/nop-plugin-api/src/main/java/io/nop/plugin/api/IPluginScope.java` | effect 自管理契约：`effect(Disposable)`/`effects()`（LIFO 回退 quiescence）；激活期 `getService` 返回真实 bean |
 | `PLG-004` | `nop-core-framework/nop-plugin/nop-plugin-api/src/main/java/io/nop/plugin/api/IPluginActivator.java` | 激活器双参数契约：`activate(scope, config)`（返回值非 null 自动注册 effect） |
-| `PLG-005` | `nop-core-framework/nop-plugin/nop-plugin-manager/src/main/java/io/nop/plugin/manager/IPluginManager.java` | manager 契约：双轨路由（坐标→uber jar / 路径→VFS `*.plugin.xml`）、`createInstance`（门控 null/重复 key 异常/parent）、`reconcileInstances`、`reloadPlugin`（HMR 快照重建，jar 轨显式失败） |
-| `PLG-006` | `nop-core-framework/nop-plugin/nop-plugin-manager/src/main/java/io/nop/plugin/manager/impl/PluginManagerImpl.java` (`checkChangedAndReload:320`) | HMR 显式检查入口（宿主定时调用；框架不起轮询线程）；`ResourceComponentManager.checkChanged` 严格 lastModified 比对 |
+| `PLG-005` | `nop-core-framework/nop-plugin/nop-plugin-manager/src/main/java/io/nop/plugin/manager/IPluginManager.java` | manager 契约：双轨路由（坐标→uber jar / 路径→VFS `*.plugin.xml`）、`loadPlugin/unloadPlugin/activatePlugin/deactivatePlugin/getPlugin/getLoadedPlugins/reloadPlugin`（HMR，jar 轨显式失败）/`reconcilePlugins`（插件级 coeffect 批量编排） |
+| `PLG-006` | `nop-core-framework/nop-plugin/nop-plugin-manager/src/main/java/io/nop/plugin/manager/impl/PluginManagerImpl.java` (`checkChangedAndReload:605`) | HMR 显式检查入口（宿主定时调用；框架不起轮询线程）；允许 ACTIVATED/中间态定义进入变更检测（仅跳过 UNLOADED）；`ResourceComponentManager.checkChanged` 严格 lastModified 比对 |
 | `PLG-007` | `nop-core-framework/nop-plugin/nop-plugin-manager/src/main/java/io/nop/plugin/manager/resolver/HttpPluginResourceResolver.java` | artifact 下载 + SHA256 校验：hash 来源优先级 header → `{url}.sha256` → `expectedHashes` map；fail-fast（`ERR_PLUGIN_SHA256_MISMATCH`/`ERR_PLUGIN_CHECKSUM_NOT_AVAILABLE`）；缓存重验/遗留重下载/`nop.plugin.skip-cache-verify` |
-| `PLG-008` | `nop-core-framework/nop-plugin/nop-plugin-api/src/main/resources/_vfs/nop/schema/plugin/plugin.xdef` | 插件定义 schema：`requires`（csv-set）/`if-property`（`propName\|expectedValue`）/`activator`（bean-name）/`<beans>`（复用 beans.xdef） |
-| `PLG-009` | `nop-core-framework/nop-plugin/nop-plugin-support/src/main/java/io/nop/plugin/support/AbstractPlugin.java` | 兼容基类：`start/stop` 收敛为 `load+createInstance` / `destroyInstance+unload`；非 aware 插件走旧语义 |
+| `PLG-008` | `nop-core-framework/nop-plugin/nop-plugin-api/src/main/resources/_vfs/nop/schema/plugin/plugin.xdef` | 插件定义 schema：`requires`（csv-set）/`if-property`（`propName\|expectedValue`）/`activator`（bean-name）/`<beans>`（复用 beans.xdef）；属性集冻结（守护测试 `TestPluginXdef#testAttributeSetFrozen`） |
+| `PLG-009` | `nop-core-framework/nop-plugin/nop-plugin-support/src/main/java/io/nop/plugin/support/AbstractPlugin.java` | jar 轨基类：aware 路径 `start/stop` = `load+activate` / `deactivate+unload`（门控恒空集无条件激活、激活回调跳过）；非 aware 插件走旧 start/stop 语义 |
 
 ## 当前最重要的校准点
 
