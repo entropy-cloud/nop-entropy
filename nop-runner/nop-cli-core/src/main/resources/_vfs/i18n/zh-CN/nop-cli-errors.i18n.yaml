@@ -741,6 +741,7 @@ nop.err.ioc.aop-class-no-constructor: bean[{beanName}]对应的AOP代理类没�
 nop.err.ioc.bean-aop-proxy-not-generated: bean[{beanName}]指定了interceptor，但没有生成对应的Aop代理类
 nop.err.ioc.bean-depend-on-high-order-bean: bean[{beanName}]依赖的bean[{depend}]的优先级比自身的优先级高
 nop.err.ioc.bean-depends-graph-contains-loop: bean依赖关系不允许包含循环依赖。如果确实存在，可以在必要的地方配置节点上标注ioc:ignore-depends
+nop.err.ioc.bean-init-self-wait: bean[{beanName}]初始化过程中发生循环等待：当前线程正在等待自身的初始化阶段完成（同一线程重入或创建线程等待属性赋值）
 nop.err.ioc.bean-order-constraint-violated: bean[{beanName}]的ioc:before/ioc:after顺序约束不能满足：目标bean[{depend}]的拓扑顺序违反声明
 nop.err.ioc.bean-scope-already-closed: scope[{beanScope}]已经被关闭
 nop.err.ioc.class-no-field: 静态字段[{staticField}]配置不正确，类[className]上不存在字段[{fieldName}]
@@ -1083,6 +1084,9 @@ nop.err.web.page-not-allow-edit: 没有开启编辑模式，不允许编辑页�
 nop.err.web.page-resource-not-file: 页面资源[{path}]不是文件，不允许修改
 nop.err.web.unsupported-action-type: 不支持的页面操作类型[{actionType}]
 nop.err.web.unsupported-file-type: 请求路径[{path}]不是允许的文件类型，文件后缀名必须是{allowedFileTypes}
+nop.err.xlang.backend-already-registered: 执行后端已注册，重复注册不同实例必须先反注册:{backendId}
+nop.err.xlang.backend-capability-conflict: 执行后端能力槽位冲突：能力[{capability}]已被后端[{backendId}]占用
+nop.err.xlang.backend-invalid-contract: 执行后端契约非法:{backendId}
 nop.err.xlang.break-statement-not-in-loop: break语句必须放到循环语句内部
 nop.err.xlang.const-decl-no-initializer: 常量声明没有初始化表达式
 nop.err.xlang.continue-statement-not-in-loop: break语句必须放到循环语句内部
@@ -1098,6 +1102,7 @@ nop.err.xlang.exec.class-no-constructor: 类[{className}]上没有定义匹配�
 nop.err.xlang.exec.class-no-static-field: 类[{className}]上没有定义静态属性[{propName}]
 nop.err.xlang.exec.class-no-static-method: 类[{className}]上没有定义静态方法[{methodName}]或者参数个数不匹配
 nop.err.xlang.exec.class-not-allow-attr-expr: 不允许在静态类上执行属性表达式:{className}
+nop.err.xlang.exec.class-not-found: 类[{className}]不存在
 nop.err.xlang.exec.collect-result-not-single-node: c:collect标签设置了singleMode模式，但是具体执行得到的结果节点不是单节点
 nop.err.xlang.exec.convert-func-only-allow-one-arg: 类型转换函数[{funcName}]只允许一个参数
 nop.err.xlang.exec.expr-not-return-func: 表达式的返回结果不是函数类型:{funcExpr}
@@ -1134,6 +1139,7 @@ nop.err.xlang.exec.throw-invalid-error: throw语句抛出的异常对象只能�
 nop.err.xlang.exec.throw-null-exception: throw语句的参数为null
 nop.err.xlang.exec.too-few-args: 参数个数不足：minArgCount={minCount}
 nop.err.xlang.exec.too-many-args: 参数个数超过限制：maxArgCount={maxCount}
+nop.err.xlang.exec.translate-unsupported-node: java转译不支持的表达式子集外节点:{className} {location}
 nop.err.xlang.exec.unknown-prop: 类[{className}]上没有定义属性[{propName}]
 nop.err.xlang.exec.unknown-static-field: 类[{className}]上没有定义静态属性[{propName}]
 nop.err.xlang.exec.value-not-allow-empty: 值不允许为空
@@ -1168,6 +1174,10 @@ nop.err.xlang.expr.xpl-duplicate-attr-name: Xpl表达式的属性名重复
 nop.err.xlang.filter.unknown-biz-var: 未定义的前缀引导语法变量:{varName}
 nop.err.xlang.func-decl-conflict-with-global-func: 自定义函数[{funcName}]的名称与已经注册的全局函数名冲突
 nop.err.xlang.func-decl-not-allow-prefix-g: 自定义函数[{funcName}]的名称不应该以g_为前缀，此前缀为全局函数保留
+nop.err.xlang.generated-manifest-file-invalid: 生成类清单文件非法（行格式/聚合冲突/同形路径折叠冲突——构建产物损坏或多模块键冲突，处置=重跑构建任务并检查产物）:{resourcePath}
+  {className}
+nop.err.xlang.generated-manifest-invalid-entry: 生成类清单条目非法（resourcePath/className/treeFingerprint
+  必须完整且格式合法）:{resourcePath} {className}
 nop.err.xlang.global-var-not-allow-change: 全局变量不允许在脚本中通过赋值语句进行修改
 nop.err.xlang.identifier-is-keyword: 标识符名称[{name}]不能是系统保留的关键字
 nop.err.xlang.identifier-not-allow-change: 常量变量[{name}]不允许被修改
