@@ -96,11 +96,13 @@ import static io.nop.ioc.IocErrors.ARG_PARAM_COUNT;
 import static io.nop.ioc.IocErrors.ARG_PROP_NAME;
 import static io.nop.ioc.IocErrors.ARG_STATIC_FIELD;
 import static io.nop.ioc.IocErrors.ARG_TRACE;
+import static io.nop.ioc.IocErrors.ARG_VALUE;
 import static io.nop.ioc.IocErrors.ERR_IOC_CLASS_NOT_FOUND;
 import static io.nop.ioc.IocErrors.ERR_IOC_CLASS_NO_FIELD;
 import static io.nop.ioc.IocErrors.ERR_IOC_EMPTY_CLASS_NAME;
 import static io.nop.ioc.IocErrors.ERR_IOC_FACTORY_BEAN_MUST_BE_USED_WITH_FACTORY_METHOD;
 import static io.nop.ioc.IocErrors.ERR_IOC_INVALID_CONSTRUCTOR_ARG_INDEX;
+import static io.nop.ioc.IocErrors.ERR_IOC_INVALID_PROP_VALUE_TYPE;
 import static io.nop.ioc.IocErrors.ERR_IOC_INVALID_STATIC_FIELD;
 import static io.nop.ioc.IocErrors.ERR_IOC_MISSING_CONSTRUCTOR;
 import static io.nop.ioc.IocErrors.ERR_IOC_MULTIPLE_BEAN_WITH_TYPE_FOR_PROP;
@@ -819,7 +821,8 @@ public class BeanDefinitionBuilder {
             return new ConstantValueResolver(model.getStaticField(), field);
         }
 
-        throw new IllegalArgumentException("nop.err.ioc.invalid-prop-value-type:" + value);
+        throw new NopException(ERR_IOC_INVALID_PROP_VALUE_TYPE).source(bean)
+                .param(ARG_BEAN_NAME, bean.getId()).param(ARG_PROP_NAME, propName).param(ARG_VALUE, value);
     }
 
     public static IFieldModel resolveStaticField(IClassLoader classLoader, BeanDefinition bean,

@@ -41,6 +41,8 @@ if (conditionModel.getUnlessProperty() != null) {
 - **建议**: 改为 `BeanUnlessPropertyCondition unlessProperty = conditionModel.getUnlessProperty();` 并用其字段求值；补一个 only-unless 与 if+unless 的单测。
 - **误报排除**: 已核对 `_BeanConditionModel` 生成代码：`getIfProperty()`/`getUnlessProperty()` 是两个独立字段，分别由 `<if-property>`/`<unless-property>` 元素填充，不存在共享实现的可能；仓库内当前无 beans.xml 使用 unless-property（无内置触发方），但该元素是 beans.xdef 公开 schema 能力。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 已修复。`checkPropertyAndBeanCondition` 的 unless 分支改用 `getUnlessProperty()` 按自身字段求值（`BeanUnlessPropertyCondition` 与 if 模型同构，均含 name/value/enableIfMissing/enableIfDebug）。回归测试 `TestBeanConditionUnlessProperty`（nop-ioc，5 用例：仅 unless 未命中启用 / 命中禁用 / if+unless 独立求值×2 / if 未命中禁用）；红验证：修复前 5 用例全挂，仅配置 unless-property 时 NPE（`BeanConditionEvaluator.java:248 getIfProperty()` 为 null）与 if+unless 组合下 unless 重复求值 if 条件的失败形态均与审计证据一致。
+
 ### [P1] 通配 pattern 的配置变更订阅永远不触发（注册到错误的 map）
 
 - **文件**: `nop-core-framework/nop-config/src/main/java/io/nop/config/impl/ChangeSubscriptions.java:46-50`
@@ -57,6 +59,8 @@ private Runnable subscribePattern(String pattern, IConfigChangeListener listener
 - **风险**: `IConfigProvider.subscribeChange` 的公开契约（`nop-api-core/.../IConfigProvider.java:45` javadoc："最后一个部分可以是\*，表示模糊匹配"）不成立——使用 `a.b.*` 订阅的监听器静默地永远不会被回调（订阅成功、无任何报错），典型难以排查的静默失效。
 - **建议**: `subscribePattern` 改用 `patternSubscriptions.computeIfAbsent(...)`；补一个通配订阅触发的单测。另建议 `trigger()` 对 simple map 中意外出现的 pattern key 无需处理（修复后不会发生）。
 - **误报排除**: 已确认 `trigger()` 全文只有这两处 map 读取；当前仓库主代码无通配 pattern 调用方（潜在型缺陷，不影响存量行为），但契约明确承诺该语义。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 已修复。`subscribePattern` 改为向 `patternSubscriptions` 注册（`trigger()` 的模糊匹配读取源）。回归测试 `TestChangeSubscriptions`（nop-config，4 用例：通配订阅触发+不匹配不触发 / 精确订阅回归 / 退订生效 / 精确+通配共存去重）；红验证：修复前 3 个通配用例挂（`a.b.*` 订阅静默不回调），失败形态与审计"订阅成功、无任何报错、永不触发"一致。
 
 ### [P1] 构造器注入 + 循环依赖时静默创建重复的单例实例（singleton 语义被破坏）
 
@@ -80,6 +84,8 @@ if (scope != null) { scope.add(getId(), producedBeanInstance); }  // 晚于构�
 - **建议**: 引入 "in-creation" 集合（或复用 scope + 状态标记），`newObject` 重入同一 bean 定义时抛 `ERR_IOC_BEAN_DEPENDS_GRAPH_CONTAINS_CYCLE` 类明确异常；至少在构造器参数解析前先注册占位实例或记录创建栈。
 - **误报排除**: 逐步核对了 `getBean0` 的 fast path（scope 命中才走早期返回）、`synchronized(beanDef)` 同线程可重入、`scope.add` 使用覆盖式 `put`，以及默认 allow-cycle=true 下拓扑排序器不抛错；未发现任何其他机制（如 in-creation 标记）会阻断递归 newObject。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 已修复。`BeanDefinition` 新增 `inCreationThread` 标记（生命周期 = `createInstance`，即构造器参数解析窗口；单例路径在 `synchronized(beanDef)` 临界区内标记/清除），`getBean0` 检测到同线程重入创建同一 bean 定义即抛 `ERR_IOC_BEAN_DEPENDS_GRAPH_CONTAINS_CYCLE`（复用既有错误码，补 `beanName` 定位参数；对齐 Spring 的 fail-fast 语义，文档既有 `ioc:ignore-depends` 为逃生口）。属性注入环不受影响（`scope.add` 先于属性赋值，早期暴露机制不变；depends-on 环在 init flush 阶段执行，标记已清除，TestReentrantCircularRepro 仍绿）。回归测试 `TestConstructorCycleDetection`（nop-ioc，2 用例：eager start 抛 / lazy getBean 抛）；红验证：修复前 2 用例均"Expected NopException to be thrown, but nothing was thrown"——启动静默通过且 TestCtorCycleA 构造两次（scope 注册 A1、B 持 A2），与审计推演一致。本修复同时消除 P2-6 死锁的单线程确定性触发路径。
+
 ### [P1] 文件型配置源一次刷新异常即永久停止热刷新（scheduleWithFixedDelay 任务被静默取消）
 
 - **文件**: `nop-core-framework/nop-config/src/main/java/io/nop/config/source/file/AbstractFileConfigSource.java:53-60, 62-84`
@@ -96,6 +102,8 @@ private void refreshConfig() {                 // 无任何 try-catch
 - **风险**: 启用了 `nop.config.key-file.paths` / `nop.config.props-file.paths` 的应用，一次瞬时文件读取/解析错误后配置热更新失效且无任何后续日志（错误处理意图明显是想记录后继续——对比 `JdbcConfigSource.refreshConfig` 内部 catch 并重试的实现，两处行为不一致）。
 - **建议**: `refreshConfig` 内整体 try-catch，记录错误并返回（保留下轮刷新）；或 `loadConfig` 的定时刷新路径不重抛。补 "解析失败后下一轮仍刷新" 的单测。
 - **误报排除**: 已核实 `DefaultScheduledExecutor.scheduleWithFixedDelay`（nop-commons）直接委托 JDK executor，无包装；子类 `loadConfigFromPath` 确实会因 IO/解析抛出（未捕获）。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 已修复。`refreshConfig` 整体 try-catch，瞬时错误仅记录（保留下轮刷新重试机会）；构造期 `loadConfig` 的上抛语义不变（启动期 fail-fast）。顺带修复**超出审计的新发现**：`refreshConfig` 刷新成功后未回写 `this.vars`（对比 `JdbcConfigSource:102` 有回写）——不回写导致 `getConfigValues()` 永远返回构造期快照（变更回调方 `ConfigChangeApplier → applyChange → configProvider.applyChange` 重新拉取时读到旧值，热更新实际不生效），且 `isChanged` 每轮都与初始快照比较，首次变更后每轮都重复触发回调。`refreshConfig` 可见性调整为包私有以支持确定性测试（无数值语义变化）。回归测试 `TestFileConfigSourceRefresh`（nop-config，3 用例：瞬时错误不终止下轮刷新 / 无变化不触发回调 / 快照回写后不重复触发）；红验证：修复前 3 用例全挂（异常上抛 / 快照读旧值 / 重复触发）。
 
 ### [P2] loadPluginFromJar 失败路径泄漏 PluginClassLoader（jar 句柄/metaspace）
 
@@ -119,6 +127,8 @@ try {
 - **建议**: 将 `loadPlugin()`/`getPluginConfig()` 纳入 try，catch 改为 `RuntimeException | Error`，finally 中统一 `safeCloseObject(classLoader)`（成功路径保持现有赋值后再关的语义不变）。
 - **误报排除**: 已核对 `PluginClassLoader extends URLClassLoader`（close 释放 jar 句柄）与 `IoHelper.safeCloseObject` 行为；确认 loadPlugin/getPluginConfig 两行确在 try 之外。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 已修复。`loadPlugin()`/`getPluginConfig()` 纳入 try 块，catch 扩为 `RuntimeException | Error`（plugin 为 null 时跳过 unload/stop），失败路径 finally 统一 `safeCloseObject(classLoader)`；成功路径语义不变（PluginHolder 持有 classLoader 不关闭）。免红测试理由：资源泄漏修复，classLoader 关闭的副作用（jar fd/metaspace 释放）无法从公共 API 确定性观测，且 computeIfAbsent 失败重试语义未变；既有 MockPluginFail 失败路径测试（TestPluginManager）回归绿。
+
 ### [P2] getBean0 的 synchronized(beanDef) 经递归创建形成嵌套锁，多线程懒初始化可死锁
 
 - **文件**: `nop-core-framework/nop-ioc/src/main/java/io/nop/ioc/impl/BeanContainerImpl.java:383-394`
@@ -136,6 +146,8 @@ synchronized (beanDef) { //NOSONAR
 - **风险**: 容器永久挂死（所有等待这两个 bean 的请求阻塞）。条件较苛刻（环 + 构造器边 + 并发懒初始化），但一旦发生是静默死锁而非异常。
 - **建议**: 与 P1-构造器环问题一并处理：检测到重入同一 bean 定义即抛异常，可同时消除该死锁路径；或将每容器的创建锁统一为单一粗粒度锁（仅保护 newObject 的首入检查），代价是并发懒初始化串行化。
 - **误报排除**: 逐路径核对 fast path 条件（`includeCreating && beanScope != null && bean in scope`）——A 在构造器解析阶段不在 scope，B 侧无法走 fast path，必须阻塞拿 A 锁；确认无其他解锁/超时机制。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 裁定暂缓。同线程构造器环已由 P1-3 修复消除（eager 启动/单线程懒初始化下该配置必被显式拒绝）。残余风险仅剩"跨线程并发懒初始化同一构造器环"（T1 持 A 锁等 B、T2 持 B 锁等 A，均在 monitor 入口阻塞，in-creation 检查不可达）。可选修复均属容器创建锁粒度的设计决策：(a) 每容器单一创建锁——消除死锁但使 concurrentStart 并行启动与运行期并发懒初始化串行化（性能回退）；(b) wait-for 图环检测——复杂度高、自身引入新风险。影响面：需构造器环配置缺陷 + 运行期多线程并发首次触发，P1-3 修复后 eager 启动即拦截，窗口收敛至漏网 lazy 环的并发首次触发。决策点：容器创建锁粒度设计（粗粒度锁 vs 环检测），建议随 IoC 容器锁纪律专项一并裁定。
 
 ### [P2] 插件实例 destroy 与 activate/reconcile 的竞态窗口可产生"僵尸"已激活容器（永不停止）
 
@@ -158,6 +170,8 @@ void destroySelf() {
 - **建议**: destroySelf 将 "deactivate + removeInstance" 全程置于 lifecycleLock 内，并在 doActivate 入口检查 `definition.getInstance(instanceKey) == this`（已移除则拒绝激活）；manager 侧将 destroyInstance/createInstance 的实例变更段纳入 reconcileLock。
 - **误报排除**: 核对 `doActivate` 仅以 `state == ACTIVATED` 作幂等闸门，不校验注册表存在性；`reconcile` 的 `activateIfInactive` 遍历 `def.getInstances()` 快照时实例尚在注册表（remove 未发生），激活合法通过——窗口真实存在。属窄窗口竞态，非必现。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 已修复（三层）。(1) `destroySelf` 将 deactivate+removeInstance 全程纳入 `lifecycleLock`（父链清理与 onDestroyed 回调不参与竞态窗口，保持在锁外）；(2) `doActivate` 入口在幂等闸门后校验 `definition.getInstance(instanceKey) == this`，已移除实例拒绝激活——新错误码 `ERR_PLUGIN_INSTANCE_ALREADY_DESTROYED`（首次激活不受影响：createInstance 先 putIfAbsent 注册后 activate）；(3) manager 侧 `createInstance`/`destroyInstance` 实例变更段纳入 `reconcileLock`（与 reloadPlugin/reconcile 互斥，锁序恒为 reconcileLock→lifecycleLock，无反序路径）。回归测试 `TestPluginInstanceDestroyActivateRace`（nop-plugin-manager，3 用例：destroy 后 activate 抛错且不残留 ACTIVATED/scope / 直接 destroy 路径同样拒绝 / 存活实例 deactivate-activate 往返不受影响）；红验证：修复前 2 用例挂（"Expected NopException to be thrown, but nothing was thrown"——已销毁实例激活静默成功成为僵尸容器，与审计窗口推演一致）。
+
 ### [P2] SecurityHelper.toRSAPublicKey 抛 bare RuntimeException，违背平台错误处理两档策略
 
 - **文件**: `nop-core-framework/nop-security/src/main/java/io/nop/security/utils/SecurityHelper.java:70-75`
@@ -177,6 +191,8 @@ private static ... toRSAPublicKey(KeyBean keyBean) {
 - **风险**: 公钥配置错误时调用方收到无错误码、无定位信息的 RuntimeException，破坏统一的异常处理/错误码体系。
 - **建议**: 改为 `throw NopException.adapt(e);`。
 - **误报排除**: grep 确认这是本模块主代码中唯一的 bare `RuntimeException`（另两处 printStackTrace 均在测试代码）。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 已修复。`toRSAPublicKey` 的 catch 改为 `throw NopException.adapt(e)`（与同文件其余 4 个方法一致，底层异常保留为 cause）。回归测试 `TestSecurityHelperRsaKey`（nop-security）；红验证：修复前抛 bare `RuntimeException`（cause=InvalidKeySpecException: RSA keys must be at least 512 bits long），与审计证据一致。
 
 ### [P2] 插件下载 SHA256 校验的完整性声明与实现存在信任模型缺口
 
@@ -198,6 +214,8 @@ if (!StringHelper.isEmpty(expected)) return normalize(expected);
 - **建议**: 至少：文档如实标注缓存校验仅防损坏；提供 "严格模式" 配置——启用后仅信任配置 hash map（或 header 命中时仍与配置 map 比对），`skip-cache-verify` 之外增加 `require-pinned-hash` 类开关。
 - **误报排除**: 已通读全文件确认无其他独立校验来源；`expectedHashes` 注入与大小写归一处理本身正确。此条为安全设计强度问题，非可利用漏洞证明。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 部分修复 + 严格模式裁定暂缓。已修复：类 javadoc 如实标注信任模型——hash 来源（响应 header、`{url}.sha256`）与 jar 同源同信任域，仅防意外损坏，不构成对抗恶意服务端/MITM 的端到端完整性保证（缓存重验的 `.sha256` sidecar 与缓存 jar 同目录同理）；唯一独立信任源为宿主注入的 `expectedHashes`（优先级最低，header 命中时不参与）；HTTP 部署/不可信源场景应固定 expectedHashes 并知悉其不 override 高优先级来源。暂缓部分：`require-pinned-hash` 类严格模式——hash 来源优先级（header → `.sha256` → 配置 map）系 `ai-dev/design/nop-plugin/05-artifact-loading-design.md` §五 W7 修订注解（2026-08-15）的显式裁定，改动需重新裁定安全基线（pinned hash 是否强制覆盖 header、是否新增配置开关扩大产品面）与既有部署兼容性。文档变更免测试。
+
 ### [P3] 多处 public static 非 final 可变字段（含状态常量与单例持有者）
 
 - **文件**: `nop-core-framework/nop-ioc/src/main/java/io/nop/ioc/impl/BeanDefinition.java:75-78`、`ProducedBeanInstance.java:24-27`、`BeanTopologySorter.java:45`、`nop-ioc/.../api/BeanScopeContext.java:19`、`nop-config/.../starter/ConfigStarter.java:77`、`nop-log/.../LoggerConfigurator.java:19` 等
@@ -213,6 +231,8 @@ static ConfigStarter g_instance = new ConfigStarter();
 - **风险**: 常量被外部改写属极低概率；单例字段替换的可见性问题在正常启动序列下被类初始化/CHM 操作掩盖。维护性风险为主。
 - **建议**: `STATUS_*` 加 final；单例字段尽量 final 或加 volatile + 文档说明替换语义。
 - **误报排除**: grep 全模块仅命中上述各处，`_gen` 生成代码中的实例字段不计。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 已修复（其中一处复查为非问题）。`BeanDefinition.STATUS_*`×3 加 final；`BeanTopologySorter.INSTANCE` 加 final；`BeanScopeContext._instance`、`ConfigStarter.g_instance`、`LoggerConfigurator.s_instance` 加 volatile（`registerInstance` 替换语义保留，补 happens-before 保证，审计文件路径为 nop-log/nop-log-core/.../LoggerConfigurator）。复查非问题：`ProducedBeanInstance.STATUS_*`（审计所引 24-27 行）live code 已是 `public static final`（历史修复或行号漂移），无需改动。免测试理由：常量化与单例字段可见性加固，无数值行为语义；nop-ioc 62 / nop-config 30 全量测试绿。
 
 ### [P3] BeanContainerImpl.classIntrospection 懒初始化无同步且非 volatile
 
@@ -231,6 +251,8 @@ public IBeanClassIntrospection getClassIntrospection() {
 - **风险**: 轻微——多余对象创建 + 理论可见性问题；无状态错误。
 - **建议**: 构造时初始化或改为 volatile + 本地变量模式。
 - **误报排除**: `BeanContainerBuilder.build` 会主动 setClassIntrospection，主容器路径不触发；仅 `buildNewInstance` 派生容器未设置时才走懒初始化，确认可触达但后果轻。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 已修复。`classIntrospection` 加 volatile，懒初始化改本地变量模式（避免并发首次调用重复发布/相互覆盖）。免测试理由：并发懒初始化的可见性加固，无确定性数值行为语义可断言；`BeanContainerBuilder.build` 主动设置的主路径行为不变（全量测试绿）。
 
 ### [P3] BeanScopeImpl.close() 与并发 add() 的 check-then-act 竞态：close 抛 bare IllegalStateException 且泄漏 bean
 
@@ -254,6 +276,8 @@ public void close() {
 - **建议**: close 改为 `beans` 快照循环 + 容忍后续 put（或 add 失败时回滚 put）；终态校验失败时抛 NopException 带上下文。
 - **误报排除**: 确认 getBean0 的 add 路径只持 `synchronized(beanDef)`，与 close 无互斥；checkClosed 与 put 非原子。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 已修复。`add()` 的 checkClosed+put 与 `close()` 的 closed 置位互斥（`synchronized(beans)` 短临界区，仅做检查与登记，销毁回调仍在锁外执行——维持"持锁不回调用户代码"纪律）；close 终态校验由裸 `Guard.checkState`（IllegalStateException）改为 NopException。免红测试理由：确定性复现需精确制造"add 通过 checkClosed 后、put 前 close 完成遍历"的线程 interleaving，无法在不注入测试钩子的前提下稳定构造；核心行为（close 后 add 抛 ERR_IOC_BEAN_SCOPE_ALREADY_CLOSED、close 销毁全部 bean）由既有用例覆盖（nop-ioc 全量 62 tests 绿）。
+
 ### [P3] VfsPluginDefinition.state 非 volatile（跨线程生命周期状态可见性）
 
 - **文件**: `nop-core-framework/nop-plugin/nop-plugin-manager/src/main/java/io/nop/plugin/manager/impl/VfsPluginDefinition.java:78`
@@ -267,6 +291,8 @@ private PluginState state = PluginState.UNLOADED;   // 非 volatile；load/unloa
 - **建议**: 加 volatile（同类字段 `lastModified`/`definitionConfig` 已是 volatile，风格也不一致）。
 - **误报排除**: 确认同类字段已 volatile 而此字段遗漏，属一致性疏漏。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 已修复。`VfsPluginDefinition.state` 加 volatile（与同类 `lastModified`/`definitionConfig` 既有 volatile 风格一致）。免测试理由：内存可见性加固，无数值行为语义；并发路径（reconcile/checkChangedAndReload）由 TestCoeffectReconcile/TestChangeDetection 回归绿覆盖。
+
 ### [P3] BeanDefinitionBuilder 对未知属性值类型抛裸 IllegalArgumentException + 拼接式伪错误码
 
 - **文件**: `nop-core-framework/nop-ioc/src/main/java/io/nop/ioc/loader/BeanDefinitionBuilder.java:822`
@@ -279,6 +305,8 @@ throw new IllegalArgumentException("nop.err.ioc.invalid-prop-value-type:" + valu
 - **风险**: 当前所有 IBeanPropValue 类型都有分支，属内部不变量兜底，正常配置不可达；一旦新增类型漏改，异常信息不符合平台规范且无定位。
 - **建议**: 定义 `ERR_IOC_INVALID_PROP_VALUE_TYPE` 错误码，抛 NopException 带 bean/propName 参数。
 - **误报排除**: 已核对 buildResolver 的 instanceof 分支覆盖全部 model 类型，确认仅兜底可达。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 已修复。新增错误码 `ERR_IOC_INVALID_PROP_VALUE_TYPE`（IocErrors，i18n zh-CN/en 已按错误码字符串序同步到 nop-cli-errors.i18n.yaml），抛 NopException 带 beanName/propName/value 参数。免红测试理由：buildResolver 的 instanceof 分支覆盖全部 IBeanPropValue 模型类型，该路径为内部不变量兜底，正常配置不可达（与审计"误报排除"判断一致），无法从 beans.xml 构造触发。
 
 ### [P3] 条件求值定点迭代上限 5 轮，超深 on-bean/missing-bean 链静默禁用 bean
 
@@ -302,6 +330,8 @@ if (!candidateBeans.isEmpty()) {
 - **风险**: 深链条件（少见但合法）下 bean 被静默禁用，仅能靠日志发现；warn 与异常策略不一致（alias 解析失败会抛 ERR_IOC_UNRESOLVED_ALIAS）。
 - **建议**: 迭代上限提高到定义数，或超限时抛明确异常；至少 warn 中给出链路信息便于诊断。
 - **误报排除**: 常规 ≤5 轮链路可正常收敛（每轮 processCandidates 至少消解一个 candidate 或终止），仅深链受影响，故 P3。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 裁定暂缓。5 轮定点迭代上限超限时强制 `setDisabled(true)`+warn 是当前明确语义；提高上限至定义数、或超限抛异常，都会改变深链（>5 轮 on-bean/missing-bean 传播）下 bean 的启停结果——属条件求值语义变更而非缺陷收敛，且每轮 processCandidates 至少消解一个 candidate，上限 5 已覆盖常规链路（常规链路收敛性由既有 TestBeanDepends 系列覆盖）。现有 warn 已含 bean 定位与 on-bean/missing-bean 列表。决策点：迭代上限策略（收敛到不动点 vs 固定上限+显式异常）需结合真实深链场景评估收敛成本后裁定；影响面仅限深链条件配置（少见）。
 
 ## 附：已排查未立项的疑点（误报排除记录）
 

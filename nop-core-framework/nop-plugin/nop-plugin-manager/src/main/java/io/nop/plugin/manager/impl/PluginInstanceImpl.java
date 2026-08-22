@@ -41,6 +41,7 @@ import static io.nop.plugin.manager.PluginManagerErrors.ARG_INSTANCE_KEYS;
 import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_ACTIVATION_FAILED;
 import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_ACTIVE_CHILDREN_EXIST;
 import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_ACTIVATOR_NOT_FOUND;
+import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_INSTANCE_ALREADY_DESTROYED;
 import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_INVALID_ACTIVATOR;
 import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_PARENT_NOT_ACTIVATED;
 import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_SERVICE_PROXY_ONLY_INTERFACE;
@@ -306,17 +307,24 @@ public class PluginInstanceImpl implements IPluginInstance {
      * 直接 {@link #destroy()} 的级联路径内部亦收敛到此。
      */
     void destroySelf() {
-        try {
-            doDeactivate();
-        } finally {
-            definition.removeInstance(instanceKey);
-            if (parent instanceof PluginInstanceImpl) {
-                ((PluginInstanceImpl) parent).unregisterChild(this);
+        // deactivate 与 removeInstance 全程持 lifecycleLock：与 doActivate 入口的注册表
+        // 存在性检查互斥。否则 deactivate 释放锁后、removeInstance 前的窗口内并发
+        // activate() 会重新激活实例，随后 remove 使其脱离注册表——容器已启动、effect
+        // 已注册但无人再停止（"僵尸"已激活容器）。父链清理与 onDestroyed 回调不参与
+        // 该窗口，保持在锁外执行
+        synchronized (lifecycleLock) {
+            try {
+                doDeactivate();
+            } finally {
+                definition.removeInstance(instanceKey);
             }
-            Runnable callback = onDestroyed;
-            if (callback != null) {
-                callback.run();
-            }
+        }
+        if (parent instanceof PluginInstanceImpl) {
+            ((PluginInstanceImpl) parent).unregisterChild(this);
+        }
+        Runnable callback = onDestroyed;
+        if (callback != null) {
+            callback.run();
         }
     }
 
@@ -433,6 +441,14 @@ public class PluginInstanceImpl implements IPluginInstance {
             if (state == InstanceState.ACTIVATED) {
                 // in-flight 单飞：并发重复 activate 幂等，不重跑 activator
                 return;
+            }
+            // 注册表存在性检查：已从定义 registry 移除（destroySelf 完成或进行中）的实例
+            // 拒绝激活——重新激活的实例无人再停止（注册表已丢失引用），必须显式失败。
+            // 首次激活不受影响：createInstance 先 putIfAbsent 注册、后 activate
+            if (definition.getInstance(instanceKey) != this) {
+                throw new NopException(ERR_PLUGIN_INSTANCE_ALREADY_DESTROYED)
+                        .param(ARG_PLUGIN_ID, getPluginId())
+                        .param(ARG_INSTANCE_KEY, instanceKey);
             }
             try {
                 activateInternal();

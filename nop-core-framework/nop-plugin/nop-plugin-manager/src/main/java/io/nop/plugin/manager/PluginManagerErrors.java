@@ -69,6 +69,14 @@ public interface PluginManagerErrors {
                     io.nop.plugin.api.PluginApiErrors.ARG_PLUGIN_ID, ARG_INSTANCE_KEY);
 
     /**
+     * 实例已销毁（已从定义 registry 移除），拒绝激活：防止销毁窗口内并发 activate
+     * 产生脱离注册表的"僵尸"已激活容器（无人再停止、effect/订阅泄漏）。
+     */
+    ErrorCode ERR_PLUGIN_INSTANCE_ALREADY_DESTROYED =
+            define("nop.err.plugin.instance-already-destroyed", "插件实例已销毁，禁止激活:{pluginId},{instanceKey}",
+                    io.nop.plugin.api.PluginApiErrors.ARG_PLUGIN_ID, ARG_INSTANCE_KEY);
+
+    /**
      * unload 守卫：定义仍有实例时禁止 unload（须先 destroy 全部实例）。
      */
     ErrorCode ERR_PLUGIN_INSTANCES_NOT_EMPTY =

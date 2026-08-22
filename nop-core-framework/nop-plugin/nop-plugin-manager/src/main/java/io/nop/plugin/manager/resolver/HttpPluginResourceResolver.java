@@ -38,9 +38,15 @@ import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_INVALID_PARAM
 import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_SHA256_MISMATCH;
 
 /**
- * 通过REST请求下载文件到本地缓存目录。下载文件的完整性有SHA256校验码保证（W7 补齐）：
+ * 通过REST请求下载文件到本地缓存目录。下载文件附带SHA256校验（W7 补齐）：
  * 下载后 move 前校验，失败 fail-fast（删临时文件 + 抛异常，绝不使用未通过校验的 jar）；
- * 缓存命中重验 `.sha256` 比对（可配置跳过）；无 hash 来源显式失败（不静默降级为无校验下载）。
+ * 缓存命中重验 {@code .sha256} 比对（可配置跳过）；无 hash 来源显式失败（不静默降级为无校验下载）。
+ *
+ * <p><b>信任模型（如实声明）</b>：校验的 hash 来源（响应 header、{@code {url}.sha256}）与 jar
+ * 同源同信任域，只能防<b>意外损坏</b>，不构成对抗恶意服务端/MITM 的端到端完整性保证（缓存重验
+ * 的 {@code .sha256} sidecar 与缓存 jar 同目录，同理）。唯一独立信任源是宿主应用注入的
+ * {@code expectedHashes} 配置 map（优先级最低：header/{url}.sha256 命中时不参与比对）。
+ * HTTP（非 HTTPS）部署或不可信源场景应同时固定 expectedHashes 并理解其不 override 高优先级来源。</p>
  */
 public class HttpPluginResourceResolver implements IPluginResourceResolver {
     static final Logger LOG = LoggerFactory.getLogger(HttpPluginResourceResolver.class);

@@ -16,7 +16,7 @@ import io.nop.xlang.api.XLang;
 import java.util.function.Supplier;
 
 public class BeanScopeContext {
-    static IBeanScopeContext _instance = new BeanScopeContextImpl();
+    static volatile IBeanScopeContext _instance = new BeanScopeContextImpl();
 
     public static IBeanScopeContext instance() {
         return _instance;

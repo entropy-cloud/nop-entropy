@@ -50,12 +50,22 @@ public abstract class AbstractFileConfigSource implements IConfigSource {
         this.vars = loadConfig();
     }
 
-    private void refreshConfig() {
-        Map<String, ValueWithLocation> vars = loadConfig();
-        if (ConfigSourceHelper.isChanged(this.vars, vars)) {
-            for (Runnable task : tasks) {
-                task.run();
+    void refreshConfig() {
+        try {
+            Map<String, ValueWithLocation> vars = loadConfig();
+            if (ConfigSourceHelper.isChanged(this.vars, vars)) {
+                // 回写最新快照：变更回调（ConfigChangeApplier）会重新拉取 getConfigValues()，
+                // 不回写会导致回调读到旧值、且 isChanged 永远与初始快照比较（对齐 JdbcConfigSource）
+                this.vars = vars;
+                for (Runnable task : tasks) {
+                    task.run();
+                }
             }
+        } catch (Exception e) {
+            // scheduleWithFixedDelay 任务一次未捕获异常会永久取消后续执行。
+            // 刷新时的瞬时错误（文件写一半/IO 失败）只记录，保留下一轮刷新重试的机会；
+            // 构造期 loadConfig 的失败语义不变（仍然上抛，启动期 fail-fast）
+            LOG.error("nop.config.refresh-file-source-fail:paths={}", paths, e);
         }
     }
 

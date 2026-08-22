@@ -350,7 +350,6 @@ nop.err.core.loop.var-not-defined: 循环变量[{varName}]没有在NestedLoop中
 nop.err.core.no-api-service-context: 缺少没有Api服务上下文
 nop.err.core.no-tenant-id: 上下文环境没有设置租户id
 nop.err.core.query.invalid-order-by-sql: 排序语句格式不正确
-nop.err.core.reflect.aop-init-method-model-fail: AOP代理类[{className}]初始化函数模型失败
 nop.err.core.reflect.bean-class-is-abstract-or-interface: '{className}类是抽象类或者接口，不允许创建实例'
 nop.err.core.reflect.bean-class-no-factory-method: '{className}类没有定义工厂方法，也不是枚举类'
 nop.err.core.reflect.bean-no-class-for-type: '{typeValue}没有对应的实现类'
@@ -397,7 +396,6 @@ nop.err.core.resource.get-input-stream-fail: 打开资源文件[{resource}]的�
 nop.err.core.resource.get-output-stream-fail: 打开资源文件[{resource}]的输出流失败
 nop.err.core.resource.in-memory-store-not-allow-save: 内存文件存储不支持保存操作
 nop.err.core.resource.invalid-delta-id: 路径[{resourcePath}]的deltaLayerId与系统当前配置不符
-nop.err.core.resource.invalid-file-name: 非法的文件名，不允许包含..等相对路径形式:{fileName}
 nop.err.core.resource.invalid-file-path-pattern: 文件路径匹配模式中只允许*和文件名，不支持其他符号
 nop.err.core.resource.invalid-module-id: 模块ID必须是A/B这种格式，而现在是：{moduleId}
 nop.err.core.resource.invalid-module-name: 模块名必须是A-B这种格式，而现在是:{moduleName}
@@ -410,7 +408,6 @@ nop.err.core.resource.is-readonly-file: 只读文件不支持写操作
 nop.err.core.resource.module-path-resolve-to-multi-file: 虚拟文件路径[{stdPath}]对应到多个模块文件:{path},{otherPath}
 nop.err.core.resource.no-current-path: 上下文环境中没有设置currentPath
 nop.err.core.resource.no-length: 文件没有长度属性:{resource}
-nop.err.core.resource.not-allow-parent-path: 不允许通过相对路径[{resourcePath}]访问父目录
 nop.err.core.resource.not-allow-path: 不允许访问资源路径[{resourcePath}]
 nop.err.core.resource.not-contains-file-range: 文件[{resource}]长度为{length}, 无法定位文件区间：[{range}]
 nop.err.core.resource.not-dir: 资源对象[{resource}]对应的不是目录
@@ -420,7 +417,6 @@ nop.err.core.resource.now-allow-access-internal-path: 不允许直接访问内�
 nop.err.core.resource.open-input-stream-fail: 打开文件输入流失败：{resource}
 nop.err.core.resource.open-output-stream-fail: 打开文件输出流失败：{resource}
 nop.err.core.resource.path-not-in-namespace: 资源路径[{resourcePath}]不属于名字空间[{namespace}]
-nop.err.core.resource.read-bytes-too-large: 资源文件[{resource}]长度为{length}，超过int范围，无法一次性读入内存
 nop.err.core.resource.read-csv-row-fail: 读取CSV文件[{resourcePath}]的第{readCount}行时失败
 nop.err.core.resource.read-jsonl-row-fail: 读取JSONL文件[{resourcePath}]的第{readCount}行时失败
 nop.err.core.resource.save-from-stream-fail: 保存数据流到资源文件[{resourcePath}]失败
@@ -438,9 +434,6 @@ nop.err.core.resource.write-to-stream-fail: 保存资源文件[{src}]到数据�
 nop.err.core.resource.zip.unzip-to-dir-fail: 解压缩到目录[{dir}]失败
 nop.err.core.rpc.prev-call-not-completed: 此前发起的RPC调用尚未完成，无法再发起新的调用
 nop.err.core.selection.invalid-arg-name: 参数名[{name}]不合法，它必须满足Java语法规范且不能以$为前缀
-nop.err.core.sql.like-invalid-escape-char: LIKE/SIMILAR匹配中的转义字符必须是单个字符:{escapeChar}
-nop.err.core.sql.like-invalid-escape-sequence: LIKE/SIMILAR匹配中的转义序列不合法:{pattern}，位置:{pos}
-nop.err.core.sql.similar-invalid-regex: SIMILAR匹配模式不是合法的正则表达式:{pattern}
 nop.err.core.sql.sql-filter-invalid-field-name: SQL字段名不合法:{name}
 nop.err.core.sql.sql-param-count-mismatch: SQL参数个数不匹配
 nop.err.core.table.invalid-cell-position: 单元格位置表达式不合法:rowIndex={rowIndex},colIndex={colIndex}
@@ -522,7 +515,6 @@ nop.err.dao.func-too-few-args: 函数[{funcName}]的参数个数少于最小值{
 nop.err.dao.func-too-many-args: 函数[{funcName}]的参数个数超过最大值{maxArgCount}
 nop.err.dao.invalid-snowflake-timestamp: 非法的时间戳，系统时钟不允许回拨；ts={ts},lastTs={lastTs}
 nop.err.dao.invalid-sql-data-type: 非法的SQL数据类型：{sqlDataType}
-nop.err.dao.missing-driver-class-name: SimpleDataSource必须配置driverClassName
 nop.err.dao.missing-entity-with-props: 类型为[{entityName}]的记录不存在
 nop.err.dao.no-data-source-available: 没有可用的数据库连接池
 nop.err.dao.no-dialect-for-datasource: 没有适用于数据库[{productName}]的Dialect
@@ -568,10 +560,7 @@ nop.err.eql.field-not-prop: 字段不是实体上的属性:{fieldName}
 nop.err.eql.func-only-allow-in-window-expr: 函数[{funcName}]只允许在窗口表达式中使用
 nop.err.eql.func-too-few-args: 函数[{funcName}]的参数个数不足
 nop.err.eql.func-too-many-args: 函数[{funcName}]的参数个数过多
-nop.err.eql.invalid-bit-literal: 非法的二进制字面量:{value}
-nop.err.eql.invalid-collection-operator-path: 集合操作符路径不合法:{propPath}
 nop.err.eql.invalid-datetime-type: 时间日期类型只能是t,s,或者ts
-nop.err.eql.invalid-hex-literal: 非法的十六进制字面量:{value}
 nop.err.eql.invalid-interval-unit: 时间区间类型只能是MICROSECOND/SECOND/MINUTE/HOUR/DAY/WEEK/MONTH/QUARTER/YEAR
 nop.err.eql.invalid-sql-type: 未定义的SQL数据类型[{sqlType}]。只允许StdSqlType中定义的常量:{allowedNames}
 nop.err.eql.join-no-condition: 表关联没有指定连接条件
@@ -811,7 +800,6 @@ nop.err.markdown.missing-section: 'Markdown文本中缺少要求的段落: {titl
 nop.err.markdown.no-section: Markdown文本为空
 nop.err.markdown.not-all-child-ordered: 不是所有子节点都是有序节点
 nop.err.markdown.not-all-child-section-ordered: 不是所有子项目都是有序节点
-nop.err.markdown.pos-list-size-not-match: 位置区间列表与替换值列表的个数不匹配: expected={expectedCount},actual={actualCount}
 nop.err.markdown.section-not-defined-in-tpl: 'Markdown文本中定义的段落在模板中未定义: {title}'
 nop.err.match.assert-op-match-fail: 匹配[{jsonPath}]处的值[{value}]不满足匹配条件:filterOp={filterOp}
 nop.err.match.between-check-fail: '[{jsonPath}]对应的值[{value}]不在有效的区间范围内：filterOp={filterOp},min={min},max={max}'
@@ -854,7 +842,6 @@ nop.err.orm.dao.query-example-prop-not-inited: 没有设置查询条件，不允
 nop.err.orm.dao.update-entity-no-current-session: 更新实体时上下文环境必须存在已经打开的OrmSession
 nop.err.orm.dao.update-entity-not-managed: 只有从数据库中成功加载的对象才能调用更新操作。新建的实体只能调用save或者saveOrUpdate，不能调用update。
 nop.err.orm.dim-fields-mismatch: '{sourceName}和{subSourceName}的维度字段的个数不匹配'
-nop.err.orm.dirty-entity-set-not-allow-change-tenant: 集合[{collectionName}]中存在未提交的修改，不允许切换到其他租户访问：oldTenant={tenantId},currentTenant={currentTenant}
 nop.err.orm.duplicate-short-entity-name: 实体名[{entityName}]和实体名[{otherEntityName}]的短名字重复
 nop.err.orm.entity-already-exists: 实体对象[{entityName}:{entityId}]已存在，不允许插入重复的记录
 nop.err.orm.entity-id-not-set: 实体的主键字段[{propName}]没有被设置，而且主键字段上没有seq标签，无法自动生成
@@ -910,7 +897,6 @@ nop.err.orm.model.invalid-prop-id: 对象模型[{entityName}]的列[{propName}]�
 nop.err.orm.model.invalid-prop-name: 实体[{entityName}]的属性名称[{propName}]格式不正确
 nop.err.orm.model.invalid-sql-type: SQL数据类型格式不正确
 nop.err.orm.model.join-column-count-less-than-pk-column-count: 实体[{entityName}]的关联引用属性[{propName}]的关联条件个数小于关联实体主键字段的个数，只支持主外键关联
-nop.err.orm.model.join-columns-not-match-pk: 实体[{entityName}]的关联引用属性[{propName}]的关联条件没有与关联实体[{refEntityName}]的主键字段[{colName}]一一对应，只支持主外键关联
 nop.err.orm.model.multiple-label-prop: 实体[{entityName}]上存在多个字段被标记为文本名称字段:{propName},{otherPropName}
 nop.err.orm.model.multiple-state-prop: 实体[{entityName}]上存在多个字段被标记为状态字段:{propName},{otherPropName}
 nop.err.orm.model.multiple-version-prop: 实体[{entityName}]上存在多个字段被标记为乐观锁字段:{propName},{otherPropName}
@@ -992,13 +978,11 @@ nop.err.record.md-list-item-not-simple-value: 列表条目不是简单类型
 nop.err.record.md-missing-field-not-optional: 缺少字段[{fieldName}]
 nop.err.record.md-section-content-not-table: Markdown段落内容必须是表格:{content}
 nop.err.record.md-section-not-allow-sub-section: Markdown段落不支持子段落
-nop.err.record.md-table-field-no-item-mapping: Markdown表格字段[{fieldName}]未配置条目映射(itemMapping)
 nop.err.record.no-enough-data: 缺少数据，无法读取
 nop.err.record.no-enough-items: 仅读取[{readCount}]条数据，预计[{totalCount}]条
 nop.err.record.no-match-for-case-value: 字段[{fieldName}]的条件类型没有找到匹配类型:{caseValue}
 nop.err.record.no-switch-on-field: 条件类型无法确定类型值:{fieldName}
 nop.err.record.not-enough-of-line: 不是换行符
-nop.err.record.null-mapping-name: Markdown DSL加载器要求在attributes中配置mappingName，当前为空。模型类型:{modelType}
 nop.err.record.pos-not-in-cache: 位置{pos}不在缓存中
 nop.err.record.readwhen-not-supported-at-top-level: body 顶级类型不支持 readWhen 属性:{typeName}
 nop.err.record.terminator-not-found: 数据结束，未找到终止符:{term}

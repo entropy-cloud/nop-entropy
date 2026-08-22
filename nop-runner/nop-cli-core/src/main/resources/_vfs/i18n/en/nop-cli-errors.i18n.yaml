@@ -687,6 +687,7 @@ nop.err.ioc.factory-bean-must-be-used-with-factory-method: "The factory-bean att
 nop.err.ioc.interceptor-bean-no-pointcut: "Bean [{interceptorName}] has no pointcut configured and cannot be used as an interceptor"
 nop.err.ioc.invalid-bind-expr: "Undefined expression type: {expr}"
 nop.err.ioc.invalid-constructor-arg-index: "Incorrect constructor argument order"
+nop.err.ioc.invalid-prop-value-type: "Unsupported value type [{value}] for bean property [{propName}] of bean [{beanName}]"
 nop.err.ioc.invalid-static-field: "Invalid static field format: {staticField}"
 nop.err.ioc.load-aop-class-fail: "Failed to load proxy class [{className}]"
 nop.err.ioc.load-class-fail-for-bean: "Failed to load class [{className}] required for bean [{beanName}] initialization"

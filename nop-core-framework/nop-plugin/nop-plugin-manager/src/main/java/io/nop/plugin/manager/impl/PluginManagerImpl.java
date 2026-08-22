@@ -212,25 +212,30 @@ public class PluginManagerImpl implements IPluginManager, IPluginContext {
                     .param(ARG_PLUGIN_ID, pluginId)
                     .param(ARG_INSTANCE_KEY, instanceKey);
         }
-        IPluginInstance instance = ((VfsPluginDefinition) plugin).createInstance(instanceKey, config, parent);
-        if (instance == null) {
-            // 门控 null（W5 语义 no-op）：无状态变化，不触发 reconcile——
-            // 否则 pending 重试路径（reconcile → retryPendingRebuilds → createInstance → reconcile）
-            // 会形成无限循环（每次重试都置 dirty）
-            return null;
-        }
-        if (instance instanceof PluginInstanceImpl) {
-            // W6 父子登记（manager 级全局映射 + 实例级 children 已在构造时登记）：
-            // onDestroyed 回调保证直接 instance.destroy() 也同步清理全局映射
-            PluginInstanceImpl impl = (PluginInstanceImpl) instance;
-            impl.setOnDestroyed(() -> unregisterParentChild(instance));
-            if (parent != null) {
-                parentToChildren.computeIfAbsent(parent, k -> ConcurrentHashMap.newKeySet()).add(instance);
+        // 实例变更段与 reconcile/reloadPlugin 互斥（reconcileLock）：防止 destroy 收集闭包后
+        // 并发 create 的新实例逃过 reloadPlugin 的快照销毁（或反过来）。锁序恒为
+        // reconcileLock → lifecycleLock，无反序路径
+        synchronized (reconcileLock) {
+            IPluginInstance instance = ((VfsPluginDefinition) plugin).createInstance(instanceKey, config, parent);
+            if (instance == null) {
+                // 门控 null（W5 语义 no-op）：无状态变化，不触发 reconcile——
+                // 否则 pending 重试路径（reconcile → retryPendingRebuilds → createInstance → reconcile）
+                // 会形成无限循环（每次重试都置 dirty）
+                return null;
             }
+            if (instance instanceof PluginInstanceImpl) {
+                // W6 父子登记（manager 级全局映射 + 实例级 children 已在构造时登记）：
+                // onDestroyed 回调保证直接 instance.destroy() 也同步清理全局映射
+                PluginInstanceImpl impl = (PluginInstanceImpl) instance;
+                impl.setOnDestroyed(() -> unregisterParentChild(instance));
+                if (parent != null) {
+                    parentToChildren.computeIfAbsent(parent, k -> ConcurrentHashMap.newKeySet()).add(instance);
+                }
+            }
+            // 生命周期操作成功路径：create 后自动 reconcile（级联激活依赖本实例的下游定义实例）
+            reconcile();
+            return instance;
         }
-        // 生命周期操作成功路径：create 后自动 reconcile（级联激活依赖本实例的下游定义实例）
-        reconcile();
-        return instance;
     }
 
     @Override
@@ -245,20 +250,24 @@ public class PluginManagerImpl implements IPluginManager, IPluginContext {
                     .param(ARG_PLUGIN_ID, pluginId)
                     .param(ARG_INSTANCE_KEY, instanceKey);
         }
-        // W6 级联 destroy：沿全局映射递归收集全部后代（含跨定义），先子后父（子容器
-        // parent 链随父销毁而失效，必须子先销毁）。destroySelf 不递归——闭包已含全部后代。
-        List<IPluginInstance> closure = new ArrayList<>();
-        Set<IPluginInstance> visited = new HashSet<>();
-        collectChildrenFirst(instance, closure, visited);
-        for (IPluginInstance inst : closure) {
-            if (inst instanceof PluginInstanceImpl) {
-                ((PluginInstanceImpl) inst).destroySelf();
-            } else {
-                inst.destroy();
+        // 实例变更段与 reconcile/reloadPlugin 互斥（reconcileLock，与 createInstance 对称）：
+        // 防止 reloadPlugin 快照收集后本方法并发销毁/新建实例逃过快照重建
+        synchronized (reconcileLock) {
+            // W6 级联 destroy：沿全局映射递归收集全部后代（含跨定义），先子后父（子容器
+            // parent 链随父销毁而失效，必须子先销毁）。destroySelf 不递归——闭包已含全部后代。
+            List<IPluginInstance> closure = new ArrayList<>();
+            Set<IPluginInstance> visited = new HashSet<>();
+            collectChildrenFirst(instance, closure, visited);
+            for (IPluginInstance inst : closure) {
+                if (inst instanceof PluginInstanceImpl) {
+                    ((PluginInstanceImpl) inst).destroySelf();
+                } else {
+                    inst.destroy();
+                }
             }
+            // 生命周期操作成功路径：destroy 后自动 reconcile（级联去激活依赖本实例的下游定义实例）
+            reconcile();
         }
-        // 生命周期操作成功路径：destroy 后自动 reconcile（级联去激活依赖本实例的下游定义实例）
-        reconcile();
     }
 
     /**
@@ -992,21 +1001,28 @@ public class PluginManagerImpl implements IPluginManager, IPluginContext {
             PluginClassLoader classLoader = new PluginClassLoader(urls.toArray(new URL[0]),
                     this.getClass().getClassLoader());
 
-            IPlugin plugin = classLoader.loadPlugin();
-            Map<String, Object> config = pluginConfigProvider.getPluginConfig(coords);
+            // loadPlugin/getPluginConfig 一并纳入 try：插件类缺失/实例化失败/配置解析失败时
+            // 同样需要关闭 classLoader（jar 句柄 + metaspace）；computeIfAbsent 失败不落 map，
+            // 重试会再建新 classloader，泄漏会累积。Error（如解析插件类的 NoClassDefFoundError）
+            // 也走清理路径
+            IPlugin plugin = null;
             try {
+                plugin = classLoader.loadPlugin();
+                Map<String, Object> config = pluginConfigProvider.getPluginConfig(coords);
                 if (plugin.isStateMachineAware()) {
                     plugin.load(config);
                 } else {
                     plugin.start(coords.getGroupId(), coords.getArtifactId(), coords.getVersion(), config);
                 }
                 return new PluginHolder(plugin, classLoader);
-            } catch (RuntimeException e) {
+            } catch (RuntimeException | Error e) {
                 try {
-                    if (plugin.isStateMachineAware()) {
-                        plugin.unload();
-                    } else {
-                        plugin.stop();
+                    if (plugin != null) {
+                        if (plugin.isStateMachineAware()) {
+                            plugin.unload();
+                        } else {
+                            plugin.stop();
+                        }
                     }
                 } finally {
                     IoHelper.safeCloseObject(classLoader);

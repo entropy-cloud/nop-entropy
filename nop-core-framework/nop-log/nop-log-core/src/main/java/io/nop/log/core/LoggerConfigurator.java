@@ -16,7 +16,7 @@ import static io.nop.log.core.LogErrors.ERR_LOG_CONFIGURATOR_NOT_INITIALIZED;
 
 @GlobalInstance
 public class LoggerConfigurator {
-    static ILoggerConfigurator s_instance;
+    static volatile ILoggerConfigurator s_instance;
 
     static final Logger LOG = LoggerFactory.getLogger(LoggerConfigurator.class);
 
