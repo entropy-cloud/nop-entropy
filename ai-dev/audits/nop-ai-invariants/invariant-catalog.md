@@ -191,7 +191,7 @@
 
 > **`SpawnMemberAgentTaskStep` 登记裁定（plan 2026-08-12-2050-2 / AR-2 / WS4，2026-08-12）**：单播 spawn 节点 step（orchestrator DAG 节点级，`TeamTaskFlowOrchestrator.java:934` 创建）的 timeout 契约**由 spawner 层承载**——`SpawnMemberRequest.memberExecTimeoutMs`（step 构造器自 orchestrator 传入）→ `DefaultMemberSpawner` 有界 `get(memberExecTimeoutMs, TimeUnit)` → 超时 `SPAWN_FAILED` → 节点失败；step 自身无独立异步等待面（其 supplyAsync future 的 settle 由 spawner 同步契约内部的有界 get 决定，fixture B `TestSpawnStepTimeoutHonestFailure` 行为级证据：挂起 engine + 真实 spawner → step 在 memberExecTimeoutMs 内失败 + 单线程池 worker 释放断言）→ **登记 not-applicable**（不新增 gate-2 表条目，timeout 契约已由表 15 SPAWN 分支 + spawner 层覆盖；若未来判定标准扩展为「每个 spawn 路径须自有 marker」再补表——裁定记录）。
 
-### 3.3 ToolExecutor 实现表（31 行 = 27 直接具体 + 1 抽象基类 + 3 间接子类）
+### 3.3 ToolExecutor 实现表（32 行 = 28 直接具体 + 1 抽象基类 + 3 间接子类）
 
 > 门禁④对应：known-gaps family `gate-4-tool-boundary`（机制见 §3.5）；I1 首跑 AskOracleExecutor（not-applicable）已登记；UpdateTodosExecutor 表标注已更正为内存/会话面（I4 Phase 6，依 I3 裁决 §4 委托——live 为内存 ConcurrentHashMap 实现，无文件 IO）。
 
@@ -199,7 +199,7 @@
 - **复现命令**：
   ```bash
   grep -rn "implements\s\+IToolExecutor\b" nop-ai --include="*.java" | grep -v target
-  # 输出 28 行（含 1 个 abstract 基类 AbstractMemoryToolExecutor）
+  # 输出 29 行（含 1 个 abstract 基类 AbstractMemoryToolExecutor）
   grep -rln "extends AbstractMemoryToolExecutor" nop-ai --include="*.java" | grep -v target
   # 输出 3 行（ReadMemory/WriteMemory/SearchMemoryExecutor，间接子类）
   ```
@@ -238,8 +238,9 @@
 | 29 | nop-ai-toolkit | `tools/SkillExecutor.java:18` | 直接实现 | 文件/技能加载 |
 | 30 | nop-ai-toolkit | `tools/UpdateTodosExecutor.java:16` | 直接实现 | 内存/会话（I2 委托 I4 更正：表标注文件面 vs live 纯内存 ConcurrentHashMap 实现、无文件 IO，按 live 面更正；gate-4 判定不受影响） |
 | 31 | nop-ai-toolkit | `tools/WriteFileExecutor.java:10` | 直接实现 | 文件 |
+| 32 | nop-ai-agent | `tool/ReadSpillExecutor.java:36` | 直接实现 | 内存/会话（经 session 读 `ISpillStore`，无文件/网络/命令 IO；plan 2252 compaction 新增执行器，2026-08-22 gate-4 表完备性拦截后 Loop Rule 补录） |
 
-> 计数核对：直接实现 grep 输出 28 行 = 27 具体（含 1 抽象基类 AbstractMemoryToolExecutor）+ 8 个 agent tool + 19 个 toolkit tool；间接子类 3 条并入后表共 31 行。I1 门禁④实例判定面 = 27 个直接具体实现 + 3 个间接子类（30 个），抽象基类显式排除（记录于判定标准）。
+> 计数核对：直接实现 grep 输出 29 行 = 28 具体（含 1 抽象基类 AbstractMemoryToolExecutor）+ 9 个 agent tool + 19 个 toolkit tool；间接子类 3 条并入后表共 32 行。门禁④实例判定面 = 28 个直接具体实现 + 3 个间接子类（31 个），抽象基类显式排除（记录于判定标准）。
 
 > **R-4-1 dead-code 记录（I3 裁决 not-applicable-confirmed，2026-08-12）**：`SsrfGuardDnsResolver`（`nop-ai-toolkit/tools/ssrf/SsrfGuardDnsResolver.java:34`，实现 `IDnsResolver`，resolve + resolveCanonicalHostname + fail-closed）**生产未接线**——默认 HTTP client `JdkHttpClient`（nop-http-client-jdk）不消费 `HttpClientConfig.dnsResolver`；消费点仅 `ApacheHttpClientHelper:100-109`（nop-http-client-apache，非任何 nop-ai 模块依赖）。**接线路径说明**：装配至消费 dnsResolver 的 client 实现时启用（Apache 族装配 / JDK 扩展支持点）。**触发条件（watch 复触发）**：若引入消费 dnsResolver 的 HTTP client → 接线 `SsrfGuardDnsResolver`（复触发 I4/I5）。host 级主防线（`SsrfAddressGuard.validateHost`，`HttpRequestExecutor:84` / `GraphqlQueryExecutor:71` 已接线）不受影响。gate-gaps **无变更**（非 ToolExecutor 实例，不在门禁④表）。
 

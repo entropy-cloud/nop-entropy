@@ -2,7 +2,7 @@
 /**
  * Gate ④ (INV-4, plan 2026-08-12-1120-2 Phase 4): ToolExecutor 安全边界声明门禁.
  *
- * 静态扫描 I0 目标集表 §3.3（30 个实例：27 直接具体 + 3 间接子类；抽象基类
+ * 静态扫描 I0 目标集表 §3.3（31 个实例：28 直接具体 + 3 间接子类；抽象基类
  * AbstractMemoryToolExecutor 显式排除），断言每个实现「安全边界声明存在 + 校验调用点出现」
  * （机械可判）。清单外新执行器未登记即 fail（表完备性）。运行时接线验证不属本门禁
  * （归 I2 接线抽查——声明 ≠ 接线，Lesson 08）。
@@ -36,9 +36,9 @@ const FIXTURES = join(import.meta.dirname, 'fixtures', 'gate4');
 
 const ABSTRACT_EXCLUDED = 'io.nop.ai.agent.tool.AbstractMemoryToolExecutor';
 
-/** I0 §3.3 目标集表（30 实例）。markers：任一出现即「声明成立」；memory 面 = 无外部 IO。 */
+/** I0 §3.3 目标集表（31 实例）。markers：任一出现即「声明成立」；memory 面 = 无外部 IO。 */
 const EXECUTORS = [
-    // ---- agent 模块：内存/会话面（8 直接 + 3 间接） ----
+    // ---- agent 模块：内存/会话面（9 直接 + 3 间接） ----
     { fqcn: 'io.nop.ai.agent.tool.CallAgentExecutor', surface: 'memory',
         file: 'nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/tool/CallAgentExecutor.java' },
     { fqcn: 'io.nop.ai.agent.tool.SendMessageExecutor', surface: 'memory',
@@ -55,6 +55,8 @@ const EXECUTORS = [
         file: 'nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/tool/TeamTaskCreateExecutor.java' },
     { fqcn: 'io.nop.ai.agent.tool.TeamTaskUpdateExecutor', surface: 'memory',
         file: 'nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/tool/TeamTaskUpdateExecutor.java' },
+    { fqcn: 'io.nop.ai.agent.tool.ReadSpillExecutor', surface: 'memory',
+        file: 'nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/tool/ReadSpillExecutor.java' },
     { fqcn: 'io.nop.ai.agent.tool.ReadMemoryExecutor', surface: 'memory',
         file: 'nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/tool/ReadMemoryExecutor.java' },
     { fqcn: 'io.nop.ai.agent.tool.WriteMemoryExecutor', surface: 'memory',
