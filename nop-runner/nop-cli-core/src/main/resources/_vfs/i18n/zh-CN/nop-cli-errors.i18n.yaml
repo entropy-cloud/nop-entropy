@@ -1188,6 +1188,7 @@ nop.err.xlang.generated-manifest-invalid-entry: 生成类清单条目非法（re
 nop.err.xlang.global-var-not-allow-change: 全局变量不允许在脚本中通过赋值语句进行修改
 nop.err.xlang.identifier-is-keyword: 标识符名称[{name}]不能是系统保留的关键字
 nop.err.xlang.identifier-not-allow-change: 常量变量[{name}]不允许被修改
+nop.err.xlang.build-composite-type-fail: 创建复合类型失败:{typeName}
 nop.err.xlang.identifier-not-function: 变量{varName}不是函数
 nop.err.xlang.import-multiple-class-conflicts: 导入类[{class1}]和[{class2}]的别名都为{alias}，出现命名冲突
 nop.err.xlang.import-multiple-lib-conflicts: 导入标签[{tag1}]和[{tag2}]时出现命名冲突
@@ -1216,6 +1217,7 @@ nop.err.xlang.type-infer.type-var-conflict: '类型变量[{typeVar}]推导冲突
 nop.err.xlang.type-infer.undefined-variable: '未定义的变量: {name}'
 nop.err.xlang.unresolved-identifier: 未定义的变量:{varName}
 nop.err.xlang.unresolved-implicit-var: 未定义的隐式变量:{varName}
+nop.err.xlang.not-supported-type-node: 暂不支持的复合类型语法:{typeName},节点类型:{className}
 nop.err.xlang.unresolved-type: 未知的类型:{typeName}
 nop.err.xlang.unsupported-op: 不支持的运算符:{op}
 nop.err.xlang.use-var-before-declaration: 在变量定义前使用变量:{varName},定义位置:{declLoc},使用位置:{useLoc}
@@ -1281,6 +1283,7 @@ nop.err.xlang.xdsl.model-no-name-attr: 模型对象没有name属性
 nop.err.xlang.xdsl.multiple-node-has-same-unique-attr-value: 多个节点具有同样的唯一属性值:{attrName}={attrValue}
 nop.err.xlang.xdsl.multiple-node-with-same-tag: 多个节点具有同样的标签名
 nop.err.xlang.xdsl.no-schema: 必须通过x:schema属性来指定元模型
+nop.err.xlang.xdsl.not-support-excel-model-loader: 不支持Excel模型加载，需要引入nop-ooxml-xlsx模块
 nop.err.xlang.xdsl.no-sub-schema-definition: 没有找到针对子类型[{subTypeValue}]的子对象定义
 nop.err.xlang.xdsl.node-content-not-allow-empty: 节点内容不允许为空
 nop.err.xlang.xdsl.node-duplicate-child: 节点的子节点名重复：{tagName}

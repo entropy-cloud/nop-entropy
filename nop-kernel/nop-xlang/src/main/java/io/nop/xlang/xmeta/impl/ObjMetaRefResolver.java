@@ -170,7 +170,7 @@ public class ObjMetaRefResolver {
             }
 
             if (refDef == null)
-                throw new NopException(ERR_XMETA_UNKNOWN_REF).param(ARG_REF_NAME, ref).source(refNode);
+                throw new NopException(ERR_XMETA_UNKNOWN_REF).param(ARG_REF_NAME, ref).source(schema);
             refNode = refDef.getRootSchema();
             Guard.checkState(refNode.isRefResolved(), "refNode must be resolved");
         }

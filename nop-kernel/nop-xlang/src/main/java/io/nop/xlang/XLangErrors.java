@@ -260,6 +260,12 @@ public interface XLangErrors {
 
     ErrorCode ERR_XLANG_UNRESOLVED_TYPE = define("nop.err.xlang.unresolved-type", "未知的类型:{typeName}", ARG_TYPE_NAME);
 
+    ErrorCode ERR_XLANG_NOT_SUPPORTED_TYPE_NODE = define("nop.err.xlang.not-supported-type-node",
+            "暂不支持的复合类型语法:{typeName},节点类型:{className}", ARG_TYPE_NAME, ARG_CLASS_NAME);
+
+    ErrorCode ERR_XLANG_BUILD_COMPOSITE_TYPE_FAIL = define("nop.err.xlang.build-composite-type-fail",
+            "创建复合类型失败:{typeName}", ARG_TYPE_NAME);
+
     ErrorCode ERR_XLANG_IDENTIFIER_NOT_FUNCTION = define("nop.err.xlang.identifier-not-function", "变量{varName}不是函数",
             ARG_VAR_NAME);
 
@@ -811,6 +817,9 @@ public interface XLangErrors {
             "Map节点的子节点名重复：{tagName}", ARG_TAG_NAME);
 
     ErrorCode ERR_XDSL_NO_SCHEMA = define("nop.err.xlang.xdsl.no-schema", "必须通过x:schema属性来指定元模型");
+
+    ErrorCode ERR_XDSL_NOT_SUPPORT_EXCEL_MODEL_LOADER = define("nop.err.xlang.xdsl.not-support-excel-model-loader",
+            "不支持Excel模型加载，需要引入nop-ooxml-xlsx模块");
 
     ErrorCode ERR_XDSL_CONFIG_CHILD_MUST_BE_IMPORT = define("nop.err.xlang.xdsl.config-child-must-be-import",
             "x:config节点的内容必须是c:import标签，不允许其他标签");

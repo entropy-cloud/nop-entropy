@@ -1,5 +1,6 @@
 package io.nop.xlang.expr.simple;
 
+import io.nop.api.core.exceptions.NopEvalException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.text.MutableString;
 import io.nop.commons.text.tokenizer.TextScanner;
@@ -21,6 +22,11 @@ import io.nop.xlang.ast.UnionTypeDef;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static io.nop.xlang.XLangErrors.ARG_CLASS_NAME;
+import static io.nop.xlang.XLangErrors.ARG_TYPE_NAME;
+import static io.nop.xlang.XLangErrors.ERR_XLANG_BUILD_COMPOSITE_TYPE_FAIL;
+import static io.nop.xlang.XLangErrors.ERR_XLANG_NOT_SUPPORTED_TYPE_NODE;
 
 public class TypeDefinitionParser extends SimpleExprParser {
 
@@ -376,8 +382,8 @@ public class TypeDefinitionParser extends SimpleExprParser {
                     ((IntersectionTypeDef) composite).makeTypes().add((NamedTypeNode) right);
                 }
             } else {
-                throw new UnsupportedOperationException(
-                    "Complex " + typeName + " type not fully supported yet: " + right.getClass().getSimpleName());
+                throw new NopEvalException(ERR_XLANG_NOT_SUPPORTED_TYPE_NODE).loc(loc)
+                        .param(ARG_TYPE_NAME, typeName).param(ARG_CLASS_NAME, right.getClass().getSimpleName());
             }
             return composite;
         } else {
@@ -386,7 +392,8 @@ public class TypeDefinitionParser extends SimpleExprParser {
             try {
                 composite = compositeClass.getDeclaredConstructor().newInstance();
             } catch (Exception e) {
-                throw new RuntimeException("Failed to create " + typeName + " type", e);
+                throw new NopEvalException(ERR_XLANG_BUILD_COMPOSITE_TYPE_FAIL, e).loc(loc)
+                        .param(ARG_TYPE_NAME, typeName);
             }
             composite.setLocation(loc);
             List<NamedTypeNode> types = new ArrayList<>();
@@ -400,15 +407,15 @@ public class TypeDefinitionParser extends SimpleExprParser {
                     types.addAll(((IntersectionTypeDef) left).getTypes());
                 }
             } else {
-                throw new UnsupportedOperationException(
-                    "Complex " + typeName + " type not fully supported yet: " + left.getClass().getSimpleName());
+                throw new NopEvalException(ERR_XLANG_NOT_SUPPORTED_TYPE_NODE).loc(loc)
+                        .param(ARG_TYPE_NAME, typeName).param(ARG_CLASS_NAME, left.getClass().getSimpleName());
             }
 
             if (right instanceof NamedTypeNode) {
                 types.add((NamedTypeNode) right);
             } else {
-                throw new UnsupportedOperationException(
-                    "Complex " + typeName + " type not fully supported yet: " + right.getClass().getSimpleName());
+                throw new NopEvalException(ERR_XLANG_NOT_SUPPORTED_TYPE_NODE).loc(loc)
+                        .param(ARG_TYPE_NAME, typeName).param(ARG_CLASS_NAME, right.getClass().getSimpleName());
             }
 
             if (composite instanceof UnionTypeDef) {

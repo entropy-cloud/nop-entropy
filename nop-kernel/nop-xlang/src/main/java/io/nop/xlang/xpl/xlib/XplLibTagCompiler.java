@@ -716,8 +716,9 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
          */
         private final String bindingKey;
         private boolean compiled;
-        private IEvalFunction compiledFn;
-        private RuntimeException compileException;
+        // invoke() 无锁读取编译产物，主流程依赖组件缓存的安全发布；volatile 补齐无发布中介场景的可见性
+        private volatile IEvalFunction compiledFn;
+        private volatile RuntimeException compileException;
 
         public LazyCompiledFunction(XLangCompileTool compileTool, CompiledTag compiledTag, String bindingKey) {
             this.compileTool = compileTool;
@@ -740,20 +741,31 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
             compiled = true;
 
             ResourceDependencySet deps = new VirtualResourceDependencySet(getTag().getTagFuncName());
-            ResourceComponentManager.instance().collectDependsTo(deps, () -> {
-                try {
-                    ArrowFunctionExpression ast = parseSource(compileTool);
-                    compiledFn = compileTool.compileFunction(ast);
-                    applyGeneratedClassBinding();
-                    compiledTag.functionModel.setInvoker(compiledFn);
-                    compiledTag.functionModel.freeze(true);
-                } catch (Exception e) {
-                    compiledTag.deps = deps;
+            try {
+                ResourceComponentManager.instance().collectDependsTo(deps, () -> {
+                    try {
+                        ArrowFunctionExpression ast = parseSource(compileTool);
+                        compiledFn = compileTool.compileFunction(ast);
+                        applyGeneratedClassBinding();
+                        compiledTag.functionModel.setInvoker(compiledFn);
+                        compiledTag.functionModel.freeze(true);
+                    } catch (Exception e) {
+                        compiledTag.deps = deps;
+                        compileException = NopException.adapt(e);
+                        throw compileException;
+                    }
+                    return null;
+                });
+            } catch (Exception e) {
+                // 内层 catch 已设置 compileException 时原样重抛；否则是依赖收集机制自身失败。
+                // 不记录的话 compiled=true 且产物为 null，后续 compile() 静默返回、
+                // invoke() 永远抛 ERR_XPL_TAG_FUNC_IS_COMPILING，进入不可恢复状态
+                if (compileException == null) {
                     compileException = NopException.adapt(e);
                     throw compileException;
                 }
-                return null;
-            });
+                throw e;
+            }
             compiledTag.deps = deps;
         }
 

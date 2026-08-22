@@ -120,10 +120,9 @@ public class XModelInclude {
             if (StringHelper.isValidConfigVar(off)) {
                 if (ConvertHelper.toTruthy(AppConfig.var(off)))
                     return false;
-            }
-
-            if (evaluator.evaluate(onAttr.getLocation(), onAttr.asString()))
+            } else if (evaluator.evaluate(offAttr.getLocation(), offAttr.asString())) {
                 return false;
+            }
         }
 
         return true;

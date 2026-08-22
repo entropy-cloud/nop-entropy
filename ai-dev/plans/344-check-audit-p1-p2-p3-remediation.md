@@ -72,7 +72,7 @@ Exit Criteria:
 
 ### Phase 2 - 内核与核心（kernel-small / nop-commons / nop-core / nop-core-framework / nop-utils / nop-xlang）
 
-Status: in progress
+Status: completed
 Targets: 对应 6 份报告；`nop-kernel`、`nop-core`、`nop-xlang`、`nop-commons`、相关模块代码与测试
 
 - Item Types: `Fix | Decision | Proof`
@@ -82,12 +82,12 @@ Targets: 对应 6 份报告；`nop-kernel`、`nop-core`、`nop-xlang`、`nop-com
 - [x] nop-core.md（P1×3 P2×4 P3×10）— 2026-08-22 完成：17 条全部修复（P1: StringHelper.isCanonicalFilePath 拒绝裸 "."/".." 段根因修复【跨 nop-commons】/loadComponentModelByUrl 按接口文档解析 ?transform&sub 查询参数/resolveResourceInDir 改 isCanonicalFilePath 校验+NopException；P2: unregisterTypeConverter 改操作 registeredConverters+清 converterCache/getDisabled 判空 bootstrapConfig/FileResource.mkdirs 条件纠正/SqlLikeUtils 三异常工厂 NopException 化；P3: reloadObject 对齐 getObject 的 Null 占位语义/initLength HttpURLConnection disconnect+DEBUG 日志/AopCodeGenerator 生成 catch 改抛 NopException fail-fast/DVFS 字段 volatile+destroy 同步/ResourceDependencySet.lastModified volatile/readBytes 超 int 范围拒绝/clearErrorCodeMappings 补 subMappings.clear/DeltaResourceStore 租户无子路径 NopException/ClassModelLoader 记忆化 double-check/resolveRelativeResource NopException 化）；新增 CoreErrors 错误码 7 个（i18n zh-CN/en 按序同步）；nop-core 252 tests 绿 + 回归 nop-commons/nop-xlang/nop-dataset 绿；红验证 17 处失败形态与审计一致（P3-2/4/5 为资源释放/内存可见性加固，免测试并注明理由）
 - [x] nop-core-framework.md（P1×4 P2×5 P3×6）— 2026-08-22 完成：11 修复 + 2 暂缓（P2-6 跨线程构造器环死锁【单线程路径已随 P1-3 消除】/P2-9 require-pinned-hash 严格模式【hash 优先级系设计 05 W7 显式裁定】）+ P3-15 暂缓 + P2-9 javadoc 如实化（部分修复）+ P3-10 部分复查非问题（ProducedBeanInstance.STATUS_* 已 final）。P1: unless-property 读对模型/通配 pattern 订阅注册对 map/构造器环 in-creation 检测抛 ERR_IOC_BEAN_DEPENDS_GRAPH_CONTAINS_CYCLE/文件配置源刷新容错+vars 回写（超审计新发现：不回写致热更新读旧值+重复触发）；P2: loadPluginFromJar classloader 泄漏/插件僵尸容器三层修复（destroySelf 锁内 remove+doActivate 注册表校验 ERR_PLUGIN_INSTANCE_ALREADY_DESTROYED+manager reconcileLock）/SecurityHelper adapt；P3: BeanScopeImpl add/close 互斥+ISE→NopException/BeanDefinitionBuilder 错误码化（ERR_IOC_INVALID_PROP_VALUE_TYPE+i18n 同步）/volatile×5/final×4；新增回归测试 6 个类 18 用例（红验证 16 处失败形态与审计一致，P2-5/P3 免测试已注明理由）；nop-ioc 62/nop-config 30/nop-plugin-manager 166/nop-security 2 tests 绿 + 回归 nop-cli-core i18n 校验/nop-auth-service 393 绿
 - [x] nop-utils.md（P1×7 P2×7 P3×7）— 2026-08-22 完成：21 条全部修复（含超审计新发现 6 处一并修复：GitRepositoryImpl.commit null email 必抛 IAE/RowWiseCollector 对 emptyMap put 崩溃/TableValidatorCompiler condition 包裹节点不解包 unknown-op/Myers change 逆序+hunk 合并重建丢改动/Trie._match 精确子树死路不回退祖先 tillEnd 通配/OsUserHelper.getGroup 读恒空的 error 流），红验证 17 处失败形态与审计一致（image rgb=0,0,0、cat stdin 挂起超时、C:\tools\bin→C:toolsbin、not-a-tree、Index -1 token manager 损坏等）；免红测试 4 条注明理由（Windows 平台路径/headless 环境约束/时序竞态/纯日志顺序调整）；8 子模块 167 tests 绿（router36/match3/diff70/shell18/git6/table-validator13/image1/java-parser20）+ 回归 nop-gateway 68/nop-ai-toolkit 202 绿；报告 21 条全部标注
-- [ ] nop-xlang.md（P1×1 P2×3 P3×10）
+- [x] nop-xlang.md（P1×1 P2×3 P3×10）— 2026-08-22 完成：10 修复（feature:off 误用 onAttr 求值/XDefMergeLoader 重复引用悬空 ref+吞异常补 WARN/XDslExtender yaml null def 抛 ERR_XDSL_NO_SCHEMA/DeltaMerger uniques 死分支删除/LazyCompiledFunction volatile×2+依赖收集异常守卫（缓存异常重抛子项复查非问题：Java 重抛不覆盖构造期堆栈）/TypeDefinitionParser 裸异常转 NopEvalException×2 新错误码/ObjMetaRefResolver source 笔误/validateUnion null 值 NPE/DslModelHelper Excel 裸 IAE 转错误码+warn 带 e/XPathHelper 编译缓存对齐 JPath）+ 2 暂缓（defTypeCache loc 漂移需统一 loc 重绑定设计/唯一键空键语义需契约方向裁定+xdef 契约文档同步）+ 1 不修复（SimpleExprHelper loc=null 属缓存设计取舍，无排障阻塞案例）；559 tests 绿（+1 新增）+ nop-core 回归绿；红验证 6 条（P1 两条分别呈现审计推演的两种错误形态、P2-1 第二次引用得悬空名 MergeRefTarget1、P2-3 NPE 而非 NopException、validateUnion NPE、xpath 无缓存两实例）；附带修复既有 testVirtualNode 环境敏感失败（变量名 test 与 maven -Dtest 系统属性冲突，stash 对照证实与 P1 修复无关）；i18n 聚合同步 3 条新错误码
 
 Exit Criteria:
 
-- [ ] 同 Phase 1 三条
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 同 Phase 1 三条（六报告 103 条全部标注：kernel-small 16/nop-commons 20/nop-core 17/nop-core-framework 15/nop-utils 21/nop-xlang 14，grep 对账 findings=annotated；各模块测试数见上方条目摘要）
+- [x] `ai-dev/logs/` 对应日期条目已更新（六单元各一节，见 08-22.md）
 
 ### Phase 3 - 服务框架与业务骨架（nop-api-core / nop-biz / nop-graphql / nop-auth / nop-sys / nop-job / nop-task / nop-wf）
 

@@ -14,6 +14,7 @@ import io.nop.core.unittest.BaseTestCase;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 public class TestXPath {
     @Test
@@ -30,6 +31,12 @@ public class TestXPath {
         assertEquals("1", ((XNode) node.selectOne(xpath)).attrText("a"));
 
         assertEquals(2, node.selectMany(xpath).size());
+    }
+
+    @Test
+    public void testParseXSelectorCached() {
+        // 与 JPath.compileWithCache 一致：同一 xpath 文本复用编译产物（修复前每次重新解析，实例不同）
+        assertSame(XPathHelper.parseXSelector("/root/child/@a"), XPathHelper.parseXSelector("/root/child/@a"));
     }
 
     @Test

@@ -57,6 +57,7 @@ import static io.nop.xlang.XLangErrors.ARG_TAG_NAME;
 import static io.nop.xlang.XLangErrors.ARG_XDEF_PATH;
 import static io.nop.xlang.XLangErrors.ERR_XDEF_CHILD_NOT_SUPPORT_EXTENDS;
 import static io.nop.xlang.XLangErrors.ERR_XDSL_NODE_UNEXPECTED_TAG_NAME;
+import static io.nop.xlang.XLangErrors.ERR_XDSL_NO_SCHEMA;
 import static io.nop.xlang.XLangErrors.ERR_XDSL_RUN_EXTENDS_RESULT_NOT_NODE;
 import static io.nop.xlang.XLangErrors.ERR_XDSL_SUPER_EXTENDS_INVALID_PATH;
 import static io.nop.xlang.XLangErrors.ERR_XDSL_SUPER_EXTENDS_NO_CURRENT_PATH;
@@ -320,6 +321,8 @@ public class XDslExtender {
     private XDslSource loadSource(IXDefinition def, String path, IEvalScope genScope) {
         XNode node;
         if (path.endsWith(ResourceConstants.FILE_POSTFIX_YAML)) {
+            if (def == null)
+                throw new NopException(ERR_XDSL_NO_SCHEMA).param(ARG_PATH, path);
             IResource resource = VirtualFileSystem.instance().getResource(path);
             Object bean = JsonTool.parseBeanFromResource(resource, JObject.class, true);
             node = DslModelHelper.dslModelToXNode(def.resourcePath(), bean);

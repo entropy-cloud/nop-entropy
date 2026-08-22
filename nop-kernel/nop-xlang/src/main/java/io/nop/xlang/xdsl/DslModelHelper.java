@@ -7,6 +7,7 @@
  */
 package io.nop.xlang.xdsl;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.OrderedComparator;
 import io.nop.commons.functional.Lazy;
@@ -30,6 +31,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.ServiceLoader;
 import java.util.stream.Collectors;
+
+import static io.nop.xlang.XLangErrors.ERR_XDSL_NOT_SUPPORT_EXCEL_MODEL_LOADER;
 
 public class DslModelHelper {
     static final Logger LOG = LoggerFactory.getLogger(DslModelHelper.class);
@@ -124,7 +127,7 @@ public class DslModelHelper {
                 return factories.get(0);
             return null;
         } catch (Exception e) {
-            LOG.warn("nop.xlang.not-support-excel-model-loader:missing-lib={}", "nop-ooxml-xlsx.jar");
+            LOG.warn("nop.xlang.not-support-excel-model-loader:missing-lib={}", "nop-ooxml-xlsx.jar", e);
             return null;
         }
     });
@@ -140,7 +143,7 @@ public class DslModelHelper {
     public static IResourceObjectLoader<Object> newExcelModelLoader(String impModelPath) {
         IExcelModelLoaderFactory factory = g_excelModelLoaderFactory.get();
         if (factory == null)
-            throw new IllegalArgumentException("not support excel model loader");
+            throw new NopException(ERR_XDSL_NOT_SUPPORT_EXCEL_MODEL_LOADER);
         return factory.newExcelModelLoader(impModelPath);
     }
 

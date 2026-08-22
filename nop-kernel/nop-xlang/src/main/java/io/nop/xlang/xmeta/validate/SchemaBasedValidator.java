@@ -99,7 +99,8 @@ public class SchemaBasedValidator {
     protected void validateUnion(IUnionSchema schema, String bizObjName, String propName, Object value,
                                  FieldSelectionBean selection, ValidationContext ctx) {
         String subTypeProp = schema.getSubTypeProp();
-        Object typeValue = BeanTool.instance().getProperty(value, subTypeProp);
+        // 集合元素可能为null，使用静态版getProperty（null安全），null值走子类型属性为空的校验错误
+        Object typeValue = BeanTool.getProperty(value, subTypeProp);
         if (typeValue == null || StringHelper.isEmptyObject(typeValue)) {
             ctx.addError(ERR_SCHEMA_UNION_SUB_TYPE_PROP_IS_EMPTY)
                     .param(ARG_BIZ_OBJ_NAME, bizObjName)
