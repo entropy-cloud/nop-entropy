@@ -100,10 +100,9 @@ public class BaseDataSetMeta implements IDataSetMeta {
     public IDataSetMeta projectWithRename(Map<String, String> new2old) {
         List<BaseDataFieldMeta> newColumns = new ArrayList<>(new2old.size());
         new2old.forEach((newName, oldName) -> {
+            // getFieldIndex 对未知列抛 NopException，此处不会返回 null
             BaseDataFieldMeta field = fieldMetas.get(getFieldIndex(oldName));
-            if (field != null) {
-                newColumns.add(field);
-            }
+            newColumns.add(field.renameTo(newName));
         });
         return new BaseDataSetMeta(newColumns, caseInsensitive, headerMeta, trailerMeta);
     }

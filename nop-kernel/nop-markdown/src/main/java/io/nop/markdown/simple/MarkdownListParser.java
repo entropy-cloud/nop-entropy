@@ -14,8 +14,8 @@ import java.util.function.Consumer;
  * 可通过 supportNested 属性控制是否支持嵌套列表
  */
 public class MarkdownListParser {
-    public static MarkdownListParser NESTED = new MarkdownListParser(true);
-    public static MarkdownListParser FLAT = new MarkdownListParser(false);
+    public static final MarkdownListParser NESTED = new MarkdownListParser(true);
+    public static final MarkdownListParser FLAT = new MarkdownListParser(false);
 
     // Tab的制表位宽度
     private static final int TAB_STOP_WIDTH = 4;

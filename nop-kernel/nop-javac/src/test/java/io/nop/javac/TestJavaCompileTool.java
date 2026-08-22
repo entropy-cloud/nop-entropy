@@ -9,11 +9,16 @@ package io.nop.javac;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.FileHelper;
+import io.nop.javac.jdk.JavaCompileResult;
+import io.nop.javac.jdk.JdkJavaCompiler;
+import org.codehaus.commons.compiler.CompileException;
+import org.codehaus.commons.compiler.Location;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestJavaCompileTool {
@@ -47,5 +52,35 @@ public class TestJavaCompileTool {
     public void defineClass() {
         DynamicURLClassLoader loader = new DynamicURLClassLoader("a", this.getClass().getClassLoader());
 
+    }
+
+    @Test
+    public void testLoadMissingGeneratedClassThrowsCNFE() throws Exception {
+        JdkJavaCompiler compiler = new JdkJavaCompiler();
+        String code = "package demo;\npublic class _GenFoo { public int f() { return 1; } }";
+        JavaCompileResult result = compiler.compile("demo._GenFoo", code, JdkJavaCompiler.getDefaultClassPaths());
+        assertTrue(result.isSuccess());
+
+        // 修复前：ClassLoaderImpl.findClass 未命中返回 null，违反 ClassLoader 契约，
+        // getGeneratedClass 拿到 null 不抛异常（或以 NPE 形态崩溃），丢失"类不存在"语义
+        NopException e = assertThrows(NopException.class, () -> result.getGeneratedClass("demo.NotGenerated"));
+        assertTrue(e.getCause() instanceof ClassNotFoundException, String.valueOf(e.getCause()));
+
+        // 已生成的类正常加载
+        Class<?> clazz = result.getGeneratedClass("demo._GenFoo");
+        assertEquals("demo._GenFoo", clazz.getName());
+    }
+
+    @Test
+    public void testGetErrorDetailShortMessageDoesNotThrow() {
+        // janino 的 getMessage() = locStr + ": " + rawMessage，正常路径剥离 ": " 前缀。
+        // 极短 message（空/单字符）不应触发越界
+        Location loc = new Location("F.java", 3, 5);
+        assertEquals("", JavaCompileTool.instance().getErrorDetail(
+                new CompileException("", loc)));
+        assertEquals("x", JavaCompileTool.instance().getErrorDetail(
+                new CompileException("x", loc)));
+        assertEquals("detail", JavaCompileTool.instance().getErrorDetail(
+                new CompileException("detail", loc)));
     }
 }

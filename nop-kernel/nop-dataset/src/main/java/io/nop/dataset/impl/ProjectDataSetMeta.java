@@ -64,7 +64,13 @@ public class ProjectDataSetMeta implements IDataSetMeta {
 
     @Override
     public boolean hasField(String name) {
-        return source.hasField(name);
+        // 不能直接委托 source.hasField：被投影掉的字段会误判为存在，
+        // 而 getFieldIndex 对这类字段返回 -1，调用方按 hasField/getFieldIndex 组合编程会得到 -1 索引
+        for (String field : fields) {
+            if (isCaseInsensitive() ? field.equalsIgnoreCase(name) : field.equals(name))
+                return true;
+        }
+        return false;
     }
 
     @Override

@@ -804,6 +804,7 @@ nop.err.markdown.missing-section: 'Markdown文本中缺少要求的段落: {titl
 nop.err.markdown.no-section: Markdown文本为空
 nop.err.markdown.not-all-child-ordered: 不是所有子节点都是有序节点
 nop.err.markdown.not-all-child-section-ordered: 不是所有子项目都是有序节点
+nop.err.markdown.pos-list-size-not-match: 位置区间列表与替换值列表的个数不匹配: expected={expectedCount},actual={actualCount}
 nop.err.markdown.section-not-defined-in-tpl: 'Markdown文本中定义的段落在模板中未定义: {title}'
 nop.err.match.assert-op-match-fail: 匹配[{jsonPath}]处的值[{value}]不满足匹配条件:filterOp={filterOp}
 nop.err.match.between-check-fail: '[{jsonPath}]对应的值[{value}]不在有效的区间范围内：filterOp={filterOp},min={min},max={max}'
@@ -984,11 +985,13 @@ nop.err.record.md-list-item-not-simple-value: 列表条目不是简单类型
 nop.err.record.md-missing-field-not-optional: 缺少字段[{fieldName}]
 nop.err.record.md-section-content-not-table: Markdown段落内容必须是表格:{content}
 nop.err.record.md-section-not-allow-sub-section: Markdown段落不支持子段落
+nop.err.record.md-table-field-no-item-mapping: Markdown表格字段[{fieldName}]未配置条目映射(itemMapping)
 nop.err.record.no-enough-data: 缺少数据，无法读取
 nop.err.record.no-enough-items: 仅读取[{readCount}]条数据，预计[{totalCount}]条
 nop.err.record.no-match-for-case-value: 字段[{fieldName}]的条件类型没有找到匹配类型:{caseValue}
 nop.err.record.no-switch-on-field: 条件类型无法确定类型值:{fieldName}
 nop.err.record.not-enough-of-line: 不是换行符
+nop.err.record.null-mapping-name: Markdown DSL加载器要求在attributes中配置mappingName，当前为空。模型类型:{modelType}
 nop.err.record.pos-not-in-cache: 位置{pos}不在缓存中
 nop.err.record.readwhen-not-supported-at-top-level: body 顶级类型不支持 readWhen 属性:{typeName}
 nop.err.record.terminator-not-found: 数据结束，未找到终止符:{term}

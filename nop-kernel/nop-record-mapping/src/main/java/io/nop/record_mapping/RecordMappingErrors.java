@@ -24,6 +24,8 @@ public interface RecordMappingErrors {
 
     String ARG_CONTENT = "content";
 
+    String ARG_MODEL_TYPE = "modelType";
+
     ErrorCode ERR_RECORD_FIELD_VALUE_NOT_IN_DICT = define("nop.err.record.field-value-not-in-dict",
             "字段[{fieldName}]的值不在字典中:{value}", ARG_FIELD_NAME, ARG_VALUE);
 
@@ -67,4 +69,12 @@ public interface RecordMappingErrors {
             define("nop.err.record.invalid-flatten-list-field-name",
                     "非法的列表字段名：{fieldName}。列表字段名格式为[fromName]-[index]-[subFieldName]",
                     ARG_FIELD_NAME);
+
+    ErrorCode ERR_RECORD_MD_TABLE_FIELD_NO_ITEM_MAPPING =
+            define("nop.err.record.md-table-field-no-item-mapping",
+                    "Markdown表格字段[{fieldName}]未配置条目映射(itemMapping)", ARG_FIELD_NAME);
+
+    ErrorCode ERR_RECORD_NULL_MAPPING_NAME =
+            define("nop.err.record.null-mapping-name",
+                    "Markdown DSL加载器要求在attributes中配置mappingName，当前为空。模型类型:{modelType}", ARG_MODEL_TYPE);
 }

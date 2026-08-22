@@ -40,6 +40,9 @@ public class RecordInputImpls {
     }
 
     public static <T, R> void defaultReadBatch(IRecordInput<T> input, int maxCount, Function<T, R> fn, Consumer<R> ret) {
+        // maxCount=0 表示一条都不读；先消费再检查上限会多读 1 条且已被迭代器吞掉无法回退
+        if (maxCount == 0)
+            return;
         int n = 0;
         while (input.hasNext()) {
             T record = input.next();
@@ -55,6 +58,8 @@ public class RecordInputImpls {
                                                Predicate<T> filter,
                                                Function<T, R> fn,
                                                Consumer<R> ret) {
+        if (maxCount == 0)
+            return;
         int n = 0;
         while (input.hasNext()) {
             T record = input.next();

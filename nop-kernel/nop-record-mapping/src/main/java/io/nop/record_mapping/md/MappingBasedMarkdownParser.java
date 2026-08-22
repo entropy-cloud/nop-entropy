@@ -322,6 +322,17 @@ public class MappingBasedMarkdownParser implements IRecordMapping {
 
     Pair<String, String> parseNameValuePair(String text) {
         String key, value;
+        // 生成端 encodeKey 对含 : " | 换行的键加引号，引号内的 : 不是键值分隔符，
+        // 必须先定位结束引号再切分，否则含 : 的键 roundtrip 后被截断为带残留引号的错误键
+        if (text.startsWith("\"")) {
+            int keyEnd = findQuotedStringEnd(text);
+            if (keyEnd > 0) {
+                key = text.substring(0, keyEnd);
+                int pos = text.indexOf(':', keyEnd);
+                value = pos >= 0 ? text.substring(pos + 1) : null;
+                return Pair.of(decodeKey(key), decodeValue(value));
+            }
+        }
         int pos = text.indexOf(':');
         if (pos >= 0) {
             key = text.substring(0, pos);
@@ -331,6 +342,29 @@ public class MappingBasedMarkdownParser implements IRecordMapping {
             value = null;
         }
         return Pair.of(decodeKey(key), decodeValue(value));
+    }
+
+    /**
+     * text 以引号开头时，返回结束引号之后的位置下标；引号内处理 java 转义（与
+     * MappingBasedMarkdownGenerator.encodeKey 使用的 StringHelper.quote 对称）。
+     * 找不到结束引号返回 -1
+     */
+    static int findQuotedStringEnd(String text) {
+        int i = 1;
+        int len = text.length();
+        while (i < len) {
+            char c = text.charAt(i);
+            if (c == '\\') {
+                i += 2;
+                continue;
+            }
+            if (c == '"')
+                return i + 1;
+            if (c == '\n')
+                return -1;
+            i++;
+        }
+        return -1;
     }
 
     protected Object parseSectionContent(RecordFieldMappingConfig field,
@@ -355,7 +389,8 @@ public class MappingBasedMarkdownParser implements IRecordMapping {
 
         RecordMappingConfig itemMapping = field.getResolvedItemMapping();
         if (itemMapping == null)
-            throw new IllegalArgumentException("nop.err.record.md-table-field-no-item-mapping:" + field.getLocation());
+            throw new NopException(ERR_RECORD_MD_TABLE_FIELD_NO_ITEM_MAPPING).loc(field.getLocation())
+                    .param(ARG_FIELD_NAME, field.getName());
 
         int pos = MarkdownHelper.findTable(section.getContent());
         if (pos < 0 || !StringHelper.isBlank(section.getContent().substring(0, pos)))
@@ -373,6 +408,8 @@ public class MappingBasedMarkdownParser implements IRecordMapping {
 
     String decodeKey(String key) {
         key = key.trim();
+        // 与 encodeKey 的引号包裹对称；非引号包裹的键 unquote 原样返回
+        key = StringHelper.unquote(key);
         key = MarkdownHelper.removeStyle(key);
         return key;
     }

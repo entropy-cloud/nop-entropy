@@ -62,7 +62,9 @@ public class JavaCompileTool implements IJavaCompileTool {
 
         String locStr = loc.toString();
         String msg = e.getMessage();
-        if (msg.startsWith(locStr)) {
+        // janino 的 getMessage() = locStr + ": " + rawMessage，长度恒 >= locStr.length()+2，
+        // 这里再防御一次长度不足时原样返回，避免 substring 越界掩盖原始解析错误
+        if (msg.startsWith(locStr) && msg.length() >= locStr.length() + 2) {
             return msg.substring(locStr.length() + 2);
         }
         return msg;

@@ -5,7 +5,7 @@ import io.nop.markdown.utils.MarkdownHelper;
 import static io.nop.commons.util.StringHelper.isNumberedPrefix;
 
 public class MarkdownSectionHeaderParser {
-    public static MarkdownSectionHeaderParser INSTANCE = new MarkdownSectionHeaderParser();
+    public static final MarkdownSectionHeaderParser INSTANCE = new MarkdownSectionHeaderParser();
 
     public MarkdownSectionHeader parseSectionHeader(String line) {
         line = line.trim();

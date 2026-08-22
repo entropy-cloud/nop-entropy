@@ -38,6 +38,8 @@ public class MarkdownDocumentParser extends AbstractResourceParser<MarkdownDocum
         parseFrontMatter(sc, model);
 
         MarkdownSection section = parseRootSection(sc);
+        if (section == null)
+            section = new MarkdownSection();
         section.forEachSection(this::normalizeSectionContent);
         model.setRootSection(section);
         return model;

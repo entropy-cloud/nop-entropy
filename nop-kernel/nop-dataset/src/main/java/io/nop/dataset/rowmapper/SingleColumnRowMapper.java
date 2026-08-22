@@ -12,7 +12,7 @@ import io.nop.dataset.IFieldMapper;
 import io.nop.dataset.IRowMapper;
 
 public class SingleColumnRowMapper implements IRowMapper<Object> {
-    public static SingleColumnRowMapper INSTANCE = new SingleColumnRowMapper();
+    public static final SingleColumnRowMapper INSTANCE = new SingleColumnRowMapper();
 
     @Override
     public Object mapRow(IDataRow row, long rowNumber, IFieldMapper colMapper) {

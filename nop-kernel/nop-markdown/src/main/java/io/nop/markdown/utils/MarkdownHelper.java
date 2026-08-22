@@ -1,29 +1,35 @@
 package io.nop.markdown.utils;
 
 import io.nop.api.core.beans.IntRangeBean;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.model.table.ITableView;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static io.nop.markdown.MarkdownErrors.ARG_ACTUAL_COUNT;
+import static io.nop.markdown.MarkdownErrors.ARG_EXPECTED_COUNT;
+import static io.nop.markdown.MarkdownErrors.ERR_MARKDOWN_POS_LIST_SIZE_NOT_MATCH;
+
 public class MarkdownHelper {
     public static String removeStyle(String text) {
-        if (text.startsWith("___") && text.endsWith("___")) {
+        // 长度守卫：单标记字符（如 "*"、**、___）不是样式包裹，剥离子串会因 begin > end 越界
+        if (text.length() > 6 && text.startsWith("___") && text.endsWith("___")) {
             text = text.substring(3, text.length() - 3);
         }
-        if (text.startsWith("**") && text.endsWith("**")) {
+        if (text.length() > 4 && text.startsWith("**") && text.endsWith("**")) {
             text = text.substring(2, text.length() - 2);
         }
 
-        if (text.startsWith("*") && text.endsWith("*")) {
+        if (text.length() > 2 && text.startsWith("*") && text.endsWith("*")) {
             text = text.substring(1, text.length() - 1);
         }
         return text;
@@ -76,6 +82,18 @@ public class MarkdownHelper {
      * @param includeImage 是否包含图片链接
      * @return 链接位置列表
      */
+    /**
+     * 返回按区间 begin 升序的索引序列，调用方可据此同步遍历并行传递的多个列表而不改动入参
+     */
+    static Integer[] sortedOrder(List<IntRangeBean> posList) {
+        Integer[] order = new Integer[posList.size()];
+        for (int i = 0; i < order.length; i++) {
+            order[i] = i;
+        }
+        Arrays.sort(order, Comparator.comparingInt(i -> posList.get(i).getBegin()));
+        return order;
+    }
+
     public static List<IntRangeBean> findLinkPositions(String text, boolean includeImage) {
         List<IntRangeBean> result = new ArrayList<>();
         int len = text.length();
@@ -133,19 +151,20 @@ public class MarkdownHelper {
 
         // 如果范围个数与infos不匹配，抛出异常或处理
         if (imagePosList.size() != infos.size()) {
-            throw new IllegalArgumentException("posList and infos size must match");
+            throw new NopException(ERR_MARKDOWN_POS_LIST_SIZE_NOT_MATCH)
+                    .param(ARG_EXPECTED_COUNT, imagePosList.size()).param(ARG_ACTUAL_COUNT, infos.size());
         }
 
-        // 先排序范围，确保按照开始位置
-        Collections.sort(imagePosList, Comparator.comparingInt(IntRangeBean::getBegin));
+        // 按 begin 排序时使用索引副本，避免原地修改调用方传入的列表，且并行的 infos 随索引同步重排
+        Integer[] order = sortedOrder(imagePosList);
 
         StringBuilder sb = new StringBuilder();
 
         int currentIndex = 0; // 当前处理文本的位置
 
-        for (int i = 0; i < imagePosList.size(); i++) {
-            IntRangeBean range = imagePosList.get(i);
-            String info = infos.get(i);
+        for (int idx : order) {
+            IntRangeBean range = imagePosList.get(idx);
+            String info = infos.get(idx);
 
             // 让范围合法
             int begin = Math.max(0, range.getBegin());
@@ -189,19 +208,20 @@ public class MarkdownHelper {
 
         // 如果范围个数与newUrls不匹配，抛出异常或处理
         if (linkPosList.size() != newUrls.size()) {
-            throw new IllegalArgumentException("posList and newUrls size must match");
+            throw new NopException(ERR_MARKDOWN_POS_LIST_SIZE_NOT_MATCH)
+                    .param(ARG_EXPECTED_COUNT, linkPosList.size()).param(ARG_ACTUAL_COUNT, newUrls.size());
         }
 
-        // 先排序范围，确保按照开始位置
-        Collections.sort(linkPosList, Comparator.comparingInt(IntRangeBean::getBegin));
+        // 按 begin 排序时使用索引副本，避免原地修改调用方传入的列表，且并行的 newUrls 随索引同步重排
+        Integer[] order = sortedOrder(linkPosList);
 
         StringBuilder sb = new StringBuilder();
 
         int currentIndex = 0; // 当前处理文本的位置
 
-        for (int i = 0; i < linkPosList.size(); i++) {
-            IntRangeBean range = linkPosList.get(i);
-            String newUrl = newUrls.get(i);
+        for (int idx : order) {
+            IntRangeBean range = linkPosList.get(idx);
+            String newUrl = newUrls.get(idx);
 
             // 让范围合法
             int begin = Math.max(0, range.getBegin());

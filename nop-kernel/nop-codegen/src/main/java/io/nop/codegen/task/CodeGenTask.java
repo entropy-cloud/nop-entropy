@@ -213,8 +213,8 @@ public class CodeGenTask {
             try {
                 new GenAopProxy().execute(projectDir, true);
             } catch (Exception e) {
-                e.printStackTrace();
-                LOG.debug("nop.gen-aop-proxy-fail", e);
+                // printStackTrace 绕过日志级别控制，统一走日志框架（error 级别保证构建输出可见）
+                LOG.error("nop.gen-aop-proxy-fail", e);
             }
         }
     }

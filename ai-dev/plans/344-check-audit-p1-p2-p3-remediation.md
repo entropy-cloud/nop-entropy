@@ -72,12 +72,12 @@ Exit Criteria:
 
 ### Phase 2 - 内核与核心（kernel-small / nop-commons / nop-core / nop-core-framework / nop-utils / nop-xlang）
 
-Status: planned
+Status: in progress
 Targets: 对应 6 份报告；`nop-kernel`、`nop-core`、`nop-xlang`、`nop-commons`、相关模块代码与测试
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] kernel-small.md（P1×2 P2×8 P3×6）
+- [x] kernel-small.md（P1×2 P2×8 P3×6）— 2026-08-22 完成：13 修复 + 1 非问题（表格尾空单元格：探针实证与 GFM 一致、审计例子有误）+ 1 非问题附带加固（getErrorDetail 越界路径经 janino getMessage 不可达）+ 2 处局部不修复裁定（CLI stderr 惯例 / Guard 风格 IAE）；五模块 156 tests 绿（含 kernel-cli 回归），红验证抽查 9 条（markdown 6 + dataset 4 + record-mapping 3 中 9 失败形态与审计一致）；超审计新发现 1 项（changeLinkUrl/addImageSummarization 只排 posList 不排并行列表的配对缺陷）已修复
 - [ ] nop-commons.md（P1×6 P2×8 P3×6）
 - [ ] nop-core.md（P1×3 P2×4 P3×10）
 - [ ] nop-core-framework.md（P1×4 P2×5 P3×6）
