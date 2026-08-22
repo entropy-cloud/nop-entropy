@@ -45,6 +45,10 @@ finally {
 - **建议**: 在内层 `finally` 中增加 `IoHelper.safeClose(ps)`。
 - **误报排除**: 已通读 flush() 全文确认两个 finally 均无 close；已确认调用方 JdbcEntityPersistDriver 自身也不关闭该 statement（它只持有 batcher）；已排除"连接关闭时统一释放"的解释——批量事务中连接在多个 flush 之间保持打开。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认属实，已修复。`JdbcBatcher.flush()` 批量路径内层 finally 补 `IoHelper.safeClose(ps)`（与 `executeOne()` 既有清理一致，close 失败仅记日志不吞主异常），成功/BatchUpdateException/SQLException 三条路径均覆盖。测试：`nop-dao` `TestJdbcBatcher#testFlushBatchClosesStatement`、`TestJdbcBatcher#testFlushBatchFailClosesStatement`（修复前：批量成功与 executeBatch 失败两条路径 flush 后 PreparedStatement 均未 close，断言报 "expected: true but was: false"；修复后全模块 76 tests, 0 failures, 0 errors）。
+
 ### [P1] saveCacheData 在 SQL 无 cacheRef 时返回 null 而非原数据集，启用 cacheProvider 后所有普通查询 NPE
 
 - **文件**: `nop-persistence/nop-dao/src/main/java/io/nop/dao/jdbc/impl/JdbcTemplateImpl.java:403-409`（调用点 L336、L340）

@@ -41,6 +41,10 @@ private void _copyToArray(Object src, Object target, IGenericType targetType, bo
 - **建议**: 改为 `System.arraycopy(src, 0, target, 0, n)`；并确认该快路径仅在 `src` 确为数组时进入（`_copyToCollection` 的对应快路径是 `target.add(v)`，不受此影响）。
 - **误报排除**: 已读完整方法与两个适配器（`ArrayBeanCollectionAdapter.getComponentType` 返回真实数组组件类），确认长度参数不是变量而是字面 `0`；对比 `_copyToCollection` 同构分支是逐元素 add，证实此处意图是全量复制。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复。`_copyToArray` 同组件类型快路径 `System.arraycopy` 的长度参数由硬编码 `0` 改为实际长度 `n`，并给该快路径增加 `src.getClass().isArray()` 条件，使 Collection 源落入既有逐元素慢路径，不再把 List 传给 arraycopy 抛 ArrayStoreException；长度不匹配仍按既有语义抛 NopException（无按目标容量截断逻辑）。测试：`nop-core` `TestBeanCopierArray#testCopyToStringArrayShallow`（修复前 String[]→String[] 浅拷贝目标保持全 null）、`#testCopyToPrimitiveIntArray`（int[] 目标保持全 0）、`#testCopyToStringArrayDeep`（同前，deep+简单类型仍走快路径）、`#testCopyFromCollectionToArray`（修复前抛 ArrayStoreException）、`#testCopyToArrayLengthNotMatch`（既有语义回归）。
+
 ### [P1] `IFile.getResource("..")` 绕过相对名校验，FileResource 可逃逸到父目录
 
 - **文件**: `nop-kernel/nop-core/src/main/java/io/nop/core/resource/impl/AbstractFile.java:71-78`（根因在 nop-commons `StringHelper.isCanonicalFilePath`，nop-kernel/nop-commons/src/main/java/io/nop/commons/util/StringHelper.java:2478-2498）

@@ -40,6 +40,10 @@ public static <T> T thenRun(T result, Runnable task) {
 - **建议**: 异步分支去掉 `if (err != null)`，改为在 `whenComplete` 中无条件执行 task（与同步分支一致）；若确有"仅失败时执行"的需求，应另立方法名（如 `thenRunOnFailure`）。
 - **误报排除**: 已核实本仓库内 `FutureHelper.thenRun` 的唯一主代码调用方是 CacheEvictActionDecorator（其余 `thenRun` 命中为 `CompletionStage.thenRun` JDK 方法，无关）；已阅读调用方确认其意图是成功后清缓存，非仅失败时清理。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复。`FutureHelper.thenRun(T, Runnable)` 异步分支 `whenComplete` 中去掉 `if (err != null)` 条件，改为无条件执行 task（与同步分支一致）；复核确认全仓库唯一主代码调用方 CacheEvictActionDecorator 依赖的正是成功后执行语义，无调用方依赖旧错误行为。测试：`nop-api-core` `TestFutureHelper#testThenRunAsyncSuccess`（修复前异步 future 成功完成后 task 不执行，断言失败）。
+
 ### [P1] ApiRequest.cloneInstance 将 properties 复制给了源对象，克隆体丢失全部 properties
 
 - **文件**: `nop-kernel/nop-api-core/src/main/java/io/nop/api/core/beans/ApiRequest.java:127-140`

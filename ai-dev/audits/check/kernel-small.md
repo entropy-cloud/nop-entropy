@@ -45,6 +45,9 @@ public T next() {
 - **建议**: 改为 `T record = records.get(readCount); readCount++; return record;`，并补充单元素/多元素/空列表的迭代回归测试。
 - **误报排除**: 已核对 `BaseDataSet` 未覆写 `next()/hasNext()`；`skip()`、`getReadCount()`、`getTotalCount()` 均按"已读条数"语义实现，确认 `next()` 与其余方法不一致是实现错误而非 1-based 约定；`ListRecordIO` 直接把原始 list 传入构造器，无索引 0 占位逻辑。
 
+---
+> **处置（fix-ai-check 分支，2026-08-22）**: 确认为真实缺陷，已修复。`BaseRecordInput.next()` 改为先 `T record = records.get(readCount)` 再 `readCount++`，与 `hasNext()`/`getReadCount()` 的"已读条数"语义对齐；同时在 `nop-dataset` 新建 `src/test/java` 并在 pom 按模块惯例补充 test-scope `junit-jupiter` 依赖。测试：`nop-dataset` `TestBaseRecordInput#testSingleElement`（修复前首次 `next()` 即抛 `IndexOutOfBoundsException: Index: 1 Size: 1`）、`#testMultiElementIteration`（修复前元素 0 被跳过、完整迭代末次抛 `ArrayIndexOutOfBoundsException`）、`#testReadBatchDefaultPath`（修复前 `readBatch(2)` 返回 `[b, c]` 而非 `[a, b]`）、`#testReadAllDefaultPath`（修复前 3 元素列表 `readAll()` 末次抛越界）、`#testEmptyList`（空列表行为不受影响，修复前后均通过）。修复后 `./mvnw test -pl nop-kernel/nop-dataset` 5 个测试全部通过。
+
 ### [P1] MarkdownDocumentParser.parseFromText 对空/纯空白文档抛 NPE
 
 - **文件**: `nop-kernel/nop-markdown/src/main/java/io/nop/markdown/simple/MarkdownDocumentParser.java:40-41`（根因在 107-110）

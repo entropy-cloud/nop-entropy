@@ -428,9 +428,7 @@ public class FutureHelper {
     public static <T> T thenRun(T result, Runnable task) {
         if (result instanceof CompletionStage) {
             return (T) ((CompletionStage<?>) result).whenComplete((v, err) -> {
-                if (err != null) {
-                    task.run();
-                }
+                task.run();
             });
         } else {
             task.run();

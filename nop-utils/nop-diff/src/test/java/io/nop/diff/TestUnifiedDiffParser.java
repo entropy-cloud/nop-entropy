@@ -162,4 +162,64 @@ class TestUnifiedDiffParser {
         UnifiedDiffFile file2 = UnifiedDiffParser.parse(null);
         assertTrue(file2.isEmpty());
     }
+
+    @Test
+    void testParseDiffWithBlankLines() {
+        // 空行在 unified diff 中表示为单个前缀字符：context 行为 " "，add 行为 "+"，delete 行为 "-"
+        String diffText = "--- a/file.txt\n" +
+                "+++ b/file.txt\n" +
+                "@@ -1,5 +1,5 @@\n" +
+                " first\n" +
+                " \n" +
+                "-\n" +
+                "-old\n" +
+                "+\n" +
+                "+new\n";
+
+        UnifiedDiff diff = UnifiedDiffParser.parseSingleDiff(diffText);
+
+        assertNotNull(diff);
+        UnifiedDiffHunk hunk = diff.getHunks().get(0);
+        assertEquals(6, hunk.getLines().size());
+
+        assertTrue(hunk.getLines().get(0).isContext());
+        assertEquals("first", hunk.getLines().get(0).getContent());
+
+        assertTrue(hunk.getLines().get(1).isContext());
+        assertEquals("", hunk.getLines().get(1).getContent());
+
+        assertTrue(hunk.getLines().get(2).isDelete());
+        assertEquals("", hunk.getLines().get(2).getContent());
+
+        assertTrue(hunk.getLines().get(3).isDelete());
+        assertEquals("old", hunk.getLines().get(3).getContent());
+
+        assertTrue(hunk.getLines().get(4).isAdd());
+        assertEquals("", hunk.getLines().get(4).getContent());
+
+        assertTrue(hunk.getLines().get(5).isAdd());
+        assertEquals("new", hunk.getLines().get(5).getContent());
+
+        // 空行 round-trip 后仍为单个前缀字符
+        assertEquals(" ", hunk.getLines().get(1).toDiffString());
+        assertEquals("+", hunk.getLines().get(4).toDiffString());
+    }
+
+    @Test
+    void testFromDiffStringBlankLine() {
+        UnifiedDiffLine contextLine = UnifiedDiffLine.fromDiffString(" ");
+        assertNotNull(contextLine);
+        assertTrue(contextLine.isContext());
+        assertEquals("", contextLine.getContent());
+
+        UnifiedDiffLine addLine = UnifiedDiffLine.fromDiffString("+");
+        assertNotNull(addLine);
+        assertTrue(addLine.isAdd());
+        assertEquals("", addLine.getContent());
+
+        UnifiedDiffLine deleteLine = UnifiedDiffLine.fromDiffString("-");
+        assertNotNull(deleteLine);
+        assertTrue(deleteLine.isDelete());
+        assertEquals("", deleteLine.getContent());
+    }
 }

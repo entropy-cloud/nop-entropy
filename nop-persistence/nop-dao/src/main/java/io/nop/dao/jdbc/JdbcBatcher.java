@@ -226,6 +226,7 @@ public class JdbcBatcher {
                     error = dialect.getSQLExceptionTranslator().translate(batchSql, ex2);
                     throw error;
                 } finally {
+                    IoHelper.safeClose(ps);
                     if (daoMetrics != null)
                         daoMetrics.endBatchUpdate(batchSql.getText(), meter, commandCount, error);
                 }

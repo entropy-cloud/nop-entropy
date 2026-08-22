@@ -47,6 +47,10 @@ public static UnifiedDiffLine fromDiffString(String line) {
 - **建议**: 将 `Guard.notEmpty(content, "content")` 改为 `Guard.notNull`，允许空字符串内容；同时为 parse 补一个含空 context/add/delete 行的回归测试。
 - **误报排除**: 已验证 `Guard.notEmpty` → `ApiStringHelper.isEmptyObject("") == true` 必抛；已检查测试文件 `TestUnifiedDiffParser.java` 无空行用例（故现有测试全绿但功能坏）。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 确认成立并已修复。将 `UnifiedDiffLine` 构造函数中 `Guard.notEmpty(content, "content")` 改为 `Guard.notNull`（unified diff 中空行即单个前缀字符，空串 content 合法）。测试：`nop-utils/nop-diff` `TestUnifiedDiffParser#testParseDiffWithBlankLines`（修复前解析含空 context/delete/add 行的 diff 抛 `IllegalArgumentException: IsEmpty:content`）、`TestUnifiedDiffParser#testFromDiffStringBlankLine`（修复前 `fromDiffString(" ")` 等同样抛异常）。
+
 ### [P0] ShellCommand.create 在 Unix 下缺少 `-c`，单串命令在 Linux/macOS 上必然执行失败
 
 - **文件**: `nop-utils/nop-shell/src/main/java/io/nop/shell/ShellCommand.java:63-80`
@@ -73,6 +77,10 @@ public static ShellCommand create(String command) {
 - **风险**: 现实调用方 `nop-ai/nop-ai-skills/nop-ai-code-analyzer/.../MavenProject.java:22` 正是以单字符串命令调用 `ShellRunner.runCommand("mvn ... dependency:tree", dir)`，在所有非 Windows 平台该功能完全不可用。`OsUserHelper` 的 Mac 分支（`dscl . list /users`、`groups`）同样经此路径失效。
 - **建议**: Unix 分支改为 `cmd.addCmd("sh"); cmd.addCmd("-c"); cmd.addCmd(command);`（保留原命令串，由 shell 解析），或统一改用 `splitCommandLine` 结果加 `-c` 拼接；补充跨平台单元测试。
 - **误报排除**: 已通读 ShellCommand 全文确认无其他地方补 `-c`；已确认 `ShellCommands.scriptFile/task` 走独立路径不受影响；已找到仓库内现实调用方佐证触发路径。
+
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 确认成立并已修复。`ShellCommand.create` Unix 分支改为 `sh -c <原始命令串>`（命令串作为单个参数由 shell 解析，不再走 `splitCommandLine` 逐词追加；Windows 分支保持 `cmd /c` + split 参数不变）。测试：`nop-utils/nop-shell` `TestShellCommand#testCreateUsesShellDashCOnUnix`（修复前 Unix 下构造出 `[sh, echo, hi]`，缺 `-c`）、`TestShellCommand#testRunSingleStringCommand`（修复前 `echo hi` 实际执行为 `sh echo hi`，退出码 126 执行失败；Windows 上跳过真命令执行）。
 
 ### [P1] GitRepositoryImpl.getWorkingTreeDiff 实现与契约不符：把 index 首个 entry 的 blob 当 tree 解析，index 为空时 NPE
 

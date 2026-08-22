@@ -68,7 +68,8 @@ public class BaseRecordInput<T> implements IRecordInput<T> {
         if (!hasNext())
             throw new NoSuchElementException();
 
+        T record = records.get(readCount);
         readCount++;
-        return records.get(readCount);
+        return record;
     }
 }

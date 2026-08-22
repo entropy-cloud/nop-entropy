@@ -69,12 +69,15 @@ public class ShellCommand {
         if (PlatformEnv.isWindows()) {
             cmd.addCmd("cmd");
             cmd.addCmd("/c");
+            String[] args = splitCommandLine(command);
+            for (String arg : args) {
+                cmd.addCmd(arg);
+            }
         } else {
+            // sh -c 需要把完整命令串作为单个参数传入，由 shell 负责解析
             cmd.addCmd("sh");
-        }
-        String[] args = splitCommandLine(command);
-        for (String arg : args) {
-            cmd.addCmd(arg);
+            cmd.addCmd("-c");
+            cmd.addCmd(command);
         }
         return cmd;
     }

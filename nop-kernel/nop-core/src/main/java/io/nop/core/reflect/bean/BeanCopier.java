@@ -113,8 +113,8 @@ public class BeanCopier implements IBeanCopier {
 
         // 数组元素类型一致
         if (srcCompType == targetType.getComponentType().getRawClass()) {
-            if (!deep || isSimpleType(srcCompType)) {
-                System.arraycopy(src, 0, target, 0, 0);
+            if ((!deep || isSimpleType(srcCompType)) && src.getClass().isArray()) {
+                System.arraycopy(src, 0, target, 0, n);
                 return;
             }
         }
