@@ -32,7 +32,7 @@ public abstract class SqlTableSource extends _SqlTableSource {
     public abstract SqlSelect getSourceSelect();
 
     public boolean hasPropJoins() {
-        return propJoins != null && propJoins.isEmpty();
+        return propJoins != null && !propJoins.isEmpty();
     }
 
     @Override

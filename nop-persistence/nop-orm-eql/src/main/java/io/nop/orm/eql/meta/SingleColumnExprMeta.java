@@ -27,7 +27,7 @@ public class SingleColumnExprMeta implements ISqlExprMeta {
 
     public SingleColumnExprMeta(String columnName, IDataParameterBinder binder, IOrmDataType dataType) {
         Guard.notNull(binder, "binder");
-        Guard.notNull(binder, "dataType");
+        Guard.notNull(dataType, "dataType");
         this.columnNames = columnName == null ? null : Collections.singletonList(columnName);
         this.binders = Collections.singletonList(binder);
         this.dataType = dataType;

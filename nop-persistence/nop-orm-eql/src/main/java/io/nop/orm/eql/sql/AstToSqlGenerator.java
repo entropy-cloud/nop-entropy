@@ -39,8 +39,10 @@ import io.nop.orm.eql.ast.SqlRegularFunction;
 import io.nop.orm.eql.ast.SqlSingleTableSource;
 import io.nop.orm.eql.ast.SqlStringLiteral;
 import io.nop.orm.eql.ast.SqlTableName;
+import io.nop.orm.eql.ast.SqlTableSource;
 import io.nop.orm.eql.ast.SqlTypeExpr;
 import io.nop.orm.eql.ast.SqlUnionSelect;
+import io.nop.orm.eql.compile.ISqlTableSourceSupport;
 import io.nop.orm.eql.compile.SqlPropJoin;
 import io.nop.orm.eql.enums.SqlCompareRange;
 import io.nop.orm.eql.enums.SqlOperator;
@@ -307,7 +309,7 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
         ISqlExprMeta exprMeta = node.getResolvedExprMeta();
         String owner = node.getResolvedOwner();
         if (owner != null && owner.equals(ownerShouldBeIgnored))
-            owner = null;
+            owner = resolveIgnoredOwner(node);
 
         List<String> colNames = exprMeta.getColumnNames();
         if (colNames == null) {
@@ -326,6 +328,59 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
             }
             print(')');
         }
+    }
+
+    /**
+     * UPDATE/DELETE语句不输出目标表别名，因此目标表的列不能按别名限定。顶层where/set中的列直接丢弃前缀；
+     * 但相关子查询内引用目标表别名时不能按名字丢弃前缀，否则会按内层作用域解析到子查询表的同名列，
+     * 这里改用目标表的物理表名来限定。如果别名被子查询中的同名别名遮蔽，则保留别名前缀。
+     */
+    private String resolveIgnoredOwner(SqlColumnName node) {
+        EqlASTNode stm = findDmlStatement(node);
+        if (stm instanceof ISqlTableSourceSupport) {
+            SqlTableSource targetSource = ((ISqlTableSourceSupport) stm).getResolvedTableSource();
+            if (targetSource != null) {
+                if (targetSource != node.getTableSource()) {
+                    // 子查询中定义了同名别名，该列实际引用的是子查询表，别名已在SQL中声明，保留前缀
+                    return node.getResolvedOwner();
+                }
+
+                if (isInSubQuery(node)) {
+                    // 相关子查询内引用UPDATE/DELETE目标表，改用物理表名限定
+                    ISqlSelectionMeta tableMeta = targetSource.getResolvedTableMeta();
+                    if (tableMeta instanceof EntityTableMeta)
+                        return normalizeTableName(((EntityTableMeta) tableMeta).getEntityModel().getTableName());
+                }
+            }
+        }
+        return null;
+    }
+
+    private EqlASTNode findDmlStatement(EqlASTNode node) {
+        for (EqlASTNode n = node; n != null; n = n.getASTParent()) {
+            EqlASTKind kind = n.getASTKind();
+            if (kind == EqlASTKind.SqlUpdate || kind == EqlASTKind.SqlDelete || kind == EqlASTKind.SqlInsert)
+                return n;
+        }
+        return null;
+    }
+
+    private boolean isInSubQuery(EqlASTNode node) {
+        for (EqlASTNode n = node.getASTParent(); n != null; n = n.getASTParent()) {
+            switch (n.getASTKind()) {
+                case SqlQuerySelect:
+                case SqlUnionSelect:
+                case SqlSelectWithCte:
+                    return true;
+                case SqlUpdate:
+                case SqlDelete:
+                case SqlInsert:
+                    return false;
+                default:
+                    break;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -408,9 +463,17 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
         ISQLFunction func = dialect.getFunction(SqlOperator.ILIKE.getText());
         if (func != null) {
             SqlExprList expr = func.buildFunctionExpr(node.getLocation(), Arrays.asList(node.getExpr(), node.getValue()), dialect);
-            printExprList(expr);
+            if (node.getNot()) {
+                print("not (");
+                printExprList(expr);
+                print(")");
+            } else {
+                printExprList(expr);
+            }
         } else {
             LOG.debug("nop.orm.dialect-not-support-ilike,so-use-like-instead:{}", node);
+            if (node.getNot())
+                print(" not ");
             printBinaryExpr(node.getExpr(), SqlOperator.LIKE, node.getValue());
         }
     }

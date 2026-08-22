@@ -57,14 +57,16 @@ public class EntityRefPropExprMeta implements ISqlExprMeta {
         if (colBinders.size() == 1) {
             id = row[fromIndex];
         } else {
+            // pk槽位按join条件在列表中的位置对齐：列条件按出现顺序对应row中的列，常量条件不占用列槽位
             Object[] pk = new Object[propModel.getJoin().size()];
-            int idx = 0;
-            for (IEntityJoinConditionModel join : propModel.getJoin()) {
+            int colIdx = 0;
+            for (int i = 0; i < propModel.getJoin().size(); i++) {
+                IEntityJoinConditionModel join = propModel.getJoin().get(i);
                 if (join.getLeftPropModel() != null) {
-                    pk[idx] = row[fromIndex + idx];
-                    idx++;
+                    pk[i] = row[fromIndex + colIdx];
+                    colIdx++;
                 } else {
-                    pk[idx] = join.getLeftValue();
+                    pk[i] = join.getLeftValue();
                 }
             }
             id = session.castId(propModel.getRefEntityModel(), pk);

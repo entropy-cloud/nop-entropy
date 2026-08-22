@@ -20,10 +20,12 @@ import io.nop.orm.model.IEntityRelationModel;
 import java.util.List;
 
 import static io.nop.orm.eql.OrmEqlErrors.ARG_EXPECTED;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_EXPR;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_PARAM_INDEX;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_VALUE;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_PARAM_NOT_COMPONENT;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_PARAM_NOT_EXPECTED_ENTITY;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_UNSUPPORTED_EVAL_EXPR;
 
 public class EntityPropParamBuilder implements ISqlParamBuilder {
     private final int paramIndex;
@@ -82,7 +84,7 @@ public class EntityPropParamBuilder implements ISqlParamBuilder {
         } else if (propModel.isColumnModel()) {
             params.add(value);
         } else {
-            throw new UnsupportedOperationException();
+            throw new NopException(ERR_EQL_UNSUPPORTED_EVAL_EXPR).param(ARG_EXPR, propModel);
         }
     }
 

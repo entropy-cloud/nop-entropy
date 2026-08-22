@@ -6,12 +6,17 @@ import io.nop.orm.eql.ast.EqlASTKind;
 import io.nop.orm.eql.ast.EqlASTNode;
 import io.nop.orm.eql.ast.EqlASTVisitor;
 import io.nop.orm.eql.ast.SqlAndExpr;
+import io.nop.orm.eql.ast.SqlBetweenExpr;
 import io.nop.orm.eql.ast.SqlBinaryExpr;
 import io.nop.orm.eql.ast.SqlColumnName;
 import io.nop.orm.eql.ast.SqlExistsExpr;
 import io.nop.orm.eql.ast.SqlExpr;
 import io.nop.orm.eql.ast.SqlExprProjection;
 import io.nop.orm.eql.ast.SqlFrom;
+import io.nop.orm.eql.ast.SqlInValuesExpr;
+import io.nop.orm.eql.ast.SqlIsNullExpr;
+import io.nop.orm.eql.ast.SqlLikeExpr;
+import io.nop.orm.eql.ast.SqlNotExpr;
 import io.nop.orm.eql.ast.SqlNumberLiteral;
 import io.nop.orm.eql.ast.SqlOrExpr;
 import io.nop.orm.eql.ast.SqlProjection;
@@ -710,6 +715,35 @@ public class CollectionOperatorTransformer {
             return andExpr;
         }
 
+        // NOT(NOT x) === x
+        if (expr instanceof SqlNotExpr) {
+            return ((SqlNotExpr) expr).getExpr();
+        }
+
+        if (expr instanceof SqlBetweenExpr) {
+            SqlBetweenExpr betweenExpr = (SqlBetweenExpr) expr;
+            betweenExpr.setNot(!betweenExpr.getNot());
+            return betweenExpr;
+        }
+
+        if (expr instanceof SqlLikeExpr) {
+            SqlLikeExpr likeExpr = (SqlLikeExpr) expr;
+            likeExpr.setNot(!likeExpr.getNot());
+            return likeExpr;
+        }
+
+        if (expr instanceof SqlInValuesExpr) {
+            SqlInValuesExpr inExpr = (SqlInValuesExpr) expr;
+            inExpr.setNot(!inExpr.getNot());
+            return inExpr;
+        }
+
+        if (expr instanceof SqlIsNullExpr) {
+            SqlIsNullExpr isNullExpr = (SqlIsNullExpr) expr;
+            isNullExpr.setNot(!isNullExpr.getNot());
+            return isNullExpr;
+        }
+
         if (expr instanceof SqlBinaryExpr) {
             SqlBinaryExpr binaryExpr = (SqlBinaryExpr) expr;
             SqlOperator op = binaryExpr.getOperator();
@@ -735,9 +769,15 @@ public class CollectionOperatorTransformer {
             SqlOperator negatedOp = negateComparisonOperator(op);
             if (negatedOp != null) {
                 binaryExpr.setOperator(negatedOp);
+                return expr;
             }
         }
-        return expr;
+
+        // 无法直接改写取反的条件（例如布尔列、函数谓词等）统一包装为NOT表达式，确保取反语义不丢失
+        SqlNotExpr notExpr = new SqlNotExpr();
+        notExpr.setLocation(expr.getLocation());
+        notExpr.setExpr(expr);
+        return notExpr;
     }
 
     private SqlOperator negateComparisonOperator(SqlOperator op) {

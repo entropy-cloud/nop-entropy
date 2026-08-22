@@ -8,8 +8,11 @@
 package io.nop.orm.eql.meta;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.PropPath;
 
+import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import static io.nop.orm.eql.OrmEqlErrors.ARG_PROP_NAME;
@@ -18,8 +21,22 @@ import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_UNKNOWN_FIELD_IN_SELECTION;
 public class SelectResultTableMeta implements ISqlSelectionMeta {
     private final Map<String, ISqlExprMeta> fieldExprMetas;
 
+    /**
+     * 按下划线形式索引子查询结果字段，与实体字段的allowUnderscoreName访问语义保持一致
+     */
+    private final Map<String, ISqlExprMeta> underscoreFieldExprMetas;
+
     public SelectResultTableMeta(Map<String, ISqlExprMeta> fieldExprMetas) {
         this.fieldExprMetas = fieldExprMetas;
+        this.underscoreFieldExprMetas = buildUnderscoreIndex(fieldExprMetas);
+    }
+
+    private static Map<String, ISqlExprMeta> buildUnderscoreIndex(Map<String, ISqlExprMeta> fieldExprMetas) {
+        Map<String, ISqlExprMeta> index = new HashMap<>(fieldExprMetas.size());
+        for (Map.Entry<String, ISqlExprMeta> entry : fieldExprMetas.entrySet()) {
+            index.putIfAbsent(StringHelper.camelCaseToUnderscore(entry.getKey(), true), entry.getValue());
+        }
+        return index;
     }
 
     @Override
@@ -29,7 +46,10 @@ public class SelectResultTableMeta implements ISqlSelectionMeta {
 
     @Override
     public ISqlExprMeta getFieldExprMeta(String name, boolean allowUnderscoreName) {
-        return fieldExprMetas.get(name);
+        ISqlExprMeta exprMeta = fieldExprMetas.get(name);
+        if (exprMeta == null && allowUnderscoreName)
+            exprMeta = underscoreFieldExprMetas.get(name.toLowerCase(Locale.ROOT));
+        return exprMeta;
     }
 
     @Override

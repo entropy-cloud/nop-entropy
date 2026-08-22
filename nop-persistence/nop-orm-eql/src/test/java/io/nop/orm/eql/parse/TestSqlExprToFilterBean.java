@@ -1,12 +1,14 @@
 package io.nop.orm.eql.parse;
 
 import io.nop.api.core.beans.TreeBean;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.model.query.FilterBeanFormatter;
 import io.nop.orm.eql.eval.SqlExprTransformHelper;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestSqlExprToFilterBean {
     @Test
@@ -44,5 +46,25 @@ public class TestSqlExprToFilterBean {
 
         String formated = new FilterBeanFormatter(name-> name).format(filter);
         System.out.println(formated);
+    }
+
+    @Test
+    public void testNotExpr() {
+        // not条件必须转换为not过滤器，不能退化为or(单参数等价于原样返回)
+        TreeBean filter = SqlExprTransformHelper.parseSqlToFilter(null, "not (o.status = 3)");
+        assertEquals("not", filter.getTagName());
+        assertEquals(1, filter.getChildren().size());
+
+        TreeBean body = filter.getChildren().get(0);
+        assertEquals("eq", body.getTagName());
+        assertEquals("o.status", body.getAttrs().get("name"));
+        assertEquals(3, ((Number) body.getAttrs().get("value")).intValue());
+    }
+
+    @Test
+    public void testNonLiteralValueThrowsNopException() {
+        // 右操作数不是字面量时应该抛出带错误码的NopException，而不是裸IllegalArgumentException
+        assertThrows(NopException.class,
+                () -> SqlExprTransformHelper.parseSqlToFilter(null, "a = b + 1"));
     }
 }
