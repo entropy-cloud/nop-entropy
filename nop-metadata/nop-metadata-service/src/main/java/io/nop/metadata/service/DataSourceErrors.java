@@ -44,6 +44,10 @@ interface DataSourceErrors extends NopMetadataArgs {
                     "Multiple MetaDataSource rows match the same querySpace (UK violation in live data): "
                             + "querySpace={querySpace} dataSourceCount={dataSourceCount}",
                     ARG_QUERY_SPACE, ARG_DATA_SOURCE_COUNT);
+    ErrorCode ERR_DATASOURCE_MIGRATE_ROW_FAIL =
+            ErrorCode.define("nop.err.metadata.datasource-migrate-row-fail",
+                    "DataSource credential migration failed for dataSourceId={dataSourceId}: {error}",
+                    ARG_DATA_SOURCE_ID, ARG_ERROR);
     ErrorCode ERR_TABLEREF_ENTITY_QUERY_SPACE_NOT_JDBC =
             ErrorCode.define("nop.err.metadata.tableref-entity-query-space-not-jdbc",
                     "Platform transaction for entity querySpace is not a JDBC transaction: {querySpace}",

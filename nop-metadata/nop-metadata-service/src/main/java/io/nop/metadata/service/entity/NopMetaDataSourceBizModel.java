@@ -414,9 +414,14 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
                     skipped++;
                 }
             } catch (Exception e) {
-                LOG.error("migrateDataSourcesCredential failed for dataSourceId={}", row.getDataSourceId(), e);
+                NopException rowError = new NopMetadataException(
+                        NopMetadataErrors.ERR_DATASOURCE_MIGRATE_ROW_FAIL, e)
+                        .param("dataSourceId", row.getDataSourceId())
+                        .param("error", e.toString());
+                LOG.error("migrateDataSourcesCredential failed for dataSourceId={}", row.getDataSourceId(), rowError);
                 Map<String, Object> failure = new LinkedHashMap<>();
                 failure.put("dataSourceId", row.getDataSourceId());
+                failure.put("errorCode", rowError.getErrorCode());
                 failure.put("error", NopMetadataHelper.toErrorMessage(e));
                 failures.add(failure);
             }
