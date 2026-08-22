@@ -173,7 +173,8 @@ public class CollectionPersisterImpl implements ICollectionPersister {
 
         IBatchAction.CollectionBatchAction action = new IBatchAction.CollectionBatchAction(collection, shard,
                 (ret, err) -> {
-                    if (err != null) {
+                    // 与实体路径的queueSave/queueUpdate/queueDelete对齐：变更成功后才失效全局缓存
+                    if (err == null) {
                         evictGlobalCache(shard, collection);
                     }
                 });
@@ -283,8 +284,8 @@ public class CollectionPersisterImpl implements ICollectionPersister {
         Iterator<IOrmEntitySet> it = ret.iterator();
         while (it.hasNext()) {
             IOrmEntitySet coll = it.next();
-            String ownerId = coll.orm_owner().orm_idString();
-            Object[] elmIds = convertCacheValues(values.get(ownerId));
+            // keys与values的key必须一致：useTenantCache时getCacheKey带有租户前缀，而orm_idString()没有
+            Object[] elmIds = convertCacheValues(values.get(getCacheKey(coll.orm_owner())));
             if (elmIds != null) {
                 coll.orm_beginLoad();
                 for (Object elmId : elmIds) {

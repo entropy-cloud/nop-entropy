@@ -80,15 +80,16 @@ public class OrmTimestampHelper {
 
         if (entityModel.getCreaterPropId() > 0) {
             if (entity.orm_propValue(entityModel.getCreaterPropId()) == null) {
+                // 与updater分支对齐：有当前用户时用当前用户，没有时才用系统用户兜底
                 String user = getCurrentUser();
-                if (user != null) {
+                if (user == null) {
                     user = CFG_ORM_SYS_USER_NAME.get();
                 }
                 entity.orm_propValue(entityModel.getCreaterPropId(), user);
             }
         }
 
-        if (entityModel.getCreaterPropId() > 0) {
+        if (entityModel.getCreateTimePropId() > 0) {
             if (entity.orm_propValue(entityModel.getCreateTimePropId()) == null)
                 entity.orm_propValue(entityModel.getCreateTimePropId(), current);
         }

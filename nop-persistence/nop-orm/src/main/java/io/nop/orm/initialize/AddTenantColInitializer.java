@@ -70,7 +70,10 @@ public class AddTenantColInitializer {
                         jdbcTemplate.executeMultiSql(SQL.begin().sql(addSql).querySpace(querySpace).name("add_tenant").end());
                         LOG.info("nop.orm.add-tenant-col:table={},col={}", entityModel.getTableName(), col.getCode());
                     } catch (Exception e) {
-                        LOG.trace("nop.orm.add-tenant-col-fail", e);
+                        // 列已存在等预期情况也会走到这里，但连接失败、权限不足等真实故障不应静默，
+                        // 提升为WARN级别保证默认日志配置下可见
+                        LOG.warn("nop.orm.add-tenant-col-fail:table={},col={}", entityModel.getTableName(),
+                                col.getCode(), e);
                     }
                 }
             }

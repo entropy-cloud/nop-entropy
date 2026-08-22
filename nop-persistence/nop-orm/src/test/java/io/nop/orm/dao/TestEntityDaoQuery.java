@@ -11,11 +11,14 @@ import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.PageBean;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.beans.query.QueryFieldBean;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.app.SimsCollege;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.api.IEntityDao;
 import io.nop.orm.AbstractOrmTestCase;
 import io.nop.orm.OrmConstants;
+import io.nop.orm.OrmErrors;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -27,6 +30,7 @@ import static io.nop.api.core.beans.FilterBeans.not;
 import static io.nop.api.core.beans.FilterBeans.or;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestEntityDaoQuery extends AbstractOrmTestCase {
@@ -72,6 +76,25 @@ public class TestEntityDaoQuery extends AbstractOrmTestCase {
         SQL sql = DaoQueryHelper.queryToSelectObjectSql("Test", query);
         assertEquals("select o from Test as o \n" +
                 " where o.f1 > o.f2", sql.getText());
+    }
+
+    /**
+     * select字段的owner与字段名必须与group by/order by一样经过合法性校验
+     */
+    @Test
+    public void testQueryToSelectFieldsSqlRejectsInvalidField() {
+        QueryBean query = new QueryBean();
+        query.setSourceName("io.nop.app.SimsCollege");
+        query.addField(QueryFieldBean.forField("bad field!"));
+
+        NopException err = assertThrows(NopException.class, () -> DaoQueryHelper.queryToSelectFieldsSql(query, null));
+        assertEquals(OrmErrors.ERR_ORM_INVALID_FIELD_NAME.getErrorCode(), err.getErrorCode());
+
+        QueryBean query2 = new QueryBean();
+        query2.setSourceName("io.nop.app.SimsCollege");
+        query2.addField(QueryFieldBean.subField("bad owner!", "collegeId"));
+        NopException err2 = assertThrows(NopException.class, () -> DaoQueryHelper.queryToSelectFieldsSql(query2, null));
+        assertEquals(OrmErrors.ERR_ORM_INVALID_OWNER_NAME.getErrorCode(), err2.getErrorCode());
     }
 
     private PageBean<SimsCollege> findPageByCursor(String cursor, int limit, boolean findPrev, TreeBean filter) {

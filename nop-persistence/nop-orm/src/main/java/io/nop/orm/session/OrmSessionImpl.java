@@ -973,6 +973,8 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
         if (state.isProxy()) {
             internalLoad(entity);
+            // internalLoad之后状态可能已变化（记录不存在时被标记为MISSING），需要重新读取状态
+            state = entity.orm_state();
         }
 
         if (state.isTransient()) {

@@ -8,6 +8,7 @@
 package io.nop.orm.dao;
 
 import io.nop.app.SimsClass;
+import io.nop.core.lang.sql.SQL;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.dao.api.IEntityDao;
 import io.nop.orm.AbstractOrmTestCase;
@@ -37,6 +38,34 @@ public class TestJsonComponent extends AbstractOrmTestCase {
             SimsClass entity = dao.getEntityById("11");
             assertEquals("xx", BeanTool.getComplexProperty(entity, "jsonExtComponent.a"));
         });
+    }
+
+    /**
+     * json列为null的实体在被读取过组件后参与flush，不允许把字符串"null"写回列
+     */
+    @Test
+    public void testNullJsonColumnNotPollutedOnFlush() {
+        IEntityDao<SimsClass> dao = daoProvider().daoFor(SimsClass.class);
+        assertNull(queryJsonExt());
+
+        orm().runInSession(() -> {
+            SimsClass entity = dao.getEntityById("11");
+            // 读取组件触发懒解析，jsonValue被缓存为null
+            JsonOrmComponent comp = (JsonOrmComponent) entity.orm_propValueByName("jsonExtComponent");
+            assertNull(comp.getValue("a"));
+
+            // 因其他属性修改导致实体参与flush
+            entity.setClassName("flush-with-null-json");
+            orm().flushSession();
+        });
+
+        // 修复前：flushToEntity把stringify(null)得到的字符串"null"写回列
+        assertNull(queryJsonExt(), "null json column must not be written back as string 'null'");
+    }
+
+    private Object queryJsonExt() {
+        // 单列查询findFirst直接返回列值
+        return jdbc().findFirst(new SQL("select JSON_EXT as V from sims_class where CLASS_ID='11'"));
     }
 
     @Test

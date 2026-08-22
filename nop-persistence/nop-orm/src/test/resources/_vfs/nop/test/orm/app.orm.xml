@@ -88,6 +88,14 @@
                         <on leftValue="A" rightProp="fieldName" />
                     </join>
                 </to-one>
+
+                <!-- 配置useGlobalCache的to-many集合，用于测试集合全局缓存的失效语义 -->
+                <to-many name="cachedClasses" refEntityName="io.nop.app.SimsClass" useGlobalCache="true"
+                         notGenCode="true">
+                    <join>
+                        <on leftProp="collegeId" rightProp="collegeId"/>
+                    </join>
+                </to-many>
             </relations>
         </entity>
 

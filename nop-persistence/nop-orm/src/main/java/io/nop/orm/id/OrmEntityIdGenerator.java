@@ -111,7 +111,8 @@ public class OrmEntityIdGenerator implements IEntityIdGenerator {
 
         String tenantId = (String) OrmEntityHelper.getPropValue(col, entity);
         if (StringHelper.isEmpty(tenantId)) {
-            OrmEntityHelper.setPropValue(col, entity, tenantId);
+            // 租户列尚未初始化时，应初始化为上下文中的当前租户
+            OrmEntityHelper.setPropValue(col, entity, current);
         } else {
             if (!current.equals(tenantId))
                 throw new OrmException(OrmErrors.ERR_ORM_NOT_ALLOW_PROCESS_ENTITY_IN_OTHER_TENANT)

@@ -13,6 +13,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.model.IEntityModel;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -153,7 +154,10 @@ public class TenantOrmSessionEntityCache implements IOrmSessionEntityCache {
     @Override
     public void forEachDirty(Consumer<IOrmEntity> processor) {
         sharedCache.forEachDirty(processor);
-        for (OrmSessionEntityCache cache : caches.values()) {
+        // processor中可能通过session保存其他租户的实体，导致caches在遍历过程中新增租户缓存。
+        // 直接迭代caches.values()会抛ConcurrentModificationException，因此先复制快照。
+        // 遍历期间新建的租户缓存会在后续的遍历（例如flush的第二阶段）中被处理
+        for (OrmSessionEntityCache cache : new ArrayList<>(caches.values())) {
             cache.forEachDirty(processor);
         }
     }
@@ -161,7 +165,7 @@ public class TenantOrmSessionEntityCache implements IOrmSessionEntityCache {
     @Override
     public void forEachCurrent(Consumer<IOrmEntity> processor) {
         sharedCache.forEachCurrent(processor);
-        for (OrmSessionEntityCache cache : caches.values()) {
+        for (OrmSessionEntityCache cache : new ArrayList<>(caches.values())) {
             cache.forEachCurrent(processor);
         }
     }
@@ -169,7 +173,7 @@ public class TenantOrmSessionEntityCache implements IOrmSessionEntityCache {
     @Override
     public void forEachCurrent(String entityName, Consumer<IOrmEntity> processor) {
         sharedCache.forEachCurrent(entityName, processor);
-        for (OrmSessionEntityCache cache : caches.values()) {
+        for (OrmSessionEntityCache cache : new ArrayList<>(caches.values())) {
             cache.forEachCurrent(entityName, processor);
         }
     }

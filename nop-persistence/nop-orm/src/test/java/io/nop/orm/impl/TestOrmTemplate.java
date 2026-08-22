@@ -25,10 +25,13 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestOrmTemplate extends AbstractOrmTestCase {
     @Test
@@ -99,38 +102,29 @@ public class TestOrmTemplate extends AbstractOrmTestCase {
 
     @Test
     public void testQueryError() {
-        try {
+        IllegalStateException err = assertThrows(IllegalStateException.class, () -> {
             orm().runInSession(() -> {
                 SQL sql = SQL.begin().sql("select o from io.nop.app.SimsClass o").end();
                 orm().executeQuery(sql, ds -> {
                     throw new IllegalStateException("error");
                 });
             });
-            fail();
-        } catch (IllegalStateException e) {
-            assertEquals("error", e.getMessage());
-        } catch (Exception e) {
-            fail();
-        }
+        });
+        assertEquals("error", err.getMessage());
     }
 
 
     @Test
     public void testSupports() {
-        try {
-            txn().runInTransaction(null, TransactionPropagation.SUPPORTS, txn -> {
-                SQL sql = SQL.begin().sql("select o from io.nop.app.SimsClass o").end();
-                orm().executeQuery(sql, ds -> {
-                    throw new IllegalStateException("error");
-                });
-                return null;
-            });
-            fail();
-        } catch (IllegalStateException e) {
-            assertEquals("error", e.getMessage());
-        } catch (Exception e) {
-            fail();
-        }
+        IllegalStateException err = assertThrows(IllegalStateException.class,
+                () -> txn().runInTransaction(null, TransactionPropagation.SUPPORTS, txn -> {
+                    SQL sql = SQL.begin().sql("select o from io.nop.app.SimsClass o").end();
+                    orm().executeQuery(sql, ds -> {
+                        throw new IllegalStateException("error");
+                    });
+                    return null;
+                }));
+        assertEquals("error", err.getMessage());
     }
 
     @Test
@@ -139,6 +133,32 @@ public class TestOrmTemplate extends AbstractOrmTestCase {
             SQL sql = SQL.begin().sql("select o,2 from io.nop.app.SimsClass o where 1=? and date(o.createdTime) > ?", 3, "2002-01-03").end();
             orm().findAll(sql);
             return null;
+        });
+    }
+
+    @Test
+    public void testEntityExprNotFirstSelectItem() {
+        orm().runInSession(() -> {
+            // 实体表达式位于第二个select项：读取实体id时必须使用fromIndex，而不是固定读第0列
+            List<?> rows = orm().findAll(SQL.begin()
+                    .sql("select o.className, o from SimsClass o where o.classId='11'").end());
+            assertEquals(1, rows.size());
+            Map<?, ?> row = (Map<?, ?>) rows.get(0);
+            assertEquals(2, row.size());
+
+            SimsClass entity = null;
+            Object className = null;
+            for (Object value : row.values()) {
+                if (value instanceof SimsClass) {
+                    entity = (SimsClass) value;
+                } else {
+                    className = value;
+                }
+            }
+            assertEquals("classA", className);
+            assertEquals("11", entity.getClassId());
+            // 实体必须以正确的id进入session一级缓存
+            assertSame(entity, orm().get(SimsClass.class.getName(), "11"));
         });
     }
 

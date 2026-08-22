@@ -329,6 +329,11 @@ public interface OrmErrors {
     ErrorCode ERR_ORM_ENTITY_SET_ELEMENT_NOT_KV_TABLE = define("nop.err.orm.entity-set-element-not-kv-table",
             "集合[{collectionName}]的元素不是IOrmKeyValueTable类型，不支持设置动态属性");
 
+    ErrorCode ERR_ORM_DIRTY_ENTITY_SET_NOT_ALLOW_CHANGE_TENANT = define(
+            "nop.err.orm.dirty-entity-set-not-allow-change-tenant",
+            "集合[{collectionName}]中存在未提交的修改，不允许切换到其他租户访问：oldTenant={tenantId},currentTenant={currentTenant}",
+            ARG_COLLECTION_NAME, ARG_TENANT_ID, ARG_CURRENT_TENANT);
+
 
     ErrorCode ERR_ORM_ENTITY_NOT_DETACHED = define("nop.err.orm.entity-not-detached",
             "执行attache函数之前，实体对象[{entityName}]已经先从原先的session中evict");

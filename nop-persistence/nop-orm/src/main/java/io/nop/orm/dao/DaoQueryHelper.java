@@ -160,6 +160,9 @@ public class DaoQueryHelper {
     }
 
     private static void appendField(SQL.SqlBuilder sb, String ownerName, String name) {
+        // 与appendGroupBy/appendOrderBy的防御保持一致，避免非法的owner/字段名被拼接到SQL中
+        checkOwnerName(ownerName);
+        checkFieldName(name);
         if (ownerName == null)
             ownerName = "o";
         if (name.equals("o")) {

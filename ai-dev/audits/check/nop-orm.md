@@ -73,6 +73,8 @@ if (query.isFindPrev()) {
 - **建议**: 改为 `cascadeDeleteEntity(refEntity, propModel.isAutoCascadeDelete())`，并补充 to-one 级联删除的回归测试。
 - **误报排除**: 已核对 `IEntityRelationModel.isCascadeDelete` 的模型 javadoc、`OrmEntityState.isGone/isDeleting` 定义、`cascadeDeleteEntity` 全文及 `cascadeEntity` 的 flushVisiting 短路逻辑，确认 no-op 推导成立；to-many 分支（cascadeCollection）不受影响。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 确认属实，已修复。`CascadeFlusher._cascadeEntity` 的 to-one `deleteProp` 分支改为 `cascadeDeleteEntity(refEntity, propModel.isAutoCascadeDelete())`。测试：`nop-orm` `TestCascadeFlush#testOneToOneCascadeDelete`（使用 base.orm.xml 既有 `TestCompositeOneToOneMain.sub` 的 cascadeDelete 配置；红验证：修复前删除主表后子表残留 1 条记录 "expected: 0 but was: 1"）。修复后 nop-orm 全模块 169 tests, 0 failures, 6 skipped。
+
 ### [P1] OrmAssembly.readId 单列主键分支忽略 fromIndex，EQL 非首位实体表达式 id 错读
 
 - **文件**: `nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/OrmAssembly.java:139-151`
@@ -98,6 +100,8 @@ public static Object readId(Object[] values, int fromIndex, IEntityModel entityM
 - **建议**: 改为 `return values[fromIndex];`，并补充"实体表达式位于非首位"的 EQL 回归测试。
 - **误报排除**: 已验证 `eagerLoadProps` 主键列排在最前（OrmEntityModelInitializer.initProps 明确保证），复合分支的 fromIndex 语义正确；同类的 `SingleColumnExprMeta`/`CompositePkExprMeta`/`EntityRefPropExprMeta.buildValue` 均正确使用 fromIndex，仅本方法遗漏；EQL 编译器不重排 select 项。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 确认属实，已修复。单列主键分支改为 `return values[fromIndex];`。测试：`nop-orm` `TestOrmTemplate#testEntityExprNotFirstSelectItem`（EQL `select o.className, o from SimsClass o where o.classId='11'`，断言实体以正确 id 进入一级缓存 `assertSame(entity, orm().get(...))`；红验证：修复前实体被装配到错误 id 上——"expected: SimsClass[id=11] but was: SimsClass[id=classA]"，正是审计预测的张冠李戴）。
+
 ### [P1] EntityPersisterImpl.batchLoadAsync 丢弃真实 future 并返回 voidPromise，批量加载错误被吞
 
 - **文件**: `nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/EntityPersisterImpl.java:159-183`
@@ -122,6 +126,8 @@ return FutureHelper.voidPromise();   // 丢弃 future，恒返回已完成 promi
 - **建议**: `return future;`；全局缓存更新也应纳入返回的 future 链。
 - **误报排除**: 已验证 `FutureHelper.futureCall` 同步执行并 `reject(t)` 捕获异常、`JdbcEntityPersistDriver.batchLoadAsync` 使用 futureCall；已核对 `OrmBatchLoadQueueImpl._flushEntity` 对返回 future 的 syncGet 无兜底异常处理路径。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 确认属实，已修复。方法末尾改为 `return future;`，全局缓存更新改为 `future = future.thenRun(...)` 纳入返回的 future 链（与同文件 `loadAsync` 单实体路径的写法对齐）。测试：`nop-orm` `TestGlobalCache#testBatchLoadErrorPropagates`（drop table 后对 2 个 proxy 实体 batchLoadProps；红验证：修复前 "Expected Exception to be thrown, but nothing was thrown"，加载错误被完全静默）。
+
 ### [P1] CollectionPersisterImpl 集合全局缓存失效条件写反（err != null 才 evict），变更成功后缓存陈旧
 
 - **文件**: `nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/CollectionPersisterImpl.java:171-181`
@@ -139,6 +145,8 @@ IBatchAction.CollectionBatchAction action = new IBatchAction.CollectionBatchActi
 - **风险**: 配置了集合 `useGlobalCache` 的 to-many 关联，元素增删提交成功后 owner 的 elementIds 缓存不失效，后续 loadCollection 命中旧缓存，返回增删之前的集合内容（读到已删除元素/看不到新增元素），缓存与数据库长期不一致。
 - **建议**: 改为 `if (err == null) evictGlobalCache(shard, collection);` 与实体路径对齐。
 - **误报排除**: 已核对 `IBatchAction.CollectionBatchAction.onSuccess/onFailure` 的回调约定（err 参数传递）、`BatchActionQueueImpl.flushAsync` 中 `action.onSuccess(null)` 的调用位置、以及 elementIds 缓存的读写路径（仅 loadFromGlobalCache/updateGlobalCache/evictGlobalCache 三处），确认成功路径无任何失效手段。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 确认属实，已修复。回调条件改为 `if (err == null) evictGlobalCache(shard, collection);` 与实体路径对齐。测试前提：测试模型 app.orm.xml 此前没有任何 useGlobalCache 的集合，本次在测试 fixture 中为 SimsCollege 增加 `cachedClasses`（to-many → SimsClass，useGlobalCache="true"，notGenCode，不影响其他测试）。测试：`nop-orm` `TestGlobalCache#testCollectionGlobalCacheEvictedAfterChange`（加载集合填充缓存 → 新增元素并 flush → 新 session 重新加载；红验证：修复前命中陈旧缓存 "expected: 2 but was: 1"，看不到新增元素）。
 
 ### [P1] JsonOrmComponent 读取 null 列后 flush 将字符串 "null" 写回，数据污染
 
@@ -167,6 +175,8 @@ public void flushToEntity() {
 - **建议**: 引入独立的 dirty 标志（仅 `set_jsonValue` 置位）或改为 `if (jsonValue != NOT_INITED && jsonValue != null)`。
 - **误报排除**: 已验证 `IOrmComponent.onEntityFlush` 默认调用 `flushToEntity`、`OrmEntity.orm_flushComponent` 对 needFlush 组件无条件调用、`JsonTool.stringify` 委托 Jackson（writeValueAsString(null) 返回 "null"）、`markPropDirty` 对 null→"null" 判定为变更。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 确认属实，已修复。`flushToEntity` 条件改为 `if (jsonValue != NOT_INITED && jsonValue != null)`，与 `XmlOrmComponent.flushToEntity` 的 `node != null` 处理对齐。测试：`nop-orm` `TestJsonComponent#testNullJsonColumnNotPollutedOnFlush`（json 列为 null 的实体读取组件后因其他属性修改参与 flush；红验证：修复前列被写为字符串 "null"（H2 JSON 列读回为字节 [110,117,108,108]）。附带核查：`get_jsonText()` 对缓存的 null 同样会返回 "null"，但全仓库无调用方（仅类内 NOT_INITED 分支自用），未改动。
+
 ### [P2] 全局缓存 getToLoad 的缓存 key 错位：多租户实体批量加载缓存恒 miss
 
 - **文件**: `nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/EntityPersisterImpl.java:591-619`；`nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/CollectionPersisterImpl.java:263-302`
@@ -188,6 +198,8 @@ Object value = values.get(entity.orm_idString());   // 纯 id 字符串，无 te
 - **建议**: 回查统一使用 `values.get(getCacheKey(entity))`。
 - **误报排除**: 已验证 `orm_idString` 的默认实现、`getCacheKey` 的两处实现、以及 `useTenantCache` 的判定条件（`isUseTenant() && !isGlobalUniqueId()`），确认错位仅在租户缓存场景发生。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 确认属实，已修复。`EntityPersisterImpl.getToLoad` 与 `CollectionPersisterImpl.getToLoad` 的回查统一改为 `values.get(getCacheKey(...))`。测试：`nop-orm` `TestGlobalCache#testTenantBatchLoadGlobalCacheHit`（SimsLesson 为 useGlobalCache+租户实体；单个加载填充租户前缀缓存 → jdbc 绕过缓存改库 → 2 个 proxy 批量加载必须命中缓存读到旧值；红验证：修复前 key 错位导致 miss 回源数据库 "expected: a but was: x"）。
+
 ### [P2] TenantOrmSessionEntityCache 遍历租户缓存时新增租户缓存导致 ConcurrentModificationException
 
 - **文件**: `nop-persistence/nop-orm/src/main/java/io/nop/orm/session/TenantOrmSessionEntityCache.java:154-175`
@@ -205,6 +217,8 @@ public void forEachDirty(Consumer<IOrmEntity> processor) {
 - **风险**: flush 期间（含 preSave/interceptor 回调）跨租户新建实体（后台任务遍历多租户数据并保存）触发 CME，事务中断。单租户场景不受影响。
 - **建议**: 迭代前复制 `new ArrayList<>(caches.values())`，或新租户缓存延迟到遍历结束后注册。
 - **误报排除**: 已验证 `makeTenantCache` 的 lazy put 逻辑与 `internalSave → cache.add` 调用链；HashMap.values() 迭代中 put 新 key 会触发 modCount 变化抛 CME。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 确认属实，已修复。三个遍历方法（`forEachDirty`/`forEachCurrent`×2）改为迭代 `new ArrayList<>(caches.values())` 快照；遍历期间新建的租户缓存已标记 dirty，会由后续遍历（CascadeFlusher 的第二阶段 forEachDirty）处理。测试：`nop-orm` `TestOrmSessionEntityCache#testForEachDirtyNewTenantDuringIteration`（processor 中保存新租户实体触发 makeTenantCache put；红验证：修复前 ConcurrentModificationException。注意需预置 2 个租户缓存条目才能确定性复现——单个条目时 HashMap 迭代器恰好已耗尽不抛 CME）。
 
 ### [P2] OrmSessionEntityCache.removeAll 在 visiting 时直接 clear 正在被遍历的主缓存
 
@@ -229,6 +243,8 @@ public void removeAll(String entityName) {
 - **建议**: visiting 时将 removeAll 记录到 temp 结构（如按 entityName 记录待清除集合），循环收敛后统一处理。
 - **误报排除**: 已验证 `forEachCurrent` 直接迭代 `cache.entities()`（LinkedHashMap.values() 活视图）且 `EntityCache.clear()` 会 `idToEntities.clear()`，clear 与并发迭代组合必然 CME。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 确认属实，已修复。visiting 时 `removeAll` 记入新增的 `tempRemoveAllNames` 暂存并直接返回；三个 forEach 循环体在合并 tempEntityCaches 之前统一执行 `processPendingRemoveAll()`（清除主缓存条目并 detach 实体），因此 removeAll 之后再新增的同名实体会被保留。`clear()` 在 visiting 分支同步清空该暂存。测试：`nop-orm` `TestOrmSessionEntityCache#testRemoveAllDuringVisiting`（forEachCurrent 过程中对正在遍历的 entityName 调 removeAll；红验证：修复前 ConcurrentModificationException，修复后无异常且遍历结束后实体已 detach 移除）。
+
 ### [P2] OrmEntityIdGenerator.initTenantId 传错变量：租户主键列不会初始化为当前租户
 
 - **文件**: `nop-persistence/nop-orm/src/main/java/io/nop/orm/id/OrmEntityIdGenerator.java:113-114`
@@ -244,6 +260,8 @@ if (StringHelper.isEmpty(tenantId)) {
 - **风险**: 使用 tenant 作为联合主键的实体，新建时主键的租户分量缺失 → `orm_hasId()` 为 false → `EntityCache.add` 的 `Guard.notNull(entity.get_id())` 抛出晦涩的 "entity._id" 异常。当前仓库的 orm 模型未使用 tenant-in-PK 配置（nopTenantId 均带 defaultValue 且非 primary），故未暴露；但平台明确支持该建模（`isGlobalUniqueId` 分支即为此设计）。
 - **建议**: 改为 `OrmEntityHelper.setPropValue(col, entity, current);` 并补充 tenant-in-PK 实体的主键生成测试。
 - **误报排除**: 已验证 `setPropValue` 对空值的实际效果、`generateId` 中 tenantPropId 分支无后续兜底检查、以及仓库现有 orm 模型中租户列的配置情况。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 确认属实，已修复。`initTenantId` 改为 `OrmEntityHelper.setPropValue(col, entity, current)`。测试 fixture：base.orm.xml 新增 `test.entity.TestTenantPkTable`（nopTenantId+sid 联合主键、tagSet seq、DynamicOrmEntity，不涉及生产模型）。测试：`nop-orm` `TestOrmSessionState#testGenerateIdInitializesTenantPk`（直接调用 id 生成器；红验证：修复前 "expected: 123 but was: null"）、`#testTenantPkInitToCurrentTenant`/`#testTenantPkStatelessSave` 为行为回归。超出审计的发现：审计预测的 "cache.add 处 Guard.notNull entity._id 异常" 在公开 API 路径不可达——stateful 会话被 `TenantOrmSessionEntityCache.makeTenantId` 在 cache.add 时兜底补写当前租户，stateless 会话的 save 同步走 flushImmediately→queueSave→`processTenantId` 兜底；两重兜底都以 orm_internalSet 补写从而掩盖缺陷（也因此红测试只能直击 id 生成器单元）。修复恢复了 id 生成阶段的契约。
 
 ### [P2] OrmEntity.orm_requireEntity 用加载前的旧状态判断 isGone，违背接口契约
 
@@ -265,6 +283,8 @@ public <T extends IOrmEntity> T orm_requireEntity() {
 - **风险**: 调用方（业务代码公共 API）在记录不存在时拿到 MISSING 状态实体而非异常，后续属性访问行为不可预期。当前模块内无调用方，属公共 API 契约违背。
 - **建议**: 加载后重新读取 `orm_state()` 再判断（`internalLoad` 之后改用 `orm_state().isGone()`）。
 - **误报排除**: 已验证 `internalLoad` 失败路径会调用 `markMissing` 将状态置为 MISSING、接口 javadoc 原文、以及全仓库无其他调用方。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 确认属实，已修复。删除加载前捕获的局部变量，`internalLoad` 之后重新调用 `orm_state()` 判断 isGone。测试：`nop-orm` `TestOrmSessionState#testRequireEntityThrowsWhenMissing`（加载不存在的 id 得到 proxy 后调用 orm_requireEntity；红验证：修复前 "Expected UnknownEntityException to be thrown, but nothing was thrown"，返回了 MISSING 状态实体）。
 
 ### [P2] OrmEntitySet.orm_reset 将未加载的 proxy 集合固化为"空已加载"集合
 
@@ -288,6 +308,8 @@ public boolean orm_proxy() {
 - **风险**: 调用 `session.reset()`（如事务回滚后的状态恢复）之后，访问原本未加载的集合得到空集而不是触发数据库加载，业务读不到数据。`reset()` 当前无框架内部调用方，属公共 API 上的数据正确性缺陷。
 - **建议**: `orm_reset` 开头对 `orm_proxy()` 为 true 的集合直接 return（proxy 无需恢复）。
 - **误报排除**: 已验证 `_makeProxy` 中 `refSet.orm_proxy(true)` 置 initialEntities=null、`orm_clearDirty` 的赋值语句、以及 `OrmSessionImpl.resetEntity` 的无条件 `pc.orm_reset()` 调用链。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 确认属实，已修复。`orm_reset` 开头对 `orm_proxy()` 为 true 的集合直接 return（proxy 集合 entities 为空且无脏标记，无任何需要恢复的内容）。测试：`nop-orm` `TestOrmEntitySet#testOrmResetKeepsProxy`（红验证：修复前 orm_reset 后 orm_proxy() 变为 false "expected: true but was: false"，懒加载能力丢失）。
 
 ### [P2] OrmTimestampHelper.onUpdate 的 creater 分支条件反转，审计字段记成系统用户
 
@@ -315,6 +337,8 @@ if (entityModel.getCreaterPropId() > 0) {          // 误用 creater 条件，�
 - **建议**: 改为 `if (user == null) user = CFG_ORM_SYS_USER_NAME.get();`；第二个 if 改用 `getCreateTimePropId() > 0`。
 - **误报排除**: 已对照 onCreate 与 updater 分支的正确模式，三处逻辑不对称明确指向笔误。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 确认属实，已修复。creater 分支改为与 updater 分支对称的 `if (user == null) user = CFG_ORM_SYS_USER_NAME.get();`；第二个 if 的条件由 `getCreaterPropId() > 0` 改为 `getCreateTimePropId() > 0`。测试：`nop-orm` `TestOrmPersisterHelpers#testOnUpdateFillsCreaterWithCurrentUser`（jdbc 清空 CREATED_BY 后修改实体触发 update；红验证：修复前当前用户 userA 被覆盖为 "sys"）。第二个 if 的修正无法用现有 fixture 单独区分（测试模型所有实体 creater/createTime 同时配置，两条件同真），属同型笔误修正，由代码对称性保证。No separate test required for the createTime branch: 现有测试模型无法构造只配 createTime 不配 creater 的实体。
+
 ### [P2] OrmRevisionHelper.newError 忽略传入的 errorCode，恒报"非当前版本"
 
 - **文件**: `nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/OrmRevisionHelper.java:80-86`
@@ -334,6 +358,8 @@ static NopException newError(IEntityModel entityModel, ErrorCode errorCode, IOrm
 - **建议**: 改为 `OrmException.newError(errorCode, entity)`。
 - **误报排除**: 已核对全部调用点传入的 errorCode 与 OrmErrors 中的常量定义。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 确认属实，已修复。改为 `OrmException.newError(errorCode, entity)`。测试：`nop-orm` `TestOrmPersisterHelpers#testNewErrorUsesPassedErrorCode`（直接调用包级方法，分别传入 ERR_ORM_ENTITY_ALREADY_EXISTS 与 ERR_ORM_ENTITY_REV_VER_IS_LESS_THAN_HIS_VER；红验证：修复前全部报成 "expected: nop.err.orm.entity-already-exists but was: nop.err.orm.not-current-revision"）。
+
 ### [P3] OrmBatchLoadQueueImpl.isEmpty() 返回值语义颠倒
 
 - **文件**: `nop-persistence/nop-orm/src/main/java/io/nop/orm/loader/OrmBatchLoadQueueImpl.java:628-630`
@@ -349,6 +375,8 @@ public boolean isEmpty() {
 - **风险**: 潜在的 API 契约陷阱。
 - **建议**: 改为 `return loadQueue == null;`。
 - **误报排除**: 已搜索全仓库确认无调用方，属潜伏缺陷。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 确认属实，已修复。改为 `return loadQueue == null;`。测试：`nop-orm` `TestOrmSessionState#testBatchLoadQueueIsEmpty`（新队列 isEmpty 为 true，enqueue proxy 实体后为 false；红验证：修复前 "expected: true but was: false"）。
 
 ### [P3] OrmEntityHelper.getEntityChange 双重笔误且恒返回空（死代码）
 
@@ -374,6 +402,8 @@ public static List<List<Object>> getEntityChange(IOrmEntity entity) {
 - **风险**: 死代码中的陷阱，未来接入变更审计时直接失效。
 - **建议**: 修正为 `if (!entity.orm_dirty()) return emptyList();` 并补 `ret.add(change)`；或删除死代码。
 - **误报排除**: 已搜索确认无调用方。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 确认属实，已修复。条件改为 `if (!entity.orm_dirty())`，循环体内补 `ret.add(change)`，保留 javadoc 声明的 `[[propId, oldValue, newValue]]` 语义（未删除死代码）。测试：`nop-orm` `TestOrmEntitySet#testGetEntityChange`（红验证：修复前恒返回空 "expected: 1 but was: 0"）。
 
 ### [P3] OrmSessionImpl.internalDelete 使用加载前状态，proxy 加载后发现 MISSING 仍标记 DELETING
 
@@ -402,6 +432,8 @@ else {
 - **建议**: internalLoad 后重新读取 `entity.orm_state()` 再走状态分支。
 - **误报排除**: 已验证 `_internalLoad` 失败时 `markMissing` 的路径与 OrmEntityState 各状态判定。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 确认属实，已修复。`internalLoad(entity)` 之后重读 `state = entity.orm_state()` 再走状态分支，MISSING 实体不再被标记 DELETING（不产生多余 DELETE 与 preDelete/postDelete 回调）。测试：`nop-orm` `TestOrmSessionState#testDeleteMissingProxyIsNoOp`（删除不存在的 id；红验证：修复前 "expected: MISSING but was: DELETING"）。
+
 ### [P3] GenSqlHelper 排序字段名未校验，未知字段触发无信息 NPE
 
 - **文件**: `nop-persistence/nop-orm/src/main/java/io/nop/orm/sql/GenSqlHelper.java:554-562, 811-828`
@@ -416,6 +448,8 @@ appendCol(sb, dialect, owner, col);      // appendCol 内 col.getSqlText() 直�
 - **风险**: 传错排序字段名时得到难以定位的 NPE 而非明确错误消息。无注入风险（拼接的是模型列名，未知值根本进不了 SQL）。
 - **建议**: col 为 null 时抛带字段名的 NopException。
 - **误报排除**: 已验证 `getColumn(name, false)` 的宽容语义与 `EqlHelper.appendCol` 的首行代码。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 复查非问题，审计前提有误。`IEntityModel.getColumn(name, ignoreUnknown)` 的第二个参数是 ignoreUnknown，`false` 是严格模式：未知列在 `OrmEntityModel.getColumn` 内即抛 `ERR_ORM_UNKNOWN_COLUMN`（nop.err.orm.model.unknown-column，携带 entityName/colName 参数，消息明确提示"这里是Java属性名而不是数据库字段名"），并非"宽容返回 null"。`genOrderBy` 与 `appendOrderBy` 均传 `false`，未知排序字段在取列阶段即被短路报出带字段名的明确错误，`appendCol`/`col.getCode()` 处的 NPE 不可达（已用实际运行验证）。处置：不改主代码；补 `TestGenSqlHelper#testGenOrderByUnknownField`/`#testAppendOrderByUnknownField` 两个特性回归测试锁定该报错行为（含 colName 参数断言），防止后续改动引入真正的宽容语义。
 
 ### [P3] DaoQueryHelper.appendField 缺少字段名/owner 校验，与同文件其他方法防御不一致
 
@@ -443,6 +477,8 @@ private static void appendField(SQL.SqlBuilder sb, String ownerName, String name
 - **建议**: appendField 内补 `checkFieldName(name)` 与 `checkOwnerName(ownerName)`，与同文件风格一致。
 - **误报排除**: 已确认调用方（MdxQueryExecutor、OrmEntityDao、JdbcBatchLoaderProvider）中 queryToSelectFieldsSql 生成的 SQL 均经 OrmTemplate 的 EQL 编译路径；aggFunc 分支有校验说明作者已有防注入意识，此处属遗漏。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 确认属实（防御纵深缺失），已修复。`appendField` 开头补 `checkOwnerName(ownerName)` 与 `checkFieldName(name)`，与同文件 `appendGroupBy`/`appendOrderBy` 的防御风格一致。测试：`nop-orm` `TestEntityDaoQuery#testQueryToSelectFieldsSqlRejectsInvalidField`（非法字段名与非法 owner 两个分支分别断言 ERR_ORM_INVALID_FIELD_NAME/ERR_ORM_INVALID_OWNER_NAME；红验证：修复前两个字段直接拼入 EQL 文本不抛异常）。
+
 ### [P3] OrmEntitySet.checkLoaded 使用 bare IllegalStateException
 
 - **文件**: `nop-persistence/nop-orm/src/main/java/io/nop/orm/support/OrmEntitySet.java:379-381`
@@ -457,6 +493,8 @@ if (!tenantId.equals(ContextProvider.currentTenantId())) {
 - **风险**: 错误码体系外异常，无法被统一的错误分类/国际化处理。
 - **建议**: 改用 OrmException + 新增 ErrorCode。
 - **误报排除**: 已核对 OrmErrors 中无对应错误码，属规范违背而非既有约定。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 确认属实，已修复。OrmErrors 新增 `ERR_ORM_DIRTY_ENTITY_SET_NOT_ALLOW_CHANGE_TENANT`（nop.err.orm.dirty-entity-set-not-allow-change-tenant，携带 collectionName/tenantId/currentTenant 参数），`checkLoaded` 改用 `newError(...)` 走 OrmException（自动附带集合上下文参数）。测试：`nop-orm` `TestOrmEntitySet#testDirtyEntitySetChangeTenantThrowsOrmException`（红验证：修复前抛 bare IllegalStateException "Unexpected exception type thrown, expected NopException but was IllegalStateException"）。
 
 ### [P3] AddTenantColInitializer 初始化失败仅以 TRACE 级别记录
 
@@ -476,6 +514,8 @@ try {
 - **建议**: 至少提升为 WARN，或区分"列已存在"（忽略）与其他异常（快速失败）。
 - **误报排除**: 已确认 catch 范围为所有 Exception 且无重新抛出路径。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 确认属实，已修复。TRACE 提升为 WARN，并补 table/col 上下文参数便于定位（"列已存在"的预期噪音与连接失败等真实故障在默认日志配置下均可见）。No new test required: 纯日志级别与参数调整，无行为语义变化。
+
 ### [P3] OrmEntitySet.orm_clearDirty 注释与代码矛盾
 
 - **文件**: `nop-persistence/nop-orm/src/main/java/io/nop/orm/support/OrmEntitySet.java:637-644`
@@ -493,6 +533,8 @@ public void orm_clearDirty() {
 - **风险**: 维护性风险。
 - **建议**: 更新注释说明"字段置 null 不影响已通过 orm_removed() 传出的拷贝"。
 - **误报排除**: 已核对 `orm_removed()` 返回防御性拷贝与 `CollectionBatchAction` 构造函数中的暂存逻辑。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 确认属实，已修复。注释更新为说明"字段置 null 不影响已通过 orm_removed() 传出的防御性拷贝、BatchAction.CollectionBatchAction 构造时已暂存元素列表"，消除与代码相反的表述。No new test required: 注释与代码一致性修正，无行为变化（审计亦确认实际行为安全）。
 
 ## 其他已排查未列入的项（供参考）
 

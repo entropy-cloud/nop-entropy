@@ -265,7 +265,8 @@ public class CascadeFlusher {
             } else if (entity.orm_refLoaded(propModel.getName())) {
                 IOrmEntity refEntity = entity.orm_refEntity(propModel.getName());
                 if (deleteProp) {
-                    cascadeDeleteEntity(entity, propModel.isAutoCascadeDelete());
+                    // cascadeDelete的语义是删除关联对象，而不是owner自身
+                    cascadeDeleteEntity(refEntity, propModel.isAutoCascadeDelete());
                 } else {
                     if (refEntity.orm_state().isTransient()) {
                         cascadeEntity(refEntity, false);

@@ -736,12 +736,13 @@ public abstract class OrmEntity implements IOrmEntity {
 
     @Override
     public <T extends IOrmEntity> T orm_requireEntity() {
-        OrmEntityState state = orm_state();
-        if (state.isProxy())
+        if (orm_state().isProxy())
             orm_enhancer().internalLoad(this);
 
 
-        if (state.isGone())
+        // internalLoad之后状态可能已发生变化（例如记录不存在时被标记为MISSING），
+        // 必须重新读取状态再判断
+        if (orm_state().isGone())
             throw new UnknownEntityException(get_entityName(), get_id());
         return (T) this;
     }

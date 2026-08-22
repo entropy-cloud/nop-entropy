@@ -146,7 +146,9 @@ public class JsonOrmComponent extends AbstractOrmComponent
 
     @Override
     public void flushToEntity() {
-        if (jsonValue != NOT_INITED) {
+        // 从数据库读取的null列会缓存null值，此时不能把stringify(null)得到的字符串"null"写回列中。
+        // 与XmlOrmComponent.flushToEntity的null处理保持一致
+        if (jsonValue != NOT_INITED && jsonValue != null) {
             String jsonText = JsonTool.stringify(jsonValue);
             internalSetPropValue(PROP_NAME__jsonText, jsonText);
         }
