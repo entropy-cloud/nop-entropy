@@ -147,10 +147,12 @@ executor.scheduleWithFixedDelay(manager::checkChangedAndReload, 0, 5, TimeUnit.S
 
 ## 源码锚点
 
+> **注（2026-08-23，R1 定位反转已落地）**：多实例机制（IPluginInstance/InstanceState/createInstance/parent 层级）已删除，`IPlugin` 收敛为单层六态状态机（activate/deactivate/getService）。本文档为反转前版本，全面重写归 roadmap R4；下表已剔除被删文件的死链接。
+
 | 组件 | 路径 |
 |------|------|
 | `IPlugin`（定义级状态机 + 兼容 default 方法） | `nop-core-framework/nop-plugin/nop-plugin-api/src/main/java/io/nop/plugin/api/IPlugin.java` |
-| `IPluginInstance`（实例级状态机 + getService/命令路由） | `nop-core-framework/nop-plugin/nop-plugin-api/src/main/java/io/nop/plugin/api/IPluginInstance.java` |
+| `PluginState`（单层六态：UNLOADED/LOADED/ACTIVATING/ACTIVATED/DEACTIVATING/FAILED） | `nop-core-framework/nop-plugin/nop-plugin-api/src/main/java/io/nop/plugin/api/PluginState.java` |
 | `IPluginScope`（effect/effects/close + 激活期 getService） | `nop-core-framework/nop-plugin/nop-plugin-api/src/main/java/io/nop/plugin/api/IPluginScope.java` |
 | `IPluginActivator`（`activate(scope, config)` 双参数） | `nop-core-framework/nop-plugin/nop-plugin-api/src/main/java/io/nop/plugin/api/IPluginActivator.java` |
 | `IPluginManager`（loadPlugin/createInstance/reconcile/reloadPlugin） | `nop-core-framework/nop-plugin/nop-plugin-manager/src/main/java/io/nop/plugin/manager/IPluginManager.java` |

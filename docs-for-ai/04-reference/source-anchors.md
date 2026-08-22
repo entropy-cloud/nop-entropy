@@ -209,7 +209,7 @@
 | 规则 ID | 锚点 | 说明 |
 |---------|------|------|
 | `PLG-001` | `nop-core-framework/nop-plugin/nop-plugin-api/src/main/java/io/nop/plugin/api/IPlugin.java` | 插件定义级状态机契约：`load/unload/getState/getInstance/getInstances/isStateMachineAware` 等 default 方法 + 兼容路径语义 |
-| `PLG-002` | `nop-core-framework/nop-plugin/nop-plugin-api/src/main/java/io/nop/plugin/api/IPluginInstance.java` | 实例级状态机契约：`getService`（生命周期代理/多候选 primary 规则/INACTIVE 快速失败）、`invokeCommand` per-instance 路由、`getParent`/`getConfig` |
+| `PLG-002` | `nop-core-framework/nop-plugin/nop-plugin-api/src/main/java/io/nop/plugin/api/PluginState.java` | 单层六态状态机契约（2026-08-23 R1 定位反转：原实例级 IPluginInstance 契约已删除，getService/INACTIVE 快速失败语义并入 `IPlugin`，生命周期实现见 `VfsPluginDefinition`；本表其余反转前措辞的重写归 roadmap R4） |
 | `PLG-003` | `nop-core-framework/nop-plugin/nop-plugin-api/src/main/java/io/nop/plugin/api/IPluginScope.java` | effect 自管理契约：`effect(Disposable)`/`effects()`（LIFO 回退 quiescence）；激活期 `getService` 返回真实 bean |
 | `PLG-004` | `nop-core-framework/nop-plugin/nop-plugin-api/src/main/java/io/nop/plugin/api/IPluginActivator.java` | 激活器双参数契约：`activate(scope, config)`（返回值非 null 自动注册 effect） |
 | `PLG-005` | `nop-core-framework/nop-plugin/nop-plugin-manager/src/main/java/io/nop/plugin/manager/IPluginManager.java` | manager 契约：双轨路由（坐标→uber jar / 路径→VFS `*.plugin.xml`）、`createInstance`（门控 null/重复 key 异常/parent）、`reconcileInstances`、`reloadPlugin`（HMR 快照重建，jar 轨显式失败） |

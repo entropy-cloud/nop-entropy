@@ -1,5 +1,13 @@
 # 更新日志
 
+## 变更 2026-08-23
+* **破坏性变更**: nop-plugin 公共契约从"定义级 + 实例级"两层状态机收缩为单层六态状态机（一个定义至多一个激活）(commit: 617a80d881)
+  - 删除 `IPluginInstance`、`InstanceState` 及实例机制 API 面：`IPluginManager.createInstance/destroyInstance/getInstance/getInstances`、`IPlugin.getInstance/getInstances`；`IPluginContext` 重写为插件级契约
+  - `PluginState` 收敛为单组六态枚举 `UNLOADED/LOADED/ACTIVATING/ACTIVATED/DEACTIVATING/FAILED`，定义（load/unload）与激活（activate/deactivate）在同一对象演进；实例生命周期实现 `PluginInstanceImpl` 并入 `VfsPluginDefinition`
+  - `IPlugin` 直接承载 `activate()/deactivate()/getService()/getState()`；`IPluginManager` 新增 `activatePlugin/deactivatePlugin(pluginId)`；兼容接口收敛为 `start = load + activate`、`stop = deactivate + unload`
+  - **迁移指南**: 原 `createInstance(key, config, parent)` 改用 `activatePlugin(pluginId)`（配置经定义级通道传播，不再有实例 key / parent 层级）；原实例对象操作改用 `IPlugin.activate()/deactivate()/getService()`
+  - 兼容性: 仓内核验无外部消费者（nop-quarkus-demo 仅引用 `IPluginCommand/IPluginCancelToken`，不在被删面上）；存量非 aware 第三方插件走兼容路径零感知
+
 ## 修复 2026-08-20
 * 修复 nop-ioc 并发初始化同一 bean 时的死锁（ctx↔P 锁序反转）(commit: 428a196557)
   - 根因：`ProducedBeanInstance.runUntil` 持 monitor 执行 init 回调、`BeanCreationContext.flushInit` 持 ctx monitor 执行 action，跨线程形成循环等待（2026-08-20 现场在 nop-metadata-service 测试 fork 中表现为永久挂起）

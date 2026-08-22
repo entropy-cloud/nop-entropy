@@ -91,12 +91,14 @@ download(coordinates, jarFile):
 
 ## 七、加载链路（与 PluginManager 的关系）
 
+> **反转注解（2026-08-22 审计更正）**：本节原表述"ServiceLoader 发现 IPlugin 实现"不属实——实际机制为 `PluginClassLoader` 读取 jar 内 `/nop/plugin.json` 的 `pluginClassName`，经反射实例化 IPlugin 实现（全模块无 ServiceLoader 使用；`IPlugin.java:11` 的过时 Javadoc 为错误源头，随 R1 一并修正）。链路终点原写"plugin.start / createInstance"，createInstance 已被定位反转删除——终点改为兼容语义 start = load + activate。
+
 ```
 loadPlugin(ArtifactCoordinates id)
   → IPluginResourceResolver.resolvePluginResource(id)      // 下载+校验 → 本地 jar URL
   → new PluginClassLoader(urls, 平台classloader)            // plugin 类从 jar，平台类经 parent
-  → classLoader.loadPlugin()（ServiceLoader 发现 IPlugin 实现）
-  → plugin.start / createInstance...
+  → 读 /nop/plugin.json 的 pluginClassName → 反射实例化 IPlugin 实现
+  → plugin.start（兼容路径 = load + activate）
 ```
 
 ## 八、拒绝了什么
@@ -114,6 +116,6 @@ loadPlugin(ArtifactCoordinates id)
 | `IPluginResourceResolver` | `nop-plugin-manager/.../resolver/IPluginResourceResolver.java` | 加载器接口（契约增强：校验语义） |
 | `HttpPluginResourceResolver` | `.../resolver/HttpPluginResourceResolver.java` | 缺省实现（IHttpClient + cacheDir + URL 模板 + SHA256 校验：下载后 move 前校验、缓存重验、expected-hash map setter、`nop.plugin.skip-cache-verify` 跳过配置） |
 | `PluginClassLoader` | `.../classloader/PluginClassLoader.java` | parent=平台 classloader（plugin 用平台全部类，自己类从 jar） |
-| `PluginManagerImpl.loadPlugin` | `.../impl/PluginManagerImpl.java:45` | 加载链路入口（resolver → classloader → ServiceLoader → start） |
+| `PluginManagerImpl.loadPlugin` | `.../impl/PluginManagerImpl.java` | 加载链路入口（resolver → classloader → plugin.json 反射实例化 → start；行号随重构漂移，以方法名定位为准） |
 | `IHttpClient` | `io.nop.http.api.client.IHttpClient`（nop-http-api） | http 下载抽象（缺省实现依赖） |
 | `ArtifactCoordinates` | `io.nop.api.core.beans.ArtifactCoordinates` | plugin id（含 `getJarFilePath()` Maven 风格路径） |

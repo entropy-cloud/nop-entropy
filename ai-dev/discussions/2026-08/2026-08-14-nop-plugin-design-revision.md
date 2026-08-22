@@ -346,3 +346,62 @@
 
 - ~~`ai-dev/plans/` 拆分实施计划（含 Phase 0 beans.xdef 前置）~~ → 已由 roadmap + mission 接管：`ai-dev/backlog/nop-plugin-enhancement-roadmap.md` + `missions/nop-plugin-enhancement.json`（plugin.xdef，无 beans.xdef 前置），经两轮独立审查达成共识。
 - 实施后关键结论同步到 `docs-for-ai/`。
+
+---
+
+## 第 17 轮：定位反转——删除多实例、依赖收敛到插件级（2026-08-22）
+
+> 本轮推翻第 7 轮恢复的多实例决策与 W8 预留的服务级依赖扩展点。用户亲自发起反转，AI 分析论证后确认方向成立。
+
+### 用户原始表述
+
+> 重新考虑nop-plugin的设计，本身nop平台已经提供了编译期也就是模型加载器的可逆计算支持，定制可以在非常细的粒度发生，另外它偏向于服务端应用，倾向于无状态设计。在这种情况下是否还有必要考虑plugin的实例化问题，是否依赖关系只需要定义在plugin级别，不需要内部的service级别？这样整体设计思想比较明确，只针对部分粗粒度内容使用plugin引入，并远程加载，通过依赖关系控制激活？
+
+### AI 分析（基于 `ai-dev/articles/dsh-architecture-from-reversible-computation.md` 的理论框架）
+
+1. **认识论边界判据（文章 §4.6）**："凡是在结构空间中可确定的内容，就提到结构空间；凡是在运行期才可确定的内容，才留在运行时并用可逆机制管理。"dsh 需要 fiber/scope/realm 是因为它是客户端交互式 harness——每个 agent 会话的注册内容依赖运行期信息；Nop 是服务端平台，插件层注册内容全部加载时可知。
+2. **变化类型归属检验**：租户差异 = `IContext` 数据 + nop-dyn 租户 delta 层（编译期）；会话差异 = agent 层 session/contribution 机制；字段级定制 = Delta x-extends（已有）。没有任何一类变化要求"同一定义派生 N 个容器"。多实例没有认识论需求支撑。
+3. **实证**：grep 确认 multi-instance 机制的全部消费者都在 nop-plugin 内部（impl+tests），nop-ai-agent 不依赖 nop-module（无 pom 依赖、设计文档零引用）；W9 注解早已把 agent 层 scope/realm 划给 nop-ai-agent 立项。
+4. **服务级依赖终裁**：W8 曾把 `requires-service` 列为扩展点并指出"插件内服务替换不触发 reconcile"缺口；单层模型下该缺口自然消解（插件内服务变更走 HMR 重载重新门控）。dsh 服务级 inject 的存在理由是服务坐标即其组合坐标系；Nop 组合坐标是 VFS 路径 + DSL 节点，已由 DeltaLoader 被动追踪覆盖——重建服务级响应式是重复建设。
+5. **保留清单**：load/activate 两态分离（Cordis 思想中真正有价值的部分）、IPluginScope effect 系统、activator 参数传递、getService 强类型代理（绑定对象改激活态）、双轨来源、SHA256 artifact 校验、plugin.xdef、HMR。
+
+### 用户回答
+
+确认执行范围：**全面修订设计文档**（修订 ai-dev/design/nop-plugin/ 全部文档为单层状态机+插件级依赖，追加本轮讨论记录，更新 roadmap 增加重构 work items；实现代码重构另行立项）。
+
+### AI 整理（已执行）
+
+- [00-vision.md](../../design/nop-plugin/00-vision.md)：新增 §〇 定位反转裁决（认识论边界表）；目标 5→3；约束新增"插件粒度唯一性"；non-goals 新增 6（多实例）/7（服务级依赖）；成功标准改写。
+- [01-architecture-baseline.md](../../design/nop-plugin/01-architecture-baseline.md)：两层状态机坍缩为单层六态（UNLOADED/LOADED/ACTIVATING/ACTIVATED/DEACTIVATING/FAILED）；§7.2 记录 IPluginInstance 及关联 API 删除去向表；coeffect 仅插件级（R 终裁关闭 requires-service 扩展点）；HMR 去掉实例快照重建；接口契约重写（IPlugin 承载 activate/deactivate/getService）；源码锚点标注 R1 重构去向。
+- [02-dsh-usage-coverage.md](../../design/nop-plugin/02-dsh-usage-coverage.md)：E/I/H 三项从"plugin 层支持"改判为"非 plugin 层职责"；F 收敛为纯插件级；差距表更新（原"instanceKey/parent 作 agent 层基座"表述废止）。
+- [03-coeffect-and-agent-example.md](../../design/nop-plugin/03-coeffect-and-agent-example.md)：示例改写为单激活流；新增 §2.8 会话级差异的 agent 层分工示意。
+- [04-interface-comparison.md](../../design/nop-plugin/04-interface-comparison.md)：§2.4 改判"无 fiber 对应物（有意拒绝）"及完整论证；语义差异总表更新。
+- [README.md](../../design/nop-plugin/README.md)：定位基调更新。
+- roadmap：R1-R4 重构 work items（API 收缩 / manager 编排简化 / 兼容路径调整 / 测试与文档同步）。
+
+### 本轮关键裁决汇总
+
+1. **多实例删除**（推翻第 7 轮）：一个定义至多一个激活；instanceKey/parent 层级/实例配置域/实例级 coeffect/级联销毁/HMR 快照重建全部移除。
+2. **依赖只声明在插件级**（关闭 W8 扩展点）：requires/if-property 为完整依赖面，属性集冻结。
+3. **保留 Cordis 有价值部分**：两态分离、effect 可逆账本（绑定激活）、参数传递激活、INACTIVE 快速失败代理、HMR。
+4. **职责分工定式**：细粒度定制→编译期 Delta；粗粒度引入与门控→plugin；请求级变化→上下文数据/领域层。
+
+### 后续行动
+
+- roadmap R1-R4 重构实施（`nop-plugin-api` 公共 API 收缩，Protected Area plan-first，须独立 plan audit）。
+- 实施后同步 `docs-for-ai/03-modules/nop-plugin.md`、INDEX、source-anchors。
+
+### 第 17 轮独立审计（2026-08-22，三个并行子 agent）
+
+三个独立审查（内部一致性 / 理论忠实度 / 代码现实核查）结论：**反转裁决成立、无翻案项**；共修复 1 Blocker + 10 Major：
+
+1. **Blocker（一致性）**：roadmap 头部 Sources/Main-gaps 仍宣称"多实例为设计目标/两层状态机"——已改写为反转后表述并加历史记录横幅。
+2. **理论限定**："注册内容全部加载时可知"降格为带限定的定位声明（per-load 而非 per-boot；运行期才知道内容的注册由领域层外部注册表承载，effect 只保资源回退）。
+3. **事实纠正**：02-E 的 agent 层承接机制更正为 tag 可见性系统（activeTags/denyTags）；ContributionRegistry 是全局装配期注册表而非 sessionId 键控视图合成。scope/realm 两维标注为 open handoff（接收方未立项）。
+4. **机制补强**：01 §三 新增跨插件去活性拓扑序不变量（消费者先于提供者退出，对应 cordis Theorem 63 ordering）。
+5. **已知限制明文化**：updateConfig 热应用不触发依赖方重门控；编程式 provider swap 在本装配模型下不存在；requires 合取不可表达析取。
+6. **归属对齐**：公共 API 面收缩归 R1（含 IPluginContext 重写与 IPluginManager 抽象方法删除——编译阻塞面），编排实现清理归 R2（ICoeffectEvaluator 实例条件/parentToChildren/快照重建/实例错误码族退役）。
+7. **虚假陈述更正**：05 §七 "ServiceLoader 发现 IPlugin 实现"不属实，实际为 plugin.json + 反射实例化；链路终点 createInstance 已随反转删除。
+8. **jar 轨契约裁决**：无 xdef 载体时视为无条件激活、activator 缺省跳过（01 §二）。
+9. **失效语义统一**：03/04 对 dsh 非活跃访问行为的矛盾表述统一为双路径描述 + R4 对照 cordis 源码终核。
+10. **supersession 交代**：01 §十 注明 08-21 调研参考 §9 结论被本轮反转取代（机制事实部分仍有效）。

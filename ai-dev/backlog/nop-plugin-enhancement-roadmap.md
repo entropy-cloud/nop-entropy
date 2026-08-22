@@ -1,17 +1,18 @@
-# nop-plugin 增强落地 Roadmap（plugin 框架与 IoC 解耦 + 多实例 + coeffect + HMR）
+# nop-plugin 增强落地 Roadmap（W1-W7 已完成 + 定位反转重构 R1-R4）
 
 > Status: active
-> Last updated: 2026-08-15
-> Sources（设计已达成共识——七轮独立审查 + 用户多轮纠正，实施前必读）：
-> - `ai-dev/design/nop-plugin/00-vision.md`（核心原则：plugin 框架与 IoC 解耦；多实例为设计目标）
-> - `ai-dev/design/nop-plugin/01-architecture-baseline.md`（架构基线：两层状态机、接口契约、coeffect、HMR——**权威来源**）
-> - `ai-dev/design/nop-plugin/02-dsh-usage-coverage.md`（dsh 用法覆盖评估）
-> - `ai-dev/design/nop-plugin/03-coeffect-and-agent-example.md`（coeffect + agent 组装示例）
-> - `ai-dev/design/nop-plugin/04-interface-comparison.md`（与 dsh 接口逐项对比）
-> - `ai-dev/design/nop-plugin/05-artifact-loading-design.md`（artifact 加载 + SHA256 补齐）
-> - `ai-dev/discussions/2026-08/2026-08-14-nop-plugin-design-revision.md`（16 轮修正过程与纠正记录）
+> Last updated: 2026-08-22
+> **2026-08-22 定位反转**：W1-W7 落地后，用户裁决删除多实例、依赖收敛到插件级（单层状态机）。反转论证与裁决记录见 `ai-dev/discussions/2026-08/2026-08-14-nop-plugin-design-revision.md` 第 17 轮与 `ai-dev/design/nop-plugin/00-vision.md` §〇。R1-R4 为反转重构 work items；下方 W1-W7 及其 Stage details 为**历史交付记录**，其中被废止机制的描述以反转版设计文档为准。
+> Sources（实施前必读）：
+> - `ai-dev/design/nop-plugin/00-vision.md`（定位反转裁决 §〇：plugin 框架与 IoC 解耦 + 单层状态机 + 插件级依赖——**权威来源**）
+> - `ai-dev/design/nop-plugin/01-architecture-baseline.md`（架构基线 2026-08-22 版：单层六态状态机、接口契约、插件级 coeffect、HMR——**权威来源**）
+> - `ai-dev/design/nop-plugin/02-dsh-usage-coverage.md`（dsh 用法覆盖评估：E/I/H 改判 agent 层职责）
+> - `ai-dev/design/nop-plugin/03-coeffect-and-agent-example.md`（coeffect + agent 单激活流示例）
+> - `ai-dev/design/nop-plugin/04-interface-comparison.md`（与 dsh 接口逐项对比：fiber 有意拒绝论证）
+> - `ai-dev/design/nop-plugin/05-artifact-loading-design.md`（artifact 加载 + SHA256 补齐；§七链路终点待 R1 更新）
+> - `ai-dev/discussions/2026-08/2026-08-14-nop-plugin-design-revision.md`（17 轮修正过程与纠正记录，第 17 轮 = 定位反转）
 
-**Why**：DeepSeek Harness（dsh/Cordis）调研识别出 nop-plugin 与现代 plugin 框架的差距——加载即激活耦合、effect 不可观测、无运行时条件激活、无 HMR、多实例缺失。设计经七轮独立审查与用户 11 条纠正达成共识，本 roadmap 驱动其落地。mission 启动命令：`./ai-dev/tools/mission-driver.sh run nop-plugin-enhancement`。
+**Why**：DeepSeek Harness（dsh/Cordis）调研驱动 W1-W7 增强落地后，2026-08-22 用户按认识论边界裁决定位反转：Nop 已有编译期 Delta 细粒度定制且服务端无状态，plugin 收敛为"粗粒度引入 + 激活门控"，多实例与服务级依赖删除。本 roadmap 的 R1-R4 驱动反转落地。mission 启动命令：`./ai-dev/tools/mission-driver.sh run nop-plugin-enhancement`。
 
 ## Work Items
 
@@ -26,6 +27,13 @@
 - W6. parent 层级 + HMR（服务查找沿链回退、级联销毁、配置层叠；reloadPlugin 配置快照重建）：`done`
 - W7. artifact SHA256 校验补齐 + 测试补全 + docs-for-ai 同步（HttpPluginResourceResolver 补校验、quiescence/多实例隔离测试、使用文档）：`done`
 - ★ **Milestone: nop-plugin 增强落地**（W1-W7 全部 done）：`done`
+- R1. 定位反转重构：API 收缩——删除 IPluginInstance/createInstance/instanceKey/parent 层级；**全部公共接口签名收缩归 R1**（IPlugin 承载单层六态状态机 activate/deactivate/getService；IPluginContext 重写为 getPlugin/allPlugins/reconcile；IPluginManager 删 createInstance/destroyInstance/getInstance(key)/getInstances 抽象方法）；ServiceProxy 绑定对象改插件激活态；修正 IPlugin Javadoc 过时的 ServiceLoader 描述（实际为 plugin.json+反射）；jar 轨契约显式裁决（无 xdef 载体→无条件激活、activator 缺省跳过）：`done`（plan：`ai-dev/plans/2026-08-22-2309-1-plugin-api-shrink-single-state-machine.md`；Ownership Deviation：IPluginInstance 型结构因编译依赖随 R1 一并移除，R2 为残留审计——见 plan 内裁定；closure audit 见 plan Closure 段 + `ai-dev/logs/2026/08-23.md`）
+- R2. manager 编排简化——coeffect 仅插件级（删 ICoeffectEvaluator.isInstanceConfigMatched）、删 parentToChildren/级联销毁/P2-A 快照重建与 pending 机制、删 InstanceConfigProvider/CoeffectConfigHelper、退役实例错误码族（ERR_PLUGIN_INSTANCE_*/INSTANCES_NOT_EMPTY 等）；HMR 去快照重建（deactivate→unload→load 重放 updateConfig 累积值→reconcile）；reconcile 增加跨插件去激活拓扑序（消费者先于提供者退出，01 §三不变量）：`planned`（plan：`ai-dev/plans/2026-08-22-2309-2-manager-orchestration-simplification.md`）
+- R3. 兼容与命令路由回归——AbstractPlugin/VfsPluginDefinition 兼容语义改 start=load+activate / stop=deactivate+unload（注意两轨现状行为差异：VfsPluginDefinition.start 不含 load 步、AbstractPlugin.start aware 分支为 load+UOE——回归测试按真实行为写基线），invokeCommand 回归定义级路由，plugin.xdef 属性集冻结确认：`planned`（plan：`ai-dev/plans/2026-08-22-2309-3-compat-path-command-routing-regression.md`）
+- R4. 测试改造 + docs-for-ai 同步——多实例隔离/coeffect 实例级测试改写为单激活流断言（含 hasActivatedInstanceByName→定义级 ACTIVATED 的 requires 语义迁移断言、dsh 失效语义终核结论回填 03/04）；docs-for-ai/03-modules/nop-plugin.md 与 INDEX/source-anchors 按新契约重写；（可选）nop-quarkus-demo 依赖收窄至 nop-plugin-api：`todo`
+- ★ **Milestone: nop-plugin 定位反转重构落地**（R1-R4 全部 done）：`todo`
+
+> Milestone 状态是派生的：R1-R4 全部 done 时自动 done。
 
 ## Status values
 
@@ -35,16 +43,16 @@
 | `planned` | 有计划，通过独立 draft review |
 | `done` | 完成，通过独立 closure audit |
 
-> Milestone 状态是派生的：W1-W7 全部 done 时自动 done。
+> Milestone 状态是派生的：W1-W7 全部 done 时自动 done（已完成）；R1-R4 全部 done 时反转重构里程碑自动 done。
 
 ## Framework / platform reuse
 
 | Capability | Provider | Notes |
 | --- | --- | --- |
 | 子容器装配 | `nop-ioc` `AppBeanContainerLoader.loadFromResource(id, resource, parent)` / `BeanContainerImpl.buildNewInstance` | 实例化实现层复用（API 层不引用）；stop→singletonScope.close→destroyBean 链路已有 |
-| 实例配置域载体 | `BeanContainerImpl.setConfigProvider`（可注入 `IConfigProvider`） | per-instance 独立 provider（全局+实例配置合并视图），不写全局 AppConfig |
+| ~~实例配置域载体~~ | `BeanContainerImpl.setConfigProvider`（可注入 `IConfigProvider`） | 2026-08-22 反转后废止：per-instance provider 随 R2 删除，配置收敛为定义级配置域 |
 | XDSL 管线 | `DslModelParser` + XDef（`AbstractDslModel`） | plugin.xdef 走标准 Delta/校验管线；loader 依赖追踪失效已有（ResourceComponentManager） |
-| artifact 下载 | `HttpPluginResourceResolver` + `IHttpClient`（nop-http-api） | 已有 IHttpClient 注入 + cacheDir + URL 模板 + tmp/move；**需补 SHA256**（05 设计） |
+| artifact 下载 | `HttpPluginResourceResolver` + `IHttpClient`（nop-http-api） | IHttpClient 注入 + cacheDir + URL 模板 + tmp/move；SHA256 已由 W7 补齐 |
 | 类隔离 | `PluginClassLoader`（super parent=JDK CL；经 `shouldImportClass` 模式匹配将平台类路由到 importClassLoader，plugin 类从 jar） | 现状已支持"plugin 用平台全部类、自己类从 jar"；本 roadmap 不改动它 |
 | bean 定位 | `BeanContainerImpl.getBeanByType`（primary 语义已有：`BeanModel.primary`） | getService 多候选规则复用 primary |
 | 生命周期回调 | `@PostConstruct`/`ILifeCycle`/`<ioc:destroy>` | 子容器内 bean 清理（实现细节，不进 API） |
@@ -52,21 +60,23 @@
 
 ## Current baseline
 
-**Already shipped:**
-- `IPluginManager.loadPlugin/unloadPlugin`（加载即激活——本 roadmap 改造对象）
+> **注（2026-08-22）**：本节为 W1-W7 启动前的历史基线记录，保留供追溯；反转后的真实基线 = W1-W7 交付物减去 R1-R4 待删项。
+
+**Already shipped (pre-W1):**
+- `IPluginManager.loadPlugin/unloadPlugin`（加载即激活——已由 W2 改造）
 - `AbstractPlugin`：plugin=子容器（`loadFromResource(parent=宿主)`）、卸载=stop→自动 destroy
-- `PluginClassLoader` 类隔离 + `HttpPluginResourceResolver`（IHttpClient 下载，**无校验**）
+- `PluginClassLoader` 类隔离 + `HttpPluginResourceResolver`（IHttpClient 下载，**无校验**——已由 W7 补齐）
 - `IPlugin.invokeCommand`（命令分发经 bean name）
 - beans.xml 完整 XDSL（节点级 Delta）——结构层基础已有
 
-**Main gaps (blocking this roadmap):**
-- 加载与激活耦合（无 LOADED 未激活态）——01 §三
-- 无 IPluginScope（effect 不可观测、无 quiescence 断言）——01 §四
-- 无 coeffect（`<ioc:condition>` 仅 build 时）——01 §五
-- 无 HMR 编排——01 §六
-- 无多实例（instanceKey/parent/实例配置域）——01 §三/§七
+**Main gaps (pre-W1，历史记录):**
+- 加载与激活耦合（无 LOADED 未激活态）——W2 已解决
+- 无 IPluginScope（effect 不可观测、无 quiescence 断言）——W3 已解决
+- 无 coeffect（`<ioc:condition>` 仅 build 时）——W5 已解决
+- 无 HMR 编排——W6 已解决
+- ~~无多实例~~——W6 曾补齐，2026-08-22 反转后为 non-goal（R1 移除）
 - API 依赖现状：`IPlugin` 等接口已零依赖 IoC（保持并固化为约束）
-- `HttpPluginResourceResolver` Javadoc 声称 SHA256 校验但**代码未实现**——05 §五
+- ~~SHA256 未实现~~——W7 已补齐
 
 ## Stages
 
@@ -80,8 +90,62 @@
 | 6 | parent 层级 + HMR | plan W6 | W3 + W5 | Yes | loader 依赖追踪 |
 | 7 | SHA256 补齐 + 测试 + docs 同步 | plan W7 | W3（可与 W4-W6 并行） | No | — |
 | ★ | nop-plugin 增强落地（milestone） | — | W1-W7 done | — | — |
+| R1 | 反转重构：API 收缩（删实例机制） | plan R1 | — | **Yes** | ServiceProxy/IPluginScope 复用 |
+| R2 | manager 编排简化（插件级 coeffect + HMR 简化） | plan R2 | R1 | **Yes** | reconcile 管线/环检测 |
+| R3 | 兼容路径与命令路由回归 | plan R3 | R1 | Yes | AbstractPlugin |
+| R4 | 测试改造 + docs-for-ai 同步 | plan R4 | R1-R3 | No | — |
+| ★ | nop-plugin 定位反转重构落地（milestone） | — | R1-R4 done | — | — |
+
+### R1. 定位反转重构：API 收缩
+
+**Goal:** `nop-plugin-api` 公共 API 收缩到单层状态机契约（Protected Area plan-first：跨模块公共 API 变更，破坏性收缩——当前无外部消费者，grep 已核验）。
+
+**Deliverables:**
+- 删除 `IPluginInstance` 及 `PluginState`/`InstanceState` 双枚举 → 合并为单组六态枚举（UNLOADED/LOADED/ACTIVATING/ACTIVATED/DEACTIVATING/FAILED）
+- `IPlugin` 承载 activate/deactivate/getService/getServices（语义见 01 §7.1）；删除 createInstance/getInstance(key)/getInstances 相关 default 方法
+- `IPluginContext` 重写为 getPlugin/allPlugins/reconcile（删 getInstance/allInstances）；`IPluginManager` 删 createInstance/destroyInstance/getInstance(key)/getInstances 抽象方法（非 default，编译阻塞面）
+- `ServiceProxy` 绑定对象从 instance 改 plugin 激活态；多候选规则不变
+- jar 轨契约落地：无 xdef 载体→无条件激活（requires/if-property 空集）、activator 缺省跳过；修正 `IPlugin.java` Javadoc 过时的 ServiceLoader 描述（实际为 plugin.json+反射）
+- api 模块零依赖不变式复验（不 import `io.nop.ioc`/`io.nop.xlang`）
+
+**Out of scope:** manager 编排实现清理（R2）、兼容路径（R3）。
+
+### R2. manager 编排简化
+
+**Goal:** coeffect/HMR/reconcile 对齐反转后语义。
+
+**Deliverables:**
+- 删除实例级 coeffect 评估（`ICoeffectEvaluator.isInstanceConfigMatched`）、parentToChildren 映射、级联销毁、P2-A 快照/pending 重建逻辑
+- 删除实例配置域载体 `InstanceConfigProvider`/`CoeffectConfigHelper`；退役实例错误码族（ERR_PLUGIN_INSTANCE_*/INSTANCES_NOT_EMPTY 等）
+- `reconcilePlugins()`：仅插件级 requires/if-property 评估（不动点迭代 + DFS 环检测保留）；新增跨插件去激活拓扑序（消费者先于提供者退出，01 §三不变量）
+- `reloadPlugin`：deactivate→unload→load（重放 updateConfig 累积值）→reconcile；删除 P2-A 实例快照流程
+- 激活窗口时间静止语义保留（完成再收敛）
+
+**Out of scope:** 兼容路径（R3）。
+
+### R3. 兼容路径与命令路由回归
+
+**Goal:** 存量第三方插件兼容语义与新命令路由对齐。
+
+**Deliverables:**
+- `AbstractPlugin`/`VfsPluginDefinition`：start = load + activate、stop = deactivate + unload（删除默认实例 key）。注意两轨现状差异基线：`VfsPluginDefinition.start` 不含 load 步、`AbstractPlugin.start` aware 分支为 load+UOE——回归测试按真实行为写
+- `invokeCommand/invokeCommandAsync` 回归定义级路由（单容器；删除 per-instance 路由与"实例数=1 才路由"规则）
+- plugin.xdef 属性集冻结确认（requires/if-property/activator；不新增 requires-service）
+
+### R4. 测试改造 + docs-for-ai 同步
+
+**Goal:** 测试面与使用者文档对齐新契约。
+
+**Deliverables:**
+- 多实例隔离/coeffect 实例级测试改写为单激活流断言（两态转换、门控激活/去激活、quiescence、HMR、INACTIVE 代理失效）；含 `hasActivatedInstanceByName` → 定义级 ACTIVATED 的 requires 语义迁移断言
+- dsh 失效语义终核结论回填 `03`/`04` 统一注解
+- 删除 parent 层级/级联销毁/实例配置域相关测试
+- `docs-for-ai/03-modules/nop-plugin.md` 重写（单层状态机 + 插件级依赖定位）+ INDEX/source-anchors 同步
+- （可选）nop-quarkus-demo 依赖收窄至 nop-plugin-api
 
 ## Stage details
+
+> **历史记录横幅（2026-08-22）**：以下 Stage 1-7 为 W1-W7 历史交付描述，其中 createInstance/实例配置域/parent 层级/P2-A 快照等机制已被定位反转废止，去向见 Work Items 的 R1-R4。R 系列细节见上方 Work Items 描述（反转后以 [`01-architecture-baseline`](../design/nop-plugin/01-architecture-baseline.md) 2026-08-22 版为权威）。
 
 ### 1. plugin.xdef + API 接口层
 
@@ -204,7 +268,12 @@ graph TD
     W5["W5. coeffect + reconcile"]
     W6["W6. parent 层级 + HMR"]
     W7["W7. SHA256 + 测试 + docs"]
-    M["★ nop-plugin 增强落地"]
+    M["★ 增强落地（已完成，被反转取代）"]
+    R1["R1. 反转：API 收缩"]
+    R2["R2. manager 编排简化"]
+    R3["R3. 兼容与命令路由回归"]
+    R4["R4. 测试改造 + docs 同步"]
+    M2["★ 反转重构落地"]
     W1 --> W2 --> W3
     W3 --> W4
     W3 --> W5
@@ -218,6 +287,15 @@ graph TD
     W5 --> M
     W6 --> M
     W7 --> M
+    R1 --> R2
+    R1 --> R3
+    R1 --> R4
+    R2 --> R4
+    R3 --> R4
+    R1 --> M2
+    R2 --> M2
+    R3 --> M2
+    R4 --> M2
 ```
 
 ## Cross-cutting concerns
@@ -230,13 +308,14 @@ graph TD
 | effect 自管理 | IPluginScope 不观测 IoC 内部；可逆性由 scope 自证（01 §四） |
 | 参数传递模式 | activator 必须 `activate(scope, config)` 双参数，禁止字段注入 scope（why-springbatch-is-bad.md §3.1） |
 | 兼容不破坏 | 存量第三方 IPlugin 实现（仅 start/stop）必须继续工作（isStateMachineAware 双路径） |
-| 待裁决点（第七轮放行条件） | P2-A HMR 配置快照（W6 裁决）、P2-B 重复 key（已定：抛异常）、P2-C updateConfig×实例合并视图（W3/W5 裁决）、P2-D deactivate 父实例语义（W6 裁决） |
+| 待裁决点（第七轮放行条件） | ~~P2-A HMR 配置快照、P2-B 重复 key、P2-C updateConfig×实例合并视图、P2-D deactivate 父实例语义~~（2026-08-22 定位反转后随实例机制废止；HMR 仅重放定义级 updateConfig 累积值） |
+| 定位反转基线 | R1-R4 以 [`00-vision.md` §〇](../design/nop-plugin/00-vision.md) + [01-architecture-baseline](../design/nop-plugin/01-architecture-baseline.md)（2026-08-22 版）为权威；与 W 系列裁决冲突时以反转版为准 |
 | 设计文档为权威 | 接口语义以 `01-architecture-baseline.md` 为准；plan 与实现冲突时回读设计 |
-| Protected Area 程序性标注 | `nop-plugin-api` 公共 API 变更命中 AGENTS.md "跨模块公共 API → plan-first"；mission 流程（plan 起草 + 独立 draft review）即 plan-first 的满足形式，default 方法保证二进制兼容 |
+| Protected Area 程序性标注 | `nop-plugin-api` 公共 API 变更命中 AGENTS.md "跨模块公共 API → plan-first"；mission 流程（plan 起草 + 独立 draft review）即 plan-first 的满足形式。**R1 为破坏性收缩**（删接口删方法，非 default 可兜底）——合规依据 = "当前无外部消费者"事实（2026-08-22 三 agent 审计 grep 复核属实）+ 独立 closure audit 兜底 |
 
 ## Rules
 
 - This file is a state index and coarse decomposition, not an execution plan.
 - Each `planned` stage is owned by its execution plan.
 - Status changes happen only in the Work Items block at the top.
-- Milestones are derived: W1-W7 must all be `done` before the milestone is marked `done`.
+- Milestones are derived: W1-W7 all `done` → 增强落地 milestone done（已完成）；R1-R4 all `done` → 反转重构落地 milestone done。
