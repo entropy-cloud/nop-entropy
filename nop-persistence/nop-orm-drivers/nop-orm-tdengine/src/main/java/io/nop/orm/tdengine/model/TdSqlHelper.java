@@ -43,17 +43,21 @@ public class TdSqlHelper {
             sb.append(col.getCode());
         }
 
+        sb.append('\n');
+        sb.from();
+        sb.append(tableMeta.getSuperTableName());
+        sb.append('\n');
         sb.where();
 
         List<? extends IColumnModel> pkCols = entityModel.getPkColumns();
         for (int i = 0, n = pkCols.size(); i < n; i++) {
             IColumnModel pkCol = pkCols.get(i);
             if (i != 0) {
-                sb.append(',');
+                sb.and();
             }
             sb.append(pkCol.getCode()).append('=');
             Object value = entity.orm_propValue(pkCol.getPropId());
-            appendString(sb, value);
+            appendValue(sb, value);
         }
         return sb;
     }
@@ -61,8 +65,8 @@ public class TdSqlHelper {
     public static SQL.SqlBuilder genBatchInsertSubTableSql(SQL.SqlBuilder sb,
                                                            TdTableMeta tableMeta, List<IOrmEntity> list) {
         genInsertSubTableSql(sb, tableMeta, list.get(0));
-        for (IOrmEntity entity : list) {
-            appendValues(sb, entity);
+        for (int i = 0, n = list.size(); i < n; i++) {
+            appendValues(sb, tableMeta, list.get(i), i == 0);
         }
         return sb;
     }
@@ -83,8 +87,9 @@ public class TdSqlHelper {
             }
             sb.append(')');
 
-            sb.append(" TAGS ");
+            sb.append(" TAGS (");
             appendColValues(sb, tableMeta.getTagCols(), entity);
+            sb.append(')');
         }
         return sb;
     }
@@ -94,12 +99,8 @@ public class TdSqlHelper {
             if (i != 0)
                 sb.append(',');
 
-            Object value = cols.get(i);
-            if (value instanceof Number) {
-                sb.append(value);
-            } else {
-                appendString(sb, value);
-            }
+            Object value = entity.orm_propValue(cols.get(i).getPropId());
+            appendValue(sb, value);
         }
     }
 
@@ -107,18 +108,31 @@ public class TdSqlHelper {
         if (value == null) {
             sb.append("null");
         } else {
-            String str = value.toString();
-            if (str.isEmpty()) {
-                sb.append("''");
-            } else {
-                sb.append(StringHelper.escapeSql(str, true));
-            }
+            // 生成带引号的字符串字面量。escapeSql 只做转义不负责包裹引号
+            sb.append('\'').append(StringHelper.escapeSql(value.toString(), true)).append('\'');
         }
     }
 
-    public static void appendValues(SQL.SqlBuilder sb, IOrmEntity entity) {
-        sb.append(" \nVALUES(");
-        sb.append(")");
+    private static void appendValue(SQL.SqlBuilder sb, Object value) {
+        if (value instanceof Number) {
+            sb.append(value);
+        } else {
+            appendString(sb, value);
+        }
+    }
+    public static void appendValues(SQL.SqlBuilder sb, TdTableMeta tableMeta, IOrmEntity entity, boolean first) {
+        if (first) {
+            sb.append(" \nVALUES(");
+        } else {
+            sb.append("\n(");
+        }
+        List<IColumnModel> cols = tableMeta.getDataCols();
+        for (int i = 0, n = cols.size(); i < n; i++) {
+            if (i != 0)
+                sb.append(',');
+            appendValue(sb, entity.orm_propValue(cols.get(i).getPropId()));
+        }
+        sb.append(')');
     }
 
     static void appendExampleFilter(SQL.SqlBuilder sb, IDialect dialect, String owner, IEntityModel entityModel,
@@ -146,7 +160,7 @@ public class TdSqlHelper {
                                 IDataParameterBinder binder, Object value) {
         appendCol(sb, dialect, owner, col);
         sb.append("=");
-        appendString(sb, value);
+        appendValue(sb, value);
     }
 
     public static SQL.SqlBuilder genLoadSqlPart(IDialect dialect, IEntityModel entityModel, IntArray propIds) {
@@ -192,7 +206,7 @@ public class TdSqlHelper {
             IColumnModel pkCol = cols.get(i);
             sb.append(pkCol.getCode()).append('=');
             Object value = entity.orm_propValue(pkCol.getPropId());
-            appendString(sb, value);
+            appendValue(sb, value);
         }
     }
 

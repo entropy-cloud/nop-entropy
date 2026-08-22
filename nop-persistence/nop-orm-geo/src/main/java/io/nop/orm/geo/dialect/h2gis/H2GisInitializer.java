@@ -38,7 +38,7 @@ public class H2GisInitializer {
                 String querySpace = entry.getKey();
                 if ("h2gis".equals(dialect)) {
                     LOG.info("nop.orm.init-h2gis");
-                    SQL sql = SQL.begin().sql(querySpace).sql("init").end();
+                    SQL sql = SQL.begin().querySpace(querySpace).name("h2gis-init:" + querySpace).sql("init").end();
                     jdbcTemplate.runWithConnection(sql, conn -> {
                         try {
                             H2GISFunctions.load(conn);

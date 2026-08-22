@@ -55,6 +55,8 @@ public static void appendValues(SQL.SqlBuilder sb, IOrmEntity entity) {
 - **建议**: `appendColValues` 改为 `entity.orm_propValue(cols.get(i).getPropId())`；`appendValues` 按 dataCols 逐列生成值（timestamp + 数据列），多实体批次用 TDengine 的 `VALUES(...)(...)` 语法时需补齐分隔与列值。
 - **误报排除**: 已确认 `appendColValues`/`appendValues` 被保存路径真实调用（TdEntityPersistDriver.java:124-131），非死代码；已对照 `OrmColumnModel.toString()` 确认生成内容。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认属实，已修复。`appendColValues` 改为取 `entity.orm_propValue(col.getPropId())`；`TAGS` 子句补括号（TDengine 语法 `TAGS (v1,v2)`）；`appendValues` 重写为按 `dataCols` 逐列生成实体值，多实体批次生成 `VALUES(...)(...)` 语法（首行带 VALUES 关键字，后续行仅括号）；新增 `appendValue` 统一数字/字符串分支，`appendString` 显式包裹单引号（已核实 `StringHelper.escapeSql` 只转义不包引号，原实现对非空串实际生成的是无引号字面量）。测试：`TestTdSqlHelper#testGenInsertSubTableSqlTagValues`（红验证：修复前 TAGS 值为列模型对象 toString）、`#testGenBatchInsertSubTableSqlValues`（红验证：修复前恒生成空 `VALUES()`）。
+
 ### [P1] TDengine 单实体加载 SQL 缺少 FROM 子句；复合主键条件用逗号连接
 
 - **文件**: `nop-persistence/nop-orm-drivers/nop-orm-tdengine/src/main/java/io/nop/orm/tdengine/model/TdSqlHelper.java:31-59`
@@ -79,6 +81,8 @@ public static SQL.SqlBuilder genLoadSql(TdTableMeta tableMeta, IOrmEntity entity
 - **风险**: 生成的 SQL 形如 `select C1,C2 where TS=..`，缺 FROM 表名，任何单实体加载都会因 SQL 语法错误失败；复合主键时额外产生 `A=1,B=2` 而非 `A=1 AND B=2`。
 - **建议**: 补 `sb.from(); table(sb, dialect, entityModel, null);`（或按子表名加载）；主键条件分隔符改为 ` AND `。
 - **误报排除**: 已比对批量加载路径 `genLoadSqlPart`（有 from）确认差异非 DSL 约定；`SQL.SqlBuilder.from()` 实现已核实。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认属实，已修复。补 `sb.from()` + 超级表名（`tableMeta.getSuperTableName()`，与 `genLoadSqlPart` 一致）；复合主键条件分隔符由 `,` 改为 ` AND `（`sb.and()`）；PK 值经 `appendValue`（数字不加引号、字符串加引号，修复前统一走 `appendString`）。测试：`TestTdSqlHelper#testGenLoadSqlContainsFromAndAndSeparator`（红验证：修复前 SQL 缺 from 子句且主键条件为逗号连接）。
 
 ### [P1] TDengine deleteByExample / countByExample 未设置 querySpace，删除/计数打到默认数据源
 
@@ -105,6 +109,8 @@ public long countByExample(...) {
 - **建议**: 两处补 `.querySpace(getQuerySpace(shard))`。
 - **误报排除**: 已核实 `SQL.getQuerySpace()` 与 `JdbcTemplateImpl.getQuerySpace(SQL)` 的回退逻辑，以及同文件其他方法的一致写法。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认属实，已修复。deleteByExample/countByExample 两处补 `.querySpace(getQuerySpace(shard))`，与同文件其他方法一致。测试：`TestTdEntityPersistDriver#testDeleteByExampleSetsQuerySpace`/`#testCountByExampleSetsQuerySpace`（红验证：修复前生成 SQL 的 querySpace 为 null）。
+
 ### [P1] TDengine batchExecuteAsync 静默丢弃 updateActions；updateByExample 恒返回 0
 
 - **文件**: `nop-persistence/nop-orm-drivers/nop-orm-tdengine/src/main/java/io/nop/orm/tdengine/driver/TdEntityPersistDriver.java:117-143,256-258`
@@ -128,6 +134,8 @@ public CompletionStage<Void> batchExecuteAsync(boolean topoAsc, String querySpac
 - **建议**: 若 TDengine 不支持 update（时间序列库常见约束），应抛 `UnsupportedOperationException`/带 ErrorCode 的 NopException 或至少 WARN 日志；支持则补齐实现。
 - **误报排除**: 已通读整个实现类确认无 update 处理分支；已读接口 javadoc 确认 updateActions 是契约参数。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认属实，已修复（采用审计建议的 fail-loud 裁定而非实现 update）：TDengine 无 UPDATE 语句，同主键时间戳重复写入即覆盖，ORM 层的 update 语义（部分列变更）无法忠实映射，静默丢弃/返回 0 属无信号数据丢失。`batchExecuteAsync` 收到非空 updateActions 时、`updateByExample` 被调用时抛 `ERR_TDENGINE_UPDATE_NOT_SUPPORTED`（新增错误码，带 entityName 参数，错误消息说明"重复主键写入即覆盖"的正确替代用法）。测试：`TestTdEntityPersistDriver#testBatchExecuteAsyncRejectsUpdateActions`/`#testUpdateByExampleThrows`（红验证：修复前分别静默忽略/静默返回 0）。
+
 ### [P1] DaoEntityBlockingSource.take()/takeMulti() 必然抛 IllegalArgumentException（maxWait=-1 未特判）
 
 - **文件**: `nop-persistence/nop-orm-data/src/main/java/io/nop/orm/data/source/DaoEntityBlockingSource.java:119-122,144-152`
@@ -145,6 +153,8 @@ FutureHelper.waitUntil(() -> { ... }, maxWait, minWait <= 0 ? pollInterval : Mat
 - **建议**: 在 drainTo 中对 `maxWait < 0` 用循环等待实现无限等待语义（或先 `Guard.checkArgument` 后用 `Long.MAX_VALUE`），并在单测中覆盖 take()。
 - **误报排除**: 已核实 FutureHelper.waitUntil 与 Guard.positiveLong 的确切实现及调用链 take→takeMulti→drainTo→waitUntil。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认属实，已修复。`maxWait < 0` 时以 `Long.MAX_VALUE / 2` 作为 waitUntil 超时实现无限等待语义（避免 `now + timeout` 溢出）；顺带修复：未配置 pollInterval（<=0）时原先会以 0 间隔密集轮询数据库，现兜底为 100ms（无限等待场景下尤其危险）。测试：`TestDaoEntityBlockingSource#testTakeReturnsItem`（红验证：修复前 take() 直接抛 `IllegalArgumentException("NonPositive:timeout,value=-1")`）。
+
 ### [P1] RpcEntityPersistDriver.batchExecuteAsync 不检查响应，远端保存/删除失败被当成功
 
 - **文件**: `nop-persistence/nop-orm-rpc/src/main/java/io/nop/orm/rpc/RpcEntityPersistDriver.java:282-309`
@@ -159,6 +169,8 @@ return invokeRpc(newEntityAction("batchDelete"), args).thenApply(response -> nul
 - **风险**: 远端返回业务错误 ApiResponse（校验失败、乐观锁冲突等）时，本地 session 认为保存成功并提交，产生无任何信号的数据丢失。
 - **建议**: 两处改为 `.thenAccept(response -> checkResponse(response))`（返回类型适配为 Void）。
 - **误报排除**: 已通读全类，确认 checkResponse 存在且其余 8 个调用点均使用；仅这两处缺失。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认属实，已修复。batchModify/batchDelete 两处改为 `.thenAccept(this::checkResponse)`，与本类其余 8 个调用点一致，远端业务错误响应（校验失败、乐观锁冲突等）现在会抛 `NopRebuildException.rebuild(response)`。测试：`TestRpcEntityPersistDriver#testBatchExecuteAsyncChecksSaveResponse`/`#testBatchExecuteAsyncChecksDeleteResponse`（红验证：修复前远端错误响应被当成功、future 正常完成）。
 
 ### [P1] RpcEntityPersistDriver.batchLoadAsync 按位置绑定结果，不校验返回条数/顺序/ID
 
@@ -178,6 +190,8 @@ if (list != null) {
 - **建议**: 请求时携带 id，从每条返回 map 中读 id 与本地实体匹配（复用 OrmAssembly.toIdMap 模式），未匹配实体 `session.markMissing`。
 - **误报排除**: 已确认 bindEntity 直接用 map 值经 internalAssemble 写入实体，无 id 比对；已对照 TDengine 驱动的安全实现。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认属实，已修复（采用审计建议的按 id 匹配方案）。实体侧按主键列值构建匹配键（单列直接 `toString`；复合列用 `OrmConstants.COMPOSITE_PK_SEPARATOR` 连接并经 `StringHelper.encodeDupEscape` 防分隔符歧义），远端返回行按主键列名从 map 取值构建同构键匹配；未知行 WARN 日志跳过（不错绑）、远端未返回的实体 `session.markMissing`。测试：`TestRpcEntityPersistDriver#testBatchLoadAsyncBindsByIdNotByPosition`（乱序返回正确绑定）、`#testBatchLoadAsyncMissingEntityMarkedMissing`（红验证：修复前少返回抛 IndexOutOfBoundsException）、`#testBatchLoadAsyncUnknownRowIgnored`（多返回不错绑）。
+
 ### [P2] H2GisInitializer 把 querySpace 写进 SQL 文本而非 querySpace 属性，H2GIS 总是加载到默认数据源
 
 - **文件**: `nop-persistence/nop-orm-geo/src/main/java/io/nop/orm/geo/dialect/h2gis/H2GisInitializer.java:41-42`
@@ -194,6 +208,8 @@ if ("h2gis".equals(dialect)) {
 - **风险**: 配置了多个 querySpace 且 h2gis 库不在默认空间时，`H2GISFunctions.load` 在错误的数据库连接上执行，H2GIS 函数在目标库不可用。
 - **建议**: 改为 `SQL.begin().querySpace(querySpace).sql("init").end()`。
 - **误报排除**: 已沿调用链核实 SQL 文本不会被当作语句执行（回调直接用 connection），错误只体现在连接选择上。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认属实，已修复。改为 `SQL.begin().querySpace(querySpace).name("h2gis-init:" + querySpace).sql("init").end()`，querySpace 走属性而非 SQL 文本（顺带补 name 便于连接池诊断）。测试：`TestH2GisInitializer#testInitSetsQuerySpaceAttribute`（红验证：修复前生成 SQL 的 querySpace 属性为 null、querySpace 名拼进了文本）。
 
 ### [P2] Db2GeometryTypeHandler.setValue 未处理 null，写空几何值时 NPE
 
@@ -214,6 +230,8 @@ public void setValue(IDataParameters params, int index, Object value) {
 - **建议**: 补 null 分支与其他方言对齐。
 - **误报排除**: 已比对 4 个子类与基类的 setValue，确认唯 DB2 缺失；null 为合法数据库列值（可空 geometry 列）。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认属实，已修复。补 `if (value == null) { params.setNull(index); return; }` 分支，与其他三个方言及基类对齐。测试：`TestDb2GeometryTypeHandler#testSetValueNullWritesSetNull`（红验证：修复前 null 直接进 `Db2ClobEncoder.encode` 抛 NPE）。
+
 ### [P2] GeometryObjectHelper 空字符串 WKT 生成包裹 null 的 GeolatteGeometry，延后 NPE
 
 - **文件**: `nop-persistence/nop-orm-geo/src/main/java/io/nop/orm/geo/util/GeometryObjectHelper.java:25-28`
@@ -230,6 +248,8 @@ if (value instanceof String) {
 - **建议**: `geo == null 时 return null`；非法 WKT 建议走 errorFactory 报转换错误。
 - **误报排除**: 已核实 decodeWktString 的空串分支与 GeolatteGeometry.toString 的直接解引用。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认属实，已修复。`geo == null` 时直接返回 null（空串/空白串/null 输入均不再产生包裹 null 的 GeolatteGeometry）。测试：`TestGeometryObjectHelper#testEmptyWktStringReturnsNull`（红验证：修复前返回非 null 的空几何包装对象）/`#testNullReturnsNull`/`#testValidWktReturnsGeometry`（对照）。
+
 ### [P2] OrmModelInitializer.checkRefPrimary: to-one 关联无主键实体的 "id" 时 NPE
 
 - **文件**: `nop-persistence/nop-orm-model/src/main/java/io/nop/orm/model/init/OrmModelInitializer.java:452-455`
@@ -245,6 +265,8 @@ if (col == null && OrmModelConstants.PROP_ID.equals(join.getRightProp())) {
 - **风险**: orm.xml 中一个指向无主键只读实体、join rightProp="id" 的 to-one 关联，会使整个 OrmModel 初始化以裸 NPE 失败，无任何模型位置/名称上下文，排查成本高。
 - **建议**: 先判 `getIdProp() != null`，否则抛带 `ERR_ORM_MODEL_REF_ENTITY_NO_PROP` + 实体名/属性名参数的 NopException。
 - **误报排除**: 已核实 initIdProp 对 noPrimaryKey 实体的提前 return 路径（idProp 保持 null）。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认属实，已修复。先判 `getIdProp() != null` 再取 `isColumnModel()`；col 为 null 时落入既有的 `ERR_ORM_MODEL_REF_ENTITY_NO_PROP` 带上下文异常（实体名/属性名/loc），不再裸 NPE。测试：`TestOrmModelInitializerRefValidation#testToOneRefToNoPkEntityIdPropThrowsWithContext`（红验证：修复前裸 NPE；修复后 NopException 且 paramName=refEntityName 等参数齐全）。
 
 ### [P2] OrmModelInitializer.findJoinByRefCol 抛 bare IllegalStateException，违反错误处理规范且可被畸形模型触发
 
@@ -265,6 +287,8 @@ private OrmJoinOnModel findJoinByRefCol(List<OrmJoinOnModel> join, IColumnModel 
 - **风险**: 畸形但可通过现有校验的 orm.xml 触发无上下文的 IllegalStateException，直接违背框架核心"两档错误处理 + NopException/ErrorCode"约定（AGENTS.md D7 依据）。
 - **建议**: 改抛 `NopException(ERR_ORM_MODEL_JOIN_COLUMN_COUNT_LESS_THAN_PK_COLUMN_COUNT).source(ref).param(...)` 类带上下文异常；或在 465 行前校验 join 的 rightPropModel 与主键列一一对应。
 - **误报排除**: 已推演触发路径（重复引用同一主键列通过 rightPropCount==pkColumns.size() 检查但未覆盖全部主键列），确认非常驻防御分支。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认属实，已修复。新增错误码 `ERR_ORM_MODEL_JOIN_COLUMNS_NOT_MATCH_PK`（含 zh/en i18n 聚合同步），`findJoinByRefCol` 改抛 `NopException` 携 entityName/refEntityName/propName/colName 参数与 `.source(ref)`。测试：`TestOrmModelInitializerRefValidation#testJoinColumnsNotMatchPkThrowsWithContext`（红验证：修复前 bare IllegalStateException；触发场景正是审计推演的"两个 join 都引用 pk1"）/`#testNormalCompositeJoinStillReordered`（正常复合 join 重排行为不变的对照）。
 
 ### [P2] LazyLoadOrmModel.putEntityModel 与 checkTopoEntryReady 存在竞态，新增实体可能在拓扑表中永久缺失
 
@@ -291,6 +315,8 @@ void putEntityModel(IEntityModel entityModel) {     // addEntityModel 调用，�
 - **建议**: putEntityModel 也在 `synchronized(entityModelMap)` 内执行，并在 checkTopoEntryReady 末尾于锁内再次确认没有并发插入；或用版本号/队列代替布尔标志。
 - **误报排除**: 已核对两个方法的锁使用与 volatile 语义，确认 B 与 A 无 happens-before 约束。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认属实，已修复（采用审计建议的"putEntityModel 也在 synchronized(entityModelMap) 内执行"方案）。`putEntityModel` 全程持 entityModelMap 锁（表名索引/实体名/短名冲突检查/snakeCaseNameMap/topoEntryInited 复位全部在锁内），与 `checkTopoEntryReady` 的重建互斥，消除 B(置 false) 与 A(置 true) 之间无 happens-before 的竞态窗口；`addEntityModel`→`putEntityModel` 的短名冲突检查漏判问题随锁一并消除。测试：`TestLazyLoadOrmModel#testConcurrentAddAndTopoRebuildKeepsAllEntities`（50 轮×8 线程并发 add + 持续读驱动重建，断言所有新增实体最终可见；修复前随机丢实体）。
+
 ### [P2] TdTableMeta.getSubTableName 将实体属性值直接拼接为 SQL 表名标识符
 
 - **文件**: `nop-persistence/nop-orm-drivers/nop-orm-tdengine/src/main/java/io/nop/orm/tdengine/model/TdTableMeta.java:59-64`
@@ -309,6 +335,8 @@ public String getSubTableName(IOrmEntity entity) {
 - **建议**: 校验子表名满足 `^[A-Za-z0-9_]+$`（或方言标识符规则），非法时抛带上下文异常；超长截断按 TDengine 限制处理。
 - **误报排除**: 已确认 genInsertSubTableSql 对该值零处理直接 append；TDengine 无表名绑定参数可用，校验是唯一手段。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认属实，已修复（采用审计建议的白名单校验方案）。`getSubTableName` 校验子表名满足 `^[A-Za-z0-9_]+$`（含 Number 拼接的 `dev` 前缀路径一并校验），null/空/非法字符抛新增错误码 `ERR_TDENGINE_INVALID_SUB_TABLE_NAME`（带 tableName/propName 参数）。测试：`TestTdTableMeta#testSubTableNameRejectsInvalidIdentifier`（红验证：修复前含引号空格的值直接拼接）/`#testSubTableNameRejectsNull`（null 值原先 NPE 于 `v.toString()`）/`#testSubTableNameFromNumber`/`#testSubTableNameFromValidString`（合法路径对照）。
+
 ### [P3] PdmModelParser MULTIPLE_STATE_PROP / MULTIPLE_VERSION_PROP 错误参数误用 labelProp
 
 - **文件**: `nop-persistence/nop-orm-pdm/src/main/java/io/nop/orm/pdm/PdmModelParser.java:617-632`
@@ -325,6 +353,8 @@ if (col.containsTag(STEREOTYPE_STATE)) {
 - **建议**: 分别改为 `table.getStateProp()` / `table.getVersionProp()`。
 - **误报排除**: 已逐行比对 label(608-615)/state(617-624)/version(625-632) 三块，确认仅第一块参数正确。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认属实，已修复。state 块改传 `table.getStateProp()`、version 块改传 `table.getVersionProp()`。免新增测试：纯报错文案参数修正，无数值行为语义；该解析路径已被 `TestPdmParser` 既有用例覆盖。
+
 ### [P3] OrmModelInitializer.initRef 异常参数传模型对象而非名称
 
 - **文件**: `nop-persistence/nop-orm-model/src/main/java/io/nop/orm/model/init/OrmModelInitializer.java:281-283`
@@ -339,6 +369,8 @@ throw new NopException(ERR_ORM_UNKNOWN_PROP).param(ARG_ENTITY_NAME, refEntityMod
 - **风险**: 仅影响报错可读性。
 - **建议**: 改为 `ref.getName()`。
 - **误报排除**: 已确认 ARG_REF_NAME 在同文件其他用法均为字符串。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认属实，已修复。改传 `ref.getName()`。免新增测试：纯报错参数可读性修正，无数值行为语义。
 
 ### [P3] orm-geo 多处裸异常 + 伪错误码字符串，未走 NopException/ErrorCode 体系
 
@@ -359,6 +391,8 @@ throw new IllegalArgumentException("nop.err.orm.invalid-geometry-type");        
 - **建议**: 统一 `throw new NopException(带ErrorCode).param(ARG_TYPE, object.getClass().getName())`。
 - **误报排除**: 已检索模块内无对应错误码定义；基类 parseDbValue 的 catch 会 adapt 但不补充信息。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认属实，已修复。新增模块级错误码文件 `OrmGeoErrors`（`ERR_ORM_GEO_INVALID_GEOMETRY_OBJECT` + `ARG_CLASS_NAME`），基类 `GeometryTypeHandler` 与 Postgis/Db2/SqlServer 三处子类的裸 `IllegalArgumentException`/`IllegalStateException` 及伪错误码字符串统一改为 `NopException` 携实际类型名参数。测试：`TestGeometryTypeHandlerErrors` 四个用例分别断言基类与三方言的错误码和 className 参数（红验证：修复前异常类型/消息不含类型信息）。
+
 ### [P3] OrmModelInitializer.buildDependsMap 为死代码，与 OrmModelTopEntryBuilder 重复
 
 - **文件**: `nop-persistence/nop-orm-model/src/main/java/io/nop/orm/model/init/OrmModelInitializer.java:522-555`
@@ -373,6 +407,8 @@ private IDirectedGraph<IEntityModel, DefaultEdge<IEntityModel>> buildDependsMap(
 - **风险**: 两份近似实现后续修改时易只改其一（两者 entityMap 键构造已有细微差异：是否包含 simpleClassName）。
 - **建议**: 删除 OrmModelInitializer 中的私有 buildDependsMap。
 - **误报排除**: 已 grep 全仓库确认无反射/其他调用。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认属实，已修复（删除死代码）。`OrmModelInitializer.buildDependsMap` 私有方法及随之无用的 graph 相关 import 一并移除，拓扑构建唯一入口收敛为 `initTopoMap() → OrmModelTopEntryBuilder`。免新增测试：纯死代码删除，`TestOrmModelInitializerRefValidation` 等既有初始化路径测试覆盖拓扑构建行为。
 
 ### [P3] PdmModelParser.parseKeys 对缺失 `<c:Key>` 的主键定义直接 NPE
 
@@ -389,6 +425,8 @@ if (primaryKey != null) {
 - **风险**: 仅影响畸形输入的报错质量。
 - **建议**: 判空后走 validateFail/NopException（带 node.getLocation()）。
 - **误报排除**: 已确认 XNode.element 对缺失子节点返回 null（与文件中其他判空用法一致）。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认属实，已修复。判空后抛新增错误码 `ERR_PDM_PRIMARY_KEY_NO_KEY_REF`（新增 `PdmModelErrors`，带 tableName 参数、`.source(primaryKey)` 携节点位置）。测试：`TestPdmParser#testParseKeysMissingKeyRef`（红验证：修复前 `primaryKey.element(KEY_NAME).attrText(...)` 直接 NPE）。
 
 ### [P3] TdMessageService 为空 stub：sendAsync/subscribe 返回 null
 
@@ -412,6 +450,8 @@ public class TdMessageService implements IMessageService {
 - **建议**: 要么实现，要么抛 UnsupportedOperationException，或删除该类避免误用。
 - **误报排除**: 已全仓库检索确认无引用点，故降为 P3。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认属实，已修复（采用审计建议的"抛 UnsupportedOperationException"而非删除：类本身是 IMessageService 的 TDengine 占位实现，保留类型便于后续补齐，但未实现路径必须显式失败而非返回 null 让调用方 NPE）。测试：`TestTdMessageService#testFailsLoudInsteadOfReturningNull`（红验证：修复前返回 null）。
+
 ### [P3] DaoEntityBlockingSource.drainTo 返回值/中断语义与 IBlockingSource 契约有偏差
 
 - **文件**: `nop-persistence/nop-orm-data/src/main/java/io/nop/orm/data/source/DaoEntityBlockingSource.java:144-153`
@@ -425,6 +465,8 @@ return c.size();                                        // 含调用前集合中
 - **风险**: 上层依赖精确转移数或中断退出的逻辑行为异常（如限流计数偏大、无法优雅停机）。
 - **建议**: 记录调用前 size 取差值；waitUntil 返回 false 后检查 `Thread.currentThread().isInterrupted()` 并主动抛 InterruptedException。
 - **误报排除**: 已核实 FutureHelper.waitUntil 对 InterruptedException 的处理（复位并 return false，FutureHelper.java:506-517）。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认属实，已修复（两点均按审计建议）。1) 返回值改为 `c.size() - oldSize`（记录调用前 size 取差值）；2) `waitUntil` 返回 false 后检查 `Thread.currentThread().isInterrupted()`，置位则抛 `InterruptedException` 恢复中断语义；javadoc 同步更新。测试：`TestDaoEntityBlockingSource#testDrainToReturnsTransferredCountOnly`（红验证：修复前返回值把预置元素计入）/`#testDrainToThrowsOnInterrupt`（红验证：修复前中断被吞、方法正常返回）。
 
 ### [P3] LazyLoadOrmModel 的表名索引大小写敏感，与静态 OrmModel 的 CaseInsensitiveMap 行为不一致
 
@@ -441,6 +483,8 @@ private final Map<String, IEntityModel> entityModelByTableMap = new ConcurrentHa
 - **风险**: schema 对比、按表名路由等逻辑在两种模型包装下结果不一致，产生难以复现的偶发差异。
 - **建议**: LazyLoadOrmModel 侧统一按 `tableName.toUpperCase(Locale.ROOT)` 归一化存取（ConcurrentHashMap 自行归一 key）。
 - **误报排除**: 已比对两处 Map 的构造与读写点。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认属实，已修复（采用审计建议的归一化方案）。`putEntityModel`/`getEntityModelByTableName` 统一经 `normalizeTableName`（`toLowerCase(Locale.ROOT)`）存取，ConcurrentHashMap 按归一化 key 存取，与静态 OrmModel 的 CaseInsensitiveMap 行为一致。测试：`TestLazyLoadOrmModel#testEntityModelByTableNameCaseInsensitive`（红验证：修复前小写表名查不到大写注册的实体）。
 
 ## 已排查未立项（代表性误报排除记录）
 

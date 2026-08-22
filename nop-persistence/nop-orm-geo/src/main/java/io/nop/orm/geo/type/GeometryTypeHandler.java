@@ -34,6 +34,9 @@ import org.geolatte.geom.jts.JTS;
 import java.io.InputStream;
 import java.sql.Blob;
 
+import static io.nop.orm.geo.OrmGeoErrors.ARG_CLASS_NAME;
+import static io.nop.orm.geo.OrmGeoErrors.ERR_ORM_GEO_INVALID_GEOMETRY_OBJECT;
+
 public class GeometryTypeHandler implements IDataTypeHandler {
 
     @Override
@@ -134,7 +137,7 @@ public class GeometryTypeHandler implements IDataTypeHandler {
             } else if (object instanceof org.locationtech.jts.geom.Envelope) {
                 return toPolygon(JTS.from((org.locationtech.jts.geom.Envelope) object));
             } else {
-                throw new IllegalArgumentException();
+                throw new NopException(ERR_ORM_GEO_INVALID_GEOMETRY_OBJECT).param(ARG_CLASS_NAME, object.getClass().getName());
             }
         } catch (Exception e) {
             throw NopException.adapt(e);

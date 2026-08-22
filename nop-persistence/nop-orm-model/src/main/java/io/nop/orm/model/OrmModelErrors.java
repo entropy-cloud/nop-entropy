@@ -96,6 +96,11 @@ public interface OrmModelErrors {
             "实体[{entityName}]的关联引用属性[{propName}]的关联条件个数小于关联实体主键字段的个数，只支持主外键关联", ARG_ENTITY_NAME, ARG_REF_ENTITY_NAME,
             ARG_PROP_NAME);
 
+    ErrorCode ERR_ORM_MODEL_JOIN_COLUMNS_NOT_MATCH_PK = define(
+            "nop.err.orm.model.join-columns-not-match-pk",
+            "实体[{entityName}]的关联引用属性[{propName}]的关联条件没有与关联实体[{refEntityName}]的主键字段[{colName}]一一对应，只支持主外键关联",
+            ARG_ENTITY_NAME, ARG_REF_ENTITY_NAME, ARG_PROP_NAME, ARG_COL_NAME);
+
     ErrorCode ERR_ORM_MODEL_REF_PROP_NOT_COLUMN = define("nop.err.orm.model.ref-prop-not-column",
             "实体[{entityName}]的关联属性[{propName}]不是数据库中的列，只支持主外键关联", ARG_ENTITY_NAME, ARG_PROP_NAME);
 

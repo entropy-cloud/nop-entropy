@@ -13,9 +13,6 @@ import io.nop.commons.collections.CaseInsensitiveMap;
 import io.nop.commons.collections.IntHashMap;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
-import io.nop.core.model.graph.DefaultDirectedGraph;
-import io.nop.core.model.graph.DefaultEdge;
-import io.nop.core.model.graph.IDirectedGraph;
 import io.nop.core.model.graph.TopoEntry;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.orm.model.IColumnModel;
@@ -38,7 +35,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -65,6 +61,7 @@ import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_DUPLICATE_ENTITY_SHO
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_INVALID_COLUMN_DOMAIN;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_INVALID_PROP_NAME;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_JOIN_COLUMN_COUNT_LESS_THAN_PK_COLUMN_COUNT;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_JOIN_COLUMNS_NOT_MATCH_PK;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_REF_ENTITY_NO_PROP;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_REF_PROP_NOT_COLUMN;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_REF_UNKNOWN_ENTITY;
@@ -280,7 +277,7 @@ public class OrmModelInitializer {
                 if (refProp == null) {
                     if(ref.isToManyRelation())
                         throw new NopException(ERR_ORM_UNKNOWN_PROP).param(ARG_ENTITY_NAME, refEntityModel.getName()).param(ARG_PROP_NAME, refPropName)
-                                .param(ARG_REF_NAME, ref);
+                                .param(ARG_REF_NAME, ref.getName());
                     // 反向关联的属性不存在，可以创建
                     boolean toOne = ref.isOneToOne() || ref.isToManyRelation();
                     OrmReferenceModel relRef = createReference(ref, refEntityModel, toOne);
@@ -451,7 +448,9 @@ public class OrmModelInitializer {
                     rightPropCount++;
                     OrmColumnModel col = refEntityModel.getColumn(join.getRightProp());
                     if (col == null && OrmModelConstants.PROP_ID.equals(join.getRightProp())) {
-                        col = refEntityModel.getIdProp().isColumnModel() ? (OrmColumnModel) refEntityModel.getIdProp() : null;
+                        // noPrimaryKey 实体的 idProp 为 null，不能直接解引用
+                        IEntityPropModel idProp = refEntityModel.getIdProp();
+                        col = idProp != null && idProp.isColumnModel() ? (OrmColumnModel) idProp : null;
                     }
                     if (col == null)
                         throw new NopException(ERR_ORM_MODEL_REF_ENTITY_NO_PROP).loc(join.getLocation())
@@ -472,7 +471,7 @@ public class OrmModelInitializer {
                 if (ref.getJoin().size() > 1 && !isRefColAligned(ref.getJoin(), refEntityModel.getPkColumns())) {
                     List<OrmJoinOnModel> ordered = new ArrayList<>(ref.getJoin().size());
                     for (IColumnModel col : refEntityModel.getPkColumns()) {
-                        ordered.add(findJoinByRefCol(ref.getJoin(), col));
+                        ordered.add(findJoinByRefCol(ref, col));
                     }
                     // 最后加入固定值条件
                     for (OrmJoinOnModel join : ref.getJoin()) {
@@ -507,50 +506,19 @@ public class OrmModelInitializer {
         return true;
     }
 
-    private OrmJoinOnModel findJoinByRefCol(List<OrmJoinOnModel> join, IColumnModel refCol) {
-        for (OrmJoinOnModel on : join) {
+    private OrmJoinOnModel findJoinByRefCol(OrmReferenceModel ref, IColumnModel refCol) {
+        for (OrmJoinOnModel on : ref.getJoin()) {
             if (on.getRightPropModel() == refCol)
                 return on;
         }
-        throw new IllegalStateException("invalid join prop");
+        // join 条件个数与主键列数一致但未与主键列一一对应（例如重复引用同一主键列）
+        throw new NopException(ERR_ORM_MODEL_JOIN_COLUMNS_NOT_MATCH_PK).source(ref)
+                .param(ARG_ENTITY_NAME, ref.getOwnerEntityModel().getName())
+                .param(ARG_REF_ENTITY_NAME, ref.getRefEntityName()).param(ARG_PROP_NAME, ref.getName())
+                .param(ARG_COL_NAME, refCol.getName());
     }
 
     private void initTopoMap() {
         new OrmModelTopEntryBuilder().build(ormModel.getEntities(), this.entryMap);
-    }
-
-    private IDirectedGraph<IEntityModel, DefaultEdge<IEntityModel>> buildDependsMap(Collection<? extends IEntityModel> entityModels) {
-        DefaultDirectedGraph<IEntityModel, DefaultEdge<IEntityModel>> graph = DefaultDirectedGraph.create();
-        for (IEntityModel entityModel : entityModels) {
-            graph.addVertex(entityModel);
-            for (IEntityRelationModel rel : entityModel.getRelations()) {
-                if (rel.isToOneRelation()) {
-                    // 忽略自关联
-                    if (entityModel.getName().equals(rel.getRefEntityName()))
-                        continue;
-
-                    if (rel.getRefEntityName().indexOf('.') < 0) {
-                        if (StringHelper.simpleClassName(entityModel.getName()).equals(rel.getRefEntityName()))
-                            continue;
-                    }
-
-                    // 忽略对于视图的依赖
-                    if (rel.getRefEntityModel().isTableView())
-                        continue;
-
-                    // 如果指定了忽略关联依赖
-                    OrmToOneReferenceModel toOne = (OrmToOneReferenceModel) rel;
-                    if (toOne.isIgnoreDepends())
-                        continue;
-
-                    if (!rel.isReverseDepends()) {
-                        IEntityModel refEntityModel = entityMap.get(rel.getRefEntityName());
-                        // 子表依赖主表
-                        graph.addEdge(refEntityModel, entityModel);
-                    }
-                }
-            }
-        }
-        return graph;
     }
 }

@@ -19,6 +19,9 @@ import org.geolatte.geom.codec.WkbEncoder;
 import org.geolatte.geom.codec.Wkt;
 import org.postgresql.util.PGobject;
 
+import static io.nop.orm.geo.OrmGeoErrors.ARG_CLASS_NAME;
+import static io.nop.orm.geo.OrmGeoErrors.ERR_ORM_GEO_INVALID_GEOMETRY_OBJECT;
+
 public class PostgisGeometryTypeHandler extends GeometryTypeHandler {
     @Override
     protected boolean isLiteralIncludeSRID() {
@@ -78,6 +81,6 @@ public class PostgisGeometryTypeHandler extends GeometryTypeHandler {
             }
 
         }
-        throw new IllegalStateException("nop.err.orm.invalid-object:" + object.getClass().getCanonicalName());
+        throw new NopException(ERR_ORM_GEO_INVALID_GEOMETRY_OBJECT).param(ARG_CLASS_NAME, object.getClass().getName());
     }
 }

@@ -17,6 +17,7 @@ import io.nop.api.core.exceptions.NopRebuildException;
 import io.nop.api.core.rpc.IRpcServiceInvoker;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.collections.IntArray;
+import io.nop.commons.util.StringHelper;
 import io.nop.dao.api.IEntityDaoExtension;
 import io.nop.dao.shard.ShardSelection;
 import io.nop.dao.utils.DaoHelper;
@@ -26,6 +27,7 @@ import io.nop.orm.IOrmTemplate;
 import io.nop.orm.OrmConstants;
 import io.nop.orm.dao.DaoQueryHelper;
 import io.nop.orm.driver.IEntityPersistDriver;
+import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityPropModel;
 import io.nop.orm.model.IEntityRelationModel;
@@ -33,6 +35,8 @@ import io.nop.orm.persister.IBatchAction;
 import io.nop.orm.persister.IPersistEnv;
 import io.nop.orm.persister.OrmAssembly;
 import io.nop.orm.session.IOrmSessionImplementor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import jakarta.inject.Inject;
 import java.util.ArrayList;
@@ -49,6 +53,8 @@ import java.util.stream.Collectors;
  * 通过 RPC 调用远程服务来加载和保存实体数据。
  */
 public class RpcEntityPersistDriver implements IEntityPersistDriver, IEntityDaoExtension<IOrmEntity> {
+    static final Logger LOG = LoggerFactory.getLogger(RpcEntityPersistDriver.class);
+
     private IEntityModel entityModel;
     private String querySpace;
     private IRpcServiceInvoker rpcServiceInvoker;
@@ -292,7 +298,7 @@ public class RpcEntityPersistDriver implements IEntityPersistDriver, IEntityDaoE
             Map<String, Object> args = new HashMap<>();
             args.put("data", data);
 
-            return invokeRpc(newEntityAction("batchModify"), args).thenApply(response -> null);
+            return invokeRpc(newEntityAction("batchModify"), args).thenAccept(this::checkResponse);
         } else {
             if (deleteActions == null || deleteActions.isEmpty())
                 return null;
@@ -304,7 +310,7 @@ public class RpcEntityPersistDriver implements IEntityPersistDriver, IEntityDaoE
             Map<String, Object> args = new HashMap<>();
             args.put("ids", ids);
 
-            return invokeRpc(newEntityAction("batchDelete"), args).thenApply(response -> null);
+            return invokeRpc(newEntityAction("batchDelete"), args).thenAccept(this::checkResponse);
         }
     }
 
@@ -350,18 +356,76 @@ public class RpcEntityPersistDriver implements IEntityPersistDriver, IEntityDaoE
         return invokeRpc(operationName, data, selection).thenAccept(response -> {
             checkResponse(response);
             List<Map<String, Object>> list = (List<Map<String, Object>>) response.getData();
-            if (list != null) {
-                int i = 0;
-                for (IOrmEntity entity : entities) {
-                    Map<String, Object> map = list.get(i++);
-                    bindEntity(entity, map, propIds, session);
-                    // 处理 subSelection 中的子表数据
-                    if (subSelection != null && subSelection.hasField()) {
-                        bindSubSelection(entity, map, subSelection, session);
-                    }
+            if (list == null || list.isEmpty())
+                return;
+
+            // 远端返回的列表不保证与请求 ids 同序同长，必须按主键值匹配，避免数据错绑或越界
+            Map<String, IOrmEntity> entityMap = new HashMap<>(entities.size());
+            for (IOrmEntity entity : entities) {
+                String key = buildEntityIdKey(entity);
+                if (key != null)
+                    entityMap.put(key, entity);
+            }
+
+            for (Map<String, Object> map : list) {
+                String key = buildMapIdKey(map);
+                IOrmEntity entity = key != null ? entityMap.remove(key) : null;
+                if (entity == null) {
+                    LOG.warn("nop.orm.rpc-batch-load-ignore-unknown-id:entity={},id={}", entityModel.getName(), key);
+                    continue;
+                }
+                bindEntity(entity, map, propIds, session);
+                // 处理 subSelection 中的子表数据
+                if (subSelection != null && subSelection.hasField()) {
+                    bindSubSelection(entity, map, subSelection, session);
                 }
             }
+
+            // 远端没有返回的实体标记为 missing
+            for (IOrmEntity entity : entityMap.values()) {
+                session.markMissing(entity);
+            }
         });
+    }
+
+    /**
+     * 按主键列构建实体侧的匹配键，键格式与 {@link #buildMapIdKey(Map)} 对称
+     */
+    private String buildEntityIdKey(IOrmEntity entity) {
+        List<? extends IColumnModel> pkColumns = entityModel.getPkColumns();
+        if (pkColumns.size() == 1)
+            return StringHelper.toString(entity.orm_propValue(pkColumns.get(0).getPropId()), null);
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < pkColumns.size(); i++) {
+            Object v = entity.orm_propValue(pkColumns.get(i).getPropId());
+            if (v == null)
+                return null;
+            if (i != 0)
+                sb.append(OrmConstants.COMPOSITE_PK_SEPARATOR);
+            sb.append(StringHelper.encodeDupEscape(StringHelper.toString(v, null), OrmConstants.COMPOSITE_PK_SEPARATOR));
+        }
+        return sb.toString();
+    }
+
+    /**
+     * 按主键列名从远端返回的属性 Map 中构建匹配键
+     */
+    private String buildMapIdKey(Map<String, Object> map) {
+        List<? extends IColumnModel> pkColumns = entityModel.getPkColumns();
+        if (pkColumns.size() == 1)
+            return StringHelper.toString(map.get(pkColumns.get(0).getName()), null);
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < pkColumns.size(); i++) {
+            Object v = map.get(pkColumns.get(i).getName());
+            if (v == null)
+                return null;
+            if (i != 0)
+                sb.append(OrmConstants.COMPOSITE_PK_SEPARATOR);
+            sb.append(StringHelper.encodeDupEscape(StringHelper.toString(v, null), OrmConstants.COMPOSITE_PK_SEPARATOR));
+        }
+        return sb.toString();
     }
 
     /**

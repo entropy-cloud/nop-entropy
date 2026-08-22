@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class DaoEntityBlockingSource<T extends IOrmEntity> implements IBlockingSource<T> {
+    private static final long DEFAULT_POLL_INTERVAL_MILLIS = 100L;
+
     private ISqlLibManager sqlLibManager;
     private IDaoProvider daoProvider;
     private String entityName;
@@ -127,9 +129,9 @@ public class DaoEntityBlockingSource<T extends IOrmEntity> implements IBlockingS
      * @param c           容纳返回结果的数据集合
      * @param maxElements 最多取出多少条数据
      * @param minWait     如果没有获取到足够多的对象，则可以继续等待一段时间。等待此时间后，如果能够获取到一些对象，则返回。
-     * @param maxWait     无论是否获取到对象，超过此时间都要返回
-     * @return
-     * @throws InterruptedException
+     * @param maxWait     无论是否获取到对象，超过此时间都要返回。maxWait < 0 表示无限等待
+     * @return 本次实际转移到集合 c 中的元素个数（不包含调用前 c 中已有的元素）
+     * @throws InterruptedException 等待过程中线程被中断时抛出
      */
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
     @Override
@@ -141,7 +143,16 @@ public class DaoEntityBlockingSource<T extends IOrmEntity> implements IBlockingS
             return items.size();
         }
 
-        FutureHelper.waitUntil(() -> {
+        // maxWait < 0 表示无限等待。FutureHelper.waitUntil 要求 timeout 为正数，
+        // 因此换成一个足够大的值（避免 now + timeout 溢出）
+        long timeout = maxWait > 0 ? maxWait : Long.MAX_VALUE / 2;
+        long interval = minWait <= 0 ? pollInterval : Math.min(pollInterval, minWait);
+        // 未配置 pollInterval 时避免以 0 间隔密集轮询数据库（无限等待场景下尤其危险）
+        if (interval <= 0)
+            interval = DEFAULT_POLL_INTERVAL_MILLIS;
+
+        int oldSize = c.size();
+        boolean found = FutureHelper.waitUntil(() -> {
             List<T> items = loadItems(dao, maxElements);
             if (items.isEmpty()) {
                 return false;
@@ -149,8 +160,13 @@ public class DaoEntityBlockingSource<T extends IOrmEntity> implements IBlockingS
             dao.flushSession();
             c.addAll(items);
             return true;
-        }, maxWait, minWait <= 0 ? pollInterval : Math.min(pollInterval, minWait));
-        return c.size();
+        }, timeout, interval);
+
+        // waitUntil 在线程被中断时复位中断标志并返回 false，这里恢复 InterruptedException 语义
+        if (!found && Thread.currentThread().isInterrupted())
+            throw new InterruptedException();
+
+        return c.size() - oldSize;
     }
 
     private List<T> loadItems(IEntityDao<T> dao, int maxCount) {

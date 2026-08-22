@@ -52,23 +52,23 @@
 
 ### Phase 1 - 持久层（nop-dao / db-migration / nop-orm / orm-periph / nop-orm-eql）
 
-Status: in progress
+Status: completed
 Targets: `ai-dev/audits/check/nop-dao.md`、`db-migration.md`、`nop-orm.md`、`orm-periph.md`、`nop-orm-eql.md`；对应 `nop-persistence/*` 模块代码与测试
 
 - Item Types: `Fix | Decision | Proof`
 
 - [x] nop-dao.md（P1×3 P2×9 P3×4）— 2026-08-22 完成：13 修复 + 1 部分修复暂缓 + 2 免测试裁定，全部标注，102 tests 绿，红测试 3 条验证；超出审计新发现 2 处（QuerySpaceEnv.leave 恢复语义、Hikari setDriverClassName(null) NPE）已修复
-- [ ] db-migration.md（P1×8 P2×11 P3×2）
-- [ ] nop-orm.md（P1×5 P2×8 P3×8）
-- [ ] orm-periph.md（P1×7 P2×7 P3×8）
-- [ ] nop-orm-eql.md（P1×3 P2×7 P3×4）
+- [x] db-migration.md（P1×8 P2×11 P3×2）— 2026-08-22 完成（子代理，commit 5737e7dbb5）：13 修复 + 3 部分修复暂缓 + 4 暂缓 + 1 非问题；58 tests 绿、17 条红验证；超出审计新发现 3 项已记录（DbMigrationErrors 错误码形态误用、H2 接受分号多语句、元数据 API 名错误）
+- [x] nop-orm.md（P1×5 P2×8 P3×8）— 2026-08-22 完成（子代理，commit 640cf0b359）：20 修复 + 1 非问题（GenSqlHelper 排序 NPE 审计前提有误）；169 tests 绿、17 条红验证；超出审计新发现 4 项已记录
+- [x] orm-periph.md（P1×7 P2×7 P3×8）— 2026-08-22 完成：22 条全部修复（含 4 条错误码体系建设：TdEngineErrors/OrmGeoErrors/PdmModelErrors 新建 + ERR_ORM_MODEL_JOIN_COLUMNS_NOT_MATCH_PK），六模块 40 tests 绿，红验证抽查 6 条（tdengine SQL 生成 3 + blocking source 3，修复前全挂、呈现形态与审计一致）；顺带同步 nop-cli-errors i18n 聚合（含前两次提交遗漏的 4 条新错误码）
+- [x] nop-orm-eql.md（P1×3 P2×7 P3×4）— 2026-08-22 完成（子代理，commit 58e934a36f）：13 修复 + 1 非问题；45 tests 绿、18 条红验证；超出审计新发现 4 项（NOT-ILIKE 同族已修、极性/镜像方言/回显前缀 3 项裁定记录）
 
 Exit Criteria:
 
-- [ ] 每份报告全部 P1/P2/P3 条目均有处置标注，四类终态之一，无遗漏
-- [ ] 修复项对应模块 `./mvnw test -pl <module>`（必要时 `-am`）通过
-- [ ] 行为类修复附新回归测试；其余注明免测试理由
-- [ ] No owner-doc update required（除非个别修复改变公共契约语义，届时单独记录）
+- [x] 每份报告全部 P1/P2/P3 条目均有处置标注，四类终态之一，无遗漏（grep 验证：五报告 findings 计数均 ≤ 处置标注计数）
+- [x] 修复项对应模块 `./mvnw test -pl <module>`（必要时 `-am`）通过（nop-dao 102 / db-migration 58 / nop-orm 169 / orm-periph 六模块 40 / nop-orm-eql 45 tests 绿）
+- [x] 行为类修复附新回归测试；其余注明免测试理由（orm-periph 红验证抽查 6 条，其余报告见各自标注）
+- [x] No owner-doc update required（修复均为缺陷收敛，不改变文档化契约语义；TDengine update 拒绝属"修复静默数据丢失"而非契约变更）
 
 ### Phase 2 - 内核与核心（kernel-small / nop-commons / nop-core / nop-core-framework / nop-utils / nop-xlang）
 

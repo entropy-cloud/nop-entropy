@@ -7,6 +7,7 @@
  */
 package io.nop.orm.tdengine.model;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.model.IColumnModel;
@@ -15,8 +16,19 @@ import io.nop.orm.tdengine.TdEngineConstants;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
+
+import static io.nop.orm.tdengine.TdEngineErrors.ARG_PROP_NAME;
+import static io.nop.orm.tdengine.TdEngineErrors.ARG_TABLE_NAME;
+import static io.nop.orm.tdengine.TdEngineErrors.ERR_TDENGINE_INVALID_SUB_TABLE_NAME;
 
 public class TdTableMeta {
+    /**
+     * 子表名由业务数据（nbr 列的值）拼接为 SQL 标识符，且 TDengine 不支持对表名做参数绑定，
+     * 因此必须做白名单校验，防止脏数据或恶意输入破坏/注入 SQL
+     */
+    private static final Pattern SUB_TABLE_NAME_PATTERN = Pattern.compile("^[A-Za-z0-9_]+$");
+
     private final IEntityModel entityModel;
 
     private final List<IColumnModel> tagCols = new ArrayList<>();
@@ -58,9 +70,11 @@ public class TdTableMeta {
 
     public String getSubTableName(IOrmEntity entity) {
         Object v = entity.orm_propValue(nbrCol.getPropId());
-        if (v instanceof Number)
-            return "dev" + v;
-        return v.toString();
+        String name = v instanceof Number ? "dev" + v : StringHelper.toString(v, null);
+        if (name == null || !SUB_TABLE_NAME_PATTERN.matcher(name).matches())
+            throw new NopException(ERR_TDENGINE_INVALID_SUB_TABLE_NAME)
+                    .param(ARG_TABLE_NAME, name).param(ARG_PROP_NAME, nbrCol.getName());
+        return name;
     }
 
     public String getSuperTableName() {
