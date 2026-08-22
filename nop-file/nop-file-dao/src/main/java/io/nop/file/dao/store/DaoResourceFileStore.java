@@ -11,6 +11,7 @@ import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.file.FileStatusBean;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.io.stream.LimitedInputStream;
@@ -64,6 +65,11 @@ import static io.nop.file.core.FileErrors.ERR_FILE_NOT_EXISTS;
  */
 public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
     static final Logger LOG = LoggerFactory.getLogger(DaoResourceFileStore.class);
+
+    static final ErrorCode ERR_FILE_INVALID_BIZ_OBJ_NAME =
+            ErrorCode.define("nop.err.file.invalid-biz-obj-name", "非法的业务对象名[{bizObjName}]");
+    static final ErrorCode ERR_FILE_INVALID_FILE_EXT =
+            ErrorCode.define("nop.err.file.invalid-file-ext", "非法的文件扩展名[{fileExt}]");
     private IDaoProvider daoProvider;
 
     private IResourceStore resourceStore;
@@ -138,7 +144,7 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
         query.addFilter(FilterBeans.and(
                 eq(NopFileRecord.PROP_NAME_createdBy, ownerId),
                 eq(NopFileRecord.PROP_NAME_bizObjId, FileConstants.TEMP_BIZ_OBJ_ID)));
-        List<NopFileRecord> records = dao.findListByQuery(query);
+        List<NopFileRecord> records = dao.findAllByQuery(query);
         for (NopFileRecord record : records) {
             dao.deleteEntity(record);
             // 与 detachFile 对齐：仅删DB行会让物理文件成为永久孤儿，存储目录持续膨胀
@@ -240,9 +246,9 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
     protected String newPath(String bizObjName, String fileId, String fileExt) {
         // 纵深防御：bizObjName/fileExt 直接拼入存储路径，非受控调用方传入 ../ 等即可越出存储根目录
         if (!StringHelper.isValidSimpleVarName(bizObjName))
-            throw new NopException("nop.err.file.invalid-biz-obj-name").param("bizObjName", bizObjName);
+            throw new NopException(ERR_FILE_INVALID_BIZ_OBJ_NAME).param("bizObjName", bizObjName);
         if (!StringHelper.isEmpty(fileExt) && !fileExt.matches("[A-Za-z0-9]+"))
-            throw new NopException("nop.err.file.invalid-file-ext").param("fileExt", fileExt);
+            throw new NopException(ERR_FILE_INVALID_FILE_EXT).param("fileExt", fileExt);
 
         LocalDate now = DateHelper.currentDate();
         StringBuilder sb = new StringBuilder();
