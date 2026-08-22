@@ -9,6 +9,7 @@ import static io.nop.api.core.beans.FilterBeanConstants.FILTER_ATTR_LABEL;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_ATTR_NAME;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_ATTR_VALUE;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_ATTR_VALUE_NAME;
+import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_ALWAYS_FALSE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -79,4 +80,30 @@ public class TestFilterBeans {
         assertNull(eqDTree.getAttr(FILTER_ATTR_LABEL));
     }
 
+    @Test
+    public void testOrEmptyIsAlwaysFalse() {
+        // 逻辑上空析取为假：空OR返回恒真会让数据过滤/权限条件被绕过
+        assertEquals(FILTER_OP_ALWAYS_FALSE, FilterBeans.or().getTagName());
+        assertEquals(FILTER_OP_ALWAYS_FALSE, FilterBeans.or(new TreeBean[0]).getTagName());
+        assertEquals(FILTER_OP_ALWAYS_FALSE, FilterBeans.or(java.util.Collections.emptyList()).getTagName());
+    }
+
+    @Test
+    public void testOrSkipsNullElements() {
+        // or与and一致地容忍null元素，而不是抛NPE
+        TreeBean or = FilterBeans.or(FilterBeans.eq("a", 1), null, FilterBeans.eq("b", 2));
+        assertEquals("or", or.getTagName());
+        assertEquals(2, or.getChildren().size());
+
+        // 全null输入返回恒假
+        assertEquals(FILTER_OP_ALWAYS_FALSE, FilterBeans.or(null, null).getTagName());
+    }
+
+    @Test
+    public void testOrFlattensOrChildren() {
+        TreeBean innerOr = FilterBeans.or(FilterBeans.eq("a", 1), FilterBeans.eq("b", 2));
+        TreeBean or = FilterBeans.or(innerOr, FilterBeans.eq("c", 3));
+        assertEquals("or", or.getTagName());
+        assertEquals(3, or.getChildren().size());
+    }
 }

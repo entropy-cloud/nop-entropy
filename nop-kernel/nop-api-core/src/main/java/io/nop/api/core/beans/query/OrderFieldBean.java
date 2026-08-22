@@ -74,7 +74,8 @@ public class OrderFieldBean implements Serializable, ICloneable {
         OrderFieldBean ret = new OrderFieldBean();
         ret.setOwner(owner);
         ret.setName(name);
-        ret.setDesc(!desc);
+        // 克隆保持排序方向不变，反转语义属于reverse()
+        ret.setDesc(desc);
         ret.setNullsFirst(nullsFirst);
         return ret;
     }

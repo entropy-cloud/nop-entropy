@@ -481,6 +481,9 @@ public class FieldSelectionBean implements Serializable, IDeepCloneable, IFreeza
         return fields;
     }
 
+    /**
+     * 返回以点分路径表示的全部字段名，例如 a -> {b, c -> {d}} 展开为 [a.b, a.c, a.c.d]
+     */
     @JsonIgnore
     public Set<String> flattenFields() {
         Set<String> ret = new TreeSet<>();
@@ -492,8 +495,9 @@ public class FieldSelectionBean implements Serializable, IDeepCloneable, IFreeza
     void _flatten(Set<String> ret, String prefix, FieldSelectionBean subField) {
         if (subField.fields != null) {
             for (Map.Entry<String, FieldSelectionBean> entry : subField.fields.entrySet()) {
-                _flatten(ret, prefix == null ? entry.getKey() :
-                        prefix + entry.getKey() + ".", entry.getValue());
+                String name = prefix == null ? entry.getKey() : prefix + entry.getKey();
+                ret.add(name);
+                _flatten(ret, name + ".", entry.getValue());
             }
         }
     }

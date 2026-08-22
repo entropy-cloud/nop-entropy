@@ -75,7 +75,8 @@ public class ErrorBean implements Serializable, Comparable<ErrorBean>, ICloneabl
         ret.setDetails(details == null ? null : new LinkedHashMap<>(details));
         ret.setCause(cause);
         ret.setResolved(resolved);
-
+        // forPublic是NopRebuildException.rebuild读取的对外可见标记，克隆不能丢失
+        ret.setForPublic(forPublic);
         return ret;
     }
 

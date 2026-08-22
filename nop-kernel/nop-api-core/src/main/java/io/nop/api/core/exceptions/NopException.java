@@ -33,7 +33,7 @@ import java.util.function.Consumer;
 public class NopException extends RuntimeException implements IException, ISourceLocationSetter {
     private static final long serialVersionUID = 618317480866467022L;
 
-    static IErrorMessageManager s_errorMessageManager;
+    static volatile IErrorMessageManager s_errorMessageManager;
 
     public static void registerErrorMessageManager(IErrorMessageManager errorMessageManager) {
         s_errorMessageManager = errorMessageManager;

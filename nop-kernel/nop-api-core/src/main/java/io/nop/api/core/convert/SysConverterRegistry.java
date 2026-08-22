@@ -24,11 +24,11 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.MonthDay;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 @GlobalInstance
 public class SysConverterRegistry {
@@ -40,10 +40,11 @@ public class SysConverterRegistry {
         return _instance;
     }
 
-    private Map<Class<?>, ITypeConverter> converters = new HashMap<>();
-    private Map<String, TargetTypeConverter> namedConverters = new HashMap<>();
+    // 暴露了运行期register/remove API，热路径get与注册/注销可能跨线程并发，必须使用并发Map
+    private final Map<Class<?>, ITypeConverter> converters = new ConcurrentHashMap<>();
+    private final Map<String, TargetTypeConverter> namedConverters = new ConcurrentHashMap<>();
 
-    private IConverter unknownTypeConverter;
+    private volatile IConverter unknownTypeConverter;
 
     {
         registerConverter("toPrimitiveByte", byte.class, ConvertHelper::toPrimitiveByte);

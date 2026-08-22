@@ -125,22 +125,50 @@ public class ContextTaskQueue {
     }
 
     public void flush() {
-        if (beginProcess()) {
+        if (!beginProcess())
+            return;
+        try {
+            do {
+                flushTasks();
+            } while (!endProcessIfIdle());
+        } catch (Throwable t) {
+            endProcess();
+            throw t;
+        }
+    }
+
+    private void flushTasks() {
+        // 任务执行时刻并不持有lock，从而避免锁重入时死锁
+        do {
+            Runnable task = tasks.poll();
+            if (task == null)
+                return;
             try {
-                // 任务执行时刻并不持有lock，从而避免锁重入时死锁
-                do {
-                    Runnable task = tasks.poll();
-                    if (task == null)
-                        break;
-                    try {
-                        task.run();
-                    } catch (Throwable e) {
-                        LOG.error("nop.core.context.run-task-fail", e);
-                    }
-                } while (true);
-            } finally {
-                endProcess();
+                task.run();
+            } catch (Throwable e) {
+                LOG.error("nop.core.context.run-task-fail", e);
             }
+        } while (true);
+    }
+
+    /**
+     * 处理线程退出处理状态前的原子判定：必须在锁内确认队列为空之后才清空processingThread。
+     * 最后一次poll返回null到真正退出之间存在check-then-act窗口，期间其他线程enqueue后调用flush
+     * 会因processingThread仍为本线程而放弃执行；若不二次确认，该任务将滞留队列无人处理。
+     *
+     * @return true 表示已退出处理状态；false 表示退出窗口内队列又收到新任务，需要继续处理
+     */
+    private boolean endProcessIfIdle() {
+        lock.lock();
+        try {
+            if (processing == 1 && !tasks.isEmpty())
+                return false;
+            if (--processing == 0) {
+                processingThread = null;
+            }
+            return true;
+        } finally {
+            lock.unlock();
         }
     }
 

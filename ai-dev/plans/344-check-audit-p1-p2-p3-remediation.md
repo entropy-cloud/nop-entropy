@@ -91,12 +91,12 @@ Exit Criteria:
 
 ### Phase 3 - 服务框架与业务骨架（nop-api-core / nop-biz / nop-graphql / nop-auth / nop-sys / nop-job / nop-task / nop-wf）
 
-Status: planned
+Status: in progress
 Targets: 对应 8 份报告；`nop-api-core`、`nop-biz`、`nop-graphql`、`nop-auth`、`nop-sys`、`nop-job`、`nop-task`、`nop-wf` 模块代码与测试
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] nop-api-core.md（P1×5 P2×11 P3×3）
+- [x] nop-api-core.md（P1×5 P2×11 P3×3）— 2026-08-22 完成：16 修复 + 2 部分修复暂缓（P2-6 registerInstance API 重设计 / P2-8 executeBlocking worker 池语义）。P1: ApiRequest.cloneInstance properties 笔误 / OrderFieldBean 克隆取反 / monthDayToString day 段误用 monthValue / localDateTimeToMillis DST 对称化 / ContextTaskQueue flush 退出窗口竞态（endProcessIfIdle 锁内原子判定）。P2: ErrorBean forPublic / ApiResponse bizFatal+tryResponse / rightJoin 常量 / dimFields 死分支归一化 / FilterBeans.or 空析取恒假+null 容忍（含 or(List) 同族）/ thenOnContext0 异常完成 promise / toFalsy NaN / flattenFields 补 add+点分前缀 / SysConverterRegistry ConcurrentHashMap。P3: 静态字段 volatile×5+final×5 / IntRangeSet 空集防护 / ApiMessage headers volatile+DCL+setHeader 串行化（保留 TreeMap null 值语义，实证 HEADER_BIZ_FAIL null 依赖）。新增 8 测试类 + 3 既有类扩展，17 处红验证失败形态与审计一致（P1-5 竞态经内部锁冻结确定性复现；headers 并发首写 round=0 即丢写）；80 tests 绿 + 回归 nop-commons 220 / nop-core 252 / nop-xlang 559 / nop-job-core 39 绿；超审计新发现 3 项（setHeader/addHeadersIfAbsent 第二条非同步懒初始化路径已修、or(List) 同族恒真已修、null header 值依赖实证排除 ConcurrentMap 方案）
 - [ ] nop-biz.md（P1×2 P2×6 P3×7）
 - [ ] nop-graphql.md（P1×3 P2×5 P3×7）
 - [ ] nop-auth.md（P1×1 P2×3 P3×9）

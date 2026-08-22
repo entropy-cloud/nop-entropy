@@ -39,7 +39,7 @@ public class CoreMetrics {
         }
     };
 
-    private static IClock s_clock = DEFAULT_CLOCK;
+    private static volatile IClock s_clock = DEFAULT_CLOCK;
 
     public static void registerClock(IClock clock) {
         s_clock = clock;

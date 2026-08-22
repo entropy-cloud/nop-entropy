@@ -23,7 +23,7 @@ import java.util.Set;
  */
 @GraphQLScalar
 public class MultiCsvSet implements IJsonString, Iterable<Set<String>> {
-    public static MultiCsvSet EMPTY = new MultiCsvSet(Collections.emptyList());
+    public static final MultiCsvSet EMPTY = new MultiCsvSet(Collections.emptyList());
     private final List<Set<String>> sets;
 
     public MultiCsvSet(List<Set<String>> sets) {

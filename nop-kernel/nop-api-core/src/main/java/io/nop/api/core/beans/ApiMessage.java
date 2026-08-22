@@ -22,13 +22,21 @@ import java.util.TreeMap;
 
 public abstract class ApiMessage implements Serializable, ICloneable {
     private static final long serialVersionUID = 1195025223699746417L;
-    private Map<String, Object> headers;
+    // volatile+双重检查：ApiRequest/ApiResponse常被跨线程传递(异步RPC回调、序列化线程)，
+    // 懒初始化必须保证安全发布且不丢失并发首写。注意：经getHeaders()拿到的Map本身的复合操作仍需外部同步
+    private volatile Map<String, Object> headers;
 
     @JsonInclude(Include.NON_EMPTY)
     public Map<String, Object> getHeaders() {
-        if (headers == null)
-            headers = new TreeMap<>();
-        return headers;
+        Map<String, Object> h = headers;
+        if (h == null) {
+            synchronized (this) {
+                if (headers == null)
+                    headers = new TreeMap<>();
+                h = headers;
+            }
+        }
+        return h;
     }
 
     @JsonIgnore
@@ -59,9 +67,10 @@ public abstract class ApiMessage implements Serializable, ICloneable {
     }
 
     public void setHeader(String name, Object value) {
-        if (headers == null)
-            headers = new TreeMap<>();
-        ApiHeaders.setHeader(headers, name, value);
+        // 并发setHeader需要串行化，否则并发写TreeMap可能损坏结构
+        synchronized (this) {
+            ApiHeaders.setHeader(getHeaders(), name, value);
+        }
     }
 
     public void addHeaders(Map<String, Object> headers) {
@@ -74,15 +83,17 @@ public abstract class ApiMessage implements Serializable, ICloneable {
         if (headers == null || headers.isEmpty())
             return;
 
-        if (this.headers == null) {
-            this.headers = new TreeMap<>(headers);
-        } else {
-            headers.forEach((k, v) -> {
-                if (!hasHeader(k)) {
-                    setHeader(k, v);
-                }
-            });
+        synchronized (this) {
+            if (this.headers == null) {
+                this.headers = new TreeMap<>(headers);
+                return;
+            }
         }
+        headers.forEach((k, v) -> {
+            if (!hasHeader(k)) {
+                setHeader(k, v);
+            }
+        });
     }
 
     public Map<String, Object> getSelectedHeaders(Collection<String> headerNames) {

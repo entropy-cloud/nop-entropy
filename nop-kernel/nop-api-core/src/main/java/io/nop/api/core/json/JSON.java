@@ -20,7 +20,7 @@ import static io.nop.api.core.ApiErrors.ERR_JSON_PROVIDER_NOT_INITIALIZED;
 @Locale("zh-CN")
 @Description("提供JSON解析和序列化功能")
 public class JSON {
-    static IJsonProvider s_provider;
+    static volatile IJsonProvider s_provider;
 
     public static void registerProvider(IJsonProvider provider) {
         s_provider = provider;

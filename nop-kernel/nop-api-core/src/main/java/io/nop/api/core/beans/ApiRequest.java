@@ -135,7 +135,7 @@ public final class ApiRequest<T> extends ApiMessage {
         ret.setSelection(selection);
         ret.setData(data);
         if (this.properties != null)
-            this.properties = new HashMap<>(this.properties);
+            ret.properties = new HashMap<>(this.properties);
         return ret;
     }
 

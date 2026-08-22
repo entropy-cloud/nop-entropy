@@ -24,8 +24,16 @@ import static io.nop.api.core.ApiErrors.ERR_CONTEXT_PROVIDER_NOT_INITIALIZED;
 
 @SuppressWarnings("PMD.TooManyStaticImports")
 public class ContextProvider {
-    private static IContextProvider _instance = new BaseContextProvider();
+    // volatile: 运行期(如下游集成层)替换provider时保证跨线程可见性
+    private static volatile IContextProvider _instance = new BaseContextProvider();
 
+    /**
+     * 注册全局context provider。默认已初始化为BaseContextProvider，重复注册非null实例会抛
+     * ERR_CONTEXT_PROVIDER_ALREADY_INITIALIZED。替换默认实现的用法是两段式：
+     * 先 {@code registerInstance(null)} 注销，再 {@code registerInstance(newProvider)} 注册。
+     *
+     * @param instance 新的provider；传null表示注销当前provider（此后instance()会抛NOT_INITIALIZED）
+     */
     public static void registerInstance(IContextProvider instance) {
         if (_instance != null && instance != null)
             throw new NopException(ERR_CONTEXT_PROVIDER_ALREADY_INITIALIZED);
@@ -177,9 +185,15 @@ public class ContextProvider {
 
         CompletableFuture<T> promise = new CompletableFuture<>();
         future.whenComplete((value, err) -> {
-            context.execute(() -> {
-                FutureHelper.complete(promise, value, err);
-            });
+            try {
+                context.execute(() -> {
+                    FutureHelper.complete(promise, value, err);
+                });
+            } catch (Throwable e) {
+                // context已关闭等场景下execute会抛异常，异常进入whenComplete返回的被丢弃依赖stage，
+                // promise将永不完成。此处必须让promise以异常完成，避免调用方静默挂起
+                promise.completeExceptionally(e);
+            }
         });
 
         return promise;

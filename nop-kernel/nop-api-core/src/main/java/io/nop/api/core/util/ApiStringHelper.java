@@ -33,8 +33,8 @@ import static io.nop.api.core.ApiErrors.ARG_VAR_NAME;
 import static io.nop.api.core.ApiErrors.ERR_UTILS_TEMPLATE_VAR_NOT_ALLOW_NULL;
 
 public class ApiStringHelper {
-    public static LocalDate INVALID_DATE = LocalDate.of(0, 1, 1);
-    public static LocalDate FUTURE_DATE = LocalDate.of(3000, 1, 1);
+    public static final LocalDate INVALID_DATE = LocalDate.of(0, 1, 1);
+    public static final LocalDate FUTURE_DATE = LocalDate.of(3000, 1, 1);
 
     public static final String ENCODING_UTF8 = "UTF-8";
     public static final Charset CHARSET_UTF8 = StandardCharsets.UTF_8;

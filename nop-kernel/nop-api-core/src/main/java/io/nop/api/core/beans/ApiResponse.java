@@ -132,6 +132,9 @@ public final class ApiResponse<T> extends ApiMessage {
         ret.setErrors(errors);
         ret.setData(data);
         ret.setWrapper(wrapper);
+        // 克隆体常被作为对外序列化对象，bizFatal/tryResponse不能丢失
+        ret.setBizFatal(bizFatal);
+        ret.setTryResponse(tryResponse);
         return ret;
     }
 

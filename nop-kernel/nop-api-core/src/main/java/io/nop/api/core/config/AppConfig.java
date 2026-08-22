@@ -25,7 +25,7 @@ import static io.nop.api.core.ApiConfigs.CFG_WEB_FILE_TIMESTAMP;
 @SuppressWarnings("PMD.TooManyStaticImports")
 @GlobalInstance
 public class AppConfig {
-    private static IConfigProvider s_provider = new SimpleConfigProvider();
+    private static volatile IConfigProvider s_provider = new SimpleConfigProvider();
 
     public static void registerConfigProvider(IConfigProvider provider) {
         s_provider = provider;

@@ -65,6 +65,8 @@ public ApiRequest<T> cloneInstance(boolean includeHeaders) {
 - **建议**: 改为 `ret.setProperties(new HashMap<>(this.properties))`。
 - **误报排除**: 逐行比对 `ApiResponse.cloneInstance`（正确使用 `ret.setHeaders(...)`）确认这是笔误而非某种约定；grep 确认当前仓库主代码内无 `ApiRequest.cloneInstance` 调用方（属公共 API 潜在缺陷，故未升 P0）。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复。`cloneInstance` 中 `this.properties = new HashMap<>(this.properties)` 改为 `ret.properties = new HashMap<>(this.properties)`（类内直接字段赋值，无 setter），克隆体保留全部 properties 且不再原地替换源对象字段。测试：`TestApiRequest#testCloneInstanceCopiesProperties`，红验证：修复前 `expected: <v1> but was: <null>`（克隆体 properties 丢失）。
+
 ### [P1] OrderFieldBean.cloneInstance 反转排序方向，克隆查询的 orderBy 全部反向
 
 - **文件**: `nop-kernel/nop-api-core/src/main/java/io/nop/api/core/beans/query/OrderFieldBean.java:72-80`
@@ -86,6 +88,8 @@ public OrderFieldBean cloneInstance() {
 - **建议**: `ret.setDesc(desc)`；并补充 OrderFieldBean 克隆/反转的单元测试。
 - **误报排除**: git 历史核实（commit 9a001bc6a 已修复过 `desc()/asc()` 工厂方法的同族方向错误，但未触及 cloneInstance）；仓库内无任何测试断言克隆取反的"预期行为"；`reverse()` 的存在排除"克隆即反转"的设计意图。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复。`cloneInstance` 中 `ret.setDesc(!desc)` 改为 `ret.setDesc(desc)`（克隆保持方向，反转语义归属 `reverse()`，其实现不动）。测试：`TestQueryBeanJoinAndClone#testOrderFieldBeanCloneKeepsDirection` + `#testQueryBeanCloneKeepsOrderByDirection`（覆盖 QueryBean.cloneInstance 经 OrderFieldBean::cloneInstance 的传播路径），红验证：修复前 `clone of desc field should stay desc ==> expected: <true> but was: <false>`。
+
 ### [P1] ConvertHelper.monthDayToString 日期段输出的是月份值
 
 - **文件**: `nop-kernel/nop-api-core/src/main/java/io/nop/api/core/convert/ConvertHelper.java:1459-1471`
@@ -103,6 +107,8 @@ return sb.toString();
 - **风险**: `ConvertHelper.toString(Object)` 对所有 `MonthDay` 走此路径，且 `toMonthDay` 已注册为系统转换器。`nop-job` 的 `AnnualCalendarSpec`/`AnnualCalendar`（年度日历）使用 MonthDay，序列化产物是错误数据，回读后语义改变（如 12-25 变 12-12）。
 - **建议**: 改为 `sb.append(monthDay.getDayOfMonth())`。
 - **误报排除**: 全文确认无重载分流；空参判断（`<10` 补零）使用的是 `getDayOfMonth()`，进一步证明取值目标是 day，属复制粘贴错误。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复。day 段 `sb.append(monthDay.getMonthValue())` 改为 `sb.append(monthDay.getDayOfMonth())`。测试：`TestConvertHelper#testMonthDayToString` + `#testMonthDayRoundTrip`，红验证：修复前 `MonthDay.of(12,25)` 输出 `12-12`（`expected: <12-25> but was: <12-12>`），与审计推演一致；MonthDay 消费方 nop-job-core 39 tests 回归绿。
 
 ### [P1] ConvertHelper.localDateTimeToMillis 使用 raw offset 忽略夏令时，与反向转换不对称
 
@@ -126,6 +132,8 @@ public static LocalDateTime millisToLocalDateTime(Long value) {
 - **建议**: 正向改用 `value.atZone(TimeZone.getDefault().toZoneId()).toInstant().toEpochMilli()`，或反向同样只用 raw offset，保证两个方向对称。
 - **误报排除**: 核对 JDK 语义：`Timestamp.toLocalDateTime()` 按 JVM 默认 ZoneId 转换（含 DST），`getRawOffset()` 明确不含 DST，二者不对称成立；代码库中该两方法互为正反向（stringToLocalDateTime 数字分支调用 millisToLocalDateTime）。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复。正向转换改为 `value.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()`（含 DST 的实际偏移，与反向 `Timestamp.toLocalDateTime()` 对称）；固定偏移时区行为不变（raw offset == 实际 offset）。测试：`TestConvertHelper#testLocalDateTimeMillisRoundTripDst`（TimeZone.setDefault(Europe/Berlin) + finally 恢复，夏季往返 + 冬季对照），红验证：修复前 `expected: <2026-07-15T12:00> but was: <2026-07-15T13:00>`（夏季偏 1 小时），与审计推演一致；外部唯一调用方 nop-commons DateHelper 及 nop-commons 220/nop-core 252/nop-xlang 559/nop-job-core 39 tests 回归绿。
+
 ### [P1] ContextTaskQueue.enqueue 与 flush 退出存在 check-then-act 竞态，任务可能无限滞留队列
 
 - **文件**: `nop-kernel/nop-api-core/src/main/java/io/nop/api/core/context/ContextTaskQueue.java:113-145`
@@ -147,6 +155,8 @@ public boolean enqueue(Runnable task) {
 - **建议**: 将 `tasks.add(task)` 移入锁内，并在锁内检查 `processingThread == null && syncing == 0` 时返回 false、否则自行处理；或 flush 退出前在锁内二次确认队列为空再清 `processingThread`。
 - **误报排除**: 逐行推演 ConcurrentLinkedDeque 与锁的 happens-before：`add` 发生在 A 的最后一次 `poll` 之后时，A 不会重读队列；`enqueue` 返回值语义（"已有处理者"）与 `beginProcess` 判定之间存在 TOCTOU，推演成立，非臆测。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复。`flush()` 重构为 `do { flushTasks(); } while (!endProcessIfIdle())`：新增 `endProcessIfIdle()` 在锁内原子判定——`processing==1 && 队列非空` 则保持处理状态返回 false（当前线程继续 drain），否则递减计数、队列为空时清 `processingThread` 后退出。把"队列空确认 + 清 processingThread"合并进同一锁临界区后，其他线程的 enqueue 检查要么看到已清空的 processingThread（自行 flush），要么本线程必然在判定中看到非空队列继续处理，滞留窗口按 happens-before 论证关闭。`syncGet` 依 syncing 等待-唤醒自愈，结构不动。测试：`TestContextTaskQueue#testFlushExitWindowDoesNotLoseTask`——反射取内部 ReentrantLock 在处理线程进入退出临界区前冻结锁，把纳秒级窗口放大为确定性步骤（t1 阻塞任务 + marker 任务证明最后一次 poll 已返回 null），红验证：修复前 `task enqueued during flush exit window must be executed, run=false`（t2 滞留 5s 超时），确定性复现。
+
 ### [P2] ErrorBean.cloneInstance 丢失 forPublic 标志（且 cause/details 为共享浅拷贝）
 
 - **文件**: `nop-kernel/nop-api-core/src/main/java/io/nop/api/core/beans/ErrorBean.java:64-80`
@@ -165,6 +175,8 @@ public ErrorBean cloneInstance() {
 - **风险**: `nop-core/ErrorMessageManager:341`、`DaoTaskStateStore:539` 克隆 ErrorBean 后，forPublic 信息丢失，错误可能被当作内部错误处理，客户端提示行为改变。
 - **建议**: 补 `ret.setForPublic(forPublic)`；明确 cause/details 的克隆策略。
 - **误报排除**: 通读全文件确认 `forPublic` 字段及其 getter/setter 存在且被 `NopRebuildException.rebuild(ErrorBean)` 消费，克隆方法中确无复制语句。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复（forPublic 部分）。补 `ret.setForPublic(forPublic)`。测试：`TestErrorBeanClone#testCloneInstanceKeepsForPublic`，红验证：修复前 `expected: <true> but was: <false>`。cause/details 共享浅拷贝裁定维持现状：`params` 本就是共享引用，ErrorBean 整体遵循"浅拷贝 + 容器级防御"（details 外层 Map 已拷贝），cause 链深拷贝属克隆策略设计决策（深拷贝后克隆体与源异常树脱钩，可能破坏错误去重/聚合逻辑），无现实受害调用方，不扩大修复面。
 
 ### [P2] ApiResponse.cloneInstance 丢失 bizFatal 与 tryResponse 字段
 
@@ -187,6 +199,8 @@ public ApiResponse<T> cloneInstance(boolean includeHeaders) {
 - **建议**: 补 `ret.setBizFatal(bizFatal)` 与 `ret.setTryResponse(tryResponse)`。
 - **误报排除**: 已核实上述三个调用方均以克隆体作为对外序列化对象（非仅内部裁剪 headers），字段丢失会外显。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复。补 `ret.setBizFatal(bizFatal)` 与 `ret.setTryResponse(tryResponse)`。测试：`TestApiResponseClone#testCloneInstanceKeepsBizFatal/#testCloneInstanceKeepsTryResponse`，红验证：修复前均为 `expected: <...> but was: <null>`。
+
 ### [P2] QueryBean.rightJoin 实际构造的是 leftJoin
 
 - **文件**: `nop-kernel/nop-api-core/src/main/java/io/nop/api/core/beans/query/QueryBean.java:492-495`
@@ -201,6 +215,8 @@ public QueryBean rightJoin(String sourceName, String alias, String leftJoinField
 - **风险**: 调用 `rightJoin(...)` 得到 left join，语义静默反转（错误数据）。当前仓库主代码未发现该方法调用方（元数据层的 `MetaJoinExecutor` 明确抛"right 不支持"而不是降级，侧面说明 right join 语义应显式、不应静默替换），属公共契约 API 的潜伏缺陷。
 - **建议**: 改用 `JOIN_TYPE_RIGHT_JOIN`，并确认下游执行器支持该类型（不支持时应显式报错）。
 - **误报排除**: 常量已确认存在；`leftJoin`/`innerJoin` 均正确传自身类型，仅 `rightJoin` 错。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复。`rightJoin` 改传 `JOIN_TYPE_RIGHT_JOIN`（新增静态导入）。全仓库无调用方（grep 实证），零调用方影响；下游执行器若不支持 right join 会显式报错（如 MetaJoinExecutor），符合"不支持时应显式报错"的建议方向。测试：`TestQueryBeanJoinAndClone#testRightJoinUsesRightJoinType`（另附 leftJoin/innerJoin 对照用例），红验证：修复前 `expected: <rightJoin> but was: <leftJoin>`。
 
 ### [P2] QueryBean.addJoin 的 dimFields 判断类型不匹配导致分支永不命中
 
@@ -218,6 +234,8 @@ if (Objects.equals(dimFields, leftJoinFields)) {
 - **风险**: 按维度字段 join 时无法走 dimFields 简化路径，总是退化为 conditions 列表，语义等价但丢失下游可利用的结构信息；也说明该特性从未生效过。
 - **建议**: 比较前先归一化（如 `Objects.equals(ApiStringHelper.join(dimFields, ","), leftJoinFields)`），或直接比较 `leftProps`。
 - **误报排除**: 两变量声明类型已核实（`private List<String> dimFields;` 与方法参数 `String leftJoinFields`）。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复。比较归一化为 `Objects.equals(dimFields, leftProps)`（与 addJoin 内已解析的 `List<String> leftProps` 同类型比较），查询维度字段与 join 左字段一致时走 `setDimFields` 结构化路径。全仓库无 addJoin/leftJoin/rightJoin/innerJoin 主代码调用方（grep 实证），特性自激活无回归面；mdx 层（MdxQuerySplitter）自建查询不经此路径。测试：`TestQueryBeanJoinAndClone#testAddJoinDimFieldsBranch`（另附不一致时 conditions 对照用例），红验证：修复前 `expected: <[x, y]> but was: <null>`（恒走 conditions 死分支）。
 
 ### [P2] FilterBeans.or 空参数返回 alwaysTrue（空析取语义应为假），且 or 不容忍 null 元素
 
@@ -238,6 +256,8 @@ public static TreeBean or(TreeBean... filters) {
 - **建议**: 空参数返回 `alwaysFalse()`；对 null 元素与 `and` 一致地跳过或显式报错。
 - **误报排除**: 仓库内现有调用（如 `inRanges`）都保证非空入参，故当前无直接错误数据路径，属契约级缺陷（未升 P1 的原因）。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复。`or(TreeBean...)` 空参数改返回 `alwaysFalse()`、循环内 null 元素 skip（与 `and` 一致）、全 null 输入返回 `alwaysFalse()`；同族 `or(List)` 空参数一并改 `alwaysFalse()`（超审计同族修复）。主代码调用方逐点核查：`inRanges` 非空守卫、`ConditionExprHelper` isEmpty 守卫、`ExpressionToFilterBeanTransformer` 二元恒非空、`OrmBatchConsumer`/`DaoQueryHelper.buildPropsFilterForList` 空列表时 alwaysFalse（匹配零行）才是正确语义（旧 alwaysTrue 会全表放行，属被本修复消除的潜在隐患）。测试：`TestFilterBeans#testOrEmptyIsAlwaysFalse/#testOrSkipsNullElements`（另附 or 嵌套展平对照用例），红验证：修复前 `expected: <alwaysFalse> but was: <alwaysTrue>` 与 null 元素 NPE。
+
 ### [P2] ContextProvider.registerInstance 契约自相矛盾且静态字段无可见性保证
 
 - **文件**: `nop-kernel/nop-api-core/src/main/java/io/nop/api/core/context/ContextProvider.java:27-40`
@@ -257,6 +277,8 @@ public static void registerInstance(IContextProvider instance) {
 - **建议**: 提供 `unregister`/`replaceInstance` 明确两段式 API，或允许首帧覆盖；字段加 volatile。
 - **误报排除**: 全仓库 grep 确认主代码无 `ContextProvider.registerInstance` 调用（当前用默认 provider），问题属 API 契约缺陷而非运行故障。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，部分修复+暂缓。已修复部分：`_instance` 加 volatile（运行期替换跨线程可见）；`registerInstance` 补 javadoc 如实化两段式契约（先 `registerInstance(null)` 注销再注册新 provider，重复注册非 null 抛 ALREADY_INITIALIZED 是防双注册防线而非矛盾）。暂缓部分：API 重设计（新增 `unregister`/`replaceInstance` 或允许首帧覆盖）。决策点：是否允许运行期直接替换 provider——quarkus/spring 集成层的潜在需求 vs 削弱双注册防线；影响面为跨模块公共 API 新增签名，需单独设计裁定。免测试理由：volatile 为内存可见性加固、javadoc 为文档修正，均无数值行为语义，编译+全模块回归即验证。
+
 ### [P2] thenOnContext0 在 context 已关闭时异常被吞、返回的 promise 永不完成
 
 - **文件**: `nop-kernel/nop-api-core/src/main/java/io/nop/api/core/context/ContextProvider.java:175-186`
@@ -275,6 +297,8 @@ return promise;
 - **风险**: 请求超时/中断路径先关闭 context、残留异步操作稍后完成时，依赖该 promise 的链路静默挂起，且无任何错误线索，难以排查。
 - **建议**: action 内 try/catch，异常时 `promise.completeExceptionally(e)`（并考虑 log）；或改用 `handle`。
 - **误报排除**: 确认 `BaseContext.execute -> checkClosed` 会抛异常、`BaseContext.close()` 无条件把 `closed` 置 true 且不清空待完成 future；`whenComplete` 返回值确未接收。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复。`whenComplete` 回调内 try/catch Throwable，`context.execute` 抛异常时 `promise.completeExceptionally(e)`（异常以 ERR_CONTEXT_ALREADY_CLOSED 完成到调用方，不再静默挂起）。测试：`TestContextProviderThenOnContext#testThenOnContext0ClosedContextCompletesExceptionally/#testThenOnContext0ClosedContextImmediateComplete`，红验证：修复前 `expected: <ExecutionException> but was: <TimeoutException>`（promise 永不完成，2s 超时），与审计推演一致。
 
 ### [P2] BaseContext.executeBlocking 忽略 ordered 参数且无 worker 线程，实际在调用线程同步执行
 
@@ -296,6 +320,8 @@ public <T> CompletionStage<T> executeBlocking(Supplier<?> task, boolean ordered)
 - **建议**: 至少在 javadoc 标明 BaseContext 实现是"当前线程同步执行"的降级实现；或 `ordered=false` 时用公共 ForkJoinPool/Executor 执行。
 - **误报排除**: `runOnContext -> enqueue` 无处理线程时同步 `flush` 的路径已核实（ContextTaskQueue.flush/BaseContext.runOnContext 231-244 行）。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，部分修复+暂缓。已修复部分：`BaseContext.executeBlocking` 补 javadoc 如实化——Base 系实现是降级实现（无 worker 线程池，任务经 runOnContext 在当前调用线程同步执行，ordered 参数当前被忽略），需真正阻塞线程池语义由具体运行时（vert.x 等）的 IContext 实现覆盖。暂缓部分：ordered=false 引入公共 ForkJoinPool/Executor 执行。决策点：BaseContext 引入异步执行会改变测试与非 vert.x 运行时的完成时序假设（当前同步完成被部分调用方隐式依赖），且需处理 worker 线程上的 context 绑定/恢复语义，属行为语义变更，需设计裁定。免测试理由：javadoc 修正无数值行为语义。
+
 ### [P2] ConvertHelper.toFalsy 的 NaN 判断恒为 false，NaN 不再是假值
 
 - **文件**: `nop-kernel/nop-api-core/src/main/java/io/nop/api/core/convert/ConvertHelper.java:303-320`
@@ -311,6 +337,8 @@ if (o instanceof Number) {
 - **风险**: 表达式/模板引擎中 `toFalsy(NaN)` 应为 true 却返回 false，条件分支反向。触发需要 NaN 的 Double 值（解析异常数据、0.0/0.0 等），不常见但语义明确错误。
 - **建议**: 改为 `d == 0 || Double.isNaN(d)`。
 - **误报排除**: IEEE 754 语义确认 `==` 对 NaN 恒 false；javadoc 的意图排除了"故意排除 NaN"的可能。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复。`d == Double.NaN` 改为 `Double.isNaN(d)`。测试：`TestConvertHelper#testToFalsyNaN`（NaN/0.0/null/""/非假值对照），红验证：修复前 `NaN must be falsy ==> expected: <true> but was: <false>`。
 
 ### [P2] FieldSelectionBean.flattenFields 永远返回空集合（且前缀拼接错误）
 
@@ -337,6 +365,8 @@ void _flatten(Set<String> ret, String prefix, FieldSelectionBean subField) {
 - **建议**: 递归中对每个 entry 执行 `ret.add(prefix == null ? key : prefix + key)`，子级前缀为 `(prefix==null?key:prefix+key) + "."`。
 - **误报排除**: 全文检索方法体确认无其他写入 `ret` 的路径；`forEachField`（正确实现）对比确认意图。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复。`_flatten` 对每个 entry 执行 `ret.add(prefix == null ? key : prefix + key)`，子级递归前缀为该名称 + `"."`（与 `forEachField` 的 `prefix + '.' + sourceName` 点分路径一致）。全仓库无调用方（grep 实证）。测试：`TestFieldSelectionBeanFlatten#testFlattenFields/#testFlattenFieldsSingleLevel`，红验证：修复前 `expected: <[b, c, c.d]> but was: <[]>`（恒空集合）。
+
 ### [P2] SysConverterRegistry 用非并发 HashMap 暴露运行时注册/注销 API
 
 - **文件**: `nop-kernel/nop-api-core/src/main/java/io/nop/api/core/convert/SysConverterRegistry.java:43-46,102-117`
@@ -354,6 +384,8 @@ public void registerConverter(String name, Class<?> targetType, ITypeConverter c
 - **建议**: 换成 `ConcurrentHashMap`（字段还声明为非 final，一并修正）。
 - **误报排除**: 字段类型与初始化已核实为 `HashMap`；当前主流程仅在启动期注册，故日常路径无并发写，未升 P1。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复。`converters`/`namedConverters` 改为 `final ConcurrentHashMap`（`unregisterTypeConverter` 的两参 remove 在 ConcurrentMap 上为原子操作），`unknownTypeConverter` 加 volatile。测试：`TestSysConverterRegistry#testConcurrentRegisterAndRead`（4 writer × 200 注册 + 并发热路径读取，断言全部条目可读）+ `#testUnregisterTypeConverter`（注销语义）。红验证免测理由：HashMap 并发丢条目/结构损坏属时序竞态，无法确定性红验证（压力网为回归防护），数据结构替换本身无数值行为语义，编译+全模块回归即验证。
+
 ### [P3] 一组非 final / 非 volatile 的公共静态可变单例与懒初始化字段
 
 - **文件**:
@@ -369,6 +401,8 @@ public void registerConverter(String name, Class<?> targetType, ITypeConverter c
 - **风险**: 实际注册多发生在 main 线程启动阶段（线程启动自带 happens-before），日常风险低；但热替换/运行期注册场景存在可见性延迟，公共可变静态常量存在被误用污染的全局风险。
 - **建议**: 注册字段加 volatile；常量类字段加 final。
 - **误报排除**: 逐一打开文件核实字段声明；确认这些字段均有运行期赋值方法（register/更新接口）或为 public 非 final。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复。注册点字段全部加 volatile：`ContextProvider._instance`（随 P2-6 一并）、`AppConfig.s_provider`、`JSON.s_provider`、`CoreMetrics.s_clock`、`NopException.s_errorMessageManager`；公共静态常量全部加 final：`IntRangeBean.EMPTY`、`SourceLocation.UNKNOWN`、`MultiCsvSet.EMPTY`、`ApiStringHelper.INVALID_DATE/FUTURE_DATE`（grep 实证全仓库无重新赋值点，加 final 零影响）。免测试理由：内存可见性加固与编译期 final 约束，无数值行为语义，编译通过 + 模块全量测试即验证。
 
 ### [P3] IntRangeSet 对空集合调用 compact/getFirstBegin/getLastEnd 抛数组越界
 
@@ -386,6 +420,8 @@ public IntRangeSet compact() {
 - **建议**: size()==0 时直接返回 this/默认值。
 - **误报排除**: `rangeSet(emptyList,false)` 构造合法（Guard.notNull 仅查 null）；`split` 的 `total<=n` 分支对空 ranges 也返回空列表（`new ArrayList<>(0)`），确认 compact 是唯一未防护入口。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复。`compact()` 短路条件 `size() == 1` 放宽为 `size() <= 1`（空集合返回 this）；`getFirstBegin()/getLastEnd()` 空集合改抛 `NopException(ERR_CHECK_INVALID_POSITION_INDEX)`（带 index=0/size=0 参数，复用既有错误码），替代裸 ArrayIndexOutOfBoundsException。全仓库无 getFirstBegin/getLastEnd 调用方（grep 实证），异常类型变化零调用方影响。测试：`TestIntRangeSet#testCompactEmpty/#testGetFirstBeginLastEndEmpty`，红验证：修复前 `ArrayIndexOutOfBoundsException: Index 0 out of bounds for length 0` / `expected: <NopException> but was: <IndexOutOfBoundsException>`。
+
 ### [P3] ApiMessage.getHeaders() 懒初始化 TreeMap 非线程安全
 
 - **文件**: `nop-kernel/nop-api-core/src/main/java/io/nop/api/core/beans/ApiMessage.java:27-32`
@@ -402,6 +438,8 @@ public Map<String, Object> getHeaders() {
 - **风险**: 消息跨线程共享且首读并发时 header 丢失或 Map 损坏；多数用法单线程构造后共享只读，实际触发面窄。
 - **建议**: 构造时初始化，或改用 ConcurrentHashMap + 复合赋值。
 - **误报排除**: 确认 `setHeader`/`addHeaders` 均经此懒初始化路径或直接操作同一非并发字段。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复。`headers` 加 volatile；`getHeaders()` 改双重检查锁懒初始化（安全发布 + 唯一实例）；超审计新发现一并修复：`setHeader`/`addHeadersIfAbsent` 各自存在第二条非同步懒初始化路径，`setHeader` 统一改走 `synchronized(this) + getHeaders()`（并发写串行化，消除并发 put 损坏 TreeMap），`addHeadersIfAbsent` 初始化段纳入同锁。保留 TreeMap：实证 `ApiHeaders.java:454` `setHeader(HEADER_BIZ_FAIL, fail ? "1" : null)` 与 `ApiMessage.java:120` 依赖 null header 值，排除 ConcurrentSkipListMap/ConcurrentMap 方案（null 值抛 NPE）。测试：`TestApiMessageHeaders#testConcurrentFirstGetHeaders`（4 线程×200 轮并发首写，断言全部可见），红验证确定性命中：修复前 `round=0 expected: <4> but was: <2>`（并发首写丢失），中间形态还实证了并发 put 损坏 TreeMap（`NullPointerException: Cannot read field "left"`）。
 
 ## 维度小结
 
