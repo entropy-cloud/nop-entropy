@@ -44,7 +44,7 @@ jobs:
     - name: Set up Node.js (for nop-stream invariant gate scanner)
       uses: actions/setup-node@v4
       with:
-        node-version: 20
+        node-version: 22
     - name: Check nop-stream invariant gates (mjs scanner)
       run: node ai-dev/tools/check-nop-stream-invariants.mjs
 
@@ -62,7 +62,7 @@ jobs:
         version: 10
     - uses: actions/setup-node@v4
       with:
-        node-version: 20
+        node-version: 22
         cache: 'pnpm'
         cache-dependency-path: ai-dev/tools/pnpm-lock.yaml
     - name: Install tools dependencies
@@ -91,7 +91,7 @@ jobs:
     - name: Set up Node
       uses: actions/setup-node@v4
       with:
-        node-version: 20
+        node-version: 22
         cache: 'pnpm'
         cache-dependency-path: ai-dev/tools/pnpm-lock.yaml
     - name: Install ai-dev/tools dependencies
@@ -121,7 +121,7 @@ jobs:
         version: 10
     - uses: actions/setup-node@v4
       with:
-        node-version: 20
+        node-version: 22
         cache: 'pnpm'
         cache-dependency-path: nop-entropy-e2e/pnpm-lock.yaml
     - name: Install dependencies
