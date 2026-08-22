@@ -103,6 +103,7 @@ public class ErrorMessageManager implements IErrorMessageManager {
 
     public void clearErrorCodeMappings() {
         this.errorCodeMappings.clear();
+        this.subMappings.clear();
     }
 
     public void loadErrorCodeMappings() {

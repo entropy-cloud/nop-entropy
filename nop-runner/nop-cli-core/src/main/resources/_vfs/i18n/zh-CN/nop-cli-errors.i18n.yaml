@@ -350,6 +350,7 @@ nop.err.core.loop.var-not-defined: 循环变量[{varName}]没有在NestedLoop中
 nop.err.core.no-api-service-context: 缺少没有Api服务上下文
 nop.err.core.no-tenant-id: 上下文环境没有设置租户id
 nop.err.core.query.invalid-order-by-sql: 排序语句格式不正确
+nop.err.core.reflect.aop-init-method-model-fail: AOP代理类[{className}]初始化函数模型失败
 nop.err.core.reflect.bean-class-is-abstract-or-interface: '{className}类是抽象类或者接口，不允许创建实例'
 nop.err.core.reflect.bean-class-no-factory-method: '{className}类没有定义工厂方法，也不是枚举类'
 nop.err.core.reflect.bean-no-class-for-type: '{typeValue}没有对应的实现类'
@@ -396,6 +397,7 @@ nop.err.core.resource.get-input-stream-fail: 打开资源文件[{resource}]的�
 nop.err.core.resource.get-output-stream-fail: 打开资源文件[{resource}]的输出流失败
 nop.err.core.resource.in-memory-store-not-allow-save: 内存文件存储不支持保存操作
 nop.err.core.resource.invalid-delta-id: 路径[{resourcePath}]的deltaLayerId与系统当前配置不符
+nop.err.core.resource.invalid-file-name: 非法的文件名，不允许包含..等相对路径形式:{fileName}
 nop.err.core.resource.invalid-file-path-pattern: 文件路径匹配模式中只允许*和文件名，不支持其他符号
 nop.err.core.resource.invalid-module-id: 模块ID必须是A/B这种格式，而现在是：{moduleId}
 nop.err.core.resource.invalid-module-name: 模块名必须是A-B这种格式，而现在是:{moduleName}
@@ -408,6 +410,7 @@ nop.err.core.resource.is-readonly-file: 只读文件不支持写操作
 nop.err.core.resource.module-path-resolve-to-multi-file: 虚拟文件路径[{stdPath}]对应到多个模块文件:{path},{otherPath}
 nop.err.core.resource.no-current-path: 上下文环境中没有设置currentPath
 nop.err.core.resource.no-length: 文件没有长度属性:{resource}
+nop.err.core.resource.not-allow-parent-path: 不允许通过相对路径[{resourcePath}]访问父目录
 nop.err.core.resource.not-allow-path: 不允许访问资源路径[{resourcePath}]
 nop.err.core.resource.not-contains-file-range: 文件[{resource}]长度为{length}, 无法定位文件区间：[{range}]
 nop.err.core.resource.not-dir: 资源对象[{resource}]对应的不是目录
@@ -417,6 +420,7 @@ nop.err.core.resource.now-allow-access-internal-path: 不允许直接访问内�
 nop.err.core.resource.open-input-stream-fail: 打开文件输入流失败：{resource}
 nop.err.core.resource.open-output-stream-fail: 打开文件输出流失败：{resource}
 nop.err.core.resource.path-not-in-namespace: 资源路径[{resourcePath}]不属于名字空间[{namespace}]
+nop.err.core.resource.read-bytes-too-large: 资源文件[{resource}]长度为{length}，超过int范围，无法一次性读入内存
 nop.err.core.resource.read-csv-row-fail: 读取CSV文件[{resourcePath}]的第{readCount}行时失败
 nop.err.core.resource.read-jsonl-row-fail: 读取JSONL文件[{resourcePath}]的第{readCount}行时失败
 nop.err.core.resource.save-from-stream-fail: 保存数据流到资源文件[{resourcePath}]失败
@@ -434,6 +438,9 @@ nop.err.core.resource.write-to-stream-fail: 保存资源文件[{src}]到数据�
 nop.err.core.resource.zip.unzip-to-dir-fail: 解压缩到目录[{dir}]失败
 nop.err.core.rpc.prev-call-not-completed: 此前发起的RPC调用尚未完成，无法再发起新的调用
 nop.err.core.selection.invalid-arg-name: 参数名[{name}]不合法，它必须满足Java语法规范且不能以$为前缀
+nop.err.core.sql.like-invalid-escape-char: LIKE/SIMILAR匹配中的转义字符必须是单个字符:{escapeChar}
+nop.err.core.sql.like-invalid-escape-sequence: LIKE/SIMILAR匹配中的转义序列不合法:{pattern}，位置:{pos}
+nop.err.core.sql.similar-invalid-regex: SIMILAR匹配模式不是合法的正则表达式:{pattern}
 nop.err.core.sql.sql-filter-invalid-field-name: SQL字段名不合法:{name}
 nop.err.core.sql.sql-param-count-mismatch: SQL参数个数不匹配
 nop.err.core.table.invalid-cell-position: 单元格位置表达式不合法:rowIndex={rowIndex},colIndex={colIndex}

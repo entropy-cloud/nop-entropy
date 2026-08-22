@@ -264,8 +264,9 @@ public class CoreInitialization {
     private static Set<String> getDisabled() {
         // 通过System.properties配置
         Object configValue = CFG_MODULE_DISABLED_MODULE_NAMES.get();
-        // 如果未找到，则从bootstrap.yaml配置文件中查找配置项
-        if (configValue == null)
+        // 如果未找到，则从bootstrap.yaml配置文件中查找配置项。
+        // reinitialize独立调用时bootstrapConfig可能尚未装载
+        if (configValue == null && bootstrapConfig != null)
             configValue = bootstrapConfig.get(CFG_MODULE_DISABLED_MODULE_NAMES.getName());
 
         Set<String> disabledNames = ConvertHelper.toCsvSet(configValue);

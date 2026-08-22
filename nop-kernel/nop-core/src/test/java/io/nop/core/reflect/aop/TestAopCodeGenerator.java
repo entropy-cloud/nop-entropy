@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestAopCodeGenerator extends BaseTestCase {
@@ -69,5 +70,14 @@ public class TestAopCodeGenerator extends BaseTestCase {
             result.getGeneratedClass(className);
         }
         assertEquals(normalizeCRLF(attachmentText("MyModel__aop.java")), normalizeCRLF(code));
+    }
+
+    @Test
+    public void testGeneratedStaticBlockFailFast() {
+        String code = new AopCodeGenerator().build(MyModel.class, new Class[]{BizMutation.class});
+        // 生成的静态初始化块不允许用 printStackTrace 吞掉反射失败
+        assertFalse(code.contains("printStackTrace"));
+        // 失败时应抛出带错误码的 NopException，保留根因
+        assertTrue(code.contains("io.nop.api.core.exceptions.NopException"));
     }
 }

@@ -30,6 +30,17 @@ import static io.nop.core.CoreErrors.ERR_COMPONENT_UNKNOWN_MODEL_FILE_TYPE;
  * 模型文件和组件文件都支持缓存机制，当它们依赖的文件没有发生变化时，直接返回缓存结果。
  */
 public interface IResourceComponentManager extends IResourceDependencyManager {
+
+    /**
+     * loadComponentModelByUrl 的装载参数名：转换为指定格式的模型对象
+     */
+    String COMPONENT_URL_PARAM_TRANSFORM = "transform";
+
+    /**
+     * loadComponentModelByUrl 的装载参数名：获取复合组件的内部子组件
+     */
+    String COMPONENT_URL_PARAM_SUB = "sub";
+
     /**
      * 每一种模型都对应一个特定的模型类型。
      *

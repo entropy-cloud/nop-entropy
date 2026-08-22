@@ -65,17 +65,22 @@ import java.util.zip.GZIPOutputStream;
 
 import static io.nop.commons.CommonConfigs.CFG_IO_DEFAULT_BUF_SIZE;
 import static io.nop.core.CoreConfigs.CFG_RESOURCE_DIR_OVERRIDE_VFS;
+import static io.nop.core.CoreErrors.ARG_FILE_NAME;
+import static io.nop.core.CoreErrors.ARG_LENGTH;
 import static io.nop.core.CoreErrors.ARG_MODULE_ID;
 import static io.nop.core.CoreErrors.ARG_MODULE_NAME;
 import static io.nop.core.CoreErrors.ARG_NAMESPACE;
 import static io.nop.core.CoreErrors.ARG_RESOURCE;
 import static io.nop.core.CoreErrors.ARG_RESOURCE_PATH;
+import static io.nop.core.CoreErrors.ERR_RESOURCE_INVALID_FILE_NAME;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_INVALID_MODULE_ID;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_INVALID_MODULE_NAME;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_INVALID_PATH;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_INVALID_RELATIVE_NAME;
+import static io.nop.core.CoreErrors.ERR_RESOURCE_NOT_ALLOW_PARENT_PATH;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_NOT_DIR;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_PATH_NOT_IN_NAMESPACE;
+import static io.nop.core.CoreErrors.ERR_RESOURCE_READ_BYTES_TOO_LARGE;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_SAVE_FROM_STREAM_FAIL;
 
 public class ResourceHelper {
@@ -275,7 +280,7 @@ public class ResourceHelper {
 
     public static IResource resolveRelativeResource(IResource resource, String relativePath, boolean allowParent) {
         if (!allowParent && relativePath.contains(".."))
-            throw new IllegalArgumentException("invalid-relative-path:" + relativePath);
+            throw new NopException(ERR_RESOURCE_NOT_ALLOW_PARENT_PATH).param(ARG_RESOURCE_PATH, relativePath);
 
         String relativeStdPath = resolveRelativeStdPath(resource.getStdPath(), relativePath);
         return VirtualFileSystem.instance().getResource(relativeStdPath);
@@ -740,6 +745,9 @@ public class ResourceHelper {
             if (length == 0)
                 return StringHelper.EMPTY_BYTES;
             if (length > 0) {
+                if (length > Integer.MAX_VALUE)
+                    throw new NopException(ERR_RESOURCE_READ_BYTES_TOO_LARGE).param(ARG_RESOURCE, resource)
+                            .param(ARG_LENGTH, length);
                 byte[] data = new byte[(int) length];
                 IoHelper.readFully(is, data);
                 return data;
@@ -1137,8 +1145,10 @@ public class ResourceHelper {
         String path = fileName;
         fileName = fileName.replace('\\', '/');
         if (!StringHelper.isEmpty(dir)) {
-            if (fileName.contains("../"))
-                throw new IllegalArgumentException("nop.err.invalid-file-name:" + fileName);
+            // 限制fileName只能定位到dir内部，任何包含..段的相对路径都必须拒绝。
+            // 仅检查"../"子串会被裸".."/"./.."绕过，且后续路径归一化会消除痕迹
+            if (fileName.length() > 0 && !StringHelper.isCanonicalFilePath(fileName))
+                throw new NopException(ERR_RESOURCE_INVALID_FILE_NAME).param(ARG_FILE_NAME, fileName);
             path = StringHelper.appendPath(dir, fileName);
         }
 

@@ -29,6 +29,7 @@ import static io.nop.core.CoreErrors.ARG_CURRENT_PATH;
 import static io.nop.core.CoreErrors.ARG_RESOURCE_PATH;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_CURRENT_PATH_CONTAINS_INVALID_DELTA_LAYER_ID;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_INVALID_DELTA_LAYER_ID;
+import static io.nop.core.CoreErrors.ERR_RESOURCE_INVALID_PATH;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_NOT_ALLOW_ACCESS_INTERNAL_PATH;
 
 /**
@@ -297,6 +298,8 @@ public class DeltaResourceStore implements IDeltaResourceStore {
     public IResource getRawResource(String path) {
         if (ResourceHelper.isTenantPath(path)) {
             int pos = path.indexOf('/', ResourceConstants.TENANT_PATH_PREFIX.length());
+            if (pos < 0)
+                throw new NopException(ERR_RESOURCE_INVALID_PATH).param(ARG_RESOURCE_PATH, path);
             String tenantId = path.substring(ResourceConstants.TENANT_PATH_PREFIX.length(), pos);
 
             IResourceStore store = getTenantStore0(tenantId);
