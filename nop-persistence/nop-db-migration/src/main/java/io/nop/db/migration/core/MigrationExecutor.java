@@ -60,16 +60,8 @@ public class MigrationExecutor {
             return record;
             
         } catch (Exception e) {
-            long executionTime = System.currentTimeMillis() - startTime;
-            
-            MigrationRecord record = new MigrationRecord();
-            record.setVersion(migration.getVersion());
-            record.setDescription(migration.getDescription());
-            record.setExecutionTime(executionTime);
-            record.setInstalledBy(context.getInstalledBy());
-            record.setSuccess(false);
-            record.setErrorMessage(e.getMessage());
-            
+            // The failure is reported by the caller through MigrationEngine's
+            // failed record; nothing to build here before rethrowing
             throw NopException.adapt(e);
         }
     }

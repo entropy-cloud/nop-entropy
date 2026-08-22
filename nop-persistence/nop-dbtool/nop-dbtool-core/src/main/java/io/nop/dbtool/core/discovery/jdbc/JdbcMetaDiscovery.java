@@ -118,11 +118,12 @@ public class JdbcMetaDiscovery {
             conn = getConnection();
 
             DatabaseMetaData metaData = conn.getMetaData();
-            ResultSet rs = metaData.getCatalogs();
             List<String> ret = new ArrayList<>();
-            while (rs.next()) {
-                String catalogName = rs.getString("TABLE_CAT");
-                ret.add(catalogName);
+            try (ResultSet rs = metaData.getCatalogs()) {
+                while (rs.next()) {
+                    String catalogName = rs.getString("TABLE_CAT");
+                    ret.add(catalogName);
+                }
             }
             return ret;
         } catch (SQLException e) {
@@ -138,11 +139,12 @@ public class JdbcMetaDiscovery {
             conn = getConnection();
 
             DatabaseMetaData metaData = conn.getMetaData();
-            ResultSet rs = metaData.getSchemas();
             List<String> ret = new ArrayList<>();
-            while (rs.next()) {
-                String schemaName = rs.getString("TABLE_SCHEM");
-                ret.add(schemaName);
+            try (ResultSet rs = metaData.getSchemas()) {
+                while (rs.next()) {
+                    String schemaName = rs.getString("TABLE_SCHEM");
+                    ret.add(schemaName);
+                }
             }
             return ret;
         } catch (SQLException e) {
@@ -206,10 +208,14 @@ public class JdbcMetaDiscovery {
 
     private DataBaseMeta createMeta(DatabaseMetaData metaData) {
         DataBaseMeta meta = new DataBaseMeta();
-        meta.setDriverName(meta.getDriverName());
-        meta.setDriverVersion(meta.getDriverVersion());
-        meta.setProductName(meta.getProductName());
-        meta.setProductVersion(meta.getProductVersion());
+        try {
+            meta.setDriverName(metaData.getDriverName());
+            meta.setDriverVersion(metaData.getDriverVersion());
+            meta.setProductName(metaData.getDatabaseProductName());
+            meta.setProductVersion(metaData.getDatabaseProductVersion());
+        } catch (Exception e) {
+            LOG.debug("ignore-error", e);
+        }
 
         try {
             meta.setSupportsBatchUpdates(metaData.supportsBatchUpdates());

@@ -9,13 +9,16 @@ package io.nop.db.migration.core;
 
 import io.nop.commons.type.StdSqlType;
 import io.nop.db.migration.AbstractMigrationTestCase;
+import io.nop.db.migration.executor.DbTypeFilterExecutor;
 import io.nop.db.migration.model.AddColumnChange;
 import io.nop.db.migration.model.ColumnDefinition;
 import io.nop.db.migration.model.CreateTableChange;
 import io.nop.db.migration.model.DbChangeModel;
 import io.nop.db.migration.model.DbMigrationModel;
+import io.nop.db.migration.model.DbTypeFilterChange;
 import io.nop.db.migration.model.InsertColumnModel;
 import io.nop.db.migration.model.InsertDataChange;
+import io.nop.db.migration.model.RollbackDefinition;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -161,6 +164,102 @@ class TestMigrationEngine extends AbstractMigrationTestCase {
         assertThrows(Exception.class, () -> {
             migrationEngine.migrate(context);
         }, "Should fail for unknown change type");
+    }
+
+    @Test
+    void testMigrateRetryAfterFailureSucceeds() {
+        // First run: the migration fails (unknown change type) and a failed
+        // history record is written
+        MigrationContext failingContext = createMigrationContext(
+            Collections.singletonList(createInvalidMigration("1.0.0", "Invalid migration")));
+        failingContext.setFailFast(false);
+        MigrationResult failedResult = migrationEngine.migrate(failingContext);
+        assertEquals(1, failedResult.getRecords().size());
+        assertFalse(failedResult.getRecords().get(0).isSuccess());
+
+        // Second run: the same version now succeeds. The old failed record
+        // must be replaced instead of causing a primary key violation that
+        // aborts the whole migration run
+        MigrationContext retryContext = createMigrationContext(
+            Collections.singletonList(createCreateTableMigration("1.0.0", "Fixed migration")));
+        MigrationResult retryResult = assertDoesNotThrow(() -> migrationEngine.migrate(retryContext),
+            "retry after a failed attempt must not hit a primary key conflict");
+        assertEquals(1, retryResult.getRecords().size());
+        assertTrue(retryResult.getRecords().get(0).isSuccess());
+
+        MigrationHistoryManager historyManager = new MigrationHistoryManager(jdbcTemplate, "default");
+        assertTrue(historyManager.getExecutedVersions().contains("1.0.0"),
+            "the retried version must be recorded as executed");
+    }
+
+    @Test
+    void testRegisterExecutorVisibleToDbTypeFilter() throws Exception {
+        // Executors registered after engine construction must also be visible
+        // to DbTypeFilterExecutor, which dispatches nested changes through its
+        // own executor table
+        List<String> executed = new ArrayList<>();
+        migrationEngine.registerExecutor("probeType", (change, context, dialect) -> executed.add("probe"));
+
+        java.lang.reflect.Field field = MigrationEngine.class.getDeclaredField("dbTypeFilterExecutor");
+        field.setAccessible(true);
+        DbTypeFilterExecutor dbTypeFilterExecutor = (DbTypeFilterExecutor) field.get(migrationEngine);
+
+        DbTypeFilterChange filter = new DbTypeFilterChange();
+        filter.setId("filter-1");
+        filter.setType("dbTypeFilter");
+        filter.setDbTypes(Collections.singleton(dialect.getName().toLowerCase()));
+        DbChangeModel nested = newChange("probeType");
+        filter.setChanges(Collections.singletonList(nested));
+
+        MigrationContext context = createMigrationContext(Collections.emptyList());
+        dbTypeFilterExecutor.execute(filter, context, dialect);
+
+        assertEquals(Collections.singletonList("probe"), executed,
+            "dbTypeFilter must dispatch to executors registered after construction");
+    }
+
+    @Test
+    void testRollbackTwiceKeepsSameOrder() {
+        List<String> order = new ArrayList<>();
+        migrationEngine.registerExecutor("probeA", (change, context, dialect) -> order.add("A"));
+        migrationEngine.registerExecutor("probeB", (change, context, dialect) -> order.add("B"));
+
+        DbMigrationModel migration = new DbMigrationModel();
+        migration.setVersion("1.0.0");
+        migration.setDescription("Rollback order test");
+
+        RollbackDefinition rollback = new RollbackDefinition();
+        rollback.setChanges(new ArrayList<>(Arrays.asList(newChange("probeA"), newChange("probeB"))));
+        migration.setRollback(rollback);
+
+        MigrationContext context = createMigrationContext(Collections.emptyList());
+
+        migrationEngine.rollback(migration, context);
+        assertEquals(Arrays.asList("B", "A"), order, "rollback executes changes in reverse order");
+
+        // Rolling back the same model again must observe the original order,
+        // not the order mutated by the first rollback
+        order.clear();
+        migrationEngine.rollback(migration, context);
+        assertEquals(Arrays.asList("B", "A"), order, "second rollback of the same model must keep the same order");
+    }
+
+    @Test
+    void testErrorMessageFallsBackToStringForNullMessage() {
+        // Exceptions like NPE carry a null message; the history record relies
+        // on a non-null error message
+        String message = MigrationEngine.errorMessage(new NullPointerException());
+        assertNotNull(message);
+        assertEquals("java.lang.NullPointerException", message);
+    }
+
+    private DbChangeModel newChange(String type) {
+        // DbChangeModel is abstract; any concrete change subclass works as a
+        // carrier for the probe change type
+        CreateTableChange change = new CreateTableChange();
+        change.setId(type);
+        change.setType(type);
+        return change;
     }
 
     private MigrationContext createMigrationContext(List<DbMigrationModel> migrations) {

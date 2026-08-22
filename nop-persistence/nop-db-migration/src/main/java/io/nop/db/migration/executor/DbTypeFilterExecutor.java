@@ -14,21 +14,31 @@ import static io.nop.db.migration.DbMigrationErrors.ARG_CHANGE_TYPE;
 import static io.nop.db.migration.DbMigrationErrors.ERR_DB_MIGRATION_UNKNOWN_CHANGE_TYPE;
 
 public class DbTypeFilterExecutor implements IChangeExecutor {
-    
+
     public static final String CHANGE_TYPE = "dbTypeFilter";
-    
+
     private final java.util.Map<String, IChangeExecutor> executors;
-    
+
     public DbTypeFilterExecutor() {
         this.executors = new java.util.HashMap<>();
     }
-    
+
     public DbTypeFilterExecutor(java.util.Map<String, IChangeExecutor> executors) {
         this.executors = executors;
     }
-    
+
     public void registerExecutor(String changeType, IChangeExecutor executor) {
         executors.put(changeType, executor);
+    }
+
+    /**
+     * Allows IoC containers to populate the nested executor table, mirroring
+     * {@code MigrationExecutor#setExecutors}.
+     */
+    public void setExecutors(java.util.Map<String, IChangeExecutor> executors) {
+        if (executors == null || executors.isEmpty())
+            return;
+        this.executors.putAll(executors);
     }
     
     @Override

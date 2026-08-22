@@ -38,6 +38,31 @@
                 <entry key="updateData" value-ref="nopUpdateDataExecutor"/>
                 <entry key="deleteData" value-ref="nopDeleteDataExecutor"/>
                 <entry key="customChange" value-ref="nopCustomChangeExecutor"/>
+                <entry key="dbTypeFilter" value-ref="nopDbTypeFilterExecutor"/>
+            </ioc:map>
+        </property>
+    </bean>
+
+    <!-- dbTypeFilter dispatches nested changes through its own executor table,
+         which must mirror nopMigrationExecutor's map -->
+    <bean id="nopDbTypeFilterExecutor" class="io.nop.db.migration.executor.DbTypeFilterExecutor">
+        <property name="executors">
+            <ioc:map keyType="java.lang.String" valueType="io.nop.db.migration.executor.IChangeExecutor">
+                <entry key="createTable" value-ref="nopCreateTableExecutor"/>
+                <entry key="dropTable" value-ref="nopDropTableExecutor"/>
+                <entry key="renameTable" value-ref="nopRenameTableExecutor"/>
+                <entry key="addColumn" value-ref="nopAddColumnExecutor"/>
+                <entry key="dropColumn" value-ref="nopDropColumnExecutor"/>
+                <entry key="alterColumn" value-ref="nopAlterColumnExecutor"/>
+                <entry key="createIndex" value-ref="nopCreateIndexExecutor"/>
+                <entry key="dropIndex" value-ref="nopDropIndexExecutor"/>
+                <entry key="createView" value-ref="nopCreateViewExecutor"/>
+                <entry key="dropView" value-ref="nopDropViewExecutor"/>
+                <entry key="sql" value-ref="nopSqlExecutor"/>
+                <entry key="insertData" value-ref="nopInsertDataExecutor"/>
+                <entry key="updateData" value-ref="nopUpdateDataExecutor"/>
+                <entry key="deleteData" value-ref="nopDeleteDataExecutor"/>
+                <entry key="customChange" value-ref="nopCustomChangeExecutor"/>
             </ioc:map>
         </property>
     </bean>

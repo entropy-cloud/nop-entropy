@@ -57,7 +57,7 @@ Targets: `ai-dev/audits/check/nop-dao.md`、`db-migration.md`、`nop-orm.md`、`
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] nop-dao.md（P1×3 P2×9 P3×4）
+- [x] nop-dao.md（P1×3 P2×9 P3×4）— 2026-08-22 完成：13 修复 + 1 部分修复暂缓 + 2 免测试裁定，全部标注，102 tests 绿，红测试 3 条验证；超出审计新发现 2 处（QuerySpaceEnv.leave 恢复语义、Hikari setDriverClassName(null) NPE）已修复
 - [ ] db-migration.md（P1×8 P2×11 P3×2）
 - [ ] nop-orm.md（P1×5 P2×8 P3×8）
 - [ ] orm-periph.md（P1×7 P2×7 P3×8）

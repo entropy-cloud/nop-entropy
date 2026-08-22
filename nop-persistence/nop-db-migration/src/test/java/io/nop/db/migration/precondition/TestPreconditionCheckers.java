@@ -158,7 +158,55 @@ public class TestPreconditionCheckers {
         
         assertFalse(checker.check(preconditionNotExists, context));
     }
-    
+
+    @Test
+    public void testIndexExistsCheckerWithoutSqlQuery() {
+        // INFORMATION_SCHEMA.INDEXES only exists on H2; the checker must
+        // resolve index metadata through the JDBC driver, so it has to work
+        // even when no SQL query can be executed
+        jdbcTemplate.executeUpdate(SQL.begin().append("CREATE TABLE test_table (id VARCHAR(36) PRIMARY KEY, name VARCHAR(100))").end());
+        jdbcTemplate.executeUpdate(SQL.begin().append("CREATE INDEX idx_name ON test_table(name)").end());
+
+        MigrationContext noQueryContext = new MigrationContext();
+        noQueryContext.setJdbcTemplate(newQueryRejectingJdbcTemplate(jdbcTemplate));
+        noQueryContext.setDialect(dialect);
+        noQueryContext.setQuerySpace("default");
+
+        IndexExistsChecker checker = new IndexExistsChecker();
+
+        IndexExistsPrecondition preconditionExists = new IndexExistsPrecondition();
+        preconditionExists.setTableName("test_table");
+        preconditionExists.setIndexName("idx_name");
+        preconditionExists.setExpect(PreconditionExpect.EXISTS);
+        assertTrue(checker.check(preconditionExists, noQueryContext));
+
+        IndexExistsPrecondition preconditionNotExists = new IndexExistsPrecondition();
+        preconditionNotExists.setTableName("test_table");
+        preconditionNotExists.setIndexName("nonexistent_idx");
+        preconditionNotExists.setExpect(PreconditionExpect.EXISTS);
+        assertFalse(checker.check(preconditionNotExists, noQueryContext));
+    }
+
+    /**
+     * Delegating proxy that rejects every executeQuery call while keeping
+     * runWithConnection usable on the real connection.
+     */
+    private static IJdbcTemplate newQueryRejectingJdbcTemplate(IJdbcTemplate delegate) {
+        return (IJdbcTemplate) java.lang.reflect.Proxy.newProxyInstance(
+            IJdbcTemplate.class.getClassLoader(),
+            new Class<?>[]{IJdbcTemplate.class},
+            (proxy, method, args) -> {
+                if (method.getName().equals("executeQuery")) {
+                    throw new IllegalStateException("no SQL query allowed in this test");
+                }
+                try {
+                    return method.invoke(delegate, args);
+                } catch (java.lang.reflect.InvocationTargetException ex) {
+                    throw ex.getCause();
+                }
+            });
+    }
+
     @Test
     public void testForeignKeyExistsChecker() {
         jdbcTemplate.executeUpdate(SQL.begin().append("CREATE TABLE other_table (id VARCHAR(36) PRIMARY KEY)").end());

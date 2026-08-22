@@ -17,6 +17,7 @@ public interface DbMigrationErrors {
     String ARG_MIGRATION_PATH = "migrationPath";
     String ARG_CHECKSUM = "checksum";
     String ARG_EXPECTED_CHECKSUM = "expectedChecksum";
+    String ARG_QUERY_SPACE = "querySpace";
     
     ErrorCode ERR_DB_MIGRATION_UNKNOWN_CHANGE_TYPE = ErrorCode.define(
         "io.nop.db.migration", 
@@ -76,5 +77,11 @@ public interface DbMigrationErrors {
         "io.nop.db.migration",
         "ERR_DB_MIGRATION_COLUMN_NOT_EXISTS",
         "Column does not exist: {tableName}.{columnName}"
+    );
+
+    ErrorCode ERR_DB_MIGRATION_HISTORY_QUERY_FAILED = ErrorCode.define(
+        "nop.err.db-migration.history-query-failed",
+        "Failed to query migration history table {tableName} in querySpace {querySpace}",
+        ARG_TABLE_NAME, ARG_QUERY_SPACE
     );
 }

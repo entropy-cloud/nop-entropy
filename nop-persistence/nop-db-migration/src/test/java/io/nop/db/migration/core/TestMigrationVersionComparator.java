@@ -98,6 +98,15 @@ public class TestMigrationVersionComparator {
         parts = MigrationVersionComparator.parseVersionParts("V1__test");
         assertArrayEquals(new int[]{1, 0, 0}, parts);
     }
+
+    @Test
+    public void testCompareBothNullIsZero() {
+        // Two distinct null references must compare as equal, otherwise the
+        // comparator is asymmetric and TimSort rejects the sort
+        assertEquals(0, MigrationVersionComparator.INSTANCE.compare(null, null));
+        assertTrue(MigrationVersionComparator.INSTANCE.compare(null, createMigration("V1.0.0")) < 0);
+        assertTrue(MigrationVersionComparator.INSTANCE.compare(createMigration("V1.0.0"), null) > 0);
+    }
     
     private DbMigrationModel createMigration(String version) {
         DbMigrationModel model = new DbMigrationModel();

@@ -15,6 +15,8 @@ import io.nop.db.migration.core.MigrationContext;
 import io.nop.db.migration.model.InsertColumnModel;
 import io.nop.db.migration.model.InsertDataChange;
 
+import java.time.LocalDate;
+
 public class InsertDataExecutor implements IChangeExecutor {
 
     public static final String CHANGE_TYPE = "insertData";
@@ -40,10 +42,10 @@ public class InsertDataExecutor implements IChangeExecutor {
 
     @Override
     public String generateRollbackSql(AbstractComponentModel change, IDialect dialect) {
-        InsertDataChange insertData = (InsertDataChange) change;
-        StringBuilder sb = new StringBuilder();
-        sb.append("DELETE FROM ").append(dialect.escapeSQLName(insertData.getTableName()));
-        return sb.toString();
+        // Not implemented: without knowing the table's primary key the inverse
+        // of an INSERT cannot be constrained, and an unconditional DELETE would
+        // wipe the whole table.
+        return null;
     }
 
     @Override
@@ -67,7 +69,8 @@ public class InsertDataExecutor implements IChangeExecutor {
                 }
                 first = false;
                 sb.append(dialect.escapeSQLName(column.getName()));
-                values.append(escapeValue(column.getValue(), dialect));
+                values.append(escapeValue(column.getValue(), column.getValueNumeric(),
+                    column.getValueBoolean(), column.getValueDate(), dialect));
             }
         }
         
@@ -78,7 +81,20 @@ public class InsertDataExecutor implements IChangeExecutor {
         return sb.toString();
     }
 
-    protected String escapeValue(String value, IDialect dialect) {
+    static String escapeValue(String value, Number valueNumeric, Boolean valueBoolean,
+                              LocalDate valueDate, IDialect dialect) {
+        // The column model carries typed value fields (valueNumeric/valueBoolean/valueDate,
+        // see migration.xdef); rendering them as unquoted literals keeps numeric and
+        // boolean columns valid on all dialects.
+        if (valueBoolean != null) {
+            return valueBoolean ? "TRUE" : "FALSE";
+        }
+        if (valueNumeric != null) {
+            return valueNumeric.toString();
+        }
+        if (valueDate != null) {
+            return "'" + valueDate.toString() + "'";
+        }
         if (value == null) {
             return "NULL";
         }
