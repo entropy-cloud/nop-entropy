@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin name="order-independent" if-property="order.independent|true" activator="orderActivator"
+        x:schema="/nop/schema/plugin/plugin.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <beans>
+        <bean id="orderActivator" class="io.nop.plugin.test.OrderRecorderActivator">
+            <property name="name" value="independent"/>
+        </bean>
+    </beans>
+</plugin>

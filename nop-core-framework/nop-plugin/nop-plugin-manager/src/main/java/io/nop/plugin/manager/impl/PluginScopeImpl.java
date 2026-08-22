@@ -110,7 +110,7 @@ public class PluginScopeImpl implements IPluginScope {
     /**
      * 按 bean id 解析服务（代理集合的按调用重新解析路径；bean 不存在抛容器标准异常）。
      *
-     * <p>仅实现层使用（instance 级代理 handler），不属 {@link IPluginScope} 公开契约。
+     * <p>仅实现层使用（插件级生命周期代理 handler），不属 {@link IPluginScope} 公开契约。
      */
     @SuppressWarnings("unchecked")
     <T> T getServiceBean(String beanId) {
@@ -118,7 +118,7 @@ public class PluginScopeImpl implements IPluginScope {
     }
 
     /**
-     * 按类型返回 bean id → bean 映射（instance 级 getServices 代理包装的候选键来源；
+     * 按类型返回 bean id → bean 映射（插件级 getServices 代理包装的候选键来源；
      * 重激活后按 id 重新解析）。
      *
      * <p>仅实现层使用，不属 {@link IPluginScope} 公开契约。

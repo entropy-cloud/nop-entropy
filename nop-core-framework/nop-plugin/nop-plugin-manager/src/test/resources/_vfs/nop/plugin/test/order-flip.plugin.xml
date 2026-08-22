@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin name="order-flip" if-property="order.flip|true" activator="flipActivator"
+        x:schema="/nop/schema/plugin/plugin.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <beans>
+        <bean id="flipActivator" class="io.nop.plugin.test.FlipConfigActivator">
+            <property name="eventName" value="flip"/>
+            <property name="configKey" value="order.flip"/>
+        </bean>
+    </beans>
+</plugin>

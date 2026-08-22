@@ -22,45 +22,47 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * 实例配置域 provider——委托包装器（设计文档 01-architecture-baseline.md §四"实例配置域的实现路径"）。
+ * 定义级配置域 provider——委托包装器（设计文档 01-architecture-baseline.md §7.1 定义级配置通道：
+ * 子容器经 provider 接收定义级配置视图，未命中键回退全局配置，不静默回落全局）。
  *
  * <p>读路径 + {@code subscribeChange} 均委托全局 provider（{@link SimpleConfigProvider} 子类的
- * {@code subscribeChange} 返回 null，实例容器内 {@code @r-cfg} 式响应式 bean 装配会触发空订阅清理——
- * 本类经本地监听表 + 委托返回非 null cleanup，杜绝该陷阱）。实例键（合并视图 = 定义默认 + 实例配置，
- * 实例覆盖定义）优先于全局值；实例键变更时经本地监听表触发变更通知（P2-C 热应用依赖此路径）。
+ * {@code subscribeChange} 返回 null，插件子容器内 {@code @r-cfg} 式响应式 bean 装配会触发空订阅清理——
+ * 本类经本地监听表 + 委托返回非 null cleanup，杜绝该陷阱）。定义级配置域键（合并视图 =
+ * load 初始 config + updateConfig 累积值）优先于全局值；定义级键变更时经本地监听表触发变更通知
+ * （ACTIVATED 态热应用依赖此路径——bean 属性真实重绑定，非仅内部快照重算）。
  *
- * <p>合并视图由实例持有方（{@link PluginInstanceImpl}）维护，经 {@link #setMergedView} /
+ * <p>合并视图由定义持有方（{@link VfsPluginDefinition}）维护，经 {@link #setMergedView} /
  * {@link #updateMergedView} 下发；本类只做读取解析与变更通知，不写全局配置
- * （{@link #assignConfigValue} 只写入实例视图，绝不落全局 provider）。
+ * （{@link #assignConfigValue} 只写入定义级视图，绝不落全局 provider）。
  */
-public class InstanceConfigProvider implements IConfigProvider {
-    static final Logger LOG = LoggerFactory.getLogger(InstanceConfigProvider.class);
+public class DefinitionConfigProvider implements IConfigProvider {
+    static final Logger LOG = LoggerFactory.getLogger(DefinitionConfigProvider.class);
 
     private final IConfigProvider globalProvider;
 
     /**
-     * 实例合并视图（定义默认 + 实例配置，实例覆盖定义）。所有读写均在锁内进行。
+     * 定义级配置域合并视图（load 初始 config + updateConfig 累积值）。所有读写均在锁内进行。
      */
     private final Map<String, Object> mergedView = new LinkedHashMap<>();
 
     /**
-     * 实例键变更监听（pattern → listeners）。
+     * 定义级键变更监听（pattern → listeners）。
      */
     private final Map<String, CopyOnWriteArrayList<IConfigChangeListener>> listeners = new ConcurrentHashMap<>();
 
-    public InstanceConfigProvider(IConfigProvider globalProvider) {
+    public DefinitionConfigProvider(IConfigProvider globalProvider) {
         this.globalProvider = globalProvider;
     }
 
     /**
-     * 全量设置合并视图（首次激活时调用；旧视图为空的 diff 通知为空操作）。
+     * 全量设置合并视图（激活时调用；旧视图为空的 diff 通知为空操作）。
      */
     public void setMergedView(Map<String, Object> view) {
         applyMergedView(view);
     }
 
     /**
-     * 热应用合并视图（P2-C ACTIVATED 实例）：diff 出变更键，更新值并触发变更通知（非仅改快照）。
+     * 热应用合并视图（ACTIVATED 定义）：diff 出变更键，更新值并触发变更通知（非仅改快照）。
      */
     public void updateMergedView(Map<String, Object> view) {
         applyMergedView(view);
@@ -91,7 +93,7 @@ public class InstanceConfigProvider implements IConfigProvider {
     }
 
     /**
-     * 当前合并视图快照（供 instance.getConfig() 使用，任何态可读）。
+     * 当前合并视图快照（定义配置域可读视图）。
      */
     public Map<String, Object> getMergedViewSnapshot() {
         synchronized (mergedView) {
@@ -114,7 +116,7 @@ public class InstanceConfigProvider implements IConfigProvider {
         }
         for (IConfigChangeListener listener : matched) {
             try {
-                // 旧值为 null（新键出现/键被移除）合法——Map.of 拒绝 null 值（W6 配置层叠
+                // 旧值为 null（新键出现/键被移除）合法——Map.of 拒绝 null 值（配置层叠
                 // 传播首键必触发），singletonMap 允许 null 值
                 listener.onConfigChange(this, Collections.singletonMap(varName, oldValue));
             } catch (Exception e) {
@@ -135,7 +137,7 @@ public class InstanceConfigProvider implements IConfigProvider {
         return false;
     }
 
-    private void setInstanceValue(String varName, Object value) {
+    private void setDefinitionValue(String varName, Object value) {
         Map<String, Object> oldValues = new LinkedHashMap<>();
         synchronized (mergedView) {
             oldValues.put(varName, mergedView.get(varName));
@@ -198,7 +200,7 @@ public class InstanceConfigProvider implements IConfigProvider {
     @Override
     public <T> void updateConfigValue(IConfigReference<T> ref, T value) {
         if (containsKey(ref.getName())) {
-            setInstanceValue(ref.getName(), value);
+            setDefinitionValue(ref.getName(), value);
         } else {
             globalProvider.updateConfigValue(ref, value);
         }
@@ -206,8 +208,8 @@ public class InstanceConfigProvider implements IConfigProvider {
 
     @Override
     public void assignConfigValue(String name, Object value) {
-        // 只写实例视图，绝不写全局配置（不调 AppConfig.assignConfigValue）
-        setInstanceValue(name, value);
+        // 只写定义级视图，绝不写全局配置（不调 AppConfig.assignConfigValue）
+        setDefinitionValue(name, value);
     }
 
     @Override

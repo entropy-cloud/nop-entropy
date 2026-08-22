@@ -11,7 +11,6 @@ import static io.nop.api.core.exceptions.ErrorCode.define;
  */
 public interface PluginApiErrors {
     String ARG_PLUGIN_ID = "pluginId";
-    String ARG_INSTANCE_KEYS = "instanceKeys";
     String ARG_PLUGIN_STATE = "pluginState";
 
     /**
@@ -45,13 +44,4 @@ public interface PluginApiErrors {
      */
     ErrorCode ERR_PLUGIN_DEFINITION_NOT_FOUND =
             define("nop.err.plugin.definition-not-found", "插件定义文件不存在或不可解析:{pluginId}", ARG_PLUGIN_ID);
-
-    /**
-     * 多激活歧义遗留错误码（原多实例机制已随单激活模型移除，常量本体保留至 R2 退役；
-     * 单激活模型下不再抛出）。
-     */
-    ErrorCode ERR_PLUGIN_MULTIPLE_INSTANCES =
-            define("nop.err.plugin.multiple-instances",
-                    "插件存在多个激活（遗留错误码，多实例机制已移除）:{pluginId},{instanceKeys}",
-                    ARG_PLUGIN_ID, ARG_INSTANCE_KEYS);
 }

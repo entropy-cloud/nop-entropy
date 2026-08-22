@@ -29,6 +29,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -249,9 +250,10 @@ public class PluginManagerImpl implements IPluginManager, IPluginContext {
     }
 
     /**
-     * reconcile 过渡语义（R1）：仅定义级 requires/if-property 评估——对每个 VFS 轨定义，
-     * 门控满足且未激活（LOADED/FAILED）→ activate；门控不满足且 ACTIVATED → deactivate。
-     * 不动点迭代 + 环检测保留；跨插件去激活拓扑序增强归 R2。
+     * reconcile 语义（01 §五/§三）：仅插件级 requires/if-property 评估。不动点迭代 + DFS 环检测
+     * 保留；批量编排按拓扑序——激活组正拓扑序（提供者先于消费者激活）、去激活组逆拓扑序
+     * （消费者先于提供者退出，01 §三跨插件不变量）；同一 pass 混合批次裁定：先处理去激活组
+     * （逆拓扑序）再处理激活组（正拓扑序），经不动点迭代收敛。
      *
      * <p>自动激活失败不抛出（置 FAILED + 记录错误，下轮重试）；失败计数达阈值后暂停该定义的
      * 自动激活（仅显式 activatePlugin 可恢复）。jar 轨（非 VfsPluginDefinition）不参与。
@@ -263,23 +265,118 @@ public class PluginManagerImpl implements IPluginManager, IPluginContext {
         if (!cycleMembers.isEmpty()) {
             LOG.warn("nop.plugin.reconcile-unresolved:cycles={}", cycleMembers);
         }
+        List<VfsPluginDefinition> topoOrder = topoSortDefs(defs);
         // 防御性迭代上限（级联收敛通常 ≤ 2 轮）：maxIter = LOADED 定义数
         int maxIter = defs.size() + 1;
         for (int iter = 0; iter < maxIter; iter++) {
             boolean changed = false;
-            for (VfsPluginDefinition def : defs) {
-                PluginState st = def.getState();
-                boolean gate = !cycleMembers.contains(def.getPluginId()) && def.isDefinitionGateSatisfied();
-                if (gate && (st == PluginState.LOADED || st == PluginState.FAILED)) {
-                    changed |= activateIfInactive(def);
-                } else if (!gate && st == PluginState.ACTIVATED) {
+
+            // 去激活组（级联闭包，逆拓扑序执行：消费者先退出）
+            Set<String> deactivateGroup = computeDeactivationGroup(defs, cycleMembers);
+            for (int i = topoOrder.size() - 1; i >= 0; i--) {
+                VfsPluginDefinition def = topoOrder.get(i);
+                if (deactivateGroup.contains(def.getPluginId())) {
                     changed |= deactivateIfActive(def);
                 }
             }
+
+            // 激活组（正拓扑序执行：提供者先激活；门控在处理时点实时评估——同 pass 内
+            // 先激活的提供者即可满足消费者的 requires 腿）
+            for (VfsPluginDefinition def : topoOrder) {
+                PluginState st = def.getState();
+                if (st == PluginState.LOADED || st == PluginState.FAILED) {
+                    boolean gate = !cycleMembers.contains(def.getPluginId()) && def.isDefinitionGateSatisfied();
+                    if (gate) {
+                        changed |= activateIfInactive(def);
+                    }
+                }
+            }
+
             if (!changed) {
                 break;
             }
         }
+    }
+
+    /**
+     * 去激活组计算（级联闭包，01 §三逆拓扑序执行的前置）：以"假设组内定义已去激活"的
+     * 假设态重评估各 ACTIVATED 定义的门控——requires 腿按假设态（组内提供者视为未激活，
+     * 其消费者随之入组，保证消费者先于提供者退出），if-property 腿读全局配置（pass 内不变）。
+     * 环成员门控强制关闭（ACTIVATED 的环成员直接入组）。
+     */
+    private Set<String> computeDeactivationGroup(List<VfsPluginDefinition> defs, Set<String> cycleMembers) {
+        Set<String> group = new HashSet<>();
+        boolean changed = true;
+        while (changed) {
+            changed = false;
+            for (VfsPluginDefinition def : defs) {
+                String id = def.getPluginId();
+                if (group.contains(id) || def.getState() != PluginState.ACTIVATED) {
+                    continue;
+                }
+                if (cycleMembers.contains(id) || !isGateSatisfiedHypothetically(def, group)) {
+                    group.add(id);
+                    changed = true;
+                }
+            }
+        }
+        return group;
+    }
+
+    /**
+     * 假设态门控评估（去激活组级联闭包专用）：requires 腿将 {@code pendingDeactivate} 组内
+     * 定义视为未激活；if-property 腿与真实评估一致（全局配置）。
+     */
+    private boolean isGateSatisfiedHypothetically(VfsPluginDefinition def, Set<String> pendingDeactivate) {
+        for (String name : def.getRequires()) {
+            if (!hasActivatedPluginByNameExcluding(name, pendingDeactivate)) {
+                return false;
+            }
+        }
+        return def.getIfPropertyName() == null || coeffectEvaluator.isGlobalConfigMatched(
+                def.getIfPropertyName(), def.getIfPropertyExpected());
+    }
+
+    /**
+     * 批量编排拓扑序（01 §三）：DFS 后序 = 正拓扑序（依赖提供者在前、消费者在后）。激活组按
+     * 本序执行、去激活组按其逆序执行。requires 名解析为全部同名定义（合法多定义）建边；
+     * 未加载名不建边（门控评估时不满足）。DFS 根与邻接按 pluginId 排序保证确定性；环成员
+     * 无有效拓扑位（任意稳定位置均可——其门控强制关闭，不参与批量激活）。
+     */
+    private List<VfsPluginDefinition> topoSortDefs(List<VfsPluginDefinition> defs) {
+        List<VfsPluginDefinition> sorted = new ArrayList<>(defs);
+        sorted.sort(Comparator.comparing(VfsPluginDefinition::getPluginId));
+        Map<String, VfsPluginDefinition> byId = new HashMap<>();
+        for (VfsPluginDefinition def : sorted) {
+            byId.put(def.getPluginId(), def);
+        }
+        List<VfsPluginDefinition> order = new ArrayList<>(sorted.size());
+        Set<String> visited = new HashSet<>();
+        Set<String> inStack = new HashSet<>();
+        for (VfsPluginDefinition def : sorted) {
+            dfsTopo(def, byId, visited, inStack, order);
+        }
+        return order;
+    }
+
+    private void dfsTopo(VfsPluginDefinition def, Map<String, VfsPluginDefinition> byId,
+                         Set<String> visited, Set<String> inStack, List<VfsPluginDefinition> order) {
+        String id = def.getPluginId();
+        if (visited.contains(id)) {
+            return;
+        }
+        visited.add(id);
+        inStack.add(id);
+        List<String> deps = new ArrayList<>(resolveDepPluginIds(id));
+        Collections.sort(deps);
+        for (String dep : deps) {
+            VfsPluginDefinition depDef = byId.get(dep);
+            if (depDef != null && !inStack.contains(dep)) {
+                dfsTopo(depDef, byId, visited, inStack, order);
+            }
+        }
+        inStack.remove(id);
+        order.add(def);
     }
 
     /**
@@ -606,20 +703,88 @@ public class PluginManagerImpl implements IPluginManager, IPluginContext {
         @Override
         public boolean isGlobalConfigMatched(String propName, Object expectedValue) {
             Object actual = getGlobalConfigProvider().getConfigValue(propName, null);
-            return CoeffectConfigHelper.matches(actual, expectedValue);
+            return configValueMatches(actual, expectedValue);
         }
     }
 
     /**
-     * requires 依赖判定（定义级 ACTIVATED，单激活语义）：依赖名（定义 @name）对应的 plugin
-     * 存在且处于 ACTIVATED——原"至少一个实例 ACTIVATED"的定义级判定改造（多实例机制已移除）。
+     * coeffect expectedValue 宽松比较（W5 裁定语义）：字符串与布尔/数字等价比较。规则：
+     * <ul>
+     *     <li>expected 为 Boolean：actual 为 Boolean 直接比较；为 String 按 Boolean.parseBoolean 比较。</li>
+     *     <li>expected 为 Number：actual 为 Number 按数值比较；为 String 按数值解析比较（解析失败不匹配）。</li>
+     *     <li>expected 为 String：actual 为 String 直接比较；为 Boolean/Number 按 String.valueOf 比较。</li>
+     *     <li>actual 为 null 一律不匹配（无 expected 的缺省语义为 "存在且等于 true"，见 spec 解析）。</li>
+     * </ul>
+     */
+    private static boolean configValueMatches(Object actual, Object expected) {
+        if (actual == null) {
+            return false;
+        }
+        if (expected instanceof Boolean) {
+            boolean expectedBool = (Boolean) expected;
+            if (actual instanceof Boolean) {
+                return actual.equals(expected);
+            }
+            if (actual instanceof String) {
+                return Boolean.parseBoolean((String) actual) == expectedBool;
+            }
+            return false;
+        }
+        if (expected instanceof Number) {
+            double expectedNum = ((Number) expected).doubleValue();
+            if (actual instanceof Number) {
+                return ((Number) actual).doubleValue() == expectedNum;
+            }
+            if (actual instanceof String) {
+                try {
+                    return Double.parseDouble((String) actual) == expectedNum;
+                } catch (NumberFormatException e) {
+                    return false;
+                }
+            }
+            return false;
+        }
+        if (expected instanceof String) {
+            if (actual instanceof String) {
+                return expected.equals(actual);
+            }
+            if (actual instanceof Boolean) {
+                return expected.equals(Boolean.toString((Boolean) actual));
+            }
+            if (actual instanceof Number) {
+                // 数值字符串与数字等价：优先数值比较（"10" 与 10.0 等价），否则回退 toString 比较
+                try {
+                    return Double.parseDouble((String) expected) == ((Number) actual).doubleValue();
+                } catch (NumberFormatException e) {
+                    return expected.equals(actual.toString());
+                }
+            }
+            return false;
+        }
+        return expected == null || expected.equals(actual);
+    }
+
+    /**
+     * requires 依赖判定（定义级 ACTIVATED，单激活语义，01 §五）：依赖名（定义 @name）对应的
+     * plugin 存在且处于 ACTIVATED——同名多定义沿用 ANY 语义（任一同名定义 ACTIVATED 即满足）。
      */
     private boolean hasActivatedPluginByName(String name) {
+        return hasActivatedPluginByNameExcluding(name, null);
+    }
+
+    /**
+     * requires 依赖判定（假设态变体，去激活组级联闭包专用）：{@code excludedIds} 中的定义视为
+     * 未激活（已裁定去激活的提供者不再满足消费者的 requires 腿）。
+     */
+    private boolean hasActivatedPluginByNameExcluding(String name, Set<String> excludedIds) {
         Set<String> ids = namesToPluginIds.get(name);
         if (ids == null) {
             return false;
         }
         for (String id : ids) {
+            if (excludedIds != null && excludedIds.contains(id)) {
+                continue;
+            }
             PluginHolder holder = plugins.get(id);
             if (holder != null && holder.plugin.getState() == PluginState.ACTIVATED) {
                 return true;

@@ -118,7 +118,7 @@ public class VfsPluginDefinition implements IPlugin {
 
     private volatile PluginScopeImpl scope;
     private volatile IBeanContainer container;
-    private volatile InstanceConfigProvider configProvider;
+    private volatile DefinitionConfigProvider configProvider;
     private volatile Throwable lastActivationError;
     private volatile int activationFailures;
     private volatile boolean autoActivationPaused;
@@ -451,10 +451,10 @@ public class VfsPluginDefinition implements IPlugin {
     private void activateInternal() {
         Map<String, Object> config = definitionConfig;
 
-        // 定义级配置送达子容器的通道：委托包装 provider（实例机制删除后语义等价迁移——
-        // 定义级配置域视图优先、未命中回退全局配置）；先 setConfigProvider 再 start()，
-        // 禁止 buildNewInstance（不传播自定义 provider，会静默回落到全局 AppConfig）
-        InstanceConfigProvider provider = new InstanceConfigProvider(AppConfig.getConfigProvider());
+        // 定义级配置送达子容器的通道：委托包装 provider（定义级配置域视图优先、未命中回退
+        // 全局配置）；先 setConfigProvider 再 start()，禁止 buildNewInstance（不传播自定义
+        // provider，会静默回落到全局 AppConfig）
+        DefinitionConfigProvider provider = new DefinitionConfigProvider(AppConfig.getConfigProvider());
         provider.setMergedView(config);
 
         BeansModel beansModel = this.beansModel;
@@ -570,7 +570,7 @@ public class VfsPluginDefinition implements IPlugin {
         this.definitionConfig = merged;
         if (state == PluginState.ACTIVATED) {
             // 热应用：定义级配置域视图刷新 + 经委托 provider 触发变更通知（bean 属性真实重绑定）
-            InstanceConfigProvider provider = configProvider;
+            DefinitionConfigProvider provider = configProvider;
             if (provider != null) {
                 provider.updateMergedView(merged);
             }

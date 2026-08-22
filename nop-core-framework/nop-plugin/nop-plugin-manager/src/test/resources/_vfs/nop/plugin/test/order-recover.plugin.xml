@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin name="order-recover" if-property="order.recover|true" activator="recoverActivator"
+        x:schema="/nop/schema/plugin/plugin.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <beans>
+        <bean id="recoverActivator" class="io.nop.plugin.test.RecoverConfigActivator">
+            <property name="eventName" value="recover"/>
+            <property name="configKey" value="order.recover"/>
+        </bean>
+    </beans>
+</plugin>
