@@ -423,8 +423,11 @@ class TestScanLoginMfa {
         loginApiBizModel = new LoginApiBizModel();
         setField(loginApiBizModel, "loginService", loginService);
 
-        bindProvider = new StubBindProvider();
         bindService = new StubBindService();
+        // provider asserts the ticket-owner identity server-side (mirrors
+        // FeishuBindProvider rehydrating the ticket's platformUserId), reading
+        // the stub binding map lazily at callback time
+        bindProvider = new StubBindProvider(bindService);
 
         channelLoginApi = new ChannelLoginApiBizModel();
         setField(channelLoginApi, "authTokenProvider", authTokenProvider);
@@ -453,8 +456,18 @@ class TestScanLoginMfa {
 
     // ===================== Stubs =====================
 
-    /** Minimal provider: parses the callback open_id into an extId. */
+    /**
+     * Minimal provider: parses the callback open_id into an extId and asserts
+     * the ticket-owner identity the way the real FeishuBindProvider does
+     * (server-side ticket record → platformUserId on the result).
+     */
     static class StubBindProvider implements IChannelBindProvider {
+        private final StubBindService bindService;
+
+        StubBindProvider(StubBindService bindService) {
+            this.bindService = bindService;
+        }
+
         @Override
         public String getChannelType() {
             return CHANNEL;
@@ -469,7 +482,9 @@ class TestScanLoginMfa {
         public ChannelBindResult onChannelScanCallback(ChannelScanCallback callback) {
             ChannelBindResult r = new ChannelBindResult();
             Object openId = callback.getRawPayload().get("open_id");
-            r.setExtId(openId == null ? null : openId.toString());
+            String extId = openId == null ? null : openId.toString();
+            r.setExtId(extId);
+            r.setPlatformUserId(bindService.map.get(extId));
             r.setStatus(ChannelBindResultStatus.BINDING_COMPLETED);
             return r;
         }

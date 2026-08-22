@@ -54,4 +54,30 @@ class AiAuthGatewayInterceptorTest {
 
         assertThrows(GatewayRejectException.class, () -> interceptor.onRequest(request, ctx));
     }
+
+    @Test
+    void nullValidKeys_rejectsAllRequests() {
+        // setValidKeys(null) 必须归一为空集合（fail-closed 拒绝），而不是 onRequest 中 NPE
+        AiAuthGatewayInterceptor interceptor = new AiAuthGatewayInterceptor();
+        interceptor.setValidKeys(null);
+
+        ApiRequest<Map<String, String>> request = ApiRequest.build(Map.of());
+        request.setHeaders(Map.of("Authorization", "Bearer sk-test-key"));
+        IGatewayContext ctx = createContext("/v1/chat/completions");
+
+        assertThrows(GatewayRejectException.class, () -> interceptor.onRequest(request, ctx));
+    }
+
+    @Test
+    void emptyValidKeys_rejectsAllRequests() {
+        // 空集合 = 拒绝所有请求（fail-closed），默认装配未配置 validKeys 时即此行为
+        AiAuthGatewayInterceptor interceptor = new AiAuthGatewayInterceptor();
+        interceptor.setValidKeys(List.of());
+
+        ApiRequest<Map<String, String>> request = ApiRequest.build(Map.of());
+        request.setHeaders(Map.of("Authorization", "Bearer sk-test-key"));
+        IGatewayContext ctx = createContext("/v1/chat/completions");
+
+        assertThrows(GatewayRejectException.class, () -> interceptor.onRequest(request, ctx));
+    }
 }

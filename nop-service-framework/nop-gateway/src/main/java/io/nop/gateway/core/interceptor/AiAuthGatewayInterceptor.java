@@ -19,7 +19,8 @@ public class AiAuthGatewayInterceptor implements IGatewayInterceptor {
     private List<String> skipPathPatterns = new ArrayList<>();
 
     public void setValidKeys(List<String> validKeys) {
-        this.validKeys = validKeys;
+        // null 归一为空集合：空集合 = 拒绝所有请求（fail-closed），避免 onRequest 中 NPE
+        this.validKeys = validKeys == null ? new ArrayList<>() : validKeys;
     }
 
     public void setSkipPathPatterns(List<String> skipPathPatterns) {

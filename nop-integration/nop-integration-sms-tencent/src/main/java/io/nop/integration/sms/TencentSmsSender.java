@@ -39,6 +39,13 @@ public class TencentSmsSender implements ISmsSender {
     /** consumerRef 引用计数键（设计 §6.5：部署级单渠道，每渠道类型一条稳定引用）。 */
     static final String CONSUMER_REF = "integration:tencent-sms";
 
+    /**
+     * SmsMessage.areaCode 无默认值，且平台主链路（nop-auth LoginServiceImpl.sendSms /
+     * NopAuthUserBizModel.sendSmsForBinding）从不设置区号（国内短信常态）——未设置时回退
+     * 默认区号 "86"（腾讯 SDK sendWithParam 的 nationCode 语义），不得在入口 NPE。
+     */
+    static final String DEFAULT_AREA_CODE = "86";
+
     private Integer appId;
     private String appKey;
     private String sign;
@@ -146,6 +153,8 @@ public class TencentSmsSender implements ISmsSender {
 
     private void sendMessage(SmsSingleSender sender, String sign, SmsMessage message) {
         String areaCode = message.getAreaCode();
+        if (areaCode == null || areaCode.isEmpty())
+            areaCode = DEFAULT_AREA_CODE;
         if (areaCode.startsWith("+"))
             areaCode = areaCode.substring(1);
 

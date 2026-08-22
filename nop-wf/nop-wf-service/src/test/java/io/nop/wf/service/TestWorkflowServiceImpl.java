@@ -8,12 +8,15 @@ import io.nop.core.context.ServiceContextImpl;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.wf.api.WfReference;
+import io.nop.wf.api.actor.IWfActor;
+import io.nop.wf.api.actor.WfUserActorBean;
 import io.nop.wf.api.beans.WfSignalRequestBean;
 import io.nop.wf.api.beans.WfTransferActorsRequestBean;
 import io.nop.wf.api.beans.WfTransferFailedItemBean;
 import io.nop.wf.api.beans.WfTransferResultBean;
 import io.nop.wf.core.IWorkflow;
 import io.nop.wf.core.IWorkflowStep;
+import io.nop.wf.core.NopWfCoreErrors;
 import io.nop.wf.core.engine.DefaultWorkflowExecutor;
 import io.nop.wf.core.engine.WorkflowEngineImpl;
 import io.nop.wf.core.impl.WorkflowManagerImpl;
@@ -38,6 +41,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestWorkflowServiceImpl extends BaseTestCase {
+    static final String MISSING_USER_ID = "missing-user";
+
     WorkflowManagerImpl workflowManager;
     WorkflowServiceImpl workflowService;
     MockWorkflowStore workflowStore;
@@ -56,8 +61,17 @@ public class TestWorkflowServiceImpl extends BaseTestCase {
     void setUp() {
         workflowManager = new WorkflowManagerImpl();
 
+        EnhancedMockWfActorResolver resolver = new EnhancedMockWfActorResolver() {
+            @Override
+            public IWfActor resolveUser(String userId) {
+                if (MISSING_USER_ID.equals(userId))
+                    return null;
+                return super.resolveUser(userId);
+            }
+        };
+
         WorkflowEngineImpl engine = new WorkflowEngineImpl();
-        engine.setWfActorResolver(new EnhancedMockWfActorResolver());
+        engine.setWfActorResolver(resolver);
         engine.setUserDelegateService(new io.nop.api.core.auth.IUserDelegateService() {
             @Override
             public boolean canDelegate(String userId, String ownerId, String scope) {
@@ -81,6 +95,7 @@ public class TestWorkflowServiceImpl extends BaseTestCase {
         workflowService = new WorkflowServiceImpl();
         workflowService.setWorkflowExecutor(executor);
         workflowService.setWorkflowStore(workflowStore);
+        workflowService.setWfActorResolver(resolver);
 
         ContextProvider.getOrCreateContext().setUserId("1");
     }
@@ -165,7 +180,7 @@ public class TestWorkflowServiceImpl extends BaseTestCase {
         request.setFromUserId("2");
         request.setToUserId("9");
 
-        WfTransferResultBean result = FutureHelper.syncGet(workflowService.transferActorsAsync(request, null, newContext("admin")));
+        WfTransferResultBean result = FutureHelper.syncGet(workflowService.transferActorsAsync(request, null, newContext("2")));
 
         assertTrue(result.getSuccessCount() > 0);
         assertEquals(1, result.getFailedItems().size());
@@ -179,5 +194,69 @@ public class TestWorkflowServiceImpl extends BaseTestCase {
 
         WorkflowStepRecordBean transferredRecord = (WorkflowStepRecordBean) transferredStep.getRecord();
         assertTrue(transferredRecord.getActions().stream().anyMatch(action -> "transfer".equals(action.getActionName())));
+    }
+
+    @Test
+    public void testTransferActorsRejectsCallerOtherThanOwnerOrManager() {
+        IWorkflow workflow = startWorkflow("test/execGroupVote", "1");
+        invokeAction(workflow, "wf-start", "1", "sh");
+        assertNotNull(findActivatedStepByOwner(workflow, "2"));
+
+        WfTransferActorsRequestBean request = new WfTransferActorsRequestBean();
+        request.setFromUserId("2");
+        request.setToUserId("9");
+
+        NopException e = assertThrows(NopException.class,
+                () -> FutureHelper.syncGet(workflowService.transferActorsAsync(request, null, newContext("3"))));
+        assertEquals(NopWfCoreErrors.ERR_WF_NOT_ALLOW_TRANSFER_ACTORS_BY_USER.getErrorCode(), e.getErrorCode());
+
+        // 非本人、非管理员调用时 owner 不被改派
+        assertNotNull(findActivatedStepByOwner(workflow, "2"));
+    }
+
+    @Test
+    public void testTransferActorsAllowsManager() {
+        IWorkflow workflow = startWorkflow("test/execGroupVote", "1");
+        invokeAction(workflow, "wf-start", "1", "sh");
+
+        WorkflowRecordBean wfRecord = (WorkflowRecordBean) workflowStore.getWfRecord(
+                "test/execGroupVote", 1L, workflow.getWfId());
+        WfUserActorBean manager = new WfUserActorBean();
+        manager.setActorId("10");
+        wfRecord.setManager(manager);
+
+        WfTransferActorsRequestBean request = new WfTransferActorsRequestBean();
+        request.setFromUserId("2");
+        request.setToUserId("9");
+
+        WfTransferResultBean result = FutureHelper.syncGet(
+                workflowService.transferActorsAsync(request, null, newContext("10")));
+        assertEquals(1, result.getSuccessCount());
+        assertEquals(0, result.getFailedItems().size());
+        assertNotNull(findActivatedStepByOwner(workflow, "9"));
+    }
+
+    @Test
+    public void testTransferActorsRejectsNonExistentToUser() {
+        IWorkflow workflow = startWorkflow("test/execGroupVote", "1");
+        invokeAction(workflow, "wf-start", "1", "sh");
+        assertNotNull(findActivatedStepByOwner(workflow, "2"));
+
+        WfTransferActorsRequestBean request = new WfTransferActorsRequestBean();
+        request.setFromUserId("2");
+        request.setToUserId(MISSING_USER_ID);
+
+        NopException e = assertThrows(NopException.class,
+                () -> FutureHelper.syncGet(workflowService.transferActorsAsync(request, null, newContext("2"))));
+        assertEquals(NopWfCoreErrors.ERR_WF_USER_NOT_EXISTS.getErrorCode(), e.getErrorCode());
+
+        // toUserId 不存在时 owner 不被清空
+        assertNotNull(findActivatedStepByOwner(workflow, "2"));
+    }
+
+    private IWorkflowStep findActivatedStepByOwner(IWorkflow workflow, String ownerId) {
+        return workflow.getActivatedSteps().stream()
+                .filter(step -> ownerId.equals(step.getRecord().getOwnerId()))
+                .findFirst().orElse(null);
     }
 }

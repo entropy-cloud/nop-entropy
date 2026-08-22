@@ -45,15 +45,12 @@
           ioc:default="true" />
 
     <!-- AI Gateway 拦截器 -->
+    <!-- API Key 认证：validKeys 从应用配置 nop.gateway.ai-auth.valid-keys 读取（逗号分隔），
+         未配置时为空集合 = 拒绝所有请求（fail-closed）。禁止在此硬编码任何默认 key（CWE-798）。 -->
     <bean id="nopAiAuthGatewayInterceptor"
           class="io.nop.gateway.core.interceptor.AiAuthGatewayInterceptor"
           ioc:default="true">
-        <property name="validKeys">
-            <list>
-                <value>sk-test-key-1</value>
-                <value>sk-test-key-2</value>
-            </list>
-        </property>
+        <property name="validKeys" value="@cfg:nop.gateway.ai-auth.valid-keys|" />
     </bean>
 
     <bean id="nopAiRateLimitGatewayInterceptor"

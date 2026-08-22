@@ -333,26 +333,26 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
                 failCount = userContextCache.getLoginFailCountForUser(user.getUserName());
 
                 int maxFailCount = CFG_AUTH_MAX_LOGIN_FAIL_COUNT.get();
-                if (maxFailCount > 0) {
-                    if (failCount >= maxFailCount) {
-                        errorCode = ERR_AUTH_LOGIN_CHECK_FAIL_TOO_MANY_TIMES;
-                    } else if (!isAllowLogin(user)) {
-                        errorCode = ERR_AUTH_USER_NOT_ALLOW_LOGIN;
-                    } else if (request.getLoginType() == LOGIN_TYPE_PHONE_SMS) {
-                        // 短信验证码登录：第一因子为一次性验证码校验（SmsCodeStore 内部失败计数，作废即防爆破），
-                        // 失败不进 setLoginFailCountForUser（避免与用户锁账号语义混淆，设计 §3.3）
-                        CodeVerifyResult r = smsCodeStore == null ? CodeVerifyResult.EXPIRED
-                                : smsCodeStore.verify(SMS_KEY_LOGIN + request.getPrincipalId(), request.getPrincipalSecret());
-                        if (r == CodeVerifyResult.EXPIRED) {
-                            errorCode = ERR_AUTH_SMS_CODE_EXPIRED;
-                            smsCodeFail = true;
-                        } else if (r == CodeVerifyResult.MISMATCH) {
-                            errorCode = ERR_AUTH_SMS_CODE_INVALID;
-                            smsCodeFail = true;
-                        }
-                    } else if (needCheckPassword(request) && !passwordMatches(user, request)) {
-                        errorCode = ERR_AUTH_LOGIN_CHECK_FAIL;
+                // 锁号判定与凭证校验解耦：maxFailCount<=0 仅表示关闭锁号（跳过 failCount 判定），
+                // isAllowLogin/SMS 验证码/密码比对必须无条件执行，不能随锁号一起被跳过
+                if (maxFailCount > 0 && failCount >= maxFailCount) {
+                    errorCode = ERR_AUTH_LOGIN_CHECK_FAIL_TOO_MANY_TIMES;
+                } else if (!isAllowLogin(user)) {
+                    errorCode = ERR_AUTH_USER_NOT_ALLOW_LOGIN;
+                } else if (request.getLoginType() == LOGIN_TYPE_PHONE_SMS) {
+                    // 短信验证码登录：第一因子为一次性验证码校验（SmsCodeStore 内部失败计数，作废即防爆破），
+                    // 失败不进 setLoginFailCountForUser（避免与用户锁账号语义混淆，设计 §3.3）
+                    CodeVerifyResult r = smsCodeStore == null ? CodeVerifyResult.EXPIRED
+                            : smsCodeStore.verify(SMS_KEY_LOGIN + request.getPrincipalId(), request.getPrincipalSecret());
+                    if (r == CodeVerifyResult.EXPIRED) {
+                        errorCode = ERR_AUTH_SMS_CODE_EXPIRED;
+                        smsCodeFail = true;
+                    } else if (r == CodeVerifyResult.MISMATCH) {
+                        errorCode = ERR_AUTH_SMS_CODE_INVALID;
+                        smsCodeFail = true;
                     }
+                } else if (needCheckPassword(request) && !passwordMatches(user, request)) {
+                    errorCode = ERR_AUTH_LOGIN_CHECK_FAIL;
                 }
             }
         }

@@ -17,6 +17,7 @@ import io.nop.api.core.util.Guard;
 import io.nop.core.context.IServiceContext;
 import io.nop.wf.api.WfReference;
 import io.nop.wf.api.actor.IWfActor;
+import io.nop.wf.api.actor.IWfActorResolver;
 import io.nop.wf.api.beans.WfActionRequestBean;
 import io.nop.wf.api.beans.WfCommandRequestBean;
 import io.nop.wf.api.beans.WfSignalRequestBean;
@@ -26,6 +27,7 @@ import io.nop.wf.api.beans.WfSubFlowEndRequestBean;
 import io.nop.wf.api.beans.WfTransferActorsRequestBean;
 import io.nop.wf.api.beans.WfTransferFailedItemBean;
 import io.nop.wf.api.beans.WfTransferResultBean;
+import io.nop.wf.core.IWorkflow;
 import io.nop.wf.core.IWorkflowStep;
 import io.nop.wf.core.NopWfCoreErrors;
 import io.nop.wf.core.engine.IWorkflowExecutor;
@@ -44,6 +46,7 @@ public class WorkflowServiceImpl implements WorkflowServiceSpi {
 
     private IWorkflowExecutor workflowExecutor;
     private IWorkflowStore workflowStore;
+    private IWfActorResolver wfActorResolver;
 
     @Inject
     public void setWorkflowExecutor(IWorkflowExecutor workflowExecutor) {
@@ -53,6 +56,11 @@ public class WorkflowServiceImpl implements WorkflowServiceSpi {
     @Inject
     public void setWorkflowStore(IWorkflowStore workflowStore) {
         this.workflowStore = workflowStore;
+    }
+
+    @Inject
+    public void setWfActorResolver(IWfActorResolver wfActorResolver) {
+        this.wfActorResolver = wfActorResolver;
     }
 
     @BizMutation
@@ -179,6 +187,9 @@ public class WorkflowServiceImpl implements WorkflowServiceSpi {
                                                                      FieldSelectionBean selection, IServiceContext ctx) {
         Guard.notEmpty(request.getFromUserId(), "fromUserId");
         Guard.notEmpty(request.getToUserId(), "toUserId");
+        checkToUserExists(request.getToUserId());
+
+        boolean transferBySelf = request.getFromUserId().equals(ctx.getUserId());
 
         List<WfTransferFailedItemBean> failedItems = new ArrayList<>();
         int successCount = 0;
@@ -190,6 +201,8 @@ public class WorkflowServiceImpl implements WorkflowServiceSpi {
             WfReference wfRef = new WfReference("_", null, stepRecord.getWfId());
             try {
                 FutureHelper.syncGet(workflowExecutor.execute(wfRef, ctx, wf -> {
+                    if (!transferBySelf)
+                        checkTransferActorsAuth(wf, request.getFromUserId(), ctx);
                     IWorkflowStep step = wf.getStepById(stepRecord.getStepId());
                     String fromOwnerId = step.getRecord().getOwnerId();
                     step.changeOwnerId(request.getToUserId(), ctx);
@@ -198,6 +211,11 @@ public class WorkflowServiceImpl implements WorkflowServiceSpi {
                     return null;
                 }));
                 successCount++;
+            } catch (NopException e) {
+                // 鉴权失败属于请求级别的拒绝，直接抛出，不记录为单项失败
+                if (NopWfCoreErrors.ERR_WF_NOT_ALLOW_TRANSFER_ACTORS_BY_USER.getErrorCode().equals(e.getErrorCode()))
+                    throw e;
+                failedItems.add(buildFailedItem(stepRecord, e));
             } catch (Throwable e) {
                 failedItems.add(buildFailedItem(stepRecord, e));
             }
@@ -207,6 +225,22 @@ public class WorkflowServiceImpl implements WorkflowServiceSpi {
         result.setSuccessCount(successCount);
         result.setFailedItems(failedItems);
         return FutureHelper.success(result);
+    }
+
+    private void checkToUserExists(String toUserId) {
+        if (wfActorResolver.resolveUser(toUserId) == null)
+            throw new NopException(NopWfCoreErrors.ERR_WF_USER_NOT_EXISTS)
+                    .param(NopWfCoreErrors.ARG_USER_ID, toUserId);
+    }
+
+    private void checkTransferActorsAuth(IWorkflow wf, String fromUserId, IServiceContext ctx) {
+        IWfActor manager = wf.getManagerActor();
+        if (manager == null || !manager.containsUser(ctx.getUserId()))
+            throw new NopException(NopWfCoreErrors.ERR_WF_NOT_ALLOW_TRANSFER_ACTORS_BY_USER)
+                    .param(NopWfCoreErrors.ARG_WF_NAME, wf.getWfName())
+                    .param(NopWfCoreErrors.ARG_WF_ID, wf.getWfId())
+                    .param(NopWfCoreErrors.ARG_FROM_USER_ID, fromUserId)
+                    .param(NopWfCoreErrors.ARG_CALLER_ID, ctx.getUserId());
     }
 
     private void checkMandatory(WfReference wfRef, boolean requireId) {

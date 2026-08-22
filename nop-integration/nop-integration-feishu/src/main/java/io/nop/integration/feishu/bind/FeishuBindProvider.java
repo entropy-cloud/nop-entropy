@@ -11,8 +11,8 @@ import io.nop.integration.feishu.client.FeishuCredentials;
 
 import java.sql.Timestamp;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Feishu scan-bind protocol implementation (W5-2). Builds a Feishu scan-login
@@ -50,7 +50,6 @@ public class FeishuBindProvider implements IChannelBindProvider {
     private static final String DEFAULT_FEISHU_OPEN_HOST = "https://open.feishu.cn";
 
     private final ConcurrentHashMap<String, TicketEntry> tickets = new ConcurrentHashMap<>();
-    private final AtomicLong ticketSeq = new AtomicLong();
 
     private FeishuCredentials credentials;
     private long ticketTtlMs = DEFAULT_TICKET_TTL_MS;
@@ -86,7 +85,11 @@ public class FeishuBindProvider implements IChannelBindProvider {
         }
         purgeExpired();
 
-        String ticketId = "fs_bind_" + ticketSeq.incrementAndGet();
+        // P0 hardening (audit ai-rest D5): the ticket id is echoed in the public
+        // scan callback (state=ticketId) and gates scan-login identity, so it
+        // must be unguessable — a predictable sequence would let an attacker
+        // race a live ticket minted by another user within its TTL window.
+        String ticketId = "fs_bind_" + UUID.randomUUID().toString().replace("-", "");
         String appId = requireAppId();
         // Option A: Feishu scan-login OAuth authorize URL, state=ticketId
         String qrPayload = feishuOpenHost + "/open-apis/authen/v1/index?"

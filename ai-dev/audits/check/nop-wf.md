@@ -46,6 +46,10 @@ public void changeOwner(IWorkflowStepImplementor step, String ownerId, IServiceC
 - **建议**: 在 `transferActorsAsync` 入口校验调用者应为工作流 manager 或 fromUserId 本人（或平台级 admin 角色）；`toUserId` 改用 `requireUser` 校验。
 - **误报排除**: 已核对 api.xml（无 auth 声明）、beans 注册（`_api-impl.beans.xml` 确认该服务对外发布）、全模块 grep 无任何 `isUserInRole`/`BizAuth` 类检查；非测试代码、非生成代码，路径现实可达。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认存在，已修复。`WorkflowServiceImpl.transferActorsAsync` 入口新增调用者鉴权（fromUserId 本人直接放行；否则逐工作流校验调用者为 manager，`manager.containsUser` 不通过即抛新错误码 `ERR_WF_NOT_ALLOW_TRANSFER_ACTORS_BY_USER`，鉴权失败直接抛出不记入 failedItems），并新增 toUserId 存在性校验（`resolveUser` 为 null 时抛 `ERR_WF_USER_NOT_EXISTS`，不再静默清空 owner）；`NopWfCoreErrors` 新增 `ERR_WF_NOT_ALLOW_TRANSFER_ACTORS_BY_USER`/`ARG_FROM_USER_ID`。测试：`nop-wf-service` `TestWorkflowServiceImpl#testTransferActorsRejectsCallerOtherThanOwnerOrManager`（修复前非 manager 且非本人调用者可成功改派，无任何异常）、`TestWorkflowServiceImpl#testTransferActorsRejectsNonExistentToUser`（修复前 toUserId 不存在时 owner 被静默清空），正例 `TestWorkflowServiceImpl#testTransferActorsAllowsManager`。
+
 ### [P1] 超时处理（dueAction）与身份校验冲突：定时触发必然失败并中止整个扫描任务
 
 - **文件**: `nop-wf/nop-wf-scheduler/src/main/java/io/nop/wf/scheduler/WfTaskScanner.java:86-101,127-131`；`nop-wf/nop-wf-core/src/main/java/io/nop/wf/core/impl/WorkflowStepImpl.java:227-243`；`nop-wf/nop-wf-core/src/main/java/io/nop/wf/core/engine/WorkflowEngineImpl.java:1053-1072`

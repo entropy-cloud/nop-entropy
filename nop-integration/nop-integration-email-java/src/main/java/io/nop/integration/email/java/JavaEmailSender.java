@@ -137,6 +137,11 @@ public class JavaEmailSender implements IEmailSender {
         });
     }
 
+    /**
+     * 逐封经同一 Transport 发送（一次建连）。<b>fail-fast 语义</b>：任一封失败即以 NopException
+     * 抛出，剩余邮件不再尝试——与逐封调用 sendEmail 的失败可见性一致（不静默放弃），调用方
+     * 感知失败后可整批重试。
+     */
     @Override
     public void sendMultiEmail(List<EmailMessage> mails) {
         withTransport(transport -> {
@@ -155,7 +160,10 @@ public class JavaEmailSender implements IEmailSender {
             transport = connectTransport(credential);
             task.accept(transport);
         } catch (Exception e) {
+            // 记录日志后必须重抛：IEmailSender 按"不抛即成功"消费（nop-auth bindEmail 无条件
+            // setEmailSent(true)），吞掉发送/连接异常会让 MFA 发码链误信已发送。
             LOG.error("nop.err.send-mail-fail", e);
+            throw NopException.adapt(e);
         } finally {
             if (transport != null) {
                 try {

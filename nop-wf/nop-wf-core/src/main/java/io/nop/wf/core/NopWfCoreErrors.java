@@ -27,6 +27,8 @@ public interface NopWfCoreErrors {
 
     String ARG_CALLER_ID = "callerId";
 
+    String ARG_FROM_USER_ID = "fromUserId";
+
     String ARG_ACTOR_NAME = "actorName";
 
     String ARG_OWNER_ID = "ownerId";
@@ -227,6 +229,11 @@ public interface NopWfCoreErrors {
             define("nop.err.wf.not-allow-call-action-by-user",
                     "步骤[{stepName}:{stepId}]不允许被用户[{callerId}]调用,步骤的参与者限定为[{actorType}:${actorId}]",
                     ARG_STEP_NAME, ARG_STEP_ID, ARG_CALLER_ID, ARG_ACTOR_TYPE, ARG_ACTOR_ID);
+
+    ErrorCode ERR_WF_NOT_ALLOW_TRANSFER_ACTORS_BY_USER =
+            define("nop.err.wf.not-allow-transfer-actors-by-user",
+                    "工作流[{wfName}:{wfId}]中用户[{fromUserId}]的步骤不允许被用户[{callerId}]转办，仅允许工作流管理员或用户本人转办",
+                    ARG_WF_NAME, ARG_WF_ID, ARG_FROM_USER_ID, ARG_CALLER_ID);
 
     ErrorCode ERR_WF_EMPTY_MODEL_TEXT =
             define("nop.err.wf.empty-model-text", "工作流[{wfName}]的模型文本为空",

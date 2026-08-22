@@ -49,6 +49,19 @@ import static io.nop.api.core.ApiErrors.ERR_CHECK_INVALID_ARGUMENT;
  *       over the session id, returned to the caller.</li>
  * </ol>
  *
+ * <p><b>Identity trust (P0 hardening, audit ai-rest D5)</b>: the endpoint is
+ * {@code publicAccess=true} and the whole callback (including
+ * {@code rawPayload}) is caller-controlled, so the payload {@code extId} may
+ * never select the login identity on its own. The server-side assertion of
+ * who started the scan flow is the bind ticket: providers rehydrate the
+ * ticket owner into {@code ChannelBindResult.getPlatformUserId()}. Login
+ * fails closed when the provider asserts no ticket identity, and the
+ * binding recovered from the extId must belong to that ticket owner — a
+ * forged {@code open_id} pointing at another user's binding can never
+ * bootstrap a session for that user. Full channel-side verification
+ * (Feishu event signature / OAuth code exchange) remains the long-term
+ * design-level fix; this check removes the caller-forged identity vector.
+ *
  * <p><b>Exposure</b>: a {@code @BizModel} reachable as GraphQL
  * {@code ChannelLoginApi__loginByScan} or REST
  * {@code /r/ChannelLoginApi__loginByScan}, mirroring the existing
@@ -170,6 +183,24 @@ public class ChannelLoginApiBizModel {
                     "IChannelBindProvider.onChannelScanCallback returned no extId for channelType=" + channelType);
         }
 
+        // P0 hardening (audit ai-rest D5): this endpoint is publicAccess and the
+        // whole ChannelScanCallback (rawPayload included) is caller-controlled,
+        // so the payload extId must never select the login identity on its own.
+        // The ONLY server-side assertion of who started the scan flow is the
+        // bind ticket: providers rehydrate the ticket owner into
+        // ChannelBindResult.getPlatformUserId() (FeishuBindProvider rejects
+        // unknown/expired tickets itself and always sets it). Fail closed when
+        // the provider asserts no identity.
+        String ticketOwnerId = bindResult.getPlatformUserId();
+        if (ticketOwnerId == null || ticketOwnerId.isEmpty()) {
+            throw new NopException(ERR_CHECK_INVALID_ARGUMENT)
+                    .param("channelType", channelType)
+                    .param("ticketId", bindResult.getTicketId())
+                    .param("msg", "IChannelBindProvider.onChannelScanCallback returned no server-asserted "
+                            + "platformUserId (ticket missing, expired or not linked to a platform user) "
+                            + "for channelType=" + channelType + "; scan-login refuses to trust the caller payload");
+        }
+
         // 2. reverse-lookup the binding. No effective binding => scan-login
         //    cannot proceed (the user has not bound this channel). This is a
         //    binding flow, not a login flow — fail explicitly, do NOT fall
@@ -181,6 +212,22 @@ public class ChannelLoginApiBizModel {
                     .param("channelType", channelType)
                     .param("extId", extId)
                     .param("msg", "no effective channel binding for extId; bind the channel before scan-login");
+        }
+
+        // P0 hardening (continued): the binding recovered from the caller-provided
+        // extId must belong to the server-asserted ticket owner. The login
+        // identity is therefore the ticket identity; the extId acts only as a
+        // cross-checked hint. A forged open_id pointing at another user's
+        // binding can never bootstrap a session for that user.
+        if (!ticketOwnerId.equals(binding.getPlatformUserId())) {
+            throw new NopException(ERR_CHECK_INVALID_ARGUMENT)
+                    .param("channelType", channelType)
+                    .param("extId", extId)
+                    .param("ticketId", bindResult.getTicketId())
+                    .param("ticketOwnerId", ticketOwnerId)
+                    .param("bindingUserId", binding.getPlatformUserId())
+                    .param("msg", "channel identity is bound to a different user than the ticket owner; "
+                            + "refusing scan-login (possible forged scan callback)");
         }
 
         // 3. bootstrap a full session for the bound platform user, then

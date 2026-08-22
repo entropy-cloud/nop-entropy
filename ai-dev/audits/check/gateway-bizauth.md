@@ -42,6 +42,10 @@
 - **建议**: 默认装配移除硬编码 key，改为从加密配置（`@InjectValue("@cfg:..."）)读取，未配置时 fail-fast（启动报错）而非带弱默认值启动；至少应将 validKeys 默认置空并使空集合 = 拒绝所有请求。
 - **误报排除**: 已确认该 bean 属 `_vfs` 正式装配文件且 `ioc:default="true"`；`AiAuthGatewayInterceptor.onRequest` 确实以该列表为唯一放行依据（见 `AiAuthGatewayInterceptor.java:48`）。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 已修复（fail-closed 方案）。`gateway-defaults.beans.xml` 移除硬编码 key，`validKeys` 改为 `@cfg:nop.gateway.ai-auth.valid-keys|` 从应用配置读取（逗号分隔），未配置时注入空集合 = 拒绝所有请求；`AiAuthGatewayInterceptor.setValidKeys` 将 null 归一为空集合避免 NPE。全仓 grep `sk-test-key` 确认无测试/演示依赖默认 key（既有测试均显式 setValidKeys 自己的 key），无需依赖方改动。测试：`nop-gateway` `AiAuthGatewayInterceptorDefaultAssemblyTest#defaultAssembly_withoutConfig_rejectsFormerlyHardcodedKeys`（修复前：默认装配下带 `sk-test-key-1` 的请求通过认证放行；另 `#defaultAssembly_withConfiguredKeys_honorsConfig` 验证配置 key 生效，`AiAuthGatewayInterceptorTest#nullValidKeys_rejectsAllRequests`/`#emptyValidKeys_rejectsAllRequests` 验证空/null 拒绝所有）。
+
 ### [P1] GatewayHttpFilter 在路由匹配前对所有请求体做严格 JSON 解析
 
 - **文件**: `nop-service-framework/nop-gateway/src/main/java/io/nop/gateway/http/GatewayHttpFilter.java:138-148`

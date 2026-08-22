@@ -45,6 +45,10 @@ private File getSessionFile(String sessionId) {
 - **建议**: 对 sessionId 做与 projectName 相同的处理（`StringHelper.fileName` + `isValidFileName` 校验），或强制 UUID/十六进制白名单字符集后再拼路径。
 - **误报排除**: 已核实 IServiceContext.getRequestHeader 返回客户端提交的原始 header 值；已核实 FileHelper.writeText 会 assureParent（目录创建成立）；已核实 BizModel 无任何中间清洗层。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷成立，已修复。`AiToolsHelper` 新增公共校验方法 `requireValidSessionId`（fail-closed 白名单 `^[A-Za-z0-9_-]+$`，复用 nop-ai-core 既有 `ERR_AI_SESSION_ID_IS_EMPTY`/`ERR_AI_SESSION_ID_INVALID` 错误码，与 `ChatLogHelper`/`SessionIds.requireValidIdentifier` 同一 allow-list，即报告建议的白名单方案），`makeChatSessionId` 统一走校验（processThought/generateSummary/clearHistory 三入口全覆盖）；`ThoughtStorage.getSessionFile` 在路径拼接前调用同一校验兜底（覆盖 export/import 等直接调用）。测试：`nop-ai-tools` `TestThoughtStorage#testSessionIdPathTraversalRejected`、`TestSequentialThinkingBizModel#testHeaderSessionIdPathTraversalRejected`（修复前 `../evil`、`../../tmp/evil`、`a/b`、`a\b`、`..`、绝对路径等恶意 sessionId 不抛异常且在 storageDir 外创建/覆盖 `evil.json`；修复后抛 `NopException` 且不触碰文件系统，合法 sessionId 正常读写，模块 25 测试全绿）。
+
 ### [P1] BashExecutor 解析 env 变量用了错误的节点层级，按 schema 的合法输入永远读不到 env
 
 - **文件**: `nop-ai/nop-ai-toolkit/src/main/java/io/nop/ai/toolkit/tools/BashExecutor.java:206`，对照 `nop-ai/nop-ai-toolkit/src/main/resources/_vfs/nop/ai/tools/bash.tool.xml`（schema 段）

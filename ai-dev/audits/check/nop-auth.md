@@ -44,6 +44,10 @@ if (maxFailCount > 0) {
 - **建议**: 凭证校验与锁号判定解耦：`maxFailCount <= 0` 只应跳过 `failCount >= maxFailCount` 分支，`isAllowLogin`/SMS 校验/密码比对必须无条件执行；并对配置值 <0 显式报错。
 - **误报排除**: 已核对默认值 10（NopAuthConfigs.java:53-54），默认部署不受影响；已通读 loginAsync 全流程确认无其他密码校验路径（needCheckPassword/passwordMatches 仅在此块内调用）；触发条件为单条配置项，路径现实。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 确认属实，已修复。`LoginServiceImpl.loginAsync` 将锁号判定与凭证校验解耦：锁号分支收窄为 `maxFailCount > 0 && failCount >= maxFailCount`，`isAllowLogin`/SMS 验证码/密码比对无条件执行；错误码与分支次序不变，`maxFailCount > 0` 场景行为不变。测试：`nop-auth-service` `TestLoginCredentialCheckWhenLockoutDisabled#testWrongPasswordRejectedWhenMaxFailCountZero`（修复前 max-login-fail-count=0 时错误密码直接通过校验进入 completeLogin 签发 token）、`#testDisabledUserRejectedWhenMaxFailCountZero`（修复前被禁用用户 + 正确密码仍可登录），另有对照组 `#testCorrectPasswordStillSucceedsWhenMaxFailCountZero`、`#testWrongPasswordRejectedWithDefaultMaxFailCount` 钉定合法登录与默认配置行为不变。
+
 ### [P1] 表模式数据权限配置变更永不生效（无缓存失效、无 TTL、check-changed 配置为空挂）
 
 - **文件**: `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/auth/DefaultDataAuthChecker.java:69`、`:158-160`；`nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/entity/NopAuthRoleDataAuthBizModel.java:17`
