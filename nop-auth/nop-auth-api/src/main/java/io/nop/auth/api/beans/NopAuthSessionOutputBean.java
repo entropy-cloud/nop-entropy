@@ -233,34 +233,6 @@
         }
 
 
-        private String _accessToken;
-
-    
-        @PropMeta(propId=15)
-    
-        public String getAccessToken(){
-            return _accessToken;
-        }
-
-        public void setAccessToken(String value){
-            this._accessToken = value;
-        }
-
-
-        private String _refreshToken;
-
-    
-        @PropMeta(propId=16)
-    
-        public String getRefreshToken(){
-            return _refreshToken;
-        }
-
-        public void setRefreshToken(String value){
-            this._refreshToken = value;
-        }
-
-
         private String _createdBy;
 
     

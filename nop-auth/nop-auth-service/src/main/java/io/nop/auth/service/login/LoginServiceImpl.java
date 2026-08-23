@@ -69,8 +69,12 @@ import io.nop.integration.api.sms.ISmsSender;
 import io.nop.integration.api.sms.SmsMessage;
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.time.Duration;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -823,9 +827,20 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
 
     // ===================== 短信验证码发送（设计 §3.3 / §3.6） =====================
 
-    /** Local 限流追踪：phone → [lastSendMs, dailyCount, dailyDate]；IP → [dailyCount, dailyDate]。 */
-    private final Map<String, long[]> smsPhoneTracker = new java.util.concurrent.ConcurrentHashMap<>();
-    private final Map<String, long[]> smsIpTracker = new java.util.concurrent.ConcurrentHashMap<>();
+    /**
+     * Local 限流追踪：phone → [lastSendMs, dailyCount, dailyDate]；IP → [dailyCount, dailyDate]。
+     * Caffeine asMap视图：硬上限防止键空间无界增长（XFF可伪造IP键，不受真实手机号数约束），
+     * 2天过期兜底清理跨天残留键；驱逐最冷键最坏使限流状态重置，对近似本地限流可接受。
+     */
+    private final Map<String, long[]> smsPhoneTracker = newBoundedRateMap();
+    private final Map<String, long[]> smsIpTracker = newBoundedRateMap();
+
+    /** 限流追踪Map：Caffeine asMap视图，硬上限+2天过期防止键空间无界增长（XFF可伪造IP键）。 */
+    private static Map<String, long[]> newBoundedRateMap() {
+        Cache<String, long[]> cache = Caffeine.newBuilder().maximumSize(50_000)
+                .expireAfterWrite(Duration.ofDays(2)).build();
+        return cache.asMap();
+    }
 
     @Override
     public void sendSmsCode(String phone, String clientIp) {
@@ -978,23 +993,27 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
         long now = CoreMetrics.currentTimeMillis();
         long today = CoreMetrics.today().toEpochDay();
 
-        // 手机号间隔 + 日上限
+        // 手机号间隔 + 日上限。间隔检查与lastSendMs占用必须在同一原子区：裸写在compute外时，
+        // 并发突发可同时读到旧时间戳并同时通过间隔检查，实际发送间隔小于配置值
         int interval = CFG_AUTH_SMS_CODE_SEND_INTERVAL_SECONDS.get();
         int dailyLimit = CFG_AUTH_SMS_CODE_DAILY_LIMIT.get();
-        long[] phoneEntry = smsPhoneTracker.compute(phone, (k, v) -> {
-            if (v == null || v[2] != today) {
-                return new long[]{now, 1, today};
+        long[] phoneEntry;
+        synchronized (smsPhoneTracker) {
+            phoneEntry = smsPhoneTracker.compute(phone, (k, v) -> {
+                if (v == null || v[2] != today) {
+                    return new long[]{now, 1, today};
+                }
+                return new long[]{v[0], v[1] + 1, today};
+            });
+            if (phoneEntry[1] > 1 && (now - phoneEntry[0]) < interval * 1000L) {
+                throw new NopException(ERR_AUTH_SMS_RATE_LIMITED).param(ARG_PHONE, phone);
             }
-            return new long[]{v[0], v[1] + 1, today};
-        });
-        if (phoneEntry[1] > 1 && (now - phoneEntry[0]) < interval * 1000L) {
-            throw new NopException(ERR_AUTH_SMS_RATE_LIMITED).param(ARG_PHONE, phone);
+            if (phoneEntry[1] > dailyLimit) {
+                throw new NopException(ERR_AUTH_SMS_DAILY_LIMIT).param(ARG_PHONE, phone);
+            }
+            // 更新 lastSendMs（compute 中已递增 count，此处只更新时间戳）
+            phoneEntry[0] = now;
         }
-        if (phoneEntry[1] > dailyLimit) {
-            throw new NopException(ERR_AUTH_SMS_DAILY_LIMIT).param(ARG_PHONE, phone);
-        }
-        // 更新 lastSendMs（compute 中已递增 count，此处只更新时间戳）
-        phoneEntry[0] = now;
 
         // IP 日上限
         if (!StringHelper.isEmpty(clientIp)) {
@@ -1012,8 +1031,8 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
     }
 
     /** Local 限流追踪（email 维度，W15-impl）：email → [lastSendMs, dailyCount, dailyDate]；IP → [dailyCount, dailyDate]。 */
-    private final Map<String, long[]> emailTracker = new java.util.concurrent.ConcurrentHashMap<>();
-    private final Map<String, long[]> emailIpTracker = new java.util.concurrent.ConcurrentHashMap<>();
+    private final Map<String, long[]> emailTracker = newBoundedRateMap();
+    private final Map<String, long[]> emailIpTracker = newBoundedRateMap();
 
     /**
      * Local 限流（W15-impl，设计 §5.3.3——复用 {@link #checkSmsRateLimit} 模式）：
@@ -1025,23 +1044,26 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
         long now = CoreMetrics.currentTimeMillis();
         long today = CoreMetrics.today().toEpochDay();
 
-        // 邮箱间隔 + 日上限
+        // 邮箱间隔 + 日上限（间隔检查与lastSendMs占用同原子区，同sms路径）
         int interval = CFG_AUTH_EMAIL_CODE_SEND_INTERVAL_SECONDS.get();
         int dailyLimit = CFG_AUTH_EMAIL_CODE_DAILY_LIMIT.get();
-        long[] emailEntry = emailTracker.compute(email, (k, v) -> {
-            if (v == null || v[2] != today) {
-                return new long[]{now, 1, today};
+        long[] emailEntry;
+        synchronized (emailTracker) {
+            emailEntry = emailTracker.compute(email, (k, v) -> {
+                if (v == null || v[2] != today) {
+                    return new long[]{now, 1, today};
+                }
+                return new long[]{v[0], v[1] + 1, today};
+            });
+            if (emailEntry[1] > 1 && (now - emailEntry[0]) < interval * 1000L) {
+                throw new NopException(ERR_AUTH_EMAIL_RATE_LIMITED).param("email", email);
             }
-            return new long[]{v[0], v[1] + 1, today};
-        });
-        if (emailEntry[1] > 1 && (now - emailEntry[0]) < interval * 1000L) {
-            throw new NopException(ERR_AUTH_EMAIL_RATE_LIMITED).param("email", email);
+            if (emailEntry[1] > dailyLimit) {
+                throw new NopException(ERR_AUTH_EMAIL_DAILY_LIMIT).param("email", email);
+            }
+            // 更新 lastSendMs（compute 中已递增 count，此处只更新时间戳）
+            emailEntry[0] = now;
         }
-        if (emailEntry[1] > dailyLimit) {
-            throw new NopException(ERR_AUTH_EMAIL_DAILY_LIMIT).param("email", email);
-        }
-        // 更新 lastSendMs（compute 中已递增 count，此处只更新时间戳）
-        emailEntry[0] = now;
 
         // IP 日上限
         if (!StringHelper.isEmpty(clientIp)) {
@@ -1411,16 +1433,15 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
         audit.setDescription(I18nMessageManager.instance().getMessage(locale, "api.label.LoginApi__login", null));
         audit.setTenantId(ContextProvider.currentTenantId());
 
+        // failCount合并进同一份requestData：暴力破解排查依赖loginType/principalId定位攻击目标，
+        // 第2次及以后的失败记录不得覆盖丢失这两个字段
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("loginType", request.getLoginType());
         map.put("principalId", request.getPrincipalId());
-        audit.setRequestData(JSON.stringify(map));
-
         if (failCount > 1) {
-            Map<String, Object> result = new HashMap<>();
-            result.put("failCount", failCount);
-            audit.setRequestData(JSON.stringify(result));
+            map.put("failCount", failCount);
         }
+        audit.setRequestData(JSON.stringify(map));
 
         if (user != null) {
             audit.setUserName(user.getUserName());

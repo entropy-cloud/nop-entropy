@@ -27,9 +27,6 @@
                 <!--客户端ID发放时间-->
                 <col id="clientIdIssuedAt" mandatory="true" sortable="true"/>
 
-                <!--客户端密码-->
-                <col id="clientSecret" sortable="true"/>
-
                 <!--客户端密码过期时间-->
                 <col id="clientSecretExpiresAt" sortable="true"/>
 
@@ -65,12 +62,11 @@
         <form id="view" editMode="view" title="查看-Oauth注册客户端" i18n-en:title="View OAuth Registered Client">
             <layout>
  sid[Id] clientId[客户端ID]
- clientIdIssuedAt[客户端ID发放时间] clientSecret[客户端密码]
- clientSecretExpiresAt[客户端密码过期时间] clientName[客户端名称]
- clientAuthenticationMethods[客户端授权方法] authorizationGrantTypes[客户端认证类型]
- redirectUris[重定向URI] postLogoutRedirectUris[Logout重定向URI]
- scopes[授权范围] clientSettings[客户端设置]
- tokenSettings[Token设置] 
+ clientIdIssuedAt[客户端ID发放时间] clientSecretExpiresAt[客户端密码过期时间]
+ clientName[客户端名称] clientAuthenticationMethods[客户端授权方法]
+ authorizationGrantTypes[客户端认证类型] redirectUris[重定向URI]
+ postLogoutRedirectUris[Logout重定向URI] scopes[授权范围]
+ clientSettings[客户端设置] tokenSettings[Token设置]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-Oauth注册客户端" i18n-en:title="Add OAuth Registered Client"
@@ -78,12 +74,11 @@
         <form id="edit" editMode="edit" title="编辑-Oauth注册客户端" i18n-en:title="Edit OAuth Registered Client">
             <layout>
  sid[Id] clientId[客户端ID]
- clientIdIssuedAt[客户端ID发放时间] clientSecret[客户端密码]
- clientSecretExpiresAt[客户端密码过期时间] clientName[客户端名称]
- clientAuthenticationMethods[客户端授权方法] authorizationGrantTypes[客户端认证类型]
- redirectUris[重定向URI] postLogoutRedirectUris[Logout重定向URI]
- scopes[授权范围] clientSettings[客户端设置]
- tokenSettings[Token设置] 
+ clientIdIssuedAt[客户端ID发放时间] clientSecretExpiresAt[客户端密码过期时间]
+ clientName[客户端名称] clientAuthenticationMethods[客户端授权方法]
+ authorizationGrantTypes[客户端认证类型] redirectUris[重定向URI]
+ postLogoutRedirectUris[Logout重定向URI] scopes[授权范围]
+ clientSettings[客户端设置] tokenSettings[Token设置]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

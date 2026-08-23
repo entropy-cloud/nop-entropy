@@ -230,22 +230,35 @@ public class MfaFactorVerifier {
         if (check.getSignatureCount() > 0) {
             // 单调递增写（并发语义裁定回写设计 §5.3.2）：条件 UPDATE，竞态方按失败处理
             long now = CoreMetrics.currentTimeMillis();
-            SQL upd = SQL.begin().name("webauthnSignCountAdvance").querySpace(DEFAULT_QUERY_SPACE)
-                    .sql("UPDATE " + CREDENTIAL_TABLE + " SET SIGN_COUNT = ?, LAST_USED_AT = ?, "
-                                    + "UPDATE_TIME = ?, VERSION = VERSION + 1 "
-                                    + "WHERE SID = ? AND SIGN_COUNT < ?",
-                            check.getSignatureCount(), new Timestamp(now), new Timestamp(now),
-                            credential.getSid(), check.getSignatureCount())
-                    .end();
-            long affected = jdbcTemplate.executeUpdate(upd);
-            if (affected == 0) {
-                // 并发断言已推进 ≥ 本计数：按验证失败处理（用户重试）——不覆盖更大计数
-                auditWebauthnAssertion(userId, credential.getCredentialId(), false, "sign-count-race", false);
-                return false;
+            if (jdbcTemplate != null) {
+                SQL upd = SQL.begin().name("webauthnSignCountAdvance").querySpace(DEFAULT_QUERY_SPACE)
+                        .sql("UPDATE " + CREDENTIAL_TABLE + " SET SIGN_COUNT = ?, LAST_USED_AT = ?, "
+                                        + "UPDATE_TIME = ?, VERSION = VERSION + 1 "
+                                        + "WHERE SID = ? AND SIGN_COUNT < ?",
+                                check.getSignatureCount(), new Timestamp(now), new Timestamp(now),
+                                credential.getSid(), check.getSignatureCount())
+                        .end();
+                long affected = jdbcTemplate.executeUpdate(upd);
+                if (affected == 0) {
+                    // 并发断言已推进 ≥ 本计数：按验证失败处理（用户重试）——不覆盖更大计数
+                    auditWebauthnAssertion(userId, credential.getCredentialId(), false, "sign-count-race", false);
+                    return false;
+                }
+            } else {
+                // 手工装配（@Nullable jdbcTemplate未注入，测试/无装饰器直调路径）退化实体写，
+                // 与LoginServiceImpl.markRecoveryCodeUsed的null退化先例一致；实体乐观锁兜底并发
+                long stored = credential.getSignCount() == null ? 0L : credential.getSignCount();
+                if (stored >= check.getSignatureCount()) {
+                    auditWebauthnAssertion(userId, credential.getCredentialId(), false, "sign-count-race", false);
+                    return false;
+                }
+                credential.setSignCount(check.getSignatureCount());
+                credential.setLastUsedAt(new Timestamp(now));
+                daoProvider.daoFor(NopAuthMfaCredential.class).updateEntity(credential);
             }
         } else {
             // count=0 认证器（不维护计数，协议允许）：跳过单调校验，仅审计标记（watch-only）
-            touchLastUsed(credential.getSid());
+            touchLastUsed(credential);
         }
         auditWebauthnAssertion(userId, credential.getCredentialId(), true,
                 check.isZeroCounter() ? "zero-counter-authenticator" : "ok", check.isZeroCounter());
@@ -265,14 +278,19 @@ public class MfaFactorVerifier {
         return found.isEmpty() ? null : found.get(0);
     }
 
-    /** count=0 认证器的 lastUsedAt 审计更新（不动 signCount）。 */
-    private void touchLastUsed(String sid) {
+    /** count=0 认证器的 lastUsedAt 审计更新（不动 signCount）。手工装配无 jdbcTemplate 时退化实体写。 */
+    private void touchLastUsed(NopAuthMfaCredential credential) {
         long now = CoreMetrics.currentTimeMillis();
-        SQL upd = SQL.begin().name("webauthnTouchLastUsed").querySpace(DEFAULT_QUERY_SPACE)
-                .sql("UPDATE " + CREDENTIAL_TABLE + " SET LAST_USED_AT = ?, UPDATE_TIME = ?, VERSION = VERSION + 1 "
-                        + "WHERE SID = ?", new Timestamp(now), new Timestamp(now), sid)
-                .end();
-        jdbcTemplate.executeUpdate(upd);
+        if (jdbcTemplate != null) {
+            SQL upd = SQL.begin().name("webauthnTouchLastUsed").querySpace(DEFAULT_QUERY_SPACE)
+                    .sql("UPDATE " + CREDENTIAL_TABLE + " SET LAST_USED_AT = ?, UPDATE_TIME = ?, VERSION = VERSION + 1 "
+                            + "WHERE SID = ?", new Timestamp(now), new Timestamp(now), credential.getSid())
+                    .end();
+            jdbcTemplate.executeUpdate(upd);
+        } else {
+            credential.setLastUsedAt(new Timestamp(now));
+            daoProvider.daoFor(NopAuthMfaCredential.class).updateEntity(credential);
+        }
     }
 
     /** webauthn 断言审计事件（成功/失败），userName 非空列必须设置（W13 教训）。 */

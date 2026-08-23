@@ -23,6 +23,7 @@ import io.nop.api.core.audit.AuditRequest;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.auth.api.AuthApiConstants;
 import io.nop.auth.api.beans.NopAuthMfaCredentialOutputBean;
 import io.nop.auth.api.mfa.MfaRequired;
@@ -36,6 +37,7 @@ import io.nop.auth.core.mfa.store.SmsCodeStore;
 import io.nop.auth.core.password.IPasswordEncoder;
 import io.nop.auth.core.password.IPasswordPolicy;
 import io.nop.auth.core.totp.TOTPAuthenticator;
+import io.nop.auth.core.login.ILoginService;
 import io.nop.auth.dao.entity.NopAuthMfaCredential;
 import io.nop.auth.dao.entity.NopAuthMfaRecoveryCode;
 import io.nop.auth.dao.entity.NopAuthMfaSetting;
@@ -66,7 +68,11 @@ import io.nop.integration.api.sms.SmsMessage;
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -197,6 +203,14 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
     @Inject
     @Nullable
     protected WebAuthnAuthenticator webAuthnAuthenticator;
+
+    /**
+     * 登录服务（密码变更/重置后吊销目标用户既有会话）。可选注入：未装配时跳过会话吊销
+     * （测试/手工装配路径），密码本身仍正常变更。
+     */
+    @Inject
+    @Nullable
+    protected ILoginService loginService;
 
     /**
      * 角色级 MFA 策略评估器（W13-impl，设计 §4.3）：confirmMfa 策略校验（防因子降级）。
@@ -341,6 +355,9 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
             throw new NopException(ERR_AUTH_INVALID_LOGIN_REQUEST).param(ARG_USER_ID, user.getUserId())
                     .param("msg", "user has no phone number; cannot bind sms MFA");
         }
+        // phone维度限流前置（对齐bindEmail的checkEmailRateLimit/sendMfaCode的checkSmsRateLimit先例）：
+        // 已登录用户可对本人手机号无限触发短信，构成运营商费用滥用
+        checkProofRateLimit(phone);
         // 发送验证码到用户手机（key=mfa:userId，与 mfaVerify 消费口径一致）
         String code = smsCodeStore == null ? null : smsCodeStore.send(SMS_KEY_MFA + user.getUserId());
         sendSmsForBinding(phone, code);
@@ -1324,10 +1341,20 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
         auditService.saveAudit(audit);
     }
 
-    /** 登记通道 proof 发码限流追踪（W13 phone 维度 + W15 email 维度独立计数）。 */
-    private final Map<String, long[]> proofRateTracker = new java.util.concurrent.ConcurrentHashMap<>();
-    private final Map<String, long[]> emailRateTracker = new java.util.concurrent.ConcurrentHashMap<>();
-    private final Map<String, long[]> emailIpRateTracker = new java.util.concurrent.ConcurrentHashMap<>();
+    /**
+     * 登记通道 proof 发码限流追踪（W13 phone 维度 + W15 email 维度独立计数）。
+     * Caffeine asMap视图：硬上限+2天过期防止键空间无界增长（与LoginServiceImpl限流追踪同款）。
+     */
+    private final Map<String, long[]> proofRateTracker = newBoundedRateMap();
+    private final Map<String, long[]> emailRateTracker = newBoundedRateMap();
+    private final Map<String, long[]> emailIpRateTracker = newBoundedRateMap();
+
+    /** 限流追踪Map：Caffeine asMap视图，硬上限+2天过期防止键空间无界增长（XFF可伪造IP键）。 */
+    private static Map<String, long[]> newBoundedRateMap() {
+        Cache<String, long[]> cache = Caffeine.newBuilder().maximumSize(50_000)
+                .expireAfterWrite(Duration.ofDays(2)).build();
+        return cache.asMap();
+    }
 
     /**
      * 受限会话内 bindMfa 的登记通道 proof 门槛（设计 §4.3 防 enrollment attack）：
@@ -1444,21 +1471,24 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
         long today = io.nop.api.core.time.CoreMetrics.today().toEpochDay();
         int interval = io.nop.auth.service.NopAuthConfigs.CFG_AUTH_SMS_CODE_SEND_INTERVAL_SECONDS.get();
         int dailyLimit = io.nop.auth.service.NopAuthConfigs.CFG_AUTH_SMS_CODE_DAILY_LIMIT.get();
-        long[] entry = proofRateTracker.compute(phone, (k, v) -> {
-            if (v == null || v[2] != today) {
-                return new long[]{now, 1, today};
+        // 间隔检查与lastSendMs占用同原子区，防止并发突发同时通过间隔检查
+        synchronized (proofRateTracker) {
+            long[] entry = proofRateTracker.compute(phone, (k, v) -> {
+                if (v == null || v[2] != today) {
+                    return new long[]{now, 1, today};
+                }
+                return new long[]{v[0], v[1] + 1, today};
+            });
+            if (entry[1] > 1 && (now - entry[0]) < interval * 1000L) {
+                throw new NopException(io.nop.auth.service.NopAuthErrors.ERR_AUTH_SMS_RATE_LIMITED)
+                        .param(io.nop.auth.service.NopAuthErrors.ARG_PHONE, maskPhone(phone));
             }
-            return new long[]{v[0], v[1] + 1, today};
-        });
-        if (entry[1] > 1 && (now - entry[0]) < interval * 1000L) {
-            throw new NopException(io.nop.auth.service.NopAuthErrors.ERR_AUTH_SMS_RATE_LIMITED)
-                    .param(io.nop.auth.service.NopAuthErrors.ARG_PHONE, maskPhone(phone));
+            if (entry[1] > dailyLimit) {
+                throw new NopException(io.nop.auth.service.NopAuthErrors.ERR_AUTH_SMS_DAILY_LIMIT)
+                        .param(io.nop.auth.service.NopAuthErrors.ARG_PHONE, maskPhone(phone));
+            }
+            entry[0] = now;
         }
-        if (entry[1] > dailyLimit) {
-            throw new NopException(io.nop.auth.service.NopAuthErrors.ERR_AUTH_SMS_DAILY_LIMIT)
-                    .param(io.nop.auth.service.NopAuthErrors.ARG_PHONE, maskPhone(phone));
-        }
-        entry[0] = now;
     }
 
     /**
@@ -1518,21 +1548,24 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
         long today = io.nop.api.core.time.CoreMetrics.today().toEpochDay();
         int interval = CFG_AUTH_EMAIL_CODE_SEND_INTERVAL_SECONDS.get();
         int dailyLimit = CFG_AUTH_EMAIL_CODE_DAILY_LIMIT.get();
-        long[] entry = emailRateTracker.compute(email, (k, v) -> {
-            if (v == null || v[2] != today) {
-                return new long[]{now, 1, today};
+        // 间隔检查与lastSendMs占用同原子区，防止并发突发同时通过间隔检查
+        synchronized (emailRateTracker) {
+            long[] entry = emailRateTracker.compute(email, (k, v) -> {
+                if (v == null || v[2] != today) {
+                    return new long[]{now, 1, today};
+                }
+                return new long[]{v[0], v[1] + 1, today};
+            });
+            if (entry[1] > 1 && (now - entry[0]) < interval * 1000L) {
+                throw new NopException(ERR_AUTH_EMAIL_RATE_LIMITED)
+                        .param(io.nop.auth.service.NopAuthErrors.ARG_CHANNEL, maskEmail(email));
             }
-            return new long[]{v[0], v[1] + 1, today};
-        });
-        if (entry[1] > 1 && (now - entry[0]) < interval * 1000L) {
-            throw new NopException(ERR_AUTH_EMAIL_RATE_LIMITED)
-                    .param(io.nop.auth.service.NopAuthErrors.ARG_CHANNEL, maskEmail(email));
+            if (entry[1] > dailyLimit) {
+                throw new NopException(ERR_AUTH_EMAIL_DAILY_LIMIT)
+                        .param(io.nop.auth.service.NopAuthErrors.ARG_CHANNEL, maskEmail(email));
+            }
+            entry[0] = now;
         }
-        if (entry[1] > dailyLimit) {
-            throw new NopException(ERR_AUTH_EMAIL_DAILY_LIMIT)
-                    .param(io.nop.auth.service.NopAuthErrors.ARG_CHANNEL, maskEmail(email));
-        }
-        entry[0] = now;
 
         if (!StringHelper.isEmpty(clientIp)) {
             int ipLimit = io.nop.auth.service.NopAuthConfigs.CFG_AUTH_EMAIL_CODE_IP_DAILY_LIMIT.get();
@@ -1799,6 +1832,8 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
 
     /**
      * 运行时 admin 角色校验（defense-in-depth，配合 {@code @Auth} 权限门禁，使"非 admin 被拒"可测试）。
+     * 适用于破坏力高于常规 CRUD 的账号管理动作（resetUserMfa/resetUserPassword/enableUser/disableUser/
+     * saveMfaPolicy 等）：仅授予操作权限不足以放行，还要求调用方具有 admin/nop-admin 角色。
      */
     private void requireAdmin(IServiceContext context) {
         IUserContext userContext = context.getUserContext();
@@ -1809,7 +1844,7 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
         if (roles == null || (!roles.contains(NopAuthConstants.ROLE_ADMIN)
                 && !roles.contains(NopAuthConstants.ROLE_NOP_ADMIN))) {
             throw new NopException(ERR_AUTH_INVALID_LOGIN_REQUEST).param(ARG_USER_ID, userContext.getUserId())
-                    .param("msg", "only admin can reset user MFA");
+                    .param("msg", "only admin can perform this account management action");
         }
     }
 
@@ -1941,6 +1976,9 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
     public void resetUserPassword(@Name("userId") String userId,
                                   @Name("password") String password,
                                   IServiceContext context) {
+        // 运行时admin校验（defense-in-depth）：操作权限下放给非admin角色时，防止其重置
+        // 同租户任意用户（含admin）密码造成账号接管；对照 resetUserMfa 先例
+        requireAdmin(context);
         NopAuthUser user = this.get(userId, false, context);
         passwordPolicy.checkAllowedPassword(user.getUserName(), password);
 
@@ -1948,6 +1986,9 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
         password = passwordEncoder.encodePassword(salt, password);
         user.setSalt(salt);
         user.setPassword(password);
+
+        // 密码被管理员重置：吊销目标用户全部既有会话（旧token依赖session存续，随之失效）
+        revokeUserSessions(user, null);
     }
 
     @Description("修改自己的密码")
@@ -1971,6 +2012,9 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
         String password = passwordEncoder.encodePassword(salt, newPassword);
         user.setSalt(salt);
         user.setPassword(password);
+
+        // 凭证疑泄露后改密应立即踢出其他设备已持有的token：吊销除当前会话外的全部会话
+        revokeUserSessions(user, userContext.getSessionId());
     }
 
     @Description("@i18n:common.enableUser")
@@ -1978,6 +2022,7 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
     @BizAudit(logRequestFields = "userId")
     public void enableUser(@Name("userId") String userId,
                            IServiceContext context) {
+        requireAdmin(context);
         NopAuthUser user = this.get(userId, false, context);
         if (user.getStatus() != AuthApiConstants.USER_STATUS_ACTIVE) {
             user.setStatus(AuthApiConstants.USER_STATUS_ACTIVE);
@@ -1989,9 +2034,20 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
     @BizAudit(logRequestFields = "userId")
     public void disableUser(@Name("userId") String userId,
                             IServiceContext context) {
+        requireAdmin(context);
         NopAuthUser user = this.get(userId, false, context);
         if (user.getStatus() == AuthApiConstants.USER_STATUS_ACTIVE) {
             user.setStatus(AuthApiConstants.USER_STATUS_DISABLED);
         }
+    }
+
+    /**
+     * 密码变更/重置后吊销目标用户会话（复用ILoginService的session+缓存上下文失效链路，
+     * 携带onLogout钩子通知）。exceptSessionId非空时保留该会话（本人改密保留当前会话）。
+     */
+    private void revokeUserSessions(NopAuthUser user, String exceptSessionId) {
+        if (loginService == null)
+            return;
+        FutureHelper.syncGet(loginService.revokeUserSessionsAsync(user.getUserName(), exceptSessionId));
     }
 }

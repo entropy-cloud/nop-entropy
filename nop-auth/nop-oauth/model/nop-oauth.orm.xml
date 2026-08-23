@@ -24,9 +24,9 @@
                 <column code="ATTRIBUTES" displayName="扩展属性" name="attributes" precision="65535" propId="6"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Attributes"/>
                 <column code="STATE" displayName="状态码" name="state" precision="500" propId="7" stdDataType="string"
-                        stdSqlType="VARCHAR" i18n-en:displayName="State"/>
+                        stdSqlType="VARCHAR" tagSet="masked,not-pub" i18n-en:displayName="State"/>
                 <column code="AUTHORIZATION_CODE_VALUE" displayName="AuthorizationCode值" name="authorizationCodeValue"
-                        precision="65535" propId="8" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="65535" propId="8" stdDataType="string" stdSqlType="VARCHAR" tagSet="masked,not-pub"
                         i18n-en:displayName="Authorization Code Value"/>
                 <column code="AUTHORIZATION_CODE_ISSUED_AT" displayName="AuthorizationCode发放时间"
                         name="authorizationCodeIssuedAt" propId="9" stdDataType="timestamp" stdSqlType="TIMESTAMP"
@@ -38,7 +38,8 @@
                         name="authorizationCodeMetadata" precision="65535" propId="11" stdDataType="string"
                         stdSqlType="VARCHAR" i18n-en:displayName="Authorization Code Meta"/>
                 <column code="ACCESS_TOKEN_VALUE" displayName="AccessToken" name="accessTokenValue" precision="65535"
-                        propId="12" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Access Token Value"/>
+                        propId="12" stdDataType="string" stdSqlType="VARCHAR" tagSet="masked,not-pub"
+                        i18n-en:displayName="Access Token Value"/>
                 <column code="ACCESS_TOKEN_ISSUED_AT" displayName="AccessToken发放时间" name="accessTokenIssuedAt"
                         propId="13" stdDataType="timestamp" stdSqlType="TIMESTAMP"
                         i18n-en:displayName="Access Token Issued At"/>
@@ -54,7 +55,8 @@
                         precision="1000" propId="17" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Access Token Scope"/>
                 <column code="OIDC_ID_TOKEN_VALUE" displayName="OidcIdToken值" name="oidcIdTokenValue" precision="65535"
-                        propId="18" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="OIDC ID Token Value"/>
+                        propId="18" stdDataType="string" stdSqlType="VARCHAR" tagSet="masked,not-pub"
+                        i18n-en:displayName="OIDC ID Token Value"/>
                 <column code="OIDC_ID_TOKEN_ISSUED_AT" displayName="OidcIdToken发放时间" name="oidcIdTokenIssuedAt"
                         propId="19" stdDataType="timestamp" stdSqlType="TIMESTAMP"
                         i18n-en:displayName="OIDC ID Token Issued At"/>
@@ -65,7 +67,7 @@
                         precision="65535" propId="21" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="OIDC ID Token Meta Data"/>
                 <column code="REFRESH_TOKEN_VALUE" displayName="RefreshToken值" name="refreshTokenValue"
-                        precision="65535" propId="22" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="65535" propId="22" stdDataType="string" stdSqlType="VARCHAR" tagSet="masked,not-pub"
                         i18n-en:displayName="Refresh Token Value"/>
                 <column code="REFRESH_TOKEN_ISSUED_AT" displayName="RefreshToken发放时间" name="refreshTokenIssuedAt"
                         propId="23" stdDataType="timestamp" stdSqlType="TIMESTAMP"
@@ -122,7 +124,8 @@
                         propId="3" stdDataType="timestamp" stdSqlType="TIMESTAMP"
                         i18n-en:displayName="Client Id Issued At"/>
                 <column code="CLIENT_SECRET" displayName="客户端密码" name="clientSecret" precision="200" propId="4"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Client Secret"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="masked,var,not-pub"
+                        i18n-en:displayName="Client Secret"/>
                 <column code="CLIENT_SECRET_EXPIRES_AT" displayName="客户端密码过期时间" name="clientSecretExpiresAt" propId="5"
                         stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Client Secret Expires At"/>
                 <column code="CLIENT_NAME" displayName="客户端名称" mandatory="true" name="clientName" precision="200"

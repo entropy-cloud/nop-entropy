@@ -691,9 +691,11 @@
                         stdDataType="datetime" stdSqlType="DATETIME" tagSet="clock" ui:show="X"
                         i18n-en:displayName="Last Access Time"/>
                 <column code="ACCESS_TOKEN" displayName="访问令牌" name="accessToken" precision="500" propId="15"
-                        stdDataType="string" stdSqlType="VARCHAR" ui:show="X" i18n-en:displayName="Access Token"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="masked,not-pub" ui:show="X"
+                        i18n-en:displayName="Access Token"/>
                 <column code="REFRESH_TOKEN" displayName="刷新令牌" name="refreshToken" precision="500" propId="16"
-                        stdDataType="string" stdSqlType="VARCHAR" ui:show="X" i18n-en:displayName="Refresh Token"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="masked,not-pub" ui:show="X"
+                        i18n-en:displayName="Refresh Token"/>
                 <column code="CACHE_DATA" displayName="缓存数据" name="cacheData" precision="4000" propId="17"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="not-pub" ui:show="X"
                         i18n-en:displayName="Cache Data"/>

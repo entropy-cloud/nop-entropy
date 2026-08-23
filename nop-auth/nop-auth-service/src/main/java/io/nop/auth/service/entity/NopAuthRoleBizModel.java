@@ -30,6 +30,7 @@ import io.nop.auth.dao.entity.NopAuthUser;
 import io.nop.auth.dao.entity.NopAuthUserRole;
 import io.nop.auth.service.NopAuthConstants;
 import io.nop.auth.service.NopAuthErrors;
+import io.nop.auth.core.sitemap.ISiteMapProvider;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.biz.crud.EntityData;
 import io.nop.commons.util.StringHelper;
@@ -59,6 +60,14 @@ import static java.util.Comparator.comparing;
 
 @BizModel("NopAuthRole")
 public class NopAuthRoleBizModel extends CrudBizModel<NopAuthRole> implements INopAuthRoleBiz {
+    /**
+     * 授权关系（NopAuthRoleResource）是 SiteCacheData.permissionToRoles 的判定源，
+     * 变更后刷新 sitemap 权限缓存，避免权限撤销最长滞留 cache-timeout（默认10分钟）才生效
+     */
+    @Inject
+    @Nullable
+    protected ISiteMapProvider siteMapProvider;
+
     public NopAuthRoleBizModel() {
         setEntityName(NopAuthRole.class.getName());
     }
@@ -144,6 +153,11 @@ public class NopAuthRoleBizModel extends CrudBizModel<NopAuthRole> implements IN
         filter = FilterBeans.and(filter, FilterBeans.eq("resource.siteId", siteId));
         super.updateRelationsEx(NopAuthRoleResource.class.getName(), "roleId", fixedProps, filter,
                 true, "resourceId", resourceIds);
+
+        // 授权关系变更即时刷新sitemap权限缓存（updateRelationsEx直连dao，不经过
+        // NopAuthRoleResourceBizModel.afterEntityChange）
+        if (siteMapProvider != null)
+            siteMapProvider.refreshCache();
     }
 
     // ===================== 角色级 MFA 强制策略管理（设计 §4.3，W13-impl） =====================

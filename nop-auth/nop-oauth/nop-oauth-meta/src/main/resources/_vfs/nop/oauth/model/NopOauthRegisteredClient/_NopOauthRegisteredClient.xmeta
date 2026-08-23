@@ -31,8 +31,9 @@
               mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="clientSecret" displayName="客户端密码" propId="4" i18n-en:displayName="Client Secret" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+        <prop name="clientSecret" displayName="客户端密码" propId="4" i18n-en:displayName="Client Secret"
+              tagSet="masked,var,not-pub" published="false" queryable="true" sortable="true" insertable="true"
+              updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
         <prop name="clientSecretExpiresAt" displayName="客户端密码过期时间" propId="5"

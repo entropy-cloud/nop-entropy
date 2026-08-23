@@ -67,6 +67,8 @@ private DataAuthModel getAuthModel() {
 - **建议**: `NopAuthRoleDataAuthBizModel` 覆写 `afterEntityChange` 调 `DefaultDataAuthChecker.clearCache()`（对齐 NopAuthResourceBizModel → siteMapProvider.refreshCache() 先例）；或落地 check-changed 配置（按表 max(updateTime) 探测）；或为 timeout 配置非 null 默认值兜底。
 - **误报排除**: 已确认 `CacheEntryManagement.getObject(true, loader, timeout)` 中 timeout null 不 clear（nop-core CacheEntryManagement.java:54-58）；已 grep 全模块确认 clearCache 无调用方、check-changed 配置无读取点；表模式默认关闭（use-data-auth-table=false），故评 P1 而非 P0。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`NopAuthRoleDataAuthBizModel` 覆写 `afterEntityChange` 调用 `DefaultDataAuthChecker.clearCache()`（对齐 NopAuthResourceBizModel → siteMapProvider.refreshCache() 先例）；`clearCache()` 补 modelCache null 防御（lazyInit 未执行时缓存本就为空）。check-changed 配置落地不做——refreshCache 即时失效语义更强，探测式兜底无增量价值；timeout 兜底不做——有即时失效后 TTL 反而重新引入最长滞留窗口。新增 `TestAuthPermissionCacheAndAdminGuard`（变更即清理/重复变更重复清理/未注入 checker 时 no-op）。红验证：测试对 HEAD 版本无法编译（dataAuthChecker 字段不存在，修复目标在 HEAD 完全缺失的编译级红）。
+
 ### [P2] 角色-资源授权变更不刷新 sitemap 权限缓存，权限撤销最长延迟 10 分钟生效
 
 - **文件**: `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/entity/NopAuthRoleBizModel.java:133-147`；对照 `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/entity/NopAuthResourceBizModel.java:44-47`
@@ -84,6 +86,8 @@ siteMapProvider.refreshCache();
 - **风险**: 撤销某角色的操作权限后，该角色已登录用户（乃至新登录用户）在最长 10 分钟内仍可通过 `isPermitted` 校验执行原操作；资源实体变更会刷新而授权关系变更不刷新，行为不一致，易被误判为已生效。
 - **建议**: `updateRoleResources` 成功后与 `NopAuthRoleResourceBizModel.afterEntityChange` 一并调用 `siteMapProvider.refreshCache()`；或在文档中把 10 分钟滞后明确为契约。
 - **误报排除**: 已 grep 全模块 `refreshCache|clearCache` 调用点确认仅 NopAuthResourceBizModel 两处；已确认 loading cache 带 10 分钟 TTL，变更最终会传播，故 P2 而非 P1。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`updateRoleResources` 在 `super.updateRelationsEx` 成功后调用 `siteMapProvider.refreshCache()`（updateRelationsEx 直连 dao 不经过 BizModel 的 afterEntityChange）；`NopAuthRoleResourceBizModel` 覆写 `afterEntityChange` 同步刷新（覆盖直接 CRUD 该实体的路径）。红验证：两处注入字段对 HEAD 均不存在（编译级红）；`TestAuthPermissionCacheAndAdminGuard.testRoleResourceChangeRefreshesSiteMapCache` 钉定行为。
 
 ### [P2] 会话表/OAuth 授权表敏感令牌列与 clientSecret 缺少 masked/not-pub 标记，查询接口可返回明文令牌
 
@@ -104,6 +108,8 @@ siteMapProvider.refreshCache();
 - **风险**: 任何被授予这些 biz 对象查询权限的角色（会话管理/授权管理控制台是常见授权场景）可读取全部用户的活跃 accessToken/refreshToken、OAuth 授权码与 client secret，构成直接会话接管/客户端仿冒原语。`ui:show="X"` 只影响缺省前端展示，不约束 API 发布。
 - **建议**: 为上述列补 `tagSet="masked,not-pub"`（写路径如需保留用 `var`）；clientSecret 建议只写不读（对照 user password 形态）。
 - **误报排除**: 已核对 OutputBean 字段确实包含 accessToken/refreshToken/clientSecret/各 tokenValue；已确认同库 user.password/salt 与 session.cacheData 均有 not-pub/masked 先例，属遗漏而非全局策略。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。ORM 源列补 tagSet（session.accessToken/refreshToken → `masked,not-pub`；oauth 的 state/authorizationCodeValue/accessTokenValue/refreshTokenValue/oidcIdTokenValue → `masked,not-pub`；clientSecret → `masked,var,not-pub` 对照 user.password 只写不读形态），经 codegen 再生成 `_NopAuthSession.xmeta`/两个 oauth xmeta（published=false）与 OutputBean（not-pub 字段从出参 Bean 移除）；全仓库 grep 确认被移除的 getter/setter 无生产消费方。masked 同时使 SQL 参数日志脱敏（GenSqlHelper TAG_MASKED）。新增 `TestNopAuthSensitiveColumnsNotPublished`（3 用例）+ `TestNopOauthSensitiveColumnsNotPublished`（3 用例，含"clientSecret 保持可写"与"常规字段仍发布"对照组）。红验证：HEAD 的 `_NopAuthSession.xmeta` 中 accessToken/refreshToken 无 tagSet 且 published 缺省（=可发布），与处置后 git diff 呈相反状态。
 
 ### [P2] resetUserPassword/enableUser/disableUser 缺少运行时 admin 校验，数据权限层对普通用户仅按租户隔离
 
@@ -128,6 +134,8 @@ public void resetUserPassword(@Name("userId") String userId, @Name("password") S
 - **建议**: 三个动作补 `requireAdmin`（复用 resetUserMfa 私有方法抽公共），或将数据权限收紧为"仅本人 + admin 全量"。
 - **误报排除**: 已核对 CrudBizModel.get 确实执行 checkDataAuth("get")；已核对 ReflectionBizModelBuilder.java:359-364 默认权限推导（无 @Auth 时权限为 `bizObj:opType|bizObj:action`，未映射即拒），故默认部署安全，评 P2 而非 P1。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。三个动作方法开头补 `requireAdmin(context)`（复用 resetUserMfa 的运行时 admin 校验，消息通用化为 account management action；数据权限/操作权限门禁保持不变，纯 defense-in-depth 收紧）。新增 `TestAuthPermissionCacheAndAdminGuard`（非 admin 三动作拒绝 + admin 对照组验证门禁放行）。红验证：HEAD 版本下三个测试均以 "nothing was thrown" 失败（requireAdmin 完全缺失）。
+
 ### [P3] 登录失败审计在 failCount>1 时覆盖丢失 loginType/principalId
 
 - **文件**: `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/login/LoginServiceImpl.java:1414-1423`
@@ -150,6 +158,8 @@ if (failCount > 1) {
 - **建议**: `result.putAll(map)` 合并后再序列化。
 - **误报排除**: 直接代码证据，无环境条件。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。failCount 并入同一份 requestData（`map.put("failCount", failCount)` 后统一序列化），不再覆盖。新增 `TestLoginRateLimitAndAudit`（failCount=3 时保留 principalId/loginType/failCount + failCount=1 时无 failCount 的对照组）。红验证：HEAD 版本下实测 `requestData={"failCount":3}`——与审计证据逐字一致。
+
 ### [P3] 本地限流时间戳更新非原子，并发突发可穿透发送间隔限制
 
 - **文件**: `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/login/LoginServiceImpl.java:984-997`（同型：1031-1044、`NopAuthUserBizModel.java:1447-1461、1516-1535`）
@@ -165,6 +175,8 @@ phoneEntry[0] = now;   // compute 外裸写 long[]，非原子
 - **风险**: 高并发下同手机号/邮箱的实际发送间隔可小于配置值（限流被部分绕过）；单机场景影响有限。
 - **建议**: 把 lastSendMs 更新挪进 `compute` lambda（在校验前先原子占用时间戳，超限时抛错回滚计数或接受多计一次）。
 - **误报排除**: 已核对同文件 email/proof 三处同型代码；非确定性触发故 P3。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。四处（LoginServiceImpl 的 sms/email 两处 + NopAuthUserBizModel 的 proof/email 两处）间隔检查与 lastSendMs 占用收入 `synchronized (tracker)` 原子区（IP 维度计数仅 compute 原子递增，无锁外写，不需处理）。新增 `TestLoginRateLimitAndAudit.testConcurrentBurstAllowsExactlyOne`（32 线程 CyclicBarrier 对齐后同手机号并发，断言恰好 1 个通过）钉定修复后不变式；顺序第二次发送被拒对照。红验证：竞态窗口极窄（compute 原子递增后的纳秒级窗口），HEAD 版本下 32 线程未能稳定复现多头通过（非确定性缺陷，如实注明）；修复正确性依据是检查+占用原子化后窗口在构造上不存在。
 
 ### [P3] 限流追踪 Map 永不清理且 IP 键取自可伪造的 X-Forwarded-For
 
@@ -182,6 +194,8 @@ if (xff != null && !xff.toString().isEmpty()) {
 - **风险**: 长生命周期进程内存缓慢增长（键总量受真实手机号数与每日上限约束，增长慢，故 P3）；伪造 XFF 可绕过 IP 日限额维度并注入任意 IP 键（手机号/邮箱维度限流仍有效）。
 - **建议**: 按日清理过期键或换 Caffeine maximumSize；XFF 解析仅信任已知代理链。
 - **误报排除**: 已核对未注册手机号在 allow-register=false 时提前 return 不落键、per-phone daily-limit 限制单键增长速率，DoS 面有界，故降为 P3。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 部分修复 + 一项裁定不修复。Map 无界增长已修复：7 个限流追踪 Map 全部换为 Caffeine asMap 视图（maximumSize=50_000 + expireAfterWrite=2 天）——硬上限防 XFF 伪造 IP 键不受真实手机号数约束的无界增长，2 天过期兜底清跨天残留；驱逐最冷键最坏使限流状态重置，对审计自述的"多实例部署下本就近似值"语义可接受。**XFF 伪造部分裁定不修复**：正确做法是仅信任已知代理链（如仅当直连 peer 是可信代理时才采信 XFF），这需要部署环境的网络拓扑知识，平台层无法内置白名单；伪造 XFF 只影响 IP 维度限流（手机号/邮箱维度不受影响），且引入 Caffeine 上限后伪造键的内存面已封顶。后续可在部署文档中说明反向代理场景的 XFF 处理约定。
 
 ### [P3] changeSelfPassword/resetUserPassword 后不失效既有会话与已签发 token
 
@@ -202,6 +216,8 @@ public void changeSelfPassword(...) {
 - **建议**: 密码变更成功后对目标用户执行 autoLogout（LOGOUT_TYPE_RELOGIN）并作废缓存 userContext。
 - **误报排除**: 已确认 NopAuthUserBizModel 内无任何登出调用；token 为 JWT 自包含、服务端无吊销名单（logoutAsync 仅标记 session 行），旧 token 校验依赖 session 存续。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`ILoginService` 新增 `revokeUserSessionsAsync(userName, exceptSessionId)`（default 抛 UnsupportedOperationException，接口既有先例形态），`AbstractLoginService` 实现为遍历 `getActionSessions` 逐会话 `doLogout(KILL)`（含 onLogout 钩子与缓存上下文失效，旧 token 校验依赖 session 存续故随之失效）；`changeSelfPassword` 吊销除当前会话外的全部会话（本人不被踢出当前设备），`resetUserPassword` 吊销目标用户全部会话。新增 `TestRevokeUserSessions`（admin 重置全吊销 + 本人改密保留当前会话两用例）。红验证：HEAD 无该方法（编译级红，NopAuthUserBizModel 对 HEAD 无法编译）。
+
 ### [P3] bindMfa(sms) 发送验证码无速率限制（bindEmail/sendMfaCode 均有）
 
 - **文件**: `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/entity/NopAuthUserBizModel.java:337-355`
@@ -218,6 +234,8 @@ private MfaBindResult bindSms(...) {
 - **建议**: bindSms 前置 `checkProofRateLimit(phone)`（key 维度 phone，与 proof 路径共享或独立均可）。
 - **误报排除**: 已对照三处有限流的同型发送点；确认 bindSms 路径无其他节流。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`bindSms` 在发码前调用 `checkProofRateLimit(phone)`（phone 维度 send-interval + daily-limit，与登记通道 proof 路径共享同一限流器与配置）。免单独红测试：复用的 checkProofRateLimit 行为由 `TestLoginRateLimitAndAudit` 覆盖，接线为一行前置调用且与 bindEmail/sendMfaCode 同型先例一致（全量 406 tests 回归含 MFA 绑定路径）。
+
 ### [P3] SSO 刷新令牌写入 debug 日志
 
 - **文件**: `nop-auth/nop-auth-sso/src/main/java/io/nop/auth/sso/login/OAuthLoginServiceImpl.java:245`
@@ -230,6 +248,8 @@ LOG.debug("nop.auth.sso.refresh-token:refreshToken={}", refreshToken);
 - **风险**: 生产误开 debug 级日志（或日志采集聚合后降级/误配）时泄露可换发 accessToken 的凭证。
 - **建议**: 删除该行或仅记录 token 摘要（前 8 位 + 长度）。
 - **误报排除**: 直接代码证据；debug 级别降低了现实触达概率，故 P3。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。改为仅记录 token 长度 + 前 8 字符前缀摘要（定位用途足够，不泄露可换发凭证主体）。免测试：纯日志脱敏，无数值语义。
 
 ### [P3] vendored JWK 类使用 bare RuntimeException 且 null keyType 会 NPE
 
@@ -248,6 +268,8 @@ public PublicKey toPublicKey() {
 - **建议**: 包一层 NopException（ERR_AUTH_SSO_ACCESS_FAIL 族）；`StringHelper.isEmpty(keyType)` 显式拒绝。
 - **误报排除**: 已确认 JWKPublicKeyLocator.sendRequest catch(Exception) 兜底，进程不崩；因是 vendored 第三方形态代码，评 P3。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`JWK.toPublicKey` 对 kty 缺失显式抛 `NopException(ERR_AUTH_SSO_ACCESS_FAIL)`（原 NPE）、不支持的 kty 同错误码（原 bare RuntimeException，判空后 `KeyType.RSA.equals(keyType)` 常量前置防 NPE）；`createECPublicKey` 不支持曲线、EC/RSA 密钥构造失败与 `RSAPublicJWK.setX509CertificateChain` 的 thumbprint 失败全部转 NopException 带 cause。新增 `TestJwkErrorNormalization`。红验证：HEAD 版本下 kty 缺失抛 `NullPointerException`、不支持 kty 抛 `java.lang.RuntimeException`——与审计描述逐字一致。
+
 ### [P3] MfaFactorVerifier 对 @Nullable jdbcTemplate 无空判（手工装配路径 NPE）
 
 - **文件**: `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/mfa/MfaFactorVerifier.java:240、275`
@@ -264,6 +286,8 @@ long affected = jdbcTemplate.executeUpdate(upd);   // verifyWebauthn / touchLast
 - **风险**: 手工 wiring（注释多次提及的测试/无装饰器直调路径）缺 jdbcTemplate 时，webauthn 第二因子验证成功路径抛 NPE 而非返回结果；生产 beans.xml 按类型注入恒有值。
 - **建议**: 补 null 退化（实体写或直接跳过单调写并审计），或去掉 @Nullable 强制装配。
 - **误报排除**: 已核对 beans.xml 环境按类型可注入；仅非标准装配可触发，评 P3。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`verifyWebauthn` 的 signCount 推进与 `touchLastUsed` 对 `jdbcTemplate == null` 退化实体写（读-判-写 + 实体乐观锁兜底，对齐 LoginServiceImpl.markRecoveryCodeUsed 的 null 退化先例）；生产 beans.xml 按类型注入恒有值，行为不变。免单独红测试：退化路径仅在手工装配触发，实体写语义由同模式先例钉定；HEAD 版本该路径直接 NPE（审计原文），修复后走实体写（全量 406 tests 回归绿）。
 
 ### [P3] getSiteMap 公开接口在 enable-action-auth 默认关闭时向匿名用户返回完整菜单结构
 
@@ -282,6 +306,8 @@ public SiteMapBean getSiteMap(...) { ... }
 - **风险**: 向未认证者暴露系统功能面（菜单/路由清单是常见侦察输入，hidden 项也一并返回）；不含权限标识（permissions 已移除）。
 - **建议**: 匿名请求按空角色集过滤（enableActionAuth=false 时对未登录用户也应用 auth 过滤或仅返回 noAuth 项）。
 - **误报排除**: 已核对 `filterAllowedMenu`（SiteMapProviderImpl:222-232）else 分支不做角色过滤；已确认 `removePermissions()` 无条件调用，泄露面限于菜单元数据，评 P3。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`filterAllowedMenu` 的 else 分支（enableActionAuth=false）对匿名请求（userId 空 + 角色空）按空角色集应用 `applyAuthFilter`——非 noAuth 项全部标记 DISABLED，仅公开项保持可用；已登录用户行为不变（内部部署的既有语义保留）。免单独红测试：SiteMapProviderImpl 依赖 daoProvider/siteCache 全量装配，单测环境无法轻量构造；变更逻辑为单分支条件 + 复用既有 applyAuthFilter（其行为已被 enableActionAuth=true 路径长期覆盖），靠全量回归（406 tests 绿，含 introspection/sitemap 相关用例）与代码审读验证。
 
 ## 检查过且未发现问题的重点面（负面结论）
 

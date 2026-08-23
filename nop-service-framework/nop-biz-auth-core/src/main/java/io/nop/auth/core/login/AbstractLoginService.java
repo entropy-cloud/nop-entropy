@@ -91,6 +91,21 @@ public abstract class AbstractLoginService implements ILoginService {
         return doLogout(AuthApiConstants.LOGOUT_TYPE_KILL, sessionInfo);
     }
 
+    @Override
+    public CompletionStage<Void> revokeUserSessionsAsync(String userName, String exceptSessionId) {
+        if (loginSessionStore == null || userName == null || userName.isEmpty())
+            return FutureHelper.success(null);
+
+        List<CompletionStage<Void>> promises = new ArrayList<>();
+        for (String sessionId : loginSessionStore.getActionSessions(userName)) {
+            if (sessionId == null || sessionId.equals(exceptSessionId))
+                continue;
+            // KILL语义：会话被管理性终止（区别于RELOGIN的"新登录挤下线"），密码变更/重置适用
+            promises.add(doLogout(AuthApiConstants.LOGOUT_TYPE_KILL, new SessionInfo(userName, sessionId)));
+        }
+        return FutureHelper.waitAll(promises);
+    }
+
     protected SessionInfo getSessionInfoForUser(String userName) {
         if (loginSessionStore == null)
             return null;

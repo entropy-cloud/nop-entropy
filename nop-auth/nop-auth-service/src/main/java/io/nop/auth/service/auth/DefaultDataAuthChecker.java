@@ -152,7 +152,9 @@ public class DefaultDataAuthChecker implements IDataAuthChecker {
     }
 
     public void clearCache() {
-        modelCache.clear();
+        // lazyInit未执行（ioc:delay-method）时modelCache为null，此时缓存本就为空
+        if (modelCache != null)
+            modelCache.clear();
     }
 
     private DataAuthModel getAuthModel() {
