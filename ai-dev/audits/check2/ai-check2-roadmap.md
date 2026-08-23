@@ -50,11 +50,11 @@
 | nop-commons | `nop-kernel/nop-commons` | 403 | [nop-commons.md](nop-commons.md) | done |
 | nop-core | `nop-kernel/nop-core` | 757 | [nop-core.md](nop-core.md) | done |
 | nop-xlang | `nop-kernel/nop-xlang` | 885 | [nop-xlang.md](nop-xlang.md) | done |
-| xlang-java-truffle | `nop-kernel/nop-xlang-java` + `nop-xlang-truffle` + `nop-xlang-java-e2e` | 187 | [xlang-java-truffle.md](xlang-java-truffle.md) | pending |
+| xlang-java-truffle | `nop-kernel/nop-xlang-java` + `nop-xlang-truffle` + `nop-xlang-java-e2e` | 187 | [xlang-java-truffle.md](xlang-java-truffle.md) | done |
 | nop-api-core | `nop-kernel/nop-api-core` | 322 | [nop-api-core.md](nop-api-core.md) | done |
-| kernel-small | `nop-kernel` 下 codegen/javac/dataset/antlr4/markdown/record-mapping/kernel-cli（`nop-xdefs` 无 Java 源不单列） | 196 | [kernel-small.md](kernel-small.md) | pending |
-| nop-core-framework | `nop-core-framework`（boot/config/ioc/log/plugin/security） | 230 | [nop-core-framework.md](nop-core-framework.md) | pending |
-| nop-orm | `nop-persistence/nop-orm` | 152 | [nop-orm.md](nop-orm.md) | pending |
+| kernel-small | `nop-kernel` 下 codegen/javac/dataset/antlr4/markdown/record-mapping/kernel-cli（`nop-xdefs` 无 Java 源不单列） | 196 | [kernel-small.md](kernel-small.md) | done |
+| nop-core-framework | `nop-core-framework`（boot/config/ioc/log/plugin/security） | 230 | [nop-core-framework.md](nop-core-framework.md) | done |
+| nop-orm | `nop-persistence/nop-orm` | 152 | [nop-orm.md](nop-orm.md) | done |
 | nop-orm-eql | `nop-persistence/nop-orm-eql` | 221 | [nop-orm-eql.md](nop-orm-eql.md) | pending |
 | orm-periph | `nop-persistence` 下 orm-model/orm-drivers/orm-pdm/orm-rpc/orm-data/orm-geo | 120 | [orm-periph.md](orm-periph.md) | pending |
 | nop-dao | `nop-persistence/nop-dao` | 116 | [nop-dao.md](nop-dao.md) | pending |
@@ -197,3 +197,4 @@
 - 2026-08-23: Phase 1 批次 1A 完成（4 单元，合计 80 条: P0=2 / P1=11 / P2=25 / P3=41）。P0:
   - nop-commons: `StringHelper.parseQuery` 重复参数名多值收集失效（put(key,value) 应为 put(key,list)）
   - nop-xlang: AND/OR 全局宏 `subList(1, size-1)` 差一 → AND(a,b) 恒为 false，全局注册影响所有 XLang 表达式
+- 2026-08-23: Phase 1 批次 1B 完成（4 单元，合计 66 条: P0=0 / P1=10 / P2=27 / P3=29）。P1 要点: nop-core-framework 的 ConfigExpressionProcessor 共享累积 configVars（多占位符表达式解析错误值）、ConfigStarter.getProfiles 变量名/值误用（nop.profile 被忽略）、ioc:proxy+bean-method 必抛 ClassCastException、BeanParentResolver 循环检测死代码；nop-orm 游标分页忽略 orderBy 排序字段、复合主键 getIdText 生成非法 SQL; kernel-small DataParameterBinders.FLOAT 声明 DOUBLE 实取 Float；truffle 帧未初始化读取语义漂移、翻译失败事件并发误配。
