@@ -588,6 +588,35 @@ public class TestJobStoreImpl extends JunitBaseTestCase {
     }
 
     /**
+     * check 审计 [P1]：CLAIMED∈RUNNING_LIKE_STATUSES 但其 startTime 为 null（进入RUNNING前）。
+     * 修复前满批尾部为null-start行时cursor推进为(null,id)，下一轮fetchRunningTasks抛
+     * IllegalArgumentException使超时扫描整轮停滞。修复后null startTime行被排除
+     * （tryMarkTimeout对null本就跳过，无覆盖损失）。
+     */
+    @Test
+    public void testFetchRunningTasksExcludesClaimedNullStartTime() {
+        NopJobSchedule schedule = newSchedule("sched-null-start", "job-null-start");
+        daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
+
+        NopJobTask claimed = newTask("task-claimed-null", newFire("fire-null-1", schedule));
+        claimed.setTaskStatus(_NopJobCoreConstants.TASK_STATUS_CLAIMED);
+        claimed.setWorkerInstanceId("worker-a");
+        // startTime 不设置（null）
+        daoProvider.daoFor(NopJobTask.class).saveEntityDirectly(claimed);
+
+        NopJobTask running = newTask("task-running-ok", newFire("fire-null-2", schedule));
+        running.setTaskStatus(_NopJobCoreConstants.TASK_STATUS_RUNNING);
+        running.setStartTime(new Timestamp(4000L));
+        daoProvider.daoFor(NopJobTask.class).saveEntityDirectly(running);
+
+        List<NopJobTask> batch = taskStore.fetchRunningTasks(100, null, null, null);
+        assertTrue(batch.stream().noneMatch(t -> "task-claimed-null".equals(t.getJobTaskId())),
+                "CLAIMED task with null startTime must be excluded from timeout scan");
+        assertTrue(batch.stream().anyMatch(t -> "task-running-ok".equals(t.getJobTaskId())),
+                "RUNNING task with startTime must remain visible");
+    }
+
+    /**
      * Plan 338: cursor 校验——cursorId 非空但 cursorTime 为空必须抛 IllegalArgumentException。
      */
     @Test

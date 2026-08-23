@@ -30,7 +30,7 @@ import io.nop.credential.service.CredentialProviderImpl;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
-import io.nop.dao.jdbc.IJdbcTemplate;
+import io.nop.orm.IOrmTemplate;
 import io.nop.http.api.client.HttpRequest;
 import io.nop.http.api.client.IHttpClient;
 import io.nop.http.api.client.IHttpResponse;
@@ -84,7 +84,7 @@ public class TestOAuthFlowService extends JunitBaseTestCase {
     IDaoProvider daoProvider;
 
     @Inject
-    IJdbcTemplate jdbcTemplate;
+    IOrmTemplate ormTemplate;
 
     @Inject
     CredentialCipher credentialCipher;
@@ -154,7 +154,7 @@ public class TestOAuthFlowService extends JunitBaseTestCase {
 
         stateStore = new NopCredentialOauthStateStore();
         stateStore.setDaoProvider(daoProvider);
-        stateStore.setJdbcTemplate(jdbcTemplate);
+        stateStore.setOrmTemplate(ormTemplate);
 
         flowService = new OAuthFlowService();
         flowService.setDaoProvider(daoProvider);

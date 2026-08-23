@@ -109,7 +109,18 @@ public class JdkJavaCompiler {
 
         final JavaCompiler.CompilationTask task = compiler.getTask(null, fileManager, diagnostics, options, null, files);
 
-        JavaCompileResult result = new JavaCompileResult(task.call(), diagnostics, resultClassLoader);
+        JavaCompileResult result;
+        try {
+            result = new JavaCompileResult(task.call(), diagnostics, resultClassLoader);
+        } finally {
+            // fileManager 由本方法创建，javac 经它打开 classpath 上的 JAR，用完必须关闭，否则句柄泄漏
+            // （Windows 上会锁定依赖 JAR）。ClassLoaderImpl 只持有内存字节流，不受关闭影响
+            try {
+                fileManager.close();
+            } catch (IOException e) {
+                LOG.warn("nop.javac.close-file-manager-fail", e);
+            }
+        }
         return result;
     }
 
@@ -134,7 +145,9 @@ public class JdkJavaCompiler {
         protected Class<?> findClass(final String className) throws ClassNotFoundException {
             final ByteArrayOutputStream bos = byteStreams.get(className);
             if (bos == null) {
-                return null;
+                // ClassLoader 契约要求找不到类时抛 ClassNotFoundException，返回 null 会让
+                // loadClass 的调用方拿到 null 并以 NPE 形态崩溃，丢失"类不存在"语义
+                throw new ClassNotFoundException(className);
             }
 
             final byte[] b = bos.toByteArray();

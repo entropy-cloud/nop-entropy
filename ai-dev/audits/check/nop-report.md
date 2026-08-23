@@ -44,6 +44,10 @@ public Object min(String field) {
 - **建议**: 与 `max` 保持一致，null 值跳过（`else if (value != null && compare > 0)`）。
 - **误报排除**: 非"首个 null 视为无最小值"的语义设计——首位的 null 会被后续非空值覆盖（`ret == null` 分支），说明本意是跳过 null，仅在非首位时误写为 return。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复。`min`/`minBy` 删除 `else if (value == null) return value;` 分支，改为与 `max`/`maxBy` 完全对称的跳过 null 写法（`else if (value != null)` 包裹比较），非首位 null 不再终止聚合。测试：`nop-report/nop-report-core` `TestReportDataSet#testMinSkipsNullValues`（修复前 `min([5,null,1])` 返回 null）、`TestReportDataSet#testMinBySkipsNullValues`（修复前 `minBy([5,null,1])` 同样返回 null）。
+
 ### [P1] ExpandedCell.childCell 的 colDescendants 分支求值后返回 null
 
 - **文件**: `nop-report/nop-report-core/src/main/java/io/nop/report/core/model/ExpandedCell.java:735-753`

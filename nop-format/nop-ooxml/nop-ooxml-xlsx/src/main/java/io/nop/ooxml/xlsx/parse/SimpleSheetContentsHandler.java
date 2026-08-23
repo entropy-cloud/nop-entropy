@@ -110,8 +110,15 @@ public class SimpleSheetContentsHandler implements SheetContentsHandler {
             ExcelStyle style = getStyle(workbook, ec);
             ExcelStyle style2 = getStyle(workbook, ec2);
             if (style != null && style2 != null) {
-                style.setRightBorder(style2.getRightBorder());
-                style.setBottomBorder(style2.getBottomBorder());
+                // 样式表中的实例被同 styleId 的其他单元格共享，直接修改会把边框串扰到无关单元格，
+                // 必须克隆后修改并注册为新样式
+                ExcelStyle merged = style.cloneInstance();
+                merged.setRightBorder(style2.getRightBorder());
+                merged.setBottomBorder(style2.getBottomBorder());
+                String newId = "s" + workbook.getStyles().size();
+                merged.setId(newId);
+                workbook.addStyle(merged);
+                ec.setStyleId(newId);
             }
         }
         table.mergeCell(range);

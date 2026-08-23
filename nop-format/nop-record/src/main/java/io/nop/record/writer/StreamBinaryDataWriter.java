@@ -32,7 +32,14 @@ public class StreamBinaryDataWriter implements IBinaryDataWriter {
     @Override
     public void writeByteBuffer(ByteBuffer buf) throws IOException {
         writtenCount += buf.remaining();
-        out.write(buf.array(), buf.position(), buf.remaining());
+        if (buf.hasArray()) {
+            out.write(buf.array(), buf.position() + buf.arrayOffset(), buf.remaining());
+        } else {
+            // direct buffer 没有 backing array，需要经临时数组拷贝写出
+            byte[] chunk = new byte[buf.remaining()];
+            buf.get(chunk);
+            out.write(chunk);
+        }
     }
 
     @Override

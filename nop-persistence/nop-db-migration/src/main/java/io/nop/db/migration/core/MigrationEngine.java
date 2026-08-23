@@ -50,6 +50,7 @@ public class MigrationEngine {
     private final MigrationFileScanner scanner = new MigrationFileScanner();
     private final MigrationExecutor executor = new MigrationExecutor();
     private final Map<String, IChangeExecutor> changeExecutors = new HashMap<>();
+    private DbTypeFilterExecutor dbTypeFilterExecutor;
     
     public MigrationEngine() {
         registerDefaultExecutors();
@@ -77,7 +78,7 @@ public class MigrationEngine {
         registerExecutor(DeleteDataExecutor.CHANGE_TYPE, new DeleteDataExecutor());
         registerExecutor(CustomChangeExecutor.CHANGE_TYPE, new CustomChangeExecutor());
         
-        DbTypeFilterExecutor dbTypeFilterExecutor = new DbTypeFilterExecutor();
+        dbTypeFilterExecutor = new DbTypeFilterExecutor();
         for (Map.Entry<String, IChangeExecutor> entry : changeExecutors.entrySet()) {
             dbTypeFilterExecutor.registerExecutor(entry.getKey(), entry.getValue());
         }
@@ -91,6 +92,11 @@ public class MigrationEngine {
     public void registerExecutor(String changeType, IChangeExecutor executor) {
         changeExecutors.put(changeType, executor);
         this.executor.registerExecutor(changeType, executor);
+        // dbTypeFilter dispatches nested changes through its own executor table,
+        // so executors registered after construction must be visible there too
+        if (dbTypeFilterExecutor != null) {
+            dbTypeFilterExecutor.registerExecutor(changeType, executor);
+        }
     }
     
     public MigrationResult migrate(MigrationContext context) {
@@ -130,7 +136,7 @@ public class MigrationEngine {
                 failedRecord.setVersion(version);
                 failedRecord.setDescription(migration.getDescription());
                 failedRecord.setSuccess(false);
-                failedRecord.setErrorMessage(e.getMessage());
+                failedRecord.setErrorMessage(errorMessage(e));
                 
                 localHistoryManager.recordMigration(failedRecord);
                 result.addRecord(failedRecord);
@@ -235,7 +241,9 @@ public class MigrationEngine {
         }
         
         try {
-            List<DbChangeModel> rollbackChanges = migration.getRollback().getChanges();
+            // Reverse a copy: the parsed model may be cached and reused, so a
+            // second rollback of the same model must observe the original order
+            List<DbChangeModel> rollbackChanges = new ArrayList<>(migration.getRollback().getChanges());
             Collections.reverse(rollbackChanges);
             
             for (DbChangeModel change : rollbackChanges) {
@@ -261,7 +269,7 @@ public class MigrationEngine {
             record.setVersion(migration.getVersion());
             record.setDescription("Rollback failed: " + migration.getDescription());
             record.setSuccess(false);
-            record.setErrorMessage(e.getMessage());
+            record.setErrorMessage(errorMessage(e));
             
             result.addRecord(record);
             
@@ -271,5 +279,14 @@ public class MigrationEngine {
         }
         
         return result;
+    }
+    
+    /**
+     * Some exceptions (e.g. NPE) carry a null message. The history record uses
+     * a non-null error message to distinguish failed records from successful
+     * ones, so fall back to the exception's toString() form.
+     */
+    static String errorMessage(Exception e) {
+        return StringHelper.isEmpty(e.getMessage()) ? e.toString() : e.getMessage();
     }
 }

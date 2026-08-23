@@ -131,4 +131,53 @@ class TestTextDiffUtils {
         String result = UnifiedDiffApplier.applyDiff(original, diff);
         assertNull(result);
     }
+
+    @Test
+    void testMultiChangeHunkNewStartLineAccountsForPriorOffset() {
+        // 10 行文件：删除第 2/3 行，再在原第 8 行后插入 X，context=1 时两个 change 分属两个 hunk。
+        // 第二个 hunk 的 newStartLine 必须加上前序删除造成的 -2 偏移：
+        // revised = [1,4,5,6,7,8,X,9,10]，前置上下文 "8"（原 0-based 7）位于 revised 0-based 5 → 1-based 6
+        StringBuilder original = new StringBuilder();
+        for (int i = 1; i <= 10; i++) {
+            original.append(i).append('\n');
+        }
+        String revised = "1\n4\n5\n6\n7\n8\nX\n9\n10\n";
+
+        UnifiedDiffFile file = TextDiffUtils.generateDiffFile(
+                "a/file.txt", "b/file.txt", original.toString(), revised, 1);
+
+        assertEquals(1, file.getFileCount());
+        List<UnifiedDiffHunk> hunks = file.getDiffs().get(0).getHunks();
+        assertEquals(2, hunks.size());
+
+        // 第一个 hunk：删除 2/3
+        assertEquals(1, hunks.get(0).getOldStartLine());
+        assertEquals(1, hunks.get(0).getNewStartLine());
+
+        // 第二个 hunk：@@ -8,3 +6,4 @@（修复前 newStartLine 错为 8，忽略 -2 偏移）
+        assertEquals(8, hunks.get(1).getOldStartLine());
+        assertEquals(6, hunks.get(1).getNewStartLine());
+
+        // 行号正确后，应用 diff 应能还原 revised 文本
+        String applied = UnifiedDiffApplier.applyDiff(original.toString(), file.getDiffs().get(0));
+        assertEquals(revised, applied);
+    }
+
+    @Test
+    void testMergedHunksKeepChanges() {
+        // 两个 change 的上下文重叠（context=3）时合并为一个 hunk：
+        // 合并重建不能把前一个 change 的删除行当作上下文行原样保留，应用后必须得到 revised
+        String original = "a\nb\nc\nd\ne\nf\ng\nh\n";
+        String revised = "a\nB\nc\nd\nE\nf\ng\nh\n";
+
+        UnifiedDiffFile file = TextDiffUtils.generateDiffFile(
+                "a/file.txt", "b/file.txt", original, revised, 3);
+
+        assertEquals(1, file.getFileCount());
+        List<UnifiedDiffHunk> hunks = file.getDiffs().get(0).getHunks();
+        assertEquals(1, hunks.size());
+
+        String applied = UnifiedDiffApplier.applyDiff(original, file.getDiffs().get(0));
+        assertEquals(revised, applied);
+    }
 }

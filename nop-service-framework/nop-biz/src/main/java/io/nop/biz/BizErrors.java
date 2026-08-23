@@ -154,6 +154,10 @@ public interface BizErrors {
             "通过thisObj来调用业务对象[{bizObjName}]的业务处理函数[{actionName}]时，传入的参数不是IServiceContext类型", ARG_BIZ_OBJ_NAME,
             ARG_ACTION_NAME);
 
+    ErrorCode ERR_BIZ_ACTION_NO_SVC_CONTEXT = define("nop.err.biz.action-no-svc-context",
+            "通过thisObj来调用业务对象[{bizObjName}]的业务处理函数[{actionName}]时缺少IServiceContext参数，无法获取服务上下文", ARG_BIZ_OBJ_NAME,
+            ARG_ACTION_NAME);
+
     ErrorCode ERR_BIZ_QUERY_NOT_SUPPORT_COMPARE_WITH_VALUE_PROP = define(
             "nop.err.biz.query-not-support-query-with-value-prop", "查询条件不支持将字段[{propName}]和字段[{valueName}]进行比较",
             ARG_PROP_NAME, ARG_VALUE_NAME);

@@ -97,4 +97,53 @@ public class TestSequentialThinkingBizModel {
             Files.deleteIfExists(dir.toPath());
         }
     }
+
+    /**
+     * P0 path-traversal regression (audit ai-toolkit-skills, D5): the
+     * {@code nop-chat-session-Id} header value used to flow raw into
+     * {@code new File(storageDir, sessionId + ".json")}. All three entry points
+     * (processThought / generateSummary / clearHistory) must reject a traversal
+     * header with {@code ERR_AI_SESSION_ID_INVALID} and leave the file system
+     * untouched.
+     */
+    @Test
+    public void testHeaderSessionIdPathTraversalRejected() throws Exception {
+        File dir = Files.createTempDirectory("nop-ai-bizmodel").toFile();
+        try {
+            SequentialThinkingBizModel bizModel = new SequentialThinkingBizModel();
+            bizModel.setStorageDirPath(dir.getAbsolutePath());
+            bizModel.init();
+
+            ServiceContextImpl ctx = new ServiceContextImpl();
+            ctx.setRequestHeader("nop-chat-session-Id", "../../tmp/evil");
+
+            ProcessThoughtRequest request = new ProcessThoughtRequest();
+            request.setThought("harmless thought");
+            request.setThoughtNumber(1);
+            request.setTotalThoughts(1);
+            request.setStage("Analysis");
+            request.setNextThoughtNeeded(false);
+
+            NopException ex = assertThrows(NopException.class, () -> bizModel.processThought(request, ctx));
+            assertEquals(NopAiCoreErrors.ERR_AI_SESSION_ID_INVALID.getErrorCode(), ex.getErrorCode());
+
+            NopException exSummary = assertThrows(NopException.class, () -> bizModel.generateSummary(ctx));
+            assertEquals(NopAiCoreErrors.ERR_AI_SESSION_ID_INVALID.getErrorCode(), exSummary.getErrorCode());
+
+            NopException exClear = assertThrows(NopException.class, () -> bizModel.clearHistory(ctx));
+            assertEquals(NopAiCoreErrors.ERR_AI_SESSION_ID_INVALID.getErrorCode(), exClear.getErrorCode());
+
+            // no file or directory created under the configured storage dir
+            File[] entries = dir.listFiles();
+            assertNotNull(entries, "storage dir must still exist");
+            assertEquals(0, entries.length, "storage dir must stay untouched for a malicious session header");
+        } finally {
+            File[] files = dir.listFiles();
+            if (files != null) {
+                for (File f : files)
+                    Files.deleteIfExists(f.toPath());
+            }
+            Files.deleteIfExists(dir.toPath());
+        }
+    }
 }

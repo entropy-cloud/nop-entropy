@@ -242,7 +242,9 @@ public class OAuthLoginServiceImpl extends AbstractLoginService {
         if (refreshToken == null)
             return null;
 
-        LOG.debug("nop.auth.sso.refresh-token:refreshToken={}", refreshToken);
+        // 长效refresh token不落日志：仅记录长度+前缀摘要，防生产误开debug级或日志聚合降级时泄露凭证
+        LOG.debug("nop.auth.sso.refresh-token:tokenLength={},prefix={}",
+                refreshToken.length(), refreshToken.substring(0, Math.min(8, refreshToken.length())));
 
         HttpRequest req = newRefreshTokenRequest(refreshToken);
         return FutureHelper.syncGet(httpClient.fetchAsync(req, null).thenApply(res -> {

@@ -34,6 +34,18 @@ public interface ILoginService extends IUserContextExtractor {
     CompletionStage<Void> killLoginAsync(String userName);
 
     /**
+     * 吊销指定用户的全部活动会话（密码变更/重置后失效既有 token 与缓存登录上下文，
+     * 携带 onLogout 钩子通知）。{@code exceptSessionId} 非空时保留该会话
+     * （本人改密保留当前会话、踢出其他设备）。
+     * <p>
+     * 默认抛出 {@link UnsupportedOperationException}——不支持会话吊销的实现快速失败，
+     * 不静默跳过（No-Silent-No-Op 规则）。
+     */
+    default CompletionStage<Void> revokeUserSessionsAsync(String userName, String exceptSessionId) {
+        throw new UnsupportedOperationException("revokeUserSessionsAsync not implemented");
+    }
+
+    /**
      * 将对IUserContext的修改更新回全局缓存
      */
     CompletionStage<Void> flushUserContextAsync(IUserContext userContext);

@@ -112,7 +112,12 @@ public class AopCodeGenerator {
             buf.append("));\n");
         }
 
-        buf.append("        } catch (Exception e) {\n" + "            e.printStackTrace();\n" + "        }\n");
+        buf.append("        } catch (Exception e) {\n")
+                .append("            throw new io.nop.api.core.exceptions.NopException(\n")
+                .append("                    io.nop.core.CoreErrors.ERR_REFLECT_AOP_INIT_METHOD_MODEL_FAIL, e)\n")
+                .append("                    .param(io.nop.core.CoreErrors.ARG_CLASS_NAME, ")
+                .append(normalizeClassName(clazz)).append(".class.getName());\n")
+                .append("        }\n");
         buf.append("    }\n\n");
     }
 

@@ -1,5 +1,10 @@
 package io.nop.job.core;
 
+import static io.nop.job.core.JobCoreErrors.ARG_CONFIG_NAME;
+import static io.nop.job.core.JobCoreErrors.ARG_CONFIG_VALUE;
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_INVALID_CONFIG_VALUE;
+
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
@@ -138,8 +143,8 @@ public abstract class AbstractBatchScanner {
      */
     protected final void applyScanIntervalMs(int scanIntervalMs) {
         if (scanIntervalMs < 1000) {
-            throw new IllegalArgumentException(
-                    "scanIntervalMs must be >= 1000, got " + scanIntervalMs);
+            throw new NopException(ERR_JOB_INVALID_CONFIG_VALUE)
+                    .param(ARG_CONFIG_NAME, "scanIntervalMs").param(ARG_CONFIG_VALUE, scanIntervalMs);
         }
         this.scanIntervalMs = scanIntervalMs;
     }
@@ -149,8 +154,8 @@ public abstract class AbstractBatchScanner {
      */
     protected final void applyBatchSize(int batchSize) {
         if (batchSize < 1) {
-            throw new IllegalArgumentException(
-                    "batchSize must be >= 1, got " + batchSize);
+            throw new NopException(ERR_JOB_INVALID_CONFIG_VALUE)
+                    .param(ARG_CONFIG_NAME, "batchSize").param(ARG_CONFIG_VALUE, batchSize);
         }
         this.batchSize = batchSize;
     }
@@ -160,8 +165,8 @@ public abstract class AbstractBatchScanner {
      */
     protected final void applyMaxScanLoops(int maxScanLoops) {
         if (maxScanLoops < 1) {
-            throw new IllegalArgumentException(
-                    "maxScanLoops must be >= 1, got " + maxScanLoops);
+            throw new NopException(ERR_JOB_INVALID_CONFIG_VALUE)
+                    .param(ARG_CONFIG_NAME, "maxScanLoops").param(ARG_CONFIG_VALUE, maxScanLoops);
         }
         this.maxScanLoops = maxScanLoops;
     }

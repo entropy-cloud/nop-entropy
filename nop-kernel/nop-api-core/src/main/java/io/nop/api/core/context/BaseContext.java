@@ -292,6 +292,11 @@ public class BaseContext implements IContext {
         return this;
     }
 
+    /**
+     * BaseContext是降级实现：不提供worker线程池，任务经runOnContext投递到context任务队列，
+     * 无其他处理线程时在当前调用线程上同步执行，ordered参数当前被忽略（不会选择worker线程）。
+     * 需要真正的阻塞线程池语义时由具体运行时(如vert.x)提供的IContext实现覆盖。
+     */
     @Override
     public <T> CompletionStage<T> executeBlocking(Supplier<?> task, boolean ordered) {
         checkClosed();

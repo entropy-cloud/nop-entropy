@@ -27,15 +27,20 @@ public class AddColumnExecutor implements IChangeExecutor {
         if (StringHelper.isBlank(tableName) || addColumn.getColumns() == null || addColumn.getColumns().isEmpty()) {
             return;
         }
-        String sql = buildAddColumnSql(addColumn, dialect);
-        if (StringHelper.isNotBlank(sql)) {
-            context.getJdbcTemplate().executeUpdate(
-                SQL.begin()
-                    .querySpace(context.getQuerySpace())
-                    .name("add-column-" + tableName)
-                    .append(sql)
-                    .end()
-            );
+        // Each column is added with its own statement. executeUpdate does not
+        // split multiple statements, so concatenating them with ';' would
+        // produce a syntax error on H2/PostgreSQL/Oracle/MySQL.
+        for (ColumnDefinition column : addColumn.getColumns()) {
+            String sql = buildAddColumnSql(addColumn, column, dialect);
+            if (StringHelper.isNotBlank(sql)) {
+                context.getJdbcTemplate().executeUpdate(
+                    SQL.begin()
+                        .querySpace(context.getQuerySpace())
+                        .name("add-column-" + tableName)
+                        .append(sql)
+                        .end()
+                );
+            }
         }
     }
 
@@ -62,44 +67,40 @@ public class AddColumnExecutor implements IChangeExecutor {
         return CHANGE_TYPE.equals(changeType);
     }
 
-    protected String buildAddColumnSql(AddColumnChange change, IDialect dialect) {
+    protected String buildAddColumnSql(AddColumnChange change, ColumnDefinition column, IDialect dialect) {
         StringBuilder sb = new StringBuilder();
-        
-        if (change.getColumns() != null) {
-            boolean first = true;
-            for (ColumnDefinition column : change.getColumns()) {
-                if (!first) {
-                    sb.append("; ");
-                }
-                first = false;
-                
-                sb.append("ALTER TABLE ")
-                  .append(dialect.escapeSQLName(change.getTableName()))
-                  .append(" ADD COLUMN ")
-                  .append(dialect.escapeSQLName(column.getName()))
-                  .append(" ");
-                
-                StdSqlType type = column.getType();
-                String typeName = type != null ? type.name() : "VARCHAR";
-                sb.append(typeName);
-                
-                Integer size = column.getSize();
-                if (size != null && size > 0) {
-                    sb.append("(").append(size).append(")");
-                }
-                
-                if (!column.isNullable()) {
-                    sb.append(" NOT NULL");
-                }
-                if (StringHelper.isNotBlank(column.getDefaultValue())) {
-                    sb.append(" DEFAULT ").append(column.getDefaultValue());
-                }
-                if (StringHelper.isNotBlank(column.getRemark())) {
-                    sb.append(" COMMENT '").append(column.getRemark()).append("'");
-                }
-            }
+
+        sb.append("ALTER TABLE ")
+          .append(dialect.escapeSQLName(change.getTableName()))
+          .append(" ADD COLUMN ")
+          .append(dialect.escapeSQLName(column.getName()))
+          .append(" ")
+          .append(buildColumnType(column, dialect));
+
+        if (!column.isNullable()) {
+            sb.append(" NOT NULL");
         }
-        
+        if (StringHelper.isNotBlank(column.getDefaultValue())) {
+            sb.append(" DEFAULT ").append(column.getDefaultValue());
+        }
+        if (StringHelper.isNotBlank(column.getRemark())) {
+            sb.append(" COMMENT '").append(escapeComment(column.getRemark())).append("'");
+        }
+
         return sb.toString();
+    }
+
+    static String buildColumnType(ColumnDefinition column, IDialect dialect) {
+        StdSqlType type = column.getType();
+        if (type == null) {
+            type = StdSqlType.VARCHAR;
+        }
+        int size = column.getSize() != null && column.getSize() > 0 ? column.getSize() : -1;
+        int decimalDigits = column.getDecimalDigits() != null && column.getDecimalDigits() > 0 ? column.getDecimalDigits() : -1;
+        return dialect.stdToNativeSqlType(type, size, decimalDigits).toString();
+    }
+
+    static String escapeComment(String comment) {
+        return comment.replace("'", "''");
     }
 }

@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class DataParameterBinders {
 
-    public static IDataParameterBinder STRING = new IDataParameterBinder() {
+    public static final IDataParameterBinder STRING = new IDataParameterBinder() {
         @Override
         public StdDataType getStdDataType() {
             return StdDataType.STRING;
@@ -44,7 +44,7 @@ public class DataParameterBinders {
         }
     };
 
-    public static IDataParameterBinder STRING_EX = new IDataParameterBinder() {
+    public static final IDataParameterBinder STRING_EX = new IDataParameterBinder() {
         @Override
         public StdDataType getStdDataType() {
             return StdDataType.STRING;
@@ -71,7 +71,7 @@ public class DataParameterBinders {
         }
     };
 
-    public static IDataParameterBinder BOOLEAN = new IDataParameterBinder() {
+    public static final IDataParameterBinder BOOLEAN = new IDataParameterBinder() {
         @Override
         public StdDataType getStdDataType() {
             return StdDataType.BOOLEAN;
@@ -93,7 +93,7 @@ public class DataParameterBinders {
         }
     };
 
-    public static IDataParameterBinder CHAR = new IDataParameterBinder() {
+    public static final IDataParameterBinder CHAR = new IDataParameterBinder() {
         @Override
         public StdDataType getStdDataType() {
             return StdDataType.STRING;
@@ -115,7 +115,7 @@ public class DataParameterBinders {
         }
     };
 
-    public static IDataParameterBinder BYTE = new IDataParameterBinder() {
+    public static final IDataParameterBinder BYTE = new IDataParameterBinder() {
         @Override
         public StdDataType getStdDataType() {
             return StdDataType.BYTE;
@@ -137,7 +137,7 @@ public class DataParameterBinders {
         }
     };
 
-    public static IDataParameterBinder SHORT = new IDataParameterBinder() {
+    public static final IDataParameterBinder SHORT = new IDataParameterBinder() {
         @Override
         public StdDataType getStdDataType() {
             return StdDataType.SHORT;
@@ -159,7 +159,7 @@ public class DataParameterBinders {
         }
     };
 
-    public static IDataParameterBinder INT = new IDataParameterBinder() {
+    public static final IDataParameterBinder INT = new IDataParameterBinder() {
         @Override
         public StdDataType getStdDataType() {
             return StdDataType.INT;
@@ -181,7 +181,7 @@ public class DataParameterBinders {
         }
     };
 
-    public static IDataParameterBinder LONG = new IDataParameterBinder() {
+    public static final IDataParameterBinder LONG = new IDataParameterBinder() {
         @Override
         public StdDataType getStdDataType() {
             return StdDataType.LONG;
@@ -203,7 +203,7 @@ public class DataParameterBinders {
         }
     };
 
-    public static IDataParameterBinder FLOAT = new IDataParameterBinder() {
+    public static final IDataParameterBinder FLOAT = new IDataParameterBinder() {
         @Override
         public StdDataType getStdDataType() {
             return StdDataType.DOUBLE;
@@ -225,7 +225,7 @@ public class DataParameterBinders {
         }
     };
 
-    public static IDataParameterBinder REAL = new IDataParameterBinder() {
+    public static final IDataParameterBinder REAL = new IDataParameterBinder() {
         @Override
         public StdDataType getStdDataType() {
             return StdDataType.FLOAT;
@@ -247,7 +247,7 @@ public class DataParameterBinders {
         }
     };
 
-    public static IDataParameterBinder DOUBLE = new IDataParameterBinder() {
+    public static final IDataParameterBinder DOUBLE = new IDataParameterBinder() {
         @Override
         public StdDataType getStdDataType() {
             return StdDataType.DOUBLE;
@@ -269,7 +269,7 @@ public class DataParameterBinders {
         }
     };
 
-    public static IDataParameterBinder DECIMAL = new IDataParameterBinder() {
+    public static final IDataParameterBinder DECIMAL = new IDataParameterBinder() {
         @Override
         public StdDataType getStdDataType() {
             return StdDataType.DECIMAL;
@@ -291,7 +291,7 @@ public class DataParameterBinders {
         }
     };
 
-    public static IDataParameterBinder NUMERIC = new IDataParameterBinder() {
+    public static final IDataParameterBinder NUMERIC = new IDataParameterBinder() {
         @Override
         public StdDataType getStdDataType() {
             return StdDataType.DECIMAL;
@@ -314,7 +314,7 @@ public class DataParameterBinders {
     };
 
 
-    public static IDataParameterBinder DATE = new IDataParameterBinder() {
+    public static final IDataParameterBinder DATE = new IDataParameterBinder() {
         @Override
         public StdDataType getStdDataType() {
             return StdDataType.DATE;
@@ -336,7 +336,7 @@ public class DataParameterBinders {
         }
     };
 
-    public static IDataParameterBinder TIME = new IDataParameterBinder() {
+    public static final IDataParameterBinder TIME = new IDataParameterBinder() {
         @Override
         public StdDataType getStdDataType() {
             return StdDataType.TIME;
@@ -358,7 +358,7 @@ public class DataParameterBinders {
         }
     };
 
-    public static IDataParameterBinder DATETIME = new IDataParameterBinder() {
+    public static final IDataParameterBinder DATETIME = new IDataParameterBinder() {
         @Override
         public StdDataType getStdDataType() {
             return StdDataType.DATETIME;
@@ -380,7 +380,7 @@ public class DataParameterBinders {
         }
     };
 
-    public static IDataParameterBinder TIMESTAMP = new IDataParameterBinder() {
+    public static final IDataParameterBinder TIMESTAMP = new IDataParameterBinder() {
         @Override
         public StdDataType getStdDataType() {
             return StdDataType.TIMESTAMP;
@@ -402,7 +402,7 @@ public class DataParameterBinders {
         }
     };
 
-    public static IDataParameterBinder BYTE_STRING = new IDataParameterBinder() {
+    public static final IDataParameterBinder BYTE_STRING = new IDataParameterBinder() {
         @Override
         public StdDataType getStdDataType() {
             return StdDataType.BYTES;
@@ -424,7 +424,7 @@ public class DataParameterBinders {
         }
     };
 
-    public static IDataParameterBinder ANY = new IDataParameterBinder() {
+    public static final IDataParameterBinder ANY = new IDataParameterBinder() {
         @Override
         public StdDataType getStdDataType() {
             return StdDataType.ANY;

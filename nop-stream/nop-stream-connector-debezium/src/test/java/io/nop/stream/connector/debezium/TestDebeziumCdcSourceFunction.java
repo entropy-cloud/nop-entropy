@@ -12,6 +12,7 @@ import io.nop.message.debezium.ChangeEvent;
 import io.nop.message.debezium.ChangeEventMetadata;
 import io.nop.message.debezium.DebeziumConfig;
 import io.nop.message.debezium.DebeziumMessageSource;
+import io.nop.message.debezium.engine.NopStreamOffsetBackingStore;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import org.junit.jupiter.api.Test;
 import io.nop.stream.core.exceptions.StreamException;
@@ -333,6 +334,99 @@ public class TestDebeziumCdcSourceFunction {
         // Both threads should have completed without deadlock
         assertFalse(t1.isAlive());
         assertFalse(t2.isAlive());
+    }
+
+    @Test
+    void testRunAfterCancelReEntersLoop() throws Exception {
+        DebeziumConfig config = new DebeziumConfig();
+        config.setName("test-restart");
+        config.setConnectorType("mysql");
+        config.setDatabaseHost("localhost");
+
+        java.util.concurrent.atomic.AtomicInteger engineCreated = new java.util.concurrent.atomic.AtomicInteger();
+        DebeziumCdcSourceFunction source = new DebeziumCdcSourceFunction(config) {
+            @Override
+            protected DebeziumMessageSource createMessageSource(
+                    DebeziumConfig cfg, NopStreamOffsetBackingStore store) {
+                engineCreated.incrementAndGet();
+                return new NoEngineMessageSource(cfg);
+            }
+        };
+
+        SourceFunction.SourceContext<ChangeEvent> ctx = new SourceFunction.SourceContext<>() {
+            @Override public void collect(ChangeEvent element) {}
+            @Override public void collectWithTimestamp(ChangeEvent element, long timestamp) {}
+            @Override public void emitWatermark(long mark) {}
+            @Override public void markAsTemporarilyIdle() {}
+            @Override public long getProcessingTime() { return System.currentTimeMillis(); }
+        };
+
+        // ---- First run: enter loop, cancel (region restart Phase 1) ----
+        Thread runner1 = new Thread(() -> {
+            try {
+                source.run(ctx);
+            } catch (Exception e) {
+                // expected on cancel
+            }
+        });
+        runner1.start();
+        awaitUntil(() -> engineCreated.get() >= 1, "first run must create the CDC engine");
+        Thread.sleep(200);
+        source.cancel();
+        runner1.join(5000);
+        assertFalse(runner1.isAlive(), "first run must terminate after cancel()");
+        int createdAfterFirstRun = engineCreated.get();
+
+        // ---- Region restart Phase 3: rebuilt task re-runs the SAME shared instance ----
+        Thread runner2 = new Thread(() -> {
+            try {
+                source.run(ctx);
+            } catch (Exception e) {
+                // expected on cancel
+            }
+        });
+        runner2.start();
+        Thread.sleep(500);
+        assertTrue(runner2.isAlive(),
+                "run() after cancel() must re-enter the CDC loop instead of returning immediately (silent EOS)");
+        assertTrue(engineCreated.get() > createdAfterFirstRun,
+                "restarted run must rebuild the CDC engine");
+
+        source.cancel();
+        runner2.join(5000);
+        assertFalse(runner2.isAlive());
+    }
+
+    private static void awaitUntil(java.util.function.BooleanSupplier condition,
+                                   String message) throws InterruptedException {
+        long deadline = System.currentTimeMillis() + 5_000;
+        while (!condition.getAsBoolean()) {
+            if (System.currentTimeMillis() > deadline) {
+                throw new AssertionError(message);
+            }
+            Thread.sleep(20);
+        }
+    }
+
+    /**
+     * Stub {@link DebeziumMessageSource} that never starts the embedded engine, so the
+     * restart test stays hermetic (no Debezium engine / database connection attempt).
+     */
+    private static class NoEngineMessageSource extends DebeziumMessageSource {
+        NoEngineMessageSource(DebeziumConfig config) {
+            super(config, null);
+        }
+
+        @Override
+        public ICancellable subscribe(java.util.function.Consumer<ChangeEvent> action) {
+            return new ICancellable() {
+                @Override public boolean isCancelled() { return false; }
+                @Override public String getCancelReason() { return null; }
+                @Override public void cancel(String reason) {}
+                @Override public void appendOnCancel(java.util.function.Consumer<String> task) {}
+                @Override public void removeOnCancel(java.util.function.Consumer<String> task) {}
+            };
+        }
     }
 
     @Test

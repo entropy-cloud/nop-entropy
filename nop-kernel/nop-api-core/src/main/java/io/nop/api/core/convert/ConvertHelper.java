@@ -23,7 +23,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.MonthDay;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.ArrayList;
@@ -38,7 +38,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TimeZone;
 import java.util.function.Function;
 
 import static io.nop.api.core.ApiErrors.ARG_VALUE;
@@ -309,7 +308,8 @@ public class ConvertHelper {
 
         if (o instanceof Number) {
             double d = ((Number) o).doubleValue();
-            return d == 0 || d == Double.NaN;
+            // NaN与任何值==比较恒为false，必须用Double.isNaN判断
+            return d == 0 || Double.isNaN(d);
         }
 
         if (o instanceof String) {
@@ -1009,8 +1009,9 @@ public class ConvertHelper {
     public static Long localDateTimeToMillis(LocalDateTime value) {
         if (value == null)
             return null;
-        long offset = TimeZone.getDefault().getRawOffset();
-        return value.toInstant(ZoneOffset.UTC).toEpochMilli() - offset;
+        // 与反向转换millisToLocalDateTime保持对称：使用系统时区的实际偏移(含DST修正)，
+        // 而不是getRawOffset()的固定偏移，否则夏令时时区夏季往返相差1小时
+        return value.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
     }
 
     @Internal
@@ -1466,7 +1467,7 @@ public class ConvertHelper {
         if (monthDay.getDayOfMonth() < 10) {
             sb.append('0');
         }
-        sb.append(monthDay.getMonthValue());
+        sb.append(monthDay.getDayOfMonth());
         return sb.toString();
     }
 

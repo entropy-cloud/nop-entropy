@@ -601,7 +601,9 @@ public class GraphQLEngine implements IGraphQLEngine {
     public GraphQLResponseBean buildGraphQLResponse(Object result, Throwable err, IGraphQLExecutionContext context) {
         GraphQLResponseBean ret;
         if (err != null) {
-            LOG.error("nop.graphql.execute-fail", err);
+            // 与buildRpcResponse的RPC路径对齐：同一NopException沿链路只记录一次完整堆栈，
+            // 避免高频业务校验/鉴权失败在多个日志点重复刷ERROR级日志
+            NopException.logIfNotTraced(LOG, "nop.graphql.execute-fail", err);
             String locale = ContextProvider.currentLocale();
             ErrorBean errorBean = ErrorMessageManager.instance().buildErrorMessage(locale, err, false, true);
             ret = new GraphQLResponseBean();

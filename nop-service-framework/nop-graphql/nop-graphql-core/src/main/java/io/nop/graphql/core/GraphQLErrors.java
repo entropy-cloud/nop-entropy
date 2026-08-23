@@ -382,4 +382,26 @@ public interface GraphQLErrors {
     ErrorCode ERR_GRAPHQL_SUBSCRIPTION_INVALID_TOPIC =
             define("nop.err.graphql.subscription.invalid-topic",
                     "无效的订阅主题格式: {topic}", ARG_TOPIC);
+
+    ErrorCode ERR_GRAPHQL_NULL_REQUEST = define(API_STATUS_BAD_REQUEST, "nop.err.graphql.null-request",
+            "GraphQL请求内容为空");
+
+    ErrorCode ERR_GRAPHQL_EMPTY_BIZ_OBJ_NAME = define("nop.err.graphql.empty-biz-obj-name",
+            "BizModel对象的bizObjName不允许为空:{class}", ARG_CLASS);
+
+    ErrorCode ERR_GRAPHQL_CLASS_NO_BIZ_MODEL = define("nop.err.graphql.class-no-biz-model",
+            "类[{class}]上没有@BizModel注解", ARG_CLASS);
+
+    ErrorCode ERR_GRAPHQL_FRAGMENT_NOT_RESOLVED = define("nop.err.graphql.fragment-not-resolved",
+            "GraphQL片段尚未解析:{fragmentName}", ARG_FRAGMENT_NAME);
+
+    ErrorCode ERR_GRAPHQL_NULL_OPERATION_FETCHER = define("nop.err.graphql.null-operation-fetcher",
+            "操作[{fieldName}]没有配置fetcher", ARG_FIELD_NAME);
+
+    ErrorCode ERR_GRAPHQL_PARSE_INVALID_EXTEND_SYNTAX = define(API_STATUS_BAD_REQUEST,
+            "nop.err.graphql.parse.invalid-extend-syntax", "非法的extend语法，仅支持extend type");
+
+    ErrorCode ERR_GRAPHQL_PARSE_UNSUPPORTED_INLINE_FRAGMENT = define(API_STATUS_BAD_REQUEST,
+            "nop.err.graphql.parse.unsupported-inline-fragment",
+            "不支持inline fragment语法(... on Type)，请使用命名fragment", ARG_FRAGMENT_NAME);
 }

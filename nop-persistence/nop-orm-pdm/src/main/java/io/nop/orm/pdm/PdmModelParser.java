@@ -130,6 +130,8 @@ import static io.nop.orm.pdm.PdmModelConstants.VIEW_COLUMN_NAME;
 import static io.nop.orm.pdm.PdmModelConstants.VIEW_NAME;
 import static io.nop.orm.pdm.PdmModelConstants.VIEW_REFERENCES_NAME;
 import static io.nop.orm.pdm.PdmModelConstants.VIEW_REFERENCE_JOINS_NAME;
+import static io.nop.orm.pdm.PdmModelErrors.ARG_TABLE_NAME;
+import static io.nop.orm.pdm.PdmModelErrors.ERR_PDM_PRIMARY_KEY_NO_KEY_REF;
 import static io.nop.orm.pdm.PdmModelConstants.VIEW_REFERENCE_JOIN_NAME;
 import static io.nop.orm.pdm.PdmModelConstants.VIEW_REFERENCE_NAME;
 import static io.nop.orm.pdm.PdmModelConstants.VIEW_SQLQUERY_NAME;
@@ -618,7 +620,7 @@ public class PdmModelParser extends AbstractResourceParser<OrmModel> {
             if (table.getStateProp() != null) {
                 throw new NopException(ERR_ORM_MODEL_MULTIPLE_STATE_PROP).source(col)
                         .param(ARG_ENTITY_NAME, table.getName()).param(ARG_PROP_NAME, col.getName())
-                        .param(ARG_OTHER_PROP_NAME, table.getLabelProp());
+                        .param(ARG_OTHER_PROP_NAME, table.getStateProp());
             }
             table.setStateProp(col.getName());
         }
@@ -626,7 +628,7 @@ public class PdmModelParser extends AbstractResourceParser<OrmModel> {
             if (table.getVersionProp() != null) {
                 throw new NopException(ERR_ORM_MODEL_MULTIPLE_VERSION_PROP).source(col)
                         .param(ARG_ENTITY_NAME, table.getName()).param(ARG_PROP_NAME, col.getName())
-                        .param(ARG_OTHER_PROP_NAME, table.getLabelProp());
+                        .param(ARG_OTHER_PROP_NAME, table.getVersionProp());
             }
             table.setVersionProp(col.getName());
         }
@@ -1137,7 +1139,11 @@ public class PdmModelParser extends AbstractResourceParser<OrmModel> {
         String primaryKeyId = null;
         XNode primaryKey = node.element(KEY_PRIMARY_NAME);
         if (primaryKey != null) {
-            primaryKeyId = primaryKey.element(KEY_NAME).attrText("Ref");
+            XNode keyRef = primaryKey.element(KEY_NAME);
+            if (keyRef == null)
+                throw new NopException(ERR_PDM_PRIMARY_KEY_NO_KEY_REF).source(primaryKey)
+                        .param(ARG_TABLE_NAME, table.getTableName());
+            primaryKeyId = keyRef.attrText("Ref");
         }
 
         XNode keys = node.element(KEYS_NAME);

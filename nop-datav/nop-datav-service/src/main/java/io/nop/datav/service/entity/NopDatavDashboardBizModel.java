@@ -14,7 +14,6 @@ import io.nop.biz.crud.CrudBizModel;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
-import io.nop.core.lang.sql.SQL;
 import io.nop.dao.api.IDaoEntity;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
@@ -245,8 +244,12 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
 
         daoProvider().daoFor(NopDatavDashboardSnapshot.class).saveEntityDirectly(snapshot);
 
-        updateDashboardPublishState(dashboard.getDashboardId(), PUBLISH_STATUS_PUBLISHED,
-                nextVersion, publishedBy, publishedTime);
+        // 实体写（plan 2255）：会话内同行实体写，version/审计列由 ORM 维护，会话与库保持一致
+        dashboard.setPublishStatus(PUBLISH_STATUS_PUBLISHED);
+        dashboard.setPublishedVersion(nextVersion);
+        dashboard.setPublishedBy(publishedBy);
+        dashboard.setPublishedTime(publishedTime);
+        daoProvider().daoFor(NopDatavDashboard.class).updateEntityDirectly(dashboard);
 
         afterEntityChange(dashboard, "publishDashboard", context);
         return snapshot;
@@ -282,7 +285,8 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
         }
 
         restoreDashboardFromSnapshot(dashboard, snapshot);
-        updateDashboardFields(dashboard.getDashboardId(), dashboard);
+        // restoreDashboardFromSnapshot 已把快照字段写进会话实体，直接实体写提交（只写 dirty 列）
+        daoProvider().daoFor(NopDatavDashboard.class).updateEntityDirectly(dashboard);
 
         afterEntityChange(dashboard, "rollbackDashboard", context);
         return snapshot;
@@ -966,26 +970,5 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
 
     private String generateSnapshotId() {
         return java.util.UUID.randomUUID().toString().replace("-", "");
-    }
-
-    private void updateDashboardPublishState(String dashboardId, int publishStatus, long publishedVersion,
-                                              String publishedBy, Timestamp publishedTime) {
-        jdbcTemplate.executeUpdate(SQL.begin().name("updateDashboardPublishState")
-                .sql("update NOP_DATAV_DASHBOARD set PUBLISH_STATUS=").param(publishStatus)
-                .sql(",PUBLISHED_VERSION=").param(publishedVersion)
-                .sql(",PUBLISHED_BY=").param(publishedBy)
-                .sql(",PUBLISHED_TIME=").param(publishedTime)
-                .sql(" where DASHBOARD_ID=").param(dashboardId).end());
-    }
-
-    private void updateDashboardFields(String dashboardId, NopDatavDashboard source) {
-        jdbcTemplate.executeUpdate(SQL.begin().name("updateDashboardFields")
-                .sql("update NOP_DATAV_DASHBOARD set LAYOUT_CONFIG=").param(source.getLayoutConfig())
-                .sql(",PARAM_CONFIG=").param(source.getParamConfig())
-                .sql(",PUBLISH_STATUS=").param(source.getPublishStatus())
-                .sql(",PUBLISHED_VERSION=").param(source.getPublishedVersion())
-                .sql(",PUBLISHED_BY=").param(source.getPublishedBy())
-                .sql(",PUBLISHED_TIME=").param(source.getPublishedTime())
-                .sql(" where DASHBOARD_ID=").param(dashboardId).end());
     }
 }

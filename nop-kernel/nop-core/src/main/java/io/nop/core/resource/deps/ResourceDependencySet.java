@@ -38,10 +38,11 @@ public class ResourceDependencySet {
     private boolean frozen;
 
     /**
-     * resource和lastModified用于缓存上次IResourceChangeChecker的检查结果
+     * resource和lastModified用于缓存上次IResourceChangeChecker的检查结果。
+     * freeze后仍允许更新，且会被多个线程并发读写，因此声明为volatile
      */
     private final String path;
-    private long lastModified;
+    private volatile long lastModified;
 
     /**
      * 从资源路径到

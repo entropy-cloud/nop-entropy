@@ -219,6 +219,8 @@ public class PsiClassHelper {
 
     public static PsiField getField(PsiElement context, String className, String fieldName) {
         PsiClass clazz = findClass(context, className);
+        if (clazz == null)
+            return null;
 
         return clazz.findFieldByName(fieldName, true);
     }

@@ -17,7 +17,9 @@ public class MyModel__aop extends io.nop.core.reflect.aop.TestAopCodeGenerator.M
             $$update_0 = io.nop.core.reflect.impl.MethodModelBuilder.from(io.nop.core.reflect.aop.TestAopCodeGenerator.MyModel.class, io.nop.core.reflect.aop.TestAopCodeGenerator.MyModel.class.getDeclaredMethod("update", io.nop.api.core.beans.query.QueryBean.class));
             $$save_1 = io.nop.core.reflect.impl.MethodModelBuilder.from(io.nop.core.reflect.aop.TestAopCodeGenerator.MyModel.class, io.nop.core.reflect.aop.TestAopCodeGenerator.BaseModel.class.getDeclaredMethod("save", java.lang.Object.class));
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new io.nop.api.core.exceptions.NopException(
+                    io.nop.core.CoreErrors.ERR_REFLECT_AOP_INIT_METHOD_MODEL_FAIL, e)
+                    .param(io.nop.core.CoreErrors.ARG_CLASS_NAME, io.nop.core.reflect.aop.TestAopCodeGenerator.MyModel.class.getName());
         }
     }
 

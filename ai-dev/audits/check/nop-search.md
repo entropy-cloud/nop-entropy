@@ -46,6 +46,10 @@ ret.add(new StoredField(FIELD_PATH, doc.getPath()));
 - **建议**: transformer 需要按字段类型分发：数值字段用 `LongPoint.newRangeQuery` 且 GT/LT 用 `nextUp/nextDown` 排除边界；between 数值分支同样用 LongPoint；`path` 需按可过滤需求改用 StringField 建索引或在 transformer 中拒绝该字段；为 EQ/NE 增加与索引类型一致的编码。
 - **误报排除**: 已确认 filter 转换路径真实接通（`LuceneSearchEngine.buildQuery:841-845` 将 `request.getFilter()` 经 transformer 以 `Occur.FILTER` 加入最终查询）；已用 9.7.0 jar 实测排除"Lucene 会自动做数值类型兼容"的可能。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认成立，已修复。`LuceneFilterBeanTransformer` 按字段类型分发：数值字段（publishTime/modifyTime/fileSize，字段→类型表以 `LuceneSearchEngine.LONG_POINT_FIELDS`/`STORED_ONLY_FIELDS` 公共常量提供、transformer 构造参数注入且默认取该常量表）的 GT/GE/LT/LE 改用 `LongPoint.newRangeQuery`（GT/LT 以 floor+1/ceil-1 排除边界，GE/LE 含边界），EQ/NE 改用 `LongPoint.newExactQuery`（NE 为 MUST_NOT(exact)+MUST(matchAll)），between 改用 `LongPoint.newRangeQuery` 并直接读 `excludeMax` 属性以绕开 nop-core `isExcludeMax` 误读 excludeMin 的上游缺陷（字符串 between 的 includeUpper 反转属 P2 条目，维持原状）；path 为仅 StoredField 字段，为不破坏既有索引结构（改 StringField 建索引属不兼容变更）选择 fail-fast 拒绝：filter 引用 path 时抛带字段名的 `NopException`（新错误码 `nop.err.lucene.field-not-filterable`），另新增 `nop.err.lucene.invalid-filter-value` 用于不可解析的数值过滤值。测试：`nop-search-lucene` `TestLuceneFilterBeanTransformer`#testNumericGtExcludesBoundary/#testNumericGeIncludesBoundary/#testNumericLtExcludesBoundary/#testNumericLeIncludesBoundary/#testNumericEqOnLongPointField/#testNumericNeOnLongPointField/#testNumericBetweenInclusive/#testNumericBetweenExcludeMin/#testPathFilterRejected（修复前：GT/GE/EQ/between 命中 0，LT/LE/NE 误匹配全部 3 篇文档，path eq 静默命中 0 且无异常）。
+
 ### [P1] 空 query 时构造空 BooleanQuery，匹配 0 文档，与"Match all"注释意图相反
 
 - **文件**: `nop-search/nop-search-lucene/src/main/java/io/nop/search/lucene/LuceneSearchEngine.java:831-836`

@@ -1,6 +1,7 @@
 package io.nop.biz.dev;
 
 import io.nop.api.core.annotations.biz.BizModel;
+import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Description;
 import io.nop.api.core.annotations.core.Locale;
@@ -16,7 +17,7 @@ import java.util.List;
 @Locale("zh-CN")
 @BizModel("DevStat")
 public class DevStatBizModel {
-    @BizQuery
+    @BizMutation
     @Description("清空所有统计信息")
     public void clearStats() {
         GlobalStatManager.instance().clear();

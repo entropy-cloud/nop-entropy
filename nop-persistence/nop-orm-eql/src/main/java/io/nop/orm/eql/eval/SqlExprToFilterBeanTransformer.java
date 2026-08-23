@@ -61,7 +61,7 @@ public class SqlExprToFilterBeanTransformer {
     private Object getValue(SqlExpr expr) {
         if (expr instanceof SqlLiteral)
             return ((SqlLiteral) expr).getLiteralValue();
-        throw new IllegalArgumentException("expr-not-literal:" + expr);
+        throw new NopException(ERR_EQL_UNSUPPORTED_EVAL_EXPR).param(ARG_EXPR, expr);
     }
 
     private TreeBean transformAnd(SqlAndExpr expr) {
@@ -79,7 +79,7 @@ public class SqlExprToFilterBeanTransformer {
     }
 
     private TreeBean transformNot(SqlNotExpr expr) {
-        TreeBean not = FilterBeans.or(
+        TreeBean not = FilterBeans.not(
                 transform(expr.getExpr()));
         not.setLocation(expr.getLocation());
         return not;
@@ -94,7 +94,7 @@ public class SqlExprToFilterBeanTransformer {
         XLangOperator op = SqlExprTransformHelper.toXLangOperator(expr.getOperator());
         String tagName = op.toFilterOp();
         if (tagName == null)
-            throw new IllegalArgumentException("expr-not-supported-binary-expr:" + expr + ",op=" + op);
+            throw new NopException(ERR_EQL_UNSUPPORTED_EVAL_EXPR).param(ARG_EXPR, expr);
 
         if (leftIsName || rightIsName) {
             if (leftIsName && rightIsName) {
@@ -110,11 +110,11 @@ public class SqlExprToFilterBeanTransformer {
                 String rightName = getName(right);
                 XLangOperator reverseOp = op.switchLeftRight();
                 if (reverseOp == null)
-                    throw new IllegalArgumentException("unsupported-binary-op:" + expr + ",op=" + op);
+                    throw new NopException(ERR_EQL_UNSUPPORTED_EVAL_EXPR).param(ARG_EXPR, expr);
                 return FilterBeans.compareOp(reverseOp.toFilterOp(), rightName, value);
             }
         } else {
-            throw new IllegalArgumentException("unsupported-binary-expr:" + expr);
+            throw new NopException(ERR_EQL_UNSUPPORTED_EVAL_EXPR).param(ARG_EXPR, expr);
         }
     }
 
@@ -134,7 +134,7 @@ public class SqlExprToFilterBeanTransformer {
         if (op == XLangOperator.NOT) {
             return FilterBeans.not(transform(expr.getExpr()));
         }
-        throw new IllegalArgumentException("not-supported-unary-expr:" + expr);
+        throw new NopException(ERR_EQL_UNSUPPORTED_EVAL_EXPR).param(ARG_EXPR, expr);
     }
 
     private TreeBean transformIsNull(SqlIsNullExpr expr) {
@@ -172,7 +172,7 @@ public class SqlExprToFilterBeanTransformer {
 
     private String getName(SqlExpr expr) {
         if (expr.getASTKind() != EqlASTKind.SqlColumnName)
-            throw new IllegalArgumentException("expr-not-sql-column-name:" + expr);
+            throw new NopException(ERR_EQL_UNSUPPORTED_EVAL_EXPR).param(ARG_EXPR, expr);
         SqlColumnName colName = (SqlColumnName) expr;
         return colName.getFullName();
     }

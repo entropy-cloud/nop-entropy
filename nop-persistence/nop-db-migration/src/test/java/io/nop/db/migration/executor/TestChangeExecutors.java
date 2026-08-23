@@ -39,6 +39,7 @@ import org.junit.jupiter.api.Test;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -146,24 +147,192 @@ public class TestChangeExecutors {
     @Test
     public void testAddColumn() {
         executeUpdate("CREATE TABLE test_add_col (id VARCHAR(36) PRIMARY KEY)");
-        
+
         AddColumnExecutor executor = new AddColumnExecutor();
         assertTrue(executor.supports("addColumn"));
-        
+
         AddColumnChange change = new AddColumnChange();
         change.setTableName("test_add_col");
-        
+
         ColumnDefinition col = new ColumnDefinition();
         col.setName("email");
         col.setType(StdSqlType.VARCHAR);
         col.setSize(100);
         col.setNullable(true);
-        
+
         change.setColumns(java.util.Collections.singletonList(col));
-        
+
         executor.execute(change, context, dialect);
-        
+
         assertTrue(columnExists("test_add_col", "email"));
+    }
+
+    @Test
+    public void testAddColumnMultipleColumns() {
+        // executeUpdate does not split statements, so multiple ADD COLUMN
+        // clauses must be executed as one statement per column (H2 happens to
+        // tolerate joined statements, MySQL/PostgreSQL/Oracle do not)
+        executeUpdate("CREATE TABLE test_add_col_multi (id VARCHAR(36) PRIMARY KEY)");
+
+        List<String> executedSqls = new java.util.ArrayList<>();
+        IJdbcTemplate recording = newRecordingJdbcTemplate(jdbcTemplate, executedSqls);
+        MigrationContext recordingContext = new MigrationContext();
+        recordingContext.setJdbcTemplate(recording);
+        recordingContext.setDialect(dialect);
+        recordingContext.setQuerySpace("default");
+
+        AddColumnExecutor executor = new AddColumnExecutor();
+
+        AddColumnChange change = new AddColumnChange();
+        change.setTableName("test_add_col_multi");
+
+        ColumnDefinition col1 = new ColumnDefinition();
+        col1.setName("email");
+        col1.setType(StdSqlType.VARCHAR);
+        col1.setSize(100);
+        col1.setNullable(true);
+
+        ColumnDefinition col2 = new ColumnDefinition();
+        col2.setName("age");
+        col2.setType(StdSqlType.INTEGER);
+        col2.setNullable(true);
+
+        change.setColumns(java.util.Arrays.asList(col1, col2));
+
+        executor.execute(change, recordingContext, dialect);
+
+        assertEquals(2, executedSqls.size(), "each column must be added with its own statement: " + executedSqls);
+        for (String sql : executedSqls) {
+            assertFalse(sql.contains(";"), "a single ADD COLUMN statement must not contain ';': " + sql);
+        }
+
+        assertTrue(columnExists("test_add_col_multi", "email"), "first added column should exist");
+        assertTrue(columnExists("test_add_col_multi", "age"), "second added column should exist");
+    }
+
+    /**
+     * Delegating proxy that records the SQL text of every executeUpdate call.
+     */
+    private static IJdbcTemplate newRecordingJdbcTemplate(IJdbcTemplate delegate, List<String> recordedSqls) {
+        return (IJdbcTemplate) java.lang.reflect.Proxy.newProxyInstance(
+            IJdbcTemplate.class.getClassLoader(),
+            new Class<?>[]{IJdbcTemplate.class},
+            (proxy, method, args) -> {
+                if (method.getName().equals("executeUpdate") && args != null && args.length > 0
+                    && args[0] instanceof io.nop.core.lang.sql.SQL) {
+                    recordedSqls.add(((io.nop.core.lang.sql.SQL) args[0]).getText());
+                }
+                try {
+                    return method.invoke(delegate, args);
+                } catch (java.lang.reflect.InvocationTargetException ex) {
+                    throw ex.getCause();
+                }
+            });
+    }
+
+    @Test
+    public void testBuildColumnTypeUsesDialectTypeMapping() {
+        // StdSqlType names are not portable SQL type names (e.g. DATETIME is
+        // not accepted by every database), so the dialect mapping must be used
+        CreateTableExecutor executor = new CreateTableExecutor();
+
+        ColumnDefinition col = new ColumnDefinition();
+        col.setName("created");
+        col.setType(StdSqlType.DATETIME);
+
+        String sqlType = executor.buildColumnType(col, dialect);
+        assertEquals("TIMESTAMP", sqlType, "h2 dialect maps DATETIME to TIMESTAMP");
+    }
+
+    @Test
+    public void testCreateTableSqlEscapesRemark() {
+        CreateTableExecutor executor = new CreateTableExecutor();
+
+        CreateTableChange change = new CreateTableChange();
+        change.setName("test_remark");
+        change.setRemark("it's a test");
+
+        ColumnDefinition col = new ColumnDefinition();
+        col.setName("id");
+        col.setType(StdSqlType.VARCHAR);
+        col.setSize(36);
+        col.setPrimaryKey(true);
+        change.setColumns(java.util.Collections.singletonList(col));
+
+        String sql = executor.buildCreateTableSql(change, dialect);
+        assertTrue(sql.contains("COMMENT 'it''s a test'"),
+            "single quotes in the remark must be escaped, but was: " + sql);
+    }
+
+    @Test
+    public void testInsertDataTypedValues() {
+        executeUpdate("CREATE TABLE test_insert_typed (id VARCHAR(36) PRIMARY KEY, age INT, active BOOLEAN)");
+
+        InsertDataExecutor executor = new InsertDataExecutor();
+
+        InsertDataChange change = new InsertDataChange();
+        change.setTableName("test_insert_typed");
+
+        InsertColumnModel idCol = new InsertColumnModel();
+        idCol.setName("id");
+        idCol.setValue("typed-1");
+
+        InsertColumnModel ageCol = new InsertColumnModel();
+        ageCol.setName("age");
+        ageCol.setValueNumeric(42);
+
+        InsertColumnModel activeCol = new InsertColumnModel();
+        activeCol.setName("active");
+        activeCol.setValueBoolean(true);
+
+        change.setColumns(java.util.Arrays.asList(idCol, ageCol, activeCol));
+
+        executor.execute(change, context, dialect);
+
+        assertEquals(Integer.valueOf(42), queryIntValue("SELECT age FROM test_insert_typed WHERE id = 'typed-1'"),
+            "numeric column value must be rendered as an unquoted numeric literal");
+        assertEquals(Boolean.TRUE, queryBoolValue("SELECT active FROM test_insert_typed WHERE id = 'typed-1'"),
+            "boolean column value must be rendered as TRUE/FALSE");
+    }
+
+    @Test
+    public void testUpdateDataTypedValues() {
+        executeUpdate("CREATE TABLE test_update_typed (id VARCHAR(36) PRIMARY KEY, age INT, active BOOLEAN)");
+        executeUpdate("INSERT INTO test_update_typed (id, age, active) VALUES ('1', 0, FALSE)");
+
+        UpdateDataExecutor executor = new UpdateDataExecutor();
+
+        UpdateDataChange change = new UpdateDataChange();
+        change.setTableName("test_update_typed");
+
+        UpdateColumnModel ageCol = new UpdateColumnModel();
+        ageCol.setName("age");
+        ageCol.setValueNumeric(42);
+
+        UpdateColumnModel activeCol = new UpdateColumnModel();
+        activeCol.setName("active");
+        activeCol.setValueBoolean(true);
+
+        change.setColumns(java.util.Arrays.asList(ageCol, activeCol));
+        change.setWhere("id = '1'");
+
+        executor.execute(change, context, dialect);
+
+        assertEquals(Integer.valueOf(42), queryIntValue("SELECT age FROM test_update_typed WHERE id = '1'"));
+        assertEquals(Boolean.TRUE, queryBoolValue("SELECT active FROM test_update_typed WHERE id = '1'"));
+    }
+
+    @Test
+    public void testInsertDataGenerateRollbackSqlReturnsNull() {
+        // Without knowing the primary key the inverse of an INSERT cannot be
+        // constrained; a DELETE without WHERE would wipe the whole table
+        InsertDataExecutor executor = new InsertDataExecutor();
+
+        InsertDataChange change = new InsertDataChange();
+        change.setTableName("test_insert");
+
+        assertNull(executor.generateRollbackSql(change, dialect),
+            "unimplemented rollback must return null instead of an unconditional DELETE");
     }
     
     @Test
@@ -333,6 +502,32 @@ public class TestChangeExecutors {
             }
         } catch (Exception e) {
             return null;
+        }
+        return null;
+    }
+
+    private Integer queryIntValue(String sql) {
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            if (rs.next()) {
+                int value = rs.getInt(1);
+                return rs.wasNull() ? null : value;
+            }
+        } catch (Exception e) {
+            throw new IllegalStateException("query failed: " + sql, e);
+        }
+        return null;
+    }
+
+    private Boolean queryBoolValue(String sql) {
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            if (rs.next()) {
+                boolean value = rs.getBoolean(1);
+                return rs.wasNull() ? null : value;
+            }
+        } catch (Exception e) {
+            throw new IllegalStateException("query failed: " + sql, e);
         }
         return null;
     }

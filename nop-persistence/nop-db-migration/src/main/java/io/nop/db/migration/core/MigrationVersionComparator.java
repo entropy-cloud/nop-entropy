@@ -32,6 +32,8 @@ public class MigrationVersionComparator implements Comparator<DbMigrationModel>,
     
     @Override
     public int compare(DbMigrationModel m1, DbMigrationModel m2) {
+        // null == null is true in Java, so the identity check below already
+        // makes two null references compare as 0
         if (m1 == m2) return 0;
         if (m1 == null) return -1;
         if (m2 == null) return 1;

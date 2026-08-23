@@ -531,4 +531,62 @@ public class TestTriePathRouter {
         assertEquals("json-handler", result.getValue().get(0).getValue());
     }
 
+    // ==================== 根路径注册/匹配对称性测试 ====================
+
+    @Test
+    public void testRootPathPattern() {
+        TriePathRouter<String> router = new TriePathRouter<>();
+        router.addPathPattern("/", "root-handler");
+
+        MatchResult<List<RouteValue<String>>> result = router.matchPath("/");
+        assertNotNull(result);
+        assertEquals("root-handler", result.getValue().get(0).getValue());
+
+        assertEquals(1, router.matchAllPath("/").size());
+        assertEquals("root-handler", router.matchAllPath("/").get(0).getValue().get(0).getValue());
+
+        Set<String> values = router.matchAllPathValues("/");
+        assertEquals(1, values.size());
+        assertTrue(values.contains("root-handler"));
+    }
+
+    @Test
+    public void testRootPath_noRootRegistered() {
+        TriePathRouter<String> router = new TriePathRouter<>();
+        router.addPathPattern("/test", "a");
+
+        assertNull(router.matchPath("/"));
+        assertTrue(router.matchAllPath("/").isEmpty());
+        assertTrue(router.matchAllPathValues("/").isEmpty());
+    }
+
+    // ==================== addMatchAll 兜底路由测试 ====================
+
+    @Test
+    public void testAddMatchAll() {
+        TriePathRouter<String> router = new TriePathRouter<>();
+        router.addMatchAll("fallback");
+
+        MatchResult<List<RouteValue<String>>> result = router.matchPath("/a/b/c");
+        assertNotNull(result);
+        assertEquals("fallback", result.getValue().get(0).getValue());
+
+        assertTrue(router.matchAllPathValues("/anything").contains("fallback"));
+        assertTrue(router.matchAllPathValues("/x/y").contains("fallback"));
+    }
+
+    @Test
+    public void testAddMatchAll_withExactPriority() {
+        TriePathRouter<String> router = new TriePathRouter<>();
+        router.addMatchAll("fallback");
+        router.addPathPattern("/api/users", "exact-users");
+
+        // 精确匹配优先于兜底
+        MatchResult<List<RouteValue<String>>> result = router.matchPath("/api/users");
+        assertNotNull(result);
+        assertEquals("exact-users", result.getValue().get(0).getValue());
+
+        assertEquals("fallback", router.matchPath("/api/orders").getValue().get(0).getValue());
+    }
+
 }

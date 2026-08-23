@@ -9,6 +9,7 @@ package io.nop.dao.jdbc.dataset;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.bytes.ByteString;
+import io.nop.commons.util.IoHelper;
 import io.nop.dao.DaoErrors;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.jdbc.impl.JdbcHelper;
@@ -43,14 +44,23 @@ public class JdbcDataSet implements IDataSet, IDataRow {
 
     private final ResultSet rs;
     private final IDialect dialect;
+    private final java.sql.Statement statement;
     private Boolean hasNext;
 
     private IDataSetMeta meta;
     private long readCount;
 
     public JdbcDataSet(IDialect dialect, ResultSet rs) {
+        this(dialect, rs, null);
+    }
+
+    /**
+     * @param statement 创建rs的语句。数据集关闭时一并关闭，避免语句句柄泄漏。可为null，表示rs的生命周期由调用方管理
+     */
+    public JdbcDataSet(IDialect dialect, ResultSet rs, java.sql.Statement statement) {
         this.rs = rs;
         this.dialect = dialect;
+        this.statement = statement;
     }
 
     @Override
@@ -89,6 +99,9 @@ public class JdbcDataSet implements IDataSet, IDataRow {
             rs.close();
         } catch (SQLException e) {
             throw translate("rs.close", e);
+        } finally {
+            if (statement != null)
+                IoHelper.safeCloseObject(statement);
         }
     }
 
@@ -106,26 +119,13 @@ public class JdbcDataSet implements IDataSet, IDataRow {
 
     @Override
     public IDataRow next() {
-        if(!hasNext())
+        if (!hasNext())
             throw new NoSuchElementException();
 
-        if (hasNext != null) {
-            if (hasNext) {
-                readCount++;
-                hasNext = null;
-                return this;
-            }
-            return null;
-        }
-
-        try {
-            rs.next();
-            hasNext = null;
-            readCount++;
-            return this;
-        } catch (SQLException e) {
-            throw translate("rs.next", e);
-        }
+        // hasNext()保证此时hasNext必然为true
+        readCount++;
+        hasNext = null;
+        return this;
     }
 
     @Override

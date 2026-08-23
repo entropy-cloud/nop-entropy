@@ -250,8 +250,17 @@ public class EqlTransformVisitor extends EqlASTVisitor {
 
             // 如果没有指定from，则需要根据decorator来确定querySpace
             String querySpace = findQuerySpaceWhenNoFrom(node);
-            this.querySpace = querySpace;
-            this.dialect = context.getDialectForQuerySpace(querySpace);
+            if (this.querySpace == null) {
+                // 仅在首次确定querySpace时赋值。嵌套的无from子查询（如投影中的select 1）不重置外层状态，
+                // 否则外层实体的querySpace会被覆盖，导致SQL被路由到错误的数据源
+                this.querySpace = querySpace;
+                this.dialect = context.getDialectForQuerySpace(querySpace);
+            } else if (!querySpace.equals(this.querySpace)
+                    && node.getDecorator(OrmEqlConstants.DECORATOR_QUERY_SPACE) != null) {
+                // 嵌套子查询通过decorator显式指定了不同的querySpace，与外层语句冲突
+                throw new NopException(ERR_EQL_NOT_ALLOW_MULTIPLE_QUERY_SPACE).source(node)
+                        .param(ARG_QUERY_SPACE, querySpace).param(ARG_QUERY_SPACE_MAP, querySpaceToEntityNames);
+            }
         }
 
         SqlTableScope scope = new SqlTableScope(node, currentScope);
@@ -1152,8 +1161,17 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             resolveSelectFields(query.getQuery());
 
             return buildSelectItems(source, false, true);
+        } else if (source instanceof SqlJoinTableSource) {
+            // select * 展开时对join源递归收集左右表的投影
+            SqlJoinTableSource join = (SqlJoinTableSource) source;
+            List<SqlProjection> items = new ArrayList<>(getSourceSelectItems(join.getLeft()).size()
+                    + getSourceSelectItems(join.getRight()).size());
+            items.addAll(getSourceSelectItems(join.getLeft()));
+            items.addAll(getSourceSelectItems(join.getRight()));
+            return items;
         } else {
-            throw new IllegalStateException("nop.err.invalid-source:" + source);
+            throw new NopException(ERR_EQL_ONLY_SUPPORT_SINGLE_TABLE_SOURCE).source(source)
+                    .param(ARG_TABLE_SOURCE, source.getDisplayString());
         }
     }
 
@@ -1369,7 +1387,7 @@ public class EqlTransformVisitor extends EqlASTVisitor {
 
         if (fn.getMaxArgCount() < node.getArgs().size()) {
             throw new NopException(ERR_EQL_FUNC_TOO_MANY_ARGS).source(node).param(ARG_FUNC_NAME, node.getName())
-                    .param(ARG_ARG_COUNT, argCount).param(ARG_MAX_ARG_COUNT, fn.getMinArgCount());
+                    .param(ARG_ARG_COUNT, argCount).param(ARG_MAX_ARG_COUNT, fn.getMaxArgCount());
         }
         node.setResolvedFunction(fn);
 
@@ -1467,6 +1485,16 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             }
         }
         visitChildren(node.getReturnProjections());
+
+        // returning投影可能是函数等非列表达式，与select语句的resolveSelectFields一致地推导表达式类型，
+        // 避免SQL生成阶段因resolvedExprMeta为null而出现NPE
+        if (node.getReturnProjections() != null && !node.getReturnProjections().isEmpty()) {
+            ExprTypeResolver typeResolver = new ExprTypeResolver(dialect);
+            for (SqlProjection projection : node.getReturnProjections()) {
+                SqlExprProjection proj = (SqlExprProjection) projection;
+                typeResolver.resolveExprMeta(proj.getExpr());
+            }
+        }
         currentScope = currentScope.getParent();
     }
 

@@ -302,10 +302,10 @@ public class ReportDataSet implements Iterable<Object> {
             Object value = getFieldValue(item, field);
             if (ret == null) {
                 ret = value;
-            } else if (value == null) {
-                return value;
-            } else if (MathHelper.compareWithConversion(ret, value) > 0) {
-                ret = value;
+            } else if (value != null) {
+                if (MathHelper.compareWithConversion(ret, value) > 0) {
+                    ret = value;
+                }
             }
         }
         return ret;
@@ -318,10 +318,10 @@ public class ReportDataSet implements Iterable<Object> {
             Object value = fn.apply(item);
             if (ret == null) {
                 ret = value;
-            } else if (value == null) {
-                return value;
-            } else if (MathHelper.compareWithConversion(ret, value) > 0) {
-                ret = value;
+            } else if (value != null) {
+                if (MathHelper.compareWithConversion(ret, value) > 0) {
+                    ret = value;
+                }
             }
         }
         return ret;

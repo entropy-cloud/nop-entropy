@@ -42,16 +42,18 @@ public class DebugValueHelper {
     private static Object getNextValue(Object value, DebugValueKey key) {
         if (value.getClass().isArray()) {
             int index = key.getIndex();
-            int len = Array.getLength(index);
+            int len = Array.getLength(value);
             if (index < 0 || index >= len)
                 return null;
             return Array.get(value, index);
         } else if (value instanceof Map) {
             if (key.getIndex() >= 0) {
+                // 非String值的Map子项按index定位，返回对应的value（此前index不自增且误返回key）
                 int index = 0;
-                for (Object v : ((Map<?, ?>) value).keySet()) {
+                for (Map.Entry<?, ?> entry : ((Map<?, ?>) value).entrySet()) {
                     if (index == key.getIndex())
-                        return v;
+                        return entry.getValue();
+                    index++;
                 }
                 return null;
             } else {

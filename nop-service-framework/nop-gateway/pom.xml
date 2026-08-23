@@ -53,6 +53,12 @@
         </dependency>
 
         <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-ioc</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
@@ -62,6 +68,18 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <systemPropertyVariables>
+                        <!-- 单元测试不初始化全局 app 容器：nop-gateway 的默认装配依赖运行期由宿主应用
+                             提供的 IHttpClient 等 bean，裸测试 classpath 无法满足自动装配。
+                             AiAuthGatewayInterceptorDefaultAssemblyTest 自行构建独立容器测试默认装配。 -->
+                        <nop.ioc.enabled>false</nop.ioc.enabled>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>

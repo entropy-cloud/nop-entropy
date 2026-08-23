@@ -71,7 +71,7 @@ public class SecurityHelper {
             KeyFactory kf = KeyFactory.getInstance("RSA");
             return kf.generatePublic(new RSAPublicKeySpec(modulus, publicExponent));
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw NopException.adapt(e);
         }
     }
 }

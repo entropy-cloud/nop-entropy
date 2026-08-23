@@ -21,6 +21,7 @@ import io.nop.commons.io.net.IServerAddrFinder;
 import io.nop.commons.util.NetHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.sql.SQL;
+import io.nop.dao.DaoErrors;
 import io.nop.orm.OrmConstants;
 import io.nop.orm.dao.AbstractDaoHandler;
 import io.nop.orm.support.OrmCompositePk;
@@ -122,7 +123,13 @@ public class SysDaoResourceLockManager extends AbstractDaoHandler implements IRe
             NopSysLock entity = saveNew(resourceId, lockerId, leaseTime, lockReason, clock.getMaxCurrentTimeMillis());
             return new EntityResourceLockState(entity);
         } catch (Exception e) {
-            // ignore data base error
+            if (isDuplicateKeyError(e)) {
+                    // 锁被他人持有是争用常态
+                    LOG.trace("nop.lock.sys.lock-held-by-other:resourceId={}", resourceId);
+                } else {
+                    // 数据库故障必须可见：吞成trace会使DB异常期所有业务静默退化为无锁运行
+                    LOG.warn("nop.lock.sys.save-lock-failed:resourceId={}", resourceId, e);
+                }
             LOG.trace("nop.lock.sys.save-lock-failed:resourceId={}", resourceId, e);
         }
         do {
@@ -136,7 +143,13 @@ public class SysDaoResourceLockManager extends AbstractDaoHandler implements IRe
                 NopSysLock entity = saveNew(resourceId, lockerId, leaseTime, lockReason, clock.getMaxCurrentTimeMillis());
                 return new EntityResourceLockState(entity);
             } catch (Exception e) {
-                // ignore data base error
+                if (isDuplicateKeyError(e)) {
+                    // 锁被他人持有是争用常态
+                    LOG.trace("nop.lock.sys.lock-held-by-other:resourceId={}", resourceId);
+                } else {
+                    // 数据库故障必须可见：吞成trace会使DB异常期所有业务静默退化为无锁运行
+                    LOG.warn("nop.lock.sys.save-lock-failed:resourceId={}", resourceId, e);
+                }
                 LOG.trace("nop.lock.sys.save-lock-failed:resourceId={}", resourceId, e);
             }
 
@@ -145,7 +158,12 @@ public class SysDaoResourceLockManager extends AbstractDaoHandler implements IRe
                 if (existing != null) {
                     // 如果已过期，则尝试删除
                     if (isExpired(existing, clock)) {
-                        if (orm().tryDelete(existing))
+                        // 按主键列逐列构造删除条件。复合主键生成 (A,B)=? 的行比较在部分数据库上无法绑定参数
+                        SQL sql = SQL.begin().deleteFrom().append(NopSysLock.class.getName())
+                                .where().eq(NopSysLock.PROP_NAME_lockName, existing.getLockName())
+                                .and().eq(NopSysLock.PROP_NAME_lockGroup, existing.getLockGroup())
+                                .and().eq(NopSysLock.PROP_NAME_version, existing.getVersion()).end();
+                        if (session.executeUpdate(sql) > 0)
                             return null;
                     }
                 }
@@ -165,15 +183,26 @@ public class SysDaoResourceLockManager extends AbstractDaoHandler implements IRe
                     entity = saveNew(resourceId, lockerId, leaseTime, lockReason, clock.getMaxCurrentTimeMillis());
                     return new EntityResourceLockState(entity);
                 } catch (Exception e) {
-                    // ignore data base error
+                    if (isDuplicateKeyError(e)) {
+                    // 锁被他人持有是争用常态
+                    LOG.trace("nop.lock.sys.lock-held-by-other:resourceId={}", resourceId);
+                } else {
+                    // 数据库故障必须可见：吞成trace会使DB异常期所有业务静默退化为无锁运行
+                    LOG.warn("nop.lock.sys.save-lock-failed:resourceId={}", resourceId, e);
+                }
                     LOG.trace("nop.lock.sys.save-lock-failed:resourceId={}", resourceId, e);
                 }
             }
         } while (true);
     }
 
+    private static boolean isDuplicateKeyError(Throwable e) {
+        return e instanceof NopException
+                && DaoErrors.ERR_SQL_DUPLICATE_KEY.getErrorCode().equals(((NopException) e).getErrorCode());
+    }
+
     protected boolean isExpired(NopSysLock entity, IEstimatedClock clock) {
-        return entity.getExpireAt().getTime() >= clock.getMaxCurrentTimeMillis();
+        return entity.getExpireAt().getTime() < clock.getMinCurrentTimeMillis();
     }
 
     NopSysLock saveNew(String resourceId, String lockId, long leaseTime, String lockReason, long currentTime) {
@@ -204,11 +233,16 @@ public class SysDaoResourceLockManager extends AbstractDaoHandler implements IRe
 
         return runLocal(session -> {
             IEstimatedClock clock = orm().getDbEstimatedClock(null);
+            // 注意set子句的eq之间必须显式comma()：无分隔符会生成"set a=?b=?"的非法EQL（原代码即如此，
+            // tryResetLease从未被测试执行过，属超出审计的连带修复）。holderId防护：新行version同为0，
+            // 仅version条件会被旧持有者续约改写
             SQL sql = SQL.begin().update(NopSysLock.class.getName())
                     .set()
-                    .eq(NopSysLock.PROP_NAME_version, entity.getVersion() + 1)
+                    .eq(NopSysLock.PROP_NAME_version, entity.getVersion() + 1).comma()
                     .eq(NopSysLock.PROP_NAME_expireAt, new Timestamp(clock.getMaxCurrentTimeMillis() + leaseTime))
-                    .where().eq(OrmConstants.PROP_ID, entity.orm_id())
+                    .where().eq(NopSysLock.PROP_NAME_lockName, entity.getLockName())
+                    .and().eq(NopSysLock.PROP_NAME_lockGroup, entity.getLockGroup())
+                    .and().eq(NopSysLock.PROP_NAME_holderId, entity.getHolderId())
                     .and().eq(NopSysLock.PROP_NAME_version, entity.getVersion()).end();
             return session.executeUpdate(sql) == 1;
         });
@@ -230,12 +264,14 @@ public class SysDaoResourceLockManager extends AbstractDaoHandler implements IRe
     public void releaseLock(IResourceLockState lock) {
         NopSysLock entity = ((EntityResourceLockState) lock).getEntity();
         runLocal(session -> {
-            session.deleteDirectly(entity);
-//            SQL sql = SQL.begin().deleteFrom().append(NopSysLock.class.getName())
-//                    .where().eq(NopSysLock.PROP_NAME_lockGroup, entity.getLockGroup())
-//                    .and().eq(NopSysLock.PROP_NAME_lockName, entity.getLockName())
-//                    .and().eq(NopSysLock.PROP_NAME_version, entity.getVersion()).end();
-//            ormTemplate.executeUpdate(sql);
+            // 重建的锁行version恒为0，版本防护无法区分新旧持有者：删除必须带holderId条件，
+            // 否则租约过期后旧持有者unlock会删掉新持有者的锁（互斥破坏）
+            SQL sql = SQL.begin().deleteFrom().append(NopSysLock.class.getName())
+                    .where().eq(NopSysLock.PROP_NAME_lockName, entity.getLockName())
+                    .and().eq(NopSysLock.PROP_NAME_lockGroup, entity.getLockGroup())
+                    .and().eq(NopSysLock.PROP_NAME_holderId, entity.getHolderId())
+                    .and().eq(NopSysLock.PROP_NAME_version, entity.getVersion()).end();
+            session.executeUpdate(sql);
             return null;
         });
     }

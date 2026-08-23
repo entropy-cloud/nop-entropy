@@ -103,6 +103,8 @@ public class XlibTagMeta {
 
     public XLangDocumentation getAttrDocumentation(String attrName) {
         XlibXDefAttribute attr = getAttribute(attrName);
+        if (attr == null)
+            return null;
 
         XLangDocumentation doc = new XLangDocumentation(attr);
         doc.setMainTitle(attrName);

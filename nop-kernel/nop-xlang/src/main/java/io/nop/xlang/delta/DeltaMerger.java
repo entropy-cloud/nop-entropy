@@ -303,15 +303,6 @@ public class DeltaMerger implements IDeltaMerger {
                     if (bIndexes != null) {
                         bIndexes[data.bIndex] = data.aIndex;
                     }
-                } else if (data.uniques != null) {
-                    for (ChildNodeMap.NodeData unique : data.uniques.values()) {
-                        if (unique.bIndex >= 0) {
-                            xb.replaceChild(data.bIndex, data.node);
-                            if (bIndexes != null) {
-                                bIndexes[data.bIndex] = data.aIndex;
-                            }
-                        }
-                    }
                 }
             }
         }

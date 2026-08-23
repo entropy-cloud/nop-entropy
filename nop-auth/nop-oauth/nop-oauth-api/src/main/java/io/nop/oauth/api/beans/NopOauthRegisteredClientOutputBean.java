@@ -55,20 +55,6 @@
         }
 
 
-        private String _clientSecret;
-
-    
-        @PropMeta(propId=4)
-    
-        public String getClientSecret(){
-            return _clientSecret;
-        }
-
-        public void setClientSecret(String value){
-            this._clientSecret = value;
-        }
-
-
         private java.sql.Timestamp _clientSecretExpiresAt;
 
     

@@ -9,6 +9,7 @@ package io.nop.commons.crypto;
 
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.util.MathHelper;
 import io.nop.commons.util.StringHelper;
@@ -29,8 +30,8 @@ public class HashHelper {
                 try {
                     return MessageDigest.getInstance(digest);
                 } catch (NoSuchAlgorithmException e) {
-                    throw new RuntimeException(
-                            "unexpected exception creating MessageDigest instance for [" + digest + "]", e);
+                    // 算法名包含在NoSuchAlgorithmException消息中
+                    throw NopException.adapt(e);
                 }
             }
         };

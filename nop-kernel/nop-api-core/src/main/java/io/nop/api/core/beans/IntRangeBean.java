@@ -26,7 +26,7 @@ public class IntRangeBean implements Serializable, Comparable<IntRangeBean>, Ite
     private static final long serialVersionUID = 3846253782985184968L;
     private static final char SEPARATOR = ',';
 
-    public static IntRangeBean EMPTY = new IntRangeBean(0, 0);
+    public static final IntRangeBean EMPTY = new IntRangeBean(0, 0);
 
     private final int offset;
     private final int limit;

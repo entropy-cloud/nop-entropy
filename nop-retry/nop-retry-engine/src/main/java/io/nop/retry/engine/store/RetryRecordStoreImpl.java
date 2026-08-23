@@ -113,7 +113,10 @@ public class RetryRecordStoreImpl implements IRetryRecordStore {
             record.setRequestPayload(JsonTool.serialize(request, false));
         }
 
-        record.setNextTriggerTime(CoreMetrics.currentTimestamp());
+        // 到期时间推迟一个租约周期：调用方发起首次执行期间记录保持PENDING且nextTriggerTime=now，
+        // 会被扫描器误拾取并发起第二次执行（重复副作用）。推迟后扫描器只在调用方失联后接管
+        record.setNextTriggerTime(new Timestamp(CoreMetrics.currentTimestamp().getTime()
+                + NopRetryConstants.DEFAULT_RETRYING_TIMEOUT_MS));
 
         // 确定性分区：同 (namespaceId, groupId, idempotentId) 稳定落同一分区，集群扫描按分区取数
         String partitionKey = (record.getNamespaceId() == null ? "" : record.getNamespaceId())

@@ -52,7 +52,6 @@ public class ResourceDocumentParser implements IResourceDocumentParser {
 
     private static final Logger LOG = LoggerFactory.getLogger(ResourceDocumentParser.class);
 
-    private boolean exportPageToImage = false;
 
     //private int minImageArea = 64;
 
@@ -94,6 +93,8 @@ public class ResourceDocumentParser implements IResourceDocumentParser {
             ExtractStripper stripper = new ExtractStripper(new ThisCallback(), config);
             this.setResourceStripper(stripper);
         } catch (IOException e) {
+            // 吞掉构造异常会导致首次 stripPage 抛出难以定位的 NPE
+            throw NopException.adapt(e);
         }
 
         this.setTableDetector(new DefaultTableDetector());
@@ -189,16 +190,22 @@ public class ResourceDocumentParser implements IResourceDocumentParser {
 
         File file = mPDFFile.toFile();
         if (file != null) {
-            if (this.config.isMemoryRestrictEnabled()) {
-                mPDFDocument = Loader.loadPDF(file);// file, settings );
-            } else mPDFDocument = Loader.loadPDF(file);
+            if (settings != null) {
+                mPDFDocument = Loader.loadPDF(file, settings.streamCache);
+            } else {
+                mPDFDocument = Loader.loadPDF(file);
+            }
         } else {
+            // 非文件资源（classpath/VFS/内存）需要整体读入后单次加载，
+            // 此前对同一 InputStream 连续 readBytes 两次，第二次必然得到空数组导致加载失败
             InputStream is = mPDFFile.getInputStream();
             try {
-                if (this.config.isMemoryRestrictEnabled()) {
-                    mPDFDocument = Loader.loadPDF(IoHelper.readBytes(is)); //is, settings);
+                byte[] bytes = IoHelper.readBytes(is);
+                if (settings != null) {
+                    mPDFDocument = Loader.loadPDF(bytes, null, null, null, settings.streamCache);
+                } else {
+                    mPDFDocument = Loader.loadPDF(bytes);
                 }
-                mPDFDocument = Loader.loadPDF(IoHelper.readBytes(is));
             } finally {
                 IoHelper.safeClose(is);
             }
@@ -215,6 +222,7 @@ public class ResourceDocumentParser implements IResourceDocumentParser {
             try {
                 this.mPDFDocument.close();
             } catch (IOException e) {
+                LOG.warn("nop.pdf.close-fail", e);
             }
         }
         this.mPDFDocument = null;
@@ -451,9 +459,11 @@ public class ResourceDocumentParser implements IResourceDocumentParser {
         }
 
         if (this.config.isExportPageImage()) {
-            //逐字符处理
-            String pageImageFile = mPDFFile + "-" + pageNo + ".png";
-            this.mResourceStripper.stripPage(mPDFDocument, pageNo, exportPageToImage ? pageImageFile : null);
+            // 页图导出到workDir（此前用资源路径当文件路径，且被恒为false的内部开关短路）
+            String baseName = StringHelper.fileNameNoExt(mPDFFile.getName());
+            File workDir = config.getWorkDir() != null ? config.getWorkDir() : new File(".");
+            File imgFile = new File(workDir, baseName + "-" + pageNo + ".png");
+            this.mResourceStripper.stripPage(mPDFDocument, pageNo, imgFile.getAbsolutePath());
         } else {
             this.mResourceStripper.stripPage(mPDFDocument, pageNo, null);
         }

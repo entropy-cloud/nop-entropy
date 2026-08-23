@@ -129,7 +129,7 @@ public class JavaParserCodeFormatterTest extends BaseTestCase {
             } catch (Exception e) {
                 failCount++;
                 String relativePath = projectRoot.toPath().relativize(javaFile).toString();
-                failedFiles.add(relativePath + ": " + e.getMessage());
+                failedFiles.add(relativePath + ": " + e.toString());
                 LOG.error("Failed to parse: {}", relativePath, e);
             }
         }
@@ -158,6 +158,47 @@ public class JavaParserCodeFormatterTest extends BaseTestCase {
                  .filter(p -> p.toString().endsWith(".java"))
                  .filter(p -> p.toString().contains(File.separator + "src" + File.separator + "main" + File.separator + "java" + File.separator))
                  .forEach(javaFiles::add);
+        }
+    }
+
+    @Test
+    public void testConcurrentFormat() throws Exception {
+        // INSTANCE 是全局共享的 ITextFormatter，format 可被任意线程调用；
+        // 共享单个 JavaParser 实例（内部可变状态）并发解析会互相干扰，
+        // 修复后每次 format 新建 parser，并发结果必须与串行结果完全一致
+        JavaParserCodeFormatter formatter = JavaParserCodeFormatter.INSTANCE;
+
+        String srcA = "class A {\n    int x = 1;\n\n    void foo() {\n        x++;\n    }\n}\n";
+        String srcB = "enum B {\n    ONE, TWO;\n\n    int bar() {\n        return 2;\n    }\n}\n";
+        String expectA = formatter.format(SourceLocation.fromPath("A.java"), srcA, false);
+        String expectB = formatter.format(SourceLocation.fromPath("B.java"), srcB, false);
+
+        int threads = 8;
+        int iterations = 50;
+        java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(threads);
+        try {
+            List<java.util.concurrent.Future<?>> futures = new ArrayList<>();
+            for (int t = 0; t < threads; t++) {
+                final int seed = t;
+                futures.add(pool.submit(() -> {
+                    for (int i = 0; i < iterations; i++) {
+                        String src = (seed + i) % 2 == 0 ? srcA : srcB;
+                        String expected = src == srcA ? expectA : expectB;
+                        String result = formatter.format(SourceLocation.fromPath("T.java"), src, false);
+                        // 不直接 assertEquals，收集失败让并发问题一次性暴露
+                        if (!expected.equals(result)) {
+                            throw new AssertionError("concurrent format produced corrupted result for "
+                                    + (src == srcA ? "srcA" : "srcB"));
+                        }
+                    }
+                    return null;
+                }));
+            }
+            for (java.util.concurrent.Future<?> f : futures) {
+                f.get(); // 任何任务抛异常都会在此露出
+            }
+        } finally {
+            pool.shutdownNow();
         }
     }
 }

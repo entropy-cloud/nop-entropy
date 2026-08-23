@@ -12,4 +12,6 @@ public interface DocConvertErrors {
 
     ErrorCode ERR_NO_CONVERTER_FROM_TYPE_TO_TYPE = ErrorCode.define("nop.err.convert.no-converter-from-type-to-type",
             "没有从类型 {fromFileType} 转换到类型 {toFileType} 的转换器", ARG_FROM_FILE_TYPE, ARG_TO_FILE_TYPE);
+    ErrorCode ERR_DOC_CONVERT_UNSUPPORTED_TEXT_OUTPUT = ErrorCode.define("nop.err.doc.convert-unsupported-text-output",
+            "目标类型的渲染器不支持文本输出：{fromFileType} -> {toFileType}", ARG_FROM_FILE_TYPE, ARG_TO_FILE_TYPE);
 }

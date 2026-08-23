@@ -35,7 +35,7 @@ public class SuspendedThread {
 
     private SourceLocation lastBreakLocation;
     private int lastBreakFrameIndex;
-    private boolean suspended;
+    private volatile boolean suspended;
 
     public SuspendedThread(Thread thread, EvalRuntime rt, Function<SourceLocation, String> sourcePathGetter) {
         this.threadId = thread.getId();

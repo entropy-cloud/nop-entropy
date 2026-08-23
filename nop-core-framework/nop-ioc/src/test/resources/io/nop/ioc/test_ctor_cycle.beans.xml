@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef">
+    <!-- 构造器循环依赖：beanA 构造器引用 beanB，beanB 属性引用 beanA。
+         修复前：A 的构造器解析期间 A 尚未进入 scope，B 属性解析重入 createInstance(A)
+         静默产生第二个 A 实例（容器注册 A1、B 持有 A2，singleton 语义被破坏）。
+         修复后：检测到同线程重入创建即抛 ERR_IOC_BEAN_DEPENDS_GRAPH_CONTAINS_CYCLE。 -->
+    <bean id="beanA" class="test.io.entropy.beans.TestCtorCycleA">
+        <constructor-arg index="0">
+            <ref bean="beanB"/>
+        </constructor-arg>
+    </bean>
+
+    <bean id="beanB" class="test.io.entropy.beans.TestCtorCycleB">
+        <property name="a">
+            <ref bean="beanA"/>
+        </property>
+    </bean>
+</beans>

@@ -20,6 +20,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -133,5 +134,55 @@ public class TestConvertHelper {
         // 空串 -> null
         Assertions.assertNull(ConvertHelper.toLocalDate(""));
         Assertions.assertNull(ConvertHelper.toLocalDateTime(""));
+    }
+
+    @Test
+    public void testMonthDayToString() {
+        // MM-dd格式：day段必须是dayOfMonth，不能误用monthValue
+        assertEquals("12-25", ConvertHelper.monthDayToString(java.time.MonthDay.of(12, 25)));
+        assertEquals("01-01", ConvertHelper.monthDayToString(java.time.MonthDay.of(1, 1)));
+        assertEquals("06-05", ConvertHelper.monthDayToString(java.time.MonthDay.of(6, 5)));
+    }
+
+    @Test
+    public void testMonthDayRoundTrip() {
+        java.time.MonthDay monthDay = java.time.MonthDay.of(12, 25);
+        assertEquals(monthDay,
+                ConvertHelper.toMonthDay(ConvertHelper.monthDayToString(monthDay), NopException::new));
+    }
+
+    @Test
+    public void testLocalDateTimeMillisRoundTripDst() {
+        TimeZone oldTz = TimeZone.getDefault();
+        try {
+            // 夏令时时区：raw offset与实际偏移夏季相差1小时
+            TimeZone.setDefault(TimeZone.getTimeZone("Europe/Berlin"));
+
+            LocalDateTime summer = LocalDateTime.of(2026, 7, 15, 12, 0);
+            Long millis = ConvertHelper.localDateTimeToMillis(summer);
+            // 正反向转换必须对称（反向经Timestamp.toLocalDateTime使用含DST的实际偏移）
+            assertEquals(summer, ConvertHelper.millisToLocalDateTime(millis),
+                    "summer DST round trip must be symmetric");
+            assertEquals(summer, new Timestamp(millis).toLocalDateTime());
+
+            // 冬令时（无DST）同样对称
+            LocalDateTime winter = LocalDateTime.of(2026, 1, 15, 12, 0);
+            assertEquals(winter, ConvertHelper.millisToLocalDateTime(ConvertHelper.localDateTimeToMillis(winter)));
+        } finally {
+            TimeZone.setDefault(oldTz);
+        }
+    }
+
+    @Test
+    public void testToFalsyNaN() {
+        // javadoc规定按JavaScript语义：NaN为假值
+        assertTrue(ConvertHelper.toFalsy(Double.NaN), "NaN must be falsy");
+        assertTrue(ConvertHelper.toFalsy(Float.NaN));
+        assertTrue(ConvertHelper.toFalsy(0.0d));
+        assertTrue(ConvertHelper.toFalsy(null));
+        assertTrue(ConvertHelper.toFalsy(""));
+        assertFalse(ConvertHelper.toFalsy(1.0d));
+        assertFalse(ConvertHelper.toFalsy("a"));
+        assertFalse(ConvertHelper.toFalsy(Boolean.TRUE));
     }
 }

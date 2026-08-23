@@ -278,7 +278,7 @@ public class TestJobE2E {
         @Override public void insertTasksAndMarkFireDispatching(NopJobFire f, List<NopJobTask> t) {}
         @Override public FireScheduleOutcome completeFireAndUpdateSchedule(NopJobFire f, NopJobSchedule s) { completeFireCalled.set(true); return FireScheduleOutcome.bothUpdated(); }
         @Override public FireScheduleOutcome cancelFire(String id) { return FireScheduleOutcome.bothFailed(); }
-        @Override public void failFireWithoutSchedule(String jobFireId, String errorCode, String errorMessage) {}
+        @Override public boolean failFireWithoutSchedule(String jobFireId, String errorCode, String errorMessage) { return true; }
         @Override public NopJobFire loadFire(String id) { return fires.get(id); }
         @Override public NopJobFire getFireById(String id) { return fires.get(id); }
     }

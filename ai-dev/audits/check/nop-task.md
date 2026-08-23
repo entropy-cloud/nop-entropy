@@ -55,6 +55,10 @@ if (stepState != null && stepState.isDone()) {
 - **建议**: 在 `newStepRuntime` 中以 `taskRt.isRecoverMode()` 门控 `loadStepState`（与 `newMainStepRuntime` 对齐）；或让 load 匹配当前 runId/迭代键；并为 Fork body 步骤运行时附加分支序号以区分 stepPath。
 - **误报排除**: 已逐环验证：`SequentialTaskStep.execute:57-59` 每轮迭代调用 `executeWithParentRt`；`TaskStepExecution.saveTerminalStateIfDone:382-387` 确认终态落盘；`DefaultTaskStateStore`（内存）不受影响（load 恒 null），故仅持久化配置触发；非 Loop/Fork 场景（Graph/固定 Sequential）步骤路径唯一，行为正确。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 成立，已修复。未采用 recoverMode 硬门控（会破坏既有 resume-by-load 语义及其全部相关测试），改为在 `TaskStepRuntimeImpl.newStepRuntime` 以 task 级 attribute 记录本次执行内已实例化的 stepPath，`loadStepState` 仅对每个 stepPath 的首次实例化生效：loop 迭代 2+/fork 分支 2+（同一执行内同一 stepPath 的再次实例化）一律走 `newStepState` 正常执行，不再命中首轮终态行；重新执行（resume/re-execution 总是构建新 task runtime，attribute 集为空）的 load 语义不变。`DaoTaskStateStore` 未改动（含 fork 并发 add 的原子性由并发集合保证）。测试：`nop-task-core` `TestRepeatedStepPathExecution#loopIteration2_executesInsteadOfReusingIteration1Result`（修复前 loop 第 2 轮迭代被 continuation-skip 静默跳过，sum 停留在 1，结果 'FAIL'）；`TestRepeatedStepPathExecution#forkBranch2_executesInsteadOfReusingBranch1Result`（修复前 fork 第 2 分支复用第 1 分支结果，聚合 2+2=4，'FAIL'）；`TestRepeatedStepPathExecution#uniquePathResume_firstInstantiationStillLoads`（守卫：唯一路径步骤 resume-by-load 跳过语义不变）。
+
 ### [P0] retry 延迟重试路径每轮将 step body 执行两次（副作用重复）
 
 - **文件**: `nop-task/nop-task-core/src/main/java/io/nop/task/utils/TaskStepHelper.java:224-241`
@@ -78,6 +82,10 @@ if (delay > 0) {
 - **建议**: `schedule` 应提交空任务（纯定时器），在 thenApply 中执行一次 `action.call()`；或去掉回调中的 `action.call()`、直接基于 `result` 判定 async。同时为该路径补一条"每轮执行次数=1"的回归测试。
 - **误报排除**: 确认 `IScheduledExecutor.schedule(Callable, delay, unit)` 语义为延迟执行传入任务（非定时器占位）；`action` 为 `() -> getTaskStep().execute(stepRt)`（`RetryTaskStepWrapper:28-29`），两次调用均为真实执行；`thenApply` 参数 `result` 即 run#1 的返回值。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 成立，已修复。删除 thenApply 回调中的重复 `action.call()`，延迟轮次仅由 `schedule(action, delay)` 执行一次；回调改用 `FutureHelper.thenCompleteAsync` 组装（handler 返回 CompletionStage 时自动压平为同步完成值），顺带修复修复前同样存在的 async 延迟重试结果未压平问题（延迟轮 action 返回未完成 async 结果时，外层 future 完成值为 async TaskStepReturn，触发 `TaskStepReturn.of` 的 "asyncReturn result must not be async" Guard 异常）。测试：`nop-task-core` `TestTaskStepHelperRetryDelayExecutionCount#delayRetry_syncSuccess_executesActionExactlyOncePerRound`（修复前 1 次初始失败 + 1 轮延迟重试共执行 step body 3 次，副作用重复）；`TestTaskStepHelperRetryDelayExecutionCount#delayRetry_asyncSuccess_executesActionExactlyOncePerRound`（修复前同样 3 次执行，且 async 结果触发上述 Guard 异常）。
+
 ### [P0] ExecutorTaskStepWrapper 异步分支 whenComplete 成败条件写反：成功挂死、失败吞错
 
 - **文件**: `nop-task/nop-task-core/src/main/java/io/nop/task/step/ExecutorTaskStepWrapper.java:38-44`
@@ -97,6 +105,10 @@ result.whenComplete((data, err) -> {
 - **建议**: 交换两个分支体：`err != null → ret.completeExceptionally(err)`，否则 `ret.complete(data)`。补 executor+异步步骤的成功/失败两用例。
 - **误报排除**: JDK 行为已实测验证（成功分支 NPE 被吞、future 永不完成）；参数语义已对照 `TaskStepReturn.whenComplete` 定义；该代码自 `e3ba7cdd5` 起即存在，非近期回归。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 成立，已修复。交换 `ExecutorTaskStepWrapper.execute` 中 whenComplete 回调两个分支体：`err != null → ret.completeExceptionally(err)`，否则 `ret.complete(data)`。测试：`nop-task-core` `TestExecutorTaskStepWrapperAsyncBranch#asyncSubStepSuccess_completesWrapperWithResult`（修复前成功分支 `completeExceptionally(null)` 抛 NPE 且被回调机制吞掉，wrapper future 永不完成，任务挂死）；`TestExecutorTaskStepWrapperAsyncBranch#asyncSubStepFailure_propagatesException`（修复前失败被 `ret.complete(null)` 吞掉，以 null 结果当成功返回）。
+
 ### [P1] 步骤 input mandatory 校验条件反转：非空抛异常、空值放行
 
 - **文件**: `nop-task/nop-task-core/src/main/java/io/nop/task/step/TaskStepExecution.java:402-405`
@@ -113,6 +125,8 @@ if (inputConfig.isMandatory() && !StringHelper.isEmptyObject(value))
 - **风险**: 任务流中任何步骤声明 `<input mandatory="true">` 且传入了合法非空值 → 任务直接失败；真正的空值反而绕过校验。step 级 mandatory 功能完全不可用且反向伤害。
 - **建议**: 去掉 `!`，与 `TaskImpl.checkInputs` 对齐；补一条 mandatory 命中/放行的单测。
 - **误报排除**: 已核对 `isEmptyObject` 源码语义、`TaskStepEnhancer:67-68` 确认 `mandatory` 直接来自 `TaskInputModel.isMandatory()`（task.xdef `<input mandatory>` 属性），链路可达。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。去掉 `!`（与 TaskImpl.checkInputs 的正确版本对齐）：mandatory 且空值 → 抛错；非空值放行。新增 fixture `mandatory-input-01`（非空值正常执行）+ `mandatory-input-empty-01`（空值被拒）。红验证：HEAD 下非空值反向抛错（error 形态）、空值 `nothing was thrown`——双向反转逐字吻合审计描述。
 
 ### [P1] next 属性被静默忽略、nextOnError 被同时用作成功跳转目标（跳错分支）
 
@@ -131,6 +145,8 @@ return new TaskStepExecution(stepModel.getLocation(), stepModel.getName(), input
 - **建议**: 第一个参数改为 `stepModel.getNext()`；补 `next != nextOnError` 的顺序流跳转测试（成功应走 next、失败走 nextOnError）。
 - **误报排除**: 已确认 `_TaskStepModel` 同时存在 `next`/`nextOnError` 两个独立属性且 nextOnError 注释只描述错误场景；已 grep 全模块确认 `getNext()` 无其他运行时消费点；该写法自初始 commit 722e21af0 即存在。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`TaskStepEnhancer` 第一个参数改为 `stepModel.getNext()`：顺序流 next 生效、nextOnError 只作用于失败路径。新增 fixture `next-jump-01`（a(next=c)→c 跳过 b，RESULT=3）。红验证：HEAD 下 `expected: <OK> but was: <FAIL>`（next 被忽略按 a→b→c 执行 RESULT=4）。
+
 ### [P1] TimeoutTaskStepWrapper 取消级联失效：`cancellable.append(cancellable)` 自引用
 
 - **文件**: `nop-task/nop-task-core/src/main/java/io/nop/task/utils/TaskStepHelper.java:180-206`
@@ -147,6 +163,8 @@ if (cancelToken != null)
 - **建议**: 改为 `cancelToken.appendOnCancel(cancel);`，并在 catch 出口补 `future.cancel(false)`。
 - **误报排除**: 已核对 `Cancellable.append` 实现确认自 append 无传播语义；对照同文件 `withCancellable` 的正确模式；`cancel()` 的 cancelled 守卫使自引用不至无限递归，排除"崩溃"仅保留"失效"定性。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`cancelToken.appendOnCancel(cancel)` 替换自引用（对照 withCancellable 模式），外部取消传播到步骤 timeout cancellable；catch 出口补 `future.cancel(false)`（同步抛错后不再滞留超时定时器）。新增 `TestTaskAuditFixes.externalCancelPropagatesToTimeoutCancellable`。红验证：HEAD 下 `external cancel must propagate ... was: <false>`。
+
 ### [P1] `getDumpValue` 对 null 值 NPE：dump=true 的空输入/输出直接崩溃步骤
 
 - **文件**: `nop-task/nop-task-core/src/main/java/io/nop/task/utils/TaskStepHelper.java:318-325`
@@ -162,6 +180,8 @@ public static Object getDumpValue(Object value) {
 - **风险**: 开启 `dump`（调试特性，恰好在值可疑时使用）遇到 null 值 → 步骤以 NPE 失败，任务中断；与"调试排障"目的相悖。
 - **建议**: 方法开头加 `if (value == null) return null;`。
 - **误报排除**: 已核对两个调用点均在 dump 分支内直接传值，无 null 过滤；无其他调用者。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`getDumpValue` 开头 null 直接返回。新增 `dumpValueOfNullIsNull`。红验证：HEAD 下 NPE（error 形态）。
 
 ### [P1] Loop/Fork/Choose/If 的 stateBean（循环下标/分支决策）未持久化：DB 断点续跑语义缺失
 
@@ -188,6 +208,8 @@ if (stateBean == null) {
 - **建议**: 将 stateBean（JSON 可序列化的 DataBean）纳入持久化（复用 stateBeanData 列或新列），load 时还原；或在文档中明确当前 DB 恢复仅支持 Sequential/Graph。
 - **误报排除**: 已通读 `copyStepStateToEntity`/`toStepStateBean` 全部字段映射确认无 stateBean 通路；已核对 NopTaskStepInstance 实体可用列；Choose/If/LoopN/Fork 均依赖 stateBean（各自 execute 已读）。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 裁定暂缓。stateBean 持久化需要状态模型扩展（列/序列化通路/load 还原三处联动）与恢复语义设计（itemsExpr 非幂等时恢复语义需契约裁定：重算 or 拒绝恢复），与 P2-4（outputs 映射持久化）同属"DB 断点续跑完整性"设计主题，应合并立项；当前文档级承诺缺口已在两处标注记录。
+
 ### [P2] GraphTaskStep 在 whenComplete 回调里 throw：检测异常被吞、图可能无提示挂死
 
 - **文件**: `nop-task/nop-task-core/src/main/java/io/nop/task/step/GraphTaskStep.java:243-246`
@@ -204,6 +226,8 @@ if (runningCount.get() == 0 && !future.isDone())
 - **建议**: 回调内改为 `future.completeExceptionally(...)` 而非 throw。
 - **误报排除**: 已核对 whenComplete 回调异常不会传播给外层 promise（CompletableFuture 语义，与前述 P0-3 同机制）；同步路径的 throw 行为正确作对照。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。whenComplete 回调内改 `future.completeExceptionally(...)`（图级 future 终结、异常可见），不再 throw 进被丢弃的依赖 future。免独立红测试：回调吞异常机制与本模块 P0-3（ExecutorTaskStepWrapper，已修已测）同源，构造图死路 fixture 的成本高于同机制已验证的置信度；全量回归绿。
+
 ### [P2] stepFailureTimer 复制粘贴错误：step 失败指标被记到 success 标签的 meter 上
 
 - **文件**: `nop-task/nop-task-core/src/main/java/io/nop/task/metrics/TaskFlowMetricsImpl.java:55-57`
@@ -218,6 +242,8 @@ stepFailureTimer = createTimer(TaskConstants.METER_STEP, taskNameTag, taskVersio
 - **风险**: 步骤失败率/失败耗时监控完全失真（失败被计为成功），基于该指标的告警失效。
 - **建议**: 改为 `statusFailureTag`；补一条断言两个 timer 不为同一实例的测试。
 - **误报排除**: 已核对 `endStep:79-82` 确认失败路径确实使用 `stepFailureTimer`；Micrometer 同名同 tag 返回同实例为既定语义。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`stepFailureTimer` 改用 `statusFailureTag`，失败耗时不再计入 success 维度。免独立红测试：单标签常量替换（同名同 tag 返回同实例为 Micrometer 既定语义，修复后两 timer id 必然不同）；指标正确性无既有测试基建。
 
 ### [P2] DaoTaskStateStore 两处空 catch 吞序列化异常且无日志
 
@@ -235,6 +261,8 @@ if (json != null && json.length() <= 4000)
 - **风险**: 恢复关键数据（终态 result）序列化失败时无痕迹，DB 恢复后 result 缺失只能靠行为倒推，排障成本高。
 - **建议**: 补 `LOG.warn("nop.task.serialize-state-failed:...", e)`，与同文件其他非致命降级路径对齐。
 - **误报排除**: 已核对两处 catch 体确为空且无日志输出；同文件存在带日志的对照实现可证约定。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。两处空 catch 补 `LOG.warn`（带 taskInstanceId/stepPath 与异常），与同文件 trySerialize/extractErrorStack 的非静默约定对齐。免测试：纯日志补齐，无数值语义。
 
 ### [P2] continuation-skip 命中时不重放 outputConfigs：恢复后非 RESULT 导出变量丢失
 
@@ -256,6 +284,8 @@ if (stepState != null && stepState.isDone()) {
 - **建议**: state 持久化 outputs 映射（或至少在 skip 路径按 outputConfigs 从缓存 result 重建可恢复项），并在文档标注限制。
 - **误报排除**: 已核对 `TaskStepStateBean.succeed:41-44` 仅 setResultValue；正常路径 initOutputs 语义如上；两路径行为差异明确。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 裁定暂缓。非 RESULT 导出变量的恢复需要 outputs 映射持久化（与 P1-5 stateBean 同属恢复数据模型扩展），"从缓存 result 重建"仅能覆盖单值输出且语义含混；与 P1-5 合并立项设计。
+
 ### [P3] DefaultTaskStateStore.newStepState 将 parentStepPath 记录为祖父路径
 
 - **文件**: `nop-task/nop-task-core/src/main/java/io/nop/task/state/DefaultTaskStateStore.java:44-47`
@@ -271,6 +301,8 @@ if (parentState != null) {
 - **风险**: 仅内存 store 使用该字段（不持久化），影响限于运行时元数据/诊断信息错误；stepPath 本身计算正确。
 - **建议**: 与 DaoTaskStateStore 对齐改为 `parentState.getStepPath()`。
 - **误报排除**: 两个实现的差异已并排核对；DefaultTaskStateStore 无持久化消费方（loadStepState 恒 null）。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。改为 `parentState.getStepPath()`（与 DaoTaskStateStore 对齐）。新增 `parentStepPathIsDirectParentPath`（三级链验证）。红验证：HEAD 下 `expected: <gp/p> but was: <null>`（取祖父路径隔层丢失）。
 
 ### [P3] ParallelTaskStep/AbstractForkTaskStep 聚合时未完成分支被记为 ERR_TASK_CANCELLED 而非实际状态
 
@@ -291,6 +323,8 @@ if (FutureHelper.isFutureDone(future)) {
 - **风险**: aggregator 读到误导性错误码（把"未及完成"报告为"被取消"）；两类并行步骤的聚合 map key 风格不一致，聚合器需要按不同 key 规则取数。
 - **建议**: 引入专门的"未完成"错误码或标注；统一 key 为 stepName/index 并写入文档。
 - **误报排除**: 已对照 `ParallelTaskStep.execute:80-89` 确认 key 约定不一致；`ErrorBean` 直接以 errorCode 字符串构造的语义已核对。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 复查后裁定维持现状。（1）key 风格差异系结构必然：Fork 各分支执行**同一个** body 步骤（同名），只能以 index 区分；ParallelTaskStep 各子步骤名唯一可用 stepName——两种并行结构的聚合 key 规则本就不同，"统一"反而破坏其一；（2）未完成分支标注 CANCELLED：joinType 提前返回时未完成分支确实不再被等待/多数实现会连带取消，语义近似成立；引入专属"未完成"错误码属新语义设计（聚合器/监控消费方需同步识别），收益低于成本。已在标注记录决策点。
 
 ## 维度结论摘要
 

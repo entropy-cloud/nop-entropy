@@ -45,6 +45,8 @@ try {
 
 ---
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复并附回归测试。`open()` 消除重复读取（单次 readBytes）；`MemoryUsageSetting` 通过 PDFBox 3.0.6 的 `settings.streamCache` 真正传入 Loader（file 与 byte[] 两条路径）。测试：`nop-pdf` 现有解析测试回归（默认 memoryRestrict 开启）。
+
 ### [P1] PdfDoc.splitIntoPages 差一错误：最后一页永远不会被拆出
 
 - **文件**: `nop-format/nop-pdf/src/main/java/io/nop/pdf/core/PdfDoc.java:143-151`
@@ -64,6 +66,8 @@ public void splitIntoPages(File dir) {
 - **建议**: 条件改为 `i <= n`；`PdfDoc doc = selectPage(i); try { doc.save(file); } finally { doc.close(); }`。
 - **误报排除**: 已通读整个方法确认无其他补偿逻辑；`selectPage` 内部对越界页仅跳过不报错，不掩盖该差一。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复并附回归测试。循环条件 `i <= n`；每页 selectPage 的文档用后关闭。测试：`TestPdfDocSplit#testSplitIntoPagesIncludesLastPage`（2页PDF拆出2个文件，修复前只有1个）。
+
 ### [P1] SVGPath.toSVGString() 的 SEG_ARCTO 分支缺 break，路径含弧段时必然抛 RuntimeException；且 A 指令输出 8 个坐标
 
 - **文件**: `nop-format/nop-svg/src/main/java/io/nop/svg/model/SVGPath.java:450-485`（重点 475-480）
@@ -79,6 +83,8 @@ default:
 - **风险**: 任何含 `a/A` 命令的 path 调用 `toString()/toSVGString()` 即崩溃（bare RuntimeException，违反平台错误处理两档策略）。触发路径现实：`SVGPath.parse("M0 0 A5 5 0 1 1 10 10").toString()`。上游 Batik 原版对应代码（`ExtendedPathIterator.SEG_ARCTO` 分支，`float[7]`）带 break，此处为移植引入的缺陷。
 - **建议**: `case SEG_ARCTO` 补 break；输出改为 7 个坐标（coords[0..6]）；异常改为 `NopException` + SVG 模块 ErrorCode。
 - **误报排除**: 已确认 `arcRel/arcAbs` 经 AWTPathProducer（AWTPathProducer.java:170-177）真实写入 SEG_ARCTO 段；模块内 SVGPath 无其他仓库内调用方（外部使用者直接暴露于此缺陷），按"库公共 API 明确 bug、仓内暂无触发方"定级 P1。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复并附回归测试。SEG_ARCTO 补 break；A 指令输出 7 个坐标；default 分支改 NopException + SVG 模块错误码。测试：`nop-svg` `TestSVGPathToSVGString#testArcSegmentToString`（修复前必抛 RuntimeException）。
 
 ### [P1] ExtractStripper 每解析一页都整页渲染 scale=4 的位图（约 32MB/页），仅为坐标换算
 
@@ -97,6 +103,8 @@ s = g2d.getTransform().createTransformedShape(s);    // writeString 中仅用于
 - **风险**: 大 PDF（数百页）解析时 CPU/内存放大 16 倍（4x4），OOM 与长尾延迟高发；这是服务端批量文本抽取的主链路（tryParsePage 每页调用）。
 - **建议**: 位图仅承载变换，用 1x1 图或直接构造 `AffineTransform.getScaleInstance(scale, scale)` 做数学换算，删除 renderImage；确需页图时再按 `exportPageImage` 条件渲染。
 - **误报排除**: 已通读 writeString 确认 g2d 只用于 draw 调试矩形 + getTransform；ExtractPageDrawer.drawImage 已被覆写为不落画面板，渲染成本主要来自位图分配与矢量绘制本身，量级结论成立。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。渲染固定 `RENDER_SCALE=1`（仅驱动 PageDrawer 的图形/图片提取回调），`ExtractPageDrawer` 按 `config.getImageScale()/RENDER_SCALE` 补偿边界（flip+scale 复合变换对 scale 齐次，数学等价）；文本侧 stripper 自有 g2d 变换不变。每页内存占用降约 16 倍。
 
 ### [P1] Bubble/Heatmap 渲染器把 null 数据点静默渲染为 (0,0) 幽灵数据
 
@@ -120,6 +128,8 @@ dataset.addSeries(seriesName, data);
 
 ---
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复并附回归测试。Bubble/Heatmap 先统计非 null 点数再构造数组，null 点被跳过。测试：`TestRenderersRegression#testBubbleSkipsNullPoints/#testHeatmapSkipsNullPointsAndSetsPaintScale`。
+
 ### [P2] BarChartRenderer 对 plotArea/barConfig 缺失无防护，直接 NPE
 
 - **文件**: `nop-format/nop-chart-export/src/main/java/io/nop/chart/export/renderer/BarChartRenderer.java:37, 44, 102`
@@ -134,6 +144,8 @@ if (barConfig.isStackedChart()) {   // barConfig 可为 null
 - **风险**: 最小化 BAR 图模型（type=bar + 数据引用，未配置 plotArea/barConfig）触发 NPE，被 ChartExporter 包装成笼统的 ERR_CHART_RENDER_FAILED("null")，排障困难。同族 LineChartRenderer（38 行）做了 `getPlotArea() != null` 判断，行为漂移。
 - **建议**: 与 LineChartRenderer 对齐：`chartModel.getPlotArea() != null ? ...getBarConfig() : null`，`barConfig != null && barConfig.isStackedChart()`。
 - **误报排除**: 已核对 ChartModel/PlotArea 为模型字段默认 null（无强制初始化），且渲染链路无前置非空校验（ChartDataValidator 只校验 type/width/height）。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复并附回归测试。`getPlotArea()`/`barConfig` 判空。测试：`TestRenderersRegression#testBarMinimalModelNoNpe`（修复前最小 BAR 模型 NPE）。
 
 ### [P2] ResourceDocumentParser 构造器吞掉 IOException，stripper 可能为 null 导致后续 NPE
 
@@ -151,6 +163,8 @@ try {
 - **风险**: 违反平台错误处理两档策略（异常吞噬、无日志无错误码），故障时表现为难以定位的 NPE 而非原始 IOException。
 - **建议**: 构造器直接声明/包装抛出（`throw NopException.adapt(e)`），或至少记录日志并快速失败。
 - **误报排除**: PDFTextStripper 构造器确实声明 `throws IOException`（ExtractStripper 构造器签名 55 行），非常规不可达分支。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。构造器异常以 `NopException.adapt(e)` 抛出，不再留下 null stripper 导致首次 stripPage NPE。
 
 ### [P2] memoryRestrictEnabled/memoryRestrictSize 是死配置，PDFBox MemoryUsageSetting 从未生效
 
@@ -171,6 +185,8 @@ if (this.config.isMemoryRestrictEnabled()) {
 - **风险**: 契约漂移：用户以为开启了 256MB 混合内存限制，实际 PDFBox 3 默认全内存/临时文件策略不受控；大文档解析内存行为与配置预期不符。
 - **建议**: PDFBox 3.x 用 `Loader.loadPDF(file, memUsageSetting)` 重载（3.0.3 存在 `loadPDF(File, MemoryUsageSetting)`）真正传入，或删除死配置避免误导。
 - **误报排除**: 已通读 open() 全文确认 settings 无第二处使用；grep 确认 MemoryUsageSetting 在模块内仅此一处 import 使用。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。settings 经 `settings.streamCache` 传入 `Loader.loadPDF`（file 与 byte[] 两个重载），256MB 混合内存限制真实生效。
 
 ### [P2] exportPageImage 配置链路断裂：两个内部开关无 setter 恒为 false，页图永远不会导出
 
@@ -193,6 +209,8 @@ if (enableImageDebug && pageImgFile != null) { ImageIO.write(image, "png", new F
 - **建议**: 删除双层开关，直接以 `config.isExportPageImage()` 判定，并用 workDir 拼接真实输出路径。
 - **误报排除**: grep 全模块确认两个布尔字段除声明与读取外无写入点。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。删除恒为 false 的双层内部开关，`config.isExportPageImage()` 直接决定导出；输出路径改用 workDir + 文件名（此前用资源路径当文件路径）。
+
 ### [P2] PageIterator.next() 吞 IOException：printStackTrace 后返回 null 页
 
 - **文件**: `nop-format/nop-pdf/src/main/java/io/nop/pdf/tabula/PageIterator.java:29-34`
@@ -210,6 +228,8 @@ return nextPage;   // 可能为 null
 - **风险**: `for (Page p : extractor.extract())` 的调用方（tabula 迭代入口）在后续解引用时 NPE，或静默丢失后续页；printStackTrace 违反平台日志规范（应使用 SLF4J + NopException）。
 - **建议**: 抛出 `NopException.adapt(e)` 或跳过并 LOG.warn，绝不返回 null 元素。
 - **误报排除**: PageIterator 是 ObjectExtractor.extract(Iterable) 的公开返回类型，PdfDoc.extractTables 即经 `extract(int)` → `range(...).next()` 使用（64-66 行），非死代码。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。`PageIterator.next()` 页提取失败抛 `NopException.adapt(e)`，不再 printStackTrace 后返回 null 元素。
 
 ### [P2] NurminenDetectionAlgorithm.detect() 静默吞掉渲染/去文本异常，表格检测无声降级为空
 
@@ -234,6 +254,8 @@ try {
 - **建议**: 至少 LOG.warn 带页码上下文；`catch (Exception)` 收窄为 IOException。
 - **误报排除**: 已确认 detect(Page) 是 DetectionAlgorithm 接口实现、被表格抽取链路调用（tabula 包内 TableDetector/算法注册），可达。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。渲染/去文本失败以 `LOG.warn` 记录（含异常栈）后降级返回空检测列表；finally 中 close 失败同样记日志。
+
 ### [P2] ResourceDocumentHtmlParser 目录回读 off-by-one + 无防护解析
 
 - **文件**: `nop-format/nop-pdf/src/main/java/io/nop/pdf/extract/parser/ResourceDocumentHtmlParser.java:102-107, 116-123`
@@ -254,6 +276,8 @@ int pageBlockIndex = Integer.parseInt(idParam.substring(idParam.indexOf("-") + 1
 - **建议**: `doc.getPages().get(pageIndex - 1)` 或改用 pageNo→page 映射；对 head/body/id 做空防护。
 - **误报排除**: 已双向核对写侧（DefaultResourceHtmlWriter.writeToc / writePage 的 id 生成）与读侧索引语义，确认 1-based→0-based 错位成立。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复并附回归测试。目录 href 1-based 页码换算为 0-based 索引（`get(pageIndex - 1)`），越界条目跳过并 warn；head/body 缺失防护（body 缺失抛 NopException）；block id 非法跳过。测试：`TestResourceDocumentHtmlParser#testTocPageIndexIsOneBased`（修复前单页文档直接越界）。
+
 ### [P2] HeatmapChartRenderer.setupColorMapping 构造色带但从不设置 PaintScale，热力图渲染为单色
 
 - **文件**: `nop-format/nop-chart-export/src/main/java/io/nop/chart/export/renderer/HeatmapChartRenderer.java:104-117`
@@ -270,6 +294,8 @@ private void setupColorMapping(XYBlockRenderer renderer) {
 - **风险**: HEATMAP 类型导出的图丢失全部热度信息（输出视觉上是单色网格），功能名存实亡且无任何警告。
 - **建议**: 按 z 值域构建 `LookupPaintScale` 并 `renderer.setPaintScale(...)`。
 - **误报排除**: 已通读该类全部 117 行，除 blockWidth/Height 外无其他渲染器配置；无其他地方补设 PaintScale。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复并附回归测试。按数据集 z 值域构建 `LookupPaintScale` 并 `setPaintScale`，六段色带蓝→红。测试：`TestRenderersRegression#testHeatmapSkipsNullPointsAndSetsPaintScale`（断言 PaintScale 非空且上界正确）。
 
 ### [P2] ChartExportOptions 大量死配置项 + 超时检查无法中断渲染
 
@@ -290,6 +316,8 @@ if (timeoutMs > 0 && (System.currentTimeMillis() - startTime) > timeoutMs) { thr
 - **风险**: API 契约与实现漂移：调用方设置这些选项得到"看似成功但无效果"的结果；恶意/超大模型可无限占用渲染线程。
 - **建议**: 删除或实现死配置项；渲染线程化 + 真超时（或至少在数据解析分步处检查 deadline）；antiAlias 改为 chart.setAntiAlias / RenderingHints。
 - **误报排除**: 已 grep 全模块逐一确认各 getter 无调用（backgroundColor 的命中均为图表模型样式而非 options）；IChartExporter/ChartExporter 在模块外无调用方，属库 API 契约问题而非线上故障。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 部分修复，其余暂缓。死配置项（dpi/quality/backgroundColor/timeoutMs/maxDataSize）与渲染真超时需要 API 契约决策（删除是破坏性变更），暂缓；本项中 Heatmap PaintScale 与 Bubble null 的确定性缺陷已单独修复（见上）。
 
 ### [P2] TrendLineRenderer 全部为空壳实现；ComboChartRenderer 无视数据集名称与 series 类型
 
@@ -315,6 +343,8 @@ int primaryCount = Math.max(1, dataSets.size() / 2);  // 按位置前半=柱、�
 
 ---
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已确认，暂缓。趋势线（线性回归/移动平均）与 Combo 系列名/类型分组是功能实现而非缺陷修复，需要单独的模型-渲染器设计与验收标准。
+
 ### [P3] AbstractResourceDocumentExporter.exportToWriter 默认抛 new UnsupportedEncodingException()
 
 - **文件**: `nop-format/nop-pdf/src/main/java/io/nop/pdf/extract/export/AbstractResourceDocumentExporter.java:45-48`
@@ -331,6 +361,8 @@ public void exportToWriter(ResourceDocument doc, Writer out, String encoding) th
 - **建议**: 改为 `UnsupportedOperationException("exportToWriter not implemented")` 或声明抽象。
 - **误报排除**: 确认 Txt/Html 子类均覆写该方法，默认实现仅在新增子类漏写时可达。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。默认实现改抛 `UnsupportedOperationException`（带类名消息），不再用编码异常表达未实现。
+
 ### [P3] SVGPath.clone() 吞 CloneNotSupportedException 并返回 this
 
 - **文件**: `nop-format/nop-svg/src/main/java/io/nop/svg/model/SVGPath.java:705-708`
@@ -345,6 +377,8 @@ return this;
 - **风险**: 本类实现 Cloneable，该分支实际不可达，为 Batik 原版遗留写法，故 P3。
 - **建议**: 直接在 catch 中抛 `NopException`/AssertionError，正常路径返回 result。
 - **误报排除**: 已确认 `implements Cloneable`（45 行），分支不可达，仅作规范问题记录。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。catch 中抛 `NopException`（保留 cause），不再吞异常返回 this 破坏 clone 副本语义。
 
 ### [P3] SVGPath.transform() 对弧线参数与未用数组尾部按 2D 点变换
 
@@ -361,6 +395,8 @@ public void transform(AffineTransform at) {
 - **风险**: 对含弧段路径（或任何触发过扩容的路径）调用 transform 后，`toSVGString()`/EPI 输出的几何数据损坏。模块内无调用方，属库 API 潜在缺陷，P3。
 - **建议**: 仅变换 M/L/Q/C 段的点对；弧段需按 SVG 规范重算 rx/ry/angle（旋转角仅对 affine 的线性部分敏感）。
 - **误报排除**: 已核对 makeRoom 扩容逻辑（716-741 行）确认容量>有效长度；已 grep 全仓确认 transform 无调用方，降级 P3。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已确认，暂缓。弧段参数的仿射重算（rx/ry/angle 仅对线性部分敏感）与 numVals 有效长度裁剪需要按 SVG 规范实现并配几何测试；模块内无调用方，风险可控。
 
 ### [P3] tabula Utils 单参 pageConvertToImage：close 文档后再渲染 + try-with-resources 双 close
 
@@ -382,6 +418,8 @@ public static BufferedImage pageConvertToImage(PDPage page, int dpi, ImageType i
 - **建议**: 删除该重载或移除渲染前的 close。
 - **误报排除**: 已 grep 确认全模块仅双参版本被调用。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。移除渲染前的显式 close（由 try-with-resources 统一收尾）。
+
 ### [P3] SVGFontMapper 为空类
 
 - **文件**: `nop-format/nop-svg/src/main/java/io/nop/svg/font/SVGFontMapper.java:10-11`
@@ -395,6 +433,8 @@ public class SVGFontMapper {
 - **风险**: 使用者按类名预期功能会落空；编译产物含僵尸类。
 - **建议**: 删除或补充实现。
 - **误报排除**: 已读全文（11 行）；grep 确认全仓无引用。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。空类已删除（全仓无引用）。
 
 ### [P3] ObjectExtractor.close() 关闭不属于自己的 PDDocument
 
@@ -413,6 +453,8 @@ public class ObjectExtractor implements java.io.Closeable {
 - **风险**: 任何调用方按 Closeable 惯例 try-with-resources 使用时，会意外关闭宿主 PdfDoc 的底层文档，后续操作全部失败。
 - **建议**: close 改为空操作或文档注释明确"不拥有文档"；或改由调用方负责生命周期。
 - **误报排除**: 已核对 PdfDoc.extractTables（PdfDoc.java:153-158）未关闭 extractor，当前仓内安全；风险在 API 语义层。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。`close()` 改为空操作并注释所有权约定（文档由构造方持有），try-with-resources 使用方不再意外关闭宿主文档。
 
 ### [P3] ResourceDocumentTool 可变单例：_instance 非 final 且 processors 列表可并发替换
 
@@ -437,3 +479,5 @@ public void setPostProcessors(List<IResourceDocumentProcessor> processors) { thi
 - 最需要优先处理: P0 的 open() 双读（默认配置下非文件 PDF 解析全挂）、P1 的 splitIntoPages 差一（静默丢页）与 ExtractStripper 每页 32MB 位图（大文档 OOM）。
 - nop-svg 与 nop-chart-export 作为库模块，主要问题是**契约漂移**（配置项/功能静默不生效：趋势线、热力图着色、组合图系列名、导出选项五个死配置），以及两处确定性实现缺陷（toSVGString 缺 break、Bubble null→0）。
 - 未发现 D5（XXE/SSRF/命令注入）与 D7（Nop IoC/错误码规范）层面的违背；D3 方面 chart-export 渲染器均为无状态、注册表用 ConcurrentHashMap，并发安全。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。`_instance` 改 final；processors 改 volatile + setter 防御性拷贝。

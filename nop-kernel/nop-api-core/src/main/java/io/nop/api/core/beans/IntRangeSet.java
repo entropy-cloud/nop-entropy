@@ -8,7 +8,9 @@
 package io.nop.api.core.beans;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.nop.api.core.ApiErrors;
 import io.nop.api.core.annotations.core.StaticFactoryMethod;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.json.IJsonString;
 import io.nop.api.core.util.ApiStringHelper;
 import io.nop.api.core.util.Guard;
@@ -67,12 +69,20 @@ public class IntRangeSet implements IJsonString {
 
     @JsonIgnore
     public int getFirstBegin() {
+        checkNotEmpty();
         return ranges.get(0).getBegin();
     }
 
     @JsonIgnore
     public int getLastEnd() {
+        checkNotEmpty();
         return ranges.get(ranges.size() - 1).getEnd();
+    }
+
+    private void checkNotEmpty() {
+        if (ranges.isEmpty())
+            throw new NopException(ApiErrors.ERR_CHECK_INVALID_POSITION_INDEX)
+                    .param(ApiErrors.ARG_INDEX, 0).param(ApiErrors.ARG_SIZE, 0);
     }
 
     @JsonIgnore
@@ -105,7 +115,7 @@ public class IntRangeSet implements IJsonString {
      * 合并所有相互连接的区间
      */
     public IntRangeSet compact() {
-        if (size() == 1) return this;
+        if (size() <= 1) return this;
 
         IntRangeBean[] array = toSortedArray();
         List<IntRangeBean> list = new ArrayList<>(array.length);

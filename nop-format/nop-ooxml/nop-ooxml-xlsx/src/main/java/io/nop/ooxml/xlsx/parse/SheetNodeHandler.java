@@ -39,6 +39,9 @@ import io.nop.excel.model.constants.ExcelDataValidationType;
 import io.nop.excel.util.UnitsHelper;
 import io.nop.ooxml.xlsx.model.SharedStringsPart;
 
+import static io.nop.ooxml.xlsx.XlsxErrors.ARG_CELL_REF;
+import static io.nop.ooxml.xlsx.XlsxErrors.ERR_XLSX_CELL_REF_OUT_OF_RANGE;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -69,8 +72,22 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
     private Double rowHeight;
     private int nextRowNum; // some sheets do not have rowNums, Excel can read them so we should try to handle them
     // correctly as well
+    private int nextColNum; // c/@r 省略时按列出现顺序推算
     private String cellRef;
     private int styleId;
+
+    /**
+     * Excel 2007+ 的行列上限，用于拦截不可信文件中的越界引用（如 r="ZZZZZZ1"），
+     * 避免下游集合按恶意索引逐位补 null 造成内存放大
+     */
+    static final int MAX_COLUMN_INDEX = 16384;
+    static final int MAX_ROW_INDEX = 1048576;
+
+    private void checkCellRange(CellPosition cellPos, String ref) {
+        if (cellPos.getColIndex() >= MAX_COLUMN_INDEX || cellPos.getRowIndex() >= MAX_ROW_INDEX
+                || cellPos.getColIndex() < 0 || cellPos.getRowIndex() < 0)
+            throw new NopException(ERR_XLSX_CELL_REF_OUT_OF_RANGE).param(ARG_CELL_REF, ref);
+    }
 
     /**
      * Read only access to the shared strings table, for looking up (most) string cell's contents
@@ -179,12 +196,13 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
             String rowNumStr = getAttr(attrs, "r");
             boolean hidden = getAttrBoolean(attrs, "hidden", false);
             if (rowNumStr != null) {
-                rowNum = Integer.parseInt(rowNumStr) - 1;
+                rowNum = ConvertHelper.toPrimitiveInt(rowNumStr, 0, NopException::new) - 1;
             } else {
                 rowNum = nextRowNum;
             }
             rowHeight = getAttrDouble(attrs, "ht", null);
             output.startRow(rowNum, rowHeight, hidden);
+            nextColNum = 0;
         }
         // c => cell
         else if ("c".equals(localName)) {
@@ -193,6 +211,17 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
             // this.formatIndex = -1;
             // this.formatString = null;
             cellRef = getAttr(attrs, "r");
+            if (cellRef == null) {
+                // ECMA-376 允许省略 c/@r，省略时按出现顺序推算（与 row/@r 缺省的处理对称）
+                cellRef = CellPosition.of(rowNum, nextColNum).toABString();
+            }
+            CellPosition parsedPos = CellPosition.fromABString(cellRef);
+            if (parsedPos != null) {
+                nextColNum = parsedPos.getColIndex() + 1;
+                checkCellRange(parsedPos, cellRef);
+            } else {
+                nextColNum++;
+            }
             String cellType = getAttr(attrs, "t");
             String cellStyleStr = getAttr(attrs, "s");
             if (cellStyleStr != null) {
@@ -425,15 +454,18 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
         }
     }
 
-    private void outputCell() {
-        Object thisStr = null;
+    private void outputCell() {        Object thisStr = null;
         String formulaStr = null;
 
         // Process the value contents as required, now we have it all
         switch (nextDataType) {
             case BOOLEAN:
-                char first = value.charAt(0);
-                thisStr = first == '1';
+                if (value.length() > 0) {
+                    char first = value.charAt(0);
+                    thisStr = first == '1';
+                } else {
+                    thisStr = Boolean.FALSE;
+                }
                 break;
 
             case ERROR:
@@ -460,7 +492,7 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
             case SST_STRING:
                 String sstIndex = value.toString();
                 if (!sstIndex.isEmpty()) {
-                    int idx = Integer.parseInt(sstIndex);
+                    int idx = ConvertHelper.toPrimitiveInt(sstIndex, 0, NopException::new);
                     thisStr = sharedStringsTable.getItemAt(idx);
                 }
                 break;

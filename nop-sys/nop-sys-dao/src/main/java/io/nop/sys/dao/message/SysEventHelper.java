@@ -108,6 +108,10 @@ public class SysEventHelper {
             if (request.getData() != null) {
                 payload.eventData = JsonTool.stringify(request.getData());
             }
+        } else if (message != null) {
+            // 非ApiRequest消息（String/Map/POJO，含ack回路的消费者返回值）：序列化消息本体，
+            // 不再静默落"{}"导致消费端拿到空数据（发送端完好、消费端data为空，极难定位）
+            payload.eventData = JsonTool.stringify(message);
         }
         return payload;
     }

@@ -244,9 +244,9 @@ public class BeanConditionEvaluator {
         }
 
         if (conditionModel.getUnlessProperty() != null) {
-            BeanIfPropertyCondition ifProperty = conditionModel.getIfProperty();
-            if (checkProperty(ifProperty.getName(), ifProperty.getValue(),
-                    ifProperty.isEnableIfMissing(), ifProperty.isEnableIfDebug())) {
+            BeanUnlessPropertyCondition unlessProperty = conditionModel.getUnlessProperty();
+            if (checkProperty(unlessProperty.getName(), unlessProperty.getValue(),
+                    unlessProperty.isEnableIfMissing(), unlessProperty.isEnableIfDebug())) {
                 return false;
             }
         }

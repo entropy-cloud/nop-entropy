@@ -29,7 +29,8 @@ public class UnifiedDiffLine {
     public UnifiedDiffLine(@JsonProperty("type") UnifiedDiffLineType type,
                            @JsonProperty("content") String content) {
         this.type = Guard.notNull(type, "type");
-        this.content = Guard.notEmpty(content, "content");
+        // 空行在 unified diff 中表示为单个前缀字符，content 为空串是合法输入
+        this.content = Guard.notNull(content, "content");
     }
 
     public UnifiedDiffLineType getType() {

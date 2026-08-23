@@ -547,6 +547,14 @@
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
                         propId="23" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
             </columns>
+            <indexes>
+                <!-- 事件消费轮询按 topic+status+scheduleTime 扫描，零索引会随表增长退化为全表扫描 -->
+                <index name="IX_NOP_SYS_EVENT_TOPIC_STATUS" unique="false">
+                    <column name="eventTopic"/>
+                    <column name="eventStatus"/>
+                    <column name="scheduleTime"/>
+                </index>
+            </indexes>
         </entity>
         <entity className="io.nop.sys.dao.entity.NopSysBroadcastEvent" createTimeProp="createTime" createrProp="createdBy"
                 displayName="广播事件流" name="io.nop.sys.dao.entity.NopSysBroadcastEvent" registerShortName="true"
@@ -586,6 +594,13 @@
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
                         propId="15" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
             </columns>
+            <indexes>
+                <!-- 广播消费按 topic+eventTime 扫描 -->
+                <index name="IX_NOP_SYS_BROADCAST_TOPIC_TIME" unique="false">
+                    <column name="eventTopic"/>
+                    <column name="eventTime"/>
+                </index>
+            </indexes>
         </entity>
         <entity className="io.nop.sys.dao.entity.NopSysServiceInstance" createTimeProp="createTime" displayName="服务实例"
                 name="io.nop.sys.dao.entity.NopSysServiceInstance" registerShortName="true"

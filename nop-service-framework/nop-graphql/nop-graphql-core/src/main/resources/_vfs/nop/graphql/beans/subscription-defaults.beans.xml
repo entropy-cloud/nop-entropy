@@ -9,7 +9,6 @@
 
     <bean id="nopGraphqlSubscriptionManager" class="io.nop.graphql.core.subscription.GraphQLSubscriptionManager"
           ioc:type="@bean:id" ioc:default="true">
-        <property name="graphQLEngine" ref="nopGraphQLEngine"/>
         <property name="messageService" ref="nopMessageService"/>
         <property name="maxActiveSubscriptions" value="@cfg:nop.graphql.subscription.max-active|1000"/>
     </bean>

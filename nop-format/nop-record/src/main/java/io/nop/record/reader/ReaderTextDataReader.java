@@ -191,10 +191,13 @@ public class ReaderTextDataReader implements ITextDataReader {
         }
 
         checkNotClosed();
+        if (maxLength == 0)
+            return "";
 
         try {
             StringBuilder result = new StringBuilder();
             int charsRead = 0;
+            boolean sawEol = false;
 
             while (charsRead < maxLength) {
                 int ch;
@@ -220,14 +223,19 @@ public class ReaderTextDataReader implements ITextDataReader {
                         pushedBackChar = nextCh;
                         hasPushedBack = true;
                     }
+                    sawEol = true;
                     break;
                 } else if (ch == '\n') {
+                    sawEol = true;
                     break;
                 } else {
                     result.append((char) ch);
                 }
             }
 
+            // EOF且未读到任何字符（空行会消费换行符），返回null与其他reader的EOF语义一致
+            if (charsRead == 0 && !sawEol)
+                return null;
             return result.toString();
         } catch (IOException e) {
             throw new NopException(ERR_RECORD_NO_ENOUGH_DATA).cause(e);

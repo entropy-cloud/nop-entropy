@@ -49,7 +49,28 @@ public class StreamSinkOperator<IN> extends AbstractUdfStreamOperator<Void, Sink
      */
     @Override
     public StreamSinkOperator<IN> copyForSubtask() {
-        return new StreamSinkOperator<>(userFunction);
+        return copyForSubtask(-1);
+    }
+
+    /**
+     * Index-aware copy for a parallel subtask. For plain sink functions the user function
+     * is still shared (results stay visible to the test caller), but a
+     * {@link TwoPhaseCommitSinkFunction} is <strong>copied</strong> into an independent
+     * per-subtask instance: a 2PC sink buffers the current epoch and keys
+     * {@code pendingCommits} by epoch, so sharing one instance across subtasks makes
+     * every subtask's {@code saveState(epochId)} overwrite the previous subtask's batch
+     * (silent data loss under {@code parallelism > 1}). The subtask identity is passed
+     * into the copy so per-subtask commit keys / output paths stay stable across
+     * region restarts.
+     */
+    @Override
+    @SuppressWarnings("unchecked")
+    public StreamSinkOperator<IN> copyForSubtask(int subtaskIndex) {
+        SinkFunction<IN> fn = this.userFunction;
+        if (fn instanceof TwoPhaseCommitSinkFunction) {
+            fn = ((TwoPhaseCommitSinkFunction<IN>) fn).copyForSubtask(Math.max(subtaskIndex, 0));
+        }
+        return new StreamSinkOperator<>(fn);
     }
 
     @Override

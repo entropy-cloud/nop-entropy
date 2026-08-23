@@ -18,11 +18,11 @@ import java.util.concurrent.CompletionStage;
 public class TdMessageService implements IMessageService {
     @Override
     public CompletionStage<Void> sendAsync(String topic, Object message, MessageSendOptions options) {
-        return null;
+        throw new UnsupportedOperationException("TdMessageService.sendAsync is not implemented");
     }
 
     @Override
     public IMessageSubscription subscribe(String topic, IMessageConsumer listener, MessageSubscribeOptions options) {
-        return null;
+        throw new UnsupportedOperationException("TdMessageService.subscribe is not implemented");
     }
 }

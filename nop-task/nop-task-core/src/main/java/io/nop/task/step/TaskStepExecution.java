@@ -399,7 +399,7 @@ public class TaskStepExecution implements ITaskStepExecution {
             IEvalScope scope = inputConfig.isFromTaskScope() ? taskRt.getEvalScope() : parentScope;
             IEvalAction expr = inputConfig.getExpr();
             Object value = expr == null ? parentScope.getValue(name) : expr.invoke(scope);
-            if (inputConfig.isMandatory() && !StringHelper.isEmptyObject(value))
+            if (inputConfig.isMandatory() && StringHelper.isEmptyObject(value))
                 throw new NopException(ERR_TASK_MANDATORY_INPUT_NOT_ALLOW_EMPTY)
                         .param(ARG_STEP_PATH, stepRt.getStepPath())
                         .param(ARG_INPUT_NAME, name);

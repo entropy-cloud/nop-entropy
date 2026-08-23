@@ -36,6 +36,9 @@ public class OrmSessionEntityCache implements IOrmSessionEntityCache {
     private Map<String, EntityCache> tempEntityCaches = null;
     private Set<IOrmEntity> tempRemoves = null;
 
+    // visiting过程中记录待执行的removeAll操作，遍历结束后统一处理
+    private Set<String> tempRemoveAllNames = null;
+
     // 是否正在调用forEach函数遍历对象
     private boolean visiting;
 
@@ -217,6 +220,7 @@ public class OrmSessionEntityCache implements IOrmSessionEntityCache {
         if (this.visiting) {
             this.tempEntityCaches = null;
             this.tempRemoves = null;
+            this.tempRemoveAllNames = null;
             this.entityCaches = new HashMap<>();
         } else {
             for (EntityCache cache : entityCaches.values()) {
@@ -232,6 +236,12 @@ public class OrmSessionEntityCache implements IOrmSessionEntityCache {
             if (this.tempEntityCaches != null) {
                 tempEntityCaches.remove(entityName);
             }
+            // 正在遍历entityCaches时直接clear会抛ConcurrentModificationException，
+            // 因此记录entityName，在遍历结束后统一清除
+            if (this.tempRemoveAllNames == null)
+                this.tempRemoveAllNames = new HashSet<>();
+            this.tempRemoveAllNames.add(entityName);
+            return;
         }
 
         EntityCache cache = this.entityCaches.get(entityName);
@@ -252,6 +262,8 @@ public class OrmSessionEntityCache implements IOrmSessionEntityCache {
                         processor.accept(entity);
                     }
                 }
+
+                processPendingRemoveAll();
 
                 if (this.tempRemoves != null) {
                     for (IOrmEntity entity : tempRemoves) {
@@ -282,6 +294,8 @@ public class OrmSessionEntityCache implements IOrmSessionEntityCache {
                         processor.accept(entity);
                     }
                 }
+
+                processPendingRemoveAll();
 
                 if (this.tempRemoves != null) {
                     for (IOrmEntity entity : tempRemoves) {
@@ -320,6 +334,8 @@ public class OrmSessionEntityCache implements IOrmSessionEntityCache {
                     }
                 }
 
+                processPendingRemoveAll();
+
                 if (this.tempRemoves != null) {
                     for (IOrmEntity entity : tempRemoves) {
                         _remove(entityCaches, entity);
@@ -336,6 +352,17 @@ public class OrmSessionEntityCache implements IOrmSessionEntityCache {
             } while (caches != null);
         } finally {
             visiting = false;
+        }
+    }
+
+    private void processPendingRemoveAll() {
+        if (this.tempRemoveAllNames != null) {
+            for (String entityName : this.tempRemoveAllNames) {
+                EntityCache cache = this.entityCaches.remove(entityName);
+                if (cache != null)
+                    cache.clear();
+            }
+            this.tempRemoveAllNames = null;
         }
     }
 

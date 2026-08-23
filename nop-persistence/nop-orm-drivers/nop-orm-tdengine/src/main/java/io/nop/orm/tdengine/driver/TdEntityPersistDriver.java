@@ -9,6 +9,7 @@ package io.nop.orm.tdengine.driver;
 
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.collections.IntArray;
 import io.nop.core.lang.sql.SQL;
@@ -34,6 +35,9 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
+
+import static io.nop.orm.tdengine.TdEngineErrors.ARG_ENTITY_NAME;
+import static io.nop.orm.tdengine.TdEngineErrors.ERR_TDENGINE_UPDATE_NOT_SUPPORTED;
 
 public class TdEntityPersistDriver implements IEntityPersistDriver {
     static final Logger LOG = LoggerFactory.getLogger(TdEntityPersistDriver.class);
@@ -120,6 +124,10 @@ public class TdEntityPersistDriver implements IEntityPersistDriver {
                                                    List<IBatchAction.EntityDeleteAction> deleteActions,
                                                    IOrmSessionImplementor session) {
         if (topoAsc) {
+            if (updateActions != null && !updateActions.isEmpty())
+                throw new NopException(ERR_TDENGINE_UPDATE_NOT_SUPPORTED)
+                        .param(ARG_ENTITY_NAME, entityModel.getName());
+
             if (saveActions != null) {
                 Map<String, List<IOrmEntity>> map = splitSubTables(saveActions);
                 SQL.SqlBuilder sb = SQL.begin().insertInfo();
@@ -224,7 +232,7 @@ public class TdEntityPersistDriver implements IEntityPersistDriver {
         SQL.SqlBuilder sb = TdSqlHelper.genDeleteByExample(dialect, entityModel, binders, null, example);
         //GenSqlHelper.transformShard(sb, dialect, shard);
 
-        SQL sql = sb.end();
+        SQL sql = sb.querySpace(getQuerySpace(shard)).end();
         return jdbc().executeUpdate(sql);
     }
 
@@ -248,12 +256,13 @@ public class TdEntityPersistDriver implements IEntityPersistDriver {
         SQL.SqlBuilder sb = TdSqlHelper.genCountByExample(dialect, entityModel, binders, example);
         // GenSqlHelper.transformShard(sb, dialect, shard);
 
-        SQL sql = sb.end();
+        SQL sql = sb.querySpace(getQuerySpace(shard)).end();
         return jdbc().findLong(sql, 0L);
     }
 
     @Override
     public long updateByExample(ShardSelection shard, IOrmEntity example, IOrmEntity updated, IOrmSessionImplementor session) {
-        return 0;
+        throw new NopException(ERR_TDENGINE_UPDATE_NOT_SUPPORTED)
+                .param(ARG_ENTITY_NAME, entityModel.getName());
     }
 }

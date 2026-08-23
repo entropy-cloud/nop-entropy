@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -52,37 +53,41 @@ public class GenAopProxy {
         generate(classesDir, sourceDir);
     }
 
-    ClassLoader buildExtClassLoader(File classesDir) {
-        URLClassLoader classLoader = new URLClassLoader(new URL[]{FileHelper.toURL(classesDir)}, ClassHelper.getDefaultClassLoader());
-        return classLoader;
+    URLClassLoader buildExtClassLoader(File classesDir) {
+        return new URLClassLoader(new URL[]{FileHelper.toURL(classesDir)}, ClassHelper.getDefaultClassLoader());
     }
 
     public void generate(File classesDir, File sourceDir) {
         List<String> classNames = findClassNames(classesDir);
-        ClassLoader classLoader = buildExtClassLoader(classesDir);
-
-        Class<?>[] annClasses = AopAnnotationsLoader.getAnnotationClasses().toArray(new Class<?>[0]);
-
         List<JavaSourceCode> sources = new ArrayList<>();
-        classNames.forEach(className -> {
-            try {
-                Class<?> clazz = ClassHelper.forName(className, classLoader);
-                if (Modifier.isAbstract(clazz.getModifiers()))
-                    return;
-                if (IAopProxy.class.isAssignableFrom(clazz))
-                    return;
 
-                AopCodeGenerator gen = new AopCodeGenerator();
-                String code = gen.build(clazz, annClasses);
-                if (code == null)
-                    return;
+        // URLClassLoader 持有 target/classes 目录句柄，用完必须关闭（Windows 上会锁定目录）。
+        // 类对象仅在扫描阶段使用，无逃逸，关闭安全
+        try (URLClassLoader classLoader = buildExtClassLoader(classesDir)) {
+            Class<?>[] annClasses = AopAnnotationsLoader.getAnnotationClasses().toArray(new Class<?>[0]);
 
-                String aopClassName = AopCodeGenerator.getAopClassName(clazz);
-                saveCode(sourceDir, aopClassName, code, sources);
-            } catch (Exception e) {
-                throw NopException.adapt(e);
-            }
-        });
+            classNames.forEach(className -> {
+                try {
+                    Class<?> clazz = ClassHelper.forName(className, classLoader);
+                    if (Modifier.isAbstract(clazz.getModifiers()))
+                        return;
+                    if (IAopProxy.class.isAssignableFrom(clazz))
+                        return;
+
+                    AopCodeGenerator gen = new AopCodeGenerator();
+                    String code = gen.build(clazz, annClasses);
+                    if (code == null)
+                        return;
+
+                    String aopClassName = AopCodeGenerator.getAopClassName(clazz);
+                    saveCode(sourceDir, aopClassName, code, sources);
+                } catch (Exception e) {
+                    throw NopException.adapt(e);
+                }
+            });
+        } catch (IOException e) {
+            throw NopException.adapt(e);
+        }
 
         if (!sources.isEmpty()) {
             JdkJavaCompiler compiler = new JdkJavaCompiler();

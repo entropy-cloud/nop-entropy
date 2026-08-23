@@ -294,7 +294,8 @@ public interface ILlmDialect {
                 tc.put("type", "function");
                 Map<String, Object> func = new HashMap<>();
                 if (chunk.getDelta() != null) func.put("name", chunk.getDelta());
-                func.put("arguments", "");
+                // 完整 arguments 通道（Gemini/Ollama 型 chunk）优先于空串占位，避免网关转换丢参
+                func.put("arguments", chunk.getArguments() != null ? chunk.getArguments() : "");
                 tc.put("function", func);
             } else {
                 Map<String, Object> func = new HashMap<>();

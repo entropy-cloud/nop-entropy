@@ -20,6 +20,7 @@ package io.nop.auth.sso.jwk;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 
 import java.math.BigInteger;
@@ -33,6 +34,9 @@ import java.security.spec.ECPublicKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 import java.util.HashMap;
 import java.util.Map;
+
+import static io.nop.auth.sso.SsoErrors.ARG_ERROR;
+import static io.nop.auth.sso.SsoErrors.ERR_AUTH_SSO_ACCESS_FAIL;
 
 /**
  * @author <a href="mailto:sthorger@redhat.com">Stian Thorgersen</a>
@@ -121,12 +125,16 @@ public class JWK {
 
     public PublicKey toPublicKey() {
         String keyType = getKeyType();
-        if (keyType.equals(KeyType.RSA)) {
+        // JWKS端点畸形数据（kty缺失）显式拒绝而非NPE
+        if (StringHelper.isEmpty(keyType))
+            throw new NopException(ERR_AUTH_SSO_ACCESS_FAIL).param(ARG_ERROR, "JWK kty is missing");
+        if (KeyType.RSA.equals(keyType)) {
             return createRSAPublicKey();
-        } else if (keyType.equals(KeyType.EC)) {
+        } else if (KeyType.EC.equals(keyType)) {
             return createECPublicKey();
         } else {
-            throw new RuntimeException("Unsupported keyType " + keyType);
+            throw new NopException(ERR_AUTH_SSO_ACCESS_FAIL)
+                    .param(ARG_ERROR, "unsupported JWK keyType: " + keyType);
         }
     }
 
@@ -147,7 +155,8 @@ public class JWK {
                 name = "secp521r1";
                 break;
             default:
-                throw new RuntimeException("Unsupported curve");
+                throw new NopException(ERR_AUTH_SSO_ACCESS_FAIL)
+                        .param(ARG_ERROR, "unsupported EC curve: " + crv);
         }
 
         try {
@@ -161,7 +170,7 @@ public class JWK {
             KeyFactory kf = KeyFactory.getInstance("EC");
             return kf.generatePublic(pubKeySpec);
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new NopException(ERR_AUTH_SSO_ACCESS_FAIL, e).param(ARG_ERROR, "EC public key construction failed");
         }
     }
 
@@ -173,7 +182,7 @@ public class JWK {
             KeyFactory kf = KeyFactory.getInstance("RSA");
             return kf.generatePublic(new RSAPublicKeySpec(modulus, publicExponent));
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new NopException(ERR_AUTH_SSO_ACCESS_FAIL, e).param(ARG_ERROR, "RSA public key construction failed");
         }
     }
 

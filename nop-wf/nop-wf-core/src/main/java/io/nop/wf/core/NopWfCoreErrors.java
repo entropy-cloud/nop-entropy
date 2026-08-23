@@ -27,6 +27,8 @@ public interface NopWfCoreErrors {
 
     String ARG_CALLER_ID = "callerId";
 
+    String ARG_FROM_USER_ID = "fromUserId";
+
     String ARG_ACTOR_NAME = "actorName";
 
     String ARG_OWNER_ID = "ownerId";
@@ -228,6 +230,11 @@ public interface NopWfCoreErrors {
                     "步骤[{stepName}:{stepId}]不允许被用户[{callerId}]调用,步骤的参与者限定为[{actorType}:${actorId}]",
                     ARG_STEP_NAME, ARG_STEP_ID, ARG_CALLER_ID, ARG_ACTOR_TYPE, ARG_ACTOR_ID);
 
+    ErrorCode ERR_WF_NOT_ALLOW_TRANSFER_ACTORS_BY_USER =
+            define("nop.err.wf.not-allow-transfer-actors-by-user",
+                    "工作流[{wfName}:{wfId}]中用户[{fromUserId}]的步骤不允许被用户[{callerId}]转办，仅允许工作流管理员或用户本人转办",
+                    ARG_WF_NAME, ARG_WF_ID, ARG_FROM_USER_ID, ARG_CALLER_ID);
+
     ErrorCode ERR_WF_EMPTY_MODEL_TEXT =
             define("nop.err.wf.empty-model-text", "工作流[{wfName}]的模型文本为空",
                     ARG_WF_NAME, ARG_WF_VERSION);
@@ -235,4 +242,20 @@ public interface NopWfCoreErrors {
     ErrorCode ERR_WF_PARSE_MODEL_TEXT_FAIL =
             define("nop.err.wf.parse-model-text-fail", "工作流[{wfName}]的模型文本解析失败",
                     ARG_WF_NAME, ARG_WF_VERSION);
+
+    ErrorCode ERR_WF_AUTO_TRANSITION_EXCEED_LIMIT = define("nop.err.wf.auto-transition-exceed-limit",
+            "自动迁移次数超过上限，可能存在恒真的回退迁移条件: loops={loops}, wfId={wfId}", "loops", "wfId");
+
+    ErrorCode ERR_WF_NULL_STEP_RECORD = define("nop.err.wf.null-step-record",
+            "工作流步骤记录为空");
+
+    ErrorCode ERR_WF_NOT_ALLOW_MANAGE_BY_USER = define("nop.err.wf.not-allow-manage-by-user",
+            "用户[{callerId}]无权管理工作流[{wfName}]:{wfId}（需manager/发起人/admin）",
+            "callerId", "wfName", "wfId");
+
+    ErrorCode ERR_WF_STEP_NO_SUB_WF = define("nop.err.wf.step-no-sub-wf",
+            "工作流步骤没有关联子流程: stepId={stepId}", "stepId");
+
+    ErrorCode ERR_WF_SUB_WF_NOT_ENDED = define("nop.err.wf.sub-wf-not-ended",
+            "子流程未结束或状态不一致，不允许通知父流程: subWfId={subWfId}", "subWfId");
 }

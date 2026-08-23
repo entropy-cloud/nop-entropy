@@ -2,15 +2,16 @@ package io.nop.image.utils;
 
 import io.nop.commons.util.StringHelper;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ImageTypeMap {
     public static final ImageTypeMap INSTANCE = new ImageTypeMap();
 
-    private final Map<String, String> fileExtToMimeType = new HashMap<>();
-    private final Map<String, String> mimeTypeToFormatName = new HashMap<>();
-    private final Map<String, String> formatNameToMimeType = new HashMap<>();
+    // INSTANCE 是全局共享单例且暴露 add* 修改入口，使用 ConcurrentHashMap 避免并发读写下 HashMap 结构破坏
+    private final Map<String, String> fileExtToMimeType = new ConcurrentHashMap<>();
+    private final Map<String, String> mimeTypeToFormatName = new ConcurrentHashMap<>();
+    private final Map<String, String> formatNameToMimeType = new ConcurrentHashMap<>();
 
     public ImageTypeMap() {
         // 常见扩展名 <-> MIME type <-> formatName

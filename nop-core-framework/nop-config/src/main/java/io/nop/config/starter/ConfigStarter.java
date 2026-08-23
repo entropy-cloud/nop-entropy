@@ -74,7 +74,7 @@ import static io.nop.config.ConfigErrors.ERR_CONFIG_MISSING_APPLICATION_NAME;
 public class ConfigStarter extends LifeCycleSupport {
     static final Logger LOG = LoggerFactory.getLogger(ConfigStarter.class);
 
-    static ConfigStarter g_instance = new ConfigStarter();
+    static volatile ConfigStarter g_instance = new ConfigStarter();
 
     public static ConfigStarter instance() {
         return g_instance;

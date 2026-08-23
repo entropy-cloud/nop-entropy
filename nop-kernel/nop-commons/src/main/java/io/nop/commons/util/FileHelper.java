@@ -47,6 +47,7 @@ import java.util.stream.Collectors;
 
 import static io.nop.commons.CommonErrors.ARG_DEST;
 import static io.nop.commons.CommonErrors.ARG_PATH;
+import static io.nop.commons.CommonErrors.ERR_FILE_NOT_FOUND;
 import static io.nop.commons.CommonErrors.ERR_FILE_WRITE_CONFLICT;
 import static io.nop.commons.CommonErrors.ERR_IO_COPY_DEST_NOT_DIRECTORY;
 import static io.nop.commons.CommonErrors.ERR_IO_COPY_DEST_NOT_FILE;
@@ -416,6 +417,8 @@ public class FileHelper {
 
     public static File getClassPathFile(String path) {
         URL url = FileHelper.class.getClassLoader().getResource(path);
+        if (url == null)
+            throw new NopException(ERR_FILE_NOT_FOUND).param(ARG_PATH, path);
         String s = url.getFile();
         if (s == null)
             return null;
@@ -426,6 +429,8 @@ public class FileHelper {
     public static File getJarFile(Class<?> clazz) {
         String path = clazz.getName().replace('.', '/') + ".class";
         URL url = FileHelper.class.getClassLoader().getResource(path);
+        if (url == null)
+            throw new NopException(ERR_FILE_NOT_FOUND).param(ARG_PATH, path);
         String strUrl = url.toString();
         if (!strUrl.startsWith("jar:file:")) {
             return null;
@@ -489,11 +494,13 @@ public class FileHelper {
                 }
             } while (null == lock);
 
-            ByteBuffer sendBuffer = ByteBuffer.wrap(content.getBytes(charsetName));
+            byte[] bytes = content.getBytes(charsetName);
+            ByteBuffer sendBuffer = ByteBuffer.wrap(bytes);
             while (sendBuffer.hasRemaining()) {
                 channel.write(sendBuffer);
             }
-            channel.truncate(content.length());
+            // 截断长度必须按字节数计算。content.length()是字符数，非ASCII内容会被截断损坏
+            channel.truncate(bytes.length);
         } catch (Exception e) {
             throw NopException.adapt(e);
         } finally {

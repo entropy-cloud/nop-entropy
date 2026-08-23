@@ -147,7 +147,7 @@ public class RemoteGraphExecutionPlanBuilder {
             for (int taskIndex = 0; taskIndex < parallelism; taskIndex++) {
                 OperatorChain chain = taskIndex == 0
                         ? original.getOperatorChains().get(0)
-                        : original.getOperatorChains().get(0).deepCopy();
+                        : original.getOperatorChains().get(0).deepCopy(taskIndex);
 
                 RecordWriter<Object> recordWriter = null;
                 InputGate inputGate = null;

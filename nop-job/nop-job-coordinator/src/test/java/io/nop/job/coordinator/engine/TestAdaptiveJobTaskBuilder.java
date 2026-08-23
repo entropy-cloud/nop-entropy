@@ -156,9 +156,9 @@ public class TestAdaptiveJobTaskBuilder extends JunitBaseTestCase {
         builder.setLoadProvider(new MockLoadProvider(List.of()));
         builder.setStrategy((taskCost, workers) -> new AssignmentPlan(Collections.singletonList(null)));
 
-        IllegalStateException ex = assertThrows(IllegalStateException.class,
+        io.nop.api.core.exceptions.NopException ex = assertThrows(io.nop.api.core.exceptions.NopException.class,
                 () -> builder.buildTasks(createFire("svc")));
-        assertTrue(ex.getMessage().contains("null assignment"));
+        assertTrue(String.valueOf(ex.getParam("configName")).contains("assignment"));
     }
 
     @Test
@@ -170,9 +170,9 @@ public class TestAdaptiveJobTaskBuilder extends JunitBaseTestCase {
             return new AssignmentPlan(List.of(assignment));
         });
 
-        IllegalStateException ex = assertThrows(IllegalStateException.class,
+        io.nop.api.core.exceptions.NopException ex = assertThrows(io.nop.api.core.exceptions.NopException.class,
                 () -> builder.buildTasks(createFire("svc")));
-        assertTrue(ex.getMessage().contains("workerInstanceId"));
+        assertTrue(String.valueOf(ex.getParam("configName")).contains("workerInstanceId"));
     }
 
     @Test

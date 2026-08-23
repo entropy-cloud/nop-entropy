@@ -18,6 +18,7 @@ import io.nop.graphql.core.reflection.GraphQLBizModels;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmEntitySet;
 import io.nop.orm.OrmEntityState;
+import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityRelationModel;
 import io.nop.xlang.xmeta.IObjPropMeta;
@@ -212,6 +213,69 @@ public class TestOrmEntityCopierWriteMode {
         assertNotNull(child);
         assertSame(parent.asOrmEntity(), child.orm_propValueByName("parent"));
         assertEquals("parent-1", child.orm_propValueByName("derivedFromParent"));
+    }
+
+    @Test
+    public void testCopyToEntityWithNullObjMetaOnTenantEntityDoesNotNpe() {
+        FakeDaoProvider daoProvider = new FakeDaoProvider();
+        OrmEntityCopier copier = new OrmEntityCopier(daoProvider, new NoopBizObjectManager());
+
+        Map<String, Object> props = new HashMap<>();
+        IOrmEntity target = (IOrmEntity) Proxy.newProxyInstance(
+                TestOrmEntityCopierWriteMode.class.getClassLoader(),
+                new Class[]{IOrmEntity.class},
+                (proxy, method, args) -> {
+                    switch (method.getName()) {
+                        case "orm_entityModel":
+                            return tenantEntityModel();
+                        case "orm_propValueByName":
+                            if (args.length == 1) {
+                                return props.get(args[0]);
+                            }
+                            props.put((String) args[0], args[1]);
+                            return null;
+                        case "orm_idString":
+                        case "orm_id":
+                            return "parent-1";
+                        case "orm_state":
+                            return OrmEntityState.MANAGED;
+                        default:
+                            return defaultValue(method.getReturnType());
+                    }
+                });
+
+        // 修复前：tenantPropId>0时直接解引用null objMeta抛NPE
+        copier.copyToEntity(mapOf("name", "v1"), target, null, null, "ParentBiz",
+                BizConstants.METHOD_SAVE, null);
+
+        assertEquals("v1", props.get("name"));
+    }
+
+    private static IEntityModel tenantEntityModel() {
+        InvocationHandler columnHandler = (proxy, method, args) -> {
+            if ("getName".equals(method.getName()))
+                return "tenantId";
+            return defaultValue(method.getReturnType());
+        };
+        IColumnModel tenantColumn = (IColumnModel) Proxy.newProxyInstance(
+                TestOrmEntityCopierWriteMode.class.getClassLoader(),
+                new Class[]{IColumnModel.class}, columnHandler);
+
+        InvocationHandler handler = (proxy, method, args) -> {
+            switch (method.getName()) {
+                case "getTenantPropId":
+                    return 1;
+                case "getTenantColumn":
+                    return tenantColumn;
+                case "getPkColumns":
+                    return Collections.emptyList();
+                default:
+                    return defaultValue(method.getReturnType());
+            }
+        };
+        return (IEntityModel) Proxy.newProxyInstance(
+                TestOrmEntityCopierWriteMode.class.getClassLoader(),
+                new Class[]{IEntityModel.class}, handler);
     }
 
     @Test

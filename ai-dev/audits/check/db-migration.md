@@ -40,6 +40,10 @@ private String type;
 - **建议**: 让 `_gen` 模板为每个 change 子类生成 `getType()` 常量覆盖（对齐 task/orm 模式），或在 `MigrationFileScanner.loadMigration` 后按元素名回填 type；补一个"XML 文件 → 至少生成一条 DDL"的端到端测试。
 - **误报排除**: 已核对测试目录无任何用例经 scanner/DslModelParser 加载 XML（全部手工 `setType("insertData")`），故测试通过不能证伪；已核对 DslBeanModelParser/TreeBeanBuilder 两条装配路径均不会填充该字段；已用 BeanMapValue 硬编码 `getBeanValueType()` 佐证平台解析器不自动填充 sub-type prop。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 确认属实，已修复。`MigrationFileScanner.loadMigration` 解析后新增 `backfillChangeTypes`，按"变更模型类 → 执行器 CHANGE_TYPE 常量"的显式映射表回填 `DbChangeModel.type`（覆盖 changeset 与 rollback.changes）。映射依据：8 个继承 DbChangeModel 的变更类中 createTable/dropTable/addColumn/dropColumn/dropIndex 的 tag 与常量同名，`<insert>`→`insertData`、`<update>`→`updateData`、`<delete>`→`deleteData` 三个数据变更 tag 与常量不一致，必须走显式映射（逐一对照各 Executor 的 `CHANGE_TYPE` 常量与 xdef tag 核对）；未修改任何 `_gen` 文件。验证中另发现两个独立缺陷影响本条边界（均未在本条处置）：其余 8 个 tag（createIndex/sql/alterColumn/renameTable/createView/dropView/customChange/dbTypeFilter/executeMark）的 `_gen` 类不继承 DbChangeModel，`_DbMigrationModel.setChangeset` 构造 KeyedList 时解析期即 ClassCastException（非静默跳过，属模型生成物结构缺陷）；insert/update/delete 的 `<column>` 在 migration.xdef 中缺 `xdef:name`，列解析为 DynamicObject 导致执行期 ClassCastException。测试：`nop-db-migration` `TestMigrationFileScanner#testMigrateFromXmlFilesExecutesChanges`（修复前：XML 迁移经 scanner 加载后全部 change.type==null，DDL 一条不执行却记 success=true；修复后 createTable/addColumn/dropTable 经引擎实际执行）；映射正确性另由 `TestMigrationFileScanner#testScanMapsEveryTagToRegisteredChangeType`、`#testScanFillsChangeTypeForAllChanges` 覆盖（修复前 type 均为 null 断言失败）。
+
 ### [P1] 迁移失败一次后，重试必然触发历史表主键冲突并中断整个迁移流程
 
 - **文件**: `nop-persistence/nop-db-migration/src/main/java/io/nop/db/migration/core/MigrationEngine.java:117-141`；`core/MigrationHistoryManager.java:79-81、186-197`
@@ -64,6 +68,10 @@ try {
 - **建议**: recordMigration 改为 upsert（先 DELETE 旧记录再 INSERT，或 UPDATE），或失败时直接删除旧失败记录（Flyway 模式）。
 - **误报排除**: 逐行核对 migrate() 的 try/catch 嵌套与 recordMigration 的 INSERT 语句；确认失败记录 version 唯一且无删除路径（removeMigrationRecord 仅 rollback 使用）。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认属实，已修复。`recordMigration` 改为 Flyway 式 delete-then-insert：INSERT 前先 DELETE 同 version 旧行，失败后重试（无论成功或再次失败）覆盖旧记录而非撞主键，冲突中断链路消除。测试：`TestMigrationHistoryManager#testRecordMigrationReplacesExistingRecord`（红验证：修复前失败记录存在时再次 recordMigration 直接抛主键冲突）、`TestMigrationEngine#testMigrateRetryAfterFailureSucceeds`（引擎级集成断言：同 version 先失败后成功的完整 migrate 往返；根因红证据即上一条 manager 级用例）。
+
 ### [P1] recordMigration 的 success 猜测逻辑：异常 message 为 null 时失败迁移被记为成功，变更永久丢失
 
 - **文件**: `nop-persistence/nop-db-migration/src/main/java/io/nop/db/migration/core/MigrationHistoryManager.java:86-91`；触发方 `core/MigrationEngine.java:133`
@@ -85,6 +93,10 @@ failedRecord.setErrorMessage(e.getMessage());   // NPE 等异常 getMessage() ==
 - **建议**: 删除猜测逻辑，显式由调用方设置 success；catch 失败时用 `StringHelper.isEmpty(e.getMessage()) ? e.toString() : e.getMessage()` 保证 message 非空。
 - **误报排除**: 确认 MigrationRecord.errorMessage 无默认值、MigrationEngine 两处 catch 均直接 setErrorMessage(e.getMessage())；MigrationExecutor.execute 异常路径同样存在（该 record 虽被丢弃，但属于同一缺陷家族）。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认属实，已修复。删除 recordMigration 中"errorMessage 为 null 则猜 success=true"的逻辑，success 严格按 MigrationRecord 显式设置持久化；MigrationEngine 两处 catch 的 errorMessage 改经 `errorMessage(e)`：`isEmpty(e.getMessage()) ? e.toString() : e.getMessage()`，保证 NPE 等无 message 异常不触发任何猜测路径。既有依赖猜测语义的两个用例（testGetExecutedVersions_WithMigrations、testMultipleQueries）显式 setSuccess(true)——语义对齐修复而非削弱覆盖。测试：`TestMigrationHistoryManager#testRecordMigrationFailedWithoutErrorMessageStaysFailed`（红验证：修复前无 message 的失败记录被改写为 success=true 进入 executedVersions）、`TestMigrationEngine#testErrorMessageFallsBackToStringForNullMessage`。
+
 ### [P1] tableExists/getMigrationByVersion 吞掉所有异常并返回"不存在"，且 INFORMATION_SCHEMA 查询带方言缺陷
 
 - **文件**: `nop-persistence/nop-db-migration/src/main/java/io/nop/db/migration/core/MigrationHistoryManager.java:160-184`
@@ -105,6 +117,10 @@ protected boolean tableExists() {
 - **建议**: 用 `IDialect`/JDBC DatabaseMetaData 判表存在；只在捕获"表不存在"型 SQLException 错误码时返回 false，其余异常上抛（NopException + ErrorCode）。
 - **误报排除**: 已核对 h2.dialect.xml 配 tableNameCase=upper、mysql.dialect.xml 无 case 配置，确认 PostgreSQL/Oracle 场景结论；确认 getExecutedVersions 在 tableExists=false 时直接返回空集（第 38-40 行）。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认属实，已修复。`tableExists` 改走 `jdbcTemplate.runWithConnection` + JDBC `DatabaseMetaData.getTables`（按 原名/大写/小写 三种模式探测并忽略大小写比较，彻底移除对 INFORMATION_SCHEMA 的依赖，H2 大写/MySQL 小写/PG 小写/Oracle 无该视图三类问题一并消除）；异常不再吞掉——非"表不存在"型故障包装为 `NopException(ERR_DB_MIGRATION_HISTORY_QUERY_FAILED)` 上抛，不再被误判为"表不存在"引发已执行迁移重放；`getMigrationByVersion` 的 catch-return-null 同步改为上抛。测试：`TestMigrationHistoryManager#testGetExecutedVersionsPropagatesFailure`（红验证：修复前连接故障被吞、getExecutedVersions 返回空集；用拒绝 runWithConnection 的代理 jdbcTemplate 构造瞬时故障）。PG/Oracle 真库无法在本环境实测，修复依据是"不再使用任何 INFORMATION_SCHEMA 查询"。
+
 ### [P1] getExecutedVersions/getMigrationByVersion 以大写常量取字段，MySQL 列名小写下抛 ERR_DATASET_UNKNOWN_COLUMN
 
 - **文件**: `nop-persistence/nop-db-migration/src/main/java/io/nop/db/migration/core/MigrationHistoryManager.java:42-49、130-137`
@@ -119,6 +135,10 @@ int versionIndex = row.getMeta().getFieldIndex("VERSION");
 - **风险**: 在 MySQL（平台最常用数据库）上历史查询必失败，migrate() 无法执行。
 - **建议**: 取列改用索引 `row.getString(0)`；或建表/查询统一大小写并经 dialect 规范化。
 - **误报排除**: 已核对 BaseDataSetMeta 单参构造器 caseInsensitive=false、JdbcDataSet 经 JdbcHelper.getDataSetMeta 构造、mysql.dialect.xml 无 columnNameCase；测试仅在 H2（大写）运行故未暴露。附带：`WHERE success = TRUE` 与 `success BOOLEAN` 在 Oracle/SQL Server 亦非法，同属方言问题（见 P1-7 条合并评估）。
+
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认属实，已修复。两方法改为按 SELECT 列序位置取值（`row.getString(0)` 等 8 个位置索引），不再假设 JDBC 返回大写列标签，MySQL 小写/Oracle 大写列标签均按建列顺序命中。测试：`TestMigrationHistoryManager#testGetExecutedVersionsWithLowerCaseColumnLabels`、`#testGetMigrationByVersionWithLowerCaseColumnLabels`（红验证：修复前 getFieldIndex("VERSION") 抛 unknown column；用 H2 `DATABASE_TO_UPPER=false` 连接参数精确模拟 MySQL 小写元数据行为，避免手写引号小写建表与 H2 大写规范化冲突的假失败）。`WHERE success = TRUE` 的 Oracle/SQL Server 兼容性归入 [P1] DDL 方言条暂缓项。
 
 ### [P1] AddColumnExecutor 多列 DDL 用 "; " 拼接后以单语句 executeUpdate 执行
 
@@ -139,6 +159,10 @@ context.getJdbcTemplate().executeUpdate(... .append(sql) ...);  // 未走 execut
 - **风险**: 任何一次 addColumn 含 2 个以上列的迁移直接失败（失败又触发 P1 主键冲突链）。
 - **建议**: 逐列调用 executeUpdate，或改用 executeMultiSql。
 - **误报排除**: 核对 SqlExecHelper.executeMultiSql 拆分逻辑与 SqlExecutor 的分支处理，证明 executeUpdate 不具备多语句能力；核对 TestChangeExecutors.testAddColumn 仅单列（singletonList），多列无覆盖。
+
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认属实，已修复。`AddColumnExecutor.execute` 改为逐列生成单条 `ALTER TABLE ... ADD COLUMN ...` 并逐条 executeUpdate，不再 "; " 拼接。红验证中发现审计断言对 H2 不成立（超出审计的新发现）：H2 的 PreparedStatement 实际接受分号分隔的多语句（回退旧实现后原列存在性断言不红），但 MySQL/PostgreSQL/Oracle 下的缺陷仍成立。测试因此改为可区分形态：`TestChangeExecutors#testAddColumnMultipleColumns`（红验证：用记录 executeUpdate SQL 文本的代理 jdbcTemplate 断言"2 列 → 2 条语句且单条不含分号"，修复前为 1 条 "; " 拼接语句）。
 
 ### [P1] DDL 生成完全忽略 dialect：类型名直拼 StdSqlType.name()、AUTO_INCREMENT、表级 COMMENT、PG 专有 ALTER 语法
 
@@ -164,6 +188,10 @@ sb.append(" ALTER COLUMN ").append(...)
 - **建议**: 复用 nop-orm 的 DdlSqlCreator/方言模板生成 DDL，废弃手写拼接；至少为类型映射与自增/注释走 dialect 接口。
 - **误报排除**: 已列 StdSqlType 枚举常量确认 name() 输出（含 DATETIME、INTEGER、JSON）；已核对三个执行器中 dialect 的全部使用点仅为 escapeSQLName。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 部分修复 + 暂缓。已落地无争议部分：三个执行器的列类型由 `StdSqlType.name()` 直拼改为 `dialect.stdToNativeSqlType(type, size, digits).toString()`（CreateTableExecutor/AddColumnExecutor 共用 `AddColumnExecutor.buildColumnType`，AlterColumnExecutor 同步），方言不支持的类型显式抛 ERR_DIALECT_STD_DATA_TYPE_NOT_SUPPORTED 而非生成非法 SQL。测试：`TestChangeExecutors#testBuildColumnTypeUsesDialectTypeMapping`（红验证：修复前 DATETIME 直拼，h2 方言映射为 TIMESTAMP）。暂缓部分（需立项设计）：AUTO_INCREMENT（PG/Oracle/SQLServer 无此语法）、表级/列级 COMMENT（仅 MySQL 支持，H2 即无法执行）、`ALTER COLUMN x TYPE ... SET NOT NULL`（PG 专有，MySQL 需 MODIFY）、DEFAULT 值字面量化（当前为 SQL 表达式语义，直接加引号会破坏 DEFAULT CURRENT_TIMESTAMP 类默认值）——这些需要按 dialect 生成 DDL 语法矩阵，审计建议的"复用 nop-dbtool DdlSqlCreator/xpl 模板库"是正确的方向但属结构性改造，且 MigrationEngine 在仓库内尚无生产调用方，建议与 P1-7 契约实现一并立项。与本条重叠的单引号转义（remark/COMMENT）已在 [P2] 字符串直拼条处置。
+
 ### [P1] xdef 契约大面积未实现：preconditions/ignore/failOnError/runOn/contexts/labels 均不被引擎评估
 
 - **文件**: `nop-persistence/nop-db-migration/src/main/java/io/nop/db/migration/core/MigrationEngine.java:96-145`（migrate 无任何过滤）；`precondition/`（6 文件零调用方）；契约在 `nop-kernel/nop-xdefs/.../db-migration/migration.xdef`
@@ -183,6 +211,10 @@ if (executedVersions.contains(version)) { continue; }
 - **建议**: 在 executeMigration 前评估 preconditions/ignore/context 匹配；checker 经 beans 注册进引擎。
 - **误报排除**: grep 全仓库 IPreconditionChecker/PreconditionChecker 引用（precondition 包外零命中）；grep DbMigrationErrors 各 ErrorCode 引用确认无消费点。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 裁定暂缓。属功能实现而非缺陷修补，多个语义需先裁定：preconditions 的评估时机与失败策略（fail-loud 抛 ERR_DB_MIGRATION_PRECONDITION_FAILED 还是跳过）、5 个 IPreconditionChecker 的注册机制（beans 注册 vs 引擎内置）、ignore=true 是否记历史、contexts/labels 的匹配规则（MigrationContext.matchesContext 已有雏形未接线）、runOn 与 failOnError 语义、以及与 checksum 校验（见 P2 条）的耦合。另一硬阻断：XML 解析链当前对 precondition 元素及 createIndex/sql 等 9 个 tag 存在解析期 ClassCastException（见 P0 标注已记录项），precondition 的端到端验证在模型生成物结构修复前无法进行。影响面：MigrationEngine 无生产调用方（报告前提），暂缓不放大现实风险。
+
 ### [P1] nop-dbtool 自动升级无并发互斥，多实例同时启动会重复/交错执行 DDL
 
 - **文件**: `nop-persistence/nop-dbtool/nop-dbtool-core/src/main/java/io/nop/dbtool/core/DataBaseUpgrader.java:52-79`；`initialize/DataBaseUpgradeInitializer.java:35-39`
@@ -201,6 +233,10 @@ public void init() {
 - **建议**: 升级前获取数据库级锁（MySQL GET_LOCK / PG advisory lock），或引入升级版本表做 CAS。
 - **误报排除**: 核对 dbtool-defaults.beans.xml 的条件装配确认启用路径；grep 全类无锁相关调用。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 裁定暂缓。缺陷属实（upgradeByQuerySpace 全程无数据库级锁/CAS，滚动发布多副本并发 discover+执行 DDL 会重复建表或交错半套 DDL）。修复需跨方言锁策略设计决策：MySQL GET_LOCK / PG advisory lock / 通用锁表 / 升级版本表 CAS（后者与 [P2] 全库发现条的"升级版本记录短路"天然合并），以及锁等待超时策略与平台部署形态（多副本/蓝绿）的适配。该功能为生产滚动发布路径（nop.orm.db-differ.auto-upgrade-database 开关启用），锁选型错误会引入启动死锁风险，收益与风险均大，需立项而非顺手修。
+
 ### [P2] MigrationHistoryManager 抛 bare RuntimeException，违反平台错误处理规范
 
 - **文件**: `nop-persistence/nop-db-migration/src/main/java/io/nop/db/migration/core/MigrationHistoryManager.java:55-57`
@@ -215,6 +251,10 @@ public void init() {
 - **风险**: 错误码体系失效，监控/国际化无法按错误码处理；cause 保留但上下文缺失。
 - **建议**: 改为 `throw new NopException(ERR_DB_MIGRATION_EXECUTION_FAILED, e).param(ARG_VERSION, ...)`。
 - **误报排除**: 该行是模块内唯一 bare RuntimeException（grep 全模块确认），其余错误路径已用 NopException。
+
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认属实，已修复。getExecutedVersions 的 catch 改为 `NopException(ERR_DB_MIGRATION_HISTORY_QUERY_FAILED, e)` 并携带 tableName/querySpace 参数；新增 ErrorCode 按平台规范定义为 `nop.err.db-migration.history-query-failed`（核对 nop-cli-errors.i18n.yaml（zh/en）未聚合 db-migration 模块错误码，无需同步）。测试：`TestMigrationHistoryManager#testGetExecutedVersionsPropagatesFailure` 同时断言错误码（红验证：修复前为 bare RuntimeException 且根本不抛）。超出审计的新发现：DbMigrationErrors 既有 10 个常量全部误用 `define(namespace, NAME, message)` 三参形态——错误码串实际为 "io.nop.db.migration"、真实错误名落入 message 槽（平台规范为 `define("nop.err.<mod>.<name>", "message")`，对照 DaoErrors），这解释了为何自赋值式错误码从未被 i18n 体系发现；本条仅将新增常量按规范定义，既有常量的矫正涉及全部消费点错误码串变化，不扩大范围，留待统一清理。
 
 ### [P2] JdbcMetaDiscovery.createMeta 自赋值笔误，DataBaseMeta 的产品/驱动信息恒为 null
 
@@ -232,6 +272,10 @@ meta.setProductVersion(meta.getProductVersion()); // 同上
 - **风险**: 逆向出的模型元数据（productName/driverName 等）永远为空，影响 CLI 逆向输出与依赖这些字段的下游判断；属明确复制粘贴 bug。
 - **建议**: 四行改为从 `metaData` 读取。
 - **误报排除**: 逐字核对源码确认自赋值；DataBaseMeta 对应字段默认 null。
+
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认属实，已修复。四行改为从 metaData 读取，且 JDBC 正确方法名是 `getDatabaseProductName()/getDatabaseProductVersion()`（审计建议的 getProductName 不存在于 JDBC 接口——自赋值笔误很可能源于该编译错误被"就地取值"掩盖）；四行统一 try/catch（SQLException 受检异常），与本方法内其余 metaData 调用的容错风格一致。测试：dbtool-core 新增 `TestJdbcMetaDiscovery#testDiscoverFillsProductMetaData`（红验证：修复前 productName 恒 null）。
 
 ### [P2] 历史表存在两套冲突定义：app.orm.xml 的 NopDbMigrationHistory 与 MigrationHistoryManager 手写建表
 
@@ -253,6 +297,10 @@ INSERT INTO nop_db_migration_history (version, description, type, checksum, inst
 - **建议**: 二选一收敛（推荐复用 ORM 实体 + dao），或至少让两者结构一致并持久化 errorMessage。
 - **误报排除**: 核对模块内不存在 io.nop.db.migration.entity 包源码，确认 app.orm.xml 实体无 Java 类仅剩模型；两处表名大小写归一后确为同一表。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 裁定暂缓（需立项）。收敛方案（推荐复用 ORM 实体 + dao，或统一为手写 DDL 并持久化 errorMessage）涉及 app.orm.xml 的 ORM 模型结构变更——plan-first 保护区域，本战役禁止直接修改；且 errorMessage 持久化需要表结构设计（现手写表无该列）。冲突触发前提是两套初始化同时启用，而 MigrationHistoryManager 路径在仓库内无生产调用方；本战役已把手写路径内的行为缺陷（upsert 语义、errorMessage 语义）修正确，结构性收敛留待专项立项。
+
 ### [P2] checksum 计算过弱且从不校验，isValidateChecksum 与 R__ 可重复迁移语义形同虚设
 
 - **文件**: `nop-persistence/nop-db-migration/src/main/java/io/nop/db/migration/core/MigrationEngine.java:113-120、187-205`
@@ -269,6 +317,10 @@ for (DbChangeModel change : migration.getChangeset()) {
 - **风险**: 变更内容漂移无法检测，R__ 视图/脚本更新后不生效，配置项产生虚假安全感。
 - **建议**: checksum 覆盖变更内容（序列化 change）；migrate 中对已执行版本比对 checksum（isValidateChecksum 控制）；R__ 迁移按 checksum 变化重执行（update 历史记录而非 insert）。
 - **误报排除**: grep 确认 getMigrationByVersion、ERR_DB_MIGRATION_CHECKSUM_MISMATCH、isValidateChecksum 在 main 代码中无调用/读取点。
+
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 裁定暂缓。需多项设计决策：checksum 内容定义（需跨 JVM/版本稳定的确定性序列化，不能是 toString）、校验时机与成本（对每个已执行版本 getMigrationByVersion 比对）、R__ 可重复迁移的重执行语义（checksum 变化时 update 历史记录——P1 upsert 基础已就绪——还是 delete+insert，与 `R__` 前缀推断的兼容）、isValidateChecksum 默认值与关闭路径。改动会影响已有历史表数据的行为兼容，需迁移策略，不宜顺手修。
 
 ### [P2] InsertDataExecutor.generateRollbackSql 返回无 WHERE 的全表 DELETE
 
@@ -288,6 +340,10 @@ public String generateRollbackSql(AbstractComponentModel change, IDialect dialec
 - **建议**: 至少限定按插入的主键删除，或未实现时返回 null 并移除误导性注释。
 - **误报排除**: grep 确认 generateRollbackSql 无 main 调用方（列入报告而非更高 severity 的原因）；CreateIndexExecutor/CreateTableExecutor 的 `DROP ... IF EXISTS` 在 MySQL 8 也不支持，同属未接线风险。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认属实，已修复。generateRollbackSql 返回 null（与 AlterColumnExecutor/UpdateDataExecutor 的"未实现"语义一致）：insert 的安全逆操作需要主键信息而模型未携带，按列值构造 WHERE 在 NULL 值列上必然失配，无条件 DELETE 是删全表地雷，宁可显式未实现。migration.xdef 中"Nop 会尝试自动生成回滚 SQL"的误导性注释位于 nop-kernel/nop-xdefs（框架核心且非本战役允许修改的模块），未动，建议后续修正。测试：`TestChangeExecutors#testInsertDataGenerateRollbackSqlReturnsNull`（红验证：修复前返回无 WHERE 的 "DELETE FROM t"）。
+
 ### [P2] beans.xml 装配与引擎实现漂移：nopMigrationExecutor 缺 dbTypeFilter 键，nopMigrationEngine 无人消费
 
 - **文件**: `nop-persistence/nop-db-migration/src/main/resources/_vfs/nop/db-migration/beans/default.beans.xml:11-43`
@@ -301,6 +357,10 @@ public String generateRollbackSql(AbstractComponentModel change, IDialect dialec
 - **风险**: 同一引擎两条装配路径行为不一致；IoC 注册的 bean 契约（getHistoryManager 可用）与实现不符。
 - **建议**: 收敛为单一路径装配；dbTypeFilter 依赖注入改为每次 execute 时委托父表或统一注册点。
 - **误报排除**: 已核对 NopIoC autowireConstructorArgs 能为 MigrationHistoryManager(IJdbcTemplate,String) 自动选参最少构造器（"无法实例化"为误报，已排除）；比对 beans map 与 registerDefaultExecutors 注册键差异。
+
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 部分修复 + 附注。(1) 已修复：default.beans.xml 新增 `nopDbTypeFilterExecutor` bean（为 DbTypeFilterExecutor 补 `setExecutors` 支持属性注入），并注册进 nopMigrationExecutor 的 map，dbTypeFilter 键缺失消除。(4) 已修复：`MigrationEngine.registerExecutor` 现同步注册进 dbTypeFilterExecutor 内部表（引擎持有字段引用）。测试：`TestMigrationEngine#testRegisterExecutorVisibleToDbTypeFilter`（红验证：修复后注册的自定义执行器经 dbTypeFilter 嵌套分发命中，修复前抛 UNKNOWN_CHANGE_TYPE）。(2) nopMigrationEngine/nopMigrationHistoryManager 无消费者：属平台接线缺失而非本模块可修，随 P1-7 立项；(3) historyManager 字段/getHistoryManager()：构造器注入路径仍在写入，保留 API 兼容不单独清理。beans.xml 装配项本身 No new test required: 模块测试不构建 NopIoC 容器，XML 与既有 nopMigrationExecutor 装配模式逐字一致，行为正确性由 (4) 引擎级测试与既有执行器单测覆盖。
 
 ### [P2] rollback 原地 reverse 模型列表，二次回滚顺序错误
 
@@ -319,6 +379,10 @@ for (DbChangeModel change : rollbackChanges) {
 - **建议**: 复制列表后再 reverse；另注：rollback 失败仅记录内存 record，不落历史表。
 - **误报排除**: 核对 AbstractComponentModel 冻结机制未被用于阻止 mutation（rollback 未 freeze）。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认属实，已修复。reverse 作用于列表副本（`new ArrayList<>(...)`），解析模型不再被就地变异，二次回滚保持相同顺序。测试：`TestMigrationEngine#testRollbackTwiceKeepsSameOrder`（红验证：修复前第二次 rollback 顺序颠倒 [A,B]≠[B,A]，用记录执行顺序的探针执行器观测）。附注的"rollback 失败仅记内存 record 不落历史表"维持现状（历史表无 rollback 记录语义，随 P2 历史表两套定义条的收敛一并考虑）。
+
 ### [P2] JdbcMetaDiscovery.getCatalogs/getSchemas 的 ResultSet 未关闭
 
 - **文件**: `nop-persistence/nop-dbtool/nop-dbtool-core/src/main/java/io/nop/dbtool/core/discovery/jdbc/JdbcMetaDiscovery.java:115-153`
@@ -334,6 +398,10 @@ while (rs.next()) { ... }                // 循环后未 close
 - **风险**: 长连接上反复调用 catalogs/schemas 枚举（CLI 逆向工具路径）导致语句句柄泄漏。
 - **建议**: 补 try-with-resources。
 - **误报排除**: 核对 closeConnection 仅在 dataSource 模式关闭连接；forConnection 分支确认连接不关闭。
+
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认属实，已修复。两方法的 ResultSet 改为 try-with-resources。测试：`TestJdbcMetaDiscovery#testGetCatalogsClosesResultSet`、`#testGetSchemasClosesResultSet`（红验证：修复前 forConnection 模式下 close 从未被调用；经 JDBC 动态代理包装 Connection/DatabaseMetaData/ResultSet 跟踪 close 调用）。
 
 ### [P2] 数据变更执行器的值/默认值/注释/where 均为字符串直拼，类型与转义处理缺失
 
@@ -356,6 +424,10 @@ sb.append(" COMMENT '").append(change.getRemark()).append("'"); // 单引号未�
 - **建议**: 按 xdef 的类型化字段取值并按 dialect 生成字面量；DEFAULT/COMMENT 走转义。
 - **误报排除**: 核对 xdef 中 insert/update 列定义确有 valueNumeric 等属性而 _InsertColumnModel 已生成对应字段，执行器未使用。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 部分修复 + 暂缓其余。已修复：(a) Insert/UpdateDataExecutor 按 xdef 类型化字段取值——valueBoolean→TRUE/FALSE、valueNumeric→裸数字字面量、valueDate→ISO 日期字面量、仅字符串 value 加引号并转义单引号（两执行器原本重复的 escapeValue 收敛为 InsertDataExecutor.escapeValue 一处）；(b) 表级 remark 与列级 COMMENT 的单引号转义（CreateTableExecutor/AddColumnExecutor.escapeComment）。测试：`TestChangeExecutors#testInsertDataTypedValues`、`#testUpdateDataTypedValues`（红验证：修复前 valueNumeric/valueBoolean 被忽略、一律写 NULL）、`#testCreateTableSqlEscapesRemark`（红验证：修复前 remark 中单引号不转义；H2 不支持内联 COMMENT 故仅断言生成 SQL 文本不执行）。暂缓（并入 [P1] DDL 方言条的设计项）：DEFAULT 值字面量化（现为 SQL 表达式语义，与 Liquibase defaultValue 一致，直接加引号会破坏 DEFAULT CURRENT_TIMESTAMP）；where 保持原样拼接（SQL 表达式契约，值为开发者打包资源非用户输入，审计自评注入风险低）。
+
 ### [P2] IndexExistsChecker 查询不存在的 INFORMATION_SCHEMA.INDEXES 视图
 
 - **文件**: `nop-persistence/nop-db-migration/src/main/java/io/nop/db/migration/precondition/IndexExistsChecker.java:40`
@@ -368,6 +440,10 @@ String sql = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.INDEXES WHERE TABLE_NAME =
 - **风险**: 该 checker 一旦接线（修 P1 precondition 问题后必然接线），在 MySQL/PG/Oracle 上抛异常导致迁移中断。
 - **建议**: 按 dialect 选择索引元数据查询；或改用 JDBC DatabaseMetaData.getIndexInfo。
 - **误报排除**: 当前因 precondition 未接线暂不可达，故定 P2 而非 P1；TableExistsChecker/ColumnExistsChecker 的大写比较与无 schema 限定问题同源（见 P1 tableExists 条）。
+
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认属实，已修复。改为 `runWithConnection` + `DatabaseMetaData.getIndexInfo`（表名按 原名/大写/小写 三种模式探测，INDEX_NAME 忽略大小写比较），不再依赖仅 H2 存在的 INFORMATION_SCHEMA.INDEXES；SQLException 包装 NopException 上抛。测试：`TestPreconditionCheckers#testIndexExistsCheckerWithoutSqlQuery`（红验证：用拒绝 executeQuery 的代理 jdbcTemplate，修复前 checker 走 SQL 查询即被拒，修复后仅凭 JDBC 元数据正确判定存在/不存在），既有 H2 用例 testIndexExistsChecker 继续通过。TableExistsChecker/ColumnExistsChecker 的同源问题（大写比较、无 schema 限定、Oracle 无 INFORMATION_SCHEMA）未在本条扩大处置：二者属 P1-7 契约接线的死代码路径，随 P1-7 立项时一并迁移到 DatabaseMetaData 方案。
 
 ### [P2] nop-dbtool 每次启动全库元数据发现 + 每表 N+1 元数据查询
 
@@ -387,6 +463,10 @@ metaData.getIndexInfo(catalog, schemaPattern, table.getTableName(), true, false)
 - **建议**: 只对 ORM 模型涉及的表名做发现（表名 IN 列表或分批 pattern）；引入升级版本记录跳过无变化场景。
 - **误报排除**: 核对 discover 的调用参数与循环结构确认 N+1；确认无任何缓存/短路逻辑。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 裁定暂缓。优化需两项设计决策：(1) 发现范围收敛策略——源码注释已言明"无法确定表的匹配模式，只能将库内的表都查出来再做过滤"是有意约束，改为 ORM 表名 IN/分批 pattern 需评估大小写归一与跨 schema 匹配的正确性；(2) 升级版本记录短路——与 [P1] 并发互斥条的锁方案（版本表 CAS）天然合并立项。纯性能问题无正确性风险，且 auto-upgrade 为可选开关（默认关闭），暂缓不影响默认路径。
+
 ### [P3] MigrationVersionComparator 对双 null 模型的比较违反 Comparator 契约
 
 - **文件**: `nop-persistence/nop-db-migration/src/main/java/io/nop/db/migration/core/MigrationVersionComparator.java:34-37`
@@ -401,6 +481,10 @@ if (m2 == null) return 1;
 - **风险**: 极端情况下排序崩溃。
 - **建议**: `if (m1 == null && m2 == null) return 0;` 前置。
 - **误报排除**: 确认 scanner/loadMigration 不产生 null 元素，故仅 P3。
+
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 复查非问题。审计前提不成立：Java 中 `null == null` 恒为 true，既有首行 `if (m1 == m2) return 0;` 已使 compare(null,null) 返回 0，"两个不同的 null 引用双向都返回 -1"的场景在 Java 语义下不存在（不存在"不同的 null 引用"）。曾按建议补过显式双 null 判断，构造红测试失败（回退旧代码后新增用例仍绿）证实无缺陷，已回退该冗余改动；保留新增用例 `TestMigrationVersionComparator#testCompareBothNullIsZero`作为行为回归文档。误报排除中"scanner 不产出 null 模型"的判断仍成立，现实风险面结论不变。
 
 ### [P3] MigrationExecutor.execute 异常路径构造的 MigrationRecord 被直接丢弃（无效代码）
 
@@ -418,6 +502,10 @@ if (m2 == null) return 1;
 - **风险**: 维护性混乱：两套执行/记录逻辑（MigrationExecutor vs MigrationEngine.executeMigration）并存、行为不一致（beans 装配用前者、引擎用后者）。
 - **建议**: 删除 MigrationExecutor 或让 MigrationEngine 委托它，收敛单一实现。
 - **误报排除**: grep 确认 MigrationExecutor.execute 无 main 调用方，仅 beans 装配注入 executors map。
+
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷确认属实，已按最小方式处置：删除 catch 中构造后即被丢弃的 MigrationRecord 死代码，保留 `throw NopException.adapt(e)`。No new test required: 死代码删除，无可观测行为变化（构造无副作用）。MigrationExecutor 与 MigrationEngine.executeMigration 双实现并存、行为不一致的问题属结构收敛，随 P1-7 接线立项时二选一（删除或让引擎委托）。
 
 ## 附注
 

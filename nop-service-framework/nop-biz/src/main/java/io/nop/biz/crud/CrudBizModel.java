@@ -360,13 +360,6 @@ public abstract class CrudBizModel<T extends IOrmEntity>
         return dao().findPageByQuery(query);
     }
 
-    protected QueryBean resolveQuery(QueryBean query) {
-        if (query.getFilter() != null) {
-
-        }
-        return query;
-    }
-
     @BizAction
     protected QueryBean prepareFindPageQuery(@Name("query") QueryBean query,
                                              @Name("authObjName") String authObjName,
@@ -667,6 +660,17 @@ public abstract class CrudBizModel<T extends IOrmEntity>
     @BizAction
     protected EntityData<T> buildEntityDataForSave(@Name("data") Map<String, Object> data,
                                                    @Name("inputSelection") FieldSelectionBean inputSelection, IServiceContext context) {
+        return buildEntityDataForSave(data, inputSelection, context, true);
+    }
+
+    /**
+     * @param recoverDeleted 是否尝试恢复逻辑删除记录。save场景下按id恢复已删除记录；
+     *                       copyForNew场景下data中携带的是存活源记录的id，不应触发恢复逻辑，
+     *                       否则会按源id查到存活实体并误抛“记录已存在”异常
+     */
+    protected EntityData<T> buildEntityDataForSave(@Name("data") Map<String, Object> data,
+                                                   @Name("inputSelection") FieldSelectionBean inputSelection,
+                                                   IServiceContext context, boolean recoverDeleted) {
         IBizObject bizObj = getThisObj();
         IObjMeta objMeta = bizObj.requireObjMeta();
 
@@ -675,10 +679,15 @@ public abstract class CrudBizModel<T extends IOrmEntity>
 
         Map<String, Object> validated = validator.validateForSave(data, inputSelection);
 
-        T entity = recoverLogicalDeleted(data, objMeta);
-        boolean recover = true;
+        T entity = null;
+        boolean recover = false;
+        if (recoverDeleted) {
+            entity = recoverLogicalDeleted(data, objMeta);
+            if (entity != null) {
+                recover = true;
+            }
+        }
         if (entity == null) {
-            recover = false;
             entity = dao().newEntity();
         }
 
@@ -1006,7 +1015,11 @@ public abstract class CrudBizModel<T extends IOrmEntity>
     }
 
     protected boolean isAllowGetDeleted() {
-        return ConvertHelper.toPrimitiveBoolean(getThisObj().getObjMeta().prop_get(BizConstants.BIZ_ALLOW_GET_DELETED));
+        IObjMeta objMeta = getThisObj().getObjMeta();
+        // 无xmeta的业务对象按不允许处理，与getMaxPageSize等相邻方法的判空逻辑一致
+        if (objMeta == null)
+            return false;
+        return ConvertHelper.toPrimitiveBoolean(objMeta.prop_get(BizConstants.BIZ_ALLOW_GET_DELETED));
     }
 
     @Description("@i18n:biz.batchGet|根据主键批量获取对象")
@@ -1293,6 +1306,12 @@ public abstract class CrudBizModel<T extends IOrmEntity>
         List<T> entityList = ignoreUnknown ?
                 dao().tryBatchGetEntitiesByIds(ids) : dao().batchGetEntitiesByIds(ids);
         for (T entity : entityList) {
+            // 某些dao实现对不存在的id会返回null元素，与batchDelete的防御保持一致
+            if (entity == null) {
+                if (ignoreUnknown)
+                    continue;
+                throw new UnknownEntityException(getEntityName(), null);
+            }
             Map<String, Object> copy = new LinkedHashMap<>(data);
             copy.put(GraphQLConstants.PROP_ID, entity.orm_idString());
             update(copy, context);
@@ -1307,16 +1326,22 @@ public abstract class CrudBizModel<T extends IOrmEntity>
 
         List<T> entities = dao().batchGetEntitiesByIds(ids);
         Set<String> ret = new LinkedHashSet<>();
+        Set<String> deletedIds = new LinkedHashSet<>();
         for (T entity : entities) {
-            if(entity == null) {
-                ret.add(null);
+            // 对不存在的id，dao可能返回null元素，对应id在下面按原始ids补记
+            if (entity == null)
                 continue;
-            }
             if (entity.orm_state().isMissing()) {
                 ret.add(entity.orm_idString());
             } else {
+                deletedIds.add(entity.orm_idString());
                 delete(entity.orm_idString(), context);
             }
+        }
+        // 返回值是未删除的id集合，缺失的id从原始入参中补记，避免向返回集合写入null元素
+        for (String id : ids) {
+            if (!deletedIds.contains(id) && !ret.contains(id))
+                ret.add(id);
         }
         return ret;
     }
@@ -1450,6 +1475,11 @@ public abstract class CrudBizModel<T extends IOrmEntity>
         if (list.isEmpty())
             return 0;
 
+        // 受maxPageSize封顶，取满limit时可能存在未被处理的剩余行，此时返回值不代表全部命中行数
+        if (query != null && list.size() >= query.getLimit() && query.getLimit() > 0)
+            LOG.warn("nop.biz.update-by-query-result-truncated:bizObjName={},limit={},returned={}",
+                    getBizObjName(), query.getLimit(), list.size());
+
         doUpdateMulti(list, data, prepareUpdate, context);
         return list.size();
     }
@@ -1487,6 +1517,11 @@ public abstract class CrudBizModel<T extends IOrmEntity>
         List<T> list = doFindList0(query, authObjName, prepareQuery, null, context);
         if (list.isEmpty())
             return 0;
+
+        // 受maxPageSize封顶，取满limit时可能存在未被处理的剩余行，此时返回值不代表全部命中行数
+        if (query != null && list.size() >= query.getLimit() && query.getLimit() > 0)
+            LOG.warn("nop.biz.delete-by-query-result-truncated:bizObjName={},limit={},returned={}",
+                    getBizObjName(), query.getLimit(), list.size());
 
         doDeleteMulti(list, refNamesToCheck, prepareDelete, context);
         return list.size();
@@ -1529,6 +1564,10 @@ public abstract class CrudBizModel<T extends IOrmEntity>
             option.setLabel(StringHelper.toString(value, ""));
             options.add(option);
         }
+        // 字典选项数量达到分页上限时可能被截断，此时前端选项不完整
+        if (options.size() >= query.getLimit() && query.getLimit() > 0)
+            LOG.warn("nop.biz.as-dict-options-truncated:bizObjName={},limit={},options={}",
+                    getBizObjName(), query.getLimit(), options.size());
         dict.setOptions(options);
         return dict;
     }
@@ -1596,6 +1635,8 @@ public abstract class CrudBizModel<T extends IOrmEntity>
                                        @Optional @Name("filter") TreeBean filter,
                                        IServiceContext context) {
         T entity = get(id, false, context);
+        // 增删中间表记录属于变更操作，需要校验update行级数据权限，避免仅有读权限的用户篡改关联
+        checkDataAuth(BizConstants.METHOD_UPDATE, entity, context);
 
         ManyToManyPropMeta propMeta = requireManyToManyPropMeta(propName);
         ManyToManyTool<?> tool = this.manyToMany(propMeta.getRelatedEntityName(), propMeta.getJoinRightProp(), propMeta.getManyToManyRefProp());
@@ -1611,6 +1652,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
                                           @Optional @Name("filter") TreeBean filter,
                                           IServiceContext context) {
         T entity = get(id, false, context);
+        checkDataAuth(BizConstants.METHOD_UPDATE, entity, context);
         ManyToManyPropMeta propMeta = requireManyToManyPropMeta(propName);
         ManyToManyTool<?> tool = this.manyToMany(propMeta.getRelatedEntityName(), propMeta.getJoinRightProp(), propMeta.getManyToManyRefProp());
         Object leftValue = entity.orm_propValueByName(propMeta.getJoinLeftProp());
@@ -1624,6 +1666,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
                                           @Name("relValues") Collection<String> relValues,
                                           @Optional @Name("filter") TreeBean filter, IServiceContext context) {
         T entity = get(id, false, context);
+        checkDataAuth(BizConstants.METHOD_UPDATE, entity, context);
         ManyToManyPropMeta propMeta = requireManyToManyPropMeta(propName);
         ManyToManyTool<?> tool = this.manyToMany(propMeta.getRelatedEntityName(), propMeta.getJoinRightProp(), propMeta.getManyToManyRefProp());
         Object leftValue = entity.orm_propValueByName(propMeta.getJoinLeftProp());
@@ -1682,7 +1725,8 @@ public abstract class CrudBizModel<T extends IOrmEntity>
         checkMetaFilter(entity, objMeta, context);
 
         FieldSelectionBean inputSelection = objMeta.getFieldSelection(copySelection);
-        EntityData<T> entityData = buildEntityDataForSave(data, inputSelection, context);
+        // copyForNew总是新建记录，data中的id指向存活的源记录，不应触发按id恢复逻辑删除记录的逻辑
+        EntityData<T> entityData = buildEntityDataForSave(data, inputSelection, context, false);
         entityData.getValidatedData().remove(OrmConstants.PROP_ID);
 
         checkUniqueForSave(entityData);
@@ -1690,7 +1734,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
         T newEntity;
         if (inputSelection != null) {
             newEntity = dao.newEntity();
-            crudToolProvider.newOrmEntityCopier(objMeta).copyToEntity(entity,
+            crudToolProvider.newOrmEntityCopier(objMeta, context, entityData.getDelayedActions()).copyToEntity(entity,
                     newEntity, inputSelection, entityData.getObjMeta(), getBizObjName(),
                     BizConstants.SELECTION_COPY_FOR_NEW, context.getEvalScope());
         } else {
@@ -1704,7 +1748,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
 
         entityData.setEntity(newEntity);
 
-        crudToolProvider.newOrmEntityCopier(objMeta).copyToEntity(entityData.getValidatedData(),
+        crudToolProvider.newOrmEntityCopier(objMeta, context, entityData.getDelayedActions()).copyToEntity(entityData.getValidatedData(),
                 newEntity, inputSelection, entityData.getObjMeta(), getBizObjName(),
                 BizConstants.SELECTION_COPY_FOR_NEW, context.getEvalScope());
 
@@ -1712,6 +1756,9 @@ public abstract class CrudBizModel<T extends IOrmEntity>
             prepareSave.accept(entityData, context);
 
         checkDataAuth(BizConstants.SELECTION_COPY_FOR_NEW, entityData.getEntity(), context);
+
+        // 与doSave保持一致：writeMode=biz的关联通过延迟动作执行，否则会被静默丢弃
+        executeDelayedRelationActions(entityData, context);
 
         this.doSaveEntity(entityData, context);
         return newEntity;
@@ -1835,7 +1882,8 @@ public abstract class CrudBizModel<T extends IOrmEntity>
         if (query == null)
             query = new QueryBean();
 
-        query = prepareFindPageQuery(query, authObjName, METHOD_FIND_TREE_PAGE, prepareQuery, context);
+        // 列表入口按findTreeList应用数据权限规则，与入口方法声明的action保持一致
+        query = prepareFindPageQuery(query, authObjName, METHOD_FIND_TREE_LIST, prepareQuery, context);
 
         return getTreeEntityList(query);
     }

@@ -174,7 +174,7 @@ public class SqlExprToExpressionTransformer {
         } else if (str.startsWith("B")) {
             str = str.substring(1);
         } else {
-            throw new IllegalArgumentException("invalid bit value:" + expr.getValue());
+            throw new NopException(ERR_EQL_UNSUPPORTED_EVAL_EXPR).param(ARG_EXPR, expr);
         }
         int value = Integer.parseInt(str, 2);
         return Literal.numberValue(expr.getLocation(), value);
@@ -187,7 +187,7 @@ public class SqlExprToExpressionTransformer {
         } else if (str.startsWith("X")) {
             str = str.substring(1);
         } else {
-            throw new IllegalArgumentException("invalid hex value；" + expr.getValue());
+            throw new NopException(ERR_EQL_UNSUPPORTED_EVAL_EXPR).param(ARG_EXPR, expr);
         }
         int value = Integer.decode(str);
         return Literal.numberValue(expr.getLocation(), value);

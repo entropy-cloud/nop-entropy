@@ -80,6 +80,7 @@
     "methods": [
      "abort",
      "consume",
+     "copyForSubtask",
      "finishCommit",
      "prepareCommit",
      "recover",

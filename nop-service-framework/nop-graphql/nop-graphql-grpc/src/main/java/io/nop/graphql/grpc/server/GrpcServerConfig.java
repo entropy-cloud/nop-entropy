@@ -44,6 +44,22 @@ public class GrpcServerConfig {
 
     private int maxInboundMetadataSize;
 
+    /**
+     * 是否注册gRPC Server Reflection服务（对应配置nop.grpc.server.reflection-enabled）。
+     * 反射服务可枚举全部服务与方法schema，属于暴露面。默认false，与GraphQL introspection
+     * 默认关闭（nop.graphql.schema-introspection.enabled=false）的收紧语义对齐；
+     * 需要grpcurl等工具调试时显式开启。
+     */
+    private boolean reflectionEnabled;
+
+    public boolean isReflectionEnabled() {
+        return reflectionEnabled;
+    }
+
+    public void setReflectionEnabled(boolean reflectionEnabled) {
+        this.reflectionEnabled = reflectionEnabled;
+    }
+
     public int getPort() {
         return port;
     }

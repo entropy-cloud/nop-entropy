@@ -225,7 +225,7 @@ public class JdbcStatement implements IJdbcStatement {
                 statement.setDate(index + 1, Date.valueOf(value));
             }
         } catch (SQLException e) {
-            throw dialect.getSQLExceptionTranslator().translate("setBoolean", e);
+            throw dialect.getSQLExceptionTranslator().translate("setLocalDate", e);
         }
     }
 
@@ -251,7 +251,7 @@ public class JdbcStatement implements IJdbcStatement {
                 statement.setTimestamp(index + 1, value);
             }
         } catch (SQLException e) {
-            throw dialect.getSQLExceptionTranslator().translate("setBoolean", e);
+            throw dialect.getSQLExceptionTranslator().translate("setTimestamp", e);
         }
     }
 }

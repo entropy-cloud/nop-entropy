@@ -822,7 +822,7 @@ class TestWebAuthnMfaE2E {
         setField(countingVerifier, "totpAuthenticator", totpAuthenticator);
         setField(countingVerifier, "smsCodeStore", new LocalSmsCodeStore());
         setField(countingVerifier, "daoProvider", daoProvider);
-        setField(countingVerifier, "jdbcTemplate", jdbcTemplate);
+        setField(countingVerifier, "ormTemplate", ormTemplate);
         setField(countingVerifier, "webAuthnAuthenticator", webAuthnAuthenticator);
         setField(countingVerifier, "auditService", new NoopAuditService());
 

@@ -195,6 +195,15 @@ public interface OrmEqlErrors {
     ErrorCode ERR_EQL_UNSUPPORTED_EVAL_EXPR =
             define("nop.err.eql.unsupported-eval-expr", "不支持的表达式类型", ARG_EXPR);
 
+    ErrorCode ERR_EQL_INVALID_BIT_LITERAL = define("nop.err.eql.invalid-bit-literal",
+            "非法的二进制字面量:{value}", ARG_VALUE);
+
+    ErrorCode ERR_EQL_INVALID_HEX_LITERAL = define("nop.err.eql.invalid-hex-literal",
+            "非法的十六进制字面量:{value}", ARG_VALUE);
+
+    ErrorCode ERR_EQL_INVALID_COLLECTION_OPERATOR_PATH = define("nop.err.eql.invalid-collection-operator-path",
+            "集合操作符路径不合法:{propPath}", ARG_PROP_PATH);
+
     ErrorCode ERR_EQL_NOT_SINGLE_EXPR =
             define("nop.err.eql.not-single-expr", "不是合法SQL表达式", ARG_SQL);
 

@@ -1,5 +1,9 @@
 package io.nop.mermaid.output;
 
+import io.nop.api.core.exceptions.NopException;
+
+import static io.nop.mermaid.MermaidErrors.ERR_MERMAID_INVALID_IDENTIFIER;
+
 import io.nop.commons.text.CodeBuilder;
 import io.nop.mermaid.ast.MermaidASTVisitor;
 import io.nop.mermaid.ast.MermaidClassMember;
@@ -69,25 +73,25 @@ public class MermaidGenerator extends MermaidASTVisitor {
     // ======================= Document =======================
     @Override
     public void visitMermaidDocument(MermaidDocument node) {
-        out.line(node.getType().name().toLowerCase() + " " + node.getType());
+        out.printLine(node.getType().name().toLowerCase() + " " + node.getType());
         super.visitMermaidDocument(node);
     }
 
     // ======================= Common Statements =======================
     @Override
     public void visitMermaidDirectionStatement(MermaidDirectionStatement node) {
-        out.line("direction " + node.getDirection());
+        out.printLine("direction " + node.getDirection());
     }
 
     @Override
     public void visitMermaidComment(MermaidComment node) {
-        out.line("%% " + escapeMermaidString(node.getContent()));
+        out.printLine("%% " + escapeMermaidString(node.getContent()));
     }
 
     // ======================= Flowchart Statements =======================
     @Override
     public void visitMermaidFlowNode(MermaidFlowNode node) {
-        out.append(node.getId());
+        out.append(id(node.getId()));
         if (node.getText() != null) {
             out.append("(\"").append(escapeMermaidString(node.getText())).append("\")");
         } else {
@@ -102,7 +106,7 @@ public class MermaidGenerator extends MermaidASTVisitor {
 
     @Override
     public void visitMermaidFlowEdge(MermaidFlowEdge node) {
-        out.append(node.getFrom());
+        out.append(id(node.getFrom()));
 
         switch (node.getEdgeType()) {
             case ARROW:
@@ -121,7 +125,7 @@ public class MermaidGenerator extends MermaidASTVisitor {
                 out.append(" --> ");
         }
 
-        out.append(node.getTo());
+        out.append(id(node.getTo()));
 
         if (node.getLabel() != null) {
             out.append(" : \"").append(escapeMermaidString(node.getLabel())).append("\"");
@@ -132,20 +136,20 @@ public class MermaidGenerator extends MermaidASTVisitor {
 
     @Override
     public void visitMermaidFlowSubgraph(MermaidFlowSubgraph node) {
-        out.line("subgraph " + node.getId());
+        out.printLine("subgraph " + node.getId());
         if (node.getTitle() != null) {
-            out.line("title \"" + escapeMermaidString(node.getTitle()) + "\"");
+            out.printLine("title \"" + escapeMermaidString(node.getTitle()) + "\"");
         }
         out.incIndent();
         super.visitMermaidFlowSubgraph(node);
         out.decIndent();
-        out.line("end");
+        out.printLine("end");
     }
 
     // ======================= Sequence Diagram Statements =======================
     @Override
     public void visitMermaidParticipant(MermaidParticipant node) {
-        out.append("participant ").append(node.getName());
+        out.append("participant ").append(id(node.getName()));
         if (node.getAlias() != null) {
             out.append(" as \"").append(escapeMermaidString(node.getAlias())).append("\"");
         }
@@ -154,7 +158,7 @@ public class MermaidGenerator extends MermaidASTVisitor {
 
     @Override
     public void visitMermaidSequenceMessage(MermaidSequenceMessage node) {
-        out.append(node.getFrom());
+        out.append(id(node.getFrom()));
 
         switch (node.getEdgeType()) {
             case ARROW:
@@ -173,7 +177,7 @@ public class MermaidGenerator extends MermaidASTVisitor {
                 out.append(" -> ");
         }
 
-        out.append(node.getTo());
+        out.append(id(node.getTo()));
 
         if (node.getMessage() != null) {
             out.append(" : \"").append(escapeMermaidString(node.getMessage())).append("\"");
@@ -185,11 +189,11 @@ public class MermaidGenerator extends MermaidASTVisitor {
     // ======================= Class Diagram Statements =======================
     @Override
     public void visitMermaidClassNode(MermaidClassNode node) {
-        out.line("class " + node.getClassName() + " {");
+        out.printLine("class " + id(node.getClassName()) + " {");
         out.incIndent();
         super.visitMermaidClassNode(node);
         out.decIndent();
-        out.line("}");
+        out.printLine("}");
     }
 
     @Override
@@ -235,17 +239,17 @@ public class MermaidGenerator extends MermaidASTVisitor {
     // ======================= Pie Chart Statements =======================
     @Override
     public void visitMermaidPieItem(MermaidPieItem node) {
-        out.line("pie \"" + escapeMermaidString(node.getLabel()) + "\" : " + node.getValue());
+        out.printLine("pie \"" + escapeMermaidString(node.getLabel()) + "\" : " + node.getValue());
     }
 
     // ======================= Style Statements =======================
     @Override
     public void visitMermaidStyleStatement(MermaidStyleStatement node) {
-        out.line("style " + node.getTarget() + " {");
+        out.printLine("style " + id(node.getTarget()) + " {");
         out.incIndent();
         super.visitMermaidStyleStatement(node);
         out.decIndent();
-        out.line("}");
+        out.printLine("}");
     }
 
     @Override
@@ -255,5 +259,20 @@ public class MermaidGenerator extends MermaidASTVisitor {
             out.append("\"").append(escapeMermaidString(node.getValue())).append("\"");
         }
         out.line();
+    }
+
+    /**
+     * 文法 Identifier_ 只接受 [a-zA-Z_][a-zA-Z0-9_]*，非ASCII/特殊字符ID会破坏图文本结构
+     */
+    static String id(String value) {
+        if (value == null || value.isEmpty())
+            return value;
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            boolean ok = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9' && i > 0) || c == '_';
+            if (!ok)
+                throw new NopException(ERR_MERMAID_INVALID_IDENTIFIER).param("id", value);
+        }
+        return value;
     }
 }

@@ -273,8 +273,12 @@ public class JobFireStoreImpl implements IJobFireStore {
 
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
     @Override
-    public void failFireWithoutSchedule(String jobFireId, String errorCode, String errorMessage) {
+    public boolean failFireWithoutSchedule(String jobFireId, String errorCode, String errorMessage) {
         NopJobFire fire = fireDao().requireEntityById(jobFireId);
+        // 前置校验：已处终态的fire不再改写（对齐insertTasksAndMarkFireDispatching/revert的防护惯例）
+        if (JobFireStateMachine.isTerminal(fire.getFireStatus())) {
+            return false;
+        }
         fire.setFireStatus(_NopJobCoreConstants.FIRE_STATUS_FAILED);
         fire.setEndTime(new Timestamp(fireDao().getDbEstimatedClock().getMaxCurrentTimeMillis()));
         fire.setDurationMs(DateHelper.durationMs(fire.getStartTime(), fire.getEndTime()));
@@ -285,7 +289,9 @@ public class JobFireStoreImpl implements IJobFireStore {
         // checker would otherwise re-enter this path every cycle silently.
         if (!fireDao().tryUpdateWithVersionCheck(fire)) {
             LOG.warn("nop.job.fire-finalize-conflict:fireId={},errorCode={}", jobFireId, errorCode);
+            return false;
         }
+        return true;
     }
 
     private IOrmEntityDao<NopJobFire> fireDao() {
@@ -344,9 +350,6 @@ public class JobFireStoreImpl implements IJobFireStore {
         return TriggerSpecHelper.toEvalContext(schedule);
     }
 
-    private long toTime(Timestamp value) {
-        return value == null ? 0L : value.getTime();
-    }
 
     private long defaultLong(Long value) {
         return value == null ? 0L : value;

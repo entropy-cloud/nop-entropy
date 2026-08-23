@@ -352,12 +352,15 @@ public class ContentTypesPart implements IOfficePackagePart {
             if (tagName.equals(DEFAULT_TAG_NAME)) {
                 String extension = child.attrText(EXTENSION_ATTRIBUTE_NAME);
                 String contentType = child.attrText(CONTENT_TYPE_ATTRIBUTE_NAME);
-                addDefaultContentType(extension, contentType);
+                if (extension != null && contentType != null)
+                    addDefaultContentType(extension, contentType);
             } else if (tagName.equals(OVERRIDE_TAG_NAME)) {
                 String partNameStr = child.attrText(PART_NAME_ATTRIBUTE_NAME);
-                PackagePartName partName = PackagingURIHelper.createPartName(partNameStr);
                 String contentType = child.attrText(CONTENT_TYPE_ATTRIBUTE_NAME);
-                addOverrideContentType(partName, contentType);
+                if (partNameStr != null && contentType != null) {
+                    PackagePartName partName = PackagingURIHelper.createPartName(partNameStr);
+                    addOverrideContentType(partName, contentType);
+                }
             }
         }
     }
@@ -395,4 +398,13 @@ public class ContentTypesPart implements IOfficePackagePart {
     public XNode buildXml(IEvalContext context) {
         return loadXml();
     }
+    @Override
+    public ContentTypesPart cloneInstance() {
+        ContentTypesPart ret = new ContentTypesPart();
+        ret.defaultContentType.putAll(this.defaultContentType);
+        if (this.overrideContentType != null)
+            ret.overrideContentType = new TreeMap<>(this.overrideContentType);
+        return ret;
+    }
+
 }

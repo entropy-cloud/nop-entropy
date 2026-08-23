@@ -163,28 +163,43 @@ public class LazyLoadOrmModel implements ILazyLoadOrmModel {
         putEntityModel(entityModel);
     }
 
+    /**
+     * 必须与 {@link #checkTopoEntryReady()} 在同一把锁（entityModelMap）内执行，
+     * 否则并发的 put 与重建之间没有 happens-before 约束：当 put 的 topoEntryInited=false
+     * 落在重建过程中间时，最终状态为 topoEntryInited=true 但拓扑表中不包含新实体，且不会再触发重建
+     */
     void putEntityModel(IEntityModel entityModel) {
-        entityModelByTableMap.put(entityModel.getTableName(), entityModel);
+        synchronized (this.entityModelMap) {
+            entityModelByTableMap.put(normalizeTableName(entityModel.getTableName()), entityModel);
 
-        entityModelMap.put(entityModel.getName(), entityModel);
-        if (entityModel.isRegisterShortName()) {
-            IEntityModel oldModel = entityModelMap.put(entityModel.getShortName(), entityModel);
-            if (oldModel != null && oldModel != entityModel)
-                throw new NopException(ERR_ORM_MODEL_DUPLICATE_ENTITY_SHORT_NAME).source(entityModel)
-                        .param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_OTHER_LOC, oldModel.getLocation())
-                        .param(ARG_OTHER_ENTITY_NAME, oldModel.getName());
-        }
+            entityModelMap.put(entityModel.getName(), entityModel);
+            if (entityModel.isRegisterShortName()) {
+                IEntityModel oldModel = entityModelMap.put(entityModel.getShortName(), entityModel);
+                if (oldModel != null && oldModel != entityModel)
+                    throw new NopException(ERR_ORM_MODEL_DUPLICATE_ENTITY_SHORT_NAME).source(entityModel)
+                            .param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_OTHER_LOC, oldModel.getLocation())
+                            .param(ARG_OTHER_ENTITY_NAME, oldModel.getName());
+            }
 
-        if (entityModel.isRegisterShortName()) {
-            // 只有entityModel的短名字不重复的情况下才支持underscore名称，否则可能会出现重名的问题
-            String underscoreName = StringHelper.camelCaseToUnderscore(entityModel.getShortName(), true);
-            if (underscoreName.equals(entityModel.getTableName()))
-                underscoreName = entityModel.getTableName();
-            // 只支持全大写和全小写
-            snakeCaseNameMap.put(underscoreName, entityModel);
-            snakeCaseNameMap.put(underscoreName.toUpperCase(Locale.ROOT), entityModel);
+            if (entityModel.isRegisterShortName()) {
+                // 只有entityModel的短名字不重复的情况下才支持underscore名称，否则可能会出现重名的问题
+                String underscoreName = StringHelper.camelCaseToUnderscore(entityModel.getShortName(), true);
+                if (underscoreName.equals(entityModel.getTableName()))
+                    underscoreName = entityModel.getTableName();
+                // 只支持全大写和全小写
+                snakeCaseNameMap.put(underscoreName, entityModel);
+                snakeCaseNameMap.put(underscoreName.toUpperCase(Locale.ROOT), entityModel);
+            }
+            this.topoEntryInited = false;
         }
-        this.topoEntryInited = false;
+    }
+
+    /**
+     * 与静态 OrmModel 的 CaseInsensitiveMap 索引保持一致：表名查找忽略大小写。
+     * ConcurrentHashMap 自行按归一化后的 key 存取
+     */
+    private static String normalizeTableName(String tableName) {
+        return tableName.toLowerCase(Locale.ROOT);
     }
 
     @Override
@@ -194,7 +209,7 @@ public class LazyLoadOrmModel implements ILazyLoadOrmModel {
             if (entityModel != null)
                 return entityModel;
         }
-        return entityModelByTableMap.get(tableName);
+        return entityModelByTableMap.get(normalizeTableName(tableName));
     }
 
     @Override

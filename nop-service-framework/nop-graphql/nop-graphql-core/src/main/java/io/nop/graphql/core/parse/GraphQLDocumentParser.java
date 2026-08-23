@@ -55,8 +55,11 @@ import java.util.List;
 import static io.nop.commons.CommonErrors.ARG_START_LOC;
 import static io.nop.commons.CommonErrors.ERR_SCAN_STRING_NOT_END;
 import static io.nop.commons.util.StringHelper.isGraphQLNameStart;
+import static io.nop.graphql.core.GraphQLErrors.ARG_FRAGMENT_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ARG_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_INVALID_DIRECTIVE_LOCATION;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_PARSE_INVALID_EXTEND_SYNTAX;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_PARSE_UNSUPPORTED_INLINE_FRAGMENT;
 
 public class GraphQLDocumentParser extends AbstractCharReaderResourceParser<GraphQLDocument> {
 
@@ -94,7 +97,7 @@ public class GraphQLDocumentParser extends AbstractCharReaderResourceParser<Grap
                 GraphQLTypeDefinition def = parseType(sc);
                 if (def == null) {
                     sc.matchToken("type"); // 实际会在这一句报错，不会执行到下一句。抛出异常仅仅是为了消除编译警告
-                    throw new IllegalStateException("invalid extend syntax");
+                    throw sc.newError(ERR_GRAPHQL_PARSE_INVALID_EXTEND_SYNTAX);
                 }
                 def.setExtension(true);
                 def.setDescription(description);
@@ -726,6 +729,12 @@ public class GraphQLDocumentParser extends AbstractCharReaderResourceParser<Grap
         GraphQLFragmentSelection sel = new GraphQLFragmentSelection();
         sel.setLocation(sc.location());
         String fragmentName = sc.nextGraphQLVar();
+        if ("on".equals(fragmentName)) {
+            // inline fragment（... on Type {...}）不在支持范围内：若不显式识别，"on"会被误当作
+            // fragment名继续解析，产生与根因无关的误导性错误（或静默解析成错误结构）
+            throw sc.newError(ERR_GRAPHQL_PARSE_UNSUPPORTED_INLINE_FRAGMENT)
+                    .param(ARG_FRAGMENT_NAME, fragmentName);
+        }
         sc.skipBlank();
         sel.setFragmentName(fragmentName);
         sel.setDirectives(directives(sc));

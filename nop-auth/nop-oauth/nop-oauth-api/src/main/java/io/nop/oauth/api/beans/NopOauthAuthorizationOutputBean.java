@@ -97,34 +97,6 @@
         }
 
 
-        private String _state;
-
-    
-        @PropMeta(propId=7)
-    
-        public String getState(){
-            return _state;
-        }
-
-        public void setState(String value){
-            this._state = value;
-        }
-
-
-        private String _authorizationCodeValue;
-
-    
-        @PropMeta(propId=8)
-    
-        public String getAuthorizationCodeValue(){
-            return _authorizationCodeValue;
-        }
-
-        public void setAuthorizationCodeValue(String value){
-            this._authorizationCodeValue = value;
-        }
-
-
         private java.sql.Timestamp _authorizationCodeIssuedAt;
 
     
@@ -164,20 +136,6 @@
 
         public void setAuthorizationCodeMetadata(String value){
             this._authorizationCodeMetadata = value;
-        }
-
-
-        private String _accessTokenValue;
-
-    
-        @PropMeta(propId=12)
-    
-        public String getAccessTokenValue(){
-            return _accessTokenValue;
-        }
-
-        public void setAccessTokenValue(String value){
-            this._accessTokenValue = value;
         }
 
 
@@ -251,20 +209,6 @@
         }
 
 
-        private String _oidcIdTokenValue;
-
-    
-        @PropMeta(propId=18)
-    
-        public String getOidcIdTokenValue(){
-            return _oidcIdTokenValue;
-        }
-
-        public void setOidcIdTokenValue(String value){
-            this._oidcIdTokenValue = value;
-        }
-
-
         private java.sql.Timestamp _oidcIdTokenIssuedAt;
 
     
@@ -304,20 +248,6 @@
 
         public void setOidcIdTokenMetadata(String value){
             this._oidcIdTokenMetadata = value;
-        }
-
-
-        private String _refreshTokenValue;
-
-    
-        @PropMeta(propId=22)
-    
-        public String getRefreshTokenValue(){
-            return _refreshTokenValue;
-        }
-
-        public void setRefreshTokenValue(String value){
-            this._refreshTokenValue = value;
         }
 
 

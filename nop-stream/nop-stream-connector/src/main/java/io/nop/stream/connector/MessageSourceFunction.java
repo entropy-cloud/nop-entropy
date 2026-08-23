@@ -121,9 +121,16 @@ public class MessageSourceFunction<T> implements SourceFunction<T> {
     @Override
     @SuppressWarnings("unchecked")
     public void run(final SourceContext<T> ctx) throws Exception {
-        if (shutdownLatch == null) {
-            shutdownLatch = new CountDownLatch(1);
-        }
+        // Reset lifecycle state: a region restart reuses this instance (the rebuilt
+        // operator chain shares the source function) after cancel() set running=false.
+        // Without this reset the wait loop below exits immediately and the source is
+        // silently treated as EOS (data flow stall). pendingError/failed from a prior
+        // failed run must also be cleared, and the shutdown latch must be fresh because
+        // the previous cancel() already counted it down.
+        this.pendingError = null;
+        this.failed = false;
+        this.running = true;
+        this.shutdownLatch = new CountDownLatch(1);
 
         String effectiveTopic = getEffectiveTopic();
         subscription = messageService.subscribe(effectiveTopic, new IMessageConsumer() {

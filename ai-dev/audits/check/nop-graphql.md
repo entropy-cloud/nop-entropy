@@ -12,7 +12,9 @@
 | P0 | 0 |
 | P1 | 3 |
 | P2 | 5 |
-| P3 | 6 |
+| P3 | 7 |
+
+> 注：初版统计表 P3 误记为 6，实际发现列表 P3 条目为 7（2026-08-23 处置时按发现列表逐条对账修正，与 plan 344 的 P1×3 P2×5 P3×7 口径一致）。
 
 ## 发现列表
 
@@ -43,6 +45,8 @@ return loader.load(env.getSource());
 - **风险**: 同一请求内同名 loader 字段带不同过滤/分页参数时，第二处返回按第一处参数计算的数据，**静默错误数据**，无任何告警。注释表明是已知假设，但缺少运行期检测（如参数不一致时抛错或按参数分 loader）。
 - **建议**: 将非 source 参数纳入 loaderKey（如 `loaderName + "@" + argsHash`），或在第二次 `get()` 时校验参数一致、不一致即抛 NopException。
 - **误报排除**: 已确认 loaderName 不含参数（ReflectionBizModelBuilder:529）；已确认 DataLoader 按请求级 context 注册、跨请求无影响；单处使用或无额外参数的 loader 不受影响，故不升 P0。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。非 source 参数纳入 loader 注册名（`loaderName + "@" + Arrays.deepHashCode(keyArgs)`），参数不同各自成批；无额外参数时保持原 loaderName 不变（兼容既有注册名语义，hashCode 退化为身份哈希的对象只会导致批次变细不影响正确性）。新增 `TestBeanMethodBatchFetcher`（4 用例：不同参数分批装载各得其所 / 无额外参数保持原名 / 并发首次注册共享实例 / 显式重复注册仍拒绝）。红验证：修复前 `different args must be loaded in separate batches ==> expected: <2> but was: <1>`，第二分支参数被静默丢弃、整批按首分支参数计算，与审计描述一致。
 
 ### [P1] WebSocket 订阅完成/出错后 activeOperations 不清理，id 复用会直接断开整个连接
 
@@ -75,6 +79,8 @@ if (activeOperations.containsKey(operationId)) {
 - **建议**: onComplete/onError 中调用 `activeOperations.remove(operationId, this)`（注意用双参 remove 防误删并发重订阅的新条目）。
 - **误报排除**: 已全文检索该类，确认无其他移除路径；onClose 的 forEach 清理只在连接关闭时执行，不覆盖本问题。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复（两处配合）。onComplete/onError 补 `activeOperations.remove(operationId, this)` 双参 remove（防误删并发重订阅的新条目）；红验证阶段发现审计建议的单点 remove 不足以修复——`sendStreamingMessage` 的 put 在 `stream.subscribe` 之后执行，同步 publisher 场景下 onComplete/onError 的清理先于注册执行（remove 空跑）、put 随后把已终止订阅塞回 map，条目仍滞留。故 put 调整为先于 subscribe（对异步 publisher 无影响且同样更正确）。新增 `TestJsonRpcWebSocketHandler.testReuseIdAfterComplete` / `testReuseIdAfterError`。红验证：修复前两个测试分别以 `second subscription data` 超时（complete 后复用 id 触发 4409 断连、第二订阅无数据）和 `activeOperations cleared after error` 超时（onError 后条目滞留）失败，与审计推演一致。
+
 ### [P1] GraphQLSubscriptionManager 的 beans.xml 装配三重损坏：永不加载 + 属性不存在 + start() 不会被调用
 
 - **文件**: `nop-service-framework/nop-graphql/nop-graphql-core/src/main/resources/_vfs/nop/graphql/beans/subscription-defaults.beans.xml:10-15`；对照 `io/nop/graphql/core/subscription/GraphQLSubscriptionManager.java`（仅有 setMessageService/setMaxActiveSubscriptions 两个 setter，start() 无 @PostConstruct）
@@ -92,6 +98,8 @@ if (activeOperations.containsKey(operationId)) {
 - **风险**: GraphQL 订阅推送桥接功能（IMessageService → WebSocket 客户端路由）整体不可用或一修即崩；后续开发者按惯例补 autoconfig 注册时会直接踩中启动失败。
 - **建议**: 删除不存在的 `graphQLEngine` property；为 `start()` 添加 @PostConstruct（对照 GraphQLEngine.init 的写法）；在 `_vfs/nop/autoconfig/` 增加 graphql-subscription.beans 清单引用该文件，并补一条装配后的启动验证。
 - **误报排除**: 已确认类中无 graphQLEngine 字段/方法（grep 无命中）；已确认全仓库无对该 beans.xml 的 import/autoconfig 引用；已确认其它模块（如 nop-orm、nop-message-core）的 `*-defaults.beans.xml` 均通过 autoconfig 清单注册，本文件是例外。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 部分修复 + 一项裁定暂缓。已修复：删除不存在的 `graphQLEngine` property；`start()` 补 `@PostConstruct`；新增 `TestSubscriptionDefaultsBeans` 装配一致性守卫（逐 property 校验类上有对应 setter、start() 有 @PostConstruct，防止该文件未来被接入加载时一修即崩）。**autoconfig 注册裁定暂缓**：复核发现 `GraphQLSubscriptionManager.registerSubscription/unregisterSubscription` 在生产代码中零调用方——`JsonRpcWebSocketHandler` 自管 activeOperations、不经由 manager 路由，即该 manager 是未接线的原型组件。此时激活 bean 只会空订阅 `graphql-subscription/*` 主题并引入 `nopMessageService` 启动依赖，无任何功能收益；真正的功能可用需要先设计 WebSocket 会话接入 manager 的接线方案（IMessageService 桥接架构决策），属设计级变更，超出本条目最小修复范围，留给专项 plan。
 
 ### [P2] fragment 预解析使 maxDepth 深度防护失效，可用 fragment 链构造超深查询
 
@@ -120,6 +128,8 @@ private void resolveFragment(GraphQLDocument doc, GraphQLFragment fragment, int 
 - **建议**: fragment 校验基线与使用点深度合并（resolve 时记录 fragment 被引用处的最小 level，或将展开后的等价深度纳入检查）；或在执行前对已解析 AST 做一次整体 `isExceedDepth(maxDepth)` 校验（AST 上已有该方法，GraphQLFieldSelection:41）。
 - **误报排除**: 已通读 resolveSelection/resolveFragment/resolveFragmentSelection/resolveSelections 全链路确认无其他深度补偿逻辑；测试目录无 maxDepth 相关用例佐证预期行为；GraphQLDocumentParser 本身无嵌套深度限制，解析期不会拦截。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复（判定语义经红测试修正）。初版实现为"展开总深度 ≤ maxDepth"，被平台自有标准 IntrospectionQuery 夹具证伪（`test-fragment.graphql` 的 FullType→TypeRef 展开约 11 层 > 测试 maxDepth 10；生产默认 maxDepth=7 时标准 introspection 查询展开约 12 层——该语义会拒绝所有标准 GraphQL 客户端的 IntrospectionQuery，属行为回归）。最终语义：每个 fragment body 的字段嵌套已由 resolveSelections 各自按 maxDepth 独立校验，唯一无界的组合因子是引用链长度，故新增 `checkFragmentExpansion` 限制单条路径上 fragment 引用嵌套层数 ≤ maxDepth（12 链拒绝、总展开深度界定在约 maxDepth×(maxDepth+1)，DoS 防护意图保持）；附带修复 fragment 循环引用解析期即拒绝（原 resolve 阶段静默放行、执行期无限递归 StackOverflowError）。新增 `TestGraphQLFragmentDepth` 4 用例（12 链拒绝 / 1 层放行 / introspection 形态深 body 放行 / 循环拒绝），既有 `testQueryWithFragment`（标准 introspection 夹具）作为回归守卫。红验证：修复前链式与循环引用均 `nothing was thrown` 静默放行。
+
 ### [P2] JSON-RPC batch 请求单项失败导致整批失败，违背 per-entry 错误语义
 
 - **文件**: `nop-service-framework/nop-graphql/nop-graphql-core/src/main/java/io/nop/graphql/core/jsonrpc/JsonRpcService.java:108-129`
@@ -142,6 +152,8 @@ IGraphQLExecutionContext gqlCtx = graphQLEngine.newRpcContext(null, request.getM
 - **建议**: 循环内对每个 request 包 try-catch 转为错误 response；`getResults` 改为逐项 `whenComplete` 收集（失败项落为 JsonRpcResponse error）。
 - **误报排除**: 已确认 `executeRpcAsync` 自身不抛（toRpcResponse 内部 catch），失败源是 newRpcContext 同步异常与 executeCommandAsync 前 95-105 行之外的路径；95-97 行的 METHOD_NOT_FOUND 已正确处理为单项错误。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。新增 `executeCommandAsyncSafely` 包装每个 entry：`newRpcContext` 的同步 NopException（catch 转错误响应）与异步 promise 失败（exceptionally 收敛）都落为该 entry 的 INVALID_REQUEST 错误响应，不再拖垮整批。新增 `TestJsonRpcService.testBatchEntryFailureIsolated`（unknownArg 触发同步校验异常 + 合法 entry 同批，断言合法 entry 结果保留、坏 entry 返回 error）。红验证：修复前该测试失败——坏 entry 的同步异常使整批 `executeAsync` 直接异常完成，合法 entry 结果全部丢失。
+
 ### [P2] JSON-RPC notification（id==null）请求 fire-and-forget，异常被静默吞噬
 
 - **文件**: `nop-service-framework/nop-graphql/nop-graphql-core/src/main/java/io/nop/graphql/core/jsonrpc/JsonRpcService.java:119-125`
@@ -158,6 +170,8 @@ if (request.getId() == null) {
 - **风险**: 通过 notification 触发的写操作失败完全不可观测，问题无法排查；也可能被用作无回执的静默探测。
 - **建议**: 对丢弃的 future 追加 `whenComplete((r, e) -> { if (e != null) LOG.warn(...); })`。
 - **误报排除**: 已确认 executeCommandAsync 全链路无内部兜底日志（executeRpcAsync 的 LOG 级别为 error 的仅 buildGraphQLResponse 路径，Rpc 路径是 logIfNotTraced 的 debug 语义），失败确实无输出。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。notification 的 future 补 `whenComplete`：异常完成 WARN 异常堆栈，正常完成但携带错误响应时 WARN 方法名+错误码+消息（异步路径的业务失败以 error response 形式返回而非异常）；同时经 executeCommandAsyncSafely 包装，notification 的同步异常不再从 batch 循环直接抛出。新增 `TestJsonRpcService.testNotificationFailureDoesNotKillBatch`。红验证：修复前 notification 的同步异常直接从 batchExecuteCommandAsync 循环抛出（同轮红验证覆盖）。
 
 ### [P2] 多个 mutation 在同一请求中不去等待前一个完成，违背 GraphQL 串行 mutation 语义
 
@@ -176,6 +190,8 @@ for (GraphQLSelection selection : selectionSet.getSelections()) {
 - **风险**: GraphQL 规范要求 mutation 顶层字段串行执行（保证副作用顺序）；异步 mutation 下客户端观察到的执行顺序不确定，依赖顺序语义的批量变更（如先创建后更新）可能失败或作用于未就绪数据。
 - **建议**: operation 类型为 mutation 时改为逐个 `thenCompose` 串联（等待前一个完成后再发起下一个）。
 - **误报排除**: 已确认 `GraphQLTransactionOperationInvoker` 只是把整批 mutation 包进一个事务，不做顺序保证；`operationInvoker` 亦无串行化逻辑。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`_invokeOperations` 按 operation 类型分流：mutation 走串行链（每个 operation 的发起+后处理经 thenCompose 链接到前一个完成之后，仍在 operationInvoker（如事务包装器）作用域内，异常沿链传播阻断后续 mutation）；query 保持并行发起不变。新增 `TestGraphQLSerialMutations`（step1 以未完成的 CompletableFuture 门控，断言 step2 在 step1 完成前不发起、事件顺序 end1 < start2、最终响应无错误）。红验证：修复前 `mutation step2 must not start before step1 completes, events=[start1, start2]`，异步 mutation 副作用乱序与审计描述一致。
 
 ### [P2] DataLoader 首次注册的 check-then-act 竞争：并发分支可触发 ERR_GRAPHQL_DUPLICATED_LOADER 使请求失败
 
@@ -198,6 +214,8 @@ if (old != null && old != loader)
 - **建议**: `registerDataLoader` 改为 `putIfAbsent`，冲突时复用已注册 loader（返回旧值），或返回 boolean 让调用方回退。
 - **误报排除**: 已确认 `loaders` 为 ConcurrentHashMap 但 put+检查不是原子的；已确认 `_fetchSelections` 的异步 promise 在完成线程上继续展开嵌套字段（GraphQLExecutor:396-407 + thenFetchNext），两个兄弟异步字段确实可能在不同线程并发调用同一 batch fetcher。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`BeanMethodBatchFetcher.get` 与 `OrmBatchLoader.makeDataLoader` 的 check-then-act 均改为与 `GraphQLExecutionContext.dispatchAll` 同锁（`synchronized (context)`）串行化注册窗口：先注册者胜出，后到方直接复用已注册实例（同参数时 key 相同，语义正确）；`registerDataLoader` 对显式重复注册不同实例的守卫语义保留。新增 `TestBeanMethodBatchFetcher.testConcurrentFirstRegistrationSharesLoader`（CyclicBarrier 让双方汇合在注册前窗口，断言无异常且两 source 共享同一 loader 单批装载）与 `testSequentialDuplicateRegistrationStillRejected`。红验证：修复后到方抛 `nop.err.graphql.duplicated-loader: loaderName=TestObj__items`，与审计证据的错误码一致。
+
 ### [P3] GraphQL 错误响应为 all-or-nothing 语义，无字段级 null 传播/部分成功
 
 - **文件**: `nop-service-framework/nop-graphql/nop-graphql-core/src/main/java/io/nop/graphql/core/engine/GraphQLEngine.java:600-627`（buildGraphQLResponse）；`GraphQLExecutor.java:372-422`（异常直接沿 future 传播）
@@ -214,6 +232,8 @@ if (err != null) {
 - **风险**: 大查询中一个非关键子字段失败导致全部数据丢弃；批量 operation 中一个失败使其它成功结果不可见。属平台级设计取舍，但对熟悉标准 GraphQL 语义的客户端是契约漂移。
 - **建议**: 至少在文档中明示该语义；中期可在 `_fetchSelections` 层为字段级异常增加可配置的 null 传播策略。
 - **误报排除**: 已确认 executor 各层（fetchSelection/_fetchSelections/invokeOperations）均无 try-catch 包裹单个字段异常，整链路为全量失败语义，非个别路径遗漏。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 裁定暂缓。字段级错误隔离 + null 传播是平台级语义变更：需要改 fetchSelection/_fetchSelections/invokeOperations 各层的异常处理与结果组装，且改变所有客户端可观察的响应契约（部分数据 vs 全量失败）。all-or-nothing 是平台自始的稳定契约，现有前端与调用方均按此语义消费。属 GraphQL 引擎架构决策（可配置错误传播策略设计），超出条目最小修复范围；后续若立项需先在 owner doc 明示该语义与标准 GraphQL 的差异再设计开关。
 
 ### [P3] 多处 bare IllegalArgumentException/IllegalStateException，违背错误处理两档策略
 
@@ -236,6 +256,8 @@ throw new IllegalArgumentException(                              // SelectionBea
 - **建议**: 统一替换为 `GraphQLErrors` 中已定义或新增的 ErrorCode + NopException。
 - **误报排除**: 逐处确认均为可达路径（web 入参为空、装配期 bizObjName 为空、fragment 未解析、fetcher 缺失、extend 语法非法），非死代码。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。6 处全部转 `NopException + GraphQLErrors 错误码 + .param`：`ERR_GRAPHQL_NULL_REQUEST`（web 入参空，400）/ `ERR_GRAPHQL_EMPTY_BIZ_OBJ_NAME`、`ERR_GRAPHQL_CLASS_NO_BIZ_MODEL`（装配期）/ `ERR_GRAPHQL_FRAGMENT_NOT_RESOLVED`（SelectionBeanBuilder）/ `ERR_GRAPHQL_NULL_OPERATION_FETCHER`（GraphQLExecutor）/ `ERR_GRAPHQL_PARSE_INVALID_EXTEND_SYNTAX`（解析器，400）；i18n zh-CN/en 与 nop-cli-errors 聚合同步 7 条新 key。免红测试注明理由：异常类型替换不改变触发条件与控制流，正确性由编译期错误码引用 + 既有全量回归（core 101 绿）覆盖，装配期错误路径在单测环境无法真实构造 bizObjName 为空的 bean。
+
 ### [P3] JSON-RPC 批量上限判断 off-by-one：恰好等于上限的批量被拒绝
 
 - **文件**: `nop-service-framework/nop-graphql/nop-graphql-core/src/main/java/io/nop/graphql/core/jsonrpc/JsonRpcService.java:62`
@@ -249,6 +271,8 @@ if (GraphQLConfigs.CFG_GRAPHQL_QUERY_MAX_OPERATION_COUNT.get() <= requests.size(
 - **风险**: 边界行为与配置描述（“单次查询所允许的操作个数”）不符，客户端按上限构造的合法批量被拒。
 - **建议**: 改为 `<`。
 - **误报排除**: 无其它归一化逻辑补偿该边界。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`<=` 改 `<`，上限为包含语义。新增 `TestJsonRpcService.testBatchOfExactlyMaxCountAllowed`（恰好 10 个 entry 的批量，断言 200 且逐 entry 返回 METHOD_NOT_FOUND）。红验证：修复前该批量返回 `expected: <200> but was: <400>`，与审计描述一致。
 
 ### [P3] batchExecuteCommandAsync 空批返回值违反声明的 List 类型，潜伏 ClassCastException
 
@@ -265,6 +289,8 @@ public CompletionStage<List<JsonRpcResponse<?>>> batchExecuteCommandAsync(...) {
 - **建议**: 返回 `List.of(JsonRpcResponse.INVALID_REQUEST(null))` 或将方法签名拆分。
 - **误报排除**: 已确认 `FutureHelper.success` 签名为 `success(Object o)`（FutureHelper.java:79），编译期不拦截；已确认当前唯一消费路径不触发 CCE。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`batchExecuteCommandAsync` 空批返回 `List.of(JsonRpcResponse.INVALID_REQUEST(null))`（类型与声明一致）；`executeAsync` 增加空批分支直接构造单错误对象响应，保持对外 wire format 为单个 Invalid Request 错误对象（JSON-RPC 2.0 规范对空批的要求，非数组）。新增 `TestJsonRpcService.testBatchExecuteEmptyReturnsTypedList`（按声明 List 类型消费）+ `testEmptyBatchWireFormatIsSingleObject`（对外序列化为单 JSON 对象）。红验证：修复前 `ClassCastException: JsonRpcResponse cannot be cast to List`——审计预言的潜伏陷阱在按声明类型消费的测试路径实测命中。
+
 ### [P3] GrpcServer 无条件注册 ProtoReflectionService，与 introspection 默认关闭的收紧语义不对齐
 
 - **文件**: `nop-service-framework/nop-graphql/nop-graphql-grpc/src/main/java/io/nop/graphql/grpc/server/GrpcServer.java:57-59`
@@ -279,6 +305,8 @@ this.server = builder
 - **风险**: gRPC 端口若可达（默认 9000），攻击者可免费获得完整 API 面（对象、方法、参数类型），抵消 introspection 默认关闭的意图；且使用的是已废弃的 ProtoReflectionService API。
 - **建议**: 增加配置开关（如 `nop.grpc.server.reflection-enabled`，默认与生产环境策略对齐），并迁移到 ProtoReflectionServiceV1/.newBuilder。
 - **误报排除**: 已确认无任何条件包裹该 addService；无其它 filter/拦截限制反射服务。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`GrpcServerConfig` 新增 `reflectionEnabled`（对应 `nop.grpc.server.reflection-enabled`，默认 false，与 GraphQL introspection 默认关闭的收紧语义对齐，需要 grpcurl 调试时显式开启）；`GrpcServer` 按开关注册并从已废弃的 `ProtoReflectionService` 迁移到 `ProtoReflectionServiceV1`。免红测试注明理由：nop-graphql-grpc 在父 pom 中被注释排除（非默认构建模块）、无既有测试基建，本轮以单独 `mvnw compile` 验证通过（默认关闭行为由字段缺省值保证）。
 
 ### [P3] GraphQL 路径对所有失败请求以 ERROR 级记录全栈，与 RPC 路径降噪逻辑不一致
 
@@ -295,6 +323,8 @@ NopException.logIfNotTraced(LOG, "nop.graphql.rest-execute-fail", err);
 - **风险**: 高频失败（如未授权扫描）会刷爆错误日志、放大 IO 开销，并淹没真正的系统级故障信号。
 - **建议**: 对齐 RPC 路径使用 `NopException.logIfNotTraced`。
 - **误报排除**: 已确认两路径相邻实现确实不一致；GraphQL 路径无其它去重机制。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`buildGraphQLResponse` 对齐 RPC 路径改用 `NopException.logIfNotTraced`（同一 NopException 沿链路只记录一次完整堆栈）。免红测试注明理由：纯日志降噪，无行为语义变化，由既有全量回归覆盖。
 
 ### [P3] 解析器不支持 inline fragment（`... on Type { ... }`），报错信息误导
 
@@ -317,6 +347,8 @@ private GraphQLSelection fragmentSelection(TextScanner sc) {
 - **风险**: 使用标准客户端生成 inline fragment（接口/联合类型查询的常规手段）的请求得到误导性错误；仅命名 fragment 可用是未声明的方言限制。
 - **建议**: 短期在 fragmentSelection 中识别 `on` 关键字并抛出带明确错误码的“不支持 inline fragment”NopException；长期实现 inline fragment 支持。
 - **误报排除**: 已通读解析器确认无 inline fragment 分支；顶层 fragment 选择在 resolveOperation 会被 ERR_GRAPHQL_UNSUPPORTED_AST 拒绝，但该拒绝不覆盖 inline fragment 误解析路径。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复（短期方案）。`fragmentSelection` 在 fragment 名位置识别 `on` 关键字，抛 `ERR_GRAPHQL_PARSE_UNSUPPORTED_INLINE_FRAGMENT`（400，带位置信息），不再让 "on" 被误当作 fragment 名继续解析产生无关错误。新增 `TestGraphQLDocumentParser.testInlineFragmentRejectedWithClearError`。红验证：修复前 `... on B { c }` 不抛任何异常（静默解析成错误结构，错误延迟到后续阶段以无关形态报出）。完整的 inline fragment 支持属解析器功能扩展，不在本条目范围。
 
 ## 已排查并排除的疑似点（供复核）
 

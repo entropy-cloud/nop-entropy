@@ -73,6 +73,7 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
 
     private static final String DEFAULT_LEDGER_TABLE = "stream_epoch_ledger";
     private static final String LEDGER_EPOCH_COL = "epoch_id";
+    private static final String LEDGER_SUBTASK_COL = "subtask_id";
     private static final String LEDGER_TIMESTAMP_COL = "committed_at";
 
     // ---- Configuration (final) ----
@@ -82,6 +83,13 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
     private final String ledgerTableName;
     private final List<String> columnNames;
     private final Function<IN, Map<String, Object>> recordMapper;
+    /**
+     * Subtask identity of this sink copy (0 for a non-parallel / template instance).
+     * Parallel subtask copies disambiguate their ledger rows (idempotent commit guard)
+     * with this index so same-epoch commits from different subtasks never collide —
+     * see {@link #copyForSubtask(int)}.
+     */
+    private final int subtaskIndex;
 
     // ---- In-memory buffer for the current epoch (not yet in pendingCommits) ----
     private final List<Map<String, Object>> currentBuffer = new ArrayList<>();
@@ -106,6 +114,15 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
     public JdbcTwoPhaseCommitSink(IJdbcTemplate jdbcTemplate, String querySpace, String tableName,
                                   String ledgerTableName, List<String> columnNames,
                                   Function<IN, Map<String, Object>> recordMapper) {
+        this(jdbcTemplate, querySpace, tableName, ledgerTableName, columnNames, recordMapper, 0);
+    }
+
+    /**
+     * Copy constructor for a parallel subtask (see {@link #copyForSubtask(int)}).
+     */
+    private JdbcTwoPhaseCommitSink(IJdbcTemplate jdbcTemplate, String querySpace, String tableName,
+                                   String ledgerTableName, List<String> columnNames,
+                                   Function<IN, Map<String, Object>> recordMapper, int subtaskIndex) {
         if (jdbcTemplate == null) {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "jdbcTemplate");
         }
@@ -124,6 +141,29 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
         this.ledgerTableName = ledgerTableName != null ? ledgerTableName : DEFAULT_LEDGER_TABLE;
         this.columnNames = Collections.unmodifiableList(new ArrayList<>(columnNames));
         this.recordMapper = recordMapper;
+        this.subtaskIndex = subtaskIndex;
+    }
+
+    /**
+     * Returns an independent copy of this sink for the parallel subtask
+     * {@code subtaskIndex}. The copy shares the immutable configuration (JDBC template,
+     * table/column names, record mapper) but has a fresh in-memory buffer and an empty
+     * {@code pendingCommits} map, and keys its ledger rows (idempotent commit guard) by
+     * {@code (epoch_id, subtask_id)} — parallel subtasks' same-epoch commits therefore
+     * never collide and every subtask's batch is committed (exactly-once under
+     * {@code parallelism > 1}).
+     */
+    @Override
+    public JdbcTwoPhaseCommitSink<IN> copyForSubtask(int subtaskIndex) {
+        return new JdbcTwoPhaseCommitSink<>(jdbcTemplate, querySpace, tableName,
+                ledgerTableName, columnNames, recordMapper, subtaskIndex);
+    }
+
+    /**
+     * Returns the subtask index of this sink copy. Primarily for tests.
+     */
+    public int getSubtaskIndex() {
+        return subtaskIndex;
     }
 
     // ---- Lifecycle ----
@@ -156,7 +196,11 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
             throw new StreamException(ERR_STREAM_STATE_ERROR)
                     .param(ARG_DETAIL, "recordMapper returned null for value: " + value);
         }
-        currentBuffer.add(new LinkedHashMap<>(row));
+        // Same monitor as saveState/rollback: an unsynchronized add racing a concurrent
+        // saveState snapshot can lose elements or corrupt the ArrayList.
+        synchronized (currentBuffer) {
+            currentBuffer.add(new LinkedHashMap<>(row));
+        }
     }
 
     /**
@@ -215,8 +259,9 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
         try {
             connection.setAutoCommit(false);
 
-            // Idempotent guard: check ledger first
-            if (ledgerExists(connection, checkpointId)) {
+            // Idempotent guard: check ledger first (keyed by epoch + subtask so parallel
+            // subtask copies committing the same epoch never collide)
+            if (ledgerExists(connection, checkpointId, subtaskIndex)) {
                 LOG.info("Epoch {} already recorded in ledger — skipping data write (idempotent re-commit)",
                         checkpointId);
                 connection.commit();
@@ -230,7 +275,7 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
             }
 
             // Write ledger entry (same transaction as data)
-            writeLedgerEntry(connection, checkpointId);
+            writeLedgerEntry(connection, checkpointId, subtaskIndex);
 
             connection.commit();
             committed = true;
@@ -296,6 +341,10 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
     /**
      * Returns a portable DDL string for creating the epoch ledger table.
      * The caller should execute this via {@code jdbcTemplate} before starting the stream.
+     *
+     * <p>The primary key is {@code (epoch_id, subtask_id)}: with {@code parallelism > 1}
+     * each subtask copy commits its own batch for the same epoch, so the ledger rows —
+     * and the idempotent-commit guard they back — must be keyed per subtask.
      */
     public String getLedgerTableDDL() {
         IDialect d = jdbcTemplate.getDialectForQuerySpace(querySpace);
@@ -304,8 +353,10 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
         sb.append(d.escapeSQLName(ledgerTableName));
         sb.append(" (");
         sb.append(d.escapeSQLName(LEDGER_EPOCH_COL)).append(" BIGINT NOT NULL, ");
+        sb.append(d.escapeSQLName(LEDGER_SUBTASK_COL)).append(" INT NOT NULL, ");
         sb.append(d.escapeSQLName(LEDGER_TIMESTAMP_COL)).append(" TIMESTAMP, ");
-        sb.append("PRIMARY KEY (").append(d.escapeSQLName(LEDGER_EPOCH_COL)).append(")");
+        sb.append("PRIMARY KEY (").append(d.escapeSQLName(LEDGER_EPOCH_COL))
+                .append(", ").append(d.escapeSQLName(LEDGER_SUBTASK_COL)).append(")");
         sb.append(")");
         return sb.toString();
     }
@@ -337,19 +388,21 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
 
     // ---- Internal JDBC helpers ----
 
-    private boolean ledgerExists(Connection connection, long epochId) throws SQLException {
+    private boolean ledgerExists(Connection connection, long epochId, int subtaskIndex) throws SQLException {
         try (PreparedStatement ps = connection.prepareStatement(ledgerExistsSql)) {
             ps.setLong(1, epochId);
+            ps.setInt(2, subtaskIndex);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
             }
         }
     }
 
-    private void writeLedgerEntry(Connection connection, long epochId) throws SQLException {
+    private void writeLedgerEntry(Connection connection, long epochId, int subtaskIndex) throws SQLException {
         try (PreparedStatement ps = connection.prepareStatement(insertLedgerSql)) {
             ps.setLong(1, epochId);
-            ps.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
+            ps.setInt(2, subtaskIndex);
+            ps.setTimestamp(3, new Timestamp(System.currentTimeMillis()));
             ps.executeUpdate();
         }
     }
@@ -407,12 +460,14 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
 
     private String buildInsertLedgerSql(IDialect d) {
         return "INSERT INTO " + d.escapeSQLName(ledgerTableName)
-                + " (" + d.escapeSQLName(LEDGER_EPOCH_COL) + ", " + d.escapeSQLName(LEDGER_TIMESTAMP_COL) + ")"
-                + " VALUES (?, ?)";
+                + " (" + d.escapeSQLName(LEDGER_EPOCH_COL) + ", " + d.escapeSQLName(LEDGER_SUBTASK_COL)
+                + ", " + d.escapeSQLName(LEDGER_TIMESTAMP_COL) + ")"
+                + " VALUES (?, ?, ?)";
     }
 
     private String buildLedgerExistsSql(IDialect d) {
         return "SELECT 1 FROM " + d.escapeSQLName(ledgerTableName)
-                + " WHERE " + d.escapeSQLName(LEDGER_EPOCH_COL) + " = ?";
+                + " WHERE " + d.escapeSQLName(LEDGER_EPOCH_COL) + " = ?"
+                + " AND " + d.escapeSQLName(LEDGER_SUBTASK_COL) + " = ?";
     }
 }

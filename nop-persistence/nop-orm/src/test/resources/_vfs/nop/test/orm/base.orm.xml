@@ -530,5 +530,16 @@
             </relations>
         </entity>
 
+        <!-- 租户列作为联合主键一部分的实体，用于测试tenant-in-PK场景的主键生成 -->
+        <entity name="test.entity.TestTenantPkTable" tableName="TEST_TENANT_PK_TABLE" useTenant="true"
+                className="io.nop.orm.support.DynamicOrmEntity">
+            <columns>
+                <column name="nopTenantId" code="NOP_TENANT_ID" stdSqlType="VARCHAR" precision="32"
+                        primary="true" propId="1" mandatory="true"/>
+                <column name="sid" code="SID" stdSqlType="VARCHAR" precision="32" primary="true"
+                        propId="2" mandatory="true" tagSet="seq"/>
+            </columns>
+        </entity>
+
     </entities>
 </orm>

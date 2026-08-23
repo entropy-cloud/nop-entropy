@@ -348,7 +348,8 @@ public class NetHelper {
 
     public static String findLocalIp() {
         InetAddress addr = findFirstNonLoopbackAddress();
-        return addr == null ? LOCALHOST4.getHostAddress() : addr.getHostAddress();
+        // 必须通过LOCALHOST4()触发懒初始化，直接读字段会在未初始化时得到null
+        return addr == null ? LOCALHOST4().getHostAddress() : addr.getHostAddress();
     }
 
     public static InetAddress findFirstNonLoopbackAddress() {

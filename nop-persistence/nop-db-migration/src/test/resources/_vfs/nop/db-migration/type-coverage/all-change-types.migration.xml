@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Parse-level coverage of every changeset tag declared in migration.xdef whose
+  model class extends DbChangeModel (the only tags that survive parsing:
+  setChangeset builds a KeyedList keyed by DbChangeModel::getId). Never
+  executed by the engine; only loaded through MigrationFileScanner to verify
+  tag -> change type backfill.
+-->
+<migration xmlns="/nop/schema/db-migration/migration.xdef"
+  version="1.0.0"
+  description="All loadable change tags for parse-level type coverage"
+  author="test">
+
+  <changeset>
+    <createTable id="cov-create-table" name="cov_table">
+      <columns>
+        <column name="id" type="VARCHAR" size="36" primaryKey="true" nullable="false"/>
+      </columns>
+    </createTable>
+
+    <addColumn id="cov-add-column" tableName="cov_table">
+      <columns>
+        <column name="extra" type="VARCHAR" size="50" nullable="true"/>
+      </columns>
+    </addColumn>
+
+    <insert id="cov-insert" tableName="cov_table">
+      <columns>
+        <column name="id" value="cov-1"/>
+      </columns>
+    </insert>
+
+    <update id="cov-update" tableName="cov_table">
+      <columns>
+        <column name="extra" value="updated"/>
+      </columns>
+      <where>id = 'cov-1'</where>
+    </update>
+
+    <delete id="cov-delete" tableName="cov_table">
+      <where>id = 'cov-1'</where>
+    </delete>
+
+    <dropColumn id="cov-drop-column" tableName="cov_table" columnName="extra"/>
+
+    <dropIndex id="cov-drop-index" name="idx_cov_extra" tableName="cov_table"/>
+  </changeset>
+
+  <rollback>
+    <changes>
+      <dropTable id="cov-drop-table" name="cov_table"/>
+      <addColumn id="cov-rollback-add-column" tableName="cov_table">
+        <columns>
+          <column name="extra" type="VARCHAR" size="50" nullable="true"/>
+        </columns>
+      </addColumn>
+    </changes>
+  </rollback>
+</migration>

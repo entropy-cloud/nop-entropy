@@ -40,7 +40,7 @@ public class TaskFlowMetricsImpl implements ITaskFlowMetrics {
         taskFailureTimer = createTimer(TaskConstants.METER_TASK, taskNameTag, taskVersionTag, statusFailureTag);
 
         stepSuccessTimer = createTimer(TaskConstants.METER_STEP, taskNameTag, taskVersionTag, statusSuccessTag);
-        stepFailureTimer = createTimer(TaskConstants.METER_STEP, taskNameTag, taskVersionTag, statusSuccessTag);
+        stepFailureTimer = createTimer(TaskConstants.METER_STEP, taskNameTag, taskVersionTag, statusFailureTag);
     }
 
     Timer createTimer(String name, Tag... tags) {

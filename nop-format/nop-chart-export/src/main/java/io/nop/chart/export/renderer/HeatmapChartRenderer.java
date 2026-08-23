@@ -7,6 +7,7 @@ import io.nop.excel.chart.model.ChartModel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.XYPlot;
+import org.jfree.chart.renderer.LookupPaintScale;
 import org.jfree.chart.renderer.xy.XYBlockRenderer;
 import org.jfree.data.xy.DefaultXYZDataset;
 import org.jfree.data.xy.XYZDataset;
@@ -40,8 +41,8 @@ public class HeatmapChartRenderer extends AbstractChartRenderer {
         JFreeChart chart = new JFreeChart(null, JFreeChart.DEFAULT_TITLE_FONT, plot, true);
         
         // 应用热力图特定配置
-        applyHeatmapConfig(chart, chartModel);
-        
+        applyHeatmapConfig(chart, chartModel, dataset);
+
         return chart;
     }
     
@@ -62,20 +63,29 @@ public class HeatmapChartRenderer extends AbstractChartRenderer {
             }
             
             int minSize = Math.min(Math.min(xValues.size(), yValues.size()), zValues.size());
-            if (minSize > 0) {
-                double[][] data = new double[3][minSize];
-                
+            // 先统计非null数据点，避免null以0.0占位渲染出(0,0)幽灵数据
+            int count = 0;
+            for (int j = 0; j < minSize; j++) {
+                if (xValues.get(j) != null && yValues.get(j) != null && zValues.get(j) != null)
+                    count++;
+            }
+
+            if (count > 0) {
+                double[][] data = new double[3][count];
+
+                int k = 0;
                 for (int j = 0; j < minSize; j++) {
                     Number xNum = xValues.get(j);
                     Number yNum = yValues.get(j);
                     Number zNum = zValues.get(j);
                     if (xNum != null && yNum != null && zNum != null) {
-                        data[0][j] = xNum.doubleValue(); // X值
-                        data[1][j] = yNum.doubleValue(); // Y值
-                        data[2][j] = zNum.doubleValue(); // 热力值
+                        data[0][k] = xNum.doubleValue(); // X值
+                        data[1][k] = yNum.doubleValue(); // Y值
+                        data[2][k] = zNum.doubleValue(); // 热力值
+                        k++;
                     }
                 }
-                
+
                 dataset.addSeries(seriesName, data);
             }
         }
@@ -83,26 +93,27 @@ public class HeatmapChartRenderer extends AbstractChartRenderer {
         return dataset;
     }
     
-    private void applyHeatmapConfig(JFreeChart chart, ChartModel chartModel) {
+    private void applyHeatmapConfig(JFreeChart chart, ChartModel chartModel, XYZDataset dataset) {
         // 应用热力图特定配置
         if (chartModel.getPlotArea() != null && chartModel.getPlotArea().getHeatmapConfig() != null) {
             XYPlot plot = (XYPlot) chart.getPlot();
             XYBlockRenderer renderer = (XYBlockRenderer) plot.getRenderer();
-            
+
             // 设置块大小
             renderer.setBlockWidth(1.0);
             renderer.setBlockHeight(1.0);
-            
+
             // 设置颜色映射
-            setupColorMapping(renderer);
-            
+            setupColorMapping(renderer, dataset);
+
             // TODO: 从配置中读取更多热力图特定设置
             LOG.debug("Applying heatmap chart specific configuration");
         }
     }
-    
-    private void setupColorMapping(XYBlockRenderer renderer) {
-        // 设置简单的颜色映射：蓝色(低值) -> 红色(高值)
+
+    private void setupColorMapping(XYBlockRenderer renderer, XYZDataset dataset) {
+        // 颜色映射：蓝色(低值) -> 红色(高值)。必须设置 PaintScale，
+        // 否则 XYBlockRenderer 所有块使用同一默认颜色，热度信息全部丢失
         Color[] colors = {
             Color.BLUE,
             Color.CYAN,
@@ -111,8 +122,29 @@ public class HeatmapChartRenderer extends AbstractChartRenderer {
             Color.ORANGE,
             Color.RED
         };
-        
-        // TODO: 实现更复杂的颜色映射逻辑
-        LOG.debug("Setting up color mapping for heatmap");
+
+        double minZ = Double.POSITIVE_INFINITY;
+        double maxZ = Double.NEGATIVE_INFINITY;
+        for (int s = 0; s < dataset.getSeriesCount(); s++) {
+            for (int i = 0; i < dataset.getItemCount(s); i++) {
+                double z = dataset.getZValue(s, i);
+                minZ = Math.min(minZ, z);
+                maxZ = Math.max(maxZ, z);
+            }
+        }
+        if (minZ > maxZ) {
+            minZ = 0;
+            maxZ = 1;
+        }
+        if (minZ == maxZ) {
+            maxZ = minZ + 1;
+        }
+
+        LookupPaintScale paintScale = new LookupPaintScale(minZ, maxZ, colors[0]);
+        double step = (maxZ - minZ) / colors.length;
+        for (int i = 0; i < colors.length; i++) {
+            paintScale.add(minZ + i * step, colors[i]);
+        }
+        renderer.setPaintScale(paintScale);
     }
 }

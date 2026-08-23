@@ -73,7 +73,15 @@ public class StreamReduceOperator<T>
     @Override
     public void open() throws Exception {
         super.open();
-        values = new HashMap<>();
+        // Restore lifecycle: restoreState() runs BEFORE open()
+        // (GraphModelCheckpointExecutor.restoreOperatorsFromState precedes
+        // task submission, and operatorChain.open() runs at the top of the
+        // invoke path). Only initialize the values map when restoreState()
+        // has not already populated it, otherwise the restored keyed reduce
+        // state would be silently discarded.
+        if (values == null) {
+            values = new HashMap<>();
+        }
     }
 
     @Override

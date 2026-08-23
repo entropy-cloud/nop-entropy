@@ -626,7 +626,7 @@ public class OrmBatchLoadQueueImpl implements IOrmBatchLoadQueueImplementor {
 
     @Override
     public boolean isEmpty() {
-        return loadQueue != null;
+        return loadQueue == null;
     }
 
     @Override

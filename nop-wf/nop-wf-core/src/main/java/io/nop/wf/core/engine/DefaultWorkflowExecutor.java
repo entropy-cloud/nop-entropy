@@ -7,6 +7,7 @@
  */
 package io.nop.wf.core.engine;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
@@ -40,9 +41,20 @@ public class DefaultWorkflowExecutor implements IWorkflowExecutor {
 
         T ret = task.apply(wf);
 
-        // 触发步骤的自动转换
-        while (wf.runAutoTransitions(ctx)) ;
+        // 触发步骤的自动转换。上限防护：allowStepLoop模型允许回退边，自动迁移条件在回退环上
+        // 恒真时（条件表达式缺陷）会无限创建步骤实例并写库，死循环+事务长期不提交
+        runAutoTransitionsWithLimit(wf, ctx);
 
         return FutureHelper.toCompletionStage(ret);
+    }
+
+    static void runAutoTransitionsWithLimit(IWorkflow wf, IServiceContext ctx) {
+        int maxLoops = 10_000;
+        int loops = 0;
+        while (wf.runAutoTransitions(ctx)) {
+            if (++loops >= maxLoops)
+                throw new NopException(io.nop.wf.core.NopWfCoreErrors.ERR_WF_AUTO_TRANSITION_EXCEED_LIMIT)
+                        .param("loops", loops).param("wfId", wf.getWfId());
+        }
     }
 }

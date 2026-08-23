@@ -172,7 +172,8 @@ public class EntityPersisterImpl implements IEntityPersister {
         }
 
         if (useGlobalCache) {
-            future.thenRun(() -> {
+            // 全局缓存的更新也纳入返回的future链，保证调用方syncGet时缓存已完成更新
+            future = future.thenRun(() -> {
                 // 更新全局缓存
                 for (IOrmEntity entity : toLoad) {
                     this.updateGlobalCache(entity, session);
@@ -180,7 +181,7 @@ public class EntityPersisterImpl implements IEntityPersister {
             });
         }
 
-        return FutureHelper.voidPromise();
+        return future;
     }
 
     Map<ShardSelection, List<IOrmEntity>> splitForShard(Collection<IOrmEntity> list) {
@@ -607,7 +608,8 @@ public class EntityPersisterImpl implements IEntityPersister {
         Iterator<IOrmEntity> it = ret.iterator();
         while (it.hasNext()) {
             IOrmEntity entity = it.next();
-            Object value = values.get(entity.orm_idString());
+            // keys与values的key必须一致：useTenantCache时getCacheKey带有租户前缀，而orm_idString()没有
+            Object value = values.get(getCacheKey(entity));
             if (value != null) {
                 // 如果从全局缓存中查到，则从待装载集合中删除
                 Object[] cacheValues = convertCacheValues(value);

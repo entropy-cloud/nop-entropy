@@ -69,19 +69,30 @@ public class ShellCommand {
         if (PlatformEnv.isWindows()) {
             cmd.addCmd("cmd");
             cmd.addCmd("/c");
+            String[] args = splitCommandLine(command);
+            for (String arg : args) {
+                cmd.addCmd(arg);
+            }
         } else {
+            // sh -c 需要把完整命令串作为单个参数传入，由 shell 负责解析
             cmd.addCmd("sh");
-        }
-        String[] args = splitCommandLine(command);
-        for (String arg : args) {
-            cmd.addCmd(arg);
+            cmd.addCmd("-c");
+            cmd.addCmd(command);
         }
         return cmd;
     }
 
 
     /**
-     * 将命令行字符串拆分为参数数组，支持带引号的参数和转义字符
+     * 将命令行字符串拆分为参数数组，支持带引号的参数和转义字符。
+     * <p>
+     * 反斜杠语义（POSIX + Windows 混合约定）：
+     * <ul>
+     * <li>单引号内：反斜杠是字面量，不作为转义符</li>
+     * <li>双引号内/引号外：反斜杠仅转义 {@code \"} {@code \'} {@code \\} 三种字符，
+     * 其余情况（如 Windows 路径 {@code C:\tools\bin}）保留反斜杠字面量</li>
+     * <li>行尾悬空反斜杠视为非法输入，抛出 {@link IllegalArgumentException}</li>
+     * </ul>
      *
      * @param commandLine 完整的命令行字符串
      * @return 拆分后的参数数组
@@ -95,22 +106,29 @@ public class ShellCommand {
         StringBuilder currentArg = new StringBuilder();
         boolean inSingleQuote = false;
         boolean inDoubleQuote = false;
-        boolean escaped = false;
 
         for (int i = 0; i < commandLine.length(); i++) {
             char c = commandLine.charAt(i);
 
-            if (escaped) {
-                // 处理转义字符
-                currentArg.append(c);
-                escaped = false;
-                continue;
-            }
-
             switch (c) {
                 case '\\':
-                    // 遇到转义字符，标记下一个字符需要转义
-                    escaped = true;
+                    if (inSingleQuote) {
+                        // 单引号内不处理转义
+                        currentArg.append(c);
+                        break;
+                    }
+                    if (i + 1 >= commandLine.length()) {
+                        throw new IllegalArgumentException("Dangling escape character at end of command line: " + commandLine);
+                    }
+                    char next = commandLine.charAt(i + 1);
+                    if (next == '\\' || next == '"' || next == '\'') {
+                        // 仅反斜杠与引号可被转义
+                        currentArg.append(next);
+                        i++;
+                    } else {
+                        // 其余字符前的反斜杠按字面量保留（如 Windows 路径分隔符）
+                        currentArg.append(c);
+                    }
                     break;
                 case '\'':
                     if (!inDoubleQuote) {

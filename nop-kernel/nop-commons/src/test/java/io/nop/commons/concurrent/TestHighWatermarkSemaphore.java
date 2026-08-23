@@ -3,6 +3,7 @@ package io.nop.commons.concurrent;
 import io.nop.commons.concurrent.semaphore.HighWatermarkSemaphore;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -29,5 +30,25 @@ public class TestHighWatermarkSemaphore {
 
 // 现在可以正常获取
         assertTrue(sem.tryAcquire(5, 1)); // used=8
+    }
+
+    @Test
+    public void testAcquireStats() {
+        HighWatermarkSemaphore sem = new HighWatermarkSemaphore(10, 5);
+
+        // 成功获取应累计成功计数
+        assertTrue(sem.tryAcquire(8, 10));
+        assertEquals(1, sem.getAcquireSuccessCount());
+        assertEquals(0, sem.getAcquireFailCount());
+
+        // 超过高水位后获取失败应累计失败计数
+        assertFalse(sem.tryAcquire(3, 1));
+        assertEquals(1, sem.getAcquireSuccessCount());
+        assertEquals(1, sem.getAcquireFailCount());
+
+        // resetStats后清零
+        sem.resetStats();
+        assertEquals(0, sem.getAcquireSuccessCount());
+        assertEquals(0, sem.getAcquireFailCount());
     }
 }

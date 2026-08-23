@@ -76,6 +76,20 @@ public class BitmapTagBinaryCodec implements IFieldTagBinaryCodec {
         }
         if (max >= 64)
             bitSet.set(0);
+
+        // 与 decodeTags 对称：写出 8 字节主 bitmap，bit0 为续位标记时再写 8 字节
+        int byteCount = max >= 64 ? 16 : 8;
+        byte[] bytes = new byte[byteCount];
+        for (int i = 0; i < byteCount; i++) {
+            byte b = 0;
+            for (int j = 0; j < 8; j++) {
+                if (bitSet.get(i * 8 + j)) {
+                    b |= (byte) (0x80 >>> j);
+                }
+            }
+            bytes[i] = b;
+        }
+        output.writeBytes(bytes);
         return bitSet;
     }
 }

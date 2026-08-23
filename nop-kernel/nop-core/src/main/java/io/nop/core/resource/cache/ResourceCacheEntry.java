@@ -228,10 +228,11 @@ public class ResourceCacheEntry<T> implements IDestroyable, IResourceCacheEntry<
 
         Object obj = loadObject(loader);
         if (obj != oldObj) {
-            if (listener != null) {
+            // 与getObject保持一致：null结果记录Null占位而不是裸null，且不回调onCreated(null)
+            if (obj != null && listener != null) {
                 listener.onCreated((T) obj);
             }
-            this.object = obj;
+            this.object = obj == null ? Null.NULL : obj;
 
             destroyObject(oldObj);
         }

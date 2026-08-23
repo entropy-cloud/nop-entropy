@@ -192,13 +192,23 @@ public class ReflectionManager implements IBeanModelManager, IGenericTypeBuilder
 
     class ClassModelLoader {
         private final Class<?> clazz;
+        // 记忆首次构建结果，避免并发miss时多个线程重复执行重量级的ClassModel构建
+        private IClassModel model;
 
         ClassModelLoader(Class<?> clazz) {
             this.clazz = clazz;
         }
 
         public synchronized IClassModel load() {
-            return buildClassModel(clazz);
+            if (model == null) {
+                IClassModel classModel = introspectCache.get(clazz);
+                if (classModel == null) {
+                    classModel = buildClassModel(clazz);
+                    introspectCache.put(clazz, classModel);
+                }
+                model = classModel;
+            }
+            return model;
         }
     }
 
@@ -258,6 +268,7 @@ public class ReflectionManager implements IBeanModelManager, IGenericTypeBuilder
     }
 
     public void unregisterTypeConverter(Type clazz, ITypeConverter converter) {
+        registeredConverters.remove(clazz, converter);
         converterCache.remove(clazz, converter);
     }
 
@@ -465,6 +476,8 @@ public class ReflectionManager implements IBeanModelManager, IGenericTypeBuilder
         try {
             m = Class.class.getMethod("isRecord");
         } catch (NoSuchMethodException expected) {
+            // 老版本JDK没有isRecord方法，保持m为null走降级路径
+            m = null;
         }
         IS_RECORD_METHOD = m;
     }

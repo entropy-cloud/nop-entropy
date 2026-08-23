@@ -7,12 +7,20 @@
  */
 package io.nop.db.migration.core;
 
+import com.zaxxer.hikari.HikariDataSource;
+import io.nop.api.core.exceptions.NopException;
+import io.nop.dao.jdbc.IJdbcTemplate;
+import io.nop.dao.jdbc.impl.JdbcFactory;
+import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.db.migration.AbstractMigrationTestCase;
+import io.nop.db.migration.DbMigrationErrors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -24,6 +32,8 @@ class TestMigrationHistoryManager extends AbstractMigrationTestCase {
 
     private MigrationHistoryManager historyManager;
 
+    private final List<HikariDataSource> extraDataSources = new ArrayList<>();
+
     @BeforeEach
     void setUpHistoryManager() throws Exception {
         super.setUp();
@@ -32,6 +42,10 @@ class TestMigrationHistoryManager extends AbstractMigrationTestCase {
 
     @AfterEach
     void tearDownHistoryManager() throws Exception {
+        for (HikariDataSource ds : extraDataSources) {
+            ds.close();
+        }
+        extraDataSources.clear();
         super.tearDown();
     }
 
@@ -81,6 +95,7 @@ class TestMigrationHistoryManager extends AbstractMigrationTestCase {
         record1.setChecksum("checksum1");
         record1.setExecutionTime(100);
         record1.setInstalledBy("test");
+        record1.setSuccess(true);
         historyManager.recordMigration(record1);
 
         MigrationRecord record2 = new MigrationRecord();
@@ -89,6 +104,7 @@ class TestMigrationHistoryManager extends AbstractMigrationTestCase {
         record2.setChecksum("checksum2");
         record2.setExecutionTime(150);
         record2.setInstalledBy("test");
+        record2.setSuccess(true);
         historyManager.recordMigration(record2);
 
         MigrationRecord record3 = new MigrationRecord();
@@ -97,6 +113,7 @@ class TestMigrationHistoryManager extends AbstractMigrationTestCase {
         record3.setChecksum("checksum3");
         record3.setExecutionTime(50);
         record3.setInstalledBy("test");
+        record3.setSuccess(true);
         historyManager.recordMigration(record3);
 
         Set<String> versions = historyManager.getExecutedVersions();
@@ -186,6 +203,7 @@ class TestMigrationHistoryManager extends AbstractMigrationTestCase {
         v2.setChecksum("c2");
         v2.setExecutionTime(100);
         v2.setInstalledBy("test");
+        v2.setSuccess(true);
         historyManager.recordMigration(v2);
 
         MigrationRecord v1 = new MigrationRecord("1.0.0", "First migration", "c1", 50, "test");
@@ -197,6 +215,7 @@ class TestMigrationHistoryManager extends AbstractMigrationTestCase {
         v3.setChecksum("c3");
         v3.setExecutionTime(75);
         v3.setInstalledBy("test");
+        v3.setSuccess(true);
         historyManager.recordMigration(v3);
 
         // getExecutedVersions should return all versions
@@ -207,5 +226,143 @@ class TestMigrationHistoryManager extends AbstractMigrationTestCase {
         assertNotNull(historyManager.getMigrationByVersion("1.0.0"));
         assertNotNull(historyManager.getMigrationByVersion("2.0.0"));
         assertNotNull(historyManager.getMigrationByVersion("3.0.0"));
+    }
+
+    @Test
+    void testRecordMigrationFailedWithoutErrorMessageStaysFailed() {
+        historyManager.ensureHistoryTableExists(dialect);
+
+        // A failed record without an error message (e.g. an exception whose
+        // getMessage() is null) must NOT be flipped to success, otherwise the
+        // failed migration is skipped on every later run
+        MigrationRecord failed = new MigrationRecord();
+        failed.setVersion("1.0.0");
+        failed.setDescription("Failed migration");
+        failed.setSuccess(false);
+        failed.setErrorMessage(null);
+        historyManager.recordMigration(failed);
+
+        assertFalse(historyManager.getExecutedVersions().contains("1.0.0"),
+            "a failed record without error message must not be treated as executed");
+        MigrationRecord retrieved = historyManager.getMigrationByVersion("1.0.0");
+        assertNotNull(retrieved);
+        assertFalse(retrieved.isSuccess(), "success must be persisted as explicitly set");
+    }
+
+    @Test
+    void testRecordMigrationReplacesExistingRecord() {
+        historyManager.ensureHistoryTableExists(dialect);
+
+        MigrationRecord failed = new MigrationRecord();
+        failed.setVersion("1.0.0");
+        failed.setDescription("Failed attempt");
+        failed.setSuccess(false);
+        failed.setErrorMessage("boom");
+        historyManager.recordMigration(failed);
+
+        // A retried migration succeeds: the failed row must be replaced, not
+        // rejected with a primary key violation
+        MigrationRecord success = new MigrationRecord();
+        success.setVersion("1.0.0");
+        success.setDescription("Retry");
+        success.setSuccess(true);
+        success.setInstalledBy("test");
+        assertDoesNotThrow(() -> historyManager.recordMigration(success));
+
+        assertTrue(historyManager.getExecutedVersions().contains("1.0.0"),
+            "replaced record should be the successful one");
+        MigrationRecord retrieved = historyManager.getMigrationByVersion("1.0.0");
+        assertNotNull(retrieved);
+        assertTrue(retrieved.isSuccess());
+        assertEquals("Retry", retrieved.getDescription());
+    }
+
+    @Test
+    void testGetExecutedVersionsWithLowerCaseColumnLabels() {
+        // MySQL keeps the column labels in the case used by the DDL (lowercase),
+        // so history queries must read columns by position instead of assuming
+        // upper-case labels. H2 with DATABASE_TO_UPPER=false behaves the same.
+        MigrationHistoryManager lowerCaseManager = newHistoryManagerWithLowerCaseIdentifiers();
+
+        lowerCaseManager.ensureHistoryTableExists(dialect);
+        MigrationRecord record = new MigrationRecord();
+        record.setVersion("9.9.9");
+        record.setDescription("lowercase");
+        record.setSuccess(true);
+        lowerCaseManager.recordMigration(record);
+
+        assertTrue(lowerCaseManager.getExecutedVersions().contains("9.9.9"),
+            "should read version by position regardless of column label case");
+    }
+
+    @Test
+    void testGetMigrationByVersionWithLowerCaseColumnLabels() {
+        MigrationHistoryManager lowerCaseManager = newHistoryManagerWithLowerCaseIdentifiers();
+
+        lowerCaseManager.ensureHistoryTableExists(dialect);
+        MigrationRecord record = new MigrationRecord();
+        record.setVersion("9.9.9");
+        record.setDescription("lowercase");
+        record.setType("VERSIONED");
+        record.setInstalledBy("tester");
+        record.setSuccess(true);
+        lowerCaseManager.recordMigration(record);
+
+        MigrationRecord retrieved = lowerCaseManager.getMigrationByVersion("9.9.9");
+        assertNotNull(retrieved, "should read the row by position regardless of column label case");
+        assertEquals("9.9.9", retrieved.getVersion());
+        assertEquals("lowercase", retrieved.getDescription());
+        assertEquals("VERSIONED", retrieved.getType());
+        assertEquals("tester", retrieved.getInstalledBy());
+        assertTrue(retrieved.isSuccess());
+    }
+
+    @Test
+    void testGetExecutedVersionsPropagatesFailure() {
+        // Connection/metadata failures must not be swallowed into "table does
+        // not exist", which would make every already-executed migration run
+        // again
+        IJdbcTemplate failing = newRejectingJdbcTemplate(jdbcTemplate);
+        MigrationHistoryManager manager = new MigrationHistoryManager(failing, "default");
+        NopException e = assertThrows(NopException.class, manager::getExecutedVersions);
+        assertEquals(DbMigrationErrors.ERR_DB_MIGRATION_HISTORY_QUERY_FAILED.getErrorCode(), e.getErrorCode());
+    }
+
+    /**
+     * Builds a manager on an H2 database created with DATABASE_TO_UPPER=false,
+     * so unquoted identifiers stay lowercase like on MySQL.
+     */
+    private MigrationHistoryManager newHistoryManagerWithLowerCaseIdentifiers() {
+        HikariDataSource ds = new HikariDataSource();
+        ds.setJdbcUrl("jdbc:h2:mem:" + java.util.UUID.randomUUID() + ";DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false");
+        ds.setDriverClassName("org.h2.Driver");
+        ds.setUsername("sa");
+        ds.setPassword("");
+        extraDataSources.add(ds);
+
+        JdbcFactory factory = new JdbcFactory();
+        ITransactionTemplate txnTemplate = factory.newTransactionTemplate(ds);
+        IJdbcTemplate lowerCaseJdbcTemplate = factory.newJdbcTemplate(txnTemplate);
+        return new MigrationHistoryManager(lowerCaseJdbcTemplate, "default");
+    }
+
+    /**
+     * Delegating proxy that fails every runWithConnection call, simulating an
+     * unreachable database.
+     */
+    private static IJdbcTemplate newRejectingJdbcTemplate(IJdbcTemplate delegate) {
+        return (IJdbcTemplate) java.lang.reflect.Proxy.newProxyInstance(
+            IJdbcTemplate.class.getClassLoader(),
+            new Class<?>[]{IJdbcTemplate.class},
+            (proxy, method, args) -> {
+                if (method.getName().equals("runWithConnection")) {
+                    throw new IllegalStateException("connection rejected by test");
+                }
+                try {
+                    return method.invoke(delegate, args);
+                } catch (java.lang.reflect.InvocationTargetException ex) {
+                    throw ex.getCause();
+                }
+            });
     }
 }

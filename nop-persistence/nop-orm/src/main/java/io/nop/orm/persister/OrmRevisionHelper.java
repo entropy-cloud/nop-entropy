@@ -82,7 +82,7 @@ public class OrmRevisionHelper {
         if (entityModel.getNopRevBeginVerPropId() > 0) {
             beginVer = entity.orm_propValue(entityModel.getNopRevBeginVerPropId());
         }
-        return OrmException.newError(ERR_ORM_ENTITY_NOT_CURRENT_REVISION, entity).param(ARG_REV_BEGIN_VER, beginVer);
+        return OrmException.newError(errorCode, entity).param(ARG_REV_BEGIN_VER, beginVer);
     }
 
     public static IOrmEntity newRevEntity(byte revType, IEntityModel entityModel, IOrmEntity entity,

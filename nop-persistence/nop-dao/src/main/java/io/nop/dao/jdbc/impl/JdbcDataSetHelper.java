@@ -3,6 +3,7 @@ package io.nop.dao.jdbc.impl;
 import io.nop.api.core.ioc.BeanContainer;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.util.CollectionHelper;
+import io.nop.commons.util.IoHelper;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.DaoConstants;
 import io.nop.dao.dialect.DialectManager;
@@ -33,13 +34,16 @@ public class JdbcDataSetHelper {
     public static IDataSet newDataSet(Connection conn, SQL sql) {
         IDialect dialect = DialectManager.instance().getDialectForConnection(conn);
 
+        PreparedStatement st = null;
         try {
-            PreparedStatement st = JdbcHelper.prepareStatement(dialect, conn, sql);
+            st = JdbcHelper.prepareStatement(dialect, conn, sql);
             JdbcHelper.setQueryTimeout(dialect, st, sql, false);
 
             ResultSet rs = st.executeQuery();
-            return new JdbcDataSet(dialect, rs);
+            // 数据集关闭时一并关闭statement，调用方无需也无法单独关闭它
+            return new JdbcDataSet(dialect, rs, st);
         } catch (SQLException e) {
+            IoHelper.safeCloseObject(st);
             throw dialect.getSQLExceptionTranslator().translate(sql, e);
         }
     }

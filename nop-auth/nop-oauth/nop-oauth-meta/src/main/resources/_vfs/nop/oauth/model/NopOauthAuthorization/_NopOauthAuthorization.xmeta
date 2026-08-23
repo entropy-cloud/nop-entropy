@@ -43,13 +43,13 @@
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="65535"/>
         </prop>
-        <prop name="state" displayName="状态码" propId="7" i18n-en:displayName="State" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="state" displayName="状态码" propId="7" i18n-en:displayName="State" tagSet="masked,not-pub"
+              published="false" queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="500"/>
         </prop>
         <prop name="authorizationCodeValue" displayName="AuthorizationCode值" propId="8"
-              i18n-en:displayName="Authorization Code Value" queryable="true" sortable="true" insertable="true"
-              updatable="true">
+              i18n-en:displayName="Authorization Code Value" tagSet="masked,not-pub" published="false" queryable="true"
+              sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="65535"/>
         </prop>
         <prop name="authorizationCodeIssuedAt" displayName="AuthorizationCode发放时间" propId="9"
@@ -68,7 +68,8 @@
             <schema type="java.lang.String" precision="65535"/>
         </prop>
         <prop name="accessTokenValue" displayName="AccessToken" propId="12" i18n-en:displayName="Access Token Value"
-              queryable="true" sortable="true" insertable="true" updatable="true">
+              tagSet="masked,not-pub" published="false" queryable="true" sortable="true" insertable="true"
+              updatable="true">
             <schema type="java.lang.String" precision="65535"/>
         </prop>
         <prop name="accessTokenIssuedAt" displayName="AccessToken发放时间" propId="13"
@@ -96,7 +97,8 @@
             <schema type="java.lang.String" precision="1000"/>
         </prop>
         <prop name="oidcIdTokenValue" displayName="OidcIdToken值" propId="18" i18n-en:displayName="OIDC ID Token Value"
-              queryable="true" sortable="true" insertable="true" updatable="true">
+              tagSet="masked,not-pub" published="false" queryable="true" sortable="true" insertable="true"
+              updatable="true">
             <schema type="java.lang.String" precision="65535"/>
         </prop>
         <prop name="oidcIdTokenIssuedAt" displayName="OidcIdToken发放时间" propId="19"
@@ -115,7 +117,8 @@
             <schema type="java.lang.String" precision="65535"/>
         </prop>
         <prop name="refreshTokenValue" displayName="RefreshToken值" propId="22" i18n-en:displayName="Refresh Token Value"
-              queryable="true" sortable="true" insertable="true" updatable="true">
+              tagSet="masked,not-pub" published="false" queryable="true" sortable="true" insertable="true"
+              updatable="true">
             <schema type="java.lang.String" precision="65535"/>
         </prop>
         <prop name="refreshTokenIssuedAt" displayName="RefreshToken发放时间" propId="23"

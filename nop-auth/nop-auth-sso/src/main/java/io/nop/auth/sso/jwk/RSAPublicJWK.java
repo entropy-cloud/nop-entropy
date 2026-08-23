@@ -18,10 +18,14 @@
 package io.nop.auth.sso.jwk;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.nop.api.core.exceptions.NopException;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
+
+import static io.nop.auth.sso.SsoErrors.ARG_ERROR;
+import static io.nop.auth.sso.SsoErrors.ERR_AUTH_SSO_ACCESS_FAIL;
 
 /**
  * @author <a href="mailto:sthorger@redhat.com">Stian Thorgersen</a>
@@ -74,7 +78,8 @@ public class RSAPublicJWK extends JWK {
                 sha1x509Thumbprint = generateThumbprint(x509CertificateChain, "SHA-1");
                 sha256x509Thumbprint = generateThumbprint(x509CertificateChain, "SHA-256");
             } catch (NoSuchAlgorithmException e) {
-                throw new RuntimeException(e);
+                throw new NopException(ERR_AUTH_SSO_ACCESS_FAIL, e)
+                        .param(ARG_ERROR, "JWK x5c thumbprint generation failed");
             }
         }
     }

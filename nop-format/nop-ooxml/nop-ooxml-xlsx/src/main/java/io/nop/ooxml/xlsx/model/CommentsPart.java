@@ -48,6 +48,8 @@ public class CommentsPart {
         public void beginNode(SourceLocation loc, String tagName, Map<String, ValueWithLocation> attrs) {
             if (tagName.equals("comment")) {
                 cellPos = CellPosition.fromABString(getAttr(attrs, "ref"));
+                if (cellPos == null)
+                    return; // 缺失/非法 ref 的comment跳过，避免null key延迟到读取时NPE
                 buf.setLength(0);
             }
         }
@@ -59,7 +61,7 @@ public class CommentsPart {
 
         @Override
         public void endNode(String tagName) {
-            if (tagName.endsWith("comment")) {
+            if (tagName.endsWith("comment") && cellPos != null) {
                 Comment comment = new Comment();
                 comment.setComment(buf.toString());
                 addComment(cellPos, comment);

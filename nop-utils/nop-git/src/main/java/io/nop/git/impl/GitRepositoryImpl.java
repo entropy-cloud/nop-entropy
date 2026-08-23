@@ -29,7 +29,6 @@ import org.eclipse.jgit.api.PushCommand;
 import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.diff.DiffFormatter;
-import org.eclipse.jgit.dircache.DirCacheIterator;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectLoader;
@@ -43,6 +42,7 @@ import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.PushResult;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
+import org.eclipse.jgit.treewalk.FileTreeIterator;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.util.io.DisabledOutputStream;
 import org.slf4j.Logger;
@@ -126,8 +126,10 @@ public class GitRepositoryImpl implements IGitRepository {
                 .setCredentialsProvider(credentialsProvider);
 
         Git git = gitCall(command);
-        IoHelper.safeCloseObject(git);
+        // 先取状态记日志，再关闭。close 之后继续使用 git 对象依赖 JGit 当前实现细节（close 不置空
+        // repository 字段），升级后随时可能抛 IllegalStateException，把成功的 clone 误报为失败
         LOG.info("nop.git.clone:path={},state={}", path, git.getRepository().getRepositoryState());
+        IoHelper.safeCloseObject(git);
     }
 
     @Override
@@ -195,7 +197,8 @@ public class GitRepositoryImpl implements IGitRepository {
         Git git = new Git(repository);
         CommitCommand command = git.commit()
                 .setMessage(message)
-                .setAuthor(author, null);
+                // JGit 的 PersonIdent 拒绝 null email，接口只提供作者名，用作者名派生占位邮箱
+                .setAuthor(author, author + "@localhost");
 
         RevCommit commit = gitCall(command);
 
@@ -219,6 +222,10 @@ public class GitRepositoryImpl implements IGitRepository {
     public String getFileContent(String path, String revision) {
         try {
             ObjectId commitId = repository.resolve(revision);
+            if (commitId == null) {
+                throw new NopException(ERR_GIT_INVALID_COMMIT_ID)
+                        .param(ARG_REVISION, revision);
+            }
             try (RevWalk revWalk = new RevWalk(repository)) {
                 RevCommit commit = revWalk.parseCommit(commitId);
                 RevTree tree = commit.getTree();
@@ -246,6 +253,12 @@ public class GitRepositoryImpl implements IGitRepository {
             ObjectId oldId = repository.resolve(oldCommit);
             ObjectId newId = repository.resolve(newCommit);
 
+            if (oldId == null || newId == null) {
+                throw new NopException(ERR_GIT_INVALID_COMMIT_ID)
+                        .param(ARG_OLD_COMMIT, oldCommit)
+                        .param(ARG_NEW_COMMIT, newCommit);
+            }
+
             List<ChangedFile> result = new ArrayList<>();
 
             try (DiffFormatter diffFormatter = new DiffFormatter(DisabledOutputStream.INSTANCE)) {
@@ -268,26 +281,23 @@ public class GitRepositoryImpl implements IGitRepository {
     @Override
     public List<GitDiff> getWorkingTreeDiff() {
         try {
-            Git git = new Git(repository);
             List<GitDiff> result = new ArrayList<>();
 
             try (ByteArrayOutputStream out = new ByteArrayOutputStream();
-                 DiffFormatter diffFormatter = new DiffFormatter(out)) {
+                 DiffFormatter diffFormatter = new DiffFormatter(out);
+                 ObjectReader reader = repository.newObjectReader();
+                 RevWalk revWalk = new RevWalk(repository)) {
                 diffFormatter.setRepository(repository);
 
-                // 比较工作区和暂存区
-                ObjectReader reader = repository.newObjectReader();
+                // 工作区与最新提交（HEAD）的差异：old 侧为 HEAD 树，new 侧为工作区迭代器
                 ObjectId headId = repository.resolve(Constants.HEAD);
                 CanonicalTreeParser oldTree = new CanonicalTreeParser();
                 if (headId != null) {
-                    oldTree.reset(reader, new RevWalk(repository).parseTree(headId));
+                    oldTree.reset(reader, revWalk.parseTree(headId).getId());
                 }
+                FileTreeIterator workingTreeIter = new FileTreeIterator(repository);
 
-                CanonicalTreeParser newTree = new CanonicalTreeParser();
-                DirCacheIterator dirCacheIter = new DirCacheIterator(repository.readDirCache());
-                newTree.reset(reader, dirCacheIter.getEntryObjectId());
-
-                List<DiffEntry> entries = diffFormatter.scan(oldTree, newTree);
+                List<DiffEntry> entries = diffFormatter.scan(oldTree, workingTreeIter);
 
                 for (DiffEntry entry : entries) {
                     diffFormatter.format(entry);

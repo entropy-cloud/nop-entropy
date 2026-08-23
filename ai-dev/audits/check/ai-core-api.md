@@ -43,6 +43,10 @@ if (functionCall instanceof Map) {
 - **建议**: 扩展 `ChatStreamChunk`（或 ADDED delta 约定）承载完整 arguments；Gemini/Ollama 方言在 functionCall 首现时把 args JSON 序列化进 arguments 通道；补 Gemini 非流式 functionCall 解析；增加"Gemini 流式工具调用 → 聚合 arguments 与原始一致"的回归测试。
 - **误报排除**: 已核对 ChatStreamChunk 无 arguments 字段、聚合器无补发逻辑、Gemini 官方流式 functionCall 一次完整下发（name+args 同 chunk），丢参路径完整成立。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 缺陷成立，已修复。`ChatStreamChunk` 新增可选 `arguments` 通道（完整 args JSON 文本，`@JsonInclude(NON_NULL)` 序列化兼容）；Gemini/Ollama `parseStreamChunk` 将单事件完整下发的 functionCall args / tool_calls arguments（Map 或 JSON 字符串）写入该通道；`ChatServiceImpl.StreamAggregator` 与 nop-ai-api `ChatStreamAccumulator` 的 ToolCallAccumulator 以与 DELTA 片段相同的拼装语义消费该通道；Gemini/Ollama/`ILlmDialect` 默认 `buildStreamChunk` 回填 args（网关反向转换与 parse/build 闭环不丢参）；并补齐 Gemini 非流式 `parseResponse` 的 functionCall part 解析（条目建议的另一半）。测试：`nop-ai-core` `TestStreamAggregator#testAggregator_geminiStreamToolCallArgsPreserved` / `#testAggregator_ollamaStreamToolCallArgsPreserved`（修复前默认流式路径聚合出的 `ChatToolCall.arguments` 恒为空 Map，`location` 断言得 null）；另 `TestGeminiDialect#testParseResponseFunctionCall`、`TestGeminiDialect#testParseStreamChunkFunctionCallPreservesArguments`、`TestOllamaDialect#testParseStreamChunkToolCallsPreserveArguments`、nop-ai-api `TestChatStreamAccumulator#toolCallCompleteArgumentsAssembled` 等补齐 chunk 级/非流式/api 聚合器回归。红→绿验证：8 个新测试修复前全红，修复后 `./mvnw test -pl nop-ai/nop-ai-core -am` 全绿（379 tests / 0 failures / 3 skipped 为 @Disabled 环境性），gateway 模块 178/0 防回归通过。
+
 ### [P1] AnthropicDialect 将 assistant 角色映射为 "model"，多轮对话请求必被 Anthropic API 拒绝
 
 - **文件**: `nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/dialect/AnthropicDialect.java:626`

@@ -39,18 +39,18 @@ public class NopAiChatResponseBizModel extends CrudBizModel<NopAiChatResponse> i
     /**
      * 按模型维度聚合一 session 内的 token 用量（design §3.4 / plan 203 L2-20 + plan 204 L2-19）。
      *
-     * <p>SQL: {@code GROUP BY model_id, ai_provider, ai_model}，{@code SUM(prompt_tokens)}、
-     * {@code SUM(completion_tokens)}、{@code COUNT(*)}、{@code SUM(response_duration_ms)}，
-     * {@code WHERE session_id = ?}。{@code model_id} 为 null 的行按 provider+model 独立成组，
+     * <p>EQL: {@code GROUP BY modelId, aiProvider, aiModel}，{@code SUM(promptTokens)}、
+     * {@code SUM(completionTokens)}、{@code COUNT(*)}、{@code SUM(responseDurationMs)}，
+     * {@code WHERE sessionId = ?}。{@code modelId} 为 null 的行按 provider+model 独立成组，
      * 不会被丢弃或合并。
      *
-     * <p>{@code estimatedCost} 不再恒为 {@code null}（plan 204 / L2-19 落地）：SQL 通过
-     * {@code LEFT JOIN nop_ai_model m ON r.model_id = m.id} join 定价列，计算
-     * {@code SUM(prompt_tokens * input_price_per_1m / 1000000
-     * + completion_tokens * output_price_per_1m / 1000000)}。返回 {@code null} 的两种 graceful
-     * degradation 情形（非错误）：(1) {@code model_id} 为 null（无匹配 {@code nop_ai_model} 行可 join，
-     * LEFT JOIN 补 null）；(2) {@code model_id} 非 null 但对应 {@code nop_ai_model} 行的
-     * {@code input_price_per_1m} 或 {@code output_price_per_1m} 为 null（SQL 中 null 参与乘法使整组
+     * <p>{@code estimatedCost} 不再恒为 {@code null}（plan 204 / L2-19 落地）：EQL 通过
+     * {@code LEFT JOIN NopAiModel m ON r.modelId = m.id} join 定价列，计算
+     * {@code SUM(promptTokens * inputPricePer1m / 1000000
+     * + completionTokens * outputPricePer1m / 1000000)}。返回 {@code null} 的两种 graceful
+     * degradation 情形（非错误）：(1) {@code modelId} 为 null（无匹配 {@code NopAiModel} 行可 join，
+     * LEFT JOIN 补 null）；(2) {@code modelId} 非 null 但对应 {@code NopAiModel} 行的
+     * {@code inputPricePer1m} 或 {@code outputPricePer1m} 为 null（SQL 中 null 参与乘法使整组
      * SUM 结果为 null）。
      *
      * @param sessionId 会话ID，不允许为空白（null / 空 / 纯空白将抛
@@ -67,25 +67,32 @@ public class NopAiChatResponseBizModel extends CrudBizModel<NopAiChatResponse> i
     }
 
     /**
-     * 构造 per-model 聚合 SQL。package-private 以便同模块测试复用，避免 SQL 与测试逻辑漂移。
+     * 构造 per-model 聚合 EQL（plan 2255：实体短名 + 属性名，经 {@code orm()} EQL 编译路径执行）。
+     * package-private 以便同模块测试复用，避免 EQL 与测试逻辑漂移。
      *
-     * <p>含 {@code LEFT JOIN nop_ai_model m ON r.model_id = m.id} 定价 join（plan 204 / L2-19），
-     * 计算 {@code estimated_cost}。当 {@code model_id} 为 null 或定价列为 null 时，
+     * <p>含 {@code LEFT JOIN NopAiModel m ON r.modelId = m.id} 定价 join（plan 204 / L2-19），
+     * 计算 {@code estimated_cost}。当 {@code modelId} 为 null 或定价列为 null 时，
      * LEFT JOIN / SQL null 传播使 {@code estimated_cost} 为 null（graceful degradation）。
+     *
+     * <p>投影别名保持 snake_case：{@code ROW_MAPPER} 的 {@code StringHelper.camelCase(key,'_',false)}
+     * 会先整体小写，camelCase 别名或无别名投影将因属性查找大小写敏感而失败。
+     *
+     * <p>EQL 算术表达式必须显式括号：EQL 编译器对 {@code + - * /} 的结合优先级与标准 SQL 不同
+     * （{@code a*b/c + d*e/c} 会被编译为 {@code ((a*b)/(c+d*e))/c}），混合运算不括号会静默改变语义。
      */
     static SQL buildSummarySql(String sessionId) {
         return SQL.begin()
-                .append("SELECT r.model_id, r.ai_provider, r.ai_model, ")
-                .append("SUM(r.prompt_tokens) AS total_prompt_tokens, ")
-                .append("SUM(r.completion_tokens) AS total_completion_tokens, ")
-                .append("COUNT(*) AS call_count, ")
-                .append("SUM(r.response_duration_ms) AS total_duration_ms, ")
-                .append("SUM(r.prompt_tokens * m.input_price_per_1m / 1000000 ")
-                .append("+ r.completion_tokens * m.output_price_per_1m / 1000000) AS estimated_cost ")
-                .append("FROM nop_ai_chat_response r ")
-                .append("LEFT JOIN nop_ai_model m ON r.model_id = m.id ")
-                .append("WHERE r.session_id = ").param0(sessionId)
-                .append(" GROUP BY r.model_id, r.ai_provider, r.ai_model")
+                .append("select r.modelId as model_id, r.aiProvider as ai_provider, r.aiModel as ai_model, ")
+                .append("sum(r.promptTokens) as total_prompt_tokens, ")
+                .append("sum(r.completionTokens) as total_completion_tokens, ")
+                .append("count(*) as call_count, ")
+                .append("sum(r.responseDurationMs) as total_duration_ms, ")
+                .append("sum(((r.promptTokens * m.inputPricePer1m) / 1000000) ")
+                .append("+ ((r.completionTokens * m.outputPricePer1m) / 1000000)) as estimated_cost ")
+                .append("from NopAiChatResponse r ")
+                .append("left join NopAiModel m on r.modelId = m.id ")
+                .append("where r.sessionId = ").param0(sessionId)
+                .append(" group by r.modelId, r.aiProvider, r.aiModel")
                 .end();
     }
 }

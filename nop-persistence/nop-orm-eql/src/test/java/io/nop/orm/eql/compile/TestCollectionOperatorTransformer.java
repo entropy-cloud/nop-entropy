@@ -208,4 +208,66 @@ public class TestCollectionOperatorTransformer {
         String expected = "where exists (select 1 from o.roles as t1 where not exists (select 1 from t1.depts as t2 where ((t2.status <> 1) or (t2.active <> 1))))";
         assertEquals(normalize(expected), normalize(where.toSqlString()));
     }
+
+    @Test
+    public void testAllWithBetween() {
+        // _all + between 必须取反为 not between，否则语义从"所有都在区间内"反转为"没有任何在区间内"
+        String eql = "select o from User o where o.roles._all.status between 1 and 3";
+        SqlWhere where = parseWhere(eql);
+        assertNotNull(where);
+
+        new CollectionOperatorTransformer(new TestAliasGenerator()).transform(where);
+
+        String expected = "where not exists (select 1 from o.roles as t1 where t1.status not between 1 and 3)";
+        assertEquals(normalize(expected), normalize(where.toSqlString()));
+    }
+
+    @Test
+    public void testAllWithIn() {
+        String eql = "select o from User o where o.roles._all.status in (1, 2)";
+        SqlWhere where = parseWhere(eql);
+        assertNotNull(where);
+
+        new CollectionOperatorTransformer(new TestAliasGenerator()).transform(where);
+
+        String expected = "where not exists (select 1 from o.roles as t1 where t1.status not in ( 1 , 2 ))";
+        assertEquals(normalize(expected), normalize(where.toSqlString()));
+    }
+
+    @Test
+    public void testAllWithIsNull() {
+        String eql = "select o from User o where o.roles._all.status is null";
+        SqlWhere where = parseWhere(eql);
+        assertNotNull(where);
+
+        new CollectionOperatorTransformer(new TestAliasGenerator()).transform(where);
+
+        String expected = "where not exists (select 1 from o.roles as t1 where t1.status is not null)";
+        assertEquals(normalize(expected), normalize(where.toSqlString()));
+    }
+
+    @Test
+    public void testAllWithLike() {
+        String eql = "select o from User o where o.roles._all.name ilike 'a%'";
+        SqlWhere where = parseWhere(eql);
+        assertNotNull(where);
+
+        new CollectionOperatorTransformer(new TestAliasGenerator()).transform(where);
+
+        String expected = "where not exists (select 1 from o.roles as t1 where not t1.name ilike 'a%')";
+        assertEquals(normalize(expected), normalize(where.toSqlString()));
+    }
+
+    @Test
+    public void testAllWithBooleanColumnCondition() {
+        // 裸布尔列条件无法直接改写，取反时必须包装为NOT表达式，不能静默丢失取反语义
+        String eql = "select o from User o where o.roles._all.deleted";
+        SqlWhere where = parseWhere(eql);
+        assertNotNull(where);
+
+        new CollectionOperatorTransformer(new TestAliasGenerator()).transform(where);
+
+        String expected = "where not exists (select 1 from o.roles as t1 where not ( t1.deleted ))";
+        assertEquals(normalize(expected), normalize(where.toSqlString()));
+    }
 }

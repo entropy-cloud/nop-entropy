@@ -34,10 +34,12 @@ public class XLangDebugContextListener implements DebuggerContextListener {
     @Override
     public void changeEvent(@NotNull DebuggerContextImpl newContext, DebuggerSession.Event event) {
         LOG.debug("nop.context-event:{}", event);
-        if (event == DebuggerSession.Event.PAUSE
+        // && 优先级高于 ||，此前REFRESH_WITH_STACK之外的分支未受isPaused()约束，
+        // java侧CONTEXT/REFRESH事件会在未经确认的情况下恢复xlang挂起
+        if ((event == DebuggerSession.Event.PAUSE
                 || event == DebuggerSession.Event.CONTEXT
                 || event == DebuggerSession.Event.REFRESH
-                || event == DebuggerSession.Event.REFRESH_WITH_STACK
+                || event == DebuggerSession.Event.REFRESH_WITH_STACK)
                 && myJavaSession.isPaused()) {
             final SuspendContextImpl newSuspendContext = newContext.getSuspendContext();
             if (newSuspendContext != null) {
@@ -49,6 +51,7 @@ public class XLangDebugContextListener implements DebuggerContextListener {
                     try {
                         session.resume();
                     } catch (Exception e) {
+                        LOG.debug("nop.xlang-debugger.resume-fail", e);
                     }
                 }
             }

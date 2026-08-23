@@ -349,6 +349,7 @@ public class GeminiDialect extends AbstractLlmDialect implements ILlmDialect {
         // 需要处理 thought 标记的部分
         StringBuilder contentBuilder = new StringBuilder();
         StringBuilder thinkingBuilder = new StringBuilder();
+        List<ChatToolCall> toolCalls = new ArrayList<>();
 
         Object candidatesObj = responseMap.get("candidates");
         if (candidatesObj instanceof List) {
@@ -368,6 +369,7 @@ public class GeminiDialect extends AbstractLlmDialect implements ILlmDialect {
                                 Map<String, Object> partMap = (Map<String, Object>) part;
                                 Boolean thought = (Boolean) partMap.get("thought");
                                 String text = (String) partMap.get("text");
+                                Object functionCall = partMap.get("functionCall");
 
                                 if (text != null) {
                                     if (Boolean.TRUE.equals(thought)) {
@@ -383,6 +385,16 @@ public class GeminiDialect extends AbstractLlmDialect implements ILlmDialect {
                                         }
                                         contentBuilder.append(text);
                                     }
+                                } else if (functionCall instanceof Map) {
+                                    // 工具调用（name + 结构化 args 完整下发）
+                                    @SuppressWarnings("unchecked")
+                                    Map<String, Object> fc = (Map<String, Object>) functionCall;
+                                    ChatToolCall toolCall = new ChatToolCall();
+                                    toolCall.setName((String) fc.get("name"));
+                                    if (fc.get("args") instanceof Map) {
+                                        toolCall.setArguments((Map<String, Object>) fc.get("args"));
+                                    }
+                                    toolCalls.add(toolCall);
                                 }
                             }
                         }
@@ -394,12 +406,16 @@ public class GeminiDialect extends AbstractLlmDialect implements ILlmDialect {
         ChatAssistantMessage message = new ChatAssistantMessage();
         message.setContent(contentBuilder.length() > 0 ? contentBuilder.toString() : null);
 
-        // Plan 329：单一拆分模型产出。thought:true parts → ChatReasoningMessage，其余 text parts → assistant 文本。
+        // Plan 329：单一拆分模型产出。thought:true parts → ChatReasoningMessage，其余 text parts → assistant 文本，
+        // functionCall parts → 独立 ChatToolCallMessage（与 Ollama parseResponse 的消息序列同构）。
         List<ChatMessage> messages = new ArrayList<>();
         if (thinkingBuilder.length() > 0) {
             messages.add(new ChatReasoningMessage(thinkingBuilder.toString()));
         }
         messages.add(message);
+        for (ChatToolCall toolCall : toolCalls) {
+            messages.add(ChatToolCallMessage.fromChatToolCall(toolCall));
+        }
         response.setMessages(messages);
 
         // 解析元数据
@@ -483,9 +499,13 @@ public class GeminiDialect extends AbstractLlmDialect implements ILlmDialect {
                                     chunk.setItemIndex(order);
                                     chunk.setPhase(StreamItemPhase.ADDED);
                                     chunk.setDelta((String) fc.get("name"));
-                                    // Gemini 的 args 是结构化对象，作为 tool_call 增量。
-                                    // 单 chunk 边界：args 完整时无法与 name 同载，按 name 优先
-                                    // （与 OpenAI/Anthropic 流式 tool_call 先声明 name 的语义一致）。
+                                    // Gemini 流式 functionCall 在单事件内完整下发 name + args（结构化 Map）。
+                                    // 单 chunk 无法再发一个 DELTA 片段，故在 ADDED chunk 上经 arguments 通道
+                                    // 同载完整 args JSON（与 OpenAI/Anthropic 的 name 优先声明语义保持一致）。
+                                    Object args = fc.get("args");
+                                    if (args instanceof Map && !((Map<?, ?>) args).isEmpty()) {
+                                        chunk.setArguments(JSON.stringify(args));
+                                    }
                                     return chunk;
                                 }
                                 order++;
@@ -716,6 +736,13 @@ public class GeminiDialect extends AbstractLlmDialect implements ILlmDialect {
             } else if (type == StreamItemType.tool_call) {
                 Map<String, Object> functionCall = new LinkedHashMap<>();
                 functionCall.put("name", chunk.getDelta());
+                // 完整 arguments 通道回填（Gemini 原生形态为结构化 args）
+                if (chunk.getArguments() != null) {
+                    Object args = JSON.parse(chunk.getArguments());
+                    if (args instanceof Map) {
+                        functionCall.put("args", args);
+                    }
+                }
                 Map<String, Object> part = new LinkedHashMap<>();
                 part.put("functionCall", functionCall);
                 parts.add(part);

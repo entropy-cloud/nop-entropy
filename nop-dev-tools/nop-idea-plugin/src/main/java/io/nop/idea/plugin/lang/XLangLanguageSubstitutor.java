@@ -39,7 +39,7 @@ public class XLangLanguageSubstitutor extends LanguageSubstitutor {
 
     private static final Language LANG_NULL = new Language("NULL") {};
 
-    private final Cache<Integer, Language> cached = Caffeine.newBuilder().maximumSize(500).build();
+    private final Cache<String, Language> cached = Caffeine.newBuilder().maximumSize(500).build();
 
     @Override
     public @Nullable Language getLanguage(@NotNull VirtualFile file, @NotNull Project project) {
@@ -53,7 +53,8 @@ public class XLangLanguageSubstitutor extends LanguageSubstitutor {
         Language lang;
         // Note: 对于只读文件，缓存结果，避免重复读取
         if (file.getFileSystem() instanceof ArchiveFileSystem) {
-            lang = cached.get(file.hashCode(), (k) -> getLanguage(file));
+            // VirtualFile的hashCode是identity语义，不同jar碰撞会命中错误缓存且永不失效
+            lang = cached.get(file.getUrl(), (k) -> getLanguage(file));
         } else {
             lang = getLanguage(file);
         }

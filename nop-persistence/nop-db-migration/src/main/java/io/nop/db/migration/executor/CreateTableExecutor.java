@@ -7,7 +7,6 @@
  */
 package io.nop.db.migration.executor;
 
-import io.nop.commons.type.StdSqlType;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.sql.SQL;
 import io.nop.core.resource.component.AbstractComponentModel;
@@ -86,29 +85,13 @@ public class CreateTableExecutor implements IChangeExecutor {
         sb.append("\n)");
         
         if (StringHelper.isNotBlank(change.getRemark())) {
-            sb.append(" COMMENT '").append(change.getRemark()).append("'");
+            sb.append(" COMMENT '").append(AddColumnExecutor.escapeComment(change.getRemark())).append("'");
         }
         
         return sb.toString();
     }
 
     protected String buildColumnType(ColumnDefinition column, IDialect dialect) {
-        StdSqlType type = column.getType();
-        String typeName = type != null ? type.name() : "VARCHAR";
-        
-        StringBuilder sb = new StringBuilder(typeName);
-        
-        Integer size = column.getSize();
-        Integer decimalDigits = column.getDecimalDigits();
-        
-        if (size != null && size > 0) {
-            sb.append("(").append(size);
-            if (decimalDigits != null && decimalDigits > 0) {
-                sb.append(",").append(decimalDigits);
-            }
-            sb.append(")");
-        }
-        
-        return sb.toString();
+        return AddColumnExecutor.buildColumnType(column, dialect);
     }
 }

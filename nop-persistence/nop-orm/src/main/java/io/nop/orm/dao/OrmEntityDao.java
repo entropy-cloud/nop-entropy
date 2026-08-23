@@ -596,26 +596,28 @@ public class OrmEntityDao<T extends IOrmEntity> implements IOrmEntityDao<T> {
         boolean hasPrev, hasNext;
         if (query.isFindPrev()) {
             list = findPrev(lastEntity, query.getFilter(), query.getOrderBy(), query.getLimit() + 1);
-            list.remove(list.size() - 1);
-            list = ListFunctions.reverse(list);
             hasPrev = list.size() > query.getLimit();
+            if (hasPrev)
+                list.remove(list.size() - 1);
+            list = ListFunctions.reverse(list);
             hasNext = lastEntity != null;
         } else {
             list = findNext(lastEntity, query.getFilter(), query.getOrderBy(), query.getLimit() + 1);
             hasNext = list.size() > query.getLimit();
-            list.remove(list.size() - 1);
+            if (hasNext)
+                list.remove(list.size() - 1);
             hasPrev = lastEntity != null;
         }
 
         page.setHasNext(hasNext);
         page.setHasPrev(hasPrev);
-        if (hasPrev) {
+        if (hasPrev && !list.isEmpty()) {
             page.setPrevCursor(list.get(0).orm_idString());
         } else {
             page.setPrevCursor(OrmConstants.ID_NULL);
         }
 
-        if (hasNext) {
+        if (hasNext && !list.isEmpty()) {
             page.setNextCursor(list.get(list.size() - 1).orm_idString());
         } else {
             page.setNextCursor(OrmConstants.ID_NULL);

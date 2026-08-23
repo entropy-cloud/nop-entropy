@@ -3,6 +3,7 @@ package io.nop.ai.tools.sequential_thinking.service;
 import io.nop.ai.tools.sequential_thinking.model.ThoughtData;
 import io.nop.ai.tools.sequential_thinking.model.ThoughtSession;
 import io.nop.ai.tools.sequential_thinking.model.ThoughtStage;
+import io.nop.ai.tools.utils.AiToolsHelper;
 import io.nop.commons.util.FileHelper;
 import io.nop.core.lang.json.JsonTool;
 
@@ -60,6 +61,9 @@ public class ThoughtStorage {
 
     private File getSessionFile(String sessionId) {
         Objects.requireNonNull(sessionId, "sessionId cannot be null");
+        // path-traversal guard (audit ai-toolkit-skills P0): sessionId is
+        // client-controlled (chat session header) and must never carry a path
+        AiToolsHelper.requireValidSessionId(sessionId);
         return new File(storageDir, sessionId + ".json");
     }
 

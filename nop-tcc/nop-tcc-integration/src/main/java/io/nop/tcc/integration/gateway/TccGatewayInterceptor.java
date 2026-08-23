@@ -80,12 +80,14 @@ public class TccGatewayInterceptor implements IGatewayInterceptor {
         } else {
             txnGroup = defaultTxnGroup;
         }
+        final TccContext[] newCtxRef = new TccContext[1];
         return thenOnContext(tccEngine.runInTransactionAsync(txnGroup, txnId, txn -> {
             if (oldContext == null && tccContext == null) {
                 TccContext newCtx = new TccContext();
                 newCtx.setTxnGroup(txn.getTxnGroup());
                 newCtx.setTxnId(txn.getTxnId());
                 TccContext.setCurrent(newCtx);
+                newCtxRef[0] = newCtx;
             }
             ApiHeaders.setTxnGroup(request, txn.getTxnGroup());
             ApiHeaders.setTxnId(request, txn.getTxnId());
@@ -96,6 +98,9 @@ public class TccGatewayInterceptor implements IGatewayInterceptor {
                 TccContext.setCurrent(oldContext);
             } else if (tccContext != null) {
                 TccContext.removeCurrent(tccContext);
+            } else if (newCtxRef[0] != null) {
+                // 自动建事务分支创建的上下文此前无清理，残留到请求内后续组件
+                TccContext.removeCurrent(newCtxRef[0]);
             }
         });
     }

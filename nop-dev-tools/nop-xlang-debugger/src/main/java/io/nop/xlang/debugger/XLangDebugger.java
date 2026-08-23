@@ -128,12 +128,16 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
         monitorLock.lock();
         try {
             while (!suspended) {
+                if (closed)
+                    return;
                 try {
                     if (!suspendedCondition.await(monitorWaitInterval, TimeUnit.MILLISECONDS)) {
                         LOG.trace("nop.debugger.suspend-await-timeout");
                     }
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
+                    // 中断后继续死等会永久占用RPC工作线程，退出等待由调用方决定重试
+                    return;
                 }
             }
         } finally {
@@ -303,7 +307,7 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
     public List<DebugVariable> getScopeVariables(long threadId) {
         SuspendedThread thread = getSuspendedThread(threadId);
         if (thread == null)
-            return null;
+            return Collections.emptyList();
         synchronized (thread) {
             return thread.getScopeVariables(thread.getEvalRuntime());
         }
@@ -313,7 +317,8 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
     public List<DebugVariable> getFrameVariables(long threadId, int frameIndex) {
         SuspendedThread thread = getSuspendedThread(threadId);
         if (thread == null)
-            return null;
+            // 接口契约未声明@Nullable，客户端按非null消费（线程已恢复等场景返回空列表）
+            return Collections.emptyList();
         synchronized (thread) {
             if (frameIndex == 0) {
                 List<DebugVariable> vars = thread.getScopeVariables(thread.getEvalRuntime());

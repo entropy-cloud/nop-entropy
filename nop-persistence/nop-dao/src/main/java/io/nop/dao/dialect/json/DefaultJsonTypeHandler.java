@@ -9,6 +9,7 @@ package io.nop.dao.dialect.json;
 
 import io.nop.commons.text.RawText;
 import io.nop.commons.type.StdSqlType;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.dialect.IDataTypeHandler;
 import io.nop.dao.dialect.IDialect;
@@ -20,7 +21,8 @@ public class DefaultJsonTypeHandler implements IDataTypeHandler {
         if (value == null)
             return "NULL";
 
-        return "JSON '" + toJsonText(value) + "'";
+        // JSON文本以单引号包裹为SQL字面量，内容中的单引号必须转义，与DialectImpl.getStringLiteral的做法一致
+        return "JSON '" + StringHelper.escapeSql(toJsonText(value), false) + "'";
     }
 
     private String toJsonText(Object value) {

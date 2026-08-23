@@ -556,9 +556,10 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
                 if (type != null) {
                     value = ConvertHelper.convertTo(type.getRawClass(), value, NopException::new);
                 }
-
-                wfRt.setValue(name, value);
             }
+            // arg可无schema（xdef中为可选），无schema/空值的参数同样写入求值作用域：
+            // 参数已通过已知名/mandatory/persist检查却不生效属契约漂移
+            wfRt.setValue(name, value);
         }
 
         for (WfArgVarModel argModel : argsModel.getArgs()) {
@@ -671,7 +672,15 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
     private void initArgs(WfRuntime wfRt, Map<String, Object> args) {
         if (args != null) {
-            wfRt.getEvalScope().setLocalValues(args);
+            // wf/wfRt/wfVars是WfRuntime构造的内置变量：客户端args可覆盖它们污染求值上下文
+            // （checkManageAuth/listener/source XPL读到攻击者控制的对象），过滤保留名
+            args.forEach((name, value) -> {
+                if (NopWfCoreConstants.VAR_WF.equals(name)
+                        || NopWfCoreConstants.VAR_WF_RT.equals(name)
+                        || NopWfCoreConstants.VAR_WF_VARS.equals(name))
+                    return;
+                wfRt.getEvalScope().setLocalValue(name, value);
+            });
         }
     }
 
@@ -1547,7 +1556,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
     @Override
     public void logError(IWorkflowImplementor wf, String stepName, String actionName, Throwable e) {
-        LOG.info("nop.wf.error:wfName={},wfId={},stepName={},actionName={}",
+        LOG.error("nop.wf.error:wfName={},wfId={},stepName={},actionName={}",
                 wf.getWfName(), wf.getWfId(), stepName, actionName, e);
 
         wf.getStore().logError(wf.getRecord(), stepName, actionName, e);

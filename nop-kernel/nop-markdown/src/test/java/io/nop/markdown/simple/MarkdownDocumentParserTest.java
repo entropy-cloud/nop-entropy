@@ -161,6 +161,32 @@ class MarkdownDocumentParserTest {
         assertTrue(generated.contains("# Heading"));
     }
 
+    @Test
+    void testEmptyTextDoesNotThrowNpe() {
+        // 修复前：parseRootSection 返回 null 后无条件 forEachSection 抛 NPE
+        MarkdownDocumentParser parser = new MarkdownDocumentParser();
+        MarkdownDocument doc = parser.parseFromText(null, "");
+        assertNotNull(doc.getRootSection());
+        assertNull(doc.getFrontMatter());
+    }
+
+    @Test
+    void testBlankTextDoesNotThrowNpe() {
+        MarkdownDocumentParser parser = new MarkdownDocumentParser();
+        MarkdownDocument doc = parser.parseFromText(null, "  \n \n\t");
+        assertNotNull(doc.getRootSection());
+    }
+
+    @Test
+    void testFrontMatterOnlyDocDoesNotThrowNpe() {
+        // 只有 front matter、无正文的占位文档
+        String markdown = "---\ntitle: placeholder\n---\n";
+        MarkdownDocumentParser parser = new MarkdownDocumentParser();
+        MarkdownDocument doc = parser.parseFromText(null, markdown);
+        assertNotNull(doc.getRootSection());
+        assertEquals("placeholder", doc.getFrontMatter().get("title"));
+    }
+
     private void assertTrue(boolean condition) {
         if (!condition) {
             throw new AssertionError("Expected true but was false");

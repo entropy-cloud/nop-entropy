@@ -29,6 +29,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
+import static io.nop.job.api.JobApiErrors.ARG_BEAN_NAME;
+import static io.nop.job.api.JobApiErrors.ERR_JOB_BEAN_NOT_FOUND;
 import static io.nop.job.api.JobApiErrors.ARG_JOB_NAME;
 import static io.nop.job.api.JobApiErrors.ERR_JOB_SCHEDULER_NOT_ACTIVE;
 import static io.nop.job.api.JobApiErrors.ERR_JOB_ALREADY_EXISTS;
@@ -70,6 +72,10 @@ public class LocalJobScheduler implements IJobScheduler {
         LOG.info("nop.job.add-job:jobName={}", spec.getJobName());
 
         IJobInvoker invoker = invokerResolver.apply(spec.getJobInvoker());
+        if (invoker == null) {
+            // 配置期fail-fast：bean未注册时若放行，错误推迟到首个触发期且NPE无jobInvoker上下文
+            throw new NopException(ERR_JOB_BEAN_NOT_FOUND).param(ARG_BEAN_NAME, spec.getJobInvoker());
+        }
         ITrigger trigger;
         if (spec.getTriggerSpec() == null) {
             trigger = new OnceTrigger(-1);
@@ -248,11 +254,30 @@ public class LocalJobScheduler implements IJobScheduler {
     }
 
     private void scheduleNext(ScheduledJob job) {
+        scheduleNext(job, 0L);
+    }
+
+    /**
+     * @param overrideNextTime >0 时以该时间为下次触发（JobFireResult契约：CONTINUE(nextScheduleTime)
+     *                          且>0时忽略trigger计算结果），与分布式worker链路的
+     *                          resolveCompletionDecision消费语义对齐；=0时按trigger计算
+     */
+    private void scheduleNext(ScheduledJob job, long overrideNextTime) {
         if (!jobs.containsKey(job.spec.getJobName())) {
             return;
         }
         long now = currentTime();
-        long nextTime = job.trigger.nextScheduleTime(now, job.state);
+        long nextTime;
+        try {
+            nextTime = overrideNextTime > 0 ? overrideNextTime
+                    : job.trigger.nextScheduleTime(now, job.state);
+        } catch (Exception e) {
+            // 触发器计算异常（病态cron的runaway/overflow、日历迭代超限等）不得逃出whenComplete回调：
+            // 逃逸后异常进入被丢弃的返回future，job永久卡在RUNNING且无任何日志。置FAILED并记error
+            LOG.error("nop.job.trigger-calc-failed:jobName={}", job.spec.getJobName(), e);
+            job.state.internal = InternalState.FAILED;
+            return;
+        }
         if (nextTime <= 0) {
             job.state.internal = InternalState.COMPLETED;
             if (job.spec.isOnceTask()) {
@@ -341,7 +366,7 @@ public class LocalJobScheduler implements IJobScheduler {
             return;
         }
 
-        scheduleNext(job);
+        scheduleNext(job, result == null ? 0L : result.getNextScheduleTime());
     }
 
     private void cancelScheduledFire(ScheduledJob job) {

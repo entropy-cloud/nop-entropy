@@ -33,15 +33,15 @@ public class BarChartRenderer extends AbstractChartRenderer {
         // 创建数据集
         CategoryDataset dataset = createCategoryDataset(dataSets);
         
-        // 获取柱状图配置
-        ChartBarConfigModel barConfig = chartModel.getPlotArea().getBarConfig();
-        
+        // 获取柱状图配置（最小化模型可能未配置 plotArea/barConfig，需判空）
+        ChartBarConfigModel barConfig = chartModel.getPlotArea() != null ? chartModel.getPlotArea().getBarConfig() : null;
+
         // 确定方向
         PlotOrientation orientation = getPlotOrientation(barConfig);
-        
+
         // 创建图表
         JFreeChart chart;
-        if (barConfig.isStackedChart()) {
+        if (barConfig != null && barConfig.isStackedChart()) {
             chart = ChartFactory.createStackedBarChart(
                 null, // title will be set later
                 "Category", // category axis label
@@ -65,12 +65,12 @@ public class BarChartRenderer extends AbstractChartRenderer {
             );
         }
         
-        // 应用柱状图特定配置
+        // 应用柱状图特定配置（内部对 barConfig 判空，最小化模型可不配置）
         applyBarConfiguration(chart, barConfig, chartModel);
-        
+
         return chart;
     }
-    
+
     /**
      * 获取绘图方向
      */
@@ -80,7 +80,7 @@ public class BarChartRenderer extends AbstractChartRenderer {
         }
         return PlotOrientation.VERTICAL;
     }
-    
+
 
     /**
      * 应用柱状图配置
@@ -88,50 +88,51 @@ public class BarChartRenderer extends AbstractChartRenderer {
     private void applyBarConfiguration(JFreeChart chart, ChartBarConfigModel barConfig, ChartModel chartModel) {
         CategoryPlot plot = chart.getCategoryPlot();
         CategoryItemRenderer renderer = plot.getRenderer();
-        
+
         // 确保使用BarRenderer
         if (!(renderer instanceof BarRenderer)) {
             BarRenderer barRenderer = new BarRenderer();
             plot.setRenderer(barRenderer);
             renderer = barRenderer;
         }
-        
+
         BarRenderer barRenderer = (BarRenderer) renderer;
-        
-        // 应用间隙宽度
-        if (barConfig.getGapWidth() != null) {
-            double gapPercent = barConfig.getGapWidth() / 100.0;
-            barRenderer.setItemMargin(gapPercent);
+
+        if (barConfig != null) {
+            // 应用间隙宽度
+            if (barConfig.getGapWidth() != null) {
+                barRenderer.setItemMargin(barConfig.getGapWidth() / 100.0);
+            }
+
+            // 应用重叠设置
+            if (barConfig.getOverlap() != null) {
+                // JFreeChart中的重叠设置比较复杂，这里简化处理
+                LOG.debug("Bar overlap configuration: {}", barConfig.getOverlap());
+            }
         }
-        
-        // 应用重叠设置
-        if (barConfig.getOverlap() != null) {
-            // JFreeChart中的重叠设置比较复杂，这里简化处理
-            LOG.debug("Bar overlap configuration: {}", barConfig.getOverlap());
-        }
-        
+
         // 应用颜色变化 - 总是应用，除非明确设置为false
         boolean varyColors = true;
-        if (barConfig.getVaryColors() != null) {
+        if (barConfig != null && barConfig.getVaryColors() != null) {
             varyColors = barConfig.getVaryColors();
         }
-        
+
         if (varyColors) {
             // 为每个系列设置不同颜色
             applyVaryColors(renderer, chartModel);
         }
-        
+
         // 应用3D效果
-        if (Boolean.TRUE.equals(barConfig.getIs3D())) {
+        if (barConfig != null && Boolean.TRUE.equals(barConfig.getIs3D())) {
             // JFreeChart的3D效果需要使用不同的渲染器
             LOG.debug("3D bar chart effect requested");
         }
-        
+
         // 设置图例可见（如果存在）
         if (chart.getLegend() != null) {
             chart.getLegend().setVisible(true);
         }
-        
+
         LOG.debug("Applied bar chart configuration");
     }
     

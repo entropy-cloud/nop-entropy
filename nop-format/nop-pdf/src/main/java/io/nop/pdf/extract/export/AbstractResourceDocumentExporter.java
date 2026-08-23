@@ -13,7 +13,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 
 public abstract class AbstractResourceDocumentExporter implements IResourceDocumentExporter {
@@ -44,7 +43,7 @@ public abstract class AbstractResourceDocumentExporter implements IResourceDocum
 
     @Override
     public void exportToWriter(ResourceDocument doc, Writer out, String encoding) throws IOException {
-        throw new UnsupportedEncodingException();
+        throw new UnsupportedOperationException("exportToWriter is not implemented for " + getClass().getName());
     }
 
     @Override

@@ -19,6 +19,8 @@ import org.apache.pdfbox.pdmodel.common.PDStream;
 import org.apache.pdfbox.rendering.ImageType;
 import io.nop.pdf.tabula.*;
 import io.nop.pdf.tabula.extractors.SpreadsheetExtractionAlgorithm;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
@@ -36,6 +38,8 @@ import java.util.*;
  * http://dspace.cc.tut.fi/dpub/bitstream/handle/123456789/21520/Nurminen.pdf?sequence=3
  */
 public class NurminenDetectionAlgorithm implements DetectionAlgorithm {
+
+    private static final Logger LOG = LoggerFactory.getLogger(NurminenDetectionAlgorithm.class);
 
     private static final int GRAYSCALE_INTENSITY_THRESHOLD = 25;
     private static final int HORIZONTAL_EDGE_WIDTH_MINIMUM = 50;

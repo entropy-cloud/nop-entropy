@@ -39,7 +39,7 @@ import static io.nop.api.core.ApiErrors.ERR_INVALID_SOURCE_LOCATION_STRING;
 public class SourceLocation implements Serializable, IJsonString {
     private static final long serialVersionUID = -5678978218084960219L;
 
-    public static SourceLocation UNKNOWN = SourceLocation.fromPath("<unknown>");
+    public static final SourceLocation UNKNOWN = SourceLocation.fromPath("<unknown>");
 
     static final String PROP_PATH = "path";
     static final String PROP_LEN = "len";

@@ -81,6 +81,42 @@ public abstract class TwoPhaseCommitSinkFunction<IN> implements SinkFunction<IN>
         this.pendingCommits = Collections.synchronizedMap(new TreeMap<>(pending));
     }
 
+    /**
+     * Returns the sink-function instance to be used by the parallel subtask identified by
+     * {@code subtaskIndex}.
+     *
+     * <p>A two-phase-commit sink holds per-subtask mutable state (the current-epoch buffer
+     * and the {@code pendingCommits} map keyed by epoch). Sharing one instance across
+     * subtasks makes every subtask's {@code saveState(epochId)} write the SAME
+     * {@code pendingCommits[epochId]} entry, so later subtasks silently overwrite earlier
+     * subtasks' batches — exactly-once is broken. Subclasses deployed with
+     * {@code parallelism > 1} must therefore return an independent copy whose mutable
+     * state (buffer, pendingCommits) is fresh, carrying the subtask identity for
+     * per-subtask commit keys / output paths.
+     *
+     * <p><strong>Default behavior:</strong> returns {@code this} for subtask 0 (the
+     * template instance is never shared with another subtask in that case) and throws
+     * {@link UnsupportedOperationException} for {@code subtaskIndex > 0} — No-Silent-No-Op:
+     * a subclass that would be silently shared across subtasks fails loudly instead
+     * (mirroring {@code StreamOperator#copyForSubtask()}).
+     *
+     * @param subtaskIndex the runtime subtask/task index (0..parallelism-1)
+     * @return the sink instance for the given subtask (independent copy for subclasses
+     *         with per-subtask state)
+     * @throws UnsupportedOperationException if {@code subtaskIndex > 0} and the subclass
+     *         did not override this method
+     */
+    public TwoPhaseCommitSinkFunction<IN> copyForSubtask(int subtaskIndex) {
+        if (subtaskIndex > 0) {
+            throw new UnsupportedOperationException(
+                    getClass().getName() + " does not implement copyForSubtask(int). "
+                            + "Parallel subtasks would silently share the 2PC pendingCommits state, "
+                            + "overwriting each other's batches (exactly-once violation). "
+                            + "Override copyForSubtask(int) to return an independent copy.");
+        }
+        return this;
+    }
+
     @Override
     public TaskStateSnapshot saveState(long epochId) throws Exception {
         TaskStateSnapshot snapshot = new TaskStateSnapshot(new TaskLocation(), epochId);

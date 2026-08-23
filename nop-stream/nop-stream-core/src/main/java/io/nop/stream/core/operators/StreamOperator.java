@@ -189,6 +189,27 @@ public interface StreamOperator<OUT> extends CheckpointListener, KeyContext, Ser
                         + "or annotate the class with @Shareable if cross-subtask sharing is safe.");
     }
 
+    /**
+     * Index-aware variant of {@link #copyForSubtask()}: produces the operator copy for
+     * the parallel subtask identified by {@code subtaskIndex} (the runtime task index,
+     * stable across region restarts).
+     *
+     * <p>The default implementation ignores the index and delegates to
+     * {@link #copyForSubtask()}. Operators whose <em>user function</em> holds per-subtask
+     * mutable state (e.g. two-phase-commit sinks buffering per-subtask batches) override
+     * this variant so the copy can carry the subtask identity into the function copy
+     * (per-subtask commit keys, output paths, etc.).
+     *
+     * @param subtaskIndex the runtime subtask/task index (0..parallelism-1), or a
+     *                    negative value when the caller has no subtask identity
+     * @return a new operator instance for the given subtask
+     * @throws UnsupportedOperationException if this operator does not declare
+     *         copy semantics and is not marked {@link Shareable}
+     */
+    default StreamOperator<?> copyForSubtask(int subtaskIndex) {
+        return copyForSubtask();
+    }
+
     // ------------------------------------------------------------------------
     //  miscellaneous
     // ------------------------------------------------------------------------

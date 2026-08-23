@@ -299,8 +299,13 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
         }
         pos = resourcePath.indexOf('?');
         if (pos > 0) {
-            transform = resourcePath.substring(0, pos);
+            // url格式为 resourcePath?paramName=paramValue，例如 /a/b.xmeta?transform=xdef&sub=MyObject
+            Map<String, String> params = StringHelper.parseSimpleQuery(resourcePath.substring(pos + 1));
             resourcePath = resourcePath.substring(0, pos);
+            transform = params.get(COMPONENT_URL_PARAM_TRANSFORM);
+            String sub = params.get(COMPONENT_URL_PARAM_SUB);
+            if (!StringHelper.isEmpty(sub))
+                subName = sub;
         }
 
         Object model;

@@ -46,9 +46,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import static io.nop.ioc.IocConstants.PRODUCER_BEAN_PREFIX;
 import static io.nop.ioc.IocErrors.ARG_BEAN;
 import static io.nop.ioc.IocErrors.ARG_BEANS;
+import static io.nop.ioc.IocErrors.ARG_BEAN_DEPENDS_CYCLE;
 import static io.nop.ioc.IocErrors.ARG_BEAN_NAME;
 import static io.nop.ioc.IocErrors.ARG_BEAN_TYPE;
 import static io.nop.ioc.IocErrors.ARG_CONTAINER_ID;
+import static io.nop.ioc.IocErrors.ERR_IOC_BEAN_DEPENDS_GRAPH_CONTAINS_CYCLE;
 import static io.nop.ioc.IocErrors.ERR_IOC_CONTAINER_ALREADY_STARTED;
 import static io.nop.ioc.IocErrors.ERR_IOC_CONTAINER_NOT_STARTED;
 import static io.nop.ioc.IocErrors.ERR_IOC_MULTIPLE_BEAN_WITH_TYPE;
@@ -74,7 +76,7 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
     private IConfigProvider configProvider = AppConfig.getConfigProvider();
 
     private IClassLoader classLoader = ClassHelper.getSafeClassLoader();
-    private IBeanClassIntrospection classIntrospection;
+    private volatile IBeanClassIntrospection classIntrospection;
 
     private IBeanScope singletonScope;
 
@@ -127,10 +129,14 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
     }
 
     public IBeanClassIntrospection getClassIntrospection() {
-        if (classIntrospection == null) {
-            classIntrospection = new DefaultBeanClassIntrospection(classLoader);
+        // 派生容器（buildNewInstance）未主动设置时才走懒初始化；volatile + 本地变量
+        // 避免并发首次调用时重复发布不完整对象
+        IBeanClassIntrospection introspection = classIntrospection;
+        if (introspection == null) {
+            introspection = new DefaultBeanClassIntrospection(classLoader);
+            classIntrospection = introspection;
         }
-        return classIntrospection;
+        return introspection;
     }
 
     public void setClassIntrospection(IBeanClassIntrospection classIntrospection) {
@@ -389,8 +395,20 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
             synchronized (beanDef) { //NOSONAR
                 beanInstance = beanScope.get(beanDef.getId());
                 if (beanInstance == null) {
+                    // 构造器循环依赖检测：当前线程正在创建该 bean（构造器参数解析中，尚未 scope.add），
+                    // 同线程重入只可能来自构造器依赖环。此时无法通过早期暴露返回半成品，
+                    // 继续递归会静默产生重复单例（B 持有 A2、容器注册 A1），必须显式失败。
+                    if (beanDef.isInCreationByCurrentThread()) {
+                        throw new NopException(ERR_IOC_BEAN_DEPENDS_GRAPH_CONTAINS_CYCLE)
+                                .param(ARG_BEAN_NAME, beanDef.getId()).param(ARG_BEAN_DEPENDS_CYCLE, beanDef);
+                    }
                     LOG.info("nop.new-bean:{}", beanDef);
-                    beanInstance = beanDef.createInstance(beanScope, this, beanCtx);
+                    beanDef.markInCreation();
+                    try {
+                        beanInstance = beanDef.createInstance(beanScope, this, beanCtx);
+                    } finally {
+                        beanDef.clearInCreation();
+                    }
                     created = true;
                 }
             }

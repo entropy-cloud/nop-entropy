@@ -31,7 +31,7 @@ public class XlsxDslDocumentObjectBuilder implements IDocumentObjectBuilder {
     }
 
     static String getXdefPathFromFileType(String fileType) {
-        ComponentModelConfig config = ResourceComponentManager.instance().getModelConfigByFileType(fileType);
+        ComponentModelConfig config = ResourceComponentManager.instance().requireModelConfigByFileType(fileType);
         if(config.getXdefPath() != null)
             return config.getXdefPath();
 
@@ -53,7 +53,7 @@ public class XlsxDslDocumentObjectBuilder implements IDocumentObjectBuilder {
         @Override
         public Object getModelObject(DocumentConvertOptions options) {
             String fileType = getFileType();
-            ComponentModelConfig config = ResourceComponentManager.instance().getModelConfigByFileType(fileType);
+            ComponentModelConfig config = ResourceComponentManager.instance().requireModelConfigByFileType(fileType);
             ComponentModelConfig.LoaderConfig loaderConfig = config.getLoader(fileType);
             Guard.notNull(loaderConfig, "loaderConfig");
 

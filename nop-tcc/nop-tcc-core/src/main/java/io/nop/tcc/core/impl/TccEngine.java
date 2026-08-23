@@ -182,7 +182,16 @@ public class TccEngine implements ITccEngine {
         String txnGroup = txn.getTxnGroup();
         ITccTransaction old = registry.put(txnGroup, txn);
 
-        return thenOnContext(task.apply(txn)).whenComplete((ret, err) -> {
+        CompletionStage<T> future;
+        try {
+            future = task.apply(txn);
+        } catch (Exception e) {
+            // task同步抛异常时whenComplete不会挂接，registry残留当前事务（对比runTaskWithNewTxn的try/finally）
+            registry.put(txnGroup, old);
+            throw NopException.adapt(e);
+        }
+        CompletionStage<T> f = future;
+        return thenOnContext(f).whenComplete((ret, err) -> {
             registry.put(txnGroup, old);
         });
     }
@@ -314,6 +323,8 @@ public class TccEngine implements ITccEngine {
 
     @Override
     public void cleanCompletedTransactions(long retentionTime) {
-        repository.removeCompletedRecords(retentionTime, false);
+        // 契约：只删除已成功完结/取消的事务，未知状态保留等待人工处理。
+        // 此前传 false 会按 beginTime 无状态过滤，物理删除未完结事务，补偿信息全部丢失
+        repository.removeCompletedRecords(retentionTime, true);
     }
 }

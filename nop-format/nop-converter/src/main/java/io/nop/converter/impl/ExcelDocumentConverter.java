@@ -1,5 +1,6 @@
 package io.nop.converter.impl;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 import io.nop.converter.DocConvertConstants;
 import io.nop.converter.DocumentConvertOptions;
@@ -21,6 +22,9 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 
 import static io.nop.converter.DocConvertConstants.FILE_TYPE_HTML;
+import static io.nop.converter.DocConvertErrors.ARG_FROM_FILE_TYPE;
+import static io.nop.converter.DocConvertErrors.ARG_TO_FILE_TYPE;
+import static io.nop.converter.DocConvertErrors.ERR_DOC_CONVERT_UNSUPPORTED_TEXT_OUTPUT;
 import static io.nop.converter.DocConvertConstants.FILE_TYPE_MD;
 import static io.nop.converter.DocConvertConstants.FILE_TYPE_SHTML;
 import static io.nop.converter.DocConvertConstants.FILE_TYPE_XLSX;
@@ -58,8 +62,13 @@ public class ExcelDocumentConverter implements IDocumentConverter {
             return new ExcelWorkbookToMarkdownConverter().convertToMarkdown(wk);
         }
 
-        ITextTemplateOutput renderer = (ITextTemplateOutput) ExcelDocHelper.getExcelRenderer(doc, renderType);
-        return renderer.generateText(newEvalScope(options));
+        // workbook.xml->xlsx 等目标渲染器是 IBinaryTemplateOutput，不能按文本模板强转
+        ITemplateOutput renderer = ExcelDocHelper.getExcelRenderer(doc, renderType);
+        if (!(renderer instanceof ITextTemplateOutput))
+            throw new NopException(ERR_DOC_CONVERT_UNSUPPORTED_TEXT_OUTPUT)
+                    .param(ARG_FROM_FILE_TYPE, doc.getFileType())
+                    .param(ARG_TO_FILE_TYPE, toFileType);
+        return ((ITextTemplateOutput) renderer).generateText(newEvalScope(options));
     }
 
     protected String convertXptModelToXml(IDocumentObject doc, DocumentConvertOptions options) {

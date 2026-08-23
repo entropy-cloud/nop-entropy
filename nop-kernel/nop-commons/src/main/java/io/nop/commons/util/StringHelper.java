@@ -2482,6 +2482,10 @@ public class StringHelper extends ApiStringHelper {
         if (name.indexOf('\\') >= 0)
             return false;
 
+        // 整段为 "." 或者 ".." 时下面的前缀/后缀检查全部漏判，必须显式拒绝
+        if (name.equals(".") || name.equals(".."))
+            return false;
+
         if (name.contains("../"))
             return false;
 

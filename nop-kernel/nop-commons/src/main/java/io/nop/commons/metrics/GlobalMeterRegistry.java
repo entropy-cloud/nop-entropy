@@ -15,7 +15,8 @@ import org.slf4j.LoggerFactory;
 public class GlobalMeterRegistry {
     static final Logger LOG = LoggerFactory.getLogger(GlobalMeterRegistry.class);
 
-    static MeterRegistry s_instance = new SimpleMeterRegistry();
+    // 运行期可通过registerInstance替换，需要volatile保证跨线程可见
+    static volatile MeterRegistry s_instance = new SimpleMeterRegistry();
 
     public static MeterRegistry instance() {
         return s_instance;

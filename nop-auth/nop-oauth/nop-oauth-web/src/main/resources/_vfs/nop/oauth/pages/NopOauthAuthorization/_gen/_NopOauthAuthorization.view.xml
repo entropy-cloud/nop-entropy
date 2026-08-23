@@ -36,12 +36,6 @@
                 <!--扩展属性-->
                 <col id="attributes" sortable="true"/>
 
-                <!--状态码-->
-                <col id="state" sortable="true"/>
-
-                <!--AuthorizationCode值-->
-                <col id="authorizationCodeValue" sortable="true"/>
-
                 <!--AuthorizationCode发放时间-->
                 <col id="authorizationCodeIssuedAt" sortable="true"/>
 
@@ -50,9 +44,6 @@
 
                 <!--AuthorizationCode元数据-->
                 <col id="authorizationCodeMetadata" sortable="true"/>
-
-                <!--AccessToken-->
-                <col id="accessTokenValue" sortable="true"/>
 
                 <!--AccessToken发放时间-->
                 <col id="accessTokenIssuedAt" sortable="true"/>
@@ -69,9 +60,6 @@
                 <!--AccessToken权限范围-->
                 <col id="accessTokenScopes" sortable="true"/>
 
-                <!--OidcIdToken值-->
-                <col id="oidcIdTokenValue" sortable="true"/>
-
                 <!--OidcIdToken发放时间-->
                 <col id="oidcIdTokenIssuedAt" sortable="true"/>
 
@@ -80,9 +68,6 @@
 
                 <!--OidcIdToken元数据-->
                 <col id="oidcIdTokenMetadata" sortable="true"/>
-
-                <!--RefreshToken值-->
-                <col id="refreshTokenValue" sortable="true"/>
 
                 <!--RefreshToken发放时间-->
                 <col id="refreshTokenIssuedAt" sortable="true"/>
@@ -127,20 +112,17 @@
  sid[Id] registeredClientId[客户端ID]
  principalName[客户端名称] authorizationGrantType[授权类型]
  authorizedScopes[授权范围] attributes[扩展属性]
- state[状态码] authorizationCodeValue[AuthorizationCode值]
  authorizationCodeIssuedAt[AuthorizationCode发放时间] authorizationCodeExpiresAt[AuthorizationCode过期时间]
- authorizationCodeMetadata[AuthorizationCode元数据] accessTokenValue[AccessToken]
- accessTokenIssuedAt[AccessToken发放时间] accessTokenExpiresAt[AccessToken过期时间]
- accessTokenMetadata[AccessToken元数据] accessTokenType[AccessToken类型]
- accessTokenScopes[AccessToken权限范围] oidcIdTokenValue[OidcIdToken值]
+ authorizationCodeMetadata[AuthorizationCode元数据] accessTokenIssuedAt[AccessToken发放时间]
+ accessTokenExpiresAt[AccessToken过期时间] accessTokenMetadata[AccessToken元数据]
+ accessTokenType[AccessToken类型] accessTokenScopes[AccessToken权限范围]
  oidcIdTokenIssuedAt[OidcIdToken发放时间] oidcIdTokenExpiresAt[OidcIdToken过期时间]
- oidcIdTokenMetadata[OidcIdToken元数据] refreshTokenValue[RefreshToken值]
- refreshTokenIssuedAt[RefreshToken发放时间] refreshTokenExpiresAt[RefreshToken过期时间]
- refreshTokenMetadata[RefreshToken元数据] userCodeValue[UserCode值]
- userCodeIssuedAt[UserCode发放时间] userCodeExpiresAt[UserCode过期时间]
- userCodeMetadata[UserCode元数据] deviceCodeValue[DeviceCode值]
- deviceCodeIssuedAt[DeviceCode发放时间] deviceCodeExpiresAt[DeviceCode过期时间]
- deviceCodeMetadata[DeviceCode元数据] 
+ oidcIdTokenMetadata[OidcIdToken元数据] refreshTokenIssuedAt[RefreshToken发放时间]
+ refreshTokenExpiresAt[RefreshToken过期时间] refreshTokenMetadata[RefreshToken元数据]
+ userCodeValue[UserCode值] userCodeIssuedAt[UserCode发放时间]
+ userCodeExpiresAt[UserCode过期时间] userCodeMetadata[UserCode元数据]
+ deviceCodeValue[DeviceCode值] deviceCodeIssuedAt[DeviceCode发放时间]
+ deviceCodeExpiresAt[DeviceCode过期时间] deviceCodeMetadata[DeviceCode元数据]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-Oauth认证记录" i18n-en:title="Add OAuth Authorization" x:prototype="edit"/>
@@ -149,20 +131,17 @@
  sid[Id] registeredClientId[客户端ID]
  principalName[客户端名称] authorizationGrantType[授权类型]
  authorizedScopes[授权范围] attributes[扩展属性]
- state[状态码] authorizationCodeValue[AuthorizationCode值]
  authorizationCodeIssuedAt[AuthorizationCode发放时间] authorizationCodeExpiresAt[AuthorizationCode过期时间]
- authorizationCodeMetadata[AuthorizationCode元数据] accessTokenValue[AccessToken]
- accessTokenIssuedAt[AccessToken发放时间] accessTokenExpiresAt[AccessToken过期时间]
- accessTokenMetadata[AccessToken元数据] accessTokenType[AccessToken类型]
- accessTokenScopes[AccessToken权限范围] oidcIdTokenValue[OidcIdToken值]
+ authorizationCodeMetadata[AuthorizationCode元数据] accessTokenIssuedAt[AccessToken发放时间]
+ accessTokenExpiresAt[AccessToken过期时间] accessTokenMetadata[AccessToken元数据]
+ accessTokenType[AccessToken类型] accessTokenScopes[AccessToken权限范围]
  oidcIdTokenIssuedAt[OidcIdToken发放时间] oidcIdTokenExpiresAt[OidcIdToken过期时间]
- oidcIdTokenMetadata[OidcIdToken元数据] refreshTokenValue[RefreshToken值]
- refreshTokenIssuedAt[RefreshToken发放时间] refreshTokenExpiresAt[RefreshToken过期时间]
- refreshTokenMetadata[RefreshToken元数据] userCodeValue[UserCode值]
- userCodeIssuedAt[UserCode发放时间] userCodeExpiresAt[UserCode过期时间]
- userCodeMetadata[UserCode元数据] deviceCodeValue[DeviceCode值]
- deviceCodeIssuedAt[DeviceCode发放时间] deviceCodeExpiresAt[DeviceCode过期时间]
- deviceCodeMetadata[DeviceCode元数据] 
+ oidcIdTokenMetadata[OidcIdToken元数据] refreshTokenIssuedAt[RefreshToken发放时间]
+ refreshTokenExpiresAt[RefreshToken过期时间] refreshTokenMetadata[RefreshToken元数据]
+ userCodeValue[UserCode值] userCodeIssuedAt[UserCode发放时间]
+ userCodeExpiresAt[UserCode过期时间] userCodeMetadata[UserCode元数据]
+ deviceCodeValue[DeviceCode值] deviceCodeIssuedAt[DeviceCode发放时间]
+ deviceCodeExpiresAt[DeviceCode过期时间] deviceCodeMetadata[DeviceCode元数据]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

@@ -236,7 +236,7 @@ public abstract class AbstractTransaction implements ITransaction {
                     })));
         }
 
-        future.exceptionally(err -> {
+        future = future.exceptionally(err -> {
             invokeListener(
                     listener -> listener.onAfterCompletion(this, ITransactionListener.CompleteStatus.UNKNOWN, err),
                     true);
@@ -326,7 +326,7 @@ public abstract class AbstractTransaction implements ITransaction {
             });
         }
 
-        future.exceptionally(err -> {
+        future = future.exceptionally(err -> {
             throw newError(ERR_TXN_COMMIT_FAIL).cause(err).forWrap();
         });
 

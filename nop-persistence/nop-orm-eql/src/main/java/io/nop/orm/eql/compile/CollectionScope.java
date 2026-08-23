@@ -1,5 +1,6 @@
 package io.nop.orm.eql.compile;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.orm.eql.ast.EqlASTNode;
 import io.nop.orm.eql.ast.SqlColumnName;
@@ -13,6 +14,9 @@ import java.util.List;
 import java.util.Map;
 
 import io.nop.orm.eql.ast.SqlExpr;
+
+import static io.nop.orm.eql.OrmEqlErrors.ARG_PROP_PATH;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_INVALID_COLLECTION_OPERATOR_PATH;
 
 public class CollectionScope {
     private final SqlCollectionOperator operator;
@@ -71,7 +75,8 @@ public class CollectionScope {
 
         // 如果前缀为空，说明操作符在路径开头，这是不合法的
         if (prefix.isEmpty()) {
-            throw new IllegalArgumentException("Collection operator cannot be at the beginning of property path: " + propPath);
+            throw new NopException(ERR_EQL_INVALID_COLLECTION_OPERATOR_PATH).param(ARG_PROP_PATH, propPath)
+                    .source(colNameNode);
         }
 
         // 创建根scope
@@ -110,7 +115,8 @@ public class CollectionScope {
         
 
         if (prefix.isEmpty()) {
-            throw new IllegalArgumentException("Consecutive collection operators are not allowed: " + remainingPath);
+            throw new NopException(ERR_EQL_INVALID_COLLECTION_OPERATOR_PATH).param(ARG_PROP_PATH, remainingPath)
+                    .source(parentScope.getColNameNode());
         }
 
         CollectionScope childScope = new CollectionScope(nextOperator, prefix);

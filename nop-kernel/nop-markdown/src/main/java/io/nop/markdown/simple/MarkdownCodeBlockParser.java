@@ -12,7 +12,7 @@ public class MarkdownCodeBlockParser {
     static final String CODE_BLOCK_START = "```";
     static final String MIDDLE_CODE_BLOCK_START = "\n```";
 
-    public static MarkdownCodeBlockParser INSTANCE = new MarkdownCodeBlockParser();
+    public static final MarkdownCodeBlockParser INSTANCE = new MarkdownCodeBlockParser();
 
     public SourceCodeBlock parseCodeBlockForLang(SourceLocation loc, String text, String lang) {
         int pos = 0;

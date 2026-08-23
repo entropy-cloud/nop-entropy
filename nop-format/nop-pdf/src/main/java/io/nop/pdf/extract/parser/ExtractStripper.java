@@ -1,5 +1,6 @@
 package io.nop.pdf.extract.parser;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.pdf.extract.ResourceParseConfig;
 import io.nop.pdf.extract.struct.TextBlock;
 import org.apache.fontbox.util.BoundingBox;
@@ -29,8 +30,14 @@ import java.util.List;
  */
 public class ExtractStripper extends PDFTextStripper {
 
+    /**
+     * 渲染仅用于驱动 PageDrawer 的图形/图片提取回调，渲染分辨率与输出坐标无关：
+     * ExtractPageDrawer 会按 config.getImageScale()/RENDER_SCALE 补偿边界。
+     * 固定 1x 渲染避免每页分配 scale^2 倍的整页位图（默认 scale=4 时约 32MB/页）
+     */
+    public static final float RENDER_SCALE = 1.0f;
+
     private boolean enableBeadDebug = false;
-    private boolean enableImageDebug = false;
 
     private IExtractStripperCallback stripperCallback = null;
 
@@ -80,7 +87,7 @@ public class ExtractStripper extends PDFTextStripper {
         this.stripperCallback.onPageBegin(this.curPageIndex, cropBox.getWidth(), cropBox.getHeight(), scale);
 
         PDFRenderer pdfRenderer = new ExtractPageRender(this.stripperCallback, document, config);
-        image = pdfRenderer.renderImage(pageIndex, scale);
+        image = pdfRenderer.renderImage(pageIndex, RENDER_SCALE);
 
         // flip y-axis
         flipAT = new AffineTransform();
@@ -139,8 +146,12 @@ public class ExtractStripper extends PDFTextStripper {
         g2d.dispose();
         g2d = null;
 
-        if (enableImageDebug && pageImgFile != null) {
-            ImageIO.write(image, "png", new File(pageImgFile));
+        if (pageImgFile != null) {
+            try {
+                ImageIO.write(image, "png", new File(pageImgFile));
+            } catch (IOException e) {
+                throw NopException.adapt(e);
+            }
         }
 
         this.stripperCallback.onPageEnd(this.curPageIndex);

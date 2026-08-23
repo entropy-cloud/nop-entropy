@@ -18,6 +18,8 @@ import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 
+import static io.nop.job.core.JobCoreErrors.ARG_CONFIG_NAME;
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_INVALID_CONFIG_VALUE;
 import static io.nop.job.core.JobCoreErrors.ARG_TASK_COST;
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_NO_FITTING_WORKER;
 
@@ -81,10 +83,12 @@ public class AdaptiveJobTaskBuilder extends AbstractServiceTaskBuilder {
         for (int i = 0; i < assignments.size(); i++) {
             Assignment assignment = assignments.get(i);
             if (assignment == null) {
-                throw new IllegalStateException("AdaptiveJobTaskBuilder received null assignment at index " + i);
+                throw new NopException(ERR_JOB_INVALID_CONFIG_VALUE)
+                        .param(ARG_CONFIG_NAME, "assignment[" + i + "]");
             }
             if (assignment.getWorkerInstanceId() == null || assignment.getWorkerInstanceId().isBlank()) {
-                throw new IllegalStateException("AdaptiveJobTaskBuilder requires non-blank workerInstanceId at index " + i);
+                throw new NopException(ERR_JOB_INVALID_CONFIG_VALUE)
+                        .param(ARG_CONFIG_NAME, "assignment[" + i + "].workerInstanceId");
             }
 
             ResourceVector assignedCost = assignment.getCost() != null ? assignment.getCost() : taskCost;

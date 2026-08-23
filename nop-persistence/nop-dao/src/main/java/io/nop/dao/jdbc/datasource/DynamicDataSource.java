@@ -14,6 +14,7 @@ import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.util.function.Supplier;
 import java.util.logging.Logger;
 
 import static io.nop.dao.DaoErrors.ERR_DAO_NO_DATA_SOURCE_AVAILABLE;
@@ -35,6 +36,26 @@ public class DynamicDataSource implements DataSource {
         DataSource old = s_dataSource.get();
         s_dataSource.set(dataSource);
         return old;
+    }
+
+    /**
+     * 在指定数据源上执行任务，执行完毕后恢复原数据源。在线程池环境中应优先使用本方法， 而不是手工调用{@link #switchDataSource(DataSource)}，
+     * 避免线程复用时遗漏恢复导致跨请求数据串写。
+     */
+    public static <T> T runWith(DataSource dataSource, Supplier<T> task) {
+        DataSource old = s_dataSource.get();
+        if (dataSource == null)
+            s_dataSource.remove();
+        else
+            s_dataSource.set(dataSource);
+        try {
+            return task.get();
+        } finally {
+            if (old == null)
+                s_dataSource.remove();
+            else
+                s_dataSource.set(old);
+        }
     }
 
     protected DataSource resolveDataSource() {

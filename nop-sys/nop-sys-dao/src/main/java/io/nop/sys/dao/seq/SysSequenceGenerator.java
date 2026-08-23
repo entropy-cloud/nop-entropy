@@ -131,6 +131,9 @@ public class SysSequenceGenerator implements ISequenceGenerator {
             if (StringHelper.isEmpty(hostId))
                 hostId = NetHelper.findLocalIp();
             workerId = Math.abs(HashHelper.murmur3_32(hostId) % 1024);
+            // 哈希到1024槽位存在碰撞概率（约24节点时>20%）：同workerId的节点同毫秒同序号会生成
+            // 完全相同的ID。多节点部署必须显式配置nop.sys.seq.snowflake-worker-id
+            LOG.warn("nop.sys.seq.snowflake-worker-id-derived-from-host:workerId={},hostId={}", workerId, hostId);
         }
         this.snowflakeGenerator = new SnowflakeSequenceGeneator(workerId);
     }
@@ -230,7 +233,9 @@ public class SysSequenceGenerator implements ISequenceGenerator {
 
             item.update(seq);
 
-            item.cacheSize = seq.getCacheSize();
+            // CACHE_SIZE列无mandatory/defaultValue，管理端可不填；null拆箱会使该序列完全不可用
+            Integer cacheSize = seq.getCacheSize();
+            item.cacheSize = cacheSize == null ? 0 : cacheSize;
             item.useUuid = StringHelper.isYes(seq.getIsUuid());
 
             long ret = seq.getNextValue();
@@ -262,6 +267,8 @@ public class SysSequenceGenerator implements ISequenceGenerator {
             if (seq == null) {
                 if (useDefault && !SEQ_DEFAULT.equals(seqName)) {
                     SeqItem defaultItem = findSeqItem(SEQ_DEFAULT, false);
+                    // 回退结果按名缓存，避免未知序列名每次取号都查一次DB（defaultCache带TTL）
+                    defaultCache.put(seqName, defaultItem);
                     return defaultItem;
                 }
 

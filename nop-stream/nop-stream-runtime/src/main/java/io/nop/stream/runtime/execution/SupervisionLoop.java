@@ -620,8 +620,11 @@ public class SupervisionLoop {
                             + " during region restart");
         }
 
-        // Deep-copy the operator chain (fresh operator state).
-        OperatorChain newChain = jobVertex.getOperatorChains().get(0).deepCopy();
+        // Deep-copy the operator chain (fresh operator state). Pass the task index so
+        // per-subtask user functions (2PC sinks) get an independent copy with the SAME
+        // stable subtask identity as before the restart — per-subtask commit keys /
+        // output paths and ledger idempotency guards remain consistent.
+        OperatorChain newChain = jobVertex.getOperatorChains().get(0).deepCopy(taskIndex);
 
         // Stage 44 successor 4: consistent-cut epoch selection + operator state
         // restore. When a checkpoint coordinator + plan are available, restore

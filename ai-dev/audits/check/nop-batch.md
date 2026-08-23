@@ -46,6 +46,10 @@ public synchronized List<S> load(int batchSize, IBatchChunkContext context) {
 - **建议**: 改为 `list.subList(offset, offset + n)`；补充跨多个 batchSize 的单元测试（对比同目录 `DebugBatchLoader`，它用 readCount 游标实现了正确语义，可作回归基准）。
 - **误报排除**: 已确认无其他调用方绕过此实现；已核对 `BatchChunkProcessor.process` 对空列表即返回 STOP（`BatchChunkProcessor.java:52-54`），丢数据路径成立；本类无任何测试覆盖（nop-batch-core/src/test 无引用）。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 确认属实，已修复。`ListBatchLoader.load` 第 33 行 `subList(offset, n)` 改为 `subList(offset, offset + n)`（最小改动，单 chunk 行为不变）。测试：`nop-batch-core` `TestListBatchLoader#testLoadMultipleChunks`（修复前 250 条/batchSize=100 时第 2 个 chunk 返回空列表即视为 EOF，仅处理 100 条、150 条静默丢失，且再次 load 抛 `IllegalArgumentException: fromIndex(200) > toIndex(50)`）；同类 `testLoadExactMultipleChunks`（修复前 200 条仅处理 100 条）、`testLoadSinglePartialChunk`、`testLoadEmptyList` 覆盖整除/不足一个 chunk/空列表。修复后 nop-batch-core 16/16、nop-batch-dsl 8/8 测试通过。
+
 ### [P1] AsyncFetchPartitionDispatchLoaderProvider 吞掉 fetch 线程异常，任务可带错"成功"结束（含 0 条数据）
 
 - **文件**: `nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/AsyncFetchPartitionDispatchLoaderProvider.java:88-95、128-136`

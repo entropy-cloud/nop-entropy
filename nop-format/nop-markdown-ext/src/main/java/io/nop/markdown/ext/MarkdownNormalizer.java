@@ -23,17 +23,38 @@ import java.util.Arrays;
 
 public class MarkdownNormalizer {
 
+    // Parser/Renderer 线程安全且构建开销可观（正则/表初始化），批量归一化时复用
+    private volatile Parser parser;
+    private volatile Renderer renderer;
+
     protected Parser buildParser() {
-        Parser parser = Parser.builder()
-                .extensions(Arrays.asList(TablesExtension.create(), MathExtension.create()))
-                .build();
+        Parser parser = this.parser;
+        if (parser == null) {
+            synchronized (this) {
+                if (this.parser == null) {
+                    this.parser = Parser.builder()
+                            .extensions(Arrays.asList(TablesExtension.create(), MathExtension.create()))
+                            .build();
+                }
+                parser = this.parser;
+            }
+        }
         return parser;
     }
 
     protected Renderer buildRenderer() {
-        MarkdownRenderer.Builder builder = MarkdownRenderer.builder()
-                .extensions(Arrays.asList(TablesExtension.create(), MathExtension.create()));
-        return builder.build();
+        Renderer renderer = this.renderer;
+        if (renderer == null) {
+            synchronized (this) {
+                if (this.renderer == null) {
+                    this.renderer = MarkdownRenderer.builder()
+                            .extensions(Arrays.asList(TablesExtension.create(), MathExtension.create()))
+                            .build();
+                }
+                renderer = this.renderer;
+            }
+        }
+        return renderer;
     }
 
     public String normalizeText(String text) {
@@ -99,9 +120,27 @@ public class MarkdownNormalizer {
 
         @Override
         public void visit(FencedCodeBlock fencedCodeBlock) {
-            fencedCodeBlock.setOpeningFenceLength(3);
-            fencedCodeBlock.setClosingFenceLength(3);
+            // CommonMark 要求围栏长度大于内容中任何反引号行。强制压到3会导致
+            // 内容含```的代码块在重解析时提前闭合（不可逆破坏），保留足够的围栏长度
+            int fenceLength = Math.max(3, maxBacktickRunLength(fencedCodeBlock.getLiteral()) + 1);
+            fencedCodeBlock.setOpeningFenceLength(fenceLength);
+            fencedCodeBlock.setClosingFenceLength(fenceLength);
             super.visit(fencedCodeBlock);
+        }
+
+        static int maxBacktickRunLength(String content) {
+            int max = 0;
+            int cur = 0;
+            for (int i = 0; i < content.length(); i++) {
+                if (content.charAt(i) == '`') {
+                    cur++;
+                    if (cur > max)
+                        max = cur;
+                } else {
+                    cur = 0;
+                }
+            }
+            return max;
         }
 
         @Override

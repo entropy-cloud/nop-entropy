@@ -929,7 +929,7 @@ class TestWebAuthnMfaAdvancedE2E {
         setField(mfaFactorVerifier, "totpAuthenticator", totpAuthenticator);
         setField(mfaFactorVerifier, "smsCodeStore", smsCodeStore);
         setField(mfaFactorVerifier, "daoProvider", daoProvider);
-        setField(mfaFactorVerifier, "jdbcTemplate", jdbcTemplate);
+        setField(mfaFactorVerifier, "ormTemplate", ormTemplate);
         setField(mfaFactorVerifier, "webAuthnAuthenticator", webAuthnAuthenticator);
         setField(mfaFactorVerifier, "auditService", auditService);
 

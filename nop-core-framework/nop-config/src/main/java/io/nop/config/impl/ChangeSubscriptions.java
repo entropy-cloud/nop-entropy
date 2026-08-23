@@ -44,7 +44,9 @@ public class ChangeSubscriptions {
     }
 
     private Runnable subscribePattern(String pattern, IConfigChangeListener listener) {
-        ChangeSubscription sub = simpleSubscriptions.computeIfAbsent(pattern, ChangeSubscription::new);
+        // 通配 pattern 订阅必须登记到 patternSubscriptions：trigger() 仅从该 map 读取
+        // pattern 订阅做模糊匹配，simpleSubscriptions 的 key 是精确变量名，pattern 不可能命中
+        ChangeSubscription sub = patternSubscriptions.computeIfAbsent(pattern, ChangeSubscription::new);
         sub.addListener(listener);
         return () -> sub.removeListener(listener);
     }

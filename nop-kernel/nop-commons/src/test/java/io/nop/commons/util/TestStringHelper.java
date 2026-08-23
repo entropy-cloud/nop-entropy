@@ -472,9 +472,9 @@ public class TestStringHelper {
             Mac mac = Mac.getInstance("HmacSHA256");
             mac.init(new SecretKeySpec(key.getBytes(StringHelper.CHARSET_UTF8), "HmacSHA256"));
             byte[] hash = mac.doFinal(str.getBytes(StringHelper.CHARSET_UTF8));
-            System.out.println(StringHelper.bytesToHex(hash));
+            assertEquals(digest, StringHelper.bytesToHex(hash));
         } catch (Exception e) {
-
+            throw new AssertionError("HmacSHA256 is expected to be available in JDK", e);
         }
         assertEquals(digest, digest2);
         assertEquals(digest, StringHelper.hmacSha256(str, key));
@@ -555,5 +555,22 @@ public class TestStringHelper {
     public void testNormalizeCrlf() {
         String str = StringHelper.replace("a\r\nb", "\r\n", "\n");
         assertEquals("a\nb", str);
+    }
+
+    @Test
+    public void testIsCanonicalFilePathRejectDotSegments() {
+        // 整段 "." / ".." 此前漏判，可绕过 IFile.getResource 等入口的相对名校验实现目录逃逸
+        assertFalse(StringHelper.isCanonicalFilePath(".."));
+        assertFalse(StringHelper.isCanonicalFilePath("."));
+        assertFalse(StringHelper.isCanonicalFilePath("./.."));
+
+        assertTrue(StringHelper.isCanonicalFilePath("a/b"));
+        assertTrue(StringHelper.isCanonicalFilePath("a..b"));
+        assertFalse(StringHelper.isCanonicalFilePath("../a"));
+        assertFalse(StringHelper.isCanonicalFilePath("a/../b"));
+        assertFalse(StringHelper.isCanonicalFilePath("a/.."));
+        assertFalse(StringHelper.isCanonicalFilePath("./a"));
+        assertFalse(StringHelper.isCanonicalFilePath("a/."));
+        assertFalse(StringHelper.isCanonicalFilePath("a/./b"));
     }
 }

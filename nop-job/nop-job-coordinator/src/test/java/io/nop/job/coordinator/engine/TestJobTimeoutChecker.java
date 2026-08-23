@@ -1196,9 +1196,10 @@ public class TestJobTimeoutChecker {
 
         @Override public FireScheduleOutcome completeFireAndUpdateSchedule(NopJobFire fire, NopJobSchedule schedule) { return completeOutcome; }
         @Override public FireScheduleOutcome cancelFire(String jobFireId) { return FireScheduleOutcome.bothFailed(); }
-        @Override public void failFireWithoutSchedule(String jobFireId, String errorCode, String errorMessage) {
+        @Override public boolean failFireWithoutSchedule(String jobFireId, String errorCode, String errorMessage) {
             this.failedFireId = jobFireId;
             this.failedErrorCode = errorCode;
+            return true;
         }
         @Override public NopJobFire loadFire(String jobFireId) { return fireMap.get(jobFireId); }
         @Override public NopJobFire getFireById(String jobFireId) { return fireMap.get(jobFireId); }

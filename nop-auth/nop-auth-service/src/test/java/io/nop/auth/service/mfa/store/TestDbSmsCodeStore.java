@@ -14,7 +14,7 @@ import io.nop.auth.core.mfa.store.SmsCodeStoreConfig;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.api.IDaoProvider;
-import io.nop.dao.jdbc.IJdbcTemplate;
+import io.nop.orm.IOrmTemplate;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
@@ -33,12 +33,12 @@ public class TestDbSmsCodeStore extends JunitBaseTestCase {
     IDaoProvider daoProvider;
 
     @Inject
-    IJdbcTemplate jdbcTemplate;
+    IOrmTemplate ormTemplate;
 
     private DbSmsCodeStore store(int expireSeconds, int maxAttempts) {
         DbSmsCodeStore s = new DbSmsCodeStore();
         s.daoProvider = daoProvider;
-        s.jdbcTemplate = jdbcTemplate;
+        s.ormTemplate = ormTemplate;
         SmsCodeStoreConfig cfg = new SmsCodeStoreConfig();
         cfg.setExpireSeconds(expireSeconds);
         cfg.setMaxAttempts(maxAttempts);
@@ -48,8 +48,8 @@ public class TestDbSmsCodeStore extends JunitBaseTestCase {
 
     private int dbFailCount(String key) {
         SQL select = SQL.begin().name("assertSmsFailCount").querySpace(DEFAULT_QUERY_SPACE)
-                .sql("SELECT FAIL_COUNT FROM " + DbSmsCodeStore.TABLE + " WHERE CODE_KEY = ?", key).end();
-        Integer v = jdbcTemplate.findInt(select, null);
+                .sql("select o.failCount from NopAuthSmsCode o where o.codeKey = ?", key).end();
+        Integer v = ormTemplate.findInt(select, null);
         return v == null ? -1 : v;
     }
 

@@ -24,6 +24,10 @@ public class GeometryObjectHelper {
             return (GeometryObject) value;
         if (value instanceof String) {
             Geometry<?> geo = GeoLatteHelper.decodeWktString(value.toString());
+            // 空串/空白串解析结果为 null，此时应返回 null 而不是包装 null 的 GeolatteGeometry，
+            // 否则空值判断失效，错误会延后到序列化/落库时以 NPE 形式爆发
+            if (geo == null)
+                return null;
             return new GeolatteGeometry(geo);
         }
 

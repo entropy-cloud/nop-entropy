@@ -42,13 +42,18 @@ public class DynCountArrayBinaryCodec implements IFieldBinaryCodec {
             throw new UnsupportedOperationException("not yet implemented: itemCodec required");
 
         int count = (Integer) countCodec.decode(input, record, length, context, deserializer);
+        CountArrayBinaryCodec.checkCount(count);
 
         IBinaryDataReader arrayInput = input.subInput(length);
-
-        List<Object> ret = new ArrayList<>(count);
-        for (int i = 0; i < count; i++) {
-            Object item = itemCodec.decode(arrayInput, record, itemLength, context, deserializer);
-            ret.add(item);
+        List<Object> ret = new ArrayList<>(Math.min(count, CountArrayBinaryCodec.MAX_PREALLOC_SIZE));
+        try {
+            for (int i = 0; i < count; i++) {
+                Object item = itemCodec.decode(arrayInput, record, itemLength, context, deserializer);
+                ret.add(item);
+            }
+        } finally {
+            // ByteBuf 类 subInput 持有独立引用计数，必须关闭释放
+            arrayInput.close();
         }
         return ret;
     }
@@ -63,9 +68,9 @@ public class DynCountArrayBinaryCodec implements IFieldBinaryCodec {
         if (list == null)
             list = Collections.emptyList();
 
-        countCodec.encode(output, list.size(), -1, context, null);
+        countCodec.encode(output, list.size(), -1, context, serializer);
         for (Object item : list) {
-            itemCodec.encode(output, item, itemLength, context, null);
+            itemCodec.encode(output, item, itemLength, context, serializer);
         }
     }
 }

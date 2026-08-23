@@ -283,6 +283,89 @@ public class TestFileTwoPhaseCommitSink {
         }
     }
 
+    // ---- P0: per-subtask isolation under parallelism > 1 ----
+
+    /**
+     * P0 regression (parallelism &gt; 1 batch loss): the runtime deep-copies the operator
+     * chain per subtask ({@code OperatorChain.deepCopy(taskIndex)}). The two copies below
+     * simulate the deepCopy products for subtask 0 and subtask 1. Each copy must buffer,
+     * snapshot and commit its own batch for the SAME epoch without the other copy
+     * overwriting it (shared pendingCommits / identical temp paths previously left only
+     * the last-written subtask's data committed — exactly-once broken).
+     */
+    @Test
+    void testParallelSubtaskCopiesCommitIndependently() throws Exception {
+        FileTwoPhaseCommitSink<String> template =
+                new FileTwoPhaseCommitSink<>(outputDir.toString(), StandardCharsets.UTF_8);
+        FileTwoPhaseCommitSink<String> subtask0 = template.copyForSubtask(0);
+        FileTwoPhaseCommitSink<String> subtask1 = template.copyForSubtask(1);
+        assertNotSame(subtask0, subtask1, "each subtask must get an independent sink copy");
+        assertEquals(0, subtask0.getSubtaskIndex());
+        assertEquals(1, subtask1.getSubtaskIndex());
+
+        subtask0.beginTransaction();
+        subtask1.beginTransaction();
+
+        subtask0.consume("s0-a");
+        subtask0.consume("s0-b");
+        subtask1.consume("s1-a");
+        subtask1.consume("s1-b");
+        subtask1.consume("s1-c");
+
+        // Both subtasks receive the SAME barrier epoch; each saveState must land in the
+        // copy's OWN pendingCommits map with its OWN batch (no mutual overwrite).
+        subtask0.saveState(1L);
+        subtask0.preCommit(1L);
+        subtask1.saveState(1L);
+        subtask1.preCommit(1L);
+
+        FilePendingCommit pending0 = (FilePendingCommit) subtask0.getPendingCommits().get(1L);
+        FilePendingCommit pending1 = (FilePendingCommit) subtask1.getPendingCommits().get(1L);
+        assertNotNull(pending0, "subtask 0's pending batch must survive subtask 1's saveState");
+        assertNotNull(pending1, "subtask 1's pending batch must exist");
+        assertNotSame(pending0, pending1);
+        assertEquals(2, pending0.getRecordCount());
+        assertEquals(3, pending1.getRecordCount());
+        assertEquals(0, pending0.getSubtaskIndex());
+        assertEquals(1, pending1.getSubtaskIndex());
+        // Distinct temp files: subtask 1's write must not truncate subtask 0's temp file
+        assertEquals(2, readLines(java.nio.file.Paths.get(pending0.getTempPath())).size(),
+                "subtask 0's temp file must keep its own lines");
+        assertEquals(3, readLines(java.nio.file.Paths.get(pending1.getTempPath())).size());
+
+        // Commit from both subtasks: every record must be committed, none overwritten.
+        subtask0.commit(1L);
+        subtask1.commit(1L);
+
+        assertEquals(java.util.Arrays.asList("s0-a", "s0-b"), readLines(subtask0.finalPath(1L)));
+        assertEquals(java.util.Arrays.asList("s1-a", "s1-b", "s1-c"), readLines(subtask1.finalPath(1L)));
+        assertEquals(5, countLinesInFinalFiles(),
+                "all records from both subtasks must be committed — no loss, no overwrite");
+        assertTrue(subtask0.getPendingCommits().isEmpty());
+        assertTrue(subtask1.getPendingCommits().isEmpty());
+    }
+
+    /**
+     * The operator-level wiring must route {@code copyForSubtask(int)} into the 2PC udf
+     * copy: parallel operator copies wrap independent sink functions (this is what
+     * protects {@code processBarrier → saveState} under parallelism &gt; 1).
+     */
+    @Test
+    void testStreamSinkOperatorCopiesIsolateTwoPhaseCommitUdf() {
+        FileTwoPhaseCommitSink<String> template =
+                new FileTwoPhaseCommitSink<>(outputDir.toString(), StandardCharsets.UTF_8);
+        io.nop.stream.core.operators.StreamSinkOperator<String> op =
+                new io.nop.stream.core.operators.StreamSinkOperator<>(template);
+
+        io.nop.stream.core.operators.StreamSinkOperator<String> copy0 = op.copyForSubtask(0);
+        io.nop.stream.core.operators.StreamSinkOperator<String> copy1 = op.copyForSubtask(1);
+
+        assertNotSame(copy0.getUserFunction(), copy1.getUserFunction(),
+                "2PC sink udf must be copied per subtask, not shared");
+        assertEquals(0, ((FileTwoPhaseCommitSink<?>) copy0.getUserFunction()).getSubtaskIndex());
+        assertEquals(1, ((FileTwoPhaseCommitSink<?>) copy1.getUserFunction()).getSubtaskIndex());
+    }
+
     // ---- wiring: coordinator finishCommit drives file commit ----
 
     @Test

@@ -41,6 +41,10 @@ private void _copyToArray(Object src, Object target, IGenericType targetType, bo
 - **建议**: 改为 `System.arraycopy(src, 0, target, 0, n)`；并确认该快路径仅在 `src` 确为数组时进入（`_copyToCollection` 的对应快路径是 `target.add(v)`，不受此影响）。
 - **误报排除**: 已读完整方法与两个适配器（`ArrayBeanCollectionAdapter.getComponentType` 返回真实数组组件类），确认长度参数不是变量而是字面 `0`；对比 `_copyToCollection` 同构分支是逐元素 add，证实此处意图是全量复制。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复。`_copyToArray` 同组件类型快路径 `System.arraycopy` 的长度参数由硬编码 `0` 改为实际长度 `n`，并给该快路径增加 `src.getClass().isArray()` 条件，使 Collection 源落入既有逐元素慢路径，不再把 List 传给 arraycopy 抛 ArrayStoreException；长度不匹配仍按既有语义抛 NopException（无按目标容量截断逻辑）。测试：`nop-core` `TestBeanCopierArray#testCopyToStringArrayShallow`（修复前 String[]→String[] 浅拷贝目标保持全 null）、`#testCopyToPrimitiveIntArray`（int[] 目标保持全 0）、`#testCopyToStringArrayDeep`（同前，deep+简单类型仍走快路径）、`#testCopyFromCollectionToArray`（修复前抛 ArrayStoreException）、`#testCopyToArrayLengthNotMatch`（既有语义回归）。
+
 ### [P1] `IFile.getResource("..")` 绕过相对名校验，FileResource 可逃逸到父目录
 
 - **文件**: `nop-kernel/nop-core/src/main/java/io/nop/core/resource/impl/AbstractFile.java:71-78`（根因在 nop-commons `StringHelper.isCanonicalFilePath`，nop-kernel/nop-commons/src/main/java/io/nop/commons/util/StringHelper.java:2478-2498）
@@ -63,6 +67,8 @@ File subFile = new File(file, relativeName);   // new File(dir, "..") => 父目�
 - **建议**: 在 `isCanonicalFilePath`（或 `isValidRelativeName`）中显式拒绝整段 `"."`/`".."`（以及以 `"/"` 分割后任一段为 `..` 的路径）。
 - **误报排除**: 逐条核对了 `isCanonicalFilePath` 的全部短路条件与 `isValidFilePath("..")` 的返回（无非法字符、无 `//`），确认裸 `..` 通过；并确认 `AbstractFile.getResource` 为 `final`、FileResource 未另行校验；`new File(dir,"..")` 语义即父目录。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复（根因修复在 nop-commons，跨模块联动）。`StringHelper.isCanonicalFilePath` 增加整段 `"."`/`".."` 显式拒绝（该函数的既有 `../` 子串 + `/..` 后缀检查覆盖其余全部 `..` 形态，唯裸段漏判），`ResourceHelper.isValidRelativeName` / `AbstractFile.getResource` 随之收紧，`FileResource.getResource("..")` 不再逃逸到父目录。`isCanonicalFilePath` 全部 4 个调用方（GitRepositoryImpl、ResourceHelper.isNormalVirtualPath/isValidRelativeName、DefaultConfigBeanLoader）逐一复核，均为 fail-safe 收紧方向、无合法用例被误拒（isNormalVirtualPath 要求以 `/` 开头本就不可能传入裸 `..`）。测试：nop-commons `TestStringHelper#testIsCanonicalFilePathRejectDotSegments`（修复前 `isCanonicalFilePath("..")` 返回 true）、nop-core `TestResourceHelper#testGetResourceRejectsDotSegments`（修复前 `getResource("..")` 不抛异常直接返回父目录资源，红验证失败形态与审计一致）；nop-commons 219→回归全绿、nop-core/xlang/dataset 回归绿。
+
 ### [P1] `loadComponentModelByUrl` 的 `?` 查询段解析错误，接口文档声明的 URL 格式必然失败
 
 - **文件**: `nop-kernel/nop-core/src/main/java/io/nop/core/resource/component/ResourceComponentManager.java:295-316`
@@ -81,6 +87,8 @@ if (pos > 0) {
 - **风险**: 按文档格式调用 `loadComponentModelByUrl("/a/b.xmeta?transform=xdef")` 时 transform="/a/b.xmeta"，`getTransformer(modelType, "/a/b.xmeta")` 查不到转换器，抛 `ERR_COMPONENT_UNDEFINED_COMPONENT_MODEL_TRANSFORM`；即文档格式下公共 API 必然失败（或在更巧合的取值下静默返回错误模型）。对比 `#` 分支（subName 取后缀）可确认 `?` 分支本应取后缀并解析参数。
 - **建议**: 按文档解析查询参数（至少 `transform = resourcePath.substring(pos + 1)`），与 `#` 分支对称。
 - **误报排除**: 通读方法全文与接口 javadoc，确认没有其他地方解析回 `?` 之后内容；仓库内无其他调用方（该 bug 属公共 API 契约破坏，触发条件就是按文档使用）。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复。`?` 分支按接口文档解析 `paramName=paramValue` 查询串（复用 `StringHelper.parseSimpleQuery`），识别 `transform` 与 `sub` 两个装载参数（参数名常量 `COMPONENT_URL_PARAM_TRANSFORM`/`COMPONENT_URL_PARAM_SUB` 定义在 `IResourceComponentManager`），`#` fragment 语义保留、查询参数优先。测试：`TestResourceComponentManager#testLoadComponentModelByUrl`（新建，独立 `ResourceComponentManager(false)` 实例注册专用 fileType/transformer；修复前按文档格式 `/test/a/my-file.myext?transform=upper` 调用抛 `ERR_COMPONENT_UNDEFINED_COMPONENT_MODEL_TRANSFORM` 且 transform 参数为资源路径本身，与审计预测完全一致，红验证确认）；修复后 transform/sub/#fragment/无参数四种形态均正确。
 
 ### [P1] `ResourceHelper.resolveResourceInDir` 的 `../` 防护可被裸 `..` 绕过，且 `FileHelper.getAbsolutePath` 归一化会消除痕迹
 
@@ -106,6 +114,8 @@ public static IResource resolveResourceInDir(String dir, String fileName) {
 - **建议**: 拦截条件改为归一化后再比较（`StringHelper.normalizePath(fileName)` 是否逃出 dir），或拒绝任何包含 `..` 段的文件名；同时按两档错误策略改抛 `NopException + ErrorCode`。
 - **误报排除**: 已核对 `appendPath`（纯拼接）、`normalizePath`（折叠 `..`）、`FileHelper.resolveFile/getFileUrl/getAbsolutePath`（均经 normalizePath）与 `FileNamespaceHandler.buildFileResource` 的校验顺序，确认带 `..` 的中间路径在到达最终校验前已被折叠为合法父目录路径。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复。`fileName` 非空时改用 `StringHelper.isCanonicalFilePath` 整体校验（配合 P1-1 的根因修复后可拒绝一切 `..` 段，包括裸 `..`、`./..`、`a/..`），拒绝任何 `..` 逃逸而非仅 `../` 子串；异常由裸 `IllegalArgumentException("nop.err.invalid-file-name:...")` 改为 `NopException(ERR_RESOURCE_INVALID_FILE_NAME)`（新增错误码，i18n 已同步 zh-CN/en）。测试：`TestResourceHelper#testResolveResourceInDirRejectsParentEscape`（修复前裸 `".."` 不触发检查、静默返回父目录资源；红验证时第三组断言 `a/../b` 抛裸 IAE 亦与审计一致），并含正常文件名仍解析到 dir 内部的正向断言。
+
 ### [P2] `ReflectionManager.unregisterTypeConverter` 从错误的 Map 移除，注销操作无效
 
 - **文件**: `nop-kernel/nop-core/src/main/java/io/nop/core/reflect/ReflectionManager.java:255-262`
@@ -123,6 +133,8 @@ public void unregisterTypeConverter(Type clazz, ITypeConverter converter) {
 - **风险**: 公共注销 API 静默失效：模块卸载/热替换后旧转换器继续生效，产生错误类型转换。仓库内当前无其他调用方，属契约破坏+条件触发。
 - **建议**: `unregisterTypeConverter` 改为 `registeredConverters.remove(clazz, converter)`，并同步清理 `converterCache`。
 - **误报排除**: 对比同文件 `registerClassModel/unregisterClassModel`、`registerInvokers/unregisterInvokers`（均操作同一 Map），确认本处为笔误而非有意设计。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复。`unregisterTypeConverter` 改为 `registeredConverters.remove(clazz, converter)`，并同步清理 `converterCache`（避免懒加载缓存残留旧转换器）。测试：`TestReflectionManager#testUnregisterTypeConverter`（新建；修复前注销后 `getConverterForJavaType` 仍返回已注销的转换器，红验证失败形态与审计一致）。测试用自定义 lambda 转换器（不能用 `IdentityTypeConverter.INSTANCE`，它是普通类型的缺省兜底转换器，会掩盖断言）。
 
 ### [P2] `CoreInitialization.reinitialize` 独立调用时 NPE（bootstrapConfig 未加载）
 
@@ -146,6 +158,8 @@ private static Set<String> getDisabled() {
 - **建议**: `getDisabled` 增加 `bootstrapConfig == null` 判空，或 reinitialize 入口先调 `loadBootstrapConfig()`。
 - **误报排除**: 已确认 `CFG_MODULE_DISABLED_MODULE_NAMES` 默认值为 null（CoreConfigs.java:187-188），且 destroy() 首行 `bootstrapConfig = null`、随后 `initializers = null`。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复。`getDisabled` 增加 `bootstrapConfig != null` 判空（configValue 为 null 且 bootstrapConfig 未装载时跳过 bootstrap 查找、返回空集），同时覆盖"新 JVM 直接调用 reinitialize"与"destroy 后再调用"两条路径，优于在 reinitialize 入口强制 `loadBootstrapConfig()`（后者会在 destroy 后意外重新装载 bootstrap 配置）。测试：`TestCoreInitialization#testLoadInitializersWithoutBootstrapConfig`（新建，包内访问 package-private `loadInitializers` + 反射置空 `bootstrapConfig`；修复前 NPE，红验证确认；finally 恢复原值）。
+
 ### [P2] `FileResource.mkdirs()` 条件反转，永远无法创建新目录
 
 - **文件**: `nop-kernel/nop-core/src/main/java/io/nop/core/resource/impl/FileResource.java:175-180`
@@ -164,6 +178,8 @@ public boolean mkdirs() {
 - **建议**: 移除该前置检查（或改为对"已存在且非目录"的情况抛错），直接 `return file.mkdirs()`。
 - **误报排除**: 确认 `FileResource.isDirectory()` 即 `file.isDirectory()`，无其他覆写；`ERR_RESOURCE_NOT_DIR` 语义为"资源不是目录"，用在建目录入口属逻辑反转。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复。前置检查改为"已存在且非目录（`exists() && !isDirectory()`）时抛 `ERR_RESOURCE_NOT_DIR`"，目录不存在时正常执行 `file.mkdirs()`（不存在→创建并返回 true；已存在目录→false，与 `File.mkdirs` 语义一致）。仓库内 grep 确认 main 代码无 `IFile.mkdirs()` 调用点踩中原行为。测试：`TestResourceHelper#testFileResourceMkdirs`（修复前对不存在目录直接抛 `ERR_RESOURCE_NOT_DIR`，红验证失败形态与审计一致；修复后三态断言：创建成功 true / 已存在 false / 已存在同名文件抛 NopException）。
+
 ### [P2] SqlLikeUtils 用裸 RuntimeException 报错，违背框架核心错误处理两档策略
 
 - **文件**: `nop-kernel/nop-core/src/main/java/io/nop/core/model/query/SqlLikeUtils.java:121-127`
@@ -181,6 +197,8 @@ public static RuntimeException invalidEscapeSequence(String s, int i) {
 - **风险**: 错误码/参数缺失导致无法国际化、无法归一映射；违背 AGENTS.md 明确的 "Never use bare RuntimeException"。
 - **建议**: 定义对应 CoreErrors 错误码并改抛 `NopException`。同类问题: `ResourceHelper.resolveRelativeResource`（ResourceHelper.java:277-278）抛裸 `IllegalArgumentException`（见 P3 条目）。
 - **误报排除**: 该类看似移植自 PostgreSQL JDBC 工具，但位于 `io.nop.core.model.query` 且被平台查询模型使用，属自产核心代码而非第三方内联，两档策略适用。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复。三个异常工厂（`invalidEscapeCharacter`/`invalidEscapeSequence`/`invalidRegularExpression`，最后一个为同文件同类的私有工厂，一并处理）改抛 `NopException`，新增 CoreErrors 错误码 `ERR_SQL_LIKE_INVALID_ESCAPE_CHAR`/`ERR_SQL_LIKE_INVALID_ESCAPE_SEQUENCE`/`ERR_SQL_SIMILAR_INVALID_REGEX`（i18n zh-CN/en 已按错误码排序同步）。文件头 "copy from calcite" 注释保留，但类位于 `io.nop.core.model.query` 且被 `FilterOpHelper`（平台查询模型）调用，维持审计的两档策略判定。测试：`TestSqlLikeUtils` 4 条（新建；修复前三处均抛裸 `RuntimeException`，红验证失败形态与审计一致；含 like 正常路径回归）。
 
 ### [P3] `ResourceCacheEntry.reloadObject` 对 null 重载结果的处理与 getObject 不一致
 
@@ -203,6 +221,8 @@ private synchronized void reloadObject(IResourceObjectLoader<T> loader) {
 - **建议**: reloadObject 对 null 采用与 getObject 相同的 `Null.NULL` + 跳过 onCreated 逻辑。
 - **误报排除**: 已对照 getObject(175-207) 的完整分支确认两处语义分歧。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复。`reloadObject` 对 null 结果与 `getObject` 统一：记录 `Null.NULL` 占位（不再置裸 null，后续 `getObject` 不会误判为未加载而反复装载），且仅非 null 才回调 `listener.onCreated`。测试：`TestResourceCacheEntry#testReloadToNullUsesNullPlaceholder`（新建；修复前强制刷新装载 null 后再次 `getObject` 触发第 3 次装载（loadCount 2→3）且 `onCreated` 收到 null，红验证失败形态与审计一致）。
+
 ### [P3] `ClassPathResource.initLength` 空 catch 吞掉全部异常且 URLConnection 未释放
 
 - **文件**: `nop-kernel/nop-core/src/main/java/io/nop/core/resource/impl/ClassPathResource.java:114-124`
@@ -224,6 +244,8 @@ private void initLength() {
 - **建议**: 至少 DEBUG 记录异常；finally 中对 HttpURLConnection 调 disconnect。
 - **误报排除**: 已确认 length() 只在 `toFile()==null` 时走到该分支（jar 内资源），此时确会触发。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复。`initLength` 改为 try/finally 结构：`HttpURLConnection` 在 finally 中 `disconnect()`，其余协议保持既有的惰性连接语义；空 catch 改为 DEBUG 日志（`nop.core.resource.classpath-init-length-fail`，携带 url 与异常链）。免测试理由：连接释放与日志加固不改变 `length()` 的对外行为语义（成功/失败路径返回值均不变），无可可靠断言的观测点；jar 内资源长度读取由既有 `TestClassPathResource` 覆盖。
+
 ### [P3] AopCodeGenerator 生成的静态块用 `e.printStackTrace()` 吞异常
 
 - **文件**: `nop-kernel/nop-core/src/main/java/io/nop/core/reflect/aop/AopCodeGenerator.java:114-116`
@@ -236,6 +258,8 @@ buf.append("        } catch (Exception e) {\n" + "            e.printStackTrace(
 - **风险**: 生成代码质量缺陷，故障定位困难；与平台日志体系（NOP 错误码/SLFJ）脱节。
 - **建议**: 生成的 catch 中抛 `NopException`（或至少用日志框架 error 级输出）。
 - **误报排除**: 已确认该字符串拼进生成的 `.java` 源码（`$$methodName_i` 字段初始化块），非运行时代码。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复。生成的静态块 catch 改为 fail-fast：`throw new NopException(CoreErrors.ERR_REFLECT_AOP_INIT_METHOD_MODEL_FAIL, e).param(ARG_CLASS_NAME, ...)`（新增错误码，i18n 已同步），反射失败在类加载期以保留根因的 `ExceptionInInitializerError` 暴露，取代原"stdout 打印 + 后续 `$$method` 字段 NPE 丢失根因"。期望附件 `MyModel__aop.java` 同步更新。测试：`TestAopCodeGenerator#testGeneratedStaticBlockFailFast`（新建；修复前生成源码含 `printStackTrace`，红验证确认）+ 既有 `#testResolveType` 的 JdkJavaCompiler 实编译断言保证生成代码可编译。
 
 ### [P3] DefaultVirtualFileSystem 的 refresh/destroy 锁使用不一致，状态字段无安全发布
 
@@ -252,6 +276,8 @@ public void destroy() {            // 未同步
 - **风险**: refresh/destroy 与并发读之间没有 happens-before，读线程可能长时间看到旧 store 或半更新状态；refresh 期间旧行为多为良性（旧资源），但在 destroy 后仍可能使用已关闭的 zip 相关 store。低概率、影响限于刷新窗口。
 - **建议**: destroy 与 refresh 统一加锁；字段声明为 volatile（引用替换型更新足够）。
 - **误报排除**: 已确认无其他同步手段（字段无 volatile、读路径无锁）。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复。`deltaResourceStore`/`zipFiles` 声明为 `volatile`（引用整体替换型更新，volatile 足够保证安全发布），`destroy()` 加 `synchronized` 与 `refresh()` 一致，刷新/销毁与并发读之间建立 happens-before。免测试理由：JMM 内存可见性加固无确定性断言点（无法在不依赖时序的情况下断言"看到了新引用"）；refresh/destroy 的功能路径已被既有 VFS 测试（TestTenantResourceStore 等）覆盖。
 
 ### [P3] 依赖变更检查并发更新共享 ResourceDependencySet.lastModified 无同步
 
@@ -270,6 +296,8 @@ private boolean isDependencyChanged(ResourceDependencySet deps, Set<String> chec
 - **建议**: `lastModified` 声明为 volatile（或 AtomicLong）。
 - **误报排除**: 已核对 ResourceDependencySet: freeze 只置 frozen 标志，setLastModified 无 checkAllowChange，确认共享可变。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复。`ResourceDependencySet.lastModified` 声明为 `volatile`，消除 64 位 long 撕裂读与可见性延迟（结构不受影响，最坏代价是偶发多查一次文件时间戳，volatile 后收敛）。免测试理由：内存可见性加固无确定性断言点；不改变任何单线程语义。
+
 ### [P3] `ResourceHelper.readBytes` 对超过 2GB 资源做 int 截断
 
 - **文件**: `nop-kernel/nop-core/src/main/java/io/nop/core/resource/ResourceHelper.java:739-747`
@@ -284,6 +312,8 @@ if (length > 0) {
 - **风险**: 常规资源文件不会超过 2GB，触发条件苛刻，故 P3；一旦触发是无意义的底层异常而非 NopException。
 - **建议**: `length > Integer.MAX_VALUE` 时直接抛带 ErrorCode 的 NopException 或走流式读取。
 - **误报排除**: 已确认仅 `length==0` 与 `length<0` 有专门分支，正数大文件直接截断。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复。`length > Integer.MAX_VALUE` 时抛 `NopException(ERR_RESOURCE_READ_BYTES_TOO_LARGE)`（新增错误码，携带 resource/length 参数，i18n 已同步），取代 `(int)` 截断后的 `NegativeArraySizeException`/错配分配。测试：`TestResourceHelper#testReadBytesRejectsOversizedResource`（新建，匿名 UnknownResource 返回 2^31 长度；修复前抛 `NegativeArraySizeException: -2147483648`，红验证失败形态与审计推演一致）。
 
 ### [P3] `ErrorMessageManager.clearErrorCodeMappings` 未清理 subMappings
 
@@ -300,6 +330,8 @@ public void clearErrorCodeMappings() {
 - **建议**: clear 时同步 `subMappings.clear()`。
 - **误报排除**: 已 grep 全文件确认 subMappings 无其他清空点，读取点在 412 行。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复。`clearErrorCodeMappings` 增加 `subMappings.clear()`。测试：`TestErrorMessageManager#testClearErrorCodeMappingsAlsoClearsSubMappings`（新建，包内访问 protected `getErrorCodeMapping`；修复前 clear 后 `errorCode?param` 细化映射仍命中，红验证失败形态与审计一致；`@AfterEach` 恢复 `NopException` 全局注册的默认管理器，避免构造函数注册副作用泄漏到其他测试）。
+
 ### [P3] `DeltaResourceStore.getRawResource` 对无子路径的租户路径抛数组越界
 
 - **文件**: `nop-kernel/nop-core/src/main/java/io/nop/core/resource/store/DeltaResourceStore.java:298-306`
@@ -314,6 +346,8 @@ if (ResourceHelper.isTenantPath(path)) {                     // 前缀 "/_tenant
 - **风险**: 仅畸形路径触发（正常使用都带子路径），影响是异常类型不友好，P3。
 - **建议**: pos<0 时抛 `ERR_RESOURCE_INVALID_PATH` 的 NopException。
 - **误报排除**: 已确认 `TENANT_PATH_PREFIX = "/_tenant/"`（以 `/` 结尾），`/_tenant/abc` 场景 pos 必为 -1。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复。`pos < 0` 时抛 `NopException(ERR_RESOURCE_INVALID_PATH)`（复用既有错误码，携带 resourcePath）。测试：`TestDeltaResourceStore#testGetRawResourceTenantPathWithoutSubPath`（新建，独立 DeltaResourceStore 实例；修复前抛 `StringIndexOutOfBoundsException: Range [9, -1)`，红验证失败形态与审计一致，并断言错误码为 invalid-path）。
 
 ### [P3] `ReflectionManager.getFromCache` 并发下重复构建 ClassModel
 
@@ -332,6 +366,8 @@ introspectCache.put(clazz, classModel);
 - **建议**: `ClassModelLoader` 记忆首次结果（double-check 或在锁内检查 introspectCache）。
 - **误报排除**: 已确认 load() 每次都 new ClassModelBuilder().build()，无缓存判断。
 
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复。`ClassModelLoader` 记忆首次构建结果（`synchronized load()` 内 double-check：先查 `introspectCache`，未命中才 `buildClassModel`），并发 miss 的线程在共享 loader 上串行复用同一实例；loader 已被从 `tempLoaders` 移除的迟到线程经锁内缓存检查命中已发布结果（tempLoaders/introspectCache 均为 CHM，锁与 program order 提供 happens-before），不再重复执行全方法扫描。测试：`TestReflectionManager#testGetFromCacheConcurrentBuildOnlyOnce`（新建，8 线程 CyclicBarrier 并发 `getFromCache` 断言同一实例；修复前构建出两个不同 ClassModel 实例，红验证失败形态与审计一致，修复后确定性通过）。
+
 ### [P3] `ResourceHelper.resolveRelativeResource` 抛裸 IllegalArgumentException
 
 - **文件**: `nop-kernel/nop-core/src/main/java/io/nop/core/resource/ResourceHelper.java:276-282`
@@ -346,6 +382,8 @@ public static IResource resolveRelativeResource(IResource resource, String relat
 - **风险**: 错误无错误码、无法国际化；`contains("..")` 也偏宽（会误拒 `a..b` 这类合法名字，属 fail-safe 方向，可接受）。
 - **建议**: 改用 NopException + 专用错误码。
 - **误报排除**: 已确认方法无其他入参校验，且消息串非错误码资源格式（nop.err.* 前缀形式仅在 i18n 资源存在时有效，此处为硬编码串）。
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 属实，已修复。改抛 `NopException(ERR_RESOURCE_NOT_ALLOW_PARENT_PATH)`（新增错误码，携带 relativePath，i18n 已同步）。`contains("..")` 的宽匹配（会误拒 `a..b` 这类名字）按审计裁定保持不变——fail-safe 方向，且该方法的两个仓库内调用方（nop-pdf）均传 `allowParent=true`，不触发改分支。测试：`TestResourceHelper#testResolveRelativeResourceRejectParent`（修复前抛裸 `IllegalArgumentException`，红验证失败形态与审计一致）。
 
 ## 补充说明（未计入发现的观察）
 

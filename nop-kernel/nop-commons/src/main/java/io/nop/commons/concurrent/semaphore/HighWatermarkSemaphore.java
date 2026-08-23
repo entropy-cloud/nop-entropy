@@ -51,6 +51,7 @@ public class HighWatermarkSemaphore implements ISemaphore {
             while (overHighWatermark ||
                     (usedPermits + permits > highWatermark && usedPermits >= lowWatermark)) {
                 if (nanos <= 0) {
+                    acquireFailCount.incrementAndGet();
                     return false;
                 }
                 nanos = belowLowWatermark.awaitNanos(nanos);
@@ -61,9 +62,11 @@ public class HighWatermarkSemaphore implements ISemaphore {
             if (usedPermits > highWatermark) {
                 overHighWatermark = true;
             }
+            acquireSuccessCount.incrementAndGet();
             return true;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            acquireFailCount.incrementAndGet();
             return false;
         } finally {
             lock.unlock();

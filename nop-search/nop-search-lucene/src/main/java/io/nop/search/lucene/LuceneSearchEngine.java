@@ -115,6 +115,19 @@ public class LuceneSearchEngine implements ISearchEngine {
 
     private static final String FIELD_EMBEDDING = "embedding";
 
+    /**
+     * 以 LongPoint 建索引的数值字段集合，与 {@link #addNumericField} 保持一致。
+     * filter 查询必须用 LongPoint 系列查询构造，否则编码不同永不命中。
+     */
+    public static final Set<String> LONG_POINT_FIELDS =
+            Set.of(FIELD_PUBLISH_TIME, FIELD_MODIFY_TIME, FIELD_FILE_SIZE);
+
+    /**
+     * 仅以 StoredField 存储、未建索引的字段集合，与 {@link #buildDocument} 保持一致。
+     * 这些字段不支持 filter 过滤，在 transformer 中直接报错而不是静默返回错误结果。
+     */
+    public static final Set<String> STORED_ONLY_FIELDS = Set.of(FIELD_PATH);
+
     private Analyzer analyzer;
     private final Map<String, Directory> indexDirs = new ConcurrentHashMap<>();
     private final Map<String, IndexWriter> indexWriters = new ConcurrentHashMap<>();

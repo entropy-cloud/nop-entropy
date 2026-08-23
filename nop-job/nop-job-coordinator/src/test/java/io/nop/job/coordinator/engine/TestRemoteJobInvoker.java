@@ -437,7 +437,8 @@ public class TestRemoteJobInvoker {
         }
 
         @Override
-        public void failFireWithoutSchedule(String jobFireId, String errorCode, String errorMessage) {
+        public boolean failFireWithoutSchedule(String jobFireId, String errorCode, String errorMessage) {
+            return true;
         }
     }
 

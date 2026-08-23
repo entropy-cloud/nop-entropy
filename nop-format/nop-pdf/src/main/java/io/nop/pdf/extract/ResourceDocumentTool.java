@@ -22,16 +22,16 @@ import java.util.List;
  * 处理ResourceDocument的Facade帮助类
  */
 public class ResourceDocumentTool {
-    static ResourceDocumentTool _instance = new ResourceDocumentTool();
+    static final ResourceDocumentTool _instance = new ResourceDocumentTool();
 
     public static ResourceDocumentTool getInstance() {
         return _instance;
     }
 
-    List<IResourceDocumentProcessor> processors;
+    private volatile List<IResourceDocumentProcessor> processors;
 
     public void setPostProcessors(List<IResourceDocumentProcessor> processors) {
-        this.processors = processors;
+        this.processors = processors == null ? null : new java.util.ArrayList<>(processors);
     }
 
     public IResourceDocumentParser newParser(ResourceParseConfig config) {

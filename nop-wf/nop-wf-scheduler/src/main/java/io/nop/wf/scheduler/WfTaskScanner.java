@@ -97,7 +97,17 @@ public class WfTaskScanner {
                             stepRecord.getWfId(), stepRecord.getStepId());
                     continue;
                 }
-                throw e;
+                if (NopWfCoreErrors.ERR_WF_NOT_ALLOW_CALL_ACTION_BY_USER.getErrorCode()
+                        .equals(e.getErrorCode())) {
+                    // wf-scheduler固定身份对普通user/dept/role步骤必然通不过allowCallByUser：
+                    // 超时动作的触发主体是系统而非用户，该拒绝属预期形态，记录后继续处理后续到期任务
+                    LOG.warn("nop.wf.scheduler.due-action-blocked-by-user-check:wfId={},stepId={},dueAction={}",
+                            stepRecord.getWfId(), stepRecord.getStepId(), dueAction);
+                    continue;
+                }
+                // 单个到期任务失败不中断整批：记录后继续（其余到期任务不应被连带跳过）
+                LOG.error("nop.wf.scheduler.due-action-failed:wfId={},stepId={},dueAction={}",
+                        stepRecord.getWfId(), stepRecord.getStepId(), dueAction, e);
             }
         }
     }

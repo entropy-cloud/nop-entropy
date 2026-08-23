@@ -12,6 +12,8 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.xlang.xdsl.DslNodeLoader;
 import io.nop.xlang.xdsl.XDslParseHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -35,6 +37,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class XDefMergeLoader {
 
+    static final Logger LOG = LoggerFactory.getLogger(XDefMergeLoader.class);
+
     private static final Set<String> KEEP_XDEF_ATTRS = Set.of(
             "xdef:name", "xdef:ref", "xdef:body-type", "xdef:key-attr", "xdef:unique-attr"
     );
@@ -44,6 +48,8 @@ public class XDefMergeLoader {
     private final Set<String> loadedPaths = new LinkedHashSet<>();
     private final Map<String, XNode> collectedDefines = new LinkedHashMap<>();
     private final Map<String, String> collectedNsDecls = new LinkedHashMap<>();
+    // refPath -> defineName。重复引用同一外部xdef时复用首次生成的名称，避免悬空的xdef:ref
+    private final Map<String, String> refPathDefineNames = new LinkedHashMap<>();
     private final AtomicInteger defineCounter = new AtomicInteger(0);
 
     public XDefMergeLoader() {
@@ -68,6 +74,7 @@ public class XDefMergeLoader {
         loadedPaths.clear();
         collectedDefines.clear();
         collectedNsDecls.clear();
+        refPathDefineNames.clear();
         defineCounter.set(0);
 
         XNode node = DslNodeLoader.INSTANCE.loadFromResource(resource).getNode();
@@ -189,9 +196,9 @@ public class XDefMergeLoader {
     }
 
     private void convertToDefine(XNode node, String refPath) {
-        String defineName = generateDefineName(refPath);
-
-        if (!collectedDefines.containsKey(defineName)) {
+        String defineName = refPathDefineNames.get(refPath);
+        if (defineName == null) {
+            defineName = generateDefineName(refPath);
             if (loadedPaths.add(refPath)) {
                 XNode refNode = loadRefNode(refPath);
                 if (refNode != null) {
@@ -216,6 +223,7 @@ public class XDefMergeLoader {
                     }
 
                     collectedDefines.put(defineName, defineNode);
+                    refPathDefineNames.put(refPath, defineName);
                 }
             }
         }
@@ -238,6 +246,7 @@ public class XDefMergeLoader {
             XNode refNode = DslNodeLoader.INSTANCE.loadFromResource(refResource).getNode();
             return transformNode(refNode);
         } catch (Exception e) {
+            LOG.warn("nop.xlang.xdef.merge-load-ref-fail:refPath={}", refPath, e);
             return null;
         }
     }

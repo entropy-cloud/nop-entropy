@@ -30,7 +30,7 @@ public class ListBatchLoader<S, C> implements IBatchLoaderProvider.IBatchLoader<
             return Collections.emptyList();
 
         int n = Math.min(list.size() - offset, batchSize);
-        List<S> ret = new ArrayList<>(list.subList(offset, n));
+        List<S> ret = new ArrayList<>(list.subList(offset, offset + n));
         offset += n;
         return ret;
     }

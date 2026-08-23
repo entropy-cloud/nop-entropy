@@ -142,7 +142,7 @@ public class OrmAssembly {
             return null;
 
         if (prop.isSingleColumn()) {
-            return values[0];
+            return values[fromIndex];
         }
 
         int n = entityModel.getPkColumns().size();

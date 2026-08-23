@@ -140,6 +140,8 @@ public interface CoreErrors {
     String ARG_VALUE = "value";
     String ARG_PATTERN = "pattern";
 
+    String ARG_ESCAPE_CHAR = "escapeChar";
+
     String ARG_TPL_PATH = "tplPath";
 
     String ARG_LOC_A = "locA";
@@ -509,11 +511,20 @@ public interface CoreErrors {
     ErrorCode ERR_RESOURCE_READ_JSONL_ROW_FAIL = define("nop.err.core.resource.read-jsonl-row-fail",
             "读取JSONL文件[{resourcePath}]的第{readCount}行时失败", ARG_RESOURCE_PATH, ARG_READ_COUNT);
 
+    ErrorCode ERR_RESOURCE_READ_BYTES_TOO_LARGE = define("nop.err.core.resource.read-bytes-too-large",
+            "资源文件[{resource}]长度为{length}，超过int范围，无法一次性读入内存", ARG_RESOURCE, ARG_LENGTH);
+
     ErrorCode ERR_RESOURCE_INVALID_PATH = define("nop.err.core.resource.invalid-path",
             "资源路径只能使用/为路径分隔符，且不能以/结尾，不能包含../等相对路径，也不能包含windows路径所不允许的特殊字符:{resourcePath}", ARG_RESOURCE_PATH);
 
     ErrorCode ERR_RESOURCE_INVALID_RELATIVE_NAME = define("nop.err.core.resource.invalid-relative-name",
             "相对路径不能以/开始，只能使用/为路径分隔符，不能包含../等相对路径，也不能包含windows路径所不允许的特殊字符:{resourcePath}", ARG_RESOURCE_PATH);
+
+    ErrorCode ERR_RESOURCE_INVALID_FILE_NAME = define("nop.err.core.resource.invalid-file-name",
+            "非法的文件名，不允许包含..等相对路径形式:{fileName}", ARG_FILE_NAME);
+
+    ErrorCode ERR_RESOURCE_NOT_ALLOW_PARENT_PATH = define("nop.err.core.resource.not-allow-parent-path",
+            "不允许通过相对路径[{resourcePath}]访问父目录", ARG_RESOURCE_PATH);
 
     ErrorCode ERR_RESOURCE_PATH_NOT_IN_NAMESPACE = define("nop.err.core.resource.path-not-in-namespace",
             "资源路径[{resourcePath}]不属于名字空间[{namespace}]", ARG_RESOURCE_PATH, ARG_NAMESPACE);
@@ -679,6 +690,9 @@ public interface CoreErrors {
 
     ErrorCode ERR_REFLECT_CLASS_MODEL_ALREADY_REGISTERED = define("nop.err.core.reflect.class-model-already-registered",
             "类[{className}]的反射模型已经存在，不允许重复注册", ARG_CLASS_NAME);
+
+    ErrorCode ERR_REFLECT_AOP_INIT_METHOD_MODEL_FAIL = define("nop.err.core.reflect.aop-init-method-model-fail",
+            "AOP代理类[{className}]初始化函数模型失败", ARG_CLASS_NAME);
 
     ErrorCode ERR_REFLECT_MODEL_IS_READONLY = define("nop.err.core.reflect.model-is-readonly", "只读模型不允许修改");
 
@@ -911,6 +925,15 @@ public interface CoreErrors {
 
     ErrorCode ERR_SQL_FILTER_INVALID_FIELD_NAME = define("nop.err.core.sql.sql-filter-invalid-field-name",
             "SQL字段名不合法:{name}", ARG_NAME);
+
+    ErrorCode ERR_SQL_LIKE_INVALID_ESCAPE_CHAR = define("nop.err.core.sql.like-invalid-escape-char",
+            "LIKE/SIMILAR匹配中的转义字符必须是单个字符:{escapeChar}", ARG_ESCAPE_CHAR);
+
+    ErrorCode ERR_SQL_LIKE_INVALID_ESCAPE_SEQUENCE = define("nop.err.core.sql.like-invalid-escape-sequence",
+            "LIKE/SIMILAR匹配中的转义序列不合法:{pattern}，位置:{pos}", ARG_PATTERN, ARG_POS);
+
+    ErrorCode ERR_SQL_SIMILAR_INVALID_REGEX = define("nop.err.core.sql.similar-invalid-regex",
+            "SIMILAR匹配模式不是合法的正则表达式:{pattern}", ARG_PATTERN);
 
     ErrorCode ERR_CORE_NO_API_SERVICE_CONTEXT = define("nop.err.core.no-api-service-context", "缺少没有Api服务上下文");
 

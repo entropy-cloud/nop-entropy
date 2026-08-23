@@ -8,7 +8,6 @@
 package io.nop.ioc.impl;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.api.core.util.Guard;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.ioc.api.IBeanContainerImplementor;
 import io.nop.ioc.api.IBeanScope;
@@ -69,8 +68,13 @@ public class BeanScopeImpl implements IBeanScope {
 
     @Override
     public void add(String name, ProducedBeanInstance value) {
-        checkClosed();
-        beans.put(name, value);
+        // checkClosed 与 put 原子化：与 close 的 closed 置位互斥，消除
+        // "add 通过检查后、put 前 close 完成遍历" 的 check-then-act 窗口
+        // （该窗口内 put 的 bean 不会被 close 销毁，且终态校验失败会以裸 ISE 中止 stop）
+        synchronized (beans) {
+            checkClosed();
+            beans.put(name, value);
+        }
     }
 
     @Override
@@ -90,7 +94,11 @@ public class BeanScopeImpl implements IBeanScope {
 
     @Override
     public void close() {
-        closed = true;
+        // closed 置位与 add 互斥：置位前完成 put 的 bean 必然被本次遍历覆盖到，
+        // 置位后 add 直接抛 ERR_IOC_BEAN_SCOPE_ALREADY_CLOSED，不再产生窗口内泄漏
+        synchronized (beans) {
+            closed = true;
+        }
 
         Exception e = null;
         for (Map.Entry<String, ProducedBeanInstance> entry : beans.entrySet()) {
@@ -102,7 +110,9 @@ public class BeanScopeImpl implements IBeanScope {
                 e = ex;
             }
         }
-        Guard.checkState(beans.isEmpty());
+        if (!beans.isEmpty())
+            throw new NopException(ERR_IOC_BEAN_SCOPE_ALREADY_CLOSED).param(ARG_CONTAINER_ID, container.getId())
+                    .param(ARG_BEAN_SCOPE, name);
         if (e != null)
             throw NopException.adapt(e);
     }

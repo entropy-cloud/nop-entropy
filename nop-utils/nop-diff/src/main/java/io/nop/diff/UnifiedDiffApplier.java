@@ -56,7 +56,8 @@ public class UnifiedDiffApplier {
          * 启用容错匹配模式
          * <p>
          * 当行号不匹配时，尝试通过 context 行在文件中定位。
-         * 要求 context 行必须不为空且在文件中唯一（trim 后匹配）。
+         * 要求 context 行必须不为空且在文件中唯一（trim 后匹配，忽略首尾空白）。
+         * fuzzy 定位独立于 {@link #strictContext} 的严格校验。
          */
         public Config fuzzyMatch(boolean fuzzyMatch) {
             this.fuzzyMatch = fuzzyMatch;
@@ -113,7 +114,18 @@ public class UnifiedDiffApplier {
             int oldLineCount = hunk.getOldLineCount();
 
             // 解析实际的起始行号（可能通过 fuzzy 匹配）
-            int actualStartLine = resolveActualStartLine(lines, hunk, declaredStartLine);
+            int actualStartLine;
+            boolean fuzzyLocated = false;
+            if (tryMatchAtLine(lines, hunk, declaredStartLine)) {
+                actualStartLine = declaredStartLine;
+            } else if (!config.fuzzyMatch) {
+                actualStartLine = declaredStartLine; // 不启用 fuzzy，返回原行号（后续 validateContext 会报错）
+            } else {
+                // 启用 fuzzy 匹配，通过 context 定位。fuzzy 定位使用 trim 容错比较并已验证
+                // context/delete 行，不再重复做 strict 校验
+                actualStartLine = fuzzyLocateHunk(lines, hunk);
+                fuzzyLocated = true;
+            }
 
             // 需要复制的未变更行范围: [lastOldEnd, actualStartLine - 1)
             for (int i = lastOldEnd; i < actualStartLine - 1 && i < lines.size(); i++) {
@@ -121,7 +133,7 @@ public class UnifiedDiffApplier {
             }
 
             // 验证上下文
-            if (config.strictContext) {
+            if (config.strictContext && !fuzzyLocated) {
                 validateContext(lines, hunk, actualStartLine);
             }
 
@@ -152,32 +164,6 @@ public class UnifiedDiffApplier {
         }
 
         return result.toString();
-    }
-
-    /**
-     * 解析 hunk 的实际起始行号
-     * <p>
-     * 1. 首先尝试按声明的行号匹配
-     * 2. 如果不匹配且启用了 fuzzyMatch，则通过 context 行定位
-     *
-     * @param lines            文件行列表
-     * @param hunk             hunk 对象
-     * @param declaredStartLine 声明的起始行号 (1-based)
-     * @return 实际的起始行号 (1-based)
-     */
-    private int resolveActualStartLine(List<String> lines, UnifiedDiffHunk hunk, int declaredStartLine) {
-        // 先尝试按声明的行号匹配
-        if (tryMatchAtLine(lines, hunk, declaredStartLine)) {
-            return declaredStartLine;
-        }
-
-        // 行号匹配失败，检查是否启用 fuzzy 匹配
-        if (!config.fuzzyMatch) {
-            return declaredStartLine; // 不启用 fuzzy，返回原行号（后续 validateContext 会报错）
-        }
-
-        // 启用 fuzzy 匹配，通过 context 定位
-        return fuzzyLocateHunk(lines, hunk);
     }
 
     /**
@@ -236,7 +222,7 @@ public class UnifiedDiffApplier {
         List<String> contextLines = new ArrayList<>();
         for (UnifiedDiffLine line : hunk.getLines()) {
             if (line.isContext()) {
-                contextLines.add(normalizeLine(line.getContent()));
+                contextLines.add(fuzzyNormalize(line.getContent()));
             }
         }
         return contextLines;
@@ -257,7 +243,7 @@ public class UnifiedDiffApplier {
 
         // 遍历文件，找到第一个 context 行的所有可能位置
         for (int i = 0; i < fileLines.size(); i++) {
-            if (normalizeLine(fileLines.get(i)).equals(firstContext)) {
+            if (fuzzyNormalize(fileLines.get(i)).equals(firstContext)) {
                 // 验证从这个位置开始，所有 context 行是否匹配
                 int hunkStartLine = tryMatchHunkFromFirstContext(fileLines, hunk, contextLines, i);
                 if (hunkStartLine > 0) {
@@ -311,7 +297,7 @@ public class UnifiedDiffApplier {
                 if (fileLineIndex >= fileLines.size()) {
                     return -1;
                 }
-                if (!normalizeLine(fileLines.get(fileLineIndex)).equals(contextLines.get(contextIndex))) {
+                if (!fuzzyNormalize(fileLines.get(fileLineIndex)).equals(contextLines.get(contextIndex))) {
                     return -1;
                 }
                 contextIndex++;
@@ -321,7 +307,7 @@ public class UnifiedDiffApplier {
                 if (fileLineIndex >= fileLines.size()) {
                     return -1;
                 }
-                if (!normalizeLine(fileLines.get(fileLineIndex)).equals(normalizeLine(diffLine.getContent()))) {
+                if (!fuzzyNormalize(fileLines.get(fileLineIndex)).equals(fuzzyNormalize(diffLine.getContent()))) {
                     return -1;
                 }
                 fileLineIndex++;
@@ -377,11 +363,22 @@ public class UnifiedDiffApplier {
 
     /**
      * 标准化行内容（用于比较）
+     * <p>
+     * 默认严格模式：保留原始行内容（含前导缩进），缩进不同的行不算匹配；
+     * ignoreTrailingWhitespace 模式：仅忽略行尾空白。
      */
     private String normalizeLine(String line) {
         if (config.ignoreTrailingWhitespace) {
-            return trimTrailingWhitespace(line).trim();
+            return trimTrailingWhitespace(line);
         }
+        return line;
+    }
+
+    /**
+     * fuzzy 定位使用的容错比较：忽略首尾空白。
+     * fuzzy 是显式开启的宽松定位模式，与 strictContext 的严格校验语义分离
+     */
+    private static String fuzzyNormalize(String line) {
         return line.trim();
     }
 
@@ -419,12 +416,18 @@ public class UnifiedDiffApplier {
             validateContext(lines, hunk, oldStartLine);
         }
 
-        // 应用 hunk 内容
+        // 应用 hunk 内容。context 行从原文件复制（与 apply() 保持一致，保留原文件的空白），
+        // delete 行只前进行号，add 行写入 diff 内容
+        int lineIndex = oldStartLine - 1;
         for (UnifiedDiffLine diffLine : hunk.getLines()) {
-            if (diffLine.isContext() || diffLine.isDelete()) {
-                // 跳过原始行（delete 或 context 都对应原始行）
-            }
-            if (diffLine.isContext() || diffLine.isAdd()) {
+            if (diffLine.isContext()) {
+                if (lineIndex < lines.size()) {
+                    result.append(lines.get(lineIndex)).append('\n');
+                }
+                lineIndex++;
+            } else if (diffLine.isDelete()) {
+                lineIndex++;
+            } else if (diffLine.isAdd()) {
                 result.append(diffLine.getContent()).append('\n');
             }
         }

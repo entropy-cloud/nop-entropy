@@ -39,6 +39,9 @@ public class Edge {
 - **建议**: 为 `Edge` 基于 sourceId/targetId/weight/type 实现 `equals`/`hashCode`（attrs 不参与）；或 GraphDiffer 改用 `sourceId + "->" + targetId` 字符串键做差分。同时为"两个相同内容图实例 diff 返回空 diff"补回归测试。
 - **误报排除**: 已确认 `Edge.java` 全文无 equals/hashCode；已确认调用方 `CodeCallGraph` 每次返回新 Edge 实例；已确认测试未覆盖边断言。唯一不触发场景是同一 `InMemoryGraph` 实例自 diff（共享 Edge 对象），现实中 diff 语义是比较两个快照，不成立。
 
+---
+> **处置（fix-ai-check 分支，2026-08-22）**: 确认属实，已修复。为 `Edge` 基于身份字段 sourceId/targetId/weight/type 手写实现 `equals`/`hashCode`（mutable 的 attrs 不参与，javadoc 已注明值语义契约），`GraphDiffer` 的 `Set<Edge>` 差分随之恢复值语义；全仓库核查确认无依赖对象身份语义的 Edge 容器/序列化用法。测试：`nop-graph-core` `TestAlgorithms#testGraphDifferIdenticalGraphs`（修复前两个相同拓扑图实例 diff 返回 2 条边全部 added+removed、isEmpty()=false）、`TestAlgorithms#testGraphDifferEdgeChange`（修复前改一条边报告 2 删除 2 新增）。模块全部测试通过（nop-graph 30/30）。
+
 ### [P1] PathQueryExecutor.edgeMatches 只检查 start 的直接出边，edgeType 过滤对多跳节点全部错误拒绝
 
 - **文件**: `nop-graph/nop-graph-core/src/main/java/io/nop/graph/algorithm/PathQueryExecutor.java:39-53`

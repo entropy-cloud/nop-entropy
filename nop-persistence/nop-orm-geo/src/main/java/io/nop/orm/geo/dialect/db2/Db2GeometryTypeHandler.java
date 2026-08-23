@@ -7,6 +7,7 @@
  */
 package io.nop.orm.geo.dialect.db2;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.dataset.binder.IDataParameters;
 import io.nop.orm.geo.type.GeometryTypeHandler;
 import org.geolatte.geom.Geometry;
@@ -14,6 +15,9 @@ import org.geolatte.geom.codec.db.db2.Db2ClobDecoder;
 import org.geolatte.geom.codec.db.db2.Db2ClobEncoder;
 
 import java.sql.Clob;
+
+import static io.nop.orm.geo.OrmGeoErrors.ARG_CLASS_NAME;
+import static io.nop.orm.geo.OrmGeoErrors.ERR_ORM_GEO_INVALID_GEOMETRY_OBJECT;
 
 public class Db2GeometryTypeHandler extends GeometryTypeHandler {
     private Integer srid;
@@ -28,6 +32,10 @@ public class Db2GeometryTypeHandler extends GeometryTypeHandler {
 
     @Override
     public void setValue(IDataParameters params, int index, Object value) {
+        if (value == null) {
+            params.setNull(index);
+            return;
+        }
         final Geometry<?> geometry = toGeometry(value);
         final Db2ClobEncoder encoder = new Db2ClobEncoder();
         String encoded = encoder.encode(geometry);
@@ -45,6 +53,6 @@ public class Db2GeometryTypeHandler extends GeometryTypeHandler {
             return decoder.decode((Clob) object);
         }
 
-        throw new IllegalStateException("nop.err.orm.invalid-geometry-value:" + object.getClass());
+        throw new NopException(ERR_ORM_GEO_INVALID_GEOMETRY_OBJECT).param(ARG_CLASS_NAME, object.getClass().getName());
     }
 }

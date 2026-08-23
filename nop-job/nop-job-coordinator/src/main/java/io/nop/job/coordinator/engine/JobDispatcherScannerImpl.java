@@ -23,6 +23,7 @@ import java.util.Map;
 import static io.nop.job.core.JobCoreErrors.ARG_DISPATCH_MODE;
 import static io.nop.job.core.JobCoreErrors.ARG_JOB_FIRE_ID;
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_DISPATCH_MODE_NOT_IMPLEMENTED;
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_NO_AVAILABLE_INSTANCE;
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_NO_FITTING_WORKER;
 
 public class JobDispatcherScannerImpl extends AbstractBatchScanner implements IJobDispatcherScanner {
@@ -185,9 +186,15 @@ public class JobDispatcherScannerImpl extends AbstractBatchScanner implements IJ
         return fires.size() >= batchSize;
     }
 
+    /**
+     * 瞬态无worker的两种形态同等回退重试（revert-to-waiting + backoff）：bestFit无匹配worker与
+     * broadcast/partition无健康实例（滚动发布、目标服务整体重启的典型瞬态）。后者原只记error，
+     * fire停留DISPATCHING等300s超时被判TIMEOUT丢弃，造成任务漏执行。
+     */
     private static boolean isNoFittingWorker(NopException e) {
         String code = e.getErrorCode();
-        return code != null && code.equals(ERR_JOB_NO_FITTING_WORKER.getErrorCode());
+        return code != null && (code.equals(ERR_JOB_NO_FITTING_WORKER.getErrorCode())
+                || code.equals(ERR_JOB_NO_AVAILABLE_INSTANCE.getErrorCode()));
     }
 
     /**

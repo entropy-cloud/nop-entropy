@@ -9,11 +9,13 @@ package io.nop.orm.pdm;
 
 import io.nop.api.core.ApiConfigs;
 import io.nop.api.core.config.AppConfig;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
 import io.nop.core.unittest.BaseTestCase;
+import io.nop.orm.model.OrmEntityModel;
 import io.nop.orm.model.OrmModel;
 import io.nop.xlang.xdsl.DslModelHelper;
 import io.nop.xlang.xdsl.json.DslModelToXNodeTransformer;
@@ -25,7 +27,9 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
+import static io.nop.orm.pdm.PdmModelErrors.ERR_PDM_PRIMARY_KEY_NO_KEY_REF;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestPdmParser extends BaseTestCase {
     @BeforeAll
@@ -69,5 +73,20 @@ public class TestPdmParser extends BaseTestCase {
         node.dump();
         assertEquals(normalizeCRLF(attachmentXml("test-relation.orm.xml").xml()),
                 normalizeCRLF(node.xml()));
+    }
+
+    @Test
+    public void testParseKeysMissingKeyRef() {
+        // 手工裁剪过的 PDM 可能出现 <c:PrimaryKey> 下没有 <c:Key> 子节点
+        XNode tableNode = XNode.make("o:Table");
+        XNode primaryKey = tableNode.makeChild("c:PrimaryKey");
+        primaryKey.makeChild("a:Code").setValue("PK1");
+
+        OrmEntityModel table = new OrmEntityModel();
+        table.setTableName("tbl_x");
+
+        PdmModelParser parser = new PdmModelParser();
+        NopException e = assertThrows(NopException.class, () -> parser.parseKeys(tableNode, table));
+        assertEquals(ERR_PDM_PRIMARY_KEY_NO_KEY_REF.getErrorCode(), e.getErrorCode());
     }
 }

@@ -55,14 +55,12 @@ public class AlterColumnExecutor implements IChangeExecutor {
           .append(dialect.escapeSQLName(change.getTableName()))
           .append(" ALTER COLUMN ")
           .append(dialect.escapeSQLName(change.getColumnName()));
-        
+
         StdSqlType newType = change.getNewType();
         if (newType != null) {
-            sb.append(" TYPE ").append(newType.name());
             Integer size = change.getNewSize();
-            if (size != null && size > 0) {
-                sb.append("(").append(size).append(")");
-            }
+            int precision = size != null && size > 0 ? size : -1;
+            sb.append(" TYPE ").append(dialect.stdToNativeSqlType(newType, precision, -1).toString());
         }
         
         if (change.getNewNullable() != null) {

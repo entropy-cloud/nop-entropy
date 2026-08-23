@@ -42,10 +42,16 @@ public class MockGraphQLSchemaLoader implements IGraphQLSchemaLoader {
     private GraphQLBizModels bizModels = new GraphQLBizModels();
 
     public MockGraphQLSchemaLoader() {
+        this(Collections.emptyList());
+    }
+
+    public MockGraphQLSchemaLoader(List<Object> extraBeans) {
         IResource resource = new ClassPathResource("classpath:io/nop/graphql/core/engine/test.graphql");
         defs = GraphQLDocumentHelper.parseObjectDefinitions(resource);
 
-        List<Object> beans = Arrays.asList(new MyEntityBizModel(), new MyChildBizModel());
+        List<Object> beans = new ArrayList<>(Arrays.asList(new MyEntityBizModel(), new MyChildBizModel()));
+        if (extraBeans != null)
+            beans.addAll(extraBeans);
 
         bizModels.build(typeRegistry, beans);
 

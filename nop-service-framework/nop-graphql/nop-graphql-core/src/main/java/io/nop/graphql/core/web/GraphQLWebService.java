@@ -17,6 +17,7 @@ import io.nop.api.core.beans.graphql.GraphQLRequestBean;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.ioc.BeanContainer;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.json.JSON;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.FutureHelper;
@@ -54,6 +55,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_NULL_REQUEST;
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_MAKER_CHECKER_ENABLED;
 
 public abstract class GraphQLWebService {
@@ -78,7 +80,7 @@ public abstract class GraphQLWebService {
 
             GraphQLRequestBean request = (GraphQLRequestBean) JSON.parseToBean(null, body, GraphQLRequestBean.class);
             if (request == null)
-                throw new IllegalArgumentException("null request");
+                throw new NopException(ERR_GRAPHQL_NULL_REQUEST);
             LOG.debug("nop.graphql.parse:vars={},document=\n{}", request.getVariables(), request.getQuery());
 
             context = engine.newGraphQLContext(request);

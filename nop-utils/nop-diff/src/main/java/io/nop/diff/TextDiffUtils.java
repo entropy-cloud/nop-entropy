@@ -139,12 +139,22 @@ public final class TextDiffUtils {
                     .build();
         }
 
+        // Myers 算法按编辑路径回溯产出 change，顺序是文档逆序。生成 hunks 要求按原文位置正序遍历
+        // （lastEndOriginal 单调递增、hunk 合并、revised 偏移累计都依赖这一点），先排序再生成
+        List<DiffChange> sortedChanges = new ArrayList<>(changes);
+        sortedChanges.sort((a, b) -> {
+            int c = Integer.compare(a.getStartOriginal(), b.getStartOriginal());
+            if (c != 0)
+                return c;
+            return Integer.compare(a.getStartRevised(), b.getStartRevised());
+        });
+
         UnifiedDiff.Builder diffBuilder = UnifiedDiff.builder()
                 .oldPath(oldPath)
                 .newPath(newPath);
 
         // 生成 hunks
-        List<UnifiedDiffHunk> hunks = generateHunks(originalLines, revisedLines, changes, contextLines);
+        List<UnifiedDiffHunk> hunks = generateHunks(originalLines, revisedLines, sortedChanges, contextLines);
         for (UnifiedDiffHunk hunk : hunks) {
             diffBuilder.addHunk(hunk);
         }
@@ -154,15 +164,32 @@ public final class TextDiffUtils {
 
     /**
      * 生成 hunks
+     * <p>
+     * 多 change 场景下，当前 hunk 前置上下文的 revised 行号需要加上前序 change 累计的净偏移
+     * （各 change 的 revisedSize - originalSize 之和），否则 @@ 头部的新文件起始行号错误。
+     * 注意不能用 endRevised - endOriginal 逐个累加：Myers 产出的相邻 change 的 revised 坐标
+     * 已互相折算，直接相减会重复计算。
+     * 上下文重叠的相邻 change 合并为一个 hunk 时，按一个横跨两端的 CHANGE 块重建，
+     * 避免前一个 change 的增删行被当作上下文行重复输出。
      */
     private static List<UnifiedDiffHunk> generateHunks(List<String> originalLines, List<String> revisedLines,
                                                        List<DiffChange> changes, int contextLines) {
         List<UnifiedDiffHunk> hunks = new ArrayList<>();
 
-        int lastEndOriginal = 0;
-        int lastEndRevised = 0;
+        // prefixOffset[k] = changes[0..k) 的 revised 侧累计净偏移（按尺寸差求和）
+        int[] prefixOffset = new int[changes.size() + 1];
+        for (int k = 0; k < changes.size(); k++) {
+            DiffChange c = changes.get(k);
+            prefixOffset[k + 1] = prefixOffset[k]
+                    + (c.getEndRevised() - c.getStartRevised()) - (c.getEndOriginal() - c.getStartOriginal());
+        }
 
-        for (DiffChange change : changes) {
+        int lastEndOriginal = 0;
+        // 当前 hunk 覆盖的第一个 change 在 changes 中的下标（合并时保持不变）
+        int lastHunkFirstIndex = -1;
+
+        for (int i = 0; i < changes.size(); i++) {
+            DiffChange change = changes.get(i);
             int contextStart = Math.max(lastEndOriginal, change.getStartOriginal() - contextLines);
             int contextEnd = Math.min(originalLines.size(), change.getEndOriginal() + contextLines);
 
@@ -173,17 +200,26 @@ public final class TextDiffUtils {
 
                 // 如果两个 hunk 的上下文重叠，合并它们
                 if (contextStart <= lastHunkEnd + contextLines) {
-                    // 移除最后一个 hunk，稍后重新创建
+                    // 移除最后一个 hunk，将两个 change 的范围合并成一个 CHANGE 块重新构建。
+                    // lastHunkFirstIndex 不变，新 hunk 的起始偏移仍取该下标之前的前缀累计
+                    DiffChange first = changes.get(lastHunkFirstIndex);
                     hunks.remove(hunks.size() - 1);
                     contextStart = lastHunk.getOldStartLine() - 1;
+                    change = new DiffChange(DiffDeltaType.CHANGE,
+                            first.getStartOriginal(), change.getEndOriginal(),
+                            first.getStartRevised(), change.getEndRevised());
+                } else {
+                    lastHunkFirstIndex = i;
                 }
+            } else {
+                lastHunkFirstIndex = i;
             }
 
-            UnifiedDiffHunk hunk = buildHunk(originalLines, revisedLines, change, contextStart, contextEnd);
+            UnifiedDiffHunk hunk = buildHunk(originalLines, revisedLines, change, contextStart, contextEnd,
+                    prefixOffset[lastHunkFirstIndex]);
             hunks.add(hunk);
 
             lastEndOriginal = change.getEndOriginal();
-            lastEndRevised = change.getEndRevised();
         }
 
         return hunks;
@@ -193,13 +229,13 @@ public final class TextDiffUtils {
      * 构建单个 hunk
      */
     private static UnifiedDiffHunk buildHunk(List<String> originalLines, List<String> revisedLines,
-                                             DiffChange change, int contextStart, int contextEnd) {
+                                             DiffChange change, int contextStart, int contextEnd, int revisedOffset) {
         UnifiedDiffHunk.Builder hunkBuilder = UnifiedDiffHunk.builder();
 
         // 计算行号信息
         int oldStartLine = contextStart + 1; // 1-based
         int oldLineCount = 0;
-        int newStartLine = mapToRevisedLine(change, contextStart) + 1;
+        int newStartLine = mapToRevisedLine(change, contextStart, revisedOffset) + 1;
         int newLineCount = 0;
 
         // 添加前置上下文
@@ -241,12 +277,16 @@ public final class TextDiffUtils {
 
     /**
      * 将原始行号映射到修改后行号
+     *
+     * @param change       当前 change
+     * @param originalLine 原始行号（0-based）
+     * @param revisedOffset 前序 change 累计的 revised 侧净偏移（当前 change 之前的所有 change 的
+     *                      endRevised - endOriginal 之和）
      */
-    private static int mapToRevisedLine(DiffChange change, int originalLine) {
+    private static int mapToRevisedLine(DiffChange change, int originalLine, int revisedOffset) {
         if (originalLine < change.getStartOriginal()) {
-            return originalLine;
+            return originalLine + revisedOffset;
         }
-        // 简化映射：假设变更之前的行一一对应
         return change.getStartRevised() + (originalLine - change.getStartOriginal());
     }
 

@@ -8,6 +8,7 @@
 package io.nop.commons.text;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.Guard;
 import io.nop.commons.util.CharSequenceHelper;
 
 import java.io.IOException;
@@ -97,6 +98,8 @@ public class StringTrie<T> {
     }
 
     void add(CharSequence str, T value, AddType addType) {
+        // 空串无法在Trie中表达，直接拒绝，避免在charAt(0)处抛出越界异常
+        Guard.checkArgument(str.length() > 0, "trie key must not be empty");
         addToList(null, roots, str, 0, value, addType);
     }
 
@@ -111,6 +114,9 @@ public class StringTrie<T> {
     }
 
     protected TrieNode<T> findNode(String str, boolean onlyPrefix) {
+        // 空串按未命中处理
+        if (str.isEmpty())
+            return null;
         return findInList(roots, str, 0, onlyPrefix);
     }
 

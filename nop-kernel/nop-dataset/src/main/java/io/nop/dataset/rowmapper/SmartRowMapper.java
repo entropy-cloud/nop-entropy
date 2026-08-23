@@ -15,12 +15,12 @@ import io.nop.dataset.IRowMapper;
  * 只有一列时返回第一列的数据，否则调用baseMapper将行包装为对象返回
  */
 public class SmartRowMapper implements IRowMapper<Object> {
-    public static SmartRowMapper INSTANCE = new SmartRowMapper(ColumnMapRowMapper.INSTANCE);
-    public static SmartRowMapper CASE_SENSITIVE = new SmartRowMapper(ColumnMapRowMapper.CASE_SENSITIVE);
+    public static final SmartRowMapper INSTANCE = new SmartRowMapper(ColumnMapRowMapper.INSTANCE);
+    public static final SmartRowMapper CASE_SENSITIVE = new SmartRowMapper(ColumnMapRowMapper.CASE_SENSITIVE);
 
-    public static SmartRowMapper CASE_INSENSITIVE = new SmartRowMapper(ColumnMapRowMapper.CASE_INSENSITIVE);
+    public static final SmartRowMapper CASE_INSENSITIVE = new SmartRowMapper(ColumnMapRowMapper.CASE_INSENSITIVE);
 
-    public static SmartRowMapper CAMEL_CASE = new SmartRowMapper(ColumnMapRowMapper.CAMEL_CASE);
+    public static final SmartRowMapper CAMEL_CASE = new SmartRowMapper(ColumnMapRowMapper.CAMEL_CASE);
 
     private final IRowMapper<?> baseMapper;
 

@@ -12,12 +12,15 @@ import io.nop.commons.util.ClassHelper;
 import io.nop.commons.util.URLHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 
@@ -31,6 +34,8 @@ import static io.nop.core.resource.ResourceConstants.RESOURCE_NS_CLASSPATH;
 public class ClassPathResource extends AbstractResource {
 
     private static final long serialVersionUID = 580938702502424559L;
+    static final Logger LOG = LoggerFactory.getLogger(ClassPathResource.class);
+
     private transient URL url;
     private transient ClassLoader classLoader;
 
@@ -115,11 +120,16 @@ public class ClassPathResource extends AbstractResource {
         if (length >= 0)
             return;
 
-        URLConnection conn = null;
         try {
-            conn = url.openConnection();
-            this.length = conn.getContentLengthLong();
-        } catch (Exception expected) {
+            URLConnection conn = url.openConnection();
+            try {
+                this.length = conn.getContentLengthLong();
+            } finally {
+                if (conn instanceof HttpURLConnection)
+                    ((HttpURLConnection) conn).disconnect();
+            }
+        } catch (Exception e) {
+            LOG.debug("nop.core.resource.classpath-init-length-fail:url={}", url, e);
         }
     }
 

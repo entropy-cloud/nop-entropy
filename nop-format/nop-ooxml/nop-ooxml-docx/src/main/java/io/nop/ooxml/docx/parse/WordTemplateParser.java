@@ -55,7 +55,8 @@ public class WordTemplateParser {
     public WordTemplate parseFromResource(IResource resource) {
         WordOfficePackage pkg = new WordOfficePackage();
         try {
-            pkg.loadFromFile(resource.toFile());
+            // 非file:资源（jar内模板等）toFile()返回null会导致NPE，loadFromResource内部自动处理
+            pkg.loadFromResource(resource);
 
             XNode doc = pkg.getWordXml();
             XplGenConfig config = getGenConfig(doc);

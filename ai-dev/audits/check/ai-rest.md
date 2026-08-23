@@ -50,6 +50,10 @@ result.setExtId(openId);
 - **建议**: 登录链路必须以服务端到渠道方的验证结果为准：要么验证渠道推送事件的签名（Feishu 事件加密/签名），要么采用 OAuth code 由服务端用 appSecret 换取真实 open_id（qrPayload 中 `state=ticketId` 的授权码流程本应如此）；同时 ticket 应与扫码用户身份在渠道回调时由渠道方断言，而非信任回调 payload。至少应在 provider 层强制 `extId` 来自服务端换取结果。
 - **误报排除**: 已核实 (a) 端点确为 `publicAccess=true` 且 bean 在 `ai-gateway-defaults.beans.xml` 注册暴露；(b) `ChannelScanCallback` 无任何签名字段；(c) 仓库内唯一 provider 实现（FeishuBindProvider）确实直接信任 `rawPayload.open_id`，ticket 校验不涉及身份绑定；(d) `ChannelBindServiceImpl.findBinding` 是纯 DB 反查（按 loginType+extId），无附加验证；(e) `createSessionForUserAsync` 以 `binding.getPlatformUserId()` 建会话，accessCode 返回给调用方。链路每一环均已读源码确认。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 已加固（最小 fail-closed，完整渠道验证仍留待设计级变更）。核实服务端 bind ticket 记录上存在可信身份字段 `platformUserId`（`createBindTicket` 时由服务端写入、回调时 rehydrate 进 `ChannelBindResult.platformUserId`；未知/过期 ticket provider 本就抛错），满足最小加固前提。修改：(1) `ChannelLoginApiBizModel.loginByScanAsync` 要求回调结果携带服务端断言的 ticket 身份（缺失即 `NopException` fail-closed），且 `findBinding(extId)` 命中的绑定用户必须等于 ticket owner，否则拒绝登录、绝不创建会话——`extId` 降级为交叉校验提示，不再是登录身份选择器；(2) `FeishuBindProvider` ticketId 从 `"fs_bind_"+自增序列` 改为随机 UUID，封堵本条目风险中"猜测他人未消费 ticket"的残余向量。未实施部分及理由：Feishu 事件签名验证 / OAuth code 服务端换取属渠道回调协议改造（Option A 授权码流程本应如此），超出外科修复范围；加固后伪造 `rawPayload.open_id` 已无法选择受害者身份，该改造可作为后续增强（open_id 届时由服务端换取，交叉校验自动升级为真实渠道断言）。测试：`TestChannelLoginApi` 新增 2 个红→绿回归（`scanLoginWithForgedExtIdCannotLogInAsAnotherUser`、`scanLoginWithoutServerAssertedTicketIdentityFailsClosed`，修复前均确认红）、`TestFeishuBindProvider` 新增 `ticketIdsAreUnpredictableRandomTokens`，受影响 stub 同步更新（`TestChannelLoginApi`/`TestScanLoginMfa`）。运行：nop-ai-gateway 178/178、nop-integration-feishu 45/45、nop-auth-service 受影响 4 类（TestChannelLoginApi 相关 E2E/MFA/Bind）22/22 通过。
+
 ### [P1] AiFileTool 路径无任何钳制，可任意路径读/写主机文件
 
 - **文件**: `nop-ai/nop-ai-mcp-server/src/main/java/io/nop/ai/mcp/server/AiFileTool.java:159-175`

@@ -20,6 +20,7 @@ import com.intellij.xdebugger.impl.ui.tree.nodes.EvaluatingExpressionRootNode;
 import com.intellij.xdebugger.impl.ui.tree.nodes.WatchesRootNode;
 import com.intellij.xdebugger.impl.ui.tree.nodes.XValueNodeImpl;
 import io.nop.api.debugger.DebugValueKey;
+import io.nop.api.debugger.IDebuggerAsync;
 import io.nop.api.debugger.DebugVariable;
 import io.nop.api.debugger.LineLocation;
 import io.nop.commons.type.StdDataType;
@@ -64,8 +65,13 @@ public class XLangValue extends XValue {
         List<DebugValueKey> keys = list.subList(1, list.size())
                 .stream().map(v -> v.getValueKey()).collect(Collectors.toList());
 
-        frame.getDebugProcess().getDebugger()
-                .expandExprValueAsync(frame.getThreadId(), frame.getFrameIndex(), expr, keys)
+        IDebuggerAsync debugger = frame.getDebugProcess().getDebugger();
+        if (debugger == null) {
+            // 连接未建立/已断开，与XLangStackFrame.computeChildren的降级策略一致
+            node.setErrorMessage("debugger not connected");
+            return;
+        }
+        debugger.expandExprValueAsync(frame.getThreadId(), frame.getFrameIndex(), expr, keys)
                 .whenComplete((expandedVars, err) -> {
                     if (err != null) {
                         node.setErrorMessage(err.getMessage());

@@ -135,4 +135,20 @@ public interface RecordErrors {
 
     ErrorCode ERR_RECORD_TERMINATOR_NOT_FOUND =
             define("nop.err.record.terminator-not-found", "数据结束，未找到终止符:{term}", ARG_TERM);
+
+    ErrorCode ERR_RECORD_COLLECTION_SIZE_EXCEED_LIMIT =
+            define("nop.err.record.collection-size-exceed-limit",
+                    "集合大小超过限制:field={fieldName},size={length}", ARG_FIELD_NAME, ARG_LENGTH);
+
+    ErrorCode ERR_RECORD_COLLECTION_NO_PROGRESS =
+            define("nop.err.record.collection-no-progress",
+                    "集合元素读取零进展，检查readWhen/repeatUntil配置:field={fieldName},pos={pos}",
+                    ARG_FIELD_NAME, ARG_POS);
+
+    ErrorCode ERR_RECORD_ZLIB_DECODE_FAIL =
+            define("nop.err.record.zlib-decode-fail", "zlib数据解压失败:length={length}", ARG_LENGTH);
+
+    ErrorCode ERR_RECORD_ZLIB_OUTPUT_TOO_LARGE =
+            define("nop.err.record.zlib-output-too-large",
+                    "zlib解压输出超过上限:maxLength={maxLength}", ARG_MAX_LENGTH);
 }

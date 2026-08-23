@@ -7,6 +7,7 @@ import io.nop.task.ITaskStateStore;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskConstants;
+import io.nop.task.utils.TaskStepHelper;
 import jakarta.annotation.Nonnull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,9 +16,16 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class TaskStepRuntimeImpl implements ITaskStepRuntime {
     static final Logger LOG = LoggerFactory.getLogger(TaskStepRuntimeImpl.class);
+
+    /**
+     * task 级 attribute key：记录本次 task 执行内已实例化过的 stepPath 集合。
+     * 用于把 loadStepState（resume 语义）限定在每个 stepPath 的首次实例化上。
+     */
+    private static final String ATTR_FIRST_INSTANTIATED_STEP_PATHS = "nop.task.first-instantiated-step-paths";
 
     private final ITaskRuntime taskRt;
     private final ITaskStateStore stateStore;
@@ -124,7 +132,16 @@ public class TaskStepRuntimeImpl implements ITaskStepRuntime {
         IEvalScope childScope = baseScope.newChildScope(true, concurrent);
         TaskStepRuntimeImpl newStepRt = new TaskStepRuntimeImpl(taskRt, stateStore, childScope);
 
-        ITaskStepState newState = stateStore.loadStepState(stepState, stepName, stepType, taskRt);
+        ITaskStepState newState = null;
+        // loadStepState（resume 语义）只对本次 task 执行内该 stepPath 的首次实例化生效。
+        // 同一执行内相同 stepPath 的后续实例化（loop 迭代 2+、fork/forkN 分支 2+ 共用同一
+        // stepPath）必须使用全新 state 正常执行，否则 continuation-skip 会命中首轮持久化的
+        // 终态行，静默跳过后续迭代/分支并复用首轮结果（loadStepState 仅按 taskInstanceId +
+        // stepPath 定位，无法区分迭代）。每次重新执行（resume / re-execution）都会构建新的
+        // task runtime，其 attribute 集合为空，故唯一路径步骤的 resume-by-load 语义不受影响。
+        if (isFirstInstantiation(stepName)) {
+            newState = stateStore.loadStepState(stepState, stepName, stepType, taskRt);
+        }
         if (newState != null) {
             newStepRt.setRecoverMode(true);
         } else {
@@ -134,6 +151,18 @@ public class TaskStepRuntimeImpl implements ITaskStepRuntime {
         newStepRt.setPersistVars(persistVars);
         newStepRt.setCancelToken(cancelToken);
         return newStepRt;
+    }
+
+    /**
+     * 记录 stepPath 并返回它是否是本次 task 执行内的首次实例化。
+     * fork 分支可能并发实例化同名步骤，使用并发集合保证 add 的原子性。
+     */
+    @SuppressWarnings("unchecked")
+    private boolean isFirstInstantiation(String stepName) {
+        Set<String> instantiated = (Set<String>) taskRt.computeAttributeIfAbsent(
+                ATTR_FIRST_INSTANTIATED_STEP_PATHS, key -> ConcurrentHashMap.newKeySet());
+        String parentPath = stepState == null ? null : stepState.getStepPath();
+        return instantiated.add(TaskStepHelper.buildStepPath(parentPath, stepName));
     }
 
     @Override

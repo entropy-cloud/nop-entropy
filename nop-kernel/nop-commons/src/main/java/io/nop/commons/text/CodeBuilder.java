@@ -147,4 +147,13 @@ public class CodeBuilder implements Appendable {
         printIndent();
         return append(MessageFormat.format(format, args)).line();
     }
+
+    /**
+     * 输出一行文本，不做MessageFormat格式化。文本中含未转义的 { } 或单引号时必须使用本方法，
+     * 否则 MessageFormat 会抛 Unmatched braces 或静默吞掉单引号
+     */
+    public CodeBuilder printLine(String text) {
+        printIndent();
+        return append(text).line();
+    }
 }

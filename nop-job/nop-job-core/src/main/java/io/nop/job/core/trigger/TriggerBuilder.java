@@ -20,11 +20,13 @@ import io.nop.job.core.utils.CronExpression;
 public class TriggerBuilder {
     public static ITrigger buildTrigger(ITriggerSpec spec, ICalendar defaultCalendar) {
         ITrigger trigger;
+        long onceScheduleTime = 0L;
         if (!StringHelper.isEmpty(spec.getCronExpr())) {
             CronExpression cronExpr = new CronExpression(spec.getCronExpr());
             trigger = new CronTrigger(cronExpr);
         } else if (spec.getRepeatInterval() <= 0) {
             trigger = new OnceTrigger(spec.getMinScheduleTime());
+            onceScheduleTime = ((OnceTrigger) trigger).getScheduleTime();
         } else {
             trigger = new PeriodicTrigger(spec.getRepeatInterval(), spec.isRepeatFixedDelay());
         }
@@ -44,7 +46,8 @@ public class TriggerBuilder {
         }
 
         if (spec.getMisfireThreshold() > 0) {
-            trigger = new HandleMisfireTrigger(spec.getMisfireThreshold(), trigger);
+            // 包装前捕获once语义：包装链上instanceof OnceTrigger永不成立
+            trigger = new HandleMisfireTrigger(spec.getMisfireThreshold(), trigger, onceScheduleTime);
         }
 
         return trigger;

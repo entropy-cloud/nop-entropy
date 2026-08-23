@@ -272,7 +272,7 @@ public class OrmEntityHelper {
      * @return 格式为 [[propId,oldValue,newValue]]
      */
     public static List<List<Object>> getEntityChange(IOrmEntity entity) {
-        if (entity.orm_dirty())
+        if (!entity.orm_dirty())
             return Collections.emptyList();
 
         List<List<Object>> ret = new ArrayList<>();
@@ -281,6 +281,7 @@ public class OrmEntityHelper {
             change.add(propId);
             change.add(oldValue);
             change.add(entity.orm_propValue(propId));
+            ret.add(change);
         });
         return ret;
     }

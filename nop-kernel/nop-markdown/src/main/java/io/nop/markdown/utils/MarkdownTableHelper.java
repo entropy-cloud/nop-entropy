@@ -111,15 +111,11 @@ class MarkdownTableHelper {
     public static Map<String, String> parseMappingTable(SourceLocation loc, String text) {
         BaseTable table = MarkdownTableParser.parseTable(loc, text);
         Map<String, String> map = new LinkedHashMap<>();
-        String sourceField = table.getCellText(0, 0);
-        String targetField = table.getCellText(0, 1);
-
         for (int i = 1, n = table.getRowCount(); i < n; i++) {
             IRowView row = table.getRow(i);
             String source = row.getCellText(0);
             String target = row.getCellText(1);
-            map.put(sourceField, source);
-            map.put(targetField, target);
+            map.put(source, target);
         }
 
         return map;

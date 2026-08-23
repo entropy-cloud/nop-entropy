@@ -11,7 +11,11 @@ import io.nop.api.core.json.JSON;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.orm.eql.ast.SqlProgram;
+import io.nop.orm.eql.ast.SqlSelectWithCte;
 import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestEqlParser extends BaseTestCase {
     @Test
@@ -74,5 +78,28 @@ public class TestEqlParser extends BaseTestCase {
 
         String sql2 = attachmentText("formatted.sql");
         System.out.println(parse(sql2).toSQL());
+    }
+
+    @Test
+    public void testCteRecursiveFlag() {
+        // RECURSIVE关键字可选：未指定时recursive必须为false，不能一律按with recursive输出
+        SqlProgram program = parse("with MyClass as (select o.id from User o) select o.id from MyClass o");
+        SqlSelectWithCte selectWithCte = (SqlSelectWithCte) program.getStatements().get(0);
+        assertFalse(selectWithCte.getWithCtes().get(0).getRecursive());
+        assertFalse(program.toSQL().getText().contains("recursive"));
+
+        program = parse("with recursive MyClass as (select o.id from User o) select o.id from MyClass o");
+        selectWithCte = (SqlSelectWithCte) program.getStatements().get(0);
+        assertTrue(selectWithCte.getWithCtes().get(0).getRecursive());
+        assertTrue(program.toSQL().getText().contains("recursive"));
+    }
+
+    @Test
+    public void testNotILike() {
+        // not ilike的not标记不能在生成SQL/EQL文本时丢失，否则语义反转为ilike
+        String sql = "select o.id from User o where o.name not ilike 'a%'";
+        String text = parse(sql).toSQL().getText();
+        System.out.println(text);
+        assertTrue(text.contains("not o.name ilike"), text);
     }
 }

@@ -174,7 +174,8 @@ public class FileResource extends AbstractFile implements IFile {
 
     @Override
     public boolean mkdirs() {
-        if (!isDirectory())
+        // 已存在同名文件时才是"不是目录"的错误；目录不存在时应正常创建
+        if (exists() && !isDirectory())
             throw new NopException(ERR_RESOURCE_NOT_DIR).param(ARG_RESOURCE, this);
         return file.mkdirs();
     }

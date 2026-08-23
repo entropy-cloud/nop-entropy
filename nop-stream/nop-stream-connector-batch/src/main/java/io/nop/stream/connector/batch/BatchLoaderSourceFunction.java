@@ -59,6 +59,11 @@ public class BatchLoaderSourceFunction<S> implements ReplayableSourceFunction<S>
 
     @Override
     public void run(SourceContext<S> ctx) throws Exception {
+        // Reset lifecycle state: a region restart reuses this instance (the rebuilt
+        // operator chain shares the source function) after cancel() set running=false.
+        // Without this reset the loop below exits immediately and the source is
+        // silently treated as EOS (data flow stall).
+        this.running = true;
         IBatchTaskContext taskContext = new BatchTaskContextImpl();
         IBatchLoaderProvider.IBatchLoader<S> loader = loaderProvider.setup(taskContext);
         try {

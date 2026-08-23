@@ -34,6 +34,10 @@ private void sendMessage(SmsSingleSender sender, String sign, SmsMessage message
 - **建议**: `SmsMessage.getAreaCode()` 返回 null 时回退到默认区号（如 "86"），或在 `sendMessage` 入口显式校验并抛 `NopException(ERR_SEND_SMS_FAIL).param(ARG_MOBILE, ...)`；同步给 `SmsMessage.areaCode` 设默认值。
 - **误报排除**: 已核实调用方主代码（LoginServiceImpl）确实不设 areaCode；非模板分支（`sender.send(...)`）不使用 areaCode 却同样在解引用处崩溃，崩溃不依赖模板配置。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 已确认并修复。`TencentSmsSender.sendMessage` 在 try 外解引用未设置的 areaCode（null）必现裸 NPE，平台主链路（LoginServiceImpl.sendSms / NopAuthUserBizModel.sendSmsForBinding）从不设置 areaCode。修复：`TencentSmsSender` 新增 `DEFAULT_AREA_CODE = "86"`，areaCode 为 null/空时回退默认区号（选回退方案：主链路国内短信依赖默认区号），既有 "+86" 剥离与显式海外区号透传行为不变。测试：`nop-integration-sms-tencent` `TestTencentSmsSenderAreaCode#missingAreaCodeFallsBackToDefaultNationCode`（修复前：未设 areaCode 的模板短信在 TencentSmsSender.java:149 抛裸 NPE），配套 `#missingAreaCodePlainSendDoesNotThrow` / `#sendMultiMessageMissingAreaCodeDoesNotThrow` / `#plusPrefixedAreaCodeStrippedToNationCode` / `#explicitForeignAreaCodePassedThrough`；模块测试 16/16 通过。
+
 ### [P0] JavaEmailSender 吞掉全部发送/连接异常，sendEmail 永不报错（MFA 邮件发码链误报成功）
 
 - **文件**: `nop-integration/nop-integration-email-java/src/main/java/io/nop/integration/email/java/JavaEmailSender.java:149-168`
@@ -54,6 +58,10 @@ private void withTransport(Consumer<Transport> task) {
 - **风险**: (1) SMTP 故障/认证失败/网络断开时调用方无从感知。关联调用方 `nop-auth/.../NopAuthUserBizModel.java:1590-1601` 调 `emailSender.sendEmail(msg)` 后在 `bindEmail`（约 388-392 行）无条件 `result.setEmailSent(true)` 并持久化 pending 绑定——邮件实际未发出，用户收不到验证码，MFA 绑定流程数据失真。这正是 150-151 行注释自己声明的红线（"否则 MFA 发码链会误信已发码"），凭证解析修复了，发送失败仍未修复。(2) `sendMultiEmail` 中第一封失败即中断循环，**剩余邮件静默放弃**，调用方完全无感知。
 - **建议**: catch 块改为记录日志后重抛（`NopException.adapt`）；`sendMultiEmail` 需要定义部分失败语义（逐封收集失败再汇总抛出，或返回逐封结果）。
 - **误报排除**: 已核实 `IEmailSender` 契约（api 模块）无"失败不抛错"约定；auth 调用方按"不抛即成功"编码；本模块自身其他 sender（sms 系）失败均抛 NopException，本实现属行为偏离。
+
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 已确认并修复。`withTransport` catch-all 仅记日志，sendEmail/sendMultiEmail 对调用方"永远成功"。修复：catch 记日志后 `throw NopException.adapt(e)`（原始异常保留为 cause，穿透至调用方）；`sendMultiEmail` 采用 fail-fast 语义并以 javadoc 注释明确——任一封失败即抛出、剩余邮件不再尝试，调用方感知后可整批重试（与逐封 sendEmail 失败可见性一致，不静默放弃）。测试：`nop-integration-email-java` `TestJavaEmailSenderErrorPropagation#sendFailurePropagatesToCaller`（修复前：Transport.sendMessage 抛 MessagingException 时 sendEmail 静默返回、不抛任何异常），配套 `#connectFailurePropagatesToCaller` / `#sendMultiEmailFailsFastOnFirstFailure` / `#successfulSendStillSilent`；模块测试 20/20 通过。
 
 ### [P1] Feishu Stream 客户端收到 DATA 帧后从不回发 ACK，事件确认语义缺失
 

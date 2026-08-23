@@ -42,7 +42,7 @@ import static io.nop.ioc.IocErrors.ERR_IOC_BEAN_ORDER_CONSTRAINT_VIOLATED;
 public class BeanTopologySorter {
     static final Logger LOG = LoggerFactory.getLogger(BeanTopologySorter.class);
 
-    public static BeanTopologySorter INSTANCE = new BeanTopologySorter();
+    public static final BeanTopologySorter INSTANCE = new BeanTopologySorter();
 
     public List<BeanDefinition> sort(Map<String, BeanDefinition> beans) {
         // 先按照名称排序

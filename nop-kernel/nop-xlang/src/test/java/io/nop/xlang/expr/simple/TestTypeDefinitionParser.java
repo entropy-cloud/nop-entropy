@@ -1,5 +1,6 @@
 package io.nop.xlang.expr.simple;
 
+import io.nop.api.core.exceptions.NopEvalException;
 import io.nop.xlang.ast.ArrayTypeNode;
 import io.nop.xlang.ast.FunctionArgTypeDef;
 import io.nop.xlang.ast.FunctionTypeDef;
@@ -15,6 +16,7 @@ import io.nop.xlang.ast.UnionTypeDef;
 
 import org.junit.jupiter.api.Test;
 
+import static io.nop.xlang.XLangErrors.ERR_XLANG_NOT_SUPPORTED_TYPE_NODE;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class TestTypeDefinitionParser {
@@ -518,5 +520,20 @@ public class TestTypeDefinitionParser {
 
         TypeNameNode returnType = (TypeNameNode) functionTypeDef.getReturnType();
         assertEquals("string", returnType.getTypeName());
+    }
+
+    /**
+     * 复合类型暂不支持的语法分支应抛 NopEvalException + ErrorCode（带位置信息），
+     * 而不是 bare UnsupportedOperationException / RuntimeException
+     */
+    @Test
+    public void testUnsupportedCompositeTypeThrowsNopEvalException() {
+        TypeDefinitionParser parser = new TypeDefinitionParser();
+
+        NopEvalException e = assertThrows(NopEvalException.class,
+                () -> parser.parseTypeDefinition("type T = {a:string} | string"));
+        assertEquals(ERR_XLANG_NOT_SUPPORTED_TYPE_NODE.getErrorCode(), e.getErrorCode());
+        assertEquals("union", e.getParam("typeName"));
+        assertEquals("ObjectTypeDef", e.getParam("className"));
     }
 }

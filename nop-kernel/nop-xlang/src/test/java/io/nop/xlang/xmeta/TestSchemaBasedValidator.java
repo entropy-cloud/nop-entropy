@@ -76,6 +76,19 @@ public class TestSchemaBasedValidator {
         assertEquals("missing", result.firstError().getParam(ARG_SUB_TYPE_VALUE));
     }
 
+    /**
+     * union 值为 null（如集合中的 null 元素）时应报校验错误，而不是 NPE
+     */
+    @Test
+    public void testUnionSchemaNullValueReportsValidationError() {
+        SchemaImpl unionSchema = newUnionSchema(withMandatoryProp("and", "left"));
+        ValidationResult result = validate(unionSchema, null);
+
+        assertEquals(1, result.errorCollector.getErrors().size());
+        assertEquals(ERR_SCHEMA_UNION_SUB_TYPE_PROP_IS_EMPTY.getErrorCode(), result.firstError().getErrorCode());
+        assertEquals("$type", result.firstError().getParam(ARG_SUB_TYPE_PROP));
+    }
+
     private static ValidationResult validate(SchemaImpl schema, Map<String, Object> value) {
         ListValidationErrorCollector collector = new ListValidationErrorCollector();
         ValidationContext ctx = new ValidationContext();

@@ -12,4 +12,21 @@ public class TestMarkdownNormalizer extends BaseTestCase {
         System.out.println(normalized);
         Assertions.assertEquals(normalizeCRLF(normalized).trim(), normalizeCRLF(attachmentText("normalized.md")).trim());
     }
+
+    // 内容含```的代码块：围栏长度必须大于内容反引号串，否则重解析时提前闭合（不可逆破坏）
+    @Test
+    public void testFenceLengthPreservedForNestedBackticks() {
+        String text = "````markdown\nbefore\n\n```\ncode inside\n```\n\nafter\n````";
+        String normalized = new MarkdownNormalizer().normalizeText(text);
+
+        // 归一化后围栏仍是4个反引号（修复前被压到3，代码块在内容的```处提前闭合）
+        Assertions.assertTrue(normalized.startsWith("````"), normalized);
+        Assertions.assertTrue(normalized.contains("code inside"), normalized);
+
+        // 输出可再次解析且内容完整
+        String renormalized = new MarkdownNormalizer().normalizeText(normalized);
+        Assertions.assertTrue(renormalized.contains("code inside"), renormalized);
+        Assertions.assertTrue(renormalized.contains("before"), renormalized);
+        Assertions.assertTrue(renormalized.contains("after"), renormalized);
+    }
 }

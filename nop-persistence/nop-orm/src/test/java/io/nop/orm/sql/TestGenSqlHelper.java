@@ -7,8 +7,10 @@
  */
 package io.nop.orm.sql;
 
+import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.context.IContext;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.sql.SQL;
 import io.nop.core.resource.VirtualFileSystem;
@@ -18,15 +20,18 @@ import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.OrmEntityFilterModel;
 import io.nop.orm.model.OrmModel;
+import io.nop.orm.model.OrmModelErrors;
 import io.nop.xlang.xdsl.DslModelHelper;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestGenSqlHelper {
@@ -205,5 +210,32 @@ public class TestGenSqlHelper {
             assertTrue(text.toLowerCase().contains("test_filter_entity"),
                     "SQL should contain table name: " + text);
         assertTrue(text.contains("STATUS"), "SQL should contain STATUS filter: " + text);
+    }
+
+    /**
+     * 未知的排序字段名必须报出带字段名的明确错误。
+     * getColumn(name, false)是严格模式（false表示不忽略未知列），未知字段在取列阶段即抛
+     * ERR_ORM_UNKNOWN_COLUMN，不会走到后续拼接SQL的NPE
+     */
+    @Test
+    public void testGenOrderByUnknownField() {
+        IEntityModel entity = getEntity("test.entity.TestFilterEntity");
+        SQL.SqlBuilder sb = SQL.begin();
+
+        NopException err = assertThrows(NopException.class, () -> GenSqlHelper
+                .genOrderBy(sb, dialect, entity, "o", Collections.singletonList(OrderFieldBean.forField("unknownField"))));
+        assertEquals(OrmModelErrors.ERR_ORM_UNKNOWN_COLUMN.getErrorCode(), err.getErrorCode());
+        assertEquals("unknownField", err.getParam(OrmModelErrors.ARG_COL_NAME));
+    }
+
+    @Test
+    public void testAppendOrderByUnknownField() {
+        IEntityModel entity = getEntity("test.entity.TestFilterEntity");
+        SQL.SqlBuilder sb = SQL.begin();
+
+        NopException err = assertThrows(NopException.class, () -> GenSqlHelper
+                .appendOrderBy(sb, dialect, "o", entity, Collections.singletonList(OrderFieldBean.forField("unknownField"))));
+        assertEquals(OrmModelErrors.ERR_ORM_UNKNOWN_COLUMN.getErrorCode(), err.getErrorCode());
+        assertEquals("unknownField", err.getParam(OrmModelErrors.ARG_COL_NAME));
     }
 }

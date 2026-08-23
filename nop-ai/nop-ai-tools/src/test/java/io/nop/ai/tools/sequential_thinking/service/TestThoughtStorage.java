@@ -1,7 +1,9 @@
 package io.nop.ai.tools.sequential_thinking.service;
 
+import io.nop.ai.core.NopAiCoreErrors;
 import io.nop.ai.tools.sequential_thinking.model.ThoughtData;
 import io.nop.ai.tools.sequential_thinking.model.ThoughtStage;
+import io.nop.api.core.exceptions.NopException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -153,5 +155,59 @@ public class TestThoughtStorage {
         assertThrows(NullPointerException.class, () -> storage.getAllThoughts(null));
         assertThrows(NullPointerException.class,
                 () -> storage.addThought(null, newThought("x", 1, 1, ThoughtStage.ANALYSIS)));
+    }
+
+    /**
+     * P0 path-traversal regression (audit ai-toolkit-skills, D5): sessionId used
+     * to be concatenated raw into {@code new File(storageDir, sessionId + ".json")},
+     * so ids like {@code ../../tmp/evil} escaped the storage dir (arbitrary
+     * read/write of {@code .json} files, plus intermediate directory creation).
+     * Malicious ids must be rejected with {@code ERR_AI_SESSION_ID_INVALID}
+     * before any file-system touch; valid ids must keep working.
+     */
+    @Test
+    public void testSessionIdPathTraversalRejected() throws Exception {
+        File dir = newTempDir();
+        ThoughtStorage storage = new ThoughtStorage(dir.getAbsolutePath());
+        // the concrete escape target of the "../evil" ids below
+        File outsideTarget = new File(dir.getParentFile(), "evil.json");
+
+        try {
+            String[] malicious = {"../evil", "../../tmp/evil", "a/b", "a\\b", "..", ".", "/tmp/evil"};
+            for (String bad : malicious) {
+                NopException ex = assertThrows(NopException.class,
+                        () -> storage.addThought(bad, newThought("x", 1, 1, ThoughtStage.ANALYSIS)),
+                        "sessionId must be rejected: " + bad);
+                assertEquals(NopAiCoreErrors.ERR_AI_SESSION_ID_INVALID.getErrorCode(), ex.getErrorCode(),
+                        "sessionId rejection must use the path-traversal error code: " + bad);
+
+                NopException exRead = assertThrows(NopException.class, () -> storage.getAllThoughts(bad),
+                        "sessionId must be rejected on read: " + bad);
+                assertEquals(NopAiCoreErrors.ERR_AI_SESSION_ID_INVALID.getErrorCode(), exRead.getErrorCode());
+
+                NopException exClear = assertThrows(NopException.class, () -> storage.clearHistory(bad),
+                        "sessionId must be rejected on clear: " + bad);
+                assertEquals(NopAiCoreErrors.ERR_AI_SESSION_ID_INVALID.getErrorCode(), exClear.getErrorCode());
+            }
+
+            // empty id (non-null) is rejected with the dedicated empty error code
+            NopException exEmpty = assertThrows(NopException.class, () -> storage.getAllThoughts(""));
+            assertEquals(NopAiCoreErrors.ERR_AI_SESSION_ID_IS_EMPTY.getErrorCode(), exEmpty.getErrorCode());
+
+            // file system untouched: nothing created inside the storage dir,
+            // and the "../evil" escape target outside it was not written
+            File[] entries = dir.listFiles();
+            assertNotNull(entries, "storage dir must still exist");
+            assertEquals(0, entries.length, "no file or directory may be created inside the storage dir");
+            assertFalse(outsideTarget.exists(), "traversal target outside the storage dir must not be written");
+
+            // valid ids still round-trip normally
+            storage.addThought("session-1", newThought("ok", 1, 1, ThoughtStage.ANALYSIS));
+            assertEquals(1, storage.getAllThoughts("session-1").size());
+            assertTrue(new File(dir, "session-1.json").exists());
+        } finally {
+            // red-run safety net: if the guard regresses, the buggy write lands here
+            Files.deleteIfExists(outsideTarget.toPath());
+        }
     }
 }

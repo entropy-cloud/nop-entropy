@@ -19,7 +19,16 @@ package io.nop.core.model.query;
 
 // copy from calcite project
 
+import io.nop.api.core.exceptions.NopException;
+
 import java.util.regex.Pattern;
+
+import static io.nop.core.CoreErrors.ARG_ESCAPE_CHAR;
+import static io.nop.core.CoreErrors.ARG_PATTERN;
+import static io.nop.core.CoreErrors.ARG_POS;
+import static io.nop.core.CoreErrors.ERR_SQL_LIKE_INVALID_ESCAPE_CHAR;
+import static io.nop.core.CoreErrors.ERR_SQL_LIKE_INVALID_ESCAPE_SEQUENCE;
+import static io.nop.core.CoreErrors.ERR_SQL_SIMILAR_INVALID_REGEX;
 
 /**
  * Utilities for converting SQL {@code LIKE} and {@code SIMILAR} operators to regular expressions.
@@ -119,11 +128,11 @@ public class SqlLikeUtils {
     }
 
     public static RuntimeException invalidEscapeCharacter(String s) {
-        return new RuntimeException("Invalid escape character '" + s + "'");
+        return new NopException(ERR_SQL_LIKE_INVALID_ESCAPE_CHAR).param(ARG_ESCAPE_CHAR, s);
     }
 
     public static RuntimeException invalidEscapeSequence(String s, int i) {
-        return new RuntimeException("Invalid escape sequence '" + s + "', " + i);
+        return new NopException(ERR_SQL_LIKE_INVALID_ESCAPE_SEQUENCE).param(ARG_PATTERN, s).param(ARG_POS, i);
     }
 
     private static void similarEscapeRuleChecking(String sqlPattern, char escapeChar) {
@@ -160,7 +169,7 @@ public class SqlLikeUtils {
     }
 
     private static RuntimeException invalidRegularExpression(String pattern, int i) {
-        return new RuntimeException("Invalid regular expression '" + pattern + "'");
+        return new NopException(ERR_SQL_SIMILAR_INVALID_REGEX).param(ARG_PATTERN, pattern);
     }
 
     private static int sqlSimilarRewriteCharEnumeration(

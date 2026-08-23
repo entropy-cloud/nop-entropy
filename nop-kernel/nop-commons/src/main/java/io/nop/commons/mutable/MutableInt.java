@@ -196,7 +196,8 @@ public final class MutableInt extends Number implements Comparable<MutableInt>, 
     }
 
     /**
-     * Atomically decrements by one the current value.
+     * decrements by one the current value. 注意：本方法不是原子操作，
+     * 字段也没有volatile修饰，并发使用会丢失更新。
      *
      * @return the updated value
      */
@@ -205,7 +206,8 @@ public final class MutableInt extends Number implements Comparable<MutableInt>, 
     }
 
     /**
-     * Atomically adds the given value to the current value.
+     * adds the given value to the current value. 注意：本方法不是原子操作，
+     * 字段也没有volatile修饰，并发使用会丢失更新。
      *
      * @param delta the value to add
      * @return the updated value

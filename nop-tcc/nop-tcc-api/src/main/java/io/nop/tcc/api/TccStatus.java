@@ -95,8 +95,9 @@ public enum TccStatus {
     }
 
     public boolean isCancelled() {
-        return this == TRY_FAILED || this == CANCEL_SUCCESS || this == TIMEOUT_SUCCESS 
-                || this == BIZ_CANCEL_FAILED || this == TIMEOUT_FAILED;
+        // TIMEOUT_FAILED 不在此列：超时取消失败的分支必须可以被 cancelAllAsync 重新补偿
+        return this == TRY_FAILED || this == CANCEL_SUCCESS || this == TIMEOUT_SUCCESS
+                || this == BIZ_CANCEL_FAILED;
     }
 
     public boolean isConfirmed() {

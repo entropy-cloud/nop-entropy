@@ -33,6 +33,11 @@ public class WorkbookPart extends XmlOfficePackagePart {
         return part;
     }
 
+    @Override
+    public WorkbookPart cloneInstance() {
+        return new WorkbookPart(getPath(), getNode().cloneInstance());
+    }
+
     public void clearSheets() {
         sheets = null;
         getNode().makeChild("sheets").clearBody();

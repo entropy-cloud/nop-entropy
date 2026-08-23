@@ -63,7 +63,8 @@ public class GlobalCacheRegistry {
     }
 
     public void register(@Nonnull ICacheManagement<?> cache) {
-        ICacheManagement<?> oldCache = caches.put(cache.getName(), cache);
+        // 先检查后插入，保证注册失败时注册表保持原状，不会先替换再抛异常
+        ICacheManagement<?> oldCache = caches.putIfAbsent(cache.getName(), cache);
         if (oldCache != null)
             throw new NopException(ERR_CACHE_DUPLICATE_REGISTRATION).param(ARG_CACHE_NAME, cache.getName());
 

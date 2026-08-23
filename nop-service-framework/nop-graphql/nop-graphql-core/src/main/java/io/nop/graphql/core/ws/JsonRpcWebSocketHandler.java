@@ -239,9 +239,8 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
                         return;
                     }
                 } catch (NopLoginException e) {
-                    LOG.warn("nop.websocket.token-refresh-auth-failed:boundUser={},error={}",
-                            boundUserId, e.getMessage());
-                    session.close((short) 4401, "Token refresh failed: " + e.getMessage());
+                    LOG.warn("nop.websocket.token-refresh-auth-failed:boundUser={}", boundUserId, e);
+                    session.close((short) 4401, "Token refresh failed");
                     return;
                 }
             }
@@ -304,8 +303,8 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
             }
             bindUserFromContext(userContext);
         } catch (NopLoginException e) {
-            LOG.warn("nop.websocket.auth-failed:session={},error={}", session, e.getMessage());
-            session.close((short) 4401, "Authentication failed: " + e.getMessage());
+            LOG.warn("nop.websocket.auth-failed:session={}", session, e);
+            session.close((short) 4401, "Authentication failed");
         }
     }
 
@@ -348,8 +347,10 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
 
     private void sendStreamingMessage(String operationId, Flow.Publisher<ApiResponse<?>> stream) {
         SubscriptionSubscriber subscriber = new SubscriptionSubscriber(session, operationId);
-        stream.subscribe(subscriber);
+        // 必须先注册再subscribe：同步publisher会在subscribe调用内同步触发onComplete/onError，
+        // 若put在后，清理先于注册执行（remove空跑），滞留条目导致id复用被4409拒绝
         activeOperations.put(operationId, subscriber);
+        stream.subscribe(subscriber);
     }
 
     private void sendKeepAlive() {
@@ -473,6 +474,8 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
         @Override
         public void onError(Throwable t) {
             LOG.error("nop.websocket.error", t);
+            // 订阅已终止，条目必须清理，否则id复用会触发4409断开整个连接，且滞留条目耗尽maxActiveOperations
+            activeOperations.remove(operationId, this);
         }
 
         @Override
@@ -486,6 +489,8 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
             } catch (Exception e) {
                 LOG.warn("nop.websocket.send-fail", e);
             }
+            // 使用双参remove防止误删并发重订阅的新条目
+            activeOperations.remove(operationId, this);
         }
 
         public void cancel() {

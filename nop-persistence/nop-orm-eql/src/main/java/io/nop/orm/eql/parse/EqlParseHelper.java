@@ -16,6 +16,9 @@ import io.nop.orm.eql.parse.antlr.EqlParser;
 import org.antlr.v4.runtime.Token;
 
 import static io.nop.antlr4.common.ParseTreeHelper.loc;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_VALUE;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_INVALID_BIT_LITERAL;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_INVALID_HEX_LITERAL;
 import static io.nop.xlang.XLangErrors.ARG_OP;
 import static io.nop.xlang.XLangErrors.ERR_XLANG_UNSUPPORTED_OP;
 
@@ -36,7 +39,7 @@ public class EqlParseHelper {
             return text.substring(2);
         if (text.startsWith("B\'") || text.startsWith("b\'"))
             return text.substring(2, text.length() - 1);
-        throw new IllegalStateException("nop.err.invalid-hex-literal:" + text);
+        throw new NopException(ERR_EQL_INVALID_BIT_LITERAL).param(ARG_VALUE, text).loc(loc(token));
     }
 
     public static String hexLiteralValue(Token node) {
@@ -45,7 +48,7 @@ public class EqlParseHelper {
             return text.substring(2);
         if (text.startsWith("X\'") || text.startsWith("x\'"))
             return text.substring(2, text.length() - 1);
-        throw new IllegalStateException("nop.err.invalid-hex-literal:" + text);
+        throw new NopException(ERR_EQL_INVALID_HEX_LITERAL).param(ARG_VALUE, text).loc(loc(node));
     }
 
     static NopException error(ErrorCode err, SourceLocation loc) {

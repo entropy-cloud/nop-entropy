@@ -73,7 +73,9 @@ public class TestChannelLoginApi {
 
         bootstrap = new RecordingSessionBootstrap();
         bindService = new StubBindService();
-        provider = new StubBindProvider(CHANNEL, EXT_ID);
+        // the stub ticket asserts USER_ID as its owner, mirroring FeishuBindProvider
+        // (the ticket stores the platform user who started the flow server-side)
+        provider = new StubBindProvider(CHANNEL, EXT_ID, USER_ID);
 
         api = new ChannelLoginApiBizModel();
         api.setAccessCodeExpireSeconds(300);
@@ -147,6 +149,51 @@ public class TestChannelLoginApi {
                 "failure message must explain the missing session bootstrap; got: " + ex.getMessage());
     }
 
+    // ===================== P0 hardening regressions (audit ai-rest, D5) =====================
+
+    @Test
+    void scanLoginWithForgedExtIdCannotLogInAsAnotherUser() {
+        // The endpoint is publicAccess and rawPayload is fully caller-controlled,
+        // so the payload extId must NOT be able to select the login identity.
+        // Attack shape: the attacker holds a VALID ticket minted for their own
+        // account (ticket asserts attacker as owner) but sends a payload whose
+        // open_id belongs to the victim's binding. Without the ticket-owner
+        // cross-check this bootstraps a session for the victim (account takeover).
+        String victimUserId = "victim-1";
+        String victimExtId = "victim-open-id";
+        provider = new StubBindProvider(CHANNEL, victimExtId, "attacker-1");
+        api.setChannelBindProviders(Collections.singletonList(provider));
+        bindService.binding = newBinding(victimUserId, CHANNEL, victimExtId);
+
+        NopException ex = assertThrows(NopException.class, () ->
+                api.loginByScanAsync(callback(CHANNEL, victimExtId), null).toCompletableFuture().join());
+
+        assertEquals(0, bootstrap.createCallCount.get(),
+                "ISessionBootstrap must NEVER be called when the extId binding does not "
+                        + "belong to the ticket owner (forged channel identity)");
+        assertTrue(ex.getMessage().contains("ticket"),
+                "failure message must point at the ticket/binding mismatch; got: " + ex.getMessage());
+    }
+
+    @Test
+    void scanLoginWithoutServerAssertedTicketIdentityFailsClosed() {
+        // A provider that cannot rehydrate the ticket owner (missing/expired
+        // ticket, or a protocol without server-side identity) asserts no
+        // platformUserId — login must fail closed rather than fall back to
+        // trusting the caller-provided extId.
+        provider = new StubBindProvider(CHANNEL, EXT_ID, null);
+        api.setChannelBindProviders(Collections.singletonList(provider));
+        bindService.binding = newBinding(USER_ID, CHANNEL, EXT_ID);
+
+        NopException ex = assertThrows(NopException.class, () ->
+                api.loginByScanAsync(callback(CHANNEL, EXT_ID), null).toCompletableFuture().join());
+
+        assertEquals(0, bootstrap.createCallCount.get(),
+                "ISessionBootstrap must not be called without a server-asserted ticket identity");
+        assertTrue(ex.getMessage().contains("platformUserId"),
+                "failure message must explain the missing server-asserted identity; got: " + ex.getMessage());
+    }
+
     // ---- helpers / stubs ---------------------------------------------------
 
     private static ChannelScanCallback callback(String channelType, String extId) {
@@ -177,14 +224,26 @@ public class TestChannelLoginApi {
         }
     }
 
-    /** Stub provider: returns a fixed extId for its channelType. */
+    /**
+     * Stub provider: returns a fixed extId for its channelType, plus the
+     * ticket-owner identity it is configured to assert (mirrors
+     * {@code FeishuBindProvider}, which rehydrates the ticket's
+     * {@code platformUserId} server-side; {@code null} models a provider that
+     * could not recover the ticket).
+     */
     static class StubBindProvider implements IChannelBindProvider {
         final String channelType;
         final String extId;
+        final String ticketPlatformUserId;
 
         StubBindProvider(String channelType, String extId) {
+            this(channelType, extId, null);
+        }
+
+        StubBindProvider(String channelType, String extId, String ticketPlatformUserId) {
             this.channelType = channelType;
             this.extId = extId;
+            this.ticketPlatformUserId = ticketPlatformUserId;
         }
 
         @Override
@@ -201,6 +260,7 @@ public class TestChannelLoginApi {
         public ChannelBindResult onChannelScanCallback(ChannelScanCallback callback) {
             ChannelBindResult r = new ChannelBindResult();
             r.setExtId(extId);
+            r.setPlatformUserId(ticketPlatformUserId);
             r.setStatus(ChannelBindResultStatus.BINDING_COMPLETED);
             return r;
         }

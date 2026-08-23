@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.util.Collection;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -67,7 +68,8 @@ public class TestXDefMergeLoader {
                     ", defines: " + loader.getCollectedDefines().size() + ")");
             } catch (Exception e) {
                 failCount++;
-                System.err.println("Failed to merge: " + path + " - " + e.getMessage());
+                System.err.println("Failed to merge: " + path + " - " + e);
+                e.printStackTrace();
             }
         }
 
@@ -117,5 +119,28 @@ public class TestXDefMergeLoader {
 
         System.out.println("Define mode output: " + outputPath);
         System.out.println("Collected defines: " + loader.getCollectedDefines().keySet());
+    }
+
+    /**
+     * define 模式下同一文件中两次引用同一外部 xdef 时，第二次引用应复用首次生成的 define 名称，
+     * 不得产生指向不存在 define 的悬空 xdef:ref
+     */
+    @Test
+    public void testDefineModeReuseNameForDuplicateRef() {
+        XDefMergeOptions options = XDefMergeOptions.forMetaModel();
+        XDefMergeLoader loader = new XDefMergeLoader(options);
+
+        XNode merged = loader.loadFromPath("/test/merge-multi-ref.xdef");
+        assertNotNull(merged);
+
+        String firstRef = merged.childByTag("first").attrText("xdef:ref");
+        String secondRef = merged.childByTag("second").attrText("xdef:ref");
+        assertNotNull(firstRef);
+        assertEquals(firstRef, secondRef);
+
+        // 引用名必须指向实际收集到的 define
+        assertTrue(loader.getCollectedDefines().containsKey(firstRef),
+                "xdef:ref should point to a collected define, but got: " + firstRef
+                        + ", collected: " + loader.getCollectedDefines().keySet());
     }
 }

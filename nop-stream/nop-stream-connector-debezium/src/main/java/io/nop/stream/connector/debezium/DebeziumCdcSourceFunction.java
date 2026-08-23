@@ -100,14 +100,13 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent>,
         return offsetStore;
     }
 
+    /**
+     * Always creates a fresh completion latch. Reusing the previous run's latch is
+     * unsafe: {@link #cancel()} already counted it down, so {@code await} would return
+     * immediately and the run loop would exit (silent EOS) on a region-restart re-run.
+     */
     private void initCompletionLatch() {
-        if (completionLatch == null) {
-            synchronized (this) {
-                if (completionLatch == null) {
-                    completionLatch = new CountDownLatch(1);
-                }
-            }
-        }
+        this.completionLatch = new CountDownLatch(1);
     }
 
     /**
@@ -128,6 +127,11 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent>,
         if (!runEntered.compareAndSet(false, true)) {
             return;
         }
+        // Reset lifecycle state: a region restart reuses this instance (the rebuilt
+        // operator chain shares the source function) after cancel() set running=false.
+        // Without this reset the loop below exits immediately and the CDC source is
+        // silently treated as EOS (missed changes, no error).
+        this.running = true;
         this.draining = false;
         initCompletionLatch();
 

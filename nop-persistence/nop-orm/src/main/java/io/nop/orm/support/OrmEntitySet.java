@@ -36,14 +36,17 @@ import java.util.Map;
 import java.util.Set;
 
 import static io.nop.orm.OrmErrors.ARG_COLLECTION_NAME;
+import static io.nop.orm.OrmErrors.ARG_CURRENT_TENANT;
 import static io.nop.orm.OrmErrors.ARG_ELM_OWNER;
 import static io.nop.orm.OrmErrors.ARG_ENTITY;
 import static io.nop.orm.OrmErrors.ARG_OWNER;
 import static io.nop.orm.OrmErrors.ARG_OWNER_PROP;
 import static io.nop.orm.OrmErrors.ARG_PROP_NAME;
+import static io.nop.orm.OrmErrors.ARG_TENANT_ID;
 import static io.nop.orm.OrmErrors.ERR_ORM_ADD_NULL_ELEMENT_TO_COLLECTION;
 import static io.nop.orm.OrmErrors.ERR_ORM_COLLECTION_ELEMENT_NOT_ALLOW_MULTIPLE_OWNER;
 import static io.nop.orm.OrmErrors.ERR_ORM_COLLECTION_IS_READONLY;
+import static io.nop.orm.OrmErrors.ERR_ORM_DIRTY_ENTITY_SET_NOT_ALLOW_CHANGE_TENANT;
 import static io.nop.orm.OrmErrors.ERR_ORM_ENTITY_NOT_ATTACHED;
 import static io.nop.orm.OrmErrors.ERR_ORM_ENTITY_SET_ELEMENT_NOT_KV_TABLE;
 import static io.nop.orm.OrmErrors.ERR_ORM_ENTITY_SET_NO_KEY_PROP;
@@ -350,6 +353,11 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
 
     @Override
     public void orm_reset() {
+        // proxy集合尚未从数据库加载，没有需要恢复的内容。
+        // 如果继续执行orm_clearDirty，会把initialEntities固化为空集合，导致懒加载能力丢失
+        if (orm_proxy())
+            return;
+
         this.entities.clear();
         if (this.initialEntities != null) {
             this.entities.addAll(initialEntities);
@@ -378,7 +386,9 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
 
                 if (!tenantId.equals(ContextProvider.currentTenantId())) {
                     if (dirty)
-                        throw new IllegalStateException("nop.orm.dirty-entity-set-not-allow-change-tenant:" + this);
+                        throw newError(ERR_ORM_DIRTY_ENTITY_SET_NOT_ALLOW_CHANGE_TENANT)
+                                .param(ARG_TENANT_ID, tenantId)
+                                .param(ARG_CURRENT_TENANT, ContextProvider.currentTenantId());
                     // 如果tenantId不匹配，则重新加载
                     orm_unload();
                     requireEnhancer().internalLoadCollection(this);
@@ -637,8 +647,9 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
     @Override
     public void orm_clearDirty() {
         this.dirty = false;
-        // 这里没有清空removeEntities,
-        // 因为它可能已经传递到外部使用。例如BatchActions.CollectionBatchAction。
+        // 这里将removedEntities字段置为null，它所收集的元素并不受影响：
+        // orm_removed()返回的是防御性拷贝，BatchAction.CollectionBatchAction构造时也已暂存元素列表，
+        // 因此置null不会导致外部已持有的删除列表丢失
         this.removedEntities = null;
         this.initialEntities = this.entities;
     }

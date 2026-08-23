@@ -72,10 +72,30 @@ public class BeanDefinition implements IBeanDefinition {
         }
     }
 
-    public static int STATUS_UNRESOLVED = 0;
+    public static final int STATUS_UNRESOLVED = 0;
 
-    public static int STATUS_RESOLVING = 1;
-    public static int STATUS_RESOLVED = 2;
+    public static final int STATUS_RESOLVING = 1;
+    public static final int STATUS_RESOLVED = 2;
+
+    /**
+     * 正在执行 createInstance（含构造器参数解析）的线程，用于检测构造器循环依赖。
+     * 单例路径在 synchronized(beanDef) 临界区内标记/清除；同线程重入即存在构造器环，
+     * 此时 bean 尚未进入 scope、无法走早期暴露机制，放任递归会静默产生重复单例。
+     */
+    private Thread inCreationThread;
+
+    boolean isInCreationByCurrentThread() {
+        return inCreationThread == Thread.currentThread();
+    }
+
+    void markInCreation() {
+        inCreationThread = Thread.currentThread();
+    }
+
+    void clearInCreation() {
+        inCreationThread = null;
+    }
+
     private final BeanValue beanModel;
 
     private List<Class<?>> beanTypes;

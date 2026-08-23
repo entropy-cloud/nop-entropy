@@ -58,6 +58,10 @@ public void registerEventTimeTimer(VoidNamespace namespace, long time) {
 - **建议**: 仿照 WindowOperator 接入 `HeapInternalTimerService<K, VoidNamespace>`：timer 按 (key, timestamp) 注册，watermark 推进时逐 key 恢复上下文后排水；或在本 operator 内维护 key 集合，`onEventTime` 前对每个活跃 key 迭代 `setCurrentKey` + 排水。
 - **误报排除**: 已确认 `ChainingOutput.processWatermark` 与 `KeyExtractingOutput.processWatermark` 均不设置 key；`AbstractStreamOperator.setCurrentKey` 仅委托 keyedStateBackend，watermark 路径无其他 key 切换点。非 keyed 输入统一 keyBy 常量 key，单 key 下行为正常——故风险限定于 keyed 多 key 场景，但该场景是 CEP 的主流用法（类 Javadoc 自述 "keeps one NFA per key, for keyed input streams"）。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-22）**: 已修复（聚焦修复，保持现有架构，未整体迁移到 HeapInternalTimerService）。`CepOperator` 的 event-time 定时器账本由无 key 维度的 `Set<Long>` 改为按 key 分组的 `Map<Object, TreeSet<Long>>`：注册/删除按注册时的当前 key（`currentRegistrationKey()`）记账；`processWatermark` 对每个有到期定时器（`first() <= watermark`）的 key 先 `setCurrentKey` 再执行原有 `onEventTime` 排水体（队列消费、`advanceTime` 超时清理、STEP5、账本清理均在目标 key 上下文内完成），key 的账本清空后移除该条目（账本有界）；processing-time 定时器回调在注册时闭包捕获 key，回调先恢复 key 上下文再 `onProcessingTime`。checkpoint 账本改为 per-key JSON-safe 格式（`[{"key":k,"timers":[t...]}]`），`restoreState` 兼容旧 flat `List<Long>` 格式（归入 null-key 桶——旧格式本就只在单 key 场景下正确，且 JSON 持久化路径下 keyed state 本身存在同源的 key 类型漂移，行为一致无回归）。红测试 `nop-stream-cep` 模块 `TestCepOperatorMultiKeyWatermark`（3 例：多 key watermark 排水+窗口超时、多 key 完整匹配触发、processing-time 回调 key 上下文恢复）修复前 3 例全部失败（仅最后处理 key 的事件被排水，key1 事件滞留、超时不触发），修复后全部通过；模块全量测试 331 例 0 失败（`./mvnw test -pl nop-stream/nop-stream-cep`）。
+
 ### [P1] SharedBuffer.advanceTime 依赖 keys() 迭代器 remove，RocksDB 后端下静默失效导致 eventsCount 状态无限增长
 
 - **文件**: `nop-stream/nop-stream-cep/src/main/java/io/nop/stream/cep/nfa/sharedbuffer/SharedBuffer.java:224-234`

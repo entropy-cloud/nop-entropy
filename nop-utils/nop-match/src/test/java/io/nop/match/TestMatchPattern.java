@@ -13,9 +13,12 @@ import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.match.compile.PatternMatchPatternCompiler;
+import io.nop.match.pattern.AlwaysFalseMatchPattern;
+import io.nop.match.pattern.BetweenMatchPattern;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public class TestMatchPattern extends BaseTestCase {
     @Test
@@ -39,5 +42,35 @@ public class TestMatchPattern extends BaseTestCase {
         pattern.matchValue(state, true);
         System.out.println(JsonTool.serialize(collector.getErrors(), true));
         assertEquals(attachmentJsonText("errors.json"), JsonTool.serialize(collector.getErrors(), true));
+    }
+
+    @Test
+    public void testBetweenCollectError() {
+        // between 校验失败时错误详情必须进入 collector（与同族 Eq/CompareOp 等一致）
+        BetweenMatchPattern pattern = new BetweenMatchPattern("between",
+                (value, min, max, excludeMin, excludeMax) -> false, 10, 20, false, false);
+
+        MatchState state = new MatchState(25);
+        ListValidationErrorCollector collector = new ListValidationErrorCollector();
+        state.setErrorCollector(collector);
+
+        assertFalse(pattern.matchValue(state, true));
+        assertEquals(1, collector.getErrors().size());
+        assertEquals(MatchErrors.ERR_MATCH_BETWEEN_CHECK_FAIL.getErrorCode(),
+                collector.getErrors().get(0).getErrorCode());
+    }
+
+    @Test
+    public void testAlwaysFalseCollectError() {
+        AlwaysFalseMatchPattern pattern = AlwaysFalseMatchPattern.INSTANCE;
+
+        MatchState state = new MatchState(1);
+        ListValidationErrorCollector collector = new ListValidationErrorCollector();
+        state.setErrorCollector(collector);
+
+        assertFalse(pattern.matchValue(state, true));
+        assertEquals(1, collector.getErrors().size());
+        assertEquals(MatchErrors.ERR_MATCH_ASSERT_OP_MATCH_FAIL.getErrorCode(),
+                collector.getErrors().get(0).getErrorCode());
     }
 }

@@ -37,7 +37,7 @@ public class DefaultRateLimiter implements IRateLimiter {
 
     @Override
     public long getAcquireFailCount() {
-        return acquireSuccessCount.get();
+        return acquireFailCount.get();
     }
 
     @Override

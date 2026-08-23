@@ -56,9 +56,11 @@ public class AppendableTextDataWriter implements ITextDataWriter {
     @Override
     public ITextDataWriter append(char[] chars, int start, int end) throws IOException {
         if (buf instanceof StringBuilder) {
-            ((StringBuilder) buf).append(chars, start, end);
+            // StringBuilder.append(char[],offset,len) 的第三个参数是长度，接口契约是 [start,end) 区间
+            ((StringBuilder) buf).append(chars, start, end - start);
         } else {
-            buf.append(new MutableString(chars, start, end), start, end);
+            // MutableString(chars, start, end) 已经是 [start,end) 区间的视图，不能再次应用区间
+            buf.append(new MutableString(chars, start, end));
         }
         length += end - start;
         return this;

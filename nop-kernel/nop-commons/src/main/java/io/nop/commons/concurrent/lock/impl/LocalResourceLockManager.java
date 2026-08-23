@@ -231,7 +231,8 @@ public class LocalResourceLockManager implements IResourceLockManager, IResource
 
             long expireTime = lock.getExpireTime();
 
-            if (expireTime < current) {
+            if (expireTime > current) {
+                // 租约仍然有效时才可以续租
                 state.setExpireTime(current + leaseTime);
                 state.setLockTime(current);
 
@@ -256,7 +257,8 @@ public class LocalResourceLockManager implements IResourceLockManager, IResource
 
             long expireTime = lock.getExpireTime();
 
-            if (expireTime < current) {
+            if (expireTime > current) {
+                // 租约仍然有效且仍在锁表中时才报告为持有
                 if (locks.get(state.getResourceId()) == lock) {
                     return true;
                 }

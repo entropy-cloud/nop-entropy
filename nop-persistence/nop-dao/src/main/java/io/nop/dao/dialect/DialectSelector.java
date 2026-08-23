@@ -55,14 +55,11 @@ public class DialectSelector implements Comparable<DialectSelector> {
         this.otherProductNames = otherProductNames;
     }
 
-    // 针对具体版本的dialect排在前面
+    // 针对具体版本的dialect排在前面。dialectName只作为最后的稳定排序字段，
+    // 否则同名产品下"通配dialect + 版本特化dialect"会按名称排序，通配永远先命中
     @Override
     public int compareTo(DialectSelector o) {
-        int cmp = compare(dialectName, o.dialectName);
-        if (cmp != 0)
-            return cmp;
-
-        cmp = compare(productName, o.productName);
+        int cmp = compare(productName, o.productName);
         if (cmp != 0)
             return cmp;
 
@@ -82,7 +79,11 @@ public class DialectSelector implements Comparable<DialectSelector> {
         if (cmp != 0)
             return cmp;
 
-        return compare(pdmTargetType, o.pdmTargetType);
+        cmp = compare(pdmTargetType, o.pdmTargetType);
+        if (cmp != 0)
+            return cmp;
+
+        return compare(dialectName, o.dialectName);
     }
 
     int compare(int v1, int v2) {
@@ -98,10 +99,11 @@ public class DialectSelector implements Comparable<DialectSelector> {
     int compare(String s1, String s2) {
         if (Objects.equals(s1, s2))
             return 0;
+        // null表示通配，与compare(int)中0的约定一致：通配排在最后，具体版本排在前面
         if (s1 == null)
-            return -1;
-        if (s2 == null)
             return 1;
+        if (s2 == null)
+            return -1;
         return s1.compareTo(s2);
     }
 

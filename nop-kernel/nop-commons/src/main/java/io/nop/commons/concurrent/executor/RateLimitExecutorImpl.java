@@ -27,16 +27,23 @@ public class RateLimitExecutorImpl implements IRateLimitExecutor {
 
     @Override
     public void throttle(final Object key, long delay, Runnable task) {
-        // 如果上次调用尚未触发，则取消上次任务
+        // 如果上次调度的任务尚未触发，则跳过本次调用
         final CompletableFuture<Void> promise = new CompletableFuture<>();
-        Future<?> old = promiseMap.putIfAbsent(key, promise);
-        if (old != null && !old.isDone())
-            return;
+        promiseMap.compute(key, (k, old) -> {
+            if (old != null && !old.isDone())
+                return old;
 
-        executorService.schedule(() -> {
-            FutureHelper.completeAfterTask(promise, Executors.callable(task));
-            return null;
-        }, delay, TimeUnit.MILLISECONDS);
+            executorService.schedule(() -> {
+                try {
+                    FutureHelper.completeAfterTask(promise, Executors.callable(task));
+                } finally {
+                    // 任务结束后清理条目，避免按key无限累积
+                    promiseMap.remove(k, promise);
+                }
+                return null;
+            }, delay, TimeUnit.MILLISECONDS);
+            return promise;
+        });
     }
 
     @Override
@@ -45,7 +52,17 @@ public class RateLimitExecutorImpl implements IRateLimitExecutor {
         Future<?> old = promiseMap.get(key);
         if (old != null)
             old.cancel(true);
-        Future<?> future = executorService.schedule(Executors.callable(task), delay, TimeUnit.MILLISECONDS);
+        final Future<?>[] holder = new Future<?>[1];
+        Future<?> future = executorService.schedule(() -> {
+            try {
+                task.run();
+            } finally {
+                // 任务结束后清理条目，避免按key无限累积
+                promiseMap.remove(key, holder[0]);
+            }
+            return null;
+        }, delay, TimeUnit.MILLISECONDS);
+        holder[0] = future;
         promiseMap.put(key, future);
     }
 

@@ -71,7 +71,7 @@ public class EntityTableMeta implements ISqlTableMeta {
         }
 
         // 无主键的实体不支持查询component，因为component需要知道owner对象， 无主键的情况下无法通过简单的方式获取到owner实体
-        if (entityModel.isNoPrimaryKey()) {
+        if (!entityModel.isNoPrimaryKey()) {
             for (IEntityComponentModel propModel : entityModel.getComponents()) {
                 propExprMetas.put(propModel.getName(), makeComponentMeta(dialect, idExprMeta, propModel, colBinders));
             }
@@ -219,8 +219,9 @@ public class EntityTableMeta implements ISqlTableMeta {
         if (dateTimeValue != null) {
             valueExprMetas.put(StdDataType.DATETIME.getName(), dateTimeValue);
         } else if (timestampValue != null) {
+            // 没有dateTime列时回退使用timestamp列，而不能错误地映射到decimal列
             valueExprMetas.put(StdDataType.DATETIME.getName(),
-                    makeValueType(decimalValue, dialect, StdSqlType.DECIMAL, StdDataType.TIMESTAMP));
+                    makeValueType(timestampValue, dialect, StdSqlType.TIMESTAMP, StdDataType.TIMESTAMP));
         }
 
         if (timestampValue != null) {

@@ -18,12 +18,16 @@ public class DownloadHelper {
     public static WebContentBean downloadZip(String fileName, int waitMinutes,
                                              Consumer<IZipOutput> action,
                                              ZipOptions zipOptions) {
-        IResource resource = ResourceHelper.getTempResource("download");
-        IZipTool zipTool = ResourceHelper.getZipTool();
-        IZipOutput zipOutput = null;
-        try {
+        return downloadZip(ResourceHelper.getTempResource("download"), ResourceHelper.getZipTool(),
+                fileName, waitMinutes, action, zipOptions);
+    }
 
-            OutputStream os = resource.getOutputStream();
+    static WebContentBean downloadZip(IResource resource, IZipTool zipTool, String fileName, int waitMinutes,
+                                      Consumer<IZipOutput> action, ZipOptions zipOptions) {
+        IZipOutput zipOutput = null;
+        OutputStream os = null;
+        try {
+            os = resource.getOutputStream();
             zipOutput = zipTool.newZipOutput(os, zipOptions);
 
             action.accept(zipOutput);
@@ -39,7 +43,9 @@ public class DownloadHelper {
             IoHelper.safeCloseObject(zipOutput);
             return content;
         } catch (Exception e) {
+            // newZipOutput抛错时zipOutput仍为null，必须一并关闭底层os，避免文件描述符泄漏
             IoHelper.safeCloseObject(zipOutput);
+            IoHelper.safeCloseObject(os);
             resource.delete();
             throw NopException.adapt(e);
         }

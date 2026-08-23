@@ -95,7 +95,13 @@ public class VfsPluginDefinition implements IPlugin {
     private final String ifPropertyName;
     private final Object ifPropertyExpected;
 
-    private PluginState state = PluginState.UNLOADED;
+/**
+     * 生命周期状态：load/unload（主线程）与 reconcile/checkChangedAndReload（config executor
+     * 线程）并发读写。多数路径经 {@code plugins}（ConcurrentHashMap）的 happens-before 掩盖，
+     * 但 {@code reloadPlugin} 的 plugins.remove 之后再读 state 的序列无屏障保证——补 volatile
+     * （与 {@link #lastModified}/{@link #definitionConfig} 的既有风格一致）。
+     */
+    private volatile PluginState state = PluginState.UNLOADED;
     private Timestamp lastChangeTime;
     private Timestamp loadTime;
 

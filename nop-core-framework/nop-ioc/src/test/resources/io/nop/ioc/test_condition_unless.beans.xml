@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef"
+       xmlns:ioc="ioc">
+    <!-- 仅配置 unless-property（schema 允许，if-property 缺省）：属性命中时禁用 -->
+    <bean id="unlessOnlyBean" class="test.io.entropy.beans.MyBaseBean">
+        <ioc:condition>
+            <unless-property name="test.unless.flag" value="on"/>
+        </ioc:condition>
+    </bean>
+
+    <!-- if + unless 同时配置：unless 必须按自身字段求值（不得重复求值 if 条件） -->
+    <bean id="ifAndUnlessBean" class="test.io.entropy.beans.MyBaseBean">
+        <ioc:condition>
+            <if-property name="test.if.flag" value="on"/>
+            <unless-property name="test.unless.flag" value="on"/>
+        </ioc:condition>
+    </bean>
+</beans>

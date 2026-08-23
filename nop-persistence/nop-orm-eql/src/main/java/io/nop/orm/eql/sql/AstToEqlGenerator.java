@@ -802,6 +802,8 @@ public class AstToEqlGenerator extends EqlASTVisitor {
 
     @Override
     public void visitSqlLikeExpr(SqlLikeExpr node) {
+        if (node.getNot())
+            print(" not ");
         printBinaryExpr(node.getExpr(), node.getIgnoreCase() ? SqlOperator.ILIKE : SqlOperator.LIKE, node.getValue());
     }
 

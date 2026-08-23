@@ -63,7 +63,8 @@ public class UpdateDataExecutor implements IChangeExecutor {
                 first = false;
                 sb.append(dialect.escapeSQLName(column.getName()));
                 sb.append(" = ");
-                sb.append(escapeValue(column.getValue(), dialect));
+                sb.append(InsertDataExecutor.escapeValue(column.getValue(), column.getValueNumeric(),
+                    column.getValueBoolean(), column.getValueDate(), dialect));
             }
         }
         
@@ -73,12 +74,5 @@ public class UpdateDataExecutor implements IChangeExecutor {
         }
         
         return sb.toString();
-    }
-
-    protected String escapeValue(String value, IDialect dialect) {
-        if (value == null) {
-            return "NULL";
-        }
-        return "'" + value.replace("'", "''") + "'";
     }
 }

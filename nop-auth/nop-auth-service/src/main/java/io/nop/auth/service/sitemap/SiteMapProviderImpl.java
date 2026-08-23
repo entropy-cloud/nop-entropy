@@ -227,6 +227,11 @@ public class SiteMapProviderImpl implements ISiteMapProvider {
                 site.removeFunctionPoints();
             site.removeInactive();
         } else {
+            // enableActionAuth=false时跳过权限过滤，但匿名请求不能借此获取完整菜单结构
+            // （路由/组件/显示名是侦察输入）：按空角色集应用auth过滤，仅noAuth项保持可用
+            if (cache != null && StringHelper.isEmpty(userId) && roleIds.isEmpty())
+                applyAuthFilter(site.getResources(), cache.getResourceToRoles(), roleIds);
+
             if (!includeFunctionPoints)
                 site.removeFunctionPoints();
         }

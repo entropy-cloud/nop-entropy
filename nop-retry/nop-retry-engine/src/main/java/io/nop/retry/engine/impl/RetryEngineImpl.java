@@ -152,8 +152,19 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
         recordStore.updateRecord(record);
     }
 
+    /**
+     * policyId 是可选配置（newRetryTask 不设置时为null），无策略时使用内置默认策略，
+     * 避免落库后在 executeWithRetry 中NPE并留下被扫描器反复接管的孤儿记录
+     */
+    private NopRetryPolicy loadPolicyOrDefault(String policyId) {
+        NopRetryPolicy policy = recordStore.loadPolicy(policyId);
+        if (policy != null)
+            return policy;
+        return new NopRetryPolicy();
+    }
+
     CompletionStage<ApiResponse<?>> executeTask(IRetryTask task, ApiRequest<?> request, ICancelToken cancelToken) {
-        NopRetryPolicy policy = recordStore.loadPolicy(task.getPolicyId());
+        NopRetryPolicy policy = loadPolicyOrDefault(task.getPolicyId());
 
         NopRetryRecord existingRecord = recordStore.findPendingRecordByIdempotentId(
                 task.getNamespaceId(), task.getGroupId(), task.getIdempotentId());
@@ -196,19 +207,23 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
         String serviceMethod = record.getServiceMethod();
         String requestPayload = record.getRequestPayload();
 
+        // 无法执行的坏记录直接进死信。此前仅返回失败future不改记录状态/retryCount，
+        // 记录每个租约周期被重扫一次，永不进死信
         if (StringHelper.isEmpty(serviceName) || StringHelper.isEmpty(serviceMethod)) {
-            return CompletableFuture.failedStage(
-                    new NopException(ERR_RETRY_DEAD_LETTER_INVALID_EXECUTOR)
-                            .param(ARG_RECORD_ID, record.getSid()));
+            NopException ex = new NopException(ERR_RETRY_DEAD_LETTER_INVALID_EXECUTOR)
+                    .param(ARG_RECORD_ID, record.getSid());
+            moveToDeadLetter(record, ex);
+            return CompletableFuture.failedStage(ex);
         }
 
         if (StringHelper.isEmpty(requestPayload)) {
-            return CompletableFuture.failedStage(
-                    new NopException(ERR_RETRY_DEAD_LETTER_INVALID_REQUEST)
-                            .param(ARG_RECORD_ID, record.getSid()));
+            NopException ex = new NopException(ERR_RETRY_DEAD_LETTER_INVALID_REQUEST)
+                    .param(ARG_RECORD_ID, record.getSid());
+            moveToDeadLetter(record, ex);
+            return CompletableFuture.failedStage(ex);
         }
 
-        NopRetryPolicy policy = recordStore.loadPolicy(record.getPolicyId());
+        NopRetryPolicy policy = loadPolicyOrDefault(record.getPolicyId());
         ApiRequest<?> request = ApiRequest.build(JsonTool.parseMap(requestPayload));
 
         return executeWithRetry(record, policy, request, cancelToken, null);

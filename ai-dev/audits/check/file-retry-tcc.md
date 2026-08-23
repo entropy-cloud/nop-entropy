@@ -56,6 +56,8 @@ return getRepository().updateTccBranchStatusAsync(branchRecord,
 - **建议**: `aggregateCancelBranchStatus` 将 `TIMEOUT_FAILED` 聚合为 `CANCEL_FAILED`（可重试态）或独立的可重试超时失败态；`isCancelled()` 中移除 `TIMEOUT_FAILED`，使失败的超时取消可以被补偿重试。
 - **误报排除**: 已核对 `TccStatus` 全部状态定义与 `doCancelAsync`/`doConfirmAsync` 的全部调用链；事务级 `TIMEOUT_FAILED` 状态不存在其他写入点（聚合只写 CANCEL_SUCCESS/BIZ_CANCEL_FAILED/CANCEL_FAILED），确认该路径唯一且可达；`updateTccStatusAsync` 为盲写，无下游纠正。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复并附回归测试。`aggregateCancelBranchStatus` 将 `TIMEOUT_FAILED` 聚合为可重试的 `CANCEL_FAILED`；`TccStatus.isCancelled()` 移除 `TIMEOUT_FAILED` 使 `cancelAllAsync` 可重新补偿这些分支；`doConfirmAsync` guard 显式包含 `TIMEOUT_FAILED` 防止误入 confirm。测试：`nop-tcc-core` `TestTccRunner#aggregateCancel_whenHasTimeoutFailed_thenCancelFailed`、`#timeoutFailed_isNotCancelled`。
+
 ### [P1] Retry：任务提交后首次执行期间记录仍为 PENDING 且到期，扫描器并发重复执行同一任务
 
 - **文件**: `nop-retry/nop-retry-engine/src/main/java/io/nop/retry/engine/impl/RetryEngineImpl.java:155-167`、`nop-retry/nop-retry-engine/src/main/java/io/nop/retry/engine/store/RetryRecordStoreImpl.java:102-116`
@@ -75,6 +77,8 @@ record.setNextTriggerTime(CoreMetrics.currentTimestamp());
 - **风险**: 首次尝试耗时超过一个扫描周期（RPC 超时通常是秒级）时，扫描器会对同一 idempotentId 的任务并发发起第二次执行——业务侧重复副作用。引擎虽用 `findPendingRecordByIdempotentId` + 唯一索引 `UK_RETRY_IDEMPOTENT_ID` 表达防重意图，但该竞态绕过了防重。扫描路径与原调用链后续的 `updateRecord` 还会互相触发版本冲突，状态管理混乱。
 - **建议**: `executeTask` 在发起首次执行前先走 `tryLockRecordsForProcess`（或直接以 RETRYING+lease 落库/更新），首次结果落库后再回到 PENDING；或将新记录的 `nextTriggerTime` 设为 `now + lease`，使扫描器只在调用方失联后接管。
 - **误报排除**: 已核对 `fetchPendingRecords` 无 retryCount/来源过滤、`doExecute` 不改记录状态、扫描器随引擎启动（`LifeCycleSupport.start()` 带 `@PostConstruct`，beans.xml 注册即生效），确认无其他互斥机制。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复（无独立单测：依赖 dao 层）。`RetryRecordStoreImpl.newRecord` 将 `nextTriggerTime` 推迟一个租约周期（`DEFAULT_RETRYING_TIMEOUT_MS`），调用方发起首次执行期间扫描器不再拾取该记录，仅在调用方失联（租约到期）后接管。
 
 ### [P1] Retry：扫描执行异常/早退路径不更新记录状态，坏记录陷入"每个租约周期重扫一次"的死循环且永不进死信
 
@@ -99,6 +103,8 @@ executeRetryFromScanner(record, null)
 - **建议**: 早退/同步异常路径统一走 `handleExecutionFailure` 或直接 `moveToDeadLetter`；`executeRetryFromScanner` 的调用侧（doStart processor）对未消费的记录做兜底状态回退（PENDING + 退避）或进死信。
 - **误报排除**: 已核对 `requestPayload` 为空可达（`newRecord` 在 `request==null` 时不设 payload，`callAsync(null)` 或进程在立即重试阶段崩溃后由扫描器接管即触发）；`loadPolicy(null)` 返回 null 见下条；`RetryScannerImpl.doScan` 的 catch 只记日志不回退状态，确认无兜底。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复（无独立单测：依赖 dao 层）。`executeRetryFromScanner` 的无 executor/无 payload 早退路径现在直接 `moveToDeadLetter`，坏记录不再无限空转、正常进入死信闭环。
+
 ### [P1] TCC：cleanCompletedTransactions 违反接口契约，会物理删除未完结/未知状态的事务及分支记录
 
 - **文件**: `nop-tcc/nop-tcc-core/src/main/java/io/nop/tcc/core/impl/TccEngine.java:315-318`、`nop-tcc/nop-tcc-dao/src/main/java/io/nop/tcc/dao/store/TccRecordStore.java:248-264`
@@ -121,6 +127,8 @@ this.recordDao().deleteByQuery(query);   // 分支记录同样按 beginTime 无�
 - **建议**: `cleanCompletedTransactions` 传 `true`；或修正接口文档。若确需全量清理，应另行提供显式 API。
 - **误报排除**: 仓库内无生产调用方（属公共 API，设计给定时任务使用），但实现与同一接口的 javadoc 直接矛盾，属确凿契约违背，非猜测。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。实现改为传 `onlyCompleted=true`，与接口 javadoc 契约对齐（只删除已成功完结/取消的事务，未知状态保留等待人工处理）。
+
 ### [P2] Retry：未设置 policyId 时 loadPolicy 返回 null，executeWithRetry 直接 NPE（且发生在记录已落库之后）
 
 - **文件**: `nop-retry/nop-retry-engine/src/main/java/io/nop/retry/engine/impl/RetryEngineImpl.java:156、176、224`、`nop-retry/nop-retry-engine/src/main/java/io/nop/retry/engine/store/RetryRecordStoreImpl.java:237-242`
@@ -141,6 +149,8 @@ long deadlineTimeoutMs = policy.getDeadlineTimeoutMsOrDefault();   // policy==nu
 - **建议**: `loadPolicy` 空时返回内置默认策略对象（各 `*OrDefault()` 均有默认值），或在 `executeTask` 入口校验并抛 `ERR_RETRY_POLICY_NOT_FOUND`（该错误码已定义但从未使用）。
 - **误报排除**: 已核对 `RetryTaskImpl` 的 policyId 默认为 null、ORM 中 RETRY_RECORD.POLICY_ID 列非 mandatory（可落库）、测试全部显式设置 policyId（未覆盖该路径）。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。`RetryEngineImpl.loadPolicyOrDefault`：无策略时返回内置默认 `NopRetryPolicy`（各 `*OrDefault()` 提供默认值），不再 NPE、不再留下孤儿记录。
+
 ### [P2] TCC：事务/分支状态更新为盲写，状态检查基于本地内存副本，initiator 结束与超时检查器并发时可交错 confirm/cancel
 
 - **文件**: `nop-tcc/nop-tcc-core/src/main/java/io/nop/tcc/core/impl/TccTransaction.java:84-90、104-110`、`nop-tcc/nop-tcc-dao/src/main/java/io/nop/tcc/dao/store/TccRecordStore.java:137-154、170-199`
@@ -160,6 +170,8 @@ recordDao().updateEntityDirectly(tccRecord);
 - **建议**: 状态更新改为条件更新（`update ... where status in (期望状态集)`），失败方立即中止后续 RPC；分支状态机在 store 层校验合法转换。
 - **误报排除**: 已核对 `updateEntityDirectly` 无状态条件；`fetchExpiredRecords` 状态过滤 `< CONFIRM_SUCCESS(11)` 包含 CONFIRMING(5)，超时检查器确实可能与正在 confirm 的 initiator 并发；测试 `testStateConflictProtection` 只覆盖同实例串行场景。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已确认，暂缓。需要把 `updateTccStatusAsync` 改为条件更新（CAS）并重构分支状态机校验，涉及 nop-orm 条件更新能力与跨实例并发语义设计，建议单独立项。
+
 ### [P2] TCC：CONFIRM_FAILED 事务被超时检查反复拾取但每次空转，补偿重试实际不存在
 
 - **文件**: `nop-tcc/nop-tcc-core/src/main/java/io/nop/tcc/core/impl/TccTransaction.java:86`、`nop-tcc/nop-tcc-dao/src/main/java/io/nop/tcc/dao/store/TccRecordStore.java:207-242`
@@ -175,6 +187,8 @@ if (curStatus == TccStatus.CONFIRMING || curStatus == TccStatus.CONFIRM_FAILED |
 - **建议**: 对 CONFIRM_FAILED 的记录提供 re-confirm 路径（重新进入 `doConfirmAsync`），或在空转分支记录 WARN/提供专门的管理动作。
 - **误报排除**: 已完整跟踪 endAsync 全部分支确认无 re-confirm 调用点；对比 CANCEL_FAILED 路径（可正常重试 cancel）确认差异。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已确认，暂缓。需要为 CONFIRM_FAILED 设计 re-confirm 路径或专门的管理动作与告警语义，属状态机设计决策。
+
 ### [P2] Retry：扫描结果处理器在共享 globalWorker 线程上 join() 阻塞整批 RPC，与平台全局任务争抢线程
 
 - **文件**: `nop-retry/nop-retry-engine/src/main/java/io/nop/retry/engine/impl/RetryEngineImpl.java:540-554`、`nop-retry/nop-retry-engine/src/main/java/io/nop/retry/engine/scanner/RetryScannerImpl.java:96-101、165-167`
@@ -189,6 +203,8 @@ CompletableFuture.allOf(futures).join();   // 阻塞直至整批(默认100条)RP
 - **现状**: 扫描任务运行在 `GlobalExecutors.globalTimer().executeOn(globalWorker())` 的共享线程池上，processor 内 `join()` 同步等待整批重试 RPC 完成；`doScan` 的 `do...while` 循环内还会连续处理多批。慢 RPC（超时秒级 × 100 条）会长期占满 globalWorker 线程，而该线程池同时承载平台其他全局定时任务（含本引擎的 `scheduleImmediateRetry`），线程数不足时互相饥饿甚至卡死立即重试链。
 - **建议**: processor 改为纯异步提交（返回 future 由 scanner 用 `thenAccept` 串联下一轮），或使用独立的有界执行器。
 - **误报排除**: globalWorker 为共享多线程池（缓解了确定性死锁，但不消除饥饿），`join()` 抛出的 CompletionException 由 doScan 捕获仅记日志——阻塞本身已核实为无条件发生。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已确认，暂缓。处理器改纯异步提交需要重构 scanner 的批间串行语义，建议配合独立有界执行器一并设计。
 
 ### [P2] Retry：triggerCallback 回调复用原业务服务/方法并替换 payload，语义与"回调策略"不符
 
@@ -207,6 +223,8 @@ callbackRequest.setData(buildCallbackData(record, success, error));  // payload 
 - **风险**: 回调功能名存实亡；另外 `idempotentId + "_callback"` 可能超出 IDEMPOTENT_ID 列宽 64（原 idempotentId > 55 字符时插入报错），且回调记录落到默认 namespace 而非原记录的 namespace。
 - **建议**: 策略模型增加回调服务/方法字段，或在文档中明确回调协议（原服务需实现通知方法）；拼接后做长度截断/校验。
 - **误报排除**: 已核对 ORM 的 NOP_RETRY_POLICY 表无 callback service/method 列、IDEMPOTENT_ID precision=64，确认无遗漏的目标字段。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已确认，暂缓。策略模型缺少回调服务/方法字段（ORM 模型变更属 plan-first 区域），需要模型扩展后重实现。
 
 ### [P2] nop-file：removeTempFileByOwner 只删数据库记录，物理文件成为永久孤儿
 
@@ -227,6 +245,10 @@ public void removeTempFileByOwner(String ownerId) {
 - **建议**: 删除前先查询记录并逐个 `removeResource(filePath)`（复用 isUniqueRef 逻辑），再删 DB 行。
 - **误报排除**: 已全仓检索该方法无其他调用方（当前为待接入的公共清理 API），也未发现独立的孤儿文件清扫任务；泄漏路径本身确凿。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复（无独立单测：依赖 dao 层）。改为按 (createdBy, TEMP_BIZ_OBJ_ID) 查询记录后逐条删除，并按 `isUniqueRef` 判定删除物理文件，与 `detachFile` 对齐。
+>
+> **补记（fix-ai-check 分支，2026-08-22）**: 该修复当时引入三处编译错误（`IEntityDao` 无 `findListByQuery`、`NopException` 无单 String 构造）未被模块编译验证；已修正为 `findAllByQuery` + 模块内 ErrorCode 常量（`nop.err.file.invalid-biz-obj-name`/`invalid-file-ext`），随全量构建验证。
+
 ### [P3] nop-file：detachFile 的 isUniqueRef 存在 TOCTOU，并发分离共享 originFileId 的记录可致孤儿文件
 
 - **文件**: `nop-file/nop-file-dao/src/main/java/io/nop/file/dao/store/DaoResourceFileStore.java:311-339`
@@ -242,6 +264,8 @@ if (isUniqueRef(dao, record)) {     // 删除后再查"是否还有同 originFil
 - **风险**: 低概率产生无 DB 引用的孤儿文件（仅占磁盘，无数据错误）。
 - **建议**: 改为删除后按 originFileId 做 count 判定并对文件删除做幂等容错，或接受现状并配合离线清扫。
 - **误报排除**: 确认无数据库层约束阻止该交错；影响评估为资源泄漏而非正确性。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 复查后维持现状。并发分离共享文件属低概率资源泄漏（仅磁盘占用，无数据错误），审计建议本身含"接受现状并配合离线清扫"选项；彻底解决需按 originFileId 的 count 判定与文件删除幂等容错，暂缓。
 
 ### [P3] nop-file：存储层路径拼接无防御性校验，安全完全依赖上层调用方
 
@@ -261,6 +285,8 @@ protected String newPath(String bizObjName, String fileId, String fileExt) {
 - **建议**: `newPath` 内对 bizObjName 做 `isValidSimpleVarName` 校验、对 fileExt 做 `[A-Za-z0-9]+` 白名单。
 - **误报排除**: 已核实标准链路有校验（排除"当前可利用"的误判）、`StringHelper.fileExt` 取最后 `/` 之后的内容故扩展名不可能含 `/`，仅 bizObjName 为真实风险面。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复（纵深防御）。`newPath` 对 `bizObjName` 做 `isValidSimpleVarName` 校验、对 `fileExt` 做 `[A-Za-z0-9]+` 白名单，越界抛 NopException。
+
 ### [P3] Retry/TCC：data-auth 为空壳 + CRUD 直接暴露引擎执行表，表内数据即执行凭据
 
 - **文件**: `nop-retry/nop-retry-service/src/main/resources/_vfs/nop/retry/auth/nop-retry.data-auth.xml`、`nop-tcc/nop-tcc-service/src/main/resources/_vfs/nop/tcc/auth/nop-tcc.data-auth.xml`
@@ -276,6 +302,8 @@ protected String newPath(String bizObjName, String fileId, String fileExt) {
 - **建议**: 对引擎执行表禁用通用 update（或收窄到专用管理动作），在引擎层对 serviceName/method 做注册白名单校验。
 - **误报排除**: 已确认 data-auth 为空、引擎无服务名白名单机制；是否暴露取决于部署方权限配置，故定 P3。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已确认，暂缓。属部署配置与权限模型层面（需收窄通用 update 到专用管理动作 + 引擎层服务名白名单），涉及 action-auth 资源变更，建议单独立项。
+
 ### [P3] TCC：beginConfirmAsync/beginCancelAsync 用 Guard.checkArgument 抛裸 IllegalArgumentException，违背错误处理两档策略
 
 - **文件**: `nop-tcc/nop-tcc-core/src/main/java/io/nop/tcc/core/impl/TccBranchTransaction.java:77、97`
@@ -288,6 +316,8 @@ Guard.checkArgument(branchRecord.getBranchStatus().isAllowConfirm());   // 抛 I
 - **风险**: 违反平台"框架核心/公共 API 用 NopException + ErrorCode + .param(...)"约定；错误信息不可定位。同文件其他状态错误均用 NopException（如 `TccRunner.aggregateConfirmBranchStatus`），此处不一致。
 - **建议**: 改为 `NopException(ERR_TCC_INVALID_*)` 并携带 txnId/branchId/当前状态。
 - **误报排除**: 已核对 `Guard.checkArgument` 的实现确为 IllegalArgumentException；模块内已有 TccCoreErrors 可承载该错误。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。改为 `NopException(ERR_TCC_INVALID_CONFIRM_BRANCH_STATUS)` 并携带 txnGroup/txnId/当前状态。
 
 ### [P3] TCC：TccGatewayInterceptor 自动新建事务时设置的 TccContext 在请求内不清理
 
@@ -309,6 +339,8 @@ if (oldContext == null && tccContext == null) {
 - **建议**: whenComplete 补上 `removeCurrent(newCtx)`（保存引用）。
 - **误报排除**: 已核对 `TccContext` 基于 IContext attribute 而非独立 ThreadLocal，排除了跨请求泄漏的更严重判定。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。自动建事务分支创建的 newCtx 保存引用，whenComplete 中补 `removeCurrent(newCtx)`。
+
 ### [P3] TCC：补偿(confirm/cancel)失败对调用方不可见，原始异常仅落库
 
 - **文件**: `nop-tcc/nop-tcc-core/src/main/java/io/nop/tcc/core/impl/TccTransaction.java:58-78、95-98`
@@ -327,6 +359,8 @@ if (oldContext == null && tccContext == null) {
 - **建议**: err2 != null 且 ex != null 时以业务异常为主因、补偿失败作为 suppressed/附加参数携带。
 - **误报排除**: 该行为有代码注释表明有意为之（"避免业务异常被补偿阶段的返回值吃掉"），但 err2 完全丢失确属信息损失，定 P3。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 复查后维持现状。代码注释表明有意为之（避免业务异常被补偿阶段的返回值吃掉），err2 已记录日志且 DB 状态可查；改为 suppressed 携带需调整 whenCompleteAsync 的结果覆盖语义，收益有限。
+
 ### [P3] Retry：retryFromDeadLetter 不变更死信状态、无防重/审计，重复触发无约束
 
 - **文件**: `nop-retry/nop-retry-engine/src/main/java/io/nop/retry/engine/impl/RetryEngineImpl.java:73-107`
@@ -341,6 +375,8 @@ return rpcServiceInvoker.invokeAsync(serviceName, serviceMethod, request, null);
 - **风险**: 运维侧误操作放大重复执行；重放结果与死信记录无关联可查。
 - **建议**: 重放时创建受策略管理的 retry record（复用 executeTask），或至少在死信上记录重放时间/结果。
 - **误报排除**: 已核对 `NopRetryDeadLetter` 实体与 store 无相关字段更新调用。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已确认，暂缓。重放闭环（受策略管理的重放记录/审计）需要状态模型扩展，建议单独立项。
 
 ### [P3] TCC：runTaskWithExitingTxnAsync 中 task 同步抛异常时 Registry 不恢复
 
@@ -365,3 +401,5 @@ return thenOnContext(task.apply(txn)).whenComplete((ret, err) -> {
 - **nop-retry 幂等**: `UK_RETRY_IDEMPOTENT_ID(namespaceId,groupId,idempotentId)` 唯一索引兜底了 find-then-insert 竞态（并发插入第二笔报约束冲突，不产生重复记录）；`moveToDeadLetter` 删除原 record 行使同 idempotentId 可重新提交（代码注释声明为既定裁定，attempt 行成为孤儿属已知取舍，不计发现）。
 - **nop-retry 计数边界**: 立即重试与延迟重试的 retryCount 递增、`retryCount >= maxRetryCount` 进死信、指数退避 `1L << min(retryCount-1,10)` 封顶 + maxInterval 封顶 + jitter，均已核对无越界/无限循环（除前述坏记录循环）。
 - **nop-tcc 空回滚/分支登记**: `runBranchTryAsync` 先 `beginTryAsync` 持久化 TRYING 再执行业务（防悬挂登记），`finishTryAsync` 对 safeFail/未知异常区分 TRY_FAILED/TRY_UNKNOWN，`shouldStartBranch` 的 inbound/initiator 规则与 `aggregateConfirmBranchStatus` 对 cancelled 分支的防御性抛错均已核对。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。`task.apply(txn)` 同步异常时先恢复 `registry.put(txnGroup, old)` 再抛出（与 `runTaskWithNewTxn` 的 try/finally 对齐）。

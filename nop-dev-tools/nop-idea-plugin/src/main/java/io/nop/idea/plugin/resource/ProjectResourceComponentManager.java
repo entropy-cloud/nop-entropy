@@ -123,7 +123,8 @@ public class ProjectResourceComponentManager implements IResourceComponentManage
 
     @Override
     public <T> T runWhenDependsChanged(String resourcePath, Supplier<T> task) {
-        return null;
+        // 基接口语义是执行任务并返回结果，此前静默丢弃任务导致调用方拿到null结果
+        return task.get();
     }
 
     @Override

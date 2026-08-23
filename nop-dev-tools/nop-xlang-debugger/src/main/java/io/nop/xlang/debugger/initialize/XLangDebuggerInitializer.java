@@ -156,6 +156,15 @@ public class XLangDebuggerInitializer implements ICoreInitializer {
         EvalExprProvider.registerGlobalExecutor(DefaultExpressionExecutor.INSTANCE);
         if (server != null) {
             server.stop();
+            // 仅停RPC server不close debugger：挂起线程永久阻塞（closed永不为true），
+            // cleanup线程池泄漏
+            if (debugger instanceof XLangDebugger) {
+                try {
+                    ((XLangDebugger) debugger).close();
+                } catch (Exception e) {
+                    LOG.error("nop.debugger.close-fail", e);
+                }
+            }
             debugger = null;
             server = null;
         }

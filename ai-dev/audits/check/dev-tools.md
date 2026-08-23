@@ -38,6 +38,8 @@ private static Object getNextValue(Object value, DebugValueKey key) {
 - **建议**: 改为 `Array.getLength(value)`。
 - **误报排除**: 已确认调用链可达: `XLangValue.computeChildren` → `expandExprValueAsync` → `XLangDebugger.expandExprValue` → `DebugValueHelper.getExpandValue` → `getNextValue`，全程无 catch。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复并附回归测试。`Array.getLength(value)`（此前传 index）。测试：`nop-xlang-debugger` `TestDebugValueHelper#testArrayExpandByIndex`（修复前必抛 IllegalArgumentException）。
+
 ### [P1] 调试器变量加载成功分支调用 `reportError(err.getMessage())`，err 恒为 null；且未防 vars 为 null
 
 - **文件**: `nop-dev-tools/nop-idea-plugin/src/main/java/io/nop/idea/plugin/debugger/XLangStackFrame.java:76-90`
@@ -61,6 +63,8 @@ debugger.getFrameVariablesAsync(threadId, frameIndex)
 - **建议**: 删除成功分支的 `reportError`；对 `vars` 判空；服务端对未找到线程返回空列表而非 null（或接口标注 `@Nullable`）。
 - **误报排除**: 已核对 `XLangDebugger.getFrameVariables` 返回 null 的路径（`getSuspendedThread` 未命中），以及 IDEA 端无其他判空。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。删除成功分支的 `reportError(err.getMessage())`；vars 判空降级到 `super.computeChildren`。服务端配套：`XLangDebugger.getScopeVariables/getFrameVariables` 线程不存在时返回空列表（见 P3 IDebugger 条目）。
+
 ### [P2] 调试器 Map 子项展开: 循环缺少 `index++` 且返回 key 而非 value
 
 - **文件**: `nop-dev-tools/nop-xlang-debugger/src/main/java/io/nop/xlang/debugger/DebugValueHelper.java:49-59`
@@ -80,6 +84,8 @@ debugger.getFrameVariablesAsync(threadId, frameIndex)
 - **风险**: 值为非 String 的 Map（`expandValue` 中 String 值 index=-1 走 `map.get(name)` 正常；非 String 值 index>=0 走此分支）子项展开: 第 0 项返回错误对象，其余项返回 null（展开为空），调试器 Map 检查结果不可信。
 - **建议**: 循环内 `index++`，并返回 `((Map) value).get(v)` 或直接遍历 `entrySet()` 返回 `entry.getValue()`。
 - **误报排除**: 已核对 `expandValue`（同文件 134-147 行）对 Map 子项 `setIndex` 的赋值规则，确认非 String 值走 index 路径。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复并附回归测试。循环按 entrySet 遍历返回 `entry.getValue()`（此前返回 key 且 index 不自增）。测试：`TestDebugValueHelper#testMapExpandByIndexReturnsValue`。
 
 ### [P2] XLangDebugContextListener 条件运算符优先级错误 + 空 catch 吞异常
 
@@ -104,6 +110,8 @@ if (event == DebuggerSession.Event.PAUSE
 - **风险**: XLang 断点挂起期间，java 调试器侧的 CONTEXT/REFRESH 事件（如用户在调试器视图间切换）会在未经确认的情况下 `session.resume()` 恢复 XLang 挂起——用户断点"自动消失"；恢复失败的异常被空 catch 吞掉无任何日志。
 - **建议**: 显式加括号 `(A || B || C || D) && myJavaSession.isPaused()`；空 catch 至少记录 debug 日志。
 - **误报排除**: 已确认该 listener 通过 `DebuggerSession.getContextManager().addListener` 注册（XLangDebuggerRunner.java:93-94），事件在 java 调试器活动期间会持续触发。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。显式括号 `(PAUSE||CONTEXT||REFRESH||REFRESH_WITH_STACK) && isPaused()`；空 catch 补 debug 日志。
 
 ### [P2] XLangDebugProcess.connect() 无限重试且不可取消（不检查 indicator）
 
@@ -134,6 +142,8 @@ private boolean connect() {
 - **建议**: 每轮循环加 `indicator.checkCanceled()`，并考虑加上限次数/超时后走 `onConnectFail`。
 - **误报排除**: 已确认 `connect()` 由该 Task 直接调用，且 `onConnectFail` 仅在外层 try 抛异常时进入（循环内已吞掉所有连接异常，实际几乎不可能到达）。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。`connect(indicator)` 每轮 `indicator.checkCanceled()`；sleep 中断恢复中断标志（下轮 checkCanceled 生效）。外层 catch 补异常日志。
+
 ### [P2] `XLangDebugProcess.debugger` 字段跨线程读写但非 volatile
 
 - **文件**: `nop-dev-tools/nop-idea-plugin/src/main/java/io/nop/idea/plugin/debugger/XLangDebugProcess.java:58`
@@ -151,6 +161,8 @@ public IDebuggerAsync getDebugger() { return debugger; }
 - **风险**: EDT 可能长期读到 stale `null`，导致 resume/step 命令或断点同步被静默丢弃（`if (debugger != null)` 分支直接跳过），表现为"按钮无响应、断点不生效"，且难以复现。
 - **建议**: 声明为 `volatile`。
 - **误报排除**: 已核对全部读写点（grep `getDebugger()` 调用方覆盖 EDT 与 manager 线程两类）。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。`debugger` 字段加 volatile。
 
 ### [P2] XLangBreakpointHandler 的两个 HashMap 被多线程并发读写
 
@@ -171,6 +183,8 @@ public XBreakpoint<XLangBreakpointProperties> findBreakPoint(@NotNull StackTrace
 - **风险**: 断点命中通知与断点增删并发时可能读到损坏状态（JDK7 及以前可成环死循环，JDK8+ 表现为丢失更新），断点命中无法定位到 IDE 断点对象，`breakpointReached` 退化为 `positionReached`。
 - **建议**: 换 `ConcurrentHashMap`。
 - **误报排除**: 已核对 `findBreakPoint` 唯一调用点位于 debuggerNotification 的 manager thread 调度内，与 EDT 写入确为不同线程。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。两个 Map 改 ConcurrentHashMap。
 
 ### [P2] XLangSuspendContext 的 LinkedList 在管理线程修改、EDT 读取
 
@@ -195,6 +209,8 @@ public XExecutionStack[] getExecutionStacks() {                      // 调试�
 - **建议**: 使用 `CopyOnWriteArrayList` 或在访问处同步。
 - **误报排除**: 已核对调用链（debuggerNotification → addExecutionStack；XExecutionStack API 由平台 UI 线程消费）。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。myExecutionStacks 改 CopyOnWriteArrayList。
+
 ### [P2] XLangValue.computeChildren 未判空 `getDebugger()` 直接调用（与 XLangStackFrame 行为不一致）
 
 - **文件**: `nop-dev-tools/nop-idea-plugin/src/main/java/io/nop/idea/plugin/debugger/XLangValue.java:63-68`
@@ -210,6 +226,8 @@ frame.getDebugProcess().getDebugger()      // 可能为 null，未判空
 - **风险**: 连接未建立或断开后用户在 Watches/Variables 中展开表达式（evaluate 结果的 XLangValue），EDT 上直接 NPE → IDE 报内部错误。
 - **建议**: 与 `XLangStackFrame` 一致判 null，走 `node.setErrorMessage` 降级。
 - **误报排除**: 已确认 evaluate 路径（`XLangStackFrame.getEvaluator`）在 debugger 为 null 时构造 kind="invalid" 的 XLangValue，该值随后仍可被用户展开触发本方法。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。判空后 `node.setErrorMessage` 降级（与 XLangStackFrame 策略一致）。
 
 ### [P2] XLangDebuggerInitializer.destroy() 不调用 debugger.close()，挂起线程永久阻塞 + 清理线程泄漏
 
@@ -231,6 +249,8 @@ public void destroy() {
 - **风险**: destroy 时若有线程挂起在 `XLangDebugger.monitorWait`（`while (suspended && !closed)`，`closed` 永不为 true），该线程永久阻塞；`xlang-debugger-cleanup` 单线程调度池（构造器中创建并调度，XLangDebugger.java:72-81）不被 shutdown，反复 initialize/destroy（如测试环境）会累积泄漏线程。
 - **建议**: destroy 中保存引用并在 `server.stop()` 后调用 `debugger.close()`。
 - **误报排除**: 已核对 `XLangDebugger.close()`/`monitorWait` 的唤醒条件，确认除 close 外无其他路径设置 `closed`。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。destroy 在 server.stop 后调用 `XLangDebugger.close()`（唤醒挂起线程 + 关闭 cleanup 线程池），异常记日志。
 
 ### [P2] XLangDebugger.waitSuspended() 不可中断，忽略中断后继续死等
 
@@ -256,6 +276,8 @@ public void waitSuspended() {
 - **建议**: 捕获中断时检查 `closed` 并退出循环抛出中断/关闭异常。
 - **误报排除**: 已核对 `close()` 与 `monitorNotify` 只 signal `resumeCondition`，不 signal `suspendedCondition`。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。中断时恢复标志并退出等待循环；循环头部检查 `closed`（close 后不再死等）。
+
 ### [P2] XLangLanguageSubstitutor 以 `file.hashCode()`（identity hash）作缓存键
 
 - **文件**: `nop-dev-tools/nop-idea-plugin/src/main/java/io/nop/idea/plugin/lang/XLangLanguageSubstitutor.java:42,55-59`
@@ -272,6 +294,8 @@ if (file.getFileSystem() instanceof ArchiveFileSystem) {
 - **风险**: 低概率但真实（大项目海量 jar 文件下 birthday 碰撞概率上升）: 某个 jar 内 XML 文件被错误识别为 XLang（或反之），PSI 语言判定错误进而导致解析/高亮/注入异常；缓存永不失效导致 jar 内容变更后仍用旧判定。
 - **建议**: 以 `file.getUrl()`（或 path）作键。
 - **误报排除**: 已确认该类注册于 `languageSubstitutor` 扩展点且对每个 xml 文件都会被平台调用（plugin.xml 已核对）。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。缓存键改 `file.getUrl()`（此前 identity hashCode 碰撞会命中错误条目且永不失效）。
 
 ### [P2] XdslResourceTransformer.processXDef 对 `io.nop.` 开头的属性值统一加 `enum:` 前缀
 
@@ -293,6 +317,8 @@ if (value.startsWith("enum:")) {
 - **建议**: 与 owner 确认意图；至少应仅在 relocate 实际改变值时才改写，且第二分支应回写 `relocated` 而非 `"enum:" + relocated`。
 - **误报排除**: 已确认该 transformer 对所有 `.xdef` 资源生效（`canTransformResource`），且该分支无条件执行（无类型检查）。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。第二分支不再无条件加 `enum:` 前缀，仅在 relocate 实际改变值时回写且保持原形式（`enum:` 前缀逻辑只保留给显式 enum: 值的第一分支）。
+
 ### [P2] XLangAnnotator.annotate 捕获 ProcessCanceledException 并转为警告注解
 
 - **文件**: `nop-dev-tools/nop-idea-plugin/src/main/java/io/nop/idea/plugin/annotator/XLangAnnotator.java:79-92`
@@ -312,6 +338,8 @@ try {
 - **建议**: 在 catch Exception 前先 `catch (ProcessCanceledException e) { throw e; }`。
 - **误报排除**: 已核对该 annotator 注册于 plugin.xml（`annotator language="XLang"`），且 doAnnotate 链路会调用 `FilenameIndex`（PCE 常见来源）。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。`catch (ProcessCanceledException e) { throw e; }` 先于 catch Exception；提示消息改 `e.toString()`。
+
 ### [P2] XlibTagMeta.getAttrDocumentation 对 getAttribute()==null 未判空直接构造文档
 
 - **文件**: `nop-dev-tools/nop-idea-plugin/src/main/java/io/nop/idea/plugin/lang/xlib/XlibTagMeta.java:104-113`
@@ -328,6 +356,8 @@ public XLangDocumentation getAttrDocumentation(String attrName) {
 - **风险**: 在 xlib 标签属性上请求 Quick Doc（F1）且该属性在 xlib 模型中不存在或 lib 加载失败时，文档计算链路 NPE，IDE 弹内部错误。调用链已确认: `XLangTagMeta.getAttrDocumentation`（XLangTagMeta.java:494-499）在 `defAttr.isUnknownAttr()` 时进入。
 - **建议**: attr 为 null 时返回 null（无文档）。
 - **误报排除**: 已核对 `withLoadedXlib` 失败返回 defaultValue=null、`tag.getAttr(attrName)` 未命中返回 null 两条路径。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。attr 为 null 返回 null（无文档），不再构造时 NPE。
 
 ### [P2] 首次补全触发全项目+全依赖库的文件名级索引全量扫描
 
@@ -346,6 +376,8 @@ public static Collection<String> findAllNopVfsPaths(Project project) {
 - **建议**: 使用自定义 `FileBasedIndex`/`IdFilter` 限定后缀（如仅 `*.xdef`/`*.xpl`/`*.xlib`），或至少在 `processAllFileNames` 阶段按扩展名过滤 names 集合。
 - **误报排除**: 已核对 `getCachedNopVfsPaths` 的缓存依赖与调用点（NopVirtualFileReference.getVariants、getCachedNopXDefVfsPaths 等），确认无更窄的预过滤。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已确认，暂缓。补全索引面优化需要自定义 FileBasedIndex/IdFilter（IDEA 平台工程），收益是大项目首次补全延迟，建议单独优化项。
+
 ### [P3] XdslResourceTransformer 用 printStackTrace 输出构建错误
 
 - **文件**: `nop-dev-tools/nop-maven-shaded-plugin/src/main/java/io/nop/maven/plugin/shaded/XdslResourceTransformer.java:52-61`
@@ -361,6 +393,8 @@ public static Collection<String> findAllNopVfsPaths(Project project) {
 - **风险**: 输出绕过 Maven 日志体系（不遵循 -q/-e/--batch-mode），污染构建日志；且 `canTransformResource` 对所有 `.xml` 都返回 true，任意非良构 XML 资源都会走到这里导致 shade 构建直接失败。
 - **建议**: 用 `AbstractMojo` 的 Log 或 SLF4J 记录后抛出。
 - **误报排除**: 已确认这是全模块唯一 printStackTrace（grep 验证）。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。改 SLF4J `LOG.error` 输出（不再 printStackTrace）。
 
 ### [P3] XLangDebuggerInitializer.initialize 吞掉初始化异常，调试器静默失效
 
@@ -383,6 +417,8 @@ try {
 - **建议**: 失败时至少通过 notifier/状态位暴露初始化失败原因。
 - **误报排除**: 已确认 ICoreInitializer.initialize 的异常在平台侧同样只被日志化，此处叠加了本地吞异常。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已确认，维持现状。ICoreInitializer 的平台侧异常处理同样仅日志化（初始化失败时应用仍需继续运行），此处补用户可见通知需要 UI 通知通道设计，暂缓。
+
 ### [P3] ProjectFileHelper.nopVfsPathCaches 静态 Map 以 Project 为键，项目关闭后泄漏
 
 - **文件**: `nop-dev-tools/nop-idea-plugin/src/main/java/io/nop/idea/plugin/utils/ProjectFileHelper.java:49,170-187`
@@ -397,6 +433,8 @@ return caches.computeIfAbsent(project, (p) -> CachedValuesManager.getManager(p).
 - **风险**: 多项目反复打开/关闭的 IDE 会话中缓慢累积（经典 IDEA 插件内存泄漏模式，量级: 每项目一个条目 + 缓存集合）。
 - **建议**: 改用 `project.putUserData`/`project.getService` 承载缓存，或注册项目关闭监听清理。
 - **误报排除**: 已核对全类无 remove 调用。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已确认，暂缓。改 project 级 userData/Disposer 承载需要 IDEA 平台生命周期测试，当前为缓慢累积型泄漏（多项目反复开关），暂缓并保留记录。
 
 ### [P3] SuspendedThread.suspended 非 volatile，跨线程可见性无保证
 
@@ -414,6 +452,8 @@ public void setSuspended(boolean suspended) { this.suspended = suspended; }
 - **建议**: 将 `suspended` 声明为 volatile。
 - **误报排除**: 已核对 `getSuspendedThreads`（XLangDebugger.java:219-229）未读取任何 volatile 字段。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。`suspended` 加 volatile（RPC 线程读取可见性）。
+
 ### [P3] PsiClassHelper.getField 未处理 findClass 返回 null
 
 - **文件**: `nop-dev-tools/nop-idea-plugin/src/main/java/io/nop/idea/plugin/utils/PsiClassHelper.java:220-223`
@@ -429,6 +469,8 @@ public static PsiField getField(PsiElement context, String className, String fie
 - **风险**: 引用解析（高亮常驻路径）内 NPE，IDE 报内部错误；窗口窄（需要字典缓存与类解析状态不同步）。
 - **建议**: 判空返回 null。
 - **误报排除**: 已核对 `JavaPsiFacade.findClass` 对未知名返回 null 且此处无其他判空。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。判空返回 null。
 
 ### [P3] ProjectResourceComponentManager.runWhenDependsChanged 返回 null 而不执行任务
 
@@ -446,6 +488,8 @@ public <T> T runWhenDependsChanged(String resourcePath, Supplier<T> task) {
 - **建议**: 至少执行 `task.get()` 或抛 UnsupportedOperationException 使契约违背显性化。
 - **误报排除**: 已核对基接口默认实现语义（nop-core 的 ResourceComponentManager 中为执行 task）。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。执行 `task.get()` 返回结果（契约对齐）。
+
 ### [P3] XLangReferenceHelper.getRegisteredStdDomains 反射访问私有字段
 
 - **文件**: `nop-dev-tools/nop-idea-plugin/src/main/java/io/nop/idea/plugin/lang/reference/XLangReferenceHelper.java:302-316`
@@ -462,6 +506,8 @@ List<String> result = new ArrayList<>(((Map<String, ?>) field.get(registry)).key
 - **风险**: 上游字段改名后 std-domain 补全/引用静默失效，无任何报错，属于脆弱契约耦合。
 - **建议**: 为 `StdDomainRegistry` 提供公开的 registered names 访问器。
 - **误报排除**: 已确认 `StdDomainRegistry` 现有字段名为 `domainHandlers`（当前可用，属维护性风险而非现行 bug）。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已确认，暂缓。需要为 StdDomainRegistry（nop-kernel）提供公开访问器，属跨模块公共 API 变更（plan-first 区域）。
 
 ### [P3] IDebugger 实现可返回 null 但接口契约未声明 @Nullable
 
@@ -481,6 +527,8 @@ if (thread == null) return null;   // 线程不存在时返回 null 而非空列
 - **风险**: 与 P1（XLangStackFrame NPE）直接关联: 客户端（IDEA 插件）按非 null 契约消费。跨进程 RPC 场景下契约歧义会持续诱发 NPE。
 - **建议**: 统一返回空集合，或在接口上标注 `@Nullable`。
 - **误报排除**: 已核对实现与客户端（XLangStackFrame.computeChildren）均未判 null。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。实现统一返回空集合（getScopeVariables/getFrameVariables），与客户端消费契约一致；接口侧维持非 null 语义不变。
 
 ### [P3] 调试器 RPC 服务无鉴权（默认 localhost + 默认关闭缓解）
 
@@ -505,3 +553,5 @@ server.addServiceImpl(IDebugger.class, debugger);
 - `XLangTagMeta.createForChildTag` 中 `getChildDefNode` 返回 null 后直接 `.isUnknownTag()` 的 NPE——由 `create()` 的 catch(Exception) 转为 errorTag 降级，不会外泄崩溃（错误消息不准确，未立项）。
 - `XLangDebugProcess.debuggerNotification` 中 `getTopElement()` 理论可空——服务端 `SuspendedThread.getStackTrace` 保证至少 1 帧，不可达。
 - D7（Nop 平台约定）: 4 个模块内无 `_vfs` beans.xml、无 `@Inject`/`@InjectValue`/bean 扫描用法（IDEA 插件走平台 Service/EP 体系，xlang-debugger 走 `META-INF/services` SPI），未发现 Nop IoC 约定违背；未发现 bare `new RuntimeException`（唯一 `printStackTrace` 见 P3）。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已确认，维持现状（有缓解）。默认 host=127.0.0.1 且默认关闭；文档警示与显式确认属发布层面动作，已在本条目注明，建议随部署文档更新。

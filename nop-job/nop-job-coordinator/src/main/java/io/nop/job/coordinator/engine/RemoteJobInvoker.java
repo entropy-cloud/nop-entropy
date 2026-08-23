@@ -4,6 +4,7 @@ import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.beans.task.TaskStatusBean;
 import io.nop.api.core.exceptions.ErrorCode;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.job.api.execution.IJobExecutionContext;
 import io.nop.job.api.execution.IJobInvoker;
 import io.nop.job.api.execution.JobFireResult;
@@ -24,6 +25,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import static io.nop.job.core.JobCoreErrors.ARG_CONFIG_NAME;
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_TASK_ATTRIBUTE_MISSING;
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_CANCELED;
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_REMOTE_INVOKE_FAILED;
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_REMOTE_TASK_LOST;
@@ -116,7 +119,7 @@ public class RemoteJobInvoker implements IJobInvoker {
     private void schedulePolling(CompletableFuture<JobFireResult> future, IJobExecutionContext jobCtx,
                                  NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
         long deadline = computeDeadline(schedule);
-        POLL_EXECUTOR.scheduleWithFixedDelay(() -> {
+        java.util.concurrent.ScheduledFuture<?> pollHandle = POLL_EXECUTOR.scheduleWithFixedDelay(() -> {
             if (future.isDone()) {
                 return;
             }
@@ -177,6 +180,10 @@ public class RemoteJobInvoker implements IJobInvoker {
                 LOG.warn("nop.job.remote.poll-failed:taskId={}", task.getJobTaskId(), e);
             }
         }, pollIntervalMs, pollIntervalMs, TimeUnit.MILLISECONDS);
+
+        // future终态后必须取消周期任务：单线程POLL_EXECUTOR的队列里每轮只跳过不退出，
+        // 每次rpcPoll执行都会永久累积一个空转调度项，长期运行不可逆劣化
+        future.whenComplete((r, e) -> pollHandle.cancel(false));
     }
 
     @Override
@@ -208,11 +215,11 @@ public class RemoteJobInvoker implements IJobInvoker {
     private NopJobTask loadTask(IJobExecutionContext jobCtx) {
         Object taskId = jobCtx.getAttributes().get("jobTaskId");
         if (taskId == null) {
-            throw new IllegalStateException("jobTaskId attribute missing in execution context");
+            throw new NopException(ERR_JOB_TASK_ATTRIBUTE_MISSING).param(ARG_CONFIG_NAME, "jobTaskId");
         }
         NopJobTask task = taskStore.loadTask(String.valueOf(taskId));
         if (task == null) {
-            throw new IllegalStateException("task not found: " + taskId);
+            throw new NopException(ERR_JOB_REMOTE_TASK_LOST).param(ARG_CONFIG_NAME, String.valueOf(taskId));
         }
         return task;
     }

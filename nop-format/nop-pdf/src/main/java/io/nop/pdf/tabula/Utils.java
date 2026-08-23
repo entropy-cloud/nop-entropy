@@ -283,7 +283,7 @@ public class Utils {
         try (PDDocument document = new PDDocument()) {
             document.addPage(page);
             PDFRenderer renderer = new PDFRenderer(document);
-            document.close();
+            // 渲染完成前不能关闭文档，否则页面内容流的懒加载源可能已释放
             return renderer.renderImageWithDPI(0, dpi, imageType);
         }
     }

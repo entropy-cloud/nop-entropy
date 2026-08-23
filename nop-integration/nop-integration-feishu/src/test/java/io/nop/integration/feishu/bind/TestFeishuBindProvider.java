@@ -15,6 +15,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -164,6 +165,25 @@ class TestFeishuBindProvider {
         assertThrows(NopFeishuException.class,
                 () -> provider.createBindTicket("feishu", null),
                 "null platformUserId must be rejected");
+    }
+
+    @Test
+    void ticketIdsAreUnpredictableRandomTokens() {
+        // P0 hardening regression (audit ai-rest D5): the ticket id gates the
+        // public scan-login identity, so it must not be a guessable sequence
+        // (fs_bind_1, fs_bind_2, ...) — otherwise an attacker could race a live
+        // ticket minted by another user within its TTL window.
+        BindTicket t1 = provider.createBindTicket("feishu", "user-1");
+        BindTicket t2 = provider.createBindTicket("feishu", "user-2");
+
+        assertNotNull(t1.getTicketId());
+        assertNotNull(t2.getTicketId());
+        assertNotEquals(t1.getTicketId(), t2.getTicketId(),
+                "consecutive tickets must not share an id");
+        assertFalse(t1.getTicketId().matches("fs_bind_\\d+"),
+                "ticketId must not be a guessable numeric sequence: " + t1.getTicketId());
+        assertFalse(t2.getTicketId().matches("fs_bind_\\d+"),
+                "ticketId must not be a guessable numeric sequence: " + t2.getTicketId());
     }
 
     @Test

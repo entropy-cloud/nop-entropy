@@ -226,8 +226,28 @@ public class JobWorkerScannerImpl extends AbstractBatchScanner implements IJobWo
     }
 
     private void executeTask(NopJobTask task) {
-        NopJobFire fire = fireStore.loadFire(task.getJobFireId());
-        NopJobSchedule schedule = scheduleStore.loadSchedule(fire.getJobScheduleId());
+        // 任务已CAS认领为CLAIMED后，fire/schedule加载失败不得只warn：任务会永久滞留CLAIMED
+        // （无任何回收路径覆盖该态——liveness链/超时检查/stale重置均不命中），所属fire永远RUNNING。
+        // 失败终态化释放整个fire链路
+        NopJobFire fire;
+        NopJobSchedule schedule;
+        try {
+            fire = fireStore.loadFire(task.getJobFireId());
+            schedule = scheduleStore.loadSchedule(fire.getJobScheduleId());
+        } catch (NopException e) {
+            LOG.error("nop.job.worker.task-load-failed:taskId={},fireId={}", task.getJobTaskId(),
+                    task.getJobFireId(), e);
+            // 与外层per-task隔离catch同口径记录metric（AR-86：失败不静默）
+            workerMetrics.onTaskExecuteFailed(1);
+            completeTaskWithFailure(task, e.getErrorCode(), e.getDescription());
+            return;
+        } catch (Exception e) {
+            LOG.error("nop.job.worker.task-load-failed:taskId={},fireId={}", task.getJobTaskId(),
+                    task.getJobFireId(), e);
+            workerMetrics.onTaskExecuteFailed(1);
+            completeTaskWithFailure(task, null, e.toString());
+            return;
+        }
         IJobInvoker invoker;
         try {
             invoker = invokerResolver.resolveInvoker(schedule, fire);

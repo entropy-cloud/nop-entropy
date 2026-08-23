@@ -17,6 +17,7 @@ import org.dataloader.BatchLoader;
 import org.dataloader.DataLoader;
 import org.dataloader.DataLoaderFactory;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -46,21 +47,47 @@ public class BeanMethodBatchFetcher implements IDataFetcher {
     @Override
     public Object get(IDataFetchingEnvironment env) {
         IGraphQLExecutionContext context = env.getGraphQLExecutionContext();
-        DataLoader<Object, Object> loader = context.getDataLoader(loaderName);
-        if (loader == null) {
-            Object[] args = new Object[argBuilders.size()];
-            // 这里假定了除了source之外，其他的参数都相同
-            for (int i = 0, n = args.length; i < n; i++) {
-                if (i != sourceIndex)
-                    args[i] = argBuilders.get(i).apply(env);
+
+        // 非source参数参与loader注册名：同一请求内同名loader字段携带不同参数时必须各自成批装载，
+        // 否则第二个分支的参数被静默丢弃，整批按首次调用捕获的参数计算（错误数据）
+        Object[] args = new Object[argBuilders.size()];
+        for (int i = 0, n = args.length; i < n; i++) {
+            if (i != sourceIndex)
+                args[i] = argBuilders.get(i).apply(env);
+        }
+
+        String key = buildLoaderKey(args);
+        DataLoader<Object, Object> loader;
+        // check-then-act与registerDataLoader之间无原子性：并发分支同时首次命中同一loader时，
+        // 后注册方会触发ERR_GRAPHQL_DUPLICATED_LOADER使整个请求失败。此处与dispatchAll同锁串行化，
+        // 先注册者胜出，后到方直接复用已注册实例
+        synchronized (context) {
+            loader = context.getDataLoader(key);
+            if (loader == null) {
+                BatchLoader<Object, Object> batchLoader = keys -> {
+                    args[sourceIndex] = keys;
+                    return FutureHelper.futureCall(() -> realFetcher.apply(args, context));
+                };
+                loader = DataLoaderFactory.newDataLoader(batchLoader);
+                context.registerDataLoader(key, loader);
             }
-            BatchLoader<Object, Object> batchLoader = keys -> {
-                args[sourceIndex] = keys;
-                return FutureHelper.futureCall(() -> realFetcher.apply(args, context));
-            };
-            loader = DataLoaderFactory.newDataLoader(batchLoader);
-            context.registerDataLoader(loaderName, loader);
         }
         return loader.load(env.getSource());
+    }
+
+    /**
+     * 无额外参数时保持原loaderName（兼容既有注册名语义）；有额外参数时以参数内容哈希区分，
+     * 参数不同则各自成批。hashCode退化为身份哈希的对象只会导致批次变细，不影响正确性。
+     */
+    private String buildLoaderKey(Object[] args) {
+        if (args.length == 1)
+            return loaderName;
+
+        Object[] keyArgs = new Object[args.length - 1];
+        for (int i = 0, j = 0; i < args.length; i++) {
+            if (i != sourceIndex)
+                keyArgs[j++] = args[i];
+        }
+        return loaderName + "@" + Arrays.deepHashCode(keyArgs);
     }
 }

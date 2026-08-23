@@ -232,12 +232,8 @@ public class LocalCache<K, V> implements ICache<K, V>, IConfigRefreshable, IDest
 
     @Override
     public boolean putIfAbsent(K key, V value) {
-        V old = cache.getIfPresent(key);
-        if (old == null) {
-            cache.put(key, value);
-            return true;
-        }
-        return false;
+        // 底层Caffeine的asMap()提供原子putIfAbsent，避免check-then-act竞态
+        return cache.asMap().putIfAbsent(key, value) == null;
     }
 
     @Override

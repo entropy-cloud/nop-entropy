@@ -76,12 +76,14 @@
               ui:show="X">
             <schema type="java.time.LocalDateTime"/>
         </prop>
-        <prop name="accessToken" displayName="访问令牌" propId="15" i18n-en:displayName="Access Token" queryable="true"
-              sortable="true" insertable="true" updatable="false" internal="true" ui:show="X">
+        <prop name="accessToken" displayName="访问令牌" propId="15" i18n-en:displayName="Access Token"
+              tagSet="masked,not-pub" published="false" queryable="true" sortable="true" insertable="true"
+              updatable="false" internal="true" ui:show="X">
             <schema type="java.lang.String" precision="500"/>
         </prop>
-        <prop name="refreshToken" displayName="刷新令牌" propId="16" i18n-en:displayName="Refresh Token" queryable="true"
-              sortable="true" insertable="true" updatable="false" internal="true" ui:show="X">
+        <prop name="refreshToken" displayName="刷新令牌" propId="16" i18n-en:displayName="Refresh Token"
+              tagSet="masked,not-pub" published="false" queryable="true" sortable="true" insertable="true"
+              updatable="false" internal="true" ui:show="X">
             <schema type="java.lang.String" precision="500"/>
         </prop>
         <prop name="cacheData" displayName="缓存数据" propId="17" i18n-en:displayName="Cache Data" tagSet="not-pub"

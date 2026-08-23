@@ -36,8 +36,9 @@ import static io.nop.core.CoreErrors.ERR_RESOURCE_UNKNOWN_NAMESPACE;
 public class DefaultVirtualFileSystem implements IVirtualFileSystem, IRefreshable {
     private Map<String, IResourceNamespaceHandler> namespaceHandlers = new ConcurrentHashMap<>();
 
-    private IDeltaResourceStore deltaResourceStore;
-    private List<ZipFile> zipFiles;
+    // refresh/destroy中整体替换，读路径无锁，通过volatile保证引用替换的安全发布
+    private volatile IDeltaResourceStore deltaResourceStore;
+    private volatile List<ZipFile> zipFiles;
 
     public DefaultVirtualFileSystem() {
         registerNamespaceHandler(new SuperNamespaceHandler());
@@ -81,7 +82,7 @@ public class DefaultVirtualFileSystem implements IVirtualFileSystem, IRefreshabl
     }
 
     @Override
-    public void destroy() {
+    public synchronized void destroy() {
         DeltaResourceStore deltaResourceStore = new DeltaResourceStore();
         deltaResourceStore.setStore(new InMemoryResourceStore());
         this.deltaResourceStore = deltaResourceStore;

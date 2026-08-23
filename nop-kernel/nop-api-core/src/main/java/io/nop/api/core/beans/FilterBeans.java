@@ -323,9 +323,13 @@ public class FilterBeans {
         return ret;
     }
 
+    /**
+     * 空析取在逻辑上为假：空参数返回alwaysFalse，避免数据过滤/权限合并场景下条件被绕过。
+     * 与and(...)一致地容忍null元素，全null输入返回alwaysFalse。
+     */
     public static TreeBean or(TreeBean... filters) {
         if (filters.length == 0)
-            return alwaysTrue();
+            return alwaysFalse();
 
         if (filters.length == 1)
             return filters[0];
@@ -333,6 +337,8 @@ public class FilterBeans {
         TreeBean ret = new TreeBean(FILTER_OP_OR);
         for (int i = 0, n = filters.length; i < n; i++) {
             TreeBean filter = filters[i];
+            if (filter == null)
+                continue;
             if (filter.getTagName().equals(FILTER_OP_OR)) {
                 if (filter.getChildren() != null) {
                     for (TreeBean child : filter.getChildren()) {
@@ -343,6 +349,8 @@ public class FilterBeans {
                 ret.addChild(filter);
             }
         }
+        if (!ret.hasChild())
+            return alwaysFalse();
         return ret;
     }
 
@@ -360,7 +368,7 @@ public class FilterBeans {
 
     public static TreeBean or(List<TreeBean> filters) {
         if (filters.size() == 0)
-            return alwaysTrue();
+            return alwaysFalse();
 
         if (filters.size() == 1)
             return filters.get(0);

@@ -228,5 +228,9 @@ public interface IocErrors {
             ARG_DEPEND);
 
     ErrorCode ERR_IOC_BEAN_DEPENDS_GRAPH_CONTAINS_CYCLE = define("nop.err.ioc.bean-depends-graph-contains-loop",
-            "bean依赖关系不允许包含循环依赖。如果确实存在，可以在必要的地方配置节点上标注ioc:ignore-depends", ARG_BEAN_DEPENDS_CYCLE);
+            "bean依赖关系不允许包含循环依赖。如果确实存在，可以在必要的地方配置节点上标注ioc:ignore-depends",
+            ARG_BEAN_DEPENDS_CYCLE);
+
+    ErrorCode ERR_IOC_INVALID_PROP_VALUE_TYPE = define("nop.err.ioc.invalid-prop-value-type",
+            "bean[{beanName}]的属性[{propName}]的值类型[{value}]不被支持", ARG_BEAN_NAME, ARG_PROP_NAME, ARG_VALUE);
 }

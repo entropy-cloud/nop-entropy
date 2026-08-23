@@ -48,6 +48,8 @@ private static ObjIntConsumer<IDataRow> consumeString(Column<String> col) {
 
 ---
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复并附回归测试。全部 10 个 consumer 的 null/非 null 分支对调。测试：`nop-tablesaw` `TestDataSetToTableTransformer#testTransformKeepsValues`（修复前该测试必红：所有单元格变 missing）。
+
 ### [P1] netty 解码路径 ByteBuf 引用计数泄漏：subInput retain 后无人 release
 
 - **文件**: `nop-format/nop-record/src/main/java/io/nop/record/netty/ByteBufBinaryDataReader.java:377-396`；触发链 `nop-format/nop-record/src/main/java/io/nop/record/codec/impl/ModelBasedPacketCodec.java:162-174` + `nop-format/nop-record/src/main/java/io/nop/record/serialization/AbstractModelBasedRecordDeserializer.java:70-72`
@@ -72,6 +74,8 @@ if (length > 0) {
 - **建议**: `decodeFromBuf` 用 try-with-resources/finally 关闭顶层 reader；或 `subInput` 改为不 retain 的视图 + 由唯一所有者释放；至少在反序列化异常路径也要保证释放。
 - **误报排除**: 逐层核对了解码链（PacketCodecHandler.decode → decodeFromBuf → readObject → subInput），全链路无 close/release 调用（grep 验证 `ByteBufBinaryDataReader` 的构造点仅 ModelBasedPacketCodec:169/234，两处均未 close）；Netty slice/refCnt 语义按 4.1 标准行为核对。文件内注释"父 reader close 不影响子视图"表明设计意图是子 reader 自行 close，但反序列化器从不关闭它，泄漏成立。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复并附回归测试。`AbstractModelBasedRecordDeserializer.readObject` 与流式路径在区域消费完毕后关闭 subInput（`StreamingStackFrame` 新增 subIn 追踪，完成/异常路径均释放）；Count/DynCount codec 的 arrayInput 同样 finally 关闭。注意 `decodeFromBuf` 顶层 reader 不能关闭（PacketCodecHandler 用 readSlice 不 retain，帧由 cumulation 统一释放）。测试：`nop-record` `TestRecordRegionBoundary#testByteBufSubInputRefCntBalanced`（修复前 refCnt 净增）。
+
 ### [P1] SubBinaryDataReader.seek/reset 把子区间相对位置当底层绝对位置，静默错位读
 
 - **文件**: `nop-format/nop-record/src/main/java/io/nop/record/reader/SubBinaryDataReader.java:39-45, 93-96`
@@ -95,6 +99,8 @@ public void reset() throws IOException {
 - **建议**: 仿照 SubTextDataReader 增加 `startOffset` 字段，构造时记录 `underlying.pos()`，`seek(p)` 映射为 `underlying.seek(startOffset + p)`；`reset()` 回 `startOffset`。
 - **误报排除**: 已核对 RandomAccessFileBinaryDataReader.seek（`raf.seek(newPos)` 绝对定位，`:98-101`）与 StreamBinaryDataReader.seek（抛异常，`:108-110`）确认两种失效模式；确认 SubTextDataReader 是正确参照实现（构造器记录 `pos(input)`），排除"相对位置恰好等于绝对位置"的常态假设。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复并附回归测试。`SubBinaryDataReader` 增加 `startOffset`，`seek(p)` 映射为 `underlying.seek(startOffset+p)`、`reset()` 回子区间起点。测试：`TestSubBinaryDataReader#testSeekRelativeSubInterval`（RAF 底层）。
+
 ### [P1] BlockCachedBinaryDataReader.duplicate() 共享底层 reader 且块位置错标，导致数据损坏
 
 - **文件**: `nop-format/nop-record/src/main/java/io/nop/record/reader/BlockCachedBinaryDataReader.java:418-425`（配合 `loadNextBlock:531-554`、`tryLoadMoreData:458-483`）
@@ -114,6 +120,8 @@ DataBlock block = new DataBlock(ByteBuffer.wrap(buffer, 0, bytesRead), underlyin
 - **风险**: 调用 `duplicate()` 后，任一副本的任何继续读取都会拿到错位数据（静默数据损坏）；`detach()`（`:391-416`）是正确做法（复制缓存块、detach 底层），`duplicate()` 未遵循同等约束。
 - **建议**: `duplicate()` 底层改用 `underlyingReader.duplicate()`/`detach()`，并复制 currentPosition/maxReadPosition 状态（参照 `detach()` 的实现），或直接委托 `detach()`。
 - **误报排除**: 已核对 `IBinaryDataReader.duplicate` 语义（独立副本，ByteBufferBinaryDataReader/ByteBufBinaryDataReader 均返回独立 buffer 的 reader）；核对 `tryLoadMoreData` 无任何底层位置校验/重定位逻辑，块标签仅来自实例字段 `underlyingPosition`，错标机制成立。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。`duplicate()` 直接委托 `detach()`（复制缓存块、复制 currentPosition/maxReadPosition 状态），不再与原实例共享底层 reader。
 
 ### [P1] BitmapTagBinaryCodec.encodeTags 不向输出写入 bitmap 字节，编解码字节数不对称
 
@@ -136,6 +144,8 @@ if ((bytes[0] & 0b1000_0000) != 0) { ... nextBytes = input.readBytes(8); }
 - **风险**: 使用 `tagsCodec="bitmap128"`（已在 `FieldCodecRegistry.DEFAULT` 注册，`FieldCodecRegistry.java:30`）的模型：编码输出比解码输入每条记录少 8/16 字节，tag 存在位信息完全丢失，decode(encode(x)) 无法往返，对端无法解析。ISO8583 类报文功能不可用。
 - **建议**: `encodeTags` 按 bitSet 内容向 `output` 写出 8 或 16 字节（首位置续位），与 decode 的消费量对齐。
 - **误报排除**: grep 全模块 `encodeTags/writeTags` 实现与调用点，确认 `ModelBasedTextRecordSerializer.writeTags` 同样只消费返回值，无任何路径写出 bitmap 字节；接口 `IFieldTagBinaryCodec.encodeTags(output, ...)` 的参数签名表明写 output 是其职责，排除"由上层统一写出"的设计。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复并附回归测试。`encodeTags` 按 bitSet 写出 8/16 字节 bitmap（bit0 续位，与 decode 消费量对称）。测试：`TestBitmapTagBinaryCodec#testRoundTrip/#testEmptyValueWritesBitmap`。
 
 ### [P1] StreamingRecordDeserializer 处理 baseType 时复用共享 frame 并推进至 COMPLETED，派生类型字段全部丢失
 
@@ -161,6 +171,8 @@ case StreamingStackFrame.STAGE_BEFORE_READ:
 - **建议**: 递归处理 baseType 时为 base 创建独立 frame（或在 frame 中保存/恢复 stage 与 fieldIndex 状态），确保 base 处理完后回到 STAGE_READ_FIELDS 继续读派生字段。
 - **误报排除**: 逐行跟踪 frame 状态机（`StreamingStackFrame.isCompleted() = currentStage >= 5`，`moveToNextStage()` 单纯自增，无回退机制）与 `StreamingReadResult.then` 的惰性 continuation 语义（`:81-94`，action 在结果被消费后执行，此时 frame 已完成），确认派生字段循环必被跳过；对照非流式实现确认这是流式特有缺陷。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复并附回归测试。STAGE_BEFORE_READ 为基类使用独立 frame（含 suppressEndOfObject 抑制基类的 endOfObject 条目），基类字段读完后回到派生 frame 继续 READ_TAGS/READ_FIELDS；非流式字段经 `copyNonStreamingFields` 并入外层条目。测试：`TestBaseTypeStreaming#testStreamingBaseTypeFieldsNotLost`（修复前派生字段全部丢失、双 endOfObject）。
+
 ### [P1] StreamBinaryDataWriter.writeByteBuffer 忽略 arrayOffset，direct buffer 直接崩溃
 
 - **文件**: `nop-format/nop-record/src/main/java/io/nop/record/writer/StreamBinaryDataWriter.java:33-36`
@@ -180,6 +192,8 @@ public void writeByteBuffer(ByteBuffer buf) throws IOException {
 
 ---
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复并附回归测试。`writeByteBuffer` 对 heap 视图按 `position()+arrayOffset()` 计算，direct buffer 走临时数组拷贝。测试：`TestStreamBinaryDataWriter` 三个用例（切片/非零 arrayOffset/direct）。
+
 ### [P2] ModelBasedPacketCodec 的 initialBytesToStrip 仅在 encode 生效，解码侧从不应用，strip≠0 时帧错位
 
 - **文件**: `nop-format/nop-record/src/main/java/io/nop/record/codec/impl/ModelBasedPacketCodec.java:117-119, 163, 221-224`
@@ -196,6 +210,8 @@ public Object decodeFromBuf(ByteBuf buf, Class<?> targetType) {
 - **风险**: 任何配置 `initialBytesToStrip > 0` 的报文模型：解码端每帧少消费 strip 字节，残留字节被当作下一帧头 → 从第二个包起全部错帧/丢弃，属静默数据损坏；同时该配置项与 Netty LengthFieldBasedFrameDecoder 的同名语义不一致，易误配。
 - **建议**: 要么在 decode 侧实现 strip（`determinePacketLength` 帧长公式与 `decodeFromBuf` 同步调整），要么模型加载时校验禁止非 0 值并文档化。
 - **误报排除**: grep 全模块 `initialBytesToStrip` 使用点，确认解码链（determinePacketLength/decodeFromBuf/PacketCodecHandler）均未应用；对照 Netty LengthFieldBasedFrameDecoder 语义确认帧长公式推导正确。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复并附回归测试（含比审计更深的问题）。编码公式改为 `len = endIndex - lengthFieldEndOffset - lengthAdjustment`，与解码器 Netty 语义 `frame = raw + adj + H` 对称——审计只指出 strip 不对称，实际上原公式在默认配置（strip=0）下就与解码恒差 H 字节（仅 strip==H 时碰巧一致，netty 集成测试 @Disabled 掩盖）；`initialBytesToStrip` 非 0 时构造即抛 `ERR_RECORD_ATTRIBUTE_NOT_IMPLEMENTED`（仓库内无任何配置使用非 0 值）。测试：`TestModelBasedPacketCodec#testFrameLengthSymmetry/#testInitialBytesToStripRejected`。
 
 ### [P2] readCollection 的 repeatUntil/fixed 分支在元素零消耗且返回 null 时死循环
 
@@ -217,6 +233,8 @@ while (!checkUntil(repeatUntil, in, record, context)) {   // until 分支：无 
 - **建议**: 每轮迭代记录读取前 `in.pos()`，若位置未前进且未新增元素则抛错退出；或 until/fixed 分支也用迭代计数（而非 coll.size）做上限。
 - **误报排除**: 核对 `readSwitch` 返回 null 的零消耗路径（typeMeta.readWhen=false、readObject 返回 false）真实存在；核对循环体内无其他终止条件（fixed 分支依赖 subInput.isEof()，零消耗时恒 false）。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。until/fixed 分支每轮记录读取前位置，元素零消耗且未新增（readWhen=false 等）时抛 `ERR_RECORD_COLLECTION_NO_PROGRESS`，不再死循环；集合超限异常改为带错误码的 NopException。
+
 ### [P2] Count/DynCountArray 二进制 codec 用线上 count 直接预分配集合，恶意长度字段可致 OOM
 
 - **文件**: `nop-format/nop-record/src/main/java/io/nop/record/codec/impl/CountArrayBinaryCodec.java:31-39`；`nop-format/nop-record/src/main/java/io/nop/record/codec/impl/DynCountArrayBinaryCodec.java:44-53`
@@ -232,6 +250,8 @@ for (int i = 0; i < count; i++) { ... }
 - **风险**: 解析不可信二进制输入（netty 报文/上传文件）时单包 DoS。
 - **建议**: 在预分配前用 `field.getMaxCollectionSize()` 或 `input.available()/itemLength` 收敛 count（`Math.min(count, 可用字节数/itemLength)`），超限抛带 ErrorCode 的 NopException。
 - **误报排除**: 核对 ArrayList 构造语义（立即分配 `Object[count]`）；核对 `readBytes(int n)` 类似模式仅当 n 来自模型配置（可信）而此处 count 来自线上数据，风险等级不同。DynLVFieldBinaryCodec 的 `readBytesStrict`（`:61-75`）在 `length<=0`（未配置 maxLength）时同样可被恶意 len 触发大分配，属同族问题，修复合并处理。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。`CountArrayBinaryCodec.checkCount`：count 超过 `DEFAULT_MAX_COLLECTION_SIZE`(100万) 或为负抛 `ERR_RECORD_DECODE_LENGTH_IS_TOO_LONG`；预分配上限 1024。`DynLVFieldBinaryCodec.readBytesStrict` 在未配置 maxLength 时增加 64MB 防御上限。
 
 ### [P2] BinaryReaderHelper.processZlib：截断输入死循环 + 无解压上限 + 裸 RuntimeException
 
@@ -257,6 +277,8 @@ while (!ifl.finished()) {
 - **建议**: 循环内处理 `inflate()==0 && ifl.needsInput()`（抛 NopException 带 cause）；增加最大输出长度参数；`NopException.adapt(e)` 替换裸异常。
 - **误报排除**: 核对 JDK Inflater 语义（输入耗尽且未 finished 时 inflate 返回 0 且不抛异常）；grep 确认模块内无调用方已如实写入现状。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。输入耗尽且未 finished（inflate 返回 0 且 needsInput）抛 `ERR_RECORD_ZLIB_DECODE_FAIL`；解压输出上限 256MB；DataFormatException 以 NopException 包装（保留 cause）；Inflater 在 finally 中 end()。
+
 ### [P2] PacketStateMachineHandler.write 丢弃消息时不完成 ChannelPromise，write future 永不结束
 
 - **文件**: `nop-format/nop-record-netty/src/main/java/io/nop/netty/ext/handlers/PacketStateMachineHandler.java:53-71`
@@ -278,6 +300,8 @@ public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise)
 - **建议**: drop 分支补 `promise.trySuccess()`（或 `promise.setFailure(...)` 表达丢弃语义）。
 - **误报排除**: 确认 Netty 4.1 中 handler 正常返回（不抛异常）时框架不会代为完成 promise；channelRead 侧无此问题（inbound 无 promise）。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。drop 分支补 `promise.trySuccess()`，满足 Netty 吞写操作必须自行完成 promise 的契约。
+
 ### [P2] TransferServerProxy/ProxyHandler 丢弃转发响应，与类注释宣称的中转回程不符
 
 - **文件**: `nop-format/nop-record-netty/src/main/java/io/nop/netty/ext/handlers/ProxyHandler.java:17-19`（设计来源 `TransferServerProxy.java:21-22, 67-71`）
@@ -293,6 +317,8 @@ public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception 
 - **风险**: A 侧请求方永远收不到响应（超时）；TransferServerProxy 的中转功能只完成了单向。
 - **建议**: `sendToAnyChannel(...).whenComplete((resp, err) -> ctx.writeAndFlush(err != null ? 错误消息 : resp))`。
 - **误报排除**: 核对 serverB 侧管线（`TransferServerProxy.initServerBChannel` 有 RpcMessageHandler 管理 pending future），确认响应只通过该 future 传递，不存在其他自动回写路径。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。`ProxyHandler.channelRead` 将 `sendToAnyChannel` 返回的响应 future 写回当前 channel（`ctx.writeAndFlush(resp)`），失败路径记日志，实现类注释宣称的中转回程。
 
 ### [P2] 定长字段编码超长静默截断、多字节字符集按字节截半、null 默认值 text/binary 不一致
 
@@ -312,6 +338,8 @@ byte[] bytes = padBytes(text.getBytes(charset), length);  // ByteHelper.forceXxx
 - **建议**: 超长抛 `ERR_RECORD_FIELD_LENGTH_GREATER_THAN_MAX_VALUE`（RecordMetaHelper 已有该错误码）；null 默认值统一（建议按字段类型：数值 "0"、字符串补位符），多字节 charset 在字符域判断长度。
 - **误报排除**: 已读 nop-commons 的 force*Pad 实现确认截断行为；三处默认值来源均已定位（含 `ModelBasedTextRecordSerializer:45`）；"force 前缀=有意截断"不能解释 null 默认值的不一致，作为整体契约风险报告。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 部分修复，其余暂缓。null 默认值不一致与静默截断属编解码契约设计（超长报错会改变既有银行报文兼容行为，需要按字段类型的破坏性策略决策），暂缓；多字节字符集按字节截半随截断策略一并处理。已在报告中确认风险。
+
 ### [P2] 模块内错误处理违例：裸 IllegalStateException/IllegalArgumentException + 数组/LV codec encode 传 null serializer
 
 - **文件**: `nop-format/nop-record/src/main/java/io/nop/record/serialization/AbstractModelBasedRecordDeserializer.java:238, 253, 265, 293`；`nop-format/nop-record/src/main/java/io/nop/record/serialization/StreamingRecordDeserializer.java:342-343`；`nop-format/nop-record/src/main/java/io/nop/record/codec/impl/DynLVFieldBinaryCodec.java:81, 84`；`nop-format/nop-record/src/main/java/io/nop/record/codec/impl/CountArrayBinaryCodec.java:50, 52`；`nop-format/nop-record/src/main/java/io/nop/record/codec/impl/DynCountArrayBinaryCodec.java:66, 68`
@@ -328,6 +356,8 @@ lengthCodec.encode(output, len, length, context, null);      // serializer 参�
 - **风险**: 接错模型时报错信息无法定位（裸 JDK 异常）；自定义 codec 组合在 encode 时 NPE。
 - **建议**: 替换为带错误码的 NopException；encode 调用统一透传 `serializer`。
 - **误报排除**: 逐一打开引用行确认字符串内容与 null 实参；确认 `IFieldBinaryCodec.encode` 的 serializer 参数在 `ModelBasedPacketCodec.writeUnadjustedFrameLength`（传 serializer）与上述三处（传 null）用法矛盾，非接口契约允许的"可空"（接口无 @Nullable 注解且无文档）。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。裸 `IllegalStateException`/`IllegalArgumentException` 替换为 `NopException` + RecordErrors 新增错误码（ERR_RECORD_COLLECTION_SIZE_EXCEED_LIMIT / ERR_RECORD_COLLECTION_NO_PROGRESS / ERR_RECORD_ATTRIBUTE_NOT_IMPLEMENTED）；DynLV/Count/DynCount 三个 codec 的 encode 统一透传 serializer。
 
 ### [P2] AppendableTextDataWriter.append(char[],start,end) 非 StringBuilder 分支双重应用区间，越界或写错字符
 
@@ -351,6 +381,8 @@ public ITextDataWriter append(char[] chars, int start, int end) throws IOExcepti
 
 ---
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复并附回归测试。非 StringBuilder 分支去掉对 MutableString 视图的第二次区间应用；StringBuilder 分支修正为 `append(chars, start, end - start)`（第三参是长度）。测试：`TestAppendableTextDataWriter`。
+
 ### [P3] BlockCachedTextDataReader.readLine 在 EOF 时返回 null，与其他 reader 返回 "" 不一致
 
 - **文件**: `nop-format/nop-record/src/main/java/io/nop/record/reader/BlockCachedTextDataReader.java:360`
@@ -364,6 +396,8 @@ return result.length() > 0 ? result.toString() : null;   // EOF 且无内容 →
 - **风险**: 同一模型在大文件（走 BlockCachedTextDataReader）与小文件（走 SimpleTextDataReader）下行为分叉，空行处理不一致。
 - **建议**: 统一返回 ""，或在接口 javadoc 固化契约。
 - **误报排除**: 三处实现均已打开核对返回语句。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复（方向与审计建议相反）。统一为 **EOF 返回 null**：把 Simple/Reader 两个 reader 改为 null 而非把 BlockCached 改为 ""——现有消费方以 `while ((line=readLine(...)) != null)` 判 EOF（TestBlockCachedTextDataReader2#testLargeFileSimulation 即此约定，首次尝试按审计方向统一为 "" 时该测试死循环），"统一为空串"会在所有 null 判EOF的调用点引入死循环。接口 javadoc 已固化 null 语义。
 
 ### [P3] EOLFieldCodec 解码接受 CRLF/LF 但编码恒写 LF，CRLF 输入往返后字节不保真
 
@@ -384,6 +418,8 @@ output.writeByte((byte) '\n');
 - **建议**: 文档化该规范化行为，或提供按输入保真的行尾选项。
 - **误报排除**: 已核对编解码两侧实现，确认无行尾记忆/配置。
 
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复（文档化）。EOLFieldCodec 类 javadoc 明确"解码兼容 CRLF/LF 归一为 LF，编码恒写 LF"的规范化行为。
+
 ### [P3] TableFlowFunctions.facetNumeric 桶边界排除最大值且浮点步进漂移
 
 - **文件**: `nop-format/nop-tablesaw/src/main/java/io/nop/tablesaw/dataflow/TableFlowFunctions.java:42-58`
@@ -399,6 +435,8 @@ for (double start = min; start < max; start += step) {
 - **风险**: 数据剖析报表的桶计数轻微失真；维护性噪音。
 - **建议**: 最后一桶用 `v <= rangeEnd`；步进用整数索引乘法；清理无用变量。
 - **误报排除**: 边界条件以 v==max 单值核对；无用赋值经行内确认未在方法内使用。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 已修复。桶边界改用整数索引乘法（消除浮点累进漂移），最后一个桶闭区间包含最大值。
 
 ### [P3] RecordAggregateState.checkPageChanged 的 pageSize 边界疑似 off-by-one（意图存疑）
 
@@ -421,3 +459,5 @@ if (pageSize > 0 && indexInPage >= this.pageSize - 1) {
 
 - 三个模块整体架构清晰（模型驱动 + codec 注册表 + reader/writer 抽象），错误码体系（RecordErrors）在主路径使用较规范，未发现空 catch、异常吞噬、SimpleDateFormat、synchronized 误用。
 - 主要风险集中在：(1) netty ByteBuf 所有权约定（subInput retain 无对应 release）；(2) 子区间 reader 的位置语义（SubBinaryDataReader 与文本侧实现不一致）；(3) 流式反序列化状态机对 baseType 的处理；(4) 编解码字节数对称性（bitmap tag、initialBytesToStrip）；(5) tablesaw 数据搬运的 null 判断颠倒。
+
+> **处置（fix-ai-check 分支，2026-08-21）**: 复查后维持现状。审计自评"意图存疑"：pageSize 可能按"含页头/页脚行"的报文设计，无测试/文档钉住语义；无证据表明当前行为错误，盲目改为 `>= pageSize` 有破坏既有分页报文的风险。待模型文档确认后再动。

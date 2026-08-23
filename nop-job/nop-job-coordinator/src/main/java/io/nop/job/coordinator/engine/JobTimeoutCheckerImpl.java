@@ -284,9 +284,14 @@ public class JobTimeoutCheckerImpl extends AbstractBatchScanner implements IJobT
             LOG.warn("nop.job.timeout.dispatch-schedule-deleted:fireId={}", fire.getJobFireId());
             String localized = ErrorMessageManager.instance().getLocalizedDescription(null,
                     ERR_JOB_SCHEDULE_DELETED.getErrorCode());
-            fireStore.failFireWithoutSchedule(fire.getJobFireId(),
+            boolean fireFailed = fireStore.failFireWithoutSchedule(fire.getJobFireId(),
                     ERR_JOB_SCHEDULE_DELETED.getErrorCode(),
                     localized != null ? localized : ERR_JOB_SCHEDULE_DELETED.getDescription());
+            if (!fireFailed) {
+                // Bug C fix对称防护：fire被并发推进（如dispatcher已置RUNNING）时不再连带取消任务，
+                // 避免出现RUNNING fire + 全CANCELED tasks的状态漂移
+                return;
+            }
 
             List<NopJobTask> tasks = taskStore.findTasksByFireId(fire.getJobFireId());
             Timestamp endTime = new Timestamp(now);

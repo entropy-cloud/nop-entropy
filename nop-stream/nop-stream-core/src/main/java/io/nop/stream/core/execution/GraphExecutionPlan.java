@@ -374,7 +374,7 @@ public class GraphExecutionPlan {
             for (int taskIndex = 0; taskIndex < parallelism; taskIndex++) {
                 boolean needsCopy = parallelism > 1 || !outEdges.isEmpty() || !inEdges.isEmpty();
                 OperatorChain chain = needsCopy
-                        ? original.getOperatorChains().get(0).deepCopy()
+                        ? original.getOperatorChains().get(0).deepCopy(taskIndex)
                         : original.getOperatorChains().get(0);
 
                 RecordWriter<Object> recordWriter = null;

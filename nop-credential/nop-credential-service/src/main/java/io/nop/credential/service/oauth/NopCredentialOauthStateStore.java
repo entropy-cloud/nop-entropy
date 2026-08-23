@@ -12,11 +12,10 @@ import io.nop.core.lang.sql.SQL;
 import io.nop.credential.dao.entity.NopCredentialOauthState;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
-import io.nop.dao.jdbc.IJdbcTemplate;
+import io.nop.orm.IOrmTemplate;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
-import static io.nop.dao.DaoConstants.DEFAULT_QUERY_SPACE;
 
 /**
  * OAuth state 绑定的 DB 存储（W9 Phase 1 Decision：新 ORM 实体，跨副本可读）。
@@ -33,20 +32,18 @@ import static io.nop.dao.DaoConstants.DEFAULT_QUERY_SPACE;
 @Singleton
 public class NopCredentialOauthStateStore {
 
-    static final String TABLE = "nop_credential_oauth_state";
-
     @Inject
     IDaoProvider daoProvider;
 
     @Inject
-    IJdbcTemplate jdbcTemplate;
+    IOrmTemplate ormTemplate;
 
     public void setDaoProvider(IDaoProvider daoProvider) {
         this.daoProvider = daoProvider;
     }
 
-    public void setJdbcTemplate(IJdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
+    public void setOrmTemplate(IOrmTemplate ormTemplate) {
+        this.ormTemplate = ormTemplate;
     }
 
     private IEntityDao<NopCredentialOauthState> dao() {
@@ -100,11 +97,11 @@ public class NopCredentialOauthStateStore {
         if (StringHelper.isEmpty(state))
             return false;
         long now = System.currentTimeMillis();
-        SQL update = SQL.begin().name("credentialOauthStateConsume").querySpace(DEFAULT_QUERY_SPACE)
-                .sql("UPDATE " + TABLE + " SET CONSUMED = 1 "
-                        + "WHERE STATE = ? AND CONSUMED = 0 AND EXPIRE_AT > ?", state, now)
+        SQL update = SQL.begin().name("credentialOauthStateConsume")
+                .sql("update NopCredentialOauthState o set o.consumed = 1 "
+                        + "where o.state = ? and o.consumed = 0 and o.expireAt > ?", state, now)
                 .end();
-        long affected = jdbcTemplate.executeUpdate(update);
+        long affected = ormTemplate.executeUpdate(update);
         return affected > 0;
     }
 
@@ -113,8 +110,8 @@ public class NopCredentialOauthStateStore {
      */
     public void cleanupExpired() {
         long now = System.currentTimeMillis();
-        SQL del = SQL.begin().name("credentialOauthStateCleanup").querySpace(DEFAULT_QUERY_SPACE)
-                .sql("DELETE FROM " + TABLE + " WHERE EXPIRE_AT < ?", now).end();
-        jdbcTemplate.executeUpdate(del);
+        SQL del = SQL.begin().name("credentialOauthStateCleanup")
+                .sql("delete from NopCredentialOauthState o where o.expireAt < ?", now).end();
+        ormTemplate.executeUpdate(del);
     }
 }

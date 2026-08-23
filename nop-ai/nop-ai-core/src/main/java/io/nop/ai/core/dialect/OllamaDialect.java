@@ -344,6 +344,17 @@ public class OllamaDialect extends AbstractLlmDialect implements ILlmDialect {
                     chunk.setCallId((String) tcMap.get("id"));
                     chunk.setPhase(StreamItemPhase.ADDED);
                     chunk.setDelta(func != null ? (String) func.get("name") : null);
+                    // Ollama 流式 tool_calls 单事件完整下发 name + args。args 可为结构化 Map
+                    // 或 JSON 字符串（与 parseResponse/parseRequestBody 同款双形态），经 arguments
+                    // 通道同载完整 JSON 文本，弥补单 chunk 无法再发 DELTA 片段的通道缺口。
+                    if (func != null) {
+                        Object argsObj = func.get("arguments");
+                        if (argsObj instanceof Map && !((Map<?, ?>) argsObj).isEmpty()) {
+                            chunk.setArguments(JSON.stringify(argsObj));
+                        } else if (argsObj instanceof String && !((String) argsObj).isEmpty()) {
+                            chunk.setArguments((String) argsObj);
+                        }
+                    }
                 }
             }
         }
@@ -518,6 +529,13 @@ public class OllamaDialect extends AbstractLlmDialect implements ILlmDialect {
                 tc.put("type", "function");
                 Map<String, Object> func = new LinkedHashMap<>();
                 func.put("name", chunk.getDelta());
+                // 完整 arguments 通道回填（Ollama 原生形态为结构化 arguments）
+                if (chunk.getArguments() != null) {
+                    Object args = JSON.parse(chunk.getArguments());
+                    if (args instanceof Map) {
+                        func.put("arguments", args);
+                    }
+                }
                 tc.put("function", func);
                 message.put("tool_calls", List.of(tc));
             } else {

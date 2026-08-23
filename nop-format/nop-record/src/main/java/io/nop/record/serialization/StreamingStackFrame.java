@@ -48,8 +48,28 @@ public class StreamingStackFrame {
 
     // 区域对齐状态（R2-1）：流式对象 length>0 时记录 subInput 创建信息，帧完成处跳过残留
     private IDataReaderBase subBaseIn;
+    private IDataReaderBase subIn;
     private long subStartPos;
     private int subLength;
+
+    // 基类帧复用处理时抑制 endOfObject 事件，避免一条记录被拆分成两条
+    private boolean suppressEndOfObject;
+
+    public boolean isSuppressEndOfObject() {
+        return suppressEndOfObject;
+    }
+
+    public void setSuppressEndOfObject(boolean suppressEndOfObject) {
+        this.suppressEndOfObject = suppressEndOfObject;
+    }
+
+    public IDataReaderBase getSubIn() {
+        return subIn;
+    }
+
+    public void setSubIn(IDataReaderBase subIn) {
+        this.subIn = subIn;
+    }
 
     public IDataReaderBase getSubBaseIn() {
         return subBaseIn;

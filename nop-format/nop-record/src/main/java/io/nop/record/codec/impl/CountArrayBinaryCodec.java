@@ -1,5 +1,6 @@
 package io.nop.record.codec.impl;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.record.codec.IFieldBinaryCodec;
 import io.nop.record.codec.IFieldCodecContext;
 import io.nop.record.reader.IBinaryDataReader;
@@ -13,7 +14,15 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import static io.nop.record.RecordConstants.DEFAULT_MAX_COLLECTION_SIZE;
+import static io.nop.record.RecordErrors.ARG_LENGTH;
+import static io.nop.record.RecordErrors.ARG_MAX_LENGTH;
+import static io.nop.record.RecordErrors.ERR_RECORD_DECODE_LENGTH_IS_TOO_LONG;
+
 public class CountArrayBinaryCodec implements IFieldBinaryCodec {
+
+    static final int MAX_PREALLOC_SIZE = 1024;
+
     private final IFieldBinaryCodec countCodec;
     private final IFieldBinaryCodec itemCodec;
 
@@ -29,15 +38,27 @@ public class CountArrayBinaryCodec implements IFieldBinaryCodec {
     public Object decode(IBinaryDataReader input, Object record, int length, IFieldCodecContext context,
                          IModelBasedBinaryRecordDeserializer deserializer) throws IOException {
         int count = (Integer) countCodec.decode(input, record, length, context, deserializer);
+        checkCount(count);
 
         IBinaryDataReader arrayInput = input.subInput(length);
-
-        List<Object> ret = new ArrayList<>(count);
-        for (int i = 0; i < count; i++) {
-            Object item = itemCodec.decode(arrayInput, record, itemLength, context, deserializer);
-            ret.add(item);
+        List<Object> ret = new ArrayList<>(Math.min(count, MAX_PREALLOC_SIZE));
+        try {
+            for (int i = 0; i < count; i++) {
+                Object item = itemCodec.decode(arrayInput, record, itemLength, context, deserializer);
+                ret.add(item);
+            }
+        } finally {
+            // ByteBuf 类 subInput 持有独立引用计数，必须关闭释放
+            arrayInput.close();
         }
         return ret;
+    }
+
+    static void checkCount(int count) {
+        if (count < 0 || count > DEFAULT_MAX_COLLECTION_SIZE)
+            throw new NopException(ERR_RECORD_DECODE_LENGTH_IS_TOO_LONG)
+                    .param(ARG_LENGTH, count)
+                    .param(ARG_MAX_LENGTH, DEFAULT_MAX_COLLECTION_SIZE);
     }
 
     @Override
@@ -47,9 +68,9 @@ public class CountArrayBinaryCodec implements IFieldBinaryCodec {
         if (list == null)
             list = Collections.emptyList();
 
-        countCodec.encode(output, list.size(), -1, context, null);
+        countCodec.encode(output, list.size(), -1, context, serializer);
         for (Object item : list) {
-            itemCodec.encode(output, item, itemLength, context, null);
+            itemCodec.encode(output, item, itemLength, context, serializer);
         }
     }
 }

@@ -13,8 +13,10 @@ import java.io.Serializable;
  * Serializable descriptor of a pending file-sink commit for one checkpoint epoch.
  *
  * <p>Stores the temp-file path (as a {@code String}, because {@code java.nio.file.Path} is not
- * {@code Serializable}) and the number of records buffered in that epoch. {@code commit(epochId)}
- * consumes this descriptor to perform the atomic rename.
+ * {@code Serializable}), the number of records buffered in that epoch, and the owning
+ * subtask index. {@code commit(epochId)} consumes this descriptor to perform the atomic
+ * rename; the owner index keeps the final path / manifest key stable even when a
+ * different subtask copy re-commits the entry after recovery.
  */
 public class FilePendingCommit implements Serializable {
 
@@ -22,13 +24,23 @@ public class FilePendingCommit implements Serializable {
 
     private final String tempPath;
     private final int recordCount;
+    /**
+     * Subtask index of the sink copy that created this entry (suffixes output paths).
+     * Defaults to 0 for entries created by a non-parallel sink (backward compatible).
+     */
+    private final int subtaskIndex;
 
     public FilePendingCommit(String tempPath, int recordCount) {
+        this(tempPath, recordCount, 0);
+    }
+
+    public FilePendingCommit(String tempPath, int recordCount, int subtaskIndex) {
         if (tempPath == null) {
             throw new IllegalArgumentException("tempPath must not be null");
         }
         this.tempPath = tempPath;
         this.recordCount = recordCount;
+        this.subtaskIndex = subtaskIndex;
     }
 
     public String getTempPath() {
@@ -39,8 +51,13 @@ public class FilePendingCommit implements Serializable {
         return recordCount;
     }
 
+    public int getSubtaskIndex() {
+        return subtaskIndex;
+    }
+
     @Override
     public String toString() {
-        return "FilePendingCommit{tempPath='" + tempPath + "', recordCount=" + recordCount + "}";
+        return "FilePendingCommit{tempPath='" + tempPath + "', recordCount=" + recordCount
+                + ", subtaskIndex=" + subtaskIndex + "}";
     }
 }

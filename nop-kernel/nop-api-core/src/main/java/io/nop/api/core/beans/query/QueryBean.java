@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 
 import static io.nop.api.core.ApiConstants.JOIN_TYPE_INNER_JOIN;
 import static io.nop.api.core.ApiConstants.JOIN_TYPE_LEFT_JOIN;
+import static io.nop.api.core.ApiConstants.JOIN_TYPE_RIGHT_JOIN;
 
 @DataBean
 @GraphQLObject
@@ -491,7 +492,7 @@ public class QueryBean implements Serializable, ICloneable {
     }
 
     public QueryBean rightJoin(String sourceName, String alias, String leftJoinFields, String rightJoinFields) {
-        return addJoin(JOIN_TYPE_LEFT_JOIN, sourceName, alias, leftJoinFields, rightJoinFields);
+        return addJoin(JOIN_TYPE_RIGHT_JOIN, sourceName, alias, leftJoinFields, rightJoinFields);
     }
 
     public QueryBean innerJoin(String sourceName, String alias, String leftJoinFields, String rightJoinFields) {
@@ -527,7 +528,9 @@ public class QueryBean implements Serializable, ICloneable {
         join.setJoinType(joinType);
         join.setSourceName(sourceName);
         join.setAlias(alias);
-        if (Objects.equals(dimFields, leftJoinFields)) {
+        // dimFields是List<String>，与字符串leftJoinFields直接equals恒不相等；
+        // 归一化为与解析后的leftProps比较，命中时保留dimFields结构化信息
+        if (Objects.equals(dimFields, leftProps)) {
             join.setDimFields(rightProps);
         } else {
             List<QueryJoinConditionBean> joins = new ArrayList<>(leftProps.size());

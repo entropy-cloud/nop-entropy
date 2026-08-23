@@ -42,8 +42,10 @@ import io.nop.graphql.core.utils.GraphQLTypeHelper;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_QUERY_MAX_DEPTH;
 import static io.nop.graphql.core.GraphQLConstants.BIZ_OBJ_NAME_ROOT;
@@ -106,6 +108,58 @@ public class GraphQLSelectionResolver {
         for (GraphQLDefinition def : doc.getDefinitions()) {
             if (def instanceof GraphQLOperation) {
                 resolveOperation(doc, (GraphQLOperation) def);
+            }
+        }
+
+        checkFragmentExpansion(doc);
+    }
+
+    /**
+     * fragment预解析以level=-1为基线独立校验，operation侧引用已解析fragment时直接早退，
+     * 使用点深度不会叠加到fragment body上。因此fragment链式堆叠（F1引用F2引用F3...）可以
+     * 构造展开深度约为maxDepth×链长的查询，绕过DoS深度防护。
+     * 每个fragment body自身的字段嵌套已由resolveSelections按maxDepth校验，唯一无界的组合因子是
+     * 引用链长度，故此处限制单条路径上fragment引用的嵌套层数不超过maxDepth：标准introspection查询
+     * 的FullType→TypeRef仅2层，不受影响；总展开深度被限定在约maxDepth×(maxDepth+1)以内。
+     * 同时检测fragment循环引用：循环在resolve阶段静默放行，执行期会无限递归导致StackOverflowError。
+     */
+    private void checkFragmentExpansion(GraphQLDocument doc) {
+        for (GraphQLDefinition def : doc.getDefinitions()) {
+            if (def instanceof GraphQLOperation) {
+                GraphQLSelectionSet selectionSet = ((GraphQLOperation) def).getSelectionSet();
+                if (selectionSet != null)
+                    checkSelectionSetFragments(selectionSet, 0, new HashSet<>());
+            }
+        }
+    }
+
+    private void checkSelectionSetFragments(GraphQLSelectionSet selectionSet, int fragmentDepth,
+                                            Set<GraphQLFragment> visiting) {
+        for (GraphQLSelection selection : selectionSet.getSelections()) {
+            if (selection instanceof GraphQLFragmentSelection) {
+                GraphQLFragment fragment = ((GraphQLFragmentSelection) selection).getResolvedFragment();
+                if (fragment == null)
+                    continue;
+
+                if (!visiting.add(fragment)) {
+                    throw new NopException(ERR_GRAPHQL_INVALID_FRAGMENT).source(selection)
+                            .param(ARG_FRAGMENT_NAME, fragment.getName());
+                }
+
+                if (fragmentDepth + 1 > maxDepth) {
+                    throw new NopException(ERR_GRAPHQL_QUERY_EXCEED_MAX_DEPTH).source(selection)
+                            .param(ARG_SELECTION_SET, selectionSet.toSource()).param(ARG_MAX_DEPTH, maxDepth)
+                            .param(ARG_LEVEL, fragmentDepth + 1);
+                }
+
+                GraphQLSelectionSet fragmentSet = fragment.getSelectionSet();
+                if (fragmentSet != null)
+                    checkSelectionSetFragments(fragmentSet, fragmentDepth + 1, visiting);
+                visiting.remove(fragment);
+            } else if (selection instanceof GraphQLFieldSelection) {
+                GraphQLSelectionSet childSet = ((GraphQLFieldSelection) selection).getSelectionSet();
+                if (childSet != null)
+                    checkSelectionSetFragments(childSet, fragmentDepth, visiting);
             }
         }
     }

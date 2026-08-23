@@ -504,9 +504,10 @@ public class TestJobCompletionProcessor {
         @Override public NopJobFire getFireById(String jobFireId) { return firesById.get(jobFireId); }
         @Override public Map<String, NopJobFire> batchLoadFires(Set<String> fireIds) { return Collections.emptyMap(); }
         @Override
-        public void failFireWithoutSchedule(String jobFireId, String errorCode, String errorMessage) {
+        public boolean failFireWithoutSchedule(String jobFireId, String errorCode, String errorMessage) {
             this.failedFireId = jobFireId;
             this.failedErrorCode = errorCode;
+            return true;
         }
     }
 

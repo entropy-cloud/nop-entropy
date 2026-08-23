@@ -70,4 +70,6 @@ public interface MermaidErrors {
 
     ErrorCode ERR_MERMAID_MISSING_REQUIRED_FIELD = define("nop.err.mermaid.missing-required-field",
             "Mermaid节点缺少必需的字段:{field}", "field");
+    ErrorCode ERR_MERMAID_INVALID_IDENTIFIER = define("nop.err.mermaid.invalid-identifier",
+            "标识符超出文法词法范围（仅允许ASCII字母数字下划线）:{id}", "id");
 }
