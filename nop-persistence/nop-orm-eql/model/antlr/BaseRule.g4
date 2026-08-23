@@ -162,16 +162,12 @@ sqlInValues_:
       e=sqlExpr (COMMA_ e=sqlExpr)*;
 
 sqlExpr_bit
-    : left=sqlExpr_bit operator=VERTICAL_BAR_ right=sqlExpr_bit  # SqlBinaryExpr
+    : left=sqlExpr_bit operator=CARET_ right=sqlExpr_bit  # SqlBinaryExpr
+    | left=sqlExpr_bit operator=(ASTERISK_ | SLASH_ | MOD_) right=sqlExpr_bit # SqlBinaryExpr
+    | left=sqlExpr_bit operator=(PLUS_ | MINUS_) right=sqlExpr_bit  # SqlBinaryExpr
+    | left=sqlExpr_bit operator=(SIGNED_LEFT_SHIFT_ | SIGNED_RIGHT_SHIFT_) right=sqlExpr_bit  # SqlBinaryExpr
     | left=sqlExpr_bit operator=AMPERSAND_ right=sqlExpr_bit     # SqlBinaryExpr
-    | left=sqlExpr_bit operator=SIGNED_LEFT_SHIFT_ right=sqlExpr_bit  # SqlBinaryExpr
-    | left=sqlExpr_bit operator=SIGNED_RIGHT_SHIFT_ right=sqlExpr_bit # SqlBinaryExpr
-    | left=sqlExpr_bit operator=PLUS_ right=sqlExpr_bit  # SqlBinaryExpr
-    | left=sqlExpr_bit operator=MINUS_ right=sqlExpr_bit  # SqlBinaryExpr
-    | left=sqlExpr_bit operator=ASTERISK_ right=sqlExpr_bit # SqlBinaryExpr
-    | left=sqlExpr_bit operator=SLASH_ right=sqlExpr_bit  # SqlBinaryExpr
-    | left=sqlExpr_bit operator=MOD_ right=sqlExpr_bit   # SqlBinaryExpr
-    | left=sqlExpr_bit operator=CARET_ right=sqlExpr_bit  # SqlBinaryExpr
+    | left=sqlExpr_bit operator=VERTICAL_BAR_ right=sqlExpr_bit  # SqlBinaryExpr
 //    | left=bitExpr PLUS_ right=sqlIntervalExpr  # SqlPlusIntervalExpr_plus
 //    | left=bitExpr MINUS_ right=sqlIntervalExpr # SqlPlusIntervalExpr_minus
     | sqlExpr_simple  # SqlExpr_simple2

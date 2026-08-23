@@ -569,7 +569,7 @@ codegen 生成的 XMeta 中会自动设置两个关键属性：
 
 ### EQL 书写注意（易踩坑）
 
-- **含除法的混合运算必须整体括号（框架缺陷防御）**：EQL 编译器在**表达式中出现多个 `/` 且中间夹 `+`/`-`** 时分组翻转——`A/B + C/D` 实际按 `(A/B + C)/D` 编译执行（`a*b/c + d*e/c` → `((a*b)/(c+d*e))/c`）；单一 `/` 或 `/` 不跨 `+` 的表达式正常（`1+2*3`、`8/2+2` 均标准）。只给乘法加括号防不住（`(a*b)/c + (d*e)/c` 仍翻转为 `((a*b)/c + d*e)/c`），**每个含 `/` 的子表达式必须整体加括号**：`((A)/(B)) + ((C)/(D))`。根因在 EQL 语法文件（nop-orm-eql 的 antlr 目录）`sqlExpr_bit` 规则把全部二元算术平铺为同级备选、与 `SqlOperator` 打印优先级模型脱节；修复前一律防御性括号。
+- **EQL 算术优先级（2026-08-23 已修复，plan 2256）**：历史缺陷——`sqlExpr_bit` 文法备选顺序曾与标准相反（`|` 最紧、`/` 接近最松），导致多个 `/` 夹 `+`/`-` 的表达式被静默重排（`A/B + C/D` 编译为 `(A/B+C)/D`）且 `+` 错误紧于 `-`（`10-2+3` 算成 `10-(2+3)`）。修复后为标准六级左结合（`^` > `* / %` > `+ -` > `<< >>` > `&` > `|`，与 MySQL 一致），回归测试 `nop-orm/src/test/.../TestEqlArithmeticPrecedence.java` 固化。**升级注意**：从旧版本迁移时，此前"歪打正着"依赖错误分组的无括号表达式语义会变化；混合算术加显式括号仍是推荐写法（无害且自文档化）。
 - **投影别名与行映射（两种组合二选一）**：EQL 结果集字段名大小写敏感且别名原样保留。(a) `BeanRowMapper.of(clazz, true)`（camelCase 模式）时投影别名必须 snake_case——该模式先整体小写化 key（`as totalPromptTokens` 会变成 `totalprompttokens` 而 miss 属性）；(b) `BeanRowMapper.of(clazz, false)`（缺省模式，key 原样精确匹配）时 camelCase 别名可直接命中同名属性。无别名的裸列名字段名即属性名原样。
 - 条件更新/删除可用 `SQL.begin().update(实体名).set()...where()...` + `orm().executeUpdate`，affected rows 原样返回；`update o set o.x = o.x + 1` 自引用算术与 `where ... is null` 条件守卫均支持（探针实证，记录见 ai-dev 调研文档）。结构化 EQL 管理优先用 `sql-lib.xml`（`eql` 类型 item 走同一编译链，debug 模式自动语法校验，经 mapper 接口调用）。
 

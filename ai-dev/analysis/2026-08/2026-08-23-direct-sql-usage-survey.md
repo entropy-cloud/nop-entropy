@@ -142,7 +142,7 @@ g4 根因（用户质询"查看 EQL 的 g4"）：`BaseRule.g4:164-172` 的 `sqlE
 ## Open Questions
 
 - [x] ~~watch-only：mfa/credential 家族平移 EQL——若未来 EQL update SET 算术表达式获得测试背书，可重新评估~~（2026-08-23 第二轮复核：探针已实证 update SET 算术与条件更新支持，技术障碍清除，见"第二轮复核"勘误 1；是否平移交后续计划裁定，物理列名耦合与 jdbcTemplate 双路径维护成本仍在）。
-- [ ] **EQL 算术分组缺陷修复立项**：g4 `sqlExpr_bit` 平铺备选导致多 `/` 夹 `+` 链分组翻转（`A/B+C/D` → `(A/B+C)/D`），与 `SqlOperator` 打印优先级模型脱节。修复方向：g4 显式分层或 AST 构建修正 + 框架级回归测试（含本报告探针矩阵）。
+- [x] ~~EQL 算术分组缺陷修复立项~~（**2026-08-23 已修复，plan 2256**：`BaseRule.g4` `sqlExpr_bit` 重写为六级分层（`^` > `(* / %)` > `(+ -)` > `(<< >>)` > `&` > `|`，同级运算符合并为 token-set label 备选实现同级左结合），`./mvnw install -pl nop-orm-eql` 再生成签入解析器；红→绿证据：`8/2+4/2` 4→6、`10-2+3` 5→11、列混合 0→50；回归 eql 45 / orm 175 / ai 38 / datav 630 / sys-dao 43 / wf-core+service 全绿；`TestEqlArithmeticPrecedence` 固化矩阵）。
 - [ ] `NopDatavDashboardShareBizModel.recordShareVisit` 属第二节"保留"（设计文档裁定），但其"原子自增不走实体"形态与 F-2 的区分标准（是否需要单语句原子性）已在报告中写明，供后续复查对照。
 
 ## References
