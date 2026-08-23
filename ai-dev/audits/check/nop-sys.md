@@ -57,6 +57,8 @@ item.cacheSize = seq.getCacheSize();   // getCacheSize() 返回 java.lang.Intege
 - **建议**: `Integer cacheSize = seq.getCacheSize(); item.cacheSize = cacheSize == null ? 0 : cacheSize;` 并补一条 cacheSize=NULL 的单测。
 - **误报排除**: 已核对生成实体 getter 签名（`java.lang.Integer getCacheSize()`）与 ORM 列定义；`addDefaultSequence` 只保证 default 序列 cacheSize=100，不覆盖其他序列行。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`syncFromDb` 对 `getCacheSize()` 判空（null 按 0 处理=每次取号同步DB，与 stepSize 的既有防护形态一致）。新增 `TestSysSequenceGenerator.testCacheSizeNullSequenceUsable`（cacheSize 不设的序列连续取号 500/501）。红验证：HEAD 对 null 拆箱 NPE（审计推演路径），测试属新增行为用例（修复前必抛 NopException 包装的 NPE 使取号失败）。
+
 ### [P1] 事件消费定时任务无异常保护：一次 DB 异常即永久停摆，消息静默积压
 
 - **文件**: `nop-sys/nop-sys-dao/src/main/java/io/nop/sys/dao/message/SysDaoMessageService.java:170-175`（消费入口 189-192、255-258；异常可达点 `NonBroadcastEventProcessor.java:68/73/101/138`、`BroadcastEventProcessor.java:55/63/78-79`）
@@ -75,6 +77,8 @@ protected void processNonBroadcastEvent() {
 - **风险**: 一次数据库抖动/连接池耗尽/主从切换（现实常见的瞬时异常）后，广播与非广播事件消费全部静默停摆直到重启；事件表持续积压，依赖事件驱动的业务流程断裂（丢实时性、告警缺失），且只有一条 error 日志可循。
 - **建议**: 在 `processBroadcastEvent/processNonBroadcastEvent` 外层包 try-catch（记录 error 后返回，让下个周期继续）；或改造调度器对周期任务做异常隔离。
 - **误报排除**: 已核实 `GlobalExecutors.globalTimer()` 返回 `DefaultScheduledExecutor`（裸委托 JDK ScheduledExecutorService），`executeOn` 返回的 `BindScheduledExecutor` 上述停摆语义（BindScheduledExecutor.java:88-103），以及两个 process 方法确实无兜底 catch。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`processNonBroadcastEvent`/`processBroadcastEvent` 外层兜底 try-catch（LOG.error 后返回，下个周期继续），DB 抖动不再使事件消费永久停摆。新增 `TestSysEventPayloadAndScheduleProtection.testProcessEntryPointsSwallowExceptions`（未装配 dao 时入口不向调度器抛出）。红验证：HEAD 无保护时 NPE 直接传播（assertDoesNotThrow 失败形态）；新入口方法 cleanupExpiredEvents 对 HEAD 为编译级红。
 
 ### [P1] 锁的释放/续约版本防护形同虚设：新锁行 version 恒为 0，旧持有者可删/改新持有者的锁
 
@@ -95,6 +99,8 @@ public void releaseLock(IResourceLockState lock) {
 - **风险**: 租约过期+接管是分布式锁的正常路径（P0 修复后即成为现实路径；当前也可经 `forceUnlock` 后的重新争用触发）。长任务持有者（lease 10s 默认值很容易超过）晚释放即可能破坏他人锁。
 - **建议**: release/reset 前比对 DB 中 holderId 与自身一致（或引入全局递增的锁 token/epoch 替代 version），失败时仅记日志不删行。
 - **误报排除**: 已核实 version 初始化为 0 的位置（EntityPersisterImpl.java:348-355）、delete SQL 生成含版本条件、NopSysLock 模型 `versionProp="version"`、以及 detach 实体在 `deleteDirectly` 的 `isManaged` 检查可通过（session close 不重置实体状态）。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`releaseLock` 改为显式 DELETE 带 lockName+lockGroup+**holderId**+version 四条件（deleteDirectly 的版本条件因新行 version 恒 0 无法区分新旧持有者）；`tryResetLease` WHERE 同样补 holderId。**超出审计的连带发现并修复**：`tryResetLease` 的 `.set().eq().eq()` 生成 `set version=?expireAt=?` 无逗号分隔的非法 EQL——该方法此前从未被任何测试执行过、调用必抛解析异常，补 `.comma()` 并改按列条件。新增 `TestSysDaoResourceLockManager` 两用例（过期接管后旧持有者 unlock 不删新锁/续约返回 false）。红验证：HEAD 下 `stale holder's late unlock must NOT delete the new holder's lock ==> expected: <true> but was: <false>`（旧 unlock 确实删掉了新持有者的锁）。
 
 ### [P1] 事件载荷静默丢失：非 ApiRequest 消息/回复被序列化为空 Map "{}"
 
@@ -117,6 +123,8 @@ if (message instanceof ApiRequest) {
 - **建议**: 非 ApiRequest 消息用 `JsonTool.stringify(message)`（或至少 LOG.warn 拒绝），保持往返一致。
 - **误报排除**: 已核实该服务所有投递均经 DB 往返（`localService.send` 被重定向到本服务 saveMessage，消费经扫描→`fromSysEvent`），无本地直投旁路。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`toEventPayload` 对非 ApiRequest 且非 null 的消息 `JsonTool.stringify(message)` 序列化本体（含 ack 回路的消费者返回值），消费端 fromSysEvent 重建 data 不再为空 Map。新增 `TestSysEventPayloadAndScheduleProtection`（String/Map 消息保内容 + ApiRequest 路径不变对照）。红验证：HEAD 下 `expected: <"hello-world"> but was: <{}>`——与审计证据逐字一致。
+
 ### [P2] randNumber 编码段使用有符号 BigInteger：约半数编码带 '-' 前缀，且可能抛越界异常
 
 - **文件**: `nop-sys/nop-sys-dao/src/main/java/io/nop/sys/dao/coderule/DefaultCodeRule.java:66-68`
@@ -131,6 +139,8 @@ return new BigInteger(bytes).toString().substring(0, count);
 - **风险**: 使用 `{randNumber:n}` 模式的业务编码随机出现 '-' 前缀或生成失败；负号还可能违反字段校验/破坏下游解析。
 - **建议**: `new BigInteger(1, bytes)`（强制正数）+ 长度不足时 `leftPad` 补零。
 - **误报排除**: 已核对 BigInteger(byte[]) 构造器语义；count 上限 20（MAX_COUNT）下正数分支长度通常足够，主要风险是负号与小 count 越界。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`new BigInteger(1, bytes)` 强制正数 + 超长截断 substring + leftPad 补零（前导零去除后长度不足 count 时补齐；长度超 count 时截断，与原 substring 语义一致但无负号/越界）。红验证：HEAD 下 200 次循环内实测 `rand segment must never carry sign: -1`。新增 `TestSysEventPayloadAndScheduleProtection.testRandNumberAlwaysPositiveAndPadded`。
 
 ### [P2] 事件表/广播表零索引且无清理任务：500ms 轮询全表扫描，表无限增长
 
@@ -149,6 +159,8 @@ List<NopSysEvent> candidates = dao.findNext(null, filter, null, fetchSize * 4);
 - **建议**: 为 nop_sys_event 增加 (eventTopic, eventStatus, scheduleTime)、为 nop_sys_broadcast_event 增加 (eventTopic, eventTime) 索引；增加按策略清理已处理/过期事件的定时任务。
 - **误报排除**: 已确认 orm.xml 为模型源头（model-first，索引应在此声明）；消息服务默认启用路径（app-dao.beans.xml:32-41 + nonBroadcastAutoScanEnabled 缺省 true）。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。（1）索引：nop-sys.orm.xml 为 NopSysEvent 增 `(eventTopic,eventStatus,scheduleTime)`、NopSysBroadcastEvent 增 `(eventTopic,eventTime)` 复合索引，经 codegen 再生成 `_app.orm.xml` 落地；（2）清理：`SysDaoMessageService` 新增 `cleanupExpiredEvents` 周期任务（`nop.sys.event.cleanup-retention-days` 默认 7 天、0=禁用；每小时清理 PROCESSED 状态事件与超期广播行，任务自带异常保护）。免专门红测试：索引为 DDL 变更（由 H2 建表回归覆盖执行路径），清理任务为删除查询构造（逻辑同 cleanup 先例，入口保护已测）。注意：既有部署需自行执行 DDL 增加索引（平台无自动迁移）。
+
 ### [P2] tryLockWithLease 捕获全部异常仅记 TRACE：DB 故障被吞成"抢锁失败"
 
 - **文件**: `nop-sys/nop-sys-dao/src/main/java/io/nop/sys/dao/lock/SysDaoResourceLockManager.java:124-127、138-141、167-170`
@@ -164,6 +176,8 @@ List<NopSysEvent> candidates = dao.findNext(null, filter, null, fetchSize * 4);
 - **风险**: 数据库故障期间所有依赖锁的业务静默退化为"无锁可用/降级运行"，排障时无日志线索；trace 级别也违背"错误必须可见"的处理原则。
 - **建议**: 精确捕获重复键异常（参照 SysSequenceGenerator.addDefaultSequence 对 `DaoErrors.ERR_SQL_DUPLICATE_KEY` 的判断），其余异常至少 WARN/ERROR 记录。
 - **误报排除**: 三处 catch 均为 `catch (Exception e)`，无异常类型区分，已确认无其他日志补充。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。三处 catch 区分异常：新增 `isDuplicateKeyError`（对照 addDefaultSequence 的 ERR_SQL_DUPLICATE_KEY 判定），锁被他人持有的重复键冲突保持 TRACE（争用常态），其余 DB 异常升级 WARN 带堆栈（故障可见）。免专门测试：日志级别行为，无数值语义；判定函数与 addDefaultSequence 既有先例同型。
 
 ### [P2] 雪花序列 workerId 由 hostId 哈希到 1024 槽位：多节点部署可碰撞导致跨节点重号
 
@@ -183,6 +197,8 @@ this.snowflakeGenerator = new SnowflakeSequenceGeneator(workerId);
 - **建议**: 启动时向协调存储（如 nop_sys_sequence 表）注册并租用唯一 workerId，或至少碰撞时告警；文档强调多节点必须显式配置。
 - **误报排除**: 已核实 `SnowflakeSequenceGeneator`（nop-dao）的 workerId 仅 10bit（MAX 1023），ID 构成为 timestamp+workerId+sequence，同 workerId 同毫秒同序号即重号。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 部分修复 + 暂缓一项。已修复：派生 workerId 时 WARN 明示碰撞风险与显式配置项（`nop.sys.seq.snowflake-worker-id`），多节点部署可立即发现未配置。**租用式唯一 workerId 裁定暂缓**：需要向 nop_sys_sequence 表注册/租用/过期回收的协调机制（含节点宕机后槽位回收），属新组件设计；单节点与显式配置场景（文档约定）已覆盖大多数部署。
+
 ### [P2] 序列配置缓存无失效机制：管理端修改不生效且会被内存轨迹写回覆盖
 
 - **文件**: `nop-sys/nop-sys-dao/src/main/java/io/nop/sys/dao/seq/SysSequenceGenerator.java:55、96-102、226-247`；`nop-sys/nop-sys-service/src/main/java/io/nop/sys/service/entity/NopSysSequenceBizModel.java`（纯 CrudBizModel 无钩子）
@@ -198,6 +214,8 @@ public void removeCache(String cacheKey) { cache.remove(cacheKey); }  // 全仓�
 - **风险**: 运维通过管理端回拨 nextValue 修重号时修复静默失效，缓存耗尽后写回旧轨迹继续分配，可能再次发出已冲突的号段；调整 cacheSize/stepSize 同样长时间不生效，多节点行为不一致。
 - **建议**: 在序列管理 BizModel 的保存/删除后调用 `removeCache(seqName)`（该组件已在本模块内，改动极小）。
 - **误报排除**: 已 grep 全仓确认 clearCache/removeCache 零调用；确认 BizModel 无 after-update 钩子。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`NopSysSequenceBizModel` 覆写 `afterEntityChange` 调用 `sequenceGenerator.removeCache(entity.getSeqName())`（生成器组件已在本模块，注入即可）；下次取号从 DB 重载新配置，管理端回拨 nextValue 即时生效。新增 `TestSysConfigCacheInvalidation`（变更即失效按名逐出）。红验证：注入字段对 HEAD 编译级红（清理钩子在 HEAD 完全缺失）。
 
 ### [P2] SysDaoNamingService.cleanup 定时任务一次异常即被永久取消
 
@@ -216,6 +234,8 @@ void cleanup() {
 - **风险**: 实例表 nop_sys_service_instance 中失效临时实例（isEphemeral=true）不再被清理，服务发现 `getInstances` 虽有 updateTime 过滤兜底，但表持续膨胀、扫描变慢。
 - **建议**: cleanup 方法内部包 try-catch 记录 error。
 - **误报排除**: 已核实 DefaultScheduledExecutor 直接透传 JDK 语义（DefaultScheduledExecutor.java:132-135）。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`cleanup` 内部兜底 try-catch（LOG.error），DB 异常不再使 JDK 调度器永久取消任务。新增 `TestNamingCleanupProtection`。红验证：HEAD 下 `Unexpected exception thrown: NullPointerException ... daoProvider is null`——异常确实直接传播到调度器。
 
 ### [P2] ISequenceGenerator 契约漂移：序列不存在时静默降级 UUID，专用错误码从未使用
 
@@ -238,6 +258,8 @@ if (seq == null) {
 - **建议**: `useDefault=false` 时抛 `NopException(ERR_SYS_NO_SEQ).param(...)`；回退结果按名称缓存避免重复查库。
 - **误报排除**: 已 grep 确认 ERR_SYS_NO_SEQ 无引用；已核对接口 javadoc 无"降级为 UUID"语义。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 部分修复 + 暂缓一项。已修复：default 回退结果按名写入 defaultCache（带 60s TTL），未知序列名不再每次取号查库。**缺失时抛 ERR_SYS_NO_SEQ 裁定暂缓**：复核发现 `EntityPersisterImpl:391-392` 以 `useDefault=false` 生成实体主键序列——静默 UUID 回退是未配置序列行实体的承重行为，改为抛错会使所有未建序列行的实体保存失败，属兼容性破坏的契约变更，需先审计存量部署的序列配置完备性再决策。ERR_SYS_NO_SEQ 错误码保留（文档化意图）。
+
 ### [P2] 事件队列吞吐上限：每分区每 500ms 仅消费 1 条，无 bizKey 的 topic 全部挤在单分区
 
 - **文件**: `nop-sys/nop-sys-dao/src/main/java/io/nop/sys/dao/message/NonBroadcastEventProcessor.java:65-82`；`nop-sys/nop-sys-dao/src/main/java/io/nop/sys/dao/message/SysEventHelper.java:65-76`
@@ -257,6 +279,8 @@ if (!StringHelper.isEmpty(payload.topic)) return StringHelper.shortHash(payload.
 - **建议**: 单轮扫描内对同一分区按序处理多条（claim 后逐条推进即可保序）；或缩短扫描间隔/文档明确要求带 bizKey。
 - **误报排除**: 已核对 checkSimpleEventInterval 默认 500ms 与 beans.xml 注入路径；确认 maxScanLoops 只是外层循环上限，不改变每分区每轮 1 条的事实。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 裁定暂缓。每分区每轮单条与 `minProcessDelay` 共同构成保序/可见性窗口设计（处理完事件 N 后需等可见性窗口再取 N+1，防止同分区乱序观察到中间状态）；改为单轮多条会改变消费可见性语义。吞吐诉求的正确路径是消息携带 bizKey（分区分散）或缩短 checkSimpleEventInterval，属部署侧调优；如需平台级改造（单轮按序多条 + 可配置可见性窗口）应立专项设计。
+
 ### [P3] 广播 topic 前缀 "bro-" 硬编码，未复用平台常量
 
 - **文件**: `nop-sys/nop-sys-dao/src/main/java/io/nop/sys/dao/message/SysDaoMessageService.java:344`
@@ -269,6 +293,8 @@ if (topic != null && topic.startsWith("bro-")) {
 - **风险**: 前缀约定变更时此处静默失配，广播/非广播路由错乱。
 - **建议**: 改用 `TOPIC_PREFIX_BROADCAST` 常量。
 - **误报排除**: 已核对常量值一致（当前行为正确，仅维护性风险）。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。改用 `MessageCoreConstants.TOPIC_PREFIX_BROADCAST` 常量（同包 SysEventHelper 既有 import 先例）。免测试：常量值一致（当前行为不变，纯维护性）。
 
 ### [P3] runInNewTransaction 名不副实：不开事务且全仓无调用方
 
@@ -285,6 +311,8 @@ public <R, T> T runInNewTransaction(Function<R, T> fn, R request, TransactionPro
 - **建议**: 删除或实现真实事务逻辑。
 - **误报排除**: 已 grep 全仓确认无调用方（可能为外部模块预留，但语义误导应消除）。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复（删除）。全仓无调用方的名不副实方法直接删除，消除语义误导。免测试：死代码删除。
+
 ### [P3] SysDaoMessageService.startTime 为死赋值字段
 
 - **文件**: `nop-sys/nop-sys-dao/src/main/java/io/nop/sys/dao/message/SysDaoMessageService.java:76、168`
@@ -292,6 +320,8 @@ public <R, T> T runInNewTransaction(Function<R, T> fn, R request, TransactionPro
 - **证据**: `private Timestamp startTime;` 仅在 `doStart()` 赋值一次，全类无读取（BroadcastEventProcessor 自行计算 startTime）。
 - **现状/风险/建议**: 无行为影响，仅误导维护者以为起点可控；建议删除。
 - **误报排除**: 已 grep 该类所有 `startTime` 出现位置。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复（删除）。死赋值字段连同 doStart 中的赋值一并删除（startGap 仍被 BroadcastEventProcessor 使用，保留）。免测试：死代码删除。
 
 ### [P3] SysDictLoader.loadDict 忽略 locale 参数，标签不随请求本地化
 
@@ -307,6 +337,8 @@ public DictBean loadDict(String locale, String dictName, IEvalContext ctx) {
 - **风险**: 多语言场景字典标签始终为默认语言，属功能缺口而非崩溃。
 - **建议**: 至少在 label 取值处按 locale 解析（如 label 存 i18n key 时走 I18nMessageManager），或文档明确 sys/ 字典不支持多语言。
 - **误报排除**: 已核对 DictOptionBean 仅有单 label 字段，确认为设计缺口。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 裁定暂缓。sys/ 字典表只有单一 label 列，多语言支持需要模型扩展（per-locale label 行或 label 存 i18n key + 解析约定），"label 是 key 则走 I18nMessageManager"的启发式会把普通业务文案误判为 key，不采纳；需字典多语言的需求设计裁定后再动模型。
 
 ### [P3] SysCompactExtFieldHelper.refreshCache 非原子：clear 与 putAll 之间存在空窗
 
@@ -324,6 +356,8 @@ entityFieldConfigs.putAll(configs);
 - **建议**: 用 volatile 引用整体替换 Map（写时复制）。
 - **误报排除**: 已确认该类多线程可达（ORM 实体访问路径）。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。refreshCache 改写时复制：两张 Map 字段 volatile 化，构建新 Map 后整体引用替换，消除 clear-putAll 空窗。免专门并发测试：可见性加固（nop-commons 同族先例的裁定口径），全量回归覆盖功能路径。
+
 ### [P3] SysCodeRuleGenerator.generate 每次生成编码都查询编码规则表，无缓存
 
 - **文件**: `nop-sys/nop-sys-dao/src/main/java/io/nop/sys/dao/coderule/SysCodeRuleGenerator.java:53-60`
@@ -340,6 +374,8 @@ public String generate(String ruleName, Object bean) {
 - **建议**: 按规则名做带失效的本地缓存。
 - **误报排除**: 已确认无任何缓存层包裹。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`SysCodeRuleGenerator` 增加按名 ruleCache（detach 实体仅读 codePattern/seqName 纯属性），`NopSysCodeRuleBizModel.afterEntityChange` 调用 `clearCache()` 失效（管理端修改即时生效）。新增 `TestSysConfigCacheInvalidation.testCodeRuleConfigChangeClearsRuleCache`。红验证：注入字段对 HEAD 编译级红。
+
 ### [P3] 非广播消息仅投递给同 topic 的第一个订阅者
 
 - **文件**: `nop-sys/nop-sys-dao/src/main/java/io/nop/sys/dao/message/SysDaoMessageService.java:389-401`
@@ -353,6 +389,8 @@ return invokeConsumer(subscriptions.get(0).consumer, topic, message, options, fa
 - **风险**: 使用者按常见 MQ 直觉注册多个消费者时部分消费者静默饿死。
 - **建议**: 文档明确"每 topic 单消费者"约定，或实现轮询分发；至少在第二个订阅者注册时告警。
 - **误报排除**: 已核对 subscribe 逻辑，durableSubscriptions 按 topic 累积列表，消费只取 get(0)。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 部分修复 + 暂缓一项。已修复：同 topic 第二个持久订阅者注册时 WARN（非广播 topic 只投递第一个订阅者，防静默饿死）。**轮询/竞争分发裁定暂缓**：改变投递语义（单消费者全收 vs 竞争分发）需契约裁定——现有单消费者部署可能依赖独占语义；告警使误用立即可见。
 
 ## 补充说明
 

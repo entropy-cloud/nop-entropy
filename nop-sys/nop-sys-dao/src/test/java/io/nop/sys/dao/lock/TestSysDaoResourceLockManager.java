@@ -62,4 +62,58 @@ public class TestSysDaoResourceLockManager extends JunitBaseTestCase {
 
         lockManager.releaseLock(lock2);
     }
+
+    /**
+     * check 审计 [P1]：重建的锁行 version 恒为 0，旧持有者 unlock 的版本条件形同虚设。
+     * 修复前旧持有者（租约过期后被接管）执行 DELETE WHERE version=0 会删掉新持有者的锁；
+     * 修复后删除带 holderId 条件，新持有者的锁不受影响。
+     */
+    @Test
+    public void testStaleHolderReleaseDoesNotDeleteTakeoverLock() {
+        IResourceLockState lock1 = lockManager.tryLockWithLease("test-takeover-release", "holder1", 5000, 300, "TEST");
+        assertNotNull(lock1);
+
+        try {
+            Thread.sleep(1500);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("test interrupted", e);
+        }
+
+        IResourceLockState lock2 = lockManager.tryLockWithLease("test-takeover-release", "holder2", 3000, 60000, "TEST");
+        assertNotNull(lock2, "expired lock must be taken over by holder2");
+
+        // 旧持有者迟到的unlock：不得删除新持有者的锁
+        lockManager.releaseLock(lock1);
+
+        assertTrue(lockManager.isHoldingLock(lock2),
+                "stale holder's late unlock must NOT delete the new holder's lock");
+
+        lockManager.releaseLock(lock2);
+    }
+
+    /**
+     * check 审计 [P1] 同族：旧持有者迟到的续约不得改写新持有者的 expireAt。
+     */
+    @Test
+    public void testStaleHolderResetLeaseDoesNotExtendTakeoverLock() {
+        IResourceLockState lock1 = lockManager.tryLockWithLease("test-takeover-lease", "holder1", 5000, 300, "TEST");
+        assertNotNull(lock1);
+
+        try {
+            Thread.sleep(1500);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("test interrupted", e);
+        }
+
+        IResourceLockState lock2 = lockManager.tryLockWithLease("test-takeover-lease", "holder2", 3000, 60000, "TEST");
+        assertNotNull(lock2);
+
+        boolean renewed = lockManager.tryResetLease(lock1, 60000);
+        assertTrue(!renewed, "stale holder must not reset lease on the new holder's lock");
+        assertTrue(lockManager.isHoldingLock(lock2));
+
+        lockManager.releaseLock(lock2);
+    }
 }

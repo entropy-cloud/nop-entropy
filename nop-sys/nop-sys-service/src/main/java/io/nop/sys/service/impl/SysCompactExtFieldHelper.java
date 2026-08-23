@@ -21,8 +21,8 @@ public class SysCompactExtFieldHelper implements IOrmCompactExtFieldHelper {
     @Inject
     protected IDaoProvider daoProvider;
 
-    private final Map<String, Map<String, Integer>> entityFieldPositions = new ConcurrentHashMap<>();
-    private final Map<String, Map<String, NopSysCompactExtField>> entityFieldConfigs = new ConcurrentHashMap<>();
+    private volatile Map<String, Map<String, Integer>> entityFieldPositions = new ConcurrentHashMap<>();
+    private volatile Map<String, Map<String, NopSysCompactExtField>> entityFieldConfigs = new ConcurrentHashMap<>();
 
     @PostConstruct
     public void init() {
@@ -47,10 +47,9 @@ public class SysCompactExtFieldHelper implements IOrmCompactExtFieldHelper {
                         .put(propName, field);
             }
             
-            entityFieldPositions.clear();
-            entityFieldPositions.putAll(positions);
-            entityFieldConfigs.clear();
-            entityFieldConfigs.putAll(configs);
+            // 写时复制整体替换：clear与putAll之间存在空窗，并发读会短暂读到空映射
+            this.entityFieldPositions = positions;
+            this.entityFieldConfigs = configs;
         } catch (Exception e) {
             throw NopException.adapt(e);
         }

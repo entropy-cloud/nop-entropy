@@ -87,12 +87,17 @@ public class SysDaoNamingService implements INamingService {
     }
 
     void cleanup() {
-        IEntityDao<NopSysServiceInstance> dao = dao();
-        QueryBean query = new QueryBean();
-        query.addFilter(FilterBeans.eq(NopSysServiceInstance.PROP_NAME_groupName, groupName));
-        query.addFilter(FilterBeans.lt(NopSysServiceInstance.PROP_NAME_updateTime, new Timestamp(CoreMetrics.currentTimeMillis() - 2 * getMaxUpdateInterval())));
-        query.addFilter(FilterBeans.eq(NopSysServiceInstance.PROP_NAME_isEphemeral, true));
-        dao.deleteByQuery(query);
+        // 周期任务抛出未捕获异常即被JDK调度器永久取消：一次DB抖动就会使临时实例清理永久停摆
+        try {
+            IEntityDao<NopSysServiceInstance> dao = dao();
+            QueryBean query = new QueryBean();
+            query.addFilter(FilterBeans.eq(NopSysServiceInstance.PROP_NAME_groupName, groupName));
+            query.addFilter(FilterBeans.lt(NopSysServiceInstance.PROP_NAME_updateTime, new Timestamp(CoreMetrics.currentTimeMillis() - 2 * getMaxUpdateInterval())));
+            query.addFilter(FilterBeans.eq(NopSysServiceInstance.PROP_NAME_isEphemeral, true));
+            dao.deleteByQuery(query);
+        } catch (Exception e) {
+            LOG.error("nop.sys.naming.cleanup-fail", e);
+        }
     }
 
     @SingleSession

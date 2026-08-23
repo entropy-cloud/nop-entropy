@@ -65,7 +65,12 @@ public class DefaultCodeRule implements ICodeRule {
 
         byte[] bytes = new byte[count];
         MathHelper.secureRandom().nextBytes(bytes);
-        return new BigInteger(bytes).toString().substring(0, count);
+        // BigInteger(byte[])按有符号二补数解析：最高位为1时toString()带'-'前缀（约半数编码被污染），
+        // 且前导零被去位后长度可能小于count使substring越界。强制正数+补零
+        String str = new BigInteger(1, bytes).toString();
+        if (str.length() > count)
+            str = str.substring(0, count);
+        return StringHelper.leftPad(str, count, '0');
     }
 
     protected String generateSeq(String options, CodeRuleParams params) {
