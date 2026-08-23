@@ -71,8 +71,8 @@
 | nop-auth | `nop-auth`（api/dao/service/sso/oauth） | 287 | [nop-auth.md](nop-auth.md) | done |
 | nop-sys | `nop-sys` | 165 | [nop-sys.md](nop-sys.md) | done |
 | nop-job | `nop-job` | 169 | [nop-job.md](nop-job.md) | done |
-| nop-task | `nop-task`（core 为主） | 220 | [nop-task.md](nop-task.md) | in-progress |
-| nop-wf | `nop-wf`（core/api 为主） | 257 | [nop-wf.md](nop-wf.md) | in-progress |
+| nop-task | `nop-task`（core 为主） | 220 | [nop-task.md](nop-task.md) | done |
+| nop-wf | `nop-wf`（core/api 为主） | 257 | [nop-wf.md](nop-wf.md) | done |
 
 ### Phase 3 — 可复用业务模块
 
@@ -205,3 +205,7 @@
   - nosql-cdc: LettuceRateLimiter.tryAcquire 在 RESP3（Redis 6+ 默认）下必抛 UnsupportedOperationException（Lua boolean × MULTI 输出不兼容，lettuce 6.6.0 字节码验证）
   - gateway-bizauth: AiAuthGatewayInterceptor 以混合大小写读 Authorization 头 → 启用即全量 401; AiRateLimitGatewayInterceptor 同根因 → 限流 key 全部塌缩为 default（Vertx/Servlet 实现均小写化 header key）
   - 启动 Phase 2（业务骨架模块）。
+- 2026-08-23: **Phase 2 全部 5 单元完成**。合计 80 条（P0=3 / P1=15 / P2=24 / P3=38）。P0:
+  - nop-job: Once 语义在 planner 路径失效——once 型 schedule 首次触发后被无限重复执行
+  - nop-task: suspend 步骤默认配置（recordMetrics=false）下 metrics.endStep(null) NPE → 挂起变任务失败; 任务挂起被当作成功完成持久化为 COMPLETED，挂起恢复语义端到端断裂
+  - 启动 Phase 3（可复用业务模块）。
