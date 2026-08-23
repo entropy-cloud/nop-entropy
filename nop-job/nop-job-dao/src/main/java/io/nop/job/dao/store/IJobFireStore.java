@@ -60,5 +60,9 @@ public interface IJobFireStore {
      */
     boolean revertDispatchingFireToWaiting(NopJobFire fire, long backoffUntilMs);
 
-    void failFireWithoutSchedule(String jobFireId, String errorCode, String errorMessage);
+    /**
+     * @return fire是否成功置为FAILED终态。false=版本冲突（已被并发推进终态），
+     *         调用方据此决定是否继续连带取消任务（Bug C fix对称防护）
+     */
+    boolean failFireWithoutSchedule(String jobFireId, String errorCode, String errorMessage);
 }

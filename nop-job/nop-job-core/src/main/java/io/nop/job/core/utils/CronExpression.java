@@ -106,7 +106,15 @@ public class CronExpression implements ICronExpression {
 
     private CronExpression(String expression, String[] fields) {
         this.expression = expression;
-        this.timeZone = null;
+        // 维护与公开构造器一致的不变式：timeZone非空（equals/hashCode直接解引用）、
+        // threadLocalCal初始化（getTimeAfter直接get）。实例当前仅isValidExpression内部使用后丢弃，
+        // 但复用（返回/缓存）即触发NPE
+        this.timeZone = TimeZone.getDefault();
+        this.threadLocalCal = ThreadLocal.withInitial(() -> {
+            GregorianCalendar calendar = new GregorianCalendar(this.timeZone);
+            calendar.setLenient(false);
+            return calendar;
+        });
         doParse(fields);
     }
 

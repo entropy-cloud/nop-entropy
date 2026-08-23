@@ -19,6 +19,9 @@ public interface JobCoreErrors {
     String ARG_TASK_COST = "taskCost";
     String ARG_SERVICE_NAME = "serviceName";
     String ARG_HEALTHY_COUNT = "healthyCount";
+    String ARG_CONFIG_NAME = "configName";
+    String ARG_CONFIG_VALUE = "configValue";
+    String ARG_INDEX = "index";
 
     ErrorCode ERR_JOB_TRIGGER_LOOP_COUNT_EXCEED_LIMIT = define("nop.err.job.trigger.loop-count-exceed-limit",
             "Trigger calculation loop count exceeded limit", ARG_LOOP_COUNT);
@@ -46,6 +49,12 @@ public interface JobCoreErrors {
 
     ErrorCode ERR_JOB_EXECUTOR_REF_EMPTY = define("nop.err.job.executor-ref-empty",
             "Job executor ref is empty");
+
+    ErrorCode ERR_JOB_INVALID_CONFIG_VALUE = define("nop.err.job.invalid-config-value",
+            "Invalid job config [{configName}] value: {configValue}", ARG_CONFIG_NAME, ARG_CONFIG_VALUE);
+
+    ErrorCode ERR_JOB_TASK_ATTRIBUTE_MISSING = define("nop.err.job.task-attribute-missing",
+            "Job execution context attribute is missing: {configName}", ARG_CONFIG_NAME);
 
     ErrorCode ERR_JOB_EXECUTOR_KIND_EMPTY = define("nop.err.job.executor-kind-empty",
             "Job executor kind is empty");

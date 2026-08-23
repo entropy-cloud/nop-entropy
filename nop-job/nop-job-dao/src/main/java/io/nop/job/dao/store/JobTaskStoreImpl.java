@@ -85,6 +85,11 @@ public class JobTaskStoreImpl implements IJobTaskStore {
         return taskDao().findPageByQuery(query);
     }
 
+    /**
+     * CAS认领（WAITING→CLAIMED + workerInstanceId）。注意：{@code lockTimeoutMs}参数当前不参与
+     * 认领判定——CLAIMED态的回收依赖worker存活链（SUSPICIOUS→TIMEOUT）或执行超时配置，
+     * 而非认领租约超时（租约机制需设计引入，接口保留参数以兼容既有签名）。
+     */
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
     @Override
     public List<NopJobTask> tryLockTasksForExecute(List<NopJobTask> tasks, String workerInstanceId, long lockTimeoutMs) {
@@ -106,6 +111,11 @@ public class JobTaskStoreImpl implements IJobTaskStore {
         QueryBean query = new QueryBean();
         query.setLimit(limit);
         query.addFilter(FilterBeans.in(PROP_NAME_taskStatus, JobTaskStateMachine.RUNNING_LIKE_STATUSES));
+        // CLAIMED∈RUNNING_LIKE_STATUSES但其startTime为null（进入RUNNING前才写入）：超时检查对
+        // null startTime本就跳过（tryMarkTimeout提前return），纳入扫描只会在满批尾部把cursor推进为
+        // (null,id)，下一轮fetchRunningTasks抛IllegalArgumentException使整轮扫描停滞。
+        // 排除null行同时消除崩溃面与无效扫描（CLAIMED滞留回收属另一课题）
+        query.addFilter(FilterBeans.not(FilterBeans.isNull(PROP_NAME_startTime)));
         JobQueryHelper.addPartitionFilter(query, partitions, PROP_NAME_partitionIndex);
         if (cursorTime != null) {
             query.addFilter(FilterBeans.or(

@@ -251,14 +251,6 @@ public class JobPlannerScannerImpl extends AbstractBatchScanner implements IJobP
                 || blockStrategy == _NopJobCoreConstants.BLOCK_STRATEGY_PARALLEL;
     }
 
-    private long toTime(Timestamp value) {
-        return value == null ? 0L : value.getTime();
-    }
-
-    private long defaultLong(Long value) {
-        return value == null ? 0L : value;
-    }
-
     private int defaultInt(Integer value) {
         return value == null ? 0 : value;
     }

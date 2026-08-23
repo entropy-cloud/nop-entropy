@@ -642,8 +642,8 @@ public class TestJobWorkerScanner extends JunitBaseTestCase {
         assertEquals(TASK_STATUS_SUCCESS, saved2.getTaskStatus(),
                 "good task must still execute despite the bad task in the same claimed batch");
         NopJobTask saved1 = taskStore.loadTask(pt1.task.getJobTaskId());
-        assertTrue(saved1.getTaskStatus() != TASK_STATUS_SUCCESS,
-                "bad task (loadSchedule threw) must NOT be marked SUCCESS");
+        assertEquals(TASK_STATUS_FAILED, saved1.getTaskStatus(),
+                "bad task (loadSchedule threw) must be finalized as FAILED, not stuck in CLAIMED");
         assertEquals(1, metrics.taskExecuteFailed,
                 "bad task's failure recorded as metric (not silently swallowed)");
     }

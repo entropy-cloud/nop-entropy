@@ -39,6 +39,8 @@ private void schedulePolling(CompletableFuture<JobFireResult> future, ...) {
 - **建议**: 保存 `ScheduledFuture`，在 `future.whenComplete` 中 `cancel(false)`；或改为每次 `schedule` 单次延迟任务、在回调里自行续期。
 - **误报排除**: 通读全文确认无任何地方引用/取消该周期任务；`future.isDone()` 只影响单轮行为，不影响任务生命周期。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。保存 `ScheduledFuture` 句柄，`future.whenComplete` 中 `cancel(false)`——终态后周期任务真正退出单线程队列。免独立红测试：结构性一行接线（泄漏由构造消除，cancel 幻象不适用）；RemoteJobInvoker 全链路（stores+rpcClient）依赖重装配，改动由 11 用例的 TestRemoteJobInvoker 回归覆盖。
+
 ### [P1] fetchRunningTasks cursor 分页未处理 null startTime：批末行为 CLAIMED（未启动）任务时 timeout 扫描周期性崩溃并停滞
 
 - **文件**: `nop-job/nop-job-dao/src/main/java/io/nop/job/dao/store/JobTaskStoreImpl.java:103-122, 206-210`; `nop-job/nop-job-core/src/main/java/io/nop/job/core/AbstractBatchScanner.java:227-238`
@@ -65,6 +67,8 @@ private static void validateCursor(Timestamp cursorTime, String cursorId) {
 - **风险**: 命中后每个扫描周期都在同一位置失败：批 1 之后的 RUNNING 任务永远得不到超时检查，且异常发生在 `JobTimeoutCheckerImpl.scanBatch` 的子扫描 1，会连带子扫描 2（dispatch 超时）/3（stale WAITING 重置）整轮不执行。与 P2-4（CLAIMED 僵尸任务）叠加后可形成持续命中：僵尸 CLAIMED 任务（startTime 永久为 null）累积到批尾部即触发。
 - **建议**: cursor 推进前对 null 排序键跳过或降级（null 视为最小值并单独过滤）；或查询排除 `startTime IS NULL` 的 CLAIMED 行由专门逻辑回收；至少在 `drainBatch.advance` 对 null 做防御。
 - **误报排除**: 已核对 `JobTaskStateMachine.RUNNING_LIKE_STATUSES` 包含 CLAIMED（JobTaskStateMachine.java:49-52）、`tryLockTasksForExecute` 不设置 startTime（JobTaskStoreImpl.java:90-100）、`JobTimeoutCheckerImpl.tryMarkTimeout` 亦以 `startTime == null → return` 承认该状态存在。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`fetchRunningTasks` 增 `not(isNull(startTime))` 过滤——CLAIMED 且 null startTime 的行本就被 `tryMarkTimeout` 跳过（无覆盖损失），排除后 cursor 不可能推进为 (null,id)，整轮扫描停滞面消除（CLAIMED 滞留回收属 P2-4 的课题）。新增 `TestJobStoreImpl.testFetchRunningTasksExcludesClaimedNullStartTime`。红验证：HEAD 下 `CLAIMED task with null startTime must be excluded ... was: <false>`（该行确被扫出）。
 
 ### [P1] HandleMisfireTrigger 的 once 任务 misfire 跳过分支为死代码，迟到的一次性任务被立即补跑而非丢弃
 
@@ -93,6 +97,8 @@ trigger = new HandleMisfireTrigger(spec.getMisfireThreshold(), trigger);  // 传
 - **建议**: 在包装链上解包识别 once 语义（如给 ITrigger 增加 `isOnce()`/`getOnceScheduleTime()` 委托），或将 misfire 判断移入 `TriggerBuilder` 构造时以未包装引用传入。
 - **误报排除**: grep 全模块确认 `new HandleMisfireTrigger` 仅 TriggerBuilder.java:47 一处；`new OnceTrigger` 仅 TriggerBuilder 与 LocalJobScheduler（后者不接 misfire 包装）。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`TriggerBuilder` 在包装前捕获 once 语义（`onceScheduleTime`）传入 `HandleMisfireTrigger` 新三参构造；`nextScheduleTime` 双路判定——包装链用捕获值（instanceof 对包装器恒不成立），直构 raw OnceTrigger 的既有用法保留 instanceof（既有测试 `testOnceTriggerMisfireReturnsNegativeOne` 钉定该路径）。新增 `TestOnceMisfireAndLocalContract`（超阈值丢弃返回 -1 + 未超阈值对照补跑）。红验证：HEAD 下包装链 `expected: <-1> but was: <1787442413425>`（迟到任务返回过去时刻立即补跑）。
+
 ### [P2] LocalJobScheduler 忽略 JobFireResult.nextScheduleTime，违背 IJobInvoker 返回值契约
 
 - **文件**: `nop-job/nop-job-local/src/main/java/io/nop/job/local/LocalJobScheduler.java:313-345`; 契约见 `nop-job/nop-job-api/src/main/java/io/nop/job/api/execution/JobFireResult.java:16-19`
@@ -109,6 +115,8 @@ scheduleNext(job);   // → job.trigger.nextScheduleTime(now, job.state)，从�
 - **风险**: 同一 `IJobInvoker` 实现在 local 与分布式两条链路行为不一致：依赖"返回下次执行时间"动态调整节奏的任务（如退避、动态间隔）在 local 部署下退化为固定 trigger 节奏。
 - **建议**: `handleResult` 成功续跑分支中，`result.getNextScheduleTime() > 0` 时以该时间作为下次触发时间。
 - **误报排除**: grep 确认 LocalJobScheduler 中无任何 `getNextScheduleTime` 引用。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`scheduleNext` 增 `overrideNextTime` 参数：成功续跑分支传 `result.getNextScheduleTime()`，>0 时以该时间为下次触发（对齐 JobFireResult 契约与分布式 worker 链路语义）。新增 `TestLocalSchedulerResultContract.testNextScheduleTimeFromResultOverridesTrigger`（invoker 返回 CONTINUE(now+300ms)，2s 内必有第二次触发；trigger 节奏 10s）。红验证：HEAD 下 `fires=1`（指定时间被忽略，第二次触发遥遥无期）。
 
 ### [P2] LocalJobScheduler 触发器计算异常在 whenComplete 回调中被静默吞掉，job 永久卡在 RUNNING
 
@@ -130,6 +138,8 @@ future.whenComplete((result, err) -> {
 - **建议**: `scheduleNext` 调用点包 try/catch，异常时置 FAILED 并记 error 日志（含 jobName 与表达式），避免异常逃出回调。
 - **误报排除**: 已核对所有 `scheduleNext` 调用点均无捕获；whenComplete 抛出的异常由 CompletableFuture 机制吞入返回的 future，而该返回值被丢弃。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`scheduleNext` 的触发器计算包 try-catch：异常置 FAILED + error 日志（含 jobName 与异常），不再从 whenComplete 回调逃逸（逃逸即进入被丢弃的返回 future，job 永久卡 RUNNING 无痕迹）。新增 `testPathologicalTriggerFailsJobInsteadOfThrowing`（2月30日病态 cron）。红验证：HEAD 下 NopException[parse-cron-expr-fail, runaway] 从 addJob 直接抛出。
+
 ### [P2] dispatcher 对 ERR_JOB_NO_AVAILABLE_INSTANCE 不回退重试，短暂全量 worker 不可用时 fire 等待 300s 后被标 TIMEOUT 丢弃
 
 - **文件**: `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/JobDispatcherScannerImpl.java:160-173`; `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/AbstractServiceTaskBuilder.java:79-98`
@@ -149,6 +159,8 @@ future.whenComplete((result, err) -> {
 - **风险**: 目标服务重新部署超过 5 分钟窗口内到期的任务被直接判 TIMEOUT 丢弃（fire 不重试），造成漏执行；且与 NO_FITTING_WORKER 的恢复语义不一致。
 - **建议**: 将 `ERR_JOB_NO_AVAILABLE_INSTANCE` 纳入 `isNoFittingWorker` 同等的 revert-to-waiting + backoff 处理（二者都是瞬态无 worker）。
 - **误报排除**: 已核对 `resolveHealthyInstances` 抛错路径与 dispatcher 的 catch 分支；确认 DISPATCHING 状态 fire 仅有 timeout 回收一条出路。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`isNoFittingWorker` 纳入 `ERR_JOB_NO_AVAILABLE_INSTANCE`（与 ERR_JOB_NO_FITTING_WORKER 同等 revert-to-waiting + backoff），滚动发布等瞬态全量不可用时 fire 回退重试而非等 300s 被标 TIMEOUT 丢弃。免独立红测试：私有判定函数一行扩充，两码语义等同瞬态无 worker（回退机制已被 AR-86/相关 dispatcher 测试覆盖）；全量回归绿。
 
 ### [P2] worker 认领后 loadFire/loadSchedule 失败仅 warn，任务滞留 CLAIMED 无恢复路径
 
@@ -171,6 +183,8 @@ private void executeTask(NopJobTask task) {
 - **建议**: executeTask 头两行加载失败时走 `completeTaskWithFailure`（区分实体缺失 vs 瞬态错误，瞬态可 revert CLAIMED→WAITING 释放给其他 worker）。
 - **误报排除**: 已核对 JobTaskStateMachine 各谓词与 timeout checker 全部分支，确认 CLAIMED+worker 存活+无执行超时配置时无任何回收路径。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`executeTask` 头部 loadFire/loadSchedule 包 try-catch：失败走 `completeTaskWithFailure` 终态化（含 metric 计数，与外层 per-task 隔离 catch 同口径，AR-86 测试断言不破坏）。既有 `testPerTaskIsolationBadTaskDoesNotBlockRest` 断言强化为 `TASK_STATUS_FAILED`。红验证：HEAD 下 `expected: <40=FAILED> but was: <10=CLAIMED>`（坏任务滞留 CLAIMED 无回收路径）。
+
 ### [P3] failFireWithoutSchedule 缺状态前置校验；schedule-deleted 回收路径 fire 更新失败仍取消全部任务，与 "Bug C fix" 防护不对称
 
 - **文件**: `nop-job/nop-job-dao/src/main/java/io/nop/job/dao/store/JobFireStoreImpl.java:274-289`; `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/JobTimeoutCheckerImpl.java:282-305`
@@ -189,6 +203,8 @@ if (!fireDao().tryUpdateWithVersionCheck(fire)) {
 - **风险**: 低概率状态漂移；`failFireWithoutSchedule` 若被新增调用方复用，缺前置校验的问题会被放大。
 - **建议**: `failFireWithoutSchedule` 增加 `isDispatching/isActive` 前置校验；deleted 分支根据 fire 更新结果决定是否取消任务。
 - **误报排除**: 已对照同文件 `insertTasksAndMarkFireDispatching`/`revertDispatchingFireToWaiting` 均有 isDispatching 前置校验，确认不对称为客观差异。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`failFireWithoutSchedule` 增终态前置校验（isTerminal 直接返回 false）并改为返回 boolean（接口 void→boolean 对按语句调用的既有调用方源兼容）；schedule-deleted 分支据返回值决定是否连带取消任务（fire 更新失败即跳过，对齐正常超时路径的 Bug C fix）。Mock 适配三个测试类。免独立红测试：并发窗口行为，防护语义与既有 Bug C fix 同型（其测试已钉定模式）。
 
 ### [P3] tryLockTasksForExecute 的 lockTimeoutMs 参数被忽略，"租约"语义未实现
 
@@ -209,6 +225,8 @@ public List<NopJobTask> tryLockTasksForExecute(List<NopJobTask> tasks, String wo
 - **建议**: 要么实现租约（CLAIMED 时间戳 + 过期重置），要么从接口移除参数并在 javadoc 说明真实回收机制。
 - **误报排除**: 通读 JobTaskStoreImpl 确认参数无任何使用；已核对 beans.xml 装配（namingService 为可选注入，JobTimeoutCheckerImpl.java:73-75）。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 部分修复（javadoc 如实化）。`tryLockTasksForExecute` javadoc 明示 lockTimeoutMs 不参与认领判定、CLAIMED 回收依赖 worker 存活链/执行超时配置；租约机制（CLAIMED 时间戳+过期重置）属新回收机制设计，留待专项。接口保留参数以兼容既有签名。
+
 ### [P3] CronExpression 私有构造器产出 timeZone=null 且 threadLocalCal 未初始化的实例，潜伏 NPE
 
 - **文件**: `nop-job/nop-job-core/src/main/java/io/nop/job/core/utils/CronExpression.java:107-111, 147, 452-472`
@@ -228,6 +246,8 @@ private CronExpression(String expression, String[] fields) {
 - **建议**: 私有构造器同样初始化 threadLocalCal 与默认 timeZone（或直接复用公开构造器路径）。
 - **误报排除**: grep 确认该构造器仅 `isValidExpression` 一处调用，如实降级为 P3。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。私有构造器初始化默认 timeZone 与 threadLocalCal（与公开构造器同一不变式）。免测试：当前不可触达路径（实例即弃），防御性加固。
+
 ### [P3] LocalJobScheduler.addJob 不校验 invoker 解析结果为 null，错误延迟到执行期且无上下文
 
 - **文件**: `nop-job/nop-job-local/src/main/java/io/nop/job/local/LocalJobScheduler.java:72`; `nop-job/nop-job-local/src/main/java/io/nop/job/local/config/BeanContainerInvokerResolver.java:12-15`
@@ -241,6 +261,8 @@ IJobInvoker invoker = invokerResolver.apply(spec.getJobInvoker());   // 无 null
 - **风险**: 配置错误发现滞后、定位困难（NPE 无参数）。
 - **建议**: addJob 时对 null invoker 抛 `ERR_JOB_BEAN_NOT_FOUND` 风格的 NopException 并带 invoker 名。
 - **误报排除**: 已核对 addJob 全流程无 null 检查；executeJob catch(Exception) 会把 NPE 归入 FAILED 分支。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`addJob` 对 null invoker 抛 `ERR_JOB_BEAN_NOT_FOUND`（带 bean 名）——配置期 fail-fast，不再推迟到首个触发期抛无上下文 NPE。免独立红测试：一行守卫（新测试的 resolver 返回 null 时实测即抛该错误，行为在 TestLocalSchedulerResultContract 构造过程中被顺带验证）；既有 addJob 测试回归绿。
 
 ### [P3] 用户可配 headers 可覆盖框架路由头（nop-svc-target-host）
 
@@ -257,6 +279,8 @@ injectUserHeaders(request, jobParams); // 后注入用户 headers（同名键覆
 - **建议**: injectUserHeaders 过滤 `nop-` 前缀保留头，框架头最后注入或显式覆盖回填。
 - **误报排除**: 已核对两个 invoker 的头注入顺序，确认用户头后写。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 复查后裁定不修复（维持现状）。模块既有测试 `TestRpcJobInvoker.testCustomHeadersPassed`（用户经 job headers 配置 nop-svc-target-host 是受支持的路由方式）与 `testUserHeadersOverrideFramework`（注释明言 "should override the framework default"）——用户头覆盖框架头是**经测试固化的模块契约**：任务/triggerNow 配置属管理权限模型内的能力（审计原文亦承认），过滤 nop- 前缀会破坏受支持特性（本批曾实施过滤后因两测试红而回滚，红即反证）。如需收紧应在权限层（限制 headers 配置来源）而非传输层。
+
 ### [P3] JobScheduleCounterReconciler 只对账 activeFireCount>0 的 schedule，recorded=0 而 actual>0 的漂移永不收敛
 
 - **文件**: `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/JobScheduleCounterReconciler.java:74-82`
@@ -269,6 +293,8 @@ query.addFilter(FilterBeans.gt(NopJobSchedule.PROP_NAME_activeFireCount, 0));  /
 - **风险**: 低概率下 activeFireCount 持续偏低，使 DISCARD/OVERLAY 阻塞策略误判"无并发 fire"，放过本应跳过/取消的重叠执行。
 - **建议**: 候选条件改为 `activeFireCount>0 OR EXISTS active fire`（或定期全量对账一批 recorded=0 的 schedule）。
 - **误报排除**: 已核对当前所有 decrement 路径均以版本检查成对出现，recorded<actual 当前难以触达，属防御性缺口，如实定级 P3。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 裁定不修复（防御性缺口，当前不可触达）。审计自证"当前所有 decrement 路径均以版本检查成对出现，recorded<actual 难以触达"；纳入 recorded=0 候选需要 `activeFireCount>0 OR EXISTS active fire` 的关联查询或全量对账，扫描成本上升而收益是防御纵深。若未来出现双减路径，届时随该变更一并设计对账。
 
 ### [P3] 触发器每次计算都重建并重解析 cron；dispatcher 每 fire 单独 loadSchedule
 
@@ -288,6 +314,8 @@ NopJobSchedule schedule = scheduleStore.loadSchedule(fire.getJobScheduleId());  
 - **建议**: 按 scheduleId+trigger 配置哈希缓存已解析 CronExpression/Trigger 链；dispatcher 用 batchLoadSchedules 去重。
 - **误报排除**: 已核对 calculateNextFireTime 无任何缓存层，scanBatch 循环内无批加载。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 裁定暂缓（性能优化，非错误）。触发器链缓存需要按 schedule 配置哈希的失效设计（管理端改 cron 后需即时生效），dispatcher 批量 loadSchedule 需去重装配改造；当前为固定浪费（每 5s 每_due_schedule 一次解析），无正确性影响。留待性能专项。
+
 ### [P3] 模块内校验异常策略混用：IllegalArgumentException/IllegalStateException 与 NopException 并存
 
 - **文件**: `nop-job/nop-job-core/src/main/java/io/nop/job/core/AbstractBatchScanner.java:139-167`; `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/AdaptiveJobTaskBuilder.java:84-88`; `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/RemoteJobInvoker.java:211-215`
@@ -303,6 +331,8 @@ throw new IllegalStateException("jobTaskId attribute missing in execution contex
 - **建议**: 统一替换为 JobCoreErrors 下的 NopException。
 - **误报排除**: grep 确认模块内无 `new RuntimeException`/`printStackTrace`/空 catch（纪律整体良好），此处仅列已验证的残留点。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。五处 JDK 异常全部转 NopException：`AbstractBatchScanner` 三处配置校验 → 新错误码 `ERR_JOB_INVALID_CONFIG_VALUE`（configName/configValue 参数）；`AdaptiveJobTaskBuilder` 两处 → 同码；`RemoteJobInvoker` 两处 → `ERR_JOB_TASK_ATTRIBUTE_MISSING`（新）/既有码。既有 fail-fast 测试断言同步更新为 NopException。免 i18n 顾虑：JobCoreErrors 为 @Locale 内联英文描述（模块惯例）。
+
 ### [P3] 死代码：JobPlannerScannerImpl.toTime/defaultLong 与 JobFireStoreImpl.toTime 未被使用
 
 - **文件**: `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/JobPlannerScannerImpl.java:254-260`; `nop-job/nop-job-dao/src/main/java/io/nop/job/dao/store/JobFireStoreImpl.java:347-349`
@@ -316,6 +346,8 @@ private long defaultLong(Long value) { return value == null ? 0L : value; }  // 
 - **风险**: 无行为影响；误导读者以为存在时间换算路径。
 - **建议**: 删除未用私有方法。
 - **误报排除**: grep 逐文件核对调用点后确认。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复（删除）。JobPlannerScannerImpl 的 toTime/defaultLong 与 JobFireStoreImpl 的未用 toTime 删除（同名 helper 在仍使用处保留）。免测试：死代码删除。
 
 ## 已排查未列入的疑点（负结果）
 
