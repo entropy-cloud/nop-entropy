@@ -684,7 +684,7 @@ class TestWebAuthnAddKeyE2E {
         setField(verifier, "totpAuthenticator", totpAuthenticator);
         setField(verifier, "smsCodeStore", new LocalSmsCodeStore());
         setField(verifier, "daoProvider", daoProvider);
-        setField(verifier, "jdbcTemplate", jdbcTemplate);
+        setField(verifier, "ormTemplate", ormTemplate);
         setField(verifier, "webAuthnAuthenticator", webAuthnAuthenticator);
         setField(verifier, "auditService", auditService);
 

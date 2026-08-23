@@ -24,7 +24,7 @@ import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
-import io.nop.dao.jdbc.IJdbcTemplate;
+import io.nop.orm.IOrmTemplate;
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
 
@@ -43,7 +43,6 @@ import static io.nop.auth.service.NopAuthConstants.MFA_TYPE_WEBAUTHN;
 import static io.nop.auth.service.NopAuthConstants.SMS_KEY_MFA;
 import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_EMAIL_CODE_EXPIRED;
 import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_SMS_CODE_EXPIRED;
-import static io.nop.dao.DaoConstants.DEFAULT_QUERY_SPACE;
 
 /**
  * 共享因子校验组件（设计 §3.1 结论 5 / §5.3.0 #5/#6 收敛对象）：登录级
@@ -72,8 +71,6 @@ import static io.nop.dao.DaoConstants.DEFAULT_QUERY_SPACE;
  */
 public class MfaFactorVerifier {
 
-    static final String CREDENTIAL_TABLE = "nop_auth_mfa_credential";
-
     @Inject
     @Nullable
     protected TOTPAuthenticator totpAuthenticator;
@@ -95,7 +92,7 @@ public class MfaFactorVerifier {
 
     @Inject
     @Nullable
-    protected IJdbcTemplate jdbcTemplate;
+    protected IOrmTemplate ormTemplate;
 
     /**
      * WebAuthn 验证器组件（W14）：{@code nopWebAuthnAuthenticator} bean；未装配（无 webauthn
@@ -230,22 +227,22 @@ public class MfaFactorVerifier {
         if (check.getSignatureCount() > 0) {
             // 单调递增写（并发语义裁定回写设计 §5.3.2）：条件 UPDATE，竞态方按失败处理
             long now = CoreMetrics.currentTimeMillis();
-            if (jdbcTemplate != null) {
-                SQL upd = SQL.begin().name("webauthnSignCountAdvance").querySpace(DEFAULT_QUERY_SPACE)
-                        .sql("UPDATE " + CREDENTIAL_TABLE + " SET SIGN_COUNT = ?, LAST_USED_AT = ?, "
-                                        + "UPDATE_TIME = ?, VERSION = VERSION + 1 "
-                                        + "WHERE SID = ? AND SIGN_COUNT < ?",
+            if (ormTemplate != null) {
+                SQL upd = SQL.begin().name("webauthnSignCountAdvance")
+                        .sql("update NopAuthMfaCredential o set o.signCount = ?, o.lastUsedAt = ?, "
+                                        + "o.updateTime = ?, o.version = o.version + 1 "
+                                        + "where o.sid = ? and o.signCount < ?",
                                 check.getSignatureCount(), new Timestamp(now), new Timestamp(now),
                                 credential.getSid(), check.getSignatureCount())
                         .end();
-                long affected = jdbcTemplate.executeUpdate(upd);
+                long affected = ormTemplate.executeUpdate(upd);
                 if (affected == 0) {
                     // 并发断言已推进 ≥ 本计数：按验证失败处理（用户重试）——不覆盖更大计数
                     auditWebauthnAssertion(userId, credential.getCredentialId(), false, "sign-count-race", false);
                     return false;
                 }
             } else {
-                // 手工装配（@Nullable jdbcTemplate未注入，测试/无装饰器直调路径）退化实体写，
+                // 手工装配（@Nullable ormTemplate未注入，测试/无装饰器直调路径）退化实体写，
                 // 与LoginServiceImpl.markRecoveryCodeUsed的null退化先例一致；实体乐观锁兜底并发
                 long stored = credential.getSignCount() == null ? 0L : credential.getSignCount();
                 if (stored >= check.getSignatureCount()) {
@@ -278,15 +275,16 @@ public class MfaFactorVerifier {
         return found.isEmpty() ? null : found.get(0);
     }
 
-    /** count=0 认证器的 lastUsedAt 审计更新（不动 signCount）。手工装配无 jdbcTemplate 时退化实体写。 */
+    /** count=0 认证器的 lastUsedAt 审计更新（不动 signCount）。手工装配无 ormTemplate 时退化实体写。 */
     private void touchLastUsed(NopAuthMfaCredential credential) {
         long now = CoreMetrics.currentTimeMillis();
-        if (jdbcTemplate != null) {
-            SQL upd = SQL.begin().name("webauthnTouchLastUsed").querySpace(DEFAULT_QUERY_SPACE)
-                    .sql("UPDATE " + CREDENTIAL_TABLE + " SET LAST_USED_AT = ?, UPDATE_TIME = ?, VERSION = VERSION + 1 "
-                            + "WHERE SID = ?", new Timestamp(now), new Timestamp(now), credential.getSid())
+        if (ormTemplate != null) {
+            SQL upd = SQL.begin().name("webauthnTouchLastUsed")
+                    .sql("update NopAuthMfaCredential o set o.lastUsedAt = ?, o.updateTime = ?, "
+                            + "o.version = o.version + 1 where o.sid = ?",
+                            new Timestamp(now), new Timestamp(now), credential.getSid())
                     .end();
-            jdbcTemplate.executeUpdate(upd);
+            ormTemplate.executeUpdate(upd);
         } else {
             credential.setLastUsedAt(new Timestamp(now));
             daoProvider.daoFor(NopAuthMfaCredential.class).updateEntity(credential);

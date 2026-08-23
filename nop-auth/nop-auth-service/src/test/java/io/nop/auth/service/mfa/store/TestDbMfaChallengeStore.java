@@ -14,7 +14,7 @@ import io.nop.auth.core.mfa.store.MfaChallengeStoreConfig;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.api.IDaoProvider;
-import io.nop.dao.jdbc.IJdbcTemplate;
+import io.nop.orm.IOrmTemplate;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
@@ -44,12 +44,12 @@ public class TestDbMfaChallengeStore extends JunitBaseTestCase {
     IDaoProvider daoProvider;
 
     @Inject
-    IJdbcTemplate jdbcTemplate;
+    IOrmTemplate ormTemplate;
 
     private DbMfaChallengeStore store(int expireSeconds) {
         DbMfaChallengeStore s = new DbMfaChallengeStore();
         s.daoProvider = daoProvider;
-        s.jdbcTemplate = jdbcTemplate;
+        s.ormTemplate = ormTemplate;
         MfaChallengeStoreConfig cfg = new MfaChallengeStoreConfig();
         cfg.setExpireSeconds(expireSeconds);
         s.setConfig(cfg);
@@ -57,9 +57,9 @@ public class TestDbMfaChallengeStore extends JunitBaseTestCase {
     }
 
     private int dbFailCount(String token) {
-        SQL select = SQL.begin().name("assertFailCount").querySpace(DEFAULT_QUERY_SPACE)
-                .sql("SELECT FAIL_COUNT FROM " + DbMfaChallengeStore.TABLE + " WHERE CHALLENGE_TOKEN = ?", token).end();
-        Integer v = jdbcTemplate.findInt(select, null);
+        SQL select = SQL.begin().name("assertFailCount")
+                .sql("select o.failCount from NopAuthMfaChallenge o where o.challengeToken = ?", token).end();
+        Integer v = ormTemplate.findInt(select, null);
         return v == null ? -1 : v;
     }
 
@@ -174,9 +174,9 @@ public class TestDbMfaChallengeStore extends JunitBaseTestCase {
     // ===================== W12-impl Phase 2：场景化 + markVerified（设计 §3.3） =====================
 
     private Long dbVerifiedAt(String token) {
-        SQL select = SQL.begin().name("assertVerifiedAt").querySpace(DEFAULT_QUERY_SPACE)
-                .sql("SELECT VERIFIED_AT FROM " + DbMfaChallengeStore.TABLE + " WHERE CHALLENGE_TOKEN = ?", token).end();
-        return jdbcTemplate.findLong(select, null);
+        SQL select = SQL.begin().name("assertVerifiedAt")
+                .sql("select o.verifiedAt from NopAuthMfaChallenge o where o.challengeToken = ?", token).end();
+        return ormTemplate.findLong(select, null);
     }
 
     @Test
@@ -292,7 +292,7 @@ public class TestDbMfaChallengeStore extends JunitBaseTestCase {
     private DbMfaChallengeStore storeWithConfig(MfaChallengeStoreConfig cfg) {
         DbMfaChallengeStore s = new DbMfaChallengeStore();
         s.daoProvider = daoProvider;
-        s.jdbcTemplate = jdbcTemplate;
+        s.ormTemplate = ormTemplate;
         s.setConfig(cfg);
         return s;
     }

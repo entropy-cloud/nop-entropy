@@ -62,7 +62,7 @@ import io.nop.core.lang.sql.SQL;
 import io.nop.dao.DaoConstants;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
-import io.nop.dao.jdbc.IJdbcTemplate;
+import io.nop.orm.IOrmTemplate;
 import io.nop.integration.api.email.EmailMessage;
 import io.nop.integration.api.email.IEmailSender;
 import io.nop.integration.api.sms.ISmsSender;
@@ -145,7 +145,6 @@ import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_SMS_RATE_LIMITED;
 import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_USER_NOT_ALLOW_LOGIN;
 import static io.nop.commons.util.StringHelper.isYes;
 import static io.nop.dao.DaoConfigs.CFG_ORM_ENABLE_TENANT_BY_DEFAULT;
-import static io.nop.dao.DaoConstants.DEFAULT_QUERY_SPACE;
 
 public class LoginServiceImpl extends AbstractLoginService implements ISessionBootstrap {
     static final Logger LOG = LoggerFactory.getLogger(LoginServiceImpl.class);
@@ -157,13 +156,13 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
     protected IDaoProvider daoProvider;
 
     /**
-     * JDBC 模板（A2-followup-1 D3-F2）：恢复码 used 条件写（原子 UPDATE + affected-row，
-     * {@code DbMfaChallengeStore.markVerified} 同型）。手工 wiring 测试可缺省——缺省时退化
-     * 为实体写（直调路径无并发竞争，语义等价）。
+     * ORM 模板（A2-followup-1 D3-F2，plan 2257 平移自 jdbcTemplate）：恢复码 used 条件写
+     * （原子 EQL UPDATE + affected-row，{@code DbMfaChallengeStore.markVerified} 同型）。
+     * 手工 wiring 测试可缺省——缺省时退化为实体写（直调路径无并发竞争，语义等价）。
      */
     @Inject
     @Nullable
-    protected IJdbcTemplate jdbcTemplate;
+    protected IOrmTemplate ormTemplate;
 
     @Inject
     protected IAuditService auditService;
@@ -767,17 +766,17 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
     }
 
     /**
-     * 恢复码 used 条件置位（D3-F2）。jdbcTemplate 可用时走原子条件 UPDATE（affected-row 判定）；
+     * 恢复码 used 条件置位（D3-F2）。ormTemplate 可用时走原子条件 EQL UPDATE（affected-row 判定）；
      * 手工 wiring 退化路径经实体写（直调路径无并发竞争，语义等价）。
      */
     private boolean markRecoveryCodeUsed(String sid) {
-        if (jdbcTemplate != null) {
-            SQL upd = SQL.begin().name("mfaRecoveryCodeMarkUsed").querySpace(DEFAULT_QUERY_SPACE)
-                    .sql("UPDATE nop_auth_mfa_recovery_code SET USED = 1, USED_AT = ? "
-                            + "WHERE SID = ? AND USED = 0",
+        if (ormTemplate != null) {
+            SQL upd = SQL.begin().name("mfaRecoveryCodeMarkUsed")
+                    .sql("update NopAuthMfaRecoveryCode o set o.used = 1, o.usedAt = ? "
+                            + "where o.sid = ? and o.used = 0",
                             new Timestamp(CoreMetrics.currentTimeMillis()), sid)
                     .end();
-            return jdbcTemplate.executeUpdate(upd) > 0;
+            return ormTemplate.executeUpdate(upd) > 0;
         }
         IEntityDao<NopAuthMfaRecoveryCode> dao = daoProvider.daoFor(NopAuthMfaRecoveryCode.class);
         NopAuthMfaRecoveryCode code = dao.getEntityById(sid);

@@ -15,11 +15,10 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
-import io.nop.dao.jdbc.IJdbcTemplate;
+import io.nop.orm.IOrmTemplate;
 
 import jakarta.inject.Inject;
 
-import static io.nop.dao.DaoConstants.DEFAULT_QUERY_SPACE;
 
 /**
  * {@link MfaChallengeStore} 的数据库实现（设计 §3.3，store-type=db，W8 默认）。
@@ -33,20 +32,21 @@ import static io.nop.dao.DaoConstants.DEFAULT_QUERY_SPACE;
  *   <li>{@code consume}：条件 DELETE（{@code WHERE token=? AND expire_at>now}）保证一次性，
  *       返回被删行（捕获自 SELECT）。</li>
  * </ul>
- * 原子性：单行 SQL 语句天然原子；{@code consume} 用条件 DELETE + affected-row 判定实现一次性
+ * 原子性：单行语句天然原子；{@code consume} 用条件 DELETE + affected-row 判定实现一次性
  * （并发 consume 仅一个成功）。TTL 清理为惰性：peek/consume 时过期即删；批量清理为 Follow-up。
  * <p>
  * 事务边界：单语句操作无需显式事务（DB 单语句原子）。
+ * <p>
+ * 语句载体为 EQL（plan 2257 平移，原 raw SQL）：实体短名 + 属性名经 {@code ormTemplate} 编译执行；
+ * 标量读直查 DB（绕过一级缓存，{@code markVerified} 等 bulk 写后读到提交值）。
  */
 public class DbMfaChallengeStore implements MfaChallengeStore {
-
-    static final String TABLE = "nop_auth_mfa_challenge";
 
     @Inject
     IDaoProvider daoProvider;
 
     @Inject
-    IJdbcTemplate jdbcTemplate;
+    IOrmTemplate ormTemplate;
 
     private MfaChallengeStoreConfig config = new MfaChallengeStoreConfig();
 
@@ -96,7 +96,7 @@ public class DbMfaChallengeStore implements MfaChallengeStore {
             return null;
         }
         // 票窗口判定（设计 §3.3）：已验证票仅在 verifiedAt + op-ticket-expire 内可见。
-        // verifiedAt 经原始 SQL 读取（绕过 ORM 会话缓存，markVerified 是 raw UPDATE）
+        // verifiedAt 经 EQL 标量投影读取（直查 DB 绕过一级缓存，markVerified 为 bulk 写）
         Long verifiedAt = readVerifiedAt(challengeToken);
         if (verifiedAt != null && now >= verifiedAt + opTicketMillis()) {
             deleteByToken(challengeToken); // 票失效即 challenge 整体失效（票不续命）
@@ -112,15 +112,15 @@ public class DbMfaChallengeStore implements MfaChallengeStore {
         if (StringHelper.isEmpty(challengeToken))
             return 0;
         long now = System.currentTimeMillis();
-        // SQL 原子递增（对齐 Redis INCRBY），仅未过期行生效
-        SQL incr = SQL.begin().name("mfaChallengeIncrFail").querySpace(DEFAULT_QUERY_SPACE)
-                .sql("UPDATE " + TABLE + " SET FAIL_COUNT = FAIL_COUNT + 1 "
-                        + "WHERE CHALLENGE_TOKEN = ? AND EXPIRE_AT > ?", challengeToken, now)
+        // EQL 原子递增（对齐 Redis INCRBY），仅未过期行生效
+        SQL incr = SQL.begin().name("mfaChallengeIncrFail")
+                .sql("update NopAuthMfaChallenge o set o.failCount = o.failCount + 1 "
+                        + "where o.challengeToken = ? and o.expireAt > ?", challengeToken, now)
                 .end();
-        long affected = jdbcTemplate.executeUpdate(incr);
+        long affected = ormTemplate.executeUpdate(incr);
         if (affected == 0)
             return 0; // 不存在或已过期，计数无意义（对齐 Local 语义）
-        // 读回递增后的值（原始 SQL，绕过 ORM 会话缓存避免读到脏值）
+        // 读回递增后的值（EQL 标量投影直查 DB，绕过一级缓存避免读到脏值）
         return readFailCount(challengeToken);
     }
 
@@ -140,10 +140,11 @@ public class DbMfaChallengeStore implements MfaChallengeStore {
         MfaChallenge captured = toPojo(e);
         captured.setVerifiedAt(readVerifiedAt(challengeToken));
         long now = System.currentTimeMillis();
-        SQL del = SQL.begin().name("mfaChallengeConsume").querySpace(DEFAULT_QUERY_SPACE)
-                .sql("DELETE FROM " + TABLE + " WHERE CHALLENGE_TOKEN = ? AND EXPIRE_AT > ?", challengeToken, now)
+        SQL del = SQL.begin().name("mfaChallengeConsume")
+                .sql("delete from NopAuthMfaChallenge o where o.challengeToken = ? and o.expireAt > ?",
+                        challengeToken, now)
                 .end();
-        long affected = jdbcTemplate.executeUpdate(del);
+        long affected = ormTemplate.executeUpdate(del);
         return affected > 0 ? captured : null;
     }
 
@@ -153,12 +154,12 @@ public class DbMfaChallengeStore implements MfaChallengeStore {
             return false;
         // 条件 UPDATE + affected-row：仅首个验证者迁移成功（并发恰一次，设计 §3.3 原子性契约）
         long now = System.currentTimeMillis();
-        SQL upd = SQL.begin().name("mfaChallengeMarkVerified").querySpace(DEFAULT_QUERY_SPACE)
-                .sql("UPDATE " + TABLE + " SET VERIFIED_AT = ? "
-                        + "WHERE CHALLENGE_TOKEN = ? AND VERIFIED_AT IS NULL AND EXPIRE_AT > ?",
+        SQL upd = SQL.begin().name("mfaChallengeMarkVerified")
+                .sql("update NopAuthMfaChallenge o set o.verifiedAt = ? "
+                        + "where o.challengeToken = ? and o.verifiedAt is null and o.expireAt > ?",
                         now, challengeToken, now)
                 .end();
-        return jdbcTemplate.executeUpdate(upd) > 0;
+        return ormTemplate.executeUpdate(upd) > 0;
     }
 
     private long opTicketMillis() {
@@ -166,23 +167,23 @@ public class DbMfaChallengeStore implements MfaChallengeStore {
     }
 
     private void deleteByToken(String token) {
-        SQL del = SQL.begin().name("mfaChallengeDelete").querySpace(DEFAULT_QUERY_SPACE)
-                .sql("DELETE FROM " + TABLE + " WHERE CHALLENGE_TOKEN = ?", token).end();
-        jdbcTemplate.executeUpdate(del);
+        SQL del = SQL.begin().name("mfaChallengeDelete")
+                .sql("delete from NopAuthMfaChallenge o where o.challengeToken = ?", token).end();
+        ormTemplate.executeUpdate(del);
     }
 
     private int readFailCount(String token) {
-        SQL select = SQL.begin().name("mfaChallengeFailCount").querySpace(DEFAULT_QUERY_SPACE)
-                .sql("SELECT FAIL_COUNT FROM " + TABLE + " WHERE CHALLENGE_TOKEN = ?", token).end();
-        Integer val = jdbcTemplate.findInt(select, null);
+        SQL select = SQL.begin().name("mfaChallengeFailCount")
+                .sql("select o.failCount from NopAuthMfaChallenge o where o.challengeToken = ?", token).end();
+        Integer val = ormTemplate.findInt(select, null);
         return val == null ? 0 : val;
     }
 
-    /** 原始 SQL 读 VERIFIED_AT（null=未验证；绕过 ORM 会话缓存，markVerified 为 raw UPDATE）。 */
+    /** EQL 标量投影读 verifiedAt（null=未验证；直查 DB 绕过一级缓存，bulk 写后读到提交值）。 */
     private Long readVerifiedAt(String token) {
-        SQL select = SQL.begin().name("mfaChallengeVerifiedAt").querySpace(DEFAULT_QUERY_SPACE)
-                .sql("SELECT VERIFIED_AT FROM " + TABLE + " WHERE CHALLENGE_TOKEN = ?", token).end();
-        Long val = jdbcTemplate.findLong(select, null);
+        SQL select = SQL.begin().name("mfaChallengeVerifiedAt")
+                .sql("select o.verifiedAt from NopAuthMfaChallenge o where o.challengeToken = ?", token).end();
+        Long val = ormTemplate.findLong(select, null);
         return val;
     }
 

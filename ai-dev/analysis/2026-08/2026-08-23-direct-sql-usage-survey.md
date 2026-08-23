@@ -64,7 +64,7 @@
 | `PanelDataBinder`/`PanelSqlBuilder`/`AlertEvaluator`/ChatBI 取数（nop-datav） | 动态面板查询 | **执行用户定义的数据集 SQL 是 datav 的产品功能本体**（查询引擎语义：任意方言、动态拼装、行级限流） |
 | `SysDaoResourceLockManager` / `SysSequenceGenerator` / `WorkflowDefinitionDO` / `TreeEntityHelper` | `SQL.begin().update/deleteFrom(实体名)...` 经 session 执行 | 已经是 **EQL**（实体名 + prop 名），且带 version/holderId 条件——本报告的合规规范样例，无需改动 |
 
-> 评级说明：第二类中"一次性消费/原子自增"语义 EQL 亦可为（同为单语句 affected-row），但这些位置的裁定文档/注释均以"单语句原子 + 绕过会话"为契约写下，族内一致（Db/Redis/Local 三实现同语义），改动收益（去物理列名耦合）小于在安全关键路径上重写已验证代码的风险。**结论：保留，理由如上。**其中物理列名耦合是已知残余风险，见 Open Questions。
+> 评级说明（2026-08-23 第三轮更新）：第二类中"一次性消费/原子自增"语义 EQL 亦可为（同为单语句 affected-row）。**MFA 家族（DbMfaChallengeStore/DbSmsCodeStore/DbEmailCodeStore、webauthn signCount、恢复码、TOTP 计数）与 credential oauth state store 已于 plan 2257 全部平移 EQL**（`ormTemplate` 执行、实体短名 + 属性名；原子语义 affected-row 判定/自增/条件守卫/REQUIRES_NEW 全部保持，auth 406 + credential 215 测试全绿）；上表相关行转为历史记录。仍然保留 raw SQL 的：datav `recordShareVisit`（设计裁定）、`existsTable` 探测、PanelDataBinder 查询引擎、`SysDaoResourceLockManager` 等本就合规的 EQL 样例。
 
 ### 三、发现的问题：不需要 SQL、且 SQL 已造成实际缺陷（2 组 6 处）
 
@@ -141,7 +141,8 @@ g4 根因（用户质询"查看 EQL 的 g4"）：`BaseRule.g4:164-172` 的 `sqlE
 
 ## Open Questions
 
-- [x] ~~watch-only：mfa/credential 家族平移 EQL——若未来 EQL update SET 算术表达式获得测试背书，可重新评估~~（2026-08-23 第二轮复核：探针已实证 update SET 算术与条件更新支持，技术障碍清除，见"第二轮复核"勘误 1；是否平移交后续计划裁定，物理列名耦合与 jdbcTemplate 双路径维护成本仍在）。
+- [x] ~~watch-only：mfa/credential 家族平移 EQL~~（**2026-08-23 plan 2257 已完成平移**：7 文件 19 条语句全部 EQL 化，jdbcTemplate 依赖移除，`ormTemplate` 注入，null 退化路径改判并保留；auth-service 406 / credential-service 215 全绿）。
+- [x] ~~EQL 算术分组缺陷修复立项~~ 补充（plan 2257 g4 审计）：**NOT 优先级缺陷已发现并修复**——`sqlExpr` 的 NOT 备选原排在 AND/OR 之后（最松），`not a=1 and b='x'` 解析为 `not(a=1 and b='x')`（编译文本与 H2 值双证）；修复为 NOT 备选最前（标准 `NOT > AND > OR`），`TestEqlLogicalPrecedence` 红→绿固化；其余审计形态（AND/OR、一元负号、BETWEEN、算术在比较内、NOT BETWEEN、IS NULL）全部标准。
 - [x] ~~EQL 算术分组缺陷修复立项~~（**2026-08-23 已修复，plan 2256**：`BaseRule.g4` `sqlExpr_bit` 重写为六级分层（`^` > `(* / %)` > `(+ -)` > `(<< >>)` > `&` > `|`，同级运算符合并为 token-set label 备选实现同级左结合），`./mvnw install -pl nop-orm-eql` 再生成签入解析器；红→绿证据：`8/2+4/2` 4→6、`10-2+3` 5→11、列混合 0→50；回归 eql 45 / orm 175 / ai 38 / datav 630 / sys-dao 43 / wf-core+service 全绿；`TestEqlArithmeticPrecedence` 固化矩阵）。
 - [ ] `NopDatavDashboardShareBizModel.recordShareVisit` 属第二节"保留"（设计文档裁定），但其"原子自增不走实体"形态与 F-2 的区分标准（是否需要单语句原子性）已在报告中写明，供后续复查对照。
 

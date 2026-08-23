@@ -16,11 +16,10 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
-import io.nop.dao.jdbc.IJdbcTemplate;
+import io.nop.orm.IOrmTemplate;
 
 import jakarta.inject.Inject;
 
-import static io.nop.dao.DaoConstants.DEFAULT_QUERY_SPACE;
 
 /**
  * {@link SmsCodeStore} 的数据库实现（设计 §3.3，store-type=db，W8 默认）。
@@ -43,13 +42,11 @@ import static io.nop.dao.DaoConstants.DEFAULT_QUERY_SPACE;
  */
 public class DbSmsCodeStore implements SmsCodeStore {
 
-    static final String TABLE = "nop_auth_sms_code";
-
     @Inject
     IDaoProvider daoProvider;
 
     @Inject
-    IJdbcTemplate jdbcTemplate;
+    IOrmTemplate ormTemplate;
 
     private SmsCodeStoreConfig config = new SmsCodeStoreConfig();
 
@@ -125,28 +122,28 @@ public class DbSmsCodeStore implements SmsCodeStore {
     }
 
     private long incrFail(String key, long now) {
-        SQL incr = SQL.begin().name("smsCodeIncrFail").querySpace(DEFAULT_QUERY_SPACE)
-                .sql("UPDATE " + TABLE + " SET FAIL_COUNT = FAIL_COUNT + 1 WHERE CODE_KEY = ? AND EXPIRE_AT > ?", key, now)
+        SQL incr = SQL.begin().name("smsCodeIncrFail")
+                .sql("update NopAuthSmsCode o set o.failCount = o.failCount + 1 where o.codeKey = ? and o.expireAt > ?", key, now)
                 .end();
-        return jdbcTemplate.executeUpdate(incr);
+        return ormTemplate.executeUpdate(incr);
     }
 
     private long conditionalDelete(String key, long now) {
-        SQL del = SQL.begin().name("smsCodeConsume").querySpace(DEFAULT_QUERY_SPACE)
-                .sql("DELETE FROM " + TABLE + " WHERE CODE_KEY = ? AND EXPIRE_AT > ?", key, now).end();
-        return jdbcTemplate.executeUpdate(del);
+        SQL del = SQL.begin().name("smsCodeConsume")
+                .sql("delete from NopAuthSmsCode o where o.codeKey = ? and o.expireAt > ?", key, now).end();
+        return ormTemplate.executeUpdate(del);
     }
 
     private void deleteByKey(String key) {
-        SQL del = SQL.begin().name("smsCodeDelete").querySpace(DEFAULT_QUERY_SPACE)
-                .sql("DELETE FROM " + TABLE + " WHERE CODE_KEY = ?", key).end();
-        jdbcTemplate.executeUpdate(del);
+        SQL del = SQL.begin().name("smsCodeDelete")
+                .sql("delete from NopAuthSmsCode o where o.codeKey = ?", key).end();
+        ormTemplate.executeUpdate(del);
     }
 
     private int readFailCount(String key) {
-        SQL select = SQL.begin().name("smsCodeFailCount").querySpace(DEFAULT_QUERY_SPACE)
-                .sql("SELECT FAIL_COUNT FROM " + TABLE + " WHERE CODE_KEY = ?", key).end();
-        Integer val = jdbcTemplate.findInt(select, null);
+        SQL select = SQL.begin().name("smsCodeFailCount")
+                .sql("select o.failCount from NopAuthSmsCode o where o.codeKey = ?", key).end();
+        Integer val = ormTemplate.findInt(select, null);
         return val == null ? 0 : val;
     }
 

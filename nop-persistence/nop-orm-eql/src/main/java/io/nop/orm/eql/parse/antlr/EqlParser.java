@@ -5321,7 +5321,7 @@ public class EqlParser extends Parser {
 					consume();
 				}
 				setState(606);
-				((SqlNotExprContext)_localctx).expr = sqlExpr(2);
+				((SqlNotExprContext)_localctx).expr = sqlExpr(4);
 				}
 				break;
 			case 2:
@@ -5352,7 +5352,7 @@ public class EqlParser extends Parser {
 						((SqlAndExprContext)_localctx).left = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_sqlExpr);
 						setState(610);
-						if (!(precpred(_ctx, 4))) throw new FailedPredicateException(this, "precpred(_ctx, 4)");
+						if (!(precpred(_ctx, 3))) throw new FailedPredicateException(this, "precpred(_ctx, 3)");
 						setState(611);
 						_la = _input.LA(1);
 						if ( !(_la==AND_ || _la==AND) ) {
@@ -5364,7 +5364,7 @@ public class EqlParser extends Parser {
 							consume();
 						}
 						setState(612);
-						((SqlAndExprContext)_localctx).right = sqlExpr(5);
+						((SqlAndExprContext)_localctx).right = sqlExpr(4);
 						}
 						break;
 					case 2:
@@ -5373,11 +5373,11 @@ public class EqlParser extends Parser {
 						((SqlOrExprContext)_localctx).left = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_sqlExpr);
 						setState(613);
-						if (!(precpred(_ctx, 3))) throw new FailedPredicateException(this, "precpred(_ctx, 3)");
+						if (!(precpred(_ctx, 2))) throw new FailedPredicateException(this, "precpred(_ctx, 2)");
 						setState(614);
 						match(OR);
 						setState(615);
-						((SqlOrExprContext)_localctx).right = sqlExpr(4);
+						((SqlOrExprContext)_localctx).right = sqlExpr(3);
 						}
 						break;
 					}
@@ -9240,9 +9240,9 @@ public class EqlParser extends Parser {
 	private boolean sqlExpr_sempred(SqlExprContext _localctx, int predIndex) {
 		switch (predIndex) {
 		case 2:
-			return precpred(_ctx, 4);
-		case 3:
 			return precpred(_ctx, 3);
+		case 3:
+			return precpred(_ctx, 2);
 		}
 		return true;
 	}
@@ -9680,11 +9680,11 @@ public class EqlParser extends Parser {
 		"\u0001\u0000\u0000\u0000\u0259\u025a\u0001\u0000\u0000\u0000\u025ay\u0001"+
 		"\u0000\u0000\u0000\u025b\u0259\u0001\u0000\u0000\u0000\u025c\u025d\u0006"+
 		"=\uffff\uffff\u0000\u025d\u025e\u0007\u0004\u0000\u0000\u025e\u0261\u0003"+
-		"z=\u0002\u025f\u0261\u0003|>\u0000\u0260\u025c\u0001\u0000\u0000\u0000"+
+		"z=\u0004\u025f\u0261\u0003|>\u0000\u0260\u025c\u0001\u0000\u0000\u0000"+
 		"\u0260\u025f\u0001\u0000\u0000\u0000\u0261\u026a\u0001\u0000\u0000\u0000"+
-		"\u0262\u0263\n\u0004\u0000\u0000\u0263\u0264\u0007\u0005\u0000\u0000\u0264"+
-		"\u0269\u0003z=\u0005\u0265\u0266\n\u0003\u0000\u0000\u0266\u0267\u0005"+
-		"d\u0000\u0000\u0267\u0269\u0003z=\u0004\u0268\u0262\u0001\u0000\u0000"+
+		"\u0262\u0263\n\u0003\u0000\u0000\u0263\u0264\u0007\u0005\u0000\u0000\u0264"+
+		"\u0269\u0003z=\u0004\u0265\u0266\n\u0002\u0000\u0000\u0266\u0267\u0005"+
+		"d\u0000\u0000\u0267\u0269\u0003z=\u0003\u0268\u0262\u0001\u0000\u0000"+
 		"\u0000\u0268\u0265\u0001\u0000\u0000\u0000\u0269\u026c\u0001\u0000\u0000"+
 		"\u0000\u026a\u0268\u0001\u0000\u0000\u0000\u026a\u026b\u0001\u0000\u0000"+
 		"\u0000\u026b{\u0001\u0000\u0000\u0000\u026c\u026a\u0001\u0000\u0000\u0000"+

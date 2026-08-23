@@ -244,7 +244,7 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
      */
     @Inject
     @Nullable
-    protected io.nop.dao.jdbc.IJdbcTemplate jdbcTemplate;
+    protected io.nop.orm.IOrmTemplate ormTemplate;
 
     public NopAuthUserBizModel() {
         setEntityName(NopAuthUser.class.getName());
@@ -1649,26 +1649,23 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
 
     // ===================== TOTP 绑定/解绑失败计数（A2-followup-1 D1-1） =====================
 
-    /** setting 表名（raw SQL 计数操作——DbMfaChallengeStore.incrFailCount 同型）。 */
-    private static final String SETTING_TABLE = "nop_auth_mfa_setting";
-
     /**
      * TOTP 锁定判定：失败计数 ≥ 上限 且 处于冷却窗口内（最近失败时间 + totp-cooldown-seconds）。
-     * 窗口过期后放行重试（重试失败继续累计，成功清零）。raw SQL 读（绕过 ORM 会话缓存，
+     * 窗口过期后放行重试（重试失败继续累计，成功清零）。EQL 标量读（直查 DB 绕过一级缓存，
      * {@code DbMfaChallengeStore.readVerifiedAt} 先例——并发递增后判定读到新值）。
      */
     private boolean isTotpLocked(String userId) {
         int maxFails = CFG_AUTH_MFA_TOTP_VERIFY_MAX_FAILS.get();
         long cutoff = CoreMetrics.currentTimeMillis() - CFG_AUTH_MFA_TOTP_COOLDOWN_SECONDS.get() * 1000L;
-        if (jdbcTemplate != null) {
+        if (ormTemplate != null) {
             io.nop.core.lang.sql.SQL sel = io.nop.core.lang.sql.SQL.begin()
-                    .name("mfaTotpLockedProbe").querySpace(io.nop.dao.DaoConstants.DEFAULT_QUERY_SPACE)
-                    .sql("SELECT COUNT(*) FROM " + SETTING_TABLE
-                            + " WHERE USER_ID = ? AND COALESCE(TOTP_FAIL_COUNT,0) >= ?"
-                            + " AND TOTP_FAIL_AT IS NOT NULL AND TOTP_FAIL_AT > ?",
+                    .name("mfaTotpLockedProbe")
+                    .sql("select count(*) from NopAuthMfaSetting o "
+                            + "where o.userId = ? and coalesce(o.totpFailCount, 0) >= ?"
+                            + " and o.totpFailAt is not null and o.totpFailAt > ?",
                             userId, maxFails, new Timestamp(cutoff))
                     .end();
-            return jdbcTemplate.findInt(sel, 0) > 0;
+            return ormTemplate.findInt(sel, 0) > 0;
         }
         // 手工 wiring 退化路径：经 setting 实体值判定（直调路径无会话缓存竞争）
         NopAuthMfaSetting setting = daoFor(NopAuthMfaSetting.class).getEntityById(userId);
@@ -1686,31 +1683,31 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
      * <b>事务语义（防生产空壳）</b>：confirmMfa/unbindMfa 是 @BizMutation——外层事务在随后的
      * {@code ERR_AUTH_MFA_FAIL} 抛出时会回滚，计数若随波逐流将永不持久。故计数写必须在
      * {@code REQUIRES_NEW} 独立事务中先行落库（失败路径此前无同行写，无自锁风险）。
-     * 手工 wiring（无 transactionTemplate，直调无装饰器）退化为实体写。
+     * 手工 wiring（无 ormTemplate，直调无装饰器）退化为实体写。
      */
     private void incrTotpVerifyFail(NopAuthMfaSetting setting, boolean pendingPath) {
         int maxFails = CFG_AUTH_MFA_TOTP_VERIFY_MAX_FAILS.get();
         Timestamp now = new Timestamp(CoreMetrics.currentTimeMillis());
-        if (jdbcTemplate != null && txn() != null) {
+        if (ormTemplate != null && txn() != null) {
             txn().runInTransaction(null, io.nop.api.core.annotations.txn.TransactionPropagation.REQUIRES_NEW, txn -> {
                 io.nop.core.lang.sql.SQL incr = io.nop.core.lang.sql.SQL.begin()
-                        .name("mfaTotpIncrFail").querySpace(io.nop.dao.DaoConstants.DEFAULT_QUERY_SPACE)
-                        .sql("UPDATE " + SETTING_TABLE
-                                + " SET TOTP_FAIL_COUNT = COALESCE(TOTP_FAIL_COUNT,0) + 1, TOTP_FAIL_AT = ?"
-                                + " WHERE USER_ID = ?", now, setting.getUserId())
+                        .name("mfaTotpIncrFail")
+                        .sql("update NopAuthMfaSetting o "
+                                + "set o.totpFailCount = coalesce(o.totpFailCount, 0) + 1, o.totpFailAt = ?"
+                                + " where o.userId = ?", now, setting.getUserId())
                         .end();
-                jdbcTemplate.executeUpdate(incr);
-                Integer count = jdbcTemplate.findInt(io.nop.core.lang.sql.SQL.begin()
-                        .name("mfaTotpFailCount").querySpace(io.nop.dao.DaoConstants.DEFAULT_QUERY_SPACE)
-                        .sql("SELECT TOTP_FAIL_COUNT FROM " + SETTING_TABLE + " WHERE USER_ID = ?",
+                ormTemplate.executeUpdate(incr);
+                Integer count = ormTemplate.findInt(io.nop.core.lang.sql.SQL.begin()
+                        .name("mfaTotpFailCount")
+                        .sql("select o.totpFailCount from NopAuthMfaSetting o where o.userId = ?",
                                 setting.getUserId())
                         .end(), null);
                 if (pendingPath && count != null && count >= maxFails) {
                     // pending 路径超限语义：作废 bindToken（条件写：仅非空时）
-                    jdbcTemplate.executeUpdate(io.nop.core.lang.sql.SQL.begin()
-                            .name("mfaTotpInvalidateBindToken").querySpace(io.nop.dao.DaoConstants.DEFAULT_QUERY_SPACE)
-                            .sql("UPDATE " + SETTING_TABLE + " SET BIND_TOKEN = NULL"
-                                    + " WHERE USER_ID = ? AND BIND_TOKEN IS NOT NULL", setting.getUserId())
+                    ormTemplate.executeUpdate(io.nop.core.lang.sql.SQL.begin()
+                            .name("mfaTotpInvalidateBindToken")
+                            .sql("update NopAuthMfaSetting o set o.bindToken = null"
+                                    + " where o.userId = ? and o.bindToken is not null", setting.getUserId())
                             .end());
                 }
                 return null;
@@ -1733,12 +1730,12 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
      * （lastVerifiedWindow 推进/status 变更）随后正常提交，互不干扰）。
      */
     private void resetTotpVerifyFail(NopAuthMfaSetting setting) {
-        if (jdbcTemplate != null) {
-            jdbcTemplate.executeUpdate(io.nop.core.lang.sql.SQL.begin()
-                    .name("mfaTotpResetFail").querySpace(io.nop.dao.DaoConstants.DEFAULT_QUERY_SPACE)
-                    .sql("UPDATE " + SETTING_TABLE + " SET TOTP_FAIL_COUNT = 0, TOTP_FAIL_AT = NULL"
-                            + " WHERE USER_ID = ? AND (TOTP_FAIL_COUNT IS NOT NULL AND TOTP_FAIL_COUNT <> 0"
-                            + " OR TOTP_FAIL_AT IS NOT NULL)", setting.getUserId())
+        if (ormTemplate != null) {
+            ormTemplate.executeUpdate(io.nop.core.lang.sql.SQL.begin()
+                    .name("mfaTotpResetFail")
+                    .sql("update NopAuthMfaSetting o set o.totpFailCount = 0, o.totpFailAt = null"
+                            + " where o.userId = ? and (o.totpFailCount is not null and o.totpFailCount <> 0"
+                            + " or o.totpFailAt is not null)", setting.getUserId())
                     .end());
             return;
         }

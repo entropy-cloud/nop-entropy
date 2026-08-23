@@ -130,9 +130,9 @@ columnNames_
 //    ;
 
 sqlExpr
-    : left=sqlExpr (AND | AND_) right=sqlExpr # SqlAndExpr
+    : (NOT|NOT_) expr=sqlExpr  # SqlNotExpr
+    | left=sqlExpr (AND | AND_) right=sqlExpr # SqlAndExpr
     | left=sqlExpr OR right=sqlExpr # SqlOrExpr
-    | (NOT|NOT_) expr=sqlExpr  # SqlNotExpr
     | sqlExpr_primary  # SqlExpr_primary2
     ;
 
