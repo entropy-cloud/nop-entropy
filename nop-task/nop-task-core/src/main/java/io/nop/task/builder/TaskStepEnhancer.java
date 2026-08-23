@@ -80,7 +80,7 @@ public class TaskStepEnhancer implements ITaskStepEnhancer {
 
         return new TaskStepExecution(stepModel.getLocation(), stepModel.getName(), inputs, outputs, outputVars,
                 stepModel.getFlags(), stepModel.getWhen(), step,
-                stepModel.getNextOnError(), stepModel.getNextOnError(),
+                stepModel.getNext(), stepModel.getNextOnError(),
                 stepModel.isRecordMetrics(),
                 stepModel.getErrorName(), Boolean.TRUE.equals(stepModel.getUseParentScope()));
     }

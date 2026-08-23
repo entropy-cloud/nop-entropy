@@ -42,7 +42,7 @@ public class DefaultTaskStateStore implements ITaskStateStore {
         state.setStepStatus(TaskConstants.TASK_STEP_STATUS_ACTIVE);
 
         if (parentState != null) {
-            state.setParentStepPath(parentState.getParentStepPath());
+            state.setParentStepPath(parentState.getStepPath());
             state.setParentRunId(parentState.getRunId());
         }
         return state;

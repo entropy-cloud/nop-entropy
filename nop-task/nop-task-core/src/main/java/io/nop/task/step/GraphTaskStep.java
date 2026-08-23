@@ -240,10 +240,13 @@ public class GraphTaskStep extends AbstractTaskStep {
                 }
             }
 
-            if (runningCount.get() == 0 && !future.isDone())
-                throw new NopException(ERR_TASK_GRAPH_NO_ACTIVE_STEP)
+            if (runningCount.get() == 0 && !future.isDone()) {
+                // whenComplete回调内的throw进入被丢弃的依赖future（异常静默丢失、图挂死），
+                // 必须以completeExceptionally终结图级future
+                future.completeExceptionally(new NopException(ERR_TASK_GRAPH_NO_ACTIVE_STEP)
                         .source(this)
-                        .param(ARG_STEP_PATH, stepRt.getStepPath());
+                        .param(ARG_STEP_PATH, stepRt.getStepPath()));
+            }
         });
     }
 

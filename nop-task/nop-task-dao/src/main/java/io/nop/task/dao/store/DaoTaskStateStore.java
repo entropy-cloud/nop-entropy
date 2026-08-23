@@ -153,7 +153,10 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
                 String json = JsonTool.serialize(resultValue, false);
                 if (json != null && json.length() <= 4000)
                     entity.setRemark(json);
-            } catch (Exception expected) {
+            } catch (Exception e) {
+                // 恢复关键数据序列化失败必须可见（与trySerialize/extractErrorStack的非静默约定一致）
+                LOG.warn("nop.task.serialize-task-result-failed:taskInstanceId={}",
+                        state.getTaskInstanceId(), e);
             }
         }
 
@@ -405,7 +408,8 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
                 String json = JsonTool.serialize(resultValue, false);
                 if (json != null && json.length() <= 4000)
                     entity.setStateBeanData(json);
-            } catch (Exception expected) {
+            } catch (Exception e) {
+                LOG.warn("nop.task.serialize-step-result-failed:stepPath={}", state.getStepPath(), e);
             }
         }
 

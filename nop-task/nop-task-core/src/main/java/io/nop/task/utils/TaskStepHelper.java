@@ -182,8 +182,11 @@ public class TaskStepHelper {
                                          ICancelToken cancelToken, IScheduledExecutor executor) {
         Cancellable cancellable = new Cancellable();
         Consumer<String> cancel = cancellable::cancel;
+        // 外部取消必须传播到步骤的timeout cancellable（对照同文件withCancellable的注册方式）：
+        // 原cancellable.append(cancellable)是自引用，外部kill不会触发步骤取消，
+        // 步骤体直到自身超时前对取消无响应
         if (cancelToken != null)
-            cancellable.append(cancellable);
+            cancelToken.appendOnCancel(cancel);
 
         Future<?> future = executor.schedule(() -> {
             cancellable.cancel(ICancellable.CANCEL_REASON_TIMEOUT);
@@ -202,6 +205,8 @@ public class TaskStepHelper {
             if (cancelToken != null) {
                 cancelToken.removeOnCancel(cancel);
             }
+            // 同步抛错出口同样要取消超时定时器，否则滞留到触发
+            future.cancel(false);
             throw NopException.adapt(e);
         }
     }
@@ -323,6 +328,8 @@ public class TaskStepHelper {
     }
 
     public static Object getDumpValue(Object value) {
+        if (value == null)
+            return null;
         if (value instanceof XNode)
             return ((XNode) value).xml();
         if (value.getClass().isAnnotationPresent(DataBean.class)) {
