@@ -376,6 +376,8 @@ public String generate(String ruleName, Object bean) {
 
 > **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`SysCodeRuleGenerator` 增加按名 ruleCache（detach 实体仅读 codePattern/seqName 纯属性），`NopSysCodeRuleBizModel.afterEntityChange` 调用 `clearCache()` 失效（管理端修改即时生效）。新增 `TestSysConfigCacheInvalidation.testCodeRuleConfigChangeClearsRuleCache`。红验证：注入字段对 HEAD 编译级红。
 
+> **review 整改（fix-ai-check 分支，2026-08-23）**: 初版只有 BizModel 失效钩子、无 TTL/上限——钩子只覆盖本节点的管理端修改，多节点部署下其他节点永不失效（审计原文"带失效的本地缓存"未做全）。已补：ruleCache 改 Caffeine（`nop.sys.code-rule.cache-max-size` 默认 1000 / `cache-timeout` 默认 60s，NopSysDaoConfigs 配置变量，命名对齐 site-map cache-max-size/cache-timeout 先例），TTL 兜底跨节点最终一致。新增 `TestSysCodeRuleGeneratorCache.testExpiredRuleReloadedAfterTtl`（DB 直改 pattern：TTL 内用缓存旧值、TTL 后加载新值）。红验证：HEAD 版 `after TTL expiry the modified rule must be reloaded, got: A001`。
+
 ### [P3] 非广播消息仅投递给同 topic 的第一个订阅者
 
 - **文件**: `nop-sys/nop-sys-dao/src/main/java/io/nop/sys/dao/message/SysDaoMessageService.java:389-401`

@@ -92,6 +92,8 @@ import static io.nop.auth.api.AuthApiConstants.LOGIN_TYPE_PHONE_SMS;
 import static io.nop.auth.api.AuthApiConstants.LOGIN_TYPE_USERNAME_PASSWORD;
 import static io.nop.auth.api.AuthApiErrors.ARG_LOGIN_TYPE;
 import static io.nop.auth.api.AuthApiErrors.ARG_PRINCIPAL_ID;
+import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_RATE_TRACKER_EXPIRE;
+import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_RATE_TRACKER_MAX_SIZE;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_ACCESS_TOKEN_EXPIRE_SECONDS;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_ALLOW_CREATE_DEFAULT_USER;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_EMAIL_CODE_DAILY_LIMIT;
@@ -835,10 +837,12 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
     private final Map<String, long[]> smsPhoneTracker = newBoundedRateMap();
     private final Map<String, long[]> smsIpTracker = newBoundedRateMap();
 
-    /** 限流追踪Map：Caffeine asMap视图，硬上限+2天过期防止键空间无界增长（XFF可伪造IP键）。 */
+    /** 限流追踪Map：Caffeine asMap视图，硬上限+过期防止键空间无界增长（XFF可伪造IP键），
+     * 上限/过期可配置（nop.auth.rate-limit.tracker-max-size / tracker-expire）。 */
     private static Map<String, long[]> newBoundedRateMap() {
-        Cache<String, long[]> cache = Caffeine.newBuilder().maximumSize(50_000)
-                .expireAfterWrite(Duration.ofDays(2)).build();
+        Cache<String, long[]> cache = Caffeine.newBuilder()
+                .maximumSize(CFG_AUTH_RATE_TRACKER_MAX_SIZE.get())
+                .expireAfterWrite(CFG_AUTH_RATE_TRACKER_EXPIRE.get()).build();
         return cache.asMap();
     }
 

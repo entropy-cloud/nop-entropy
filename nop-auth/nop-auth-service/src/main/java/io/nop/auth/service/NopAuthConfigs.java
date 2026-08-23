@@ -158,6 +158,16 @@ public interface NopAuthConfigs {
     IConfigReference<Integer> CFG_AUTH_SMS_CODE_SEND_INTERVAL_SECONDS = varRef(s_loc, "nop.auth.sms-code.send-interval-seconds",
             Integer.class, 60);
 
+    @Description("发码限流追踪Map的容量上限（手机号/邮箱/IP维度）。超限驱逐最冷键会使对应维度的"
+            + "限流计数重置，对近似本地限流可接受；按部署规模与内存预算调整")
+    IConfigReference<Integer> CFG_AUTH_RATE_TRACKER_MAX_SIZE = varRef(s_loc, "nop.auth.rate-limit.tracker-max-size",
+            Integer.class, 50_000);
+
+    @Description("发码限流追踪Map的过期时间。计数本身按自然日重置，过期仅用于兜底清理跨天残留键"
+            + "与封顶XFF伪造IP键的内存驻留")
+    IConfigReference<Duration> CFG_AUTH_RATE_TRACKER_EXPIRE = varRef(s_loc, "nop.auth.rate-limit.tracker-expire",
+            Duration.class, Duration.of(48, ChronoUnit.HOURS));
+
     @Description("同一手机号每日短信发送上限")
     IConfigReference<Integer> CFG_AUTH_SMS_CODE_DAILY_LIMIT = varRef(s_loc, "nop.auth.sms-code.daily-limit",
             Integer.class, 20);

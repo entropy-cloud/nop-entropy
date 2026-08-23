@@ -81,6 +81,8 @@ import java.util.Set;
 
 import static io.nop.auth.core.AuthCoreErrors.ERR_AUTH_OLD_PASSWORD_NOT_MATCH;
 import static io.nop.auth.core.AuthCoreErrors.ERR_AUTH_USER_NOT_LOGIN;
+import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_RATE_TRACKER_EXPIRE;
+import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_RATE_TRACKER_MAX_SIZE;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_EMAIL_CODE_DAILY_LIMIT;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_EMAIL_CODE_ENABLED;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_EMAIL_CODE_SEND_INTERVAL_SECONDS;
@@ -1349,10 +1351,11 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
     private final Map<String, long[]> emailRateTracker = newBoundedRateMap();
     private final Map<String, long[]> emailIpRateTracker = newBoundedRateMap();
 
-    /** 限流追踪Map：Caffeine asMap视图，硬上限+2天过期防止键空间无界增长（XFF可伪造IP键）。 */
+    /** 限流追踪Map：Caffeine asMap视图，上限/过期可配置（与LoginServiceImpl共用同一配置组）。 */
     private static Map<String, long[]> newBoundedRateMap() {
-        Cache<String, long[]> cache = Caffeine.newBuilder().maximumSize(50_000)
-                .expireAfterWrite(Duration.ofDays(2)).build();
+        Cache<String, long[]> cache = Caffeine.newBuilder()
+                .maximumSize(CFG_AUTH_RATE_TRACKER_MAX_SIZE.get())
+                .expireAfterWrite(CFG_AUTH_RATE_TRACKER_EXPIRE.get()).build();
         return cache.asMap();
     }
 

@@ -195,7 +195,7 @@ if (xff != null && !xff.toString().isEmpty()) {
 - **建议**: 按日清理过期键或换 Caffeine maximumSize；XFF 解析仅信任已知代理链。
 - **误报排除**: 已核对未注册手机号在 allow-register=false 时提前 return 不落键、per-phone daily-limit 限制单键增长速率，DoS 面有界，故降为 P3。
 
-> **处置（fix-ai-check 分支，2026-08-23）**: 部分修复 + 一项裁定不修复。Map 无界增长已修复：7 个限流追踪 Map 全部换为 Caffeine asMap 视图（maximumSize=50_000 + expireAfterWrite=2 天）——硬上限防 XFF 伪造 IP 键不受真实手机号数约束的无界增长，2 天过期兜底清跨天残留；驱逐最冷键最坏使限流状态重置，对审计自述的"多实例部署下本就近似值"语义可接受。**XFF 伪造部分裁定不修复**：正确做法是仅信任已知代理链（如仅当直连 peer 是可信代理时才采信 XFF），这需要部署环境的网络拓扑知识，平台层无法内置白名单；伪造 XFF 只影响 IP 维度限流（手机号/邮箱维度不受影响），且引入 Caffeine 上限后伪造键的内存面已封顶。后续可在部署文档中说明反向代理场景的 XFF 处理约定。
+> **处置（fix-ai-check 分支，2026-08-23）**: 部分修复 + 一项裁定不修复。Map 无界增长已修复：7 个限流追踪 Map 全部换为 Caffeine asMap 视图（初版硬编码 50_000/2 天；review 整改后改由配置变量 `nop.auth.rate-limit.tracker-max-size`（默认 50_000）/ `tracker-expire`（默认 48h）驱动，NopAuthConfigs 定义，LoginServiceImpl 与 NopAuthUserBizModel 的 helper 统一读取）——硬上限防 XFF 伪造 IP 键不受真实手机号数约束的无界增长，2 天过期兜底清跨天残留；驱逐最冷键最坏使限流状态重置，对审计自述的"多实例部署下本就近似值"语义可接受。**XFF 伪造部分裁定不修复**：正确做法是仅信任已知代理链（如仅当直连 peer 是可信代理时才采信 XFF），这需要部署环境的网络拓扑知识，平台层无法内置白名单；伪造 XFF 只影响 IP 维度限流（手机号/邮箱维度不受影响），且引入 Caffeine 上限后伪造键的内存面已封顶。后续可在部署文档中说明反向代理场景的 XFF 处理约定。
 
 ### [P3] changeSelfPassword/resetUserPassword 后不失效既有会话与已签发 token
 
