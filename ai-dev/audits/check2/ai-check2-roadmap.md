@@ -55,10 +55,10 @@
 | kernel-small | `nop-kernel` 下 codegen/javac/dataset/antlr4/markdown/record-mapping/kernel-cli（`nop-xdefs` 无 Java 源不单列） | 196 | [kernel-small.md](kernel-small.md) | done |
 | nop-core-framework | `nop-core-framework`（boot/config/ioc/log/plugin/security） | 230 | [nop-core-framework.md](nop-core-framework.md) | done |
 | nop-orm | `nop-persistence/nop-orm` | 152 | [nop-orm.md](nop-orm.md) | done |
-| nop-orm-eql | `nop-persistence/nop-orm-eql` | 221 | [nop-orm-eql.md](nop-orm-eql.md) | pending |
-| orm-periph | `nop-persistence` 下 orm-model/orm-drivers/orm-pdm/orm-rpc/orm-data/orm-geo | 120 | [orm-periph.md](orm-periph.md) | pending |
-| nop-dao | `nop-persistence/nop-dao` | 116 | [nop-dao.md](nop-dao.md) | pending |
-| db-migration | `nop-persistence/nop-db-migration` + `nop-dbtool` | 109 | [db-migration.md](db-migration.md) | pending |
+| nop-orm-eql | `nop-persistence/nop-orm-eql` | 221 | [nop-orm-eql.md](nop-orm-eql.md) | done |
+| orm-periph | `nop-persistence` 下 orm-model/orm-drivers/orm-pdm/orm-rpc/orm-data/orm-geo | 120 | [orm-periph.md](orm-periph.md) | done |
+| nop-dao | `nop-persistence/nop-dao` | 116 | [nop-dao.md](nop-dao.md) | done |
+| db-migration | `nop-persistence/nop-db-migration` + `nop-dbtool` | 109 | [db-migration.md](db-migration.md) | done |
 | nosql-cdc | `nop-persistence/nop-nosql` + `nop-cdc` | 38 | [nosql-cdc.md](nosql-cdc.md) | pending |
 | nop-biz | `nop-service-framework/nop-biz` | 101 | [nop-biz.md](nop-biz.md) | pending |
 | nop-graphql | `nop-service-framework/nop-graphql` | 239 | [nop-graphql.md](nop-graphql.md) | pending |
@@ -198,3 +198,6 @@
   - nop-commons: `StringHelper.parseQuery` 重复参数名多值收集失效（put(key,value) 应为 put(key,list)）
   - nop-xlang: AND/OR 全局宏 `subList(1, size-1)` 差一 → AND(a,b) 恒为 false，全局注册影响所有 XLang 表达式
 - 2026-08-23: Phase 1 批次 1B 完成（4 单元，合计 66 条: P0=0 / P1=10 / P2=27 / P3=29）。P1 要点: nop-core-framework 的 ConfigExpressionProcessor 共享累积 configVars（多占位符表达式解析错误值）、ConfigStarter.getProfiles 变量名/值误用（nop.profile 被忽略）、ioc:proxy+bean-method 必抛 ClassCastException、BeanParentResolver 循环检测死代码；nop-orm 游标分页忽略 orderBy 排序字段、复合主键 getIdText 生成非法 SQL; kernel-small DataParameterBinders.FLOAT 声明 DOUBLE 实取 Float；truffle 帧未初始化读取语义漂移、翻译失败事件并发误配。
+- 2026-08-23: Phase 1 批次 1C 完成（4 单元，合计 60 条: P0=3 / P1=8 / P2=21 / P3=26）。P0:
+  - nop-orm-eql: 集合属性表源转换在外层查询生成多余 join（行数放大/非法 SQL），`_some`/`_all` 同样受影响（jshell 实测复现）
+  - db-migration: xdef 声明的 17 种变更中 9 种解析即 ClassCastException（执行器不可达）; insert/update/delete 的 `<column>` 解析为 DynamicObject（XML 路径数据变更全部不可用）——与第一轮收尾时"超出审计的新发现"记录独立吻合（该批问题当时未修）
