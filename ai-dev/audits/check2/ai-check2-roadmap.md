@@ -47,11 +47,11 @@
 
 | 单元 | 路径 | 文件数 | 报告 | 状态 |
 |------|------|--------|------|------|
-| nop-commons | `nop-kernel/nop-commons` | 403 | [nop-commons.md](nop-commons.md) | pending |
-| nop-core | `nop-kernel/nop-core` | 757 | [nop-core.md](nop-core.md) | pending |
-| nop-xlang | `nop-kernel/nop-xlang` | 885 | [nop-xlang.md](nop-xlang.md) | pending |
+| nop-commons | `nop-kernel/nop-commons` | 403 | [nop-commons.md](nop-commons.md) | done |
+| nop-core | `nop-kernel/nop-core` | 757 | [nop-core.md](nop-core.md) | done |
+| nop-xlang | `nop-kernel/nop-xlang` | 885 | [nop-xlang.md](nop-xlang.md) | done |
 | xlang-java-truffle | `nop-kernel/nop-xlang-java` + `nop-xlang-truffle` + `nop-xlang-java-e2e` | 187 | [xlang-java-truffle.md](xlang-java-truffle.md) | pending |
-| nop-api-core | `nop-kernel/nop-api-core` | 322 | [nop-api-core.md](nop-api-core.md) | pending |
+| nop-api-core | `nop-kernel/nop-api-core` | 322 | [nop-api-core.md](nop-api-core.md) | done |
 | kernel-small | `nop-kernel` 下 codegen/javac/dataset/antlr4/markdown/record-mapping/kernel-cli（`nop-xdefs` 无 Java 源不单列） | 196 | [kernel-small.md](kernel-small.md) | pending |
 | nop-core-framework | `nop-core-framework`（boot/config/ioc/log/plugin/security） | 230 | [nop-core-framework.md](nop-core-framework.md) | pending |
 | nop-orm | `nop-persistence/nop-orm` | 152 | [nop-orm.md](nop-orm.md) | pending |
@@ -194,3 +194,6 @@
 ## 进度日志
 
 - 2026-08-23: roadmap 创建，单元划分沿用第一轮 54 单元并细化（nop-xlang 拆出 xlang-java-truffle、ai-rest 覆盖面显式化为全部剩余 nop-ai 子模块、第一轮覆盖薄弱单元加注深读要求），共 56 个检查单元。启动 Phase 1。
+- 2026-08-23: Phase 1 批次 1A 完成（4 单元，合计 80 条: P0=2 / P1=11 / P2=25 / P3=41）。P0:
+  - nop-commons: `StringHelper.parseQuery` 重复参数名多值收集失效（put(key,value) 应为 put(key,list)）
+  - nop-xlang: AND/OR 全局宏 `subList(1, size-1)` 差一 → AND(a,b) 恒为 false，全局注册影响所有 XLang 表达式
