@@ -78,14 +78,14 @@
 
 | 单元 | 路径 | 文件数 | 报告 | 状态 |
 |------|------|--------|------|------|
-| nop-report | `nop-report` | 153 | [nop-report.md](nop-report.md) | pending |
-| nop-rule | `nop-rule` | 88 | [nop-rule.md](nop-rule.md) | pending |
-| nop-batch | `nop-batch`（core/dsl 为主） | 250 | [nop-batch.md](nop-batch.md) | pending |
-| nop-dyn | `nop-dyn` | 122 | [nop-dyn.md](nop-dyn.md) | pending |
-| file-retry-tcc | `nop-file` + `nop-retry` + `nop-tcc` | 105 | [file-retry-tcc.md](file-retry-tcc.md) | pending |
-| nop-metadata | `nop-metadata`（service/dao 为主，第一轮覆盖薄弱，本轮要求 core 包全量深读） | 282 | [nop-metadata.md](nop-metadata.md) | pending |
-| nop-excel | `nop-format/nop-excel` | 332 | [nop-excel.md](nop-excel.md) | pending |
-| format-record | `nop-format` 下 nop-record + nop-record-netty + nop-tablesaw | 154 | [format-record.md](format-record.md) | pending |
+| nop-report | `nop-report` | 153 | [nop-report.md](nop-report.md) | done |
+| nop-rule | `nop-rule` | 88 | [nop-rule.md](nop-rule.md) | done |
+| nop-batch | `nop-batch`（core/dsl 为主） | 250 | [nop-batch.md](nop-batch.md) | done |
+| nop-dyn | `nop-dyn` | 122 | [nop-dyn.md](nop-dyn.md) | done |
+| file-retry-tcc | `nop-file` + `nop-retry` + `nop-tcc` | 105 | [file-retry-tcc.md](file-retry-tcc.md) | in-progress |
+| nop-metadata | `nop-metadata`（service/dao 为主，第一轮覆盖薄弱，本轮要求 core 包全量深读） | 282 | [nop-metadata.md](nop-metadata.md) | in-progress |
+| nop-excel | `nop-format/nop-excel` | 332 | [nop-excel.md](nop-excel.md) | in-progress |
+| format-record | `nop-format` 下 nop-record + nop-record-netty + nop-tablesaw | 154 | [format-record.md](format-record.md) | in-progress |
 | format-pdf-svg | `nop-format` 下 nop-pdf + nop-svg + nop-chart-export | 148 | [format-pdf-svg.md](format-pdf-svg.md) | pending |
 | format-office | `nop-format` 下 nop-ooxml + nop-office-model + nop-office-doc-model | 182 | [format-office.md](format-office.md) | pending |
 | format-misc | `nop-format` 下 nop-converter + nop-mermaid + nop-markdown-ext + nop-chart-echarts | 101 | [format-misc.md](format-misc.md) | pending |
