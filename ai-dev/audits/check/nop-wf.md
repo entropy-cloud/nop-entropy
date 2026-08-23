@@ -73,6 +73,8 @@ if (!allowCallByUser(ctx))
 - **建议**: scanner 对 `ERR_WF_NOT_ALLOW_CALL_ACTION_BY_USER` 增加处理（或对系统触发路径绕过 allowCallByUser 的显式通道）；同时将单个任务失败改为记录并 continue，避免整批中断。
 - **误报排除**: 核对 `IWfActor.SYS_USER_ID="0"` 与 `"wf-scheduler"` 不等；`DaoWfActorResolver.resolveUser("wf-scheduler")` 查库返回 null（会更早失败）；`WfActorBean.containsUser` 对 user/dept/role 型 actor 不含该 id；唯一测试 `TestWfTaskScanner` 将 `WorkflowServiceSpi` 整体 mock，恰好掩盖了真实调用链上的身份校验，佐证而非排除本问题。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。scanner 对 `ERR_WF_NOT_ALLOW_CALL_ACTION_BY_USER` 增加白名单分支（系统触发主体对普通步骤必然通不过用户校验，属预期形态——WARN 后继续）；同时其余异常从 `throw e` 改为 LOG.error + continue（单个到期任务失败不中断整批）。免独立红测试：scanner 测试将 WorkflowServiceSpi 整体 mock（审计原文佐证），真实链路校验需 DB 级装配；全量回归绿。
+
 ### [P1] notifySubFlowEnd 公开接口无鉴权、无来源校验，可伪造子流程结束推进父流程
 
 - **文件**: `nop-wf/nop-wf-core/src/main/java/io/nop/wf/core/service/impl/WorkflowServiceImpl.java:84-99`；`nop-wf/nop-wf-core/src/main/java/io/nop/wf/core/engine/WorkflowEngineImpl.java:1028-1050`
@@ -94,6 +96,8 @@ step.triggerTransition(args, ctx);   // 推进迁移
 - **建议**: 校验请求对应的子流程实例状态（如要求携带 subWfRef 并核实其已结束、状态一致），并对调用方做服务级鉴权。
 - **误报排除**: 已核对引擎与 service 两层均无上述校验；api.xml 无 auth 声明；属主流程正常依赖的公开 mutation。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`notifySubFlowEndAsync` 增加来源校验：步骤必须挂有子流程（`getSubWfId()` 非空，否则 `ERR_WF_STEP_NO_SUB_WF`）、且该子流程已结束并处于请求声称的状态（`isEnded` + status 一致，否则 `ERR_WF_SUB_WF_NOT_ENDED`），伪造"子流程已结束"推进父流程被阻断。新增 `testNotifySubFlowEndRejectedForStepWithoutSubWf`。红验证：HEAD 下 `nothing was thrown`（无任何校验）。
+
 ### [P1] kill/suspend/resume/signalWf 依赖模型级 checkManageAuth XPL，缺省配置下为无操作（默认开放）
 
 - **文件**: `nop-wf/nop-wf-core/src/main/java/io/nop/wf/core/engine/WorkflowEngineImpl.java:649-651,1596-1598,716-733`；`nop-wf/nop-wf-core/src/main/java/io/nop/wf/core/service/impl/WorkflowServiceImpl.java:115-174`
@@ -112,6 +116,8 @@ private void checkActionAuth(WfModel wfModel, WfRuntime wfRt) {
 - **风险**: 未配置 `checkManageAuth` 的流程（缺省情况）可被任意登录用户 kill（审批流被任意中止）、suspend、resume、翻转信号。
 - **建议**: 提供缺省的 checkManageAuth 实现（至少校验 caller == manager 或 starter），或在 service 层增加角色门槛；signalWf 纳入 checkManageAuth。
 - **误报排除**: 已确认引擎调用点仅 4 处 checkManageAuth（suspend/resume/remove/kill），turnSignalOn/Off 无；无任何代码为模型注入默认 auth XPL。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`WorkflowServiceImpl` 的 kill/suspend/resume/signalWf 四个入口新增 `checkManageAuthByDefault`：模型配置了 checkManageAuth XPL 时交由模型自定义逻辑（保持既有机制），否则要求调用者为流程 manager/发起人/平台 admin 角色（`ERR_WF_NOT_ALLOW_MANAGE_BY_USER`）。新增 `testSignalWfRejectedForNonAdminCaller`。红验证：HEAD 下 `nothing was thrown`（完全不设防）。
 
 ### [P1] 会签（vote-group）权重统计使用 `step.isExcludeInExecGroup()` 而非 `member.`，排除逻辑完全失效
 
@@ -134,6 +140,8 @@ private static boolean isVoteGroupComplete(IWorkflowStepImplementor step) {
 - **建议**: 两处改为 `member.isExcludeInExecGroup()`。
 - **误报排除**: 循环体内注释明确以 member 语义书写（"member == step 为当前正在执行 agree 的步骤"），变量误用确凿；已核对状态常量与 transferToActor 的同组复用逻辑。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`ExecGroupSupport` 两处（isVoteGroupComplete/isVoteGroupReject）改 `member.isExcludeInExecGroup()`——已取消/已转交成员不再计入 totalWeight/rejectWeight（转办场景双重计数消除）。免独立红测试：需要含转办的会签 DB 级流程装配；变量误用修复为一字之改且注释语义（member 计票）自证，全量回归绿。
+
 ### [P1] resolveDynamicActor 自赋值丢失 deptId，动态审批人的部门限定失效
 
 - **文件**: `nop-wf/nop-wf-core/src/main/java/io/nop/wf/core/engine/WfActorAssignSupport.java:134-141`
@@ -151,6 +159,8 @@ List<IWfActor> actors = getDynamicActors(actorModel, wfRt);
 - **风险**: 通过 `transferToActor`/`addActor` 指定 `wf-actor:*` 动态审批人并附带部门限定时，动态 actor 标签库（wf-actor.xlib）拿到 deptId=null，可能解析到跨部门的角色/分组审批人——审批人指派错误。
 - **建议**: 改为 `actorModel.setDeptId(actorAndOwner.getActorDeptId())`。
 - **误报排除**: 新建对象的 getDeptId() 必为 null，自赋值无任何效果；相邻行同类字段均取自 actorAndOwner，笔误确凿。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。改 `actorAndOwner.getActorDeptId()`（一处笔误，动态审批人部门限定恢复生效）。免测试：自赋值→取源对象一字之改，编译期语义自证。
 
 ### [P2] initArgs 仅在 `schema != null && value != null` 时才将参数写入求值上下文，无 schema 的 action 参数静默丢失
 
@@ -171,6 +181,8 @@ if (schema != null && value != null) {
 - **建议**: 将 `wfRt.setValue(name, value)` 移出 guard（schema 仅用于校验/转换分支）；或强制要求 arg 必须有 schema 并在解析期报错。
 - **误报排除**: 已核对 xdef（schema 非强制）与 `_WfArgVarModel`（type/schema 分离）；invokeAction 路径参数仅经此方法进入作用域，无其他注入通道。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`wfRt.setValue(name, value)` 移出 schema guard——无 schema/空值的 arg 同样写入求值作用域（schema 仅承担校验/类型转换）。免独立红测试：参数注入路径需 action 模型装配；改动为语句位置调整，全量回归绿。
+
 ### [P2] `EVENT_AFTER_END = "before-end"` 常量复制错误，after-end 监听器永不触发
 
 - **文件**: `nop-wf/nop-wf-core/src/main/java/io/nop/wf/core/NopWfCoreConstants.java:76-77`
@@ -184,6 +196,8 @@ String EVENT_AFTER_END = "before-end";   // 复制粘贴错误，应为 "after-e
 - **风险**: 依赖 after-end 做后续业务（通知、归档、状态回写）的流程模型静默失效；before-end listener 双触发可能产生重复副作用。
 - **建议**: 改为 `"after-end"`；全局 grep 事件名字符串确认无下游按错误值适配。
 - **误报排除**: 常量定义与使用点（WorkflowEngineImpl.doEndWorkflow:1499）均已核对，无其他地方定义同名事件。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`EVENT_AFTER_END` 改 "after-end"；全局 grep 确认无下游按错误值适配（审计原文已核）。免测试：常量值修正，监听器分发机制不依赖测试可证。
 
 ### [P2] suspend/kill/transitTo 等路径将未校验的客户端 args 直接注入求值作用域，可覆盖内置变量
 
@@ -202,6 +216,8 @@ private void initArgs(WfRuntime wfRt, Map<String, Object> args) {
 - **风险**: 求值上下文污染：模型 XPL 中基于 `wf`/`wfRt` 的权限判断或取值可被诱导（类型混淆/绕过判断的潜在注入面）。
 - **建议**: 该重载改为过滤保留内置变量名，或统一走白名单校验版本。
 - **误报排除**: 两个 initArgs 重载的实现与全部调用点已核对；WfRuntime 构造与 initArgs 在同一子 scope 上操作，覆盖关系成立。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。raw `initArgs` 过滤保留变量名 wf/wfRt/wfVars（客户端 args 不得覆盖内置变量污染求值上下文）。免独立红测试：作用域注入覆盖语义经代码审读自证；全量回归绿。
 
 ### [P2] WorkflowDesignerService.saveDocument 无权限校验，未发布流程定义可被任意登录用户改写
 
@@ -223,6 +239,8 @@ public Map<String, Object> saveDocument(@Name("wfDefId") String wfDefId, @Name("
 - **建议**: 增加设计器操作角色校验（如流程定义维护权限）。
 - **误报排除**: 已通读该类全部代码与 api 注册路径，无其他拦截。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`saveDocument` 增加角色门槛（admin/nop-admin；无登录态的内部/测试直调路径按平台惯例放行——对照 nop-auth guardContactChange 先例）。既有 designer 测试（null context 直调）不受影响。
+
 ### [P2] 自动迁移推进 `while (wf.runAutoTransitions(ctx)) ;` 无迭代/深度上限
 
 - **文件**: `nop-wf/nop-wf-core/src/main/java/io/nop/wf/core/engine/DefaultWorkflowExecutor.java:44`；`nop-wf/nop-wf-core/src/main/java/io/nop/wf/core/support/ApprovalFlowHelper.java:14-16`
@@ -237,6 +255,8 @@ while (wf.runAutoTransitions(ctx)) ;
 - **风险**: 单请求线程死循环 + 步骤记录无限膨胀（数据库资源耗尽），且事务长期不提交。
 - **建议**: 增加最大迭代次数（如步骤数×常数）并在超限时抛出明确错误。
 - **误报排除**: 两处调用点均无保护；runStepAutoTransition 每轮 `newSteps` 落库已核实（transitionTo → newSteps）。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`DefaultWorkflowExecutor` 与 `ApprovalFlowHelper.autoTransit` 的自动迁移循环加 10_000 次上限，超限抛新错误码 `ERR_WF_AUTO_TRANSITION_EXCEED_LIMIT`（含 loops/wfId 参数）——回退环上恒真条件不再死循环+无限写库。免独立红测试：构造恒真回退环模型成本高且超限行为显然（计数守卫）。
 
 ### [P2] 并发审批下 exec-group 完成判定基于请求内快照，无事后补偿，可能产生"无活动步骤且未结束"的僵尸流程
 
@@ -255,6 +275,8 @@ boolean groupComplete = isExecGroupComplete(step, wfRt);   // getStepsInSameExec
 - **风险**: 会签流程停留在"无活动步骤且未结束"的僵尸状态（审批流卡死），直到外部再次触碰该流程（如 signal、再次 action）。
 - **建议**: doInvokeAction 提交后（或乐观锁冲突重试时）补一次 runAutoTransitions/checkEnd；或对 wfId 加短暂分布式锁串行化推进。
 - **误报排除**: 代码路径核实无误（无任何提交后复查逻辑）；发生需两请求精确交错，故定 P2 而非 P1；ORM 乐观锁存在性已从 orm.xml 核实（仅保护同记录写冲突，不解决快照判定问题）。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 裁定暂缓。并发会签"最后一成员双请求交错"的补偿机制属并发协议设计（提交后重试 runAutoTransitions 的时机 vs wfId 短锁的粒度与死锁面），发生窗口为两请求精确交错；若立项应与乐观锁冲突重试策略一并设计。
 
 ### [P2] getNextJoinStepRecord 声明了 actor 参数但实现完全忽略
 
@@ -278,6 +300,8 @@ public IWorkflowStepRecord getNextJoinStepRecord(IWorkflowStepRecord stepRecord,
 - **风险**: 多 actor 进入同一 join 步骤时，后到 actor"合并"进先到 actor 的实例（成员信息被覆盖），与接口签名承诺的按 actor 匹配语义不符；多实例会签 join 场景参与者计数可能少算。
 - **建议**: 实现按 `actor.isActor(...)` 匹配，或删除该参数并注明单实例 join 语义。
 - **误报排除**: 全仓库仅此一处实现与一处调用；接口无文档豁免说明。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 裁定暂缓。按 actor 匹配 join 实例会改变现有 join 复用拓扑（从"合并进先到实例"变为"每 actor 独立实例"），多实例会签的参与者计数语义需场景级设计验证；删除参数则丢失签名意图。当前单实例 join 行为已由回归覆盖，留待多实例会签需求立项时一并裁定。
 
 ### [P2] WfAiHelper.decide：低置信度 AI 结果仅当 onLowConfidence=manual 才转人工，否则照常生效；onError=suspend 时吞异常无日志
 
@@ -306,6 +330,8 @@ if ("PASS".equals(decision)) {
 - **建议**: 低置信度缺省走 manual；catch 分支至少 LOG.warn 原始异常。
 - **误报排除**: 通读该类全文确认无其他置信度兜底；appState 驱动迁移的关系在 WorkflowEngineImpl.runStepAutoTransition:808-815 核实。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。低置信度缺省转人工（`onLowConfidence == null || "manual"` 均走 manual-review，仅显式配置其他值才让低置信度决策生效——fail-safe 方向）；onError=suspend 分支补 error 日志（含 wfId 与原始异常）。免独立红测试：AI 调用经 BeanContainer 全局 ChatService，单测需 mock 全局容器；分支逻辑为条件反转+日志补齐，全量回归绿。
+
 ### [P3] WorkflowStepImpl.compareTo 在步骤名不同时返回 0，违反 Comparable 契约
 
 - **文件**: `nop-wf/nop-wf-core/src/main/java/io/nop/wf/core/impl/WorkflowStepImpl.java:72-82`
@@ -322,6 +348,8 @@ return record.getStepId().compareTo(o.getRecord().getStepId());
 - **建议**: 改为 `return cmp;`，或明确注释"同名实例才需要 stepId 稳定序"并改用比较器。
 - **误报排除**: 代码全文核对；`cmp` 计算后丢弃属明显笔误特征，但当前调用方式下无现实数据损坏，定 P3。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。`return cmp`（不同名步骤不再判等）。免测试：Comparable 契约修正，当前排序路径无数据依赖差异；全量回归绿。
+
 ### [P3] WorkflowImpl.getStepsByRecords 抛裸 IllegalArgumentException，违背错误处理两档策略
 
 - **文件**: `nop-wf/nop-wf-core/src/main/java/io/nop/wf/core/impl/WorkflowImpl.java:262-263`
@@ -335,6 +363,8 @@ if (stepRecord == null)
 - **风险**: 错误码体系外异常，前端/日志无法结构化处理。
 - **建议**: 改用 NopWfCoreErrors 中定义的 ErrorCode（新增一个）。
 - **误报排除**: 全模块仅此一处裸非受检异常（grep 已扫全模块）。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。转 `NopException(ERR_WF_NULL_STEP_RECORD)`（新错误码）。免测试：异常类型替换，防御路径。
 
 ### [P3] WorkflowEngineImpl.logError 以 INFO 级别记录引擎错误
 
@@ -353,6 +383,8 @@ public void logError(IWorkflowImplementor wf, String stepName, String actionName
 - **建议**: 改为 `LOG.error`。
 - **误报排除**: 代码核对无误；DaoWorkflowStore 侧对照确认仅此一处 INFO 记错误。
 
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。INFO→ERROR（与 DaoWorkflowStore.logError 对齐）。免测试：日志级别修正。
+
 ### [P3] WorkflowDesignerService 三处 catch 包装异常时丢弃 cause
 
 - **文件**: `nop-wf/nop-wf-service/src/main/java/io/nop/wf/service/designer/WorkflowDesignerService.java:83-89,120-126,136-142`
@@ -369,6 +401,8 @@ public void logError(IWorkflowImplementor wf, String stepName, String actionName
 - **风险**: 解析失败只能看到一行 message，定位 XNode/JSON 具体错误位置困难。
 - **建议**: 补 `.cause(e)`。
 - **误报排除**: 三处均已逐行核对；NopException 支持 cause 构造/链。
+
+> **处置（fix-ai-check 分支，2026-08-23）**: 已修复。三处 catch 补 `.cause(e)`（原始异常链保留）。免测试：异常链补齐，由既有 designer 解析失败测试覆盖路径。
 
 ---
 

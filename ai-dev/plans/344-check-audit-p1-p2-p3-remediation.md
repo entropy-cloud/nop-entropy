@@ -91,7 +91,7 @@ Exit Criteria:
 
 ### Phase 3 - 服务框架与业务骨架（nop-api-core / nop-biz / nop-graphql / nop-auth / nop-sys / nop-job / nop-task / nop-wf）
 
-Status: in progress
+Status: completed
 Targets: 对应 8 份报告；`nop-api-core`、`nop-biz`、`nop-graphql`、`nop-auth`、`nop-sys`、`nop-job`、`nop-task`、`nop-wf` 模块代码与测试
 
 - Item Types: `Fix | Decision | Proof`
@@ -103,7 +103,7 @@ Targets: 对应 8 份报告；`nop-api-core`、`nop-biz`、`nop-graphql`、`nop-
 - [x] nop-sys.md（P1×4 P2×8 P3×7）— 2026-08-23 完成：14 修复 + 4 暂缓（P2-4 租用式 workerId 需协调设计，WARN 已落地/P2-7 抛错会破坏 ORM 主键承重行为只修回退缓存/P2-8 吞吐 vs 保序可见性窗口设计/P3-4 字典多语言需模型扩展）+ 1 双项暂缓（P3-7 告警落地+轮询分发暂缓）。P1: cacheSize null 判空/事件消费周期任务异常保护（停摆→继续）/锁释放·续约补 holderId 防护（超出审计连带修 tryResetLease 非法 SQL——.set().eq().eq() 无逗号，从未被测试执行过）/非 ApiRequest 消息序列化本体（"{}"丢失）。P2: randNumber 正数+补零/broadcast+event 复合索引（经 codegen 再生成）+事件清理任务（retention-days 默认7可关）/锁异常区分重复键（TRACE）与 DB 故障（WARN）/派生 workerId WARN/序列配置 afterEntityChange 失效/命名服务 cleanup 保护。P3: bro- 常量化/runInNewTransaction·startTime 死代码删除/CompactExtField 写时复制/CodeRule 缓存+失效/第二订阅者 WARN。红验证：payload `but was: <{}>`/rand `-1`/旧 unlock 删新锁 `expected true but was false`/naming NPE 传播/其余编译级红。dao 42+service 9 tests 绿；报告 19 条全部标注（19=19）
 - [x] nop-job.md（P1×3 P2×4 P3×9）— 2026-08-23 完成：13 修复 + 1 部分修复（P3-2 javadoc 如实化）+ 2 不修复（P3-5 用户头覆盖框架头系经测试固化的模块契约，过滤实施后两测试红即回滚反证/P3-6 防御性缺口当前不可触达）+ 1 暂缓（P3-7 触发器缓存需失效设计）。P1: rpcPoll 轮询任务 whenComplete cancel/fetchRunningTasks 排除 null startTime（CLAIMED 行 tryMarkTimeout 本就跳过，消除 cursor (null,id) 崩溃面）/HandleMisfireTrigger 包装前捕获 once 语义（双路判定保留直构既有用法）。P2: LocalJobScheduler 尊重 result.nextScheduleTime（对齐 worker 链路契约）+触发器计算异常置 FAILED 不再吞出回调/dispatcher NO_AVAILABLE_INSTANCE 纳入 revert 重试/worker loadFire·loadSchedule 失败终态化（AR-86 断言强化为 FAILED）。P3: failFireWithoutSchedule 终态前置校验+返回 boolean+调用方条件取消/CronExpression 私有构造器不变式/addJob null invoker fail-fast/五处 JDK 异常错误码化（新码×2）/死代码×3 删除。红验证六处实证（包装链 -1 vs 补跑时刻/fires=1/病态 cron 逃逸/CLAIMED 行被扫出/40≠10 滞留/nop- 头过滤两测试红反证）。job 七模块全绿（core 44+local 14+dao 44+worker 44+coordinator 187+service 47+retry 3）；报告 16 条全部标注（16=16）
 - [x] nop-task.md（P1×5 P2×4 P3×2）— 2026-08-23 完成：8 修复 + 2 暂缓（P1-5 stateBean 持久化与 P2-4 outputs 映射同属"DB 断点续跑完整性"设计主题合并立项）+ 1 维持现状（P3-2 fork 聚合 key 用 index 系结构必然——各分支执行同一 body 步骤只能以 index 区分；CANCELLED 语义近似成立，新错误码收益低于成本）。P1: mandatory 校验去 !（双向反转）/next 生效（TaskStepEnhancer 第一参数改 getNext，nextOnError 只作用失败路径）/timeout cancellable 改 cancelToken.appendOnCancel（自引用使外部取消不传播）+catch 出口取消定时器/getDumpValue null 判空。P2: GraphTaskStep 回调内 completeExceptionally（throw 进被丢弃 future 图挂死）/stepFailureTimer 标签修正/两处空 catch 补 WARN。P3: parentStepPath 改取父自身路径。新增 3 fixture + TestTaskAuditFixes 6 用例；红验证 6 条全红（next `expected OK but FAIL`（顺序 a→b→c）/mandatory 双向/取消不传播/`expected gp/p but null`/dump NPE）；task 四模块全绿（core 113+ext 37 等）。报告 11 条全部标注（11=11，P0×3 既有标注保留）
-- [ ] nop-wf.md（P1×5 P2×8 P3×4）
+- [x] nop-wf.md（P1×5 P2×8 P3×4）— 2026-08-23 完成：15 修复 + 2 暂缓（P2-6 并发会签交错补偿需并发协议设计/P2-7 join按actor匹配改变复用拓扑需多实例会签设计）。P1: scanner白名单+单任务失败不中断/notifySubFlowEnd来源校验（步骤挂子流程+已结束+状态一致，伪造推进被阻断）/kill·suspend·resume·signalWf默认鉴权（manager/发起人/admin；模型checkManageAuth XPL存在时尊重自定义）/会签排除member.（转办双重计数消除）/deptId自赋值。P2: initArgs移出schema guard/EVENT_AFTER_END="after-end"/raw initArgs过滤wf·wfRt·wfVars保留名/designer saveDocument角色门槛/自动迁移10k上限（新错误码）/WfAiHelper低置信度缺省转人工+suspend记日志。P3: compareTo return cmp/裸IAE错误码化/logError INFO→ERROR/三处cause(e)。新增2鉴权回归测试（红验证nothing was thrown×2）；wf四模块全绿（core/service 113/scheduler/ai）；报告17条全部标注（17=17）
 
 Exit Criteria:
 

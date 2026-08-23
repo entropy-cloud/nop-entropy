@@ -74,7 +74,7 @@ public interface NopWfCoreConstants extends _NopWfCoreConstants {
     String EVENT_CHANGE_STATUS = "change-status";
 
     String EVENT_BEFORE_END = "before-end";
-    String EVENT_AFTER_END = "before-end";
+    String EVENT_AFTER_END = "after-end";
 
     String EVENT_BEFORE_KILL = "before-kill";
     String EVENT_AFTER_KILL = "after-kill";

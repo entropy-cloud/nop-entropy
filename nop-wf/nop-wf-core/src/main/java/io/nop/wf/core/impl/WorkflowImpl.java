@@ -7,6 +7,7 @@
  */
 package io.nop.wf.core.impl;
 
+import io.nop.wf.core.NopWfCoreErrors;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.util.CollectionHelper;
@@ -260,7 +261,7 @@ public class WorkflowImpl implements IWorkflowImplementor {
         List<IWorkflowStepImplementor> steps = new ArrayList<>(records.size());
         for (IWorkflowStepRecord stepRecord : records) {
             if (stepRecord == null)
-                throw new IllegalArgumentException("wf.err_null_step_record");
+                throw new NopException(NopWfCoreErrors.ERR_WF_NULL_STEP_RECORD);
             IWorkflowStepImplementor step = this.getStepByRecord(stepRecord);
             steps.add(step);
         }

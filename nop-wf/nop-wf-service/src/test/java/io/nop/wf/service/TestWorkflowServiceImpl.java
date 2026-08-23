@@ -16,6 +16,7 @@ import io.nop.wf.api.beans.WfTransferFailedItemBean;
 import io.nop.wf.api.beans.WfTransferResultBean;
 import io.nop.wf.core.IWorkflow;
 import io.nop.wf.core.IWorkflowStep;
+import io.nop.wf.api.beans.WfSubFlowEndRequestBean;
 import io.nop.wf.core.NopWfCoreErrors;
 import io.nop.wf.core.engine.DefaultWorkflowExecutor;
 import io.nop.wf.core.engine.WorkflowEngineImpl;
@@ -103,6 +104,12 @@ public class TestWorkflowServiceImpl extends BaseTestCase {
     private IServiceContext newContext(String userId) {
         ServiceContextImpl context = new ServiceContextImpl();
         context.getContext().setUserId(userId);
+        // 管理类操作默认鉴权依赖角色判定：测试上下文统一带admin角色
+        io.nop.auth.core.login.UserContextImpl uc = new io.nop.auth.core.login.UserContextImpl();
+        uc.setUserId(userId);
+        uc.setUserName(userId);
+        uc.setRoles(java.util.Set.of("admin"));
+        context.setUserContext(uc);
         return context;
     }
 
@@ -123,6 +130,47 @@ public class TestWorkflowServiceImpl extends BaseTestCase {
         workflow.runAutoTransitions(context);
     }
 
+    /**
+     * check 审计 [P1]：signalWf等管理操作的缺省鉴权——非manager/发起人/admin的调用者被拒
+     * （修复前kill/suspend/resume/signal在模型未配置checkManageAuth时完全不设防）。
+     */
+    @Test
+    public void testSignalWfRejectedForNonAdminCaller() {
+        IWorkflow workflow = startWorkflow("test/waitSignal", "1");
+
+        WfSignalRequestBean request = new WfSignalRequestBean();
+        request.setWfName("test/waitSignal");
+        request.setWfId(workflow.getWfId());
+        request.setSignals(Set.of("ai-done"));
+        request.setOn(true);
+
+        ServiceContextImpl plainCtx = new ServiceContextImpl();
+        plainCtx.getContext().setUserId("attacker");
+
+        NopException err = assertThrows(NopException.class,
+                () -> FutureHelper.syncGet(workflowService.signalWfAsync(request, null, plainCtx)));
+        assertEquals(NopWfCoreErrors.ERR_WF_NOT_ALLOW_MANAGE_BY_USER.getErrorCode(), err.getErrorCode());
+    }
+
+    /**
+     * check 审计 [P1]：notifySubFlowEnd来源校验——步骤没有关联子流程时拒绝
+     * （修复前任意登录用户可伪造"子流程已结束"推进父流程）。
+     */
+    @Test
+    public void testNotifySubFlowEndRejectedForStepWithoutSubWf() {
+        IWorkflow workflow = startWorkflow("test/testBasic", "1");
+
+        WfSubFlowEndRequestBean request = new WfSubFlowEndRequestBean();
+        request.setParentWfName("test/testBasic");
+        request.setParentWfId(workflow.getWfId());
+        request.setParentWfStepId(workflow.getActivatedSteps().get(0).getRecord().getStepId());
+        request.setStatus(90);
+
+        NopException err = assertThrows(NopException.class,
+                () -> FutureHelper.syncGet(workflowService.notifySubFlowEndAsync(request, null, newContext("1"))));
+        assertEquals(NopWfCoreErrors.ERR_WF_STEP_NO_SUB_WF.getErrorCode(), err.getErrorCode());
+    }
+
     @Test
     public void testSignalWfActivatesWaitingStep() {
         IWorkflow workflow = startWorkflow("test/waitSignal", "1");
@@ -138,7 +186,8 @@ public class TestWorkflowServiceImpl extends BaseTestCase {
         request.setSignals(Set.of("ai-done"));
         request.setOn(true);
 
-        FutureHelper.syncGet(workflowService.signalWfAsync(request, null, newContext("system")));
+        // signal属管理操作：默认鉴权要求manager/发起人/admin，用发起人身份调用
+        FutureHelper.syncGet(workflowService.signalWfAsync(request, null, newContext("1")));
 
         assertTrue(workflow.isEnded());
         assertFalse(workflow.getWaitingSteps().stream().anyMatch(step -> "wait-review".equals(step.getStepName())));

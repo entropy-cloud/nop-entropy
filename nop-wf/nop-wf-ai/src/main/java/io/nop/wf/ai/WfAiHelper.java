@@ -22,7 +22,10 @@ public final class WfAiHelper {
             Map<String, Object> result = call(prompt);
             Number confidence = (Number) result.getOrDefault("confidence", 0D);
             double threshold = confidenceThreshold == null ? 0.8D : confidenceThreshold;
-            if (confidence.doubleValue() < threshold && "manual".equals(onLowConfidence)) {
+            // 低置信度缺省转人工（fail-safe）：仅显式配置非manual值时才让低置信度决策生效，
+            // 配置遗漏时自动审批静默通过属合规风险
+            if (confidence.doubleValue() < threshold
+                    && (onLowConfidence == null || "manual".equals(onLowConfidence))) {
                 IWorkflowStep step = wfRt.getCurrentStep();
                 step.changeOwnerId("manual-review", wfRt.getSvcCtx());
                 return result;
@@ -43,6 +46,10 @@ public final class WfAiHelper {
             return result;
         } catch (RuntimeException e) {
             if ("suspend".equals(onError)) {
+                // 挂起前必须留下现场：原始异常吞掉后流程为何挂起无从排查
+                org.slf4j.LoggerFactory.getLogger(WfAiHelper.class)
+                        .error("nop.wf.ai.decide-error-suspend:wfId={}",
+                                wfRt.getWf().getWfId(), e);
                 wfRt.getWf().suspend(null, wfRt.getSvcCtx());
                 return null;
             }

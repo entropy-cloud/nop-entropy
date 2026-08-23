@@ -136,7 +136,7 @@ public class WfActorAssignSupport {
             WfAssignmentActorModel actorModel = new WfAssignmentActorModel();
             actorModel.setActorId(actorAndOwner.getActorId());
             actorModel.setActorType(actorAndOwner.getActorType());
-            actorModel.setDeptId(actorModel.getDeptId());
+            actorModel.setDeptId(actorAndOwner.getActorDeptId());
             actorModel.setExtProps(actorAndOwner.getAttrs());
             List<IWfActor> actors = getDynamicActors(actorModel, wfRt);
             if (actors.isEmpty())

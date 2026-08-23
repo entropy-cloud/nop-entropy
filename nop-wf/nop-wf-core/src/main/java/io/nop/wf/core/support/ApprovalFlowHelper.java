@@ -1,5 +1,6 @@
 package io.nop.wf.core.support;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.core.context.IServiceContext;
 import io.nop.wf.api.actor.IWfActor;
 import io.nop.wf.api.actor.WfActorAndOwner;
@@ -12,7 +13,13 @@ import java.util.Map;
 
 public class ApprovalFlowHelper {
     public static void autoTransit(IWorkflow wf, IServiceContext ctx) {
-        while (wf.runAutoTransitions(ctx)) ;
+        int maxLoops = 10_000;
+        int loops = 0;
+        while (wf.runAutoTransitions(ctx)) {
+            if (++loops >= maxLoops)
+                throw new NopException(io.nop.wf.core.NopWfCoreErrors.ERR_WF_AUTO_TRANSITION_EXCEED_LIMIT)
+                        .param("loops", loops).param("wfId", wf.getWfId());
+        }
     }
 
     public static void start(IWorkflow wf, Map<String, Object> args, IServiceContext ctx) {

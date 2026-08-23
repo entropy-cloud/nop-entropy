@@ -36,7 +36,9 @@ public class ExecGroupSupport {
         int completeWeight = 0;
 
         for (IWorkflowStep member : steps) {
-            if (step.isExcludeInExecGroup())
+            // 排除判定是成员级语义（已取消/已转交的成员不计票）；原step.引用恒为当前触发步骤
+            // （ACTIVATED态恒false），转办场景下同一人新旧实例双重计数使阈值分母虚高
+            if (member.isExcludeInExecGroup())
                 continue;
 
             Integer weight = member.getRecord().getVoteWeight();
@@ -87,7 +89,9 @@ public class ExecGroupSupport {
         int rejectWeight = 0;
 
         for (IWorkflowStep member : steps) {
-            if (step.isExcludeInExecGroup())
+            // 排除判定是成员级语义（已取消/已转交的成员不计票）；原step.引用恒为当前触发步骤
+            // （ACTIVATED态恒false），转办场景下同一人新旧实例双重计数使阈值分母虚高
+            if (member.isExcludeInExecGroup())
                 continue;
 
             Integer weight = member.getRecord().getVoteWeight();

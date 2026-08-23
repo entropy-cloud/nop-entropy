@@ -85,7 +85,7 @@ public class WorkflowDesignerService {
         } catch (Exception e) {
             throw new NopException(ERR_WF_DESIGNER_MODEL_PARSE_FAILED)
                     .param(ARG_WF_DEF_ID, entity.getWfDefId())
-                    .param(ARG_DETAIL, e.getMessage());
+                    .param(ARG_DETAIL, e.getMessage()).cause(e);
         }
     }
 
@@ -114,6 +114,15 @@ public class WorkflowDesignerService {
     @BizMutation("saveDocument")
     public Map<String, Object> saveDocument(@Name("wfDefId") String wfDefId, @Name("doc") String docJson,
                                             IServiceContext context) {
+        // 流程定义改写（审批人/网关/action source）属高敏操作：要求admin角色
+        // （对照WorkflowServiceImpl管理操作默认鉴权先例；未配置鉴权前任意登录用户可改写未发布定义）
+        io.nop.api.core.auth.IUserContext userContext = context == null ? null : context.getUserContext();
+        java.util.Set<String> roles = userContext == null ? null : userContext.getRoles();
+        if (roles != null && !(roles.contains("admin") || roles.contains("nop-admin"))) {
+            throw new NopException(io.nop.wf.core.NopWfCoreErrors.ERR_WF_NOT_ALLOW_MANAGE_BY_USER)
+                    .param(io.nop.wf.core.NopWfCoreErrors.ARG_CALLER_ID,
+                            userContext == null ? null : userContext.getUserId());
+        }
         NopWfDefinition entity = requireDefinition(wfDefId);
         checkNotPublished(entity);
 
@@ -122,7 +131,7 @@ public class WorkflowDesignerService {
             parsed = JsonTool.parse(docJson);
         } catch (Exception e) {
             throw new NopException(ERR_WF_DESIGNER_INVALID_DOCUMENT)
-                    .param(ARG_DETAIL, e.getMessage());
+                    .param(ARG_DETAIL, e.getMessage()).cause(e);
         }
         if (!(parsed instanceof Map))
             throw new NopException(ERR_WF_DESIGNER_INVALID_DOCUMENT)
@@ -138,7 +147,7 @@ public class WorkflowDesignerService {
         } catch (NopException e) {
             throw new NopException(ERR_WF_DESIGNER_MODEL_INVALID)
                     .param(ARG_WF_DEF_ID, wfDefId)
-                    .param(ARG_DETAIL, e.getMessage());
+                    .param(ARG_DETAIL, e.getMessage()).cause(e);
         }
 
         entity.setModelText(workflow.xml());

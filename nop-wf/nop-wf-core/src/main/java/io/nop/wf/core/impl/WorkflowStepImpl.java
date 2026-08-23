@@ -76,7 +76,7 @@ public class WorkflowStepImpl implements IWorkflowStepImplementor {
 
         cmp = getStepName().compareTo(o.getStepName());
         if (cmp != 0)
-            return 0;
+            return cmp;
 
         return record.getStepId().compareTo(o.getRecord().getStepId());
     }
