@@ -569,9 +569,9 @@ codegen 生成的 XMeta 中会自动设置两个关键属性：
 
 ### EQL 书写注意（易踩坑）
 
-- **算术必须显式括号**：EQL 编译器对 `+ - * /` 的优先级与标准 SQL 不同（`a*b/c + d*e/c` 会被编译为 `((a*b)/(c+d*e))/c`）。混合运算一律加括号。
-- **投影别名与行映射**：EQL 结果集字段名大小写敏感且别名原样保留。配 `BeanRowMapper.of(clazz, true)`（camelCase）时投影别名必须 snake_case（camelCase 别名会被 `StringHelper.camelCase` 先整体小写而 miss 属性）；无别名的裸列名字段名即属性名原样。
-- 条件更新/删除可用 `SQL.begin().update(实体名).set()...where()...` + `orm().executeUpdate`，affected rows 原样返回。
+- **含除法的混合运算必须整体括号（框架缺陷防御）**：EQL 编译器在**表达式中出现多个 `/` 且中间夹 `+`/`-`** 时分组翻转——`A/B + C/D` 实际按 `(A/B + C)/D` 编译执行（`a*b/c + d*e/c` → `((a*b)/(c+d*e))/c`）；单一 `/` 或 `/` 不跨 `+` 的表达式正常（`1+2*3`、`8/2+2` 均标准）。只给乘法加括号防不住（`(a*b)/c + (d*e)/c` 仍翻转为 `((a*b)/c + d*e)/c`），**每个含 `/` 的子表达式必须整体加括号**：`((A)/(B)) + ((C)/(D))`。根因在 EQL 语法文件（nop-orm-eql 的 antlr 目录）`sqlExpr_bit` 规则把全部二元算术平铺为同级备选、与 `SqlOperator` 打印优先级模型脱节；修复前一律防御性括号。
+- **投影别名与行映射（两种组合二选一）**：EQL 结果集字段名大小写敏感且别名原样保留。(a) `BeanRowMapper.of(clazz, true)`（camelCase 模式）时投影别名必须 snake_case——该模式先整体小写化 key（`as totalPromptTokens` 会变成 `totalprompttokens` 而 miss 属性）；(b) `BeanRowMapper.of(clazz, false)`（缺省模式，key 原样精确匹配）时 camelCase 别名可直接命中同名属性。无别名的裸列名字段名即属性名原样。
+- 条件更新/删除可用 `SQL.begin().update(实体名).set()...where()...` + `orm().executeUpdate`，affected rows 原样返回；`update o set o.x = o.x + 1` 自引用算术与 `where ... is null` 条件守卫均支持（探针实证，记录见 ai-dev 调研文档）。结构化 EQL 管理优先用 `sql-lib.xml`（`eql` 类型 item 走同一编译链，debug 模式自动语法校验，经 mapper 接口调用）。
 
 ## 常见误区
 

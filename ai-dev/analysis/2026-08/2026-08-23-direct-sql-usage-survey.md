@@ -89,6 +89,47 @@
 
 > **执行期新发现（2026-08-23，plan 2255 Phase 1 实证）**：EQL 编译器算术优先级非标准——`a*b/1000000 + c*d/1000000` 被编译为 `((a*b)/(1000000+c*d))/1000000`（`/` 未比 `+` 结合更紧；经编译 SQL dump 实证）。EQL 中混合 `+ - * /` 的表达式**必须显式括号**，否则静默改变语义。另有：EQL 结果集字段名大小写敏感，`BeanRowMapper(camelCase=true)` 配套的投影别名必须 snake_case（camelCase 别名会被 `StringHelper.camelCase` 先整体小写而 miss 属性）。这两条是"EQL 可替代原生 SQL"结论的重要边界条件，已写入 owner doc（`docs-for-ai/02-core-guides/model-first-development.md` 直接 SQL 边界章节）。
 
+## 第二轮复核（2026-08-23，用户质询触发，探针实证后即删）
+
+用户对三个论断提出质询，逐项实证复核，**两处修正、一处精确化**：
+
+### 勘误 1：MFA 家族"保留 raw SQL"的技术论据大部分不成立，可行 EQL 平移
+
+探针实证（ORM 会话工厂 + H2，生产同编译链）：
+- `update NopAiChatResponse o set o.promptTokens = o.promptTokens + 1 where ...` 编译执行成功（affected=1，值 100→101）——**update SET 自引用算术有支持**，原"EQL update SET 算术无背书"论据作废；
+- `... set o.completionTokens = 5 where ... and o.completionTokens is null` 条件更新成功（affected-row 判定语义与 raw SQL 相同，`executeUpdate` 返回 long）；
+- `sql-lib.xml` 机制（`SqlLibManager` + `SqlLibProxyFactoryBean` mapper 接口代理，type=`eql`/`sql`/`query`）中 `eql` item 走 `ormTemplate.getSessionFactory().compileSql(...)`——与 `orm().executeUpdate(SQL)` **同一编译执行链**，是比 Java 拼字符串更规范的载体（debug 模式自动语法校验）。
+
+原"保留"理由逐条复核：
+- "绕过 ORM 会话缓存"——对标量投影读与 bulk update **不成立**：EQL 标量投影直查 DB；EQL bulk update 同样不更新一级缓存实体（与 raw SQL 行为一致）。`NopAuthMfaChallenge` 为 `tagSet="no-tenant"`，租户注入差异也不存在。
+- "REQUIRES_NEW 独立事务"——事务边界由 txn 模板管理，与语句载体（jdbcTemplate/EQL）正交，EQL 在同一新事务内执行同样成立。
+- 仍然成立的保留理由只剩工程判断：已验证安全关键路径的重写风险 vs 收益（去物理列名耦合、统一到 sql-lib 管理）。**结论修正：技术上可平移，"必须用 SQL"的表述过强**；是否平移交由后续计划裁定（见 Open Questions）。
+
+### 勘误 2：camelCase 别名映射说法修正——用户直觉正确
+
+- `BeanRowMapper.of(clazz, false)`（**缺省模式**，key 原样精确匹配）+ camelCase 投影别名：探针实证**映射成功**（EQL 字段名大小写敏感且别名原样保留，`as totalPromptTokens` 直接命中 `totalPromptTokens` 属性）。
+- `BeanRowMapper.of(clazz, true)`（camelCase 模式）+ camelCase 别名：`StringHelper.camelCase(key,'_',false)` 先整体小写（`StringHelper.java:1166`）→ `modelid` miss 属性，探针实证抛 `nop.err.core.bean.unknown-prop propName=modelid`。
+- 即两种组合皆可：`snake_case 别名 + camelCase=true`（plan 2255 采用，mapper 不动）或 `camelCase 别名 + camelCase=false`。原报告只陈述了前者约束、未指出后者可行，已修正 owner doc 表述。
+
+### 精确化：EQL 算术优先级的真实触发规律（比初版结论影响面更大）
+
+探针矩阵（编译 SQL 分组 + 实算值双重验证）：
+
+| 表达式 | 实际分组 | 值 | 标准？ |
+|---|---|---|---|
+| `1+2*3` / `8/2+2` / `2*3+4` | 原样 | 7 / 6 / 10 | ✓ |
+| `10-2-3` / `100/5/2` | 左结合 | 5 / 10 | ✓ |
+| `X/2+3`（列，短链） | `X/2+3` | 53 | ✓ |
+| **`8/2+4/2`** | **`(8/2+4)/2`** | **4（标准 6）** | ✗ |
+| **`X/2+Y/2`（列）** | **`(X/2+Y)/2`** | — | ✗ |
+| `a*b/c+d*e/c` | `((a*b)/(c+d*e))/c` | 8.99e-10 | ✗ |
+| `(a*b)/c+(d*e)/c`（只括乘法） | `((a*b)/c+d*e)/c` | 0.000025 | ✗ |
+| `((a*b)/c)+((d*e)/c)`（除法整体括号） | `A+B` | 0.00105 | ✓ 防御有效 |
+
+规律：**表达式中出现多个 `/` 且中间夹 `+`/`-` 时分组翻转**（尾部的 `/` 把前面整个 `+` 链吞为左操作数）；单一 `/` 或 `/` 不跨 `+` 的表达式正常。最普通的 `A/B + C/D`（均值/比率/单价类）即中招。只给乘法加括号防不住，**每个含 `/` 的子表达式整体加括号**才可靠（plan 2255 生产修复恰好是此形态）。
+
+g4 根因（用户质询"查看 EQL 的 g4"）：`BaseRule.g4:164-172` 的 `sqlExpr_bit` 把 `| & << >> + - * /` 八个二元运算符**平铺为同一左递归规则的等价备选分支**，无显式优先级分层；而打印器 `AstToEqlGenerator.printLeft/printRight` 按 `SqlOperator` 的标准优先级表（`*`/`/`=60、`+`/`-`=70）加括号——**解析分组与打印模型脱节**，LL 预测在多 `/` 夹 `+` 链上产生与任何一致优先级模型都不符的树。这属框架缺陷，值得立项修复（改 g4 分层或修 AST 构建），修复前防御性写法进 owner doc。
+
 ## Conclusion
 
 - 全景结论：worktree 内直接 SQL 分三类——(a) 框架基础设施，SQL 即其存在本身；(b) 应用层有并发/事务语义裁定的原子语句（一次性消费、CAS、原子自增、REQUIRES_NEW 计数、会话绕过读、产品级查询引擎），**保留**，原因如第二节表格；(c) 无并发语义的普通读写且已造成实际缺陷的 2 组 6 处（F-1 nop-ai 聚合查询路径错配；F-2 datav 5 处会话后写），**应改为 EQL/实体写**。
@@ -100,7 +141,8 @@
 
 ## Open Questions
 
-- [ ] watch-only：mfa/credential 家族的物理列名耦合（`SETTING_TABLE` 等常量）与 jdbcTemplate/entity 双路径维护成本——若未来 EQL update SET 算术表达式获得测试背书，可重新评估平移；当前不动。
+- [x] ~~watch-only：mfa/credential 家族平移 EQL——若未来 EQL update SET 算术表达式获得测试背书，可重新评估~~（2026-08-23 第二轮复核：探针已实证 update SET 算术与条件更新支持，技术障碍清除，见"第二轮复核"勘误 1；是否平移交后续计划裁定，物理列名耦合与 jdbcTemplate 双路径维护成本仍在）。
+- [ ] **EQL 算术分组缺陷修复立项**：g4 `sqlExpr_bit` 平铺备选导致多 `/` 夹 `+` 链分组翻转（`A/B+C/D` → `(A/B+C)/D`），与 `SqlOperator` 打印优先级模型脱节。修复方向：g4 显式分层或 AST 构建修正 + 框架级回归测试（含本报告探针矩阵）。
 - [ ] `NopDatavDashboardShareBizModel.recordShareVisit` 属第二节"保留"（设计文档裁定），但其"原子自增不走实体"形态与 F-2 的区分标准（是否需要单语句原子性）已在报告中写明，供后续复查对照。
 
 ## References
