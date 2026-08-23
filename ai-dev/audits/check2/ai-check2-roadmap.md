@@ -59,10 +59,10 @@
 | orm-periph | `nop-persistence` 下 orm-model/orm-drivers/orm-pdm/orm-rpc/orm-data/orm-geo | 120 | [orm-periph.md](orm-periph.md) | done |
 | nop-dao | `nop-persistence/nop-dao` | 116 | [nop-dao.md](nop-dao.md) | done |
 | db-migration | `nop-persistence/nop-db-migration` + `nop-dbtool` | 109 | [db-migration.md](db-migration.md) | done |
-| nosql-cdc | `nop-persistence/nop-nosql` + `nop-cdc` | 38 | [nosql-cdc.md](nosql-cdc.md) | pending |
-| nop-biz | `nop-service-framework/nop-biz` | 101 | [nop-biz.md](nop-biz.md) | pending |
-| nop-graphql | `nop-service-framework/nop-graphql` | 239 | [nop-graphql.md](nop-graphql.md) | pending |
-| gateway-bizauth | `nop-service-framework` 下 nop-gateway + biz-auth-api/core + biz-file-core | 161 | [gateway-bizauth.md](gateway-bizauth.md) | pending |
+| nosql-cdc | `nop-persistence/nop-nosql` + `nop-cdc` | 38 | [nosql-cdc.md](nosql-cdc.md) | done |
+| nop-biz | `nop-service-framework/nop-biz` | 101 | [nop-biz.md](nop-biz.md) | done |
+| nop-graphql | `nop-service-framework/nop-graphql` | 239 | [nop-graphql.md](nop-graphql.md) | done |
+| gateway-bizauth | `nop-service-framework` 下 nop-gateway + biz-auth-api/core + biz-file-core | 161 | [gateway-bizauth.md](gateway-bizauth.md) | done |
 
 ### Phase 2 — 业务骨架模块
 
@@ -198,6 +198,10 @@
   - nop-commons: `StringHelper.parseQuery` 重复参数名多值收集失效（put(key,value) 应为 put(key,list)）
   - nop-xlang: AND/OR 全局宏 `subList(1, size-1)` 差一 → AND(a,b) 恒为 false，全局注册影响所有 XLang 表达式
 - 2026-08-23: Phase 1 批次 1B 完成（4 单元，合计 66 条: P0=0 / P1=10 / P2=27 / P3=29）。P1 要点: nop-core-framework 的 ConfigExpressionProcessor 共享累积 configVars（多占位符表达式解析错误值）、ConfigStarter.getProfiles 变量名/值误用（nop.profile 被忽略）、ioc:proxy+bean-method 必抛 ClassCastException、BeanParentResolver 循环检测死代码；nop-orm 游标分页忽略 orderBy 排序字段、复合主键 getIdText 生成非法 SQL; kernel-small DataParameterBinders.FLOAT 声明 DOUBLE 实取 Float；truffle 帧未初始化读取语义漂移、翻译失败事件并发误配。
-- 2026-08-23: Phase 1 批次 1C 完成（4 单元，合计 60 条: P0=3 / P1=8 / P2=21 / P3=26）。P0:
+- 2026-08-23: Phase 1 批次 1C 完成（4 单元，合计 58 条: P0=3 / P1=8 / P2=21 / P3=26）。P0:
   - nop-orm-eql: 集合属性表源转换在外层查询生成多余 join（行数放大/非法 SQL），`_some`/`_all` 同样受影响（jshell 实测复现）
   - db-migration: xdef 声明的 17 种变更中 9 种解析即 ClassCastException（执行器不可达）; insert/update/delete 的 `<column>` 解析为 DynamicObject（XML 路径数据变更全部不可用）——与第一轮收尾时"超出审计的新发现"记录独立吻合（该批问题当时未修）
+- 2026-08-23: Phase 1 批次 1D 完成（4 单元，合计 70 条: P0=3 / P1=11 / P2=24 / P3=32），**Phase 1 全部 16 单元完成，合计 273 条（P0=8 / P1=40 / P2=97 / P3=128）**。1D P0:
+  - nosql-cdc: LettuceRateLimiter.tryAcquire 在 RESP3（Redis 6+ 默认）下必抛 UnsupportedOperationException（Lua boolean × MULTI 输出不兼容，lettuce 6.6.0 字节码验证）
+  - gateway-bizauth: AiAuthGatewayInterceptor 以混合大小写读 Authorization 头 → 启用即全量 401; AiRateLimitGatewayInterceptor 同根因 → 限流 key 全部塌缩为 default（Vertx/Servlet 实现均小写化 header key）
+  - 启动 Phase 2（业务骨架模块）。
