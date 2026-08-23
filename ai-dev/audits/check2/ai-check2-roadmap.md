@@ -68,11 +68,11 @@
 
 | 单元 | 路径 | 文件数 | 报告 | 状态 |
 |------|------|--------|------|------|
-| nop-auth | `nop-auth`（api/dao/service/sso/oauth） | 287 | [nop-auth.md](nop-auth.md) | pending |
-| nop-sys | `nop-sys` | 165 | [nop-sys.md](nop-sys.md) | pending |
-| nop-job | `nop-job` | 169 | [nop-job.md](nop-job.md) | pending |
-| nop-task | `nop-task`（core 为主） | 220 | [nop-task.md](nop-task.md) | pending |
-| nop-wf | `nop-wf`（core/api 为主） | 257 | [nop-wf.md](nop-wf.md) | pending |
+| nop-auth | `nop-auth`（api/dao/service/sso/oauth） | 287 | [nop-auth.md](nop-auth.md) | done |
+| nop-sys | `nop-sys` | 165 | [nop-sys.md](nop-sys.md) | done |
+| nop-job | `nop-job` | 169 | [nop-job.md](nop-job.md) | done |
+| nop-task | `nop-task`（core 为主） | 220 | [nop-task.md](nop-task.md) | in-progress |
+| nop-wf | `nop-wf`（core/api 为主） | 257 | [nop-wf.md](nop-wf.md) | in-progress |
 
 ### Phase 3 — 可复用业务模块
 
