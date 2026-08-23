@@ -193,6 +193,8 @@ public class TestNopDatavDashboardBizModel extends AbstractNopDatavTest {
         NopDatavDashboardSnapshot snap1 = dashboardBiz.publishDashboard(
                 dashboard.getDashboardId(), context);
 
+        // publish 现为实体写会 bump version（plan 2255）——跨会话脱管实体需重读后再改
+        dashboard = daoProvider.daoFor(NopDatavDashboard.class).getEntityById(dashboard.getDashboardId());
         dashboard.setLayoutConfig(JsonTool.stringify(Map.of("theme", "light")));
         daoProvider.daoFor(NopDatavDashboard.class).updateEntityDirectly(dashboard);
 
@@ -247,7 +249,8 @@ public class TestNopDatavDashboardBizModel extends AbstractNopDatavTest {
         Map<String, Object> content = JsonTool.parseMap(snapshot.getSnapshotContent());
         assertNotNull(content.get("paramConfig"), "snapshot content must include paramConfig");
 
-        // rollback restores paramConfig onto main table
+        // rollback restores paramConfig onto main table（publish 现为实体写会 bump version——plan 2255，脱管实体重读后再改）
+        dashboard = daoProvider.daoFor(NopDatavDashboard.class).getEntityById(dashboard.getDashboardId());
         dashboard.setParamConfig(null);
         daoProvider.daoFor(NopDatavDashboard.class).updateEntityDirectly(dashboard);
 

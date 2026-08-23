@@ -11,10 +11,8 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
-import io.nop.core.lang.sql.SQL;
 import io.nop.dao.api.IDaoEntity;
 import io.nop.dao.api.IDaoProvider;
-import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.datav.biz.INopDatavScreenBiz;
 import io.nop.datav.biz.PanelComponentMeta;
 import io.nop.datav.biz.ScreenLayoutConfig;
@@ -63,9 +61,6 @@ public class NopDatavScreenBizModel extends CrudBizModel<NopDatavScreen>
 
     public static final int PUBLISH_STATUS_DRAFT = 0;
     public static final int PUBLISH_STATUS_PUBLISHED = 10;
-
-    @jakarta.inject.Inject
-    protected IJdbcTemplate jdbcTemplate;
 
     private final ScreenLayoutParser layoutParser;
 
@@ -129,8 +124,12 @@ public class NopDatavScreenBizModel extends CrudBizModel<NopDatavScreen>
 
         daoProvider().daoFor(NopDatavScreenSnapshot.class).saveEntityDirectly(snapshot);
 
-        updateScreenPublishState(screen.getScreenId(), PUBLISH_STATUS_PUBLISHED,
-                nextVersion, publishedBy, publishedTime);
+        // 实体写（plan 2255）：会话内同行实体写，version/审计列由 ORM 维护，会话与库保持一致
+        screen.setPublishStatus(PUBLISH_STATUS_PUBLISHED);
+        screen.setPublishedVersion(nextVersion);
+        screen.setPublishedBy(publishedBy);
+        screen.setPublishedTime(publishedTime);
+        daoProvider().daoFor(NopDatavScreen.class).updateEntityDirectly(screen);
 
         afterEntityChange(screen, "publishScreen", context);
         return snapshot;
@@ -166,7 +165,8 @@ public class NopDatavScreenBizModel extends CrudBizModel<NopDatavScreen>
         }
 
         restoreScreenFromSnapshot(screen, snapshot);
-        updateScreenFields(screen.getScreenId(), screen);
+        // restoreScreenFromSnapshot 已把快照字段写进会话实体，直接实体写提交（只写 dirty 列）
+        daoProvider().daoFor(NopDatavScreen.class).updateEntityDirectly(screen);
 
         afterEntityChange(screen, "rollbackScreen", context);
         return snapshot;
@@ -282,6 +282,8 @@ public class NopDatavScreenBizModel extends CrudBizModel<NopDatavScreen>
      * 设置大屏缩略图（D4-4 §12.3）。
      *
      * <p>更新主表 thumbnail 列（<b>唯一</b>写入点；publish 不触碰 thumbnail，保持 publish 单一职责）。
+     * 实体写（plan 2255）：只写 dirty 列，version/审计列由 ORM 维护，返回的即会话内最新实体
+     * （原 raw SQL 绕过会话，共享会话下一级缓存返回旧实例）。
      * 编辑态语义，仅 owner/admin 可设置。{@code thumbnail} 参数为文件记录引用 ID 或 data URL。</p>
      */
     @Override
@@ -291,17 +293,12 @@ public class NopDatavScreenBizModel extends CrudBizModel<NopDatavScreen>
                                               IServiceContext context) {
         NopDatavScreen screen = requireEntity(id, "setScreenThumbnail", context);
 
-        // 仅更新 thumbnail 列（部分列更新，保留乐观锁 version）
-        jdbcTemplate.executeUpdate(SQL.begin().name("updateScreenThumbnail")
-                .sql("update NOP_DATAV_SCREEN set THUMBNAIL=").param(thumbnail)
-                .sql(",VERSION=VERSION+1")
-                .sql(",UPDATED_BY=").param(NopDatavOperatorResolver.resolveOperator(context))
-                .sql(",UPDATE_TIME=").param(new Timestamp(System.currentTimeMillis()))
-                .sql(" where SCREEN_ID=").param(screen.getScreenId()).end());
+        // 部分列更新 + 乐观锁 version + 审计列：实体写天然获得（原实现手工模仿）
+        screen.setThumbnail(thumbnail);
+        daoProvider().daoFor(NopDatavScreen.class).updateEntityDirectly(screen);
 
         afterEntityChange(screen, "setScreenThumbnail", context);
-        // 返回最新主表行（含更新后的 thumbnail + version）
-        return daoProvider().daoFor(NopDatavScreen.class).getEntityById(screen.getScreenId());
+        return screen;
     }
 
     private String serializeScreenContent(NopDatavScreen screen) {
@@ -430,29 +427,6 @@ public class NopDatavScreenBizModel extends CrudBizModel<NopDatavScreen>
 
     private String generateSnapshotId() {
         return java.util.UUID.randomUUID().toString().replace("-", "");
-    }
-
-    private void updateScreenPublishState(String screenId, int publishStatus, long publishedVersion,
-                                           String publishedBy, Timestamp publishedTime) {
-        jdbcTemplate.executeUpdate(SQL.begin().name("updateScreenPublishState")
-                .sql("update NOP_DATAV_SCREEN set PUBLISH_STATUS=").param(publishStatus)
-                .sql(",PUBLISHED_VERSION=").param(publishedVersion)
-                .sql(",PUBLISHED_BY=").param(publishedBy)
-                .sql(",PUBLISHED_TIME=").param(publishedTime)
-                .sql(" where SCREEN_ID=").param(screenId).end());
-    }
-
-    private void updateScreenFields(String screenId, NopDatavScreen source) {
-        jdbcTemplate.executeUpdate(SQL.begin().name("updateScreenFields")
-                .sql("update NOP_DATAV_SCREEN set BACKGROUND_CONFIG=").param(source.getBackgroundConfig())
-                .sql(",SCREEN_WIDTH=").param(source.getScreenWidth())
-                .sql(",SCREEN_HEIGHT=").param(source.getScreenHeight())
-                .sql(",ADAPTOR_MODE=").param(source.getAdaptorMode())
-                .sql(",PUBLISH_STATUS=").param(source.getPublishStatus())
-                .sql(",PUBLISHED_VERSION=").param(source.getPublishedVersion())
-                .sql(",PUBLISHED_BY=").param(source.getPublishedBy())
-                .sql(",PUBLISHED_TIME=").param(source.getPublishedTime())
-                .sql(" where SCREEN_ID=").param(screenId).end());
     }
 
     /**

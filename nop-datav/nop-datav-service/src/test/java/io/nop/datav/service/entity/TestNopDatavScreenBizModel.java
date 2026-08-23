@@ -15,6 +15,8 @@ import io.nop.datav.dao.entity.NopDatavScreenSnapshot;
 import io.nop.datav.dao.entity.NopDatavScreenWidget;
 import io.nop.datav.service.component.PanelComponentTypes;
 import io.nop.datav.service.screen.ScreenAdaptorMode;
+import io.nop.orm.IOrmTemplate;
+import io.nop.orm.impl.OrmTemplateImpl;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
@@ -169,7 +171,9 @@ public class TestNopDatavScreenBizModel extends AbstractNopDatavTest {
 
         NopDatavScreenSnapshot snap1 = screenBiz.publishScreen(screen.getScreenId(), context);
 
-        // change adaptorMode and publish v2
+        // change adaptorMode and publish v2（publish 现为实体写会 bump version——plan 2255，
+        // 跨会话脱管实体需重读获取新 version 后再改，否则乐观锁 update-entity-not-found）
+        screen = daoProvider.daoFor(NopDatavScreen.class).getEntityById(screen.getScreenId());
         screen.setAdaptorMode(ScreenAdaptorMode.KEEP);
         daoProvider.daoFor(NopDatavScreen.class).updateEntityDirectly(screen);
         screenBiz.publishScreen(screen.getScreenId(), context);
@@ -747,6 +751,40 @@ public class TestNopDatavScreenBizModel extends AbstractNopDatavTest {
         NopDatavScreen withThumb = screenBiz.setScreenThumbnail(
                 screen.getScreenId(), "thumb-rec-final", context);
         assertEquals("thumb-rec-final", withThumb.getThumbnail());
+    }
+
+    /**
+     * plan 2255 聚焦断言：共享 ORM 会话（生产请求级 session 形态）内 setScreenThumbnail
+     * 必须返回已更新实体。旧实现（raw SQL 绕过会话 + getEntityById 重读）在同会话下命中
+     * 一级缓存返回旧实例（thumbnail/version 均旧）——该缺陷仅在共享会话下可观察，
+     * 无环境 session 的直调用例（testSetScreenThumbnailUpdatesMainTableOnly）重读 DB 而掩盖。
+     * 实体写实现返回的即会话内已改实体（thumbnail 新值 + version 递增）。
+     */
+    @Test
+    public void testSetScreenThumbnailReturnsUpdatedEntityInSharedSession() {
+        IServiceContext context = newContext("thumb-shared-user");
+        NopDatavScreen screen = saveScreen("screen-thumb-shared", "thumb-shared-screen");
+
+        IOrmTemplate orm = new OrmTemplateImpl(ormSessionFactory);
+        orm.runInSession(s -> {
+            NopDatavScreen before = daoProvider.daoFor(NopDatavScreen.class)
+                    .getEntityById(screen.getScreenId());
+            Long beforeVersion = before.getVersion();
+
+            NopDatavScreen updated = screenBiz.setScreenThumbnail(
+                    screen.getScreenId(), "file-record-shared-456", context);
+            assertEquals("file-record-shared-456", updated.getThumbnail(),
+                    "shared-session return must carry the new thumbnail (stale L1 cache in old raw-SQL impl)");
+            assertTrue(updated.getVersion() > beforeVersion,
+                    "shared-session return must carry the bumped version (old impl returned stale version)");
+
+            return null;
+        });
+
+        // 会话外重读确认持久化
+        NopDatavScreen reloaded = daoProvider.daoFor(NopDatavScreen.class)
+                .getEntityById(screen.getScreenId());
+        assertEquals("file-record-shared-456", reloaded.getThumbnail());
     }
 
     // ==================== Helpers ====================

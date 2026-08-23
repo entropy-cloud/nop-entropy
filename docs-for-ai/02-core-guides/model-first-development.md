@@ -542,6 +542,37 @@ codegen 生成的 XMeta 中会自动设置两个关键属性：
 - **beans.xml 中如果用了完整类名**（如 `class="nop.ai.dao.entity.Xxx"`），也需要同步更新。如果只用了 bean id 或短名，则不需要。
 - **全平台标准包名**：`io.nop.{module}`（如 `io.nop.auth`、`io.nop.job`、`io.nop.wf`）。新建模块务必从第一次就使用标准包名，避免后续迁移。
 
+## 直接 SQL 的使用边界（raw SQL vs EQL / 实体写）
+
+业务代码访问数据库的默认顺序：**实体写（dao）→ EQL → QueryBean（列表查询）→ raw SQL（仅限豁免场景）**。
+判定规则见下；完整保留/收敛清单与逐点裁定记录在 `ai-dev` 的调研文档（plan 2255 落档）。
+
+### 关键事实：同一段 SQL 文本有两条执行路径
+
+`SQL` 对象传给不同执行器语义不同：
+
+| 执行器 | 语义 | 名称要求 |
+|---|---|---|
+| `dao.updateEntity / saveEntity` 等 | 实体写：dirty 列更新 + 乐观锁 version + 审计列自动维护 | 实体 |
+| `orm().findAll/executeUpdate(SQL)` 等 | **EQL**（经 `EqlCompiler` 编译） | 实体全名/短名；物理下划线表名需 `SQL.begin().allowUnderscoreName()`（缺省 false，否则抛 `ERR_EQL_UNKNOWN_ENTITY_NAME`） |
+| `jdbcTemplate.xxx(SQL)` | **原生 SQL**（直连物理表） | 物理表名/列名 |
+
+**不要把物理表名 SQL 交给 `orm()` 执行**（除非显式 `allowUnderscoreName`）——编译期解析失败，且测试若用 jdbcTemplate 执行同一段 SQL 会掩盖该路径错配（测试必须与生产同路径）。
+
+### raw SQL 的豁免场景（业务代码中允许直接 SQL 的仅有情形）
+
+1. **单语句原子性是契约**：affected-row 裁决的条件更新/删除（一次性消费 `WHERE USED=0`、CAS `WHERE COUNT < ?`）、数据库端自增 `SET C = C + 1`。仓库规范样例：EQL 形式见 `SysDaoResourceLockManager`（实体名 + `session.executeUpdate` 返回 affected rows）；raw SQL 形式见 `DbMfaChallengeStore`（需绕过 ORM 会话缓存/独立事务时）。
+2. **必须绕过 ORM 会话**：REQUIRES_NEW 独立事务中先行落库（业务异常回滚后仍需持久的计数）、必须读到并发提交新值的探测读（一级缓存会返回旧实体）。
+3. **产品功能即执行 SQL**：用户定义的数据集查询（datav 面板取数）、DDL/迁移、无实体模型的基础设施表（选主租约、checkpoint）、`existsTable` 探测。
+
+不满足上述情形的普通实体读写一律用实体写：绕过会话的 raw UPDATE 会造成会话实体与库脱同步（返回值命中一级缓存旧实例）、丢失乐观锁/审计列维护、物理列名硬编码。
+
+### EQL 书写注意（易踩坑）
+
+- **算术必须显式括号**：EQL 编译器对 `+ - * /` 的优先级与标准 SQL 不同（`a*b/c + d*e/c` 会被编译为 `((a*b)/(c+d*e))/c`）。混合运算一律加括号。
+- **投影别名与行映射**：EQL 结果集字段名大小写敏感且别名原样保留。配 `BeanRowMapper.of(clazz, true)`（camelCase）时投影别名必须 snake_case（camelCase 别名会被 `StringHelper.camelCase` 先整体小写而 miss 属性）；无别名的裸列名字段名即属性名原样。
+- 条件更新/删除可用 `SQL.begin().update(实体名).set()...where()...` + `orm().executeUpdate`，affected rows 原样返回。
+
 ## 常见误区
 
 1. 先手写 Entity / DAO / Biz 接口，再回头补模型。

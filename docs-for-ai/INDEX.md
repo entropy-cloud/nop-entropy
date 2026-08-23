@@ -71,6 +71,7 @@
 | 判断一个业务模块怎么分层 | `01-repo-map/domain-module-pattern.md` |
 | 找模型、页面、测试、模块入口 | `01-repo-map/where-things-live.md` |
 | 从模型开始开发 | `02-core-guides/model-first-development.md` |
+| **判断业务代码能否直接写 SQL（raw SQL 豁免场景、`orm()` 即 EQL、EQL 算术括号/别名大小写坑）** | `02-core-guides/model-first-development.md`（"直接 SQL 的使用边界"章节） |
 | 理解 ORM 模型设计规范（stdDataType/stdSqlType、主键策略、关系设计） | `02-core-guides/orm-model-design.md` |
 | **跨模块引用其他模块的实体（主数据/业务单据）、关联查询、条件过滤怎么做** | `02-core-guides/cross-module-entity-reference.md`（四种机制：本模块实体 / `notGenCode` 外部实体引用 / `ext:baseClass` Delta 扩展 / 纯外键 + `I*Biz`） |
 | 理解 EQL 语法、`<eql>` 与 `<sql>` 区别、数据库兼容性（空字符串转 NULL、VARCHAR 自动提升 CLOB、Dialect 特性标志） | `02-core-guides/eql-and-database-compatibility.md` |

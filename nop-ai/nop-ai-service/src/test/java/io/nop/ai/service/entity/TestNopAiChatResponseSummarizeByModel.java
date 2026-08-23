@@ -2,12 +2,23 @@ package io.nop.ai.service.entity;
 
 import io.nop.ai.dao.dto.ModelUsageSummary;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.ioc.IBeanProvider;
+import io.nop.commons.cache.CacheConfig;
+import io.nop.commons.cache.LocalCacheProvider;
 import io.nop.core.CoreConstants;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.jdbc.IJdbcTemplate;
-import io.nop.dao.jdbc.impl.JdbcFactory;
 import io.nop.dao.jdbc.datasource.SimpleDataSource;
+import io.nop.dao.jdbc.impl.JdbcFactory;
+import io.nop.dao.seq.UuidSequenceGenerator;
+import io.nop.orm.IOrmSessionFactory;
+import io.nop.orm.IOrmTemplate;
+import io.nop.orm.ddl.DdlSqlCreator;
+import io.nop.orm.factory.DefaultOrmColumnBinderEnhancer;
+import io.nop.orm.factory.OrmSessionFactoryBean;
+import io.nop.orm.impl.OrmTemplateImpl;
+import io.nop.orm.model.IEntityModel;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -15,6 +26,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,66 +39,28 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Plan 203 (L2-20) + plan 204 (L2-19) focused tests for the per-model aggregation SQL +
- * row mapping exposed by {@link NopAiChatResponseBizModel#summarizeByModel}.
+ * Plan 203 (L2-20) + plan 204 (L2-19) + plan 2255 focused tests for the per-model
+ * aggregation EQL + row mapping exposed by {@link NopAiChatResponseBizModel#summarizeByModel}.
  *
- * <p>The aggregation SQL and {@code ROW_MAPPER} are the exact artifacts the BizModel
- * uses at runtime (shared via package-private {@code buildSummarySql} / {@code ROW_MAPPER}),
- * executed here against a seeded H2 in-memory table via {@link IJdbcTemplate}
- * (same {@code ISqlExecutor.findAll(SQL, IRowMapper)} contract as the production
- * {@code orm()} path). This verifies the SQL GROUP BY + SUM/COUNT aggregation,
- * the {@code LEFT JOIN nop_ai_model} pricing join + {@code estimated_cost} calculation
- * (plan 204 / L2-19), and the snake_case→camelCase row mapping end-to-end
- * (Anti-Hollow, Minimum Rules #22).
+ * <p>执行路径对齐生产（plan 2255 的核心修正）：被测聚合语句经 {@code orm().findAll}（EQL 编译路径，
+ * {@link OrmTemplateImpl} + {@link OrmSessionFactoryBean} 真会话工厂）执行，而不是早期版本用
+ * {@link IJdbcTemplate} 直连——两条路径对同一段文本的语义不同（EQL 编译 vs 原生 SQL），用
+ * jdbcTemplate 执行会掩盖实体名解析失败（曾掩盖 {@code ERR_EQL_UNKNOWN_ENTITY_NAME} 路径错配）。
+ * jdbcTemplate 仅用于测试脚手架（建表后的种子数据插入）。
+ *
+ * <p>建表用 ORM 工厂 DDL（{@code allNullable=true}）：实体模型的 mandatory 列（model_id、version、
+ * 审计列等）不生成 NOT NULL，保留 {@code model_id} 故意为 null 的种子行——null-modelId 独立分组
+ * + estimatedCost graceful degradation 断言依赖该数据。
+ *
+ * <p>断言内容不变：SQL GROUP BY + SUM/COUNT 聚合、{@code LEFT JOIN NopAiModel} 定价 join +
+ * {@code estimated_cost} 计算（plan 204 / L2-19）、snake_case 别名 → camelCase 行映射端到端。
  */
 public class TestNopAiChatResponseSummarizeByModel {
 
-    private static final String DDL = ""
-            + "CREATE TABLE IF NOT EXISTS nop_ai_chat_response ("
-            + "id VARCHAR(100) NOT NULL, "
-            + "request_id VARCHAR(100), "
-            + "session_id VARCHAR(100), "
-            + "model_id VARCHAR(100), "
-            + "ai_provider VARCHAR(100), "
-            + "ai_model VARCHAR(200), "
-            + "response_content VARCHAR(4000), "
-            + "response_timestamp TIMESTAMP, "
-            + "prompt_tokens INTEGER, "
-            + "completion_tokens INTEGER, "
-            + "response_duration_ms INTEGER, "
-            + "version INTEGER, "
-            + "create_time TIMESTAMP, "
-            + "update_time TIMESTAMP, "
-            + "PRIMARY KEY (id)"
-            + ")";
-
-    /**
-     * {@code nop_ai_model} 表 DDL，含 plan 204 / L2-19 的 6 个定价列（propId 11–16）。
-     * 与 {@code _NopAiModel.java} 再生成后的列定义保持一致。
-     */
-    private static final String MODEL_DDL = ""
-            + "CREATE TABLE IF NOT EXISTS nop_ai_model ("
-            + "id VARCHAR(100) NOT NULL, "
-            + "provider VARCHAR(100), "
-            + "model_name VARCHAR(200), "
-            + "base_url VARCHAR(400), "
-            + "api_key VARCHAR(400), "
-            + "version INTEGER, "
-            + "created_by VARCHAR(100), "
-            + "create_time TIMESTAMP, "
-            + "updated_by VARCHAR(100), "
-            + "update_time TIMESTAMP, "
-            + "input_price_per_1m DECIMAL(10,4), "
-            + "output_price_per_1m DECIMAL(10,4), "
-            + "reasoning_price_per_1m DECIMAL(10,4), "
-            + "cache_read_price_per_1m DECIMAL(10,4), "
-            + "cache_write_price_per_1m DECIMAL(10,4), "
-            + "currency VARCHAR(3), "
-            + "PRIMARY KEY (id)"
-            + ")";
-
     private SimpleDataSource dataSource;
     private IJdbcTemplate jdbc;
+    private OrmSessionFactoryBean factoryBean;
+    private IOrmTemplate orm;
 
     @BeforeAll
     static void init() {
@@ -109,27 +83,66 @@ public class TestNopAiChatResponseSummarizeByModel {
         JdbcFactory factory = new JdbcFactory();
         jdbc = factory.newJdbcTemplate(factory.newTransactionTemplate(dataSource));
 
-        jdbc.executeUpdate(SQL.begin().sql(DDL).end());
-        jdbc.executeUpdate(SQL.begin().sql(MODEL_DDL).end());
+        factoryBean = new OrmSessionFactoryBean();
+        factoryBean.setJdbcTemplate(jdbc);
+        factoryBean.setBeanProvider(new IBeanProvider() {
+            @Override
+            public boolean containsBean(String name) {
+                return false;
+            }
+
+            @Override
+            public <T> T getBeanByType(Class<T> clazz) {
+                try {
+                    return clazz.getDeclaredConstructor().newInstance();
+                } catch (ReflectiveOperationException e) {
+                    throw new IllegalStateException("cannot instantiate " + clazz.getName(), e);
+                }
+            }
+
+            @Override
+            public Object getBean(String name) {
+                return null;
+            }
+
+            @Override
+            public String getBeanScope(String name) {
+                return null;
+            }
+        });
+        factoryBean.setGlobalCache(new LocalCacheProvider("summarize-orm-test", CacheConfig.newConfig(100)));
+        factoryBean.setSequenceGenerator(new UuidSequenceGenerator());
+        factoryBean.setColumnBinderEnhancer(new DefaultOrmColumnBinderEnhancer());
+        factoryBean.init();
+
+        IOrmSessionFactory sessionFactory = factoryBean.getObject();
+        orm = new OrmTemplateImpl(sessionFactory);
+
+        // allNullable=true：不生成 NOT NULL，null model_id / null 审计列种子行可插入
+        Collection<? extends IEntityModel> tables = sessionFactory.getOrmModel().getEntityModelsInTopoOrder();
+        String createSql = new DdlSqlCreator(jdbc.getDialectForQuerySpace(null)).createTables(tables, true, false);
+        jdbc.executeMultiSql(new SQL(createSql));
 
         // Pricing rows for nop_ai_model: m-x has pricing, m-y has null pricing.
         // No row is inserted for the unresolved null-modelId group, so its LEFT JOIN miss.
-        insertModelRow("m-x", "openai", "gpt-4", "1.5000", "2.5000", "USD");
-        insertModelRow("m-y", "anthropic", "claude", null, null, null);
+        insertModelRow("m-x", "open", "gpt-4", "1.5000", "2.5000", "USD");
+        insertModelRow("m-y", "anth", "claude", null, null, null);
 
         // session-A: model-X x3 + model-Y x2 + null-modelId x1
-        insertRow("r1", "session-A", "m-x", "openai", "gpt-4", 100, 10, 1000L);
-        insertRow("r2", "session-A", "m-x", "openai", "gpt-4", 200, 20, 2000L);
-        insertRow("r3", "session-A", "m-x", "openai", "gpt-4", 300, 30, 3000L);
-        insertRow("r4", "session-A", "m-y", "anthropic", "claude", 50, 5, 500L);
-        insertRow("r5", "session-A", "m-y", "anthropic", "claude", 150, 15, 1500L);
-        insertRow("r6", "session-A", null, "unknown", "unk-model", 40, 4, 400L);
+        insertRow("r1", "session-A", "m-x", "open", "gpt-4", 100, 10, 1000L);
+        insertRow("r2", "session-A", "m-x", "open", "gpt-4", 200, 20, 2000L);
+        insertRow("r3", "session-A", "m-x", "open", "gpt-4", 300, 30, 3000L);
+        insertRow("r4", "session-A", "m-y", "anth", "claude", 50, 5, 500L);
+        insertRow("r5", "session-A", "m-y", "anth", "claude", 150, 15, 1500L);
+        insertRow("r6", "session-A", null, "unk", "unk-model", 40, 4, 400L);
         // session-B: must be excluded from session-A aggregation
-        insertRow("r7", "session-B", "m-x", "openai", "gpt-4", 999, 999, 999L);
+        insertRow("r7", "session-B", "m-x", "open", "gpt-4", 999, 999, 999L);
     }
 
     @AfterEach
     void tearDown() {
+        if (factoryBean != null)
+            factoryBean.destroy();
         if (dataSource instanceof AutoCloseable) {
             try {
                 ((AutoCloseable) dataSource).close();
@@ -150,7 +163,7 @@ public class TestNopAiChatResponseSummarizeByModel {
     void aggregationValuesAreCorrectForModelX() {
         Map<String, ModelUsageSummary> byKey = summarizeByKey("session-A");
 
-        ModelUsageSummary x = byKey.get("openai|gpt-4");
+        ModelUsageSummary x = byKey.get("open|gpt-4");
         assertNotNull(x, "model-X group must be present");
         assertEquals("m-x", x.getModelId());
         assertEquals(600L, x.getTotalPromptTokens(), "100+200+300");
@@ -161,14 +174,14 @@ public class TestNopAiChatResponseSummarizeByModel {
         // 600 * 1.5 / 1000000 + 60 * 2.5 / 1000000 = 0.0009 + 0.00015 = 0.00105
         assertNotNull(x.getEstimatedCost(), "estimatedCost must be computed when pricing data is present (L2-19)");
         assertEquals(0, new BigDecimal("0.00105").compareTo(x.getEstimatedCost()),
-                "estimatedCost = prompt*inputPrice/1M + completion*outputPrice/1M");
+                "estimatedCost = prompt*inputPrice/1M + completion*outputPrice/1M, actual=" + x.getEstimatedCost());
     }
 
     @Test
     void aggregationValuesAreCorrectForModelY() {
         Map<String, ModelUsageSummary> byKey = summarizeByKey("session-A");
 
-        ModelUsageSummary y = byKey.get("anthropic|claude");
+        ModelUsageSummary y = byKey.get("anth|claude");
         assertNotNull(y, "model-Y group must be present");
         assertEquals("m-y", y.getModelId());
         assertEquals(200L, y.getTotalPromptTokens(), "50+150");
@@ -184,7 +197,7 @@ public class TestNopAiChatResponseSummarizeByModel {
     void nullModelIdRowsFormTheirOwnGroup() {
         Map<String, ModelUsageSummary> byKey = summarizeByKey("session-A");
 
-        ModelUsageSummary unk = byKey.get("unknown|unk-model");
+        ModelUsageSummary unk = byKey.get("unk|unk-model");
         assertNotNull(unk, "null model_id rows must form an independent group by provider+model");
         assertNull(unk.getModelId(), "model_id stays null for the unresolved-model group");
         assertEquals(40L, unk.getTotalPromptTokens());
@@ -203,7 +216,7 @@ public class TestNopAiChatResponseSummarizeByModel {
                 "session-A aggregation must not include session-B rows");
         // sanity: model-X total for session-A excludes session-B's 999 tokens
         Map<String, ModelUsageSummary> byKey = summarizeByKey("session-A");
-        assertEquals(600L, byKey.get("openai|gpt-4").getTotalPromptTokens(),
+        assertEquals(600L, byKey.get("open|gpt-4").getTotalPromptTokens(),
                 "session-B row (999 tokens) must not leak into session-A model-X total");
     }
 
@@ -232,9 +245,11 @@ public class TestNopAiChatResponseSummarizeByModel {
     // Helpers
     // ========================================================================
 
+    /** 生产同路径：经 orm()（EQL 编译）执行被测语句，在会话内运行。 */
     private List<ModelUsageSummary> summarize(String sessionId) {
-        return jdbc.findAll(NopAiChatResponseBizModel.buildSummarySql(sessionId),
-                NopAiChatResponseBizModel.ROW_MAPPER);
+        return orm.runInSession(s ->
+                orm.findAll(NopAiChatResponseBizModel.buildSummarySql(sessionId),
+                        NopAiChatResponseBizModel.ROW_MAPPER));
     }
 
     private Map<String, ModelUsageSummary> summarizeByKey(String sessionId) {
@@ -265,8 +280,9 @@ public class TestNopAiChatResponseSummarizeByModel {
     }
 
     /**
-     * 插入 {@code nop_ai_model} 行。{@code inputPricePer1m} / {@code outputPricePer1m}
-     * 传 null 用于验证"定价列缺失 → estimatedCost 为 null"的 graceful degradation 路径。
+     * 插入 {@code nop_ai_model} 行（测试脚手架，jdbcTemplate 直插）。{@code inputPricePer1m} /
+     * {@code outputPricePer1m} 传 null 用于验证"定价列缺失 → estimatedCost 为 null"的
+     * graceful degradation 路径。
      */
     private void insertModelRow(String id, String provider, String modelName,
                                 String inputPricePer1m, String outputPricePer1m, String currency) {
