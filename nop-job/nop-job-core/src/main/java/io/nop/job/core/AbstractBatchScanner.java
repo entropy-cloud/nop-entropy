@@ -236,7 +236,18 @@ public abstract class AbstractBatchScanner {
         }
         processor.accept(batch);
         T last = batch.get(batch.size() - 1);
-        cursor.advance(timeFn.apply(last), idFn.apply(last));
+        Timestamp lastTime = timeFn.apply(last);
+        if (lastTime == null) {
+            // check2 [P3-8]: 满批末条的排序键为 null（如 DISPATCHING fire 的 startTime 为 null 的
+            // 异常数据残留）时，推进 cursor 为 (null, id) 会使下一轮 fetch 抛
+            // IllegalArgumentException（cursorId requires cursorTime）、整轮扫描中止。
+            // 防御：不推进，直接 markDrained 结束本子扫描周期，warn 留痕。
+            LOG.warn("nop.job.scan-null-sort-key:scanner={},lastId={},batchSize={} — cursor not advanced, sub-scan drained",
+                    getClass().getSimpleName(), idFn.apply(last), batch.size());
+            cursor.markDrained();
+            return;
+        }
+        cursor.advance(lastTime, idFn.apply(last));
         if (batch.size() < batchSize) {
             cursor.markDrained();
         }

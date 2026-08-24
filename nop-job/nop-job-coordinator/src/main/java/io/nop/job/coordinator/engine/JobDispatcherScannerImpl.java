@@ -156,8 +156,14 @@ public class JobDispatcherScannerImpl extends AbstractBatchScanner implements IJ
                             task.setPriority(normalizeCost(schedule.getPriority()));
                         }
                     }
-                    fireStore.insertTasksAndMarkFireDispatching(fire, tasks);
-                    dispatchedCount++;
+                    // check2 [P3-11]: fire 已被并发流转出 DISPATCHING 时 store 返回 false（未插入
+                    // 任务行），不计入 dispatchedCount/onFiresDispatched，debug 留痕静默跳过
+                    if (fireStore.insertTasksAndMarkFireDispatching(fire, tasks)) {
+                        dispatchedCount++;
+                    } else {
+                        LOG.debug("nop.job.dispatcher.dispatch-skipped-not-dispatching:fireId={}",
+                                fire.getJobFireId());
+                    }
                 } catch (NopException e) {
                     if (isNoFittingWorker(e)) {
                         long backoffUntil = scheduleStore.getCurrentTime() + Math.max(noWorkerBackoffMs, 1L);

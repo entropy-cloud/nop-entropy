@@ -529,7 +529,8 @@ public class TestRemoteJobInvoker {
         }
 
         @Override
-        public void insertTasksAndMarkFireDispatching(NopJobFire fire, List<NopJobTask> tasks) {
+        public boolean insertTasksAndMarkFireDispatching(NopJobFire fire, List<NopJobTask> tasks) {
+            return true;
         }
 
         @Override

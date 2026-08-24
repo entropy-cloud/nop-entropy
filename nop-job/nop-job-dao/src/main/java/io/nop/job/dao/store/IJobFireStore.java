@@ -18,7 +18,14 @@ public interface IJobFireStore {
     List<NopJobFire> tryLockFiresForDispatch(List<NopJobFire> fires, String dispatchInstanceId,
                                              long lockTimeoutMs);
 
-    void insertTasksAndMarkFireDispatching(NopJobFire fire, List<NopJobTask> tasks);
+    /**
+     * 插入任务行并把 fire 从 DISPATCHING 推进到 RUNNING。
+     *
+     * @return {@code true} 表示实际插入并推进；{@code false} 表示 fire 已被并发流转出
+     * DISPATCHING（如 revert/timeout），本调用静默跳过、未插入任何任务行。
+     * 调用方（dispatcher）据此决定是否计入 dispatched 指标（check2 [P3-11]）。
+     */
+    boolean insertTasksAndMarkFireDispatching(NopJobFire fire, List<NopJobTask> tasks);
 
     FireScheduleOutcome completeFireAndUpdateSchedule(NopJobFire fire, NopJobSchedule schedule);
 
