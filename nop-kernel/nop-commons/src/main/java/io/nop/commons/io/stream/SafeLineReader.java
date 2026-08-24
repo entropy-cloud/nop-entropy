@@ -73,7 +73,10 @@ public class SafeLineReader implements AutoCloseable {
         while (true) {
             int c = nextChar();
             if (c == -1) {
-                lineIndex++;
+                // 仅当EOF前确实读到了内容（或发生截断）时才计入行号，
+                // 否则以换行符结尾的文件会多计一行
+                if (sb.length() > 0 || truncated)
+                    lineIndex++;
                 return new LineRead(sb.length() == 0 && !truncated ? null : sb.toString(), truncated, false);
             }
             if (c == '\n') {

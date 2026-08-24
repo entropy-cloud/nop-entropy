@@ -85,7 +85,11 @@ public class AESTextCipher implements ITextCipher, IStreamCipher {
 
     private final String cipherName;
 
-    private SecretKeySpec secretKey;
+    /**
+     * legacy 路径 AES 密钥的缓存。{@link SecretKeySpec} 不可变，volatile保证setEncKey/setSaltKey
+     * 清空缓存后其他线程能立即感知（对齐 {@link #v1SecretKey} 的处理）。
+     */
+    private volatile SecretKeySpec secretKey;
     private byte[] iv;
 
     /**
@@ -300,11 +304,11 @@ public class AESTextCipher implements ITextCipher, IStreamCipher {
     public CipherInputStream decryptInputStream(InputStream is) {
         try {
             byte[] iv = this.iv;
-            // 如果设置了concatIv，则从数据中读取IV
+            // 如果设置了concatIv，则从数据中读取IV。读取的IV仅用于本流解密，
+            // 不写回共享实例字段，避免并发解密多个流时相互覆盖
             if (concatIv) {
                 iv = new byte[getIvLength()];
                 IoHelper.readFully(is, iv);
-                this.iv = iv;
             }
             return new CipherInputStream(is, newDecryptCipher(iv));
         } catch (Exception e) {

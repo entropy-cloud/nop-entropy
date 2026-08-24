@@ -16,8 +16,9 @@ public class ResourceLockState implements IResourceLockState {
     private String lockerId;
 
     private long createTime;
-    private long lockTime;
-    private long expireTime;
+    // lockTime/expireTime会被后台清理线程与持锁线程并发读写，volatile保证可见性
+    private volatile long lockTime;
+    private volatile long expireTime;
     private String lockReason;
     private long version;
 

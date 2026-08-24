@@ -119,8 +119,11 @@ public class LocalResourceLockManager implements IResourceLockManager, IResource
         LOG.debug("nop.lock.check-lease-expire:lastCleanupTime={}", new Timestamp(lastCleanUpTime));
         lastCleanUpTime = now;
         for (LocalResourceLockState lock : locks.values()) {
-            if (lock.getExpireTime() <= now) {
-                removeExpiredLock(lock);
+            // 与tryResetLease/isHoldingLock使用同一把锁，避免续租过程中读到旧的expireTime而误删锁
+            synchronized (lock.getLatch()) {
+                if (lock.getExpireTime() <= now) {
+                    removeExpiredLock(lock);
+                }
             }
         }
     }

@@ -41,6 +41,8 @@ parseQuery(query, encoding, (key, value) -> {
 - **建议**: 将 `ret.put(key, value)` 改为 `ret.put(key, list)`，并补充 `a=1&a=2` 的回归测试（现有测试 `TestStringHelper.java:278-280` 只覆盖不重复 key）。
 - **误报排除**: 已通读同文件私有方法 `parseQuery(String,String,BiConsumer)`（2409-2447 行）确认回调确实对每个参数对调用一次；已确认 `parseSimpleQuery` 不受影响（重复 key 直接抛异常）；已核对调用方 XuiHelper.java:352 的输入来源为外部 URL。
 
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。2387 行 `ret.put(key, value)` 改为 `ret.put(key, list)`，重复参数名正确收集为多值列表。测试：TestStringHelper#testQueryDuplicateParamName。红验证：HEAD 上 `parseQuery("a=1&a=2&a=3")` 返回 `{a=3}`（断言期望 `{a=[1, 2, 3]}` 失败）
+
 ### [P1] StringHelper.indexOfIgnoreCase off-by-one：漏掉子串位于末尾的匹配
 
 - **文件**: `nop-kernel/nop-commons/src/main/java/io/nop/commons/util/StringHelper.java:1258-1268`
@@ -64,6 +66,8 @@ public static int indexOfIgnoreCase(String str, String subStr) {
 - **建议**: 循环条件改为 `i <= n`；补充末尾匹配测试。
 - **误报排除**: 已用 `str.regionMatches(pos,...)` 的语义核算合法位置区间 [0, len-subLen]；已确认调用方 FilterOpHelper 的 contains 语义依赖完整区间。
 
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。1263 行循环条件 `i < n` 改为 `i <= n`。测试：TestStringHelper#testIndexOfIgnoreCase。红验证：HEAD 上 `indexOfIgnoreCase("hello", "LO")` 返回 -1（期望 3，断言失败）
+
 ### [P1] CollectionHelper.sumDouble 用 int 累加器累加 double，小数部分全部截断
 
 - **文件**: `nop-kernel/nop-commons/src/main/java/io/nop/commons/util/CollectionHelper.java:1037-1043`
@@ -82,6 +86,8 @@ public static <T> double sumDouble(List<T> list, ToDoubleFunction<T> fn) {
 - **风险**: 调用方 `BatchGenStateBuilder.java:40`（nop-batch-gen）用它累计测试数据的权重和；权重为小数（如 0.3/0.3/0.4）时总和为 0，`MathHelper.randomChoose` 的随机分支选择分布完全失真。
 - **建议**: 改为 `double ret = 0;`，补充小数权重测试。
 - **误报排除**: 已核对全仓唯一生产调用方 BatchGenStateBuilder（权重字段允许小数）；对照同文件 sumInt/sumLong 实现确认是笔误。
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。累加器 `int ret = 0` 改为 `double ret = 0`。测试：TestCollectionHelper#testSumDouble。红验证：HEAD 上 sumDouble([0.5,0.5]) 返回 0.0（期望 1.0，断言失败）
 
 ### [P1] SafeLineReader.countLines 对以换行符结尾的文件多数一行
 
@@ -107,6 +113,8 @@ return (int) r.getLineIndex();
 - **建议**: EOF 分支仅在 `sb.length() > 0 || truncated` 时 `lineIndex++`；或 `countLines` 改为不计入返回 null 的最后一次读取。补充 `"a\n"`、`"a"`、`"a\nb\n"` 三种用例。
 - **误报排除**: 已逐行推演 nextChar 的 eof 置位时序（reader.read(buf) <= 0 才置 eof）；已确认 hasNext 仅依赖 eof 字段；已核对调用链 ReadFileExecutor → IToolFileSystem.countLines。
 
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。readLine 的 EOF 分支改为仅在 `sb.length() > 0 || truncated` 时 lineIndex++，EOF 空读不再多计行号。测试：TestSafeLineReader#testCountLines、testCountLinesWithMaxLines。红验证：HEAD 上 countLines("a\n")=2（期望 1）、countLines("a\nb\n")=3（期望 2），断言失败
+
 ### [P1] MutableString.substring(int,int) 使用相对参数 start 计算长度，结果错误或越界
 
 - **文件**: `nop-kernel/nop-commons/src/main/java/io/nop/commons/text/MutableString.java:137-143`
@@ -124,6 +132,8 @@ public String substring(int start, int end) {
 - **风险**: MutableString 是公开工具类，且 `TextScanner.getReusableBuffer()` 把它暴露给 XNodeParser、GraphQLDocumentParser、SimpleExprParser 等解析器（这些解析器传入的 MutableString 常由 subSequence 产生，`this.start > 0` 很常见）。当前仓内 grep 未发现直接调用 `.substring(int,int)` 的生产代码，属于一调用即错的潜伏 API 缺陷。
 - **建议**: 改为 `new String(buf, this.start + start, end - start)`（与 subSequence 对齐），补充 `this.start > 0` 场景的单测。
 - **误报排除**: 已对照 subSequence 与 getChars 的坐标系约定（参数相对、字段绝对）；已确认 `start==0` 时碰巧正确的路径不能掩盖 `start>0` 的错误。
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。第三参改为 `Math.min(end, length()) - start`（与 subSequence 坐标系对齐）。测试：TestMutableString#testSubstring。红验证：HEAD 上 subSequence(2) 实例的 substring(2,4) 返回 "456789"（期望 "45"，长度错误）
 
 ### [P1] MutableString.insert/delete 相对/绝对坐标混用，insert 语义完全失效
 
@@ -147,6 +157,8 @@ public MutableString delete(int begin, int end) {
 - **风险**: 公开 API 完全错误。当前仓内生产代码未直接调用这两个方法（TextScanner 内部的 localBuf 是 `new MutableString()` 且只 append，`start` 恒为 0，掩盖了问题），属于潜伏缺陷；`deleteWhitespace()`（595 行）内部调用 `deleteCharAt`，一旦被以 `start>0` 的实例调用即数据损坏。
 - **建议**: insert 改为 `offset = start + offset`；delete 全程转换为绝对坐标（`begin += start; end += start;` 并以 limit 为界 clamp）；补充 `start>0` 的单测。
 - **误报排除**: 已通读 425-604 行确认类内坐标系约定（charAt/indexOf/getChars 均为相对参数 + start 偏移）；已确认 replace(int,int,CharSequence)（529 行）与 delete 一样存在 `if (end > limit)` 相对/绝对混用，一并修复。
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。insert 改为 `offset = start + offset`；delete/replace(int,int,CharSequence) 全程相对→绝对坐标转换并以 length() clamp；deleteWhitespace 的循环下标同步改为相对坐标。测试：TestMutableString#testInsert、testDelete、testDeleteCharAt、testReplaceRange、testDeleteWhitespace。红验证：HEAD 上 insert(2,"XY") 退化为 append 得 "abcXY"（期望 "abXYc"）；delete(2,4) 得 "456789"（期望 "236789"）；start>0 实例 deleteWhitespace 抛 ArrayIndexOutOfBoundsException(10)
 
 ### [P2] MathHelper.max 与 min 对 v2==null 的处理不一致
 
@@ -174,6 +186,8 @@ public static Object min(Object v1, Object v2) {
 - **建议**: 统一语义（建议与 SQL 一致：v2==null 时返回 v1），在 javadoc 中写明。
 - **误报排除**: 已核对 MaxAggregator/MinAggregator/ReportFunctions 均 null 防护后调用，当前无运行时危害，故定 P2。
 
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。min 改为 v2==null 时返回 v1（与 max 一致的 SQL 忽略 null 语义），javadoc 写明。全仓调用方复核：Max/MinAggregator 自行判空、ReportFunctions.MIN/MAX 跳过非 Number（null 不进入）、EvalHelper 的 `MathHelper.min(v1,v2)` 映射的是 MINUS 运算符（属 nop-xlang 的映射缺陷，见新缺陷记录），本修复不影响其非 null 路径。测试：TestMathHelper#testMinMaxNullConsistency。红验证：HEAD 上 min(3, null) 返回 null（期望 3，断言失败）
+
 ### [P2] AverageAggregator 将 null 值计入分母，与 SumAggregator 语义不一致
 
 - **文件**: `nop-kernel/nop-commons/src/main/java/io/nop/commons/aggregator/AverageAggregator.java:11-18`
@@ -192,6 +206,8 @@ public void update(Object value) {
 - **建议**: null 时直接 return（与 SQL/Excel 对齐），或明确文档化"AVG=SUM/COUNT(*)"并保持全聚合器一致。
 - **误报排除**: 已核对 AggregateState.aggregate 无 null 过滤、RecordAggregateState.aggregate 的 value 可为 null（getProp 对 record==null 返回 null）。
 
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。update 对 null 直接 return（null 不计入分子也不计入分母，与 SQL/Excel 对齐），全 null 输入 getValue() 返回 null（与 Min/MaxAggregator 行为一致），javadoc 写明。测试：TestAverageAggregator#testAverageIgnoresNull、testAverageAllNull、testAverageReset。红验证：HEAD 上 AVG(1,null,3)=1.333…（期望 2.0）、全 null 返回 0（期望 null）
+
 ### [P2] ByteString.arrayRangeEquals 第三参传错数组长度，indexOf/endsWith 等非零偏移匹配全部失效
 
 - **文件**: `nop-kernel/nop-commons/src/main/java/io/nop/commons/bytes/ByteString.java:543-545`
@@ -208,6 +224,8 @@ static boolean arrayRangeEquals(byte[] a, int aOffset, byte[] b, int bOffset, in
 - **风险**: 当前唯一生产调用方 `RecordFileMeta.java:163` 使用 `startsWithBytes`（aOffset=0 恰好落在正确路径），未触发；属潜伏 API 缺陷。
 - **建议**: 改为 `a.length - aOffset`；补充非零偏移 indexOf/endsWith 测试。
 - **误报排除**: 已读 Bytes.equals 实现确认长度不等即 false 的短路；已核算 startsWith 的参数组合恰好凑出 leftLen==rightLen；已全仓搜索该家族方法调用方。
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。leftLen 改为传 `byteCount`。说明：Bytes.equals 语义是比较两侧各 leftLen(==rightLen) 个字节，报告建议的 `a.length - aOffset` 同样错误（仅当比较恰好到达数组末尾时成立），正确值是 byteCount 本身。测试：TestByteString#testStartsWith、testEndsWith、testIndexOfBytes、testLastIndexOfBytes、testRangeEquals。红验证：HEAD 上 "abcd".indexOfBytes("cd") 返回 -1（期望 2）、endsWithBytes("cd") 返回 false（期望 true）、lastIndexOfBytes 非 0 位返回 -1
 
 ### [P2] ByteString.toByteArray 直接返回内部数组，违背不可变契约
 
@@ -230,6 +248,8 @@ public final class ByteString implements ... {
 - **建议**: 要么返回 `bytes.clone()`（与文档一致），要么修改文档/接口明确"返回内部引用，调用方不得修改"并去掉 ImmutableBean 语义承诺。二选一，保持一致。
 - **误报排除**: 已确认构造路径 `of(byte[])`/`from(byte[])` 同样直接持有外部数组（okio 风格所有权转移可以接受），问题仅在 toByteArray 的文档与实现矛盾；已核对 hashCode 懒缓存导致污染后不一致的路径。
 
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。按报告给出的二选一采后者：保留零拷贝实现，类 javadoc 改为明确 "toByteArray 直接返回内部数组引用，调用方不得修改"（与 IByteArrayView 接口契约 "有可能直接返回底层的bytes存储" 一致），消除文档与实现的矛盾及 ImmutableBean 语义误导；不改 clone 以避免热路径额外分配。免测试理由：纯 javadoc 文案变更，无行为语义变化，既有 TestByteHelper#testUUID 往返用例覆盖
+
 ### [P2] IoHelper 默认序列化器为 Java 原生反序列化，构成潜在不安全反序列化入口
 
 - **文件**: `nop-kernel/nop-commons/src/main/java/io/nop/commons/util/IoHelper.java:49-50` 与 `io/serialize/JavaSerializer.java:64-70`
@@ -251,6 +271,8 @@ public Object deserializeFromStream(InputStream is) {
 - **建议**: 为 `JavaSerializer` 增加 `ObjectInputFilter`（白名单或 JDK 序列化深度/数组限制）；或在文档中显著标注"仅限可信数据"，并提供默认安全的替代实现。
 - **误报排除**: 已全仓搜索 JavaSerializer/IoHelper.serializeClone 的调用点，确认当前无可信边界外的输入路径，按"潜在风险"定级 P2。
 
+> **处置（fix-ai-check 分支，2026-08-24）**: 裁定暂缓。决策点：(1) ObjectInputFilter 白名单范围需平台级裁定——nop-commons 作为底层组件无法枚举上层业务可传输类型，深度/引用数/字节数等通用上限又不能完全阻断 gadget 链；(2) 替代安全实现（如显式注册白名单的 IByteArraySerializer）涉及 IoHelper 全局默认值切换与上游迁移。影响面：IoHelper.s_streamSerializer/s_byteArraySerializer 默认值及 serializeClone 深拷贝等公共入口；当前仓内无可信边界外输入（报告已核实），风险窗口可控，待平台统一安全基线决策
+
 ### [P2] MutableString.indexOf(String,pos) off-by-one 漏掉末尾匹配
 
 - **文件**: `nop-kernel/nop-commons/src/main/java/io/nop/commons/text/MutableString.java:216-228`
@@ -270,6 +292,8 @@ return -1;
 - **风险**: 内部调用方 `replace(String,String)`（583-593 行）依赖它定位子串，末尾出现的子串不会被替换。当前仓内无生产代码调用 replace(String,String)，属潜伏缺陷。
 - **建议**: 循环条件改为 `i <= n`，补充末尾匹配测试。
 - **误报排除**: 已核对 `_startsWith` 与 limit 边界的合法区间；确认与 StringHelper.indexOfIgnoreCase 是两处独立实现。
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。循环条件改为 `i <= n`。测试：TestMutableString#testIndexOf、testReplaceString。红验证：HEAD 上 "hello".indexOf("lo") 返回 -1（期望 3）；replace("lo","LA") 为 no-op 仍得 "hello"（期望 "helLA"）
 
 ### [P2] FileHelper.countLines 对不以换行符结尾的多行文件少计一行
 
@@ -294,6 +318,8 @@ return hasContent && count == 0 ? 1 : count;
 - **建议**: 记录最后一个字节是否为 '\n'：`return count + (lastByteIsNewline ? 0 : (hasContent ? 1 : 0));`；补充三种结尾形态测试。
 - **误报排除**: 已推演三种输入形态的计数路径；确认该方法当前无生产调用方（潜伏）。
 
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。记录末字节是否 '\n'，返回 `hasContent ? count + (lastByteIsNewline ? 0 : 1) : 0`；同时修复修复过程中暴露的未报告潜在缺陷：空文件时 `allocateDirect(0)` 容量 buffer 使 channel.read 恒返回 0 导致死循环（测试先红为 100% CPU 挂起），现按 `Math.max(channel.size(), 1)` 分配。测试：TestFileHelper#testCountLines（覆盖 "a\nb\n"/"a\nb"/"abc"/"" 四形态）。红验证：HEAD 上 countLines("a\nb")=1（期望 2，断言失败）；countLines("") 死循环（jstack 确认卡在 FileHelper.java:716）
+
 ### [P3] MathHelper.gcd(int[]) 在 length==1 时数组越界，且修改入参
 
 - **文件**: `nop-kernel/nop-commons/src/main/java/io/nop/commons/util/MathHelper.java:1082-1088`
@@ -312,6 +338,8 @@ public static int gcd(int[] arr) {
 - **风险**: 当前无外部调用方（已全仓 grep），属死代码中的缺陷。
 - **建议**: length==1 直接返回 `gcd(arr[0], arr[0])`，length==0 抛 IllegalArgumentException；去掉副作用。
 - **误报排除**: 已全仓搜索确认无调用方，定 P3。
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。改为前置非空校验（Guard.checkArgument）+ 不改入参的折叠循环，单元素返回元素自身。测试：TestMathHelper#testGcdArray。红验证：HEAD 上 gcd(new int[]{12}) 抛 ArrayIndexOutOfBoundsException（Index -1 out of bounds for length 1）；另验证入参不被修改
 
 ### [P3] MathHelper 杂项：randomChoose 空权重抛异常、toShortHash 负值、secureRandom 懒初始化竞态
 
@@ -340,6 +368,8 @@ int rnd = MathHelper.random().nextInt(ttlWeight);   // nextInt(0) 抛 IllegalArg
 - **建议**: s_secureRand 加 volatile（对齐 IoHelper）；toShortHash 用 `Math.abs(hash % Short.MAX_VALUE)` 或无符号处理；randomChoose 入口校验 ttlWeight>0。
 - **误报排除**: 已确认 DefaultSecureRandom 重复创建无害（包装 SecureRandom）；已核对 nextInt(0) 的 JDK 行为。
 
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。(1) s_secureRand 加 volatile 对齐 IoHelper（免测试理由：可见性加固无行为语义变化，并发首调竞态无法稳定红复现，且 DefaultSecureRandom 幂等重建无害）；(2) toShortHash 改为 `(short) Math.abs(value % Short.MAX_VALUE)`，先取模再 abs，规避 Math.abs(MIN_VALUE) 溢出（测试：TestMathHelper#testToShortHash。红验证：HEAD 上 toShortHash(Integer.MIN_VALUE) 返回负值 -2，断言 >=0 失败）；(3) randomChoose 空列表返回 null、非空但总权重 0 抛 IllegalArgumentException("randomChoose requires positive total weight")（测试：TestMathHelper#testRandomChooseEmpty、testRandomChoose。红验证：HEAD 上 randomChoose(emptyList) 抛 IllegalArgumentException("bound must be positive") 而非返回 null）
+
 ### [P3] StringHelper.intToHex/longToHex 误用 Objects.requireNonNull 校验布尔表达式
 
 - **文件**: `nop-kernel/nop-commons/src/main/java/io/nop/commons/util/StringHelper.java:767-768, 785-786`
@@ -354,6 +384,8 @@ public static String intToHex(int value, int minLength) {
 - **风险**: 极低，仅异常类型语义错误。
 - **建议**: 改为 `Guard.checkArgument(minLength >= 0, ...)`。
 - **误报排除**: 已确认 minLength<0 时实际由 Math.max 兜底不产生错误结果，仅异常路径问题。
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。按报告建议改为 `Guard.checkArgument(minLength >= 0, "minLength must be >= 0")`（intToHex/longToHex 两处）。补充事实：`Objects.requireNonNull(Boolean,...)` 对非 null 的装箱 FALSE 从不抛异常，故 HEAD 上该校验实为永不生效的死代码（报告"抛 NullPointerException"的前提不成立，实际是无异常）。测试：TestStringHelper#testIntToHexInvalidMinLength。红验证：HEAD 上 intToHex(1,-1) 不抛任何异常，测试 fail("expect IllegalArgumentException") 触发
 
 ### [P3] StringHelper.unescapeJava 对 "\u" 后不足 4 位十六进制的输入抛 StringIndexOutOfBoundsException
 
@@ -373,6 +405,8 @@ case 'u': {
 - **建议**: 循环内检查 `i+k >= str.length()` 并抛 ERR_TEXT_INVALID_UNICODE；在 javadoc 记录 ≤0xFF 限制。
 - **误报排除**: 已逐字符推演 "a\u12"（长度 5）在 k=4 时 charAt(6) 越界。
 
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。'u' 分支循环内每次 i++ 后检查 `i >= str.length()`，越界即抛 ERR_TEXT_INVALID_UNICODE NopException（复用已有错误码）；javadoc 补充记录 ≤0xFF 区间限制。测试：TestStringHelper#testUnescapeJavaInvalidUnicode。红验证：HEAD 上 unescapeJava("a\\u12") 抛 StringIndexOutOfBoundsException（Index 5 out of bounds for length 5），而非规范化 NopException
+
 ### [P3] StringHelper.isUSASCII 缺少 null 防护，违背类的 null 容忍约定
 
 - **文件**: `nop-kernel/nop-commons/src/main/java/io/nop/commons/util/StringHelper.java:4620-4630`
@@ -389,6 +423,8 @@ public static boolean isUSASCII(@Name("input") String input) {
 - **风险**: 该方法带 @Name 注解可被 EL 表达式调用，EL 传 null 时抛 NPE。
 - **建议**: 开头加 `if (input == null) return false;`。
 - **误报排除**: 已对照同文件其他 @Name 方法（如 wrapExpr）均有 isEmpty 防护，确认是遗漏。
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。方法开头加 `if (input == null) return false;`。测试：TestStringHelper#testIsUSASCIINull。红验证：HEAD 上 isUSASCII(null) 抛 NullPointerException（Cannot invoke "String.length()" because "input" is null）
 
 ### [P3] ByteString.isSafeUtf8 条件逻辑写反，非空输入恒返回 false
 
@@ -411,6 +447,8 @@ public boolean isSafeUtf8() {
 - **建议**: 修正条件或删除死方法。
 - **误报排除**: 已全仓搜索 isSafeUtf8 确认无调用方。
 
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。条件改为 `!(isDigit(b) || isAsciiLetter(b) || b == '-' || b == '_')`（德摩根修正，保留方法，属公开 API）。测试：TestByteString#testIsSafeUtf8。红验证：HEAD 上 "abc-123_".isSafeUtf8() 返回 false（期望 true），任何非空输入恒 false
+
 ### [P3] IntHashMap javadoc 声明允许 null 值，实际 put(key,null) 等价于 remove(key)
 
 - **文件**: `nop-kernel/nop-commons/src/main/java/io/nop/commons/collections/IntHashMap.java:29-32, 128-130`
@@ -428,6 +466,8 @@ public V put(int key, V value) {
 - **风险**: 误导调用方；computeIfAbsent 中对命中槽位的 null 检查（471-477 行）因此成为不可达代码。
 - **建议**: 更新 javadoc 为"null value 被视为删除映射"。
 - **误报排除**: 已通读 put/computeIfAbsent/remove 确认 null 不会被存入 valueTable。
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。类 javadoc 中 "Null values are allowed." 改为 "Null values are not stored: putting a null value is treated as removing the mapping for the key."。免测试理由：纯文档变更无行为语义变化，put(key,null)==remove(key) 的实现不变，既有 TestIntHashMap 用例覆盖
 
 ### [P3] IoHelper.peekFirstNBytes 空流抛无消息 IOException 且不重置流位置
 
@@ -449,6 +489,8 @@ if (readBytes == 0) {
 - **建议**: 抛出带消息的 IOException（如 "empty stream"）。
 - **误报排除**: 已确认 0 字节消费下流位置未变，仅异常质量问题。
 
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。`throw new IOException()` 改为 `throw new IOException("empty stream")`。测试：TestIoHelper#testPeekFirstNBytesEmptyStream、testPeekFirstNBytesResetsStream。红验证：HEAD 上空流异常的 getMessage() 为 null（断言消息非空失败）
+
 ### [P3] FileHelper.writeBytes 对无父目录的相对路径文件 NPE
 
 - **文件**: `nop-kernel/nop-commons/src/main/java/io/nop/commons/util/FileHelper.java:91-93`
@@ -463,6 +505,8 @@ public static void writeBytes(File file, byte[] bytes) {
 - **风险**: 低（多数调用方传带目录的路径）。
 - **建议**: 改用 `assureParent(file)`。
 - **误报排除**: 已对照 assureParent 的 null 防护确认不一致。
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。`file.getParentFile().mkdirs()` 改为 `assureParent(file)`（内含 null 防护，与 writeText 对齐）。测试：TestFileHelper#testWriteBytesWithoutParentDir。红验证：HEAD 上写入 `new File("xxx.txt")`（无父目录）抛 NullPointerException（getParentFile() 返回 null 后直接解引用）
 
 ### [P3] CollectionHelper.getByIndex 负下标行为不一致；splitChunk 对 chunkSize<=0 除零
 
@@ -487,6 +531,8 @@ public static <T> List<List<T>> splitChunk(Collection<T> allData, int chunkSize)
 - **建议**: getByIndex 入口 `if (index < 0) return null;`；splitChunk 加 `Guard.checkArgument(chunkSize > 0, ...)`。
 - **误报排除**: 已核对 ChildIndexSelector 调用路径与 XPath 下标来源。
 
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。getByIndex 入口加 `if (index < 0) return null;`（两分支统一）；splitChunk 入口加 `Guard.checkArgument(chunkSize > 0, "chunkSize must be > 0")`。测试：TestCollectionHelper#testGetByIndexNegative、testSplitChunkInvalidSize。红验证：HEAD 上 getByIndex(list,-1) 在 List 分支抛 ArrayIndexOutOfBoundsException（Index -1）；splitChunk(list,0) 无校验直接 `new ArrayList<>((int)ceil(n/0.0)=Integer.MAX_VALUE)` 触发 OutOfMemoryError "Requested array size exceeds VM limit"（报告猜测 "/ by zero" 不成立——实为浮点除得 Infinity）
+
 ### [P3] CollectionHelper.disjoint 无意义的 contains 自检与 O(n²) 复杂度、重复元素问题
 
 - **文件**: `nop-kernel/nop-commons/src/main/java/io/nop/commons/util/CollectionHelper.java:767-797`
@@ -505,6 +551,8 @@ for (T o : list1) {
 - **风险**: 性能与可维护性；当前无生产调用方（已 grep）。
 - **建议**: 用 HashSet 重写：`Set 差集` 两次再合并，去重且 O(n)。
 - **误报排除**: 已全仓搜索确认无调用方，定 P3。
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。按建议以 LinkedHashSet 重写：set1/set2 差集双向合并，O(n+m) 且重复元素按集合语义去重（javadoc 注明），保留 list1 在前 list2 在后的结果顺序。测试：TestCollectionHelper#testDisjoint。红验证：HEAD 上 disjoint([a,a,b],[c]) 返回 [a,a,b,c]（期望去重 [a,b,c]，断言失败）
 
 ### [P3] LocalResourceLockManager 锁状态字段非 volatile 且 synchronized(latch) 未覆盖 checkTimeout 清理路径
 
@@ -529,6 +577,8 @@ public boolean tryResetLease(IResourceLockState lock, long leaseTime) {
 - **建议**: `expireTime/lockTime` 声明为 volatile；removeExpiredLock 与 tryResetLease 使用同一把锁（如在 state 对象上 synchronized）。
 - **误报排除**: 已通读 tryLockWithLease/removeExpiredLock/tryResetLease/isHoldingLock 的全部交互路径，确认并发下不会出现"两个线程同时认为持有"（条件 remove `locks.remove(resourceId, lock)` 保证唯一性），问题限于提前释放窗口。
 
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。(1) ResourceLockState.lockTime/expireTime 声明为 volatile；(2) checkTimeout 对 expireTime 读取与 removeExpiredLock 包在 `synchronized (lock.getLatch())` 内，与 tryResetLease/isHoldingLock 的持锁区互斥，关闭"续租并发时读到旧 expireTime 误删锁"的窗口（latch 监视器内无阻塞调用、locks 为 ConcurrentHashMap 原子 remove，无死锁路径）。免测试理由：毫秒级时序竞态无法稳定红复现；修复后既有 TestLocalLockManager 全量回归通过
+
 ### [P3] AESTextCipher legacy 路径的 secretKey 缓存无 volatile，且 decryptInputStream 修改共享 this.iv
 
 - **文件**: `nop-kernel/nop-commons/src/main/java/io/nop/commons/crypto/impl/AESTextCipher.java:88-89, 202-217, 300-313`
@@ -549,6 +599,8 @@ public CipherInputStream decryptInputStream(InputStream is) {
 - **建议**: `secretKey` 加 volatile，对齐 v1SecretKey 的处理；decryptInputStream 去掉 `this.iv = iv` 赋值。
 - **误报排除**: 已确认默认 versionedFormat=true 时加密走 encryptVersioned（每次随机 IV，不受此影响），问题限于 legacy/流式路径。
 
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。(1) secretKey 加 volatile 并加 javadoc（对齐 v1SecretKey），消除 setEncKey/setSaltKey 清空缓存后其他线程读旧 key 的可见性窗口；(2) decryptInputStream 去除 `this.iv = iv` 写回（本流解密用局部 iv，共享字段写回属并发多流互相覆盖的副作用）。免测试理由：key 缓存可见性与 IV 覆盖均属并发时序问题无法稳定红复现；既有 TestTextCipher/TestAesEncryptedValueFormat 全量回归通过
+
 ### [P3] DateHelper.buildFormatter 依赖 JVM 默认 Locale，且一周起始日由 Calendar locale 决定
 
 - **文件**: `nop-kernel/nop-commons/src/main/java/io/nop/commons/util/DateHelper.java:120-129, 270-273`
@@ -566,6 +618,8 @@ public static long getWeekStartWithTimeZoneTs(TimeZone timeZone, long ts) {
 - **风险**: 跨环境部署时日期文本/周边界不一致，难以复现。
 - **建议**: buildFormatter 用 `DateTimeFormatter.ofPattern(pattern, Locale.ROOT)`（或显式注入）；getWeekStart 增加 firstDayOfWeek 参数并文档化当前行为。
 - **误报排除**: 已确认纯数字模式（yyyy-MM-dd 等主流用法）不受 Locale 影响，影响面限于本地化文本模式。
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 裁定暂缓。决策点：(1) buildFormatter 改 Locale.ROOT 会改变非 ROOT 默认 Locale 环境下本地化文本模式（E/a/MMM 等）的输出，且经全局 s_formatters 缓存影响所有 pattern 使用方的用户可见行为，需平台统一裁定（ROOT 固定 vs 注入参数化 vs 按 pattern 检测）；(2) getWeekStart 增加 firstDayOfWeek 参数属 API 变更，需先普查全仓调用方（报表周期统计等）再定兼容策略。影响面：仅本地化文本模式与周边界语义；主流纯数字模式不受影响，回归风险可控但跨模块（nop-report 等）需联合验证
 
 ### [P3] MapCache.getAllPresent 跳过 null 值条目
 
@@ -588,6 +642,8 @@ public Map<K, V> getAllPresent(Collection<? extends K> keys) {
 - **风险**: 低；ICache 家族（Caffeine 底层）本身不允许 null 值，MapCache 的 HashMap 模式是特例。
 - **建议**: 用 `containsKey(key)` 判定后取值，或在 MapCache 文档中声明不允许 null 值。
 - **误报排除**: 已确认 HashMap 模式下 put(key,null) 合法且 containsKey 为 true。
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。改为 `containsKey(key)` 判定后 `getIfPresent(key)` 取值，put(key,null) 条目不再被跳过（与 containsKey 结果一致）。测试：TestMapCache#testGetAllPresentWithNullValue。红验证：HEAD 上 put("a",null) 后 getAllPresent([a,b,c]) 仅返回 {b=v}、size=1（期望 2 且含 key a），断言失败
 
 ## 补充说明（非缺陷观察）
 

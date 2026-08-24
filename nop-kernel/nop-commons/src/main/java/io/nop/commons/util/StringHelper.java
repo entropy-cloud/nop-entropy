@@ -462,6 +462,10 @@ public class StringHelper extends ApiStringHelper {
                 .replace("*\\u002f", "* \\u002f").replace("\\u002a\\u002f", "\\u002a \\u002f");
     }
 
+    /**
+     * 反转义Java字符串。注意：unicode转义只支持码位大于255的字符，
+     * 0x0000~0x00ff 区间的转义会被拒绝（抛出 ERR_TEXT_INVALID_UNICODE）。
+     */
     @Deterministic
     public static String unescapeJava(String str) {
         if (isEmpty(str)) {
@@ -506,6 +510,8 @@ public class StringHelper extends ApiStringHelper {
                         int sValue = 0;
                         for (int k = 1; k <= 4; k++) {
                             i++;
+                            if (i >= str.length())
+                                throw new NopException(ERR_TEXT_INVALID_UNICODE).param(ARG_STR, limitLen(str, i, 10));
                             char aChar = str.charAt(i);
                             switch (aChar) {
                                 case '0':
@@ -765,7 +771,7 @@ public class StringHelper extends ApiStringHelper {
     //===== int 转十六进制（自动补零）=====
     @Deterministic
     public static String intToHex(int value, int minLength) {
-        Objects.requireNonNull(minLength >= 0, "minLength must be >= 0");
+        Guard.checkArgument(minLength >= 0, "minLength must be >= 0");
         char[] buf = new char[Math.max(8, minLength)]; // int最多8个十六进制字符
         int pos = buf.length;
         do {
@@ -783,7 +789,7 @@ public class StringHelper extends ApiStringHelper {
     //===== long 转十六进制（自动补零）=====
     @Deterministic
     public static String longToHex(long value, int minLength) {
-        Objects.requireNonNull(minLength >= 0, "minLength must be >= 0");
+        Guard.checkArgument(minLength >= 0, "minLength must be >= 0");
         char[] buf = new char[Math.max(16, minLength)]; // long最多16个十六进制字符
         int pos = buf.length;
         do {
@@ -1260,7 +1266,7 @@ public class StringHelper extends ApiStringHelper {
             return -1;
         if (str.length() < subStr.length())
             return -1;
-        for (int i = 0, n = str.length() - subStr.length(); i < n; i++) {
+        for (int i = 0, n = str.length() - subStr.length(); i <= n; i++) {
             if (str.regionMatches(true, i, subStr, 0, subStr.length()))
                 return i;
         }
@@ -2384,7 +2390,7 @@ public class StringHelper extends ApiStringHelper {
                 List<String> list = new ArrayList<>();
                 list.add((String) v);
                 list.add(value);
-                ret.put(key, value);
+                ret.put(key, list);
             }
         });
         return ret;
@@ -4620,6 +4626,8 @@ public class StringHelper extends ApiStringHelper {
     @Description("判断字符串是否是有效的USASCII字符串")
     @Deterministic
     public static boolean isUSASCII(@Name("input") String input) {
+        if (input == null)
+            return false;
         for (int i = 0, n = input.length(); i < n; i++) {
             char c = input.charAt(i);
             if (c < 32 || c > 126) {

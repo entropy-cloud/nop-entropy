@@ -89,7 +89,7 @@ public class FileHelper {
 
     @SuppressFBWarnings("OBL_UNSATISFIED_OBLIGATION")
     public static void writeBytes(File file, byte[] bytes) {
-        file.getParentFile().mkdirs();
+        assureParent(file);
         FileOutputStream os = null;
         try {
             os = new FileOutputStream(file);
@@ -705,19 +705,22 @@ public class FileHelper {
 
     public static int countLines(File file) {
         try (FileChannel channel = FileChannel.open(file.toPath())) {
+            // 至少分配1个字节，否则空文件的read恒返回0会导致死循环
             ByteBuffer buffer = ByteBuffer.allocateDirect(
-                    (int) Math.min(channel.size(), 8192)
+                    (int) Math.min(Math.max(channel.size(), 1), 8192)
             );
 
             int count = 0;
             boolean hasContent = false;
+            boolean lastByteIsNewline = false;
 
             while (channel.read(buffer) != -1) {
                 buffer.flip();
                 hasContent = true;
 
                 while (buffer.hasRemaining()) {
-                    if (buffer.get() == '\n') {
+                    lastByteIsNewline = buffer.get() == '\n';
+                    if (lastByteIsNewline) {
                         count++;
                     }
                 }
@@ -726,7 +729,7 @@ public class FileHelper {
             }
 
             // 处理不以换行符结尾的最后一行
-            return hasContent && count == 0 ? 1 : count;
+            return hasContent ? count + (lastByteIsNewline ? 0 : 1) : 0;
         } catch (Exception e) {
             throw NopException.adapt(e);
         }

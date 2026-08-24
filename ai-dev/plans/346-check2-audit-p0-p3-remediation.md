@@ -57,7 +57,7 @@ Targets: 10 份报告；对应模块代码与测试
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] nop-commons.md（P0×1 P1×5 P2×7 P3×15，共 28 条）
+- [x] nop-commons.md（P0×1 P1×5 P2×7 P3×15，共 28 条）— 2026-08-24 完成：26 修复 + 2 暂缓（IoHelper 原生反序列化 ObjectInputFilter 白名单需平台裁定 / DateHelper Locale 语义需平台决策）。P0: parseQuery 多值收集 put(key,list)。红验证失败形态逐条吻合（splitChunk 在 HEAD 上 OOM 崩 JVM 为最强红证据）；268 tests 绿（+38 新用例）；报告两处事实偏差（P3-16 死校验非误抛 NPE、P3-23 OOM 非 /by zero）在标注中纠正；28/28 标注。附带修复 FileHelper.countLines 空文件 0 容量死循环（报告外新发现）；新发现 nop-xlang EvalHelper MINUS 分支疑用 MathHelper.min 已记录待 nop-xlang 单元处置
 - [ ] nop-xlang.md（P0×1 P1×1 P2×3 P3×5，共 10 条）
 - [ ] nop-orm-eql.md（P0×1 P2×5 P3×5，共 11 条）
 - [ ] db-migration.md（P0×2 P1×4 P2×7 P3×3，共 16 条）
