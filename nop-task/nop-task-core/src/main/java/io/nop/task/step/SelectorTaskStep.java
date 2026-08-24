@@ -101,6 +101,10 @@ public class SelectorTaskStep extends AbstractTaskStep {
                         stepRt.setBodyStepIndex(steps.size());
                         return TaskStepReturn.RETURN(result.getOutputs());
                     } else {
+                        // 异步完成值为 SUSPEND 时原样透传（与同步路径的 isSuspend 判定对齐），
+                        // 否则挂起会被当作"候选返回 falsy"静默跳过并推进下一候选
+                        if (result.isSuspend())
+                            return result;
                         if (indexParam + 1 >= steps.size() || result.isResultTruthy())
                             return result;
 

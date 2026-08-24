@@ -1,0 +1,17 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <xpl name="before">
+            <source>
+                return "BEFORE"
+            </source>
+        </xpl>
+
+        <suspend name="gate"/>
+
+        <xpl name="after">
+            <source>
+                return "AFTER"
+            </source>
+        </xpl>
+    </steps>
+</task>

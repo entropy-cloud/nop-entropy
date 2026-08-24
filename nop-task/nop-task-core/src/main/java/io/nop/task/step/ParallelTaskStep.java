@@ -7,6 +7,7 @@
  */
 package io.nop.task.step;
 
+import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.concurrent.AsyncJoinType;
 import io.nop.commons.util.AsyncHelper;
@@ -14,6 +15,7 @@ import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.task.ITaskStepExecution;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.StepResultBean;
+import io.nop.task.TaskErrors;
 import io.nop.task.TaskStepReturn;
 import io.nop.task.utils.TaskStepHelper;
 import jakarta.annotation.Nonnull;
@@ -85,6 +87,13 @@ public class ParallelTaskStep extends AbstractTaskStep {
                 if (FutureHelper.isFutureDone(future)) {
                     StepResultBean result = StepResultBean.buildFrom(stepName, stepRt.getLocale(), future);
                     states.add(result.getStepName(), result);
+                } else {
+                    // 与 fork 族（AbstractForkTaskStep.buildAggResult）行为对齐：
+                    // 聚合时未完成的分支补 ERR_TASK_CANCELLED 占位，aggregator 可区分"分支被取消"与"分支不存在"
+                    StepResultBean result = new StepResultBean();
+                    result.setStepName(stepName);
+                    result.setError(new ErrorBean(TaskErrors.ERR_TASK_CANCELLED.getErrorCode()));
+                    states.add(stepName, result);
                 }
             }
 

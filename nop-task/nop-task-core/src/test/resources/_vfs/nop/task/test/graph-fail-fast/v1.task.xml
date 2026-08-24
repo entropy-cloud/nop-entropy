@@ -1,0 +1,30 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <!--
+          无错误边消费 enter 的失败 → 保持 fail-fast：图以原始异常失败（修复前后行为一致，回归守卫）。
+        -->
+        <graph name="test" enterSteps="enter" exitSteps="exit">
+            <steps>
+                <step name="enter" next="exit">
+                    <source><![CDATA[
+                        import io.nop.api.core.exceptions.ErrorCode;
+                        import io.nop.api.core.exceptions.NopException;
+                        throw new NopException(ErrorCode.define("nop.err.test.graph-fail-fast", "graph fail-fast test failure"));
+                    ]]></source>
+                </step>
+
+                <step name="exit">
+                    <source>
+                        return 'OK'
+                    </source>
+                </step>
+            </steps>
+        </graph>
+    </steps>
+
+    <output name="RESULT">
+        <source>
+            return RESULT == 'OK' ? 'OK' : 'FAIL'
+        </source>
+    </output>
+</task>

@@ -141,13 +141,25 @@ public class TaskImpl implements ITask {
             stepReturn = mainStep.execute(stepRt);
         } catch (Exception e) {
             taskRt.runCleanup();
-            metrics.endTask(meter, false);
+            // recordMetrics=false 时 metrics 为 null，与异步出口的判空对齐，
+            // 避免 NPE 吞掉原始异常并阻断 driveTaskTerminal 落库
+            if (metrics != null)
+                metrics.endTask(meter, false);
             // plan 260 设计裁定 2: task 终态 driver 出口区分 cancellation（KILLED/TIMEOUT）与普通失败（FAILED）。
             driveTaskTerminal(taskRt, taskState, e);
             throw NopException.adapt(e);
         }
 
         return stepReturn.thenCompose((ret, err) -> {
+            // 挂起不是成功完成：不 runCleanup、不 endTask、不进入 COMPLETED driver。
+            // 标记 SUSPENDED(20) 并持久化后原样返回挂起信号。SUSPENDED 不属于 isTerminal() 终态集合，
+            // resume（recoverMode）不会被终态短路，已持久化 COMPLETED 的子步骤由 continuation-skip 跳过，
+            // 与 STEP_NAME_SUSPEND 注释声明的历史状态恢复语义对齐。
+            if (err == null && ret.isSuspend()) {
+                taskState.setTaskStatus(TaskConstants.TASK_STATUS_SUSPENDED);
+                taskRt.saveTaskState();
+                return ret;
+            }
             taskRt.runCleanup();
             if (metrics != null)
                 metrics.endTask(meter, err != null);

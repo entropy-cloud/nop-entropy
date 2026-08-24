@@ -77,6 +77,10 @@ public class SequentialTaskStep extends AbstractTaskStep {
             } else {
                 int indexParam = index;
                 return stepResult.thenApply(result -> {
+                    // 异步完成值为 SUSPEND 时原样透传（与同步路径的 isSuspend 判定对齐），
+                    // 否则 getNextIndex 查不到 "@suspend" 会误抛 ERR_TASK_UNKNOWN_NEXT_STEP
+                    if (result.isSuspend())
+                        return result;
                     if (result.isEnd()) {
                         stepRt.setBodyStepIndex(steps.size());
                         return result;

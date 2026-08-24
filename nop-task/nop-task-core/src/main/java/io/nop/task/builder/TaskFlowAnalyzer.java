@@ -96,11 +96,13 @@ public class TaskFlowAnalyzer {
             });
         } else if (stepModel instanceof IfTaskStepModel) {
             IfTaskStepModel ifModel = (IfTaskStepModel) stepModel;
+            // then/else 是 TaskStepsModel 子类，必须递归遍历（与 choose 分支一致），
+            // 否则 if 分支内孙级步骤不会被 normalize/checkStepRef/forceUseParentScope 覆盖
             if (ifModel.getThen() != null) {
-                action.accept(ifModel.getThen());
+                forEachStep(ifModel.getThen(), action);
             }
             if (ifModel.getElse() != null) {
-                action.accept(ifModel.getElse());
+                forEachStep(ifModel.getElse(), action);
             }
         } else if (stepModel instanceof ChooseTaskStepModel) {
             ChooseTaskStepModel chooseModel = (ChooseTaskStepModel) stepModel;

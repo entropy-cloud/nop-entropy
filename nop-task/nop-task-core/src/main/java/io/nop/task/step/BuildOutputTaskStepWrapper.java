@@ -30,6 +30,11 @@ public class BuildOutputTaskStepWrapper extends DelegateTaskStep {
     @Override
     public TaskStepReturn execute(ITaskStepRuntime stepRt) {
         return getTaskStep().execute(stepRt).thenApply(res -> {
+            // SUSPEND 不是普通返回：不做输出求值，原样透传挂起信号（否则输出表达式会在挂起点
+            // 被提前求值，且返回值变成携带 nextStepName="@suspend" 的普通 RETURN，上游挂起判定失效）
+            if (res.isSuspend())
+                return res;
+
             stepRt.setValue(TaskConstants.VAR_STEP_RESULT, res.getOutputs());
             stepRt.setValue(TaskConstants.VAR_RESULT, res.getOutput(TaskConstants.VAR_RESULT));
 

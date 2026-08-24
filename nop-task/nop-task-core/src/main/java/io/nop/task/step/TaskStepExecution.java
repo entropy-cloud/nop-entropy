@@ -249,7 +249,9 @@ public class TaskStepExecution implements ITaskStepExecution {
         try {
             TaskStepReturn stepResult = step.execute(stepRt);
             if (stepResult.isSuspend()) {
-                metrics.endStep(meter, false);
+                // recordMetrics=false 时 meter 为 null，与下方 thenCompose/catch 出口的判空对齐
+                if (meter != null)
+                    metrics.endStep(meter, false);
                 return stepResult;
             }
 

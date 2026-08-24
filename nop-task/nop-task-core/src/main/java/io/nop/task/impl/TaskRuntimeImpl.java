@@ -149,7 +149,11 @@ public class TaskRuntimeImpl extends Cancellable implements ITaskRuntime {
     @Override
     public ITaskRuntime newChildRuntime(ITask task, boolean saveState) {
         ITaskRuntime taskRt = taskManager.newTaskRuntime(task, saveState, getSvcCtx());
-        Consumer<String> onCancel = this::cancel;
+        // 父任务取消必须传播到子任务 runtime。原 this::cancel 是自引用（把父 runtime 自己的 cancel
+        // 注册到自己的监听器上，重入直接返回，无效果），正确目标是子 runtime 的 cancel。
+        // svcCtx 为 null 时（如 newTaskRuntime(task, saveState, null)）不存在间接传播路径，
+        // 此处是唯一的取消传播通道。
+        Consumer<String> onCancel = taskRt::cancel;
         this.appendOnCancel(onCancel);
         taskRt.addTaskCleanup(() -> removeOnCancel(onCancel));
         return taskRt;

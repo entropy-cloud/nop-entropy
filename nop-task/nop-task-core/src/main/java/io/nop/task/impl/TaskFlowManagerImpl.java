@@ -33,6 +33,8 @@ import io.nop.task.state.DefaultTaskStateStore;
 import io.nop.xlang.xdsl.DslModelParser;
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -44,6 +46,8 @@ import static io.nop.task.TaskErrors.ERR_TASK_NO_PERSIST_STATE_STORE;
 import static io.nop.task.TaskErrors.ERR_TASK_UNKNOWN_TASK_INSTANCE;
 
 public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
+    static final Logger LOG = LoggerFactory.getLogger(TaskFlowManagerImpl.class);
+
     private IScheduledExecutor scheduledExecutor;
 
     private ITaskStateStore taskStateStore;
@@ -117,6 +121,10 @@ public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
             throw new NopException(ERR_TASK_UNKNOWN_TASK_INSTANCE)
                     .param(ARG_TASK_INSTANCE_ID, taskInstanceId);
         taskRt.setTaskState(taskState);
+        // 恢复路径同样初始化 metrics（与 newTaskRuntime/prepareTaskRuntime 对称），
+        // 避免同一任务首次执行有指标、恢复执行无指标的可观测性不对称
+        taskRt.setMetrics(new TaskFlowMetricsImpl(GlobalMeterRegistry.instance(), null,
+                taskState.getTaskName(), taskState.getTaskVersion() == null ? 0L : taskState.getTaskVersion()));
         return taskRt;
     }
 
@@ -161,7 +169,14 @@ public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
     @Override
     public IRateLimiter getRateLimiter(ITaskRuntime taskRt, String key, double requestPerSecond, boolean global) {
         if (global) {
-            return globalRateLimiters.computeIfAbsent(taskRt.getTaskName() + ":" + key, k -> new DefaultRateLimiter(requestPerSecond));
+            IRateLimiter limiter = globalRateLimiters.computeIfAbsent(taskRt.getTaskName() + ":" + key,
+                    k -> new DefaultRateLimiter(requestPerSecond));
+            // 全局限流器按 key 缓存后参数固化：同 key 不同速率的后续配置会被静默忽略，记 warn 使其可观测
+            if (limiter.getPermitsPerSecond() != requestPerSecond) {
+                LOG.warn("nop.task.global-rate-limiter-config-ignored:cacheKey={},cachedPermitsPerSecond={},requestedPermitsPerSecond={}",
+                        taskRt.getTaskName() + ":" + key, limiter.getPermitsPerSecond(), requestPerSecond);
+            }
+            return limiter;
         }
         return (IRateLimiter) taskRt.computeAttributeIfAbsent("rate-limit:" + key, k -> {
             return new DefaultRateLimiter(requestPerSecond);
@@ -170,8 +185,16 @@ public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
 
     @Override
     public ISemaphore getSemaphore(ITaskRuntime taskRt, String key, int maxPermits, boolean global) {
-        if (global)
-            return globalSemaphores.computeIfAbsent(taskRt.getTaskName() + ":" + key, k -> new DefaultSemaphore(maxPermits));
+        if (global) {
+            ISemaphore semaphore = globalSemaphores.computeIfAbsent(taskRt.getTaskName() + ":" + key,
+                    k -> new DefaultSemaphore(maxPermits));
+            // 全局信号量按 key 缓存后参数固化：同 key 不同并发数的后续配置会被静默忽略，记 warn 使其可观测
+            if (semaphore.maxPermits() != maxPermits) {
+                LOG.warn("nop.task.global-semaphore-config-ignored:cacheKey={},cachedMaxPermits={},requestedMaxPermits={}",
+                        taskRt.getTaskName() + ":" + key, semaphore.maxPermits(), maxPermits);
+            }
+            return semaphore;
+        }
         return (ISemaphore) taskRt.computeAttributeIfAbsent("semaphore:" + key, k -> {
             return new DefaultSemaphore(maxPermits);
         });
@@ -198,6 +221,10 @@ public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
     @Override
     public void resetGlobalStats() {
         globalSemaphores.forEachEntry((k, v) -> {
+            v.resetStats();
+        });
+        // 与 getGlobalSemaphoreStats/getGlobalRateLimiterStats 成对：限流器统计同样需要重置
+        globalRateLimiters.forEachEntry((k, v) -> {
             v.resetStats();
         });
     }

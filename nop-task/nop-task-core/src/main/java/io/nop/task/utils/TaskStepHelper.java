@@ -262,6 +262,9 @@ public class TaskStepHelper {
                     return result.thenCompose((v, err) -> doRetry(v, err, loc,
                             stepRt, retryPolicy, action));
                 }
+                // 挂起不是成功完成：不标记 state COMPLETED，原样返回挂起信号
+                if (result.isSuspend())
+                    return result;
                 state.succeed(result.getResult(), result.getNextStepName(), stepRt.getTaskRuntime());
                 return result;
             } catch (Exception e) {
@@ -283,6 +286,9 @@ public class TaskStepHelper {
             return retry(loc, stepRt, retryPolicy, action);
         } else {
             ITaskStepState state = stepRt.getState();
+            // 挂起不是成功完成（异步完成值为 SUSPEND 时同样不标记 COMPLETED）
+            if (value.isSuspend())
+                return value;
             state.succeed(value.getResult(), value.getNextStepName(), stepRt.getTaskRuntime());
             return value;
         }
