@@ -982,6 +982,80 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
         assertNotNull(savedSchedule.getNextFireTime());
     }
 
+    /**
+     * check2 [P0]：once 语义在 planner 路径失效。once 型 schedule（triggerType=ONCE、无 cron、
+     * repeatInterval<=0）首次触发并派发（fire 离开 WAITING）后，后续 planner 周期不得再创建
+     * 任何新 fire——OnceTrigger 的 once 判定必须在 planner 的"每次计算重建 trigger 链"模式下
+     * 依然成立（持久化判定，而非实例内 first 标志）。schedule 应转入 dormant（nextFireTime=null）。
+     */
+    @Test
+    public void testOnceScheduleFiresExactlyOnceAcrossPlannerCycles() {
+        long now = System.currentTimeMillis();
+        Timestamp onceTime = new Timestamp(now - 1000);
+
+        NopJobSchedule schedule = newSchedule("sched-once", "job-once");
+        schedule.setTriggerType(4); // TRIGGER_TYPE_ONCE
+        schedule.setRepeatIntervalMs(null);
+        schedule.setCronExpr(null);
+        schedule.setMinScheduleTime(onceTime);
+        schedule.setNextFireTime(onceTime);
+        daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
+
+        // cycle 1: 首次 due → 恰好创建一个 fire，scheduledFireTime = once time
+        runPlanner();
+        List<NopJobFire> fires = firesOf(schedule.getJobScheduleId());
+        assertEquals(1, fires.size(), "first planner cycle must create exactly one fire");
+        assertEquals(onceTime, fires.get(0).getScheduledFireTime());
+
+        // 模拟 dispatcher 已推进该 fire（WAITING → RUNNING）：hasWaitingFire 去重从此失效，
+        // 若 once 语义依赖 trigger 实例状态，此处后每个周期都会再插一个同 scheduledFireTime 的 fire
+        NopJobFire fire1 = fireStore.loadFire(fires.get(0).getJobFireId());
+        fire1.setFireStatus(FIRE_STATUS_RUNNING);
+        fire1.setStartTime(new Timestamp(now));
+        daoProvider.daoFor(NopJobFire.class).updateEntityDirectly(fire1);
+
+        runPlanner();
+        runPlanner();
+
+        assertEquals(1, firesOf(schedule.getJobScheduleId()).size(),
+                "once schedule must not create additional fires after its first (planner rebuilds the "
+                        + "trigger chain every cycle, so instance-level once flags are always reset)");
+
+        NopJobSchedule savedSchedule = scheduleStore.loadSchedule(schedule.getJobScheduleId());
+        assertEquals(1L, savedSchedule.getFireCount(), "fireCount must stay at 1");
+        assertEquals(1, savedSchedule.getActiveFireCount(), "activeFireCount must stay at 1 (fire1 still RUNNING)");
+        assertTrue(savedSchedule.getNextFireTime() == null,
+                "exhausted once schedule goes dormant (nextFireTime=null), not re-due every cycle");
+    }
+
+    private List<NopJobFire> firesOf(String scheduleId) {
+        return daoProvider.daoFor(NopJobFire.class).findAll().stream()
+                .filter(f -> scheduleId.equals(f.getJobScheduleId()))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * check2 [P3-2]: 未知 blockStrategy 的处理必须与忙闲状态无关地统一为 DISCARD（跳过 + warn）。
+     * 此前 activeFireCount==0 时落入普通插入执行（且无 warn），忙时才跳过——同一非法配置
+     * 产生两种行为。本用例断言闲时（activeFireCount=0）也跳过、不产生 fire。
+     */
+    @Test
+    public void testUnknownBlockStrategySkipsFireEvenWhenIdle() {
+        NopJobSchedule schedule = newSchedule("sched-unknown-bs", "job-unknown-bs");
+        schedule.setBlockStrategy(99); // unknown strategy value
+        daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
+
+        runPlanner();
+
+        assertEquals(0, firesOf(schedule.getJobScheduleId()).size(),
+                "unknown blockStrategy must consistently skip fire creation (default to DISCARD), "
+                        + "not execute when idle");
+
+        NopJobSchedule savedSchedule = scheduleStore.loadSchedule(schedule.getJobScheduleId());
+        assertEquals(0L, savedSchedule.getFireCount(), "no fire created → fireCount stays 0");
+        assertNotNull(savedSchedule.getNextFireTime(), "schedule advances to the next slot after skip");
+    }
+
     private PreparedChain prepareChain(NopJobSchedule schedule) {
         daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
 

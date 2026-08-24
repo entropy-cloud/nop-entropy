@@ -97,10 +97,7 @@ public class LocalJobScheduler implements IJobScheduler {
                     // job was removed; fall through to create-and-schedule below
                 } else {
                     existing.update(spec, invoker, trigger, state);
-                    if (existing.state.internal == InternalState.WAITING || existing.state.internal == InternalState.SUSPENDED) {
-                        cancelScheduledFire(existing);
-                        scheduleNext(existing);
-                    }
+                    rescheduleAfterUpdate(existing);
                     return;
                 }
             }
@@ -119,10 +116,7 @@ public class LocalJobScheduler implements IJobScheduler {
                     return;
                 }
                 raced.update(spec, invoker, trigger, state);
-                if (raced.state.internal == InternalState.WAITING || raced.state.internal == InternalState.SUSPENDED) {
-                    cancelScheduledFire(raced);
-                    scheduleNext(raced);
-                }
+                rescheduleAfterUpdate(raced);
             }
         } else {
             synchronized (job) {
@@ -251,6 +245,22 @@ public class LocalJobScheduler implements IJobScheduler {
     void checkActive() {
         if (!active)
             throw new NopException(ERR_JOB_SCHEDULER_NOT_ACTIVE);
+    }
+
+    /**
+     * check2 [P3-13]: 更新已存在 job 后的重调度。SUSPENDED 状态在更新时保持不变——
+     * 此前 SUSPENDED 也纳入 scheduleNext，被无条件改写回 WAITING 并重新排程，
+     * 配置热更新会静默撤销 suspendJob 的效果（暂停中的任务突然开始执行）。
+     * 仅替换 spec/trigger，待 resumeJob 时再以新 trigger 恢复调度。
+     */
+    private void rescheduleAfterUpdate(ScheduledJob job) {
+        if (job.state.internal == InternalState.WAITING) {
+            cancelScheduledFire(job);
+            scheduleNext(job);
+        } else if (job.state.internal == InternalState.SUSPENDED) {
+            // SUSPENDED: keep suspended; defensively cancel any lingering scheduled fire
+            cancelScheduledFire(job);
+        }
     }
 
     private void scheduleNext(ScheduledJob job) {

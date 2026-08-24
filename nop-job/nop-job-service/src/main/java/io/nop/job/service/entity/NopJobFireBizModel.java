@@ -24,7 +24,6 @@ import io.nop.job.dao.store.IJobFireStore;
 import io.nop.job.dao.store.IJobScheduleStore;
 import io.nop.job.dao.store.IJobTaskStore;
 import io.nop.job.service.JobContextHelper;
-import io.nop.job.service.fire.FireFactory;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -210,7 +209,6 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
         fire.setJobParamsSnapshot(schedule.getJobParams());
         fire.setExecutorKind(schedule.getExecutorKind());
         fire.setDispatchMode(schedule.getDispatchMode());
-        FireFactory.fillBaseFireFields(fire, fireTime);
         return fire;
     }
 

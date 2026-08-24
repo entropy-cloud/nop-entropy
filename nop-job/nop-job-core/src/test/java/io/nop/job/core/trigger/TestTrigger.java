@@ -159,4 +159,32 @@ public class TestTrigger {
         long result = trigger.nextScheduleTime(afterTime, ctx);
         assertEquals(scheduleTime, result);
     }
+
+    /**
+     * check2 [P0]：once 语义必须由 evalContext（持久化状态）承载。planner 路径每次计算都重建
+     * 全新 trigger 链（JobTriggerCalculator → TriggerBuilder.buildTrigger），全新实例的 once
+     * 判定只能依赖 ctx：lastScheduledTime >= onceTime（已在 once 时刻产生过 fire）→ -1；
+     * fireCount > 0（立即执行一次的形态已触发过）→ -1。
+     */
+    @Test
+    public void testOnceTriggerFreshInstanceAlreadyFiredReturnsNegativeOne() {
+        long onceTime = CoreMetrics.currentTimeMillis() - 60_000;
+
+        // 形态 1：显式 once 时刻，全新实例 + 已触发上下文
+        SimpleContext fired = new SimpleContext();
+        fired.lastScheduledTime = onceTime; // schedule.lastFireTime 已推进到 once 时刻
+        assertEquals(-1L, new OnceTrigger(onceTime).nextScheduleTime(CoreMetrics.currentTimeMillis(), fired),
+                "fresh trigger instance with lastScheduledTime >= onceTime must report exhausted");
+
+        // 形态 2：无显式时刻（立即执行一次），全新实例 + fireCount>0
+        SimpleContext firedImmediate = new SimpleContext();
+        firedImmediate.fireCount = 1;
+        assertEquals(-1L, new OnceTrigger(0).nextScheduleTime(CoreMetrics.currentTimeMillis(), firedImmediate),
+                "fresh immediate-once trigger with fireCount > 0 must report exhausted");
+
+        // 对照：全新实例 + 未触发上下文仍正常返回触发时刻（planner 首次 due）
+        SimpleContext neverFired = new SimpleContext();
+        assertEquals(onceTime, new OnceTrigger(onceTime).nextScheduleTime(CoreMetrics.currentTimeMillis(), neverFired));
+        assertTrue(new OnceTrigger(0).nextScheduleTime(1000L, neverFired) > 1000L);
+    }
 }

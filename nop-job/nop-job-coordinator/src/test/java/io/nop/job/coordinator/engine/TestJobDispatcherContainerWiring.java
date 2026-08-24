@@ -21,6 +21,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -81,6 +82,28 @@ public class TestJobDispatcherContainerWiring extends JunitBaseTestCase {
         IRpcPollTaskClient client = BeanContainer.getBeanByType(IRpcPollTaskClient.class);
         assertInstanceOf(HttpRpcPollTaskClient.class, client,
                 "IRpcPollTaskClient must be assembled (HttpRpcPollTaskClient)");
+    }
+
+    /**
+     * check2 [P1-1] 容器接线验证：容器中存在 {@link io.nop.cluster.naming.INamingService} bean
+     * （test-naming-service.beans.xml 注册的 EmptyNamingService）时，app-engine.beans.xml 装配的
+     * IJobTimeoutChecker（JobTimeoutCheckerImpl）必须经 {@code @Inject @Nullable} 按类型自动注入
+     * namingService——否则 worker 崩溃后 RUNNING 任务/fire 的 SUSPICIOUS→TIMEOUT 回收链
+     * 整体失效（修复前为无 @Inject 的普通 setter + beans.xml 无该 property，恒为 null）。
+     */
+    @Test
+    public void testTimeoutCheckerNamingServiceAutoWiredFromContainer() {
+        io.nop.cluster.naming.INamingService naming =
+                BeanContainer.getBeanByType(io.nop.cluster.naming.INamingService.class);
+        assertTrue(naming instanceof io.nop.cluster.naming.EmptyNamingService,
+                "precondition: test-naming-service.beans.xml registers an INamingService bean");
+
+        IJobTimeoutChecker checker = BeanContainer.getBeanByType(IJobTimeoutChecker.class);
+        JobTimeoutCheckerImpl impl = assertInstanceOf(JobTimeoutCheckerImpl.class, checker);
+        assertNotNull(impl.getNamingService(),
+                "IJobTimeoutChecker.namingService must be auto-wired by type when the container "
+                        + "has an INamingService bean (worker-liveness recovery chain)");
+        assertEquals(naming, impl.getNamingService());
     }
 
     /**

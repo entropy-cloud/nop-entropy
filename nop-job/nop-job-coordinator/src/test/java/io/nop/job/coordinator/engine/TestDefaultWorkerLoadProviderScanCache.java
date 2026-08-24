@@ -11,9 +11,11 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 
 /**
  * AR-96：验证 {@link DefaultWorkerLoadProvider} 的 per-scan 缓存——在 beginScan..endScan 作用域内，
@@ -161,5 +163,32 @@ public class TestDefaultWorkerLoadProviderScanCache {
         assertEquals(2, discovery.getInstancesCount,
                 "AR-96: 2 distinct service names -> 2 discovery calls (cached repeats reuse)");
         assertNotEquals(0, taskStore.sumReservedByWorkerCount);
+    }
+
+    /**
+     * check2 [P3-6]: endScan 必须 remove() ThreadLocal（而非仅 clear）——否则线程池长生命周期
+     * 线程各驻留一个空 HashMap。remove 后再次 get 产生全新 map 实例。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    void endScanRemovesThreadLocalMap() throws Exception {
+        CountingDiscoveryClient discovery = new CountingDiscoveryClient(List.of(healthyInstance("w1")));
+        DefaultWorkerLoadProvider provider = new DefaultWorkerLoadProvider();
+        provider.setDiscoveryClient(discovery);
+        provider.setTaskStore(new CountingTaskStore());
+
+        java.lang.reflect.Field field = DefaultWorkerLoadProvider.class.getDeclaredField("scanCache");
+        field.setAccessible(true);
+        ThreadLocal<Map<String, List<WorkerLoad>>> tl =
+                (ThreadLocal<Map<String, List<WorkerLoad>>>) field.get(provider);
+
+        provider.beginScan();
+        Map<String, List<WorkerLoad>> held = tl.get();
+        assertEquals(0, held.size());
+
+        provider.endScan();
+
+        assertNotSame(held, tl.get(),
+                "endScan must remove() the ThreadLocal map so pool threads don't retain an empty HashMap forever");
     }
 }
