@@ -16,6 +16,7 @@ import com.google.common.collect.MapMaker;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.Guard;
 import io.nop.commons.collections.CaseInsensitiveMap;
 import io.nop.commons.collections.IntArrayMap;
 import io.nop.commons.collections.IntHashMap;
@@ -492,6 +493,7 @@ public class CollectionHelper {
     }
 
     public static <T> List<List<T>> splitChunk(Collection<T> allData, int chunkSize) {
+        Guard.checkArgument(chunkSize > 0, "chunkSize must be > 0");
         if (allData.size() < chunkSize)
             return Collections.singletonList(toList(allData));
 
@@ -762,7 +764,7 @@ public class CollectionHelper {
     }
 
     /**
-     * list1, list2的补集（在list1或list2中，但不在交集中的对象，又叫反交集）产生新List.
+     * list1, list2的补集（在list1或list2中，但不在交集中的对象，又叫反交集）产生新List. 结果按集合语义去重。
      */
     public static <T, L extends Collection<T>> L disjoint(final Collection<? extends T> list1,
                                                           final Collection<? extends T> list2, L result) {
@@ -777,18 +779,15 @@ public class CollectionHelper {
             return result;
         }
 
-        for (T o : list1) {
-            boolean b1 = list1.contains(o);
-            boolean b2 = list2.contains(o);
-            if (b1 && !b2 || (!b1 && b2)) {
+        Set<T> set1 = new LinkedHashSet<>(list1);
+        Set<T> set2 = new LinkedHashSet<>(list2);
+        for (T o : set1) {
+            if (!set2.contains(o)) {
                 result.add(o);
             }
         }
-
-        for (T o : list2) {
-            boolean b1 = list1.contains(o);
-            boolean b2 = list2.contains(o);
-            if (b1 && !b2 || (!b1 && b2)) {
+        for (T o : set2) {
+            if (!set1.contains(o)) {
                 result.add(o);
             }
         }
@@ -797,6 +796,8 @@ public class CollectionHelper {
     }
 
     public static <T> T getByIndex(Iterable<T> c, int index) {
+        if (index < 0)
+            return null;
         if (c instanceof List) {
             List<T> list = (List<T>) c;
             if (list.size() <= index)
@@ -1035,7 +1036,7 @@ public class CollectionHelper {
     }
 
     public static <T> double sumDouble(List<T> list, ToDoubleFunction<T> fn) {
-        int ret = 0;
+        double ret = 0;
         for (T item : list) {
             ret += fn.applyAsDouble(item);
         }

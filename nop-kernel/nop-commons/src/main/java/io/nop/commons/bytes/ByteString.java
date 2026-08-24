@@ -47,7 +47,9 @@ import static io.nop.commons.CommonErrors.ERR_BYTES_CONVERT_TO_BYTE_STRING_FAIL;
 // 从okio拷贝了部分实现代码
 
 /**
- * 标记为final，不允许有派生类。类似于String类对字节数组进行了只读封装，不对外暴露内部数组结构，toByteArray返回的是拷贝生成的新数组。
+ * 标记为final，不允许有派生类。类似于String类对字节数组进行了只读封装，不对外暴露内部数组结构。
+ * 注意：toByteArray直接返回内部数组的引用（与IByteArrayView的约定一致），调用方不得修改返回的数组，
+ * 否则会破坏本对象的不可变性并导致hashCode/equals不一致。
  *
  * @author canonical_entropy@163.com
  */
@@ -179,7 +181,7 @@ public final class ByteString implements Serializable, Comparable<ByteString>, I
     public boolean isSafeUtf8() {
         for (int i = 0, n = bytes.length; i < n; i++) {
             byte b = bytes[i];
-            if (!StringHelper.isDigit(b) || !StringHelper.isAsciiLetter(b) || b == '-' || b == '_') {
+            if (!(StringHelper.isDigit(b) || StringHelper.isAsciiLetter(b) || b == '-' || b == '_')) {
                 return false;
             }
         }
@@ -541,6 +543,8 @@ public final class ByteString implements Serializable, Comparable<ByteString>, I
     }
 
     static boolean arrayRangeEquals(byte[] a, int aOffset, byte[] b, int bOffset, int byteCount) {
-        return ByteHelper.equals(a, aOffset, b.length - aOffset, b, bOffset, byteCount);
+        // Bytes.equals按leftLen==rightLen短路，这里要比较的是两侧各byteCount个字节，
+        // 因此leftLen必须传byteCount，而不是数组剩余长度
+        return ByteHelper.equals(a, aOffset, byteCount, b, bOffset, byteCount);
     }
 }

@@ -35,6 +35,7 @@ import io.nop.api.core.annotations.core.Description;
 import io.nop.api.core.annotations.core.Locale;
 import io.nop.api.core.annotations.core.NoReflection;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.IWithWeight;
 import io.nop.commons.util.random.DefaultSecureRandom;
 import io.nop.commons.util.random.DefaultThreadLocalRandom;
@@ -187,8 +188,8 @@ public class MathHelper {
         s_randomImpl = random;
     }
 
-    // GraalVM要求不能静态初始化
-    static IRandom s_secureRand;
+    // GraalVM要求不能静态初始化。volatile保证懒初始化的跨线程可见性（对齐IoHelper的做法）
+    static volatile IRandom s_secureRand;
 
     public static IRandom secureRandom() {
         if (s_secureRand == null)
@@ -258,8 +259,8 @@ public class MathHelper {
     }
 
     public static short toShortHash(int value) {
-        int hash = Math.abs(value);
-        return (short) (hash % Short.MAX_VALUE);
+        // Math.abs(Integer.MIN_VALUE)仍为负数，因此先取模再做abs，保证结果非负
+        return (short) Math.abs(value % Short.MAX_VALUE);
     }
 
     /**
@@ -721,7 +722,7 @@ public class MathHelper {
         if (v1 == null)
             return null;
         if (v2 == null)
-            return null;
+            return v1;
         return compareWithConversion(v1, v2) > 0 ? v2 : v1;
     }
 
@@ -1078,13 +1079,14 @@ public class MathHelper {
         return (n == 0 || m == 0) ? n + m : gcd(m, n % m);
     }
 
-    // 求最大公约数
+    // 求最大公约数。不修改入参数组
     public static int gcd(int[] arr) {
-        int i = 0;
-        for (; i < arr.length - 1; i++) {
-            arr[i + 1] = gcd(arr[i], arr[i + 1]);
+        Guard.checkArgument(arr.length > 0, "gcd array must not be empty");
+        int ret = arr[0];
+        for (int i = 1; i < arr.length; i++) {
+            ret = gcd(ret, arr[i]);
         }
-        return gcd(arr[i], arr[i - 1]);
+        return ret;
     }
 
     /**
@@ -1427,7 +1429,10 @@ public class MathHelper {
     }
 
     public static <T extends IWithWeight> T randomChoose(List<T> items) {
+        if (items == null || items.isEmpty())
+            return null;
         int ttlWeight = sum(items);
+        Guard.checkArgument(ttlWeight > 0, "randomChoose requires positive total weight");
         int rnd = MathHelper.random().nextInt(ttlWeight);
         int ttl = 0;
         for (int i = 0, n = items.size(); i < n; i++) {

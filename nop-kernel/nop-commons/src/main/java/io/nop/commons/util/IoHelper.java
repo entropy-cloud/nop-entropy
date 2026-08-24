@@ -369,7 +369,7 @@ public class IoHelper {
 
         int readBytes = bos.size();
         if (readBytes == 0) {
-            throw new IOException();
+            throw new IOException("empty stream");
         }
 
         if (readBytes < limit) {
