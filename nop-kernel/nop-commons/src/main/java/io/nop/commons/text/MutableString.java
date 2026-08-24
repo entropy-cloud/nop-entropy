@@ -139,7 +139,7 @@ public class MutableString implements CharSequence, Appendable {
             return StringHelper.EMPTY_STRING;
 
         Guard.checkPositionIndex(start, length());
-        return new String(buf, this.start + start, Math.min(start + end, this.limit));
+        return new String(buf, this.start + start, Math.min(end, length()) - start);
     }
 
     public String substring(int start) {
@@ -220,7 +220,7 @@ public class MutableString implements CharSequence, Appendable {
         if (pos + str.length() > limit)
             return -1;
 
-        for (int i = pos, n = limit - str.length(); i < n; i++) {
+        for (int i = pos, n = limit - str.length(); i <= n; i++) {
             if (_startsWith(str, i))
                 return i - start;
         }
@@ -527,22 +527,22 @@ public class MutableString implements CharSequence, Appendable {
     }
 
     public MutableString replace(int begin, int end, CharSequence str) {
-        if (end > limit)
-            end = limit;
+        if (end > length())
+            end = length();
         int len = str.length();
-        int newCount = limit + len - (end - begin);
+        int newLen = length() + len - (end - begin);
 
-        ensureCapacity(newCount);
+        ensureCapacity(start + newLen);
 
-        System.arraycopy(buf, end, buf, begin + len, limit - end);
+        System.arraycopy(buf, start + end, buf, start + begin + len, limit - start - end);
         if (str instanceof String) {
-            ((String) str).getChars(0, len, buf, begin);
+            ((String) str).getChars(0, len, buf, start + begin);
         } else {
             for (int i = 0; i < len; i++) {
-                buf[begin + i] = str.charAt(i);
+                buf[start + begin + i] = str.charAt(i);
             }
         }
-        limit = newCount;
+        limit = start + newLen;
         return this;
     }
 
@@ -553,7 +553,7 @@ public class MutableString implements CharSequence, Appendable {
             str = "null";
         int len = str.length();
         ensureCapacity(limit + len);
-        offset = start + limit;
+        offset = start + offset;
         System.arraycopy(buf, offset, buf, offset + len, limit - offset);
         if (str instanceof String) {
             ((String) str).getChars(0, len, buf, offset);
@@ -571,12 +571,13 @@ public class MutableString implements CharSequence, Appendable {
     }
 
     public MutableString delete(int begin, int end) {
-        if (end > limit)
-            end = limit;
-        int newCount = limit - (end - begin);
-
-        System.arraycopy(buf, end, buf, begin, limit - end);
-        limit = newCount;
+        if (end > length())
+            end = length();
+        int removed = end - begin;
+        if (removed > 0) {
+            System.arraycopy(buf, start + end, buf, start + begin, limit - start - end);
+            limit -= removed;
+        }
         return this;
     }
 
@@ -593,7 +594,7 @@ public class MutableString implements CharSequence, Appendable {
     }
 
     public MutableString deleteWhitespace() {
-        for (int i = start, n = limit(); i < n; i++) {
+        for (int i = 0, n = length(); i < n; i++) {
             char c = charAt(i);
             if (Character.isWhitespace(c)) {
                 deleteCharAt(i);

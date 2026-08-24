@@ -130,8 +130,11 @@ nop.err.batch.cancel-load: 批处理读取被取消
 nop.err.batch.cancel-process: 批处理执行被取消
 nop.err.batch.input-mandatory-not-provided: 批处理任务的input参数{inputName}是必需的，但未提供
 nop.err.batch.invalid-history-store-bean: 批处理任务定义的historyStore的bean配置无效
+nop.err.batch.output-file-exists-on-recovery: 断点续传时输出文件已存在且非空，继续执行会截断丢失已完成记录的产出。请先转移或删除输出文件，或者更换输出路径
 nop.err.batch.persist-var-convert-type-fail: 状态变量[{varName}]的类型转换失败
+nop.err.batch.processing-items-not-empty: 任务完成时仍存在未处理完毕的记录，记录状态与实际处理进度不一致
 nop.err.batch.processor-is-null: 批处理任务的处理器配置不允许为null
+nop.err.batch.rate-limit-acquire-timeout: 在限流超时时间内未能获取到足够的许可，限流配置可能过低
 nop.err.batch.task-exceed-start-limit: 批处理任务[{taskName}-{taskKey}]启动次数超过限制，不允许再次启动
 nop.err.batch.task-invalid-consumer: 批处理的consumer类型不合法
 nop.err.batch.task-invalid-loader: 批处理的loader类型不合法
@@ -144,6 +147,7 @@ nop.err.batch.task-not-allow-start-when-exist-running-instance: 批处理任务[
   尚未结束，不允许再次启动
 nop.err.batch.task-not-allow-start-when-killed: 批处理任务[{taskName}-{taskKey}]的状态为[{taskStatus}],
   已经被终止，不允许再次启动
+nop.err.batch.task-null-writer: 批处理任务没有定义有效的writer
 nop.err.batch.too-many-processing-items: 正在处理的记录过多，程序可能存在内存泄露
 nop.err.batch.write-file-fail: 输出到文件失败
 nop.err.biz.obj-pk-not-simple: 对象[{objName}]的主键不是简单类型
@@ -350,6 +354,7 @@ nop.err.core.loop.var-not-defined: 循环变量[{varName}]没有在NestedLoop中
 nop.err.core.no-api-service-context: 缺少没有Api服务上下文
 nop.err.core.no-tenant-id: 上下文环境没有设置租户id
 nop.err.core.query.invalid-order-by-sql: 排序语句格式不正确
+nop.err.core.reflect.aop-init-method-model-fail: AOP代理类[{className}]初始化函数模型失败
 nop.err.core.reflect.bean-class-is-abstract-or-interface: '{className}类是抽象类或者接口，不允许创建实例'
 nop.err.core.reflect.bean-class-no-factory-method: '{className}类没有定义工厂方法，也不是枚举类'
 nop.err.core.reflect.bean-no-class-for-type: '{typeValue}没有对应的实现类'
@@ -396,6 +401,7 @@ nop.err.core.resource.get-input-stream-fail: 打开资源文件[{resource}]的�
 nop.err.core.resource.get-output-stream-fail: 打开资源文件[{resource}]的输出流失败
 nop.err.core.resource.in-memory-store-not-allow-save: 内存文件存储不支持保存操作
 nop.err.core.resource.invalid-delta-id: 路径[{resourcePath}]的deltaLayerId与系统当前配置不符
+nop.err.core.resource.invalid-file-name: 非法的文件名，不允许包含..等相对路径形式:{fileName}
 nop.err.core.resource.invalid-file-path-pattern: 文件路径匹配模式中只允许*和文件名，不支持其他符号
 nop.err.core.resource.invalid-module-id: 模块ID必须是A/B这种格式，而现在是：{moduleId}
 nop.err.core.resource.invalid-module-name: 模块名必须是A-B这种格式，而现在是:{moduleName}
@@ -408,6 +414,7 @@ nop.err.core.resource.is-readonly-file: 只读文件不支持写操作
 nop.err.core.resource.module-path-resolve-to-multi-file: 虚拟文件路径[{stdPath}]对应到多个模块文件:{path},{otherPath}
 nop.err.core.resource.no-current-path: 上下文环境中没有设置currentPath
 nop.err.core.resource.no-length: 文件没有长度属性:{resource}
+nop.err.core.resource.not-allow-parent-path: 不允许通过相对路径[{resourcePath}]访问父目录
 nop.err.core.resource.not-allow-path: 不允许访问资源路径[{resourcePath}]
 nop.err.core.resource.not-contains-file-range: 文件[{resource}]长度为{length}, 无法定位文件区间：[{range}]
 nop.err.core.resource.not-dir: 资源对象[{resource}]对应的不是目录
@@ -417,6 +424,7 @@ nop.err.core.resource.now-allow-access-internal-path: 不允许直接访问内�
 nop.err.core.resource.open-input-stream-fail: 打开文件输入流失败：{resource}
 nop.err.core.resource.open-output-stream-fail: 打开文件输出流失败：{resource}
 nop.err.core.resource.path-not-in-namespace: 资源路径[{resourcePath}]不属于名字空间[{namespace}]
+nop.err.core.resource.read-bytes-too-large: 资源文件[{resource}]长度为{length}，超过int范围，无法一次性读入内存
 nop.err.core.resource.read-csv-row-fail: 读取CSV文件[{resourcePath}]的第{readCount}行时失败
 nop.err.core.resource.read-jsonl-row-fail: 读取JSONL文件[{resourcePath}]的第{readCount}行时失败
 nop.err.core.resource.save-from-stream-fail: 保存数据流到资源文件[{resourcePath}]失败
@@ -434,6 +442,9 @@ nop.err.core.resource.write-to-stream-fail: 保存资源文件[{src}]到数据�
 nop.err.core.resource.zip.unzip-to-dir-fail: 解压缩到目录[{dir}]失败
 nop.err.core.rpc.prev-call-not-completed: 此前发起的RPC调用尚未完成，无法再发起新的调用
 nop.err.core.selection.invalid-arg-name: 参数名[{name}]不合法，它必须满足Java语法规范且不能以$为前缀
+nop.err.core.sql.like-invalid-escape-char: LIKE/SIMILAR匹配中的转义字符必须是单个字符:{escapeChar}
+nop.err.core.sql.like-invalid-escape-sequence: LIKE/SIMILAR匹配中的转义序列不合法:{pattern}，位置:{pos}
+nop.err.core.sql.similar-invalid-regex: SIMILAR匹配模式不是合法的正则表达式:{pattern}
 nop.err.core.sql.sql-filter-invalid-field-name: SQL字段名不合法:{name}
 nop.err.core.sql.sql-param-count-mismatch: SQL参数个数不匹配
 nop.err.core.table.invalid-cell-position: 单元格位置表达式不合法:rowIndex={rowIndex},colIndex={colIndex}
@@ -515,6 +526,7 @@ nop.err.dao.func-too-few-args: 函数[{funcName}]的参数个数少于最小值{
 nop.err.dao.func-too-many-args: 函数[{funcName}]的参数个数超过最大值{maxArgCount}
 nop.err.dao.invalid-snowflake-timestamp: 非法的时间戳，系统时钟不允许回拨；ts={ts},lastTs={lastTs}
 nop.err.dao.invalid-sql-data-type: 非法的SQL数据类型：{sqlDataType}
+nop.err.dao.missing-driver-class-name: SimpleDataSource必须配置driverClassName
 nop.err.dao.missing-entity-with-props: 类型为[{entityName}]的记录不存在
 nop.err.dao.no-data-source-available: 没有可用的数据库连接池
 nop.err.dao.no-dialect-for-datasource: 没有适用于数据库[{productName}]的Dialect
@@ -560,7 +572,10 @@ nop.err.eql.field-not-prop: 字段不是实体上的属性:{fieldName}
 nop.err.eql.func-only-allow-in-window-expr: 函数[{funcName}]只允许在窗口表达式中使用
 nop.err.eql.func-too-few-args: 函数[{funcName}]的参数个数不足
 nop.err.eql.func-too-many-args: 函数[{funcName}]的参数个数过多
+nop.err.eql.invalid-bit-literal: 非法的二进制字面量:{value}
+nop.err.eql.invalid-collection-operator-path: 集合操作符路径不合法:{propPath}
 nop.err.eql.invalid-datetime-type: 时间日期类型只能是t,s,或者ts
+nop.err.eql.invalid-hex-literal: 非法的十六进制字面量:{value}
 nop.err.eql.invalid-interval-unit: 时间区间类型只能是MICROSECOND/SECOND/MINUTE/HOUR/DAY/WEEK/MONTH/QUARTER/YEAR
 nop.err.eql.invalid-sql-type: 未定义的SQL数据类型[{sqlType}]。只允许StdSqlType中定义的常量:{allowedNames}
 nop.err.eql.join-no-condition: 表关联没有指定连接条件
@@ -625,6 +640,7 @@ nop.err.excel.validation.pattern-mismatch: 输入的值必须符合格式要求�
 nop.err.excel.validation.text-length-invalid: 文本长度不符合要求
 nop.err.excel.validation.time-required: 请输入有效的时间
 nop.err.excel.validation.title: 数据验证错误
+nop.err.exp.invalid-export-format: 不支持的导出格式:{format}
 nop.err.exp.undefined-table: 未定义的数据库表:{tableName}
 nop.err.exp.unknown-key-field: 数据表[{tableName}]没有定义唯一键字段:{fieldName},已定义的字段名为：{fieldNames}
 nop.err.file.already-exists: 文件已经存在:{path}
@@ -647,7 +663,6 @@ nop.err.graphql.action-with-empty-id-arg: 执行[{actionName}]操作要求id参�
 nop.err.graphql.action-with-empty-ids-arg: 执行[{actionName}]操作要求id参数不能为空
 nop.err.graphql.arg-max-must-be-positive: 参数max必须为正整数
 nop.err.graphql.batch-load-method-must-return-list: 批量加载方法[{methodName}]必须返回列表数据类型
-nop.err.graphql.class-no-biz-model: 类[{class}]上没有@BizModel注解
 nop.err.graphql.doc-not-operation: graphql请求不是query/mutation/subscription等操作指令
 nop.err.graphql.doc-operation-size-not-one: graphql请求文本中只能包含唯一一个操作语句
 nop.err.graphql.duplicate-action: 方法[{method}]和[{oldMethod}]对应的action名称重复，都是[{actionName}]
@@ -657,7 +672,6 @@ nop.err.graphql.duplicate-fragment-def: 片段定义已存在:{fragmentName}
 nop.err.graphql.duplicate-obj-def: 对象定义已存在:{objName}
 nop.err.graphql.duplicate-type-def: 类型定义已存在:{typeName}
 nop.err.graphql.duplicated-loader: Loader名称不允许重复:{loaderName}
-nop.err.graphql.empty-biz-obj-name: BizModel对象的bizObjName不允许为空:{class}
 nop.err.graphql.exceed-max-directive-per-request: 当前请求的Directive个数超出限制，最多允许{maxCount}个
 nop.err.graphql.field-complex-type-no-selection: 对象[{objName}]的字段[{fieldName}]不是简单类型，必须指定需要返回的字段集合
 nop.err.graphql.field-empty-arg: 函数[{fieldName}]的参数[{argName}]不允许为空
@@ -670,7 +684,6 @@ nop.err.graphql.field-not-allow-selection: 对象[{objName}]中字段[{fieldName
 nop.err.graphql.field-not-scalar: 对象[{objName}]的字段[{fieldName}]不是标量数据类型
 nop.err.graphql.field-null-arg: 函数[{fieldName}]的参数[{argName}]不允许为空
 nop.err.graphql.field-prop-id-conflict: 对象[{objType}]的字段[{fieldName}]的propId[{propId}]与已存在的propId冲突
-nop.err.graphql.fragment-not-resolved: GraphQL片段尚未解析:{fragmentName}
 nop.err.graphql.introspection-not-enabled: 没有开启GraphQL的introspection支持，不允许访问系统对象
 nop.err.graphql.invalid-directive-location: '[{name}]不是合法的directive位置名称，参见GraphQLDirectiveLocation枚举类的定义'
 nop.err.graphql.invalid-fragment: 非法的GraphQL片段:{fragmentName}
@@ -689,18 +702,14 @@ nop.err.graphql.multi-meta-file-for-biz-obj: 存在多个meta文件对应于同�
 nop.err.graphql.not-allow-directive-at-location: GraphQL扩展[{directive}]不允许出现在位置[{location}]
 nop.err.graphql.not-obj-type: '[{type}]不是对象类型，不支持字段选择'
 nop.err.graphql.not-obj-type-for-field: 对象[{objType}]的属性[{fieldName}]的类型[{type}]未定义
-nop.err.graphql.null-operation-fetcher: 操作[{fieldName}]没有配置fetcher
-nop.err.graphql.null-request: GraphQL请求内容为空
 nop.err.graphql.obj-field-type-mismatch-interface: 对象[{objName}]的字段[{fieldName}]类型[{type}]与接口[{interfaceName}]中定义的类型[{expectedType}]不匹配
 nop.err.graphql.obj-missing-required-interface-field: 对象[{objName}]实现接口[{interfaceName}]时缺少必需字段[{fieldName}]
 nop.err.graphql.only-allow-one-context-source-param: 方法[{methodName}]上最多只允许一个参数具有@ContextSource注解
 nop.err.graphql.parse.empty-string: GraphQL查询语句为空
 nop.err.graphql.parse.exceed-max-length: GraphQL查询语句过长，超过长度限制
 nop.err.graphql.parse.invalid-arg-name: 参数名不合法：{name}
-nop.err.graphql.parse.invalid-extend-syntax: 非法的extend语法，仅支持extend type
 nop.err.graphql.parse.invalid-var-name: 变量名不合法:{name}
 nop.err.graphql.parse.unexpected-char: 非法的字符
-nop.err.graphql.parse.unsupported-inline-fragment: 不支持inline fragment语法(... on Type)，请使用命名fragment
 nop.err.graphql.query.exceed-max-depth: GraphQL查询语句嵌套层次过多，超过最大深度限制。最大深度为{maxDepth}
 nop.err.graphql.query.exceed-max-operation-count: GraphQL查询语句包含操作过多，超过最大操作个数限制。最大个数为{maxCount}
 nop.err.graphql.query.no-operation: GraphQL查询语句不能为空，必须包含具体的操作
@@ -849,6 +858,7 @@ nop.err.orm.dao.query-example-prop-not-inited: 没有设置查询条件，不允
 nop.err.orm.dao.update-entity-no-current-session: 更新实体时上下文环境必须存在已经打开的OrmSession
 nop.err.orm.dao.update-entity-not-managed: 只有从数据库中成功加载的对象才能调用更新操作。新建的实体只能调用save或者saveOrUpdate，不能调用update。
 nop.err.orm.dim-fields-mismatch: '{sourceName}和{subSourceName}的维度字段的个数不匹配'
+nop.err.orm.dirty-entity-set-not-allow-change-tenant: 集合[{collectionName}]中存在未提交的修改，不允许切换到其他租户访问：oldTenant={tenantId},currentTenant={currentTenant}
 nop.err.orm.duplicate-short-entity-name: 实体名[{entityName}]和实体名[{otherEntityName}]的短名字重复
 nop.err.orm.entity-already-exists: 实体对象[{entityName}:{entityId}]已存在，不允许插入重复的记录
 nop.err.orm.entity-id-not-set: 实体的主键字段[{propName}]没有被设置，而且主键字段上没有seq标签，无法自动生成
@@ -904,6 +914,7 @@ nop.err.orm.model.invalid-prop-id: 对象模型[{entityName}]的列[{propName}]�
 nop.err.orm.model.invalid-prop-name: 实体[{entityName}]的属性名称[{propName}]格式不正确
 nop.err.orm.model.invalid-sql-type: SQL数据类型格式不正确
 nop.err.orm.model.join-column-count-less-than-pk-column-count: 实体[{entityName}]的关联引用属性[{propName}]的关联条件个数小于关联实体主键字段的个数，只支持主外键关联
+nop.err.orm.model.join-columns-not-match-pk: 实体[{entityName}]的关联引用属性[{propName}]的关联条件没有与关联实体[{refEntityName}]的主键字段[{colName}]一一对应，只支持主外键关联
 nop.err.orm.model.multiple-label-prop: 实体[{entityName}]上存在多个字段被标记为文本名称字段:{propName},{otherPropName}
 nop.err.orm.model.multiple-state-prop: 实体[{entityName}]上存在多个字段被标记为状态字段:{propName},{otherPropName}
 nop.err.orm.model.multiple-version-prop: 实体[{entityName}]上存在多个字段被标记为乐观锁字段:{propName},{otherPropName}
@@ -1102,6 +1113,7 @@ nop.err.xlang.backend-already-registered: 执行后端已注册，重复注册�
 nop.err.xlang.backend-capability-conflict: 执行后端能力槽位冲突：能力[{capability}]已被后端[{backendId}]占用
 nop.err.xlang.backend-invalid-contract: 执行后端契约非法:{backendId}
 nop.err.xlang.break-statement-not-in-loop: break语句必须放到循环语句内部
+nop.err.xlang.build-composite-type-fail: 创建复合类型失败:{typeName}
 nop.err.xlang.const-decl-no-initializer: 常量声明没有初始化表达式
 nop.err.xlang.continue-statement-not-in-loop: break语句必须放到循环语句内部
 nop.err.xlang.debugger-already-closed: 调试器已关闭
@@ -1195,7 +1207,6 @@ nop.err.xlang.generated-manifest-invalid-entry: 生成类清单条目非法（re
 nop.err.xlang.global-var-not-allow-change: 全局变量不允许在脚本中通过赋值语句进行修改
 nop.err.xlang.identifier-is-keyword: 标识符名称[{name}]不能是系统保留的关键字
 nop.err.xlang.identifier-not-allow-change: 常量变量[{name}]不允许被修改
-nop.err.xlang.build-composite-type-fail: 创建复合类型失败:{typeName}
 nop.err.xlang.identifier-not-function: 变量{varName}不是函数
 nop.err.xlang.import-multiple-class-conflicts: 导入类[{class1}]和[{class2}]的别名都为{alias}，出现命名冲突
 nop.err.xlang.import-multiple-lib-conflicts: 导入标签[{tag1}]和[{tag2}]时出现命名冲突
@@ -1211,6 +1222,7 @@ nop.err.xlang.java.unsupported-element-value: 不支持的值类型:{value}
 nop.err.xlang.javac.parse-fail: 解析java文件失败
 nop.err.xlang.macro.func-arg-must-be-template-literal-or-string-literal: 模板宏函数的参数必须是模板文本类型或者文本类型
 nop.err.xlang.macro.invalid-arg-ast: 宏函数的参数[{expr}]的类型不正确，期待类型为[{expectedType}]，实际类型为[{actualType}]
+nop.err.xlang.not-supported-type-node: 暂不支持的复合类型语法:{typeName},节点类型:{className}
 nop.err.xlang.param-name-conflicted: 参数名冲突:{paramName}
 nop.err.xlang.scope-var-definition-conflicts: scope变量定义[{varName}]命名冲突，冲突位置为[{varDecl1}]和[{varDecl2}]
 nop.err.xlang.template-expr-id-must-be-macro-function: 模板表达式的id必须是宏函数的函数名
@@ -1224,7 +1236,6 @@ nop.err.xlang.type-infer.type-var-conflict: '类型变量[{typeVar}]推导冲突
 nop.err.xlang.type-infer.undefined-variable: '未定义的变量: {name}'
 nop.err.xlang.unresolved-identifier: 未定义的变量:{varName}
 nop.err.xlang.unresolved-implicit-var: 未定义的隐式变量:{varName}
-nop.err.xlang.not-supported-type-node: 暂不支持的复合类型语法:{typeName},节点类型:{className}
 nop.err.xlang.unresolved-type: 未知的类型:{typeName}
 nop.err.xlang.unsupported-op: 不支持的运算符:{op}
 nop.err.xlang.use-var-before-declaration: 在变量定义前使用变量:{varName},定义位置:{declLoc},使用位置:{useLoc}
@@ -1290,7 +1301,6 @@ nop.err.xlang.xdsl.model-no-name-attr: 模型对象没有name属性
 nop.err.xlang.xdsl.multiple-node-has-same-unique-attr-value: 多个节点具有同样的唯一属性值:{attrName}={attrValue}
 nop.err.xlang.xdsl.multiple-node-with-same-tag: 多个节点具有同样的标签名
 nop.err.xlang.xdsl.no-schema: 必须通过x:schema属性来指定元模型
-nop.err.xlang.xdsl.not-support-excel-model-loader: 不支持Excel模型加载，需要引入nop-ooxml-xlsx模块
 nop.err.xlang.xdsl.no-sub-schema-definition: 没有找到针对子类型[{subTypeValue}]的子对象定义
 nop.err.xlang.xdsl.node-content-not-allow-empty: 节点内容不允许为空
 nop.err.xlang.xdsl.node-duplicate-child: 节点的子节点名重复：{tagName}
@@ -1303,6 +1313,7 @@ nop.err.xlang.xdsl.not-allow-multiple-super: 不允许存在多个x:super子节�
 nop.err.xlang.xdsl.not-find-prototype-node: x:prototype属性所对应的节点不存在:{value}
 nop.err.xlang.xdsl.not-find-super-node: 没有发现x:super子节点。merge-super和replace-super算子要求必须定义x:super子节点。
 nop.err.xlang.xdsl.not-required-schema: x:schema属性所指定的schema[{schemaPath}]不是期待的[{requiredSchema}]
+nop.err.xlang.xdsl.not-support-excel-model-loader: 不支持Excel模型加载，需要引入nop-ooxml-xlsx模块
 nop.err.xlang.xdsl.not-supported-schema-kind: 属性[{propName}]不支持schema类型[{schemaKind}]
 nop.err.xlang.xdsl.prop-list-item-not-map: 属性[{propName}]的值应为对象结构，不允许空值
 nop.err.xlang.xdsl.prop-no-sub-schema-definition: 属性[{propName}]的类型为union，但是没有找到针对子类型[{subTypeValue}]的子类型定义
@@ -1428,9 +1439,13 @@ nop.err.xpt.undefined-image-model-prop: 未定义的图片模型的属性[{propN
 nop.err.xpt.unknown-report-model: 未知的报表模型：{reportName}
 nop.err.xpt.unsupported-render-type: 不支持的报表输出类型：{renderType}
 nop.err.xpt.unsupported-xpt-file-type: 不支持的报表文件后缀:{fileType}，允许的文件后缀名为:{allowedFileTypes}
+nop.err.xt.circular-reference: xt转换规则存在循环引用:{path}
+nop.err.xt.import-conflict: import冲突:id={id} 已被定义
 nop.err.xt.mandatory-node-not-found: 强制要求的节点未找到:{xpath}
 nop.err.xt.mapping-not-found: 未找到映射:{mappingId}
+nop.err.xt.rule-compile-error: 规则编译失败:{ruleType}
 nop.err.xt.template-not-found: 未找到模板:{templateId}
+nop.err.xt.xpath-error: xpath表达式错误:{xpath}
 nop.err.xui.form.cell-not-prop: 表单[{formId}]的字段[{cellId}]不是已定义的实体属性
 nop.err.xui.form.cell.unknown-depend: 表单[{formId}]的字段[{cellId}]依赖了未定义的对象属性[{propName}]
 nop.err.xui.form.unknown-prop: 表单[{formId}]引用了未定义的对象属性[{propName}]

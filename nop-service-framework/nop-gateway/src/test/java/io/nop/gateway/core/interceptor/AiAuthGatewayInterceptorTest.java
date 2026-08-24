@@ -13,6 +13,9 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class AiAuthGatewayInterceptorTest {
 
+    // header key 统一小写：与生产链路一致（VertxHttpServerContext/ServletHttpServerContext
+    // 均把 header key 小写化后放入 ApiMessage.headers，见 IHttpServerContext.HEADER_AUTHORIZATION）
+
     private IGatewayContext createContext(String path) {
         GatewayContextImpl ctx = new GatewayContextImpl();
         ctx.setRequestPath(path);
@@ -26,7 +29,7 @@ class AiAuthGatewayInterceptorTest {
         interceptor.setValidKeys(List.of("sk-test-key"));
 
         ApiRequest<Map<String, String>> request = ApiRequest.build(Map.of());
-        request.setHeaders(Map.of("Authorization", "Bearer sk-test-key"));
+        request.setHeaders(Map.of("authorization", "Bearer sk-test-key"));
         IGatewayContext ctx = createContext("/v1/chat/completions");
 
         assertDoesNotThrow(() -> interceptor.onRequest(request, ctx));
@@ -38,7 +41,7 @@ class AiAuthGatewayInterceptorTest {
         interceptor.setValidKeys(List.of("sk-valid-key"));
 
         ApiRequest<Map<String, String>> request = ApiRequest.build(Map.of());
-        request.setHeaders(Map.of("Authorization", "Bearer sk-invalid-key"));
+        request.setHeaders(Map.of("authorization", "Bearer sk-invalid-key"));
         IGatewayContext ctx = createContext("/v1/chat/completions");
 
         assertThrows(GatewayRejectException.class, () -> interceptor.onRequest(request, ctx));
@@ -62,7 +65,7 @@ class AiAuthGatewayInterceptorTest {
         interceptor.setValidKeys(null);
 
         ApiRequest<Map<String, String>> request = ApiRequest.build(Map.of());
-        request.setHeaders(Map.of("Authorization", "Bearer sk-test-key"));
+        request.setHeaders(Map.of("authorization", "Bearer sk-test-key"));
         IGatewayContext ctx = createContext("/v1/chat/completions");
 
         assertThrows(GatewayRejectException.class, () -> interceptor.onRequest(request, ctx));
@@ -75,9 +78,20 @@ class AiAuthGatewayInterceptorTest {
         interceptor.setValidKeys(List.of());
 
         ApiRequest<Map<String, String>> request = ApiRequest.build(Map.of());
-        request.setHeaders(Map.of("Authorization", "Bearer sk-test-key"));
+        request.setHeaders(Map.of("authorization", "Bearer sk-test-key"));
         IGatewayContext ctx = createContext("/v1/chat/completions");
 
         assertThrows(GatewayRejectException.class, () -> interceptor.onRequest(request, ctx));
+    }
+
+    @Test
+    void maskKey_neverLeaksFullToken() {
+        // 无效 key 的 warn 日志只允许携带前 4 位 + 长度，不得出现完整凭证原文
+        assertEquals("sk-t***len=19", AiAuthGatewayInterceptor.maskKey("sk-test-key-1234567"));
+        assertEquals("***len=8", AiAuthGatewayInterceptor.maskKey("sk-12345"));
+        assertEquals("***", AiAuthGatewayInterceptor.maskKey(null));
+        assertEquals("***", AiAuthGatewayInterceptor.maskKey(""));
+        String masked = AiAuthGatewayInterceptor.maskKey("sk-abcdefghijklmnop");
+        assertFalse(masked.contains("abcdefghijklmnop"), "脱敏输出不得包含完整凭证片段");
     }
 }

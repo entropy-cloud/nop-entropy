@@ -2,9 +2,11 @@ package io.nop.gateway.core.interceptor;
 
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
+import io.nop.api.core.util.ApiHeaders;
 import io.nop.gateway.GatewayRejectException;
 import io.nop.gateway.core.context.IGatewayContext;
 import io.nop.http.api.HttpStatus;
+import io.nop.http.api.server.IHttpServerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,9 +36,11 @@ public class AiAuthGatewayInterceptor implements IGatewayInterceptor {
             return request;
         }
 
-        String authHeader = request.getHeaders() != null
-                ? (String) request.getHeaders().get("Authorization")
-                : null;
+        // header key 必须用小写读取：生产链路上 Vertx/Servlet 实现均已把 header key
+        // 统一小写化（见 IHttpServerContext.HEADER_AUTHORIZATION 平台约定），混合大小写
+        // 读取永远取到 null，会导致启用即全量 401
+        String authHeader = ApiHeaders.getStringHeader(request.getHeaders(),
+                IHttpServerContext.HEADER_AUTHORIZATION);
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             LOG.warn("Missing or invalid Authorization header");
@@ -45,15 +49,26 @@ public class AiAuthGatewayInterceptor implements IGatewayInterceptor {
             throw new GatewayRejectException(rejected);
         }
 
-        String token = authHeader.substring(7).trim();
+        String token = authHeader.substring(IHttpServerContext.BEARER_PREFIX.length()).trim();
         if (!validKeys.contains(token)) {
-            LOG.warn("Invalid API key: {}", token);
+            // 凭证不得明文落日志：只记录前 4 位 + 长度，防日志聚合系统泄漏可用凭证
+            LOG.warn("Invalid API key: {}", maskKey(token));
             ApiResponse<?> rejected = ApiResponse.buildSuccess(null);
             rejected.setHttpStatus(HttpStatus.SC_UNAUTHORIZED);
             throw new GatewayRejectException(rejected);
         }
 
         return request;
+    }
+
+    static String maskKey(String token) {
+        if (token == null || token.isEmpty()) {
+            return "***";
+        }
+        if (token.length() <= 8) {
+            return "***len=" + token.length();
+        }
+        return token.substring(0, 4) + "***len=" + token.length();
     }
 
     private boolean isSkipPath(String path) {

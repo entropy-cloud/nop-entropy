@@ -7,10 +7,12 @@
  */
 package io.nop.nosql.lettuce.impl;
 
+import io.lettuce.core.ScriptOutputType;
 import io.lettuce.core.cluster.api.async.RedisClusterAsyncCommands;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.functional.Functionals;
 import io.nop.nosql.core.INosqlSessionStore;
+import io.nop.nosql.core.script.RedisScripts;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -78,7 +80,10 @@ public class LettuceSessionStore extends AbstractLettuceOperations implements IN
     @Override
     public CompletableFuture<Void> setFieldAsync(String sessionId, String field, Object value) {
         String key = sessionKey(sessionId);
-        return async().hset(key, field, value)
+        // atomic exists-guard: writing a field into a non-existent (e.g. expired) session key
+        // would resurrect it as a TTL-less hash
+        return LettuceExecutor.evalScript(async(), RedisScripts.SESSION_SET_FIELD, ScriptOutputType.INTEGER,
+                new String[]{key}, new Object[]{field, value})
                 .thenApply(Functionals.toVoid())
                 .toCompletableFuture();
     }

@@ -30,7 +30,7 @@ public class EvalHelper {
             case ADD:
                 return MathHelper.add(v1, v2);
             case MINUS:
-                return MathHelper.min(v1, v2);
+                return MathHelper.minus(v1, v2);
             case MULTIPLY:
                 return MathHelper.multiply(v1, v2);
             case DIVIDE:

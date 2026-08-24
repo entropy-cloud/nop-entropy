@@ -25,6 +25,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -278,6 +279,55 @@ public class TestStringHelper {
         assertEquals("{a=1, b=2}", StringHelper.parseQuery("a=1&b=2&", null).toString());
         assertEquals("{a=1, b=2}", StringHelper.parseQuery("a=1&&b=2", null).toString());
         assertEquals("{a=1, b=}", StringHelper.parseQuery("a=1&&b", null).toString());
+    }
+
+    @Test
+    public void testQueryDuplicateParamName() {
+        // 重复参数名时应收集为多值列表，而不是静默丢弃只留最后一个
+        assertEquals("{a=[1, 2, 3]}", StringHelper.parseQuery("a=1&a=2&a=3", null).toString());
+        assertEquals("{a=[1, 2], b=3}", StringHelper.parseQuery("a=1&a=2&b=3", null).toString());
+    }
+
+    @Test
+    public void testIndexOfIgnoreCase() {
+        // 子串位于末尾时也应命中
+        assertEquals(3, StringHelper.indexOfIgnoreCase("hello", "LO"));
+        assertEquals(3, StringHelper.indexOfIgnoreCase("hello", "lo"));
+        assertEquals(0, StringHelper.indexOfIgnoreCase("hello", "HE"));
+        assertEquals(0, StringHelper.indexOfIgnoreCase("hello", "hello"));
+        assertEquals(-1, StringHelper.indexOfIgnoreCase("hello", "hex"));
+        assertEquals(-1, StringHelper.indexOfIgnoreCase("hi", "hello"));
+        assertEquals(-1, StringHelper.indexOfIgnoreCase(null, "a"));
+        assertEquals(-1, StringHelper.indexOfIgnoreCase("a", null));
+    }
+
+    @Test
+    public void testIntToHexInvalidMinLength() {
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                () -> StringHelper.intToHex(1, -1));
+        assertTrue(e.getMessage().contains("minLength"));
+        IllegalArgumentException e2 = assertThrows(IllegalArgumentException.class,
+                () -> StringHelper.longToHex(1L, -1));
+        assertTrue(e2.getMessage().contains("minLength"));
+    }
+
+    @Test
+    public void testUnescapeJavaInvalidUnicode() {
+        // unicode转义后不足4位十六进制时应抛规范化的NopException，而非StringIndexOutOfBoundsException
+        try {
+            StringHelper.unescapeJava("a\\u12");
+            fail("expect NopException for truncated unicode escape");
+        } catch (NopException e) {
+            assertTrue(true);
+        }
+    }
+
+    @Test
+    public void testIsUSASCIINull() {
+        // 类契约承诺所有参数允许为null
+        assertFalse(StringHelper.isUSASCII(null));
+        assertTrue(StringHelper.isUSASCII("abc123 !~"));
+        assertFalse(StringHelper.isUSASCII("abc中文"));
     }
 
     @Test

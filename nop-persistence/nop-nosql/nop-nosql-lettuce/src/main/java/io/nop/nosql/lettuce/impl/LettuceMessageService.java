@@ -18,7 +18,6 @@ import io.lettuce.core.cluster.api.sync.RedisClusterCommands;
 import io.nop.api.core.message.IMessageService;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.functional.Functionals;
-import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.nosql.core.INosqlCounter;
 import io.nop.nosql.core.INosqlHashOperations;
@@ -34,8 +33,8 @@ import io.nop.nosql.core.INosqlZSetOperations;
 import io.nop.nosql.core.RateLimiterConfig;
 import io.nop.nosql.core.script.RedisScripts;
 
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -72,17 +71,15 @@ public class LettuceMessageService extends AbstractLettuceOperations implements 
 
     @Override
     public Map<String, Object> getAll(Collection<? extends String> keys) {
-        List<KeyValue<String, Object>> list = sync().mget(keys.toArray(new String[keys.size()]));
-        Map<String, Object> ret = CollectionHelper.newHashMap(list.size());
-        for (KeyValue<String, Object> kv : list) {
-            ret.put(kv.getKey(), kv.getValue());
-        }
-        return ret;
+        if (keys == null || keys.isEmpty())
+            return new HashMap<>(0);
+        List<KeyValue<String, Object>> list = sync().mget(keys.toArray(new String[0]));
+        return LettuceHelper.toMap(list);
     }
 
     @Override
     public boolean containsKey(String key) {
-        return sync().get(key) != null;
+        return sync().exists(key) == 1;
     }
 
     @Override
@@ -121,7 +118,9 @@ public class LettuceMessageService extends AbstractLettuceOperations implements 
 
     @Override
     public void removeAll(Collection<? extends String> keys) {
-        sync().del(keys.toArray(new String[keys.size()]));
+        if (keys == null || keys.isEmpty())
+            return;
+        sync().del(keys.toArray(new String[0]));
     }
 
     @Override
@@ -168,6 +167,8 @@ public class LettuceMessageService extends AbstractLettuceOperations implements 
 
     @Override
     public CompletionStage<Map<String, Object>> getAllAsync(Collection<? extends String> keys) {
+        if (keys == null || keys.isEmpty())
+            return CompletableFuture.completedFuture(new HashMap<>(0));
         return async().mget(StringHelper.toStringArray(keys)).thenApply(LettuceHelper::toMap);
     }
 
@@ -184,6 +185,8 @@ public class LettuceMessageService extends AbstractLettuceOperations implements 
     @SuppressWarnings("unchecked") // Lettuce mset requires Map<String, Object>, wildcard capture is safe at runtime
     @Override
     public CompletionStage<Void> putAllAsync(Map<? extends String, ?> map) {
+        if (map == null || map.isEmpty())
+            return CompletableFuture.completedFuture(null);
         return async().mset((Map) map);
     }
 
@@ -210,6 +213,8 @@ public class LettuceMessageService extends AbstractLettuceOperations implements 
 
     @Override
     public CompletionStage<Void> removeAllAsync(Collection<? extends String> keys) {
+        if (keys == null || keys.isEmpty())
+            return CompletableFuture.completedFuture(null);
         return async().del(StringHelper.toStringArray(keys)).thenApply(Functionals.toVoid());
     }
 
@@ -237,19 +242,21 @@ public class LettuceMessageService extends AbstractLettuceOperations implements 
                 return CompletableFuture.completedFuture(null);
             }
 
-            List<CompletableFuture<Void>> futures = new ArrayList<>(keys.size());
-            for (String key : keys) {
-                CompletableFuture<Void> f = async().get(key)
-                        .thenAccept(value -> consumer.accept(key, value))
-                        .toCompletableFuture();
-                futures.add(f);
-            }
-            CompletableFuture<Void> all = CompletableFuture.allOf(
-                    futures.toArray(new CompletableFuture[0]));
-            if (!result.isFinished()) {
-                return all.thenCompose(v -> scanAndProcessAsync(result, args, consumer));
-            }
-            return all;
+            // batch fetch the whole scan page with one MGET instead of N GET round trips
+            return async().mget(StringHelper.toStringArray(keys))
+                    .thenAccept(values -> {
+                        for (KeyValue<String, Object> kv : values) {
+                            if (kv.hasValue()) {
+                                consumer.accept(kv.getKey(), kv.getValue());
+                            }
+                        }
+                    })
+                    .thenCompose(v -> {
+                        if (!result.isFinished()) {
+                            return scanAndProcessAsync(result, args, consumer);
+                        }
+                        return CompletableFuture.completedFuture(null);
+                    });
         });
     }
 

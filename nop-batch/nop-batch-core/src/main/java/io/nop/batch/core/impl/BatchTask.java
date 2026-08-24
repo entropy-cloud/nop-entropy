@@ -71,17 +71,14 @@ public class BatchTask<S> implements IBatchTask {
         this.concurrency = concurrency <= 0 ? 1 : concurrency;
         this.allowStartIfComplete = allowStartIfComplete;
         this.startLimit = startLimit;
-        this.executor = getExecutor(executor, concurrency);
+        this.executor = getExecutor(executor);
     }
 
-    static Executor getExecutor(Executor executor, int concurrency) {
+    static Executor getExecutor(Executor executor) {
         if (executor != null)
             return executor;
-        if (concurrency > 0) {
-            return GlobalExecutors.cachedThreadPool();
-        } else {
-            return GlobalExecutors.syncExecutor();
-        }
+        // concurrency在构造器中已归一化为>=1，chunk循环统一由cachedThreadPool执行
+        return GlobalExecutors.cachedThreadPool();
     }
 
     @Override

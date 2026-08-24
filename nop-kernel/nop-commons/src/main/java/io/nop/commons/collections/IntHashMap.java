@@ -29,7 +29,8 @@ import java.util.function.ObjIntConsumer;
 /**
  * An unordered map that uses int keys. This implementation is a cuckoo hash map using 3 hashes (if table size is less
  * than 2^16) or 4 hashes (if table size is greater than or equal to 2^16), random walking, and a small stash for
- * problematic keys. Null values are allowed. No allocation is done except when growing the table size. <br>
+ * problematic keys. Null values are not stored: putting a null value is treated as removing the mapping for the key.
+ * No allocation is done except when growing the table size. <br>
  * <br>
  * This map performs very fast get, containsKey, and remove (typically O(1), worst case O(log(n))). Put may be a bit
  * slower, depending on hash collisions. Load factors greater than 0.91 greatly increase the chances the map will have

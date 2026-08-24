@@ -14,6 +14,10 @@ import static io.nop.api.core.exceptions.ErrorCode.define;
 public interface NopDynErrors {
     String ARG_PATH = "path";
     String ARG_MODULE_ID = "moduleId";
+    String ARG_MODULE_NAME = "moduleName";
+    String ARG_BIZ_OBJ_NAME = "bizObjName";
+    String ARG_MAX_COUNT = "maxCount";
+    String ARG_CURRENT_COUNT = "currentCount";
 
     String ARG_PAGE_NAME = "pageName";
     ErrorCode ERR_DYN_PAGE_NOT_EXISTS =
@@ -28,4 +32,14 @@ public interface NopDynErrors {
 
     ErrorCode ERR_DYN_UNKNOWN_MODULE =
             define("nop.err.dyn.unknown-module", "未知的模块:{moduleId}", ARG_MODULE_ID);
+
+    ErrorCode ERR_DYN_BIZ_MODEL_NOT_EXISTS =
+            define("nop.err.dyn.biz-model-not-exists", "未知的动态业务对象:{bizObjName}", ARG_BIZ_OBJ_NAME);
+
+    ErrorCode ERR_DYN_MODULE_NAME_EXISTS =
+            define("nop.err.dyn.module-name-exists", "同名动态模块已存在:{moduleName}", ARG_MODULE_NAME);
+
+    ErrorCode ERR_DYN_MAX_BIZ_OBJECTS_EXCEED =
+            define("nop.err.dyn.max-biz-objects-exceed", "动态对象总数{currentCount}超过最大允许数量{maxCount}",
+                    ARG_CURRENT_COUNT, ARG_MAX_COUNT);
 }

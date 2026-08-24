@@ -8,6 +8,7 @@
 package io.nop.batch.exp;
 
 import io.nop.api.core.convert.ConvertHelper;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
 import io.nop.batch.core.BatchTaskBuilder;
@@ -62,6 +63,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
+import static io.nop.batch.exp.DbToolExpErrors.ARG_FORMAT;
+import static io.nop.batch.exp.DbToolExpErrors.ERR_EXP_INVALID_EXPORT_FORMAT;
 import static io.nop.batch.exp.EtlToolHelper.buildRowMapper;
 
 public class ExportDbTool {
@@ -344,7 +347,7 @@ public class ExportDbTool {
                 } else if ("xlsx".equals(format)) {
                     list.add(newExcelConsumer(fileName, fields));
                 } else {
-                    throw new IllegalArgumentException("nop.err.dbtool.invalid-exp-format:" + format);
+                    throw new NopException(ERR_EXP_INVALID_EXPORT_FORMAT).param(ARG_FORMAT, format);
                 }
             }
         }

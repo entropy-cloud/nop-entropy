@@ -4,6 +4,7 @@ import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.dao.api.IDaoProvider;
@@ -16,7 +17,9 @@ import io.nop.sys.dao.entity.NopSysExtField;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
+import static io.nop.dyn.service.NopDynErrors.ERR_DYN_MODULE_NAME_EXISTS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
@@ -35,8 +38,23 @@ public class TestNopDynModuleBizModel extends JunitBaseTestCase {
         String ormText = attachmentText("test.orm.xml");
 
         ormTemplate.runInSession(() -> {
-            bizModel.generateByAI(ormText);
+            bizModel.generateByAI(ormText, null, null);
         });
+    }
+
+    @Test
+    public void testGenerateByAIDuplicateModuleNameRejected() {
+        String ormText = attachmentText("test.orm.xml");
+
+        ormTemplate.runInSession(() -> {
+            bizModel.generateByAI(ormText, null, null);
+        });
+
+        // moduleName无唯一索引，重复调用必须显式拒绝，否则会创建并发布多个同名模块
+        NopException ex = assertThrows(NopException.class, () -> ormTemplate.runInSession(() -> {
+            bizModel.generateByAI(ormText, null, null);
+        }));
+        assertEquals(ERR_DYN_MODULE_NAME_EXISTS.getErrorCode(), ex.getErrorCode());
     }
 
 

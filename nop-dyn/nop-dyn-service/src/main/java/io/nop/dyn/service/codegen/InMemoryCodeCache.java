@@ -28,11 +28,17 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
+import static io.nop.dyn.service.NopDynConfigs.CFG_DYN_MAX_BIZ_OBJECTS;
 import static io.nop.dyn.service.NopDynConstants.VAR_BIZ_OBJ_NAME;
 import static io.nop.dyn.service.NopDynConstants.VAR_ENABLE_MODULE_CORE;
 import static io.nop.dyn.service.NopDynConstants.VAR_MODULE_ID;
 import static io.nop.dyn.service.NopDynConstants.VAR_MODULE_MODEL;
+import static io.nop.dyn.service.NopDynErrors.ARG_BIZ_OBJ_NAME;
+import static io.nop.dyn.service.NopDynErrors.ARG_CURRENT_COUNT;
+import static io.nop.dyn.service.NopDynErrors.ARG_MAX_COUNT;
 import static io.nop.dyn.service.NopDynErrors.ARG_MODULE_ID;
+import static io.nop.dyn.service.NopDynErrors.ERR_DYN_BIZ_MODEL_NOT_EXISTS;
+import static io.nop.dyn.service.NopDynErrors.ERR_DYN_MAX_BIZ_OBJECTS_EXCEED;
 import static io.nop.dyn.service.NopDynErrors.ERR_DYN_UNKNOWN_MODULE;
 
 /**
@@ -69,8 +75,8 @@ public class InMemoryCodeCache {
     /**
      * 将所有模块的资源文件合并在一起
      */
-    private InMemoryResourceStore mergedStore;
-    private IResourceStore dynResourceStore;
+    private volatile InMemoryResourceStore mergedStore;
+    private volatile IResourceStore dynResourceStore;
 
     public InMemoryCodeCache(String tenantId, String templateDir, IDynCodeGenCacheHook hook) {
         this.tenantId = tenantId;
@@ -178,15 +184,29 @@ public class InMemoryCodeCache {
     }
 
     protected synchronized void genModuleCoreFiles(boolean formatGenCode, ModuleModel module) {
+        Map<String, GraphQLBizModel> bizModels = hook.prepareLoadModule(this, module, scope);
+        // 在执行任何生成动作前检查动态对象总数上限，防止缓存无限增长
+        checkMaxBizObjects(bizModels.size());
+
         XCodeGenerator gen = buildGenerator(formatGenCode, module);
         String subPath = "/{enableModuleCore}";
         scope.setLocalValue(VAR_ENABLE_MODULE_CORE, true);
         scope.setLocalValue(VAR_MODULE_ID, module.getModuleId());
-        Map<String, GraphQLBizModel> bizModels = hook.prepareLoadModule(this, module, scope);
         this.bizModels.putAll(bizModels);
 
         gen.execute(subPath, scope);
         this.clearMergedStore();
+    }
+
+    /**
+     * 限制动态对象的总数，防止缓存无限增长
+     */
+    protected void checkMaxBizObjects(int newCount) {
+        int max = CFG_DYN_MAX_BIZ_OBJECTS.get();
+        if (this.bizModels.size() + newCount > max)
+            throw new NopException(ERR_DYN_MAX_BIZ_OBJECTS_EXCEED)
+                    .param(ARG_MAX_COUNT, max)
+                    .param(ARG_CURRENT_COUNT, this.bizModels.size());
     }
 
     protected synchronized OrmModel genOrmModel(boolean formatGenCode, ModuleModel module) {
@@ -207,6 +227,8 @@ public class InMemoryCodeCache {
 
     protected synchronized IObjMeta getObjMeta(String bizObjName, boolean formatGenCode) {
         GraphQLBizModel bizModel = getBizModel(bizObjName);
+        if (bizModel == null)
+            return null;
         String metaPath = "/model/" + bizObjName + "/" + bizObjName + ".xmeta";
         IResource metaResource = getModuleResource(bizModel.getModuleId(), metaPath);
         if (metaResource == null || !metaResource.exists()) {
@@ -222,7 +244,7 @@ public class InMemoryCodeCache {
         return getModuleResource(moduleId, "/orm/app.orm.xml");
     }
 
-    public void genViewFile(ModuleModel module, GraphQLBizModel bizModel, boolean formatGenCode) {
+    public synchronized void genViewFile(ModuleModel module, GraphQLBizModel bizModel, boolean formatGenCode) {
         String bizObjName = bizModel.getBizObjName();
 
         XCodeGenerator gen = buildGenerator(formatGenCode, module);
@@ -258,8 +280,8 @@ public class InMemoryCodeCache {
         return getBizObjNameFromPath(path, "/model/");
     }
 
-    public void genPageFile(ModuleModel module, GraphQLBizModel bizModel,
-                            String pageName, boolean formatGenCode) {
+    public synchronized void genPageFile(ModuleModel module, GraphQLBizModel bizModel,
+                                         String pageName, boolean formatGenCode) {
         String bizObjName = bizModel.getBizObjName();
         XCodeGenerator gen = buildGenerator(formatGenCode, module);
         String subPath = "/{moduleId}/pages/{bizObjName}/{pageName}.page.yaml.xgen";
@@ -274,7 +296,12 @@ public class InMemoryCodeCache {
     }
 
     public synchronized void genBizObjFiles(boolean formatGenCode, GraphQLBizModel bizModel) {
+        if (bizModel == null)
+            throw new NopException(ERR_DYN_BIZ_MODEL_NOT_EXISTS).param(ARG_BIZ_OBJ_NAME, null);
+
         ModuleModel module = requireEnabledModule(bizModel.getModuleId());
+        if (!bizModels.containsKey(bizModel.getBizObjName()))
+            checkMaxBizObjects(1);
         bizModels.put(bizModel.getBizObjName(), bizModel);
 
         XCodeGenerator gen = buildGenerator(formatGenCode, module);
@@ -298,7 +325,11 @@ public class InMemoryCodeCache {
         ormModels.remove(bizModel.getModuleId());
     }
 
-    public OrmModel getOrmModel(ModuleModel module, boolean formatGenCode) {
+    /**
+     * 注意：这里必须先获取this锁，再进入ormModels的computeIfAbsent。否则与removeModule(this锁内调用ormModels.remove)之间
+     * 会形成 ABBA 锁顺序：本方法在 CHM 的 bin 锁内等待 this，而 removeModule 在持 this 时等待同一个 bin 锁，导致死锁。
+     */
+    public synchronized OrmModel getOrmModel(ModuleModel module, boolean formatGenCode) {
         String moduleId = module.getModuleId();
         return ormModels.computeIfAbsent(moduleId, k -> genOrmModel(formatGenCode, module));
     }

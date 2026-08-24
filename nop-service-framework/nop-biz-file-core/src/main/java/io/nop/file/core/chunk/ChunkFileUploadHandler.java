@@ -16,17 +16,17 @@ public class ChunkFileUploadHandler {
 
     public StartChunkResponseBean startChunkApi(StartChunkRequestBean request,
                                                 IServiceContext ctx) {
-        return null;
+        throw new UnsupportedOperationException("startChunkApi is not implemented");
     }
 
     public ChunkResponseBean chunkApi(ChunkRequestBean request, IServiceContext ctx) {
-        return null;
+        throw new UnsupportedOperationException("chunkApi is not implemented");
     }
 
     /**
      * 等所有分块上传完后，将上传文件收集到的 eTag 信息合并一起，再次请求后端完成文件上传。
      */
     public UploadResponseBean finishChunkApi(FinishChunkRequestBean request, IServiceContext ctx) {
-        return null;
+        throw new UnsupportedOperationException("finishChunkApi is not implemented");
     }
 }

@@ -299,7 +299,7 @@ public class DslXNodeToJsonTransformer implements IXNodeToObjectTransformer {
                     obj.addPropDefault(attr.getPropName(), defaultValue);
                 } else {
                     // 如果值非空，则需要作为明确的属性保存，否则转换为强类型对象时可能会导致缺省值未被设置
-                    obj.addProp(name, defaultValue);
+                    obj.addProp(attr.getPropName() != null ? attr.getPropName() : name, defaultValue);
                 }
             }
         });

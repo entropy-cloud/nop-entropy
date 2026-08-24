@@ -66,7 +66,7 @@ public class XModelInclude {
 
     public boolean checkFeatureSwitch(XNode node, FeatureConditionEvaluator evaluator) {
         if (!isEnabled(node, evaluator)) {
-            LOG.info("nop.xlang.xdsl.remove-node-when-feature-disabled:node={}", node);
+            LOG.debug("nop.xlang.xdsl.remove-node-when-feature-disabled:node={}", node);
             return false;
         }
 

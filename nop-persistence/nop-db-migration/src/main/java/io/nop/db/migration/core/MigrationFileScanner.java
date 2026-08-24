@@ -10,22 +10,38 @@ package io.nop.db.migration.core;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.db.migration.executor.AddColumnExecutor;
+import io.nop.db.migration.executor.AlterColumnExecutor;
+import io.nop.db.migration.executor.CreateIndexExecutor;
 import io.nop.db.migration.executor.CreateTableExecutor;
+import io.nop.db.migration.executor.CreateViewExecutor;
+import io.nop.db.migration.executor.CustomChangeExecutor;
+import io.nop.db.migration.executor.DbTypeFilterExecutor;
 import io.nop.db.migration.executor.DeleteDataExecutor;
 import io.nop.db.migration.executor.DropColumnExecutor;
 import io.nop.db.migration.executor.DropIndexExecutor;
 import io.nop.db.migration.executor.DropTableExecutor;
+import io.nop.db.migration.executor.DropViewExecutor;
 import io.nop.db.migration.executor.InsertDataExecutor;
+import io.nop.db.migration.executor.RenameTableExecutor;
+import io.nop.db.migration.executor.SqlExecutor;
 import io.nop.db.migration.executor.UpdateDataExecutor;
 import io.nop.db.migration.model.AddColumnChange;
+import io.nop.db.migration.model.AlterColumnChange;
+import io.nop.db.migration.model.CreateIndexChange;
 import io.nop.db.migration.model.CreateTableChange;
+import io.nop.db.migration.model.CreateViewChange;
+import io.nop.db.migration.model.CustomChange;
 import io.nop.db.migration.model.DbChangeModel;
 import io.nop.db.migration.model.DbMigrationModel;
+import io.nop.db.migration.model.DbTypeFilterChange;
 import io.nop.db.migration.model.DeleteDataChange;
 import io.nop.db.migration.model.DropColumnChange;
 import io.nop.db.migration.model.DropIndexChange;
 import io.nop.db.migration.model.DropTableChange;
+import io.nop.db.migration.model.DropViewChange;
 import io.nop.db.migration.model.InsertDataChange;
+import io.nop.db.migration.model.RenameTableChange;
+import io.nop.db.migration.model.SqlChange;
 import io.nop.db.migration.model.UpdateDataChange;
 import io.nop.db.migration.model.RollbackDefinition;
 import io.nop.xlang.xdsl.DslModelParser;
@@ -50,12 +66,13 @@ public class MigrationFileScanner {
      * 会静默跳过所有变更并记 success=true。因此在 loadMigration 后按模型类回填 type。
      *
      * <p>tag 名与执行器 CHANGE_TYPE 常量不一致的三个数据变更必须走本映射表：
-     * &lt;insert&gt; -> insertData、&lt;update&gt; -> updateData、&lt;delete&gt; -> deleteData
+     * &lt;insert&gt; -> insertData、&lt;update&gt; -&gt; updateData、&lt;delete&gt; -&gt; deleteData
      * （XML tag 无 "Data" 后缀，执行器常量有）。其余 tag 与常量同名。
      *
-     * <p>仅列出继承 DbChangeModel 的变更类：_DbMigrationModel.setChangeset 以
-     * DbChangeModel::getId 构造 KeyedList，其余变更类（createIndex/sql/alterColumn 等）
-     * 在解析期即 ClassCastException，不会进入本方法。
+     * <p>覆盖全部 16 种注册了执行器的变更类型（executeMark 无执行器，type 保持 null
+     * 由引擎跳过）。这要求全部变更模型类继承 DbChangeModel——migration.xdef 已在所有
+     * 变更元素上声明 xdef:bean-extends-type，重新生成 _gen 模型类后 9 个原本只继承
+     * AbstractComponentModel 的类（sql/alterColumn/createIndex 等）才能通过解析进入 changeset。
      */
     private static final Map<Class<?>, String> CHANGE_TYPE_BY_CLASS;
 
@@ -63,12 +80,20 @@ public class MigrationFileScanner {
         Map<Class<?>, String> map = new HashMap<>();
         map.put(CreateTableChange.class, CreateTableExecutor.CHANGE_TYPE);
         map.put(DropTableChange.class, DropTableExecutor.CHANGE_TYPE);
+        map.put(RenameTableChange.class, RenameTableExecutor.CHANGE_TYPE);
         map.put(AddColumnChange.class, AddColumnExecutor.CHANGE_TYPE);
         map.put(DropColumnChange.class, DropColumnExecutor.CHANGE_TYPE);
+        map.put(AlterColumnChange.class, AlterColumnExecutor.CHANGE_TYPE);
+        map.put(CreateIndexChange.class, CreateIndexExecutor.CHANGE_TYPE);
         map.put(DropIndexChange.class, DropIndexExecutor.CHANGE_TYPE);
+        map.put(CreateViewChange.class, CreateViewExecutor.CHANGE_TYPE);
+        map.put(DropViewChange.class, DropViewExecutor.CHANGE_TYPE);
+        map.put(SqlChange.class, SqlExecutor.CHANGE_TYPE);
         map.put(InsertDataChange.class, InsertDataExecutor.CHANGE_TYPE);
         map.put(UpdateDataChange.class, UpdateDataExecutor.CHANGE_TYPE);
         map.put(DeleteDataChange.class, DeleteDataExecutor.CHANGE_TYPE);
+        map.put(CustomChange.class, CustomChangeExecutor.CHANGE_TYPE);
+        map.put(DbTypeFilterChange.class, DbTypeFilterExecutor.CHANGE_TYPE);
         CHANGE_TYPE_BY_CLASS = Collections.unmodifiableMap(map);
     }
 
@@ -119,15 +144,30 @@ public class MigrationFileScanner {
         if (model == null) {
             return;
         }
-        if (model.getChangeset() != null) {
-            for (DbChangeModel change : model.getChangeset()) {
-                backfillChangeType(change);
-            }
-        }
+        backfillChangeList(model.getChangeset());
         RollbackDefinition rollback = model.getRollback();
-        if (rollback != null && rollback.getChanges() != null) {
-            for (DbChangeModel change : rollback.getChanges()) {
-                backfillChangeType(change);
+        if (rollback != null) {
+            backfillChangeList(rollback.getChanges());
+        }
+    }
+
+    /**
+     * 以 Object 视角遍历变更列表：dbTypeFilter 的嵌套变更也要回填 type，
+     * 而 DbTypeFilterChange 与其他变更类一样仅在按新 xdef 重新生成 _gen
+     * 模型后才继承 DbChangeModel，用统一的对象遍历可同时兼容两种类层次。
+     */
+    private void backfillChangeList(List<?> changes) {
+        if (changes == null) {
+            return;
+        }
+        for (Object change : changes) {
+            if (change instanceof DbChangeModel) {
+                backfillChangeType((DbChangeModel) change);
+            }
+            // dbTypeFilter dispatches its nested changes through the type
+            // field too, so the nested list needs the same backfill
+            if (change instanceof DbTypeFilterChange) {
+                backfillChangeList(((DbTypeFilterChange) change).getChanges());
             }
         }
     }

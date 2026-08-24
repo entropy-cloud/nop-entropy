@@ -325,7 +325,7 @@ public class GlobalFunctions {
         stm.setLocation(expr.getLocation());
         stm.setOperator(op);
         stm.setLeft(expr);
-        stm.setRight(newLogicalExpr(exprs.subList(1, exprs.size() - 1), op));
+        stm.setRight(newLogicalExpr(exprs.subList(1, exprs.size()), op));
         return stm;
     }
 

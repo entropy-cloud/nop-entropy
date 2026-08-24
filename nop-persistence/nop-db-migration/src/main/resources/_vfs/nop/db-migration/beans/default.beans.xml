@@ -11,10 +11,6 @@
     <bean id="nopMigrationEngine" class="io.nop.db.migration.core.MigrationEngine" ioc:auto-inject="true">
     </bean>
 
-    <!-- Migration History Manager -->
-    <bean id="nopMigrationHistoryManager" class="io.nop.db.migration.core.MigrationHistoryManager" ioc:auto-inject="true">
-    </bean>
-
     <!-- Migration File Scanner -->
     <bean id="nopMigrationFileScanner" class="io.nop.db.migration.core.MigrationFileScanner">
     </bean>

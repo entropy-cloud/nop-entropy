@@ -119,4 +119,47 @@ class MappingProcessorTest {
         assertTrue(result.getHeaders().containsKey("X-Allowed"));
         assertFalse(result.getHeaders().containsKey("X-Blocked"));
     }
+
+    // ======================= 大小写漂移（运行时小写 vs 配置原样大小写） =======================
+
+    @Test
+    void testMapRequest_allowHeaders_matchesCaseInsensitively() {
+        // 生产链路 header key 已被 HTTP 层小写化，配置里常按习惯写 "X-Custom-Header"：
+        // 白名单匹配不得因大小写不同而把头全部清掉
+        ApiRequest<Object> request = new ApiRequest<>();
+        request.setData("test-data");
+        Map<String, Object> headers = new HashMap<>();
+        headers.put("x-custom-header", "value1");
+        headers.put("x-other-header", "value2");
+        request.setHeaders(headers);
+
+        GatewayMessageMappingModel mapping = new GatewayMessageMappingModel();
+        mapping.setAllowHeaders(new HashSet<>(java.util.Set.of("X-Custom-Header")));
+
+        ApiRequest<?> result = processor.mapRequest(mapping, request, context);
+
+        assertTrue(result.getHeaders().containsKey("x-custom-header"),
+                "配置大小写与运行时小写 key 不同时白名单仍需命中");
+        assertFalse(result.getHeaders().containsKey("x-other-header"));
+    }
+
+    @Test
+    void testMapRequest_disallowHeaders_matchesCaseInsensitively() {
+        // 黑名单同理：大小写不一致时该删的头必须被删（含 hop-by-hop 安全头场景）
+        ApiRequest<Object> request = new ApiRequest<>();
+        request.setData("test-data");
+        Map<String, Object> headers = new HashMap<>();
+        headers.put("x-keep", "value1");
+        headers.put("connection", "keep-alive");
+        request.setHeaders(headers);
+
+        GatewayMessageMappingModel mapping = new GatewayMessageMappingModel();
+        mapping.setDisallowHeaders(new HashSet<>(java.util.Set.of("Connection")));
+
+        ApiRequest<?> result = processor.mapRequest(mapping, request, context);
+
+        assertFalse(result.getHeaders().containsKey("connection"),
+                "配置 'Connection' 必须命中运行时小写 key 'connection'");
+        assertTrue(result.getHeaders().containsKey("x-keep"));
+    }
 }

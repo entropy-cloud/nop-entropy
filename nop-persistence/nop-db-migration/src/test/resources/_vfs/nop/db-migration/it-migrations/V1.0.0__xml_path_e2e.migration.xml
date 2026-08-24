@@ -2,13 +2,6 @@
 <!--
   End-to-end fixture for the XML scanner path (MigrationFileScanner ->
   MigrationEngine). Uses only change tags whose executors generate valid H2 DDL.
-
-  Constraints imposed by separate, still-open defects in this module:
-  - no remark on createTable: CreateTableExecutor always appends a MySQL-only
-    table-level COMMENT clause
-  - no insert/update/delete: the xdef does not declare xdef:name on their
-    <column> elements, so columns parse to DynamicObject and the executors
-    fail with ClassCastException
 -->
 <migration xmlns="/nop/schema/db-migration/migration.xdef"
   version="1.0.0"
@@ -20,8 +13,36 @@
       <columns>
         <column name="id" type="VARCHAR" size="36" primaryKey="true" nullable="false"/>
         <column name="user_name" type="VARCHAR" size="100" nullable="false"/>
+        <column name="age" type="INTEGER" nullable="true"/>
       </columns>
     </createTable>
+
+    <insert id="insert-xml-e2e-user-1" tableName="xml_e2e_user">
+      <columns>
+        <column name="id" value="u-1"/>
+        <column name="user_name" value="alice"/>
+        <column name="age" valueNumeric="30"/>
+      </columns>
+    </insert>
+
+    <insert id="insert-xml-e2e-user-2" tableName="xml_e2e_user">
+      <columns>
+        <column name="id" value="u-2"/>
+        <column name="user_name" value="bob"/>
+        <column name="age" valueNumeric="25"/>
+      </columns>
+    </insert>
+
+    <update id="update-xml-e2e-user" tableName="xml_e2e_user">
+      <columns>
+        <column name="age" valueNumeric="31"/>
+      </columns>
+      <where>id = 'u-1'</where>
+    </update>
+
+    <delete id="delete-xml-e2e-user" tableName="xml_e2e_user">
+      <where>id = 'u-2'</where>
+    </delete>
 
     <createTable id="create-xml-e2e-tmp" name="xml_e2e_tmp">
       <columns>

@@ -207,9 +207,28 @@ public class AuthFilterConfig {
             return false;
 
         for (String prefix : this.allowedRedirectPrefixes) {
-            if (uri.startsWith(prefix))
+            if (uri.startsWith(prefix) && endsAtUriBoundary(uri, prefix))
                 return true;
         }
         return false;
+    }
+
+    /**
+     * 前缀匹配必须在 URI 结构边界处结束，否则会被以下形式绕过：
+     * <ul>
+     *   <li>host 后缀拼接：{@code https://trusted.com.attacker.com}</li>
+     *   <li>userinfo：{@code https://trusted.com@evil.com}（真实 host 是 evil.com）</li>
+     *   <li>端口伪装 userinfo：{@code https://trusted.com:8080@evil.com}</li>
+     * </ul>
+     * 满足以下任一即视为边界：串尾；下一字符为 path/query/fragment 起始符（/ ? #）；
+     * prefix 自身以 / 结尾（已进入 path，后续任意 path 内容不会改变 host）。
+     */
+    private static boolean endsAtUriBoundary(String uri, String prefix) {
+        if (uri.length() == prefix.length())
+            return true;
+        if (prefix.charAt(prefix.length() - 1) == '/')
+            return true;
+        char next = uri.charAt(prefix.length());
+        return next == '/' || next == '?' || next == '#';
     }
 }

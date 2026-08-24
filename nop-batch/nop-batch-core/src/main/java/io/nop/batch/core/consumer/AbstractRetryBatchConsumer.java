@@ -65,7 +65,11 @@ public abstract class AbstractRetryBatchConsumer<R> implements IBatchConsumer<R>
             } catch (Exception e2) {
                 if (snapshot != null)
                     snapshot.onError(e2);
-                throw NopException.adapt(e);
+                // 重试阶段最终失败时抛出最后一次的异常e2，它反映重试后的最新失败原因。
+                // 首次异常e作为suppressed保留在异常链上，便于排障时看到完整过程
+                if (e2 != e)
+                    e2.addSuppressed(e);
+                throw NopException.adapt(e2);
             }
         } finally {
             context.setSingleMode(singleMode);

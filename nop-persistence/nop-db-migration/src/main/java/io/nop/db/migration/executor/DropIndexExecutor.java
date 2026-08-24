@@ -52,8 +52,10 @@ public class DropIndexExecutor implements IChangeExecutor {
         StringBuilder sb = new StringBuilder();
         sb.append("DROP INDEX ");
         sb.append(dialect.escapeSQLName(change.getName()));
-        
-        if (StringHelper.isNotBlank(change.getTableName())) {
+
+        // "DROP INDEX i ON t" is MySQL syntax; PostgreSQL/H2/Oracle/MSSQL
+        // resolve the index by name alone and reject the ON clause
+        if (StringHelper.isNotBlank(change.getTableName()) && DdlSyntax.dropIndexNeedsOnTable(dialect)) {
             sb.append(" ON ").append(dialect.escapeSQLName(change.getTableName()));
         }
         

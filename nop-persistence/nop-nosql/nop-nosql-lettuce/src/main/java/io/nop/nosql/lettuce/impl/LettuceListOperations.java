@@ -57,6 +57,8 @@ public class LettuceListOperations extends AbstractLettuceOperations implements 
 
     @Override
     public CompletableFuture<Void> addAllAsync(Collection<?> values) {
+        if (values == null || values.isEmpty())
+            return CompletableFuture.completedFuture(null);
         return async().rpush(key, values.toArray()).thenApply(Functionals.toVoid()).toCompletableFuture();
     }
 

@@ -11,12 +11,15 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestIoHelper {
     @Test
@@ -24,6 +27,22 @@ public class TestIoHelper {
         byte[] data = IoHelper.serializeToByteArray(Collections.emptyMap());
         Object o = IoHelper.deserializeFromByteArray(data);
         assertEquals(o, Collections.emptyMap());
+    }
+
+    @Test
+    public void testPeekFirstNBytesEmptyStream() {
+        IOException e = assertThrows(IOException.class,
+                () -> IoHelper.peekFirstNBytes(new ByteArrayInputStream(new byte[0]), 8));
+        // 异常必须携带消息，否则调用方无法诊断
+        assertTrue(e.getMessage() != null && !e.getMessage().isEmpty());
+    }
+
+    @Test
+    public void testPeekFirstNBytesResetsStream() throws Exception {
+        InputStream is = new ByteArrayInputStream("abcdef".getBytes(StandardCharsets.ISO_8859_1));
+        byte[] peeked = IoHelper.peekFirstNBytes(is, 4);
+        assertEquals(4, peeked.length);
+        assertEquals('a', is.read());
     }
 
     @Test

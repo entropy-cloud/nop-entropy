@@ -98,4 +98,35 @@ public class TestFileHelper {
         // 资源不存在时应抛出带路径信息的NopException，而不是裸NPE
         assertThrows(NopException.class, () -> FileHelper.getClassPathFile("no/such/resource.xyz"));
     }
+
+    @Test
+    public void testCountLines(@TempDir File tempDir) throws Exception {
+        // 以换行符结尾的文件
+        assertEquals(2, countLinesFor(tempDir, "a\nb\n"));
+        // 不以换行符结尾的最后一行必须计入
+        assertEquals(2, countLinesFor(tempDir, "a\nb"));
+        // 无换行符的单行文件
+        assertEquals(1, countLinesFor(tempDir, "abc"));
+        // 空文件
+        assertEquals(0, countLinesFor(tempDir, ""));
+    }
+
+    private int countLinesFor(File tempDir, String content) throws Exception {
+        File file = new File(tempDir, "count-lines-" + Math.abs(content.hashCode()) + ".txt");
+        FileHelper.writeText(file, content, "UTF-8", false);
+        return FileHelper.countLines(file);
+    }
+
+    @Test
+    public void testWriteBytesWithoutParentDir() {
+        // 相对路径文件（getParentFile()==null）不应抛NPE
+        File file = new File("test-file-helper-write-bytes-no-parent.txt");
+        try {
+            FileHelper.writeBytes(file, new byte[]{1, 2, 3});
+            assertTrue(file.exists());
+            assertEquals(3, FileHelper.readBytes(file).length);
+        } finally {
+            file.delete();
+        }
+    }
 }

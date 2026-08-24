@@ -38,4 +38,15 @@ public interface BatchErrors {
 
     ErrorCode ERR_BATCH_TOO_MANY_PROCESSING_ITEMS = define("nop.err.batch.too-many-processing-items",
             "正在处理的记录过多，程序可能存在内存泄露");
+
+    ErrorCode ERR_BATCH_PROCESSING_ITEMS_NOT_EMPTY = define("nop.err.batch.processing-items-not-empty",
+            "任务完成时仍存在未处理完毕的记录，记录状态与实际处理进度不一致", ARG_PROCESSING_ITEMS, ARG_READ_COUNT,
+            ARG_RESOURCE_PATH);
+
+    ErrorCode ERR_BATCH_OUTPUT_FILE_EXISTS_ON_RECOVERY = define("nop.err.batch.output-file-exists-on-recovery",
+            "断点续传时输出文件已存在且非空，继续执行会截断丢失已完成记录的产出。请先转移或删除输出文件，或者更换输出路径",
+            ARG_RESOURCE_PATH);
+
+    ErrorCode ERR_BATCH_RATE_LIMIT_ACQUIRE_TIMEOUT = define("nop.err.batch.rate-limit-acquire-timeout",
+            "在限流超时时间内未能获取到足够的许可，限流配置可能过低", ARG_ITEM_COUNT);
 }

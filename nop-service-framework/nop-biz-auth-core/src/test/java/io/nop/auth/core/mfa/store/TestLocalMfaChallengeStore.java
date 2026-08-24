@@ -266,4 +266,43 @@ public class TestLocalMfaChallengeStore {
         Thread.sleep(SHORT_TTL * 1000L + 200L);
         assertFalse(store.markVerified(token), "markVerified on expired challenge must return false");
     }
+
+    // ======================= 未访问条目的有界性 =======================
+
+    /** 反射读取内部 map 规模：修复前后的行为都可观测（默认 maxEntries=100000）。 */
+    private static int internalMapSize(Object store, String fieldName) throws Exception {
+        java.lang.reflect.Field f = store.getClass().getDeclaredField(fieldName);
+        f.setAccessible(true);
+        java.util.Map<?, ?> map = (java.util.Map<?, ?>) f.get(store);
+        return map.size();
+    }
+
+    @Test
+    public void testUnaccessedChallengesDoNotAccumulateUnboundedly() throws Exception {
+        // "发起但从未回来验证"的 challenge 不得永久驻留：大量互异 token 的 create 必须被容量上限封顶
+        LocalMfaChallengeStore store = new LocalMfaChallengeStore();
+        for (int i = 0; i < 100_500; i++) {
+            store.create(MfaChallenge.SCENE_LOGIN, "flood-" + i, "totp", 1, "t0", null, "{}");
+        }
+        int size = internalMapSize(store, "challenges");
+        assertTrue(size <= 100_000,
+                "惰性清理之外必须有容量上界（防公网 create 接口刷库 OOM），实际=" + size);
+    }
+
+    @Test
+    public void testCapacityCapWithSmallLimit() throws Exception {
+        MfaChallengeStoreConfig cfg = new MfaChallengeStoreConfig();
+        cfg.setMaxEntries(100);
+        LocalMfaChallengeStore store = new LocalMfaChallengeStore(cfg);
+        for (int i = 0; i < 350; i++) {
+            store.create(MfaChallenge.SCENE_LOGIN, "cap-" + i, "totp", 1, "t0", null, "{}");
+        }
+        int size = internalMapSize(store, "challenges");
+        assertTrue(size <= 100, "容量上限必须生效，实际=" + size);
+
+        // 存活 challenge 仍可正常 peek/consume
+        String token = store.create(MfaChallenge.SCENE_LOGIN, "alive-user", "totp", 1, "t0", null, "{}");
+        assertNotNull(store.peek(token));
+        assertNotNull(store.consume(token));
+    }
 }

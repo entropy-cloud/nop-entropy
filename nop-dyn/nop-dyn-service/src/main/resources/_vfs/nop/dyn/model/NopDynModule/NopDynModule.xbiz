@@ -45,7 +45,7 @@
                     const codeGen = inject('nopDynCodeGen');
                     const entity = thisObj.invoke("get",{id},null, svcCtx);
 
-                    codeGen.removeDynModule(entity);
+                    codeGen.removeDynModule(entity.nopModuleId);
                     codeGen.reloadModel();
                     entity.status = NopDynDaoConstants.APP_STATUS_UNPUBLISHED;
                 </c:script>

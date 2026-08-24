@@ -2,6 +2,7 @@ package io.nop.batch.biz.importexport;
 
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.batch.core.BatchTaskBuilder;
 import io.nop.batch.core.IBatchConsumerProvider;
 import io.nop.batch.core.IBatchLoaderProvider;
@@ -22,6 +23,8 @@ import io.nop.report.core.record.ExcelResourceIO;
 import java.util.concurrent.Executor;
 
 import static io.nop.batch.biz.BizReportConstants.VAR_EXPORT_FILE_PATH;
+import static io.nop.batch.biz.BizReportErrors.ARG_EXPORT_FORMAT;
+import static io.nop.batch.biz.BizReportErrors.ERR_BIZ_REPORT_UNSUPPORTED_EXPORT_FORMAT;
 
 public class BizExportTaskBuilder {
 
@@ -74,7 +77,7 @@ public class BizExportTaskBuilder {
         } else if (BizReportConstants.EXPORT_FORMAT_CSV.equals(exportFormat)) {
             return newCsvWriter(config);
         } else {
-            throw new IllegalArgumentException("nop.err.biz.report.unsupported-export-format:" + exportFormat);
+            throw new NopException(ERR_BIZ_REPORT_UNSUPPORTED_EXPORT_FORMAT).param(ARG_EXPORT_FORMAT, exportFormat);
         }
     }
 

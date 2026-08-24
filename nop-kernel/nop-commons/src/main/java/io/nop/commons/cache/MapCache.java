@@ -122,9 +122,9 @@ public class MapCache<K, V> implements ICache<K, V> {
     public Map<K, V> getAllPresent(Collection<? extends K> keys) {
         Map<K, V> ret = new HashMap<>();
         for (K key : keys) {
-            V value = getIfPresent(key);
-            if (value != null) {
-                ret.put(key, value);
+            // 用containsKey判定，保证put(key, null)的条目与containsKey的结果一致
+            if (containsKey(key)) {
+                ret.put(key, getIfPresent(key));
             }
         }
         return ret;

@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static io.nop.batch.core.BatchErrors.ARG_RESOURCE_PATH;
+import static io.nop.batch.core.BatchErrors.ERR_BATCH_OUTPUT_FILE_EXISTS_ON_RECOVERY;
 import static io.nop.batch.core.BatchErrors.ERR_BATCH_WRITE_FILE_FAIL;
 
 /**
@@ -96,6 +97,9 @@ public class ResourceRecordConsumerProvider<R> extends AbstractBatchResourceHand
         ConsumerState<R> state = new ConsumerState<>();
         IResource resource = getResource(context);
         String encoding = this.encodingExpr == null ? null : ConvertHelper.toString(this.encodingExpr.invoke(context));
+
+        checkOutputOnRecovery(resource, context);
+
         state.output = recordIO.openOutput(resource, encoding);
 
         context.onAfterComplete(err -> {
@@ -146,6 +150,21 @@ public class ResourceRecordConsumerProvider<R> extends AbstractBatchResourceHand
         }
 
         return state;
+    }
+
+    /**
+     * 断点续传场景下（completedIndex > 0 表示存在已确认完成的记录），底层openOutput会截断重建输出文件，
+     * 上次运行已写出的部分会被抹掉，而读侧会跳过这些已完成记录导致它们永远不会被重写。
+     * 这里在截断发生前检测该冲突并显式报错，把静默数据丢失转化为可定位的失败。
+     */
+    void checkOutputOnRecovery(IResource resource, IBatchTaskContext context) {
+        if (context.getCompletedIndex() <= 0)
+            return;
+
+        if (resource != null && resource.exists() && resource.length() > 0) {
+            throw new NopException(ERR_BATCH_OUTPUT_FILE_EXISTS_ON_RECOVERY)
+                    .param(ARG_RESOURCE_PATH, resource.getPath());
+        }
     }
 
     void consume(Collection<R> items, ConsumerState<R> state) {

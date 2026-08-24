@@ -64,10 +64,10 @@ public class SqlExecutor implements IChangeExecutor {
     
     protected String getSqlForDialect(SqlChange change, IDialect dialect) {
         if (change.getDbSpecific() != null && !change.getDbSpecific().isEmpty()) {
-            String dialectName = dialect.getName().toLowerCase();
+            String dialectName = DbTypeFilterExecutor.normalizeDbType(dialect.getName());
             for (DbSpecificSql specific : change.getDbSpecific()) {
-                if (specific.getDbType() != null && 
-                    specific.getDbType().toLowerCase().equals(dialectName)) {
+                if (specific.getDbType() != null
+                    && DbTypeFilterExecutor.normalizeDbType(specific.getDbType()).equals(dialectName)) {
                     return specific.getBody();
                 }
             }

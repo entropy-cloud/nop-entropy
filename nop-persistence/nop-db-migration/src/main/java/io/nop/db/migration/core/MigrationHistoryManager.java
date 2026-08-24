@@ -8,6 +8,7 @@
 package io.nop.db.migration.core;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.type.StdSqlType;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.jdbc.IJdbcTemplate;
@@ -46,11 +47,13 @@ public class MigrationHistoryManager {
         // Column values are read by position, because JDBC drivers return the
         // column label using the case in which the table was created (e.g. MySQL
         // keeps lowercase), while some databases upper-case it (e.g. H2).
-        String sql = "SELECT version FROM " + TABLE_NAME + " WHERE success = TRUE ORDER BY installed_on";
+        // The success flag is bound as a parameter: Oracle and SQL Server do not
+        // support the untyped TRUE/FALSE literals in comparisons.
+        String sql = "SELECT version FROM " + TABLE_NAME + " WHERE success = ? ORDER BY installed_on";
 
         try {
             jdbcTemplate.executeQuery(
-                SQL.begin().querySpace(querySpace).append(sql).end(),
+                SQL.begin().querySpace(querySpace).sql(sql, Boolean.TRUE).end(),
                 dataSet -> {
                     for (IDataRow row : dataSet) {
                         versions.add(row.getString(0));
@@ -83,18 +86,35 @@ public class MigrationHistoryManager {
 
     public void recordMigration(MigrationRecord record) {
         // A version may already have a history row (e.g. a previous failed
-        // attempt, or a repeatable migration being re-executed). The history
-        // table uses version as primary key, so the old row is replaced
-        // instead of inserting a duplicate key.
-        String deleteSql = "DELETE FROM " + TABLE_NAME + " WHERE version = ?";
+        // attempt, or a repeatable migration being re-executed). Replace the
+        // existing row with a single UPDATE, and only INSERT when no row
+        // exists. The previous DELETE+INSERT pair was not atomic: if the
+        // process died (or the INSERT failed, e.g. a description longer than
+        // VARCHAR(500)) between the two statements, the version's history row
+        // was already gone and the migration would silently re-execute.
+        String updateSql = "UPDATE " + TABLE_NAME +
+            " SET description = ?, type = ?, checksum = ?, installed_on = ?, execution_time = ?, success = ?, installed_by = ?" +
+            " WHERE version = ?";
 
-        jdbcTemplate.executeUpdate(
+        long updated = jdbcTemplate.executeUpdate(
             SQL.begin()
                 .querySpace(querySpace)
-                .name("remove-migration-record")
-                .sql(deleteSql, record.getVersion())
+                .name("update-migration-record")
+                .sql(updateSql,
+                    record.getDescription(),
+                    record.getType(),
+                    record.getChecksum(),
+                    new java.sql.Timestamp(System.currentTimeMillis()),
+                    record.getExecutionTime(),
+                    record.isSuccess(),
+                    record.getInstalledBy(),
+                    record.getVersion())
                 .end()
         );
+
+        if (updated > 0) {
+            return;
+        }
 
         String sql = "INSERT INTO " + TABLE_NAME +
             " (version, description, type, checksum, installed_on, execution_time, success, installed_by) " +
@@ -198,6 +218,12 @@ public class MigrationHistoryManager {
     }
 
     protected String buildCreateHistoryTableSQL(IDialect dialect) {
+        // The success column type must go through the dialect mapping: Oracle
+        // (before 23c) and older SQL Server databases have no BOOLEAN column
+        // type (e.g. Oracle maps it to CHAR(1)).
+        String booleanType = dialect != null
+            ? dialect.stdToNativeSqlType(StdSqlType.BOOLEAN, -1, -1).toString()
+            : "BOOLEAN";
         return "CREATE TABLE " + TABLE_NAME + " (" +
             "version VARCHAR(200) NOT NULL PRIMARY KEY, " +
             "description VARCHAR(500), " +
@@ -205,7 +231,7 @@ public class MigrationHistoryManager {
             "checksum VARCHAR(100), " +
             "installed_on TIMESTAMP, " +
             "execution_time BIGINT, " +
-            "success BOOLEAN, " +
+            "success " + booleanType + ", " +
             "installed_by VARCHAR(100)" +
             ")";
     }

@@ -38,19 +38,19 @@ public class ForeignKeyExistsChecker implements IPreconditionChecker {
     }
     
     private boolean checkForeignKeyExists(IJdbcTemplate jdbcTemplate, String querySpace, String tableName, String constraintName, String schemaName) {
-        String sql = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE CONSTRAINT_TYPE = 'FOREIGN KEY' AND CONSTRAINT_NAME = ?";
+        String sql = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE CONSTRAINT_TYPE = 'FOREIGN KEY' AND UPPER(CONSTRAINT_NAME) = UPPER(?)";
         if (tableName != null && !tableName.isEmpty()) {
-            sql += " AND TABLE_NAME = ?";
+            sql += " AND UPPER(TABLE_NAME) = UPPER(?)";
         }
         if (schemaName != null && !schemaName.isEmpty()) {
-            sql += " AND TABLE_SCHEMA = ?";
+            sql += " AND UPPER(TABLE_SCHEMA) = UPPER(?)";
         }
         
         final boolean[] exists = {false};
         
         if (tableName != null && !tableName.isEmpty() && schemaName != null && !schemaName.isEmpty()) {
             jdbcTemplate.executeQuery(
-                SQL.begin().querySpace(querySpace).sql(sql, constraintName.toUpperCase(), tableName.toUpperCase(), schemaName.toUpperCase()).end(),
+                SQL.begin().querySpace(querySpace).sql(sql, constraintName, tableName, schemaName).end(),
                 dataSet -> {
                     for (IDataRow row : dataSet) {
                         exists[0] = row.getLong(0) > 0;
@@ -61,7 +61,7 @@ public class ForeignKeyExistsChecker implements IPreconditionChecker {
             );
         } else if (tableName != null && !tableName.isEmpty()) {
             jdbcTemplate.executeQuery(
-                SQL.begin().querySpace(querySpace).sql(sql, constraintName.toUpperCase(), tableName.toUpperCase()).end(),
+                SQL.begin().querySpace(querySpace).sql(sql, constraintName, tableName).end(),
                 dataSet -> {
                     for (IDataRow row : dataSet) {
                         exists[0] = row.getLong(0) > 0;
@@ -72,7 +72,7 @@ public class ForeignKeyExistsChecker implements IPreconditionChecker {
             );
         } else {
             jdbcTemplate.executeQuery(
-                SQL.begin().querySpace(querySpace).sql(sql, constraintName.toUpperCase()).end(),
+                SQL.begin().querySpace(querySpace).sql(sql, constraintName).end(),
                 dataSet -> {
                     for (IDataRow row : dataSet) {
                         exists[0] = row.getLong(0) > 0;

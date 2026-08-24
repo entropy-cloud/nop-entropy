@@ -107,7 +107,7 @@ public class TestAiModelCredentialResolver {
 
         IOrmSessionFactory sessionFactory = factoryBean.getObject();
         IOrmTemplate orm = new OrmTemplateImpl(sessionFactory);
-        daoProvider = new OrmDaoProvider(orm);
+        OrmDaoProvider __daoProvider = new OrmDaoProvider(); __daoProvider.setOrmTemplate(orm); daoProvider = __daoProvider;
 
         Collection<? extends io.nop.orm.model.IEntityModel> tables =
                 sessionFactory.getOrmModel().getEntityModelsInTopoOrder();

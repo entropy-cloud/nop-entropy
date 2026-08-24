@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * W15-impl tests for the Local {@link EmailCodeStore} implementation（设计 §5.3.3——
@@ -109,5 +110,45 @@ public class TestLocalEmailCodeStore {
         String code = store.send("mfa-email:user-5");
         assertEquals(0, store.failCount("mfa-email:user-5"));
         assertEquals(CodeVerifyResult.VALID, store.verify("mfa-email:user-5", code));
+    }
+
+    // ======================= 未访问条目的有界性 =======================
+
+    /** 反射读取内部 map 规模：修复前后的行为都可观测（默认 maxEntries=100000）。 */
+    private static int internalMapSize(Object store, String fieldName) throws Exception {
+        java.lang.reflect.Field f = store.getClass().getDeclaredField(fieldName);
+        f.setAccessible(true);
+        java.util.Map<?, ?> map = (java.util.Map<?, ?>) f.get(store);
+        return map.size();
+    }
+
+    @Test
+    public void testUnaccessedEntriesDoNotAccumulateUnboundedly() throws Exception {
+        // "发出去但从未回来验证"是常态（用户放弃/短信未达），未访问的过期条目不得永久驻留：
+        // 大量互异 key 的 send 必须被容量上限封顶
+        LocalEmailCodeStore store = new LocalEmailCodeStore();
+        for (int i = 0; i < 100_500; i++) {
+            store.send("mfa-email:flood-" + i);
+        }
+        int size = internalMapSize(store, "codes");
+        assertTrue(size <= 100_000,
+                "惰性清理之外必须有容量上界（防公网 send 接口刷库 OOM），实际=" + size);
+    }
+
+    @Test
+    public void testCapacityCapWithSmallLimit_andExpiredSweepPreferred() throws Exception {
+        // 小容量上限：清扫优先、逐条上界封顶；功能语义（验证码可验证）不受影响
+        EmailCodeStoreConfig cfg = new EmailCodeStoreConfig();
+        cfg.setMaxEntries(100);
+        LocalEmailCodeStore store = new LocalEmailCodeStore(cfg);
+        for (int i = 0; i < 350; i++) {
+            store.send("mfa-email:cap-" + i);
+        }
+        int size = internalMapSize(store, "codes");
+        assertTrue(size <= 100, "容量上限必须生效，实际=" + size);
+
+        // 存活条目仍可用
+        String code = store.send("mfa-email:alive");
+        assertEquals(CodeVerifyResult.VALID, store.verify("mfa-email:alive", code));
     }
 }

@@ -412,7 +412,9 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
         try {
             authToken = loginService.parseAuthToken(token);
         } catch (Exception e) {
-            LOG.debug("nop.invalid-auth-token:token={}", token, e);
+            // 凭证原文不得落日志（过期 token 仍是凭证，且完整 token 模式便于离线爆破弱 enc-key）：
+            // 只记录长度辅助诊断（如客户端截断），异常详情保留
+            LOG.debug("nop.invalid-auth-token:tokenLength={}", token.length(), e);
             return null;
         }
         return authToken;

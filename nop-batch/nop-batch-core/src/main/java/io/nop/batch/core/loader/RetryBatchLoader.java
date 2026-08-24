@@ -37,6 +37,9 @@ public class RetryBatchLoader<S> implements IBatchLoader<S> {
     public List<S> load(int batchSize, IBatchChunkContext context) {
         try {
             return loader.load(batchSize, context);
+        } catch (BatchCancelException e) {
+            // 首次加载即被取消时直接透传，不进入重试流程，避免取消响应被重试退避延迟
+            throw e;
         } catch (Exception e) {
             return retryLoad(batchSize, e, context);
         }

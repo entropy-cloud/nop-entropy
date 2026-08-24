@@ -58,7 +58,7 @@ public class AbstractOrmTestCase extends AbstractJdbcTestCase {
 
         sessionFactory = factoryBean.getObject();
         ormTemplate = new OrmTemplateImpl(sessionFactory);
-        daoProvider = new OrmDaoProvider(ormTemplate);
+        OrmDaoProvider __daoProvider = new OrmDaoProvider(); __daoProvider.setOrmTemplate(ormTemplate); daoProvider = __daoProvider;
 
         sqlLibManager.setOrmTemplate(orm());
         sqlLibManager.setDaoProvider(daoProvider);

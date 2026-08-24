@@ -14,6 +14,7 @@ import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.rpc.IRpcServiceInvoker;
 import io.nop.commons.functional.IAsyncFunctionInvoker;
 import io.nop.core.exceptions.ErrorMessageManager;
+import io.nop.gateway.GatewayRejectException;
 import io.nop.gateway.core.context.IGatewayContext;
 import io.nop.gateway.core.executor.*;
 import io.nop.gateway.core.interceptor.IGatewayInterceptor;
@@ -120,8 +121,21 @@ public class GatewayHandler {
         }
 
         // 使用RouteExecutor执行路由
-        CompletionStage<ApiResponse<?>> promise = invokeRoute(route, request, context);
+        CompletionStage<ApiResponse<?>> promise;
+        try {
+            promise = invokeRoute(route, request, context);
+        } catch (Exception e) {
+            // 同步抛出的异常（如拦截器 onRequest 拒绝）与异步失败统一走 exceptionally，
+            // 保证 GatewayRejectException 等错误语义不因抛出时机不同而丢失
+            promise = java.util.concurrent.CompletableFuture.failedFuture(e);
+        }
         promise = promise.exceptionally(err -> {
+            GatewayRejectException reject = findGatewayRejectException(err);
+            if (reject != null) {
+                // 拦截器构造的拒绝响应（401/429 + Retry-After 等）必须原样送达客户端，
+                // 不得改写为通用错误响应（否则 SDK 按 429/401 实现的退避逻辑全部失效）
+                return reject.getRejectionResponse();
+            }
             LOG.error("nop.gateway.process-route-fail:routeId={}", route.getId(), err);
             String locale = ContextProvider.currentLocale();
             return ErrorMessageManager.instance().buildResponseForException(locale, err);
@@ -135,6 +149,21 @@ public class GatewayHandler {
 
         // 应用错误处理
         return promise;
+    }
+
+    /**
+     * 异常经 CompletionStage 传播时可能被包装为 CompletionException，逐层解包定位
+     * GatewayRejectException。
+     */
+    static GatewayRejectException findGatewayRejectException(Throwable err) {
+        Throwable cause = err;
+        while (cause != null) {
+            if (cause instanceof GatewayRejectException) {
+                return (GatewayRejectException) cause;
+            }
+            cause = cause.getCause() == cause ? null : cause.getCause();
+        }
+        return null;
     }
 
     CompletionStage<ApiResponse<?>> invokeRoute(GatewayRouteModel route, ApiRequest<?> request, IGatewayContext context) {

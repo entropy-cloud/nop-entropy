@@ -99,8 +99,11 @@ public abstract class AbstractJdbcTestCase extends BaseTestCase {
         SqlLibManager sqlLibManager = new SqlLibManager();
         sqlLibManager.setJdbcTemplate(jdbcTemplate);
         sqlLibManager.setOrmTemplate(ormTemplate);
-        if (ormTemplate != null)
-            sqlLibManager.setDaoProvider(new OrmDaoProvider(ormTemplate));
+        if (ormTemplate != null) {
+            OrmDaoProvider __daoProvider = new OrmDaoProvider();
+            __daoProvider.setOrmTemplate(ormTemplate);
+            sqlLibManager.setDaoProvider(__daoProvider);
+        }
         return sqlLibManager;
     }
 
