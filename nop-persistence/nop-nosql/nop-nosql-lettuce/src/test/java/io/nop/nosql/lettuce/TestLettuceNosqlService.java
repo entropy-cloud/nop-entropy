@@ -698,4 +698,286 @@ public class TestLettuceNosqlService {
         Map<String, Object> data = store.get("nonexistent");
         assertTrue(data == null || data.isEmpty());
     }
+
+    // ===== check2 audit regression tests =====
+
+    @Test
+    void testPubSub_NoCrossTopicDelivery() throws Exception {
+        IMessageService msgService = service.getMessageService();
+        String topicA = "test:pubsub:topic-a";
+        String topicB = "test:pubsub:topic-b";
+        CountDownLatch latchA = new CountDownLatch(1);
+        List<String> receivedB = new ArrayList<>();
+
+        IMessageSubscription subA = msgService.subscribe(topicA, new IMessageConsumer() {
+            @Override
+            public Object onMessage(String topic, Object msg, IMessageConsumeContext ctx) {
+                latchA.countDown();
+                return null;
+            }
+        });
+        IMessageSubscription subB = msgService.subscribe(topicB, new IMessageConsumer() {
+            @Override
+            public Object onMessage(String topic, Object msg, IMessageConsumeContext ctx) {
+                receivedB.add(String.valueOf(msg));
+                return null;
+            }
+        });
+
+        msgService.send(topicA, "hello-a");
+
+        assertTrue(latchA.await(5, TimeUnit.SECONDS), "topic A subscriber should receive its own message");
+        Thread.sleep(500);
+        assertTrue(receivedB.isEmpty(),
+                "topic B subscriber must not receive messages published to topic A, but got: " + receivedB);
+
+        subA.cancel();
+        subB.cancel();
+    }
+
+    @Test
+    void testPubSub_CancelDoesNotAffectOtherSubscribers() throws Exception {
+        IMessageService msgService = service.getMessageService();
+        String topic = "test:pubsub:cancel-share";
+        CountDownLatch latch2 = new CountDownLatch(1);
+
+        IMessageSubscription sub1 = msgService.subscribe(topic, new IMessageConsumer() {
+            @Override
+            public Object onMessage(String t, Object msg, IMessageConsumeContext ctx) {
+                return null;
+            }
+        });
+        IMessageSubscription sub2 = msgService.subscribe(topic, new IMessageConsumer() {
+            @Override
+            public Object onMessage(String t, Object msg, IMessageConsumeContext ctx) {
+                latch2.countDown();
+                return null;
+            }
+        });
+
+        sub1.cancel();
+        assertFalse(sub2.isCancelled(), "cancelling one subscription must not mark the other as cancelled");
+
+        msgService.send(topic, "msg");
+        assertTrue(latch2.await(5, TimeUnit.SECONDS), "remaining subscriber should still receive messages");
+
+        sub2.cancel();
+    }
+
+    @Test
+    void testPubSub_ResumeAfterCancelDoesNotResurrect() throws Exception {
+        IMessageService msgService = service.getMessageService();
+        String topic = "test:pubsub:cancel-resume";
+        CountDownLatch latch2 = new CountDownLatch(1);
+        AtomicInteger count1 = new AtomicInteger(0);
+
+        IMessageSubscription sub2 = msgService.subscribe(topic, new IMessageConsumer() {
+            @Override
+            public Object onMessage(String t, Object msg, IMessageConsumeContext ctx) {
+                latch2.countDown();
+                return null;
+            }
+        });
+        IMessageSubscription sub1 = msgService.subscribe(topic, new IMessageConsumer() {
+            @Override
+            public Object onMessage(String t, Object msg, IMessageConsumeContext ctx) {
+                count1.incrementAndGet();
+                return null;
+            }
+        });
+
+        sub1.suspend();
+        sub1.cancel();
+        sub1.resume();
+
+        assertTrue(sub1.isCancelled(), "subscription must stay cancelled after resume()");
+        msgService.send(topic, "msg");
+        assertTrue(latch2.await(5, TimeUnit.SECONDS), "other subscriber should receive messages");
+        Thread.sleep(300);
+        assertEquals(0, count1.get(), "cancelled subscription must not receive messages after resume()");
+
+        sub2.cancel();
+    }
+
+    @Test
+    void testPubSub_ConsumeContextSendAsyncPublishes() throws Exception {
+        IMessageService msgService = service.getMessageService();
+        CountDownLatch replyLatch = new CountDownLatch(1);
+
+        IMessageSubscription replySub = msgService.subscribe("test:pubsub:reply", new IMessageConsumer() {
+            @Override
+            public Object onMessage(String topic, Object msg, IMessageConsumeContext ctx) {
+                if ("pong:ping".equals(String.valueOf(msg)))
+                    replyLatch.countDown();
+                return null;
+            }
+        });
+        IMessageSubscription reqSub = msgService.subscribe("test:pubsub:req", new IMessageConsumer() {
+            @Override
+            public Object onMessage(String topic, Object msg, IMessageConsumeContext ctx) {
+                ctx.sendAsync("test:pubsub:reply", "pong:" + msg, null);
+                return null;
+            }
+        });
+
+        msgService.send("test:pubsub:req", "ping");
+
+        assertTrue(replyLatch.await(5, TimeUnit.SECONDS),
+                "message sent via IMessageConsumeContext.sendAsync must actually be published");
+        replySub.cancel();
+        reqSub.cancel();
+    }
+
+    @Test
+    void testGetAll_SkipsMissingKeys() {
+        service.put("test:getall:present", "v");
+        Map<String, Object> map = service.getAll(Arrays.asList("test:getall:present", "test:getall:missing"));
+        assertEquals(1, map.size(), "missing keys must not appear as null entries: " + map);
+        assertEquals("v", String.valueOf(map.get("test:getall:present")));
+    }
+
+    @Test
+    void testGetAllAsync_SkipsMissingKeys() throws Exception {
+        service.put("test:getall:present-async", "v");
+        Map<String, Object> map = service.getAllAsync(Arrays.asList("test:getall:present-async", "test:getall:missing-async"))
+                .toCompletableFuture().get(5, TimeUnit.SECONDS);
+        assertEquals(1, map.size(), "missing keys must not appear as null entries: " + map);
+    }
+
+    @Test
+    void testEmptyCollectionArguments_NoError() throws Exception {
+        service.getAll(new ArrayList<>());
+        service.getAllAsync(new ArrayList<>()).toCompletableFuture().get(5, TimeUnit.SECONDS);
+        service.removeAll(new ArrayList<>());
+        service.removeAllAsync(new ArrayList<>()).toCompletableFuture().get(5, TimeUnit.SECONDS);
+        service.putAllAsync(new HashMap<>()).toCompletableFuture().get(5, TimeUnit.SECONDS);
+
+        INosqlHashOperations hashOps = service.hashOps("test:hash:empty-args");
+        hashOps.getAll(new ArrayList<>());
+        hashOps.getAllAsync(new ArrayList<>()).toCompletableFuture().get(5, TimeUnit.SECONDS);
+        hashOps.removeAll(new ArrayList<>());
+
+        service.setOps("test:set:empty-args").removeAll(new ArrayList<>());
+        service.listOps("test:list:empty-args").addAll(new ArrayList<>());
+        service.queue("test:queue:empty-args").enqueueBatch(new ArrayList<>());
+    }
+
+    @Test
+    void testRanking_GetTopNZeroReturnsEmpty() {
+        INosqlRanking ranking = service.ranking("test:ranking:topn-zero");
+        ranking.add("p1", 100);
+        ranking.add("p2", 200);
+
+        List<RankingEntry> top = ranking.getTopN(0);
+        assertTrue(top.isEmpty(), "getTopN(0) must return an empty list, got " + top.size() + " entries");
+    }
+
+    @Test
+    void testRateLimiter_FractionalTokens() {
+        // the rate limit script stores fractional token counts as text (e.g. "9.5") when rate is fractional
+        service.put("test:rl:frac:tokens", 9.5);
+        INosqlRateLimiter limiter = service.rateLimiter("test:rl:frac", new RateLimiterConfig(0.5, 10));
+
+        assertEquals(9, limiter.getAvailableTokens());
+    }
+
+    @Test
+    void testRateLimiter_FractionalRateConfig() {
+        INosqlRateLimiter limiter = service.rateLimiter("test:rl:frac-rate", new RateLimiterConfig(0.5, 10));
+
+        RateLimitResult result = limiter.tryAcquire(1);
+        assertTrue(result.isAllowed());
+        assertEquals(9, result.getRemainingTokens());
+    }
+
+    @Test
+    void testHashOps_RemoveIfMatch() {
+        INosqlHashOperations hashOps = service.hashOps("test:hash:rim");
+        hashOps.put("field", "value");
+
+        assertFalse(hashOps.removeIfMatch("field", "other"));
+        assertEquals("value", String.valueOf(hashOps.get("field")));
+
+        assertTrue(hashOps.removeIfMatch("field", "value"));
+        assertNull(hashOps.get("field"));
+
+        // numeric values are stored as bare text; removeIfMatch must still match the same numeric argument
+        INosqlHashOperations numOps = service.hashOps("test:hash:rim-num");
+        numOps.put("count", 5L);
+        assertTrue(numOps.removeIfMatch("count", 5L));
+        assertNull(numOps.get("count"));
+    }
+
+    @Test
+    void testHashOps_PutIfAbsentOrMatchEx() throws Exception {
+        INosqlHashOperations hashOps = service.hashOps("test:hash:piam");
+
+        // absent -> set and return null
+        assertNull(hashOps.putIfAbsentOrMatchExAsync("field", "a", 60000)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS));
+        assertEquals("a", String.valueOf(hashOps.get("field")));
+
+        // value matches -> keep value and return old value
+        assertEquals("a", hashOps.putIfAbsentOrMatchExAsync("field", "a", 60000)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS));
+
+        // value differs -> no update, return current value
+        assertEquals("a", hashOps.putIfAbsentOrMatchExAsync("field", "b", 60000)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS));
+        assertEquals("a", String.valueOf(hashOps.get("field")));
+
+        // expiry is applied to the hash key
+        assertTrue(service.getTimeoutAsync("test:hash:piam")
+                .toCompletableFuture().get(5, TimeUnit.SECONDS) > 0);
+    }
+
+    @Test
+    void testContainsKey_EmptyStringValue() throws Exception {
+        service.put("test:contains:empty", "");
+        assertTrue(service.containsKey("test:contains:empty"),
+                "key holding an empty-string value must be reported as present");
+        assertTrue(service.containsKeyAsync("test:contains:empty")
+                .toCompletableFuture().get(5, TimeUnit.SECONDS));
+    }
+
+    @Test
+    void testSessionStore_SetFieldDoesNotResurrectExpiredSession() throws Exception {
+        INosqlSessionStore store = service.sessionStore("test:sess:zombie");
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("user", "alice");
+        store.set("s1", data, 200);
+
+        Thread.sleep(400); // wait for the session TTL to expire
+
+        store.setField("s1", "email", "alice@example.com");
+        assertFalse(store.exists("s1"), "setField on an expired session must not resurrect a TTL-less key");
+    }
+
+    @Test
+    void testClientResourcesNotLeakedAcrossStartStop() throws Exception {
+        String host = redis.getHost();
+        int port = redis.getMappedPort(6379);
+
+        long base = lettuceThreadCount();
+        for (int i = 0; i < 4; i++) {
+            RedisConfig config = new RedisConfig();
+            config.setHost(host);
+            config.setPort(port);
+            LettuceRedisConnectionProvider leakProvider = new LettuceRedisConnectionProvider();
+            leakProvider.setConfig(config);
+            leakProvider.start();
+            leakProvider.stop();
+        }
+        Thread.sleep(300);
+        long after = lettuceThreadCount();
+        assertTrue(after <= base,
+                "DefaultClientResources threads must be shut down on stop, leaked threads: base=" + base + ", after=" + after);
+    }
+
+    private static long lettuceThreadCount() {
+        return Thread.getAllStackTraces().keySet().stream()
+                .filter(t -> t.getName().startsWith("lettuce-"))
+                .count();
+    }
 }

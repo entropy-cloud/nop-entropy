@@ -10,6 +10,7 @@ package io.nop.nosql.lettuce.impl;
 import io.lettuce.core.ScriptOutputType;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
+import io.nop.api.core.util.Guard;
 import io.nop.nosql.core.INosqlRateLimiter;
 import io.nop.nosql.core.RateLimitResult;
 import io.nop.nosql.core.RateLimiterConfig;
@@ -28,6 +29,9 @@ public class LettuceRateLimiter extends AbstractLettuceOperations implements INo
 
     public LettuceRateLimiter(LettuceRedisConnectionProvider client, String key, RateLimiterConfig config) {
         super(client);
+        // rate<=0 would make the script compute fill_time=inf and fail with a cryptic Redis-side error
+        Guard.checkArgument(config != null && config.getRate() > 0, "rate limiter rate must be positive", config);
+        Guard.checkArgument(config.getCapacity() > 0, "rate limiter capacity must be positive", config);
         this.key = key;
         this.config = config;
     }
@@ -74,9 +78,19 @@ public class LettuceRateLimiter extends AbstractLettuceOperations implements INo
                 .thenApply(v -> {
                     if (v == null) return config.getCapacity() > 0
                             ? (long) config.getCapacity() : 0L;
-                    return Long.parseLong(v.toString());
+                    return parseTokenCount(v);
                 })
                 .toCompletableFuture();
+    }
+
+    /**
+     * 小数 rate/capacity 配置下，脚本会把小数 token 余量以 "9.5" 这类文本写入 tokens key，
+     * 读回时需要按浮点数解析后取整，而不是 Long.parseLong。
+     */
+    private static long parseTokenCount(Object value) {
+        if (value instanceof Number)
+            return ((Number) value).longValue();
+        return (long) Double.parseDouble(value.toString().trim());
     }
 
     @Override

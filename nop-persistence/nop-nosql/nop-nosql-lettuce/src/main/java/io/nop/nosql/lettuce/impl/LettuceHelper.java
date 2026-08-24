@@ -21,7 +21,11 @@ public class LettuceHelper {
 
         Map<String, Object> ret = CollectionHelper.newHashMap(list.size());
         for (KeyValue<String, Object> pair : list) {
-            ret.put(pair.getKey(), pair.getValue());
+            // mget/hmgt return KeyValue.empty (hasValue()==false) for missing keys/fields;
+            // those must not surface as null entries (ICache.getAllPresent contract)
+            if (pair.hasValue()) {
+                ret.put(pair.getKey(), pair.getValue());
+            }
         }
         return ret;
     }

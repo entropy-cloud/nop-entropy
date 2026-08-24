@@ -7,11 +7,14 @@
  */
 package io.nop.nosql.lettuce.impl;
 
+import io.lettuce.core.ScriptOutputType;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.functional.Functionals;
 import io.nop.nosql.core.INosqlHashOperations;
+import io.nop.nosql.core.script.RedisScripts;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -55,6 +58,8 @@ public class LettuceHashOperations extends AbstractLettuceOperations implements 
 
     @Override
     public CompletionStage<Map<String, Object>> getAllAsync(Collection<? extends String> fields) {
+        if (fields == null || fields.isEmpty())
+            return CompletableFuture.completedFuture(new HashMap<>(0));
         return async().hmget(key, fields.toArray(new String[0])).thenApply(LettuceHelper::toMap);
     }
 
@@ -129,12 +134,9 @@ public class LettuceHashOperations extends AbstractLettuceOperations implements 
 
     @Override
     public CompletionStage<Boolean> removeIfMatchAsync(String field, Object object) {
-        return async().hget(key, field).thenCompose(value -> {
-            if (value != null && value.equals(object)) {
-                return async().hdel(key, field).thenApply(n -> n > 0);
-            }
-            return CompletableFuture.completedFuture(false);
-        });
+        // atomic HGET/HDEL compare-and-delete, consistent with the string-key REMOVE_IF_MATCH script
+        return LettuceExecutor.evalScript(async(), RedisScripts.HASH_REMOVE_IF_MATCH, ScriptOutputType.BOOLEAN,
+                new String[]{key}, new Object[]{field, object});
     }
 
     @Override
@@ -144,6 +146,8 @@ public class LettuceHashOperations extends AbstractLettuceOperations implements 
 
     @Override
     public CompletionStage<Void> removeAllAsync(Collection<? extends String> fields) {
+        if (fields == null || fields.isEmpty())
+            return CompletableFuture.completedFuture(null);
         return async().hdel(key, fields.toArray(new String[0])).thenApply(Functionals.toVoid());
     }
 
@@ -214,17 +218,11 @@ public class LettuceHashOperations extends AbstractLettuceOperations implements 
 
     @Override
     public CompletionStage<String> putIfAbsentOrMatchExAsync(String field, String value, long timeout) {
-        return async().hget(key, field).thenCompose(oldValue -> {
-            if (oldValue == null || (oldValue instanceof String && oldValue.equals(value))) {
-                return async().hset(key, field, value).thenCompose(v -> {
-                    if (timeout > 0) {
-                        return async().pexpire(key, timeout).thenApply(exp -> oldValue != null ? String.valueOf(oldValue) : null);
-                    }
-                    return CompletableFuture.completedFuture(oldValue != null ? String.valueOf(oldValue) : null);
-                });
-            }
-            return CompletableFuture.completedFuture(oldValue != null ? String.valueOf(oldValue) : null);
-        });
+        // atomic HGET/HSET/PEXPIRE script, consistent with the string-key PUT_IF_ABSENT_OR_MATCH script.
+        // Returns the previous raw value (decoded), or null when the field was absent.
+        return LettuceExecutor.evalScript(async(), RedisScripts.HASH_PUT_IF_ABSENT_OR_MATCH,
+                ScriptOutputType.VALUE, new String[]{key}, new Object[]{field, value, timeout})
+                .thenApply(v -> (String) v);
     }
 
     @Override

@@ -34,6 +34,7 @@ import jakarta.inject.Inject;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class LettuceRedisConnectionProvider extends LifeCycleSupport
         implements IRedisConnectionProvider, IConfigRefreshable {
@@ -42,6 +43,7 @@ public class LettuceRedisConnectionProvider extends LifeCycleSupport
     private RedisCodec<String, Object> codec = new PrefixTextCodec();
     private RedisClient standaloneClient;
     private RedisClusterClient clusterClient;
+    private ClientResources clientResources;
 
     private RoundRobinSupplier<? extends AutoCloseable> connectionSupplier;
 
@@ -107,13 +109,15 @@ public class LettuceRedisConnectionProvider extends LifeCycleSupport
 
         if (config.getClusterNodes() != null && !config.getClusterNodes().isEmpty()) {
             List<RedisURI> uris = buildClusterURIs();
-            clusterClient = RedisClusterClient.create(buildClientResources(), uris);
+            clientResources = DefaultClientResources.create();
+            clusterClient = RedisClusterClient.create(clientResources, uris);
             clusterClient.setOptions(buildClusterOptions());
             this.connectionSupplier = new RoundRobinSupplier<>(
                     () -> clusterClient.connect(codec), n);
         } else {
             RedisURI uri = buildRedisURI();
-            standaloneClient = RedisClient.create(buildClientResources(), uri);
+            clientResources = DefaultClientResources.create();
+            standaloneClient = RedisClient.create(clientResources, uri);
             standaloneClient.setOptions(buildStandaloneOptions());
             this.connectionSupplier = new RoundRobinSupplier<>(
                     () -> standaloneClient.connect(codec), n);
@@ -126,6 +130,11 @@ public class LettuceRedisConnectionProvider extends LifeCycleSupport
             clusterClient.shutdown();
         if (standaloneClient != null)
             standaloneClient.shutdown();
+        if (clientResources != null) {
+            // shared ClientResources are not closed by client.shutdown(), shut them down explicitly
+            clientResources.shutdown().awaitUninterruptibly(10, TimeUnit.SECONDS);
+            clientResources = null;
+        }
     }
 
     StatefulRedisPubSubConnection<String, Object> createPubSubConnection() {
@@ -136,8 +145,45 @@ public class LettuceRedisConnectionProvider extends LifeCycleSupport
         return standaloneClient.connectPubSub(codec);
     }
 
-    private ClientResources buildClientResources() {
-        return DefaultClientResources.create();
+    /**
+     * 解析 "host:port" 或 "[ipv6-host]:port" 形式的节点地址，格式非法时抛出带原始串的 IllegalArgumentException。
+     */
+    static String[] parseHostPort(String node) {
+        String host = null;
+        String portText = null;
+        if (node.startsWith("[")) {
+            int close = node.indexOf(']');
+            if (close > 1 && node.length() > close + 1 && node.charAt(close + 1) == ':') {
+                host = node.substring(1, close);
+                portText = node.substring(close + 2);
+            }
+        } else {
+            int idx = node.indexOf(':');
+            if (idx > 0 && node.indexOf(':', idx + 1) < 0) {
+                host = node.substring(0, idx);
+                portText = node.substring(idx + 1);
+            }
+        }
+
+        if (host == null || portText == null || portText.trim().isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Invalid redis node address '" + node + "': expected host:port or [ipv6-host]:port");
+        }
+
+        String port = parsePort(node, portText);
+        return new String[]{host.trim(), port};
+    }
+
+    private static String parsePort(String node, String portText) {
+        try {
+            int port = Integer.parseInt(portText.trim());
+            if (port <= 0 || port > 65535)
+                throw new NumberFormatException("out of range");
+            return String.valueOf(port);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(
+                    "Invalid redis node address '" + node + "': port must be an integer in [1,65535]");
+        }
     }
 
     private RedisURI buildRedisURI() {
@@ -153,14 +199,23 @@ public class LettuceRedisConnectionProvider extends LifeCycleSupport
         if (config.getMasterName() != null) {
             builder.withSentinelMasterId(config.getMasterName());
         }
-        builder.withDatabase(config.getDatabase());
-        if (config.getHost() != null) {
-            builder.withHost(config.getHost());
+        boolean sentinelMode = config.getSentinelNodes() != null && !config.getSentinelNodes().isEmpty();
+        if (sentinelMode) {
+            // in sentinel mode the URI must not carry its own host/port, only sentinel addresses
+            for (String node : config.getSentinelNodes()) {
+                String[] hostPort = parseHostPort(node);
+                builder.withSentinel(hostPort[0], Integer.parseInt(hostPort[1]));
+            }
+        } else {
+            builder.withDatabase(config.getDatabase());
+            if (config.getHost() != null) {
+                builder.withHost(config.getHost());
+            }
+            builder.withPort(config.getPort());
         }
-        builder.withPort(config.getPort());
         if (config.isUseSsl()) {
             builder.withSsl(true);
-            builder.withVerifyPeer(false);
+            builder.withVerifyPeer(config.isVerifyPeer());
         }
 
         return builder.build();
@@ -169,10 +224,10 @@ public class LettuceRedisConnectionProvider extends LifeCycleSupport
     private List<RedisURI> buildClusterURIs() {
         List<RedisURI> uris = new ArrayList<>();
         for (String node : config.getClusterNodes()) {
-            String[] parts = node.split(":");
+            String[] hostPort = parseHostPort(node);
             RedisURI.Builder builder = RedisURI.builder()
-                    .withHost(parts[0].trim())
-                    .withPort(Integer.parseInt(parts[1].trim()));
+                    .withHost(hostPort[0])
+                    .withPort(Integer.parseInt(hostPort[1]));
             if (config.getUsername() != null && config.getPassword() != null) {
                 builder.withAuthentication(config.getUsername(), config.getPassword().toCharArray());
             } else if (config.getPassword() != null) {
@@ -180,7 +235,7 @@ public class LettuceRedisConnectionProvider extends LifeCycleSupport
             }
             if (config.isUseSsl()) {
                 builder.withSsl(true);
-                builder.withVerifyPeer(false);
+                builder.withVerifyPeer(config.isVerifyPeer());
             }
             uris.add(builder.build());
         }
