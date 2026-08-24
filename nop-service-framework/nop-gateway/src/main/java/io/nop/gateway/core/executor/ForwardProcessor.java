@@ -51,8 +51,9 @@ public class ForwardProcessor {
     public CompletionStage<ApiResponse<?>> forward(GatewayForwardModel forward, ApiRequest<?> request,
                                                    IGatewayContext context,
                                                    Function<GatewayRouteModel, CompletionStage<ApiResponse<?>>> routeExecutor) {
-        if(forward == null)
-            return null;
+        if (forward == null)
+            // 返回 null 会让调用方的 thenCompose 链直接 NPE 且难以定位，必须 fail-loud
+            throw new IllegalArgumentException("forward model must not be null");
 
         // 1. 确定目标路由ID
         String targetRouteId = determineTargetRouteId(forward, request, context);

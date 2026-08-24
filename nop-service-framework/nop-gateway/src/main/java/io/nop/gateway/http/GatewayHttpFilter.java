@@ -269,7 +269,9 @@ public class GatewayHttpFilter implements IHttpServerFilter {
     protected void writeErrorResponse(IHttpServerContext context, ApiResponse<?> response) {
         int status = response.getHttpStatus();
         if (status == 0) {
-            status = HttpStatus.SC_OK;
+            // 错误响应缺失状态码时兜底必须是 5xx：以 200 返回错误 body 会让客户端
+            // （缓存/重试逻辑）把错误当成功
+            status = HttpStatus.SC_INTERNAL_SERVER_ERROR;
         }
         boolean wrapper = response.isWrapper();
         String body;

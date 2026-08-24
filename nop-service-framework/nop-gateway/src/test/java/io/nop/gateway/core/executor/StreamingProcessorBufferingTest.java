@@ -731,4 +731,68 @@ class StreamingProcessorBufferingTest {
         assertEquals("https://gw-test.example.com/v1/chat/completions",
                 fake.lastRequest().getUrl(), "无覆盖 = 既有 URL 表达式求值（零回归）");
     }
+
+    /** 手动驱动 demand 的订阅者：onSubscribe 不预取，模拟下游 HTTP 写出慢于上游推送。 */
+    private static final class ManualDemandSubscriber implements Flow.Subscriber<Object> {
+        final List<String> texts = new ArrayList<>();
+        volatile boolean completed;
+        volatile Throwable error;
+        private Flow.Subscription subscription;
+
+        @Override
+        public void onSubscribe(Flow.Subscription subscription) {
+            this.subscription = subscription; // 不 request：demand = 0
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public void onNext(Object item) {
+            Object text = item instanceof Map ? ((Map<String, Object>) item).get("text") : item;
+            texts.add(text != null ? text.toString() : null);
+        }
+
+        @Override
+        public void onError(Throwable throwable) {
+            this.error = throwable;
+        }
+
+        @Override
+        public void onComplete() {
+            this.completed = true;
+        }
+
+        void request(long n) {
+            subscription.request(n);
+        }
+    }
+
+    /** 上游在下游 demand=0 时 onComplete：缓冲区残留元素必须全部交付后才发 onComplete（尾部不丢失）。 */
+    @Test
+    void bufferedTailElementsDeliveredBeforeComplete() {
+        GatewayStreamingModel streaming = streamingModel(true, 10);
+        GatewayRouteModel route = route(streaming);
+        GatewayContextImpl context = new GatewayContextImpl();
+        context.setRequest(request());
+        context.setHttpMethod("POST");
+
+        FakeHttpClient fake = new FakeHttpClient();
+        fake.queue(List.of("a1", "a2"), null);
+
+        StreamingProcessor processor = new StreamingProcessor(fake, new MappingProcessor(null));
+        processor.executeStreaming(route, request(), context, identityInvocation());
+
+        StreamingResponse streamingResponse = (StreamingResponse) context.getAttribute(StreamingResponse.class.getName());
+        ManualDemandSubscriber subscriber = new ManualDemandSubscriber();
+        streamingResponse.getPublisher().subscribe(subscriber);
+
+        assertFalse(subscriber.completed,
+                "缓冲区尚有未交付元素时不得提前 onComplete（Flow 规范：onComplete 前必须交付所有已发出元素）");
+        assertTrue(subscriber.texts.isEmpty(), "demand=0 时不得交付");
+
+        // 下游 demand 恢复：缓冲元素必须全部送达，然后才 onComplete
+        subscriber.request(2);
+        assertEquals(List.of("a1", "a2"), subscriber.texts, "缓冲的尾部元素不得随 onComplete 丢弃");
+        assertTrue(subscriber.completed, "缓冲冲空后必须补发 onComplete");
+        assertNull(subscriber.error);
+    }
 }

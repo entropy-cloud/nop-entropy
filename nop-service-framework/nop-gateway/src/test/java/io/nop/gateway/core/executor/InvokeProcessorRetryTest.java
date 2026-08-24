@@ -69,6 +69,21 @@ class InvokeProcessorRetryTest {
         assertTrue(delay >= 4000L && delay < 5000L, "default backoff attempt=2 should be ~4s, got=" + delay);
     }
 
+    @Test
+    void parseRetryAfter_hugeSeconds_capped() throws Exception {
+        // 上游返回 Retry-After: 86400（24 小时）：延迟必须被钳制到上限 30s，
+        // 不得让单个请求挂起数小时
+        assertEquals(30000L, invokeParseRetryAfter("86400", 3));
+        assertEquals(30000L, invokeParseRetryAfter("31536000", 3));
+    }
+
+    @Test
+    void parseRetryAfter_httpDate_farFuture_capped() throws Exception {
+        java.time.ZonedDateTime farFuture = java.time.ZonedDateTime.now().plusYears(1);
+        String httpDate = java.time.format.DateTimeFormatter.RFC_1123_DATE_TIME.format(farFuture);
+        assertEquals(30000L, invokeParseRetryAfter(httpDate, 3));
+    }
+
     private IHttpClient mockClient(int status, Map<String, String> headers, String body) {
         return new IHttpClient() {
             @Override

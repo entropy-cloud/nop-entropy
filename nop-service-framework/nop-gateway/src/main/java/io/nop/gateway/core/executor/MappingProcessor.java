@@ -128,19 +128,38 @@ public class MappingProcessor {
     }
 
     /**
-     * 过滤headers，根据allowHeaders和disallowHeaders配置
+     * 过滤headers，根据allowHeaders和disallowHeaders配置。
+     * <p>配置名与运行时 header key 的大小写可能不一致（运行时 key 已被 HTTP 层小写化，
+     * 配置按原样字符串读取），比较统一按小写进行，避免白名单把头全部清掉/黑名单漏删。
      */
     private void filterHeaders(Map<String, Object> headers, GatewayMessageMappingModel mapping) {
-        Set<String> allowHeaders = mapping.getAllowHeaders();
-        Set<String> disallowHeaders = mapping.getDisallowHeaders();
+        Set<String> allowHeaders = lowercaseNames(mapping.getAllowHeaders());
+        Set<String> disallowHeaders = lowercaseNames(mapping.getDisallowHeaders());
 
         if (allowHeaders != null && !allowHeaders.isEmpty()) {
             // 白名单模式：只保留允许的headers
-            headers.keySet().retainAll(allowHeaders);
+            headers.keySet().removeIf(k -> !allowHeaders.contains(lowercase(k)));
         } else if (disallowHeaders != null && !disallowHeaders.isEmpty()) {
             // 黑名单模式：移除禁止的headers
-            headers.keySet().removeAll(disallowHeaders);
+            headers.keySet().removeIf(k -> disallowHeaders.contains(lowercase(k)));
         }
+    }
+
+    private static Set<String> lowercaseNames(Set<String> names) {
+        if (names == null) {
+            return null;
+        }
+        Set<String> lowercased = new java.util.HashSet<>(names.size());
+        for (String name : names) {
+            if (name != null) {
+                lowercased.add(lowercase(name));
+            }
+        }
+        return lowercased;
+    }
+
+    private static String lowercase(String name) {
+        return name.toLowerCase(java.util.Locale.ROOT);
     }
 
     /**

@@ -59,7 +59,7 @@ class AiAuthGatewayInterceptorDefaultAssemblyTest {
 
     private ApiRequest<Map<String, String>> requestWithBearer(String token) {
         ApiRequest<Map<String, String>> request = ApiRequest.build(Map.of());
-        request.setHeaders(Map.of("Authorization", "Bearer " + token));
+        request.setHeaders(Map.of("authorization", "Bearer " + token));
         return request;
     }
 

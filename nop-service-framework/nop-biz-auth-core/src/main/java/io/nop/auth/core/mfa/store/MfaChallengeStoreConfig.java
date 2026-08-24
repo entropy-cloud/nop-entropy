@@ -23,6 +23,13 @@ public class MfaChallengeStoreConfig {
      */
     private int opTicketExpireSeconds = 60;
 
+    /**
+     * 内存条目数上限，默认 100000。"发起但未回来验证"的条目只被惰性清理，
+     * 公网刷库场景必须有容量上界防 OOM：超限时先清扫过期条目，仍满则驱逐
+     * 最旧插入的条目（被驱逐的有效 challenge 需重新发起，可接受的攻击降级）。
+     */
+    private int maxEntries = 100_000;
+
     public int getExpireSeconds() {
         return expireSeconds;
     }
@@ -37,5 +44,13 @@ public class MfaChallengeStoreConfig {
 
     public void setOpTicketExpireSeconds(int opTicketExpireSeconds) {
         this.opTicketExpireSeconds = opTicketExpireSeconds;
+    }
+
+    public int getMaxEntries() {
+        return maxEntries;
+    }
+
+    public void setMaxEntries(int maxEntries) {
+        this.maxEntries = maxEntries;
     }
 }

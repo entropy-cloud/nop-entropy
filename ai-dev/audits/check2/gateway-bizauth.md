@@ -38,6 +38,8 @@ if (authHeader == null || !authHeader.startsWith("Bearer ")) {
 - **建议**: 使用小写常量读取（与 `IHttpServerContext.HEADER_AUTHORIZATION` 一致），或用 `ApiHeaders.getHeader(headers, name)`（ApiHeaders.java:57 有统一的取值入口）并按平台约定小写化；同时修正单测构造方式与生产一致。
 - **误报排除**: 已读 GatewayHttpFilter.buildRequest（唯一 `handler.handle` 调用点，全模块 grep 确认无其他入口）；已读 Vertx/Servlet 两个 IHttpServerContext 实现确认小写化；已读 ApiMessage/ApiRequest 确认 headers 为区分大小写的 TreeMap 且 setHeaders 不做 key 规范化；已读测试文件确认测试以混合大小写注入使测试失真。
 
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。`AiAuthGatewayInterceptor.onRequest` 改用平台小写常量 `IHttpServerContext.HEADER_AUTHORIZATION`（即 "authorization"）经 `ApiHeaders.getStringHeader` 读取（顺带获得 List 值取首项的健壮性），`substring(7)` 同步改为 `BEARER_PREFIX.length()`；单测构造从混合大小写 key 改为与生产一致的小写（AiAuthGatewayInterceptorTest 4 处、AiAuthGatewayInterceptorDefaultAssemblyTest.requestWithBearer）。红验证（修复前 HEAD 上跑）：#validKey_passes 与 DefaultAssembly#defaultAssembly_withConfiguredKeys_honorsConfig 均抛 `GatewayRejectException: Gateway rejected request: 401`——有效 key + 小写 header 仍全量 401，与审计"启用即全量 401"形态一致。回归：nop-gateway 88 tests 全绿。
+
 ### [P0] AiRateLimitGatewayInterceptor 用混合大小写 key 读取 X-Forwarded-For，所有限流 key 塌缩为 "default"，全局共享 1 QPS 令牌桶
 
 - **文件**: `nop-service-framework/nop-gateway/src/main/java/io/nop/gateway/core/interceptor/AiRateLimitGatewayInterceptor.java:54-62`
@@ -59,6 +61,8 @@ protected String resolveKey(IGatewayContext svcCtx) {
 - **建议**: 改用小写 key 读取（并与可信代理配置联动，见下一条 P1 的 XFF 伪造问题）；单测同样需要修正 header key 构造。
 - **误报排除**: 同上一条的证据链（GatewayHttpFilter 唯一入口 + Vertx/Servlet 小写化 + TreeMap 精确匹配）；AiRateLimitGatewayInterceptorTest 存在同源的大小写失真问题（grep 确认其未设置 X-Forwarded-For 头，测的是 default 桶路径）。
 
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。`resolveKey` 改读小写 `x-forwarded-for`，并新增 `normalizeKey` 规范化（取逗号分隔第一项、trim、小写、IP 字符集与长度校验，非法值归并 "default"）；桶存储与 P1-3 一体修复（耦合说明：修大小写会让 key 真实生效、立即暴露无淘汰的无界增长，故本条的 key 读取与下条的 LocalCache 淘汰在同一次 `AiRateLimitGatewayInterceptor` 改造中落地，处置各自独立标注）。红验证（HEAD 上）：#distinctClientIps_getIndependentBuckets 红——IP A 耗尽后 IP B 首请求即抛 429（所有客户端共享一个桶的自我 DoS 形态）；#resolveKey_readsLowercaseXffHeader_firstEntry 红——`expected: <203.0.113.10> but was: <default>`。回归：nop-gateway 88 绿。
+
 ### [P1] GatewayRejectException 携带的 429/401 拒绝响应在整条链路上无任何消费者，客户端收到的是通用错误（语义上 5xx）而非设计的 429/401 + Retry-After
 
 - **文件**: `nop-service-framework/nop-gateway/src/main/java/io/nop/gateway/core/interceptor/AiAuthGatewayInterceptor.java:43-49`（抛出点）；`nop-service-framework/nop-gateway/src/main/java/io/nop/gateway/GatewayRejectException.java`（定义）
@@ -74,6 +78,8 @@ throw new io.nop.gateway.GatewayRejectException(rejected);
 - **风险**: 限流/鉴权拒绝精心构造的 401/429 状态码与 Retry-After 头全部丢失；客户端（尤其按 429/401 语义实现退避的 SDK）拿到的是语义上的服务器内部错误，破坏 API 契约；诊断时误导运维以为是网关内部故障。
 - **建议**: 在 `GatewayHandler.processRoute` 的 exceptionally（或 RouteExecutor 错误出口）显式识别 `GatewayRejectException` 并直接返回 `getRejectionResponse()`；或让 GatewayRejectException 携带 Nop ErrorCode。
 - **误报排除**: 已全仓库 grep（含 nop-entropy 全模块源码，排除 target）确认无外部处理者；已读 NopException.adapt 确认 RuntimeException 原样透传不被包装；已读 GatewayHandler/RouteExecutor/InterceptedGatewayInvocation/GatewayRouteExecution 的完整错误传播链；已读 ErrorMessageManager 调用点确认无特判逻辑。
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。`GatewayHandler.processRoute` 两处：(a) `invokeRoute` 的同步异常统一 `CompletableFuture.failedFuture` 包装（此前拦截器 onRequest 同步抛出的拒绝经 `RouteExecutor.execute` catch → `proceedOnError` 重抛后直接穿透 processRoute，绕过 exceptionally，落到 GatewayHttpFilter.filterAsync 的外层 catch）；(b) exceptionally 内经新增 `findGatewayRejectException`（逐层解包 CompletionException）识别拒绝异常并原样返回 `getRejectionResponse()`。响应经 GatewayHttpFilter.write() → rejection 的 api status=0 判 isOk 走 writeNormalResponse，httpStatus 401/429 与 Retry-After 头完整写出。测试：TestGatewayRejectResponse#authRejection_preserves401Status / #rateLimitRejection_preserves429AndRetryAfter（代码内构造 GatewayModel + 拒绝拦截器；interceptor 需提供非空 id——interceptors 为按 id 索引的 KeyedList）。红验证（stash 法，仅回退 GatewayHandler 主代码）：两测均 `expected: <401/429> but was: <0>`。报告事实修正：HEAD 上 ErrorMessageManager 对未知 RuntimeException 生成的响应 httpStatus 实为 0（非 5xx），叠加本报告 P3"writeErrorResponse 缺省写 200"，客户端实收 HTTP 200，比审计"语义上 5xx"的描述更严重；修复后 401/429+Retry-After 原样送达。环境注记：红验证需 nop-router 工件与源码同步——worktree 的 target/project-local-repo 内 8/22 11:25 旧 jar 缺 addMatchAll 修复（b7b1b9d037），拦截器 trie 匹配为空导致测试先撞 no-rpc-support 假红，`./mvnw install -pl nop-utils/nop-router` 刷新后红/绿形态正常。回归：nop-gateway 88 绿（TestGatewayHandler 既有 7 用例零回归）。
 
 ### [P1] BufferedStreamingPublisher 在 demand=0 时收到 onComplete 会直接丢弃缓冲区残留元素，流尾部数据丢失
 
@@ -99,6 +105,8 @@ private void handleComplete(Attempt state) {
 - **建议**: handleComplete 时若 buffer 非空且 demand==0，挂起 terminate（记录 pendingComplete 状态），在后续 request() 冲空 buffer 后再向下游发 onComplete。
 - **误报排除**: 已通读 BufferedStreamingPublisher 全文（含 request/cancel/handleItem/flushBuffer/terminate/AttemptSubscriber 全部路径）确认 terminate 后无任何补救冲刷路径；已读 GatewayHttpFilter.writeStreamingResponse 与 StreamingProcessor.createMappedPublisher 确认上下游驱动模型如上所述（上游自驱动、下游逐条 request）。
 
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。`BufferedStreamingPublisher.BufferedSubscription` 新增 `pendingComplete`（monitor 保护）：`handleComplete` 在 flushAll 后若 buffer 非空且未取消则挂起终态；`request(n)` 在既有 flushBuffer 后对 pendingComplete 追加 flushAll（不受窗口门控，同时覆盖"窗口内整段缓冲"与"越窗后 demand 耗尽"两种残留形态）冲空后补发 terminate(null)→onComplete；`cancel()` 清除 pendingComplete。测试：StreamingProcessorBufferingTest#bufferedTailElementsDeliveredBeforeComplete（ManualDemandSubscriber onSubscribe 不预取，模拟下游 HTTP 写出慢于上游推送）。HEAD 红：`缓冲区尚有未交付元素时不得提前 onComplete expected: <false> but was: <true>`——onComplete 已发而零元素交付，与审计"尾部元素随 onComplete 永久丢弃、无错误信号"一致；修复后 request(2) 交付 [a1,a2] 再补发 onComplete。回归：nop-gateway 88 绿（本文件既有 11 个缓冲层用例零回归）。
+
 ### [P1] AiRateLimitGatewayInterceptor 的令牌桶 Map 无淘汰机制且 key 取自可伪造的 X-Forwarded-For：内存无界增长 + 限流绕过（修复 P0 大小写问题后立即暴露）
 
 - **文件**: `nop-service-framework/nop-gateway/src/main/java/io/nop/gateway/core/interceptor/AiRateLimitGatewayInterceptor.java:21,41-52`
@@ -115,6 +123,8 @@ if (!bucket.tryConsume()) { ... }
 - **风险**: (1) 内存耗尽：攻击者每个请求换一个随机 XFF 值（或正常场景下大量不同客户端 IP），ConcurrentHashMap 与 TokenBucket 永久累积，长期运行后 OOM；(2) 限流绕过：攻击者轮换 XFF 值即可获得无限个独立桶，限流完全失效——而限流正是防 DoS/防滥用的唯一默认防线（配合 AiAuth 拦截器使用时保护的是昂贵的 LLM 上游配额）。
 - **建议**: 使用带 TTL 淘汰的缓存（如 LocalCache expireAfterAccess）；key 采用"可信代理解析后的真实 IP"（结合 `CFG_AUTH_TRUST_FORWARDED_TENANT` 类似的可信代理开关，仅信任配置的可信代理列表转发的 XFF），不可信时退化为统一 key；并考虑对 key 做长度/格式校验。
 - **误报排除**: 已读该类全文确认无任何淘汰逻辑；已读 beans.xml 默认装配确认该拦截器默认容量参数；XFF 可伪造性为 HTTP 常识且 nop 平台自身在 AuthHttpServerFilter.newSysUserContext（AuthHttpServerFilter.java:265-270）对 X-Forwarded-Tenant 采取了"仅在可信代理开启时读取"的防伪造处理，佐证平台对转发头的威胁模型。
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复（内存无界增长 + key 空间收敛）；"可信代理解析真实客户端 IP"子项裁定暂缓。修复：(1) 桶缓存由裸 ConcurrentHashMap 换 `LocalCache`（Caffeine）：`maximumSize=maxTrackedKeys`（默认 100000、可配 setMaxTrackedKeys）+ `expireAfterAccess` TTL=ceil(capacity/refillRate)*refillIntervalMs——桶静置满 refill 周期后令牌已回满，驱逐重建（新桶满令牌）语义无损；refillRate<=0 退化固定 1h 防驱逐重置造成绕过。(2) `normalizeKey` 将 key 收敛为"IP 形态文本"（首项/trim/小写/长度 ≤45/字符集 [0-9a-fA-F.:%]），任意垃圾串归并 "default"，key 空间确定性有界。测试：#trackedKeys_cappedByMaxTrackedKeys（300 互异 key、上限 50 → ≤50）、#idleBuckets_expiredAfterIdleTtl（TTL=1ms 静置后归零）；key 行为的红验证见 P0-2 两条；淘汰为新增结构（依赖 LocalCache），无法对 HEAD 编译红测，以结构化回归测试固化。暂缓子项（决策点）：攻击者仍可轮换"合法格式 IP"获取独立桶绕过限流，根治需可信代理链配置——仅信任配置的可信代理转发的 XFF、不可信时退化统一 key 或直连 remote addr（平台对 X-Forwarded-Tenant 已有 CFG_AUTH_TRUST_FORWARDED_TENANT 同型开关先例）；该配置面的默认值取舍（默认信任 XFF vs 默认信任直连 IP）会分别破坏 LB 后/直连两类部署的限流语义，且需 GatewayHttpFilter.buildGatewayContext 增传 remote addr，属部署级产品决策。当前缓解：maxTrackedKeys 封顶 + TTL 回收保证内存有界，轮换攻击不再能 OOM。
 
 ### [P1] AuthFilterConfig.isAllowedRedirectUri 用 startsWith 前缀匹配，可被 `https://trusted.com.attacker.com` 形式绕过（开放重定向）
 
@@ -138,6 +148,8 @@ public boolean isAllowedRedirectUri(String uri) {
 - **建议**: 校验时解析 URI 的 host 与端口和允许列表精确匹配（或要求 prefix 以 `/` 结尾并匹配到 path 起始处），而非裸字符串前缀。
 - **误报排除**: 已读 AuthHttpServerFilter.processOAuthCode/isAllowedRedirectUri/isRelativePath 完整调用链，确认绝对 URL 仅经此方法放行；已确认空配置时返回 false（fail-closed），只有显式配置前缀的部署受影响，故定 P1 而非 P0。
 
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。`AuthFilterConfig.isAllowedRedirectUri` 前缀命中后追加 `endsAtUriBoundary` 边界判定：prefix 之后必须为串尾、'/'、'?'、'#'，或 prefix 自身以 '/' 结尾（尾斜杠前缀已进入 path 段，兼容既有 testSafeRelativeAndAllowedPrefixAccepted 的 "https://app.example.com/" 契约）。':' 与 '@' 均不在放行集，同步封堵审计未展开的 userinfo 变体（`trusted.com@evil.com`、`trusted.com:8080@evil.com`——后者浏览器按 userinfo 解析真实 host 为 evil.com）。测试：TestRedirectValidation#testAllowedPrefixWithoutTrailingSlash_enforcesHostBoundary。HEAD 红：`https://app.example.com.attacker.com/phish expected: <false> but was: <true>`，与审计开放重定向链一致；修复后 4 正例（精确/path/query/fragment 边界）+ 3 攻击例全符合。回归：nop-biz-auth-core 70 绿（testSafeRelativeAndAllowedPrefixAccepted、testProtocolRelativeAndBackslashRedirectsRejected 等既有用例零回归；实现中曾因未处理尾斜杠前缀导致既有用例红，已按上述规则修正）。
+
 ### [P2] AiAuth 拦截器将无效 API Key 明文完整写入 warn 日志
 
 - **文件**: `nop-service-framework/nop-gateway/src/main/java/io/nop/gateway/core/interceptor/AiAuthGatewayInterceptor.java:49-50`
@@ -152,6 +164,8 @@ if (!validKeys.contains(token)) {
 - **风险**: 用户粘贴错 key、客户端截断 key、或前缀碰撞的有效 key（如带尾随空格场景 trim 前后差异）都会落日志；一旦泄漏即暴露（部分）凭证，可用于撞库猜测。同文件 `LOG.warn("Rate limit exceeded for key={}", key)`（AiRateLimitGatewayInterceptor.java:45）也打印原始 key（当前因大小写 bug 恒为 "default"，修复后会打印 XFF 原文，风险较低）。
 - **建议**: 只记录 key 的前 4 位 + 长度或哈希（参照同模块 StateCookieHelper.maskState 的脱敏实践）。
 - **误报排除**: 已读该类全文确认无脱敏处理；对照 StateCookieHelper.maskState（StateCookieHelper.java:146-151）确认平台其它敏感值日志已有脱敏惯例。
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。`LOG.warn("Invalid API key: {}", token)` 改为输出 `maskKey(token)`：空/短（≤8）输出 `***len=N`，否则前 4 位 + `***len=N`（刻意弱于 StateCookieHelper.maskState 的首尾各 4 位——API key 尾部常为校验位，不暴露）。同文件 AiRateLimit 的 `key={}` 打印的是规范化后 IP（非凭证），维持原样。测试：AiAuthGatewayInterceptorTest#maskKey_neverLeaksFullToken（断言完整凭证片段不出现在脱敏输出、长度信息保留）。免红测试说明：日志内容变更无法经既有单测基建断言（模块无 logback capture 设施），以纯函数单测固化脱敏契约替代；HEAD 上该方法不存在（红形态为编译缺失）。
 
 ### [P2] AuthHttpServerFilter 将无效 auth token 明文完整写入 debug 日志
 
@@ -172,6 +186,8 @@ try {
 - **建议**: 记录 token 哈希或前后 4 位脱敏。
 - **误报排除**: 已读 parseAuthToken 完整方法与调用链（getAuthToken → parseAuthToken → getUserContextAsync），确认无其它 token 日志路径、此为唯一泄漏点。
 
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。`AuthHttpServerFilter.parseAuthToken` 的 catch 分支由 `LOG.debug("nop.invalid-auth-token:token={}", token, e)` 改为 `LOG.debug("nop.invalid-auth-token:tokenLength={}", token.length(), e)`——移除 token 原文，保留长度（辅助诊断客户端截断类问题）与异常对象。免红测试：debug 级日志文案修正，方法行为语义（解析失败返回 null）与返回值完全不变，无单测可观测点（模块无日志捕获基建），属纯文案/脱敏类免测项。
+
 ### [P2] LocalEmailCodeStore / LocalMfaChallengeStore 条目只在被再次访问时惰性清理，未被访问的过期条目永久驻留（无界内存增长）
 
 - **文件**: `nop-service-framework/nop-biz-auth-core/src/main/java/io/nop/auth/core/mfa/store/LocalEmailCodeStore.java:52-92`；`nop-service-framework/nop-biz-auth-core/src/main/java/io/nop/auth/core/mfa/store/LocalMfaChallengeStore.java:66-106`
@@ -188,6 +204,8 @@ challenges.put(token, new Entry(c, now + ttlMs));
 - **风险**: sendCode/create 接口若面向公网（MFA 登录流程通常公开），攻击者可用大量随机邮箱/手机号刷接口，map 无界增长直至 OOM；正常运营下也是慢性泄漏。
 - **建议**: 换用带 TTL 淘汰的 `LocalCache`（参照 LocalUserContextCache），或加定时清扫 + 最大容量限制（超出时拒绝新 send）。
 - **误报排除**: 已读两个类全文及对应 Config 类，确认无任何清理机制；已读 LocalUserContextCache 确认平台惯例；已读 EmailCodeStore/MfaChallengeStore 接口确认无清理契约由外部承担。
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。`EmailCodeStoreConfig`/`MfaChallengeStoreConfig` 新增 `maxEntries`（默认 100000）；`LocalEmailCodeStore.send` 与 `LocalMfaChallengeStore.create` 在 put 前执行 `ensureCapacity(now)`：超限时先 `entrySet().removeIf(过期)` 清扫，仍满（攻击灌互异 key）则按插入序驱逐至封顶——被驱逐的有效码/challenge 需重发/重新发起，属可接受的攻击降级（优于 OOM）；Mfa 侧顺带 `failCounts.keySet().removeIf(不在 challenges)` 防计数 map 独立膨胀。未按建议换 LocalCache 的取舍：两店的 verify/peek/markVerified 依赖 `ConcurrentHashMap.compute` 的原子三态判定（过期/匹配/失败计数一体），ICache 未暴露 compute，改 Caffeine asMap 属更大改造，容量上界已足够闭合本条风险。测试：TestLocalEmailCodeStore#testUnaccessedEntriesDoNotAccumulateUnboundedly（反射读内部 map，HEAD 红：`实际=100500` 超上限 100000）+ #testCapacityCapWithSmallLimit_andExpiredSweepPreferred（上限 100/灌 350 后 ≤100 且存活码仍可验证）；TestLocalMfaChallengeStore 同形两测（HEAD 红：`实际=100500`，修复后 ≤100 且 peek/consume 正常）。回归：nop-biz-auth-core 70 绿（两文件既有用例零回归）。范围注记：同目录 LocalSmsCodeStore 存在同源惰性清理模式，不在本条发现范围内、本次未动，已记入单元返回摘要"新发现问题"。
 
 ### [P2] InvokeProcessor 重试的 Retry-After 解析无上限，上游返回极大值可让单个请求挂起数小时
 
@@ -210,6 +228,8 @@ return Long.parseLong(trimmed) * 1000;   // 无上限钳制
 - **建议**: 对 delayMs 设上限（如 min(delayMs, 30s)），并让延迟链路响应客户端断连取消。
 - **误报排除**: 已读 invokeUrlWithRetry/parseRetryAfter/delayedFuture 全文确认无钳制与取消机制；已确认 429 分支在 retriesLeft>0 时直接采用该值。
 
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。`InvokeProcessor.parseRetryAfter` 的三条返回路径（秒数 ×1000、HTTP-date 差值、默认指数退避+jitter）统一经新增 `capRetryDelay` 钳制到 `MAX_RETRY_DELAY_MS=30_000`（负值归 0），上游返回 `Retry-After: 86400` 或一年后的 HTTP-date 均不再产生小时/天级挂起。测试：InvokeProcessorRetryTest#parseRetryAfter_hugeSeconds_capped（HEAD 红：`expected: <30000> but was: <86400000>`）+ #parseRetryAfter_httpDate_farFuture_capped（HEAD 红：`but was: <31535999605>`）。子项裁定暂缓：审计建议的"延迟链路响应客户端断连取消"需要向 IGatewayContext/InvokeProcessor 管道引入 ICancelToken 传递（当前 `httpClient.fetchAsync(httpRequest, null)` 即全程传 null，StreamingProcessor 同形），属跨执行器改造；决策点：cancel token 传递链与"取消后是否计入重试次数"语义。钳制后单请求最大挂起 30s，小时级资源占用放大已消除，取消收益有限。回归：nop-gateway 88 绿（parseRetryAfter 既有 6 用例零回归，默认退避区间 [2000,3000)/[4000,5000) 断言不受 30s 上限影响）。
+
 ### [P2] AiFailoverGatewayInterceptor 将原始请求全部 header（含 Authorization/API Key）原样转发到 fallback URL，且 maxRetries 配置项完全无效
 
 - **文件**: `nop-service-framework/nop-gateway/src/main/java/io/nop/gateway/core/interceptor/AiFailoverGatewayInterceptor.java:24-38,87-95`
@@ -230,6 +250,8 @@ private CompletionStage<ApiResponse<?>> tryFallbackUrl(String url, ...) {
 - **建议**: fallback 转发时剥离/替换 Authorization 等凭证头（由 fallback 配置提供各自的 key）；要么实现 maxRetries 语义（限制总尝试次数），要么删除该配置项避免误导。
 - **误报排除**: 已读该类全文确认 maxRetries 无引用；已读 beans.xml 确认默认装配暴露该配置；已读 tryFallbackUrl 确认无 header 过滤。另注意 fallback 递归（429/5xx 时 line 98-103）也绕过了 invoke 拦截链的剩余环节，属语义可议但影响小。
 
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复（两个子项）。(1) 凭证外发：`tryFallbackUrl` 复制请求头时默认剥离敏感头集合 {authorization, proxy-authorization, x-api-key, cookie}（key 按 toLowerCase(ROOT) 比较，兼容任意大小写来源）；同 key 多端点（同提供商镜像）场景经新增显式开关 `setForwardSensitiveHeaders(true)` 恢复转发——默认装配 fallbackUrls 为空、拦截器缺省不激活，安全默认不破坏存量。更完整的"per-fallback-URL 凭证注入"配置面留待产品化（剥离默认已消除主 key 外发给第三方域的主险）。(2) maxRetries 死配置：新增 `maxFallbackAttempts()=min(fallbackUrls.size(), maxRetries)`，`tryInvokeWithFallback` 与 `tryFallbackUrl` 的 429/5xx 递归分支均以它封顶（语义：fallback 尝试次数上限、不含主上游调用；beans.xml 默认 3 与典型 fallback 列表长度兼容）。测试：AiFailoverGatewayInterceptorTest#fallbackRequest_stripsSensitiveHeadersByDefault（HEAD 红：fallback 请求头实际含 `authorization=Bearer sk-primary-key`，expected false but was true）+ #maxRetries_capsTotalFallbackAttempts（HEAD 红：maxRetries=1 + 3 个 fallback URL 实发 3 次 fetch，expected 1 but was 3）+ #fallbackRequest_forwardsSensitiveHeadersWhenExplicitlyEnabled（逃生开关正向，修复后新增）+ 既有 2 用例零回归。审计附注的"fallback 递归绕过 invoke 拦截链剩余环节"维持现状（影响小，与既有递归结构一致）。
+
 ### [P3] ForwardProcessor.forward 对 forward==null 返回 null 的防御分支是 NPE 陷阱
 
 - **文件**: `nop-service-framework/nop-gateway/src/main/java/io/nop/gateway/core/executor/ForwardProcessor.java:54-55`
@@ -244,6 +266,8 @@ public CompletionStage<ApiResponse<?>> forward(GatewayForwardModel forward, ...)
 - **风险**: 低（当前死代码），未来重构时易踩坑。
 - **建议**: 改为抛 IllegalArgumentException 或返回失败的 CompletionStage。
 - **误报排除**: 已读 RouteExecutor.executeLogic0 调用点确认当前不会传 null（故 P3 而非 P1）。
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。`forward` 的 null 防御分支由 `return null` 改为 `throw new IllegalArgumentException("forward model must not be null")`（采纳审计建议；模块内编程错误契约，英文消息，调用方 thenCompose 链不再可能拿到 null 后 NPE）。测试：TestForwardProcessor#forward_nullConfig_throwsIllegalArgument。HEAD 红：方法静默返回 null，assertThrows 因无异常抛出而失败。调用方核查：RouteExecutor.executeLogic0 仅在 `route.getForward() != null` 时调用，分支当前不可达，零存量行为影响。
 
 ### [P3] MappingProcessor header 过滤/复制的大小写敏感性与 HTTP 层小写约定存在配置漂移风险
 
@@ -261,6 +285,8 @@ if (allowHeaders != null && !allowHeaders.isEmpty()) {
 - **风险**: 模型配置大小写书写不一时静默行为错误（该透传的头被删/该删的头被透传，含 hop-by-hop 安全头）。
 - **建议**: filterHeaders 双侧统一小写比较。
 - **误报排除**: 已读 mapRequest/mapResponse/filterHeaders 全文与 GatewayHttpFilter.buildRequest 的 headers 来源；未发现模块内有对配置项的规范化（GatewayMessageMappingModel 为生成属性类）。
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。`MappingProcessor.filterHeaders` 的 allowHeaders/disallowHeaders 配置名经新增 `lowercaseNames` 统一小写，白名单匹配改为 `headers.keySet().removeIf(k -> !allow.contains(lowercase(k)))`（黑名单同构 removeIf），对任意大小写的运行时 key 双侧一致比较，map 内保留原始 key 形态（不重写）。测试：MappingProcessorTest#testMapRequest_allowHeaders_matchesCaseInsensitively（HEAD 红：配置 "X-Custom-Header" 时小写运行时 key 被白名单整体清掉，expected true but was false）+ #testMapRequest_disallowHeaders_matchesCaseInsensitively（HEAD 红：配置 "Connection" 未命中小写 'connection'，该删的头透传，expected false but was true）。回归：既有 4 个大小写一致方向的过滤用例 + 新 2 用例全绿（证明双侧归一不破坏任何大小写组合）。mapResponse 路径共用 filterHeaders，同步受益。
 
 ### [P3] file-core 扩展名白名单大小写不归一，且默认装配不限制扩展名
 
@@ -280,6 +306,8 @@ if (allowedFileExts != null && !allowedFileExts.contains(fileExt)) {   // 大小
 - **建议**: fileExt 统一 toLowerCase 后再比对；默认配置考虑至少排除 html/svg/htm 等可执行渲染类型。
 - **误报排除**: 已读 StringHelper.fileExt 实现、beans 装配默认值、download 的 mimeType 选择逻辑；已查 WebContentBean 无 disposition 字段（由上层 http 决定），故 XSS 链路无法在本模块内完全证实，按弱风险表述。
 
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复（大小写归一子项）；"默认装配不限制扩展名"子项裁定暂缓。修复：`NopFileStoreBizModel.checkFileExt` 对传入 fileExt 与配置项双侧 toLowerCase(Locale.ROOT) 后 anyMatch 比较（不改 UploadRequestBean.getFileExt 的原始大小写返回，避免影响 mimeType 等其它消费方语义）。测试：TestNopFileStoreBizModel#checkFileExt_caseInsensitiveMatch（HEAD 红：配置 [jpg,PNG] 时 `checkFileExt("JPG")` 抛 `nop.err.file.not-allow-file-ext`，与审计"配置 jpg 时上传 a.JPG 被误拒"一致）+ #checkFileExt_emptyConfig_noRestriction（空配置不限制的既有契约显式固化）。暂缓子项（决策点）：默认改拒绝 html/svg/htm 属破坏性契约变更（影响所有未配置 nop.file.upload.allowed-file-exts 的部署的上传行为），且审计自认 XSS 链路在本模块不可证实（download 的 Content-Disposition 策略由上层 http 层决定）；合理归属是在下载侧强制 Content-Disposition: attachment 或由应用层配置默认黑名单，需产品裁定归属层与默认名单内容。工程注记：本模块此前无 src/test 与 junit 依赖，本次为其建立测试基建（pom 补 junit-jupiter test scope）。
+
 ### [P3] MediaTypeHelper.configLoaded 双检加载无同步/非 volatile
 
 - **文件**: `nop-service-framework/nop-biz-file-core/src/main/java/io/nop/file/core/MediaTypeHelper.java:30-41`
@@ -297,6 +325,8 @@ if (!configLoaded) {
 - **风险**: 极低；最坏是偶发的重复 IO 与短暂查询不到扩展名映射。
 - **建议**: 加 volatile 或静态 Holder 类初始化。
 - **误报排除**: 已读该类全文确认 loadConfig 幂等（registerMediaTypes 仅 put）且 map 为 CHM，竞态无结构性破坏。
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。`configLoaded` 增加 `volatile` 修饰（单点修改，附带注释说明幂等重复加载无害）。免红测试：该竞态的唯一可观测影响是偶发重复 IO 与短暂读旧空表（审计自评"极低"），单线程单测无法稳定复现该窗口；volatile 写建立 happens-before 后配置加载结果对所有读者安全发布，属不可观测的防御性修正。
 
 ### [P3] ChunkFileUploadHandler 三个 API 全部返回 null 的空实现以正式 API 形态存在
 
@@ -319,6 +349,8 @@ public UploadResponseBean finishChunkApi(FinishChunkRequestBean request, IServic
 - **建议**: 抛 UnsupportedOperationException 或标注 @Deprecated/移除。
 - **误报排除**: 已读全模块 beans.xml 与 grep 确认无装配无调用方（故 P3）。
 
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。三个方法由 `return null` 改为 `throw new UnsupportedOperationException("... is not implemented")`（采纳审计建议；保留类与方法签名未删除——类注释承载分片上传语义设计，未来实现时以真实逻辑替换）。复核确认全仓仍无装配与调用方（app-file-core.beans.xml 仅注册 NopFileStoreBizModel），行为变化仅影响误引用方：由静默 null（下游随机 NPE）变为显式未实现错误。测试：TestChunkFileUploadHandler 3 个 assertThrows 用例。HEAD 红：三方法均返回 null，assertThrows 全部失败，与审计"调用得到静默 null"形态一致。
+
 ### [P3] GatewayHttpFilter.writeErrorResponse 对缺失 httpStatus 的错误响应默认写 200
 
 - **文件**: `nop-service-framework/nop-gateway/src/main/java/io/nop/gateway/http/GatewayHttpFilter.java:269-272`
@@ -335,6 +367,8 @@ protected void writeErrorResponse(IHttpServerContext context, ApiResponse<?> res
 - **风险**: 上游构造错误响应但忘记设状态码时，客户端把错误当成功（缓存/重试逻辑误判）。当前主路径 buildResponseForException 均设置状态码，触发面窄。
 - **建议**: 错误分支兜底应为 500。
 - **误报排除**: 已读 writeErrorResponse 两个调用点（write() 的 else 分支、filterAsync catch），确认正常错误路径的状态码由 ErrorMessageManager 设置，故仅兜底值不当。
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。`writeErrorResponse` 的 `status == 0` 兜底由 `HttpStatus.SC_OK` 改为 `HttpStatus.SC_INTERNAL_SERVER_ERROR`（500）；`writeNormalResponse` 缺省 200 契约不变。测试：TestGatewayHttpFilterErrorResponse（最小 IHttpServerContext mock 捕获 sendResponse 状态码）#writeErrorResponse_missingHttpStatus_defaultsTo500（HEAD 红：`expected: <500> but was: <200>`）+ #writeErrorResponse_explicitStatus_preserved（显式 429 保留）+ #writeNormalResponse_missingHttpStatus_still200（正常路径零回归）。与 P1-1 联动后整条链路收口：拒绝响应（401/429）原样送达、未知异常错误兜底 500、正常响应仍 200。
 
 ### [P3] GatewayInterceptorModel.getOrCreateInterceptor 的实例缓存无同步（幂等竞态，低危害）
 
@@ -358,6 +392,8 @@ public IGatewayInterceptor getOrCreateInterceptor(IGatewayContext svcCtx){
 - **风险**: 极低；偶发多创建一个无状态对象。
 - **建议**: volatile + 本地变量，或加载期预构建。
 - **误报排除**: 已读 ModelBasedGatewayInterceptor（唯一字段 final）与 GatewayHandler.loadInterceptors 调用点（每请求调用）确认并发场景与幂等性。
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。按审计建议原样落地：`interceptor` 字段加 `volatile`（跨请求共享的模型上建立发布可见性），`getOrCreateInterceptor` 改本地变量模式（cached → null 检查 → 创建 → 回写；并发首调仍可能重复创建，但 bean 获取与 ModelBasedGatewayInterceptor 构造均幂等无害）。免红测试：该缺陷为理论可见性窗口 + 无状态对象重复创建（审计自评"极低；偶发多创建一个无状态对象"），单测无法稳定复现、无行为差异断言点；等价性由 TestGatewayHandler 与 TestGatewayRejectResponse 的拦截器加载断言间接覆盖（两者均经该缓存路径取拦截器）。
 
 ## 附注（已排查、未列为发现的疑点）
 
