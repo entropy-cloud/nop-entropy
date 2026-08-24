@@ -291,7 +291,7 @@ public abstract class AbstractDslParser<T> extends AbstractResourceParser<T> {
         } finally {
             long diff = CoreMetrics.nanoTimeDiff(beginTime);
 
-            LOG.info("nop.core.component.finish-parse-node-from-resource:usedTime={},path={},parser={}",
+            LOG.debug("nop.core.component.finish-parse-node-from-resource:usedTime={},path={},parser={}",
                     CoreMetrics.nanoToMillis(diff), getResourcePath(), getClass());
         }
     }

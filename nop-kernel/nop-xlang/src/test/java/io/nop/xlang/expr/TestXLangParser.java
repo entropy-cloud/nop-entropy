@@ -50,6 +50,19 @@ public class TestXLangParser {
         }
     }
 
+    /**
+     * 十六进制字面量应与二进制字面量一致按无符号解析：
+     * 高位为 1 的 64 位十六进制字面量（Java 语义下合法，回绕为负 long）不应报转换失败
+     */
+    @Test
+    public void testHexLiteralUnsignedParse() {
+        IEvalScope scope = XLang.newEvalScope();
+        Object value = XLang.newCompileTool().compileFullExpr(null, "0xFFFFFFFFFFFFFFFF").invoke(scope);
+        assertEquals(-1L, value);
+        assertEquals(255L, XLang.newCompileTool().compileFullExpr(null, "0xFF").invoke(scope));
+        assertEquals(Long.MAX_VALUE, XLang.newCompileTool().compileFullExpr(null, "0x7FFFFFFFFFFFFFFF").invoke(scope));
+    }
+
     @Test
     public void testSetFunction() {
         IEvalScope scope = XLang.newEvalScope();

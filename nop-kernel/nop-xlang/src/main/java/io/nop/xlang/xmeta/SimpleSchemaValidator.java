@@ -20,8 +20,10 @@ import io.nop.xlang.xdef.domain.StdDomainRegistry;
 
 import static io.nop.api.core.ApiErrors.ARG_TARGET_TYPE;
 import static io.nop.xlang.XLangErrors.ARG_BIZ_OBJ_NAME;
+import static io.nop.xlang.XLangErrors.ARG_EXCLUDE_MAX;
 import static io.nop.xlang.XLangErrors.ARG_EXCLUDE_MIN;
 import static io.nop.xlang.XLangErrors.ARG_MAX_LENGTH;
+import static io.nop.xlang.XLangErrors.ARG_MAX_VALUE;
 import static io.nop.xlang.XLangErrors.ARG_MIN_VALUE;
 import static io.nop.xlang.XLangErrors.ARG_PATTERN;
 import static io.nop.xlang.XLangErrors.ARG_PROP_NAME;
@@ -117,9 +119,9 @@ public class SimpleSchemaValidator {
                 if (greater) {
                     collector.buildError(ERR_SCHEMA_PROP_VALUE_TOO_LARGE)
                             .loc(loc).paramIfNotNull(ARG_BIZ_OBJ_NAME, bizObjName).param(ARG_PROP_NAME, propName)
-                            .param(ARG_MIN_VALUE, schema.getMin())
+                            .param(ARG_MAX_VALUE, schema.getMax())
                             .param(ARG_VALUE, value)
-                            .param(ARG_EXCLUDE_MIN, Boolean.TRUE.equals(schema.getExcludeMin()))
+                            .param(ARG_EXCLUDE_MAX, Boolean.TRUE.equals(schema.getExcludeMax()))
                             .addToCollector(collector);
                 }
             }

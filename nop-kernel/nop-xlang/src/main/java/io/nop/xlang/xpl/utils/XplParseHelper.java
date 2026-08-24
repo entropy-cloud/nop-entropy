@@ -641,7 +641,7 @@ public class XplParseHelper {
             if (!right.isPresent())
                 return OptionalValue.UNDEFINED;
 
-            return OptionalValue.of(EvalHelper.binaryOp(binary.getOperator(), left, right));
+            return OptionalValue.of(EvalHelper.binaryOp(binary.getOperator(), left.getValue(), right.getValue()));
         }
 
         return OptionalValue.UNDEFINED;

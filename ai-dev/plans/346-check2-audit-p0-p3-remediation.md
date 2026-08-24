@@ -58,7 +58,7 @@ Targets: 10 份报告；对应模块代码与测试
 - Item Types: `Fix | Decision | Proof`
 
 - [x] nop-commons.md（P0×1 P1×5 P2×7 P3×15，共 28 条）— 2026-08-24 完成：26 修复 + 2 暂缓（IoHelper 原生反序列化 ObjectInputFilter 白名单需平台裁定 / DateHelper Locale 语义需平台决策）。P0: parseQuery 多值收集 put(key,list)。红验证失败形态逐条吻合（splitChunk 在 HEAD 上 OOM 崩 JVM 为最强红证据）；268 tests 绿（+38 新用例）；报告两处事实偏差（P3-16 死校验非误抛 NPE、P3-23 OOM 非 /by zero）在标注中纠正；28/28 标注。附带修复 FileHelper.countLines 空文件 0 容量死循环（报告外新发现）；新发现 nop-xlang EvalHelper MINUS 分支疑用 MathHelper.min 已记录待 nop-xlang 单元处置
-- [ ] nop-xlang.md（P0×1 P1×1 P2×3 P3×5，共 10 条）
+- [x] nop-xlang.md（P0×1 P1×1 P2×3 P3×5，共 10 条）— 2026-08-24 完成：7 修复 + 3 暂缓（EvalBackendRouter 热路径锁需 benchmark+CLD 契约被 truffle 30 处测试消费 / XDslExtender 环引用需错误码归属+物理 resourcePath 键控设计 / bare ISE 16 处错误码化因 i18n 聚合在 nop-cli-core 超单元范围）。P0: AND/OR 宏 subList(1,size())（AND(true,true) 曾恒 false）。超审计新发现 2 项一并修复：EvalHelper MINUS 误用 MathHelper.min（binaryOp(MINUS,1,2) 曾得 1）+ XplParseHelper 常量折叠 OptionalValue 未解包（const x=1+2 曾折叠得 0）。596 tests 绿（+12 用例）；10/10 标注。待跟进（记录未修）：SimpleSchemaValidator.validate 调 checkRange 实参 (bizObjName,propName) 顺序颠倒（潜伏，当前调用方两值多为 null）
 - [ ] nop-orm-eql.md（P0×1 P2×5 P3×5，共 11 条）
 - [ ] db-migration.md（P0×2 P1×4 P2×7 P3×3，共 16 条）
 - [ ] nosql-cdc.md（P0×1 P1×2 P2×9 P3×13，共 25 条）

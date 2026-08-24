@@ -111,9 +111,9 @@ public class XLangParseHelper {
         Number value;
         try {
             if (text.endsWith("L")) {
-                value = Long.parseLong(text.substring(0, text.length() - 1), 16);
+                value = Long.parseUnsignedLong(text.substring(0, text.length() - 1), 16);
             } else {
-                value = Long.parseLong(text, 16);
+                value = Long.parseUnsignedLong(text, 16);
             }
         } catch (Exception e) {
             throw error(ApiErrors.ERR_CONVERT_TO_TYPE_FAIL, loc(node)).param(ARG_TARGET_TYPE, Long.class).param(ApiErrors.ARG_VALUE, text);

@@ -29,6 +29,7 @@ import java.util.Map;
 
 import static io.nop.xlang.XLangErrors.ERR_XDSL_ATTR_NOT_ALLOWED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestGenericDslParser extends BaseTestCase {
@@ -102,5 +103,16 @@ public class TestGenericDslParser extends BaseTestCase {
         DynamicObject result = new GenericDslParser().parseFromNode(node);
         System.out.println(JsonTool.serialize(result, true));
         assertEquals("true", result.prop_get("ui:default"));
+    }
+
+    @Test
+    public void testDefaultAttrUsesPropName() {
+        // kebab-case 属性 order-by 的缺省值应写入 propName 键 orderBy，而不是原始 XML 属性名
+        XNode node = XNodeParser.instance().parseFromText(null,
+                "<myNode x:schema='/test/test-default-attr-prop-name.xdef'/>");
+        DynamicObject obj = new GenericDslParser().parseFromNode(node);
+        assertTrue(obj.prop_has("orderBy"));
+        assertEquals("unknown-order", obj.prop_get("orderBy"));
+        assertFalse(obj.prop_has("order-by"));
     }
 }
