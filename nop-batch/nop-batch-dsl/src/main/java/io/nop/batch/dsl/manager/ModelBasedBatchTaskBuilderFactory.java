@@ -72,6 +72,7 @@ import java.util.concurrent.Executor;
 
 import static io.nop.batch.dsl.BatchDslErrors.ARG_BATCH_TASK_NAME;
 import static io.nop.batch.dsl.BatchDslErrors.ARG_BEAN_NAME;
+import static io.nop.batch.dsl.BatchDslErrors.ARG_CONSUMER_LOCATION;
 import static io.nop.batch.dsl.BatchDslErrors.ARG_INPUT_NAME;
 import static io.nop.batch.dsl.BatchDslErrors.ARG_PROCESSOR_NAME;
 import static io.nop.batch.dsl.BatchDslErrors.ARG_VALUE;
@@ -81,6 +82,7 @@ import static io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_TASK_INVALID_HISTORY_STO
 import static io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_TASK_INVALID_LOADER;
 import static io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_TASK_INVALID_PROCESSOR;
 import static io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_TASK_NO_LOADER;
+import static io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_TASK_NULL_WRITER;
 import static io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_TASK_PROCESSOR_IS_NULL;
 import static io.nop.batch.dsl.manager.FileBatchSupport.newExcelReader;
 import static io.nop.batch.dsl.manager.FileBatchSupport.newExcelWriter;
@@ -418,10 +420,12 @@ public class ModelBasedBatchTaskBuilderFactory {
         }
     }
 
+    /**
+     * 每个chunk拥有独立的ctx，对ctx加锁无法提供跨线程互斥。source函数如果非线程安全，
+     * 需要配置dispatcher使fetch串行化，或者由source实现自行保证线程安全。
+     */
     private List<Object> safeLoad(IEvalFunction fn, int batchSize, IBatchChunkContext ctx) {
-        synchronized (ctx) {
-            return (List<Object>) fn.call2(null, batchSize, ctx, ctx.getEvalScope());
-        }
+        return (List<Object>) fn.call2(null, batchSize, ctx, ctx.getEvalScope());
     }
 
     private IBatchLoaderProvider<Object> newLoaderProvider(IEvalFunction provider) {
@@ -629,7 +633,8 @@ public class ModelBasedBatchTaskBuilderFactory {
     private IBatchConsumerProvider<Object> getWriter(BatchConsumerModel consumerModel, IBeanProvider beanContainer) {
         IBatchConsumerProvider<Object> provider = getWriter0(consumerModel, beanContainer);
         if (provider == null)
-            throw new IllegalArgumentException("nop.err.batch.null-writer:" + consumerModel.getLocation());
+            throw new NopException(ERR_BATCH_TASK_NULL_WRITER)
+                    .param(ARG_CONSUMER_LOCATION, String.valueOf(consumerModel.getLocation()));
 
         if (consumerModel.getAdapter() == null)
             return provider;

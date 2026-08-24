@@ -354,6 +354,10 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
         IBatchLoader<S> loader = this.loader.setup(context);
         if (singleSession && singleSessionInvoker != null)
             loader = new InvokerBatchLoader<>(singleSessionInvoker, loader);
+        // dispatch模式下同样要包装loadRetryPolicy，否则该配置会被静默忽略，
+        // 与无dispatcher时的行为不一致
+        if (loadRetryPolicy != null)
+            loader = new RetryBatchLoader<>(loader, loadRetryPolicy);
         return loader;
     }
 

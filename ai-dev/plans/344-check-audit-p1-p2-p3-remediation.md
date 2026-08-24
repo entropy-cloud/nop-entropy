@@ -107,17 +107,17 @@ Targets: 对应 8 份报告；`nop-api-core`、`nop-biz`、`nop-graphql`、`nop-
 
 Exit Criteria:
 
-- [ ] 同 Phase 1 三条
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 同 Phase 1 三条（八报告 P1/P2/P3 全部标注：grep 对账 api-core 19=19+P0/biz 15=15/graphql 15=15/auth 13=13/sys 19=19/job 16=16/task 11=11/wf 17=17；各模块测试数见上方条目摘要）
+- [x] `ai-dev/logs/` 对应日期条目已更新（八单元各一节，见 08-22.md / 08-23.md）
 
 ### Phase 4 - 可复用业务（nop-batch / nop-dyn / nop-excel / nop-report / nop-rule / nop-metadata / nop-search / nop-datav / nosql-cdc）
 
-Status: planned
+Status: in progress
 Targets: 对应 9 份报告；相关模块代码与测试
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] nop-batch.md（P1×5 P2×7 P3×6）
+- [x] nop-batch.md（P1×5 P2×7 P3×6）— 2026-08-24 完成：15 修复（含 2 部分修复）+ 1 暂缓（DaoBatchStateStore 并发需 (taskName,taskKey) 唯一键 orm 模型变更+存量迁移设计；execCount 排序子项复查非问题——addOrderField(desc) 已取最近）+ append 子项暂缓（输出追加需 openOutput 公共接口扩展）+ 1 不修复（RangeSplitUtils 系 DataX 移植死代码）。P1: AsyncFetch 吞 fetch 异常假成功/断点续传输出截断 fail-loud（ERR_BATCH_OUTPUT_FILE_EXISTS_ON_RECOVERY）/JdbcLoader 关闭后竞态/fetch 线程 semaphore 永久阻塞（tryAcquire 循环+finished）/rateLimit×singleMode 许可放大（按 items.size()）。P2: 重试最终异常 e2 丢失（suppressed 挂首因）/onBeforeComplete 无界增长/dispatch 忽略 loadRetryPolicy/saveProcessed 空实现（成功写 NopBatchRecordResult）/DefaultBizEntityImporter 返回 null 改抛/tryAcquire fail-closed。P3: singleMode 异常恢复/getExecutor 死分支/首取消进重试/错误码 4 处/safeLoad 无效锁/BatchLoaderHelper 固定 key（identityHashCode 隔离）。新增 9 测试类 27 用例红验证；batch 15 子模块 54 tests 绿；i18n 聚合同步（含再生成发现的前批 20 条 zh-CN 滞后 + 本批 5 条 en）
 - [ ] nop-dyn.md（P1×3 P2×9 P3×3）
 - [ ] nop-excel.md（P1×3 P2×2 P3×7）
 - [ ] nop-report.md（P1×6 P2×7 P3×11）

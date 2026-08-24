@@ -15,7 +15,10 @@ public class BatchLoaderHelper {
     public static <T> List<T> batchLoadWithProvider(int batchSize, IBatchChunkContext chunkCtx, IBatchLoaderProvider<T> provider) {
         IBatchTaskContext taskCtx = chunkCtx.getTaskContext();
 
-        IBatchLoaderProvider.IBatchLoader loader = taskCtx.computeIfAbsent(KEY_LOADER, k -> {
+        // key中纳入provider身份，避免同一任务上下文中多个provider复用固定key时互相串扰，
+        // 命中别的provider的缓存loader导致返回错误数据源的结果
+        String key = KEY_LOADER + ':' + System.identityHashCode(provider);
+        IBatchLoaderProvider.IBatchLoader loader = taskCtx.computeIfAbsent(key, k -> {
             return provider.setup(taskCtx);
         });
         return loader.load(batchSize, chunkCtx);

@@ -92,6 +92,11 @@ public class AsyncFetchPartitionDispatchLoaderProvider<S>
 
             MapOfInt<List<S>> map = queue.takeBatch(batchSize, ctx.getThreadIndex(), null);
             if (map == null) {
+                // takeBatch返回null表示不再有数据。此时fetch线程可能是因为异常而退出，
+                // 需要再次检查异常，避免加载失败被静默吞掉、任务以0条记录"成功"结束
+                err = exception.get();
+                if (err != null)
+                    throw NopException.adapt(err);
                 return Collections.emptyList();
             }
 
@@ -110,7 +115,7 @@ public class AsyncFetchPartitionDispatchLoaderProvider<S>
             final int threadIndex = i;
             executor.execute(() -> {
                 try {
-                    while (!context.isCancelled()) {
+                    while (!context.isCancelled() && !queue.isFinished()) {
                         IBatchChunkContext ctx = context.newChunkContext();
                         ctx.setConcurrency(fetchThreadCount);
                         ctx.setThreadIndex(threadIndex);
@@ -126,8 +131,9 @@ public class AsyncFetchPartitionDispatchLoaderProvider<S>
                                 queue.addBatch(list);
                             }
                         } catch (Exception e) {
-                            LOG.info("nop.batch.exit-fetch-thread-when-fail:threadIndex={}", threadIndex, e);
-                            exception.set(e);
+                            LOG.error("nop.batch.exit-fetch-thread-when-fail:threadIndex={}", threadIndex, e);
+                            // 保留第一个异常作为根因，避免被后续线程的次要异常覆盖
+                            exception.compareAndSet(null, e);
                             return;
                         }
                     }

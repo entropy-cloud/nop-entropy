@@ -11,6 +11,7 @@ import io.nop.batch.dao.entity.NopBatchRecordResult;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IEntityDao;
 
 import java.util.ArrayList;
@@ -75,6 +76,33 @@ public class DaoBatchRecordHistoryStore<S> implements IBatchRecordHistoryStore<S
 
     @Override
     public void saveProcessed(Collection<S> filtered, Throwable exception, IBatchChunkContext context) {
+        // 仅在处理成功时写入历史记录（resultStatus=0）。失败时不写入，重启后这些记录会被重新处理。
+        // 写入与consume在同一事务内（WithHistoryBatchConsumer包装在事务内层），成功提交后历史一定可见
+        if (exception != null || filtered.isEmpty())
+            return;
 
+        String taskId = context.getTaskId();
+        IEvalFunction keyFn = model.getRecordKeyExpr();
+        IEvalFunction infoFn = model.getRecordInfoExpr();
+        IEvalScope scope = context.getEvalScope();
+
+        for (S record : filtered) {
+            NopBatchRecordResult result = dao.newEntity();
+            result.setBatchTaskId(taskId);
+            result.setRecordKey(getRecordKey(record, keyFn, scope));
+            result.setResultStatus(0);
+            if (infoFn != null) {
+                Object info = infoFn.call1(null, record, scope);
+                if (info != null)
+                    result.setRecordInfo(toRecordInfo(info));
+            }
+            dao.saveEntity(result);
+        }
+    }
+
+    private String toRecordInfo(Object info) {
+        if (info instanceof String)
+            return (String) info;
+        return JsonTool.stringify(info);
     }
 }

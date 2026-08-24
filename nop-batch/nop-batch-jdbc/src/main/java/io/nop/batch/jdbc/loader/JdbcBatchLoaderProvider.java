@@ -34,6 +34,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.BiFunction;
 
@@ -163,13 +164,19 @@ public class JdbcBatchLoaderProvider<T> implements IBatchLoaderProvider<T> {
 
         PreparedStatement ps;
 
+        private boolean closed;
+
         public synchronized void close() {
+            closed = true;
             IoHelper.safeCloseObject(ps);
             IoHelper.safeCloseObject(dataSet);
             if (closeConnection)
                 IoHelper.safeCloseObject(connection);
         }
 
+        public synchronized boolean isClosed() {
+            return closed;
+        }
     }
 
     @Override
@@ -269,6 +276,11 @@ public class JdbcBatchLoaderProvider<T> implements IBatchLoaderProvider<T> {
     }
 
     List<T> load(int batchSize, IBatchChunkContext context, LoaderState state) {
+        // concurrency>1且无dispatch包装时，多个消费线程共享同一LoaderState。线程A读到空数据后会close状态，
+        // 兄弟线程B随后进入load时不能再触碰已关闭的ResultSet/PreparedStatement，直接返回空列表表示EOF
+        if (state.isClosed())
+            return Collections.emptyList();
+
         List<T> list = RecordInputImpls.defaultReadBatch(state.dataSet, batchSize,
                 row -> {
                     T data = rowMapper.mapRow(row, -1, DefaultFieldMapper.INSTANCE);
