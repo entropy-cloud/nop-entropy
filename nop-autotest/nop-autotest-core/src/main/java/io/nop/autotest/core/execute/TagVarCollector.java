@@ -32,10 +32,17 @@ public class TagVarCollector {
     static class ColInfo {
         String code;
         String varNamePrefix;
+        boolean delVersionCol;
 
         public ColInfo(String colCode, String varNamePrefix) {
             this.code = colCode;
             this.varNamePrefix = varNamePrefix;
+        }
+
+        public static ColInfo delVersion(String colCode) {
+            ColInfo col = new ColInfo(colCode, "*");
+            col.delVersionCol = true;
+            return col;
         }
 
         public int hashCode() {
@@ -60,10 +67,19 @@ public class TagVarCollector {
             return row;
 
         AutoTestVars.VarsMap varsMap = AutoTestVars.getVarsMap();
-        if (varsMap == null)
-            return row;
 
         for (ColInfo col : tableVarCols) {
+            // delVersion仅在非0(逻辑删除时间戳)时替换为通配符，0保持字面值以保留断言能力
+            if (col.delVersionCol) {
+                Object value = row.get(col.code);
+                if (value instanceof Number && ((Number) value).longValue() != 0L)
+                    row.put(col.code, "*");
+                continue;
+            }
+
+            if (varsMap == null)
+                continue;
+
             if (col.varNamePrefix.equals("*")) {
                 row.put(col.code, "*");
                 continue;
@@ -87,6 +103,8 @@ public class TagVarCollector {
         for (IColumnModel col : entityModel.getColumns()) {
             if (shouldIgnore(col)) {
                 cols.add(new ColInfo(col.getCode(), "*"));
+            } else if (col.getPropId() == entityModel.getDeleteVersionPropId()) {
+                cols.add(ColInfo.delVersion(col.getCode()));
             } else if (isVarCol(col)) {
                 cols.add(new ColInfo(col.getCode(), getVarNamePrefix(col)));
             }
