@@ -139,6 +139,39 @@ public class TestJobStoreImpl extends JunitBaseTestCase {
                 "startTime should be close to current time (dispatch time), not now + lockTimeoutMs");
     }
 
+    /**
+     * check2 [P2-1]: CLAIMED 认领时必须写入 startTime（claim 时刻），使该行对
+     * {@code fetchRunningTasks}（超时扫描 + worker 存活链的入口）可见。此前 CLAIMED 行的
+     * startTime 为 null 而被 {@code not(isNull(startTime))} 过滤排除——worker 在 CAS 认领后、
+     * 置 RUNNING 前崩溃，任务对回收链路永久不可见（永不终结、所属 fire 永久 RUNNING）。
+     */
+    @Test
+    public void testClaimedTaskVisibleToRunningScanViaClaimTime() {
+        NopJobSchedule schedule = newSchedule("schedule-p21", "job-p21");
+        daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
+        NopJobFire fire = newFire("fire-p21", schedule);
+        scheduleStore.insertFireAndAdvanceSchedule(schedule, fire,
+                new Timestamp(System.currentTimeMillis() + 60000), FIRE_STATUS_WAITING);
+        NopJobTask task = newTask("task-p21", fire);
+        daoProvider.daoFor(NopJobTask.class).saveEntityDirectly(task);
+
+        List<NopJobTask> waiting = taskStore.fetchWaitingTasks(10, IntRangeSet.parse("1"));
+        assertEquals(1, waiting.size());
+
+        // 模拟 worker 认领后在置 RUNNING 前崩溃：任务停留在 CLAIMED
+        List<NopJobTask> claimed = taskStore.tryLockTasksForExecute(waiting, "worker-gone", 1000);
+        assertEquals(1, claimed.size());
+        assertEquals(_NopJobCoreConstants.TASK_STATUS_CLAIMED, claimed.get(0).getTaskStatus());
+        assertNotNull(claimed.get(0).getStartTime(),
+                "claim must persist startTime (claim time) so the CLAIMED row is visible to recovery scans");
+
+        // 关键断言：CLAIMED 行进入 fetchRunningTasks（存活链 SUSPICIOUS→TIMEOUT 的入口）
+        List<NopJobTask> runningLike = taskStore.fetchRunningTasks(10, IntRangeSet.parse("1"), null, null);
+        assertTrue(runningLike.stream().anyMatch(t -> "task-p21".equals(t.getJobTaskId())),
+                "CLAIMED task (claimed by a worker that crashed before RUNNING) must be visible to "
+                        + "fetchRunningTasks — otherwise no recovery path can ever see it");
+    }
+
     @Test
     public void testRecoveryFireNoFailedFiresContainsAllFields() {
         NopJobSchedule schedule = newSchedule("schedule-ar2", "job-ar2");
@@ -162,6 +195,37 @@ public class TestJobStoreImpl extends JunitBaseTestCase {
     }
 
     // ============== sumReservedCost（Plan 212 Phase 2）==============
+
+    /**
+     * check2 [P3-1]: overlay/manual 路径的 activeFireCount 减法必须带 Math.max 下限。
+     * 构造计数已向下漂移的 OVERLAY schedule（recorded=0 但实际 2 个 active fire），手动触发
+     * overlay 取消 2 个 fire 后计数不得为负（负值使 shouldDiscard/shouldOverlay/shouldRecovery
+     * 的 activeFireCount>0 判定永久失效，退化为无限并发执行）。
+     */
+    @Test
+    public void testManualOverlayFireCountNeverNegative() {
+        NopJobSchedule schedule = newSchedule("schedule-p31", "job-p31");
+        schedule.setBlockStrategy(2); // BLOCK_STRATEGY_OVERLAY
+        schedule.setActiveFireCount(0); // drifted low（外部写入/历史漂移）
+        daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
+
+        NopJobFire active1 = newFire("fire-p31-1", schedule);
+        active1.setFireStatus(FIRE_STATUS_RUNNING);
+        daoProvider.daoFor(NopJobFire.class).saveEntityDirectly(active1);
+        NopJobFire active2 = newFire("fire-p31-2", schedule);
+        active2.setFireStatus(FIRE_STATUS_RUNNING);
+        daoProvider.daoFor(NopJobFire.class).saveEntityDirectly(active2);
+
+        NopJobFire manual = newFire("fire-p31-m", schedule);
+        boolean inserted = scheduleStore.insertManualFire(schedule, manual);
+        assertTrue(inserted);
+
+        NopJobSchedule saved = scheduleStore.loadSchedule(schedule.getJobScheduleId());
+        assertTrue(saved.getActiveFireCount() != null && saved.getActiveFireCount() >= 0,
+                "activeFireCount must never go negative: " + saved.getActiveFireCount());
+        assertEquals(1, saved.getActiveFireCount(),
+                "max(0, 0-2 cancelled) + 1 new = 1 (floor applied to the subtraction)");
+    }
 
     /**
      * 无匹配 worker 时返回 ZERO（不抛异常，不返回 null）。

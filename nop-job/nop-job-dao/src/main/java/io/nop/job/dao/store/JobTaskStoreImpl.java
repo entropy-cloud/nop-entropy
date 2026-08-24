@@ -89,6 +89,13 @@ public class JobTaskStoreImpl implements IJobTaskStore {
      * CAS认领（WAITING→CLAIMED + workerInstanceId）。注意：{@code lockTimeoutMs}参数当前不参与
      * 认领判定——CLAIMED态的回收依赖worker存活链（SUSPICIOUS→TIMEOUT）或执行超时配置，
      * 而非认领租约超时（租约机制需设计引入，接口保留参数以兼容既有签名）。
+     * <p>
+     * check2 [P2-1]: 认领时写入 startTime（= claim 时刻）。此前 CLAIMED 行的 startTime 为 null
+     * （进入 RUNNING 才写入），被 {@link #fetchRunningTasks} 的 {@code not(isNull(startTime))}
+     * 过滤排除——worker 在认领后、置 RUNNING 前崩溃则该行对超时扫描与存活链永久不可见，
+     * 任务永不终结、所属 fire 永久 RUNNING。认领时写入后 CLAIMED 行纳入存活链扫描
+     * （isInFlight 含 CLAIMED），worker 消失即 SUSPICIOUS→TIMEOUT 回收；worker 正常推进时
+     * {@code JobWorkerScannerImpl.executeTask} 在 CLAIMED→RUNNING 转换会以真实开始时刻覆写。
      */
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
     @Override
@@ -97,9 +104,11 @@ public class JobTaskStoreImpl implements IJobTaskStore {
             return List.of();
         }
 
+        Timestamp claimTime = new Timestamp(taskDao().getDbEstimatedClock().getMaxCurrentTimeMillis());
         for (NopJobTask task : tasks) {
             task.setTaskStatus(_NopJobCoreConstants.TASK_STATUS_CLAIMED);
             task.setWorkerInstanceId(workerInstanceId);
+            task.setStartTime(claimTime);
         }
         return taskDao().tryUpdateManyWithVersionCheck(tasks);
     }

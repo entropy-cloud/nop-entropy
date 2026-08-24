@@ -6,14 +6,12 @@ import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.config.AppConfig;
 import io.nop.cluster.discovery.ServiceInstance;
 import io.nop.cluster.naming.INamingService;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.job.api.alarm.IJobAlarmHandler;
 import io.nop.job.api.alarm.JobAlarmEvent;
 import io.nop.job.core.AbstractBatchScanner;
 import io.nop.job.core._NopJobCoreConstants;
-
-import static io.nop.job.core.JobCoreErrors.ERR_JOB_SCHEDULE_DELETED;
-import static io.nop.job.core.JobCoreErrors.ERR_JOB_TIMEOUT;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
@@ -22,6 +20,7 @@ import io.nop.job.dao.store.FireScheduleOutcome;
 import io.nop.job.dao.store.IJobFireStore;
 import io.nop.job.dao.store.IJobScheduleStore;
 import io.nop.job.dao.store.IJobTaskStore;
+import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +31,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_SCHEDULE_DELETED;
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_TIMEOUT;
 
 public class JobTimeoutCheckerImpl extends AbstractBatchScanner implements IJobTimeoutChecker {
     static final Logger LOG = LoggerFactory.getLogger(JobTimeoutCheckerImpl.class);
@@ -42,6 +45,8 @@ public class JobTimeoutCheckerImpl extends AbstractBatchScanner implements IJobT
     private IJobCancelHandler cancelHandler;
     private IJobAlarmHandler alarmHandler;
     private INamingService namingService;
+    private volatile String workerServiceName;
+    private final AtomicBoolean livenessDisabledWarned = new AtomicBoolean(false);
     private long dispatchTimeoutMs = 300000;
     private long executionTimeoutMs = -1;
     private long taskDispatchWaitTimeoutMs = 600000;
@@ -70,8 +75,30 @@ public class JobTimeoutCheckerImpl extends AbstractBatchScanner implements IJobT
         this.alarmHandler = alarmHandler;
     }
 
-    public void setNamingService(INamingService namingService) {
+    /**
+     * check2 [P1-1]: 存活链依赖的发现服务。此前为无 {@code @Inject} 的普通 setter 且所有 beans.xml
+     * 均未装配该 property，默认部署下恒为 null，worker 崩溃后 RUNNING 任务/fire 的
+     * SUSPICIOUS→TIMEOUT 回收链整体失效。改为 {@code @Inject @Nullable} 按类型可选注入：
+     * 容器中存在 {@link INamingService} bean（如 SysDaoNamingService/NacosNamingService）即接线，
+     * 不存在时不阻断启动（回退 null，链路关闭并 WARN 一次）。
+     */
+    @Inject
+    public void setNamingService(@Nullable INamingService namingService) {
         this.namingService = namingService;
+    }
+
+    /** 容器接线验证（同 getTaskBuilders 的 test-access 先例）：存活链是否实际装配。 */
+    INamingService getNamingService() {
+        return namingService;
+    }
+
+    /**
+     * check2 [P1-1]: 存活检测发现的服务名。默认空 = 复用 {@code AppConfig.appName()}（旧行为）；
+     * worker 独立部署（appName 与 coordinator 不同）时通过本配置指定 worker 侧服务名。
+     */
+    @InjectValue("@cfg:nop.job.coordinator.worker-service-name|")
+    public void setWorkerServiceName(String workerServiceName) {
+        this.workerServiceName = workerServiceName;
     }
 
     @InjectValue("@cfg:nop.job.coordinator.timeout.scan-interval-ms|5000")
@@ -238,10 +265,16 @@ public class JobTimeoutCheckerImpl extends AbstractBatchScanner implements IJobT
 
     private Set<String> resolveAliveWorkerIds() {
         if (namingService == null) {
+            // check2 [P1-1]: 存活链未接线时提示一次——无超时配置的部署下 RUNNING 任务将无法回收
+            if (livenessDisabledWarned.compareAndSet(false, true)) {
+                LOG.warn("nop.job.timeout.worker-liveness-disabled:namingService not configured; "
+                        + "RUNNING tasks of crashed workers can only be recovered via timeout configs "
+                        + "(schedule.timeoutSeconds / nop.job.coordinator.execution-timeout-ms)");
+            }
             return null;
         }
         try {
-            String svcName = AppConfig.appName();
+            String svcName = StringHelper.isEmpty(workerServiceName) ? AppConfig.appName() : workerServiceName;
             List<ServiceInstance> instances = namingService.getInstances(svcName);
             if (instances == null || instances.isEmpty()) {
                 return null;
@@ -301,8 +334,11 @@ public class JobTimeoutCheckerImpl extends AbstractBatchScanner implements IJobT
                 }
                 task.setTaskStatus(_NopJobCoreConstants.TASK_STATUS_CANCELED);
                 task.setEndTime(endTime);
-                task.setErrorCode(ERR_JOB_TIMEOUT.getErrorCode());
-                task.setErrorMessage(ERR_JOB_TIMEOUT.getDescription());
+                // check2 [P3-12]: schedule 已删除分支的任务行错误码与 fire 层一致用
+                // ERR_JOB_SCHEDULE_DELETED（此前误写 ERR_JOB_TIMEOUT，按任务错误码聚合统计时
+                // 把"调度定义被删"误报为"执行超时"）
+                task.setErrorCode(ERR_JOB_SCHEDULE_DELETED.getErrorCode());
+                task.setErrorMessage(ERR_JOB_SCHEDULE_DELETED.getDescription());
                 if (!taskStore.updateTask(task)) {
                     LOG.warn("nop.job.timeout.dispatch-deleted-task-update-conflict:taskId={}", task.getJobTaskId());
                 }

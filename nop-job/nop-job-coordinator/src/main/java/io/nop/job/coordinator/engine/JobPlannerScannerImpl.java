@@ -4,6 +4,7 @@ import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.annotations.orm.SingleSession;
 import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.config.AppConfig;
+import io.nop.commons.util.StringHelper;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.job.api.spec.TriggerSpec;
 import io.nop.job.coordinator.metrics.IJobPlannerMetrics;
@@ -159,6 +160,30 @@ public class JobPlannerScannerImpl extends AbstractBatchScanner implements IJobP
             return;
         }
 
+        if (isTriggerExhausted(schedule, nextFireTime, dueFireTime)) {
+            // check2 [P0]: trigger 链已耗尽（OnceTrigger 的持久化 once 判定/misfire 丢弃返回-1）。
+            // 当前 due 槽位已被消费（lastFireTime >= dueFireTime，如 once schedule 首次触发后
+            // nextFireTime 被写回为同一个过去时刻导致重复 due）或 once 型 schedule 被判定耗尽时，
+            // 不得再插入任何新 fire，直接置 nextFireTime=null 使 schedule 转入 dormant。
+            // 注意与 fixed-delay 区分：其 nextFireTime=null 是设计语义（完成时才计算下一次），
+            // 由 isFixedDelay 提前短路，不进本分支。
+            LOG.info("nop.job.planner.trigger-exhausted:scheduleId={},dueFireTime={}",
+                    schedule.getJobScheduleId(), dueFireTime);
+            scheduleStore.advanceScheduleAfterSkip(schedule, null);
+            return;
+        }
+
+        // check2 [P3-2]: 未知 blockStrategy 统一按 DISCARD 处理（跳过 + warn）。此前该分支以
+        // activeFireCount>0 为前提——忙时跳过、闲时落入普通插入执行，同一非法配置产生两种行为
+        // 且 warn 只在忙时出现；现与忙闲状态解耦，行为一致、排障日志恒可见。
+        if (schedule.getBlockStrategy() != null
+                && !isKnownBlockStrategy(schedule.getBlockStrategy())) {
+            LOG.warn("nop.job.planner.unknown-block-strategy:scheduleId={},blockStrategy={},defaulting to DISCARD",
+                    schedule.getJobScheduleId(), schedule.getBlockStrategy());
+            scheduleStore.advanceScheduleAfterSkip(schedule, nextFireTime);
+            return;
+        }
+
         if (shouldDiscard(schedule)) {
             scheduleStore.advanceScheduleAfterSkip(schedule, nextFireTime);
             return;
@@ -182,15 +207,6 @@ public class JobPlannerScannerImpl extends AbstractBatchScanner implements IJobP
             return;
         }
 
-        if (defaultInt(schedule.getActiveFireCount()) > 0
-                && schedule.getBlockStrategy() != null
-                && !isKnownBlockStrategy(schedule.getBlockStrategy())) {
-            LOG.warn("nop.job.planner.unknown-block-strategy:scheduleId={},blockStrategy={},defaulting to DISCARD",
-                    schedule.getJobScheduleId(), schedule.getBlockStrategy());
-            scheduleStore.advanceScheduleAfterSkip(schedule, nextFireTime);
-            return;
-        }
-
         scheduleStore.insertFireAndAdvanceSchedule(schedule, fire, nextFireTime,
                 _NopJobCoreConstants.FIRE_STATUS_WAITING);
     }
@@ -207,6 +223,36 @@ public class JobPlannerScannerImpl extends AbstractBatchScanner implements IJobP
                 scheduleStore.getCurrentTime()
         );
         return next <= 0 ? null : new Timestamp(next);
+    }
+
+    /**
+     * check2 [P0]：非 fixed-delay 的 schedule 计算结果为 null 表示 trigger 链已耗尽。此时：
+     * <ul>
+     * <li>once 型（无 cron 且 repeatInterval<=0，对应 OnceTrigger）：耗尽即终局——无论 due 槽位
+     * 是否已消费（已触发过 lastFireTime>=onceTime，或 misfire 丢弃），都不得再创建 fire；</li>
+     * <li>周期型（cron/fixed-rate）：仅当 due 槽位已被消费（lastFireTime >= dueFireTime，重复 due）
+     * 时跳过；due 槽位尚未消费（如到达 maxScheduleTime 边界的最后一次 catch-up 触发）仍照常触发。</li>
+     * </ul>
+     */
+    private boolean isTriggerExhausted(NopJobSchedule schedule, Timestamp nextFireTime, Timestamp dueFireTime) {
+        if (nextFireTime != null) {
+            return false;
+        }
+        if (schedule.getTriggerType() != null
+                && schedule.getTriggerType() == _NopJobCoreConstants.TRIGGER_TYPE_FIXED_DELAY) {
+            return false;
+        }
+        boolean onceLike = StringHelper.isEmpty(schedule.getCronExpr())
+                && defaultLong(schedule.getRepeatIntervalMs()) <= 0;
+        if (onceLike) {
+            return true;
+        }
+        Timestamp lastFireTime = schedule.getLastFireTime();
+        return lastFireTime != null && !dueFireTime.after(lastFireTime);
+    }
+
+    private long defaultLong(Long value) {
+        return value == null ? 0L : value;
     }
 
     private TriggerSpec toTriggerSpec(NopJobSchedule schedule) {

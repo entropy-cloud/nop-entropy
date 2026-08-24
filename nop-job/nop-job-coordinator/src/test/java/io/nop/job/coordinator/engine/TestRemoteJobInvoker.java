@@ -28,6 +28,8 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -102,7 +104,24 @@ public class TestRemoteJobInvoker {
         JobFireResult result = await(invoker.invokeAsync(ctx(false)));
 
         assertTrue(result.isErrorResult());
+        // 非 NopException：保留笼统 REMOTE_INVOKE_FAILED
         assertEquals(JobCoreErrors.ERR_JOB_REMOTE_INVOKE_FAILED.getErrorCode(), result.getError().getErrorCode());
+    }
+
+    /**
+     * check2 [P3-5]: startJob 抛出的 NopException 携带语义错误码时必须原样透传，
+     * 不得被 invokeAsync 的 catch-all 抹平为 ERR_JOB_REMOTE_INVOKE_FAILED
+     * （如"serviceName 未配置"被记成"远程调用失败"会误导排障与错误码告警分类）。
+     */
+    @Test
+    void testStartJobThrowsNopException_originalErrorCodePreserved() {
+        client.startError = new io.nop.api.core.exceptions.NopException(JobCoreErrors.ERR_JOB_SERVICE_NAME_REQUIRED);
+
+        JobFireResult result = await(invoker.invokeAsync(ctx(false)));
+
+        assertTrue(result.isErrorResult());
+        assertEquals(JobCoreErrors.ERR_JOB_SERVICE_NAME_REQUIRED.getErrorCode(), result.getError().getErrorCode(),
+                "semantic error code from startJob must be preserved, not flattened to REMOTE_INVOKE_FAILED");
     }
 
     @Test
@@ -223,6 +242,114 @@ public class TestRemoteJobInvoker {
 
         assertTrue(cancelled);
         assertTrue(client.cancelCalled);
+    }
+
+    /**
+     * check2 [P1-2]: 单个挂起的 getJobStatus RPC 不得阻塞其他 rpcPoll 任务的轮询。
+     * 此前所有轮询回调共享静态单线程执行器——task-a 的 poll 挂起时 task-b 的 poll 永远排不上。
+     * 修复后为可配置小型线程池（默认 2）：task-a 的 poll 阻塞在 latch 上时，task-b 的 poll
+     * 必须仍能完成并 resolve future。
+     */
+    @Test
+    void testHungPollDoesNotBlockOtherPollTasks() throws Exception {
+        CountDownLatch hungEntered = new CountDownLatch(1);
+        CountDownLatch releaseHung = new CountDownLatch(1);
+        AtomicInteger hungPollCount = new AtomicInteger();
+
+        BlockingPollClient selective = new BlockingPollClient(hungEntered, releaseHung, hungPollCount);
+        invoker.setRpcPollTaskClient(selective);
+        invoker.setTaskStore(new MockTaskStore() {
+            @Override
+            public NopJobTask loadTask(String jobTaskId) {
+                NopJobTask t = new NopJobTask();
+                t.setJobTaskId(jobTaskId);
+                t.setJobFireId(FIRE_ID);
+                t.setTaskStatus(20);
+                return t;
+            }
+        });
+
+        CompletableFuture<JobFireResult> futureA =
+                (CompletableFuture<JobFireResult>) invoker.invokeAsync(ctxForTask("task-a"));
+        CompletableFuture<JobFireResult> futureB =
+                (CompletableFuture<JobFireResult>) invoker.invokeAsync(ctxForTask("task-b"));
+
+        // task-b 的 poll（~1s 后）返回 SUCCESS → future 完成；此时 task-a 的 poll 仍挂起
+        JobFireResult resultB = futureB.get(10, TimeUnit.SECONDS);
+        assertFalse(resultB.isErrorResult(), "task-b poll must complete while task-a poll is hung");
+        assertTrue(hungEntered.await(10, TimeUnit.SECONDS), "task-a poll must have started (and be hung)");
+
+        // 释放 task-a：第二次 poll 返回 CANCELLED → future 终结、轮询取消（测试清理）
+        releaseHung.countDown();
+        JobFireResult resultA = futureA.get(10, TimeUnit.SECONDS);
+        assertTrue(resultA.isErrorResult());
+        assertEquals(JobCoreErrors.ERR_JOB_CANCELED.getErrorCode(), resultA.getError().getErrorCode());
+    }
+
+    /** task-a 的 getJobStatus 阻塞在 latch 上（第一次），释放后第二次返回 CANCELLED。 */
+    private static final class BlockingPollClient implements IRpcPollTaskClient {
+        private final CountDownLatch hungEntered;
+        private final CountDownLatch releaseHung;
+        private final AtomicInteger hungPollCount;
+
+        BlockingPollClient(CountDownLatch hungEntered, CountDownLatch releaseHung, AtomicInteger hungPollCount) {
+            this.hungEntered = hungEntered;
+            this.releaseHung = releaseHung;
+            this.hungPollCount = hungPollCount;
+        }
+
+        @Override
+        public String startJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
+            return task.getJobTaskId();
+        }
+
+        @Override
+        public TaskStatusBean getJobStatus(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
+            if ("task-a".equals(task.getJobTaskId())) {
+                if (hungPollCount.incrementAndGet() == 1) {
+                    hungEntered.countDown();
+                    try {
+                        releaseHung.await(15, TimeUnit.SECONDS);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                    return status(TaskStatusBean.STATUS_RUNNING);
+                }
+                return status(TaskStatusBean.STATUS_CANCELLED);
+            }
+            return status(TaskStatusBean.STATUS_SUCCESS);
+        }
+
+        @Override
+        public boolean cancelJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
+            return true;
+        }
+    }
+
+    private IJobExecutionContext ctxForTask(String taskId) {
+        Ctx c = new Ctx();
+        c.setAttribute("jobTaskId", taskId);
+        c.setAttribute("jobFireId", FIRE_ID);
+        c.setCancelToken(new ICancelToken() {
+            @Override
+            public boolean isCancelled() {
+                return false;
+            }
+
+            @Override
+            public String getCancelReason() {
+                return null;
+            }
+
+            @Override
+            public void appendOnCancel(java.util.function.Consumer<String> task) {
+            }
+
+            @Override
+            public void removeOnCancel(java.util.function.Consumer<String> task) {
+            }
+        });
+        return c;
     }
 
     private IJobExecutionContext ctx(boolean cancelled) {

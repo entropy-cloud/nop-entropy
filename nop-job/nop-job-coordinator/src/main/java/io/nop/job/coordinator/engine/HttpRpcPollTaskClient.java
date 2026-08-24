@@ -1,14 +1,14 @@
 package io.nop.job.coordinator.engine;
 
 import io.nop.api.core.ApiConstants;
+import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.task.TaskStatusBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.rpc.IRpcServiceInvoker;
 import io.nop.api.core.util.FutureHelper;
-import io.nop.core.lang.json.JsonTool;
-import io.nop.job.api.NopJobApiConstants;
+import io.nop.core.lang.json.JsonTool;import io.nop.job.api.NopJobApiConstants;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
@@ -42,12 +42,23 @@ public class HttpRpcPollTaskClient implements IRpcPollTaskClient {
     private String startMethod = DEFAULT_START_METHOD;
     private String statusMethod = DEFAULT_STATUS_METHOD;
     private String cancelMethod = DEFAULT_CANCEL_METHOD;
+    /**
+     * check2 [P1-2]: getJobStatus/cancelJob 的单次 RPC 超时（HEADER_TIMEOUT，毫秒）。
+     * 此前仅 startJob 注入超时头，poll/cancel 完全依赖 rpc 框架全局默认超时——网络分区下
+     * 单个挂起的 getJobStatus 会独占轮询线程。默认 10s（poll 为轻量查询，应远短于任务执行
+     * 超时）；{@code <=0} 表示不注入（回退旧行为）。
+     */
+    private long pollTimeoutMs = 10000;
 
     @Inject
     public void setRpcServiceInvoker(IRpcServiceInvoker rpcServiceInvoker) {
         this.rpcServiceInvoker = rpcServiceInvoker;
     }
 
+    @InjectValue("@cfg:nop.job.remote.poll-timeout-ms|10000")
+    public void setPollTimeoutMs(long pollTimeoutMs) {
+        this.pollTimeoutMs = pollTimeoutMs;
+    }
     public void setStartMethod(String startMethod) {
         this.startMethod = startMethod;
     }
@@ -84,6 +95,14 @@ public class HttpRpcPollTaskClient implements IRpcPollTaskClient {
 
         ApiResponse<?> response = FutureHelper.syncGet(rpcServiceInvoker.invokeAsync(
                 serviceName, startMethod, request, null));
+        // check2 [P3-4]: 非 ok 响应（远程异常经 ApiResponse 传回）必须携带远程 code/msg 抛出，
+        // 此前仅判 data==null 抛笼统 REMOTE_INVOKE_FAILED，远程错误细节丢失无法排障
+        if (!response.isOk()) {
+            throw new NopException(ERR_JOB_REMOTE_INVOKE_FAILED)
+                    .param("taskId", task.getJobTaskId())
+                    .param("responseCode", response.getCode())
+                    .param("responseMsg", response.getMsg());
+        }
         Object result = response.getData();
         if (result == null) {
             throw new NopException(ERR_JOB_REMOTE_INVOKE_FAILED)
@@ -100,6 +119,7 @@ public class HttpRpcPollTaskClient implements IRpcPollTaskClient {
         ApiRequest<Object> request = new ApiRequest<>();
         injectFrameworkHeaders(request, fire, task, schedule);
         injectTargetHost(request, task);
+        injectPollTimeoutHeader(request);
         request.setData(Map.of("instanceId", task.getJobTaskId()));
 
         ApiResponse<?> response = FutureHelper.syncGet(rpcServiceInvoker.invokeAsync(
@@ -123,6 +143,7 @@ public class HttpRpcPollTaskClient implements IRpcPollTaskClient {
         ApiRequest<Object> request = new ApiRequest<>();
         injectFrameworkHeaders(request, fire, task, schedule);
         injectTargetHost(request, task);
+        injectPollTimeoutHeader(request);
         request.setData(Map.of("instanceId", task.getJobTaskId()));
 
         ApiResponse<?> response = FutureHelper.syncGet(rpcServiceInvoker.invokeAsync(
@@ -196,6 +217,13 @@ public class HttpRpcPollTaskClient implements IRpcPollTaskClient {
         Integer timeoutSeconds = schedule != null ? schedule.getTimeoutSeconds() : null;
         if (timeoutSeconds != null && timeoutSeconds > 0) {
             request.setHeader(ApiConstants.HEADER_TIMEOUT, timeoutSeconds * 1000L);
+        }
+    }
+
+    /** check2 [P1-2]: poll/cancel 的独立较短超时（与 startJob 的任务级超时解耦）。 */
+    private void injectPollTimeoutHeader(ApiRequest<Object> request) {
+        if (pollTimeoutMs > 0) {
+            request.setHeader(ApiConstants.HEADER_TIMEOUT, pollTimeoutMs);
         }
     }
 }

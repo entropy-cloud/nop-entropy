@@ -47,17 +47,20 @@ import static io.nop.job.core.JobCoreErrors.ERR_JOB_TIMEOUT;
 public class RemoteJobInvoker implements IJobInvoker {
     static final Logger LOG = LoggerFactory.getLogger(RemoteJobInvoker.class);
 
-    private static final ScheduledExecutorService POLL_EXECUTOR = Executors.newSingleThreadScheduledExecutor(r -> {
-        Thread t = new Thread(r, "nop-job-rpcPoll");
-        t.setDaemon(true);
-        return t;
-    });
+    /**
+     * check2 [P1-2]: 轮询执行器。此前为静态单线程——所有 rpcPoll 任务的轮询回调（DB loadTask +
+     * 同步 getJobStatus RPC）串行执行，任一 RPC 挂起会独占唯一线程，全部 rpcPoll 轮询停摆。
+     * 改为按 {@code nop.job.remote.poll-threads}（默认 2）配置的小型线程池；singleton bean 下
+     * 全模块共享一个池，daemon 线程随进程退出（与原静态执行器生命周期一致，无 shutdown 钩子）。
+     */
+    private volatile ScheduledExecutorService pollExecutor;
 
     private IJobTaskStore taskStore;
     private IJobFireStore fireStore;
     private IJobScheduleStore scheduleStore;
     private IRpcPollTaskClient rpcPollTaskClient;
     private long pollIntervalMs = 5000;
+    private int pollThreads = 2;
 
     @Inject
     public void setTaskStore(IJobTaskStore taskStore) {
@@ -88,6 +91,33 @@ public class RemoteJobInvoker implements IJobInvoker {
         this.pollIntervalMs = pollIntervalMs;
     }
 
+    @InjectValue("@cfg:nop.job.remote.poll-threads|2")
+    public void setPollThreads(int pollThreads) {
+        if (pollThreads < 1 || pollThreads > 32) {
+            throw new IllegalArgumentException(
+                    "nop.job.remote.poll-threads must be within [1,32], got " + pollThreads);
+        }
+        this.pollThreads = pollThreads;
+    }
+
+    private ScheduledExecutorService pollExecutor() {
+        ScheduledExecutorService executor = pollExecutor;
+        if (executor == null) {
+            synchronized (this) {
+                executor = pollExecutor;
+                if (executor == null) {
+                    executor = Executors.newScheduledThreadPool(pollThreads, r -> {
+                        Thread t = new Thread(r, "nop-job-rpcPoll");
+                        t.setDaemon(true);
+                        return t;
+                    });
+                    pollExecutor = executor;
+                }
+            }
+        }
+        return executor;
+    }
+
     @Override
     public CompletionStage<JobFireResult> invokeAsync(IJobExecutionContext jobCtx) {
         CompletableFuture<JobFireResult> future = new CompletableFuture<>();
@@ -111,7 +141,10 @@ public class RemoteJobInvoker implements IJobInvoker {
             schedulePolling(future, jobCtx, schedule, fire, task);
         } catch (Exception e) {
             LOG.warn("nop.job.remote.start-failed:taskId={}", jobCtx.getAttributes().get("jobTaskId"), e);
-            future.complete(JobFireResult.ERROR(toError(ERR_JOB_REMOTE_INVOKE_FAILED)));
+            // check2 [P3-5]: NopException 携带的语义错误码（SERVICE_NAME_REQUIRED/TASK_LOST 等）
+            // 原样透传，不再统一抹平为 ERR_JOB_REMOTE_INVOKE_FAILED——任务失败原因失真会误导
+            // 排障与基于错误码的告警分类
+            future.complete(JobFireResult.ERROR(toError(e)));
         }
         return future;
     }
@@ -119,7 +152,7 @@ public class RemoteJobInvoker implements IJobInvoker {
     private void schedulePolling(CompletableFuture<JobFireResult> future, IJobExecutionContext jobCtx,
                                  NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
         long deadline = computeDeadline(schedule);
-        java.util.concurrent.ScheduledFuture<?> pollHandle = POLL_EXECUTOR.scheduleWithFixedDelay(() -> {
+        java.util.concurrent.ScheduledFuture<?> pollHandle = pollExecutor().scheduleWithFixedDelay(() -> {
             if (future.isDone()) {
                 return;
             }
@@ -238,5 +271,16 @@ public class RemoteJobInvoker implements IJobInvoker {
 
     private static ErrorBean toError(ErrorCode errorCode, String description) {
         return new ErrorBean(errorCode.getErrorCode()).description(description);
+    }
+
+    /** check2 [P3-5]: 保留 NopException 的原始错误码与描述，非 NopException 回退笼统错误码。 */
+    private static ErrorBean toError(Throwable e) {
+        if (e instanceof NopException) {
+            String code = ((NopException) e).getErrorCode();
+            if (code != null) {
+                return new ErrorBean(code).description(e.getMessage());
+            }
+        }
+        return toError(ERR_JOB_REMOTE_INVOKE_FAILED);
     }
 }

@@ -20,6 +20,7 @@ import io.nop.job.api.spec.HolidayCalendarSpec;
 import io.nop.job.api.spec.MonthlyCalendarSpec;
 import io.nop.job.api.spec.WeeklyCalendarSpec;
 import io.nop.job.core.ICalendar;
+import io.nop.job.core.JobCoreErrors;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -102,6 +103,17 @@ public class CalendarBuilder {
                     int year = ConvertHelper.toPrimitiveInt(entry.getKey(), NopException::new);
                     String str = entry.getValue();
                     if (!StringHelper.isEmpty(str)) {
+                        // check2 [P2-2]: 位串第 i 位表示第 i+1 天，长度不得超过当年实际天数
+                        //（闰年 366/平年 365）。此前未校验——平年配置 366 位且第 366 位为 '1'
+                        //（如闰年配置复制到平年）会抛裸 DateTimeException，planner 路径每周期
+                        // 重复失败且 nextFireTime 不推进（schedule 永不触发 + error 日志风暴）。
+                        int yearLen = java.time.Year.isLeap(year) ? 366 : 365;
+                        if (str.length() > yearLen) {
+                            throw new NopException(JobCoreErrors.ERR_JOB_CALENDAR_INVALID_YEAR_DAYS)
+                                    .param(JobCoreErrors.ARG_YEAR, year)
+                                    .param(JobCoreErrors.ARG_EXPECTED_MAX, yearLen)
+                                    .param(JobCoreErrors.ARG_ACTUAL, str.length());
+                        }
                         for (int i = 0, n = str.length(); i < n; i++) {
                             if (str.charAt(i) == '1') {
                                 LocalDate date = LocalDate.ofYearDay(year, i + 1);
