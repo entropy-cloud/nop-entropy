@@ -12,8 +12,6 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.xlang.xdsl.DslNodeLoader;
 import io.nop.xlang.xdsl.XDslParseHelper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -36,8 +34,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  * <p>只保留必要的xdef属性：name, ref, body-type, key-attr, unique-attr
  */
 public class XDefMergeLoader {
-
-    static final Logger LOG = LoggerFactory.getLogger(XDefMergeLoader.class);
 
     private static final Set<String> KEEP_XDEF_ATTRS = Set.of(
             "xdef:name", "xdef:ref", "xdef:body-type", "xdef:key-attr", "xdef:unique-attr"
@@ -241,14 +237,9 @@ public class XDefMergeLoader {
     }
 
     private XNode loadRefNode(String refPath) {
-        try {
-            IResource refResource = VirtualFileSystem.instance().getResource(refPath);
-            XNode refNode = DslNodeLoader.INSTANCE.loadFromResource(refResource).getNode();
-            return transformNode(refNode);
-        } catch (Exception e) {
-            LOG.warn("nop.xlang.xdef.merge-load-ref-fail:refPath={}", refPath, e);
-            return null;
-        }
+        IResource refResource = VirtualFileSystem.instance().getResource(refPath);
+        XNode refNode = DslNodeLoader.INSTANCE.loadFromResource(refResource).getNode();
+        return transformNode(refNode);
     }
 
     private String generateDefineName(String refPath) {

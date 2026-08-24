@@ -1,5 +1,6 @@
 package io.nop.xlang.xdef;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
@@ -14,6 +15,7 @@ import java.util.Collection;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestXDefMergeLoader {
@@ -142,5 +144,31 @@ public class TestXDefMergeLoader {
         assertTrue(loader.getCollectedDefines().containsKey(firstRef),
                 "xdef:ref should point to a collected define, but got: " + firstRef
                         + ", collected: " + loader.getCollectedDefines().keySet());
+    }
+
+    /**
+     * xdef:ref 引用的资源加载失败时必须抛出 NopException（携带引用路径），
+     * 不得静默吞掉异常后输出引用断裂/悬空的部分合并模型
+     */
+    @Test
+    public void testLoadMissingRefFails() {
+        XDefMergeOptions options = XDefMergeOptions.forAi();
+        XDefMergeLoader loader = new XDefMergeLoader(options);
+
+        NopException e = assertThrows(NopException.class, () -> loader.loadFromPath("/test/merge-missing-ref.xdef"));
+        assertNotNull(e.getParam("resourcePath") != null ? e.getParam("resourcePath") : e.getParam("path"));
+        assertTrue(String.valueOf(e).contains("not-exist-ref-target.xdef"),
+                "exception should mention the missing ref path: " + e);
+    }
+
+    /**
+     * define 模式下同样不得吞掉 ref 加载失败
+     */
+    @Test
+    public void testLoadMissingRefFailsInDefineMode() {
+        XDefMergeOptions options = XDefMergeOptions.forMetaModel();
+        XDefMergeLoader loader = new XDefMergeLoader(options);
+
+        assertThrows(NopException.class, () -> loader.loadFromPath("/test/merge-missing-ref.xdef"));
     }
 }
