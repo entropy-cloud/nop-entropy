@@ -53,4 +53,25 @@ public class TestRedirectValidation {
         assertEquals("__Host-x",
                 AuthHttpServerFilter.hostPrefixedCookieName("__Host-x", true));
     }
+
+    @Test
+    public void testAllowedPrefixWithoutTrailingSlash_enforcesHostBoundary() {
+        // 配置无尾斜杠前缀时，匹配必须在 host 边界结束：
+        // prefix 之后只允许 串尾 / path起始 / query起始 / fragment起始
+        AuthFilterConfig config = new AuthFilterConfig();
+        config.setAllowedRedirectPrefixes(Collections.singletonList("https://app.example.com"));
+        AuthHttpServerFilter filter = newFilter(config);
+
+        assertTrue(filter.isAllowedRedirectUri("https://app.example.com"));
+        assertTrue(filter.isAllowedRedirectUri("https://app.example.com/home"));
+        assertTrue(filter.isAllowedRedirectUri("https://app.example.com?x=1"));
+        assertTrue(filter.isAllowedRedirectUri("https://app.example.com#frag"));
+
+        // host 后缀拼接攻击域：必须拒绝
+        assertFalse(filter.isAllowedRedirectUri("https://app.example.com.attacker.com/phish"),
+                "startsWith 前缀匹配不得放行 host 后缀拼接的攻击域");
+        // userinfo 形式（@ 前的 host 部分被忽略，真实 host 是 evil.com）：必须拒绝
+        assertFalse(filter.isAllowedRedirectUri("https://app.example.com@evil.com"));
+        assertFalse(filter.isAllowedRedirectUri("https://app.example.com:8080@evil.com"));
+    }
 }

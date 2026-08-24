@@ -132,6 +132,12 @@ public class BufferedStreamingPublisher implements Flow.Publisher<Object> {
         private long demand;        // guarded by this
         private boolean terminated; // guarded by this
         private Attempt attempt;    // guarded by this
+        /**
+         * 上游已 onComplete 但缓冲区尚有未交付元素（demand 耗尽）时挂起终态：
+         * 后续 request() 冲空缓冲后才补发 onComplete（Flow 规范：onComplete 前必须
+         * 交付所有已发出元素，尾部数据不得丢弃）。
+         */
+        private Attempt pendingComplete; // guarded by this
         private int attemptCount;
 
         BufferedSubscription(Flow.Subscriber<? super Object> subscriber) {
@@ -157,6 +163,15 @@ public class BufferedStreamingPublisher implements Flow.Publisher<Object> {
                 if (current != null) {
                     flushBuffer(current);
                 }
+                // 挂起的终态：冲空缓冲后补发 onComplete（尾部元素不得随 onComplete 丢弃）
+                Attempt pc = pendingComplete;
+                if (pc != null) {
+                    flushAll(pc);
+                    if (pc.buffer.isEmpty()) {
+                        pendingComplete = null;
+                        terminate(null);
+                    }
+                }
             }
         }
 
@@ -174,6 +189,7 @@ public class BufferedStreamingPublisher implements Flow.Publisher<Object> {
             synchronized (this) {
                 current = attempt;
                 attempt = null;
+                pendingComplete = null; // 已取消：挂起的终态不再补发
                 notifyLifecycle = !terminated;
                 terminated = true;
             }
@@ -310,6 +326,12 @@ public class BufferedStreamingPublisher implements Flow.Publisher<Object> {
 
         private void handleComplete(Attempt state) {
             flushAll(state);
+            if (!state.buffer.isEmpty() && !cancelled.get()) {
+                // demand 耗尽且缓冲区还有元素：挂起终态，等后续 request() 冲空缓冲再补发
+                // onComplete——缓冲的尾部元素（如携带 finish_reason/usage 的最后 chunk）不得丢弃
+                pendingComplete = state;
+                return;
+            }
             terminate(null);
         }
 

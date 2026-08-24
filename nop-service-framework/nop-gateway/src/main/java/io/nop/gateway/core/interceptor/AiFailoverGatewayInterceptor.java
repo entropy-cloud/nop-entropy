@@ -13,6 +13,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
@@ -20,9 +22,18 @@ public class AiFailoverGatewayInterceptor implements IGatewayInterceptor {
 
     private static final Logger LOG = LoggerFactory.getLogger(AiFailoverGatewayInterceptor.class);
 
+    /**
+     * fallback 请求默认不转发的凭证/会话头（key 按小写比较，与 HTTP 层小写化约定一致）。
+     * fallback 常指向另一提供商域，主上游凭证外发会造成凭证泄漏；同 key 多端点场景可显式
+     * 开启 {@link #forwardSensitiveHeaders}。
+     */
+    private static final Set<String> SENSITIVE_HEADERS = Set.of(
+            "authorization", "proxy-authorization", "x-api-key", "cookie");
+
     private IHttpClient httpClient;
     private List<String> fallbackUrls = new ArrayList<>();
     private int maxRetries = 3;
+    private boolean forwardSensitiveHeaders = false;
 
     @Inject
     public void setHttpClient(IHttpClient httpClient) {
@@ -33,8 +44,16 @@ public class AiFailoverGatewayInterceptor implements IGatewayInterceptor {
         this.fallbackUrls = fallbackUrls;
     }
 
+    /**
+     * fallback 尝试次数上限（不含主上游调用）。默认 3；实际尝试数 =
+     * min(fallbackUrls.size(), maxRetries)。
+     */
     public void setMaxRetries(int maxRetries) {
         this.maxRetries = maxRetries;
+    }
+
+    public void setForwardSensitiveHeaders(boolean forwardSensitiveHeaders) {
+        this.forwardSensitiveHeaders = forwardSensitiveHeaders;
     }
 
     @Override
@@ -44,6 +63,11 @@ public class AiFailoverGatewayInterceptor implements IGatewayInterceptor {
                     new UnsupportedOperationException("Streaming failover not yet implemented"));
         }
         return tryInvokeWithFallback(invocation, request, svcCtx, 0);
+    }
+
+    /** fallback 尝试次数上界：maxRetries 与 fallbackUrls.size() 取小。 */
+    private int maxFallbackAttempts() {
+        return Math.min(fallbackUrls.size(), Math.max(maxRetries, 0));
     }
 
     private CompletionStage<ApiResponse<?>> tryInvokeWithFallback(IGatewayInvocation invocation, ApiRequest<?> request,
@@ -68,8 +92,8 @@ public class AiFailoverGatewayInterceptor implements IGatewayInterceptor {
                 return;
             }
 
-            // 尝试备用 URL
-            if (fallbackIndex < fallbackUrls.size()) {
+            // 尝试备用 URL（总尝试次数受 maxRetries 限制）
+            if (fallbackIndex < maxFallbackAttempts()) {
                 String fallbackUrl = fallbackUrls.get(fallbackIndex);
                 LOG.warn("Upstream failed, trying fallback url={}, attempt={}", fallbackUrl, fallbackIndex + 1);
                 tryFallbackUrl(fallbackUrl, request, svcCtx, fallbackIndex + 1)
@@ -88,17 +112,23 @@ public class AiFailoverGatewayInterceptor implements IGatewayInterceptor {
                                                             IGatewayContext svcCtx, int nextFallbackIndex) {
         HttpRequest httpRequest = HttpRequest.post(url);
         if (request.getHeaders() != null) {
-            request.getHeaders().forEach((k, v) -> httpRequest.header(k, v));
+            request.getHeaders().forEach((k, v) -> {
+                if (!forwardSensitiveHeaders && k != null
+                        && SENSITIVE_HEADERS.contains(k.toLowerCase(Locale.ROOT))) {
+                    return; // 凭证头默认剥离，不外发给 fallback 域
+                }
+                httpRequest.header(k, v);
+            });
         }
         httpRequest.setBody(request.getData());
         httpRequest.setMethod(svcCtx.getHttpMethod());
 
         return httpClient.fetchAsync(httpRequest, null).thenCompose(httpResponse -> {
             int status = httpResponse.getHttpStatus();
-            if (status == 429 && nextFallbackIndex < fallbackUrls.size()) {
+            if (status == 429 && nextFallbackIndex < maxFallbackAttempts()) {
                 return tryFallbackUrl(fallbackUrls.get(nextFallbackIndex), request, svcCtx, nextFallbackIndex + 1);
             }
-            if (status >= 500 && nextFallbackIndex < fallbackUrls.size()) {
+            if (status >= 500 && nextFallbackIndex < maxFallbackAttempts()) {
                 return tryFallbackUrl(fallbackUrls.get(nextFallbackIndex), request, svcCtx, nextFallbackIndex + 1);
             }
             if (status >= 400) {

@@ -80,7 +80,12 @@ public class NopFileStoreBizModel {
 
     protected void checkFileExt(String fileExt) {
         if (allowedFileExts != null && !allowedFileExts.isEmpty()) {
-            if (!allowedFileExts.contains(fileExt))
+            // 大小写归一比较：fileExt 取自上传文件名原始大小写（StringHelper.fileExt 不做
+            // toLowerCase），配置 "jpg" 时上传 "a.JPG" 不得误拒；配置 "PNG" 同理命中 "png"
+            String normalized = fileExt == null ? "" : fileExt.toLowerCase(java.util.Locale.ROOT);
+            boolean allowed = allowedFileExts.stream()
+                    .anyMatch(e -> e != null && e.toLowerCase(java.util.Locale.ROOT).equals(normalized));
+            if (!allowed)
                 throw new NopException(ERR_FILE_NOT_ALLOW_FILE_EXT)
                         .param(ARG_FILE_EXT, fileExt).param(ARG_ALLOWED_FILE_EXTS, allowedFileExts);
         }

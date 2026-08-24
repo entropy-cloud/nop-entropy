@@ -200,11 +200,17 @@ public class InvokeProcessor {
         return future;
     }
 
+    /**
+     * 上游 Retry-After 指示的重试延迟上限。异常/被滥用的上游响应（如 Retry-After: 86400）
+     * 不得让单个请求挂起数小时占用执行资源，超限值一律钳制。
+     */
+    static final long MAX_RETRY_DELAY_MS = 30_000L;
+
     private long parseRetryAfter(String retryAfter, int retriesLeft) {
         if (retryAfter != null && !retryAfter.isEmpty()) {
             String trimmed = retryAfter.trim();
             try {
-                return Long.parseLong(trimmed) * 1000;
+                return capRetryDelay(Long.parseLong(trimmed) * 1000);
             } catch (NumberFormatException e) {
                 // 不是秒数格式，尝试 HTTP-date 格式
             }
@@ -213,7 +219,7 @@ public class InvokeProcessor {
                         java.time.format.DateTimeFormatter.RFC_1123_DATE_TIME);
                 long delayMs = httpDate.toInstant().toEpochMilli() - System.currentTimeMillis();
                 if (delayMs > 0) {
-                    return delayMs;
+                    return capRetryDelay(delayMs);
                 }
                 return 0;
             } catch (java.time.format.DateTimeParseException e) {
@@ -222,7 +228,11 @@ public class InvokeProcessor {
         }
         // 默认退避：2^attempt * 1s + jitter
         int attempt = 3 - retriesLeft + 1;
-        return (long) (Math.pow(2, attempt) * 1000) + (long) (Math.random() * 1000);
+        return capRetryDelay((long) (Math.pow(2, attempt) * 1000) + (long) (Math.random() * 1000));
+    }
+
+    private static long capRetryDelay(long delayMs) {
+        return Math.min(Math.max(delayMs, 0L), MAX_RETRY_DELAY_MS);
     }
 
     /**

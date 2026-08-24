@@ -27,7 +27,9 @@ public class MediaTypeHelper {
         fileExtToMediaType.put("xhtml", MediaType.APPLICATION_XHTML_XML);
     }
 
-    private static boolean configLoaded;
+    // 多线程首次并发加载的发布可见性：volatile 保证 loadConfig 写入的表对所有读者可见
+    // （重复 loadConfig 本身幂等无害；最坏是偶发重复 IO 与短暂查询不到扩展名映射）
+    private static volatile boolean configLoaded;
 
     public static String getMediaTypeFromFileExt(String fileExt) {
         if (StringHelper.isEmpty(fileExt))

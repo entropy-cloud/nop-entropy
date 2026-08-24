@@ -58,8 +58,35 @@ public class LocalMfaChallengeStore implements MfaChallengeStore {
         MfaChallenge c = new MfaChallenge(token, userId, mfaType, loginType, tenantId, phone, now, now + ttlMs);
         c.setScene(scene);
         c.setPayload(payload);
+        ensureCapacity(now);
         challenges.put(token, new Entry(c, now + ttlMs));
         return token;
+    }
+
+    /**
+     * 容量上界：条目只在被再次访问时惰性清理，"发起但从未回来验证"的条目会永久驻留。
+     * 超过 maxEntries 时先清扫过期条目；仍满（攻击灌互异 token）则按插入序驱逐若干条目
+     * 保证上界——被驱逐的有效 challenge 需重新发起，属可接受的攻击降级（优于 OOM）。
+     */
+    private void ensureCapacity(long now) {
+        int maxEntries = config.getMaxEntries();
+        if (challenges.size() < maxEntries) {
+            return;
+        }
+        final long cutoff = now;
+        challenges.entrySet().removeIf(e -> e.getValue().expired(cutoff));
+        if (challenges.size() >= maxEntries) {
+            int over = challenges.size() - maxEntries + 1;
+            java.util.Iterator<String> it = challenges.keySet().iterator();
+            while (over-- > 0 && it.hasNext()) {
+                it.next();
+                it.remove();
+            }
+        }
+        // 计数 map 随 challenge 清理，不独立膨胀
+        if (!failCounts.isEmpty()) {
+            failCounts.keySet().removeIf(k -> !challenges.containsKey(k));
+        }
     }
 
     @Override
