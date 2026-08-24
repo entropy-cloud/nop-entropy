@@ -90,7 +90,8 @@ public class TreeTableDataParser {
                     maxColIndex, listener);
         }
         if (alignRight) {
-            maxColIndex = dataRange.getLastRowIndex();
+            maxRowIndex = dataRange.getLastRowIndex();
+            maxColIndex = dataRange.getLastColIndex();
         } else {
             maxRowIndex = dataRange.getLastRowIndex();
         }
@@ -223,7 +224,7 @@ public class TreeTableDataParser {
                 try {
                     listener.simpleField(i, j, cell, header);
                 } catch (NopException e) {
-                    e.addXplStack("row=" + rowIndex + ",col=" + colIndex + ",sheet=" + sheetName + ",field=" + header);
+                    e.addXplStack("row=" + (i + 1) + ",col=" + (j + 1) + ",sheet=" + sheetName + ",field=" + header);
                     throw e;
                 }
             }
@@ -340,7 +341,7 @@ public class TreeTableDataParser {
                                  int rowIndex, int colIndex, int maxRowIndex, int maxColIndex,
                                  ITableDataEventListener listener) {
         for (int j = colIndex; j < maxColIndex; j++) {
-            ICellView cell = table.getCell(rowIndex, colIndex);
+            ICellView cell = table.getCell(rowIndex, j);
             if (cell == null)
                 continue;
 
@@ -395,7 +396,8 @@ public class TreeTableDataParser {
                     maxColIndex, listener);
         }
         if (alignRight) {
-            maxColIndex = dataRange.getLastRowIndex();
+            maxRowIndex = dataRange.getLastRowIndex();
+            maxColIndex = dataRange.getLastColIndex();
         } else {
             maxRowIndex = dataRange.getLastRowIndex();
         }
@@ -427,9 +429,9 @@ public class TreeTableDataParser {
 
     private int findEmptyRowIndex(ITableView table, int rowIndex, int colIndex, int maxRowIndex, int maxColIndex) {
         for (int i = rowIndex; i <= maxRowIndex; i++) {
-            IRowView row = table.getRow(rowIndex);
-            MutableBoolean empty = new MutableBoolean();
-            row.forEachRealCell(rowIndex, (cell, r, c) -> {
+            IRowView row = table.getRow(i);
+            MutableBoolean empty = new MutableBoolean(true);
+            row.forEachRealCell(i, (cell, r, c) -> {
                 if (c > maxColIndex)
                     return ProcessResult.STOP;
 
@@ -440,7 +442,7 @@ public class TreeTableDataParser {
                     empty.set(false);
                     return ProcessResult.STOP;
                 }
-                return ProcessResult.STOP;
+                return ProcessResult.CONTINUE;
             });
             if (empty.get())
                 return i;
