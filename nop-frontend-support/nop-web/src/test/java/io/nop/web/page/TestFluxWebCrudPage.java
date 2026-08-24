@@ -76,6 +76,28 @@ public class TestFluxWebCrudPage extends JunitBaseTestCase {
     }
 
     @Test
+    public void testQueryFormHorizontalLayout() {
+        String path = "/nop/test/pages/test-flux-crud.page.yaml";
+        Map<String, Object> page = pageProvider.getPage(path, "");
+        String json = JSON.serialize(page, true);
+        System.out.println("Flux CRUD page JSON (queryForm layout test):\n" + json);
+
+        Map<String, Object> crud = getCrud(page);
+
+        Object queryForm = crud.get("queryForm");
+        assertNotNull(queryForm, "crud with filterForm should generate queryForm");
+        Map<String, Object> queryFormMap = (Map<String, Object>) queryForm;
+
+        assertEquals("horizontal", queryFormMap.get("mode"),
+                "queryForm should default to horizontal label layout (G-001 后校验器直读 mode)");
+
+        Object labelWidth = queryFormMap.get("labelWidth");
+        assertNotNull(labelWidth, "queryForm should have uniform default labelWidth");
+        assertEquals(80, ((Number) labelWidth).intValue(),
+                "queryForm default labelWidth should be 80");
+    }
+
+    @Test
     public void testAsideFilterForm() {
         String path = "/nop/test/pages/test-flux-crud.page.yaml";
         Map<String, Object> page = pageProvider.getPage(path, "");

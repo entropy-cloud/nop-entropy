@@ -39,6 +39,9 @@
           xpl:attrs="xpl('thisLib:FluxGridDefaultAttrs', gridModel)"
           defaultParams="${pageModel.defaultParams}"
           selection="${selection}"
+          className="erp-crud"
+          headerClassName="erp-crud-header"
+          bodyClassName="erp-crud-body p-none"
     >
 
         <toolbar j:list="true">
@@ -50,7 +53,17 @@
 
         <loadAction xpl:attrs="loadAction" xpl:if="loadAction"/>
 
-        <queryForm xpl:if="filterForm" id="${crudName}-query-form">
+        <!-- 查询表单缺省水平布局（label 同行、宽度统一）：
+             【G-001 修复后】flux 上游修复（plan 2026-08-24-2115-1）后 `queryForm.mode` 直接被校验器读取
+             决定渲染 mode（不再是只看 layout），因此这里只需设 `mode="horizontal"`。兼容旧调用：若
+             view.xml 设置 `layoutMode='vertical'` 等，校验器优先用 mode，无 mode 时回退到 layout。
+             wrapClassName 加 m-b-nm 让字段行紧贴，actionsClassName 让提交/重置按钮靠右带间距。
+             labelWidth 可经 view.xml form 或配置变量 nop.xui.crud.query-label-width 覆盖。 -->
+        <queryForm xpl:if="filterForm" id="${crudName}-query-form"
+                   mode="${filterForm.layoutMode || 'horizontal'}"
+                   labelWidth="${filterForm.labelWidth || $config.var('nop.xui.crud.query-label-width') || 80}"
+                   wrapClassName="m-b-nm"
+                   actionsClassName="m-t-xs flex justify-end gap-sm">
             <title>@i18n:common.search</title>
             <data xpl:attrs="filterForm.data" xpl:if="filterForm.data"/>
             <submitAction action="component:querySubmit" componentId="${crudName}"/>
@@ -61,8 +74,11 @@
             <column type="index" name="index" label="@i18n:common.index" width="50" fixed="left" align="center" toggled="false"/>
             <thisLib:GenGridCols gridModel="${gridModel}" objMeta="${objMeta}" ignoreCols="${genScope.ignoreCols}"
                                  filterForm="${pageModel.autoGenerateFilter ? filterForm:null}"/>
+            <!-- 操作列：默认 180 宽度（之前 140 过窄，多操作按钮挤在一列），可通过 view.xml table.operationSize 覆盖。
+                 labelClassName/headerClassName 居中让操作区视觉对齐；超过 4 个按钮自动转入 actionGroup。-->
             <column type="operation" label="@i18n:common.operation" name="operation"
-                    width="${pageModel.table?.operationSize || 140}" fixed="right"
+                    width="${pageModel.table?.operationSize || 180}" fixed="right"
+                    labelClassName="text-center" headerClassName="text-center"
                     xpl:if="!pageModel.table?.noOperations">
                 <buttons j:list="true">
                     <thisLib:GenActions actions="${pageModel.rowActions}" genScope="${genScope}"/>
