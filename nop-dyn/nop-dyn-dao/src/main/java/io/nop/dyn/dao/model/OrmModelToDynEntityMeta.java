@@ -277,13 +277,16 @@ public class OrmModelToDynEntityMeta {
         entityMeta1.getRelationMetasForEntity().add(relMeta1);
     }
 
-    private String getRefPropNameFromColCode(String colCode, String refEntityName) {
-        if (colCode.equalsIgnoreCase("_id") || colCode.endsWith("id"))
+    String getRefPropNameFromColCode(String colCode, String refEntityName) {
+        if (colCode.equalsIgnoreCase("_id"))
             return refEntityName;
 
+        // 必须先判_id后缀再判id结尾，否则小写user_id会被endsWith("id")短路，与大写USER_ID的命名行为分叉
         if (StringHelper.endsWithIgnoreCase(colCode, "_id")) {
             return StringHelper.camelCase(colCode.substring(0, colCode.length() - "_id".length()), false);
         }
+        if (colCode.endsWith("id"))
+            return refEntityName;
         return StringHelper.camelCase(colCode, false) + "Obj";
     }
 }

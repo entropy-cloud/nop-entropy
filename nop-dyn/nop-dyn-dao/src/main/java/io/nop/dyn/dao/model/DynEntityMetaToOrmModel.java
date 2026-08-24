@@ -53,10 +53,18 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static io.nop.dyn.dao.NopDynDaoConstants.MIDDLE_TABLE_POSTFIX;
+import static io.nop.dyn.dao.NopDynDaoErrors.ARG_DEFAULT_VALUE;
 import static io.nop.dyn.dao.NopDynDaoErrors.ARG_ENTITY_NAME;
+import static io.nop.dyn.dao.NopDynDaoErrors.ARG_MIDDLE_ENTITY_NAME;
 import static io.nop.dyn.dao.NopDynDaoErrors.ARG_PROP_MAPPING;
 import static io.nop.dyn.dao.NopDynDaoErrors.ARG_PROP_NAME;
+import static io.nop.dyn.dao.NopDynDaoErrors.ARG_RELATION_NAME;
 import static io.nop.dyn.dao.NopDynDaoErrors.ARG_STD_SQL_TYPE;
+import static io.nop.dyn.dao.NopDynDaoErrors.ARG_TABLE_NAME;
+import static io.nop.dyn.dao.NopDynDaoErrors.ERR_DYN_INVALID_DEFAULT_VALUE;
+import static io.nop.dyn.dao.NopDynDaoErrors.ERR_DYN_INVALID_PROP_NAME;
+import static io.nop.dyn.dao.NopDynDaoErrors.ERR_DYN_INVALID_TABLE_NAME;
+import static io.nop.dyn.dao.NopDynDaoErrors.ERR_DYN_MIDDLE_ENTITY_CONFLICT;
 import static io.nop.dyn.dao.NopDynDaoErrors.ERR_DYN_UNKNOWN_STD_SQL_TYPE;
 import static io.nop.dyn.dao.NopDynDaoErrors.ERR_DYN_VIRTUAL_ENTITY_PROP_MAPPING_NOT_VALID;
 
@@ -92,9 +100,14 @@ public class DynEntityMetaToOrmModel {
             if (relationA == null) {
                 this.entityModelA = entityModel;
                 this.relationA = rel;
-            } else {
+            } else if (relationB == null) {
                 this.entityModelB = entityModel;
                 this.relationB = rel;
+            } else {
+                // 中间表只有两个关联槽位（左右表各一），第三个关系静默覆盖relationB会导致该关系在生成的ORM模型中丢失
+                throw new NopException(ERR_DYN_MIDDLE_ENTITY_CONFLICT)
+                        .param(ARG_MIDDLE_ENTITY_NAME, getEntityNameA())
+                        .param(ARG_RELATION_NAME, rel.getRelationName());
             }
         }
 
@@ -173,7 +186,13 @@ public class DynEntityMetaToOrmModel {
         OrmEntityModel ret = new OrmEntityModel();
         ret.setName(entityMeta.getFullEntityName());
         ret.setDisplayName(entityMeta.getDisplayName());
-        ret.setTableName(entityMeta.forceGetTableName());
+        // 表名直接进入DDL生成链，必须是合法的SQL标识符
+        String tableName = entityMeta.forceGetTableName();
+        if (!isValidSqlName(tableName))
+            throw new NopException(ERR_DYN_INVALID_TABLE_NAME)
+                    .param(ARG_ENTITY_NAME, entityMeta.getEntityName())
+                    .param(ARG_TABLE_NAME, tableName);
+        ret.setTableName(tableName);
         ret.setTagSet(ConvertHelper.toCsvSet(entityMeta.getTagsText()));
         ret.setRegisterShortName(true);
         ret.setUseTenant(dynEntityModel.isUseTenant());
@@ -392,6 +411,13 @@ public class DynEntityMetaToOrmModel {
     }
 
     protected OrmColumnModel toColumnModel(NopDynPropMeta propMeta) {
+        // 属性名转换得到列code后直接进入DDL生成链，必须是合法的SQL标识符；缺省值会被下游按原文拼入DEFAULT子句，禁止语句分隔符与注释
+        if (!isValidSqlName(propMeta.getPropName()))
+            throw new NopException(ERR_DYN_INVALID_PROP_NAME)
+                    .param(ARG_ENTITY_NAME, propMeta.getEntityMeta().getEntityName())
+                    .param(ARG_PROP_NAME, propMeta.getPropName());
+        checkDefaultValue(propMeta);
+
         OrmColumnModel ret = new OrmColumnModel();
         ret.setName(propMeta.getPropName());
         ret.setDisplayName(propMeta.getDisplayName());
@@ -414,7 +440,7 @@ public class DynEntityMetaToOrmModel {
             if (propMeta.getPrecision() != null) {
                 ret.setPrecision(propMeta.getPrecision());
             } else {
-                ret.setPrecision(1);
+                ret.setPrecision(defaultPrecision(sqlType));
             }
         }
 
@@ -435,7 +461,7 @@ public class DynEntityMetaToOrmModel {
                 if (domain.getPrecision() != null) {
                     ret.setPrecision(domain.getPrecision());
                 } else {
-                    ret.setPrecision(1);
+                    ret.setPrecision(defaultPrecision(sqlType));
                 }
             }
 
@@ -451,6 +477,40 @@ public class DynEntityMetaToOrmModel {
         }
 
         return ret;
+    }
+
+    /**
+     * 未指定precision时给出安全缺省值，避免生成VARCHAR(1)这类必然截断数据的DDL。
+     * 字符串/二进制类沿用nop-dyn自身通用字符串列（nopName等）的100长度约定；DECIMAL采用主流数据库均支持的最大精度38。
+     */
+    static int defaultPrecision(StdSqlType sqlType) {
+        if (sqlType == StdSqlType.DECIMAL)
+            return 38;
+        return 100;
+    }
+
+    static boolean isValidSqlName(String name) {
+        if (StringHelper.isEmpty(name))
+            return false;
+        for (int i = 0, n = name.length(); i < n; i++) {
+            char c = name.charAt(i);
+            boolean valid = c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || i > 0 && c >= '0' && c <= '9' || i > 0 && c == '_';
+            if (!valid)
+                return false;
+        }
+        return true;
+    }
+
+    static void checkDefaultValue(NopDynPropMeta propMeta) {
+        String defaultValue = propMeta.getDefaultValue();
+        if (StringHelper.isEmpty(defaultValue))
+            return;
+        if (defaultValue.indexOf('\n') >= 0 || defaultValue.indexOf('\r') >= 0
+                || defaultValue.indexOf(';') >= 0 || defaultValue.contains("--") || defaultValue.contains("/*"))
+            throw new NopException(ERR_DYN_INVALID_DEFAULT_VALUE)
+                    .param(ARG_ENTITY_NAME, propMeta.getEntityMeta().getEntityName())
+                    .param(ARG_PROP_NAME, propMeta.getPropName())
+                    .param(ARG_DEFAULT_VALUE, defaultValue);
     }
 
     List<OrmDomainModel> toOrmDomains(List<NopDynDomain> domains) {
@@ -474,7 +534,7 @@ public class DynEntityMetaToOrmModel {
 
         if (stdSqlType.isAllowPrecision()) {
             if (domain.getPrecision() == null) {
-                ret.setPrecision(1);
+                ret.setPrecision(defaultPrecision(stdSqlType));
             } else {
                 ret.setPrecision(domain.getPrecision());
             }

@@ -118,7 +118,7 @@ Targets: 对应 9 份报告；相关模块代码与测试
 - Item Types: `Fix | Decision | Proof`
 
 - [x] nop-batch.md（P1×5 P2×7 P3×6）— 2026-08-24 完成：15 修复（含 2 部分修复）+ 1 暂缓（DaoBatchStateStore 并发需 (taskName,taskKey) 唯一键 orm 模型变更+存量迁移设计；execCount 排序子项复查非问题——addOrderField(desc) 已取最近）+ append 子项暂缓（输出追加需 openOutput 公共接口扩展）+ 1 不修复（RangeSplitUtils 系 DataX 移植死代码）。P1: AsyncFetch 吞 fetch 异常假成功/断点续传输出截断 fail-loud（ERR_BATCH_OUTPUT_FILE_EXISTS_ON_RECOVERY）/JdbcLoader 关闭后竞态/fetch 线程 semaphore 永久阻塞（tryAcquire 循环+finished）/rateLimit×singleMode 许可放大（按 items.size()）。P2: 重试最终异常 e2 丢失（suppressed 挂首因）/onBeforeComplete 无界增长/dispatch 忽略 loadRetryPolicy/saveProcessed 空实现（成功写 NopBatchRecordResult）/DefaultBizEntityImporter 返回 null 改抛/tryAcquire fail-closed。P3: singleMode 异常恢复/getExecutor 死分支/首取消进重试/错误码 4 处/safeLoad 无效锁/BatchLoaderHelper 固定 key（identityHashCode 隔离）。新增 9 测试类 27 用例红验证；batch 15 子模块 54 tests 绿；i18n 聚合同步（含再生成发现的前批 20 条 zh-CN 滞后 + 本批 5 条 en）
-- [ ] nop-dyn.md（P1×3 P2×9 P3×3）
+- [x] nop-dyn.md（P1×3 P2×9 P3×3；统计表 P2 初记 8 系笔误按发现列表修正为 9）— 2026-08-24 完成：15 条全部修复。P1: unpublish/generateForApp 缓存 key 改 nopModuleId/getOrmModel 补 synchronized 消 ABBA 死锁/租户资源层改 getResourceStore() 惰性构建。P2: 未注册 bizObj 判空防 NPE/allProps setLabel 笔误/函数 delete 分支修复（不被 validateSource 阻断且不残留 xbiz）/generateByAI 参数化+同名查重+checkDataAuth/precision 缺省 1→100/38 防 VARCHAR(1)/表名列名 defaultValue DDL 前校验（db-migration 侧转义记录待跟进）/genPageFile·genViewFile 补同步+volatile/中间表第三关系冲突报错（ERR_DYN_MIDDLE_ENTITY_CONFLICT）/函数变更走轻量刷新免 ORM 全量重载（纯性能免红测试+回归防线）。P3: _id 条件序/CFG_DYN_MAX_BIZ_OBJECTS 上限落地/租户清理执行 on-unload。新增 7 错误码（NopDynErrors 3/NopDynDaoErrors 4）；26 新用例 stash 红验证 13 处行为红；dyn 40 tests 绿（1 既有 skip）；报告 15/15 标注
 - [ ] nop-excel.md（P1×3 P2×2 P3×7）
 - [ ] nop-report.md（P1×6 P2×7 P3×11）
 - [ ] nop-rule.md（P1×1 P2×4 P3×3）

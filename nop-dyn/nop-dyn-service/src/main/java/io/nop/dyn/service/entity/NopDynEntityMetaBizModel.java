@@ -30,7 +30,7 @@ public class NopDynEntityMetaBizModel extends CrudBizModel<NopDynEntityMeta> imp
         List<DictOptionBean> options = new ArrayList<>();
         DictOptionBean option = new DictOptionBean();
         option.setValue("id");
-        option.setValue("ID");
+        option.setLabel("ID");
         options.add(option);
 
         for (NopDynPropMeta propMeta : entityMeta.getPropMetas()) {
