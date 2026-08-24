@@ -54,7 +54,7 @@
     </bean>
 
     <bean id="nopDaoProvider" class="io.nop.orm.dao.OrmDaoProvider" ioc:default="true" init-method="register">
-        <constructor-arg index="0" ref="nopOrmTemplate"/>
+        <property name="ormTemplate" ref="nopOrmTemplate"/>
     </bean>
 
     <bean id="nopDataAuthEntityFilterProvider" class="io.nop.orm.filter.DataAuthEntityFilterProvider"
