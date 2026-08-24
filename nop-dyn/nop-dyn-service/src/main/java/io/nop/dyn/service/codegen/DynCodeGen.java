@@ -101,6 +101,12 @@ public class DynCodeGen implements ITenantResourceProvider, ITenantBizModelProvi
             ModuleManager.instance().setTenantModuleDiscovery(null);
         }
         codeCache.clear();
+        // 先逐个执行租户缓存的on-unload钩子，再整体清空，与共享codeCache的清理语义保持一致
+        for (String tenantId : tenantCache.getAllKeys()) {
+            InMemoryCodeCache cache = removeTenantCache(tenantId);
+            if (cache != null)
+                cache.clear();
+        }
         tenantCache.clear();
         VirtualFileSystem.instance().updateInMemoryLayer(null);
         ModuleManager.instance().updateDynamicModules(null);
@@ -184,12 +190,25 @@ public class DynCodeGen implements ITenantResourceProvider, ITenantBizModelProvi
 
     @Override
     public IResourceStore getTenantResourceStore(String tenantId) {
-        return getTenantCodeCache(tenantId).getMergedStore();
+        // 租户路径没有reloadModel入口来预先构建mergedStore，必须在这里惰性构建（含miss时的prepare回调），
+        // 直接读取mergedStore字段在租户初始化链（clearMergedStore）之后恒为null
+        return getTenantCodeCache(tenantId).getResourceStore();
     }
 
     @Override
     public void clearForTenant(String tenantId) {
+        InMemoryCodeCache cache = removeTenantCache(tenantId);
+        if (cache != null)
+            cache.clear();
+    }
+
+    /**
+     * 从租户缓存中移除指定租户，并返回被移除的缓存。返回后不再有任何入口能取到该缓存实例。
+     */
+    private InMemoryCodeCache removeTenantCache(String tenantId) {
+        AtomicReference<InMemoryCodeCache> ref = tenantCache.getIfPresent(tenantId);
         tenantCache.remove(tenantId);
+        return ref == null ? null : ref.get();
     }
 
     public synchronized void generateForAllApps() {
@@ -210,7 +229,8 @@ public class DynCodeGen implements ITenantResourceProvider, ITenantBizModelProvi
             InMemoryCodeCache codeCache = getCodeCache();
             for (NopDynModule module : app.getRelatedModuleList()) {
                 if (module.getStatus() != NopDynDaoConstants.MODULE_STATUS_PUBLISHED) {
-                    codeCache.removeModule(module.getModuleName());
+                    // codeCache的key是moduleId（由nopModuleId按'-'转'/'推导），不能使用moduleName
+                    codeCache.removeModule(module.getNopModuleId());
                 } else {
                     generateForModule(module);
                 }
@@ -249,15 +269,23 @@ public class DynCodeGen implements ITenantResourceProvider, ITenantBizModelProvi
     }
 
     public void generateBizModel(NopDynEntityMeta entityMeta) {
-        generateBizModel(entityMeta, true);
+        generateBizModel(entityMeta, true, true);
     }
 
     public synchronized void generateBizModel(NopDynEntityMeta entityMeta, boolean syncFile) {
+        generateBizModel(entityMeta, syncFile, true);
+    }
+
+    /**
+     * @param refreshOrmModel 只有实体结构（列/关系）变化才需要重建ORM模型；函数级变更只影响xbiz等业务文件，
+     *                        无需触发ormTemplate.reloadModel()的session factory级全量刷新
+     */
+    public synchronized void generateBizModel(NopDynEntityMeta entityMeta, boolean syncFile, boolean refreshOrmModel) {
         InMemoryCodeCache codeCache = getCodeCache();
         GraphQLBizModel bizModel = buildGraphQLBizModel(entityMeta);
         codeCache.genBizObjFiles(formatGenCode, bizModel);
         if (syncFile)
-            this.reloadModel();
+            this.reloadModel(refreshOrmModel);
     }
 
     protected GraphQLBizModel buildGraphQLBizModel(NopDynEntityMeta entityMeta) {
@@ -349,6 +377,10 @@ public class DynCodeGen implements ITenantResourceProvider, ITenantBizModelProvi
     }
 
     public synchronized void reloadModel() {
+        reloadModel(true);
+    }
+
+    public synchronized void reloadModel(boolean refreshOrmModel) {
         InMemoryCodeCache cache = getCodeCache();
         // 如果不是租户模型, 则主动更新动态模型集合。如果是租户模型，会使用动态拉取模式，从tenantCache获取，这里不用更新。
         if (cache.getTenantId() == null) {
@@ -356,7 +388,8 @@ public class DynCodeGen implements ITenantResourceProvider, ITenantBizModelProvi
             VirtualFileSystem.instance().updateInMemoryLayer(store);
             ModuleManager.instance().updateDynamicModules(new TreeMap<>(cache.getEnabledModules()));
             bizObjectManager.setDynamicBizModels(GraphQLBizModels.fromBizModels(cache.getDynBizModels()));
-            ormTemplate.reloadModel();
+            if (refreshOrmModel)
+                ormTemplate.reloadModel();
         }
     }
 
@@ -455,7 +488,11 @@ public class DynCodeGen implements ITenantResourceProvider, ITenantBizModelProvi
             if (bizObjName == null)
                 return;
 
+            // bizObj未注册（模块未启用/已被移除/猜测路径）时按资源miss处理，不能以NPE中断
             GraphQLBizModel bizModel = cache.getBizModel(bizObjName);
+            if (bizModel == null)
+                return;
+
             ormTemplate.runInSession(() -> {
                 cache.genBizObjFiles(formatGenCode, bizModel);
             });
@@ -467,6 +504,8 @@ public class DynCodeGen implements ITenantResourceProvider, ITenantBizModelProvi
             return;
 
         GraphQLBizModel bizModel = cache.getBizModel(bizObjName);
+        if (bizModel == null)
+            return;
 
         if (path.endsWith(".page.yaml")) {
             String pageName = StringHelper.removeTail(StringHelper.fileFullName(path), ".page.yaml");

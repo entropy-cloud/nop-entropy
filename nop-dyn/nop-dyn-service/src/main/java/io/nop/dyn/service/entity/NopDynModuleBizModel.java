@@ -13,6 +13,7 @@ import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.beans.WebContentBean;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.BizConstants;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.commons.util.CollectionHelper;
@@ -35,6 +36,9 @@ import io.nop.dyn.biz.INopDynModuleBiz;
 import jakarta.inject.Inject;
 
 import java.util.List;
+
+import static io.nop.dyn.service.NopDynErrors.ARG_MODULE_NAME;
+import static io.nop.dyn.service.NopDynErrors.ERR_DYN_MODULE_NAME_EXISTS;
 
 @BizModel("NopDynModule")
 public class NopDynModuleBizModel extends CrudBizModel<NopDynModule> implements INopDynModuleBiz {
@@ -93,13 +97,25 @@ public class NopDynModuleBizModel extends CrudBizModel<NopDynModule> implements 
     }
 
     @BizMutation
-    public void generateByAI(@Name("response") String response) {
+    public void generateByAI(@Name("response") String response,
+                             @Optional @Name("moduleName") String moduleName,
+                             IServiceContext context) {
+        if (StringHelper.isEmpty(moduleName))
+            moduleName = "app-demo";
+
         OrmModel ormModel = new GptCodeGen().generateOrmModel(response);
         ormModel.init();
         IEntityDao<NopDynModule> dao = dao();
+
+        // moduleName没有唯一索引约束，重复调用会创建并发布多个同名模块，这里显式去重
+        NopDynModule example = dao.newEntity();
+        example.setModuleName(moduleName);
+        if (dao.findFirstByExample(example) != null)
+            throw new NopException(ERR_DYN_MODULE_NAME_EXISTS).param(ARG_MODULE_NAME, moduleName);
+
         NopDynModule entity = dao.newEntity();
         entity.setStatus(NopDynDaoConstants.APP_STATUS_UNPUBLISHED);
-        entity.setModuleName("app-demo");
+        entity.setModuleName(moduleName);
         entity.setDisplayName(entity.getModuleName());
         entity.setBasePackageName((String) ormModel.prop_get(OrmModelConstants.EXT_BASE_PACKAGE_NAME));
         entity.setMavenGroupId((String) ormModel.prop_get(OrmModelConstants.EXT_MAVEN_GROUP_ID));
@@ -107,6 +123,8 @@ public class NopDynModuleBizModel extends CrudBizModel<NopDynModule> implements 
 
         new OrmModelToDynEntityMeta(true).transformModule(ormModel, entity);
         entity.setStatus(NopDynDaoConstants.MODULE_STATUS_PUBLISHED);
+        // 与importExcel保持一致的数据权限检查
+        checkDataAuth(BizConstants.METHOD_SAVE, entity, context);
         dao.saveEntity(entity);
         dao.flushSession();
 
