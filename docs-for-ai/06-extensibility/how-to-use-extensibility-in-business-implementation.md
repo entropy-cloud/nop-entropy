@@ -122,6 +122,41 @@ AI 做业务实现时，最常用的其实就下面几种模式：
 - 复制整份平台文件到业务模块
 - 直接改平台源码
 
+### Delta 不只适用于实体/页面——xlib 标签库同样可以
+
+Delta 机制对 `_vfs` 下**任意模型文件类型**生效，包括 xlib 标签库。当平台控件库（如 `flux-control.xlib`）某个 tag 的输出形态不符合项目需要时，不需要改平台源码，在项目里放同名 delta 文件、`x:extends="super"` 继承基线、只重写出问题的 tag：
+
+```text
+平台基线:  nop-web/src/main/resources/_vfs/nop/web/xlib/flux-control.xlib   （78 个 tag，含 prototype 别名）
+项目覆盖:  <project>/src/main/resources/_vfs/_delta/default/nop/web/xlib/flux-control.xlib
+```
+
+```xml
+<lib x:extends="super" x:schema="/nop/schema/xlib.xdef"
+     xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c">
+    <tags>
+        <!-- 只写要重写的 tag；未重写的 73 个 tag 全部从 super 继承 -->
+        <edit-relation>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="objMeta"/>
+            <attr name="editMode"/>
+            <source><![CDATA[
+                import io.nop.xui.utils.XuiHelper;
+                const relProp = XuiHelper.getRelationProp(propMeta, objMeta);
+                /* ... 项目定制输出 ... */
+            ]]></source>
+        </edit-relation>
+    </tags>
+</lib>
+```
+
+要点：
+
+- **加载顺序保证覆盖**：VFS 按 Tenant → Delta → Base 分层解析（见 `vfs-and-resource-resolution.md`），Delta 同名路径优先。
+- **`x:extends="super"` 是继承而非替换**：tag 级 merge——delta 里写了的 tag 覆盖基线同名 tag，没写的照常从 super 取。不要把整份基线复制进 delta（那会失去平台升级时的自动跟随能力）。
+- **真实样例**：nop-app-erp `_vfs/_delta/default/nop/web/xlib/flux-control.xlib` 重写 5 个 picker tag 输出 Flux picker 契约（plan 2026-08-24-1147-1），其余 73 个 tag 零复制。
+
 ## 场景 3：页面/控件行为调整
 
 优先做法：

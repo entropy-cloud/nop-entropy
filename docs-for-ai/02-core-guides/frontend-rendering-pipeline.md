@@ -157,6 +157,29 @@ main.page.yaml      (入口 wrapper)
 
 常见 domain → 控件映射：`string` → `input-text`、`int/long` → `input-text` + `isInt`、`double/decimal` → `input-number`、`enum` → `select`。
 
+### mode 退化链（grid 列为何能拿到编辑型控件）
+
+查找 tag 时 mode 参与拼接（`{mode}-{type}`），而 grid 列的 mode 来自 `editMode || colModel.editMode || gridModel.editMode || 'list-view'`。当 `{mode}-{type}` 精确匹配失败时，`XuiHelper.getControlTag` 按以下链退化（实现分两层：内层重载 `nop-ui/src/main/java/io/nop/xui/utils/XuiHelper.java:118-146` 做模式退化，外层 `:99-101` 做 view-any 终极兜底）：
+
+```text
+精确 {mode}-{type} 失败后（内层 :118-146）：
+├─ list-* 前缀模式（按 mode 值分支）
+│   ├─ mode=list-view  → 退 view-{type}      （只读展示，如 view-to-one → view-relation 输出 text）
+│   └─ mode=其他 list-* → 先重试 list-edit-{type} → 再退 edit-{type}
+│                       （可编辑列，须 grid/col 显式声明 editMode="list-edit"；
+│                        如 to-one 关系列 → edit-to-one(prototype=edit-relation) → picker）
+└─ 非 list 模式
+    ├─ view 前缀     → 精确即终
+    └─ 其他          → 再试 edit-{type}
+全部失败 → 外层（:99-101）以 view-any 兜底（非 view 模式命中时 :104-106 另记 warn 日志）
+```
+
+**实践含义**：
+
+1. 子表可编辑列（input-table/array-editor 内，且声明了 `editMode="list-edit"`）的关联字段**不需要手写 gen-control**——`edit-to-one`/`edit-relation` 会经退化链自动命中并产出完整控件 schema（含 picker 的取数与弹层配置）。默认 `list-view` 的只读列则退到 `view-to-one` → 只读 text 形态，属预期行为。
+2. 反过来，若某 type 在控件库里只有 `edit-` 形态没有 `view-` 形态，列表只读列也会拿到编辑型控件输出——这是"只读列出现 picker/input-number"类现象的根因排查入口。
+3. 全部退化为 null 时外层兜底 `view-any`（`x:prototype="view-labelProp"`），不会抛错——缺失控件的表象是"字段显示成了 label 文本"，应在对应 controlLib 补 `{mode}-{type}` tag 而非在页面里 gen-control 绕过。
+
 ## 最常用的 Delta / override 写法
 
 ### 只保留部分列或按钮
