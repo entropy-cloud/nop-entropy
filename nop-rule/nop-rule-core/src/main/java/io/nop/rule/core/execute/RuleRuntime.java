@@ -212,7 +212,9 @@ public class RuleRuntime implements IRuleRuntime {
     }
 
     protected void addToLogFile(String message, String ruleNodeId, String ruleNodeLabel) {
-        LOG.info("rule-log:message={},ruleNodeId={},ruleNodeLabel={}", message, ruleNodeId, ruleNodeLabel);
+        // 规则求值是热路径，每个决策节点都会触发本函数，因此只应在debug级别输出
+        if (LOG.isDebugEnabled())
+            LOG.debug("rule-log:message={},ruleNodeId={},ruleNodeLabel={}", message, ruleNodeId, ruleNodeLabel);
     }
 
     @Override

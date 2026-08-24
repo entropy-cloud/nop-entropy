@@ -51,7 +51,9 @@ public class NormalizeOutputExecutableRule implements IExecutableRule {
 
         for (RuleOutputDefineModel output : outputs) {
             Object value = ruleRt.getOutput(output.getName());
-            if (StringHelper.isEmptyObject(value) && output.isMandatory())
+            // 只有规则命中时才检查mandatory输出。规则未命中(ruleMatch=false)是正常返回值，
+            // 此时输出为空不应抛出异常
+            if (b && StringHelper.isEmptyObject(value) && output.isMandatory())
                 throw new NopException(ERR_RULE_OUTPUT_VAR_NOT_ALLOW_EMPTY).source(output).param(ARG_RULE_NAME, ruleRt.getRuleName())
                         .param(ARG_VAR_NAME, output.getName()).param(ARG_DISPLAY_NAME, output.getDisplayName());
 

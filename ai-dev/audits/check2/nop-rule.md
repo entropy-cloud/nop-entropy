@@ -43,6 +43,8 @@ public boolean execute(IRuleRuntime ruleRt) {
 - **建议**: 将 afterExecute 移入 finally（或正常路径 return 前调用），与 xdef 注释对齐；同时为正常/不匹配/异常三条路径补充单元测试（当前 `TestRuleExecutionTracing` 未覆盖 DecoratedExecutableRule）。
 - **误报排除**: 已读 `RuleModelCompiler.compileRule`（第 66-69 行）确认该包装器只包一层且 MainExecutableRule 不补偿调用 afterExecute；已读全部 nop-rule 测试（TestRuleExecutionTracing 等）确认无任何测试断言 afterExecute 只在异常时执行；契约以 xdef 原文为准，非主观推断。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。正常路径在 `return b` 前调用 afterExecute（与 rule.xdef「无论规则是否成功匹配，都会执行到这里」契约对齐），异常路径保持原有 catch 内调用不变。新增测试 `TestDecoratedExecutableRule#testAfterExecuteInvokedOnMatch / testAfterExecuteInvokedOnMismatch / testAfterExecuteInvokedOnException / testNullBeforeAndAfter`（覆盖命中/不匹配/异常三路径的执行顺序与调用次数）。红验证：stash `DecoratedExecutableRule.java` 后 match/mismatch 两用例失败，形态为 `expected: <[before, rule, after]> but was: <[before, rule]>`（HEAD 上正常路径 afterExecute 从不执行）。
+
 ### [P1] NormalizeInputExecutableRule.checkInputs 对 inputs==null 直接 NPE（合法请求触发）
 
 - **文件**: `nop-rule/nop-rule-core/src/main/java/io/nop/rule/core/execute/NormalizeInputExecutableRule.java:92`
@@ -60,6 +62,8 @@ private void checkInputs(IRuleRuntime ruleRt) {
 - **风险**: 通过 GraphQL/REST 调用 `RuleService__executeRule` 且请求不带 inputs 字段（例如执行全部为常量/computed 输入的规则）时，抛出裸 NullPointerException 而非业务异常（如 ERR_RULE_INPUT_VAR_NOT_ALLOW_EMPTY），错误信息无任何上下文。
 - **建议**: `checkInputs` 开头判空（`Map<String,Object> inputs = ruleRt.getInputs(); if (inputs == null) return;`），或在 `RuleServiceImpl.executeRule` 中将 null 归一化为空 Map。
 - **误报排除**: 已确认所有成功编译的规则必带 NormalizeInputExecutableRule 包装（RuleModelCompiler 第 64 行无条件包装，且 Guard.notEmpty 使无输入规则无法编译，见 P2-3），即 NPE 路径存在于每个可执行规则的调用链上；已核对 GraphQL 入口 `RuleService.executeRule`（生成接口）直接透传 request bean，无中间层补默认值。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。`checkInputs` 开头对 `ruleRt.getInputs()` 判空直接返回（与 `IRuleRuntime.getInput/setInput` default 方法对 null 的容忍契约一致）。新增测试 `TestNormalizeExecutableRule#testNullInputs`（附带 `#testUnknownInputVar` 固化 inputs 非空时的未知输入校验不受影响）。红验证：stash `NormalizeInputExecutableRule.java` 后 `testNullInputs` 报 `NullPointerException: Cannot invoke "java.util.Map.keySet()" because the return value of "io.nop.rule.core.IRuleRuntime.getInputs()" is null`。
 
 ### [P1] Excel 规则单元格注释配置变量的白名单校验逻辑写反，非法配置名永远不报错
 
@@ -79,6 +83,8 @@ if (vars != null) {
 - **风险**: 用户在单元格注释中拼写错误的配置（如 `valueExpre=`、`multMatch=true`）被静默忽略，导致 `valueExpr`/`multiMatch` 等配置不生效，规则执行结果与用户预期不符且无任何提示（例如本想多匹配却按单匹配执行，分支被跳过）。
 - **建议**: 去掉外层 if，直接无条件循环校验每个 key。
 - **误报排除**: 已读 `MultiLineConfigParser.parseConfig`（nop-excel 模块）确认解析器本身接受任意 key 不做白名单校验，本方法是唯一防线；已读 `COMMENT_VAR_NAMES` 定义（RuleConstants: `var/valueExpr/multiMatch/id`）与 `getCommentVar` 消费方确认拼错的 key 无法匹配任何读取逻辑，即静默丢弃。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。删除恒真的外层 `COMMENT_VAR_NAMES.containsAll(vars.keySet())` 条件，改为无条件逐 key 校验，`ERR_RULE_UNKNOWN_CONFIG_VAR` 恢复生效；`getCommentVars` 同步放宽为包可见以便直接测试。新增测试 `TestRuleTableModelParser#testUnknownCommentVarRejected`（断言 errorCode/varName/cellPos 三个参数）及 `#testKnownCommentVarsAccepted`、`#testEmptyCommentAccepted`（固化合法路径不受影响）。红验证：stash `RuleTableModelParser.java` 后（仅保留包可见性调整与 setVarModel 删除以保持可编译）`testUnknownCommentVarRejected` 失败——旧代码对非法配置名不抛任何异常，assertThrows 落空。
 
 ### [P1] DaoRuleModelSaver 按 predicate 匹配复用节点，同父下重复 predicate 的分支被静默覆盖丢失
 
@@ -109,6 +115,8 @@ for (RuleDecisionTreeModel child : children) {
 - **建议**: 匹配命中后将该 key 从 map 中移除（`map.remove(predicate)` 实现一次性消费），重复 predicate 时强制新建节点；或检测到重复时抛出明确的建模错误。
 - **误报排除**: 已读调用链 `NopRuleDefinitionBizModel.importExcelFile → saveRuleModel → updateNodes` 确认无前置去重校验；已读 `DaoRuleModelLoader.buildRuleModelNode/buildRuleTree` 确认加载侧按 `TreeIndex.buildFromParentId` 重建，无法恢复被覆盖的分支；已确认 `parseOutputVars`（Excel 解析）不阻止同级相同条件（条件可经 valueExpr 表达式产生等价 predicate）。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。`updateNodes` 中已有节点的匹配改为 `map.remove(predicate)` 一次性消费，且新建节点不再回填 map——同父下重复 predicate 的分支各自新建节点，不再互相覆盖 sortNo/label/outputs/children。新增回归测试 `TestNopRuleDefinitionBizModel#testImportDuplicatePredicate`：复制 decision-tree 模板并将第 4 行条件从 Winter 改为 Fall 制造同级重复 predicate，经 NopFileStore__upload → NopRuleDefinition__save → RuleService__executeRule 全链路断言第一个 Fall 分支（<= 8 输出 Spareribs）得以保留。红验证：stash `DaoRuleModelSaver.java` 后（core/dao/service 同 reactor 构建避免本地仓库旧 dao 构件）测试失败，形态为 `expected: <Spareribs> but was: <Roastbeef>`（第二个分支的输出覆盖了第一个分支）。注意：该测试需与 nop-rule-dao 同 reactor 运行（`-pl` 至少包含 core,dao,service 三模块），单独 `-pl nop-rule-service` 会命中本地 m2 中的旧 dao 构件导致误红。
+
 ### [P2] 规则未命中时 mandatory 输出直接抛异常，"未命中"信号被错误替代
 
 - **文件**: `nop-rule/nop-rule-core/src/main/java/io/nop/rule/core/execute/NormalizeOutputExecutableRule.java:49`
@@ -132,6 +140,8 @@ for (RuleOutputDefineModel output : outputs) {
 - **建议**: mandatory 检查应仅在 b=true 时执行（或将 defaultExpr 兜底移到未命中路径），保证未命中可正常返回。
 - **误报排除**: 已读 `IExecutableRule.executeForOutputs/executeForResult`（IRuleRuntime 调用方）确认 `match=false` 是预期的正常返回值；已读 `aggOutput` 全文确认 defaultExpr 只在 list==null 且被调用时生效；未发现任何上层 catch 将该异常转译回"未命中"。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。mandatory 检查增加 `b &&` 前置条件——仅规则命中时执行，未命中按 `ruleMatch=false` 正常返回（defaultExpr 兜底语义仍限定在命中路径的 aggOutput 内，维持不变）。新增测试 `TestNormalizeExecutableRule#testMandatoryOutputNotCheckedOnMismatch`（未命中不再抛异常）与 `#testMandatoryOutputStillCheckedOnMatch`（命中但输出为空仍抛 ERR_RULE_OUTPUT_VAR_NOT_ALLOW_EMPTY，防止修复过度）、`#testMandatoryOutputPassOnMatchWithValue`（命中且有值正常返回）。红验证：stash `NormalizeOutputExecutableRule.java` 后 `testMandatoryOutputNotCheckedOnMismatch` 报 `NopException ... errorCode=nop.err.rule.output-var-not-allow-empty`。
+
 ### [P2] RuleRuntime.logMessage 在规则求值热路径上无条件输出 INFO 日志
 
 - **文件**: `nop-rule/nop-rule-core/src/main/java/io/nop/rule/core/execute/RuleRuntime.java:214`
@@ -153,6 +163,8 @@ protected void addToLogFile(String message, String ruleNodeId, String ruleNodeLa
 - **建议**: addToLogFile 增加 `if (LOG.isDebugEnabled())` 或独立开关（如仅 collectLogMessage 或 trace 级别时输出），或按 ruleName 采样。
 - **误报排除**: 已读 RuleDecider/ExecutableRule 的 test/execute 确认 logMessage 在每次节点判定时触发且无开关拦截；已确认 Excel 解析侧 buildRuleNode 为每个节点设置非空 id（CellPosition.toABString），即默认每个节点都会打日志。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。`addToLogFile` 增加 `LOG.isDebugEnabled()` 守卫并降为 debug 级输出，热路径默认不再产生 O(节点数) 条 INFO 日志，需要排查时开 debug 仍可获得完整节点轨迹。新增测试 `TestRuleExecutionTracing#testLogMessageOnlyLoggedAtDebugLevel`（logback ListAppender 断言：INFO 级别下无任何输出、DEBUG 级别下恰一条且为 DEBUG 级）。红验证：stash `RuleRuntime.java` 后测试失败，形态为 `logMessage should not emit INFO-level logs on rule evaluation hot path ==> expected: <true> but was: <false>`。
+
 ### [P2] 无输入变量定义的规则模型编译抛裸 IllegalArgumentException，无规则名/位置上下文
 
 - **文件**: `nop-rule/nop-rule-core/src/main/java/io/nop/rule/core/model/compile/RuleModelCompiler.java:64`
@@ -168,6 +180,8 @@ this.inputDefines = Guard.notEmpty(inputDefines, "inputDefines");
 - **风险**: 加载/编译期抛裸异常（无 ruleName、无 SourceLocation、无错误码），调用方（ResourceComponentManager 加载链）只能看到无上下文的 IllegalArgumentException，排障困难；同时使 xdef 允许的合法模型无法编译。
 - **建议**: 要么在 xdef 层强制 input 至少一个并给出带位置的错误，要么允许空 inputs 时跳过 NormalizeInput 包装；至少应抛带 `source(ruleModel)` 与 ruleName 的 NopException。
 - **误报排除**: 已读 `Guard.notEmpty`（nop-api-core Guard.java:88-92）确认空集合抛 IllegalArgumentException；已读 `_RuleModel._inputs` 默认值 `KeyedList.emptyList()` 与 `RuleModel.initVarMap`（null 时设为空 ArrayList）确认空 inputs 可到达此处；已读 `rule.xdef` 全文确认 input 无出现次数下限。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 复查非问题（审计前提有误）。`Guard.notEmpty(T,String)` 实际委托 `ApiStringHelper.isEmptyObject(Object)`（ApiStringHelper.java:56-62），该方法只把 null 与空 String 视为空，**空集合不会触发异常**——`KeyedList.fromList(空列表)` 返回空 KeyedList 后构造 `NormalizeInputExecutableRule` 不会抛 `IllegalArgumentException`，无输入的合法模型在 HEAD 上即可正常编译执行。已实测验证：stash 回退 `RuleModelCompiler.java` 至 HEAD 后（清理 target/classes 强制重编译），`TestRuleModelCompiler#testCompileRuleWithoutInputs` 在旧代码上直接通过（无输入常量规则编译执行成功）。源码未改动（曾做的"空 inputs 跳过包装"修改已回退，避免引入"未知输入静默忽略"的行为差异）；保留该测试作为可执行证据固化现状行为。
 
 ### [P3] RuleExprParser.restRuleOrExpr 的 checkRightValue 误传 AND 操作符文本（复制粘贴）
 
@@ -185,6 +199,8 @@ protected Expression restRuleOrExpr(TextScanner sc, Expression x) {
 - **建议**: 改为 `XLangOperator.OR.getText()`。
 - **误报排除**: 已对照相邻方法 restRuleAndExpr 的对称实现确认此处应为 OR。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。`checkRightValue(sc, XLangOperator.AND.getText(), y)` 改为 `XLangOperator.OR.getText()`。新增测试 `TestRuleExprParser#testOrMissingRightValue`（解析 `" >= 3 or"` 断言异常 param op 为 `"||"`）。红验证：stash `RuleExprParser.java` 后失败，形态为 `expected: <||> but was: <&&>`（操作符文本实际为 `&&`/`||`，非审计描述的字面 `and`/`or`，不影响判定）。
+
 ### [P3] FilterBeanToPredicateTransformer.visitOr 空 children 返回 ALWAYS_TRUE（空析取语义存疑）
 
 - **文件**: `nop-rule/nop-rule-core/src/main/java/io/nop/rule/core/model/compile/FilterBeanToPredicateTransformer.java:148`
@@ -201,6 +217,8 @@ public IEvalPredicate visitOr(ITreeBean filter, IVariableScope scope) {
 - **建议**: 平台层面统一修正（FilterBeanEvaluator/FilterBeanExpressionCompiler 同步），或由 xdef 禁止空 or。
 - **误报排除**: 已读 `FilterBeanEvaluator.visitOr`（nop-core）与 `FilterBeanExpressionCompiler.visitOr`（nop-xlang），两者对空 children 同样返回 true，故这是平台统一惯例而非本模块独有缺陷，降为 P3 提示。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 裁定暂缓。空析取恒真是平台级统一惯例（nop-core `FilterBeanEvaluator.visitOr`、nop-xlang `FilterBeanExpressionCompiler.visitOr` 行为一致），仅修改 nop-rule 会造成三处实现对同一 filter-bean 语义不一致，正确修法需平台层面统一裁定（含空 `<and>` 恒真、空 `<or>` 数学上应恒假的语义讨论，或由 xdef 禁止空 or 节点）并同步回归。涉及 nop-core/nop-xlang 共享模块，超出本单元处置范围，留待主会话协调。
+
 ### [P3] parseMatrixOutputs 抛裸 IllegalArgumentException 且无位置信息
 
 - **文件**: `nop-rule/nop-rule-core/src/main/java/io/nop/rule/core/excel/RuleTableModelParser.java:609`
@@ -215,6 +233,8 @@ if (topCell == null)
 - **风险**: 用户 Excel 格式错误时得到不可理解的报错。
 - **建议**: 改用 `ERR_RULE_INVALID_OUTPUT_CELL` + `CellPosition.toABString(i, j)` 参数。
 - **误报排除**: 已对照同文件其他错误路径（如第 623-625 行）确认平台惯例是 NopException + ARG_CELL_POS。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。改为 `NopException(ERR_RULE_INVALID_OUTPUT_CELL).param(ARG_CELL_POS, CellPosition.toABString(outBeginRow - 1, j))`，与同文件其他错误路径惯例一致；`parseMatrixOutputs` 同步放宽为包可见以便直接测试。新增测试 `TestRuleTableModelParser#testParseMatrixOutputsNullTopCell`（构造输出区上方表头单元格缺失的最小 ExcelTable，断言 errorCode 与 cellPos 参数）。红验证：stash `RuleTableModelParser.java` 后（保留包可见性等最小可编译调整）失败，形态为 `Unexpected exception type thrown, expected: <NopException> but was: <java.lang.IllegalArgumentException: null top cell>`。
 
 ### [P3] requireRealCell 命名为 require 却返回 null，契约与命名不符
 
@@ -234,6 +254,8 @@ private ExcelCell requireRealCell(ExcelTable table, int rowIndex, int colIndex) 
 - **建议**: 改名 getRealCellChecked 或统一为抛异常语义。
 - **误报排除**: 已核对全部两个调用点（parseMatrixOutputs:614、parseOutputCell:644），后者已判 null 证明 null 返回是现实路径。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复（命名与契约澄清）。`requireRealCell` 改名为 `getRealCellNoMerge` 并补充 javadoc 明确契约：无单元格返回 null（由调用方判空）、proxy 合并单元格抛 ERR_RULE_NOT_ALLOW_MERGED_CELL；3 个调用点同步改名。纯私有方法改名、零行为变化，编译与既有 Excel 解析/导入测试回归覆盖（本条无需 stash 红验证：无可观察行为变化）。
+
 ### [P3] DaoRuleModelSaver.saveRuleModel 篡改传入的 ruleModel（副作用）
 
 - **文件**: `nop-rule/nop-rule-dao/src/main/java/io/nop/rule/dao/model/DaoRuleModelSaver.java:34`
@@ -248,6 +270,8 @@ public void saveRuleModel(RuleModel ruleModel, NopRuleDefinition entity) {
 - **风险**: 当前调用链中 setRuleType 在 save 之前执行，暂无实际错误；但调用顺序一旦调整即引入隐蔽 bug。
 - **建议**: 在方法内克隆模型或序列化时局部排除 decisionTree，避免修改输入。
 - **误报排除**: 已读唯一调用链 `NopRuleDefinitionBizModel.importExcelFile`（第 125-133 行）确认当前顺序恰好无错、但 ruleModel 后续仅用于无树依赖的 validateModel，属侥幸正确。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。序列化放入 try 块（排除 decisionTree）、`finally` 中恢复原引用，`saveRuleModel` 不再篡改调用方传入的模型对象。行为回归由 TestNopRuleDefinitionBizModel 全部导入用例构成等价安全网：既有快照用例（testImport/testDecisionMatrix/testUpdateByFile）中 modelText 快照仍不含决策树证明"序列化时排除"仍生效，新增 testImportDuplicatePredicate 及保存后 validateModel 通过证明恢复不影响后续链路。未写定向单测的原因：`saveRuleModel` 内部 `entity.newOrmEntity` 依赖 ORM session enhancer，脱离 autotest 数据库环境无法构造；本条与 P1 重复 predicate 共用同一条全链路测试。
 
 ### [P3] getNonEmptyRowBound 的 start 参数从未使用
 
@@ -264,6 +288,8 @@ private int getNonEmptyRowBound(ExcelTable table, int start) {
 - **建议**: 删除 start 参数或真正从 start 开始扫描。
 - **误报排除**: 已读 ExcelTable.newProxyCell 与 ExcelCell proxy 的 value 委托行为（proxy value 为 null）并人工推演合并行跳过逻辑，确认当前行为等价、无现实 bug，故仅 P3。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复（激活死参数）。循环改为 `for (int i = start, ...)` 从 start 开始扫描，消除参数与实现不一致。行为等价性依据：两个调用点传入的 start 均为 (0,0) 合并主格的 rowspan（决策树 cell0.getRowSpan()、矩阵 outBeginRow=cell0.getRowSpan()），旧实现从 0 扫描时读合并主格后 `i += mergeDown` 恰好跳到 start，与新实现落点一致。无可观察行为变化（由既有 TestRuleExcelParser 决策树/矩阵解析与 service 三个导入用例回归覆盖），故未做 stash 红验证；新实现还消除了"表头区第 0 列存在非合并空单元格时提前截断"的潜在风险。
+
 ### [P3] RuleOutputValueModel.varModel 有写入无消费（死代码）
 
 - **文件**: `nop-rule/nop-rule-core/src/main/java/io/nop/rule/core/model/RuleOutputValueModel.java:20`
@@ -278,6 +304,8 @@ public RuleOutputDefineModel getVarModel() { return varModel; }
 - **风险**: 无运行时危害，误导维护者以为该关联生效。
 - **建议**: 删除或在编译期真正使用（如类型校验）。
 - **误报排除**: 已 grep 全仓库 getVarModel/setVarModel 确认无消费点。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复（死代码删除）。删除 `RuleOutputValueModel.varModel` 字段与 getter/setter，以及唯一写入点 `RuleTableModelParser.parseOutputVars` 中的 `outputModel.setVarModel(ruleModel.getOutputVar(varName))` 调用；处置前重新 grep 全仓库确认仍无消费方。无行为变化（死代码删除免测试；既有 Excel 解析/导入测试回归覆盖编译与解析路径）。
 
 ### [P3] 规则执行日志落库链路未接通（IRuleLogMessageSaver 无实现、NopRuleLog 无写入方）
 
@@ -295,6 +323,8 @@ if (ruleRt.isCollectLogMessage()) {
 - **风险**: 平台内规则执行日志持久化功能整体处于未接通状态，仅前端查询到空表；saveLogMessage 配置即使打开，客户端不请求 logMessages 也不落库。
 - **建议**: 提供缺省 saver 实现或删除预留开关；日志收集与日志落库的触发条件解耦。
 - **误报排除**: 已 grep 全仓库（含 nop-file、nop-wf 等模块）确认 IRuleLogMessageSaver 无实现、NopRuleLog 无写入门路（仅 CrudBizModel 提供手动 CRUD）。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 裁定暂缓。属功能补全而非缺陷修复，需两个设计决策：(a) 是否在 nop-rule-dao 提供缺省 `IRuleLogMessageSaver` 实现写入 NopRuleLog 表（涉及写入时机——RuleServiceImpl 内同步写还是利用 GraphQL 响应后置钩子、批量/异步策略、表字段与 RuleLogMessageBean 的映射确认）；(b) 日志落库与客户端 selection 的解耦方式（当前 collectLogMessage 由 selection 是否请求 logMessages 字段驱动，saveLogMessage 生效被不必要地耦合在收集开关之下）。现状 saveLogMessage 默认 false 且无 saver 实现，功能整体关闭、无错误行为，修复收益与改动面需产品层面权衡，留待主会话决策。注：与本单元相关的热路径日志噪声已由 P2（RuleRuntime.logMessage）修复缓解。
 
 ## 其他核实无误的点（误报排除记录）
 

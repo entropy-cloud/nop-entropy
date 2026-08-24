@@ -122,7 +122,7 @@ public class RuleTableModelParser {
     }
 
     private int getNonEmptyRowBound(ExcelTable table, int start) {
-        for (int i = 0, n = table.getRowCount(); i < n; i++) {
+        for (int i = start, n = table.getRowCount(); i < n; i++) {
             ICell cell = table.getCell(i, 0);
             if (cell == null)
                 return i;
@@ -312,7 +312,6 @@ public class RuleTableModelParser {
 
             RuleOutputValueModel outputModel = new RuleOutputValueModel();
             outputModel.setName(varName);
-            outputModel.setVarModel(ruleModel.getOutputVar(varName));
 
             IEvalAction action = parseOutputAction(outputCell, sheet.getName(), varName, rowIndex, colIndex);
             outputModel.setValueExpr(action);
@@ -328,7 +327,11 @@ public class RuleTableModelParser {
         return cell.getRealCell();
     }
 
-    private ExcelCell requireRealCell(ExcelTable table, int rowIndex, int colIndex) {
+    /**
+     * 返回指定位置的真实单元格。如果该位置是合并单元格产生的proxy单元格，则抛出异常。
+     * 如果没有单元格，则返回null，调用方需要自行判空。
+     */
+    private ExcelCell getRealCellNoMerge(ExcelTable table, int rowIndex, int colIndex) {
         ICell cell = table.getCell(rowIndex, colIndex);
         if (cell == null)
             return null;
@@ -434,22 +437,20 @@ public class RuleTableModelParser {
         return b;
     }
 
-    private Map<String, ValueWithLocation> getCommentVars(ExcelCell cell, String sheetName, int rowIndex, int colIndex) {
+    Map<String, ValueWithLocation> getCommentVars(ExcelCell cell, String sheetName, int rowIndex, int colIndex) {
         if (cell == null)
             return null;
 
         SourceLocation loc = getLocation(cell, sheetName, rowIndex, colIndex);
         Map<String, ValueWithLocation> vars = MultiLineConfigParser.INSTANCE.parseConfig(loc, cell.getComment());
         if (vars != null) {
-            if (COMMENT_VAR_NAMES.containsAll(vars.keySet())) {
-                for (String varName : vars.keySet()) {
-                    if (!COMMENT_VAR_NAMES.contains(varName))
-                        throw new NopException(ERR_RULE_UNKNOWN_CONFIG_VAR)
-                                .loc(loc)
-                                .param(ARG_CELL_POS, CellPosition.toABString(rowIndex, colIndex))
-                                .param(ARG_VAR_NAME, varName)
-                                .param(ARG_ALLOWED_NAMES, COMMENT_VAR_NAMES);
-                }
+            for (String varName : vars.keySet()) {
+                if (!COMMENT_VAR_NAMES.contains(varName))
+                    throw new NopException(ERR_RULE_UNKNOWN_CONFIG_VAR)
+                            .loc(loc)
+                            .param(ARG_CELL_POS, CellPosition.toABString(rowIndex, colIndex))
+                            .param(ARG_VAR_NAME, varName)
+                            .param(ARG_ALLOWED_NAMES, COMMENT_VAR_NAMES);
             }
         }
         return vars;
@@ -589,9 +590,9 @@ public class RuleTableModelParser {
         return objName.equals(varName) ? varDef.getName() : varName;
     }
 
-    private void parseMatrixOutputs(RuleDecisionMatrixModel ret, ExcelSheet sheet,
-                                    int outBeginRow, int outBeginCol,
-                                    int outEndRow, int outEndCol, RuleModel ruleModel) {
+    void parseMatrixOutputs(RuleDecisionMatrixModel ret, ExcelSheet sheet,
+                            int outBeginRow, int outBeginCol,
+                            int outEndRow, int outEndCol, RuleModel ruleModel) {
         ExcelTable table = sheet.getTable();
         String sheetName = sheet.getName();
 
@@ -606,12 +607,13 @@ public class RuleTableModelParser {
             for (int j = outBeginCol; j < outEndCol; j++) {
                 ExcelCell topCell = (ExcelCell) getRealCell(table, outBeginRow - 1, j);
                 if (topCell == null)
-                    throw new IllegalArgumentException("null top cell");
+                    throw new NopException(ERR_RULE_INVALID_OUTPUT_CELL)
+                            .param(ARG_CELL_POS, CellPosition.toABString(outBeginRow - 1, j));
 
                 RuleTableCellModel cellModel = new RuleTableCellModel();
                 cellModel.setPos(CellPosition.of(rowLeafIndex, colLeafIndex));
 
-                ExcelCell cell = requireRealCell(table, i, j);
+                ExcelCell cell = getRealCellNoMerge(table, i, j);
                 if (isSingleCell(leftCell, topCell, cell)) {
                     // 单个值
                     IEvalAction outAction = parseOutputAction(cell, sheetName, RuleConstants.VAR_RESULT, i, j);
@@ -641,7 +643,7 @@ public class RuleTableModelParser {
         ExcelTable table = sheet.getTable();
 
         for (int i = 0, n = topCell.getColSpan(); i < n; i++) {
-            ExcelCell cell = requireRealCell(table, rowIndex, colIndex + i);
+            ExcelCell cell = getRealCellNoMerge(table, rowIndex, colIndex + i);
             if (cell == null || cell.getColSpan() != 1 || cell.getRowSpan() != 1)
                 throw new NopException(ERR_RULE_INVALID_OUTPUT_CELL)
                         .param(ARG_CELL_POS, CellPosition.toABString(rowIndex, i + colIndex));
@@ -651,7 +653,7 @@ public class RuleTableModelParser {
                 throw new NopException(ERR_RULE_INVALID_OUTPUT_CELL)
                         .param(ARG_CELL_POS, CellPosition.toABString(rowIndex, i + colIndex));
 
-            ExcelCell valueCell = requireRealCell(table, rowIndex + 1, colIndex + i);
+            ExcelCell valueCell = getRealCellNoMerge(table, rowIndex + 1, colIndex + i);
             IEvalAction outAction = this.parseOutputAction(valueCell, sheet.getName(), outputVar, rowIndex + 1, colIndex + i);
 
 

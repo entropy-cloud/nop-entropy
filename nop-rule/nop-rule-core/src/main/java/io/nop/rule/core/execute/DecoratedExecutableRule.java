@@ -32,6 +32,9 @@ public class DecoratedExecutableRule implements IExecutableRule {
                 beforeExecute.invoke(ruleRt);
             boolean b = rule.execute(ruleRt);
             ruleRt.setRuleMatch(b);
+            // 与rule.xdef中的契约保持一致：无论规则是否成功匹配，都会执行afterExecute
+            if (afterExecute != null)
+                afterExecute.invoke(ruleRt);
             return b;
         } catch (Exception e) {
             ruleRt.setException(e);
