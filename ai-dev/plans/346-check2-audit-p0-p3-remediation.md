@@ -11,7 +11,7 @@
 
 ## Current Baseline
 
-- 2026-08-23: check2 Phase 1（16 单元）+ Phase 2（5 单元）+ Phase 3 批次 3A（nop-report/nop-rule/nop-batch/nop-dyn）报告落盘；`check2/nop-metadata.md`（13 条）报告完整但未提交（前一会话中断遗留）。
+- 2026-08-23: check2 Phase 1（16 单元）+ Phase 2（5 单元）+ Phase 3 批次 3A（nop-report/nop-rule/nop-batch/nop-dyn）报告落盘；`../audits/check2/nop-metadata.md`（13 条）报告完整但未提交（前一会话中断遗留）。
 - 2026-08-24: plan344 Phase 4 完成 nop-batch、nop-dyn 两单元修复（标注在 check/ 系列报告）；check2/nop-batch.md、check2/nop-dyn.md 未标注，其发现需对照已修复代码复核（预计大量"复查已修复/非问题"）。
 - P0 抽查（2026-08-24）：StringHelper.parseQuery、AiAuthGatewayInterceptor Authorization 头、GlobalFunctions AND/OR subList 三处均确认仍为 live defect。
 - 其余 check2 报告 0 标注；`grep '^### \[P[0123]\]' 计数` 与 `grep '处置（fix-ai-check' 计数` 的差值即剩余工作量。
@@ -52,7 +52,7 @@
 
 ### Phase 1 - 含 P0 的单元（13 条 P0 优先清零）
 
-Status: in progress
+Status: completed
 Targets: 10 份报告；对应模块代码与测试
 
 - Item Types: `Fix | Decision | Proof`
@@ -64,16 +64,16 @@ Targets: 10 份报告；对应模块代码与测试
 - [x] nosql-cdc.md（P0×1 P1×2 P2×9 P3×13，共 25 条）— 2026-08-24 完成：22 修复 + 1 复查非问题 + 2 暂缓，25/25 标注。P0 复查非问题：RESP3 下 Lua boolean 恒被真实 Redis 扁平化为整数 1/null（6.2/7.2/7.4/8.10 四版本 raw socket `HELLO 3`+`EVAL "return {true,42}"` 实测均回 `:1`/`:42`，lettuce 实客户端 MULTI 返回 [Long 1, Long 42] 无异常）——审计仅凭字节码推断未接真实服务端，误报。P1: PubSub 消息串投（SubscriptionEntry 补 topic 过滤）/PrefixTextCodec Number/Boolean 往返退化（暂缓：nop-auth ask-first + PrefixEncodeHelper 在 nop-core plan-first 保护区，已落 javadoc 值类型契约）。P2: cancelled 污染/ClientResources 泄漏（线程计数红 167→179）/verifyPeer 默认 true 接入/expireAfterAccess NPE/getAll 过滤缺失 key/空集合守卫补全/getTopN(0)/parseTokenCount 小数/hash removeIfMatch 原子 Lua。P3: 13 条中 11 修复（死常量删除/parseHostPort IPv6/sentinelNodes 配置落地/session_set_field.lua EXISTS 守卫/sendAsync 委托真实 publish/订阅失败回滚/forEachEntryAsync mget/…）+ 1 暂缓（$d: 任意类加载白名单属平台安全决策）。新增 25 用例（TestLettuceNosqlService +14 docker、TestLettuceRedisConnectionProvider 新类 6、TestLettuceRateLimiterValidation 新类 3、nosql-core 首个测试 TestNosqlCache 2）；stash 红验证 17 处（docker 13 + dockerless 4）形态吻合；无 docker 76 run/0 fail（67 skip 为 docker-gated）、带 `-Dnop.test.docker.enabled=true` 76/0/0；`-am` 链含 nop-cdc BUILD SUCCESS。报告事实纠正 2 处写入标注（P2-6 失败形态实为客户端 IAE；putAllAsync 实无防护）。新发现记录：RoundRobinSupplier 构造即同步建连致 provider.start() 无可达 Redis 时失败
 - [x] gateway-bizauth.md（P0×2 P1×4 P2×5 P3×7，共 18 条）— 2026-08-24 完成：18 条全部修复（另有 4 个嵌套暂缓子项附决策点写于对应标注内：可信代理 IP 解析/断连取消管道/默认扩展名黑名单/per-fallback 凭证注入）。P0×2 同根因（Vertx/Servlet 链路 header key 小写化，混合大小写读取恒 null）：AiAuthGatewayInterceptor 改 IHttpServerContext.HEADER_AUTHORIZATION 小写常量（曾启用即全量 401）；AiRateLimitGatewayInterceptor 改 x-forwarded-for + normalizeKey（限流 key 曾全塌缩 default 共享 1 QPS）。P1: 拒绝异常双丢失路径（同步抛出穿透+异步被 ErrorMessageManager 改写 httpStatus=0，叠加旧兜底 200 实收 HTTP 200 比审计"语义 5xx"更严重，标注中已修正报告事实）/BufferedStreamingPublisher demand=0 时 onComplete 丢尾部（pendingComplete 挂起终态）/限流桶换 LocalCache TTL+上限（与 P0-2 耦合统筹）/isAllowedRedirectUri 前缀绕过（URI 边界判定，封堵 host 后缀+userinfo+端口伪装）。P2: API key/token 日志脱敏/两 store maxEntries 上界/Retry-After 三路径钳制 30s/fallback 默认剥离 authorization/x-api-key/cookie+maxRetries 落地。P3: forward(null) 抛 IAE/header 过滤双侧小写/扩展名双侧 toLowerCase/configLoaded volatile/ChunkFileUpload 空实现抛 UnsupportedOperationException/错误响应兜底 500/实例缓存 volatile。新增 30 用例/6 新测试类（biz-file-core 首建测试基建）；stash 红验证失败形态逐条吻合；nop-gateway 88 + biz-auth-core 70 + biz-file-core 5 = 163 tests 绿。新发现记录：LocalSmsCodeStore 同源惰性清理模式/Retry-After 恒静态值/单模块测试从 project-local-repo 解析旧 SNAPSHOT jar 环境隐患
 - [x] nop-job.md（P0×1 P1×2 P2×2 P3×13，共 18 条）— 2026-08-25 完成：17 修复 + 1 暂缓（P3-7 trigger 热路径重建缓存需缓存键/状态性证明设计决策 + benchmark 支撑，报告自述无功能危害）。主体修复于 08-24 commit 35623e49cf（14 条：P0 Once 双层修复=OnceTrigger 持久化判定 + planner isTriggerExhausted 防线，端到端 planner 测试覆盖；P1-1 存活链 @Inject @Nullable 接线 + worker-service-name 配置；P1-2 poll 线程池 + poll-timeout-ms；P2-1 CLAIMED 认领写 startTime 纳入回收扫描；P2-2 yearDays 闰年校验新错误码；P3×9），08-25 补齐 4 条残留（P3-8 drainBatch null 排序键防御/P3-10 BeanContainerInvokerResolver instanceof/P3-11 insertTasksAndMarkFireDispatching 改 boolean + dispatcher 条件计数/P3-3 空壳 FireFactory 删除于 08-24 commit）+ HttpRpcPollTaskClient 双 import 格式修正。红验证：3 条新修复 stash 红（fetchCalls 1≠2 / CCE≠NopException / firesDispatched 0≠1），08-24 部分引用其 commit 内红验证测试。core+local+dao+coordinator+service 五模块 BUILD SUCCESS（coordinator 197 run 0 fail 含 6 专名新用例）。报告事实纠正 1 处（P3-6 ThreadLocal 跨线程干扰前提不成立，真实缺陷仅内存驻留）；18/18 标注。
-- [ ] nop-task.md（P0×2 P1×6 P2×6 P3×5，共 19 条）
-- [ ] nop-report.md（P0×1 P1×5 P2×10 P3×10，共 26 条）
-- [ ] nop-rule.md（P0×1 P1×3 P2×3 P3×8，共 15 条）
+- [x] nop-task.md（P0×2 P1×6 P2×6 P3×5，共 19 条）— 2026-08-25 完成：14 修复 + 5 暂缓。P0×2（suspend 出口 metrics.endStep(meter) 判空 NPE + TaskImpl 挂起分支：SUSPENDED(20) 持久化、不 runCleanup/endTask/COMPLETED，恢复不短路）。P1 修复 3（catch 出口 endTask 判空/BuildOutput 包装透传 SUSPEND/Graph 错误边可达性——生产方 nextOnError 在 TaskStepExecution 层被拦截的事实纠正写入标注）+ 暂缓 3（fork 分支共享 stepPath 竞态需 ORM 唯一索引属 plan-first 保护区/continuation-skip 不恢复 outputs 与 stateBean 未持久化均需持久化格式向后兼容设计）。P2 修复 5 + 暂缓 1（persistVars 死代码涉 nop-xdefs 契约变更）。P3 修复 4 + 暂缓 1（DaoTaskStateStore 装配决策且 _dao.beans.xml 为生成文件）。新增 9 测试类 17 用例 + 8 个 task.xml 资源；stash 红验证 14 红 3 守卫绿（形态：NPE/ERR_TASK_UNKNOWN_NEXT_STEP/state.isDone 等）；nop-task-core 116 tests 绿。
+- [x] nop-report.md（P0×1 P1×5 P2×10 P3×10，共 26 条）— 2026-08-25 完成：21 修复 + 2 暂缓 + 3 不修复。P0: COUNTIF/SUMIF 多字符操作符字典序比较（显式匹配 >=/<=/<> 优先；顺带修复 SUMIF 无 sumRange 时迭代器别名错位——编写测试时发现的相邻缺陷）。P1×5 全修（avg 分母/childCell col 分支/getExpandableRowParent 错递归/resolveAllCellsInColParent 误用 getRowDescendants/FontManager.registerSystemFonts 接线）。P2 修 9 + 暂缓 1（minReuse/maxReuse 语义需引擎 owner 裁定）。P3 修 7 + 暂缓 1（getRowIndex O(n²) 需索引缓存设计）+ 不修复 2（getCol/getRow 契约统一爆炸半径大且现实 NPE 路径已消除/ExcelRecordInput 全量载入为既定设计权衡 + 聚合 Excel 语义偏差改返回值破坏兼容性）。新增 11 测试类 24 例 + 既有测试 +16 例；stash 红验证逐条形态吻合（含 TextWrapHelper wrapByWord 死循环至 OOM 的 JVM 级红）；core 64+pdf 12+docx 2+demo 24+service 0 全绿。
+- [x] nop-rule.md（P0×1 P1×3 P2×3 P3×8，共 15 条）— 2026-08-25 完成：12 修复 + 1 复查非问题 + 2 暂缓。P0: DecoratedExecutableRule 正常路径 return 前调 afterExecute（对齐 rule.xdef 契约）。P1×3 全修（NormalizeInput inputs==null 判空/Excel 注释白名单校验恒真反转/DaoRuleModelSaver 重复 predicate 一次性消费）。P2 修 2（mandatory 未命中不抛 + logMessage 降 debug）+ 复查非问题 1（空输入规则编译抛裸 IAE 前提有误——ApiStringHelper.isEmptyObject 不判空集合，stash 实测无输入规则可正常编译，保留行为固化测试）。P3 修 7 + 暂缓 2（visitOr 空 children 恒真为 nop-core/nop-xlang/nop-rule 三处平台统一惯例需平台层裁定/规则日志落库功能补全需缺省 saver 设计决策，现状默认关闭无错误行为）。新增 4 测试类 16 例 + 2 处追加 + xlsx fixture；stash 红验证 8 处形态吻合（含全链路 upload→save→executeRule 的重复 predicate 红，须 core/dao/service 同 reactor 跑避免 m2 旧构件误红）；8 子模块 43 tests 绿。
 
 Exit Criteria:
 
-- [ ] 10 份报告全部条目有处置标注（grep 对账：findings 计数 = 处置标注计数）
-- [ ] 13 条 P0 终态均为已修复或复查非问题（P0 不允许暂缓/不修复）
-- [ ] 修复项对应模块测试绿
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 10 份报告全部条目有处置标注（grep 对账：findings 计数 = 处置标注计数；2026-08-25 核验 nop-commons 28/28、nop-xlang 10/10、nop-orm-eql 11/11、db-migration 16/16、nosql-cdc 25/25、gateway-bizauth 18/18、nop-job 18/18、nop-task 19/19、nop-report 26/26、nop-rule 15/15）
+- [x] 13 条 P0 终态均为已修复或复查非问题（P0 不允许暂缓/不修复）（2026-08-25 逐条核验：12 已修复 + 1 复查非问题 nosql-cdc RESP3）
+- [x] 修复项对应模块测试绿（各单元标注内含命令与 run/fail 数；2026-08-25 主会话对 nop-task/nop-report/nop-rule 独立复跑 BUILD SUCCESS）
+- [x] `ai-dev/logs/` 对应日期条目已更新（08-24 各单元 + 08-25 nop-job/nop-task/nop-report/nop-rule 条目）
 
 ### Phase 2 - 框架层其余单元
 

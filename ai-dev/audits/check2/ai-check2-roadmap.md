@@ -210,3 +210,4 @@
   - nop-job: Once 语义在 planner 路径失效——once 型 schedule 首次触发后被无限重复执行
   - nop-task: suspend 步骤默认配置（recordMetrics=false）下 metrics.endStep(null) NPE → 挂起变任务失败; 任务挂起被当作成功完成持久化为 COMPLETED，挂起恢复语义端到端断裂
   - 启动 Phase 3（可复用业务模块）。
+- 2026-08-25: check2 处置战役（plan346）**Phase 1 收口**——剩余 4 单元完成：nop-job（08-24 commit 35623e49cf 主体 + 08-25 补标注与 4 条残留修复，17 修+1 暂缓）、nop-task（14 修+5 暂缓）、nop-report（21 修+2 暂缓+3 不修复）、nop-rule（12 修+1 复查非问题+2 暂缓）。Phase 1 全 10 单元处置完毕：13 条 P0 终态 = 12 已修复 + 1 复查非问题（nosql-cdc RESP3 实测推翻）；各模块测试绿；报告 226/226 条目标注。

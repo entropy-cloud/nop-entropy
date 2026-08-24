@@ -452,7 +452,7 @@ Flux `PageSchema` **完全支持** aside 相关属性（与 AMIS 命名差异：
 
 > **本节是生成侧（xlib / gen-control）与消费侧（nop-chaos-flux 渲染器）之间的契约权威。修改任何输出 `type:'picker'` schema 的代码前必读。**
 
-Flux 表单字段级 picker 的 schema 由 nop-chaos-flux 渲染器消费（`flux-renderers-form-advanced/src/picker-renderer.tsx` + `composite-field/composite-schemas.ts` 的 `PickerSchema`）。**字段命名与 AMIS picker 完全不同**，逐项对照：
+Flux 表单字段级 picker 的 schema 由 nop-chaos-flux 渲染器消费（nop-chaos-next 仓 `flux-renderers-form-advanced` 目录的 picker-renderer.tsx，以及其 composite-field 目录下 composite-schemas.ts 内的 `PickerSchema`）。**字段命名与 AMIS picker 完全不同**，逐项对照：
 
 | 本仓生成侧必须输出 | 禁止输出的 AMIS 键 | 说明 |
 |---|---|---|
