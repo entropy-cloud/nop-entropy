@@ -314,25 +314,6 @@ public class CollectionOperatorTransformer {
         }
     }
 
-    private void processNestedScopesInSubquery(CollectionScope parentScope, SqlExistsExpr parentExistsExpr) {
-        SqlQuerySelect subquery = (SqlQuerySelect) parentExistsExpr.getQuery().getSelect();
-        SqlWhere subqueryWhere = subquery.getWhere();
-        if (subqueryWhere == null || subqueryWhere.getExpr() == null)
-            return;
-
-        SqlExpr condition = subqueryWhere.getExpr();
-
-        for (CollectionScope childScope : parentScope.getChildren().values()) {
-            String fullPrefix = getFullCollectionPrefix(childScope);
-            EqlASTNode nestedLogicNode = findNestedLogicNode(condition, fullPrefix);
-            if (nestedLogicNode != null) {
-                childScope.setLogicUnitNode(nestedLogicNode);
-                childScope.setAlias(makeAlias(childScope));
-                transformCollectionScope(childScope);
-            }
-        }
-    }
-
     private EqlASTNode findNestedLogicNode(SqlExpr condition, String collectionPrefix) {
         final List<EqlASTNode> logicNodes = new ArrayList<>();
         EqlASTVisitor visitor = new EqlASTVisitor() {
@@ -426,79 +407,6 @@ public class CollectionOperatorTransformer {
             scope.setLogicUnitNode(finalCondition);
         }
     }
-
-    private List<EqlASTNode> findAllNestedLogicNodes(SqlExpr condition, CollectionScope parentScope) {
-        List<EqlASTNode> result = new ArrayList<>();
-        for (CollectionScope child : parentScope.getChildren().values()) {
-            String fullPrefix = getFullCollectionPrefix(child);
-            EqlASTNode nestedLogicNode = findNestedLogicNode(condition, fullPrefix);
-            if (nestedLogicNode != null) {
-                result.add(nestedLogicNode);
-            }
-        }
-        return result;
-    }
-
-//    private EqlASTNode findCorrespondingNode(SqlExpr clonedCondition, EqlASTNode originalNode) {
-//        if (originalNode == null || clonedCondition == null)
-//            return null;
-//
-//        String originalSql = originalNode.toSqlString();
-//        return findNodeBySqlString(clonedCondition, originalSql);
-//    }
-
-//    private EqlASTNode findNodeBySqlString(EqlASTNode node, String targetSql) {
-//        if (node == null)
-//            return null;
-//
-//        String normalizedTarget = normalizeSql(targetSql);
-//        if (normalizeSql(node.toSqlString()).equals(normalizedTarget)) {
-//            return node;
-//        }
-//
-//        if (node instanceof SqlBinaryExpr) {
-//            SqlBinaryExpr binaryExpr = (SqlBinaryExpr) node;
-//            EqlASTNode leftResult = findNodeBySqlString(binaryExpr.getLeft(), targetSql);
-//            if (leftResult != null)
-//                return leftResult;
-//            return findNodeBySqlString(binaryExpr.getRight(), targetSql);
-//        }
-//
-//        if (node instanceof SqlAndExpr) {
-//            SqlAndExpr andExpr = (SqlAndExpr) node;
-//            EqlASTNode leftResult = findNodeBySqlString(andExpr.getLeft(), targetSql);
-//            if (leftResult != null)
-//                return leftResult;
-//            return findNodeBySqlString(andExpr.getRight(), targetSql);
-//        }
-//
-//        if (node instanceof SqlOrExpr) {
-//            SqlOrExpr orExpr = (SqlOrExpr) node;
-//            EqlASTNode leftResult = findNodeBySqlString(orExpr.getLeft(), targetSql);
-//            if (leftResult != null)
-//                return leftResult;
-//            return findNodeBySqlString(orExpr.getRight(), targetSql);
-//        }
-//
-//        return null;
-//    }
-
-//    private String normalizeSql(String sql) {
-//        return sql.replaceAll("\\s+", " ").trim();
-//    }
-//
-//    private void buildLogicNodesForChildren(CollectionScope scope) {
-//        if (scope.getChildren() != null) {
-//            for (CollectionScope child : scope.getChildren().values()) {
-//                SqlColumnName colName = child.getColNameNode();
-//                if (colName != null) {
-//                    EqlASTNode logicNode = findLogicUnitNode(colName);
-//                    child.setLogicUnitNode(logicNode);
-//                }
-//                buildLogicNodesForChildren(child);
-//            }
-//        }
-//    }
 
     private SqlExistsExpr createExistsExpr(CollectionScope scope) {
         SqlCollectionOperator operator = scope.getOperator();

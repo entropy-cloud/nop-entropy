@@ -53,4 +53,29 @@ public class TestSqlExprTransformHelper {
         Object result = action.invoke(scope);
         assertEquals("a15", result);
     }
+
+    private Object evalExpression(String sqlText) {
+        Expression expr = SqlExprTransformHelper.parseSqlToExpression(null, sqlText);
+        XLangCompileTool cp = XLang.newCompileTool().allowUnregisteredScopeVar(true);
+        IEvalAction action = cp.buildEvalAction(expr);
+        return action.invoke(XLang.newEvalScope());
+    }
+
+    @Test
+    public void testHexLiteralToExpression() {
+        // 解析阶段已剥离0x前缀，求值转换必须直接按裸十六进制串解析
+        assertEquals(Boolean.TRUE, evalExpression("0x0A = 10"));
+    }
+
+    @Test
+    public void testBitLiteralToExpression() {
+        // 解析阶段已剥离b'..'前缀，求值转换必须直接按裸二进制串解析
+        assertEquals(Boolean.TRUE, evalExpression("b'1010' = 10"));
+    }
+
+    @Test
+    public void testLargeHexLiteralToExpression() {
+        // 超过64位的十六进制字面量应按BigInteger解析而不是抛NumberFormatException
+        assertEquals(Boolean.TRUE, evalExpression("0xFFFFFFFFFFFFFFFFF != 0"));
+    }
 }

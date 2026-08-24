@@ -60,7 +60,8 @@ public class SqlTableScope implements Serializable {
     }
 
     public void addTable(String alias, SqlTableSource table) {
-        SqlTableSource oldTable = this.aliasToTables.put(alias, table);
+        // 先检查再放置：同一CTE被多次引用时保留首个映射，而不是静默覆盖为新的克隆
+        SqlTableSource oldTable = this.aliasToTables.get(alias);
         if (oldTable != null && oldTable != table) {
             if (oldTable instanceof SqlSubqueryTableSource) {
                 if (((SqlSubqueryTableSource) oldTable).isSameWithClause(table))
@@ -69,5 +70,6 @@ public class SqlTableScope implements Serializable {
             throw new NopEvalException(ERR_EQL_DUPLICATE_TABLE_ALIAS).param(ARG_ALIAS, alias).param(ARG_TABLE2, table)
                     .param(ARG_TABLE1, oldTable);
         }
+        this.aliasToTables.put(alias, table);
     }
 }

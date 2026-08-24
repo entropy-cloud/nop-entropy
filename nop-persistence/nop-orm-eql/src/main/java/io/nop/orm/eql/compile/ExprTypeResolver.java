@@ -7,6 +7,7 @@
  */
 package io.nop.orm.eql.compile;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.type.StdSqlType;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.function.ISQLFunction;
@@ -22,6 +23,9 @@ import io.nop.orm.eql.ast.SqlRegularFunction;
 import io.nop.orm.eql.meta.ISqlExprMeta;
 import io.nop.orm.eql.meta.SingleColumnExprMeta;
 import io.nop.orm.model.ExprOrmDataType;
+
+import static io.nop.orm.eql.OrmEqlErrors.ARG_FUNC_NAME;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_FUNC_TOO_FEW_ARGS;
 
 public class ExprTypeResolver {
     private final IDialect dialect;
@@ -107,6 +111,9 @@ public class ExprTypeResolver {
         if (name.endsWith(OrmEqlConstants.FUNC_COUNT)) {
             return StdSqlType.BIGINT;
         }
+        // 非count聚合函数不允许无参数形态(如sum(*))，避免get(0)抛出裸IndexOutOfBoundsException
+        if (fn.getArgs().isEmpty())
+            throw new NopException(ERR_EQL_FUNC_TOO_FEW_ARGS).source(fn).param(ARG_FUNC_NAME, name);
         SqlExpr arg = fn.getArgs().get(0);
         resolveExprMeta(arg);
         return resolveType(arg);

@@ -768,10 +768,14 @@ public class EqlTransformVisitor extends EqlASTVisitor {
     }
 
     SqlPropJoin addToOneRelationJoin(SqlSingleTableSource source, IEntityRelationModel ref) {
+        return addToOneRelationJoin(source, ref, null);
+    }
+
+    SqlPropJoin addToOneRelationJoin(SqlSingleTableSource source, IEntityRelationModel ref, SqlAlias userAlias) {
         if (ref.isDynamicJoin())
             return addToOneDynamicRelationJoin(source, ref);
 
-        SqlSingleTableSource refTable = makeTableSource(source.getLocation(), ref.getRefEntityModel(), null);
+        SqlSingleTableSource refTable = makeTableSource(source.getLocation(), ref.getRefEntityModel(), userAlias);
         SqlExpr condition = makeCondition(ref.getJoin(), source, refTable);
 
         refTable.setForPropJoin(true);
@@ -1471,18 +1475,19 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         this.visitChild(node.getWhere());
 
         // 分析所有的projection，并且确保每一列都有一个别名
+        // returning * 与显式投影一样依赖方言的returning支持，必须在展开前统一校验
+        if ((node.getReturnAll() || (node.getReturnProjections() != null && !node.getReturnProjections().isEmpty()))
+                && !dialect.isSupportReturningForUpdate()) {
+            throw new NopException(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE)
+                    .param(ARG_DIALECT, dialect.getName())
+                    .param(ARG_FEATURE, FEATURE_SUPPORT_RETURNING_FOR_UPDATE);
+        }
         if (node.getReturnProjections() == null || node.getReturnProjections().isEmpty()) {
             // select *
             if (node.getReturnAll()) {
                 List<SqlProjection> items = buildSelectItems(source, true, false);
                 node.setReturnProjections(items);
             }// ELSE 没有Returning语句
-        } else {
-            if (!dialect.isSupportReturningForUpdate()) {
-                throw new NopException(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE)
-                        .param(ARG_DIALECT, dialect.getName())
-                        .param(ARG_FEATURE, FEATURE_SUPPORT_RETURNING_FOR_UPDATE);
-            }
         }
         visitChildren(node.getReturnProjections());
 

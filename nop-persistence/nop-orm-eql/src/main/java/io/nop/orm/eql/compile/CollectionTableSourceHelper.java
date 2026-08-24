@@ -72,7 +72,6 @@ public final class CollectionTableSourceHelper {
         }
 
         String rawName = tableName.getName();
-        String fullName = tableName.getFullName();
 
         // 解析 ownerAlias 和属性名 propName
         String ownerAlias;
@@ -103,6 +102,13 @@ public final class CollectionTableSourceHelper {
         SqlPropJoin join = buildRelationJoin(visitor, ownerTable, propName, table.getAlias());
         if (join == null) {
             return null;
+        }
+
+        // 集合表源的join条件已写入当前select的where，子表也已替换进from列表，
+        // 必须从owner的propJoins中撤销注册，否则AstToSqlGenerator.appendPropJoins会在owner所在查询
+        // 再次输出join，导致外层行数按集合成员数放大，或同层级写法产生重复别名的非法SQL
+        if (ownerTable.getPropJoins() != null) {
+            ownerTable.getPropJoins().values().removeIf(j -> j == join);
         }
 
         SqlSingleTableSource right = join.getRight();
@@ -153,7 +159,8 @@ public final class CollectionTableSourceHelper {
         IEntityRelationModel ref = (IEntityRelationModel) dataType;
         SqlPropJoin join;
         if (ref.isToOneRelation()) {
-            join = visitor.addToOneRelationJoin(ownerTable, ref);
+            // to-one 关系同样保留用户别名，否则 from o.dept d 之后别名 d 无法解析
+            join = visitor.addToOneRelationJoin(ownerTable, ref, userAlias);
         } else {
             // 集合关系：只根据 join 条件展开子表，不使用 keyProp 附加过滤
             join = visitor.addToManyCollectionJoin(ownerTable, ref, propName, userAlias);
