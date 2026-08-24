@@ -7,9 +7,15 @@
  */
 package io.nop.db.migration.core;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.type.StdSqlType;
+import io.nop.dao.dialect.DialectManager;
 import io.nop.db.migration.AbstractMigrationTestCase;
+import io.nop.db.migration.PreconditionExpect;
+import io.nop.db.migration.RunOnChange;
 import io.nop.db.migration.executor.DbTypeFilterExecutor;
+import io.nop.db.migration.model.SqlChange;
+import io.nop.db.migration.model.TableExistsPrecondition;
 import io.nop.db.migration.model.AddColumnChange;
 import io.nop.db.migration.model.ColumnDefinition;
 import io.nop.db.migration.model.CreateTableChange;
@@ -253,6 +259,274 @@ class TestMigrationEngine extends AbstractMigrationTestCase {
         assertEquals("java.lang.NullPointerException", message);
     }
 
+    // ---- repeatable migration + checksum regression ----
+
+    private DbMigrationModel createSqlMigration(String version, String description, String sqlBody) {
+        DbMigrationModel migration = new DbMigrationModel();
+        migration.setVersion(version);
+        migration.setDescription(description);
+
+        SqlChange change = new SqlChange();
+        change.setId("sql-" + version);
+        change.setType("sql");
+        change.setBody(sqlBody);
+
+        List<DbChangeModel> changeset = new ArrayList<>();
+        changeset.add(change);
+        migration.setChangeset(changeset);
+        return migration;
+    }
+
+    @Test
+    void testChecksumIncludesChangeContent() {
+        DbMigrationModel a = createSqlMigration("1.0.0", "same", "INSERT INTO t VALUES (1)");
+        DbMigrationModel b = createSqlMigration("1.0.0", "same", "INSERT INTO t VALUES (2)");
+
+        assertNotEquals(migrationEngine.calculateChecksum(a), migrationEngine.calculateChecksum(b),
+            "checksum must change when the change content changes, not only the type names");
+    }
+
+    @Test
+    void testRepeatableMigrationReRunsWhenChecksumChanges() {
+        executeSql("CREATE TABLE rep_log (id INT PRIMARY KEY, note VARCHAR(50))");
+
+        MigrationResult first = migrationEngine.migrate(createMigrationContext(
+            Collections.singletonList(createSqlMigration("R__rep", "repeatable", "INSERT INTO rep_log VALUES (1,'a')"))));
+        assertEquals(1, first.getRecords().size());
+        assertEquals(1, countRows("rep_log"));
+
+        // unchanged content: skipped
+        MigrationResult second = migrationEngine.migrate(createMigrationContext(
+            Collections.singletonList(createSqlMigration("R__rep", "repeatable", "INSERT INTO rep_log VALUES (1,'a')"))));
+        assertEquals(0, second.getRecords().size(), "unchanged repeatable migration must be skipped");
+        assertEquals(1, countRows("rep_log"));
+
+        // changed content: re-executed and history row updated
+        MigrationResult third = migrationEngine.migrate(createMigrationContext(
+            Collections.singletonList(createSqlMigration("R__rep", "repeatable", "INSERT INTO rep_log VALUES (2,'b')"))));
+        assertEquals(1, third.getRecords().size(), "changed repeatable migration must re-run");
+        assertTrue(third.getRecords().get(0).isSuccess());
+        assertEquals(2, countRows("rep_log"), "re-run repeatable migration must execute its changes again");
+
+        MigrationHistoryManager historyManager = new MigrationHistoryManager(jdbcTemplate, "default");
+        assertTrue(historyManager.getExecutedVersions().contains("R__rep"),
+            "the history row must be updated, not duplicated or lost");
+    }
+
+    @Test
+    void testVersionedChecksumMismatchThrows() {
+        executeSql("CREATE TABLE nowhere_a (id INT)");
+
+        MigrationResult first = migrationEngine.migrate(createMigrationContext(
+            Collections.singletonList(createSqlMigration("1.0.0", "original", "INSERT INTO nowhere_a VALUES (1)"))));
+        assertEquals(1, first.getRecords().size());
+        assertTrue(first.getRecords().get(0).isSuccess());
+
+        MigrationContext context = createMigrationContext(
+            Collections.singletonList(createSqlMigration("1.0.0", "original", "INSERT INTO nowhere_a VALUES (2)")));
+
+        NopException e = assertThrows(NopException.class, () -> migrationEngine.migrate(context),
+            "a versioned migration whose content changed must fail validation");
+        assertEquals("nop.err.db-migration.checksum-mismatch", e.getErrorCode());
+    }
+
+    // ---- precondition wiring regression ----
+
+    @Test
+    void testFailedPreconditionBlocksMigration() {
+        executeSql("CREATE TABLE existing_t (id INT PRIMARY KEY)");
+
+        DbMigrationModel migration = createTableMigrationFor("1.0.0", "guarded migration", "ctl_guard_t");
+
+        TableExistsPrecondition precondition = new TableExistsPrecondition();
+        precondition.setId("pre-1");
+        precondition.setTableName("existing_t");
+        precondition.setExpect(PreconditionExpect.NOT_EXISTS);
+        List<io.nop.db.migration.model.DbPreconditionModel> preconditions = new ArrayList<>();
+        preconditions.add(precondition);
+        migration.setPreconditions(preconditions);
+
+        MigrationContext context = createMigrationContext(Collections.singletonList(migration));
+        context.setFailFast(false);
+
+        MigrationResult result = migrationEngine.migrate(context);
+
+        assertFalse(tableExists("ctl_guard_t"),
+            "a migration whose precondition fails must not execute its changeset");
+        assertEquals(1, result.getRecords().size());
+        assertFalse(result.getRecords().get(0).isSuccess(),
+            "precondition failure must be recorded as a failed migration");
+    }
+
+    @Test
+    void testSatisfiedPreconditionAllowsMigration() {
+        executeSql("CREATE TABLE existing_t2 (id INT PRIMARY KEY)");
+
+        DbMigrationModel migration = createTableMigrationFor("1.0.0", "guarded migration", "ctl_guard2_t");
+
+        TableExistsPrecondition precondition = new TableExistsPrecondition();
+        precondition.setId("pre-1");
+        precondition.setTableName("existing_t2");
+        precondition.setExpect(PreconditionExpect.EXISTS);
+        List<io.nop.db.migration.model.DbPreconditionModel> preconditions = new ArrayList<>();
+        preconditions.add(precondition);
+        migration.setPreconditions(preconditions);
+
+        MigrationResult result = migrationEngine.migrate(createMigrationContext(Collections.singletonList(migration)));
+
+        assertTrue(result.getRecords().get(0).isSuccess());
+        assertTrue(tableExists("ctl_guard2_t"));
+    }
+
+    // ---- migration control fields regression ----
+
+    @Test
+    void testIgnoreSkipsMigration() {
+        DbMigrationModel migration = createTableMigrationFor("1.0.0", "ignored", "ctl_ignore_t");
+        migration.setIgnore(true);
+
+        MigrationResult result = migrationEngine.migrate(createMigrationContext(Collections.singletonList(migration)));
+
+        assertEquals(0, result.getRecords().size(), "ignore=true must skip the migration");
+        assertFalse(tableExists("ctl_ignore_t"), "ignored migration must not execute");
+    }
+
+    @Test
+    void testRunOnNeverSkipsMigration() {
+        DbMigrationModel migration = createTableMigrationFor("1.0.0", "never", "ctl_never_t");
+        migration.setRunOn(RunOnChange.NEVER);
+
+        MigrationResult result = migrationEngine.migrate(createMigrationContext(Collections.singletonList(migration)));
+
+        assertEquals(0, result.getRecords().size(), "runOn=never must skip the migration");
+        assertFalse(tableExists("ctl_never_t"));
+    }
+
+    @Test
+    void testContextMismatchSkipsMigration() {
+        DbMigrationModel migration = createTableMigrationFor("1.0.0", "test only", "ctl_ctx_t");
+        migration.setContexts("test");
+
+        MigrationContext context = createMigrationContext(Collections.singletonList(migration));
+        context.setContext("prod");
+
+        MigrationResult result = migrationEngine.migrate(context);
+
+        assertEquals(0, result.getRecords().size(),
+            "a migration for another context must not run in this context");
+        assertFalse(tableExists("ctl_ctx_t"));
+    }
+
+    @Test
+    void testLabelMismatchSkipsMigration() {
+        DbMigrationModel migration = createTableMigrationFor("1.0.0", "prod labeled", "ctl_label_t");
+        migration.setLabels("prod");
+
+        MigrationContext context = createMigrationContext(Collections.singletonList(migration));
+        context.setLabels(Collections.singletonList("dev"));
+
+        MigrationResult result = migrationEngine.migrate(context);
+
+        assertEquals(0, result.getRecords().size(),
+            "when the context declares labels, a migration without a shared label must not run");
+        assertFalse(tableExists("ctl_label_t"));
+    }
+
+    @Test
+    void testFailOnErrorFalseContinuesAfterFailure() {
+        DbMigrationModel failing = createInvalidMigration("1.0.0", "fails");
+        failing.setFailOnError(false);
+        DbMigrationModel succeeding = createCreateTableMigration("1.1.0", "runs after failure");
+
+        MigrationContext context = createMigrationContext(Arrays.asList(failing, succeeding));
+        context.setFailFast(true);
+
+        MigrationResult result = assertDoesNotThrow(() -> migrationEngine.migrate(context),
+            "failOnError=false must override the global failFast for this migration");
+        assertEquals(2, result.getRecords().size());
+        assertFalse(result.getRecords().get(0).isSuccess());
+        assertTrue(result.getRecords().get(1).isSuccess());
+        assertTrue(tableExists("users"), "the migration after the tolerated failure must still run");
+    }
+
+    // ---- result aggregation regression ----
+
+    @Test
+    void testResultSuccessIsFalseWhenAnyRecordFailed() {
+        MigrationContext context = createMigrationContext(
+            Collections.singletonList(createInvalidMigration("1.0.0", "Invalid migration")));
+        context.setFailFast(false);
+
+        MigrationResult result = migrationEngine.migrate(context);
+
+        assertEquals(1, result.getRecords().size());
+        assertFalse(result.isSuccess(),
+            "a result containing a failed record must not report overall success");
+        assertEquals(0, result.getExecutedCount(),
+            "failed records must not be counted as executed");
+    }
+
+    // ---- dbType alias regression ----
+
+    @Test
+    void testSqlServerAliasMatchesMssqlDialect() throws Exception {
+        List<String> executed = new ArrayList<>();
+
+        DbTypeFilterChange filter = new DbTypeFilterChange();
+        filter.setId("filter-1");
+        filter.setType("dbTypeFilter");
+        // the xdef documentation advertised "sqlserver" while the dialect
+        // registry names it "mssql"
+        filter.setDbTypes(Collections.singleton("sqlserver"));
+        DbChangeModel nested = newChange("probeType");
+        filter.setChanges(Collections.singletonList(nested));
+
+        MigrationContext context = createMigrationContext(Collections.emptyList());
+        migrationEngine.registerExecutor("probeType", (change, ctx, dialect) -> executed.add("probe"));
+
+        java.lang.reflect.Field field = MigrationEngine.class.getDeclaredField("dbTypeFilterExecutor");
+        field.setAccessible(true);
+        DbTypeFilterExecutor dbTypeFilterExecutor = (DbTypeFilterExecutor) field.get(migrationEngine);
+
+        dbTypeFilterExecutor.execute(filter, context, DialectManager.instance().getDialect("mssql"));
+
+        assertEquals(Collections.singletonList("probe"), executed,
+            "dbTypes=\"sqlserver\" must match the mssql dialect");
+    }
+
+    // ---- caller list immutability regression ----
+
+    @Test
+    void testMigrateDoesNotMutateCallerListAndAcceptsImmutableList() {
+        DbMigrationModel second = createCreateTableMigration("1.1.0", "second");
+        // distinct table so both migrations succeed
+        CreateTableChange change = new CreateTableChange();
+        change.setId("create-first");
+        change.setType("createTable");
+        change.setName("first_table");
+        ColumnDefinition idColumn = new ColumnDefinition();
+        idColumn.setName("id");
+        idColumn.setType(StdSqlType.VARCHAR);
+        idColumn.setSize(36);
+        idColumn.setPrimaryKey(true);
+        idColumn.setNullable(false);
+        change.setColumns(Collections.singletonList(idColumn));
+        DbMigrationModel first = new DbMigrationModel();
+        first.setVersion("1.0.0");
+        first.setDescription("first");
+        first.setChangeset(Collections.singletonList(change));
+
+        // immutable input: Collections.sort on it used to throw
+        // UnsupportedOperationException
+        MigrationResult result = assertDoesNotThrow(() ->
+            migrationEngine.migrate(createMigrationContext(List.of(second, first))),
+            "migrate must not sort the caller-provided list in place");
+
+        assertEquals(2, result.getRecords().size());
+        assertTrue(tableExists("first_table"));
+        assertTrue(tableExists("users"));
+    }
+
     private DbChangeModel newChange(String type) {
         // DbChangeModel is abstract; any concrete change subclass works as a
         // carrier for the probe change type
@@ -272,6 +546,28 @@ class TestMigrationEngine extends AbstractMigrationTestCase {
         context.setMigrations(migrations);
 
         return context;
+    }
+
+    private DbMigrationModel createTableMigrationFor(String version, String description, String tableName) {
+        DbMigrationModel migration = new DbMigrationModel();
+        migration.setVersion(version);
+        migration.setDescription(description);
+
+        CreateTableChange change = new CreateTableChange();
+        change.setId("create-" + tableName + "-" + version);
+        change.setType("createTable");
+        change.setName(tableName);
+
+        ColumnDefinition idColumn = new ColumnDefinition();
+        idColumn.setName("id");
+        idColumn.setType(StdSqlType.VARCHAR);
+        idColumn.setSize(36);
+        idColumn.setPrimaryKey(true);
+        idColumn.setNullable(false);
+        change.setColumns(Collections.singletonList(idColumn));
+
+        migration.setChangeset(Collections.singletonList(change));
+        return migration;
     }
 
     private DbMigrationModel createCreateTableMigration(String version, String description) {

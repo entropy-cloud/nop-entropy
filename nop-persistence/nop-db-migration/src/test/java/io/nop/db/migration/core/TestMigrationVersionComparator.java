@@ -87,17 +87,6 @@ public class TestMigrationVersionComparator {
         assertEquals("", MigrationVersionComparator.extractDescription("V1.0.0"));
     }
     
-    @Test
-    public void testParseVersionParts() {
-        int[] parts = MigrationVersionComparator.parseVersionParts("V1.2.3__test");
-        assertArrayEquals(new int[]{1, 2, 3}, parts);
-        
-        parts = MigrationVersionComparator.parseVersionParts("V2.0__test");
-        assertArrayEquals(new int[]{2, 0, 0}, parts);
-        
-        parts = MigrationVersionComparator.parseVersionParts("V1__test");
-        assertArrayEquals(new int[]{1, 0, 0}, parts);
-    }
 
     @Test
     public void testCompareBothNullIsZero() {

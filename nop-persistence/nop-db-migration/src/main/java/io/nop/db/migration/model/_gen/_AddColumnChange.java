@@ -25,6 +25,13 @@ public abstract class _AddColumnChange extends io.nop.db.migration.model.DbChang
     
     /**
      *  
+     * xml name: id
+     * 
+     */
+    private java.lang.String _id ;
+    
+    /**
+     *  
      * xml name: schemaName
      * 模式名（可选）
      */
@@ -36,6 +43,13 @@ public abstract class _AddColumnChange extends io.nop.db.migration.model.DbChang
      * 表名
      */
     private java.lang.String _tableName ;
+    
+    /**
+     *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _type ;
     
     /**
      * 
@@ -84,6 +98,25 @@ public abstract class _AddColumnChange extends io.nop.db.migration.model.DbChang
     
     /**
      * 
+     * xml name: id
+     *  
+     */
+    
+    public java.lang.String getId(){
+      return _id;
+    }
+
+    
+    public void setId(java.lang.String value){
+        checkAllowChange();
+        
+        this._id = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: schemaName
      *  模式名（可选）
      */
@@ -116,6 +149,25 @@ public abstract class _AddColumnChange extends io.nop.db.migration.model.DbChang
         checkAllowChange();
         
         this._tableName = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getType(){
+      return _type;
+    }
+
+    
+    public void setType(java.lang.String value){
+        checkAllowChange();
+        
+        this._type = value;
            
     }
 
@@ -154,8 +206,10 @@ public abstract class _AddColumnChange extends io.nop.db.migration.model.DbChang
         super.copyTo(instance);
         
         instance.setColumns(this.getColumns());
+        instance.setId(this.getId());
         instance.setSchemaName(this.getSchemaName());
         instance.setTableName(this.getTableName());
+        instance.setType(this.getType());
     }
 
     protected AddColumnChange newInstance(){

@@ -52,12 +52,9 @@ public class MigrationVersionComparator implements Comparator<DbMigrationModel>,
         if (r1 && !r2) return 1;
         
         if (r1 && r2) {
-            String d1 = extractDescription(v1);
-            String d2 = extractDescription(v2);
-            if (d1 == null && d2 == null) return 0;
-            if (d1 == null) return -1;
-            if (d2 == null) return 1;
-            return d1.compareTo(d2);
+            // extractDescription never returns null (only "" or a substring),
+            // so no null handling is needed here
+            return extractDescription(v1).compareTo(extractDescription(v2));
         }
         
         return StringHelper.compareVersions(extractSemanticVersion(v1), extractSemanticVersion(v2));
@@ -110,22 +107,4 @@ public class MigrationVersionComparator implements Comparator<DbMigrationModel>,
         return "";
     }
     
-    /**
-     * Parse version string into parts for comparison
-     */
-    public static int[] parseVersionParts(String version) {
-        String semVer = extractSemanticVersion(version);
-        String[] parts = semVer.split("\\.");
-        int[] result = new int[3];
-        for (int i = 0; i < 3; i++) {
-            if (i < parts.length) {
-                try {
-                    result[i] = Integer.parseInt(parts[i]);
-                } catch (NumberFormatException e) {
-                    result[i] = 0;
-                }
-            }
-        }
-        return result;
-    }
 }

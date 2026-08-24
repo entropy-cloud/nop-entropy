@@ -73,6 +73,23 @@ public class TestPreconditionCheckers {
         context.setQuerySpace("default");
     }
     
+    @Test
+    public void testTableExistsMatchesLowerCaseStoredName() {
+        // A quoted identifier keeps its lowercase form in H2 metadata (MySQL
+        // with lower_case_table_names=1 behaves the same), so matching must be
+        // case-insensitive instead of upper-casing only the parameter
+        jdbcTemplate.executeUpdate(SQL.begin().append("CREATE TABLE \"lowercase_t\" (id INT PRIMARY KEY)").end());
+        try {
+            TableExistsPrecondition prep = new TableExistsPrecondition();
+            prep.setTableName("lowercase_t");
+            prep.setExpect(PreconditionExpect.EXISTS);
+            assertTrue(new TableExistsChecker().check(prep, context),
+                "table name matching must be case-insensitive for lowercase-stored names");
+        } finally {
+            jdbcTemplate.executeUpdate(SQL.begin().append("DROP TABLE \"lowercase_t\"").end());
+        }
+    }
+
     @AfterEach
     public void tearDown() {
         jdbcTemplate.executeUpdate(SQL.begin().append("DROP TABLE IF EXISTS test_table").end());

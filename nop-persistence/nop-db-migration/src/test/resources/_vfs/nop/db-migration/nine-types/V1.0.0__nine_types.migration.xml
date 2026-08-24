@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Parse and execution coverage for the nine change tags whose model classes
+  previously did not extend DbChangeModel (sql, alterColumn, createIndex,
+  createView, renameTable, dropView, customChange, dbTypeFilter, executeMark):
+  parsing any of them used to fail with ClassCastException because
+  _DbMigrationModel.setChangeset builds a KeyedList keyed by
+  DbChangeModel::getId.
+-->
+<migration xmlns="/nop/schema/db-migration/migration.xdef"
+  version="1.0.0"
+  description="Coverage for the nine previously-unparseable change tags"
+  author="test">
+
+  <changeset>
+    <createTable id="nine-create-table" name="nine_user">
+      <columns>
+        <column name="id" type="VARCHAR" size="36" primaryKey="true" nullable="false"/>
+        <column name="name" type="VARCHAR" size="50" nullable="true"/>
+      </columns>
+    </createTable>
+
+    <renameTable id="nine-rename-table" oldTableName="nine_user" newTableName="nine_member"/>
+
+    <sql id="nine-sql">
+      <body>INSERT INTO nine_member (id, name) VALUES ('1', 'a')</body>
+    </sql>
+
+    <createIndex id="nine-create-index" name="idx_nine_name" tableName="nine_member" unique="false" columnNames="name"/>
+
+    <alterColumn id="nine-alter-column" tableName="nine_member" columnName="name" newNullable="false"/>
+
+    <createView id="nine-create-view" name="nine_view">
+      <selectSql>SELECT id FROM nine_member</selectSql>
+    </createView>
+
+    <dropView id="nine-drop-view" name="nine_view"/>
+
+    <dbTypeFilter id="nine-db-type-filter" dbTypes="h2">
+      <changes>
+        <sql id="nine-nested-sql">
+          <body>UPDATE nine_member SET name = 'b' WHERE id = '1'</body>
+        </sql>
+      </changes>
+    </dbTypeFilter>
+
+    <customChange id="nine-custom-change"/>
+
+    <executeMark id="nine-execute-mark" comment="parse coverage only"/>
+  </changeset>
+</migration>

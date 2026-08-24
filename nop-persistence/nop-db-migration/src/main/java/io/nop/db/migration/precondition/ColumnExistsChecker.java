@@ -38,16 +38,16 @@ public class ColumnExistsChecker implements IPreconditionChecker {
     }
     
     private boolean checkColumnExists(IJdbcTemplate jdbcTemplate, String querySpace, String tableName, String columnName, String schemaName) {
-        String sql = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = ? AND COLUMN_NAME = ?";
+        String sql = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE UPPER(TABLE_NAME) = UPPER(?) AND UPPER(COLUMN_NAME) = UPPER(?)";
         if (schemaName != null && !schemaName.isEmpty()) {
-            sql += " AND TABLE_SCHEMA = ?";
+            sql += " AND UPPER(TABLE_SCHEMA) = UPPER(?)";
         }
         
         final boolean[] exists = {false};
         
         if (schemaName != null && !schemaName.isEmpty()) {
             jdbcTemplate.executeQuery(
-                SQL.begin().querySpace(querySpace).sql(sql, tableName.toUpperCase(), columnName.toUpperCase(), schemaName.toUpperCase()).end(),
+                SQL.begin().querySpace(querySpace).sql(sql, tableName, columnName, schemaName).end(),
                 dataSet -> {
                     for (IDataRow row : dataSet) {
                         exists[0] = row.getLong(0) > 0;
@@ -58,7 +58,7 @@ public class ColumnExistsChecker implements IPreconditionChecker {
             );
         } else {
             jdbcTemplate.executeQuery(
-                SQL.begin().querySpace(querySpace).sql(sql, tableName.toUpperCase(), columnName.toUpperCase()).end(),
+                SQL.begin().querySpace(querySpace).sql(sql, tableName, columnName).end(),
                 dataSet -> {
                     for (IDataRow row : dataSet) {
                         exists[0] = row.getLong(0) > 0;
