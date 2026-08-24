@@ -1,5 +1,11 @@
 # 给字段换复杂自定义控件
 
+> **Flux 时代注记（2026-08-24）**：本 runbook 的 gen-control 写法在 **AMIS 与 Flux 双模式通用**——gen-control 返回的 schema 会原样进入页面 JSON，由当前渲染引擎消费。因此：
+>
+> 1. **新增定制控件**：按本文写法没问题，但返回的 schema 必须是**当前渲染目标引擎的契约格式**——不仅是字段名（flux 模式下 picker 用 `valueKey`/`labelKey` 而非 AMIS 的 `valueField`/`labelField`），**组件类型名同样须换算**（如 AMIS `tree-select` ↔ flux `type:'tree'`），换算逻辑同型对照见 `../02-core-guides/flux-rendering.md §picker 字段级 schema 契约`。
+> 2. **迁移期清理**：存量 view.xml 中"只返回 AMIS 风格 picker schema（source/joinValues/extractValue）且无 onEvent 等业务逻辑"的 `<gen-control>` 块属于迁移遗留——应**直接删除**而非改写。删除后 DefaultControl 的 mode 退化链会经 controlLib 自动产出正确 schema；逐个改写 gen-control 内容是在重复控件库已有的能力。注意退化链的前提：只有**显式声明了 `editMode="list-edit"` 的子表 grid 列**才退到 edit-to-one → edit-relation 产出可编辑 picker；默认 list-view 的只读列退 view-* 形态（完整退化链见 `../02-core-guides/frontend-rendering-pipeline.md §mode 退化链`）。
+> 3. **判断标准**：gen-control 里只有控件形态声明（无跨字段联动/自定义校验）= 可删候选；含 `onEvent`、`validations`、业务专用 columns = 保留并转换字段名与组件名。
+
 ## 适用场景
 
 - 默认按 domain 推导出的控件不够用。

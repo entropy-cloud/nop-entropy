@@ -204,6 +204,8 @@ ORM 初始化时 `OrmModelInitializer.syncDomains()` 按以下规则把 domain �
 > - 主键生成：`OrmEntityIdGenerator.genSeq` 按 **DB 类型**（`stdSqlType` 的 stdDataType）决定生成方式，BIGINT 仍走 `generateLong` 序列号引擎；
 > - 类型转换：生成的 Entity setter 自动把 Long 序列值 `ConvertHelper.toString` 转为 String；
 > - 关联 join、读写、查询均以 DB 层 bigint 语义执行，与 Java 类型无关。
+>
+> **落地实证注记（2026-08-23）**：方案 B 已在 nop-app-erp 参考应用 **19 个业务域全量落地**——全部主键/外键共 1662 列按本方案声明（Java 层 String / DB 层 BIGINT 保持，`tagSet="seq-default"` 序列生成不变），前端/GraphQL 全程 String 无精度截断。迁移工程证据链见 nop-app-erp 仓 `docs/backlog/id-string-migration-roadmap.md`（id-string-migration mission，M1-M4 全 done）。
 
 ### 选择建议
 

@@ -39,7 +39,7 @@ x:gen-extends: |
 
 - 替换 GenPage/GenForm/GenGrid 等标签：`nop-web/src/main/resources/_vfs/nop/web/xlib/web/impl_flux_mode.xpl`
 - 替换 controlLib：`nop-web/src/main/resources/_vfs/nop/web/xlib/view-gen.xlib` 中的 `DefaultViewPostExtends` 标签（第 12-26 行）
-- 替换后的 Flux 控件库：`nop-web/src/main/resources/_vfs/nop/web/xlib/flux-control.xlib`（75 个控件映射标签）
+- 替换后的 Flux 控件库：`nop-web/src/main/resources/_vfs/nop/web/xlib/flux-control.xlib`（78 个控件映射标签，含 x:prototype 别名）
 
 ### 这个设计的意义
 
@@ -448,10 +448,82 @@ Flux `PageSchema` **完全支持** aside 相关属性（与 AMIS 命名差异：
 
 - 页面级 `picker`：Flux 无页面级 picker schema（`PickerSchema` 仅为表单字段类型），`page_picker.xpl` 为 AMIS 遗留，暂不处理。
 
+## picker 字段级 schema 契约（跨仓库消费端）
+
+> **本节是生成侧（xlib / gen-control）与消费侧（nop-chaos-flux 渲染器）之间的契约权威。修改任何输出 `type:'picker'` schema 的代码前必读。**
+
+Flux 表单字段级 picker 的 schema 由 nop-chaos-flux 渲染器消费（`flux-renderers-form-advanced/src/picker-renderer.tsx` + `composite-field/composite-schemas.ts` 的 `PickerSchema`）。**字段命名与 AMIS picker 完全不同**，逐项对照：
+
+| 本仓生成侧必须输出 | 禁止输出的 AMIS 键 | 说明 |
+|---|---|---|
+| `pickerDialog: { title, size }` | （无对应物） | 有 `loadAction` 或非空静态 `options` 时**可省**（弹层用默认 i18n 标题）；仅当三者全缺时点击才触发 `flux.picker.configMissing` warning 并拒绝打开——条件判定在 `picker-renderer.tsx:58-59`（`pickerDialog !== undefined && !== false`），warning 出口在 325-327（条件为 `!hasPickerDialog && options.length === 0 && !crudMode` 三者同时成立） |
+| `valueKey` / `labelKey` | ~~`valueField` / `labelField`~~ | **命名陷阱（P0 教训 2026-08-24）**：AMIS 用 valueField/labelField，Flux 只读 valueKey/labelKey（`picker-renderer.tsx:56-57`）。输错字段名不会报错——选中值提取静默退化到 `row.value`、label 显示退化为原始 ID |
+| `loadAction: { action:'ajax', args:{ url, 'gql:selection' } }` | ~~`source: <url字符串>`~~ | 有 loadAction 即进入 CRUD 弹层模式（`crudMode = Boolean(loadAction)`），弹层内嵌 CRUD 表格；url 形如 `@query:<BizObjName>__findPage` |
+| `columns: [...]` | （内嵌 `<crud xpl:is="pickerSchema">` 结构） | 弹层内嵌 CRUD 的列定义；不传时仅 options 静态模式下可推断 |
+| `multiple` | ~~`joinValues` / `extractValue`~~ | Flux 运行时完全不识别这两个 AMIS 键（grep 0 命中），静默忽略 |
+
+### bizObjName 派生链陷阱
+
+`edit-relation` 等 tag 中派生取数实体名时，**不能直接对传入的 `propMeta` 调 `XuiHelper.getRefBizObjName(propMeta)`**：`DefaultControl` 传入的 propMeta 在 grid 列场景下是列元数据而非 relation 属性元数据，此时该方法返回 null，模板拼接会产出字面量 `@query:null__findPage`（实测曾致 93% picker URL 无效且契约测试无法发现——URL 是运行时才请求的）。
+
+正确姿势是从已解析的关联属性派生：
+
+```js
+const relProp = XuiHelper.getRelationProp(propMeta, objMeta);
+const bizObjName = (relProp ? XuiHelper.getRefBizObjName(relProp) : null)   // 最可靠
+    || propMeta['ui:queryUrl']
+    || XuiHelper.getRefBizObjName(propMeta)
+    || dispMeta?.['ui:queryUrl'];
+if (!bizObjName) {
+    return { type: 'picker', pickerDialog: false, ... };   // 安全退化，禁止拼 null
+}
+```
+
+### 定制方式：delta 覆盖 flux-control.xlib
+
+平台基线 `flux-control.xlib` 的 5 个 picker tag（edit-relation/edit-roleId/edit-userId/edit-ref-id/edit-ref-ids）历史输出为 AMIS 风格。应用项目**不需要改本仓源码**，在项目 `_vfs/_delta/default/nop/web/xlib/flux-control.xlib` 放同名文件即可覆盖（Delta 层优先于基线加载）：
+
+```xml
+<lib x:extends="super" x:schema="/nop/schema/xlib.xdef"
+     xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c">
+    <tags>
+        <!-- 只重写需要的 tag；其余 73 个 tag 从 super 继承 -->
+        <edit-relation>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="objMeta"/>
+            <attr name="editMode"/>
+            <source><![CDATA[
+                /* 输出上表所列 Flux 契约字段 */
+            ]]></source>
+        </edit-relation>
+        ...
+    </tags>
+</lib>
+```
+
+真实样例：nop-app-erp `app-erp-all/src/main/resources/_vfs/_delta/default/nop/web/xlib/flux-control.xlib`（plan 2026-08-24-1147-1，含完整 bizObjName 派生链与 5 tag 重写）。
+
+### 手写 `<gen-control>` AMIS 残留的清理决策树
+
+flux 迁移后，view.xml 里手写的返回 AMIS picker schema（`source`/`joinValues`/`extractValue`）的 `<gen-control>` 块是迁移期遗留：
+
+```
+gen-control 是否只返回 { type:'picker', source, joinValues, extractValue, ... } ？
+├─ 是（纯 AMIS picker，无 onEvent/validations/自定义 columns）
+│    → 直接删除整个 <gen-control> 块。
+│      DefaultControl 的 mode 退化链（list-edit 找不到 list-edit-to-one → 退 edit-to-one → edit-relation）
+│      会自动经 delta flux-control.xlib 产出正确 flux schema。
+│      切勿逐个改写 gen-control 内容——那是重复 DefaultControl 已有的能力。
+└─ 否（含 onEvent 跨字段联动 / 自定义 validations / 自定义 columns）
+     → 保留块，仅把 picker 字段名按上表转换为 flux 契约（valueKey/labelKey/pickerDialog/loadAction），
+       onEvent 等业务逻辑原样保留。
+```
+
 ## 相关文件
 
 - `nop-frontend-support/nop-web/src/main/resources/_vfs/nop/web/xlib/flux-web.xlib` — Flux 页面生成库（28 个标签，含共享容器分派 `GenContainerModel`）
-- `nop-frontend-support/nop-web/src/main/resources/_vfs/nop/web/xlib/flux-control.xlib` — Flux 控件映射库（75 个标签）
+- `nop-frontend-support/nop-web/src/main/resources/_vfs/nop/web/xlib/flux-control.xlib` — Flux 控件映射库（78 个标签，含 x:prototype 别名）
 - `nop-frontend-support/nop-web/src/main/resources/_vfs/nop/web/xlib/flux-web/page_tabs.xpl` / `page_wizard.xpl` / `page_group.xpl` / `page_complex.xpl` / `page_embed.xpl` — 页面级容器/引用模板（包 `page` 外壳或直接输出嵌入页）
 - `nop-frontend-support/nop-web/src/main/resources/_vfs/nop/web/xlib/flux-web/container_tabs.xpl` / `container_wizard.xpl` / `container_group.xpl` / `container_crud.xpl` / `container_simple.xpl` — 容器级模板（不包外壳，页面级与 body 级共用）
 - `nop-frontend-support/nop-web/src/main/java/io/nop/web/page/WebPageHelper.java`（`applyViewOverride` / `internalLoadPage` / `toFluxPagePath`） — embed 加载 + override 合并入口
