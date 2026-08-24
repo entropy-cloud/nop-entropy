@@ -662,7 +662,7 @@ class TestWebAuthnAddKeyE2E {
                 .createTables(tables, false);
         jdbcTemplate.executeMultiSql(new io.nop.core.lang.sql.SQL(createSql));
 
-        daoProvider = new OrmDaoProvider(ormTemplate);
+        OrmDaoProvider __daoProvider = new OrmDaoProvider(); __daoProvider.setOrmTemplate(ormTemplate); daoProvider = __daoProvider;
     }
 
     private void wireRealBeans() {

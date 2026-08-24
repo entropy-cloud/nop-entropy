@@ -7,7 +7,6 @@
  */
 package io.nop.orm.dao;
 
-import io.nop.api.core.util.Guard;
 import io.nop.dao.api.DaoProvider;
 import io.nop.dao.api.IDaoEntity;
 import io.nop.dao.api.IDaoProvider;
@@ -21,13 +20,16 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class OrmDaoProvider implements IDaoProvider {
-    private final IOrmTemplate ormTemplate;
+    private IOrmTemplate ormTemplate;
     private final Map<String, IEntityDao<?>> daoMap = new ConcurrentHashMap<>();
     private final Map<String, IEntityDao<?>> daoByTableMap = new ConcurrentHashMap<>();
 
+    public OrmDaoProvider() {
+    }
+
     @Inject
-    public OrmDaoProvider(IOrmTemplate ormTemplate) {
-        this.ormTemplate = Guard.notNull(ormTemplate,"ormTemplate");
+    public void setOrmTemplate(IOrmTemplate ormTemplate) {
+        this.ormTemplate = ormTemplate;
     }
 
     public void clearCache() {

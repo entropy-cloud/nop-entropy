@@ -438,7 +438,7 @@ public class TestFeishuConversationE2E {
                     .createTables(tables, false);
             jdbcTemplate.executeMultiSql(new SQL(createSql));
 
-            daoProvider = new OrmDaoProvider(orm);
+            OrmDaoProvider __daoProvider = new OrmDaoProvider(); __daoProvider.setOrmTemplate(orm); daoProvider = __daoProvider;
             delegate = new ChannelSessionStoreImpl();
             delegate.setDaoProvider(daoProvider);
             delegate.setOrmTemplate(orm);

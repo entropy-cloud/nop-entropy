@@ -150,7 +150,7 @@ public class TestNopAiOrmEntityMapping {
 
         IOrmSessionFactory sessionFactory = factoryBean.getObject();
         orm = new OrmTemplateImpl(sessionFactory);
-        daoProvider = new OrmDaoProvider(orm);
+        OrmDaoProvider __daoProvider = new OrmDaoProvider(); __daoProvider.setOrmTemplate(orm); daoProvider = __daoProvider;
 
         Collection<? extends IEntityModel> tables = sessionFactory.getOrmModel().getEntityModelsInTopoOrder();
         String createSql = new DdlSqlCreator(jdbcTemplate.getDialectForQuerySpace(null)).createTables(tables, false);

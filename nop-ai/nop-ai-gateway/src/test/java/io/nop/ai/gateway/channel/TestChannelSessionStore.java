@@ -107,7 +107,7 @@ public class TestChannelSessionStore {
 
         IOrmSessionFactory sessionFactory = factoryBean.getObject();
         orm = new OrmTemplateImpl(sessionFactory);
-        daoProvider = new OrmDaoProvider(orm);
+        OrmDaoProvider __daoProvider = new OrmDaoProvider(); __daoProvider.setOrmTemplate(orm); daoProvider = __daoProvider;
 
         // create ALL tables (incl. nop_ai_channel_session) from the live ORM model
         Collection<? extends IEntityModel> tables = sessionFactory.getOrmModel().getEntityModelsInTopoOrder();
